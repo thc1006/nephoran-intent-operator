@@ -633,7 +633,7 @@ func TestSchemaValidationErrorHandling(t *testing.T) {
 			expectedErrors: []string{"intent_type"},
 		},
 		{
-			name: "MissingRequiredFields",
+			name:  "MissingRequiredFields",
 			input: &ScalingIntent{
 				// All required fields missing
 			},
@@ -778,11 +778,11 @@ func TestSchemaValidationErrorHandling(t *testing.T) {
 		{
 			name: "MixedValidAndInvalidFields",
 			input: &ScalingIntent{
-				IntentType: "scaling", // Valid
+				IntentType: "scaling",         // Valid
 				Target:     "test-deployment", // Valid
-				Namespace:  "", // Invalid - empty
-				Replicas:   101, // Invalid - too large
-				Source:     "invalid", // Invalid - not in enum
+				Namespace:  "",                // Invalid - empty
+				Replicas:   101,               // Invalid - too large
+				Source:     "invalid",         // Invalid - not in enum
 			},
 			expectedErrors: []string{"namespace", "replicas", "source"},
 		},
@@ -895,7 +895,7 @@ func TestMalformedJSONInputs(t *testing.T) {
 				return
 			}
 
-			// Should have at least one error - either JSON parsing error (field "json") 
+			// Should have at least one error - either JSON parsing error (field "json")
 			// or schema validation error (field "/" for root-level type mismatch)
 			found := false
 			for _, err := range errors {
@@ -920,9 +920,9 @@ func TestMalformedJSONInputs(t *testing.T) {
 // TestSchemaFileCorruption tests various schema file corruption scenarios
 func TestSchemaFileCorruption(t *testing.T) {
 	tests := []struct {
-		name         string
+		name          string
 		schemaContent string
-		shouldFail   bool
+		shouldFail    bool
 	}{
 		{
 			name: "MissingSchemaVersion",
@@ -979,9 +979,9 @@ func TestSchemaFileCorruption(t *testing.T) {
 			shouldFail: true,
 		},
 		{
-			name: "EmptySchema",
+			name:          "EmptySchema",
 			schemaContent: `{}`,
-			shouldFail: false, // Empty schema might be valid (allows anything)
+			shouldFail:    false, // Empty schema might be valid (allows anything)
 		},
 	}
 

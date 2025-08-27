@@ -810,11 +810,11 @@ func generateJWTTokens(algorithm string, keySize int, claimsCount int, expiry ti
 
 func setupRBACConfiguration(roleCount, permissionCount, resourceTypes, userGroups, hierarchyDepth int) RBACConfig {
 	return RBACConfig{
-		Enabled:       true,
-		DefaultRole:   "user",
-		Permissions:   make(map[string][]string),
-		RoleMapping:   make(map[string][]string),
-		GroupMapping:  make(map[string][]string),
+		Enabled:      true,
+		DefaultRole:  "user",
+		Permissions:  make(map[string][]string),
+		RoleMapping:  make(map[string][]string),
+		GroupMapping: make(map[string][]string),
 	}
 }
 
@@ -1050,7 +1050,7 @@ func setupBenchmarkAuthSystem() *EnhancedAuthSystem {
 			{Scopes: []string{"openid", "profile"}},
 		},
 		SessionConfig: BenchmarkSessionConfig{
-			TTL:        time.Hour,
+			TTL: time.Hour,
 		},
 	}
 

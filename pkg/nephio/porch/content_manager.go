@@ -835,11 +835,11 @@ type MergeConfig struct{}
 
 // ContentManagerMetrics holds Prometheus metrics
 type ContentManagerMetrics struct {
-	contentOperations    *prometheus.CounterVec
-	contentSize          *prometheus.GaugeVec
+	contentOperations     *prometheus.CounterVec
+	contentSize           *prometheus.GaugeVec
 	contentProcessingTime *prometheus.HistogramVec
-	validationOperations *prometheus.CounterVec
-	validationDuration   prometheus.Observer
+	validationOperations  *prometheus.CounterVec
+	validationDuration    prometheus.Observer
 }
 
 // Additional interfaces
@@ -856,9 +856,11 @@ type BinaryContentStore interface {
 type ContentCache interface{}
 
 type MergeEngine struct{}
+
 func NewMergeEngine(config *MergeConfig) *MergeEngine { return &MergeEngine{} }
 
 type ConflictResolver struct{}
+
 func NewConflictResolver(config *ConflictConfig) *ConflictResolver { return &ConflictResolver{} }
 
 // TemplateEngine handles template processing
@@ -893,19 +895,19 @@ func (cv *ContentValidator) Close() error { return nil }
 
 // ContentValidationRule defines content validation rules
 type ContentValidationRule struct {
-	Name        string
-	Pattern     string
-	Required    bool
-	ErrorMsg    string
+	Name     string
+	Pattern  string
+	Required bool
+	ErrorMsg string
 }
 
 // Additional enums
 type SecurityIssueType string
 
 const (
-	SecurityIssueTypeVulnerability SecurityIssueType = "vulnerability"
+	SecurityIssueTypeVulnerability    SecurityIssueType = "vulnerability"
 	SecurityIssueTypeMisconfiguration SecurityIssueType = "misconfiguration"
-	SecurityIssueTypeSecretExposure SecurityIssueType = "secret_exposure"
+	SecurityIssueTypeSecretExposure   SecurityIssueType = "secret_exposure"
 )
 
 type SecuritySeverity string
@@ -920,11 +922,10 @@ const (
 type QualityIssueType string
 
 const (
-	QualityIssueTypeComplexity     QualityIssueType = "complexity"
-	QualityIssueTypeDuplication    QualityIssueType = "duplication"
+	QualityIssueTypeComplexity      QualityIssueType = "complexity"
+	QualityIssueTypeDuplication     QualityIssueType = "duplication"
 	QualityIssueTypeMaintainability QualityIssueType = "maintainability"
 )
-
 
 // ContentStore interface
 type ContentStore interface {

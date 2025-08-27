@@ -19,17 +19,17 @@ import (
 
 // AutomationEngine manages automated certificate operations
 type AutomationEngine struct {
-	logger         *logging.StructuredLogger
-	config         *AutomationConfig
-	manager        *CAManager
-	healthChecker  *HealthChecker
-	kubeClient     kubernetes.Interface
-	watchers       map[string]*ServiceWatcher
-	watchersMux    sync.RWMutex
-	stopCh         chan struct{}
-	running        bool
-	runningMux     sync.RWMutex
-	requestQueue   []*AutomationRequest
+	logger          *logging.StructuredLogger
+	config          *AutomationConfig
+	manager         *CAManager
+	healthChecker   *HealthChecker
+	kubeClient      kubernetes.Interface
+	watchers        map[string]*ServiceWatcher
+	watchersMux     sync.RWMutex
+	stopCh          chan struct{}
+	running         bool
+	runningMux      sync.RWMutex
+	requestQueue    []*AutomationRequest
 	requestQueueMux sync.RWMutex
 }
 
@@ -37,39 +37,39 @@ type AutomationEngine struct {
 type AutomationConfig struct {
 	// Discovery settings
 	ServiceDiscoveryEnabled bool          `yaml:"service_discovery_enabled"`
-	DiscoveryInterval      time.Duration `yaml:"discovery_interval"`
-	DiscoveryNamespaces    []string      `yaml:"discovery_namespaces"`
-	DiscoverySelectors     []string      `yaml:"discovery_selectors"`
+	DiscoveryInterval       time.Duration `yaml:"discovery_interval"`
+	DiscoveryNamespaces     []string      `yaml:"discovery_namespaces"`
+	DiscoverySelectors      []string      `yaml:"discovery_selectors"`
 
 	// Certificate management
-	AutoRenewalEnabled     bool          `yaml:"auto_renewal_enabled"`
-	RenewalThreshold      time.Duration `yaml:"renewal_threshold"`
-	RenewalCheckInterval  time.Duration `yaml:"renewal_check_interval"`
-	CertificateBackup     bool          `yaml:"certificate_backup"`
-	BackupRetention       int           `yaml:"backup_retention"`
+	AutoRenewalEnabled   bool          `yaml:"auto_renewal_enabled"`
+	RenewalThreshold     time.Duration `yaml:"renewal_threshold"`
+	RenewalCheckInterval time.Duration `yaml:"renewal_check_interval"`
+	CertificateBackup    bool          `yaml:"certificate_backup"`
+	BackupRetention      int           `yaml:"backup_retention"`
 
 	// Health checking
-	HealthCheckEnabled    bool          `yaml:"health_check_enabled"`
-	HealthCheckTimeout    time.Duration `yaml:"health_check_timeout"`
-	HealthCheckRetries    int           `yaml:"health_check_retries"`
-	HealthCheckInterval   time.Duration `yaml:"health_check_interval"`
+	HealthCheckEnabled  bool          `yaml:"health_check_enabled"`
+	HealthCheckTimeout  time.Duration `yaml:"health_check_timeout"`
+	HealthCheckRetries  int           `yaml:"health_check_retries"`
+	HealthCheckInterval time.Duration `yaml:"health_check_interval"`
 
 	// Notification settings
-	NotificationEnabled   bool          `yaml:"notification_enabled"`
-	NotificationEndpoints []string      `yaml:"notification_endpoints"`
-	AlertThresholds      map[string]int `yaml:"alert_thresholds"`
+	NotificationEnabled   bool           `yaml:"notification_enabled"`
+	NotificationEndpoints []string       `yaml:"notification_endpoints"`
+	AlertThresholds       map[string]int `yaml:"alert_thresholds"`
 
 	// Performance tuning
-	MaxConcurrentOps     int           `yaml:"max_concurrent_operations"`
-	OperationTimeout     time.Duration `yaml:"operation_timeout"`
-	BatchSize           int           `yaml:"batch_size"`
-	ProcessingInterval  time.Duration `yaml:"processing_interval"`
+	MaxConcurrentOps   int           `yaml:"max_concurrent_operations"`
+	OperationTimeout   time.Duration `yaml:"operation_timeout"`
+	BatchSize          int           `yaml:"batch_size"`
+	ProcessingInterval time.Duration `yaml:"processing_interval"`
 
 	// Security
-	AllowedServiceTypes  []string      `yaml:"allowed_service_types"`
-	RequiredAnnotations  map[string]string `yaml:"required_annotations"`
-	TLSValidation       bool          `yaml:"tls_validation"`
-	PolicyValidation    bool          `yaml:"policy_validation"`
+	AllowedServiceTypes []string          `yaml:"allowed_service_types"`
+	RequiredAnnotations map[string]string `yaml:"required_annotations"`
+	TLSValidation       bool              `yaml:"tls_validation"`
+	PolicyValidation    bool              `yaml:"policy_validation"`
 }
 
 // ServiceWatcher watches for service changes
@@ -113,26 +113,26 @@ type CertificateInfo struct {
 
 // AutomationRequest represents an automation request
 type AutomationRequest struct {
-	Type                RequestType              `json:"type"`
-	ServiceName         string                   `json:"service_name"`
-	ServiceNamespace    string                   `json:"service_namespace"`
-	CertificateTemplate *x509.Certificate        `json:"certificate_template"`
-	RenewalConfig       *RenewalConfig           `json:"renewal_config,omitempty"`
-	HealthCheckConfig   *HealthCheckConfig       `json:"health_check_config,omitempty"`
-	NotificationConfig  *AutomationNotificationConfig      `json:"notification_config,omitempty"`
-	Priority           RequestPriority          `json:"priority"`
-	Metadata           map[string]interface{}   `json:"metadata,omitempty"`
+	Type                RequestType                   `json:"type"`
+	ServiceName         string                        `json:"service_name"`
+	ServiceNamespace    string                        `json:"service_namespace"`
+	CertificateTemplate *x509.Certificate             `json:"certificate_template"`
+	RenewalConfig       *RenewalConfig                `json:"renewal_config,omitempty"`
+	HealthCheckConfig   *HealthCheckConfig            `json:"health_check_config,omitempty"`
+	NotificationConfig  *AutomationNotificationConfig `json:"notification_config,omitempty"`
+	Priority            RequestPriority               `json:"priority"`
+	Metadata            map[string]interface{}        `json:"metadata,omitempty"`
 }
 
 // RequestType defines types of automation requests
 type RequestType string
 
 const (
-	RequestTypeDiscovery     RequestType = "discovery"
-	RequestTypeRenewal       RequestType = "renewal"
-	RequestTypeProvisioning  RequestType = "provisioning"
-	RequestTypeRevocation    RequestType = "revocation"
-	RequestTypeHealthCheck   RequestType = "health_check"
+	RequestTypeDiscovery    RequestType = "discovery"
+	RequestTypeRenewal      RequestType = "renewal"
+	RequestTypeProvisioning RequestType = "provisioning"
+	RequestTypeRevocation   RequestType = "revocation"
+	RequestTypeHealthCheck  RequestType = "health_check"
 )
 
 // RequestPriority defines request priorities
@@ -169,9 +169,9 @@ type HealthCheckConfig struct {
 
 // NotificationConfig holds notification configuration
 type AutomationNotificationConfig struct {
-	Enabled   bool     `json:"enabled"`
-	Channels  []string `json:"channels"`
-	Events    []string `json:"events"`
+	Enabled   bool              `json:"enabled"`
+	Channels  []string          `json:"channels"`
+	Events    []string          `json:"events"`
 	Templates map[string]string `json:"templates"`
 }
 
@@ -191,11 +191,11 @@ type AutomationResponse struct {
 type ResponseStatus string
 
 const (
-	StatusPending   ResponseStatus = "pending"
+	StatusPending    ResponseStatus = "pending"
 	StatusProcessing ResponseStatus = "processing"
-	StatusCompleted ResponseStatus = "completed"
-	StatusFailed    ResponseStatus = "failed"
-	StatusCanceled  ResponseStatus = "canceled"
+	StatusCompleted  ResponseStatus = "completed"
+	StatusFailed     ResponseStatus = "failed"
+	StatusCanceled   ResponseStatus = "canceled"
 )
 
 // NewAutomationEngine creates a new automation engine
@@ -580,8 +580,8 @@ func (e *AutomationEngine) checkForRenewals(ctx context.Context) {
 
 			// Create renewal request
 			req := &AutomationRequest{
-				Type:     RequestTypeRenewal,
-				Priority: PriorityHigh,
+				Type:                RequestTypeRenewal,
+				Priority:            PriorityHigh,
 				CertificateTemplate: cert.Certificate,
 				Metadata: map[string]interface{}{
 					"serial_number": cert.SerialNumber,
@@ -649,7 +649,7 @@ func (e *AutomationEngine) performHealthChecks(ctx context.Context) {
 				ExpectedStatus: 200,
 			}
 
-		session, err := e.healthChecker.StartHealthCheck(target, config)
+			session, err := e.healthChecker.StartHealthCheck(target, config)
 			if err != nil {
 				e.logger.Warn("Failed to start health check",
 					"service", service.Name,
@@ -944,8 +944,8 @@ func (e *AutomationEngine) processDiscoveryRequest(req *AutomationRequest) *Auto
 		Timestamp: time.Now(),
 		Duration:  time.Since(startTime),
 		Metadata: map[string]interface{}{
-			"services":       services,
-			"service_count":  len(services),
+			"services":      services,
+			"service_count": len(services),
 		},
 	}
 }
@@ -1149,7 +1149,7 @@ func (e *AutomationEngine) GetDiscoveredServices(ctx context.Context) ([]*Servic
 // ProcessManualRequest processes a manual automation request synchronously
 func (e *AutomationEngine) ProcessManualRequest(req *AutomationRequest) *AutomationResponse {
 	startTime := time.Now()
-	
+
 	switch req.Type {
 	case RequestTypeProvisioning:
 		return e.processProvisioningRequest(req)

@@ -117,13 +117,13 @@ type FiveGCoreCatalog struct {
 
 // BlueprintTemplate represents a complete blueprint template
 type BlueprintTemplate struct {
-	ID            string             `json:"id" yaml:"id"`
-	Name          string             `json:"name" yaml:"name"`
-	Description   string             `json:"description" yaml:"description"`
-	Version       string             `json:"version" yaml:"version"`
-	Category      string             `json:"category" yaml:"category"`
+	ID            string          `json:"id" yaml:"id"`
+	Name          string          `json:"name" yaml:"name"`
+	Description   string          `json:"description" yaml:"description"`
+	Version       string          `json:"version" yaml:"version"`
+	Category      string          `json:"category" yaml:"category"`
 	ComponentType TargetComponent `json:"componentType" yaml:"componentType"`
-	IntentTypes   []v1.IntentType    `json:"intentTypes" yaml:"intentTypes"`
+	IntentTypes   []v1.IntentType `json:"intentTypes" yaml:"intentTypes"`
 
 	// O-RAN Compliance
 	ORANCompliant bool     `json:"oranCompliant" yaml:"oranCompliant"`
@@ -302,9 +302,9 @@ type SecretTemplate struct {
 
 type BlueprintDependency struct {
 	ComponentType TargetComponent `json:"componentType" yaml:"componentType"`
-	Version       string             `json:"version" yaml:"version"`
-	Required      bool               `json:"required" yaml:"required"`
-	Interface     string             `json:"interface,omitempty" yaml:"interface,omitempty"`
+	Version       string          `json:"version" yaml:"version"`
+	Required      bool            `json:"required" yaml:"required"`
+	Interface     string          `json:"interface,omitempty" yaml:"interface,omitempty"`
 }
 
 type BlueprintConstraint struct {
@@ -391,8 +391,8 @@ type PolicyRule struct {
 
 type EnforcementPoint struct {
 	ComponentType TargetComponent `json:"componentType" yaml:"componentType"`
-	Interface     string             `json:"interface" yaml:"interface"`
-	Method        string             `json:"method" yaml:"method"`
+	Interface     string          `json:"interface" yaml:"interface"`
+	Method        string          `json:"method" yaml:"method"`
 }
 
 type DataPlaneConfig struct {
@@ -1054,15 +1054,15 @@ func NewFiveGCoreCatalog(config *BlueprintConfig, logger *zap.Logger) (*FiveGCor
 func (catalog *ORANBlueprintCatalog) loadDefaultTemplates() {
 	// Add a basic Near-RT RIC template
 	catalog.NearRTRIC["default"] = &BlueprintTemplate{
-		ID:          "near-rt-ric-default",
-		Name:        "Default Near-RT RIC",
-		Description: "Default Near-RT RIC deployment template",
-		Version:     "1.0.0",
-		Category:    BlueprintCategoryNearRTRIC,
+		ID:            "near-rt-ric-default",
+		Name:          "Default Near-RT RIC",
+		Description:   "Default Near-RT RIC deployment template",
+		Version:       "1.0.0",
+		Category:      BlueprintCategoryNearRTRIC,
 		ComponentType: v1.ORANComponentNearRTRIC,
-		IntentTypes: []v1.IntentType{v1.IntentTypeDeployment},
+		IntentTypes:   []v1.IntentType{v1.IntentTypeDeployment},
 		ORANCompliant: true,
-		Interfaces:  []string{InterfaceA1, InterfaceE2, InterfaceO1},
+		Interfaces:    []string{InterfaceA1, InterfaceE2, InterfaceO1},
 		KRMResources: []KRMResourceTemplate{
 			{
 				APIVersion: "apps/v1",
@@ -1080,15 +1080,15 @@ func (catalog *ORANBlueprintCatalog) loadDefaultTemplates() {
 
 	// Add a basic xApp template
 	catalog.xApps["default"] = &BlueprintTemplate{
-		ID:          "xapp-default",
-		Name:        "Default xApp",
-		Description: "Default xApp deployment template",
-		Version:     "1.0.0",
-		Category:    BlueprintCategoryXApp,
+		ID:            "xapp-default",
+		Name:          "Default xApp",
+		Description:   "Default xApp deployment template",
+		Version:       "1.0.0",
+		Category:      BlueprintCategoryXApp,
 		ComponentType: v1.ORANComponentXApp,
-		IntentTypes: []v1.IntentType{v1.IntentTypeDeployment},
+		IntentTypes:   []v1.IntentType{v1.IntentTypeDeployment},
 		ORANCompliant: true,
-		Interfaces:  []string{InterfaceE2},
+		Interfaces:    []string{InterfaceE2},
 		KRMResources: []KRMResourceTemplate{
 			{
 				APIVersion: "apps/v1",
@@ -1110,15 +1110,15 @@ func (catalog *FiveGCoreCatalog) loadDefaultTemplates() {
 	// Initialize with basic AMF template
 	catalog.AMF = &AmfBlueprintTemplate{
 		BlueprintTemplate: &BlueprintTemplate{
-			ID:          "amf-default",
-			Name:        "Default AMF",
-			Description: "Default AMF deployment template",
-			Version:     "1.0.0",
-			Category:    BlueprintCategory5GCore,
+			ID:            "amf-default",
+			Name:          "Default AMF",
+			Description:   "Default AMF deployment template",
+			Version:       "1.0.0",
+			Category:      BlueprintCategory5GCore,
 			ComponentType: v1.ORANComponentAMF,
-			IntentTypes: []v1.IntentType{v1.IntentTypeDeployment},
+			IntentTypes:   []v1.IntentType{v1.IntentTypeDeployment},
 			ORANCompliant: true,
-			Interfaces:  []string{InterfaceO1, InterfaceO2},
+			Interfaces:    []string{InterfaceO1, InterfaceO2},
 			KRMResources: []KRMResourceTemplate{
 				{
 					APIVersion: "apps/v1",
@@ -1483,16 +1483,16 @@ func (obm *ORANBlueprintManager) selectBlueprintTemplates(ctx context.Context, i
 // buildBlueprintMetadata builds metadata for the blueprint
 func (obm *ORANBlueprintManager) buildBlueprintMetadata(intent *v1.NetworkIntent) *BlueprintMetadata {
 	return &BlueprintMetadata{
-		Name:          fmt.Sprintf("blueprint-%s", intent.Name),
-		Version:       "1.0.0",
-		Description:   fmt.Sprintf("Blueprint for intent: %s", intent.Spec.Intent),
-		Labels:        make(map[string]string),
-		Annotations:   make(map[string]string),
-		IntentType:    intent.Spec.IntentType,
-		ORANCompliant: true,
+		Name:           fmt.Sprintf("blueprint-%s", intent.Name),
+		Version:        "1.0.0",
+		Description:    fmt.Sprintf("Blueprint for intent: %s", intent.Spec.Intent),
+		Labels:         make(map[string]string),
+		Annotations:    make(map[string]string),
+		IntentType:     intent.Spec.IntentType,
+		ORANCompliant:  true,
 		InterfaceTypes: []string{InterfaceA1, InterfaceO1, InterfaceO2, InterfaceE2},
-		CreatedAt:     time.Now(),
-		GeneratedBy:   "nephoran-intent-operator",
+		CreatedAt:      time.Now(),
+		GeneratedBy:    "nephoran-intent-operator",
 	}
 }
 

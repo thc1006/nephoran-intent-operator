@@ -27,7 +27,7 @@ type RAGRequest struct {
 
 // RAGResponse represents a RAG response
 type RAGResponse struct {
-	Answer          string         `json:"answer"`
+	Answer          string          `json:"answer"`
 	SourceDocuments []*SearchResult `json:"source_documents"`
 }
 
@@ -170,13 +170,13 @@ type RAGPipelineConfig struct {
 
 // RAGPipeline represents a basic RAG pipeline
 type RAGPipeline struct {
-	config             *RAGPipelineConfig
-	documentLoader     *DocumentLoader
-	chunkingService    *ChunkingService
-	embeddingService   *EmbeddingService
-	weaviateClient     *WeaviateClient
-	redisCache         *RedisCache
-	enhancedRetrieval  *EnhancedRetrievalService
+	config            *RAGPipelineConfig
+	documentLoader    *DocumentLoader
+	chunkingService   *ChunkingService
+	embeddingService  *EmbeddingService
+	weaviateClient    *WeaviateClient
+	redisCache        *RedisCache
+	enhancedRetrieval *EnhancedRetrievalService
 }
 
 // NewRAGPipeline creates a new RAG pipeline

@@ -306,7 +306,7 @@ func (pim *PorchIntegrationManager) ProcessNetworkIntent(ctx context.Context, in
 			SliceID: intent.Spec.NetworkSlice,
 		}
 	}
-	
+
 	// Extract target clusters from intent spec
 	if intent.Spec.TargetCluster != "" {
 		task.Context.TargetClusters = []*porch.ClusterTarget{
@@ -509,10 +509,10 @@ func (pim *PorchIntegrationManager) convertIntentToPackageSpec(ctx context.Conte
 
 	// Create labels and annotations
 	labels := map[string]string{
-		porch.LabelComponent:       "nephoran-intent-operator",
-		porch.LabelRepository:      repository,
-		porch.LabelPackageName:     packageName,
-		porch.LabelIntentType:      string(intent.Spec.IntentType),
+		porch.LabelComponent:   "nephoran-intent-operator",
+		porch.LabelRepository:  repository,
+		porch.LabelPackageName: packageName,
+		porch.LabelIntentType:  string(intent.Spec.IntentType),
 		porch.LabelTargetComponent: func() string {
 			if len(intent.Spec.TargetComponents) > 0 {
 				return string(intent.Spec.TargetComponents[0])
@@ -572,7 +572,7 @@ func (pim *PorchIntegrationManager) createPackageRevision(ctx context.Context, s
 			Repository:  spec.Repository,
 			Revision:    spec.Revision,
 			Lifecycle:   spec.Lifecycle,
-			Resources:   []interface{}{},    // Will be populated by functions
+			Resources:   []interface{}{}, // Will be populated by functions
 			Functions:   []interface{}{}, // Will be populated by pipeline
 		},
 	}
@@ -605,9 +605,9 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 	defer span.End()
 
 	pipeline := &PipelineDefinition{
-		Name:        fmt.Sprintf("%s-pipeline", packageRevision.Spec.PackageName),
-		Description: fmt.Sprintf("Function pipeline for %s intent", intent.Spec.IntentType),
-		Stages:      make([]*PipelineStage, 0),
+		Name:          fmt.Sprintf("%s-pipeline", packageRevision.Spec.PackageName),
+		Description:   fmt.Sprintf("Function pipeline for %s intent", intent.Spec.IntentType),
+		Stages:        make([]*PipelineStage, 0),
 		ExecutionMode: "dag",
 	}
 
@@ -618,16 +618,16 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 		Type:        "function",
 		Functions: []*StageFunction{
 			{
-				Name:     "basic-validator",
+				Name:  "basic-validator",
 				Image: "5g-core-validator", // Use existing validator function
 				Config: map[string]interface{}{
-					"intentType":  string(intent.Spec.IntentType),
+					"intentType": string(intent.Spec.IntentType),
 					"components": intent.Spec.TargetComponents,
 				},
 			},
 		},
 		DependsOn: []string{}, // First stage
-		Timeout:      &[]time.Duration{5 * time.Minute}[0],
+		Timeout:   &[]time.Duration{5 * time.Minute}[0],
 	}
 	pipeline.Stages = append(pipeline.Stages, validationStage)
 
@@ -645,15 +645,15 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 			Type:        "function",
 			Functions: []*StageFunction{
 				{
-					Name:     "network-slice-optimizer",
+					Name:  "network-slice-optimizer",
 					Image: "network-slice-optimizer",
 					Config: map[string]interface{}{
 						"sliceId": intent.Spec.NetworkSlice,
 					},
-					},
+				},
 			},
 			DependsOn: []string{"basic-validation"},
-				Timeout:      &[]time.Duration{10 * time.Minute}[0],
+			Timeout:   &[]time.Duration{10 * time.Minute}[0],
 		}
 		pipeline.Stages = append(pipeline.Stages, sliceStage)
 	}
@@ -665,17 +665,17 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 		Type:        "function",
 		Functions: []*StageFunction{
 			{
-				Name:     "multi-vendor-normalizer",
+				Name:  "multi-vendor-normalizer",
 				Image: "multi-vendor-normalizer",
 				Config: map[string]interface{}{
-					"intentType": string(intent.Spec.IntentType),
+					"intentType":       string(intent.Spec.IntentType),
 					"targetComponents": intent.Spec.TargetComponents,
 				},
 				// Optional optimization
 			},
 		},
 		DependsOn: []string{"basic-validation"},
-		Timeout:      &[]time.Duration{5 * time.Minute}[0],
+		Timeout:   &[]time.Duration{5 * time.Minute}[0],
 	}
 	pipeline.Stages = append(pipeline.Stages, normalizationStage)
 
@@ -687,17 +687,17 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 			Type:        "function",
 			Functions: []*StageFunction{
 				{
-					Name:     "5g-core-validator",
+					Name:  "5g-core-validator",
 					Image: "5g-core-validator",
 					Config: map[string]interface{}{
-						"intentType": string(intent.Spec.IntentType),
+						"intentType":       string(intent.Spec.IntentType),
 						"targetComponents": intent.Spec.TargetComponents,
-						"strictMode": true,
+						"strictMode":       true,
 					},
-					},
+				},
 			},
 			DependsOn: []string{"basic-validation"},
-				Timeout:      &[]time.Duration{5 * time.Minute}[0],
+			Timeout:   &[]time.Duration{5 * time.Minute}[0],
 		}
 		pipeline.Stages = append(pipeline.Stages, coreStage)
 	}
@@ -719,17 +719,17 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 			Description: "Configure deployment-specific parameters",
 			Functions: []*StageFunction{
 				{
-					Name:     "deployment-config-generator",
+					Name:  "deployment-config-generator",
 					Image: "5g-core-optimizer", // Use 5G optimizer for deployments
 					Config: map[string]interface{}{
-						"deploymentType": "production",
-						"scalingPolicy": "auto",
+						"deploymentType":   "production",
+						"scalingPolicy":    "auto",
 						"targetComponents": intent.Spec.TargetComponents,
 					},
-					},
+				},
 			},
 			DependsOn: []string{"basic-validation"},
-				Timeout:      &[]time.Duration{10 * time.Minute}[0],
+			Timeout:   &[]time.Duration{10 * time.Minute}[0],
 		}
 
 	case v1.IntentTypeOptimization:
@@ -738,16 +738,16 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 			Description: "Validate and optimize configuration parameters",
 			Functions: []*StageFunction{
 				{
-					Name:     "config-validator",
+					Name:  "config-validator",
 					Image: "5g-core-validator", // Use 5G validator for configuration
 					Config: map[string]interface{}{
-						"configType": "network-function",
+						"configType":       "network-function",
 						"targetComponents": intent.Spec.TargetComponents,
 					},
-					},
+				},
 			},
 			DependsOn: []string{"basic-validation"},
-				Timeout:      &[]time.Duration{5 * time.Minute}[0],
+			Timeout:   &[]time.Duration{5 * time.Minute}[0],
 		}
 
 	case v1.IntentTypeScaling:
@@ -756,16 +756,16 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 			Description: "Optimize scaling configuration and resource allocation",
 			Functions: []*StageFunction{
 				{
-					Name:     "scaling-optimizer",
+					Name:  "scaling-optimizer",
 					Image: "5g-core-optimizer", // Use 5G optimizer for scaling
 					Config: map[string]interface{}{
-						"scalingType": "horizontal",
+						"scalingType":      "horizontal",
 						"targetComponents": intent.Spec.TargetComponents,
 					},
-					},
+				},
 			},
 			DependsOn: []string{"basic-validation"},
-				Timeout:      &[]time.Duration{10 * time.Minute}[0],
+			Timeout:   &[]time.Duration{10 * time.Minute}[0],
 		}
 
 	default:
@@ -775,16 +775,16 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 			Description: "Generic configuration processing",
 			Functions: []*StageFunction{
 				{
-					Name:     "generic-processor",
+					Name:  "generic-processor",
 					Image: "5g-core-validator", // Use validator as default
 					Config: map[string]interface{}{
-						"intentType": string(intent.Spec.IntentType),
+						"intentType":       string(intent.Spec.IntentType),
 						"targetComponents": intent.Spec.TargetComponents,
 					},
-					},
+				},
 			},
 			DependsOn: []string{"basic-validation"},
-				Timeout:      &[]time.Duration{5 * time.Minute}[0],
+			Timeout:   &[]time.Duration{5 * time.Minute}[0],
 		}
 	}
 }

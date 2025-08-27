@@ -712,7 +712,7 @@ func TestMetricsServer_Security(t *testing.T) {
 			// Additional checks for successful responses
 			if tt.expectCode == 200 {
 				assert.NotEmpty(t, resp.Header.Get("Content-Type"), "Response should have Content-Type header")
-				
+
 				if tt.endpoint == "/health" {
 					assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
 				} else if tt.endpoint == "/metrics" {
@@ -773,15 +773,15 @@ func TestMetricsServer_LocalhostBinding(t *testing.T) {
 				// Try to connect from a non-localhost IP
 				url := fmt.Sprintf("http://%s:%d/health", ipNet.IP.String(), port)
 				client := &http.Client{Timeout: 1 * time.Second}
-				
+
 				ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 				defer cancel()
-				
+
 				req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 				if err != nil {
 					continue
 				}
-				
+
 				resp, err := client.Do(req)
 				if err == nil {
 					resp.Body.Close()

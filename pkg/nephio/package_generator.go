@@ -574,8 +574,8 @@ func generateScalingPatch(params map[string]interface{}) string {
 		"metadata": map[string]interface{}{
 			"name": params["target"],
 			"annotations": map[string]interface{}{
-				"porch.kpt.dev/managed": "true",
-				"nephoran.com/intent":   "scaling",
+				"porch.kpt.dev/managed":  "true",
+				"nephoran.com/intent":    "scaling",
 				"nephoran.com/timestamp": time.Now().Format(time.RFC3339),
 			},
 		},
@@ -711,7 +711,7 @@ func (pg *PackageGenerator) GeneratePatchAndPublishToPorch(ctx context.Context, 
 
 	// Generate the scaling patch
 	patchContent := generateScalingPatch(params)
-	
+
 	// Generate setters for the patch
 	settersContent := generateScalingSetters(params)
 
@@ -782,9 +782,9 @@ func (pg *PackageGenerator) GeneratePatchAndPublishToPorch(ctx context.Context, 
 		}
 	}
 
-	fmt.Printf("Successfully created and published scaling patch to Porch: %s/%s:%s\n", 
+	fmt.Printf("Successfully created and published scaling patch to Porch: %s/%s:%s\n",
 		repository, packageName, createdRevision.Spec.Revision)
-	
+
 	return nil
 }
 
@@ -797,7 +797,7 @@ func (pg *PackageGenerator) SetPorchClient(client porch.PorchClient) {
 func (pg *PackageGenerator) GenerateCNFPackage(cnf *v1.CNFDeployment, config map[string]interface{}) ([]byte, error) {
 	// For now, return a simple stub package
 	// This would be implemented to convert the CNF deployment to a proper Nephio package
-	packageContent := fmt.Sprintf("# CNF Package Generated\n# CNF: %s\n# Function: %s\n# Config: %v\n", 
+	packageContent := fmt.Sprintf("# CNF Package Generated\n# CNF: %s\n# Function: %s\n# Config: %v\n",
 		cnf.Name, cnf.Spec.Function, config)
 	return []byte(packageContent), nil
 }

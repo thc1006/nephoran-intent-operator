@@ -18,10 +18,10 @@ func NewKptfileGenerator() *KptfileGenerator {
 
 // Kptfile represents the structure of a Kptfile
 type Kptfile struct {
-	APIVersion string         `yaml:"apiVersion"`
-	Kind       string         `yaml:"kind"`
-	Metadata   KptfileMetadata `yaml:"metadata"`
-	Info       KptfileInfo    `yaml:"info"`
+	APIVersion string           `yaml:"apiVersion"`
+	Kind       string           `yaml:"kind"`
+	Metadata   KptfileMetadata  `yaml:"metadata"`
+	Info       KptfileInfo      `yaml:"info"`
 	Pipeline   *KptfilePipeline `yaml:"pipeline,omitempty"`
 }
 
@@ -35,9 +35,9 @@ type KptfileMetadata struct {
 
 // KptfileInfo contains package information
 type KptfileInfo struct {
-	Description string `yaml:"description"`
-	Site        string `yaml:"site,omitempty"`
-	License     string `yaml:"license,omitempty"`
+	Description string   `yaml:"description"`
+	Site        string   `yaml:"site,omitempty"`
+	License     string   `yaml:"license,omitempty"`
 	Keywords    []string `yaml:"keywords,omitempty"`
 }
 
@@ -48,10 +48,10 @@ type KptfilePipeline struct {
 
 // KptfileMutator defines a pipeline mutator
 type KptfileMutator struct {
-	Image        string                 `yaml:"image"`
-	ConfigMap    map[string]interface{} `yaml:"configMap,omitempty"`
-	ConfigPath   string                 `yaml:"configPath,omitempty"`
-	Name         string                 `yaml:"name,omitempty"`
+	Image      string                 `yaml:"image"`
+	ConfigMap  map[string]interface{} `yaml:"configMap,omitempty"`
+	ConfigPath string                 `yaml:"configPath,omitempty"`
+	Name       string                 `yaml:"name,omitempty"`
 }
 
 // Generate creates a Kptfile from a scaling intent
@@ -71,12 +71,12 @@ func (g *KptfileGenerator) Generate(intent *intent.ScalingIntent) ([]byte, error
 			},
 			Annotations: map[string]string{
 				"config.kubernetes.io/local-config": "true",
-				"nephoran.com/intent-type":           intent.IntentType,
-				"nephoran.com/source":                intent.Source,
-				"nephoran.com/generated-at":          time.Now().Format(time.RFC3339),
-				"nephoran.com/target":                intent.Target,
-				"nephoran.com/namespace":             intent.Namespace,
-				"nephoran.com/replicas":              fmt.Sprintf("%d", intent.Replicas),
+				"nephoran.com/intent-type":          intent.IntentType,
+				"nephoran.com/source":               intent.Source,
+				"nephoran.com/generated-at":         time.Now().Format(time.RFC3339),
+				"nephoran.com/target":               intent.Target,
+				"nephoran.com/namespace":            intent.Namespace,
+				"nephoran.com/replicas":             fmt.Sprintf("%d", intent.Replicas),
 			},
 		},
 		Info: KptfileInfo{
@@ -149,8 +149,8 @@ func (g *KptfileGenerator) GenerateMinimal(intent *intent.ScalingIntent) ([]byte
 			},
 			Annotations: map[string]string{
 				"config.kubernetes.io/local-config": "true",
-				"nephoran.com/intent-type":           intent.IntentType,
-				"nephoran.com/generated-at":          time.Now().Format(time.RFC3339),
+				"nephoran.com/intent-type":          intent.IntentType,
+				"nephoran.com/generated-at":         time.Now().Format(time.RFC3339),
 			},
 		},
 		Info: KptfileInfo{

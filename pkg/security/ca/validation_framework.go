@@ -82,26 +82,27 @@ type CTLogEntry struct {
 
 // ValidationResult represents overall certificate validation results
 type ValidationResult struct {
-	Valid             bool                       `json:"valid"`
-	SerialNumber      string                     `json:"serial_number"`
-	Subject           string                     `json:"subject"`
-	Issuer            string                     `json:"issuer"`
-	ValidFrom         time.Time                  `json:"valid_from"`
-	ValidTo           time.Time                  `json:"valid_to"`
-	Errors            []string                   `json:"errors"`
-	Warnings          []string                   `json:"warnings"`
-	ChainResult       *ChainValidationResult     `json:"chain_result,omitempty"`
-	RevocationResult  *RevocationCheckResult     `json:"revocation_result,omitempty"`
-	PolicyResult      *PolicyValidationResult    `json:"policy_result,omitempty"`
-	CTResult          *CTValidationResult        `json:"ct_result,omitempty"`
-	ValidationTime    time.Time                  `json:"validation_time"`
-	ValidationDuration time.Duration              `json:"validation_duration"`
-	
+	Valid              bool                    `json:"valid"`
+	SerialNumber       string                  `json:"serial_number"`
+	Subject            string                  `json:"subject"`
+	Issuer             string                  `json:"issuer"`
+	ValidFrom          time.Time               `json:"valid_from"`
+	ValidTo            time.Time               `json:"valid_to"`
+	Errors             []string                `json:"errors"`
+	Warnings           []string                `json:"warnings"`
+	ChainResult        *ChainValidationResult  `json:"chain_result,omitempty"`
+	RevocationResult   *RevocationCheckResult  `json:"revocation_result,omitempty"`
+	PolicyResult       *PolicyValidationResult `json:"policy_result,omitempty"`
+	CTResult           *CTValidationResult     `json:"ct_result,omitempty"`
+	ValidationTime     time.Time               `json:"validation_time"`
+	ValidationDuration time.Duration           `json:"validation_duration"`
+
 	// Additional fields for compatibility
-	ChainValid       bool              `json:"chain_valid"`
-	RevocationStatus RevocationStatus  `json:"revocation_status"`
-	CTLogVerified    bool              `json:"ct_log_verified"`
+	ChainValid       bool             `json:"chain_valid"`
+	RevocationStatus RevocationStatus `json:"revocation_status"`
+	CTLogVerified    bool             `json:"ct_log_verified"`
 }
+
 // ChainValidationResult represents chain validation results
 type ChainValidationResult struct {
 	Valid         bool                    `json:"valid"`
@@ -115,10 +116,10 @@ type ChainValidationResult struct {
 
 // ChainValidationDetails provides detailed chain validation information
 type ChainValidationDetails struct {
-	PathLength       int               `json:"path_length"`
-	KeyUsageValid    bool              `json:"key_usage_valid"`
-	BasicConstraints bool              `json:"basic_constraints"`
-	NameConstraints  bool              `json:"name_constraints"`
+	PathLength       int                         `json:"path_length"`
+	KeyUsageValid    bool                        `json:"key_usage_valid"`
+	BasicConstraints bool                        `json:"basic_constraints"`
+	NameConstraints  bool                        `json:"name_constraints"`
 	CertificateInfo  []ValidationCertificateInfo `json:"certificate_info"`
 }
 
@@ -172,24 +173,26 @@ type PolicyValidationDetails struct {
 	Categories      map[string]int `json:"categories"`
 	Recommendations []string       `json:"recommendations"`
 }
+
 // CTValidationResult represents Certificate Transparency validation results
 type CTValidationResult struct {
-	Verified    bool          `json:"verified"`
-	LogEntries  []CTLogEntry  `json:"log_entries"`
-	Errors      []string      `json:"errors"`
-	Warnings    []string      `json:"warnings"`
-	Details     *CTDetails    `json:"details,omitempty"`
+	Verified   bool         `json:"verified"`
+	LogEntries []CTLogEntry `json:"log_entries"`
+	Errors     []string     `json:"errors"`
+	Warnings   []string     `json:"warnings"`
+	Details    *CTDetails   `json:"details,omitempty"`
 }
 
 // CTDetails provides detailed Certificate Transparency information
 type CTDetails struct {
-	LogsChecked     int        `json:"logs_checked"`
-	LogsResponded   int        `json:"logs_responded"`
-	EarliestEntry   *time.Time `json:"earliest_entry,omitempty"`
-	LatestEntry     *time.Time `json:"latest_entry,omitempty"`
-	PrecertEntries  int        `json:"precert_entries"`
-	FinalEntries    int        `json:"final_entries"`
+	LogsChecked    int        `json:"logs_checked"`
+	LogsResponded  int        `json:"logs_responded"`
+	EarliestEntry  *time.Time `json:"earliest_entry,omitempty"`
+	LatestEntry    *time.Time `json:"latest_entry,omitempty"`
+	PrecertEntries int        `json:"precert_entries"`
+	FinalEntries   int        `json:"final_entries"`
 }
+
 // NewValidationFramework creates a new validation framework
 func NewValidationFramework(config *ValidationConfig, logger *logging.StructuredLogger) (*ValidationFramework, error) {
 	framework := &ValidationFramework{

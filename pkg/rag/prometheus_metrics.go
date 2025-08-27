@@ -599,7 +599,7 @@ func (pm *PrometheusMetrics) UpdateRedisCacheMetrics(metrics *RedisCacheMetrics)
 		pm.UpdateRedisCacheSize("embedding_hit_rate", int64(hitRate*100))
 	}
 
-	// Update document metrics  
+	// Update document metrics
 	if metrics.DocumentHits+metrics.DocumentMisses > 0 {
 		hitRate := float64(metrics.DocumentHits) / float64(metrics.DocumentHits+metrics.DocumentMisses)
 		pm.UpdateRedisCacheSize("document_hit_rate", int64(hitRate*100))

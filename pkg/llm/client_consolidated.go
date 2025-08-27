@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-	
+
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
@@ -624,29 +624,29 @@ func (c *Client) ProcessIntentStream(ctx context.Context, prompt string, chunks 
 	// Split response into chunks and send
 	words := strings.Fields(response)
 	chunkSize := 10 // words per chunk
-	
+
 	for i := 0; i < len(words); i += chunkSize {
 		end := i + chunkSize
 		if end > len(words) {
 			end = len(words)
 		}
-		
+
 		chunk := &shared.StreamingChunk{
 			Content:   strings.Join(words[i:end], " "),
 			IsLast:    end >= len(words),
 			Timestamp: time.Now(),
 		}
-		
+
 		select {
 		case chunks <- chunk:
 		case <-ctx.Done():
 			return ctx.Err()
 		}
-		
+
 		// Add small delay to simulate streaming
 		time.Sleep(50 * time.Millisecond)
 	}
-	
+
 	close(chunks)
 	return nil
 }

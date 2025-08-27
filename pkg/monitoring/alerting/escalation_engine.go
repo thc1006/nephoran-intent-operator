@@ -930,9 +930,9 @@ func (ee *EscalationEngine) metricsUpdateLoop(ctx context.Context) {
 
 // executeEscalationAction executes specific escalation actions
 func (ee *EscalationEngine) executeEscalationAction(ctx context.Context, escalation *ActiveEscalation, action EscalationAction, level int) error {
-	ee.logger.InfoWithContext(fmt.Sprintf("Executing escalation action %s for alert %s at level %d", 
+	ee.logger.InfoWithContext(fmt.Sprintf("Executing escalation action %s for alert %s at level %d",
 		action.Type, escalation.AlertID, level))
-	
+
 	switch action.Type {
 	case "notification":
 		return ee.sendNotification(ctx, escalation, action.Parameters)
@@ -947,9 +947,9 @@ func (ee *EscalationEngine) executeEscalationAction(ctx context.Context, escalat
 
 // notifyStakeholder sends notifications to stakeholders
 func (ee *EscalationEngine) notifyStakeholder(ctx context.Context, escalation *ActiveEscalation, stakeholder StakeholderReference, level int) error {
-	ee.logger.InfoWithContext(fmt.Sprintf("Notifying stakeholder %s for alert %s at level %d", 
+	ee.logger.InfoWithContext(fmt.Sprintf("Notifying stakeholder %s for alert %s at level %d",
 		stakeholder.Identifier, escalation.AlertID, level))
-	
+
 	// Implementation would send notifications via email, SMS, etc.
 	return nil
 }
@@ -957,9 +957,9 @@ func (ee *EscalationEngine) notifyStakeholder(ctx context.Context, escalation *A
 // scheduleNextEscalation schedules the next escalation level
 func (ee *EscalationEngine) scheduleNextEscalation(ctx context.Context, escalation *ActiveEscalation, levelConfig EscalationLevel) {
 	nextTime := time.Now().Add(levelConfig.Delay)
-	ee.logger.InfoWithContext(fmt.Sprintf("Scheduling next escalation for alert %s at %v", 
+	ee.logger.InfoWithContext(fmt.Sprintf("Scheduling next escalation for alert %s at %v",
 		escalation.AlertID, nextTime))
-	
+
 	// Implementation would schedule the next escalation
 }
 

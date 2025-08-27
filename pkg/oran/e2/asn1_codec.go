@@ -901,7 +901,7 @@ func (c *ASN1Codec) encodeE2SetupResponse(resp *E2SetupResponse) ([]byte, error)
 				RANFunctionID: int(rejected.RANFunctionID),
 				Cause: E2Cause{
 					CauseType:  E2CauseTypeRIC, // Simplified mapping
-					CauseValue: 0,               // Default value
+					CauseValue: 0,              // Default value
 				},
 			}
 		}
@@ -941,7 +941,7 @@ func (c *ASN1Codec) decodeE2SetupResponse(data []byte) (*E2SetupResponse, error)
 			for i, item := range rejectedItems {
 				resp.RANFunctionsRejected[i] = RANFunctionIDCause{
 					RANFunctionID: RANFunctionID(item.RANFunctionID),
-					Cause: E2APCause{}, // Simplified - would need proper conversion
+					Cause:         E2APCause{}, // Simplified - would need proper conversion
 				}
 			}
 		}
@@ -1527,7 +1527,7 @@ func (c *ASN1Codec) encodeRICActionNotAdmittedList(w io.Writer, actions []RICAct
 		// Convert E2APCause to E2Cause for encoding
 		e2Cause := E2Cause{
 			CauseType:  E2CauseTypeRIC, // Simplified mapping
-			CauseValue: 0,               // Default value
+			CauseValue: 0,              // Default value
 		}
 		if err := c.encodeCause(w, e2Cause); err != nil {
 			return err
@@ -1582,7 +1582,7 @@ func (c *ASN1Codec) decodeIndicationType(r io.Reader) (RICIndicationType, error)
 func (c *ASN1Codec) encodeE2NodeComponentID(w io.Writer, id E2NodeComponentID) error {
 	// For simplicity, encode as a choice indicator followed by the active field
 	// In real ASN.1 PER, this would use choice encoding rules
-	
+
 	if id.E2NodeComponentInterfaceTypeNG != nil {
 		// Encode choice indicator for NG (0)
 		if err := binary.Write(w, binary.BigEndian, uint8(0)); err != nil {
@@ -1639,20 +1639,20 @@ func (c *ASN1Codec) encodeE2NodeComponentID(w io.Writer, id E2NodeComponentID) e
 		// Encode eNB ID
 		return c.encodeOctetString(w, []byte(id.E2NodeComponentInterfaceTypeX2.ENBID))
 	}
-	
+
 	// Default case - empty choice
 	return binary.Write(w, binary.BigEndian, uint8(255))
 }
 
 func (c *ASN1Codec) decodeE2NodeComponentID(r io.Reader) (E2NodeComponentID, error) {
 	var id E2NodeComponentID
-	
+
 	// Decode choice indicator
 	var choice uint8
 	if err := binary.Read(r, binary.BigEndian, &choice); err != nil {
 		return id, err
 	}
-	
+
 	switch choice {
 	case 0: // NG
 		name, err := c.decodeOctetString(r)
@@ -1711,7 +1711,7 @@ func (c *ASN1Codec) decodeE2NodeComponentID(r io.Reader) (E2NodeComponentID, err
 			ENBID: string(enbID),
 		}
 	}
-	
+
 	return id, nil
 }
 
@@ -1721,27 +1721,27 @@ func (c *ASN1Codec) encodeE2NodeComponentConfiguration(w io.Writer, config E2Nod
 	if err := c.encodeOctetString(w, config.E2NodeComponentRequestPart); err != nil {
 		return err
 	}
-	
+
 	// Encode response part
 	return c.encodeOctetString(w, config.E2NodeComponentResponsePart)
 }
 
 func (c *ASN1Codec) decodeE2NodeComponentConfiguration(r io.Reader) (E2NodeComponentConfiguration, error) {
 	var config E2NodeComponentConfiguration
-	
+
 	// Decode request part
 	requestPart, err := c.decodeOctetString(r)
 	if err != nil {
 		return config, err
 	}
 	config.E2NodeComponentRequestPart = requestPart
-	
+
 	// Decode response part
 	responsePart, err := c.decodeOctetString(r)
 	if err != nil {
 		return config, err
 	}
 	config.E2NodeComponentResponsePart = responsePart
-	
+
 	return config, nil
 }

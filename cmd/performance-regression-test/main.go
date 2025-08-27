@@ -181,7 +181,7 @@ func (pts *PerformanceTestSuite) generateReports() {
 }
 
 func (pts *PerformanceTestSuite) generateJSONReport() {
-	filename := fmt.Sprintf("performance-regression-report-%s.json", 
+	filename := fmt.Sprintf("performance-regression-report-%s.json",
 		time.Now().Format("20060102-150405"))
 
 	file, err := os.Create(filename)
@@ -202,7 +202,7 @@ func (pts *PerformanceTestSuite) generateJSONReport() {
 }
 
 func (pts *PerformanceTestSuite) generateMarkdownReport() {
-	filename := fmt.Sprintf("performance-regression-report-%s.md", 
+	filename := fmt.Sprintf("performance-regression-report-%s.md",
 		time.Now().Format("20060102-150405"))
 
 	file, err := os.Create(filename)

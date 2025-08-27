@@ -86,9 +86,9 @@ type ActiveProfile struct {
 
 // ProfileAnalyzer provides intelligent analysis of profile data
 type ProfileAnalyzer struct {
-	config           *AnalyzerConfig
-	hotspotDetector  *HotspotDetector
-	leakDetector     *LeakDetector
+	config          *AnalyzerConfig
+	hotspotDetector *HotspotDetector
+	leakDetector    *LeakDetector
 	// trendAnalyzer    *TrendAnalyzer // TODO: Fix import or define TrendAnalyzer
 	baselineProfiles map[string]*profile.Profile
 }
@@ -925,7 +925,7 @@ func getOptimizationPatterns() []OptimizationPattern {
 			Actions:     []string{"Move invariant calculations outside loop", "Pre-allocate slices"},
 			SuccessRate: 0.85,
 			ImpactMetrics: map[string]float64{
-				"cpu_reduction_percent": 25.0,
+				"cpu_reduction_percent":           25.0,
 				"performance_improvement_percent": 20.0,
 			},
 		},
@@ -936,7 +936,7 @@ func getOptimizationPatterns() []OptimizationPattern {
 			Actions:     []string{"Use object pools", "Pre-allocate slices", "Reduce string concatenation"},
 			SuccessRate: 0.75,
 			ImpactMetrics: map[string]float64{
-				"memory_reduction_percent": 40.0,
+				"memory_reduction_percent":   40.0,
 				"gc_pause_reduction_percent": 50.0,
 			},
 		},

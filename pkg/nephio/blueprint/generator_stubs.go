@@ -57,9 +57,9 @@ This blueprint was generated from NetworkIntent: %s
 
 ## Deployment
 kubectl apply -k .
-`, genCtx.Intent.Name, genCtx.Intent.Spec.Intent, 
-	genCtx.Intent.Spec.IntentType,
-	strings.Join(g.targetComponentsToStrings(genCtx.Intent.Spec.TargetComponents), ", ")), nil
+`, genCtx.Intent.Name, genCtx.Intent.Spec.Intent,
+		genCtx.Intent.Spec.IntentType,
+		strings.Join(g.targetComponentsToStrings(genCtx.Intent.Spec.TargetComponents), ", ")), nil
 }
 
 // generateMetadata generates package metadata
@@ -73,10 +73,10 @@ data:
   intent: %s
   intentType: %s
   generatedAt: %s
-`, genCtx.Intent.Name, genCtx.TargetNamespace, 
-	genCtx.Intent.Spec.Intent, 
-	genCtx.Intent.Spec.IntentType,
-	time.Now().Format(time.RFC3339)), nil
+`, genCtx.Intent.Name, genCtx.TargetNamespace,
+		genCtx.Intent.Spec.Intent,
+		genCtx.Intent.Spec.IntentType,
+		time.Now().Format(time.RFC3339)), nil
 }
 
 // generateFunctionConfig generates function configuration
@@ -118,10 +118,10 @@ spec:
         ports:
         - containerPort: 8080
 `, genCtx.Intent.Name, strings.ToLower(string(component)), genCtx.TargetNamespace,
-    genCtx.Intent.Name, strings.ToLower(string(component)),
-    genCtx.Intent.Name, strings.ToLower(string(component)),
-    strings.ToLower(string(component)))
-    
+		genCtx.Intent.Name, strings.ToLower(string(component)),
+		genCtx.Intent.Name, strings.ToLower(string(component)),
+		strings.ToLower(string(component)))
+
 	return nil
 }
 

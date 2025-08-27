@@ -69,29 +69,29 @@ type IntentProcessingConfig struct {
 	QualityThreshold        float64       `json:"qualityThreshold"`
 	EnableRAG               bool          `json:"enableRAG"`
 	ValidationEnabled       bool          `json:"validationEnabled"`
-	
+
 	// LLM Configuration
-	LLMEndpoint             string        `json:"llmEndpoint"`
-	
+	LLMEndpoint string `json:"llmEndpoint"`
+
 	// RAG Configuration
-	RAGEndpoint             string        `json:"ragEndpoint"`
-	WeaviateEndpoint        string        `json:"weaviateEndpoint"`
-	MaxContextChunks        int           `json:"maxContextChunks"`
-	MaxReturnItems          int           `json:"maxReturnItems"`
-	SimilarityThreshold     float64       `json:"similarityThreshold"`
-	MinSimilarity           float64       `json:"minSimilarity"`
-	
+	RAGEndpoint         string  `json:"ragEndpoint"`
+	WeaviateEndpoint    string  `json:"weaviateEndpoint"`
+	MaxContextChunks    int     `json:"maxContextChunks"`
+	MaxReturnItems      int     `json:"maxReturnItems"`
+	SimilarityThreshold float64 `json:"similarityThreshold"`
+	MinSimilarity       float64 `json:"minSimilarity"`
+
 	// Circuit Breaker Configuration
-	CircuitBreakerEnabled   bool          `json:"circuitBreakerEnabled"`
-	FailureThreshold        int           `json:"failureThreshold"`
-	RecoveryTimeout         time.Duration `json:"recoveryTimeout"`
-	
+	CircuitBreakerEnabled bool          `json:"circuitBreakerEnabled"`
+	FailureThreshold      int           `json:"failureThreshold"`
+	RecoveryTimeout       time.Duration `json:"recoveryTimeout"`
+
 	// Cache Configuration
-	CacheEnabled            bool          `json:"cacheEnabled"`
-	CacheTTL                time.Duration `json:"cacheTTL"`
-	
+	CacheEnabled bool          `json:"cacheEnabled"`
+	CacheTTL     time.Duration `json:"cacheTTL"`
+
 	// Streaming Configuration
-	StreamingEnabled        bool          `json:"streamingEnabled"`
+	StreamingEnabled bool `json:"streamingEnabled"`
 }
 
 // NewIntentProcessingController creates a new IntentProcessingController
@@ -659,7 +659,7 @@ func extractRAGMetricsFromContext(context map[string]interface{}) *nephoranv1.RA
 	if context == nil {
 		return nil
 	}
-	
+
 	if ragMetricsVal, ok := context["ragMetrics"]; ok {
 		if ragMetrics, ok := ragMetricsVal.(*nephoranv1.RAGMetrics); ok {
 			return ragMetrics

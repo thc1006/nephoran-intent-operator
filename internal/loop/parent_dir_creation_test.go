@@ -18,26 +18,26 @@ func TestParentDirectoryCreation(t *testing.T) {
 		// Create a nested directory structure that doesn't exist yet
 		nestedDir := filepath.Join(tempDir, "state", "deeply", "nested", "dir")
 		stateFile := filepath.Join(nestedDir, ".conductor-state.json")
-		
+
 		// Verify the directory doesn't exist initially
 		_, err := os.Stat(nestedDir)
 		require.True(t, os.IsNotExist(err), "Directory should not exist initially")
-		
+
 		// Create StateManager with the nested path
 		sm, err := NewStateManager(nestedDir)
 		require.NoError(t, err, "StateManager creation should succeed")
 		defer sm.Close()
-		
+
 		// Create the directory first and then create a test file
 		require.NoError(t, os.MkdirAll(nestedDir, 0755))
 		testFile := filepath.Join(nestedDir, "test.json")
 		require.NoError(t, os.WriteFile(testFile, []byte(`{"test": true}`), 0644))
-		
+
 		// Mark the file as processed - this should trigger state file write
 		// and test that the StateManager can create parent directories for its state file
 		err = sm.MarkProcessed(testFile)
 		require.NoError(t, err, "MarkProcessed should succeed")
-		
+
 		// Verify the state file was created
 		_, err = os.Stat(stateFile)
 		assert.NoError(t, err, "State file should exist after MarkProcessed")
@@ -47,25 +47,25 @@ func TestParentDirectoryCreation(t *testing.T) {
 		// Create a watch directory that exists
 		watchDir := filepath.Join(tempDir, "watcher")
 		statusDir := filepath.Join(watchDir, "status")
-		
+
 		// Create the watch directory but not the status directory
 		require.NoError(t, os.MkdirAll(watchDir, 0755))
-		
+
 		// Verify the status directory doesn't exist initially
 		_, err := os.Stat(statusDir)
 		require.True(t, os.IsNotExist(err), "Status directory should not exist initially")
-		
+
 		// Create watcher config
 		config := Config{
 			PorchPath: "/tmp/test-porch",
 			Mode:      "once",
 		}
-		
+
 		// Create watcher
 		watcher, err := NewWatcher(watchDir, config)
 		require.NoError(t, err, "Watcher creation should succeed")
 		defer watcher.Close()
-		
+
 		// Create an intent file that will trigger status file creation
 		intentFile := filepath.Join(watchDir, "test-intent.json")
 		intentContent := `{
@@ -74,17 +74,17 @@ func TestParentDirectoryCreation(t *testing.T) {
 			"metadata": {"name": "test"},
 			"spec": {"replicas": 3}
 		}`
-		
+
 		require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0644))
-		
+
 		// Manually trigger status file write (simulating successful processing)
 		// This should create the status directory
 		watcher.writeStatusFileAtomic(intentFile, "success", "Test processing completed")
-		
+
 		// Verify the status directory was created
 		_, err = os.Stat(statusDir)
 		assert.NoError(t, err, "Status directory should exist after status write")
-		
+
 		// Verify a status file was created
 		statusEntries, err := os.ReadDir(statusDir)
 		require.NoError(t, err, "Should be able to read status directory")
@@ -95,24 +95,24 @@ func TestParentDirectoryCreation(t *testing.T) {
 		// Create a deeply nested path that doesn't exist
 		nestedPath := filepath.Join(tempDir, "atomic", "very", "deeply", "nested", "test.txt")
 		parentDir := filepath.Dir(nestedPath)
-		
+
 		// Verify the directory doesn't exist initially
 		_, err := os.Stat(parentDir)
 		require.True(t, os.IsNotExist(err), "Parent directory should not exist initially")
-		
+
 		// Use atomicWriteFile to write to the nested path
 		testData := []byte("test content for atomic write")
 		err = atomicWriteFile(nestedPath, testData, 0644)
 		require.NoError(t, err, "atomicWriteFile should succeed")
-		
+
 		// Verify the file was created
 		_, err = os.Stat(nestedPath)
 		assert.NoError(t, err, "File should exist after atomic write")
-		
+
 		// Verify parent directory structure was created
 		_, err = os.Stat(parentDir)
 		assert.NoError(t, err, "Parent directory should exist")
-		
+
 		// Verify file contents
 		content, err := os.ReadFile(nestedPath)
 		require.NoError(t, err, "Should be able to read written file")
@@ -131,7 +131,7 @@ func TestParentDirectoryCreation(t *testing.T) {
 				sm.Close()
 			}
 		}
-		
+
 		// Test atomicWriteFile with empty filename
 		err = atomicWriteFile("", []byte("test"), 0644)
 		assert.Error(t, err, "atomicWriteFile should fail with empty filename")
@@ -140,10 +140,10 @@ func TestParentDirectoryCreation(t *testing.T) {
 	t.Run("Concurrent directory creation", func(t *testing.T) {
 		// Test that concurrent directory creation doesn't cause race conditions
 		concurrentDir := filepath.Join(tempDir, "concurrent", "creation")
-		
+
 		// Run multiple goroutines trying to create the same directory structure
 		done := make(chan error, 5)
-		
+
 		for i := 0; i < 5; i++ {
 			go func(id int) {
 				filePath := filepath.Join(concurrentDir, "file"+string(rune('0'+id))+".txt")
@@ -151,13 +151,13 @@ func TestParentDirectoryCreation(t *testing.T) {
 				done <- err
 			}(i)
 		}
-		
+
 		// Wait for all goroutines to complete
 		for i := 0; i < 5; i++ {
 			err := <-done
 			assert.NoError(t, err, "Concurrent file creation should succeed")
 		}
-		
+
 		// Verify all files were created
 		entries, err := os.ReadDir(concurrentDir)
 		require.NoError(t, err, "Should be able to read concurrent directory")
@@ -169,7 +169,7 @@ func TestParentDirectoryCreation(t *testing.T) {
 		if !isWindows() {
 			t.Skip("Windows-specific test")
 		}
-		
+
 		// Create a very long path (close to Windows limits)
 		longDirName := "verylongdirectoryname_" + string(make([]byte, 50)) // Pad with spaces
 		for i := range longDirName[25:] {
@@ -178,9 +178,9 @@ func TestParentDirectoryCreation(t *testing.T) {
 			}
 			longDirName = longDirName[:25+i] + "x" + longDirName[25+i+1:]
 		}
-		
+
 		longPath := filepath.Join(tempDir, longDirName, longDirName, longDirName, "test.txt")
-		
+
 		// Attempt to write to the long path
 		err := atomicWriteFile(longPath, []byte("long path test"), 0644)
 		// On Windows, this should either succeed or fail gracefully
@@ -206,18 +206,18 @@ func TestDirectoryCreationErrorHandling(t *testing.T) {
 		if isWindows() {
 			t.Skip("Permission tests are complex on Windows")
 		}
-		
+
 		tempDir := t.TempDir()
-		
+
 		// Create a directory with restricted permissions
 		restrictedDir := filepath.Join(tempDir, "restricted")
 		require.NoError(t, os.Mkdir(restrictedDir, 0000)) // No permissions
-		defer os.Chmod(restrictedDir, 0755) // Restore permissions for cleanup
-		
+		defer os.Chmod(restrictedDir, 0755)               // Restore permissions for cleanup
+
 		// Try to create a file in a subdirectory of the restricted directory
 		testFile := filepath.Join(restrictedDir, "subdir", "test.txt")
 		err := atomicWriteFile(testFile, []byte("test"), 0644)
-		
+
 		// Should fail with permission error
 		assert.Error(t, err, "Should fail to create file in restricted directory")
 		assert.Contains(t, err.Error(), "permission denied", "Error should mention permission denied")
@@ -225,12 +225,12 @@ func TestDirectoryCreationErrorHandling(t *testing.T) {
 
 	t.Run("Invalid characters in path", func(t *testing.T) {
 		tempDir := t.TempDir()
-		
+
 		// Create paths with potentially problematic characters
 		problematicPaths := []string{
 			filepath.Join(tempDir, "file\x00name.txt"), // Null byte
 		}
-		
+
 		if isWindows() {
 			// Add Windows-specific invalid characters
 			problematicPaths = append(problematicPaths,
@@ -239,7 +239,7 @@ func TestDirectoryCreationErrorHandling(t *testing.T) {
 				filepath.Join(tempDir, "file|name.txt"),
 			)
 		}
-		
+
 		for _, path := range problematicPaths {
 			err := atomicWriteFile(path, []byte("test"), 0644)
 			// Should fail gracefully

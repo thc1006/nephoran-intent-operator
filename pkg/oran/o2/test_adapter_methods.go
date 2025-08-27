@@ -43,9 +43,9 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 			Name:      request.Name,
 			Namespace: namespace,
 			Labels: map[string]string{
-				"app":                request.Name,
-				"nephoran.com/vnf":   "true",
-				"nephoran.com/type":  "o-ran",
+				"app":               request.Name,
+				"nephoran.com/vnf":  "true",
+				"nephoran.com/type": "o-ran",
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -84,7 +84,7 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 
 	// Apply resources, security context, health checks, volumes, etc.
 	container := &deployment.Spec.Template.Spec.Containers[0]
-	
+
 	if request.Resources != nil {
 		container.Resources = *request.Resources
 	}
@@ -139,7 +139,7 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      request.Name + "-service",
 				Namespace: namespace,
-				Labels: map[string]string{"app": request.Name},
+				Labels:    map[string]string{"app": request.Name},
 			},
 			Spec: corev1.ServiceSpec{
 				Selector: map[string]string{"app": request.Name},
@@ -224,7 +224,7 @@ func (o2 *O2Adaptor) deployVNFFromDescriptor(ctx context.Context, descriptor *VN
 	return &VNFDeploymentStatus{
 		Name:     descriptor.Name,
 		Status:   "PENDING",
-		Phase:    "Creating", 
+		Phase:    "Creating",
 		Replicas: descriptor.Replicas,
 	}, nil
 }
@@ -235,7 +235,7 @@ func (o2 *O2Adaptor) ScaleVNF(ctx context.Context, instanceID string, request *V
 	if len(parts) != 2 {
 		return fmt.Errorf("invalid instance ID format: %s", instanceID)
 	}
-	
+
 	namespace, name := parts[0], parts[1]
 	deployment := &appsv1.Deployment{}
 	err := o2.kubeClient.Get(ctx, types.NamespacedName{
@@ -248,7 +248,7 @@ func (o2 *O2Adaptor) ScaleVNF(ctx context.Context, instanceID string, request *V
 
 	currentReplicas := *deployment.Spec.Replicas
 	var newReplicas int32
-	
+
 	switch request.ScaleType {
 	case "SCALE_OUT":
 		newReplicas = currentReplicas + request.NumberOfSteps
@@ -271,7 +271,7 @@ func (o2 *O2Adaptor) GetVNFInstance(ctx context.Context, instanceID string) (*O2
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("invalid instance ID format: %s", instanceID)
 	}
-	
+
 	namespace, name := parts[0], parts[1]
 	deployment := &appsv1.Deployment{}
 	err := o2.kubeClient.Get(ctx, types.NamespacedName{
@@ -322,7 +322,7 @@ func (o2 *O2Adaptor) ScaleWorkload(ctx context.Context, workloadID string, repli
 	if len(parts) != 2 {
 		return fmt.Errorf("invalid workload ID format: %s", workloadID)
 	}
-	
+
 	namespace, name := parts[0], parts[1]
 	deployment := &appsv1.Deployment{}
 	err := o2.kubeClient.Get(ctx, types.NamespacedName{
@@ -363,7 +363,7 @@ func (o2 *O2Adaptor) DiscoverResources(ctx context.Context) (*ResourceMap, error
 			Labels: node.Labels,
 			Roles:  []string{},
 		}
-		
+
 		// Determine roles
 		for label := range node.Labels {
 			if strings.HasPrefix(label, "node-role.kubernetes.io/") {
@@ -377,9 +377,9 @@ func (o2 *O2Adaptor) DiscoverResources(ctx context.Context) (*ResourceMap, error
 		if len(nodeInfo.Roles) == 0 {
 			nodeInfo.Roles = append(nodeInfo.Roles, "worker")
 		}
-		
+
 		resourceMap.Nodes[node.Name] = nodeInfo
-		
+
 		// Count ready nodes
 		for _, condition := range node.Status.Conditions {
 			if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
@@ -387,7 +387,7 @@ func (o2 *O2Adaptor) DiscoverResources(ctx context.Context) (*ResourceMap, error
 				break
 			}
 		}
-		
+
 		// Sum resources
 		if cpu := node.Status.Capacity.Cpu(); cpu != nil {
 			totalCPU.Add(*cpu)
@@ -396,17 +396,17 @@ func (o2 *O2Adaptor) DiscoverResources(ctx context.Context) (*ResourceMap, error
 			totalMemory.Add(*memory)
 		}
 	}
-	
+
 	resourceMap.Metrics.TotalCPU = totalCPU.String()
 	resourceMap.Metrics.TotalMemory = totalMemory.String()
 
-	// Discover namespaces  
+	// Discover namespaces
 	namespaceList := &corev1.NamespaceList{}
 	err = o2.kubeClient.List(ctx, namespaceList)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list namespaces: %w", err)
 	}
-	
+
 	for _, namespace := range namespaceList.Items {
 		resourceMap.Namespaces[namespace.Name] = &NamespaceInfo{
 			Name:   namespace.Name,
@@ -444,5 +444,3 @@ func (o2 *O2Adaptor) GetInfrastructureInfo(ctx context.Context) (*Infrastructure
 func (s *O2APIServer) GetRouter() http.Handler {
 	return s.router
 }
-
-

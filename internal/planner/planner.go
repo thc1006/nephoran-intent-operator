@@ -1,11 +1,11 @@
 package planner
 
 import (
-"bytes"
-"encoding/json"
-"fmt"
-"net/http"
-"time"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"time"
 )
 
 // Intent matches the intent.schema.json contract
@@ -25,22 +25,22 @@ var httpClient = &http.Client{
 }
 
 func PostIntent(url string, in Intent) error {
-b, err := json.Marshal(in)
-if err != nil {
-return fmt.Errorf("failed to marshal intent: %w", err)
-}
-req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(b))
-if err != nil {
-return fmt.Errorf("failed to create request: %w", err)
-}
-req.Header.Set("Content-Type", "application/json")
-resp, err := httpClient.Do(req)
-if err != nil {
-return err
-}
-defer resp.Body.Close()
-if resp.StatusCode >= 300 {
-return fmt.Errorf("post intent status=%d", resp.StatusCode)
-}
-return nil
+	b, err := json.Marshal(in)
+	if err != nil {
+		return fmt.Errorf("failed to marshal intent: %w", err)
+	}
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(b))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		return fmt.Errorf("post intent status=%d", resp.StatusCode)
+	}
+	return nil
 }

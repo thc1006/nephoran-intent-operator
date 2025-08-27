@@ -35,7 +35,7 @@ func (bc *BenchmarkContext) CreateTempFiles(files map[string][]byte) map[string]
 	if err := bc.BatchProc.CreateFiles(bc.TempDir, files); err != nil {
 		bc.B.Fatalf("Failed to create temp files: %v", err)
 	}
-	
+
 	for name := range files {
 		results[name] = filepath.Join(bc.TempDir, name)
 	}
@@ -61,7 +61,7 @@ func (bc *BenchmarkContext) Cleanup() {
 		}
 	}
 	bc.cleanupFns = nil
-	
+
 	// Cleanup optimizer
 	bc.Optimizer.Cleanup()
 }
@@ -80,9 +80,9 @@ func BenchmarkWindowsFileOperations(b *testing.B) {
 	}
 
 	tests := []struct {
-		name        string
-		fileCount   int
-		fileSize    int
+		name             string
+		fileCount        int
+		fileSize         int
 		useOptimizations bool
 	}{
 		{"Small_Files_Unoptimized", 10, 1024, false},
@@ -107,11 +107,11 @@ func benchmarkFileOperations(b *testing.B, fileCount, fileSize int, useOptimizat
 		concurrencyLimit: make(chan struct{}, 4),
 	}
 	resourcePool := NewTestResourcePool()
-	
+
 	runner := &OptimizedTestRunner{
-		optimizer:        optimizer,
-		batchProcessor:   batchProcessor,
-		resourcePool:     resourcePool,
+		optimizer:      optimizer,
+		batchProcessor: batchProcessor,
+		resourcePool:   resourcePool,
 	}
 
 	// Reset timer before the benchmark loop
@@ -126,7 +126,7 @@ func benchmarkFileOperations(b *testing.B, fileCount, fileSize int, useOptimizat
 			BatchProc:   runner.batchProcessor,
 			ResourceMgr: runner.resourcePool,
 		}
-		
+
 		// Create test files using batch processor
 		files := make(map[string][]byte)
 		for j := 0; j < fileCount; j++ {
@@ -136,9 +136,9 @@ func benchmarkFileOperations(b *testing.B, fileCount, fileSize int, useOptimizat
 			}
 			files[fmt.Sprintf("testfile_%d.txt", j)] = content
 		}
-		
+
 		b.StartTimer()
-		
+
 		if useOptimizations {
 			// Use optimized file operations
 			_ = ctx.CreateTempFiles(files)
@@ -151,7 +151,7 @@ func benchmarkFileOperations(b *testing.B, fileCount, fileSize int, useOptimizat
 				}
 			}
 		}
-		
+
 		b.StopTimer()
 		ctx.Cleanup()
 	}
@@ -175,14 +175,14 @@ func BenchmarkWindowsContextOperations(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		ctx, cancel := optimizer.OptimizedContextTimeout(context.Background(), time.Second*5)
-		
+
 		// Simulate some work
 		select {
 		case <-time.After(time.Millisecond * 10):
 		case <-ctx.Done():
 			b.Fatalf("Context cancelled unexpectedly")
 		}
-		
+
 		cancel()
 	}
 }
@@ -216,7 +216,7 @@ func BenchmarkWindowsResourcePoolOperations(b *testing.B) {
 			}
 			pool.CacheDirectory(key, tempDir)
 		}
-		
+
 		// Test cached file operations
 		testContent := []byte("benchmark test content")
 		filePath := fmt.Sprintf("test-file-%d.txt", i%10)

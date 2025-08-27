@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	
+
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
@@ -33,26 +33,26 @@ type ValidatorConfig struct {
 	EnableMandatoryCheck       bool          `yaml:"enableMandatoryCheck"`
 	ValidationTimeout          time.Duration `yaml:"validationTimeout"`
 	MaxValidationDepth         int           `yaml:"maxValidationDepth"`
-	
+
 	// Model support
-	EnableO_RANModels   bool `yaml:"enableORANModels"`
-	Enable3GPPModels    bool `yaml:"enable3GPPModels"`
-	EnableCustomModels  bool `yaml:"enableCustomModels"`
-	ModelSearchPaths    []string `yaml:"modelSearchPaths"`
-	
+	EnableO_RANModels  bool     `yaml:"enableORANModels"`
+	Enable3GPPModels   bool     `yaml:"enable3GPPModels"`
+	EnableCustomModels bool     `yaml:"enableCustomModels"`
+	ModelSearchPaths   []string `yaml:"modelSearchPaths"`
+
 	// Performance options
-	EnableCaching       bool          `yaml:"enableCaching"`
-	CacheSize          int           `yaml:"cacheSize"`
-	CacheTTL           time.Duration `yaml:"cacheTTL"`
-	MaxConcurrentValidations int     `yaml:"maxConcurrentValidations"`
-	
+	EnableCaching            bool          `yaml:"enableCaching"`
+	CacheSize                int           `yaml:"cacheSize"`
+	CacheTTL                 time.Duration `yaml:"cacheTTL"`
+	MaxConcurrentValidations int           `yaml:"maxConcurrentValidations"`
+
 	// Metrics and monitoring
-	EnableMetrics       bool   `yaml:"enableMetrics"`
-	MetricsNamespace   string `yaml:"metricsNamespace"`
-	
+	EnableMetrics    bool   `yaml:"enableMetrics"`
+	MetricsNamespace string `yaml:"metricsNamespace"`
+
 	// Error handling
-	StrictMode         bool `yaml:"strictMode"`
-	FailOnWarnings     bool `yaml:"failOnWarnings"`
+	StrictMode          bool `yaml:"strictMode"`
+	FailOnWarnings      bool `yaml:"failOnWarnings"`
 	MaxValidationErrors int  `yaml:"maxValidationErrors"`
 }
 
@@ -84,25 +84,25 @@ func DefaultValidatorConfig() *ValidatorConfig {
 type YANGValidator interface {
 	// ValidatePackageRevision validates a package revision against YANG models
 	ValidatePackageRevision(ctx context.Context, pkg *porch.PackageRevision) (*ValidationResult, error)
-	
+
 	// GetValidatorHealth returns the health status of the validator
 	GetValidatorHealth(ctx context.Context) (*ValidatorHealth, error)
-	
+
 	// Close gracefully shuts down the validator
 	Close() error
 }
 
 // ValidatorHealth represents the health status of the YANG validator
 type ValidatorHealth struct {
-	Status           string                    `json:"status"` // healthy, degraded, unhealthy
-	LastCheck        time.Time                 `json:"lastCheck"`
-	LoadedModels     int                       `json:"loadedModels"`
-	CacheHitRate     float64                   `json:"cacheHitRate"`
-	ActiveValidations int                      `json:"activeValidations"`
-	Errors           []string                  `json:"errors,omitempty"`
-	Warnings         []string                  `json:"warnings,omitempty"`
-	Uptime           time.Duration             `json:"uptime"`
-	Version          string                    `json:"version,omitempty"`
+	Status            string        `json:"status"` // healthy, degraded, unhealthy
+	LastCheck         time.Time     `json:"lastCheck"`
+	LoadedModels      int           `json:"loadedModels"`
+	CacheHitRate      float64       `json:"cacheHitRate"`
+	ActiveValidations int           `json:"activeValidations"`
+	Errors            []string      `json:"errors,omitempty"`
+	Warnings          []string      `json:"warnings,omitempty"`
+	Uptime            time.Duration `json:"uptime"`
+	Version           string        `json:"version,omitempty"`
 }
 
 // ValidatorMetrics implements metrics tracking for YANG validation processes
@@ -157,10 +157,10 @@ type PackageResource struct {
 
 // Structure definitions
 type ValidationResult struct {
-	Valid             bool
-	ModelName         string
-	ValidationTime    time.Time
-	Errors            []*ValidationError
+	Valid          bool
+	ModelName      string
+	ValidationTime time.Time
+	Errors         []*ValidationError
 }
 
 type ValidationError struct {
@@ -170,8 +170,8 @@ type ValidationError struct {
 
 // yangValidator implements the YANGValidator interface
 type yangValidator struct {
-	config  *ValidatorConfig
-	metrics *ValidatorMetrics
+	config    *ValidatorConfig
+	metrics   *ValidatorMetrics
 	startTime time.Time
 }
 
@@ -180,7 +180,7 @@ func NewYANGValidator(config *ValidatorConfig) (YANGValidator, error) {
 	if config == nil {
 		config = DefaultValidatorConfig()
 	}
-	
+
 	return &yangValidator{
 		config:    config,
 		metrics:   newValidatorMetrics(),
@@ -271,13 +271,13 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 // GetValidatorHealth returns the health status of the validator
 func (v *yangValidator) GetValidatorHealth(ctx context.Context) (*ValidatorHealth, error) {
 	return &ValidatorHealth{
-		Status:    "healthy",
-		LastCheck: time.Now(),
-		Uptime:    time.Since(v.startTime),
-		LoadedModels: 0, // This would be populated based on actual loaded models
-		CacheHitRate: 0.0, // This would be calculated from actual cache metrics
-		ActiveValidations: 0, // This would be tracked during validation
-		Version: "1.0.0",
+		Status:            "healthy",
+		LastCheck:         time.Now(),
+		Uptime:            time.Since(v.startTime),
+		LoadedModels:      0,   // This would be populated based on actual loaded models
+		CacheHitRate:      0.0, // This would be calculated from actual cache metrics
+		ActiveValidations: 0,   // This would be tracked during validation
+		Version:           "1.0.0",
 	}, nil
 }
 

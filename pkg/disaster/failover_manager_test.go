@@ -17,11 +17,11 @@ import (
 // FailoverManagerTestSuite provides comprehensive test coverage for FailoverManager
 type FailoverManagerTestSuite struct {
 	suite.Suite
-	ctx         context.Context
-	cancel      context.CancelFunc
-	mockCtrl    *gomock.Controller
-	k8sClient   *fake.Clientset
-	logger      *slog.Logger
+	ctx       context.Context
+	cancel    context.CancelFunc
+	mockCtrl  *gomock.Controller
+	k8sClient *fake.Clientset
+	logger    *slog.Logger
 	// manager field removed as it was unused
 	mockRoute53 *MockRoute53Client
 }
@@ -709,4 +709,3 @@ func (fm *FailoverManager) updateDNSRecord(ctx context.Context, targetRegion str
 	_, err := fm.route53Client.ChangeResourceRecordSets(ctx, nil)
 	return err
 }
-

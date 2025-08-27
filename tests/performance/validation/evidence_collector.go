@@ -33,15 +33,15 @@ type EvidenceReport struct {
 
 // DetailedEvidence contains comprehensive evidence for a single performance claim
 type DetailedEvidence struct {
-	ClaimName            string                `json:"claim_name"`
-	TestMethodology      *TestMethodology      `json:"test_methodology"`
-	RawMeasurements      *MeasurementData      `json:"raw_measurements"`
-	StatisticalAnalysis  *StatisticalAnalysis  `json:"statistical_analysis"`
-	DistributionAnalysis *DistributionAnalysis `json:"distribution_analysis"`
-	TimeSeriesAnalysis   *TimeSeriesAnalysis   `json:"timeseries_analysis"`
-	OutlierAnalysis      *OutlierAnalysis      `json:"outlier_analysis"`
-	ValidationResults    *EvidenceValidationResult     `json:"validation_results"`
-	SupportingMetrics    *SupportingMetrics    `json:"supporting_metrics"`
+	ClaimName            string                    `json:"claim_name"`
+	TestMethodology      *TestMethodology          `json:"test_methodology"`
+	RawMeasurements      *MeasurementData          `json:"raw_measurements"`
+	StatisticalAnalysis  *StatisticalAnalysis      `json:"statistical_analysis"`
+	DistributionAnalysis *DistributionAnalysis     `json:"distribution_analysis"`
+	TimeSeriesAnalysis   *TimeSeriesAnalysis       `json:"timeseries_analysis"`
+	OutlierAnalysis      *OutlierAnalysis          `json:"outlier_analysis"`
+	ValidationResults    *EvidenceValidationResult `json:"validation_results"`
+	SupportingMetrics    *SupportingMetrics        `json:"supporting_metrics"`
 }
 
 // TestMethodology documents the testing methodology used

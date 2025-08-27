@@ -381,7 +381,10 @@ func (p *LLMProcessor) extractTelecomContext(intent string, kb *telecom.TelecomK
 	// Detect network functions
 	var detectedNFs []string
 	// Note: GetAllNetworkFunctions method not available, using placeholder
-	type placeholder struct { Name string; Type string }
+	type placeholder struct {
+		Name string
+		Type string
+	}
 	networkFunctions := []placeholder{{Name: "AMF", Type: "amf"}, {Name: "SMF", Type: "smf"}, {Name: "UPF", Type: "upf"}}
 	for _, nf := range networkFunctions {
 		nfNameLower := strings.ToLower(nf.Name)
@@ -394,7 +397,11 @@ func (p *LLMProcessor) extractTelecomContext(intent string, kb *telecom.TelecomK
 
 	// Detect slice types
 	// Note: GetAllSliceTypes method not available, using placeholder
-	type slicePlaceholder struct { Description string; UseCase string; SST int }
+	type slicePlaceholder struct {
+		Description string
+		UseCase     string
+		SST         int
+	}
 	sliceTypes := []slicePlaceholder{{Description: "eMBB", UseCase: "enhanced mobile broadband", SST: 1}, {Description: "URLLC", UseCase: "ultra-reliable low latency", SST: 2}}
 	for _, slice := range sliceTypes {
 		sliceNameLower := strings.ToLower(slice.Description)
@@ -408,7 +415,10 @@ func (p *LLMProcessor) extractTelecomContext(intent string, kb *telecom.TelecomK
 
 	// Detect deployment patterns
 	// Note: GetAllDeploymentPatterns method not available, using placeholder
-	type patternPlaceholder struct { Name string; UseCase string }
+	type patternPlaceholder struct {
+		Name    string
+		UseCase string
+	}
 	deploymentPatterns := []patternPlaceholder{{Name: "high-availability", UseCase: "high availability deployment"}}
 	for _, pattern := range deploymentPatterns {
 		patternNameLower := strings.ToLower(pattern.Name)

@@ -41,26 +41,26 @@ type ValidationResult struct {
 // AvailabilityValidationResult contains availability validation results
 type AvailabilityValidationResult struct {
 	*ValidationResult
-	TargetAvailability   float64       `json:"target_availability"`
-	ActualAvailability   float64       `json:"actual_availability"`
-	UptimeDuration       time.Duration `json:"uptime_duration"`
-	DowntimeDuration     time.Duration `json:"downtime_duration"`
-	IncidentCount        int           `json:"incident_count"`
-	MTBF                 time.Duration `json:"mtbf"` // Mean Time Between Failures
-	MTTR                 time.Duration `json:"mttr"` // Mean Time To Recovery
+	TargetAvailability float64       `json:"target_availability"`
+	ActualAvailability float64       `json:"actual_availability"`
+	UptimeDuration     time.Duration `json:"uptime_duration"`
+	DowntimeDuration   time.Duration `json:"downtime_duration"`
+	IncidentCount      int           `json:"incident_count"`
+	MTBF               time.Duration `json:"mtbf"` // Mean Time Between Failures
+	MTTR               time.Duration `json:"mttr"` // Mean Time To Recovery
 }
 
 // LatencyValidationResult contains latency validation results
 type LatencyValidationResult struct {
 	*ValidationResult
-	P50Latency         time.Duration `json:"p50_latency"`
-	P95Latency         time.Duration `json:"p95_latency"`
-	P99Latency         time.Duration `json:"p99_latency"`
-	AverageLatency     time.Duration `json:"average_latency"`
-	MaxLatency         time.Duration `json:"max_latency"`
-	MinLatency         time.Duration `json:"min_latency"`
-	P95Threshold       time.Duration `json:"p95_threshold"`
-	P95ThresholdMet    bool          `json:"p95_threshold_met"`
+	P50Latency      time.Duration `json:"p50_latency"`
+	P95Latency      time.Duration `json:"p95_latency"`
+	P99Latency      time.Duration `json:"p99_latency"`
+	AverageLatency  time.Duration `json:"average_latency"`
+	MaxLatency      time.Duration `json:"max_latency"`
+	MinLatency      time.Duration `json:"min_latency"`
+	P95Threshold    time.Duration `json:"p95_threshold"`
+	P95ThresholdMet bool          `json:"p95_threshold_met"`
 }
 
 // ThroughputValidationResult contains throughput validation results
@@ -75,7 +75,7 @@ type ThroughputValidationResult struct {
 
 // AvailabilityMetrics contains detailed availability metrics
 type AvailabilityMetrics struct {
-	TotalOperations     int64         `json:"total_operations"`
+	TotalOperations      int64         `json:"total_operations"`
 	SuccessfulOperations int64         `json:"successful_operations"`
 	FailedOperations     int64         `json:"failed_operations"`
 	AvailabilityPercent  float64       `json:"availability_percent"`
@@ -88,22 +88,22 @@ type AvailabilityMetrics struct {
 
 // LatencyMetrics contains detailed latency metrics
 type LatencyMetrics struct {
-	SampleCount        int64                   `json:"sample_count"`
-	AverageLatency     time.Duration           `json:"average_latency"`
-	MedianLatency      time.Duration           `json:"median_latency"`
-	Percentiles        map[string]time.Duration `json:"percentiles"`
-	StandardDeviation  time.Duration           `json:"standard_deviation"`
-	LatencyDistribution []time.Duration        `json:"latency_distribution"`
+	SampleCount         int64                    `json:"sample_count"`
+	AverageLatency      time.Duration            `json:"average_latency"`
+	MedianLatency       time.Duration            `json:"median_latency"`
+	Percentiles         map[string]time.Duration `json:"percentiles"`
+	StandardDeviation   time.Duration            `json:"standard_deviation"`
+	LatencyDistribution []time.Duration          `json:"latency_distribution"`
 }
 
 // ThroughputMetrics contains detailed throughput metrics
 type ThroughputMetrics struct {
-	RequestCount      int64   `json:"request_count"`
+	RequestCount      int64         `json:"request_count"`
 	TotalDuration     time.Duration `json:"total_duration"`
-	AverageThroughput float64 `json:"average_throughput"`
-	PeakThroughput    float64 `json:"peak_throughput"`
-	MinThroughput     float64 `json:"min_throughput"`
-	ThroughputUnit    string  `json:"throughput_unit"`
+	AverageThroughput float64       `json:"average_throughput"`
+	PeakThroughput    float64       `json:"peak_throughput"`
+	MinThroughput     float64       `json:"min_throughput"`
+	ThroughputUnit    string        `json:"throughput_unit"`
 }
 
 // Basic validator implementations

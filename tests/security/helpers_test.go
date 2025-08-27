@@ -23,7 +23,7 @@ func generateExpiredToken() string {
 		"aud":  []string{"test-audience"},
 		"role": "user",
 	})
-	
+
 	tokenString, _ := token.SignedString([]byte("test-secret-key"))
 	return tokenString
 }
@@ -36,10 +36,10 @@ func generateTokenWithBadSignature() string {
 		"aud":  []string{"test-audience"},
 		"role": "user",
 	})
-	
+
 	// Sign with one key
 	tokenString, _ := token.SignedString([]byte("test-secret-key"))
-	
+
 	// Corrupt the signature
 	parts := strings.Split(tokenString, ".")
 	if len(parts) == 3 {
@@ -63,7 +63,7 @@ func generateTokenWithWrongAudience() string {
 		"aud":  []string{"wrong-audience"},
 		"role": "user",
 	})
-	
+
 	tokenString, _ := token.SignedString([]byte("test-secret-key"))
 	return tokenString
 }
@@ -75,7 +75,7 @@ func validateToken(tokenString string) error {
 		}
 		return []byte("test-secret-key"), nil
 	})
-	
+
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) {
 			return fmt.Errorf("token expired: %w", err)
@@ -85,12 +85,12 @@ func validateToken(tokenString string) error {
 		}
 		return err
 	}
-	
+
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
 		return fmt.Errorf("invalid token")
 	}
-	
+
 	// Check required claims
 	if _, ok := claims["sub"]; !ok {
 		return fmt.Errorf("missing required claims: sub")
@@ -98,7 +98,7 @@ func validateToken(tokenString string) error {
 	if _, ok := claims["exp"]; !ok {
 		return fmt.Errorf("missing required claims: exp")
 	}
-	
+
 	// Check audience
 	if aud, ok := claims["aud"].([]interface{}); ok {
 		found := false
@@ -114,7 +114,7 @@ func validateToken(tokenString string) error {
 	} else {
 		return fmt.Errorf("invalid audience")
 	}
-	
+
 	return nil
 }
 
@@ -325,7 +325,7 @@ func setPassword(username, password string) error {
 	hasNumber := strings.ContainsAny(password, "0123456789")
 	hasUpper := strings.ContainsAny(password, "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	hasLower := strings.ContainsAny(password, "abcdefghijklmnopqrstuvwxyz")
-	
+
 	if !hasSpecial || !hasNumber || !hasUpper || !hasLower {
 		return fmt.Errorf("password policy: missing required character types")
 	}
@@ -429,21 +429,21 @@ func fetchURL(url string) (string, error) {
 		"localhost",
 		"127.0.0.1",
 	}
-	
+
 	for _, host := range blockedHosts {
 		if strings.Contains(url, host) {
 			return "", fmt.Errorf("URL blocked: potential SSRF")
 		}
 	}
-	
+
 	if strings.HasPrefix(url, "file://") || strings.HasPrefix(url, "gopher://") || strings.HasPrefix(url, "dict://") {
 		return "", fmt.Errorf("URL blocked: dangerous protocol")
 	}
-	
+
 	if strings.Contains(url, "rebind.evil.com") {
 		return "", fmt.Errorf("URL blocked: internal IP detected")
 	}
-	
+
 	return "response", nil
 }
 
@@ -488,9 +488,9 @@ type Pod struct {
 }
 
 type PodSpec struct {
-	SecurityContext             *PodSecurityContext
-	Containers                  []Container
-	ServiceAccountName          string
+	SecurityContext              *PodSecurityContext
+	Containers                   []Container
+	ServiceAccountName           string
 	AutomountServiceAccountToken *bool
 }
 
@@ -552,7 +552,7 @@ func getRunningPods(t *testing.T) []Pod {
 	boolTrue := true
 	boolFalse := false
 	fsGroup := int64(1000)
-	
+
 	return []Pod{{
 		Name: "test-pod",
 		Spec: PodSpec{
@@ -582,7 +582,7 @@ func getRunningPods(t *testing.T) []Pod {
 					},
 				},
 			}},
-			ServiceAccountName:          "test-sa",
+			ServiceAccountName:           "test-sa",
 			AutomountServiceAccountToken: &boolFalse,
 		},
 	}}
@@ -643,7 +643,7 @@ func getDeployments(t *testing.T) []Deployment {
 	boolTrue := true
 	boolFalse := false
 	fsGroup := int64(1000)
-	
+
 	return []Deployment{{
 		Name: "test-deployment",
 		Spec: DeploymentSpec{

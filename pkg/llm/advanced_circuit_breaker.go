@@ -85,7 +85,7 @@ func (cb *AdvancedCircuitBreaker) Execute(ctx context.Context, operation func() 
 		return &CircuitBreakerError{
 			CircuitName: "advanced",
 			State:       CircuitState(state),
-			Message: fmt.Sprintf("circuit breaker is %s", cb.getStateName(CircuitState(state))),
+			Message:     fmt.Sprintf("circuit breaker is %s", cb.getStateName(CircuitState(state))),
 		}
 	}
 

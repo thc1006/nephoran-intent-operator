@@ -16,9 +16,9 @@ import (
 // TestRobustValidation_ReplicasValidation ensures invalid replicas never panic
 func TestRobustValidation_ReplicasValidation(t *testing.T) {
 	t.Log("Testing replicas validation with NotPanics guards")
-	
+
 	validator := &MockValidator{shouldFail: false}
-	
+
 	testCases := []struct {
 		name        string
 		replicas    interface{} // Use interface to test wrong types
@@ -67,7 +67,7 @@ func TestRobustValidation_ReplicasValidation(t *testing.T) {
 			expectError: false,
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Build intent with different replica values
@@ -76,20 +76,20 @@ func TestRobustValidation_ReplicasValidation(t *testing.T) {
 				"target":      "test-app",
 				"namespace":   "default",
 			}
-			
+
 			if tc.replicas != nil {
 				intentData["replicas"] = tc.replicas
 			}
-			
+
 			jsonData, err := json.Marshal(intentData)
 			require.NoError(t, err)
-			
+
 			// Test with NotPanics guard
 			var validationErr error
 			require.NotPanics(t, func() {
 				_, validationErr = validator.ValidateBytes(jsonData)
 			}, "Validation should never panic for replicas: %v", tc.replicas)
-			
+
 			if tc.expectError {
 				assert.Error(t, validationErr, "Should reject invalid replicas")
 				if tc.errorMsg != "" && validationErr != nil {
@@ -105,9 +105,9 @@ func TestRobustValidation_ReplicasValidation(t *testing.T) {
 // TestRobustValidation_SizeLimits ensures oversized inputs never panic
 func TestRobustValidation_SizeLimits(t *testing.T) {
 	t.Log("Testing size limit validation with NotPanics guards")
-	
+
 	tempDir := t.TempDir()
-	
+
 	testCases := []struct {
 		name        string
 		size        int
@@ -149,13 +149,13 @@ func TestRobustValidation_SizeLimits(t *testing.T) {
 			errorMsg:    "file size exceeds limit",
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create file with specific size
 			filename := fmt.Sprintf("size_test_%s.json", tc.name)
 			filepath := filepath.Join(tempDir, filename)
-			
+
 			var content []byte
 			if tc.size > 0 {
 				// Create valid JSON of specific size
@@ -180,10 +180,10 @@ func TestRobustValidation_SizeLimits(t *testing.T) {
 					content = append(content, padding...)
 				}
 			}
-			
+
 			err := os.WriteFile(filepath, content, 0644)
 			require.NoError(t, err)
-			
+
 			// Test with NotPanics guard
 			var validationErr error
 			require.NotPanics(t, func() {
@@ -198,7 +198,7 @@ func TestRobustValidation_SizeLimits(t *testing.T) {
 					}
 				}
 			}, "Size validation should never panic for size: %d", tc.size)
-			
+
 			if tc.expectError {
 				assert.Error(t, validationErr, "Should reject invalid size")
 				if tc.errorMsg != "" && validationErr != nil {
@@ -214,9 +214,9 @@ func TestRobustValidation_SizeLimits(t *testing.T) {
 // TestRobustValidation_MissingSpec ensures missing spec fields never panic
 func TestRobustValidation_MissingSpec(t *testing.T) {
 	t.Log("Testing missing spec validation with NotPanics guards")
-	
+
 	validator := &MockValidator{shouldFail: false}
-	
+
 	testCases := []struct {
 		name        string
 		jsonData    string
@@ -265,17 +265,17 @@ func TestRobustValidation_MissingSpec(t *testing.T) {
 			expectError: false,
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Test with NotPanics guard
 			var validationErr error
 			var intent *ingest.Intent
-			
+
 			require.NotPanics(t, func() {
 				intent, validationErr = validator.ValidateBytes([]byte(tc.jsonData))
 			}, "Validation should never panic for JSON: %s", tc.jsonData)
-			
+
 			if tc.expectError {
 				assert.Error(t, validationErr, "Should reject invalid spec")
 				if tc.errorMsg != "" && validationErr != nil {
@@ -292,9 +292,9 @@ func TestRobustValidation_MissingSpec(t *testing.T) {
 // TestRobustValidation_WrongTypes ensures wrong field types never panic
 func TestRobustValidation_WrongTypes(t *testing.T) {
 	t.Log("Testing wrong type validation with NotPanics guards")
-	
+
 	validator := &MockValidator{shouldFail: false}
-	
+
 	testCases := []struct {
 		name        string
 		jsonData    string
@@ -350,17 +350,17 @@ func TestRobustValidation_WrongTypes(t *testing.T) {
 			errorMsg:    "replicas must be an integer",
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Test with NotPanics guard
 			var validationErr error
 			var intent *ingest.Intent
-			
+
 			require.NotPanics(t, func() {
 				intent, validationErr = validator.ValidateBytes([]byte(tc.jsonData))
 			}, "Validation should never panic for wrong types in JSON: %s", tc.jsonData)
-			
+
 			if tc.expectError {
 				assert.Error(t, validationErr, "Should reject wrong type")
 				if tc.errorMsg != "" && validationErr != nil {
@@ -377,9 +377,9 @@ func TestRobustValidation_WrongTypes(t *testing.T) {
 // TestRobustValidation_EdgeCases ensures edge cases never panic
 func TestRobustValidation_EdgeCases(t *testing.T) {
 	t.Log("Testing edge case validation with NotPanics guards")
-	
+
 	validator := &MockValidator{shouldFail: false}
-	
+
 	testCases := []struct {
 		name        string
 		jsonData    string
@@ -426,12 +426,12 @@ func TestRobustValidation_EdgeCases(t *testing.T) {
 			expectError: false, // Not actually circular, just a string
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Test with NotPanics guard
 			var validationErr error
-			
+
 			require.NotPanics(t, func() {
 				// First try to unmarshal to check JSON validity
 				var data map[string]interface{}
@@ -439,13 +439,13 @@ func TestRobustValidation_EdgeCases(t *testing.T) {
 					validationErr = fmt.Errorf("invalid JSON: %v", err)
 					return
 				}
-				
+
 				// Check for deep nesting
 				if checkNestingDepth(data, 0, 10) {
 					validationErr = fmt.Errorf("JSON nesting too deep")
 					return
 				}
-				
+
 				// Check field name lengths
 				for key := range data {
 					if len(key) > 255 {
@@ -453,11 +453,11 @@ func TestRobustValidation_EdgeCases(t *testing.T) {
 						return
 					}
 				}
-				
+
 				// Validate with mock validator
 				_, validationErr = validator.ValidateBytes([]byte(tc.jsonData))
 			}, "Validation should never panic for edge case: %s", tc.name)
-			
+
 			if tc.expectError {
 				assert.Error(t, validationErr, "Should reject edge case: %s", tc.name)
 				if tc.errorMsg != "" && validationErr != nil {
@@ -478,7 +478,7 @@ func checkNestingDepth(data interface{}, currentDepth, maxDepth int) bool {
 	if currentDepth > maxDepth {
 		return true
 	}
-	
+
 	switch v := data.(type) {
 	case map[string]interface{}:
 		for _, value := range v {
@@ -493,6 +493,6 @@ func checkNestingDepth(data interface{}, currentDepth, maxDepth int) bool {
 			}
 		}
 	}
-	
+
 	return false
 }

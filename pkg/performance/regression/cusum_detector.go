@@ -625,12 +625,12 @@ func (cd *CUSUMDetector) GetDetectionStatistics() map[string]interface{} {
 func normalCDF(x float64) float64 {
 	// Using approximation: https://en.wikipedia.org/wiki/Normal_distribution#Numerical_approximations
 	const (
-		a1 =  0.254829592
+		a1 = 0.254829592
 		a2 = -0.284496736
-		a3 =  1.421413741
+		a3 = 1.421413741
 		a4 = -1.453152027
-		a5 =  1.061405429
-		p  =  0.3275911
+		a5 = 1.061405429
+		p  = 0.3275911
 	)
 
 	sign := 1.0

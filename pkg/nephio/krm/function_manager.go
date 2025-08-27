@@ -970,7 +970,6 @@ func validateFunctionManagerConfig(config *FunctionManagerConfig) error {
 	return nil
 }
 
-
 func convertToKRMResources(resources []*porch.KRMResource) []porch.KRMResource {
 	result := make([]porch.KRMResource, len(resources))
 	for i, r := range resources {

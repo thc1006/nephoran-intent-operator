@@ -84,14 +84,14 @@ func TestTimestampCollisionResistance(t *testing.T) {
 			defer func() { <-sem }() // Release semaphore
 
 			timestamp := generateCollisionResistantTimestamp()
-			
+
 			mu.Lock()
 			defer mu.Unlock()
-			
+
 			// Ensure no duplicate timestamps
-			assert.False(t, timestampSet[timestamp], 
+			assert.False(t, timestampSet[timestamp],
 				fmt.Sprintf("Duplicate timestamp generated: %s", timestamp))
-			
+
 			timestampSet[timestamp] = true
 		}()
 	}
@@ -99,7 +99,7 @@ func TestTimestampCollisionResistance(t *testing.T) {
 	wg.Wait()
 
 	// Verify total unique timestamps match total generations
-	assert.Equal(t, concurrentGenerations, len(timestampSet), 
+	assert.Equal(t, concurrentGenerations, len(timestampSet),
 		"Not all timestamps were unique")
 }
 
@@ -107,7 +107,7 @@ func TestTimestampCollisionResistance(t *testing.T) {
 func validateOutputDir(path string) error {
 	// Sanitize and validate path
 	cleanPath := filepath.Clean(path)
-	basePath := "/tmp/nephio"  // Hardcoded safe base path
+	basePath := "/tmp/nephio" // Hardcoded safe base path
 
 	// Prevent path traversal
 	if !strings.HasPrefix(cleanPath, basePath) {
@@ -122,6 +122,6 @@ func generateCollisionResistantTimestamp() string {
 	now := time.Now().UTC()
 	nanoTime := now.UnixNano()
 	randomSuffix := rand.String(6)
-	
+
 	return fmt.Sprintf("%d_%s", nanoTime, randomSuffix)
 }

@@ -23,19 +23,19 @@ func IsShutdownFailure(shuttingDown bool, err error) bool {
 	if err == nil {
 		return false
 	}
-	
+
 	// Rule 2: If not shutting down, return false even for cancellation/signals
 	if !shuttingDown {
 		return false
 	}
-	
+
 	// Rule 3: If shutting down, check for shutdown-related errors
-	
+
 	// Check for context cancellation/timeout
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return true
 	}
-	
+
 	// Check for process signals and exit codes
 	var exitErr *exec.ExitError
 	if errors.As(err, &exitErr) {
@@ -46,7 +46,7 @@ func IsShutdownFailure(shuttingDown bool, err error) bool {
 				return true
 			}
 		}
-		
+
 		// Check exit codes for container/process termination
 		exitCode := exitErr.ExitCode()
 		if exitCode == 137 || exitCode == 143 {
@@ -54,13 +54,13 @@ func IsShutdownFailure(shuttingDown bool, err error) bool {
 			return true
 		}
 	}
-	
+
 	// Check error message for signal-related termination
 	errMsg := err.Error()
 	if containsSignalKeywords(errMsg) {
 		return true
 	}
-	
+
 	return false
 }
 
@@ -72,12 +72,12 @@ func containsSignalKeywords(errMsg string) bool {
 		"signal: terminated",
 		"signal: interrupt",
 	}
-	
+
 	for _, keyword := range shutdownKeywords {
 		if strings.Contains(strings.ToLower(errMsg), keyword) {
 			return true
 		}
 	}
-	
+
 	return false
 }

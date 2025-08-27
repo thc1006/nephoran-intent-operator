@@ -211,7 +211,6 @@ type LifecycleHook struct {
 	Timeout time.Duration          `json:"timeout"`
 }
 
-
 // NewSMOManager creates a new SMO manager
 func NewSMOManager(config *SMOConfig) (*SMOManager, error) {
 	if config == nil {

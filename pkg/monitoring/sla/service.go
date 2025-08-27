@@ -49,7 +49,7 @@ type Service struct {
 	lastStatsUpdate time.Time
 	processingRate  atomic.Uint64
 	errorRate       atomic.Uint64
-	
+
 	// Current metric values for retrieval
 	currentMemoryUsage atomic.Uint64
 	currentCPUUsage    atomic.Uint64

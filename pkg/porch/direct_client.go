@@ -13,9 +13,9 @@ import (
 
 // PackageRevision represents the result of a package operation
 type PackageRevision struct {
-	Name       string
-	Revision   string
-	CommitURL  string
+	Name        string
+	Revision    string
+	CommitURL   string
 	PackagePath string
 }
 
@@ -110,24 +110,24 @@ func (c *DirectClient) CreatePackageFromIntent(ctx context.Context, intentPath, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse intent: %w", err)
 	}
-	
+
 	// Build the KRM package
 	krmPackage, err := BuildKRMPackage(intent, packageName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build KRM package: %w", err)
 	}
-	
+
 	// Generate package path
 	revision := fmt.Sprintf("v1-%d", time.Now().Unix())
 	packagePath := GeneratePackagePath(repoName, packageName, revision)
-	
+
 	result := &PackageRevision{
 		Name:        packageName,
 		Revision:    revision,
 		PackagePath: packagePath,
 		CommitURL:   fmt.Sprintf("%s/repos/%s/packages/%s/revisions/%s", c.endpoint, repoName, packageName, revision),
 	}
-	
+
 	if c.dryRun {
 		klog.Info("DRY-RUN: Would create package with the following details:")
 		klog.Infof("  Package: %s", packageName)
@@ -141,12 +141,12 @@ func (c *DirectClient) CreatePackageFromIntent(ctx context.Context, intentPath, 
 		}
 		return result, nil
 	}
-	
+
 	// Create package directory
 	if err := os.MkdirAll(packagePath, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create package directory: %w", err)
 	}
-	
+
 	// Write package files
 	for filename, content := range krmPackage.Content {
 		filePath := filepath.Join(packagePath, filename)
@@ -155,7 +155,7 @@ func (c *DirectClient) CreatePackageFromIntent(ctx context.Context, intentPath, 
 		}
 		klog.Infof("Created file: %s", filePath)
 	}
-	
+
 	// In a real implementation, this would call the Porch API
 	// For now, we simulate the API call
 	klog.Infof("Package created successfully:")
@@ -163,10 +163,10 @@ func (c *DirectClient) CreatePackageFromIntent(ctx context.Context, intentPath, 
 	klog.Infof("  Revision: %s", revision)
 	klog.Infof("  Path: %s", packagePath)
 	klog.Infof("  Commit URL: %s", result.CommitURL)
-	
+
 	if revisionMessage != "" {
 		klog.Infof("  Message: %s", revisionMessage)
 	}
-	
+
 	return result, nil
 }

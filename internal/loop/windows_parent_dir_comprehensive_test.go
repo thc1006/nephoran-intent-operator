@@ -63,7 +63,7 @@ func TestWindowsParentDirectoryCreation(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				// Create test-specific directory
 				testBaseDir := filepath.Join(baseDir, tc.name)
-				
+
 				// Create watch directory structure
 				var watchDir string
 				if len(tc.structure) > 0 {
@@ -200,7 +200,7 @@ func TestWindowsParentDirectoryCreation(t *testing.T) {
 				} else {
 					stateFile = filepath.Join(stateDir, ".conductor-state.json")
 				}
-				
+
 				_, err = os.Stat(stateFile)
 				assert.NoError(t, err, "State file should exist after MarkProcessed")
 			})
@@ -363,10 +363,10 @@ func TestWindowsParentDirectoryCreation(t *testing.T) {
 				content := []byte("Windows path edge case test")
 
 				err := atomicWriteFile(testFile, content, 0644)
-				
+
 				if tc.shouldWork {
 					assert.NoError(t, err, "Path should work: %s", tc.description)
-					
+
 					if err == nil {
 						// Verify file was created
 						_, statErr := os.Stat(testFile)
@@ -419,7 +419,7 @@ func TestWindowsParentDirectoryCreation(t *testing.T) {
 
 				status := fmt.Sprintf("status-%d", id)
 				message := fmt.Sprintf("Concurrent status write %d", id)
-				
+
 				// Each worker writes its own status (different filenames due to timestamps)
 				time.Sleep(time.Duration(id) * time.Millisecond) // Slight stagger
 				watcher.writeStatusFileAtomic(intentFile, status, message)
@@ -449,7 +449,7 @@ func TestWindowsParentDirectoryCreation(t *testing.T) {
 			content, err := os.ReadFile(statusFile)
 			assert.NoError(t, err, "Should be able to read status file: %s", entry.Name())
 			assert.Greater(t, len(content), 0, "Status file should not be empty: %s", entry.Name())
-			
+
 			// Verify it looks like JSON
 			assert.True(t, strings.HasPrefix(string(content), "{"), "Status file should be JSON: %s", entry.Name())
 			assert.True(t, strings.HasSuffix(strings.TrimSpace(string(content)), "}"), "Status file should be complete JSON: %s", entry.Name())
@@ -468,10 +468,10 @@ func TestWindowsParentDirectoryCreation(t *testing.T) {
 			// Make it read-only (this is tricky on Windows, so we'll just test the concept)
 			// On Windows, we can't easily make directories truly read-only, so this test
 			// validates the error handling path rather than actual permission denial
-			
+
 			testFile := filepath.Join(readOnlyDir, "subdir", "test.txt")
 			err := atomicWriteFile(testFile, []byte("test"), 0644)
-			
+
 			// On Windows, this might still succeed due to how permissions work
 			// The important thing is that it either succeeds or fails gracefully
 			if err != nil {
@@ -479,7 +479,7 @@ func TestWindowsParentDirectoryCreation(t *testing.T) {
 				assert.Contains(t, strings.ToLower(err.Error()), "permission", "Error should be permission-related")
 			} else {
 				t.Logf("File creation succeeded despite read-only parent (Windows behavior)")
-				
+
 				// Clean up
 				os.Remove(testFile)
 				os.Remove(filepath.Dir(testFile))
@@ -500,7 +500,7 @@ func TestWindowsParentDirectoryRegressionPrevention(t *testing.T) {
 		// 1. Watcher created in directory without status subdirectory
 		// 2. Status file write attempted
 		// 3. Should automatically create status directory
-		
+
 		baseDir := t.TempDir()
 		watchDir := filepath.Join(baseDir, "regression-test")
 		statusDir := filepath.Join(watchDir, "status")
@@ -551,7 +551,7 @@ func TestWindowsParentDirectoryRegressionPrevention(t *testing.T) {
 	t.Run("Deep_Path_Status_Creation", func(t *testing.T) {
 		// Test deep path scenarios that might fail on Windows due to path length limits
 		baseDir := t.TempDir()
-		
+
 		// Create a reasonably deep path (but not too deep to cause MAX_PATH issues)
 		deepPath := filepath.Join(baseDir, "level1", "level2", "level3", "level4", "watch")
 		statusDir := filepath.Join(deepPath, "status")
@@ -588,7 +588,7 @@ func TestWindowsParentDirectoryRegressionPrevention(t *testing.T) {
 	t.Run("Backslash_Path_Handling", func(t *testing.T) {
 		// Test Windows-specific backslash path handling
 		baseDir := t.TempDir()
-		
+
 		// Use Windows-style backslash paths
 		watchDir := filepath.Join(baseDir, "backslash\\test\\dir")
 		statusDir := filepath.Join(watchDir, "status")

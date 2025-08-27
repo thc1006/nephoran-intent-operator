@@ -89,11 +89,11 @@ func NewOptimizedRAGManager(config *OptimizedRAGConfig) (*OptimizedRAGManager, e
 		EnableQueryPreprocessing:    true,
 		EnableQueryExpansion:        true,
 		EnableQueryNormalization:    true,
-		EnableTelecomNER:           false,
+		EnableTelecomNER:            false,
 		EnableResultAggregation:     true,
 		EnableResultDeduplication:   true,
 		EnableResultRanking:         true,
-		MaxResultsPerQuery:         10,
+		MaxResultsPerQuery:          10,
 	}
 	optimizedPipeline := NewOptimizedRAGPipeline(
 		originalClient,

@@ -29,10 +29,10 @@ import (
 
 // ImpactPredictor predicts the impact of optimization recommendations
 type ImpactPredictor struct {
-	logger    logr.Logger
-	models    map[string]*PredictionModel
-	metrics   *PredictorMetrics
-	weights   map[shared.ComponentType]float64
+	logger  logr.Logger
+	models  map[string]*PredictionModel
+	metrics *PredictorMetrics
+	weights map[shared.ComponentType]float64
 }
 
 // PredictionModel represents a machine learning model for impact prediction
@@ -48,23 +48,23 @@ type PredictionModel struct {
 
 // PredictorMetrics tracks performance metrics for predictors
 type PredictorMetrics struct {
-	PredictionsCount    int64   `json:"predictionsCount"`
-	AccuracyScore       float64 `json:"accuracyScore"`
-	AverageLatency      float64 `json:"averageLatency"`      // milliseconds
-	PredictionErrors    int64   `json:"predictionErrors"`
-	LastUpdateTime      time.Time `json:"lastUpdateTime"`
+	PredictionsCount int64     `json:"predictionsCount"`
+	AccuracyScore    float64   `json:"accuracyScore"`
+	AverageLatency   float64   `json:"averageLatency"` // milliseconds
+	PredictionErrors int64     `json:"predictionErrors"`
+	LastUpdateTime   time.Time `json:"lastUpdateTime"`
 }
 
 // ImpactPrediction represents a predicted impact of an optimization
 type ImpactPrediction struct {
-	ComponentType         shared.ComponentType `json:"componentType"`
-	OptimizationType      string        `json:"optimizationType"`
-	PredictedImprovement  float64       `json:"predictedImprovement"`  // percentage
-	ConfidenceScore       float64       `json:"confidenceScore"`       // 0-1
-	TimeToEffect          time.Duration `json:"timeToEffect"`          // expected time to see effect
-	RiskScore             float64       `json:"riskScore"`             // 0-1 (higher = riskier)
-	ResourceRequirements  reporting.ResourceUsageMetrics `json:"resourceRequirements"`
-	Reasoning             string        `json:"reasoning"`
+	ComponentType        shared.ComponentType           `json:"componentType"`
+	OptimizationType     string                         `json:"optimizationType"`
+	PredictedImprovement float64                        `json:"predictedImprovement"` // percentage
+	ConfidenceScore      float64                        `json:"confidenceScore"`      // 0-1
+	TimeToEffect         time.Duration                  `json:"timeToEffect"`         // expected time to see effect
+	RiskScore            float64                        `json:"riskScore"`            // 0-1 (higher = riskier)
+	ResourceRequirements reporting.ResourceUsageMetrics `json:"resourceRequirements"`
+	Reasoning            string                         `json:"reasoning"`
 }
 
 // Note: ComponentType is defined in performance_analysis_engine.go
@@ -89,15 +89,15 @@ func NewImpactPredictor(logger logr.Logger) *ImpactPredictor {
 // PredictImpact predicts the impact of a specific optimization
 func (ip *ImpactPredictor) PredictImpact(ctx context.Context, component shared.ComponentType, optimization string, metrics reporting.ResourceUsageMetrics) (*ImpactPrediction, error) {
 	ip.metrics.PredictionsCount++
-	
+
 	// Simple heuristic-based prediction for now
 	// In production, this would use trained ML models
 	prediction := &ImpactPrediction{
-		ComponentType:    component,
-		OptimizationType: optimization,
-		ConfidenceScore:  0.75, // default confidence
-		TimeToEffect:     5 * time.Minute,
-		RiskScore:        0.3, // moderate risk
+		ComponentType:        component,
+		OptimizationType:     optimization,
+		ConfidenceScore:      0.75, // default confidence
+		TimeToEffect:         5 * time.Minute,
+		RiskScore:            0.3, // moderate risk
 		ResourceRequirements: metrics,
 	}
 
@@ -145,41 +145,41 @@ func (ip *ImpactPredictor) calculateImprovement(component shared.ComponentType, 
 
 // ROICalculator calculates return on investment for optimizations
 type ROICalculator struct {
-	logger      logr.Logger
-	costModels  map[shared.ComponentType]*CostModel
-	metrics     *ROIMetrics
+	logger     logr.Logger
+	costModels map[shared.ComponentType]*CostModel
+	metrics    *ROIMetrics
 }
 
 // CostModel represents cost modeling for different components
 type CostModel struct {
-	FixedCosts     map[string]float64 `json:"fixedCosts"`     // Fixed costs per time period
-	VariableCosts  map[string]float64 `json:"variableCosts"`  // Variable costs per unit
-	Depreciation   float64            `json:"depreciation"`   // Depreciation rate
-	MaintenanceCost float64           `json:"maintenanceCost"` // Maintenance cost percentage
+	FixedCosts      map[string]float64 `json:"fixedCosts"`      // Fixed costs per time period
+	VariableCosts   map[string]float64 `json:"variableCosts"`   // Variable costs per unit
+	Depreciation    float64            `json:"depreciation"`    // Depreciation rate
+	MaintenanceCost float64            `json:"maintenanceCost"` // Maintenance cost percentage
 }
 
 // ROIMetrics tracks ROI calculation metrics
 type ROIMetrics struct {
-	CalculationsCount   int64   `json:"calculationsCount"`
-	AverageROI          float64 `json:"averageROI"`
-	PositiveROICount    int64   `json:"positiveROICount"`
-	NegativeROICount    int64   `json:"negativeROICount"`
-	TotalCostSavings    float64 `json:"totalCostSavings"`
+	CalculationsCount   int64     `json:"calculationsCount"`
+	AverageROI          float64   `json:"averageROI"`
+	PositiveROICount    int64     `json:"positiveROICount"`
+	NegativeROICount    int64     `json:"negativeROICount"`
+	TotalCostSavings    float64   `json:"totalCostSavings"`
 	LastCalculationTime time.Time `json:"lastCalculationTime"`
 }
 
 // ROICalculation represents a return on investment calculation
 type ROICalculation struct {
-	OptimizationType    string        `json:"optimizationType"`
-	InitialInvestment   float64       `json:"initialInvestment"`   // dollars
-	ExpectedSavings     float64       `json:"expectedSavings"`     // dollars per month
-	PaybackPeriod       time.Duration `json:"paybackPeriod"`       // time to break even
-	ROIPercentage       float64       `json:"roiPercentage"`       // percentage ROI
-	NPV                 float64       `json:"npv"`                 // Net Present Value
-	IRR                 float64       `json:"irr"`                 // Internal Rate of Return
-	BreakEvenPoint      time.Time     `json:"breakEvenPoint"`      // date when ROI becomes positive
-	RiskAdjustedROI     float64       `json:"riskAdjustedROI"`     // ROI adjusted for risk
-	ConfidenceLevel     float64       `json:"confidenceLevel"`     // 0-1
+	OptimizationType  string        `json:"optimizationType"`
+	InitialInvestment float64       `json:"initialInvestment"` // dollars
+	ExpectedSavings   float64       `json:"expectedSavings"`   // dollars per month
+	PaybackPeriod     time.Duration `json:"paybackPeriod"`     // time to break even
+	ROIPercentage     float64       `json:"roiPercentage"`     // percentage ROI
+	NPV               float64       `json:"npv"`               // Net Present Value
+	IRR               float64       `json:"irr"`               // Internal Rate of Return
+	BreakEvenPoint    time.Time     `json:"breakEvenPoint"`    // date when ROI becomes positive
+	RiskAdjustedROI   float64       `json:"riskAdjustedROI"`   // ROI adjusted for risk
+	ConfidenceLevel   float64       `json:"confidenceLevel"`   // 0-1
 }
 
 // NewROICalculator creates a new ROI calculator
@@ -198,10 +198,10 @@ func (rc *ROICalculator) CalculateROI(ctx context.Context, component shared.Comp
 
 	// Estimate initial investment based on optimization type
 	initialInvestment := rc.estimateInitialInvestment(component, optimization)
-	
+
 	// Estimate monthly savings based on predicted improvement
 	monthlySavings := rc.estimateMonthlySavings(component, impact.PredictedImprovement)
-	
+
 	// Calculate basic ROI metrics
 	calculation := &ROICalculation{
 		OptimizationType:  optimization,
@@ -213,7 +213,7 @@ func (rc *ROICalculator) CalculateROI(ctx context.Context, component shared.Comp
 	// Calculate payback period
 	if monthlySavings > 0 {
 		paybackMonths := initialInvestment / monthlySavings
-		calculation.PaybackPeriod = time.Duration(paybackMonths * 30 * 24) * time.Hour
+		calculation.PaybackPeriod = time.Duration(paybackMonths*30*24) * time.Hour
 		calculation.BreakEvenPoint = time.Now().Add(calculation.PaybackPeriod)
 	}
 
@@ -306,58 +306,58 @@ type RiskAssessor struct {
 
 // RiskModel represents risk assessment model for components
 type RiskModel struct {
-	ComponentType      shared.ComponentType   `json:"componentType"`
-	BaseRiskScore      float64                `json:"baseRiskScore"`      // 0-1
-	RiskFactors        map[string]float64     `json:"riskFactors"`        // factor name -> weight
+	ComponentType        shared.ComponentType `json:"componentType"`
+	BaseRiskScore        float64              `json:"baseRiskScore"`        // 0-1
+	RiskFactors          map[string]float64   `json:"riskFactors"`          // factor name -> weight
 	MitigationStrategies map[string]string    `json:"mitigationStrategies"` // risk -> mitigation
-	HistoricalFailures int                    `json:"historicalFailures"`
-	LastIncidentTime   time.Time              `json:"lastIncidentTime"`
+	HistoricalFailures   int                  `json:"historicalFailures"`
+	LastIncidentTime     time.Time            `json:"lastIncidentTime"`
 }
 
 // RiskMetrics tracks risk assessment metrics
 type RiskMetrics struct {
-	AssessmentsCount    int64   `json:"assessmentsCount"`
-	AverageRiskScore    float64 `json:"averageRiskScore"`
-	HighRiskCount       int64   `json:"highRiskCount"`
-	MediumRiskCount     int64   `json:"mediumRiskCount"`
-	LowRiskCount        int64   `json:"lowRiskCount"`
-	LastAssessmentTime  time.Time `json:"lastAssessmentTime"`
+	AssessmentsCount   int64     `json:"assessmentsCount"`
+	AverageRiskScore   float64   `json:"averageRiskScore"`
+	HighRiskCount      int64     `json:"highRiskCount"`
+	MediumRiskCount    int64     `json:"mediumRiskCount"`
+	LowRiskCount       int64     `json:"lowRiskCount"`
+	LastAssessmentTime time.Time `json:"lastAssessmentTime"`
 }
 
 // RiskAssessment represents a comprehensive risk assessment
 type RiskAssessment struct {
-	OptimizationType     string                 `json:"optimizationType"`
-	ComponentType        shared.ComponentType   `json:"componentType"`
-	OverallRiskScore     float64                `json:"overallRiskScore"`     // 0-1 (higher = riskier)
-	RiskLevel            string                 `json:"riskLevel"`            // Low, Medium, High, Critical
-	RiskFactors          []RiskFactor           `json:"riskFactors"`
-	MitigationStrategies []MitigationStrategy   `json:"mitigationStrategies"`
-	RecommendedActions   []string               `json:"recommendedActions"`
-	MaxAcceptableDowntime time.Duration         `json:"maxAcceptableDowntime"`
-	EstimatedDowntime    time.Duration          `json:"estimatedDowntime"`
-	BusinessImpact       string                 `json:"businessImpact"`
-	TechnicalComplexity  int                    `json:"technicalComplexity"`  // 1-10
-	ReversibilityScore   float64                `json:"reversibilityScore"`   // 0-1 (higher = easier to reverse)
+	OptimizationType      string               `json:"optimizationType"`
+	ComponentType         shared.ComponentType `json:"componentType"`
+	OverallRiskScore      float64              `json:"overallRiskScore"` // 0-1 (higher = riskier)
+	RiskLevel             string               `json:"riskLevel"`        // Low, Medium, High, Critical
+	RiskFactors           []RiskFactor         `json:"riskFactors"`
+	MitigationStrategies  []MitigationStrategy `json:"mitigationStrategies"`
+	RecommendedActions    []string             `json:"recommendedActions"`
+	MaxAcceptableDowntime time.Duration        `json:"maxAcceptableDowntime"`
+	EstimatedDowntime     time.Duration        `json:"estimatedDowntime"`
+	BusinessImpact        string               `json:"businessImpact"`
+	TechnicalComplexity   int                  `json:"technicalComplexity"` // 1-10
+	ReversibilityScore    float64              `json:"reversibilityScore"`  // 0-1 (higher = easier to reverse)
 }
 
 // RiskFactor represents an individual risk factor
 type RiskFactor struct {
-	Name         string  `json:"name"`
-	Description  string  `json:"description"`
-	Probability  float64 `json:"probability"`  // 0-1
-	Impact       float64 `json:"impact"`       // 0-1
-	RiskScore    float64 `json:"riskScore"`    // probability * impact
-	Category     string  `json:"category"`     // Technical, Business, Operational
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	Probability float64 `json:"probability"` // 0-1
+	Impact      float64 `json:"impact"`      // 0-1
+	RiskScore   float64 `json:"riskScore"`   // probability * impact
+	Category    string  `json:"category"`    // Technical, Business, Operational
 }
 
 // MitigationStrategy represents a risk mitigation strategy
 type MitigationStrategy struct {
-	RiskFactor      string        `json:"riskFactor"`
-	Strategy        string        `json:"strategy"`
-	Effectiveness   float64       `json:"effectiveness"`   // 0-1
+	RiskFactor         string        `json:"riskFactor"`
+	Strategy           string        `json:"strategy"`
+	Effectiveness      float64       `json:"effectiveness"` // 0-1
 	ImplementationTime time.Duration `json:"implementationTime"`
-	Cost            float64       `json:"cost"`
-	Priority        string        `json:"priority"`        // Low, Medium, High
+	Cost               float64       `json:"cost"`
+	Priority           string        `json:"priority"` // Low, Medium, High
 }
 
 // NewRiskAssessor creates a new risk assessor
@@ -375,12 +375,12 @@ func (ra *RiskAssessor) AssessRisk(ctx context.Context, component shared.Compone
 	ra.metrics.LastAssessmentTime = time.Now()
 
 	assessment := &RiskAssessment{
-		OptimizationType:     optimization,
-		ComponentType:        component,
+		OptimizationType:      optimization,
+		ComponentType:         component,
 		MaxAcceptableDowntime: 5 * time.Minute, // Default acceptable downtime
-		EstimatedDowntime:    1 * time.Minute,  // Default estimated downtime
-		TechnicalComplexity:  5,                // Medium complexity
-		ReversibilityScore:   0.7,              // Reasonably reversible
+		EstimatedDowntime:     1 * time.Minute, // Default estimated downtime
+		TechnicalComplexity:   5,               // Medium complexity
+		ReversibilityScore:    0.7,             // Reasonably reversible
 	}
 
 	// Identify risk factors
@@ -649,9 +649,9 @@ func (ra *RiskAssessor) updateRiskMetrics(riskLevel string) {
 
 // MetricsStore manages storage and retrieval of performance metrics
 type MetricsStore struct {
-	data      map[string][]float64
+	data       map[string][]float64
 	timestamps map[string][]time.Time
-	mu        sync.RWMutex
+	mu         sync.RWMutex
 }
 
 // HistoricalDataStore manages historical performance data for trend analysis
@@ -665,16 +665,16 @@ type HistoricalDataStore struct {
 
 // PatternDetector detects performance patterns and anomalies
 type PatternDetector struct {
-	patterns     []Pattern
-	sensitivity  float64
-	windowSize   time.Duration
-	mu           sync.RWMutex
+	patterns    []Pattern
+	sensitivity float64
+	windowSize  time.Duration
+	mu          sync.RWMutex
 }
 
 // Pattern represents a detected performance pattern
 type Pattern struct {
-	Type        string    `json:"type"`        // trend, spike, anomaly, cyclic
-	Confidence  float64   `json:"confidence"`  // 0-1
+	Type        string    `json:"type"`       // trend, spike, anomaly, cyclic
+	Confidence  float64   `json:"confidence"` // 0-1
 	StartTime   time.Time `json:"startTime"`
 	EndTime     time.Time `json:"endTime"`
 	Description string    `json:"description"`
@@ -683,10 +683,10 @@ type Pattern struct {
 
 // BottleneckPredictor predicts potential system bottlenecks
 type BottleneckPredictor struct {
-	models        map[string]*PredictionModel
-	thresholds    map[string]float64
+	models            map[string]*PredictionModel
+	thresholds        map[string]float64
 	predictionHorizon time.Duration
-	mu            sync.RWMutex
+	mu                sync.RWMutex
 }
 
 // PerformanceForecaster provides performance forecasting capabilities
@@ -699,10 +699,10 @@ type PerformanceForecaster struct {
 
 // ForecastModel represents a forecasting model
 type ForecastModel struct {
-	Type       string    `json:"type"`       // linear, arima, neural
-	Parameters map[string]float64 `json:"parameters"`
-	Accuracy   float64   `json:"accuracy"`
-	LastTrained time.Time `json:"lastTrained"`
+	Type        string             `json:"type"` // linear, arima, neural
+	Parameters  map[string]float64 `json:"parameters"`
+	Accuracy    float64            `json:"accuracy"`
+	LastTrained time.Time          `json:"lastTrained"`
 }
 
 // OptimizationRanker ranks optimization opportunities by potential impact

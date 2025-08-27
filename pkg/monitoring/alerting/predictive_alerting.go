@@ -66,8 +66,8 @@ type ForecastResult struct {
 
 // TimeSeriesData represents time series data for ML processing
 type TimeSeriesData struct {
-	Timestamp time.Time `json:"timestamp"`
-	Value     float64   `json:"value"`
+	Timestamp time.Time              `json:"timestamp"`
+	Value     float64                `json:"value"`
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
@@ -80,15 +80,15 @@ type PredictiveConfig struct {
 	HistoryWindow       time.Duration `yaml:"history_window"`
 
 	// ML Backend configuration
-	MLBackend             MLBackend     `yaml:"ml_backend"`
-	AnomalyThreshold      float64       `yaml:"anomaly_threshold"`
-	SeasonalPeriods       []int         `yaml:"seasonal_periods"`
-	TrendSmoothingFactor  float64       `yaml:"trend_smoothing_factor"`
-	ConfidenceLevel       float64       `yaml:"confidence_level"`
-	MaxPredictionHorizon  time.Duration `yaml:"max_prediction_horizon"`
-	EnableAutoML          bool          `yaml:"enable_automl"`
-	CacheSize             int           `yaml:"cache_size"`
-	BatchSize             int           `yaml:"batch_size"`
+	MLBackend            MLBackend     `yaml:"ml_backend"`
+	AnomalyThreshold     float64       `yaml:"anomaly_threshold"`
+	SeasonalPeriods      []int         `yaml:"seasonal_periods"`
+	TrendSmoothingFactor float64       `yaml:"trend_smoothing_factor"`
+	ConfidenceLevel      float64       `yaml:"confidence_level"`
+	MaxPredictionHorizon time.Duration `yaml:"max_prediction_horizon"`
+	EnableAutoML         bool          `yaml:"enable_automl"`
+	CacheSize            int           `yaml:"cache_size"`
+	BatchSize            int           `yaml:"batch_size"`
 
 	// Prediction settings
 	PredictionWindow    time.Duration `yaml:"prediction_window"`
@@ -123,15 +123,15 @@ func DefaultPredictiveConfig() *PredictiveConfig {
 		HistoryWindow:       30 * 24 * time.Hour,
 
 		// ML Backend configuration
-		MLBackend:             MLBackendSimple,
-		AnomalyThreshold:      0.8,
-		SeasonalPeriods:       []int{24, 168, 720}, // hourly, daily, monthly
-		TrendSmoothingFactor:  0.3,
-		ConfidenceLevel:       0.95,
-		MaxPredictionHorizon:  4 * time.Hour,
-		EnableAutoML:          true,
-		CacheSize:             1000,
-		BatchSize:             100,
+		MLBackend:            MLBackendSimple,
+		AnomalyThreshold:     0.8,
+		SeasonalPeriods:      []int{24, 168, 720}, // hourly, daily, monthly
+		TrendSmoothingFactor: 0.3,
+		ConfidenceLevel:      0.95,
+		MaxPredictionHorizon: 4 * time.Hour,
+		EnableAutoML:         true,
+		CacheSize:            1000,
+		BatchSize:            100,
 
 		// Prediction settings
 		PredictionWindow:    60 * time.Minute,
@@ -305,7 +305,6 @@ type NormalizationParams struct {
 	Params map[string]float64 `json:"params"`
 }
 
-
 // NewPredictiveAlerting creates a new predictive alerting system
 func NewPredictiveAlerting(config *PredictiveConfig, logger *logging.StructuredLogger) (*PredictiveAlerting, error) {
 	if config == nil {
@@ -374,7 +373,7 @@ func (pa *PredictiveAlerting) Start(ctx context.Context) error {
 
 	// Start anomaly detection processing
 	go pa.anomalyDetectionLoop(ctx)
-	
+
 	// Start model update processing
 	go pa.modelUpdateProcessingLoop(ctx)
 
@@ -436,7 +435,7 @@ func (pa *PredictiveAlerting) Predict(ctx context.Context, slaType SLAType,
 	for i, value := range features {
 		featureMap[fmt.Sprintf("feature_%d", i)] = value
 	}
-	
+
 	// Generate baseline prediction
 	baselinePrediction := pa.generateBaselinePrediction(model, featureMap)
 
@@ -773,28 +772,28 @@ func (pa *PredictiveAlerting) validateModel(weights []float64, bias float64,
 // ExtractFeatures extracts features from current metrics for ML prediction
 func (fe *FeatureExtractor) ExtractFeatures(ctx context.Context, slaType SLAType, currentMetrics map[string]float64) ([]float64, error) {
 	var features []float64
-	
+
 	// Basic metric features
 	for _, value := range currentMetrics {
 		features = append(features, value)
 	}
-	
+
 	// Time-based features
 	now := time.Now()
 	features = append(features,
-		float64(now.Hour()),                    // Hour of day
-		float64(now.Weekday()),                 // Day of week
-		float64(now.Day()),                     // Day of month
-		float64(now.Month()),                   // Month
+		float64(now.Hour()),    // Hour of day
+		float64(now.Weekday()), // Day of week
+		float64(now.Day()),     // Day of month
+		float64(now.Month()),   // Month
 	)
-	
+
 	// Statistical features (would be computed from historical data)
 	features = append(features,
 		0.0, // Moving average
 		0.0, // Standard deviation
 		0.0, // Trend coefficient
 	)
-	
+
 	return features, nil
 }
 
@@ -803,7 +802,7 @@ func (pa *PredictiveAlerting) applySeasonalAdjustment(slaType SLAType, timestamp
 	// Simplified seasonal adjustment - would use actual seasonal model
 	hour := timestamp.Hour()
 	weekday := timestamp.Weekday()
-	
+
 	// Basic time-based adjustments
 	var adjustment float64
 	if hour >= 9 && hour <= 17 { // Business hours
@@ -811,15 +810,15 @@ func (pa *PredictiveAlerting) applySeasonalAdjustment(slaType SLAType, timestamp
 	} else {
 		adjustment = 0.8
 	}
-	
+
 	if weekday == time.Saturday || weekday == time.Sunday { // Weekends
 		adjustment *= 0.7
 	}
-	
+
 	return adjustment
 }
 
-// applyTrendAdjustment applies trend adjustments to predictions  
+// applyTrendAdjustment applies trend adjustments to predictions
 func (pa *PredictiveAlerting) applyTrendAdjustment(slaType SLAType) float64 {
 	// Simplified trend adjustment - would use actual trend analysis
 	// Return a small positive trend coefficient
@@ -831,22 +830,22 @@ func (pa *PredictiveAlerting) calculateAnomalyScore(slaType SLAType, currentMetr
 	// Simplified anomaly scoring - would use statistical models
 	var totalDeviation float64
 	count := 0
-	
+
 	for _, value := range currentMetrics {
 		// Assume normal range is 0-100 with mean=50, std=15
-		zScore := math.Abs(value - 50.0) / 15.0
+		zScore := math.Abs(value-50.0) / 15.0
 		totalDeviation += zScore
 		count++
 	}
-	
+
 	if count == 0 {
 		return 0.0
 	}
-	
+
 	avgDeviation := totalDeviation / float64(count)
 	// Convert to anomaly score between 0-1
-	anomalyScore := math.Min(avgDeviation / 3.0, 1.0) // Cap at 1.0
-	
+	anomalyScore := math.Min(avgDeviation/3.0, 1.0) // Cap at 1.0
+
 	return anomalyScore
 }
 
@@ -854,10 +853,10 @@ func (pa *PredictiveAlerting) calculateAnomalyScore(slaType SLAType, currentMetr
 func (pa *PredictiveAlerting) calculateViolationProbability(baselinePrediction, seasonal, trend, anomaly float64) float64 {
 	// Combine all prediction components
 	finalPrediction := baselinePrediction + seasonal + trend + anomaly
-	
+
 	// Convert to probability using sigmoid-like function
 	probability := 1.0 / (1.0 + math.Exp(-finalPrediction))
-	
+
 	// Ensure probability is within bounds
 	if probability > 1.0 {
 		probability = 1.0
@@ -865,7 +864,7 @@ func (pa *PredictiveAlerting) calculateViolationProbability(baselinePrediction, 
 	if probability < 0.0 {
 		probability = 0.0
 	}
-	
+
 	return probability
 }
 
@@ -874,10 +873,10 @@ func (pa *PredictiveAlerting) calculateConfidence(model *PredictionModel, featur
 	// Simplified confidence calculation based on model performance
 	// In production, this would use more sophisticated methods
 	baseConfidence := 0.8 // Assume 80% base confidence
-	
+
 	// Adjust based on feature count
 	featureAdjustment := math.Min(float64(len(features))/10.0, 1.0)
-	
+
 	confidence := baseConfidence * featureAdjustment
 	return math.Min(confidence, 1.0)
 }
@@ -888,7 +887,7 @@ func (pa *PredictiveAlerting) estimateTimeToViolation(violationProbability float
 	if violationProbability < pa.config.AlertThreshold {
 		return 0 // No violation expected
 	}
-	
+
 	// Estimate based on trend and current probability
 	timeFactors := violationProbability - pa.config.AlertThreshold
 	if trend > 0 {
@@ -896,7 +895,7 @@ func (pa *PredictiveAlerting) estimateTimeToViolation(violationProbability float
 		estimatedMinutes := (1.0 - timeFactors) / trend * 60.0
 		return time.Duration(estimatedMinutes) * time.Minute
 	}
-	
+
 	// Default to lead time if no trend
 	return pa.config.EarlyWarningLeadTime
 }
@@ -904,7 +903,7 @@ func (pa *PredictiveAlerting) estimateTimeToViolation(violationProbability float
 // generateRecommendedActions generates recommended actions based on prediction
 func (pa *PredictiveAlerting) generateRecommendedActions(violationProbability float64, confidence float64, anomalyScore float64) []string {
 	var actions []string
-	
+
 	if violationProbability > pa.config.AlertThreshold {
 		if confidence > 0.8 {
 			actions = append(actions, "Scale resources immediately")
@@ -912,19 +911,19 @@ func (pa *PredictiveAlerting) generateRecommendedActions(violationProbability fl
 			actions = append(actions, "Monitor closely and prepare for scaling")
 		}
 	}
-	
+
 	if anomalyScore > 0.7 {
 		actions = append(actions, "Investigate potential anomalies")
 	}
-	
+
 	if violationProbability > 0.9 {
 		actions = append(actions, "Trigger emergency response")
 	}
-	
+
 	if len(actions) == 0 {
 		actions = append(actions, "Continue monitoring")
 	}
-	
+
 	return actions
 }
 
@@ -935,7 +934,7 @@ func (pa *PredictiveAlerting) buildSeasonalModel(slaType SLAType, dataset *Histo
 		SeasonalityPeriods: make(map[time.Duration]float64),
 		LastUpdated:        time.Now(),
 	}
-	
+
 	// Initialize patterns with defaults
 	for i := range model.WeeklyPattern {
 		model.WeeklyPattern[i] = 1.0
@@ -946,12 +945,12 @@ func (pa *PredictiveAlerting) buildSeasonalModel(slaType SLAType, dataset *Histo
 	for i := range model.MonthlyPattern {
 		model.MonthlyPattern[i] = 1.0
 	}
-	
+
 	// Add seasonality periods from config
 	for _, period := range pa.config.SeasonalityPeriods {
 		model.SeasonalityPeriods[period] = 0.1 // Default amplitude
 	}
-	
+
 	return model
 }
 
@@ -960,10 +959,10 @@ func (pa *PredictiveAlerting) prepareTrainingData(dataset *HistoricalDataset) ([
 	if len(dataset.DataPoints) == 0 {
 		return nil, nil, fmt.Errorf("no data points in dataset")
 	}
-	
+
 	var features [][]float64
 	var labels []float64
-	
+
 	// Simple feature extraction from data points
 	for _, point := range dataset.DataPoints {
 		feature := []float64{
@@ -975,7 +974,7 @@ func (pa *PredictiveAlerting) prepareTrainingData(dataset *HistoricalDataset) ([
 		// Use the SLA value as both feature and label for simplification
 		labels = append(labels, point.SLAValue)
 	}
-	
+
 	return features, labels, nil
 }
 
@@ -984,18 +983,18 @@ func (pa *PredictiveAlerting) normalizeFeatures(features [][]float64) (*Normaliz
 	if len(features) == 0 {
 		return nil, features
 	}
-	
+
 	params := &NormalizationParams{
 		Method: "min-max",
 		Params: make(map[string]float64),
 	}
-	
+
 	normalized := make([][]float64, len(features))
 	for i := range normalized {
 		normalized[i] = make([]float64, len(features[i]))
 		copy(normalized[i], features[i])
 	}
-	
+
 	// Simple min-max normalization
 	if len(features) > 0 {
 		for j := 0; j < len(features[0]); j++ {
@@ -1008,10 +1007,10 @@ func (pa *PredictiveAlerting) normalizeFeatures(features [][]float64) (*Normaliz
 					max = features[i][j]
 				}
 			}
-			
+
 			params.Params[fmt.Sprintf("min_%d", j)] = min
 			params.Params[fmt.Sprintf("max_%d", j)] = max
-			
+
 			// Normalize if range is non-zero
 			if max > min {
 				for i := 0; i < len(features); i++ {
@@ -1020,7 +1019,7 @@ func (pa *PredictiveAlerting) normalizeFeatures(features [][]float64) (*Normaliz
 			}
 		}
 	}
-	
+
 	return params, normalized
 }
 
@@ -1029,15 +1028,15 @@ func (pa *PredictiveAlerting) splitTrainingData(features [][]float64, labels []f
 	if len(features) < 2 {
 		return features, nil, labels, nil
 	}
-	
+
 	// Simple 80/20 split
 	splitIndex := int(0.8 * float64(len(features)))
-	
+
 	trainFeatures := features[:splitIndex]
 	validFeatures := features[splitIndex:]
 	trainLabels := labels[:splitIndex]
 	validLabels := labels[splitIndex:]
-	
+
 	return trainFeatures, validFeatures, trainLabels, validLabels
 }
 
@@ -1072,7 +1071,7 @@ func (pa *PredictiveAlerting) performAnomalyDetection(ctx context.Context, slaTy
 
 	for _, value := range currentMetrics {
 		// Calculate z-score
-		zScore := math.Abs(value - anomalyModel.Mean) / anomalyModel.StdDev
+		zScore := math.Abs(value-anomalyModel.Mean) / anomalyModel.StdDev
 		if zScore > anomalyModel.ZScoreThreshold {
 			totalDeviation += zScore
 			count++
@@ -1105,9 +1104,9 @@ func (pa *PredictiveAlerting) updateModel(ctx context.Context, slaType SLAType, 
 	// Update model statistics
 	if len(newData) > 0 {
 		// Simple update: adjust accuracy based on recent performance
-		model.Accuracy = math.Max(0.1, model.Accuracy * 0.95) // Decay accuracy slightly
+		model.Accuracy = math.Max(0.1, model.Accuracy*0.95) // Decay accuracy slightly
 		model.TrainedAt = time.Now()
-		
+
 		// Update normalization parameters if needed
 		pa.updateNormalizationParams(model, newData)
 	}
@@ -1125,14 +1124,14 @@ func (pa *PredictiveAlerting) updateNormalizationParams(model *PredictionModel, 
 	for i, _ := range model.Features {
 		minKey := fmt.Sprintf("min_%d", i)
 		maxKey := fmt.Sprintf("max_%d", i)
-		
+
 		if len(newData) > i {
 			value := newData[0].Value // Simplified: use first data point
-			
+
 			if currentMin, exists := model.Normalization.Params[minKey]; exists {
 				model.Normalization.Params[minKey] = math.Min(currentMin, value)
 			}
-			
+
 			if currentMax, exists := model.Normalization.Params[maxKey]; exists {
 				model.Normalization.Params[maxKey] = math.Max(currentMax, value)
 			}
@@ -1234,7 +1233,7 @@ func (pa *PredictiveAlerting) forecastingLoop(ctx context.Context) {
 // runAnomalyDetection performs anomaly detection for all SLA types
 func (pa *PredictiveAlerting) runAnomalyDetection(ctx context.Context) {
 	slaTypes := []SLAType{SLATypeAvailability, SLATypeLatency, SLAThroughput, SLAErrorRate}
-	
+
 	for _, slaType := range slaTypes {
 		// Mock current metrics for anomaly detection
 		currentMetrics := map[string]float64{
@@ -1242,7 +1241,7 @@ func (pa *PredictiveAlerting) runAnomalyDetection(ctx context.Context) {
 			"memory_usage": 67.0 + float64(time.Now().Unix()%15),
 			"request_rate": 1200.0 + float64(time.Now().Unix()%100),
 		}
-		
+
 		_, err := pa.performAnomalyDetection(ctx, slaType, currentMetrics)
 		if err != nil {
 			pa.logger.WarnWithContext("Anomaly detection failed",
@@ -1256,7 +1255,7 @@ func (pa *PredictiveAlerting) runAnomalyDetection(ctx context.Context) {
 // processModelUpdates processes model updates
 func (pa *PredictiveAlerting) processModelUpdates(ctx context.Context) {
 	pa.logger.InfoWithContext("Processing model updates")
-	
+
 	for slaType := range pa.models {
 		// Generate mock time series data for updates
 		mockData := []TimeSeriesData{
@@ -1266,7 +1265,7 @@ func (pa *PredictiveAlerting) processModelUpdates(ctx context.Context) {
 				Metadata:  map[string]interface{}{"source": "mock"},
 			},
 		}
-		
+
 		err := pa.updateModel(ctx, slaType, mockData)
 		if err != nil {
 			pa.logger.ErrorWithContext("Failed to update model", err,

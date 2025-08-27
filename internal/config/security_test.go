@@ -9,15 +9,15 @@ import (
 
 func TestDefaultSecurityConfig(t *testing.T) {
 	config := DefaultSecurityConfig()
-	
+
 	if config.ImageConfig.DefaultVersion == "latest" {
 		t.Error("Default image version should not be 'latest'")
 	}
-	
+
 	if !config.ImageConfig.RequireDigest {
 		t.Error("Digest verification should be enabled by default")
 	}
-	
+
 	if config.ValidationRules.MaxTargetLength > 63 {
 		t.Error("Max target length should not exceed Kubernetes label limits")
 	}
@@ -49,9 +49,9 @@ func TestGetSecureImage(t *testing.T) {
 			wantTag:   "v1.0.0",
 		},
 	}
-	
+
 	config := DefaultSecurityConfig()
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			image, err := config.GetSecureImage(tt.baseImage)
@@ -59,11 +59,11 @@ func TestGetSecureImage(t *testing.T) {
 				t.Errorf("GetSecureImage() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
-			
+
 			if !strings.Contains(image, tt.wantTag) {
 				t.Errorf("GetSecureImage() = %v, want tag %v", image, tt.wantTag)
 			}
-			
+
 			// Should never contain 'latest'
 			if strings.Contains(image, "latest") {
 				t.Errorf("GetSecureImage() returned image with 'latest' tag: %v", image)
@@ -100,7 +100,7 @@ func TestValidateTarget(t *testing.T) {
 			target:    "ran123",
 			wantError: false,
 		},
-		
+
 		// Invalid targets - injection attempts
 		{
 			name:      "SQL injection with quote",
@@ -132,7 +132,7 @@ func TestValidateTarget(t *testing.T) {
 			wantError: true,
 			errorMsg:  "path traversal",
 		},
-		
+
 		// Invalid targets - format violations
 		{
 			name:      "Empty target",
@@ -165,9 +165,9 @@ func TestValidateTarget(t *testing.T) {
 			errorMsg:  "invalid characters",
 		},
 	}
-	
+
 	config := DefaultSecurityConfig()
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := config.ValidateTarget(tt.target)
@@ -175,7 +175,7 @@ func TestValidateTarget(t *testing.T) {
 				t.Errorf("ValidateTarget() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
-			
+
 			if err != nil && tt.errorMsg != "" && !strings.Contains(err.Error(), tt.errorMsg) {
 				t.Errorf("ValidateTarget() error = %v, want error containing %v", err, tt.errorMsg)
 			}
@@ -216,7 +216,7 @@ func TestResolveRepository(t *testing.T) {
 			target:   "ru",
 			wantRepo: "ran-packages",
 		},
-		
+
 		// Core targets
 		{
 			name:     "Core target",
@@ -238,7 +238,7 @@ func TestResolveRepository(t *testing.T) {
 			target:   "amf",
 			wantRepo: "core-packages",
 		},
-		
+
 		// Edge targets
 		{
 			name:     "MEC target",
@@ -250,7 +250,7 @@ func TestResolveRepository(t *testing.T) {
 			target:   "edge",
 			wantRepo: "edge-packages",
 		},
-		
+
 		// Transport targets
 		{
 			name:     "Transport target",
@@ -262,7 +262,7 @@ func TestResolveRepository(t *testing.T) {
 			target:   "xhaul",
 			wantRepo: "transport-packages",
 		},
-		
+
 		// Management targets
 		{
 			name:     "SMO target",
@@ -274,14 +274,14 @@ func TestResolveRepository(t *testing.T) {
 			target:   "nms",
 			wantRepo: "management-packages",
 		},
-		
+
 		// Default/unknown targets
 		{
 			name:     "Unknown target",
 			target:   "custom-nf",
 			wantRepo: "nephio-packages",
 		},
-		
+
 		// Invalid targets
 		{
 			name:      "SQL injection attempt",
@@ -294,9 +294,9 @@ func TestResolveRepository(t *testing.T) {
 			wantError: true,
 		},
 	}
-	
+
 	config := DefaultSecurityConfig()
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo, err := config.ResolveRepository(tt.target)
@@ -304,7 +304,7 @@ func TestResolveRepository(t *testing.T) {
 				t.Errorf("ResolveRepository() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
-			
+
 			if !tt.wantError && repo != tt.wantRepo {
 				t.Errorf("ResolveRepository() = %v, want %v", repo, tt.wantRepo)
 			}
@@ -326,22 +326,22 @@ func TestHashTarget(t *testing.T) {
 			target: "gnb-du-123",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			hash1 := HashTarget(tt.target)
 			hash2 := HashTarget(tt.target)
-			
+
 			// Hash should be consistent
 			if hash1 != hash2 {
 				t.Errorf("HashTarget() not consistent: %v != %v", hash1, hash2)
 			}
-			
+
 			// Hash should be 8 characters (truncated)
 			if len(hash1) != 8 {
 				t.Errorf("HashTarget() length = %v, want 8", len(hash1))
 			}
-			
+
 			// Different inputs should produce different hashes
 			differentHash := HashTarget(tt.target + "-different")
 			if hash1 == differentHash {
@@ -387,13 +387,13 @@ func TestEnvironmentConfiguration(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.envVar, func(t *testing.T) {
 			// Set environment variable
 			os.Setenv(tc.envVar, tc.envValue)
 			defer os.Unsetenv(tc.envVar)
-			
+
 			// Create config and check
 			config := DefaultSecurityConfig()
 			if !tc.check(config) {
@@ -405,9 +405,9 @@ func TestEnvironmentConfiguration(t *testing.T) {
 
 func TestSecurityPatternDetection(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
-		sqlCheck bool
+		name      string
+		input     string
+		sqlCheck  bool
 		pathCheck bool
 	}{
 		// SQL Injection patterns
@@ -431,7 +431,7 @@ func TestSecurityPatternDetection(t *testing.T) {
 			input:    "test_SELECT_test",
 			sqlCheck: true,
 		},
-		
+
 		// Path traversal patterns
 		{
 			name:      "Path dot dot slash",
@@ -449,35 +449,35 @@ func TestSecurityPatternDetection(t *testing.T) {
 			pathCheck: true,
 			sqlCheck:  true, // Also matches SQL hex pattern
 		},
-		
+
 		// Clean inputs
 		{
-			name:     "Clean alphanumeric",
-			input:    "test123",
-			sqlCheck: false,
+			name:      "Clean alphanumeric",
+			input:     "test123",
+			sqlCheck:  false,
 			pathCheck: false,
 		},
 		{
-			name:     "Clean with dash",
-			input:    "test-123",
-			sqlCheck: false,
+			name:      "Clean with dash",
+			input:     "test-123",
+			sqlCheck:  false,
 			pathCheck: false,
 		},
 		{
-			name:     "Clean with underscore",
-			input:    "test_123",
-			sqlCheck: false,
+			name:      "Clean with underscore",
+			input:     "test_123",
+			sqlCheck:  false,
 			pathCheck: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sqlDetected := containsSQLInjectionPattern(tt.input)
 			if sqlDetected != tt.sqlCheck {
 				t.Errorf("containsSQLInjectionPattern(%s) = %v, want %v", tt.input, sqlDetected, tt.sqlCheck)
 			}
-			
+
 			pathDetected := containsPathTraversal(tt.input)
 			if pathDetected != tt.pathCheck {
 				t.Errorf("containsPathTraversal(%s) = %v, want %v", tt.input, pathDetected, tt.pathCheck)
@@ -545,7 +545,7 @@ func TestAdvancedSecurityVulnerabilities(t *testing.T) {
 			expectError:   true,
 			errorContains: "SQL injection",
 		},
-		
+
 		// Path Traversal Attacks
 		{
 			name:          "Path Traversal - Basic Dot Dot Slash",
@@ -589,7 +589,7 @@ func TestAdvancedSecurityVulnerabilities(t *testing.T) {
 			expectError:   true,
 			errorContains: "path traversal",
 		},
-		
+
 		// Command Injection Attempts (detected as SQL injection due to semicolons)
 		{
 			name:          "Command Injection - Semicolon",
@@ -612,7 +612,7 @@ func TestAdvancedSecurityVulnerabilities(t *testing.T) {
 			expectError:   true,
 			errorContains: "invalid characters", // Backtick should fail pattern match
 		},
-		
+
 		// Regex Pattern Bypass Attempts
 		{
 			name:          "Pattern Bypass - Null Byte",
@@ -635,7 +635,7 @@ func TestAdvancedSecurityVulnerabilities(t *testing.T) {
 			expectError:   true,
 			errorContains: "invalid characters",
 		},
-		
+
 		// Buffer Overflow Attempts
 		{
 			name:          "Buffer Overflow - Very Long Input",
@@ -651,7 +651,7 @@ func TestAdvancedSecurityVulnerabilities(t *testing.T) {
 			expectError:   true,
 			errorContains: "exceeds maximum length",
 		},
-		
+
 		// Format String Attacks
 		{
 			name:          "Format String - Printf Specifiers",
@@ -667,7 +667,7 @@ func TestAdvancedSecurityVulnerabilities(t *testing.T) {
 			expectError:   true,
 			errorContains: "invalid characters",
 		},
-		
+
 		// Script Injection
 		{
 			name:          "Script Injection - JavaScript",
@@ -683,31 +683,31 @@ func TestAdvancedSecurityVulnerabilities(t *testing.T) {
 			expectError:   true,
 			errorContains: "invalid characters",
 		},
-		
+
 		// Valid Targets (Should Pass)
 		{
-			name:          "Valid Target - Simple",
-			target:        "gnb",
-			attackType:    "valid",
-			expectError:   false,
+			name:        "Valid Target - Simple",
+			target:      "gnb",
+			attackType:  "valid",
+			expectError: false,
 		},
 		{
-			name:          "Valid Target - With Dash",
-			target:        "gnb-du",
-			attackType:    "valid",
-			expectError:   false,
+			name:        "Valid Target - With Dash",
+			target:      "gnb-du",
+			attackType:  "valid",
+			expectError: false,
 		},
 		{
-			name:          "Valid Target - With Underscore",
-			target:        "gnb_cu",
-			attackType:    "valid",
-			expectError:   false,
+			name:        "Valid Target - With Underscore",
+			target:      "gnb_cu",
+			attackType:  "valid",
+			expectError: false,
 		},
 		{
-			name:          "Valid Target - Alphanumeric",
-			target:        "gnb123du456",
-			attackType:    "valid",
-			expectError:   false,
+			name:        "Valid Target - Alphanumeric",
+			target:      "gnb123du456",
+			attackType:  "valid",
+			expectError: false,
 		},
 	}
 
@@ -754,11 +754,11 @@ func TestMaliciousImageReferences(t *testing.T) {
 			baseImage: "nephoran/nf-sim:v1.0.0",
 		},
 		{
-			name:      "Valid Image - With Trusted Digest",
-			baseImage: "nephoran/nf-sim:v1.0.0",
+			name:        "Valid Image - With Trusted Digest",
+			baseImage:   "nephoran/nf-sim:v1.0.0",
 			checkDigest: true,
 		},
-		
+
 		// Potentially malicious images
 		{
 			name:      "Latest Tag Replacement",
@@ -785,7 +785,7 @@ func TestMaliciousImageReferences(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			config := DefaultSecurityConfig()
-			
+
 			image, err := config.GetSecureImage(tt.baseImage)
 
 			if tt.expectError {
@@ -866,7 +866,7 @@ func TestInvalidDigestFormats(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			config := DefaultSecurityConfig()
-			
+
 			// Manually add the invalid digest to test it
 			digestKey := fmt.Sprintf("%s:%s", tt.imageName, tt.tag)
 			config.ImageConfig.TrustedDigests[digestKey] = tt.digest
@@ -880,7 +880,7 @@ func TestInvalidDigestFormats(t *testing.T) {
 				t.Logf("GetSecureImage returned error for invalid digest (good): %v", err)
 			} else {
 				t.Logf("GetSecureImage accepted invalid digest (potential security issue): %s", resultImage)
-				
+
 				// Check if the invalid digest appears in the result
 				if strings.Contains(resultImage, tt.digest) {
 					t.Errorf("Invalid digest was included in result image: %s", resultImage)
@@ -894,7 +894,7 @@ func TestInvalidDigestFormats(t *testing.T) {
 func TestSecurityConfigurationEdgeCases(t *testing.T) {
 	t.Run("EmptySecurityConfig", func(t *testing.T) {
 		config := &SecurityConfig{}
-		
+
 		// Test with empty config
 		err := config.ValidateTarget("gnb")
 		if err == nil {
@@ -906,7 +906,7 @@ func TestSecurityConfigurationEdgeCases(t *testing.T) {
 		config := &SecurityConfig{
 			ValidationRules: ValidationConfig{}, // Zero values
 		}
-		
+
 		err := config.ValidateTarget("gnb")
 		// This should fail due to zero MaxTargetLength
 		if err == nil {
@@ -917,14 +917,14 @@ func TestSecurityConfigurationEdgeCases(t *testing.T) {
 	t.Run("InvalidRegexPattern", func(t *testing.T) {
 		config := DefaultSecurityConfig()
 		config.ValidationRules.TargetNamePattern = "[invalid regex("
-		
+
 		// This should cause a panic or error when compiling the regex
 		defer func() {
 			if r := recover(); r != nil {
 				t.Logf("Got expected panic for invalid regex: %v", r)
 			}
 		}()
-		
+
 		err := config.ValidateTarget("gnb")
 		if err == nil {
 			t.Error("Expected error with invalid regex pattern")
@@ -934,7 +934,7 @@ func TestSecurityConfigurationEdgeCases(t *testing.T) {
 	t.Run("NilRepositoryAllowlist", func(t *testing.T) {
 		config := DefaultSecurityConfig()
 		config.RepositoryAllowlist = nil
-		
+
 		_, err := config.ResolveRepository("gnb")
 		if err == nil {
 			t.Error("Expected error with nil repository allowlist")
@@ -944,7 +944,7 @@ func TestSecurityConfigurationEdgeCases(t *testing.T) {
 	t.Run("EmptyRepositoryAllowlist", func(t *testing.T) {
 		config := DefaultSecurityConfig()
 		config.RepositoryAllowlist = make(map[string]RepositoryConfig)
-		
+
 		_, err := config.ResolveRepository("gnb")
 		if err == nil {
 			t.Error("Expected error with empty repository allowlist")
@@ -953,11 +953,11 @@ func TestSecurityConfigurationEdgeCases(t *testing.T) {
 
 	t.Run("ConcurrentAccess", func(t *testing.T) {
 		config := DefaultSecurityConfig()
-		
+
 		// Test concurrent access to validate thread safety
 		const numGoroutines = 100
 		errorChan := make(chan error, numGoroutines)
-		
+
 		for i := 0; i < numGoroutines; i++ {
 			go func(id int) {
 				target := fmt.Sprintf("gnb-%d", id)
@@ -965,7 +965,7 @@ func TestSecurityConfigurationEdgeCases(t *testing.T) {
 				errorChan <- err
 			}(i)
 		}
-		
+
 		// Collect results
 		for i := 0; i < numGoroutines; i++ {
 			err := <-errorChan

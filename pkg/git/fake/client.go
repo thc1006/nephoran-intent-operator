@@ -20,7 +20,7 @@ type Client struct {
 	ShouldFailCommitAndPushChanges bool
 	// ShouldFailWithPushError controls whether to simulate a Git push failure
 	ShouldFailWithPushError bool
-	
+
 	// New failure flags for the missing methods
 	ShouldFailCommitFiles      bool
 	ShouldFailCreateBranch     bool
@@ -34,7 +34,7 @@ type Client struct {
 
 	// CommitHash is the hash that will be returned by CommitAndPush
 	CommitHash string
-	
+
 	// Mock data for testing
 	CurrentBranch string
 	Branches      []string

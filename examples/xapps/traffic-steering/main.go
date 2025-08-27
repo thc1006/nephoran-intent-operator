@@ -144,13 +144,13 @@ func main() {
 func NewTrafficSteeringXApp(config *e2.XAppConfig) (*TrafficSteeringXApp, error) {
 	// Create E2Manager
 	e2Manager, err := e2.NewE2Manager(&e2.E2ManagerConfig{
-		DefaultRICURL:       config.NearRTRICURL,
-		DefaultAPIVersion:   "v1",
-		DefaultTimeout:      30 * time.Second,
-		HeartbeatInterval:   30 * time.Second,
-		MaxRetries:          3,
-		SimulationMode:      false,
-		SimulateRICCalls:    false,
+		DefaultRICURL:     config.NearRTRICURL,
+		DefaultAPIVersion: "v1",
+		DefaultTimeout:    30 * time.Second,
+		HeartbeatInterval: 30 * time.Second,
+		MaxRetries:        3,
+		SimulationMode:    false,
+		SimulateRICCalls:  false,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create E2Manager: %w", err)
@@ -703,7 +703,7 @@ func (x *TrafficSteeringXApp) convertE2ToRICControlRequest(e2Req *e2.E2ControlRe
 	// Parse request ID to get requestor and instance IDs
 	requestorID := uint32(1000) // Default for xApp
 	instanceID := uint32(1)     // Default instance
-	
+
 	// Convert call process ID
 	var callProcessID *e2.RICCallProcessID
 	if e2Req.CallProcessID != "" {

@@ -80,12 +80,12 @@ type HSMBackendConfig struct {
 type HSMProviderType string
 
 const (
-	HSMProviderPKCS11   HSMProviderType = "pkcs11"
-	HSMProviderSoftHSM  HSMProviderType = "softhsm"
+	HSMProviderPKCS11      HSMProviderType = "pkcs11"
+	HSMProviderSoftHSM     HSMProviderType = "softhsm"
 	HSMProviderAWSCloudHSM HSMProviderType = "aws-cloudhsm"
-	HSMProviderAzureHSM HSMProviderType = "azure-hsm"
-	HSMProviderThales   HSMProviderType = "thales"
-	HSMProviderSafenet  HSMProviderType = "safenet"
+	HSMProviderAzureHSM    HSMProviderType = "azure-hsm"
+	HSMProviderThales      HSMProviderType = "thales"
+	HSMProviderSafenet     HSMProviderType = "safenet"
 )
 
 // HSMProvider interface for Hardware Security Module operations
@@ -211,7 +211,7 @@ func (h *HSMBackend) createHSMProvider() (HSMProvider, error) {
 
 // GenerateKeyPair generates a key pair in the HSM
 func (h *HSMBackend) GenerateKeyPair(ctx context.Context, keyID string) (crypto.PublicKey, crypto.PrivateKey, error) {
-	h.logger.Info("Generating key pair in HSM", 
+	h.logger.Info("Generating key pair in HSM",
 		slog.String("key_id", keyID),
 		slog.Int("key_size", h.config.KeySize))
 
@@ -232,7 +232,7 @@ func (h *HSMBackend) GenerateKeyPair(ctx context.Context, keyID string) (crypto.
 
 // GenerateCACertificate generates a CA certificate using HSM
 func (h *HSMBackend) GenerateCACertificate(ctx context.Context, keyID string, subject pkix.Name) (*x509.Certificate, error) {
-	h.logger.Info("Generating CA certificate in HSM", 
+	h.logger.Info("Generating CA certificate in HSM",
 		slog.String("key_id", keyID),
 		slog.String("subject", subject.String()))
 
@@ -244,14 +244,14 @@ func (h *HSMBackend) GenerateCACertificate(ctx context.Context, keyID string, su
 
 	// Create certificate template
 	template := &x509.Certificate{
-		SerialNumber: big.NewInt(1),
-		Subject:      subject,
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().Add(365 * 24 * time.Hour), // 1 year validity
-		KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+		SerialNumber:          big.NewInt(1),
+		Subject:               subject,
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(365 * 24 * time.Hour), // 1 year validity
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 		BasicConstraintsValid: true,
-		IsCA: true,
+		IsCA:                  true,
 	}
 
 	// Generate certificate
@@ -266,7 +266,7 @@ func (h *HSMBackend) GenerateCACertificate(ctx context.Context, keyID string, su
 		return nil, fmt.Errorf("failed to parse certificate: %w", err)
 	}
 
-	h.logger.Info("CA certificate generated successfully", 
+	h.logger.Info("CA certificate generated successfully",
 		slog.String("key_id", keyID),
 		slog.String("serial_number", cert.SerialNumber.String()),
 		slog.String("subject", cert.Subject.String()))
@@ -276,7 +276,7 @@ func (h *HSMBackend) GenerateCACertificate(ctx context.Context, keyID string, su
 
 // SignCertificate signs a certificate using HSM-stored CA key
 func (h *HSMBackend) SignCertificate(ctx context.Context, caKeyID string, template *x509.Certificate, publicKey crypto.PublicKey, caCert *x509.Certificate) (*x509.Certificate, error) {
-	h.logger.Info("Signing certificate with HSM", 
+	h.logger.Info("Signing certificate with HSM",
 		slog.String("ca_key_id", caKeyID),
 		slog.String("subject", template.Subject.String()))
 
@@ -298,7 +298,7 @@ func (h *HSMBackend) SignCertificate(ctx context.Context, caKeyID string, templa
 		return nil, fmt.Errorf("failed to parse certificate: %w", err)
 	}
 
-	h.logger.Info("Certificate signed successfully", 
+	h.logger.Info("Certificate signed successfully",
 		slog.String("ca_key_id", caKeyID),
 		slog.String("serial_number", cert.SerialNumber.String()),
 		slog.String("subject", cert.Subject.String()))
@@ -308,7 +308,7 @@ func (h *HSMBackend) SignCertificate(ctx context.Context, caKeyID string, templa
 
 // SignData signs data using HSM-stored key
 func (h *HSMBackend) SignData(ctx context.Context, keyID string, data []byte) ([]byte, error) {
-	h.logger.Debug("Signing data with HSM", 
+	h.logger.Debug("Signing data with HSM",
 		slog.String("key_id", keyID),
 		slog.Int("data_size", len(data)))
 
@@ -324,7 +324,7 @@ func (h *HSMBackend) SignData(ctx context.Context, keyID string, data []byte) ([
 		return nil, fmt.Errorf("failed to sign data: %w", err)
 	}
 
-	h.logger.Debug("Data signed successfully", 
+	h.logger.Debug("Data signed successfully",
 		slog.String("key_id", keyID),
 		slog.Int("signature_size", len(signature)))
 
@@ -333,7 +333,7 @@ func (h *HSMBackend) SignData(ctx context.Context, keyID string, data []byte) ([
 
 // VerifyData verifies data signature using HSM
 func (h *HSMBackend) VerifyData(ctx context.Context, keyID string, data []byte, signature []byte) error {
-	h.logger.Debug("Verifying data signature with HSM", 
+	h.logger.Debug("Verifying data signature with HSM",
 		slog.String("key_id", keyID),
 		slog.Int("data_size", len(data)),
 		slog.Int("signature_size", len(signature)))
@@ -399,7 +399,7 @@ func (h *HSMBackend) GetStatus(ctx context.Context) (*HSMStatus, error) {
 		return nil, fmt.Errorf("failed to get HSM status: %w", err)
 	}
 
-	h.logger.Debug("Retrieved HSM status", 
+	h.logger.Debug("Retrieved HSM status",
 		slog.Bool("connected", status.Connected),
 		slog.Bool("authenticated", status.Authenticated))
 
@@ -455,7 +455,7 @@ func (h *HSMBackend) Backup(ctx context.Context, backupPath string) error {
 
 	// Implementation would depend on HSM provider capabilities
 	// This is a placeholder for the backup functionality
-	
+
 	h.logger.Info("HSM backup completed", slog.String("backup_path", backupPath))
 
 	return nil
@@ -467,7 +467,7 @@ func (h *HSMBackend) Restore(ctx context.Context, backupPath string) error {
 
 	// Implementation would depend on HSM provider capabilities
 	// This is a placeholder for the restore functionality
-	
+
 	h.logger.Info("HSM restore completed", slog.String("backup_path", backupPath))
 
 	return nil
@@ -492,10 +492,10 @@ func (h *HSMBackend) GetCapabilities(ctx context.Context) ([]string, error) {
 
 // MockHSMProvider is a mock implementation for testing
 type MockHSMProvider struct {
-	logger       *logging.StructuredLogger
-	initialized  bool
+	logger        *logging.StructuredLogger
+	initialized   bool
 	authenticated bool
-	keys         map[string]crypto.PrivateKey
+	keys          map[string]crypto.PrivateKey
 }
 
 // NewMockHSMProvider creates a new mock HSM provider
@@ -697,12 +697,12 @@ func (b *HSMBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, error) {
 func (b *HSMBackend) IssueCertificate(ctx context.Context, req *CertificateRequest) (*CertificateResponse, error) {
 	// In a real implementation, this would use HSM to generate key and sign certificate
 	return &CertificateResponse{
-		RequestID:      req.ID,
-		Status:         StatusIssued,
-		SerialNumber:   fmt.Sprintf("HSM-%d", time.Now().Unix()),
-		IssuedBy:       string(BackendHSM),
-		CreatedAt:      time.Now(),
-		ExpiresAt:      time.Now().Add(req.ValidityDuration),
+		RequestID:    req.ID,
+		Status:       StatusIssued,
+		SerialNumber: fmt.Sprintf("HSM-%d", time.Now().Unix()),
+		IssuedBy:     string(BackendHSM),
+		CreatedAt:    time.Now(),
+		ExpiresAt:    time.Now().Add(req.ValidityDuration),
 	}, nil
 }
 

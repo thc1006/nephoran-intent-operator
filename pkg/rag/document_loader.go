@@ -1479,9 +1479,9 @@ func (mm *MemoryMonitor) GetMemoryUsage() (int64, int64) {
 type ProcessingPool struct {
 	workers          chan struct{}
 	activeTasks      sync.WaitGroup
-	documentWorkers  chan func()  // For streaming document loader compatibility
-	chunkWorkers     chan func()  // For streaming document loader compatibility
-	embeddingWorkers chan func()  // For streaming document loader compatibility
+	documentWorkers  chan func() // For streaming document loader compatibility
+	chunkWorkers     chan func() // For streaming document loader compatibility
+	embeddingWorkers chan func() // For streaming document loader compatibility
 }
 
 // NewProcessingPool creates a new processing pool

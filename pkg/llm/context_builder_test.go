@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 )
@@ -431,6 +432,9 @@ func TestContextBuilder_BuildContext(t *testing.T) {
 			// Create context builder stub directly
 			contextBuilder := &ContextBuilderStub{}
 
+			// Verify mock pool was created
+			assert.NotNil(t, mockPool, "Mock pool should be created")
+
 			// Execute the test
 			ctx := context.Background()
 			if tt.name == "context timeout scenario" {
@@ -482,6 +486,7 @@ func TestContextBuilder_Performance(t *testing.T) {
 		searchResults: largeResultSet,
 		connected:     true,
 	}
+	_ = mockPool // Use mockPool to avoid unused warning
 
 	// Create context builder stub directly for performance testing
 	contextBuilder := &ContextBuilderStub{}
@@ -522,6 +527,7 @@ func TestContextBuilder_ConcurrentAccess(t *testing.T) {
 		searchResults: generateMockSearchResults(10),
 		connected:     true,
 	}
+	_ = mockPool // Use mockPool to avoid unused warning
 
 	// Create context builder stub for concurrent testing
 	contextBuilder := &ContextBuilderStub{}

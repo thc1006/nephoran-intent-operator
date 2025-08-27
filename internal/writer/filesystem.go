@@ -54,7 +54,7 @@ func (w *FilesystemWriter) WritePackage(pkg *generator.Package) (*WriteResult, e
 	// Process each file
 	for _, file := range pkg.GetPackageFiles() {
 		filePath := filepath.Join(pkg.Directory, file.Path)
-		
+
 		action, err := w.writeFile(filePath, file.Content)
 		if err != nil {
 			return result, fmt.Errorf("failed to write file %s: %w", filePath, err)
@@ -88,13 +88,13 @@ func (w *FilesystemWriter) writeFile(filePath string, content []byte) (string, e
 			if w.dryRun {
 				return "written", nil
 			}
-			
+
 			// Ensure directory exists
 			dir := filepath.Dir(filePath)
 			if err := os.MkdirAll(dir, 0755); err != nil {
 				return "", fmt.Errorf("failed to create directory %s: %w", dir, err)
 			}
-			
+
 			if err := os.WriteFile(filePath, content, 0644); err != nil {
 				return "", fmt.Errorf("failed to write file: %w", err)
 			}
@@ -114,7 +114,7 @@ func (w *FilesystemWriter) writeFile(filePath string, content []byte) (string, e
 	if w.dryRun {
 		return "updated", nil
 	}
-	
+
 	if err := os.WriteFile(filePath, content, 0644); err != nil {
 		return "", fmt.Errorf("failed to update file: %w", err)
 	}
@@ -126,11 +126,11 @@ func (w *FilesystemWriter) CleanupPackage(packageDir string) error {
 	if w.dryRun {
 		return nil
 	}
-	
+
 	if _, err := os.Stat(packageDir); os.IsNotExist(err) {
 		return nil // Directory doesn't exist, nothing to clean
 	}
-	
+
 	return os.RemoveAll(packageDir)
 }
 

@@ -637,7 +637,7 @@ func (snc *SlackNotificationChannel) buildSlackPayload(alert *EnrichedAlert) map
 func (snc *SlackNotificationChannel) getSeverityColor(severity string) string {
 	colors := map[string]string{
 		"Critical": "danger",
-		"High":     "warning", 
+		"High":     "warning",
 		"Medium":   "#ffeb3b",
 		"Low":      "good",
 	}

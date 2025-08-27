@@ -42,14 +42,14 @@ const (
 type ViolationType string
 
 const (
-	ViolationTypeAuthFailure       ViolationType = "auth_failure"
+	ViolationTypeAuthFailure        ViolationType = "auth_failure"
 	ViolationTypeUnauthorizedAccess ViolationType = "unauthorized_access"
 	ViolationTypeRateLimitExceeded  ViolationType = "rate_limit_exceeded"
-	ViolationTypeSQLInjection      ViolationType = "sql_injection"
-	ViolationTypeXSS               ViolationType = "xss"
-	ViolationTypePathTraversal     ViolationType = "path_traversal"
-	ViolationTypeMaliciousPayload  ViolationType = "malicious_payload"
-	ViolationTypeDataExfiltration  ViolationType = "data_exfiltration"
-	ViolationTypeBruteForce        ViolationType = "brute_force"
-	ViolationTypePolicyViolation   ViolationType = "policy_violation"
+	ViolationTypeSQLInjection       ViolationType = "sql_injection"
+	ViolationTypeXSS                ViolationType = "xss"
+	ViolationTypePathTraversal      ViolationType = "path_traversal"
+	ViolationTypeMaliciousPayload   ViolationType = "malicious_payload"
+	ViolationTypeDataExfiltration   ViolationType = "data_exfiltration"
+	ViolationTypeBruteForce         ViolationType = "brute_force"
+	ViolationTypePolicyViolation    ViolationType = "policy_violation"
 )

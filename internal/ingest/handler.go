@@ -19,7 +19,6 @@ type ValidatorInterface interface {
 	ValidateBytes([]byte) (*Intent, error)
 }
 
-
 type Handler struct {
 	v        ValidatorInterface
 	outDir   string
@@ -41,27 +40,27 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("X-Frame-Options", "DENY")
 	w.Header().Set("X-XSS-Protection", "1; mode=block")
-	
+
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", "POST")
 		http.Error(w, fmt.Sprintf("Method %s not allowed. Only POST is supported for this endpoint.", r.Method), http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	// SECURITY: Validate Content-Type header to prevent MIME confusion attacks
 	ct := r.Header.Get("Content-Type")
 	if ct != "" && !strings.HasPrefix(ct, "application/json") && !strings.HasPrefix(ct, "text/json") && !strings.HasPrefix(ct, "text/plain") {
 		http.Error(w, "Unsupported content type. Only application/json and text/plain are allowed.", http.StatusUnsupportedMediaType)
 		return
 	}
-	
+
 	// SECURITY: Limit request body size to prevent DoS attacks
 	const maxRequestSize = 1 << 20 // 1MB
 	if r.ContentLength > maxRequestSize {
 		http.Error(w, "Request body too large", http.StatusRequestEntityTooLarge)
 		return
 	}
-	
+
 	// Use LimitReader as an additional safeguard
 	limitedReader := io.LimitReader(r.Body, maxRequestSize)
 	body, err := io.ReadAll(limitedReader)
@@ -87,7 +86,7 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		
+
 		// Fallback to regex parsing if provider failed or not available
 		if payload == nil {
 			m := simple.FindStringSubmatch(string(body))
@@ -141,4 +140,3 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 		"preview": intent,
 	})
 }
-

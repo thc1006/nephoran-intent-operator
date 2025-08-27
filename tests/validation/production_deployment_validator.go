@@ -18,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	// Chaos engineering interfaces for testing resilience
 	// "github.com/thc1006/nephoran-intent-operator/pkg/chaos"
 )
@@ -26,9 +25,9 @@ import (
 // ProductionDeploymentValidator implements comprehensive production deployment validation
 // Targets 8/10 points across high availability, fault tolerance, monitoring, and disaster recovery
 type ProductionDeploymentValidator struct {
-	client      client.Client
-	clientset   *kubernetes.Clientset
-	config      *ValidationConfig
+	client    client.Client
+	clientset *kubernetes.Clientset
+	config    *ValidationConfig
 	// chaosEngine for resilience testing - placeholder for future chaos engineering integration
 	chaosEngineEnabled bool
 

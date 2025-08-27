@@ -110,9 +110,9 @@ type O2Adaptor struct {
 // O2Config holds comprehensive O2 interface configuration
 type O2Config struct {
 	// Basic configuration
-	Namespace        string                        `yaml:"namespace"`
-	ServiceAccount   string                        `yaml:"serviceAccount"`
-	DefaultResources *corev1.ResourceRequirements  `yaml:"defaultResources,omitempty"`
+	Namespace        string                       `yaml:"namespace"`
+	ServiceAccount   string                       `yaml:"serviceAccount"`
+	DefaultResources *corev1.ResourceRequirements `yaml:"defaultResources,omitempty"`
 
 	// Multi-cloud configuration
 	Providers       map[string]*ProviderConfig `yaml:"providers"`

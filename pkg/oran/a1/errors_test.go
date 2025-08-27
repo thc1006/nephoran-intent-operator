@@ -612,8 +612,6 @@ func NewTestA1Error(errorType A1ErrorType, message string, statusCode int, cause
 	}
 }
 
-
-
 func NewPolicyValidationError(message string, validationErrors []ValidationDetail) *A1Error {
 	err := &A1TestError{
 		Type:      ErrorTypePolicyValidationFailed,
@@ -627,7 +625,6 @@ func NewPolicyValidationError(message string, validationErrors []ValidationDetai
 	}
 	return err
 }
-
 
 // Error conversion functions
 
@@ -733,10 +730,7 @@ func RecoverToA1Error(r interface{}, context string) *A1Error {
 
 // Error response writing
 
-
-
 // Additional helper functions for error handling
-
 
 func GetA1ErrorType(err error) A1ErrorType {
 	if a1Err, ok := err.(*A1Error); ok {

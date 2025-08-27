@@ -650,7 +650,7 @@ func (s *NephoranAPIServer) mustMarshal(v interface{}) []byte {
 	return data
 }
 
-// mustMarshalString marshals an object to JSON string, returning empty object on error  
+// mustMarshalString marshals an object to JSON string, returning empty object on error
 func (s *NephoranAPIServer) mustMarshalString(v interface{}) string {
 	data, err := json.Marshal(v)
 	if err != nil {
@@ -669,7 +669,7 @@ func (s *NephoranAPIServer) createPackage(w http.ResponseWriter, r *http.Request
 		s.writeErrorResponse(w, http.StatusBadRequest, "invalid_request", "Invalid package request")
 		return
 	}
-	
+
 	// TODO: Implement actual package creation
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package creation not yet implemented")
 }
@@ -711,7 +711,7 @@ func (s *NephoranAPIServer) rejectPackage(w http.ResponseWriter, r *http.Request
 	vars := mux.Vars(r)
 	name := vars["name"]
 	_ = name // Use name to avoid unused warning
-	
+
 	// TODO: Implement actual package rejection
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package rejection not yet implemented")
 }
@@ -747,7 +747,7 @@ func (s *NephoranAPIServer) updatePackageResources(w http.ResponseWriter, r *htt
 	vars := mux.Vars(r)
 	name := vars["name"]
 	_ = name // Use name to avoid unused warning
-	
+
 	// TODO: Implement actual package resource update
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package resource update not yet implemented")
 }
@@ -759,7 +759,7 @@ func (s *NephoranAPIServer) getPackageDiff(w http.ResponseWriter, r *http.Reques
 	vars := mux.Vars(r)
 	name := vars["name"]
 	_ = name // Use name to avoid unused warning
-	
+
 	// TODO: Implement actual package diff
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"diff": ""})
 }
@@ -771,7 +771,7 @@ func (s *NephoranAPIServer) getPackageHistory(w http.ResponseWriter, r *http.Req
 	vars := mux.Vars(r)
 	name := vars["name"]
 	_ = name // Use name to avoid unused warning
-	
+
 	// TODO: Implement actual package history
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"history": []interface{}{}})
 }
@@ -783,7 +783,7 @@ func (s *NephoranAPIServer) deployPackage(w http.ResponseWriter, r *http.Request
 	vars := mux.Vars(r)
 	name := vars["name"]
 	_ = name // Use name to avoid unused warning
-	
+
 	// TODO: Implement actual package deployment
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package deployment not yet implemented")
 }
@@ -795,7 +795,7 @@ func (s *NephoranAPIServer) getPackageTargetClusters(w http.ResponseWriter, r *h
 	vars := mux.Vars(r)
 	name := vars["name"]
 	_ = name // Use name to avoid unused warning
-	
+
 	// TODO: Implement actual target cluster retrieval
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"clusters": []interface{}{}})
 }
@@ -804,7 +804,7 @@ func (s *NephoranAPIServer) getPackageTargetClusters(w http.ResponseWriter, r *h
 func (s *NephoranAPIServer) listPackageTemplates(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	_ = ctx // Use ctx to avoid unused warning
-	
+
 	// TODO: Implement actual template listing
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"templates": []interface{}{}})
 }
@@ -816,7 +816,7 @@ func (s *NephoranAPIServer) getPackageTemplate(w http.ResponseWriter, r *http.Re
 	vars := mux.Vars(r)
 	template := vars["template"]
 	_ = template // Use template to avoid unused warning
-	
+
 	// TODO: Implement actual template retrieval
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package template retrieval not yet implemented")
 }
@@ -825,7 +825,7 @@ func (s *NephoranAPIServer) getPackageTemplate(w http.ResponseWriter, r *http.Re
 func (s *NephoranAPIServer) listBlueprints(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	_ = ctx // Use ctx to avoid unused warning
-	
+
 	// TODO: Implement actual blueprint listing
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"blueprints": []interface{}{}})
 }
@@ -837,7 +837,7 @@ func (s *NephoranAPIServer) getBlueprint(w http.ResponseWriter, r *http.Request)
 	vars := mux.Vars(r)
 	blueprint := vars["blueprint"]
 	_ = blueprint // Use blueprint to avoid unused warning
-	
+
 	// TODO: Implement actual blueprint retrieval
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Blueprint retrieval not yet implemented")
 }
@@ -846,7 +846,7 @@ func (s *NephoranAPIServer) getBlueprint(w http.ResponseWriter, r *http.Request)
 func (s *NephoranAPIServer) bulkTransitionPackages(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	_ = ctx // Use ctx to avoid unused warning
-	
+
 	// TODO: Implement actual bulk transition
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Bulk package transition not yet implemented")
 }
@@ -855,7 +855,7 @@ func (s *NephoranAPIServer) bulkTransitionPackages(w http.ResponseWriter, r *htt
 func (s *NephoranAPIServer) bulkValidatePackages(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	_ = ctx // Use ctx to avoid unused warning
-	
+
 	// TODO: Implement actual bulk validation
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Bulk package validation not yet implemented")
 }
@@ -864,7 +864,7 @@ func (s *NephoranAPIServer) bulkValidatePackages(w http.ResponseWriter, r *http.
 func (s *NephoranAPIServer) bulkDeployPackages(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	_ = ctx // Use ctx to avoid unused warning
-	
+
 	// TODO: Implement actual bulk deployment
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Bulk package deployment not yet implemented")
 }

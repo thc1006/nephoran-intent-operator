@@ -75,11 +75,11 @@ func (engine *OptimizationRecommendationEngine) GenerateRecommendations(
 
 // OptimizationRecommendation represents a recommendation (minimal stub)
 type OptimizationRecommendation struct {
-	RiskScore float64 `json:"riskScore"`
+	RiskScore           float64  `json:"riskScore"`
 	ImplementationSteps []string `json:"implementationSteps"`
-	ID          string `json:"id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
+	ID                  string   `json:"id"`
+	Title               string   `json:"title"`
+	Description         string   `json:"description"`
 }
 
 // RecommendationConfig defines configuration for the recommendation engine

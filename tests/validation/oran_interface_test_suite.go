@@ -642,7 +642,7 @@ type ORANValidationReport struct {
 
 	// Performance results
 	PerformanceResults map[string]*ORANBenchmarkResult `json:"performanceResults"`
-	PerformancePassed  bool                        `json:"performancePassed"`
+	PerformancePassed  bool                            `json:"performancePassed"`
 
 	// Reliability results
 	ReliabilityScore  int  `json:"reliabilityScore"`

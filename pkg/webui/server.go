@@ -44,11 +44,11 @@ import (
 // NephoranAPIServer provides comprehensive Web UI integration for the Nephoran Intent Operator
 type NephoranAPIServer struct {
 	// Core dependencies
-	intentReconciler  *controllers.NetworkIntentReconciler
-	packageManager packagerevision.PackageRevisionManager
-	clusterManager multicluster.ClusterPropagationManager
-	llmProcessor   *services.LLMProcessorService
-	kubeClient     kubernetes.Interface
+	intentReconciler *controllers.NetworkIntentReconciler
+	packageManager   packagerevision.PackageRevisionManager
+	clusterManager   multicluster.ClusterPropagationManager
+	llmProcessor     *services.LLMProcessorService
+	kubeClient       kubernetes.Interface
 
 	// Authentication and authorization
 	authMiddleware *auth.AuthMiddleware
@@ -258,18 +258,18 @@ func NewNephoranAPIServer(
 
 	server := &NephoranAPIServer{
 		intentReconciler: intentReconciler,
-		packageManager: packageManager,
-		clusterManager: clusterManager,
-		llmProcessor:   llmProcessor,
-		kubeClient:     kubeClient,
-		config:         config,
-		metrics:        metrics,
-		logger:         logger,
-		wsConnections:  make(map[string]*WebSocketConnection),
-		sseConnections: make(map[string]*SSEConnection),
-		cache:          cache,
-		rateLimiter:    rateLimiter,
-		shutdown:       make(chan struct{}),
+		packageManager:   packageManager,
+		clusterManager:   clusterManager,
+		llmProcessor:     llmProcessor,
+		kubeClient:       kubeClient,
+		config:           config,
+		metrics:          metrics,
+		logger:           logger,
+		wsConnections:    make(map[string]*WebSocketConnection),
+		sseConnections:   make(map[string]*SSEConnection),
+		cache:            cache,
+		rateLimiter:      rateLimiter,
+		shutdown:         make(chan struct{}),
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
 				return true // Configure based on CORS settings
@@ -329,11 +329,11 @@ func (s *NephoranAPIServer) initializeAuth() error {
 	// Initialize RBAC manager
 	// Create RBACManagerConfig from RBACConfig
 	rbacManagerConfig := &auth.RBACManagerConfig{
-		CacheTTL:         15 * time.Minute,
-		EnableHierarchy:  true,
-		DefaultDenyAll:   true,
-		PolicyEvaluation: "deny-overrides",
-		MaxPolicyDepth:   10,
+		CacheTTL:           15 * time.Minute,
+		EnableHierarchy:    true,
+		DefaultDenyAll:     true,
+		PolicyEvaluation:   "deny-overrides",
+		MaxPolicyDepth:     10,
 		EnableAuditLogging: true,
 	}
 	s.rbacManager = auth.NewRBACManager(rbacManagerConfig, nil)
@@ -510,7 +510,6 @@ func (s *NephoranAPIServer) metricsMiddleware(next http.Handler) http.Handler {
 		).Observe(duration.Seconds())
 	})
 }
-
 
 // Background workers
 

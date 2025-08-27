@@ -91,8 +91,8 @@ type PipelineDefinition struct {
 	Annotations map[string]string `json:"annotations,omitempty" yaml:"annotations,omitempty"`
 
 	// Pipeline structure
-	Stages       []*PipelineStage             `json:"stages" yaml:"stages"`
-	Dependencies []*StageDependency           `json:"dependencies,omitempty" yaml:"dependencies,omitempty"`
+	Stages       []*PipelineStage     `json:"stages" yaml:"stages"`
+	Dependencies []*StageDependency   `json:"dependencies,omitempty" yaml:"dependencies,omitempty"`
 	Variables    map[string]*Variable `json:"variables,omitempty" yaml:"variables,omitempty"`
 
 	// Execution settings
@@ -203,6 +203,7 @@ type PipelineResourceUsage struct {
 // Execution status enums
 type PipelineStatus string
 type PipelinePhase string
+
 // ExecutionStatus is defined in pipeline.go
 
 const (

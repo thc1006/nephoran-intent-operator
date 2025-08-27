@@ -126,9 +126,9 @@ func TestFilePermissions_IntentFiles(t *testing.T) {
 		t.Fatalf("Failed to unmarshal read intent: %v", err)
 	}
 
-	if readIntent.IntentType != intent.IntentType || 
-	   readIntent.Target != intent.Target ||
-	   readIntent.Replicas != intent.Replicas {
+	if readIntent.IntentType != intent.IntentType ||
+		readIntent.Target != intent.Target ||
+		readIntent.Replicas != intent.Replicas {
 		t.Error("Intent data was corrupted during secure write/read")
 	}
 }
@@ -303,7 +303,7 @@ func TestFilePermissions_CrossPlatformCompatibility(t *testing.T) {
 			t.Error("File should be a regular file")
 		}
 		// We mainly verify the file is created and accessible to the owner
-		
+
 	case "linux", "darwin", "freebsd", "openbsd", "netbsd":
 		// On Unix-like systems, verify exact permissions
 		expectedPerm := fs.FileMode(0600)
@@ -343,14 +343,14 @@ func TestFilePermissions_DirectoryTraversalPrevention(t *testing.T) {
 	for _, maliciousPath := range traversalPaths {
 		t.Run(fmt.Sprintf("traversal-%s", strings.ReplaceAll(maliciousPath, string(os.PathSeparator), "_")), func(t *testing.T) {
 			fullPath := filepath.Join(tempDir, maliciousPath)
-			
+
 			// Validate the path - should reject traversal attempts
 			err := validator.ValidateFilePath(fullPath, "traversal test")
 			if err == nil {
 				t.Errorf("Path traversal attempt should have been rejected: %s", maliciousPath)
 			}
-			
-			// Even if somehow the validation was bypassed, ensure the file creation 
+
+			// Even if somehow the validation was bypassed, ensure the file creation
 			// doesn't escape the intended directory
 			if err == nil {
 				testData := []byte("malicious content")
@@ -359,7 +359,7 @@ func TestFilePermissions_DirectoryTraversalPrevention(t *testing.T) {
 					// If file was created, verify it's still within our temp directory
 					absPath, _ := filepath.Abs(fullPath)
 					absTempDir, _ := filepath.Abs(tempDir)
-					
+
 					if !strings.HasPrefix(absPath, absTempDir) {
 						t.Errorf("File creation escaped temp directory: %s not under %s", absPath, absTempDir)
 					}
@@ -380,7 +380,7 @@ func TestFilePermissions_PermissionInheritance(t *testing.T) {
 	// Create multiple files to ensure consistent permission application
 	testFiles := []string{
 		"intent-001.json",
-		"intent-002.json", 
+		"intent-002.json",
 		"state-001.json",
 		"metrics-001.json",
 	}
@@ -388,18 +388,18 @@ func TestFilePermissions_PermissionInheritance(t *testing.T) {
 	for i, filename := range testFiles {
 		fullPath := filepath.Join(tempDir, filename)
 		testData := []byte(fmt.Sprintf(`{"file": "%s", "index": %d}`, filename, i))
-		
+
 		// Write each file with 0600 permissions
 		if err := os.WriteFile(fullPath, testData, 0600); err != nil {
 			t.Fatalf("Failed to write test file %s: %v", filename, err)
 		}
-		
+
 		// Verify permissions for each file
 		info, err := os.Stat(fullPath)
 		if err != nil {
 			t.Fatalf("Failed to stat file %s: %v", filename, err)
 		}
-		
+
 		expectedPerm := fs.FileMode(0600)
 		if info.Mode().Perm() != expectedPerm {
 			t.Errorf("File %s permissions = %o, expected %o", filename, info.Mode().Perm(), expectedPerm)
@@ -418,7 +418,7 @@ func BenchmarkFilePermissions_WritePerformance(b *testing.B) {
 	testData := []byte(`{"benchmark": true, "size": "1kb", "data": "` + strings.Repeat("x", 1000) + `"}`)
 
 	b.ResetTimer()
-	
+
 	b.Run("secure-0600", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			filename := filepath.Join(tempDir, fmt.Sprintf("secure-%d.json", i))

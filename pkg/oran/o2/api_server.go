@@ -34,7 +34,7 @@ type O2APIServer struct {
 	router     *mux.Router
 	httpServer *http.Server
 
-	// Middleware components  
+	// Middleware components
 	authMiddleware      interface{} // Temporarily use interface{} until proper auth middleware is implemented
 	corsMiddleware      *middleware.CORSMiddleware
 	rateLimitMiddleware http.Handler
@@ -149,10 +149,10 @@ func (s *O2APIServer) initializeServices() error {
 
 	// Initialize core services with proper dependency injection
 	// Temporarily using nil implementations for compilation testing
-	s.imsService = nil         // NewO2IMSServiceImpl(s.config, storage, s.providerRegistry, s.logger)
-	s.resourceManager = nil    // NewResourceManagerImpl(s.config, s.providerRegistry, s.logger)
-	s.inventoryService = nil   // NewInventoryServiceImpl(s.config, s.providerRegistry, s.logger)
-	s.monitoringService = nil  // NewMonitoringServiceImpl(s.config, s.logger)
+	s.imsService = nil        // NewO2IMSServiceImpl(s.config, storage, s.providerRegistry, s.logger)
+	s.resourceManager = nil   // NewResourceManagerImpl(s.config, s.providerRegistry, s.logger)
+	s.inventoryService = nil  // NewInventoryServiceImpl(s.config, s.providerRegistry, s.logger)
+	s.monitoringService = nil // NewMonitoringServiceImpl(s.config, s.logger)
 
 	// Register health checks for services
 	s.healthChecker.RegisterHealthCheck("ims-service", s.imsServiceHealthCheck)
@@ -246,7 +246,7 @@ func (s *O2APIServer) setupRoutes() {
 
 	// Apply global middleware (temporarily disabled)
 	// s.router.Use(s.loggingMiddleware)
-	// s.router.Use(s.metricsMiddleware) 
+	// s.router.Use(s.metricsMiddleware)
 	// s.router.Use(s.recoveryMiddleware)
 
 	if s.corsMiddleware != nil {
@@ -282,10 +282,10 @@ func (s *O2APIServer) setupRoutes() {
 
 	// All route handlers are temporarily commented out for compilation testing
 	// These require implementations in api_handlers.go which has many undefined dependencies
-	
+
 	// TODO: Uncomment these when handler implementations are fixed:
 	// Resource Pool Management - O2 IMS Core API
-	// Resource Type Management  
+	// Resource Type Management
 	// Resource Management
 	// Resource Health and Monitoring
 	// Deployment Template Management

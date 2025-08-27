@@ -1,3 +1,4 @@
+//go:build !windows
 // +build !windows
 
 package loop
@@ -16,10 +17,10 @@ import (
 
 const (
 	// Retry parameters for Unix file operations (less aggressive than Windows)
-	maxFileRetries    = 3
-	baseRetryDelay    = 10 * time.Millisecond
-	maxRetryDelay     = 100 * time.Millisecond
-	fileSyncTimeout   = 1 * time.Second
+	maxFileRetries  = 3
+	baseRetryDelay  = 10 * time.Millisecond
+	maxRetryDelay   = 100 * time.Millisecond
+	fileSyncTimeout = 1 * time.Second
 )
 
 // atomicWriteFile writes data to a file atomically on Unix with proper syncing
@@ -41,7 +42,7 @@ func atomicWriteFile(filename string, data []byte, perm os.FileMode) error {
 
 	// Write to temporary file first
 	tempFile := normalizedPath + ".tmp"
-	
+
 	// Write with sync
 	if err := writeFileWithSync(tempFile, data, perm); err != nil {
 		return fmt.Errorf("failed to write temp file: %w", err)

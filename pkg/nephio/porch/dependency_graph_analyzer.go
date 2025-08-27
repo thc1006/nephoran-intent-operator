@@ -78,9 +78,9 @@ type DijkstraShortestPath struct {
 
 // BellmanFordShortestPath implements Bellman-Ford shortest path algorithm
 type BellmanFordShortestPath struct {
-	distances     map[string]float64
-	previous      map[string]*DependencyNode
-	hasNegCycle   bool
+	distances   map[string]float64
+	previous    map[string]*DependencyNode
+	hasNegCycle bool
 }
 
 // FloydWarshallAllPairs implements Floyd-Warshall all-pairs shortest path algorithm
@@ -98,17 +98,17 @@ type KruskalMST struct {
 
 // PrimMST implements Prim's minimum spanning tree algorithm
 type PrimMST struct {
-	key      map[string]float64
-	parent   map[string]*DependencyNode
-	inMST    map[string]bool
+	key    map[string]float64
+	parent map[string]*DependencyNode
+	inMST  map[string]bool
 }
 
 // PageRankAlgorithm implements PageRank algorithm for node importance
 type PageRankAlgorithm struct {
-	scores     map[string]float64
+	scores        map[string]float64
 	dampingFactor float64
-	iterations int
-	tolerance  float64
+	iterations    int
+	tolerance     float64
 }
 
 // BetweennessCentrality implements betweenness centrality calculation

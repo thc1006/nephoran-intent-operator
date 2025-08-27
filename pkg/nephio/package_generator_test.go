@@ -81,7 +81,7 @@ func TestGeneratePackage_IntentTypeRouting(t *testing.T) {
 				t.Fatalf("Failed to create package generator: %v", err)
 			}
 
-			// Create test parameters based on intent type  
+			// Create test parameters based on intent type
 			_ = createTestParameters(tt.intentType)
 
 			// Create a test NetworkIntent

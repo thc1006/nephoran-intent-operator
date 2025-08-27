@@ -48,7 +48,6 @@ type ConsumerInfo struct {
 	Description  string `json:"description,omitempty"`
 }
 
-
 // UpdateSubscriptionRequest represents a subscription update request
 type UpdateSubscriptionRequest struct {
 	Filter     string                 `json:"filter,omitempty"`
@@ -65,7 +64,6 @@ type NotificationEventType struct {
 	Schema      string `json:"schema,omitempty"`
 	Version     string `json:"version"`
 }
-
 
 // Alarm represents an O2 alarm
 type Alarm struct {
@@ -107,20 +105,19 @@ type AlarmFilter struct {
 
 // AlarmAcknowledgementRequest represents an alarm acknowledgement request
 type AlarmAcknowledgementRequest struct {
-	AckUser      string                 `json:"ackUser"`
-	AckSystemId  string                 `json:"ackSystemId,omitempty"`
-	AckComments  string                 `json:"ackComments,omitempty"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	AckUser     string                 `json:"ackUser"`
+	AckSystemId string                 `json:"ackSystemId,omitempty"`
+	AckComments string                 `json:"ackComments,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // AlarmClearRequest represents an alarm clear request
 type AlarmClearRequest struct {
-	ClearUser    string                 `json:"clearUser"`
-	ClearSystemId string                `json:"clearSystemId,omitempty"`
-	ClearReason  string                 `json:"clearReason,omitempty"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	ClearUser     string                 `json:"clearUser"`
+	ClearSystemId string                 `json:"clearSystemId,omitempty"`
+	ClearReason   string                 `json:"clearReason,omitempty"`
+	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 }
-
 
 // PoolLocation represents geographical location of a resource pool
 type PoolLocation struct {
@@ -132,27 +129,20 @@ type PoolLocation struct {
 	Region    string  `json:"region,omitempty"`
 }
 
-
-
-
-
-
 // TemplateRequirements represents template resource requirements
 type TemplateRequirements struct {
-	MinCPU          *float64           `json:"minCpu,omitempty"`
-	MinMemory       *int64             `json:"minMemory,omitempty"`
-	MinStorage      *int64             `json:"minStorage,omitempty"`
-	RequiredLabels  map[string]string  `json:"requiredLabels,omitempty"`
-	RequiredFeatures []string          `json:"requiredFeatures,omitempty"`
-	NetworkRequirements *NetworkReqs   `json:"networkRequirements,omitempty"`
+	MinCPU              *float64          `json:"minCpu,omitempty"`
+	MinMemory           *int64            `json:"minMemory,omitempty"`
+	MinStorage          *int64            `json:"minStorage,omitempty"`
+	RequiredLabels      map[string]string `json:"requiredLabels,omitempty"`
+	RequiredFeatures    []string          `json:"requiredFeatures,omitempty"`
+	NetworkRequirements *NetworkReqs      `json:"networkRequirements,omitempty"`
 }
 
 // NetworkReqs represents network requirements
 type NetworkReqs struct {
-	MinBandwidth    *int64    `json:"minBandwidth,omitempty"`
-	MaxLatency      *int      `json:"maxLatency,omitempty"`
-	RequiredPorts   []int     `json:"requiredPorts,omitempty"`
-	NetworkPolicies []string  `json:"networkPolicies,omitempty"`
+	MinBandwidth    *int64   `json:"minBandwidth,omitempty"`
+	MaxLatency      *int     `json:"maxLatency,omitempty"`
+	RequiredPorts   []int    `json:"requiredPorts,omitempty"`
+	NetworkPolicies []string `json:"networkPolicies,omitempty"`
 }
-
-

@@ -52,7 +52,7 @@ var httpClient = &http.Client{
 		MaxIdleConns:        10,
 		MaxIdleConnsPerHost: 5,
 		IdleConnTimeout:     90 * time.Second,
-		
+
 		// Timeouts for different phases of the request
 		DialContext: (&net.Dialer{
 			Timeout:   5 * time.Second,
@@ -60,10 +60,10 @@ var httpClient = &http.Client{
 		}).DialContext,
 		TLSHandshakeTimeout:   5 * time.Second,
 		ResponseHeaderTimeout: 10 * time.Second,
-		
+
 		// Disable compression for KMP metrics (typically small JSON)
 		DisableCompression: true,
-		
+
 		// Force HTTP/1.1 for better connection reuse with most metrics endpoints
 		ForceAttemptHTTP2: false,
 	},
@@ -83,11 +83,11 @@ type PlannerConfig struct {
 
 // ScalingRulesConfig represents the scaling_rules section
 type ScalingRulesConfig struct {
-	CooldownDuration  string                 `yaml:"cooldown_duration"`
-	MinReplicas       int                    `yaml:"min_replicas"`
-	MaxReplicas       int                    `yaml:"max_replicas"`
-	EvaluationWindow  string                 `yaml:"evaluation_window"`
-	Thresholds        ScalingThresholdsConfig `yaml:"thresholds"`
+	CooldownDuration string                  `yaml:"cooldown_duration"`
+	MinReplicas      int                     `yaml:"min_replicas"`
+	MaxReplicas      int                     `yaml:"max_replicas"`
+	EvaluationWindow string                  `yaml:"evaluation_window"`
+	Thresholds       ScalingThresholdsConfig `yaml:"thresholds"`
 }
 
 // ScalingThresholdsConfig represents the thresholds section
@@ -454,7 +454,7 @@ func applyPlannerConfig(plannerCfg *PlannerConfig, cfg *Config, validator *secur
 		}
 		cfg.StateFile = plannerCfg.StateFile
 	}
-	
+
 	// Set SimMode
 	cfg.SimMode = plannerCfg.SimMode
 
@@ -493,7 +493,7 @@ func createRuleEngineConfig(cfg *Config, yamlConfig *YAMLConfig) rules.Config {
 	// Apply YAML configuration if available
 	if yamlConfig != nil {
 		scalingRules := &yamlConfig.ScalingRules
-		
+
 		// Parse durations
 		if scalingRules.CooldownDuration != "" {
 			if duration, err := time.ParseDuration(scalingRules.CooldownDuration); err == nil {
@@ -502,7 +502,7 @@ func createRuleEngineConfig(cfg *Config, yamlConfig *YAMLConfig) rules.Config {
 				log.Printf("Warning: Invalid cooldown_duration '%s', using default", scalingRules.CooldownDuration)
 			}
 		}
-		
+
 		if scalingRules.EvaluationWindow != "" {
 			if duration, err := time.ParseDuration(scalingRules.EvaluationWindow); err == nil {
 				ruleConfig.EvaluationWindow = duration

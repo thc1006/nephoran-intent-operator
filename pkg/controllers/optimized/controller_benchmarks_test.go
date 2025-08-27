@@ -459,7 +459,7 @@ func BenchmarkComparison(b *testing.B) {
 }
 
 // Mock dependencies for testing
-type mockDependencies struct{
+type mockDependencies struct {
 	gitClient            git.ClientInterface
 	llmClient            shared.ClientInterface
 	packageGenerator     *nephio.PackageGenerator

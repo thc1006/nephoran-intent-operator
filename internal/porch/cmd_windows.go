@@ -31,12 +31,12 @@ func cmdSafeQuote(args []string) string {
 
 	// Build command line directly without excessive escaping
 	var cmdLine string
-	
+
 	// First argument (the command itself)
 	if len(args) > 0 {
 		cmdLine = quoteIfNeeded(args[0])
 	}
-	
+
 	// Add remaining arguments
 	for i := 1; i < len(args); i++ {
 		cmdLine += " " + quoteIfNeeded(args[i])
@@ -63,7 +63,7 @@ func quoteWindowsArg(arg string) string {
 	// Check if argument needs quoting
 	needsQuotes := false
 	hasMetaChars := false
-	
+
 	for _, r := range arg {
 		switch r {
 		case ' ', '\t', '\n', '\v', '"':
@@ -120,7 +120,7 @@ func quoteIfNeeded(arg string) string {
 	if arg == "" {
 		return `""`
 	}
-	
+
 	// Check if argument needs quoting
 	needsQuotes := false
 	for _, r := range arg {
@@ -130,16 +130,16 @@ func quoteIfNeeded(arg string) string {
 			break
 		}
 	}
-	
+
 	// Handle percent signs - always double them
 	if strings.Contains(arg, "%") {
 		arg = strings.ReplaceAll(arg, "%", "%%")
 	}
-	
+
 	if !needsQuotes {
 		return arg
 	}
-	
+
 	// Escape special characters within the argument
 	var result strings.Builder
 	for _, r := range arg {
@@ -153,7 +153,7 @@ func quoteIfNeeded(arg string) string {
 			result.WriteRune(r)
 		}
 	}
-	
+
 	return `"` + result.String() + `"`
 }
 

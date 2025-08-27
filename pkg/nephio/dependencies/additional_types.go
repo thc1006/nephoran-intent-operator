@@ -31,12 +31,12 @@ func (a *dependencyAnalyzer) AnalyzeDependencyGraph(ctx context.Context, graph *
 	}
 
 	analysis := &GraphAnalysis{
-		TotalNodes:         len(graph.Nodes),
-		TotalEdges:         len(graph.Edges),
+		TotalNodes:          len(graph.Nodes),
+		TotalEdges:          len(graph.Edges),
 		ConnectedComponents: 1, // Stub implementation
-		CyclicDependencies: make([]*CyclicDependency, 0),
-		CriticalPath:       make([]*GraphNode, 0),
-		Metrics:            &GraphMetrics{},
+		CyclicDependencies:  make([]*CyclicDependency, 0),
+		CriticalPath:        make([]*GraphNode, 0),
+		Metrics:             &GraphMetrics{},
 	}
 
 	return analysis, nil
@@ -56,16 +56,16 @@ func (a *dependencyAnalyzer) AnalyzeDependencyTrends(ctx context.Context, packag
 	}
 
 	analysis := &TrendAnalysis{
-		AnalysisID:    fmt.Sprintf("trend-analysis-%d", time.Now().UnixNano()),
-		TimeRange:     timeRange,
-		Packages:      convertPackagesToStrings(packages),
-		Period:        period.String(),
-		Trends:        make([]*Trend, 0),
-		OverallTrend:  TrendDirectionStable,
-		Confidence:    0.7,
-		Predictions:   make([]*TrendPrediction, 0),
-		Anomalies:     make([]*TrendAnomaly, 0),
-		Metadata:      make(map[string]interface{}),
+		AnalysisID:   fmt.Sprintf("trend-analysis-%d", time.Now().UnixNano()),
+		TimeRange:    timeRange,
+		Packages:     convertPackagesToStrings(packages),
+		Period:       period.String(),
+		Trends:       make([]*Trend, 0),
+		OverallTrend: TrendDirectionStable,
+		Confidence:   0.7,
+		Predictions:  make([]*TrendPrediction, 0),
+		Anomalies:    make([]*TrendAnomaly, 0),
+		Metadata:     make(map[string]interface{}),
 	}
 
 	// Create a sample trend for the first package
@@ -175,15 +175,15 @@ func (a *dependencyAnalyzer) AssessSecurityRisks(ctx context.Context, packages [
 	// Add a sample security issue for demonstration
 	if len(packages) > 0 {
 		issue := &SecurityIssue{
-			ID:          fmt.Sprintf("issue-%d", time.Now().UnixNano()),
-			Severity:    "medium",
-			Description: fmt.Sprintf("Example security issue in %s", packages[0].Name),
-			Package:     packages[0].Name,
+			ID:           fmt.Sprintf("issue-%d", time.Now().UnixNano()),
+			Severity:     "medium",
+			Description:  fmt.Sprintf("Example security issue in %s", packages[0].Name),
+			Package:      packages[0].Name,
 			FixAvailable: true,
-			DetectedAt:  time.Now(),
+			DetectedAt:   time.Now(),
 		}
 		assessment.SecurityIssues = append(assessment.SecurityIssues, issue)
-		
+
 		// Add corresponding risk factor
 		riskFactor := &RiskFactor{
 			Type:        "security",
@@ -247,7 +247,7 @@ func (a *dependencyAnalyzer) AnalyzeDependencyEvolution(ctx context.Context, pac
 	if len(packages) == 0 {
 		return nil, fmt.Errorf("no packages provided for evolution analysis")
 	}
-	
+
 	pkg := packages[0]
 	analysis := &EvolutionAnalysis{
 		AnalysisID:      generateEvolutionAnalysisID(),
@@ -261,10 +261,10 @@ func (a *dependencyAnalyzer) AnalyzeDependencyEvolution(ctx context.Context, pac
 
 	// Stub implementation - add some sample version history
 	sampleVersion := &VersionInfo{
-		Version:       pkg.Version,
-		ReleaseDate:   time.Now().Add(-30 * 24 * time.Hour), // 30 days ago
-		Changes:       []string{"Bug fixes", "Performance improvements"},
-		Stability:     "stable",
+		Version:     pkg.Version,
+		ReleaseDate: time.Now().Add(-30 * 24 * time.Hour), // 30 days ago
+		Changes:     []string{"Bug fixes", "Performance improvements"},
+		Stability:   "stable",
 	}
 	analysis.VersionHistory = append(analysis.VersionHistory, sampleVersion)
 
@@ -308,13 +308,13 @@ func (a *dependencyAnalyzer) BenchmarkDependencies(ctx context.Context, packages
 // AnalyzeResourceUsage analyzes resource usage of packages
 func (a *dependencyAnalyzer) AnalyzeResourceUsage(ctx context.Context, packages []*PackageReference) (*ResourceUsageAnalysis, error) {
 	analysis := &ResourceUsageAnalysis{
-		AnalysisID:     generateResourceUsageAnalysisID(),
-		Packages:       packages,
-		TotalUsage:     &ResourceUsage{},
-		UsageByPackage: make(map[string]*ResourceUsage),
-		Trends:         make([]*ResourceUsageTrend, 0),
+		AnalysisID:      generateResourceUsageAnalysisID(),
+		Packages:        packages,
+		TotalUsage:      &ResourceUsage{},
+		UsageByPackage:  make(map[string]*ResourceUsage),
+		Trends:          make([]*ResourceUsageTrend, 0),
 		Recommendations: make([]*ResourceOptimization, 0),
-		AnalyzedAt:     time.Now(),
+		AnalyzedAt:      time.Now(),
 	}
 
 	totalCPU := 0.0
@@ -325,10 +325,10 @@ func (a *dependencyAnalyzer) AnalyzeResourceUsage(ctx context.Context, packages 
 	// Stub implementation
 	for _, pkg := range packages {
 		usage := &ResourceUsage{
-			CPU:     5.0,                  // 5% CPU
-			Memory:  50 * 1024 * 1024,     // 50MB
-			Disk:    10 * 1024 * 1024,     // 10MB
-			Network: 5 * 1024 * 1024,      // 5MB network
+			CPU:     5.0,              // 5% CPU
+			Memory:  50 * 1024 * 1024, // 50MB
+			Disk:    10 * 1024 * 1024, // 10MB
+			Network: 5 * 1024 * 1024,  // 5MB network
 		}
 		analysis.UsageByPackage[pkg.Name] = usage
 		totalCPU += usage.CPU
@@ -381,17 +381,17 @@ func (a *dependencyAnalyzer) DetectHealthTrends(ctx context.Context, packages []
 	}
 
 	analysis := &HealthTrendAnalysis{
-		AnalysisID:      fmt.Sprintf("health-trend-%d", time.Now().UnixNano()),
-		Packages:        packages,
-		OverallTrend:    HealthTrendStable,
-		TrendStrength:   0.7,
-		TrendConfidence: 0.8,
-		Trends:          make([]*PackageHealthTrend, 0),
-		Predictions:     make([]*HealthPrediction, 0),
+		AnalysisID:       fmt.Sprintf("health-trend-%d", time.Now().UnixNano()),
+		Packages:         packages,
+		OverallTrend:     HealthTrendStable,
+		TrendStrength:    0.7,
+		TrendConfidence:  0.8,
+		Trends:           make([]*PackageHealthTrend, 0),
+		Predictions:      make([]*HealthPrediction, 0),
 		TrendPredictions: make([]*HealthTrendPrediction, 0),
-		HealthSnapshots: make([]*HealthSnapshot, 0),
-		Recommendations: make([]*HealthRecommendation, 0),
-		AnalyzedAt:      time.Now(),
+		HealthSnapshots:  make([]*HealthSnapshot, 0),
+		Recommendations:  make([]*HealthRecommendation, 0),
+		AnalyzedAt:       time.Now(),
 	}
 
 	// Add sample health trend for each package

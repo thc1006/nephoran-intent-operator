@@ -52,7 +52,7 @@ type TelecomDocument struct {
 	UseCase         []string               `json:"use_case"`
 	Confidence      float32                `json:"confidence"`
 	Metadata        map[string]interface{} `json:"metadata"`
-	Timestamp       time.Time              `json:"timestamp"`  // For compatibility with some components
+	Timestamp       time.Time              `json:"timestamp"` // For compatibility with some components
 	CreatedAt       time.Time              `json:"created_at"`
 	UpdatedAt       time.Time              `json:"updated_at"`
 }
@@ -94,8 +94,8 @@ const (
 	ComponentTypeManifestGenerator  ComponentType = "manifest-generator"
 	ComponentTypeGitOpsController   ComponentType = "gitops-controller"
 	ComponentTypeDeploymentVerifier ComponentType = "deployment-verifier"
-	
-	// Optimization and analysis components  
+
+	// Optimization and analysis components
 	ComponentTypeRAGSystem         ComponentType = "rag-system"
 	ComponentTypeNephioIntegration ComponentType = "nephio-integration"
 	ComponentTypeAuthentication    ComponentType = "authentication"

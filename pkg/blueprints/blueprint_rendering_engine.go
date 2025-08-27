@@ -102,19 +102,19 @@ type Secret struct {
 
 // BlueprintMetadata contains metadata about the blueprint
 type BlueprintMetadata struct {
-	Name           string             `json:"name" yaml:"name"`
-	Version        string             `json:"version" yaml:"version"`
-	Description    string             `json:"description" yaml:"description"`
-	Labels         map[string]string  `json:"labels" yaml:"labels"`
-	Annotations    map[string]string  `json:"annotations" yaml:"annotations"`
-	ComponentType  TargetComponent `json:"componentType" yaml:"componentType"`
-	IntentType     v1.IntentType      `json:"intentType" yaml:"intentType"`
-	ORANCompliant  bool               `json:"oranCompliant" yaml:"oranCompliant"`
-	InterfaceTypes []string           `json:"interfaceTypes" yaml:"interfaceTypes"`
-	NetworkSlice   string             `json:"networkSlice,omitempty" yaml:"networkSlice,omitempty"`
-	Region         string             `json:"region,omitempty" yaml:"region,omitempty"`
-	CreatedAt      time.Time          `json:"createdAt" yaml:"createdAt"`
-	GeneratedBy    string             `json:"generatedBy" yaml:"generatedBy"`
+	Name           string            `json:"name" yaml:"name"`
+	Version        string            `json:"version" yaml:"version"`
+	Description    string            `json:"description" yaml:"description"`
+	Labels         map[string]string `json:"labels" yaml:"labels"`
+	Annotations    map[string]string `json:"annotations" yaml:"annotations"`
+	ComponentType  TargetComponent   `json:"componentType" yaml:"componentType"`
+	IntentType     v1.IntentType     `json:"intentType" yaml:"intentType"`
+	ORANCompliant  bool              `json:"oranCompliant" yaml:"oranCompliant"`
+	InterfaceTypes []string          `json:"interfaceTypes" yaml:"interfaceTypes"`
+	NetworkSlice   string            `json:"networkSlice,omitempty" yaml:"networkSlice,omitempty"`
+	Region         string            `json:"region,omitempty" yaml:"region,omitempty"`
+	CreatedAt      time.Time         `json:"createdAt" yaml:"createdAt"`
+	GeneratedBy    string            `json:"generatedBy" yaml:"generatedBy"`
 }
 
 // NewBlueprintRenderingEngine creates a new blueprint rendering engine

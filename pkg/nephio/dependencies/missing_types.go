@@ -280,8 +280,8 @@ func NewAnomalyDetector(config *AnomalyDetectorConfig) (*AnomalyDetector, error)
 // Supporting data types
 type UsageData struct {
 	Package   *PackageReference `json:"package"`
-	Usage     int64            `json:"usage"`
-	Timestamp time.Time        `json:"timestamp"`
+	Usage     int64             `json:"usage"`
+	Timestamp time.Time         `json:"timestamp"`
 }
 
 // UsageDataPoint represents a single usage data point for analysis
@@ -294,13 +294,13 @@ type UsageDataPoint struct {
 
 // ConstraintSolverConfig provides configuration for the constraint solver
 type ConstraintSolverConfig struct {
-	MaxIterations    int                 `json:"maxIterations"`
-	MaxBacktracks    int                 `json:"maxBacktracks"`
-	EnableHeuristics bool                `json:"enableHeuristics"`
-	ParallelSolving  bool                `json:"parallelSolving"`
-	Timeout          time.Duration       `json:"timeout"`
-	Workers          int                 `json:"workers"`
-	DebugMode        bool                `json:"debugMode"`
+	MaxIterations    int           `json:"maxIterations"`
+	MaxBacktracks    int           `json:"maxBacktracks"`
+	EnableHeuristics bool          `json:"enableHeuristics"`
+	ParallelSolving  bool          `json:"parallelSolving"`
+	Timeout          time.Duration `json:"timeout"`
+	Workers          int           `json:"workers"`
+	DebugMode        bool          `json:"debugMode"`
 }
 
 // ConstraintCacheConfig provides configuration for constraint cache
@@ -321,7 +321,7 @@ func NewConstraintSolver(config *ConstraintSolverConfig) *ConstraintSolver {
 			DebugMode:        false,
 		}
 	}
-	
+
 	cacheConfig := &CacheConfig{TTL: 1 * time.Hour}
 	return &ConstraintSolver{
 		logger:        log.Log.WithName("constraint-solver"),
@@ -360,7 +360,7 @@ func (c *constraintCacheImpl) Delete(key string) {
 }
 
 func (c *constraintCacheImpl) Clear() {
-	// Stub implementation  
+	// Stub implementation
 }
 
 func (c *constraintCacheImpl) Size() int {
@@ -379,9 +379,9 @@ func (c *constraintCacheImpl) Close() error {
 
 // VersionSolverConfig provides configuration for version solver
 type VersionSolverConfig struct {
-	PrereleaseStrategy    PrereleaseStrategy    
-	BuildMetadataStrategy BuildMetadataStrategy 
-	StrictSemVer          bool                  
+	PrereleaseStrategy    PrereleaseStrategy
+	BuildMetadataStrategy BuildMetadataStrategy
+	StrictSemVer          bool
 }
 
 // ConflictResolverConfig provides configuration for conflict resolver

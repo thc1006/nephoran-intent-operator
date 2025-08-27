@@ -163,7 +163,6 @@ func (pb *PerformanceBenchmarker) measureSingleRequestLatency(ctx context.Contex
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
-
 	for {
 		select {
 		case <-timeout:

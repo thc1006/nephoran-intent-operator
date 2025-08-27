@@ -12,8 +12,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"github.com/thc1006/nephoran-intent-operator/tests/framework"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("Performance Validation Integration Tests", func() {

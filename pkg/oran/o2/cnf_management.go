@@ -19,7 +19,6 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
-
 // Manager type definitions
 type OperatorManager struct {
 	config    *OperatorConfig
@@ -38,7 +37,7 @@ type ContainerRegistryManager struct {
 	logger *logging.StructuredLogger
 }
 
-// Manager method implementations  
+// Manager method implementations
 func (om *OperatorManager) Initialize() error {
 	return nil
 }
@@ -237,10 +236,10 @@ type ScanPolicy struct {
 
 // CNFLifecycleConfig configuration for CNF lifecycle management
 type CNFLifecycleConfig struct {
-	AutoScaling    *AutoScalingConfig         `json:"autoScaling,omitempty"`
-	HealthChecks   *models.HealthCheckConfig  `json:"healthChecks,omitempty"`
-	UpdateStrategy *UpdateStrategyConfig      `json:"updateStrategy,omitempty"`
-	BackupStrategy *BackupStrategyConfig      `json:"backupStrategy,omitempty"`
+	AutoScaling    *AutoScalingConfig        `json:"autoScaling,omitempty"`
+	HealthChecks   *models.HealthCheckConfig `json:"healthChecks,omitempty"`
+	UpdateStrategy *UpdateStrategyConfig     `json:"updateStrategy,omitempty"`
+	BackupStrategy *BackupStrategyConfig     `json:"backupStrategy,omitempty"`
 }
 
 // AutoScalingConfig configuration for CNF auto-scaling
@@ -302,11 +301,10 @@ type SecurityPolicies struct {
 
 // NetworkPolicies configuration for CNF network policies
 type NetworkPolicies struct {
-	DefaultDeny  bool                         `json:"defaultDeny,omitempty"`
-	IngressRules []models.NetworkPolicyRule  `json:"ingressRules,omitempty"`
-	EgressRules  []models.NetworkPolicyRule  `json:"egressRules,omitempty"`
+	DefaultDeny  bool                       `json:"defaultDeny,omitempty"`
+	IngressRules []models.NetworkPolicyRule `json:"ingressRules,omitempty"`
+	EgressRules  []models.NetworkPolicyRule `json:"egressRules,omitempty"`
 }
-
 
 // CNFInstance represents a CNF instance
 type CNFInstance struct {
@@ -484,15 +482,15 @@ func DefaultCNFConfig() *CNFConfig {
 				MaxReplicas: 10,
 			},
 			HealthChecks: &models.HealthCheckConfig{
-				Name: "default-health-check",
-				Type: "HTTP",
-				Path: "/health",
-				Port: 8080,
+				Name:                "default-health-check",
+				Type:                "HTTP",
+				Path:                "/health",
+				Port:                8080,
 				InitialDelaySeconds: 30,
-				PeriodSeconds: 30,
-				TimeoutSeconds: 5,
-				SuccessThreshold: 1,
-				FailureThreshold: 3,
+				PeriodSeconds:       30,
+				TimeoutSeconds:      5,
+				SuccessThreshold:    1,
+				FailureThreshold:    3,
 			},
 			UpdateStrategy: &UpdateStrategyConfig{
 				Type:           "RollingUpdate",
@@ -874,11 +872,11 @@ func (s *CNFManagementService) deployWithManifests(ctx context.Context, instance
 							SecurityContext: instance.Spec.SecurityContext,
 						},
 					},
-					Volumes:           instance.Spec.Volumes,
+					Volumes:            instance.Spec.Volumes,
 					ServiceAccountName: instance.Spec.ServiceAccount,
-					NodeSelector:      instance.Spec.NodeSelector,
-					Tolerations:       instance.Spec.Tolerations,
-					Affinity:          instance.Spec.Affinity,
+					NodeSelector:       instance.Spec.NodeSelector,
+					Tolerations:        instance.Spec.Tolerations,
+					Affinity:           instance.Spec.Affinity,
 				},
 			},
 		},

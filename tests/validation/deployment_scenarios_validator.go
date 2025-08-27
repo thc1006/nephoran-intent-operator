@@ -801,7 +801,6 @@ SCENARIO DETAILS:
 	return report
 }
 
-
 // Helper function to get strings from interface
 
 // int32Ptr returns a pointer to the provided int32 value

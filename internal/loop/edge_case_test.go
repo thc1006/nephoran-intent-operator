@@ -22,7 +22,7 @@ func TestFileSystemEdgeCases(t *testing.T) {
 	}
 
 	tests := []struct {
-		name     string
+		name      string
 		setupFunc func(t *testing.T, tempDir string) string
 		testFunc  func(t *testing.T, watcher *Watcher, testFile string)
 	}{
@@ -42,7 +42,7 @@ func TestFileSystemEdgeCases(t *testing.T) {
 				// Create symlink
 				symlinkFile := filepath.Join(tempDir, "symlink-intent.json")
 				require.NoError(t, os.Symlink(realFile, symlinkFile))
-				
+
 				return symlinkFile
 			},
 			testFunc: func(t *testing.T, watcher *Watcher, testFile string) {
@@ -56,7 +56,7 @@ func TestFileSystemEdgeCases(t *testing.T) {
 				// Create symlink to non-existent file
 				symlinkFile := filepath.Join(tempDir, "broken-symlink-intent.json")
 				require.NoError(t, os.Symlink("/nonexistent/file.json", symlinkFile))
-				
+
 				return symlinkFile
 			},
 			testFunc: func(t *testing.T, watcher *Watcher, testFile string) {
@@ -76,7 +76,7 @@ func TestFileSystemEdgeCases(t *testing.T) {
 					"replicas": 3
 				}`
 				require.NoError(t, os.WriteFile(specialFile, []byte(content), 0644))
-				
+
 				return specialFile
 			},
 			testFunc: func(t *testing.T, watcher *Watcher, testFile string) {
@@ -96,7 +96,7 @@ func TestFileSystemEdgeCases(t *testing.T) {
 					"replicas": 3
 				}`
 				require.NoError(t, os.WriteFile(unicodeFile, []byte(content), 0644))
-				
+
 				return unicodeFile
 			},
 			testFunc: func(t *testing.T, watcher *Watcher, testFile string) {
@@ -117,7 +117,7 @@ func TestFileSystemEdgeCases(t *testing.T) {
 					"replicas": 3
 				}`
 				require.NoError(t, os.WriteFile(longFile, []byte(content), 0644))
-				
+
 				return longFile
 			},
 			testFunc: func(t *testing.T, watcher *Watcher, testFile string) {
@@ -132,7 +132,7 @@ func TestFileSystemEdgeCases(t *testing.T) {
 			tempDir := t.TempDir()
 			handoffDir := filepath.Join(tempDir, "handoff")
 			outDir := filepath.Join(tempDir, "out")
-			
+
 			require.NoError(t, os.MkdirAll(handoffDir, 0755))
 			require.NoError(t, os.MkdirAll(outDir, 0755))
 
@@ -177,13 +177,13 @@ func TestNetworkDiskFailureSimulation(t *testing.T) {
 			setupFunc: func(t *testing.T, tempDir string) (string, string) {
 				handoffDir := filepath.Join(tempDir, "handoff")
 				outDir := filepath.Join(tempDir, "out")
-				
+
 				require.NoError(t, os.MkdirAll(handoffDir, 0755))
-				
+
 				// Create a very small output directory to simulate disk full
 				// Note: This is a simplified simulation
 				require.NoError(t, os.MkdirAll(outDir, 0755))
-				
+
 				return handoffDir, outDir
 			},
 			testFunc: func(t *testing.T, watcher *Watcher, handoffDir, outDir string) {
@@ -207,10 +207,10 @@ func TestNetworkDiskFailureSimulation(t *testing.T) {
 			setupFunc: func(t *testing.T, tempDir string) (string, string) {
 				handoffDir := filepath.Join(tempDir, "handoff")
 				outDir := filepath.Join(tempDir, "out")
-				
+
 				require.NoError(t, os.MkdirAll(handoffDir, 0755))
 				require.NoError(t, os.MkdirAll(outDir, 0755))
-				
+
 				return handoffDir, outDir
 			},
 			testFunc: func(t *testing.T, watcher *Watcher, handoffDir, outDir string) {
@@ -221,13 +221,13 @@ func TestNetworkDiskFailureSimulation(t *testing.T) {
 					"namespace": "default",
 					"replicas": 3
 				}`
-				
+
 				// Write file in chunks to simulate partial write
 				intentFile := filepath.Join(handoffDir, "partial-write-test.json")
-				
+
 				// First write partial content
 				require.NoError(t, os.WriteFile(intentFile, []byte(intentContent[:20]), 0644))
-				
+
 				// Small delay then complete the write
 				go func() {
 					time.Sleep(50 * time.Millisecond)
@@ -243,10 +243,10 @@ func TestNetworkDiskFailureSimulation(t *testing.T) {
 			setupFunc: func(t *testing.T, tempDir string) (string, string) {
 				handoffDir := filepath.Join(tempDir, "handoff")
 				outDir := filepath.Join(tempDir, "out")
-				
+
 				require.NoError(t, os.MkdirAll(handoffDir, 0755))
 				require.NoError(t, os.MkdirAll(outDir, 0755))
-				
+
 				// Create intent file first
 				intentContent := `{
 					"intent_type": "scaling",
@@ -256,19 +256,19 @@ func TestNetworkDiskFailureSimulation(t *testing.T) {
 				}`
 				intentFile := filepath.Join(handoffDir, "readonly-test.json")
 				require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0644))
-				
+
 				// Make handoff directory read-only (simulation)
 				if runtime.GOOS != "windows" {
 					require.NoError(t, os.Chmod(handoffDir, 0555))
 				}
-				
+
 				return handoffDir, outDir
 			},
 			testFunc: func(t *testing.T, watcher *Watcher, handoffDir, outDir string) {
 				// Should handle read-only filesystem gracefully
 				err := watcher.Start()
 				assert.NoError(t, err, "Should handle read-only filesystem gracefully")
-				
+
 				// Restore permissions for cleanup
 				if runtime.GOOS != "windows" {
 					os.Chmod(handoffDir, 0755)
@@ -316,7 +316,7 @@ func TestSignalHandlingGracefulShutdown(t *testing.T) {
 			setupFunc: func(t *testing.T, tempDir string) (string, int) {
 				handoffDir := filepath.Join(tempDir, "handoff")
 				require.NoError(t, os.MkdirAll(handoffDir, 0755))
-				
+
 				// Create multiple intent files
 				for i := 0; i < 10; i++ {
 					content := fmt.Sprintf(`{
@@ -325,11 +325,11 @@ func TestSignalHandlingGracefulShutdown(t *testing.T) {
 						"namespace": "default",
 						"replicas": %d
 					}`, i, i%5+1)
-					
+
 					file := filepath.Join(handoffDir, fmt.Sprintf("intent-%d.json", i))
 					require.NoError(t, os.WriteFile(file, []byte(content), 0644))
 				}
-				
+
 				return handoffDir, 10
 			},
 			testFunc: func(t *testing.T, watcher *Watcher, ctx context.Context, cancel context.CancelFunc) {
@@ -337,16 +337,16 @@ func TestSignalHandlingGracefulShutdown(t *testing.T) {
 				go func() {
 					_ = watcher.Start()
 				}()
-				
+
 				// Wait a bit for processing to start
 				time.Sleep(100 * time.Millisecond)
-				
+
 				// Cancel context to simulate shutdown signal
 				cancel()
-				
+
 				// Wait for graceful shutdown
 				time.Sleep(2 * time.Second)
-				
+
 				// Watcher should have stopped gracefully
 				assert.NotNil(t, watcher, "Watcher should still exist after graceful shutdown")
 			},
@@ -356,7 +356,7 @@ func TestSignalHandlingGracefulShutdown(t *testing.T) {
 			setupFunc: func(t *testing.T, tempDir string) (string, int) {
 				handoffDir := filepath.Join(tempDir, "handoff")
 				require.NoError(t, os.MkdirAll(handoffDir, 0755))
-				
+
 				// Create files that will take time to process
 				for i := 0; i < 5; i++ {
 					content := fmt.Sprintf(`{
@@ -365,11 +365,11 @@ func TestSignalHandlingGracefulShutdown(t *testing.T) {
 						"namespace": "default",
 						"replicas": %d
 					}`, i, i%3+1)
-					
+
 					file := filepath.Join(handoffDir, fmt.Sprintf("slow-intent-%d.json", i))
 					require.NoError(t, os.WriteFile(file, []byte(content), 0644))
 				}
-				
+
 				return handoffDir, 5
 			},
 			testFunc: func(t *testing.T, watcher *Watcher, ctx context.Context, cancel context.CancelFunc) {
@@ -377,14 +377,14 @@ func TestSignalHandlingGracefulShutdown(t *testing.T) {
 				go func() {
 					_ = watcher.Start()
 				}()
-				
+
 				// Let some processing start
 				time.Sleep(200 * time.Millisecond)
-				
+
 				// Cancel and wait for shutdown
 				cancel()
 				time.Sleep(3 * time.Second)
-				
+
 				// Should have shut down gracefully
 				assert.NotNil(t, watcher)
 			},
@@ -453,7 +453,7 @@ func TestStateCorruptionRecovery(t *testing.T) {
 				// Create the test file first
 				testFile := filepath.Join(tempDir, "new-file.json")
 				require.NoError(t, os.WriteFile(testFile, []byte(`{"test": true}`), 0644))
-				
+
 				// Should create new state when corrupted state is detected
 				err := sm.MarkProcessed(testFile)
 				assert.NoError(t, err, "Should recover from corrupted state")
@@ -475,7 +475,7 @@ func TestStateCorruptionRecovery(t *testing.T) {
 				// Create the test file first
 				testFile := filepath.Join(tempDir, "test-file.json")
 				require.NoError(t, os.WriteFile(testFile, []byte(`{"test": true}`), 0644))
-				
+
 				// Should handle empty state file gracefully
 				err := sm.MarkProcessed(testFile)
 				assert.NoError(t, err, "Should handle empty state file")
@@ -501,7 +501,7 @@ func TestStateCorruptionRecovery(t *testing.T) {
 				// Create the test file first
 				testFile := filepath.Join(tempDir, "recovery-test.json")
 				require.NoError(t, os.WriteFile(testFile, []byte(`{"test": true}`), 0644))
-				
+
 				// Should handle binary garbage gracefully
 				err := sm.MarkProcessed(testFile)
 				assert.NoError(t, err, "Should recover from binary garbage")
@@ -536,11 +536,11 @@ func TestStateCorruptionRecovery(t *testing.T) {
 				newFile := filepath.Join(tempDir, "new-file.json")
 				require.NoError(t, os.WriteFile(testFile1, []byte(`{"test": true}`), 0644))
 				require.NoError(t, os.WriteFile(newFile, []byte(`{"test": true}`), 0644))
-				
+
 				// Should handle invalid timestamps gracefully - but file doesn't exist in state yet
 				processed, err := sm.IsProcessed(testFile1)
 				assert.NoError(t, err, "Should handle invalid timestamps")
-				
+
 				// File should not be considered processed (invalid state was reset)
 				assert.False(t, processed, "File should not be processed due to corrupted state")
 
@@ -562,12 +562,12 @@ func TestStateCorruptionRecovery(t *testing.T) {
 					}
 				}`
 				require.NoError(t, os.WriteFile(stateFile, []byte(validState), 0644))
-				
+
 				// Make state file read-only to simulate permission issues
 				if runtime.GOOS != "windows" {
 					require.NoError(t, os.Chmod(stateFile, 0444))
 				}
-				
+
 				return tempDir
 			},
 			testFunc: func(t *testing.T, sm *StateManager, tempDir string) {
@@ -576,7 +576,7 @@ func TestStateCorruptionRecovery(t *testing.T) {
 					// Create the test file first
 					testFile := filepath.Join(tempDir, "permission-test.json")
 					require.NoError(t, os.WriteFile(testFile, []byte(`{"test": true}`), 0644))
-					
+
 					err := sm.MarkProcessed(testFile)
 					// Might fail due to permissions, but should not crash
 					assert.NotNil(t, err, "Should return error for permission issues")
@@ -594,7 +594,7 @@ func TestStateCorruptionRecovery(t *testing.T) {
 
 			// Create state manager with potentially corrupted state
 			sm, err := NewStateManager(stateDir)
-			
+
 			// State manager creation should succeed even with corrupted state
 			require.NoError(t, err, "StateManager should handle corrupted state during creation")
 			defer sm.Close()
@@ -607,7 +607,7 @@ func TestStateCorruptionRecovery(t *testing.T) {
 // TestConcurrentStateManagement tests concurrent access to state management
 func TestConcurrentStateManagement(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	sm, err := NewStateManager(tempDir)
 	require.NoError(t, err)
 	defer sm.Close()
@@ -630,7 +630,7 @@ func TestConcurrentStateManagement(t *testing.T) {
 			defer wg.Done()
 			filename := fmt.Sprintf("concurrent-file-%d.json", id)
 			testFile := filepath.Join(tempDir, filename)
-			
+
 			err := sm.MarkProcessed(testFile)
 			if err == ErrFileGone {
 				// File might have been deleted by cleanup, that's ok
@@ -647,7 +647,7 @@ func TestConcurrentStateManagement(t *testing.T) {
 			defer wg.Done()
 			filename := fmt.Sprintf("concurrent-file-%d.json", id)
 			testFile := filepath.Join(tempDir, filename)
-			
+
 			// May or may not be processed depending on timing
 			_, err := sm.IsProcessed(testFile)
 			assert.NoError(t, err, "Concurrent IsProcessed should not fail")
@@ -788,7 +788,7 @@ func isProcessRunning(pid int) bool {
 		// Simplified check for Windows
 		return true // Assume running for test purposes
 	}
-	
+
 	// Send signal 0 to check if process exists (Unix-like systems only)
 	// This is a simplified implementation
 	return true // For testing purposes, assume process is running

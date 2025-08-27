@@ -137,7 +137,7 @@ type CacheMetrics struct {
 	TotalItems int64        `json:"total_items"`
 	Evictions  int64        `json:"evictions"`
 	mutex      sync.RWMutex `json:"-"`
-	
+
 	// L1/L2 cache specific metrics
 	L1Hits       int64   `json:"l1_hits"`
 	L1Misses     int64   `json:"l1_misses"`
@@ -180,7 +180,7 @@ type ProviderHealthMonitor struct {
 type Document struct {
 	ID       string                 `json:"id"`
 	Content  string                 `json:"content"`
-	Size     int64                  `json:"size"`     // Size in bytes for streaming threshold checks
+	Size     int64                  `json:"size"` // Size in bytes for streaming threshold checks
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 

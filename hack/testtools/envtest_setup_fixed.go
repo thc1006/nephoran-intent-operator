@@ -38,14 +38,14 @@ func SetupTestEnvironmentWithBinaryCheck(options TestEnvironmentOptions) (*TestE
 	ctx, cancel := context.WithCancel(context.TODO())
 
 	By("setting up envtest binary manager")
-	
+
 	// Create binary manager and ensure binaries are installed
 	binaryManager := NewEnvtestBinaryManager()
-	
+
 	// Set up binary installation with timeout
 	installCtx, installCancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer installCancel()
-	
+
 	if err := binaryManager.EnsureBinariesInstalled(installCtx); err != nil {
 		cancel()
 		// Log warning but continue - envtest might still work with existing cluster
@@ -54,7 +54,7 @@ func SetupTestEnvironmentWithBinaryCheck(options TestEnvironmentOptions) (*TestE
 	} else {
 		// Set environment variable for envtest
 		binaryManager.SetupEnvironment()
-		
+
 		// Validate installation
 		if err := binaryManager.ValidateInstallation(installCtx); err != nil {
 			fmt.Printf("Warning: Binary validation failed: %v\n", err)
@@ -92,31 +92,31 @@ func SetupTestEnvironmentWithBinaryCheck(options TestEnvironmentOptions) (*TestE
 	// Start the test environment with retry logic
 	var cfg *rest.Config
 	var err error
-	
+
 	maxRetries := 3
 	for i := 0; i < maxRetries; i++ {
 		By(fmt.Sprintf("attempting to start test environment (attempt %d/%d)", i+1, maxRetries))
-		
+
 		cfg, err = testEnv.Start()
 		if err == nil {
 			break
 		}
-		
+
 		fmt.Printf("Test environment start attempt %d failed: %v\n", i+1, err)
-		
+
 		if i < maxRetries-1 {
 			fmt.Println("Retrying with fallback configuration...")
-			
+
 			// Try with existing cluster on retry
 			if options.UseExistingCluster == nil {
 				useExisting := true
 				testEnv.UseExistingCluster = &useExisting
 			}
-			
+
 			time.Sleep(time.Second * time.Duration(i+1)) // Progressive backoff
 		}
 	}
-	
+
 	if err != nil {
 		cancel()
 		return nil, fmt.Errorf("failed to start test environment after %d attempts: %w", maxRetries, err)
@@ -215,7 +215,7 @@ func resolveBinaryAssetsDirectoryEnhanced(customPath string, binaryManager *Envt
 // resolveCRDPathsEnhanced resolves CRD directory paths with enhanced fallback
 func resolveCRDPathsEnhanced(paths []string) []string {
 	var validPaths []string
-	
+
 	// Add common CRD paths
 	commonCRDPaths := []string{
 		filepath.Join("config", "crd", "bases"),
@@ -225,10 +225,10 @@ func resolveCRDPathsEnhanced(paths []string) []string {
 		filepath.Join("..", "..", "deployments", "crds"),
 		"crds",
 	}
-	
+
 	// Merge provided paths with common paths
 	allPaths := append(paths, commonCRDPaths...)
-	
+
 	for _, path := range allPaths {
 		if absPath, err := filepath.Abs(path); err == nil {
 			if _, err := os.Stat(absPath); err == nil {
@@ -264,7 +264,7 @@ func waitForAPIServerReadyEnhanced(cfg *rest.Config, timeout time.Duration) erro
 	if maxRetries < 1 {
 		maxRetries = 1
 	}
-	
+
 	for i := 0; i < maxRetries; i++ {
 		select {
 		case <-ctx.Done():
@@ -274,23 +274,23 @@ func waitForAPIServerReadyEnhanced(cfg *rest.Config, timeout time.Duration) erro
 			if err == nil {
 				return nil
 			}
-			
+
 			// Log periodic status
 			if i%5 == 0 {
 				fmt.Printf("Waiting for API server... (attempt %d/%d)\n", i+1, maxRetries)
 			}
-			
+
 			time.Sleep(2 * time.Second)
 		}
 	}
-	
+
 	return fmt.Errorf("API server not ready after %v", timeout)
 }
 
 // createTestScheme creates a test runtime scheme
 func createTestScheme(schemeBuilders []func(*runtime.Scheme) error) *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	
+
 	// Apply all scheme builders
 	for _, builder := range schemeBuilders {
 		if err := builder(scheme); err != nil {
@@ -298,7 +298,7 @@ func createTestScheme(schemeBuilders []func(*runtime.Scheme) error) *runtime.Sch
 			fmt.Printf("Warning: Failed to add to scheme: %v\n", err)
 		}
 	}
-	
+
 	return scheme
 }
 
@@ -309,7 +309,7 @@ func EnhancedTestEnvironmentOptions() TestEnvironmentOptions {
 	opts.ControlPlaneStopTimeout = 60 * time.Second
 	opts.APIServerReadyTimeout = 60 * time.Second
 	opts.AttachControlPlaneOutput = false // Reduce noise
-	opts.CIMode = true // More lenient error handling
+	opts.CIMode = true                    // More lenient error handling
 	return opts
 }
 
@@ -321,13 +321,13 @@ func DisasterRecoveryTestEnvironmentOptions() TestEnvironmentOptions {
 	opts.EnableMetrics = false
 	opts.EnableHealthChecks = true
 	opts.VerboseLogging = true // More logging for troubleshooting
-	
+
 	// Add disaster recovery specific environment variables
 	if opts.EnvironmentVariables == nil {
 		opts.EnvironmentVariables = make(map[string]string)
 	}
 	opts.EnvironmentVariables["DISASTER_RECOVERY_TEST"] = "true"
 	opts.EnvironmentVariables["LOG_LEVEL"] = "debug"
-	
+
 	return opts
 }

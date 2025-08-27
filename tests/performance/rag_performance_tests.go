@@ -19,12 +19,12 @@ import (
 
 // RAGPerformanceTestSuite provides comprehensive RAG pipeline performance testing
 type RAGPerformanceTestSuite struct {
-	ragService         *rag.RAGService
-	embeddingProvider  rag.EmbeddingProvider
-	metricsCollector   *monitoring.MetricsCollector
-	config             *RAGTestConfig
-	results            *RAGTestResults
-	mu                 sync.RWMutex
+	ragService        *rag.RAGService
+	embeddingProvider rag.EmbeddingProvider
+	metricsCollector  *monitoring.MetricsCollector
+	config            *RAGTestConfig
+	results           *RAGTestResults
+	mu                sync.RWMutex
 }
 
 // RAGTestConfig defines RAG-specific test configuration
@@ -84,7 +84,7 @@ type EmbeddingTestResults struct {
 	SuccessfulTests int `json:"successful_tests"`
 	FailedTests     int `json:"failed_tests"`
 
-	LatencyStats    RAGLatencyMetrics       `json:"latency_stats"` 
+	LatencyStats    RAGLatencyMetrics       `json:"latency_stats"`
 	ThroughputStats RAGThroughputMetrics    `json:"throughput_stats"`
 	QualityMetrics  EmbeddingQualityMetrics `json:"quality_metrics"`
 
@@ -158,10 +158,10 @@ type RetrievalAccuracyMetrics struct {
 }
 
 type ComplexityResult struct {
-	QueryComplexity string          `json:"query_complexity"`
-	QueryCount      int             `json:"query_count"`
-	AverageLatency  time.Duration   `json:"average_latency"`
-	AccuracyScore   float64         `json:"accuracy_score"`
+	QueryComplexity string             `json:"query_complexity"`
+	QueryCount      int                `json:"query_count"`
+	AverageLatency  time.Duration      `json:"average_latency"`
+	AccuracyScore   float64            `json:"accuracy_score"`
 	ResourceUsage   RAGResourceMetrics `json:"resource_usage"`
 }
 
@@ -221,11 +221,11 @@ type CacheInvalidationStats struct {
 }
 
 type ScalabilityMetric struct {
-	Concurrency         int             `json:"concurrency"`
-	Throughput          float64         `json:"throughput"`
-	AverageLatency      time.Duration   `json:"average_latency"`
-	P95Latency          time.Duration   `json:"p95_latency"`
-	ErrorRate           float64         `json:"error_rate"`
+	Concurrency         int                `json:"concurrency"`
+	Throughput          float64            `json:"throughput"`
+	AverageLatency      time.Duration      `json:"average_latency"`
+	P95Latency          time.Duration      `json:"p95_latency"`
+	ErrorRate           float64            `json:"error_rate"`
 	ResourceUtilization RAGResourceMetrics `json:"resource_utilization"`
 }
 
@@ -343,10 +343,10 @@ type RAGResourceMetrics struct {
 
 // RAGResourceUtilization represents resource usage statistics
 type RAGResourceUtilization struct {
-	Average  float64         `json:"average"`
-	Peak     float64         `json:"peak"`
-	P95      float64         `json:"p95"`
-	Variance float64         `json:"variance"`
+	Average  float64        `json:"average"`
+	Peak     float64        `json:"peak"`
+	P95      float64        `json:"p95"`
+	Variance float64        `json:"variance"`
 	Timeline []RAGTimePoint `json:"timeline"`
 }
 
@@ -383,8 +383,8 @@ type RAGRegressionAnalysis struct {
 
 // MockEmbeddingProvider provides mock embedding generation for testing
 type MockEmbeddingProvider struct {
-	latency     time.Duration
-	dimensions  int
+	latency      time.Duration
+	dimensions   int
 	requestCount int64
 	mu           sync.RWMutex
 }
@@ -626,7 +626,7 @@ func (rpts *RAGPerformanceTestSuite) runRetrievalTests(ctx context.Context) (*Re
 				start := time.Now()
 
 				response, err := rpts.ragService.ProcessQuery(ctx, &rag.RAGRequest{
-					Query: query,
+					Query:      query,
 					MaxResults: 10,
 				})
 
@@ -779,7 +779,7 @@ func (rpts *RAGPerformanceTestSuite) runCachingTests(ctx context.Context) (*Cach
 		HitRate:   float64(l2Hits) / float64(l2Hits+l2Misses),
 	}
 
-	// Calculate cache efficiency  
+	// Calculate cache efficiency
 	results.CacheEfficiency = CacheEfficiencyMetrics{
 		LatencyReduction: 0.75, // 75% latency reduction with cache
 		ThroughputGain:   4.0,  // 4x throughput improvement

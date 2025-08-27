@@ -80,13 +80,13 @@ type PerformanceMetrics struct {
 
 // PerformanceConfig holds configuration for performance optimization
 type PerformanceConfig struct {
-	LatencyBufferSize     int                  `json:"latency_buffer_size"`
-	OptimizationInterval  time.Duration        `json:"optimization_interval"`
+	LatencyBufferSize     int                           `json:"latency_buffer_size"`
+	OptimizationInterval  time.Duration                 `json:"optimization_interval"`
 	CircuitBreakerConfig  OptimizerCircuitBreakerConfig `json:"circuit_breaker"`
-	BatchProcessingConfig BatchConfig          `json:"batch_processing"`
-	MetricsExportInterval time.Duration        `json:"metrics_export_interval"`
-	EnableTracing         bool                 `json:"enable_tracing"`
-	TraceSamplingRatio    float64              `json:"trace_sampling_ratio"`
+	BatchProcessingConfig BatchConfig                   `json:"batch_processing"`
+	MetricsExportInterval time.Duration                 `json:"metrics_export_interval"`
+	EnableTracing         bool                          `json:"enable_tracing"`
+	TraceSamplingRatio    float64                       `json:"trace_sampling_ratio"`
 }
 
 // OptimizerCircuitBreakerConfig holds advanced circuit breaker configuration
@@ -135,13 +135,13 @@ func NewPerformanceOptimizer(config *PerformanceConfig) *PerformanceOptimizer {
 		Timeout:               config.CircuitBreakerConfig.Timeout,
 		MaxConcurrentRequests: config.CircuitBreakerConfig.MaxConcurrentRequests,
 		EnableAdaptiveTimeout: config.CircuitBreakerConfig.EnableAdaptiveTimeout,
-		FailureRate:           0.5,  // Default
-		MinimumRequestCount:   10,   // Default
-		HalfOpenTimeout:       5 * time.Second, // Default
-		HalfOpenMaxRequests:   3,    // Default
+		FailureRate:           0.5,              // Default
+		MinimumRequestCount:   10,               // Default
+		HalfOpenTimeout:       5 * time.Second,  // Default
+		HalfOpenMaxRequests:   3,                // Default
 		ResetTimeout:          60 * time.Second, // Default
-		SlidingWindowSize:     100,  // Default
-		EnableHealthCheck:     false, // Default
+		SlidingWindowSize:     100,              // Default
+		EnableHealthCheck:     false,            // Default
 		HealthCheckInterval:   30 * time.Second, // Default
 		HealthCheckTimeout:    5 * time.Second,  // Default
 	}

@@ -40,15 +40,15 @@ import (
 
 // ConfigSyncConfig defines Config Sync configuration (unified type)
 type ConfigSyncConfig struct {
-	Repository  string        `json:"repository" yaml:"repository"`
-	Branch      string        `json:"branch" yaml:"branch"`
-	Directory   string        `json:"directory" yaml:"directory"`
-	SyncPeriod  time.Duration `json:"syncPeriod" yaml:"syncPeriod"`
-	Username    string        `json:"username" yaml:"username"`
-	Email       string        `json:"email" yaml:"email"`
-	AuthToken   string        `json:"authToken" yaml:"authToken"`
-	PolicyDir   string        `json:"policyDir" yaml:"policyDir"`
-	Namespaces  []string      `json:"namespaces" yaml:"namespaces"`
+	Repository string        `json:"repository" yaml:"repository"`
+	Branch     string        `json:"branch" yaml:"branch"`
+	Directory  string        `json:"directory" yaml:"directory"`
+	SyncPeriod time.Duration `json:"syncPeriod" yaml:"syncPeriod"`
+	Username   string        `json:"username" yaml:"username"`
+	Email      string        `json:"email" yaml:"email"`
+	AuthToken  string        `json:"authToken" yaml:"authToken"`
+	PolicyDir  string        `json:"policyDir" yaml:"policyDir"`
+	Namespaces []string      `json:"namespaces" yaml:"namespaces"`
 }
 
 // GitConfig contains Git configuration for Config Sync
@@ -268,7 +268,7 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 				span.RecordError(err)
 				return nil, fmt.Errorf("failed to marshal resource %d: %w", i, err)
 			}
-			
+
 			if err := yaml.Unmarshal(resourceData, &resourceMap); err != nil {
 				span.RecordError(err)
 				return nil, fmt.Errorf("failed to unmarshal resource %d: %w", i, err)

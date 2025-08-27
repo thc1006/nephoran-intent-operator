@@ -91,7 +91,7 @@ func BenchmarkSortingAlgorithms(b *testing.B) {
 		}
 	})
 
-	// Test Go's sort.Slice (optimized way)  
+	// Test Go's sort.Slice (optimized way)
 	b.Run("GoSortSlice", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			updates := generateTestUpdates()

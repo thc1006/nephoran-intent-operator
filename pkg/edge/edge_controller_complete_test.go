@@ -226,7 +226,7 @@ func TestEdgeController_Reconcile(t *testing.T) {
 						IntentType: nephoran.IntentTypeDeployment,
 						ProcessedParameters: &nephoran.ProcessedParameters{
 							NetworkFunction: "edge-gateway",
-							Region:         "edge",
+							Region:          "edge",
 						},
 					},
 				}

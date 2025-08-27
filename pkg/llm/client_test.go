@@ -341,7 +341,7 @@ var _ = Describe("LLM Client Unit Tests", func() {
 				"Deploy UPF with 5 replicas for high availability",
 				"Scale to 4 CPU cores for better performance",
 			}
-			
+
 			for _, intent := range intents {
 				ctx := context.Background()
 				_, err := client.ProcessIntent(ctx, intent)
@@ -368,7 +368,7 @@ var _ = Describe("LLM Client Unit Tests", func() {
 		It("should handle network function intents", func() {
 			nfIntents := []string{
 				"Deploy UPF network function",
-				"Create AMF instance", 
+				"Create AMF instance",
 				"Setup Near-RT RIC",
 				"Configure SMF service",
 			}
@@ -384,7 +384,7 @@ var _ = Describe("LLM Client Unit Tests", func() {
 		It("should handle namespace-specific intents", func() {
 			namespaceIntents := []string{
 				"Deploy in 5g-core namespace",
-				"Create in o-ran environment", 
+				"Create in o-ran environment",
 				"Setup edge application",
 				"Configure core network",
 			}
@@ -457,7 +457,8 @@ var _ = Describe("LLM Client Unit Tests", func() {
 			}
 
 			for _, cpu := range invalidCPUFormats {
-				Expect(true).To(BeTrue())
+				// Test each invalid CPU format
+				Expect(cpu).ToNot(BeEmpty(), "Invalid CPU format should not be empty: %s", cpu)
 			}
 		})
 
@@ -472,7 +473,8 @@ var _ = Describe("LLM Client Unit Tests", func() {
 			}
 
 			for _, memory := range validMemoryFormats {
-				Expect(true).To(BeTrue())
+				// Test each valid memory format
+				Expect(memory).ToNot(BeEmpty(), "Valid memory format should not be empty: %s", memory)
 			}
 		})
 
@@ -487,7 +489,7 @@ var _ = Describe("LLM Client Unit Tests", func() {
 			}
 
 			for _, memory := range invalidMemoryFormats {
-				Expect(true).To(BeTrue())
+				Expect(memory).ToNot(BeEmpty(), "Invalid memory format should not be empty: %s", memory)
 			}
 		})
 	})

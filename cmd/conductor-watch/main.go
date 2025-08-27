@@ -19,13 +19,13 @@ func main() {
 	postURL := flag.String("post-url", "", "Optional HTTP endpoint to POST valid intents")
 	schemaPath := flag.String("schema", "./docs/contracts/intent.schema.json", "Path to intent schema file")
 	debounceMs := flag.Int("debounce-ms", 300, "Debounce delay in milliseconds to handle partial writes")
-	
+
 	// Security flags
 	bearerToken := flag.String("bearer-token", "", "Bearer token for authentication")
 	apiKey := flag.String("api-key", "", "API key for authentication")
 	apiKeyHeader := flag.String("api-key-header", "X-API-Key", "Custom API key header")
 	insecureSkipVerify := flag.Bool("insecure-skip-verify", false, "Skip TLS certificate verification (for development only)")
-	
+
 	flag.Parse()
 
 	// Validate POST URL if provided

@@ -128,12 +128,12 @@ func TestNormalizeWindowsPath_LongPath(t *testing.T) {
 
 	// Create a path that's exactly 248 characters
 	longPath := `C:\` + strings.Repeat("a", 244) + `.txt`
-	
+
 	got, err := NormalizeWindowsPath(longPath)
 	if err != nil {
 		t.Fatalf("NormalizeWindowsPath() error = %v", err)
 	}
-	
+
 	// Should have \\?\ prefix
 	if !strings.HasPrefix(got, `\\?\`) {
 		t.Errorf("expected \\?\\ prefix for long path, got %q", got)
@@ -269,7 +269,7 @@ func TestEnsureParentDirectory(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("EnsureParentDirectory() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			
+
 			if err == nil && tt.path != "" {
 				// Check that parent directory was created
 				parentDir := filepath.Dir(tt.path)
@@ -282,7 +282,6 @@ func TestEnsureParentDirectory(t *testing.T) {
 		})
 	}
 }
-
 
 func TestIsExtendedLengthPath(t *testing.T) {
 	tests := []struct {
@@ -343,7 +342,7 @@ func TestRelaxedTraversalChecks(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("IsValidWindowsPath(%q) = %v, want %v", tt.input, got, tt.want)
 			}
-			
+
 			// Also test that normalization works without error
 			if tt.want {
 				_, err := NormalizeWindowsPath(tt.input)

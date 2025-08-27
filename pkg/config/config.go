@@ -666,7 +666,6 @@ func (c *Config) GetMetricsAllowedIPs() []string {
 	return c.MetricsAllowedIPs
 }
 
-
 // Ensure Config implements interfaces.ConfigProvider
 var _ interfaces.ConfigProvider = (*Config)(nil)
 

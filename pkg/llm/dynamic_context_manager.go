@@ -154,7 +154,6 @@ const (
 	HeavyCompression
 )
 
-
 // TokenEstimator provides token estimation for different models
 type TokenEstimator struct {
 	modelTokenRatios map[string]float64
@@ -738,44 +737,44 @@ func (s *TelecomContextStrategy) heavyCompress(content string) string {
 // formatTelecomContext formats TelecomContext into a readable string
 func (s *TelecomContextStrategy) formatTelecomContext(ctx TelecomContext) string {
 	var sb strings.Builder
-	
+
 	sb.WriteString("Network Context:\n")
-	
+
 	if len(ctx.NetworkFunctions) > 0 {
 		sb.WriteString("Active Network Functions:\n")
 		for _, nf := range ctx.NetworkFunctions {
 			sb.WriteString(fmt.Sprintf("- %s\n", nf))
 		}
 	}
-	
+
 	if len(ctx.ActiveSlices) > 0 {
 		sb.WriteString("Active Network Slices:\n")
 		for _, slice := range ctx.ActiveSlices {
 			sb.WriteString(fmt.Sprintf("- %s\n", slice))
 		}
 	}
-	
+
 	if len(ctx.E2Nodes) > 0 {
 		sb.WriteString("Connected E2 Nodes:\n")
 		for _, node := range ctx.E2Nodes {
 			sb.WriteString(fmt.Sprintf("- %s\n", node))
 		}
 	}
-	
+
 	if len(ctx.Alarms) > 0 {
 		sb.WriteString("Active Alarms:\n")
 		for _, alarm := range ctx.Alarms {
 			sb.WriteString(fmt.Sprintf("- %s\n", alarm))
 		}
 	}
-	
+
 	if len(ctx.PerformanceKPIs) > 0 {
 		sb.WriteString("Performance KPIs:\n")
 		for key, value := range ctx.PerformanceKPIs {
 			sb.WriteString(fmt.Sprintf("- %s: %v\n", key, value))
 		}
 	}
-	
+
 	return sb.String()
 }
 
@@ -834,7 +833,7 @@ func (s *ORANContextStrategy) selectORANContext(request *ContextInjectionRequest
 	// Implementation would focus on O-RAN specific context selection
 	systemPrompt, _ := s.templates.GetSystemPrompt("oran_network_intent")
 	examples := s.templates.GetFewShotExamples("oran_network_intent", "o-ran")
-	
+
 	return &SelectedContext{
 		SystemPrompt:    systemPrompt,
 		Examples:        convertFewShotToPromptExamples(examples),
@@ -868,7 +867,7 @@ func (s *FiveGCoreContextStrategy) select5GCoreContext(request *ContextInjection
 	// Implementation would focus on 5G Core specific context selection
 	systemPrompt, _ := s.templates.GetSystemPrompt("5gc_network_intent")
 	examples := s.templates.GetFewShotExamples("5gc_network_intent", "5g-core")
-	
+
 	return &SelectedContext{
 		SystemPrompt:    systemPrompt,
 		Examples:        convertFewShotToPromptExamples(examples),

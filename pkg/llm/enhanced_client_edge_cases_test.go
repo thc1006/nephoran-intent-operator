@@ -17,7 +17,7 @@ import (
 
 var _ = Describe("Enhanced Client Edge Cases", func() {
 	var (
-		enhancedClient *EnhancedClient
+		enhancedClient *Client
 		mockServer     *httptest.Server
 		config         EnhancedClientConfig
 	)

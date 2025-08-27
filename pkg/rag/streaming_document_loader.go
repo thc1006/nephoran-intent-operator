@@ -234,12 +234,12 @@ func (l *StreamingDocumentLoader) processRegularDocument(
 
 	// Convert to LoadedDocument for chunking
 	loadedDoc := &LoadedDocument{
-		ID:      doc.ID,
-		Content: string(content),
-		Size:    int64(len(content)),
+		ID:       doc.ID,
+		Content:  string(content),
+		Size:     int64(len(content)),
 		LoadedAt: time.Now(),
 	}
-	
+
 	// Chunk the document
 	chunks, err := l.chunkingService.ChunkDocument(ctx, loadedDoc)
 	if err != nil {

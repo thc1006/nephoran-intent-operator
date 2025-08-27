@@ -123,23 +123,23 @@ func TestExtractCorrelationID(t *testing.T) {
 func TestCommandConstruction(t *testing.T) {
 	// This test validates that the command would be built correctly
 	// In a real scenario, we'd mock exec.Command, but for MVP this demonstrates intent
-	
+
 	intentPath := "/handoff/intent-test.json"
 	outDir := "examples/packages/scaling"
-	
+
 	// The expected command components
 	expectedCmd := "go"
 	expectedArgs := []string{"run", "./cmd/porch-publisher", "-intent", intentPath, "-out", outDir}
-	
+
 	// Verify these are the values we'd use (conceptual test)
 	if expectedCmd != "go" {
 		t.Errorf("Expected command to be 'go'")
 	}
-	
+
 	if len(expectedArgs) != 6 {
 		t.Errorf("Expected 6 command arguments, got %d", len(expectedArgs))
 	}
-	
+
 	if expectedArgs[1] != "./cmd/porch-publisher" {
 		t.Errorf("Expected porch-publisher path to be './cmd/porch-publisher', got %s", expectedArgs[1])
 	}

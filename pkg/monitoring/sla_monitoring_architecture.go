@@ -186,7 +186,6 @@ type LatencySLO struct {
 	SustainedViolation time.Duration // Duration of sustained violation
 }
 
-
 // AdvancedMetricsCollector provides high-performance metric collection
 type AdvancedMetricsCollector struct {
 	// Low-latency collection (sub-100ms overhead)
@@ -531,43 +530,43 @@ func (arch *SLAMonitoringArchitecture) calculateCompositeSLAScore(status *SLASta
 
 // ServiceAvailabilitySLI measures service-level availability
 type ServiceAvailabilitySLI struct {
-	ServiceName    string
-	AvailabilityTarget float64
+	ServiceName         string
+	AvailabilityTarget  float64
 	CurrentAvailability float64
-	ErrorBudget    float64
+	ErrorBudget         float64
 }
 
 // UserJourneyAvailabilitySLI measures user journey availability
 type UserJourneyAvailabilitySLI struct {
-	JourneyName string
-	Steps       []string
+	JourneyName         string
+	Steps               []string
 	OverallAvailability float64
 	StepAvailabilities  map[string]float64
 }
 
 // LatencySLI measures latency metrics
 type LatencySLI struct {
-	ServiceName     string
-	TargetLatency   time.Duration
-	CurrentP95      time.Duration
-	CurrentP99      time.Duration
-	ComplianceRate  float64
+	ServiceName    string
+	TargetLatency  time.Duration
+	CurrentP95     time.Duration
+	CurrentP99     time.Duration
+	ComplianceRate float64
 }
 
 // BusinessImpactErrorSLI measures business impact of errors
 type BusinessImpactErrorSLI struct {
-	ServiceName           string
-	CriticalErrorRate     float64
-	BusinessImpactScore   float64
-	RecoveryTime          time.Duration
+	ServiceName         string
+	CriticalErrorRate   float64
+	BusinessImpactScore float64
+	RecoveryTime        time.Duration
 }
 
 // CapacityUtilizationSLI measures resource capacity utilization
 type CapacityUtilizationSLI struct {
-	ResourceType     string
+	ResourceType       string
 	CurrentUtilization float64
-	MaxCapacity      float64
-	UtilizationTarget float64
+	MaxCapacity        float64
+	UtilizationTarget  float64
 }
 
 // HeadroomTrackingSLI tracks available headroom for scaling
@@ -580,9 +579,9 @@ type HeadroomTrackingSLI struct {
 
 // ResourceEfficiencySLI measures resource efficiency
 type ResourceEfficiencySLI struct {
-	ResourceType     string
-	EfficiencyScore  float64
-	WastePercentage  float64
+	ResourceType            string
+	EfficiencyScore         float64
+	WastePercentage         float64
 	OptimizationSuggestions []string
 }
 
@@ -595,9 +594,9 @@ type ComplianceReporter struct {
 
 // ThroughputSLO defines throughput service level objectives
 type ThroughputSLO struct {
-	ServiceName    string
-	TargetTPS      float64
-	MinTPS         float64
+	ServiceName       string
+	TargetTPS         float64
+	MinTPS            float64
 	MeasurementWindow time.Duration
 }
 
@@ -611,9 +610,9 @@ type ReliabilitySLO struct {
 
 // ErrorBudgetCalculator calculates error budgets
 type ErrorBudgetCalculator struct {
-	SLOTarget     float64
-	WindowSize    time.Duration
-	BurnRate      float64
+	SLOTarget       float64
+	WindowSize      time.Duration
+	BurnRate        float64
 	RemainingBudget float64
 }
 
@@ -677,22 +676,22 @@ type MetricsPruningEngine struct {
 
 // MetricsCache caches metrics for performance
 type MetricsCache struct {
-	CacheSize    int
-	TTL          time.Duration
-	CachedData   map[string]MetricData
+	CacheSize  int
+	TTL        time.Duration
+	CachedData map[string]MetricData
 }
 
 // MetricsCompressionEngine compresses metrics data
 type MetricsCompressionEngine struct {
-	CompressionType string
+	CompressionType  string
 	CompressionRatio float64
 }
 
 // KafkaMetricsConsumer consumes metrics from Kafka
 type KafkaMetricsConsumer struct {
-	Topic       string
+	Topic         string
 	ConsumerGroup string
-	Brokers     []string
+	Brokers       []string
 }
 
 // StreamProcessor processes streaming metrics
@@ -703,14 +702,14 @@ type StreamProcessor struct {
 
 // WindowAggregator aggregates metrics in time windows
 type WindowAggregator struct {
-	WindowSize time.Duration
+	WindowSize      time.Duration
 	AggregationType string
 }
 
 // RealTimeSLOEvaluator evaluates SLOs in real-time
 type RealTimeSLOEvaluator struct {
 	EvaluationInterval time.Duration
-	SLOTargets        map[string]float64
+	SLOTargets         map[string]float64
 }
 
 // StateStore stores streaming state
@@ -730,9 +729,9 @@ type CheckpointManager struct {
 
 // AdvancedAlertManager manages advanced alerting
 type AdvancedAlertManager struct {
-	AlertRules     []SLAAlertRule
-	Integrations   []AlertIntegration
-	DedupeWindow   time.Duration
+	AlertRules   []SLAAlertRule
+	Integrations []AlertIntegration
+	DedupeWindow time.Duration
 }
 
 // SLAAlertRule defines an SLA alerting rule (different from monitoring.AlertRule)
@@ -765,9 +764,9 @@ type LongTermStorageConfig struct {
 
 // ComplianceStorageConfig configures compliance storage
 type ComplianceStorageConfig struct {
-	RetentionPeriod time.Duration
+	RetentionPeriod   time.Duration
 	EncryptionEnabled bool
-	AccessLogging   bool
+	AccessLogging     bool
 }
 
 // AuditLogStorage stores audit logs
@@ -885,19 +884,19 @@ type UserJourneyTest struct {
 
 // TestStep defines a test step
 type TestStep struct {
-	Name        string
-	Action      string
-	Parameters  map[string]interface{}
-	Validation  string
+	Name       string
+	Action     string
+	Parameters map[string]interface{}
+	Validation string
 }
 
 // JourneyStep defines a journey step
 type JourneyStep struct {
-	Name        string
-	Endpoint    string
-	Method      string
-	Payload     interface{}
-	Validation  string
+	Name       string
+	Endpoint   string
+	Method     string
+	Payload    interface{}
+	Validation string
 }
 
 // TestScheduler schedules tests
@@ -909,23 +908,23 @@ type TestScheduler struct {
 
 // TestExecutor executes tests
 type TestExecutor struct {
-	MaxWorkers    int
-	Timeout       time.Duration
-	RetryPolicy   RetryPolicy
+	MaxWorkers  int
+	Timeout     time.Duration
+	RetryPolicy RetryPolicy
 }
 
 // TestResultProcessor processes test results
 type TestResultProcessor struct {
-	ResultStore   ResultStore
-	AlertThresholds map[string]float64
+	ResultStore       ResultStore
+	AlertThresholds   map[string]float64
 	ReportingInterval time.Duration
 }
 
 // RetryPolicy defines retry behavior
 type RetryPolicy struct {
-	MaxRetries int
+	MaxRetries      int
 	BackoffStrategy string
-	InitialDelay time.Duration
+	InitialDelay    time.Duration
 }
 
 // ResultStore stores test results
@@ -936,28 +935,28 @@ type ResultStore interface {
 
 // TestResult represents a test result
 type TestResult struct {
-	TestName    string
-	Success     bool
-	Duration    time.Duration
-	Timestamp   time.Time
-	Metrics     map[string]float64
-	ErrorMsg    string
+	TestName  string
+	Success   bool
+	Duration  time.Duration
+	Timestamp time.Time
+	Metrics   map[string]float64
+	ErrorMsg  string
 }
 
 // ChaosExperiment defines chaos experiments
 type ChaosExperiment struct {
-	Name        string
-	Type        string
-	Target      string
-	Parameters  map[string]interface{}
-	Duration    time.Duration
-	SLATargets  map[string]float64
+	Name       string
+	Type       string
+	Target     string
+	Parameters map[string]interface{}
+	Duration   time.Duration
+	SLATargets map[string]float64
 }
 
 // ChaosExperimentScheduler schedules chaos experiments
 type ChaosExperimentScheduler struct {
-	Experiments []ChaosExperiment
-	Schedule    string
+	Experiments  []ChaosExperiment
+	Schedule     string
 	SafetyChecks []SafetyCheck
 }
 
@@ -972,9 +971,9 @@ type SafetyCheck struct {
 
 // ResilienceValidator validates system resilience
 type ResilienceValidator struct {
-	ValidationRules  []ValidationRule
-	MinRecoveryTime  time.Duration
-	MaxFailureRate   float64
+	ValidationRules []ValidationRule
+	MinRecoveryTime time.Duration
+	MaxFailureRate  float64
 }
 
 // ValidationRule defines validation rules
@@ -986,9 +985,9 @@ type ValidationRule struct {
 
 // RecoveryTimeTracker tracks recovery times
 type RecoveryTimeTracker struct {
-	Incidents      []IncidentRecord
-	TargetRTO      time.Duration
-	TargetRPO      time.Duration
+	Incidents []IncidentRecord
+	TargetRTO time.Duration
+	TargetRPO time.Duration
 }
 
 // IncidentRecord records incident details
@@ -1076,24 +1075,24 @@ type LoadBalancingActions struct {
 
 // CircuitBreakerActions defines circuit breaker actions
 type CircuitBreakerActions struct {
-	FailureThreshold  int
-	TimeoutDuration   time.Duration
-	RecoveryTimeout   time.Duration
-	HalfOpenRequests  int
+	FailureThreshold int
+	TimeoutDuration  time.Duration
+	RecoveryTimeout  time.Duration
+	HalfOpenRequests int
 }
 
 // RemediationDecisionEngine makes remediation decisions
 type RemediationDecisionEngine struct {
-	DecisionRules    []DecisionRule
-	ActionPriority   map[string]int
+	DecisionRules     []DecisionRule
+	ActionPriority    map[string]int
 	SafetyConstraints []SafetyConstraint
 }
 
 // DecisionRule defines decision-making rules
 type DecisionRule struct {
-	Condition string
-	Action    string
-	Priority  int
+	Condition  string
+	Action     string
+	Priority   int
 	Confidence float64
 }
 
@@ -1106,9 +1105,9 @@ type SafetyConstraint struct {
 
 // ActionPrioritizer prioritizes remediation actions
 type ActionPrioritizer struct {
-	PriorityRules  []PriorityRule
-	WeightFactors  map[string]float64
-	MaxConcurrent  int
+	PriorityRules []PriorityRule
+	WeightFactors map[string]float64
+	MaxConcurrent int
 }
 
 // PriorityRule defines action priority rules

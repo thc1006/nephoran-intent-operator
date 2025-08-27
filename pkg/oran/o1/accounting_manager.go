@@ -1954,11 +1954,11 @@ type AuditRetentionPolicy struct {
 
 // AuditEncryption defines encryption settings for audit data
 type AuditEncryption struct {
-	Enabled      bool   `json:"enabled"`
-	Algorithm    string `json:"algorithm"`
-	KeyRotation  time.Duration `json:"key_rotation"`
-	KeySize      int    `json:"key_size"`
-	Compression  bool   `json:"compression"`
+	Enabled     bool          `json:"enabled"`
+	Algorithm   string        `json:"algorithm"`
+	KeyRotation time.Duration `json:"key_rotation"`
+	KeySize     int           `json:"key_size"`
+	Compression bool          `json:"compression"`
 }
 
 // RetentionScheduler schedules data retention activities
@@ -1971,12 +1971,12 @@ type RetentionScheduler struct {
 
 // ScheduleEntry defines a scheduled retention task
 type ScheduleEntry struct {
-	ID          string        `json:"id"`
-	Interval    time.Duration `json:"interval"`
-	LastRun     time.Time     `json:"last_run"`
-	NextRun     time.Time     `json:"next_run"`
-	TaskType    string        `json:"task_type"`
-	Parameters  map[string]interface{} `json:"parameters"`
+	ID         string                 `json:"id"`
+	Interval   time.Duration          `json:"interval"`
+	LastRun    time.Time              `json:"last_run"`
+	NextRun    time.Time              `json:"next_run"`
+	TaskType   string                 `json:"task_type"`
+	Parameters map[string]interface{} `json:"parameters"`
 }
 
 // DataArchiver handles data archiving operations

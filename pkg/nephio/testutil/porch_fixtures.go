@@ -418,8 +418,8 @@ func (f *TestFixture) CreateTestNetworkIntent(name string, opts ...NetworkIntent
 			},
 		},
 		Status: v1.NetworkIntentStatus{
-			Phase:       "processing",
-			LastMessage: "Processing deployment intent",
+			Phase:          "processing",
+			LastMessage:    "Processing deployment intent",
 			LastUpdateTime: metav1.Now(),
 		},
 	}

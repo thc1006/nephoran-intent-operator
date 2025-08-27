@@ -90,19 +90,13 @@ type ResilienceConfig struct {
 
 // CircuitBreakerMetrics tracks circuit breaker pattern metrics
 type CircuitBreakerMetrics struct {
-	TotalRequests  int64 `json:"totalRequests"`
-	FailedRequests int64 `json:"failedRequests"`
-	SuccessRate    float64 `json:"successRate"`
-	State          string `json:"state"`
-	StateChanges   int64 `json:"stateChanges"`
+	TotalRequests  int64     `json:"totalRequests"`
+	FailedRequests int64     `json:"failedRequests"`
+	SuccessRate    float64   `json:"successRate"`
+	State          string    `json:"state"`
+	StateChanges   int64     `json:"stateChanges"`
 	LastFailure    time.Time `json:"lastFailure"`
 }
-
-
-
-
-
-
 
 // ResilienceMetrics tracks metrics for all resilience patterns
 type ResilienceMetrics struct {
@@ -988,27 +982,37 @@ func NewGracefulShutdownManager(timeout time.Duration, logger logr.Logger) *Grac
 }
 
 // BulkheadManager methods
-func (bm *BulkheadManager) Start(ctx context.Context) { /* Implementation */ }
-func (bm *BulkheadManager) Stop()                     { /* Implementation */ }
+func (bm *BulkheadManager) Start(ctx context.Context)    { /* Implementation */ }
+func (bm *BulkheadManager) Stop()                        { /* Implementation */ }
 func (bm *BulkheadManager) GetMetrics() *BulkheadMetrics { return bm.metrics }
 func (bm *BulkheadManager) Execute(ctx context.Context, operationName string, operation func(ctx context.Context) (interface{}, error)) (interface{}, error) {
-	return operation(ctx) /* Implementation */ }
-func (bm *BulkheadManager) CheckHealth() map[string]interface{} { return map[string]interface{}{"healthy": true} }
+	return operation(ctx) /* Implementation */
+}
+func (bm *BulkheadManager) CheckHealth() map[string]interface{} {
+	return map[string]interface{}{"healthy": true}
+}
 
 // CircuitBreakerManager methods
-func (cbm *CircuitBreakerManager) Start(ctx context.Context) { /* Implementation */ }
-func (cbm *CircuitBreakerManager) Stop()                     { /* Implementation */ }
+func (cbm *CircuitBreakerManager) Start(ctx context.Context)          { /* Implementation */ }
+func (cbm *CircuitBreakerManager) Stop()                              { /* Implementation */ }
 func (cbm *CircuitBreakerManager) GetMetrics() *CircuitBreakerMetrics { return cbm.metrics }
-func (cbm *CircuitBreakerManager) CanExecute(operationName string) bool { return true /* Implementation */ }
-func (cbm *CircuitBreakerManager) RecordResult(operationName string, success bool, duration ...time.Duration) { /* Implementation */ }
-func (cbm *CircuitBreakerManager) CheckHealth() map[string]interface{} { return map[string]interface{}{"healthy": true} }
+func (cbm *CircuitBreakerManager) CanExecute(operationName string) bool {
+	return true /* Implementation */
+}
+func (cbm *CircuitBreakerManager) RecordResult(operationName string, success bool, duration ...time.Duration) { /* Implementation */
+}
+func (cbm *CircuitBreakerManager) CheckHealth() map[string]interface{} {
+	return map[string]interface{}{"healthy": true}
+}
 
 // RateLimiterManager methods
-func (rlm *RateLimiterManager) Start(ctx context.Context) { /* Implementation */ }
-func (rlm *RateLimiterManager) Stop()                     { /* Implementation */ }
-func (rlm *RateLimiterManager) GetMetrics() *RateLimitMetrics { return rlm.metrics }
+func (rlm *RateLimiterManager) Start(ctx context.Context)       { /* Implementation */ }
+func (rlm *RateLimiterManager) Stop()                           { /* Implementation */ }
+func (rlm *RateLimiterManager) GetMetrics() *RateLimitMetrics   { return rlm.metrics }
 func (rlm *RateLimiterManager) Allow(operationName string) bool { return true /* Implementation */ }
-func (rlm *RateLimiterManager) CheckHealth() map[string]interface{} { return map[string]interface{}{"healthy": true} }
+func (rlm *RateLimiterManager) CheckHealth() map[string]interface{} {
+	return map[string]interface{}{"healthy": true}
+}
 
 func (rm *RetryManager) Start(ctx context.Context) { /* Implementation */ }
 func (rm *RetryManager) Stop()                     { /* Implementation */ }
@@ -1024,16 +1028,16 @@ func (gsm *GracefulShutdownManager) Stop()                     { /* Implementati
 
 // GetStats implementations for manager interfaces
 
-// GetStats returns statistics for BulkheadManager (interface-compatible method)  
+// GetStats returns statistics for BulkheadManager (interface-compatible method)
 func (bm *BulkheadManager) GetStats() (map[string]interface{}, error) {
 	bm.mutex.RLock()
 	defer bm.mutex.RUnlock()
-	
+
 	stats := map[string]interface{}{
 		"bulkhead_count": len(bm.bulkheads),
-		"healthy": true,
+		"healthy":        true,
 	}
-	
+
 	return stats, nil
 }
 
@@ -1041,12 +1045,12 @@ func (bm *BulkheadManager) GetStats() (map[string]interface{}, error) {
 func (cbm *CircuitBreakerManager) GetStats() (map[string]interface{}, error) {
 	cbm.mutex.RLock()
 	defer cbm.mutex.RUnlock()
-	
+
 	stats := map[string]interface{}{
 		"circuit_breaker_count": len(cbm.circuitBreakers),
-		"healthy": true,
+		"healthy":               true,
 	}
-	
+
 	return stats, nil
 }
 
@@ -1054,11 +1058,11 @@ func (cbm *CircuitBreakerManager) GetStats() (map[string]interface{}, error) {
 func (rlm *RateLimiterManager) GetStats() (map[string]interface{}, error) {
 	rlm.mutex.RLock()
 	defer rlm.mutex.RUnlock()
-	
+
 	stats := map[string]interface{}{
 		"rate_limiter_count": len(rlm.limiters),
-		"healthy": true,
+		"healthy":            true,
 	}
-	
+
 	return stats, nil
 }

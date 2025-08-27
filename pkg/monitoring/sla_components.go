@@ -871,7 +871,7 @@ func (tc *ThroughputCalculator) Calculate() float64 {
 
 	now := time.Now()
 	cutoff := now.Add(-tc.windowSize)
-	
+
 	count := 0
 	tc.requests.RangeWithTime(func(timestamp time.Time, value float64) bool {
 		if timestamp.After(cutoff) {
@@ -904,7 +904,7 @@ func NewErrorRateCalculator(windowSize time.Duration) *ErrorRateCalculator {
 func (erc *ErrorRateCalculator) RecordRequest(timestamp time.Time, isError bool) {
 	erc.mu.Lock()
 	defer erc.mu.Unlock()
-	
+
 	erc.totalRequests.Add(timestamp, 1.0) // Store timestamp with value 1.0 to represent a request
 	if isError {
 		erc.errorRequests.Add(timestamp, 1.0) // Store timestamp with value 1.0 to represent an error
@@ -918,17 +918,17 @@ func (erc *ErrorRateCalculator) Calculate() float64 {
 
 	now := time.Now()
 	cutoff := now.Add(-erc.windowSize)
-	
+
 	totalCount := 0
 	errorCount := 0
-	
+
 	erc.totalRequests.RangeWithTime(func(timestamp time.Time, value float64) bool {
 		if timestamp.After(cutoff) {
 			totalCount++
 		}
 		return true
 	})
-	
+
 	erc.errorRequests.RangeWithTime(func(timestamp time.Time, value float64) bool {
 		if timestamp.After(cutoff) {
 			errorCount++
@@ -985,7 +985,7 @@ func (pc *PercentileCalculator) Calculate(percentile float64) float64 {
 
 	// Calculate percentile index
 	index := percentile / 100.0 * float64(len(values)-1)
-	
+
 	if index == float64(int(index)) {
 		return values[int(index)]
 	}
@@ -1030,10 +1030,10 @@ func (sct *SLAComplianceTracker) GetComplianceRate() float64 {
 
 	now := time.Now()
 	cutoff := now.Add(-sct.windowSize)
-	
+
 	violationCount := 0
 	totalMeasurements := 0
-	
+
 	sct.violations.RangeWithTime(func(timestamp time.Time, value float64) bool {
 		if timestamp.After(cutoff) {
 			totalMeasurements++

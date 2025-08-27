@@ -152,7 +152,6 @@ type CertificateAutomation struct {
 	Status CertificateAutomationStatus `json:"status,omitempty"`
 }
 
-
 //+kubebuilder:object:root=true
 
 // CertificateAutomationList contains a list of CertificateAutomation
@@ -161,7 +160,6 @@ type CertificateAutomationList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []CertificateAutomation `json:"items"`
 }
-
 
 func init() {
 	SchemeBuilder.Register(&CertificateAutomation{}, &CertificateAutomationList{})

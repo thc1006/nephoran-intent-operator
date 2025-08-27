@@ -284,11 +284,11 @@ type OptimizedResponse struct {
 	Size           int
 	Latency        time.Duration
 	FromCache      bool
-	Content        string // LLM response content
-	FromBatch      bool   // Whether from batch processing
-	TokensUsed     int    // Number of tokens used
+	Content        string        // LLM response content
+	FromBatch      bool          // Whether from batch processing
+	TokensUsed     int           // Number of tokens used
 	ProcessingTime time.Duration // Processing time
-	Response       string // Alias for Content
+	Response       string        // Alias for Content
 	Metadata       map[string]interface{}
 }
 

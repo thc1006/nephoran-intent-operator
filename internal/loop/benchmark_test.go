@@ -14,81 +14,81 @@ import (
 
 // BenchmarkResults holds comprehensive benchmark data
 type BenchmarkResults struct {
-	Throughput          float64       `json:"throughput_files_per_second"`
-	P99Latency         time.Duration `json:"p99_latency_ms"`
-	P95Latency         time.Duration `json:"p95_latency_ms"`
-	P50Latency         time.Duration `json:"p50_latency_ms"`
-	MemoryFootprint    int64         `json:"memory_footprint_bytes"`
-	EnergyEfficiency   float64       `json:"energy_efficiency_gbps_per_watt"`
-	GoroutineCount     int           `json:"goroutine_count"`
-	AllocationsPerOp   int64         `json:"allocations_per_operation"`
-	BytesAllocPerOp    int64         `json:"bytes_allocated_per_operation"`
-	CPUUtilization     float64       `json:"cpu_utilization_percent"`
+	Throughput       float64       `json:"throughput_files_per_second"`
+	P99Latency       time.Duration `json:"p99_latency_ms"`
+	P95Latency       time.Duration `json:"p95_latency_ms"`
+	P50Latency       time.Duration `json:"p50_latency_ms"`
+	MemoryFootprint  int64         `json:"memory_footprint_bytes"`
+	EnergyEfficiency float64       `json:"energy_efficiency_gbps_per_watt"`
+	GoroutineCount   int           `json:"goroutine_count"`
+	AllocationsPerOp int64         `json:"allocations_per_operation"`
+	BytesAllocPerOp  int64         `json:"bytes_allocated_per_operation"`
+	CPUUtilization   float64       `json:"cpu_utilization_percent"`
 }
 
 // PerformanceTest represents a single performance test scenario
 type PerformanceTest struct {
-	Name           string
-	FileCount      int
-	FileSize       int
-	ConcurrentOps  int
+	Name             string
+	FileCount        int
+	FileSize         int
+	ConcurrentOps    int
 	TargetThroughput float64
-	MaxLatency     time.Duration
-	MaxMemory      int64
-	MinEfficiency  float64
+	MaxLatency       time.Duration
+	MaxMemory        int64
+	MinEfficiency    float64
 }
 
 // Benchmark scenarios for different O-RAN L Release conditions
 var benchmarkScenarios = []PerformanceTest{
 	{
-		Name:            "HighThroughput_SmallFiles",
-		FileCount:       10000,
-		FileSize:        1024,   // 1KB files
-		ConcurrentOps:   100,
+		Name:             "HighThroughput_SmallFiles",
+		FileCount:        10000,
+		FileSize:         1024, // 1KB files
+		ConcurrentOps:    100,
 		TargetThroughput: 10000, // 10k files/sec
-		MaxLatency:      5 * time.Millisecond,
-		MaxMemory:       100 * 1024 * 1024, // 100MB
-		MinEfficiency:   0.5,                // 0.5 Gbps/Watt
+		MaxLatency:       5 * time.Millisecond,
+		MaxMemory:        100 * 1024 * 1024, // 100MB
+		MinEfficiency:    0.5,               // 0.5 Gbps/Watt
 	},
 	{
-		Name:            "MediumThroughput_MediumFiles", 
-		FileCount:       5000,
-		FileSize:        64 * 1024, // 64KB files
-		ConcurrentOps:   50,
+		Name:             "MediumThroughput_MediumFiles",
+		FileCount:        5000,
+		FileSize:         64 * 1024, // 64KB files
+		ConcurrentOps:    50,
 		TargetThroughput: 5000,
-		MaxLatency:      10 * time.Millisecond,
-		MaxMemory:       200 * 1024 * 1024, // 200MB
-		MinEfficiency:   0.4,
+		MaxLatency:       10 * time.Millisecond,
+		MaxMemory:        200 * 1024 * 1024, // 200MB
+		MinEfficiency:    0.4,
 	},
 	{
-		Name:            "LowThroughput_LargeFiles",
-		FileCount:       1000,
-		FileSize:        1024 * 1024, // 1MB files
-		ConcurrentOps:   10,
+		Name:             "LowThroughput_LargeFiles",
+		FileCount:        1000,
+		FileSize:         1024 * 1024, // 1MB files
+		ConcurrentOps:    10,
 		TargetThroughput: 1000,
-		MaxLatency:      50 * time.Millisecond,
-		MaxMemory:       500 * 1024 * 1024, // 500MB
-		MinEfficiency:   0.3,
+		MaxLatency:       50 * time.Millisecond,
+		MaxMemory:        500 * 1024 * 1024, // 500MB
+		MinEfficiency:    0.3,
 	},
 	{
-		Name:            "EdgeCase_TinyFiles",
-		FileCount:       50000,
-		FileSize:        100, // 100 byte files
-		ConcurrentOps:   200,
+		Name:             "EdgeCase_TinyFiles",
+		FileCount:        50000,
+		FileSize:         100, // 100 byte files
+		ConcurrentOps:    200,
 		TargetThroughput: 20000,
-		MaxLatency:      2 * time.Millisecond,
-		MaxMemory:       50 * 1024 * 1024, // 50MB
-		MinEfficiency:   0.6,
+		MaxLatency:       2 * time.Millisecond,
+		MaxMemory:        50 * 1024 * 1024, // 50MB
+		MinEfficiency:    0.6,
 	},
 	{
-		Name:            "EdgeCase_HugeFiles",
-		FileCount:       100,
-		FileSize:        10 * 1024 * 1024, // 10MB files
-		ConcurrentOps:   5,
+		Name:             "EdgeCase_HugeFiles",
+		FileCount:        100,
+		FileSize:         10 * 1024 * 1024, // 10MB files
+		ConcurrentOps:    5,
 		TargetThroughput: 100,
-		MaxLatency:      200 * time.Millisecond,
-		MaxMemory:       1024 * 1024 * 1024, // 1GB
-		MinEfficiency:   0.2,
+		MaxLatency:       200 * time.Millisecond,
+		MaxMemory:        1024 * 1024 * 1024, // 1GB
+		MinEfficiency:    0.2,
 	},
 }
 
@@ -128,8 +128,8 @@ func runPerformanceBenchmark(b *testing.B, test PerformanceTest) {
 	var (
 		startTime      = time.Now()
 		completedFiles int64
-		latencies     = make([]time.Duration, 0, test.FileCount)
-		latencyMutex  sync.Mutex
+		latencies      = make([]time.Duration, 0, test.FileCount)
+		latencyMutex   sync.Mutex
 	)
 
 	// Start memory profiling
@@ -149,7 +149,7 @@ func runPerformanceBenchmark(b *testing.B, test PerformanceTest) {
 		wg.Add(1)
 		go func(fileIndex int) {
 			defer wg.Done()
-			sem <- struct{}{} // Acquire semaphore
+			sem <- struct{}{}        // Acquire semaphore
 			defer func() { <-sem }() // Release semaphore
 
 			fileStart := time.Now()
@@ -157,9 +157,9 @@ func runPerformanceBenchmark(b *testing.B, test PerformanceTest) {
 
 			// Simulate file processing
 			err := processFileForBenchmark(watcher, filePath)
-			
+
 			latency := time.Since(fileStart)
-			
+
 			latencyMutex.Lock()
 			latencies = append(latencies, latency)
 			latencyMutex.Unlock()
@@ -222,7 +222,7 @@ func generateBenchmarkFiles(b *testing.B, dir string, count, size int) []string 
 
 		// Generate realistic intent JSON content
 		content := generateIntentContent(size)
-		
+
 		if err := os.WriteFile(filePath, content, 0644); err != nil {
 			b.Fatalf("Failed to create test file %s: %v", filePath, err)
 		}
@@ -242,8 +242,8 @@ func generateIntentContent(targetSize int) []byte {
 			"name":      fmt.Sprintf("intent-%d", time.Now().UnixNano()),
 			"namespace": "o-ran",
 			"labels": map[string]string{
-				"component":    "conductor-loop",
-				"environment":  "benchmark",
+				"component":     "conductor-loop",
+				"environment":   "benchmark",
 				"o-ran-release": "l-release",
 			},
 		},
@@ -271,7 +271,7 @@ func generateIntentContent(targetSize int) []byte {
 						"bandwidth": "25Gbps",
 					},
 					"midhaul": map[string]string{
-						"interface": "eth1", 
+						"interface": "eth1",
 						"bandwidth": "10Gbps",
 					},
 				},
@@ -287,7 +287,7 @@ func generateIntentContent(targetSize int) []byte {
 					"rack": "edge-001",
 				},
 				"security": map[string]string{
-					"isolation": "strict",
+					"isolation":  "strict",
 					"encryption": "enabled",
 				},
 			},
@@ -304,12 +304,12 @@ func generateIntentContent(targetSize int) []byte {
 		for i := range padding {
 			padding[i] = ' '
 		}
-		
+
 		// Insert padding into metadata
 		if metadata, ok := baseIntent["metadata"].(map[string]interface{}); ok {
 			metadata["padding"] = string(padding)
 		}
-		
+
 		contentBytes, _ = json.Marshal(baseIntent)
 	}
 
@@ -335,14 +335,14 @@ func processFileForBenchmark(watcher *Watcher, filePath string) error {
 }
 
 // calculateBenchmarkResults computes comprehensive performance metrics
-func calculateBenchmarkResults(completed int64, duration time.Duration, latencies []time.Duration, 
+func calculateBenchmarkResults(completed int64, duration time.Duration, latencies []time.Duration,
 	m1, m2 *runtime.MemStats) BenchmarkResults {
-	
+
 	throughput := float64(completed) / duration.Seconds()
-	
+
 	// Calculate latency percentiles
 	p50, p95, p99 := calculateLatencyPercentiles(latencies)
-	
+
 	// Memory usage
 	memoryUsed := int64(m2.Alloc - m1.Alloc)
 	allocations := int64(m2.Mallocs - m1.Mallocs)
@@ -353,21 +353,21 @@ func calculateBenchmarkResults(completed int64, duration time.Duration, latencie
 
 	// Energy efficiency estimate (simplified)
 	// In production, this would use actual power measurement
-	estimatedPower := float64(runtime.NumCPU()) * 20.0 // 20W per core estimate
+	estimatedPower := float64(runtime.NumCPU()) * 20.0                // 20W per core estimate
 	dataProcessed := float64(completed) * 1024 / (1024 * 1024 * 1024) // GB
-	efficiency := dataProcessed / estimatedPower // GB/Watt
+	efficiency := dataProcessed / estimatedPower                      // GB/Watt
 
 	return BenchmarkResults{
-		Throughput:          throughput,
-		P99Latency:         p99,
-		P95Latency:         p95,
-		P50Latency:         p50,
-		MemoryFootprint:    memoryUsed,
-		EnergyEfficiency:   efficiency,
-		GoroutineCount:     runtime.NumGoroutine(),
-		AllocationsPerOp:   allocations / completed,
-		BytesAllocPerOp:    bytesPerAlloc,
-		CPUUtilization:     calculateCPUUtilization(),
+		Throughput:       throughput,
+		P99Latency:       p99,
+		P95Latency:       p95,
+		P50Latency:       p50,
+		MemoryFootprint:  memoryUsed,
+		EnergyEfficiency: efficiency,
+		GoroutineCount:   runtime.NumGoroutine(),
+		AllocationsPerOp: allocations / completed,
+		BytesAllocPerOp:  bytesPerAlloc,
+		CPUUtilization:   calculateCPUUtilization(),
 	}
 }
 
@@ -380,7 +380,7 @@ func calculateLatencyPercentiles(latencies []time.Duration) (time.Duration, time
 	// Sort latencies
 	sorted := make([]time.Duration, len(latencies))
 	copy(sorted, latencies)
-	
+
 	// Simple sort for benchmark
 	for i := 0; i < len(sorted); i++ {
 		for j := i + 1; j < len(sorted); j++ {
@@ -404,25 +404,25 @@ func validateBenchmarkResults(b *testing.B, test PerformanceTest, results Benchm
 
 	// Check throughput target
 	if results.Throughput < test.TargetThroughput {
-		failures = append(failures, fmt.Sprintf("Throughput %.2f < target %.2f files/sec", 
+		failures = append(failures, fmt.Sprintf("Throughput %.2f < target %.2f files/sec",
 			results.Throughput, test.TargetThroughput))
 	}
 
 	// Check latency target
 	if results.P99Latency > test.MaxLatency {
-		failures = append(failures, fmt.Sprintf("P99 latency %v > target %v", 
+		failures = append(failures, fmt.Sprintf("P99 latency %v > target %v",
 			results.P99Latency, test.MaxLatency))
 	}
 
 	// Check memory target
 	if results.MemoryFootprint > test.MaxMemory {
-		failures = append(failures, fmt.Sprintf("Memory %d bytes > target %d bytes", 
+		failures = append(failures, fmt.Sprintf("Memory %d bytes > target %d bytes",
 			results.MemoryFootprint, test.MaxMemory))
 	}
 
 	// Check efficiency target
 	if results.EnergyEfficiency < test.MinEfficiency {
-		failures = append(failures, fmt.Sprintf("Energy efficiency %.3f < target %.3f Gbps/Watt", 
+		failures = append(failures, fmt.Sprintf("Energy efficiency %.3f < target %.3f Gbps/Watt",
 			results.EnergyEfficiency, test.MinEfficiency))
 	}
 
@@ -438,14 +438,14 @@ func validateBenchmarkResults(b *testing.B, test PerformanceTest, results Benchm
 // reportBenchmarkResults outputs comprehensive performance metrics
 func reportBenchmarkResults(b *testing.B, test PerformanceTest, results BenchmarkResults) {
 	b.Logf("=== Benchmark Results for %s ===", test.Name)
-	b.Logf("Throughput:          %.2f files/sec (target: %.2f)", 
+	b.Logf("Throughput:          %.2f files/sec (target: %.2f)",
 		results.Throughput, test.TargetThroughput)
 	b.Logf("Latency P99:         %v (target: <%v)", results.P99Latency, test.MaxLatency)
 	b.Logf("Latency P95:         %v", results.P95Latency)
 	b.Logf("Latency P50:         %v", results.P50Latency)
-	b.Logf("Memory footprint:    %d bytes (target: <%d)", 
+	b.Logf("Memory footprint:    %d bytes (target: <%d)",
 		results.MemoryFootprint, test.MaxMemory)
-	b.Logf("Energy efficiency:   %.3f Gbps/Watt (target: >%.3f)", 
+	b.Logf("Energy efficiency:   %.3f Gbps/Watt (target: >%.3f)",
 		results.EnergyEfficiency, test.MinEfficiency)
 	b.Logf("Goroutines:          %d", results.GoroutineCount)
 	b.Logf("Allocs per op:       %d", results.AllocationsPerOp)

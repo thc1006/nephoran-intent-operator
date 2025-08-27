@@ -111,7 +111,7 @@ func TestLoader_MalformedJSONEdgeCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := loader.LoadFromJSON(tt.jsonData, "test.json")
-			
+
 			if tt.expectError {
 				if err == nil && result.IsValid {
 					t.Errorf("Expected error but got valid result: %s", tt.description)
@@ -272,7 +272,7 @@ func TestLoader_ExtremeValueEdgeCases(t *testing.T) {
 			}
 
 			result, err := loader.LoadFromJSON(jsonData, "test.json")
-			
+
 			if tt.expectError {
 				if err == nil && result.IsValid {
 					t.Errorf("Expected error but got valid result: %s", tt.description)
@@ -305,7 +305,7 @@ func TestLoader_FileSystemEdgeCases(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tempDir := t.TempDir()
 				filePath := filepath.Join(tempDir, "intent-bom.json")
-				
+
 				// Add UTF-8 BOM to the beginning
 				content := "\xEF\xBB\xBF" + `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3}`
 				err := os.WriteFile(filePath, []byte(content), 0644)
@@ -322,7 +322,7 @@ func TestLoader_FileSystemEdgeCases(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tempDir := t.TempDir()
 				filePath := filepath.Join(tempDir, "intent-crlf.json")
-				
+
 				// Use Windows line endings
 				content := "{\r\n  \"intent_type\": \"scaling\",\r\n  \"target\": \"test\",\r\n  \"namespace\": \"default\",\r\n  \"replicas\": 3\r\n}"
 				err := os.WriteFile(filePath, []byte(content), 0644)
@@ -339,7 +339,7 @@ func TestLoader_FileSystemEdgeCases(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tempDir := t.TempDir()
 				filePath := filepath.Join(tempDir, "whitespace.json")
-				
+
 				content := "   \t\n\r   "
 				err := os.WriteFile(filePath, []byte(content), 0644)
 				if err != nil {
@@ -355,13 +355,13 @@ func TestLoader_FileSystemEdgeCases(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tempDir := t.TempDir()
 				filePath := filepath.Join(tempDir, "mixed-encoding.json")
-				
+
 				// Mix of valid UTF-8 and invalid bytes
 				validJSON := `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3}`
 				content := []byte(validJSON)
 				// Insert invalid UTF-8 byte sequence
 				content = append(content[:10], append([]byte{0xFF, 0xFE}, content[10:]...)...)
-				
+
 				err := os.WriteFile(filePath, content, 0644)
 				if err != nil {
 					t.Fatalf("Failed to write file: %v", err)
@@ -376,7 +376,7 @@ func TestLoader_FileSystemEdgeCases(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tempDir := t.TempDir()
 				filePath := filepath.Join(tempDir, "large.json")
-				
+
 				// Create 10MB JSON file
 				largeContent := `{"intent_type": "scaling", "target": "` + strings.Repeat("a", 10*1024*1024) + `", "namespace": "default", "replicas": 3}`
 				err := os.WriteFile(filePath, []byte(largeContent), 0644)
@@ -394,18 +394,18 @@ func TestLoader_FileSystemEdgeCases(t *testing.T) {
 				tempDir := t.TempDir()
 				originalFile := filepath.Join(tempDir, "original.json")
 				symlinkFile := filepath.Join(tempDir, "symlink.json")
-				
+
 				content := `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3}`
 				err := os.WriteFile(originalFile, []byte(content), 0644)
 				if err != nil {
 					t.Fatalf("Failed to write original file: %v", err)
 				}
-				
+
 				err = os.Symlink(originalFile, symlinkFile)
 				if err != nil {
 					t.Skipf("Cannot create symlink on this system: %v", err)
 				}
-				
+
 				return symlinkFile
 			},
 			expectError: false,
@@ -416,9 +416,9 @@ func TestLoader_FileSystemEdgeCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			filePath := tt.setupFunc(t)
-			
+
 			result, err := loader.LoadFromFile(filePath)
-			
+
 			if tt.expectError {
 				if err == nil && result.IsValid {
 					t.Errorf("Expected error but got valid result: %s", tt.description)
@@ -454,7 +454,7 @@ func TestLoader_ConcurrencyEdgeCases(t *testing.T) {
 			for j := 0; j < numIterations; j++ {
 				var data []byte
 				var expectValid bool
-				
+
 				if (id+j)%2 == 0 {
 					data = validJSON
 					expectValid = true
@@ -462,9 +462,9 @@ func TestLoader_ConcurrencyEdgeCases(t *testing.T) {
 					data = invalidJSON
 					expectValid = false
 				}
-				
+
 				result, err := loader.LoadFromJSON(data, fmt.Sprintf("concurrent-%d-%d.json", id, j))
-				
+
 				if expectValid {
 					if err != nil || !result.IsValid {
 						done <- fmt.Errorf("goroutine %d iteration %d: expected valid result but got error: %v", id, j, err)
@@ -476,7 +476,7 @@ func TestLoader_ConcurrencyEdgeCases(t *testing.T) {
 						return
 					}
 				}
-				
+
 				done <- nil
 			}
 		}(i)
@@ -553,9 +553,9 @@ func TestLoader_MemoryExhaustionEdgeCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			data := tt.dataFunc()
-			
+
 			result, err := loader.LoadFromJSON(data, "memory-test.json")
-			
+
 			if tt.expectError {
 				if err == nil && result.IsValid {
 					t.Errorf("Expected error but got valid result: %s", tt.description)
@@ -574,7 +574,7 @@ func TestLoader_MemoryExhaustionEdgeCases(t *testing.T) {
 // createTestLoader creates a test loader with proper cleanup
 func createTestLoader(t *testing.T) (*Loader, func()) {
 	t.Helper()
-	
+
 	tempDir := t.TempDir()
 	schemaDir := filepath.Join(tempDir, "docs", "contracts")
 	err := os.MkdirAll(schemaDir, 0755)
@@ -641,7 +641,7 @@ func createTestLoader(t *testing.T) (*Loader, func()) {
 // createLargeJSON creates a large JSON payload for testing
 func createLargeJSON(t *testing.T, size int) []byte {
 	t.Helper()
-	
+
 	// Create a JSON with a very large target name
 	largeString := strings.Repeat("a", size)
 	json := fmt.Sprintf(`{"intent_type": "scaling", "target": "%s", "namespace": "default", "replicas": 3}`, largeString)
@@ -651,9 +651,9 @@ func createLargeJSON(t *testing.T, size int) []byte {
 // createDeeplyNestedJSON creates deeply nested JSON for testing
 func createDeeplyNestedJSON(t *testing.T, depth int) []byte {
 	t.Helper()
-	
+
 	json := `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3, "nested":`
-	
+
 	for i := 0; i < depth; i++ {
 		json += `{"level": `
 	}
@@ -662,7 +662,7 @@ func createDeeplyNestedJSON(t *testing.T, depth int) []byte {
 		json += `}`
 	}
 	json += `}`
-	
+
 	return []byte(json)
 }
 
@@ -723,7 +723,7 @@ func TestLoader_UnicodeEdgeCases(t *testing.T) {
 			}
 
 			result, err := loader.LoadFromJSON([]byte(tt.jsonData), "unicode-test.json")
-			
+
 			if tt.expectError {
 				if err == nil && result.IsValid {
 					t.Errorf("Expected error but got valid result: %s", tt.description)

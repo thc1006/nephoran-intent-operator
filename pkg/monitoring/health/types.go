@@ -94,11 +94,11 @@ const (
 
 // AlertThresholds provides common alert threshold configuration
 type AlertThresholds struct {
-	LatencyThreshold  time.Duration `json:"latency_threshold"`
-	ErrorRatePercent  float64       `json:"error_rate_percent"`
-	SuccessRateMin    float64       `json:"success_rate_min"`
-	UptimeMin         float64       `json:"uptime_min"`
-	ResponseTimeMax   time.Duration `json:"response_time_max"`
+	LatencyThreshold time.Duration `json:"latency_threshold"`
+	ErrorRatePercent float64       `json:"error_rate_percent"`
+	SuccessRateMin   float64       `json:"success_rate_min"`
+	UptimeMin        float64       `json:"uptime_min"`
+	ResponseTimeMax  time.Duration `json:"response_time_max"`
 }
 
 // StateTransition tracks health state changes over time
@@ -295,14 +295,14 @@ type DependencyEdge struct {
 
 // HealthImpactAnalysis provides analysis of health issues and their impact
 type HealthImpactAnalysis struct {
-	CheckName          string              `json:"check_name"`
-	CurrentStatus      health.Status       `json:"current_status"`
-	ImpactLevel        ImpactLevel         `json:"impact_level"`
-	AffectedComponents []string            `json:"affected_components"`
-	RootCauses         []RootCause         `json:"root_causes"`
-	RecommendedActions []RecommendedAction `json:"recommended_actions"`
-	EstimatedRecovery  time.Duration       `json:"estimated_recovery"`
-	BusinessImpact     HealthBusinessImpact      `json:"business_impact"`
+	CheckName          string               `json:"check_name"`
+	CurrentStatus      health.Status        `json:"current_status"`
+	ImpactLevel        ImpactLevel          `json:"impact_level"`
+	AffectedComponents []string             `json:"affected_components"`
+	RootCauses         []RootCause          `json:"root_causes"`
+	RecommendedActions []RecommendedAction  `json:"recommended_actions"`
+	EstimatedRecovery  time.Duration        `json:"estimated_recovery"`
+	BusinessImpact     HealthBusinessImpact `json:"business_impact"`
 }
 
 // ImpactLevel represents the level of impact from a health issue

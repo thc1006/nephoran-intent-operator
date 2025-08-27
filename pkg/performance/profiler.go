@@ -567,7 +567,7 @@ func (p *Profiler) GenerateFlameGraph(profilePath string) (string, error) {
 func (p *Profiler) AnalyzeProfile(profilePath string) (*ProfileReport, error) {
 	report := &ProfileReport{
 		StartTime:   time.Now(),
-		HotSpots:    make([]HotSpot, 0, 10),     // Preallocate for typical hotspot count
+		HotSpots:    make([]HotSpot, 0, 10),    // Preallocate for typical hotspot count
 		Contentions: make([]Contention, 0, 5),  // Preallocate for typical contention count
 		Allocations: make([]Allocation, 0, 20), // Preallocate for typical allocation count
 	}

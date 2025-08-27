@@ -75,7 +75,7 @@ func TestMain_FlagParsing(t *testing.T) {
 			fs := flag.NewFlagSet("test", flag.ContinueOnError)
 
 			config, err := parseFlagsWithFlagSet(fs, tt.args)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
@@ -95,7 +95,7 @@ func TestMain_EndToEndWorkflow(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
-	
+
 	require.NoError(t, os.MkdirAll(handoffDir, 0755))
 	require.NoError(t, os.MkdirAll(outDir, 0755))
 
@@ -210,7 +210,7 @@ func TestMain_EndToEndWorkflow(t *testing.T) {
 
 			// Capture output for debugging
 			output, err := cmd.CombinedOutput()
-			
+
 			// In once mode, the command should exit successfully
 			if strings.Contains(strings.Join(tt.args, " "), "-once") {
 				assert.NoError(t, err, "Command output: %s", string(output))
@@ -238,7 +238,7 @@ func TestMain_SignalHandling(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
-	
+
 	require.NoError(t, os.MkdirAll(handoffDir, 0755))
 	require.NoError(t, os.MkdirAll(outDir, 0755))
 
@@ -278,7 +278,7 @@ func TestMain_SignalHandling(t *testing.T) {
 
 	// Wait for the process to exit gracefully
 	err := cmd.Wait()
-	
+
 	// Process should exit cleanly after signal
 	if err != nil {
 		// On some systems, SIGTERM may result in exit status
@@ -299,11 +299,11 @@ func TestMain_WindowsPathHandling(t *testing.T) {
 	}
 
 	tempDir := t.TempDir()
-	
+
 	// Test with Windows paths containing spaces and special characters
 	handoffDir := filepath.Join(tempDir, "handoff dir with spaces")
 	outDir := filepath.Join(tempDir, "out-dir_with-special.chars")
-	
+
 	require.NoError(t, os.MkdirAll(handoffDir, 0755))
 	require.NoError(t, os.MkdirAll(outDir, 0755))
 
@@ -322,7 +322,7 @@ func TestMain_WindowsPathHandling(t *testing.T) {
 	}
 
 	config := parseFlags()
-	
+
 	// Verify paths are handled correctly
 	assert.True(t, filepath.IsAbs(config.HandoffDir))
 	assert.True(t, filepath.IsAbs(config.OutDir))
@@ -366,17 +366,17 @@ func TestMain_ExitCodes(t *testing.T) {
 				testDir := filepath.Join(tempDir, "success-test")
 				handoffDir := filepath.Join(testDir, "handoff")
 				require.NoError(t, os.MkdirAll(handoffDir, 0755))
-				
+
 				// Create mock porch and intent file
 				mockPorch := createMockPorch(t, testDir, 0, "success", "")
-				
+
 				intentFile := filepath.Join(handoffDir, "intent-test.json")
 				require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
-				
+
 				// Setup test arguments - create local args slice
 				testArgs := []string{"-handoff", handoffDir, "-porch", mockPorch, "-once"}
 				_ = testArgs // Use the args in the actual test execution
-				
+
 				return testDir
 			},
 		},
@@ -385,7 +385,7 @@ func TestMain_ExitCodes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			workDir := tt.setupFunc(t)
-			
+
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
@@ -393,7 +393,7 @@ func TestMain_ExitCodes(t *testing.T) {
 			cmd.Dir = workDir
 
 			err := cmd.Run()
-			
+
 			if tt.expectedExit == 0 {
 				assert.NoError(t, err)
 			} else {
@@ -414,16 +414,16 @@ func buildConductorLoop(t *testing.T, tempDir string) string {
 	if runtime.GOOS == "windows" {
 		binaryName += ".exe"
 	}
-	
+
 	binaryPath := filepath.Join(tempDir, binaryName)
-	
+
 	// Build the binary
 	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
 	cmd.Dir = "." // Current directory should be cmd/conductor-loop
-	
+
 	output, err := cmd.CombinedOutput()
 	require.NoError(t, err, "Failed to build conductor-loop: %s", string(output))
-	
+
 	return binaryPath
 }
 
@@ -449,13 +449,13 @@ func cleanupDirs(t *testing.T, dir string) {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		return
 	}
-	
+
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		t.Logf("Warning: failed to read directory %s: %v", dir, err)
 		return
 	}
-	
+
 	for _, entry := range entries {
 		path := filepath.Join(dir, entry.Name())
 		if err := os.RemoveAll(path); err != nil {
@@ -469,7 +469,7 @@ func BenchmarkMain_SingleFileProcessing(b *testing.B) {
 	tempDir := b.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
-	
+
 	require.NoError(b, os.MkdirAll(handoffDir, 0755))
 	require.NoError(b, os.MkdirAll(outDir, 0755))
 
@@ -489,23 +489,23 @@ func BenchmarkMain_SingleFileProcessing(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
-		
+
 		// Clean up and setup for each iteration
 		cleanupDirsB(b, handoffDir)
 		require.NoError(b, os.MkdirAll(handoffDir, 0755))
-		
+
 		intentFile := filepath.Join(handoffDir, fmt.Sprintf("intent-%d.json", i))
 		require.NoError(b, os.WriteFile(intentFile, []byte(intentContent), 0644))
-		
+
 		b.StartTimer()
-		
+
 		// Run conductor-loop
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		cmd := exec.CommandContext(ctx, binaryPath, args...)
 		cmd.Dir = tempDir
 		cmd.Run()
 		cancel()
-		
+
 		b.StopTimer()
 	}
 }
@@ -533,11 +533,11 @@ func buildConductorLoopB(b *testing.B, tempDir string) string {
 	if runtime.GOOS == "windows" {
 		binaryName += ".exe"
 	}
-	
+
 	binaryPath := filepath.Join(tempDir, binaryName)
 	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
 	cmd.Dir = filepath.Dir(tempDir) // Go to the main package directory
-	
+
 	require.NoError(b, cmd.Run())
 	return binaryPath
 }

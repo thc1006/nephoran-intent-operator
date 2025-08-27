@@ -11,7 +11,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	
 	// Porch types are now defined locally in types.go
 )
 
@@ -313,7 +312,7 @@ func NewClusterManager(
 func (cm *ClusterManager) GetClusters() map[types.NamespacedName]*ClusterInfo {
 	cm.clusterLock.RLock()
 	defer cm.clusterLock.RUnlock()
-	
+
 	// Return a copy to avoid concurrent access issues
 	clusters := make(map[types.NamespacedName]*ClusterInfo)
 	for k, v := range cm.clusters {

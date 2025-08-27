@@ -202,7 +202,7 @@ func TestURLValidation_SecurityThreatScenarios(t *testing.T) {
 		{
 			name:        "Unicode normalization attack",
 			url:         "http://exаmple.com/api", // Contains Cyrillic 'а' instead of 'a'
-			expectError: false, // URL parsing handles this, but domain validation might catch it
+			expectError: false,                    // URL parsing handles this, but domain validation might catch it
 			threatType:  "Unicode attack",
 		},
 		{
@@ -241,10 +241,10 @@ func TestURLValidation_SecurityThreatScenarios(t *testing.T) {
 		t.Run(scenario.name, func(t *testing.T) {
 			err := validator.ValidateURL(scenario.url, fmt.Sprintf("threat test: %s", scenario.threatType))
 			if (err != nil) != scenario.expectError {
-				t.Errorf("URL validation for %s threat: error = %v, expectError = %v", 
+				t.Errorf("URL validation for %s threat: error = %v, expectError = %v",
 					scenario.threatType, err, scenario.expectError)
 			}
-			
+
 			if scenario.expectError && err != nil {
 				t.Logf("Successfully blocked %s threat: %v", scenario.threatType, err)
 			} else if !scenario.expectError {
@@ -259,99 +259,99 @@ func TestFilePathValidation_SecurityVulnerabilities(t *testing.T) {
 	validator := NewValidator(DefaultValidationConfig())
 
 	vulnerabilityTests := []struct {
-		name         string
-		path         string
-		expectError  bool
+		name          string
+		path          string
+		expectError   bool
 		vulnerability string
 	}{
 		{
-			name:         "Directory traversal - basic",
-			path:         "../../../etc/passwd",
-			expectError:  true,
+			name:          "Directory traversal - basic",
+			path:          "../../../etc/passwd",
+			expectError:   true,
 			vulnerability: "Directory traversal",
 		},
 		{
-			name:         "Directory traversal - encoded",
-			path:         "..%2F..%2F..%2Fetc%2Fpasswd",
-			expectError:  false, // URL decoding not handled at validation level
+			name:          "Directory traversal - encoded",
+			path:          "..%2F..%2F..%2Fetc%2Fpasswd",
+			expectError:   false, // URL decoding not handled at validation level
 			vulnerability: "Encoded directory traversal",
 		},
 		{
-			name:         "Directory traversal - double encoded",
-			path:         "..%252F..%252F..%252Fetc%252Fpasswd",
-			expectError:  false,
+			name:          "Directory traversal - double encoded",
+			path:          "..%252F..%252F..%252Fetc%252Fpasswd",
+			expectError:   false,
 			vulnerability: "Double encoded directory traversal",
 		},
 		{
-			name:         "Directory traversal - Windows",
-			path:         "..\\..\\..\\windows\\system32\\config\\sam",
-			expectError:  true,
+			name:          "Directory traversal - Windows",
+			path:          "..\\..\\..\\windows\\system32\\config\\sam",
+			expectError:   true,
 			vulnerability: "Windows directory traversal",
 		},
 		{
-			name:         "Directory traversal - mixed separators",
-			path:         "../..\\../etc/passwd",
-			expectError:  true,
+			name:          "Directory traversal - mixed separators",
+			path:          "../..\\../etc/passwd",
+			expectError:   true,
 			vulnerability: "Mixed separator traversal",
 		},
 		{
-			name:         "Null byte truncation",
-			path:         "/tmp/safe.txt\x00../../etc/passwd",
-			expectError:  true,
+			name:          "Null byte truncation",
+			path:          "/tmp/safe.txt\x00../../etc/passwd",
+			expectError:   true,
 			vulnerability: "Null byte truncation",
 		},
 		{
-			name:         "Unicode normalization - different representations",
-			path:         "/tmp/test\u2044file.txt", // Unicode fraction slash
-			expectError:  false,
+			name:          "Unicode normalization - different representations",
+			path:          "/tmp/test\u2044file.txt", // Unicode fraction slash
+			expectError:   false,
 			vulnerability: "Unicode normalization",
 		},
 		{
-			name:         "Path with embedded commands",
-			path:         "/tmp/file.txt; rm -rf /",
-			expectError:  true,
+			name:          "Path with embedded commands",
+			path:          "/tmp/file.txt; rm -rf /",
+			expectError:   true,
 			vulnerability: "Command injection via filename",
 		},
 		{
-			name:         "Path with spaces and quotes",
-			path:         "/tmp/\"malicious file\".txt",
-			expectError:  true,
+			name:          "Path with spaces and quotes",
+			path:          "/tmp/\"malicious file\".txt",
+			expectError:   true,
 			vulnerability: "Quote injection",
 		},
 		{
-			name:         "Very deep directory structure",
-			path:         strings.Repeat("a/", 1000) + "file.txt",
-			expectError:  true,
+			name:          "Very deep directory structure",
+			path:          strings.Repeat("a/", 1000) + "file.txt",
+			expectError:   true,
 			vulnerability: "Path length DoS",
 		},
 		{
-			name:         "Hidden file access",
-			path:         "/home/user/.ssh/id_rsa",
-			expectError:  false, // Hidden files are valid, access control is separate
+			name:          "Hidden file access",
+			path:          "/home/user/.ssh/id_rsa",
+			expectError:   false, // Hidden files are valid, access control is separate
 			vulnerability: "Hidden file access",
 		},
 		{
-			name:         "Device file access - Unix",
-			path:         "/dev/null",
-			expectError:  true,
+			name:          "Device file access - Unix",
+			path:          "/dev/null",
+			expectError:   true,
 			vulnerability: "Device file access",
 		},
 		{
-			name:         "Proc filesystem access",
-			path:         "/proc/self/environ",
-			expectError:  true,
+			name:          "Proc filesystem access",
+			path:          "/proc/self/environ",
+			expectError:   true,
 			vulnerability: "Process information disclosure",
 		},
 		{
-			name:         "Windows device name",
-			path:         "CON.txt",
-			expectError:  false, // Device name validation is Windows-specific
+			name:          "Windows device name",
+			path:          "CON.txt",
+			expectError:   false, // Device name validation is Windows-specific
 			vulnerability: "Windows device name",
 		},
 		{
-			name:         "UNC path - Windows",
-			path:         "\\\\server\\share\\file.txt",
-			expectError:  false, // UNC paths are valid on Windows
+			name:          "UNC path - Windows",
+			path:          "\\\\server\\share\\file.txt",
+			expectError:   false, // UNC paths are valid on Windows
 			vulnerability: "UNC path access",
 		},
 	}
@@ -360,10 +360,10 @@ func TestFilePathValidation_SecurityVulnerabilities(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			err := validator.ValidateFilePath(test.path, fmt.Sprintf("vulnerability test: %s", test.vulnerability))
 			if (err != nil) != test.expectError {
-				t.Errorf("Path validation for %s: error = %v, expectError = %v", 
+				t.Errorf("Path validation for %s: error = %v, expectError = %v",
 					test.vulnerability, err, test.expectError)
 			}
-			
+
 			if test.expectError && err != nil {
 				t.Logf("Successfully blocked %s vulnerability: %v", test.vulnerability, err)
 			}
@@ -435,7 +435,7 @@ func TestEnvironmentVariableValidation_InjectionPrevention(t *testing.T) {
 			name:      "Unicode control characters",
 			envName:   "PLANNER_SETTING",
 			value:     "value\u202E override\u202D", // Right-to-left override characters
-			expectErr: false, // Unicode text is generally valid
+			expectErr: false,                        // Unicode text is generally valid
 			attack:    "Unicode control",
 		},
 		{
@@ -465,10 +465,10 @@ func TestEnvironmentVariableValidation_InjectionPrevention(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			err := validator.ValidateEnvironmentVariable(test.envName, test.value, fmt.Sprintf("injection test: %s", test.attack))
 			if (err != nil) != test.expectErr {
-				t.Errorf("Environment variable validation for %s attack: error = %v, expectErr = %v", 
+				t.Errorf("Environment variable validation for %s attack: error = %v, expectErr = %v",
 					test.attack, err, test.expectErr)
 			}
-			
+
 			if test.expectErr && err != nil {
 				t.Logf("Successfully blocked %s attack: %v", test.attack, err)
 			}
@@ -481,10 +481,10 @@ func TestDataSanitization_LogInjectionPrevention(t *testing.T) {
 	validator := NewValidator(DefaultValidationConfig())
 
 	sanitizationTests := []struct {
-		name      string
-		input     string
-		expected  string
-		attack    string
+		name     string
+		input    string
+		expected string
+		attack   string
 	}{
 		{
 			name:     "Log injection with newlines",
@@ -534,7 +534,7 @@ func TestDataSanitization_LogInjectionPrevention(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			result := validator.SanitizeForLogging(test.input)
 			if result != test.expected {
-				t.Errorf("Sanitization for %s attack failed.\nInput:    %q\nExpected: %q\nGot:      %q", 
+				t.Errorf("Sanitization for %s attack failed.\nInput:    %q\nExpected: %q\nGot:      %q",
 					test.attack, test.input, test.expected, result)
 			} else {
 				t.Logf("Successfully sanitized %s attack", test.attack)
@@ -631,10 +631,10 @@ func TestInputValidation_FuzzTesting(t *testing.T) {
 
 	// Generate various malformed inputs for fuzz testing
 	fuzzInputs := []string{
-		"", // Empty
-		"\x00", // Null byte
+		"",                         // Empty
+		"\x00",                     // Null byte
 		strings.Repeat("A", 10000), // Very long
-		"\xff\xfe\xfd", // Invalid UTF-8
+		"\xff\xfe\xfd",             // Invalid UTF-8
 		"normal\ntext\rwith\tcontrol\x08chars",
 		"<script>alert('xss')</script>",
 		"'; DROP TABLE users; --",
@@ -659,7 +659,7 @@ func TestInputValidation_FuzzTesting(t *testing.T) {
 						t.Errorf("URL validation panicked with input %q: %v", input, r)
 					}
 				}()
-				
+
 				err := validator.ValidateURL(input, "fuzz test")
 				// We don't care about the result, just that it doesn't crash
 				_ = err
@@ -676,7 +676,7 @@ func TestInputValidation_FuzzTesting(t *testing.T) {
 						t.Errorf("File path validation panicked with input %q: %v", input, r)
 					}
 				}()
-				
+
 				err := validator.ValidateFilePath(input, "fuzz test")
 				_ = err
 			})
@@ -692,7 +692,7 @@ func TestInputValidation_FuzzTesting(t *testing.T) {
 						t.Errorf("Environment variable validation panicked with input %q: %v", input, r)
 					}
 				}()
-				
+
 				err := validator.ValidateEnvironmentVariable("TEST_VAR", input, "fuzz test")
 				_ = err
 			})
@@ -708,9 +708,9 @@ func TestInputValidation_FuzzTesting(t *testing.T) {
 						t.Errorf("Log sanitization panicked with input %q: %v", input, r)
 					}
 				}()
-				
+
 				result := validator.SanitizeForLogging(input)
-				
+
 				// Verify result doesn't contain dangerous characters
 				if strings.ContainsAny(result, "\n\r") && !strings.ContainsAny(result, "\\n\\r") {
 					t.Errorf("Sanitization failed to escape newlines in input %q: %q", input, result)
@@ -733,7 +733,7 @@ func BenchmarkInputValidation_Performance(b *testing.B) {
 			ActiveUEs:       100,
 			CurrentReplicas: 3,
 		}
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			_ = validator.ValidateKMPData(data)
@@ -742,7 +742,7 @@ func BenchmarkInputValidation_Performance(b *testing.B) {
 
 	b.Run("ValidateURL", func(b *testing.B) {
 		url := "https://api.example.com/v1/metrics?format=json"
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			_ = validator.ValidateURL(url, "benchmark")
@@ -751,7 +751,7 @@ func BenchmarkInputValidation_Performance(b *testing.B) {
 
 	b.Run("ValidateFilePath", func(b *testing.B) {
 		path := "/tmp/planner/intent-12345.json"
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			_ = validator.ValidateFilePath(path, "benchmark")
@@ -760,7 +760,7 @@ func BenchmarkInputValidation_Performance(b *testing.B) {
 
 	b.Run("SanitizeForLogging", func(b *testing.B) {
 		input := "user_input\nwith\rcontrol\tchars and normal text"
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			_ = validator.SanitizeForLogging(input)

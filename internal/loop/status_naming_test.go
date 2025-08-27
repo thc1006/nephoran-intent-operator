@@ -115,11 +115,11 @@ func TestComputeStatusFileName(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			result := ComputeStatusFileName(tc.srcPath, fixedTime)
 			assert.Equal(t, tc.expectedFilename, result, tc.description)
-			
+
 			// Verify that the result always ends with .status
 			assert.True(t, len(result) > 7, "Status filename should be longer than '.status'")
 			assert.True(t, result[len(result)-7:] == ".status", "Status filename should end with '.status'")
-			
+
 			// Verify timestamp format is present
 			assert.Contains(t, result, expectedTimestamp, "Status filename should contain the formatted timestamp")
 		})
@@ -161,9 +161,9 @@ func TestComputeStatusFileNameConsistency(t *testing.T) {
 	// Test that the same input always produces the same output
 	srcPath := "intent-consistency-test.json"
 	timestamp := time.Date(2025, 8, 21, 14, 30, 22, 0, time.UTC)
-	
+
 	expected := "intent-consistency-test-20250821-143022.status"
-	
+
 	// Call the function multiple times
 	for i := 0; i < 10; i++ {
 		result := ComputeStatusFileName(srcPath, timestamp)
@@ -173,7 +173,7 @@ func TestComputeStatusFileNameConsistency(t *testing.T) {
 
 func TestComputeStatusFileNameEdgeCases(t *testing.T) {
 	fixedTime := time.Date(2025, 8, 21, 14, 30, 22, 0, time.UTC)
-	
+
 	testCases := []struct {
 		name        string
 		srcPath     string
@@ -221,7 +221,7 @@ func TestComputeStatusFileNameEdgeCases(t *testing.T) {
 
 func TestComputeStatusFileNameExtensionHandling(t *testing.T) {
 	fixedTime := time.Date(2025, 8, 21, 14, 30, 22, 0, time.UTC)
-	
+
 	testCases := []struct {
 		name     string
 		srcPath  string
@@ -266,7 +266,7 @@ func TestComputeStatusFileNameExtensionHandling(t *testing.T) {
 func BenchmarkComputeStatusFileName(b *testing.B) {
 	timestamp := time.Now()
 	srcPath := "intent-benchmark-test.json"
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		ComputeStatusFileName(srcPath, timestamp)
@@ -276,7 +276,7 @@ func BenchmarkComputeStatusFileName(b *testing.B) {
 func BenchmarkComputeStatusFileNameLongPath(b *testing.B) {
 	timestamp := time.Now()
 	srcPath := filepath.Join("very", "long", "nested", "path", "structure", "with", "many", "directories", "intent-benchmark-test.json")
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		ComputeStatusFileName(srcPath, timestamp)

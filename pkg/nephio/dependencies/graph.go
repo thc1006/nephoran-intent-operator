@@ -463,16 +463,16 @@ func (m *dependencyGraphManager) BuildGraph(ctx context.Context, spec *GraphBuil
 	// Simple stub implementation to fix compilation
 	return &DependencyGraph{}, nil
 	/*
-	// Original BuildGraph implementation commented out due to missing dependencies
-	startTime := time.Now()
+		// Original BuildGraph implementation commented out due to missing dependencies
+		startTime := time.Now()
 
-	// Validate specification
-	if err := m.validateGraphBuildSpec(spec); err != nil {
-		return nil, fmt.Errorf("invalid graph build spec: %w", err)
-	}
+		// Validate specification
+		if err := m.validateGraphBuildSpec(spec); err != nil {
+			return nil, fmt.Errorf("invalid graph build spec: %w", err)
+		}
 
-	// ... (rest of implementation commented out)
-	return graph, nil
+		// ... (rest of implementation commented out)
+		return graph, nil
 	*/
 
 	// All implementation commented out due to missing dependencies and methods
@@ -798,11 +798,11 @@ func (b *GraphBuilder) waitForProcessing(nodeID string) error {
 		processing := b.processing[nodeID]
 		visited := b.visited[nodeID]
 		b.mutex.RUnlock()
-		
+
 		if !processing || visited {
 			return nil
 		}
-		
+
 		// Small delay to prevent busy waiting
 		// In real implementation would use channels or condition variables
 	}
@@ -812,12 +812,12 @@ func (b *GraphBuilder) waitForProcessing(nodeID string) error {
 // createOrUpdateNode creates or updates a graph node
 func (b *GraphBuilder) createOrUpdateNode(pkg *PackageReference, depth int) *GraphNode {
 	nodeID := generateNodeID(pkg)
-	
+
 	// Check if node already exists
 	if existingNode, exists := b.graph.Nodes[nodeID]; exists {
 		return existingNode
 	}
-	
+
 	// Create new node
 	node := &GraphNode{
 		ID:         nodeID,
@@ -825,29 +825,29 @@ func (b *GraphBuilder) createOrUpdateNode(pkg *PackageReference, depth int) *Gra
 		Depth:      depth,
 		Level:      depth,
 		Layer:      0, // Will be set during topological sort
-		
+
 		Dependencies: make([]string, 0),
 		Dependents:   make([]string, 0),
-		
+
 		Type:     NodeTypeIntermediate,
 		Status:   NodeStatusResolved,
 		Weight:   1.0,
 		Priority: 0,
-		
+
 		FirstSeen:   time.Now(),
 		LastUpdated: time.Now(),
 		UpdateCount: 0,
-		
+
 		Labels:      make(map[string]string),
 		Annotations: make(map[string]string),
 		Metadata:    make(map[string]interface{}),
 	}
-	
+
 	// Determine node type based on depth and context
 	if depth == 0 {
 		node.Type = NodeTypeRoot
 	}
-	
+
 	return node
 }
 
@@ -856,7 +856,7 @@ func (b *GraphBuilder) shouldIncludeDependency(dep *DependencyInfo) bool {
 	if dep == nil || dep.Package == nil {
 		return false
 	}
-	
+
 	// Apply scope filter
 	if len(b.spec.ScopeFilter) > 0 {
 		found := false
@@ -870,61 +870,61 @@ func (b *GraphBuilder) shouldIncludeDependency(dep *DependencyInfo) bool {
 			return false
 		}
 	}
-	
+
 	// Check optional dependencies
 	if dep.Optional && !b.spec.IncludeOptional {
 		return false
 	}
-	
+
 	// Check test dependencies
 	if dep.Scope == ScopeTest && !b.spec.IncludeTest {
 		return false
 	}
-	
+
 	// Check transitive dependencies
 	if dep.Transitive && !b.spec.IncludeTransitive {
 		return false
 	}
-	
+
 	return true
 }
 
 // createEdge creates a dependency edge between two nodes
 func (b *GraphBuilder) createEdge(fromID, toID string, dep *DependencyInfo) *GraphEdge {
 	edgeID := fmt.Sprintf("%s->%s", fromID, toID)
-	
+
 	edge := &GraphEdge{
 		ID:   edgeID,
 		From: fromID,
 		To:   toID,
-		
+
 		Type:   EdgeTypeDirect,
 		Scope:  dep.Scope,
 		Weight: 1.0,
-		
+
 		Optional:   dep.Optional,
 		Transitive: dep.Transitive,
-		
+
 		IsCritical: false,
 		IsBackEdge: false,
 		InCycle:    false,
-		
+
 		Strength:    1.0,
 		Reliability: 1.0,
-		
+
 		CreatedAt:   time.Now(),
 		Labels:      make(map[string]string),
 		Annotations: make(map[string]string),
 		Metadata:    make(map[string]interface{}),
 	}
-	
+
 	// Set edge type based on dependency characteristics
 	if dep.Transitive {
 		edge.Type = EdgeTypeTransitive
 	} else if dep.Optional {
 		edge.Type = EdgeTypeOptional
 	}
-	
+
 	// Add version constraint if available
 	if dep.Version != "" {
 		edge.VersionConstraint = &VersionConstraint{
@@ -932,7 +932,7 @@ func (b *GraphBuilder) createEdge(fromID, toID string, dep *DependencyInfo) *Gra
 			Operator: OpEquals, // Assuming equal constraint
 		}
 	}
-	
+
 	return edge
 }
 
@@ -1015,7 +1015,7 @@ func (m *dependencyGraphManager) hasSelfLoop(node *GraphNode) bool {
 	if node == nil {
 		return false
 	}
-	
+
 	for _, depID := range node.Dependencies {
 		if depID == node.ID {
 			return true
@@ -1029,12 +1029,12 @@ func (m *dependencyGraphManager) createCycleFromSCC(scc []*GraphNode, index int)
 	if len(scc) == 0 {
 		return nil
 	}
-	
+
 	nodeIDs := make([]string, len(scc))
 	for i, node := range scc {
 		nodeIDs[i] = node.ID
 	}
-	
+
 	cycle := &DependencyCycle{
 		ID:              fmt.Sprintf("cycle-%d", index),
 		Nodes:           nodeIDs,
@@ -1045,7 +1045,7 @@ func (m *dependencyGraphManager) createCycleFromSCC(scc []*GraphNode, index int)
 		DetectionMethod: "tarjan-scc",
 		ComplexityScore: float64(len(scc)),
 	}
-	
+
 	// Determine cycle type
 	if len(scc) == 1 {
 		cycle.Type = CycleTypeSelfLoop
@@ -1057,7 +1057,7 @@ func (m *dependencyGraphManager) createCycleFromSCC(scc []*GraphNode, index int)
 		cycle.Type = CycleTypeComplex
 		cycle.Severity = CycleSeverityHigh
 	}
-	
+
 	return cycle
 }
 
@@ -1066,22 +1066,22 @@ func (m *dependencyGraphManager) analyzeCycle(ctx context.Context, graph *Depend
 	if cycle == nil {
 		return
 	}
-	
+
 	// Basic analysis - calculate complexity score
 	cycle.ComplexityScore = float64(cycle.Length) * 1.5
-	
+
 	// Adjust severity based on length and node types
 	if cycle.Length > 5 {
 		cycle.Severity = CycleSeverityCritical
 	} else if cycle.Length > 3 {
 		cycle.Severity = CycleSeverityHigh
 	}
-	
+
 	// Find edges that are part of this cycle
 	edges := make([]string, 0)
 	for i, nodeID := range cycle.Nodes {
 		nextNodeID := cycle.Nodes[(i+1)%len(cycle.Nodes)]
-		
+
 		// Find edge between current and next node
 		for _, edge := range graph.Edges {
 			if edge.From == nodeID && edge.To == nextNodeID {
@@ -1091,7 +1091,7 @@ func (m *dependencyGraphManager) analyzeCycle(ctx context.Context, graph *Depend
 			}
 		}
 	}
-	
+
 	cycle.Edges = edges
 }
 
@@ -1103,14 +1103,14 @@ func (m *dependencyGraphManager) compareCycleSeverity(sev1, sev2 CycleSeverity) 
 		CycleSeverityHigh:     3,
 		CycleSeverityCritical: 4,
 	}
-	
+
 	order1, ok1 := severityOrder[sev1]
 	order2, ok2 := severityOrder[sev2]
-	
+
 	if !ok1 || !ok2 {
 		return 0
 	}
-	
+
 	return order1 - order2
 }
 
@@ -1119,90 +1119,90 @@ func (m *dependencyGraphManager) calculateBasicMetrics(graph *DependencyGraph, m
 	if graph == nil || metrics == nil {
 		return
 	}
-	
+
 	// Calculate density
 	if metrics.NodeCount > 1 {
 		maxEdges := metrics.NodeCount * (metrics.NodeCount - 1)
 		metrics.Density = float64(metrics.EdgeCount) / float64(maxEdges)
 	}
-	
+
 	// Calculate basic connectivity metrics
 	metrics.ComponentCount = 1 // Simplified assumption
 	metrics.LargestComponent = metrics.NodeCount
 	metrics.IsConnected = true // Simplified assumption
-	
+
 	// Calculate degree distribution
 	inDegrees := make([]int, 0, metrics.NodeCount)
 	outDegrees := make([]int, 0, metrics.NodeCount)
-	
+
 	for _, node := range graph.Nodes {
 		outDegrees = append(outDegrees, len(node.Dependencies))
 		inDegrees = append(inDegrees, len(node.Dependents))
 	}
-	
+
 	metrics.DegreeDistribution = calculateDistributionStats(append(inDegrees, outDegrees...))
 }
 
 // calculateStructuralMetrics calculates structural graph metrics
 func (m *dependencyGraphManager) calculateStructuralMetrics(ctx context.Context, graph *DependencyGraph, metrics *GraphMetrics) error {
 	// Stub implementation - calculate basic structural metrics
-	
+
 	// Calculate diameter (simplified)
 	metrics.Diameter = 0
 	if len(graph.Nodes) > 0 {
 		metrics.Diameter = int(math.Ceil(math.Log(float64(len(graph.Nodes)))))
 	}
-	
+
 	// Calculate radius (simplified)
 	metrics.Radius = metrics.Diameter / 2
-	
+
 	// Calculate average path length (simplified estimation)
 	if metrics.NodeCount > 1 {
 		metrics.AveragePathLength = float64(metrics.Diameter) * 0.7
 	}
-	
+
 	// Calculate clustering coefficient (simplified)
 	metrics.ClusteringCoeff = 0.3 // Placeholder value
-	
+
 	return nil
 }
 
 // calculateCentralityMetrics calculates centrality metrics for nodes
 func (m *dependencyGraphManager) calculateCentralityMetrics(ctx context.Context, graph *DependencyGraph, metrics *GraphMetrics) error {
 	// Stub implementation - basic centrality calculation
-	
+
 	for nodeID, node := range graph.Nodes {
 		centralityScores := &CentralityScores{
 			Degree:      float64(len(node.Dependencies) + len(node.Dependents)),
-			Closeness:   1.0 / float64(node.Depth + 1),
+			Closeness:   1.0 / float64(node.Depth+1),
 			Betweenness: 0.0, // Simplified
 			Eigenvector: 0.5, // Placeholder
 			PageRank:    1.0 / float64(len(graph.Nodes)),
 		}
-		
+
 		metrics.NodeCentralities[nodeID] = centralityScores
 		node.CentralityScores = centralityScores
 	}
-	
+
 	return nil
 }
 
 // calculateDistributionMetrics calculates distribution-related metrics
 func (m *dependencyGraphManager) calculateDistributionMetrics(graph *DependencyGraph, metrics *GraphMetrics) {
 	// Already calculated in calculateBasicMetrics, this is for additional distributions
-	
+
 	depths := make([]int, 0, len(graph.Nodes))
 	for _, node := range graph.Nodes {
 		depths = append(depths, node.Depth)
 	}
-	
+
 	metrics.DepthDistribution = calculateDistributionStats(depths)
 }
 
 // calculateCycleMetrics calculates cycle-related metrics
 func (m *dependencyGraphManager) calculateCycleMetrics(graph *DependencyGraph, metrics *GraphMetrics) {
 	metrics.CycleCount = len(graph.Cycles)
-	
+
 	// Calculate cyclomatic complexity (simplified)
 	// V(G) = E - N + 2P (where E=edges, N=nodes, P=connected components)
 	if metrics.ComponentCount > 0 {
@@ -1217,13 +1217,13 @@ func (m *dependencyGraphManager) calculateCycleMetrics(graph *DependencyGraph, m
 // calculateQualityMetrics calculates quality-related metrics
 func (m *dependencyGraphManager) calculateQualityMetrics(ctx context.Context, graph *DependencyGraph, metrics *GraphMetrics) error {
 	// Stub implementation for quality metrics
-	
+
 	// Calculate modularity (simplified estimation)
 	metrics.Modularity = 0.4 // Placeholder value between -1 and 1
-	
+
 	// Calculate assortativity (simplified estimation)
 	metrics.Assortativity = 0.0 // Placeholder value between -1 and 1
-	
+
 	return nil
 }
 
@@ -1232,17 +1232,17 @@ func calculateDistributionStats(values []int) *DistributionStats {
 	if len(values) == 0 {
 		return &DistributionStats{}
 	}
-	
+
 	// Convert to float64 for calculations
 	floatValues := make([]float64, len(values))
 	for i, v := range values {
 		floatValues[i] = float64(v)
 	}
-	
+
 	// Calculate basic statistics
 	var sum, sumSq float64
 	min, max := floatValues[0], floatValues[0]
-	
+
 	for _, v := range floatValues {
 		sum += v
 		sumSq += v * v
@@ -1253,11 +1253,11 @@ func calculateDistributionStats(values []int) *DistributionStats {
 			max = v
 		}
 	}
-	
+
 	mean := sum / float64(len(values))
 	variance := (sumSq / float64(len(values))) - (mean * mean)
 	stdDev := math.Sqrt(variance)
-	
+
 	return &DistributionStats{
 		Min:    min,
 		Max:    max,

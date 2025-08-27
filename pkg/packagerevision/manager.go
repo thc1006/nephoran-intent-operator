@@ -668,7 +668,7 @@ func (m *packageRevisionManager) BatchCreateFromIntents(ctx context.Context, int
 	// Process intents concurrently
 	for _, intent := range intents {
 		go func(intent *nephoranv1.NetworkIntent) {
-			semaphore <- struct{}{} // Acquire semaphore
+			semaphore <- struct{}{}        // Acquire semaphore
 			defer func() { <-semaphore }() // Release semaphore
 
 			opResult := &PackageOperationResult{
@@ -718,7 +718,7 @@ func (m *packageRevisionManager) BatchCreateFromIntents(ctx context.Context, int
 	}
 
 	result.Duration = time.Since(startTime)
-	
+
 	if result.FailedOperations > 0 && !opts.ContinueOnError {
 		result.OverallSuccess = false
 	}
@@ -786,7 +786,7 @@ func (m *packageRevisionManager) DetectConfigurationDrift(ctx context.Context, r
 	if m.driftDetector != nil {
 		return m.driftDetector.DetectDrift(ctx, ref)
 	}
-	
+
 	// Return no drift if detector is not available
 	return &DriftDetectionResult{
 		HasDrift:        false,
@@ -803,7 +803,7 @@ func (m *packageRevisionManager) CorrectConfigurationDrift(ctx context.Context, 
 	}
 
 	// Implementation would apply the drift correction plan
-	m.logger.Info("Applying drift correction plan", 
+	m.logger.Info("Applying drift correction plan",
 		"package", ref.GetPackageKey(),
 		"driftCount", len(driftResult.DriftDetails))
 
@@ -817,8 +817,8 @@ func (m *packageRevisionManager) GetAvailableTemplates(ctx context.Context, targ
 	// For now, return a mock template
 	// In a real implementation, this would query the template repository
 	mockTemplate := &templates.BlueprintTemplate{
-		Name: fmt.Sprintf("%s-template", targetComponent),
-		Version: "v1.0.0",
+		Name:        fmt.Sprintf("%s-template", targetComponent),
+		Version:     "v1.0.0",
 		Description: fmt.Sprintf("Template for %s component", targetComponent),
 	}
 
@@ -882,7 +882,7 @@ func (m *packageRevisionManager) GetManagerHealth(ctx context.Context) (*Manager
 	m.transitionMutex.RUnlock()
 
 	componentHealth := make(map[string]string)
-	
+
 	// Check component health
 	if m.porchClient != nil {
 		if _, err := m.porchClient.Health(ctx); err != nil {

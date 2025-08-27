@@ -19,22 +19,29 @@ package blueprint
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
-	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"k8s.io/client-go/rest"
-	"github.com/go-logr/logr"
+	"k8s.io/client-go/tools/record"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	ctrl "sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/thc1006/nephoran-intent-operator/api/v1"
 )
@@ -75,8 +82,8 @@ func (m *MockManager) GetCache() cache.Cache                             { retur
 func (m *MockManager) GetFieldIndexer() client.FieldIndexer              { return nil }
 func (m *MockManager) GetEventRecorderFor(string) record.EventRecorder   { return nil }
 func (m *MockManager) GetRESTMapper() meta.RESTMapper                    { return nil }
-func (m *MockManager) GetControllerOptions() v1alpha1.ControllerConfigurationSpec {
-	return v1alpha1.ControllerConfigurationSpec{}
+func (m *MockManager) GetControllerOptions() ctrl.ControllerConfigurationSpec {
+	return ctrl.ControllerConfigurationSpec{}
 }
 
 // Helper function to create a mock manager

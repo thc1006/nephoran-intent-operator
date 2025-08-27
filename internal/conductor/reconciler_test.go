@@ -28,12 +28,12 @@ func TestParseIntentString(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		intent      string
-		namespace   string
-		expectedTarget string
+		name             string
+		intent           string
+		namespace        string
+		expectedTarget   string
 		expectedReplicas int
-		expectError bool
+		expectError      bool
 	}{
 		{
 			name:             "simple scaling intent",
@@ -139,13 +139,13 @@ func TestCreateIntentFile(t *testing.T) {
 	}
 
 	intentData := &IntentJSON{
-		IntentType: "scaling",
-		Target:     "test-app",
-		Namespace:  "default",
-		Replicas:   3,
-		Source:     "user",
+		IntentType:    "scaling",
+		Target:        "test-app",
+		Namespace:     "default",
+		Replicas:      3,
+		Source:        "user",
 		CorrelationID: "test-123",
-		Reason:     "Test scaling",
+		Reason:        "Test scaling",
 	}
 
 	filePath, err := reconciler.createIntentFile(intentData, "test-intent")

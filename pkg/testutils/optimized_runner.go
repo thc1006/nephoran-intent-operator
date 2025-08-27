@@ -34,7 +34,7 @@ func NewOptimizedTestRunner() *OptimizedTestRunner {
 // RunOptimizedTest runs a test with optimizations
 func (r *OptimizedTestRunner) RunOptimizedTest(t *testing.T, testFunc func(*testing.T, *TestContext)) {
 	startTime := time.Now()
-	
+
 	// Acquire concurrency slot
 	releaseSlot := r.concurrencyMgr.AcquireSlot(t.Name())
 	defer releaseSlot()
@@ -84,7 +84,7 @@ func (tc *TestContext) CreateTempFiles(files map[string][]byte) map[string]strin
 	if err := tc.BatchProc.CreateFiles(tc.TempDir, files); err != nil {
 		tc.T.Fatalf("Failed to create temp files: %v", err)
 	}
-	
+
 	for name := range files {
 		results[name] = filepath.Join(tc.TempDir, name)
 	}
@@ -107,7 +107,7 @@ func (tc *TestContext) AddCleanup(fn func()) {
 func (tc *TestContext) Cleanup() {
 	tc.mu.Lock()
 	defer tc.mu.Unlock()
-	
+
 	// Execute cleanup functions in reverse order
 	for i := len(tc.cleanupFns) - 1; i >= 0; i-- {
 		if fn := tc.cleanupFns[i]; fn != nil {
@@ -115,7 +115,7 @@ func (tc *TestContext) Cleanup() {
 		}
 	}
 	tc.cleanupFns = nil
-	
+
 	// Cleanup optimizer
 	tc.Optimizer.Cleanup()
 }
@@ -131,7 +131,7 @@ func NewBatchFileProcessor() *BatchFileProcessor {
 	if runtime.GOOS == "windows" {
 		limit = max(1, limit/2)
 	}
-	
+
 	return &BatchFileProcessor{
 		concurrencyLimit: make(chan struct{}, limit),
 	}
@@ -151,20 +151,20 @@ func (b *BatchFileProcessor) CreateFiles(baseDir string, files map[string][]byte
 		wg.Add(1)
 		go func(fname string, data []byte) {
 			defer wg.Done()
-			
+
 			// Acquire concurrency slot
 			b.concurrencyLimit <- struct{}{}
 			defer func() { <-b.concurrencyLimit }()
-			
+
 			filePath := filepath.Join(baseDir, fname)
-			
+
 			// Ensure subdirectory exists
 			dir := filepath.Dir(filePath)
 			if err := os.MkdirAll(dir, 0755); err != nil {
 				errChan <- fmt.Errorf("failed to create directory for %s: %w", fname, err)
 				return
 			}
-			
+
 			// Write file with platform-specific optimizations
 			if err := writeFileOptimized(filePath, data); err != nil {
 				errChan <- fmt.Errorf("failed to write file %s: %w", fname, err)
@@ -265,7 +265,7 @@ func (m *TestMetricsCollector) RecordTestCompletion(testName string, duration ti
 func (m *TestMetricsCollector) GetAverageDuration(prefix string) time.Duration {
 	var total time.Duration
 	var count int
-	
+
 	m.testDurations.Range(func(key, value interface{}) bool {
 		if testName, ok := key.(string); ok {
 			if len(testName) >= len(prefix) && testName[:len(prefix)] == prefix {
@@ -277,7 +277,7 @@ func (m *TestMetricsCollector) GetAverageDuration(prefix string) time.Duration {
 		}
 		return true
 	})
-	
+
 	if count == 0 {
 		return 0
 	}
@@ -289,18 +289,18 @@ func (m *TestMetricsCollector) PrintSummary() {
 	fmt.Printf("\n=== Test Performance Summary ===\n")
 	fmt.Printf("Platform: %s/%s\n", runtime.GOOS, runtime.GOARCH)
 	fmt.Printf("CPUs: %d\n", runtime.NumCPU())
-	
+
 	var slowestTest string
 	var slowestDuration time.Duration
 	var totalDuration time.Duration
 	var testCount int
-	
+
 	m.testDurations.Range(func(key, value interface{}) bool {
 		if testName, ok := key.(string); ok {
 			if duration, ok := value.(time.Duration); ok {
 				totalDuration += duration
 				testCount++
-				
+
 				if duration > slowestDuration {
 					slowestDuration = duration
 					slowestTest = testName
@@ -309,7 +309,7 @@ func (m *TestMetricsCollector) PrintSummary() {
 		}
 		return true
 	})
-	
+
 	if testCount > 0 {
 		avgDuration := totalDuration / time.Duration(testCount)
 		fmt.Printf("Total tests: %d\n", testCount)
@@ -348,19 +348,19 @@ func CreateOptimizedTempDir(t testing.TB, prefix string) string {
 			shortPrefix = prefix[:8]
 		}
 		tempDir := filepath.Join(tempBase, fmt.Sprintf("%s-%d", shortPrefix, time.Now().UnixNano()%1000000))
-		
+
 		if err := os.MkdirAll(tempDir, 0755); err != nil {
 			t.Fatalf("Failed to create temp dir: %v", err)
 		}
-		
+
 		// Clean up on test completion
 		t.Cleanup(func() {
 			os.RemoveAll(tempDir)
 		})
-		
+
 		return tempDir
 	}
-	
+
 	return t.TempDir()
 }
 

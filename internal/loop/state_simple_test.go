@@ -54,7 +54,7 @@ func TestStateManager_FileModification(t *testing.T) {
 	testFile := filepath.Join(dir, "test-intent.json")
 	testContent := `{"action": "scale", "target": "deployment", "count": 3}`
 	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
-	
+
 	err = sm.MarkProcessed(testFile)
 	require.NoError(t, err)
 

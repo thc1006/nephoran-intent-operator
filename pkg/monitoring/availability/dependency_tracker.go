@@ -42,11 +42,11 @@ type DependencyServiceStatus struct {
 
 // DependencyChainTracker tracks service dependency chains and their health (stub implementation)
 type DependencyChainTracker struct {
-	chains    map[string]*DependencyChain
-	statuses  map[string]*DependencyServiceStatus
-	mu        sync.RWMutex
-	ctx       context.Context
-	cancel    context.CancelFunc
+	chains   map[string]*DependencyChain
+	statuses map[string]*DependencyServiceStatus
+	mu       sync.RWMutex
+	ctx      context.Context
+	cancel   context.CancelFunc
 }
 
 // NewDependencyChainTracker creates a new dependency chain tracker
@@ -70,7 +70,7 @@ func (dct *DependencyChainTracker) AddChain(chain *DependencyChain) error {
 	defer dct.mu.Unlock()
 
 	dct.chains[chain.ID] = chain
-	
+
 	// Initialize status for all services in the chain
 	for _, service := range chain.Services {
 		dct.statuses[service.Name] = &DependencyServiceStatus{
@@ -194,7 +194,7 @@ func (dct *DependencyChainTracker) AnalyzeImpact(serviceName string) ([]string, 
 	return []string{}, nil
 }
 
-// GetCriticalPath returns services on the critical path (stub implementation)  
+// GetCriticalPath returns services on the critical path (stub implementation)
 func (dct *DependencyChainTracker) GetCriticalPath() ([]string, error) {
 	dct.mu.RLock()
 	defer dct.mu.RUnlock()

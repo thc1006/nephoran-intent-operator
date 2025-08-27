@@ -357,4 +357,3 @@ func (g *GitOpsHandler) IsPhaseComplete(networkIntent *nephoranv1.NetworkIntent)
 	return isConditionTrue(networkIntent.Status.Conditions, "GitOpsCommitted") &&
 		isConditionTrue(networkIntent.Status.Conditions, "DeploymentVerified")
 }
-

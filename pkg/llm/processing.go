@@ -116,7 +116,7 @@ type ProcessingResult struct {
 	Error          error                  `json:"error,omitempty"`
 }
 
-// ProcessingStreamingRequest represents a streaming request payload  
+// ProcessingStreamingRequest represents a streaming request payload
 type ProcessingStreamingRequest struct {
 	Query     string `json:"query"`
 	ModelName string `json:"model_name,omitempty"`

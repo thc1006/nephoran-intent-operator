@@ -24,7 +24,7 @@ func NewGoldenFile(baseDir string) *GoldenFile {
 // SaveGoldenFile saves test data as a golden file for future comparison
 func (g *GoldenFile) SaveGoldenFile(t *testing.T, filename string, data []byte) {
 	goldenPath := filepath.Join(g.baseDir, "testdata", "golden", filename)
-	
+
 	// Only update golden files when explicitly requested
 	if os.Getenv("UPDATE_GOLDEN") == "true" {
 		// Ensure directory exists
@@ -61,9 +61,9 @@ func (g *GoldenFile) CompareWithGolden(t *testing.T, filename string, actual []b
 		g.SaveGoldenFile(t, filename, actual)
 		return
 	}
-	
+
 	expected := g.LoadGoldenFile(t, filename)
-	require.Equal(t, string(expected), string(actual), 
+	require.Equal(t, string(expected), string(actual),
 		"Output differs from golden file %s\nRun with UPDATE_GOLDEN=true to update", filename)
 }
 
@@ -71,18 +71,18 @@ func (g *GoldenFile) CompareWithGolden(t *testing.T, filename string, actual []b
 func (g *GoldenFile) CompareJSONWithGolden(t *testing.T, filename string, actual interface{}) {
 	actualJSON, err := json.MarshalIndent(actual, "", "  ")
 	require.NoError(t, err)
-	
+
 	if os.Getenv("UPDATE_GOLDEN") == "true" {
 		g.SaveGoldenJSON(t, filename, actual)
 		return
 	}
-	
+
 	var expected interface{}
 	g.LoadGoldenJSON(t, filename, &expected)
-	
+
 	expectedJSON, err := json.MarshalIndent(expected, "", "  ")
 	require.NoError(t, err)
-	
+
 	require.Equal(t, string(expectedJSON), string(actualJSON),
 		"JSON output differs from golden file %s\nRun with UPDATE_GOLDEN=true to update", filename)
 }

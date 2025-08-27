@@ -287,7 +287,7 @@ func (suite *SecurityTestSuite) setupHTTPServer() {
 		EnableAPITokens: true,
 		TokenPath:       "/auth/token",
 	}
-	
+
 	// For this test, we cannot use the regular NewAuthHandlers as it expects concrete types
 	// but we're working with mocks. We'll create a minimal test handler struct instead.
 	// This is a pragmatic solution for testing HTTP security features.
@@ -327,7 +327,7 @@ func (suite *SecurityTestSuite) protectedHandler(w http.ResponseWriter, r *http.
 func (suite *SecurityTestSuite) createCSRFTokenHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"csrf_token": "test-csrf-token-12345"}`)) 
+	w.Write([]byte(`{"csrf_token": "test-csrf-token-12345"}`))
 }
 
 func (suite *SecurityTestSuite) Cleanup() {
@@ -336,7 +336,6 @@ func (suite *SecurityTestSuite) Cleanup() {
 	}
 	suite.tc.Cleanup()
 }
-
 
 func TestSecurity_JWTTokenManipulation(t *testing.T) {
 	suite := NewSecurityTestSuite(t)

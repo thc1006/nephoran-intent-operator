@@ -12,11 +12,11 @@ import (
 
 // DependencyHealthReport provides health status for dependencies
 type DependencyHealthReport struct {
-	ComponentName    string
-	Status           HealthStatus
-	LastCheck        time.Time
-	ErrorMessage     string
-	Dependencies     []string
+	ComponentName     string
+	Status            HealthStatus
+	LastCheck         time.Time
+	ErrorMessage      string
+	Dependencies      []string
 	RecommendedAction string
 }
 
@@ -109,11 +109,11 @@ type ClusterDeploymentStatus struct {
 
 // MultiClusterDeploymentStatus represents the overall deployment status across multiple clusters
 type MultiClusterDeploymentStatus struct {
-	Clusters     map[string]ClusterDeploymentStatus
+	Clusters      map[string]ClusterDeploymentStatus
 	OverallStatus DeploymentStatus
-	StartTime    time.Time
-	EndTime      time.Time
-	Summary      string
+	StartTime     time.Time
+	EndTime       time.Time
+	Summary       string
 }
 
 // Porch-like API types for package management
@@ -130,14 +130,14 @@ const (
 
 // PackageRevisionSpec defines the desired state of PackageRevision
 type PackageRevisionSpec struct {
-	PackageName    string                   `json:"packageName,omitempty"`
-	Revision       string                   `json:"revision,omitempty"`
-	Lifecycle      PackageRevisionLifecycle `json:"lifecycle,omitempty"`
-	Repository     string                   `json:"repository,omitempty"`
-	WorkspaceName  string                   `json:"workspaceName,omitempty"`
-	Tasks          []Task                   `json:"tasks,omitempty"`
-	Resources      []interface{}            `json:"resources,omitempty"`
-	Functions      []interface{}            `json:"functions,omitempty"`
+	PackageName   string                   `json:"packageName,omitempty"`
+	Revision      string                   `json:"revision,omitempty"`
+	Lifecycle     PackageRevisionLifecycle `json:"lifecycle,omitempty"`
+	Repository    string                   `json:"repository,omitempty"`
+	WorkspaceName string                   `json:"workspaceName,omitempty"`
+	Tasks         []Task                   `json:"tasks,omitempty"`
+	Resources     []interface{}            `json:"resources,omitempty"`
+	Functions     []interface{}            `json:"functions,omitempty"`
 }
 
 // PackageRevisionStatus defines the observed state of PackageRevision

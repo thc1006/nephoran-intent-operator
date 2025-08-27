@@ -112,13 +112,13 @@ func SecureHTTPServer(addr string, handler http.Handler) *http.Server {
 	return &http.Server{
 		Addr:    addr,
 		Handler: SecurityHeadersMiddleware(handler),
-		
+
 		// Timeouts to prevent DoS attacks
 		ReadTimeout:       15 * time.Second,
 		ReadHeaderTimeout: 10 * time.Second,
 		WriteTimeout:      15 * time.Second,
 		IdleTimeout:       60 * time.Second,
-		
+
 		// Limits
 		MaxHeaderBytes: 1 << 20, // 1 MB
 	}
@@ -135,7 +135,7 @@ func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'")
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		w.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -166,7 +166,7 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 		}
 
 		now := time.Now()
-		
+
 		// Clean old requests
 		if requests, exists := rl.requests[clientIP]; exists {
 			var valid []time.Time

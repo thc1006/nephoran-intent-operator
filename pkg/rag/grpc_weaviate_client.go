@@ -111,7 +111,7 @@ type GRPCRateLimiter struct {
 	mutex             sync.Mutex
 }
 
-// GRPC-specific request structures 
+// GRPC-specific request structures
 type VectorSearchRequest struct {
 	Query    string                 `json:"query"`
 	Vector   []float32              `json:"vector"`
@@ -319,7 +319,7 @@ func newOptimizedCodec(config *GRPCClientConfig) *OptimizedCodec {
 		return make([]byte, 0, 1024) // Protobuf encoder buffer
 	}
 
-	// Initialize decoder pool - using bytes.Buffer as proto.Buffer is deprecated  
+	// Initialize decoder pool - using bytes.Buffer as proto.Buffer is deprecated
 	codec.decoderPool.New = func() interface{} {
 		return make([]byte, 0, 1024) // Protobuf decoder buffer
 	}

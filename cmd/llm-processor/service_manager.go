@@ -175,7 +175,7 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 		stub := llm.NewStreamingProcessor()
 		// Convert stub to actual type - this is a temporary workaround
 		sm.streamingProcessor = nil // Use nil for now
-		_ = stub // Avoid unused variable error
+		_ = stub                    // Avoid unused variable error
 	}
 
 	// Initialize main processor with circuit breaker
@@ -314,7 +314,6 @@ func (sm *ServiceManager) CreateRouter() *mux.Router {
 	router.HandleFunc("/healthz", sm.healthChecker.HealthzHandler).Methods("GET")
 	router.HandleFunc("/readyz", sm.healthChecker.ReadyzHandler).Methods("GET")
 	router.HandleFunc("/metrics", sm.metricsHandler).Methods("GET")
-	
 
 	// Setup protected/unprotected routes based on configuration
 	handlers := &auth.RouteHandlers{

@@ -34,7 +34,7 @@ func (c *noOpRAGClient) ProcessIntent(ctx context.Context, intent string) (strin
 	return "RAG support is not enabled", nil
 }
 
-// IsHealthy always returns false for no-op client  
+// IsHealthy always returns false for no-op client
 func (c *noOpRAGClient) IsHealthy() bool {
 	return false
 }

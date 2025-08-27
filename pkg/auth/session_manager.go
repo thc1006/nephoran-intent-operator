@@ -787,8 +787,8 @@ func (sm *SessionManager) CreateSession(ctx context.Context, data *SessionData) 
 
 	now := time.Now()
 	session := &UserSession{
-		ID:       sessionID,
-		UserID:   data.UserID,
+		ID:     sessionID,
+		UserID: data.UserID,
 		UserInfo: &providers.UserInfo{
 			Username: data.Username,
 			Email:    data.Email,

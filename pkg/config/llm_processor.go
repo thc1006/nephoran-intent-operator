@@ -15,7 +15,7 @@ import (
 // LLMProcessorConfig holds configuration specific to the LLM processor service
 type LLMProcessorConfig struct {
 	// Service Configuration
-	Enabled          bool          // Whether the LLM processor service is enabled
+	Enabled          bool // Whether the LLM processor service is enabled
 	Port             string
 	LogLevel         string
 	ServiceVersion   string

@@ -97,7 +97,7 @@ func main() {
 	<-sigChan
 	log.Println("Shutdown signal received, stopping conductor...")
 	cancel()
-	
+
 	// Give goroutines time to finish
 	time.Sleep(500 * time.Millisecond)
 	log.Println("Conductor stopped")
@@ -119,7 +119,7 @@ func processIntentFile(intentPath string, outDir string) {
 
 	// Build the command to run porch-publisher
 	cmd := exec.Command("go", "run", "./cmd/porch-publisher", "-intent", intentPath, "-out", outDir)
-	
+
 	// Capture output
 	output, err := cmd.CombinedOutput()
 	if err != nil {

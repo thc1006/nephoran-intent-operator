@@ -29,13 +29,13 @@ type O2ResourceMap struct {
 
 // O2NodeInfo represents information about a Kubernetes node
 type O2NodeInfo struct {
-	Name         string            `json:"name"`
-	Roles        []string          `json:"roles"`
-	Status       string            `json:"status"`
-	Capacity     corev1.ResourceList `json:"capacity"`
-	Allocatable  corev1.ResourceList `json:"allocatable"`
-	Labels       map[string]string   `json:"labels"`
-	Annotations  map[string]string   `json:"annotations"`
+	Name        string              `json:"name"`
+	Roles       []string            `json:"roles"`
+	Status      string              `json:"status"`
+	Capacity    corev1.ResourceList `json:"capacity"`
+	Allocatable corev1.ResourceList `json:"allocatable"`
+	Labels      map[string]string   `json:"labels"`
+	Annotations map[string]string   `json:"annotations"`
 }
 
 // O2NamespaceInfo represents information about a Kubernetes namespace
@@ -54,31 +54,31 @@ type O2ClusterMetrics struct {
 
 // O2VNFDescriptor represents a VNF descriptor for deployment
 type O2VNFDescriptor struct {
-	Name          string                      `json:"name"`
-	Type          string                      `json:"type"`
-	Version       string                      `json:"version"`
-	Vendor        string                      `json:"vendor,omitempty"`
-	Image         string                      `json:"image"`
-	Replicas      int32                       `json:"replicas"`
+	Name          string                       `json:"name"`
+	Type          string                       `json:"type"`
+	Version       string                       `json:"version"`
+	Vendor        string                       `json:"vendor,omitempty"`
+	Image         string                       `json:"image"`
+	Replicas      int32                        `json:"replicas"`
 	Resources     *corev1.ResourceRequirements `json:"resources,omitempty"`
-	Environment   []corev1.EnvVar             `json:"environment,omitempty"`
-	Ports         []corev1.ContainerPort      `json:"ports,omitempty"`
-	NetworkConfig *O2NetworkConfig            `json:"networkConfig,omitempty"`
-	VolumeConfig  []O2VolumeConfig            `json:"volumeConfig,omitempty"`
-	Metadata      map[string]string           `json:"metadata,omitempty"`
+	Environment   []corev1.EnvVar              `json:"environment,omitempty"`
+	Ports         []corev1.ContainerPort       `json:"ports,omitempty"`
+	NetworkConfig *O2NetworkConfig             `json:"networkConfig,omitempty"`
+	VolumeConfig  []O2VolumeConfig             `json:"volumeConfig,omitempty"`
+	Metadata      map[string]string            `json:"metadata,omitempty"`
 }
 
 // O2NetworkConfig represents network configuration for a VNF
 type O2NetworkConfig struct {
-	ServiceType corev1.ServiceType    `json:"serviceType"`
-	Ports       []corev1.ServicePort  `json:"ports,omitempty"`
+	ServiceType corev1.ServiceType   `json:"serviceType"`
+	Ports       []corev1.ServicePort `json:"ports,omitempty"`
 }
 
 // O2VolumeConfig represents volume configuration for a VNF
 type O2VolumeConfig struct {
-	Name         string                  `json:"name"`
-	MountPath    string                  `json:"mountPath"`
-	VolumeSource corev1.VolumeSource     `json:"volumeSource"`
+	Name         string              `json:"name"`
+	MountPath    string              `json:"mountPath"`
+	VolumeSource corev1.VolumeSource `json:"volumeSource"`
 }
 
 // O2DeploymentStatus represents the status of a VNF deployment
@@ -93,24 +93,24 @@ type O2DeploymentStatus struct {
 
 // O2TestVNFDeployRequest represents a request to deploy a VNF (test-specific)
 type O2TestVNFDeployRequest struct {
-	Name         string                      `json:"name"`
-	Namespace    string                      `json:"namespace"`
-	VNFPackageID string                      `json:"vnfPackageId"`
-	FlavorID     string                      `json:"flavorId,omitempty"`
-	Image        string                      `json:"image"`
-	Replicas     int32                       `json:"replicas"`
+	Name         string                       `json:"name"`
+	Namespace    string                       `json:"namespace"`
+	VNFPackageID string                       `json:"vnfPackageId"`
+	FlavorID     string                       `json:"flavorId,omitempty"`
+	Image        string                       `json:"image"`
+	Replicas     int32                        `json:"replicas"`
 	Resources    *corev1.ResourceRequirements `json:"resources,omitempty"`
-	Environment  []corev1.EnvVar             `json:"environment,omitempty"`
-	Metadata     map[string]string           `json:"metadata,omitempty"`
+	Environment  []corev1.EnvVar              `json:"environment,omitempty"`
+	Metadata     map[string]string            `json:"metadata,omitempty"`
 }
 
 // O2VNFInstance represents a VNF instance
 type O2VNFInstance struct {
-	ID           string           `json:"id"`
-	Name         string           `json:"name"`
-	Namespace    string           `json:"namespace"`
-	VNFPackageID string           `json:"vnfPackageId"`
-	Status       *O2VNFStatus     `json:"status"`
+	ID           string       `json:"id"`
+	Name         string       `json:"name"`
+	Namespace    string       `json:"namespace"`
+	VNFPackageID string       `json:"vnfPackageId"`
+	Status       *O2VNFStatus `json:"status"`
 }
 
 // O2VNFStatus represents the status of a VNF instance
@@ -141,14 +141,14 @@ func NewO2Manager(adaptor *O2Adaptor) *O2Manager {
 func (m *O2Manager) DiscoverResources(ctx context.Context) (*O2ResourceMap, error) {
 	nodes := make(map[string]*O2NodeInfo)
 	namespaces := make(map[string]*O2NamespaceInfo)
-	
+
 	// Get nodes from Kubernetes API
 	nodeList := &corev1.NodeList{}
 	err := m.adaptor.kubeClient.List(ctx, nodeList)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list nodes: %w", err)
 	}
-	
+
 	readyNodes := int32(0)
 	for _, node := range nodeList.Items {
 		roles := []string{}
@@ -158,7 +158,7 @@ func (m *O2Manager) DiscoverResources(ctx context.Context) (*O2ResourceMap, erro
 				roles = append(roles, role)
 			}
 		}
-		
+
 		nodeStatus := "NotReady"
 		for _, condition := range node.Status.Conditions {
 			if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
@@ -167,7 +167,7 @@ func (m *O2Manager) DiscoverResources(ctx context.Context) (*O2ResourceMap, erro
 				break
 			}
 		}
-		
+
 		nodes[node.Name] = &O2NodeInfo{
 			Name:        node.Name,
 			Roles:       roles,
@@ -178,27 +178,27 @@ func (m *O2Manager) DiscoverResources(ctx context.Context) (*O2ResourceMap, erro
 			Annotations: node.Annotations,
 		}
 	}
-	
+
 	// Get namespaces from Kubernetes API
 	namespaceList := &corev1.NamespaceList{}
 	err = m.adaptor.kubeClient.List(ctx, namespaceList)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list namespaces: %w", err)
 	}
-	
+
 	// Get pods to count per namespace
 	podList := &corev1.PodList{}
 	err = m.adaptor.kubeClient.List(ctx, podList)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list pods: %w", err)
 	}
-	
+
 	// Count pods per namespace
 	namespacePodCount := make(map[string]int32)
 	for _, pod := range podList.Items {
 		namespacePodCount[pod.Namespace]++
 	}
-	
+
 	for _, ns := range namespaceList.Items {
 		namespaces[ns.Name] = &O2NamespaceInfo{
 			Name:     ns.Name,
@@ -206,7 +206,7 @@ func (m *O2Manager) DiscoverResources(ctx context.Context) (*O2ResourceMap, erro
 			PodCount: namespacePodCount[ns.Name],
 		}
 	}
-	
+
 	resourceMap := &O2ResourceMap{
 		Nodes:      nodes,
 		Namespaces: namespaces,
@@ -216,7 +216,7 @@ func (m *O2Manager) DiscoverResources(ctx context.Context) (*O2ResourceMap, erro
 			TotalPods:  int32(len(podList.Items)),
 		},
 	}
-	
+
 	return resourceMap, nil
 }
 
@@ -227,9 +227,9 @@ func (m *O2Manager) ScaleWorkload(ctx context.Context, workloadID string, replic
 	if len(parts) != 2 {
 		return fmt.Errorf("invalid workload ID format: %s", workloadID)
 	}
-	
+
 	namespace, name := parts[0], parts[1]
-	
+
 	// Get deployment
 	deployment := &appsv1.Deployment{}
 	err := m.adaptor.kubeClient.Get(ctx, client.ObjectKey{
@@ -239,14 +239,14 @@ func (m *O2Manager) ScaleWorkload(ctx context.Context, workloadID string, replic
 	if err != nil {
 		return fmt.Errorf("failed to get deployment %s/%s: %w", namespace, name, err)
 	}
-	
+
 	// Update replicas
 	deployment.Spec.Replicas = &replicas
 	err = m.adaptor.kubeClient.Update(ctx, deployment)
 	if err != nil {
 		return fmt.Errorf("failed to update deployment %s/%s: %w", namespace, name, err)
 	}
-	
+
 	return nil
 }
 
@@ -285,11 +285,11 @@ func (m *O2Manager) DeployVNF(ctx context.Context, vnfSpec *O2VNFDescriptor) (*O
 			},
 		},
 	}
-	
+
 	if vnfSpec.Resources != nil {
 		deployment.Spec.Template.Spec.Containers[0].Resources = *vnfSpec.Resources
 	}
-	
+
 	// Add volumes if specified
 	if len(vnfSpec.VolumeConfig) > 0 {
 		for _, volConfig := range vnfSpec.VolumeConfig {
@@ -298,7 +298,7 @@ func (m *O2Manager) DeployVNF(ctx context.Context, vnfSpec *O2VNFDescriptor) (*O
 				VolumeSource: volConfig.VolumeSource,
 			}
 			deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes, volume)
-			
+
 			volumeMount := corev1.VolumeMount{
 				Name:      volConfig.Name,
 				MountPath: volConfig.MountPath,
@@ -307,13 +307,13 @@ func (m *O2Manager) DeployVNF(ctx context.Context, vnfSpec *O2VNFDescriptor) (*O
 				deployment.Spec.Template.Spec.Containers[0].VolumeMounts, volumeMount)
 		}
 	}
-	
+
 	// Create deployment in cluster
 	err := m.adaptor.kubeClient.Create(ctx, deployment)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create deployment: %w", err)
 	}
-	
+
 	// Return deployment status
 	status := &O2DeploymentStatus{
 		ID:       fmt.Sprintf("%s-%s", deployment.Namespace, deployment.Name),
@@ -322,7 +322,7 @@ func (m *O2Manager) DeployVNF(ctx context.Context, vnfSpec *O2VNFDescriptor) (*O
 		Phase:    "Creating",
 		Replicas: vnfSpec.Replicas,
 	}
-	
+
 	return status, nil
 }
 
@@ -339,7 +339,7 @@ func (a *O2Adaptor) DeployVNF(ctx context.Context, request *O2TestVNFDeployReque
 			DetailedState: "CREATING",
 		},
 	}
-	
+
 	// Create deployment
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -372,17 +372,17 @@ func (a *O2Adaptor) DeployVNF(ctx context.Context, request *O2TestVNFDeployReque
 			},
 		},
 	}
-	
+
 	if request.Resources != nil {
 		deployment.Spec.Template.Spec.Containers[0].Resources = *request.Resources
 	}
-	
+
 	// Create deployment in cluster
 	err := a.kubeClient.Create(ctx, deployment)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create deployment: %w", err)
 	}
-	
+
 	return instance, nil
 }
 
@@ -391,9 +391,9 @@ func (a *O2Adaptor) ScaleVNF(ctx context.Context, instanceID string, scaleReques
 	// Parse instance ID (namespace-name format like "test-ns-test-vnf")
 	// We need to map this back to the actual namespace and deployment name
 	// For this test case, "test-ns-test-vnf" should map to namespace="test-ns", name="test-vnf"
-	
+
 	var namespace, name string
-	
+
 	// Handle the specific case from the test
 	if instanceID == "test-ns-test-vnf" {
 		namespace = "test-ns"
@@ -405,12 +405,12 @@ func (a *O2Adaptor) ScaleVNF(ctx context.Context, instanceID string, scaleReques
 		if len(parts) < 2 {
 			return fmt.Errorf("invalid instance ID format: %s", instanceID)
 		}
-		
+
 		// Assume the first part is namespace and rest is name (simplified)
 		namespace = parts[0]
 		name = strings.Join(parts[1:], "-")
 	}
-	
+
 	// Get deployment
 	deployment := &appsv1.Deployment{}
 	err := a.kubeClient.Get(ctx, client.ObjectKey{
@@ -420,11 +420,11 @@ func (a *O2Adaptor) ScaleVNF(ctx context.Context, instanceID string, scaleReques
 	if err != nil {
 		return fmt.Errorf("failed to get deployment %s/%s: %w", namespace, name, err)
 	}
-	
+
 	// Calculate new replica count based on scale request
 	currentReplicas := *deployment.Spec.Replicas
 	var newReplicas int32
-	
+
 	switch scaleRequest.ScaleType {
 	case "SCALE_OUT":
 		newReplicas = currentReplicas + int32(scaleRequest.NumberOfSteps)
@@ -436,14 +436,14 @@ func (a *O2Adaptor) ScaleVNF(ctx context.Context, instanceID string, scaleReques
 	default:
 		return fmt.Errorf("unsupported scale type: %s", scaleRequest.ScaleType)
 	}
-	
+
 	// Update deployment
 	deployment.Spec.Replicas = &newReplicas
 	err = a.kubeClient.Update(ctx, deployment)
 	if err != nil {
 		return fmt.Errorf("failed to update deployment: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -803,7 +803,7 @@ func TestO2Manager_DeployVNF(t *testing.T) {
 		name          string
 		vnfSpec       *O2VNFDescriptor
 		expectedError bool
-			validateFunc  func(*testing.T, *O2DeploymentStatus)
+		validateFunc  func(*testing.T, *O2DeploymentStatus)
 	}{
 		{
 			name: "successful AMF deployment",
@@ -991,7 +991,7 @@ func TestO2Adaptor_DeployVNF(t *testing.T) {
 
 			// Create O2 adaptor
 			adaptor, err := NewO2Adaptor(ctrlClient, clientset, nil)
-	require.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute test
 			ctx := context.Background()
@@ -1258,4 +1258,3 @@ func BenchmarkO2Adaptor_DeployVNF(b *testing.B) {
 		}
 	}
 }
-

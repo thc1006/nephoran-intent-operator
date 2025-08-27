@@ -1093,4 +1093,3 @@ type A1HandlerTestError struct {
 	Instance string      `json:"instance"`
 	Cause    error       `json:"-"`
 }
-

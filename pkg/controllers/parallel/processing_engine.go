@@ -1017,14 +1017,14 @@ func NewProcessingMetrics() *ProcessingMetrics {
 func (bm *BackpressureManager) GetStats() (map[string]interface{}, error) {
 	bm.mutex.RLock()
 	defer bm.mutex.RUnlock()
-	
+
 	stats := map[string]interface{}{
-		"current_load":   bm.currentLoad,
-		"thresholds":     bm.thresholds,
-		"metrics":        bm.metrics,
-		"actions_count":  len(bm.actions),
+		"current_load":  bm.currentLoad,
+		"thresholds":    bm.thresholds,
+		"metrics":       bm.metrics,
+		"actions_count": len(bm.actions),
 	}
-	
+
 	return stats, nil
 }
 
@@ -1065,7 +1065,7 @@ func (bm *BackpressureManager) Stop() {
 func (bm *BackpressureManager) ShouldReject(taskType TaskType) bool {
 	bm.mutex.RLock()
 	defer bm.mutex.RUnlock()
-	
+
 	if bm.currentLoad > bm.thresholds["high"] {
 		return true
 	}

@@ -50,12 +50,12 @@ func NewMockPorchClient() *MockPorchClient {
 func (m *MockPorchClient) GetPackageRevision(ctx context.Context, name, revision string) (*porch.PackageRevision, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	key := fmt.Sprintf("%s@%s", name, revision)
 	if m.failures[key] {
 		return nil, fmt.Errorf("simulated failure for %s", key)
 	}
-	
+
 	if pkg, exists := m.packages[key]; exists {
 		return pkg, nil
 	}
@@ -65,12 +65,12 @@ func (m *MockPorchClient) GetPackageRevision(ctx context.Context, name, revision
 func (m *MockPorchClient) CreatePackageRevision(ctx context.Context, pkg *porch.PackageRevision) (*porch.PackageRevision, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	key := fmt.Sprintf("%s@%s", pkg.Spec.PackageName, pkg.Spec.Revision)
 	if m.failures[key] {
 		return nil, fmt.Errorf("simulated failure for %s", key)
 	}
-	
+
 	// Create a copy of the package
 	created := &porch.PackageRevision{
 		ObjectMeta: metav1.ObjectMeta{
@@ -88,7 +88,7 @@ func (m *MockPorchClient) CreatePackageRevision(ctx context.Context, pkg *porch.
 			},
 		},
 	}
-	
+
 	m.packages[key] = created
 	return created, nil
 }
@@ -96,12 +96,12 @@ func (m *MockPorchClient) CreatePackageRevision(ctx context.Context, pkg *porch.
 func (m *MockPorchClient) ListPackageRevisions(ctx context.Context, opts *porch.ListOptions) (*porch.PackageRevisionList, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	var items []porch.PackageRevision
 	for _, pkg := range m.packages {
 		items = append(items, *pkg)
 	}
-	
+
 	return &porch.PackageRevisionList{Items: items}, nil
 }
 
@@ -118,7 +118,7 @@ func (m *MockPorchClient) UpdatePackageRevision(ctx context.Context, pkg *porch.
 func (m *MockPorchClient) DeletePackageRevision(ctx context.Context, name, revision string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	key := fmt.Sprintf("%s@%s", name, revision)
 	delete(m.packages, key)
 	return nil

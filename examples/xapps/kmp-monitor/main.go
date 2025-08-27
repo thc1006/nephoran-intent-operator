@@ -94,13 +94,13 @@ func main() {
 func NewKMPMonitorXApp(config *e2.XAppConfig) (*KMPMonitorXApp, error) {
 	// Create E2Manager
 	e2Manager, err := e2.NewE2Manager(&e2.E2ManagerConfig{
-		DefaultRICURL:       config.NearRTRICURL,
-		DefaultAPIVersion:   "v1",
-		DefaultTimeout:      30 * time.Second,
-		HeartbeatInterval:   30 * time.Second,
-		MaxRetries:          3,
-		SimulationMode:      false,
-		SimulateRICCalls:    false,
+		DefaultRICURL:     config.NearRTRICURL,
+		DefaultAPIVersion: "v1",
+		DefaultTimeout:    30 * time.Second,
+		HeartbeatInterval: 30 * time.Second,
+		MaxRetries:        3,
+		SimulationMode:    false,
+		SimulateRICCalls:  false,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create E2Manager: %w", err)

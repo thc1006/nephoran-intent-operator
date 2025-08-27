@@ -28,7 +28,7 @@ func (g *Generator) Generate() error {
 	// Create package directory
 	packageName := fmt.Sprintf("%s-scaling-%d", g.Intent.Target, time.Now().Unix())
 	packageDir := filepath.Join(g.OutputDir, packageName)
-	
+
 	if err := os.MkdirAll(packageDir, 0755); err != nil {
 		return fmt.Errorf("failed to create package directory: %w", err)
 	}
@@ -119,7 +119,7 @@ func (g *Generator) generatePatch(packageDir string) error {
 	// Add kpt setter comment
 	patchContent := string(data)
 	patchContent = fmt.Sprintf("# kpt-file: deployment-patch.yaml\n%s", patchContent)
-	
+
 	patchPath := filepath.Join(packageDir, "deployment-patch.yaml")
 	return os.WriteFile(patchPath, []byte(patchContent), 0644)
 }
@@ -158,10 +158,10 @@ func (g *Generator) generateReadme(packageDir string) error {
 
 ## Usage
 Apply this patch using kpt:
-` + "```bash" + `
+`+"```bash"+`
 kpt fn eval --image gcr.io/kpt-fn/apply-setters:v0.2.0
 kubectl apply -f deployment-patch.yaml
-` + "```" + `
+`+"```"+`
 
 ## Files
 - Kptfile: Package metadata

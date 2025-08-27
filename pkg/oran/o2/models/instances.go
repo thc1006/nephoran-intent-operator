@@ -33,22 +33,22 @@ type ResourceInstance struct {
 
 // ResourceMetrics represents metrics collected from a resource
 type ResourceMetrics struct {
-	ResourceID  string                 `json:"resourceId"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Metrics     map[string]interface{} `json:"metrics"`
-	CPU         *MetricValue           `json:"cpu,omitempty"`
-	Memory      *MetricValue           `json:"memory,omitempty"`
-	Storage     *MetricValue           `json:"storage,omitempty"`
-	Network     *NetworkMetrics        `json:"network,omitempty"`
+	ResourceID    string                  `json:"resourceId"`
+	Timestamp     time.Time               `json:"timestamp"`
+	Metrics       map[string]interface{}  `json:"metrics"`
+	CPU           *MetricValue            `json:"cpu,omitempty"`
+	Memory        *MetricValue            `json:"memory,omitempty"`
+	Storage       *MetricValue            `json:"storage,omitempty"`
+	Network       *NetworkMetrics         `json:"network,omitempty"`
 	CustomMetrics map[string]*MetricValue `json:"customMetrics,omitempty"`
 }
 
 // MetricValue represents a single metric value with metadata
 type MetricValue struct {
-	Value       float64   `json:"value"`
-	Unit        string    `json:"unit"`
-	Timestamp   time.Time `json:"timestamp"`
-	Description string    `json:"description,omitempty"`
+	Value       float64           `json:"value"`
+	Unit        string            `json:"unit"`
+	Timestamp   time.Time         `json:"timestamp"`
+	Description string            `json:"description,omitempty"`
 	Labels      map[string]string `json:"labels,omitempty"`
 }
 
@@ -65,17 +65,17 @@ type NetworkMetrics struct {
 
 // CreateResourceInstanceRequest represents a request to create a resource instance
 type CreateResourceInstanceRequest struct {
-	Name                 string                 `json:"name"`
-	Description          string                 `json:"description,omitempty"`
-	ResourceTypeID       string                 `json:"resourceTypeId"`
-	ResourcePoolID       string                 `json:"resourcePoolId"`
-	OCloudID             string                 `json:"oCloudId"`
-	ParentID             string                 `json:"parentId,omitempty"`
-	Configuration        map[string]interface{} `json:"configuration,omitempty"`
-	Extensions           map[string]interface{} `json:"extensions,omitempty"`
-	Metadata             map[string]interface{} `json:"metadata,omitempty"`
-	Labels               map[string]string      `json:"labels,omitempty"`
-	Annotations          map[string]string      `json:"annotations,omitempty"`
+	Name           string                 `json:"name"`
+	Description    string                 `json:"description,omitempty"`
+	ResourceTypeID string                 `json:"resourceTypeId"`
+	ResourcePoolID string                 `json:"resourcePoolId"`
+	OCloudID       string                 `json:"oCloudId"`
+	ParentID       string                 `json:"parentId,omitempty"`
+	Configuration  map[string]interface{} `json:"configuration,omitempty"`
+	Extensions     map[string]interface{} `json:"extensions,omitempty"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	Labels         map[string]string      `json:"labels,omitempty"`
+	Annotations    map[string]string      `json:"annotations,omitempty"`
 }
 
 // UpdateResourceInstanceRequest represents a request to update a resource instance
@@ -93,25 +93,25 @@ type UpdateResourceInstanceRequest struct {
 
 // ResourceInstanceFilter defines filters for querying resource instances
 type ResourceInstanceFilter struct {
-	Names                []string          `json:"names,omitempty"`
-	ResourceTypeIDs      []string          `json:"resourceTypeIds,omitempty"`
-	ResourcePoolIDs      []string          `json:"resourcePoolIds,omitempty"`
-	OCloudIDs            []string          `json:"oCloudIds,omitempty"`
-	ParentIDs            []string          `json:"parentIds,omitempty"`
-	States               []string          `json:"states,omitempty"`
-	OperationalStatuses  []string          `json:"operationalStatuses,omitempty"`
-	AdministrativeStatuses []string        `json:"administrativeStatuses,omitempty"`
-	UsageStatuses        []string          `json:"usageStatuses,omitempty"`
-	Providers            []string          `json:"providers,omitempty"`
-	Regions              []string          `json:"regions,omitempty"`
-	Zones                []string          `json:"zones,omitempty"`
-	Labels               map[string]string `json:"labels,omitempty"`
-	CreatedAfter         *time.Time        `json:"createdAfter,omitempty"`
-	CreatedBefore        *time.Time        `json:"createdBefore,omitempty"`
-	Limit                int               `json:"limit,omitempty"`
-	Offset               int               `json:"offset,omitempty"`
-	SortBy               string            `json:"sortBy,omitempty"`
-	SortOrder            string            `json:"sortOrder,omitempty"` // ASC, DESC
+	Names                  []string          `json:"names,omitempty"`
+	ResourceTypeIDs        []string          `json:"resourceTypeIds,omitempty"`
+	ResourcePoolIDs        []string          `json:"resourcePoolIds,omitempty"`
+	OCloudIDs              []string          `json:"oCloudIds,omitempty"`
+	ParentIDs              []string          `json:"parentIds,omitempty"`
+	States                 []string          `json:"states,omitempty"`
+	OperationalStatuses    []string          `json:"operationalStatuses,omitempty"`
+	AdministrativeStatuses []string          `json:"administrativeStatuses,omitempty"`
+	UsageStatuses          []string          `json:"usageStatuses,omitempty"`
+	Providers              []string          `json:"providers,omitempty"`
+	Regions                []string          `json:"regions,omitempty"`
+	Zones                  []string          `json:"zones,omitempty"`
+	Labels                 map[string]string `json:"labels,omitempty"`
+	CreatedAfter           *time.Time        `json:"createdAfter,omitempty"`
+	CreatedBefore          *time.Time        `json:"createdBefore,omitempty"`
+	Limit                  int               `json:"limit,omitempty"`
+	Offset                 int               `json:"offset,omitempty"`
+	SortBy                 string            `json:"sortBy,omitempty"`
+	SortOrder              string            `json:"sortOrder,omitempty"` // ASC, DESC
 }
 
 // Constants for resource instance states and statuses

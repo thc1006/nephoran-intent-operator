@@ -107,14 +107,14 @@ type LoadTestResults struct {
 
 // LatencyStatistics contains detailed latency metrics
 type LatencyStatistics struct {
-	Mean         time.Duration      `json:"mean"`
-	Median       time.Duration      `json:"median"`
-	P95          time.Duration      `json:"p95"`
-	P99          time.Duration      `json:"p99"`
-	Min          time.Duration      `json:"min"`
-	Max          time.Duration      `json:"max"`
-	StdDev       time.Duration      `json:"std_dev"`
-	Distribution map[string]int64   `json:"distribution"`
+	Mean         time.Duration              `json:"mean"`
+	Median       time.Duration              `json:"median"`
+	P95          time.Duration              `json:"p95"`
+	P99          time.Duration              `json:"p99"`
+	Min          time.Duration              `json:"min"`
+	Max          time.Duration              `json:"max"`
+	StdDev       time.Duration              `json:"std_dev"`
+	Distribution map[string]int64           `json:"distribution"`
 	Timeline     []LoadTestLatencyDataPoint `json:"timeline"`
 }
 

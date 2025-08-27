@@ -15,7 +15,7 @@ const (
 	// Performance test constants
 	packageCreationCount = 100
 	concurrentWorkers    = 10
-	timeoutDuration     = 30 * time.Second
+	timeoutDuration      = 30 * time.Second
 )
 
 // Package represents a simplified package structure for testing
@@ -35,7 +35,7 @@ func TestIntentPerformance(t *testing.T) {
 
 	var wg sync.WaitGroup
 	packageChan := make(chan *Package, packageCreationCount)
-	
+
 	// Start workers
 	for i := 0; i < concurrentWorkers; i++ {
 		wg.Add(1)
@@ -43,13 +43,13 @@ func TestIntentPerformance(t *testing.T) {
 			defer wg.Done()
 			for pkg := range packageChan {
 				startTime := time.Now()
-				
+
 				// Simulate package processing
 				processPackage(ctx, pkg)
-				
+
 				duration := time.Since(startTime)
 				t.Logf("Worker %d processed package %s in %v", workerID, pkg.Name, duration)
-				
+
 				// Performance assertion - should process within reasonable time
 				assert.Less(t, duration, 1*time.Second, "Package processing should complete within 1 second")
 			}
@@ -69,7 +69,7 @@ func TestIntentPerformance(t *testing.T) {
 					Repository: "performance-test",
 				},
 			}
-			
+
 			select {
 			case packageChan <- pkg:
 			case <-ctx.Done():
@@ -81,7 +81,7 @@ func TestIntentPerformance(t *testing.T) {
 
 	// Wait for all workers to complete
 	wg.Wait()
-	
+
 	// Verify context didn't timeout
 	select {
 	case <-ctx.Done():

@@ -831,12 +831,12 @@ type AuthConfig struct {
 }
 
 type FilterConfig struct {
-	MinSeverity   audit.Severity      `json:"min_severity"`
-	EventTypes    []audit.EventType   `json:"event_types"`
-	Components    []string            `json:"components"`
-	ExcludeTypes  []audit.EventType   `json:"exclude_types"`
-	IncludeFields []string            `json:"include_fields"`
-	ExcludeFields []string            `json:"exclude_fields"`
+	MinSeverity   audit.Severity    `json:"min_severity"`
+	EventTypes    []audit.EventType `json:"event_types"`
+	Components    []string          `json:"components"`
+	ExcludeTypes  []audit.EventType `json:"exclude_types"`
+	IncludeFields []string          `json:"include_fields"`
+	ExcludeFields []string          `json:"exclude_fields"`
 }
 
 func (fc FilterConfig) ShouldProcessEvent(event *audit.AuditEvent) bool {

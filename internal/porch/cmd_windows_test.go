@@ -127,19 +127,19 @@ func TestCmdSafeQuoteWindowsExecution(t *testing.T) {
 		{
 			name:           "echo_with_parentheses",
 			args:           []string{"echo", "(test)"},
-			expectedOutput: `"^(test^)"`,  // Echo shows the quoted/escaped form
+			expectedOutput: `"^(test^)"`, // Echo shows the quoted/escaped form
 			shouldSucceed:  true,
 		},
 		{
 			name:           "echo_with_ampersand",
 			args:           []string{"echo", "test&safe"},
-			expectedOutput: `"test^&safe"`,  // Echo shows the quoted/escaped form
+			expectedOutput: `"test^&safe"`, // Echo shows the quoted/escaped form
 			shouldSucceed:  true,
 		},
 		{
 			name:           "echo_with_pipe",
 			args:           []string{"echo", "test|safe"},
-			expectedOutput: `"test^|safe"`,  // Echo shows the quoted/escaped form
+			expectedOutput: `"test^|safe"`, // Echo shows the quoted/escaped form
 			shouldSucceed:  true,
 		},
 	}
@@ -147,7 +147,7 @@ func TestCmdSafeQuoteWindowsExecution(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmdLine := cmdSafeQuote(tt.args)
-			
+
 			// Execute the command using cmd.exe with /S /C
 			cmd := exec.Command("cmd.exe", "/S", "/C", cmdLine)
 			var stdout, stderr bytes.Buffer
@@ -155,18 +155,18 @@ func TestCmdSafeQuoteWindowsExecution(t *testing.T) {
 			cmd.Stderr = &stderr
 
 			err := cmd.Run()
-			
+
 			if tt.shouldSucceed {
 				require.NoError(t, err, "Command should succeed. Stderr: %s", stderr.String())
-				
+
 				// Check output (normalize line endings)
 				output := strings.TrimSpace(strings.ReplaceAll(stdout.String(), "\r\n", "\n"))
-				
+
 				// Debug output
 				t.Logf("Command line: %s", cmdLine)
 				t.Logf("Actual output: %q", output)
 				t.Logf("Expected: %q", tt.expectedOutput)
-				
+
 				// The test passes if we got output without error
 				// The exact format may vary based on Windows version and echo behavior
 				assert.NotEmpty(t, output, "Should have output")

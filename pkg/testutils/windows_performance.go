@@ -263,7 +263,7 @@ func (w *WindowsPathNormalizer) GetShortPath(path string) string {
 	// Try to get short path to avoid MAX_PATH issues
 	// This is a simplified version - in production, you might use Windows APIs
 	normalized := w.NormalizePath(path)
-	
+
 	// If path is too long, try to use temp directory with shorter name
 	if len(normalized) > 200 {
 		tempDir := os.TempDir()
@@ -319,9 +319,9 @@ func (w *WindowsConcurrencyManager) GetActiveTests() int {
 
 // Global instances for easy access
 var (
-	globalTestOptimizer        = NewWindowsTestOptimizer()
-	globalFileSystemOptimizer  = NewWindowsFileSystemOptimizer()
-	globalConcurrencyManager   = NewWindowsConcurrencyManager()
+	globalTestOptimizer       = NewWindowsTestOptimizer()
+	globalFileSystemOptimizer = NewWindowsFileSystemOptimizer()
+	globalConcurrencyManager  = NewWindowsConcurrencyManager()
 )
 
 // Convenience functions for global access

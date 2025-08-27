@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package loop
@@ -19,18 +20,18 @@ func isPathSafe(path, baseDir string) bool {
 	if err != nil {
 		return false
 	}
-	
+
 	cleanBase, err := filepath.Abs(filepath.Clean(baseDir))
 	if err != nil {
 		return false
 	}
-	
+
 	// Check if the path is within the base directory
 	rel, err := filepath.Rel(cleanBase, cleanPath)
 	if err != nil {
 		return false
 	}
-	
+
 	// Path is safe if it doesn't start with ".." (meaning it's within base)
 	return !strings.HasPrefix(rel, "..") && !strings.Contains(rel, string(filepath.Separator)+"..")
 }
@@ -148,11 +149,11 @@ func TestWindowsPathSecurityValidation(t *testing.T) {
 			},
 			configFunc: func(baseDir string) Config {
 				return Config{
-					PorchPath:    createMockPorchExecutable(t, baseDir),
-					Mode:         "direct",
-					OutDir:       filepath.Join(baseDir, "Program Files", "My App", "Output"),
-					MaxWorkers:   2,
-					MetricsPort:  0,
+					PorchPath:   createMockPorchExecutable(t, baseDir),
+					Mode:        "direct",
+					OutDir:      filepath.Join(baseDir, "Program Files", "My App", "Output"),
+					MaxWorkers:  2,
+					MetricsPort: 0,
 				}
 			},
 			expectError: false,
@@ -195,9 +196,9 @@ func TestWindowsPathSecurityValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			baseDir := tt.setupFunc(t)
 			config := tt.configFunc(baseDir)
-			
+
 			_, err := NewWatcher(baseDir, config)
-			
+
 			if tt.expectError {
 				if err == nil {
 					t.Log("Warning: Expected error but got none. This might be due to OS-level permissions.")
@@ -214,7 +215,7 @@ func TestWindowsPathSecurityValidation(t *testing.T) {
 // TestWindowsPathNormalization tests that paths are properly normalized on Windows
 func TestWindowsPathNormalization(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	tests := []struct {
 		name       string
 		inputPath  string
@@ -246,20 +247,20 @@ func TestWindowsPathNormalization(t *testing.T) {
 			safe:       true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Clean the path as the validation code would
 			cleaned := filepath.Clean(tt.inputPath)
 			abs, err := filepath.Abs(cleaned)
-			
+
 			if tt.normalized {
 				assert.NoError(t, err, "Path should be normalizable")
 				assert.NotContains(t, abs, "/", "Should not contain forward slashes after normalization")
 				assert.NotContains(t, abs, "\\\\", "Should not contain double backslashes")
 				assert.NotContains(t, abs, "\\.", "Should not contain dot segments")
 			}
-			
+
 			// Check if path is considered safe (within temp directory)
 			if tt.safe {
 				safe := isPathSafe(abs, tempDir)
@@ -274,17 +275,17 @@ func TestWindowsCRLFHandling(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	require.NoError(t, os.MkdirAll(handoffDir, 0755))
-	
+
 	// Create an intent file with CRLF line endings
 	intentContent := "{\r\n  \"intent_type\": \"scaling\",\r\n  \"target\": \"test-app\",\r\n  \"namespace\": \"default\",\r\n  \"replicas\": 3\r\n}\r\n"
 	intentFile := filepath.Join(handoffDir, "intent-test.json")
 	require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0644))
-	
+
 	// The file should be readable and processable
 	data, err := os.ReadFile(intentFile)
 	assert.NoError(t, err, "Should be able to read file with CRLF")
 	assert.Contains(t, string(data), "\r\n", "Should preserve CRLF")
-	
+
 	// Validate that the file is recognized as an intent file
 	assert.True(t, IsIntentFile(filepath.Base(intentFile)), "Should recognize as intent file")
 }

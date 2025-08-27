@@ -102,7 +102,6 @@ type MetricConfig struct {
 	Target          float64      `json:"target"`
 }
 
-
 // AnalysisType defines different types of metric analysis
 type AnalysisType string
 
@@ -164,9 +163,9 @@ const (
 
 // ComponentAnalysis contains analysis results for a specific component
 type ComponentAnalysis struct {
-	ComponentType    shared.ComponentType      `json:"componentType"`
-	HealthStatus     SystemHealthStatus `json:"healthStatus"`
-	PerformanceScore float64            `json:"performanceScore"`
+	ComponentType    shared.ComponentType `json:"componentType"`
+	HealthStatus     SystemHealthStatus   `json:"healthStatus"`
+	PerformanceScore float64              `json:"performanceScore"`
 
 	// Metrics analysis
 	MetricAnalyses map[string]*MetricAnalysis `json:"metricAnalyses"`
@@ -265,22 +264,22 @@ type ForecastPoint struct {
 // PredictedBottleneck represents a bottleneck predicted to occur in the future
 type PredictedBottleneck struct {
 	ComponentType       shared.ComponentType `json:"componentType"`
-	MetricName          string        `json:"metricName"`
-	PredictedOccurrence time.Time     `json:"predictedOccurrence"`
-	Confidence          float64       `json:"confidence"`
-	ExpectedSeverity    SeverityLevel `json:"expectedSeverity"`
-	MitigationActions   []string      `json:"mitigationActions"`
+	MetricName          string               `json:"metricName"`
+	PredictedOccurrence time.Time            `json:"predictedOccurrence"`
+	Confidence          float64              `json:"confidence"`
+	ExpectedSeverity    SeverityLevel        `json:"expectedSeverity"`
+	MitigationActions   []string             `json:"mitigationActions"`
 }
 
 // PerformancePattern represents detected performance patterns
 type PerformancePattern struct {
-	PatternType         PatternType     `json:"patternType"`
-	Description         string          `json:"description"`
+	PatternType         PatternType            `json:"patternType"`
+	Description         string                 `json:"description"`
 	AffectedComponents  []shared.ComponentType `json:"affectedComponents"`
-	DetectionConfidence float64         `json:"detectionConfidence"`
-	Frequency           time.Duration   `json:"frequency"`
-	Impact              ImpactLevel     `json:"impact"`
-	RecommendedActions  []string        `json:"recommendedActions"`
+	DetectionConfidence float64                `json:"detectionConfidence"`
+	Frequency           time.Duration          `json:"frequency"`
+	Impact              ImpactLevel            `json:"impact"`
+	RecommendedActions  []string               `json:"recommendedActions"`
 }
 
 // PatternType represents different types of performance patterns
@@ -297,15 +296,15 @@ const (
 
 // MetricAnomaly represents detected metric anomalies
 type MetricAnomaly struct {
-	MetricName    string        `json:"metricName"`
+	MetricName    string               `json:"metricName"`
 	ComponentType shared.ComponentType `json:"componentType"`
-	AnomalyType   AnomalyType   `json:"anomalyType"`
-	DetectedAt    time.Time     `json:"detectedAt"`
-	Severity      SeverityLevel `json:"severity"`
-	Description   string        `json:"description"`
-	ExpectedValue float64       `json:"expectedValue"`
-	ActualValue   float64       `json:"actualValue"`
-	AnomalyScore  float64       `json:"anomalyScore"`
+	AnomalyType   AnomalyType          `json:"anomalyType"`
+	DetectedAt    time.Time            `json:"detectedAt"`
+	Severity      SeverityLevel        `json:"severity"`
+	Description   string               `json:"description"`
+	ExpectedValue float64              `json:"expectedValue"`
+	ActualValue   float64              `json:"actualValue"`
+	AnomalyScore  float64              `json:"anomalyScore"`
 }
 
 // AnomalyType represents different types of anomalies
@@ -319,31 +318,31 @@ const (
 
 // CapacityPrediction contains capacity planning predictions
 type CapacityPrediction struct {
-	ResourceType         string        `json:"resourceType"`
+	ResourceType         string               `json:"resourceType"`
 	ComponentType        shared.ComponentType `json:"componentType"`
-	CurrentUtilization   float64       `json:"currentUtilization"`
-	PredictedUtilization float64       `json:"predictedUtilization"`
-	TimeToCapacity       time.Duration `json:"timeToCapacity"`
-	CapacityThreshold    float64       `json:"capacityThreshold"`
-	RecommendedActions   []string      `json:"recommendedActions"`
+	CurrentUtilization   float64              `json:"currentUtilization"`
+	PredictedUtilization float64              `json:"predictedUtilization"`
+	TimeToCapacity       time.Duration        `json:"timeToCapacity"`
+	CapacityThreshold    float64              `json:"capacityThreshold"`
+	RecommendedActions   []string             `json:"recommendedActions"`
 }
 
 // ResourceEfficiencyAnalysis contains resource efficiency analysis
 type ResourceEfficiencyAnalysis struct {
-	OverallEfficiency     float64                   `json:"overallEfficiency"`
+	OverallEfficiency     float64                          `json:"overallEfficiency"`
 	ComponentEfficiencies map[shared.ComponentType]float64 `json:"componentEfficiencies"`
-	InefficientResources  []InefficientResource     `json:"inefficientResources"`
-	OptimizationPotential float64                   `json:"optimizationPotential"`
+	InefficientResources  []InefficientResource            `json:"inefficientResources"`
+	OptimizationPotential float64                          `json:"optimizationPotential"`
 }
 
 // InefficientResource represents an inefficiently used resource
 type InefficientResource struct {
-	ResourceName       string        `json:"resourceName"`
+	ResourceName       string               `json:"resourceName"`
 	ComponentType      shared.ComponentType `json:"componentType"`
-	CurrentUtilization float64       `json:"currentUtilization"`
-	OptimalUtilization float64       `json:"optimalUtilization"`
-	WastedCapacity     float64       `json:"wastedCapacity"`
-	CostImpact         float64       `json:"costImpact"`
+	CurrentUtilization float64              `json:"currentUtilization"`
+	OptimalUtilization float64              `json:"optimalUtilization"`
+	WastedCapacity     float64              `json:"wastedCapacity"`
+	CostImpact         float64              `json:"costImpact"`
 }
 
 // ResourceWasteAnalysis identifies wasted resources
@@ -707,13 +706,13 @@ func (engine *PerformanceAnalysisEngine) detectCurrentBottlenecks(ctx context.Co
 		if cpuMetric, exists := analysis.MetricAnalyses["cpu_usage"]; exists {
 			if cpuMetric.CurrentValue > engine.config.CPUBottleneckThreshold {
 				bottlenecks = append(bottlenecks, &PerformanceBottleneck{
-					ID:            fmt.Sprintf("bottleneck_cpu_%s_%d", componentType, time.Now().Unix()),
-					Name:          fmt.Sprintf("High CPU usage in %s", componentType),
-					Description:   fmt.Sprintf("CPU usage is at %.1f%%, exceeding threshold of %.1f%%", cpuMetric.CurrentValue, engine.config.CPUBottleneckThreshold),
-					ComponentType: componentType,
-					Severity:      engine.calculateSeverity(cpuMetric.CurrentValue, engine.config.CPUBottleneckThreshold),
-					DetectedAt:    time.Now(),
-					ImpactScore:   (cpuMetric.CurrentValue - engine.config.CPUBottleneckThreshold) / engine.config.CPUBottleneckThreshold,
+					ID:              fmt.Sprintf("bottleneck_cpu_%s_%d", componentType, time.Now().Unix()),
+					Name:            fmt.Sprintf("High CPU usage in %s", componentType),
+					Description:     fmt.Sprintf("CPU usage is at %.1f%%, exceeding threshold of %.1f%%", cpuMetric.CurrentValue, engine.config.CPUBottleneckThreshold),
+					ComponentType:   componentType,
+					Severity:        engine.calculateSeverity(cpuMetric.CurrentValue, engine.config.CPUBottleneckThreshold),
+					DetectedAt:      time.Now(),
+					ImpactScore:     (cpuMetric.CurrentValue - engine.config.CPUBottleneckThreshold) / engine.config.CPUBottleneckThreshold,
 					AffectedMetrics: []string{"response_time", "throughput"},
 					RecommendedActions: []string{
 						"Scale horizontally",
@@ -728,13 +727,13 @@ func (engine *PerformanceAnalysisEngine) detectCurrentBottlenecks(ctx context.Co
 		if memMetric, exists := analysis.MetricAnalyses["memory_usage"]; exists {
 			if memMetric.CurrentValue > engine.config.MemoryBottleneckThreshold {
 				bottlenecks = append(bottlenecks, &PerformanceBottleneck{
-					ID:            fmt.Sprintf("bottleneck_mem_%s_%d", componentType, time.Now().Unix()),
-					Name:          fmt.Sprintf("High memory usage in %s", componentType),
-					Description:   fmt.Sprintf("Memory usage is at %.1f%%, exceeding threshold of %.1f%%", memMetric.CurrentValue, engine.config.MemoryBottleneckThreshold),
-					ComponentType: componentType,
-					Severity:      engine.calculateSeverity(memMetric.CurrentValue, engine.config.MemoryBottleneckThreshold),
-					DetectedAt:    time.Now(),
-					ImpactScore:   (memMetric.CurrentValue - engine.config.MemoryBottleneckThreshold) / engine.config.MemoryBottleneckThreshold,
+					ID:              fmt.Sprintf("bottleneck_mem_%s_%d", componentType, time.Now().Unix()),
+					Name:            fmt.Sprintf("High memory usage in %s", componentType),
+					Description:     fmt.Sprintf("Memory usage is at %.1f%%, exceeding threshold of %.1f%%", memMetric.CurrentValue, engine.config.MemoryBottleneckThreshold),
+					ComponentType:   componentType,
+					Severity:        engine.calculateSeverity(memMetric.CurrentValue, engine.config.MemoryBottleneckThreshold),
+					DetectedAt:      time.Now(),
+					ImpactScore:     (memMetric.CurrentValue - engine.config.MemoryBottleneckThreshold) / engine.config.MemoryBottleneckThreshold,
 					AffectedMetrics: []string{"gc_pause_time", "swap_usage"},
 					RecommendedActions: []string{
 						"Increase memory allocation",
@@ -750,13 +749,13 @@ func (engine *PerformanceAnalysisEngine) detectCurrentBottlenecks(ctx context.Co
 			thresholdSeconds := engine.config.LatencyBottleneckThreshold.Seconds()
 			if latencyMetric.CurrentValue > thresholdSeconds {
 				bottlenecks = append(bottlenecks, &PerformanceBottleneck{
-					ID:            fmt.Sprintf("bottleneck_latency_%s_%d", componentType, time.Now().Unix()),
-					Name:          fmt.Sprintf("High latency in %s", componentType),
-					Description:   fmt.Sprintf("Request latency is %.2fs, exceeding threshold of %.2fs", latencyMetric.CurrentValue, thresholdSeconds),
-					ComponentType: componentType,
-					Severity:      engine.calculateSeverity(latencyMetric.CurrentValue, thresholdSeconds),
-					DetectedAt:    time.Now(),
-					ImpactScore:   (latencyMetric.CurrentValue - thresholdSeconds) / thresholdSeconds,
+					ID:              fmt.Sprintf("bottleneck_latency_%s_%d", componentType, time.Now().Unix()),
+					Name:            fmt.Sprintf("High latency in %s", componentType),
+					Description:     fmt.Sprintf("Request latency is %.2fs, exceeding threshold of %.2fs", latencyMetric.CurrentValue, thresholdSeconds),
+					ComponentType:   componentType,
+					Severity:        engine.calculateSeverity(latencyMetric.CurrentValue, thresholdSeconds),
+					DetectedAt:      time.Now(),
+					ImpactScore:     (latencyMetric.CurrentValue - thresholdSeconds) / thresholdSeconds,
 					AffectedMetrics: []string{"user_experience", "timeout_rate"},
 					RecommendedActions: []string{
 						"Optimize database queries",
@@ -929,7 +928,7 @@ func (engine *PerformanceAnalysisEngine) predictCapacity(ctx context.Context, co
 					ComponentType:        componentType,
 					CurrentUtilization:   analysis.ResourceUtilization.CPUUtilization.Current,
 					PredictedUtilization: analysis.ResourceUtilization.CPUUtilization.Current * 1.2, // 20% growth
-					TimeToCapacity:       30 * 24 * time.Hour, // 30 days
+					TimeToCapacity:       30 * 24 * time.Hour,                                       // 30 days
 					CapacityThreshold:    85.0,
 					RecommendedActions: []string{
 						"Plan capacity expansion",
@@ -1039,9 +1038,9 @@ func (engine *PerformanceAnalysisEngine) analyzeCosts(ctx context.Context, compo
 // analyzeTelecomMetrics analyzes telecom-specific metrics
 func (engine *PerformanceAnalysisEngine) analyzeTelecomMetrics(ctx context.Context, componentAnalyses map[shared.ComponentType]*ComponentAnalysis) *TelecomPerformanceAnalysis {
 	telecom := &TelecomPerformanceAnalysis{
-		XAppPerformance: make(map[string]float64),
-		SliceLatency:    make(map[string]float64),
-		SliceThroughput: make(map[string]float64),
+		XAppPerformance:      make(map[string]float64),
+		SliceLatency:         make(map[string]float64),
+		SliceThroughput:      make(map[string]float64),
 		VendorSpecificIssues: make([]string, 0),
 	}
 
@@ -1054,7 +1053,7 @@ func (engine *PerformanceAnalysisEngine) analyzeTelecomMetrics(ctx context.Conte
 	telecom.SliceIsolation = 0.95      // 95%
 	telecom.QoSCompliance = 0.98       // 98%
 	telecom.SLAViolations = 2
-	telecom.InteropEfficiency = 0.87   // 87%
+	telecom.InteropEfficiency = 0.87 // 87%
 
 	// Populate xApp performance
 	telecom.XAppPerformance["traffic-steering"] = 0.94
@@ -1134,20 +1133,20 @@ func (engine *PerformanceAnalysisEngine) identifyComponentIssues(ctx context.Con
 	for metricName, metricAnalysis := range analysis.MetricAnalyses {
 		if metricAnalysis.IsAnomalous || metricAnalysis.Deviation > 20.0 {
 			issue := &PerformanceIssue{
-				ID:              fmt.Sprintf("issue_%s_%s_%d", config.Type, metricName, time.Now().Unix()),
-				Name:            fmt.Sprintf("Performance issue in %s", metricName),
-				Description:     fmt.Sprintf("Metric %s is performing below expectations", metricName),
-				ComponentType:   config.Type,
-				Category:        engine.categorizeMetric(metricName),
-				Severity:        engine.calculateAnomalySeverity(metricAnalysis.AnomalyScore),
-				MetricName:      metricName,
-				CurrentValue:    metricAnalysis.CurrentValue,
-				ExpectedValue:   metricAnalysis.TargetValue,
-				Deviation:       metricAnalysis.Deviation,
-				FirstDetected:   time.Now(),
-				LastSeen:        time.Now(),
-				Frequency:       1,
-				TrendDirection:  string(metricAnalysis.Trend.Direction),
+				ID:             fmt.Sprintf("issue_%s_%s_%d", config.Type, metricName, time.Now().Unix()),
+				Name:           fmt.Sprintf("Performance issue in %s", metricName),
+				Description:    fmt.Sprintf("Metric %s is performing below expectations", metricName),
+				ComponentType:  config.Type,
+				Category:       engine.categorizeMetric(metricName),
+				Severity:       engine.calculateAnomalySeverity(metricAnalysis.AnomalyScore),
+				MetricName:     metricName,
+				CurrentValue:   metricAnalysis.CurrentValue,
+				ExpectedValue:  metricAnalysis.TargetValue,
+				Deviation:      metricAnalysis.Deviation,
+				FirstDetected:  time.Now(),
+				LastSeen:       time.Now(),
+				Frequency:      1,
+				TrendDirection: string(metricAnalysis.Trend.Direction),
 			}
 			issues = append(issues, issue)
 		}
@@ -1270,11 +1269,11 @@ func (engine *PerformanceAnalysisEngine) categorizeMetric(metricName string) Iss
 // calculateResourceUtilization calculates resource utilization for a component
 func (engine *PerformanceAnalysisEngine) calculateResourceUtilization(ctx context.Context, analysis *ComponentAnalysis, componentType shared.ComponentType) *ResourceUtilization {
 	utilization := &ResourceUtilization{
-		ComponentType:   componentType,
-		TimePeriod:      TimePeriod{Start: time.Now().Add(-time.Hour), End: time.Now(), Duration: time.Hour},
-		CustomMetrics:   make(map[string]*ResourceMetric),
-		WasteFactors:    make([]*WasteFactor, 0),
-		EfficiencyScore: 75.0, // Default efficiency score
+		ComponentType:         componentType,
+		TimePeriod:            TimePeriod{Start: time.Now().Add(-time.Hour), End: time.Now(), Duration: time.Hour},
+		CustomMetrics:         make(map[string]*ResourceMetric),
+		WasteFactors:          make([]*WasteFactor, 0),
+		EfficiencyScore:       75.0, // Default efficiency score
 		OptimizationPotential: 20.0,
 	}
 
@@ -1322,18 +1321,18 @@ func (engine *PerformanceAnalysisEngine) calculateResourceUtilization(ctx contex
 func (engine *PerformanceAnalysisEngine) calculateComponentPerformanceMetrics(ctx context.Context, analysis *ComponentAnalysis) *ComponentPerformanceMetrics {
 	metrics := &ComponentPerformanceMetrics{
 		ResponseTime: &PerformanceMetric{
-			Value: 125.5,
-			Unit:  "ms",
+			Value:  125.5,
+			Unit:   "ms",
 			Target: 100.0,
 		},
 		Throughput: &PerformanceMetric{
-			Value: 1250.0,
-			Unit:  "req/sec",
+			Value:  1250.0,
+			Unit:   "req/sec",
 			Target: 1000.0,
 		},
 		ErrorRate: &PerformanceMetric{
-			Value: 0.002,
-			Unit:  "percent",
+			Value:  0.002,
+			Unit:   "percent",
 			Target: 0.001,
 		},
 		QualityScore: 95.5,
@@ -1346,7 +1345,7 @@ func (engine *PerformanceAnalysisEngine) calculateComponentPerformanceMetrics(ct
 func (engine *PerformanceAnalysisEngine) getHistoricalMetricData(ctx context.Context, query string, window time.Duration) ([]DataPoint, error) {
 	// Simplified implementation - in reality, this would query Prometheus
 	var dataPoints []DataPoint
-	
+
 	now := time.Now()
 	for i := 0; i < 100; i++ {
 		timestamp := now.Add(-time.Duration(i) * (window / 100))
@@ -1356,7 +1355,7 @@ func (engine *PerformanceAnalysisEngine) getHistoricalMetricData(ctx context.Con
 			Value:     value,
 		})
 	}
-	
+
 	return dataPoints, nil
 }
 
@@ -1374,8 +1373,8 @@ func (engine *PerformanceAnalysisEngine) calculateMetricStatistics(data []DataPo
 	sort.Float64s(values)
 
 	stats := &MetricStatistics{
-		Min:  values[0],
-		Max:  values[len(values)-1],
+		Min:         values[0],
+		Max:         values[len(values)-1],
 		Percentiles: make(map[int]float64),
 	}
 
@@ -1432,11 +1431,11 @@ func (engine *PerformanceAnalysisEngine) analyzeTrend(data []DataPoint) *TrendAn
 	}
 
 	slope := (n*sumXY - sumX*sumY) / (n*sumX2 - sumX*sumX)
-	
+
 	// Determine direction
 	var direction TrendDirection
 	var confidence float64
-	
+
 	if math.Abs(slope) < 0.1 {
 		direction = TrendDirectionStable
 		confidence = 0.8
@@ -1470,7 +1469,7 @@ func (engine *PerformanceAnalysisEngine) detectMetricAnomaly(currentValue float6
 
 	zScore := math.Abs(currentValue-stats.Mean) / stats.StandardDeviation
 	anomalyScore := math.Min(1.0, zScore/3.0) // Normalize to 0-1
-	
+
 	// Consider it anomalous if z-score > 2 (roughly 95% confidence)
 	isAnomalous := zScore > 2.0
 
@@ -1530,7 +1529,7 @@ func (engine *PerformanceAnalysisEngine) forecastMetric(data []DataPoint, horizo
 	for i := 0; i < steps; i++ {
 		timestamp := time.Now().Add(time.Duration(i) * 5 * time.Minute)
 		predictedValue := lastValue + trend*float64(i+1)
-		
+
 		forecast.PredictedValues = append(forecast.PredictedValues, ForecastPoint{
 			Timestamp:      timestamp,
 			PredictedValue: predictedValue,

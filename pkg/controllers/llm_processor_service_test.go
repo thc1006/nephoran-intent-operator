@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
 )
 
 // Service structures matching the LLM processor
@@ -183,7 +184,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 	BeforeEach(func() {
 		By("Setting up test LLM processor service")
 		// Create mock LLM client for service testing
-		mockClient := &MockLLMClient{
+		mockClient := &testutils.MockLLMClient{
 			Response: `{"action": "test", "result": "success"}`,
 			Error:    nil,
 		}
@@ -381,7 +382,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 
 		It("Should handle LLM processing failures", func() {
 			By("Setting up service with failing LLM client")
-			failingClient := &MockLLMClient{
+			failingClient := &testutils.MockLLMClient{
 				Response: "",
 				Error:    fmt.Errorf("LLM service unavailable"),
 			}
@@ -474,7 +475,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 			}
 			complexResponseBytes, _ := json.Marshal(complexResponse)
 
-			complexClient := &MockLLMClient{
+			complexClient := &testutils.MockLLMClient{
 				Response: string(complexResponseBytes),
 				Error:    nil,
 			}
@@ -516,7 +517,7 @@ var _ = Describe("LLM Processor Service Tests", func() {
 
 		It("Should handle retry scenarios with LLM client", func() {
 			By("Setting up service with retry-capable LLM client")
-			retryClient := &MockLLMClient{
+			retryClient := &testutils.MockLLMClient{
 				Response:  `{"action": "retry_success", "attempt": 3}`,
 				Error:     fmt.Errorf("temporary failure"),
 				FailCount: 2, // Fail first 2 attempts, succeed on 3rd

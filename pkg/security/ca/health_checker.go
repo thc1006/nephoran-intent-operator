@@ -576,8 +576,8 @@ func (hc *HealthChecker) determineHealthStatus(session *HealthCheckSession) Heal
 
 	// Use default thresholds for now
 	// TODO: Add HealthyThreshold and UnhealthyThreshold to HealthCheckConfig if needed
-	_ = hc.config.DefaultHealthyThreshold    // healthyThreshold
-	_ = hc.config.DefaultUnhealthyThreshold  // unhealthyThreshold
+	_ = hc.config.DefaultHealthyThreshold   // healthyThreshold
+	_ = hc.config.DefaultUnhealthyThreshold // unhealthyThreshold
 
 	// Simple logic: if recent checks are mostly successful, consider healthy
 	recentChecks := 10

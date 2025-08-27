@@ -24,51 +24,51 @@ type QualityMetricsReport struct {
 }
 
 type QualitySummary struct {
-	OverallScore    float64 `json:"overall_score"`
-	Grade           string  `json:"grade"`
-	Status          string  `json:"status"`
-	TotalIssues     int     `json:"total_issues"`
-	CriticalIssues  int     `json:"critical_issues"`
-	WarningIssues   int     `json:"warning_issues"`
-	InfoIssues      int     `json:"info_issues"`
+	OverallScore   float64 `json:"overall_score"`
+	Grade          string  `json:"grade"`
+	Status         string  `json:"status"`
+	TotalIssues    int     `json:"total_issues"`
+	CriticalIssues int     `json:"critical_issues"`
+	WarningIssues  int     `json:"warning_issues"`
+	InfoIssues     int     `json:"info_issues"`
 }
 
 type CodeMetrics struct {
-	LinesOfCode        int     `json:"lines_of_code"`
-	LinesOfComments    int     `json:"lines_of_comments"`
-	LinesOfBlank       int     `json:"lines_of_blank"`
-	CyclomaticComplexity int   `json:"cyclomatic_complexity"`
-	CodeCoverage       float64 `json:"code_coverage"`
-	DuplicationRatio   float64 `json:"duplication_ratio"`
-	TechnicalDebtRatio float64 `json:"technical_debt_ratio"`
-	Maintainability    float64 `json:"maintainability"`
+	LinesOfCode          int     `json:"lines_of_code"`
+	LinesOfComments      int     `json:"lines_of_comments"`
+	LinesOfBlank         int     `json:"lines_of_blank"`
+	CyclomaticComplexity int     `json:"cyclomatic_complexity"`
+	CodeCoverage         float64 `json:"code_coverage"`
+	DuplicationRatio     float64 `json:"duplication_ratio"`
+	TechnicalDebtRatio   float64 `json:"technical_debt_ratio"`
+	Maintainability      float64 `json:"maintainability"`
 }
 
 type TestMetrics struct {
-	TotalTests      int     `json:"total_tests"`
-	PassingTests    int     `json:"passing_tests"`
-	FailingTests    int     `json:"failing_tests"`
-	TestCoverage    float64 `json:"test_coverage"`
-	BenchmarkTests  int     `json:"benchmark_tests"`
-	IntegrationTests int    `json:"integration_tests"`
-	UnitTests       int     `json:"unit_tests"`
+	TotalTests       int     `json:"total_tests"`
+	PassingTests     int     `json:"passing_tests"`
+	FailingTests     int     `json:"failing_tests"`
+	TestCoverage     float64 `json:"test_coverage"`
+	BenchmarkTests   int     `json:"benchmark_tests"`
+	IntegrationTests int     `json:"integration_tests"`
+	UnitTests        int     `json:"unit_tests"`
 }
 
 type SecurityMetrics struct {
-	Vulnerabilities     int      `json:"vulnerabilities"`
-	HighSeverity        int      `json:"high_severity"`
-	MediumSeverity      int      `json:"medium_severity"`
-	LowSeverity         int      `json:"low_severity"`
-	SecurityScore       float64  `json:"security_score"`
-	VulnerablePackages  []string `json:"vulnerable_packages"`
+	Vulnerabilities    int      `json:"vulnerabilities"`
+	HighSeverity       int      `json:"high_severity"`
+	MediumSeverity     int      `json:"medium_severity"`
+	LowSeverity        int      `json:"low_severity"`
+	SecurityScore      float64  `json:"security_score"`
+	VulnerablePackages []string `json:"vulnerable_packages"`
 }
 
 type TechnicalDebtReport struct {
-	EstimatedHours    float64            `json:"estimated_hours"`
-	DebtRatio         float64            `json:"debt_ratio"`
-	IssuesByType      map[string]int     `json:"issues_by_type"`
-	IssuesByPackage   map[string]int     `json:"issues_by_package"`
-	IssuesBySeverity  map[string]int     `json:"issues_by_severity"`
+	EstimatedHours   float64        `json:"estimated_hours"`
+	DebtRatio        float64        `json:"debt_ratio"`
+	IssuesByType     map[string]int `json:"issues_by_type"`
+	IssuesByPackage  map[string]int `json:"issues_by_package"`
+	IssuesBySeverity map[string]int `json:"issues_by_severity"`
 }
 
 type Recommendation struct {
@@ -112,14 +112,14 @@ func (qmr *QualityMetricsReport) analyzeCodeQuality() error {
 
 	// Analyze code metrics
 	qmr.CodeMetrics = CodeMetrics{
-		LinesOfCode:        50000,
-		LinesOfComments:    8000,
-		LinesOfBlank:       6000,
+		LinesOfCode:          50000,
+		LinesOfComments:      8000,
+		LinesOfBlank:         6000,
 		CyclomaticComplexity: 250,
-		CodeCoverage:       75.5,
-		DuplicationRatio:   2.3,
-		TechnicalDebtRatio: 5.2,
-		Maintainability:    85.0,
+		CodeCoverage:         75.5,
+		DuplicationRatio:     2.3,
+		TechnicalDebtRatio:   5.2,
+		Maintainability:      85.0,
 	}
 
 	// Analyze test metrics
@@ -130,7 +130,7 @@ func (qmr *QualityMetricsReport) analyzeCodeQuality() error {
 		TestCoverage:     75.5,
 		BenchmarkTests:   25,
 		IntegrationTests: 75,
-		UnitTests:       350,
+		UnitTests:        350,
 	}
 
 	// Analyze security metrics
@@ -337,7 +337,7 @@ func (qmr *QualityMetricsReport) generateMarkdownReport() {
 			mdWriteErr = err
 		}
 	}
-	
+
 	// Check for any write errors
 	if mdWriteErr != nil {
 		log.Printf("Error writing markdown report: %v", mdWriteErr)

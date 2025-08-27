@@ -10,22 +10,22 @@ import (
 
 // VNFDeployRequest represents a request to deploy a VNF
 type VNFDeployRequest struct {
-	Name            string                        `json:"name"`
-	Namespace       string                        `json:"namespace"`
-	VNFPackageID    string                        `json:"vnfPackageId"`
-	FlavorID        string                        `json:"flavorId"`
-	Image           string                        `json:"image"`
-	Replicas        int32                         `json:"replicas"`
-	Resources       *corev1.ResourceRequirements  `json:"resources,omitempty"`
-	Environment     []corev1.EnvVar               `json:"environment,omitempty"`
-	Ports           []corev1.ContainerPort        `json:"ports,omitempty"`
-	VolumeConfig    []VolumeConfig                `json:"volumeConfig,omitempty"`
-	NetworkConfig   *NetworkConfig                `json:"networkConfig,omitempty"`
-	SecurityContext *corev1.SecurityContext       `json:"securityContext,omitempty"`
-	HealthCheck     *TestHealthCheckConfig        `json:"healthCheck,omitempty"`
-	Affinity        *corev1.Affinity              `json:"affinity,omitempty"`
-	Tolerations     []corev1.Toleration           `json:"tolerations,omitempty"`
-	Metadata        map[string]string             `json:"metadata,omitempty"`
+	Name            string                       `json:"name"`
+	Namespace       string                       `json:"namespace"`
+	VNFPackageID    string                       `json:"vnfPackageId"`
+	FlavorID        string                       `json:"flavorId"`
+	Image           string                       `json:"image"`
+	Replicas        int32                        `json:"replicas"`
+	Resources       *corev1.ResourceRequirements `json:"resources,omitempty"`
+	Environment     []corev1.EnvVar              `json:"environment,omitempty"`
+	Ports           []corev1.ContainerPort       `json:"ports,omitempty"`
+	VolumeConfig    []VolumeConfig               `json:"volumeConfig,omitempty"`
+	NetworkConfig   *NetworkConfig               `json:"networkConfig,omitempty"`
+	SecurityContext *corev1.SecurityContext      `json:"securityContext,omitempty"`
+	HealthCheck     *TestHealthCheckConfig       `json:"healthCheck,omitempty"`
+	Affinity        *corev1.Affinity             `json:"affinity,omitempty"`
+	Tolerations     []corev1.Toleration          `json:"tolerations,omitempty"`
+	Metadata        map[string]string            `json:"metadata,omitempty"`
 }
 
 // O2VNFDeployRequest is an alias for VNFDeployRequest
@@ -33,44 +33,44 @@ type O2VNFDeployRequest = VNFDeployRequest
 
 // VNFDescriptor describes a VNF for deployment
 type VNFDescriptor struct {
-	Name            string                        `json:"name"`
-	Type            string                        `json:"type"`
-	Version         string                        `json:"version"`
-	Vendor          string                        `json:"vendor"`
-	Description     string                        `json:"description,omitempty"`
-	Image           string                        `json:"image"`
-	Replicas        int32                         `json:"replicas"`
-	Resources       *corev1.ResourceRequirements  `json:"resources,omitempty"`
-	Environment     []corev1.EnvVar               `json:"environment,omitempty"`
-	Ports           []corev1.ContainerPort        `json:"ports,omitempty"`
-	VolumeConfig    []VolumeConfig                `json:"volumeConfig,omitempty"`
-	NetworkConfig   *NetworkConfig                `json:"networkConfig,omitempty"`
-	SecurityContext *corev1.SecurityContext       `json:"securityContext,omitempty"`
-	HealthCheck     *TestHealthCheckConfig        `json:"healthCheck,omitempty"`
-	Affinity        *corev1.Affinity              `json:"affinity,omitempty"`
-	Tolerations     []corev1.Toleration           `json:"tolerations,omitempty"`
-	Metadata        map[string]string             `json:"metadata,omitempty"`
+	Name            string                       `json:"name"`
+	Type            string                       `json:"type"`
+	Version         string                       `json:"version"`
+	Vendor          string                       `json:"vendor"`
+	Description     string                       `json:"description,omitempty"`
+	Image           string                       `json:"image"`
+	Replicas        int32                        `json:"replicas"`
+	Resources       *corev1.ResourceRequirements `json:"resources,omitempty"`
+	Environment     []corev1.EnvVar              `json:"environment,omitempty"`
+	Ports           []corev1.ContainerPort       `json:"ports,omitempty"`
+	VolumeConfig    []VolumeConfig               `json:"volumeConfig,omitempty"`
+	NetworkConfig   *NetworkConfig               `json:"networkConfig,omitempty"`
+	SecurityContext *corev1.SecurityContext      `json:"securityContext,omitempty"`
+	HealthCheck     *TestHealthCheckConfig       `json:"healthCheck,omitempty"`
+	Affinity        *corev1.Affinity             `json:"affinity,omitempty"`
+	Tolerations     []corev1.Toleration          `json:"tolerations,omitempty"`
+	Metadata        map[string]string            `json:"metadata,omitempty"`
 }
 
 // VNFScaleRequest represents a request to scale a VNF
 type VNFScaleRequest struct {
-	ScaleType     string `json:"scaleType"`     // SCALE_OUT, SCALE_IN
+	ScaleType     string `json:"scaleType"` // SCALE_OUT, SCALE_IN
 	NumberOfSteps int32  `json:"numberOfSteps"`
 	AspectID      string `json:"aspectId,omitempty"`
 }
 
 // O2VNFInstance represents a deployed VNF instance
 type O2VNFInstance struct {
-	ID               string                 `json:"id"`
-	Name             string                 `json:"name"`
-	Namespace        string                 `json:"namespace"`
-	VNFPackageID     string                 `json:"vnfPackageId"`
-	FlavorID         string                 `json:"flavorId"`
-	Status           *VNFInstanceStatus     `json:"status"`
-	Resources        *ResourceInfo          `json:"resources,omitempty"`
-	NetworkEndpoints []NetworkEndpoint      `json:"networkEndpoints,omitempty"`
-	CreatedAt        time.Time              `json:"createdAt"`
-	UpdatedAt        time.Time              `json:"updatedAt"`
+	ID               string             `json:"id"`
+	Name             string             `json:"name"`
+	Namespace        string             `json:"namespace"`
+	VNFPackageID     string             `json:"vnfPackageId"`
+	FlavorID         string             `json:"flavorId"`
+	Status           *VNFInstanceStatus `json:"status"`
+	Resources        *ResourceInfo      `json:"resources,omitempty"`
+	NetworkEndpoints []NetworkEndpoint  `json:"networkEndpoints,omitempty"`
+	CreatedAt        time.Time          `json:"createdAt"`
+	UpdatedAt        time.Time          `json:"updatedAt"`
 }
 
 // VNFInstanceStatus represents the status of a VNF instance
@@ -102,8 +102,8 @@ type VolumeConfig struct {
 
 // NetworkConfig represents network configuration for VNFs
 type NetworkConfig struct {
-	ServiceType corev1.ServiceType     `json:"serviceType"`
-	Ports       []corev1.ServicePort   `json:"ports"`
+	ServiceType corev1.ServiceType   `json:"serviceType"`
+	Ports       []corev1.ServicePort `json:"ports"`
 }
 
 // TestHealthCheckConfig represents health check configuration for VNFs (test-specific)
@@ -115,10 +115,10 @@ type TestHealthCheckConfig struct {
 
 // InfrastructureInfo represents infrastructure information
 type InfrastructureInfo struct {
-	NodeCount          int                    `json:"nodeCount"`
-	ClusterName        string                 `json:"clusterName"`
-	KubernetesVersion  string                 `json:"kubernetesVersion"`
-	TotalResources     *ResourceSummary       `json:"totalResources,omitempty"`
+	NodeCount         int              `json:"nodeCount"`
+	ClusterName       string           `json:"clusterName"`
+	KubernetesVersion string           `json:"kubernetesVersion"`
+	TotalResources    *ResourceSummary `json:"totalResources,omitempty"`
 }
 
 // ResourceSummary represents a summary of resources

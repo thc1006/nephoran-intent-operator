@@ -91,7 +91,6 @@ type AsyncWorkerConfig struct {
 	QueryQueueSize    int `json:"query_queue_size"`
 }
 
-
 // AsyncWorkerPoolForTests represents a test-compatible async worker pool
 // This is separate from the main AsyncWorkerPool in pipeline.go
 type AsyncWorkerPoolForTests struct {
@@ -113,7 +112,6 @@ type AsyncWorkerMetrics struct {
 	QueryJobsFailed       int64
 }
 
-
 // RetrievedContext represents retrieved context from a query (for test compatibility)
 type RetrievedContext struct {
 	ID         string                 `json:"id"`
@@ -124,22 +122,21 @@ type RetrievedContext struct {
 
 // TestDocumentJob represents a test document job (different from pipeline DocumentJob)
 type TestDocumentJob struct {
-	ID       string                                      `json:"id"`
-	FilePath string                                      `json:"file_path,omitempty"`
-	Content  string                                      `json:"content"`
-	Metadata map[string]interface{}                     `json:"metadata,omitempty"`
-	Callback func(string, []DocumentChunk, error)        `json:"-"`
+	ID       string                               `json:"id"`
+	FilePath string                               `json:"file_path,omitempty"`
+	Content  string                               `json:"content"`
+	Metadata map[string]interface{}               `json:"metadata,omitempty"`
+	Callback func(string, []DocumentChunk, error) `json:"-"`
 }
 
-// TestQueryJob represents a test query job (different from pipeline QueryJob)  
+// TestQueryJob represents a test query job (different from pipeline QueryJob)
 type TestQueryJob struct {
-	ID       string                                          `json:"id"`
-	Query    string                                          `json:"query"`
-	Filters  map[string]interface{}                         `json:"filters,omitempty"`
-	Limit    int                                             `json:"limit,omitempty"`
-	Callback func(string, []RetrievedContext, error)         `json:"-"`
+	ID       string                                  `json:"id"`
+	Query    string                                  `json:"query"`
+	Filters  map[string]interface{}                  `json:"filters,omitempty"`
+	Limit    int                                     `json:"limit,omitempty"`
+	Callback func(string, []RetrievedContext, error) `json:"-"`
 }
-
 
 // NewAsyncWorkerPool creates a new async worker pool for tests
 func NewAsyncWorkerPool(config *AsyncWorkerConfig) *AsyncWorkerPoolForTests {
@@ -175,7 +172,7 @@ func (p *AsyncWorkerPoolForTests) Stop(timeout time.Duration) error {
 		return fmt.Errorf("async worker pool not started")
 	}
 	p.started = false
-	
+
 	// For graceful shutdown, wait a bit for pending jobs to complete
 	// This is a simple implementation for testing purposes
 	if timeout > 0 {
@@ -189,7 +186,7 @@ func (p *AsyncWorkerPoolForTests) SubmitDocumentJob(job TestDocumentJob) error {
 	if !p.started {
 		return fmt.Errorf("async worker pool not started")
 	}
-	
+
 	// Check queue fullness by trying to send to channel with select
 	select {
 	case p.documentQueue <- job:
@@ -198,16 +195,16 @@ func (p *AsyncWorkerPoolForTests) SubmitDocumentJob(job TestDocumentJob) error {
 		// Queue is full
 		return fmt.Errorf("document queue is full")
 	}
-	
+
 	p.metrics.DocumentJobsSubmitted++
-	
+
 	// For testing, simulate processing by calling the callback directly
 	go func() {
 		time.Sleep(100 * time.Millisecond) // Simulate processing time
-		
+
 		var chunks []DocumentChunk
 		var err error
-		
+
 		// Check for failure conditions
 		if len(job.Content) == 0 {
 			err = fmt.Errorf("document processing failed: empty content")
@@ -225,7 +222,7 @@ func (p *AsyncWorkerPoolForTests) SubmitDocumentJob(job TestDocumentJob) error {
 					EndOffset:    len(job.Content) / 2,
 				},
 				{
-					ID:           job.ID + "_chunk_2", 
+					ID:           job.ID + "_chunk_2",
 					DocumentID:   job.ID,
 					Content:      job.Content[len(job.Content)/2:],
 					CleanContent: job.Content[len(job.Content)/2:],
@@ -235,17 +232,17 @@ func (p *AsyncWorkerPoolForTests) SubmitDocumentJob(job TestDocumentJob) error {
 				},
 			}
 		}
-		
+
 		p.metrics.DocumentJobsCompleted++
-		
+
 		if job.Callback != nil {
 			job.Callback(job.ID, chunks, err)
 		}
-		
+
 		// Remove job from queue
 		<-p.documentQueue
 	}()
-	
+
 	return nil
 }
 
@@ -254,7 +251,7 @@ func (p *AsyncWorkerPoolForTests) SubmitQueryJob(job TestQueryJob) error {
 	if !p.started {
 		return fmt.Errorf("async worker pool not started")
 	}
-	
+
 	// Check queue fullness by trying to send to channel with select
 	select {
 	case p.queryQueue <- job:
@@ -263,16 +260,16 @@ func (p *AsyncWorkerPoolForTests) SubmitQueryJob(job TestQueryJob) error {
 		// Queue is full
 		return fmt.Errorf("query queue is full")
 	}
-	
+
 	p.metrics.QueryJobsSubmitted++
-	
+
 	// For testing, simulate processing by calling the callback directly
 	go func() {
 		time.Sleep(50 * time.Millisecond) // Simulate processing time
-		
+
 		var results []RetrievedContext
 		var err error
-		
+
 		// Check for failure conditions
 		if len(job.Query) == 0 {
 			err = fmt.Errorf("query processing failed: empty query")
@@ -287,30 +284,50 @@ func (p *AsyncWorkerPoolForTests) SubmitQueryJob(job TestQueryJob) error {
 					Metadata:   map[string]interface{}{"source": "test"},
 				},
 				{
-					ID:         "result_2", 
+					ID:         "result_2",
 					Content:    "Mock search result 2 for query: " + job.Query,
 					Confidence: 0.75,
 					Metadata:   map[string]interface{}{"source": "test"},
 				},
 			}
 		}
-		
+
 		p.metrics.QueryJobsCompleted++
-		
+
 		if job.Callback != nil {
 			job.Callback(job.ID, results, err)
 		}
-		
+
 		// Remove job from queue
 		<-p.queryQueue
 	}()
-	
+
 	return nil
 }
 
 // GetMetrics returns current metrics
 func (p *AsyncWorkerPoolForTests) GetMetrics() *AsyncWorkerMetrics {
 	return p.metrics
+}
+
+// RetrievalRequest represents a request for document retrieval
+type RetrievalRequest struct {
+	Query      string                 `json:"query"`                // The search query
+	MaxResults int                    `json:"maxResults,omitempty"` // Maximum number of results to return
+	MinScore   float64                `json:"minScore,omitempty"`   // Minimum relevance score for results
+	Filters    map[string]interface{} `json:"filters,omitempty"`    // Additional filters for retrieval
+	Context    map[string]interface{} `json:"context,omitempty"`    // Additional context for the query
+}
+
+// RetrievalResponse represents a response from document retrieval
+type RetrievalResponse struct {
+	Documents             []map[string]interface{} `json:"documents"`             // Retrieved documents with metadata
+	Duration              time.Duration            `json:"duration"`              // Time taken for retrieval
+	AverageRelevanceScore float64                  `json:"averageRelevanceScore"` // Average relevance score of results
+	TopRelevanceScore     float64                  `json:"topRelevanceScore"`     // Highest relevance score in results
+	QueryWasEnhanced      bool                     `json:"queryWasEnhanced"`      // Whether the query was enhanced/expanded
+	Metadata              map[string]interface{}   `json:"metadata,omitempty"`    // Additional metadata about the retrieval
+	Error                 string                   `json:"error,omitempty"`       // Error message if retrieval failed
 }
 
 // Note: QueryResponse and RAGService are defined in other RAG files

@@ -162,17 +162,17 @@ func (psa *PredictiveSLAAnalyzer) initializeModels(ctx context.Context) error {
 	psa.predictionHistory["availability"] = &PredictionHistory{
 		predictions:  make([]HistoricalPrediction, 0),
 		actualValues: make([]float64, 0),
-		accuracy:     &AccuracyTracker{
-			dailyAccuracy:   NewCircularBuffer(30),   // 30 days
-			weeklyAccuracy:  NewCircularBuffer(12),   // 12 weeks  
-			monthlyAccuracy: NewCircularBuffer(12),   // 12 months
+		accuracy: &AccuracyTracker{
+			dailyAccuracy:   NewCircularBuffer(30), // 30 days
+			weeklyAccuracy:  NewCircularBuffer(12), // 12 weeks
+			monthlyAccuracy: NewCircularBuffer(12), // 12 months
 		},
 	}
 
 	psa.predictionHistory["latency"] = &PredictionHistory{
 		predictions:  make([]HistoricalPrediction, 0),
 		actualValues: make([]float64, 0),
-		accuracy:     &AccuracyTracker{
+		accuracy: &AccuracyTracker{
 			dailyAccuracy:   NewCircularBuffer(30),
 			weeklyAccuracy:  NewCircularBuffer(12),
 			monthlyAccuracy: NewCircularBuffer(12),
@@ -182,7 +182,7 @@ func (psa *PredictiveSLAAnalyzer) initializeModels(ctx context.Context) error {
 	psa.predictionHistory["throughput"] = &PredictionHistory{
 		predictions:  make([]HistoricalPrediction, 0),
 		actualValues: make([]float64, 0),
-		accuracy:     &AccuracyTracker{
+		accuracy: &AccuracyTracker{
 			dailyAccuracy:   NewCircularBuffer(30),
 			weeklyAccuracy:  NewCircularBuffer(12),
 			monthlyAccuracy: NewCircularBuffer(12),
@@ -199,7 +199,7 @@ func (psa *PredictiveSLAAnalyzer) initializeModels(ctx context.Context) error {
 	dummyTargets := []float64{0.96, 0.97, 0.98}
 	dummyTimestamps := []time.Time{
 		time.Now().Add(-3 * time.Hour),
-		time.Now().Add(-2 * time.Hour), 
+		time.Now().Add(-2 * time.Hour),
 		time.Now().Add(-1 * time.Hour),
 	}
 
@@ -864,11 +864,11 @@ func (psa *PredictiveSLAAnalyzer) trainModels(ctx context.Context) error {
 		if trainingData, exists := psa.trainingData[modelName]; exists {
 			if err := model.Train(ctx, trainingData); err != nil {
 				errs = append(errs, fmt.Errorf("failed to train %s model: %w", modelName, err))
-				psa.logger.Error("Model training failed", 
-					zap.String("model", modelName), 
+				psa.logger.Error("Model training failed",
+					zap.String("model", modelName),
 					zap.Error(err))
 			} else {
-				psa.logger.Debug("Model trained successfully", 
+				psa.logger.Debug("Model trained successfully",
 					zap.String("model", modelName),
 					zap.Float64("accuracy", model.GetAccuracy()))
 			}
@@ -945,24 +945,24 @@ func (psa *PredictiveSLAAnalyzer) updateAccuracyMetrics() {
 		if history.accuracy != nil {
 			// Calculate current accuracy
 			accuracy := psa.calculateModelAccuracy(history)
-			
+
 			// Update Prometheus metrics
 			psa.predictionAccuracy.WithLabelValues(modelName, "current").Set(accuracy)
-			
+
 			// Update accuracy history buffers
 			now := time.Now()
 			history.accuracy.dailyAccuracy.Add(now, accuracy)
-			
+
 			// Weekly and monthly updates (simplified - would be more sophisticated in production)
 			if now.Hour() == 0 && now.Minute() < 15 { // Once per day around midnight
 				history.accuracy.weeklyAccuracy.Add(now, accuracy)
 			}
-			
+
 			if now.Day() == 1 && now.Hour() == 0 && now.Minute() < 15 { // Once per month
 				history.accuracy.monthlyAccuracy.Add(now, accuracy)
 			}
-			
-			psa.logger.Debug("Updated accuracy metrics", 
+
+			psa.logger.Debug("Updated accuracy metrics",
 				zap.String("model", modelName),
 				zap.Float64("accuracy", accuracy))
 		}
@@ -999,7 +999,7 @@ func (psa *PredictiveSLAAnalyzer) calculateErrorRates() (float64, float64) {
 	for _, history := range psa.predictionHistory {
 		for _, pred := range history.predictions {
 			totalPredictions++
-			
+
 			// Simplified logic - in practice would be more sophisticated
 			if pred.Prediction.Confidence > psa.confidenceThreshold && !pred.WasCorrect {
 				falsePositives++

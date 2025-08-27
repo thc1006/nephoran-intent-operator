@@ -341,7 +341,7 @@ func (s *ComprehensiveValidationSuite) ValidateRAGLatencyClaim(t *testing.T) {
 	for i, latency := range result.RAGLatencies {
 		latencyValues[i] = float64(latency.Nanoseconds()) / 1e6 // Convert to milliseconds
 	}
-	
+
 	p95Latency := calculatePercentile(latencyValues, 95)
 	targetMet := p95Latency <= s.targetRAGLatencyP95Ms
 
@@ -408,7 +408,7 @@ func (s *ComprehensiveValidationSuite) ValidateCacheHitRateClaim(t *testing.T) {
 	// Create sample data (simplified - would use detailed cache metrics in practice)
 	_ = actualCacheHitRate // Cache hit rate
 
-// PerformanceMetrics struct removed
+	// PerformanceMetrics struct removed
 
 	// Statistical validation removed
 	// Validation removed
@@ -1019,18 +1019,18 @@ type PerformanceMetrics struct {
 
 // Types for validation testing
 type RegressionAnalysis struct {
-	HasRegression        bool
-	RegressionSeverity   string
-	ConfidenceScore      float64
-	MetricRegressions    []string
-	PotentialCauses      []string
-	ImmediateActions     []string
+	HasRegression      bool
+	RegressionSeverity string
+	ConfidenceScore    float64
+	MetricRegressions  []string
+	PotentialCauses    []string
+	ImmediateActions   []string
 }
 
 type TelecomLoadTestResult struct {
-	Duration            time.Duration
-	AggregatedMetrics   *AggregatedMetrics
-	ValidationResults   *ValidationResults
+	Duration          time.Duration
+	AggregatedMetrics *AggregatedMetrics
+	ValidationResults *ValidationResults
 }
 
 type AggregatedMetrics struct {
@@ -1059,7 +1059,7 @@ func (b *IntentProcessingBenchmarks) BenchmarkIntentProcessingLatency(t *testing
 
 func (r *RegressionDetector) AnalyzeRegression(ctx context.Context, measurement *PerformanceMeasurement) (*RegressionAnalysis, error) {
 	hasRegression := measurement.LatencyP95 > 2500 || measurement.Throughput < 40
-	
+
 	severity := "Low"
 	if hasRegression {
 		if measurement.LatencyP95 > 3000 || measurement.Throughput < 35 {
@@ -1068,7 +1068,7 @@ func (r *RegressionDetector) AnalyzeRegression(ctx context.Context, measurement 
 			severity = "Medium"
 		}
 	}
-	
+
 	return &RegressionAnalysis{
 		HasRegression:      hasRegression,
 		RegressionSeverity: severity,
@@ -1093,8 +1093,8 @@ func (tlt *TelecomLoadTester) ExecuteDistributedTest(ctx context.Context) (*Tele
 		},
 		ValidationResults: &ValidationResults{
 			TargetsMet: map[string]bool{
-				"latency": true,
-				"throughput": true,
+				"latency":     true,
+				"throughput":  true,
 				"concurrency": true,
 			},
 		},

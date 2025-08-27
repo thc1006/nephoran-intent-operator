@@ -69,7 +69,7 @@ type TokenInfo struct {
 // Role represents a role with associated permissions (alias to TestRole)
 type Role = TestRole
 
-// Permission represents a specific permission (alias to TestPermission)  
+// Permission represents a specific permission (alias to TestPermission)
 type Permission = TestPermission
 
 // AccessRequest represents an access control request (test copy)
@@ -510,10 +510,10 @@ func (j *JWTManagerMock) Close() {
 
 // RBACManagerMock provides mock RBAC functionality with interface compatibility
 type RBACManagerMock struct {
-	roles           map[string][]string     // userID -> roles
-	permissions     map[string][]string     // role -> permissions
-	roleStore       map[string]*TestRole        // roleID -> role
-	permissionStore map[string]*TestPermission  // permissionID -> permission
+	roles           map[string][]string        // userID -> roles
+	permissions     map[string][]string        // role -> permissions
+	roleStore       map[string]*TestRole       // roleID -> role
+	permissionStore map[string]*TestPermission // permissionID -> permission
 	mutex           sync.RWMutex
 }
 
@@ -873,6 +873,11 @@ func (r *RBACManagerMock) AssignRoleToUser(ctx context.Context, userID, roleID s
 type SessionManagerMock struct {
 	sessions map[string]*MockSession
 	mutex    sync.RWMutex
+	config   SessionConfig
+}
+
+type SessionConfig struct {
+	SessionTTL time.Duration
 }
 
 type MockSession struct {
@@ -887,6 +892,9 @@ type MockSession struct {
 func NewSessionManagerMock() *SessionManagerMock {
 	return &SessionManagerMock{
 		sessions: make(map[string]*MockSession),
+		config: SessionConfig{
+			SessionTTL: time.Hour,
+		},
 	}
 }
 
@@ -1023,6 +1031,72 @@ func (s *SessionManagerMock) CleanupExpiredSessions() error {
 
 func (s *SessionManagerMock) Close() {
 	// Mock implementation
+}
+
+// Additional methods needed for comprehensive tests
+
+func (s *SessionManagerMock) UpdateSessionMetadata(ctx context.Context, sessionID string, metadata map[string]interface{}) (*MockSession, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	session, exists := s.sessions[sessionID]
+	if !exists {
+		return nil, fmt.Errorf("session not found")
+	}
+
+	if metadata != nil {
+		for k, v := range metadata {
+			session.Data[k] = v
+		}
+	}
+
+	return session, nil
+}
+
+func (s *SessionManagerMock) GetUserSessions(ctx context.Context, userID string) ([]*MockSession, error) {
+	return s.ListUserSessions(ctx, userID)
+}
+
+func (s *SessionManagerMock) RevokeSession(ctx context.Context, sessionID string) error {
+	return s.DeleteSession(ctx, sessionID)
+}
+
+func (s *SessionManagerMock) RevokeAllUserSessions(ctx context.Context, userID string) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	toDelete := []string{}
+	for id, session := range s.sessions {
+		if session.UserID == userID {
+			toDelete = append(toDelete, id)
+		}
+	}
+
+	for _, id := range toDelete {
+		delete(s.sessions, id)
+	}
+
+	return nil
+}
+
+func (s *SessionManagerMock) GetSessionFromCookie(r *http.Request) (string, error) {
+	cookie, err := r.Cookie("test-session")
+	if err != nil {
+		return "", err
+	}
+	return cookie.Value, nil
+}
+
+func (s *SessionManagerMock) ClearSessionCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "test-session",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+		MaxAge:   -1,
+		Expires:  time.Now().Add(-time.Hour),
+	})
 }
 
 // TestContext provides a complete testing environment for auth tests

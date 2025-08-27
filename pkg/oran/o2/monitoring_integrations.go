@@ -192,7 +192,6 @@ type MetricData struct {
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
-
 // NewMonitoringIntegrations creates a new monitoring integrations service
 func NewMonitoringIntegrations(
 	config *MonitoringIntegrationConfig,
@@ -669,7 +668,6 @@ type ComponentHealthStatus struct {
 	LastCheck time.Time          `json:"lastCheck"`
 	Metrics   map[string]float64 `json:"metrics,omitempty"`
 }
-
 
 // Stub constructor functions
 func NewGrafanaClient(config *GrafanaConfig, logger *logging.StructuredLogger) *GrafanaClient {

@@ -22,23 +22,23 @@ func ExampleMetricsUsage() {
 		CleanupAfter: 7 * 24 * time.Hour,
 		MetricsPort:  8080, // HTTP metrics server port
 	}
-	
+
 	watcher, err := NewWatcher("/tmp/handoff", config)
 	if err != nil {
 		log.Fatalf("Failed to create watcher: %v", err)
 	}
 	defer watcher.Close()
-	
+
 	// Start the watcher in a goroutine
 	go func() {
 		if err := watcher.Start(); err != nil {
 			log.Printf("Watcher error: %v", err)
 		}
 	}()
-	
+
 	// Give it some time to start
 	time.Sleep(2 * time.Second)
-	
+
 	// Example 1: Get metrics programmatically
 	fmt.Println("=== Programmatic Metrics Access ===")
 	metrics := watcher.GetMetrics()
@@ -47,7 +47,7 @@ func ExampleMetricsUsage() {
 	fmt.Printf("Memory Usage: %d bytes\n", metrics.MemoryUsageBytes)
 	fmt.Printf("Worker Utilization: %.2f%%\n", metrics.WorkerUtilization)
 	fmt.Printf("Throughput: %.2f files/sec\n", metrics.ThroughputFilesPerSecond)
-	
+
 	// Example 2: Access JSON metrics via HTTP
 	fmt.Println("\n=== HTTP JSON Metrics ===")
 	resp, err := http.Get("http://localhost:8080/metrics")
@@ -70,7 +70,7 @@ func ExampleMetricsUsage() {
 			}
 		}
 	}
-	
+
 	// Example 3: Prometheus metrics format
 	fmt.Println("\n=== Prometheus Metrics ===")
 	resp, err = http.Get("http://localhost:8080/metrics/prometheus")
@@ -83,7 +83,7 @@ func ExampleMetricsUsage() {
 		n, _ := resp.Body.Read(buf)
 		fmt.Printf("%s...\n", string(buf[:n]))
 	}
-	
+
 	// Example 4: Health check
 	fmt.Println("\n=== Health Check ===")
 	resp, err = http.Get("http://localhost:8080/health")
@@ -105,28 +105,28 @@ func ExampleMetricsUsage() {
 func MetricsCollectorExample() {
 	// This would typically be run in a monitoring system
 	metricsHistory := make([]*WatcherMetrics, 0, 100)
-	
+
 	config := Config{
 		PorchPath:   "/usr/bin/porch",
 		MetricsPort: 8080,
 		MaxWorkers:  2,
 	}
-	
+
 	watcher, err := NewWatcher("/tmp/handoff", config)
 	if err != nil {
 		log.Fatalf("Failed to create watcher: %v", err)
 	}
 	defer watcher.Close()
-	
+
 	// Collect metrics every 10 seconds for analysis
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
-	
+
 	for i := 0; i < 5; i++ { // Collect 5 samples
 		<-ticker.C
 		metrics := watcher.GetMetrics()
 		metricsHistory = append(metricsHistory, metrics)
-		
+
 		fmt.Printf("Sample %d: Processed=%d, Failed=%d, Memory=%dMB, Workers=%.1f%%\n",
 			i+1,
 			metrics.FilesProcessedTotal,
@@ -134,19 +134,19 @@ func MetricsCollectorExample() {
 			metrics.MemoryUsageBytes/(1024*1024),
 			metrics.WorkerUtilization)
 	}
-	
+
 	// Analyze trends
 	fmt.Println("\n=== Trend Analysis ===")
 	if len(metricsHistory) >= 2 {
 		latest := metricsHistory[len(metricsHistory)-1]
 		previous := metricsHistory[len(metricsHistory)-2]
-		
+
 		processingRate := float64(latest.FilesProcessedTotal-previous.FilesProcessedTotal) / 10.0 // per second
 		fmt.Printf("Current processing rate: %.2f files/second\n", processingRate)
-		
+
 		memoryGrowth := latest.MemoryUsageBytes - previous.MemoryUsageBytes
 		fmt.Printf("Memory growth: %d bytes\n", memoryGrowth)
-		
+
 		if latest.FilesFailedTotal > previous.FilesFailedTotal {
 			fmt.Printf("⚠️ New failures detected: %d\n", latest.FilesFailedTotal-previous.FilesFailedTotal)
 		}
@@ -156,20 +156,20 @@ func MetricsCollectorExample() {
 // AlertingExample demonstrates how to set up alerting based on metrics
 func AlertingExample(watcher *Watcher) {
 	// This would typically integrate with alerting systems like Prometheus AlertManager
-	
+
 	checkAlerts := func() {
 		metrics := watcher.GetMetrics()
-		
+
 		// Memory usage alert
 		if metrics.MemoryUsageBytes > 100*1024*1024 { // 100MB
 			fmt.Printf("🚨 ALERT: High memory usage: %d MB\n", metrics.MemoryUsageBytes/(1024*1024))
 		}
-		
+
 		// Worker utilization alert
 		if metrics.WorkerUtilization > 90.0 {
 			fmt.Printf("🚨 ALERT: High worker utilization: %.1f%%\n", metrics.WorkerUtilization)
 		}
-		
+
 		// Error rate alert
 		totalFiles := metrics.FilesProcessedTotal + metrics.FilesFailedTotal
 		if totalFiles > 0 {
@@ -178,22 +178,22 @@ func AlertingExample(watcher *Watcher) {
 				fmt.Printf("🚨 ALERT: High error rate: %.1f%%\n", errorRate)
 			}
 		}
-		
+
 		// Processing latency alert (would need actual latency calculation)
 		if metrics.AverageProcessingTime > 30*time.Second {
 			fmt.Printf("🚨 ALERT: High processing latency: %v\n", metrics.AverageProcessingTime)
 		}
-		
+
 		// Backpressure alert
 		if metrics.BackpressureEventsTotal > 0 {
 			fmt.Printf("⚠️ WARNING: Backpressure events detected: %d\n", metrics.BackpressureEventsTotal)
 		}
 	}
-	
+
 	// Check alerts every minute
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -212,20 +212,20 @@ func (c *CustomMetrics) CalculateBusinessMetrics() {
 	if c.BusinessKPIs == nil {
 		c.BusinessKPIs = make(map[string]float64)
 	}
-	
+
 	// Example business KPIs
 	totalFiles := c.FilesProcessedTotal + c.FilesFailedTotal
 	if totalFiles > 0 {
 		c.BusinessKPIs["success_rate"] = float64(c.FilesProcessedTotal) / float64(totalFiles) * 100
 		c.BusinessKPIs["failure_rate"] = float64(c.FilesFailedTotal) / float64(totalFiles) * 100
 	}
-	
+
 	// Processing efficiency (files per second per worker)
 	if c.ThroughputFilesPerSecond > 0 {
 		// Assuming we know max workers from config
 		c.BusinessKPIs["processing_efficiency"] = c.ThroughputFilesPerSecond / 4.0 // assuming 4 workers
 	}
-	
+
 	// Memory efficiency (files processed per MB)
 	if c.MemoryUsageBytes > 0 {
 		memoryMB := float64(c.MemoryUsageBytes) / (1024 * 1024)

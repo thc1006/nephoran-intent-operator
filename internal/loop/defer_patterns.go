@@ -13,14 +13,14 @@ func ExampleSafeDeferPattern1() error {
 	if err != nil {
 		return fmt.Errorf("failed to create watcher: %w", err)
 	}
-	
+
 	// Only register defer AFTER successful creation
 	defer func() {
 		if err := watcher.Close(); err != nil {
 			log.Printf("Error closing watcher: %v", err)
 		}
 	}()
-	
+
 	// Use watcher...
 	return watcher.Start()
 }
@@ -29,7 +29,7 @@ func ExampleSafeDeferPattern1() error {
 func ExampleSafeDeferPattern2() error {
 	var watcher *Watcher
 	var err error
-	
+
 	// Register defer early with nil safety
 	defer func() {
 		if watcher != nil {
@@ -38,13 +38,13 @@ func ExampleSafeDeferPattern2() error {
 			}
 		}
 	}()
-	
+
 	// Create watcher (might fail)
 	watcher, err = NewWatcher("./handoff", Config{})
 	if err != nil {
 		return fmt.Errorf("failed to create watcher: %w", err)
 	}
-	
+
 	// Use watcher...
 	return watcher.Start()
 }
@@ -55,10 +55,10 @@ func ExampleSafeDeferPattern3() error {
 	if err != nil {
 		return fmt.Errorf("failed to create watcher: %w", err)
 	}
-	
+
 	// Use helper function for clean defer
 	defer SafeCloserFunc(watcher)()
-	
+
 	// Use watcher...
 	return watcher.Start()
 }
@@ -69,11 +69,11 @@ func ExampleSafeDeferPattern4() error {
 	if err != nil {
 		return fmt.Errorf("failed to create watcher: %w", err)
 	}
-	
+
 	// Explicit cleanup without defer
 	watcherErr := watcher.Start()
 	closeErr := watcher.Close()
-	
+
 	// Handle both errors
 	if watcherErr != nil && closeErr != nil {
 		return fmt.Errorf("watcher error: %w, close error: %v", watcherErr, closeErr)
@@ -84,7 +84,7 @@ func ExampleSafeDeferPattern4() error {
 	if closeErr != nil {
 		return closeErr
 	}
-	
+
 	return nil
 }
 
@@ -92,14 +92,14 @@ func ExampleSafeDeferPattern4() error {
 func ExampleBadDeferPattern() error {
 	var watcher *Watcher
 	defer watcher.Close() // ❌ DANGEROUS: Will panic if NewWatcher fails
-	
+
 	var err error
 	watcher, err = NewWatcher("./handoff", Config{})
 	if err != nil {
 		// log.Fatalf() will call defer, which calls Close() on nil watcher -> PANIC!
 		log.Fatalf("failed to create watcher: %v", err)
 	}
-	
+
 	return watcher.Start()
 }
 
@@ -114,13 +114,13 @@ func ExampleFixedDeferPattern() error {
 			}
 		}
 	}()
-	
+
 	var err error
 	watcher, err = NewWatcher("./handoff", Config{})
 	if err != nil {
 		// Now safe to use log.Fatalf() - defer won't panic
 		log.Fatalf("failed to create watcher: %v", err)
 	}
-	
+
 	return watcher.Start()
 }

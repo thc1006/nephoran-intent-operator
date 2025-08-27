@@ -14,10 +14,10 @@ func TestFixedRaceConditions(t *testing.T) {
 	t.Run("FixedFilenamePattern", func(t *testing.T) {
 		// BEFORE: Tests created files like 'concurrent-N.json'
 		// AFTER: Ensure files follow 'intent-*.json' pattern
-		
+
 		syncHelper := NewTestSyncHelper(t)
 		defer syncHelper.Cleanup()
-		
+
 		// Test that various filenames get converted to intent pattern
 		testCases := []struct {
 			input    string
@@ -27,9 +27,9 @@ func TestFixedRaceConditions(t *testing.T) {
 			{"test.json", "intent-test.json"},
 			{"intent-valid.json", "intent-valid.json"}, // Already correct
 		}
-		
+
 		testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
-		
+
 		for _, tc := range testCases {
 			path := syncHelper.CreateIntentFile(tc.input, testContent)
 			actualName := filepath.Base(path)
@@ -37,40 +37,40 @@ func TestFixedRaceConditions(t *testing.T) {
 			assert.True(t, IsIntentFile(actualName), "File should match intent pattern")
 		}
 	})
-	
+
 	t.Run("FixedFileExistsBeforeWatcher", func(t *testing.T) {
 		// BEFORE: Watcher started, found no files, exited before files were created
 		// AFTER: Ensure files exist BEFORE starting watcher
-		
+
 		syncHelper := NewTestSyncHelper(t)
 		defer syncHelper.Cleanup()
-		
+
 		testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
-		
+
 		// Step 1: Create files FIRST
 		expectedFiles := []string{
 			"intent-race-fix-1.json",
 			"intent-race-fix-2.json",
 		}
-		
+
 		var createdPaths []string
 		for _, filename := range expectedFiles {
 			path := syncHelper.CreateIntentFile(filename, testContent)
 			createdPaths = append(createdPaths, path)
 		}
-		
+
 		// Step 2: Ensure files are visible to filesystem
 		syncGuard := syncHelper.NewFileSystemSyncGuard()
 		require.NoError(t, syncGuard.EnsureFilesVisible(createdPaths))
-		
+
 		// Step 3: Create mock porch
 		mockConfig := MockPorchConfig{
-			ExitCode: 0,
-			Stdout:   "Race condition fix success",
+			ExitCode:     0,
+			Stdout:       "Race condition fix success",
 			ProcessDelay: 50 * time.Millisecond,
 		}
 		mockPorchPath, _ := syncHelper.CreateMockPorch(mockConfig)
-		
+
 		// Step 4: NOW create and start watcher (files already exist)
 		config := Config{
 			PorchPath:   mockPorchPath,
@@ -80,43 +80,43 @@ func TestFixedRaceConditions(t *testing.T) {
 			DebounceDur: 25 * time.Millisecond,
 			MaxWorkers:  1,
 		}
-		
+
 		// Step 5: Use enhanced once watcher for proper completion tracking
 		enhancedWatcher, err := syncHelper.NewEnhancedOnceWatcher(config, len(expectedFiles))
 		require.NoError(t, err)
 		defer enhancedWatcher.Close()
-		
+
 		// Step 6: Start with completion tracking
 		require.NoError(t, enhancedWatcher.StartWithTracking())
-		
+
 		// Step 7: Wait for processing to complete
 		err = enhancedWatcher.WaitForProcessingComplete(10 * time.Second)
 		require.NoError(t, err)
-		
+
 		// Step 8: Verify results
 		err = syncHelper.VerifyProcessingResults(len(expectedFiles), 0)
 		require.NoError(t, err)
-		
+
 		t.Log("Fixed race condition: files exist before watcher starts")
 	})
-	
+
 	t.Run("FixedOnceModeTiming", func(t *testing.T) {
 		// BEFORE: Once mode exited immediately without waiting for processing
 		// AFTER: Wait for actual processing completion
-		
+
 		syncHelper := NewTestSyncHelper(t)
 		defer syncHelper.Cleanup()
-		
+
 		testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
-		
+
 		// Create test files
 		file1 := syncHelper.CreateIntentFile("intent-once-timing-1.json", testContent)
 		file2 := syncHelper.CreateIntentFile("intent-once-timing-2.json", testContent)
-		
+
 		// Ensure files are visible
 		syncGuard := syncHelper.NewFileSystemSyncGuard()
 		require.NoError(t, syncGuard.EnsureFilesVisible([]string{file1, file2}))
-		
+
 		// Create mock with processing delay to simulate real work
 		mockConfig := MockPorchConfig{
 			ExitCode:     0,
@@ -124,7 +124,7 @@ func TestFixedRaceConditions(t *testing.T) {
 			ProcessDelay: 200 * time.Millisecond, // Simulate processing time
 		}
 		mockPorchPath, _ := syncHelper.CreateMockPorch(mockConfig)
-		
+
 		// Configure once mode
 		config := Config{
 			PorchPath:   mockPorchPath,
@@ -134,52 +134,52 @@ func TestFixedRaceConditions(t *testing.T) {
 			DebounceDur: 25 * time.Millisecond,
 			MaxWorkers:  1,
 		}
-		
+
 		// Use once mode synchronizer for proper completion tracking
 		watcher, err := syncHelper.StartWatcherWithSync(config)
 		require.NoError(t, err)
 		defer watcher.Close()
-		
+
 		synchronizer := NewOnceModeSynchronizer(watcher, 2)
-		
+
 		// This will wait for actual processing completion, not just watcher exit
 		startTime := time.Now()
 		err = synchronizer.StartWithCompletion(15 * time.Second)
 		require.NoError(t, err)
 		processingDuration := time.Since(startTime)
-		
+
 		// Verify processing took reasonable time (not immediate exit)
-		assert.Greater(t, processingDuration, 100*time.Millisecond, 
+		assert.Greater(t, processingDuration, 100*time.Millisecond,
 			"Processing should take time, not exit immediately")
-		
+
 		// Verify results
 		err = syncHelper.VerifyProcessingResults(2, 0)
 		require.NoError(t, err)
-		
+
 		t.Logf("Fixed once mode timing: processing took %v", processingDuration)
 	})
-	
+
 	t.Run("FixedCrossPlatformTiming", func(t *testing.T) {
 		// BEFORE: Hardcoded timing that failed on different platforms
 		// AFTER: Platform-aware timing and synchronization
-		
+
 		syncHelper := NewTestSyncHelper(t)
 		defer syncHelper.Cleanup()
-		
+
 		// Note: syncHelper automatically adjusts timing based on platform
 		t.Logf("Using platform-aware timing: baseDelay=%v, fileSettle=%v, processWait=%v",
 			syncHelper.baseDelay, syncHelper.fileSettle, syncHelper.processWait)
-		
+
 		testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
-		
+
 		// Create files using platform-aware helper
 		file := syncHelper.CreateIntentFile("intent-cross-platform.json", testContent)
-		
+
 		// Platform-specific filesystem flush
 		syncGuard := syncHelper.NewFileSystemSyncGuard()
 		syncGuard.FlushFileSystem() // Does platform-specific operations
 		require.NoError(t, syncGuard.EnsureFilesVisible([]string{file}))
-		
+
 		// Create mock with platform-aware timing
 		mockConfig := MockPorchConfig{
 			ExitCode:     0,
@@ -187,7 +187,7 @@ func TestFixedRaceConditions(t *testing.T) {
 			ProcessDelay: syncHelper.baseDelay, // Platform-appropriate delay
 		}
 		mockPorchPath, _ := syncHelper.CreateMockPorch(mockConfig)
-		
+
 		// Configure with platform-aware settings
 		config := Config{
 			PorchPath:   mockPorchPath,
@@ -197,22 +197,22 @@ func TestFixedRaceConditions(t *testing.T) {
 			DebounceDur: syncHelper.baseDelay,
 			MaxWorkers:  1,
 		}
-		
+
 		// Use enhanced watcher with platform-aware timeouts
 		enhancedWatcher, err := syncHelper.NewEnhancedOnceWatcher(config, 1)
 		require.NoError(t, err)
 		defer enhancedWatcher.Close()
-		
+
 		require.NoError(t, enhancedWatcher.StartWithTracking())
-		
+
 		// Use platform-aware timeout
 		err = enhancedWatcher.WaitForProcessingComplete(syncHelper.processWait)
 		require.NoError(t, err)
-		
+
 		// Verify results
 		err = syncHelper.VerifyProcessingResults(1, 0)
 		require.NoError(t, err)
-		
+
 		t.Log("Fixed cross-platform timing issues")
 	})
 }
@@ -222,7 +222,7 @@ func TestSynchronizationPrimitives(t *testing.T) {
 	t.Run("FileCreationSynchronizer", func(t *testing.T) {
 		expectedFiles := []string{"file1.json", "file2.json"}
 		fcs := NewFileCreationSynchronizer("/tmp", expectedFiles, 1*time.Second)
-		
+
 		// Simulate file creation
 		go func() {
 			time.Sleep(100 * time.Millisecond)
@@ -230,16 +230,16 @@ func TestSynchronizationPrimitives(t *testing.T) {
 			time.Sleep(100 * time.Millisecond)
 			fcs.NotifyFileCreated("file2.json")
 		}()
-		
+
 		// Should complete without timeout
 		err := fcs.WaitForAllFiles()
 		require.NoError(t, err)
 	})
-	
+
 	t.Run("CrossPlatformSyncBarrier", func(t *testing.T) {
 		barrier := NewCrossPlatformSyncBarrier(3)
 		completed := make(chan int, 3)
-		
+
 		// Start 3 participants
 		for i := 0; i < 3; i++ {
 			go func(id int) {
@@ -248,7 +248,7 @@ func TestSynchronizationPrimitives(t *testing.T) {
 				completed <- id
 			}(i)
 		}
-		
+
 		// All should complete around the same time
 		for i := 0; i < 3; i++ {
 			select {
@@ -259,23 +259,23 @@ func TestSynchronizationPrimitives(t *testing.T) {
 			}
 		}
 	})
-	
+
 	t.Run("EnhancedOnceState", func(t *testing.T) {
 		state := NewEnhancedOnceState()
-		
+
 		// Simulate processing lifecycle
 		state.MarkScanComplete(3)
 		state.MarkProcessingStarted()
-		
+
 		state.IncrementProcessed()
 		state.IncrementProcessed()
 		state.IncrementFailed()
-		
+
 		state.MarkProcessingDone()
-		
+
 		// Check completion
 		assert.True(t, state.IsComplete())
-		
+
 		// Get stats
 		stats := state.GetStats()
 		assert.Equal(t, int64(3), stats["files_scanned"])
@@ -290,16 +290,16 @@ func TestErrorHandling(t *testing.T) {
 	t.Run("SynchronizationTimeout", func(t *testing.T) {
 		expectedFiles := []string{"file1.json", "file2.json"}
 		fcs := NewFileCreationSynchronizer("/tmp", expectedFiles, 100*time.Millisecond)
-		
+
 		// Only create one file - should timeout
 		go func() {
 			time.Sleep(50 * time.Millisecond)
 			fcs.NotifyFileCreated("file1.json")
 		}()
-		
+
 		err := fcs.WaitForAllFiles()
 		require.Error(t, err)
-		
+
 		// Should be a synchronization timeout error
 		syncErr, ok := err.(*SynchronizationTimeoutError)
 		require.True(t, ok)
@@ -314,21 +314,21 @@ func BenchmarkSynchronizationOverhead(b *testing.B) {
 	b.Run("WithSynchronization", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			syncHelper := NewTestSyncHelper(b)
-			
+
 			testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
 			syncHelper.CreateIntentFile("intent-benchmark.json", testContent)
-			
+
 			syncHelper.Cleanup()
 		}
 	})
-	
+
 	b.Run("WithoutSynchronization", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			// Direct file creation without synchronization helpers
 			tempDir := b.TempDir()
 			file := filepath.Join(tempDir, "intent-benchmark.json")
 			testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
-			
+
 			_ = file
 			_ = testContent
 			// Would write file directly here

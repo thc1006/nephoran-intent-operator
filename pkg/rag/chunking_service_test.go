@@ -16,12 +16,12 @@ var _ = Describe("ChunkingService", func() {
 
 	BeforeEach(func() {
 		config = &ChunkingConfig{
-			ChunkSize:         500,
-			ChunkOverlap:      50,
-			MinChunkSize:      100,
-			MaxChunkSize:      1000,
+			ChunkSize:             500,
+			ChunkOverlap:          50,
+			MinChunkSize:          100,
+			MaxChunkSize:          1000,
 			UseSemanticBoundaries: true,
-			PreserveHierarchy: true,
+			PreserveHierarchy:     true,
 		}
 		service = NewChunkingService(config)
 	})
@@ -48,7 +48,7 @@ var _ = Describe("ChunkingService", func() {
 					Content: "This is the first sentence. This is the second sentence. This is the third sentence. This is a very long sentence that should demonstrate how the chunking algorithm works with longer pieces of text that might exceed the normal chunk size limits.",
 					Title:   "Test Document",
 					Metadata: &DocumentMetadata{
-						Source:   "test",
+						Source:       "test",
 						DocumentType: "txt",
 					},
 					LoadedAt: time.Now(),
@@ -76,7 +76,7 @@ var _ = Describe("ChunkingService", func() {
 					Content: longText,
 					Title:   "Long Document",
 					Metadata: &DocumentMetadata{
-						Source:   "test",
+						Source:       "test",
 						DocumentType: "txt",
 					},
 					LoadedAt: time.Now(),

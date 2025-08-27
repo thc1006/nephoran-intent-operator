@@ -33,11 +33,11 @@ func TestParseIntentFromFile(t *testing.T) {
 			errorMsg:    "failed to read intent file",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			intent, err := ParseIntentFromFile(tt.intentFile)
-			
+
 			if tt.expectError {
 				if err == nil {
 					t.Errorf("Expected error but got nil")
@@ -74,13 +74,13 @@ func TestBuildKRMPackage(t *testing.T) {
 		Namespace:  "test-ns",
 		Replicas:   3,
 	}
-	
+
 	// FIXME: Correcting linter error 'cannot use &string as string value'. The struct fields expect string values, not pointers.
 	// Changed from pointer assignment (&reasonStr) to direct string assignment.
 	reasonStr := "Test reason"
 	sourceStr := "test"
 	correlationStr := "corr-123"
-	
+
 	intentWithOptionals := &ScalingIntent{
 		IntentType:    "scaling",
 		Target:        "test-deployment",
@@ -90,7 +90,7 @@ func TestBuildKRMPackage(t *testing.T) {
 		Source:        sourceStr,
 		CorrelationID: correlationStr,
 	}
-	
+
 	tests := []struct {
 		name        string
 		intent      *ScalingIntent
@@ -110,11 +110,11 @@ func TestBuildKRMPackage(t *testing.T) {
 			expectError: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pkg, err := BuildKRMPackage(tt.intent, tt.packageName)
-			
+
 			if tt.expectError {
 				if err == nil {
 					t.Error("Expected error but got nil")
@@ -133,7 +133,7 @@ func TestBuildKRMPackage(t *testing.T) {
 							t.Errorf("Missing required file: %s", file)
 						}
 					}
-					
+
 					// Check deployment patch contains replicas
 					if deployPatch, ok := pkg.Content["deployment-patch.yaml"]; ok {
 						if !strings.Contains(deployPatch, "replicas:") {
@@ -156,9 +156,9 @@ func TestCreatePackageFromIntent_DryRun(t *testing.T) {
 		t.Fatalf("Failed to create client: %v", err)
 	}
 	client.SetDryRun(true)
-	
+
 	ctx := context.Background()
-	
+
 	// Test with valid intent
 	result, err := client.CreatePackageFromIntent(
 		ctx,
@@ -167,11 +167,11 @@ func TestCreatePackageFromIntent_DryRun(t *testing.T) {
 		"test-package",
 		"Test revision message",
 	)
-	
+
 	if err != nil {
 		t.Errorf("Unexpected error in dry-run: %v", err)
 	}
-	
+
 	if result == nil {
 		t.Error("Expected result but got nil")
 	} else {
@@ -185,7 +185,7 @@ func TestCreatePackageFromIntent_DryRun(t *testing.T) {
 			t.Errorf("Unexpected commit URL: %s", result.CommitURL)
 		}
 	}
-	
+
 	// Verify no files were actually created (dry-run)
 	if _, err := os.Stat(result.PackagePath); !os.IsNotExist(err) {
 		t.Error("Dry-run should not create actual files")
@@ -197,9 +197,9 @@ func TestCreatePackageFromIntent_InvalidIntent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
-	
+
 	ctx := context.Background()
-	
+
 	// Test with invalid intent (negative replicas)
 	_, err = client.CreatePackageFromIntent(
 		ctx,
@@ -208,7 +208,7 @@ func TestCreatePackageFromIntent_InvalidIntent(t *testing.T) {
 		"test-package",
 		"",
 	)
-	
+
 	if err == nil {
 		t.Error("Expected error for invalid intent but got nil")
 	} else if !strings.Contains(err.Error(), "replicas must be at least 1") {
@@ -222,9 +222,9 @@ func TestCreatePackageFromIntent_RealMode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
-	
+
 	ctx := context.Background()
-	
+
 	// Test with valid intent in real mode
 	result, err := client.CreatePackageFromIntent(
 		ctx,
@@ -233,11 +233,11 @@ func TestCreatePackageFromIntent_RealMode(t *testing.T) {
 		"test-package-real",
 		"Real mode test",
 	)
-	
+
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	
+
 	if result == nil {
 		t.Error("Expected result but got nil")
 	} else {
@@ -246,7 +246,7 @@ func TestCreatePackageFromIntent_RealMode(t *testing.T) {
 		if _, err := os.Stat(kptfilePath); os.IsNotExist(err) {
 			t.Error("Expected Kptfile to be created")
 		}
-		
+
 		// Clean up test files
 		os.RemoveAll(result.PackagePath)
 	}

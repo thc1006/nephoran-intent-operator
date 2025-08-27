@@ -47,12 +47,12 @@ type Watcher struct {
 	config    *Config
 	validator *Validator
 	watcher   *fsnotify.Watcher
-	
+
 	// Debouncing
 	mu         sync.Mutex
 	pending    map[string]*time.Timer
 	httpClient *http.Client
-	
+
 	// Worker pool for HTTP operations
 	httpSemaphore chan struct{}
 }
@@ -86,17 +86,17 @@ func NewWatcher(config *Config) (*Watcher, error) {
 	if config.APIKeyHeader == "" {
 		config.APIKeyHeader = "X-API-Key"
 	}
-	
+
 	// Create HTTP client with TLS security
 	tlsConfig := &tls.Config{
 		MinVersion:         tls.VersionTLS12,
 		InsecureSkipVerify: config.InsecureSkipVerify,
 	}
-	
+
 	transport := &http.Transport{
 		TLSClientConfig: tlsConfig,
 	}
-	
+
 	return &Watcher{
 		config:    config,
 		validator: validator,
@@ -172,7 +172,7 @@ func (w *Watcher) handleFileEvent(event fsnotify.Event) {
 	// Create new debounced timer
 	w.pending[event.Name] = time.AfterFunc(w.config.DebounceDelay, func() {
 		w.processFile(event.Name, event.Op&fsnotify.Create != 0)
-		
+
 		// Clean up timer
 		w.mu.Lock()
 		delete(w.pending, event.Name)
@@ -215,7 +215,7 @@ func (w *Watcher) isIntentFile(filename string) bool {
 // processFile validates and optionally posts an intent file
 func (w *Watcher) processFile(filePath string, isNew bool) {
 	filename := filepath.Base(filePath)
-	
+
 	// Log new file detection
 	if isNew {
 		log.Printf("WATCH:NEW %s", filename)
@@ -227,7 +227,7 @@ func (w *Watcher) processFile(filePath string, isNew bool) {
 		log.Printf("WATCH:ERROR Failed to stat %s: %v", filename, err)
 		return
 	}
-	
+
 	const maxFileSize = 5 * 1024 * 1024 // 5MB
 	if fileInfo.Size() > maxFileSize {
 		log.Printf("WATCH:ERROR File %s too large: %d bytes (max %d)", filename, fileInfo.Size(), maxFileSize)
@@ -276,11 +276,11 @@ func (w *Watcher) processFile(filePath string, isNew bool) {
 // postIntent sends the validated intent to an HTTP endpoint with worker pool management
 func (w *Watcher) postIntent(filePath string, data []byte) {
 	filename := filepath.Base(filePath)
-	
+
 	// Acquire semaphore to limit concurrent HTTP operations
 	w.httpSemaphore <- struct{}{}
 	defer func() { <-w.httpSemaphore }()
-	
+
 	// Create HTTP request with context and timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	defer cancel()
@@ -294,7 +294,7 @@ func (w *Watcher) postIntent(filePath string, data []byte) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Intent-File", filename)
 	req.Header.Set("X-Timestamp", time.Now().UTC().Format(time.RFC3339))
-	
+
 	// Add authentication headers if configured
 	if w.config.BearerToken != "" {
 		req.Header.Set("Authorization", "Bearer "+w.config.BearerToken)

@@ -566,7 +566,7 @@ func (v *VMwareProvider) GetMetrics(ctx context.Context) (map[string]interface{}
 					totalMemory += h.Summary.Hardware.MemorySize
 				}
 				// QuickStats is not a pointer, check if it has valid data
-			if h.Summary.QuickStats.OverallCpuUsage >= 0 {
+				if h.Summary.QuickStats.OverallCpuUsage >= 0 {
 					usedCPU += h.Summary.QuickStats.OverallCpuUsage
 					usedMemory += int64(h.Summary.QuickStats.OverallMemoryUsage) * 1024 * 1024
 				}
@@ -701,7 +701,7 @@ func (v *VMwareProvider) GetResourceMetrics(ctx context.Context, resourceID stri
 		}
 
 		// Summary is not a pointer, check if it has valid data
-			if dsObj.Summary.Capacity > 0 {
+		if dsObj.Summary.Capacity > 0 {
 			metrics["capacity_bytes"] = dsObj.Summary.Capacity
 			metrics["free_bytes"] = dsObj.Summary.FreeSpace
 			metrics["uncommitted_bytes"] = dsObj.Summary.Uncommitted

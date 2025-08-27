@@ -28,16 +28,16 @@ import (
 // ErrorTracker provides error tracking capabilities
 // This is a simplified version focused on the core functionality needed by tests
 type ErrorTracker struct {
-	config    *ErrorTrackingConfig
-	logger    logr.Logger
-	mutex     sync.RWMutex
-	started   bool
-	stopChan  chan struct{}
-	
+	config   *ErrorTrackingConfig
+	logger   logr.Logger
+	mutex    sync.RWMutex
+	started  bool
+	stopChan chan struct{}
+
 	// Error statistics
-	errorCounts    map[string]int64
-	errorsByType   map[string]int64
-	lastError      time.Time
+	errorCounts  map[string]int64
+	errorsByType map[string]int64
+	lastError    time.Time
 }
 
 // ErrorTrackingConfig holds configuration for error tracking
@@ -51,11 +51,11 @@ type ErrorTrackingConfig struct {
 
 // ErrorSummary provides a summary of errors
 type ErrorSummary struct {
-	TotalErrors     int64                `json:"totalErrors"`
-	ErrorsByType    map[string]int64     `json:"errorsByType"`
-	ErrorsByPattern map[string]int64     `json:"errorsByPattern"`
-	LastErrorTime   time.Time            `json:"lastErrorTime"`
-	ErrorRate       float64              `json:"errorRate"`
+	TotalErrors     int64            `json:"totalErrors"`
+	ErrorsByType    map[string]int64 `json:"errorsByType"`
+	ErrorsByPattern map[string]int64 `json:"errorsByPattern"`
+	LastErrorTime   time.Time        `json:"lastErrorTime"`
+	ErrorRate       float64          `json:"errorRate"`
 }
 
 // NewErrorTracker creates a new error tracker
@@ -71,11 +71,11 @@ func NewErrorTracker(config *ErrorTrackingConfig, logger logr.Logger) (*ErrorTra
 	}
 
 	return &ErrorTracker{
-		config:         config,
-		logger:         logger.WithName("error-tracker"),
-		stopChan:       make(chan struct{}),
-		errorCounts:    make(map[string]int64),
-		errorsByType:   make(map[string]int64),
+		config:       config,
+		logger:       logger.WithName("error-tracker"),
+		stopChan:     make(chan struct{}),
+		errorCounts:  make(map[string]int64),
+		errorsByType: make(map[string]int64),
 	}, nil
 }
 
@@ -83,11 +83,11 @@ func NewErrorTracker(config *ErrorTrackingConfig, logger logr.Logger) (*ErrorTra
 func (et *ErrorTracker) Start(ctx context.Context) error {
 	et.mutex.Lock()
 	defer et.mutex.Unlock()
-	
+
 	if et.started {
 		return fmt.Errorf("error tracker already started")
 	}
-	
+
 	et.started = true
 	et.logger.Info("Error tracker started")
 	return nil
@@ -97,11 +97,11 @@ func (et *ErrorTracker) Start(ctx context.Context) error {
 func (et *ErrorTracker) Stop() error {
 	et.mutex.Lock()
 	defer et.mutex.Unlock()
-	
+
 	if !et.started {
 		return nil
 	}
-	
+
 	close(et.stopChan)
 	et.started = false
 	et.logger.Info("Error tracker stopped")
@@ -112,11 +112,11 @@ func (et *ErrorTracker) Stop() error {
 func (et *ErrorTracker) TrackError(ctx context.Context, errorType, errorMessage string) {
 	et.mutex.Lock()
 	defer et.mutex.Unlock()
-	
+
 	et.errorCounts[errorType]++
 	et.errorsByType[errorType]++
 	et.lastError = time.Now()
-	
+
 	et.logger.Info("Tracked error", "type", errorType, "message", errorMessage)
 }
 
@@ -124,15 +124,15 @@ func (et *ErrorTracker) TrackError(ctx context.Context, errorType, errorMessage 
 func (et *ErrorTracker) GetErrorSummary() *ErrorSummary {
 	et.mutex.RLock()
 	defer et.mutex.RUnlock()
-	
+
 	total := int64(0)
 	errorsByType := make(map[string]int64)
-	
+
 	for errorType, count := range et.errorsByType {
 		errorsByType[errorType] = count
 		total += count
 	}
-	
+
 	return &ErrorSummary{
 		TotalErrors:     total,
 		ErrorsByType:    errorsByType,
@@ -146,7 +146,7 @@ func (et *ErrorTracker) GetErrorSummary() *ErrorSummary {
 func (et *ErrorTracker) GetErrorsByPattern(pattern string) []map[string]interface{} {
 	et.mutex.RLock()
 	defer et.mutex.RUnlock()
-	
+
 	// Simplified implementation - just return empty slice for now
 	// In a full implementation, this would search through stored error events
 	return make([]map[string]interface{}, 0)
@@ -156,7 +156,7 @@ func (et *ErrorTracker) GetErrorsByPattern(pattern string) []map[string]interfac
 func (et *ErrorTracker) GetMetrics() map[string]interface{} {
 	et.mutex.RLock()
 	defer et.mutex.RUnlock()
-	
+
 	return map[string]interface{}{
 		"total_errors":    len(et.errorCounts),
 		"errors_by_type":  et.errorsByType,
@@ -169,10 +169,10 @@ func (et *ErrorTracker) GetMetrics() map[string]interface{} {
 func (et *ErrorTracker) HealthCheck() error {
 	et.mutex.RLock()
 	defer et.mutex.RUnlock()
-	
+
 	if !et.started {
 		return fmt.Errorf("error tracker not started")
 	}
-	
+
 	return nil
 }

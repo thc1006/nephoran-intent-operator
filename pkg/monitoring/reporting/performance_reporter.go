@@ -282,8 +282,6 @@ type ResourceBottleneck struct {
 	Mitigation  string  `json:"mitigation"`  // Recommended action
 }
 
-
-
 // AlertsSummary provides alert analysis
 type AlertsSummary struct {
 	TotalAlerts       int            `json:"totalAlerts"`
@@ -712,22 +710,22 @@ func (pr *PerformanceReporter) generateRecommendations(report *PerformanceReport
 	// TODO: Implement intelligent recommendation generation based on performance data
 	// Should analyze metrics, trends, and capacity to provide actionable insights
 	recommendations := make([]Recommendation, 0)
-	
+
 	// Example placeholder recommendation
 	if report.ExecutiveSummary.OverallScore < 80 {
 		recommendations = append(recommendations, Recommendation{
-			ID:          "perf-rec-1",
-			Category:    "Performance",
-			Priority:    "High",
-			Title:       "Performance Score Below Target",
-			Description: "Overall performance score is below 80%, indicating system performance issues",
-			Impact:      "Improved user experience and system reliability",
-			Effort:      "Medium",
-			Timeline:    "1-2 weeks",
+			ID:           "perf-rec-1",
+			Category:     "Performance",
+			Priority:     "High",
+			Title:        "Performance Score Below Target",
+			Description:  "Overall performance score is below 80%, indicating system performance issues",
+			Impact:       "Improved user experience and system reliability",
+			Effort:       "Medium",
+			Timeline:     "1-2 weeks",
 			Dependencies: []string{"Performance analysis", "Resource optimization"},
 		})
 	}
-	
+
 	return recommendations
 }
 
@@ -784,13 +782,13 @@ func (pr *PerformanceReporter) collectCacheSystemMetrics(ctx context.Context, pe
 	// TODO: Implement cache system metrics collection from Prometheus
 	// Should query hit rate, miss rate, latency, etc.
 	return CacheSystemMetrics{
-		HitRate:        87.5, // placeholder
-		MissRate:       12.5, // placeholder
-		AverageLatency: 2.5,  // placeholder
+		HitRate:        87.5,              // placeholder
+		MissRate:       12.5,              // placeholder
+		AverageLatency: 2.5,               // placeholder
 		CacheSize:      1024 * 1024 * 100, // placeholder: 100MB
-		EvictionRate:   0.1,  // placeholder
-		HitLatency:     1.2,  // placeholder
-		MissLatency:    15.0, // placeholder
+		EvictionRate:   0.1,               // placeholder
+		HitLatency:     1.2,               // placeholder
+		MissLatency:    15.0,              // placeholder
 	}, nil
 }
 
@@ -799,12 +797,12 @@ func (pr *PerformanceReporter) collectResourceUsageMetrics(ctx context.Context, 
 	// TODO: Implement resource usage metrics collection from Prometheus
 	// Should query CPU, memory, disk, network usage, etc.
 	return ResourceUsageMetrics{
-		CPUUtilization:    65.0, // placeholder
-		MemoryUtilization: 70.0, // placeholder
-		DiskUtilization:   45.0, // placeholder
-		NetworkBandwidth:  100.0, // placeholder
-		FileDescriptors:   1024,  // placeholder
-		GoroutineCount:    200,   // placeholder
+		CPUUtilization:    65.0,             // placeholder
+		MemoryUtilization: 70.0,             // placeholder
+		DiskUtilization:   45.0,             // placeholder
+		NetworkBandwidth:  100.0,            // placeholder
+		FileDescriptors:   1024,             // placeholder
+		GoroutineCount:    200,              // placeholder
 		HeapSize:          1024 * 1024 * 50, // placeholder: 50MB
 	}, nil
 }
@@ -814,11 +812,11 @@ func (pr *PerformanceReporter) collectNetworkMetrics(ctx context.Context, period
 	// TODO: Implement network metrics collection from Prometheus
 	// Should query network latency, throughput, packet loss, etc.
 	return NetworkMetrics{
-		Latency:           5.0,  // placeholder
+		Latency:           5.0,   // placeholder
 		Throughput:        500.0, // placeholder
-		PacketLoss:        0.01, // placeholder
-		ConnectionCount:   100,  // placeholder
-		ActiveConnections: 85,   // placeholder
-		ConnectionErrors:  2,    // placeholder
+		PacketLoss:        0.01,  // placeholder
+		ConnectionCount:   100,   // placeholder
+		ActiveConnections: 85,    // placeholder
+		ConnectionErrors:  2,     // placeholder
 	}, nil
 }

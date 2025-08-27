@@ -23,7 +23,7 @@ func IsLongPathSupportEnabled() bool {
 	// Windows MAX_PATH is 260, including null terminator
 	longName := strings.Repeat("a", 250) // Ensure we exceed MAX_PATH
 	longPath := filepath.Join(tempDir, longName, "test")
-	
+
 	// Ensure the path is actually long enough
 	if len(longPath) <= 260 {
 		// If we can't create a long enough path, assume no long path support

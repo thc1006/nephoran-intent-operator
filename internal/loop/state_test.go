@@ -66,18 +66,18 @@ func TestNewStateManager(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dir := tt.setupFunc(t)
-			
+
 			sm, err := NewStateManager(dir)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
 			}
-			
+
 			require.NoError(t, err)
 			assert.NotNil(t, sm)
 			assert.Equal(t, filepath.Join(dir, StateFileName), sm.stateFile)
 			assert.True(t, sm.autoSave)
-			
+
 			// Cleanup
 			require.NoError(t, sm.Close())
 		})
@@ -152,13 +152,13 @@ func TestStateManager_IsProcessed(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			filePath := tt.setupFunc(t)
-			
+
 			result, err := sm.IsProcessed(filePath)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
 			}
-			
+
 			require.NoError(t, err)
 			assert.Equal(t, tt.expectedResult, result)
 		})
@@ -385,7 +385,7 @@ func TestStateManager_LoadStateWithCorruption(t *testing.T) {
 
 			require.NoError(t, err)
 			assert.NotNil(t, sm)
-			
+
 			// Should have created backup if corruption was detected
 			if tt.fileContent != "" && tt.fileContent != `{"not": "expected"}` {
 				backupFiles, _ := filepath.Glob(filepath.Join(dir, StateFileName+".backup.*"))
@@ -395,7 +395,7 @@ func TestStateManager_LoadStateWithCorruption(t *testing.T) {
 			}
 
 			require.NoError(t, sm.Close())
-			
+
 			// Clean up for next test
 			os.Remove(stateFile)
 			backupFiles, _ := filepath.Glob(filepath.Join(dir, StateFileName+".backup.*"))
@@ -408,7 +408,7 @@ func TestStateManager_LoadStateWithCorruption(t *testing.T) {
 
 func TestCalculateFileHash(t *testing.T) {
 	dir := t.TempDir()
-	
+
 	tests := []struct {
 		name        string
 		content     string
@@ -602,7 +602,7 @@ func BenchmarkStateManager_MarkProcessed(b *testing.B) {
 	sm.autoSave = false
 
 	testContent := `{"action": "scale", "count": 3}`
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		testFile := filepath.Join(dir, fmt.Sprintf("test%d.json", i))

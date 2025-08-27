@@ -11,7 +11,6 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 )
 
 // ORANPerformanceBenchmarker provides comprehensive performance testing for O-RAN interfaces
@@ -36,18 +35,18 @@ type ORANBenchmarkResult struct {
 	*BenchmarkResult // Embed the base BenchmarkResult from comprehensive_validation_suite.go
 
 	// O-RAN specific fields
-	InterfaceName       string        `json:"interfaceName"`
-	TotalRequests       int64         `json:"totalRequests"`
-	SuccessfulRequests  int64         `json:"successfulRequests"`
-	FailedRequests      int64         `json:"failedRequests"`
-	AverageLatency      time.Duration `json:"averageLatency"`
-	MedianLatency       time.Duration `json:"medianLatency"`
-	P95Latency          time.Duration `json:"p95Latency"`
-	P99Latency          time.Duration `json:"p99Latency"`
-	MinLatency          time.Duration `json:"minLatency"`
-	MaxLatency          time.Duration `json:"maxLatency"`
-	ThroughputRPS       float64       `json:"throughputRps"`
-	ErrorRate           float64       `json:"errorRate"`
+	InterfaceName      string        `json:"interfaceName"`
+	TotalRequests      int64         `json:"totalRequests"`
+	SuccessfulRequests int64         `json:"successfulRequests"`
+	FailedRequests     int64         `json:"failedRequests"`
+	AverageLatency     time.Duration `json:"averageLatency"`
+	MedianLatency      time.Duration `json:"medianLatency"`
+	P95Latency         time.Duration `json:"p95Latency"`
+	P99Latency         time.Duration `json:"p99Latency"`
+	MinLatency         time.Duration `json:"minLatency"`
+	MaxLatency         time.Duration `json:"maxLatency"`
+	ThroughputRPS      float64       `json:"throughputRps"`
+	ErrorRate          float64       `json:"errorRate"`
 
 	// Latency distribution
 	LatencyDistribution []time.Duration `json:"latencyDistribution"`

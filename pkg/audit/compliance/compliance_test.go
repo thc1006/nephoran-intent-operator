@@ -880,7 +880,7 @@ func verifyMockEvidenceIntegrity(evidence *Evidence) bool {
 func analyzeMockMultiStandardCompliance(event *audit.AuditEvent, standards []audit.ComplianceStandard) *MultiStandardAnalysis {
 	analyses := make([]ComplianceStandardAnalysis, len(standards))
 	maxRetention := time.Duration(0)
-	
+
 	for i, std := range standards {
 		retention := time.Duration(0)
 		switch std {
@@ -891,18 +891,18 @@ func analyzeMockMultiStandardCompliance(event *audit.AuditEvent, standards []aud
 		case audit.CompliancePCIDSS:
 			retention = 365 * 24 * time.Hour
 		}
-		
+
 		analyses[i] = ComplianceStandardAnalysis{
 			Standard:        std,
 			Controls:        []string{"mock_control"},
 			RetentionPeriod: retention,
 		}
-		
+
 		if retention > maxRetention {
 			maxRetention = retention
 		}
 	}
-	
+
 	return &MultiStandardAnalysis{
 		Standards:            analyses,
 		FinalRetentionPeriod: maxRetention,

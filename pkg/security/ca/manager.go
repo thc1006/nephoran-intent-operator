@@ -230,10 +230,10 @@ type CertificateStatus string
 
 const (
 	CertStatusPending CertificateStatus = "pending"
-	StatusIssued  CertificateStatus = "issued"
-	StatusRenewed CertificateStatus = "renewed"
-	StatusRevoked CertificateStatus = "revoked"
-	StatusExpired CertificateStatus = "expired"
+	StatusIssued      CertificateStatus = "issued"
+	StatusRenewed     CertificateStatus = "renewed"
+	StatusRevoked     CertificateStatus = "revoked"
+	StatusExpired     CertificateStatus = "expired"
 	CertStatusFailed  CertificateStatus = "failed"
 )
 
@@ -299,9 +299,9 @@ func NewCAManager(config *Config, logger *logging.StructuredLogger, client clien
 		engineConfig := &PolicyEngineConfig{
 			Enabled:                config.PolicyConfig.Enabled,
 			Rules:                  convertValidationRulesToPolicyRules(config.PolicyConfig.ValidationRules),
-			CertificatePinning:     false, // Default, can be configured separately
-			AlgorithmStrengthCheck: true,  // Default for security
-			MinimumRSAKeySize:      2048,  // Default
+			CertificatePinning:     false,                               // Default, can be configured separately
+			AlgorithmStrengthCheck: true,                                // Default for security
+			MinimumRSAKeySize:      2048,                                // Default
 			AllowedECCurves:        []string{"P-256", "P-384", "P-521"}, // Default
 		}
 		policyEngine, err := NewPolicyEngine(engineConfig, logger)

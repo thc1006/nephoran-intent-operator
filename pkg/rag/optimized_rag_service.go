@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
-	
+
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
@@ -1173,12 +1173,12 @@ func (ors *OptimizedRAGService) convertSharedToEnhancedResults(results []*shared
 	enhanced := make([]*EnhancedSearchResult, len(results))
 	for i, result := range results {
 		enhanced[i] = &EnhancedSearchResult{
-			SearchResult:     result,
-			RelevanceScore:   result.Score,
-			QualityScore:     0.8, // Default quality score
-			FreshnessScore:   0.7, // Default freshness score
-			AuthorityScore:   0.9, // Default authority score
-			CombinedScore:    result.Score,
+			SearchResult:   result,
+			RelevanceScore: result.Score,
+			QualityScore:   0.8, // Default quality score
+			FreshnessScore: 0.7, // Default freshness score
+			AuthorityScore: 0.9, // Default authority score
+			CombinedScore:  result.Score,
 		}
 	}
 	return enhanced

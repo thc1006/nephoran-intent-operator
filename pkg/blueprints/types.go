@@ -205,11 +205,11 @@ func (te *TemplateEngine) ProcessTemplate(
 
 	// Create processed template
 	processed := &ProcessedTemplate{
-		ID:            template.ID,
-		Name:          template.Name,
-		Version:       template.Version,
-		ProcessedAt:   time.Now(),
-		Parameters:    parameters,
+		ID:             template.ID,
+		Name:           template.Name,
+		Version:        template.Version,
+		ProcessedAt:    time.Now(),
+		Parameters:     parameters,
 		GeneratedFiles: make(map[string]string),
 	}
 
@@ -279,28 +279,28 @@ const (
 
 // OperationResult represents the result of a blueprint operation
 type OperationResult struct {
-	RenderedBlueprint  *RenderedBlueprint        `json:"renderedBlueprint,omitempty"`
-	ValidationResult   *ValidationResult         `json:"validationResult,omitempty"`
-	DeploymentResult   *DeploymentResult         `json:"deploymentResult,omitempty"`
-	GeneratedFiles     map[string]string         `json:"generatedFiles,omitempty"`
-	ProcessedTemplates []*ProcessedTemplate      `json:"processedTemplates,omitempty"`
-	NfConfigs          []NetworkFunctionConfig   `json:"nfConfigs,omitempty"`
+	RenderedBlueprint  *RenderedBlueprint      `json:"renderedBlueprint,omitempty"`
+	ValidationResult   *ValidationResult       `json:"validationResult,omitempty"`
+	DeploymentResult   *DeploymentResult       `json:"deploymentResult,omitempty"`
+	GeneratedFiles     map[string]string       `json:"generatedFiles,omitempty"`
+	ProcessedTemplates []*ProcessedTemplate    `json:"processedTemplates,omitempty"`
+	NfConfigs          []NetworkFunctionConfig `json:"nfConfigs,omitempty"`
 }
 
 // ValidationResult represents the result of blueprint validation
 type ValidationResult struct {
-	Valid      bool     `json:"valid"`
-	Errors     []string `json:"errors,omitempty"`
-	Warnings   []string `json:"warnings,omitempty"`
-	Duration   time.Duration `json:"duration"`
-	ValidatedAt time.Time `json:"validatedAt"`
+	Valid       bool          `json:"valid"`
+	Errors      []string      `json:"errors,omitempty"`
+	Warnings    []string      `json:"warnings,omitempty"`
+	Duration    time.Duration `json:"duration"`
+	ValidatedAt time.Time     `json:"validatedAt"`
 }
 
 // DeploymentResult represents the result of blueprint deployment
 type DeploymentResult struct {
-	Success      bool      `json:"success"`
-	ResourcesCreated []string `json:"resourcesCreated,omitempty"`
-	Errors       []string  `json:"errors,omitempty"`
-	Duration     time.Duration `json:"duration"`
-	DeployedAt   time.Time `json:"deployedAt"`
+	Success          bool          `json:"success"`
+	ResourcesCreated []string      `json:"resourcesCreated,omitempty"`
+	Errors           []string      `json:"errors,omitempty"`
+	Duration         time.Duration `json:"duration"`
+	DeployedAt       time.Time     `json:"deployedAt"`
 }

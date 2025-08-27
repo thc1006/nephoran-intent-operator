@@ -1622,15 +1622,15 @@ func (ha *HealthAggregator) determinePriority(component ComponentHealthResult) R
 func (ha *HealthAggregator) GetCheckHistory(component string, limit int) []HealthDataPoint {
 	ha.historyMu.RLock()
 	defer ha.historyMu.RUnlock()
-	
+
 	history, exists := ha.historicalData[component]
 	if !exists {
 		return nil
 	}
-	
+
 	if limit > 0 && len(history) > limit {
 		return history[len(history)-limit:]
 	}
-	
+
 	return history
 }

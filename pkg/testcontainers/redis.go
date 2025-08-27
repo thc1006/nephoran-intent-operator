@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"github.com/stretchr/testify/require"
 )
 
 // RedisContainer manages Redis test container lifecycle
@@ -22,7 +22,7 @@ type RedisContainer struct {
 // SetupRedisContainer starts a Redis container for testing
 func SetupRedisContainer(t *testing.T) (*RedisContainer, func()) {
 	ctx := context.Background()
-	
+
 	req := testcontainers.ContainerRequest{
 		Image:        "redis:7-alpine",
 		ExposedPorts: []string{"6379/tcp"},
@@ -35,31 +35,31 @@ func SetupRedisContainer(t *testing.T) (*RedisContainer, func()) {
 			"REDIS_PASSWORD": "",
 		},
 	}
-	
+
 	redisContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
 		Started:          true,
 	})
 	require.NoError(t, err, "Failed to start Redis container")
-	
+
 	endpoint, err := redisContainer.Endpoint(ctx, "")
 	require.NoError(t, err, "Failed to get Redis endpoint")
-	
+
 	container := &RedisContainer{
 		container: redisContainer,
 		endpoint:  fmt.Sprintf("redis://%s", endpoint),
 		ctx:       ctx,
 	}
-	
+
 	cleanup := func() {
 		if err := redisContainer.Terminate(ctx); err != nil {
 			t.Logf("Warning: failed to terminate Redis container: %v", err)
 		}
 	}
-	
+
 	// Verify container is ready
 	container.waitForReady(t)
-	
+
 	return container, cleanup
 }
 
@@ -89,7 +89,7 @@ func (r *RedisContainer) waitForReady(t *testing.T) {
 	// Additional readiness check beyond container wait
 	ready := make(chan bool, 1)
 	timeout := time.After(30 * time.Second)
-	
+
 	go func() {
 		for {
 			if r.isReady() {
@@ -99,7 +99,7 @@ func (r *RedisContainer) waitForReady(t *testing.T) {
 			time.Sleep(100 * time.Millisecond)
 		}
 	}()
-	
+
 	select {
 	case <-ready:
 		t.Log("Redis container is ready")
@@ -118,14 +118,14 @@ func (r *RedisContainer) isReady() bool {
 // ExecuteRedisCommand executes a Redis command in the container
 func (r *RedisContainer) ExecuteRedisCommand(t *testing.T, command ...string) string {
 	cmd := append([]string{"redis-cli"}, command...)
-	
+
 	exitCode, reader, err := r.container.Exec(r.ctx, cmd)
 	require.NoError(t, err, "Failed to execute Redis command")
 	require.Equal(t, 0, exitCode, "Redis command failed with exit code %d", exitCode)
-	
+
 	outputBytes, err := io.ReadAll(reader)
 	require.NoError(t, err, "Failed to read command output")
-	
+
 	return string(outputBytes)
 }
 
@@ -163,10 +163,10 @@ func NewContainerManager() *ContainerManager {
 // AddRedis adds a Redis container to the manager
 func (cm *ContainerManager) AddRedis(t *testing.T, name string) *RedisContainer {
 	redisContainer, cleanup := SetupRedisContainer(t)
-	
+
 	cm.containers[name] = redisContainer.container
 	cm.cleanups = append(cm.cleanups, cleanup)
-	
+
 	return redisContainer
 }
 

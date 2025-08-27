@@ -17,10 +17,10 @@ import (
 // createMockPorchGraceful creates a controllable mock porch executable for graceful shutdown testing
 func createMockPorchGraceful(t *testing.T, tempDir string, behavior string) string {
 	t.Helper()
-	
+
 	var mockPorchPath string
 	var mockScript string
-	
+
 	if runtime.GOOS == "windows" {
 		mockPorchPath = filepath.Join(tempDir, "mock-porch.bat")
 		switch behavior {
@@ -50,12 +50,12 @@ func createMockPorchGraceful(t *testing.T, tempDir string, behavior string) stri
 			mockScript = "#!/bin/bash\necho 'Mock porch processing...'\nexit 0\n"
 		}
 	}
-	
+
 	err := os.WriteFile(mockPorchPath, []byte(mockScript), 0755)
 	if err != nil {
 		t.Fatalf("Failed to create mock porch: %v", err)
 	}
-	
+
 	return mockPorchPath
 }
 
@@ -127,11 +127,11 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 
 	// Wait for Start() to be called
 	<-started
-	
+
 	// Let processing begin, then simulate graceful shutdown
 	// Give enough time for files to be queued but not necessarily completed
 	time.Sleep(200 * time.Millisecond)
-	
+
 	// Trigger graceful shutdown
 	watcher.Close()
 
@@ -160,10 +160,10 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 	// Verify the counting invariant: totalFailed == realFailed + shutdownFailed
 	expectedTotal := stats.RealFailedCount + stats.ShutdownFailedCount
 	if stats.FailedCount != expectedTotal {
-		t.Errorf("❌ Counting invariant violation: totalFailed=%d, realFailed+shutdownFailed=%d", 
+		t.Errorf("❌ Counting invariant violation: totalFailed=%d, realFailed+shutdownFailed=%d",
 			stats.FailedCount, expectedTotal)
 	} else {
-		t.Logf("✅ Counting invariant satisfied: totalFailed=%d == realFailed=%d + shutdownFailed=%d", 
+		t.Logf("✅ Counting invariant satisfied: totalFailed=%d == realFailed=%d + shutdownFailed=%d",
 			stats.FailedCount, stats.RealFailedCount, stats.ShutdownFailedCount)
 	}
 
@@ -176,7 +176,7 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 	// 1. Some files may have completed processing
 	// 2. Some files may have failed due to context cancellation (shutdown failures)
 	// 3. Real failures should be 0 (unless there are actual validation/processing errors)
-	
+
 	// The key test: exit code should be 0 even if there are shutdown failures
 	if stats.RealFailedCount == 0 {
 		t.Logf("✅ No real failures detected - exit code should be 0")
@@ -187,96 +187,96 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 
 func TestShutdownFailureDetection(t *testing.T) {
 	tests := []struct {
-		name              string
-		shuttingDown      bool
-		err               error
-		expectedShutdown  bool
-		description       string
+		name             string
+		shuttingDown     bool
+		err              error
+		expectedShutdown bool
+		description      string
 	}{
 		{
-			name:              "no_error",
-			shuttingDown:      true,
-			err:               nil,
-			expectedShutdown:  false,
-			description:       "No error should never be classified as shutdown failure",
+			name:             "no_error",
+			shuttingDown:     true,
+			err:              nil,
+			expectedShutdown: false,
+			description:      "No error should never be classified as shutdown failure",
 		},
 		{
-			name:              "context_canceled_during_shutdown", 
-			shuttingDown:      true,
-			err:               context.Canceled,
-			expectedShutdown:  true,
-			description:       "Context cancellation during shutdown should be classified as shutdown failure",
+			name:             "context_canceled_during_shutdown",
+			shuttingDown:     true,
+			err:              context.Canceled,
+			expectedShutdown: true,
+			description:      "Context cancellation during shutdown should be classified as shutdown failure",
 		},
 		{
-			name:              "context_canceled_without_shutdown",
-			shuttingDown:      false,
-			err:               context.Canceled,
-			expectedShutdown:  false,
-			description:       "Context cancellation without shutdown should NOT be classified as shutdown failure",
+			name:             "context_canceled_without_shutdown",
+			shuttingDown:     false,
+			err:              context.Canceled,
+			expectedShutdown: false,
+			description:      "Context cancellation without shutdown should NOT be classified as shutdown failure",
 		},
 		{
-			name:              "context_deadline_during_shutdown",
-			shuttingDown:      true,
-			err:               context.DeadlineExceeded,
-			expectedShutdown:  true,
-			description:       "Context timeout during shutdown should be classified as shutdown failure",
+			name:             "context_deadline_during_shutdown",
+			shuttingDown:     true,
+			err:              context.DeadlineExceeded,
+			expectedShutdown: true,
+			description:      "Context timeout during shutdown should be classified as shutdown failure",
 		},
 		{
-			name:              "context_deadline_without_shutdown",
-			shuttingDown:      false,
-			err:               context.DeadlineExceeded,
-			expectedShutdown:  false,
-			description:       "Context timeout without shutdown should NOT be classified as shutdown failure",
+			name:             "context_deadline_without_shutdown",
+			shuttingDown:     false,
+			err:              context.DeadlineExceeded,
+			expectedShutdown: false,
+			description:      "Context timeout without shutdown should NOT be classified as shutdown failure",
 		},
 		{
-			name:              "signal_killed_during_shutdown",
-			shuttingDown:      true,
-			err:               createMockExitError(137), // SIGKILL exit code
-			expectedShutdown:  true,
-			description:       "SIGKILL during shutdown should be classified as shutdown failure",
+			name:             "signal_killed_during_shutdown",
+			shuttingDown:     true,
+			err:              createMockExitError(137), // SIGKILL exit code
+			expectedShutdown: true,
+			description:      "SIGKILL during shutdown should be classified as shutdown failure",
 		},
 		{
-			name:              "signal_killed_without_shutdown",
-			shuttingDown:      false,
-			err:               createMockExitError(137), // SIGKILL exit code
-			expectedShutdown:  false,
-			description:       "SIGKILL without shutdown should NOT be classified as shutdown failure",
+			name:             "signal_killed_without_shutdown",
+			shuttingDown:     false,
+			err:              createMockExitError(137), // SIGKILL exit code
+			expectedShutdown: false,
+			description:      "SIGKILL without shutdown should NOT be classified as shutdown failure",
 		},
 		{
-			name:              "sigterm_exit_code_during_shutdown",
-			shuttingDown:      true,
-			err:               createMockExitError(143), // SIGTERM exit code
-			expectedShutdown:  true,
-			description:       "Exit code 143 (SIGTERM) during shutdown should be classified as shutdown failure",
+			name:             "sigterm_exit_code_during_shutdown",
+			shuttingDown:     true,
+			err:              createMockExitError(143), // SIGTERM exit code
+			expectedShutdown: true,
+			description:      "Exit code 143 (SIGTERM) during shutdown should be classified as shutdown failure",
 		},
 		{
-			name:              "signal_message_during_shutdown",
-			shuttingDown:      true,
-			err:               fmt.Errorf("process terminated: signal: killed"),
-			expectedShutdown:  true,
-			description:       "Error message containing 'signal: killed' during shutdown should be classified as shutdown failure",
+			name:             "signal_message_during_shutdown",
+			shuttingDown:     true,
+			err:              fmt.Errorf("process terminated: signal: killed"),
+			expectedShutdown: true,
+			description:      "Error message containing 'signal: killed' during shutdown should be classified as shutdown failure",
 		},
 		{
-			name:              "real_failure_during_shutdown",
-			shuttingDown:      true,
-			err:               fmt.Errorf("validation failed: invalid schema"),
-			expectedShutdown:  false,
-			description:       "Real validation error during shutdown should NOT be classified as shutdown failure",
+			name:             "real_failure_during_shutdown",
+			shuttingDown:     true,
+			err:              fmt.Errorf("validation failed: invalid schema"),
+			expectedShutdown: false,
+			description:      "Real validation error during shutdown should NOT be classified as shutdown failure",
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Logf("Test: %s", tc.description)
-			
+
 			// Test the centralized IsShutdownFailure function
 			result := loop.IsShutdownFailure(tc.shuttingDown, tc.err)
-			
+
 			if result != tc.expectedShutdown {
-				t.Errorf("Expected shutdown failure detection to be %v, got %v for error: %v (shuttingDown=%v)", 
+				t.Errorf("Expected shutdown failure detection to be %v, got %v for error: %v (shuttingDown=%v)",
 					tc.expectedShutdown, result, tc.err, tc.shuttingDown)
 			} else {
-				t.Logf("✅ Correct classification: shuttingDown=%v, err=%v → isShutdownFailure=%v", 
+				t.Logf("✅ Correct classification: shuttingDown=%v, err=%v → isShutdownFailure=%v",
 					tc.shuttingDown, tc.err, result)
 			}
 		})
@@ -294,10 +294,10 @@ func createMockExitError(exitCode int) error {
 		// On Unix, use sh -c exit with the specified code
 		cmd = exec.Command("sh", "-c", fmt.Sprintf("exit %d", exitCode))
 	}
-	
+
 	// Run and wait for the process to complete with the exit code
 	err := cmd.Run()
-	
+
 	// This should return an *exec.ExitError with the specified exit code
 	return err
 }
@@ -309,34 +309,34 @@ func TestWatcher_GracefulShutdown_DrainsWithoutHang(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	outDir := filepath.Join(tempDir, "out")
-	
+
 	err := os.MkdirAll(handoffDir, 0755)
 	require.NoError(t, err)
-	
+
 	err = os.MkdirAll(outDir, 0755)
 	require.NoError(t, err)
-	
+
 	// Create mock porch executable that processes files quickly
 	mockPorchPath := createMockPorchGraceful(t, tempDir, "success")
-	
+
 	// Create N > maxWorkers intents to ensure queue draining
-	numIntents := 12  // More than typical worker count
-	maxWorkers := 3   // Smaller worker count to force queuing
-	
+	numIntents := 12 // More than typical worker count
+	maxWorkers := 3  // Smaller worker count to force queuing
+
 	// Create watcher config with once=true for immediate shutdown test
 	config := loop.Config{
 		PorchPath:   mockPorchPath,
 		Mode:        "direct",
-		OutDir:      outDir, 
-		Once:        true,  // Critical: this triggers immediate shutdown after processing
+		OutDir:      outDir,
+		Once:        true, // Critical: this triggers immediate shutdown after processing
 		MaxWorkers:  maxWorkers,
 		DebounceDur: 50 * time.Millisecond,
 	}
-	
+
 	watcher, err := loop.NewWatcher(handoffDir, config)
 	require.NoError(t, err)
 	defer func() { _ = watcher.Close() }()
-	
+
 	// Create multiple intent files
 	intentContent := `{
 	"intent_type": "scaling",
@@ -345,7 +345,7 @@ func TestWatcher_GracefulShutdown_DrainsWithoutHang(t *testing.T) {
 	"replicas": 5,
 	"source": "test"
 }`
-	
+
 	// Preallocate slice with expected capacity for performance
 	createdFiles := make([]string, 0, numIntents)
 	for i := 0; i < numIntents; i++ {
@@ -356,7 +356,7 @@ func TestWatcher_GracefulShutdown_DrainsWithoutHang(t *testing.T) {
 		require.NoError(t, err)
 		createdFiles = append(createdFiles, filename)
 	}
-	
+
 	// Verify files were created
 	entries, err := os.ReadDir(handoffDir)
 	require.NoError(t, err)
@@ -364,77 +364,77 @@ func TestWatcher_GracefulShutdown_DrainsWithoutHang(t *testing.T) {
 	for _, entry := range entries {
 		t.Logf("  - %s", entry.Name())
 	}
-	
+
 	// Start watcher processing - this should immediately start processing files
 	// and then drain without hanging because once=true
 	startTime := time.Now()
 	done := make(chan error, 1)
-	
+
 	go func() {
 		done <- watcher.Start()
 	}()
-	
+
 	// Watcher should complete processing and exit cleanly due to once=true
 	// Allow reasonable time for N files to process, but not too long
 	maxExpectedTime := 15 * time.Second
-	
+
 	select {
 	case err := <-done:
 		processingDuration := time.Since(startTime)
 		t.Logf("✅ Watcher completed in %v (expected < %v)", processingDuration, maxExpectedTime)
-		
+
 		if err != nil {
 			t.Logf("Watcher completed with error (may be expected): %v", err)
 		}
-		
+
 		// Verify processing completed within reasonable time
 		if processingDuration > maxExpectedTime {
 			t.Errorf("❌ Processing took too long: %v > %v", processingDuration, maxExpectedTime)
 		}
-		
+
 	case <-time.After(maxExpectedTime):
 		t.Fatal("❌ Timeout: watcher failed to drain and complete within expected time")
 	}
-	
+
 	// Verify final state
 	stats, err := watcher.GetStats()
 	require.NoError(t, err)
-	
+
 	t.Logf("Final processing statistics:")
 	t.Logf("  Total processed: %d", stats.ProcessedCount)
 	t.Logf("  Total failed: %d", stats.FailedCount)
 	t.Logf("  Real failures: %d", stats.RealFailedCount)
 	t.Logf("  Shutdown failures: %d", stats.ShutdownFailedCount)
 	t.Logf("  Total queue size was: %d intents", numIntents)
-	
+
 	// Verify the queue drained properly
 	totalProcessed := stats.ProcessedCount + stats.FailedCount
 	if totalProcessed == 0 {
 		t.Error("❌ No files were processed - queue may not have drained")
 	}
-	
+
 	// In once mode with proper draining, most/all files should be processed or failed
 	// Allow some tolerance since exact behavior depends on timing
-	minExpectedProcessing := numIntents / 2  // At least half should be processed
+	minExpectedProcessing := numIntents / 2 // At least half should be processed
 	if totalProcessed < minExpectedProcessing {
-		t.Errorf("❌ Too few files processed: got %d, expected at least %d", 
+		t.Errorf("❌ Too few files processed: got %d, expected at least %d",
 			totalProcessed, minExpectedProcessing)
 	}
-	
+
 	// Verify the counting invariant
 	expectedTotal := stats.RealFailedCount + stats.ShutdownFailedCount
 	if stats.FailedCount != expectedTotal {
-		t.Errorf("❌ Counting invariant violation: totalFailed=%d != realFailed=%d + shutdownFailed=%d", 
+		t.Errorf("❌ Counting invariant violation: totalFailed=%d != realFailed=%d + shutdownFailed=%d",
 			stats.FailedCount, stats.RealFailedCount, stats.ShutdownFailedCount)
 	} else {
-		t.Logf("✅ Counting invariant satisfied: %d = %d + %d", 
+		t.Logf("✅ Counting invariant satisfied: %d = %d + %d",
 			stats.FailedCount, stats.RealFailedCount, stats.ShutdownFailedCount)
 	}
-	
+
 	// Test key assertions:
 	// 1. No timeout while draining (verified above)
 	// 2. Queue processes without hanging (verified by completion)
 	// 3. Tasks complete or fail consistently (verified by counting invariant)
-	
+
 	t.Logf("✅ Graceful shutdown drain test completed successfully")
 }

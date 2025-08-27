@@ -165,17 +165,17 @@ func NewSpecializedIntentProcessingController(mgr ctrl.Manager, config IntentPro
 	// Initialize RAG service
 	optimizedRAGConfig := &rag.OptimizedRAGConfig{
 		RAGConfig: &rag.RAGConfig{
-			DefaultSearchLimit:   config.MaxContextChunks,
-			MaxSearchLimit:      config.MaxContextChunks * 2,
-			MinConfidenceScore:   float32(config.SimilarityThreshold),
-			CacheTTL:            5 * time.Minute,
-			MaxContextLength:    4000,
-			EnableCaching:       true,
+			DefaultSearchLimit: config.MaxContextChunks,
+			MaxSearchLimit:     config.MaxContextChunks * 2,
+			MinConfidenceScore: float32(config.SimilarityThreshold),
+			CacheTTL:           5 * time.Minute,
+			MaxContextLength:   4000,
+			EnableCaching:      true,
 		},
 	}
 
 	ragService, err := rag.NewOptimizedRAGService(
-		nil, // WeaviateConnectionPool - will be initialized internally
+		nil,       // WeaviateConnectionPool - will be initialized internally
 		llmClient, // LLM client
 		optimizedRAGConfig,
 	)
@@ -202,14 +202,14 @@ func NewSpecializedIntentProcessingController(mgr ctrl.Manager, config IntentPro
 	var circuitBreaker *llm.CircuitBreaker
 	if config.CircuitBreakerEnabled {
 		cbConfig := &llm.CircuitBreakerConfig{
-			FailureThreshold: int64(config.FailureThreshold),
-			Timeout:         config.RecoveryTimeout,
-			FailureRate:     0.5,
+			FailureThreshold:    int64(config.FailureThreshold),
+			Timeout:             config.RecoveryTimeout,
+			FailureRate:         0.5,
 			MinimumRequestCount: 10,
-			HalfOpenTimeout: 60 * time.Second,
-			SuccessThreshold: 3,
+			HalfOpenTimeout:     60 * time.Second,
+			SuccessThreshold:    3,
 			HalfOpenMaxRequests: 5,
-			ResetTimeout: 60 * time.Second,
+			ResetTimeout:        60 * time.Second,
 		}
 		circuitBreaker = llm.NewCircuitBreaker("specialized-intent-processor", cbConfig)
 	}
@@ -561,10 +561,10 @@ func (c *SpecializedIntentProcessingController) EnhanceWithRAG(ctx context.Conte
 
 	// Query RAG service for relevant context
 	ragQuery := &rag.RAGRequest{
-		Query:           intent,
-		MaxResults:      c.Config.MaxContextChunks,
-		MinConfidence:   float32(c.Config.SimilarityThreshold),
-		IntentType:      "general",
+		Query:         intent,
+		MaxResults:    c.Config.MaxContextChunks,
+		MinConfidence: float32(c.Config.SimilarityThreshold),
+		IntentType:    "general",
 	}
 
 	ragResponse, err := c.RAGService.ProcessQuery(ctx, ragQuery)

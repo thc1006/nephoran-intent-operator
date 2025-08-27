@@ -343,7 +343,7 @@ func (cads *ContextAwareDependencySelector) apply5GCoreRules(
 		udmDep := &ContextualDependency{
 			PackageRef: &PackageReference{
 				PackageName: "udm",
-				Repository: "5g-core",
+				Repository:  "5g-core",
 			},
 			Version:         "latest",
 			PlacementReason: "Required for AMF authentication",
@@ -357,7 +357,7 @@ func (cads *ContextAwareDependencySelector) apply5GCoreRules(
 		upfDep := &ContextualDependency{
 			PackageRef: &PackageReference{
 				PackageName: "upf",
-				Repository: "5g-core",
+				Repository:  "5g-core",
 			},
 			Version:         "latest",
 			PlacementReason: "Required for SMF user plane",
@@ -371,7 +371,7 @@ func (cads *ContextAwareDependencySelector) apply5GCoreRules(
 		nrfDep := &ContextualDependency{
 			PackageRef: &PackageReference{
 				PackageName: "nrf",
-				Repository: "5g-core",
+				Repository:  "5g-core",
 			},
 			Version:         "latest",
 			PlacementReason: "Required for NSSF service discovery",
@@ -394,7 +394,7 @@ func (cads *ContextAwareDependencySelector) applyORANRules(
 		e2termDep := &ContextualDependency{
 			PackageRef: &PackageReference{
 				PackageName: "e2-termination",
-				Repository: "oran",
+				Repository:  "oran",
 			},
 			Version:         "latest",
 			PlacementReason: "Required for Near-RT RIC E2 interface",
@@ -406,7 +406,7 @@ func (cads *ContextAwareDependencySelector) applyORANRules(
 		a1medDep := &ContextualDependency{
 			PackageRef: &PackageReference{
 				PackageName: "a1-mediator",
-				Repository: "oran",
+				Repository:  "oran",
 			},
 			Version:         "latest",
 			PlacementReason: "Required for Near-RT RIC A1 interface",
@@ -420,7 +420,7 @@ func (cads *ContextAwareDependencySelector) applyORANRules(
 		ricDep := &ContextualDependency{
 			PackageRef: &PackageReference{
 				PackageName: "near-rt-ric-platform",
-				Repository: "oran",
+				Repository:  "oran",
 			},
 			Version:         "latest",
 			PlacementReason: "Required platform for xApps",
@@ -450,7 +450,7 @@ func (cads *ContextAwareDependencySelector) applyEdgeRules(
 		monitorDep := &ContextualDependency{
 			PackageRef: &PackageReference{
 				PackageName: "edge-monitor",
-				Repository: "monitoring",
+				Repository:  "monitoring",
 			},
 			Version:         "latest",
 			PlacementReason: "Edge deployment monitoring",
@@ -485,7 +485,7 @@ func (cads *ContextAwareDependencySelector) applySliceRules(
 		orchDep := &ContextualDependency{
 			PackageRef: &PackageReference{
 				PackageName: "slice-orchestrator",
-				Repository: "nsmf",
+				Repository:  "nsmf",
 			},
 			Version:         "latest",
 			PlacementReason: fmt.Sprintf("%s slice management", profile.SliceType),

@@ -121,15 +121,15 @@ type SecurityContext struct {
 
 // RuntimeExecutionResult represents the result of function execution in the runtime
 type RuntimeExecutionResult struct {
-	Resources    []porch.KRMResource      `json:"resources"`
-	Results      []*porch.FunctionResult  `json:"results"`
-	Error        *porch.FunctionError     `json:"error,omitempty"`
-	Err          error                    `json:"-"`
-	Duration     time.Duration            `json:"duration"`
-	Logs         string                   `json:"logs"`
-	ExitCode     int                      `json:"exitCode"`
-	MemoryUsage  int64                    `json:"memoryUsage"`
-	CPUUsage     float64                  `json:"cpuUsage"`
+	Resources   []porch.KRMResource     `json:"resources"`
+	Results     []*porch.FunctionResult `json:"results"`
+	Error       *porch.FunctionError    `json:"error,omitempty"`
+	Err         error                   `json:"-"`
+	Duration    time.Duration           `json:"duration"`
+	Logs        string                  `json:"logs"`
+	ExitCode    int                     `json:"exitCode"`
+	MemoryUsage int64                   `json:"memoryUsage"`
+	CPUUsage    float64                 `json:"cpuUsage"`
 }
 
 // ResourcePool manages computational resources for function execution
@@ -944,7 +944,6 @@ func validateRuntimeConfig(config *RuntimeConfig) error {
 	}
 	return nil
 }
-
 
 func generateExecutorID() string {
 	return fmt.Sprintf("executor-%d-%d", time.Now().UnixNano(), runtime.NumGoroutine())

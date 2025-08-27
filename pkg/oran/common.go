@@ -24,11 +24,11 @@ type O1Config struct {
 
 // SecurityPolicy defines security policy for O1 interface
 type SecurityPolicy struct {
-	TLSVersion      uint16          `json:"tlsVersion"`
-	CipherSuites    []string        `json:"cipherSuites"`
-	RequireClientAuth bool          `json:"requireClientAuth"`
-	MaxConnections  int             `json:"maxConnections"`
-	RateLimit       *RateLimit      `json:"rateLimit,omitempty"`
+	TLSVersion        uint16     `json:"tlsVersion"`
+	CipherSuites      []string   `json:"cipherSuites"`
+	RequireClientAuth bool       `json:"requireClientAuth"`
+	MaxConnections    int        `json:"maxConnections"`
+	RateLimit         *RateLimit `json:"rateLimit,omitempty"`
 }
 
 // StreamFilter defines filtering configuration for O1 streaming
@@ -53,7 +53,7 @@ type TimeRange struct {
 
 // AuthConfig defines authentication configuration
 type AuthConfig struct {
-	Type     string `json:"type"`     // cert, token, basic
+	Type     string `json:"type"` // cert, token, basic
 	Username string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`
 	Token    string `json:"token,omitempty"`

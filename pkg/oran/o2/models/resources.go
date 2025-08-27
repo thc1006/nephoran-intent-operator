@@ -26,9 +26,9 @@ type ResourcePool struct {
 	Status    *ResourcePoolStatus `json:"status,omitempty"`
 	CreatedAt time.Time           `json:"createdAt"`
 	UpdatedAt time.Time           `json:"updatedAt"`
-	
+
 	// Direct state access for test compatibility
-	State     string              `json:"state,omitempty"`
+	State string `json:"state,omitempty"`
 }
 
 // ResourcePoolStatus represents the current status of a resource pool

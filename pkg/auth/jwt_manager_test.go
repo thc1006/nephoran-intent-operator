@@ -859,13 +859,13 @@ func BenchmarkJWTManager_RefreshToken(b *testing.B) {
 }
 
 // Helper functions for testing
-func createJWTManagerForTest(t *testing.T) (*JWTManager, *testutil.TestContext) {
+func createJWTManagerForTest(t *testing.T) (*auth.JWTManager, *testutil.TestContext) {
 	tc := testutil.NewTestContext(t)
 	manager := tc.SetupJWTManager()
 	return manager, tc
 }
 
-func generateTestTokenWithClaims(t *testing.T, manager *JWTManager, claims map[string]interface{}) string {
+func generateTestTokenWithClaims(t *testing.T, manager *auth.JWTManager, claims map[string]interface{}) string {
 	uf := testutil.NewUserFactory()
 	user := uf.CreateBasicUser()
 

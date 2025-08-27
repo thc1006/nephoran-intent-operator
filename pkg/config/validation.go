@@ -656,7 +656,7 @@ func NewSecretLoader(basePath string, options map[string]interface{}) (*SecretLo
 	if basePath == "" {
 		return nil, fmt.Errorf("base path cannot be empty")
 	}
-	
+
 	return &SecretLoader{
 		basePath: basePath,
 	}, nil
@@ -665,12 +665,12 @@ func NewSecretLoader(basePath string, options map[string]interface{}) (*SecretLo
 // LoadSecret loads a secret from the configured source
 func (sl *SecretLoader) LoadSecret(secretName string) (string, error) {
 	secretPath := filepath.Join(sl.basePath, secretName)
-	
+
 	content, err := ioutil.ReadFile(secretPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to read secret %s: %w", secretName, err)
 	}
-	
+
 	return strings.TrimSpace(string(content)), nil
 }
 
@@ -679,20 +679,20 @@ func IsValidOpenAIKey(key string) bool {
 	if key == "" {
 		return false
 	}
-	
+
 	// OpenAI keys typically start with "sk-" and are 51 characters long
 	if !strings.HasPrefix(key, "sk-") {
 		return false
 	}
-	
+
 	if len(key) != 51 {
 		return false
 	}
-	
+
 	// Check if the rest contains only alphanumeric characters
 	keyPart := key[3:] // Remove "sk-" prefix
 	alphanumeric := regexp.MustCompile(`^[a-zA-Z0-9]+$`)
-	
+
 	return alphanumeric.MatchString(keyPart)
 }
 
@@ -701,15 +701,15 @@ func ClearString(s *string) {
 	if s == nil || *s == "" {
 		return
 	}
-	
+
 	// Convert string to byte slice for clearing
 	data := []byte(*s)
-	
+
 	// Clear the underlying bytes
 	for i := range data {
 		data[i] = 0
 	}
-	
+
 	// Clear the string by setting it to empty
 	*s = ""
 }
@@ -719,7 +719,7 @@ func SecureCompare(a, b string) bool {
 	// Convert to byte slices
 	aBytes := []byte(a)
 	bBytes := []byte(b)
-	
+
 	// Use crypto/subtle for constant-time comparison
 	return subtle.ConstantTimeCompare(aBytes, bBytes) == 1
 }

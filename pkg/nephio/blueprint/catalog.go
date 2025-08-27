@@ -46,7 +46,7 @@ type Template struct {
 
 	// Component targeting
 	TargetComponents []v1.ORANComponent `json:"targetComponents" yaml:"targetComponents"`
-	IntentTypes      []v1.IntentType      `json:"intentTypes" yaml:"intentTypes"`
+	IntentTypes      []v1.IntentType    `json:"intentTypes" yaml:"intentTypes"`
 
 	// Dependencies
 	Dependencies  []TemplateDependency `json:"dependencies" yaml:"dependencies"`
@@ -142,7 +142,7 @@ type SearchCriteria struct {
 
 	// Component filters
 	TargetComponents []v1.ORANComponent `json:"targetComponents,omitempty"`
-	IntentTypes      []v1.IntentType      `json:"intentTypes,omitempty"`
+	IntentTypes      []v1.IntentType    `json:"intentTypes,omitempty"`
 
 	// Quality filters
 	ORANCompliant *bool    `json:"oranCompliant,omitempty"`
@@ -879,7 +879,7 @@ func NewDependencyGraph() *DependencyGraph {
 func (c *Catalog) removeDuplicateTemplates(templates []*Template) []*Template {
 	seen := make(map[string]bool)
 	var result []*Template
-	
+
 	for _, template := range templates {
 		if template == nil {
 			continue
@@ -889,7 +889,7 @@ func (c *Catalog) removeDuplicateTemplates(templates []*Template) []*Template {
 			result = append(result, template)
 		}
 	}
-	
+
 	return result
 }
 
@@ -902,7 +902,7 @@ func (c *Catalog) validateORANCompliance(template *Template) error {
 	// Check for required O-RAN interfaces
 	requiredInterfaces := []string{"A1", "O1", "O2", "E2"}
 	foundInterfaces := make(map[string]bool)
-	
+
 	// Scan template files for interface implementations
 	for filename, content := range template.Files {
 		contentLower := strings.ToLower(content)
@@ -917,12 +917,12 @@ func (c *Catalog) validateORANCompliance(template *Template) error {
 		}
 		_ = filename // Avoid unused variable warning
 	}
-	
+
 	// Check if at least one O-RAN interface is implemented
 	if len(foundInterfaces) == 0 {
 		return fmt.Errorf("template claims O-RAN compliance but no O-RAN interfaces found")
 	}
-	
+
 	return nil
 }
 
@@ -1006,7 +1006,7 @@ func (c *Catalog) removeFromIndexes(template *Template) {
 		}
 	}
 
-	// Remove from category index  
+	// Remove from category index
 	if templates, ok := c.templatesByCategory[template.Category]; ok {
 		for i, t := range templates {
 			if t.ID == template.ID {
@@ -1073,7 +1073,7 @@ func (c *Catalog) discoverTemplates(repoPath string, repo *TemplateRepository) (
 func (si *SearchIndex) SearchByText(query string) []*Template {
 	si.mutex.RLock()
 	defer si.mutex.RUnlock()
-	
+
 	// This is a simple implementation - would be more sophisticated in practice
 	queryLower := strings.ToLower(query)
 	if templates, ok := si.textIndex[queryLower]; ok {
@@ -1086,22 +1086,22 @@ func (si *SearchIndex) SearchByText(query string) []*Template {
 func (si *SearchIndex) UpdateTemplate(template *Template) {
 	si.mutex.Lock()
 	defer si.mutex.Unlock()
-	
+
 	// Update name index
 	nameLower := strings.ToLower(template.Name)
 	si.nameIndex[nameLower] = append(si.nameIndex[nameLower], template)
-	
+
 	// Update tag index
 	for _, tag := range template.Tags {
 		tagLower := strings.ToLower(tag)
 		si.tagIndex[tagLower] = append(si.tagIndex[tagLower], template)
 	}
-	
+
 	// Update component index
 	for _, component := range template.TargetComponents {
 		si.componentIndex[string(component)] = append(si.componentIndex[string(component)], template)
 	}
-	
+
 	// Update type index
 	for _, intentType := range template.IntentTypes {
 		si.typeIndex[intentType] = append(si.typeIndex[intentType], template)
@@ -1112,13 +1112,13 @@ func (si *SearchIndex) UpdateTemplate(template *Template) {
 func (si *SearchIndex) RemoveTemplate(template *Template) {
 	si.mutex.Lock()
 	defer si.mutex.Unlock()
-	
+
 	// Remove from name index
 	nameLower := strings.ToLower(template.Name)
 	if templates, ok := si.nameIndex[nameLower]; ok {
 		si.nameIndex[nameLower] = si.removeTemplateFromSlice(templates, template.ID)
 	}
-	
+
 	// Remove from tag index
 	for _, tag := range template.Tags {
 		tagLower := strings.ToLower(tag)
@@ -1126,14 +1126,14 @@ func (si *SearchIndex) RemoveTemplate(template *Template) {
 			si.tagIndex[tagLower] = si.removeTemplateFromSlice(templates, template.ID)
 		}
 	}
-	
+
 	// Remove from component index
 	for _, component := range template.TargetComponents {
 		if templates, ok := si.componentIndex[string(component)]; ok {
 			si.componentIndex[string(component)] = si.removeTemplateFromSlice(templates, template.ID)
 		}
 	}
-	
+
 	// Remove from type index
 	for _, intentType := range template.IntentTypes {
 		if templates, ok := si.typeIndex[intentType]; ok {
@@ -1157,7 +1157,7 @@ func (si *SearchIndex) removeTemplateFromSlice(templates []*Template, templateID
 func (dg *DependencyGraph) GetDependents(templateID string) []string {
 	dg.mutex.RLock()
 	defer dg.mutex.RUnlock()
-	
+
 	if dependents, ok := dg.dependents[templateID]; ok {
 		return dependents
 	}
@@ -1168,15 +1168,15 @@ func (dg *DependencyGraph) GetDependents(templateID string) []string {
 func (dg *DependencyGraph) UpdateTemplate(template *Template) {
 	dg.mutex.Lock()
 	defer dg.mutex.Unlock()
-	
+
 	// Clear existing dependencies for this template
 	delete(dg.dependencies, template.ID)
-	
+
 	// Add new dependencies
 	var deps []string
 	for _, dep := range template.Dependencies {
 		deps = append(deps, dep.TemplateID)
-		
+
 		// Update dependents mapping
 		if dg.dependents[dep.TemplateID] == nil {
 			dg.dependents[dep.TemplateID] = []string{}
@@ -1190,13 +1190,13 @@ func (dg *DependencyGraph) UpdateTemplate(template *Template) {
 func (dg *DependencyGraph) RemoveTemplate(template *Template) {
 	dg.mutex.Lock()
 	defer dg.mutex.Unlock()
-	
+
 	// Remove dependencies
 	delete(dg.dependencies, template.ID)
-	
+
 	// Remove from dependents
 	delete(dg.dependents, template.ID)
-	
+
 	// Remove from other templates' dependents lists
 	for templateID, dependents := range dg.dependents {
 		for i, dependent := range dependents {

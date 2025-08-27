@@ -25,7 +25,7 @@ var _ = Describe("Porch Intent Reconciliation", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 5*time.Minute)
 		ns = "test-intent-" + randomString(8)
-		
+
 		// Create test namespace
 		createNamespace(ctx, k8sClient, ns)
 	})

@@ -37,9 +37,9 @@ func main() {
 		nowMicros := now.UnixNano() / 1000
 		event = &ves.Event{
 			Event: struct {
-				CommonEventHeader ves.CommonEventHeader      `json:"commonEventHeader"`
-				HeartbeatFields   *ves.HeartbeatFields       `json:"heartbeatFields,omitempty"`
-				FaultFields       *ves.FaultFields           `json:"faultFields,omitempty"`
+				CommonEventHeader ves.CommonEventHeader  `json:"commonEventHeader"`
+				HeartbeatFields   *ves.HeartbeatFields   `json:"heartbeatFields,omitempty"`
+				FaultFields       *ves.FaultFields       `json:"faultFields,omitempty"`
 				MeasurementFields map[string]interface{} `json:"measurementFields,omitempty"`
 			}{
 				CommonEventHeader: ves.CommonEventHeader{

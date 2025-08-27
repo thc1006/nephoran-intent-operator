@@ -58,7 +58,7 @@ func TestClient_NetworkErrors(t *testing.T) {
 					w.WriteHeader(http.StatusOK)
 				}))
 				t.Cleanup(server.Close)
-				
+
 				client := NewClient(server.URL, false)
 				// Set a very short timeout for the test
 				client.httpClient.Timeout = 50 * time.Millisecond
@@ -157,9 +157,9 @@ func TestClient_NetworkErrors(t *testing.T) {
 // TestClient_HTTPErrors tests various HTTP error responses
 func TestClient_HTTPErrors(t *testing.T) {
 	tests := []struct {
-		name         string
-		serverSetup  func(t *testing.T) *httptest.Server
-		expectError  string
+		name          string
+		serverSetup   func(t *testing.T) *httptest.Server
+		expectError   string
 		testOperation string
 	}{
 		{
@@ -170,7 +170,7 @@ func TestClient_HTTPErrors(t *testing.T) {
 					w.Write([]byte("Internal server error"))
 				}))
 			},
-			expectError: "failed to get package: Internal server error",
+			expectError:   "failed to get package: Internal server error",
 			testOperation: "CreateOrUpdatePackage",
 		},
 		{
@@ -190,7 +190,7 @@ func TestClient_HTTPErrors(t *testing.T) {
 					w.WriteHeader(http.StatusNotFound)
 				}))
 			},
-			expectError: "",
+			expectError:   "",
 			testOperation: "CreateOrUpdatePackage",
 		},
 		{
@@ -201,7 +201,7 @@ func TestClient_HTTPErrors(t *testing.T) {
 					w.Write([]byte("Unauthorized"))
 				}))
 			},
-			expectError: "failed to get package: Unauthorized",
+			expectError:   "failed to get package: Unauthorized",
 			testOperation: "CreateOrUpdatePackage",
 		},
 		{
@@ -212,7 +212,7 @@ func TestClient_HTTPErrors(t *testing.T) {
 					w.Write([]byte("Forbidden"))
 				}))
 			},
-			expectError: "failed to get package: Forbidden",
+			expectError:   "failed to get package: Forbidden",
 			testOperation: "CreateOrUpdatePackage",
 		},
 		{
@@ -231,7 +231,7 @@ func TestClient_HTTPErrors(t *testing.T) {
 					w.WriteHeader(http.StatusOK)
 				}))
 			},
-			expectError: "invalid character",
+			expectError:   "invalid character",
 			testOperation: "CreateOrUpdatePackage",
 		},
 		{
@@ -246,7 +246,7 @@ func TestClient_HTTPErrors(t *testing.T) {
 					w.WriteHeader(http.StatusOK)
 				}))
 			},
-			expectError: "failed to submit proposal: Invalid proposal",
+			expectError:   "failed to submit proposal: Invalid proposal",
 			testOperation: "SubmitProposal",
 		},
 		{
@@ -261,7 +261,7 @@ func TestClient_HTTPErrors(t *testing.T) {
 					w.WriteHeader(http.StatusOK)
 				}))
 			},
-			expectError: "failed to approve package: Package already approved",
+			expectError:   "failed to approve package: Package already approved",
 			testOperation: "ApprovePackage",
 		},
 	}
@@ -272,7 +272,7 @@ func TestClient_HTTPErrors(t *testing.T) {
 			defer server.Close()
 
 			client := NewClient(server.URL, false)
-			
+
 			req := &PackageRequest{
 				Repository: "test-repo",
 				Package:    "test-package",
@@ -338,7 +338,7 @@ func TestClient_TLSErrors(t *testing.T) {
 					w.WriteHeader(http.StatusOK)
 				}))
 				t.Cleanup(server.Close)
-				
+
 				// Use the server URL but don't configure the client to skip TLS verification
 				client := NewClient(server.URL, false)
 				// Force certificate verification failure
@@ -354,7 +354,7 @@ func TestClient_TLSErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			client := tt.setupFunc(t)
-			
+
 			req := &PackageRequest{
 				Repository: "test-repo",
 				Package:    "test-package",
@@ -472,7 +472,7 @@ func TestClient_RequestErrors(t *testing.T) {
 			}()
 
 			_, err := client.CreateOrUpdatePackage(tt.req)
-			
+
 			if tt.expectError == "panic" {
 				t.Error("Expected panic but didn't get one")
 			} else if tt.expectError != "" {
@@ -493,7 +493,7 @@ func TestClient_ConcurrentRequests(t *testing.T) {
 		requestCount++
 		// Simulate some processing time
 		time.Sleep(10 * time.Millisecond)
-		
+
 		if strings.Contains(r.URL.Path, "/packages/") {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -527,7 +527,7 @@ func TestClient_ConcurrentRequests(t *testing.T) {
 					Replicas:   3,
 				},
 			}
-			
+
 			_, err := client.CreateOrUpdatePackage(req)
 			done <- err
 		}(i)
@@ -602,7 +602,7 @@ func TestClient_ContextCancellation(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(server.URL, false)
-	
+
 	// Set a very short timeout to trigger cancellation
 	client.httpClient.Timeout = 100 * time.Millisecond
 
@@ -623,7 +623,7 @@ func TestClient_ContextCancellation(t *testing.T) {
 	if err == nil {
 		t.Error("Expected timeout error but got nil")
 	}
-	if !strings.Contains(err.Error(), "timeout") && 
+	if !strings.Contains(err.Error(), "timeout") &&
 		!strings.Contains(err.Error(), "context deadline exceeded") {
 		t.Errorf("Expected timeout error but got: %v", err)
 	}
@@ -676,7 +676,7 @@ func TestClient_MalformedResponses(t *testing.T) {
 			defer server.Close()
 
 			client := NewClient(server.URL, false)
-			
+
 			req := &PackageRequest{
 				Repository: "test-repo",
 				Package:    "test-package",

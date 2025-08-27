@@ -718,11 +718,11 @@ func (crm *CertRotationManager) Start() {
 	if crm.config == nil || !crm.config.Enabled {
 		return
 	}
-	
+
 	// Create a ticker for certificate rotation
 	ticker := time.NewTicker(crm.config.CheckInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -739,12 +739,12 @@ func (crm *CertRotationManager) Start() {
 func (crm *CertRotationManager) rotateCertificate(ctx context.Context) error {
 	// Certificate rotation implementation
 	crm.logger.Info("performing certificate rotation")
-	
+
 	// This would normally:
 	// 1. Generate new certificate
 	// 2. Validate the new certificate
 	// 3. Replace the current certificate
 	// 4. Clean up old certificates
-	
+
 	return nil
 }

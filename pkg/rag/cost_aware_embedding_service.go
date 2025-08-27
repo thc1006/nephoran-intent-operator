@@ -455,7 +455,7 @@ func (s *CostAwareEmbeddingService) tryProvider(
 	for i, v := range embeddings[0] {
 		embedding64[i] = float64(v)
 	}
-	
+
 	// Assess quality
 	quality := s.assessQuality(embedding64)
 

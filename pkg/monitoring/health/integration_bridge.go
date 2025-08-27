@@ -494,9 +494,9 @@ type IntegratedAlert struct {
 	SLAComplianceStatus SLAComplianceStatus `json:"sla_compliance_status"`
 
 	// Alert metadata
-	Severity    AlertSeverity `json:"severity"`
-	CreatedAt   time.Time     `json:"created_at"`
-	LastUpdated time.Time     `json:"last_updated"`
+	Severity    AlertSeverity         `json:"severity"`
+	CreatedAt   time.Time             `json:"created_at"`
+	LastUpdated time.Time             `json:"last_updated"`
 	Status      IntegratedAlertStatus `json:"status"`
 
 	// Context and correlation
@@ -1016,7 +1016,7 @@ func (sib *SLAIntegrationBridge) CalculateCompositeScore(ctx context.Context, mo
 		ScoringModel:         modelID,
 		CalculationTimestamp: time.Now(),
 		ConfidenceLevel:      0.8, // Simplified
-		DataQuality:          DataQualityMetrics{
+		DataQuality: DataQualityMetrics{
 			Completeness: 1.0,
 			Consistency:  1.0,
 			Accuracy:     1.0,

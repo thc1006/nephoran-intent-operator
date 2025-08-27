@@ -1050,11 +1050,11 @@ type NodeResolution struct {
 type ResolutionMethod string
 
 const (
-	ResolutionMethodExact     ResolutionMethod = "exact"
-	ResolutionMethodLatest    ResolutionMethod = "latest"
-	ResolutionMethodRange     ResolutionMethod = "range"
-	ResolutionMethodFallback  ResolutionMethod = "fallback"
-	ResolutionMethodManual    ResolutionMethod = "manual"
+	ResolutionMethodExact    ResolutionMethod = "exact"
+	ResolutionMethodLatest   ResolutionMethod = "latest"
+	ResolutionMethodRange    ResolutionMethod = "range"
+	ResolutionMethodFallback ResolutionMethod = "fallback"
+	ResolutionMethodManual   ResolutionMethod = "manual"
 )
 
 // GraphModification represents modifications made to a dependency graph
@@ -1072,18 +1072,18 @@ type GraphModification struct {
 type ModificationType string
 
 const (
-	ModificationTypeAdd    ModificationType = "add"
-	ModificationTypeRemove ModificationType = "remove"
-	ModificationTypeUpdate ModificationType = "update"
+	ModificationTypeAdd     ModificationType = "add"
+	ModificationTypeRemove  ModificationType = "remove"
+	ModificationTypeUpdate  ModificationType = "update"
 	ModificationTypeResolve ModificationType = "resolve"
 )
 
 // OptimizedGraph represents a graph after optimization
 type OptimizedGraph struct {
-	OriginalGraph *DependencyGraph
+	OriginalGraph  *DependencyGraph
 	OptimizedGraph *DependencyGraph
-	Optimizations []Optimization
-	Performance   *PerformanceMetrics
+	Optimizations  []Optimization
+	Performance    *PerformanceMetrics
 }
 
 // Optimization represents a single optimization applied
@@ -1096,10 +1096,10 @@ type Optimization struct {
 
 // PerformanceMetrics tracks performance improvements
 type PerformanceMetrics struct {
-	OriginalComplexity int
+	OriginalComplexity  int
 	OptimizedComplexity int
-	ImprovementRatio   float64
-	ExecutionTime      time.Duration
+	ImprovementRatio    float64
+	ExecutionTime       time.Duration
 }
 
 // UpdatePlanOptions configures update plan generation
@@ -1112,7 +1112,7 @@ type UpdatePlanOptions struct {
 
 // UpdatePlan represents a plan for updating dependencies
 type UpdatePlan struct {
-	Steps        []UpdateStep
+	Steps         []UpdateStep
 	EstimatedTime time.Duration
 	RiskLevel     RiskLevel
 	Prerequisites []string
@@ -1120,10 +1120,10 @@ type UpdatePlan struct {
 
 // UpdateStep represents a single step in an update plan
 type UpdateStep struct {
-	Action      UpdateAction
-	Target      string
-	FromVersion string
-	ToVersion   string
+	Action       UpdateAction
+	Target       string
+	FromVersion  string
+	ToVersion    string
 	Dependencies []string
 }
 
@@ -1136,7 +1136,6 @@ const (
 	UpdateActionInstall   UpdateAction = "install"
 	UpdateActionRemove    UpdateAction = "remove"
 )
-
 
 // ConflictSuggestion provides suggestions for resolving conflicts
 type ConflictSuggestion struct {

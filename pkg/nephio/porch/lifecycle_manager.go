@@ -897,8 +897,8 @@ func (lm *lifecycleManager) BatchTransition(ctx context.Context, refs []*Package
 
 	start := time.Now()
 	result := &BatchTransitionResult{
-		TotalPackages:     len(refs),
-		Results:          make([]*PackageTransitionResult, 0, len(refs)),
+		TotalPackages: len(refs),
+		Results:       make([]*PackageTransitionResult, 0, len(refs)),
 	}
 
 	// Use semaphore for concurrency control
@@ -912,11 +912,11 @@ func (lm *lifecycleManager) BatchTransition(ctx context.Context, refs []*Package
 	// Launch goroutines for each package
 	for _, ref := range refs {
 		go func(packageRef *PackageReference) {
-			semaphore <- struct{}{} // Acquire semaphore
+			semaphore <- struct{}{}        // Acquire semaphore
 			defer func() { <-semaphore }() // Release semaphore
 
 			transitionOpts := &TransitionOptions{
-				Timeout:         30 * time.Second,
+				Timeout: 30 * time.Second,
 			}
 
 			transitionResult, err := lm.performTransition(ctx, packageRef, targetStage, transitionOpts)
@@ -962,49 +962,49 @@ func (lm *lifecycleManager) BatchTransition(ctx context.Context, refs []*Package
 // CleanupFailedTransitions removes failed transition records older than specified duration
 func (lm *lifecycleManager) CleanupFailedTransitions(ctx context.Context, olderThan time.Duration) (*CleanupResult, error) {
 	cutoffTime := time.Now().Add(-olderThan)
-	
+
 	result := &CleanupResult{
 		ItemsRemoved: 0,
 		Duration:     0,
 		Errors:       []string{},
 	}
-	
+
 	// In a real implementation, this would query a database or storage
 	// for failed transitions older than cutoffTime and remove them
 	// For now, we'll return a basic result
-	lm.logger.Info("Cleanup of failed transitions completed", 
+	lm.logger.Info("Cleanup of failed transitions completed",
 		"cutoff_time", cutoffTime,
 		"items_removed", result.ItemsRemoved)
-	
+
 	return result, nil
 }
 
 // CleanupRollbackPoints removes rollback points for a package older than specified duration
 func (lm *lifecycleManager) CleanupRollbackPoints(ctx context.Context, ref *PackageReference, olderThan time.Duration) (*CleanupResult, error) {
 	cutoffTime := time.Now().Add(-olderThan)
-	
+
 	result := &CleanupResult{
 		ItemsRemoved: 0,
 		Duration:     0,
 		Errors:       []string{},
 	}
-	
+
 	// In a real implementation, this would query rollback points for this package
 	// and remove ones older than cutoffTime
-	lm.logger.Info("Cleanup of rollback points completed", 
+	lm.logger.Info("Cleanup of rollback points completed",
 		"package_key", ref.GetPackageKey(),
 		"cutoff_time", cutoffTime,
 		"items_removed", result.ItemsRemoved)
-	
+
 	return result, nil
 }
 
 // ForceReleaseLock forcibly releases a lifecycle lock with a reason
 func (lm *lifecycleManager) ForceReleaseLock(ctx context.Context, lockID string, reason string) error {
-	lm.logger.Info("Force releasing lifecycle lock", 
+	lm.logger.Info("Force releasing lifecycle lock",
 		"lock_id", lockID,
 		"reason", reason)
-	
+
 	// In a real implementation, this would forcibly remove the lock from storage
 	// and possibly notify any waiting processes
 	return lm.ReleaseLifecycleLock(ctx, lockID)
@@ -1022,12 +1022,12 @@ func (lm *lifecycleManager) GenerateLifecycleReport(ctx context.Context, opts *R
 		},
 		PackageReports: []*PackageLifecycleReport{},
 	}
-	
+
 	// Add TimeRange if specified in options
 	if opts != nil && opts.TimeRange != nil {
 		report.TimeRange = opts.TimeRange
 	}
-	
+
 	// In a real implementation, this would gather statistics from storage
 	lm.logger.Info("Generated lifecycle report")
 	return report, nil
@@ -1073,14 +1073,14 @@ func (lm *lifecycleManager) GetGlobalMetrics(ctx context.Context) (*GlobalLifecy
 	// In a real implementation, this would aggregate metrics from storage
 	// For now, return basic metrics
 	metrics := &GlobalLifecycleMetrics{
-		TotalPackages:     0,
-		PackagesByStage:   make(map[PackageRevisionLifecycle]int64),
-		TotalTransitions:  0,
-		TransitionsPerHour: 0.0,
+		TotalPackages:         0,
+		PackagesByStage:       make(map[PackageRevisionLifecycle]int64),
+		TotalTransitions:      0,
+		TransitionsPerHour:    0.0,
 		AverageTransitionTime: 0,
-		FailureRate:       0.0,
-		ActiveLocks:       0,
-		PendingTransitions: 0,
+		FailureRate:           0.0,
+		ActiveLocks:           0,
+		PendingTransitions:    0,
 	}
 
 	// Count packages by stage from current state
@@ -1129,7 +1129,7 @@ func (lm *lifecycleManager) GetLifecycleMetrics(ctx context.Context, ref *Packag
 	}
 	lm.stateMutex.RUnlock()
 
-	lm.logger.V(1).Info("Retrieved lifecycle metrics", 
+	lm.logger.V(1).Info("Retrieved lifecycle metrics",
 		"package_key", ref.GetPackageKey(),
 		"current_stage", metrics.CurrentStage)
 
@@ -1157,7 +1157,7 @@ func (lm *lifecycleManager) GetManagerHealth(ctx context.Context) (*LifecycleMan
 		health.Status = "degraded"
 	}
 	if queueSize >= 1000 { // Full queue
-		health.Status = "unhealthy" 
+		health.Status = "unhealthy"
 	}
 
 	lm.logger.V(1).Info("Retrieved manager health",

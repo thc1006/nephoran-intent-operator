@@ -10,7 +10,6 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-
 )
 
 // ProductionValidationRunner orchestrates comprehensive production validation testing

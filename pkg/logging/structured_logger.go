@@ -452,7 +452,7 @@ func NewLogger(serviceName string, level string) *StructuredLogger {
 	case "error":
 		logLevel = LevelError
 	}
-	
+
 	config := Config{
 		Level:       logLevel,
 		Format:      "text",
@@ -461,6 +461,6 @@ func NewLogger(serviceName string, level string) *StructuredLogger {
 		Environment: "development",
 		AddSource:   false,
 	}
-	
+
 	return NewStructuredLogger(config)
 }

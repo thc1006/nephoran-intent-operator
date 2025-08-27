@@ -90,12 +90,12 @@ type NormalityTestResult struct {
 
 // PowerAnalysis evaluates the statistical power of the test
 type PowerAnalysis struct {
-	EffectSize        float64
-	Power             float64
-	RequiredSamples   int
-	DetectableEffect  float64
-	Recommendation    string
-	EffectSizeTable   map[string]int // Maps effect size categories to required samples
+	EffectSize       float64
+	Power            float64
+	RequiredSamples  int
+	DetectableEffect float64
+	Recommendation   string
+	EffectSizeTable  map[string]int // Maps effect size categories to required samples
 }
 
 // RegressionAnalysis compares current metrics against baseline/historical data
@@ -461,7 +461,7 @@ func (sv *StatisticalValidator) performPowerAnalysis(currentSampleSize int, stan
 	// Generate recommendation
 	if analysis.Power < sv.powerThreshold {
 		analysis.Recommendation = fmt.Sprintf("Increase sample size to %d for %.1f%% power to detect medium effects (small: %d, large: %d)",
-			analysis.RequiredSamples, sv.powerThreshold*100, 
+			analysis.RequiredSamples, sv.powerThreshold*100,
 			analysis.EffectSizeTable["small"], analysis.EffectSizeTable["large"])
 	} else {
 		analysis.Recommendation = fmt.Sprintf("Current sample size provides adequate power (%.1f%%)", analysis.Power*100)

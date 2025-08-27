@@ -113,7 +113,7 @@ var _ = Describe("NetworkIntent Webhook", func() {
 
 			It("should accept all valid source values", func() {
 				validSources := []string{"user", "planner", "test"}
-				
+
 				for _, source := range validSources {
 					ni := &NetworkIntent{
 						Spec: NetworkIntentSpec{
@@ -166,7 +166,6 @@ var _ = Describe("NetworkIntent Webhook", func() {
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("must be >= 0"))
 			})
-
 
 			It("should reject empty target", func() {
 				ni := &NetworkIntent{
@@ -222,18 +221,18 @@ var _ = Describe("NetworkIntent Webhook", func() {
 			It("should report multiple validation errors", func() {
 				ni := &NetworkIntent{
 					Spec: NetworkIntentSpec{
-						IntentType: "invalid",  // Invalid
-						Target:     "",          // Empty
-						Namespace:  "",          // Empty
-						Replicas:   -5,          // Negative
-						Source:     "invalid",   // Invalid
+						IntentType: "invalid", // Invalid
+						Target:     "",        // Empty
+						Namespace:  "",        // Empty
+						Replicas:   -5,        // Negative
+						Source:     "invalid", // Invalid
 					},
 				}
 
 				warnings, err := validator.ValidateCreate(ctx, ni)
 				Expect(warnings).To(BeNil())
 				Expect(err).To(HaveOccurred())
-				
+
 				// Check for all expected error messages
 				errorMsg := err.Error()
 				Expect(errorMsg).To(ContainSubstring("only 'scaling' supported"))

@@ -78,7 +78,6 @@ type UserSession struct {
 	SecureContext bool   `json:"secure_context"`
 }
 
-
 // AuthManagerInterface defines the interface for the main authentication manager
 type AuthManagerInterface interface {
 	GetMiddleware() interface{}

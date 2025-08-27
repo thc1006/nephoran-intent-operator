@@ -99,10 +99,10 @@ type CoordinationContext struct {
 	mutex         sync.RWMutex
 
 	// Additional fields for event-driven coordinator compatibility
-	LastUpdateTime   time.Time                  `json:"lastUpdateTime"`
-	Metadata         map[string]interface{}     `json:"metadata"`
-	CompletedPhases  []interfaces.ProcessingPhase `json:"completedPhases"`
-	ErrorHistory     []string                   `json:"errorHistory"`
+	LastUpdateTime  time.Time                    `json:"lastUpdateTime"`
+	Metadata        map[string]interface{}       `json:"metadata"`
+	CompletedPhases []interfaces.ProcessingPhase `json:"completedPhases"`
+	ErrorHistory    []string                     `json:"errorHistory"`
 }
 
 // PhaseExecution tracks the execution of a phase
@@ -919,19 +919,19 @@ func (r *CoordinationController) getOrCreateCoordinationContext(networkIntent *n
 	}
 
 	coordCtx := &CoordinationContext{
-		IntentID:         intentID,
-		CorrelationID:    fmt.Sprintf("coord-%s-%d", networkIntent.Name, time.Now().Unix()),
-		StartTime:        time.Now(),
-		CurrentPhase:     interfaces.PhaseIntentReceived,
-		PhaseHistory:     make([]PhaseExecution, 0),
-		Locks:            make([]string, 0),
-		Conflicts:        make([]Conflict, 0),
-		RetryCount:       0,
-		LastActivity:     time.Now(),
-		LastUpdateTime:   time.Now(),
-		Metadata:         make(map[string]interface{}),
-		CompletedPhases:  make([]interfaces.ProcessingPhase, 0),
-		ErrorHistory:     make([]string, 0),
+		IntentID:        intentID,
+		CorrelationID:   fmt.Sprintf("coord-%s-%d", networkIntent.Name, time.Now().Unix()),
+		StartTime:       time.Now(),
+		CurrentPhase:    interfaces.PhaseIntentReceived,
+		PhaseHistory:    make([]PhaseExecution, 0),
+		Locks:           make([]string, 0),
+		Conflicts:       make([]Conflict, 0),
+		RetryCount:      0,
+		LastActivity:    time.Now(),
+		LastUpdateTime:  time.Now(),
+		Metadata:        make(map[string]interface{}),
+		CompletedPhases: make([]interfaces.ProcessingPhase, 0),
+		ErrorHistory:    make([]string, 0),
 	}
 
 	r.activeIntents.Store(intentID, coordCtx)

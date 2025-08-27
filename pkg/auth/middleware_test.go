@@ -108,7 +108,7 @@ func NewCORSMiddleware(config *CORSConfig) *MockCORSMiddleware {
 func (m *MockCORSMiddleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
-		
+
 		// Check if origin is allowed
 		allowed := false
 		for _, allowedOrigin := range m.config.AllowedOrigins {
@@ -117,12 +117,12 @@ func (m *MockCORSMiddleware) Middleware(next http.Handler) http.Handler {
 				break
 			}
 		}
-		
+
 		if origin != "" && !allowed {
 			w.WriteHeader(http.StatusForbidden)
 			return
 		}
-		
+
 		if allowed && origin != "" {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Methods", strings.Join(m.config.AllowedMethods, ","))
@@ -137,12 +137,12 @@ func (m *MockCORSMiddleware) Middleware(next http.Handler) http.Handler {
 				w.Header().Set("Access-Control-Max-Age", fmt.Sprintf("%d", m.config.MaxAge))
 			}
 		}
-		
+
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -160,7 +160,7 @@ func (m *MockRateLimitMiddleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		key := m.config.KeyGenerator(r)
 		requestCounts[key]++
-		
+
 		if requestCounts[key] > m.config.BurstSize {
 			if m.config.OnLimitExceeded != nil {
 				m.config.OnLimitExceeded(w, r)
@@ -169,7 +169,7 @@ func (m *MockRateLimitMiddleware) Middleware(next http.Handler) http.Handler {
 			}
 			return
 		}
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -206,15 +206,15 @@ func (m *MockSecurityHeadersMiddleware) Middleware(next http.Handler) http.Handl
 			}
 			w.Header().Set("Strict-Transport-Security", hsts)
 		}
-		
+
 		for key, value := range m.config.CustomHeaders {
 			w.Header().Set(key, value)
 		}
-		
+
 		if m.config.RemoveServerHeader {
 			w.Header().Del("Server")
 		}
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -236,13 +236,13 @@ func (m *MockRequestLoggingMiddleware) Middleware(next http.Handler) http.Handle
 				return
 			}
 		}
-		
+
 		// Log the request
 		if m.config.Logger != nil {
 			logEntry := fmt.Sprintf("%s %s", r.Method, r.URL.Path)
 			m.config.Logger(logEntry)
 		}
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -265,11 +265,11 @@ func (tam *MockAuthMiddleware) Middleware(next http.Handler) http.Handler {
 				return
 			}
 		}
-		
+
 		// Simple test middleware that sets a user context for valid tokens
 		authHeader := r.Header.Get("Authorization")
 		sessionCookie, _ := r.Cookie(tam.config.CookieName)
-		
+
 		if strings.HasPrefix(authHeader, "Bearer ") || (sessionCookie != nil && sessionCookie.Value != "") {
 			// For tests, just set a mock user context when auth is present
 			ctx := context.WithValue(r.Context(), tam.config.ContextKey, &UserContext{UserID: "test-user"})
@@ -277,7 +277,7 @@ func (tam *MockAuthMiddleware) Middleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		
+
 		// Check for authentication required
 		if tam.config.RequireAuth {
 			w.Header().Set("Content-Type", "application/json")
@@ -285,7 +285,7 @@ func (tam *MockAuthMiddleware) Middleware(next http.Handler) http.Handler {
 			json.NewEncoder(w).Encode(map[string]string{"error": "Missing authentication"})
 			return
 		}
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -301,9 +301,9 @@ func TestAuthMiddleware(t *testing.T) {
 	// Create test user and tokens
 	user := uf.CreateBasicUser()
 	userInfo := &providers.UserInfo{
-		Subject:   user.Subject,
-		Email:     user.Email,
-		Name:      user.Name,
+		Subject: user.Subject,
+		Email:   user.Email,
+		Name:    user.Name,
 	}
 	customClaims := map[string]interface{}{
 		"exp": time.Now().Add(time.Hour).Unix(),
@@ -954,9 +954,9 @@ func TestChainMiddlewares(t *testing.T) {
 	// Create test data
 	user := uf.CreateBasicUser()
 	userInfo := &providers.UserInfo{
-		Subject:   user.Subject,
-		Email:     user.Email,
-		Name:      user.Name,
+		Subject: user.Subject,
+		Email:   user.Email,
+		Name:    user.Name,
 	}
 	customClaims := map[string]interface{}{
 		"exp": time.Now().Add(time.Hour).Unix(),
@@ -1106,9 +1106,9 @@ func BenchmarkAuthMiddleware(b *testing.B) {
 
 	user := uf.CreateBasicUser()
 	userInfo := &providers.UserInfo{
-		Subject:   user.Subject,
-		Email:     user.Email,
-		Name:      user.Name,
+		Subject: user.Subject,
+		Email:   user.Email,
+		Name:    user.Name,
 	}
 	customClaims := map[string]interface{}{
 		"exp": time.Now().Add(time.Hour).Unix(),

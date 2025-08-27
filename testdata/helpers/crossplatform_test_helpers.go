@@ -16,19 +16,19 @@ import (
 
 // CrossPlatformTestEnvironment provides a consistent testing environment across platforms
 type CrossPlatformTestEnvironment struct {
-	TempDir     string
-	HandoffDir  string
-	OutDir      string
-	StatusDir   string
-	MockPorch   string
-	BinaryPath  string
-	t           *testing.T
+	TempDir    string
+	HandoffDir string
+	OutDir     string
+	StatusDir  string
+	MockPorch  string
+	BinaryPath string
+	t          *testing.T
 }
 
 // NewCrossPlatformTestEnvironment creates a new test environment
 func NewCrossPlatformTestEnvironment(t *testing.T) *CrossPlatformTestEnvironment {
 	tempDir := t.TempDir()
-	
+
 	env := &CrossPlatformTestEnvironment{
 		TempDir:    tempDir,
 		HandoffDir: filepath.Join(tempDir, "handoff"),
@@ -36,12 +36,12 @@ func NewCrossPlatformTestEnvironment(t *testing.T) *CrossPlatformTestEnvironment
 		StatusDir:  filepath.Join(tempDir, "status"),
 		t:          t,
 	}
-	
+
 	// Create required directories
 	require.NoError(t, os.MkdirAll(env.HandoffDir, 0755))
 	require.NoError(t, os.MkdirAll(env.OutDir, 0755))
 	require.NoError(t, os.MkdirAll(env.StatusDir, 0755))
-	
+
 	return env
 }
 
@@ -52,15 +52,15 @@ func (env *CrossPlatformTestEnvironment) SetupMockPorch(exitCode int, stdout, st
 		Stdout:   stdout,
 		Stderr:   stderr,
 	}
-	
+
 	// Apply options
 	for _, opt := range opts {
 		opt(&mockOpts)
 	}
-	
+
 	mockPath, err := porch.CreateCrossPlatformMock(env.TempDir, mockOpts)
 	require.NoError(env.t, err)
-	
+
 	env.MockPorch = mockPath
 }
 
@@ -80,19 +80,19 @@ func (env *CrossPlatformTestEnvironment) BuildConductorLoop() {
 	if runtime.GOOS == "windows" {
 		binaryName += ".exe"
 	}
-	
+
 	env.BinaryPath = filepath.Join(env.TempDir, binaryName)
-	
+
 	// Find the main package directory
 	mainDir := filepath.Join("..", "..", "cmd", "conductor-loop")
 	if _, err := os.Stat(mainDir); os.IsNotExist(err) {
 		// Try alternative path
 		mainDir = "../../cmd/conductor-loop"
 	}
-	
+
 	cmd := exec.Command("go", "build", "-o", env.BinaryPath, ".")
 	cmd.Dir = mainDir
-	
+
 	require.NoError(env.t, cmd.Run())
 	require.FileExists(env.t, env.BinaryPath)
 }
@@ -109,10 +109,10 @@ func (env *CrossPlatformTestEnvironment) RunConductorLoop(ctx context.Context, a
 	if env.BinaryPath == "" {
 		return nil, fmt.Errorf("conductor-loop binary not built, call BuildConductorLoop() first")
 	}
-	
+
 	cmd := exec.CommandContext(ctx, env.BinaryPath, args...)
 	cmd.Dir = env.TempDir
-	
+
 	return cmd, cmd.Run()
 }
 
@@ -121,16 +121,16 @@ func (env *CrossPlatformTestEnvironment) RunConductorLoopWithOutput(ctx context.
 	if env.BinaryPath == "" {
 		return nil, nil, fmt.Errorf("conductor-loop binary not built, call BuildConductorLoop() first")
 	}
-	
+
 	cmd := exec.CommandContext(ctx, env.BinaryPath, args...)
 	cmd.Dir = env.TempDir
-	
+
 	stdout, err := cmd.Output()
 	var stderr []byte
 	if exitError, ok := err.(*exec.ExitError); ok {
 		stderr = exitError.Stderr
 	}
-	
+
 	return stdout, stderr, err
 }
 
@@ -242,7 +242,7 @@ func (a *CrossPlatformAssertions) AssertExecutableExists(path string) {
 		require.True(a.t, found, "Executable not found with any valid Windows extension: %s", path)
 	} else {
 		require.FileExists(a.t, path)
-		
+
 		// On Unix, also check if it's executable
 		info, err := os.Stat(path)
 		require.NoError(a.t, err)
@@ -254,7 +254,7 @@ func (a *CrossPlatformAssertions) AssertExecutableExists(path string) {
 func (a *CrossPlatformAssertions) AssertScriptWorks(scriptPath string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	cmd := exec.CommandContext(ctx, scriptPath, "--help")
 	err := cmd.Run()
 	require.NoError(a.t, err, "Script failed to execute: %s", scriptPath)

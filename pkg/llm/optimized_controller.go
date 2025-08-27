@@ -671,7 +671,6 @@ func getDefaultOptimizedControllerConfig() *OptimizedControllerConfig {
 
 // Supporting type definitions
 
-
 type ControllerState int
 type CPUOptLevel int
 type MemOptLevel int

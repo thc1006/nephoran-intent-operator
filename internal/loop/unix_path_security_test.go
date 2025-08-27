@@ -1,3 +1,4 @@
+//go:build !windows
 // +build !windows
 
 package loop
@@ -77,11 +78,11 @@ func TestUnixPathSecurityValidation(t *testing.T) {
 			},
 			configFunc: func(baseDir string) Config {
 				return Config{
-					PorchPath:    createMockPorchExecutable(t, baseDir),
-					Mode:         "direct",
-					OutDir:       filepath.Join(baseDir, ".hidden", "output"),
-					MaxWorkers:   2,
-					MetricsPort:  0,
+					PorchPath:   createMockPorchExecutable(t, baseDir),
+					Mode:        "direct",
+					OutDir:      filepath.Join(baseDir, ".hidden", "output"),
+					MaxWorkers:  2,
+					MetricsPort: 0,
 				}
 			},
 			expectError: false, // Hidden directories are valid on Unix
@@ -96,11 +97,11 @@ func TestUnixPathSecurityValidation(t *testing.T) {
 			},
 			configFunc: func(baseDir string) Config {
 				return Config{
-					PorchPath:    createMockPorchExecutable(t, baseDir),
-					Mode:         "direct",
-					OutDir:       filepath.Join(baseDir, "my output", "with spaces"),
-					MaxWorkers:   2,
-					MetricsPort:  0,
+					PorchPath:   createMockPorchExecutable(t, baseDir),
+					Mode:        "direct",
+					OutDir:      filepath.Join(baseDir, "my output", "with spaces"),
+					MaxWorkers:  2,
+					MetricsPort: 0,
 				}
 			},
 			expectError: false,
@@ -132,9 +133,9 @@ func TestUnixPathSecurityValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			baseDir := tt.setupFunc(t)
 			config := tt.configFunc(baseDir)
-			
+
 			_, err := NewWatcher(baseDir, config)
-			
+
 			if tt.expectError {
 				if err == nil {
 					t.Log("Warning: Expected error but got none. This might be due to OS-level permissions.")
@@ -151,7 +152,7 @@ func TestUnixPathSecurityValidation(t *testing.T) {
 // TestUnixPathNormalization tests that paths are properly normalized on Unix
 func TestUnixPathNormalization(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	tests := []struct {
 		name       string
 		inputPath  string
@@ -183,20 +184,20 @@ func TestUnixPathNormalization(t *testing.T) {
 			safe:       false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Clean the path as the validation code would
 			cleaned := filepath.Clean(tt.inputPath)
 			abs, err := filepath.Abs(cleaned)
-			
+
 			if tt.normalized {
 				assert.NoError(t, err, "Path should be normalizable")
 				assert.NotContains(t, abs, "//", "Should not contain double slashes")
 				assert.NotContains(t, abs, "/./", "Should not contain dot segments")
 				assert.NotContains(t, abs, "/../", "Should not contain parent references")
 			}
-			
+
 			// Check if path is considered safe (within temp directory)
 			// Note: isPathSafe check removed as it's Windows-specific
 			// Unix systems handle path safety through OS permissions
@@ -209,15 +210,15 @@ func TestUnixFilePermissions(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("Skipping permission tests when running as root")
 	}
-	
+
 	tempDir := t.TempDir()
-	
+
 	// Create a directory with no write permissions
 	readOnlyDir := filepath.Join(tempDir, "readonly")
 	require.NoError(t, os.MkdirAll(readOnlyDir, 0755))
 	require.NoError(t, os.Chmod(readOnlyDir, 0555))
 	defer os.Chmod(readOnlyDir, 0755) // Restore permissions for cleanup
-	
+
 	config := Config{
 		PorchPath:   "porch",
 		Mode:        "direct",
@@ -225,7 +226,7 @@ func TestUnixFilePermissions(t *testing.T) {
 		MaxWorkers:  2,
 		MetricsPort: 0,
 	}
-	
+
 	err := config.Validate()
 	assert.Error(t, err, "Should fail validation for read-only directory")
 	assertErrorContainsAny(t, err,

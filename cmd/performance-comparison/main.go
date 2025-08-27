@@ -368,7 +368,7 @@ func generateTextReport(comparison *PerformanceComparison) {
 			writeErr = err
 		}
 	}
-	
+
 	// Check for any write errors
 	if writeErr != nil {
 		log.Printf("Error writing text report: %v", writeErr)
@@ -474,7 +474,7 @@ func generateMarkdownReport(comparison *PerformanceComparison) {
 	if _, err := fmt.Fprintf(file, "4. Update performance baselines\n"); err != nil && mdWriteErr == nil {
 		mdWriteErr = err
 	}
-	
+
 	// Check for any write errors in markdown generation
 	if mdWriteErr != nil {
 		log.Printf("Error writing markdown report: %v", mdWriteErr)

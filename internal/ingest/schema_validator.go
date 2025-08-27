@@ -105,21 +105,21 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 			if !ok {
 				return fmt.Errorf("field %s must be a string, got %T", fieldName, value)
 			}
-			
+
 			// Check minLength
 			if minLen, ok := fieldSchema["minLength"].(float64); ok {
 				if len(strVal) < int(minLen) {
 					return fmt.Errorf("field %s must have minimum length %d, got %d", fieldName, int(minLen), len(strVal))
 				}
 			}
-			
+
 			// Check maxLength
 			if maxLen, ok := fieldSchema["maxLength"].(float64); ok {
 				if len(strVal) > int(maxLen) {
 					return fmt.Errorf("field %s must have maximum length %d, got %d", fieldName, int(maxLen), len(strVal))
 				}
 			}
-			
+
 			// Check enum values
 			if enum, ok := fieldSchema["enum"].([]interface{}); ok {
 				valid := false
@@ -145,21 +145,21 @@ func (v *IntentSchemaValidator) validateField(fieldName string, value interface{
 					return fmt.Errorf("field %s must be an integer, got %T", fieldName, value)
 				}
 			}
-			
+
 			// Check if it's actually an integer
 			if numVal != float64(int(numVal)) {
 				return fmt.Errorf("field %s must be an integer, got %v", fieldName, numVal)
 			}
-			
+
 			intVal := int(numVal)
-			
+
 			// Check minimum
 			if min, ok := fieldSchema["minimum"].(float64); ok {
 				if intVal < int(min) {
 					return fmt.Errorf("field %s must be at least %d, got %d", fieldName, int(min), intVal)
 				}
 			}
-			
+
 			// Check maximum
 			if max, ok := fieldSchema["maximum"].(float64); ok {
 				if intVal > int(max) {
@@ -180,6 +180,6 @@ func ValidateIntentWithSchema(intent map[string]interface{}, schemaPath string) 
 		// If schema file doesn't exist, fall back to basic validation
 		return ValidateIntent(intent)
 	}
-	
+
 	return validator.ValidateIntent(intent)
 }

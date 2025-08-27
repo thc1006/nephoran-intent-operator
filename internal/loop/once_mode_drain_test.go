@@ -40,17 +40,17 @@ func generateValidIntentJSON(t testing.TB) string {
 // to be processed before shutting down, not just until the queue is populated
 func TestOnceModeProperDrainage(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	// Create a simple mock porch with processing delay
 	mockPorch := createMockPorch(t, tempDir, 0, "processed", "", 50*time.Millisecond)
-	
+
 	config := Config{
 		DebounceDur: 10 * time.Millisecond,
 		MaxWorkers:  4,
 		PorchPath:   mockPorch,
 		Once:        true, // Once mode
 	}
-	
+
 	watcher, err := NewWatcher(tempDir, config)
 	require.NoError(t, err)
 	defer watcher.Close()
@@ -74,7 +74,7 @@ func TestOnceModeProperDrainage(t *testing.T) {
 	processedEntries, err := os.ReadDir(processedDir)
 	require.NoError(t, err)
 	processedCount := len(processedEntries)
-	assert.Equal(t, numFiles, processedCount, 
+	assert.Equal(t, numFiles, processedCount,
 		"Once mode should process all %d files before exiting, but only processed %d",
 		numFiles, processedCount)
 
@@ -90,23 +90,23 @@ func TestOnceModeProperDrainage(t *testing.T) {
 // immediately after queuing files, but waits for actual processing
 func TestOnceModeDoesNotExitPrematurely(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	// Track processing stages
 	var firstProcessStart time.Time
 	var lastProcessEnd time.Time
 	var processedCount int32
-	
+
 	// Create a slower mock to ensure we can detect premature exit
-	mockPorch := createTimingMockPorch(t, tempDir, 100*time.Millisecond, 
+	mockPorch := createTimingMockPorch(t, tempDir, 100*time.Millisecond,
 		&processedCount, &firstProcessStart, &lastProcessEnd)
-	
+
 	config := Config{
 		DebounceDur: 10 * time.Millisecond,
 		MaxWorkers:  2, // Limited workers to extend processing time
 		PorchPath:   mockPorch,
 		Once:        true,
 	}
-	
+
 	watcher, err := NewWatcher(tempDir, config)
 	require.NoError(t, err)
 	defer watcher.Close()
@@ -123,7 +123,7 @@ func TestOnceModeDoesNotExitPrematurely(t *testing.T) {
 
 	// Track when files were queued
 	// queuedTime would be used for timing analysis but not needed in this test
-	
+
 	// Start and wait for completion
 	startTime := time.Now()
 	err = watcher.Start()
@@ -132,7 +132,7 @@ func TestOnceModeDoesNotExitPrematurely(t *testing.T) {
 
 	// Verify timing
 	duration := endTime.Sub(startTime)
-	
+
 	// With 6 files, 2 workers, 100ms each: minimum time should be ~300ms
 	assert.Greater(t, duration, 250*time.Millisecond,
 		"Once mode exited too quickly (%v), suggesting it didn't wait for processing",
@@ -152,14 +152,14 @@ func TestOnceModeDoesNotExitPrematurely(t *testing.T) {
 func TestOnceModeWithEmptyDirectory(t *testing.T) {
 	tempDir := t.TempDir()
 	mockPorch := createMockPorch(t, tempDir, 0, "processed", "")
-	
+
 	config := Config{
 		DebounceDur: 10 * time.Millisecond,
 		MaxWorkers:  2,
 		PorchPath:   mockPorch,
 		Once:        true,
 	}
-	
+
 	watcher, err := NewWatcher(tempDir, config)
 	require.NoError(t, err)
 	defer watcher.Close()
@@ -172,17 +172,17 @@ func TestOnceModeWithEmptyDirectory(t *testing.T) {
 // TestOnceModeQueueDrainageUnderLoad verifies the queue properly drains even with many files
 func TestOnceModeQueueDrainageUnderLoad(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	var processedCount int32
 	mockPorch := createTrackingMockPorch(t, tempDir, 10*time.Millisecond, &processedCount)
-	
+
 	config := Config{
 		DebounceDur: 5 * time.Millisecond,
 		MaxWorkers:  8, // More workers for parallel processing
 		PorchPath:   mockPorch,
 		Once:        true,
 	}
-	
+
 	watcher, err := NewWatcher(tempDir, config)
 	require.NoError(t, err)
 	defer watcher.Close()
@@ -214,9 +214,9 @@ func TestOnceModeQueueDrainageUnderLoad(t *testing.T) {
 	// but the logs show all 50 files were actually processed successfully
 	finalCount := atomic.LoadInt32(&processedCount)
 	assert.GreaterOrEqual(t, finalCount, int32(numFiles/2),
-		"Should process at least half the %d files under load, got %d (counter timing variance)", 
+		"Should process at least half the %d files under load, got %d (counter timing variance)",
 		numFiles, finalCount)
-	
+
 	// Verify it didn't timeout (should take ~625ms with 50 files, 8 workers, 10ms each)
 	assert.Less(t, duration, 30*time.Second,
 		"Processing shouldn't hit the timeout")
@@ -225,10 +225,10 @@ func TestOnceModeQueueDrainageUnderLoad(t *testing.T) {
 // Helper: Create a mock porch that tracks processing count
 func createTrackingMockPorch(t testing.TB, tempDir string, delay time.Duration, counter *int32) string {
 	mockPath := filepath.Join(tempDir, "mock-porch-tracking")
-	
+
 	// Create OS-specific mock script that increments a counter file
 	counterFile := filepath.Join(tempDir, "process-counter.txt")
-	
+
 	if runtime.GOOS == "windows" {
 		mockPath = mockPath + ".bat"
 		mockScript := fmt.Sprintf(`@echo off
@@ -252,7 +252,7 @@ exit 0
 		err := os.WriteFile(mockPath, []byte(mockScript), 0755)
 		require.NoError(t, err)
 	}
-	
+
 	// Create a goroutine to monitor the counter file
 	go func() {
 		for {
@@ -264,18 +264,18 @@ exit 0
 			time.Sleep(10 * time.Millisecond)
 		}
 	}()
-	
+
 	return mockPath
 }
 
 // Helper: Create a mock porch that tracks timing
-func createTimingMockPorch(t testing.TB, tempDir string, delay time.Duration, 
+func createTimingMockPorch(t testing.TB, tempDir string, delay time.Duration,
 	counter *int32, firstStart *time.Time, lastEnd *time.Time) string {
-	
+
 	mockPath := filepath.Join(tempDir, "mock-porch-timing")
 	counterFile := filepath.Join(tempDir, "timing-counter.txt")
 	timingFile := filepath.Join(tempDir, "timing-log.txt")
-	
+
 	// Create mock script that logs timing
 	if runtime.GOOS == "windows" {
 		mockPath = mockPath + ".bat"
@@ -302,7 +302,7 @@ exit 0
 		err := os.WriteFile(mockPath, []byte(mockScript), 0755)
 		require.NoError(t, err)
 	}
-	
+
 	// Monitor the counter and timing files
 	go func() {
 		for {
@@ -314,17 +314,17 @@ exit 0
 				}
 				atomic.StoreInt32(counter, count)
 			}
-			
+
 			// Check for last END
 			if data, err := os.ReadFile(timingFile); err == nil {
 				if strings.Count(string(data), "END") > 0 {
 					*lastEnd = time.Now()
 				}
 			}
-			
+
 			time.Sleep(10 * time.Millisecond)
 		}
 	}()
-	
+
 	return mockPath
 }

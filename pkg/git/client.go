@@ -61,27 +61,27 @@ type StatusInfo struct {
 
 // PullRequestOptions contains options for creating a pull request
 type PullRequestOptions struct {
-	Title       string
-	Description string
+	Title        string
+	Description  string
 	SourceBranch string
 	TargetBranch string
-	Labels      []string
-	Assignees   []string
+	Labels       []string
+	Assignees    []string
 }
 
 // PullRequestInfo represents information about a pull request
 type PullRequestInfo struct {
-	ID          int
-	Number      int
-	Title       string
-	Description string
-	State       string // open, closed, merged
+	ID           int
+	Number       int
+	Title        string
+	Description  string
+	State        string // open, closed, merged
 	SourceBranch string
 	TargetBranch string
-	Author      string
-	URL         string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	Author       string
+	URL          string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 // TagInfo represents information about a Git tag
@@ -103,27 +103,27 @@ type RemoteInfo struct {
 
 // LogOptions contains options for getting Git log
 type LogOptions struct {
-	Limit       int
-	Since       *time.Time
-	Until       *time.Time
-	Author      string
-	Grep        string
-	OneLine     bool
-	Graph       bool
-	Path        string
+	Limit   int
+	Since   *time.Time
+	Until   *time.Time
+	Author  string
+	Grep    string
+	OneLine bool
+	Graph   bool
+	Path    string
 }
 
 // DiffOptions contains options for Git diff operations
 type DiffOptions struct {
-	Cached      bool
-	NameOnly    bool
-	Stat        bool
-	Source      string
-	Target      string
-	Path        string
+	Cached   bool
+	NameOnly bool
+	Stat     bool
+	Source   string
+	Target   string
+	Path     string
 }
 
-// ResetOptions contains options for Git reset operations  
+// ResetOptions contains options for Git reset operations
 type ResetOptions struct {
 	Mode   string // soft, mixed, hard
 	Target string // commit hash, branch, tag
@@ -135,7 +135,7 @@ type ClientInterface interface {
 	CommitAndPushChanges(message string) error
 	InitRepo() error
 	RemoveDirectory(path string, commitMessage string) error
-	
+
 	// New methods
 	CommitFiles(files []string, msg string) error
 	CreateBranch(name string) error
@@ -699,7 +699,7 @@ func (c *Client) CreateBranch(name string) error {
 	// Create new branch reference
 	branchRef := plumbing.NewBranchReferenceName(name)
 	ref := plumbing.NewHashReference(branchRef, headRef.Hash())
-	
+
 	err = r.Storer.SetReference(ref)
 	if err != nil {
 		return fmt.Errorf("failed to create branch %s: %w", name, err)
@@ -796,7 +796,7 @@ func (c *Client) GetFileContent(path string) ([]byte, error) {
 	defer c.releaseSemaphore("GetFileContent")
 
 	fullPath := filepath.Join(c.RepoPath, path)
-	
+
 	// Check if file exists
 	if _, err := os.Stat(fullPath); err != nil {
 		if os.IsNotExist(err) {

@@ -29,15 +29,10 @@ import (
 
 // Forward declarations for types from other files in the package
 
-
-
-
-
-
 // Placeholder types for components that would be defined elsewhere
 // Note: Real implementations are in their respective files:
 // - PerformanceAnalysisEngine in performance_analysis_engine.go
-// - OptimizationRecommendationEngine in recommendation_engine.go  
+// - OptimizationRecommendationEngine in recommendation_engine.go
 // - ComponentOptimizerRegistry in component_optimizers.go
 // - AIConfigurationTuner in ai_configuration_tuner.go
 // - TelecomPerformanceOptimizer in telecom_optimizer.go
@@ -972,4 +967,3 @@ func GetDefaultPipelineConfig() *PipelineConfig {
 		ComponentConfigs:            make(map[ComponentType]interface{}),
 	}
 }
-

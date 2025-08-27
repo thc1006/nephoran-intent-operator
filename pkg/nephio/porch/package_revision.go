@@ -880,13 +880,13 @@ func (prm *packageRevisionManager) updatePackageState(ref *PackageReference, pkg
 		if condition.Type == "ValidationPassed" || condition.Type == "ValidationFailed" {
 			// Create a validation result based on the condition
 			validationResult := &ValidationResult{
-				Valid: condition.Status == "True",
-				Errors: []ValidationError{},
+				Valid:    condition.Status == "True",
+				Errors:   []ValidationError{},
 				Warnings: []ValidationError{},
 			}
 			if condition.Status != "True" {
 				validationResult.Errors = append(validationResult.Errors, ValidationError{
-					Message: condition.Message,
+					Message:  condition.Message,
 					Severity: "error",
 				})
 			}

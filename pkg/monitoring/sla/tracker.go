@@ -847,7 +847,7 @@ func (t *Tracker) GetActiveIntents() map[string]*IntentExecution {
 			BusinessImpact:     intent.BusinessImpact,
 			CriticalPath:       intent.CriticalPath,
 		}
-		
+
 		// Deep copy maps and slices
 		for k, v := range intent.ComponentLatencies {
 			intentCopy.ComponentLatencies[k] = v
@@ -859,7 +859,7 @@ func (t *Tracker) GetActiveIntents() map[string]*IntentExecution {
 			intentCopy.ComponentStatus[k] = v
 		}
 		copy(intentCopy.Stages, intent.Stages)
-		
+
 		intent.mu.RUnlock()
 		result[id] = &intentCopy
 	}
@@ -880,7 +880,7 @@ func (t *Tracker) GetIntentStatus(intentID string) (*IntentExecution, error) {
 	// Return a copy
 	intent.mu.RLock()
 	defer intent.mu.RUnlock()
-	
+
 	intentCopy := IntentExecution{
 		ID:                 intent.ID,
 		IntentType:         intent.IntentType,
@@ -905,7 +905,7 @@ func (t *Tracker) GetIntentStatus(intentID string) (*IntentExecution, error) {
 		BusinessImpact:     intent.BusinessImpact,
 		CriticalPath:       intent.CriticalPath,
 	}
-	
+
 	// Deep copy maps and slices
 	for k, v := range intent.ComponentLatencies {
 		intentCopy.ComponentLatencies[k] = v
@@ -917,7 +917,7 @@ func (t *Tracker) GetIntentStatus(intentID string) (*IntentExecution, error) {
 		intentCopy.ComponentStatus[k] = v
 	}
 	copy(intentCopy.Stages, intent.Stages)
-	
+
 	return &intentCopy, nil
 }
 

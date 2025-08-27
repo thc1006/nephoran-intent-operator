@@ -1718,7 +1718,7 @@ func (c *Client) getPackageContentsInternal(ctx context.Context, name string, re
 				c.logger.Error(err, "Failed to convert interface to KRMResource", "index", i)
 				continue
 			}
-			
+
 			// Convert KRMResource to YAML
 			yamlData, err := convertKRMResourceToYAML(resource)
 			if err != nil {
@@ -2035,7 +2035,7 @@ func (c *Client) validatePackageInternal(ctx context.Context, name string, revis
 			})
 			continue
 		}
-		
+
 		if resource.APIVersion == "" {
 			errors = append(errors, ValidationError{
 				Path:     fmt.Sprintf("spec.resources[%d].apiVersion", i),
@@ -2077,7 +2077,7 @@ func (c *Client) validatePackageInternal(ctx context.Context, name string, revis
 			})
 			continue
 		}
-		
+
 		if function.Image == "" {
 			errors = append(errors, ValidationError{
 				Path:     fmt.Sprintf("spec.functions[%d].image", i),
@@ -2559,13 +2559,13 @@ func convertToKRMResource(resource interface{}) (KRMResource, error) {
 	if krmRes, ok := resource.(KRMResource); ok {
 		return krmRes, nil
 	}
-	
+
 	// Handle map conversion
 	if resourceMap, ok := resource.(map[string]interface{}); ok {
 		krmRes := KRMResource{
 			Metadata: make(map[string]interface{}),
 		}
-		
+
 		if apiVersion, ok := resourceMap["apiVersion"].(string); ok {
 			krmRes.APIVersion = apiVersion
 		}
@@ -2584,10 +2584,10 @@ func convertToKRMResource(resource interface{}) (KRMResource, error) {
 		if data, ok := resourceMap["data"].(map[string]interface{}); ok {
 			krmRes.Data = data
 		}
-		
+
 		return krmRes, nil
 	}
-	
+
 	return KRMResource{}, fmt.Errorf("cannot convert %T to KRMResource", resource)
 }
 
@@ -2597,11 +2597,11 @@ func convertToFunctionConfig(function interface{}) (FunctionConfig, error) {
 	if funcConfig, ok := function.(FunctionConfig); ok {
 		return funcConfig, nil
 	}
-	
+
 	// Handle map conversion
 	if functionMap, ok := function.(map[string]interface{}); ok {
 		funcConfig := FunctionConfig{}
-		
+
 		if image, ok := functionMap["image"].(string); ok {
 			funcConfig.Image = image
 		}
@@ -2611,10 +2611,10 @@ func convertToFunctionConfig(function interface{}) (FunctionConfig, error) {
 		if configMap, ok := functionMap["configMap"].(map[string]interface{}); ok {
 			funcConfig.ConfigMap = configMap
 		}
-		
+
 		return funcConfig, nil
 	}
-	
+
 	return FunctionConfig{}, fmt.Errorf("cannot convert %T to FunctionConfig", function)
 }
 

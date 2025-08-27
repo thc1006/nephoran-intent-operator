@@ -20,26 +20,26 @@ func isExpectedShutdownError(err error) bool {
 	if err == nil {
 		return false
 	}
-	
+
 	errorMsg := strings.ToLower(err.Error())
-	
+
 	// Expected shutdown patterns - these indicate graceful cleanup is in progress
 	expectedPatterns := []string{
 		"stats not available - no file manager configured",
-		"failed to read directory", // Directory may be temporarily inaccessible during cleanup
-		"permission denied",        // Cleanup processes may temporarily lock resources
-		"file does not exist",      // Status files may be cleaned up during shutdown
+		"failed to read directory",  // Directory may be temporarily inaccessible during cleanup
+		"permission denied",         // Cleanup processes may temporarily lock resources
+		"file does not exist",       // Status files may be cleaned up during shutdown
 		"no such file or directory", // Similar to above, for different OS error formats
-		"directory not found",      // Status directories may be cleaned up
-		"access is denied",         // Windows equivalent of permission denied
+		"directory not found",       // Status directories may be cleaned up
+		"access is denied",          // Windows equivalent of permission denied
 	}
-	
+
 	for _, pattern := range expectedPatterns {
 		if strings.Contains(errorMsg, pattern) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -53,55 +53,56 @@ func validateHandoffDir(path string) error {
 
 	// Clean the path to handle various path formats consistently across platforms
 	cleanPath := filepath.Clean(path)
-	
+
 	// Check if the path exists
 	info, err := os.Stat(cleanPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// Path doesn't exist - check if parent directory exists and is accessible
 			parent := filepath.Dir(cleanPath)
-			
+
 			// Special case: if parent is the same as path, we've reached the root
 			if parent == cleanPath {
 				return fmt.Errorf("invalid path: %s (cannot validate root directory)", cleanPath)
 			}
-			
+
 			// Recursively check if parent is valid for directory creation
 			if err := validateHandoffDir(parent); err != nil {
 				return fmt.Errorf("invalid parent directory for %s: %v", cleanPath, err)
 			}
-			
+
 			// Parent exists and is valid, so we can create the directory
 			return nil
 		}
-		
+
 		// Other error (e.g., permission denied, invalid path format)
 		return fmt.Errorf("cannot access path %s: %v", cleanPath, err)
 	}
-	
+
 	// Path exists - verify it's a directory
 	if !info.IsDir() {
 		return fmt.Errorf("path %s exists but is not a directory", cleanPath)
 	}
-	
+
 	// Test read permission by attempting to read the directory
 	_, err = os.ReadDir(cleanPath)
 	if err != nil {
 		return fmt.Errorf("directory %s exists but is not readable: %v", cleanPath, err)
 	}
-	
+
 	return nil
 }
+
 // Config holds all command-line configuration
 type Config struct {
-	HandoffDir     string
-	PorchPath      string
-	PorchURL       string
-	Mode          string
-	OutDir        string
-	Once          bool
-	DebounceDur   time.Duration
-	Period        time.Duration
+	HandoffDir  string
+	PorchPath   string
+	PorchURL    string
+	Mode        string
+	OutDir      string
+	Once        bool
+	DebounceDur time.Duration
+	Period      time.Duration
 }
 
 func main() {
@@ -110,7 +111,7 @@ func main() {
 
 	// Parse command-line flags - support both legacy and new approach
 	useProcessor := flag.Bool("use-processor", false, "Use IntentProcessor pattern (new approach) instead of Config-based (legacy)")
-	
+
 	// New IntentProcessor approach flags
 	handoffDir := flag.String("handoff-dir", "./handoff", "Directory to watch for intent files")
 	errorDir := flag.String("error-dir", "./handoff/errors", "Directory for error files")
@@ -118,34 +119,34 @@ func main() {
 	batchSize := flag.Int("batch-size", 10, "Maximum batch size for processing")
 	batchInterval := flag.Duration("batch-interval", 5*time.Second, "Interval for batch processing")
 	schemaPath := flag.String("schema", "", "Path to intent schema file (defaults to docs/contracts/intent.schema.json)")
-	
+
 	// Legacy Config approach flags (parsed within parseFlags)
 	config := parseFlags()
-	
+
 	var absHandoffDir string
 	var err error
-	
+
 	if *useProcessor {
 		// New IntentProcessor approach
 		log.Printf("Using IntentProcessor pattern (new approach)")
-		
+
 		// Validate porch mode
 		if *porchMode != "direct" && *porchMode != "structured" {
 			log.Fatalf("Invalid porch-mode: %s. Must be 'direct' or 'structured'", *porchMode)
 		}
-		
+
 		// Validate directories before creating
 		if err := validateHandoffDir(*handoffDir); err != nil {
 			log.Fatalf("Invalid handoff directory path %s: %v", *handoffDir, err)
 		}
-		
+
 		// Ensure directories exist
 		for _, dir := range []string{*handoffDir, *errorDir} {
 			if err := os.MkdirAll(dir, 0755); err != nil {
 				log.Fatalf("Failed to create directory %s: %v", dir, err)
 			}
 		}
-		
+
 		// Convert to absolute paths for consistency
 		absHandoffDir, err = filepath.Abs(*handoffDir)
 		if err != nil {
@@ -154,7 +155,7 @@ func main() {
 	} else {
 		// Legacy Config-based approach
 		log.Printf("Using Config-based pattern (legacy approach)")
-		
+
 		// Validate and create handoff directory
 		if err := validateHandoffDir(config.HandoffDir); err != nil {
 			log.Fatalf("Invalid handoff directory path %s: %v", config.HandoffDir, err)
@@ -162,7 +163,7 @@ func main() {
 		if err := os.MkdirAll(config.HandoffDir, 0755); err != nil {
 			log.Fatalf("Failed to create handoff directory: %v", err)
 		}
-		
+
 		// Convert to absolute path for consistency
 		absHandoffDir, err = filepath.Abs(config.HandoffDir)
 		if err != nil {
@@ -170,9 +171,9 @@ func main() {
 		}
 		config.HandoffDir = absHandoffDir
 	}
-	
+
 	var watcher *loop.Watcher
-	
+
 	if *useProcessor {
 		// New IntentProcessor approach setup
 		absErrorDir, err := filepath.Abs(*errorDir)
@@ -252,19 +253,19 @@ func main() {
 
 		// Create and start the watcher
 		watcher, err = loop.NewWatcher(config.HandoffDir, loop.Config{
-			PorchPath:     config.PorchPath,
-			PorchURL:      config.PorchURL,
-			Mode:         config.Mode,
-			OutDir:       config.OutDir,
-			Once:         config.Once,
-			DebounceDur:  config.DebounceDur,
-			Period:       config.Period,
+			PorchPath:   config.PorchPath,
+			PorchURL:    config.PorchURL,
+			Mode:        config.Mode,
+			OutDir:      config.OutDir,
+			Once:        config.Once,
+			DebounceDur: config.DebounceDur,
+			Period:      config.Period,
 		})
 		if err != nil {
 			log.Fatalf("Failed to create watcher: %v", err)
 		}
 	}
-	
+
 	// Safe defer func() { _ = pattern - only register Close() after successful creation
 	defer func() {
 		if watcher != nil {
@@ -302,7 +303,7 @@ func main() {
 		if err != nil {
 			log.Printf("Watcher error: %v", err)
 			exitCode = 1
-		} else if (!*useProcessor && config.Once) {
+		} else if !*useProcessor && config.Once {
 			// In once mode, check if any files failed (only for legacy approach)
 			stats, statsErr := watcher.GetStats()
 			if statsErr != nil {
@@ -317,7 +318,7 @@ func main() {
 				}
 			} else if stats.RealFailedCount > 0 {
 				// Only real failures should affect exit code, not shutdown failures
-				log.Printf("Completed with %d real failures and %d shutdown failures (total: %d failed files)", 
+				log.Printf("Completed with %d real failures and %d shutdown failures (total: %d failed files)",
 					stats.RealFailedCount, stats.ShutdownFailedCount, stats.FailedCount)
 				exitCode = 8
 			} else if stats.ShutdownFailedCount > 0 {
@@ -332,7 +333,7 @@ func main() {
 	case sig := <-sigChan:
 		log.Printf("Received signal %v, shutting down gracefully", sig)
 		watcher.Close()
-		
+
 		// Check stats after graceful shutdown to distinguish shutdown vs real failures
 		if !*useProcessor {
 			// Only check stats for legacy approach
@@ -349,7 +350,7 @@ func main() {
 				}
 			} else if stats.RealFailedCount > 0 {
 				// Only real failures should affect exit code, not shutdown failures
-				log.Printf("Graceful shutdown completed with %d real failures and %d shutdown failures (total: %d failed files)", 
+				log.Printf("Graceful shutdown completed with %d real failures and %d shutdown failures (total: %d failed files)",
 					stats.RealFailedCount, stats.ShutdownFailedCount, stats.FailedCount)
 				exitCode = 8
 			} else if stats.ShutdownFailedCount > 0 {
@@ -377,7 +378,7 @@ func parseFlags() Config {
 	if err != nil {
 		log.Fatalf("Error parsing flags: %v", err)
 	}
-	
+
 	// Note: directory creation is done in main() after validation
 	return config
 }
@@ -392,10 +393,10 @@ func parseFlagsWithFlagSet(fs *flag.FlagSet, args []string) (Config, error) {
 	fs.StringVar(&config.Mode, "mode", "direct", "Processing mode: direct or structured")
 	fs.StringVar(&config.OutDir, "out", "./out", "Output directory for processed files")
 	fs.BoolVar(&config.Once, "once", false, "Process current backlog then exit")
-	
+
 	var debounceDurStr string
 	fs.StringVar(&debounceDurStr, "debounce", "500ms", "Debounce duration for file events (Windows optimization)")
-	
+
 	var periodStr string
 	fs.StringVar(&periodStr, "period", "2s", "Polling period for scanning directory (default 2s)")
 

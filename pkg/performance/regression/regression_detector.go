@@ -303,7 +303,6 @@ type PerformanceForecast struct {
 	RiskAreas    []ForecastRisk
 }
 
-
 // ForecastRisk represents predicted performance risks
 type ForecastRisk struct {
 	Timeframe   time.Duration
@@ -330,7 +329,6 @@ type NotificationConfig struct {
 	QuietHours         *TimeWindow
 	MaintenanceWindows []TimeWindow
 }
-
 
 // RegressionAlert represents a regression detection alert
 type RegressionAlert struct {

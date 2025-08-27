@@ -426,15 +426,15 @@ func NewDefaultAutomationIntegrationConfig() *AutomationIntegrationConfig {
 		},
 		AutomationConfig: &AutomationConfig{
 			ServiceDiscoveryEnabled: true,
-			DiscoveryInterval:      5 * time.Minute,
-			DiscoveryNamespaces:    []string{"default", "nephoran-system"},
-			DiscoverySelectors:     []string{"app.kubernetes.io/managed-by=nephoran"},
+			DiscoveryInterval:       5 * time.Minute,
+			DiscoveryNamespaces:     []string{"default", "nephoran-system"},
+			DiscoverySelectors:      []string{"app.kubernetes.io/managed-by=nephoran"},
 
-			AutoRenewalEnabled:    true,
-			RenewalThreshold:      30 * 24 * time.Hour, // 30 days
-			RenewalCheckInterval:  1 * time.Hour,
-			CertificateBackup:     true,
-			BackupRetention:       30,
+			AutoRenewalEnabled:   true,
+			RenewalThreshold:     30 * 24 * time.Hour, // 30 days
+			RenewalCheckInterval: 1 * time.Hour,
+			CertificateBackup:    true,
+			BackupRetention:      30,
 
 			HealthCheckEnabled:  true,
 			HealthCheckTimeout:  30 * time.Second,

@@ -205,7 +205,7 @@ func (arm *AdvancedRecoveryMetrics) deepCopy() *AdvancedRecoveryMetrics {
 		SuccessfulRecoveries: arm.SuccessfulRecoveries,
 		FailedRecoveries:     arm.FailedRecoveries,
 
-		// Performance statistics  
+		// Performance statistics
 		AverageRecoveryTime: arm.AverageRecoveryTime,
 		P95RecoveryTime:     arm.P95RecoveryTime,
 		P99RecoveryTime:     arm.P99RecoveryTime,

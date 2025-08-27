@@ -172,7 +172,7 @@ func BenchmarkWindowsFileOperations(b *testing.B) {
 	b.Run("StandardFileWrite", func(b *testing.B) {
 		tempDir := b.TempDir()
 		content := []byte("test content for benchmarking file write operations")
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			filePath := filepath.Join(tempDir, fmt.Sprintf("test-%d.txt", i))
@@ -185,10 +185,10 @@ func BenchmarkWindowsFileOperations(b *testing.B) {
 	b.Run("OptimizedFileWrite", func(b *testing.B) {
 		optimizer := NewWindowsTestOptimizer()
 		defer optimizer.Cleanup()
-		
+
 		tempDir := optimizer.OptimizedTempDir(b, "benchmark")
 		content := []byte("test content for benchmarking file write operations")
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			filePath := filepath.Join(tempDir, fmt.Sprintf("test-%d.txt", i))
@@ -201,15 +201,15 @@ func BenchmarkWindowsFileOperations(b *testing.B) {
 	b.Run("BatchFileCreation", func(b *testing.B) {
 		optimizer := NewWindowsTestOptimizer()
 		defer optimizer.Cleanup()
-		
+
 		tempDir := optimizer.OptimizedTempDir(b, "batch")
-		
+
 		// Prepare files for batch creation
 		files := make(map[string][]byte)
 		for i := 0; i < 10; i++ {
 			files[fmt.Sprintf("batch-%d.txt", i)] = []byte(fmt.Sprintf("batch content %d", i))
 		}
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			testDir := filepath.Join(tempDir, fmt.Sprintf("run-%d", i))
@@ -241,15 +241,15 @@ func TestWindowsOptimizationEffectiveness(t *testing.T) {
 		// Test optimized approach
 		optimizer := NewWindowsTestOptimizer()
 		defer optimizer.Cleanup()
-		
+
 		optimizedStart := time.Now()
 		tempDir2 := optimizer.OptimizedTempDir(t, "effectiveness")
-		
+
 		files := make(map[string][]byte)
 		for i := 0; i < 100; i++ {
 			files[fmt.Sprintf("optimized-%d.txt", i)] = []byte("test content")
 		}
-		
+
 		if err := optimizer.BulkFileCreation(tempDir2, files); err != nil {
 			t.Fatal(err)
 		}
@@ -257,10 +257,10 @@ func TestWindowsOptimizationEffectiveness(t *testing.T) {
 
 		t.Logf("Standard approach: %v", standardDuration)
 		t.Logf("Optimized approach: %v", optimizedDuration)
-		
+
 		speedup := float64(standardDuration) / float64(optimizedDuration)
 		t.Logf("Speedup factor: %.2fx", speedup)
-		
+
 		if optimizedDuration > standardDuration*2 {
 			t.Errorf("Optimized approach is significantly slower: %v vs %v", optimizedDuration, standardDuration)
 		}
@@ -290,19 +290,19 @@ func TestWindowsOptimizationEffectiveness(t *testing.T) {
 func TestConcurrencyLimiting(t *testing.T) {
 	optimizer := NewWindowsTestOptimizer()
 	defer optimizer.Cleanup()
-	
+
 	// Test that the optimizer limits concurrency properly
 	expectedLimit := runtime.NumCPU()
 	if runtime.GOOS == "windows" {
 		expectedLimit = max(1, expectedLimit/2)
 	}
-	
+
 	actualLimit := cap(optimizer.concurrencyLim)
 	if actualLimit != expectedLimit {
 		t.Errorf("Expected concurrency limit %d, got %d", expectedLimit, actualLimit)
 	}
-	
-	t.Logf("Platform: %s, CPUs: %d, Concurrency limit: %d", 
+
+	t.Logf("Platform: %s, CPUs: %d, Concurrency limit: %d",
 		runtime.GOOS, runtime.NumCPU(), actualLimit)
 }
 
@@ -311,31 +311,31 @@ func ExampleWindowsTestOptimizer() {
 	// Create optimizer
 	optimizer := NewWindowsTestOptimizer()
 	defer optimizer.Cleanup()
-	
+
 	// Create optimized temp directory
 	tempDir := optimizer.OptimizedTempDir(&testing.T{}, "example")
-	
+
 	// Prepare files for batch creation
 	files := map[string][]byte{
 		"config.json": []byte(`{"test": true}`),
 		"data.txt":    []byte("example data"),
 		"readme.md":   []byte("# Example"),
 	}
-	
+
 	// Create files efficiently
 	if err := optimizer.BulkFileCreation(tempDir, files); err != nil {
 		fmt.Printf("Error creating files: %v\n", err)
 		return
 	}
-	
+
 	// Get optimized timeout
 	baseTimeout := 5 * time.Second
 	optimizedTimeout := optimizer.OptimizedTestTimeout(baseTimeout)
-	
+
 	fmt.Printf("Base timeout: %v\n", baseTimeout)
 	fmt.Printf("Optimized timeout: %v\n", optimizedTimeout)
 	fmt.Printf("Files created in: %s\n", tempDir)
-	
+
 	// Output varies by platform:
 	// On Windows: Optimized timeout will be 1.5x longer
 	// On Unix: Optimized timeout will be the same

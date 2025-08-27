@@ -26,15 +26,15 @@ import (
 // Only adding types that are truly missing and not duplicated elsewhere
 
 type UpdateStep struct {
-	ID          string               `json:"id"`
-	Type        string               `json:"type"`
-	Package     *PackageReference    `json:"package"`
-	Action      string               `json:"action"`
-	Order       int                  `json:"order"`
-	Dependencies []string            `json:"dependencies,omitempty"`
-	Timeout     time.Duration        `json:"timeout"`
-	RetryPolicy *RetryPolicy         `json:"retryPolicy,omitempty"`
-	Validation  *StepValidation      `json:"validation,omitempty"`
+	ID           string            `json:"id"`
+	Type         string            `json:"type"`
+	Package      *PackageReference `json:"package"`
+	Action       string            `json:"action"`
+	Order        int               `json:"order"`
+	Dependencies []string          `json:"dependencies,omitempty"`
+	Timeout      time.Duration     `json:"timeout"`
+	RetryPolicy  *RetryPolicy      `json:"retryPolicy,omitempty"`
+	Validation   *StepValidation   `json:"validation,omitempty"`
 }
 
 type StepValidation struct {
@@ -51,14 +51,14 @@ type RetryPolicy struct {
 }
 
 type UpdateStepResult struct {
-	StepID      string        `json:"stepId"`
-	Status      string        `json:"status"`
-	StartTime   time.Time     `json:"startTime"`
-	EndTime     time.Time     `json:"endTime"`
-	Duration    time.Duration `json:"duration"`
-	Error       error         `json:"error,omitempty"`
-	Retry       int           `json:"retry"`
-	Output      interface{}   `json:"output,omitempty"`
+	StepID    string        `json:"stepId"`
+	Status    string        `json:"status"`
+	StartTime time.Time     `json:"startTime"`
+	EndTime   time.Time     `json:"endTime"`
+	Duration  time.Duration `json:"duration"`
+	Error     error         `json:"error,omitempty"`
+	Retry     int           `json:"retry"`
+	Output    interface{}   `json:"output,omitempty"`
 }
 
 type ApprovalResult struct {
@@ -128,15 +128,15 @@ func (u *dependencyUpdater) createUpdateRecord(updateCtx *UpdateContext) *Update
 func (u *dependencyUpdater) sendUpdateNotifications(ctx context.Context, updateCtx *UpdateContext) {
 	// Placeholder implementation
 	notification := &UpdateNotification{
-		ID:       generateNotificationID(),
-		Type:     "update_completed",
-		Priority: "medium",
-		Title:    fmt.Sprintf("Update completed for %d packages", len(updateCtx.Spec.Packages)),
-		Message:  "Dependency update process has been completed successfully",
+		ID:        generateNotificationID(),
+		Type:      "update_completed",
+		Priority:  "medium",
+		Title:     fmt.Sprintf("Update completed for %d packages", len(updateCtx.Spec.Packages)),
+		Message:   "Dependency update process has been completed successfully",
 		CreatedAt: time.Now(),
-		Status:   "pending",
+		Status:    "pending",
 	}
-	
+
 	if u.notificationManager != nil {
 		// Send notification
 		u.logger.V(1).Info("Sending update notification", "notificationId", notification.ID)
@@ -147,10 +147,10 @@ func (u *dependencyUpdater) updateMetrics(result *UpdateResult) {
 	if u.metrics == nil {
 		return
 	}
-	
+
 	u.metrics.UpdatesTotal.Inc()
 	u.metrics.UpdateDuration.Observe(result.ExecutionTime.Seconds())
-	
+
 	for _, failed := range result.FailedUpdates {
 		if u.metrics.UpdateErrors != nil {
 			u.metrics.UpdateErrors.WithLabelValues("update_failed").Inc()
@@ -163,7 +163,7 @@ func (u *dependencyUpdater) updatePropagationMetrics(result *PropagationResult) 
 	if u.metrics == nil {
 		return
 	}
-	
+
 	u.metrics.PropagationsTotal.Inc()
 	u.metrics.PropagationDuration.Observe(result.PropagationTime.Seconds())
 }
@@ -174,21 +174,21 @@ func (u *dependencyUpdater) executeUpdatesSequentially(ctx context.Context, upda
 		if err != nil {
 			return fmt.Errorf("failed to execute update step %s: %w", step.ID, err)
 		}
-		
+
 		u.processStepResult(updateCtx, stepResult)
 	}
-	
+
 	return nil
 }
 
 func (u *dependencyUpdater) executeUpdateStep(ctx context.Context, step *UpdateStep) (*UpdateStepResult, error) {
 	startTime := time.Now()
-	
+
 	result := &UpdateStepResult{
 		StepID:    step.ID,
 		StartTime: startTime,
 	}
-	
+
 	// Placeholder implementation - would contain actual update logic
 	switch step.Action {
 	case "update":
@@ -203,10 +203,10 @@ func (u *dependencyUpdater) executeUpdateStep(ctx context.Context, step *UpdateS
 		result.Status = "failed"
 		result.Error = fmt.Errorf("unknown step action: %s", step.Action)
 	}
-	
+
 	result.EndTime = time.Now()
 	result.Duration = result.EndTime.Sub(result.StartTime)
-	
+
 	return result, result.Error
 }
 
@@ -311,7 +311,7 @@ func (u *dependencyUpdater) mergeUpdateImpact(analysis *ImpactAnalysis, updateIm
 			)
 		}
 	}
-	
+
 	// Merge other impact types similarly
 	analysis.AffectedPackages = append(analysis.AffectedPackages, updateImpact.AffectedPackages...)
 	analysis.BreakingChanges = append(analysis.BreakingChanges, updateImpact.BreakingChanges...)
@@ -338,7 +338,7 @@ func (u *dependencyUpdater) calculateOverallRisk(analysis *ImpactAnalysis) RiskL
 
 func (u *dependencyUpdater) generateImpactRecommendations(analysis *ImpactAnalysis) []*ImpactRecommendation {
 	var recommendations []*ImpactRecommendation
-	
+
 	if analysis.OverallRisk == RiskLevelHigh {
 		recommendations = append(recommendations, &ImpactRecommendation{
 			Type:        "testing",
@@ -347,7 +347,7 @@ func (u *dependencyUpdater) generateImpactRecommendations(analysis *ImpactAnalys
 			Action:      "Run full test suite including integration and regression tests",
 		})
 	}
-	
+
 	if len(analysis.BreakingChanges) > 0 {
 		recommendations = append(recommendations, &ImpactRecommendation{
 			Type:        "migration",
@@ -356,13 +356,13 @@ func (u *dependencyUpdater) generateImpactRecommendations(analysis *ImpactAnalys
 			Action:      "Review breaking changes and create migration strategy",
 		})
 	}
-	
+
 	return recommendations
 }
 
 func (u *dependencyUpdater) generateMitigationStrategies(analysis *ImpactAnalysis) []*MitigationStrategy {
 	var strategies []*MitigationStrategy
-	
+
 	if analysis.OverallRisk == RiskLevelHigh {
 		strategies = append(strategies, &MitigationStrategy{
 			Name:        "Staged Rollout",
@@ -378,7 +378,7 @@ func (u *dependencyUpdater) generateMitigationStrategies(analysis *ImpactAnalysi
 			},
 		})
 	}
-	
+
 	return strategies
 }
 

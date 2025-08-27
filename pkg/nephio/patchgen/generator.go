@@ -11,16 +11,16 @@ import (
 
 // PackageOptions defines the configuration for package generation
 type PackageOptions struct {
-	Name       string
-	Namespace  string
+	Name      string
+	Namespace string
 	// Add other relevant package generation parameters
 }
 
 // ResourceLimits defines resource constraints for package generation
 type ResourceLimits struct {
-	MaxCPU    int            // CPU cores
-	MaxMemory int            // Memory in MB
-	Timeout   time.Duration  // Operation timeout
+	MaxCPU    int           // CPU cores
+	MaxMemory int           // Memory in MB
+	Timeout   time.Duration // Operation timeout
 }
 
 var (
@@ -62,7 +62,7 @@ func GeneratePackage(ctx context.Context, opts *PackageOptions) (*Package, error
 
 // GeneratePackageWithConstraints generates a package with resource and timeout constraints
 func GeneratePackageWithConstraints(
-	ctx context.Context, 
+	ctx context.Context,
 	resourceLimits ResourceLimits,
 ) (*Package, error) {
 	// Validate resource limits
@@ -86,8 +86,8 @@ func GeneratePackageWithConstraints(
 // validateResourceConstraints checks if resource allocation is within acceptable limits
 func validateResourceConstraints(limits ResourceLimits) error {
 	const (
-		maxAllowedCPU    = 8   // cores
-		maxAllowedMemory = 32  // GB
+		maxAllowedCPU     = 8  // cores
+		maxAllowedMemory  = 32 // GB
 		maxAllowedTimeout = 30 * time.Minute
 	)
 
@@ -109,8 +109,8 @@ func validateResourceConstraints(limits ResourceLimits) error {
 // createPackage is an internal method to create the actual package
 // FIXME: Renamed 'ctx' to avoid unused parameter warning
 func createPackage(
-	_ context.Context, 
-	pkgName string, 
+	_ context.Context,
+	pkgName string,
 	opts *PackageOptions,
 ) (*Package, error) {
 	// Actual package creation logic here

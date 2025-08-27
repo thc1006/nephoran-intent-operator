@@ -13,9 +13,9 @@ import (
 
 // SecurityPolicy defines security policy configuration
 type SecurityPolicy struct {
-	PolicyID    string `json:"policy_id"`
-	PolicyType  string `json:"policy_type"`
-	Enforcement string `json:"enforcement"`
+	PolicyID    string         `json:"policy_id"`
+	PolicyType  string         `json:"policy_type"`
+	Enforcement string         `json:"enforcement"`
 	Rules       []SecurityRule `json:"rules"`
 }
 

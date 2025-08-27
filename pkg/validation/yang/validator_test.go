@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestValidatorMetrics(t *testing.T) {

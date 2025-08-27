@@ -132,13 +132,13 @@ type ScalingPolicy struct {
 
 // ScalingTrigger represents a custom scaling trigger
 type ScalingTrigger struct {
-	Name         string      `json:"name"`
-	Type         string      `json:"type"` // metric, queue, custom
-	Threshold    float64     `json:"threshold"`
-	Operator     string      `json:"operator"` // gt, lt, eq, gte, lte
-	MetricPath   string      `json:"metricPath,omitempty"`
-	Query        string      `json:"query,omitempty"`
-	Enabled      bool        `json:"enabled"`
+	Name       string  `json:"name"`
+	Type       string  `json:"type"` // metric, queue, custom
+	Threshold  float64 `json:"threshold"`
+	Operator   string  `json:"operator"` // gt, lt, eq, gte, lte
+	MetricPath string  `json:"metricPath,omitempty"`
+	Query      string  `json:"query,omitempty"`
+	Enabled    bool    `json:"enabled"`
 }
 
 // ScalePolicy defines scale up/down policies

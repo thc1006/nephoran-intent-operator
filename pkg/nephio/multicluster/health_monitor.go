@@ -335,7 +335,7 @@ func NewHealthMonitor(
 func (hm *HealthMonitor) GetClusterHealthStates() map[types.NamespacedName]*ClusterHealthState {
 	hm.clusterLock.RLock()
 	defer hm.clusterLock.RUnlock()
-	
+
 	// Return a copy to avoid concurrent access issues
 	clusters := make(map[types.NamespacedName]*ClusterHealthState)
 	for k, v := range hm.clusters {

@@ -39,7 +39,7 @@ func TestSanitizeStatusFilename(t *testing.T) {
 			expected: "intent-test-file",
 			desc:     "Whitespace should be replaced with dashes",
 		},
-		
+
 		// Duplicate separator handling
 		{
 			name:     "DuplicateDashes",
@@ -59,7 +59,7 @@ func TestSanitizeStatusFilename(t *testing.T) {
 			expected: "intent-test",
 			desc:     "Mixed duplicate separators should be collapsed",
 		},
-		
+
 		// Edge trimming
 		{
 			name:     "LeadingTrailingSeparators",
@@ -79,7 +79,7 @@ func TestSanitizeStatusFilename(t *testing.T) {
 			expected: "intent-test",
 			desc:     "Trailing spaces should be removed",
 		},
-		
+
 		// Windows reserved names
 		{
 			name:     "WindowsReservedCON",
@@ -117,7 +117,7 @@ func TestSanitizeStatusFilename(t *testing.T) {
 			expected: "mycon.json",
 			desc:     "CON as part of name should not be affected",
 		},
-		
+
 		// Empty and special cases
 		{
 			name:     "EmptyString",
@@ -143,7 +143,7 @@ func TestSanitizeStatusFilename(t *testing.T) {
 			expected: "unnamed",
 			desc:     "Double dot should become 'unnamed'",
 		},
-		
+
 		// Length capping
 		{
 			name:     "VeryLongFilename",
@@ -157,7 +157,7 @@ func TestSanitizeStatusFilename(t *testing.T) {
 			expected: strings.Repeat("a", 95) + ".json",
 			desc:     "Long filenames with extension should preserve extension",
 		},
-		
+
 		// Special characters that might appear in tests
 		{
 			name:     "UnicodeCharacters",
@@ -189,7 +189,7 @@ func TestSanitizeStatusFilename(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := sanitizeStatusFilename(tt.input)
 			assert.Equal(t, tt.expected, result, tt.desc)
-			
+
 			// Additional validations
 			assert.NotContains(t, result, "//", "Should not contain double slashes")
 			assert.NotContains(t, result, "\\\\", "Should not contain double backslashes")
@@ -213,7 +213,7 @@ func TestSanitizeStatusFilename_WindowsEdgeCases(t *testing.T) {
 			// Test lowercase
 			result := sanitizeStatusFilename(strings.ToLower(reserved))
 			assert.Equal(t, strings.ToLower(reserved)+"-file", result)
-			
+
 			// Test with extension
 			result = sanitizeStatusFilename(strings.ToLower(reserved) + ".json")
 			assert.Equal(t, strings.ToLower(reserved)+"-file.json", result)
@@ -246,14 +246,14 @@ func TestSanitizeStatusFilename_WindowsReservedCharacters(t *testing.T) {
 	for _, tc := range reservedChars {
 		t.Run("ReservedChar_"+tc.char, func(t *testing.T) {
 			result := sanitizeStatusFilename(tc.input)
-			
+
 			// Should not contain any reserved characters
 			reservedSet := []string{"<", ">", ":", "\"", "/", "\\", "|", "?", "*"}
 			for _, reserved := range reservedSet {
 				assert.NotContains(t, result, reserved,
 					"Result should not contain reserved character: %s", reserved)
 			}
-			
+
 			assert.Equal(t, tc.expected, result,
 				"Reserved character sanitization should match expected result")
 		})
@@ -404,7 +404,7 @@ func TestSanitizeStatusFilename_StatusFilenameConsistencyWindows(t *testing.T) {
 			}
 
 			result := results[0]
-			
+
 			// Should be valid Windows filename
 			assert.NotContains(t, result, "\\", "Should not contain backslashes")
 			assert.NotContains(t, result, "/", "Should not contain forward slashes")
@@ -433,30 +433,30 @@ func TestSanitizeStatusFilename_AllSuspiciousPatterns(t *testing.T) {
 		// Trailing patterns
 		{"TrailingTilde", "intent-test~", "trailing ~ (Windows backup indicator)"},
 		{"TrailingDollar", "intent-test$", "trailing $ character"},
-		
+
 		// File extensions that might be suspicious
 		{"TmpInFilename", "intent-test.tmp", ".tmp extension"},
 		{"BakInFilename", "intent-test.bak", ".bak extension"},
 		{"OrigInFilename", "intent-test.orig", ".orig extension"},
 		{"SwpInFilename", "intent-test.swp", ".swp extension (vim swap)"},
-		
+
 		// Leading patterns
 		{"LeadingDotHash", ".#intent-test", "leading .# (emacs lock file)"},
 		{"LeadingTilde", "~intent-test", "leading ~ character"},
 		{"LeadingDot", ".intent-test", "leading dot (hidden file)"},
-		
+
 		// Repeated patterns
 		{"RepeatedDots", "intent-test..ext", "repeated dots"},
 		{"TripleDots", "intent-test...ext", "triple dots"},
 		{"QuadrupleDots", "intent-test....ext", "quadruple dots"},
 		{"RepeatedHyphens", "intent-test--ext", "repeated hyphens"},
 		{"RepeatedUnderscores", "intent-test__ext", "repeated underscores"},
-		
+
 		// Whitespace issues
 		{"TrailingSpace", "intent-test ", "trailing space"},
 		{"LeadingSpace", " intent-test", "leading space"},
 		{"MultipleSpaces", "intent  test  file", "multiple spaces"},
-		
+
 		// Control characters
 		{"TabCharacter", "intent-test\t", "tab character"},
 		{"NewlineCharacter", "intent-test\n", "newline character"},
@@ -465,7 +465,7 @@ func TestSanitizeStatusFilename_AllSuspiciousPatterns(t *testing.T) {
 		{"FormFeed", "intent-test\f", "form feed"},
 		{"Backspace", "intent-test\b", "backspace"},
 		{"Bell", "intent-test\a", "bell character"},
-		
+
 		// Mixed suspicious patterns
 		{"MultiplePatterns", "~intent-test...bak$", "multiple suspicious patterns"},
 		{"ComplexPattern", ".#intent..test~~.tmp.", "complex suspicious pattern"},

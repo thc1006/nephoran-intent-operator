@@ -606,7 +606,6 @@ func (c *EnhancedPerformanceClient) createRequestContext(options *IntentProcessi
 	return ctx
 }
 
-
 func (c *EnhancedPerformanceClient) completeRequestContext(id string) {
 	c.requestsMutex.Lock()
 	delete(c.activeRequests, id)

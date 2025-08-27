@@ -24,18 +24,18 @@ func (es ErrorSeverity) String() string {
 type ErrorCategory string
 
 const (
-	CategoryBusiness   ErrorCategory = "business"
-	CategorySystem     ErrorCategory = "system"
-	CategorySecurity   ErrorCategory = "security"
-	CategoryNetwork    ErrorCategory = "network"
-	CategoryData       ErrorCategory = "data"
-	CategoryValidation ErrorCategory = "validation"
-	CategoryPermission ErrorCategory = "permission"
-	CategoryResource   ErrorCategory = "resource"
-	CategoryConfig     ErrorCategory = "config"
-	CategoryInternal   ErrorCategory = "internal"
-	CategoryCapacity      ErrorCategory = "capacity"
-	CategoryRateLimit     ErrorCategory = "rate_limit"
+	CategoryBusiness       ErrorCategory = "business"
+	CategorySystem         ErrorCategory = "system"
+	CategorySecurity       ErrorCategory = "security"
+	CategoryNetwork        ErrorCategory = "network"
+	CategoryData           ErrorCategory = "data"
+	CategoryValidation     ErrorCategory = "validation"
+	CategoryPermission     ErrorCategory = "permission"
+	CategoryResource       ErrorCategory = "resource"
+	CategoryConfig         ErrorCategory = "config"
+	CategoryInternal       ErrorCategory = "internal"
+	CategoryCapacity       ErrorCategory = "capacity"
+	CategoryRateLimit      ErrorCategory = "rate_limit"
 	CategoryCircuitBreaker ErrorCategory = "circuit_breaker"
 )
 

@@ -8,7 +8,6 @@
 // - LLM metrics collection and exposition
 // - Controller metrics collection and exposition
 // - Prometheus text format parsing and validation
-//
 package integration
 
 import (

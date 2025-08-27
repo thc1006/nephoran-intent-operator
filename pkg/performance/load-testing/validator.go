@@ -658,11 +658,11 @@ func chiSquareCDF(x float64, df float64) float64 {
 	if x <= 0 {
 		return 0
 	}
-	
+
 	// Using Wilson-Hilferty approximation for chi-square CDF
 	z := math.Pow(x/df, 1.0/3.0) - (1.0 - 2.0/(9.0*df))
-	z = z / math.Sqrt(2.0 / (9.0 * df))
-	
+	z = z / math.Sqrt(2.0/(9.0*df))
+
 	// Standard normal CDF approximation
 	return 0.5 * (1.0 + math.Erf(z/math.Sqrt(2.0)))
 }

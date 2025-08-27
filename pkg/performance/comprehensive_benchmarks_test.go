@@ -789,7 +789,9 @@ func benchmarkNetworkIO(b *testing.B, ctx context.Context, testEnv *Comprehensiv
 					defer func() { <-semaphore }()
 
 					reqStart := time.Now()
-					if sender, ok := client.(interface{ SendRequest(context.Context, []byte) (*NetworkResponse, error) }); ok {
+					if sender, ok := client.(interface {
+						SendRequest(context.Context, []byte) (*NetworkResponse, error)
+					}); ok {
 						response, err := sender.SendRequest(ctx, payload)
 						reqLatency := time.Since(reqStart)
 
@@ -801,15 +803,15 @@ func benchmarkNetworkIO(b *testing.B, ctx context.Context, testEnv *Comprehensiv
 							atomic.AddInt64(&bytesTransferred, int64(len(payload)+len(response.Data)))
 							atomic.AddInt64(&packetsTransferred, 1)
 
-						// Track connection metrics
-						if response.ConnectionReused {
-							atomic.AddInt64(&connectionReuses, 1)
-						} else {
-							atomic.AddInt64(&connectionCreations, 1)
-							atomic.AddInt64(&dnsLatency, int64(response.DNSTime.Nanoseconds()))
-							atomic.AddInt64(&connectLatency, int64(response.ConnectTime.Nanoseconds()))
+							// Track connection metrics
+							if response.ConnectionReused {
+								atomic.AddInt64(&connectionReuses, 1)
+							} else {
+								atomic.AddInt64(&connectionCreations, 1)
+								atomic.AddInt64(&dnsLatency, int64(response.DNSTime.Nanoseconds()))
+								atomic.AddInt64(&connectLatency, int64(response.ConnectTime.Nanoseconds()))
+							}
 						}
-					}
 					} else {
 						// Client doesn't support SendRequest
 						atomic.AddInt64(&networkErrors, 1)
@@ -1080,7 +1082,6 @@ type TestResource struct {
 func (tr *TestResource) GetName() string {
 	return tr.Name
 }
-
 
 func (env *ComprehensiveTestEnvironment) ConfigureDatabase(config DatabaseConfig) {}
 

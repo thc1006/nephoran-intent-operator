@@ -56,21 +56,21 @@ func TestPatchGenConcurrencySafety(t *testing.T) {
 			}
 
 			pkg, err := patchgen.GeneratePackage(ctx, opts)
-			
+
 			// Handle context cancellation gracefully
 			if err != nil && strings.Contains(err.Error(), "context") {
 				return
 			}
-			
+
 			require.NoError(t, err)
 			require.NotNil(t, pkg)
 
 			// Thread-safe package tracking
 			mu.Lock()
 			defer mu.Unlock()
-			
+
 			// Ensure no name collisions
-			assert.False(t, generatedPackages[pkg.Name], 
+			assert.False(t, generatedPackages[pkg.Name],
 				"Package name collision detected: %s", pkg.Name)
 			generatedPackages[pkg.Name] = true
 		}(i)
@@ -82,7 +82,7 @@ func TestPatchGenConcurrencySafety(t *testing.T) {
 	// Verify all packages were generated uniquely
 	mu.Lock()
 	defer mu.Unlock()
-	
+
 	t.Logf("Successfully generated %d unique packages", len(generatedPackages))
 	assert.True(t, len(generatedPackages) > 0, "No packages were generated")
 }
@@ -181,9 +181,9 @@ func TestPackageNameUniqueness(t *testing.T) {
 
 			mu.Lock()
 			defer mu.Unlock()
-			
+
 			// Ensure name is unique
-			assert.False(t, names[pkg.Name], 
+			assert.False(t, names[pkg.Name],
 				"Duplicate package name generated: %s", pkg.Name)
 			names[pkg.Name] = true
 		}(i)
@@ -192,7 +192,7 @@ func TestPackageNameUniqueness(t *testing.T) {
 	wg.Wait()
 
 	// Verify all names are unique
-	assert.Equal(t, numPackages, len(names), 
+	assert.Equal(t, numPackages, len(names),
 		"Expected %d unique names, got %d", numPackages, len(names))
 }
 
@@ -211,12 +211,12 @@ func TestPackageGenerationTimeout(t *testing.T) {
 	}
 
 	pkg, err := patchgen.GeneratePackage(ctx, opts)
-	
+
 	// Should handle timeout gracefully
 	if err != nil {
 		assert.Contains(t, err.Error(), "context")
 	}
-	
+
 	// Package should be nil on timeout
 	assert.Nil(t, pkg)
 }
@@ -228,7 +228,7 @@ func TestSecureRandomGeneration(t *testing.T) {
 
 	// Generate multiple packages and verify uniqueness
 	names := make([]string, 0, iterations)
-	
+
 	for i := 0; i < iterations; i++ {
 		opts := &patchgen.PackageOptions{
 			Name:      "random-test",
@@ -238,14 +238,14 @@ func TestSecureRandomGeneration(t *testing.T) {
 		pkg, err := patchgen.GeneratePackage(ctx, opts)
 		require.NoError(t, err)
 		require.NotNil(t, pkg)
-		
+
 		names = append(names, pkg.Name)
 	}
 
 	// Verify all names are unique
 	uniqueNames := make(map[string]bool)
 	for _, name := range names {
-		assert.False(t, uniqueNames[name], 
+		assert.False(t, uniqueNames[name],
 			"Duplicate name detected: %s", name)
 		uniqueNames[name] = true
 	}
@@ -280,7 +280,7 @@ func TestHighVolumeGeneration(t *testing.T) {
 
 	ctx := context.Background()
 	const volumeSize = 5000
-	
+
 	var wg sync.WaitGroup
 	var successCount int64
 	var mu sync.Mutex
@@ -309,11 +309,11 @@ func TestHighVolumeGeneration(t *testing.T) {
 	wg.Wait()
 
 	duration := time.Since(start)
-	
+
 	t.Logf("Generated %d packages in %v", successCount, duration)
 	t.Logf("Rate: %.2f packages/second", float64(successCount)/duration.Seconds())
-	
+
 	// Should generate most packages successfully
-	assert.Greater(t, successCount, int64(volumeSize*0.95), 
+	assert.Greater(t, successCount, int64(volumeSize*0.95),
 		"Expected at least 95%% success rate")
 }

@@ -21,48 +21,48 @@ type TechnicalDebtMonitor struct {
 
 // TechnicalDebtItem represents a single item of technical debt
 type TechnicalDebtItem struct {
-	ID          string    `json:"id"`
-	Type        string    `json:"type"`
-	Severity    string    `json:"severity"`
-	Description string    `json:"description"`
-	Location    string    `json:"location"`
-	EstimatedHours float64 `json:"estimated_hours"`
-	Priority    int       `json:"priority"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
-	Status      string    `json:"status"`
-	Category    string    `json:"category"`
+	ID             string    `json:"id"`
+	Type           string    `json:"type"`
+	Severity       string    `json:"severity"`
+	Description    string    `json:"description"`
+	Location       string    `json:"location"`
+	EstimatedHours float64   `json:"estimated_hours"`
+	Priority       int       `json:"priority"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+	Status         string    `json:"status"`
+	Category       string    `json:"category"`
 }
 
 // DebtSummary provides an overview of technical debt
 type DebtSummary struct {
-	TotalItems       int     `json:"total_items"`
-	TotalHours       float64 `json:"total_hours"`
-	HighPriorityItems int    `json:"high_priority_items"`
-	MediumPriorityItems int  `json:"medium_priority_items"`
-	LowPriorityItems int    `json:"low_priority_items"`
-	DebtByCategory   map[string]int `json:"debt_by_category"`
-	DebtRatio        float64 `json:"debt_ratio"`
-	TrendDirection   string  `json:"trend_direction"`
+	TotalItems          int            `json:"total_items"`
+	TotalHours          float64        `json:"total_hours"`
+	HighPriorityItems   int            `json:"high_priority_items"`
+	MediumPriorityItems int            `json:"medium_priority_items"`
+	LowPriorityItems    int            `json:"low_priority_items"`
+	DebtByCategory      map[string]int `json:"debt_by_category"`
+	DebtRatio           float64        `json:"debt_ratio"`
+	TrendDirection      string         `json:"trend_direction"`
 }
 
 // DebtTrend represents trend data for technical debt
 type DebtTrend struct {
-	Date       time.Time `json:"date"`
-	TotalDebt  float64   `json:"total_debt"`
-	NewDebt    int       `json:"new_debt"`
-	ResolvedDebt int     `json:"resolved_debt"`
-	DebtRatio  float64   `json:"debt_ratio"`
+	Date         time.Time `json:"date"`
+	TotalDebt    float64   `json:"total_debt"`
+	NewDebt      int       `json:"new_debt"`
+	ResolvedDebt int       `json:"resolved_debt"`
+	DebtRatio    float64   `json:"debt_ratio"`
 }
 
 // ActionItem represents a recommended action to address technical debt
 type ActionItem struct {
-	Type        string  `json:"type"`
-	Priority    int     `json:"priority"`
-	Description string  `json:"description"`
+	Type            string  `json:"type"`
+	Priority        int     `json:"priority"`
+	Description     string  `json:"description"`
 	EstimatedEffort float64 `json:"estimated_effort"`
-	Impact      string  `json:"impact"`
-	Timeline    string  `json:"timeline"`
+	Impact          string  `json:"impact"`
+	Timeline        string  `json:"timeline"`
 }
 
 func main() {
@@ -104,69 +104,69 @@ func (tdm *TechnicalDebtMonitor) scanTechnicalDebt() error {
 	// Simulate debt items found during scanning
 	tdm.DebtItems = []TechnicalDebtItem{
 		{
-			ID:          "TD-001",
-			Type:        "code_complexity",
-			Severity:    "high",
-			Description: "Function exceeds cyclomatic complexity threshold",
-			Location:    "pkg/handlers/network_intent.go:145",
+			ID:             "TD-001",
+			Type:           "code_complexity",
+			Severity:       "high",
+			Description:    "Function exceeds cyclomatic complexity threshold",
+			Location:       "pkg/handlers/network_intent.go:145",
 			EstimatedHours: 4.0,
-			Priority:    1,
-			CreatedAt:   time.Now().AddDate(0, -1, -5),
-			UpdatedAt:   time.Now().AddDate(0, 0, -2),
-			Status:      "open",
-			Category:    "complexity",
+			Priority:       1,
+			CreatedAt:      time.Now().AddDate(0, -1, -5),
+			UpdatedAt:      time.Now().AddDate(0, 0, -2),
+			Status:         "open",
+			Category:       "complexity",
 		},
 		{
-			ID:          "TD-002",
-			Type:        "code_duplication",
-			Severity:    "medium",
-			Description: "Duplicate error handling logic across multiple files",
-			Location:    "pkg/services/",
+			ID:             "TD-002",
+			Type:           "code_duplication",
+			Severity:       "medium",
+			Description:    "Duplicate error handling logic across multiple files",
+			Location:       "pkg/services/",
 			EstimatedHours: 2.5,
-			Priority:    2,
-			CreatedAt:   time.Now().AddDate(0, -2, -10),
-			UpdatedAt:   time.Now().AddDate(0, 0, -1),
-			Status:      "open",
-			Category:    "duplication",
+			Priority:       2,
+			CreatedAt:      time.Now().AddDate(0, -2, -10),
+			UpdatedAt:      time.Now().AddDate(0, 0, -1),
+			Status:         "open",
+			Category:       "duplication",
 		},
 		{
-			ID:          "TD-003",
-			Type:        "deprecated_api",
-			Severity:    "low",
-			Description: "Using deprecated Kubernetes API version",
-			Location:    "pkg/controllers/networkintent_controller.go",
+			ID:             "TD-003",
+			Type:           "deprecated_api",
+			Severity:       "low",
+			Description:    "Using deprecated Kubernetes API version",
+			Location:       "pkg/controllers/networkintent_controller.go",
 			EstimatedHours: 1.0,
-			Priority:    3,
-			CreatedAt:   time.Now().AddDate(0, -3, -15),
-			UpdatedAt:   time.Now().AddDate(0, 0, -7),
-			Status:      "open",
-			Category:    "deprecation",
+			Priority:       3,
+			CreatedAt:      time.Now().AddDate(0, -3, -15),
+			UpdatedAt:      time.Now().AddDate(0, 0, -7),
+			Status:         "open",
+			Category:       "deprecation",
 		},
 		{
-			ID:          "TD-004",
-			Type:        "missing_tests",
-			Severity:    "medium",
-			Description: "Critical functions lack unit tests",
-			Location:    "pkg/security/",
+			ID:             "TD-004",
+			Type:           "missing_tests",
+			Severity:       "medium",
+			Description:    "Critical functions lack unit tests",
+			Location:       "pkg/security/",
 			EstimatedHours: 6.0,
-			Priority:    2,
-			CreatedAt:   time.Now().AddDate(0, -1, -20),
-			UpdatedAt:   time.Now().AddDate(0, 0, -3),
-			Status:      "open",
-			Category:    "testing",
+			Priority:       2,
+			CreatedAt:      time.Now().AddDate(0, -1, -20),
+			UpdatedAt:      time.Now().AddDate(0, 0, -3),
+			Status:         "open",
+			Category:       "testing",
 		},
 		{
-			ID:          "TD-005",
-			Type:        "performance_issue",
-			Severity:    "high",
-			Description: "Inefficient database queries causing bottlenecks",
-			Location:    "pkg/database/queries.go",
+			ID:             "TD-005",
+			Type:           "performance_issue",
+			Severity:       "high",
+			Description:    "Inefficient database queries causing bottlenecks",
+			Location:       "pkg/database/queries.go",
 			EstimatedHours: 8.0,
-			Priority:    1,
-			CreatedAt:   time.Now().AddDate(0, -2, -5),
-			UpdatedAt:   time.Now().AddDate(0, 0, -1),
-			Status:      "open",
-			Category:    "performance",
+			Priority:       1,
+			CreatedAt:      time.Now().AddDate(0, -2, -5),
+			UpdatedAt:      time.Now().AddDate(0, 0, -1),
+			Status:         "open",
+			Category:       "performance",
 		},
 	}
 
@@ -206,14 +206,14 @@ func (tdm *TechnicalDebtMonitor) generateSummary() {
 	}
 
 	tdm.Summary = DebtSummary{
-		TotalItems:         len(tdm.DebtItems),
-		TotalHours:         totalHours,
-		HighPriorityItems:  highPriority,
+		TotalItems:          len(tdm.DebtItems),
+		TotalHours:          totalHours,
+		HighPriorityItems:   highPriority,
 		MediumPriorityItems: mediumPriority,
-		LowPriorityItems:   lowPriority,
-		DebtByCategory:     debtByCategory,
-		DebtRatio:          totalHours / 1000.0 * 100, // Assuming 1000 hours total project size
-		TrendDirection:     trendDirection,
+		LowPriorityItems:    lowPriority,
+		DebtByCategory:      debtByCategory,
+		DebtRatio:           totalHours / 1000.0 * 100, // Assuming 1000 hours total project size
+		TrendDirection:      trendDirection,
 	}
 }
 
@@ -224,11 +224,11 @@ func (tdm *TechnicalDebtMonitor) analyzeTrends() {
 	for i := 30; i >= 0; i-- {
 		date := time.Now().AddDate(0, 0, -i)
 		trend := DebtTrend{
-			Date:       date,
-			TotalDebt:  float64(len(tdm.DebtItems)) + float64(i)*0.1,
-			NewDebt:    1,
+			Date:         date,
+			TotalDebt:    float64(len(tdm.DebtItems)) + float64(i)*0.1,
+			NewDebt:      1,
 			ResolvedDebt: 0,
-			DebtRatio:  2.0 + float64(i)*0.05,
+			DebtRatio:    2.0 + float64(i)*0.05,
 		}
 		tdm.Trends = append(tdm.Trends, trend)
 	}
@@ -239,36 +239,36 @@ func (tdm *TechnicalDebtMonitor) generateActionItems() {
 
 	tdm.Actions = []ActionItem{
 		{
-			Type:        "refactoring",
-			Priority:    1,
-			Description: "Refactor high-complexity functions to improve maintainability",
+			Type:            "refactoring",
+			Priority:        1,
+			Description:     "Refactor high-complexity functions to improve maintainability",
 			EstimatedEffort: 16.0,
-			Impact:      "high",
-			Timeline:    "2-3 weeks",
+			Impact:          "high",
+			Timeline:        "2-3 weeks",
 		},
 		{
-			Type:        "testing",
-			Priority:    2,
-			Description: "Add comprehensive unit tests for security-critical functions",
+			Type:            "testing",
+			Priority:        2,
+			Description:     "Add comprehensive unit tests for security-critical functions",
 			EstimatedEffort: 12.0,
-			Impact:      "medium",
-			Timeline:    "1-2 weeks",
+			Impact:          "medium",
+			Timeline:        "1-2 weeks",
 		},
 		{
-			Type:        "dependency_update",
-			Priority:    2,
-			Description: "Update deprecated APIs to current versions",
+			Type:            "dependency_update",
+			Priority:        2,
+			Description:     "Update deprecated APIs to current versions",
 			EstimatedEffort: 4.0,
-			Impact:      "low",
-			Timeline:    "3-5 days",
+			Impact:          "low",
+			Timeline:        "3-5 days",
 		},
 		{
-			Type:        "performance_optimization",
-			Priority:    1,
-			Description: "Optimize database queries and caching strategy",
+			Type:            "performance_optimization",
+			Priority:        1,
+			Description:     "Optimize database queries and caching strategy",
 			EstimatedEffort: 20.0,
-			Impact:      "high",
-			Timeline:    "3-4 weeks",
+			Impact:          "high",
+			Timeline:        "3-4 weeks",
 		},
 	}
 }
@@ -410,7 +410,7 @@ func (tdm *TechnicalDebtMonitor) generateCSVReport() {
 			csvWriteErr = err
 		}
 	}
-	
+
 	// Check for any write errors
 	if csvWriteErr != nil {
 		log.Printf("Error writing CSV report: %v", csvWriteErr)

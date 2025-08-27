@@ -79,7 +79,6 @@ type PipelineConfig struct {
 	DetailedLogging bool `json:"detailedLogging" yaml:"detailedLogging"`
 }
 
-
 // PipelineStage represents a stage in the pipeline
 type PipelineStage struct {
 	// Basic properties
@@ -237,10 +236,10 @@ type PipelineExecution struct {
 	CurrentStage string                     `json:"currentStage,omitempty"`
 
 	// Results
-	Resources       []porch.KRMResource   `json:"resources"`
-	OutputResources []*porch.KRMResource  `json:"outputResources"`
-	Results         []*ExecutionResult    `json:"results"`
-	Errors          []ExecutionError      `json:"errors"`
+	Resources       []porch.KRMResource  `json:"resources"`
+	OutputResources []*porch.KRMResource `json:"outputResources"`
+	Results         []*ExecutionResult   `json:"results"`
+	Errors          []ExecutionError     `json:"errors"`
 
 	// State management
 	Variables   map[string]interface{} `json:"variables"`
@@ -1350,4 +1349,3 @@ func validatePipelineConfig(config *PipelineConfig) error {
 	}
 	return nil
 }
-

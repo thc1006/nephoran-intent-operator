@@ -37,16 +37,16 @@ type Validator struct {
 func NewValidator(projectRoot string) (*Validator, error) {
 	logger := slog.Default().With("component", "intent.validator")
 	schemaPath := filepath.Join(projectRoot, "docs", "contracts", "intent.schema.json")
-	
+
 	// Log validation initialization for security audit
 	logger.Info("initializing schema validator", "schema_path", schemaPath)
-	
+
 	// Read the schema file
 	schemaData, err := os.ReadFile(schemaPath)
 	if err != nil {
 		// SECURITY: Log schema load failure for monitoring
-		logger.Error("failed to read schema file", 
-			"path", schemaPath, 
+		logger.Error("failed to read schema file",
+			"path", schemaPath,
 			"error", err)
 		return nil, fmt.Errorf("failed to read schema file %s: %w", schemaPath, err)
 	}
@@ -64,7 +64,7 @@ func NewValidator(projectRoot string) (*Validator, error) {
 	// Try to compile the schema
 	compiler := jsonschema.NewCompiler()
 	schemaURI := "https://example.com/schemas/intent.schema.json"
-	
+
 	// Load the schema as a resource - parse JSON first
 	var schemaInterface interface{}
 	if err := json.Unmarshal(schemaData, &schemaInterface); err != nil {
@@ -72,7 +72,7 @@ func NewValidator(projectRoot string) (*Validator, error) {
 			"error", err)
 		return nil, fmt.Errorf("failed to unmarshal schema for compilation: %w", err)
 	}
-	
+
 	if err := compiler.AddResource(schemaURI, schemaInterface); err != nil {
 		return nil, fmt.Errorf("failed to add schema resource: %w", err)
 	}
@@ -95,15 +95,15 @@ func NewValidator(projectRoot string) (*Validator, error) {
 		schemaLoader: schema, // For test compatibility
 		logger:       logger,
 	}
-	
+
 	// Initialize metrics
 	v.metrics.Store(&ValidatorMetrics{})
 	v.initialized.Store(true)
-	
+
 	logger.Info("schema validator initialized successfully",
 		"schema_uri", schemaURI,
 		"schema_path", schemaPath)
-	
+
 	return v, nil
 }
 
@@ -115,7 +115,7 @@ func (v *Validator) ValidateIntent(intent *ScalingIntent) []ValidationError {
 		atomic.AddInt64(&metrics.TotalValidations, 1)
 		metrics.LastValidationTime = time.Now()
 	}
-	
+
 	// Schema should never be nil if validator was created successfully
 	if v.schema == nil || !v.initialized.Load() {
 		// This should never happen if NewValidator succeeded
@@ -175,7 +175,7 @@ func (v *Validator) ValidateJSON(data []byte) []ValidationError {
 		atomic.AddInt64(&metrics.TotalValidations, 1)
 		metrics.LastValidationTime = time.Now()
 	}
-	
+
 	var obj interface{}
 	if err := json.Unmarshal(data, &obj); err != nil {
 		if metrics != nil {
@@ -215,7 +215,6 @@ func (v *Validator) ValidateJSON(data []byte) []ValidationError {
 	}
 	return nil
 }
-
 
 // convertValidationError converts jsonschema validation errors to our ValidationError type
 func (v *Validator) convertValidationError(err error) []ValidationError {

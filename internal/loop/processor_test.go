@@ -29,12 +29,12 @@ func (m *MockValidator) ValidateBytes(data []byte) (*ingest.Intent, error) {
 	if err := json.Unmarshal(data, &intent); err != nil {
 		return nil, err
 	}
-	
+
 	// Basic validation
 	if intent.IntentType == "" || intent.Target == "" {
 		return nil, errors.New("missing required fields")
 	}
-	
+
 	return &intent, nil
 }
 
@@ -44,7 +44,7 @@ func TestProcessorBasic(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	errorDir := filepath.Join(tempDir, "errors")
-	
+
 	// Create directories
 	os.MkdirAll(handoffDir, 0755)
 	os.MkdirAll(errorDir, 0755)
@@ -135,7 +135,7 @@ func TestProcessorValidationError(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	errorDir := filepath.Join(tempDir, "errors")
-	
+
 	// Create directories
 	os.MkdirAll(handoffDir, 0755)
 	os.MkdirAll(errorDir, 0755)
@@ -213,7 +213,7 @@ func TestProcessorPorchError(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	errorDir := filepath.Join(tempDir, "errors")
-	
+
 	// Create directories
 	os.MkdirAll(handoffDir, 0755)
 	os.MkdirAll(errorDir, 0755)
@@ -297,7 +297,7 @@ func TestProcessorBatching(t *testing.T) {
 	tempDir := t.TempDir()
 	handoffDir := filepath.Join(tempDir, "handoff")
 	errorDir := filepath.Join(tempDir, "errors")
-	
+
 	// Create directories
 	os.MkdirAll(handoffDir, 0755)
 	os.MkdirAll(errorDir, 0755)
@@ -344,15 +344,15 @@ func TestProcessorBatching(t *testing.T) {
 			Namespace:  "default",
 			Replicas:   i + 1,
 		}
-		
+
 		intentData, _ := json.Marshal(intent)
 		testFile := filepath.Join(handoffDir, fmt.Sprintf("intent-%d.json", i))
 		if err := os.WriteFile(testFile, intentData, 0644); err != nil {
 			t.Fatalf("Failed to write test file %d: %v", i, err)
 		}
-		
+
 		processor.ProcessFile(testFile)
-		
+
 		// After 3 files, batch should flush
 		if i == 2 {
 			time.Sleep(100 * time.Millisecond)
@@ -368,7 +368,7 @@ func TestProcessorBatching(t *testing.T) {
 
 	// Wait for interval flush of remaining files
 	time.Sleep(600 * time.Millisecond)
-	
+
 	batchMu.Lock()
 	finalBatch := currentBatch
 	batchMu.Unlock()

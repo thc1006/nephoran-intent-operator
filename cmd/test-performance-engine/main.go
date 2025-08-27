@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-logr/logr"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
-	
+
 	"github.com/thc1006/nephoran-intent-operator/pkg/optimization"
 )
 
@@ -17,13 +17,13 @@ import (
 func main() {
 	logger := logr.Discard()
 	var prometheusClient v1.API
-	
+
 	config := optimization.GetDefaultAnalysisConfig()
 	engine := optimization.NewPerformanceAnalysisEngine(config, prometheusClient, logger)
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	
+
 	result, err := engine.AnalyzePerformance(ctx)
 	if err != nil {
 		log.Printf("Analysis failed: %v", err)

@@ -543,7 +543,7 @@ func (brc *BurnRateCalculator) analyzeBurnRateResults(result *BurnRateResult,
 
 	// Find the most severe violation
 	var severity AlertSeverity
-	_ = false // isViolating initialized but unused in current implementation  
+	_ = false // isViolating initialized but unused in current implementation
 	var overallBurnRate float64
 
 	for _, window := range windows {

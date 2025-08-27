@@ -18,11 +18,11 @@ type AuthManager struct {
 	jwtManager     *JWTManager
 	sessionManager *SessionManager
 	rbacManager    *RBACManager
-	
+
 	// Authentication providers
 	oauthProviders map[string]providers.OAuthProvider
 	ldapProviders  map[string]providers.LDAPProvider
-	
+
 	// Middleware and handlers
 	middleware     *AuthMiddleware
 	ldapMiddleware *LDAPAuthMiddleware
@@ -35,7 +35,7 @@ func NewAuthManager(config *AuthConfig, logger *slog.Logger) (*AuthManager, erro
 	if config == nil {
 		return nil, fmt.Errorf("auth config is required")
 	}
-	
+
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -111,19 +111,19 @@ func NewAuthManager(config *AuthConfig, logger *slog.Logger) (*AuthManager, erro
 				RoleMappings:         ldapProviderConfig.RoleMappings,
 				DefaultRoles:         ldapProviderConfig.DefaultRoles,
 			}
-			
+
 			ldapClient := providers.NewLDAPClient(ldapConfig, logger)
 			ldapProviders[name] = ldapClient
 			am.ldapProviders[name] = ldapClient
 		}
 	}
 
-	// Initialize middleware with existing signature  
+	// Initialize middleware with existing signature
 	middlewareConfig := &MiddlewareConfig{
 		SkipAuth: []string{"/health", "/auth/login", "/auth/callback"},
 	}
 	am.middleware = NewAuthMiddleware(am.sessionManager, am.jwtManager, am.rbacManager, middlewareConfig)
-	
+
 	// Initialize LDAP middleware if LDAP providers are configured
 	if len(ldapProviders) > 0 {
 		ldapMiddlewareConfig := &LDAPMiddlewareConfig{
@@ -198,7 +198,7 @@ func (am *AuthManager) GetHandlers() *AuthHandlers {
 // ListProviders returns information about available authentication providers
 func (am *AuthManager) ListProviders() map[string]interface{} {
 	result := make(map[string]interface{})
-	
+
 	// LDAP providers
 	ldapProviders := make(map[string]interface{})
 	for name := range am.ldapProviders {
@@ -209,7 +209,7 @@ func (am *AuthManager) ListProviders() map[string]interface{} {
 	}
 	result["ldap"] = ldapProviders
 
-	// OAuth2 providers  
+	// OAuth2 providers
 	oauth2Providers := make(map[string]interface{})
 	for name := range am.oauthProviders {
 		oauth2Providers[name] = map[string]interface{}{

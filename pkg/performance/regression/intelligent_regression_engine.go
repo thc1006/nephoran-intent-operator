@@ -198,7 +198,6 @@ type ChangePointAlgorithm interface {
 	GetName() string
 }
 
-
 // BayesianChangePointDetector implements Bayesian change point detection
 type BayesianChangePointDetector struct {
 	priorProb  float64
@@ -271,7 +270,6 @@ type RiskIndicator struct {
 	Mitigation   []string  `json:"mitigation"`
 }
 
-
 // AlertRule defines conditions for triggering alerts
 type AlertRule struct {
 	ID               string            `json:"id"`
@@ -337,7 +335,6 @@ type FeedbackEntry struct {
 	Notes        string    `json:"notes"`
 	Resolution   string    `json:"resolution"`
 }
-
 
 // NetworkSliceAnalyzer provides slice-aware performance analysis
 type NetworkSliceAnalyzer struct {
@@ -916,11 +913,9 @@ func NewForecastingEngine(config *IntelligentRegressionConfig) *ForecastingEngin
 	}
 }
 
-
 func NewContinuousLearningSystem(config *IntelligentRegressionConfig) *ContinuousLearningSystem {
 	return &ContinuousLearningSystem{}
 }
-
 
 func NewCorrelationEngine(config *IntelligentRegressionConfig) *CorrelationEngine {
 	return &CorrelationEngine{
@@ -1306,11 +1301,9 @@ func (ce *CorrelationEngine) AnalyzeCorrelations(metrics map[string]float64) (*C
 	return &CorrelationAnalysis{}, nil
 }
 
-
 func (cls *ContinuousLearningSystem) ProcessAnalysis(analysis *RegressionAnalysisResult) {
 	// Placeholder implementation
 }
-
 
 func (bm *BaselineManager) GetBaseline(metricName string) *DynamicBaseline {
 	bm.mutex.RLock()
@@ -1329,6 +1322,5 @@ func (ire *IntelligentRegressionEngine) runLearningSystem(ctx context.Context) {
 func (ire *IntelligentRegressionEngine) runNWDAFAnalytics(ctx context.Context) {
 	// Placeholder implementation for NWDAF analytics
 }
-
 
 // normalCDF is already defined in cusum_detector.go

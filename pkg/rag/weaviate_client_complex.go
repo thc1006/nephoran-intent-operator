@@ -144,11 +144,11 @@ type NodeStatus struct {
 
 // ClusterStatistics holds cluster-wide statistics
 type ClusterStatistics struct {
-	ObjectCount      int64          `json:"object_count"`
-	ClassCount       int            `json:"class_count"`
-	ShardCount       int            `json:"shard_count"`
-	VectorDimensions map[string]int `json:"vector_dimensions"`
-	IndexSize        int64          `json:"index_size"`
+	ObjectCount      int64                  `json:"object_count"`
+	ClassCount       int                    `json:"class_count"`
+	ShardCount       int                    `json:"shard_count"`
+	VectorDimensions map[string]int         `json:"vector_dimensions"`
+	IndexSize        int64                  `json:"index_size"`
 	QueryLatency     WeaviateLatencyMetrics `json:"query_latency"`
 }
 
@@ -544,35 +544,35 @@ func (wc *WeaviateClient) Search(ctx context.Context, query *SearchQuery) (*Sear
 
 	// Build GraphQL query using the GetBuilder directly
 	getBuilder := wc.client.GraphQL().Get().WithClassName("TelecomKnowledge")
-	
+
 	if query.HybridSearch {
 		// Use hybrid search with v4 API patterns
 		hybridArg := (&graphql.HybridArgumentBuilder{}).
 			WithQuery(query.Query).
 			WithAlpha(query.HybridAlpha)
-		
+
 		// If using named vectors, specify target vectors
 		if query.TargetVectors != nil && len(query.TargetVectors) > 0 {
 			hybridArg = hybridArg.WithTargetVectors(query.TargetVectors...)
 		}
-		
+
 		getBuilder = getBuilder.WithHybrid(hybridArg)
 	} else {
 		// Use pure vector search with v4 API patterns
 		nearTextArg := (&graphql.NearTextArgumentBuilder{}).
 			WithConcepts([]string{query.Query})
-		
+
 		// Add certainty if specified
 		if query.MinConfidence > 0 {
 			certainty := float32(query.MinConfidence)
 			nearTextArg = nearTextArg.WithCertainty(certainty)
 		}
-		
+
 		// If using named vectors, specify target vectors
 		if query.TargetVectors != nil && len(query.TargetVectors) > 0 {
 			nearTextArg = nearTextArg.WithTargetVectors(query.TargetVectors...)
 		}
-		
+
 		getBuilder = getBuilder.WithNearText(nearTextArg)
 	}
 
@@ -614,7 +614,7 @@ func (wc *WeaviateClient) Search(ctx context.Context, query *SearchQuery) (*Sear
 	if len(query.Filters) > 0 {
 		// For v4 compatibility, we'll skip complex filtering for now
 		// In production, you would construct proper where arguments
-		wc.logger.Debug("Filters provided but skipped for v4 compatibility", 
+		wc.logger.Debug("Filters provided but skipped for v4 compatibility",
 			"filter_count", len(query.Filters))
 	}
 
@@ -785,9 +785,9 @@ func (wc *WeaviateClient) buildWhereFilter(filters map[string]interface{}) inter
 
 	// For v4 compatibility, we'll return nil and handle filtering differently
 	// In a full v4 implementation, you would use the correct filter builders
-	wc.logger.Debug("Filtering not implemented for v4 compatibility", 
+	wc.logger.Debug("Filtering not implemented for v4 compatibility",
 		"filter_keys", getFilterKeys(filters))
-	
+
 	return nil
 }
 
@@ -1303,7 +1303,7 @@ func (c *simpleWeaviateRAGClient) Retrieve(ctx context.Context, query string) ([
 	return results, nil
 }
 
-// Initialize initializes the simple Weaviate RAG client  
+// Initialize initializes the simple Weaviate RAG client
 func (c *simpleWeaviateRAGClient) Initialize(ctx context.Context) error {
 	if c.config.WeaviateURL == "" {
 		return fmt.Errorf("Weaviate URL not configured")
@@ -1359,11 +1359,11 @@ func (c *simpleWeaviateRAGClient) ProcessIntent(ctx context.Context, intent stri
 	if err != nil {
 		return "", fmt.Errorf("failed to retrieve documents: %w", err)
 	}
-	
+
 	if len(docs) == 0 {
 		return "No relevant information found", nil
 	}
-	
+
 	// Simple response construction from top document
 	return fmt.Sprintf("Based on available documentation: %s", docs[0].Content), nil
 }
@@ -1373,21 +1373,21 @@ func (c *simpleWeaviateRAGClient) IsHealthy() bool {
 	if c.config.WeaviateURL == "" {
 		return false
 	}
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	// Quick health check by testing connectivity
 	req, err := http.NewRequestWithContext(ctx, "GET", c.config.WeaviateURL+"/v1/meta", nil)
 	if err != nil {
 		return false
 	}
-	
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return false
 	}
 	defer resp.Body.Close()
-	
+
 	return resp.StatusCode == 200
 }

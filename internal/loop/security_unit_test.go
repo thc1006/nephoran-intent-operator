@@ -89,7 +89,7 @@ func TestIsIntentFile_SecurityValidation(t *testing.T) {
 // TestStateManager_SecurityBehavior tests security aspects of state management
 func TestStateManager_SecurityBehavior(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	sm, err := NewStateManager(tempDir)
 	require.NoError(t, err)
 	defer sm.Close()
@@ -116,7 +116,7 @@ func TestStateManager_SecurityBehavior(t *testing.T) {
 				parentDir := filepath.Dir(tempDir)
 				entries, err := os.ReadDir(parentDir)
 				require.NoError(t, err)
-				
+
 				for _, entry := range entries {
 					if strings.Contains(entry.Name(), "passwd") {
 						t.Errorf("Suspicious file created outside temp dir: %s", entry.Name())
@@ -168,7 +168,7 @@ func TestStateManager_SecurityBehavior(t *testing.T) {
 // TestFileManager_SecurityBehavior tests security aspects of file management
 func TestFileManager_SecurityBehavior(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	fm, err := NewFileManager(tempDir)
 	require.NoError(t, err)
 
@@ -223,7 +223,7 @@ func TestFileManager_SecurityBehavior(t *testing.T) {
 				errorFile := filepath.Join(tempDir, "failed", "test-intent-2.json.error")
 				content, err := os.ReadFile(errorFile)
 				assert.NoError(t, err, "error file should exist")
-				
+
 				errorContent := string(content)
 				assert.Contains(t, errorContent, "error occurred", "should contain original error message")
 				// Check that dangerous content is present but in a safe context (as text, not executable)
@@ -262,7 +262,7 @@ func TestFileManager_SecurityBehavior(t *testing.T) {
 				require.NoError(t, os.MkdirAll(processedDir, 0755))
 
 				oldTime := time.Now().Add(-48 * time.Hour)
-				
+
 				for i := 0; i < 5; i++ {
 					oldFile := filepath.Join(processedDir, fmt.Sprintf("old-intent-%d.json", i))
 					require.NoError(t, os.WriteFile(oldFile, []byte(intentContent), 0644))
@@ -518,7 +518,7 @@ func TestValidateIntentContent(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := validateIntentContent([]byte(tt.content))
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				if tt.errorMessage != "" {
@@ -536,7 +536,7 @@ func TestValidateIntentContent(t *testing.T) {
 func sanitizeInput(input string) string {
 	// Remove null bytes
 	input = strings.ReplaceAll(input, "\x00", "")
-	
+
 	// Replace control characters with spaces
 	var result strings.Builder
 	for _, r := range input {
@@ -548,13 +548,13 @@ func sanitizeInput(input string) string {
 			result.WriteRune(r)
 		}
 	}
-	
+
 	// Truncate if too long
 	output := result.String()
 	if len(output) > 255 {
 		output = output[:255]
 	}
-	
+
 	return output
 }
 
@@ -564,51 +564,51 @@ func validateIntentContent(content []byte) error {
 	if err := json.Unmarshal(content, &intent); err != nil {
 		return fmt.Errorf("invalid JSON: %w", err)
 	}
-	
+
 	// Validate required fields
 	intentType, ok := intent["intent_type"].(string)
 	if !ok {
 		return fmt.Errorf("missing required field: intent_type")
 	}
-	
+
 	target, ok := intent["target"].(string)
 	if !ok {
 		return fmt.Errorf("missing required field: target")
 	}
-	
+
 	namespace, ok := intent["namespace"].(string)
 	if !ok {
 		return fmt.Errorf("missing required field: namespace")
 	}
-	
+
 	replicas, ok := intent["replicas"].(float64)
 	if !ok {
 		return fmt.Errorf("missing required field: replicas")
 	}
-	
+
 	// Validate intent type
 	if intentType != "scaling" {
 		return fmt.Errorf("invalid intent type: %s", intentType)
 	}
-	
+
 	// Validate target (check for path traversal and command injection)
-	if strings.Contains(target, "..") || strings.Contains(target, "/") || 
-	   strings.Contains(target, "\\") || strings.Contains(target, ";") ||
-	   strings.Contains(target, "&") || strings.Contains(target, "|") {
+	if strings.Contains(target, "..") || strings.Contains(target, "/") ||
+		strings.Contains(target, "\\") || strings.Contains(target, ";") ||
+		strings.Contains(target, "&") || strings.Contains(target, "|") {
 		return fmt.Errorf("invalid target: contains suspicious characters")
 	}
-	
+
 	// Validate namespace
 	if strings.Contains(namespace, "..") || strings.Contains(namespace, "/") ||
-	   strings.Contains(namespace, "\\") || strings.Contains(namespace, ";") ||
-	   strings.Contains(namespace, "&") || strings.Contains(namespace, "|") {
+		strings.Contains(namespace, "\\") || strings.Contains(namespace, ";") ||
+		strings.Contains(namespace, "&") || strings.Contains(namespace, "|") {
 		return fmt.Errorf("invalid namespace: contains suspicious characters")
 	}
-	
+
 	// Validate replicas
 	if replicas < 0 || replicas > 1000 {
 		return fmt.Errorf("invalid replicas: must be between 0 and 1000")
 	}
-	
+
 	return nil
 }

@@ -131,13 +131,14 @@ func TestO2APILoadPerformance(t *testing.T) {
 	// Setup test environment
 	scheme := runtime.NewScheme()
 	corev1.AddToScheme(scheme)
-	k8sClient := fakeClient.NewClientBuilder().WithScheme(scheme).Build()
 	k8sClientset := fake.NewSimpleClientset()
+	_ = k8sClientset // Use clientset to avoid unused warning
 	testLogger := logging.NewStructuredLogger(logging.Config{
 		Level:       logging.LevelInfo,
 		ServiceName: "o2-load-test",
 		Format:      "text",
 	})
+	_ = testLogger // Use logger to avoid unused warning
 
 	// Setup O2 API server
 	config := &o2.O2IMSConfig{
@@ -629,9 +630,10 @@ func BenchmarkO2APIOperations(b *testing.B) {
 	// Setup test environment
 	scheme := runtime.NewScheme()
 	corev1.AddToScheme(scheme)
-	k8sClient := fakeClient.NewClientBuilder().WithScheme(scheme).Build()
 	k8sClientset := fake.NewSimpleClientset()
+	_ = k8sClientset                                         // Use clientset to avoid unused warning
 	testLogger := logging.NewLogger("o2-benchmark", "error") // Reduced logging for benchmarks
+	_ = testLogger                                           // Use logger to avoid unused warning
 
 	config := &o2.O2IMSConfig{
 		ServerAddress: "127.0.0.1",
@@ -753,9 +755,10 @@ func TestMemoryUsage(t *testing.T) {
 
 	scheme := runtime.NewScheme()
 	corev1.AddToScheme(scheme)
-	k8sClient := fakeClient.NewClientBuilder().WithScheme(scheme).Build()
 	k8sClientset := fake.NewSimpleClientset()
+	_ = k8sClientset // Use clientset to avoid unused warning
 	testLogger := logging.NewLogger("o2-memory-test", "warn")
+	_ = testLogger // Use logger to avoid unused warning
 
 	config := &o2.O2IMSConfig{
 		ServerAddress: "127.0.0.1",

@@ -107,11 +107,11 @@ type BlueprintTemplate struct {
 	Annotations map[string]string `json:"annotations" yaml:"annotations"`
 
 	// Template classification
-	Category        TemplateCategory           `json:"category" yaml:"category"`
-	Type            TemplateType               `json:"type" yaml:"type"`
+	Category        TemplateCategory         `json:"category" yaml:"category"`
+	Type            TemplateType             `json:"type" yaml:"type"`
 	TargetComponent nephoranv1.ORANComponent `json:"targetComponent" yaml:"targetComponent"`
-	Vendor          string                     `json:"vendor" yaml:"vendor"`
-	Standard        string                     `json:"standard" yaml:"standard"` // O-RAN, 3GPP, etc.
+	Vendor          string                   `json:"vendor" yaml:"vendor"`
+	Standard        string                   `json:"standard" yaml:"standard"` // O-RAN, 3GPP, etc.
 
 	// Template content
 	Schema      *ParameterSchema    `json:"schema" yaml:"schema"`
@@ -442,11 +442,11 @@ type FiveGTemplateConfig struct {
 // NetworkFunction defines 5G Core network function configuration
 type NetworkFunction struct {
 	Type             nephoranv1.ORANComponent `json:"type" yaml:"type"`
-	Version          string                     `json:"version" yaml:"version"`
-	Configuration    map[string]interface{}     `json:"configuration" yaml:"configuration"`
-	Interfaces       []*NFInterface             `json:"interfaces" yaml:"interfaces"`
-	Resources        *ResourceRequirements      `json:"resources,omitempty" yaml:"resources,omitempty"`
-	HighAvailability *HAConfig                  `json:"highAvailability,omitempty" yaml:"highAvailability,omitempty"`
+	Version          string                   `json:"version" yaml:"version"`
+	Configuration    map[string]interface{}   `json:"configuration" yaml:"configuration"`
+	Interfaces       []*NFInterface           `json:"interfaces" yaml:"interfaces"`
+	Resources        *ResourceRequirements    `json:"resources,omitempty" yaml:"resources,omitempty"`
+	HighAvailability *HAConfig                `json:"highAvailability,omitempty" yaml:"highAvailability,omitempty"`
 }
 
 // NFInterface defines network function interface
@@ -784,10 +784,10 @@ type TemplateCatalog struct {
 // TemplateIndex provides efficient template lookups
 type TemplateIndex struct {
 	ByComponent map[nephoranv1.ORANComponent][]*BlueprintTemplate `json:"byComponent" yaml:"byComponent"`
-	ByVendor    map[string][]*BlueprintTemplate                     `json:"byVendor" yaml:"byVendor"`
-	ByStandard  map[string][]*BlueprintTemplate                     `json:"byStandard" yaml:"byStandard"`
-	ByMaturity  map[MaturityLevel][]*BlueprintTemplate              `json:"byMaturity" yaml:"byMaturity"`
-	ByKeyword   map[string][]*BlueprintTemplate                     `json:"byKeyword" yaml:"byKeyword"`
+	ByVendor    map[string][]*BlueprintTemplate                   `json:"byVendor" yaml:"byVendor"`
+	ByStandard  map[string][]*BlueprintTemplate                   `json:"byStandard" yaml:"byStandard"`
+	ByMaturity  map[MaturityLevel][]*BlueprintTemplate            `json:"byMaturity" yaml:"byMaturity"`
+	ByKeyword   map[string][]*BlueprintTemplate                   `json:"byKeyword" yaml:"byKeyword"`
 }
 
 // Template versioning and lifecycle
@@ -871,16 +871,16 @@ type TestCase struct {
 
 // TemplateFilter defines template filtering criteria
 type TemplateFilter struct {
-	Category      *TemplateCategory           `json:"category,omitempty"`
-	Type          *TemplateType               `json:"type,omitempty"`
+	Category      *TemplateCategory         `json:"category,omitempty"`
+	Type          *TemplateType             `json:"type,omitempty"`
 	Component     *nephoranv1.ORANComponent `json:"component,omitempty"`
-	Vendor        string                      `json:"vendor,omitempty"`
-	Standard      string                      `json:"standard,omitempty"`
-	MaturityLevel *MaturityLevel              `json:"maturityLevel,omitempty"`
-	Tags          []string                    `json:"tags,omitempty"`
-	Keywords      []string                    `json:"keywords,omitempty"`
-	MinVersion    string                      `json:"minVersion,omitempty"`
-	MaxVersion    string                      `json:"maxVersion,omitempty"`
+	Vendor        string                    `json:"vendor,omitempty"`
+	Standard      string                    `json:"standard,omitempty"`
+	MaturityLevel *MaturityLevel            `json:"maturityLevel,omitempty"`
+	Tags          []string                  `json:"tags,omitempty"`
+	Keywords      []string                  `json:"keywords,omitempty"`
+	MinVersion    string                    `json:"minVersion,omitempty"`
+	MaxVersion    string                    `json:"maxVersion,omitempty"`
 }
 
 // SearchQuery defines template search criteria
@@ -996,14 +996,14 @@ type EngineConfig struct {
 
 // CatalogInfo contains template catalog information
 type CatalogInfo struct {
-	Repository           string                             `json:"repository"`
-	Branch               string                             `json:"branch"`
-	LastUpdate           time.Time                          `json:"lastUpdate"`
-	TotalTemplates       int                                `json:"totalTemplates"`
-	TemplatesByCategory  map[TemplateCategory]int           `json:"templatesByCategory"`
+	Repository           string                           `json:"repository"`
+	Branch               string                           `json:"branch"`
+	LastUpdate           time.Time                        `json:"lastUpdate"`
+	TotalTemplates       int                              `json:"totalTemplates"`
+	TemplatesByCategory  map[TemplateCategory]int         `json:"templatesByCategory"`
 	TemplatesByComponent map[nephoranv1.ORANComponent]int `json:"templatesByComponent"`
-	TemplatesByVendor    map[string]int                     `json:"templatesByVendor"`
-	TemplatesByMaturity  map[MaturityLevel]int              `json:"templatesByMaturity"`
+	TemplatesByVendor    map[string]int                   `json:"templatesByVendor"`
+	TemplatesByMaturity  map[MaturityLevel]int            `json:"templatesByMaturity"`
 }
 
 // EngineHealth contains template engine health information

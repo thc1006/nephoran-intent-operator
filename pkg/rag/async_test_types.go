@@ -47,7 +47,7 @@ type QueryParameters struct {
 }
 
 type QueryResult struct {
-	Results   []RetrievedContext     `json:"results"`
-	Query     string                 `json:"query"`
-	Timestamp time.Time             `json:"timestamp"`
+	Results   []RetrievedContext `json:"results"`
+	Query     string             `json:"query"`
+	Timestamp time.Time          `json:"timestamp"`
 }

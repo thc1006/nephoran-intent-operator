@@ -13,11 +13,11 @@ import (
 
 // MockLLMClient provides a mock implementation of the LLM client interface
 type MockLLMClient struct {
-	responses       map[string]string
-	errors          map[string]error
-	processingDelay time.Duration
-	callCount       int
-	lastIntent      string
+	responses         map[string]string
+	errors            map[string]error
+	processingDelay   time.Duration
+	callCount         int
+	lastIntent        string
 	shouldReturnError bool
 }
 
@@ -554,17 +554,17 @@ func (m *MockGitClient) GetTagInfo(name string) (git.TagInfo, error) {
 func (m *MockGitClient) CreatePullRequest(options git.PullRequestOptions) (git.PullRequestInfo, error) {
 	m.callLog = append(m.callLog, fmt.Sprintf("CreatePullRequest(%s)", options.Title))
 	return git.PullRequestInfo{
-		ID:          1,
-		Number:      1,
-		Title:       options.Title,
-		Description: options.Description,
-		State:       "open",
+		ID:           1,
+		Number:       1,
+		Title:        options.Title,
+		Description:  options.Description,
+		State:        "open",
 		SourceBranch: options.SourceBranch,
 		TargetBranch: options.TargetBranch,
-		Author:      "Test Author",
-		URL:         "https://github.com/test/repo/pull/1",
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		Author:       "Test Author",
+		URL:          "https://github.com/test/repo/pull/1",
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}, nil
 }
 
@@ -656,7 +656,7 @@ func (m *MockGitClient) GetLog(options git.LogOptions) ([]git.CommitInfo, error)
 		{
 			Hash:      "abc123",
 			Message:   "Test commit",
-			Author:    "Test Author", 
+			Author:    "Test Author",
 			Email:     "test@example.com",
 			Timestamp: time.Now(),
 		},

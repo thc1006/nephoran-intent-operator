@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
-	"regexp"
 )
 
 // WindowsMaxPath is the maximum path length without long path support
@@ -94,7 +94,7 @@ func ValidateWindowsPath(p string) error {
 
 	// Check path length (Windows has a 260 character limit by default, we use 248 to be conservative)
 	// Allow some tolerance for paths near the limit as they can be fixed with \\?\ prefix
-	maxLength := WindowsMaxPath + 10  // Allow some buffer for edge cases
+	maxLength := WindowsMaxPath + 10 // Allow some buffer for edge cases
 	if len(p) > maxLength && !strings.HasPrefix(p, `\\?\`) {
 		return fmt.Errorf("path too long (%d chars, max %d without \\\\?\\ prefix): %q", len(p), maxLength, p)
 	}
@@ -117,7 +117,7 @@ func NormalizeUserPath(p string) (string, error) {
 	if runtime.GOOS == "windows" {
 		// Convert forward slashes to backslashes for consistency
 		p = strings.ReplaceAll(p, "/", "\\")
-		
+
 		// Handle drive letter with relative path (C:temp -> C:\temp)
 		if len(p) >= 2 && p[1] == ':' && len(p) > 2 && p[2] != '\\' {
 			// This is a relative path on a specific drive (e.g., C:temp)
@@ -160,7 +160,7 @@ func NormalizeUserPath(p string) (string, error) {
 				abs = `\\?\` + abs
 			}
 		}
-		
+
 		// Final validation of the normalized path
 		// For long paths with \\?\ prefix, skip some validations that don't apply
 		if !windowsDevicePattern.MatchString(abs) {
@@ -260,40 +260,40 @@ func NormalizeCRLF(data []byte) []byte {
 func detectPathTraversal(p string) bool {
 	// Normalize separators for consistent checking
 	normalized := strings.ReplaceAll(p, "\\", "/")
-	
+
 	// Check for common path traversal patterns
 	traversalPatterns := []string{
-		"../",           // Standard path traversal
-		"..\\",          // Windows path traversal
-		"/..",           // Path traversal at end or in middle  
-		"\\..",          // Windows path traversal at end
-		"..%2f",         // URL encoded forward slash
-		"..%5c",         // URL encoded backslash
-		"%2e%2e/",       // URL encoded dots with slash
-		"%2e%2e\\",      // URL encoded dots with backslash
-		"...//",         // Triple dots (some systems)
-		"....//",        // Quad dots variation
+		"../",      // Standard path traversal
+		"..\\",     // Windows path traversal
+		"/..",      // Path traversal at end or in middle
+		"\\..",     // Windows path traversal at end
+		"..%2f",    // URL encoded forward slash
+		"..%5c",    // URL encoded backslash
+		"%2e%2e/",  // URL encoded dots with slash
+		"%2e%2e\\", // URL encoded dots with backslash
+		"...//",    // Triple dots (some systems)
+		"....//",   // Quad dots variation
 	}
-	
+
 	// Convert to lowercase for case-insensitive matching
 	lowerPath := strings.ToLower(normalized)
-	
+
 	// Check each pattern
 	for _, pattern := range traversalPatterns {
 		if strings.Contains(lowerPath, strings.ToLower(pattern)) {
 			return true
 		}
 	}
-	
+
 	// Check if path starts with ../ or ..\\ (immediate parent directory access)
 	if strings.HasPrefix(normalized, "../") || strings.HasPrefix(p, "..\\") {
 		return true
 	}
-	
+
 	// Check for excessive .. sequences (more than 2 in a row is suspicious)
 	if strings.Contains(normalized, "../../..") {
 		return true
 	}
-	
+
 	return false
 }

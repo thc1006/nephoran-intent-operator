@@ -118,7 +118,7 @@ logging:
 			PollingInterval: 30 * time.Second,
 			SimMode:         false,
 		}
-		
+
 		validator := security.NewValidator(security.DefaultValidationConfig())
 		err := loadConfig(configFile, cfg, validator)
 		if err != nil {

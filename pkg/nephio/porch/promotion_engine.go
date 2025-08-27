@@ -680,7 +680,7 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 				allPassed = ap
 			}
 		}
-		
+
 		if err != nil || !allPassed {
 			pe.logger.Error(err, "Health checks failed", "package", ref.GetPackageKey(), "environment", targetEnv)
 			result.HealthCheckResults = []*HealthCheckResult{healthResult}
@@ -889,10 +889,10 @@ func (pe *promotionEngine) PromoteCanaryToFull(ctx context.Context, canaryID str
 	pe.logger.Info("Promoting canary to full deployment", "canaryID", canaryID)
 
 	result := &PromotionResult{
-		ID:          fmt.Sprintf("canary-promotion-%s-%d", canaryID, time.Now().UnixNano()),
-		Status:      PromotionResultStatusRunning,
-		StartTime:   time.Now(),
-		Metadata:    make(map[string]interface{}),
+		ID:        fmt.Sprintf("canary-promotion-%s-%d", canaryID, time.Now().UnixNano()),
+		Status:    PromotionResultStatusRunning,
+		StartTime: time.Now(),
+		Metadata:  make(map[string]interface{}),
 	}
 	result.Metadata["canaryID"] = canaryID
 
@@ -922,15 +922,15 @@ func (pe *promotionEngine) GetCanaryMetrics(ctx context.Context, canaryID string
 
 	// In a real implementation, this would collect metrics from monitoring systems
 	metrics := &CanaryMetrics{
-		CanaryID:         canaryID,
-		TrafficPercent:   0,
-		RequestCount:     0,
-		ErrorRate:        0.0,
-		LatencyP95:       0,
-		SuccessRate:      100.0,
-		ResourceUsage:    make(map[string]interface{}),
-		HealthScore:      1.0,
-		LastUpdated:      time.Now(),
+		CanaryID:       canaryID,
+		TrafficPercent: 0,
+		RequestCount:   0,
+		ErrorRate:      0.0,
+		LatencyP95:     0,
+		SuccessRate:    100.0,
+		ResourceUsage:  make(map[string]interface{}),
+		HealthScore:    1.0,
+		LastUpdated:    time.Now(),
 	}
 
 	pe.logger.V(1).Info("Retrieved canary metrics", "canaryID", canaryID, "healthScore", metrics.HealthScore)
@@ -1215,11 +1215,11 @@ func (pe *promotionEngine) GetEnvironmentMetrics(ctx context.Context) (*Environm
 
 func (pe *promotionEngine) GeneratePromotionReport(ctx context.Context, opts *PromotionReportOptions) (*PromotionReport, error) {
 	return &PromotionReport{
-		PromotionID:  "report-1",
-		Timeline:     []PromotionEvent{},
-		Performance:  &PromotionMetrics{},
-		Issues:       []PromotionIssue{},
-		GeneratedAt:  time.Now(),
+		PromotionID: "report-1",
+		Timeline:    []PromotionEvent{},
+		Performance: &PromotionMetrics{},
+		Issues:      []PromotionIssue{},
+		GeneratedAt: time.Now(),
 	}, nil
 }
 
@@ -1564,20 +1564,20 @@ type PromotionCheckpoint struct {
 
 // RollbackOptions configures rollback behavior
 type RollbackOptions struct {
-	CheckpointID  string
-	Force         bool
-	DryRun        bool
-	StopOnError   bool
-	Timeout       time.Duration
+	CheckpointID string
+	Force        bool
+	DryRun       bool
+	StopOnError  bool
+	Timeout      time.Duration
 }
 
 // CheckpointRollbackResult contains the result of rolling back to a checkpoint
 type CheckpointRollbackResult struct {
-	Success     bool
+	Success      bool
 	CheckpointID string
 	RollbackTime time.Duration
-	Changes     []string
-	Errors      []string
+	Changes      []string
+	Errors       []string
 }
 
 // HealthWaitResult contains the result of waiting for health checks
@@ -1590,10 +1590,10 @@ type HealthWaitResult struct {
 
 // ChainValidationResult contains the result of validating a promotion chain
 type ChainValidationResult struct {
-	Valid       bool
-	Chain       []string
-	Errors      []string
-	Warnings    []string
+	Valid        bool
+	Chain        []string
+	Errors       []string
+	Warnings     []string
 	Dependencies map[string][]string
 }
 
@@ -1610,20 +1610,20 @@ type PipelineExecutionResult struct {
 
 // PromotionReportOptions configures promotion report generation
 type PromotionReportOptions struct {
-	Format       string
-	IncludeLogs  bool
-	DetailLevel  string
-	TimeRange    *TimeRange
+	Format      string
+	IncludeLogs bool
+	DetailLevel string
+	TimeRange   *TimeRange
 }
 
 // PromotionReport contains comprehensive promotion information
 type PromotionReport struct {
-	PromotionID  string
-	PackageRef   *PackageReference
-	Timeline     []PromotionEvent
-	Performance  *PromotionMetrics
-	Issues       []PromotionIssue
-	GeneratedAt  time.Time
+	PromotionID string
+	PackageRef  *PackageReference
+	Timeline    []PromotionEvent
+	Performance *PromotionMetrics
+	Issues      []PromotionIssue
+	GeneratedAt time.Time
 }
 
 // PromotionEvent represents an event in the promotion timeline
@@ -1635,25 +1635,24 @@ type PromotionEvent struct {
 	Details     map[string]interface{}
 }
 
-
 // PromotionIssue represents an issue during promotion
 type PromotionIssue struct {
-	Type        string
-	Severity    string
-	Message     string
-	Component   string
-	Timestamp   time.Time
-	Resolution  string
+	Type       string
+	Severity   string
+	Message    string
+	Component  string
+	Timestamp  time.Time
+	Resolution string
 }
 
 // PromotionEngineHealth represents the health of the promotion engine
 type PromotionEngineHealth struct {
-	Status          string
-	LastCheck       time.Time
+	Status           string
+	LastCheck        time.Time
 	ActivePromotions int
-	QueueSize       int
-	ErrorRate       float64
-	AverageTime     time.Duration
+	QueueSize        int
+	ErrorRate        float64
+	AverageTime      time.Duration
 }
 
 // PipelineRollbackPolicy defines rollback policies for pipelines
@@ -1853,15 +1852,15 @@ type FailureMetrics struct{}
 type NotificationHook struct{}
 type CanaryAnalysis struct{}
 type CanaryMetrics struct {
-	CanaryID         string
-	TrafficPercent   int
-	RequestCount     int64
-	ErrorRate        float64
-	LatencyP95       time.Duration
-	SuccessRate      float64
-	ResourceUsage    map[string]interface{}
-	HealthScore      float64
-	LastUpdated      time.Time
+	CanaryID       string
+	TrafficPercent int
+	RequestCount   int64
+	ErrorRate      float64
+	LatencyP95     time.Duration
+	SuccessRate    float64
+	ResourceUsage  map[string]interface{}
+	HealthScore    float64
+	LastUpdated    time.Time
 }
 type CanaryUpdate struct {
 	CanaryID        string
@@ -1906,7 +1905,7 @@ type ExtendedHealthCheckResult struct {
 	AllPassed bool
 }
 
-// PromotionApprovalStatus defines the approval status for a promotion (scoped to promotion engine) 
+// PromotionApprovalStatus defines the approval status for a promotion (scoped to promotion engine)
 type PromotionApprovalStatus struct {
 	PromotionID string
 	Status      ApprovalStatusType
@@ -1928,9 +1927,9 @@ type PromotionApprovalRequirement struct {
 
 // Specific TrafficSwitchResult with proper fields
 type PromotionTrafficSwitchResult struct {
-	Success     bool
-	SwitchedAt  time.Time
-	Error       string
+	Success    bool
+	SwitchedAt time.Time
+	Error      string
 }
 
 type ClusterPromotionStatus struct {
@@ -1945,10 +1944,10 @@ const (
 	PromotionApprovalStatusPending  ApprovalStatusType = "pending"
 	PromotionApprovalStatusApproved ApprovalStatusType = "approved"
 	PromotionApprovalStatusRejected ApprovalStatusType = "rejected"
-	
+
 	CrossClusterStatusSucceeded CrossClusterStatusType = "succeeded"
 	CrossClusterStatusFailed    CrossClusterStatusType = "failed"
-	
+
 	BlueGreenEnvironmentBlue  BlueGreenEnvironment = "blue"
 	BlueGreenEnvironmentGreen BlueGreenEnvironment = "green"
 )

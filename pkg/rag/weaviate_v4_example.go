@@ -124,7 +124,7 @@ func ExampleWeaviateV4Query() {
 }
 
 // Key v4 API Changes:
-// 1. GraphQL builders are instantiated directly: graphql.HybridArgumentBuilder{} 
+// 1. GraphQL builders are instantiated directly: graphql.HybridArgumentBuilder{}
 //    instead of client.GraphQL().HybridArgumentBuilder()
 // 2. WithTargetVectors() for named vector support
 // 3. WithTargets() for multi-target vector queries with weights

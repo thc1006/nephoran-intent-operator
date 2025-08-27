@@ -29,27 +29,27 @@ type FileState struct {
 
 // StateManager manages the processing state of files
 type StateManager struct {
-	mu         sync.RWMutex
-	stateFile  string
-	states     map[string]*FileState
-	autoSave   bool
+	mu        sync.RWMutex
+	stateFile string
+	states    map[string]*FileState
+	autoSave  bool
 }
 
 // NewStateManager creates a new state manager
 func NewStateManager(baseDir string) (*StateManager, error) {
 	stateFile := filepath.Join(baseDir, StateFileName)
-	
+
 	sm := &StateManager{
 		stateFile: stateFile,
 		states:    make(map[string]*FileState),
 		autoSave:  true,
 	}
-	
+
 	// Load existing state if the file exists
 	if err := sm.loadState(); err != nil {
 		log.Printf("Warning: failed to load state file (will create new): %v", err)
 	}
-	
+
 	return sm, nil
 }
 
@@ -57,7 +57,7 @@ func NewStateManager(baseDir string) (*StateManager, error) {
 func (sm *StateManager) loadState() error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
-	
+
 	data, err := os.ReadFile(sm.stateFile)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -66,23 +66,23 @@ func (sm *StateManager) loadState() error {
 		}
 		return fmt.Errorf("failed to read state file: %w", err)
 	}
-	
+
 	// Handle empty file
 	if len(data) == 0 {
 		return nil
 	}
-	
+
 	var stateData struct {
 		Version string                `json:"version"`
 		States  map[string]*FileState `json:"states"`
 	}
-	
+
 	if err := json.Unmarshal(data, &stateData); err != nil {
 		// Handle corrupted state file gracefully
 		log.Printf("Warning: corrupted state file, creating backup and starting fresh: %v", err)
 		return sm.createBackupAndReset()
 	}
-	
+
 	// Copy states from loaded data with sanitization
 	for key, state := range stateData.States {
 		// Sanitize the key when loading from file
@@ -93,7 +93,7 @@ func (sm *StateManager) loadState() error {
 		}
 		sm.states[sanitizedKey] = state
 	}
-	
+
 	log.Printf("Loaded %d file states from %s", len(sm.states), sm.stateFile)
 	return nil
 }
@@ -102,7 +102,7 @@ func (sm *StateManager) loadState() error {
 func (sm *StateManager) saveState() error {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
-	
+
 	return sm.saveStateUnsafe()
 }
 
@@ -120,51 +120,51 @@ func (sm *StateManager) saveStateUnsafe() error {
 			sanitizedStates[sanitizedKey] = state
 		}
 	}
-	
+
 	stateData := struct {
-		Version   string                `json:"version"`
-		SavedAt   time.Time             `json:"saved_at"`
-		States    map[string]*FileState `json:"states"`
+		Version string                `json:"version"`
+		SavedAt time.Time             `json:"saved_at"`
+		States  map[string]*FileState `json:"states"`
 	}{
 		Version: "1.0",
 		SavedAt: time.Now(),
 		States:  sanitizedStates,
 	}
-	
+
 	data, err := json.MarshalIndent(stateData, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal state data: %w", err)
 	}
-	
+
 	// Write atomically by using a temporary file
 	tempFile := sm.stateFile + ".tmp"
 	if err := os.WriteFile(tempFile, data, 0644); err != nil {
 		return fmt.Errorf("failed to write temporary state file: %w", err)
 	}
-	
+
 	// Atomic rename on Windows - use os.Rename which handles cross-device moves
 	if err := os.Rename(tempFile, sm.stateFile); err != nil {
 		os.Remove(tempFile) // Clean up temp file on failure
 		return fmt.Errorf("failed to rename temporary state file: %w", err)
 	}
-	
+
 	return nil
 }
 
 // createBackupAndReset creates a backup of the corrupted state file and resets
 func (sm *StateManager) createBackupAndReset() error {
 	backupFile := sm.stateFile + ".backup." + time.Now().Format("20060102T150405")
-	
+
 	// Copy corrupted file to backup
 	if err := copyFile(sm.stateFile, backupFile); err != nil {
 		log.Printf("Warning: failed to create backup of corrupted state file: %v", err)
 	} else {
 		log.Printf("Backed up corrupted state file to: %s", backupFile)
 	}
-	
+
 	// Reset in-memory state
 	sm.states = make(map[string]*FileState)
-	
+
 	return nil
 }
 
@@ -173,7 +173,7 @@ func (sm *StateManager) createBackupAndReset() error {
 func (sm *StateManager) IsProcessed(filePath string) (bool, error) {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
-	
+
 	// Calculate current file hash and size
 	hash, size, err := calculateFileHash(filePath)
 	if err != nil {
@@ -184,25 +184,25 @@ func (sm *StateManager) IsProcessed(filePath string) (bool, error) {
 		// Other errors are still genuine errors
 		return false, fmt.Errorf("failed to calculate file hash: %w", err)
 	}
-	
+
 	// Create state key from absolute path
 	absPath, err := filepath.Abs(filePath)
 	if err != nil {
 		return false, fmt.Errorf("failed to get absolute path: %w", err)
 	}
-	
+
 	key := createStateKey(absPath)
 	state, exists := sm.states[key]
-	
+
 	if !exists {
 		return false, nil
 	}
-	
+
 	// Check if file has changed since processing
 	if state.SHA256 != hash || state.Size != size {
 		return false, nil
 	}
-	
+
 	// Only consider successfully processed files
 	return state.Status == "processed", nil
 }
@@ -221,7 +221,7 @@ func (sm *StateManager) MarkFailed(filePath string) error {
 func (sm *StateManager) markWithStatus(filePath string, status string) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
-	
+
 	// Calculate file hash and size
 	hash, size, err := calculateFileHash(filePath)
 	if err != nil {
@@ -231,15 +231,15 @@ func (sm *StateManager) markWithStatus(filePath string, status string) error {
 		}
 		return fmt.Errorf("failed to calculate file hash: %w", err)
 	}
-	
+
 	// Create absolute path for consistent state keys
 	absPath, err := filepath.Abs(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to get absolute path: %w", err)
 	}
-	
+
 	key := createStateKey(absPath)
-	
+
 	// Update state
 	sm.states[key] = &FileState{
 		FilePath:    absPath,
@@ -248,7 +248,7 @@ func (sm *StateManager) markWithStatus(filePath string, status string) error {
 		ProcessedAt: time.Now(),
 		Status:      status,
 	}
-	
+
 	// Auto-save if enabled
 	if sm.autoSave {
 		if err := sm.saveStateUnsafe(); err != nil {
@@ -256,7 +256,7 @@ func (sm *StateManager) markWithStatus(filePath string, status string) error {
 			return err
 		}
 	}
-	
+
 	return nil
 }
 
@@ -264,14 +264,14 @@ func (sm *StateManager) markWithStatus(filePath string, status string) error {
 func (sm *StateManager) GetProcessedFiles() []string {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
-	
+
 	var files []string
 	for _, state := range sm.states {
 		if state.Status == "processed" {
 			files = append(files, state.FilePath)
 		}
 	}
-	
+
 	return files
 }
 
@@ -279,14 +279,14 @@ func (sm *StateManager) GetProcessedFiles() []string {
 func (sm *StateManager) GetFailedFiles() []string {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
-	
+
 	var files []string
 	for _, state := range sm.states {
 		if state.Status == "failed" {
 			files = append(files, state.FilePath)
 		}
 	}
-	
+
 	return files
 }
 
@@ -294,24 +294,24 @@ func (sm *StateManager) GetFailedFiles() []string {
 func (sm *StateManager) CleanupOldEntries(olderThan time.Duration) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
-	
+
 	cutoff := time.Now().Add(-olderThan)
 	removed := 0
-	
+
 	for key, state := range sm.states {
 		if state.ProcessedAt.Before(cutoff) {
 			delete(sm.states, key)
 			removed++
 		}
 	}
-	
+
 	if removed > 0 {
 		log.Printf("Cleaned up %d old state entries", removed)
 		if sm.autoSave {
 			return sm.saveStateUnsafe()
 		}
 	}
-	
+
 	return nil
 }
 
@@ -329,13 +329,13 @@ func (sm *StateManager) CalculateFileSHA256(filePath string) (string, error) {
 func (sm *StateManager) IsProcessedBySHA(sha256Hash string) (bool, error) {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
-	
+
 	for _, state := range sm.states {
 		if state.SHA256 == sha256Hash && state.Status == "processed" {
 			return true, nil
 		}
 	}
-	
+
 	return false, nil
 }
 
@@ -347,7 +347,7 @@ func calculateFileHash(filePath string) (string, int64, error) {
 // calculateFileHashWithRetry calculates SHA256 hash and size with retry logic for transient failures
 func calculateFileHashWithRetry(filePath string, maxRetries int, baseDelay time.Duration) (string, int64, error) {
 	var lastErr error
-	
+
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 		file, err := os.Open(filePath)
 		if err != nil {
@@ -356,23 +356,23 @@ func calculateFileHashWithRetry(filePath string, maxRetries int, baseDelay time.
 				// For rapid file churn, return ErrFileGone instead of wrapped error
 				return "", 0, ErrFileGone
 			}
-			
+
 			lastErr = err
-			
+
 			// Retry on other errors (like sharing violations on Windows)
 			if attempt < maxRetries {
 				delay := baseDelay * time.Duration(1<<attempt) // exponential backoff
 				time.Sleep(delay)
 				continue
 			}
-			
+
 			return "", 0, fmt.Errorf("failed to open file after %d attempts: %w", maxRetries+1, lastErr)
 		}
-		
+
 		hash := sha256.New()
 		size, err := io.Copy(hash, file)
 		file.Close()
-		
+
 		if err != nil {
 			lastErr = err
 			// Retry on read errors
@@ -383,11 +383,11 @@ func calculateFileHashWithRetry(filePath string, maxRetries int, baseDelay time.
 			}
 			return "", 0, fmt.Errorf("failed to read file after %d attempts: %w", maxRetries+1, lastErr)
 		}
-		
+
 		hashStr := hex.EncodeToString(hash.Sum(nil))
 		return hashStr, size, nil
 	}
-	
+
 	return "", 0, fmt.Errorf("failed to calculate hash after %d attempts: %w", maxRetries+1, lastErr)
 }
 
@@ -395,10 +395,10 @@ func calculateFileHashWithRetry(filePath string, maxRetries int, baseDelay time.
 func createStateKey(absPath string) string {
 	// Use the absolute path as the key, normalized for Windows
 	cleanPath := filepath.Clean(absPath)
-	
+
 	// Sanitize dangerous patterns for security
 	cleanPath = sanitizePath(cleanPath)
-	
+
 	return cleanPath
 }
 
@@ -415,18 +415,18 @@ func sanitizePath(path string) string {
 		"%2e%2e%2f":       "[SANITIZED_ENCODED_TRAVERSAL]",
 		"%252e%252e%252f": "[SANITIZED_DOUBLE_ENCODED_TRAVERSAL]",
 	}
-	
+
 	sanitized := path
 	for pattern, replacement := range dangerousPatterns {
 		sanitized = strings.ReplaceAll(sanitized, pattern, replacement)
 	}
-	
+
 	// Additional sanitization for control characters and null bytes
 	sanitized = strings.ReplaceAll(sanitized, "\x00", "[SANITIZED_NULL]")
 	sanitized = strings.ReplaceAll(sanitized, "\x01", "[SANITIZED_CTRL]")
 	sanitized = strings.ReplaceAll(sanitized, "\x02", "[SANITIZED_CTRL]")
 	sanitized = strings.ReplaceAll(sanitized, "\x03", "[SANITIZED_CTRL]")
-	
+
 	return sanitized
 }
 
@@ -437,13 +437,13 @@ func copyFile(src, dst string) error {
 		return err
 	}
 	defer srcFile.Close()
-	
+
 	dstFile, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
 	defer dstFile.Close()
-	
+
 	_, err = io.Copy(dstFile, srcFile)
 	return err
 }
@@ -452,10 +452,10 @@ func copyFile(src, dst string) error {
 func (sm *StateManager) Close() error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
-	
+
 	if sm.autoSave {
 		return sm.saveStateUnsafe()
 	}
-	
+
 	return nil
 }

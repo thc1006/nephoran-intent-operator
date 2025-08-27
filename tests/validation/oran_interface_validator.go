@@ -1411,4 +1411,3 @@ func (oiv *ORANInterfaceValidator) Cleanup() {
 		oiv.e2MockService.Cleanup()
 	}
 }
-

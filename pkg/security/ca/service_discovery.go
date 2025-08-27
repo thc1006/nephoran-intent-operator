@@ -34,12 +34,12 @@ type ServiceDiscovery struct {
 
 // ServiceDiscoveryConfig configures the service discovery
 type ServiceDiscoveryConfig struct {
-	Enabled                 bool                    `yaml:"enabled"`
-	WatchNamespaces         []string                `yaml:"watch_namespaces"`
-	ServiceAnnotationPrefix string                  `yaml:"service_annotation_prefix"`
-	AutoProvisionEnabled    bool                    `yaml:"auto_provision_enabled"`
-	TemplateMatching        *TemplateMatchingConfig `yaml:"template_matching"`
-	PreProvisioningEnabled  bool                    `yaml:"pre_provisioning_enabled"`
+	Enabled                 bool                          `yaml:"enabled"`
+	WatchNamespaces         []string                      `yaml:"watch_namespaces"`
+	ServiceAnnotationPrefix string                        `yaml:"service_annotation_prefix"`
+	AutoProvisionEnabled    bool                          `yaml:"auto_provision_enabled"`
+	TemplateMatching        *TemplateMatchingConfig       `yaml:"template_matching"`
+	PreProvisioningEnabled  bool                          `yaml:"pre_provisioning_enabled"`
 	ServiceMeshIntegration  *ServiceMeshIntegrationConfig `yaml:"service_mesh_integration"`
 }
 
@@ -72,16 +72,16 @@ type ServiceMeshIntegrationConfig struct {
 
 // DiscoveredService represents a discovered service
 type DiscoveredService struct {
-	Name            string            `json:"name"`
-	Namespace       string            `json:"namespace"`
-	Labels          map[string]string `json:"labels"`
-	Annotations     map[string]string `json:"annotations"`
-	Ports           []DiscoveryServicePort     `json:"ports"`
-	Template        string            `json:"template"`
-	CertProvisioned bool              `json:"cert_provisioned"`
-	DiscoveredAt    time.Time         `json:"discovered_at"`
-	LastProvisioned time.Time         `json:"last_provisioned,omitempty"`
-	Status          DiscoveryStatus   `json:"status"`
+	Name            string                 `json:"name"`
+	Namespace       string                 `json:"namespace"`
+	Labels          map[string]string      `json:"labels"`
+	Annotations     map[string]string      `json:"annotations"`
+	Ports           []DiscoveryServicePort `json:"ports"`
+	Template        string                 `json:"template"`
+	CertProvisioned bool                   `json:"cert_provisioned"`
+	DiscoveredAt    time.Time              `json:"discovered_at"`
+	LastProvisioned time.Time              `json:"last_provisioned,omitempty"`
+	Status          DiscoveryStatus        `json:"status"`
 }
 
 // ServicePort represents a service port

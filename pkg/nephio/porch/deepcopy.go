@@ -95,7 +95,6 @@ func (sc *SyncConfig) DeepCopyInto(out *SyncConfig) {
 
 // DeepCopy methods for PackageRevision are in multicluster package
 
-
 // PackageRevisionSpec DeepCopy methods are in multicluster package
 
 // PackageRevisionStatus DeepCopy methods are in multicluster package

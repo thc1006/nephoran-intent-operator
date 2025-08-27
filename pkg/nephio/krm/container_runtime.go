@@ -279,19 +279,19 @@ type SecurityManager struct {
 
 // SecurityPolicy defines security constraints
 type SecurityPolicy struct {
-	Name                 string
-	AllowPrivileged      bool
-	AllowedCapabilities  []string
-	DroppedCapabilities  []string
-	ReadOnlyRootFS       bool
-	NoNewPrivileges      bool
-	UserNamespaces       bool
-	NetworkPolicies      []*NetworkSecurityPolicy
-	allowedImages        map[string]bool
-	blockedCapabilities  map[string]bool
-	maxResourceLimits    ResourceLimits
-	networkPolicy        *NetworkPolicy
-	fileSystemPolicy     *FileSystemPolicy
+	Name                string
+	AllowPrivileged     bool
+	AllowedCapabilities []string
+	DroppedCapabilities []string
+	ReadOnlyRootFS      bool
+	NoNewPrivileges     bool
+	UserNamespaces      bool
+	NetworkPolicies     []*NetworkSecurityPolicy
+	allowedImages       map[string]bool
+	blockedCapabilities map[string]bool
+	maxResourceLimits   ResourceLimits
+	networkPolicy       *NetworkPolicy
+	fileSystemPolicy    *FileSystemPolicy
 }
 
 // NetworkSecurityPolicy defines network security constraints

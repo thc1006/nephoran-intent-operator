@@ -241,7 +241,7 @@ func NewInventoryManagementService(
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// Initialize storage  
+	// Initialize storage
 	assetStorage := &stubAssetStorage{}
 
 	// Initialize engines
@@ -934,7 +934,7 @@ func (d *DiscoveryEngine) DiscoverAssets(ctx context.Context, provider providers
 	return []*Asset{}, nil
 }
 
-// Stub implementations for AssetIndex methods  
+// Stub implementations for AssetIndex methods
 func (a *AssetIndex) AddAsset(asset *Asset) error {
 	return nil
 }

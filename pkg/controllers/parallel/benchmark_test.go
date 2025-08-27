@@ -44,7 +44,7 @@ const (
 // setupBenchmarkEngine creates a high-performance engine for benchmarking
 func setupBenchmarkEngine() (*ParallelProcessingEngine, func(), error) {
 	zapLogger, _ := zap.NewDevelopment()
-	logger := zapr.New(zapLogger)
+	logger := zapr.NewLogger(zapLogger)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -84,7 +84,7 @@ func setupBenchmarkEngine() (*ParallelProcessingEngine, func(), error) {
 	}
 
 	// High-capacity engine configuration
-	engineConfig := &ParallelProcessingConfig{
+	engineConfig := &ProcessingEngineConfig{
 		MaxConcurrentIntents: 200,
 		IntentPoolSize:       25,
 		LLMPoolSize:          15,
@@ -409,7 +409,7 @@ func BenchmarkWorkerPoolScaling(b *testing.B) {
 		b.Run(config.name, func(b *testing.B) {
 			// Create engine with specific pool configuration
 			zapLogger, _ := zap.NewDevelopment()
-			logger := zapr.New(zapLogger)
+			logger := zapr.NewLogger(zapLogger)
 
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -434,7 +434,7 @@ func BenchmarkWorkerPoolScaling(b *testing.B) {
 			}
 			errorTracker, _ := monitoring.NewErrorTracker(errorConfig, logger)
 
-			engineConfig := &ParallelProcessingConfig{
+			engineConfig := &ProcessingEngineConfig{
 				MaxConcurrentIntents: 100,
 				IntentPoolSize:       config.intentPool,
 				LLMPoolSize:          config.llmPool,

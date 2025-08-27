@@ -289,13 +289,13 @@ const (
 
 // SubscriptionQueryFilter defines filters for subscription queries
 type SubscriptionQueryFilter struct {
-	Names          []string          `json:"names,omitempty"`
-	EventTypes     []string          `json:"eventTypes,omitempty"`
-	States         []string          `json:"states,omitempty"`
-	ResourceTypes  []string          `json:"resourceTypes,omitempty"`
-	CreatedAfter   *time.Time        `json:"createdAfter,omitempty"`
-	CreatedBefore  *time.Time        `json:"createdBefore,omitempty"`
-	Labels         map[string]string `json:"labels,omitempty"`
-	Limit          int               `json:"limit,omitempty"`
-	Offset         int               `json:"offset,omitempty"`
+	Names         []string          `json:"names,omitempty"`
+	EventTypes    []string          `json:"eventTypes,omitempty"`
+	States        []string          `json:"states,omitempty"`
+	ResourceTypes []string          `json:"resourceTypes,omitempty"`
+	CreatedAfter  *time.Time        `json:"createdAfter,omitempty"`
+	CreatedBefore *time.Time        `json:"createdBefore,omitempty"`
+	Labels        map[string]string `json:"labels,omitempty"`
+	Limit         int               `json:"limit,omitempty"`
+	Offset        int               `json:"offset,omitempty"`
 }

@@ -651,6 +651,8 @@ func TestA1Adaptor_ConcurrentPolicyAccess(t *testing.T) {
 			adaptor.mutex.RLock()
 			_, exists := adaptor.policyTypes[id]
 			adaptor.mutex.RUnlock()
+			// Verify existence check completed
+			_ = exists // Use the variable to avoid unused warning
 			done <- true
 		}(i)
 	}

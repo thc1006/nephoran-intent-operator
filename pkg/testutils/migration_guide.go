@@ -18,16 +18,16 @@ import (
 func ExampleStandardFileCreation(t *testing.T) {
 	// Don't use this pattern - it's slow on Windows
 	/*
-	tempDir := t.TempDir()
-	
-	// Creating files one by one is slow
-	for i := 0; i < 10; i++ {
-		filePath := filepath.Join(tempDir, fmt.Sprintf("file-%d.txt", i))
-		err := os.WriteFile(filePath, []byte("content"), 0644)
-		if err != nil {
-			t.Fatal(err)
+		tempDir := t.TempDir()
+
+		// Creating files one by one is slow
+		for i := 0; i < 10; i++ {
+			filePath := filepath.Join(tempDir, fmt.Sprintf("file-%d.txt", i))
+			err := os.WriteFile(filePath, []byte("content"), 0644)
+			if err != nil {
+				t.Fatal(err)
+			}
 		}
-	}
 	*/
 }
 
@@ -42,7 +42,7 @@ func ExampleOptimizedFileCreation(t *testing.T) {
 			"file-3.txt": []byte("content 3"),
 			// ... more files
 		}
-		
+
 		// Batch creation is much faster
 		filePaths := ctx.CreateTempFiles(files)
 		_ = filePaths // Use the created files
@@ -55,14 +55,14 @@ func ExampleOptimizedFileCreation(t *testing.T) {
 func ExampleStandardTimeout(t *testing.T) {
 	// Don't use fixed timeouts - they cause flaky tests on Windows
 	/*
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	
-	// This might timeout on slower Windows CI
-	err := someSlowOperation(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		// This might timeout on slower Windows CI
+		err := someSlowOperation(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
 	*/
 }
 
@@ -72,7 +72,7 @@ func ExampleOptimizedTimeout(t *testing.T) {
 		// Automatically adjusted timeout for Windows (7.5s instead of 5s)
 		testCtx, cancel := ctx.GetOptimizedContext(5 * time.Second)
 		defer cancel()
-		
+
 		// This is more reliable across platforms
 		err := someSlowOperation(testCtx)
 		if err != nil {
@@ -87,20 +87,20 @@ func ExampleOptimizedTimeout(t *testing.T) {
 func ExampleStandardParallelism(t *testing.T) {
 	// Don't use unlimited parallelism on Windows
 	/*
-	t.Parallel() // This can cause resource exhaustion on Windows
-	
-	// Multiple goroutines doing file I/O
-	var wg sync.WaitGroup
-	for i := 0; i < 20; i++ {
-		wg.Add(1)
-		go func(i int) {
-			defer wg.Done()
-			// File operations that can overwhelm Windows file system
-			tempFile := filepath.Join(t.TempDir(), fmt.Sprintf("parallel-%d.txt", i))
-			os.WriteFile(tempFile, []byte("data"), 0644)
-		}(i)
-	}
-	wg.Wait()
+		t.Parallel() // This can cause resource exhaustion on Windows
+
+		// Multiple goroutines doing file I/O
+		var wg sync.WaitGroup
+		for i := 0; i < 20; i++ {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				// File operations that can overwhelm Windows file system
+				tempFile := filepath.Join(t.TempDir(), fmt.Sprintf("parallel-%d.txt", i))
+				os.WriteFile(tempFile, []byte("data"), 0644)
+			}(i)
+		}
+		wg.Wait()
 	*/
 }
 
@@ -109,14 +109,14 @@ func ExampleOptimizedParallelism(t *testing.T) {
 	// Use concurrency management for Windows
 	release := AcquireConcurrencySlot(t.Name())
 	defer release()
-	
+
 	WithOptimizedTest(t, func(t *testing.T, ctx *TestContext) {
 		// Batch operations are better than many concurrent operations
 		files := make(map[string][]byte)
 		for i := 0; i < 20; i++ {
 			files[fmt.Sprintf("parallel-%d.txt", i)] = []byte("data")
 		}
-		
+
 		// Single batch operation instead of many concurrent ones
 		_ = ctx.CreateTempFiles(files)
 	})
@@ -128,19 +128,19 @@ func ExampleOptimizedParallelism(t *testing.T) {
 func ExampleStandardCleanup(t *testing.T) {
 	// Don't rely on manual cleanup - it can fail on Windows
 	/*
-	tempDir := t.TempDir()
-	tempFile := filepath.Join(tempDir, "test.txt")
-	
-	// Create file
-	err := os.WriteFile(tempFile, []byte("data"), 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
-	
-	// Manual cleanup is error-prone
-	defer func() {
-		os.Remove(tempFile) // Might fail on Windows due to file locks
-	}()
+		tempDir := t.TempDir()
+		tempFile := filepath.Join(tempDir, "test.txt")
+
+		// Create file
+		err := os.WriteFile(tempFile, []byte("data"), 0644)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Manual cleanup is error-prone
+		defer func() {
+			os.Remove(tempFile) // Might fail on Windows due to file locks
+		}()
 	*/
 }
 
@@ -150,12 +150,12 @@ func ExampleOptimizedCleanup(t *testing.T) {
 		// Create file with automatic cleanup
 		filePath := ctx.CreateTempFile("test.txt", []byte("data"))
 		_ = filePath
-		
+
 		// Add custom cleanup if needed
 		ctx.AddCleanup(func() {
 			// Custom cleanup operations
 		})
-		
+
 		// Cleanup is automatically handled by the test context
 	})
 }
@@ -166,19 +166,19 @@ func ExampleOptimizedCleanup(t *testing.T) {
 func ExampleStandardTestData(t *testing.T) {
 	// Don't create the same test data repeatedly
 	/*
-	for i := 0; i < 5; i++ {
-		t.Run(fmt.Sprintf("test-%d", i), func(t *testing.T) {
-			// Creating the same files in each subtest is wasteful
-			tempDir := t.TempDir()
-			configFile := filepath.Join(tempDir, "config.json")
-			os.WriteFile(configFile, []byte(`{"key": "value"}`), 0644)
-			
-			dataFile := filepath.Join(tempDir, "data.txt")
-			os.WriteFile(dataFile, []byte("test data"), 0644)
-			
-			// Run test with files...
-		})
-	}
+		for i := 0; i < 5; i++ {
+			t.Run(fmt.Sprintf("test-%d", i), func(t *testing.T) {
+				// Creating the same files in each subtest is wasteful
+				tempDir := t.TempDir()
+				configFile := filepath.Join(tempDir, "config.json")
+				os.WriteFile(configFile, []byte(`{"key": "value"}`), 0644)
+
+				dataFile := filepath.Join(tempDir, "data.txt")
+				os.WriteFile(dataFile, []byte("test data"), 0644)
+
+				// Run test with files...
+			})
+		}
 	*/
 }
 
@@ -186,20 +186,20 @@ func ExampleStandardTestData(t *testing.T) {
 func ExampleOptimizedTestData(t *testing.T) {
 	runner := NewOptimizedTestRunner()
 	defer runner.optimizer.Cleanup()
-	
+
 	// Create shared test data once
 	sharedFiles := map[string][]byte{
 		"config.json": []byte(`{"key": "value"}`),
 		"data.txt":    []byte("test data"),
 	}
-	
+
 	for i := 0; i < 5; i++ {
 		t.Run(fmt.Sprintf("test-%d", i), func(t *testing.T) {
 			runner.RunOptimizedTest(t, func(t *testing.T, ctx *TestContext) {
 				// Reuse cached data efficiently
 				filePaths := ctx.CreateTempFiles(sharedFiles)
 				_ = filePaths
-				
+
 				// Run test with files...
 			})
 		})
@@ -212,22 +212,22 @@ func ExampleOptimizedTestData(t *testing.T) {
 func ExampleStandardIntegrationTest(t *testing.T) {
 	// Don't recreate expensive resources for each test
 	/*
-	tests := []struct {
-		name string
-		// test cases...
-	}{
-		// many test cases...
-	}
-	
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Expensive setup repeated for each test
-			setupExpensiveResources(t)
-			defer cleanupExpensiveResources(t)
-			
-			// Run test...
-		})
-	}
+		tests := []struct {
+			name string
+			// test cases...
+		}{
+			// many test cases...
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				// Expensive setup repeated for each test
+				setupExpensiveResources(t)
+				defer cleanupExpensiveResources(t)
+
+				// Run test...
+			})
+		}
 	*/
 }
 
@@ -235,17 +235,17 @@ func ExampleStandardIntegrationTest(t *testing.T) {
 func ExampleOptimizedIntegrationTest(t *testing.T) {
 	runner := NewOptimizedTestRunner()
 	defer runner.optimizer.Cleanup()
-	
+
 	// Setup expensive resources once
 	setupExpensiveResourcesOnce(t, runner)
-	
+
 	tests := []struct {
 		name string
 		// test cases...
 	}{
 		// many test cases...
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			runner.RunOptimizedTest(t, func(t *testing.T, ctx *TestContext) {

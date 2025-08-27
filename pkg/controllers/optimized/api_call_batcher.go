@@ -132,8 +132,8 @@ func (ab *APICallBatcher) Get(ctx context.Context, key types.NamespacedName, obj
 		// Copy result to the provided object
 		if result.Object != nil {
 			if deepCopyObj, ok := result.Object.(interface{ DeepCopyInto(interface{}) }); ok {
-			deepCopyObj.DeepCopyInto(obj)
-		}
+				deepCopyObj.DeepCopyInto(obj)
+			}
 		}
 		return nil
 	case <-ctx.Done():

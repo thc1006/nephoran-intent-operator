@@ -8,13 +8,13 @@ import (
 
 // ScalingIntent represents the MVP scaling intent structure
 type ScalingIntent struct {
-	IntentType     string `json:"intent_type"`
-	Target         string `json:"target"`
-	Namespace      string `json:"namespace"`
-	Replicas       int    `json:"replicas"`
-	Reason         string `json:"reason,omitempty"`
-	Source         string `json:"source,omitempty"`
-	CorrelationID  string `json:"correlation_id,omitempty"`
+	IntentType    string `json:"intent_type"`
+	Target        string `json:"target"`
+	Namespace     string `json:"namespace"`
+	Replicas      int    `json:"replicas"`
+	Reason        string `json:"reason,omitempty"`
+	Source        string `json:"source,omitempty"`
+	CorrelationID string `json:"correlation_id,omitempty"`
 }
 
 // ValidateIntent validates the scaling intent
@@ -43,15 +43,15 @@ func ParseIntentFromFile(path string) (*ScalingIntent, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read intent file: %w", err)
 	}
-	
+
 	var intent ScalingIntent
 	if err := json.Unmarshal(data, &intent); err != nil {
 		return nil, fmt.Errorf("failed to parse intent JSON: %w", err)
 	}
-	
+
 	if err := ValidateIntent(&intent); err != nil {
 		return nil, fmt.Errorf("intent validation failed: %w", err)
 	}
-	
+
 	return &intent, nil
 }

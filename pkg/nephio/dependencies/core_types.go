@@ -48,12 +48,12 @@ type UpdaterConfig struct {
 	NotificationManagerConfig *NotificationManagerConfig `yaml:"notificationManager"`
 
 	// Performance and caching
-	EnableCaching        bool                `yaml:"enableCaching"`
-	UpdateCacheConfig    *UpdateCacheConfig  `yaml:"updateCache"`
-	EnableConcurrency    bool                `yaml:"enableConcurrency"`
-	MaxConcurrency       int                 `yaml:"maxConcurrency"`
-	WorkerCount          int                 `yaml:"workerCount"`
-	QueueSize            int                 `yaml:"queueSize"`
+	EnableCaching     bool               `yaml:"enableCaching"`
+	UpdateCacheConfig *UpdateCacheConfig `yaml:"updateCache"`
+	EnableConcurrency bool               `yaml:"enableConcurrency"`
+	MaxConcurrency    int                `yaml:"maxConcurrency"`
+	WorkerCount       int                `yaml:"workerCount"`
+	QueueSize         int                `yaml:"queueSize"`
 
 	// External integrations
 	PackageRegistryConfig *PackageRegistryConfig `yaml:"packageRegistry"`
@@ -68,9 +68,9 @@ type UpdateEngineConfig struct {
 }
 
 type PropagationEngineConfig struct {
-	PropagationTimeout  time.Duration `yaml:"propagationTimeout"`
-	MaxParallelUpdates  int           `yaml:"maxParallelUpdates"`
-	FailureTolerance    float64       `yaml:"failureTolerance"`
+	PropagationTimeout time.Duration `yaml:"propagationTimeout"`
+	MaxParallelUpdates int           `yaml:"maxParallelUpdates"`
+	FailureTolerance   float64       `yaml:"failureTolerance"`
 }
 
 type ImpactAnalyzerConfig struct {
@@ -254,10 +254,10 @@ type UpdateEngineMetrics struct {
 }
 
 type PropagationEngineMetrics struct {
-	PropagationsTotal  prometheus.Counter
+	PropagationsTotal   prometheus.Counter
 	PropagationDuration prometheus.Histogram
-	PropagationErrors  *prometheus.CounterVec
-	ActivePropagations prometheus.Gauge
+	PropagationErrors   *prometheus.CounterVec
+	ActivePropagations  prometheus.Gauge
 }
 
 type ImpactAnalyzerMetrics struct {
@@ -299,14 +299,14 @@ type MonitoringSystem interface {
 
 // Supporting data structures
 type ChangeEvent struct {
-	ID          string                 `json:"id"`
-	Type        string                 `json:"type"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Package     *PackageReference      `json:"package"`
-	OldVersion  string                 `json:"oldVersion"`
-	NewVersion  string                 `json:"newVersion"`
-	Initiator   string                 `json:"initiator"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	ID         string                 `json:"id"`
+	Type       string                 `json:"type"`
+	Timestamp  time.Time              `json:"timestamp"`
+	Package    *PackageReference      `json:"package"`
+	OldVersion string                 `json:"oldVersion"`
+	NewVersion string                 `json:"newVersion"`
+	Initiator  string                 `json:"initiator"`
+	Metadata   map[string]interface{} `json:"metadata"`
 }
 
 type PackageInfo struct {
@@ -498,22 +498,22 @@ func NewPackageRegistry(config *PackageRegistryConfig) (PackageRegistry, error) 
 
 func NewUpdaterMetrics() *UpdaterMetrics {
 	return &UpdaterMetrics{
-		TotalUpdates:       0,
-		SuccessfulUpdates:  0,
-		FailedUpdates:      0,
-		SkippedUpdates:     0,
-		AverageUpdateTime:  0,
-		UpdatesPerHour:     0.0,
+		TotalUpdates:      0,
+		SuccessfulUpdates: 0,
+		FailedUpdates:     0,
+		SkippedUpdates:    0,
+		AverageUpdateTime: 0,
+		UpdatesPerHour:    0.0,
 		QueueSize:         0,
-		ActiveWorkers:      0,
-		ThroughputPPS:      0.0,
-		ErrorRate:          0.0,
+		ActiveWorkers:     0,
+		ThroughputPPS:     0.0,
+		ErrorRate:         0.0,
 		// Additional metrics would be initialized here
 	}
 }
 
 // Close methods for cleanup
-func (c *UpdateCache) Close() error         { return nil }
+func (c *UpdateCache) Close() error        { return nil }
 func (h *UpdateHistoryStore) Close() error { return nil }
 func (w *UpdateWorkerPool) Close() error   { return nil }
 func (h *UpdateHistoryStore) Record(ctx context.Context, record interface{}) error {

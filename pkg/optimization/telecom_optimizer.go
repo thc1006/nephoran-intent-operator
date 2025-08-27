@@ -302,12 +302,12 @@ func NewTelecomPerformanceOptimizer(config *TelecomOptimizerConfig, logger logr.
 
 // TelecomOptimizationStrategy represents a telecom-specific optimization strategy
 type TelecomOptimizationStrategy struct {
-	Name                string                    `json:"name"`
-	Category            OptimizationCategory      `json:"category"`
-	TargetComponent     ComponentType             `json:"targetComponent"`
-	ApplicableScenarios []ScenarioCondition       `json:"applicableScenarios"`
-	ExpectedBenefits    *ExpectedBenefits         `json:"expectedBenefits"`
-	ImplementationSteps []ImplementationStep      `json:"implementationSteps"`
+	Name                string                     `json:"name"`
+	Category            OptimizationCategory       `json:"category"`
+	TargetComponent     ComponentType              `json:"targetComponent"`
+	ApplicableScenarios []ScenarioCondition        `json:"applicableScenarios"`
+	ExpectedBenefits    *ExpectedBenefits          `json:"expectedBenefits"`
+	ImplementationSteps []ImplementationStep       `json:"implementationSteps"`
 	RiskFactors         []RecommendationRiskFactor `json:"riskFactors"`
 }
 
@@ -649,7 +649,7 @@ func (optimizer *TelecomPerformanceOptimizer) prioritizeTelecomRecommendations(r
 	for _, rec := range recommendations {
 		// Apply telecom-specific weighting to risk score
 		// Since the OptimizationRecommendation struct is minimal, we work with what's available
-		
+
 		// Boost recommendations that mention latency or reliability in title/description
 		if contains(rec.Title, "latency") || contains(rec.Description, "latency") {
 			rec.RiskScore *= 0.9 // Lower risk score is better
@@ -660,8 +660,8 @@ func (optimizer *TelecomPerformanceOptimizer) prioritizeTelecomRecommendations(r
 		}
 
 		// Telecom-specific optimizations get priority
-		if contains(rec.Title, "5g") || contains(rec.Title, "ran") || 
-		   contains(rec.Title, "ric") || contains(rec.Title, "telecom") {
+		if contains(rec.Title, "5g") || contains(rec.Title, "ran") ||
+			contains(rec.Title, "ric") || contains(rec.Title, "telecom") {
 			rec.RiskScore *= 0.85 // Lower risk for telecom-specific optimizations
 		}
 	}

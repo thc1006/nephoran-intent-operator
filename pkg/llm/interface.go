@@ -12,7 +12,6 @@ import (
 // Use github.com/thc1006/nephoran-intent-operator/pkg/shared.ClientInterface directly.
 // This package is kept for backward compatibility but should be phased out.
 
-
 // IntentRequest and IntentResponse are now defined in interface_consolidated.go
 
 // ProcessIntent is now defined in client_consolidated.go
@@ -33,4 +32,3 @@ func (c *Client) HealthCheck(ctx context.Context) bool {
 	// Implementation would check LLM service availability
 	return true
 }
-

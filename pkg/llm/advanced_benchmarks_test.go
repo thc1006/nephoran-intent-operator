@@ -671,7 +671,7 @@ type LLMClient interface {
 
 // Enhanced components are defined in their respective files
 // IntelligentCache is in intelligent_cache.go
-// CircuitBreaker is in circuit_breaker.go  
+// CircuitBreaker is in circuit_breaker.go
 // TokenManager is in interface_consolidated.go
 // WorkerPool is in worker_pool.go
 
@@ -718,9 +718,11 @@ func IsRateLimitError(err error) bool {
 }
 
 // Note: NewIntelligentCache and NewCircuitBreaker are already defined in their respective files
-func NewBenchmarkTokenManager(config TokenManagerConfig) *mockTokenManager { return &mockTokenManager{} }
+func NewBenchmarkTokenManager(config TokenManagerConfig) *mockTokenManager {
+	return &mockTokenManager{}
+}
 func NewBenchmarkWorkerPool(size int) *mockWorkerPool { return &mockWorkerPool{} }
-func NewBenchmarkProcessorMetrics() *mockMetrics { return &mockMetrics{} }
+func NewBenchmarkProcessorMetrics() *mockMetrics      { return &mockMetrics{} }
 
 // Mock implementations
 type mockCache struct{}
@@ -730,7 +732,7 @@ func (m *mockCache) Set(key string, value interface{})                          
 func (m *mockCache) Has(key string) bool                                             { return false }
 func (m *mockCache) GenerateKey(intent string, params map[string]interface{}) string { return intent }
 func (m *mockCache) Clear()                                                          {}
-func (m *mockCache) Configure(config BenchmarkCacheConfig)                                    {}
+func (m *mockCache) Configure(config BenchmarkCacheConfig)                           {}
 
 type mockCircuitBreaker struct{}
 

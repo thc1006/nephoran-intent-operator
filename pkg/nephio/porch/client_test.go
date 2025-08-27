@@ -289,10 +289,10 @@ func createTestClient() *Client {
 		},
 		metrics: &ClientMetrics{},
 	}
-	
+
 	// Initialize function runner stub
 	client.functionRunner = &functionRunnerStub{client: client}
-	
+
 	return client
 }
 

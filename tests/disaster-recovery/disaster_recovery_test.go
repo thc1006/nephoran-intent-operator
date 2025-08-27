@@ -35,7 +35,6 @@ type DisasterRecoveryTestSuite struct {
 	scenarios []*DisasterScenario
 }
 
-
 func (suite *DisasterRecoveryTestSuite) SetupSuite() {
 	suite.ctx, suite.cancel = context.WithCancel(context.TODO())
 

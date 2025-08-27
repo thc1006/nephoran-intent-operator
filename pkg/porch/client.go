@@ -189,7 +189,7 @@ func (c *Client) getPackage(repo, pkg string) (*PorchPackageRevision, error) {
 
 func (c *Client) createPackage(req *PackageRequest) (*PorchPackageRevision, error) {
 	url := fmt.Sprintf("%s/api/v1/repositories/%s/packages", c.baseURL, req.Repository)
-	
+
 	body := map[string]interface{}{
 		"metadata": map[string]interface{}{
 			"name":      req.Package,
@@ -227,7 +227,7 @@ func (c *Client) createPackage(req *PackageRequest) (*PorchPackageRevision, erro
 
 func (c *Client) updatePackage(req *PackageRequest, existing *PorchPackageRevision) (*PorchPackageRevision, error) {
 	url := fmt.Sprintf("%s/api/v1/packagerevisions/%s", c.baseURL, existing.Name)
-	
+
 	body := map[string]interface{}{
 		"spec": map[string]interface{}{
 			"workspace": req.Workspace,
@@ -271,7 +271,7 @@ func (c *Client) applyOverlays(revision *PorchPackageRevision, req *PackageReque
 
 	// Apply overlays to the package revision
 	url := fmt.Sprintf("%s/api/v1/packagerevisions/%s/resources", c.baseURL, revision.Name)
-	
+
 	for path, content := range overlays {
 		body := map[string]interface{}{
 			"path":    path,
@@ -352,7 +352,7 @@ func (c *Client) dryRunPackage(req *PackageRequest) (*PorchPackageRevision, erro
 	for path, content := range overlays {
 		overlayFile := filepath.Join(outDir, path)
 		overlayDir := filepath.Dir(overlayFile)
-		
+
 		if err := os.MkdirAll(overlayDir, 0755); err != nil {
 			return nil, fmt.Errorf("failed to create overlay directory: %w", err)
 		}

@@ -113,7 +113,7 @@ func TestValidateWindowsPath(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ValidateWindowsPath(tt.input)
-			
+
 			if tt.wantErr {
 				require.Error(t, err)
 				if tt.errContains != "" {
@@ -155,9 +155,9 @@ func TestNormalizeUserPath(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:        "drive with relative path",
-			input:       "C:temp\\file.json",
-			wantErr:     false, // Should be converted to absolute
+			name:    "drive with relative path",
+			input:   "C:temp\\file.json",
+			wantErr: false, // Should be converted to absolute
 		},
 		{
 			name:    "UNC path",
@@ -193,7 +193,7 @@ func TestNormalizeUserPath(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := NormalizeUserPath(tt.input)
-			
+
 			if tt.wantErr {
 				require.Error(t, err)
 				if tt.errContains != "" {
@@ -222,10 +222,10 @@ func TestNormalizeUserPath_WindowsLongPath(t *testing.T) {
 
 	// Create a very long path
 	longPath := "C:\\" + strings.Repeat("a", 250) + "\\file.json"
-	
+
 	result, err := NormalizeUserPath(longPath)
 	require.NoError(t, err)
-	
+
 	// Should have UNC prefix for long paths
 	assert.True(t, strings.HasPrefix(result, `\\?\`), "Long path should have UNC prefix: %s", result)
 }
@@ -267,7 +267,7 @@ func TestNormalizeUserPath_WindowsEdgeCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := NormalizeUserPath(tt.input)
-			
+
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
@@ -340,7 +340,7 @@ func TestWindowsPathHelpers(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.isUNC, IsUNCPath(tt.path), "IsUNCPath mismatch")
 			assert.Equal(t, tt.isDevice, IsWindowsDevicePath(tt.path), "IsWindowsDevicePath mismatch")
-			
+
 			if runtime.GOOS == "windows" {
 				assert.Equal(t, tt.isAbs, IsAbsoluteWindowsPath(tt.path), "IsAbsoluteWindowsPath mismatch")
 			}
@@ -355,8 +355,8 @@ func TestNormalizePathSeparators(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "mixed separators on Windows",
-			input:    "C:/temp\\file.txt",
+			name:  "mixed separators on Windows",
+			input: "C:/temp\\file.txt",
 			expected: func() string {
 				if runtime.GOOS == "windows" {
 					return "C:\\temp\\file.txt"
@@ -365,8 +365,8 @@ func TestNormalizePathSeparators(t *testing.T) {
 			}(),
 		},
 		{
-			name:     "Unix path on Windows",
-			input:    "/usr/local/bin",
+			name:  "Unix path on Windows",
+			input: "/usr/local/bin",
 			expected: func() string {
 				if runtime.GOOS == "windows" {
 					return "\\usr\\local\\bin"
@@ -417,7 +417,7 @@ func TestEnsureParentDir(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := EnsureParentDir(tt.path)
-			
+
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {

@@ -1101,8 +1101,6 @@ type SchemaValidator interface {
 
 type TestJSONSchemaValidator struct{}
 
-
-
 func (v *TestJSONSchemaValidator) ValidateSchema(schema map[string]interface{}) error {
 	// Basic schema validation - in real implementation, use a JSON schema library
 	if schema == nil || len(schema) == 0 {
@@ -1291,6 +1289,3 @@ func ValidateURL(urlStr string) error {
 	}
 	return nil
 }
-
-
-

@@ -63,11 +63,11 @@ func NewOAuth2Manager(config *OAuth2ManagerConfig, logger *slog.Logger) (*OAuth2
 		CookieDomain:         "",
 		CookiePath:           "/",
 	}
-	
+
 	// Create simple in-memory token store and blacklist
 	tokenStore := NewMemoryTokenStore()
 	tokenBlacklist := NewMemoryTokenBlacklist()
-	
+
 	jwtManager, err := NewJWTManager(jwtConfig, tokenStore, tokenBlacklist, logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create JWT manager: %w", err)
@@ -100,13 +100,13 @@ func NewOAuth2Manager(config *OAuth2ManagerConfig, logger *slog.Logger) (*OAuth2
 	}, jwtManager, rbacManager, logger)
 
 	middlewareConfig := &MiddlewareConfig{
-		SkipAuth: []string{"/health", "/ready", "/metrics"},
-		EnableCORS: true,
-		AllowedOrigins: []string{"*"},
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders: []string{"Content-Type", "Authorization"},
-		AllowCredentials: true,
-		MaxAge: 3600,
+		SkipAuth:              []string{"/health", "/ready", "/metrics"},
+		EnableCORS:            true,
+		AllowedOrigins:        []string{"*"},
+		AllowedMethods:        []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:        []string{"Content-Type", "Authorization"},
+		AllowCredentials:      true,
+		MaxAge:                3600,
 		EnableSecurityHeaders: true,
 	}
 

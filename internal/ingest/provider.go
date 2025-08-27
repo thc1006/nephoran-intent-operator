@@ -31,7 +31,7 @@ func NewRulesProvider() *RulesProvider {
 			"scale_simple": regexp.MustCompile(`(?i)scale\s+([a-z0-9\-]+)\s+to\s+(\d+)`),
 			// Alternative: scale out/in <target> by <N> in ns <namespace>
 			"scale_out": regexp.MustCompile(`(?i)scale\s+out\s+([a-z0-9\-]+)\s+by\s+(\d+)(?:\s+in\s+ns\s+([a-z0-9\-]+))?`),
-			"scale_in": regexp.MustCompile(`(?i)scale\s+in\s+([a-z0-9\-]+)\s+by\s+(\d+)(?:\s+in\s+ns\s+([a-z0-9\-]+))?`),
+			"scale_in":  regexp.MustCompile(`(?i)scale\s+in\s+([a-z0-9\-]+)\s+by\s+(\d+)(?:\s+in\s+ns\s+([a-z0-9\-]+))?`),
 		},
 	}
 }
@@ -44,7 +44,7 @@ func (p *RulesProvider) Name() string {
 // ParseIntent converts natural language to structured intent using rules
 func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[string]interface{}, error) {
 	text = strings.TrimSpace(text)
-	
+
 	// Try full scale pattern
 	if m := p.patterns["scale_full"].FindStringSubmatch(text); len(m) == 4 {
 		replicas, err := strconv.Atoi(m[2])
@@ -59,7 +59,7 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 			"source":      "user",
 		}, nil
 	}
-	
+
 	// Try simple scale pattern (default namespace)
 	if m := p.patterns["scale_simple"].FindStringSubmatch(text); len(m) == 3 {
 		replicas, err := strconv.Atoi(m[2])
@@ -74,7 +74,7 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 			"source":      "user",
 		}, nil
 	}
-	
+
 	// Try scale out pattern
 	if m := p.patterns["scale_out"].FindStringSubmatch(text); len(m) >= 3 {
 		delta, err := strconv.Atoi(m[2])
@@ -96,7 +96,7 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 			"reason":      fmt.Sprintf("scale out by %d", delta),
 		}, nil
 	}
-	
+
 	// Try scale in pattern
 	if m := p.patterns["scale_in"].FindStringSubmatch(text); len(m) >= 3 {
 		delta, err := strconv.Atoi(m[2])
@@ -118,7 +118,7 @@ func (p *RulesProvider) ParseIntent(ctx context.Context, text string) (map[strin
 			"reason":      fmt.Sprintf("scale in by %d", delta),
 		}, nil
 	}
-	
+
 	return nil, fmt.Errorf("unable to parse intent from text: %s", text)
 }
 
@@ -152,7 +152,7 @@ func NewProvider(mode, provider string) (IntentProvider, error) {
 	if mode == "" {
 		mode = "rules"
 	}
-	
+
 	switch mode {
 	case "rules":
 		return NewRulesProvider(), nil
@@ -171,4 +171,3 @@ func NewProvider(mode, provider string) (IntentProvider, error) {
 		return nil, fmt.Errorf("unknown mode: %s", mode)
 	}
 }
-

@@ -55,7 +55,7 @@ func TestSystemIntegration(t *testing.T) {
 
 		mapper := restmapper.NewDiscoveryRESTMapper(groupResources)
 		testMapping := &runtime.UnstructuredList{}
-		
+
 		// Find mapping for a known resource type
 		mapping, err := mapper.RESTMapping(porchv1alpha1.SchemeGroupVersion.WithKind("Package").GroupKind())
 		require.NoError(t, err, "Failed to find REST mapping for Package")
@@ -72,7 +72,7 @@ func TestSystemIntegration(t *testing.T) {
 			Spec: porchv1alpha1.PackageSpec{
 				Repository: "system-test-repo",
 				GitRepository: porchv1alpha1.GitRepositorySpec{
-					Ref: "main",
+					Ref:       "main",
 					Directory: "/test-packages",
 				},
 			},

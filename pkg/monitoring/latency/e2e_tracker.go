@@ -54,7 +54,7 @@ func (c *CircularBuffer) Add(trace interface{}) {
 			intentTrace = t
 		}
 	}
-	
+
 	c.items[c.tail] = intentTrace
 	c.tail = (c.tail + 1) % c.capacity
 
@@ -1472,7 +1472,6 @@ func (u *UserExperienceCorrelator) calculateCategoryScore(min, max float64) floa
 
 	return float64(count) / float64(len(u.experienceScores)) * 100
 }
-
 
 // Default configuration
 func DefaultE2EConfig() *E2ETrackerConfig {

@@ -36,7 +36,7 @@ var _ = Describe("Porch Resilience", func() {
 
 		It("should recover from temporary failures", func() {
 			ctx := context.Background()
-			
+
 			// Create a package that might fail initially
 			pkg := &Package{
 				ObjectMeta: metav1.ObjectMeta{
@@ -55,11 +55,11 @@ var _ = Describe("Porch Resilience", func() {
 				if err == nil {
 					break
 				}
-				
+
 				// Wait before retry
 				time.Sleep(time.Duration(attempt+1) * 100 * time.Millisecond)
 			}
-			
+
 			Expect(err).NotTo(HaveOccurred(), "Should eventually create package after retries")
 		})
 	})
@@ -68,10 +68,10 @@ var _ = Describe("Porch Resilience", func() {
 		It("should maintain consistency under concurrent load", func() {
 			ctx := context.Background()
 			concurrentOperations := 10
-			
+
 			// Channel to collect results
 			results := make(chan error, concurrentOperations)
-			
+
 			// Launch concurrent package creations
 			for i := 0; i < concurrentOperations; i++ {
 				go func(index int) {
@@ -84,12 +84,12 @@ var _ = Describe("Porch Resilience", func() {
 							Repository: "concurrent-test",
 						},
 					}
-					
+
 					err := k8sClient.Create(ctx, pkg)
 					results <- err
 				}(i)
 			}
-			
+
 			// Collect all results
 			var errors []error
 			for i := 0; i < concurrentOperations; i++ {
@@ -97,7 +97,7 @@ var _ = Describe("Porch Resilience", func() {
 					errors = append(errors, err)
 				}
 			}
-			
+
 			// Should have minimal or no errors
 			Expect(len(errors)).To(BeNumerically("<=", 2), "Should have few or no errors in concurrent operations")
 		})

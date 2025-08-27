@@ -49,13 +49,13 @@ type O1InterfaceController struct {
 
 // O1ControllerConfig holds configuration for the O1 controller
 type O1ControllerConfig struct {
-	ReconcileInterval       time.Duration `yaml:"reconcile_interval"`
-	MaxConcurrentReconciles int           `yaml:"max_concurrent_reconciles"`
-	EnableMetrics           bool          `yaml:"enable_metrics"`
-	EnableWebhooks          bool          `yaml:"enable_webhooks"`
-	DefaultO1Config         *oran.O1Config     `yaml:"default_o1_config"`
-	HealthCheckInterval     time.Duration `yaml:"health_check_interval"`
-	StatusUpdateInterval    time.Duration `yaml:"status_update_interval"`
+	ReconcileInterval       time.Duration  `yaml:"reconcile_interval"`
+	MaxConcurrentReconciles int            `yaml:"max_concurrent_reconciles"`
+	EnableMetrics           bool           `yaml:"enable_metrics"`
+	EnableWebhooks          bool           `yaml:"enable_webhooks"`
+	DefaultO1Config         *oran.O1Config `yaml:"default_o1_config"`
+	HealthCheckInterval     time.Duration  `yaml:"health_check_interval"`
+	StatusUpdateInterval    time.Duration  `yaml:"status_update_interval"`
 }
 
 // O1InterfaceConfig represents O1 interface configuration
@@ -638,7 +638,7 @@ func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1I
 	// Initialize accounting manager
 	if o1Interface.Spec.FCAPS.AccountingManagement.Enabled {
 		// For now, we'll skip the comprehensive accounting manager initialization
-		// as it requires complex configuration and dependencies  
+		// as it requires complex configuration and dependencies
 		r.Log.Info("Accounting management enabled for O1Interface")
 	}
 
@@ -760,12 +760,12 @@ func (r *O1InterfaceController) buildNetconfServerConfig(o1Interface *oranv1.O1I
 	if port == 0 {
 		port = 830 // Default NETCONF port
 	}
-	
+
 	maxConnections := 100 // Default value
 	if o1Interface.Spec.StreamingConfig != nil {
 		maxConnections = o1Interface.Spec.StreamingConfig.MaxConnections
 	}
-	
+
 	return &NetconfServerConfig{
 		Host:                "0.0.0.0",
 		Port:                port,
@@ -832,7 +832,7 @@ func (r *O1InterfaceController) buildStreamingConfig(o1Interface *oranv1.O1Inter
 			RateLimitPerSecond:      100,
 		}
 	}
-	
+
 	return &StreamingConfig{
 		MaxConnections:          streamingConfig.MaxConnections,
 		ConnectionTimeout:       5 * time.Minute, // Use default timeout
@@ -895,8 +895,8 @@ func (r *O1InterfaceController) buildStreamingService(o1Interface *oranv1.O1Inte
 			Type: corev1.ServiceTypeClusterIP,
 			Ports: []corev1.ServicePort{
 				{
-					Name:     "streaming",
-					Port:     int32(func() int {
+					Name: "streaming",
+					Port: int32(func() int {
 						if o1Interface.Spec.StreamingConfig != nil {
 							return o1Interface.Spec.StreamingConfig.WebSocketPort
 						}
@@ -1068,7 +1068,7 @@ func (r *O1InterfaceController) buildAuthConfig(o1Interface *oranv1.O1Interface)
 
 	return &oran.AuthConfig{
 		Type:     "basic",
-		Username: "netconf",     // Default username
-		Password: "netconf123",  // This should be retrieved from Secret
+		Username: "netconf",    // Default username
+		Password: "netconf123", // This should be retrieved from Secret
 	}
 }

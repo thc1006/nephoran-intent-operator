@@ -34,11 +34,11 @@ type CrossPlatformMockOptions struct {
 func CreateCrossPlatformMock(tempDir string, opts CrossPlatformMockOptions) (string, error) {
 	var mockPath string
 	var script string
-	
+
 	if runtime.GOOS == "windows" {
 		// Create Windows batch file
 		mockPath = filepath.Join(tempDir, "mock-porch.bat")
-		
+
 		// Use custom script if provided
 		if opts.CustomScript.Windows != "" {
 			script = opts.CustomScript.Windows
@@ -47,23 +47,23 @@ func CreateCrossPlatformMock(tempDir string, opts CrossPlatformMockOptions) (str
 			if sleepSeconds == 0 && opts.Sleep > 0 {
 				sleepSeconds = 1
 			}
-			
+
 			sleepCmd := ""
 			if sleepSeconds > 0 {
 				// Use powershell Start-Sleep for more precise timing on Windows
 				sleepCmd = fmt.Sprintf("powershell -command \"Start-Sleep -Milliseconds %d\"", int(opts.Sleep.Milliseconds()))
 			}
-			
+
 			stdoutCmd := ""
 			if opts.Stdout != "" {
 				stdoutCmd = fmt.Sprintf("echo %s", opts.Stdout)
 			}
-			
+
 			stderrCmd := ""
 			if opts.Stderr != "" {
 				stderrCmd = fmt.Sprintf("echo %s >&2", opts.Stderr)
 			}
-			
+
 			failOnPatternCmd := ""
 			if opts.FailOnPattern != "" {
 				failOnPatternCmd = fmt.Sprintf(`findstr /C:"%s" "%%2" >nul 2>nul
@@ -72,7 +72,7 @@ if %%errorlevel%% equ 0 (
     exit /b 1
 )`, opts.FailOnPattern, opts.FailOnPattern)
 			}
-			
+
 			script = fmt.Sprintf(`@echo off
 if "%%1"=="--help" (
     echo Mock porch help
@@ -87,7 +87,7 @@ exit /b %d`, failOnPatternCmd, sleepCmd, stdoutCmd, stderrCmd, opts.ExitCode)
 	} else {
 		// Create Unix shell script
 		mockPath = filepath.Join(tempDir, "mock-porch.sh")
-		
+
 		// Use custom script if provided
 		if opts.CustomScript.Unix != "" {
 			script = opts.CustomScript.Unix
@@ -96,17 +96,17 @@ exit /b %d`, failOnPatternCmd, sleepCmd, stdoutCmd, stderrCmd, opts.ExitCode)
 			if opts.Sleep > 0 {
 				sleepCmd = fmt.Sprintf("sleep %v", opts.Sleep.Seconds())
 			}
-			
+
 			stdoutCmd := ""
 			if opts.Stdout != "" {
 				stdoutCmd = fmt.Sprintf("echo \"%s\"", opts.Stdout)
 			}
-			
+
 			stderrCmd := ""
 			if opts.Stderr != "" {
 				stderrCmd = fmt.Sprintf("echo \"%s\" >&2", opts.Stderr)
 			}
-			
+
 			failOnPatternCmd := ""
 			if opts.FailOnPattern != "" {
 				failOnPatternCmd = fmt.Sprintf(`if grep -q "%s" "$2" 2>/dev/null; then
@@ -114,7 +114,7 @@ exit /b %d`, failOnPatternCmd, sleepCmd, stdoutCmd, stderrCmd, opts.ExitCode)
     exit 1
 fi`, opts.FailOnPattern, opts.FailOnPattern)
 			}
-			
+
 			script = fmt.Sprintf(`#!/bin/bash
 if [ "$1" = "--help" ]; then
     echo "Mock porch help"
@@ -127,12 +127,12 @@ fi
 exit %d`, failOnPatternCmd, sleepCmd, stdoutCmd, stderrCmd, opts.ExitCode)
 		}
 	}
-	
+
 	// Write the script file
 	if err := os.WriteFile(mockPath, []byte(script), 0755); err != nil {
 		return "", fmt.Errorf("failed to write mock script: %w", err)
 	}
-	
+
 	return mockPath, nil
 }
 

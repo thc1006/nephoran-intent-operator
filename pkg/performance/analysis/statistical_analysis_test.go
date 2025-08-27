@@ -143,10 +143,10 @@ func TestDescriptiveStatistics(t *testing.T) {
 
 func TestOutlierDetection(t *testing.T) {
 	tests := []struct {
-		name            string
-		metrics         []PerformanceMetric
-		expectedZScore  int // number of z-score outliers
-		expectedIQR     int // number of IQR outliers
+		name           string
+		metrics        []PerformanceMetric
+		expectedZScore int // number of z-score outliers
+		expectedIQR    int // number of IQR outliers
 	}{
 		{
 			name:           "no outliers",

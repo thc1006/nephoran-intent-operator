@@ -11,150 +11,150 @@ import (
 // EnergyOptimizationEngine implements O-RAN L Release energy efficiency requirements
 type EnergyOptimizationEngine struct {
 	// Energy monitoring
-	powerMeter        *PowerMeter
-	carbonTracker     *CarbonTracker
-	renewableMonitor  *RenewableEnergyMonitor
-	
+	powerMeter       *PowerMeter
+	carbonTracker    *CarbonTracker
+	renewableMonitor *RenewableEnergyMonitor
+
 	// Optimization algorithms
-	sleepScheduler    *IntelligentSleepScheduler
-	dvfsController    *DVFSController
-	workloadBalancer  *EnergyAwareWorkloadBalancer
-	
+	sleepScheduler   *IntelligentSleepScheduler
+	dvfsController   *DVFSController
+	workloadBalancer *EnergyAwareWorkloadBalancer
+
 	// Performance targets (O-RAN L Release requirements)
-	targetEfficiency  float64 // Gbps/Watt target (0.5)
-	maxPowerBudget    float64 // Maximum power consumption (5000W)
-	carbonLimit       float64 // Carbon emissions limit (kg CO2/hour)
-	
+	targetEfficiency float64 // Gbps/Watt target (0.5)
+	maxPowerBudget   float64 // Maximum power consumption (5000W)
+	carbonLimit      float64 // Carbon emissions limit (kg CO2/hour)
+
 	// Real-time metrics
-	metrics          *EnergyMetrics
-	mu               sync.RWMutex
-	
+	metrics *EnergyMetrics
+	mu      sync.RWMutex
+
 	// Configuration
-	config           *EnergyConfig
-	running          int32 // Atomic flag
-	stopChan         chan struct{}
+	config   *EnergyConfig
+	running  int32 // Atomic flag
+	stopChan chan struct{}
 }
 
 // EnergyConfig holds energy optimization configuration
 type EnergyConfig struct {
-	PowerBudgetWatts          float64           `json:"power_budget_watts"`
-	TargetEfficiencyGbpsWatt  float64           `json:"target_efficiency_gbps_watt"`
-	CarbonLimitKgPerHour      float64           `json:"carbon_limit_kg_per_hour"`
-	RenewableEnergyTarget     float64           `json:"renewable_energy_target"`     // 0.0-1.0
-	SleepModeEnabled          bool              `json:"sleep_mode_enabled"`
-	DVFSEnabled               bool              `json:"dvfs_enabled"`
-	CarbonAwareScheduling     bool              `json:"carbon_aware_scheduling"`
-	EnergyMeasurementInterval time.Duration     `json:"energy_measurement_interval"`
-	OptimizationInterval      time.Duration     `json:"optimization_interval"`
+	PowerBudgetWatts          float64       `json:"power_budget_watts"`
+	TargetEfficiencyGbpsWatt  float64       `json:"target_efficiency_gbps_watt"`
+	CarbonLimitKgPerHour      float64       `json:"carbon_limit_kg_per_hour"`
+	RenewableEnergyTarget     float64       `json:"renewable_energy_target"` // 0.0-1.0
+	SleepModeEnabled          bool          `json:"sleep_mode_enabled"`
+	DVFSEnabled               bool          `json:"dvfs_enabled"`
+	CarbonAwareScheduling     bool          `json:"carbon_aware_scheduling"`
+	EnergyMeasurementInterval time.Duration `json:"energy_measurement_interval"`
+	OptimizationInterval      time.Duration `json:"optimization_interval"`
 }
 
 // EnergyMetrics tracks real-time energy consumption and efficiency
 type EnergyMetrics struct {
 	// Power consumption (Watts)
-	CurrentPowerConsumption   float64   `json:"current_power_consumption"`
-	AveragePowerConsumption   float64   `json:"average_power_consumption"`
-	PeakPowerConsumption      float64   `json:"peak_power_consumption"`
-	
+	CurrentPowerConsumption float64 `json:"current_power_consumption"`
+	AveragePowerConsumption float64 `json:"average_power_consumption"`
+	PeakPowerConsumption    float64 `json:"peak_power_consumption"`
+
 	// Performance metrics
-	CurrentThroughput         float64   `json:"current_throughput_gbps"`
-	EnergyEfficiency          float64   `json:"energy_efficiency_gbps_watt"`
-	
+	CurrentThroughput float64 `json:"current_throughput_gbps"`
+	EnergyEfficiency  float64 `json:"energy_efficiency_gbps_watt"`
+
 	// Carbon metrics
-	CarbonIntensity           float64   `json:"carbon_intensity_g_kwh"`
-	CarbonEmissions           float64   `json:"carbon_emissions_kg_hour"`
-	RenewableEnergyPercent    float64   `json:"renewable_energy_percent"`
-	
+	CarbonIntensity        float64 `json:"carbon_intensity_g_kwh"`
+	CarbonEmissions        float64 `json:"carbon_emissions_kg_hour"`
+	RenewableEnergyPercent float64 `json:"renewable_energy_percent"`
+
 	// Component breakdown
-	CPUPowerUsage             float64   `json:"cpu_power_usage_watts"`
-	MemoryPowerUsage          float64   `json:"memory_power_usage_watts"`
-	NetworkPowerUsage         float64   `json:"network_power_usage_watts"`
-	StoragePowerUsage         float64   `json:"storage_power_usage_watts"`
-	CoolingPowerUsage         float64   `json:"cooling_power_usage_watts"`
-	
+	CPUPowerUsage     float64 `json:"cpu_power_usage_watts"`
+	MemoryPowerUsage  float64 `json:"memory_power_usage_watts"`
+	NetworkPowerUsage float64 `json:"network_power_usage_watts"`
+	StoragePowerUsage float64 `json:"storage_power_usage_watts"`
+	CoolingPowerUsage float64 `json:"cooling_power_usage_watts"`
+
 	// Time tracking
-	LastUpdated               time.Time `json:"last_updated"`
-	MeasurementStartTime      time.Time `json:"measurement_start_time"`
+	LastUpdated          time.Time `json:"last_updated"`
+	MeasurementStartTime time.Time `json:"measurement_start_time"`
 }
 
 // PowerMeter provides real-time power consumption monitoring
 type PowerMeter struct {
 	// Hardware power measurement interfaces
-	raplInterface     *RAPLInterface      // Intel RAPL for CPU power
-	ipmiInterface     *IPMIInterface      // IPMI for system power
-	pduInterface      *PDUInterface       // PDU for rack-level power
-	
+	raplInterface *RAPLInterface // Intel RAPL for CPU power
+	ipmiInterface *IPMIInterface // IPMI for system power
+	pduInterface  *PDUInterface  // PDU for rack-level power
+
 	// Estimation models for missing hardware
 	cpuPowerModel     *CPUPowerModel
 	memoryPowerModel  *MemoryPowerModel
 	networkPowerModel *NetworkPowerModel
-	
+
 	// Calibration data
-	calibrationData   *CalibrationData
-	mu               sync.RWMutex
+	calibrationData *CalibrationData
+	mu              sync.RWMutex
 }
 
 // IntelligentSleepScheduler implements AI-driven sleep mode optimization
 type IntelligentSleepScheduler struct {
 	// Sleep prediction models
-	idlenessPredictor    *IdlenessPredictor
-	wakeupPredictor      *WakeupPredictor
-	
+	idlenessPredictor *IdlenessPredictor
+	wakeupPredictor   *WakeupPredictor
+
 	// Sleep states
 	availableSleepStates []SleepState
 	currentSleepState    SleepState
-	
+
 	// Configuration
-	minIdleTime          time.Duration
-	maxSleepDuration     time.Duration
-	wakeupLatency        time.Duration
+	minIdleTime            time.Duration
+	maxSleepDuration       time.Duration
+	wakeupLatency          time.Duration
 	energySavingsThreshold float64
-	
+
 	// Statistics
-	sleepEvents          []SleepEvent
-	energySaved          float64
-	mu                  sync.RWMutex
+	sleepEvents []SleepEvent
+	energySaved float64
+	mu          sync.RWMutex
 }
 
 // DVFSController implements Dynamic Voltage and Frequency Scaling
 type DVFSController struct {
 	// Frequency scaling
-	availableFrequencies  []CPUFrequency
-	currentFrequency      CPUFrequency
-	frequencyGovernor     string
-	
+	availableFrequencies []CPUFrequency
+	currentFrequency     CPUFrequency
+	frequencyGovernor    string
+
 	// Voltage scaling (if supported)
-	availableVoltages     []CPUVoltage
-	currentVoltage        CPUVoltage
-	
+	availableVoltages []CPUVoltage
+	currentVoltage    CPUVoltage
+
 	// Performance models
-	performanceModel      *DVFSPerformanceModel
-	powerModel           *DVFSPowerModel
-	
+	performanceModel *DVFSPerformanceModel
+	powerModel       *DVFSPowerModel
+
 	// Control logic
-	targetLatency        time.Duration
-	targetThroughput     float64
-	powerSavingsTarget   float64
-	
-	mu                  sync.RWMutex
+	targetLatency      time.Duration
+	targetThroughput   float64
+	powerSavingsTarget float64
+
+	mu sync.RWMutex
 }
 
 // EnergyAwareWorkloadBalancer optimizes workload distribution for energy efficiency
 type EnergyAwareWorkloadBalancer struct {
 	// Worker pool management
-	workers              []*EnergyAwareWorker
-	workQueue           chan *EnergyOptimizedWorkItem
-	
+	workers   []*EnergyAwareWorker
+	workQueue chan *EnergyOptimizedWorkItem
+
 	// Load balancing algorithms
 	loadBalancer        *EnergyAwareLoadBalancer
 	migrationController *WorkloadMigrationController
-	
+
 	// Energy-aware scheduling
-	energyScheduler     *EnergyAwareScheduler
-	carbonScheduler     *CarbonAwareScheduler
-	
+	energyScheduler *EnergyAwareScheduler
+	carbonScheduler *CarbonAwareScheduler
+
 	// Performance tracking
-	workerMetrics       map[int]*WorkerEnergyMetrics
-	mu                 sync.RWMutex
+	workerMetrics map[int]*WorkerEnergyMetrics
+	mu            sync.RWMutex
 }
 
 // NewEnergyOptimizationEngine creates a new energy optimization engine
@@ -163,9 +163,9 @@ func NewEnergyOptimizationEngine(config *EnergyConfig) (*EnergyOptimizationEngin
 		targetEfficiency: config.TargetEfficiencyGbpsWatt,
 		maxPowerBudget:   config.PowerBudgetWatts,
 		carbonLimit:      config.CarbonLimitKgPerHour,
-		config:          config,
-		metrics:         &EnergyMetrics{MeasurementStartTime: time.Now()},
-		stopChan:        make(chan struct{}),
+		config:           config,
+		metrics:          &EnergyMetrics{MeasurementStartTime: time.Now()},
+		stopChan:         make(chan struct{}),
 	}
 
 	// Initialize power meter
@@ -177,7 +177,7 @@ func NewEnergyOptimizationEngine(config *EnergyConfig) (*EnergyOptimizationEngin
 
 	// Initialize carbon tracking
 	engine.carbonTracker = NewCarbonTracker()
-	
+
 	// Initialize renewable energy monitoring
 	engine.renewableMonitor = NewRenewableEnergyMonitor()
 
@@ -185,7 +185,7 @@ func NewEnergyOptimizationEngine(config *EnergyConfig) (*EnergyOptimizationEngin
 	if config.SleepModeEnabled {
 		engine.sleepScheduler = NewIntelligentSleepScheduler()
 	}
-	
+
 	if config.DVFSEnabled {
 		dvfsController, err := NewDVFSController()
 		if err != nil {
@@ -210,11 +210,11 @@ func (eoe *EnergyOptimizationEngine) Start(ctx context.Context) error {
 	go eoe.runEnergyMonitoring(ctx)
 	go eoe.runOptimizationLoop(ctx)
 	go eoe.runCarbonTracking(ctx)
-	
+
 	if eoe.config.SleepModeEnabled {
 		go eoe.runSleepOptimization(ctx)
 	}
-	
+
 	if eoe.config.DVFSEnabled {
 		go eoe.runDVFSOptimization(ctx)
 	}
@@ -249,11 +249,11 @@ func (eoe *EnergyOptimizationEngine) measureEnergyConsumption() {
 	memoryPower := eoe.powerMeter.GetMemoryPower()
 	networkPower := eoe.powerMeter.GetNetworkPower()
 	storagePower := eoe.powerMeter.GetStoragePower()
-	
+
 	// Estimate cooling power (typically 30-50% of IT power)
 	itPower := cpuPower + memoryPower + networkPower + storagePower
 	coolingPower := itPower * 0.4 // 40% for cooling
-	
+
 	totalPower := itPower + coolingPower
 
 	// Update metrics
@@ -263,10 +263,10 @@ func (eoe *EnergyOptimizationEngine) measureEnergyConsumption() {
 	eoe.metrics.StoragePowerUsage = storagePower
 	eoe.metrics.CoolingPowerUsage = coolingPower
 	eoe.metrics.CurrentPowerConsumption = totalPower
-	
+
 	// Update averages
 	eoe.updatePowerAverages(totalPower)
-	
+
 	// Track peak power
 	if totalPower > eoe.metrics.PeakPowerConsumption {
 		eoe.metrics.PeakPowerConsumption = totalPower
@@ -399,18 +399,18 @@ func (eoe *EnergyOptimizationEngine) PredictEnergyUsage(workload *WorkloadProfil
 	cpuPower := eoe.powerMeter.cpuPowerModel.PredictPower(float64(workload.CPUUtilization))
 	memoryPower := eoe.powerMeter.memoryPowerModel.PredictPower(float64(workload.MemoryUsage))
 	networkPower := eoe.powerMeter.networkPowerModel.PredictPower(float64(workload.NetworkUtilization))
-	
+
 	totalPower := cpuPower + memoryPower + networkPower
-	
+
 	// Add cooling overhead
 	totalPowerWithCooling := totalPower * 1.4 // 40% cooling overhead
 
 	forecast := &EnergyForecast{
 		EstimatedPowerConsumption: totalPowerWithCooling,
 		EstimatedEfficiency:       workload.Throughput / totalPowerWithCooling,
-		CarbonEmissions:          totalPowerWithCooling * eoe.metrics.CarbonIntensity / 1000, // g to kg
-		Duration:                 workload.ProcessingDuration,
-		Confidence:              0.85, // 85% confidence
+		CarbonEmissions:           totalPowerWithCooling * eoe.metrics.CarbonIntensity / 1000, // g to kg
+		Duration:                  workload.ProcessingDuration,
+		Confidence:                0.85, // 85% confidence
 	}
 
 	return forecast, nil
@@ -423,12 +423,12 @@ func (eoe *EnergyOptimizationEngine) Stop() error {
 	}
 
 	close(eoe.stopChan)
-	
+
 	// Stop all components
 	if eoe.sleepScheduler != nil {
 		eoe.sleepScheduler.Stop()
 	}
-	
+
 	if eoe.dvfsController != nil {
 		eoe.dvfsController.Stop()
 	}
@@ -472,7 +472,7 @@ func (eoe *EnergyOptimizationEngine) updateCarbonMetrics() {
 	}
 
 	// Calculate emissions
-	powerKW := eoe.metrics.CurrentPowerConsumption / 1000.0 // Convert to kW
+	powerKW := eoe.metrics.CurrentPowerConsumption / 1000.0                      // Convert to kW
 	eoe.metrics.CarbonEmissions = powerKW * eoe.metrics.CarbonIntensity / 1000.0 // kg CO2/hour
 
 	// Get renewable energy percentage
@@ -509,17 +509,23 @@ type PDUInterface struct{}
 type CalibrationData struct{}
 
 type CPUPowerModel struct{}
+
 func (cpm *CPUPowerModel) PredictPower(utilization float64) float64 { return utilization * 100.0 }
 
 type MemoryPowerModel struct{}
+
 func (mpm *MemoryPowerModel) PredictPower(usage float64) float64 { return usage * 0.5 }
 
 type NetworkPowerModel struct{}
+
 func (npm *NetworkPowerModel) PredictPower(load float64) float64 { return load * 20.0 }
 
 type IdlenessPredictor struct{}
 type WakeupPredictor struct{}
-type SleepState struct{ Name string; PowerSavings float64 }
+type SleepState struct {
+	Name         string
+	PowerSavings float64
+}
 type SleepEvent struct{}
 
 type CPUFrequency struct{ MHz int }
@@ -537,61 +543,65 @@ type WorkerEnergyMetrics struct{}
 
 type WorkloadProfile struct {
 	// Performance metrics
-	RequestsPerSecond   float64       `json:"requests_per_second"`
-	CPUUtilization      int           `json:"cpu_utilization"`      // Percentage 0-100
-	MemoryUsage         int           `json:"memory_usage"`         // MB
-	NetworkUtilization  int           `json:"network_utilization"`  // Mbps
-	IOOperations        int           `json:"io_operations"`
-	NetworkPackets      int           `json:"network_packets"`
-	Throughput          float64       `json:"throughput"`           // Gbps
-	ProcessingDuration  time.Duration `json:"processing_duration"`
+	RequestsPerSecond  float64       `json:"requests_per_second"`
+	CPUUtilization     int           `json:"cpu_utilization"`     // Percentage 0-100
+	MemoryUsage        int           `json:"memory_usage"`        // MB
+	NetworkUtilization int           `json:"network_utilization"` // Mbps
+	IOOperations       int           `json:"io_operations"`
+	NetworkPackets     int           `json:"network_packets"`
+	Throughput         float64       `json:"throughput"` // Gbps
+	ProcessingDuration time.Duration `json:"processing_duration"`
 }
 
 type EnergyForecast struct {
 	EstimatedPowerConsumption float64       `json:"estimated_power_consumption"`
 	EstimatedEfficiency       float64       `json:"estimated_efficiency"`
-	CarbonEmissions          float64       `json:"carbon_emissions"`
-	Duration                 time.Duration `json:"duration"`
-	Confidence               float64       `json:"confidence"`
+	CarbonEmissions           float64       `json:"carbon_emissions"`
+	Duration                  time.Duration `json:"duration"`
+	Confidence                float64       `json:"confidence"`
 }
 
 // Constructor functions (simplified)
 func NewPowerMeter() (*PowerMeter, error) {
 	return &PowerMeter{
-		cpuPowerModel:    &CPUPowerModel{},
-		memoryPowerModel: &MemoryPowerModel{},
+		cpuPowerModel:     &CPUPowerModel{},
+		memoryPowerModel:  &MemoryPowerModel{},
 		networkPowerModel: &NetworkPowerModel{},
 	}, nil
 }
 
-func NewCarbonTracker() *CarbonTracker { return &CarbonTracker{} }
-func NewRenewableEnergyMonitor() *RenewableEnergyMonitor { return &RenewableEnergyMonitor{} }
+func NewCarbonTracker() *CarbonTracker                         { return &CarbonTracker{} }
+func NewRenewableEnergyMonitor() *RenewableEnergyMonitor       { return &RenewableEnergyMonitor{} }
 func NewIntelligentSleepScheduler() *IntelligentSleepScheduler { return &IntelligentSleepScheduler{} }
-func NewDVFSController() (*DVFSController, error) { return &DVFSController{}, nil }
-func NewEnergyAwareWorkloadBalancer() *EnergyAwareWorkloadBalancer { return &EnergyAwareWorkloadBalancer{} }
+func NewDVFSController() (*DVFSController, error)              { return &DVFSController{}, nil }
+func NewEnergyAwareWorkloadBalancer() *EnergyAwareWorkloadBalancer {
+	return &EnergyAwareWorkloadBalancer{}
+}
 
 // Supporting interfaces
 type CarbonTracker struct{}
+
 func (ct *CarbonTracker) GetCurrentCarbonIntensity() (float64, error) { return 400.0, nil }
 
 type RenewableEnergyMonitor struct{}
+
 func (rem *RenewableEnergyMonitor) GetRenewablePercent() (float64, error) { return 0.6, nil }
 
-func (pm *PowerMeter) GetCPUPower() float64 { return 150.0 }
-func (pm *PowerMeter) GetMemoryPower() float64 { return 50.0 }
+func (pm *PowerMeter) GetCPUPower() float64     { return 150.0 }
+func (pm *PowerMeter) GetMemoryPower() float64  { return 50.0 }
 func (pm *PowerMeter) GetNetworkPower() float64 { return 100.0 }
 func (pm *PowerMeter) GetStoragePower() float64 { return 75.0 }
 
 func (dvfs *DVFSController) ReduceFrequency() {}
-func (dvfs *DVFSController) Stop() {}
+func (dvfs *DVFSController) Stop()            {}
 
 func (iss *IntelligentSleepScheduler) EnableAggressiveSleep() {}
-func (iss *IntelligentSleepScheduler) Stop() {}
+func (iss *IntelligentSleepScheduler) Stop()                  {}
 
-func (wlb *EnergyAwareWorkloadBalancer) ReduceActiveWorkers() {}
+func (wlb *EnergyAwareWorkloadBalancer) ReduceActiveWorkers()  {}
 func (wlb *EnergyAwareWorkloadBalancer) DeferNonCriticalWork() {}
-func (wlb *EnergyAwareWorkloadBalancer) OptimizeBatchSizes() {}
-func (wlb *EnergyAwareWorkloadBalancer) OptimizeCacheUsage() {}
-func (wlb *EnergyAwareWorkloadBalancer) OptimizeIOPatterns() {}
+func (wlb *EnergyAwareWorkloadBalancer) OptimizeBatchSizes()   {}
+func (wlb *EnergyAwareWorkloadBalancer) OptimizeCacheUsage()   {}
+func (wlb *EnergyAwareWorkloadBalancer) OptimizeIOPatterns()   {}
 func (wlb *EnergyAwareWorkloadBalancer) BalanceResourceUsage() {}
-func (wlb *EnergyAwareWorkloadBalancer) Stop() {}
+func (wlb *EnergyAwareWorkloadBalancer) Stop()                 {}

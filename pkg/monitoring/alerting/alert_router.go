@@ -625,11 +625,11 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 	// Step 4: Business impact analysis
 	impact, _ := ar.impactAnalyzer.AnalyzeImpact(enrichedAlert.SLAAlert)
 	businessImpact := BusinessImpactScore{
-		OverallScore: 50.0,
-		UserImpact: 40.0,
-		RevenueImpact: 30.0,
+		OverallScore:     50.0,
+		UserImpact:       40.0,
+		RevenueImpact:    30.0,
 		ReputationImpact: 20.0,
-		ServiceTier: impact.Severity,
+		ServiceTier:      impact.Severity,
 	}
 	enrichedAlert.BusinessImpact = businessImpact
 
@@ -641,9 +641,9 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 		)
 		// Use fallback routing
 		routingDecision = &RoutingDecision{
-			MatchedRules: []string{"fallback"},
+			MatchedRules:     []string{"fallback"},
 			SelectedChannels: []string{"default"},
-			Suppressed: false,
+			Suppressed:       false,
 		}
 	}
 	enrichedAlert.RoutingDecision = routingDecision
@@ -694,13 +694,13 @@ func (ar *AlertRouter) enrichAlert(ctx context.Context, alert *SLAAlert) (*Enric
 		// TODO: Implement GetContextForAlert method
 		enriched.AffectedRegions = []string{}
 		enriched.TimezoneInfo = TimezoneInfo{
-			Timezone: "UTC",
-			LocalTime: time.Now(),
+			Timezone:      "UTC",
+			LocalTime:     time.Now(),
 			BusinessHours: true,
 		}
 	}
 
-	// Add runbook actions  
+	// Add runbook actions
 	if ar.runbookManager != nil {
 		// TODO: Implement GetActionsForAlert method
 		enriched.RunbookActions = []RunbookAction{}
@@ -989,7 +989,7 @@ func (ar *AlertRouter) evaluateRuleConditions(alert *SLAAlert, conditions []Rout
 
 func (ar *AlertRouter) evaluateCondition(alert *SLAAlert, condition RoutingCondition) bool {
 	var value string
-	
+
 	switch condition.Field {
 	case "sla_type":
 		value = string(alert.SLAType)
@@ -1007,7 +1007,7 @@ func (ar *AlertRouter) evaluateCondition(alert *SLAAlert, condition RoutingCondi
 			return condition.Negate
 		}
 	}
-	
+
 	matches := false
 	for _, expectedValue := range condition.Values {
 		switch condition.Operator {
@@ -1029,7 +1029,7 @@ func (ar *AlertRouter) evaluateCondition(alert *SLAAlert, condition RoutingCondi
 			}
 		}
 	}
-	
+
 	if condition.Negate {
 		return !matches
 	}
@@ -1041,7 +1041,7 @@ func (ar *AlertRouter) isChannelAvailable(channelName string, alert *SLAAlert) b
 	if !exists || !channel.Enabled {
 		return false
 	}
-	
+
 	// Apply channel filters
 	return ar.passesChannelFilters(&EnrichedAlert{SLAAlert: alert}, channel.Filters)
 }
@@ -1057,7 +1057,7 @@ func (ar *AlertRouter) passesChannelFilters(alert *EnrichedAlert, filters []Aler
 
 func (ar *AlertRouter) evaluateFilter(alert *EnrichedAlert, filter AlertFilter) bool {
 	var value string
-	
+
 	switch filter.Field {
 	case "severity":
 		value = string(alert.Severity)
@@ -1072,7 +1072,7 @@ func (ar *AlertRouter) evaluateFilter(alert *EnrichedAlert, filter AlertFilter) 
 			return filter.Negate
 		}
 	}
-	
+
 	matches := false
 	switch filter.Operator {
 	case "equals":
@@ -1082,7 +1082,7 @@ func (ar *AlertRouter) evaluateFilter(alert *EnrichedAlert, filter AlertFilter) 
 	case "matches":
 		matches = strings.Contains(value, filter.Value) // Simplified regex
 	}
-	
+
 	if filter.Negate {
 		return !matches
 	}
@@ -1102,7 +1102,7 @@ func (ar *AlertRouter) isMoreSevere(a, b string) bool {
 		"critical": 4,
 		"urgent":   5,
 	}
-	
+
 	return severityOrder[a] > severityOrder[b]
 }
 
@@ -1191,4 +1191,3 @@ type Incident struct {
 	ID     string `json:"id"`
 	Status string `json:"status"`
 }
-

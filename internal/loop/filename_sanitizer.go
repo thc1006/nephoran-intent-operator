@@ -76,13 +76,13 @@ func sanitizeStatusFilename(filename string) string {
 				sanitized = sanitized[:lastDot]
 			}
 		}
-		
+
 		// Truncate and add extension back
 		if len(sanitized) > maxBaseLength-len(ext) {
 			sanitized = sanitized[:maxBaseLength-len(ext)]
 		}
 		sanitized = sanitized + ext
-		
+
 		// Final trim of any trailing separators from truncation
 		sanitized = strings.TrimRight(sanitized, "-._")
 	}

@@ -103,7 +103,6 @@ type ValidationRule struct {
 	Value    interface{} `json:"value"`
 }
 
-
 // SyntheticResult represents the result of a synthetic check execution
 type SyntheticResult struct {
 	CheckID      string                 `json:"check_id"`

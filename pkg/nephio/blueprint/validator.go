@@ -32,7 +32,6 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-
 // Validator handles blueprint validation and O-RAN compliance checking
 type Validator struct {
 	config *BlueprintConfig
@@ -377,14 +376,14 @@ type PolicyEnforcement struct {
 
 // ORANComplianceRule represents an O-RAN compliance rule
 type ORANComplianceRule struct {
-	ID          string        `json:"id"`
-	Name        string        `json:"name"`
-	Category    string        `json:"category"`
-	Severity    ErrorSeverity `json:"severity"`
-	Description string        `json:"description"`
+	ID          string          `json:"id"`
+	Name        string          `json:"name"`
+	Category    string          `json:"category"`
+	Severity    ErrorSeverity   `json:"severity"`
+	Description string          `json:"description"`
 	Check       ComplianceCheck `json:"check"`
-	Remediation string        `json:"remediation"`
-	Interfaces  []string      `json:"interfaces,omitempty"`
+	Remediation string          `json:"remediation"`
+	Interfaces  []string        `json:"interfaces,omitempty"`
 }
 
 // ComplianceCheck represents a compliance check
@@ -1222,7 +1221,7 @@ func (v *Validator) generateRecommendations(result *ValidationResult) {
 // validateInterfaceImplementation validates specific O-RAN interface implementation
 func (v *Validator) validateInterfaceImplementation(filename, content, interfaceName string, compliance *InterfaceCompliance) error {
 	// Stub implementation - would validate interface-specific requirements
-	v.logger.Debug("Validating interface implementation (stub)", 
+	v.logger.Debug("Validating interface implementation (stub)",
 		zap.String("interface", interfaceName),
 		zap.String("file", filename))
 	return nil
@@ -1235,7 +1234,7 @@ func (v *Validator) validateResourceSpecifications(filename, content string, int
 	return nil
 }
 
-// validateAgainstResourceConstraints validates against intent resource constraints  
+// validateAgainstResourceConstraints validates against intent resource constraints
 func (v *Validator) validateAgainstResourceConstraints(files map[string]string, constraints *v1.ResourceConstraints, result *ResourceValidationResult) {
 	// Stub implementation - would validate against specified constraints
 	v.logger.Debug("Validating against resource constraints (stub)")
@@ -1247,7 +1246,7 @@ func (kv *KubernetesValidator) ValidateResource(obj map[string]interface{}, file
 	return nil
 }
 
-// ORANValidator method stubs  
+// ORANValidator method stubs
 func (ov *ORANValidator) ValidateComponent(component v1.ORANComponent, files map[string]string, result *ORANComplianceResult) error {
 	// Stub implementation
 	return nil
@@ -1266,7 +1265,7 @@ func (pv *PolicyValidator) ValidateOrganizationalPolicies(intent *v1.NetworkInte
 }
 
 func (pv *PolicyValidator) ValidateCompliancePolicies(intent *v1.NetworkIntent, files map[string]string, result *PolicyComplianceResult) error {
-	// Stub implementation 
+	// Stub implementation
 	return nil
 }
 

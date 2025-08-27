@@ -10,12 +10,12 @@ import (
 // may vary slightly between operating systems while maintaining the same security guarantees.
 func assertErrorContainsAny(t *testing.T, err error, candidates ...string) {
 	t.Helper()
-	
+
 	if err == nil {
 		t.Errorf("Expected error containing one of %v, but got nil", candidates)
 		return
 	}
-	
+
 	errStr := err.Error()
 	for _, candidate := range candidates {
 		if strings.Contains(errStr, candidate) {
@@ -23,7 +23,7 @@ func assertErrorContainsAny(t *testing.T, err error, candidates ...string) {
 			return
 		}
 	}
-	
+
 	// No match found
 	t.Errorf("Expected error to contain one of %v, but got: %s", candidates, errStr)
 }
@@ -31,12 +31,12 @@ func assertErrorContainsAny(t *testing.T, err error, candidates ...string) {
 // assertErrorContainsAnyWithDescription is like assertErrorContainsAny but includes a description
 func assertErrorContainsAnyWithDescription(t *testing.T, err error, description string, candidates ...string) {
 	t.Helper()
-	
+
 	if err == nil {
 		t.Errorf("%s: Expected error containing one of %v, but got nil", description, candidates)
 		return
 	}
-	
+
 	errStr := err.Error()
 	for _, candidate := range candidates {
 		if strings.Contains(errStr, candidate) {
@@ -44,7 +44,7 @@ func assertErrorContainsAnyWithDescription(t *testing.T, err error, description 
 			return
 		}
 	}
-	
+
 	// No match found
 	t.Errorf("%s: Expected error to contain one of %v, but got: %s", description, candidates, errStr)
 }

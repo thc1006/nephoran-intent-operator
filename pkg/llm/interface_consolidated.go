@@ -96,11 +96,11 @@ func (tm *TokenManager) CalculateTokenBudget(ctx context.Context, model, systemP
 	contextTokens := tm.CountTokens(context)
 	totalInput := systemTokens + userTokens + contextTokens
 	availableOutput := tm.maxTokens - totalInput - 100 // Reserve 100 tokens
-	
+
 	if availableOutput < 0 {
 		availableOutput = 0
 	}
-	
+
 	return TokenBudget{
 		SystemTokens:    systemTokens,
 		UserTokens:      userTokens,
@@ -114,7 +114,7 @@ func (tm *TokenManager) CalculateTokenBudget(ctx context.Context, model, systemP
 func (tm *TokenManager) OptimizeContext(contexts []string, maxTokens int, model string) []string {
 	var result []string
 	currentTokens := 0
-	
+
 	for _, ctx := range contexts {
 		tokens := tm.CountTokens(ctx)
 		if currentTokens+tokens <= maxTokens {
@@ -124,7 +124,7 @@ func (tm *TokenManager) OptimizeContext(contexts []string, maxTokens int, model 
 			break
 		}
 	}
-	
+
 	return result
 }
 
@@ -154,11 +154,11 @@ func (tm *TokenManager) TruncateToFit(text string, maxTokens int, modelName stri
 	if currentTokens <= maxTokens {
 		return text
 	}
-	
+
 	// Rough approximation: truncate proportionally
 	ratio := float64(maxTokens) / float64(currentTokens)
 	newLength := int(float64(len(text)) * ratio)
-	
+
 	if newLength < len(text) {
 		return text[:newLength]
 	}
@@ -214,15 +214,15 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, query string, docume
 	if err != nil {
 		return "", err
 	}
-	
+
 	var context string
 	currentTokens := 0
-	
+
 	for i, doc := range documents {
 		if scores[i] >= float64(cb.config.MinConfidenceScore) {
 			docContent := doc.Title + "\n" + doc.Content
 			docTokens := cb.tokenManager.CountTokens(docContent)
-			
+
 			if currentTokens+docTokens <= cb.config.MaxContextLength {
 				if context != "" {
 					context += "\n---\n"
@@ -234,13 +234,13 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, query string, docume
 			}
 		}
 	}
-	
+
 	return context, nil
 }
 
 func (cb *ContextBuilder) CalculateRelevanceScores(ctx context.Context, query string, documents []Document) ([]float64, error) {
 	scores := make([]float64, len(documents))
-	
+
 	for i, doc := range documents {
 		// Simple scoring based on title and content matching
 		score := 0.0
@@ -249,7 +249,7 @@ func (cb *ContextBuilder) CalculateRelevanceScores(ctx context.Context, query st
 		}
 		scores[i] = score
 	}
-	
+
 	return scores, nil
 }
 
@@ -271,7 +271,6 @@ func (sp *StreamingProcessor) Shutdown(ctx context.Context) error {
 }
 
 // Note: ClientMetrics type is defined in llm.go
-
 
 // SimpleTokenTracker tracks token usage and costs
 type SimpleTokenTracker struct {
@@ -376,7 +375,7 @@ type IntentResponse struct {
 // These provide default implementations for components not yet fully implemented
 
 // ContextBuilder stub implementation (consolidated from stubs.go)
-type ContextBuilder struct{
+type ContextBuilder struct {
 	config       *ContextBuilderConfig
 	tokenManager *TokenManager
 }

@@ -499,13 +499,13 @@ func getCurrentGoroutineID() string {
 // NewProcessingError creates a processing-related error
 func NewProcessingError(message string, category ErrorCategory) *ServiceError {
 	return &ServiceError{
-		Type:         ErrorTypeExternal,
-		Code:         string(category),
-		Message:      message,
-		HTTPStatus:   500,
-		Timestamp:    time.Now(),
-		Service:      "processing",
-		Operation:    "process",
-		Severity:     SeverityHigh,
+		Type:       ErrorTypeExternal,
+		Code:       string(category),
+		Message:    message,
+		HTTPStatus: 500,
+		Timestamp:  time.Now(),
+		Service:    "processing",
+		Operation:  "process",
+		Severity:   SeverityHigh,
 	}
 }

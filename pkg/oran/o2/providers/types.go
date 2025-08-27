@@ -47,25 +47,25 @@ type QuotaInfo struct {
 
 // CreateResourcePoolRequest represents a request to create a resource pool
 type CreateResourcePoolRequest struct {
-	Name        string                 `json:"name"`
-	Description string                 `json:"description,omitempty"`
-	Region      string                 `json:"region"`
-	Zone        string                 `json:"zone,omitempty"`
-	Provider    string                 `json:"provider"`
+	Name        string                   `json:"name"`
+	Description string                   `json:"description,omitempty"`
+	Region      string                   `json:"region"`
+	Zone        string                   `json:"zone,omitempty"`
+	Provider    string                   `json:"provider"`
 	Capacity    *models.ResourceCapacity `json:"capacity,omitempty"`
-	Labels      map[string]string      `json:"labels,omitempty"`
-	Annotations map[string]string      `json:"annotations,omitempty"`
-	Properties  map[string]interface{} `json:"properties,omitempty"`
+	Labels      map[string]string        `json:"labels,omitempty"`
+	Annotations map[string]string        `json:"annotations,omitempty"`
+	Properties  map[string]interface{}   `json:"properties,omitempty"`
 }
 
 // UpdateResourcePoolRequest represents a request to update a resource pool
 type UpdateResourcePoolRequest struct {
-	Name        string                 `json:"name,omitempty"`
-	Description string                 `json:"description,omitempty"`
+	Name        string                   `json:"name,omitempty"`
+	Description string                   `json:"description,omitempty"`
 	Capacity    *models.ResourceCapacity `json:"capacity,omitempty"`
-	Labels      map[string]string      `json:"labels,omitempty"`
-	Annotations map[string]string      `json:"annotations,omitempty"`
-	Properties  map[string]interface{} `json:"properties,omitempty"`
+	Labels      map[string]string        `json:"labels,omitempty"`
+	Annotations map[string]string        `json:"annotations,omitempty"`
+	Properties  map[string]interface{}   `json:"properties,omitempty"`
 }
 
 // ResourcePoolFilter represents filters for resource pool queries
@@ -111,10 +111,10 @@ type NetworkConfig struct {
 
 // StorageConfig represents storage configuration for instances
 type StorageConfig struct {
-	RootVolumeSize   int                    `json:"rootVolumeSize,omitempty"`
-	RootVolumeType   string                 `json:"rootVolumeType,omitempty"`
-	AdditionalVolumes []AdditionalVolume    `json:"additionalVolumes,omitempty"`
-	EncryptionConfig  *EncryptionConfig     `json:"encryptionConfig,omitempty"`
+	RootVolumeSize    int                `json:"rootVolumeSize,omitempty"`
+	RootVolumeType    string             `json:"rootVolumeType,omitempty"`
+	AdditionalVolumes []AdditionalVolume `json:"additionalVolumes,omitempty"`
+	EncryptionConfig  *EncryptionConfig  `json:"encryptionConfig,omitempty"`
 }
 
 // AdditionalVolume represents additional storage volumes

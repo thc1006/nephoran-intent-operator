@@ -1,4 +1,6 @@
 // Package unit provides comprehensive unit tests for Nephoran Intent Operator controllers
+//go:build integration
+
 package unit
 
 import (

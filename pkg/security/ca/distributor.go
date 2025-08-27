@@ -78,11 +78,11 @@ const (
 type DistributionStatus string
 
 const (
-	StatusPendingDist DistributionStatus = "pending"
-	StatusInProgress  DistributionStatus = "in_progress"
+	StatusPendingDist   DistributionStatus = "pending"
+	StatusInProgress    DistributionStatus = "in_progress"
 	DistStatusCompleted DistributionStatus = "completed"
-	StatusFailedDist  DistributionStatus = "failed"
-	StatusRetrying    DistributionStatus = "retrying"
+	StatusFailedDist    DistributionStatus = "failed"
+	StatusRetrying      DistributionStatus = "retrying"
 )
 
 // TargetConfig holds target-specific configuration

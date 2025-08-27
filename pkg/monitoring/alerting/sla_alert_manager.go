@@ -918,15 +918,15 @@ func (sam *SLAAlertManager) getCurrentSLAValue(ctx context.Context, slaType SLAT
 			return 0, fmt.Errorf("unknown SLA type: %s", slaType)
 		}
 	}
-	
+
 	// Get metric name for SLA type
 	metricName := sam.getMetricNameForSLAType(slaType)
-	
+
 	_, _, err := sam.prometheusClient.Query(ctx, metricName, time.Now())
 	if err != nil {
 		return 0, fmt.Errorf("failed to query Prometheus for %s: %w", slaType, err)
 	}
-	
+
 	// Parse result and return value
 	// Implementation would depend on Prometheus result format
 	// For now, return mock value
@@ -955,7 +955,7 @@ func (sam *SLAAlertManager) isWindowViolating(burnRates BurnRateInfo, window Ale
 	shortWindowViolating := burnRates.ShortWindow.BurnRate > window.BurnRate
 	mediumWindowViolating := burnRates.MediumWindow.BurnRate > window.BurnRate
 	longWindowViolating := burnRates.LongWindow.BurnRate > window.BurnRate
-	
+
 	// Return true if any window is violating
 	return shortWindowViolating || mediumWindowViolating || longWindowViolating
 }
@@ -981,26 +981,26 @@ func (sam *SLAAlertManager) calculateCompliance(currentValue float64, target SLA
 func (sam *SLAAlertManager) calculateErrorBudget(currentValue float64, target SLATarget, burnRates BurnRateInfo) ErrorBudgetInfo {
 	// Calculate total error budget for the period (monthly)
 	totalBudget := target.ErrorBudget
-	
+
 	// Calculate consumed budget based on current burn rate
 	consumed := burnRates.CurrentRate * totalBudget / 100
 	remaining := totalBudget - consumed
 	consumedPercent := (consumed / totalBudget) * 100
-	
+
 	errorBudget := ErrorBudgetInfo{
 		Total:           totalBudget,
 		Remaining:       remaining,
 		Consumed:        consumed,
 		ConsumedPercent: consumedPercent,
 	}
-	
+
 	// Calculate time to exhaustion if current burn rate continues
 	if burnRates.CurrentRate > 0 && remaining > 0 {
 		hoursToExhaustion := remaining / burnRates.CurrentRate
 		timeToExhaustion := time.Duration(hoursToExhaustion * float64(time.Hour))
 		errorBudget.TimeToExhaustion = &timeToExhaustion
 	}
-	
+
 	return errorBudget
 }
 
@@ -1016,7 +1016,7 @@ func (sam *SLAAlertManager) enrichAlertContext(ctx context.Context, slaType SLAT
 		DashboardLinks:  make([]string, 0),
 		LogQueries:      make([]LogQuery, 0),
 	}
-	
+
 	// Add related metrics
 	context.RelatedMetrics = append(context.RelatedMetrics, MetricSnapshot{
 		Name:      string(slaType) + "_current_value",
@@ -1024,18 +1024,18 @@ func (sam *SLAAlertManager) enrichAlertContext(ctx context.Context, slaType SLAT
 		Unit:      sam.getUnitForSLAType(slaType),
 		Timestamp: time.Now(),
 	})
-	
+
 	// Add dashboard links
-	context.DashboardLinks = append(context.DashboardLinks, 
+	context.DashboardLinks = append(context.DashboardLinks,
 		fmt.Sprintf("%s/d/nephoran-sla/nephoran-sla-dashboard", sam.config.GrafanaURL))
-	
+
 	// Add log queries
 	context.LogQueries = append(context.LogQueries, LogQuery{
 		Description: fmt.Sprintf("Recent %s errors", slaType),
 		Query:       fmt.Sprintf("level=error component=%s", context.Component),
 		Source:      "kubernetes",
 	})
-	
+
 	return context
 }
 
@@ -1046,7 +1046,7 @@ func (sam *SLAAlertManager) calculateBusinessImpact(slaType SLAType, target SLAT
 		CustomerFacing: target.CustomerFacing,
 		SLABreach:      errorBudget.ConsumedPercent > 100,
 	}
-	
+
 	// Calculate severity based on error budget consumption
 	switch {
 	case errorBudget.ConsumedPercent > 90:
@@ -1058,7 +1058,7 @@ func (sam *SLAAlertManager) calculateBusinessImpact(slaType SLAType, target SLAT
 	default:
 		businessImpact.Severity = "low"
 	}
-	
+
 	// Estimate affected users (simplified calculation)
 	if target.CustomerFacing {
 		businessImpact.AffectedUsers = 1000 // Base user count
@@ -1066,19 +1066,19 @@ func (sam *SLAAlertManager) calculateBusinessImpact(slaType SLAType, target SLAT
 			businessImpact.AffectedUsers *= int64(errorBudget.ConsumedPercent / 25)
 		}
 	}
-	
+
 	// Calculate revenue impact if business impact tracking is enabled
 	if sam.config.EnableBusinessImpact && businessImpact.AffectedUsers > 0 {
 		businessImpact.RevenueImpact = float64(businessImpact.AffectedUsers) * sam.config.RevenuePerUser
 	}
-	
+
 	return businessImpact
 }
 
 // generateAlertName generates a descriptive name for the alert
 func (sam *SLAAlertManager) generateAlertName(slaType SLAType, severity AlertSeverity) string {
-	return fmt.Sprintf("%s SLA %s Alert", 
-		sam.capitalizeFirst(string(slaType)), 
+	return fmt.Sprintf("%s SLA %s Alert",
+		sam.capitalizeFirst(string(slaType)),
 		sam.capitalizeFirst(string(severity)))
 }
 
@@ -1106,15 +1106,15 @@ func (sam *SLAAlertManager) generateAlertAnnotations(slaType SLAType, target SLA
 		"summary":     fmt.Sprintf("SLA violation for %s", slaType),
 		"description": fmt.Sprintf("Burn rate threshold %.2f exceeded for %v", window.BurnRate, window.ShortWindow),
 	}
-	
+
 	if sam.config.GrafanaURL != "" {
 		annotations["dashboard"] = fmt.Sprintf("%s/d/nephoran-sla/nephoran-sla-dashboard", sam.config.GrafanaURL)
 	}
-	
+
 	if sam.config.RunbookBaseURL != "" {
 		annotations["runbook"] = fmt.Sprintf("%s/sla-%s", sam.config.RunbookBaseURL, slaType)
 	}
-	
+
 	return annotations
 }
 
@@ -1175,7 +1175,7 @@ func (sam *SLAAlertManager) generateRunbookSteps(slaType SLAType, severity Alert
 		"2. Review recent deployments and changes",
 		"3. Analyze error logs and metrics",
 	}
-	
+
 	switch slaType {
 	case SLATypeAvailability:
 		steps = append(steps, "4. Check service status and endpoints", "5. Verify infrastructure health")
@@ -1186,11 +1186,11 @@ func (sam *SLAAlertManager) generateRunbookSteps(slaType SLAType, severity Alert
 	case SLAErrorRate:
 		steps = append(steps, "4. Check error logs and patterns", "5. Review recent code changes")
 	}
-	
+
 	if severity == AlertSeverityUrgent || severity == AlertSeverityCritical {
 		steps = append(steps, "6. Escalate to on-call engineer", "7. Consider emergency rollback if needed")
 	}
-	
+
 	return steps
 }
 
@@ -1206,13 +1206,13 @@ func (sam *SLAAlertManager) shouldSuppressAlert(alert *SLAAlert) bool {
 			}
 		}
 	}
-	
+
 	// Check suppression rules based on alert characteristics
 	if alert.ErrorBudget.ConsumedPercent < 10.0 {
 		// Suppress minor alerts when error budget consumption is low
 		return true
 	}
-	
+
 	return false
 }
 
@@ -1224,21 +1224,21 @@ func (sam *SLAAlertManager) alertMatchesMaintenanceWindow(alert *SLAAlert, windo
 			return true
 		}
 	}
-	
+
 	// Check if alert's service is in maintenance
 	for _, service := range window.Services {
 		if alert.Context.Service == service {
 			return true
 		}
 	}
-	
+
 	// Check labels matching
 	for key, value := range window.Labels {
 		if alertValue, exists := alert.Labels[key]; exists && alertValue == value {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -1246,10 +1246,10 @@ func (sam *SLAAlertManager) alertMatchesMaintenanceWindow(alert *SLAAlert, windo
 func (sam *SLAAlertManager) updateMaintenanceWindows() {
 	sam.mu.Lock()
 	defer sam.mu.Unlock()
-	
+
 	now := time.Now()
 	activeWindows := make([]*MaintenanceWindow, 0)
-	
+
 	// Filter out expired maintenance windows
 	for _, window := range sam.maintenanceWindows {
 		if now.Before(window.EndTime) {
@@ -1261,9 +1261,9 @@ func (sam *SLAAlertManager) updateMaintenanceWindows() {
 			)
 		}
 	}
-	
+
 	sam.maintenanceWindows = activeWindows
-	
+
 	sam.logger.DebugWithContext("Updated maintenance windows",
 		slog.Int("active_windows", len(sam.maintenanceWindows)),
 	)
@@ -1273,7 +1273,7 @@ func (sam *SLAAlertManager) updateMaintenanceWindows() {
 func (sam *SLAAlertManager) updateMetrics() {
 	sam.mu.RLock()
 	defer sam.mu.RUnlock()
-	
+
 	// Update active alerts count
 	for slaType, severity := range map[SLAType]AlertSeverity{
 		SLATypeAvailability: AlertSeverityCritical,
@@ -1293,19 +1293,19 @@ func (sam *SLAAlertManager) updateMetrics() {
 			string(AlertStateFiring),
 		).Set(float64(count))
 	}
-	
+
 	// Update business impact metrics
 	var totalRevenue float64
 	for _, alert := range sam.activeAlerts {
 		if alert.BusinessImpact.RevenueImpact > 0 {
 			totalRevenue += alert.BusinessImpact.RevenueImpact
 		}
-		
+
 		sam.metrics.BusinessImpactScore.WithLabelValues(
 			string(alert.SLAType),
 			alert.BusinessImpact.ServiceTier,
 		).Set(alert.BusinessImpact.RevenueImpact)
-		
+
 		if alert.BusinessImpact.CustomerFacing {
 			sam.metrics.CustomerImpact.WithLabelValues(
 				string(alert.SLAType),
@@ -1313,9 +1313,9 @@ func (sam *SLAAlertManager) updateMetrics() {
 			).Set(float64(alert.BusinessImpact.AffectedUsers))
 		}
 	}
-	
+
 	sam.metrics.RevenueAtRisk.Set(totalRevenue)
-	
+
 	sam.logger.DebugWithContext("Updated SLA alert metrics",
 		slog.Int("active_alerts", len(sam.activeAlerts)),
 		slog.Float64("total_revenue_at_risk", totalRevenue),
@@ -1326,10 +1326,10 @@ func (sam *SLAAlertManager) updateMetrics() {
 func (sam *SLAAlertManager) cleanupOldAlerts() {
 	sam.mu.Lock()
 	defer sam.mu.Unlock()
-	
+
 	now := time.Now()
 	cutoff := now.Add(-sam.config.AlertRetention)
-	
+
 	// Clean up alert history
 	var recentHistory []*SLAAlert
 	for _, alert := range sam.alertHistory {
@@ -1337,10 +1337,10 @@ func (sam *SLAAlertManager) cleanupOldAlerts() {
 			recentHistory = append(recentHistory, alert)
 		}
 	}
-	
+
 	removedCount := len(sam.alertHistory) - len(recentHistory)
 	sam.alertHistory = recentHistory
-	
+
 	// Clean up suppressed alerts
 	var activeSuppressed = make(map[string]*SLAAlert)
 	for id, alert := range sam.suppressedAlerts {
@@ -1348,10 +1348,10 @@ func (sam *SLAAlertManager) cleanupOldAlerts() {
 			activeSuppressed[id] = alert
 		}
 	}
-	
+
 	removedSuppressedCount := len(sam.suppressedAlerts) - len(activeSuppressed)
 	sam.suppressedAlerts = activeSuppressed
-	
+
 	if removedCount > 0 || removedSuppressedCount > 0 {
 		sam.logger.InfoWithContext("Cleaned up old alerts",
 			slog.Int("removed_from_history", removedCount),

@@ -439,9 +439,9 @@ func (h *CloudProviderTestHelpers) CreateTestResourcePool(provider, region strin
 		Region:         region,
 		Zone:           region + "a", // Default to first zone
 		Status: &models.ResourcePoolStatus{
-			State: "AVAILABLE",
-			Health: "HEALTHY",
-			Utilization: 20.0,
+			State:           "AVAILABLE",
+			Health:          "HEALTHY",
+			Utilization:     20.0,
 			LastHealthCheck: time.Now(),
 		},
 		Capacity: &models.ResourceCapacity{

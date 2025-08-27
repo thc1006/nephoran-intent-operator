@@ -58,8 +58,8 @@ type CustomizationRule struct {
 
 	// Targeting criteria
 	Components   []v1.ORANComponent `json:"components,omitempty" yaml:"components,omitempty"`
-	IntentTypes  []v1.IntentType      `json:"intentTypes,omitempty" yaml:"intentTypes,omitempty"`
-	Environments []string             `json:"environments,omitempty" yaml:"environments,omitempty"`
+	IntentTypes  []v1.IntentType    `json:"intentTypes,omitempty" yaml:"intentTypes,omitempty"`
+	Environments []string           `json:"environments,omitempty" yaml:"environments,omitempty"`
 
 	// Conditions for rule activation
 	Conditions []RuleCondition `json:"conditions" yaml:"conditions"`
@@ -278,9 +278,9 @@ type PolicyAction struct {
 }
 
 type PolicyScope struct {
-	Namespaces []string             `json:"namespaces,omitempty" yaml:"namespaces,omitempty"`
+	Namespaces []string           `json:"namespaces,omitempty" yaml:"namespaces,omitempty"`
 	Components []v1.ORANComponent `json:"components,omitempty" yaml:"components,omitempty"`
-	Labels     map[string]string    `json:"labels,omitempty" yaml:"labels,omitempty"`
+	Labels     map[string]string  `json:"labels,omitempty" yaml:"labels,omitempty"`
 }
 
 type PolicyEvaluator struct {

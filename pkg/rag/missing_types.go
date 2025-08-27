@@ -53,7 +53,7 @@ func (wc *WeaviateClient) Search(ctx context.Context, query *SearchQuery) (*Sear
 	}, nil
 }
 
-// GetHealthStatus method stub for WeaviateClient  
+// GetHealthStatus method stub for WeaviateClient
 func (wc *WeaviateClient) GetHealthStatus() *WeaviateHealthStatus {
 	return &WeaviateHealthStatus{
 		IsHealthy: true,
@@ -78,7 +78,7 @@ type WeaviateConfig struct {
 	APIKey string `json:"api_key"`
 }
 
-// SearchResponse minimal definition  
+// SearchResponse minimal definition
 type SearchResponse struct {
 	Results     []*SearchResult        `json:"results"`
 	Total       int                    `json:"total"`

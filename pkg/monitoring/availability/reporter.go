@@ -347,7 +347,6 @@ type BusinessHours struct {
 	Holidays     []time.Time `json:"holidays"`
 }
 
-
 // AlertThresholds represents alerting thresholds for availability
 type AlertThresholds struct {
 	AvailabilityWarning  float64       `json:"availability_warning"`  // 0-1
@@ -358,8 +357,8 @@ type AlertThresholds struct {
 	ResponseTimeCritical time.Duration `json:"response_time_critical"`
 	ErrorRateWarning     float64       `json:"error_rate_warning"`  // 0-1
 	ErrorRateCritical    float64       `json:"error_rate_critical"` // 0-1
-	ResponseTime         float64       `json:"response_time"`        // milliseconds
-	ErrorRate            float64       `json:"error_rate"`           // percentage
+	ResponseTime         float64       `json:"response_time"`       // milliseconds
+	ErrorRate            float64       `json:"error_rate"`          // percentage
 }
 
 // AvailabilityReporter provides comprehensive availability reporting capabilities

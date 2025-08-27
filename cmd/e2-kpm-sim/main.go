@@ -57,10 +57,10 @@ func main() {
 					break
 				}
 			}
-			
+
 			if lastErr != nil {
 				errorCount++
-				log.Printf("Failed to generate metric after %d retries: %v (total errors: %d)", 
+				log.Printf("Failed to generate metric after %d retries: %v (total errors: %d)",
 					maxRetries, lastErr, errorCount)
 			}
 		case <-sigCh:

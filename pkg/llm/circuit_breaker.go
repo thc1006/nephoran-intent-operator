@@ -157,7 +157,7 @@ func getDefaultCircuitBreakerConfig() *CircuitBreakerConfig {
 func (cb *CircuitBreaker) Call(fn func() error) error {
 	ctx, cancel := context.WithTimeout(context.Background(), cb.config.Timeout)
 	defer cancel()
-	
+
 	_, err := cb.Execute(ctx, func(context.Context) (interface{}, error) {
 		return nil, fn()
 	})

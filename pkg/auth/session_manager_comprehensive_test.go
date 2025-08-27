@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -315,9 +314,7 @@ func TestSessionManager_RevokeSession(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			// TODO: RevokeSession method not implemented in MockSessionManager
-			_ = ctx // silence unused variable warning
-			err := fmt.Errorf("RevokeSession not implemented")
+			err := manager.RevokeSession(ctx, tt.sessionID)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -394,9 +391,7 @@ func TestSessionManager_RevokeAllUserSessions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			// TODO: RevokeAllUserSessions method not implemented in MockSessionManager
-			_ = ctx // silence unused variable warning
-			err := fmt.Errorf("RevokeAllUserSessions not implemented")
+			err := manager.RevokeAllUserSessions(ctx, tt.userID)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -528,7 +523,7 @@ func TestSessionManager_HTTPIntegration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, w := tt.setupRequest()
+			req, w := tt.setupRequest()
 			_ = w // Mark as used to avoid lint error
 
 			if tt.expectCookie {
@@ -543,8 +538,7 @@ func TestSessionManager_HTTPIntegration(t *testing.T) {
 				manager.SetSessionCookie(w, session.ID)
 			} else {
 				// Test getting session from cookie
-				// TODO: GetSessionFromCookie not implemented in MockSessionManager  
-				sessionID, err := "", fmt.Errorf("GetSessionFromCookie not implemented")
+				sessionID, err := manager.GetSessionFromCookie(req)
 				if tt.expectError {
 					assert.Error(t, err)
 					return
@@ -569,8 +563,7 @@ func TestSessionManager_ClearSessionCookie(t *testing.T) {
 	_ = manager // Manager is used for cookie operations in production
 
 	w := httptest.NewRecorder()
-	// TODO: ClearSessionCookie not implemented in MockSessionManager
-	// manager.ClearSessionCookie(w)
+	manager.ClearSessionCookie(w)
 
 	cookies := w.Result().Cookies()
 	assert.Len(t, cookies, 1)
@@ -915,17 +908,16 @@ func TestSessionManager_SecurityFeatures(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				user := uf.CreateBasicUser()
 
-				// Create session with very short TTL
-				manager.config.SessionTTL = time.Millisecond
+				// Create session with short TTL - mock doesn't support config modification
 				session, err := manager.CreateSession(context.Background(), user, nil)
 				require.NoError(t, err)
 
-				// Wait for expiration
-				time.Sleep(10 * time.Millisecond)
+				// For mock testing, manually expire the session by setting ExpiresAt
+				session.ExpiresAt = time.Now().Add(-time.Hour) // Set to past
 
 				// Session should be invalid
-				isValid, err := manager.ValidateSession(context.Background(), session.ID)
-				assert.False(t, isValid)
+				validSession, err := manager.ValidateSession(context.Background(), session.ID)
+				assert.Nil(t, validSession)
 				assert.Error(t, err)
 			},
 		},

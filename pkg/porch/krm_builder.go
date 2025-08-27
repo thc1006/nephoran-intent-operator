@@ -7,9 +7,9 @@ import (
 
 // KRMPackage represents a KRM package structure
 type KRMPackage struct {
-	Name        string
-	Namespace   string
-	Content     map[string]string // filename -> content
+	Name      string
+	Namespace string
+	Content   map[string]string // filename -> content
 }
 
 // BuildKRMPackage creates a KRM package from a scaling intent
@@ -19,7 +19,7 @@ func BuildKRMPackage(intent *ScalingIntent, packageName string) (*KRMPackage, er
 		Namespace: intent.Namespace,
 		Content:   make(map[string]string),
 	}
-	
+
 	// Create Kptfile
 	kptfile := fmt.Sprintf(`apiVersion: kpt.dev/v1
 kind: Kptfile
@@ -34,7 +34,7 @@ info:
   - %s
 `, packageName, intent.Target, intent.Namespace)
 	pkg.Content["Kptfile"] = kptfile
-	
+
 	// Create deployment patch for scaling
 	deploymentPatch := fmt.Sprintf(`apiVersion: apps/v1
 kind: Deployment
@@ -45,7 +45,7 @@ metadata:
     scaling.nephio.org/intent-type: "%s"
     scaling.nephio.org/replicas: "%d"
 `, intent.Target, intent.Namespace, intent.IntentType, intent.Replicas)
-	
+
 	if intent.Reason != "" {
 		deploymentPatch += fmt.Sprintf(`    scaling.nephio.org/reason: "%s"
 `, intent.Reason)
@@ -58,13 +58,13 @@ metadata:
 		deploymentPatch += fmt.Sprintf(`    scaling.nephio.org/correlation-id: "%s"
 `, intent.CorrelationID)
 	}
-	
+
 	deploymentPatch += fmt.Sprintf(`spec:
   replicas: %d
 `, intent.Replicas)
-	
+
 	pkg.Content["deployment-patch.yaml"] = deploymentPatch
-	
+
 	// Create kustomization.yaml for the package
 	kustomization := fmt.Sprintf(`apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -78,9 +78,9 @@ commonAnnotations:
   managed-by: porch-direct
   intent-processor: nephoran
 `, intent.Namespace)
-	
+
 	pkg.Content["kustomization.yaml"] = kustomization
-	
+
 	// Create README for the package
 	readme := fmt.Sprintf(`# Scaling Package: %s
 
@@ -98,9 +98,9 @@ commonAnnotations:
 ## Usage
 This package is managed by Porch and applies scaling operations to the specified deployment.
 `, packageName, intent.Target, intent.Namespace, intent.Replicas, intent.IntentType)
-	
+
 	pkg.Content["README.md"] = readme
-	
+
 	return pkg, nil
 }
 

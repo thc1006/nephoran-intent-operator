@@ -18,10 +18,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/testutil"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2"
 	gittestutil "github.com/thc1006/nephoran-intent-operator/hack/testtools"
+	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/testutil"
 	gitfake "github.com/thc1006/nephoran-intent-operator/pkg/git/fake"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2"
 )
 
 func TestE2NodeSetController_Reconcile(t *testing.T) {

@@ -81,11 +81,11 @@ func benchmarkVectorRetrieval(b *testing.B, ctx context.Context, ragSystem *Enha
 	for _, scenario := range retrievalScenarios {
 		b.Run(scenario.name, func(b *testing.B) {
 			config := RetrievalConfig{
-				DefaultLimit:               scenario.topK,
-				MinConfidenceThreshold:     float32(scenario.minScore),
-				EnableSemanticReranking:    true,
-				RerankingTopK:              scenario.topK,
-				MaxContextLength:           4096,
+				DefaultLimit:            scenario.topK,
+				MinConfidenceThreshold:  float32(scenario.minScore),
+				EnableSemanticReranking: true,
+				RerankingTopK:           scenario.topK,
+				MaxContextLength:        4096,
 			}
 
 			var totalLatency int64
@@ -441,7 +441,7 @@ func benchmarkConcurrentRetrieval(b *testing.B, ctx context.Context, ragSystem *
 					start := time.Now()
 
 					config := RetrievalConfig{
-						DefaultLimit:          10,
+						DefaultLimit:           10,
 						MinConfidenceThreshold: 0.6,
 					}
 

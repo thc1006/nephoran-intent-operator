@@ -46,21 +46,21 @@ func TestStatusFilenameGeneration(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create a new temp dir and watcher for each test case
 			tempDir := t.TempDir()
-			
+
 			// Create a simple mock porch command
 			mockPorch := createMockPorch(t, tempDir, 0, "processed", "")
-			
+
 			config := &Config{
 				DebounceDur: 10 * time.Millisecond,
 				MaxWorkers:  2,
 				PorchPath:   mockPorch,
 				Once:        true,
 			}
-			
+
 			watcher, err := NewWatcher(tempDir, *config)
 			require.NoError(t, err)
 			defer watcher.Close()
-			
+
 			// Create the intent file
 			intentPath := filepath.Join(tempDir, tc.intentFile)
 			intentContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "test"}}`
@@ -88,22 +88,22 @@ func TestStatusFilenameGeneration(t *testing.T) {
 				}
 			}
 
-			assert.NotEmpty(t, foundStatusFile, 
+			assert.NotEmpty(t, foundStatusFile,
 				"Status file should exist with prefix %s", tc.expectedPrefix)
 
 			// Verify the full format: <base>-YYYYMMDD-HHMMSS.status
 			if foundStatusFile != "" {
 				assert.True(t, strings.HasSuffix(foundStatusFile, ".status"),
 					"Status file should end with .status")
-				
+
 				// Check timestamp format
 				withoutStatus := strings.TrimSuffix(foundStatusFile, ".status")
 				parts := strings.Split(withoutStatus, "-")
-				
+
 				// Should have at least 3 parts: the filename parts, date, and time
 				assert.GreaterOrEqual(t, len(parts), 3,
 					"Status filename should include timestamp")
-				
+
 				// The base name should NOT have .json extension
 				assert.NotContains(t, foundStatusFile, ".json-",
 					"Status filename should not contain .json before timestamp")
@@ -120,7 +120,7 @@ func TestStatusFilenameGeneration(t *testing.T) {
 func TestStatusFilenameConsistency(t *testing.T) {
 	tempDir := t.TempDir()
 	mockPorch := createMockPorch(t, tempDir, 0, "processed", "")
-	
+
 	config := &Config{
 		DebounceDur: 10 * time.Millisecond,
 		MaxWorkers:  3, // Production-like worker count for realistic concurrency testing
@@ -128,7 +128,7 @@ func TestStatusFilenameConsistency(t *testing.T) {
 		Once:        false,
 		Period:      100 * time.Millisecond,
 	}
-	
+
 	watcher, err := NewWatcher(tempDir, *config)
 	require.NoError(t, err)
 	defer watcher.Close()
@@ -136,17 +136,17 @@ func TestStatusFilenameConsistency(t *testing.T) {
 	// Create intent file
 	intentFile := "intent-versioning.json"
 	intentPath := filepath.Join(tempDir, intentFile)
-	
+
 	// Start watcher
 	go watcher.Start()
-	
+
 	// Process the file multiple times
 	for i := 0; i < 3; i++ {
 		// Write/update the intent file
 		content := fmt.Sprintf(`{"version": %d}`, i+1)
 		err := os.WriteFile(intentPath, []byte(content), 0644)
 		require.NoError(t, err)
-		
+
 		// Wait for processing
 		time.Sleep(150 * time.Millisecond)
 	}

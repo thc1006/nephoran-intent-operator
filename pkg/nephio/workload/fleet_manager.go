@@ -208,14 +208,14 @@ type FleetConstraint struct {
 
 // WorkloadDeployment represents a workload deployed across the fleet
 type WorkloadDeployment struct {
-	ID           string                `json:"id"`
-	Name         string                `json:"name"`
-	Type         string                `json:"type"`
-	Replicas     int                   `json:"replicas"`
-	Distribution map[string]int        `json:"distribution"`
-	Resources    ResourceRequirements  `json:"resources"`
-	Status       WorkloadStatus        `json:"status"`
-	CreatedAt    time.Time             `json:"created_at"`
+	ID           string               `json:"id"`
+	Name         string               `json:"name"`
+	Type         string               `json:"type"`
+	Replicas     int                  `json:"replicas"`
+	Distribution map[string]int       `json:"distribution"`
+	Resources    ResourceRequirements `json:"resources"`
+	Status       WorkloadStatus       `json:"status"`
+	CreatedAt    time.Time            `json:"created_at"`
 }
 
 // WorkloadStatus represents the status of a workload

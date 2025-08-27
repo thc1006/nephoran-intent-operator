@@ -157,7 +157,7 @@ type HypothesisTest struct {
 // SLATrendAnalysis contains trend analysis results specific to SLA validation
 // This extends the base TrendAnalysis with SLA-specific fields
 type SLATrendAnalysis struct {
-	*TrendAnalysis // Embed the base TrendAnalysis from trend_analyzer.go
+	*TrendAnalysis         // Embed the base TrendAnalysis from trend_analyzer.go
 	HasTrend       bool    `json:"has_trend"`
 	TrendSlope     float64 `json:"trend_slope"`
 	TrendR2        float64 `json:"trend_r2"`
@@ -292,9 +292,9 @@ type SLAAvailabilityValidationResult struct {
 	Discrepancy          float64             `json:"discrepancy"`
 
 	// Component breakdown
-	ComponentAvailability  map[string]float64    `json:"component_availability"`
-	DowntimeEvents         []SLADowntimeEvent    `json:"downtime_events"`
-	ErrorBudgetConsumption float64               `json:"error_budget_consumption"`
+	ComponentAvailability  map[string]float64 `json:"component_availability"`
+	DowntimeEvents         []SLADowntimeEvent `json:"downtime_events"`
+	ErrorBudgetConsumption float64            `json:"error_budget_consumption"`
 
 	// Validation methods
 	CrossValidation         *SLACrossValidationResult   `json:"cross_validation"`
@@ -333,9 +333,9 @@ type SLAThroughputValidationResult struct {
 	ThroughputVariability float64 `json:"throughput_variability"`
 
 	// Capacity analysis
-	CapacityUtilization float64                  `json:"capacity_utilization"`
-	BottleneckAnalysis  *SLABottleneckAnalysis   `json:"bottleneck_analysis"`
-	ScalabilityMetrics  *SLAScalabilityMetrics   `json:"scalability_metrics"`
+	CapacityUtilization float64                `json:"capacity_utilization"`
+	BottleneckAnalysis  *SLABottleneckAnalysis `json:"bottleneck_analysis"`
+	ScalabilityMetrics  *SLAScalabilityMetrics `json:"scalability_metrics"`
 }
 
 // ValidationEvidence contains evidence supporting validation results
@@ -917,9 +917,9 @@ type SLAQualityAssessment struct {
 
 // SLAEvidencePackage contains evidence package for SLA validation
 type SLAEvidencePackage struct {
-	EvidenceCount int                 `json:"evidence_count"`
+	EvidenceCount int                   `json:"evidence_count"`
 	Evidence      []*ValidationEvidence `json:"evidence"`
-	Verified      bool                `json:"verified"`
+	Verified      bool                  `json:"verified"`
 }
 
 // SLADowntimeEvent represents a downtime event in SLA validation
@@ -939,24 +939,24 @@ type SLACrossValidationResult struct {
 
 // SLAIndependentMeasurement contains independent measurement for SLA validation
 type SLAIndependentMeasurement struct {
-	Source    string  `json:"source"`
-	Value     float64 `json:"value"`
+	Source    string    `json:"source"`
+	Value     float64   `json:"value"`
 	Timestamp time.Time `json:"timestamp"`
 }
 
 // SLALatencyDistribution contains latency distribution for SLA validation
 type SLALatencyDistribution struct {
 	Percentiles map[int]time.Duration `json:"percentiles"`
-	Mean        time.Duration        `json:"mean"`
-	StdDev      time.Duration        `json:"std_dev"`
+	Mean        time.Duration         `json:"mean"`
+	StdDev      time.Duration         `json:"std_dev"`
 }
 
 // SLALatencyStats contains latency statistics for SLA validation
 type SLALatencyStats struct {
-	Mean   time.Duration `json:"mean"`
-	P95    time.Duration `json:"p95"`
-	P99    time.Duration `json:"p99"`
-	Count  int           `json:"count"`
+	Mean  time.Duration `json:"mean"`
+	P95   time.Duration `json:"p95"`
+	P99   time.Duration `json:"p99"`
+	Count int           `json:"count"`
 }
 
 // SLATailLatencyAnalysis contains tail latency analysis for SLA validation
@@ -989,8 +989,8 @@ type SLABottleneckAnalysis struct {
 
 // SLAScalabilityMetrics contains scalability metrics for SLA validation
 type SLAScalabilityMetrics struct {
-	ScalabilityFactor float64 `json:"scalability_factor"`
-	MaxCapacity       float64 `json:"max_capacity"`
+	ScalabilityFactor  float64 `json:"scalability_factor"`
+	MaxCapacity        float64 `json:"max_capacity"`
 	CurrentUtilization float64 `json:"current_utilization"`
 }
 
@@ -999,20 +999,20 @@ type SLAScalabilityMetrics struct {
 // measureAvailabilityErrorRate measures availability via error rate calculation
 func (s *SLAValidationTestSuite) measureAvailabilityErrorRate(ctx context.Context) *MeasurementSet {
 	return &MeasurementSet{
-		Name:        "availability_error_rate",
-		Timestamps:  []time.Time{time.Now()},
-		Values:      []float64{99.95},
-		Metadata:    map[string]interface{}{"method": "error_rate"},
+		Name:       "availability_error_rate",
+		Timestamps: []time.Time{time.Now()},
+		Values:     []float64{99.95},
+		Metadata:   map[string]interface{}{"method": "error_rate"},
 	}
 }
 
 // measureAvailabilityComponents measures availability via component aggregation
 func (s *SLAValidationTestSuite) measureAvailabilityComponents(ctx context.Context) *MeasurementSet {
 	return &MeasurementSet{
-		Name:        "availability_components",
-		Timestamps:  []time.Time{time.Now()},
-		Values:      []float64{99.95},
-		Metadata:    map[string]interface{}{"method": "components"},
+		Name:       "availability_components",
+		Timestamps: []time.Time{time.Now()},
+		Values:     []float64{99.95},
+		Metadata:   map[string]interface{}{"method": "components"},
 	}
 }
 
@@ -1028,9 +1028,9 @@ func (s *SLAValidationTestSuite) crossValidateAvailability(method1, method2, met
 // calculateAvailabilityConfidenceInterval calculates confidence interval for availability
 func (s *SLAValidationTestSuite) calculateAvailabilityConfidenceInterval(analysis *StatisticalAnalysis) *ConfidenceInterval {
 	return &ConfidenceInterval{
-		LowerBound:      99.94,
-		UpperBound:      99.96,
-		Margin: 0.99,
+		LowerBound: 99.94,
+		UpperBound: 99.96,
+		Margin:     0.99,
 	}
 }
 
@@ -1046,20 +1046,20 @@ func (s *SLAValidationTestSuite) verifyAvailabilityClaim(analysis *StatisticalAn
 // measureLatencyEndToEnd measures end-to-end latency
 func (s *SLAValidationTestSuite) measureLatencyEndToEnd(ctx context.Context) *MeasurementSet {
 	return &MeasurementSet{
-		Name:        "latency_end_to_end",
-		Timestamps:  []time.Time{time.Now()},
-		Values:      []float64{1.5},
-		Metadata:    map[string]interface{}{"method": "end_to_end"},
+		Name:       "latency_end_to_end",
+		Timestamps: []time.Time{time.Now()},
+		Values:     []float64{1.5},
+		Metadata:   map[string]interface{}{"method": "end_to_end"},
 	}
 }
 
 // measureLatencyComponents measures component-level latency
 func (s *SLAValidationTestSuite) measureLatencyComponents(ctx context.Context) *MeasurementSet {
 	return &MeasurementSet{
-		Name:        "latency_components",
-		Timestamps:  []time.Time{time.Now()},
-		Values:      []float64{1.5},
-		Metadata:    map[string]interface{}{"method": "components"},
+		Name:       "latency_components",
+		Timestamps: []time.Time{time.Now()},
+		Values:     []float64{1.5},
+		Metadata:   map[string]interface{}{"method": "components"},
 	}
 }
 
@@ -1076,10 +1076,10 @@ func (sa *StatisticalAnalyzer) AnalyzeAvailability(measurements []*MeasurementSe
 // measureLatencyTracing measures latency via tracing
 func (s *SLAValidationTestSuite) measureLatencyTracing(ctx context.Context) *MeasurementSet {
 	return &MeasurementSet{
-		Name:        "latency_tracing",
-		Timestamps:  []time.Time{time.Now()},
-		Values:      []float64{1.5},
-		Metadata:    map[string]interface{}{"method": "tracing"},
+		Name:       "latency_tracing",
+		Timestamps: []time.Time{time.Now()},
+		Values:     []float64{1.5},
+		Metadata:   map[string]interface{}{"method": "tracing"},
 	}
 }
 
@@ -1125,30 +1125,30 @@ func (s *SLAValidationTestSuite) verifyLatencyClaim(analysis *StatisticalAnalysi
 // measureThroughputDirect measures throughput directly
 func (s *SLAValidationTestSuite) measureThroughputDirect(ctx context.Context) *MeasurementSet {
 	return &MeasurementSet{
-		Name:        "throughput_direct",
-		Timestamps:  []time.Time{time.Now()},
-		Values:      []float64{45.0},
-		Metadata:    map[string]interface{}{"method": "direct"},
+		Name:       "throughput_direct",
+		Timestamps: []time.Time{time.Now()},
+		Values:     []float64{45.0},
+		Metadata:   map[string]interface{}{"method": "direct"},
 	}
 }
 
 // measureThroughputCounters measures throughput via counters
 func (s *SLAValidationTestSuite) measureThroughputCounters(ctx context.Context) *MeasurementSet {
 	return &MeasurementSet{
-		Name:        "throughput_counters",
-		Timestamps:  []time.Time{time.Now()},
-		Values:      []float64{45.0},
-		Metadata:    map[string]interface{}{"method": "counters"},
+		Name:       "throughput_counters",
+		Timestamps: []time.Time{time.Now()},
+		Values:     []float64{45.0},
+		Metadata:   map[string]interface{}{"method": "counters"},
 	}
 }
 
 // measureThroughputQueue measures throughput via queue metrics
 func (s *SLAValidationTestSuite) measureThroughputQueue(ctx context.Context) *MeasurementSet {
 	return &MeasurementSet{
-		Name:        "throughput_queue",
-		Timestamps:  []time.Time{time.Now()},
-		Values:      []float64{45.0},
-		Metadata:    map[string]interface{}{"method": "queue"},
+		Name:       "throughput_queue",
+		Timestamps: []time.Time{time.Now()},
+		Values:     []float64{45.0},
+		Metadata:   map[string]interface{}{"method": "queue"},
 	}
 }
 
@@ -1220,7 +1220,7 @@ func abs(x float64) float64 {
 
 // testBurnRateWindow tests burn rate alerting window
 func (s *SLAValidationTestSuite) testBurnRateWindow(period time.Duration, threshold float64, targetErrorBudget float64) {
-	s.T().Logf("Testing burn rate window: %v period, %.2f threshold, %.4f target budget", 
+	s.T().Logf("Testing burn rate window: %v period, %.2f threshold, %.4f target budget",
 		period, threshold, targetErrorBudget)
 }
 
@@ -1234,8 +1234,7 @@ type CrossValidationResult struct {
 
 // Types already defined above - removed duplicates
 
-
-// testMultiWindowBurnRate tests burn rates across multiple windows  
+// testMultiWindowBurnRate tests burn rates across multiple windows
 func (s *SLAValidationTestSuite) testMultiWindowBurnRate(ctx context.Context) {
 	s.T().Log("Testing multi-window burn rates")
 	// Test multiple burn rate windows
@@ -1268,11 +1267,11 @@ func (s *SLAValidationTestSuite) calculateCompositeSLAMethod1(availability, late
 	return (availability*0.4 + (2.0-latency)*0.4 + throughput/50.0*0.2) * 100
 }
 
-// calculateCompositeSLAMethod2 calculates composite SLA using method 2  
+// calculateCompositeSLAMethod2 calculates composite SLA using method 2
 func (s *SLAValidationTestSuite) calculateCompositeSLAMethod2(availability, latency, throughput float64) float64 {
 	s.T().Log("Calculating composite SLA using method 2")
 	// Multiplicative approach
-	return availability * (2.0-latency)/2.0 * throughput/50.0 * 100
+	return availability * (2.0 - latency) / 2.0 * throughput / 50.0 * 100
 }
 
 // validateCompositeConsistency validates consistency between methods
@@ -1313,7 +1312,7 @@ func boolToFloat(b bool) float64 {
 func (cv *ClaimVerifier) AddClaim(name string, claimType ClaimType, claimedValue interface{}) {
 	cv.mutex.Lock()
 	defer cv.mutex.Unlock()
-	
+
 	cv.claims[name] = &SLAClaim{
 		Name:         name,
 		Type:         claimType,

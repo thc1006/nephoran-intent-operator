@@ -36,13 +36,13 @@ func (f *FakeIntentProvider) ParseIntent(ctx context.Context, text string) (map[
 	if f.ParseError != nil {
 		return nil, f.ParseError
 	}
-	
+
 	// Return a copy to avoid accidental modification
 	result := make(map[string]interface{})
 	for k, v := range f.ParseResult {
 		result[k] = v
 	}
-	
+
 	return result, nil
 }
 

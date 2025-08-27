@@ -14,12 +14,12 @@ func TestEventGeneration(t *testing.T) {
 		Count:        1,
 		Source:       "test-source",
 	}
-	
+
 	sender := &EventSender{
 		config:   config,
 		sequence: 0,
 	}
-	
+
 	tests := []struct {
 		eventType string
 	}{
@@ -27,27 +27,27 @@ func TestEventGeneration(t *testing.T) {
 		{"fault"},
 		{"measurement"},
 	}
-	
+
 	for _, test := range tests {
 		t.Run(test.eventType, func(t *testing.T) {
 			sender.config.EventType = test.eventType
 			event := sender.createEvent()
-			
+
 			// Verify the event can be marshaled to JSON
 			jsonData, err := json.Marshal(event)
 			if err != nil {
 				t.Fatalf("Failed to marshal %s event: %v", test.eventType, err)
 			}
-			
+
 			// Verify basic structure
 			if event.Event.CommonEventHeader.Domain != test.eventType {
 				t.Errorf("Expected domain %s, got %s", test.eventType, event.Event.CommonEventHeader.Domain)
 			}
-			
+
 			if event.Event.CommonEventHeader.SourceName != "test-source" {
 				t.Errorf("Expected source name 'test-source', got %s", event.Event.CommonEventHeader.SourceName)
 			}
-			
+
 			// Verify event-specific fields
 			switch test.eventType {
 			case "heartbeat":
@@ -79,7 +79,7 @@ func TestEventGeneration(t *testing.T) {
 					t.Error("Expected kpm.p95_latency_ms in additional fields")
 				}
 			}
-			
+
 			t.Logf("Generated %s event: %s", test.eventType, string(jsonData))
 		})
 	}
@@ -90,27 +90,27 @@ func TestEventIDGeneration(t *testing.T) {
 		EventType: "test",
 		Source:    "test-source",
 	}
-	
+
 	sender := &EventSender{
 		config:   config,
 		sequence: 5,
 	}
-	
+
 	eventID := sender.generateEventID()
-	
+
 	// Should contain event type, source, and sequence info
 	if eventID == "" {
 		t.Error("Event ID should not be empty")
 	}
-	
+
 	// Should be unique for different sequences
 	sender.sequence = 6
 	eventID2 := sender.generateEventID()
-	
+
 	if eventID == eventID2 {
 		t.Error("Event IDs should be unique for different sequences")
 	}
-	
+
 	t.Logf("Generated event IDs: %s, %s", eventID, eventID2)
 }
 
@@ -121,13 +121,13 @@ func TestConfigValidation(t *testing.T) {
 		"measurement": true,
 		"heartbeat":   true,
 	}
-	
+
 	for eventType := range validTypes {
 		if !validTypes[eventType] {
 			t.Errorf("Valid event type %s should be accepted", eventType)
 		}
 	}
-	
+
 	// Test invalid event type
 	invalidType := "invalid"
 	if validTypes[invalidType] {

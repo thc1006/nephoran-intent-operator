@@ -748,16 +748,16 @@ func (s *NephoranAPIServer) shouldSendToConnection(filters map[string]interface{
 func (s *NephoranAPIServer) getStreamInfo(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	streamID := vars["id"]
-	
+
 	// TODO: Implement actual stream info retrieval
 	streamInfo := map[string]interface{}{
-		"stream_id": streamID,
-		"status":    "active",
-		"type":      "websocket",
-		"created_at": time.Now(),
+		"stream_id":     streamID,
+		"status":        "active",
+		"type":          "websocket",
+		"created_at":    time.Now(),
 		"message_count": 0,
 	}
-	
+
 	s.writeJSONResponse(w, http.StatusOK, streamInfo)
 }
 
@@ -765,15 +765,15 @@ func (s *NephoranAPIServer) getStreamInfo(w http.ResponseWriter, r *http.Request
 func (s *NephoranAPIServer) closeStream(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	streamID := vars["id"]
-	
+
 	// TODO: Implement actual stream closing logic
 	s.logger.Info("Closing stream", "streamID", streamID)
-	
+
 	response := map[string]interface{}{
 		"stream_id": streamID,
 		"status":    "closed",
 		"closed_at": time.Now(),
 	}
-	
+
 	s.writeJSONResponse(w, http.StatusOK, response)
 }

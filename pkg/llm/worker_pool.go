@@ -191,10 +191,10 @@ type WorkerPoolConfig struct {
 	CPULimitPerWorker    float64 `json:"cpu_limit_per_worker"`
 
 	// Monitoring
-	MetricsEnabled        bool          `json:"metrics_enabled"`
-	TracingEnabled        bool          `json:"tracing_enabled"`
-	HealthCheckEnabled    bool          `json:"health_check_enabled"`
-	HealthCheckInterval   time.Duration `json:"health_check_interval"`
+	MetricsEnabled      bool          `json:"metrics_enabled"`
+	TracingEnabled      bool          `json:"tracing_enabled"`
+	HealthCheckEnabled  bool          `json:"health_check_enabled"`
+	HealthCheckInterval time.Duration `json:"health_check_interval"`
 }
 
 // DynamicScaler handles automatic worker scaling based on load
@@ -791,10 +791,10 @@ func (w *Worker) processCachingTask(ctx context.Context, task *Task) (interface{
 // processRAGTask processes RAG-specific tasks
 func (w *Worker) processRAGTask(ctx context.Context, task *Task) (interface{}, error) {
 	w.logger.Debug("Processing RAG task", "task_id", task.ID, "intent", task.Intent)
-	
+
 	// Simulate RAG processing (replace with actual implementation)
 	time.Sleep(time.Millisecond * 150) // Simulate processing time
-	
+
 	return map[string]interface{}{
 		"rag_processed_intent": task.Intent,
 		"parameters":           task.Parameters,
@@ -807,10 +807,10 @@ func (w *Worker) processRAGTask(ctx context.Context, task *Task) (interface{}, e
 // processBatchTask processes batch-specific tasks
 func (w *Worker) processBatchTask(ctx context.Context, task *Task) (interface{}, error) {
 	w.logger.Debug("Processing batch task", "task_id", task.ID, "intent", task.Intent)
-	
+
 	// Simulate batch processing (replace with actual implementation)
 	time.Sleep(time.Millisecond * 200) // Simulate processing time
-	
+
 	return map[string]interface{}{
 		"batch_processed_intent": task.Intent,
 		"parameters":             task.Parameters,
@@ -885,7 +885,7 @@ type ResponsePool struct{}
 const (
 	PriorityUrgent Priority = iota + 10 // Offset to avoid conflicts
 	// PriorityHigh - defined in batch_processor.go
-	// PriorityNormal - defined in batch_processor.go  
+	// PriorityNormal - defined in batch_processor.go
 	// PriorityLow - defined in batch_processor.go
 
 	TaskTypeLLMProcessing   TaskType = "llm_processing"
@@ -927,7 +927,7 @@ func (wp *WorkerPool) Shutdown(ctx context.Context) error {
 	wp.shutdownOnce.Do(func() {
 		wp.setState(WorkerPoolStateShutdown)
 		close(wp.shutdownCh)
-		
+
 		// Send shutdown signal to all workers
 		wp.stateMutex.RLock()
 		for _, worker := range wp.workers {
@@ -938,10 +938,10 @@ func (wp *WorkerPool) Shutdown(ctx context.Context) error {
 			}
 		}
 		wp.stateMutex.RUnlock()
-		
+
 		// Wait for all workers to complete
 		wp.workerWG.Wait()
-		
+
 		// Close channels
 		close(wp.taskQueue)
 		for _, queue := range wp.priorityQueues {
@@ -956,29 +956,29 @@ func (wp *WorkerPool) Shutdown(ctx context.Context) error {
 func (wp *WorkerPool) GetMetrics() *WorkerPoolMetrics {
 	wp.metrics.mutex.RLock()
 	defer wp.metrics.mutex.RUnlock()
-	
+
 	// Create a copy to avoid race conditions
 	metrics := &WorkerPoolMetrics{}
 	*metrics = *wp.metrics
-	
+
 	// Update real-time values
 	metrics.ActiveWorkers = atomic.LoadInt32(&wp.workerCount)
 	metrics.TotalWorkers = metrics.ActiveWorkers
 	metrics.QueueLength = int64(len(wp.taskQueue))
-	
+
 	return metrics
 }
 
 // GetStatus returns current worker pool status information
 func (wp *WorkerPool) GetStatus() map[string]interface{} {
 	return map[string]interface{}{
-		"running":        wp.getState() == WorkerPoolStateRunning,
-		"total_workers":  atomic.LoadInt32(&wp.workerCount),
-		"min_workers":    wp.minWorkers,
-		"max_workers":    wp.maxWorkers,
-		"queue_length":   len(wp.taskQueue),
+		"running":         wp.getState() == WorkerPoolStateRunning,
+		"total_workers":   atomic.LoadInt32(&wp.workerCount),
+		"min_workers":     wp.minWorkers,
+		"max_workers":     wp.maxWorkers,
+		"queue_length":    len(wp.taskQueue),
 		"tasks_submitted": atomic.LoadInt64(&wp.metrics.TasksSubmitted),
 		"tasks_completed": atomic.LoadInt64(&wp.metrics.TasksCompleted),
-		"tasks_failed":   atomic.LoadInt64(&wp.metrics.TasksFailed),
+		"tasks_failed":    atomic.LoadInt64(&wp.metrics.TasksFailed),
 	}
 }

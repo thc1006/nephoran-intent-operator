@@ -48,18 +48,18 @@ func NewReducer(burstThreshold int, outHandoff string) *Reducer {
 func (r *Reducer) ProcessEvent(event FCAPSEvent) *ScalingIntent {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	
+
 	now := time.Now()
 	r.events = append(r.events, timestampedEvent{
 		event:     event,
 		timestamp: now,
 	})
-	
+
 	// Clean old events outside window
 	cutoff := now.Add(-r.windowDuration)
 	filtered := make([]timestampedEvent, 0)
 	criticalCount := 0
-	
+
 	for _, te := range r.events {
 		if te.timestamp.After(cutoff) {
 			filtered = append(filtered, te)
@@ -68,26 +68,26 @@ func (r *Reducer) ProcessEvent(event FCAPSEvent) *ScalingIntent {
 			}
 		}
 	}
-	
+
 	r.events = filtered
 	r.criticalCount = criticalCount
-	
+
 	// Check burst condition with 30s cooldown
 	if criticalCount >= r.burstThreshold {
 		if time.Since(r.lastIntentTime) > 30*time.Second {
 			r.lastIntentTime = now
-			
+
 			// Calculate scaling factor
 			replicas := 2 + (criticalCount / r.burstThreshold)
 			if replicas > 10 {
 				replicas = 10
 			}
-			
+
 			sourceName := event.Event.CommonEventHeader.SourceName
 			if sourceName == "" {
 				sourceName = "nf-sim"
 			}
-			
+
 			return &ScalingIntent{
 				IntentType:    "scaling",
 				Target:        sourceName,
@@ -100,7 +100,7 @@ func (r *Reducer) ProcessEvent(event FCAPSEvent) *ScalingIntent {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -112,7 +112,7 @@ func isCriticalEvent(event FCAPSEvent) bool {
 			return true
 		}
 	}
-	
+
 	// Check performance thresholds
 	if event.Event.MeasurementsForVfScalingFields != nil {
 		fields := event.Event.MeasurementsForVfScalingFields.AdditionalFields
@@ -131,7 +131,7 @@ func isCriticalEvent(event FCAPSEvent) bool {
 			}
 		}
 	}
-	
+
 	return false
 }
 

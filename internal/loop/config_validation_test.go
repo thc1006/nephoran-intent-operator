@@ -32,7 +32,7 @@ func TestConfigValidation(t *testing.T) {
 	t.Run("Non-existent output directory with writable parent", func(t *testing.T) {
 		tempDir := t.TempDir()
 		nonExistentDir := filepath.Join(tempDir, "subdir", "nested")
-		
+
 		config := Config{
 			PorchPath:    "/tmp/porch",
 			Mode:         "direct",
@@ -51,17 +51,17 @@ func TestConfigValidation(t *testing.T) {
 		if filepath.Separator == '\\' {
 			t.Skip("Read-only tests are complex on Windows")
 		}
-		
+
 		tempDir := t.TempDir()
 		readOnlyDir := filepath.Join(tempDir, "readonly")
-		
+
 		// Create directory
 		require.NoError(t, os.MkdirAll(readOnlyDir, 0755))
-		
+
 		// Make it read-only
 		require.NoError(t, os.Chmod(readOnlyDir, 0444))
 		defer os.Chmod(readOnlyDir, 0755) // Restore for cleanup
-		
+
 		config := Config{
 			PorchPath:    "/tmp/porch",
 			Mode:         "direct",
@@ -82,10 +82,10 @@ func TestConfigValidation(t *testing.T) {
 	t.Run("Output directory that is a file", func(t *testing.T) {
 		tempDir := t.TempDir()
 		fileName := filepath.Join(tempDir, "notadir")
-		
+
 		// Create a file instead of directory
 		require.NoError(t, os.WriteFile(fileName, []byte("test"), 0644))
-		
+
 		config := Config{
 			PorchPath:    "/tmp/porch",
 			Mode:         "direct",
@@ -123,7 +123,7 @@ func TestConfigValidation(t *testing.T) {
 			// Unix path
 			invalidPath = "/root/nonexistent/path/that/should/fail"
 		}
-		
+
 		config := Config{
 			PorchPath:    "/tmp/porch",
 			Mode:         "direct",
@@ -138,10 +138,10 @@ func TestConfigValidation(t *testing.T) {
 		assert.Error(t, err, "Should fail validation for completely inaccessible path")
 		// The error should mention either permission denied or parent directory issues
 		errorStr := err.Error()
-		assert.True(t, 
+		assert.True(t,
 			strings.Contains(errorStr, "permission denied") ||
-			strings.Contains(errorStr, "cannot access") ||
-			strings.Contains(errorStr, "does not exist"),
+				strings.Contains(errorStr, "cannot access") ||
+				strings.Contains(errorStr, "does not exist"),
 			"Error should mention access issues, got: %s", errorStr)
 	})
 }

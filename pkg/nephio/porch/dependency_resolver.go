@@ -1037,7 +1037,7 @@ func (dr *dependencyResolver) cleanupCaches() {
 // AnalyzeDependencyHealth analyzes the health of a package's dependencies
 func (dr *dependencyResolver) AnalyzeDependencyHealth(ctx context.Context, ref *PackageReference) (*DependencyHealthReport, error) {
 	dr.logger.Info("Analyzing dependency health", "package", ref.GetPackageKey())
-	
+
 	// Create a basic health report
 	report := &DependencyHealthReport{
 		PackageRef:              ref,
@@ -1050,14 +1050,14 @@ func (dr *dependencyResolver) AnalyzeDependencyHealth(ctx context.Context, ref *
 		UnusedDependencies:      make([]*UnusedDependency, 0),
 		Recommendations:         make([]*HealthRecommendation, 0),
 	}
-	
+
 	// TODO: Implement actual dependency health analysis
 	// This would include checking for:
 	// - Outdated dependencies
 	// - Security vulnerabilities
 	// - Breaking changes in newer versions
 	// - Dependency availability
-	
+
 	return report, nil
 }
 
@@ -1084,18 +1084,18 @@ func (dr *dependencyResolver) registerDefaultStrategies() {
 // AnalyzeUpdateImpact analyzes the impact of package updates
 func (dr *dependencyResolver) AnalyzeUpdateImpact(ctx context.Context, updates []*PackageUpdate) (*ImpactAnalysis, error) {
 	dr.logger.Info("Analyzing update impact", "updates", len(updates))
-	
+
 	// Create basic impact analysis
 	impact := &ImpactAnalysis{
 		TotalAffectedPackages: len(updates),
 		DirectlyAffected:      make([]*PackageReference, 0),
 		IndirectlyAffected:    make([]*PackageReference, 0),
 		BreakingChanges:       make([]*BreakingChange, 0),
-		RiskLevel:            "LOW",
+		RiskLevel:             "LOW",
 		RecommendedActions:    make([]*RecommendedAction, 0),
-		ImpactScore:          0.0,
+		ImpactScore:           0.0,
 	}
-	
+
 	// TODO: Implement actual impact analysis
 	return impact, nil
 }
@@ -1103,7 +1103,7 @@ func (dr *dependencyResolver) AnalyzeUpdateImpact(ctx context.Context, updates [
 // DetectDependencyConflicts detects conflicts in dependency graph
 func (dr *dependencyResolver) DetectDependencyConflicts(ctx context.Context, graph *DependencyGraph) (*ConflictAnalysis, error) {
 	dr.logger.V(1).Info("Detecting dependency conflicts", "graphID", graph.ID)
-	
+
 	analysis := &ConflictAnalysis{
 		HasConflicts:        false,
 		Conflicts:           make([]*DependencyConflict, 0),
@@ -1111,7 +1111,7 @@ func (dr *dependencyResolver) DetectDependencyConflicts(ctx context.Context, gra
 		ConflictsBySeverity: make(map[ConflictSeverity][]*DependencyConflict),
 		ResolutionOptions:   make([]*ConflictResolutionOption, 0),
 	}
-	
+
 	// TODO: Implement conflict detection logic
 	return analysis, nil
 }
@@ -1126,7 +1126,7 @@ func (dr *dependencyResolver) generateResolutionPlan(ctx context.Context, graph 
 		Prerequisites:   make([]*Prerequisite, 0),
 		ValidationRules: make([]*ValidationRule, 0),
 	}
-	
+
 	// TODO: Generate actual resolution steps
 	return plan, nil
 }
@@ -1140,17 +1140,17 @@ func (dr *dependencyResolver) calculateCircularImpactAnalysis(cycles []*Dependen
 // FindDependents finds packages that depend on the given package
 func (dr *dependencyResolver) FindDependents(ctx context.Context, ref *PackageReference, opts *DependentSearchOptions) ([]*Dependent, error) {
 	dr.logger.V(1).Info("Finding dependents", "package", ref.GetPackageKey())
-	
+
 	dependents := make([]*Dependent, 0)
 	// TODO: Implement dependent search logic
-	
+
 	return dependents, nil
 }
 
 // createPropagationPlan creates a plan for update propagation
 func (dr *dependencyResolver) createPropagationPlan(updated *PackageReference, dependents []*Dependent, strategy PropagationStrategy) *PropagationPlan {
 	plan := &PropagationPlan{} // Fields set according to dependency_types.go definition
-	
+
 	// TODO: Create propagation steps
 	return plan
 }
@@ -1164,7 +1164,7 @@ func (dr *dependencyResolver) createPackageUpdate(ctx context.Context, ref *Pack
 		UpdateType:     "minor",
 		Reason:         "dependency update",
 	}
-	
+
 	// TODO: Implement update creation logic
 	return update, nil
 }
@@ -1179,10 +1179,10 @@ func (dr *dependencyResolver) analyzePropagationImpact(updates []*PackageUpdate)
 // BreakCircularDependencies breaks circular dependencies using the specified strategy
 func (dr *dependencyResolver) BreakCircularDependencies(ctx context.Context, graph *DependencyGraph, strategy CircularResolutionStrategy) (*GraphModification, error) {
 	dr.logger.Info("Breaking circular dependencies", "strategy", strategy)
-	
+
 	modification := &GraphModification{}
 	// TODO: Implement circular dependency breaking logic
-	
+
 	return modification, nil
 }
 

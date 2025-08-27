@@ -1096,7 +1096,6 @@ func BenchmarkLargePolicyData_JSON_Marshal(b *testing.B) {
 
 // Helper types and functions for validation
 
-
 type RetryPolicy struct {
 	MaxRetries  int           `json:"max_retries"`
 	RetryDelay  time.Duration `json:"retry_delay"`

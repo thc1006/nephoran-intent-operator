@@ -329,7 +329,7 @@ func TestResourceCaching(t *testing.T) {
 		// Repeatedly create the same test data
 		for i := 0; i < 10; i++ {
 			tempDir := t.TempDir()
-			
+
 			// Create the same files repeatedly
 			commonFiles := []string{"config.json", "data.txt", "schema.yaml"}
 			for _, filename := range commonFiles {
@@ -361,7 +361,7 @@ func TestResourceCaching(t *testing.T) {
 		// Use cached data across iterations
 		for i := 0; i < 10; i++ {
 			tempDir := optimizer.OptimizedTempDir(t, fmt.Sprintf("cached-%d", i))
-			
+
 			// Efficiently create files using cached data
 			if err := optimizer.BulkFileCreation(tempDir, commonFiles); err != nil {
 				t.Fatalf("Failed to create cached files: %v", err)

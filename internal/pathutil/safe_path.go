@@ -31,58 +31,58 @@ func safeJoin(root, p string) (string, error) {
 	if root == "" {
 		return "", fmt.Errorf("root directory cannot be empty")
 	}
-	
+
 	if p == "" {
 		return filepath.Clean(root), nil
 	}
-	
+
 	// Security check: reject absolute paths in the second parameter
 	// This prevents bypassing the root directory entirely
 	if filepath.IsAbs(p) {
 		return "", fmt.Errorf("absolute path not allowed: %q", p)
 	}
-	
+
 	// Additional security check: reject absolute paths that start with separators
 	// These bypass the root directory entirely and should be rejected
 	if strings.HasPrefix(p, "/") && len(p) > 1 {
 		return "", fmt.Errorf("absolute path not allowed: %q", p)
 	}
 	if strings.HasPrefix(p, "\\") && len(p) > 1 {
-		return "", fmt.Errorf("absolute path not allowed: %q", p)  
+		return "", fmt.Errorf("absolute path not allowed: %q", p)
 	}
-	
+
 	// Handle single separator (treat as current directory)
 	if p == "/" || p == "\\" {
 		p = "."
 	}
-	
+
 	// Early path traversal detection before processing
 	// Only check for obvious traversal patterns - let the final check handle legitimate cases
 	if detectObviousPathTraversal(p) {
 		return "", fmt.Errorf("path traversal detected in path %q", p)
 	}
-	
+
 	// Remove null bytes from the path (not supported on Windows)
 	p = strings.ReplaceAll(p, "\x00", "")
-	
+
 	// Clean both paths to normalize them
 	root = filepath.Clean(root)
-	
+
 	// Join the paths and clean the result
 	joined := filepath.Clean(filepath.Join(root, p))
-	
+
 	// Check if the resulting path is still within the root directory
 	rel, err := filepath.Rel(root, joined)
 	if err != nil {
 		return "", fmt.Errorf("failed to determine relative path: %w", err)
 	}
-	
+
 	// If the relative path starts with "..", it means the joined path
 	// has traversed outside the root directory - reject it as a security violation
 	if strings.HasPrefix(rel, "..") || strings.Contains(rel, "..") {
 		return "", fmt.Errorf("path traversal attempt: path %q would escape root directory %q", p, root)
 	}
-	
+
 	return joined, nil
 }
 
@@ -115,32 +115,32 @@ func detectObviousPathTraversal(p string) bool {
 	// Normalize separators for consistent checking
 	normalized := strings.ReplaceAll(p, "\\", "/")
 	lowerPath := strings.ToLower(normalized)
-	
+
 	// Check for URL-encoded traversal patterns (always malicious)
 	encodedPatterns := []string{
-		"..%2f",         // URL encoded forward slash
-		"..%5c",         // URL encoded backslash
-		"%2e%2e/",       // URL encoded dots with slash
-		"%2e%2e\\",      // URL encoded dots with backslash
-		"...//",         // Triple dots (suspicious)
-		"....//",        // Quad dots (suspicious)
+		"..%2f",    // URL encoded forward slash
+		"..%5c",    // URL encoded backslash
+		"%2e%2e/",  // URL encoded dots with slash
+		"%2e%2e\\", // URL encoded dots with backslash
+		"...//",    // Triple dots (suspicious)
+		"....//",   // Quad dots (suspicious)
 	}
-	
+
 	for _, pattern := range encodedPatterns {
 		if strings.Contains(lowerPath, strings.ToLower(pattern)) {
 			return true
 		}
 	}
-	
+
 	// Check if path starts with ../ (immediate parent directory escape)
 	if strings.HasPrefix(normalized, "../") {
 		return true
 	}
-	
+
 	// Check for excessive .. sequences (3 or more levels up is suspicious)
 	if strings.Contains(normalized, "../../../") {
 		return true
 	}
-	
+
 	return false
 }

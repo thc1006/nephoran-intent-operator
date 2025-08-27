@@ -734,7 +734,6 @@ var _ = Describe("CNF Orchestrator Performance Tests", func() {
 		fakeClient   client.Client
 		fakeRecorder *record.FakeRecorder
 		scheme       *runtime.Scheme
-		
 	)
 
 	BeforeEach(func() {
@@ -743,7 +742,6 @@ var _ = Describe("CNF Orchestrator Performance Tests", func() {
 
 		fakeClient = fake.NewClientBuilder().WithScheme(scheme).Build()
 		fakeRecorder = record.NewFakeRecorder(100)
-		
 
 		orchestrator = NewCNFOrchestrator(fakeClient, scheme, fakeRecorder)
 	})

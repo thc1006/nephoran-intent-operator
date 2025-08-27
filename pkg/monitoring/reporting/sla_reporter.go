@@ -59,7 +59,6 @@ type SLAViolation struct {
 	Metadata       map[string]interface{} `json:"metadata"`
 }
 
-
 // DataPoint represents a time-series data point
 type DataPoint struct {
 	Timestamp time.Time `json:"timestamp"`
@@ -107,7 +106,6 @@ type ReportTrends struct {
 	ViolationTrend    string  `json:"violation_trend"`
 	TrendConfidence   float64 `json:"trend_confidence"`
 }
-
 
 // BusinessMetrics provides business context for SLA performance
 type BusinessMetrics struct {

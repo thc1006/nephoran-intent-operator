@@ -342,8 +342,3 @@ type UserContext struct {
 }
 
 // Supporting types for API utilities
-
-
-
-
-

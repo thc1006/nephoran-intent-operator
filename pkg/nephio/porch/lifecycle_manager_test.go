@@ -77,7 +77,7 @@ type LifecycleEvent struct {
 type TransitionEvent struct {
 	PackageKey string
 	From       porch.PackageRevisionLifecycle
-	To        porch.PackageRevisionLifecycle
+	To         porch.PackageRevisionLifecycle
 	Success    bool
 	Error      error
 	Timestamp  time.Time

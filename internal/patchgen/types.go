@@ -13,10 +13,10 @@ type Intent struct {
 
 // PatchPackage represents a KRM patch package structure
 type PatchPackage struct {
-	Kptfile     *Kptfile    `yaml:"-"`
-	PatchFile   *PatchFile  `yaml:"-"`
-	OutputDir   string      `yaml:"-"`
-	Intent      *Intent     `yaml:"-"`
+	Kptfile   *Kptfile   `yaml:"-"`
+	PatchFile *PatchFile `yaml:"-"`
+	OutputDir string     `yaml:"-"`
+	Intent    *Intent    `yaml:"-"`
 }
 
 // Kptfile represents the kpt package metadata
@@ -51,10 +51,10 @@ type KptMutator struct {
 
 // PatchFile represents a strategic merge patch
 type PatchFile struct {
-	APIVersion string            `yaml:"apiVersion"`
-	Kind       string            `yaml:"kind"`
-	Metadata   PatchMetadata     `yaml:"metadata"`
-	Spec       PatchSpec         `yaml:"spec"`
+	APIVersion string        `yaml:"apiVersion"`
+	Kind       string        `yaml:"kind"`
+	Metadata   PatchMetadata `yaml:"metadata"`
+	Spec       PatchSpec     `yaml:"spec"`
 }
 
 // PatchMetadata contains patch metadata

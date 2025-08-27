@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	_ "github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/consul"  // Register consul provider
 	_ "github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/istio"   // Register istio provider
@@ -19,7 +20,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )

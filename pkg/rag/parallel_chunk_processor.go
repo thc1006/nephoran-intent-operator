@@ -547,10 +547,10 @@ func (pcp *ParallelChunkProcessor) ProcessDocumentChunks(ctx context.Context, do
 		}
 
 		chunk := &DocumentChunk{
-			ID:         fmt.Sprintf("%s-chunk-%d", doc.ID, i/chunkSize),
-			DocumentID: doc.ID,
-			Content:    content[i:end],
-			ChunkIndex: i / chunkSize,
+			ID:               fmt.Sprintf("%s-chunk-%d", doc.ID, i/chunkSize),
+			DocumentID:       doc.ID,
+			Content:          content[i:end],
+			ChunkIndex:       i / chunkSize,
 			DocumentMetadata: doc.Metadata,
 		}
 		chunks = append(chunks, chunk)

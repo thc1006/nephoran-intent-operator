@@ -432,7 +432,7 @@ func (dt *DistributedTracer) analyzeSpan(activeSpan *ActiveSpan, err error) {
 	// Record metrics
 	if dt.metricsRecorder != nil {
 		// Record span duration via SLI latency metrics
-		dt.metricsRecorder.RecordSLILatency(spanMetrics.Component, spanMetrics.OperationName, "default", 
+		dt.metricsRecorder.RecordSLILatency(spanMetrics.Component, spanMetrics.OperationName, "default",
 			spanMetrics.Duration.Seconds(), spanMetrics.Duration.Seconds())
 		if spanMetrics.Status == codes.Error {
 			dt.metricsRecorder.RecordError(spanMetrics.Component, "span_error")

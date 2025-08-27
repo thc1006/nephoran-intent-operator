@@ -909,7 +909,7 @@ func TestRBACManager_HierarchicalRoles(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			permission := fmt.Sprintf("%s:%s", tt.resource, tt.action)
-		allowed := manager.CheckPermission(ctx, tt.userID, permission)
+			allowed := manager.CheckPermission(ctx, tt.userID, permission)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expectAllowed, allowed, "Permission check failed for %s on %s:%s", tt.userID, tt.resource, tt.action)
 		})
@@ -1235,12 +1235,12 @@ func TestRBACManager_PolicyEngineIntegration(t *testing.T) {
 			// Basic check that the manager can handle complex scenarios
 			// CheckPermissionWithContext is not implemented yet, so we'll skip this advanced test
 			t.Skip("CheckPermissionWithContext not implemented yet - this is a placeholder for future policy engine integration")
-			
+
 			// Placeholder for when CheckPermissionWithContext is implemented:
 			// allowed, err := manager.CheckPermissionWithContext(ctx, tt.userContext, tt.resource, tt.action)
 			// var allowed bool
 			// var err error
-			
+
 			// assert.NoError(t, err)
 			// assert.Equal(t, tt.expectAllowed, allowed)
 		})

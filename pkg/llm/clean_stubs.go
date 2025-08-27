@@ -184,14 +184,14 @@ func NewContextBuilderWithPool(pool *rag.WeaviateConnectionPool) *ContextBuilder
 	// The original RAG-specific fields (weaviatePool, logger, config, metrics) are not available
 	// in the stub implementation
 	cb := &ContextBuilder{}
-	
+
 	// Log configuration attempt for debugging
 	if slog.Default() != nil {
 		slog.Default().With("component", "context-builder").Info("Created ContextBuilder stub",
 			"config_provided", config != nil,
 			"pool_provided", pool != nil)
 	}
-	
+
 	return cb
 }
 
@@ -237,13 +237,13 @@ func (cb *ContextBuilderStub) BuildContext(ctx context.Context, intent string, m
 
 	// Stub implementation: Since this is a stub and we don't have actual Weaviate connection,
 	// we'll simulate some search results based on telecom keywords
-	
+
 	// Simulate search operation with mock results
 	if cb.config != nil && cb.config.EnableHybridSearch {
 		// Simulate hybrid search results
 		searchResults = cb.generateMockHybridSearchResults(enhancedQuery, maxDocs)
 	} else {
-		// Simulate vector search results  
+		// Simulate vector search results
 		searchResults = cb.generateMockVectorSearchResults(enhancedQuery, maxDocs)
 	}
 
@@ -570,7 +570,7 @@ func (rs *RelevanceScorerStub) Score(ctx context.Context, doc string, intent str
 	docLower := strings.ToLower(doc)
 	intentLower := strings.ToLower(intent)
 	words := strings.Fields(intentLower)
-	
+
 	score := float32(0.0)
 	for _, word := range words {
 		if strings.Contains(docLower, word) {
@@ -590,8 +590,8 @@ func (rs *RelevanceScorerStub) GetMetrics() map[string]interface{} {
 	}
 	return map[string]interface{}{
 		"relevance_scorer_enabled": false,
-		"status": "stub_implementation",
-		"total_scores_calculated": 0,
+		"status":                   "stub_implementation",
+		"total_scores_calculated":  0,
 	}
 }
 
@@ -627,7 +627,7 @@ func (cb *ContextBuilderStub) generateMockResults(query string, maxDocs int, sea
 
 	queryLower := strings.ToLower(query)
 	results := make([]*shared.SearchResult, 0, maxDocs)
-	
+
 	// Mock telecom knowledge base entries
 	mockDocs := []struct {
 		title      string
@@ -646,7 +646,7 @@ func (cb *ContextBuilderStub) generateMockResults(query string, maxDocs int, sea
 		{
 			title:      "Network Slicing Configuration",
 			content:    "Configuration procedures for network slicing in 5G networks, including QoS parameters and orchestration workflows.",
-			category:   "Network Slicing", 
+			category:   "Network Slicing",
 			keywords:   []string{"network slice", "slicing", "QoS", "orchestration"},
 			confidence: 0.90,
 		},
@@ -678,7 +678,7 @@ func (cb *ContextBuilderStub) generateMockResults(query string, maxDocs int, sea
 			}
 			results = append(results, result)
 		}
-		
+
 		if len(results) >= maxDocs {
 			break
 		}
@@ -691,7 +691,7 @@ func (cb *ContextBuilderStub) generateMockResults(query string, maxDocs int, sea
 func (cb *ContextBuilderStub) calculateMockRelevanceScore(query string, keywords []string, content string) float32 {
 	score := float32(0.0)
 	queryWords := strings.Fields(query)
-	
+
 	// Score based on keyword matches
 	for _, keyword := range keywords {
 		keywordLower := strings.ToLower(keyword)
@@ -702,7 +702,7 @@ func (cb *ContextBuilderStub) calculateMockRelevanceScore(query string, keywords
 			}
 		}
 	}
-	
+
 	// Score based on content matches
 	contentLower := strings.ToLower(content)
 	for _, queryWord := range queryWords {
@@ -710,11 +710,11 @@ func (cb *ContextBuilderStub) calculateMockRelevanceScore(query string, keywords
 			score += 0.2
 		}
 	}
-	
+
 	// Normalize score to 0-1 range
 	if score > 1.0 {
 		score = 1.0
 	}
-	
+
 	return score
 }

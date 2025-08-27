@@ -19,8 +19,8 @@ import (
 // BackupManagerTestSuite provides comprehensive test coverage for BackupManager
 type BackupManagerTestSuite struct {
 	suite.Suite
-	ctx       context.Context
-	cancel    context.CancelFunc
+	ctx    context.Context
+	cancel context.CancelFunc
 	// manager field removed as it was unused
 	k8sClient *fake.Clientset
 	logger    *slog.Logger

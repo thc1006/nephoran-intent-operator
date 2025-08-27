@@ -703,7 +703,6 @@ func (m *MockCircuitBreakerManager) GetAllStats() map[string]interface{} {
 	return m.stats
 }
 
-
 // TestCircuitBreakerHealthValidation tests the circuit breaker health check functionality
 func TestCircuitBreakerHealthValidation(t *testing.T) {
 	tests := []struct {
@@ -845,11 +844,11 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 
 			// Register health checks (including circuit breaker check)
 			sm.registerHealthChecks()
-			
+
 			// Execute the circuit breaker health check
 			ctx := context.Background()
 			response := sm.healthChecker.Check(ctx)
-			
+
 			// Find the circuit breaker check result
 			var result *health.Check
 			for i, check := range response.Checks {
@@ -892,7 +891,7 @@ func TestRegisterHealthChecksIntegration(t *testing.T) {
 		// Verify circuit breaker health check was registered
 		ctx := context.Background()
 		response := sm.healthChecker.Check(ctx)
-		
+
 		// Find the circuit breaker check result
 		var result *health.Check
 		for i, check := range response.Checks {
@@ -920,7 +919,7 @@ func TestRegisterHealthChecksIntegration(t *testing.T) {
 		// Verify circuit breaker health check was registered with nil manager
 		ctx := context.Background()
 		response := sm.healthChecker.Check(ctx)
-		
+
 		// Find the circuit breaker check result
 		var result *health.Check
 		for i, check := range response.Checks {

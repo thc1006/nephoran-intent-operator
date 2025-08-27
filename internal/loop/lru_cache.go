@@ -24,7 +24,7 @@ func NewLRUCache(capacity int) *LRUCache {
 	if capacity <= 0 {
 		capacity = 100
 	}
-	
+
 	return &LRUCache{
 		capacity: capacity,
 		items:    make(map[string]*list.Element),
@@ -36,13 +36,13 @@ func NewLRUCache(capacity int) *LRUCache {
 func (c *LRUCache) Get(key string) (interface{}, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	if elem, ok := c.items[key]; ok {
 		// Move to front (most recently used)
 		c.lru.MoveToFront(elem)
 		return elem.Value.(*cacheEntry).value, true
 	}
-	
+
 	return nil, false
 }
 
@@ -50,7 +50,7 @@ func (c *LRUCache) Get(key string) (interface{}, bool) {
 func (c *LRUCache) Put(key string, value interface{}) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	// Check if key exists
 	if elem, ok := c.items[key]; ok {
 		// Update existing entry
@@ -58,12 +58,12 @@ func (c *LRUCache) Put(key string, value interface{}) {
 		elem.Value.(*cacheEntry).value = value
 		return
 	}
-	
+
 	// Add new entry
 	entry := &cacheEntry{key: key, value: value}
 	elem := c.lru.PushFront(entry)
 	c.items[key] = elem
-	
+
 	// Evict if over capacity
 	if c.lru.Len() > c.capacity {
 		c.evictLocked()
@@ -84,13 +84,13 @@ func (c *LRUCache) evictLocked() {
 func (c *LRUCache) Remove(key string) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	if elem, ok := c.items[key]; ok {
 		c.lru.Remove(elem)
 		delete(c.items, key)
 		return true
 	}
-	
+
 	return false
 }
 
@@ -98,7 +98,7 @@ func (c *LRUCache) Remove(key string) bool {
 func (c *LRUCache) Clear() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	c.items = make(map[string]*list.Element)
 	c.lru.Init()
 }
@@ -107,7 +107,7 @@ func (c *LRUCache) Clear() {
 func (c *LRUCache) Size() int {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	
+
 	return c.lru.Len()
 }
 

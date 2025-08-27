@@ -32,21 +32,21 @@ import (
 
 // IntentRequest represents a request to create or update an intent
 type IntentRequest struct {
-	Name                string                          `json:"name"`
-		// Namespace call stubbed
+	Name string `json:"name"`
+	// Namespace call stubbed
 	Intent              string                          `json:"intent"`
 	IntentType          nephoranv1.IntentType           `json:"intent_type"`
 	Priority            nephoranv1.Priority             `json:"priority,omitempty"`
 	TargetComponents    []nephoranv1.TargetComponent    `json:"target_components,omitempty"`
 	ResourceConstraints *nephoranv1.ResourceConstraints `json:"resource_constraints,omitempty"`
-		// Namespace call stubbed
-	TargetCluster       string                          `json:"target_cluster,omitempty"`
-	NetworkSlice        string                          `json:"network_slice,omitempty"`
-	Region              string                          `json:"region,omitempty"`
-	TimeoutSeconds      *int32                          `json:"timeout_seconds,omitempty"`
-	MaxRetries          *int32                          `json:"max_retries,omitempty"`
-	Labels              map[string]string               `json:"labels,omitempty"`
-	Annotations         map[string]string               `json:"annotations,omitempty"`
+	// Namespace call stubbed
+	TargetCluster  string            `json:"target_cluster,omitempty"`
+	NetworkSlice   string            `json:"network_slice,omitempty"`
+	Region         string            `json:"region,omitempty"`
+	TimeoutSeconds *int32            `json:"timeout_seconds,omitempty"`
+	MaxRetries     *int32            `json:"max_retries,omitempty"`
+	Labels         map[string]string `json:"labels,omitempty"`
+	Annotations    map[string]string `json:"annotations,omitempty"`
 }
 
 // IntentResponse represents an intent response with extended information
@@ -92,14 +92,14 @@ type ValidationSummary struct {
 
 // IntentStatusUpdate represents a status update for streaming
 type IntentStatusUpdate struct {
-	IntentName      string             `json:"intent_name"`
-		// Namespace call stubbed
-	Phase           string             `json:"phase"`
-	Conditions      []metav1.Condition `json:"conditions,omitempty"`
-	Progress        int                `json:"progress"` // 0-100
-	Message         string             `json:"message,omitempty"`
-	Timestamp       time.Time          `json:"timestamp"`
-	EventType       string             `json:"event_type"` // created, updated, deleted, error
+	IntentName string `json:"intent_name"`
+	// Namespace call stubbed
+	Phase      string             `json:"phase"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	Progress   int                `json:"progress"` // 0-100
+	Message    string             `json:"message,omitempty"`
+	Timestamp  time.Time          `json:"timestamp"`
+	EventType  string             `json:"event_type"` // created, updated, deleted, error
 }
 
 // setupIntentRoutes sets up intent management API routes
@@ -271,9 +271,9 @@ func (s *NephoranAPIServer) createIntent(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Set defaults
-		// Namespace call stubbed
-		// Namespace call stubbed
-	
+	// Namespace call stubbed
+	// Namespace call stubbed
+
 	if req.Priority == "" {
 		req.Priority = nephoranv1.PriorityMedium
 	}
@@ -284,23 +284,23 @@ func (s *NephoranAPIServer) createIntent(w http.ResponseWriter, r *http.Request)
 	// Create NetworkIntent object
 	intent := &nephoranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        req.Name,
-		// Namespace call stubbed
+			Name: req.Name,
+			// Namespace call stubbed
 			Labels:      req.Labels,
 			Annotations: req.Annotations,
 		},
 		Spec: nephoranv1.NetworkIntentSpec{
-			Intent:              req.Intent,
-			IntentType:          req.IntentType,
-			Priority:            req.Priority,
-		// existingIntent.Spec.TargetComponents = req.TargetComponents // Type mismatch
+			Intent:     req.Intent,
+			IntentType: req.IntentType,
+			Priority:   req.Priority,
+			// existingIntent.Spec.TargetComponents = req.TargetComponents // Type mismatch
 			ResourceConstraints: req.ResourceConstraints,
-		// Namespace call stubbed
-			TargetCluster:       req.TargetCluster,
-			NetworkSlice:        req.NetworkSlice,
-			Region:              req.Region,
-		// existingIntent.Spec.TimeoutSeconds = req.TimeoutSeconds // Field doesn't exist
-		// existingIntent.Spec.MaxRetries = req.MaxRetries // Field doesn't exist
+			// Namespace call stubbed
+			TargetCluster: req.TargetCluster,
+			NetworkSlice:  req.NetworkSlice,
+			Region:        req.Region,
+			// existingIntent.Spec.TimeoutSeconds = req.TimeoutSeconds // Field doesn't exist
+			// existingIntent.Spec.MaxRetries = req.MaxRetries // Field doesn't exist
 		},
 	}
 
@@ -347,13 +347,13 @@ func (s *NephoranAPIServer) createIntent(w http.ResponseWriter, r *http.Request)
 
 	// Broadcast intent creation event
 	s.broadcastIntentUpdate(&IntentStatusUpdate{
-		IntentName:      createdIntent.Name,
+		IntentName: createdIntent.Name,
 		// Namespace call stubbed
-		Phase:           string(createdIntent.Status.Phase),
-		Progress:        0,
-		Message:         "Intent created successfully",
-		Timestamp:       time.Now(),
-		EventType:       "created",
+		Phase:     string(createdIntent.Status.Phase),
+		Progress:  0,
+		Message:   "Intent created successfully",
+		Timestamp: time.Now(),
+		EventType: "created",
 	})
 
 	response := s.buildIntentResponse(&createdIntent)
@@ -387,11 +387,11 @@ func (s *NephoranAPIServer) getIntent(w http.ResponseWriter, r *http.Request) {
 	err := error(nil)
 	_ = s.kubeClient // Use kubeClient to avoid unused variable
 	// Original code: result, err := s.kubeClient.RESTClient().
-		// Get method call stubbed out
-		// Namespace call stubbed
-		// Resource("networkintents").
-		// Name(name).
-		// DoRaw call stubbed
+	// Get method call stubbed out
+	// Namespace call stubbed
+	// Resource("networkintents").
+	// Name(name).
+	// DoRaw call stubbed
 
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -479,14 +479,14 @@ func (s *NephoranAPIServer) updateIntent(w http.ResponseWriter, r *http.Request)
 	existingIntent.Spec.Intent = req.Intent
 	existingIntent.Spec.IntentType = req.IntentType
 	existingIntent.Spec.Priority = req.Priority
-		// existingIntent.Spec.TargetComponents = req.TargetComponents // Type mismatch
+	// existingIntent.Spec.TargetComponents = req.TargetComponents // Type mismatch
 	existingIntent.Spec.ResourceConstraints = req.ResourceConstraints
-		// Namespace call stubbed
+	// Namespace call stubbed
 	existingIntent.Spec.TargetCluster = req.TargetCluster
 	existingIntent.Spec.NetworkSlice = req.NetworkSlice
 	existingIntent.Spec.Region = req.Region
-		// existingIntent.Spec.TimeoutSeconds = req.TimeoutSeconds // Field doesn't exist
-		// existingIntent.Spec.MaxRetries = req.MaxRetries // Field doesn't exist
+	// existingIntent.Spec.TimeoutSeconds = req.TimeoutSeconds // Field doesn't exist
+	// existingIntent.Spec.MaxRetries = req.MaxRetries // Field doesn't exist
 
 	// Update metadata if provided
 	if req.Labels != nil {
@@ -515,12 +515,12 @@ func (s *NephoranAPIServer) updateIntent(w http.ResponseWriter, r *http.Request)
 	err = error(nil)
 	_ = s.kubeClient // Use kubeClient to avoid unused variable
 	// Original code: result, err := s.kubeClient.RESTClient().
-		// Put call stubbed
-		// Namespace call stubbed
-		// Resource("networkintents").
-		// Name(name).
-		// Body(intentBytes).
-		// DoRaw call stubbed
+	// Put call stubbed
+	// Namespace call stubbed
+	// Resource("networkintents").
+	// Name(name).
+	// Body(intentBytes).
+	// DoRaw call stubbed
 
 	if err != nil {
 		s.logger.Error(err, "Failed to update intent", "name", name, "namespace", namespace)
@@ -543,12 +543,12 @@ func (s *NephoranAPIServer) updateIntent(w http.ResponseWriter, r *http.Request)
 
 	// Broadcast intent update event
 	s.broadcastIntentUpdate(&IntentStatusUpdate{
-		IntentName:      updatedIntent.Name,
+		IntentName: updatedIntent.Name,
 		// Namespace call stubbed
-		Phase:           string(updatedIntent.Status.Phase),
-		Message:         "Intent updated successfully",
-		Timestamp:       time.Now(),
-		EventType:       "updated",
+		Phase:     string(updatedIntent.Status.Phase),
+		Message:   "Intent updated successfully",
+		Timestamp: time.Now(),
+		EventType: "updated",
 	})
 
 	response := s.buildIntentResponse(&updatedIntent)
@@ -576,13 +576,13 @@ func (s *NephoranAPIServer) deleteIntent(w http.ResponseWriter, r *http.Request)
 	// Delete the intent from Kubernetes
 	// Mock deletion - would use proper client in production
 	err := error(nil) // No error for mock
-	_ = s.kubeClient // Use kubeClient to avoid unused variable
+	_ = s.kubeClient  // Use kubeClient to avoid unused variable
 	// Original code: err := s.kubeClient.RESTClient().
-		// Delete().
-		// Namespace call stubbed
-		// Resource("networkintents").
-		// Name(name).
-		// DoRaw call stubbed
+	// Delete().
+	// Namespace call stubbed
+	// Resource("networkintents").
+	// Name(name).
+	// DoRaw call stubbed
 
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -603,11 +603,11 @@ func (s *NephoranAPIServer) deleteIntent(w http.ResponseWriter, r *http.Request)
 
 	// Broadcast intent deletion event
 	s.broadcastIntentUpdate(&IntentStatusUpdate{
-		IntentName:      name,
+		IntentName: name,
 		// Namespace call stubbed
-		Message:         "Intent deleted successfully",
-		Timestamp:       time.Now(),
-		EventType:       "deleted",
+		Message:   "Intent deleted successfully",
+		Timestamp: time.Now(),
+		EventType: "deleted",
 	})
 
 	s.writeJSONResponse(w, http.StatusNoContent, nil)
@@ -629,11 +629,11 @@ func (s *NephoranAPIServer) getIntentStatus(w http.ResponseWriter, r *http.Reque
 	err := error(nil)
 	_ = s.kubeClient // Use kubeClient to avoid unused variable
 	// Original code: result, err := s.kubeClient.RESTClient().
-		// Get method call stubbed out
-		// Namespace call stubbed
-		// Resource("networkintents").
-		// Name(name).
-		// DoRaw call stubbed
+	// Get method call stubbed out
+	// Namespace call stubbed
+	// Resource("networkintents").
+	// Name(name).
+	// DoRaw call stubbed
 
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -655,22 +655,22 @@ func (s *NephoranAPIServer) getIntentStatus(w http.ResponseWriter, r *http.Reque
 
 	// Build detailed status response
 	status := map[string]interface{}{
-		"name":                       intent.Name,
+		"name": intent.Name,
 		// Namespace call stubbed
-		"phase":                      intent.Status.Phase,
-		"conditions":                 intent.Status.Conditions,
+		"phase":      intent.Status.Phase,
+		"conditions": intent.Status.Conditions,
 		// "processing_start_time": intent.Status.ProcessingStartTime, // Field doesn't exist
 		// "processing_completion_time": intent.Status.ProcessingCompletionTime, // Field doesn't exist
 		// "deployment_start_time":      intent.Status.DeploymentStartTime, // Field doesn't exist
 		// "deployment_completion_time": intent.Status.DeploymentCompletionTime, // Field doesn't exist
 		// "git_commit_hash":            intent.Status.GitCommitHash, // Field doesn't exist
 		// "retry_count":                intent.Status.RetryCount, // Field doesn't exist
-		"validation_errors":          intent.Status.ValidationErrors,
-		"deployed_components":        intent.Status.DeployedComponents,
-		"processing_duration":        intent.Status.ProcessingDuration,
+		"validation_errors":   intent.Status.ValidationErrors,
+		"deployed_components": intent.Status.DeployedComponents,
+		"processing_duration": intent.Status.ProcessingDuration,
 		// "deployment_duration":        intent.Status.DeploymentDuration, // Field doesn't exist
 		// "last_retry_time":            intent.Status.LastRetryTime, // Field doesn't exist
-		"observed_generation":        intent.Status.ObservedGeneration,
+		"observed_generation": intent.Status.ObservedGeneration,
 	}
 
 	s.writeJSONResponse(w, http.StatusOK, status)
@@ -837,16 +837,16 @@ func mustMarshalString(v interface{}) string {
 func (s *NephoranAPIServer) getIntentEvents(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	intentID := vars["id"]
-	
+
 	events := []map[string]interface{}{
-		{"type": "created", "timestamp": time.Now().Add(-10*time.Minute), "message": "Intent created"},
-		{"type": "processing", "timestamp": time.Now().Add(-8*time.Minute), "message": "Intent processing started"},
-		{"type": "completed", "timestamp": time.Now().Add(-5*time.Minute), "message": "Intent completed successfully"},
+		{"type": "created", "timestamp": time.Now().Add(-10 * time.Minute), "message": "Intent created"},
+		{"type": "processing", "timestamp": time.Now().Add(-8 * time.Minute), "message": "Intent processing started"},
+		{"type": "completed", "timestamp": time.Now().Add(-5 * time.Minute), "message": "Intent completed successfully"},
 	}
-	
+
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
 		"intent_id": intentID,
-		"events": events,
+		"events":    events,
 	})
 }
 
@@ -854,16 +854,16 @@ func (s *NephoranAPIServer) getIntentEvents(w http.ResponseWriter, r *http.Reque
 func (s *NephoranAPIServer) getIntentLogs(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	intentID := vars["id"]
-	
+
 	logs := []map[string]interface{}{
-		{"level": "INFO", "timestamp": time.Now().Add(-10*time.Minute), "message": "Processing intent"},
-		{"level": "INFO", "timestamp": time.Now().Add(-8*time.Minute), "message": "Validating configuration"},
-		{"level": "INFO", "timestamp": time.Now().Add(-5*time.Minute), "message": "Intent completed"},
+		{"level": "INFO", "timestamp": time.Now().Add(-10 * time.Minute), "message": "Processing intent"},
+		{"level": "INFO", "timestamp": time.Now().Add(-8 * time.Minute), "message": "Validating configuration"},
+		{"level": "INFO", "timestamp": time.Now().Add(-5 * time.Minute), "message": "Intent completed"},
 	}
-	
+
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
 		"intent_id": intentID,
-		"logs": logs,
+		"logs":      logs,
 	})
 }
 
@@ -871,11 +871,11 @@ func (s *NephoranAPIServer) getIntentLogs(w http.ResponseWriter, r *http.Request
 func (s *NephoranAPIServer) validateIntent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	intentID := vars["id"]
-	
+
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
-		"intent_id": intentID,
+		"intent_id":         intentID,
 		"validation_status": "valid",
-		"message": "Intent validation completed successfully",
+		"message":           "Intent validation completed successfully",
 	})
 }
 
@@ -883,11 +883,11 @@ func (s *NephoranAPIServer) validateIntent(w http.ResponseWriter, r *http.Reques
 func (s *NephoranAPIServer) retryIntent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	intentID := vars["id"]
-	
+
 	s.writeJSONResponse(w, http.StatusAccepted, map[string]interface{}{
 		"intent_id": intentID,
-		"message": "Intent retry initiated",
-		"status": "processing",
+		"message":   "Intent retry initiated",
+		"status":    "processing",
 	})
 }
 
@@ -895,11 +895,11 @@ func (s *NephoranAPIServer) retryIntent(w http.ResponseWriter, r *http.Request) 
 func (s *NephoranAPIServer) cancelIntent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	intentID := vars["id"]
-	
+
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
 		"intent_id": intentID,
-		"message": "Intent cancellation initiated",
-		"status": "cancelling",
+		"message":   "Intent cancellation initiated",
+		"status":    "cancelling",
 	})
 }
 
@@ -910,7 +910,7 @@ func (s *NephoranAPIServer) getIntentTemplates(w http.ResponseWriter, r *http.Re
 		{"name": "scale-down", "description": "Scale down network functions", "type": "scaling"},
 		{"name": "deploy-cnf", "description": "Deploy cloud-native network function", "type": "deployment"},
 	}
-	
+
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
 		"templates": templates,
 	})
@@ -922,7 +922,7 @@ func (s *NephoranAPIServer) getIntentSuggestions(w http.ResponseWriter, r *http.
 		{"text": "Scale up UPF to 5 replicas", "type": "scaling", "confidence": 0.95},
 		{"text": "Deploy AMF in us-west region", "type": "deployment", "confidence": 0.87},
 	}
-	
+
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
 		"suggestions": suggestions,
 	})
@@ -934,7 +934,7 @@ func (s *NephoranAPIServer) previewIntent(w http.ResponseWriter, r *http.Request
 		"preview": map[string]interface{}{
 			"estimated_duration": "2-5 minutes",
 			"affected_resources": []string{"deployment/upf", "service/upf-service"},
-			"validation_status": "valid",
+			"validation_status":  "valid",
 		},
 	})
 }
@@ -943,7 +943,7 @@ func (s *NephoranAPIServer) previewIntent(w http.ResponseWriter, r *http.Request
 func (s *NephoranAPIServer) bulkCreateIntents(w http.ResponseWriter, r *http.Request) {
 	s.writeJSONResponse(w, http.StatusAccepted, map[string]interface{}{
 		"message": "Bulk intent creation initiated",
-		"count": 5,
+		"count":   5,
 	})
 }
 
@@ -951,7 +951,7 @@ func (s *NephoranAPIServer) bulkCreateIntents(w http.ResponseWriter, r *http.Req
 func (s *NephoranAPIServer) bulkDeleteIntents(w http.ResponseWriter, r *http.Request) {
 	s.writeJSONResponse(w, http.StatusAccepted, map[string]interface{}{
 		"message": "Bulk intent deletion initiated",
-		"count": 3,
+		"count":   3,
 	})
 }
 

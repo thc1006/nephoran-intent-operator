@@ -17,57 +17,57 @@ type OptimizedWatcher struct {
 	*Watcher // Embed base watcher
 
 	// Go 1.24 optimizations
-	fastPool          *sync.Pool           // Reusable JSON parsers
-	asyncQueue        chan *AsyncWorkItem  // Lock-free queue with generics
-	batchProcessor    *BatchProcessor      // AI-driven batch optimization
-	predictiveScaler  *PredictiveScaler    // ML-based scaling decisions
-	energyOptimizer   *EnergyOptimizer     // O-RAN L Release energy management
-	
+	fastPool         *sync.Pool          // Reusable JSON parsers
+	asyncQueue       chan *AsyncWorkItem // Lock-free queue with generics
+	batchProcessor   *BatchProcessor     // AI-driven batch optimization
+	predictiveScaler *PredictiveScaler   // ML-based scaling decisions
+	energyOptimizer  *EnergyOptimizer    // O-RAN L Release energy management
+
 	// Performance counters (cache-aligned)
 	stats struct {
-		_pad1           [8]uint64      // Cache line padding
-		processedCount  atomic.Uint64  // Atomic counter
-		_pad2           [7]uint64      // Cache line padding
-		throughputEMA   atomic.Uint64  // Exponential moving average
-		_pad3           [7]uint64      // Cache line padding
-		latencyP99      atomic.Uint64  // 99th percentile latency
-		_pad4           [7]uint64      // Cache line padding
+		_pad1          [8]uint64     // Cache line padding
+		processedCount atomic.Uint64 // Atomic counter
+		_pad2          [7]uint64     // Cache line padding
+		throughputEMA  atomic.Uint64 // Exponential moving average
+		_pad3          [7]uint64     // Cache line padding
+		latencyP99     atomic.Uint64 // 99th percentile latency
+		_pad4          [7]uint64     // Cache line padding
 	}
 }
 
 // AsyncWorkItem with zero-copy optimization
 type AsyncWorkItem struct {
-	FilePath    string
-	FileSize    int64
-	ModTime     time.Time
-	Priority    uint8       // 0=normal, 1=high, 2=critical
-	Deadline    time.Time   // For O-RAN L Release SLA compliance
-	AIContext   *AIContext  // ML prediction context
+	FilePath  string
+	FileSize  int64
+	ModTime   time.Time
+	Priority  uint8      // 0=normal, 1=high, 2=critical
+	Deadline  time.Time  // For O-RAN L Release SLA compliance
+	AIContext *AIContext // ML prediction context
 }
 
 // AIContext for predictive optimization
 type AIContext struct {
 	ProcessingTimeEstimate time.Duration `json:"processing_time_estimate"`
 	ResourceRequirement    uint8         `json:"resource_requirement"` // 1-10 scale
-	EnergyCost            float32       `json:"energy_cost"`          // Watts
-	BatchCompatible       bool          `json:"batch_compatible"`
+	EnergyCost             float32       `json:"energy_cost"`          // Watts
+	BatchCompatible        bool          `json:"batch_compatible"`
 }
 
 // BatchProcessor implements AI-driven batch optimization
 type BatchProcessor struct {
-	items          []AsyncWorkItem
-	mu             sync.RWMutex
-	maxBatchSize   int
-	timeout        time.Duration
-	aiPredictor    *MLPredictor    // L Release ML model
-	energyBudget   float64         // Watts available
+	items        []AsyncWorkItem
+	mu           sync.RWMutex
+	maxBatchSize int
+	timeout      time.Duration
+	aiPredictor  *MLPredictor // L Release ML model
+	energyBudget float64      // Watts available
 }
 
 // PredictiveScaler uses AI/ML for worker scaling decisions
 type PredictiveScaler struct {
-	currentWorkers   int32           // Atomic
-	targetWorkers    int32           // Atomic
-	scalingModel     *ScalingModel   // Trained ML model
+	currentWorkers   int32             // Atomic
+	targetWorkers    int32             // Atomic
+	scalingModel     *ScalingModel     // Trained ML model
 	trafficPredictor *TrafficPredictor // O-RAN traffic prediction
 	lastScaling      time.Time
 	minWorkers       int
@@ -119,11 +119,11 @@ func NewOptimizedWatcher(dir string, config Config) (*OptimizedWatcher, error) {
 	atomic.StoreInt32(&ow.predictiveScaler.currentWorkers, int32(config.MaxWorkers))
 
 	ow.energyOptimizer = &EnergyOptimizer{
-		powerBudget:      5000,  // 5kW for O-RAN deployment
-		efficiency:       0.5,   // Target Gbps/Watt
+		powerBudget:      5000, // 5kW for O-RAN deployment
+		efficiency:       0.5,  // Target Gbps/Watt
 		sleepScheduler:   NewSleepScheduler(),
 		carbonAware:      true,
-		renewablePercent: 0.6,   // 60% renewable target
+		renewablePercent: 0.6, // 60% renewable target
 	}
 
 	// Start background optimizers
@@ -214,7 +214,7 @@ func (ow *OptimizedWatcher) processBatch(items []AsyncWorkItem) error {
 			end = len(items)
 		}
 		batch := items[i:end]
-		
+
 		eg.Go(func() error {
 			return ow.processSubBatch(batch)
 		})
@@ -226,7 +226,7 @@ func (ow *OptimizedWatcher) processBatch(items []AsyncWorkItem) error {
 // AI-driven worker scaling
 func (ow *OptimizedWatcher) scaleWorkers() {
 	current := atomic.LoadInt32(&ow.predictiveScaler.currentWorkers)
-	
+
 	// Get ML prediction for optimal worker count
 	prediction := ow.predictiveScaler.scalingModel.PredictOptimalWorkers(
 		ow.getCurrentLoad(),
@@ -236,7 +236,7 @@ func (ow *OptimizedWatcher) scaleWorkers() {
 	)
 
 	target := int32(prediction.OptimalWorkers)
-	
+
 	// Apply energy constraints
 	if ow.energyOptimizer.currentPower > ow.energyOptimizer.powerBudget*0.9 {
 		if current-1 < target {
@@ -279,7 +279,7 @@ func (ow *OptimizedWatcher) processWithEnergyAwareness(workItem *AsyncWorkItem) 
 
 	// Estimate energy cost
 	energyCost := ow.estimateEnergyCost(workItem)
-	
+
 	// Process with energy monitoring
 	return ow.processWithEnergyMonitoring(workItem, energyCost)
 }
@@ -353,7 +353,7 @@ type CacheEntry struct {
 func (ow *OptimizedWatcher) recordLatencyFast(duration time.Duration) {
 	// Use lock-free atomic operations
 	nanos := uint64(duration.Nanoseconds())
-	
+
 	// Update exponential moving average
 	for {
 		old := ow.stats.throughputEMA.Load()
@@ -362,7 +362,7 @@ func (ow *OptimizedWatcher) recordLatencyFast(duration time.Duration) {
 			break
 		}
 	}
-	
+
 	// Update P99 using reservoir sampling approximation
 	ow.updateLatencyPercentile(nanos)
 }
@@ -371,16 +371,16 @@ func (ow *OptimizedWatcher) recordLatencyFast(duration time.Duration) {
 func (ow *OptimizedWatcher) startOptimizers() {
 	// AI/ML prediction updates
 	go ow.runPredictionLoop()
-	
+
 	// Energy optimization
 	go ow.runEnergyOptimizer()
-	
+
 	// Worker scaling
 	go ow.runScalingOptimizer()
-	
+
 	// Cache optimization
 	go ow.runCacheOptimizer()
-	
+
 	// Batch processing
 	go ow.runBatchProcessor()
 }
@@ -388,40 +388,42 @@ func (ow *OptimizedWatcher) startOptimizers() {
 // Helper functions for implementation
 
 // Placeholder implementations - would be fully implemented in production
-func (ow *OptimizedWatcher) isAlreadyProcessedFast(string, FileInfo) bool { return false }
-func (ow *OptimizedWatcher) getAIContext(string, FileInfo) *AIContext { return &AIContext{} }
-func (ow *OptimizedWatcher) calculatePriority(FileInfo, *AIContext) uint8 { return 1 }
-func (ow *OptimizedWatcher) canBatch(*AsyncWorkItem) bool { return true }
-func (ow *OptimizedWatcher) addToBatch(*AsyncWorkItem) error { return nil }
-func (ow *OptimizedWatcher) processImmediately(*AsyncWorkItem) error { return nil }
-func (ow *OptimizedWatcher) sortByProcessingTime([]AsyncWorkItem) {}
-func (ow *OptimizedWatcher) getOptimalBatchSize() int { return 10 }
-func (ow *OptimizedWatcher) processSubBatch([]AsyncWorkItem) error { return nil }
-func (ow *OptimizedWatcher) getCurrentLoad() float64 { return 0.5 }
-func (ow *OptimizedWatcher) getQueueDepth() int { return 0 }
-func (ow *OptimizedWatcher) getAverageLatency() time.Duration { return time.Millisecond }
-func (ow *OptimizedWatcher) adjustWorkerPool(int32) {}
-func (ow *OptimizedWatcher) deferProcessing(*AsyncWorkItem) error { return nil }
-func (ow *OptimizedWatcher) scheduleForRenewableWindow(*AsyncWorkItem) error { return nil }
-func (ow *OptimizedWatcher) estimateEnergyCost(*AsyncWorkItem) float64 { return 1.0 }
+func (ow *OptimizedWatcher) isAlreadyProcessedFast(string, FileInfo) bool              { return false }
+func (ow *OptimizedWatcher) getAIContext(string, FileInfo) *AIContext                  { return &AIContext{} }
+func (ow *OptimizedWatcher) calculatePriority(FileInfo, *AIContext) uint8              { return 1 }
+func (ow *OptimizedWatcher) canBatch(*AsyncWorkItem) bool                              { return true }
+func (ow *OptimizedWatcher) addToBatch(*AsyncWorkItem) error                           { return nil }
+func (ow *OptimizedWatcher) processImmediately(*AsyncWorkItem) error                   { return nil }
+func (ow *OptimizedWatcher) sortByProcessingTime([]AsyncWorkItem)                      {}
+func (ow *OptimizedWatcher) getOptimalBatchSize() int                                  { return 10 }
+func (ow *OptimizedWatcher) processSubBatch([]AsyncWorkItem) error                     { return nil }
+func (ow *OptimizedWatcher) getCurrentLoad() float64                                   { return 0.5 }
+func (ow *OptimizedWatcher) getQueueDepth() int                                        { return 0 }
+func (ow *OptimizedWatcher) getAverageLatency() time.Duration                          { return time.Millisecond }
+func (ow *OptimizedWatcher) adjustWorkerPool(int32)                                    {}
+func (ow *OptimizedWatcher) deferProcessing(*AsyncWorkItem) error                      { return nil }
+func (ow *OptimizedWatcher) scheduleForRenewableWindow(*AsyncWorkItem) error           { return nil }
+func (ow *OptimizedWatcher) estimateEnergyCost(*AsyncWorkItem) float64                 { return 1.0 }
 func (ow *OptimizedWatcher) processWithEnergyMonitoring(*AsyncWorkItem, float64) error { return nil }
-func (ow *OptimizedWatcher) updateLatencyPercentile(uint64) {}
-func (ow *OptimizedWatcher) runPredictionLoop() {}
-func (ow *OptimizedWatcher) runEnergyOptimizer() {}
-func (ow *OptimizedWatcher) runScalingOptimizer() {}
-func (ow *OptimizedWatcher) runCacheOptimizer() {}
-func (ow *OptimizedWatcher) runBatchProcessor() {}
+func (ow *OptimizedWatcher) updateLatencyPercentile(uint64)                            {}
+func (ow *OptimizedWatcher) runPredictionLoop()                                        {}
+func (ow *OptimizedWatcher) runEnergyOptimizer()                                       {}
+func (ow *OptimizedWatcher) runScalingOptimizer()                                      {}
+func (ow *OptimizedWatcher) runCacheOptimizer()                                        {}
+func (ow *OptimizedWatcher) runBatchProcessor()                                        {}
 
-func readFileFast(string) ([]byte, error) { return nil, nil }
+func readFileFast(string) ([]byte, error)                    { return nil, nil }
 func (ow *OptimizedWatcher) validateSchemaFast([]byte) error { return nil }
-func enableFIPSMode() error { return nil }
+func enableFIPSMode() error                                  { return nil }
 
 // Note: FileInfo type is defined in bounded_stats.go
 
 type MLPredictor struct{}
+
 func NewMLPredictor() *MLPredictor { return &MLPredictor{} }
 
 type ScalingModel struct{}
+
 func NewScalingModel() *ScalingModel { return &ScalingModel{} }
 func (sm *ScalingModel) PredictOptimalWorkers(float64, int, time.Duration, float64) ScalingPrediction {
 	return ScalingPrediction{OptimalWorkers: 4}
@@ -432,9 +434,11 @@ type ScalingPrediction struct {
 }
 
 type TrafficPredictor struct{}
+
 func NewTrafficPredictor() *TrafficPredictor { return &TrafficPredictor{} }
 
 type SleepScheduler struct{}
+
 func NewSleepScheduler() *SleepScheduler { return &SleepScheduler{} }
 
 type AccessPredictor struct{}

@@ -286,7 +286,7 @@ func demonstrateResourceLifecycle(ctx context.Context, manager ResourceManager) 
 	// Create a stub resource for demonstration (since ProvisionResource returns interface{})
 	resourceID := "lifecycle-example-id-123"
 	resourceName := "lifecycle-example"
-	
+
 	fmt.Printf("✓ Provisioned resource: %s (ID: %s)\n", resourceName, resourceID)
 
 	// Configure resource
@@ -329,7 +329,7 @@ func demonstrateResourceLifecycle(ctx context.Context, manager ResourceManager) 
 
 	// Create a stub backup ID for demonstration (since BackupResource returns interface{})
 	backupID := "backup-lifecycle-example-123"
-	
+
 	fmt.Printf("✓ Created backup: %s for resource: %s\n",
 		backupID, resourceID)
 
@@ -382,7 +382,7 @@ func demonstrateCloudProviders(ctx context.Context, service O2IMSService) error 
 	}
 
 	fmt.Printf("✓ Available cloud providers:\n")
-	
+
 	// Handle interface{} return from GetCloudProviders
 	if providerSlice, ok := providers.([]interface{}); ok {
 		for _, provider := range providerSlice {

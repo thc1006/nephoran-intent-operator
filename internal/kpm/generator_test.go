@@ -22,13 +22,13 @@ func TestNewGenerator(t *testing.T) {
 	if g.outputDir != testDir {
 		t.Errorf("expected outputDir to be '%s', got %s", testDir, g.outputDir)
 	}
-	
+
 	// Test validation
 	_, err = NewGenerator("", testDir)
 	if err == nil {
 		t.Error("expected error for empty nodeID")
 	}
-	
+
 	_, err = NewGenerator("test-node", "")
 	if err == nil {
 		t.Error("expected error for empty outputDir")
@@ -46,7 +46,7 @@ func TestGenerateMetric(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewGenerator failed: %v", err)
 	}
-	
+
 	if err := g.GenerateMetric(); err != nil {
 		t.Fatalf("GenerateMetric failed: %v", err)
 	}
@@ -139,7 +139,7 @@ func TestFilePermissions(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Skipping file permissions test on Windows")
 	}
-	
+
 	tmpDir, err := os.MkdirTemp("", "kpm-perms-*")
 	if err != nil {
 		t.Fatal(err)

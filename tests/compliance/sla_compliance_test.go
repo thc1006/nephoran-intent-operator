@@ -1,3 +1,5 @@
+//go:build integration
+
 package compliance
 
 import (
@@ -245,7 +247,6 @@ type FrameworkReporter interface {
 	ValidateCompliance(ctx context.Context, evidence *ComplianceEvidence) (*ComplianceResult, error)
 	GetRequirements() []*ComplianceRequirement
 }
-
 
 // ComplianceStatus represents overall compliance status
 type ComplianceStatus string

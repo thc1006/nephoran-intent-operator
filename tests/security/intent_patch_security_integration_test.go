@@ -11,9 +11,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/thc1006/nephoran-intent-operator/test/integration/mocks"
 )
@@ -61,9 +61,9 @@ func TestIntentPatchSecurityIntegration(t *testing.T) {
 					PackageName: "prod-package",
 					Repository:  "prod-cluster",
 					Parameters: map[string]string{
-						"minReplicas":           "5",
-						"maxReplicas":           "50",
-						"runAsNonRoot":          "true",
+						"minReplicas":            "5",
+						"maxReplicas":            "50",
+						"runAsNonRoot":           "true",
 						"readOnlyRootFilesystem": "true",
 					},
 				},
@@ -83,11 +83,11 @@ func TestIntentPatchSecurityIntegration(t *testing.T) {
 			require.NoError(t, err, "Patch generation should succeed")
 
 			// Validate patch generation time
-			assert.Less(t, patchResult.ProcessingTime, tc.maxProcessingTime, 
+			assert.Less(t, patchResult.ProcessingTime, tc.maxProcessingTime,
 				"Patch generation exceeded maximum allowed time")
 
 			// Validate security levels
-			assert.Equal(t, tc.expectedSecurityLevel, patchResult.SecurityLevel, 
+			assert.Equal(t, tc.expectedSecurityLevel, patchResult.SecurityLevel,
 				"Security level does not match expected")
 
 			// Additional security validations
@@ -98,7 +98,7 @@ func TestIntentPatchSecurityIntegration(t *testing.T) {
 
 // Simulated structs and functions for demonstration
 type PatchResult struct {
-	SecurityLevel   string
+	SecurityLevel  string
 	ProcessingTime time.Duration
 	PatchData      []byte
 }
@@ -118,9 +118,9 @@ func generateSecurePatch(ctx context.Context, intent *networkintentv1.NetworkInt
 	securityLevel := determineSecurityLevel(intent)
 
 	result := &PatchResult{
-		SecurityLevel:   securityLevel,
-		ProcessingTime:  time.Since(start),
-		PatchData:       patchData,
+		SecurityLevel:  securityLevel,
+		ProcessingTime: time.Since(start),
+		PatchData:      patchData,
 	}
 
 	return result, nil
@@ -141,8 +141,8 @@ func validateIntentSecurity(intent *networkintentv1.NetworkIntent) error {
 
 func determineSecurityLevel(intent *networkintentv1.NetworkIntent) string {
 	// Determine security level based on intent configuration
-	if intent.Spec.SecurityContext.RunAsNonRoot && 
-	   intent.Spec.SecurityContext.ReadOnlyRootFilesystem {
+	if intent.Spec.SecurityContext.RunAsNonRoot &&
+		intent.Spec.SecurityContext.ReadOnlyRootFilesystem {
 		return "high"
 	}
 	return "standard"
@@ -151,8 +151,8 @@ func determineSecurityLevel(intent *networkintentv1.NetworkIntent) string {
 func validatePatchSecurity(t *testing.T, result *PatchResult) {
 	// Additional patch security validations
 	assert.NotEmpty(t, result.PatchData, "Patch data should not be empty")
-	assert.Contains(t, []string{"standard", "high"}, result.SecurityLevel, 
+	assert.Contains(t, []string{"standard", "high"}, result.SecurityLevel,
 		"Invalid security level")
-	assert.Less(t, result.ProcessingTime, 10*time.Second, 
+	assert.Less(t, result.ProcessingTime, 10*time.Second,
 		"Patch generation took too long")
 }

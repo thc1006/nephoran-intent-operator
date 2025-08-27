@@ -371,25 +371,25 @@ func (s *O2APIServer) parseMetricsFilter(r *http.Request) *MetricsFilter {
 		MetricNames: s.parseQueryParamArray(r, "metricNames"),
 		Limit:       s.getQueryParamInt(r, "limit", 1000),
 	}
-	
+
 	// Parse StartTime if provided
 	if startTimeStr := s.getQueryParam(r, "startTime"); startTimeStr != "" {
 		if startTime, err := s.parseTimeParam(r, "startTime"); err == nil && startTime != nil {
 			filter.StartTime = startTime
 		}
 	}
-	
-	// Parse EndTime if provided  
+
+	// Parse EndTime if provided
 	if endTimeStr := s.getQueryParam(r, "endTime"); endTimeStr != "" {
 		if endTime, err := s.parseTimeParam(r, "endTime"); err == nil && endTime != nil {
 			filter.EndTime = endTime
 		}
 	}
-	
+
 	// Parse other string fields
 	filter.Interval = s.getQueryParam(r, "interval")
 	filter.Aggregation = s.getQueryParam(r, "aggregation")
-	
+
 	return filter
 }
 

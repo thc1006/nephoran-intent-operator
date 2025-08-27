@@ -46,20 +46,20 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 		if err != nil {
 			return nil, fmt.Errorf("invalid replica count: %s", matches[2])
 		}
-		
+
 		intent := map[string]interface{}{
 			"intent_type": "scaling",
 			"target":      matches[1],
 			"replicas":    replicas,
 		}
-		
+
 		// Add namespace if provided
 		if len(matches) > 3 && matches[3] != "" {
 			intent["namespace"] = matches[3]
 		} else {
 			intent["namespace"] = "default"
 		}
-		
+
 		return intent, nil
 	}
 
@@ -69,14 +69,14 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 			"intent_type": "deployment",
 			"target":      matches[1],
 		}
-		
+
 		// Add namespace if provided
 		if len(matches) > 2 && matches[2] != "" {
 			intent["namespace"] = matches[2]
 		} else {
 			intent["namespace"] = "default"
 		}
-		
+
 		return intent, nil
 	}
 
@@ -86,14 +86,14 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 			"intent_type": "deletion",
 			"target":      matches[1],
 		}
-		
+
 		// Add namespace if provided
 		if len(matches) > 2 && matches[2] != "" {
 			intent["namespace"] = matches[2]
 		} else {
 			intent["namespace"] = "default"
 		}
-		
+
 		return intent, nil
 	}
 
@@ -106,14 +106,14 @@ func (p *RuleBasedIntentParser) ParseIntent(text string) (map[string]interface{}
 				matches[2]: matches[3],
 			},
 		}
-		
+
 		// Add namespace if provided
 		if len(matches) > 4 && matches[4] != "" {
 			intent["namespace"] = matches[4]
 		} else {
 			intent["namespace"] = "default"
 		}
-		
+
 		return intent, nil
 	}
 

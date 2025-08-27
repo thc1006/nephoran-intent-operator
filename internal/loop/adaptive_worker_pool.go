@@ -13,56 +13,56 @@ import (
 // AdaptiveWorkerPool implements a dynamic worker pool with backpressure control
 type AdaptiveWorkerPool struct {
 	// Core configuration
-	minWorkers       int
-	maxWorkers       int
-	targetQueueDepth int
-	scaleUpThreshold float64
+	minWorkers         int
+	maxWorkers         int
+	targetQueueDepth   int
+	scaleUpThreshold   float64
 	scaleDownThreshold float64
-	
+
 	// Work queue with bounded capacity for backpressure
-	workQueue        chan WorkItem
-	priorityQueue    chan WorkItem // High priority items
-	
+	workQueue     chan WorkItem
+	priorityQueue chan WorkItem // High priority items
+
 	// Worker management
-	workers          sync.WaitGroup
-	activeWorkers    atomic.Int64
-	processingItems  atomic.Int64
-	
+	workers         sync.WaitGroup
+	activeWorkers   atomic.Int64
+	processingItems atomic.Int64
+
 	// Adaptive scaling
-	scalingMutex     sync.RWMutex
-	currentWorkers   int
-	lastScaleTime    time.Time
-	scaleCooldown    time.Duration
-	
+	scalingMutex   sync.RWMutex
+	currentWorkers int
+	lastScaleTime  time.Time
+	scaleCooldown  time.Duration
+
 	// Metrics for scaling decisions
 	queueDepthHistory []int
 	processingTimes   *RingBuffer
-	
+
 	// Lifecycle management
-	ctx              context.Context
-	cancel           context.CancelFunc
-	stopSignal       chan struct{}
-	queueClosed      sync.Once
-	
+	ctx         context.Context
+	cancel      context.CancelFunc
+	stopSignal  chan struct{}
+	queueClosed sync.Once
+
 	// Backpressure control
-	backpressure     atomic.Bool
-	rejectedCount    atomic.Int64
-	
+	backpressure  atomic.Bool
+	rejectedCount atomic.Int64
+
 	// Performance metrics
-	metrics          *PoolMetrics
+	metrics *PoolMetrics
 }
 
 // PoolMetrics tracks worker pool performance
 type PoolMetrics struct {
-	mu                sync.RWMutex
-	TotalProcessed    int64
-	TotalRejected     int64
-	AverageWaitTime   time.Duration
+	mu                 sync.RWMutex
+	TotalProcessed     int64
+	TotalRejected      int64
+	AverageWaitTime    time.Duration
 	AverageProcessTime time.Duration
-	CurrentWorkers    int
-	QueueDepth        int
-	Throughput        float64 // items/second
-	lastReset         time.Time
+	CurrentWorkers     int
+	QueueDepth         int
+	Throughput         float64 // items/second
+	lastReset          time.Time
 }
 
 // AdaptivePoolConfig configures the adaptive worker pool
@@ -79,11 +79,11 @@ type AdaptivePoolConfig struct {
 // DefaultAdaptiveConfig returns optimized default configuration
 func DefaultAdaptiveConfig() *AdaptivePoolConfig {
 	cpuCount := runtime.NumCPU()
-	
+
 	return &AdaptivePoolConfig{
 		MinWorkers:         max(2, cpuCount/2),
 		MaxWorkers:         min(cpuCount*2, 32), // Cap at 32 to prevent resource exhaustion
-		QueueSize:          1000,                 // Bounded queue for backpressure
+		QueueSize:          1000,                // Bounded queue for backpressure
 		ScaleUpThreshold:   0.7,
 		ScaleDownThreshold: 0.3,
 		ScaleCooldown:      5 * time.Second,
@@ -96,7 +96,7 @@ func NewAdaptiveWorkerPool(config *AdaptivePoolConfig) *AdaptiveWorkerPool {
 	if config == nil {
 		config = DefaultAdaptiveConfig()
 	}
-	
+
 	// Validate configuration
 	if config.MinWorkers < 1 {
 		config.MinWorkers = 1
@@ -107,9 +107,9 @@ func NewAdaptiveWorkerPool(config *AdaptivePoolConfig) *AdaptiveWorkerPool {
 	if config.QueueSize < 100 {
 		config.QueueSize = 100
 	}
-	
+
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	pool := &AdaptiveWorkerPool{
 		minWorkers:         config.MinWorkers,
 		maxWorkers:         config.MaxWorkers,
@@ -130,18 +130,18 @@ func NewAdaptiveWorkerPool(config *AdaptivePoolConfig) *AdaptiveWorkerPool {
 			lastReset: time.Now(),
 		},
 	}
-	
+
 	// Start initial workers
 	for i := 0; i < config.MinWorkers; i++ {
 		pool.startWorker(i)
 	}
-	
+
 	// Start adaptive scaling monitor
 	go pool.scalingMonitor()
-	
+
 	// Start metrics collector
 	go pool.metricsCollector()
-	
+
 	return pool
 }
 
@@ -153,7 +153,7 @@ func (p *AdaptiveWorkerPool) Submit(item WorkItem) error {
 		return fmt.Errorf("pool is shutting down")
 	default:
 	}
-	
+
 	// Try priority queue first if item has high priority
 	if p.isHighPriority(item) {
 		select {
@@ -163,11 +163,11 @@ func (p *AdaptiveWorkerPool) Submit(item WorkItem) error {
 			// Priority queue full, try regular queue
 		}
 	}
-	
+
 	// Try regular queue with timeout for backpressure
 	timeout := time.NewTimer(100 * time.Millisecond)
 	defer timeout.Stop()
-	
+
 	select {
 	case p.workQueue <- item:
 		return nil
@@ -191,31 +191,31 @@ func (p *AdaptiveWorkerPool) isHighPriority(item WorkItem) bool {
 func (p *AdaptiveWorkerPool) startWorker(id int) {
 	p.workers.Add(1)
 	p.activeWorkers.Add(1)
-	
+
 	go func() {
 		defer p.workers.Done()
 		defer p.activeWorkers.Add(-1)
-		
+
 		log.Printf("Worker %d started", id)
-		
+
 		for {
 			select {
 			// Priority queue has precedence
 			case item := <-p.priorityQueue:
 				p.processItem(id, item)
-				
+
 			case item := <-p.workQueue:
 				p.processItem(id, item)
-				
+
 			case <-p.stopSignal:
 				log.Printf("Worker %d stopping", id)
 				return
-				
+
 			case <-p.ctx.Done():
 				log.Printf("Worker %d context cancelled", id)
 				return
 			}
-			
+
 			// Clear backpressure if queue is below threshold
 			if len(p.workQueue) < p.targetQueueDepth/2 {
 				p.backpressure.Store(false)
@@ -229,14 +229,14 @@ func (p *AdaptiveWorkerPool) processItem(workerID int, item WorkItem) {
 	startTime := time.Now()
 	p.processingItems.Add(1)
 	defer p.processingItems.Add(-1)
-	
+
 	// Process the item (placeholder - integrate with actual processor)
 	// This would call the actual file processing logic
 	processingTime := time.Since(startTime)
-	
+
 	// Record metrics
 	p.processingTimes.Add(float64(processingTime.Milliseconds()))
-	
+
 	p.metrics.mu.Lock()
 	p.metrics.TotalProcessed++
 	p.metrics.AverageProcessTime = time.Duration(p.processingTimes.Average()) * time.Millisecond
@@ -247,12 +247,12 @@ func (p *AdaptiveWorkerPool) processItem(workerID int, item WorkItem) {
 func (p *AdaptiveWorkerPool) scalingMonitor() {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
 			p.evaluateScaling()
-			
+
 		case <-p.ctx.Done():
 			return
 		}
@@ -265,9 +265,9 @@ func (p *AdaptiveWorkerPool) evaluateScaling() {
 	if time.Since(p.lastScaleTime) < p.scaleCooldown {
 		return
 	}
-	
+
 	queueDepth := len(p.workQueue) + len(p.priorityQueue)
-	
+
 	// Record queue depth history
 	p.scalingMutex.Lock()
 	p.queueDepthHistory = append(p.queueDepthHistory, queueDepth)
@@ -276,23 +276,23 @@ func (p *AdaptiveWorkerPool) evaluateScaling() {
 	}
 	currentWorkers := p.currentWorkers
 	p.scalingMutex.Unlock()
-	
+
 	// Calculate average queue utilization
 	avgUtilization := p.calculateAverageUtilization()
-	
+
 	// Scale up if needed
 	if avgUtilization > p.scaleUpThreshold && currentWorkers < p.maxWorkers {
 		newWorkers := min(currentWorkers+2, p.maxWorkers)
 		p.scaleWorkers(newWorkers - currentWorkers)
-		log.Printf("Scaling up: %d -> %d workers (utilization: %.2f%%)", 
+		log.Printf("Scaling up: %d -> %d workers (utilization: %.2f%%)",
 			currentWorkers, newWorkers, avgUtilization*100)
 	}
-	
+
 	// Scale down if needed
 	if avgUtilization < p.scaleDownThreshold && currentWorkers > p.minWorkers {
 		newWorkers := max(currentWorkers-1, p.minWorkers)
 		p.scaleWorkers(currentWorkers - newWorkers)
-		log.Printf("Scaling down: %d -> %d workers (utilization: %.2f%%)", 
+		log.Printf("Scaling down: %d -> %d workers (utilization: %.2f%%)",
 			currentWorkers, newWorkers, avgUtilization*100)
 	}
 }
@@ -301,16 +301,16 @@ func (p *AdaptiveWorkerPool) evaluateScaling() {
 func (p *AdaptiveWorkerPool) calculateAverageUtilization() float64 {
 	p.scalingMutex.RLock()
 	defer p.scalingMutex.RUnlock()
-	
+
 	if len(p.queueDepthHistory) == 0 {
 		return 0
 	}
-	
+
 	sum := 0
 	for _, depth := range p.queueDepthHistory {
 		sum += depth
 	}
-	
+
 	avgDepth := float64(sum) / float64(len(p.queueDepthHistory))
 	return avgDepth / float64(p.targetQueueDepth)
 }
@@ -319,7 +319,7 @@ func (p *AdaptiveWorkerPool) calculateAverageUtilization() float64 {
 func (p *AdaptiveWorkerPool) scaleWorkers(delta int) {
 	p.scalingMutex.Lock()
 	defer p.scalingMutex.Unlock()
-	
+
 	if delta > 0 {
 		// Add workers
 		for i := 0; i < delta; i++ {
@@ -336,9 +336,9 @@ func (p *AdaptiveWorkerPool) scaleWorkers(delta int) {
 		}
 		p.currentWorkers += delta
 	}
-	
+
 	p.lastScaleTime = time.Now()
-	
+
 	// Update metrics
 	p.metrics.mu.Lock()
 	p.metrics.CurrentWorkers = p.currentWorkers
@@ -349,25 +349,25 @@ func (p *AdaptiveWorkerPool) scaleWorkers(delta int) {
 func (p *AdaptiveWorkerPool) metricsCollector() {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
-	
+
 	lastProcessed := int64(0)
-	
+
 	for {
 		select {
 		case <-ticker.C:
 			p.metrics.mu.Lock()
-			
+
 			// Calculate throughput
 			processed := p.metrics.TotalProcessed
 			delta := processed - lastProcessed
 			p.metrics.Throughput = float64(delta)
 			lastProcessed = processed
-			
+
 			// Update queue depth
 			p.metrics.QueueDepth = len(p.workQueue) + len(p.priorityQueue)
-			
+
 			p.metrics.mu.Unlock()
-			
+
 		case <-p.ctx.Done():
 			return
 		}
@@ -378,7 +378,7 @@ func (p *AdaptiveWorkerPool) metricsCollector() {
 func (p *AdaptiveWorkerPool) GetMetrics() *PoolMetrics {
 	p.metrics.mu.RLock()
 	defer p.metrics.mu.RUnlock()
-	
+
 	// Create a copy without the mutex to avoid copylocks
 	metricsCopy := &PoolMetrics{
 		TotalProcessed:     p.metrics.TotalProcessed,
@@ -397,20 +397,20 @@ func (p *AdaptiveWorkerPool) GetMetrics() *PoolMetrics {
 func (p *AdaptiveWorkerPool) Shutdown(timeout time.Duration) error {
 	// Cancel context to stop accepting new work
 	p.cancel()
-	
+
 	// Close queues
 	p.queueClosed.Do(func() {
 		close(p.workQueue)
 		close(p.priorityQueue)
 	})
-	
+
 	// Wait for workers with timeout
 	done := make(chan struct{})
 	go func() {
 		p.workers.Wait()
 		close(done)
 	}()
-	
+
 	select {
 	case <-done:
 		return nil
@@ -442,7 +442,7 @@ func max(a, b int) int {
 	return b
 }
 
-// min returns the minimum of two integers  
+// min returns the minimum of two integers
 func min(a, b int) int {
 	if a < b {
 		return a

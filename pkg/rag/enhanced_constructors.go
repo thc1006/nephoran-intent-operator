@@ -521,11 +521,11 @@ func (pha *ProviderHealthAdapter) GenerateEmbedding(ctx context.Context, text st
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if len(response.Embeddings) == 0 {
 		return nil, fmt.Errorf("no embeddings returned")
 	}
-	
+
 	return response.Embeddings[0], nil
 }
 
@@ -535,7 +535,7 @@ func (pha *ProviderHealthAdapter) GenerateBatchEmbeddings(ctx context.Context, t
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return response.Embeddings, nil
 }
 
@@ -546,7 +546,7 @@ func (pha *ProviderHealthAdapter) GetDimensions() int {
 	if modelInfo.Dimensions > 0 {
 		return modelInfo.Dimensions
 	}
-	
+
 	// Default fallback - most common embedding dimensions
 	return 384
 }

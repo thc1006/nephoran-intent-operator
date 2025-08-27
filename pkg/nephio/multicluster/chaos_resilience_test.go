@@ -33,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
-	
 	// Porch types are now defined locally in types.go
 )
 

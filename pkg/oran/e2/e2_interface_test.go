@@ -6,7 +6,6 @@ import (
 	"time"
 )
 
-
 // TestE2InterfaceComplete demonstrates the complete E2 interface implementation
 func TestE2InterfaceComplete(t *testing.T) {
 	t.Run("E2AP_Messages", func(t *testing.T) {

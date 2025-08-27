@@ -29,7 +29,7 @@ func main() {
 			*mode = "rules" // default to rules mode
 		}
 	}
-	
+
 	if *provider == "" {
 		*provider = os.Getenv("PROVIDER")
 		if *provider == "" {
@@ -63,7 +63,7 @@ func main() {
 
 	// Setup HTTP routes
 	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) { 
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		_, _ = w.Write([]byte("ok\n"))
 	})
@@ -78,7 +78,7 @@ func main() {
 	}
 	log.Printf("  Handoff directory: %s", *handoffDir)
 	log.Printf("  Schema: %s", schemaPath)
-	
+
 	fmt.Printf("\nReady to accept intents at http://localhost%s/intent\n", *addr)
 	log.Fatal(http.ListenAndServe(*addr, mux))
 }

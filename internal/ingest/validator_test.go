@@ -714,20 +714,20 @@ func TestNewValidator_FileSystemErrors(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tempDir := t.TempDir()
 				schemaFile := filepath.Join(tempDir, "schema.json")
-				
+
 				// Create file with valid content first
 				content := `{"$schema": "https://json-schema.org/draft/2020-12/schema"}`
 				err := os.WriteFile(schemaFile, []byte(content), 0644)
 				if err != nil {
 					t.Fatalf("Failed to create schema file: %v", err)
 				}
-				
+
 				// Remove read permissions (simulation - actual effect depends on OS)
 				err = os.Chmod(schemaFile, 0000)
 				if err != nil {
 					t.Skipf("Cannot modify file permissions on this system: %v", err)
 				}
-				
+
 				return schemaFile
 			},
 			expectError: "open schema",
@@ -750,14 +750,14 @@ func TestNewValidator_FileSystemErrors(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tempDir := t.TempDir()
 				schemaFile := filepath.Join(tempDir, "corrupt.json")
-				
+
 				// Write binary data that's not valid JSON
 				corruptData := []byte{0xFF, 0xFE, 0xFD, 0xFC, 0xFB}
 				err := os.WriteFile(schemaFile, corruptData, 0644)
 				if err != nil {
 					t.Fatalf("Failed to create corrupt file: %v", err)
 				}
-				
+
 				return schemaFile
 			},
 			expectError: "parse schema json",
@@ -780,14 +780,14 @@ func TestNewValidator_FileSystemErrors(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tempDir := t.TempDir()
 				schemaFile := filepath.Join(tempDir, "invalid.json")
-				
+
 				// Valid JSON but invalid schema
 				invalidSchema := `{"not": "a valid schema structure"}`
 				err := os.WriteFile(schemaFile, []byte(invalidSchema), 0644)
 				if err != nil {
 					t.Fatalf("Failed to create invalid schema file: %v", err)
 				}
-				
+
 				return schemaFile
 			},
 			expectError: "compile schema",
@@ -797,24 +797,24 @@ func TestNewValidator_FileSystemErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			schemaPath := tt.setupFunc(t)
-			
+
 			// Ensure cleanup happens even if test fails
 			defer func() {
 				// Restore permissions for cleanup
 				os.Chmod(schemaPath, 0644)
 			}()
-			
+
 			validator, err := NewValidator(schemaPath)
-			
+
 			if err == nil {
 				t.Errorf("Expected error but got nil")
 				return
 			}
-			
+
 			if validator != nil {
 				t.Errorf("Expected nil validator but got non-nil")
 			}
-			
+
 			if !strings.Contains(err.Error(), tt.expectError) {
 				t.Errorf("Expected error containing '%s' but got: %v", tt.expectError, err)
 			}
@@ -891,7 +891,7 @@ func TestValidateBytes_ExtremeCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := validator.ValidateBytes(tt.input)
-			
+
 			if tt.expectError {
 				if err == nil {
 					t.Errorf("Expected error but got nil: %s", tt.description)
@@ -938,35 +938,35 @@ func TestValidateBytes_MemoryExhaustion(t *testing.T) {
 // TestValidateBytes_ConcurrentAccess tests thread safety of validator
 func TestValidateBytes_ConcurrentAccess(t *testing.T) {
 	validator := createTestValidator(t)
-	
+
 	validJSON := `{
 		"intent_type": "scaling",
 		"target": "concurrent-test",
 		"namespace": "default",
 		"replicas": 3
 	}`
-	
+
 	invalidJSON := `{
 		"intent_type": "invalid",
 		"target": "concurrent-test",
 		"namespace": "default",
 		"replicas": 3
 	}`
-	
+
 	const numGoroutines = 50
 	const numIterations = 10
-	
+
 	done := make(chan bool, numGoroutines)
 	errors := make(chan error, numGoroutines*numIterations)
-	
+
 	for i := 0; i < numGoroutines; i++ {
 		go func(id int) {
 			defer func() { done <- true }()
-			
+
 			for j := 0; j < numIterations; j++ {
 				var input []byte
 				var expectError bool
-				
+
 				if (id+j)%2 == 0 {
 					input = []byte(validJSON)
 					expectError = false
@@ -974,9 +974,9 @@ func TestValidateBytes_ConcurrentAccess(t *testing.T) {
 					input = []byte(invalidJSON)
 					expectError = true
 				}
-				
+
 				result, err := validator.ValidateBytes(input)
-				
+
 				if expectError {
 					if err == nil {
 						errors <- fmt.Errorf("goroutine %d iteration %d: expected error but got nil", id, j)
@@ -995,12 +995,12 @@ func TestValidateBytes_ConcurrentAccess(t *testing.T) {
 			}
 		}(i)
 	}
-	
+
 	// Wait for all goroutines to complete
 	for i := 0; i < numGoroutines; i++ {
 		<-done
 	}
-	
+
 	// Check for any errors
 	close(errors)
 	for err := range errors {
@@ -1011,9 +1011,9 @@ func TestValidateBytes_ConcurrentAccess(t *testing.T) {
 // Helper function to create deeply nested JSON for testing
 func createDeeplyNestedJSON(t *testing.T, depth int) []byte {
 	t.Helper()
-	
+
 	json := `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3, "nested":`
-	
+
 	for i := 0; i < depth; i++ {
 		json += `{"level": `
 	}
@@ -1022,6 +1022,6 @@ func createDeeplyNestedJSON(t *testing.T, depth int) []byte {
 		json += `}`
 	}
 	json += `}`
-	
+
 	return []byte(json)
 }

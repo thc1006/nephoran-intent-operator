@@ -22,13 +22,11 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 // Forward declarations for types from other files in the package
-
-
 
 // ComponentOptimizerRegistry manages component-specific optimizers
 type ComponentOptimizerRegistry struct {

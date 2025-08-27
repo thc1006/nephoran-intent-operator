@@ -35,7 +35,7 @@ type IMSService struct {
 	inventoryService    *InventoryService
 	lifecycleService    *LifecycleService
 	subscriptionService *SubscriptionService
-	startTime          time.Time
+	startTime           time.Time
 }
 
 // NewIMSService creates a new IMS service instance
@@ -45,7 +45,7 @@ func NewIMSService(catalog *CatalogService, inventory *InventoryService, lifecyc
 		inventoryService:    inventory,
 		lifecycleService:    lifecycle,
 		subscriptionService: subscription,
-		startTime:          time.Now(),
+		startTime:           time.Now(),
 	}
 }
 
@@ -77,7 +77,7 @@ func (s *IMSService) GetServiceHealth(ctx context.Context) (*ServiceHealth, erro
 		Uptime:    time.Since(s.startTime),
 		Components: map[string]string{
 			"catalog":      "healthy",
-			"inventory":    "healthy", 
+			"inventory":    "healthy",
 			"lifecycle":    "healthy",
 			"subscription": "healthy",
 		},
@@ -93,7 +93,6 @@ type ServiceHealth struct {
 	Components map[string]string `json:"components"`
 	Version    string            `json:"version"`
 }
-
 
 // GetResourceTypes returns available resource types
 func (s *CatalogService) GetResourceTypes(ctx context.Context, filter *models.ResourceTypeFilter) ([]*models.ResourceType, error) {
@@ -216,7 +215,7 @@ func (s *InventoryService) GetNode(ctx context.Context, nodeID string) (*models.
 // GetNodes returns inventory nodes
 func (s *InventoryService) GetNodes(ctx context.Context, filter *models.NodeFilter) ([]*models.Node, error) {
 	logger := log.FromContext(ctx)
-	
+
 	// Implementation would query Kubernetes nodes and transform to O2 format
 	nodes, err := s.clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -469,7 +468,7 @@ func (s *SubscriptionService) GetEventTypes(ctx context.Context) ([]*models.Noti
 			Version:     "1.0",
 		},
 		{
-			EventType:   "resource.updated", 
+			EventType:   "resource.updated",
 			Description: "Notification when a resource is updated",
 			Version:     "1.0",
 		},
@@ -507,7 +506,7 @@ func (s *SubscriptionService) GetAlarm(ctx context.Context, alarmID string) (*mo
 	return alarm, nil
 }
 
-// AcknowledgeAlarm acknowledges an alarm  
+// AcknowledgeAlarm acknowledges an alarm
 func (s *SubscriptionService) AcknowledgeAlarm(ctx context.Context, alarmID string, req *models.AlarmAcknowledgementRequest) error {
 	logger := log.FromContext(ctx)
 	logger.Info("acknowledging alarm", "alarmID", alarmID, "acknowledgedBy", req.AckUser)
@@ -541,7 +540,7 @@ func (s *SubscriptionService) ClearAlarm(ctx context.Context, alarmID string, re
 	alarm.AlarmState = "CLEARED"
 	now := time.Now()
 	alarm.AlarmClearTime = &now
-	
+
 	// Store clear information in extensions
 	if alarm.Extensions == nil {
 		alarm.Extensions = make(map[string]interface{})

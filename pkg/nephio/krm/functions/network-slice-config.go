@@ -1025,4 +1025,3 @@ func (f *NetworkSliceConfigFunction) generatePodDisruptionBudget(config *Network
 		},
 	}
 }
-

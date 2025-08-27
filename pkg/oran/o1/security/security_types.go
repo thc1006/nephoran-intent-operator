@@ -12,16 +12,16 @@ type StreamFilter struct {
 	AttributeFilters map[string]string `json:"attributeFilters,omitempty"`
 	ValueRanges      map[string]Range  `json:"valueRanges,omitempty"`
 	TimeRange        *TimeRange        `json:"timeRange,omitempty"`
-	
+
 	// Stream configuration
 	BufferSize    int           `json:"bufferSize,omitempty"`
 	FlushInterval time.Duration `json:"flushInterval,omitempty"`
 	MaxBatchSize  int           `json:"maxBatchSize,omitempty"`
-	
+
 	// Security settings
-	RequireAuth   bool     `json:"requireAuth"`
-	AllowedRoles  []string `json:"allowedRoles,omitempty"`
-	RateLimit     *RateLimit `json:"rateLimit,omitempty"`
+	RequireAuth  bool       `json:"requireAuth"`
+	AllowedRoles []string   `json:"allowedRoles,omitempty"`
+	RateLimit    *RateLimit `json:"rateLimit,omitempty"`
 }
 
 // Range defines a numeric range filter
@@ -30,7 +30,7 @@ type Range struct {
 	Max *float64 `json:"max,omitempty"`
 }
 
-// TimeRange defines a time range filter  
+// TimeRange defines a time range filter
 type TimeRange struct {
 	Start time.Time `json:"start"`
 	End   time.Time `json:"end"`
@@ -74,61 +74,61 @@ type RateLimit struct {
 
 // SAMLProvider defines SAML authentication provider configuration
 type SAMLProvider struct {
-	EntityID              string            `json:"entityID"`
-	MetadataURL           string            `json:"metadataURL"`
-	Certificate           string            `json:"certificate"`
-	PrivateKey            string            `json:"privateKey"`
-	AssertionConsumerURL  string            `json:"assertionConsumerURL"`
-	SingleLogoutURL       string            `json:"singleLogoutURL"`
-	AttributeMapping      map[string]string `json:"attributeMapping"`
-	SignAuthRequests      bool              `json:"signAuthRequests"`
-	WantAssertionsSigned  bool              `json:"wantAssertionsSigned"`
-	SessionTimeout        time.Duration     `json:"sessionTimeout"`
-	ClockSkewTolerance    time.Duration     `json:"clockSkewTolerance"`
+	EntityID             string            `json:"entityID"`
+	MetadataURL          string            `json:"metadataURL"`
+	Certificate          string            `json:"certificate"`
+	PrivateKey           string            `json:"privateKey"`
+	AssertionConsumerURL string            `json:"assertionConsumerURL"`
+	SingleLogoutURL      string            `json:"singleLogoutURL"`
+	AttributeMapping     map[string]string `json:"attributeMapping"`
+	SignAuthRequests     bool              `json:"signAuthRequests"`
+	WantAssertionsSigned bool              `json:"wantAssertionsSigned"`
+	SessionTimeout       time.Duration     `json:"sessionTimeout"`
+	ClockSkewTolerance   time.Duration     `json:"clockSkewTolerance"`
 }
 
 // OIDCProvider defines OpenID Connect authentication provider configuration
 type OIDCProvider struct {
-	Issuer                string            `json:"issuer"`
-	ClientID              string            `json:"clientID"`
-	ClientSecret          string            `json:"clientSecret"`
-	RedirectURL           string            `json:"redirectURL"`
-	Scopes                []string          `json:"scopes"`
-	AuthURL               string            `json:"authURL"`
-	TokenURL              string            `json:"tokenURL"`
-	UserInfoURL           string            `json:"userInfoURL"`
-	JWKSUrl               string            `json:"jwksUrl"`
-	ClaimMapping          map[string]string `json:"claimMapping"`
-	UserinfoEndpoint      string            `json:"userinfoEndpoint"`
-	EndSessionEndpoint    string            `json:"endSessionEndpoint"`
-	ResponseType          string            `json:"responseType"`
-	ResponseMode          string            `json:"responseMode"`
-	SkipIssuerVerification bool             `json:"skipIssuerVerification"`
+	Issuer                 string            `json:"issuer"`
+	ClientID               string            `json:"clientID"`
+	ClientSecret           string            `json:"clientSecret"`
+	RedirectURL            string            `json:"redirectURL"`
+	Scopes                 []string          `json:"scopes"`
+	AuthURL                string            `json:"authURL"`
+	TokenURL               string            `json:"tokenURL"`
+	UserInfoURL            string            `json:"userInfoURL"`
+	JWKSUrl                string            `json:"jwksUrl"`
+	ClaimMapping           map[string]string `json:"claimMapping"`
+	UserinfoEndpoint       string            `json:"userinfoEndpoint"`
+	EndSessionEndpoint     string            `json:"endSessionEndpoint"`
+	ResponseType           string            `json:"responseType"`
+	ResponseMode           string            `json:"responseMode"`
+	SkipIssuerVerification bool              `json:"skipIssuerVerification"`
 }
 
 // OAuth2Config defines OAuth2 authentication configuration
 type OAuth2Config struct {
-	ClientID           string            `json:"clientID"`
-	ClientSecret       string            `json:"clientSecret"`
-	AuthURL            string            `json:"authURL"`
-	TokenURL           string            `json:"tokenURL"`
-	RedirectURL        string            `json:"redirectURL"`
-	Scopes             []string          `json:"scopes"`
-	State              string            `json:"state,omitempty"`
-	AuthStyle          int               `json:"authStyle"`
-	Endpoint           *OAuth2Endpoint   `json:"endpoint"`
-	TokenType          string            `json:"tokenType"`
-	AccessTokenLife    time.Duration     `json:"accessTokenLife"`
-	RefreshTokenLife   time.Duration     `json:"refreshTokenLife"`
-	AllowedGrantTypes  []string          `json:"allowedGrantTypes"`
-	ExtraParams        map[string]string `json:"extraParams,omitempty"`
+	ClientID          string            `json:"clientID"`
+	ClientSecret      string            `json:"clientSecret"`
+	AuthURL           string            `json:"authURL"`
+	TokenURL          string            `json:"tokenURL"`
+	RedirectURL       string            `json:"redirectURL"`
+	Scopes            []string          `json:"scopes"`
+	State             string            `json:"state,omitempty"`
+	AuthStyle         int               `json:"authStyle"`
+	Endpoint          *OAuth2Endpoint   `json:"endpoint"`
+	TokenType         string            `json:"tokenType"`
+	AccessTokenLife   time.Duration     `json:"accessTokenLife"`
+	RefreshTokenLife  time.Duration     `json:"refreshTokenLife"`
+	AllowedGrantTypes []string          `json:"allowedGrantTypes"`
+	ExtraParams       map[string]string `json:"extraParams,omitempty"`
 }
 
 // OAuth2Endpoint defines OAuth2 endpoint configuration
 type OAuth2Endpoint struct {
-	AuthURL   string            `json:"authURL"`
-	TokenURL  string            `json:"tokenURL"`
-	AuthStyle int               `json:"authStyle"`
+	AuthURL     string            `json:"authURL"`
+	TokenURL    string            `json:"tokenURL"`
+	AuthStyle   int               `json:"authStyle"`
 	ExtraParams map[string]string `json:"extraParams,omitempty"`
 }
 
@@ -137,12 +137,12 @@ type AccessControlRule struct {
 	ID          string            `json:"id"`
 	Name        string            `json:"name"`
 	Description string            `json:"description"`
-	Subject     *Subject          `json:"subject"`     // Who this rule applies to
-	Resource    *Resource         `json:"resource"`    // What resource is being accessed
-	Action      string            `json:"action"`      // What action is being performed
-	Effect      string            `json:"effect"`      // ALLOW or DENY
+	Subject     *Subject          `json:"subject"`              // Who this rule applies to
+	Resource    *Resource         `json:"resource"`             // What resource is being accessed
+	Action      string            `json:"action"`               // What action is being performed
+	Effect      string            `json:"effect"`               // ALLOW or DENY
 	Conditions  []*Condition      `json:"conditions,omitempty"` // Additional conditions
-	Priority    int               `json:"priority"`    // Rule priority (higher number = higher priority)
+	Priority    int               `json:"priority"`             // Rule priority (higher number = higher priority)
 	Enabled     bool              `json:"enabled"`
 	CreatedAt   time.Time         `json:"createdAt"`
 	UpdatedAt   time.Time         `json:"updatedAt"`
@@ -151,14 +151,14 @@ type AccessControlRule struct {
 
 // Subject represents the entity the rule applies to
 type Subject struct {
-	Type       string            `json:"type"`       // user, group, role, service
+	Type       string            `json:"type"` // user, group, role, service
 	ID         string            `json:"id"`
 	Attributes map[string]string `json:"attributes,omitempty"`
 }
 
 // Resource represents the resource being accessed
 type Resource struct {
-	Type       string            `json:"type"`       // endpoint, service, data
+	Type       string            `json:"type"` // endpoint, service, data
 	ID         string            `json:"id"`
 	Path       string            `json:"path,omitempty"`
 	Attributes map[string]string `json:"attributes,omitempty"`
@@ -166,38 +166,38 @@ type Resource struct {
 
 // Condition represents a rule condition
 type Condition struct {
-	Type      string      `json:"type"`      // time, location, attribute
-	Field     string      `json:"field"`
-	Operator  string      `json:"operator"`  // eq, ne, gt, lt, in, contains
-	Value     interface{} `json:"value"`
-	Values    []string    `json:"values,omitempty"`
+	Type     string      `json:"type"` // time, location, attribute
+	Field    string      `json:"field"`
+	Operator string      `json:"operator"` // eq, ne, gt, lt, in, contains
+	Value    interface{} `json:"value"`
+	Values   []string    `json:"values,omitempty"`
 }
 
 // RotationPolicy defines key or certificate rotation policy
 type RotationPolicy struct {
-	ID                 string            `json:"id"`
-	Name               string            `json:"name"`
-	Description        string            `json:"description"`
-	RotationInterval   time.Duration     `json:"rotationInterval"`   // How often to rotate
-	ExpiryWarning      time.Duration     `json:"expiryWarning"`      // Warning period before expiry
-	GracePeriod        time.Duration     `json:"gracePeriod"`        // Grace period after rotation
-	AutoRotation       bool              `json:"autoRotation"`       // Enable automatic rotation
-	NotificationChannels []string        `json:"notificationChannels,omitempty"`
-	BackupCount        int               `json:"backupCount"`        // Number of old keys/certs to keep
-	RotationConditions []*RotationCondition `json:"rotationConditions,omitempty"`
-	ApprovalRequired   bool              `json:"approvalRequired"`   // Require manual approval
-	Approvers          []string          `json:"approvers,omitempty"`
-	TestAfterRotation  bool              `json:"testAfterRotation"`  // Test functionality after rotation
-	RollbackOnFailure  bool              `json:"rollbackOnFailure"`  // Rollback if post-rotation test fails
-	Enabled            bool              `json:"enabled"`
-	CreatedAt          time.Time         `json:"createdAt"`
-	UpdatedAt          time.Time         `json:"updatedAt"`
-	Metadata           map[string]string `json:"metadata,omitempty"`
+	ID                   string               `json:"id"`
+	Name                 string               `json:"name"`
+	Description          string               `json:"description"`
+	RotationInterval     time.Duration        `json:"rotationInterval"` // How often to rotate
+	ExpiryWarning        time.Duration        `json:"expiryWarning"`    // Warning period before expiry
+	GracePeriod          time.Duration        `json:"gracePeriod"`      // Grace period after rotation
+	AutoRotation         bool                 `json:"autoRotation"`     // Enable automatic rotation
+	NotificationChannels []string             `json:"notificationChannels,omitempty"`
+	BackupCount          int                  `json:"backupCount"` // Number of old keys/certs to keep
+	RotationConditions   []*RotationCondition `json:"rotationConditions,omitempty"`
+	ApprovalRequired     bool                 `json:"approvalRequired"` // Require manual approval
+	Approvers            []string             `json:"approvers,omitempty"`
+	TestAfterRotation    bool                 `json:"testAfterRotation"` // Test functionality after rotation
+	RollbackOnFailure    bool                 `json:"rollbackOnFailure"` // Rollback if post-rotation test fails
+	Enabled              bool                 `json:"enabled"`
+	CreatedAt            time.Time            `json:"createdAt"`
+	UpdatedAt            time.Time            `json:"updatedAt"`
+	Metadata             map[string]string    `json:"metadata,omitempty"`
 }
 
 // RotationCondition defines conditions that can trigger rotation
 type RotationCondition struct {
-	Type        string            `json:"type"`        // expiry, compromise, policy_change, manual
+	Type        string            `json:"type"`                // expiry, compromise, policy_change, manual
 	Threshold   interface{}       `json:"threshold,omitempty"` // Threshold value for condition
 	Description string            `json:"description"`
 	Enabled     bool              `json:"enabled"`
@@ -208,65 +208,65 @@ type RotationCondition struct {
 type SecurityPolicyEngine interface {
 	// EvaluatePolicy evaluates a security policy against a request
 	EvaluatePolicy(request *PolicyRequest) (*PolicyDecision, error)
-	
+
 	// AddPolicy adds a new security policy
 	AddPolicy(policy *SecurityPolicy) error
-	
+
 	// RemovePolicy removes a security policy by ID
 	RemovePolicy(policyID string) error
-	
+
 	// UpdatePolicy updates an existing security policy
 	UpdatePolicy(policy *SecurityPolicy) error
-	
+
 	// GetPolicy retrieves a security policy by ID
 	GetPolicy(policyID string) (*SecurityPolicy, error)
-	
+
 	// ListPolicies returns all security policies with optional filtering
 	ListPolicies(filter *PolicyFilter) ([]*SecurityPolicy, error)
 }
 
 // SecurityPolicy represents a comprehensive security policy
 type SecurityPolicy struct {
-	ID               string                 `json:"id"`
-	Name             string                 `json:"name"`
-	Description      string                 `json:"description"`
-	Version          string                 `json:"version"`
-	Type             string                 `json:"type"` // access_control, encryption, audit, authentication
-	Category         string                 `json:"category"` // technical, administrative, physical
-	Scope            []string               `json:"scope"` // What this policy applies to
-	Rules            []*AccessControlRule   `json:"rules"`
-	Enforcement      string                 `json:"enforcement"` // strict, permissive, monitoring
-	Priority         int                    `json:"priority"`
-	ValidFrom        time.Time              `json:"validFrom"`
-	ValidUntil       time.Time              `json:"validUntil,omitempty"`
-	ApprovalStatus   string                 `json:"approvalStatus"` // draft, approved, deprecated
-	ApprovedBy       string                 `json:"approvedBy,omitempty"`
-	ApprovedAt       time.Time              `json:"approvedAt,omitempty"`
-	EffectiveDate    time.Time              `json:"effectiveDate"`
-	ReviewDate       time.Time              `json:"reviewDate,omitempty"`
-	Owner            string                 `json:"owner"`
-	Stakeholders     []string               `json:"stakeholders,omitempty"`
-	ComplianceRef    []string               `json:"complianceRef,omitempty"` // References to compliance frameworks
-	Exceptions       []*PolicyException     `json:"exceptions,omitempty"`
-	AuditSettings    *AuditSettings         `json:"auditSettings,omitempty"`
-	Enabled          bool                   `json:"enabled"`
-	CreatedAt        time.Time              `json:"createdAt"`
-	UpdatedAt        time.Time              `json:"updatedAt"`
-	Metadata         map[string]interface{} `json:"metadata,omitempty"`
+	ID             string                 `json:"id"`
+	Name           string                 `json:"name"`
+	Description    string                 `json:"description"`
+	Version        string                 `json:"version"`
+	Type           string                 `json:"type"`     // access_control, encryption, audit, authentication
+	Category       string                 `json:"category"` // technical, administrative, physical
+	Scope          []string               `json:"scope"`    // What this policy applies to
+	Rules          []*AccessControlRule   `json:"rules"`
+	Enforcement    string                 `json:"enforcement"` // strict, permissive, monitoring
+	Priority       int                    `json:"priority"`
+	ValidFrom      time.Time              `json:"validFrom"`
+	ValidUntil     time.Time              `json:"validUntil,omitempty"`
+	ApprovalStatus string                 `json:"approvalStatus"` // draft, approved, deprecated
+	ApprovedBy     string                 `json:"approvedBy,omitempty"`
+	ApprovedAt     time.Time              `json:"approvedAt,omitempty"`
+	EffectiveDate  time.Time              `json:"effectiveDate"`
+	ReviewDate     time.Time              `json:"reviewDate,omitempty"`
+	Owner          string                 `json:"owner"`
+	Stakeholders   []string               `json:"stakeholders,omitempty"`
+	ComplianceRef  []string               `json:"complianceRef,omitempty"` // References to compliance frameworks
+	Exceptions     []*PolicyException     `json:"exceptions,omitempty"`
+	AuditSettings  *AuditSettings         `json:"auditSettings,omitempty"`
+	Enabled        bool                   `json:"enabled"`
+	CreatedAt      time.Time              `json:"createdAt"`
+	UpdatedAt      time.Time              `json:"updatedAt"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // PolicyException defines exceptions to a security policy
 type PolicyException struct {
-	ID          string            `json:"id"`
-	Description string            `json:"description"`
-	Justification string          `json:"justification"`
-	Scope       *ExceptionScope   `json:"scope"`
-	ValidUntil  time.Time         `json:"validUntil,omitempty"`
-	ApprovedBy  string            `json:"approvedBy"`
-	ApprovedAt  time.Time         `json:"approvedAt"`
-	ReviewDate  time.Time         `json:"reviewDate,omitempty"`
-	Enabled     bool              `json:"enabled"`
-	Metadata    map[string]string `json:"metadata,omitempty"`
+	ID            string            `json:"id"`
+	Description   string            `json:"description"`
+	Justification string            `json:"justification"`
+	Scope         *ExceptionScope   `json:"scope"`
+	ValidUntil    time.Time         `json:"validUntil,omitempty"`
+	ApprovedBy    string            `json:"approvedBy"`
+	ApprovedAt    time.Time         `json:"approvedAt"`
+	ReviewDate    time.Time         `json:"reviewDate,omitempty"`
+	Enabled       bool              `json:"enabled"`
+	Metadata      map[string]string `json:"metadata,omitempty"`
 }
 
 // ExceptionScope defines the scope of a policy exception
@@ -281,36 +281,36 @@ type ExceptionScope struct {
 
 // AuditSettings defines audit settings for a policy
 type AuditSettings struct {
-	AuditLevel    string   `json:"auditLevel"`    // none, basic, detailed, full
-	LogActions    []string `json:"logActions"`    // Which actions to log
-	LogFailures   bool     `json:"logFailures"`   // Log policy violations
-	LogSuccesses  bool     `json:"logSuccesses"`  // Log successful policy evaluations
-	RetentionDays int      `json:"retentionDays"` // How long to keep audit logs
-	AlertOnViolation bool  `json:"alertOnViolation"` // Send alerts on policy violations
+	AuditLevel       string   `json:"auditLevel"`       // none, basic, detailed, full
+	LogActions       []string `json:"logActions"`       // Which actions to log
+	LogFailures      bool     `json:"logFailures"`      // Log policy violations
+	LogSuccesses     bool     `json:"logSuccesses"`     // Log successful policy evaluations
+	RetentionDays    int      `json:"retentionDays"`    // How long to keep audit logs
+	AlertOnViolation bool     `json:"alertOnViolation"` // Send alerts on policy violations
 }
 
 // PolicyRequest represents a request for policy evaluation
 type PolicyRequest struct {
-	Subject     *Subject              `json:"subject"`
-	Resource    *Resource             `json:"resource"`
-	Action      string                `json:"action"`
-	Context     *RequestContext       `json:"context,omitempty"`
-	Timestamp   time.Time             `json:"timestamp"`
-	RequestID   string                `json:"requestID,omitempty"`
+	Subject     *Subject               `json:"subject"`
+	Resource    *Resource              `json:"resource"`
+	Action      string                 `json:"action"`
+	Context     *RequestContext        `json:"context,omitempty"`
+	Timestamp   time.Time              `json:"timestamp"`
+	RequestID   string                 `json:"requestID,omitempty"`
 	SessionInfo map[string]interface{} `json:"sessionInfo,omitempty"`
 }
 
 // RequestContext provides additional context for policy evaluation
 type RequestContext struct {
-	IPAddress    string                 `json:"ipAddress,omitempty"`
-	UserAgent    string                 `json:"userAgent,omitempty"`
-	Geolocation  *Geolocation           `json:"geolocation,omitempty"`
-	TimeOfDay    string                 `json:"timeOfDay,omitempty"`
-	DayOfWeek    string                 `json:"dayOfWeek,omitempty"`
-	NetworkZone  string                 `json:"networkZone,omitempty"`
-	DeviceInfo   *DeviceInfo            `json:"deviceInfo,omitempty"`
-	TLSInfo      *TLSInfo               `json:"tlsInfo,omitempty"`
-	Attributes   map[string]interface{} `json:"attributes,omitempty"`
+	IPAddress   string                 `json:"ipAddress,omitempty"`
+	UserAgent   string                 `json:"userAgent,omitempty"`
+	Geolocation *Geolocation           `json:"geolocation,omitempty"`
+	TimeOfDay   string                 `json:"timeOfDay,omitempty"`
+	DayOfWeek   string                 `json:"dayOfWeek,omitempty"`
+	NetworkZone string                 `json:"networkZone,omitempty"`
+	DeviceInfo  *DeviceInfo            `json:"deviceInfo,omitempty"`
+	TLSInfo     *TLSInfo               `json:"tlsInfo,omitempty"`
+	Attributes  map[string]interface{} `json:"attributes,omitempty"`
 }
 
 // Geolocation represents geographic location information
@@ -348,17 +348,17 @@ type TLSInfo struct {
 
 // PolicyDecision represents the result of policy evaluation
 type PolicyDecision struct {
-	Decision        string            `json:"decision"` // PERMIT, DENY, NOT_APPLICABLE, INDETERMINATE
-	PolicyID        string            `json:"policyID,omitempty"`
-	RuleID          string            `json:"ruleID,omitempty"`
-	Reason          string            `json:"reason"`
-	Details         []string          `json:"details,omitempty"`
-	Obligations     []*Obligation     `json:"obligations,omitempty"`
-	Advice          []*Advice         `json:"advice,omitempty"`
-	Confidence      float64           `json:"confidence,omitempty"`
-	EvaluationTime  time.Duration     `json:"evaluationTime"`
-	Timestamp       time.Time         `json:"timestamp"`
-	Metadata        map[string]string `json:"metadata,omitempty"`
+	Decision       string            `json:"decision"` // PERMIT, DENY, NOT_APPLICABLE, INDETERMINATE
+	PolicyID       string            `json:"policyID,omitempty"`
+	RuleID         string            `json:"ruleID,omitempty"`
+	Reason         string            `json:"reason"`
+	Details        []string          `json:"details,omitempty"`
+	Obligations    []*Obligation     `json:"obligations,omitempty"`
+	Advice         []*Advice         `json:"advice,omitempty"`
+	Confidence     float64           `json:"confidence,omitempty"`
+	EvaluationTime time.Duration     `json:"evaluationTime"`
+	Timestamp      time.Time         `json:"timestamp"`
+	Metadata       map[string]string `json:"metadata,omitempty"`
 }
 
 // Obligation represents an obligation that must be fulfilled
@@ -382,16 +382,16 @@ type Advice struct {
 
 // PolicyFilter defines filtering criteria for listing policies
 type PolicyFilter struct {
-	Types         []string  `json:"types,omitempty"`
-	Categories    []string  `json:"categories,omitempty"`
-	Scopes        []string  `json:"scopes,omitempty"`
-	Enabled       *bool     `json:"enabled,omitempty"`
-	ValidAt       time.Time `json:"validAt,omitempty"`
-	ApprovalStatus []string `json:"approvalStatus,omitempty"`
-	Owner         string    `json:"owner,omitempty"`
-	Tags          []string  `json:"tags,omitempty"`
-	Limit         int       `json:"limit,omitempty"`
-	Offset        int       `json:"offset,omitempty"`
+	Types          []string  `json:"types,omitempty"`
+	Categories     []string  `json:"categories,omitempty"`
+	Scopes         []string  `json:"scopes,omitempty"`
+	Enabled        *bool     `json:"enabled,omitempty"`
+	ValidAt        time.Time `json:"validAt,omitempty"`
+	ApprovalStatus []string  `json:"approvalStatus,omitempty"`
+	Owner          string    `json:"owner,omitempty"`
+	Tags           []string  `json:"tags,omitempty"`
+	Limit          int       `json:"limit,omitempty"`
+	Offset         int       `json:"offset,omitempty"`
 }
 
 // NotificationChannel interface for different notification channels
@@ -408,14 +408,14 @@ type NotificationChannel interface {
 
 // NotificationMessage represents a notification message
 type NotificationMessage struct {
-	ID       string                 `json:"id"`
-	Subject  string                 `json:"subject"`
-	Body     string                 `json:"body"`
-	Priority string                 `json:"priority"` // low, normal, high, urgent
-	Type     string                 `json:"type"`     // info, warning, error, alert
-	Data     map[string]interface{} `json:"data,omitempty"`
-	Recipients []string             `json:"recipients,omitempty"`
-	Timestamp  time.Time            `json:"timestamp"`
+	ID         string                 `json:"id"`
+	Subject    string                 `json:"subject"`
+	Body       string                 `json:"body"`
+	Priority   string                 `json:"priority"` // low, normal, high, urgent
+	Type       string                 `json:"type"`     // info, warning, error, alert
+	Data       map[string]interface{} `json:"data,omitempty"`
+	Recipients []string               `json:"recipients,omitempty"`
+	Timestamp  time.Time              `json:"timestamp"`
 }
 
 // EscalationRule defines escalation rules for notifications
@@ -445,13 +445,13 @@ type ValidationResult struct {
 type SecurityStatus struct {
 	ComplianceLevel   string                 `json:"complianceLevel"`
 	ActiveThreats     []string               `json:"activeThreats,omitempty"`
-	LastAudit        time.Time              `json:"lastAudit"`
-	NextAudit        time.Time              `json:"nextAudit,omitempty"`
+	LastAudit         time.Time              `json:"lastAudit"`
+	NextAudit         time.Time              `json:"nextAudit,omitempty"`
 	CertificateStatus *CertificateStatus     `json:"certificateStatus,omitempty"`
 	PolicyStatus      *PolicyStatus          `json:"policyStatus,omitempty"`
-	Metrics          map[string]interface{} `json:"metrics,omitempty"`
-	Alerts           []*SecurityAlert        `json:"alerts,omitempty"`
-	LastUpdated      time.Time              `json:"lastUpdated"`
+	Metrics           map[string]interface{} `json:"metrics,omitempty"`
+	Alerts            []*SecurityAlert       `json:"alerts,omitempty"`
+	LastUpdated       time.Time              `json:"lastUpdated"`
 }
 
 // CertificateStatus represents certificate management status
@@ -461,19 +461,19 @@ type CertificateStatus struct {
 	ExpiringCertificates int       `json:"expiringCertificates"`
 	ExpiredCertificates  int       `json:"expiredCertificates"`
 	RevokedCertificates  int       `json:"revokedCertificates"`
-	NextExpiry          time.Time `json:"nextExpiry,omitempty"`
-	HealthScore         float64   `json:"healthScore"`
+	NextExpiry           time.Time `json:"nextExpiry,omitempty"`
+	HealthScore          float64   `json:"healthScore"`
 }
 
 // PolicyStatus represents security policy status
 type PolicyStatus struct {
-	TotalPolicies     int     `json:"totalPolicies"`
-	ActivePolicies    int     `json:"activePolicies"`
-	PendingApproval   int     `json:"pendingApproval"`
-	ExpiredPolicies   int     `json:"expiredPolicies"`
-	ComplianceScore   float64 `json:"complianceScore"`
-	LastReview       time.Time `json:"lastReview"`
-	NextReview       time.Time `json:"nextReview,omitempty"`
+	TotalPolicies   int       `json:"totalPolicies"`
+	ActivePolicies  int       `json:"activePolicies"`
+	PendingApproval int       `json:"pendingApproval"`
+	ExpiredPolicies int       `json:"expiredPolicies"`
+	ComplianceScore float64   `json:"complianceScore"`
+	LastReview      time.Time `json:"lastReview"`
+	NextReview      time.Time `json:"nextReview,omitempty"`
 }
 
 // SecurityAlert represents a security alert
@@ -508,33 +508,33 @@ type AlertAction struct {
 
 // StatisticalSummary represents statistical summary data
 type StatisticalSummary struct {
-	Count      int64                  `json:"count"`
-	Mean       float64                `json:"mean"`
-	Median     float64                `json:"median"`
-	StdDev     float64                `json:"stdDev"`
-	Min        float64                `json:"min"`
-	Max        float64                `json:"max"`
-	Percentiles map[string]float64    `json:"percentiles,omitempty"` // p50, p75, p90, p95, p99
-	Histogram  map[string]int64       `json:"histogram,omitempty"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Count       int64                  `json:"count"`
+	Mean        float64                `json:"mean"`
+	Median      float64                `json:"median"`
+	StdDev      float64                `json:"stdDev"`
+	Min         float64                `json:"min"`
+	Max         float64                `json:"max"`
+	Percentiles map[string]float64     `json:"percentiles,omitempty"` // p50, p75, p90, p95, p99
+	Histogram   map[string]int64       `json:"histogram,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// AuditPolicy defines audit policy configuration  
+// AuditPolicy defines audit policy configuration
 type AuditPolicy struct {
-	ID            string            `json:"id"`
-	Name          string            `json:"name"`
-	Description   string            `json:"description"`
-	EventTypes    []string          `json:"eventTypes"`
-	Resources     []string          `json:"resources"`
-	Actions       []string          `json:"actions"`
-	Subjects      []string          `json:"subjects,omitempty"`
-	Conditions    []*Condition      `json:"conditions,omitempty"`
-	Level         string            `json:"level"` // basic, detailed, full
-	Retention     time.Duration     `json:"retention"`
-	Enabled       bool              `json:"enabled"`
-	CreatedAt     time.Time         `json:"createdAt"`
-	UpdatedAt     time.Time         `json:"updatedAt"`
-	Metadata      map[string]string `json:"metadata,omitempty"`
+	ID          string            `json:"id"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	EventTypes  []string          `json:"eventTypes"`
+	Resources   []string          `json:"resources"`
+	Actions     []string          `json:"actions"`
+	Subjects    []string          `json:"subjects,omitempty"`
+	Conditions  []*Condition      `json:"conditions,omitempty"`
+	Level       string            `json:"level"` // basic, detailed, full
+	Retention   time.Duration     `json:"retention"`
+	Enabled     bool              `json:"enabled"`
+	CreatedAt   time.Time         `json:"createdAt"`
+	UpdatedAt   time.Time         `json:"updatedAt"`
+	Metadata    map[string]string `json:"metadata,omitempty"`
 }
 
 // ExpirationPolicy defines expiration policy for security objects
@@ -584,26 +584,26 @@ type EscrowPolicy struct {
 
 // EscrowAccessRule defines rules for accessing escrowed keys
 type EscrowAccessRule struct {
-	ID             string            `json:"id"`
-	Name           string            `json:"name"`
-	Description    string            `json:"description"`
-	RequiredRoles  []string          `json:"requiredRoles"`
-	ApprovalChain  []string          `json:"approvalChain"` // Order of required approvals
-	JustificationRequired bool       `json:"justificationRequired"`
-	TimeRestrictions *TimeRestriction `json:"timeRestrictions,omitempty"`
-	AuditTrail     bool              `json:"auditTrail"`
-	Conditions     []*Condition      `json:"conditions,omitempty"`
-	Enabled        bool              `json:"enabled"`
-	CreatedAt      time.Time         `json:"createdAt"`
-	UpdatedAt      time.Time         `json:"updatedAt"`
-	Metadata       map[string]string `json:"metadata,omitempty"`
+	ID                    string            `json:"id"`
+	Name                  string            `json:"name"`
+	Description           string            `json:"description"`
+	RequiredRoles         []string          `json:"requiredRoles"`
+	ApprovalChain         []string          `json:"approvalChain"` // Order of required approvals
+	JustificationRequired bool              `json:"justificationRequired"`
+	TimeRestrictions      *TimeRestriction  `json:"timeRestrictions,omitempty"`
+	AuditTrail            bool              `json:"auditTrail"`
+	Conditions            []*Condition      `json:"conditions,omitempty"`
+	Enabled               bool              `json:"enabled"`
+	CreatedAt             time.Time         `json:"createdAt"`
+	UpdatedAt             time.Time         `json:"updatedAt"`
+	Metadata              map[string]string `json:"metadata,omitempty"`
 }
 
 // TimeRestriction defines time-based access restrictions
 type TimeRestriction struct {
-	AllowedDays    []string      `json:"allowedDays"`    // Monday, Tuesday, etc.
-	AllowedHours   []string      `json:"allowedHours"`   // 09:00-17:00 format
-	Timezone       string        `json:"timezone"`
+	AllowedDays     []string     `json:"allowedDays"`  // Monday, Tuesday, etc.
+	AllowedHours    []string     `json:"allowedHours"` // 09:00-17:00 format
+	Timezone        string       `json:"timezone"`
 	BlackoutPeriods []*TimeRange `json:"blackoutPeriods,omitempty"`
 }
 
@@ -662,14 +662,14 @@ type EscrowAccessRequest struct {
 
 // ApprovalStep represents a step in the approval chain
 type ApprovalStep struct {
-	ID          string    `json:"id"`
-	ApproverID  string    `json:"approverID"`
-	ApproverName string   `json:"approverName"`
-	Status      string    `json:"status"` // pending, approved, denied
-	Decision    string    `json:"decision,omitempty"`
-	Comments    string    `json:"comments,omitempty"`
-	DecisionAt  time.Time `json:"decisionAt,omitempty"`
-	Order       int       `json:"order"` // Order in approval chain
+	ID           string    `json:"id"`
+	ApproverID   string    `json:"approverID"`
+	ApproverName string    `json:"approverName"`
+	Status       string    `json:"status"` // pending, approved, denied
+	Decision     string    `json:"decision,omitempty"`
+	Comments     string    `json:"comments,omitempty"`
+	DecisionAt   time.Time `json:"decisionAt,omitempty"`
+	Order        int       `json:"order"` // Order in approval chain
 }
 
 // AuditEntry represents an audit log entry (minimal definition for compilation)
@@ -692,16 +692,16 @@ type ComplianceReportGenerator interface {
 
 // ComplianceAssessment represents a compliance assessment (minimal definition)
 type ComplianceAssessment struct {
-	ID             string                    `json:"id"`
-	Framework      string                    `json:"framework"`
-	AssessmentType string                    `json:"assessmentType"`
-	Status         string                    `json:"status"`
-	StartDate      time.Time                 `json:"startDate"`
-	EndDate        time.Time                 `json:"endDate"`
-	OverallScore   float64                   `json:"overallScore"`
-	Findings       []*ComplianceFinding      `json:"findings,omitempty"`
-	Evidence       []*ComplianceEvidence     `json:"evidence,omitempty"`
-	Metadata       map[string]interface{}    `json:"metadata,omitempty"`
+	ID             string                 `json:"id"`
+	Framework      string                 `json:"framework"`
+	AssessmentType string                 `json:"assessmentType"`
+	Status         string                 `json:"status"`
+	StartDate      time.Time              `json:"startDate"`
+	EndDate        time.Time              `json:"endDate"`
+	OverallScore   float64                `json:"overallScore"`
+	Findings       []*ComplianceFinding   `json:"findings,omitempty"`
+	Evidence       []*ComplianceEvidence  `json:"evidence,omitempty"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // ComplianceFinding represents a compliance finding (minimal definition)
@@ -804,19 +804,19 @@ type ScheduledScan struct {
 
 // VulnReportTemplate defines vulnerability report templates
 type VulnReportTemplate struct {
-	ID           string            `json:"id"`
-	Name         string            `json:"name"`
-	Description  string            `json:"description"`
-	Format       string            `json:"format"` // HTML, PDF, JSON, XML
-	Template     string            `json:"template"` // Template content
-	Sections     []*ReportSection  `json:"sections"`
-	StyleSheet   string            `json:"styleSheet,omitempty"`
-	IncludeCharts bool             `json:"includeCharts"`
-	IncludeTrends bool             `json:"includeTrends"`
-	Enabled      bool              `json:"enabled"`
-	CreatedAt    time.Time         `json:"createdAt"`
-	UpdatedAt    time.Time         `json:"updatedAt"`
-	Metadata     map[string]string `json:"metadata,omitempty"`
+	ID            string            `json:"id"`
+	Name          string            `json:"name"`
+	Description   string            `json:"description"`
+	Format        string            `json:"format"`   // HTML, PDF, JSON, XML
+	Template      string            `json:"template"` // Template content
+	Sections      []*ReportSection  `json:"sections"`
+	StyleSheet    string            `json:"styleSheet,omitempty"`
+	IncludeCharts bool              `json:"includeCharts"`
+	IncludeTrends bool              `json:"includeTrends"`
+	Enabled       bool              `json:"enabled"`
+	CreatedAt     time.Time         `json:"createdAt"`
+	UpdatedAt     time.Time         `json:"updatedAt"`
+	Metadata      map[string]string `json:"metadata,omitempty"`
 }
 
 // ReportSection represents a section in a report template
@@ -856,7 +856,7 @@ type VulnReportSummary struct {
 	AffectedSystems      int                `json:"affectedSystems"`
 	NewVulnerabilities   int                `json:"newVulnerabilities"`
 	ResolvedSince        int                `json:"resolvedSince"`
-	TrendData           map[string]float64 `json:"trendData,omitempty"`
+	TrendData            map[string]float64 `json:"trendData,omitempty"`
 }
 
 // VulnReportDistributor interface for distributing vulnerability reports
@@ -868,19 +868,19 @@ type VulnReportDistributor interface {
 
 // ResponseChecklist represents a checklist for incident response
 type ResponseChecklist struct {
-	ID          string                `json:"id"`
-	Name        string                `json:"name"`
-	Description string                `json:"description"`
-	Items       []*ChecklistItem      `json:"items"`
-	Category    string                `json:"category"` // preparation, detection, containment, eradication, recovery
-	Priority    string                `json:"priority"` // low, medium, high, critical
-	Mandatory   bool                  `json:"mandatory"`
-	Owner       string                `json:"owner,omitempty"`
-	EstimatedTime time.Duration       `json:"estimatedTime,omitempty"`
-	Dependencies []string             `json:"dependencies,omitempty"` // Other checklist IDs that must complete first
-	CreatedAt   time.Time             `json:"createdAt"`
-	UpdatedAt   time.Time             `json:"updatedAt"`
-	Metadata    map[string]string     `json:"metadata,omitempty"`
+	ID            string            `json:"id"`
+	Name          string            `json:"name"`
+	Description   string            `json:"description"`
+	Items         []*ChecklistItem  `json:"items"`
+	Category      string            `json:"category"` // preparation, detection, containment, eradication, recovery
+	Priority      string            `json:"priority"` // low, medium, high, critical
+	Mandatory     bool              `json:"mandatory"`
+	Owner         string            `json:"owner,omitempty"`
+	EstimatedTime time.Duration     `json:"estimatedTime,omitempty"`
+	Dependencies  []string          `json:"dependencies,omitempty"` // Other checklist IDs that must complete first
+	CreatedAt     time.Time         `json:"createdAt"`
+	UpdatedAt     time.Time         `json:"updatedAt"`
+	Metadata      map[string]string `json:"metadata,omitempty"`
 }
 
 // ChecklistItem represents a single item in a response checklist
@@ -889,7 +889,7 @@ type ChecklistItem struct {
 	Title         string            `json:"title"`
 	Description   string            `json:"description"`
 	Instructions  string            `json:"instructions"`
-	Type          string            `json:"type"` // action, verification, decision, documentation
+	Type          string            `json:"type"`   // action, verification, decision, documentation
 	Status        string            `json:"status"` // pending, in_progress, completed, skipped, failed
 	Assignee      string            `json:"assignee,omitempty"`
 	EstimatedTime time.Duration     `json:"estimatedTime,omitempty"`
@@ -906,12 +906,12 @@ type ChecklistItem struct {
 
 // VerificationStep represents a verification step for a checklist item
 type VerificationStep struct {
-	ID          string    `json:"id"`
-	Type        string    `json:"type"` // automated, manual, approval
-	Criteria    string    `json:"criteria"`
-	Method      string    `json:"method,omitempty"`
-	VerifiedBy  string    `json:"verifiedBy,omitempty"`
-	VerifiedAt  time.Time `json:"verifiedAt,omitempty"`
-	Result      string    `json:"result,omitempty"` // pass, fail, pending
-	Comments    string    `json:"comments,omitempty"`
+	ID         string    `json:"id"`
+	Type       string    `json:"type"` // automated, manual, approval
+	Criteria   string    `json:"criteria"`
+	Method     string    `json:"method,omitempty"`
+	VerifiedBy string    `json:"verifiedBy,omitempty"`
+	VerifiedAt time.Time `json:"verifiedAt,omitempty"`
+	Result     string    `json:"result,omitempty"` // pass, fail, pending
+	Comments   string    `json:"comments,omitempty"`
 }

@@ -10,7 +10,7 @@ func TestLoadIntent(t *testing.T) {
 	// Create test intent file
 	tempDir := t.TempDir()
 	intentPath := filepath.Join(tempDir, "test-intent.json")
-	
+
 	validIntent := `{
 		"intent_type": "scaling",
 		"target": "test-deployment",
@@ -18,17 +18,17 @@ func TestLoadIntent(t *testing.T) {
 		"replicas": 5,
 		"reason": "test reason"
 	}`
-	
+
 	if err := os.WriteFile(intentPath, []byte(validIntent), 0644); err != nil {
 		t.Fatalf("Failed to write test intent: %v", err)
 	}
-	
+
 	// Test loading valid intent
 	intent, err := LoadIntent(intentPath)
 	if err != nil {
 		t.Fatalf("Failed to load valid intent: %v", err)
 	}
-	
+
 	if intent.Target != "test-deployment" {
 		t.Errorf("Expected target 'test-deployment', got '%s'", intent.Target)
 	}
@@ -85,16 +85,16 @@ func TestLoadIntentValidation(t *testing.T) {
 			wantErr: "replicas must be >= 0",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tempDir := t.TempDir()
 			intentPath := filepath.Join(tempDir, "intent.json")
-			
+
 			if err := os.WriteFile(intentPath, []byte(tt.content), 0644); err != nil {
 				t.Fatalf("Failed to write test intent: %v", err)
 			}
-			
+
 			_, err := LoadIntent(intentPath)
 			if err == nil {
 				t.Errorf("Expected error containing '%s', got nil", tt.wantErr)

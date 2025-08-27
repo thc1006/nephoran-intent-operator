@@ -12,7 +12,7 @@ func SafeClose(watcher *Watcher) error {
 		log.Printf("SafeClose: watcher is nil - nothing to close")
 		return nil
 	}
-	
+
 	return watcher.Close()
 }
 

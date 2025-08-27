@@ -232,7 +232,6 @@ type HealthCheckResult struct {
 	Details   map[string]interface{} `json:"details,omitempty"`
 }
 
-
 // Alarm represents an alarm in the system
 type Alarm struct {
 	AlarmID        string                 `json:"alarmId"`
@@ -312,7 +311,6 @@ type InventoryUpdate struct {
 	Source       string                 `json:"source,omitempty"`
 }
 
-
 // CapacityPrediction represents predicted capacity requirements
 type CapacityPrediction struct {
 	ResourcePoolID    string                   `json:"resourcePoolId"`
@@ -341,12 +339,12 @@ type ProvisionResourceRequest struct {
 
 // ScaleResourceRequest represents a request to scale a resource
 type ScaleResourceRequest struct {
-	ScaleType       string                 `json:"scaleType"` // UP, DOWN, OUT, IN
-	TargetSize      int                    `json:"targetSize,omitempty"`
-	TargetReplicas  int                    `json:"targetReplicas,omitempty"`
-	Percentage      int                    `json:"percentage,omitempty"`
-	Resources       *ResourceRequirements  `json:"resources,omitempty"`
-	Options    map[string]interface{} `json:"options,omitempty"`
+	ScaleType      string                 `json:"scaleType"` // UP, DOWN, OUT, IN
+	TargetSize     int                    `json:"targetSize,omitempty"`
+	TargetReplicas int                    `json:"targetReplicas,omitempty"`
+	Percentage     int                    `json:"percentage,omitempty"`
+	Resources      *ResourceRequirements  `json:"resources,omitempty"`
+	Options        map[string]interface{} `json:"options,omitempty"`
 }
 
 // MigrateResourceRequest represents a request to migrate a resource
@@ -698,7 +696,6 @@ type ScalePolicy struct {
 	StabilizationWindow int    `json:"stabilizationWindow"`
 }
 
-
 // AlertRule defines an alert rule
 type AlertRule struct {
 	Name        string            `json:"name"`
@@ -725,7 +722,6 @@ type NetworkPolicy struct {
 	Ingress     []*NetworkPolicyRule `json:"ingress,omitempty"`
 	Egress      []*NetworkPolicyRule `json:"egress,omitempty"`
 }
-
 
 // NetworkPolicyPeer defines network policy peer
 type NetworkPolicyPeer struct {
@@ -885,10 +881,10 @@ type AcceleratorRequirement struct {
 
 // ResourceSpec defines resource specifications for provisioning
 type ResourceSpec struct {
-	CPU    string `json:"cpu,omitempty"`
-	Memory string `json:"memory,omitempty"`
+	CPU     string `json:"cpu,omitempty"`
+	Memory  string `json:"memory,omitempty"`
 	Storage string `json:"storage,omitempty"`
-	GPU    string `json:"gpu,omitempty"`
+	GPU     string `json:"gpu,omitempty"`
 }
 
 // Constants for resource lifecycle operations

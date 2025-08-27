@@ -412,6 +412,8 @@ func TestConfigMapCreationErrorHandling(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
+			// Verify reconcile result
+			assert.Equal(t, ctrl.Result{}, result)
 
 			// Verify retry count was set
 			var updatedE2NodeSet nephoranv1.E2NodeSet
@@ -482,6 +484,8 @@ func TestConfigMapUpdateErrorHandling(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to update E2 node ConfigMap")
+	// Verify reconcile result on error
+	assert.Equal(t, ctrl.Result{}, result)
 
 	// Verify retry count was incremented
 	var updatedE2NodeSet nephoranv1.E2NodeSet
@@ -920,6 +924,8 @@ func TestSuccessfulReconciliationClearsRetryCount(t *testing.T) {
 
 	result, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
 	require.NoError(t, err)
+	// Verify reconcile result
+	assert.Equal(t, ctrl.Result{}, result)
 
 	// Verify retry counts were cleared
 	var updatedE2NodeSet nephoranv1.E2NodeSet

@@ -32,7 +32,7 @@ func TestAuthHandlers_Login(t *testing.T) {
 	rbacManager := tc.SetupRBACManager()
 
 	// Create handlers
-	handlers := NewAuthHandlers(&AuthHandlersConfig{
+	handlers := auth.NewAuthHandlers(&auth.HandlersConfig{
 		JWTManager:     jwtManager,
 		SessionManager: sessionManager,
 		RBACManager:    rbacManager,
@@ -205,7 +205,7 @@ func TestAuthHandlers_Callback(t *testing.T) {
 	mockProvider.On("GetUserInfo", context.Background(), tokenResponse.AccessToken).
 		Return(testUser, nil)
 
-	handlers := NewAuthHandlers(&AuthHandlersConfig{
+	handlers := auth.NewAuthHandlers(&auth.HandlersConfig{
 		JWTManager:     jwtManager,
 		SessionManager: sessionManager,
 		RBACManager:    rbacManager,
@@ -342,7 +342,7 @@ func TestAuthHandlers_RefreshToken(t *testing.T) {
 	accessToken, refreshToken, err := jwtManager.GenerateTokenPair(user, nil)
 	require.NoError(t, err)
 
-	handlers := NewAuthHandlers(&AuthHandlersConfig{
+	handlers := auth.NewAuthHandlers(&auth.HandlersConfig{
 		JWTManager:     jwtManager,
 		SessionManager: sessionManager,
 		RBACManager:    rbacManager,
@@ -449,7 +449,7 @@ func TestAuthHandlers_Logout(t *testing.T) {
 	token, err := jwtManager.GenerateToken(user, nil)
 	require.NoError(t, err)
 
-	handlers := NewAuthHandlers(&AuthHandlersConfig{
+	handlers := auth.NewAuthHandlers(&auth.HandlersConfig{
 		JWTManager:     jwtManager,
 		SessionManager: sessionManager,
 		RBACManager:    rbacManager,
@@ -567,7 +567,7 @@ func TestAuthHandlers_UserInfo(t *testing.T) {
 	token, err := jwtManager.GenerateToken(user, nil)
 	require.NoError(t, err)
 
-	handlers := NewAuthHandlers(&AuthHandlersConfig{
+	handlers := auth.NewAuthHandlers(&auth.HandlersConfig{
 		JWTManager:     jwtManager,
 		SessionManager: sessionManager,
 		RBACManager:    rbacManager,
@@ -647,7 +647,7 @@ func TestAuthHandlers_HealthCheck(t *testing.T) {
 	sessionManager := tc.SetupSessionManager()
 	rbacManager := tc.SetupRBACManager()
 
-	handlers := NewAuthHandlers(&AuthHandlersConfig{
+	handlers := auth.NewAuthHandlers(&auth.HandlersConfig{
 		JWTManager:     jwtManager,
 		SessionManager: sessionManager,
 		RBACManager:    rbacManager,
@@ -711,7 +711,7 @@ func TestAuthHandlers_JWKS(t *testing.T) {
 
 	jwtManager := tc.SetupJWTManager()
 
-	handlers := NewAuthHandlers(&AuthHandlersConfig{
+	handlers := auth.NewAuthHandlers(&auth.HandlersConfig{
 		JWTManager: jwtManager,
 		Logger:     tc.Logger,
 	})
@@ -744,7 +744,7 @@ func TestAuthHandlers_ErrorHandling(t *testing.T) {
 	defer tc.Cleanup()
 
 	// Create handlers with nil dependencies to trigger errors
-	handlers := NewAuthHandlers(&AuthHandlersConfig{
+	handlers := auth.NewAuthHandlers(&auth.HandlersConfig{
 		JWTManager:     nil,
 		SessionManager: nil,
 		RBACManager:    nil,
@@ -816,7 +816,7 @@ func TestAuthHandlers_CSRF(t *testing.T) {
 	sessionManager := tc.SetupSessionManager()
 	rbacManager := tc.SetupRBACManager()
 
-	handlers := NewAuthHandlers(&AuthHandlersConfig{
+	handlers := auth.NewAuthHandlers(&auth.HandlersConfig{
 		JWTManager:     jwtManager,
 		SessionManager: sessionManager,
 		RBACManager:    rbacManager,
@@ -898,7 +898,7 @@ func BenchmarkAuthHandlers_UserInfo(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	handlers := NewAuthHandlers(&AuthHandlersConfig{
+	handlers := auth.NewAuthHandlers(&auth.HandlersConfig{
 		JWTManager: jwtManager,
 		Logger:     tc.Logger,
 	})
@@ -919,7 +919,7 @@ func BenchmarkAuthHandlers_JWKS(b *testing.B) {
 
 	jwtManager := tc.SetupJWTManager()
 
-	handlers := NewAuthHandlers(&AuthHandlersConfig{
+	handlers := auth.NewAuthHandlers(&auth.HandlersConfig{
 		JWTManager: jwtManager,
 		Logger:     tc.Logger,
 	})
@@ -942,7 +942,7 @@ func TestAuthHandlers_HTTPServerIntegration(t *testing.T) {
 	sessionManager := tc.SetupSessionManager()
 	rbacManager := tc.SetupRBACManager()
 
-	handlers := NewAuthHandlers(&AuthHandlersConfig{
+	handlers := auth.NewAuthHandlers(&auth.HandlersConfig{
 		JWTManager:     jwtManager,
 		SessionManager: sessionManager,
 		RBACManager:    rbacManager,

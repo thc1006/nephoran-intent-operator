@@ -17,12 +17,12 @@ func main() {
 	var dryRun, minimal bool
 	var repo, packageName, workspace, namespace, porchURL string
 	var autoApprove bool
-	
+
 	flag.StringVar(&intentPath, "intent", "", "path to intent JSON (docs/contracts/intent.schema.json)")
 	flag.StringVar(&outDir, "out", "examples/packages/direct", "output directory for generated KRM")
 	flag.BoolVar(&dryRun, "dry-run", false, "show what would be generated without writing files")
 	flag.BoolVar(&minimal, "minimal", false, "generate minimal package (Deployment + Kptfile only)")
-	
+
 	// Porch-specific flags
 	flag.StringVar(&repo, "repo", "", "Target Porch repository name")
 	flag.StringVar(&packageName, "package", "", "Target package name")
@@ -30,7 +30,7 @@ func main() {
 	flag.StringVar(&namespace, "namespace", "default", "Target namespace")
 	flag.StringVar(&porchURL, "porch", "http://localhost:9443", "Porch API base URL")
 	flag.BoolVar(&autoApprove, "auto-approve", false, "Automatically approve package proposals")
-	
+
 	flag.Parse()
 
 	if intentPath == "" {
@@ -153,7 +153,7 @@ func run(cfg *Config) error {
 
 	// Report results
 	fmt.Printf("[porch-direct] Package written to: %s\n", writeResult.PackagePath)
-	
+
 	if len(writeResult.FilesWritten) > 0 {
 		fmt.Printf("[porch-direct] Files written: %v\n", writeResult.FilesWritten)
 	}
@@ -168,7 +168,7 @@ func run(cfg *Config) error {
 		fmt.Printf("[porch-direct] Operation was idempotent (no changes needed)\n")
 	}
 
-	fmt.Printf("[porch-direct] Success! KRM package generated for %s scaling to %d replicas\n", 
+	fmt.Printf("[porch-direct] Success! KRM package generated for %s scaling to %d replicas\n",
 		result.Intent.Target, result.Intent.Replicas)
 
 	return nil

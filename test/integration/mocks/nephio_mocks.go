@@ -20,14 +20,14 @@ import (
 	"context"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"k8s.io/client-go/util/flowcontrol"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Mock Porch v1alpha1 types
@@ -36,26 +36,26 @@ import (
 type PackageRevision struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	
+
 	Spec   PackageRevisionSpec   `json:"spec,omitempty"`
 	Status PackageRevisionStatus `json:"status,omitempty"`
 }
 
 type PackageRevisionSpec struct {
-	PackageName   string                     `json:"packageName,omitempty"`
-	Repository    string                     `json:"repository,omitempty"`
-	Revision      string                     `json:"revision,omitempty"`
-	Lifecycle     PackageRevisionLifecycle   `json:"lifecycle,omitempty"`
-	WorkspaceName string                     `json:"workspaceName,omitempty"`
-	Tasks         []Task                     `json:"tasks,omitempty"`
+	PackageName   string                   `json:"packageName,omitempty"`
+	Repository    string                   `json:"repository,omitempty"`
+	Revision      string                   `json:"revision,omitempty"`
+	Lifecycle     PackageRevisionLifecycle `json:"lifecycle,omitempty"`
+	WorkspaceName string                   `json:"workspaceName,omitempty"`
+	Tasks         []Task                   `json:"tasks,omitempty"`
 }
 
 type PackageRevisionStatus struct {
-	Conditions         []metav1.Condition `json:"conditions,omitempty"`
-	PublishedBy        string             `json:"publishedBy,omitempty"`
-	PublishedAt        *metav1.Time       `json:"publishedAt,omitempty"`
-	UpstreamLock       *UpstreamLock      `json:"upstreamLock,omitempty"`
-	DeploymentStatus   DeploymentStatus   `json:"deploymentStatus,omitempty"`
+	Conditions       []metav1.Condition `json:"conditions,omitempty"`
+	PublishedBy      string             `json:"publishedBy,omitempty"`
+	PublishedAt      *metav1.Time       `json:"publishedAt,omitempty"`
+	UpstreamLock     *UpstreamLock      `json:"upstreamLock,omitempty"`
+	DeploymentStatus DeploymentStatus   `json:"deploymentStatus,omitempty"`
 }
 
 type PackageRevisionLifecycle string
@@ -71,7 +71,7 @@ type Task struct {
 }
 
 type UpstreamLock struct {
-	Type string `json:"type,omitempty"`
+	Type string  `json:"type,omitempty"`
 	Git  GitLock `json:"git,omitempty"`
 }
 
@@ -90,7 +90,7 @@ type DeploymentStatus struct {
 type PackageRevisionResources struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	
+
 	Spec   PackageRevisionResourcesSpec   `json:"spec,omitempty"`
 	Status PackageRevisionResourcesStatus `json:"status,omitempty"`
 }
@@ -106,8 +106,8 @@ type PackageRevisionResourcesStatus struct {
 }
 
 type RenderStatus struct {
-	Result string            `json:"result,omitempty"`
-	Errors []RenderError     `json:"errors,omitempty"`
+	Result string        `json:"result,omitempty"`
+	Errors []RenderError `json:"errors,omitempty"`
 }
 
 type RenderError struct {
@@ -121,29 +121,29 @@ type RenderError struct {
 type Repository struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	
+
 	Spec   RepositorySpec   `json:"spec,omitempty"`
 	Status RepositoryStatus `json:"status,omitempty"`
 }
 
 type RepositorySpec struct {
-	Type        string     `json:"type,omitempty"`
-	Content     string     `json:"content,omitempty"`
-	Deployment  bool       `json:"deployment,omitempty"`
-	Git         *GitSpec   `json:"git,omitempty"`
-	Oci         *OciSpec   `json:"oci,omitempty"`
-	Description string     `json:"description,omitempty"`
+	Type        string   `json:"type,omitempty"`
+	Content     string   `json:"content,omitempty"`
+	Deployment  bool     `json:"deployment,omitempty"`
+	Git         *GitSpec `json:"git,omitempty"`
+	Oci         *OciSpec `json:"oci,omitempty"`
+	Description string   `json:"description,omitempty"`
 }
 
 type GitSpec struct {
-	Repo      string          `json:"repo,omitempty"`
-	Branch    string          `json:"branch,omitempty"`
-	Directory string          `json:"directory,omitempty"`
+	Repo      string           `json:"repo,omitempty"`
+	Branch    string           `json:"branch,omitempty"`
+	Directory string           `json:"directory,omitempty"`
 	SecretRef *SecretReference `json:"secretRef,omitempty"`
 }
 
 type OciSpec struct {
-	Registry  string          `json:"registry,omitempty"`
+	Registry  string           `json:"registry,omitempty"`
 	SecretRef *SecretReference `json:"secretRef,omitempty"`
 }
 
@@ -159,16 +159,16 @@ type RepositoryStatus struct {
 type Function struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	
+
 	Spec   FunctionSpec   `json:"spec,omitempty"`
 	Status FunctionStatus `json:"status,omitempty"`
 }
 
 type FunctionSpec struct {
-	Image        string            `json:"image,omitempty"`
-	Description  string            `json:"description,omitempty"`
-	RepositoryRef RepositoryRef    `json:"repositoryRef,omitempty"`
-	Keywords     []string          `json:"keywords,omitempty"`
+	Image         string        `json:"image,omitempty"`
+	Description   string        `json:"description,omitempty"`
+	RepositoryRef RepositoryRef `json:"repositoryRef,omitempty"`
+	Keywords      []string      `json:"keywords,omitempty"`
 }
 
 type RepositoryRef struct {
@@ -181,10 +181,10 @@ type FunctionStatus struct {
 
 // Mock REST Config
 type MockRESTConfig struct {
-	HostURL     string
-	APIPathURL  string
-	Username    string
-	Password    string
+	HostURL    string
+	APIPathURL string
+	Username   string
+	Password   string
 }
 
 func (m *MockRESTConfig) Host() string {
@@ -317,14 +317,14 @@ func (m *MockRESTMapper) ResourceSingularizer(resource string) (singular string,
 // Porch Service mocks
 
 type MockPorchService struct {
-	Packages    []*PackageRevision
+	Packages     []*PackageRevision
 	Repositories []*Repository
 	Functions    []*Function
 }
 
 func NewMockPorchService() *MockPorchService {
 	return &MockPorchService{
-		Packages:    []*PackageRevision{},
+		Packages:     []*PackageRevision{},
 		Repositories: []*Repository{},
 		Functions:    []*Function{},
 	}
@@ -494,10 +494,10 @@ func CreateMockFunction(name, namespace, image string) *Function {
 // Mock REST Config factory
 func NewMockRESTConfig() *rest.Config {
 	return &rest.Config{
-		Host:        "http://mock-api-server:8080",
-		APIPath:     "/api",
-		Username:    "mock-user",
-		Password:    "mock-password",
+		Host:     "http://mock-api-server:8080",
+		APIPath:  "/api",
+		Username: "mock-user",
+		Password: "mock-password",
 	}
 }
 

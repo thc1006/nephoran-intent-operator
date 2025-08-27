@@ -209,7 +209,7 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 				},
 				CircuitBreakerConfig: CircuitBreakerConfig{
 					FailureThreshold: 3,
-					Timeout:         500 * time.Millisecond,
+					Timeout:          500 * time.Millisecond,
 				},
 				HealthCheckConfig: HealthCheckConfig{
 					Interval: time.Minute,
@@ -327,7 +327,7 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 			// Reset circuit breaker
 			circuitBreaker = NewCircuitBreaker("test", &CircuitBreakerConfig{
 				FailureThreshold: 3,
-				Timeout:         time.Second,
+				Timeout:          time.Second,
 			})
 
 			// Test non-retryable errors (these still count as failures for circuit breaker)

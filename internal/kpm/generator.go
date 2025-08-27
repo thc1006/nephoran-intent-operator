@@ -42,7 +42,7 @@ func NewGenerator(nodeID, outputDir string) (*Generator, error) {
 	if outputDir == "" {
 		return nil, fmt.Errorf("outputDir cannot be empty")
 	}
-	
+
 	return &Generator{
 		nodeID:    nodeID,
 		outputDir: outputDir,
@@ -61,7 +61,7 @@ func (g *Generator) GenerateMetric() error {
 	} else if value > 1 {
 		value = 1
 	}
-	
+
 	metric := &KPMMetric{
 		NodeID:    g.nodeID,
 		Timestamp: time.Now().UTC(),
@@ -75,7 +75,7 @@ func (g *Generator) GenerateMetric() error {
 		return fmt.Errorf("marshal metric: %w", err)
 	}
 
-	filename := fmt.Sprintf("%s_%s.json", 
+	filename := fmt.Sprintf("%s_%s.json",
 		metric.Timestamp.Format("20060102T150405Z"),
 		g.nodeID)
 	metricPath := filepath.Join(g.outputDir, filename)

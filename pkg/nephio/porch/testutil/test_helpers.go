@@ -55,9 +55,9 @@ func NewTestConfig() *porch.Config {
 // GetTestKubeConfig returns a test Kubernetes configuration
 func GetTestKubeConfig() *rest.Config {
 	return &rest.Config{
-		Host: "http://localhost:8080",
-		QPS:  100,
-		Burst: 150,
+		Host:    "http://localhost:8080",
+		QPS:     100,
+		Burst:   150,
 		Timeout: 30 * time.Second,
 	}
 }
@@ -73,7 +73,7 @@ type ClientOptions struct {
 // NewTestEnvironment creates a test environment with envtest
 func NewTestEnvironment(t *testing.T) (*envtest.Environment, *rest.Config) {
 	t.Helper()
-	
+
 	testEnv := &envtest.Environment{
 		CRDDirectoryPaths: []string{"../../../config/crd/bases"},
 	}
@@ -129,10 +129,10 @@ func NewTestRepository(name string) *porch.Repository {
 			Namespace: "default",
 		},
 		Spec: porch.RepositorySpec{
-			Type:      "git",
-			URL:       "https://github.com/test/repo.git",
-			Branch:    "main",
-			Directory: "/",
+			Type:         "git",
+			URL:          "https://github.com/test/repo.git",
+			Branch:       "main",
+			Directory:    "/",
 			Capabilities: []string{"upstream"},
 		},
 	}
@@ -160,7 +160,7 @@ func NewTestFunctionConfig(name string) porch.FunctionConfig {
 	return porch.FunctionConfig{
 		Image: "gcr.io/kpt-fn/test-function:v1.0.0",
 		ConfigMap: map[string]interface{}{
-			"name": name,
+			"name":        name,
 			"description": "Test function for " + name,
 		},
 	}

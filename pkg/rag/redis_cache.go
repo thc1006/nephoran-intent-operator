@@ -160,15 +160,15 @@ func NewRedisCache(config *RedisCacheConfig) (*RedisCache, error) {
 
 	// Create Redis client
 	rdb := redis.NewClient(&redis.Options{
-		Addr:         config.Address,
-		Password:     config.Password,
-		DB:           config.Database,
-		PoolSize:     config.PoolSize,
-		MinIdleConns: config.MinIdleConns,
-		MaxRetries:   config.MaxRetries,
-		DialTimeout:  config.DialTimeout,
-		ReadTimeout:  config.ReadTimeout,
-		WriteTimeout: config.WriteTimeout,
+		Addr:            config.Address,
+		Password:        config.Password,
+		DB:              config.Database,
+		PoolSize:        config.PoolSize,
+		MinIdleConns:    config.MinIdleConns,
+		MaxRetries:      config.MaxRetries,
+		DialTimeout:     config.DialTimeout,
+		ReadTimeout:     config.ReadTimeout,
+		WriteTimeout:    config.WriteTimeout,
 		ConnMaxIdleTime: config.IdleTimeout,
 	})
 

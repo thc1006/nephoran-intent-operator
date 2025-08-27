@@ -24,8 +24,8 @@ type PackageSpec struct {
 
 // PackageStatus represents the status of a package
 type PackageStatus struct {
-	Phase      string `json:"phase"`
-	Message    string `json:"message,omitempty"`
+	Phase      string      `json:"phase"`
+	Message    string      `json:"message,omitempty"`
 	Conditions []Condition `json:"conditions,omitempty"`
 }
 

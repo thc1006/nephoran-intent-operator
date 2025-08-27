@@ -745,7 +745,7 @@ func (ns *NetconfServer) sendResponse(session *NetconfSession, response *Netconf
 	}
 
 	message := fmt.Sprintf("%s]]>]]>", string(xmlData))
-	
+
 	// Write to appropriate connection type
 	if session.conn != nil {
 		session.conn.Write([]byte(message))

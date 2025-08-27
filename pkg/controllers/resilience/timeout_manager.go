@@ -425,7 +425,7 @@ func (tm *TimeoutManager) GetMetrics() *TimeoutMetrics {
 	for k, v := range tm.metrics.OperationsByTimeout {
 		operationsByTimeout[k] = v
 	}
-	
+
 	metricsCopy := &TimeoutMetrics{
 		TotalOperations:     tm.metrics.TotalOperations,
 		TimeoutOperations:   tm.metrics.TimeoutOperations,

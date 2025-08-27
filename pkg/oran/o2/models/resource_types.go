@@ -50,14 +50,14 @@ type ResourceType struct {
 	Extensions       map[string]interface{} `json:"extensions,omitempty"`
 	Tags             map[string]string      `json:"tags,omitempty"`
 	Labels           map[string]string      `json:"labels,omitempty"`
-	
+
 	// Legacy fields for backward compatibility (mapped to current model)
 	// Specifications maps to Category, ResourceLimits, and other current fields
-	Specifications   *ResourceTypeSpec      `json:"specifications,omitempty"`
+	Specifications *ResourceTypeSpec `json:"specifications,omitempty"`
 	// SupportedActions maps to SupportedOperations
-	SupportedActions []string               `json:"supportedActions,omitempty"`
+	SupportedActions []string `json:"supportedActions,omitempty"`
 	// Capabilities as map (legacy format) - use Capabilities field for current model
-	CapabilitiesMap  map[string]interface{} `json:"capabilitiesLegacy,omitempty"`
+	CapabilitiesMap map[string]interface{} `json:"capabilitiesLegacy,omitempty"`
 
 	// Lifecycle information
 	Status    string    `json:"status"` // ACTIVE, DEPRECATED, OBSOLETE
@@ -65,7 +65,7 @@ type ResourceType struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	CreatedBy string    `json:"createdBy,omitempty"`
 	UpdatedBy string    `json:"updatedBy,omitempty"`
-	
+
 	// Compliance information for test compatibility
 	Compliance *ComplianceInfo `json:"compliance,omitempty"`
 }
@@ -668,13 +668,13 @@ const (
 // ResourceTypeSpec represents legacy resource type specifications
 // Now mapped to current ResourceType fields: Category, ResourceLimits, etc.
 type ResourceTypeSpec struct {
-	Category         string            `json:"category"`
-	SubCategory      string            `json:"subCategory,omitempty"`
-	MinResources     map[string]string `json:"minResources,omitempty"`
-	MaxResources     map[string]string `json:"maxResources,omitempty"`
-	DefaultResources map[string]string `json:"defaultResources,omitempty"`
-	RequiredPorts    []PortSpec        `json:"requiredPorts,omitempty"`
-	OptionalPorts    []PortSpec        `json:"optionalPorts,omitempty"`
+	Category         string                 `json:"category"`
+	SubCategory      string                 `json:"subCategory,omitempty"`
+	MinResources     map[string]string      `json:"minResources,omitempty"`
+	MaxResources     map[string]string      `json:"maxResources,omitempty"`
+	DefaultResources map[string]string      `json:"defaultResources,omitempty"`
+	RequiredPorts    []PortSpec             `json:"requiredPorts,omitempty"`
+	OptionalPorts    []PortSpec             `json:"optionalPorts,omitempty"`
 	Properties       map[string]interface{} `json:"properties,omitempty"`
 	Capabilities     map[string]interface{} `json:"capabilities,omitempty"`
 }

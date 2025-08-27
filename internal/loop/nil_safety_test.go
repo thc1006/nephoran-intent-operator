@@ -14,14 +14,14 @@ func TestNilWatcherSafety(t *testing.T) {
 		err := nilWatcher.Close()
 		assert.NoError(t, err, "Close() on nil Watcher should not panic or error")
 	})
-	
+
 	t.Run("nil_watcher_methods", func(t *testing.T) {
 		var nilWatcher *Watcher
-		
+
 		// Test other methods that should be safe with nil receiver
 		metrics := nilWatcher.GetMetrics()
 		assert.Nil(t, metrics, "GetMetrics() on nil Watcher should return nil")
-		
+
 		// Close should be idempotent and safe
 		err1 := nilWatcher.Close()
 		err2 := nilWatcher.Close()
@@ -51,7 +51,7 @@ func TestIsIntentFileFunction(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := IsIntentFile(tt.filename)
-			assert.Equal(t, tt.expected, result, 
+			assert.Equal(t, tt.expected, result,
 				"IsIntentFile(%s) should return %t", tt.filename, tt.expected)
 		})
 	}

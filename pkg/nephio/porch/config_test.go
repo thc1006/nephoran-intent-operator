@@ -238,7 +238,7 @@ func TestConfigFromKubeconfig(t *testing.T) {
 	// Verify kubeconfig path is set in defaults
 	assert.NotNil(t, config.KubernetesConfig)
 	assert.NotEmpty(t, config.KubernetesConfig.KubeconfigPath)
-	
+
 	// Test GetKubernetesConfig method
 	_, err := config.GetKubernetesConfig()
 	// This may fail if kubeconfig doesn't exist, but we test the method exists

@@ -35,7 +35,7 @@ func TestWindowsCommandSeparation(t *testing.T) {
 	// Read the generated script content
 	content, err := os.ReadFile(scriptPath)
 	require.NoError(t, err)
-	
+
 	scriptText := string(content)
 	t.Logf("Generated script content:\n%s", scriptText)
 
@@ -63,13 +63,13 @@ func TestWindowsCommandSeparation(t *testing.T) {
 	// Functional test: Execute the script and verify it works
 	cmd := exec.Command("cmd.exe", "/C", scriptPath)
 	output, err := cmd.CombinedOutput()
-	
+
 	// The script should execute without PowerShell parameter binding errors
 	if err != nil {
 		t.Logf("Script execution error: %v", err)
 		t.Logf("Script output: %s", string(output))
 		// Check for the specific error that was occurring
-		assert.NotContains(t, string(output), "cannot convert value '50echo'", 
+		assert.NotContains(t, string(output), "cannot convert value '50echo'",
 			"Should not have PowerShell parameter binding errors")
 	}
 }

@@ -829,27 +829,9 @@ func (w *testResponseWriter) WriteHeader(statusCode int) {
 // Missing type definitions that are referenced but not defined in the original files
 // These are minimal implementations for testing purposes
 
-
-
-
-
-
-
-
-
-
-
-
 type A1TestValidator interface {
 	ValidatePolicyType(policyType *PolicyType) error
 	ValidatePolicyInstance(policyType *PolicyType, instance *PolicyInstance) error
 	ValidateEIType(eiType *EnrichmentInfoType) error
 	ValidateEIJob(eiType *EnrichmentInfoType, job *EnrichmentInfoJob) error
 }
-
-
-
-
-
-
-

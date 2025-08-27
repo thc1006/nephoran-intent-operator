@@ -87,10 +87,10 @@ type RealtimeValidationConfig struct {
 	TelecomSpecificValidation bool         `yaml:"telecom_specific_validation"`
 
 	// Monitoring and alerting
-	MetricsEnabled       bool            `yaml:"metrics_enabled"`
-	DetailedMetrics      bool            `yaml:"detailed_metrics"`
-	WebhookNotifications bool            `yaml:"webhook_notifications"`
-	WebhookEndpoints     []string        `yaml:"webhook_endpoints"`
+	MetricsEnabled       bool                      `yaml:"metrics_enabled"`
+	DetailedMetrics      bool                      `yaml:"detailed_metrics"`
+	WebhookNotifications bool                      `yaml:"webhook_notifications"`
+	WebhookEndpoints     []string                  `yaml:"webhook_endpoints"`
 	AlertThresholds      ValidationAlertThresholds `yaml:"alert_thresholds"`
 
 	// Emergency procedures

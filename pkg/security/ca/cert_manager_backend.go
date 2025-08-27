@@ -246,7 +246,7 @@ func (b *CertManagerBackend) IssueCertificate(ctx context.Context, req *Certific
 				Algorithm: certmanagerv1.RSAKeyAlgorithm,
 				Size:      req.KeySize,
 			},
-			Usages:    b.convertKeyUsages(req.KeyUsage, req.ExtKeyUsage),
+			Usages:     b.convertKeyUsages(req.KeyUsage, req.ExtKeyUsage),
 			SecretName: b.generateSecretName(req),
 			IssuerRef: certmanagermetav1.ObjectReference{
 				Name: b.config.IssuerName,

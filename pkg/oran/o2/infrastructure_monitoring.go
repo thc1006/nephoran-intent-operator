@@ -646,7 +646,7 @@ func (s *InfrastructureMonitoringService) checkResourceHealth(resourceID string,
 	healthStatus, err := monitor.Provider.GetResourceHealth(s.ctx, resourceID)
 	healthy := false
 	details := make(map[string]interface{})
-	
+
 	if err == nil && healthStatus != nil {
 		healthy = healthStatus.Status == "healthy"
 		details = healthStatus.Metadata

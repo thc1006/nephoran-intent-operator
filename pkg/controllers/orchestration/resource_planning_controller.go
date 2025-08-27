@@ -72,22 +72,22 @@ type ResourcePlanningConfig struct {
 	CostOptimizationEnabled        bool          `json:"costOptimizationEnabled"`
 	PerformanceOptimizationEnabled bool          `json:"performanceOptimizationEnabled"`
 	ComplianceValidationEnabled    bool          `json:"complianceValidationEnabled"`
-	
+
 	// Cache configuration
 	CacheEnabled    bool          `json:"cacheEnabled"`
 	CacheTTL        time.Duration `json:"cacheTTL"`
 	MaxCacheEntries int           `json:"maxCacheEntries"`
-	
+
 	// Optimization configuration
-	OptimizationEnabled    bool    `json:"optimizationEnabled"`
-	CPUOvercommitRatio     float64 `json:"cpuOvercommitRatio"`
-	MemoryOvercommitRatio  float64 `json:"memoryOvercommitRatio"`
-	
+	OptimizationEnabled   bool    `json:"optimizationEnabled"`
+	CPUOvercommitRatio    float64 `json:"cpuOvercommitRatio"`
+	MemoryOvercommitRatio float64 `json:"memoryOvercommitRatio"`
+
 	// Default resource requests
 	DefaultCPURequest     string `json:"defaultCpuRequest"`
 	DefaultMemoryRequest  string `json:"defaultMemoryRequest"`
 	DefaultStorageRequest string `json:"defaultStorageRequest"`
-	
+
 	// Constraint checking
 	ConstraintCheckEnabled bool `json:"constraintCheckEnabled"`
 }
@@ -558,11 +558,11 @@ func (r *ResourcePlanningController) areResourceProfilesSimilar(r1, r2 nephoranv
 // isPerformanceCritical checks if a component is performance-critical
 func (r *ResourcePlanningController) isPerformanceCritical(component nephoranv1.TargetComponent) bool {
 	performanceCritical := map[string]bool{
-		"upf":         true,
-		"gnb":         true,
-		"nearrt-ric":  true,
-		"odu":         true,
-		"ocu-up":      true,
+		"upf":        true,
+		"gnb":        true,
+		"nearrt-ric": true,
+		"odu":        true,
+		"ocu-up":     true,
 	}
 	return performanceCritical[component.Name]
 }
@@ -654,7 +654,7 @@ func (r *ResourcePlanningController) validateCompliance(ctx context.Context, res
 		if len(violations) > 0 {
 			validationStatus = "failed"
 		}
-		
+
 		// Create validation result
 		validationResult := nephoranv1.ValidationResult{
 			Type:        "compliance",
@@ -826,7 +826,7 @@ func (r *ResourcePlanningController) handlePlanningSuccess(ctx context.Context, 
 		if compStatus.ViolationCount > 0 {
 			status = "NonCompliant"
 		}
-		
+
 		resourceComplianceStatus[i] = nephoranv1.ResourceComplianceStatus{
 			Standard: compStatus.Standards[0], // Use first standard if available
 			Status:   status,
@@ -1050,22 +1050,22 @@ func DefaultResourcePlanningConfig() *ResourcePlanningConfig {
 		CostOptimizationEnabled:        true,
 		PerformanceOptimizationEnabled: true,
 		ComplianceValidationEnabled:    true,
-		
+
 		// Cache configuration
 		CacheEnabled:    true,
 		CacheTTL:        5 * time.Minute,
 		MaxCacheEntries: 1000,
-		
+
 		// Optimization configuration
 		OptimizationEnabled:   true,
 		CPUOvercommitRatio:    1.5,
 		MemoryOvercommitRatio: 1.2,
-		
+
 		// Default resource requests
 		DefaultCPURequest:     "100m",
 		DefaultMemoryRequest:  "128Mi",
 		DefaultStorageRequest: "1Gi",
-		
+
 		// Constraint checking
 		ConstraintCheckEnabled: true,
 	}

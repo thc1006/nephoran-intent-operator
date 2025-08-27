@@ -171,12 +171,12 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_DebounceWindow
 			// Start the watcher first
 			_, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancel()
-			
+
 			go func() {
 				watcher.Start()
 			}()
 			time.Sleep(50 * time.Millisecond) // Let watcher start
-			
+
 			// First event
 			require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
 			watcher.handleIntentFileWithEnhancedDebounce(testFile, fsnotify.Create)
@@ -246,7 +246,7 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_ConcurrentEven
 }
 
 // =============================================================================
-// 2. DIRECTORY CREATION RACE CONDITION TESTS  
+// 2. DIRECTORY CREATION RACE CONDITION TESTS
 // =============================================================================
 
 func (s *WatcherValidationTestSuite) TestDirectoryCreationRace_ConcurrentCreation() {
@@ -357,7 +357,7 @@ func (s *WatcherValidationTestSuite) TestDirectoryCreationRace_SyncOncePattern()
 		go func() {
 			defer wg.Done()
 			atomic.AddInt64(&callCount, 1)
-			
+
 			// Simulate the sync.Once pattern
 			once.Do(func() {
 				atomic.AddInt64(&actualMkdirCalls, 1)
@@ -390,12 +390,12 @@ func (s *WatcherValidationTestSuite) TestDirectoryCreationRace_NestedDirectories
 			wg.Add(1)
 			go func(depth int) {
 				defer wg.Done()
-				
+
 				var dirPath string = baseDir
 				for i := 0; i < depth; i++ {
 					dirPath = filepath.Join(dirPath, fmt.Sprintf("level%d", i))
 				}
-				
+
 				watcher.ensureDirectoryExists(dirPath)
 			}(level)
 		}
@@ -532,10 +532,10 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_InvalidJSONRejection() {
 	defer watcher.Close()
 
 	invalidCases := []struct {
-		name         string
-		content      string
-		expectedErr  string
-		desc         string
+		name        string
+		content     string
+		expectedErr string
+		desc        string
 	}{
 		{
 			name:        "malformed_json",
@@ -670,7 +670,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_PathTraversalPrevention(
 
 			err := watcher.validatePath(tc.path)
 			assert.Error(t, err, "Should reject path traversal: %s", tc.desc)
-			assert.Contains(t, err.Error(), "outside watched directory", 
+			assert.Contains(t, err.Error(), "outside watched directory",
 				"Error should mention path restriction")
 		})
 	}
@@ -727,7 +727,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_SizeLimitEnforcement() {
 				assert.NoError(t, err, "File of size %d should pass", tt.size)
 			} else {
 				assert.Error(t, err, "File of size %d should fail", tt.size)
-				assert.Contains(t, err.Error(), "exceeds maximum", 
+				assert.Contains(t, err.Error(), "exceeds maximum",
 					"Error should mention size limit")
 			}
 		})
@@ -743,7 +743,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_SuspiciousFilenamePatter
 
 	suspiciousPatterns := []string{
 		"intent-test..json",
-		"intent-test~.json", 
+		"intent-test~.json",
 		"intent-test$.json",
 		"intent-test*.json",
 		"intent-test?.json",
@@ -760,7 +760,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_SuspiciousFilenamePatter
 	for _, pattern := range suspiciousPatterns {
 		s.T().Run(fmt.Sprintf("suspicious_%s", pattern), func(t *testing.T) {
 			filePath := filepath.Join(s.tempDir, pattern)
-			
+
 			// Create the file
 			os.WriteFile(filePath, []byte(validContent), 0644)
 
@@ -1071,10 +1071,10 @@ func BenchmarkWatcherValidation_JSONValidation(b *testing.B) {
 func BenchmarkWatcherValidation_DirectoryCreation(b *testing.B) {
 	tempDir := b.TempDir()
 	config := Config{
-		PorchPath:   createMockPorch(b, tempDir, 0, "processed", ""),
-		Mode:        porch.ModeDirect,
-		OutDir:      filepath.Join(tempDir, "out"),
-		MaxWorkers:  1,
+		PorchPath:  createMockPorch(b, tempDir, 0, "processed", ""),
+		Mode:       porch.ModeDirect,
+		OutDir:     filepath.Join(tempDir, "out"),
+		MaxWorkers: 1,
 	}
 
 	watcher, err := NewWatcher(tempDir, config)
