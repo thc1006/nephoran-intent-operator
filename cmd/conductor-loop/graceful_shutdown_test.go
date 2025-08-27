@@ -51,8 +51,7 @@ func createMockPorchGraceful(t *testing.T, tempDir string, behavior string) stri
 		}
 	}
 	
-	err := // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(mockPorchPath, []byte(mockScript), 0755)
+	err := os.WriteFile(mockPorchPath, []byte(mockScript), 0755)
 	if err != nil {
 		t.Fatalf("Failed to create mock porch: %v", err)
 	}
@@ -93,8 +92,7 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create watcher: %v", err)
 	}
-	defer func() { _ = // FIXME: Adding error check per errcheck linter
- _ = watcher.Close() }()
+	defer func() { _ = watcher.Close() }()
 
 	// Create intent files that will be processed
 	intentFiles := []string{
@@ -113,8 +111,7 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 
 	for _, filename := range intentFiles {
 		filePath := filepath.Join(handoffDir, filename)
-		err := // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(filePath, []byte(intentContent), 0644)
+		err := os.WriteFile(filePath, []byte(intentContent), 0644)
 		if err != nil {
 			t.Fatalf("Failed to create intent file %s: %v", filename, err)
 		}
@@ -136,8 +133,7 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 	
 	// Trigger graceful shutdown
-	_ = // FIXME: Adding error check per errcheck linter
- _ = watcher.Close()
+	watcher.Close()
 
 	// Wait for processing to complete with appropriate timeout
 	select {
@@ -339,8 +335,7 @@ func TestWatcher_GracefulShutdown_DrainsWithoutHang(t *testing.T) {
 	
 	watcher, err := loop.NewWatcher(handoffDir, config)
 	require.NoError(t, err)
-	defer func() { _ = // FIXME: Adding error check per errcheck linter
- _ = watcher.Close() }()
+	defer func() { _ = watcher.Close() }()
 	
 	// Create multiple intent files
 	intentContent := `{
@@ -357,8 +352,7 @@ func TestWatcher_GracefulShutdown_DrainsWithoutHang(t *testing.T) {
 		// Use proper intent file naming convention: "intent-" prefix required
 		filename := fmt.Sprintf("intent-drain-%03d.json", i)
 		filePath := filepath.Join(handoffDir, filename)
-		err := // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(filePath, []byte(intentContent), 0644)
+		err := os.WriteFile(filePath, []byte(intentContent), 0644)
 		require.NoError(t, err)
 		createdFiles = append(createdFiles, filename)
 	}

@@ -125,7 +125,7 @@ func TestReconcileDeleteWithFakeGitClient(t *testing.T) {
 		}
 
 		// Verify condition is set correctly
-		readyCondition := getConditionByType(updatedIntent.Status.Conditions, "Ready")
+		readyCondition := getConditionByTypeReconcileDelete(updatedIntent.Status.Conditions, "Ready")
 		if readyCondition == nil {
 			t.Errorf("Expected Ready condition to be set")
 		} else {
@@ -193,7 +193,7 @@ func TestReconcileDeleteWithFakeGitClient(t *testing.T) {
 		}
 
 		// Verify condition is set correctly
-		readyCondition := getConditionByType(updatedIntent.Status.Conditions, "Ready")
+		readyCondition := getConditionByTypeReconcileDelete(updatedIntent.Status.Conditions, "Ready")
 		if readyCondition == nil {
 			t.Errorf("Expected Ready condition to be set")
 		} else {
@@ -286,7 +286,7 @@ func TestReconcileDeleteWithFakeGitClient(t *testing.T) {
 			}
 
 			// Verify condition shows Git push failure
-			readyCondition := getConditionByType(updatedIntent.Status.Conditions, "Ready")
+			readyCondition := getConditionByTypeReconcileDelete(updatedIntent.Status.Conditions, "Ready")
 			if readyCondition == nil {
 				t.Errorf("Retry %d: Expected Ready condition to be set", i)
 			} else {
@@ -347,7 +347,7 @@ func TestReconcileDeleteWithFakeGitClient(t *testing.T) {
 		}
 
 		// Verify condition shows max retries exceeded
-		readyCondition := getConditionByType(updatedIntent.Status.Conditions, "Ready")
+		readyCondition := getConditionByTypeReconcileDelete(updatedIntent.Status.Conditions, "Ready")
 		if readyCondition == nil {
 			t.Errorf("Expected Ready condition to be set")
 		} else {
@@ -360,7 +360,7 @@ func TestReconcileDeleteWithFakeGitClient(t *testing.T) {
 }
 
 // Helper function to get condition by type
-func getConditionByType(conditions []metav1.Condition, conditionType string) *metav1.Condition {
+func getConditionByTypeReconcileDelete(conditions []metav1.Condition, conditionType string) *metav1.Condition {
 	for i := range conditions {
 		if conditions[i].Type == conditionType {
 			return &conditions[i]

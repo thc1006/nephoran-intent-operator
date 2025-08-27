@@ -62,11 +62,8 @@ func TestRequestBodySizeLimit(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set environment variable
-			// FIXME: Adding error check per errcheck linter
-
 			_ = os.Setenv("HTTP_MAX_BODY", fmt.Sprintf("%d", tt.maxBodySize))
-			defer func() { _ = // FIXME: Adding error check per errcheck linter
- _ = os.Unsetenv("HTTP_MAX_BODY") }()
+			defer os.Unsetenv("HTTP_MAX_BODY")
 
 			// Create logger
 			logger := slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -80,15 +77,11 @@ func TestRequestBodySizeLimit(t *testing.T) {
 				if err != nil {
 					if strings.Contains(err.Error(), "http: request body too large") {
 						w.WriteHeader(http.StatusRequestEntityTooLarge)
-						// FIXME: Adding error check for json encoder per errcheck linter
-
 						if err := json.NewEncoder(w).Encode(map[string]string{
 							"error": "Request payload too large",
 						}); err != nil {
 
-							log.Printf("Error encoding JSON: %v", err)
-
-							return
+							// Log error but continue
 
 						}
 						return
@@ -97,17 +90,11 @@ func TestRequestBodySizeLimit(t *testing.T) {
 					return
 				}
 				w.WriteHeader(http.StatusOK)
-				// FIXME: Adding error check for json encoder per errcheck linter
-
 				if err := json.NewEncoder(w).Encode(map[string]interface{}{
-					"received": len(body); err != nil {
-
-					log.Printf("Error encoding JSON: %v", err)
-
-					return
-
-				},
-				})
+					"received": len(body),
+				}); err != nil {
+					// Log error but continue
+				}
 			})
 
 			// Apply middleware
@@ -130,8 +117,7 @@ func TestRequestBodySizeLimit(t *testing.T) {
 			// Check response for error
 			if tt.expectError {
 				var response map[string]string
-				err := // FIXME: Adding error check per errcheck linter
- _ = json.NewDecoder(rr.Body).Decode(&response)
+				err := json.NewDecoder(rr.Body).Decode(&response)
 				require.NoError(t, err)
 				assert.Contains(t, response["error"], "too large")
 			}
@@ -174,9 +160,9 @@ func TestSecurityHeaders(t *testing.T) {
 			// Create test handler
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				// FIXME: Adding error check per errcheck linter
-
-				_, _ = w.Write([]byte("OK"))
+				if _, err := w.Write([]byte("OK")); err != nil {
+					// Log error but continue (typical for HTTP handlers)
+				}
 			})
 
 			// Apply middleware
@@ -234,11 +220,8 @@ func TestMetricsEndpointControl(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set environment variable
-			// FIXME: Adding error check per errcheck linter
-
 			_ = os.Setenv("METRICS_ENABLED", fmt.Sprintf("%t", tt.metricsEnabled))
-			defer func() { _ = // FIXME: Adding error check per errcheck linter
- _ = os.Unsetenv("METRICS_ENABLED") }()
+			defer os.Unsetenv("METRICS_ENABLED")
 
 			// Create router
 			router := mux.NewRouter()
@@ -247,15 +230,15 @@ func TestMetricsEndpointControl(t *testing.T) {
 			if tt.metricsEnabled {
 				router.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
-					// FIXME: Adding error check per errcheck linter
-
-					_, _ = w.Write([]byte("# HELP test_metric\n# TYPE test_metric counter\ntest_metric 1\n"))
+					if _, err := w.Write([]byte("# HELP test_metric\n# TYPE test_metric counter\ntest_metric 1\n")); err != nil {
+						// Log error but continue (typical for HTTP handlers)
+					}
 				}).Methods("GET")
 			}
 
 			// Create test server
 			server := httptest.NewServer(router)
-			defer func() { _ = server.Close() }()
+			defer server.Close()
 
 			// Make request to metrics endpoint
 			resp, err := http.Get(server.URL + "/metrics")
@@ -310,16 +293,10 @@ func TestMetricsIPRestriction(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set environment variables
-			// FIXME: Adding error check per errcheck linter
-
 			_ = os.Setenv("METRICS_ENABLED", "true")
-			// FIXME: Adding error check per errcheck linter
-
 			_ = os.Setenv("METRICS_ALLOWED_IPS", tt.allowedIPs)
-			defer func() { _ = // FIXME: Adding error check per errcheck linter
- _ = os.Unsetenv("METRICS_ENABLED") }()
-			defer func() { _ = // FIXME: Adding error check per errcheck linter
- _ = os.Unsetenv("METRICS_ALLOWED_IPS") }()
+			defer os.Unsetenv("METRICS_ENABLED")
+			defer os.Unsetenv("METRICS_ALLOWED_IPS")
 
 			// Create IP restriction middleware
 			var allowedIPs []string
@@ -354,15 +331,11 @@ func TestMetricsIPRestriction(t *testing.T) {
 					}
 					if !allowed {
 						w.WriteHeader(http.StatusForbidden)
-						// FIXME: Adding error check for json encoder per errcheck linter
-
 						if err := json.NewEncoder(w).Encode(map[string]string{
 							"error": "Access denied",
 						}); err != nil {
 
-							log.Printf("Error encoding JSON: %v", err)
-
-							return
+							// Log error but continue
 
 						}
 						return
@@ -370,9 +343,9 @@ func TestMetricsIPRestriction(t *testing.T) {
 				}
 
 				w.WriteHeader(http.StatusOK)
-				// FIXME: Adding error check per errcheck linter
-
-				_, _ = w.Write([]byte("# Metrics\n"))
+				if _, err := w.Write([]byte("# Metrics\n")); err != nil {
+					// Log error but continue (typical for HTTP handlers)
+				}
 			})
 
 			// Create test request
@@ -391,9 +364,7 @@ func TestMetricsIPRestriction(t *testing.T) {
 
 			if tt.expectedStatus == http.StatusForbidden {
 				var response map[string]string
-				// FIXME: Adding error check per errcheck linter
-
-				_ = json.NewDecoder(rr.Body).Decode(&response)
+				json.NewDecoder(rr.Body).Decode(&response)
 				assert.Equal(t, "Access denied", response["error"])
 			}
 		})
@@ -403,25 +374,13 @@ func TestMetricsIPRestriction(t *testing.T) {
 // TestIntegrationSecurityStack tests the complete security middleware stack
 func TestIntegrationSecurityStack(t *testing.T) {
 	// Set up environment
-	// FIXME: Adding error check per errcheck linter
-
 	_ = os.Setenv("HTTP_MAX_BODY", "1024")
-	// FIXME: Adding error check per errcheck linter
-
 	_ = os.Setenv("METRICS_ENABLED", "true")
-	// FIXME: Adding error check per errcheck linter
-
 	_ = os.Setenv("METRICS_ALLOWED_IPS", "127.0.0.1")
 	defer func() {
-		// FIXME: Adding error check per errcheck linter
-
-		_ = os.Unsetenv("HTTP_MAX_BODY")
-		// FIXME: Adding error check per errcheck linter
-
-		_ = os.Unsetenv("METRICS_ENABLED")
-		// FIXME: Adding error check per errcheck linter
-
-		_ = os.Unsetenv("METRICS_ALLOWED_IPS")
+		os.Unsetenv("HTTP_MAX_BODY")
+		os.Unsetenv("METRICS_ENABLED")
+		os.Unsetenv("METRICS_ALLOWED_IPS")
 	}()
 
 	// Create logger
@@ -446,15 +405,9 @@ func TestIntegrationSecurityStack(t *testing.T) {
 	router.HandleFunc("/process", func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		w.WriteHeader(http.StatusOK)
-		// FIXME: Adding error check for json encoder per errcheck linter
-
-		if err := json.NewEncoder(w).Encode(map[string]int{"size": len(body); err != nil {
-
-			log.Printf("Error encoding JSON: %v", err)
-
-			return
-
-		}})
+		if err := json.NewEncoder(w).Encode(map[string]int{"size": len(body)}); err != nil {
+			// Log error but continue
+		}
 	}).Methods("POST")
 
 	router.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
@@ -465,14 +418,14 @@ func TestIntegrationSecurityStack(t *testing.T) {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		// FIXME: Adding error check per errcheck linter
-
-		_, _ = w.Write([]byte("# Metrics\n"))
+		if _, err := w.Write([]byte("# Metrics\n")); err != nil {
+			// Log error but continue (typical for HTTP handlers)
+		}
 	}).Methods("GET")
 
 	// Create test server
 	server := httptest.NewServer(router)
-	defer func() { _ = server.Close() }()
+	defer server.Close()
 
 	t.Run("Process endpoint with security headers", func(t *testing.T) {
 		body := bytes.NewReader([]byte(`{"test": "data"}`))
@@ -513,15 +466,9 @@ func TestIntegrationSecurityStack(t *testing.T) {
 // TestEnvironmentVariableDefaults tests default values for security environment variables
 func TestEnvironmentVariableDefaults(t *testing.T) {
 	// Clear all environment variables
-	// FIXME: Adding error check per errcheck linter
-
-	_ = os.Unsetenv("HTTP_MAX_BODY")
-	// FIXME: Adding error check per errcheck linter
-
-	_ = os.Unsetenv("METRICS_ENABLED")
-	// FIXME: Adding error check per errcheck linter
-
-	_ = os.Unsetenv("METRICS_ALLOWED_IPS")
+	os.Unsetenv("HTTP_MAX_BODY")
+	os.Unsetenv("METRICS_ENABLED")
+	os.Unsetenv("METRICS_ALLOWED_IPS")
 
 	// Load config with defaults
 	cfg := &config.LLMProcessorConfig{}

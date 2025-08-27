@@ -83,8 +83,7 @@ func TestRunWithSampleIntent(t *testing.T) {
 				t.Fatalf("Failed to marshal intent: %v", err)
 			}
 
-			err = // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(intentFile, intentData, 0644)
+			err = os.WriteFile(intentFile, intentData, 0644)
 			if err != nil {
 				t.Fatalf("Failed to write intent file: %v", err)
 			}
@@ -223,8 +222,7 @@ func TestRunWithInvalidIntents(t *testing.T) {
 				t.Fatalf("Failed to marshal intent: %v", err)
 			}
 
-			err = // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(intentFile, intentData, 0644)
+			err = os.WriteFile(intentFile, intentData, 0644)
 			if err != nil {
 				t.Fatalf("Failed to write intent file: %v", err)
 			}
@@ -270,8 +268,7 @@ func TestIdempotency(t *testing.T) {
 		t.Fatalf("Failed to marshal intent: %v", err)
 	}
 
-	err = // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(intentFile, intentData, 0644)
+	err = os.WriteFile(intentFile, intentData, 0644)
 	if err != nil {
 		t.Fatalf("Failed to write intent file: %v", err)
 	}
@@ -349,8 +346,7 @@ func TestMinimalPackageGeneration(t *testing.T) {
 		t.Fatalf("Failed to marshal intent: %v", err)
 	}
 
-	err = // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(intentFile, intentData, 0644)
+	err = os.WriteFile(intentFile, intentData, 0644)
 	if err != nil {
 		t.Fatalf("Failed to write intent file: %v", err)
 	}
@@ -408,8 +404,7 @@ func TestDryRun(t *testing.T) {
 		t.Fatalf("Failed to marshal intent: %v", err)
 	}
 
-	err = // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(intentFile, intentData, 0644)
+	err = os.WriteFile(intentFile, intentData, 0644)
 	if err != nil {
 		t.Fatalf("Failed to write intent file: %v", err)
 	}
@@ -741,15 +736,13 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 					Replicas:   1,
 				}
 				intentData, _ := json.MarshalIndent(intent, "", "  ")
-				err := // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(intentFile, intentData, 0644)
+				err := os.WriteFile(intentFile, intentData, 0644)
 				if err != nil {
 					t.Fatalf("Failed to create intent file: %v", err)
 				}
 				
 				// Remove read permissions
-				err = // FIXME: Adding error check per errcheck linter
- _ = os.Chmod(intentFile, 0000)
+				err = os.Chmod(intentFile, 0000)
 				if err != nil {
 					t.Skipf("Cannot modify file permissions on this system: %v", err)
 				}
@@ -774,8 +767,7 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 					Replicas:   1,
 				}
 				intentData, _ := json.MarshalIndent(intent, "", "  ")
-				err := // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(intentFile, intentData, 0644)
+				err := os.WriteFile(intentFile, intentData, 0644)
 				if err != nil {
 					t.Fatalf("Failed to create intent file: %v", err)
 				}
@@ -787,8 +779,7 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 				}
 				
 				// Remove write permissions
-				err = // FIXME: Adding error check per errcheck linter
- _ = os.Chmod(restrictedDir, 0444)
+				err = os.Chmod(restrictedDir, 0444)
 				if err != nil {
 					t.Skipf("Cannot modify directory permissions on this system: %v", err)
 				}
@@ -812,15 +803,13 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 					Replicas:   1,
 				}
 				intentData, _ := json.MarshalIndent(intent, "", "  ")
-				err := // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(intentFile, intentData, 0644)
+				err := os.WriteFile(intentFile, intentData, 0644)
 				if err != nil {
 					t.Fatalf("Failed to create intent file: %v", err)
 				}
 				
 				// Create file where directory should be
-				err = // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(outDir, []byte("not a directory"), 0644)
+				err = os.WriteFile(outDir, []byte("not a directory"), 0644)
 				if err != nil {
 					t.Fatalf("Failed to create file: %v", err)
 				}
@@ -850,8 +839,7 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 					Replicas:   1,
 				}
 				intentData, _ := json.MarshalIndent(intent, "", "  ")
-				err := // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(intentFile, intentData, 0644)
+				err := os.WriteFile(intentFile, intentData, 0644)
 				if err != nil {
 					t.Fatalf("Failed to create intent file: %v", err)
 				}
@@ -869,14 +857,8 @@ func TestRunWithFileSystemErrors(t *testing.T) {
 			// Ensure cleanup happens even if test fails
 			defer func() {
 				// Restore permissions for cleanup
-				// FIXME: Adding error check per errcheck linter
-
 				_ = os.Chmod(filepath.Dir(intentFile), 0755)
-				// FIXME: Adding error check per errcheck linter
-
 				_ = os.Chmod(intentFile, 0644)
-				// FIXME: Adding error check per errcheck linter
-
 				_ = os.Chmod(filepath.Dir(outDir), 0755)
 			}()
 			
@@ -957,8 +939,7 @@ func TestRunWithMalformedIntentFiles(t *testing.T) {
 			outDir := filepath.Join(tempDir, "output")
 			
 			// Write malformed intent file
-			err := // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(intentFile, []byte(tt.fileContent), 0644)
+			err := os.WriteFile(intentFile, []byte(tt.fileContent), 0644)
 			if err != nil {
 				t.Fatalf("Failed to write intent file: %v", err)
 			}
@@ -1010,8 +991,7 @@ func TestRunWithResourceExhaustion(t *testing.T) {
 			
 			// Write intent file
 			intentData, _ := json.MarshalIndent(intent, "", "  ")
-			err := // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(intentFile, intentData, 0644)
+			err := os.WriteFile(intentFile, intentData, 0644)
 			if err != nil {
 				done <- fmt.Errorf("failed to write intent file: %v", err)
 				return
@@ -1019,11 +999,7 @@ func TestRunWithResourceExhaustion(t *testing.T) {
 			
 			// Cleanup function
 			defer func() {
-				// FIXME: Adding error check per errcheck linter
-
 				_ = os.RemoveAll(intentFile)
-				// FIXME: Adding error check per errcheck linter
-
 				_ = os.RemoveAll(outDir)
 			}()
 			
@@ -1084,8 +1060,7 @@ func TestRunProjectRootDiscovery(t *testing.T) {
 	outDir := filepath.Join(tempDir, "output")
 	
 	intentData, _ := json.MarshalIndent(intent, "", "  ")
-	err = // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(intentFile, intentData, 0644)
+	err = os.WriteFile(intentFile, intentData, 0644)
 	if err != nil {
 		t.Fatalf("Failed to write intent file: %v", err)
 	}
@@ -1138,8 +1113,6 @@ func BenchmarkRunValidIntent(b *testing.B) {
 
 	// Write intent file
 	intentData, _ := json.MarshalIndent(intent, "", "  ")
-	// FIXME: Adding error check per errcheck linter
-
 	_ = os.WriteFile(intentFile, intentData, 0644)
 
 	b.ResetTimer()

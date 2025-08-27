@@ -34,14 +34,17 @@ import (
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
 )
 
 func TestCNFOrchestrator(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "CNF Orchestrator Suite")
 }
+
+// Ensure interface implementations are checked
+var _ git.ClientInterface = (*MockGitClient)(nil)
+var _ PackageGeneratorInterface = (*MockPackageGenerator)(nil)
+var _ MetricsCollectorInterface = (*MockMetricsCollector)(nil)
 
 var _ = Describe("CNF Orchestrator", func() {
 	var (

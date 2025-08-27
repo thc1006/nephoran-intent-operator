@@ -110,7 +110,7 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 					Namespace: "default",
 				},
 				Spec: appsv1.DeploymentSpec{
-					Replicas: int32Ptr(3),
+					Replicas: int32PtrOran(3),
 				},
 				Status: appsv1.DeploymentStatus{
 					AvailableReplicas: 3,
@@ -167,7 +167,7 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 					Namespace: "default",
 				},
 				Spec: appsv1.DeploymentSpec{
-					Replicas: int32Ptr(3),
+					Replicas: int32PtrOran(3),
 				},
 				Status: appsv1.DeploymentStatus{
 					AvailableReplicas: 1, // Not fully available
@@ -239,7 +239,7 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 					Namespace: "default",
 				},
 				Spec: appsv1.DeploymentSpec{
-					Replicas: int32Ptr(2),
+					Replicas: int32PtrOran(2),
 				},
 				Status: appsv1.DeploymentStatus{
 					AvailableReplicas: 2,
@@ -286,7 +286,7 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 					Namespace: "default",
 				},
 				Spec: appsv1.DeploymentSpec{
-					Replicas: int32Ptr(1),
+					Replicas: int32PtrOran(1),
 				},
 				Status: appsv1.DeploymentStatus{
 					AvailableReplicas: 1,
@@ -333,7 +333,7 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 					Namespace: "default",
 				},
 				Spec: appsv1.DeploymentSpec{
-					Replicas: int32Ptr(1),
+					Replicas: int32PtrOran(1),
 				},
 				Status: appsv1.DeploymentStatus{
 					AvailableReplicas: 1,
@@ -382,7 +382,7 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 					Namespace: "default",
 				},
 				Spec: appsv1.DeploymentSpec{
-					Replicas: int32Ptr(1),
+					Replicas: int32PtrOran(1),
 				},
 				Status: appsv1.DeploymentStatus{
 					AvailableReplicas: 1,
@@ -454,7 +454,7 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 					Namespace: "default",
 				},
 				Spec: appsv1.DeploymentSpec{
-					Replicas: int32Ptr(1),
+					Replicas: int32PtrOran(1),
 				},
 				Status: appsv1.DeploymentStatus{
 					AvailableReplicas: 1,
@@ -497,7 +497,7 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 					Namespace: "default",
 				},
 				Spec: appsv1.DeploymentSpec{
-					Replicas: int32Ptr(1),
+					Replicas: int32PtrOran(1),
 				},
 				Status: appsv1.DeploymentStatus{
 					AvailableReplicas: 1,
@@ -620,7 +620,7 @@ func TestOranAdaptorReconciler_ConcurrentReconciles(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: int32Ptr(1),
+			Replicas: int32PtrOran(1),
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
@@ -715,7 +715,7 @@ func TestOranAdaptorReconciler_EdgeCases(t *testing.T) {
 						Namespace: "default",
 					},
 					Spec: appsv1.DeploymentSpec{
-						Replicas: int32Ptr(1),
+						Replicas: int32PtrOran(1),
 					},
 					Status: appsv1.DeploymentStatus{
 						AvailableReplicas: 1,
@@ -762,7 +762,7 @@ func TestOranAdaptorReconciler_EdgeCases(t *testing.T) {
 						Namespace: "default",
 					},
 					Spec: appsv1.DeploymentSpec{
-						Replicas: int32Ptr(1),
+						Replicas: int32PtrOran(1),
 					},
 					Status: appsv1.DeploymentStatus{
 						AvailableReplicas: 1,
@@ -817,6 +817,6 @@ func TestOranAdaptorReconciler_EdgeCases(t *testing.T) {
 
 // Helper functions
 
-func int32Ptr(i int32) *int32 {
+func int32PtrOran(i int32) *int32 {
 	return &i
 }

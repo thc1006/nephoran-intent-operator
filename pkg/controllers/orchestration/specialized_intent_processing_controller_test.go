@@ -51,7 +51,7 @@ type MockLLMClientOrchestration struct {
 	tokenUsage        int
 }
 
-func NewMockLLMClientOrchestration() *MockLLMClient {
+func NewMockLLMClientOrchestration() *MockLLMClientOrchestration {
 	return &MockLLMClientOrchestration{
 		responses: map[string]string{
 			"default": `{
@@ -400,7 +400,7 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 		scheme                   *runtime.Scheme
 		fakeRecorder             *record.FakeRecorder
 		networkIntent            *nephoranv1.NetworkIntent
-		mockLLMClient            *MockLLMClient
+		mockLLMClient            *MockLLMClientOrchestration
 		mockRAGService           *MockRAGService
 		mockPromptEngine         *MockPromptEngine
 		mockStreamingProcessor   *MockStreamingProcessor

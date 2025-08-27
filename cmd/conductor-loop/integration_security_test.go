@@ -159,13 +159,11 @@ func (s *SecurityTestSuite) testInputValidationSecurity(t *testing.T) {
 			intentFile := filepath.Join(s.handoffDir, fmt.Sprintf("malicious-%s.json", 
 				strings.ReplaceAll(input.name, " ", "-")))
 			
-			require.NoError(t, // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(intentFile, []byte(input.content), 0644))
+			require.NoError(t, os.WriteFile(intentFile, []byte(input.content), 0644))
 
 			watcher, err := loop.NewWatcher(s.handoffDir, s.config)
 			require.NoError(t, err)
-			defer func() { _ = // FIXME: Adding error check per errcheck linter
- _ = watcher.Close() }()
+			defer func() { _ = watcher.Close() }()
 
 			err = watcher.Start()
 			
@@ -243,13 +241,11 @@ func (s *SecurityTestSuite) testPathTraversalSecurity(t *testing.T) {
 			intentFile := filepath.Join(s.handoffDir, fmt.Sprintf("traversal-%s.json", 
 				strings.ReplaceAll(test.name, " ", "-")))
 			
-			require.NoError(t, // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(intentFile, []byte(content), 0644))
+			require.NoError(t, os.WriteFile(intentFile, []byte(content), 0644))
 
 			watcher, err := loop.NewWatcher(s.handoffDir, s.config)
 			require.NoError(t, err)
-			defer func() { _ = // FIXME: Adding error check per errcheck linter
- _ = watcher.Close() }()
+			defer func() { _ = watcher.Close() }()
 
 			err = watcher.Start()
 			assert.NoError(t, err, "Should handle path traversal safely")
@@ -305,8 +301,7 @@ func (s *SecurityTestSuite) testCommandInjectionSecurity(t *testing.T) {
 			}`
 			intentFile := filepath.Join(s.handoffDir, fmt.Sprintf("injection-%s.json", 
 				strings.ReplaceAll(test.name, " ", "-")))
-			require.NoError(t, // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(intentFile, []byte(content), 0644))
+			require.NoError(t, os.WriteFile(intentFile, []byte(content), 0644))
 
 			// Use malicious porch path
 			maliciousConfig := s.config
@@ -314,8 +309,7 @@ func (s *SecurityTestSuite) testCommandInjectionSecurity(t *testing.T) {
 
 			watcher, err := loop.NewWatcher(s.handoffDir, maliciousConfig)
 			require.NoError(t, err)
-			defer func() { _ = // FIXME: Adding error check per errcheck linter
- _ = watcher.Close() }()
+			defer func() { _ = watcher.Close() }()
 
 			err = watcher.Start()
 			
@@ -353,8 +347,7 @@ func (s *SecurityTestSuite) testResourceExhaustionSecurity(t *testing.T) {
 					}`, i, i%10, i%5+1)
 					
 					file := filepath.Join(s.handoffDir, fmt.Sprintf("bulk-%d.json", i))
-					require.NoError(t, // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(file, []byte(content), 0644))
+					require.NoError(t, os.WriteFile(file, []byte(content), 0644))
 				}
 				return count
 			},
@@ -375,8 +368,7 @@ func (s *SecurityTestSuite) testResourceExhaustionSecurity(t *testing.T) {
 					}`, i, largeData)
 					
 					file := filepath.Join(s.handoffDir, fmt.Sprintf("large-%d.json", i))
-					require.NoError(t, // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(file, []byte(content), 0644))
+					require.NoError(t, os.WriteFile(file, []byte(content), 0644))
 				}
 				return count
 			},
@@ -398,8 +390,7 @@ func (s *SecurityTestSuite) testResourceExhaustionSecurity(t *testing.T) {
 						}`, i)
 						
 						file := filepath.Join(s.handoffDir, fmt.Sprintf("rapid-%d.json", i))
-						_ = // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(file, []byte(content), 0644)
+						os.WriteFile(file, []byte(content), 0644)
 						time.Sleep(5 * time.Millisecond)
 					}
 				}()
@@ -412,7 +403,7 @@ func (s *SecurityTestSuite) testResourceExhaustionSecurity(t *testing.T) {
 
 	for _, test := range exhaustionTests {
 		t.Run(test.name, func(t *testing.T) {
-			_ = test.setupFunc(t)
+			test.setupFunc(t)
 
 			// Use config with resource limits
 			limitedConfig := s.config
@@ -421,8 +412,7 @@ func (s *SecurityTestSuite) testResourceExhaustionSecurity(t *testing.T) {
 
 			watcher, err := loop.NewWatcher(s.handoffDir, limitedConfig)
 			require.NoError(t, err)
-			defer func() { _ = // FIXME: Adding error check per errcheck linter
- _ = watcher.Close() }()
+			defer func() { _ = watcher.Close() }()
 
 			// Measure processing time
 			start := time.Now()
@@ -497,8 +487,7 @@ func (s *SecurityTestSuite) testFileSystemSecurity(t *testing.T) {
 					"namespace": "default",
 					"replicas": 0
 				}`
-				require.NoError(t, // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(deviceFile, []byte(content), 0644))
+				require.NoError(t, os.WriteFile(deviceFile, []byte(content), 0644))
 				return deviceFile
 			},
 			testFunc: func(t *testing.T, watcher *loop.Watcher, file string) {
@@ -515,8 +504,7 @@ func (s *SecurityTestSuite) testFileSystemSecurity(t *testing.T) {
 
 			watcher, err := loop.NewWatcher(s.handoffDir, s.config)
 			require.NoError(t, err)
-			defer func() { _ = // FIXME: Adding error check per errcheck linter
- _ = watcher.Close() }()
+			defer func() { _ = watcher.Close() }()
 
 			test.testFunc(t, watcher, file)
 
@@ -543,8 +531,7 @@ func (s *SecurityTestSuite) testConcurrencySecurity(t *testing.T) {
 		}`, i, i%3+1)
 		
 		file := filepath.Join(s.handoffDir, fmt.Sprintf("concurrent-%d.json", i))
-		require.NoError(t, // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(file, []byte(content), 0644))
+		require.NoError(t, os.WriteFile(file, []byte(content), 0644))
 	}
 
 	// Start multiple watchers concurrently
@@ -567,7 +554,7 @@ func (s *SecurityTestSuite) testConcurrencySecurity(t *testing.T) {
 	for _, watcher := range watchers {
 		// FIXME: Adding error check per errcheck linter
 
-		_ = watcher.Close()
+		watcher.Close()
 	}
 
 	// Verify no race conditions caused security issues
@@ -601,8 +588,7 @@ func (s *SecurityTestSuite) testStateManagementSecurity(t *testing.T) {
 	}
 
 	data, _ := json.Marshal(maliciousState)
-	require.NoError(t, // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(stateFile, data, 0644))
+	require.NoError(t, os.WriteFile(stateFile, data, 0644))
 
 	// Create intent file
 	content := `{
@@ -612,13 +598,11 @@ func (s *SecurityTestSuite) testStateManagementSecurity(t *testing.T) {
 		"replicas": 3
 	}`
 	intentFile := filepath.Join(s.handoffDir, "intent-state-test.json")
-	require.NoError(t, // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(intentFile, []byte(content), 0644))
+	require.NoError(t, os.WriteFile(intentFile, []byte(content), 0644))
 
 	watcher, err := loop.NewWatcher(s.handoffDir, s.config)
 	require.NoError(t, err)
-	defer func() { _ = // FIXME: Adding error check per errcheck linter
- _ = watcher.Close() }()
+	defer func() { _ = watcher.Close() }()
 
 	err = watcher.Start()
 	assert.NoError(t, err, "Should handle malicious state file safely")
@@ -679,7 +663,7 @@ func (s *SecurityTestSuite) testConfigurationSecurity(t *testing.T) {
 				if watcher != nil {
 					// FIXME: Adding error check per errcheck linter
 
-					_ = watcher.Close()
+					watcher.Close()
 				}
 			} else {
 				assert.Error(t, err, "Should reject dangerous configuration")
@@ -760,14 +744,13 @@ func (s *SecurityTestSuite) assertSystemHealth(t *testing.T) {
 	
 	// Check we can still create files
 	testFile := filepath.Join(s.tempDir, "health-check.tmp")
-	err := // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(testFile, []byte("health"), 0644)
+	err := os.WriteFile(testFile, []byte("health"), 0644)
 	assert.NoError(t, err, "System should still be responsive")
 	
 	if err == nil {
 		// FIXME: Adding error check per errcheck linter
 
-		_ = os.Remove(testFile)
+		os.Remove(testFile)
 	}
 
 	// Check memory isn't exhausted (simplified check)
@@ -907,8 +890,7 @@ echo "Comprehensive processing completed"
 exit 0`
 	}
 
-	require.NoError(t, // FIXME: Adding error check per errcheck linter
- _ = os.WriteFile(mockPath, []byte(mockScript), 0755))
+	require.NoError(t, os.WriteFile(mockPath, []byte(mockScript), 0755))
 	return mockPath
 }
 
