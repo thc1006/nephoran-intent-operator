@@ -530,7 +530,7 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 			ModelUpdateInterval: 24 * time.Hour,
 			PredictionWindow:    60 * time.Minute,
 			ConfidenceThreshold: 0.75,
-			HistoryWindow:       30 * 24 * time.Hour,
+			TrainingDataWindow:  30 * 24 * time.Hour,
 		},
 		logger.WithComponent("predictive-alerting"),
 	)
@@ -896,4 +896,117 @@ func (sam *SLAAlertManager) alertCleanupLoop(ctx context.Context) {
 	}
 }
 
-// Additional helper methods would be implemented here...
+// getCurrentSLAValue retrieves the current SLA value for the given target
+func (sam *SLAAlertManager) getCurrentSLAValue(ctx context.Context, slaType SLAType) (float64, error) {
+	// In production, this would query monitoring systems like Prometheus
+	// For now, return a mock value
+	return 0.995, nil
+}
+
+// isWindowViolating checks if the current window is violating the SLA
+func (sam *SLAAlertManager) isWindowViolating(burnRates BurnRateInfo, window AlertWindow) bool {
+	// Check if any burn rate exceeds the threshold for this window
+	for _, rate := range burnRates.BurnRates {
+		if rate.BurnRate > window.BurnRateThreshold {
+			return true
+		}
+	}
+	return false
+}
+
+// calculateCompliance calculates the compliance percentage for the SLA
+func (sam *SLAAlertManager) calculateCompliance(currentValue float64, target SLATarget) float64 {
+	return currentValue * 100
+}
+
+// calculateErrorBudget calculates the remaining error budget
+func (sam *SLAAlertManager) calculateErrorBudget(currentValue float64, target SLATarget, burnRates BurnRateInfo) float64 {
+	remainingBudget := 1 - target.Threshold
+	consumedBudget := target.Threshold - currentValue
+	if consumedBudget < 0 {
+		consumedBudget = 0
+	}
+	return (remainingBudget - consumedBudget) / remainingBudget * 100
+}
+
+// enrichAlertContext adds additional context to the alert
+func (sam *SLAAlertManager) enrichAlertContext(ctx context.Context, slaType SLAType, currentValue float64) map[string]interface{} {
+	// Add additional context based on the target and current conditions
+	context := make(map[string]interface{})
+	context["sla_type"] = string(slaType)
+	context["current_value"] = currentValue
+	context["enriched_at"] = time.Now()
+	return context
+}
+
+// calculateBusinessImpact calculates the business impact of the SLA violation
+func (sam *SLAAlertManager) calculateBusinessImpact(slaType SLAType, target SLATarget, currentValue float64, compliance float64) string {
+	deficit := target.Threshold - currentValue
+	if deficit <= 0 {
+		return "none"
+	}
+	
+	if deficit < 0.001 {
+		return "low"
+	} else if deficit < 0.005 {
+		return "medium"
+	} else {
+		return "high"
+	}
+}
+
+// generateAlertName generates a descriptive name for the alert
+func (sam *SLAAlertManager) generateAlertName(target SLATarget) string {
+	return fmt.Sprintf("SLA Violation - %s", target.Name)
+}
+
+// generateAlertDescription generates a detailed description for the alert
+func (sam *SLAAlertManager) generateAlertDescription(target SLATarget, currentValue float64, compliance float64, errorBudget float64) string {
+	return fmt.Sprintf("SLA %s is violating threshold %.3f with current value %.3f (%.2f%% compliance, %.2f%% error budget remaining)",
+		target.Name, target.Threshold, currentValue, compliance, errorBudget)
+}
+
+// generateAlertLabels generates labels for the alert
+func (sam *SLAAlertManager) generateAlertLabels(target SLATarget, businessImpact string) map[string]string {
+	return map[string]string{
+		"sla_name":        target.Name,
+		"sla_type":        string(target.Type),
+		"business_impact": businessImpact,
+		"severity":        sam.calculateSeverity(businessImpact),
+	}
+}
+
+// generateAlertAnnotations generates annotations for the alert
+func (sam *SLAAlertManager) generateAlertAnnotations(target SLATarget, description string, compliance float64, errorBudget float64) map[string]string {
+	return map[string]string{
+		"description":    description,
+		"runbook":        sam.getRunbookURL(target),
+		"compliance":     fmt.Sprintf("%.2f%%", compliance),
+		"error_budget":   fmt.Sprintf("%.2f%%", errorBudget),
+		"dashboard":      sam.getDashboardURL(target),
+	}
+}
+
+// calculateSeverity calculates severity based on business impact
+func (sam *SLAAlertManager) calculateSeverity(businessImpact string) string {
+	switch businessImpact {
+	case "high":
+		return "critical"
+	case "medium":
+		return "warning"
+	case "low":
+		return "info"
+	default:
+		return "info"
+	}
+}
+
+// getRunbookURL returns the runbook URL for the SLA target
+func (sam *SLAAlertManager) getRunbookURL(target SLATarget) string {
+	return fmt.Sprintf("https://runbooks.example.com/sla/%s", target.Name)
+}
+
+// getDashboardURL returns the dashboard URL for the SLA target
+func (sam *SLAAlertManager) getDashboardURL(target SLATarget) string {
+	return fmt.Sprintf("https://dashboards.example.com/sla/%s", target.Name)
+}

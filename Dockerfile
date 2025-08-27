@@ -198,6 +198,8 @@ ARG VERSION=v2.0.0
 ARG BUILD_DATE
 ARG VCS_REF
 ARG TARGETARCH
+ARG TARGETPLATFORM=linux/amd64
+ARG GO_VERSION=1.24.1
 
 # Copy certificates and timezone data
 COPY --from=go-builder /usr/share/zoneinfo /usr/share/zoneinfo

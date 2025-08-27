@@ -18,6 +18,7 @@ package orchestration
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -52,7 +53,7 @@ type SpecializedResourcePlanningController struct {
 	CostEstimator      *TelecomCostEstimator
 
 	// Configuration
-	Config            ResourcePlanningConfig
+	Config            SpecializedResourcePlanningConfig
 	ResourceTemplates map[string]*NetworkFunctionTemplate
 	ConstraintRules   []*ResourceConstraintRule
 
@@ -68,8 +69,8 @@ type SpecializedResourcePlanningController struct {
 	mutex        sync.RWMutex
 }
 
-// ResourcePlanningConfig holds configuration for resource planning
-type ResourcePlanningConfig_Specialized struct {
+// SpecializedResourcePlanningConfig holds configuration for specialized resource planning
+type SpecializedResourcePlanningConfig struct {
 	// Planning parameters
 	DefaultCPURequest     string  `json:"defaultCpuRequest"`
 	DefaultMemoryRequest  string  `json:"defaultMemoryRequest"`
@@ -252,7 +253,7 @@ type PlanCacheEntry struct {
 }
 
 // NewSpecializedResourcePlanningController creates a new resource planning controller
-func NewSpecializedResourcePlanningController(mgr ctrl.Manager, config ResourcePlanningConfig) (*SpecializedResourcePlanningController, error) {
+func NewSpecializedResourcePlanningController(mgr ctrl.Manager, config SpecializedResourcePlanningConfig) (*SpecializedResourcePlanningController, error) {
 	logger := log.FromContext(context.Background()).WithName("specialized-resource-planner")
 
 	// Initialize resource calculator
@@ -314,11 +315,20 @@ func (c *SpecializedResourcePlanningController) ProcessPhase(ctx context.Context
 	}
 
 	// Extract LLM response from intent status
-	llmResponse, ok := intent.Status.LLMResponse.(map[string]interface{})
-	if !ok {
+	var llmResponse map[string]interface{}
+	if intent.Status.LLMResponse == "" {
 		return interfaces.ProcessingResult{
 			Success:      false,
-			ErrorMessage: "invalid or missing LLM response data",
+			ErrorMessage: "missing LLM response data",
+			ErrorCode:    "INVALID_INPUT",
+		}, nil
+	}
+	
+	// Parse JSON string to map
+	if err := json.Unmarshal([]byte(intent.Status.LLMResponse), &llmResponse); err != nil {
+		return interfaces.ProcessingResult{
+			Success:      false,
+			ErrorMessage: "invalid LLM response JSON format",
 			ErrorCode:    "INVALID_INPUT",
 		}, nil
 	}
@@ -1368,7 +1378,7 @@ func (c *SpecializedResourcePlanningController) Reconcile(ctx context.Context, r
 	}
 
 	// Check if this intent should be processed by this controller
-	if intent.Status.ProcessingPhase != interfaces.PhaseResourcePlanning {
+	if intent.Status.ProcessingPhase != string(interfaces.PhaseResourcePlanning) {
 		return ctrl.Result{}, nil
 	}
 
@@ -1551,11 +1561,11 @@ func NewTelecomResourceCalculator(logger logr.Logger) *TelecomResourceCalculator
 // ResourceOptimizationEngine handles resource optimization
 type ResourceOptimizationEngine struct {
 	logger logr.Logger
-	config ResourcePlanningConfig
+	config SpecializedResourcePlanningConfig
 }
 
 // NewResourceOptimizationEngine creates a new optimization engine
-func NewResourceOptimizationEngine(logger logr.Logger, config ResourcePlanningConfig) *ResourceOptimizationEngine {
+func NewResourceOptimizationEngine(logger logr.Logger, config SpecializedResourcePlanningConfig) *ResourceOptimizationEngine {
 	return &ResourceOptimizationEngine{
 		logger: logger,
 		config: config,
@@ -1563,7 +1573,7 @@ func NewResourceOptimizationEngine(logger logr.Logger, config ResourcePlanningCo
 }
 
 // OptimizeAllocation optimizes resource allocation
-func (e *ResourceOptimizationEngine) OptimizeAllocation(ctx context.Context, requirements *interfaces.ResourceRequirements, config ResourcePlanningConfig) (*interfaces.OptimizedPlan, error) {
+func (e *ResourceOptimizationEngine) OptimizeAllocation(ctx context.Context, requirements *interfaces.ResourceRequirements, config SpecializedResourcePlanningConfig) (*interfaces.OptimizedPlan, error) {
 	// Simple optimization: apply overcommit ratios
 	originalPlan := &interfaces.ResourcePlan{
 		ResourceRequirements: *requirements,

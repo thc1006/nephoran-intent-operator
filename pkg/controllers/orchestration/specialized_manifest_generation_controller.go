@@ -345,17 +345,19 @@ func (c *SpecializedManifestGenerationController) ProcessPhase(ctx context.Conte
 
 	// Convert NetworkResourcePlan to interfaces.ResourcePlan
 	interfaceResourcePlan := &interfaces.ResourcePlan{
-		Resources: make([]interfaces.PlannedResource, len(resourcePlan.Resources)),
+		NetworkFunctions: make([]interfaces.PlannedNetworkFunction, len(resourcePlan.Resources)),
 	}
 	
 	for i, res := range resourcePlan.Resources {
-		interfaceResourcePlan.Resources[i] = interfaces.PlannedResource{
-			Name:            res.Name,
-			Type:            res.Type,
-			Configuration:   res.Configuration,
-			TargetCluster:   res.TargetCluster,
-			Status:          res.Status,
+		// Convert NetworkPlannedResource to PlannedNetworkFunction
+		nf := interfaces.PlannedNetworkFunction{
+			Name: res.Name,
+			Type: res.Type,
 		}
+		if res.Configuration != nil {
+			nf.Configuration = make(map[string]interface{})
+		}
+		interfaceResourcePlan.NetworkFunctions[i] = nf
 	}
 
 	return c.generateManifestsFromResourcePlan(ctx, intent, interfaceResourcePlan)

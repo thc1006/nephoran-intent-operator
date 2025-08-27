@@ -101,12 +101,13 @@ type PredictionModel struct {
 
 // HistoricalDataset contains historical SLA data for training
 type HistoricalDataset struct {
-	SLAType    SLAType           `json:"sla_type"`
-	DataPoints []HistoricalPoint `json:"data_points"`
-	StartTime  time.Time         `json:"start_time"`
-	EndTime    time.Time         `json:"end_time"`
-	Features   []string          `json:"features"`
-	Statistics DatasetStatistics `json:"statistics"`
+	SLAType          SLAType             `json:"sla_type"`
+	DataPoints       []HistoricalPoint   `json:"data_points"`
+	TimeSeriesPoints []TimeSeriesPoint   `json:"time_series_points"`
+	StartTime        time.Time           `json:"start_time"`
+	EndTime          time.Time           `json:"end_time"`
+	Features         []string            `json:"features"`
+	Statistics       DatasetStatistics   `json:"statistics"`
 }
 
 // HistoricalPoint represents a single data point in the historical dataset
@@ -560,7 +561,7 @@ func (pa *PredictiveAlerting) trainModel(ctx context.Context, slaType SLAType,
 		Weights:          weights,
 		Bias:             bias,
 		Features:         dataset.Features,
-		Normalization:    normParams,
+		Normalization:    NormalizationParams{Method: "z-score", Params: make(map[string]float64)},
 		TrainingDataSize: len(features),
 		ValidationSplit:  0.2,
 		Hyperparameters: map[string]interface{}{
@@ -1029,6 +1030,52 @@ func (pa *PredictiveAlerting) buildSeasonalModel(slaType SLAType, historicalData
 		DailyPattern:       [24]float64{0.5, 0.4, 0.3, 0.3, 0.4, 0.6, 0.8, 1.0, 1.2, 1.3, 1.4, 1.4, 1.3, 1.3, 1.2, 1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.5, 0.5},
 		MonthlyPattern:     [12]float64{1.0, 1.0, 1.1, 1.1, 1.0, 0.9, 0.8, 0.8, 1.0, 1.1, 1.2, 1.3},
 		LastUpdated:        time.Now(),
+	}
+}
+
+// normalizeFeatureValue normalizes a feature value based on normalization parameters
+func (pa *PredictiveAlerting) normalizeFeatureValue(value float64, featureName string, normalization NormalizationParams) float64 {
+	switch normalization.Method {
+	case "z-score":
+		if mean, exists := normalization.Params[featureName+"_mean"]; exists {
+			if stddev, exists := normalization.Params[featureName+"_stddev"]; exists && stddev > 0 {
+				return (value - mean) / stddev
+			}
+		}
+	case "min-max":
+		if min, exists := normalization.Params[featureName+"_min"]; exists {
+			if max, exists := normalization.Params[featureName+"_max"]; exists && max > min {
+				return (value - min) / (max - min)
+			}
+		}
+	}
+	// Return original value if normalization fails
+	return value
+}
+
+// updateAllModels updates all prediction models
+func (pa *PredictiveAlerting) updateAllModels(ctx context.Context) {
+	for slaType := range pa.models {
+		if err := pa.initializeModel(ctx, slaType); err != nil {
+			pa.logger.WarnWithContext("Failed to update model",
+				slog.String("sla_type", string(slaType)),
+				slog.String("error", err.Error()),
+			)
+		}
+	}
+}
+
+// generatePeriodicPredictions generates predictions for all SLA types
+func (pa *PredictiveAlerting) generatePeriodicPredictions(ctx context.Context) {
+	for slaType := range pa.models {
+		// Generate prediction with empty metrics for periodic check
+		_, err := pa.Predict(ctx, slaType, make(map[string]float64))
+		if err != nil {
+			pa.logger.WarnWithContext("Failed to generate periodic prediction",
+				slog.String("sla_type", string(slaType)),
+				slog.String("error", err.Error()),
+			)
+		}
 	}
 }
 

@@ -371,6 +371,8 @@ jobs:
           --build-arg VERSION=${{ github.sha }} \
           --build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
           --build-arg VCS_REF=${{ github.sha }} \
+          --build-arg GO_VERSION=1.24.1 \
+          --build-arg TARGETPLATFORM=linux/amd64 \
           --push .
         
         # Build component images using main Dockerfile with SERVICE argument
@@ -385,6 +387,8 @@ jobs:
             --build-arg VERSION=${{ github.sha }} \
             --build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
             --build-arg VCS_REF=${{ github.sha }} \
+            --build-arg GO_VERSION=1.24.1 \
+            --build-arg TARGETPLATFORM=linux/amd64 \
             --push .
         done
         

@@ -849,8 +849,8 @@ func (ee *EscalationEngine) executeEscalationLevel(ctx context.Context, escalati
 	}
 
 	// Get the policy for this escalation
-	policy := ee.getPolicyForEscalation(escalation)
-	if policy == nil {
+	policyForEscalation := ee.getPolicyForEscalation(escalation)
+	if policyForEscalation == nil {
 		ee.logger.ErrorWithContext("Policy not found for escalation", nil, "escalation_id", escalation.ID, "policy_id", escalation.PolicyID)
 		return
 	}
@@ -866,7 +866,7 @@ func (ee *EscalationEngine) executeEscalationLevel(ctx context.Context, escalati
 	}
 
 	// Schedule next escalation level if conditions are met
-	ee.scheduleNextEscalation(alert, policy)
+	ee.scheduleNextEscalation(alert, policyForEscalation)
 
 	// Update escalation statistics
 	ee.escalationStats.EscalationsByLevel[level]++

@@ -245,6 +245,8 @@ jobs:
         BUILD_DATE: ${{ github.event.head_commit.timestamp }}
         VCS_REF: ${{ github.sha }}
         VERSION: ${{ steps.sanitize.outputs.VERSION_SAFE }}
+        GO_VERSION: "1.24.1"
+        TARGETPLATFORM: "linux/amd64"
       run: |
         echo "Building $SERVICE image..."
         docker buildx build \
@@ -253,6 +255,8 @@ jobs:
           --build-arg VERSION=$VERSION \
           --build-arg BUILD_DATE=$BUILD_DATE \
           --build-arg VCS_REF=$VCS_REF \
+          --build-arg GO_VERSION=$GO_VERSION \
+          --build-arg TARGETPLATFORM=$TARGETPLATFORM \
           --platform linux/amd64 \
           --load \
           --tag ${REGISTRY}/${IMAGE_NAME}/${SERVICE}:${VERSION} \
