@@ -843,8 +843,8 @@ func (tlt *TelecomLoadTester) simulateComponent(ctx context.Context, component s
 	}
 
 	// Simulate occasional errors (1% error rate)
-	n, _ := crypto_rand.Int(crypto_rand.Reader, big.NewInt(100))
-	if n.Int64() < 1 { // 1% chance
+	errNum, _ := crypto_rand.Int(crypto_rand.Reader, big.NewInt(100))
+	if errNum.Int64() < 1 { // 1% chance
 		return fmt.Errorf("simulated %s processing error", component)
 	}
 
