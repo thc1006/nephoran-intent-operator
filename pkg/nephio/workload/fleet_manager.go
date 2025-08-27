@@ -10,7 +10,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
-	"k8s.io/apimachinery/pkg/api/resource"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
 
@@ -213,7 +213,7 @@ type WorkloadDeployment struct {
 	Type         string                `json:"type"`
 	Replicas     int                   `json:"replicas"`
 	Distribution map[string]int        `json:"distribution"`
-	Resources    resource.Requirements `json:"resources"`
+	Resources    corev1.ResourceRequirements `json:"resources"`
 	Status       WorkloadStatus        `json:"status"`
 	CreatedAt    time.Time             `json:"created_at"`
 }
@@ -586,7 +586,7 @@ func (fm *FleetManager) DeployWorkload(ctx context.Context, fleetID string, work
 
 	// Calculate placement
 	timer := prometheus.NewTimer(fm.metrics.placementDuration.WithLabelValues(string(fleet.Policy.PlacementPolicy.Strategy)))
-	decision, err := fm.scheduler.ScheduleWorkload(ctx, workload, clusters, fleet.Policy.PlacementPolicy)
+	decision, err := fm.scheduler.ScheduleWorkload(ctx, workload, clusters, &fleet.Policy.PlacementPolicy)
 	timer.ObserveDuration()
 
 	if err != nil {
@@ -641,7 +641,7 @@ func (fm *FleetManager) ScaleWorkload(ctx context.Context, fleetID string, workl
 
 	// Recalculate distribution
 	clusters := fm.getFleetClusters(fleet)
-	decision, err := fm.scheduler.ScheduleWorkload(ctx, workload, clusters, fleet.Policy.PlacementPolicy)
+	decision, err := fm.scheduler.ScheduleWorkload(ctx, workload, clusters, &fleet.Policy.PlacementPolicy)
 	if err != nil {
 		workload.Replicas = oldReplicas // Rollback
 		return fmt.Errorf("failed to reschedule workload: %w", err)
@@ -728,7 +728,7 @@ func (fm *FleetManager) BalanceFleet(ctx context.Context, fleetID string) error 
 	for i := range fleet.Status.Workloads {
 		workload := &fleet.Status.Workloads[i]
 
-		decision, err := fm.scheduler.ScheduleWorkload(ctx, workload, clusters, fleet.Policy.PlacementPolicy)
+		decision, err := fm.scheduler.ScheduleWorkload(ctx, workload, clusters, &fleet.Policy.PlacementPolicy)
 		if err != nil {
 			fm.logger.Error(err, "Failed to rebalance workload", "workload", workload.ID)
 			continue

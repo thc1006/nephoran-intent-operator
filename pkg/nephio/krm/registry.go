@@ -43,7 +43,7 @@ type Registry struct {
 	config        *RegistryConfig
 	repositories  map[string]*Repository
 	functions     map[string]*FunctionMetadata
-	cache         *FunctionCache
+	cache         *RegistryFunctionCache
 	healthMonitor *HealthMonitor
 	metrics       *RegistryMetrics
 	tracer        trace.Tracer
@@ -255,14 +255,23 @@ type SecurityVulnerability struct {
 	DiscoveredAt time.Time `json:"discoveredAt" yaml:"discoveredAt"`
 }
 
-// FunctionCache manages function metadata and artifact caching
+// RegistryFunctionCache manages function metadata and artifact caching for registry
 type RegistryFunctionCache struct {
 	cacheDir string
 	ttl      time.Duration
 	maxSize  int64
 	mu       sync.RWMutex
 	items    map[string]*CacheItem
-	metrics  *CacheMetrics
+	metrics  *RegistryCacheMetrics
+}
+
+// RegistryCacheMetrics contains metrics for registry cache operations
+type RegistryCacheMetrics struct {
+	Hits      prometheus.Counter
+	Misses    prometheus.Counter
+	Evictions prometheus.Counter
+	Size      prometheus.Gauge
+	Entries   prometheus.Gauge
 }
 
 // CacheItem represents a cached function
@@ -388,7 +397,7 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 	}
 
 	// Initialize cache
-	cacheMetrics := &CacheMetrics{
+	cacheMetrics := &RegistryCacheMetrics{
 		Hits: promauto.NewCounter(prometheus.CounterOpts{
 			Name: "krm_registry_cache_operations_total",
 			Help: "Total number of cache operations",
@@ -411,7 +420,7 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 		}),
 	}
 
-	cache := &FunctionCache{
+	cache := &RegistryFunctionCache{
 		cacheDir: config.CacheDir,
 		ttl:      config.CacheTTL,
 		maxSize:  config.MaxCacheSize,
@@ -1063,7 +1072,7 @@ func (r *Registry) calculateSearchScore(function *FunctionMetadata, terms string
 	return score
 }
 
-func (c *FunctionCache) getStatus() *CacheStatus {
+func (c *RegistryFunctionCache) getStatus() *CacheStatus {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -1080,7 +1089,7 @@ func (c *FunctionCache) getStatus() *CacheStatus {
 	}
 }
 
-func (c *FunctionCache) cleanup() {
+func (c *RegistryFunctionCache) cleanup() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -1093,7 +1102,7 @@ func (c *FunctionCache) cleanup() {
 	}
 }
 
-func (c *FunctionCache) save() error {
+func (c *RegistryFunctionCache) save() error {
 	// Implementation to save cache to disk
 	return nil
 }

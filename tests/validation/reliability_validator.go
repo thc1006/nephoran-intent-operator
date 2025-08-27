@@ -847,3 +847,32 @@ func (rv *ReliabilityValidator) testStateReconstruction(ctx context.Context) boo
 	ginkgo.By("State reconstruction capability verified through CRD access")
 	return true
 }
+
+// ExecuteProductionTests runs all production readiness tests and returns a score
+func (rv *ReliabilityValidator) ExecuteProductionTests(ctx context.Context) (int, error) {
+	ginkgo.By("Executing Production Readiness Tests")
+	
+	score := 0
+	
+	// Test 1: High Availability (3 points)
+	availabilityMetrics := rv.ValidateHighAvailability(ctx)
+	if availabilityMetrics.Availability >= 99.95 {
+		score += 3
+	}
+	
+	// Test 2: Fault Tolerance (3 points)
+	if rv.ValidateFaultTolerance(ctx) {
+		score += 3
+	}
+	
+	// Test 3: Monitoring & Observability (2 points)
+	monitoringScore := rv.ValidateMonitoringObservability(ctx)
+	score += monitoringScore
+	
+	// Test 4: Disaster Recovery (2 points)
+	if rv.ValidateDisasterRecovery(ctx) {
+		score += 2
+	}
+	
+	return score, nil
+}

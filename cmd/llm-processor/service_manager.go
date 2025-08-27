@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -62,34 +63,83 @@ type Config struct {
 
 // IntentProcessor represents a processor for network intents
 type IntentProcessor struct {
-	LLMClient         *llm.Client
+	LLMClient         interface{} // Accept any client type for testing
 	RAGEnhancedClient interface{}
 	CircuitBreaker    *llm.CircuitBreaker
 	Logger            *slog.Logger
+}
+
+// NewIntentProcessor creates a new intent processor with the given configuration
+func NewIntentProcessor(config *Config) *IntentProcessor {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+
+	// Create mock LLM client for testing
+	client := llm.NewClientWithConfig("http://localhost:8080", llm.ClientConfig{
+		APIKey:      config.LLMAPIKey,
+		ModelName:   config.LLMModelName,
+		MaxTokens:   config.LLMMaxTokens,
+		BackendType: config.LLMBackendType,
+		Timeout:     config.LLMTimeout,
+	})
+
+	// Create circuit breaker
+	circuitBreaker := llm.NewCircuitBreaker(llm.CircuitBreakerConfig{
+		Name:        "llm-processor",
+		MaxFailures: uint64(config.CircuitBreakerThreshold),
+		Timeout:     config.CircuitBreakerTimeout,
+	})
+
+	return &IntentProcessor{
+		LLMClient:      client,
+		CircuitBreaker: circuitBreaker,
+		Logger:         logger,
+	}
 }
 
 // ProcessIntent processes an intent using the configured processor
 func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string) (string, error) {
 	p.Logger.Debug("Processing intent with enhanced client", slog.String("intent", intent))
 
-	// Use circuit breaker for fault tolerance
-	operation := func(ctx context.Context) (interface{}, error) {
-		// Try RAG-enhanced processing first if available
-		if p.RAGEnhancedClient != nil {
-			// RAG-enhanced processing would go here if implemented
-			p.Logger.Info("RAG-enhanced processing not yet implemented, using base client")
+	// Use circuit breaker for fault tolerance if available
+	if p.CircuitBreaker != nil {
+		operation := func(ctx context.Context) (interface{}, error) {
+			// Try RAG-enhanced processing first if available
+			if p.RAGEnhancedClient != nil {
+				// RAG-enhanced processing would go here if implemented
+				p.Logger.Info("RAG-enhanced processing not yet implemented, using base client")
+			}
+
+			// Handle different client types
+			switch client := p.LLMClient.(type) {
+			case *llm.Client:
+				return client.ProcessIntent(ctx, intent)
+			case interface{ ProcessIntent(context.Context, string) (string, error) }:
+				// For mock clients that implement the same interface
+				return client.ProcessIntent(ctx, intent)
+			default:
+				return "", fmt.Errorf("unsupported LLM client type: %T", client)
+			}
 		}
 
-		// Fallback to base LLM client
-		return p.LLMClient.ProcessIntent(ctx, intent)
+		result, err := p.CircuitBreaker.Execute(ctx, operation)
+		if err != nil {
+			return "", fmt.Errorf("LLM processing failed: %w", err)
+		}
+
+		return result.(string), nil
 	}
 
-	result, err := p.CircuitBreaker.Execute(ctx, operation)
-	if err != nil {
-		return "", fmt.Errorf("LLM processing failed: %w", err)
+	// Direct call without circuit breaker for simple testing
+	switch client := p.LLMClient.(type) {
+	case *llm.Client:
+		return client.ProcessIntent(ctx, intent)
+	case interface{ ProcessIntent(context.Context, string) (string, error) }:
+		return client.ProcessIntent(ctx, intent)
+	default:
+		return "", fmt.Errorf("unsupported LLM client type: %T", client)
 	}
-
-	return result.(string), nil
 }
 
 // ProcessIntentRequest represents a request structure

@@ -48,7 +48,7 @@ type Runtime struct {
 	config         *RuntimeConfig
 	resourcePool   *ResourcePool
 	executorPool   *ExecutorPool
-	securityPolicy *SecurityPolicy
+	securityPolicy *RuntimeSecurityPolicy
 	metrics        *RuntimeMetrics
 	tracer         trace.Tracer
 	mu             sync.RWMutex
@@ -162,7 +162,7 @@ type Executor struct {
 	mu          sync.Mutex
 }
 
-// SecurityPolicy enforces security constraints
+// RuntimeSecurityPolicy enforces security constraints for runtime
 type RuntimeSecurityPolicy struct {
 	allowedImages       map[string]bool
 	blockedCapabilities map[string]bool
@@ -328,7 +328,7 @@ func NewRuntime(config *RuntimeConfig) (*Runtime, error) {
 	}
 
 	// Initialize security policy
-	securityPolicy := &SecurityPolicy{
+	securityPolicy := &RuntimeSecurityPolicy{
 		allowedImages:       make(map[string]bool),
 		blockedCapabilities: make(map[string]bool),
 		maxResourceLimits: ResourceLimits{
@@ -387,7 +387,7 @@ func (r *Runtime) ExecuteFunction(ctx context.Context, req *porch.FunctionReques
 
 	// Create execution context
 	execCtx := &ExecutionContext{
-		ID:              generateExecutionID(),
+		ID:              generateRuntimeExecutionID(),
 		FunctionImage:   req.FunctionConfig.Image,
 		Resources:       req.Resources,
 		Config:          req.FunctionConfig,
@@ -606,7 +606,7 @@ func (r *Runtime) createExecutor() (*Executor, error) {
 }
 
 func (r *Runtime) createWorkspace() (string, error) {
-	workspaceDir := filepath.Join(r.config.WorkspaceDir, generateExecutionID())
+	workspaceDir := filepath.Join(r.config.WorkspaceDir, generateRuntimeExecutionID())
 	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
 		return "", errors.WithContext(err, "failed to create workspace directory")
 	}

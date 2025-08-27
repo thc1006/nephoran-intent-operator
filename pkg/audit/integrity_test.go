@@ -16,8 +16,6 @@ import (
 type IntegrityTestSuite struct {
 	suite.Suite
 	integrityChain *IntegrityChain
-	signer         *EventSigner
-	validator      *IntegrityValidator
 }
 
 func TestIntegrityTestSuite(t *testing.T) {
@@ -30,21 +28,6 @@ func (suite *IntegrityTestSuite) SetupTest() {
 	// Initialize integrity chain
 	suite.integrityChain, err = NewIntegrityChain()
 	suite.Require().NoError(err)
-
-	// Initialize event signer with test key
-	suite.signer, err = NewEventSigner(&SignerConfig{
-		KeyType:   "hmac",
-		SecretKey: "test-secret-key-for-integrity-testing",
-	})
-	suite.Require().NoError(err)
-
-	// Initialize integrity validator
-	suite.validator = NewIntegrityValidator(&ValidatorConfig{
-		EnforceChain:       true,
-		ValidateHashes:     true,
-		ValidateSignatures: true,
-		MaxClockSkew:       5 * time.Minute,
-	})
 }
 
 // Hash Chain Tests

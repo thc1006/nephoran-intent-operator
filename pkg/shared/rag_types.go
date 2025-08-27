@@ -13,10 +13,12 @@ type SearchResult struct {
 	Content   string                 `json:"content"`
 	Metadata  map[string]interface{} `json:"metadata"`
 	Score     float32                `json:"score"`
+	Distance  float32                `json:"distance"`  // Added for test compatibility
 	Source    string                 `json:"source"`
 	Chunk     int                    `json:"chunk"`
 	Title     string                 `json:"title"`
 	Summary   string                 `json:"summary"`
+	Document  *TelecomDocument       `json:"document"`  // Added for test compatibility
 	CreatedAt time.Time              `json:"created_at"`
 	UpdatedAt time.Time              `json:"updated_at"`
 }
@@ -44,19 +46,23 @@ type RAGResponse struct {
 
 // TelecomDocument represents a telecom-specific document
 type TelecomDocument struct {
-	ID        string                 `json:"id"`
-	Title     string                 `json:"title"`
-	Content   string                 `json:"content"`
-	Type      DocumentType           `json:"type"`
-	Category  string                 `json:"category"`
-	Standard  string                 `json:"standard"` // e.g., "3GPP TS 38.401"
-	Version   string                 `json:"version"`  // e.g., "16.0.0"
-	Section   string                 `json:"section"`  // e.g., "7.2.1"
-	Keywords  []string               `json:"keywords"`
-	Metadata  map[string]interface{} `json:"metadata"`
-	CreatedAt time.Time              `json:"created_at"`
-	UpdatedAt time.Time              `json:"updated_at"`
-	Indexed   bool                   `json:"indexed"`
+	ID              string                 `json:"id"`
+	Title           string                 `json:"title"`
+	Content         string                 `json:"content"`
+	Type            DocumentType           `json:"type"`
+	Category        string                 `json:"category"`
+	Standard        string                 `json:"standard"`         // e.g., "3GPP TS 38.401"
+	Version         string                 `json:"version"`          // e.g., "16.0.0"
+	Section         string                 `json:"section"`          // e.g., "7.2.1"
+	Keywords        []string               `json:"keywords"`
+	Source          string                 `json:"source"`           // Added for test compatibility
+	NetworkFunction []string               `json:"network_function"` // Added for test compatibility
+	Technology      []string               `json:"technology"`       // Added for test compatibility
+	Confidence      float64                `json:"confidence"`       // Added for test compatibility
+	Metadata        map[string]interface{} `json:"metadata"`
+	CreatedAt       time.Time              `json:"created_at"`
+	UpdatedAt       time.Time              `json:"updated_at"`
+	Indexed         bool                   `json:"indexed"`
 }
 
 // DocumentType represents the type of telecom document

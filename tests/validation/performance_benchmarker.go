@@ -586,3 +586,32 @@ func (pb *PerformanceBenchmarker) calculatePercentile(durations []time.Duration,
 
 	return durations[index]
 }
+
+// ExecutePerformanceTests runs all performance tests and returns a score
+func (pb *PerformanceBenchmarker) ExecutePerformanceTests(ctx context.Context) (int, error) {
+	ginkgo.By("Executing Performance Tests")
+	
+	score := 0
+	
+	// Test 1: Latency Performance (8 points)
+	latencyResult := pb.BenchmarkLatency(ctx)
+	if latencyResult.P95Latency <= 2*time.Second {
+		score += 8
+	}
+	
+	// Test 2: Throughput Performance (8 points)
+	throughputResult := pb.BenchmarkThroughput(ctx)
+	if throughputResult.ThroughputAchieved >= 45.0 {
+		score += 8
+	}
+	
+	// Test 3: Scalability Testing (5 points)
+	scalabilityScore := pb.BenchmarkScalability(ctx)
+	score += scalabilityScore
+	
+	// Test 4: Resource Efficiency (4 points)
+	resourceScore := pb.BenchmarkResourceEfficiency(ctx)
+	score += resourceScore
+	
+	return score, nil
+}

@@ -471,3 +471,36 @@ func (sv *SystemValidator) validateO2Interface(ctx context.Context) bool {
 
 	return true
 }
+
+// ExecuteFunctionalTests runs all functional validation tests and returns a score
+func (sv *SystemValidator) ExecuteFunctionalTests(ctx context.Context) (int, error) {
+	ginkgo.By("Executing Functional Tests")
+	
+	score := 0
+	
+	// Test 1: Intent Processing Pipeline (15 points)
+	if sv.ValidateIntentProcessingPipeline(ctx) {
+		score += 15
+	}
+	
+	// Test 2: LLM/RAG Integration (10 points)  
+	if sv.ValidateLLMRAGIntegration(ctx) {
+		score += 10
+	}
+	
+	// Test 3: Porch Integration (10 points)
+	if sv.ValidatePorchIntegration(ctx) {
+		score += 10
+	}
+	
+	// Test 4: Multi-cluster Deployment (8 points)
+	if sv.ValidateMultiClusterDeployment(ctx) {
+		score += 8
+	}
+	
+	// Test 5: O-RAN Interfaces (7 points)
+	oranScore := sv.ValidateORANInterfaces(ctx)
+	score += oranScore
+	
+	return score, nil
+}

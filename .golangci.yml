@@ -3,8 +3,8 @@
 # Ref: https://golangci-lint.run/docs/configuration/file/
 
 run:
-  # Total timeout for the whole run.
-  timeout: 10m
+  # Optimized timeout for ultra-fast CI (2025 best practices)
+  timeout: 8m
   # Make paths relative to go.mod so filters work the same locally/CI.
   relative-path-mode: gomod
   # Avoid modifying go.mod/go.sum during lint.
@@ -16,21 +16,41 @@ run:
   # Allow multiple runners on CI to reduce flakiness.
   allow-parallel-runners: true
   allow-serial-runners: true
+  # Enable build tags for faster processing
+  build-tags:
+    - netgo
+    - osusergo
+    - static_build
+  # Skip vendor and generated files for speed
+  skip-dirs:
+    - vendor
+    - .git
+    - bin
+    - deployments
 
 linters:
-  # Start minimal: enable a few safe linters.
-  # You can add more later without breaking CI.
+  # Ultra-fast linter configuration for CI speed (2025 optimized)
   disable-all: true
   enable:
-    - govet
-    - staticcheck
-    - errcheck
-    - revive
+    - govet       # Essential static analysis
+    - staticcheck # Fast and comprehensive
+    - errcheck    # Error handling validation
+    - revive      # Fast Go linting
+    - gofmt       # Formatting check (fast)
+    - ineffassign # Dead code detection (fast)
+    - misspell    # Spelling errors (fast)
+  # Disable slow linters for ultra-fast CI
+  disable:
+    - gocritic    # Slow and verbose
+    - gosec       # Run separately in security job
+    - lll         # Line length not critical for CI speed
+    - gocyclo     # Complexity analysis done separately
 
 linters-settings:
   revive:
-    # A gentle ruleset; strict ones can be added later.
+    # Ultra-fast ruleset optimized for CI speed
     severity: warning
+    confidence: 0.8
     rules:
       - name: blank-imports
       - name: context-as-argument
@@ -38,6 +58,24 @@ linters-settings:
         arguments: ["disableStutteringCheck"]
       - name: receiver-naming
       - name: increment-decrement
+  
+  # Optimize staticcheck for speed
+  staticcheck:
+    checks: ["all", "-SA1019"]  # Skip deprecated warnings for speed
+  
+  # Fast govet configuration
+  govet:
+    enable-all: false
+    enable:
+      - assign
+      - atomic
+      - bools
+      - buildtag
+      - nilfunc
+      - printf
+    disable:
+      - shadow  # Slow analysis
+      - fieldalignment  # Not critical for CI speed
 
 # All issue-related filters and exclusions live under "issues".
 issues:

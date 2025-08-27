@@ -85,6 +85,358 @@ type DependencyAnalyzer interface {
 	Close() error
 }
 
+// Missing type definitions for dependency analysis
+type TimeRange struct {
+	StartTime time.Time `json:"startTime"`
+	EndTime   time.Time `json:"endTime"`
+	Duration  time.Duration `json:"duration"`
+}
+
+type ScopeFilter struct {
+	Type      string                 `json:"type"`
+	Patterns  []string               `json:"patterns"`
+	Include   bool                   `json:"include"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+}
+
+type UsagePattern struct {
+	PackageName string    `json:"packageName"`
+	Pattern     string    `json:"pattern"`
+	Frequency   int       `json:"frequency"`
+	Confidence  float64   `json:"confidence"`
+	StartTime   time.Time `json:"startTime"`
+	EndTime     time.Time `json:"endTime"`
+}
+
+type PeakUsageTime struct {
+	Time    time.Time `json:"time"`
+	Usage   int64     `json:"usage"`
+	Package string    `json:"package"`
+}
+
+type SeasonalPattern struct {
+	Season    string  `json:"season"`
+	Factor    float64 `json:"factor"`
+	Package   string  `json:"package"`
+	StartDate string  `json:"startDate"`
+	EndDate   string  `json:"endDate"`
+}
+
+type UsageRanking struct {
+	Package    string  `json:"package"`
+	Usage      int64   `json:"usage"`
+	Rank       int     `json:"rank"`
+	Percentage float64 `json:"percentage"`
+}
+
+type TrendingPackage struct {
+	Package     string  `json:"package"`
+	GrowthRate  float64 `json:"growthRate"`
+	TrendScore  float64 `json:"trendScore"`
+	Momentum    string  `json:"momentum"`
+}
+
+type UnusedPackage struct {
+	Package        string        `json:"package"`
+	LastUsed       time.Time     `json:"lastUsed,omitempty"`
+	UnusedDuration time.Duration `json:"unusedDuration"`
+	Reason         string        `json:"reason"`
+	Confidence     float64       `json:"confidence"`
+}
+
+type UnderutilizedPackage struct {
+	Package           string  `json:"package"`
+	ActualUsage       int64   `json:"actualUsage"`
+	PotentialUsage    int64   `json:"potentialUsage"`
+	UtilizationRate   float64 `json:"utilizationRate"`
+	Recommendations   []string `json:"recommendations"`
+}
+
+type UsageOptimization struct {
+	Type        string  `json:"type"`
+	Description string  `json:"description"`
+	Package     string  `json:"package"`
+	Impact      string  `json:"impact"`
+	Confidence  float64 `json:"confidence"`
+}
+
+// Additional missing types for cost analysis
+type Cost struct {
+	Amount   float64 `json:"amount"`
+	Currency string  `json:"currency"`
+	Period   string  `json:"period"`
+}
+
+type PackageCost struct {
+	Package        string  `json:"package"`
+	Cost           Cost    `json:"cost"`
+	CostPerUsage   float64 `json:"costPerUsage"`
+	TotalUsage     int64   `json:"totalUsage"`
+}
+
+type CostProjection struct {
+	Period         string  `json:"period"`
+	ProjectedCost  Cost    `json:"projectedCost"`
+	GrowthRate     float64 `json:"growthRate"`
+	Confidence     float64 `json:"confidence"`
+}
+
+type CostOptimizationOpportunity struct {
+	Type           string  `json:"type"`
+	Package        string  `json:"package"`
+	PotentialSaving Cost   `json:"potentialSaving"`
+	Recommendation string  `json:"recommendation"`
+	Confidence     float64 `json:"confidence"`
+}
+
+type CostBenchmarkComparison struct {
+	Package            string  `json:"package"`
+	CurrentCost        Cost    `json:"currentCost"`
+	IndustryCost       Cost    `json:"industryCost"`
+	PerformanceRatio   float64 `json:"performanceRatio"`
+	Recommendation     string  `json:"recommendation"`
+}
+
+// Health analysis types
+type SecurityHealth struct {
+	Score           float64  `json:"score"`
+	Vulnerabilities int      `json:"vulnerabilities"`
+	Issues          []string `json:"issues"`
+	LastScan        string   `json:"lastScan"`
+}
+
+type MaintenanceHealth struct {
+	Score            float64  `json:"score"`
+	LastUpdate       string   `json:"lastUpdate"`
+	UpdateFrequency  string   `json:"updateFrequency"`
+	MaintenanceState string   `json:"maintenanceState"`
+	Issues           []string `json:"issues"`
+}
+
+// Core analysis result types
+type RiskAnalysis struct {
+	OverallScore    float64        `json:"overallScore"`
+	SecurityRisks   []string       `json:"securityRisks"`
+	ComplianceRisks []string       `json:"complianceRisks"`
+	TechnicalRisks  []string       `json:"technicalRisks"`
+	Recommendations []string       `json:"recommendations"`
+}
+
+type PerformanceAnalysis struct {
+	OverallScore     float64 `json:"overallScore"`
+	ResponseTime     float64 `json:"responseTime"`
+	ThroughputScore  float64 `json:"throughputScore"`
+	ResourceUsage    float64 `json:"resourceUsage"`
+	BottleneckAreas  []string `json:"bottleneckAreas"`
+}
+
+type GraphAnalysis struct {
+	NodeCount       int      `json:"nodeCount"`
+	EdgeCount       int      `json:"edgeCount"`
+	ComplexityScore float64  `json:"complexityScore"`
+	CriticalPath    []string `json:"criticalPath"`
+	CircularDeps    []string `json:"circularDeps"`
+}
+
+type QualityHealth struct {
+	CodeQuality     float64  `json:"codeQuality"`
+	TestCoverage    float64  `json:"testCoverage"`
+	Documentation   float64  `json:"documentation"`
+	BestPractices   float64  `json:"bestPractices"`
+	Issues          []string `json:"issues"`
+}
+
+type PerformanceHealth struct {
+	ResponseTime    float64  `json:"responseTime"`
+	Throughput      float64  `json:"throughput"`
+	ResourceUsage   float64  `json:"resourceUsage"`
+	Bottlenecks     []string `json:"bottlenecks"`
+	Optimizations   []string `json:"optimizations"`
+}
+
+type HealthSnapshot struct {
+	Timestamp       string              `json:"timestamp"`
+	Package         string              `json:"package"`
+	OverallHealth   float64             `json:"overallHealth"`
+	ComponentHealth map[string]float64  `json:"componentHealth"`
+	CriticalIssues  []CriticalIssue     `json:"criticalIssues"`
+	Warnings        []HealthWarning     `json:"warnings"`
+}
+
+type CriticalIssue struct {
+	Type        string  `json:"type"`
+	Description string  `json:"description"`
+	Severity    string  `json:"severity"`
+	Impact      string  `json:"impact"`
+	Recommendation string `json:"recommendation"`
+}
+
+type HealthWarning struct {
+	Type        string `json:"type"`
+	Description string `json:"description"`
+	Suggestion  string `json:"suggestion"`
+}
+
+type HealthRecommendation struct {
+	Type        string  `json:"type"`
+	Description string  `json:"description"`
+	Priority    string  `json:"priority"`
+	Impact      string  `json:"impact"`
+	Effort      string  `json:"effort"`
+	Confidence  float64 `json:"confidence"`
+}
+
+type VersionOptimization struct {
+	Package         string `json:"package"`
+	CurrentVersion  string `json:"currentVersion"`
+	RecommendedVersion string `json:"recommendedVersion"`
+	Reason          string `json:"reason"`
+	RiskLevel       string `json:"riskLevel"`
+	Benefits        []string `json:"benefits"`
+}
+
+// Additional missing optimization and recommendation types
+type UpgradeRecommendation struct {
+	Package         string   `json:"package"`
+	CurrentVersion  string   `json:"currentVersion"`
+	TargetVersion   string   `json:"targetVersion"`
+	UpgradeType     string   `json:"upgradeType"`
+	Priority        string   `json:"priority"`
+	Benefits        []string `json:"benefits"`
+	Risks           []string `json:"risks"`
+	BreakingChanges []string `json:"breakingChanges"`
+	Confidence      float64  `json:"confidence"`
+}
+
+type DependencyOptimization struct {
+	Type        string  `json:"type"`
+	Description string  `json:"description"`
+	Package     string  `json:"package"`
+	Action      string  `json:"action"`
+	Impact      string  `json:"impact"`
+	Confidence  float64 `json:"confidence"`
+}
+
+type CostOptimization struct {
+	Type              string  `json:"type"`
+	Package           string  `json:"package"`
+	CurrentCost       Cost    `json:"currentCost"`
+	OptimizedCost     Cost    `json:"optimizedCost"`
+	PotentialSavings  Cost    `json:"potentialSavings"`
+	Recommendation    string  `json:"recommendation"`
+	ImplementationEffort string `json:"implementationEffort"`
+}
+
+type SecurityOptimization struct {
+	Type           string  `json:"type"`
+	Package        string  `json:"package"`
+	SecurityIssue  string  `json:"securityIssue"`
+	Recommendation string  `json:"recommendation"`
+	Priority       string  `json:"priority"`
+	Impact         string  `json:"impact"`
+}
+
+type PerformanceOptimization struct {
+	Type                string  `json:"type"`
+	Package             string  `json:"package"`
+	PerformanceIssue    string  `json:"performanceIssue"`
+	Recommendation      string  `json:"recommendation"`
+	ExpectedImprovement string  `json:"expectedImprovement"`
+	Confidence          float64 `json:"confidence"`
+}
+
+type OptimizationAction struct {
+	Type        string                 `json:"type"`
+	Description string                 `json:"description"`
+	Package     string                 `json:"package"`
+	Action      string                 `json:"action"`
+	Parameters  map[string]interface{} `json:"parameters"`
+	Priority    string                 `json:"priority"`
+	Effort      string                 `json:"effort"`
+}
+
+type OptimizationBenefits struct {
+	CostSavings       Cost     `json:"costSavings"`
+	PerformanceGains  float64  `json:"performanceGains"`
+	SecurityImprovements []string `json:"securityImprovements"`
+	MaintenanceReduction float64 `json:"maintenanceReduction"`
+}
+
+type MLRecommendation struct {
+	Type        string                 `json:"type"`
+	Package     string                 `json:"package"`
+	Recommendation string              `json:"recommendation"`
+	Confidence  float64                `json:"confidence"`
+	ModelUsed   string                 `json:"modelUsed"`
+	Features    map[string]interface{} `json:"features"`
+	Reasoning   string                 `json:"reasoning"`
+}
+
+// Stub types for remaining missing definitions
+type ReplacementSuggestion struct {
+	Package        string  `json:"package"`
+	Replacement    string  `json:"replacement"`
+	Reason         string  `json:"reason"`
+	Compatibility  float64 `json:"compatibility"`
+}
+
+type IssuePrediction struct {
+	Predictions []string `json:"predictions"`
+	Confidence  float64  `json:"confidence"`
+}
+
+type TrendAnalysis struct {
+	Trends []string `json:"trends"`
+	Score  float64  `json:"score"`
+}
+
+type AnomalyDetectionResult struct {
+	Anomalies []string `json:"anomalies"`
+	Score     float64  `json:"score"`
+}
+
+type AnalysisError struct {
+	Message string `json:"message"`
+	Type    string `json:"type"`
+}
+
+type AnalysisWarning struct {
+	Message string `json:"message"`
+	Type    string `json:"type"`
+}
+
+type AnalysisStatistics struct {
+	PackageCount int     `json:"packageCount"`
+	Duration     float64 `json:"duration"`
+}
+
+type PackageUsageMetrics struct {
+	Package string  `json:"package"`
+	Usage   int64   `json:"usage"`
+	Score   float64 `json:"score"`
+}
+
+type HealthScore struct {
+	Overall float64 `json:"overall"`
+	Details map[string]float64 `json:"details"`
+}
+
+type QualityMetrics struct {
+	Score   float64            `json:"score"`
+	Metrics map[string]float64 `json:"metrics"`
+}
+
+// Additional stub types for comprehensive compilation
+type AffectedPackage struct{ Package string; Impact string }
+type PerformanceMetrics struct{ Score float64; Details map[string]float64 }
+type ResourceUsageMetrics struct{ CPU float64; Memory float64; Storage float64 }
+type CostMetrics struct{ Total Cost; Breakdown map[string]Cost }
+type RiskFactor struct{ Type string; Severity string; Impact float64 }
+type RecommendedAction struct{ Action string; Priority string; Impact string }
+type PredictedIssue struct{ Issue string; Probability float64; Impact string }
+type CycleImpact struct{ Severity string; AffectedPackages []string }
+type DistributionStats struct{ Mean float64; StdDev float64; Min float64; Max float64 }
+
 // dependencyAnalyzer implements comprehensive dependency analysis and optimization
 type dependencyAnalyzer struct {
 	logger  logr.Logger

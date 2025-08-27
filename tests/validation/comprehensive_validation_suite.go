@@ -577,6 +577,26 @@ func (vs *ValidationSuite) GetValidationResults() *ValidationResults {
 	return vs.results
 }
 
+// GetFunctionalValidator returns the system validator for functional testing
+func (vs *ValidationSuite) GetFunctionalValidator() *SystemValidator {
+	return vs.validator
+}
+
+// GetPerformanceBenchmarker returns the performance benchmarker
+func (vs *ValidationSuite) GetPerformanceBenchmarker() *PerformanceBenchmarker {
+	return vs.benchmarker
+}
+
+// GetSecurityValidator returns the security validator
+func (vs *ValidationSuite) GetSecurityValidator() *SecurityValidator {
+	return vs.securityTester
+}
+
+// GetReliabilityValidator returns the reliability validator for production testing
+func (vs *ValidationSuite) GetReliabilityValidator() *ReliabilityValidator {
+	return vs.reliabilityTest
+}
+
 // RunValidationSuite is the main entry point for comprehensive validation
 var _ = ginkgo.Describe("Nephoran Intent Operator Comprehensive Validation Suite", func() {
 	var validationSuite *ValidationSuite

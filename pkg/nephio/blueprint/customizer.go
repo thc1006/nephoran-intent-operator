@@ -58,9 +58,9 @@ type CustomizationRule struct {
 	Priority    int    `json:"priority" yaml:"priority"`
 
 	// Targeting criteria
-	Components   []v1.TargetComponent `json:"components,omitempty" yaml:"components,omitempty"`
-	IntentTypes  []v1.IntentType      `json:"intentTypes,omitempty" yaml:"intentTypes,omitempty"`
-	Environments []string             `json:"environments,omitempty" yaml:"environments,omitempty"`
+	Components   []v1.NetworkTargetComponent `json:"components,omitempty" yaml:"components,omitempty"`
+	IntentTypes  []v1.IntentType             `json:"intentTypes,omitempty" yaml:"intentTypes,omitempty"`
+	Environments []string                    `json:"environments,omitempty" yaml:"environments,omitempty"`
 
 	// Conditions for rule activation
 	Conditions []RuleCondition `json:"conditions" yaml:"conditions"`
@@ -279,9 +279,9 @@ type PolicyAction struct {
 }
 
 type PolicyScope struct {
-	Namespaces []string             `json:"namespaces,omitempty" yaml:"namespaces,omitempty"`
-	Components []v1.TargetComponent `json:"components,omitempty" yaml:"components,omitempty"`
-	Labels     map[string]string    `json:"labels,omitempty" yaml:"labels,omitempty"`
+	Namespaces []string                    `json:"namespaces,omitempty" yaml:"namespaces,omitempty"`
+	Components []v1.NetworkTargetComponent `json:"components,omitempty" yaml:"components,omitempty"`
+	Labels     map[string]string           `json:"labels,omitempty" yaml:"labels,omitempty"`
 }
 
 type PolicyEvaluator struct {
@@ -476,23 +476,23 @@ func (c *Customizer) applyEnvironmentCustomizations(ctx context.Context, customC
 func (c *Customizer) applyComponentCustomizations(ctx context.Context, customCtx *CustomizationContext) error {
 	for _, component := range customCtx.Intent.Spec.TargetComponents {
 		switch component {
-		case v1.TargetComponentAMF:
+		case v1.NetworkTargetComponentAMF:
 			if err := c.customizeAMF(customCtx); err != nil {
 				return fmt.Errorf("AMF customization failed: %w", err)
 			}
-		case v1.TargetComponentSMF:
+		case v1.NetworkTargetComponentSMF:
 			if err := c.customizeSMF(customCtx); err != nil {
 				return fmt.Errorf("SMF customization failed: %w", err)
 			}
-		case v1.TargetComponentUPF:
+		case v1.NetworkTargetComponentUPF:
 			if err := c.customizeUPF(customCtx); err != nil {
 				return fmt.Errorf("UPF customization failed: %w", err)
 			}
-		case v1.TargetComponentNearRTRIC:
+		case "Near-RT-RIC": // Using string constant as defined in networkintent_types.go
 			if err := c.customizeNearRTRIC(customCtx); err != nil {
 				return fmt.Errorf("Near-RT RIC customization failed: %w", err)
 			}
-		case v1.TargetComponentXApp:
+		case "xApp": // Using string constant as defined in networkintent_types.go
 			if err := c.customizeXApp(customCtx); err != nil {
 				return fmt.Errorf("xApp customization failed: %w", err)
 			}
@@ -579,8 +579,34 @@ func (c *Customizer) customizeAMFContainer(container map[interface{}]interface{}
 	// Customize resource requirements
 	if ctx.Environment != nil {
 		if resources, ok := container["resources"].(map[interface{}]interface{}); ok {
-			c.applyResourceCustomizations(resources, &ctx.Environment.ResourceLimits)
+			c.applyResourceLimitsToContainer(resources, &ctx.Environment.ResourceLimits)
 		}
+	}
+}
+
+func (c *Customizer) applyResourceLimitsToContainer(resources map[interface{}]interface{}, limits *ResourceConfiguration) {
+	// Apply resource limits to container resources
+	requests := make(map[interface{}]interface{})
+	limitsMap := make(map[interface{}]interface{})
+
+	if limits.CPU != "" {
+		requests["cpu"] = limits.CPU
+	}
+	if limits.Memory != "" {
+		requests["memory"] = limits.Memory
+	}
+	if limits.MaxCPU != "" {
+		limitsMap["cpu"] = limits.MaxCPU
+	}
+	if limits.MaxMemory != "" {
+		limitsMap["memory"] = limits.MaxMemory
+	}
+
+	if len(requests) > 0 {
+		resources["requests"] = requests
+	}
+	if len(limitsMap) > 0 {
+		resources["limits"] = limitsMap
 	}
 }
 
@@ -967,17 +993,1296 @@ func (c *Customizer) HealthCheck(ctx context.Context) bool {
 	return true
 }
 
-// Additional helper methods would be implemented for:
-// - applySchedulingConstraints
-// - applyNetworkPolicies
-// - applyServiceMeshConfiguration
-// - applyMonitoringConfiguration
-// - applyResourceCustomizations
-// - applySecurityCustomizations
-// - applyNetworkSliceCustomizations
-// - applyPolicyCustomizations
-// - applyRuleBasedCustomizations
-// - validateCustomizedBlueprint
-// - NewPolicyEngine and related policy methods
+// NewPolicyEngine creates a new policy engine
+func NewPolicyEngine() *PolicyEngine {
+	return &PolicyEngine{
+		policies:  make(map[string]*CustomizationPolicy),
+		evaluator: &PolicyEvaluator{},
+	}
+}
 
-// These would follow similar patterns to the methods shown above
+// applyResourceCustomizations applies resource-specific customizations
+func (c *Customizer) applyResourceCustomizations(ctx context.Context, customCtx *CustomizationContext) error {
+	c.logger.Debug("Applying resource customizations")
+	
+	// Apply resource customizations to all Kubernetes manifests
+	for filename, content := range customCtx.Files {
+		if c.isKubernetesManifest(content) {
+			customized, err := c.applyResourceCustomizationsToManifest(content, customCtx)
+			if err != nil {
+				c.logger.Warn("Failed to apply resource customizations",
+					zap.String("filename", filename),
+					zap.Error(err))
+				continue
+			}
+			customCtx.Files[filename] = customized
+		}
+	}
+	
+	return nil
+}
+
+func (c *Customizer) applyResourceCustomizationsToManifest(content string, customCtx *CustomizationContext) (string, error) {
+	var obj map[string]interface{}
+	if err := yaml.Unmarshal([]byte(content), &obj); err != nil {
+		return content, nil // Skip non-YAML files
+	}
+
+	// Apply resource customizations based on component type
+	if kind, ok := obj["kind"].(string); ok {
+		switch kind {
+		case "Deployment", "StatefulSet", "DaemonSet":
+			c.applyWorkloadResourceCustomizations(obj, customCtx)
+		case "Service":
+			c.applyServiceResourceCustomizations(obj, customCtx)
+		case "ConfigMap":
+			c.applyConfigMapResourceCustomizations(obj, customCtx)
+		case "Secret":
+			c.applySecretResourceCustomizations(obj, customCtx)
+		}
+	}
+
+	customizedYAML, err := yaml.Marshal(obj)
+	if err != nil {
+		return content, err
+	}
+
+	return string(customizedYAML), nil
+}
+
+func (c *Customizer) applyWorkloadResourceCustomizations(obj map[string]interface{}, customCtx *CustomizationContext) {
+	// Add custom labels
+	c.addCustomLabels(obj, customCtx)
+	
+	// Add custom annotations
+	c.addCustomAnnotations(obj, customCtx)
+}
+
+func (c *Customizer) applyServiceResourceCustomizations(obj map[string]interface{}, customCtx *CustomizationContext) {
+	// Apply service-specific customizations
+	c.addCustomLabels(obj, customCtx)
+	c.addCustomAnnotations(obj, customCtx)
+}
+
+func (c *Customizer) applyConfigMapResourceCustomizations(obj map[string]interface{}, customCtx *CustomizationContext) {
+	// Apply ConfigMap-specific customizations
+	c.addCustomLabels(obj, customCtx)
+	c.addCustomAnnotations(obj, customCtx)
+}
+
+func (c *Customizer) applySecretResourceCustomizations(obj map[string]interface{}, customCtx *CustomizationContext) {
+	// Apply Secret-specific customizations
+	c.addCustomLabels(obj, customCtx)
+	c.addCustomAnnotations(obj, customCtx)
+}
+
+func (c *Customizer) addCustomLabels(obj map[string]interface{}, customCtx *CustomizationContext) {
+	if metadata, ok := obj["metadata"].(map[interface{}]interface{}); ok {
+		var labels map[interface{}]interface{}
+		if existing, exists := metadata["labels"].(map[interface{}]interface{}); exists {
+			labels = existing
+		} else {
+			labels = make(map[interface{}]interface{})
+			metadata["labels"] = labels
+		}
+		
+		// Add standard labels
+		labels["nephoran.io/intent-name"] = customCtx.Intent.Name
+		labels["nephoran.io/intent-type"] = string(customCtx.Intent.Spec.IntentType)
+		labels["nephoran.io/version"] = "v1"
+		
+		if customCtx.NetworkSlice != "" {
+			labels["nephoran.io/network-slice"] = customCtx.NetworkSlice
+		}
+		
+		if customCtx.Environment != nil {
+			labels["nephoran.io/environment"] = string(customCtx.Environment.Type)
+		}
+	}
+}
+
+func (c *Customizer) addCustomAnnotations(obj map[string]interface{}, customCtx *CustomizationContext) {
+	if metadata, ok := obj["metadata"].(map[interface{}]interface{}); ok {
+		var annotations map[interface{}]interface{}
+		if existing, exists := metadata["annotations"].(map[interface{}]interface{}); exists {
+			annotations = existing
+		} else {
+			annotations = make(map[interface{}]interface{})
+			metadata["annotations"] = annotations
+		}
+		
+		// Add standard annotations
+		annotations["nephoran.io/customized-at"] = customCtx.StartTime.Format(time.RFC3339)
+		annotations["nephoran.io/target-cluster"] = customCtx.TargetCluster
+		annotations["nephoran.io/target-namespace"] = customCtx.TargetNamespace
+	}
+}
+
+// applySecurityCustomizations applies security-specific customizations
+func (c *Customizer) applySecurityCustomizations(ctx context.Context, customCtx *CustomizationContext) error {
+	c.logger.Debug("Applying security customizations")
+	
+	if customCtx.Environment == nil {
+		return nil
+	}
+	
+	securityLevel := customCtx.Environment.SecurityLevel
+	
+	for filename, content := range customCtx.Files {
+		if c.isKubernetesManifest(content) {
+			customized, err := c.applySecurityCustomizationsToManifest(content, securityLevel)
+			if err != nil {
+				c.logger.Warn("Failed to apply security customizations",
+					zap.String("filename", filename),
+					zap.Error(err))
+				continue
+			}
+			customCtx.Files[filename] = customized
+		}
+	}
+	
+	return nil
+}
+
+func (c *Customizer) applySecurityCustomizationsToManifest(content string, securityLevel SecurityLevel) (string, error) {
+	var obj map[string]interface{}
+	if err := yaml.Unmarshal([]byte(content), &obj); err != nil {
+		return content, nil
+	}
+
+	if kind, ok := obj["kind"].(string); ok {
+		switch kind {
+		case "Deployment", "StatefulSet", "DaemonSet":
+			c.applyWorkloadSecurityCustomizations(obj, securityLevel)
+		}
+	}
+
+	customizedYAML, err := yaml.Marshal(obj)
+	if err != nil {
+		return content, err
+	}
+
+	return string(customizedYAML), nil
+}
+
+func (c *Customizer) applyWorkloadSecurityCustomizations(obj map[string]interface{}, securityLevel SecurityLevel) {
+	// Navigate to pod template spec
+	if spec, ok := obj["spec"].(map[interface{}]interface{}); ok {
+		if template, ok := spec["template"].(map[interface{}]interface{}); ok {
+			if podSpec, ok := template["spec"].(map[interface{}]interface{}); ok {
+				// Apply security context based on security level
+				switch securityLevel {
+				case SecurityLevelBasic:
+					c.applyBasicSecurityContext(podSpec)
+				case SecurityLevelStandard:
+					c.applyStandardSecurityContext(podSpec)
+				case SecurityLevelEnhanced:
+					c.applyEnhancedSecurityContext(podSpec)
+				case SecurityLevelCritical:
+					c.applyCriticalSecurityContext(podSpec)
+				}
+			}
+		}
+	}
+}
+
+func (c *Customizer) applyBasicSecurityContext(podSpec map[interface{}]interface{}) {
+	// Basic security: run as non-root
+	securityContext := map[interface{}]interface{}{
+		"runAsNonRoot": true,
+		"runAsUser":    1000,
+	}
+	podSpec["securityContext"] = securityContext
+}
+
+func (c *Customizer) applyStandardSecurityContext(podSpec map[interface{}]interface{}) {
+	// Standard security: non-root + read-only filesystem
+	securityContext := map[interface{}]interface{}{
+		"runAsNonRoot":             true,
+		"runAsUser":                1000,
+		"readOnlyRootFilesystem":   true,
+		"allowPrivilegeEscalation": false,
+	}
+	podSpec["securityContext"] = securityContext
+}
+
+func (c *Customizer) applyEnhancedSecurityContext(podSpec map[interface{}]interface{}) {
+	// Enhanced security: standard + dropped capabilities
+	securityContext := map[interface{}]interface{}{
+		"runAsNonRoot":             true,
+		"runAsUser":                1000,
+		"readOnlyRootFilesystem":   true,
+		"allowPrivilegeEscalation": false,
+		"seccompProfile": map[interface{}]interface{}{
+			"type": "RuntimeDefault",
+		},
+		"capabilities": map[interface{}]interface{}{
+			"drop": []interface{}{"ALL"},
+		},
+	}
+	podSpec["securityContext"] = securityContext
+}
+
+func (c *Customizer) applyCriticalSecurityContext(podSpec map[interface{}]interface{}) {
+	// Critical security: enhanced + apparmor + selinux
+	securityContext := map[interface{}]interface{}{
+		"runAsNonRoot":             true,
+		"runAsUser":                1000,
+		"readOnlyRootFilesystem":   true,
+		"allowPrivilegeEscalation": false,
+		"seccompProfile": map[interface{}]interface{}{
+			"type": "RuntimeDefault",
+		},
+		"capabilities": map[interface{}]interface{}{
+			"drop": []interface{}{"ALL"},
+		},
+		"seLinuxOptions": map[interface{}]interface{}{
+			"level": "s0:c123,c456",
+		},
+	}
+	podSpec["securityContext"] = securityContext
+	
+	// Add AppArmor annotation
+	if metadata, ok := podSpec["metadata"].(map[interface{}]interface{}); !ok {
+		metadata = make(map[interface{}]interface{})
+		podSpec["metadata"] = metadata
+	}
+	if annotations, ok := podSpec["metadata"].(map[interface{}]interface{})["annotations"].(map[interface{}]interface{}); !ok {
+		annotations = make(map[interface{}]interface{})
+		podSpec["metadata"].(map[interface{}]interface{})["annotations"] = annotations
+	}
+}
+
+// applyNetworkSliceCustomizations applies network slice specific customizations
+func (c *Customizer) applyNetworkSliceCustomizations(ctx context.Context, customCtx *CustomizationContext) error {
+	c.logger.Debug("Applying network slice customizations",
+		zap.String("network_slice", customCtx.NetworkSlice))
+	
+	if customCtx.NetworkSlice == "" {
+		return nil
+	}
+	
+	for filename, content := range customCtx.Files {
+		if c.isKubernetesManifest(content) {
+			customized, err := c.applyNetworkSliceCustomizationsToManifest(content, customCtx)
+			if err != nil {
+				c.logger.Warn("Failed to apply network slice customizations",
+					zap.String("filename", filename),
+					zap.Error(err))
+				continue
+			}
+			customCtx.Files[filename] = customized
+		}
+	}
+	
+	return nil
+}
+
+func (c *Customizer) applyNetworkSliceCustomizationsToManifest(content string, customCtx *CustomizationContext) (string, error) {
+	var obj map[string]interface{}
+	if err := yaml.Unmarshal([]byte(content), &obj); err != nil {
+		return content, nil
+	}
+
+	// Add network slice labels and annotations
+	c.addNetworkSliceLabels(obj, customCtx)
+	
+	// Configure network slice specific environment variables
+	if kind, ok := obj["kind"].(string); ok {
+		switch kind {
+		case "Deployment", "StatefulSet", "DaemonSet":
+			c.configureNetworkSliceEnvironment(obj, customCtx)
+		}
+	}
+
+	customizedYAML, err := yaml.Marshal(obj)
+	if err != nil {
+		return content, err
+	}
+
+	return string(customizedYAML), nil
+}
+
+func (c *Customizer) addNetworkSliceLabels(obj map[string]interface{}, customCtx *CustomizationContext) {
+	if metadata, ok := obj["metadata"].(map[interface{}]interface{}); ok {
+		var labels map[interface{}]interface{}
+		if existing, exists := metadata["labels"].(map[interface{}]interface{}); exists {
+			labels = existing
+		} else {
+			labels = make(map[interface{}]interface{})
+			metadata["labels"] = labels
+		}
+		
+		labels["nephoran.io/network-slice"] = customCtx.NetworkSlice
+		labels["nephoran.io/slice-priority"] = string(customCtx.Intent.Spec.Priority)
+	}
+}
+
+func (c *Customizer) configureNetworkSliceEnvironment(obj map[string]interface{}, customCtx *CustomizationContext) {
+	// Navigate to containers and add network slice environment variables
+	c.navigateToContainerResources(obj, func(resources map[interface{}]interface{}) {
+		// This callback is for resources, we need a different navigation for env vars
+	})
+	
+	// Navigate to container env vars
+	if spec, ok := obj["spec"].(map[interface{}]interface{}); ok {
+		if template, ok := spec["template"].(map[interface{}]interface{}); ok {
+			if podSpec, ok := template["spec"].(map[interface{}]interface{}); ok {
+				if containers, ok := podSpec["containers"].([]interface{}); ok {
+					for i, container := range containers {
+						if containerMap, ok := container.(map[interface{}]interface{}); ok {
+							var env []interface{}
+							if existing, exists := containerMap["env"].([]interface{}); exists {
+								env = existing
+							} else {
+								env = make([]interface{}, 0)
+							}
+							
+							// Add network slice environment variables
+							env = append(env, map[interface{}]interface{}{
+								"name":  "NEPHORAN_NETWORK_SLICE",
+								"value": customCtx.NetworkSlice,
+							})
+							
+							env = append(env, map[interface{}]interface{}{
+								"name":  "NEPHORAN_SLICE_PRIORITY",
+								"value": string(customCtx.Intent.Spec.Priority),
+							})
+							
+							containerMap["env"] = env
+							containers[i] = containerMap
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+// applyPolicyCustomizations applies policy-based customizations
+func (c *Customizer) applyPolicyCustomizations(ctx context.Context, customCtx *CustomizationContext) error {
+	c.logger.Debug("Applying policy customizations")
+	
+	if c.policyEngine == nil {
+		return fmt.Errorf("policy engine not initialized")
+	}
+	
+	// Evaluate policies against the customization context
+	applicablePolicies := c.policyEngine.EvaluatePolicies(customCtx)
+	
+	for _, policy := range applicablePolicies {
+		if err := c.applyPolicy(ctx, customCtx, policy); err != nil {
+			c.logger.Warn("Failed to apply policy",
+				zap.String("policy_id", policy.ID),
+				zap.Error(err))
+		}
+	}
+	
+	return nil
+}
+
+func (c *Customizer) applyPolicy(ctx context.Context, customCtx *CustomizationContext, policy *CustomizationPolicy) error {
+	for _, rule := range policy.Rules {
+		if c.evaluatePolicyCondition(rule.If, customCtx) {
+			if err := c.executePolicyAction(rule.Then, customCtx); err != nil {
+				return err
+			}
+		} else if rule.Else != nil {
+			if err := c.executePolicyAction(*rule.Else, customCtx); err != nil {
+				return err
+			}
+		}
+	}
+	
+	return nil
+}
+
+func (c *Customizer) evaluatePolicyCondition(condition PolicyCondition, customCtx *CustomizationContext) bool {
+	// Simple condition evaluation - can be extended
+	switch condition.Field {
+	case "intent.type":
+		return string(customCtx.Intent.Spec.IntentType) == condition.Value
+	case "intent.priority":
+		return string(customCtx.Intent.Spec.Priority) == condition.Value
+	case "environment.type":
+		if customCtx.Environment != nil {
+			return string(customCtx.Environment.Type) == condition.Value
+		}
+	case "network.slice":
+		return customCtx.NetworkSlice == condition.Value
+	}
+	
+	return false
+}
+
+func (c *Customizer) executePolicyAction(action PolicyAction, customCtx *CustomizationContext) error {
+	switch action.Action {
+	case "set_replicas":
+		if replicas, ok := action.Parameters["replicas"].(int); ok {
+			return c.setReplicasForAllDeployments(customCtx, replicas)
+		}
+	case "set_resource_limits":
+		if limits, ok := action.Parameters["limits"].(map[string]interface{}); ok {
+			return c.setResourceLimitsForAllDeployments(customCtx, limits)
+		}
+	case "add_labels":
+		if labels, ok := action.Parameters["labels"].(map[string]string); ok {
+			return c.addLabelsToAllResources(customCtx, labels)
+		}
+	}
+	
+	return nil
+}
+
+func (c *Customizer) setReplicasForAllDeployments(customCtx *CustomizationContext, replicas int) error {
+	for filename, content := range customCtx.Files {
+		if c.isDeploymentManifest(content) {
+			customized, err := c.setReplicasInManifest(content, replicas)
+			if err != nil {
+				continue
+			}
+			customCtx.Files[filename] = customized
+		}
+	}
+	return nil
+}
+
+func (c *Customizer) setReplicasInManifest(content string, replicas int) (string, error) {
+	var obj map[string]interface{}
+	if err := yaml.Unmarshal([]byte(content), &obj); err != nil {
+		return content, nil
+	}
+
+	if spec, ok := obj["spec"].(map[interface{}]interface{}); ok {
+		spec["replicas"] = replicas
+	}
+
+	customizedYAML, err := yaml.Marshal(obj)
+	if err != nil {
+		return content, err
+	}
+
+	return string(customizedYAML), nil
+}
+
+func (c *Customizer) setResourceLimitsForAllDeployments(customCtx *CustomizationContext, limits map[string]interface{}) error {
+	// Implementation for setting resource limits
+	return nil
+}
+
+func (c *Customizer) addLabelsToAllResources(customCtx *CustomizationContext, labels map[string]string) error {
+	// Implementation for adding labels
+	return nil
+}
+
+// applyRuleBasedCustomizations applies rule-based customizations
+func (c *Customizer) applyRuleBasedCustomizations(ctx context.Context, customCtx *CustomizationContext) error {
+	c.logger.Debug("Applying rule-based customizations")
+	
+	// Get applicable rules based on context
+	applicableRules := c.getApplicableRules(customCtx)
+	
+	// Sort rules by priority
+	for i := 0; i < len(applicableRules)-1; i++ {
+		for j := 0; j < len(applicableRules)-i-1; j++ {
+			if applicableRules[j].Priority < applicableRules[j+1].Priority {
+				applicableRules[j], applicableRules[j+1] = applicableRules[j+1], applicableRules[j]
+			}
+		}
+	}
+	
+	// Apply rules in priority order
+	for _, rule := range applicableRules {
+		if err := c.applyCustomizationRule(ctx, customCtx, rule); err != nil {
+			c.logger.Warn("Failed to apply customization rule",
+				zap.String("rule_id", rule.ID),
+				zap.Error(err))
+		}
+	}
+	
+	return nil
+}
+
+func (c *Customizer) getApplicableRules(customCtx *CustomizationContext) []*CustomizationRule {
+	var applicableRules []*CustomizationRule
+	
+	for _, rule := range c.customizationRules {
+		if !rule.Enabled {
+			continue
+		}
+		
+		if c.ruleApplies(rule, customCtx) {
+			applicableRules = append(applicableRules, rule)
+		}
+	}
+	
+	return applicableRules
+}
+
+func (c *Customizer) ruleApplies(rule *CustomizationRule, customCtx *CustomizationContext) bool {
+	// Check if rule applies to intent type
+	if len(rule.IntentTypes) > 0 {
+		found := false
+		for _, intentType := range rule.IntentTypes {
+			if intentType == customCtx.Intent.Spec.IntentType {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	
+	// Check if rule applies to components
+	if len(rule.Components) > 0 {
+		found := false
+		for _, ruleComponent := range rule.Components {
+			for _, intentComponent := range customCtx.Intent.Spec.TargetComponents {
+				if ruleComponent == intentComponent {
+					found = true
+					break
+				}
+			}
+			if found {
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	
+	// Check conditions
+	for _, condition := range rule.Conditions {
+		if !c.evaluateRuleCondition(condition, customCtx) {
+			return false
+		}
+	}
+	
+	return true
+}
+
+func (c *Customizer) evaluateRuleCondition(condition RuleCondition, customCtx *CustomizationContext) bool {
+	// Simple condition evaluation
+	switch condition.Field {
+	case "intent.name":
+		return c.matchesOperator(customCtx.Intent.Name, condition.Operator, condition.Value)
+	case "intent.namespace":
+		return c.matchesOperator(customCtx.Intent.Namespace, condition.Operator, condition.Value)
+	case "target.cluster":
+		return c.matchesOperator(customCtx.TargetCluster, condition.Operator, condition.Value)
+	}
+	
+	return true
+}
+
+func (c *Customizer) matchesOperator(fieldValue string, operator string, conditionValue interface{}) bool {
+	switch operator {
+	case "equals":
+		return fieldValue == fmt.Sprintf("%v", conditionValue)
+	case "contains":
+		return strings.Contains(fieldValue, fmt.Sprintf("%v", conditionValue))
+	case "matches":
+		if matched, err := regexp.MatchString(fmt.Sprintf("%v", conditionValue), fieldValue); err == nil {
+			return matched
+		}
+	}
+	
+	return false
+}
+
+func (c *Customizer) applyCustomizationRule(ctx context.Context, customCtx *CustomizationContext, rule *CustomizationRule) error {
+	for _, transformation := range rule.Transformations {
+		if err := c.applyTransformation(ctx, customCtx, transformation); err != nil {
+			return err
+		}
+	}
+	
+	return nil
+}
+
+func (c *Customizer) applyTransformation(ctx context.Context, customCtx *CustomizationContext, transformation Transformation) error {
+	switch transformation.Type {
+	case TransformationReplace:
+		return c.applyReplaceTransformation(customCtx, transformation)
+	case TransformationMerge:
+		return c.applyMergeTransformation(customCtx, transformation)
+	case TransformationAppend:
+		return c.applyAppendTransformation(customCtx, transformation)
+	case TransformationDelete:
+		return c.applyDeleteTransformation(customCtx, transformation)
+	}
+	
+	return nil
+}
+
+func (c *Customizer) applyReplaceTransformation(customCtx *CustomizationContext, transformation Transformation) error {
+	// Implementation for replace transformation
+	return nil
+}
+
+func (c *Customizer) applyMergeTransformation(customCtx *CustomizationContext, transformation Transformation) error {
+	// Implementation for merge transformation
+	return nil
+}
+
+func (c *Customizer) applyAppendTransformation(customCtx *CustomizationContext, transformation Transformation) error {
+	// Implementation for append transformation
+	return nil
+}
+
+func (c *Customizer) applyDeleteTransformation(customCtx *CustomizationContext, transformation Transformation) error {
+	// Implementation for delete transformation
+	return nil
+}
+
+// validateCustomizedBlueprint validates the customized blueprint
+func (c *Customizer) validateCustomizedBlueprint(ctx context.Context, customCtx *CustomizationContext) error {
+	c.logger.Debug("Validating customized blueprint")
+	
+	var validationErrors []string
+	
+	// Validate each file
+	for filename, content := range customCtx.Files {
+		if c.isKubernetesManifest(content) {
+			if err := c.validateKubernetesManifest(filename, content); err != nil {
+				validationErrors = append(validationErrors, fmt.Sprintf("%s: %v", filename, err))
+			}
+		}
+	}
+	
+	// Check for required resources
+	if err := c.validateRequiredResources(customCtx); err != nil {
+		validationErrors = append(validationErrors, fmt.Sprintf("required resources: %v", err))
+	}
+	
+	// Validate resource relationships
+	if err := c.validateResourceRelationships(customCtx); err != nil {
+		validationErrors = append(validationErrors, fmt.Sprintf("resource relationships: %v", err))
+	}
+	
+	if len(validationErrors) > 0 {
+		return fmt.Errorf("blueprint validation failed: %v", validationErrors)
+	}
+	
+	c.logger.Debug("Blueprint validation completed successfully")
+	return nil
+}
+
+func (c *Customizer) validateKubernetesManifest(filename, content string) error {
+	var obj map[string]interface{}
+	if err := yaml.Unmarshal([]byte(content), &obj); err != nil {
+		return fmt.Errorf("invalid YAML: %w", err)
+	}
+	
+	// Check required fields
+	if _, ok := obj["apiVersion"]; !ok {
+		return fmt.Errorf("missing apiVersion")
+	}
+	
+	if _, ok := obj["kind"]; !ok {
+		return fmt.Errorf("missing kind")
+	}
+	
+	if metadata, ok := obj["metadata"].(map[interface{}]interface{}); ok {
+		if _, ok := metadata["name"]; !ok {
+			return fmt.Errorf("missing metadata.name")
+		}
+	} else {
+		return fmt.Errorf("missing metadata")
+	}
+	
+	return nil
+}
+
+func (c *Customizer) validateRequiredResources(customCtx *CustomizationContext) error {
+	// Check if required components have corresponding resources
+	requiredKinds := make(map[string]bool)
+	
+	for _, component := range customCtx.Intent.Spec.TargetComponents {
+		switch component {
+		case v1.NetworkTargetComponentAMF, v1.NetworkTargetComponentSMF, v1.NetworkTargetComponentUPF,
+			 "Near-RT-RIC", "xApp":
+			requiredKinds["Deployment"] = true
+		}
+	}
+	
+	foundKinds := make(map[string]bool)
+	for _, content := range customCtx.Files {
+		if c.isKubernetesManifest(content) {
+			var obj map[string]interface{}
+			if err := yaml.Unmarshal([]byte(content), &obj); err == nil {
+				if kind, ok := obj["kind"].(string); ok {
+					foundKinds[kind] = true
+				}
+			}
+		}
+	}
+	
+	for kind := range requiredKinds {
+		if !foundKinds[kind] {
+			return fmt.Errorf("missing required resource kind: %s", kind)
+		}
+	}
+	
+	return nil
+}
+
+func (c *Customizer) validateResourceRelationships(customCtx *CustomizationContext) error {
+	// Validate that services have matching deployments, etc.
+	deployments := make(map[string]bool)
+	services := make(map[string]bool)
+	
+	for _, content := range customCtx.Files {
+		if c.isKubernetesManifest(content) {
+			var obj map[string]interface{}
+			if err := yaml.Unmarshal([]byte(content), &obj); err == nil {
+				if kind, ok := obj["kind"].(string); ok {
+					if metadata, ok := obj["metadata"].(map[interface{}]interface{}); ok {
+						if name, ok := metadata["name"].(string); ok {
+							switch kind {
+							case "Deployment":
+								deployments[name] = true
+							case "Service":
+								services[name] = true
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	// Check that each service has a corresponding deployment (basic check)
+	for serviceName := range services {
+		if !deployments[serviceName] {
+			c.logger.Warn("Service without matching deployment",
+				zap.String("service", serviceName))
+		}
+	}
+	
+	return nil
+}
+
+// applySchedulingConstraints applies scheduling constraints
+func (c *Customizer) applySchedulingConstraints(customCtx *CustomizationContext, env *EnvironmentProfile) error {
+	c.logger.Debug("Applying scheduling constraints")
+	
+	for filename, content := range customCtx.Files {
+		if c.isKubernetesManifest(content) {
+			customized, err := c.applySchedulingConstraintsToManifest(content, env)
+			if err != nil {
+				c.logger.Warn("Failed to apply scheduling constraints",
+					zap.String("filename", filename),
+					zap.Error(err))
+				continue
+			}
+			customCtx.Files[filename] = customized
+		}
+	}
+	
+	return nil
+}
+
+func (c *Customizer) applySchedulingConstraintsToManifest(content string, env *EnvironmentProfile) (string, error) {
+	var obj map[string]interface{}
+	if err := yaml.Unmarshal([]byte(content), &obj); err != nil {
+		return content, nil
+	}
+
+	if kind, ok := obj["kind"].(string); ok {
+		switch kind {
+		case "Deployment", "StatefulSet", "DaemonSet":
+			c.applySchedulingToPodTemplate(obj, env)
+		}
+	}
+
+	customizedYAML, err := yaml.Marshal(obj)
+	if err != nil {
+		return content, err
+	}
+
+	return string(customizedYAML), nil
+}
+
+func (c *Customizer) applySchedulingToPodTemplate(obj map[string]interface{}, env *EnvironmentProfile) {
+	if spec, ok := obj["spec"].(map[interface{}]interface{}); ok {
+		if template, ok := spec["template"].(map[interface{}]interface{}); ok {
+			if podSpec, ok := template["spec"].(map[interface{}]interface{}); ok {
+				// Apply node selectors
+				if len(env.NodeSelectors) > 0 {
+					podSpec["nodeSelector"] = env.NodeSelectors
+				}
+				
+				// Apply tolerations
+				if len(env.Tolerations) > 0 {
+					tolerations := make([]interface{}, len(env.Tolerations))
+					for i, t := range env.Tolerations {
+						tolerations[i] = map[interface{}]interface{}{
+							"key":    t.Key,
+							"operator": t.Operator,
+							"value":  t.Value,
+							"effect": t.Effect,
+						}
+					}
+					podSpec["tolerations"] = tolerations
+				}
+				
+				// Apply affinity
+				if env.Affinity != nil {
+					affinity := make(map[interface{}]interface{})
+					
+					if env.Affinity.NodeAffinity != nil {
+						nodeAffinity := make(map[interface{}]interface{})
+						// Convert NodeAffinity
+						affinity["nodeAffinity"] = nodeAffinity
+					}
+					
+					if env.Affinity.PodAffinity != nil {
+						podAffinity := make(map[interface{}]interface{})
+						// Convert PodAffinity
+						affinity["podAffinity"] = podAffinity
+					}
+					
+					if env.Affinity.PodAntiAffinity != nil {
+						podAntiAffinity := make(map[interface{}]interface{})
+						// Convert PodAntiAffinity
+						affinity["podAntiAffinity"] = podAntiAffinity
+					}
+					
+					if len(affinity) > 0 {
+						podSpec["affinity"] = affinity
+					}
+				}
+			}
+		}
+	}
+}
+
+// applyNetworkPolicies applies network policies
+func (c *Customizer) applyNetworkPolicies(customCtx *CustomizationContext, networkPolicies []NetworkPolicyTemplate) error {
+	c.logger.Debug("Applying network policies", zap.Int("policies", len(networkPolicies)))
+	
+	for _, policyTemplate := range networkPolicies {
+		networkPolicy := c.createNetworkPolicyManifest(policyTemplate, customCtx)
+		filename := fmt.Sprintf("networkpolicy-%s.yaml", policyTemplate.Name)
+		customCtx.Files[filename] = networkPolicy
+	}
+	
+	return nil
+}
+
+func (c *Customizer) createNetworkPolicyManifest(template NetworkPolicyTemplate, customCtx *CustomizationContext) string {
+	policy := map[string]interface{}{
+		"apiVersion": "networking.k8s.io/v1",
+		"kind":       "NetworkPolicy",
+		"metadata": map[string]interface{}{
+			"name":      template.Name,
+			"namespace": customCtx.TargetNamespace,
+			"labels": map[string]interface{}{
+				"nephoran.io/intent-name": customCtx.Intent.Name,
+				"nephoran.io/managed":     "true",
+			},
+		},
+		"spec": map[string]interface{}{
+			"podSelector": map[string]interface{}{
+				"matchLabels": c.parsePodSelector(template.PodSelector),
+			},
+			"policyTypes": []interface{}{"Ingress", "Egress"},
+		},
+	}
+	
+	spec := policy["spec"].(map[string]interface{})
+	
+	// Add ingress rules
+	if len(template.Ingress) > 0 {
+		ingress := make([]interface{}, len(template.Ingress))
+		for i, rule := range template.Ingress {
+			ingress[i] = c.parseNetworkPolicyRule(rule)
+		}
+		spec["ingress"] = ingress
+	}
+	
+	// Add egress rules
+	if len(template.Egress) > 0 {
+		egress := make([]interface{}, len(template.Egress))
+		for i, rule := range template.Egress {
+			egress[i] = c.parseNetworkPolicyRule(rule)
+		}
+		spec["egress"] = egress
+	}
+	
+	yamlBytes, _ := yaml.Marshal(policy)
+	return string(yamlBytes)
+}
+
+func (c *Customizer) parsePodSelector(selector string) map[string]interface{} {
+	// Simple selector parsing - can be extended
+	if selector == "" {
+		return map[string]interface{}{}
+	}
+	
+	return map[string]interface{}{
+		"app": selector,
+	}
+}
+
+func (c *Customizer) parseNetworkPolicyRule(rule string) map[string]interface{} {
+	// Simple rule parsing - can be extended
+	return map[string]interface{}{
+		"from": []interface{}{
+			map[string]interface{}{
+				"podSelector": map[string]interface{}{},
+			},
+		},
+	}
+}
+
+// applyServiceMeshConfiguration applies service mesh configuration
+func (c *Customizer) applyServiceMeshConfiguration(customCtx *CustomizationContext, serviceMesh *ServiceMeshProfile) error {
+	c.logger.Debug("Applying service mesh configuration")
+	
+	if !serviceMesh.Enabled {
+		return nil
+	}
+	
+	// Apply sidecar injection annotation
+	if serviceMesh.InjectSidecar {
+		for filename, content := range customCtx.Files {
+			if c.isKubernetesManifest(content) {
+				customized, err := c.addSidecarInjectionAnnotation(content)
+				if err != nil {
+					continue
+				}
+				customCtx.Files[filename] = customized
+			}
+		}
+	}
+	
+	// Create service mesh specific resources
+	if err := c.createServiceMeshResources(customCtx, serviceMesh); err != nil {
+		return err
+	}
+	
+	return nil
+}
+
+func (c *Customizer) addSidecarInjectionAnnotation(content string) (string, error) {
+	var obj map[string]interface{}
+	if err := yaml.Unmarshal([]byte(content), &obj); err != nil {
+		return content, nil
+	}
+
+	if kind, ok := obj["kind"].(string); ok {
+		switch kind {
+		case "Deployment", "StatefulSet", "DaemonSet":
+			if spec, ok := obj["spec"].(map[interface{}]interface{}); ok {
+				if template, ok := spec["template"].(map[interface{}]interface{}); ok {
+					if metadata, ok := template["metadata"].(map[interface{}]interface{}); ok {
+						var annotations map[interface{}]interface{}
+						if existing, exists := metadata["annotations"].(map[interface{}]interface{}); exists {
+							annotations = existing
+						} else {
+							annotations = make(map[interface{}]interface{})
+							metadata["annotations"] = annotations
+						}
+						annotations["sidecar.istio.io/inject"] = "true"
+					}
+				}
+			}
+		}
+	}
+
+	customizedYAML, err := yaml.Marshal(obj)
+	if err != nil {
+		return content, err
+	}
+
+	return string(customizedYAML), nil
+}
+
+func (c *Customizer) createServiceMeshResources(customCtx *CustomizationContext, serviceMesh *ServiceMeshProfile) error {
+	// Create VirtualService
+	if serviceMesh.TrafficPolicy != "" {
+		virtualService := c.createVirtualService(customCtx, serviceMesh)
+		customCtx.Files["virtualservice.yaml"] = virtualService
+	}
+	
+	// Create DestinationRule
+	if serviceMesh.MTLSMode != "" || serviceMesh.CircuitBreaker {
+		destinationRule := c.createDestinationRule(customCtx, serviceMesh)
+		customCtx.Files["destinationrule.yaml"] = destinationRule
+	}
+	
+	return nil
+}
+
+func (c *Customizer) createVirtualService(customCtx *CustomizationContext, serviceMesh *ServiceMeshProfile) string {
+	vs := map[string]interface{}{
+		"apiVersion": "networking.istio.io/v1beta1",
+		"kind":       "VirtualService",
+		"metadata": map[string]interface{}{
+			"name":      fmt.Sprintf("%s-vs", customCtx.Intent.Name),
+			"namespace": customCtx.TargetNamespace,
+		},
+		"spec": map[string]interface{}{
+			"hosts": []interface{}{"*"},
+			"http": []interface{}{
+				map[string]interface{}{
+					"route": []interface{}{
+						map[string]interface{}{
+							"destination": map[string]interface{}{
+								"host": customCtx.Intent.Name,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	
+	yamlBytes, _ := yaml.Marshal(vs)
+	return string(yamlBytes)
+}
+
+func (c *Customizer) createDestinationRule(customCtx *CustomizationContext, serviceMesh *ServiceMeshProfile) string {
+	dr := map[string]interface{}{
+		"apiVersion": "networking.istio.io/v1beta1",
+		"kind":       "DestinationRule",
+		"metadata": map[string]interface{}{
+			"name":      fmt.Sprintf("%s-dr", customCtx.Intent.Name),
+			"namespace": customCtx.TargetNamespace,
+		},
+		"spec": map[string]interface{}{
+			"host": customCtx.Intent.Name,
+			"trafficPolicy": map[string]interface{}{
+				"tls": map[string]interface{}{
+					"mode": serviceMesh.MTLSMode,
+				},
+			},
+		},
+	}
+	
+	if serviceMesh.CircuitBreaker {
+		trafficPolicy := dr["spec"].(map[string]interface{})["trafficPolicy"].(map[string]interface{})
+		trafficPolicy["outlierDetection"] = map[string]interface{}{
+			"consecutive5xxErrors": 3,
+			"interval":             "30s",
+			"baseEjectionTime":     "30s",
+		}
+	}
+	
+	yamlBytes, _ := yaml.Marshal(dr)
+	return string(yamlBytes)
+}
+
+// applyMonitoringConfiguration applies monitoring configuration
+func (c *Customizer) applyMonitoringConfiguration(customCtx *CustomizationContext, monitoring *MonitoringProfile) error {
+	c.logger.Debug("Applying monitoring configuration")
+	
+	if !monitoring.Enabled {
+		return nil
+	}
+	
+	// Add monitoring annotations to workloads
+	for filename, content := range customCtx.Files {
+		if c.isKubernetesManifest(content) {
+			customized, err := c.addMonitoringAnnotations(content, monitoring)
+			if err != nil {
+				continue
+			}
+			customCtx.Files[filename] = customized
+		}
+	}
+	
+	// Create monitoring resources
+	if err := c.createMonitoringResources(customCtx, monitoring); err != nil {
+		return err
+	}
+	
+	return nil
+}
+
+func (c *Customizer) addMonitoringAnnotations(content string, monitoring *MonitoringProfile) (string, error) {
+	var obj map[string]interface{}
+	if err := yaml.Unmarshal([]byte(content), &obj); err != nil {
+		return content, nil
+	}
+
+	if kind, ok := obj["kind"].(string); ok {
+		switch kind {
+		case "Deployment", "StatefulSet", "DaemonSet":
+			if spec, ok := obj["spec"].(map[interface{}]interface{}); ok {
+				if template, ok := spec["template"].(map[interface{}]interface{}); ok {
+					if metadata, ok := template["metadata"].(map[interface{}]interface{}); ok {
+						var annotations map[interface{}]interface{}
+						if existing, exists := metadata["annotations"].(map[interface{}]interface{}); exists {
+							annotations = existing
+						} else {
+							annotations = make(map[interface{}]interface{})
+							metadata["annotations"] = annotations
+						}
+						
+						if monitoring.MetricsEnabled {
+							annotations["prometheus.io/scrape"] = "true"
+							annotations["prometheus.io/port"] = "8080"
+							annotations["prometheus.io/path"] = "/metrics"
+						}
+						
+						if monitoring.TracingEnabled {
+							annotations["sidecar.jaegertracing.io/inject"] = "true"
+						}
+					}
+				}
+			}
+		}
+	}
+
+	customizedYAML, err := yaml.Marshal(obj)
+	if err != nil {
+		return content, err
+	}
+
+	return string(customizedYAML), nil
+}
+
+func (c *Customizer) createMonitoringResources(customCtx *CustomizationContext, monitoring *MonitoringProfile) error {
+	// Create ServiceMonitor for Prometheus
+	if monitoring.MetricsEnabled {
+		serviceMonitor := c.createServiceMonitor(customCtx, monitoring)
+		customCtx.Files["servicemonitor.yaml"] = serviceMonitor
+	}
+	
+	// Create PrometheusRule for alerting
+	if monitoring.AlertingEnabled && len(monitoring.AlertRules) > 0 {
+		prometheusRule := c.createPrometheusRule(customCtx, monitoring)
+		customCtx.Files["prometheusrule.yaml"] = prometheusRule
+	}
+	
+	return nil
+}
+
+func (c *Customizer) createServiceMonitor(customCtx *CustomizationContext, monitoring *MonitoringProfile) string {
+	sm := map[string]interface{}{
+		"apiVersion": "monitoring.coreos.com/v1",
+		"kind":       "ServiceMonitor",
+		"metadata": map[string]interface{}{
+			"name":      fmt.Sprintf("%s-monitor", customCtx.Intent.Name),
+			"namespace": customCtx.TargetNamespace,
+		},
+		"spec": map[string]interface{}{
+			"selector": map[string]interface{}{
+				"matchLabels": map[string]interface{}{
+					"nephoran.io/intent-name": customCtx.Intent.Name,
+				},
+			},
+			"endpoints": []interface{}{
+				map[string]interface{}{
+					"port":     "http",
+					"interval": monitoring.MetricsScrapeInterval,
+				},
+			},
+		},
+	}
+	
+	yamlBytes, _ := yaml.Marshal(sm)
+	return string(yamlBytes)
+}
+
+func (c *Customizer) createPrometheusRule(customCtx *CustomizationContext, monitoring *MonitoringProfile) string {
+	pr := map[string]interface{}{
+		"apiVersion": "monitoring.coreos.com/v1",
+		"kind":       "PrometheusRule",
+		"metadata": map[string]interface{}{
+			"name":      fmt.Sprintf("%s-alerts", customCtx.Intent.Name),
+			"namespace": customCtx.TargetNamespace,
+		},
+		"spec": map[string]interface{}{
+			"groups": []interface{}{
+				map[string]interface{}{
+					"name": fmt.Sprintf("%s.rules", customCtx.Intent.Name),
+					"rules": c.convertAlertRules(monitoring.AlertRules),
+				},
+			},
+		},
+	}
+	
+	yamlBytes, _ := yaml.Marshal(pr)
+	return string(yamlBytes)
+}
+
+func (c *Customizer) convertAlertRules(alertRules []string) []interface{} {
+	rules := make([]interface{}, len(alertRules))
+	for i, rule := range alertRules {
+		// Simple rule conversion - can be extended
+		rules[i] = map[string]interface{}{
+			"alert": fmt.Sprintf("Rule%d", i+1),
+			"expr":  rule,
+			"for":   "5m",
+			"labels": map[string]interface{}{
+				"severity": "warning",
+			},
+			"annotations": map[string]interface{}{
+				"summary": fmt.Sprintf("Alert rule %d triggered", i+1),
+			},
+		}
+	}
+	return rules
+}
+
+// PolicyEngine methods
+func (pe *PolicyEngine) EvaluatePolicies(customCtx *CustomizationContext) []*CustomizationPolicy {
+	pe.mutex.RLock()
+	defer pe.mutex.RUnlock()
+	
+	var applicablePolicies []*CustomizationPolicy
+	
+	for _, policy := range pe.policies {
+		if !policy.Enabled {
+			continue
+		}
+		
+		if pe.policyApplies(policy, customCtx) {
+			applicablePolicies = append(applicablePolicies, policy)
+		}
+	}
+	
+	return applicablePolicies
+}
+
+func (pe *PolicyEngine) policyApplies(policy *CustomizationPolicy, customCtx *CustomizationContext) bool {
+	// Check scope
+	if len(policy.Scope.Namespaces) > 0 {
+		found := false
+		for _, ns := range policy.Scope.Namespaces {
+			if ns == customCtx.TargetNamespace {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	
+	if len(policy.Scope.Components) > 0 {
+		found := false
+		for _, policyComponent := range policy.Scope.Components {
+			for _, intentComponent := range customCtx.Intent.Spec.TargetComponents {
+				if policyComponent == intentComponent {
+					found = true
+					break
+				}
+			}
+			if found {
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	
+	return true
+}

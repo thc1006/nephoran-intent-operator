@@ -380,8 +380,8 @@ func (am *AuthManager) Authenticate(ctx context.Context, r *http.Request) (*Auth
 	result, err := provider.Authenticate(ctx, credentials)
 	if err != nil {
 		am.logger.Error("authentication failed",
-			slog.String("auth_type", string(authType)),
-			slog.Error(err))
+			"auth_type", string(authType),
+			"error", err)
 		return nil, err
 	}
 
@@ -390,8 +390,8 @@ func (am *AuthManager) Authenticate(ctx context.Context, r *http.Request) (*Auth
 		permissions, err := am.rbacEngine.GetUserPermissions(ctx, result.User)
 		if err != nil {
 			am.logger.Warn("failed to get user permissions",
-				slog.String("user_id", result.User.ID),
-				slog.Error(err))
+				"user_id", result.User.ID,
+				"error", err)
 		} else {
 			result.User.Permissions = permissions
 		}
@@ -413,7 +413,7 @@ func (am *AuthManager) Authenticate(ctx context.Context, r *http.Request) (*Auth
 		}
 
 		if err := am.tokenStore.Store(ctx, result.AccessToken, claims, am.config.TokenExpiry); err != nil {
-			am.logger.Warn("failed to cache token", slog.Error(err))
+			am.logger.Warn("failed to cache token", "error", err)
 		}
 	}
 
@@ -505,7 +505,7 @@ func (am *AuthManager) RevokeToken(ctx context.Context, token string) error {
 	// Remove from token store if present
 	if am.tokenStore != nil {
 		if err := am.tokenStore.Delete(ctx, token); err != nil {
-			am.logger.Warn("failed to remove token from store", slog.Error(err))
+			am.logger.Warn("failed to remove token from store", "error", err)
 		}
 	}
 
@@ -513,7 +513,7 @@ func (am *AuthManager) RevokeToken(ctx context.Context, token string) error {
 	provider, ok := am.providers[am.config.Type]
 	if ok {
 		if err := provider.RevokeToken(ctx, token); err != nil {
-			am.logger.Warn("provider token revocation failed", slog.Error(err))
+			am.logger.Warn("provider token revocation failed", "error", err)
 		}
 	}
 

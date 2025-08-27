@@ -260,6 +260,23 @@ type SimpleValidationResult struct {
 	Errors  []string `json:"errors,omitempty"`
 }
 
+// convertToSimpleValidationResult converts ValidationResult to SimpleValidationResult
+func convertToSimpleValidationResult(vr *ValidationResult) *SimpleValidationResult {
+	if vr == nil {
+		return nil
+	}
+	
+	errors := make([]string, len(vr.Errors))
+	for i, err := range vr.Errors {
+		errors[i] = err.Message
+	}
+	
+	return &SimpleValidationResult{
+		IsValid: vr.IsValid,
+		Errors:  errors,
+	}
+}
+
 // Manager handles blueprint lifecycle operations and orchestration
 type Manager struct {
 	// Core dependencies
@@ -414,7 +431,7 @@ func (m *Manager) ProcessNetworkIntent(ctx context.Context, intent *v1.NetworkIn
 		ID:        fmt.Sprintf("%s-%d", intent.Name, time.Now().UnixNano()),
 		Intent:    intent,
 		Type:      "process_intent",
-		Priority:  intent.Spec.Priority,
+		Priority:  v1.Priority(intent.Spec.Priority), // Convert NetworkPriority to Priority
 		Context:   ctx,
 		StartTime: startTime,
 	}
@@ -470,7 +487,7 @@ func (m *Manager) processOperationSync(operation *BlueprintOperation) *Blueprint
 			result.Error = fmt.Errorf("blueprint validation failed: %w", err)
 			return result
 		}
-		result.ValidationResults = validationResult
+		result.ValidationResults = convertToSimpleValidationResult(validationResult)
 
 		if !validationResult.IsValid {
 			result.Error = fmt.Errorf("blueprint validation failed: %v", validationResult.Errors)

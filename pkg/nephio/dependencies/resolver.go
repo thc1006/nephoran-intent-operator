@@ -177,6 +177,14 @@ type DependencyConstraint struct {
 	Source            string              `json:"source,omitempty"`
 }
 
+// VersionRange represents a version range for constraints
+type VersionRange struct {
+	Min       string `json:"min"`
+	Max       string `json:"max"`
+	MinInclusive bool `json:"minInclusive"`
+	MaxInclusive bool `json:"maxInclusive"`
+}
+
 // VersionConstraint represents version constraint with operators
 type VersionConstraint struct {
 	Operator      ConstraintOperator `json:"operator"`

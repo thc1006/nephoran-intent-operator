@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net"
 	"net/http"
 	"strings"
@@ -469,8 +468,8 @@ func (rl *RateLimiter) checkDistributedLimit(ctx context.Context, key string, po
 	count, err := rl.distributedStore.Increment(ctx, key, policy.WindowSize)
 	if err != nil {
 		rl.logger.Error("failed to increment distributed counter",
-			slog.String("key", key),
-			slog.Error(err))
+			"key", key,
+			"error", err)
 
 		// Handle failover
 		switch rl.config.DistributedConfig.FailoverMode {

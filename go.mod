@@ -5,6 +5,10 @@ go 1.24.1
 // Go 1.24+ optimization directives for better performance
 //go:build go1.24
 
+// Build performance optimizations
+//go:generate go mod download -x
+//go:generate go build -a std
+
 require (
 	// === CORE DEPENDENCIES (Production Critical) ===
 
@@ -66,13 +70,13 @@ require (
 
 	// === KUBERNETES ECOSYSTEM - UPDATED TO v0.31.12 STABLE ===
 
-	// Kubernetes core APIs - Updated to latest stable v0.31.12 (January 2025)
-	k8s.io/api v0.33.2
-	k8s.io/apiextensions-apiserver v0.33.2
-	k8s.io/apimachinery v0.33.2
-	k8s.io/client-go v0.33.2
+	// Kubernetes core APIs - Updated to latest stable v0.33.4 (August 2025)
+	k8s.io/api v0.33.4
+	k8s.io/apiextensions-apiserver v0.33.4
+	k8s.io/apimachinery v0.33.4
+	k8s.io/client-go v0.33.4
 	k8s.io/klog/v2 v2.130.1
-	sigs.k8s.io/controller-runtime v0.19.0
+	sigs.k8s.io/controller-runtime v0.21.0
 
 	// Configuration management - single YAML library
 	sigs.k8s.io/yaml v1.6.0 // Replaces gopkg.in/yaml.v2
@@ -103,7 +107,7 @@ require (
 	helm.sh/helm/v3 v3.18.4
 
 	// Code generation tools (build-time only)
-	k8s.io/code-generator v0.33.2
+	k8s.io/code-generator v0.33.4
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
 	sigs.k8s.io/controller-tools v0.18.0
 )
@@ -184,7 +188,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
 	honnef.co/go/tools v0.6.1
-	k8s.io/metrics v0.33.2
+	k8s.io/metrics v0.33.4
 	sigs.k8s.io/kustomize/api v0.19.0
 	sigs.k8s.io/kustomize/kyaml v0.19.0
 )
@@ -269,7 +273,7 @@ require (
 	github.com/envoyproxy/go-control-plane/envoy v1.32.4 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
 	github.com/evanphx/json-patch v5.9.11+incompatible // indirect
-	github.com/evanphx/json-patch/v5 v5.9.0 // indirect
+	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/exponent-io/jsonpath v0.0.0-20210407135951-1de76d718b3f // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
@@ -449,11 +453,11 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/neurosnap/sentences.v1 v1.0.6 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
-	k8s.io/apiserver v0.33.2 // indirect
-	k8s.io/cli-runtime v0.33.2 // indirect
-	k8s.io/component-base v0.33.2 // indirect
+	k8s.io/apiserver v0.33.4 // indirect
+	k8s.io/cli-runtime v0.33.4 // indirect
+	k8s.io/component-base v0.33.4 // indirect
 	k8s.io/gengo/v2 v2.0.0-20250207200755-1244d31929d7 // indirect
-	k8s.io/kubectl v0.33.2 // indirect
+	k8s.io/kubectl v0.33.4 // indirect
 	k8s.io/utils v0.0.0-20241210054802-24370beab758 // indirect
 	oras.land/oras-go/v2 v2.6.0 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2 // indirect

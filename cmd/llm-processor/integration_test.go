@@ -15,6 +15,140 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 )
 
+// Package level variables for integration tests
+var (
+	config    *Config
+	processor *IntentProcessor
+)
+
+// Mock handler functions for testing
+func processHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	
+	var req NetworkIntentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ErrorResponse{
+			ErrorCode: "INVALID_REQUEST",
+			Message:   "Invalid JSON format",
+		})
+		return
+	}
+	
+	ctx := r.Context()
+	result, err := processor.ProcessIntent(ctx, req.Spec.Intent)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	response := NetworkIntentResponse{
+		Type:           "NetworkFunctionDeployment",
+		Name:           "upf-deployment", 
+		Namespace:      "5g-core",
+		OriginalIntent: req.Spec.Intent,
+		Spec:           json.RawMessage(result),
+		ProcessingMetadata: struct {
+			ModelUsed       string  `json:"modelUsed"`
+			ConfidenceScore float64 `json:"confidenceScore"`
+		}{
+			ModelUsed:       "gpt-4o-mini",
+			ConfidenceScore: 0.95,
+		},
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func healthzHandler(w http.ResponseWriter, r *http.Request) {
+	response := HealthResponse{
+		Status:  "ok",
+		Version: config.ServiceVersion,
+		Time:    time.Now().Format(time.RFC3339),
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func readyzHandler(w http.ResponseWriter, r *http.Request) {
+	response := ReadinessResponse{
+		Status: "ready",
+		Dependencies: map[string]string{
+			"llm_backend": "ready",
+		},
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// Additional response types
+type ErrorResponse struct {
+	ErrorCode string `json:"errorCode"`
+	Message   string `json:"message"`
+}
+
+type HealthResponse struct {
+	Status  string `json:"status"`
+	Version string `json:"version"`
+	Time    string `json:"time"`
+}
+
+type ReadinessResponse struct {
+	Status       string            `json:"status"`
+	Dependencies map[string]string `json:"dependencies"`
+}
+
+// Simple circuit breaker implementation for testing
+type CircuitBreaker struct {
+	failureThreshold int
+	timeout          time.Duration
+	failureCount     int
+	lastFailureTime  time.Time
+	state            string // "closed", "open", "half-open"
+}
+
+func NewCircuitBreaker(threshold int, timeout time.Duration) *CircuitBreaker {
+	return &CircuitBreaker{
+		failureThreshold: threshold,
+		timeout:          timeout,
+		state:            "closed",
+	}
+}
+
+func (cb *CircuitBreaker) Call(fn func() error) error {
+	now := time.Now()
+	
+	switch cb.state {
+	case "open":
+		if now.Sub(cb.lastFailureTime) > cb.timeout {
+			cb.state = "half-open"
+		} else {
+			return fmt.Errorf("circuit breaker is open")
+		}
+	}
+	
+	err := fn()
+	if err != nil {
+		cb.failureCount++
+		cb.lastFailureTime = now
+		if cb.failureCount >= cb.failureThreshold {
+			cb.state = "open"
+		}
+		return err
+	}
+	
+	if cb.state == "half-open" {
+		cb.state = "closed"
+		cb.failureCount = 0
+	}
+	
+	return nil
+}
+
 // MockLLMClient implements the LLM client interface for testing
 type MockLLMClient struct {
 	responses map[string]string
@@ -121,7 +255,7 @@ func TestLLMProcessorIntegration(t *testing.T) {
 	// Create processor with mock LLM client
 	processor := NewIntentProcessor(config)
 	mockLLMClient := NewMockLLMClient()
-	processor.llmClient = mockLLMClient
+	processor.LLMClient = mockLLMClient
 
 	t.Run("Test NetworkFunction Deployment Processing", func(t *testing.T) {
 		intent := "Deploy UPF network function with 3 replicas"
@@ -252,7 +386,7 @@ func TestHTTPEndpoints(t *testing.T) {
 
 	processor = NewIntentProcessor(config)
 	mockLLMClient := NewMockLLMClient()
-	processor.llmClient = mockLLMClient
+	processor.LLMClient = mockLLMClient
 
 	t.Run("Test Process Endpoint", func(t *testing.T) {
 		req := &NetworkIntentRequest{
@@ -463,7 +597,7 @@ func BenchmarkIntentProcessing(b *testing.B) {
 
 	processor := NewIntentProcessor(config)
 	mockLLMClient := NewMockLLMClient()
-	processor.llmClient = mockLLMClient
+	processor.LLMClient = mockLLMClient
 
 	req := &NetworkIntentRequest{
 		Spec: struct {

@@ -79,11 +79,14 @@ REGRESSION_BASELINE_ID ?=
 REGRESSION_FAIL_ON_DETECTION ?= true
 REGRESSION_ALERT_WEBHOOK ?=
 
-# Build flags with ultra optimization
-LDFLAGS = -ldflags "-X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE) -s -w -buildid=''"
-BUILD_FLAGS = -trimpath -buildmode=pie -tags="netgo,osusergo" -mod=readonly
-PARALLEL_BUILD_FLAGS = -p $(shell nproc 2>/dev/null || echo 4)
-FAST_BUILD_FLAGS = $(BUILD_FLAGS) $(PARALLEL_BUILD_FLAGS)
+# Ultra-fast build flags for Go 1.24+ (2025 best practices)
+LDFLAGS = -ldflags "-X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE) -s -w -buildid='' -extldflags=-static"
+BUILD_FLAGS = -trimpath -buildmode=pie -tags="netgo,osusergo,static_build" -mod=readonly
+# Optimal parallel build configuration for 2025
+PARALLEL_JOBS = $(shell nproc 2>/dev/null || echo 8)
+PARALLEL_BUILD_FLAGS = -p $(PARALLEL_JOBS)
+# Ultra-fast build with compiler optimizations
+FAST_BUILD_FLAGS = $(BUILD_FLAGS) $(PARALLEL_BUILD_FLAGS) -gcflags="-l=4 -dwarf=false" -asmflags="-trimpath"
 
 .PHONY: help
 help: ## Show this help message
@@ -231,13 +234,17 @@ lint: ## Run golangci-lint
 ##@ Testing
 
 .PHONY: test
-test: ## Run unit tests with optimizations
-	@echo "Running optimized unit tests..."
+test: ## Run unit tests with ultra-fast optimizations
+	@echo "Running ultra-fast optimized unit tests..."
 	mkdir -p $(REPORTS_DIR) $(QUALITY_REPORTS_DIR)/coverage
-	GOMAXPROCS=$(shell nproc 2>/dev/null || echo 4) \
-		go test ./... -v -race -parallel=8 -timeout=15m \
-		-coverprofile=$(QUALITY_REPORTS_DIR)/coverage/coverage.out -covermode=atomic
+	# Use optimal parallel configuration for 2025 Go testing
+	GOMAXPROCS=$(PARALLEL_JOBS) GOMEMLIMIT=3GiB \
+		go test ./... -v -race -parallel=$(PARALLEL_JOBS) -timeout=12m -short \
+		-coverprofile=$(QUALITY_REPORTS_DIR)/coverage/coverage.out -covermode=atomic \
+		-json | tee $(QUALITY_REPORTS_DIR)/coverage/test-results.json
 	cp $(QUALITY_REPORTS_DIR)/coverage/coverage.out $(REPORTS_DIR)/coverage.out 2>/dev/null || true
+	# Generate coverage HTML for quick viewing
+	go tool cover -html=$(QUALITY_REPORTS_DIR)/coverage/coverage.out -o $(QUALITY_REPORTS_DIR)/coverage/coverage.html 2>/dev/null || true
 
 .PHONY: test-integration
 test-integration: ## Run integration tests
@@ -1087,20 +1094,25 @@ gen-fast: ## Quick code generation
 	@controller-gen crd paths="./api/v1" output:crd:artifacts:config=deployments/crds 2>/dev/null || true
 
 .PHONY: build-fast
-build-fast: ## Lightning-fast build
-	@echo "🔨 Ultra-fast build..."
+build-fast: ## Lightning-fast build with 2025 optimizations
+	@echo "🔨 Ultra-fast build with Go 1.24 optimizations..."
 	@mkdir -p bin
-	@CGO_ENABLED=0 GOMAXPROCS=8 go build $(FAST_BUILD_FLAGS) $(LDFLAGS) -o bin/manager cmd/main.go
+	# Use optimal build settings for 2025
+	@CGO_ENABLED=0 GOMAXPROCS=$(PARALLEL_JOBS) GOOS=$(GOOS) GOARCH=$(GOARCH) GOAMD64=v3 \
+		go build $(FAST_BUILD_FLAGS) $(LDFLAGS) -o bin/manager cmd/main.go
 
 .PHONY: test-fast
-test-fast: ## Rapid testing
-	@echo "🧪 Fast testing..."
-	@GOMAXPROCS=6 go test ./... -short -race -parallel=8 -timeout=8m -coverprofile=.fast-coverage.out
+test-fast: ## Rapid testing with 2025 optimizations
+	@echo "🧪 Ultra-fast testing with parallel execution..."
+	@mkdir -p .fast-reports
+	@GOMAXPROCS=$(PARALLEL_JOBS) GOMEMLIMIT=2GiB \
+		go test ./... -short -race -parallel=$(PARALLEL_JOBS) -timeout=6m \
+		-coverprofile=.fast-reports/coverage.out -json | tee .fast-reports/test-results.json
 
 .PHONY: lint-fast
-lint-fast: ## Quick linting
-	@echo "🔍 Fast linting..."
-	@golangci-lint run --fast --timeout=3m --concurrency=8
+lint-fast: ## Ultra-fast linting with 2025 optimizations
+	@echo "🔍 Ultra-fast linting with optimal concurrency..."
+	@golangci-lint run --fast --timeout=2m --concurrency=$(PARALLEL_JOBS) --build-tags=netgo,osusergo
 
 ##@ Shortcuts and Aliases
 

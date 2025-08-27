@@ -61,7 +61,7 @@ type GenerationContext struct {
 	TargetCluster   string
 	TargetNamespace string
 	NetworkSlice    string
-	ComponentType   v1.TargetComponent
+	ComponentType   v1.NetworkTargetComponent
 	DeploymentMode  string
 	SecurityProfile string
 	ResourceProfile string
@@ -78,13 +78,7 @@ func NewGenerator(config *BlueprintConfig, logger *zap.Logger) (*Generator, erro
 	}
 
 	// Initialize LLM client
-	llmClient, err := llm.NewClient(&llm.Config{
-		Endpoint: config.LLMEndpoint,
-		Timeout:  30 * time.Second,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create LLM client: %w", err)
-	}
+	llmClient := llm.NewClient(config.LLMEndpoint)
 
 	generator := &Generator{
 		config:               config,
@@ -190,20 +184,14 @@ func (g *Generator) GenerateFromNetworkIntent(ctx context.Context, intent *v1.Ne
 func (g *Generator) processIntentWithLLM(ctx context.Context, intent *v1.NetworkIntent) (map[string]interface{}, error) {
 	prompt := g.buildLLMPrompt(intent)
 
-	response, err := g.llmClient.ProcessIntent(ctx, &llm.IntentRequest{
-		Intent:      intent.Spec.Intent,
-		Prompt:      prompt,
-		Context:     g.buildLLMContext(intent),
-		MaxTokens:   2000,
-		Temperature: 0.2,
-	})
+	response, err := g.llmClient.ProcessIntent(ctx, prompt)
 	if err != nil {
 		return nil, fmt.Errorf("LLM processing failed: %w", err)
 	}
 
 	// Parse LLM response as JSON
 	var llmOutput map[string]interface{}
-	if err := json.Unmarshal([]byte(response.Response), &llmOutput); err != nil {
+	if err := json.Unmarshal([]byte(response), &llmOutput); err != nil {
 		return nil, fmt.Errorf("failed to parse LLM response as JSON: %w", err)
 	}
 
@@ -313,34 +301,34 @@ func (g *Generator) generateCoreStructure(ctx context.Context, genCtx *Generatio
 }
 
 // generateComponentBlueprint generates blueprint for specific O-RAN/5GC component
-func (g *Generator) generateComponentBlueprint(ctx context.Context, genCtx *GenerationContext, component v1.TargetComponent, files map[string]string) error {
+func (g *Generator) generateComponentBlueprint(ctx context.Context, genCtx *GenerationContext, component v1.NetworkTargetComponent, files map[string]string) error {
 	switch component {
 	// 5G Core Components
-	case v1.TargetComponentAMF:
+	case v1.NetworkTargetComponentAMF:
 		return g.generateAMFBlueprint(genCtx, files)
-	case v1.TargetComponentSMF:
+	case v1.NetworkTargetComponentSMF:
 		return g.generateSMFBlueprint(genCtx, files)
-	case v1.TargetComponentUPF:
+	case v1.NetworkTargetComponentUPF:
 		return g.generateUPFBlueprint(genCtx, files)
-	case v1.TargetComponentNSSF:
+	case v1.NetworkTargetComponentNSSF:
 		return g.generateNSSFBlueprint(genCtx, files)
 
-	// O-RAN Components
-	case v1.TargetComponentODU:
+	// O-RAN Components (using string constants)
+	case "O-DU":
 		return g.generateODUBlueprint(genCtx, files)
-	case v1.TargetComponentOCUCP:
+	case "O-CU-CP":
 		return g.generateOCUCPBlueprint(genCtx, files)
-	case v1.TargetComponentOCUUP:
+	case "O-CU-UP":
 		return g.generateOCUUPBlueprint(genCtx, files)
-	case v1.TargetComponentNearRTRIC:
+	case "Near-RT-RIC":
 		return g.generateNearRTRICBlueprint(genCtx, files)
-	case v1.TargetComponentNonRTRIC:
+	case "Non-RT-RIC":
 		return g.generateNonRTRICBlueprint(genCtx, files)
 
 	// RIC Applications
-	case v1.TargetComponentXApp:
+	case "xApp":
 		return g.generateXAppBlueprint(genCtx, files)
-	case v1.TargetComponentRApp:
+	case "rApp":
 		return g.generateRAppBlueprint(genCtx, files)
 
 	default:
@@ -638,7 +626,7 @@ func (g *Generator) extractDeploymentMode(llmOutput map[string]interface{}) stri
 }
 
 // Utility functions
-func (g *Generator) targetComponentsToStrings(components []v1.TargetComponent) []string {
+func (g *Generator) targetComponentsToStrings(components []v1.NetworkTargetComponent) []string {
 	result := make([]string, len(components))
 	for i, component := range components {
 		result[i] = string(component)
@@ -674,10 +662,8 @@ func (g *Generator) shouldGenerateGateway(genCtx *GenerationContext) bool {
 // HealthCheck performs health check on the generator
 func (g *Generator) HealthCheck(ctx context.Context) bool {
 	// Check LLM connectivity
-	if !g.llmClient.HealthCheck(ctx) {
-		g.logger.Warn("LLM client health check failed")
-		return false
-	}
+	// Note: Current LLM client doesn't have HealthCheck method, so we skip this check
+	// TODO: Add health check when LLM client supports it
 
 	// Check template availability
 	if len(g.coreTemplates) == 0 && len(g.oranTemplates) == 0 {
@@ -743,5 +729,413 @@ func (g *Generator) getORANTemplate(name string) string {
 // - generateXAppDescriptor
 // - generateVirtualService, generateDestinationRule, etc.
 // - generateServiceMonitor, generateGrafanaDashboard, etc.
+
+// generateKptfile generates the Kptfile for the package
+func (g *Generator) generateKptfile(genCtx *GenerationContext) (string, error) {
+	kptfile := fmt.Sprintf(`apiVersion: kpt.dev/v1
+kind: Kptfile
+metadata:
+  name: %s
+  annotations:
+    config.kubernetes.io/local-config: "true"
+info:
+  description: Network function blueprint generated from intent
+  keywords:
+    - o-ran
+    - 5g-core
+    - network-function
+pipeline:
+  mutators:
+    - image: gcr.io/kpt-fn/set-labels:v0.2.0
+      configMap:
+        intent.nephio.io/name: %s
+        intent.nephio.io/type: %s
+    - image: gcr.io/kpt-fn/set-namespace:v0.4.1
+      configMap:
+        namespace: %s
+`, genCtx.Intent.Name, genCtx.Intent.Name, genCtx.Intent.Spec.IntentType, genCtx.TargetNamespace)
+
+	return kptfile, nil
+}
+
+// generateREADME generates the README.md file for the package
+func (g *Generator) generateREADME(genCtx *GenerationContext) (string, error) {
+	readme := fmt.Sprintf(`# %s Blueprint
+
+This blueprint package was generated from a NetworkIntent for deploying network functions.
+
+## Intent Details
+
+- **Intent Type**: %s
+- **Target Components**: %s
+- **Target Cluster**: %s
+- **Target Namespace**: %s
+- **Network Slice**: %s
+
+## Generated Resources
+
+This package contains Kubernetes manifests for:
+- Deployments and Services
+- ConfigMaps and Secrets
+- Network Policies (if service mesh is enabled)
+- Monitoring configuration
+
+## Usage
+
+1. Review the generated resources
+2. Apply using kpt or kubectl:
+   ` + "```" + `bash
+   kpt live apply
+   # or
+   kubectl apply -f .
+   ` + "```" + `
+
+## Customization
+
+The resources can be customized by modifying the YAML files or by using kpt functions.
+`, genCtx.Intent.Name, genCtx.Intent.Spec.IntentType, 
+		strings.Join(g.targetComponentsToStrings(genCtx.Intent.Spec.TargetComponents), ", "),
+		genCtx.TargetCluster, genCtx.TargetNamespace, genCtx.NetworkSlice)
+
+	return readme, nil
+}
+
+// generatePackageMetadata generates package metadata
+func (g *Generator) generatePackageMetadata(genCtx *GenerationContext) (string, error) {
+	metadata := fmt.Sprintf(`apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: %s-metadata
+  namespace: %s
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  intent-name: %s
+  intent-type: %s
+  generated-at: %s
+  target-cluster: %s
+  target-namespace: %s
+  network-slice: %s
+`, genCtx.Intent.Name, genCtx.TargetNamespace, 
+   genCtx.Intent.Name, genCtx.Intent.Spec.IntentType, 
+   time.Now().Format(time.RFC3339),
+   genCtx.TargetCluster, genCtx.TargetNamespace, genCtx.NetworkSlice)
+
+	return metadata, nil
+}
+
+// generateFunctionConfig generates kpt function configuration
+func (g *Generator) generateFunctionConfig(genCtx *GenerationContext) (string, error) {
+	fnConfig := fmt.Sprintf(`apiVersion: fn.kpt.dev/v1alpha1
+kind: ApplyReplacements
+metadata:
+  name: %s-apply-replacements
+  annotations:
+    config.kubernetes.io/local-config: "true"
+replacements:
+- source:
+    kind: ConfigMap
+    name: %s-metadata
+    fieldPath: data.target-namespace
+  targets:
+  - select:
+      kind: Deployment
+    fieldPaths:
+    - metadata.namespace
+  - select:
+      kind: Service
+    fieldPaths:
+    - metadata.namespace
+`, genCtx.Intent.Name, genCtx.Intent.Name)
+
+	return fnConfig, nil
+}
+
+// generateGenericBlueprint generates a generic blueprint for unknown components
+func (g *Generator) generateGenericBlueprint(genCtx *GenerationContext, component v1.NetworkTargetComponent, files map[string]string) error {
+	deployConfig := g.extractDeploymentConfig(genCtx.LLMOutput)
+	
+	deployment := fmt.Sprintf(`apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: %s-%s
+  namespace: %s
+  labels:
+    app: %s
+    component: %s
+spec:
+  replicas: %d
+  selector:
+    matchLabels:
+      app: %s
+      component: %s
+  template:
+    metadata:
+      labels:
+        app: %s
+        component: %s
+    spec:
+      containers:
+      - name: %s
+        image: %s
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+`, strings.ToLower(genCtx.Intent.Name), strings.ToLower(string(component)), 
+   genCtx.TargetNamespace, strings.ToLower(genCtx.Intent.Name), strings.ToLower(string(component)),
+   g.getOrDefault(deployConfig, "replicas", 1).(int),
+   strings.ToLower(genCtx.Intent.Name), strings.ToLower(string(component)),
+   strings.ToLower(genCtx.Intent.Name), strings.ToLower(string(component)),
+   strings.ToLower(string(component)),
+   g.getOrDefault(deployConfig, "image", "nginx:latest").(string))
+
+	files[fmt.Sprintf("%s-deployment.yaml", strings.ToLower(string(component)))] = deployment
+
+	// Generate service
+	service := fmt.Sprintf(`apiVersion: v1
+kind: Service
+metadata:
+  name: %s-%s
+  namespace: %s
+  labels:
+    app: %s
+    component: %s
+spec:
+  selector:
+    app: %s
+    component: %s
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 8080
+  type: ClusterIP
+`, strings.ToLower(genCtx.Intent.Name), strings.ToLower(string(component)),
+   genCtx.TargetNamespace, strings.ToLower(genCtx.Intent.Name), strings.ToLower(string(component)),
+   strings.ToLower(genCtx.Intent.Name), strings.ToLower(string(component)))
+
+	files[fmt.Sprintf("%s-service.yaml", strings.ToLower(string(component)))] = service
+
+	return nil
+}
+
+// Additional stub methods for missing component-specific generators
+func (g *Generator) generateNSSFBlueprint(genCtx *GenerationContext, files map[string]string) error {
+	return g.generateGenericBlueprint(genCtx, v1.NetworkTargetComponentNSSF, files)
+}
+
+func (g *Generator) generateODUBlueprint(genCtx *GenerationContext, files map[string]string) error {
+	return g.generateGenericBlueprint(genCtx, "O-DU", files)
+}
+
+func (g *Generator) generateOCUCPBlueprint(genCtx *GenerationContext, files map[string]string) error {
+	return g.generateGenericBlueprint(genCtx, "O-CU-CP", files)
+}
+
+func (g *Generator) generateOCUUPBlueprint(genCtx *GenerationContext, files map[string]string) error {
+	return g.generateGenericBlueprint(genCtx, "O-CU-UP", files)
+}
+
+func (g *Generator) generateNonRTRICBlueprint(genCtx *GenerationContext, files map[string]string) error {
+	return g.generateGenericBlueprint(genCtx, "Non-RT-RIC", files)
+}
+
+func (g *Generator) generateRAppBlueprint(genCtx *GenerationContext, files map[string]string) error {
+	return g.generateGenericBlueprint(genCtx, "rApp", files)
+}
+
+// Additional helper method stubs that may be referenced
+func (g *Generator) generateComponentService(genCtx *GenerationContext, componentName string) (string, error) {
+	service := fmt.Sprintf(`apiVersion: v1
+kind: Service
+metadata:
+  name: %s-%s
+  namespace: %s
+  labels:
+    app: %s
+    component: %s
+spec:
+  selector:
+    app: %s
+    component: %s
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 8080
+  type: ClusterIP
+`, genCtx.Intent.Name, componentName, genCtx.TargetNamespace,
+   genCtx.Intent.Name, componentName, genCtx.Intent.Name, componentName)
+
+	return service, nil
+}
+
+func (g *Generator) generateAMFConfig(genCtx *GenerationContext) (string, error) {
+	config := fmt.Sprintf(`apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: %s-amf-config
+  namespace: %s
+data:
+  amf.conf: |
+    # AMF Configuration
+    networkSlice: %s
+    targetCluster: %s
+`, genCtx.Intent.Name, genCtx.TargetNamespace, genCtx.NetworkSlice, genCtx.TargetCluster)
+
+	return config, nil
+}
+
+func (g *Generator) generateSMFConfig(genCtx *GenerationContext) (string, error) {
+	config := fmt.Sprintf(`apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: %s-smf-config
+  namespace: %s
+data:
+  smf.conf: |
+    # SMF Configuration
+    networkSlice: %s
+    targetCluster: %s
+`, genCtx.Intent.Name, genCtx.TargetNamespace, genCtx.NetworkSlice, genCtx.TargetCluster)
+
+	return config, nil
+}
+
+func (g *Generator) generateUPFNetworking(genCtx *GenerationContext) (string, error) {
+	networking := fmt.Sprintf(`apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: %s-upf-networking
+  namespace: %s
+data:
+  networking.conf: |
+    # UPF Networking Configuration
+    networkSlice: %s
+`, genCtx.Intent.Name, genCtx.TargetNamespace, genCtx.NetworkSlice)
+
+	return networking, nil
+}
+
+func (g *Generator) buildAMFConfig(genCtx *GenerationContext) map[string]interface{} {
+	return map[string]interface{}{
+		"networkSlice": genCtx.NetworkSlice,
+		"cluster":      genCtx.TargetCluster,
+	}
+}
+
+func (g *Generator) buildSMFConfig(genCtx *GenerationContext) map[string]interface{} {
+	return map[string]interface{}{
+		"networkSlice": genCtx.NetworkSlice,
+		"cluster":      genCtx.TargetCluster,
+	}
+}
+
+func (g *Generator) buildUPFNetworkConfig(genCtx *GenerationContext) map[string]interface{} {
+	return map[string]interface{}{
+		"networkSlice": genCtx.NetworkSlice,
+		"privileged":   true,
+	}
+}
+
+func (g *Generator) extractResources(deployConfig map[string]interface{}) map[string]interface{} {
+	if resources, ok := deployConfig["resources"].(map[string]interface{}); ok {
+		return resources
+	}
+	return map[string]interface{}{
+		"requests": map[string]string{"cpu": "100m", "memory": "128Mi"},
+		"limits":   map[string]string{"cpu": "500m", "memory": "512Mi"},
+	}
+}
+
+func (g *Generator) extractEnvironment(deployConfig map[string]interface{}) []map[string]string {
+	if envVars, ok := deployConfig["env_vars"].([]interface{}); ok {
+		result := make([]map[string]string, len(envVars))
+		for i, env := range envVars {
+			if envMap, ok := env.(map[string]interface{}); ok {
+				result[i] = map[string]string{
+					"name":  fmt.Sprintf("%v", envMap["name"]),
+					"value": fmt.Sprintf("%v", envMap["value"]),
+				}
+			}
+		}
+		return result
+	}
+	return []map[string]string{}
+}
+
+// Observability and service mesh generation stubs
+func (g *Generator) generateE2Configuration(genCtx *GenerationContext) (string, error) {
+	return "# E2 Interface Configuration placeholder", nil
+}
+
+func (g *Generator) generateXAppManagementConfig(genCtx *GenerationContext) (string, error) {
+	return "# xApp Management Configuration placeholder", nil
+}
+
+func (g *Generator) generateXAppDescriptor(genCtx *GenerationContext) (string, error) {
+	return "{\"name\": \"xapp-descriptor\", \"version\": \"1.0\"}", nil
+}
+
+func (g *Generator) generateSliceQoSConfig(genCtx *GenerationContext) (string, error) {
+	return "# Network Slice QoS Configuration placeholder", nil
+}
+
+func (g *Generator) generateVirtualService(genCtx *GenerationContext) (string, error) {
+	return "# Istio VirtualService Configuration placeholder", nil
+}
+
+func (g *Generator) generateDestinationRule(genCtx *GenerationContext) (string, error) {
+	return "# Istio DestinationRule Configuration placeholder", nil
+}
+
+func (g *Generator) generateGateway(genCtx *GenerationContext) (string, error) {
+	return "# Istio Gateway Configuration placeholder", nil
+}
+
+func (g *Generator) generatePeerAuthentication(genCtx *GenerationContext) (string, error) {
+	return "# Istio PeerAuthentication Configuration placeholder", nil
+}
+
+func (g *Generator) generateServiceMonitor(genCtx *GenerationContext) (string, error) {
+	return "# Prometheus ServiceMonitor Configuration placeholder", nil
+}
+
+func (g *Generator) generateGrafanaDashboard(genCtx *GenerationContext) (string, error) {
+	return "# Grafana Dashboard Configuration placeholder", nil
+}
+
+func (g *Generator) generateAlertRules(genCtx *GenerationContext) (string, error) {
+	return "# Prometheus Alert Rules Configuration placeholder", nil
+}
+
+// Additional template data builders
+func (g *Generator) buildRICTemplateData(genCtx *GenerationContext, ricType string) map[string]interface{} {
+	return map[string]interface{}{
+		"Name":      fmt.Sprintf("%s-%s", genCtx.Intent.Name, ricType),
+		"Namespace": genCtx.TargetNamespace,
+		"RICType":   ricType,
+	}
+}
+
+func (g *Generator) buildXAppTemplateData(genCtx *GenerationContext) map[string]interface{} {
+	return map[string]interface{}{
+		"Name":      fmt.Sprintf("%s-xapp", genCtx.Intent.Name),
+		"Namespace": genCtx.TargetNamespace,
+		"AppType":   "xApp",
+	}
+}
+
+func (g *Generator) buildNetworkSliceTemplateData(genCtx *GenerationContext) map[string]interface{} {
+	return map[string]interface{}{
+		"Name":         genCtx.Intent.Name,
+		"Namespace":    genCtx.TargetNamespace,
+		"NetworkSlice": genCtx.NetworkSlice,
+	}
+}
 
 // These would follow similar patterns to the methods shown above

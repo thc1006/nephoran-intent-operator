@@ -344,7 +344,7 @@ func (m *MTLSManager) verifyPeerCertificate(rawCerts [][]byte, verifiedChains []
 			}
 			m.logger.Warn("certificate pinning failed (report only)",
 				slog.String("subject", cert.Subject.String()),
-				slog.Error(err))
+				"error", err)
 		}
 	}
 
@@ -356,7 +356,7 @@ func (m *MTLSManager) verifyPeerCertificate(rawCerts [][]byte, verifiedChains []
 			}
 			m.logger.Warn("OCSP check failed (fail open)",
 				slog.String("subject", cert.Subject.String()),
-				slog.Error(err))
+				"error", err)
 		}
 	}
 
@@ -368,7 +368,7 @@ func (m *MTLSManager) verifyPeerCertificate(rawCerts [][]byte, verifiedChains []
 			}
 			m.logger.Warn("CRL check failed (fail open)",
 				slog.String("subject", cert.Subject.String()),
-				slog.Error(err))
+				"error", err)
 		}
 	}
 
@@ -495,7 +495,7 @@ func (m *MTLSManager) checkCRL(cert *x509.Certificate) error {
 		if err != nil {
 			m.logger.Warn("failed to fetch CRL",
 				slog.String("url", crlURL),
-				slog.Error(err))
+				"error", err)
 			continue
 		}
 

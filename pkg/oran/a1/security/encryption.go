@@ -479,8 +479,8 @@ func (em *EncryptionManager) RotateKeys(ctx context.Context) error {
 	for keyID := range em.keyCache {
 		if err := em.keyManager.RotateKey(ctx, keyID); err != nil {
 			em.logger.Error("failed to rotate key",
-				slog.String("key_id", keyID),
-				slog.Error(err))
+				"key_id", keyID,
+				"error", err)
 			continue
 		}
 
@@ -513,7 +513,7 @@ func (em *EncryptionManager) startKeyRotation() {
 	for range ticker.C {
 		ctx := context.Background()
 		if err := em.RotateKeys(ctx); err != nil {
-			em.logger.Error("automatic key rotation failed", slog.Error(err))
+			em.logger.Error("automatic key rotation failed", "error", err)
 		}
 	}
 }

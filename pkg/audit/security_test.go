@@ -77,7 +77,7 @@ func (suite *SecurityTestSuite) SetupTest() {
 	suite.auditSystem, err = NewAuditSystem(config)
 	suite.Require().NoError(err)
 
-	err = suite.auditSystem.Start()
+	err = suite.auditSystem.Start(context.Background())
 	suite.Require().NoError(err)
 }
 
@@ -369,7 +369,7 @@ func (suite *SecurityTestSuite) TestAccessControl() {
 		restrictedSystem, err := NewAuditSystem(restrictedConfig)
 		suite.NoError(err)
 
-		err = restrictedSystem.Start()
+		err = restrictedSystem.Start(context.Background())
 		suite.NoError(err)
 		defer restrictedSystem.Stop()
 

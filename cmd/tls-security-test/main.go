@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	fmt.Println("=== Nephoran TLS Security Validation ===\n")
+	fmt.Println("=== Nephoran TLS Security Validation ===")
 
 	// Test 1: O-RAN Compliance Configuration
 	fmt.Println("Test 1: O-RAN A1 Interface Configuration (Enhanced Profile)")

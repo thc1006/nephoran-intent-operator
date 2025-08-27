@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
@@ -61,8 +62,11 @@ type LLMResponse struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
+// 
+// For more details, check Reconcile and its Result here:
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.21.0/pkg/reconcile
 func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
+	log := log.FromContext(ctx).WithValues("networkintent", req.NamespacedName)
 
 	// Fetch the NetworkIntent instance
 	networkIntent := &nephoranv1.NetworkIntent{}
@@ -191,5 +195,8 @@ func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoranv1.NetworkIntent{}).
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: 10, // 2025 best practice: increase concurrency
+		}).
 		Complete(r)
 }
