@@ -38,6 +38,14 @@ func NewLLMProcessorService(config *config.LLMProcessorConfig, logger *slog.Logg
 	}
 }
 
+// LLMProcessor is an alias to LLMProcessorService for backward compatibility
+type LLMProcessor = LLMProcessorService
+
+// NewLLMProcessor creates a new LLM processor (alias for NewLLMProcessorService)
+func NewLLMProcessor(config *config.LLMProcessorConfig, logger *slog.Logger) *LLMProcessor {
+	return NewLLMProcessorService(config, logger)
+}
+
 // Initialize initializes all components of the LLM processor service
 func (s *LLMProcessorService) Initialize(ctx context.Context) error {
 	s.logger.Info("Initializing LLM Processor service components")

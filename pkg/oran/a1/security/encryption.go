@@ -31,7 +31,7 @@ type EncryptionConfig struct {
 	TransitEncryption *TransitEncryptionConfig `json:"transit_encryption"`
 	StorageEncryption *StorageEncryptionConfig `json:"storage_encryption"`
 	HSMConfig         *HSMConfig               `json:"hsm_config,omitempty"`
-	ComplianceMode    ComplianceMode           `json:"compliance_mode"`
+	ComplianceMode    ComplianceStandard       `json:"compliance_mode"`
 }
 
 // EncryptionAlgorithm represents the encryption algorithm
@@ -44,16 +44,7 @@ const (
 	AlgorithmAES256CBC     EncryptionAlgorithm = "aes-256-cbc"
 )
 
-// ComplianceMode represents regulatory compliance requirements
-type ComplianceMode string
-
-const (
-	ComplianceFIPS140 ComplianceMode = "fips-140-2"
-	ComplianceHIPAA   ComplianceMode = "hipaa"
-	CompliancePCIDSS  ComplianceMode = "pci-dss"
-	ComplianceGDPR    ComplianceMode = "gdpr"
-	ComplianceCustom  ComplianceMode = "custom"
-)
+// Note: Compliance constants are defined in audit.go as ComplianceStandard type
 
 // KeyManagementConfig holds key management configuration
 type KeyManagementConfig struct {

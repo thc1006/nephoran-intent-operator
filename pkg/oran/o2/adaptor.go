@@ -233,6 +233,7 @@ func NewO2Adaptor(kubeClient client.Client, clientset kubernetes.Interface, conf
 	lifecycleService := NewLifecycleService()
 	subscriptionService := NewSubscriptionService()
 
+	// Fix: NewIMSService returns a single value, not two
 	imsService := NewIMSService(catalogService, inventoryService, lifecycleService, subscriptionService)
 
 	// Initialize cloud providers
@@ -389,7 +390,12 @@ func initializeProviders(providerConfigs map[string]*ProviderConfig, kubeClient 
 			}
 			provider, err = providers.NewAzureProvider(providerConfig)
 		case "gcp":
-			provider, err = providers.NewGCPProvider(config.Region, config.Credentials)
+			// Fix: NewGCPProvider should take a single ProviderConfiguration parameter
+			providerConfig := &providers.ProviderConfiguration{
+				Region:      config.Region,
+				Credentials: config.Credentials,
+			}
+			provider, err = providers.NewGCPProvider(providerConfig)
 		default:
 			return nil, fmt.Errorf("unsupported provider type: %s", config.Type)
 		}

@@ -373,6 +373,21 @@ type PolicyEnforcement struct {
 	Actions []string `json:"actions,omitempty"`
 }
 
+// ComplianceRule defines a rule for compliance validation
+type ComplianceRule struct {
+	ID          string        `json:"id"`
+	Name        string        `json:"name"`
+	Type        string        `json:"type"` // O-RAN, security, policy
+	Category    string        `json:"category"`
+	Severity    ErrorSeverity `json:"severity"`
+	Description string        `json:"description"`
+	Condition   string        `json:"condition"`   // Rule condition
+	Action      string        `json:"action"`      // Action to take on violation
+	Message     string        `json:"message"`     // Message for violation
+	References  []string      `json:"references"`  // Documentation references
+	Enabled     bool          `json:"enabled"`     // Whether rule is enabled
+}
+
 // NewValidator creates a new blueprint validator
 func NewValidator(config *BlueprintConfig, logger *zap.Logger) (*Validator, error) {
 	if config == nil {

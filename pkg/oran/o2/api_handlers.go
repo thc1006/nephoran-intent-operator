@@ -133,14 +133,14 @@ func (s *O2APIServer) handleUpdateResourcePool(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	pool, err := s.imsService.UpdateResourcePool(r.Context(), poolID, &req)
+	err := s.imsService.UpdateResourcePool(r.Context(), poolID, &req)
 	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to update resource pool", err)
 		return
 	}
 
 	s.metrics.RecordResourceOperation("update", "resource_pool", "unknown", "success")
-	s.writeJSONResponse(w, r, StatusOK, pool)
+	s.writeJSONResponse(w, r, StatusOK, map[string]string{"status": "updated"})
 }
 
 // handleDeleteResourcePool deletes a resource pool
@@ -194,13 +194,13 @@ func (s *O2APIServer) handleGetResourceType(w http.ResponseWriter, r *http.Reque
 
 // handleCreateResourceType creates a new resource type
 func (s *O2APIServer) handleCreateResourceType(w http.ResponseWriter, r *http.Request) {
-	var resourceType models.ResourceType
-	if err := s.decodeJSONRequest(r, &resourceType); err != nil {
+	var req models.CreateResourceTypeRequest
+	if err := s.decodeJSONRequest(r, &req); err != nil {
 		s.writeErrorResponse(w, r, StatusBadRequest, "Invalid request body", err)
 		return
 	}
 
-	createdType, err := s.imsService.CreateResourceType(r.Context(), &resourceType)
+	createdType, err := s.imsService.CreateResourceType(r.Context(), &req)
 	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to create resource type", err)
 		return
@@ -218,13 +218,13 @@ func (s *O2APIServer) handleUpdateResourceType(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	var resourceType models.ResourceType
-	if err := s.decodeJSONRequest(r, &resourceType); err != nil {
+	var req models.UpdateResourceTypeRequest
+	if err := s.decodeJSONRequest(r, &req); err != nil {
 		s.writeErrorResponse(w, r, StatusBadRequest, "Invalid request body", err)
 		return
 	}
 
-	updatedType, err := s.imsService.UpdateResourceType(r.Context(), typeID, &resourceType)
+	updatedType, err := s.imsService.UpdateResourceType(r.Context(), typeID, &req)
 	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to update resource type", err)
 		return
@@ -315,14 +315,14 @@ func (s *O2APIServer) handleUpdateResource(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	resource, err := s.imsService.UpdateResource(r.Context(), resourceID, &req)
+	err := s.imsService.UpdateResource(r.Context(), resourceID, &req)
 	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to update resource", err)
 		return
 	}
 
 	s.metrics.RecordResourceOperation("update", "resource", "unknown", "success")
-	s.writeJSONResponse(w, r, StatusOK, resource)
+	s.writeJSONResponse(w, r, StatusOK, map[string]string{"status": "updated"})
 }
 
 // handleDeleteResource deletes a resource
@@ -431,13 +431,13 @@ func (s *O2APIServer) handleGetDeploymentTemplate(w http.ResponseWriter, r *http
 
 // handleCreateDeploymentTemplate creates a new deployment template
 func (s *O2APIServer) handleCreateDeploymentTemplate(w http.ResponseWriter, r *http.Request) {
-	var template DeploymentTemplate
-	if err := s.decodeJSONRequest(r, &template); err != nil {
+	var req models.CreateDeploymentTemplateRequest
+	if err := s.decodeJSONRequest(r, &req); err != nil {
 		s.writeErrorResponse(w, r, StatusBadRequest, "Invalid request body", err)
 		return
 	}
 
-	createdTemplate, err := s.imsService.CreateDeploymentTemplate(r.Context(), &template)
+	createdTemplate, err := s.imsService.CreateDeploymentTemplate(r.Context(), &req)
 	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to create deployment template", err)
 		return
@@ -455,20 +455,20 @@ func (s *O2APIServer) handleUpdateDeploymentTemplate(w http.ResponseWriter, r *h
 		return
 	}
 
-	var template DeploymentTemplate
-	if err := s.decodeJSONRequest(r, &template); err != nil {
+	var req models.UpdateDeploymentTemplateRequest
+	if err := s.decodeJSONRequest(r, &req); err != nil {
 		s.writeErrorResponse(w, r, StatusBadRequest, "Invalid request body", err)
 		return
 	}
 
-	updatedTemplate, err := s.imsService.UpdateDeploymentTemplate(r.Context(), templateID, &template)
+	err := s.imsService.UpdateDeploymentTemplate(r.Context(), templateID, &req)
 	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to update deployment template", err)
 		return
 	}
 
 	s.metrics.RecordResourceOperation("update", "deployment_template", "system", "success")
-	s.writeJSONResponse(w, r, StatusOK, updatedTemplate)
+	s.writeJSONResponse(w, r, StatusOK, map[string]string{"status": "updated"})
 }
 
 // handleDeleteDeploymentTemplate deletes a deployment template
@@ -522,7 +522,7 @@ func (s *O2APIServer) handleGetDeployment(w http.ResponseWriter, r *http.Request
 
 // handleCreateDeployment creates a new deployment
 func (s *O2APIServer) handleCreateDeployment(w http.ResponseWriter, r *http.Request) {
-	var req CreateDeploymentRequest
+	var req models.CreateDeploymentRequest
 	if err := s.decodeJSONRequest(r, &req); err != nil {
 		s.writeErrorResponse(w, r, StatusBadRequest, "Invalid request body", err)
 		return
@@ -546,20 +546,20 @@ func (s *O2APIServer) handleUpdateDeployment(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	var req UpdateDeploymentRequest
+	var req models.UpdateDeploymentRequest
 	if err := s.decodeJSONRequest(r, &req); err != nil {
 		s.writeErrorResponse(w, r, StatusBadRequest, "Invalid request body", err)
 		return
 	}
 
-	deployment, err := s.imsService.UpdateDeployment(r.Context(), deploymentID, &req)
+	err := s.imsService.UpdateDeployment(r.Context(), deploymentID, &req)
 	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to update deployment", err)
 		return
 	}
 
 	s.metrics.RecordResourceOperation("update", "deployment", "unknown", "success")
-	s.writeJSONResponse(w, r, StatusOK, deployment)
+	s.writeJSONResponse(w, r, StatusOK, map[string]string{"status": "updated"})
 }
 
 // handleDeleteDeployment deletes a deployment
@@ -583,13 +583,13 @@ func (s *O2APIServer) handleDeleteDeployment(w http.ResponseWriter, r *http.Requ
 
 // handleCreateSubscription creates a new subscription
 func (s *O2APIServer) handleCreateSubscription(w http.ResponseWriter, r *http.Request) {
-	var subscription Subscription
-	if err := s.decodeJSONRequest(r, &subscription); err != nil {
+	var req models.CreateSubscriptionRequest
+	if err := s.decodeJSONRequest(r, &req); err != nil {
 		s.writeErrorResponse(w, r, StatusBadRequest, "Invalid request body", err)
 		return
 	}
 
-	createdSubscription, err := s.imsService.CreateSubscription(r.Context(), &subscription)
+	createdSubscription, err := s.imsService.CreateSubscription(r.Context(), &req)
 	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to create subscription", err)
 		return
@@ -636,19 +636,19 @@ func (s *O2APIServer) handleUpdateSubscription(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	var subscription Subscription
-	if err := s.decodeJSONRequest(r, &subscription); err != nil {
+	var req models.UpdateSubscriptionRequest
+	if err := s.decodeJSONRequest(r, &req); err != nil {
 		s.writeErrorResponse(w, r, StatusBadRequest, "Invalid request body", err)
 		return
 	}
 
-	updatedSubscription, err := s.imsService.UpdateSubscription(r.Context(), subscriptionID, &subscription)
+	err := s.imsService.UpdateSubscription(r.Context(), subscriptionID, &req)
 	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to update subscription", err)
 		return
 	}
 
-	s.writeJSONResponse(w, r, StatusOK, updatedSubscription)
+	s.writeJSONResponse(w, r, StatusOK, map[string]string{"status": "updated"})
 }
 
 // handleDeleteSubscription deletes a subscription

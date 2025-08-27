@@ -18,6 +18,7 @@ package packagerevision
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -174,7 +175,7 @@ func (r *NetworkIntentPackageReconciler) Reconcile(ctx context.Context, req ctrl
 
 	// Initialize extended status if not present
 	if intent.Status.Extensions == nil {
-		intent.Status.Extensions = make(map[string]runtime.RawExtension)
+		intent.Status.Extensions = &runtime.RawExtension{}
 	}
 
 	// Check for deletion
@@ -551,17 +552,12 @@ func (r *NetworkIntentPackageReconciler) handleIntentDeletion(ctx context.Contex
 // Helper methods
 
 func (r *NetworkIntentPackageReconciler) getExtendedStatus(intent *nephoranv1.NetworkIntent) (*NetworkIntentPackageStatus, error) {
-	if intent.Status.Extensions == nil {
-		return &NetworkIntentPackageStatus{}, nil
-	}
-
-	statusRaw, exists := intent.Status.Extensions["packageRevisionStatus"]
-	if !exists {
+	if intent.Status.Extensions == nil || intent.Status.Extensions.Raw == nil {
 		return &NetworkIntentPackageStatus{}, nil
 	}
 
 	var status NetworkIntentPackageStatus
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(statusRaw.Object, &status); err != nil {
+	if err := json.Unmarshal(intent.Status.Extensions.Raw, &status); err != nil {
 		return nil, fmt.Errorf("failed to decode extended status: %w", err)
 	}
 
@@ -569,18 +565,14 @@ func (r *NetworkIntentPackageReconciler) getExtendedStatus(intent *nephoranv1.Ne
 }
 
 func (r *NetworkIntentPackageReconciler) updateExtendedStatus(ctx context.Context, intent *nephoranv1.NetworkIntent, status *NetworkIntentPackageStatus) error {
-	if intent.Status.Extensions == nil {
-		intent.Status.Extensions = make(map[string]runtime.RawExtension)
-	}
-
-	// Convert status to unstructured
-	statusUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(status)
+	// Convert status to JSON
+	statusJSON, err := json.Marshal(status)
 	if err != nil {
 		return fmt.Errorf("failed to encode extended status: %w", err)
 	}
 
-	intent.Status.Extensions["packageRevisionStatus"] = runtime.RawExtension{
-		Object: statusUnstructured,
+	intent.Status.Extensions = &runtime.RawExtension{
+		Raw: statusJSON,
 	}
 
 	return nil

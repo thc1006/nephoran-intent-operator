@@ -348,6 +348,7 @@ type CreateDeploymentRequest struct {
 	TemplateID         string                 `json:"templateId"`
 	TemplateVersion    string                 `json:"templateVersion,omitempty"`
 	ResourcePoolID     string                 `json:"resourcePoolId"`
+	Provider           string                 `json:"provider,omitempty"`         // Added Provider field
 	InputParameters    *runtime.RawExtension  `json:"inputParameters,omitempty"`
 	ParentDeploymentID string                 `json:"parentDeploymentId,omitempty"`
 	Extensions         map[string]interface{} `json:"extensions,omitempty"`

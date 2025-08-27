@@ -320,7 +320,7 @@ func (s *NephoranAPIServer) handleWebSocketSubscribe(conn *WebSocketConnection, 
 	select {
 	case conn.Send <- mustMarshal(response):
 	default:
-		s.logger.Warn("Failed to send subscription confirmation", "connection_id", conn.ID)
+		s.logger.Info("Failed to send subscription confirmation", "connection_id", conn.ID)
 	}
 }
 
@@ -349,7 +349,7 @@ func (s *NephoranAPIServer) handleWebSocketUnsubscribe(conn *WebSocketConnection
 	select {
 	case conn.Send <- mustMarshal(response):
 	default:
-		s.logger.Warn("Failed to send unsubscription confirmation", "connection_id", conn.ID)
+		s.logger.Info("Failed to send unsubscription confirmation", "connection_id", conn.ID)
 	}
 }
 
@@ -369,7 +369,7 @@ func (s *NephoranAPIServer) handleWebSocketPing(conn *WebSocketConnection, msg *
 	select {
 	case conn.Send <- mustMarshal(response):
 	default:
-		s.logger.Warn("Failed to send pong response", "connection_id", conn.ID)
+		s.logger.Info("Failed to send pong response", "connection_id", conn.ID)
 	}
 }
 
@@ -403,7 +403,7 @@ func (s *NephoranAPIServer) handleWebSocketGetStatus(conn *WebSocketConnection, 
 	select {
 	case conn.Send <- mustMarshal(response):
 	default:
-		s.logger.Warn("Failed to send status response", "connection_id", conn.ID)
+		s.logger.Info("Failed to send status response", "connection_id", conn.ID)
 	}
 }
 
@@ -427,7 +427,7 @@ func (s *NephoranAPIServer) sendWebSocketError(conn *WebSocketConnection, reques
 	select {
 	case conn.Send <- mustMarshal(errorMsg):
 	default:
-		s.logger.Warn("Failed to send error message", "connection_id", conn.ID)
+		s.logger.Info("Failed to send error message", "connection_id", conn.ID)
 	}
 }
 
@@ -742,4 +742,79 @@ func (s *NephoranAPIServer) shouldSendToConnection(filters map[string]interface{
 
 	// Additional filter logic would be implemented here based on the actual data structure
 	return true
+}
+
+// closeStream handles DELETE /api/v1/realtime/streams/{id}
+func (s *NephoranAPIServer) closeStream(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	streamID := vars["id"]
+	
+	s.connectionsMutex.Lock()
+	defer s.connectionsMutex.Unlock()
+	
+	// Close WebSocket connection if it exists
+	if conn, exists := s.wsConnections[streamID]; exists {
+		close(conn.Send)
+		delete(s.wsConnections, streamID)
+		s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
+			"message": "WebSocket stream closed",
+			"stream_id": streamID,
+		})
+		return
+	}
+	
+	// Close SSE connection if it exists  
+	if _, exists := s.sseConnections[streamID]; exists {
+		delete(s.sseConnections, streamID)
+		s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
+			"message": "SSE stream closed",
+			"stream_id": streamID,
+		})
+		return
+	}
+	
+	s.writeErrorResponse(w, http.StatusNotFound, "stream_not_found",
+		fmt.Sprintf("Stream with ID %s not found", streamID))
+}
+
+// getStreamInfo handles GET /api/v1/realtime/streams/{id}
+func (s *NephoranAPIServer) getStreamInfo(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	streamID := vars["id"]
+	
+	s.connectionsMutex.RLock()
+	defer s.connectionsMutex.RUnlock()
+	
+	// Check WebSocket connections
+	if conn, exists := s.wsConnections[streamID]; exists {
+		info := map[string]interface{}{
+			"id":           streamID,
+			"type":         "websocket",
+			"user_id":      conn.UserID,
+			"filters":      conn.Filters,
+			"last_seen":    conn.LastSeen,
+			"connected_at": conn.LastSeen,
+			"status":       "active",
+		}
+		s.writeJSONResponse(w, http.StatusOK, info)
+		return
+	}
+	
+	// Check SSE connections
+	if conn, exists := s.sseConnections[streamID]; exists {
+		info := map[string]interface{}{
+			"id":           streamID,
+			"type":         "sse",
+			"user_id":      conn.UserID,
+			"filters":      conn.Filters,
+			"last_seen":    conn.LastSeen,
+			"connected_at": conn.LastSeen,
+			"status":       "active",
+		}
+		s.writeJSONResponse(w, http.StatusOK, info)
+		return
+	}
+	
+	s.writeErrorResponse(w, http.StatusNotFound, "stream_not_found",
+		fmt.Sprintf("Stream with ID %s not found", streamID))
 }

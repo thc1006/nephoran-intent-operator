@@ -77,6 +77,7 @@ RUN set -eux; \
         binutils \
         curl \
         gnupg \
+        file \
     && rm -rf /var/cache/apk/* /var/lib/apk/lists/* /tmp/* /var/tmp/* \
     && find / -xdev -type f -perm +6000 -delete 2>/dev/null || true
 

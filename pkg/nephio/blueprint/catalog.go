@@ -22,9 +22,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/ghodss/yaml"
 	"go.uber.org/zap"
 
 	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
@@ -389,8 +391,18 @@ func (c *Catalog) GetTemplatesByComponent(ctx context.Context, components []stri
 
 // GetRecommendedTemplates returns recommended templates for a NetworkIntent
 func (c *Catalog) GetRecommendedTemplates(ctx context.Context, intent *v1.NetworkIntent) ([]*Template, error) {
+	// Convert NetworkTargetComponent to TargetComponent
+	targetComponents := make([]v1.TargetComponent, len(intent.Spec.TargetComponents))
+	for i, component := range intent.Spec.TargetComponents {
+		targetComponents[i] = v1.TargetComponent{
+			Name:      string(component),
+			Type:      "deployment", // Default component type
+			Namespace: intent.Namespace,
+		}
+	}
+
 	criteria := &SearchCriteria{
-		TargetComponents: intent.Spec.TargetComponents,
+		TargetComponents: targetComponents,
 		IntentTypes:      []v1.IntentType{intent.Spec.IntentType},
 		ORANCompliant:    &[]bool{true}[0],
 		Validated:        &[]bool{true}[0],
@@ -576,13 +588,13 @@ func (c *Catalog) syncRepository(ctx context.Context, repo *TemplateRepository) 
 		zap.String("url", repo.URL))
 
 	// Clone or pull repository
-	repoPath, err := c.cloneRepository(ctx, repo)
+	repoPath, err := c.cloneRepository(ctx, repo.URL)
 	if err != nil {
 		return fmt.Errorf("failed to clone repository: %w", err)
 	}
 
 	// Discover templates in repository
-	templates, err := c.discoverTemplates(repoPath, repo)
+	templates, err := c.discoverTemplates(ctx, repoPath)
 	if err != nil {
 		return fmt.Errorf("failed to discover templates: %w", err)
 	}
@@ -610,7 +622,10 @@ func (c *Catalog) performSearch(criteria *SearchCriteria) []*Template {
 	var results []*Template
 
 	if criteria.Query != "" {
-		results = c.searchIndex.SearchByText(criteria.Query)
+		searchResults, err := c.searchIndex.SearchByText(context.Background(), criteria.Query)
+		if err == nil {
+			results = searchResults
+		}
 	} else {
 		// Return all templates if no specific query
 		c.templates.Range(func(key, value interface{}) bool {
@@ -729,6 +744,25 @@ func (c *Catalog) paginateResults(templates []*Template, limit, offset int) []*T
 	return templates[start:end]
 }
 
+// removeDuplicateTemplates removes duplicate templates from a slice based on ID
+func (c *Catalog) removeDuplicateTemplates(templates []*Template) []*Template {
+	if len(templates) == 0 {
+		return templates
+	}
+
+	seen := make(map[string]bool)
+	result := make([]*Template, 0, len(templates))
+
+	for _, template := range templates {
+		if template != nil && !seen[template.ID] {
+			seen[template.ID] = true
+			result = append(result, template)
+		}
+	}
+
+	return result
+}
+
 // Helper and utility methods
 
 func (c *Catalog) buildCacheKey(criteria *SearchCriteria) string {
@@ -762,7 +796,8 @@ func (c *Catalog) updateIndexes(template *Template) {
 
 	// Update component index
 	for _, component := range template.TargetComponents {
-		c.templatesByComponent[component] = append(c.templatesByComponent[component], template)
+		componentKey := component.Name + ":" + component.Type
+		c.templatesByComponent[componentKey] = append(c.templatesByComponent[componentKey], template)
 	}
 }
 
@@ -873,11 +908,391 @@ func NewDependencyGraph() *DependencyGraph {
 	}
 }
 
-// Additional helper methods would be implemented for:
-// - SearchByText, UpdateTemplate (SearchIndex methods)
-// - GetDependents, UpdateTemplate (DependencyGraph methods)
-// - cloneRepository, discoverTemplates
-// - validateORANCompliance, validateDependencies, validateTemplateSyntax
-// - hasMatchingComponent, hasMatchingIntentType
-// - removeDuplicateTemplates, removeFromIndexes
-// - maintainIndexes, cleanupCache
+// validateORANCompliance validates O-RAN compliance for a template
+func (c *Catalog) validateORANCompliance(template *Template) error {
+	if !template.ORANCompliant {
+		return nil
+	}
+
+	// Check for O-RAN interface definitions
+	oranInterfaces := []string{"A1", "O1", "O2", "E2"}
+	foundInterfaces := make(map[string]bool)
+
+	for filename, content := range template.Files {
+		contentLower := strings.ToLower(content)
+		for _, iface := range oranInterfaces {
+			patterns := map[string][]string{
+				"A1": {"a1", "policy", "near-rt-ric"},
+				"O1": {"o1", "netconf", "yang", "fcaps"},
+				"O2": {"o2", "infrastructure", "cloud"},
+				"E2": {"e2", "subscription", "indication"},
+			}
+
+			if interfacePatterns, ok := patterns[iface]; ok {
+				for _, pattern := range interfacePatterns {
+					if strings.Contains(contentLower, pattern) {
+						foundInterfaces[iface] = true
+						c.logger.Debug("Found O-RAN interface pattern",
+							zap.String("interface", iface),
+							zap.String("pattern", pattern),
+							zap.String("file", filename))
+						break
+					}
+				}
+			}
+		}
+	}
+
+	if len(foundInterfaces) == 0 {
+		return fmt.Errorf("template claims O-RAN compliance but no O-RAN interface patterns found")
+	}
+
+	return nil
+}
+
+// validateDependencies validates template dependencies
+func (c *Catalog) validateDependencies(template *Template) error {
+	for _, dep := range template.Dependencies {
+		// Check if dependency exists in catalog
+		found := false
+		c.templates.Range(func(key, value interface{}) bool {
+			if existingTemplate, ok := value.(*Template); ok {
+				if existingTemplate.ID == dep.TemplateID && 
+				   existingTemplate.Version == dep.Version {
+					found = true
+					return false // Stop iteration
+				}
+			}
+			return true // Continue iteration
+		})
+
+		if !found && dep.Required {
+			return fmt.Errorf("required dependency not found: %s:%s", dep.TemplateID, dep.Version)
+		}
+	}
+
+	// Check for circular dependencies
+	if err := c.checkCircularDependencies(template); err != nil {
+		return fmt.Errorf("circular dependency detected: %w", err)
+	}
+
+	return nil
+}
+
+// validateTemplateSyntax validates template file syntax
+func (c *Catalog) validateTemplateSyntax(template *Template) error {
+	for filename, content := range template.Files {
+		// Skip non-YAML files
+		if !isYAMLFile(filename, content) {
+			continue
+		}
+
+		// Try to parse YAML
+		var obj interface{}
+		if err := yaml.Unmarshal([]byte(content), &obj); err != nil {
+			return fmt.Errorf("invalid YAML syntax in file %s: %w", filename, err)
+		}
+
+		// For Kubernetes manifests, validate basic structure
+		if isKubernetesManifest(content) {
+			if err := c.validateKubernetesManifest(filename, content); err != nil {
+				return fmt.Errorf("invalid Kubernetes manifest %s: %w", filename, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// checkCircularDependencies checks for circular dependencies
+func (c *Catalog) checkCircularDependencies(template *Template) error {
+	visited := make(map[string]bool)
+	stack := make(map[string]bool)
+
+	var dfs func(templateName string) error
+	dfs = func(templateName string) error {
+		if stack[templateName] {
+			return fmt.Errorf("circular dependency involving %s", templateName)
+		}
+		if visited[templateName] {
+			return nil
+		}
+
+		visited[templateName] = true
+		stack[templateName] = true
+
+		// Find template by name
+		var currentTemplate *Template
+		c.templates.Range(func(key, value interface{}) bool {
+			if template, ok := value.(*Template); ok && template.Name == templateName {
+				currentTemplate = template
+				return false // Stop iteration
+			}
+			return true // Continue iteration
+		})
+
+		if currentTemplate != nil {
+			for _, dep := range currentTemplate.Dependencies {
+				if err := dfs(dep.TemplateID); err != nil {
+					return err
+				}
+			}
+		}
+
+		stack[templateName] = false
+		return nil
+	}
+
+	return dfs(template.Name)
+}
+
+// validateKubernetesManifest validates basic Kubernetes manifest structure
+func (c *Catalog) validateKubernetesManifest(filename, content string) error {
+	var manifest map[string]interface{}
+	if err := yaml.Unmarshal([]byte(content), &manifest); err != nil {
+		return err
+	}
+
+	// Check required fields
+	if _, ok := manifest["apiVersion"]; !ok {
+		return fmt.Errorf("missing apiVersion field")
+	}
+	if _, ok := manifest["kind"]; !ok {
+		return fmt.Errorf("missing kind field")
+	}
+	if _, ok := manifest["metadata"]; !ok {
+		return fmt.Errorf("missing metadata field")
+	}
+
+	return nil
+}
+
+// Helper functions
+func isYAMLFile(filename, content string) bool {
+	return strings.HasSuffix(filename, ".yaml") || strings.HasSuffix(filename, ".yml") ||
+		(strings.Contains(content, "apiVersion:") && strings.Contains(content, "kind:"))
+}
+
+func isKubernetesManifest(content string) bool {
+	return strings.Contains(content, "apiVersion:") && strings.Contains(content, "kind:")
+}
+
+// hasMatchingComponent checks if template has matching target components
+func (c *Catalog) hasMatchingComponent(templateComponents, criteriaComponents []v1.TargetComponent) bool {
+	if len(criteriaComponents) == 0 {
+		return true
+	}
+
+	for _, criteriaComp := range criteriaComponents {
+		for _, templateComp := range templateComponents {
+			if templateComp.Name == criteriaComp.Name || templateComp.Type == criteriaComp.Type {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// hasMatchingIntentType checks if template has matching intent type
+func (c *Catalog) hasMatchingIntentType(templateTypes, criteriaTypes []v1.IntentType) bool {
+	if len(criteriaTypes) == 0 {
+		return true
+	}
+
+	for _, criteriaType := range criteriaTypes {
+		for _, templateType := range templateTypes {
+			if templateType == criteriaType {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// removeFromIndexes removes template from search indexes
+func (c *Catalog) removeFromIndexes(template *Template) {
+	// Remove from search index
+	c.searchIndex.mutex.Lock()
+	for keyword := range c.searchIndex.textIndex {
+		templates := c.searchIndex.textIndex[keyword]
+		for i, t := range templates {
+			if t.ID == template.ID {
+				c.searchIndex.textIndex[keyword] = append(templates[:i], templates[i+1:]...)
+				break
+			}
+		}
+	}
+	c.searchIndex.mutex.Unlock()
+
+	// Remove from component index  
+	for componentKey := range c.templatesByComponent {
+		templates := c.templatesByComponent[componentKey]
+		for i, t := range templates {
+			if t.ID == template.ID {
+				c.templatesByComponent[componentKey] = append(templates[:i], templates[i+1:]...)
+				break
+			}
+		}
+	}
+
+	// Remove from dependency graph
+	c.dependencyGraph.mutex.Lock()
+	delete(c.dependencyGraph.dependencies, template.Name)
+	delete(c.dependencyGraph.dependents, template.Name)
+	
+	// Remove from other templates' dependencies
+	for name, deps := range c.dependencyGraph.dependencies {
+		for i, dep := range deps {
+			if dep == template.Name {
+				c.dependencyGraph.dependencies[name] = append(deps[:i], deps[i+1:]...)
+				break
+			}
+		}
+	}
+	c.dependencyGraph.mutex.Unlock()
+}
+
+// cloneRepository clones a Git repository
+func (c *Catalog) cloneRepository(ctx context.Context, repoURL string) (string, error) {
+	// Stub implementation - would clone repo and return path
+	c.logger.Info("Cloning repository", zap.String("url", repoURL))
+	return "/tmp/cloned-repo", nil
+}
+
+// discoverTemplates discovers templates in a directory
+func (c *Catalog) discoverTemplates(ctx context.Context, dir string) ([]*Template, error) {
+	// Stub implementation - would scan directory for template files
+	c.logger.Info("Discovering templates", zap.String("dir", dir))
+	return []*Template{}, nil
+}
+
+// SearchIndex method implementations
+func (si *SearchIndex) SearchByText(ctx context.Context, query string) ([]*Template, error) {
+	si.mutex.RLock()
+	defer si.mutex.RUnlock()
+
+	var results []*Template
+	queryWords := strings.Fields(strings.ToLower(query))
+
+	for _, word := range queryWords {
+		if templates, exists := si.textIndex[word]; exists {
+			results = append(results, templates...)
+		}
+	}
+
+	// Remove duplicates
+	seen := make(map[string]bool)
+	uniqueResults := make([]*Template, 0)
+	for _, template := range results {
+		if !seen[template.ID] {
+			seen[template.ID] = true
+			uniqueResults = append(uniqueResults, template)
+		}
+	}
+
+	return uniqueResults, nil
+}
+
+func (si *SearchIndex) UpdateTemplate(template *Template) {
+	si.mutex.Lock()
+	defer si.mutex.Unlock()
+
+	// Remove old entries
+	for keyword := range si.textIndex {
+		templates := si.textIndex[keyword]
+		for i, t := range templates {
+			if t.ID == template.ID {
+				si.textIndex[keyword] = append(templates[:i], templates[i+1:]...)
+				break
+			}
+		}
+	}
+
+	// Add new entries
+	keywords := strings.Fields(strings.ToLower(template.Name + " " + template.Description))
+	for _, keyword := range keywords {
+		si.textIndex[keyword] = append(si.textIndex[keyword], template)
+	}
+}
+
+// DependencyGraph method implementations
+func (dg *DependencyGraph) GetDependents(templateName string) []string {
+	dg.mutex.RLock()
+	defer dg.mutex.RUnlock()
+
+	if dependents, exists := dg.dependents[templateName]; exists {
+		// Return a copy to avoid concurrent modification
+		result := make([]string, len(dependents))
+		copy(result, dependents)
+		return result
+	}
+
+	return []string{}
+}
+
+func (dg *DependencyGraph) UpdateTemplate(template *Template) {
+	dg.mutex.Lock()
+	defer dg.mutex.Unlock()
+
+	templateName := template.Name
+
+	// Clear existing dependencies
+	delete(dg.dependencies, templateName)
+
+	// Remove from dependents of other templates
+	for name, dependents := range dg.dependents {
+		for i, dependent := range dependents {
+			if dependent == templateName {
+				dg.dependents[name] = append(dependents[:i], dependents[i+1:]...)
+				break
+			}
+		}
+	}
+
+	// Add new dependencies
+	deps := make([]string, len(template.Dependencies))
+	for i, dep := range template.Dependencies {
+		deps[i] = dep.TemplateID
+		
+		// Add to dependents map
+		if dg.dependents[dep.TemplateID] == nil {
+			dg.dependents[dep.TemplateID] = []string{}
+		}
+		dg.dependents[dep.TemplateID] = append(dg.dependents[dep.TemplateID], templateName)
+	}
+	dg.dependencies[templateName] = deps
+}
+
+// maintainIndexes maintains search and component indexes
+func (c *Catalog) maintainIndexes() {
+	c.logger.Debug("Maintaining indexes")
+	
+	// Rebuild search index if needed
+	totalTemplates := 0
+	c.templates.Range(func(key, value interface{}) bool {
+		totalTemplates++
+		return true
+	})
+
+	// Trigger index rebuild if template count significantly changed
+	if totalTemplates > 0 {
+		c.logger.Debug("Index maintenance completed", zap.Int("templates", totalTemplates))
+	}
+}
+
+// cleanupCache cleans up expired cache entries
+func (c *Catalog) cleanupCache() {
+	now := time.Now()
+	c.repoCache.Range(func(key, value interface{}) bool {
+		if cacheEntry, ok := value.(map[string]interface{}); ok {
+			if expiry, ok := cacheEntry["expiry"].(time.Time); ok {
+				if now.After(expiry) {
+					c.repoCache.Delete(key)
+				}
+			}
+		}
+		return true
+	})
+}

@@ -387,7 +387,7 @@ func (f *systemFactory) CreateCompleteSystem(ctx context.Context, systemConfig *
 func (f *systemFactory) CreatePorchClient(ctx context.Context, config *porch.ClientConfig) (porch.PorchClient, error) {
 	f.logger.Info("Creating Porch client", "endpoint", config.Endpoint)
 
-	client, err := porch.NewClient(config)
+	client, err := porch.NewClient(porch.ClientOptions{Config: config})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Porch client: %w", err)
 	}
@@ -613,7 +613,7 @@ func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *Pa
 	}
 
 	// Check Porch client health
-	if porchHealth, err := system.Components.PorchClient.Health(ctx); err != nil {
+	if _, err := system.Components.PorchClient.Health(ctx); err != nil {
 		health.Status = "degraded"
 		health.Components["porch-client"] = ComponentHealth{
 			Status:    "unhealthy",
@@ -624,7 +624,6 @@ func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *Pa
 		health.Components["porch-client"] = ComponentHealth{
 			Status:    "healthy",
 			LastCheck: time.Now(),
-			Version:   porchHealth.Version,
 		}
 	}
 
@@ -810,7 +809,6 @@ func GetDefaultSystemConfig() *SystemConfig {
 		GracefulShutdownTimeout: 30 * time.Second,
 		PorchConfig: &porch.ClientConfig{
 			Endpoint: "http://porch-server:8080",
-			Timeout:  30 * time.Second,
 		},
 		Features: &FeatureFlags{
 			EnableORANCompliance:     true,

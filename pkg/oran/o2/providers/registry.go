@@ -132,6 +132,20 @@ func (r *ProviderRegistry) ListProviders() []string {
 	return names
 }
 
+// GetSupportedProviders returns all supported provider types
+func (r *ProviderRegistry) GetSupportedProviders() []string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var providerTypes []string
+	for _, provider := range r.providers {
+		info := provider.GetProviderInfo()
+		providerTypes = append(providerTypes, info.Type)
+	}
+
+	return providerTypes
+}
+
 // ListProvidersByType returns providers of a specific type
 func (r *ProviderRegistry) ListProvidersByType(providerType string) []string {
 	r.mu.RLock()
@@ -840,5 +854,3 @@ type ProviderSelectionCriteria struct {
 	RequiredCapabilities []string // Required capabilities
 	SelectionStrategy    string   // Selection strategy (random, least-loaded, round-robin)
 }
-
-

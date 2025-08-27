@@ -20,7 +20,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -41,6 +43,115 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/packagerevision"
 	"github.com/thc1006/nephoran-intent-operator/pkg/services"
 )
+
+// Mock token store implementation for auth components
+type mockTokenStore struct {
+	tokens map[string]*auth.TokenInfo
+}
+
+func (m *mockTokenStore) StoreToken(ctx context.Context, tokenID string, token *auth.TokenInfo) error {
+	m.tokens[tokenID] = token
+	return nil
+}
+
+func (m *mockTokenStore) GetToken(ctx context.Context, tokenID string) (*auth.TokenInfo, error) {
+	if token, exists := m.tokens[tokenID]; exists {
+		return token, nil
+	}
+	return nil, fmt.Errorf("token not found")
+}
+
+func (m *mockTokenStore) UpdateToken(ctx context.Context, tokenID string, token *auth.TokenInfo) error {
+	m.tokens[tokenID] = token
+	return nil
+}
+
+func (m *mockTokenStore) DeleteToken(ctx context.Context, tokenID string) error {
+	delete(m.tokens, tokenID)
+	return nil
+}
+
+func (m *mockTokenStore) ListUserTokens(ctx context.Context, userID string) ([]*auth.TokenInfo, error) {
+	var tokens []*auth.TokenInfo
+	for _, token := range m.tokens {
+		if token.UserID == userID {
+			tokens = append(tokens, token)
+		}
+	}
+	return tokens, nil
+}
+
+func (m *mockTokenStore) CleanupExpired(ctx context.Context) error {
+	now := time.Now()
+	for id, token := range m.tokens {
+		if now.After(token.ExpiresAt) {
+			delete(m.tokens, id)
+		}
+	}
+	return nil
+}
+
+func (m *mockTokenStore) ApplyDataRetention(ctx context.Context, retentionDays int) error {
+	cutoff := time.Now().AddDate(0, 0, -retentionDays)
+	for id, token := range m.tokens {
+		if token.IssuedAt.Before(cutoff) {
+			delete(m.tokens, id)
+		}
+	}
+	return nil
+}
+
+func (m *mockTokenStore) DeleteUserData(ctx context.Context, userID string) error {
+	for id, token := range m.tokens {
+		if token.UserID == userID {
+			delete(m.tokens, id)
+		}
+	}
+	return nil
+}
+
+func (m *mockTokenStore) ExportUserData(ctx context.Context, userID string) (map[string]interface{}, error) {
+	// Mock implementation - return basic user data export
+	return map[string]interface{}{
+		"user_id": userID,
+		"tokens":  []string{}, // Empty for mock
+	}, nil
+}
+
+// Mock token blacklist implementation for auth components
+type mockTokenBlacklist struct {
+	blacklisted map[string]time.Time
+}
+
+func (m *mockTokenBlacklist) BlacklistToken(ctx context.Context, tokenID string, expiresAt time.Time) error {
+	m.blacklisted[tokenID] = expiresAt
+	return nil
+}
+
+func (m *mockTokenBlacklist) IsTokenBlacklisted(ctx context.Context, tokenID string) (bool, error) {
+	_, exists := m.blacklisted[tokenID]
+	return exists, nil
+}
+
+func (m *mockTokenBlacklist) CleanupExpired(ctx context.Context) error {
+	now := time.Now()
+	for id, expiresAt := range m.blacklisted {
+		if now.After(expiresAt) {
+			delete(m.blacklisted, id)
+		}
+	}
+	return nil
+}
+
+func (m *mockTokenBlacklist) BlacklistUserTokens(ctx context.Context, userID string, reason string) error {
+	// Mock implementation - in real scenario would find all user tokens and blacklist them
+	return nil
+}
+
+func (m *mockTokenBlacklist) GetBlacklistAuditTrail(ctx context.Context, tokenID string) ([]auth.AuditEvent, error) {
+	// Mock implementation - return empty audit trail
+	return []auth.AuditEvent{}, nil
+}
 
 // NephoranAPIServer provides comprehensive Web UI integration for the Nephoran Intent Operator
 type NephoranAPIServer struct {
@@ -323,17 +434,54 @@ func (s *NephoranAPIServer) initializeAuth() error {
 		return nil
 	}
 
-	// Initialize session manager
-	s.sessionManager = auth.NewSessionManager(authConfig, s.logger.WithName("session-manager"))
+	// Convert logr.Logger to slog.Logger for auth components
+	slogLogger := slog.Default() // Use default slog logger
 
-	// Initialize RBAC manager
-	s.rbacManager = auth.NewRBACManager(authConfig.RBAC, s.logger.WithName("rbac-manager"))
-
-	// Initialize JWT manager
-	jwtManager, err := auth.NewJWTManager(authConfig)
+	// Initialize JWT manager with minimal config
+	jwtConfig := &auth.JWTConfig{
+		Issuer:               "nephoran-webui",
+		SigningKey:           authConfig.JWTSecretKey,
+		KeyRotationPeriod:    24 * time.Hour,
+		DefaultTTL:           authConfig.TokenTTL,
+		RefreshTTL:           authConfig.RefreshTTL,
+		RequireSecureCookies: true,
+		CookieDomain:         "",
+		CookiePath:           "/",
+	}
+	
+	// Create token store and blacklist (mock implementations for now)
+	tokenStore := &mockTokenStore{tokens: make(map[string]*auth.TokenInfo)}
+	tokenBlacklist := &mockTokenBlacklist{blacklisted: make(map[string]time.Time)}
+	
+	jwtManager, err := auth.NewJWTManager(jwtConfig, tokenStore, tokenBlacklist, slogLogger)
 	if err != nil {
 		return fmt.Errorf("failed to create JWT manager: %w", err)
 	}
+
+	// Initialize RBAC manager with basic config
+	rbacConfig := &auth.RBACManagerConfig{
+		CacheTTL:           5 * time.Minute,
+		EnableHierarchy:    true,
+		DefaultDenyAll:     false,
+		PolicyEvaluation:   "first-applicable",
+		MaxPolicyDepth:     10,
+		EnableAuditLogging: false,
+	}
+	s.rbacManager = auth.NewRBACManager(rbacConfig, slogLogger)
+
+	// Initialize session manager with basic config
+	sessionConfig := &auth.SessionConfig{
+		SessionTimeout:   1 * time.Hour,
+		RefreshThreshold: 15 * time.Minute,
+		CleanupPeriod:    10 * time.Minute,
+		MaxSessions:      1000,
+		SecureCookies:    true,
+		SameSiteCookies:  "lax",
+		CookieDomain:     "",
+		CookiePath:       "/",
+		CookieName:       "nephoran-session",
+	}
+	s.sessionManager = auth.NewSessionManager(sessionConfig, jwtManager, s.rbacManager, slogLogger)
 
 	// Initialize auth middleware
 	middlewareConfig := &auth.MiddlewareConfig{
@@ -461,7 +609,8 @@ func (s *NephoranAPIServer) Shutdown() error {
 // Middleware functions
 
 func (s *NephoranAPIServer) loggingMiddleware(next http.Handler) http.Handler {
-	return handlers.LoggingHandler(s.logger.Info, next)
+	// Use os.Stdout for logging since logr.Logger.Info doesn't implement io.Writer
+	return handlers.LoggingHandler(os.Stdout, next)
 }
 
 func (s *NephoranAPIServer) metricsMiddleware(next http.Handler) http.Handler {
@@ -488,22 +637,6 @@ func (s *NephoranAPIServer) metricsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func (s *NephoranAPIServer) rateLimitMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userID := auth.GetUserID(r.Context())
-		if userID == "" {
-			userID = getClientIP(r)
-		}
-
-		if !s.rateLimiter.Allow(userID) {
-			s.metrics.RateLimitExceeded.Inc()
-			s.writeErrorResponse(w, http.StatusTooManyRequests, "rate_limit_exceeded", "Rate limit exceeded")
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
 
 // Background workers
 

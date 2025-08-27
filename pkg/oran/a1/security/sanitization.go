@@ -152,18 +152,10 @@ type Violation struct {
 	Rule     string            `json:"rule"`
 	Value    interface{}       `json:"value,omitempty"`
 	Message  string            `json:"message"`
-	Severity ViolationSeverity `json:"severity"`
+	Severity EventSeverity `json:"severity"`
 }
 
-// ViolationSeverity represents the severity of a violation
-type ViolationSeverity string
-
-const (
-	SeverityInfo     ViolationSeverity = "info"
-	SeverityWarning  ViolationSeverity = "warning"
-	SeverityError    ViolationSeverity = "error"
-	SeverityCritical ViolationSeverity = "critical"
-)
+// Note: Severity constants are defined in audit.go as EventSeverity type
 
 // Common malicious patterns
 var (

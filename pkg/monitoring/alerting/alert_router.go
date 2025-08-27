@@ -167,6 +167,7 @@ type BusinessImpactScore struct {
 	RevenueImpact    float64 `json:"revenue_impact"`
 	ReputationImpact float64 `json:"reputation_impact"`
 	ServiceTier      string  `json:"service_tier"`
+	CustomerFacing   bool    `json:"customer_facing"`
 }
 
 // AlertGroup represents a group of related alerts for deduplication

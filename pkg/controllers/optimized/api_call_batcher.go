@@ -3,6 +3,7 @@ package optimized
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"sync"
 	"time"
 
@@ -129,9 +130,16 @@ func (ab *APICallBatcher) Get(ctx context.Context, key types.NamespacedName, obj
 		if result.Error != nil {
 			return result.Error
 		}
-		// Copy result to the provided object
+		// Copy result back to original object using reflection
 		if result.Object != nil {
-			obj.DeepCopyInto(result.Object)
+			objVal := reflect.ValueOf(obj)
+			resultVal := reflect.ValueOf(result.Object)
+			
+			if objVal.Kind() == reflect.Ptr && resultVal.Kind() == reflect.Ptr {
+				if objVal.Elem().Type() == resultVal.Elem().Type() {
+					objVal.Elem().Set(resultVal.Elem())
+				}
+			}
 		}
 		return nil
 	case <-ctx.Done():

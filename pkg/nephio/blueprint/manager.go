@@ -249,13 +249,13 @@ type BlueprintResult struct {
 	Error             error
 	PackageRevision   *PackageRevision
 	GeneratedFiles    map[string]string
-	ValidationResults *ValidationResult
+	ValidationResults *SimpleValidationResult
 	Metrics           map[string]interface{}
 	Duration          time.Duration
 }
 
-// ValidationResult represents validation results (simplified)
-type ValidationResult struct {
+// SimpleValidationResult represents validation results (simplified)
+type SimpleValidationResult struct {
 	IsValid bool     `json:"isValid"`
 	Errors  []string `json:"errors,omitempty"`
 }

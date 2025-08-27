@@ -14,9 +14,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
@@ -626,10 +624,6 @@ func (r *OptimizedNetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) er
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 5, // Increased concurrency
 		}).
-		Watches(
-			&source.Kind{Type: &nephoranv1.NetworkIntent{}},
-			&handler.EnqueueRequestForObject{},
-		).
 		Complete(r)
 }
 

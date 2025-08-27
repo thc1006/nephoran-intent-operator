@@ -717,4 +717,386 @@ func (s *NephoranAPIServer) getSystemInfo(w http.ResponseWriter, r *http.Request
 	s.writeJSONResponse(w, http.StatusOK, info)
 }
 
+// getSystemHealth handles GET /api/v1/dashboard/health
+func (s *NephoranAPIServer) getSystemHealth(w http.ResponseWriter, r *http.Request) {
+	// Mock system health data - would integrate with actual health checkers
+	systemHealth := map[string]interface{}{
+		"status": "healthy",
+		"timestamp": time.Now(),
+		"components": map[string]interface{}{
+			"api_server": map[string]interface{}{
+				"status": "healthy",
+				"response_time": "12ms",
+			},
+			"database": map[string]interface{}{
+				"status": "healthy",
+				"connections": 25,
+				"max_connections": 100,
+			},
+			"llm_service": map[string]interface{}{
+				"status": "healthy",
+				"response_time": "150ms",
+				"models_loaded": 3,
+			},
+			"cluster_manager": map[string]interface{}{
+				"status": "healthy",
+				"clusters_reachable": 5,
+				"total_clusters": 5,
+			},
+			"git_repository": map[string]interface{}{
+				"status": "healthy",
+				"last_sync": time.Now().Add(-5 * time.Minute),
+				"branches": []string{"main", "develop"},
+			},
+		},
+		"overall_health_score": 98.5,
+		"uptime": time.Since(time.Now().Add(-72 * time.Hour)).Seconds(),
+		"version": "1.0.0",
+	}
+
+	s.writeJSONResponse(w, http.StatusOK, systemHealth)
+}
+
+// getIntentMetrics handles GET /api/v1/dashboard/metrics/intents
+func (s *NephoranAPIServer) getIntentMetrics(w http.ResponseWriter, r *http.Request) {
+	// Mock intent metrics - would integrate with actual metrics collector
+	intentMetrics := map[string]interface{}{
+		"total_intents": 250,
+		"active_intents": 45,
+		"completed_intents": 185,
+		"failed_intents": 20,
+		"pending_intents": 15,
+		"processing_intents": 30,
+		"success_rate": 92.5,
+		"average_processing_time": "45.3s",
+		"intents_by_type": map[string]int{
+			"scaling": 120,
+			"deployment": 85,
+			"configuration": 45,
+		},
+		"intents_by_cluster": map[string]int{
+			"cluster-1": 95,
+			"cluster-2": 88,
+			"cluster-3": 67,
+		},
+		"processing_time_percentiles": map[string]interface{}{
+			"p50": "32s",
+			"p95": "2m15s",
+			"p99": "5m30s",
+		},
+		"hourly_stats": []map[string]interface{}{
+			{"hour": "14:00", "total": 15, "success": 14, "failed": 1},
+			{"hour": "15:00", "total": 22, "success": 20, "failed": 2},
+			{"hour": "16:00", "total": 18, "success": 18, "failed": 0},
+		},
+		"last_updated": time.Now(),
+	}
+
+	s.writeJSONResponse(w, http.StatusOK, intentMetrics)
+}
+
+// getPackageMetrics handles GET /api/v1/dashboard/metrics/packages
+func (s *NephoranAPIServer) getPackageMetrics(w http.ResponseWriter, r *http.Request) {
+	// Mock package metrics - would integrate with package manager
+	packageMetrics := map[string]interface{}{
+		"total_packages": 125,
+		"published_packages": 98,
+		"draft_packages": 15,
+		"archived_packages": 12,
+		"packages_by_type": map[string]int{
+			"cnf": 65,
+			"vnf": 35,
+			"config": 25,
+		},
+		"deployment_stats": map[string]interface{}{
+			"successful_deployments": 1250,
+			"failed_deployments": 85,
+			"pending_deployments": 22,
+			"deployment_success_rate": 93.6,
+		},
+		"popular_packages": []map[string]interface{}{
+			{"name": "nginx-ingress", "deployments": 45, "clusters": 8},
+			{"name": "prometheus-operator", "deployments": 38, "clusters": 6},
+			{"name": "cert-manager", "deployments": 32, "clusters": 7},
+		},
+		"recent_activity": []map[string]interface{}{
+			{"action": "published", "package": "grafana-dashboard", "timestamp": time.Now().Add(-2 * time.Hour)},
+			{"action": "updated", "package": "monitoring-stack", "timestamp": time.Now().Add(-4 * time.Hour)},
+			{"action": "deployed", "package": "ingress-controller", "timestamp": time.Now().Add(-6 * time.Hour)},
+		},
+		"storage_usage": map[string]interface{}{
+			"total_size": "15.2GB",
+			"packages_size": "12.8GB", 
+			"artifacts_size": "2.4GB",
+		},
+		"last_updated": time.Now(),
+	}
+
+	s.writeJSONResponse(w, http.StatusOK, packageMetrics)
+}
+
+// getClusterMetrics handles GET /api/v1/dashboard/metrics/clusters
+func (s *NephoranAPIServer) getClusterMetrics(w http.ResponseWriter, r *http.Request) {
+	clusterMetrics := map[string]interface{}{
+		"total_clusters": 5,
+		"healthy_clusters": 4,
+		"unhealthy_clusters": 1,
+		"clusters_by_region": map[string]int{
+			"us-west-2": 3,
+			"us-east-1": 2,
+		},
+		"resource_utilization": map[string]interface{}{
+			"average_cpu": 65.2,
+			"average_memory": 72.8,
+			"average_storage": 45.1,
+		},
+		"last_updated": time.Now(),
+	}
+	s.writeJSONResponse(w, http.StatusOK, clusterMetrics)
+}
+
+// getNetworkMetrics handles GET /api/v1/dashboard/metrics/network
+func (s *NephoranAPIServer) getNetworkMetrics(w http.ResponseWriter, r *http.Request) {
+	networkMetrics := map[string]interface{}{
+		"total_bandwidth": "10Gbps",
+		"utilized_bandwidth": "4.2Gbps",
+		"utilization_percentage": 42.0,
+		"latency": map[string]interface{}{
+			"average": "15.3ms",
+			"p95": "28.7ms",
+			"p99": "45.2ms",
+		},
+		"last_updated": time.Now(),
+	}
+	s.writeJSONResponse(w, http.StatusOK, networkMetrics)
+}
+
+// getPerformanceMetrics handles GET /api/v1/dashboard/metrics/performance
+func (s *NephoranAPIServer) getPerformanceMetrics(w http.ResponseWriter, r *http.Request) {
+	performanceMetrics := map[string]interface{}{
+		"api_response_times": map[string]interface{}{
+			"average": "125ms",
+			"p50": "89ms",
+			"p95": "245ms",
+			"p99": "450ms",
+		},
+		"throughput": map[string]interface{}{
+			"requests_per_second": 156.7,
+			"successful_requests": 98.2,
+			"error_rate": 1.8,
+		},
+		"resource_usage": map[string]interface{}{
+			"cpu_percentage": 45.2,
+			"memory_percentage": 62.8,
+			"disk_io": "125MB/s",
+			"network_io": "89MB/s",
+		},
+		"last_updated": time.Now(),
+	}
+	s.writeJSONResponse(w, http.StatusOK, performanceMetrics)
+}
+
+// getActiveAlerts handles GET /api/v1/dashboard/alerts
+func (s *NephoranAPIServer) getActiveAlerts(w http.ResponseWriter, r *http.Request) {
+	alerts := map[string]interface{}{
+		"total_alerts": 3,
+		"critical_alerts": 1,
+		"warning_alerts": 2,
+		"alerts": []map[string]interface{}{
+			{
+				"id": "alert-001",
+				"severity": "critical",
+				"title": "High CPU usage on cluster-1",
+				"description": "CPU usage has exceeded 90% for more than 5 minutes",
+				"timestamp": time.Now().Add(-10 * time.Minute),
+				"acknowledged": false,
+			},
+			{
+				"id": "alert-002", 
+				"severity": "warning",
+				"title": "Memory usage increasing on cluster-2",
+				"description": "Memory usage trending upward, currently at 75%",
+				"timestamp": time.Now().Add(-25 * time.Minute),
+				"acknowledged": true,
+			},
+		},
+		"last_updated": time.Now(),
+	}
+	s.writeJSONResponse(w, http.StatusOK, alerts)
+}
+
+// getRecentEvents handles GET /api/v1/dashboard/events
+func (s *NephoranAPIServer) getRecentEvents(w http.ResponseWriter, r *http.Request) {
+	events := map[string]interface{}{
+		"total_events": 25,
+		"events": []map[string]interface{}{
+			{
+				"id": "event-001",
+				"type": "deployment",
+				"title": "Package deployed successfully",
+				"description": "nginx-ingress package deployed to cluster-1",
+				"timestamp": time.Now().Add(-5 * time.Minute),
+				"source": "package-manager",
+			},
+			{
+				"id": "event-002",
+				"type": "alert",
+				"title": "Alert resolved",
+				"description": "High memory usage alert on cluster-3 resolved",
+				"timestamp": time.Now().Add(-15 * time.Minute),
+				"source": "monitoring",
+			},
+		},
+		"last_updated": time.Now(),
+	}
+	s.writeJSONResponse(w, http.StatusOK, events)
+}
+
+// acknowledgeAlert handles POST /api/v1/dashboard/alerts/{id}/acknowledge
+func (s *NephoranAPIServer) acknowledgeAlert(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	alertID := vars["id"]
+	
+	result := map[string]interface{}{
+		"alert_id": alertID,
+		"status": "acknowledged",
+		"acknowledged_at": time.Now(),
+		"acknowledged_by": "admin", // Would get from auth context
+	}
+	s.writeJSONResponse(w, http.StatusOK, result)
+}
+
+// resolveAlert handles POST /api/v1/dashboard/alerts/{id}/resolve
+func (s *NephoranAPIServer) resolveAlert(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	alertID := vars["id"]
+	
+	result := map[string]interface{}{
+		"alert_id": alertID,
+		"status": "resolved",
+		"resolved_at": time.Now(),
+		"resolved_by": "admin", // Would get from auth context
+	}
+	s.writeJSONResponse(w, http.StatusOK, result)
+}
+
+// getIntentTrends handles GET /api/v1/dashboard/trends/intents
+func (s *NephoranAPIServer) getIntentTrends(w http.ResponseWriter, r *http.Request) {
+	trends := map[string]interface{}{
+		"period": "24h",
+		"data_points": 24,
+		"success_rate_trend": []float64{95.2, 96.1, 94.8, 97.3, 95.6},
+		"volume_trend": []int{45, 52, 48, 61, 58},
+		"processing_time_trend": []float64{42.5, 38.2, 45.1, 39.8, 41.2},
+		"last_updated": time.Now(),
+	}
+	s.writeJSONResponse(w, http.StatusOK, trends)
+}
+
+// getPackageTrends handles GET /api/v1/dashboard/trends/packages
+func (s *NephoranAPIServer) getPackageTrends(w http.ResponseWriter, r *http.Request) {
+	trends := map[string]interface{}{
+		"period": "7d",
+		"deployment_trend": []int{12, 15, 18, 22, 19, 25, 28},
+		"success_rate_trend": []float64{96.5, 97.2, 95.8, 98.1, 97.6, 96.9, 98.3},
+		"popular_packages_trend": []map[string]interface{}{
+			{"name": "nginx-ingress", "deployments": [3]int{8, 12, 15}},
+			{"name": "prometheus", "deployments": [3]int{6, 9, 11}},
+		},
+		"last_updated": time.Now(),
+	}
+	s.writeJSONResponse(w, http.StatusOK, trends)
+}
+
+// getPerformanceTrends handles GET /api/v1/dashboard/trends/performance
+func (s *NephoranAPIServer) getPerformanceTrends(w http.ResponseWriter, r *http.Request) {
+	trends := map[string]interface{}{
+		"period": "1h",
+		"cpu_trend": []float64{45.2, 48.1, 52.3, 46.7, 49.2},
+		"memory_trend": []float64{62.8, 65.1, 68.4, 64.9, 66.3},
+		"response_time_trend": []float64{125, 132, 118, 127, 135},
+		"throughput_trend": []float64{156.7, 162.3, 148.9, 159.1, 154.5},
+		"last_updated": time.Now(),
+	}
+	s.writeJSONResponse(w, http.StatusOK, trends)
+}
+
+// getComponentTopology handles GET /api/v1/dashboard/topology/components
+func (s *NephoranAPIServer) getComponentTopology(w http.ResponseWriter, r *http.Request) {
+	topology := map[string]interface{}{
+		"components": []map[string]interface{}{
+			{"id": "api-server", "type": "service", "status": "healthy"},
+			{"id": "llm-processor", "type": "service", "status": "healthy"},
+			{"id": "cluster-manager", "type": "service", "status": "healthy"},
+		},
+		"connections": []map[string]interface{}{
+			{"from": "api-server", "to": "llm-processor", "status": "active"},
+			{"from": "api-server", "to": "cluster-manager", "status": "active"},
+		},
+	}
+	s.writeJSONResponse(w, http.StatusOK, topology)
+}
+
+// getSystemDependencies handles GET /api/v1/dashboard/dependencies
+func (s *NephoranAPIServer) getSystemDependencies(w http.ResponseWriter, r *http.Request) {
+	deps := map[string]interface{}{
+		"internal": []string{"llm-service", "cluster-manager"},
+		"external": []string{"kubernetes-api", "git-repository"},
+	}
+	s.writeJSONResponse(w, http.StatusOK, deps)
+}
+
+// livenessCheck handles GET /api/v1/dashboard/live
+func (s *NephoranAPIServer) livenessCheck(w http.ResponseWriter, r *http.Request) {
+	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"status": "live"})
+}
+
+// getSystemStats handles GET /api/v1/dashboard/stats
+func (s *NephoranAPIServer) getSystemStats(w http.ResponseWriter, r *http.Request) {
+	stats := map[string]interface{}{
+		"uptime": "72h",
+		"requests_processed": 12500,
+		"memory_usage": "2.1GB",
+	}
+	s.writeJSONResponse(w, http.StatusOK, stats)
+}
+
+// getSystemConfig handles GET /api/v1/dashboard/config
+func (s *NephoranAPIServer) getSystemConfig(w http.ResponseWriter, r *http.Request) {
+	config := map[string]interface{}{
+		"port": s.config.Port,
+		"tls_enabled": s.config.TLSEnabled,
+	}
+	s.writeJSONResponse(w, http.StatusOK, config)
+}
+
+// getCacheStats handles GET /api/v1/dashboard/cache
+func (s *NephoranAPIServer) getCacheStats(w http.ResponseWriter, r *http.Request) {
+	stats := map[string]interface{}{"size": 150, "hits": 1250, "misses": 85}
+	s.writeJSONResponse(w, http.StatusOK, stats)
+}
+
+// clearCache handles DELETE /api/v1/dashboard/cache
+func (s *NephoranAPIServer) clearCache(w http.ResponseWriter, r *http.Request) {
+	if s.cache != nil {
+		// s.cache.Clear() // Would implement cache clearing
+	}
+	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"status": "cleared"})
+}
+
+// getActiveConnections handles GET /api/v1/dashboard/connections
+func (s *NephoranAPIServer) getActiveConnections(w http.ResponseWriter, r *http.Request) {
+	s.connectionsMutex.RLock()
+	wsCount := len(s.wsConnections)
+	sseCount := len(s.sseConnections) 
+	s.connectionsMutex.RUnlock()
+	
+	connections := map[string]interface{}{
+		"websocket_connections": wsCount,
+		"sse_connections": sseCount,
+		"total": wsCount + sseCount,
+	}
+	s.writeJSONResponse(w, http.StatusOK, connections)
+}
+
 // Additional handler implementations would continue here...

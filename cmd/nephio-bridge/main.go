@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -21,8 +22,10 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
 )
 
 var (
@@ -35,54 +38,78 @@ type llmClientAdapter struct {
 	client *llm.Client
 }
 
-func (a *llmClientAdapter) ProcessIntent(ctx context.Context, prompt string) (string, error) {
-	return a.client.ProcessIntent(ctx, prompt)
-}
-
-func (a *llmClientAdapter) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *shared.StreamingChunk) error {
-	// For now, fall back to non-streaming
+func (a *llmClientAdapter) ProcessRequest(ctx context.Context, request *shared.LLMRequest) (*shared.LLMResponse, error) {
+	// Convert LLMRequest to a simple prompt for the underlying client
+	prompt := ""
+	for _, msg := range request.Messages {
+		prompt += msg.Role + ": " + msg.Content + "\n"
+	}
+	
 	result, err := a.client.ProcessIntent(ctx, prompt)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	if chunks != nil {
-		chunks <- &shared.StreamingChunk{
-			Content: result,
-			IsLast:  true,
-		}
-		close(chunks)
-	}
-	return nil
-}
-
-func (a *llmClientAdapter) GetSupportedModels() []string {
-	return []string{"gpt-4o-mini", "gpt-4", "gpt-3.5-turbo"}
-}
-
-func (a *llmClientAdapter) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
-	return &shared.ModelCapabilities{
-		MaxTokens:         8192,
-		SupportsChat:      true,
-		SupportsFunction:  false,
-		SupportsStreaming: false,
-		CostPerToken:      0.001,
-		Features:          make(map[string]any),
+	
+	return &shared.LLMResponse{
+		ID:      "adapter-" + time.Now().Format("20060102150405"),
+		Content: result,
+		Model:   request.Model,
+		Usage: shared.TokenUsage{
+			PromptTokens:     len(prompt) / 4,
+			CompletionTokens: len(result) / 4,
+			TotalTokens:      (len(prompt) + len(result)) / 4,
+		},
+		Created: time.Now(),
 	}, nil
 }
 
-func (a *llmClientAdapter) ValidateModel(modelName string) error {
-	// Basic validation
+func (a *llmClientAdapter) ProcessStreamingRequest(ctx context.Context, request *shared.LLMRequest) (<-chan *shared.StreamingChunk, error) {
+	// For now, fall back to non-streaming
+	response, err := a.ProcessRequest(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+	
+	chan_result := make(chan *shared.StreamingChunk, 1)
+	chan_result <- &shared.StreamingChunk{
+		ID:        response.ID,
+		Content:   response.Content,
+		Done:      true,
+		IsLast:    true,
+		Timestamp: time.Now(),
+	}
+	close(chan_result)
+	return chan_result, nil
+}
+
+func (a *llmClientAdapter) HealthCheck(ctx context.Context) error {
+	// Basic health check - assume healthy if client exists
+	if a.client == nil {
+		return fmt.Errorf("llm client is nil")
+	}
 	return nil
 }
 
-func (a *llmClientAdapter) EstimateTokens(text string) int {
-	// Simple estimation: roughly 4 characters per token
-	return len(text) / 4
+func (a *llmClientAdapter) GetStatus() shared.ClientStatus {
+	if a.client == nil {
+		return shared.ClientStatusUnhealthy
+	}
+	return shared.ClientStatusHealthy
 }
 
-func (a *llmClientAdapter) GetMaxTokens(modelName string) int {
-	return 8192
+func (a *llmClientAdapter) GetModelCapabilities() shared.ModelCapabilities {
+	return shared.ModelCapabilities{
+		MaxTokens:            8192,
+		SupportsChat:         true,
+		SupportsFunction:     false,
+		SupportsStreaming:    false,
+		SupportsChatFormat:   true,
+		SupportsSystemPrompt: true,
+		CostPerToken:         0.001,
+		SupportedMimeTypes:   []string{"text/plain"},
+		ModelVersion:         "1.0",
+		Features:             make(map[string]interface{}),
+	}
 }
 
 func (a *llmClientAdapter) GetEndpoint() string {
@@ -97,11 +124,13 @@ func (a *llmClientAdapter) Close() error {
 
 // dependencyImpl implements the Dependencies interface
 type dependencyImpl struct {
-	gitClient     git.ClientInterface
-	llmClient     shared.ClientInterface
-	packageGen    *nephio.PackageGenerator
-	httpClient    *http.Client
-	eventRecorder record.EventRecorder
+	gitClient              git.ClientInterface
+	llmClient              shared.ClientInterface
+	packageGen             *nephio.PackageGenerator
+	httpClient             *http.Client
+	eventRecorder          record.EventRecorder
+	telecomKnowledgeBase   *telecom.TelecomKnowledgeBase
+	metricsCollector       *monitoring.MetricsCollector
 }
 
 func (d *dependencyImpl) GetGitClient() git.ClientInterface {
@@ -122,6 +151,14 @@ func (d *dependencyImpl) GetHTTPClient() *http.Client {
 
 func (d *dependencyImpl) GetEventRecorder() record.EventRecorder {
 	return d.eventRecorder
+}
+
+func (d *dependencyImpl) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase {
+	return d.telecomKnowledgeBase
+}
+
+func (d *dependencyImpl) GetMetricsCollector() *monitoring.MetricsCollector {
+	return d.metricsCollector
 }
 
 func init() {
@@ -206,13 +243,26 @@ func main() {
 		setupLog.Info("Nephio Porch integration enabled")
 	}
 
+	// Initialize telecom knowledge base and metrics collector
+	telecomKB := &telecom.TelecomKnowledgeBase{
+		NetworkFunctions: make(map[string]*telecom.NetworkFunctionSpec),
+		Interfaces:       make(map[string]*telecom.InterfaceSpec),
+		QosProfiles:      make(map[string]*telecom.QosProfile),
+		SliceTypes:       make(map[string]*telecom.SliceTypeSpec),
+		PerformanceKPIs:  make(map[string]*telecom.KPISpec),
+	}
+	
+	metricsCollector := &monitoring.MetricsCollector{}
+	
 	// Create dependencies struct that implements Dependencies interface
 	deps := &dependencyImpl{
-		gitClient:     gitClient,
-		llmClient:     &llmClientAdapter{client: llmClient},
-		packageGen:    packageGen,
-		httpClient:    &http.Client{Timeout: 30 * time.Second},
-		eventRecorder: mgr.GetEventRecorderFor("network-intent-controller"),
+		gitClient:              gitClient,
+		llmClient:              &llmClientAdapter{client: llmClient},
+		packageGen:             packageGen,
+		httpClient:             &http.Client{Timeout: 30 * time.Second},
+		eventRecorder:          mgr.GetEventRecorderFor("network-intent-controller"),
+		telecomKnowledgeBase:   telecomKB,
+		metricsCollector:       metricsCollector,
 	}
 
 	// Create controller configuration
@@ -246,9 +296,9 @@ func main() {
 
 	// Setup E2NodeSet controller
 	if err = (&controllers.E2NodeSetReconciler{
-		Client:    mgr.GetClient(),
-		Scheme:    mgr.GetScheme(),
-		GitClient: gitClient,
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("e2nodeset-controller"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "E2NodeSet")
 		os.Exit(1)

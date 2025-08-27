@@ -38,18 +38,56 @@ type SLAAlert struct {
 	CreatedAt      time.Time           `json:"created_at"`
 	UpdatedAt      time.Time           `json:"updated_at"`
 	Metadata       map[string]string   `json:"metadata,omitempty"`
+	
+	// Extended SLA fields
+	SLATarget      float64         `json:"sla_target,omitempty"`
+	CurrentValue   float64         `json:"current_value,omitempty"`
+	Threshold      float64         `json:"threshold,omitempty"`
+	ErrorBudget    ErrorBudgetInfo `json:"error_budget,omitempty"`
+	BurnRate       BurnRateInfo    `json:"burn_rate,omitempty"`
+	Annotations    map[string]string `json:"annotations,omitempty"`
+	StartsAt       time.Time       `json:"starts_at,omitempty"`
+	Fingerprint    string          `json:"fingerprint,omitempty"`
+	Hash           string          `json:"hash,omitempty"`
+}
+
+// ErrorBudgetInfo contains error budget consumption details
+type ErrorBudgetInfo struct {
+	Total            float64        `json:"total"`
+	Remaining        float64        `json:"remaining"`
+	Consumed         float64        `json:"consumed"`
+	ConsumedPercent  float64        `json:"consumed_percent"`
+	TimeToExhaustion *time.Duration `json:"time_to_exhaustion,omitempty"`
+}
+
+// BurnRateInfo contains burn rate analysis
+type BurnRateInfo struct {
+	ShortWindow   BurnRateWindow `json:"short_window"`
+	MediumWindow  BurnRateWindow `json:"medium_window"`
+	LongWindow    BurnRateWindow `json:"long_window"`
+	CurrentRate   float64        `json:"current_rate"`
+	PredictedRate float64        `json:"predicted_rate"`
+}
+
+// BurnRateWindow represents burn rate data for a specific time window
+type BurnRateWindow struct {
+	Duration    time.Duration `json:"duration"`
+	BurnRate    float64       `json:"burn_rate"`
+	Threshold   float64       `json:"threshold"`
+	IsViolating bool          `json:"is_violating"`
 }
 
 // AlertContext provides context information about an alert
 type AlertContext struct {
-	Component     string            `json:"component"`
-	Service       string            `json:"service"`
-	Environment   string            `json:"environment"`
-	Region        string            `json:"region,omitempty"`
-	Cluster       string            `json:"cluster,omitempty"`
-	Namespace     string            `json:"namespace,omitempty"`
-	ResourceType  string            `json:"resource_type,omitempty"`
-	ResourceName  string            `json:"resource_name,omitempty"`
+	Component       string            `json:"component"`
+	Service         string            `json:"service"`
+	Environment     string            `json:"environment"`
+	Region          string            `json:"region,omitempty"`
+	Cluster         string            `json:"cluster,omitempty"`
+	Namespace       string            `json:"namespace,omitempty"`
+	ResourceType    string            `json:"resource_type,omitempty"`
+	ResourceName    string            `json:"resource_name,omitempty"`
+	RelatedMetrics  []string          `json:"related_metrics,omitempty"`
 }
 
 // AlertState represents the current state of an alert
@@ -984,8 +1022,8 @@ func (ee *EscalationEngine) calculateAlertPriority(alert *SLAAlert) int {
 		basePriority = 1
 	}
 
-	// Adjust for business impact
-	if alert.BusinessImpact.CustomerFacing {
+	// Adjust for business impact (check if overall score is high)
+	if alert.BusinessImpact.OverallScore > 0.5 {
 		basePriority++
 	}
 
@@ -1041,8 +1079,8 @@ func (ee *EscalationEngine) calculateBusinessImpact(alert *SLAAlert) float64 {
 		impact *= 1.2
 	}
 
-	// Business context adjustments
-	if alert.BusinessImpact.CustomerFacing {
+	// Business context adjustments (check if overall score indicates customer impact)
+	if alert.BusinessImpact.OverallScore > 0.5 {
 		impact *= 1.3
 	}
 

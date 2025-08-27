@@ -27,12 +27,9 @@ func NewServiceAccountProvider(config *ServiceAccountConfig) (*ServiceAccountPro
 }
 
 // Stub type definitions that may be missing
-type RBACEngine struct{}
+// Note: RBACEngine, OAuth2Provider, and RBACConfig are defined in auth.go
 type JWTProvider struct{}
-type OAuth2Provider struct{}
 type ServiceAccountProvider struct{}
 
-type RBACConfig struct{}
-type JWTConfig struct{}
-type OAuth2Config struct{}
+// Note: JWTConfig and OAuth2Config are also defined in auth.go
 type ServiceAccountConfig struct{}

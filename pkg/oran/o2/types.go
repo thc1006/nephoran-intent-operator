@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
@@ -11,7 +12,7 @@ import (
 type SLAMonitor struct {
 	Thresholds       map[string]float64 `json:"thresholds"`
 	CheckInterval    time.Duration      `json:"checkInterval"`
-	AlertCallbacks   []func(Alarm)      `json:"-"`
+	AlertCallbacks   []func(Alert)      `json:"-"`  // Use Alert instead of undefined Alarm
 	EvaluationWindow time.Duration      `json:"evaluationWindow"`
 }
 
@@ -75,8 +76,6 @@ type DeploymentManager struct {
 	CreatedAt           time.Time              `json:"createdAt"`
 	UpdatedAt           time.Time              `json:"updatedAt"`
 }
-
-// Model request types that might be missing (these are already defined in helper_types.go so we don't redefine them)
 
 type CreateSubscriptionRequest struct {
 	Callback    string                 `json:"callback"`
@@ -186,23 +185,6 @@ type ResourceUsage struct {
 	NetworkIO   int64   `json:"networkIO"`
 }
 
-
-// Additional types for storage and api
-type CloudProviderConfig struct {
-	ProviderID   string            `json:"providerId"`
-	Name         string            `json:"name"`
-	Type         string            `json:"type"`
-	Region       string            `json:"region,omitempty"`
-	Endpoint     string            `json:"endpoint,omitempty"`
-	Credentials  map[string]string `json:"credentials,omitempty"`
-	Configuration map[string]interface{} `json:"configuration,omitempty"`
-	Enabled      bool              `json:"enabled"`
-	CreatedAt    time.Time         `json:"createdAt"`
-	UpdatedAt    time.Time         `json:"updatedAt"`
-	HealthStatus string            `json:"healthStatus,omitempty"`
-	Capabilities []string          `json:"capabilities,omitempty"`
-}
-
 type DeploymentTemplateFilter struct {
 	Names      []string `json:"names,omitempty"`
 	Categories []string `json:"categories,omitempty"`
@@ -240,6 +222,107 @@ type ResourceState struct {
 	Timestamp   time.Time              `json:"timestamp"`
 	Conditions  []ResourceCondition    `json:"conditions,omitempty"`
 	Properties  map[string]interface{} `json:"properties,omitempty"`
+}
+
+// Missing types needed in infrastructure_resource_manager.go
+type MetricsData struct {
+	MetricID     string                 `json:"metricId"`
+	ResourceID   string                 `json:"resourceId"`
+	MetricType   string                 `json:"metricType"`
+	Value        float64                `json:"value"`
+	Unit         string                 `json:"unit"`
+	Timestamp    time.Time              `json:"timestamp"`
+	Labels       map[string]string      `json:"labels,omitempty"`
+	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+}
+
+type ScalePolicy struct {
+	PolicyID      string                 `json:"policyId"`
+	ResourceType  string                 `json:"resourceType"`
+	ScaleType     string                 `json:"scaleType"` // UP, DOWN, OUT, IN
+	Triggers      []ScaleTrigger         `json:"triggers"`
+	Actions       []ScaleAction          `json:"actions"`
+	Constraints   map[string]interface{} `json:"constraints,omitempty"`
+	Enabled       bool                   `json:"enabled"`
+	CreatedAt     time.Time              `json:"createdAt"`
+	UpdatedAt     time.Time              `json:"updatedAt"`
+}
+
+type ScaleTrigger struct {
+	TriggerID   string                 `json:"triggerId"`
+	MetricType  string                 `json:"metricType"`
+	Threshold   float64                `json:"threshold"`
+	Operator    string                 `json:"operator"` // GT, LT, EQ, GTE, LTE
+	Duration    time.Duration          `json:"duration"`
+	Conditions  map[string]interface{} `json:"conditions,omitempty"`
+}
+
+type ScaleAction struct {
+	ActionID    string                 `json:"actionId"`
+	ActionType  string                 `json:"actionType"` // SCALE_UP, SCALE_DOWN, SCALE_OUT, SCALE_IN
+	Parameters  map[string]interface{} `json:"parameters"`
+	Delay       time.Duration          `json:"delay,omitempty"`
+	MaxRetries  int                    `json:"maxRetries,omitempty"`
+}
+
+// Additional missing types needed for compilation
+type MetricsCollectionConfig struct {
+	Interval         time.Duration `json:"interval"`
+	Timeout          time.Duration `json:"timeout"`
+	RetryAttempts    int           `json:"retryAttempts"`
+	BufferSize       int           `json:"bufferSize"`
+	CollectionTypes  []string      `json:"collectionTypes"`
+	BatchSize        int           `json:"batchSize"`
+	CompressionLevel int           `json:"compressionLevel"`
+}
+
+type DeploymentTemplate struct {
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	Version     string                 `json:"version"`
+	Description string                 `json:"description,omitempty"`
+	Category    string                 `json:"category"`
+	Template    *runtime.RawExtension  `json:"template"`
+	Parameters  map[string]interface{} `json:"parameters,omitempty"`
+	CreatedAt   time.Time              `json:"createdAt"`
+	UpdatedAt   time.Time              `json:"updatedAt"`
+}
+
+type Deployment struct {
+	ID               string                 `json:"id"`
+	Name             string                 `json:"name"`
+	TemplateID       string                 `json:"templateId"`
+	ResourcePoolID   string                 `json:"resourcePoolId"`
+	Status           string                 `json:"status"`
+	Parameters       map[string]interface{} `json:"parameters,omitempty"`
+	Configuration    *runtime.RawExtension  `json:"configuration"`
+	CreatedAt        time.Time              `json:"createdAt"`
+	UpdatedAt        time.Time              `json:"updatedAt"`
+	DeployedAt       *time.Time             `json:"deployedAt,omitempty"`
+	TerminatedAt     *time.Time             `json:"terminatedAt,omitempty"`
+}
+
+type Subscription struct {
+	ID          string                 `json:"id"`
+	Callback    string                 `json:"callback"`
+	ConsumerID  string                 `json:"consumerId,omitempty"`
+	Filter      map[string]interface{} `json:"filter,omitempty"`
+	EventTypes  []string               `json:"eventTypes,omitempty"`
+	Status      string                 `json:"status"`
+	CreatedAt   time.Time              `json:"createdAt"`
+	UpdatedAt   time.Time              `json:"updatedAt"`
+	ExpiresAt   *time.Time             `json:"expiresAt,omitempty"`
+	RetryPolicy *RetryPolicy           `json:"retryPolicy,omitempty"`
+}
+
+type SubscriptionFilter struct {
+	ConsumerIDs []string   `json:"consumerIds,omitempty"`
+	EventTypes  []string   `json:"eventTypes,omitempty"`
+	Status      []string   `json:"status,omitempty"`
+	CreatedFrom *time.Time `json:"createdFrom,omitempty"`
+	CreatedTo   *time.Time `json:"createdTo,omitempty"`
+	Limit       int        `json:"limit,omitempty"`
+	Offset      int        `json:"offset,omitempty"`
 }
 
 // ResourceCondition is already defined in helper_types.go - no need to redeclare

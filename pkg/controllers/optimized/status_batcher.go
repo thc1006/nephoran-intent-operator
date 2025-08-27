@@ -154,7 +154,7 @@ func (sb *StatusBatcher) QueueNetworkIntentUpdate(namespacedName types.Namespace
 
 		// Update phase if provided
 		if phase != "" {
-			networkIntent.Status.Phase = phase
+			networkIntent.Status.Phase = nephoranv1.NetworkIntentPhase(phase)
 		}
 
 		return nil
@@ -177,7 +177,7 @@ func (sb *StatusBatcher) QueueE2NodeSetUpdate(namespacedName types.NamespacedNam
 
 		// Apply condition updates
 		for _, condition := range conditions {
-			updateCondition(&e2nodeSet.Status.Conditions, condition)
+			updateE2NodeSetCondition(&e2nodeSet.Status.Conditions, condition)
 		}
 
 		return nil
@@ -407,4 +407,32 @@ func updateCondition(conditions *[]metav1.Condition, newCondition metav1.Conditi
 
 	// Add new condition
 	*conditions = append(*conditions, newCondition)
+}
+
+// updateE2NodeSetCondition updates an E2NodeSetCondition in a condition slice
+func updateE2NodeSetCondition(conditions *[]nephoranv1.E2NodeSetCondition, newCondition metav1.Condition) {
+	if conditions == nil {
+		*conditions = []nephoranv1.E2NodeSetCondition{}
+	}
+
+	// Convert metav1.Condition to E2NodeSetCondition
+	e2Condition := nephoranv1.E2NodeSetCondition{
+		Type:               nephoranv1.E2NodeSetConditionType(newCondition.Type),
+		Status:             newCondition.Status,
+		LastTransitionTime: newCondition.LastTransitionTime,
+		Reason:             newCondition.Reason,
+		Message:            newCondition.Message,
+	}
+
+	// Find existing condition
+	for i, condition := range *conditions {
+		if string(condition.Type) == newCondition.Type {
+			// Update existing condition
+			(*conditions)[i] = e2Condition
+			return
+		}
+	}
+
+	// Add new condition
+	*conditions = append(*conditions, e2Condition)
 }

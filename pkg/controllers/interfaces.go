@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -221,6 +222,55 @@ type HealthCheckInterface interface {
 
 	// CheckGitHealth checks the health of Git services
 	CheckGitHealth(ctx context.Context) error
+}
+
+// IntentManager manages the lifecycle and coordination of NetworkIntent resources
+type IntentManager struct {
+	// Reconciler provides core reconciliation functionality
+	Reconciler ReconcilerInterface
+	
+	// LLMProcessor handles LLM processing phases
+	LLMProcessor LLMProcessorInterface
+	
+	// ResourcePlanner handles resource planning phases
+	ResourcePlanner ResourcePlannerInterface
+	
+	// GitOpsHandler handles GitOps operations
+	GitOpsHandler GitOpsHandlerInterface
+	
+	// StatusManager manages NetworkIntent status updates
+	StatusManager StatusManagerInterface
+	
+	// EventManager manages Kubernetes events
+	EventManager EventManagerInterface
+	
+	// MetricsManager handles metrics collection
+	MetricsManager MetricsManagerInterface
+}
+
+// NewIntentManager creates a new IntentManager instance
+func NewIntentManager(
+	reconciler ReconcilerInterface,
+	llmProcessor LLMProcessorInterface,
+	resourcePlanner ResourcePlannerInterface,
+	gitOpsHandler GitOpsHandlerInterface,
+) *IntentManager {
+	return &IntentManager{
+		Reconciler:      reconciler,
+		LLMProcessor:    llmProcessor,
+		ResourcePlanner: resourcePlanner,
+		GitOpsHandler:   gitOpsHandler,
+	}
+}
+
+// ProcessIntent processes a NetworkIntent through all phases
+func (im *IntentManager) ProcessIntent(ctx context.Context, intent *nephoranv1.NetworkIntent) (ctrl.Result, error) {
+	processingCtx := &ProcessingContext{
+		StartTime:    time.Now(),
+		CurrentPhase: PhaseLLMProcessing,
+	}
+	
+	return im.Reconciler.ExecuteProcessingPipeline(ctx, intent, processingCtx)
 }
 
 // Interface compliance checks (compile-time verification)

@@ -16,9 +16,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
@@ -724,10 +722,6 @@ func (r *OptimizedE2NodeSetReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 3, // Moderate concurrency for E2NodeSet
 		}).
-		Watches(
-			&source.Kind{Type: &nephoranv1.E2NodeSet{}},
-			&handler.EnqueueRequestForObject{},
-		).
 		Complete(r)
 }
 

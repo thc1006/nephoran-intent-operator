@@ -238,7 +238,7 @@ type WorkloadScheduler struct {
 // LoadBalancer handles load balancing across clusters
 type LoadBalancer struct {
 	backends     map[string]*LoadBalancerBackend
-	healthChecks map[string]*HealthCheck
+	healthChecks map[string]*FleetHealthCheck
 	algorithm    LoadBalancingAlgorithm
 	mu           sync.RWMutex
 }
@@ -253,8 +253,8 @@ type LoadBalancerBackend struct {
 	LastCheck   time.Time `json:"last_check"`
 }
 
-// HealthCheck represents a health check configuration
-type HealthCheck struct {
+// FleetHealthCheck represents a health check configuration for fleet services
+type FleetHealthCheck struct {
 	Path     string        `json:"path"`
 	Interval time.Duration `json:"interval"`
 	Timeout  time.Duration `json:"timeout"`
@@ -400,7 +400,7 @@ func NewFleetManager(registry *ClusterRegistry, logger logr.Logger) *FleetManage
 
 	loadBalancer := &LoadBalancer{
 		backends:     make(map[string]*LoadBalancerBackend),
-		healthChecks: make(map[string]*HealthCheck),
+		healthChecks: make(map[string]*FleetHealthCheck),
 		algorithm:    LoadBalancingRoundRobin,
 	}
 
