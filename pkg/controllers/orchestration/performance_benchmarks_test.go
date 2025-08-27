@@ -27,7 +27,7 @@ import (
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -43,7 +43,7 @@ type BenchmarkSuite struct {
 	ctx        context.Context
 	logger     logr.Logger
 	fakeClient client.Client
-	scheme     *runtime.Scheme
+	scheme     *k8sruntime.Scheme
 	recorder   *record.FakeRecorder
 
 	// Controllers
@@ -121,7 +121,7 @@ func NewBenchmarkSuite() *BenchmarkSuite {
 	logger := zap.New(zap.WriteTo(testing.Verbose()), zap.UseDevMode(true))
 
 	// Create scheme and add types
-	scheme := runtime.NewScheme()
+	scheme := k8sruntime.NewScheme()
 	corev1.AddToScheme(scheme)
 	nephoranv1.AddToScheme(scheme)
 

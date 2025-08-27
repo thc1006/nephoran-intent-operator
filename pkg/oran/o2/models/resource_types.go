@@ -57,7 +57,7 @@ type ResourceType struct {
 	// SupportedActions maps to SupportedOperations
 	SupportedActions []string               `json:"supportedActions,omitempty"`
 	// Capabilities as map (legacy format) - use Capabilities field for current model
-	CapabilitiesMap  map[string]interface{} `json:"capabilities,omitempty"`
+	CapabilitiesMap  map[string]interface{} `json:"capabilitiesLegacy,omitempty"`
 
 	// Lifecycle information
 	Status    string    `json:"status"` // ACTIVE, DEPRECATED, OBSOLETE

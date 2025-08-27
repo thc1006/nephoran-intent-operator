@@ -300,7 +300,7 @@ type ORANInterface struct {
 // InterfaceSecurity defines security configuration for O-RAN interfaces
 type InterfaceSecurity struct {
 	TLSEnabled     bool              `json:"tlsEnabled" yaml:"tlsEnabled"`
-	mTLSEnabled    bool              `json:"mtlsEnabled" yaml:"mtlsEnabled"`
+	MTLSEnabled    bool              `json:"mtlsEnabled" yaml:"mtlsEnabled"`
 	Certificates   map[string]string `json:"certificates,omitempty" yaml:"certificates,omitempty"`
 	Authentication *AuthConfig       `json:"authentication,omitempty" yaml:"authentication,omitempty"`
 }

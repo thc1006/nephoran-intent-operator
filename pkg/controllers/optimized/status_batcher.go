@@ -3,6 +3,7 @@ package optimized
 import (
 	"context"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -381,19 +382,15 @@ func (sb *StatusBatcher) processUpdate(update *StatusUpdate) error {
 
 // sortByPriority sorts updates by priority (highest first)
 func (sb *StatusBatcher) sortByPriority(updates []*StatusUpdate) {
-	for i := 0; i < len(updates)-1; i++ {
-		for j := i + 1; j < len(updates); j++ {
-			if updates[j].Priority > updates[i].Priority {
-				updates[i], updates[j] = updates[j], updates[i]
-			}
-		}
-	}
+	sort.Slice(updates, func(i, j int) bool {
+		return updates[i].Priority > updates[j].Priority
+	})
 }
 
 // updateCondition updates a condition in a condition slice
 func updateCondition(conditions *[]metav1.Condition, newCondition metav1.Condition) {
 	if conditions == nil {
-		*conditions = []metav1.Condition{}
+		*conditions = make([]metav1.Condition, 0, 1) // Preallocate for typical single condition
 	}
 
 	// Find existing condition
@@ -413,7 +410,7 @@ func updateCondition(conditions *[]metav1.Condition, newCondition metav1.Conditi
 // This converts metav1.Condition to E2NodeSetCondition
 func updateE2NodeSetCondition(conditions *[]nephoranv1.E2NodeSetCondition, newCondition metav1.Condition) {
 	if conditions == nil {
-		*conditions = []nephoranv1.E2NodeSetCondition{}
+		*conditions = make([]nephoranv1.E2NodeSetCondition, 0, 1) // Preallocate for typical single condition
 	}
 
 	// Convert metav1.Condition to E2NodeSetCondition

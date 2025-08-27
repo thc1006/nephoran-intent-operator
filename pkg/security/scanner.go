@@ -663,6 +663,8 @@ func (ss *SecurityScanner) testTLSConfiguration(ctx context.Context, host, port 
 		conn, err := tls.DialWithDialer(&net.Dialer{Timeout: 5 * time.Second},
 			"tcp", host+":"+port, &tls.Config{
 				MaxVersion:         version,
+				// SECURITY: InsecureSkipVerify is intentionally set to true for security scanning
+				// This allows the scanner to test for weak TLS configurations on target servers
 				InsecureSkipVerify: true,
 			})
 

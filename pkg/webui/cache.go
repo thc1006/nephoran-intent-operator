@@ -32,7 +32,7 @@ type Cache struct {
 	mutex      sync.RWMutex
 	maxSize    int
 	defaultTTL time.Duration
-	stats      *CacheStats
+	stats      *cacheStatsInternal
 }
 
 // cacheItem represents a cached item with expiration
@@ -54,7 +54,12 @@ type CacheStats struct {
 	TotalItems   int64
 	TotalSize    int64
 	AvgItemSize  float64
-	mutex        sync.RWMutex
+}
+
+// cacheStatsInternal contains CacheStats with an internal mutex for thread safety
+type cacheStatsInternal struct {
+	CacheStats
+	mutex sync.RWMutex
 }
 
 // CacheConfig holds cache configuration
@@ -71,7 +76,7 @@ func NewCache(maxSize int, defaultTTL time.Duration) *Cache {
 		items:      make(map[string]*cacheItem),
 		maxSize:    maxSize,
 		defaultTTL: defaultTTL,
-		stats:      &CacheStats{},
+		stats:      &cacheStatsInternal{},
 	}
 
 	// Start cleanup goroutine
@@ -238,12 +243,21 @@ func (c *Cache) Size() int {
 }
 
 // Stats returns cache statistics
-func (c *Cache) Stats() CacheStats {
+func (c *Cache) Stats() *CacheStats {
 	c.stats.mutex.RLock()
 	defer c.stats.mutex.RUnlock()
 
-	stats := *c.stats // Create a copy
-	return stats
+	// Return a copy of the stats without the mutex
+	return &CacheStats{
+		Hits:         c.stats.CacheStats.Hits,
+		Misses:       c.stats.CacheStats.Misses,
+		Sets:         c.stats.CacheStats.Sets,
+		Evictions:    c.stats.CacheStats.Evictions,
+		ExpiredItems: c.stats.CacheStats.ExpiredItems,
+		TotalItems:   c.stats.CacheStats.TotalItems,
+		TotalSize:    c.stats.CacheStats.TotalSize,
+		AvgItemSize:  c.stats.CacheStats.AvgItemSize,
+	}
 }
 
 // HitRate returns the cache hit rate as a percentage
@@ -359,14 +373,14 @@ func (c *Cache) estimateItemSize(key string, value interface{}) int64 {
 func (c *Cache) updateStats(updateFn func(*CacheStats)) {
 	c.stats.mutex.Lock()
 	defer c.stats.mutex.Unlock()
-	updateFn(c.stats)
+	updateFn(&c.stats.CacheStats)
 }
 
 func (c *Cache) calculateAvgItemSize() {
-	if c.stats.TotalItems > 0 {
-		c.stats.AvgItemSize = float64(c.stats.TotalSize) / float64(c.stats.TotalItems)
+	if c.stats.CacheStats.TotalItems > 0 {
+		c.stats.CacheStats.AvgItemSize = float64(c.stats.CacheStats.TotalSize) / float64(c.stats.CacheStats.TotalItems)
 	} else {
-		c.stats.AvgItemSize = 0
+		c.stats.CacheStats.AvgItemSize = 0
 	}
 }
 

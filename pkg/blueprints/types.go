@@ -57,7 +57,7 @@ func (nfcg *NetworkFunctionConfigGenerator) GenerateConfigurations(
 		zap.String("intent_name", intent.Name),
 		zap.Int("template_count", len(templates)))
 
-	var configs []NetworkFunctionConfig
+	configs := make([]NetworkFunctionConfig, 0, len(templates)) // Preallocate with capacity
 
 	for _, template := range templates {
 		if template.NetworkConfig != nil {

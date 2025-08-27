@@ -115,7 +115,7 @@ type ResilienceMetrics struct {
 	// Pattern-specific metrics
 	TimeoutMetrics        *TimeoutMetrics        `json:"timeoutMetrics"`
 	BulkheadMetrics       *BulkheadMetrics       `json:"bulkheadMetrics"`
-	CircuitBreakerMetrics *CircuitBreakerMetrics `json:"circuitBreakerMetrics")`
+	CircuitBreakerMetrics *CircuitBreakerMetrics `json:"circuitBreakerMetrics"`
 	RateLimitMetrics      *RateLimitMetrics      `json:"rateLimitMetrics"`
 	RetryMetrics          *RetryMetrics          `json:"retryMetrics"`
 	HealthCheckMetrics    *HealthCheckMetrics    `json:"healthCheckMetrics"`

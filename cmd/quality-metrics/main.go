@@ -256,7 +256,7 @@ func (qmr *QualityMetricsReport) generateJSONReport() {
 		log.Printf("Error creating JSON report: %v", err)
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
@@ -277,7 +277,7 @@ func (qmr *QualityMetricsReport) generateMarkdownReport() {
 		log.Printf("Error creating markdown report: %v", err)
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	fmt.Fprintf(file, "# Code Quality Metrics Report\n\n")
 	fmt.Fprintf(file, "**Timestamp:** %s\n\n", qmr.Timestamp.Format("2006-01-02 15:04:05"))
@@ -314,7 +314,7 @@ func (qmr *QualityMetricsReport) generateHTMLReport() {
 		log.Printf("Error creating HTML report: %v", err)
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	html := `<!DOCTYPE html>
 <html>

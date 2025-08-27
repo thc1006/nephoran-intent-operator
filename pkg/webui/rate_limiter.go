@@ -35,7 +35,7 @@ type RateLimiter struct {
 	burstSize      int
 	window         time.Duration
 	mutex          sync.RWMutex
-	stats          *RateLimitStats
+	stats          *rateLimitStatsInternal
 	cleanup        chan struct{}
 }
 
@@ -55,7 +55,12 @@ type RateLimitStats struct {
 	ActiveBuckets     int64
 	ExpiredBuckets    int64
 	AvgRequestsPerMin float64
-	mutex             sync.RWMutex
+}
+
+// rateLimitStatsInternal contains RateLimitStats with an internal mutex for thread safety
+type rateLimitStatsInternal struct {
+	RateLimitStats
+	mutex sync.RWMutex
 }
 
 // RateLimitConfig holds rate limiter configuration
@@ -76,7 +81,7 @@ func NewRateLimiter(requestsPerMin, burstSize int, window time.Duration) *RateLi
 		requestsPerMin: requestsPerMin,
 		burstSize:      burstSize,
 		window:         window,
-		stats:          &RateLimitStats{},
+		stats:          &rateLimitStatsInternal{},
 		cleanup:        make(chan struct{}),
 	}
 
@@ -233,12 +238,19 @@ func (rl *RateLimiter) GetLimit(identifier string) *RateLimitInfo {
 }
 
 // Stats returns rate limiting statistics
-func (rl *RateLimiter) Stats() RateLimitStats {
+func (rl *RateLimiter) Stats() *RateLimitStats {
 	rl.stats.mutex.RLock()
 	defer rl.stats.mutex.RUnlock()
 
-	stats := *rl.stats // Create a copy
-	return stats
+	// Return a copy of the stats without the mutex
+	return &RateLimitStats{
+		TotalRequests:     rl.stats.RateLimitStats.TotalRequests,
+		AllowedRequests:   rl.stats.RateLimitStats.AllowedRequests,
+		DeniedRequests:    rl.stats.RateLimitStats.DeniedRequests,
+		ActiveBuckets:     rl.stats.RateLimitStats.ActiveBuckets,
+		ExpiredBuckets:    rl.stats.RateLimitStats.ExpiredBuckets,
+		AvgRequestsPerMin: rl.stats.RateLimitStats.AvgRequestsPerMin,
+	}
 }
 
 // Reset clears all rate limit buckets
@@ -349,12 +361,12 @@ func (rl *RateLimiter) performCleanup() {
 func (rl *RateLimiter) updateStats(updateFn func(*RateLimitStats)) {
 	rl.stats.mutex.Lock()
 	defer rl.stats.mutex.Unlock()
-	updateFn(rl.stats)
+	updateFn(&rl.stats.RateLimitStats)
 
 	// Calculate average requests per minute
-	if rl.stats.TotalRequests > 0 {
+	if rl.stats.RateLimitStats.TotalRequests > 0 {
 		// This is a simplified calculation - in production, you'd track this over time
-		rl.stats.AvgRequestsPerMin = float64(rl.stats.AllowedRequests)
+		rl.stats.RateLimitStats.AvgRequestsPerMin = float64(rl.stats.RateLimitStats.AllowedRequests)
 	}
 }
 

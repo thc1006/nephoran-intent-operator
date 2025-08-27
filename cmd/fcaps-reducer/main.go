@@ -89,7 +89,7 @@ func (t *EventTracker) handleVESEvent(config Config) http.HandlerFunc {
 			http.Error(w, "Failed to read body", http.StatusBadRequest)
 			return
 		}
-		defer r.Body.Close()
+		defer func() { _ = r.Body.Close() }()
 
 		var event fcaps.FCAPSEvent
 		if err := json.Unmarshal(body, &event); err != nil {
@@ -117,7 +117,7 @@ func (t *EventTracker) handleVESEvent(config Config) http.HandlerFunc {
 
 		// Return VES standard response
 		w.WriteHeader(http.StatusAccepted)
-		w.Write([]byte(`{"commandList": []}`))
+		_, _ = w.Write([]byte(`{"commandList": []}`))
 	}
 }
 
@@ -250,5 +250,5 @@ func getEventSeverity(event fcaps.FCAPSEvent) string {
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	_, _ = w.Write([]byte("OK"))
 }

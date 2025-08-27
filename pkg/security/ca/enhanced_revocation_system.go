@@ -28,6 +28,7 @@ const (
 	RevocationStatusRevoked RevocationStatus = "revoked"
 	RevocationStatusGood    RevocationStatus = "good" // Alias for valid, used in OCSP responses
 )
+
 // EnhancedRevocationSystem provides comprehensive revocation checking with performance optimization
 type EnhancedRevocationSystem struct {
 	config            *EnhancedRevocationConfig
@@ -113,8 +114,8 @@ type CRLDistributionPoint struct {
 	DeltaCRL         *pkix.CertificateList
 	LastUpdate       time.Time
 	NextUpdate       time.Time
-	UpdateInProgress atomic.Bool
-	ErrorCount       atomic.Uint32
+	UpdateInProgress int32  // 0=idle, 1=updating (replaced atomic.Bool)
+	ErrorCount       uint32 // atomic counter (replaced atomic.Uint32)
 	mu               sync.RWMutex
 }
 
@@ -149,8 +150,8 @@ type OCSPResponder struct {
 	LastCheck    time.Time
 	ResponseTime time.Duration
 	SuccessRate  float64
-	ErrorCount   atomic.Uint32
-	RequestCount atomic.Uint64
+	ErrorCount   uint32 // atomic counter (replaced atomic.Uint32)
+	RequestCount uint64 // atomic counter (replaced atomic.Uint64)
 }
 
 // StaplingCache caches OCSP stapling responses
@@ -194,14 +195,13 @@ type L1RevocationCache struct {
 }
 
 // RevocationCacheEntry represents a cached revocation check result
-// RevocationStatus represents the revocation status of a certificate
 type RevocationCacheEntry struct {
 	SerialNumber string
 	Status       RevocationStatus
 	CheckTime    time.Time
 	NextUpdate   time.Time
 	Source       string
-	HitCount     atomic.Uint32
+	HitCount     uint32 // atomic counter (replaced atomic.Uint32)
 	LastAccessed time.Time
 }
 
@@ -255,8 +255,8 @@ type RevocationCircuitBreaker struct {
 type CircuitBreaker struct {
 	name            string
 	state           atomic.Value
-	failureCount    atomic.Uint32
-	successCount    atomic.Uint32
+	failureCount    uint32 // atomic counter (replaced atomic.Uint32)
+	successCount    uint32 // atomic counter (replaced atomic.Uint32)
 	lastFailureTime atomic.Value
 	config          *CircuitBreakerConfig
 }
@@ -561,13 +561,13 @@ func (s *EnhancedRevocationSystem) checkOCSPEnhanced(ctx context.Context, cert *
 	// Send OCSP request
 	ocspResp, err := s.sendOCSPRequest(ctx, responder, ocspReq, cert)
 	if err != nil {
-		responder.ErrorCount.Add(1)
+		atomic.AddUint32(&responder.ErrorCount, 1)
 		s.circuitBreaker.ocspBreaker.RecordFailure()
 		result.Errors = append(result.Errors, fmt.Sprintf("OCSP request failed: %v", err))
 		return result
 	}
 
-	responder.RequestCount.Add(1)
+	atomic.AddUint64(&responder.RequestCount, 1)
 	s.circuitBreaker.ocspBreaker.RecordSuccess()
 
 	// Parse OCSP response
@@ -596,7 +596,7 @@ func (s *EnhancedRevocationSystem) checkCRLEnhanced(ctx context.Context, cert *x
 		// Update CRL if needed
 		if s.shouldUpdateCRL(dp) {
 			if err := s.updateCRL(ctx, dp); err != nil {
-				dp.ErrorCount.Add(1)
+				atomic.AddUint32(&dp.ErrorCount, 1)
 				s.circuitBreaker.crlBreaker.RecordFailure()
 				result.Errors = append(result.Errors, fmt.Sprintf("CRL update failed for %s: %v", dpURL, err))
 				continue
@@ -700,7 +700,7 @@ func (s *EnhancedRevocationSystem) checkCache(cert *x509.Certificate) *Revocatio
 
 	// Check L1 cache
 	if entry := s.cacheManager.l1Cache.Get(key); entry != nil {
-		entry.HitCount.Add(1)
+		atomic.AddUint32(&entry.HitCount, 1)
 		entry.LastAccessed = time.Now()
 
 		return &RevocationCheckResult{
@@ -753,7 +753,7 @@ func (s *EnhancedRevocationSystem) shouldUpdateCRL(dp *CRLDistributionPoint) boo
 	defer dp.mu.RUnlock()
 
 	// Check if update is already in progress
-	if dp.UpdateInProgress.Load() {
+	if atomic.LoadInt32(&dp.UpdateInProgress) == 1 {
 		return false
 	}
 
@@ -778,10 +778,10 @@ func (s *EnhancedRevocationSystem) shouldUpdateCRL(dp *CRLDistributionPoint) boo
 
 func (s *EnhancedRevocationSystem) updateCRL(ctx context.Context, dp *CRLDistributionPoint) error {
 	// Mark update in progress
-	if !dp.UpdateInProgress.CompareAndSwap(false, true) {
+	if !atomic.CompareAndSwapInt32(&dp.UpdateInProgress, 0, 1) {
 		return nil // Update already in progress
 	}
-	defer dp.UpdateInProgress.Store(false)
+	defer atomic.StoreInt32(&dp.UpdateInProgress, 0)
 
 	// Fetch CRL
 	req, err := http.NewRequestWithContext(ctx, "GET", dp.URL, nil)
@@ -915,7 +915,7 @@ func (s *EnhancedRevocationSystem) createOCSPRequest(cert *x509.Certificate) ([]
 	// This is simplified - real implementation needs issuer certificate
 	issuerNameHash := sha256.Sum256(cert.RawIssuer)
 	issuerKeyHash := sha256.Sum256(cert.AuthorityKeyId)
-	
+
 	template := ocsp.Request{
 		HashAlgorithm:  crypto.SHA256, // Use crypto.SHA256 instead of ocsp.SHA256
 		IssuerNameHash: issuerNameHash[:],
@@ -992,11 +992,12 @@ func (s *EnhancedRevocationSystem) parseOCSPResponse(resp *ocsp.Response, nonce 
 	result.NextUpdate = &resp.NextUpdate
 	result.CheckDuration = time.Since(result.CheckTime)
 
-	// Add OCSP details
+	// Add OCSP details using the existing OCSPInfo from revocation_checker.go
 	if result.Details == nil {
 		result.Details = &RevocationCheckDetails{}
 	}
 	result.Details.OCSPInfo = &OCSPInfo{
+		ResponderURL: "", // Will be filled by caller
 		ProducedAt:   resp.ProducedAt,
 		ThisUpdate:   resp.ThisUpdate,
 		NextUpdate:   resp.NextUpdate,
@@ -1358,16 +1359,16 @@ type ResultCollector struct {
 }
 
 type CacheStatistics struct {
-	Hits      atomic.Uint64
-	Misses    atomic.Uint64
-	Evictions atomic.Uint64
-	Entries   atomic.Uint32
+	Hits      uint64 // atomic counter (replaced atomic.Uint64)
+	Misses    uint64 // atomic counter (replaced atomic.Uint64)
+	Evictions uint64 // atomic counter (replaced atomic.Uint64)
+	Entries   uint32 // atomic counter (replaced atomic.Uint32)
 }
 
 type RevocationMetricsCollector struct {
-	totalChecks    atomic.Uint64
-	cacheHits      atomic.Uint64
-	cacheMisses    atomic.Uint64
+	totalChecks    uint64 // atomic counter (replaced atomic.Uint64)
+	cacheHits      uint64 // atomic counter (replaced atomic.Uint64)
+	cacheMisses    uint64 // atomic counter (replaced atomic.Uint64)
 	checkDurations []time.Duration
 	mu             sync.RWMutex
 }
@@ -1379,11 +1380,11 @@ func NewRevocationMetricsCollector() *RevocationMetricsCollector {
 }
 
 func (m *RevocationMetricsCollector) RecordCacheHit() {
-	m.cacheHits.Add(1)
+	atomic.AddUint64(&m.cacheHits, 1)
 }
 
 func (m *RevocationMetricsCollector) RecordCacheMiss() {
-	m.cacheMisses.Add(1)
+	atomic.AddUint64(&m.cacheMisses, 1)
 }
 
 func (m *RevocationMetricsCollector) RecordCheckDuration(d time.Duration) {
@@ -1397,7 +1398,7 @@ func (m *RevocationMetricsCollector) RecordCheckDuration(d time.Duration) {
 }
 
 func (m *RevocationMetricsCollector) RecordCheckResult(status RevocationStatus) {
-	m.totalChecks.Add(1)
+	atomic.AddUint64(&m.totalChecks, 1)
 }
 
 func (m *RevocationMetricsCollector) RecordError(err error) {
@@ -1643,28 +1644,28 @@ func (cb *CircuitBreaker) AllowRequest() bool {
 		return false
 	case CircuitHalfOpen:
 		// Allow limited requests
-		return cb.successCount.Load() < cb.config.HalfOpenRequests
+		return atomic.LoadUint32(&cb.successCount) < cb.config.HalfOpenRequests
 	default:
 		return false
 	}
 }
 
 func (cb *CircuitBreaker) RecordSuccess() {
-	cb.successCount.Add(1)
+	atomic.AddUint32(&cb.successCount, 1)
 	state := cb.state.Load().(CircuitState)
 
-	if state == CircuitHalfOpen && cb.successCount.Load() >= cb.config.SuccessThreshold {
+	if state == CircuitHalfOpen && atomic.LoadUint32(&cb.successCount) >= cb.config.SuccessThreshold {
 		cb.state.Store(CircuitClosed)
-		cb.failureCount.Store(0)
-		cb.successCount.Store(0)
+		atomic.StoreUint32(&cb.failureCount, 0)
+		atomic.StoreUint32(&cb.successCount, 0)
 	}
 }
 
 func (cb *CircuitBreaker) RecordFailure() {
-	cb.failureCount.Add(1)
+	atomic.AddUint32(&cb.failureCount, 1)
 	cb.lastFailureTime.Store(time.Now())
 
-	if cb.failureCount.Load() >= cb.config.FailureThreshold {
+	if atomic.LoadUint32(&cb.failureCount) >= cb.config.FailureThreshold {
 		cb.state.Store(CircuitOpen)
 	}
 }

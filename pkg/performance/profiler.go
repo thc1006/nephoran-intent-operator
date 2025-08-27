@@ -120,10 +120,10 @@ func NewProfiler() *Profiler {
 	return &Profiler{
 		profileDir: "/tmp/nephoran-profiles",
 		goroutineStats: GoroutineStats{
-			StackTraces: make(map[string]int),
+			StackTraces: make(map[string]int, 16), // Preallocate for typical stack trace count
 		},
 		memoryStats: ProfilerMemoryStats{
-			MemoryLeaks: make([]MemoryLeak, 0),
+			MemoryLeaks: make([]MemoryLeak, 0, 8), // Preallocate for typical leak count
 		},
 	}
 }
@@ -384,7 +384,7 @@ func (p *Profiler) DetectGoroutineLeaks(threshold int) []string {
 
 	p.updateGoroutineStats()
 
-	leaks := []string{}
+	leaks := make([]string, 0, len(p.goroutineStats.StackTraces)) // Preallocate based on stack trace count
 	for stack, count := range p.goroutineStats.StackTraces {
 		if count > threshold {
 			leaks = append(leaks, fmt.Sprintf("Potential leak: %d goroutines at %s", count, stack))
@@ -403,7 +403,7 @@ func (p *Profiler) DetectMemoryLeaks() []MemoryLeak {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
-	leaks := []MemoryLeak{}
+	leaks := make([]MemoryLeak, 0, 4) // Preallocate for typical leak count
 
 	// Simple leak detection based on heap growth
 	if p.memoryStats.HeapAlloc > 0 {
@@ -567,9 +567,9 @@ func (p *Profiler) GenerateFlameGraph(profilePath string) (string, error) {
 func (p *Profiler) AnalyzeProfile(profilePath string) (*ProfileReport, error) {
 	report := &ProfileReport{
 		StartTime:   time.Now(),
-		HotSpots:    []HotSpot{},
-		Contentions: []Contention{},
-		Allocations: []Allocation{},
+		HotSpots:    make([]HotSpot, 0, 10),     // Preallocate for typical hotspot count
+		Contentions: make([]Contention, 0, 5),  // Preallocate for typical contention count
+		Allocations: make([]Allocation, 0, 20), // Preallocate for typical allocation count
 	}
 
 	// In real implementation, parse profile data

@@ -599,14 +599,18 @@ func (s *NephoranAPIServer) generateNetworkMetrics(ctx context.Context) *Network
 }
 
 func (s *NephoranAPIServer) generatePerformanceMetrics(ctx context.Context) *PerformanceMetrics {
-	cacheStats := CacheStats{}
+	var cacheStats *CacheStats
 	if s.cache != nil {
 		cacheStats = s.cache.Stats()
+	} else {
+		cacheStats = &CacheStats{}
 	}
 
-	rateLimitStats := RateLimitStats{}
+	var rateLimitStats *RateLimitStats
 	if s.rateLimiter != nil {
 		rateLimitStats = s.rateLimiter.Stats()
+	} else {
+		rateLimitStats = &RateLimitStats{}
 	}
 
 	s.connectionsMutex.RLock()
@@ -631,8 +635,8 @@ func (s *NephoranAPIServer) generatePerformanceMetrics(ctx context.Context) *Per
 				Mean: 89.7,
 			},
 		},
-		CachePerformance: &cacheStats,
-		RateLimitStats:   &rateLimitStats,
+		CachePerformance: cacheStats,
+		RateLimitStats:   rateLimitStats,
 		ConnectionStats: &ConnectionStats{
 			ActiveWSConnections:  wsConnections,
 			ActiveSSEConnections: sseConnections,

@@ -87,7 +87,7 @@ type EnhancedHealthChecker struct {
 	taskQueue   chan HealthTask
 	workerWg    sync.WaitGroup
 	shutdown    chan struct{}
-	running     atomic.Bool
+	running     int32 // 0=stopped, 1=running (replaced atomic.Bool for compatibility)
 
 	// Metrics
 	metrics *EnhancedHealthMetrics
@@ -415,13 +415,16 @@ func (ehc *EnhancedHealthChecker) executeChecksParallel(ctx context.Context, che
 	return results
 }
 
+// isRunning checks if the worker pool is running (thread-safe)
+func (ehc *EnhancedHealthChecker) isRunning() bool {
+	return atomic.LoadInt32(&ehc.running) == 1
+}
+
 // startWorkerPool starts the worker pool for parallel health check execution
 func (ehc *EnhancedHealthChecker) startWorkerPool() {
-	if ehc.running.Load() {
-		return
+	if !atomic.CompareAndSwapInt32(&ehc.running, 0, 1) {
+		return // Already running
 	}
-
-	ehc.running.Store(true)
 
 	for i := 0; i < ehc.workerCount; i++ {
 		ehc.workerWg.Add(1)
@@ -748,13 +751,12 @@ func (ehc *EnhancedHealthChecker) cacheResult(name string, result *EnhancedCheck
 
 // Stop gracefully shuts down the enhanced health checker
 func (ehc *EnhancedHealthChecker) Stop() {
-	if !ehc.running.Load() {
-		return
+	if !atomic.CompareAndSwapInt32(&ehc.running, 1, 0) {
+		return // Already stopped
 	}
 
 	ehc.logger.Info("Stopping enhanced health checker", "service", ehc.serviceName)
 
-	ehc.running.Store(false)
 	close(ehc.shutdown)
 	ehc.workerWg.Wait()
 

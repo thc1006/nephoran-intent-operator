@@ -235,7 +235,7 @@ func sendVESEvent(collectorURL string, event fcaps.FCAPSEvent, verbose bool) err
 	if err != nil {
 		return fmt.Errorf("failed to send VES request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read response
 	responseBody, err := io.ReadAll(resp.Body)
@@ -300,7 +300,7 @@ func sendIntent(intentURL string, intent *ingest.Intent) error {
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read response
 	responseBody, err := io.ReadAll(resp.Body)

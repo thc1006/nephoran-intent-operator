@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -256,7 +257,14 @@ func (a *O1Adaptor) buildTLSConfig(ctx context.Context, me *nephoranv1.ManagedEl
 
 	// Apply TLS configuration from O1Config if available
 	if a.config.TLSConfig != nil {
+		// SECURITY: Only allow TLS verification bypass in development/testing environments
 		if a.config.TLSConfig.SkipVerify {
+			logger := log.FromContext(ctx)
+			if !isDevEnvironment() {
+				logger.Error(fmt.Errorf("security violation"), "SECURITY VIOLATION: Attempted to skip TLS verification in production")
+				return nil, fmt.Errorf("TLS verification cannot be disabled in production environment")
+			}
+			logger.Info("SECURITY WARNING: TLS verification disabled (development/testing only)")
 			tlsConfig.InsecureSkipVerify = true
 		}
 
@@ -268,6 +276,13 @@ func (a *O1Adaptor) buildTLSConfig(ctx context.Context, me *nephoranv1.ManagedEl
 	}
 
 	return tlsConfig, nil
+}
+
+// isDevEnvironment checks if we're running in a development/testing environment
+// where TLS verification can be safely bypassed
+func isDevEnvironment() bool {
+	env := os.Getenv("ENVIRONMENT")
+	return env == "development" || env == "testing" || env == "dev" || os.Getenv("ALLOW_INSECURE_TLS") == "true"
 }
 
 // Connect establishes a NETCONF session to a managed element

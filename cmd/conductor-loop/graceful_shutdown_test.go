@@ -92,7 +92,7 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create watcher: %v", err)
 	}
-	defer watcher.Close()
+	defer func() { _ = watcher.Close() }()
 
 	// Create intent files that will be processed
 	intentFiles := []string{
@@ -133,7 +133,7 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 	
 	// Trigger graceful shutdown
-	watcher.Close()
+	_ = watcher.Close()
 
 	// Wait for processing to complete with appropriate timeout
 	select {
@@ -335,7 +335,7 @@ func TestWatcher_GracefulShutdown_DrainsWithoutHang(t *testing.T) {
 	
 	watcher, err := loop.NewWatcher(handoffDir, config)
 	require.NoError(t, err)
-	defer watcher.Close()
+	defer func() { _ = watcher.Close() }()
 	
 	// Create multiple intent files
 	intentContent := `{

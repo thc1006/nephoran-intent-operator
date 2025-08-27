@@ -295,7 +295,7 @@ func (tdm *TechnicalDebtMonitor) generateJSONReport() {
 		log.Printf("Error creating JSON report: %v", err)
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
@@ -316,7 +316,7 @@ func (tdm *TechnicalDebtMonitor) generateMarkdownReport() {
 		log.Printf("Error creating markdown report: %v", err)
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	fmt.Fprintf(file, "# Technical Debt Report\n\n")
 	fmt.Fprintf(file, "**Generated:** %s\n\n", tdm.Timestamp.Format("2006-01-02 15:04:05"))
@@ -364,7 +364,7 @@ func (tdm *TechnicalDebtMonitor) generateCSVReport() {
 		log.Printf("Error creating CSV report: %v", err)
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Write CSV header
 	fmt.Fprintf(file, "ID,Type,Severity,Priority,Description,Location,EstimatedHours,Category,Status,CreatedAt,UpdatedAt\n")

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -118,8 +117,7 @@ func TestProfileConfigurations(t *testing.T) {
 
 // TestGenerateWindow tests the generateWindow function
 func TestGenerateWindow(t *testing.T) {
-	// Set predictable seed for reproducible tests
-	rand.Seed(12345)
+	// Note: generateWindow uses crypto/rand for security, so no seeding needed
 
 	tests := []struct {
 		name        string

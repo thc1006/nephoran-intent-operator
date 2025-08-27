@@ -438,7 +438,7 @@ func (ip *IntentProcessing) GetParentIntentNamespace() string {
 	if ip.Spec.ParentIntentRef.Namespace != "" {
 		return ip.Spec.ParentIntentRef.Namespace
 	}
-	return ip.Namespace // Default to same namespace
+	return ip.GetNamespace() // Default to same namespace
 }
 
 // IsProcessingComplete returns true if processing is complete

@@ -108,7 +108,7 @@ func TestRequestSizeLimits(t *testing.T) {
 				}
 
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(response)
+				_ = json.NewEncoder(w).Encode(response)
 			})
 
 			// Wrap the handler with size limits
@@ -168,7 +168,7 @@ func TestRequestSizeLimitMiddleware(t *testing.T) {
 			return
 		}
 
-		fmt.Fprintf(w, "Received %d bytes", len(body))
+		_, _ = fmt.Fprintf(w, "Received %d bytes", len(body))
 	})
 
 	wrappedHandler := limiter.Handler(testHandler)
@@ -290,7 +290,7 @@ func TestMaxBytesHandlerWithContentLength(t *testing.T) {
 	// Simple test handler
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, "OK")
+		_, _ = fmt.Fprint(w, "OK")
 	})
 
 	wrappedHandler := middleware.MaxBytesHandler(testMaxSize, logger, testHandler)
@@ -459,7 +459,7 @@ func (h *MockLLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // ============================================================================
@@ -515,7 +515,7 @@ func createTestTLSCertificates(t *testing.T) (certPath, keyPath string, cleanup 
 	if err != nil {
 		t.Fatalf("Failed to create cert file: %v", err)
 	}
-	defer certFile.Close()
+	defer func() { _ = certFile.Close() }()
 
 	err = pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certDER})
 	if err != nil {
@@ -527,7 +527,7 @@ func createTestTLSCertificates(t *testing.T) (certPath, keyPath string, cleanup 
 	if err != nil {
 		t.Fatalf("Failed to create key file: %v", err)
 	}
-	defer keyFile.Close()
+	defer func() { _ = keyFile.Close() }()
 
 	privateKeyDER, err := x509.MarshalPKCS8PrivateKey(privateKey)
 	if err != nil {
@@ -540,7 +540,7 @@ func createTestTLSCertificates(t *testing.T) (certPath, keyPath string, cleanup 
 	}
 
 	cleanup = func() {
-		os.RemoveAll(tmpDir)
+		_ = os.RemoveAll(tmpDir)
 	}
 
 	return certPath, keyPath, cleanup
@@ -655,7 +655,7 @@ func TestTLSServerStartup(t *testing.T) {
 				Addr: ":" + cfg.Port,
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
-					fmt.Fprint(w, "OK")
+					_, _ = fmt.Fprint(w, "OK")
 				}),
 			}
 
@@ -684,7 +684,7 @@ func TestTLSServerStartup(t *testing.T) {
 			if tt.expectStartupError {
 				if serverErr == nil {
 					// Force shutdown and wait for error
-					server.Close()
+					_ = server.Close()
 					time.Sleep(50 * time.Millisecond)
 				}
 				if serverErr == nil {
@@ -699,7 +699,7 @@ func TestTLSServerStartup(t *testing.T) {
 			// Graceful shutdown
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
-			server.Shutdown(ctx)
+			_ = server.Shutdown(ctx)
 			wg.Wait()
 
 			// Check log output if expected
@@ -740,15 +740,15 @@ func TestTLSCertificateValidation(t *testing.T) {
 				keyPath := filepath.Join(tmpDir, "key.pem")
 
 				// Create empty cert file
-				os.WriteFile(certPath, []byte(""), 0644)
+				_ = os.WriteFile(certPath, []byte(""), 0644)
 
 				// Create valid key file
 				_, keyContent, cleanup := createTestTLSCertificates(t)
 				keyData, _ := os.ReadFile(keyContent)
-				os.WriteFile(keyPath, keyData, 0644)
+				_ = os.WriteFile(keyPath, keyData, 0644)
 				cleanup() // Clean up the temp certs
 
-				return certPath, keyPath, func() { os.RemoveAll(tmpDir) }
+				return certPath, keyPath, func() { _ = os.RemoveAll(tmpDir) }
 			},
 			expectError:    true,
 			errorSubstring: "tls: failed to find any PEM data in certificate input",
@@ -767,13 +767,13 @@ func TestTLSCertificateValidation(t *testing.T) {
 				// Create valid cert file
 				certContent, _, cleanup := createTestTLSCertificates(t)
 				certData, _ := os.ReadFile(certContent)
-				os.WriteFile(certPath, certData, 0644)
+				_ = os.WriteFile(certPath, certData, 0644)
 				cleanup() // Clean up the temp certs
 
 				// Create empty key file
-				os.WriteFile(keyPath, []byte(""), 0644)
+				_ = os.WriteFile(keyPath, []byte(""), 0644)
 
-				return certPath, keyPath, func() { os.RemoveAll(tmpDir) }
+				return certPath, keyPath, func() { _ = os.RemoveAll(tmpDir) }
 			},
 			expectError:    true,
 			errorSubstring: "tls: failed to find any PEM data in key input",
@@ -866,7 +866,7 @@ func TestGracefulShutdownWithTLS(t *testing.T) {
 					// Simulate some processing time
 					time.Sleep(100 * time.Millisecond)
 					w.WriteHeader(http.StatusOK)
-					fmt.Fprint(w, "OK")
+					_, _ = fmt.Fprint(w, "OK")
 					requestCompleted <- true
 				}),
 			}
@@ -922,7 +922,7 @@ func TestGracefulShutdownWithTLS(t *testing.T) {
 				url := fmt.Sprintf("%s://%s/test", protocol, addr)
 				resp, err := client.Get(url)
 				if err == nil {
-					resp.Body.Close()
+					_ = resp.Body.Close()
 				}
 			}()
 
@@ -1030,7 +1030,7 @@ func TestEndToEndTLSConnections(t *testing.T) {
 
 			if tt.expectConnectionError {
 				if err == nil {
-					resp.Body.Close()
+					_ = resp.Body.Close()
 					t.Errorf("Expected connection error, but request succeeded")
 				} else if !strings.Contains(err.Error(), tt.errorSubstring) {
 					t.Errorf("Expected error containing '%s', got: %s", tt.errorSubstring, err.Error())
@@ -1039,7 +1039,7 @@ func TestEndToEndTLSConnections(t *testing.T) {
 				if err != nil {
 					t.Errorf("Unexpected connection error: %v", err)
 				} else {
-					defer resp.Body.Close()
+					defer func() { _ = resp.Body.Close() }()
 					if resp.StatusCode != http.StatusOK {
 						t.Errorf("Expected status 200, got %d", resp.StatusCode)
 					}
@@ -1118,16 +1118,16 @@ func TestTLSConfigurationIntegration(t *testing.T) {
 
 			// Set test environment variables
 			for key, value := range tt.envVars {
-				os.Setenv(key, value)
+				_ = os.Setenv(key, value)
 			}
 
 			// Restore environment after test
 			defer func() {
 				for key, value := range originalEnv {
 					if value == "" {
-						os.Unsetenv(key)
+						_ = os.Unsetenv(key)
 					} else {
-						os.Setenv(key, value)
+						_ = os.Setenv(key, value)
 					}
 				}
 			}()
@@ -1172,7 +1172,7 @@ func TestIPAllowlistMiddleware(t *testing.T) {
 	// Mock handler that returns "OK"
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK"))
 	})
 
 	tests := []struct {
@@ -1341,7 +1341,7 @@ func TestMetricsEndpointConfiguration(t *testing.T) {
 			mockMetricsHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "text/plain")
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("# HELP test_metric A test metric\n# TYPE test_metric counter\ntest_metric 1\n"))
+				_, _ = w.Write([]byte("# HELP test_metric A test metric\n# TYPE test_metric counter\ntest_metric 1\n"))
 			})
 
 			var handler http.HandlerFunc

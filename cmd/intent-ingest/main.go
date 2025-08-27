@@ -65,7 +65,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) { 
 		w.Header().Set("Content-Type", "text/plain")
-		w.Write([]byte("ok\n"))
+		_, _ = w.Write([]byte("ok\n"))
 	})
 	mux.HandleFunc("/intent", h.HandleIntent)
 

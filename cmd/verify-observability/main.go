@@ -30,7 +30,7 @@ func main() {
 	)
 
 	// Set concurrent push limit via environment
-	os.Setenv("GIT_CONCURRENT_PUSH_LIMIT", "2")
+	_ = os.Setenv("GIT_CONCURRENT_PUSH_LIMIT", "2")
 
 	fmt.Println("=== Observability Features Verification ===")
 	fmt.Println()

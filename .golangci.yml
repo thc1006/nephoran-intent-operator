@@ -15,7 +15,7 @@ run:
   tests: true
   
   # Go version for staticcheck (must be <= golangci-lint build version)
-  go: "1.24"
+  go: "1.23"
   
   # Build tags for conditional compilation
   build-tags:
@@ -25,13 +25,9 @@ run:
   # Module download mode
   modules-download-mode: readonly
 
-# Output configuration for v2 schema compatibility
+# Output configuration compatible with v1.61.0
 output:
-  formats:
-    colored-line-number:
-      path: stdout
-    github-actions:
-      path: stdout
+  format: colored-line-number
   # Reduce output verbosity to prevent Node.js maxBuffer issues in CI
   print-issued-lines: false  # Changed from true to reduce output
   print-linter-name: true

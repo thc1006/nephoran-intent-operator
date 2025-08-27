@@ -56,7 +56,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create watcher: %v", err)
 	}
-	defer watcher.Close()
+	defer func() { _ = watcher.Close() }()
 
 	// Add handoff directory to watcher
 	err = watcher.Add(handoffDir)

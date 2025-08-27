@@ -650,7 +650,7 @@ func (rp *ResourcePlan) GetParentIntentNamespace() string {
 	if rp.Spec.ParentIntentRef.Namespace != "" {
 		return rp.Spec.ParentIntentRef.Namespace
 	}
-	return rp.Namespace
+	return rp.GetNamespace()
 }
 
 // IsPlanningComplete returns true if planning is complete

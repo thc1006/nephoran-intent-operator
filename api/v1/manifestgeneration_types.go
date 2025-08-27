@@ -687,7 +687,7 @@ func (mg *ManifestGeneration) GetParentIntentNamespace() string {
 	if mg.Spec.ParentIntentRef.Namespace != "" {
 		return mg.Spec.ParentIntentRef.Namespace
 	}
-	return mg.Namespace
+	return mg.GetNamespace()
 }
 
 // IsGenerationComplete returns true if generation is complete

@@ -464,7 +464,7 @@ func createIPRestrictedHandler(handler http.HandlerFunc, allowedIPs []string, lo
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusForbidden)
-			fmt.Fprintf(w, `{"error":"Access forbidden","message":"Your IP address is not authorized to access this endpoint"}`)
+			_, _ = fmt.Fprintf(w, `{"error":"Access forbidden","message":"Your IP address is not authorized to access this endpoint"}`)
 			return
 		}
 

@@ -12,20 +12,21 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/testutil"
 )
 
 // BenchmarkSuite provides comprehensive performance benchmarking
 type BenchmarkSuite struct {
-	jwtManager     *JWTManager
-	sessionManager *SessionManager
-	rbacManager    *RBACManager
+	jwtManager     *testutil.JWTManagerMock
+	sessionManager *testutil.SessionManagerMock
+	rbacManager    *testutil.RBACManagerMock
 	testUsers      []*providers.UserInfo
 	testTokens     []string
-	testSessions   []*UserSession
-	testRoles      []*Role
-	testPerms      []*Permission
+	testSessions   []*testutil.MockSession
+	testRoles      []*testutil.Role
+	testPerms      []*testutil.Permission
 }
 
 func NewBenchmarkSuite() *BenchmarkSuite {
@@ -55,12 +56,18 @@ func (suite *BenchmarkSuite) setupTestData() {
 		suite.testUsers = append(suite.testUsers, user)
 
 		// Generate tokens for users
-		if token, err := suite.jwtManager.GenerateToken(user, nil); err == nil {
+		claims := jwt.MapClaims{
+			"sub":   user.Subject,
+			"email": user.Email,
+			"exp":   time.Now().Add(time.Hour).Unix(),
+			"iat":   time.Now().Unix(),
+		}
+		if token, err := suite.jwtManager.GenerateToken(claims); err == nil {
 			suite.testTokens = append(suite.testTokens, token)
 		}
 
 		// Create sessions for users
-		if session, err := suite.sessionManager.CreateSession(ctx, user, nil); err == nil {
+		if session, err := suite.sessionManager.CreateSession(ctx, user); err == nil {
 			suite.testSessions = append(suite.testSessions, session)
 		}
 	}
@@ -72,8 +79,10 @@ func (suite *BenchmarkSuite) setupTestData() {
 	for _, resource := range resources {
 		for _, action := range actions {
 			perms := pf.CreateResourcePermissions(resource, []string{action})
-			if createdPerm, err := suite.rbacManager.CreatePermission(ctx, perms[0]); err == nil {
-				suite.testPerms = append(suite.testPerms, createdPerm)
+			if len(perms) > 0 {
+				if createdPerm, err := suite.rbacManager.CreatePermission(ctx, perms[0]); err == nil {
+					suite.testPerms = append(suite.testPerms, createdPerm)
+				}
 			}
 		}
 	}

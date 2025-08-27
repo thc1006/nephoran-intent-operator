@@ -140,15 +140,15 @@ func (m *MockLLMClient) SetResponse(key, response string) {
 	m.responses[key] = response
 }
 
-type MockRAGService struct {
+type IntentProcessingMockRAGService struct {
 	documents         []map[string]interface{}
 	shouldReturnError bool
 	queryDelay        time.Duration
 	maxSimilarity     float64
 }
 
-func NewMockRAGService() *MockRAGService {
-	return &MockRAGService{
+func NewMockRAGService() *IntentProcessingMockRAGService {
+	return &IntentProcessingMockRAGService{
 		documents: []map[string]interface{}{
 			{
 				"content":    "AMF (Access and Mobility Management Function) is a key component of 5G Core Network",
@@ -167,7 +167,7 @@ func NewMockRAGService() *MockRAGService {
 	}
 }
 
-func (m *MockRAGService) ProcessQuery(ctx context.Context, req *rag.RAGRequest) (*rag.RAGResponse, error) {
+func (m *IntentProcessingMockRAGService) ProcessQuery(ctx context.Context, req *rag.RAGRequest) (*rag.RAGResponse, error) {
 	if m.shouldReturnError {
 		return nil, fmt.Errorf("mock RAG error")
 	}
@@ -227,15 +227,15 @@ func (m *MockRAGService) ProcessQuery(ctx context.Context, req *rag.RAGRequest) 
 	}, nil
 }
 
-func (m *MockRAGService) SetShouldReturnError(shouldError bool) {
+func (m *IntentProcessingMockRAGService) SetShouldReturnError(shouldError bool) {
 	m.shouldReturnError = shouldError
 }
 
-func (m *MockRAGService) SetQueryDelay(delay time.Duration) {
+func (m *IntentProcessingMockRAGService) SetQueryDelay(delay time.Duration) {
 	m.queryDelay = delay
 }
 
-func (m *MockRAGService) SetDocuments(docs []map[string]interface{}) {
+func (m *IntentProcessingMockRAGService) SetDocuments(docs []map[string]interface{}) {
 	m.documents = docs
 }
 

@@ -13,3 +13,5 @@
 | 2025-08-27T14:31:53+08:00 | feat/conductor-loop | internal/loop | Fixed context leak issues by adding defer cancel calls for all timeout contexts |
 | 2025-08-27T16:45:00+08:00 | feat/conductor-loop | oran/o2 | Comprehensive O2 service implementation fixes: interface signatures, pointer handling, ResourceStatus unification |
 | 2025-08-27T17:35:10.1444219+08:00 | feat/conductor-loop | o2-service | Fixed all O2 IMS compilation errors and tests |
+| 2025-08-27T20:20:18.9471278+08:00 | feat/conductor-loop | api/v1 | Fixed missing Namespace field errors by using GetNamespace() method |
+| 2025-08-27T13:04:59Z | feat/conductor-loop | legacy-modernization | Cleaned deprecated rand.Seed, fixed type collisions, resolved unused parameter issues |

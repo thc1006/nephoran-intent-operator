@@ -829,7 +829,7 @@ func (gd *GitOpsDeployment) GetParentIntentNamespace() string {
 	if gd.Spec.ParentIntentRef.Namespace != "" {
 		return gd.Spec.ParentIntentRef.Namespace
 	}
-	return gd.Namespace
+	return gd.GetNamespace()
 }
 
 // IsDeploymentComplete returns true if deployment is complete
