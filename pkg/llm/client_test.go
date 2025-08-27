@@ -442,7 +442,7 @@ var _ = Describe("LLM Client Unit Tests", func() {
 				"1.5",
 			}
 
-			for _, cpu := range validCPUFormats {
+			for range validCPUFormats {
 				Expect(true).To(BeTrue())
 			}
 		})

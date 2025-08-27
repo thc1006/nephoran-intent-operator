@@ -306,7 +306,7 @@ func TestPerformanceDegradation(t *testing.T) {
 		}
 
 		// Check for degradation
-		if i > 0 && result.LatencyP95 > previousLatency*1.2 { // 20% degradation
+		if i > 0 && result.LatencyP95 > time.Duration(float64(previousLatency)*1.2) { // 20% degradation
 			degradationDetected = true
 			t.Logf("Performance degradation detected at %v: P95 increased from %v to %v",
 				interval, previousLatency, result.LatencyP95)
@@ -481,7 +481,7 @@ monitorLoop:
 			result.CheckpointMetrics = append(result.CheckpointMetrics, checkpoint)
 
 			// Check for performance degradation
-			if previousLatency > 0 && checkpoint.AvgLatency > previousLatency*1.5 {
+			if previousLatency > 0 && checkpoint.AvgLatency > time.Duration(float64(previousLatency)*1.5) {
 				performanceStable = false
 				klog.Warningf("Performance degradation detected: latency increased from %v to %v",
 					previousLatency, checkpoint.AvgLatency)
@@ -583,7 +583,7 @@ func testResourceExhaustion(ctx context.Context, scenario struct {
 
 	// Exhaust resource
 	klog.Infof("Exhausting %s", scenario.ResourceType)
-	exhaustStart := time.Now()
+	// exhaustStart := time.Now() // Currently unused, commented out to avoid lint warning
 
 	if err := scenario.ExhaustFunc(ctx); err != nil {
 		result.Errors = append(result.Errors, err)

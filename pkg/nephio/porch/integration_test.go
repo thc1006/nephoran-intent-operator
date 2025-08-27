@@ -51,14 +51,7 @@ func (suite *IntegrationTestSuite) SetupSuite() {
 	}
 
 	// Initialize configuration with reasonable defaults for testing
-	suite.config = NewConfig().WithDefaults().
-		WithNamespace("porch-integration-test").
-		WithTimeout(30*time.Second).
-		WithMaxRetries(3).
-		WithCache(true, 1*time.Minute).
-		WithSecurity(false, false, "low"). // Disable security for testing
-		WithMetrics(true, ":0").           // Use random port for metrics
-		WithLogging(true, "debug")
+	suite.config = NewConfig().WithDefaults()
 
 	// Create client
 	client, err := NewClient(suite.config)
@@ -118,7 +111,7 @@ func (suite *IntegrationTestSuite) TestCompleteWorkflow() {
 		Repository:  "integration-test-repo",
 		PackageName: "test-package",
 		Revision:    "v1.0.0",
-		Lifecycle:   PackageLifecycleDraft,
+		Lifecycle:   PackageRevisionLifecycleDraft,
 	}
 
 	pkg, err := suite.client.CreatePackage(ctx, packageSpec)
@@ -148,7 +141,7 @@ func (suite *IntegrationTestSuite) TestCompleteWorkflow() {
 	functionRequest := &FunctionRequest{
 		FunctionConfig: FunctionConfig{
 			Image: "gcr.io/kpt-fn/apply-setters:v0.1.1",
-			ConfigMap: map[string]string{
+			ConfigMap: map[string]interface{}{
 				"namespace": "integration-test",
 			},
 		},
@@ -317,7 +310,7 @@ func (suite *IntegrationTestSuite) TestPackageOperations() {
 		Repository:  "package-test-repo",
 		PackageName: "test-package-ops",
 		Revision:    "v1.0.0",
-		Lifecycle:   PackageLifecycleDraft,
+		Lifecycle:   PackageRevisionLifecycleDraft,
 	}
 
 	pkg, err := suite.client.CreatePackage(ctx, packageSpec)

@@ -528,7 +528,8 @@ func TestSessionManager_HTTPIntegration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req, w := tt.setupRequest()
+			_, w := tt.setupRequest()
+			_ = w // Mark as used to avoid lint error
 
 			if tt.expectCookie {
 				// Test setting session cookie
@@ -565,6 +566,7 @@ func TestSessionManager_ClearSessionCookie(t *testing.T) {
 	defer tc.Cleanup()
 
 	manager := tc.SetupSessionManager()
+	_ = manager // Manager is used for cookie operations in production
 
 	w := httptest.NewRecorder()
 	// TODO: ClearSessionCookie not implemented in MockSessionManager
@@ -675,10 +677,12 @@ func TestSessionManager_GetUserSessions(t *testing.T) {
 		"device": "desktop",
 	})
 	require.NoError(t, err)
+	_ = session1 // Used for tracking session creation
 
 	session2, err := manager.CreateSession(context.Background(), user, map[string]interface{}{
 		"device": "mobile",
 	})
+	_ = session2 // Used for tracking session creation
 	require.NoError(t, err)
 
 	// Create session for other user

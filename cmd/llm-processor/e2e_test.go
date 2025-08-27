@@ -208,8 +208,7 @@ var _ = Describe("End-to-End LLM Processor Tests", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
 			var readyResp ReadinessResponse
-			err = // FIXME: Adding error check per errcheck linter
- _ = json.NewDecoder(resp.Body).Decode(&readyResp)
+			err = json.NewDecoder(resp.Body).Decode(&readyResp)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(readyResp.Status).To(Equal("ready"))
 		})
@@ -222,8 +221,7 @@ var _ = Describe("End-to-End LLM Processor Tests", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
 			var info map[string]interface{}
-			err = // FIXME: Adding error check per errcheck linter
- _ = json.NewDecoder(resp.Body).Decode(&info)
+			err = json.NewDecoder(resp.Body).Decode(&info)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(info).To(HaveKey("service"))
 			Expect(info).To(HaveKey("configuration"))
@@ -238,8 +236,7 @@ var _ = Describe("End-to-End LLM Processor Tests", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
 			var version map[string]interface{}
-			err = // FIXME: Adding error check per errcheck linter
- _ = json.NewDecoder(resp.Body).Decode(&version)
+			err = json.NewDecoder(resp.Body).Decode(&version)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(version["version"]).To(Equal("test-v1.0.0"))
 		})

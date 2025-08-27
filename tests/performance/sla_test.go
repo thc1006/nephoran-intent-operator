@@ -70,8 +70,8 @@ type AIMLPerformance struct {
 	EmbeddingLatency    float64 // Embedding generation latency in milliseconds
 }
 
-// SLAViolation represents a specific SLA violation
-type SLAViolation struct {
+// TestSLAViolation represents a specific SLA violation in tests
+type TestSLAViolation struct {
 	Metric    string
 	Current   float64
 	Target    float64
@@ -691,7 +691,7 @@ func (s *SLATestSuite) extractScalarValue(result interface{}) (float64, error) {
 }
 
 // BenchmarkIntentProcessing benchmarks intent processing performance
-func BenchmarkIntentProcessing(b *testing.B) {
+func BenchmarkSLAIntentProcessing(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 

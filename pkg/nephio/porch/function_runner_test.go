@@ -18,6 +18,7 @@ package porch
 
 import (
 	"context"
+	"fmt"
 	"runtime"
 	"sync"
 	"testing"
@@ -228,7 +229,7 @@ func createTestFunctionRequest() *FunctionRequest {
 	return &FunctionRequest{
 		FunctionConfig: FunctionConfig{
 			Image: "gcr.io/kpt-fn/apply-setters:v0.1.1",
-			ConfigMap: map[string]string{
+			ConfigMap: map[string]interface{}{
 				"key1": "value1",
 			},
 		},
@@ -262,7 +263,7 @@ func createTestPipelineRequest() *PipelineRequest {
 				},
 				{
 					Image: "gcr.io/kpt-fn/set-namespace:v0.1.1",
-					ConfigMap: map[string]string{
+					ConfigMap: map[string]interface{}{
 						"namespace": "test-namespace",
 					},
 				},
@@ -618,7 +619,7 @@ func TestFunctionRunnerActiveExecutions(t *testing.T) {
 			status:       ExecutionStatusRunning,
 		}
 
-		ctx, cancel := context.WithCancel(context.Background())
+		_, cancel := context.WithCancel(context.Background())
 		execCtx.cancel = cancel
 
 		fr.activeExecutions["test-execution-id"] = execCtx
@@ -704,7 +705,7 @@ func TestFunctionRunnerConcurrency(t *testing.T) {
 				defer wg.Done()
 
 				request := createTestFunctionRequest()
-				request.FunctionConfig.ConfigMap = map[string]string{
+				request.FunctionConfig.ConfigMap = map[string]interface{}{
 					"execution_id": fmt.Sprintf("exec-%d", index),
 				}
 
@@ -768,7 +769,7 @@ func TestFunctionRunnerMemoryUsage(t *testing.T) {
 	// Perform a series of operations
 	for i := 0; i < 100; i++ {
 		request := createTestFunctionRequest()
-		request.FunctionConfig.ConfigMap = map[string]string{
+		request.FunctionConfig.ConfigMap = map[string]interface{}{
 			"iteration": fmt.Sprintf("%d", i),
 		}
 

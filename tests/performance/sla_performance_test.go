@@ -108,7 +108,7 @@ type LoadGeneratorConfig struct {
 type LoadWorker struct {
 	id        int
 	generator *LoadGenerator
-	client    *TestClient
+	client    interface{} // Placeholder for test client
 	active    atomic.Bool
 	requests  atomic.Int64
 	errors    atomic.Int64
@@ -200,7 +200,7 @@ type PerformanceTestResults struct {
 type LatencyBreakdown struct {
 	ComponentLatencies  map[string]LatencyStats `json:"component_latencies"`
 	PercentileHistogram map[string]float64      `json:"percentile_histogram"`
-	TimeSeriesData      []LatencyDataPoint      `json:"time_series_data"`
+	TimeSeriesData      []SLALatencyDataPoint   `json:"time_series_data"`
 }
 
 // LatencyStats contains latency statistics for a component
@@ -240,14 +240,14 @@ type ThroughputDataPoint struct {
 
 // ResourceBreakdown provides detailed resource usage analysis
 type ResourceBreakdown struct {
-	MemoryUsageTimeSeries []ResourceDataPoint `json:"memory_usage_time_series"`
-	CPUUsageTimeSeries    []ResourceDataPoint `json:"cpu_usage_time_series"`
-	GoroutineCount        []ResourceDataPoint `json:"goroutine_count"`
-	GCStats               []GCDataPoint       `json:"gc_stats"`
+	MemoryUsageTimeSeries []SLAResourceDataPoint `json:"memory_usage_time_series"`
+	CPUUsageTimeSeries    []SLAResourceDataPoint `json:"cpu_usage_time_series"`
+	GoroutineCount        []SLAResourceDataPoint `json:"goroutine_count"`
+	GCStats               []GCDataPoint          `json:"gc_stats"`
 }
 
-// ResourceDataPoint represents resource usage over time
-type ResourceDataPoint struct {
+// SLAResourceDataPoint represents resource usage over time for SLA monitoring
+type SLAResourceDataPoint struct {
 	Timestamp time.Time `json:"timestamp"`
 	Value     float64   `json:"value"`
 }
@@ -281,9 +281,9 @@ type RealtimeMetrics struct {
 
 // PerformanceProfiler profiles system performance during tests
 type PerformanceProfiler struct {
-	cpuProfiler    *CPUProfiler
-	memoryProfiler *MemoryProfiler
-	traceProfiler  *TraceProfiler
+	cpuProfiler    interface{} // Placeholder for CPU profiler
+	memoryProfiler interface{} // Placeholder for Memory profiler
+	traceProfiler  interface{} // Placeholder for Trace profiler
 	startTime      time.Time
 	profiles       map[string]*ProfileData
 	mutex          sync.RWMutex
@@ -299,10 +299,10 @@ type ProfileData struct {
 
 // ResourceMonitor monitors system resource usage
 type ResourceMonitor struct {
-	memoryStats    []MemoryStats
-	cpuStats       []CPUStats
-	goroutineStats []GoroutineStats
-	gcStats        []GCStats
+	memoryStats    []interface{} // Placeholder for memory stats
+	cpuStats       []interface{} // Placeholder for CPU stats
+	goroutineStats []interface{} // Placeholder for goroutine stats
+	gcStats        []interface{} // Placeholder for GC stats
 	mutex          sync.RWMutex
 	ticker         *time.Ticker
 	ctx            context.Context

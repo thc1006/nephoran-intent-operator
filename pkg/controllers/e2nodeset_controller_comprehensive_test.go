@@ -362,10 +362,8 @@ func TestE2NodeSetController_Reconcile(t *testing.T) {
 
 			// Create reconciler
 			reconciler := &E2NodeSetReconciler{
-				Client:    fakeClient,
-				Scheme:    s,
-				GitClient: gitClient,
-				E2Manager: e2Manager,
+				Client: fakeClient,
+				Scheme: s,
 			}
 
 			// Execute reconcile
@@ -432,10 +430,8 @@ func TestE2NodeSetController_EdgeCases(t *testing.T) {
 					Build()
 
 				reconciler := &E2NodeSetReconciler{
-					Client:    fakeClient,
-					Scheme:    s,
-					GitClient: fake.NewClient(),
-					E2Manager: nil, // Nil E2Manager
+					Client: fakeClient,
+					Scheme: s,
 				}
 
 				return reconciler, e2nodeSet, context.Background()
@@ -465,10 +461,8 @@ func TestE2NodeSetController_EdgeCases(t *testing.T) {
 					Build()
 
 				reconciler := &E2NodeSetReconciler{
-					Client:    fakeClient,
-					Scheme:    s,
-					GitClient: fake.NewClient(),
-					E2Manager: newFakeE2Manager(),
+					Client: fakeClient,
+					Scheme: s,
 				}
 
 				// Create cancelled context
@@ -525,14 +519,9 @@ func TestE2NodeSetController_ConcurrentUpdates(t *testing.T) {
 		WithObjects(e2nodeSet).
 		Build()
 
-	e2Manager := newFakeE2Manager()
-	gitClient := fake.NewClient()
-
 	reconciler := &E2NodeSetReconciler{
-		Client:    fakeClient,
-		Scheme:    s,
-		GitClient: gitClient,
-		E2Manager: e2Manager,
+		Client: fakeClient,
+		Scheme: s,
 	}
 
 	ctx := context.Background()
@@ -630,10 +619,8 @@ func TestE2NodeSetController_FinalizerHandling(t *testing.T) {
 				Build()
 
 			reconciler := &E2NodeSetReconciler{
-				Client:    fakeClient,
-				Scheme:    s,
-				GitClient: fake.NewClient(),
-				E2Manager: newFakeE2Manager(),
+				Client: fakeClient,
+				Scheme: s,
 			}
 
 			ctx := context.Background()

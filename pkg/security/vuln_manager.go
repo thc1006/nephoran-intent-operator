@@ -849,8 +849,18 @@ func (vm *VulnerabilityManager) GetMetrics() *VulnMetrics {
 	vm.metrics.mutex.RLock()
 	defer vm.metrics.mutex.RUnlock()
 
-	metrics := *vm.metrics
-	return &metrics
+	return &VulnMetrics{
+		TotalVulnerabilities:      vm.metrics.TotalVulnerabilities,
+		CriticalVulnerabilities:   vm.metrics.CriticalVulnerabilities,
+		HighVulnerabilities:       vm.metrics.HighVulnerabilities,
+		MediumVulnerabilities:     vm.metrics.MediumVulnerabilities,
+		LowVulnerabilities:        vm.metrics.LowVulnerabilities,
+		RemediatedVulnerabilities: vm.metrics.RemediatedVulnerabilities,
+		VulnsByType:               copyStringInt64Map(vm.metrics.VulnsByType),
+		MTTRemediation:            vm.metrics.MTTRemediation,
+		LastScanTime:              vm.metrics.LastScanTime,
+		ScanDuration:              vm.metrics.ScanDuration,
+	}
 }
 
 // GetVulnerabilityDatabase returns the vulnerability database

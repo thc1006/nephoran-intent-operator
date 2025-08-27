@@ -8,9 +8,9 @@ import (
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/performance"
-	"k8s.io/apimachinery/pkg/api/resource"
+	// "k8s.io/apimachinery/pkg/api/resource" // Currently unused
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	// "sigs.k8s.io/controller-runtime/pkg/client/fake" // Currently unused
 )
 
 // TestRealisticTelecomWorkload tests realistic 5G network function deployment scenarios
@@ -274,11 +274,6 @@ func TestComplexIntentProcessing(t *testing.T) {
 			},
 			Spec: nephoranv1.NetworkIntentSpec{
 				Intent: "Deploy complete 5G network with AMF, SMF, UPF, configure network slicing for eMBB and URLLC, enable auto-scaling, setup monitoring and alerting, configure security policies, and integrate with existing OSS/BSS systems",
-				TargetClusters: []string{
-					"production-cluster-1",
-					"production-cluster-2",
-					"edge-cluster-1",
-				},
 			},
 		}
 
@@ -408,8 +403,7 @@ func generateRandomIntent() *nephoranv1.NetworkIntent {
 			Namespace: "default",
 		},
 		Spec: nephoranv1.NetworkIntentSpec{
-			Intent:         intents[time.Now().UnixNano()%int64(len(intents))],
-			TargetClusters: []string{"cluster-1"},
+			Intent: intents[time.Now().UnixNano()%int64(len(intents))],
 		},
 	}
 }
