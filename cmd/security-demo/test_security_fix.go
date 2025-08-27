@@ -1,6 +1,7 @@
 // Security Fix Demonstration
 // This file demonstrates the comprehensive security fix for the path traversal vulnerability
 
+// Package main provides security fix validation for the Nephoran Intent Operator.
 package main
 
 import (
@@ -95,7 +96,7 @@ func main() {
 		{"/config/auth.json", "VALID: Kubernetes Mount Path"},
 	}
 
-	fmt.Println("=== Security Fix Validation Results ===\n")
+	fmt.Println("=== Security Fix Validation Results ===")
 
 	for _, test := range testPaths {
 		err := validateConfigFilePath(test.path)

@@ -1,6 +1,6 @@
 module github.com/thc1006/nephoran-intent-operator
 
-go 1.24.1
+go 1.24.6
 
 // Go 1.24+ optimization directives for better performance
 //go:build go1.24

@@ -16,7 +16,7 @@ import (
 
 // RAGEnhancedProcessor provides LLM processing enhanced with RAG capabilities
 type RAGEnhancedProcessor struct {
-	baseClient     Client
+	baseClient     *Client
 	ragService     *rag.RAGService
 	weaviateClient *rag.WeaviateClient
 	config         *RAGProcessorConfig
@@ -75,7 +75,7 @@ type EnhancedResponse struct {
 
 // NewRAGEnhancedProcessor creates a new RAG-enhanced LLM processor
 func NewRAGEnhancedProcessor(
-	baseClient Client,
+	baseClient *Client,
 	weaviateClient *rag.WeaviateClient,
 	ragService *rag.RAGService,
 	config *RAGProcessorConfig,

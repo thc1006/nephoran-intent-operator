@@ -375,10 +375,22 @@ func (p *AdaptiveWorkerPool) metricsCollector() {
 }
 
 // GetMetrics returns current pool metrics
-func (p *AdaptiveWorkerPool) GetMetrics() PoolMetrics {
+func (p *AdaptiveWorkerPool) GetMetrics() *PoolMetrics {
 	p.metrics.mu.RLock()
 	defer p.metrics.mu.RUnlock()
-	return *p.metrics
+	
+	// Create a copy without the mutex to avoid copylocks
+	metricsCopy := &PoolMetrics{
+		TotalProcessed:     p.metrics.TotalProcessed,
+		TotalRejected:      p.metrics.TotalRejected,
+		AverageWaitTime:    p.metrics.AverageWaitTime,
+		AverageProcessTime: p.metrics.AverageProcessTime,
+		CurrentWorkers:     p.metrics.CurrentWorkers,
+		QueueDepth:         p.metrics.QueueDepth,
+		Throughput:         p.metrics.Throughput,
+		lastReset:          p.metrics.lastReset,
+	}
+	return metricsCopy
 }
 
 // Shutdown gracefully shuts down the pool

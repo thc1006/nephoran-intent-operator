@@ -10,3 +10,4 @@
  | feat/conductor-loop | aws-sdk-v2-fixes | Fixed StorageClass usage and EC2 instance field access for AWS SDK v2
 2025-08-25T05:01:00+08:00 | feat/conductor-loop | aws-sdk-v2-fixes | Fixed StorageClass usage and EC2 instance field access for AWS SDK v2
 | 2025-08-25T22:54:00+08:00 | feat/conductor-loop | multicluster | Fixed Kubernetes API issues: removed unused imports causing compilation failures
+| 2025-08-27T14:31:53+08:00 | feat/conductor-loop | internal/loop | Fixed context leak issues by adding defer cancel calls for all timeout contexts

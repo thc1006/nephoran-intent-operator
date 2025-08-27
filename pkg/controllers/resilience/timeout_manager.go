@@ -421,14 +421,21 @@ func (tm *TimeoutManager) GetMetrics() *TimeoutMetrics {
 	defer tm.metrics.mutex.RUnlock()
 
 	// Create a copy to prevent concurrent access
-	metricsCopy := *tm.metrics
-	metricsCopy.OperationsByTimeout = make(map[time.Duration]int64)
-
+	operationsByTimeout := make(map[time.Duration]int64)
 	for k, v := range tm.metrics.OperationsByTimeout {
-		metricsCopy.OperationsByTimeout[k] = v
+		operationsByTimeout[k] = v
+	}
+	
+	metricsCopy := &TimeoutMetrics{
+		TotalOperations:     tm.metrics.TotalOperations,
+		TimeoutOperations:   tm.metrics.TimeoutOperations,
+		AverageTimeout:      tm.metrics.AverageTimeout,
+		TimeoutRate:         tm.metrics.TimeoutRate,
+		AdaptiveAdjustments: tm.metrics.AdaptiveAdjustments,
+		OperationsByTimeout: operationsByTimeout,
 	}
 
-	return &metricsCopy
+	return metricsCopy
 }
 
 // GetActiveOperations returns the count of currently active operations
@@ -450,8 +457,16 @@ func (tm *TimeoutManager) GetOperationStatus(operationID string) (*TimeoutOperat
 		defer operation.mutex.RUnlock()
 
 		// Return a copy to prevent concurrent access issues
-		operationCopy := *operation
-		return &operationCopy, true
+		operationCopy := &TimeoutOperation{
+			ID:            operation.ID,
+			StartTime:     operation.StartTime,
+			Timeout:       operation.Timeout,
+			Context:       operation.Context,
+			CancelFunc:    operation.CancelFunc,
+			CompletedChan: operation.CompletedChan,
+			TimeoutChan:   operation.TimeoutChan,
+		}
+		return operationCopy, true
 	}
 
 	return nil, false

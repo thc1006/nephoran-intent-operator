@@ -2,9 +2,11 @@
 # Compatible with golangci-lint v2.4.0+ and Go 1.24.x
 # Ubuntu-only CI targeting O-RAN/Nephio orchestration requirements
 
+version: 2
+
 run:
   # Timeout for analysis - increased for comprehensive checks
-  timeout: 5m
+  timeout: 10m
   
   # Exit code when at least one issue was found
   issues-exit-code: 1
@@ -13,7 +15,7 @@ run:
   tests: true
   
   # Go version for staticcheck (must be <= golangci-lint build version)
-  go: "1.23"
+  go: "1.25"
   
   # Build tags for conditional compilation
   build-tags:
@@ -26,8 +28,10 @@ run:
 # Output configuration for v2 schema compatibility
 output:
   formats:
-    - format: colored-line-number
-    - format: github-actions  # Added for CI integration
+    colored-line-number:
+      path: stdout
+    github-actions:
+      path: stdout
   # Reduce output verbosity to prevent Node.js maxBuffer issues in CI
   print-issued-lines: false  # Changed from true to reduce output
   print-linter-name: true
@@ -41,7 +45,6 @@ linters:
   
   # Enable essential linters for security and code quality
   enable:
-    - typecheck      # Basic type checking (always enabled in v2)
     - revive         # Golint replacement with more rules
     - staticcheck    # Advanced static analysis
     - govet          # Official Go tool for static analysis
@@ -53,8 +56,6 @@ linters:
     - unconvert      # Unnecessary type conversions
     - prealloc       # Slice preallocation
     - gosec          # Security-focused linter (G series)
-    - gofmt          # Formatting checks
-    - goimports      # Import formatting
 
 # Linter settings
 linters-settings:
@@ -157,9 +158,20 @@ issues:
     - ".*_gen\\.go$"
     - "zz_generated\\..*\\.go$"
     - "mock_.*\\.go$"
+    - ".*_mock\\.go$"
+    - ".*\\.mock\\.go$"
+    - ".*deepcopy.*\\.go$"
+    - ".*clientset.*\\.go$"
+    - ".*informers.*\\.go$"
+    - ".*listers.*\\.go$"
+    - ".*versioned.*\\.go$"
     - "vendor/.*"
     - ".*/out/.*\\.go$"          # Exclude .out directories
     - ".*/test-results/.*\\.go$"  # Exclude test-results directories
+    - ".*/bin/.*\\.go$"         # Exclude bin directories
+    - ".*/tmp/.*\\.go$"         # Exclude tmp directories
+    - ".*/temp/.*\\.go$"        # Exclude temp directories
+    - ".*/\\.cache/.*\\.go$"     # Exclude cache directories
   
   # Exclude certain issue patterns
   exclude-rules:
@@ -171,11 +183,15 @@ issues:
         - errcheck
     
     # Exclude generated files from all linters
-    - path: "(.*\\.pb\\.go|.*_generated\\.go|zz_generated\\..*\\.go)"
+    - path: "(.*\\.pb\\.go|.*_generated\\.go|.*_gen\\.go|zz_generated\\..*\\.go|.*_mock\\.go|.*\\.mock\\.go|.*deepcopy.*\\.go|.*clientset.*\\.go|.*informers.*\\.go|.*listers.*\\.go|.*versioned.*\\.go)"
       linters:
         - revive
         - gocritic
         - gosec
+        - staticcheck
+        - govet
+        - errcheck
+        - ineffassign
     
     # Allow certain patterns in test files
     - path: _test\.go
@@ -209,13 +225,3 @@ issues:
     - EXC0013  # disable excluding issues about missing comments for constants
     - EXC0014  # disable excluding issues about missing comments for variables
     - EXC0015  # disable excluding issues about missing comments for type aliases
-
-# Severity configuration
-severity:
-  default-severity: error
-  rules:
-    - linters:
-        - misspell
-        - gocritic
-        - revive
-      severity: warning

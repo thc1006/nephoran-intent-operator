@@ -995,7 +995,8 @@ func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp 
 		// Queue work item with backpressure handling
 		select {
 		case w.workerPool.workQueue <- workItem:
-			// Successfully queued
+			// Successfully queued - defer cancel to ensure cleanup
+			defer cancel()
 		case <-w.ctx.Done():
 			cancel()
 			return
@@ -1030,23 +1031,24 @@ func (w *Watcher) processExistingFiles() error {
 		if IsIntentFile(filename) {
 			filePath := filepath.Join(w.dir, filename)
 			
-			workCtx, cancel := context.WithTimeout(w.ctx, 60*time.Second)
-			workItem := WorkItem{
-				FilePath: filePath,
-				Attempt:  1,
-				Ctx:      workCtx,
-			}
-			
-			select {
-			case w.workerPool.workQueue <- workItem:
-				filesQueued++
-			case <-w.ctx.Done():
-				cancel()
-				return nil
-			default:
-				cancel()
-				log.Printf("Warning: work queue full during startup, skipping %s", filename)
-			}
+			func() {
+				workCtx, cancel := context.WithTimeout(w.ctx, 60*time.Second)
+				defer cancel() // Ensure cancel is always called
+				workItem := WorkItem{
+					FilePath: filePath,
+					Attempt:  1,
+					Ctx:      workCtx,
+				}
+				
+				select {
+				case w.workerPool.workQueue <- workItem:
+					filesQueued++
+				case <-w.ctx.Done():
+					return
+				default:
+					log.Printf("Warning: work queue full during startup, skipping %s", filename)
+				}
+			}()
 		}
 	}
 	
@@ -1120,22 +1122,24 @@ func (w *Watcher) startPolling() error {
 				}
 				
 				// Queue for processing
-				workCtx, cancel := context.WithTimeout(w.ctx, 60*time.Second)
-				workItem := WorkItem{
-					FilePath: filePath,
-					Attempt:  1,
-					Ctx:      workCtx,
-				}
-				
-				select {
-				case w.workerPool.workQueue <- workItem:
-					filesQueued++
-					processedFiles[filename] = sha256Hash
-					log.Printf("LOOP:PROCESS - Queued file %s for processing", filename)
-				default:
-					cancel()
-					log.Printf("LOOP:WARNING - Work queue full, skipping file %s", filename)
-				}
+				func() {
+					workCtx, cancel := context.WithTimeout(w.ctx, 60*time.Second)
+					defer cancel() // Ensure cancel is always called
+					workItem := WorkItem{
+						FilePath: filePath,
+						Attempt:  1,
+						Ctx:      workCtx,
+					}
+					
+					select {
+					case w.workerPool.workQueue <- workItem:
+						filesQueued++
+						processedFiles[filename] = sha256Hash
+						log.Printf("LOOP:PROCESS - Queued file %s for processing", filename)
+					default:
+						log.Printf("LOOP:WARNING - Work queue full, skipping file %s", filename)
+					}
+				}()
 			}
 			
 			if filesFound > 0 {

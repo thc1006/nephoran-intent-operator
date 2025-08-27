@@ -19,6 +19,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
+
 // Manager type definitions
 type OperatorManager struct {
 	config    *OperatorConfig
@@ -37,7 +38,7 @@ type ContainerRegistryManager struct {
 	logger *logging.StructuredLogger
 }
 
-// Manager method implementations
+// Manager method implementations  
 func (om *OperatorManager) Initialize() error {
 	return nil
 }
@@ -60,6 +61,32 @@ func (sm *ServiceMeshManager) Initialize() error {
 
 func (crm *ContainerRegistryManager) Initialize() error {
 	return nil
+}
+
+// NewOperatorManager creates a new operator manager
+func NewOperatorManager(config *OperatorConfig, k8sClient client.Client, logger *logging.StructuredLogger) *OperatorManager {
+	return &OperatorManager{
+		config:    config,
+		k8sClient: k8sClient,
+		logger:    logger,
+	}
+}
+
+// NewServiceMeshManager creates a new service mesh manager
+func NewServiceMeshManager(config *ServiceMeshConfig, k8sClient client.Client, logger *logging.StructuredLogger) *ServiceMeshManager {
+	return &ServiceMeshManager{
+		config:    config,
+		k8sClient: k8sClient,
+		logger:    logger,
+	}
+}
+
+// NewContainerRegistryManager creates a new container registry manager
+func NewContainerRegistryManager(config *RegistryConfig, logger *logging.StructuredLogger) *ContainerRegistryManager {
+	return &ContainerRegistryManager{
+		config: config,
+		logger: logger,
+	}
 }
 
 // CNFManagementService provides comprehensive CNF lifecycle management
@@ -210,10 +237,10 @@ type ScanPolicy struct {
 
 // CNFLifecycleConfig configuration for CNF lifecycle management
 type CNFLifecycleConfig struct {
-	AutoScaling    *AutoScalingConfig    `json:"autoScaling,omitempty"`
-	HealthChecks   *HealthCheckConfig    `json:"healthChecks,omitempty"`
-	UpdateStrategy *UpdateStrategyConfig `json:"updateStrategy,omitempty"`
-	BackupStrategy *BackupStrategyConfig `json:"backupStrategy,omitempty"`
+	AutoScaling    *AutoScalingConfig         `json:"autoScaling,omitempty"`
+	HealthChecks   *models.HealthCheckConfig  `json:"healthChecks,omitempty"`
+	UpdateStrategy *UpdateStrategyConfig      `json:"updateStrategy,omitempty"`
+	BackupStrategy *BackupStrategyConfig      `json:"backupStrategy,omitempty"`
 }
 
 // AutoScalingConfig configuration for CNF auto-scaling
@@ -275,9 +302,9 @@ type SecurityPolicies struct {
 
 // NetworkPolicies configuration for CNF network policies
 type NetworkPolicies struct {
-	DefaultDeny  bool                `json:"defaultDeny,omitempty"`
-	IngressRules []NetworkPolicyRule `json:"ingressRules,omitempty"`
-	EgressRules  []NetworkPolicyRule `json:"egressRules,omitempty"`
+	DefaultDeny  bool                         `json:"defaultDeny,omitempty"`
+	IngressRules []models.NetworkPolicyRule  `json:"ingressRules,omitempty"`
+	EgressRules  []models.NetworkPolicyRule  `json:"egressRules,omitempty"`
 }
 
 
@@ -456,9 +483,16 @@ func DefaultCNFConfig() *CNFConfig {
 				MinReplicas: 1,
 				MaxReplicas: 10,
 			},
-			HealthChecks: &HealthCheckConfig{
-				Enabled:       true,
-				CheckInterval: 30 * time.Second,
+			HealthChecks: &models.HealthCheckConfig{
+				Name: "default-health-check",
+				Type: "HTTP",
+				Path: "/health",
+				Port: 8080,
+				InitialDelaySeconds: 30,
+				PeriodSeconds: 30,
+				TimeoutSeconds: 5,
+				SuccessThreshold: 1,
+				FailureThreshold: 3,
 			},
 			UpdateStrategy: &UpdateStrategyConfig{
 				Type:           "RollingUpdate",
@@ -589,10 +623,11 @@ func (s *CNFManagementService) monitorCNFInstances() {
 // monitorCNFInstance monitors a single CNF instance
 func (s *CNFManagementService) monitorCNFInstance(id string, instance *CNFInstance) {
 	// Get current deployment status
-	deployment, err := s.k8sClient.Get(s.ctx, &appsv1.Deployment{}, client.ObjectKey{
+	deployment := &appsv1.Deployment{}
+	err := s.k8sClient.Get(s.ctx, client.ObjectKey{
 		Name:      instance.Name,
 		Namespace: instance.Namespace,
-	})
+	}, deployment)
 	if err != nil {
 		s.logger.Error("failed to get CNF deployment",
 			"cnf_id", id,
@@ -602,7 +637,7 @@ func (s *CNFManagementService) monitorCNFInstance(id string, instance *CNFInstan
 	}
 
 	// Update CNF status
-	s.updateCNFStatus(instance, deployment.(*appsv1.Deployment))
+	s.updateCNFStatus(instance, deployment)
 }
 
 // updateCNFStatus updates CNF status based on deployment
@@ -750,7 +785,7 @@ func (s *CNFManagementService) deployWithHelm(ctx context.Context, instance *CNF
 		CNFID:     instance.ID,
 		Type:      "helm",
 		Status:    "deployed",
-		Resources: s.extractResourceRefs(release.Resources),
+		Resources: s.extractResourceRefsFromInterfaces(release.Resources),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -764,6 +799,12 @@ func (s *CNFManagementService) deployWithOperator(ctx context.Context, instance 
 		"cnf_id", instance.ID,
 		"operator", operatorSpec.Name)
 
+	// Convert CustomResources to []interface{}
+	customResources := make([]interface{}, len(operatorSpec.CustomResources))
+	for i, cr := range operatorSpec.CustomResources {
+		customResources[i] = cr
+	}
+
 	// Deploy using operator manager
 	resources, err := s.operatorManager.Deploy(ctx, &OperatorDeployRequest{
 		Name:            instance.Name,
@@ -772,7 +813,7 @@ func (s *CNFManagementService) deployWithOperator(ctx context.Context, instance 
 		Version:         operatorSpec.Version,
 		Channel:         operatorSpec.Channel,
 		Source:          operatorSpec.Source,
-		CustomResources: operatorSpec.CustomResources,
+		CustomResources: customResources,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to deploy with operator: %w", err)
@@ -783,7 +824,7 @@ func (s *CNFManagementService) deployWithOperator(ctx context.Context, instance 
 		CNFID:     instance.ID,
 		Type:      "operator",
 		Status:    "deployed",
-		Resources: s.extractResourceRefs(resources),
+		Resources: s.extractResourceRefsFromInterfaces(resources),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -833,11 +874,11 @@ func (s *CNFManagementService) deployWithManifests(ctx context.Context, instance
 							SecurityContext: instance.Spec.SecurityContext,
 						},
 					},
-					Volumes:        instance.Spec.Volumes,
-					ServiceAccount: instance.Spec.ServiceAccount,
-					NodeSelector:   instance.Spec.NodeSelector,
-					Tolerations:    instance.Spec.Tolerations,
-					Affinity:       instance.Spec.Affinity,
+					Volumes:           instance.Spec.Volumes,
+					ServiceAccountName: instance.Spec.ServiceAccount,
+					NodeSelector:      instance.Spec.NodeSelector,
+					Tolerations:       instance.Spec.Tolerations,
+					Affinity:          instance.Spec.Affinity,
 				},
 			},
 		},
@@ -936,6 +977,27 @@ func (s *CNFManagementService) extractResourceRefs(resources []runtime.Object) [
 				Namespace:  obj.GetNamespace(),
 				UID:        obj.GetUID(),
 			})
+		}
+	}
+
+	return refs
+}
+
+// extractResourceRefsFromInterfaces extracts resource references from interface{} resources
+func (s *CNFManagementService) extractResourceRefsFromInterfaces(resources []interface{}) []ResourceRef {
+	var refs []ResourceRef
+
+	for _, resource := range resources {
+		if runtimeObj, ok := resource.(runtime.Object); ok {
+			if obj, ok := runtimeObj.(metav1.Object); ok {
+				refs = append(refs, ResourceRef{
+					APIVersion: runtimeObj.GetObjectKind().GroupVersionKind().GroupVersion().String(),
+					Kind:       runtimeObj.GetObjectKind().GroupVersionKind().Kind,
+					Name:       obj.GetName(),
+					Namespace:  obj.GetNamespace(),
+					UID:        obj.GetUID(),
+				})
+			}
 		}
 	}
 
@@ -1103,10 +1165,16 @@ func (s *CNFManagementService) updateOperatorDeployment(ctx context.Context, ins
 		return fmt.Errorf("operator specification missing")
 	}
 
+	// Convert CustomResources to []interface{}
+	customResources := make([]interface{}, len(instance.Spec.Operator.CustomResources))
+	for i, cr := range instance.Spec.Operator.CustomResources {
+		customResources[i] = cr
+	}
+
 	return s.operatorManager.Update(ctx, &OperatorUpdateRequest{
 		Name:            instance.Name,
 		Namespace:       instance.Namespace,
-		CustomResources: instance.Spec.Operator.CustomResources,
+		CustomResources: customResources,
 	})
 }
 

@@ -248,8 +248,16 @@ func (p *LDAPConnectionPool) GetStats() *LDAPPoolStats {
 	defer p.stats.mu.RUnlock()
 
 	// Create a copy to avoid race conditions
-	stats := &LDAPPoolStats{}
-	*stats = *p.stats
+	stats := &LDAPPoolStats{
+		TotalConnections:   p.stats.TotalConnections,
+		ConnectionsCreated: p.stats.ConnectionsCreated,
+		ConnectionsReused:  p.stats.ConnectionsReused,
+		ConnectionsFailed:  p.stats.ConnectionsFailed,
+		HealthChecksPassed: p.stats.HealthChecksPassed,
+		HealthChecksFailed: p.stats.HealthChecksFailed,
+		LastHealthCheck:    p.stats.LastHealthCheck,
+		AverageCheckTime:   p.stats.AverageCheckTime,
+	}
 
 	p.mu.RLock()
 	stats.ActiveConnections = p.activeConnections

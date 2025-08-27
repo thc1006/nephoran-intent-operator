@@ -166,7 +166,7 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 	// Initialize RAG-enhanced processor if enabled
 	var ragEnhanced *llm.RAGEnhancedProcessor
 	if sm.config.RAGEnabled {
-		ragEnhanced = llm.NewRAGEnhancedProcessor(*llmClient, nil, nil, nil)
+		ragEnhanced = llm.NewRAGEnhancedProcessor(llmClient, nil, nil, nil)
 	}
 
 	// Initialize streaming processor if enabled

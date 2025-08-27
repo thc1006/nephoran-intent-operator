@@ -104,7 +104,7 @@ func ExampleMetricsUsage() {
 // MetricsCollectorExample shows how to collect and analyze metrics over time
 func MetricsCollectorExample() {
 	// This would typically be run in a monitoring system
-	metricsHistory := make([]WatcherMetrics, 0, 100)
+	metricsHistory := make([]*WatcherMetrics, 0, 100)
 	
 	config := Config{
 		PorchPath:   "/usr/bin/porch",
@@ -125,7 +125,7 @@ func MetricsCollectorExample() {
 	for i := 0; i < 5; i++ { // Collect 5 samples
 		<-ticker.C
 		metrics := watcher.GetMetrics()
-		metricsHistory = append(metricsHistory, *metrics)
+		metricsHistory = append(metricsHistory, metrics)
 		
 		fmt.Printf("Sample %d: Processed=%d, Failed=%d, Memory=%dMB, Workers=%.1f%%\n",
 			i+1,

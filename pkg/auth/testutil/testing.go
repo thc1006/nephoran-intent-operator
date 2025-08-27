@@ -72,8 +72,10 @@ func (j *JWTManagerMock) Close() {
 
 // RBACManagerMock provides mock RBAC functionality
 type RBACManagerMock struct {
-	roles       map[string][]string // userID -> roles
-	permissions map[string][]string // role -> permissions
+	roles           map[string][]string     // userID -> roles
+	permissions     map[string][]string     // role -> permissions
+	roleStore       map[string]*Role        // roleID -> role
+	permissionStore map[string]*Permission  // permissionID -> permission
 }
 
 func (r *RBACManagerMock) CheckPermission(ctx context.Context, userID, resource, action string) (bool, error) {
@@ -114,6 +116,40 @@ func (r *RBACManagerMock) GetRolePermissions(ctx context.Context, role string) (
 		return []string{}, nil
 	}
 	return r.permissions[role], nil
+}
+
+func (r *RBACManagerMock) CreatePermission(ctx context.Context, perm *Permission) (*Permission, error) {
+	if r.permissionStore == nil {
+		r.permissionStore = make(map[string]*Permission)
+	}
+	
+	if perm.ID == "" {
+		perm.ID = fmt.Sprintf("perm-%d", time.Now().UnixNano())
+	}
+	
+	r.permissionStore[perm.ID] = perm
+	return perm, nil
+}
+
+func (r *RBACManagerMock) CreateRole(ctx context.Context, role *Role) (*Role, error) {
+	if r.roleStore == nil {
+		r.roleStore = make(map[string]*Role)
+	}
+	
+	if role.ID == "" {
+		role.ID = fmt.Sprintf("role-%d", time.Now().UnixNano())
+	}
+	
+	r.roleStore[role.ID] = role
+	return role, nil
+}
+
+func (r *RBACManagerMock) AssignRoleToUser(ctx context.Context, userID, roleID string) error {
+	if r.roles == nil {
+		r.roles = make(map[string][]string)
+	}
+	r.roles[userID] = append(r.roles[userID], roleID)
+	return nil
 }
 
 // SessionManagerMock provides mock session functionality

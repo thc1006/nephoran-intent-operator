@@ -497,6 +497,8 @@ type HelmReleaseStatus struct{}
 
 // Additional stub types for missing dependencies
 type InfrastructureHealthChecker struct{}
+
+// Note: ResourceStatus, AlarmFilter, Alarm, ComponentCheck are defined in other files
 type SLAMonitor struct{}
 type EventProcessor struct{}
 type O2IMSStorage struct{}

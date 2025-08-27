@@ -383,7 +383,7 @@ type TelecomPerformanceAnalysis struct {
 	// O-RAN metrics
 	RICLatency      float64            `json:"ricLatency"`
 	E2Throughput    float64            `json:"e2Throughput"`
-	xAppPerformance map[string]float64 `json:"xAppPerformance"`
+	XAppPerformance map[string]float64 `json:"xAppPerformance"`
 
 	// Network slice metrics
 	SliceIsolation  float64            `json:"sliceIsolation"`
@@ -1039,7 +1039,7 @@ func (engine *PerformanceAnalysisEngine) analyzeCosts(ctx context.Context, compo
 // analyzeTelecomMetrics analyzes telecom-specific metrics
 func (engine *PerformanceAnalysisEngine) analyzeTelecomMetrics(ctx context.Context, componentAnalyses map[shared.ComponentType]*ComponentAnalysis) *TelecomPerformanceAnalysis {
 	telecom := &TelecomPerformanceAnalysis{
-		xAppPerformance: make(map[string]float64),
+		XAppPerformance: make(map[string]float64),
 		SliceLatency:    make(map[string]float64),
 		SliceThroughput: make(map[string]float64),
 		VendorSpecificIssues: make([]string, 0),
@@ -1057,9 +1057,9 @@ func (engine *PerformanceAnalysisEngine) analyzeTelecomMetrics(ctx context.Conte
 	telecom.InteropEfficiency = 0.87   // 87%
 
 	// Populate xApp performance
-	telecom.xAppPerformance["traffic-steering"] = 0.94
-	telecom.xAppPerformance["qos-prediction"] = 0.89
-	telecom.xAppPerformance["anomaly-detection"] = 0.91
+	telecom.XAppPerformance["traffic-steering"] = 0.94
+	telecom.XAppPerformance["qos-prediction"] = 0.89
+	telecom.XAppPerformance["anomaly-detection"] = 0.91
 
 	// Populate slice metrics
 	telecom.SliceLatency["embb"] = 12.3

@@ -822,8 +822,21 @@ func (rm *ResilienceManager) GetMetrics() *ResilienceMetrics {
 	defer rm.metrics.mutex.RUnlock()
 
 	// Return a copy to prevent concurrent access issues
-	metricsCopy := *rm.metrics
-	return &metricsCopy
+	metricsCopy := &ResilienceMetrics{
+		TotalOperations:       rm.metrics.TotalOperations,
+		SuccessfulOperations:  rm.metrics.SuccessfulOperations,
+		FailedOperations:      rm.metrics.FailedOperations,
+		AverageLatency:        rm.metrics.AverageLatency,
+		TimeoutMetrics:        rm.metrics.TimeoutMetrics,
+		BulkheadMetrics:       rm.metrics.BulkheadMetrics,
+		CircuitBreakerMetrics: rm.metrics.CircuitBreakerMetrics,
+		RateLimitMetrics:      rm.metrics.RateLimitMetrics,
+		RetryMetrics:          rm.metrics.RetryMetrics,
+		HealthCheckMetrics:    rm.metrics.HealthCheckMetrics,
+		ResourceMetrics:       rm.metrics.ResourceMetrics,
+		LastUpdated:           rm.metrics.LastUpdated,
+	}
+	return metricsCopy
 }
 
 // Helper functions and supporting implementations

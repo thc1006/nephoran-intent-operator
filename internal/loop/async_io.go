@@ -414,8 +414,8 @@ func (m *AsyncIOManager) batchProcessor() {
 }
 
 // GetMetrics returns current I/O metrics
-func (m *AsyncIOManager) GetMetrics() IOMetrics {
-	metrics := IOMetrics{
+func (m *AsyncIOManager) GetMetrics() *IOMetrics {
+	metrics := &IOMetrics{
 		TotalReads:    atomic.Int64{},
 		TotalWrites:   atomic.Int64{},
 		CacheHits:     atomic.Int64{},

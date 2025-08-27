@@ -129,7 +129,7 @@ func (s *LLMProcessorService) initializeLLMComponents(ctx context.Context) error
 	// Initialize RAG-enhanced processor if enabled
 	var ragEnhanced *llm.RAGEnhancedProcessor
 	if s.config.RAGEnabled {
-		ragEnhanced = llm.NewRAGEnhancedProcessor(*llmClient, nil, nil, nil)
+		ragEnhanced = llm.NewRAGEnhancedProcessor(llmClient, nil, nil, nil)
 	}
 
 	// Initialize streaming processor if enabled
