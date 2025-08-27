@@ -592,7 +592,7 @@ func (o *IntentOrchestrator) handleIntentDeletion(ctx context.Context, namespace
 	// Clean up any processing contexts
 	// This is a simplified cleanup - in production, you'd want more thorough cleanup
 	o.ProcessingContexts.Range(func(key, value interface{}) bool {
-		if processingCtx, ok := value.(*interfaces.ProcessingContext); ok {
+		if _, ok := value.(*interfaces.ProcessingContext); ok {
 			// Check if this context belongs to the deleted intent
 			// This would need more sophisticated matching in practice
 			o.ProcessingContexts.Delete(key)

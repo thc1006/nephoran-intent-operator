@@ -516,7 +516,7 @@ func TestResourceConstraints(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			result, err := reconciler.Reconcile(ctx, req)
+			_, err := reconciler.Reconcile(ctx, req)
 			assert.NoError(t, err)
 
 			// Verify final state
@@ -577,7 +577,7 @@ func TestNetworkPartitionScenarios(t *testing.T) {
 	mockDeps.llmClient.SetResponse(string(responseJSON))
 
 	// Second reconciliation should succeed after network recovery
-	result2, err := reconciler.Reconcile(ctx, req)
+	_, err = reconciler.Reconcile(ctx, req)
 	assert.NoError(t, err)
 
 	// Verify recovery

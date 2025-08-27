@@ -2,22 +2,16 @@ package llm
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"sort"
 	"sync"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 )
 
 // EnhancedModelCache provides intelligent model caching with predictive loading and GPU optimization
@@ -249,7 +243,7 @@ func NewEnhancedModelCache(config *EnhancedCacheConfig) (*EnhancedModelCache, er
 		l2Memory:         l2Memory,
 		l3Disk:           l3Disk,
 		config:           config,
-		metrics:          NewCacheMetrics(meter),
+		metrics:          NewCacheMetrics(),
 		state:            CacheStateActive,
 		backgroundCtx:    ctx,
 		backgroundCancel: cancel,
@@ -291,6 +285,13 @@ func (emc *EnhancedModelCache) GetModel(ctx context.Context, modelName string, d
 	ctx, span := emc.tracer.Start(ctx, "cache_get_model")
 	defer span.End()
 
+	// Check for context cancellation
+	select {
+	case <-ctx.Done():
+		return nil, false, ctx.Err()
+	default:
+	}
+
 	start := time.Now()
 	defer func() {
 		emc.metrics.RecordCacheOperation("get", time.Since(start))
@@ -313,7 +314,11 @@ func (emc *EnhancedModelCache) GetModel(ctx context.Context, modelName string, d
 		emc.metrics.RecordCacheHit("l2_memory")
 		
 		// Asynchronously promote to L1 GPU cache
-		go emc.promoteToGPU(modelName, modelData, deviceID)
+		go func() {
+			// Use background context for async promotion
+			ctx := context.Background()
+			emc.promoteToGPU(ctx, modelName, modelData, deviceID)
+		}()
 		
 		span.SetAttributes(attribute.String("cache_level", "l2_memory"))
 		return emc.wrapMemoryModel(modelData), true, nil
@@ -324,7 +329,11 @@ func (emc *EnhancedModelCache) GetModel(ctx context.Context, modelName string, d
 		emc.metrics.RecordCacheHit("l3_disk")
 		
 		// Load from disk and promote through cache levels
-		go emc.loadAndPromoteModel(modelName, modelPath, deviceID)
+		go func() {
+			// Use background context for async loading
+			ctx := context.Background()
+			emc.loadAndPromoteModel(ctx, modelName, modelPath, deviceID)
+		}()
 		
 		span.SetAttributes(attribute.String("cache_level", "l3_disk"))
 		return nil, false, nil // Async loading
@@ -342,7 +351,7 @@ func (emc *EnhancedModelCache) LoadModel(ctx context.Context, modelName, modelPa
 
 	start := time.Now()
 	defer func() {
-		emc.metrics.RecordModelLoad(time.Since(start), modelName)
+		emc.metrics.RecordModelLoad(modelName, preferredDeviceID)
 	}()
 
 	// Check if model is already loaded
@@ -693,8 +702,8 @@ func (dmc *DiskModelCache) HasModel(modelName string) bool { return false }
 func (dmc *DiskModelCache) StoreModel(modelName, modelPath string) error { return nil }
 func (dmc *DiskModelCache) Close() {}
 
-func (emc *EnhancedModelCache) promoteToGPU(modelName string, modelData interface{}, deviceID int) {}
-func (emc *EnhancedModelCache) loadAndPromoteModel(modelName, modelPath string, deviceID int) {}
+func (emc *EnhancedModelCache) promoteToGPU(ctx context.Context, modelName string, modelData interface{}, deviceID int) {}
+func (emc *EnhancedModelCache) loadAndPromoteModel(ctx context.Context, modelName, modelPath string, deviceID int) {}
 func (emc *EnhancedModelCache) wrapMemoryModel(modelData interface{}) *CachedGPUModel { return &CachedGPUModel{} }
 func (emc *EnhancedModelCache) loadModelData(modelPath string) (interface{}, error) { return nil, nil }
 func (emc *EnhancedModelCache) preloadModel(ctx context.Context, pred *ModelPrediction) error { return nil }
@@ -708,6 +717,7 @@ func (smp *SmartModelPreloader) HasSufficientResources(modelName string, deviceI
 func (co *CacheOptimizer) GenerateRecommendations(analysis *CacheAnalysis) ([]*OptimizationRecommendation, error) { return nil, nil }
 func (mat *ModelAccessTracker) RecordAccess(modelName string, deviceID int) {}
 func (upa *UsagePatternAnalyzer) RecordModelLoad(modelName string, deviceID int) {}
+func (mpm *ModelPlacementManager) FindOptimalDevice(modelName string, preferredDeviceID int) (int, error) { return preferredDeviceID, nil }
 
 // Supporting type definitions
 type MemoryModelCache struct{}
@@ -755,4 +765,6 @@ type CacheAnalysis struct{}
 
 const (
 	QuantizationINT8 QuantizationType = iota
+
+	CacheStateShutdown CacheState = iota + 1 // Start after CacheStateActive
 )

@@ -65,24 +65,27 @@ type TaskType string
 
 const (
 	TaskTypeIntentParsing      TaskType = "intent_parsing"
+	TaskTypeIntentProcessing   TaskType = "intent_processing"
 	TaskTypeLLMProcessing      TaskType = "llm_processing"
 	TaskTypeRAGQuery           TaskType = "rag_query"
+	TaskTypeRAGRetrieval       TaskType = "rag_retrieval"
 	TaskTypeResourcePlanning   TaskType = "resource_planning"
 	TaskTypeManifestGeneration TaskType = "manifest_generation"
 	TaskTypeGitOpsCommit       TaskType = "gitops_commit"
 	TaskTypeDeployment         TaskType = "deployment"
+	TaskTypeDeploymentVerify   TaskType = "deployment_verify"
 )
 
 // TaskStatus represents the status of a task
 type TaskStatus string
 
 const (
-	TaskStatusPending    TaskStatus = "pending"
-	TaskStatusRunning    TaskStatus = "running"
-	TaskStatusCompleted  TaskStatus = "completed"
-	TaskStatusFailed     TaskStatus = "failed"
-	TaskStatusCancelled  TaskStatus = "cancelled"
-	TaskStatusRetrying   TaskStatus = "retrying"
+	TaskStatusPending   TaskStatus = "pending"
+	TaskStatusRunning   TaskStatus = "running"
+	TaskStatusCompleted TaskStatus = "completed"
+	TaskStatusFailed    TaskStatus = "failed"
+	TaskStatusCancelled TaskStatus = "cancelled"
+	TaskStatusRetrying  TaskStatus = "retrying"
 )
 
 // Task represents a unit of work in the parallel processing system
@@ -132,11 +135,21 @@ type Task struct {
 	// CompletedAt timestamp
 	CompletedAt *time.Time
 
+	// ScheduledAt timestamp when task was scheduled
+	ScheduledAt *time.Time
+
 	// Dependencies are tasks that must complete before this task
 	Dependencies []string
 
 	// Metadata for additional task information
 	Metadata map[string]string
+
+	// Intent reference for context
+	Intent *v1.NetworkIntent
+
+	// Callback functions
+	OnSuccess func(*TaskResult)
+	OnFailure func(*TaskResult)
 }
 
 // WorkflowResult contains the result of processing a NetworkIntent workflow
@@ -164,6 +177,33 @@ type WorkflowResult struct {
 
 	// Results contains structured output from the workflow
 	Results map[string]interface{}
+}
+
+// TaskResult contains the result of task processing
+type TaskResult struct {
+	// Task identification
+	TaskID   string
+	WorkerID int
+	PoolName string
+
+	// Result status
+	Success      bool
+	Error        error
+	ErrorMessage string
+
+	// Timing information
+	Duration       time.Duration
+	QueueTime      time.Duration
+	ProcessingTime time.Duration
+	CompletedAt    time.Time
+
+	// Resource usage
+	MemoryUsed int64
+	CPUUsed    float64
+
+	// Output data
+	OutputData       map[string]interface{}
+	ProcessingResult *interfaces.ProcessingResult
 }
 
 // ProcessingMetrics contains metrics about parallel processing performance
@@ -202,23 +242,125 @@ type ProcessingMetrics struct {
 	LastUpdated time.Time
 }
 
+// TaskScheduler manages task scheduling and dependency resolution
+type TaskScheduler struct {
+	engine          *ParallelProcessingEngine
+	schedulingQueue chan *Task
+	dependencyGraph *DependencyGraph
+	readyTasks      chan *Task
+	strategies      map[string]SchedulingStrategy
+	currentStrategy string
+	logger          logr.Logger
+	stopChan        chan struct{}
+	mutex           sync.RWMutex
+}
+
+// SchedulingStrategy defines the interface for task scheduling strategies
+type SchedulingStrategy interface {
+	ScheduleTask(task *Task, availableWorkers map[string]int) (string, error)
+	GetStrategyName() string
+	GetMetrics() map[string]float64
+}
+
+// LoadBalancingStrategy defines the interface for load balancing strategies
+type LoadBalancingStrategy interface {
+	SelectPool(pools map[string]*WorkerPool, task *Task) (string, error)
+	GetStrategyName() string
+	UpdateMetrics(poolName string, metrics *PoolMetrics)
+}
+
+// DependencyGraph manages task dependencies and execution order
+type DependencyGraph struct {
+	nodes map[string]*DependencyNode
+	mutex sync.RWMutex
+}
+
+// DependencyNode represents a single node in the dependency graph
+type DependencyNode struct {
+	TaskID       string
+	Dependencies []*DependencyNode
+	Dependents   []*DependencyNode
+	Completed    bool
+	Failed       bool
+	mutex        sync.RWMutex
+}
+
+// LoadBalancer manages load balancing across worker pools
+type LoadBalancer struct {
+	strategies  map[string]LoadBalancingStrategy
+	current     string
+	poolMetrics map[string]*PoolMetrics
+	logger      logr.Logger
+	mutex       sync.RWMutex
+}
+
+// WorkerPool represents a pool of workers for processing tasks
+type WorkerPool struct {
+	name           string
+	workerCount    int
+	workers        []*Worker
+	taskQueue      chan *Task
+	resultQueue    chan *TaskResult
+	activeWorkers  int32
+	processedTasks int64
+	failedTasks    int64
+	averageLatency time.Duration
+	memoryUsage    int64
+	cpuUsage       float64
+	logger         logr.Logger
+	stopChan       chan struct{}
+	mutex          sync.RWMutex
+}
+
+// PoolMetrics contains metrics for a worker pool
+type PoolMetrics struct {
+	ActiveWorkers  int32
+	ProcessedTasks int64
+	FailedTasks    int64
+	AverageLatency time.Duration
+	MemoryUsage    int64
+	CPUUsage       float64
+	QueueLength    int
+	QueueCapacity  int
+	Throughput     float64
+	SuccessRate    float64
+	LastUpdated    time.Time
+}
+
+// TaskProcessor defines the interface for processing tasks
+type TaskProcessor interface {
+	ProcessTask(ctx context.Context, task *Task) (*TaskResult, error)
+	GetProcessorType() TaskType
+	HealthCheck(ctx context.Context) error
+	GetMetrics() map[string]interface{}
+}
+
+// PriorityQueue implements a priority-based task queue
+type PriorityQueue struct {
+	tasks       []*Task
+	maxSize     int
+	currentSize int
+	mutex       sync.Mutex
+	notEmpty    *sync.Cond
+}
+
 // ParallelProcessingEngine orchestrates parallel processing of NetworkIntents
 type ParallelProcessingEngine struct {
-	config           *ParallelProcessingConfig
+	config            *ParallelProcessingConfig
 	resilienceManager *resilience.ResilienceManager
-	errorTracker     *monitoring.ErrorTracker
-	logger           logr.Logger
+	errorTracker      *monitoring.ErrorTracker
+	logger            logr.Logger
 
 	// Processing state
-	mu           sync.RWMutex
-	running      bool
-	ctx          context.Context
-	cancel       context.CancelFunc
+	mu      sync.RWMutex
+	running bool
+	ctx     context.Context
+	cancel  context.CancelFunc
 
 	// Task management
-	tasks        map[string]*Task
-	taskQueue    chan *Task
-	resultChan   chan *Task
+	tasks      map[string]*Task
+	taskQueue  chan *Task
+	resultChan chan *Task
 
 	// Worker pools for different processing stages
 	intentWorkers     []*Worker
@@ -228,6 +370,20 @@ type ParallelProcessingEngine struct {
 	manifestWorkers   []*Worker
 	gitopsWorkers     []*Worker
 	deploymentWorkers []*Worker
+
+	// New structured worker pools
+	intentPool     *WorkerPool
+	llmPool        *WorkerPool
+	ragPool        *WorkerPool
+	resourcePool   *WorkerPool
+	manifestPool   *WorkerPool
+	gitopsPool     *WorkerPool
+	deploymentPool *WorkerPool
+
+	// Task scheduling and dependency management
+	taskScheduler   *TaskScheduler
+	dependencyGraph *DependencyGraph
+	loadBalancer    *LoadBalancer
 
 	// Metrics
 	metrics     *ProcessingMetrics
@@ -239,13 +395,33 @@ type ParallelProcessingEngine struct {
 
 // Worker represents a worker goroutine for processing tasks
 type Worker struct {
-	ID       int
-	Type     TaskType
-	Queue    chan *Task
-	Results  chan *Task
-	Context  context.Context
-	Cancel   context.CancelFunc
-	Engine   *ParallelProcessingEngine
+	// Basic identification
+	ID      int
+	Type    TaskType
+	Queue   chan *Task
+	Results chan *Task
+	Context context.Context
+	Cancel  context.CancelFunc
+	Engine  *ParallelProcessingEngine
+
+	// Enhanced worker fields for structured pools
+	id           int
+	poolName     string
+	taskQueue    chan *Task
+	resultQueue  chan *TaskResult
+	processor    TaskProcessor
+	lastActivity time.Time
+	logger       logr.Logger
+	stopChan     chan struct{}
+
+	// Worker state and metrics
+	currentTask    *Task
+	totalProcessed int64
+	totalErrors    int64
+	averageLatency time.Duration
+	memoryUsage    int64
+	cpuUsage       float64
+	mutex          sync.RWMutex
 }
 
 // NewParallelProcessingEngine creates a new parallel processing engine
@@ -362,7 +538,7 @@ func (e *ParallelProcessingEngine) ProcessIntentWorkflow(ctx context.Context, in
 	}
 
 	workflowID := fmt.Sprintf("workflow-%s-%d", intent.Name, time.Now().UnixNano())
-	
+
 	result := &WorkflowResult{
 		IntentID:  intent.Name,
 		StartTime: time.Now(),
@@ -411,8 +587,8 @@ func (e *ParallelProcessingEngine) ProcessIntentWorkflow(ctx context.Context, in
 		}
 	}
 
-	e.logger.Info("Intent workflow completed", 
-		"intent", intent.Name, 
+	e.logger.Info("Intent workflow completed",
+		"intent", intent.Name,
 		"workflowID", workflowID,
 		"success", result.Success,
 		"duration", result.Duration,
@@ -447,7 +623,7 @@ func (e *ParallelProcessingEngine) SubmitTask(task *Task) error {
 func (e *ParallelProcessingEngine) GetTask(taskID string) (*Task, bool) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
-	
+
 	task, exists := e.tasks[taskID]
 	return task, exists
 }
@@ -456,21 +632,21 @@ func (e *ParallelProcessingEngine) GetTask(taskID string) (*Task, bool) {
 func (e *ParallelProcessingEngine) GetMetrics() *ProcessingMetrics {
 	e.metricsLock.RLock()
 	defer e.metricsLock.RUnlock()
-	
+
 	// Return a copy to avoid concurrent access issues
 	metrics := *e.metrics
-	
+
 	// Copy maps
 	metrics.WorkerUtilization = make(map[TaskType]float64)
 	for k, v := range e.metrics.WorkerUtilization {
 		metrics.WorkerUtilization[k] = v
 	}
-	
+
 	metrics.QueueDepths = make(map[TaskType]int)
 	for k, v := range e.metrics.QueueDepths {
 		metrics.QueueDepths[k] = v
 	}
-	
+
 	return &metrics
 }
 
@@ -515,7 +691,7 @@ func (e *ParallelProcessingEngine) initializeWorkerPools() {
 
 func (e *ParallelProcessingEngine) createWorkers(taskType TaskType, poolSize int) []*Worker {
 	workers := make([]*Worker, poolSize)
-	
+
 	for i := 0; i < poolSize; i++ {
 		ctx, cancel := context.WithCancel(e.ctx)
 		worker := &Worker{
@@ -527,20 +703,20 @@ func (e *ParallelProcessingEngine) createWorkers(taskType TaskType, poolSize int
 			Cancel:  cancel,
 			Engine:  e,
 		}
-		
+
 		workers[i] = worker
 		go worker.Run()
 	}
-	
+
 	// Start dispatcher for this worker pool
 	go e.dispatchTasks(taskType, workers)
-	
+
 	return workers
 }
 
 func (e *ParallelProcessingEngine) dispatchTasks(taskType TaskType, workers []*Worker) {
 	workerIndex := 0
-	
+
 	for {
 		select {
 		case task := <-e.taskQueue:
@@ -548,12 +724,12 @@ func (e *ParallelProcessingEngine) dispatchTasks(taskType TaskType, workers []*W
 				// Round-robin assignment to workers
 				worker := workers[workerIndex]
 				workerIndex = (workerIndex + 1) % len(workers)
-				
+
 				select {
 				case worker.Queue <- task:
-					e.logger.Debug("Task dispatched to worker", 
-						"taskID", task.ID, 
-						"workerType", taskType, 
+					e.logger.Debug("Task dispatched to worker",
+						"taskID", task.ID,
+						"workerType", taskType,
 						"workerID", worker.ID)
 				case <-e.ctx.Done():
 					return
@@ -593,17 +769,17 @@ func (e *ParallelProcessingEngine) handleTaskResult(task *Task) {
 
 	// Log task completion
 	if task.Error != nil {
-		e.logger.Error(task.Error, "Task completed with error", 
-			"taskID", task.ID, 
+		e.logger.Error(task.Error, "Task completed with error",
+			"taskID", task.ID,
 			"type", task.Type,
 			"retryCount", task.RetryCount)
-		
+
 		// Track error
 		if e.errorTracker != nil {
 			e.errorTracker.TrackError(
-				task.Context, 
-				task.Error, 
-				string(task.Type), 
+				task.Context,
+				task.Error,
+				string(task.Type),
 				"task_execution",
 				map[string]interface{}{
 					"taskID":   task.ID,
@@ -612,8 +788,8 @@ func (e *ParallelProcessingEngine) handleTaskResult(task *Task) {
 				})
 		}
 	} else {
-		e.logger.Debug("Task completed successfully", 
-			"taskID", task.ID, 
+		e.logger.Debug("Task completed successfully",
+			"taskID", task.ID,
 			"type", task.Type,
 			"duration", task.CompletedAt.Sub(*task.StartedAt))
 	}
@@ -624,7 +800,7 @@ func (e *ParallelProcessingEngine) updateTaskMetrics(task *Task) {
 	defer e.metricsLock.Unlock()
 
 	e.metrics.TotalTasks++
-	
+
 	if task.Error != nil {
 		e.metrics.FailedTasks++
 	} else {
@@ -724,17 +900,17 @@ func (e *ParallelProcessingEngine) cancelAllWorkers() {
 
 func (e *ParallelProcessingEngine) createWorkflowTasks(ctx context.Context, intent *v1.NetworkIntent, workflowID string) ([]*Task, error) {
 	tasks := make([]*Task, 0)
-	
+
 	// Create a simple workflow for demonstration
 	// In a real implementation, this would be more sophisticated based on the intent type
-	
+
 	// 1. Intent parsing task
 	intentTask := &Task{
-		ID:        fmt.Sprintf("%s-intent-parsing", workflowID),
-		IntentID:  intent.Name,
-		Type:      TaskTypeIntentParsing,
-		Priority:  int(intent.Spec.Priority.ToInt()),
-		Status:    TaskStatusPending,
+		ID:       fmt.Sprintf("%s-intent-parsing", workflowID),
+		IntentID: intent.Name,
+		Type:     TaskTypeIntentParsing,
+		Priority: int(intent.Spec.Priority.ToInt()),
+		Status:   TaskStatusPending,
 		InputData: map[string]interface{}{
 			"intent": intent,
 		},
@@ -811,7 +987,7 @@ func (e *ParallelProcessingEngine) waitForWorkflowCompletion(ctx context.Context
 // Run executes the worker's main processing loop
 func (w *Worker) Run() {
 	w.Engine.logger.Info("Worker started", "workerID", w.ID, "type", w.Type)
-	
+
 	for {
 		select {
 		case task := <-w.Queue:
@@ -828,9 +1004,9 @@ func (w *Worker) processTask(task *Task) {
 	task.StartedAt = &startTime
 	task.Status = TaskStatusRunning
 
-	w.Engine.logger.Debug("Worker processing task", 
-		"workerID", w.ID, 
-		"taskID", task.ID, 
+	w.Engine.logger.Debug("Worker processing task",
+		"workerID", w.ID,
+		"taskID", task.ID,
 		"type", task.Type)
 
 	// Create timeout context
@@ -898,7 +1074,7 @@ func (w *Worker) processLLMTask(ctx context.Context, task *Task) error {
 	case <-time.After(500 * time.Millisecond):
 		task.OutputData = map[string]interface{}{
 			"llm_response": "example response",
-			"confidence":  0.85,
+			"confidence":   0.85,
 		}
 		return nil
 	case <-ctx.Done():

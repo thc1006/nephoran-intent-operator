@@ -110,26 +110,41 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 				config := result.Value()
 
 				// Apply transforms
+				transformSuccess := true
 				for _, transform := range cm.transforms {
 					transformResult := transform(config)
 					if transformResult.IsErr() {
 						lastErr = transformResult.Error()
-						continue
+						transformSuccess = false
+						break
 					}
 					config = transformResult.Value()
 				}
 
+				// Skip validation if transforms failed
+				if !transformSuccess {
+					continue
+				}
+
 				// Validate configuration
+				validationSuccess := true
 				for _, validator := range cm.validators {
 					validationResult := validator(config)
 					if validationResult.IsErr() {
 						lastErr = validationResult.Error()
-						continue
+						validationSuccess = false
+						break
 					}
 					if !validationResult.Value() {
 						lastErr = fmt.Errorf("configuration validation failed for key: %s", key)
-						continue
+						validationSuccess = false
+						break
 					}
+				}
+
+				// Skip caching if validation failed
+				if !validationSuccess {
+					continue
 				}
 
 				// Cache the result

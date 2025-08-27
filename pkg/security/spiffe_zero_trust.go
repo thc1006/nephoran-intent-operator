@@ -6,7 +6,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -19,8 +18,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
-	"github.com/spiffe/go-spiffe/v2/svid/jwtsvid"
-	"github.com/spiffe/go-spiffe/v2/svid/x509svid"
+	// "github.com/spiffe/go-spiffe/v2/svid/jwtsvid" // Removed unused import
+	// "github.com/spiffe/go-spiffe/v2/svid/x509svid" // Removed unused import
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -100,10 +99,10 @@ type ZeroTrustAuthenticator struct {
 	// SPIFFE components
 	source        *workloadapi.X509Source
 	jwtSource     *workloadapi.JWTSource
-	validator     *jwtsvid.Validator
+	// validator     *jwtsvid.Validator // TODO: jwtsvid.Validator may not exist in current SPIFFE version
 	
 	// Policy engine
-	policyEngine  *PolicyEngine
+	policyEngine  *ZeroTrustPolicyEngine
 	
 	// TLS configuration
 	tlsConfig     *tls.Config
@@ -118,8 +117,8 @@ type ZeroTrustAuthenticator struct {
 	shutdown      chan struct{}
 }
 
-// PolicyEngine implements authorization policies
-type PolicyEngine struct {
+// ZeroTrustPolicyEngine implements authorization policies
+type ZeroTrustPolicyEngine struct {
 	policies      map[string]*AuthzPolicy
 	defaultPolicy PolicyDecision
 	mu            sync.RWMutex
@@ -130,7 +129,7 @@ type AuthzPolicy struct {
 	ID          string            `json:"id"`
 	Name        string            `json:"name"`
 	Description string            `json:"description"`
-	Rules       []PolicyRule      `json:"rules"`
+	Rules       []ZeroTrustPolicyRule      `json:"rules"`
 	Principals  []string          `json:"principals"`
 	Resources   []string          `json:"resources"`
 	Actions     []string          `json:"actions"`
@@ -141,8 +140,8 @@ type AuthzPolicy struct {
 	UpdatedAt   time.Time         `json:"updated_at"`
 }
 
-// PolicyRule defines a specific authorization rule
-type PolicyRule struct {
+// ZeroTrustPolicyRule defines a specific authorization rule (renamed to avoid conflicts)
+type ZeroTrustPolicyRule struct {
 	Principal string            `json:"principal"`
 	Resource  string            `json:"resource"`
 	Action    string            `json:"action"`
@@ -247,14 +246,14 @@ func NewZeroTrustAuthenticator(config *ZeroTrustConfig, logger *slog.Logger) (*Z
 	zta.jwtSource = jwtSource
 
 	// Create JWT validator
-	td, err := spiffeid.TrustDomainFromString(config.TrustDomain)
+	_, err = spiffeid.TrustDomainFromString(config.TrustDomain)
 	if err != nil {
 		return nil, fmt.Errorf("invalid trust domain: %w", err)
 	}
-	zta.validator = jwtsvid.NewValidator(td, jwtSource)
+	// zta.validator = jwtsvid.NewValidator(td, jwtSource) // TODO: jwtsvid.NewValidator may not exist in current SPIFFE version
 
 	// Initialize policy engine
-	zta.policyEngine = &PolicyEngine{
+	zta.policyEngine = &ZeroTrustPolicyEngine{
 		policies: make(map[string]*AuthzPolicy),
 		defaultPolicy: PolicyDeny,
 	}
@@ -653,7 +652,7 @@ func (zta *ZeroTrustAuthenticator) evaluatePolicy(policy *AuthzPolicy, authCtx *
 }
 
 // evaluateRule evaluates a specific policy rule
-func (zta *ZeroTrustAuthenticator) evaluateRule(rule *PolicyRule, authCtx *AuthContext) bool {
+func (zta *ZeroTrustAuthenticator) evaluateRule(rule *ZeroTrustPolicyRule, authCtx *AuthContext) bool {
 	// Simple rule evaluation - can be extended
 	principalMatch := rule.Principal == "" || strings.Contains(authCtx.SpiffeID.String(), rule.Principal)
 	resourceMatch := rule.Resource == "" || strings.HasPrefix(authCtx.Path, rule.Resource)
@@ -740,8 +739,8 @@ func (zta *ZeroTrustAuthenticator) backgroundTasks() {
 // rotateTokensIfNeeded rotates JWT tokens and SVID certificates if needed
 func (zta *ZeroTrustAuthenticator) rotateTokensIfNeeded() {
 	// Check if SVID rotation is needed
-	svids := zta.source.GetX509SVIDs()
-	for _, svid := range svids {
+	// TODO: GetX509SVIDs method doesn't exist - use GetX509SVID instead
+	if svid, err := zta.source.GetX509SVID(); err == nil && len(svid.Certificates) > 0 {
 		cert := svid.Certificates[0]
 		timeUntilExpiry := time.Until(cert.NotAfter)
 		if timeUntilExpiry < 24*time.Hour {

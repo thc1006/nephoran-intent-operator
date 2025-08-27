@@ -800,7 +800,7 @@ func (dt *DependencyTracker) runCircuitBreakerManagement(ctx context.Context) {
 
 // manageCircuitBreakers performs circuit breaker management tasks
 func (dt *DependencyTracker) manageCircuitBreakers(ctx context.Context) {
-	ctx, span := dt.tracer.Start(ctx, "manage-circuit-breakers")
+	_, span := dt.tracer.Start(ctx, "manage-circuit-breakers")
 	defer span.End()
 
 	dt.stateMutex.RLock()
@@ -845,7 +845,7 @@ func (dt *DependencyTracker) runCascadeAnalysis(ctx context.Context) {
 
 // performCascadeAnalysis analyzes potential cascade failures
 func (dt *DependencyTracker) performCascadeAnalysis(ctx context.Context) {
-	ctx, span := dt.tracer.Start(ctx, "perform-cascade-analysis")
+	_, span := dt.tracer.Start(ctx, "perform-cascade-analysis")
 	defer span.End()
 
 	// Find unhealthy dependencies
@@ -1011,7 +1011,7 @@ func (dt *DependencyTracker) runCleanup(ctx context.Context) {
 
 // performCleanup cleans up old data
 func (dt *DependencyTracker) performCleanup(ctx context.Context) {
-	ctx, span := dt.tracer.Start(ctx, "perform-cleanup")
+	_, span := dt.tracer.Start(ctx, "perform-cleanup")
 	defer span.End()
 
 	cutoff := time.Now().Add(-dt.config.RetentionPeriod)

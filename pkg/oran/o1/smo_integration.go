@@ -226,35 +226,6 @@ type ActiveFailover struct {
 	ImpactedElements []string  `json:"impacted_elements"`
 }
 
-// NetworkFunctionManager manages O-RAN network functions
-type NetworkFunctionManager struct {
-	networkFunctions    map[string]*NetworkFunction
-	functionTypes       map[string]*FunctionType
-	deploymentTemplates map[string]*DeploymentTemplate
-	lifecycleManager    *FunctionLifecycleManager
-	dependencyMgr       *DependencyManager
-	scalingManager      *ScalingManager
-	mutex               sync.RWMutex
-}
-
-// NetworkFunction represents an O-RAN network function
-type NetworkFunction struct {
-	ID              string                  `json:"id"`
-	Name            string                  `json:"name"`
-	Type            string                  `json:"type"` // O-RU, O-DU, O-CU-CP, O-CU-UP, Near-RT-RIC, Non-RT-RIC
-	Version         string                  `json:"version"`
-	VendorID        string                  `json:"vendor_id"`
-	Status          string                  `json:"status"`        // DEPLOYED, RUNNING, STOPPED, ERROR, MAINTENANCE
-	HealthStatus    string                  `json:"health_status"` // HEALTHY, DEGRADED, UNHEALTHY
-	Interfaces      map[string]*O1Interface `json:"interfaces"`
-	Configuration   map[string]interface{}  `json:"configuration"`
-	Metrics         *FunctionMetrics        `json:"metrics"`
-	Dependencies    []string                `json:"dependencies"`
-	ManagedElements []string                `json:"managed_elements"`
-	DeploymentInfo  *DeploymentInfo         `json:"deployment_info"`
-	CreatedAt       time.Time               `json:"created_at"`
-	UpdatedAt       time.Time               `json:"updated_at"`
-}
 
 // FunctionType defines network function types
 type FunctionType struct {
@@ -1075,7 +1046,6 @@ type EventFilter struct{}
 type EventStore struct{}
 type StreamStatistics struct{}
 type SubscriberStatistics struct{}
-type RetryPolicy struct{}
 type ServiceHealthCheck struct{}
 type ServiceHealthMonitor struct{}
 type PolicyManagementService struct{}

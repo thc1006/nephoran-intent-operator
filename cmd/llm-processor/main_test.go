@@ -368,7 +368,7 @@ func TestIntegrationWithRealHandlers(t *testing.T) {
 	}))
 
 	// Create a mock service (simplified)
-	service := &MockLLMProcessorService{}
+	_ = &MockLLMProcessorService{} // mock service for future use
 
 	// Create handler (simplified version)
 	handler := &MockLLMProcessorHandler{
@@ -630,9 +630,9 @@ func TestTLSServerStartup(t *testing.T) {
 
 			// Capture logs
 			var logBuffer bytes.Buffer
-			logger := slog.New(slog.NewTextHandler(&logBuffer, &slog.HandlerOptions{
+			_ = slog.New(slog.NewTextHandler(&logBuffer, &slog.HandlerOptions{
 				Level: slog.LevelInfo,
-			}))
+			})) // logger for future log validation
 
 			// Test configuration validation first
 			err := cfg.Validate()

@@ -638,7 +638,7 @@ func (s *SLAChaosTestSuite) TestFalsePositiveDetection() {
 	go falsePositiveTracker.MonitorAlerts(ctx, s.prometheusClient)
 
 	// Run actual chaos experiments
-	chaosResults := s.runMixedChaosExperiments(ctx)
+	_ = s.runMixedChaosExperiments(ctx)
 
 	// Analyze false positive rate
 	falsePositiveRate := falsePositiveTracker.CalculateFalsePositiveRate()

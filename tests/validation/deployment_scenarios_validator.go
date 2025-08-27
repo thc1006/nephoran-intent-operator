@@ -400,7 +400,6 @@ func (dsv *DeploymentScenariosValidator) executeRollingUpdateScenario(ctx contex
 	}
 
 	// Monitor rolling update progress
-	downtimeStart := time.Now()
 	success, downtime := dsv.monitorRollingUpdate(ctx, deployment, strategy.HealthCheckConfig)
 
 	result.EndTime = time.Now()
@@ -541,7 +540,6 @@ func (dsv *DeploymentScenariosValidator) monitorRollingUpdate(ctx context.Contex
 				currentDeployment.Status.ReadyReplicas == *currentDeployment.Spec.Replicas &&
 				currentDeployment.Status.AvailableReplicas == *currentDeployment.Spec.Replicas {
 
-				totalTime := time.Since(startTime)
 				return true, downtime
 			}
 

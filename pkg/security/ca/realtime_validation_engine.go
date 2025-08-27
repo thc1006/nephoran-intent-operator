@@ -87,10 +87,10 @@ type RealtimeValidationConfig struct {
 	TelecomSpecificValidation bool         `yaml:"telecom_specific_validation"`
 
 	// Monitoring and alerting
-	MetricsEnabled       bool            `yaml:"metrics_enabled"`
-	DetailedMetrics      bool            `yaml:"detailed_metrics"`
-	WebhookNotifications bool            `yaml:"webhook_notifications"`
-	WebhookEndpoints     []string        `yaml:"webhook_endpoints"`
+	MetricsEnabled       bool                      `yaml:"metrics_enabled"`
+	DetailedMetrics      bool                      `yaml:"detailed_metrics"`
+	WebhookNotifications bool                      `yaml:"webhook_notifications"`
+	WebhookEndpoints     []string                  `yaml:"webhook_endpoints"`
 	AlertThresholds      ValidationAlertThresholds `yaml:"alert_thresholds"`
 
 	// Emergency procedures
@@ -127,9 +127,9 @@ type ValidationStatistics struct {
 
 // ValidationCacheOptimized provides optimized caching for validation results
 type ValidationCacheOptimized struct {
-	l1Cache      *L1Cache                  // In-memory hot cache
-	l2Cache      *L2Cache                  // Distributed cache
-	preloadCache *PreProvisioningCache     // Pre-validated certificates
+	l1Cache      *L1Cache              // In-memory hot cache
+	l2Cache      *L2Cache              // Distributed cache
+	preloadCache *PreProvisioningCache // Pre-validated certificates
 	stats        *CacheStatistics
 	mu           sync.RWMutex
 }

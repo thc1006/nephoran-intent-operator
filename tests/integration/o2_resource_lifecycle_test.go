@@ -296,7 +296,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 			It("should handle resource updates with validation", func() {
 				baseTimestamp := time.Now().UnixNano()
 				poolID := fmt.Sprintf("update-pool-%d", baseTimestamp)
-				resourceID := fmt.Sprintf("update-resource-%d", baseTimestamp)
+				_ = fmt.Sprintf("update-resource-%d", baseTimestamp)
 
 				By("creating initial resource for updates")
 				initialPool := &models.ResourcePool{

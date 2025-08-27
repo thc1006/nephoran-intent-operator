@@ -384,7 +384,7 @@ func (suite *AuditTrailControllerTestSuite) TestErrorHandling() {
 		suite.NoError(err)
 
 		// Reconcile should handle the error gracefully
-		result, err := suite.controller.Reconcile(context.Background(), ctrl.Request{
+		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "malformed-test",
 				Namespace: "default",
@@ -468,7 +468,7 @@ func (suite *AuditTrailControllerTestSuite) TestStatusUpdates() {
 		suite.NoError(err)
 
 		// Initial reconcile
-		result, err := suite.controller.Reconcile(context.Background(), ctrl.Request{
+		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "status-test",
 				Namespace: "default",
@@ -511,7 +511,7 @@ func (suite *AuditTrailControllerTestSuite) TestStatusUpdates() {
 		err := suite.client.Create(context.Background(), auditTrail)
 		suite.NoError(err)
 
-		result, err := suite.controller.Reconcile(context.Background(), ctrl.Request{
+		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "disabled-test",
 				Namespace: "default",
@@ -547,7 +547,7 @@ func (suite *AuditTrailControllerTestSuite) TestFinalizerHandling() {
 		suite.NoError(err)
 
 		// Initial reconcile should add finalizer
-		result, err := suite.controller.Reconcile(context.Background(), ctrl.Request{
+		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "finalizer-test",
 				Namespace: "default",
@@ -569,7 +569,7 @@ func (suite *AuditTrailControllerTestSuite) TestFinalizerHandling() {
 		suite.NoError(err)
 
 		// Reconcile deletion
-		result, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
+		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "finalizer-test",
 				Namespace: "default",
@@ -656,7 +656,7 @@ func (suite *AuditTrailControllerTestSuite) TestMetricsAndEvents() {
 		}
 
 		// Reconcile
-		result, err := suite.controller.Reconcile(context.Background(), ctrl.Request{
+		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "events-test",
 				Namespace: "default",
@@ -730,7 +730,7 @@ func (suite *AuditTrailControllerTestSuite) TestKubernetesIntegration() {
 		suite.NoError(err)
 
 		// Reconcile
-		result, err := suite.controller.Reconcile(context.Background(), ctrl.Request{
+		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "secret-test",
 				Namespace: "default",
@@ -790,7 +790,7 @@ func (suite *AuditTrailControllerTestSuite) TestKubernetesIntegration() {
 		err = suite.client.Create(context.Background(), auditTrail)
 		suite.NoError(err)
 
-		result, err := suite.controller.Reconcile(context.Background(), ctrl.Request{
+		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "configmap-test",
 				Namespace: "default",

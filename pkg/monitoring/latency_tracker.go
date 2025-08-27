@@ -147,6 +147,9 @@ func (t *E2ELatencyTracker) TrackOperation(ctx context.Context, operationID stri
 		errorMsg = err.Error()
 	}
 
+	// Record the latency measurement
+	t.RecordLatency("generic", latency, success)
+
 	if endErr := t.EndOperation(ctx, operationID, success, errorMsg); endErr != nil {
 		t.logger.Error(endErr, "Failed to end operation tracking", "operationID", operationID)
 	}

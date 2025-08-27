@@ -268,7 +268,7 @@ type ReplacementRequest struct {
 func (p *DeltaCRLProcessor) ProcessDelta(url string, crl *pkix.CertificateList) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	
+
 	p.baseCRLs[url] = crl
 	// For now, just store as base CRL. Full delta processing would
 	// require more complex logic to merge with base CRL.
@@ -907,7 +907,7 @@ func (s *EnhancedRevocationSystem) createOCSPRequest(cert *x509.Certificate) ([]
 	// This is simplified - real implementation needs issuer certificate
 	issuerNameHash := sha256.Sum256(cert.RawIssuer)
 	issuerKeyHash := sha256.Sum256(cert.AuthorityKeyId)
-	
+
 	template := ocsp.Request{
 		HashAlgorithm:  crypto.SHA256,
 		IssuerNameHash: issuerNameHash[:],

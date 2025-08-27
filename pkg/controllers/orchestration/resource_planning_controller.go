@@ -474,7 +474,7 @@ func (r *ResourcePlanningController) applyResourcePackingOptimization(ctx contex
 
 	// Group resources by similar resource profiles
 	packingGroups := r.groupResourcesByProfile(resources)
-	optimizedCount := len(packingGroups)
+	_ = len(packingGroups) // optimizedCount not used
 
 	improvementPercent := 0.0
 	if len(resources) > 0 {
@@ -1206,7 +1206,7 @@ func (ces *CostEstimationService) EstimateCosts(ctx context.Context, resources [
 
 		if resource.ResourceRequirements.Requests.Memory != nil {
 			memoryGB := float64(resource.ResourceRequirements.Requests.Memory.Value()) / (1024 * 1024 * 1024)
-			memorycost := memoryGB * ces.CostRates["memory_gb_hour"]
+			memoryCost := memoryGB * ces.CostRates["memory_gb_hour"]
 			hourlyCost += memoryCost
 		}
 

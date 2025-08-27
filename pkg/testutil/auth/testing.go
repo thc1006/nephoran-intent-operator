@@ -362,15 +362,15 @@ func (tc *TestContext) handleOAuthUserInfo(w http.ResponseWriter, r *http.Reques
 }
 
 func (tc *TestContext) handleJWKS(w http.ResponseWriter, r *http.Request) {
-	// Convert public key to JWK format
-	publicKeyBytes, err := x509.MarshalPKIXPublicKey(tc.PublicKey)
+	// Convert public key to JWK format for validation but use simplified structure for testing
+	_, err := x509.MarshalPKIXPublicKey(tc.PublicKey)
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	// For simplicity, return a basic JWKS structure
-	// In a real implementation, you'd properly format the RSA key
+	// In a real implementation, you'd properly format the RSA key using publicKeyBytes
 	jwks := map[string]interface{}{
 		"keys": []map[string]interface{}{
 			{
@@ -378,7 +378,7 @@ func (tc *TestContext) handleJWKS(w http.ResponseWriter, r *http.Request) {
 				"kid": tc.KeyID,
 				"use": "sig",
 				"alg": "RS256",
-				// Note: In production, you'd include the proper n and e values
+				// Note: In production, you'd include the proper n and e values from publicKeyBytes
 				"n": "test-modulus",
 				"e": "AQAB",
 			},

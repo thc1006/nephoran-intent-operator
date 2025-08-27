@@ -1450,7 +1450,7 @@ func (po *PlacementOptimizer) balancedStrategy(workload *WorkloadDeployment, clu
 		costScore := (1 - cluster.Metadata.Cost.HourlyCost/maxCost) * 0.3
 
 		// Health and reliability (30%)
-		healthScore := 0.3
+		var healthScore float64
 		if cluster.Status == ClusterStatusHealthy {
 			healthScore = 0.3
 		} else if cluster.Status == ClusterStatusDegraded {

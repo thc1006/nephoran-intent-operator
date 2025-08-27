@@ -373,7 +373,7 @@ func TestResponseCacheTTL(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 
 		// Should no longer be retrievable due to TTL
-		retrieved, found = cache.Get(key)
+		_, found = cache.Get(key)
 		if found {
 			t.Error("Value should not be retrievable after TTL expiry")
 		}

@@ -840,8 +840,12 @@ func (h *DefaultSlackAlertHandler) HandleAlert(ctx context.Context, alert *Trace
 		h.logger.Info(ctx, "Sending trace alert to Slack",
 			slog.String("alert_id", alert.ID),
 			slog.String("channel", h.Channel),
+			slog.String("message", message),
 		)
 	}
+
+	// TODO: Implement actual Slack webhook integration using h.WebhookURL and message
+	_ = message // Use message variable to avoid ineffectual assignment warning
 
 	return nil
 }

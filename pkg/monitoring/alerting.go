@@ -12,7 +12,24 @@ import (
 	"time"
 )
 
-// AlertSeverity is defined in types.go
+// AlertSeverity represents the severity of an alert
+type AlertSeverity string
+
+const (
+	SeverityInfo     AlertSeverity = "info"
+	SeverityWarning  AlertSeverity = "warning"
+	SeverityError    AlertSeverity = "error"
+	SeverityCritical AlertSeverity = "critical"
+	SeverityLow      AlertSeverity = "low"
+	SeverityMedium   AlertSeverity = "medium"
+	SeverityHigh     AlertSeverity = "high"
+	
+	// Aliases for compatibility
+	AlertSeverityInfo     = SeverityInfo
+	AlertSeverityWarning  = SeverityWarning
+	AlertSeverityError    = SeverityError
+	AlertSeverityCritical = SeverityCritical
+)
 
 // AlertState represents the state of an alert
 type AlertState string
@@ -28,8 +45,15 @@ type Alert struct {
 	ID           string                 `json:"id"`
 	Name         string                 `json:"name"`
 	Description  string                 `json:"description"`
+	Rule         string                 `json:"rule"`
+	Component    string                 `json:"component"`
 	Severity     AlertSeverity          `json:"severity"`
 	State        AlertState             `json:"state"`
+	Status       AlertState             `json:"status"`
+	Message      string                 `json:"message"`
+	Silenced     bool                   `json:"silenced"`
+	AckBy        string                 `json:"ack_by,omitempty"`
+	AckAt        *time.Time             `json:"ack_at,omitempty"`
 	Labels       map[string]string      `json:"labels"`
 	Annotations  map[string]string      `json:"annotations"`
 	StartsAt     time.Time              `json:"starts_at"`
@@ -42,15 +66,21 @@ type Alert struct {
 
 // AlertRule defines conditions for triggering alerts
 type AlertRule struct {
+	ID              string             `json:"id"`
 	Name            string             `json:"name"`
 	Description     string             `json:"description"`
+	Component       string             `json:"component"`
 	Condition       AlertConditionFunc `json:"-"`
 	Severity        AlertSeverity      `json:"severity"`
 	Duration        time.Duration      `json:"duration"`
+	Cooldown        time.Duration      `json:"cooldown"`
+	Threshold       float64            `json:"threshold"`
+	Channels        []string           `json:"channels"`
 	Labels          map[string]string  `json:"labels"`
 	Annotations     map[string]string  `json:"annotations"`
 	Enabled         bool               `json:"enabled"`
 	LastEvaluated   time.Time          `json:"last_evaluated"`
+	LastFired       *time.Time         `json:"last_fired,omitempty"`
 	EvaluationCount int64              `json:"evaluation_count"`
 	AlertCount      int64              `json:"alert_count"`
 }

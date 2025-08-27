@@ -663,7 +663,6 @@ func (v *A1PolicyValidator) validateA1Policy(ctx context.Context, policy *porch.
 
 func (v *FiveGCoreValidator) validateNetworkFunction(ctx context.Context, nf *porch.KRMResource, nfType string) []*porch.FunctionResult {
 	var results []*porch.FunctionResult
-	name, _ := GetResourceName(nf)
 
 	switch nfType {
 	case "AMF":

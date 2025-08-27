@@ -417,8 +417,8 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 
 	// Generate manifests for each network function
 	session.updateProgress(0.2, "generating_manifests")
-	generatedManifests := make(map[string]string)
-	manifestMetadata := make(map[string]interface{})
+	var generatedManifests map[string]string
+	var manifestMetadata map[string]interface{}
 
 	templateStartTime := time.Now()
 
@@ -1653,7 +1653,7 @@ func (e *ManifestPolicyEnforcer) EnforcePolicies(ctx context.Context, manifests 
 	var results []PolicyResult
 	modifiedManifests := make(map[string]string)
 
-	for manifestName, manifestContent := range manifests {
+	for _, manifestContent := range manifests {
 		// Parse manifest
 		var manifestObj map[string]interface{}
 		if err := yaml.Unmarshal([]byte(manifestContent), &manifestObj); err != nil {

@@ -65,18 +65,6 @@ type NotificationChannel interface {
 	GetConfiguration() map[string]interface{}
 }
 
-// Notification represents a generic notification
-type Notification struct {
-	ID        string                 `json:"id"`
-	Type      string                 `json:"type"` // ALARM, ALERT, WARNING, INFO
-	Title     string                 `json:"title"`
-	Message   string                 `json:"message"`
-	Severity  string                 `json:"severity"` // CRITICAL, MAJOR, MINOR, WARNING, INFO
-	Source    string                 `json:"source"`
-	Timestamp time.Time              `json:"timestamp"`
-	Tags      []string               `json:"tags"`
-	Metadata  map[string]interface{} `json:"metadata"`
-}
 
 // EventCallback is a generic callback function for events
 type EventCallback func(event interface{})

@@ -559,16 +559,6 @@ type AlarmData struct {
 	Attributes  map[string]interface{} `json:"attributes"`
 }
 
-// PerformanceData represents performance data for streaming
-type PerformanceData struct {
-	Source     string                 `json:"source"`
-	MetricName string                 `json:"metric_name"`
-	Value      float64                `json:"value"`
-	Unit       string                 `json:"unit"`
-	Timestamp  time.Time              `json:"timestamp"`
-	Labels     map[string]string      `json:"labels"`
-	Attributes map[string]interface{} `json:"attributes"`
-}
 
 // ConfigurationChange represents configuration changes
 type ConfigurationChange struct {

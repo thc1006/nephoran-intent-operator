@@ -427,7 +427,7 @@ func (t *MultiDimensionalTracker) runAggregation(ctx context.Context) {
 
 // performAggregation performs metric aggregation
 func (t *MultiDimensionalTracker) performAggregation(ctx context.Context) {
-	ctx, span := t.tracer.Start(ctx, "perform-aggregation")
+	_, span := t.tracer.Start(ctx, "perform-aggregation")
 	defer span.End()
 
 	t.stateMutex.RLock()
@@ -462,7 +462,7 @@ func (t *MultiDimensionalTracker) runCleanup(ctx context.Context) {
 
 // performCleanup removes old metrics based on retention policy
 func (t *MultiDimensionalTracker) performCleanup(ctx context.Context) {
-	ctx, span := t.tracer.Start(ctx, "perform-cleanup")
+	_, span := t.tracer.Start(ctx, "perform-cleanup")
 	defer span.End()
 
 	t.historyMutex.Lock()
@@ -631,8 +631,8 @@ func (slc *ServiceLayerCollector) collectEndpointMetric(ctx context.Context, end
 	resp, err := slc.httpClient.Do(req)
 	responseTime := time.Since(start)
 
-	var status HealthStatus = HealthUnknown
-	var errorRate float64 = 0
+	var status HealthStatus
+	errorRate := 0.0
 
 	if err != nil {
 		status = HealthUnhealthy
@@ -726,8 +726,8 @@ func (chc *ComponentHealthCollector) Collect(ctx context.Context) ([]*Availabili
 
 // collectComponentMetric collects metric for a single component
 func (chc *ComponentHealthCollector) collectComponentMetric(ctx context.Context, component ComponentConfig) (*AvailabilityMetric, error) {
-	var status HealthStatus = HealthUnknown
-	var metadata = make(map[string]interface{})
+	var status HealthStatus
+	var metadata map[string]interface{}
 
 	switch component.ResourceType {
 	case "pod":

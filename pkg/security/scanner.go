@@ -66,7 +66,7 @@ type ScanResults struct {
 	TotalTests        int                    `json:"total_tests"`
 	PassedTests       int                    `json:"passed_tests"`
 	FailedTests       int                    `json:"failed_tests"`
-	Vulnerabilities   []Vulnerability        `json:"vulnerabilities"`
+	Vulnerabilities   []ScannerVulnerability        `json:"vulnerabilities"`
 	OpenPorts         []Port                 `json:"open_ports"`
 	TLSFindings       []TLSFinding           `json:"tls_findings"`
 	AuthFindings      []AuthFinding          `json:"auth_findings"`
@@ -77,8 +77,8 @@ type ScanResults struct {
 	Recommendations   []string               `json:"recommendations"`
 }
 
-// Vulnerability represents a security vulnerability
-type Vulnerability struct {
+// ScannerVulnerability represents a security vulnerability (renamed to avoid conflict with container_scanner.Vulnerability)
+type ScannerVulnerability struct {
 	ID          string    `json:"id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
@@ -171,9 +171,9 @@ func NewSecurityScanner(config *ScannerConfig) *SecurityScanner {
 		logger: slog.Default().With("component", "security-scanner"),
 		client: client,
 		results: &ScanResults{
-			ScanID:            generateScanID(),
+			ScanID:            generateBasicScanID(),
 			StartTime:         time.Now(),
-			Vulnerabilities:   make([]Vulnerability, 0),
+			Vulnerabilities:   make([]ScannerVulnerability, 0),
 			OpenPorts:         make([]Port, 0),
 			TLSFindings:       make([]TLSFinding, 0),
 			AuthFindings:      make([]AuthFinding, 0),
@@ -354,7 +354,7 @@ func (ss *SecurityScanner) scanPort(ctx context.Context, host string, port int) 
 
 	// Check for insecure services
 	if ss.isInsecureService(port) {
-		vuln := Vulnerability{
+		vuln := ScannerVulnerability{
 			ID:          fmt.Sprintf("INSECURE_SERVICE_%d", port),
 			Title:       fmt.Sprintf("Insecure service on port %d", port),
 			Description: fmt.Sprintf("Service running on port %d may use insecure protocols", port),
@@ -799,7 +799,7 @@ func (ss *SecurityScanner) testInsufficientLogging(ctx context.Context) {
 
 // Utility functions
 
-func generateScanID() string {
+func generateBasicScanID() string {
 	return fmt.Sprintf("scan_%d", time.Now().Unix())
 }
 

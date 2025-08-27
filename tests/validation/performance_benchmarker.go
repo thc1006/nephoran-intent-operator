@@ -163,8 +163,6 @@ func (pb *PerformanceBenchmarker) measureSingleRequestLatency(ctx context.Contex
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
-	success := false
-
 	for {
 		select {
 		case <-timeout:
@@ -181,7 +179,6 @@ func (pb *PerformanceBenchmarker) measureSingleRequestLatency(ctx context.Contex
 				testIntent.Status.Phase == nephranv1.PhaseResourcePlanning ||
 				testIntent.Status.Phase == nephranv1.PhaseManifestGeneration ||
 				testIntent.Status.Phase == nephranv1.PhaseDeployed {
-				success = true
 				latency := time.Since(startTime)
 
 				// Cleanup

@@ -383,7 +383,7 @@ var _ = Describe("TLS/mTLS Security Tests", func() {
 					By(fmt.Sprintf("Checking mTLS configuration in ConfigMap %s", configMap.Name))
 
 					if configMap.Data != nil {
-						for key, value := range configMap.Data {
+						for _, value := range configMap.Data {
 							// Check for client certificate validation settings
 							if strings.Contains(value, "ssl_verify_client") {
 								By("Found Nginx client certificate verification configuration")

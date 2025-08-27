@@ -451,7 +451,7 @@ func TestEnvironmentVariableDefaults(t *testing.T) {
 	os.Unsetenv("METRICS_ALLOWED_IPS")
 
 	// Load config with defaults
-	cfg := &config.LLMProcessorConfig{}
+	_ = &config.LLMProcessorConfig{} // config struct for future validation
 
 	// Test HTTP_MAX_BODY default
 	maxBody := os.Getenv("HTTP_MAX_BODY")

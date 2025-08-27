@@ -138,6 +138,8 @@ func benchmarkPackageGeneration(b *testing.B, ctx context.Context, nephioSystem 
 				if currentAlloc > peakMemory {
 					peakMemory = currentAlloc
 					peakMemStats = currentMemStats
+					// Track additional memory metrics for potential debugging
+					_ = peakMemStats.Sys // Total memory obtained from the OS
 				}
 			}
 

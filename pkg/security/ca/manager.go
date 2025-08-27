@@ -297,10 +297,10 @@ func NewCAManager(config *Config, logger *logging.StructuredLogger, client clien
 	if config.PolicyConfig != nil && config.PolicyConfig.Enabled {
 		// Convert CertificatePolicyConfig to PolicyConfig
 		policyConfig := &PolicyConfig{
-			Enabled:           config.PolicyConfig.Enabled,
-			EnforcementMode:   "strict", // default enforcement mode
+			Enabled:         config.PolicyConfig.Enabled,
+			EnforcementMode: "strict", // default enforcement mode
 		}
-		
+
 		policyEngine, err := NewPolicyEngine(policyConfig, logger)
 		if err != nil {
 			cancel()

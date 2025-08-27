@@ -422,7 +422,7 @@ var _ = Describe("RAG Security Integration", func() {
 							Source:   "load-test",
 						}
 
-						incident, err := incidentResp.CreateIncident(ctx, incidentRequest)
+						_, err := incidentResp.CreateIncident(ctx, incidentRequest)
 						Expect(err).ToNot(HaveOccurred())
 
 						// Query RAG

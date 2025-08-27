@@ -855,7 +855,7 @@ func TestPackageRevisionCreation(t *testing.T) {
 
 // TestComponentExtraction tests component extraction from NetworkIntent
 func TestComponentExtraction(t *testing.T) {
-	mockMgr := newMockManager()
+	_ = newMockManager() // Mock manager available but not needed for component extraction
 	logger := zaptest.NewLogger(t)
 
 	manager := &Manager{

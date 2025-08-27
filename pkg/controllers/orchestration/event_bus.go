@@ -301,7 +301,7 @@ func (e *EventBus) executeHandlerWithRetry(ctx context.Context, handler EventHan
 func (e *EventBus) recordHandlerFailure(event ProcessingEvent, handlerIndex int, err error) {
 	// Create a Kubernetes event for the failure
 	if e.recorder != nil {
-		message := fmt.Sprintf("Event handler %d failed for event type %s: %v", handlerIndex, event.Type, err)
+		_ = fmt.Sprintf("Event handler %d failed for event type %s: %v", handlerIndex, event.Type, err)
 
 		// We would need an object reference here - in practice, this would be the NetworkIntent
 		// For now, we'll just log it

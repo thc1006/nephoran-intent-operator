@@ -59,7 +59,7 @@ const (
 // CertificateValidator interface for custom validators
 type CertificateValidator interface {
 	Name() string
-	Validate(ctx context.Context, cert *x509.Certificate) (*ValidationResult, error)
+	Validate(ctx context.Context, cert *x509.Certificate) (*PolicyValidationResult, error)
 	CanValidate(cert *x509.Certificate) bool
 }
 

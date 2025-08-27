@@ -654,12 +654,11 @@ func (m *dependencyGraphManager) TopologicalSort(ctx context.Context, graph *Dep
 	// Perform topological sort
 	sorted := make([]*GraphNode, 0, len(graph.Nodes))
 	layers := make([][]*GraphNode, 0)
-	currentLayer := make([]*GraphNode, 0)
 
 	for len(queue) > 0 {
 		// Process current level
 		nextQueue := make([]string, 0)
-		currentLayer = make([]*GraphNode, 0)
+		currentLayer := make([]*GraphNode, 0)
 
 		for _, nodeID := range queue {
 			node := graph.Nodes[nodeID]

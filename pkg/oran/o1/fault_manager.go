@@ -210,14 +210,6 @@ type AlarmMask struct {
 	Parameters map[string]interface{} `json:"parameters"`
 }
 
-// AlarmFilter defines alarm filtering rules
-type AlarmFilter struct {
-	ID       string       `json:"id"`
-	Pattern  AlarmPattern `json:"pattern"`
-	Action   string       `json:"action"` // ACCEPT, REJECT, MODIFY
-	Priority int          `json:"priority"`
-	Enabled  bool         `json:"enabled"`
-}
 
 // RootCauseAnalyzer provides AI-enhanced root cause analysis
 type RootCauseAnalyzer struct {
@@ -392,9 +384,9 @@ func (fm *EnhancedFaultManager) RaiseAlarm(ctx context.Context, alarm *Alarm) (*
 		Alarm:               alarm,
 		AlarmIdentifier:     fm.generateAlarmID(),
 		AlarmRaisedTime:     time.Now(),
-		PerceivedSeverity:   alarm.Severity,
-		AlarmText:           alarm.SpecificProblem,
-		AffectedObjects:     []string{alarm.ManagedElementID},
+		PerceivedSeverity:   alarm.PerceivedSeverity,
+		AlarmText:           alarm.AdditionalText,
+		AffectedObjects:     []string{alarm.ManagedObjectID},
 		RootCauseIndicator:  false,
 		VendorSpecificData:  make(map[string]interface{}),
 		ProcessingState:     "NEW",
@@ -404,33 +396,33 @@ func (fm *EnhancedFaultManager) RaiseAlarm(ctx context.Context, alarm *Alarm) (*
 	// Apply masking if enabled
 	if fm.maskingMgr != nil {
 		if masked := fm.maskingMgr.ApplyMasking(enhancedAlarm); masked {
-			logger.Info("alarm masked", "alarmID", enhancedAlarm.ID)
+			logger.Info("alarm masked", "alarmID", enhancedAlarm.AlarmID)
 			return enhancedAlarm, nil
 		}
 	}
 
 	fm.alarmsMux.Lock()
-	fm.alarms[enhancedAlarm.ID] = enhancedAlarm
+	fm.alarms[enhancedAlarm.AlarmID] = enhancedAlarm
 	fm.alarmsMux.Unlock()
 
 	// Add to history
 	fm.addToHistory(&AlarmHistoryEntry{
-		AlarmID:   enhancedAlarm.ID,
+		AlarmID:   enhancedAlarm.AlarmID,
 		Timestamp: enhancedAlarm.AlarmRaisedTime,
 		Action:    "RAISED",
-		Severity:  enhancedAlarm.Severity,
+		Severity:  enhancedAlarm.PerceivedSeverity,
 		Details: map[string]interface{}{
-			"source":           enhancedAlarm.ManagedElementID,
+			"source":           enhancedAlarm.ManagedObjectID,
 			"probable_cause":   enhancedAlarm.ProbableCause,
-			"specific_problem": enhancedAlarm.SpecificProblem,
+			"specific_problem": enhancedAlarm.AdditionalText,
 		},
 	})
 
 	// Update metrics
 	fm.metrics.ActiveAlarms.Inc()
 	fm.metrics.AlarmRate.Inc()
-	fm.metrics.AlarmsByType.WithLabelValues(enhancedAlarm.Type).Inc()
-	fm.metrics.AlarmsBySeverity.WithLabelValues(enhancedAlarm.Severity).Inc()
+	fm.metrics.AlarmsByType.WithLabelValues(enhancedAlarm.AlarmType).Inc()
+	fm.metrics.AlarmsBySeverity.WithLabelValues(enhancedAlarm.PerceivedSeverity).Inc()
 
 	// Perform correlation analysis
 	if fm.correlationEngine != nil {
@@ -452,7 +444,7 @@ func (fm *EnhancedFaultManager) RaiseAlarm(ctx context.Context, alarm *Alarm) (*
 		go fm.streamToSubscribers(enhancedAlarm)
 	}
 
-	logger.Info("alarm raised", "alarmID", enhancedAlarm.ID, "severity", enhancedAlarm.Severity)
+	logger.Info("alarm raised", "alarmID", enhancedAlarm.AlarmID, "severity", enhancedAlarm.PerceivedSeverity)
 	return enhancedAlarm, nil
 }
 
@@ -468,7 +460,6 @@ func (fm *EnhancedFaultManager) ClearAlarm(ctx context.Context, alarmID string, 
 	}
 
 	alarm.AlarmClearedTime = time.Now()
-	alarm.TimeCleared = time.Now()
 	alarm.ProcessingState = "CLEARED"
 
 	// Add clearing information
@@ -486,7 +477,7 @@ func (fm *EnhancedFaultManager) ClearAlarm(ctx context.Context, alarmID string, 
 		AlarmID:   alarmID,
 		Timestamp: alarm.AlarmClearedTime,
 		Action:    "CLEARED",
-		Severity:  alarm.Severity,
+		Severity:  alarm.PerceivedSeverity,
 		Details:   clearingInfo,
 	})
 
@@ -528,8 +519,8 @@ func (fm *EnhancedFaultManager) GetActiveAlarms(ctx context.Context, filters map
 			"WARNING":  1,
 		}
 
-		if severityOrder[alarms[i].Severity] != severityOrder[alarms[j].Severity] {
-			return severityOrder[alarms[i].Severity] > severityOrder[alarms[j].Severity]
+		if severityOrder[alarms[i].PerceivedSeverity] != severityOrder[alarms[j].PerceivedSeverity] {
+			return severityOrder[alarms[i].PerceivedSeverity] > severityOrder[alarms[j].PerceivedSeverity]
 		}
 
 		return alarms[i].AlarmRaisedTime.After(alarms[j].AlarmRaisedTime)
@@ -637,8 +628,8 @@ func (fm *EnhancedFaultManager) GetFaultStatistics(ctx context.Context) (map[str
 	severityCount := make(map[string]int)
 	typeCount := make(map[string]int)
 	for _, alarm := range fm.alarms {
-		severityCount[alarm.Severity]++
-		typeCount[alarm.Type]++
+		severityCount[alarm.PerceivedSeverity]++
+		typeCount[alarm.AlarmType]++
 	}
 	stats["severity_distribution"] = severityCount
 	stats["type_distribution"] = typeCount
@@ -689,15 +680,15 @@ func (fm *EnhancedFaultManager) matchesFilters(alarm *EnhancedAlarm, filters map
 	for key, value := range filters {
 		switch key {
 		case "severity":
-			if alarm.Severity != value {
+			if alarm.PerceivedSeverity != value {
 				return false
 			}
 		case "type":
-			if alarm.Type != value {
+			if alarm.AlarmType != value {
 				return false
 			}
 		case "source":
-			if alarm.ManagedElementID != value {
+			if alarm.ManagedObjectID != value {
 				return false
 			}
 		case "probable_cause":
@@ -716,7 +707,7 @@ func (fm *EnhancedFaultManager) performCorrelation(ctx context.Context, alarm *E
 
 		// Update alarm with correlation information
 		fm.alarmsMux.Lock()
-		if existingAlarm, exists := fm.alarms[alarm.ID]; exists {
+		if existingAlarm, exists := fm.alarms[alarm.AlarmID]; exists {
 			existingAlarm.RelatedAlarms = correlatedAlarms
 			existingAlarm.ProcessingState = "CORRELATED"
 		}
@@ -775,13 +766,13 @@ func (fm *EnhancedFaultManager) matchesSubscriberFilters(alarm *EnhancedAlarm, f
 }
 
 func (fm *EnhancedFaultManager) matchesAlarmPattern(alarm *EnhancedAlarm, pattern *AlarmPattern) bool {
-	if pattern.AlarmType != "" && alarm.Type != pattern.AlarmType {
+	if pattern.AlarmType != "" && alarm.AlarmType != pattern.AlarmType {
 		return false
 	}
-	if pattern.Severity != "" && alarm.Severity != pattern.Severity {
+	if pattern.Severity != "" && alarm.PerceivedSeverity != pattern.Severity {
 		return false
 	}
-	if pattern.Source != "" && alarm.ManagedElementID != pattern.Source {
+	if pattern.Source != "" && alarm.ManagedObjectID != pattern.Source {
 		return false
 	}
 

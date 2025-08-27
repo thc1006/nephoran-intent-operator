@@ -498,7 +498,6 @@ func (mps *MultiProviderEmbeddingService) checkCache(request *EmbeddingRequest) 
 			embeddings = append(embeddings, embedding)
 			cacheHits++
 		} else {
-			cacheMisses++
 			// If any text is not cached, we need to generate all embeddings
 			return nil
 		}

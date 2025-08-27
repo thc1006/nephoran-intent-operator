@@ -40,18 +40,19 @@ func NewFaultNotificationChannel(id, chType string, config map[string]interface{
 func (f *FaultNotificationChannelImpl) SendAlarmNotification(ctx context.Context, alarm *EnhancedAlarm, template *NotificationTemplate) error {
 	// Convert alarm to generic notification
 	notification := &Notification{
-		ID:        alarm.ID,
-		Type:      "ALARM",
-		Title:     template.Subject,
-		Message:   f.formatMessage(alarm, template),
-		Severity:  alarm.Severity,
-		Source:    "FAULT_MANAGER",
-		Timestamp: alarm.TimeRaised,
-		Tags:      []string{alarm.Type, alarm.ProbableCause},
-		Metadata: map[string]interface{}{
-			"managed_element": alarm.ManagedElementID,
+		NotificationID:   alarm.AlarmID,
+		NotificationType: "ALARM",
+		EventTime:        alarm.AlarmRaisedTime,
+		SystemDN:         alarm.ManagedObjectID,
+		NotificationData: map[string]interface{}{
+			"title":           template.Subject,
+			"message":         f.formatMessage(alarm, template),
+			"severity":        alarm.PerceivedSeverity,
+			"source":          "FAULT_MANAGER",
+			"alarm_type":      alarm.AlarmType,
 			"probable_cause":  alarm.ProbableCause,
-			"additional_info": alarm.AdditionalInfo,
+			"managed_element": alarm.ManagedObjectID,
+			"additional_info": alarm.AdditionalText,
 		},
 	}
 	
@@ -68,14 +69,14 @@ func (f *FaultNotificationChannelImpl) formatMessage(alarm *EnhancedAlarm, templ
 	
 	// Replace common variables
 	replacements := map[string]string{
-		"{{.AlarmID}}":          alarm.ID,
-		"{{.Severity}}":         alarm.Severity,
-		"{{.Type}}":             alarm.Type,
+		"{{.AlarmID}}":          alarm.AlarmID,
+		"{{.Severity}}":         alarm.PerceivedSeverity,
+		"{{.Type}}":             alarm.AlarmType,
 		"{{.ProbableCause}}":    alarm.ProbableCause,
-		"{{.SpecificProblem}}":  alarm.SpecificProblem,
-		"{{.ManagedElement}}":   alarm.ManagedElementID,
-		"{{.TimeRaised}}":       alarm.TimeRaised.Format(time.RFC3339),
-		"{{.AdditionalInfo}}":   alarm.AdditionalInfo,
+		"{{.SpecificProblem}}":  alarm.AdditionalText,
+		"{{.ManagedElement}}":   alarm.ManagedObjectID,
+		"{{.TimeRaised}}":       alarm.AlarmRaisedTime.Format(time.RFC3339),
+		"{{.AdditionalInfo}}":   alarm.AdditionalText,
 	}
 	
 	for placeholder, value := range replacements {

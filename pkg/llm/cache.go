@@ -734,6 +734,39 @@ func (c *ResponseCache) GetSize() int {
 	return l1Size + l2Size
 }
 
+// CacheMetrics methods
+func (cm *CacheMetrics) RecordCacheOperation(operation string, duration time.Duration) {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+	cm.operations[operation] = duration
+}
+
+func (cm *CacheMetrics) RecordCacheHit(level string) {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+	switch level {
+	case "l1", "gpu":
+		cm.L1Hits++
+	case "l2", "memory":
+		cm.L2Hits++
+	case "semantic":
+		cm.SemanticHits++
+	}
+}
+
+func (cm *CacheMetrics) RecordCacheMiss() {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+	cm.Misses++
+}
+
+func (cm *CacheMetrics) RecordModelLoad(modelName string, deviceID int) {
+	// Placeholder implementation
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+	// This could track model loading statistics
+}
+
 // generateCacheKey creates a consistent cache key from components
 func GenerateCacheKey(components ...string) string {
 	combined := strings.Join(components, "|")

@@ -345,13 +345,13 @@ func (ar *AlertRouter) ListAlerts(status string, component string, severity stri
 	var filtered []*Alert
 
 	for _, alert := range ar.alerts {
-		if status != "" && alert.Status != status {
+		if status != "" && string(alert.Status) != status {
 			continue
 		}
 		if component != "" && alert.Component != component {
 			continue
 		}
-		if severity != "" && alert.Severity != severity {
+		if severity != "" && string(alert.Severity) != severity {
 			continue
 		}
 
@@ -385,7 +385,7 @@ func (ar *AlertRouter) GetStats() *AlertStats {
 		}
 
 		stats.AlertsByComponent[alert.Component]++
-		stats.AlertsBySeverity[alert.Severity]++
+		stats.AlertsBySeverity[string(alert.Severity)]++
 
 		if stats.LastAlert == nil || alert.StartsAt.After(*stats.LastAlert) {
 			stats.LastAlert = &alert.StartsAt

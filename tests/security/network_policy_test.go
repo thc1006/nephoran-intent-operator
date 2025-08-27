@@ -624,7 +624,7 @@ func ValidateNetworkPolicy(policy *networkingv1.NetworkPolicy) []string {
 
 // Test network connectivity with policies
 func TestNetworkConnectivity(t *testing.T) {
-	ctx := context.Background()
+	_ = context.Background()
 	// This would require setting up a test environment with k8sClient and namespace
 	// For now, this is a placeholder test
 	t.Skip("Network connectivity test requires live cluster setup")

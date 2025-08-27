@@ -381,9 +381,10 @@ func (fw *Go124TestFramework) BenchmarkWithMetrics(name string, benchFunc func(*
 func (fw *Go124TestFramework) ParallelTest(testFunc func(*testing.T)) {
 	fw.t.Parallel()
 
-	// Setup parallel test context
-	ctx := context.WithValue(context.Background(), "test_parallel", true)
-	ctx = context.WithValue(ctx, "test_id", fw.generateTestID())
+	// Setup parallel test context for potential future use
+	_ = context.WithValue(
+		context.WithValue(context.Background(), "test_parallel", true),
+		"test_id", fw.generateTestID())
 
 	// Track parallel execution
 	fw.mu.Lock()
@@ -418,9 +419,10 @@ func (fw *Go124TestFramework) SubTest(name string, testFunc func(*testing.T)) bo
 		// Copy configuration
 		subFramework.configuration = fw.configuration
 
-		// Setup subtest context
-		ctx := context.WithValue(context.Background(), "parent_test", fw.t.Name())
-		ctx = context.WithValue(ctx, "subtest_name", name)
+		// Setup subtest context for potential future use
+		_ = context.WithValue(
+			context.WithValue(context.Background(), "parent_test", fw.t.Name()),
+			"subtest_name", name)
 
 		start := time.Now()
 		defer func() {

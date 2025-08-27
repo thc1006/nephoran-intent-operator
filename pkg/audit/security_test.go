@@ -982,7 +982,10 @@ func (suite *SecurityTestSuite) TestSecurityRegression() {
 			backend, err := backends.NewFileBackend(config)
 			if err == nil {
 				// If backend creation succeeds, ensure it doesn't write to dangerous locations
-				err = backend.WriteEvent(context.Background(), createSecurityTestEvent("traversal-test"))
+				writeErr := backend.WriteEvent(context.Background(), createSecurityTestEvent("traversal-test"))
+				if writeErr != nil {
+					t.Logf("WriteEvent correctly prevented dangerous path access: %v", writeErr)
+				}
 				// Implementation should prevent writing to system directories
 			}
 			// Either creation fails or writing is prevented - both are acceptable

@@ -1210,6 +1210,7 @@ func TestFunctionValidation(t *testing.T) {
 		resp, err := runtime.ExecuteFunction(ctx, req)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "required field 'labels' is missing")
+		assert.Nil(t, resp, "Response should be nil when function execution fails")
 	})
 
 	t.Run("validation_disabled", func(t *testing.T) {

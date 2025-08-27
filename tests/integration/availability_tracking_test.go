@@ -326,7 +326,7 @@ func (suite *AvailabilityTrackingTestSuite) TestMultiDimensionalTracking() {
 		case availability.DimensionService:
 			hasSevice = true
 		case availability.DimensionComponent:
-			hasComponent = true
+			_ = true // hasComponent check
 		case availability.DimensionUserJourney:
 			hasUserJourney = true
 		}
@@ -708,7 +708,7 @@ func (suite *AvailabilityTrackingTestSuite) TestPerformanceRequirements() {
 
 	// Test sub-50ms availability calculation latency
 	start := time.Now()
-	state := suite.tracker.GetCurrentState()
+	_ = suite.tracker.GetCurrentState()
 	latency := time.Since(start)
 
 	suite.T().Logf("Availability calculation latency: %s", latency)

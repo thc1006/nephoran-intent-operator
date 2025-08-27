@@ -129,8 +129,8 @@ func TestO2APILoadPerformance(t *testing.T) {
 	// Setup test environment
 	scheme := runtime.NewScheme()
 	corev1.AddToScheme(scheme)
-	k8sClient := fakeClient.NewClientBuilder().WithScheme(scheme).Build()
-	k8sClientset := fake.NewSimpleClientset()
+	_ = fakeClient.NewClientBuilder().WithScheme(scheme).Build()
+	_ = fake.NewSimpleClientset()
 	testLogger := logging.NewLogger("o2-load-test", "info")
 
 	// Setup O2 API server
@@ -623,8 +623,8 @@ func BenchmarkO2APIOperations(b *testing.B) {
 	// Setup test environment
 	scheme := runtime.NewScheme()
 	corev1.AddToScheme(scheme)
-	k8sClient := fakeClient.NewClientBuilder().WithScheme(scheme).Build()
-	k8sClientset := fake.NewSimpleClientset()
+	_ = fakeClient.NewClientBuilder().WithScheme(scheme).Build()
+	_ = fake.NewSimpleClientset()
 	testLogger := logging.NewLogger("o2-benchmark", "error") // Reduced logging for benchmarks
 
 	config := &o2.O2IMSConfig{
@@ -747,8 +747,8 @@ func TestMemoryUsage(t *testing.T) {
 
 	scheme := runtime.NewScheme()
 	corev1.AddToScheme(scheme)
-	k8sClient := fakeClient.NewClientBuilder().WithScheme(scheme).Build()
-	k8sClientset := fake.NewSimpleClientset()
+	_ = fakeClient.NewClientBuilder().WithScheme(scheme).Build()
+	_ = fake.NewSimpleClientset()
 	testLogger := logging.NewLogger("o2-memory-test", "warn")
 
 	config := &o2.O2IMSConfig{

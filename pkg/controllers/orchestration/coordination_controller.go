@@ -256,7 +256,7 @@ func (r *CoordinationController) coordinateIntent(ctx context.Context, networkIn
 
 // coordinatePhase coordinates the execution of a specific phase
 func (r *CoordinationController) coordinatePhase(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, coordCtx *CoordinationContext) (interfaces.ProcessingResult, error) {
-	log := r.Logger.WithValues("intent", networkIntent.Name, "phase", phase)
+	_ = r.Logger.WithValues("intent", networkIntent.Name, "phase", phase) // TODO: use logger properly
 
 	// Record phase execution start
 	phaseExec := PhaseExecution{
@@ -542,7 +542,7 @@ func (r *CoordinationController) detectConflicts(ctx context.Context, networkInt
 	// Check for resource conflicts with other active intents
 	r.activeIntents.Range(func(key, value interface{}) bool {
 		otherIntentID := key.(string)
-		otherCoordCtx := value.(*CoordinationContext)
+		_ = value.(*CoordinationContext) // TODO: implement conflict checking
 
 		if otherIntentID == coordCtx.IntentID {
 			return true // Skip self
@@ -900,7 +900,7 @@ func (r *CoordinationController) handleIntentDeletion(ctx context.Context, names
 	// Clean up coordination contexts
 	r.activeIntents.Range(func(key, value interface{}) bool {
 		intentID := key.(string)
-		coordCtx := value.(*CoordinationContext)
+		_ = value.(*CoordinationContext) // coordCtx not used in cleanup
 
 		// This is a simplified matching - in practice you'd match by namespace/name
 		r.activeIntents.Delete(intentID)

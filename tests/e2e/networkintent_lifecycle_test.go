@@ -137,7 +137,7 @@ var _ = Describe("NetworkIntent Lifecycle E2E Tests", func() {
 			}
 
 			By("Verifying all intents are created and have correct priorities")
-			for i, intentData := range intents {
+			for _, intentData := range intents {
 				lookupKey := types.NamespacedName{Name: intentData.name, Namespace: namespace}
 				retrievedIntent := &nephoran.NetworkIntent{}
 				

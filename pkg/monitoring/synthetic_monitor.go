@@ -5,21 +5,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
-	"github.com/go-logr/logr"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// SyntheticMonitor performs synthetic availability checks
-type SyntheticMonitor struct {
-	checks    map[string]*SyntheticCheck
-	results   map[string]*CheckResult
-	mutex     sync.RWMutex
-	logger    logr.Logger
-	httpClient *http.Client
-}
 
 // AvailabilityStats holds availability statistics
 type AvailabilityStats struct {
@@ -34,17 +23,6 @@ type AvailabilityStats struct {
 	Downtime       time.Duration `json:"downtime"`
 }
 
-// NewSyntheticMonitor creates a new synthetic monitor
-func NewSyntheticMonitor() *SyntheticMonitor {
-	return &SyntheticMonitor{
-		checks:  make(map[string]*SyntheticCheck),
-		results: make(map[string]*CheckResult),
-		logger:  log.Log.WithName("synthetic-monitor"),
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-		},
-	}
-}
 
 // AddCheck adds a synthetic check
 func (sm *SyntheticMonitor) AddCheck(check *SyntheticCheck) error {

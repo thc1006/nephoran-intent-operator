@@ -639,10 +639,10 @@ func (m *IstioMesh) serviceHasPolicies(serviceName string, peerAuths []unstructu
 func (m *IstioMesh) RegisterService(ctx context.Context, service *abstraction.ServiceRegistration) error {
 	// In Istio, services are automatically registered when they have the sidecar
 	// We can ensure the service has proper annotations for injection
-	svc, err := m.kubeClient.CoreV1().Services(service.Namespace).Get(ctx, service.Name, metav1.GetOptions{})
+	_, err := m.kubeClient.CoreV1().Services(service.Namespace).Get(ctx, service.Name, metav1.GetOptions{})
 	if err != nil {
 		// Create service if it doesn't exist
-		svc = &corev1.Service{
+		newSvc := &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        service.Name,
 				Namespace:   service.Namespace,
@@ -653,7 +653,7 @@ func (m *IstioMesh) RegisterService(ctx context.Context, service *abstraction.Se
 				Ports: m.convertServicePorts(service.Ports),
 			},
 		}
-		_, err = m.kubeClient.CoreV1().Services(service.Namespace).Create(ctx, svc, metav1.CreateOptions{})
+		_, err = m.kubeClient.CoreV1().Services(service.Namespace).Create(ctx, newSvc, metav1.CreateOptions{})
 		if err != nil {
 			return fmt.Errorf("failed to create service: %w", err)
 		}

@@ -184,7 +184,7 @@ func (suite *ErrorRecoveryTestSuite) TestErrorCorrelation() {
 // TestCircuitBreakerIntegration tests circuit breaker behavior with parallel processing
 func (suite *ErrorRecoveryTestSuite) TestCircuitBreakerIntegration() {
 	// Create a failing processor to trigger circuit breaker
-	failingProcessor := &FailingProcessor{
+	_ = &FailingProcessor{
 		failureRate: 1.0, // Always fail
 		logger:      suite.logger,
 	}
@@ -232,7 +232,7 @@ func (suite *ErrorRecoveryTestSuite) TestCircuitBreakerIntegration() {
 // TestRetryMechanismWithBackoff tests retry behavior with exponential backoff
 func (suite *ErrorRecoveryTestSuite) TestRetryMechanismWithBackoff() {
 	// Create a processor that fails first few times then succeeds
-	retryProcessor := &RetryableProcessor{
+	_ = &RetryableProcessor{
 		failCount:    3,
 		currentTries: 0,
 		logger:       suite.logger,

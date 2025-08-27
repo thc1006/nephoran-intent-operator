@@ -351,7 +351,7 @@ func (suite *MultiCloudTestSuite) TestCrossCloudComparison() {
 	})
 
 	suite.Run("Cross-Provider Resource Pool Consistency", func() {
-		providers := map[string]interface{}{
+		_ = map[string]interface{}{
 			"aws":   suite.awsProvider,
 			"azure": suite.azureProvider,
 			"gcp":   suite.gcpProvider,

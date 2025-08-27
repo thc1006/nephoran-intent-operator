@@ -353,6 +353,13 @@ func (gmm *GPUMemoryManager) DeallocateMemory(ctx context.Context, allocation *M
 	ctx, span := gmm.tracer.Start(ctx, "deallocate_memory")
 	defer span.End()
 
+	// Check for context cancellation
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	start := time.Now()
 	defer func() {
 		gmm.metrics.RecordDeallocation(time.Since(start))
@@ -369,7 +376,7 @@ func (gmm *GPUMemoryManager) DeallocateMemory(ctx context.Context, allocation *M
 	}
 
 	// Deallocate from pool
-	if err := pool.Deallocate(allocation); err != nil {
+	if err := pool.Deallocate(ctx, allocation); err != nil {
 		gmm.metrics.RecordDeallocationFailure(allocation.Block.deviceID)
 		return fmt.Errorf("deallocation failed: %w", err)
 	}
@@ -398,6 +405,13 @@ func (gmm *GPUMemoryManager) OptimizeMemory(ctx context.Context, deviceID int) e
 	ctx, span := gmm.tracer.Start(ctx, "optimize_memory")
 	defer span.End()
 
+	// Check for context cancellation
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	start := time.Now()
 
 	// Get device pool
@@ -408,19 +422,19 @@ func (gmm *GPUMemoryManager) OptimizeMemory(ctx context.Context, deviceID int) e
 
 	// Perform defragmentation if needed
 	if pool.fragmentationLevel > gmm.config.DefragmentationThreshold {
-		if err := gmm.defragmenter.DefragmentDevice(deviceID); err != nil {
+		if err := gmm.defragmenter.DefragmentDevice(ctx, deviceID); err != nil {
 			gmm.logger.Warn("Defragmentation failed", "device_id", deviceID, "error", err)
 		}
 	}
 
 	// Optimize memory pools
-	if err := pool.Optimize(); err != nil {
+	if err := pool.Optimize(ctx); err != nil {
 		gmm.logger.Warn("Pool optimization failed", "device_id", deviceID, "error", err)
 	}
 
 	// Compress unused memory if enabled
 	if gmm.config.EnableCompression {
-		if err := gmm.compressor.CompressUnusedMemory(deviceID); err != nil {
+		if err := gmm.compressor.CompressUnusedMemory(ctx, deviceID); err != nil {
 			gmm.logger.Warn("Memory compression failed", "device_id", deviceID, "error", err)
 		}
 	}
@@ -549,9 +563,11 @@ func (gmm *GPUMemoryManager) performMemoryMonitoring() {
 }
 
 func (gmm *GPUMemoryManager) performDefragmentation() {
+	// Use background context for defragmentation
+	ctx := context.Background()
 	for deviceID, pool := range gmm.devicePools {
 		if pool.fragmentationLevel > gmm.config.DefragmentationThreshold {
-			if err := gmm.defragmenter.DefragmentDevice(deviceID); err != nil {
+			if err := gmm.defragmenter.DefragmentDevice(ctx, deviceID); err != nil {
 				gmm.logger.Warn("Defragmentation failed", "device_id", deviceID, "error", err)
 			}
 		}
@@ -567,7 +583,9 @@ func (gmm *GPUMemoryManager) performPeriodicGarbageCollection() {
 }
 
 func (gmm *GPUMemoryManager) performGarbageCollection(deviceID int) error {
-	return gmm.gcManager.CollectDevice(deviceID)
+	// Use background context for garbage collection
+	ctx := context.Background()
+	return gmm.gcManager.CollectDevice(ctx, deviceID)
 }
 
 func (gmm *GPUMemoryManager) recoverMemory(deviceID int, requiredSize int64) error {
@@ -759,18 +777,18 @@ func (dmp *DeviceMemoryPool) Allocate(ctx context.Context, size int64, purpose A
 	dmp.activeAllocations[uintptr(time.Now().UnixNano())] = allocation
 	return allocation, nil
 }
-func (dmp *DeviceMemoryPool) Deallocate(allocation *MemoryAllocation) error { 
+func (dmp *DeviceMemoryPool) Deallocate(ctx context.Context, allocation *MemoryAllocation) error { 
 	dmp.availableMemory += allocation.AllocatedSize
 	return nil 
 }
-func (dmp *DeviceMemoryPool) Optimize() error { return nil }
+func (dmp *DeviceMemoryPool) Optimize(ctx context.Context) error { return nil }
 func (dmp *DeviceMemoryPool) Close() error { return nil }
 
 func (rt *ResourceTracker) TrackAllocation(allocation *MemoryAllocation) {}
 func (rt *ResourceTracker) UntrackAllocation(allocationID string) {}
 
-func (md *MemoryDefragmenter) DefragmentDevice(deviceID int) error { return nil }
-func (gcm *GPUGCManager) CollectDevice(deviceID int) error { return nil }
-func (mc *MemoryCompressor) CompressUnusedMemory(deviceID int) error { return nil }
+func (md *MemoryDefragmenter) DefragmentDevice(ctx context.Context, deviceID int) error { return nil }
+func (gcm *GPUGCManager) CollectDevice(ctx context.Context, deviceID int) error { return nil }
+func (mc *MemoryCompressor) CompressUnusedMemory(ctx context.Context, deviceID int) error { return nil }
 func (mp *MemoryProfiler) Close() {}
 func (mm *MemoryMonitor) Close() {}

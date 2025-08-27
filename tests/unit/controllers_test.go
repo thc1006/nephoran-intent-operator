@@ -480,7 +480,7 @@ func (suite *ControllerTestSuite) TestChaosEngineering() {
 				}
 
 				// Should handle failures gracefully
-				_, err = controller.Reconcile(suite.GetContext(), req)
+				_, _ = controller.Reconcile(suite.GetContext(), req)
 				// Errors are expected in chaos testing
 				return nil
 			})

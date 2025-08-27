@@ -1371,6 +1371,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 			// Setup test environment
 			customFile, envFile, cleanup := tt.setupEnvironment(t)
 			defer cleanup()
+			_ = envFile // env file path available for validation if needed
 
 			// Use the actual file paths created by the setup
 			configPath := tt.configPath

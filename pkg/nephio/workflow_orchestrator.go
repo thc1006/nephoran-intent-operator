@@ -656,7 +656,7 @@ func (nwo *NephioWorkflowOrchestrator) ExecuteNephioWorkflow(ctx context.Context
 
 // selectWorkflow selects the appropriate workflow for an intent
 func (nwo *NephioWorkflowOrchestrator) selectWorkflow(ctx context.Context, intent *v1.NetworkIntent) (*WorkflowDefinition, error) {
-	ctx, span := nwo.tracer.Start(ctx, "select-workflow")
+	_, span := nwo.tracer.Start(ctx, "select-workflow")
 	defer span.End()
 
 	// Find workflow that matches intent type

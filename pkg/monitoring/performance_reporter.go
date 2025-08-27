@@ -22,13 +22,6 @@ type PerformanceReporter struct {
 	logger    logr.Logger
 }
 
-// ReportTemplate defines a report template
-type ReportTemplate struct {
-	Name        string
-	Description string
-	Template    string
-	OutputType  string
-}
 
 // NewPerformanceReporter creates a new performance reporter
 func NewPerformanceReporter() *PerformanceReporter {

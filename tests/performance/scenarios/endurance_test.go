@@ -583,7 +583,7 @@ func testResourceExhaustion(ctx context.Context, scenario struct {
 
 	// Exhaust resource
 	klog.Infof("Exhausting %s", scenario.ResourceType)
-	exhaustStart := time.Now()
+	_ = time.Now()
 
 	if err := scenario.ExhaustFunc(ctx); err != nil {
 		result.Errors = append(result.Errors, err)
@@ -669,7 +669,7 @@ func exhaustMemory(ctx context.Context) error {
 	time.Sleep(5 * time.Second)
 
 	// Release
-	allocations = nil
+	_ = nil
 	return nil
 }
 

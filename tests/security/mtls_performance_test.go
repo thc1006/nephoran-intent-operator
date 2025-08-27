@@ -311,7 +311,7 @@ var _ = Describe("mTLS Performance and Load Test Suite", func() {
 					resp.Body.Close()
 				}
 
-				client = newClient
+				_ = newClient
 			}
 
 			stats := perfSuite.calculateLatencyStats(rotationLatencies)

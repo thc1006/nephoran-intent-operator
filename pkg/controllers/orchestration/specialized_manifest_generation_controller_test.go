@@ -921,7 +921,7 @@ spec:
 		})
 
 		It("should report validation errors", func() {
-			manifests := map[string]string{
+			_ = map[string]string{
 				"invalid-manifest.yaml": `invalid: yaml: content`,
 			}
 
@@ -934,10 +934,10 @@ spec:
 			// Check validation results in data
 			if validationResults, exists := result.Data["validationResults"]; exists {
 				results := validationResults.([]ValidationResult)
-				validationErrorFound := false
+				_ = false
 				for _, result := range results {
 					if len(result.Errors) > 0 {
-						validationErrorFound = true
+						_ = true
 						break
 					}
 				}
@@ -1007,7 +1007,7 @@ spec:
 		})
 
 		It("should report policy violations", func() {
-			manifests := map[string]string{
+			_ = map[string]string{
 				"violation-deployment.yaml": "test-manifest-content",
 			}
 
@@ -1020,10 +1020,10 @@ spec:
 			// Check policy results in data
 			if policyResults, exists := result.Data["policyResults"]; exists {
 				results := policyResults.([]PolicyResult)
-				violationFound := false
+				_ = false
 				for _, result := range results {
 					if !result.Compliant && len(result.Violations) > 0 {
-						violationFound = true
+						_ = true
 						break
 					}
 				}
@@ -1032,7 +1032,7 @@ spec:
 		})
 
 		It("should apply policy modifications", func() {
-			manifests := map[string]string{
+			_ = map[string]string{
 				"modifiable-manifest.yaml": "original-content",
 			}
 

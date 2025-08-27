@@ -145,7 +145,7 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestCompleteIntentProcessin
 		},
 	}
 
-	intentID := fmt.Sprintf("%s/%s", intent.Namespace, intent.Name)
+	_ = fmt.Sprintf("%s/%s", intent.Namespace, intent.Name)
 
 	// Process the complete intent workflow
 	result, err := suite.engine.ProcessIntentWorkflow(suite.ctx, intent)
@@ -274,7 +274,7 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestErrorRecoveryInWorkflow
 	}
 
 	// Process with potential for errors
-	result, err := suite.engine.ProcessIntentWorkflow(suite.ctx, intent)
+	_, err := suite.engine.ProcessIntentWorkflow(suite.ctx, intent)
 
 	// Even if some errors occurred, the system should handle them gracefully
 	if err != nil {

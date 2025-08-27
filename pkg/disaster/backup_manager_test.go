@@ -364,7 +364,7 @@ func (suite *BackupManagerTestSuite) TestBackupGitRepositories_Success() {
 
 	// Note: This will fail in test environment without actual Git repo,
 	// but we can test the structure and error handling
-	err = manager.backupGitRepositories(suite.ctx, record)
+	_ = manager.backupGitRepositories(suite.ctx, record)
 
 	// In a real test environment, this might fail due to network/git access
 	// We verify the component structure is created correctly

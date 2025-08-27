@@ -124,7 +124,7 @@ func TestErrorCategorizationBasic(t *testing.T) {
 			return "none"
 		}
 
-		errMsg := err.Error()
+		_ = err.Error()
 		switch {
 		case err.Error() == "circuit breaker is open":
 			return "circuit_breaker_open"

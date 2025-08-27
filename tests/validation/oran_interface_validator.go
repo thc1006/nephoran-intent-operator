@@ -1069,17 +1069,9 @@ func (oiv *ORANInterfaceValidator) validateYANGModel(model map[string]interface{
 
 // testNETCONFOperations tests NETCONF protocol operations
 func (oiv *ORANInterfaceValidator) testNETCONFOperations(ctx context.Context) bool {
-	// Simulate NETCONF session establishment
-	session := map[string]interface{}{
-		"sessionId": "netconf-session-001",
-		"capabilities": []string{
-			"urn:ietf:params:netconf:base:1.0",
-			"urn:ietf:params:netconf:base:1.1",
-			"urn:o-ran:netconf:capability:1.0",
-		},
-		"transport": "SSH",
-		"status":    "active",
-	}
+	// Simulate NETCONF session establishment (placeholder for future implementation)
+	sessionId := "netconf-session-001"
+	_ = sessionId // Placeholder for future implementation
 
 	// Test get operation
 	getConfig := map[string]interface{}{

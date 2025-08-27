@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 )
@@ -179,9 +180,12 @@ func NewPredictiveSLAAnalyzer(config *SLAMonitoringConfig, logger *zap.Logger) *
 	analyzer.throughputPredictor = NewThroughputPredictor(config)
 
 	// Initialize analyzers
-	analyzer.trendAnalyzer = NewTrendAnalyzer(logger)
+	analyzer.trendAnalyzer = NewTrendAnalyzer()
 	analyzer.seasonalityDetector = NewSeasonalityDetector()
-	analyzer.anomalyDetector = NewAnomalyDetector(logger)
+	// Use a default NWDAF config and convert zap.Logger to logr.Logger  
+	nwdafConfig := &NWDAFConfig{}
+	logrLogger := logr.Discard() // Use discard logger for simplicity
+	analyzer.anomalyDetector = NewAnomalyDetector(nwdafConfig, logrLogger)
 
 	return analyzer
 }

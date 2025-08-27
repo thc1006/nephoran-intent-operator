@@ -649,7 +649,7 @@ func TestA1Adaptor_ConcurrentPolicyAccess(t *testing.T) {
 	for i := 0; i < 50; i++ {
 		go func(id int) {
 			adaptor.mutex.RLock()
-			_, exists := adaptor.policyTypes[id]
+			_, _ = adaptor.policyTypes[id]
 			adaptor.mutex.RUnlock()
 			done <- true
 		}(i)

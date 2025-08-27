@@ -207,7 +207,6 @@ func (s *NephoranAPIServer) setupClusterRoutes(router *mux.Router) {
 
 // listClusters handles GET /api/v1/clusters
 func (s *NephoranAPIServer) listClusters(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	pagination := s.parsePaginationParams(r)
 	filters := s.parseFilterParams(r)
 
@@ -323,7 +322,6 @@ func (s *NephoranAPIServer) getCluster(w http.ResponseWriter, r *http.Request) {
 
 // getClusterStatus handles GET /api/v1/clusters/{id}/status
 func (s *NephoranAPIServer) getClusterStatus(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	vars := mux.Vars(r)
 	clusterID := vars["id"]
 
@@ -437,8 +435,6 @@ func (s *NephoranAPIServer) deployToCluster(w http.ResponseWriter, r *http.Reque
 
 // getNetworkTopology handles GET /api/v1/clusters/topology
 func (s *NephoranAPIServer) getNetworkTopology(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
 	// Check cache first
 	cacheKey := "network-topology"
 	if s.cache != nil {
@@ -753,7 +749,6 @@ func (s *NephoranAPIServer) deleteClusterDeployment(w http.ResponseWriter, r *ht
 
 // getClusterNetwork handles GET /api/v1/clusters/{id}/network
 func (s *NephoranAPIServer) getClusterNetwork(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	vars := mux.Vars(r)
 	clusterID := vars["id"]
 

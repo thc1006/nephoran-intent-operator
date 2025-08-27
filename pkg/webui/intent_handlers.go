@@ -143,7 +143,6 @@ func (s *NephoranAPIServer) setupIntentRoutes(router *mux.Router) {
 
 // listIntents handles GET /api/v1/intents
 func (s *NephoranAPIServer) listIntents(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	pagination := s.parsePaginationParams(r)
 	filters := s.parseFilterParams(r)
 
@@ -295,7 +294,7 @@ func (s *NephoranAPIServer) createIntent(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Create the intent in Kubernetes
-	intentBytes, err := json.Marshal(intent)
+	_, err = json.Marshal(intent)
 	if err != nil {
 		s.logger.Error(err, "Failed to marshal intent")
 		s.writeErrorResponse(w, http.StatusInternalServerError, "marshal_failed", "Failed to process intent")
@@ -332,7 +331,6 @@ func (s *NephoranAPIServer) createIntent(w http.ResponseWriter, r *http.Request)
 
 // getIntent handles GET /api/v1/intents/{name}
 func (s *NephoranAPIServer) getIntent(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["name"]
 	namespace := r.URL.Query().Get("namespace")
@@ -521,7 +519,6 @@ func (s *NephoranAPIServer) deleteIntent(w http.ResponseWriter, r *http.Request)
 
 // getIntentStatus handles GET /api/v1/intents/{name}/status
 func (s *NephoranAPIServer) getIntentStatus(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	vars := mux.Vars(r)
 	name := vars["name"]
 	namespace := r.URL.Query().Get("namespace")

@@ -903,5 +903,3 @@ func (hub *NotificationHub) deliverNotification(ctx context.Context, notificatio
 	)
 }
 
-// Interface compliance check
-var _ nephoranv1.AdapterInterface = (*O1Adapter)(nil)

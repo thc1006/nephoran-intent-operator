@@ -211,7 +211,7 @@ func TestClient_CommitAndPush_FileCreation(t *testing.T) {
 	}
 
 	// This will fail at push, but we can verify file operations
-	_, err = client.CommitAndPush(files, "Add configuration files")
+	_, _ = client.CommitAndPush(files, "Add configuration files")
 
 	// Verify all files were created with correct content
 	for filePath, expectedContent := range files {
@@ -1752,7 +1752,7 @@ func TestClient_FilePermissions(t *testing.T) {
 	}
 
 	// This will fail at push, but files should be created
-	_, err = client.CommitAndPush(files, "Add files")
+	_, _ = client.CommitAndPush(files, "Add files")
 
 	// Verify file permissions (should be 0644)
 	for filePath := range files {
@@ -1816,7 +1816,7 @@ func TestClient_EdgeCases(t *testing.T) {
 			longPath: "content",
 		}
 
-		_, err = client.CommitAndPush(files, "Long path test")
+		_, _ = client.CommitAndPush(files, "Long path test")
 
 		// Should handle long paths correctly
 		fullPath := filepath.Join(repoPath, longPath)
@@ -1843,7 +1843,7 @@ func TestClient_EdgeCases(t *testing.T) {
 			"file123numbers.txt":        "content4",
 		}
 
-		_, err = client.CommitAndPush(files, "Special characters test")
+		_, _ = client.CommitAndPush(files, "Special characters test")
 
 		// Verify all files were created
 		for filePath, expectedContent := range files {
@@ -1872,7 +1872,7 @@ func TestClient_EdgeCases(t *testing.T) {
 			"large-file.txt": largeContent,
 		}
 
-		_, err = client.CommitAndPush(files, "Large file test")
+		_, _ = client.CommitAndPush(files, "Large file test")
 
 		// Verify large file was created correctly
 		fullPath := filepath.Join(repoPath, "large-file.txt")

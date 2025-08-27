@@ -339,7 +339,7 @@ func (ac *AvailabilityCalculator) calculateAvailabilityForEntity(
 	endTime time.Time,
 ) (*AvailabilityCalculation, error) {
 
-	ctx, span := ac.tracer.Start(ctx, "calculate-availability-for-entity",
+	_, span := ac.tracer.Start(ctx, "calculate-availability-for-entity",
 		trace.WithAttributes(
 			attribute.String("entity_id", metric.EntityID),
 			attribute.String("entity_type", metric.EntityType),
@@ -1008,7 +1008,7 @@ func (ac *AvailabilityCalculator) runCleanup(ctx context.Context) {
 
 // performCleanup cleans up old calculations
 func (ac *AvailabilityCalculator) performCleanup(ctx context.Context) {
-	ctx, span := ac.tracer.Start(ctx, "perform-cleanup")
+	_, span := ac.tracer.Start(ctx, "perform-cleanup")
 	defer span.End()
 
 	cutoff := time.Now().Add(-ac.config.RetentionPeriod)

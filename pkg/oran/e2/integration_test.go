@@ -619,7 +619,7 @@ func TestE2PerformanceIntegration(t *testing.T) {
 		t.Skip("Skipping performance tests in short mode")
 	}
 
-	ctx := context.Background()
+	_ = context.Background()
 
 	t.Run("HighVolumeSubscriptions", func(t *testing.T) {
 		// Test handling many concurrent subscriptions

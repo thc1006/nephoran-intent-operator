@@ -887,7 +887,7 @@ func (ee *EscalationEngine) loadDefaultWorkflows() {
 // Simplified implementations for key methods
 func (ee *EscalationEngine) calculateAlertPriority(alert *SLAAlert) int {
 	// Calculate priority based on severity, business impact, and SLA type
-	basePriority := 1
+	var basePriority int
 
 	switch alert.Severity {
 	case AlertSeverityUrgent:

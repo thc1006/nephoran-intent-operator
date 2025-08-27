@@ -60,7 +60,7 @@ func (suite *E2EAuditTestSuite) SetupSuite() {
 		defer suite.eventMutex.Unlock()
 
 		var event AuditEvent
-		body, err := ioutil.ReadAll(r.Body)
+		_, err := ioutil.ReadAll(r.Body)
 		if err == nil {
 			// In a real implementation, we'd unmarshal the JSON
 			// For testing, we'll create a mock event

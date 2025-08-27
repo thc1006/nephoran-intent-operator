@@ -109,12 +109,12 @@ type ComplianceDetails struct {
 	PassedChecks    int               `json:"passed_checks"`
 	FailedChecks    int               `json:"failed_checks"`
 	TotalChecks     int               `json:"total_checks"`
-	FailedRules     []ComplianceRule  `json:"failed_rules"`
+	FailedRules     []TLSComplianceRule  `json:"failed_rules"`
 	Exemptions      []string          `json:"exemptions,omitempty"`
 }
 
-// ComplianceRule represents a specific compliance requirement
-type ComplianceRule struct {
+// TLSComplianceRule represents a specific TLS compliance requirement (renamed to avoid conflict)
+type TLSComplianceRule struct {
 	RuleID      string `json:"rule_id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
@@ -613,7 +613,7 @@ func (a *TLSAuditor) evaluateORANCompliance() ComplianceDetails {
 		Standard:     "O-RAN WG11",
 		Version:      "3.0",
 		Status:       "COMPLIANT",
-		FailedRules:  []ComplianceRule{},
+		FailedRules:  []TLSComplianceRule{},
 		TotalChecks:  10,
 		PassedChecks: 0,
 	}
@@ -631,7 +631,7 @@ func (a *TLSAuditor) evaluateORANCompliance() ComplianceDetails {
 	if !hasWeakTLS {
 		details.PassedChecks++
 	} else {
-		details.FailedRules = append(details.FailedRules, ComplianceRule{
+		details.FailedRules = append(details.FailedRules, TLSComplianceRule{
 			RuleID:      "WG11-TLS-001",
 			Title:       "Minimum TLS Version",
 			Description: "Must use TLS 1.2 or higher",
@@ -654,7 +654,7 @@ func (a *TLSAuditor) evaluateORANCompliance() ComplianceDetails {
 	if !hasWeakCiphers {
 		details.PassedChecks++
 	} else {
-		details.FailedRules = append(details.FailedRules, ComplianceRule{
+		details.FailedRules = append(details.FailedRules, TLSComplianceRule{
 			RuleID:      "WG11-CIPHER-001",
 			Title:       "Approved Cipher Suites",
 			Description: "Must use O-RAN approved cipher suites",
@@ -679,7 +679,7 @@ func (a *TLSAuditor) evaluateORANCompliance() ComplianceDetails {
 	if !hasWeakKeys {
 		details.PassedChecks++
 	} else {
-		details.FailedRules = append(details.FailedRules, ComplianceRule{
+		details.FailedRules = append(details.FailedRules, TLSComplianceRule{
 			RuleID:      "WG11-CERT-001",
 			Title:       "Certificate Key Strength",
 			Description: "Minimum 2048-bit RSA or 256-bit ECDSA",

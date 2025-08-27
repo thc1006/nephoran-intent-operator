@@ -34,12 +34,12 @@ type ServiceDiscovery struct {
 
 // ServiceDiscoveryConfig configures the service discovery
 type ServiceDiscoveryConfig struct {
-	Enabled                 bool                    `yaml:"enabled"`
-	WatchNamespaces         []string                `yaml:"watch_namespaces"`
-	ServiceAnnotationPrefix string                  `yaml:"service_annotation_prefix"`
-	AutoProvisionEnabled    bool                    `yaml:"auto_provision_enabled"`
-	TemplateMatching        *TemplateMatchingConfig `yaml:"template_matching"`
-	PreProvisioningEnabled  bool                    `yaml:"pre_provisioning_enabled"`
+	Enabled                 bool                         `yaml:"enabled"`
+	WatchNamespaces         []string                     `yaml:"watch_namespaces"`
+	ServiceAnnotationPrefix string                       `yaml:"service_annotation_prefix"`
+	AutoProvisionEnabled    bool                         `yaml:"auto_provision_enabled"`
+	TemplateMatching        *TemplateMatchingConfig      `yaml:"template_matching"`
+	PreProvisioningEnabled  bool                         `yaml:"pre_provisioning_enabled"`
 	ServiceMeshIntegration  *BasicServiceMeshIntegration `yaml:"service_mesh_integration"`
 }
 

@@ -51,17 +51,6 @@ type MultiLevelCache struct {
 	mu       sync.RWMutex
 }
 
-// BatchProcessor handles batch operations
-type BatchProcessor struct {
-	batchSize     int
-	flushInterval time.Duration
-	processor     func([]interface{}) error
-	buffer        []interface{}
-	mu            sync.Mutex
-	ticker        *time.Ticker
-	done          chan bool
-}
-
 // GoroutinePool manages goroutine resources
 type GoroutinePool struct {
 	maxWorkers int
@@ -212,138 +201,10 @@ func NewMultiLevelCache() *MultiLevelCache {
 	}
 }
 
-// MemoryCache provides in-memory caching
-type MemoryCache struct {
-	cache   map[string]SimpleCacheEntry
-	maxSize int
-	ttl     time.Duration
-	mu      sync.RWMutex
-	hits    int64
-	misses  int64
-}
 
-// SimpleCacheEntry represents a simple cache entry
-type SimpleCacheEntry struct {
-	Value       interface{}
-	Expiration  time.Time
-	Size        int
-	AccessCount int
-}
 
-// NewMemoryCache creates a new memory cache
-func NewMemoryCache(maxSize int, ttl time.Duration) *MemoryCache {
-	cache := &MemoryCache{
-		cache:   make(map[string]SimpleCacheEntry),
-		maxSize: maxSize,
-		ttl:     ttl,
-	}
 
-	// Start cleanup goroutine
-	go cache.cleanup()
 
-	return cache
-}
-
-// Get retrieves a value from the cache
-func (c *MemoryCache) Get(key string) (interface{}, bool) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
-	entry, exists := c.cache[key]
-	if !exists {
-		c.misses++
-		return nil, false
-	}
-
-	if time.Now().After(entry.Expiration) {
-		c.misses++
-		return nil, false
-	}
-
-	c.hits++
-	entry.AccessCount++
-	c.cache[key] = entry
-	return entry.Value, true
-}
-
-// Set stores a value in the cache
-func (c *MemoryCache) Set(key string, value interface{}, size int) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	// Implement LRU eviction if cache is full
-	if len(c.cache) >= c.maxSize {
-		c.evictLRU()
-	}
-
-	c.cache[key] = SimpleCacheEntry{
-		Value:       value,
-		Expiration:  time.Now().Add(c.ttl),
-		Size:        size,
-		AccessCount: 0,
-	}
-}
-
-// evictLRU evicts the least recently used entry
-func (c *MemoryCache) evictLRU() {
-	var lruKey string
-	var lruEntry SimpleCacheEntry
-	first := true
-
-	for key, entry := range c.cache {
-		if first || entry.AccessCount < lruEntry.AccessCount {
-			lruKey = key
-			lruEntry = entry
-			first = false
-		}
-	}
-
-	if lruKey != "" {
-		delete(c.cache, lruKey)
-	}
-}
-
-// cleanup periodically removes expired entries
-func (c *MemoryCache) cleanup() {
-	ticker := time.NewTicker(1 * time.Minute)
-	defer ticker.Stop()
-
-	for range ticker.C {
-		c.mu.Lock()
-		now := time.Now()
-		for key, entry := range c.cache {
-			if now.After(entry.Expiration) {
-				delete(c.cache, key)
-			}
-		}
-		c.mu.Unlock()
-	}
-}
-
-// GetHitRate returns the cache hit rate
-func (c *MemoryCache) GetHitRate() float64 {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
-	total := c.hits + c.misses
-	if total == 0 {
-		return 0
-	}
-	return float64(c.hits) / float64(total)
-}
-
-// DistributedCache provides distributed caching (Redis)
-type DistributedCache struct {
-	address string
-	// In real implementation, would have Redis client
-}
-
-// NewDistributedCache creates a new distributed cache
-func NewDistributedCache(address string) *DistributedCache {
-	return &DistributedCache{
-		address: address,
-	}
-}
 
 // DiskCache provides disk-based caching
 type DiskCache struct {
@@ -397,85 +258,6 @@ func (c *MultiLevelCache) updateHitRate(level string, hit bool) {
 	}
 }
 
-// NewBatchProcessor creates a new batch processor
-func NewBatchProcessor(batchSize int, flushInterval time.Duration) *BatchProcessor {
-	bp := &BatchProcessor{
-		batchSize:     batchSize,
-		flushInterval: flushInterval,
-		buffer:        make([]interface{}, 0, batchSize),
-		ticker:        time.NewTicker(flushInterval),
-		done:          make(chan bool),
-	}
-
-	// Start flush goroutine
-	go bp.flushPeriodically()
-
-	return bp
-}
-
-// Add adds an item to the batch
-func (bp *BatchProcessor) Add(item interface{}) error {
-	bp.mu.Lock()
-	defer bp.mu.Unlock()
-
-	bp.buffer = append(bp.buffer, item)
-
-	// Flush if batch is full
-	if len(bp.buffer) >= bp.batchSize {
-		return bp.flush()
-	}
-
-	return nil
-}
-
-// SetProcessor sets the batch processing function
-func (bp *BatchProcessor) SetProcessor(processor func([]interface{}) error) {
-	bp.processor = processor
-}
-
-// flush processes the current batch
-func (bp *BatchProcessor) flush() error {
-	if len(bp.buffer) == 0 || bp.processor == nil {
-		return nil
-	}
-
-	// Process batch
-	err := bp.processor(bp.buffer)
-	if err != nil {
-		return fmt.Errorf("batch processing failed: %w", err)
-	}
-
-	// Clear buffer
-	bp.buffer = bp.buffer[:0]
-	return nil
-}
-
-// flushPeriodically flushes the batch at regular intervals
-func (bp *BatchProcessor) flushPeriodically() {
-	for {
-		select {
-		case <-bp.ticker.C:
-			bp.mu.Lock()
-			if err := bp.flush(); err != nil {
-				klog.Errorf("Periodic flush failed: %v", err)
-			}
-			bp.mu.Unlock()
-		case <-bp.done:
-			return
-		}
-	}
-}
-
-// Stop stops the batch processor
-func (bp *BatchProcessor) Stop() {
-	bp.ticker.Stop()
-	close(bp.done)
-
-	// Final flush
-	bp.mu.Lock()
-	bp.flush()
-	bp.mu.Unlock()
-}
 
 // NewGoroutinePool creates a new goroutine pool
 func NewGoroutinePool(maxWorkers int) *GoroutinePool {

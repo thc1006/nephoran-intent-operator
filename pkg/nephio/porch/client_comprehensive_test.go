@@ -598,7 +598,7 @@ func TestErrorHandling(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
 
-		_, err := mockClient.GetRepository(ctx, "test")
+		_, _ = mockClient.GetRepository(ctx, "test")
 
 		// Mock doesn't actually check context cancellation, but in real implementation it would
 		// For now, we'll just verify the call was made
@@ -611,7 +611,7 @@ func TestErrorHandling(t *testing.T) {
 
 		time.Sleep(2 * time.Nanosecond) // Ensure timeout
 
-		_, err := mockClient.GetRepository(ctx, "test")
+		_, _ = mockClient.GetRepository(ctx, "test")
 
 		// Mock doesn't handle timeouts, but in real implementation it would
 		assert.Equal(t, 1, mockClient.GetCallCount("GetRepository"))
@@ -692,7 +692,7 @@ func TestInputValidation(t *testing.T) {
 	fixture := testutil.NewTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	_ = testutil.NewMockPorchClient()
 
 	t.Run("repository_validation", func(t *testing.T) {
 		invalidRepos := []*Repository{

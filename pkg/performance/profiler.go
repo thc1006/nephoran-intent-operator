@@ -154,38 +154,6 @@ type MemoryOptimizer struct {
 	mu                   sync.RWMutex
 }
 
-// MemoryProfile tracks memory usage patterns
-type MemoryProfile struct {
-	HeapInUse     int64
-	HeapAlloc     int64
-	HeapSys       int64
-	HeapReleased  int64
-	StackInUse    int64
-	StackSys      int64
-	MSpanInUse    int64
-	MSpanSys      int64
-	MCacheInUse   int64
-	MCacheSys     int64
-	BuckHashSys   int64
-	GCSys         int64
-	OtherSys      int64
-	NextGC        int64
-	LastGC        time.Time
-	NumGC         uint32
-	PauseNs       []uint64
-	Trend         TrendAnalysis
-	Alerts        []MemoryAlert
-}
-
-// MemoryAlert represents a memory-related alert
-type MemoryAlert struct {
-	Type      string
-	Severity  string
-	Message   string
-	Value     int64
-	Threshold int64
-	Timestamp time.Time
-}
 
 // AllocationTracker tracks memory allocations
 type AllocationTracker struct {
@@ -219,28 +187,6 @@ type HotAllocationPath struct {
 	Optimization string
 }
 
-// GCOptimizer optimizes garbage collection
-type GCOptimizer struct {
-	enabled         bool
-	targetPercent   int
-	lastOptimization time.Time
-	gcStats          GCStats
-	adaptiveEnabled bool
-	mu              sync.RWMutex
-}
-
-// GCStats contains GC optimization statistics
-type GCStats struct {
-	NumGC        uint32
-	PauseTotal   time.Duration
-	PauseAvg     time.Duration
-	PauseMax     time.Duration
-	TargetHeap   int64
-	NextGC       int64
-	LastGC       time.Time
-	Efficiency   float64
-	Optimizations int64
-}
 
 // MemoryLeakDetector detects memory leaks
 type MemoryLeakDetector struct {
@@ -284,15 +230,6 @@ type PoolManager struct {
 	mu       sync.RWMutex
 }
 
-// PoolStats contains pool usage statistics
-type PoolStats struct {
-	Gets      int64
-	Puts      int64
-	HitRate   float64
-	Creates   int64
-	Reuses    int64
-	LastUsed  time.Time
-}
 
 // CPUProfiler provides advanced CPU profiling
 type CPUProfiler struct {
@@ -307,18 +244,6 @@ type CPUProfiler struct {
 	mu             sync.RWMutex
 }
 
-// CPUProfile represents a CPU profile
-type CPUProfile struct {
-	StartTime    time.Time
-	EndTime      time.Time
-	Duration     time.Duration
-	Samples      int64
-	SampleRate   int
-	ProfileData  []byte
-	Hotspots     []CPUHotspot
-	FlameGraph   string
-	Optimization []string
-}
 
 // CPUHotspot represents a CPU hotspot
 type CPUHotspot struct {
@@ -383,30 +308,7 @@ type TracePerformanceMetrics struct {
 	SchedulerOverhead  time.Duration
 }
 
-// PerformanceAnalyzer analyzes overall performance
-type PerformanceAnalyzer struct {
-	enabled           bool
-	analysisInterval  time.Duration
-	reports           []*PerformanceReport
-	recommendations   []PerformanceRecommendation
-	trends            PerformanceTrends
-	alertManager      *PerformanceAlertManager
-	mu                sync.RWMutex
-}
 
-// PerformanceReport contains comprehensive performance analysis
-type PerformanceReport struct {
-	GeneratedAt      time.Time
-	Duration         time.Duration
-	CPUAnalysis      CPUAnalysisResult
-	MemoryAnalysis   MemoryAnalysisResult
-	GoroutineAnalysis GoroutineAnalysisResult
-	IOAnalysis       IOAnalysisResult
-	NetworkAnalysis  NetworkAnalysisResult
-	BottleneckAnalysis []Bottleneck
-	Recommendations  []PerformanceRecommendation
-	Score           PerformanceScore
-}
 
 // CPUAnalysisResult contains CPU analysis results
 type CPUAnalysisResult struct {
@@ -500,16 +402,6 @@ type PoolingAnalysis struct {
 	Efficiency      float64
 }
 
-// Bottleneck represents a performance bottleneck
-type Bottleneck struct {
-	Type        string
-	Component   string
-	Impact      string
-	Severity    int
-	Description string
-	Mitigation  string
-	Priority    int
-}
 
 // PerformanceRecommendation represents optimization recommendations
 type PerformanceRecommendation struct {
@@ -1063,21 +955,6 @@ func NewTraceCollector(config *ProfilerConfig) *TraceCollector {
 	}
 }
 
-func NewPerformanceAnalyzer(config *ProfilerConfig) *PerformanceAnalyzer {
-	return &PerformanceAnalyzer{
-		enabled:          true,
-		analysisInterval: config.MetricsInterval,
-		reports:          make([]*PerformanceReport, 0),
-		alertManager: &PerformanceAlertManager{
-			thresholds: map[string]float64{
-				"cpu_usage":       80.0,
-				"memory_usage":    80.0,
-				"goroutine_count": float64(config.GoroutineThreshold),
-			},
-			enabled: true,
-		},
-	}
-}
 
 // Method implementations for components (simplified)
 

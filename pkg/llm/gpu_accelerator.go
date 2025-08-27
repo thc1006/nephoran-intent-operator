@@ -4,18 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"runtime"
 	"sync"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // GPUAccelerator provides GPU-accelerated LLM inference with intelligent resource management
@@ -115,30 +110,7 @@ type GPUMemoryPool struct {
 	mutex sync.RWMutex
 }
 
-// GPUModelCache provides intelligent model caching with prefetching
-type GPUModelCache struct {
-	// Cache levels
-	l1Cache *ModelL1Cache // Ultra-fast GPU memory cache
-	l2Cache *ModelL2Cache // System memory cache
-	l3Cache *ModelL3Cache // Disk-based cache
-	
-	// Cache policies
-	evictionPolicy   ModelEvictionPolicy
-	preloadPolicy    ModelPreloadPolicy
-	compressionPolicy ModelCompressionPolicy
-	
-	// Predictive loading
-	predictor      *ModelUsagePredictor
-	preloader      *ModelPreloader
-	loadScheduler  *ModelLoadScheduler
-	
-	// Cache statistics
-	hitRatio       float64
-	loadTime       time.Duration
-	evictionCount  int64
-	
-	mutex sync.RWMutex
-}
+
 
 // GPUBatchProcessor handles batching for optimal GPU utilization
 type GPUBatchProcessor struct {
@@ -605,15 +577,15 @@ type GPUPerformanceOptimizer struct{}
 type GPUWorkloadScheduler struct{}
 type GPULoadBalancer struct{}
 type MemoryChunkPool struct{}
-type MemoryDefragmenter struct{}
+
 type GPUGCTrigger struct{}
 type MemoryPoolStats struct{}
 type ModelL1Cache struct{}
 type ModelL2Cache struct{}
 type ModelL3Cache struct{}
-type ModelUsagePredictor struct{}
+
 type ModelPreloader struct{}
-type ModelLoadScheduler struct{}
+
 type ModelRequestQueue struct{}
 type ThroughputOptimizer struct{}
 type LatencyOptimizer struct{}
@@ -622,7 +594,7 @@ type MemoryChunk struct{}
 
 type GPUMemoryPoolConfig struct{}
 type ModelCacheConfig struct{}
-type BatchProcessorConfig struct{}
+
 
 type InferenceRequest struct {
 	ModelName   string
@@ -674,6 +646,6 @@ func (ga *GPUAccelerator) preloadModels(models []string) {}
 
 func (bp *GPUBatchProcessor) ProcessBatch(ctx context.Context, requests []*InferenceRequest) ([]*InferenceResponse, error) { return nil, nil }
 func (bp *GPUBatchProcessor) Close() {}
-func (mc *GPUModelCache) Close() {}
+
 func (mp *GPUMemoryPool) Close() {}
 func (opt *GPUPerformanceOptimizer) OptimizePerformance(ctx context.Context) error { return nil }

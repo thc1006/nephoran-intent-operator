@@ -128,6 +128,8 @@ const (
 )
 
 // AlertSeverity represents the severity of an alert
+
+// AlertSeverity represents the severity of an alert
 type AlertSeverity string
 
 const (

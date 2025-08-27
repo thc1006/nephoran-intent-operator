@@ -134,24 +134,19 @@ func (rde *RegressionDetectionEngine) detectPerformanceRegressions(baseline *Bas
 
 	// Check Throughput regression (inverted - lower is worse)
 	if baseline.Results.ThroughputAchieved > 0 && current.ThroughputAchieved > 0 {
-		degradation := rde.calculatePercentDegradation(
-			baseline.Results.ThroughputAchieved,
-			current.ThroughputAchieved,
-		)
-
 		// For throughput, we want to detect decreases (negative degradation)
 		if current.ThroughputAchieved < baseline.Results.ThroughputAchieved {
-			reduction := ((baseline.Results.ThroughputAchieved - current.ThroughputAchieved) / baseline.Results.ThroughputAchieved) * 100
+			degradation := ((baseline.Results.ThroughputAchieved - current.ThroughputAchieved) / baseline.Results.ThroughputAchieved) * 100
 
-			if reduction > rde.config.PerformanceThreshold {
+			if degradation > rde.config.PerformanceThreshold {
 				regression := &PerformanceRegression{
 					MetricName:         "Throughput",
 					BaselineValue:      baseline.Results.ThroughputAchieved,
 					CurrentValue:       current.ThroughputAchieved,
-					DegradationPercent: reduction,
-					Severity:           rde.classifySeverity(reduction),
-					Impact:             rde.describeThroughputImpact(reduction, baseline.Results.ThroughputAchieved, current.ThroughputAchieved),
-					Recommendation:     rde.getThroughputRecommendation(reduction),
+					DegradationPercent: degradation,
+					Severity:           rde.classifySeverity(degradation),
+					Impact:             rde.describeThroughputImpact(degradation, baseline.Results.ThroughputAchieved, current.ThroughputAchieved),
+					Recommendation:     rde.getThroughputRecommendation(degradation),
 					DetectionTime:      time.Now(),
 				}
 				regressions = append(regressions, regression)

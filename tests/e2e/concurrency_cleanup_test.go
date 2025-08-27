@@ -354,8 +354,8 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 			}, 30*time.Second, 2*time.Second).Should(BeTrue())
 
 			By("Recording initial state before deletion")
-			initialConditionCount := len(createdIntent.Status.Conditions)
-			initialPhase := createdIntent.Status.Phase
+			_ = len(createdIntent.Status.Conditions)
+			_ = createdIntent.Status.Phase
 
 			By("Deleting the NetworkIntent")
 			Expect(k8sClient.Delete(ctx, createdIntent)).Should(Succeed())
@@ -511,8 +511,8 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 			}, 30*time.Second, 2*time.Second).Should(BeTrue())
 
 			By("Recording resource state before deletion")
-			beforeDeletionPhase := createdIntent.Status.Phase
-			beforeDeletionConditions := len(createdIntent.Status.Conditions)
+			_ = createdIntent.Status.Phase
+			_ = len(createdIntent.Status.Conditions)
 
 			By("Deleting intent during potential error processing")
 			Expect(k8sClient.Delete(ctx, createdIntent)).Should(Succeed())

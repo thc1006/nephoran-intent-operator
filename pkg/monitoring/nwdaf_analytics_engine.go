@@ -18,7 +18,6 @@ package monitoring
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"

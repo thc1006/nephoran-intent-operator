@@ -4,9 +4,11 @@ package monitoring
 import (
 	"context"
 	"math"
+	"net/http"
 	"sync"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 )
@@ -695,7 +697,6 @@ type RealTimeSLOEvaluator struct {
 type EdgeCollector struct{}
 type PruningPolicy struct{}
 type CachedMetric struct{}
-type TimeWindow struct{}
 type AggregatorFunc func([]float64) float64
 type SLORule struct{}
 type SLOState struct{}
@@ -805,7 +806,14 @@ func (sct *SLAComplianceTracker) Start(ctx context.Context) error {
 	return nil
 }
 
-type SyntheticMonitor struct{}
+// SyntheticMonitor performs synthetic availability checks (also defined in availability/synthetic.go)
+type SyntheticMonitor struct {
+	checks    map[string]*SyntheticCheck
+	results   map[string]*CheckResult
+	mutex     sync.RWMutex
+	logger    logr.Logger
+	httpClient *http.Client
+}
 type AutomatedRemediationEngine struct{}
 
 func (sm *SyntheticMonitor) Start(ctx context.Context) error {

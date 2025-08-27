@@ -557,6 +557,18 @@ type PerformanceTrendsReport struct {
 	DailyPatterns        map[string]float64       `json:"daily_patterns"`
 }
 
+// ErrorAnalysisReport provides error analysis and diagnostics
+type ErrorAnalysisReport struct {
+	TotalErrors          int64                    `json:"total_errors"`
+	ErrorsByType         map[string]int64         `json:"errors_by_type"`
+	ErrorsByModel        map[string]int64         `json:"errors_by_model"`
+	ErrorRate            float64                  `json:"error_rate_percent"`
+	TopErrors            []string                 `json:"top_errors"`
+	ErrorTrends          map[string]float64       `json:"error_trends"`
+	RecoveryRate         float64                  `json:"recovery_rate_percent"`
+	MTTR                 float64                  `json:"mean_time_to_recovery_seconds"`
+}
+
 // ResourceUtilizationReport provides resource usage analysis
 type ResourceUtilizationReport struct {
 	GPUUtilization       float64                  `json:"gpu_utilization_percent"`

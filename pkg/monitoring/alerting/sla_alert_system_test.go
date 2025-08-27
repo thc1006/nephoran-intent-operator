@@ -71,7 +71,9 @@ func setupSLAAlertingSystem(t *testing.T, logger *logging.StructuredLogger) (*SL
 // testAvailabilityViolationDetection tests availability SLA violation detection
 func testAvailabilityViolationDetection(t *testing.T, ctx context.Context, sam *SLAAlertManager) {
 	// Simulate availability drop below 99.95%
-	testMetrics := map[string]float64{
+	// Expected metrics: 10000 total requests, 9990 success (99.9% success rate - below 99.95% target)
+	// Expected error budget remaining: 20%
+	_ = map[string]float64{
 		"http_requests_total":    10000,
 		"http_requests_success":  9990, // 99.9% success rate (below 99.95% target)
 		"error_budget_remaining": 0.2,  // 20% error budget remaining

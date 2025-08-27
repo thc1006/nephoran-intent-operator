@@ -426,6 +426,7 @@ func (c *GRPCWeaviateClient) performGRPCSearch(ctx context.Context, req *VectorS
 	// Add timeout
 	ctx, cancel := context.WithTimeout(ctx, c.config.RequestTimeout)
 	defer cancel()
+	_ = ctx // Context prepared for future gRPC call implementation
 
 	// This is a placeholder - in a real implementation, you would call the actual gRPC service
 	// client := vectorsearch.NewVectorSearchServiceClient(conn)
@@ -464,6 +465,7 @@ func (c *GRPCWeaviateClient) performGRPCBatchSearch(ctx context.Context, req *GR
 	// Add timeout
 	ctx, cancel := context.WithTimeout(ctx, c.config.RequestTimeout*time.Duration(len(req.Requests)))
 	defer cancel()
+	_ = ctx // Context prepared for future gRPC batch call implementation
 
 	// This is a placeholder for actual gRPC batch call
 	time.Sleep(20 * time.Millisecond) // Simulate batch processing time

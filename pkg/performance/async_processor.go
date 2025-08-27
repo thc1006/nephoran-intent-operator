@@ -931,7 +931,7 @@ func (ap *AsyncProcessor) metricsCollector() {
 // collectMetrics collects current metrics
 func (ap *AsyncProcessor) collectMetrics() {
 	// Calculate throughput
-	now := time.Now()
+	_ = time.Now() // Used for future timestamp-based metrics
 	static := ap.GetMetrics()
 	
 	// Update throughput metrics (simplified calculation)

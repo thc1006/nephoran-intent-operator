@@ -819,7 +819,7 @@ func BenchmarkJWTManager_BlacklistCleanup(b *testing.B) {
 func BenchmarkSessionManager_SessionCleanup(b *testing.B) {
 	suite := NewBenchmarkSuite()
 	user := suite.testUsers[0]
-	ctx := context.Background()
+	_ = context.Background() // context available for future benchmark expansion
 
 	// Create many expired sessions
 	for i := 0; i < 1000; i++ {

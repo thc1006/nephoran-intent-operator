@@ -18,10 +18,10 @@ package security
 
 import (
 	"context"
-	"crypto/sha256"
+	// "crypto/sha256" // Removed unused import
 	"crypto/x509"
-	"encoding/hex"
-	"encoding/json"
+	// "encoding/hex" // Removed unused import
+	// "encoding/json" // Removed unused import
 	"fmt"
 	"sync"
 	"time"
@@ -44,11 +44,11 @@ type ORANSecurityComplianceEngine struct {
 	
 	// Zero-trust components
 	zeroTrustGateway    *ZeroTrustGateway
-	policyEngine        *PolicyEngine
+	policyEngine        *ORANPolicyEngine
 	
 	// Compliance monitoring
 	complianceMonitor   *ComplianceMonitor
-	threatDetector      *ThreatDetector
+	threatDetector      *ORANThreatDetector
 	
 	// Configuration
 	config             *ComplianceConfig
@@ -68,7 +68,7 @@ type ComplianceConfig struct {
 	SPIFFEEndpointSocket string        `json:"spiffe_endpoint_socket"`
 	
 	// Security policies
-	SecurityPolicies     []SecurityPolicy `json:"security_policies"`
+	SecurityPolicies     []ORANSecurityPolicy `json:"security_policies"`
 	
 	// Authentication settings
 	AuthenticationMethod string        `json:"authentication_method"` // "mTLS", "JWT", "OAuth2"
@@ -91,8 +91,8 @@ type ComplianceConfig struct {
 	CertificateRenewalTime  time.Duration `json:"certificate_renewal_time"`
 }
 
-// SecurityPolicy defines O-RAN security policy requirements
-type SecurityPolicy struct {
+// ORANSecurityPolicy defines O-RAN security policy requirements (renamed to avoid conflict with container_scanner.SecurityPolicy)
+type ORANSecurityPolicy struct {
 	PolicyID          string                 `json:"policy_id"`
 	PolicyName        string                 `json:"policy_name"`
 	PolicyVersion     string                 `json:"policy_version"`
@@ -135,8 +135,8 @@ type ComplianceRule struct {
 	Severity        string                 `json:"severity"` // "low", "medium", "high", "critical"
 }
 
-// ComplianceResult represents the result of compliance validation
-type ComplianceResult struct {
+// ORANComplianceResult represents the result of compliance validation (renamed to avoid conflict with container_scanner.ComplianceResult)
+type ORANComplianceResult struct {
 	CheckID           string                 `json:"check_id"`
 	PolicyID          string                 `json:"policy_id"`
 	RequirementID     string                 `json:"requirement_id"`
@@ -206,9 +206,9 @@ func NewORANSecurityComplianceEngine(config *ComplianceConfig, logger logr.Logge
 		spiffeProvider:      NewSPIFFEProvider(config, logger),
 		trustDomainManager:  NewTrustDomainManager(config, logger),
 		zeroTrustGateway:    NewZeroTrustGateway(config, logger),
-		policyEngine:        NewPolicyEngine(config, logger),
+		policyEngine:        NewORANPolicyEngine(config, logger),
 		complianceMonitor:   NewComplianceMonitor(config, logger),
-		threatDetector:      NewThreatDetector(config, logger),
+		threatDetector:      NewORANThreatDetector(config, logger),
 		config:             config,
 		logger:             logger,
 		ctx:               ctx,
@@ -266,13 +266,13 @@ func (o *ORANSecurityComplianceEngine) Start() error {
 }
 
 // ValidateCompliance performs comprehensive compliance validation
-func (o *ORANSecurityComplianceEngine) ValidateCompliance(nodeID string) (*ComplianceResult, error) {
+func (o *ORANSecurityComplianceEngine) ValidateCompliance(nodeID string) (*ORANComplianceResult, error) {
 	o.logger.Info("Validating O-RAN WG11 compliance", "node_id", nodeID)
 	
 	startTime := time.Now()
 	checkID := fmt.Sprintf("compliance-%s-%d", nodeID, startTime.Unix())
 	
-	result := &ComplianceResult{
+	result := &ORANComplianceResult{
 		CheckID:          checkID,
 		NodeID:           nodeID,
 		Violations:       []ComplianceViolation{},
@@ -288,7 +288,7 @@ func (o *ORANSecurityComplianceEngine) ValidateCompliance(nodeID string) (*Compl
 	// Validate all applicable security policies
 	for _, policy := range o.config.SecurityPolicies {
 		if o.isPolicyApplicableToNode(policy, nodeID) {
-			policyResult, err := o.validateSecurityPolicy(policy, nodeID)
+			policyResult, err := o.validateORANSecurityPolicy(policy, nodeID)
 			if err != nil {
 				o.logger.Error(err, "Failed to validate security policy", "policy_id", policy.PolicyID)
 				continue
@@ -356,14 +356,14 @@ func (o *ORANSecurityComplianceEngine) AuthorizeAccess(subject, resource, action
 	return o.authorizationEngine.AuthorizeAccess(subject, resource, action)
 }
 
-// GetComplianceReport generates a comprehensive compliance report
-func (o *ORANSecurityComplianceEngine) GetComplianceReport() (*ComplianceReport, error) {
+// GetORANComplianceReport generates a comprehensive compliance report
+func (o *ORANSecurityComplianceEngine) GetORANComplianceReport() (*ORANComplianceReport, error) {
 	return o.complianceMonitor.GenerateReport()
 }
 
-// validateSecurityPolicy validates a specific security policy
-func (o *ORANSecurityComplianceEngine) validateSecurityPolicy(policy SecurityPolicy, nodeID string) (*ComplianceResult, error) {
-	result := &ComplianceResult{
+// validateORANSecurityPolicy validates a specific security policy
+func (o *ORANSecurityComplianceEngine) validateORANSecurityPolicy(policy ORANSecurityPolicy, nodeID string) (*ORANComplianceResult, error) {
+	result := &ORANComplianceResult{
 		PolicyID:         policy.PolicyID,
 		NodeID:           nodeID,
 		Violations:       []ComplianceViolation{},
@@ -555,7 +555,7 @@ func (o *ORANSecurityComplianceEngine) runComplianceMonitoring() {
 					}
 					
 					// Store compliance result
-					o.complianceMonitor.StoreComplianceResult(result)
+					o.complianceMonitor.StoreORANComplianceResult(result)
 					
 					// Generate alerts for non-compliant nodes
 					if result.ComplianceStatus == ComplianceStatusNonCompliant {
@@ -609,7 +609,7 @@ func (o *ORANSecurityComplianceEngine) runCertificateManagement() {
 }
 
 // Helper methods
-func (o *ORANSecurityComplianceEngine) isPolicyApplicableToNode(policy SecurityPolicy, nodeID string) bool {
+func (o *ORANSecurityComplianceEngine) isPolicyApplicableToNode(policy ORANSecurityPolicy, nodeID string) bool {
 	if len(policy.ApplicableNodes) == 0 {
 		return true // Policy applies to all nodes
 	}
@@ -752,7 +752,7 @@ func NewAuditEngine(config *ComplianceConfig, logger logr.Logger) *AuditEngine {
 	return &AuditEngine{config: config, logger: logger}
 }
 
-func (a *AuditEngine) RecordComplianceCheck(result *ComplianceResult) {}
+func (a *AuditEngine) RecordComplianceCheck(result *ORANComplianceResult) {}
 func (a *AuditEngine) IsAuditEnabled(nodeID string) bool { return true }
 func (a *AuditEngine) GetRetentionPeriod(nodeID string) (int, error) { return 90, nil }
 
@@ -797,13 +797,13 @@ func (z *ZeroTrustGateway) EnforcePolicy(request interface{}) (bool, string, err
 	return true, "policy_enforced", nil
 }
 
-type PolicyEngine struct {
+type ORANPolicyEngine struct {
 	config *ComplianceConfig
 	logger logr.Logger
 }
 
-func NewPolicyEngine(config *ComplianceConfig, logger logr.Logger) *PolicyEngine {
-	return &PolicyEngine{config: config, logger: logger}
+func NewORANPolicyEngine(config *ComplianceConfig, logger logr.Logger) *ORANPolicyEngine {
+	return &ORANPolicyEngine{config: config, logger: logger}
 }
 
 type ComplianceMonitor struct {
@@ -811,11 +811,11 @@ type ComplianceMonitor struct {
 	logger logr.Logger
 }
 
-type ComplianceReport struct {
+type ORANComplianceReport struct {
 	GeneratedAt      time.Time                  `json:"generated_at"`
 	OverallStatus    ComplianceStatus          `json:"overall_status"`
 	ComplianceScore  float64                   `json:"compliance_score"`
-	NodeResults      []ComplianceResult        `json:"node_results"`
+	NodeResults      []ORANComplianceResult        `json:"node_results"`
 	TotalViolations  int                       `json:"total_violations"`
 	Summary          map[string]interface{}    `json:"summary"`
 }
@@ -824,31 +824,31 @@ func NewComplianceMonitor(config *ComplianceConfig, logger logr.Logger) *Complia
 	return &ComplianceMonitor{config: config, logger: logger}
 }
 
-func (c *ComplianceMonitor) StoreComplianceResult(result *ComplianceResult) {}
-func (c *ComplianceMonitor) TriggerComplianceAlert(result *ComplianceResult) {}
-func (c *ComplianceMonitor) GenerateReport() (*ComplianceReport, error) {
-	return &ComplianceReport{
+func (c *ComplianceMonitor) StoreORANComplianceResult(result *ORANComplianceResult) {}
+func (c *ComplianceMonitor) TriggerComplianceAlert(result *ORANComplianceResult) {}
+func (c *ComplianceMonitor) GenerateReport() (*ORANComplianceReport, error) {
+	return &ORANComplianceReport{
 		GeneratedAt:     time.Now(),
 		OverallStatus:   ComplianceStatusCompliant,
 		ComplianceScore: 0.95,
-		NodeResults:     []ComplianceResult{},
+		NodeResults:     []ORANComplianceResult{},
 		TotalViolations: 0,
 		Summary:         map[string]interface{}{},
 	}, nil
 }
 
-type ThreatDetector struct {
+type ORANThreatDetector struct {
 	config *ComplianceConfig
 	logger logr.Logger
 }
 
-func NewThreatDetector(config *ComplianceConfig, logger logr.Logger) *ThreatDetector {
-	return &ThreatDetector{config: config, logger: logger}
+func NewORANThreatDetector(config *ComplianceConfig, logger logr.Logger) *ORANThreatDetector {
+	return &ORANThreatDetector{config: config, logger: logger}
 }
 
-func (t *ThreatDetector) Start() error { return nil }
-func (t *ThreatDetector) Stop() {}
-func (t *ThreatDetector) DetectThreats(nodeID string, context map[string]interface{}) ([]ThreatDetectionResult, error) {
+func (t *ORANThreatDetector) Start() error { return nil }
+func (t *ORANThreatDetector) Stop() {}
+func (t *ORANThreatDetector) DetectThreats(nodeID string, context map[string]interface{}) ([]ThreatDetectionResult, error) {
 	return []ThreatDetectionResult{}, nil
 }
-func (t *ThreatDetector) PerformThreatScan() {}
+func (t *ORANThreatDetector) PerformThreatScan() {}

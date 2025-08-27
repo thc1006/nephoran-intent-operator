@@ -439,16 +439,23 @@ func (vsa *VectorSearchAccelerator) PerformanceOptimization(ctx context.Context)
 	ctx, span := vsa.tracer.Start(ctx, "performance_optimization")
 	defer span.End()
 
+	// Check for context cancellation
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	start := time.Now()
 
 	// Optimize vector store
-	if err := vsa.vectorStore.Optimize(); err != nil {
+	if err := vsa.vectorStore.Optimize(ctx); err != nil {
 		vsa.logger.Warn("Vector store optimization failed", "error", err)
 	}
 
 	// Optimize GPU compute if available
 	if vsa.gpuCompute != nil {
-		if err := vsa.gpuCompute.OptimizeKernels(); err != nil {
+		if err := vsa.gpuCompute.OptimizeKernels(ctx); err != nil {
 			vsa.logger.Warn("GPU kernel optimization failed", "error", err)
 		}
 	}
@@ -742,7 +749,7 @@ func NewIntelligentReranker() *IntelligentReranker { return &IntelligentReranker
 func (avs *AcceleratedVectorStore) AddVector(ctx context.Context, id string, embedding []float32, metadata map[string]interface{}) error { return nil }
 func (avs *AcceleratedVectorStore) GetHotVectors(count int) [][]float32 { return nil }
 func (avs *AcceleratedVectorStore) BruteForceSearch(vector []float32, topK int, metric SimilarityMetric) ([]*VectorMatch, error) { return nil, nil }
-func (avs *AcceleratedVectorStore) Optimize() error { return nil }
+func (avs *AcceleratedVectorStore) Optimize(ctx context.Context) error { return nil }
 func (avs *AcceleratedVectorStore) Close() {}
 
 func (feg *FastEmbeddingGenerator) GenerateEmbedding(ctx context.Context, text, modelName string) ([]float32, error) { return nil, nil }
@@ -750,7 +757,7 @@ func (feg *FastEmbeddingGenerator) GenerateEmbeddingBatch(ctx context.Context, t
 func (feg *FastEmbeddingGenerator) Close() {}
 
 func (gvc *GPUVectorCompute) ComputeSimilarities(query []float32, vectors [][]float32, metric SimilarityMetric) ([]float32, error) { return nil, nil }
-func (gvc *GPUVectorCompute) OptimizeKernels() error { return nil }
+func (gvc *GPUVectorCompute) OptimizeKernels(ctx context.Context) error { return nil }
 func (gvc *GPUVectorCompute) Close() {}
 
 func (vsc *VectorSearchCache) Get(key string) (*VectorSearchResult, bool) { return nil, false }

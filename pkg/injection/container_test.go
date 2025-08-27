@@ -86,10 +86,10 @@ func TestContainerDependencyInterfaces(t *testing.T) {
 		t.Error("GetHTTPClient returned nil")
 	}
 
-	gitClient := deps.GetGitClient()
+	_ = deps.GetGitClient()
 	// Git client may be nil if no config provided, which is OK
 
-	llmClient := deps.GetLLMClient()
+	_ = deps.GetLLMClient()
 	// LLM client may be nil if no URL provided, which is OK
 
 	packageGen := deps.GetPackageGenerator()

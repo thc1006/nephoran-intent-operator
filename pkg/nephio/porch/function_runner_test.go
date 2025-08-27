@@ -619,7 +619,7 @@ func TestFunctionRunnerActiveExecutions(t *testing.T) {
 			status:       ExecutionStatusRunning,
 		}
 
-		ctx, cancel := context.WithCancel(context.Background())
+		_, cancel := context.WithCancel(context.Background())
 		execCtx.cancel = cancel
 
 		fr.activeExecutions["test-execution-id"] = execCtx

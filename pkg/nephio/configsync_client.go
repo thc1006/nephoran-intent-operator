@@ -412,7 +412,7 @@ func (csc *ConfigSyncClient) SyncPackageToCluster(ctx context.Context, pkg *porc
 
 // preparePackageContent prepares package content for Config Sync deployment
 func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *porch.PackageRevision, cluster *WorkloadCluster) (map[string][]byte, error) {
-	ctx, span := csc.tracer.Start(ctx, "prepare-package-content")
+	_, span := csc.tracer.Start(ctx, "prepare-package-content")
 	defer span.End()
 
 	content := make(map[string][]byte)
@@ -506,7 +506,7 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 
 // writePackageToRepository writes package content to Git repository
 func (csc *ConfigSyncClient) writePackageToRepository(ctx context.Context, packageDir string, content map[string][]byte) error {
-	ctx, span := csc.tracer.Start(ctx, "write-package-to-repository")
+	_, span := csc.tracer.Start(ctx, "write-package-to-repository")
 	defer span.End()
 
 	// Create directory structure
@@ -534,7 +534,7 @@ func (csc *ConfigSyncClient) writePackageToRepository(ctx context.Context, packa
 
 // waitForSyncCompletion waits for Config Sync to complete deployment
 func (csc *ConfigSyncClient) waitForSyncCompletion(ctx context.Context, cluster *WorkloadCluster, packageName string) (*SyncResult, error) {
-	ctx, span := csc.tracer.Start(ctx, "wait-for-sync-completion")
+	_, span := csc.tracer.Start(ctx, "wait-for-sync-completion")
 	defer span.End()
 
 	// In a real implementation, this would:

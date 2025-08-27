@@ -67,14 +67,14 @@ type ComplianceRequirement struct {
 	Severity    string
 }
 
-// ComplianceStatus represents the status of a compliance requirement
-type ComplianceStatus string
+// ComplianceStatus is defined in oran_wg11_compliance_engine.go to avoid duplicates
 
+// Legacy constants for backward compatibility - these map to the O-RAN WG11 status values
 const (
-	StatusCompliant          ComplianceStatus = "Compliant"
-	StatusNonCompliant       ComplianceStatus = "Non-Compliant"
-	StatusPartiallyCompliant ComplianceStatus = "Partially Compliant"
-	StatusNotApplicable      ComplianceStatus = "Not Applicable"
+	StatusCompliant          = ComplianceStatusCompliant
+	StatusNonCompliant       = ComplianceStatusNonCompliant
+	StatusPartiallyCompliant = ComplianceStatusPartial
+	StatusNotApplicable      = ComplianceStatusUnknown // Maps to unknown for N/A cases
 )
 
 // VulnerabilityScanResult represents vulnerability scanning results

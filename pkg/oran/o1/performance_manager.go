@@ -265,25 +265,6 @@ type PerformanceThresholdManager struct {
 	mutex           sync.RWMutex
 }
 
-// PerformanceThreshold defines performance monitoring thresholds
-type PerformanceThreshold struct {
-	ID                 string                 `json:"id"`
-	ObjectID           string                 `json:"object_id"`
-	MeasurementType    string                 `json:"measurement_type"`
-	ThresholdType      string                 `json:"threshold_type"` // UPPER, LOWER, RANGE
-	UpperValue         float64                `json:"upper_value,omitempty"`
-	LowerValue         float64                `json:"lower_value,omitempty"`
-	Hysteresis         float64                `json:"hysteresis"`
-	Severity           string                 `json:"severity"` // CRITICAL, MAJOR, MINOR, WARNING
-	Description        string                 `json:"description"`
-	Enabled            bool                   `json:"enabled"`
-	MonitoringInterval time.Duration          `json:"monitoring_interval"`
-	AlertActions       []string               `json:"alert_actions"`
-	ClearActions       []string               `json:"clear_actions"`
-	Attributes         map[string]interface{} `json:"attributes"`
-	LastCheck          time.Time              `json:"last_check"`
-	CurrentState       string                 `json:"current_state"` // NORMAL, THRESHOLD_CROSSED
-}
 
 // Threshold represents a configurable threshold value
 type Threshold struct {

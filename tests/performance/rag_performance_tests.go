@@ -205,10 +205,11 @@ type CacheStats struct {
 }
 
 type CacheEfficiencyMetrics struct {
-	CostSavings      float64 `json:"cost_savings"`
-	LatencyReduction float64 `json:"latency_reduction"`
-	ThroughputGain   float64 `json:"throughput_gain"`
-	MemoryEfficiency float64 `json:"memory_efficiency"`
+	CostSavings      float64       `json:"cost_savings"`
+	LatencyReduction float64       `json:"latency_reduction"`
+	ThroughputGain   float64       `json:"throughput_gain"`
+	MemoryEfficiency float64       `json:"memory_efficiency"`
+	AverageLatency   time.Duration `json:"average_latency"`
 }
 
 type CacheInvalidationStats struct {
@@ -639,6 +640,7 @@ func (rpts *RAGPerformanceTestSuite) runCachingTests(ctx context.Context) (*Cach
 		ThroughputGain:   4.0,  // 4x throughput improvement
 		CostSavings:      0.60, // 60% cost savings
 		MemoryEfficiency: 0.85, // 85% memory efficiency
+		AverageLatency:   avgLatency,
 	}
 
 	return results, nil

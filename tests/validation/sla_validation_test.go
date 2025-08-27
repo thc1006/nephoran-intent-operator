@@ -887,10 +887,10 @@ func (s *SLAValidationTestSuite) calculateMeasurementStatistics(measurements *Me
 // SetupSuite initializes the test suite
 func (s *SLAValidationTestSuite) SetupSuite() {
 	s.ctx, s.cancel = context.WithCancel(context.Background())
-	
+
 	// Initialize logger
 	s.logger = logging.NewStructuredLogger("sla-validation-test", "info")
-	
+
 	// Initialize configuration with default values
 	s.config = &ValidationConfig{
 		AvailabilityClaim:    99.95,
@@ -909,13 +909,13 @@ func (s *SLAValidationTestSuite) SetupSuite() {
 		ValidationRounds:     5,
 		TimeWindows:          []time.Duration{5 * time.Minute, 15 * time.Minute, 1 * time.Hour},
 	}
-	
+
 	// Initialize validator components
 	s.validator = &SLAValidator{
 		config:       s.config,
 		measurements: make(map[string]*MeasurementSet),
 	}
-	
+
 	s.statisticalAnalyzer = &StatisticalAnalyzer{}
 	s.metricCollector = &PrecisionMetricCollector{
 		config: s.config,
@@ -923,7 +923,7 @@ func (s *SLAValidationTestSuite) SetupSuite() {
 	s.claimVerifier = &ClaimVerifier{
 		config: s.config,
 	}
-	
+
 	// Initialize results containers
 	s.validationResults = &ValidationResults{}
 	s.evidence = &ValidationEvidence{}
@@ -934,7 +934,7 @@ func (s *SLAValidationTestSuite) TearDownSuite() {
 	if s.cancel != nil {
 		s.cancel()
 	}
-	
+
 	// Clean up any resources or connections
 	if s.prometheusClient != nil {
 		// Close prometheus client if needed

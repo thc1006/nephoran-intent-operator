@@ -231,6 +231,7 @@ var _ = ginkgo.Describe("Nephoran Intent Operator Regression Testing", func() {
 
 			detection, err := regressionSuite.framework.ExecuteRegressionTest(ctx)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			gomega.Expect(detection).NotTo(gomega.BeNil())
 
 			// Validate report generation
 			reportPath := filepath.Join(regressionSuite.config.ArtifactPath, "regression-report.json")

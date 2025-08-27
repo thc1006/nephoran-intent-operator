@@ -57,12 +57,7 @@ func (p *PackagePropagator) DeployPackage(
 		return nil, fmt.Errorf("cluster selection failed: %w", err)
 	}
 
-	// 3. Prepare deployment
-	deploymentStatus := &nephiov1alpha1.MultiClusterDeploymentStatus{
-		Clusters: make(map[string]nephiov1alpha1.ClusterDeploymentStatus),
-	}
-
-	// 4. Apply different propagation strategies
+	// 3. Apply different propagation strategies
 	switch opts.Strategy {
 	case StrategySequential:
 		return p.deploySequential(ctx, packageRevision, selectedClusters, opts)

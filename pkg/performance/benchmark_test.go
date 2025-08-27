@@ -17,7 +17,7 @@ import (
 // BenchmarkLLMProcessing tests the performance of LLM intent processing
 func BenchmarkLLMProcessing(b *testing.B) {
 	// Setup
-	config := &config.LLMProcessorConfig{
+	_ = &config.LLMProcessorConfig{
 		LLMBackendType: "mock",
 		LLMModelName:   "test-model",
 		LLMMaxTokens:   1000,
@@ -54,7 +54,7 @@ func BenchmarkLLMProcessing(b *testing.B) {
 
 // BenchmarkConcurrentLLMProcessing tests concurrent processing performance
 func BenchmarkConcurrentLLMProcessing(b *testing.B) {
-	config := &config.LLMProcessorConfig{
+	_ = &config.LLMProcessorConfig{
 		LLMBackendType: "mock",
 		LLMModelName:   "test-model",
 		LLMMaxTokens:   1000,

@@ -61,11 +61,12 @@ type ResilienceConfig struct {
 
 // TimeoutConfig defines timeout configuration for a specific operation
 type TimeoutConfig struct {
-	Name            string
-	DefaultTimeout  time.Duration
-	MaxTimeout      time.Duration
-	MinTimeout      time.Duration
-	AdaptiveTimeout bool
+	Name             string
+	DefaultTimeout   time.Duration
+	MaxTimeout       time.Duration
+	MinTimeout       time.Duration
+	AdaptiveTimeout  bool
+	TimeoutGradient  bool
 }
 
 // CircuitBreakerConfig defines circuit breaker configuration
@@ -123,7 +124,10 @@ type TimeoutMetrics struct {
 	TotalOperations     int64
 	TimeoutOperations   int64
 	AverageLatency      time.Duration
+	TimeoutRate         float64
 	AdaptiveAdjustments int64
+	OperationsByTimeout map[time.Duration]int64
+	mutex               sync.RWMutex
 }
 
 // CircuitBreakerMetrics contains circuit breaker metrics

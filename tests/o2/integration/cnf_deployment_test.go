@@ -659,7 +659,7 @@ func (suite *CNFDeploymentTestSuite) TestCNFScaling() {
 			},
 		}
 
-		deploymentStatus, err := suite.o2Manager.DeployVNF(ctx, simpleDescriptor)
+		_, err := suite.o2Manager.DeployVNF(ctx, simpleDescriptor)
 		suite.Require().NoError(err)
 
 		// Wait for initial deployment
@@ -841,7 +841,7 @@ func (suite *CNFDeploymentTestSuite) TestCNFHealthMonitoring() {
 			},
 		}
 
-		deploymentStatus, err := suite.o2Manager.DeployVNF(ctx, healthyDescriptor)
+		_, err := suite.o2Manager.DeployVNF(ctx, healthyDescriptor)
 		suite.Require().NoError(err)
 
 		// Verify deployment has health checks configured

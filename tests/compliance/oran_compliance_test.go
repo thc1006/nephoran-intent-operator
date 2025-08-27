@@ -442,7 +442,7 @@ func (s *ORANComplianceTestSuite) makeRequestWithAuth(method, path string, body 
 	var bodyBytes []byte
 	if body != nil {
 		var err error
-		bodyBytes, err = json.Marshal(body)
+		_, err = json.Marshal(body)
 		s.Require().NoError(err)
 	}
 

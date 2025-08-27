@@ -255,7 +255,7 @@ func displayResultsSummary(results *security.ComprehensiveTestResults, duration 
 	fmt.Println("Category Results:")
 	fmt.Println("-----------------")
 	
-	for name, category := range results.TestCategories {
+	for _, category := range results.TestCategories {
 		statusIcon := getStatusIcon(category.Status)
 		fmt.Printf("• %s: %s (Score: %.1f, Duration: %s)\n", 
 			category.Category, statusIcon, category.Score, category.Duration.String())

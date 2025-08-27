@@ -460,7 +460,7 @@ func testFailureResilience(ctx context.Context, failure struct {
 
 	// Inject failure
 	klog.Infof("Injecting failure: %s", failure.Name)
-	failureStart := time.Now()
+	_ = time.Now()
 	go failure.Impact()
 
 	// Monitor during failure
@@ -530,7 +530,7 @@ func runBurstTest(ctx context.Context, suite *performance.BenchmarkSuite, patter
 		atomic.AddInt32(&burstCount, 1)
 
 		var wg sync.WaitGroup
-		burstStart := time.Now()
+		_ = time.Now()
 
 		for i := 0; i < pattern.BurstSize; i++ {
 			wg.Add(1)

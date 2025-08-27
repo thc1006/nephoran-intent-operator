@@ -148,7 +148,6 @@ func (s *NephoranAPIServer) setupPackageRoutes(router *mux.Router) {
 
 // listPackages handles GET /api/v1/packages
 func (s *NephoranAPIServer) listPackages(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	pagination := s.parsePaginationParams(r)
 	filters := s.parseFilterParams(r)
 

@@ -1046,8 +1046,8 @@ func (k *KubernetesProvider) createDeployment(ctx context.Context, req *CreateRe
 // convertDeploymentToResourceResponse, watchEvents, getDeploymentHealth, etc.
 
 func (k *KubernetesProvider) convertDeploymentToResourceResponse(deployment *appsv1.Deployment) *ResourceResponse {
-	status := "unknown"
-	health := HealthStatusUnknown
+	var status string
+	var health HealthStatusType
 
 	if deployment.Status.ReadyReplicas == *deployment.Spec.Replicas {
 		status = "ready"
@@ -1075,8 +1075,8 @@ func (k *KubernetesProvider) convertDeploymentToResourceResponse(deployment *app
 }
 
 func (k *KubernetesProvider) convertDeploymentToResponse(deployment *appsv1.Deployment) *DeploymentResponse {
-	status := "unknown"
-	phase := "unknown"
+	var status string
+	var phase string
 
 	if deployment.Status.ReadyReplicas == *deployment.Spec.Replicas {
 		status = "ready"
@@ -1942,7 +1942,7 @@ func (k *KubernetesProvider) getPodHealth(ctx context.Context, namespace, name s
 		}, nil
 	}
 
-	status := HealthStatusHealthy
+	var status HealthStatusType
 	message := string(pod.Status.Phase)
 
 	switch pod.Status.Phase {

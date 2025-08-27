@@ -477,7 +477,7 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 
 // convertIntentToPackageSpec converts a NetworkIntent to a PackageSpec
 func (pim *PorchIntegrationManager) convertIntentToPackageSpec(ctx context.Context, intent *v1.NetworkIntent) (*porch.PackageSpec, error) {
-	ctx, span := pim.tracer.Start(ctx, "convert-intent-to-package-spec")
+	_, span := pim.tracer.Start(ctx, "convert-intent-to-package-spec")
 	defer span.End()
 
 	// Generate package name based on intent

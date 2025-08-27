@@ -64,7 +64,6 @@ func main() {
 	performanceConfig.TargetResponseTime = 100 * time.Millisecond
 	performanceConfig.TargetThroughput = 1000.0
 	
-	var err error
 	performanceIntegrator, err = performance.NewPerformanceIntegrator(performanceConfig)
 	if err != nil {
 		logger.Error("Failed to initialize performance integrator", slog.String("error", err.Error()))

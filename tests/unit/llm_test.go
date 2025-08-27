@@ -592,7 +592,7 @@ func (suite *LLMTestSuite) TestLLMIntegration() {
 
 				err := suite.RunChaosTest(func() error {
 					intent := "Deploy resilient network function"
-					_, err := suite.llmClient.ProcessIntent(context.Background(), intent)
+					_, _ = suite.llmClient.ProcessIntent(context.Background(), intent)
 					// Errors are expected in chaos testing
 					return nil
 				})

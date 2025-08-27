@@ -779,7 +779,7 @@ var _ = Describe("O2 Performance and Load Testing Suite", func() {
 						}
 
 						// Verify resource (intent processing step 2)
-						resp, err = testClient.Get(httpTestServer.URL + "/o2ims/v1/resourcePools/" + poolID)
+						resp, _ = testClient.Get(httpTestServer.URL + "/o2ims/v1/resourcePools/" + poolID)
 						if resp != nil {
 							resp.Body.Close()
 						}
@@ -800,7 +800,7 @@ var _ = Describe("O2 Performance and Load Testing Suite", func() {
 								bytes.NewBuffer(updateJSON))
 							if err == nil {
 								req.Header.Set("Content-Type", "application/json")
-								resp, err := testClient.Do(req)
+								resp, _ := testClient.Do(req)
 								if resp != nil {
 									resp.Body.Close()
 								}

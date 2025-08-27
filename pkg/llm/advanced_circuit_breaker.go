@@ -77,6 +77,13 @@ func (cb *AdvancedCircuitBreaker) Execute(ctx context.Context, operation func() 
 	ctx, span := cb.tracer.Start(ctx, "circuit_breaker.execute")
 	defer span.End()
 
+	// Check for context cancellation
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	// Check if we can execute
 	if !cb.allowRequest() {
 		state := atomic.LoadInt32(&cb.state)

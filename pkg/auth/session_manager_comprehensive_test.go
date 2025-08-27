@@ -96,7 +96,7 @@ func TestSessionManager_GetSession(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create expired session manually
-	expiredSession := sf.CreateExpiredSession(user.Subject)
+	_ = sf.CreateExpiredSession(user.Subject) // expired session for test case setup
 
 	tests := []struct {
 		name         string
@@ -167,7 +167,7 @@ func TestSessionManager_ValidateSession(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create expired session manually
-	expiredSession := sf.CreateExpiredSession(user.Subject)
+	_ = sf.CreateExpiredSession(user.Subject) // expired session for validation test
 
 	tests := []struct {
 		name        string
@@ -422,8 +422,8 @@ func TestSessionManager_CleanupExpiredSessions(t *testing.T) {
 	require.NoError(t, err)
 
 	// Manually create expired sessions (in a real implementation, these would be in the storage)
-	expiredSession1 := sf.CreateExpiredSession(user.Subject)
-	expiredSession2 := sf.CreateExpiredSession(user.Subject)
+	_ = sf.CreateExpiredSession(user.Subject) // expired session 1 for cleanup test
+	_ = sf.CreateExpiredSession(user.Subject) // expired session 2 for cleanup test
 
 	// Store expired sessions in manager (implementation detail depends on storage backend)
 	// For this test, we'll assume the cleanup method exists and works
@@ -665,12 +665,12 @@ func TestSessionManager_GetUserSessions(t *testing.T) {
 	otherUser := uf.CreateBasicUser()
 
 	// Create multiple sessions for the user
-	session1, err := manager.CreateSession(context.Background(), user, map[string]interface{}{
+	_, err = manager.CreateSession(context.Background(), user, map[string]interface{}{
 		"device": "desktop",
 	})
 	require.NoError(t, err)
 
-	session2, err := manager.CreateSession(context.Background(), user, map[string]interface{}{
+	_, err = manager.CreateSession(context.Background(), user, map[string]interface{}{
 		"device": "mobile",
 	})
 	require.NoError(t, err)

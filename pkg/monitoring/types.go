@@ -43,13 +43,6 @@ type AvailabilityMonitor interface {
 	Shutdown(ctx context.Context) error
 }
 
-// AlertManager interface for managing alerts
-type AlertManager interface {
-	AddRule(rule *AlertRule) error
-	FireAlert(ctx context.Context, ruleID string, labels map[string]string, value float64) error
-	GetAlert(alertID string) (*Alert, error)
-	ListAlerts(status, component, severity string) []*Alert
-}
 
 // Common types used across monitoring components
 
@@ -140,38 +133,4 @@ type CheckResult struct {
 }
 
 // Alert represents an alert instance
-type Alert struct {
-	ID          string            `json:"id"`
-	Rule        string            `json:"rule"`
-	Component   string            `json:"component"`
-	Severity    string            `json:"severity"`
-	Status      string            `json:"status"` // firing, resolved, suppressed
-	StartsAt    time.Time         `json:"starts_at"`
-	EndsAt      *time.Time        `json:"ends_at,omitempty"`
-	Labels      map[string]string `json:"labels"`
-	Annotations map[string]string `json:"annotations"`
-	Message     string            `json:"message"`
-	Description string            `json:"description"`
-	Fingerprint string            `json:"fingerprint"`
-	Silenced    bool              `json:"silenced"`
-	AckBy       string            `json:"ack_by,omitempty"`
-	AckAt       *time.Time        `json:"ack_at,omitempty"`
-}
 
-// AlertRule defines conditions for triggering alerts
-type AlertRule struct {
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	Query       string            `json:"query"`
-	Condition   string            `json:"condition"`
-	Threshold   float64           `json:"threshold"`
-	Duration    time.Duration     `json:"duration"`
-	Severity    string            `json:"severity"`
-	Component   string            `json:"component"`
-	Labels      map[string]string `json:"labels"`
-	Annotations map[string]string `json:"annotations"`
-	Channels    []string          `json:"channels"`
-	Enabled     bool              `json:"enabled"`
-	Cooldown    time.Duration     `json:"cooldown"`
-	LastFired   *time.Time        `json:"last_fired,omitempty"`
-}

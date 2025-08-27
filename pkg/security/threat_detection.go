@@ -151,30 +151,7 @@ type ThreatScore struct {
 	DecayRate         float64   `json:"decay_rate"`
 }
 
-// SecurityIncident represents a security incident
-type SecurityIncident struct {
-	ID              string                 `json:"id"`
-	Title           string                 `json:"title"`
-	Description     string                 `json:"description"`
-	Severity        string                 `json:"severity"`
-	Status          string                 `json:"status"`
-	CreatedAt       time.Time              `json:"created_at"`
-	UpdatedAt       time.Time              `json:"updated_at"`
-	ResolvedAt      *time.Time             `json:"resolved_at,omitempty"`
-	AssignedTo      string                 `json:"assigned_to"`
-	Events          []string               `json:"events"`
-	ResponseActions []IncidentResponse     `json:"response_actions"`
-	Metadata        map[string]interface{} `json:"metadata"`
-}
-
-// IncidentResponse represents an incident response action
-type IncidentResponse struct {
-	Action        string                 `json:"action"`
-	Timestamp     time.Time              `json:"timestamp"`
-	Result        string                 `json:"result"`
-	Details       map[string]interface{} `json:"details"`
-	AutomatedBy   string                 `json:"automated_by,omitempty"`
-}
+// ThreatIncident represents a threat-specific incident (uses SecurityIncident from incident_response.go)
 
 // ActiveThreat represents an active threat being monitored
 type ActiveThreat struct {
@@ -679,20 +656,24 @@ func (td *ThreatDetector) quarantineIP(ip, reason string, threatScore int) {
 // createSecurityIncident creates a security incident
 func (td *ThreatDetector) createSecurityIncident(event *SecurityEvent) {
 	incident := SecurityIncident{
-		ID:          generateIncidentID(),
+		ID:          generateThreatIncidentID(),
 		Title:       fmt.Sprintf("High threat detected from %s", event.SourceIP),
 		Description: event.Description,
 		Severity:    event.Severity,
 		Status:      "open",
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
-		Events:      []string{event.ID},
-		ResponseActions: make([]IncidentResponse, 0),
-		Metadata: map[string]interface{}{
+		Category:    "threat_detection",
+		Source:      event.SourceIP,
+		DetectedAt:  time.Now(),
+		Tags:        []string{event.EventType},
+		Evidence:    []*Evidence{},
+		Timeline:    []*TimelineEvent{},
+		Actions:     []*ResponseAction{},
+		Artifacts: map[string]interface{}{
 			"threat_score":    event.ThreatScore,
 			"source_ip":       event.SourceIP,
 			"event_type":      event.EventType,
 			"auto_created":    true,
+			"event_id":        event.ID,
 		},
 	}
 
@@ -949,7 +930,7 @@ func generateEventID() string {
 	return fmt.Sprintf("evt-%d", time.Now().UnixNano())
 }
 
-func generateIncidentID() string {
+func generateThreatIncidentID() string {
 	return fmt.Sprintf("inc-%d", time.Now().UnixNano())
 }
 

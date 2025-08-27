@@ -705,7 +705,7 @@ func BenchmarkIntentProcessing(b *testing.B) {
 // BenchmarkConcurrentIntentProcessing benchmarks concurrent intent processing
 func BenchmarkConcurrentIntentProcessing(b *testing.B) {
 	b.ReportAllocs()
-	concurrency := 10
+	_ = 10
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {

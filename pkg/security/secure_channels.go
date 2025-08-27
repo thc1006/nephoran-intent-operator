@@ -644,7 +644,7 @@ func (sc *SecureChannel) decodeMessage(data []byte) (*SecureMessage, error) {
 		return nil, err
 	}
 
-	msg.Nonce, offset, err = decodeBytes(data, offset)
+	msg.Nonce, _, err = decodeBytes(data, offset)
 	if err != nil {
 		return nil, err
 	}

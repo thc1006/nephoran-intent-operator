@@ -189,7 +189,7 @@ func TestAuthHandlers_Callback(t *testing.T) {
 	// Setup mock provider
 	mockProvider := testutil.NewMockOAuthProvider("test")
 	uf := testutil.NewUserFactory()
-	tf := testutil.NewTokenFactory("test")
+	_ = testutil.NewTokenFactory("test") // token factory for future test expansion
 	of := testutil.NewOAuthResponseFactory()
 
 	testUser := uf.CreateBasicUser()

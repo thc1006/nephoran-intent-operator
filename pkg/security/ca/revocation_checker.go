@@ -14,7 +14,6 @@ import (
 	"golang.org/x/crypto/ocsp"
 )
 
-
 // RevocationChecker provides comprehensive certificate revocation checking
 type RevocationChecker struct {
 	config     *RevocationConfig

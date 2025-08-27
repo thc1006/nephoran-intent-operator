@@ -588,7 +588,7 @@ func (suite *IntegrationTestSuite) TestORANCompliance() {
 
 // TestConfigurationManagement tests configuration management features
 func (suite *IntegrationTestSuite) TestConfigurationManagement() {
-	ctx := context.Background()
+	_ = context.Background()
 
 	// Test configuration validation
 	suite.Run("ConfigValidation", func() {

@@ -214,7 +214,7 @@ func setupORanComplianceTestEnvironment(t *testing.T) *MultiClusterComponents {
 	clusterMgr.clusters = testClusters
 
 	// Setup health monitoring
-	for clusterName, cluster := range testClusters {
+	for clusterName := range testClusters {
 		healthMonitor.clusters[clusterName] = &ClusterHealthState{
 			Name:          clusterName,
 			OverallStatus: HealthStatusHealthy,

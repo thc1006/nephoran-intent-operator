@@ -28,10 +28,108 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
-	"go.uber.org/zap"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 )
+
+// TrendAnalyzer analyzes trends in error patterns  
+type TrendAnalyzer struct {
+	logger logr.Logger
+	mutex  sync.RWMutex
+}
+
+// SeasonalityDetector detects seasonal patterns
+type SeasonalityDetector struct {
+	logger logr.Logger
+}
+
+// SeasonalPattern represents a seasonal pattern
+type SeasonalPattern struct {
+	Pattern string `json:"pattern"`
+}
+
+// TimeSeries represents time series data
+type TimeSeries struct {
+	Timestamps []time.Time `json:"timestamps"`
+	Values     []float64   `json:"values"`
+	maxSize    int
+	mutex      sync.RWMutex
+}
+
+// NewTimeSeries creates a new TimeSeries with specified maximum size
+func NewTimeSeries(maxSize int) *TimeSeries {
+	return &TimeSeries{
+		Timestamps: make([]time.Time, 0, maxSize),
+		Values:     make([]float64, 0, maxSize),
+		maxSize:    maxSize,
+	}
+}
+
+// Add adds a new data point to the time series
+func (ts *TimeSeries) Add(timestamp time.Time, value float64) {
+	ts.mutex.Lock()
+	defer ts.mutex.Unlock()
+	
+	ts.Timestamps = append(ts.Timestamps, timestamp)
+	ts.Values = append(ts.Values, value)
+	
+	// Keep only the most recent maxSize points
+	if len(ts.Timestamps) > ts.maxSize {
+		ts.Timestamps = ts.Timestamps[len(ts.Timestamps)-ts.maxSize:]
+		ts.Values = ts.Values[len(ts.Values)-ts.maxSize:]
+	}
+}
+
+// GetRecent returns the most recent n data points
+func (ts *TimeSeries) GetRecent(n int) ([]time.Time, []float64) {
+	ts.mutex.RLock()
+	defer ts.mutex.RUnlock()
+	
+	size := len(ts.Timestamps)
+	if n > size {
+		n = size
+	}
+	
+	if n <= 0 {
+		return []time.Time{}, []float64{}
+	}
+	
+	startIdx := size - n
+	return ts.Timestamps[startIdx:], ts.Values[startIdx:]
+}
+
+// TrendModel represents a trend model
+type TrendModel struct {
+	ModelType string `json:"model_type"`
+}
+
+// NewTrendAnalyzer creates a new trend analyzer
+func NewTrendAnalyzer() *TrendAnalyzer {
+	return &TrendAnalyzer{
+		logger: logr.Discard(),
+		mutex:  sync.RWMutex{},
+	}
+}
+
+// NewSeasonalityDetector creates a new seasonality detector
+func NewSeasonalityDetector() *SeasonalityDetector {
+	return &SeasonalityDetector{
+		logger: logr.Discard(),
+	}
+}
+
+// GetSeasonalAdjustment returns seasonal adjustment for the given time and horizon
+func (sd *SeasonalityDetector) GetSeasonalAdjustment(timestamp time.Time, horizon time.Duration) float64 {
+	// Mock seasonal adjustment based on hour of day
+	hour := timestamp.Hour()
+	
+	// Simple seasonal pattern: higher values during business hours
+	if hour >= 9 && hour <= 17 {
+		return 0.1 // 10% adjustment during business hours
+	}
+	
+	return -0.05 // 5% negative adjustment during off-hours
+}
 
 // ErrorTrackingSystem provides comprehensive error monitoring and observability
 type ErrorTrackingSystem struct {
@@ -72,42 +170,6 @@ type ErrorTrackingSystem struct {
 }
 
 // ErrorTrackingConfig holds configuration for error tracking
-type ErrorTrackingConfig struct {
-	// General settings
-	Enabled           bool `json:"enabled"`
-	ProcessingWorkers int  `json:"processingWorkers"`
-	ErrorBufferSize   int  `json:"errorBufferSize"`
-
-	// Prometheus settings
-	PrometheusEnabled   bool   `json:"prometheusEnabled"`
-	PrometheusNamespace string `json:"prometheusNamespace"`
-	MetricsPort         int    `json:"metricsPort"`
-
-	// OpenTelemetry settings
-	OpenTelemetryEnabled bool   `json:"openTelemetryEnabled"`
-	TracingEndpoint      string `json:"tracingEndpoint"`
-	MetricsEndpoint      string `json:"metricsEndpoint"`
-	ServiceName          string `json:"serviceName"`
-
-	// Alerting settings
-	AlertingEnabled      bool                  `json:"alertingEnabled"`
-	AlertRules           []AlertRule           `json:"alertRules"`
-	NotificationChannels []NotificationChannel `json:"notificationChannels"`
-
-	// Dashboard settings
-	DashboardEnabled bool `json:"dashboardEnabled"`
-	DashboardPort    int  `json:"dashboardPort"`
-
-	// Analytics settings
-	AnalyticsEnabled        bool `json:"analyticsEnabled"`
-	PredictionEnabled       bool `json:"predictionEnabled"`
-	AnomalyDetectionEnabled bool `json:"anomalyDetectionEnabled"`
-
-	// Retention settings
-	MetricsRetentionDays int `json:"metricsRetentionDays"`
-	TracesRetentionDays  int `json:"tracesRetentionDays"`
-	ReportsRetentionDays int `json:"reportsRetentionDays"`
-}
 
 // ErrorEvent represents an error event for monitoring
 type ErrorEvent struct {
@@ -518,18 +580,6 @@ type ErrorAnalyzer struct {
 	mutex  sync.RWMutex
 }
 
-// ErrorPattern represents a pattern in errors
-type ErrorPattern struct {
-	ID              string               `json:"id"`
-	Name            string               `json:"name"`
-	Description     string               `json:"description"`
-	Pattern         string               `json:"pattern"` // regex or query
-	Confidence      float64              `json:"confidence"`
-	LastSeen        time.Time            `json:"lastSeen"`
-	Occurrences     int64                `json:"occurrences"`
-	Severity        errors.ErrorSeverity `json:"severity"`
-	Recommendations []string             `json:"recommendations"`
-}
 
 // CorrelationRule defines how errors are correlated
 type CorrelationRule struct {
@@ -1071,10 +1121,8 @@ func NewErrorReportGenerator(logger logr.Logger) *ErrorReportGenerator {
 }
 
 func NewErrorAnalyzer(logger logr.Logger) *ErrorAnalyzer {
-	// Create a zap logger for the trend analyzer
-	zapLogger, _ := zap.NewProduction()
 	return &ErrorAnalyzer{
-		trendAnalyzer: NewTrendAnalyzer(zapLogger),
+		trendAnalyzer: NewTrendAnalyzer(),
 		logger:        logger,
 	}
 }
@@ -1084,11 +1132,13 @@ func NewErrorPredictionEngine(logger logr.Logger) *ErrorPredictionEngine {
 }
 
 func NewAnomalyDetectorWithLogr(logger logr.Logger) *AnomalyDetector {
-	// Create a zap logger for the anomaly detector
-	zapLogger, _ := zap.NewProduction()
-	detector := NewAnomalyDetector(zapLogger)
+	// Use a default NWDAF config
+	config := &NWDAFConfig{}
+	detector := NewAnomalyDetector(config, logger)
 	return detector
 }
+
+// Note: NewAnomalyDetector is defined in nwdaf_analytics_engine.go
 
 func NewErrorProcessingWorker(id int, stream chan *ErrorEvent, ets *ErrorTrackingSystem, logger logr.Logger) *ErrorProcessingWorker {
 	return &ErrorProcessingWorker{
@@ -1103,6 +1153,7 @@ func NewErrorProcessingWorker(id int, stream chan *ErrorEvent, ets *ErrorTrackin
 // Placeholder methods
 // Note: AlertManager Start/Stop methods are defined in alerting.go
 func (am *AlertManager) GetMetrics() map[string]interface{} { return make(map[string]interface{}) }
+// Note: AlertManager Start/Stop methods are defined in alerting.go
 
 func (dm *DashboardManager) Start(ctx context.Context) { /* Implementation */ }
 func (dm *DashboardManager) Stop()                     { /* Implementation */ }
@@ -1113,3 +1164,15 @@ func (ea *ErrorAnalyzer) GetMetrics() map[string]interface{} { return make(map[s
 
 func (epw *ErrorProcessingWorker) Start(ctx context.Context) { /* Implementation */ }
 func (epw *ErrorProcessingWorker) Stop()                     { /* Implementation */ }
+
+// Note: ErrorTrackingConfig, ErrorPattern, AlertRule, AlertSeverity, NotificationChannel 
+// AlertManagerConfig, NWDAFConfig and related types are defined in other monitoring files to avoid duplication
+
+// InferenceConfig represents model inference configuration
+type InferenceConfig struct {
+	BatchSize           int           `json:"batch_size"`
+	ConfidenceThreshold float64       `json:"confidence_threshold"`
+	InferenceInterval   time.Duration `json:"inference_interval"`
+}
+
+// Note: SLAMonitoringConfig, AnomalyDetector and related types are also defined elsewhere

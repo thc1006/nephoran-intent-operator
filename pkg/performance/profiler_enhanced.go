@@ -49,42 +49,6 @@ type EnhancedProfiler struct {
 	mutex            sync.RWMutex
 }
 
-// ProfilerConfig defines comprehensive profiling configuration
-type ProfilerConfig struct {
-	// Output configuration
-	OutputDirectory    string
-	ProfilePrefix      string
-	CompressionEnabled bool
-	RetentionDays      int
-
-	// Profiling parameters
-	CPUProfileRate     int // Hz, 100 = 100 samples/sec
-	MemProfileRate     int // bytes, 0 = off, 1 = all allocations
-	BlockProfileRate   int // nanoseconds, fraction of blocking events to profile
-	MutexProfileRate   int // fraction of mutex contention events to profile
-	GoroutineThreshold int // threshold for goroutine leak detection
-
-	// Continuous profiling
-	ContinuousInterval  time.Duration // Interval for continuous profiling
-	AutoAnalysisEnabled bool          // Automatically analyze profiles
-	OptimizationHints   bool          // Generate optimization suggestions
-
-	// Advanced features (Go 1.24+)
-	ExecutionTracing      bool // Enable execution tracing
-	GCProfileEnabled      bool // Profile garbage collection
-	AllocProfileEnabled   bool // Detailed allocation profiling
-	ThreadCreationProfile bool // Profile thread creation
-
-	// HTTP profiler
-	HTTPEnabled bool   // Enable HTTP pprof endpoints
-	HTTPAddress string // Address to bind HTTP profiler
-	HTTPAuth    bool   // Enable authentication for HTTP endpoints
-
-	// Integration
-	PrometheusIntegration bool // Export metrics to Prometheus
-	AlertingEnabled       bool // Enable performance alerting
-	SlackIntegration      bool // Send optimization alerts to Slack
-}
 
 // ActiveProfile represents a currently running profiling session
 type ActiveProfile struct {

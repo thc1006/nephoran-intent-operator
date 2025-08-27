@@ -242,7 +242,6 @@ func TestClusterManager_SelectTargetClusters(t *testing.T) {
 			packageRevision: createTestPackageRevision("test-package", "v1.0.0"),
 			setupFunc: func(cm *ClusterManager) {
 				// Register test clusters
-				ctx := context.Background()
 				config := createTestClusterConfig()
 
 				clusterInfo1 := &ClusterInfo{

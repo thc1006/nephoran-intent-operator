@@ -641,14 +641,14 @@ func getDefaultIntelligentCacheConfig() *IntelligentCacheConfig {
 type L2Cache struct{}
 type L3Cache struct{}
 type CacheAnalyzer struct{}
-type CacheOptimizer struct{}
+
 type CacheTracer interface{}
 type CacheState int
 type LRUManager struct{}
 type BloomFilter struct{}
 type L1CacheStats struct{}
 type CacheOperation struct{}
-type AccessPattern int
+
 type AccessOrderManager struct{}
 
 type EvictionPolicy int

@@ -446,11 +446,17 @@ func (brc *BurnRateCalculator) calculateAvailabilityBurnRate(shortValue, longVal
 	longErrorRate := 1.0 - longValue
 
 	// Calculate burn rate as multiple of allowed error rate
-	if allowedErrorRate > 0 {
-		burnRate = shortErrorRate / allowedErrorRate
+	// Use the higher error rate (worse condition) for burn rate calculation
+	effectiveErrorRate := shortErrorRate
+	if longErrorRate > shortErrorRate {
+		effectiveErrorRate = longErrorRate
 	}
 
-	return burnRate, shortErrorRate, 1.0 // Assume normalized request rate
+	if allowedErrorRate > 0 {
+		burnRate = effectiveErrorRate / allowedErrorRate
+	}
+
+	return burnRate, effectiveErrorRate, 1.0 // Assume normalized request rate
 }
 
 // calculateLatencyBurnRate calculates burn rate for latency SLA
@@ -543,8 +549,8 @@ func (brc *BurnRateCalculator) analyzeBurnRateResults(result *BurnRateResult,
 
 	// Find the most severe violation
 	var severity AlertSeverity
-	var isViolating bool
 	var overallBurnRate float64
+	isViolating := false // Initialize explicitly to avoid ineffectual assignment
 
 	for _, window := range windows {
 		windowResult := result.Windows[window]
@@ -563,6 +569,14 @@ func (brc *BurnRateCalculator) analyzeBurnRateResults(result *BurnRateResult,
 	// Calculate budget information
 	budgetRemaining := brc.calculateBudgetRemaining(result, target)
 	timeToExhaustion := brc.calculateTimeToExhaustion(overallBurnRate, budgetRemaining, target)
+
+	// Log important calculated values that affect alerting decisions
+	brc.logger.Debug("Burn rate analysis completed",
+		"is_violating", isViolating,
+		"severity", severity,
+		"time_to_exhaustion", timeToExhaustion,
+		"budget_remaining", budgetRemaining,
+	)
 
 	// Create BurnRateInfo with window-specific details
 	var shortWindow, mediumWindow, longWindow BurnRateWindow

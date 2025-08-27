@@ -261,7 +261,7 @@ func ConfiguredGitClientProvider(c *Container) (interface{}, error) {
 
 // ProductionLLMClientProvider creates an LLM client with production settings
 func ProductionLLMClientProvider(c *Container) (interface{}, error) {
-	config := c.GetConfig()
+	_ = c.GetConfig() // config not used yet
 
 	llmURL := os.Getenv("LLM_PROCESSOR_URL")
 	if llmURL == "" {

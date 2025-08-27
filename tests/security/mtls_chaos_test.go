@@ -100,7 +100,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 
 	Context("Certificate Authority Chaos Testing", func() {
 		It("should handle CA complete failure scenario", func() {
-			scenario := &ChaosScenario{
+			_ = &ChaosScenario{
 				Name:             "CA Complete Failure",
 				Description:      "CA service becomes completely unavailable",
 				Category:         "CA_FAILURE",
@@ -177,7 +177,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 		})
 
 		It("should handle CA intermittent failure scenario", func() {
-			scenario := &ChaosScenario{
+			_ = &ChaosScenario{
 				Name:             "CA Intermittent Failure",
 				Description:      "CA service experiences intermittent failures",
 				Category:         "CA_FAILURE",
@@ -235,7 +235,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 		})
 
 		It("should handle CA certificate corruption scenario", func() {
-			scenario := &ChaosScenario{
+			_ = &ChaosScenario{
 				Name:             "CA Certificate Corruption",
 				Description:      "CA root certificate becomes corrupted",
 				Category:         "CA_FAILURE",
@@ -269,7 +269,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 		})
 
 		It("should handle CA key compromise scenario", func() {
-			scenario := &ChaosScenario{
+			_ = &ChaosScenario{
 				Name:             "CA Key Compromise",
 				Description:      "CA private key is potentially compromised",
 				Category:         "CA_SECURITY",
@@ -301,7 +301,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 		It("should handle Istio control plane failure", func() {
 			Skip("Requires Istio service mesh deployment")
 
-			scenario := &ChaosScenario{
+			_ = &ChaosScenario{
 				Name:             "Istio Control Plane Failure",
 				Description:      "Istio pilot/citadel becomes unavailable",
 				Category:         "SERVICE_MESH_FAILURE",
@@ -320,7 +320,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 		It("should handle service mesh certificate rotation failure", func() {
 			Skip("Requires service mesh deployment")
 
-			scenario := &ChaosScenario{
+			_ = &ChaosScenario{
 				Name:             "Service Mesh Cert Rotation Failure",
 				Description:      "Service mesh certificate rotation fails",
 				Category:         "SERVICE_MESH_FAILURE",
@@ -333,7 +333,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 		})
 
 		It("should handle sidecar proxy failures", func() {
-			scenario := &ChaosScenario{
+			_ = &ChaosScenario{
 				Name:             "Sidecar Proxy Failure",
 				Description:      "Service mesh sidecar proxies fail randomly",
 				Category:         "SERVICE_MESH_FAILURE",
@@ -361,7 +361,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 
 	Context("Network Partition Chaos Testing", func() {
 		It("should handle network partition between CA and services", func() {
-			scenario := &ChaosScenario{
+			_ = &ChaosScenario{
 				Name:             "CA Network Partition",
 				Description:      "Network partition isolates CA from services",
 				Category:         "NETWORK_PARTITION",
@@ -406,7 +406,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 		})
 
 		It("should handle intermittent network connectivity", func() {
-			scenario := &ChaosScenario{
+			_ = &ChaosScenario{
 				Name:             "Intermittent Network Connectivity",
 				Description:      "Network experiences packet loss and latency spikes",
 				Category:         "NETWORK_DEGRADATION",
@@ -467,7 +467,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 
 	Context("Certificate Lifecycle Chaos Testing", func() {
 		It("should handle mass certificate expiration", func() {
-			scenario := &ChaosScenario{
+			_ = &ChaosScenario{
 				Name:             "Mass Certificate Expiration",
 				Description:      "Large number of certificates expire simultaneously",
 				Category:         "CERTIFICATE_LIFECYCLE",
@@ -499,7 +499,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 		})
 
 		It("should handle certificate rotation cascade failures", func() {
-			scenario := &ChaosScenario{
+			_ = &ChaosScenario{
 				Name:             "Certificate Rotation Cascade Failure",
 				Description:      "Certificate rotation failures cascade through the system",
 				Category:         "CERTIFICATE_LIFECYCLE",
@@ -534,7 +534,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 
 	Context("Recovery and Resilience Testing", func() {
 		It("should test disaster recovery procedures", func() {
-			scenario := &ChaosScenario{
+			_ = &ChaosScenario{
 				Name:             "Complete System Failure",
 				Description:      "Simulate complete system failure and recovery",
 				Category:         "DISASTER_RECOVERY",
@@ -578,7 +578,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 		})
 
 		It("should test automated recovery mechanisms", func() {
-			scenario := &ChaosScenario{
+			_ = &ChaosScenario{
 				Name:             "Automated Recovery Test",
 				Description:      "Test automated recovery from various failure scenarios",
 				Category:         "AUTOMATED_RECOVERY",

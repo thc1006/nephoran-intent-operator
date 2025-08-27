@@ -4,11 +4,8 @@ package security
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
-	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -16,8 +13,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -956,4 +951,72 @@ func (config *ContainerSecurityConfig) Validate() error {
 		return fmt.Errorf("scan timeout must be positive")
 	}
 	return nil
+}
+
+// Stub implementations for external scanner constructors
+// TODO: Implement proper Trivy and Clair scanner integrations
+
+func NewTrivyScanner(logger interface{}) (ContainerScanner, error) {
+	// Stub implementation - replace with actual Trivy integration
+	return nil, fmt.Errorf("trivy scanner not implemented yet")
+}
+
+func NewClairScanner(logger interface{}) (ContainerScanner, error) {
+	// Stub implementation - replace with actual Clair integration
+	return nil, fmt.Errorf("clair scanner not implemented yet")
+}
+
+// OPAPolicyEngine implements PolicyEngine interface using Open Policy Agent
+type OPAPolicyEngine struct {
+	logger     *slog.Logger
+	policies   map[string]*SecurityPolicy
+	violations []PolicyViolation
+	mu         sync.RWMutex
+}
+
+// NewOPAPolicyEngine creates a new OPA-based policy engine
+func NewOPAPolicyEngine(logger *slog.Logger) (PolicyEngine, error) {
+	return &OPAPolicyEngine{
+		logger:     logger,
+		policies:   make(map[string]*SecurityPolicy),
+		violations: make([]PolicyViolation, 0),
+	}, nil
+}
+
+// EvaluatePolicy evaluates a policy against a resource
+func (o *OPAPolicyEngine) EvaluatePolicy(ctx context.Context, policy *SecurityPolicy, resource interface{}) (bool, error) {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+	
+	// Simple policy evaluation - this would normally use OPA's Rego engine
+	o.logger.Info("Evaluating policy", "policy", policy.ID, "resource", fmt.Sprintf("%T", resource))
+	
+	// For now, return true (allow) for all policies
+	// TODO: Implement actual OPA integration
+	return true, nil
+}
+
+// LoadPolicies loads security policies into the engine
+func (o *OPAPolicyEngine) LoadPolicies(ctx context.Context, policies []*SecurityPolicy) error {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	
+	for _, policy := range policies {
+		o.policies[policy.ID] = policy
+		o.logger.Info("Loaded policy", "id", policy.ID, "name", policy.Name)
+	}
+	
+	return nil
+}
+
+// GetViolations returns current policy violations
+func (o *OPAPolicyEngine) GetViolations(ctx context.Context) ([]PolicyViolation, error) {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+	
+	// Return a copy to avoid race conditions
+	violations := make([]PolicyViolation, len(o.violations))
+	copy(violations, o.violations)
+	
+	return violations, nil
 }

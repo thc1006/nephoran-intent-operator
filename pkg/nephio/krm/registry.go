@@ -542,7 +542,7 @@ func (r *Registry) DiscoverFunctions(ctx context.Context) error {
 
 // GetFunction retrieves function metadata by name
 func (r *Registry) GetFunction(ctx context.Context, name string) (*FunctionMetadata, error) {
-	ctx, span := r.tracer.Start(ctx, "krm-registry-get-function")
+	_, span := r.tracer.Start(ctx, "krm-registry-get-function")
 	defer span.End()
 
 	span.SetAttributes(attribute.String("function.name", name))
@@ -562,7 +562,7 @@ func (r *Registry) GetFunction(ctx context.Context, name string) (*FunctionMetad
 
 // ListFunctions returns all available functions with optional filtering
 func (r *Registry) ListFunctions(ctx context.Context, filter *FunctionFilter) ([]*FunctionMetadata, error) {
-	ctx, span := r.tracer.Start(ctx, "krm-registry-list-functions")
+	_, span := r.tracer.Start(ctx, "krm-registry-list-functions")
 	defer span.End()
 
 	r.mu.RLock()
@@ -620,7 +620,7 @@ func (r *Registry) SearchFunctions(ctx context.Context, query *SearchQuery) (*Se
 
 // AddRepository adds a new repository to the registry
 func (r *Registry) AddRepository(ctx context.Context, config RepositoryConfig) error {
-	ctx, span := r.tracer.Start(ctx, "krm-registry-add-repository")
+	_, span := r.tracer.Start(ctx, "krm-registry-add-repository")
 	defer span.End()
 
 	span.SetAttributes(attribute.String("repository.name", config.Name))
@@ -660,7 +660,7 @@ func (r *Registry) AddRepository(ctx context.Context, config RepositoryConfig) e
 
 // RemoveRepository removes a repository from the registry
 func (r *Registry) RemoveRepository(ctx context.Context, name string) error {
-	ctx, span := r.tracer.Start(ctx, "krm-registry-remove-repository")
+	_, span := r.tracer.Start(ctx, "krm-registry-remove-repository")
 	defer span.End()
 
 	span.SetAttributes(attribute.String("repository.name", name))

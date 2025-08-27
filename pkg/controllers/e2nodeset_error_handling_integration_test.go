@@ -85,7 +85,7 @@ func TestCompleteErrorHandlingWorkflow(t *testing.T) {
 
 	t.Run("successful reconciliation with no errors", func(t *testing.T) {
 		// First reconciliation should succeed
-		result, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
+		_, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
 		require.NoError(t, err)
 
 		// Verify ConfigMaps were created
@@ -532,7 +532,7 @@ func TestSuccessfulReconciliationClearsRetryCount(t *testing.T) {
 	assert.Equal(t, 1, getRetryCount(&initialE2NodeSet, "configmap-operations"))
 
 	// Successful reconciliation
-	result, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
+	_, err = reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
 	require.NoError(t, err)
 
 	// Verify retry counts were cleared

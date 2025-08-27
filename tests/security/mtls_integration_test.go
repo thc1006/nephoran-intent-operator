@@ -184,7 +184,7 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 				By(fmt.Sprintf("Testing Istio mTLS for %s", serviceName))
 
 				// Deploy service with Istio annotations
-				testService, err := suite.deployIstioService(serviceName)
+				_, err := suite.deployIstioService(serviceName)
 				Expect(err).NotTo(HaveOccurred())
 
 				// Verify Istio sidecar is injected
@@ -206,7 +206,7 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 			for _, serviceName := range services {
 				By(fmt.Sprintf("Testing Linkerd mTLS for %s", serviceName))
 
-				testService, err := suite.deployLinkerdService(serviceName)
+				_, err := suite.deployLinkerdService(serviceName)
 				Expect(err).NotTo(HaveOccurred())
 
 				// Verify Linkerd proxy injection
@@ -226,7 +226,7 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 			By("Deploying service with coordinated certificate management")
 
 			// Deploy service that uses both service mesh and CA manager
-			testService, err := suite.deployCoordinatedService(serviceName)
+			_, err := suite.deployCoordinatedService(serviceName)
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(func() bool {

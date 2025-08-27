@@ -306,7 +306,7 @@ var _ = Describe("Load Testing Suite", func() {
 				}
 
 				wg.Wait()
-				totalTestTime := time.Since(startTime)
+				_ = time.Since(startTime)
 
 				By("analyzing medium load performance")
 				metrics.Calculate()
@@ -408,7 +408,7 @@ var _ = Describe("Load Testing Suite", func() {
 			It("should achieve target of 50 intents/second", func() {
 				targetThroughput := 50.0 // intents per second
 				testDuration := 30 * time.Second
-				expectedRequests := int(targetThroughput * testDuration.Seconds())
+				_ = int(targetThroughput * testDuration.Seconds())
 
 				metrics := NewPerformanceMetrics()
 				var wg sync.WaitGroup

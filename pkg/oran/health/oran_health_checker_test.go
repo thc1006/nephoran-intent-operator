@@ -108,7 +108,7 @@ func TestORANHealthChecker_InterfaceHealthChecks(t *testing.T) {
 	a1Adaptor, _ := a1.NewA1Adaptor(nil)
 	e2Adaptor, _ := e2.NewE2Adaptor(nil)
 
-	checker := NewORANHealthChecker(
+	_ = NewORANHealthChecker(
 		healthChecker,
 		a1Adaptor,
 		e2Adaptor,

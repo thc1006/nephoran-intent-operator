@@ -828,7 +828,7 @@ func TestTypes_NilMapHandling(t *testing.T) {
 			assert.NotEmpty(t, jsonData)
 
 			// Should be able to unmarshal back
-			switch v := tt.data.(type) {
+			switch tt.data.(type) {
 			case *PolicyType:
 				var unmarshaled PolicyType
 				err := json.Unmarshal(jsonData, &unmarshaled)

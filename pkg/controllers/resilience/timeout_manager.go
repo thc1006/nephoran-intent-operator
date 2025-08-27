@@ -28,28 +28,32 @@ import (
 
 // TimeoutOperation represents a timeout operation
 type TimeoutOperation struct {
-	ID        string
-	StartTime time.Time
-	Timeout   time.Duration
-	Context   context.Context
-	Cancel    context.CancelFunc
+	ID            string
+	StartTime     time.Time
+	Timeout       time.Duration
+	Context       context.Context
+	Cancel        context.CancelFunc
+	CancelFunc    context.CancelFunc
+	CompletedChan chan struct{}
+	TimeoutChan   chan struct{}
+	mutex         sync.RWMutex
 }
 
 // TimeoutManager manages timeout operations and configurations
 type TimeoutManager struct {
 	configs    map[string]*TimeoutConfig
-	operations map[string]*TimeoutOperation
+	operations sync.Map // map[string]*TimeoutOperation
 	metrics    *TimeoutMetrics
 	logger     logr.Logger
 	mu         sync.RWMutex
+	mutex      sync.RWMutex
 }
 
 // NewTimeoutManager creates a new timeout manager
 func NewTimeoutManager(configs map[string]*TimeoutConfig, logger logr.Logger) *TimeoutManager {
 	tm := &TimeoutManager{
 		configs:    make(map[string]*TimeoutConfig),
-		operations: make(map[string]*TimeoutOperation),
-		metrics:    &TimeoutMetrics{},
+		metrics:    &TimeoutMetrics{OperationsByTimeout: make(map[time.Duration]int64)},
 		logger:     logger.WithName("timeout-manager"),
 	}
 
@@ -107,6 +111,7 @@ func (tm *TimeoutManager) ApplyTimeout(ctx context.Context, operationName string
 		StartTime:     time.Now(),
 		Timeout:       timeout,
 		Context:       timeoutCtx,
+		Cancel:        cancel,
 		CancelFunc:    cancel,
 		CompletedChan: make(chan struct{}),
 		TimeoutChan:   make(chan struct{}),
@@ -317,8 +322,8 @@ func (tm *TimeoutManager) updateTimeoutMetrics(timeout time.Duration) {
 	// Update average timeout
 	totalOps := atomic.LoadInt64(&tm.metrics.TotalOperations)
 	if totalOps > 0 {
-		prevTotal := time.Duration(totalOps-1) * tm.metrics.AverageTimeout
-		tm.metrics.AverageTimeout = (prevTotal + timeout) / time.Duration(totalOps)
+		prevTotal := time.Duration(totalOps-1) * tm.metrics.AverageLatency
+		tm.metrics.AverageLatency = (prevTotal + timeout) / time.Duration(totalOps)
 	}
 
 	// Update timeout distribution
@@ -553,7 +558,7 @@ func (tm *TimeoutManager) GetHealthReport() map[string]interface{} {
 		"total_operations":     metrics.TotalOperations,
 		"timeout_operations":   metrics.TimeoutOperations,
 		"timeout_rate":         metrics.TimeoutRate,
-		"average_timeout":      metrics.AverageTimeout,
+		"average_timeout":      metrics.AverageLatency,
 		"adaptive_adjustments": metrics.AdaptiveAdjustments,
 		"configurations":       len(tm.configs),
 	}

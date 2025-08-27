@@ -348,7 +348,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			}
 
 			By("Initial reconciliation to create ConfigMaps")
-			result, err := e2nodeSetReconciler.Reconcile(ctx, req)
+			_, err := e2nodeSetReconciler.Reconcile(ctx, req)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Verifying ConfigMaps were created")
@@ -418,7 +418,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 				},
 			}
 
-			result, err := e2nodeSetReconciler.Reconcile(ctx, e2nsReq)
+			_, err := e2nodeSetReconciler.Reconcile(ctx, e2nsReq)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Verifying initial E2NodeSet state")
@@ -473,7 +473,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 				},
 			}
 
-			result, err = networkIntentReconciler.Reconcile(ctx, niReq)
+			_, err = networkIntentReconciler.Reconcile(ctx, niReq)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Verifying NetworkIntent processing completed")
@@ -494,7 +494,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			Expect(k8sClient.Update(ctx, e2nodeSet)).To(Succeed())
 
 			By("Re-reconciling E2NodeSet after scaling")
-			result, err = e2nodeSetReconciler.Reconcile(ctx, e2nsReq)
+			_, err = e2nodeSetReconciler.Reconcile(ctx, e2nsReq)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Verifying E2NodeSet scaled according to NetworkIntent")

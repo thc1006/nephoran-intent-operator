@@ -559,7 +559,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			}
 
 			By("Initial state establishment")
-			result, err := e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			_, err := e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -583,7 +583,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				}, timeout, interval).Should(Succeed())
 
 				// Reconcile
-				result, err = e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+				_, err = e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
 					NamespacedName: namespacedName,
 				})
 				Expect(err).NotTo(HaveOccurred())
@@ -629,7 +629,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			}
 
 			By("Initial reconciliation")
-			result, err := e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			_, err := e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -657,7 +657,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			Expect(k8sClient.Update(ctx, corruptedCM)).To(Succeed())
 
 			By("Reconciling after corruption - should detect and recover")
-			result, err = e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			_, err = e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -720,7 +720,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 				Namespace: networkIntent.Namespace,
 			}
 
-			result, err := networkIntentReconciler.Reconcile(ctx, reconcile.Request{
+			_, err := networkIntentReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: niNamespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())

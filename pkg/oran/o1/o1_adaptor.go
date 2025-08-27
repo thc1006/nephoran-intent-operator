@@ -83,18 +83,6 @@ type MetricCollector struct {
 	cancel           context.CancelFunc
 }
 
-// Alarm represents an O-RAN alarm
-type Alarm struct {
-	ID               string    `json:"alarm_id"`
-	ManagedElementID string    `json:"managed_element_id"`
-	Severity         string    `json:"severity"` // CRITICAL, MAJOR, MINOR, WARNING, CLEAR
-	Type             string    `json:"type"`
-	ProbableCause    string    `json:"probable_cause"`
-	SpecificProblem  string    `json:"specific_problem"`
-	AdditionalInfo   string    `json:"additional_info"`
-	TimeRaised       time.Time `json:"time_raised"`
-	TimeCleared      time.Time `json:"time_cleared,omitempty"`
-}
 
 // AlarmCallback is called when alarms are received
 type AlarmCallback func(alarm *Alarm)
@@ -215,7 +203,7 @@ func (a *O1Adaptor) resolveSecretValue(ctx context.Context, secretRef *nephoranv
 
 // buildTLSConfig builds TLS configuration from certificate references in credentials
 func (a *O1Adaptor) buildTLSConfig(ctx context.Context, me *nephoranv1.ManagedElement) (*tls.Config, error) {
-	credentials := &me.Spec.Credentials
+	credentials := me.Spec.Credentials
 
 	// If no client certificate references, return basic TLS config
 	if credentials.ClientCertificateRef == nil && credentials.ClientKeyRef == nil {

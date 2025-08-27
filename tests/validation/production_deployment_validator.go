@@ -452,6 +452,7 @@ func (pdv *ProductionDeploymentValidator) validateFaultTolerance(ctx context.Con
 	pdv.metrics.ChaosTestsPassed = score
 	pdv.mu.Unlock()
 
+	ginkgo.By(fmt.Sprintf("Fault Tolerance Score: %d/%d", score, maxScore))
 	return score, nil
 }
 
@@ -557,6 +558,7 @@ func (pdv *ProductionDeploymentValidator) validateMonitoringObservability(ctx co
 		ginkgo.By("✓ Observability stack validated")
 	}
 
+	ginkgo.By(fmt.Sprintf("Monitoring & Observability Score: %d/%d", score, maxScore))
 	return score, nil
 }
 
@@ -707,6 +709,7 @@ func (pdv *ProductionDeploymentValidator) validateDisasterRecovery(ctx context.C
 		ginkgo.By("✓ Multi-region failover capability validated")
 	}
 
+	ginkgo.By(fmt.Sprintf("Disaster Recovery Score: %d/%d", score, maxScore))
 	return score, nil
 }
 
