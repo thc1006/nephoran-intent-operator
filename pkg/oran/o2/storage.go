@@ -299,7 +299,10 @@ func (s *InMemoryStorage) UpdateResource(ctx context.Context, resourceID string,
 		resource.UpdatedAt = updatedAt
 	}
 	if status, ok := updates["status"].(string); ok {
-		resource.Status = status
+		if resource.Status == nil {
+			resource.Status = &models.ResourceStatus{}
+		}
+		resource.Status.State = status
 	}
 
 	return nil
@@ -386,7 +389,7 @@ func (s *InMemoryStorage) StoreDeployment(ctx context.Context, deployment *Deplo
 	s.dMutex.Lock()
 	defer s.dMutex.Unlock()
 
-	s.deployments[deployment.DeploymentID] = deployment
+	s.deployments[deployment.DeploymentManagerID] = deployment
 	return nil
 }
 
@@ -574,7 +577,7 @@ func (s *InMemoryStorage) UpdateResourceStatus(ctx context.Context, resourceID s
 		return fmt.Errorf("resource not found: %s", resourceID)
 	}
 
-	resource.Status = status.State
+	resource.Status = status
 	resource.UpdatedAt = time.Now()
 	return nil
 }
@@ -625,11 +628,11 @@ func (s *InMemoryStorage) matchesResourcePoolFilter(pool *models.ResourcePool, f
 		}
 	}
 
-	// Check locations filter
-	if len(filter.Locations) > 0 {
+	// Check regions filter (locations mapped to regions)
+	if len(filter.Regions) > 0 {
 		found := false
-		for _, location := range filter.Locations {
-			if pool.Location == location {
+		for _, region := range filter.Regions {
+			if pool.Region == region {
 				found = true
 				break
 			}
@@ -741,11 +744,11 @@ func (s *InMemoryStorage) matchesResourceFilter(resource *models.Resource, filte
 		}
 	}
 
-	// Check statuses filter
-	if len(filter.Statuses) > 0 {
+	// Check lifecycle states filter (mapped from statuses)
+	if len(filter.LifecycleStates) > 0 {
 		found := false
-		for _, status := range filter.Statuses {
-			if resource.Status == status {
+		for _, status := range filter.LifecycleStates {
+			if resource.Status != nil && resource.Status.State == status {
 				found = true
 				break
 			}

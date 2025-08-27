@@ -9,10 +9,8 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 )

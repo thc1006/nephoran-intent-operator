@@ -258,6 +258,8 @@ type Resource struct {
 	ResourceTypeID   string `json:"resourceTypeId"`
 	ResourcePoolID   string `json:"resourcePoolId"`
 	ParentResourceID string `json:"parentResourceId,omitempty"`
+	GlobalAssetID    string `json:"globalAssetId,omitempty"`
+	Provider         string `json:"provider,omitempty"`
 
 	// Resource state and configuration
 	Status        *ResourceStatus       `json:"status"`
