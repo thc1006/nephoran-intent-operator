@@ -70,12 +70,300 @@ spec:
                 minLength: 1
                 pattern: ^[a-zA-Z0-9\s\-_.,;:()\[\]]*$
                 type: string
+              intentType:
+                description: IntentType specifies the type of intent
+                type: string
+              networkSlice:
+                description: NetworkSlice specifies the network slice identifier
+                type: string
+              priority:
+                description: Priority specifies the processing priority
+                enum:
+                - low
+                - medium
+                - high
+                - critical
+                type: string
+              processedParameters:
+                description: ProcessedParameters contains structured parameters from
+                  processing
+                properties:
+                  customParameters:
+                    additionalProperties:
+                      type: string
+                    description: CustomParameters contains additional custom parameters
+                    type: object
+                  networkFunction:
+                    description: NetworkFunction specifies the network function type
+                    type: string
+                  qosParameters:
+                    description: QoSParameters contains quality of service settings
+                    properties:
+                      bandwidth:
+                        description: Bandwidth specifies the bandwidth requirement
+                        type: string
+                      latency:
+                        description: Latency specifies the target latency requirement
+                        type: string
+                      priority:
+                        description: Priority specifies the traffic priority
+                        enum:
+                        - low
+                        - medium
+                        - high
+                        - critical
+                        type: string
+                      serviceLevel:
+                        description: ServiceLevel specifies the service level agreement
+                        type: string
+                    type: object
+                  region:
+                    description: Region specifies the deployment region
+                    type: string
+                  scaleParameters:
+                    description: ScaleParameters contains scaling configuration
+                    properties:
+                      autoScalingEnabled:
+                        description: AutoScalingEnabled indicates if auto-scaling
+                          is enabled
+                        type: boolean
+                      maxReplicas:
+                        description: MaxReplicas specifies the maximum number of replicas
+                        format: int32
+                        minimum: 1
+                        type: integer
+                      minReplicas:
+                        description: MinReplicas specifies the minimum number of replicas
+                        format: int32
+                        minimum: 1
+                        type: integer
+                      targetCPUUtilization:
+                        description: TargetCPUUtilization specifies the target CPU
+                          utilization percentage
+                        format: int32
+                        maximum: 100
+                        minimum: 1
+                        type: integer
+                    type: object
+                  securityParameters:
+                    description: SecurityParameters contains security settings
+                    properties:
+                      encryption:
+                        description: Encryption specifies encryption requirements
+                        properties:
+                          algorithm:
+                            description: Algorithm specifies the encryption algorithm
+                            enum:
+                            - AES-256
+                            - AES-128
+                            - RSA-2048
+                            - RSA-4096
+                            type: string
+                          enabled:
+                            description: Enabled indicates if encryption is enabled
+                            type: boolean
+                          keyRotationInterval:
+                            description: KeyRotationInterval specifies the key rotation
+                              interval
+                            type: string
+                        type: object
+                      networkPolicies:
+                        description: NetworkPolicies specifies network security policies
+                        items:
+                          type: string
+                        type: array
+                      serviceMesh:
+                        description: ServiceMesh indicates if service mesh should
+                          be enabled
+                        type: boolean
+                      tlsEnabled:
+                        description: TLSEnabled indicates if TLS should be enabled
+                        type: boolean
+                    type: object
+                type: object
+              region:
+                description: Region specifies the deployment region
+                type: string
+              resourceConstraints:
+                description: ResourceConstraints specifies resource constraints for
+                  the intent
+                properties:
+                  cpu:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: CPU limits
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  maxConcurrency:
+                    default: 10
+                    description: Maximum concurrent operations
+                    format: int32
+                    minimum: 1
+                    type: integer
+                  maxCpu:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: MaxCPU limits
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  maxMemory:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: MaxMemory limits
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  memory:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: Memory limits
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  networkBandwidth:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: Network bandwidth limits
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  storage:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: Storage limits
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                type: object
+              targetCluster:
+                description: TargetCluster specifies the target cluster for deployment
+                type: string
+              targetComponents:
+                description: TargetComponents specifies the target components for
+                  the intent
+                items:
+                  description: ORANComponent represents O-RAN target components for
+                    intents
+                  type: string
+                type: array
+              targetNamespace:
+                description: TargetNamespace specifies the target namespace for deployment
+                type: string
             required:
             - intent
             type: object
           status:
             description: NetworkIntentStatus defines the observed state of NetworkIntent
             properties:
+              conditions:
+                description: Conditions contains the conditions for the NetworkIntent
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              deployedComponents:
+                description: DeployedComponents contains the list of deployed components
+                items:
+                  description: TargetComponent defines a component targeted for disaster
+                    recovery
+                  properties:
+                    dependencies:
+                      description: Dependencies on other components
+                      items:
+                        type: string
+                      type: array
+                    labelSelector:
+                      additionalProperties:
+                        type: string
+                      description: Label selector for the component
+                      type: object
+                    name:
+                      description: Name of the component
+                      type: string
+                    namespace:
+                      description: Namespace of the component
+                      type: string
+                    type:
+                      description: Type of component (deployment, statefulset, etc.)
+                      enum:
+                      - deployment
+                      - statefulset
+                      - service
+                      - configmap
+                      - secret
+                      - pvc
+                      type: string
+                  required:
+                  - name
+                  - type
+                  type: object
+                type: array
+              errorMessage:
+                description: ErrorMessage contains any error messages
+                type: string
+              extensions:
+                additionalProperties:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                description: Extensions contains additional status information as
+                  raw extensions
+                type: object
               lastMessage:
                 description: LastMessage contains the last status message
                 type: string
@@ -83,6 +371,14 @@ spec:
                 description: LastUpdateTime indicates when the status was last updated
                 format: date-time
                 type: string
+              lastUpdated:
+                description: LastUpdated indicates when the status was last updated
+                format: date-time
+                type: string
+              llmResponse:
+                description: LLMResponse contains the raw LLM response data
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
               observedGeneration:
                 description: ObservedGeneration reflects the generation of the most
                   recently observed NetworkIntent
@@ -92,6 +388,139 @@ spec:
                 description: Phase represents the current phase of the NetworkIntent
                   processing
                 type: string
+              processingDuration:
+                description: ProcessingDuration contains the duration of the processing
+                type: string
+              processingPhase:
+                description: ProcessingPhase indicates the current processing phase
+                type: string
+              processingResults:
+                description: ProcessingResults contains the results of intent processing
+                properties:
+                  confidenceScore:
+                    description: ConfidenceScore represents the confidence in the
+                      processing results
+                    type: number
+                  networkFunctionType:
+                    description: NetworkFunctionType contains the detected network
+                      function type
+                    type: string
+                  processedParameters:
+                    description: ProcessedParameters contains the structured parameters
+                    properties:
+                      customParameters:
+                        additionalProperties:
+                          type: string
+                        description: CustomParameters contains additional custom parameters
+                        type: object
+                      networkFunction:
+                        description: NetworkFunction specifies the network function
+                          type
+                        type: string
+                      qosParameters:
+                        description: QoSParameters contains quality of service settings
+                        properties:
+                          bandwidth:
+                            description: Bandwidth specifies the bandwidth requirement
+                            type: string
+                          latency:
+                            description: Latency specifies the target latency requirement
+                            type: string
+                          priority:
+                            description: Priority specifies the traffic priority
+                            enum:
+                            - low
+                            - medium
+                            - high
+                            - critical
+                            type: string
+                          serviceLevel:
+                            description: ServiceLevel specifies the service level
+                              agreement
+                            type: string
+                        type: object
+                      region:
+                        description: Region specifies the deployment region
+                        type: string
+                      scaleParameters:
+                        description: ScaleParameters contains scaling configuration
+                        properties:
+                          autoScalingEnabled:
+                            description: AutoScalingEnabled indicates if auto-scaling
+                              is enabled
+                            type: boolean
+                          maxReplicas:
+                            description: MaxReplicas specifies the maximum number
+                              of replicas
+                            format: int32
+                            minimum: 1
+                            type: integer
+                          minReplicas:
+                            description: MinReplicas specifies the minimum number
+                              of replicas
+                            format: int32
+                            minimum: 1
+                            type: integer
+                          targetCPUUtilization:
+                            description: TargetCPUUtilization specifies the target
+                              CPU utilization percentage
+                            format: int32
+                            maximum: 100
+                            minimum: 1
+                            type: integer
+                        type: object
+                      securityParameters:
+                        description: SecurityParameters contains security settings
+                        properties:
+                          encryption:
+                            description: Encryption specifies encryption requirements
+                            properties:
+                              algorithm:
+                                description: Algorithm specifies the encryption algorithm
+                                enum:
+                                - AES-256
+                                - AES-128
+                                - RSA-2048
+                                - RSA-4096
+                                type: string
+                              enabled:
+                                description: Enabled indicates if encryption is enabled
+                                type: boolean
+                              keyRotationInterval:
+                                description: KeyRotationInterval specifies the key
+                                  rotation interval
+                                type: string
+                            type: object
+                          networkPolicies:
+                            description: NetworkPolicies specifies network security
+                              policies
+                            items:
+                              type: string
+                            type: array
+                          serviceMesh:
+                            description: ServiceMesh indicates if service mesh should
+                              be enabled
+                            type: boolean
+                          tlsEnabled:
+                            description: TLSEnabled indicates if TLS should be enabled
+                            type: boolean
+                        type: object
+                    type: object
+                  processingTimestamp:
+                    description: ProcessingTimestamp when the processing completed
+                    format: date-time
+                    type: string
+                type: object
+              resourcePlan:
+                description: ResourcePlan contains the resource planning data
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              validationErrors:
+                description: ValidationErrors contains validation errors encountered
+                  during processing
+                items:
+                  type: string
+                type: array
             type: object
         type: object
     served: true

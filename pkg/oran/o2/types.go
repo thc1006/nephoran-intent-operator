@@ -46,15 +46,15 @@ type O2IMSConfig struct {
 	SecurityConfig   *APISecurityConfig `json:"securityConfig,omitempty"`
 	
 	// Additional Configuration Fields
-	Logger              *logging.StructuredLogger `json:"-"`
-	Host                string                    `json:"host,omitempty"`
-	CloudProviders      []string                  `json:"cloudProviders,omitempty"`  
-	HealthCheckConfig   *APIHealthCheckConfig     `json:"healthCheckConfig,omitempty"`
-	MetricsConfig       *MetricsConfig            `json:"metricsConfig,omitempty"`
-	CertFile            string                    `json:"certFile,omitempty"`
-	KeyFile             string                    `json:"keyFile,omitempty"`
-	NotificationConfig  *NotificationConfig       `json:"notificationConfig,omitempty"`
-	ResourceConfig      *ResourceConfig           `json:"resourceConfig,omitempty"`
+	Logger              *logging.StructuredLogger         `json:"-"`
+	Host                string                            `json:"host,omitempty"`
+	CloudProviders      map[string]*CloudProviderConfig   `json:"cloudProviders,omitempty"`  
+	HealthCheckConfig   *APIHealthCheckConfig             `json:"healthCheckConfig,omitempty"`
+	MetricsConfig       *MetricsConfig                    `json:"metricsConfig,omitempty"`
+	CertFile            string                            `json:"certFile,omitempty"`
+	KeyFile             string                            `json:"keyFile,omitempty"`
+	NotificationConfig  *NotificationConfig               `json:"notificationConfig,omitempty"`
+	ResourceConfig      *ResourceConfig                   `json:"resourceConfig,omitempty"`
 }
 
 // O2IMSService defines the interface for O2 IMS core service
@@ -562,7 +562,31 @@ type AlertmanagerClient struct{}
 type JaegerClient struct{}
 type AlertProcessor struct{}
 type DashboardManager struct{}
-type CloudProviderConfig struct{}
+// CloudProviderConfig defines cloud provider configuration
+type CloudProviderConfig struct {
+	// Core fields
+	ProviderID  string `json:"providerId"`  // Unique identifier for the provider
+	Name        string `json:"name"`        // Human-readable name
+	Type        string `json:"type"`        // Provider type (kubernetes, openstack, aws, etc.)
+	Description string `json:"description,omitempty"` // Optional description
+	Endpoint    string `json:"endpoint,omitempty"`    // Provider endpoint URL
+	Enabled     bool   `json:"enabled"`               // Whether provider is enabled
+	Status      string `json:"status"`                // Current status (ACTIVE, INACTIVE, ERROR)
+	
+	// Extended fields used in service implementations
+	ID      string `json:"id,omitempty"`      // Alternative ID field
+	Version string `json:"version,omitempty"` // Provider version
+	Region  string `json:"region,omitempty"`  // Cloud region
+	Zone    string `json:"zone,omitempty"`    // Cloud zone/availability zone
+	
+	// Configuration and metadata
+	Properties map[string]interface{} `json:"properties,omitempty"` // Provider-specific configuration
+	Tags       map[string]string      `json:"tags,omitempty"`       // Metadata tags
+	
+	// Timestamps
+	CreatedAt time.Time `json:"createdAt"` // Creation timestamp
+	UpdatedAt time.Time `json:"updatedAt"` // Last update timestamp
+}
 
 // CNF and Helm related stub types are defined in cnf_management.go
 type RequestContext struct {
@@ -756,7 +780,26 @@ func DefaultO2IMSConfig() *O2IMSConfig {
 		MetricsEnabled:   true,
 		TracingEnabled:   false,
 		Host:             "localhost",
-		CloudProviders:   []string{"kubernetes"},
+		CloudProviders:   map[string]*CloudProviderConfig{
+			"kubernetes": {
+				ProviderID:  "kubernetes",
+				Name:        "Default Kubernetes Provider",
+				Type:        CloudProviderKubernetes,
+				Description: "Default Kubernetes provider",
+				Endpoint:    "",
+				Enabled:     true,
+				Status:      "ACTIVE",
+				Properties: map[string]interface{}{
+					"in_cluster": true,
+				},
+				Tags: map[string]string{
+					"environment": "development",
+					"default":     "true",
+				},
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+		},
 		SecurityConfig: &APISecurityConfig{
 			CORSEnabled:        true,
 			CORSAllowedOrigins: []string{"*"},
