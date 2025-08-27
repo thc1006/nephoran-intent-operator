@@ -656,35 +656,46 @@ func (cr *ContainerRuntime) allocateResources(ctx context.Context, req *Containe
 
 	// Parse resource requirements
 	var cpuLimit, memoryLimit, diskLimit *resource.Quantity
-	var err error
 
 	if req.CPULimit != "" {
-		if cpuLimit, err = resource.ParseQuantity(req.CPULimit); err != nil {
-			return fmt.Errorf("invalid CPU limit: %w", err)
+		if parsedCPU, parseErr := resource.ParseQuantity(req.CPULimit); parseErr != nil {
+			return fmt.Errorf("invalid CPU limit: %w", parseErr)
+		} else {
+			cpuLimit = &parsedCPU
 		}
 	} else {
-		if cpuLimit, err = resource.ParseQuantity(cr.config.DefaultCPULimit); err != nil {
-			return fmt.Errorf("invalid default CPU limit: %w", err)
+		if parsedCPU, parseErr := resource.ParseQuantity(cr.config.DefaultCPULimit); parseErr != nil {
+			return fmt.Errorf("invalid default CPU limit: %w", parseErr)
+		} else {
+			cpuLimit = &parsedCPU
 		}
 	}
 
 	if req.MemoryLimit != "" {
-		if memoryLimit, err = resource.ParseQuantity(req.MemoryLimit); err != nil {
-			return fmt.Errorf("invalid memory limit: %w", err)
+		if parsedMemory, parseErr := resource.ParseQuantity(req.MemoryLimit); parseErr != nil {
+			return fmt.Errorf("invalid memory limit: %w", parseErr)
+		} else {
+			memoryLimit = &parsedMemory
 		}
 	} else {
-		if memoryLimit, err = resource.ParseQuantity(cr.config.DefaultMemoryLimit); err != nil {
-			return fmt.Errorf("invalid default memory limit: %w", err)
+		if parsedMemory, parseErr := resource.ParseQuantity(cr.config.DefaultMemoryLimit); parseErr != nil {
+			return fmt.Errorf("invalid default memory limit: %w", parseErr)
+		} else {
+			memoryLimit = &parsedMemory
 		}
 	}
 
 	if req.DiskLimit != "" {
-		if diskLimit, err = resource.ParseQuantity(req.DiskLimit); err != nil {
-			return fmt.Errorf("invalid disk limit: %w", err)
+		if parsedDisk, parseErr := resource.ParseQuantity(req.DiskLimit); parseErr != nil {
+			return fmt.Errorf("invalid disk limit: %w", parseErr)
+		} else {
+			diskLimit = &parsedDisk
 		}
 	} else {
-		if diskLimit, err = resource.ParseQuantity(cr.config.DefaultDiskLimit); err != nil {
-			return fmt.Errorf("invalid default disk limit: %w", err)
+		if parsedDisk, parseErr := resource.ParseQuantity(cr.config.DefaultDiskLimit); parseErr != nil {
+			return fmt.Errorf("invalid default disk limit: %w", parseErr)
+		} else {
+			diskLimit = &parsedDisk
 		}
 	}
 

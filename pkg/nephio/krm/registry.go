@@ -256,7 +256,7 @@ type SecurityVulnerability struct {
 }
 
 // FunctionCache manages function metadata and artifact caching
-type FunctionCache struct {
+type RegistryFunctionCache struct {
 	cacheDir string
 	ttl      time.Duration
 	maxSize  int64

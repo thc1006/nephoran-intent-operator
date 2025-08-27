@@ -541,7 +541,7 @@ func (p *Pipeline) Execute(ctx context.Context, definition *PipelineDefinition, 
 		ID:          generateExecutionID(),
 		Name:        definition.Name,
 		Pipeline:    definition,
-		Status:      StatusPending,
+		Status:      ExecutionStatusPending,
 		StartTime:   time.Now(),
 		Stages:      make(map[string]*StageExecution),
 		Resources:   resources,
@@ -577,7 +577,7 @@ func (p *Pipeline) Execute(ctx context.Context, definition *PipelineDefinition, 
 	defer p.metrics.ActiveExecutions.Dec()
 
 	// Set execution status
-	execution.Status = StatusRunning
+	execution.Status = ExecutionStatusRunning
 
 	// Create execution context with timeout
 	execCtx, cancel := context.WithTimeout(ctx, p.config.PipelineTimeout)
@@ -592,11 +592,11 @@ func (p *Pipeline) Execute(ctx context.Context, definition *PipelineDefinition, 
 
 		status := "success"
 		if execErr != nil {
-			execution.Status = StatusFailed
+			execution.Status = ExecutionStatusFailed
 			status = "failed"
 			logger.Error(execErr, "Pipeline execution failed")
 		} else {
-			execution.Status = StatusSucceeded
+			execution.Status = ExecutionStatusSucceeded
 			logger.Info("Pipeline execution completed successfully", "duration", execution.Duration)
 		}
 
@@ -617,9 +617,9 @@ func (p *Pipeline) Execute(ctx context.Context, definition *PipelineDefinition, 
 	if execErr != nil && p.config.RollbackOnFailure {
 		if rollbackErr := p.rollbackExecution(execCtx, execution); rollbackErr != nil {
 			logger.Error(rollbackErr, "Rollback failed")
-			execution.Status = StatusFailed
+			execution.Status = ExecutionStatusFailed
 		} else {
-			execution.Status = StatusRolledBack
+			execution.Status = ExecutionStatusFailed
 		}
 	}
 
@@ -640,7 +640,7 @@ func (p *Pipeline) ExecuteStage(ctx context.Context, execution *PipelineExecutio
 
 	stageExec := &StageExecution{
 		Name:      stage.Name,
-		Status:    StatusRunning,
+		Status:    ExecutionStatusRunning,
 		StartTime: time.Now(),
 		Functions: make(map[string]*FunctionExecution),
 		Output:    make(map[string]interface{}),
@@ -666,7 +666,7 @@ func (p *Pipeline) ExecuteStage(ctx context.Context, execution *PipelineExecutio
 	// Check conditions
 	if !p.evaluateConditions(stage.Conditions, execution.Variables, resources) {
 		logger.Info("Stage conditions not met, skipping")
-		stageExec.Status = StatusSucceeded
+		stageExec.Status = ExecutionStatusSucceeded
 		return stageExec, nil
 	}
 
@@ -678,10 +678,10 @@ func (p *Pipeline) ExecuteStage(ctx context.Context, execution *PipelineExecutio
 
 		status := "success"
 		if stageErr != nil {
-			stageExec.Status = StatusFailed
+			stageExec.Status = ExecutionStatusFailed
 			status = "failed"
 		} else {
-			stageExec.Status = StatusSucceeded
+			stageExec.Status = ExecutionStatusSucceeded
 		}
 
 		p.metrics.StageExecutions.WithLabelValues(execution.Name, stage.Name, status).Inc()
@@ -740,10 +740,10 @@ func (p *Pipeline) executeStagesSequential(ctx context.Context, execution *Pipel
 		}
 
 		// Update resources with stage output
-		if stageExec.Status == StatusSucceeded {
+		if stageExec.Status == ExecutionStatusSucceeded {
 			// Extract resources from stage execution
 			for _, funcExec := range stageExec.Functions {
-				if funcExec.Status == StatusSucceeded {
+				if funcExec.Status == ExecutionStatusSucceeded {
 					currentResources = funcExec.Output
 				}
 			}
@@ -811,7 +811,7 @@ func (p *Pipeline) executeStageSequential(ctx context.Context, execution *Pipeli
 		funcExec := &FunctionExecution{
 			Name:      function.Name,
 			Image:     function.Image,
-			Status:    StatusRunning,
+			Status:    ExecutionStatusRunning,
 			StartTime: time.Now(),
 			Input:     currentResources,
 		}
@@ -824,7 +824,7 @@ func (p *Pipeline) executeStageSequential(ctx context.Context, execution *Pipeli
 		funcExec.Duration = funcExec.EndTime.Sub(funcExec.StartTime)
 
 		if err != nil {
-			funcExec.Status = StatusFailed
+			funcExec.Status = ExecutionStatusFailed
 			funcExec.Error = &ExecutionError{
 				Code:        "FUNCTION_EXECUTION_FAILED",
 				Message:     err.Error(),
@@ -842,7 +842,7 @@ func (p *Pipeline) executeStageSequential(ctx context.Context, execution *Pipeli
 				return err
 			}
 		} else {
-			funcExec.Status = StatusSucceeded
+			funcExec.Status = ExecutionStatusSucceeded
 			funcExec.Output = result.Resources
 			funcExec.Results = result.Results
 			funcExec.Logs = result.Logs
@@ -876,7 +876,7 @@ func (p *Pipeline) executeStageParallel(ctx context.Context, execution *Pipeline
 			funcExec := &FunctionExecution{
 				Name:      f.Name,
 				Image:     f.Image,
-				Status:    StatusRunning,
+				Status:    ExecutionStatusRunning,
 				StartTime: time.Now(),
 				Input:     resources,
 			}
@@ -888,7 +888,7 @@ func (p *Pipeline) executeStageParallel(ctx context.Context, execution *Pipeline
 			funcExec.Duration = funcExec.EndTime.Sub(funcExec.StartTime)
 
 			if err != nil {
-				funcExec.Status = StatusFailed
+				funcExec.Status = ExecutionStatusFailed
 				funcExec.Error = &ExecutionError{
 					Code:        "FUNCTION_EXECUTION_FAILED",
 					Message:     err.Error(),
@@ -904,7 +904,7 @@ func (p *Pipeline) executeStageParallel(ctx context.Context, execution *Pipeline
 				}
 				mu.Unlock()
 			} else {
-				funcExec.Status = StatusSucceeded
+				funcExec.Status = ExecutionStatusSucceeded
 				funcExec.Output = result.Resources
 				funcExec.Results = result.Results
 				funcExec.Logs = result.Logs
@@ -970,7 +970,7 @@ func (p *Pipeline) rollbackExecution(ctx context.Context, execution *PipelineExe
 	log.FromContext(ctx).Info("Rolling back pipeline execution", "execution", execution.ID)
 
 	// For now, just mark as rolled back
-	execution.Status = StatusRolledBack
+	execution.Status = ExecutionStatusFailed
 	return nil
 }
 
@@ -1318,6 +1318,6 @@ func validatePipelineConfig(config *PipelineConfig) error {
 	return nil
 }
 
-func generateExecutionID() string {
+func generatePipelineExecutionID() string {
 	return fmt.Sprintf("exec-%d", time.Now().UnixNano())
 }

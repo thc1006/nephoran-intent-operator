@@ -86,7 +86,7 @@ type PipelineOrchestratorConfig struct {
 }
 
 // PipelineDefinition defines a complete KRM function pipeline
-type PipelineDefinition struct {
+type OrchestrationPipelineDefinition struct {
 	// Metadata
 	Name        string            `json:"name" yaml:"name"`
 	Version     string            `json:"version" yaml:"version"`
@@ -116,7 +116,7 @@ type PipelineDefinition struct {
 }
 
 // PipelineStage represents a stage in the pipeline
-type PipelineStage struct {
+type OrchestrationPipelineStage struct {
 	// Basic properties
 	Name        string `json:"name" yaml:"name"`
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
@@ -147,7 +147,7 @@ type PipelineStage struct {
 }
 
 // StageFunction represents a function within a stage
-type StageFunction struct {
+type OrchestrationStageFunction struct {
 	Name           string                 `json:"name" yaml:"name"`
 	Image          string                 `json:"image,omitempty" yaml:"image,omitempty"`
 	Config         map[string]interface{} `json:"config,omitempty" yaml:"config,omitempty"`
@@ -197,7 +197,7 @@ type FailurePolicy struct {
 }
 
 // RetryPolicy defines retry behavior
-type RetryPolicy struct {
+type OrchestrationRetryPolicy struct {
 	MaxAttempts   int           `json:"maxAttempts" yaml:"maxAttempts"`
 	InitialDelay  time.Duration `json:"initialDelay" yaml:"initialDelay"`
 	MaxDelay      time.Duration `json:"maxDelay" yaml:"maxDelay"`
@@ -233,7 +233,7 @@ type ResourceFilter struct {
 }
 
 // ResourceSelector defines resource selection criteria
-type ResourceSelector struct {
+type OrchestrationResourceSelector struct {
 	APIVersion string            `json:"apiVersion,omitempty" yaml:"apiVersion,omitempty"`
 	Kind       string            `json:"kind,omitempty" yaml:"kind,omitempty"`
 	Name       string            `json:"name,omitempty" yaml:"name,omitempty"`
@@ -252,7 +252,7 @@ type TelecomPipelineProfile struct {
 }
 
 // PipelineExecution represents a pipeline execution instance
-type PipelineExecution struct {
+type OrchestrationPipelineExecution struct {
 	// Metadata
 	ID       string              `json:"id"`
 	Name     string              `json:"name"`
@@ -294,7 +294,7 @@ type PipelineExecution struct {
 }
 
 // StageExecution represents execution of a pipeline stage
-type StageExecution struct {
+type OrchestrationStageExecution struct {
 	Name         string                        `json:"name"`
 	Status       ExecutionStatus               `json:"status"`
 	StartTime    time.Time                     `json:"startTime"`
@@ -308,7 +308,7 @@ type StageExecution struct {
 }
 
 // FunctionExecution represents execution of a function within a stage
-type FunctionExecution struct {
+type OrchestrationFunctionExecution struct {
 	Name        string                  `json:"name"`
 	Status      ExecutionStatus         `json:"status"`
 	StartTime   time.Time               `json:"startTime"`
@@ -333,7 +333,7 @@ type DependencyStatus struct {
 }
 
 // ExecutionCheckpoint represents a pipeline checkpoint
-type ExecutionCheckpoint struct {
+type OrchestrationExecutionCheckpoint struct {
 	ID        string                 `json:"id"`
 	Stage     string                 `json:"stage"`
 	Timestamp time.Time              `json:"timestamp"`
@@ -350,7 +350,7 @@ type PipelineResourceUsage struct {
 }
 
 // ExecutionResult represents an execution result
-type ExecutionResult struct {
+type OrchestrationExecutionResult struct {
 	Stage     string                 `json:"stage"`
 	Function  string                 `json:"function,omitempty"`
 	Type      string                 `json:"type"`
@@ -360,7 +360,7 @@ type ExecutionResult struct {
 }
 
 // ExecutionError represents an execution error
-type ExecutionError struct {
+type OrchestrationExecutionError struct {
 	Code        string                 `json:"code"`
 	Message     string                 `json:"message"`
 	Stage       string                 `json:"stage,omitempty"`
@@ -488,7 +488,7 @@ type PipelineStateManager struct {
 }
 
 // StateStorage interface for state persistence
-type StateStorage interface {
+type OrchestrationStateStorage interface {
 	Save(ctx context.Context, key string, data interface{}) error
 	Load(ctx context.Context, key string, data interface{}) error
 	Delete(ctx context.Context, key string) error
@@ -647,7 +647,7 @@ func NewPipelineOrchestrator(config *PipelineOrchestratorConfig, functionManager
 	}
 
 	// Initialize state manager
-	var storage StateStorage = &MemoryStateStorage{
+	var storage StateStorage = &OrchestrationMemoryStateStorage{
 		data: make(map[string][]byte),
 	}
 
@@ -1462,17 +1462,17 @@ func validatePipelineOrchestratorConfig(config *PipelineOrchestratorConfig) erro
 	return nil
 }
 
-func generateExecutionID() string {
+func generateOrchestrationExecutionID() string {
 	return fmt.Sprintf("pipeline-%d", time.Now().UnixNano())
 }
 
-// MemoryStateStorage implements StateStorage for in-memory storage
-type MemoryStateStorage struct {
+// OrchestrationMemoryStateStorage implements StateStorage for in-memory storage
+type OrchestrationMemoryStateStorage struct {
 	data map[string][]byte
 	mu   sync.RWMutex
 }
 
-func (s *MemoryStateStorage) Save(ctx context.Context, key string, data interface{}) error {
+func (s *OrchestrationMemoryStateStorage) Save(ctx context.Context, key string, data interface{}) error {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return err
@@ -1485,7 +1485,7 @@ func (s *MemoryStateStorage) Save(ctx context.Context, key string, data interfac
 	return nil
 }
 
-func (s *MemoryStateStorage) Load(ctx context.Context, key string, data interface{}) error {
+func (s *OrchestrationMemoryStateStorage) Load(ctx context.Context, key string, data interface{}) error {
 	s.mu.RLock()
 	jsonData, exists := s.data[key]
 	s.mu.RUnlock()
@@ -1497,14 +1497,14 @@ func (s *MemoryStateStorage) Load(ctx context.Context, key string, data interfac
 	return json.Unmarshal(jsonData, data)
 }
 
-func (s *MemoryStateStorage) Delete(ctx context.Context, key string) error {
+func (s *OrchestrationMemoryStateStorage) Delete(ctx context.Context, key string) error {
 	s.mu.Lock()
 	delete(s.data, key)
 	s.mu.Unlock()
 	return nil
 }
 
-func (s *MemoryStateStorage) List(ctx context.Context, prefix string) ([]string, error) {
+func (s *OrchestrationMemoryStateStorage) List(ctx context.Context, prefix string) ([]string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 

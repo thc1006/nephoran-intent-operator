@@ -7,10 +7,8 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/types"
+	apitypes "k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
-	// 	nephiov1alpha1 "github.com/nephio-project/nephio/api/v1alpha1" // DISABLED: external dependency not available
 )
 
 // PackagePropagator manages multi-cluster package deployment
@@ -42,10 +40,10 @@ type DeploymentOptions struct {
 // DeployPackage propagates a package across multiple clusters
 func (p *PackagePropagator) DeployPackage(
 	ctx context.Context,
-	packageRevision *porchv1alpha1.PackageRevision,
-	targetClusters []types.NamespacedName,
+	packageRevision *PackageRevision,
+	targetClusters []apitypes.NamespacedName,
 	opts DeploymentOptions,
-) (*nephiov1alpha1.MultiClusterDeploymentStatus, error) {
+) (*MultiClusterDeploymentStatus, error) {
 	// 1. Validate input and set defaults
 	if err := p.validateDeploymentOptions(&opts); err != nil {
 		return nil, fmt.Errorf("invalid deployment options: %w", err)
@@ -73,12 +71,12 @@ func (p *PackagePropagator) DeployPackage(
 // deploySequential deploys packages to clusters sequentially
 func (p *PackagePropagator) deploySequential(
 	ctx context.Context,
-	packageRevision *porchv1alpha1.PackageRevision,
-	clusters []types.NamespacedName,
+	packageRevision *PackageRevision,
+	clusters []apitypes.NamespacedName,
 	opts DeploymentOptions,
-) (*nephiov1alpha1.MultiClusterDeploymentStatus, error) {
-	deploymentStatus := &nephiov1alpha1.MultiClusterDeploymentStatus{
-		Clusters: make(map[string]nephiov1alpha1.ClusterDeploymentStatus),
+) (*MultiClusterDeploymentStatus, error) {
+	deploymentStatus := &MultiClusterDeploymentStatus{
+		Clusters: make(map[string]ClusterDeploymentStatus),
 	}
 
 	for _, cluster := range clusters {
@@ -107,12 +105,12 @@ func (p *PackagePropagator) deploySequential(
 // deployParallel deploys packages to multiple clusters concurrently
 func (p *PackagePropagator) deployParallel(
 	ctx context.Context,
-	packageRevision *porchv1alpha1.PackageRevision,
-	clusters []types.NamespacedName,
+	packageRevision *PackageRevision,
+	clusters []apitypes.NamespacedName,
 	opts DeploymentOptions,
-) (*nephiov1alpha1.MultiClusterDeploymentStatus, error) {
-	deploymentStatus := &nephiov1alpha1.MultiClusterDeploymentStatus{
-		Clusters: make(map[string]nephiov1alpha1.ClusterDeploymentStatus),
+) (*MultiClusterDeploymentStatus, error) {
+	deploymentStatus := &MultiClusterDeploymentStatus{
+		Clusters: make(map[string]ClusterDeploymentStatus),
 	}
 	var mu sync.Mutex
 	var wg sync.WaitGroup
@@ -124,7 +122,7 @@ func (p *PackagePropagator) deployParallel(
 		wg.Add(1)
 		sem <- struct{}{}
 
-		go func(cluster types.NamespacedName) {
+		go func(cluster apitypes.NamespacedName) {
 			defer wg.Done()
 			defer func() { <-sem }()
 
@@ -159,10 +157,10 @@ func (p *PackagePropagator) deployParallel(
 // deployCanary implements a canary deployment strategy
 func (p *PackagePropagator) deployCanary(
 	ctx context.Context,
-	packageRevision *porchv1alpha1.PackageRevision,
-	clusters []types.NamespacedName,
+	packageRevision *PackageRevision,
+	clusters []apitypes.NamespacedName,
 	opts DeploymentOptions,
-) (*nephiov1alpha1.MultiClusterDeploymentStatus, error) {
+) (*MultiClusterDeploymentStatus, error) {
 	// Implement canary deployment logic
 	// 1. Select a subset of clusters for initial deployment
 	// 2. Monitor health and performance
@@ -173,7 +171,7 @@ func (p *PackagePropagator) deployCanary(
 // rollbackDeployment handles rollback of a multi-cluster deployment
 func (p *PackagePropagator) rollbackDeployment(
 	ctx context.Context,
-	status *nephiov1alpha1.MultiClusterDeploymentStatus,
+	status *MultiClusterDeploymentStatus,
 ) error {
 	// Implement rollback logic for deployed clusters
 	return nil

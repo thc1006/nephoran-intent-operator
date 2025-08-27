@@ -254,13 +254,19 @@ func (m *CNFIntegrationManager) isCNFIntent(networkIntent *nephoranv1.NetworkInt
 	}
 
 	// Check processed parameters for CNF-related content
-	if networkIntent.Spec.ProcessedParameters != nil {
-		if networkIntent.Spec.ProcessedParameters.NetworkFunction != "" {
-			cnfFunctions := []string{"amf", "smf", "upf", "nrf", "ausf", "udm", "o-du", "o-cu", "ric"}
-			networkFunction := strings.ToLower(networkIntent.Spec.ProcessedParameters.NetworkFunction)
-			for _, cnfFunc := range cnfFunctions {
-				if strings.Contains(networkFunction, cnfFunc) {
-					return true
+	if networkIntent.Spec.ProcessedParameters != nil && networkIntent.Spec.ProcessedParameters.Raw != nil {
+		// Try to parse the raw extension as a map to look for network function info
+		var params map[string]interface{}
+		if err := json.Unmarshal(networkIntent.Spec.ProcessedParameters.Raw, &params); err == nil {
+			if networkFunction, exists := params["networkFunction"]; exists {
+				if networkFunctionStr, ok := networkFunction.(string); ok && networkFunctionStr != "" {
+					cnfFunctions := []string{"amf", "smf", "upf", "nrf", "ausf", "udm", "o-du", "o-cu", "ric"}
+					networkFunctionLower := strings.ToLower(networkFunctionStr)
+					for _, cnfFunc := range cnfFunctions {
+						if strings.Contains(networkFunctionLower, cnfFunc) {
+							return true
+						}
+					}
 				}
 			}
 		}
@@ -453,7 +459,7 @@ func (m *CNFIntegrationManager) createCNFDeploymentResource(networkIntent *nepho
 		Spec: nephoranv1.CNFDeploymentSpec{
 			CNFType:            cnfSpec.CNFType,
 			Function:           cnfSpec.Function,
-			DeploymentStrategy: cnfSpec.DeploymentStrategy,
+			DeploymentStrategy: nephoranv1.CNFDeploymentStrategy(cnfSpec.DeploymentStrategy),
 			Replicas:           1, // Default replicas
 			Resources:          m.convertResourceIntent(cnfSpec.Resources),
 			TargetNamespace:    targetNamespace,
@@ -704,12 +710,12 @@ func (m *CNFIntegrationManager) handleProcessingError(ctx context.Context, netwo
 func (m *CNFIntegrationManager) updateNetworkIntentWithCNFStatus(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, deploymentContext *CNFDeploymentContext) error {
 	// Add CNF deployment information to NetworkIntent status
 	if networkIntent.Status.DeployedComponents == nil {
-		networkIntent.Status.DeployedComponents = []nephoranv1.TargetComponent{}
+		networkIntent.Status.DeployedComponents = []nephoranv1.NetworkTargetComponent{}
 	}
 
 	// Map CNF functions to target components
 	for _, cnfDeployment := range deploymentContext.CNFDeployments {
-		targetComponent := m.mapCNFFunctionToTargetComponent(cnfDeployment.Spec.Function)
+		targetComponent := m.mapCNFFunctionToNetworkTargetComponent(cnfDeployment.Spec.Function)
 		if targetComponent != "" {
 			// Check if component is already in the list
 			found := false
@@ -725,35 +731,36 @@ func (m *CNFIntegrationManager) updateNetworkIntentWithCNFStatus(ctx context.Con
 		}
 	}
 
-	// Update processing duration
-	if deploymentContext.ProcessingResult != nil {
-		duration := time.Since(deploymentContext.StartTime)
-		networkIntent.Status.ProcessingDuration = &metav1.Duration{Duration: duration}
-	}
+	// Update processing duration - Note: ProcessingDuration field not defined in NetworkIntentStatus
+	// if deploymentContext.ProcessingResult != nil {
+	//	duration := time.Since(deploymentContext.StartTime)
+	//	networkIntent.Status.ProcessingDuration = &metav1.Duration{Duration: duration}
+	// }
 
 	return m.Client.Status().Update(ctx, networkIntent)
 }
 
-// mapCNFFunctionToTargetComponent maps CNF functions to TargetComponent enum
-func (m *CNFIntegrationManager) mapCNFFunctionToTargetComponent(function nephoranv1.CNFFunction) nephoranv1.TargetComponent {
-	mapping := map[nephoranv1.CNFFunction]nephoranv1.TargetComponent{
-		nephoranv1.CNFFunctionAMF:       nephoranv1.TargetComponentAMF,
-		nephoranv1.CNFFunctionSMF:       nephoranv1.TargetComponentSMF,
-		nephoranv1.CNFFunctionUPF:       nephoranv1.TargetComponentUPF,
-		nephoranv1.CNFFunctionNRF:       nephoranv1.TargetComponentNRF,
-		nephoranv1.CNFFunctionAUSF:      nephoranv1.TargetComponentAUSF,
-		nephoranv1.CNFFunctionUDM:       nephoranv1.TargetComponentUDM,
-		nephoranv1.CNFFunctionPCF:       nephoranv1.TargetComponentPCF,
-		nephoranv1.CNFFunctionNSSF:      nephoranv1.TargetComponentNSSF,
-		nephoranv1.CNFFunctionODU:       nephoranv1.TargetComponentODU,
-		nephoranv1.CNFFunctionOCUCP:     nephoranv1.TargetComponentOCUCP,
-		nephoranv1.CNFFunctionOCUUP:     nephoranv1.TargetComponentOCUUP,
-		nephoranv1.CNFFunctionNearRTRIC: nephoranv1.TargetComponentNearRTRIC,
-		nephoranv1.CNFFunctionNonRTRIC:  nephoranv1.TargetComponentNonRTRIC,
-		nephoranv1.CNFFunctionOENB:      nephoranv1.TargetComponentOENB,
-		nephoranv1.CNFFunctionSMO:       nephoranv1.TargetComponentSMO,
-		nephoranv1.CNFFunctionRApp:      nephoranv1.TargetComponentRApp,
-		nephoranv1.CNFFunctionXApp:      nephoranv1.TargetComponentXApp,
+// mapCNFFunctionToNetworkTargetComponent maps CNF functions to NetworkTargetComponent enum
+func (m *CNFIntegrationManager) mapCNFFunctionToNetworkTargetComponent(function nephoranv1.CNFFunction) nephoranv1.NetworkTargetComponent {
+	mapping := map[nephoranv1.CNFFunction]nephoranv1.NetworkTargetComponent{
+		nephoranv1.CNFFunctionAMF:       nephoranv1.NetworkTargetComponentAMF,
+		nephoranv1.CNFFunctionSMF:       nephoranv1.NetworkTargetComponentSMF,
+		nephoranv1.CNFFunctionUPF:       nephoranv1.NetworkTargetComponentUPF,
+		nephoranv1.CNFFunctionNRF:       nephoranv1.NetworkTargetComponentNRF,
+		nephoranv1.CNFFunctionAUSF:      nephoranv1.NetworkTargetComponentAUSF,
+		nephoranv1.CNFFunctionUDM:       nephoranv1.NetworkTargetComponentUDM,
+		nephoranv1.CNFFunctionPCF:       nephoranv1.NetworkTargetComponentPCF,
+		nephoranv1.CNFFunctionNSSF:      nephoranv1.NetworkTargetComponentNSSF,
+		nephoranv1.CNFFunctionODU:       nephoranv1.NetworkTargetComponentDU,
+		nephoranv1.CNFFunctionOCUCP:     nephoranv1.NetworkTargetComponentCUCP,
+		nephoranv1.CNFFunctionOCUUP:     nephoranv1.NetworkTargetComponentCUUP,
+		// Note: These constants don't exist in NetworkTargetComponent, using generic component
+		// nephoranv1.CNFFunctionNearRTRIC: nephoranv1.NetworkTargetComponentNearRTRIC,
+		// nephoranv1.CNFFunctionNonRTRIC:  nephoranv1.NetworkTargetComponentNonRTRIC,
+		// nephoranv1.CNFFunctionOENB:      nephoranv1.NetworkTargetComponentENB,
+		// nephoranv1.CNFFunctionSMO:       nephoranv1.NetworkTargetComponentSMO,
+		// nephoranv1.CNFFunctionRApp:      nephoranv1.NetworkTargetComponentRAPP,
+		// nephoranv1.CNFFunctionXApp:      nephoranv1.NetworkTargetComponentXAPP,
 	}
 
 	return mapping[function]

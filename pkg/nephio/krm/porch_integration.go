@@ -604,7 +604,7 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 	pipeline := &PipelineDefinition{
 		Name:        fmt.Sprintf("%s-pipeline", packageRevision.Spec.PackageName),
 		Description: fmt.Sprintf("Function pipeline for %s intent", intent.Spec.IntentType),
-		Stages:      make([]PipelineStageDefinition, 0),
+		Stages:      make([]PipelineStage, 0),
 		Execution:   PipelineExecutionModeDAG,
 	}
 
@@ -612,7 +612,7 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 	if intent.Spec.Extensions != nil {
 		if extensions, ok := intent.Spec.Extensions.(*porch.NetworkIntentExtensions); ok {
 			if extensions.ORANCompliance != nil {
-				oranStage := PipelineStageDefinition{
+				oranStage := PipelineStage{
 					Name:        "oran-compliance-validation",
 					Description: "Validate O-RAN compliance requirements",
 					Functions: []PipelineFunctionDefinition{
@@ -647,7 +647,7 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 	if intent.Spec.Extensions != nil {
 		if extensions, ok := intent.Spec.Extensions.(*porch.NetworkIntentExtensions); ok {
 			if extensions.NetworkSlice != nil {
-				sliceStage := PipelineStageDefinition{
+				sliceStage := PipelineStage{
 					Name:        "network-slice-optimization",
 					Description: "Optimize network slice configuration",
 					Functions: []PipelineFunctionDefinition{
@@ -674,7 +674,7 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 	}
 
 	// Stage 4: Multi-Vendor Configuration Normalization
-	normalizationStage := PipelineStageDefinition{
+	normalizationStage := PipelineStage{
 		Name:        "multi-vendor-normalization",
 		Description: "Normalize configurations for multi-vendor compatibility",
 		Functions: []PipelineFunctionDefinition{
@@ -696,7 +696,7 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 
 	// Final Stage: 5G Core Validation
 	if pim.is5GCoreIntent(intent) {
-		coreStage := PipelineStageDefinition{
+		coreStage := PipelineStage{
 			Name:        "5g-core-validation",
 			Description: "Validate 5G Core network function configurations",
 			Functions: []PipelineFunctionDefinition{
@@ -727,10 +727,10 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 }
 
 // buildIntentSpecificStage builds a pipeline stage specific to the intent type
-func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context, intent *v1.NetworkIntent) *PipelineStageDefinition {
+func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context, intent *v1.NetworkIntent) *PipelineStage {
 	switch intent.Spec.IntentType {
 	case v1.NetworkIntentTypeDeployment:
-		return &PipelineStageDefinition{
+		return &PipelineStage{
 			Name:        "deployment-configuration",
 			Description: "Configure deployment-specific parameters",
 			Functions: []PipelineFunctionDefinition{
@@ -752,7 +752,7 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 		}
 
 	case v1.NetworkIntentTypeConfiguration:
-		return &PipelineStageDefinition{
+		return &PipelineStage{
 			Name:        "configuration-validation",
 			Description: "Validate and optimize configuration parameters",
 			Functions: []PipelineFunctionDefinition{
@@ -773,7 +773,7 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 		}
 
 	case v1.NetworkIntentTypeScaling:
-		return &PipelineStageDefinition{
+		return &PipelineStage{
 			Name:        "scaling-optimization",
 			Description: "Optimize scaling configuration and resource allocation",
 			Functions: []PipelineFunctionDefinition{
@@ -795,7 +795,7 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 
 	default:
 		// Generic configuration stage for unknown intent types
-		return &PipelineStageDefinition{
+		return &PipelineStage{
 			Name:        "generic-configuration",
 			Description: "Generic configuration processing",
 			Functions: []PipelineFunctionDefinition{

@@ -163,7 +163,7 @@ type Executor struct {
 }
 
 // SecurityPolicy enforces security constraints
-type SecurityPolicy struct {
+type RuntimeSecurityPolicy struct {
 	allowedImages       map[string]bool
 	blockedCapabilities map[string]bool
 	maxResourceLimits   ResourceLimits
@@ -937,7 +937,7 @@ func validateRuntimeConfig(config *RuntimeConfig) error {
 	return nil
 }
 
-func generateExecutionID() string {
+func generateRuntimeExecutionID() string {
 	return fmt.Sprintf("exec-%d-%d", time.Now().UnixNano(), runtime.NumGoroutine())
 }
 

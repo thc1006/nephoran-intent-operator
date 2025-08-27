@@ -7,25 +7,23 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/types"
+	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
-	// 	nephiov1alpha1 "github.com/nephio-project/nephio/api/v1alpha1" // DISABLED: external dependency not available
 )
 
 // ClusterManager manages cluster registration, discovery, and lifecycle
 type ClusterManager struct {
 	client      client.Client
 	logger      logr.Logger
-	clusters    map[types.NamespacedName]*ClusterInfo
+	clusters    map[apitypes.NamespacedName]*ClusterInfo
 	clusterLock sync.RWMutex
 }
 
 // ClusterInfo represents detailed information about a managed cluster
 type ClusterInfo struct {
-	Name                types.NamespacedName
+	Name                apitypes.NamespacedName
 	Kubeconfig          *rest.Config
 	ClientSet           *kubernetes.Clientset
 	Capabilities        ClusterCapabilities
@@ -80,7 +78,7 @@ type ClusterSelectionCriteria struct {
 func (cm *ClusterManager) RegisterCluster(
 	ctx context.Context,
 	clusterConfig *rest.Config,
-	name types.NamespacedName,
+	name apitypes.NamespacedName,
 ) (*ClusterInfo, error) {
 	// Create Kubernetes client set
 	clientSet, err := kubernetes.NewForConfig(clusterConfig)
@@ -116,9 +114,9 @@ func (cm *ClusterManager) RegisterCluster(
 // SelectTargetClusters intelligently selects clusters for package deployment
 func (cm *ClusterManager) SelectTargetClusters(
 	ctx context.Context,
-	candidates []types.NamespacedName,
-	packageRevision *porchv1alpha1.PackageRevision,
-) ([]types.NamespacedName, error) {
+	candidates []apitypes.NamespacedName,
+	packageRevision *PackageRevision,
+) ([]apitypes.NamespacedName, error) {
 	// 1. Validate input clusters
 	if len(candidates) == 0 {
 		return nil, fmt.Errorf("no target clusters provided")
@@ -128,7 +126,7 @@ func (cm *ClusterManager) SelectTargetClusters(
 	selectionCriteria := cm.extractSelectionCriteria(packageRevision)
 
 	// 3. Filter and rank clusters based on criteria
-	selectedClusters := make([]types.NamespacedName, 0)
+	selectedClusters := make([]apitypes.NamespacedName, 0)
 
 	cm.clusterLock.RLock()
 	defer cm.clusterLock.RUnlock()
@@ -232,7 +230,7 @@ func (cm *ClusterManager) performClusterHealthCheck(ctx context.Context) {
 	var wg sync.WaitGroup
 	for name, cluster := range cm.clusters {
 		wg.Add(1)
-		go func(name types.NamespacedName, cluster *ClusterInfo) {
+		go func(name apitypes.NamespacedName, cluster *ClusterInfo) {
 			defer wg.Done()
 
 			healthStatus := cm.checkClusterHealth(ctx, cluster)
@@ -282,7 +280,7 @@ func (cm *ClusterManager) collectResourceUtilization(
 }
 
 func (cm *ClusterManager) extractSelectionCriteria(
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *PackageRevision,
 ) ClusterSelectionCriteria {
 	// Extract cluster selection criteria from package metadata
 	return ClusterSelectionCriteria{}
@@ -296,6 +294,6 @@ func NewClusterManager(
 	return &ClusterManager{
 		client:   client,
 		logger:   logger,
-		clusters: make(map[types.NamespacedName]*ClusterInfo),
+		clusters: make(map[apitypes.NamespacedName]*ClusterInfo),
 	}
 }

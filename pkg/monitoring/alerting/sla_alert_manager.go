@@ -719,7 +719,7 @@ func (sam *SLAAlertManager) createAlert(ctx context.Context, slaType SLAType, ta
 	context := sam.enrichAlertContext(ctx, slaType, currentValue)
 
 	// Calculate business impact
-	businessImpact := sam.calculateBusinessImpact(slaType, target, currentValue, errorBudget)
+	businessImpact := sam.calculateBusinessImpact(slaType, target, currentValue, errorBudget.ConsumedPercent)
 
 	alert := &SLAAlert{
 		ID:             alertID,
@@ -741,7 +741,7 @@ func (sam *SLAAlertManager) createAlert(ctx context.Context, slaType SLAType, ta
 		Fingerprint:    sam.generateFingerprint(slaType, window),
 		Hash:           sam.generateHash(alertID, now),
 		BusinessImpact: businessImpact,
-		RunbookURL:     sam.generateRunbookURL(slaType, window.Severity),
+		RunbookURL:     sam.generateRunbookURL(target),
 		RunbookSteps:   sam.generateRunbookSteps(slaType, window.Severity),
 	}
 
@@ -766,7 +766,7 @@ func (sam *SLAAlertManager) processAlert(ctx context.Context, alert *SLAAlert) {
 	}
 
 	// Check if alert should be suppressed
-	if sam.shouldSuppressAlert(alert) {
+	if sam.shouldSuppressAlert(alert.SLAType) {
 		sam.suppressedAlerts[alert.ID] = alert
 		sam.mu.Unlock()
 		sam.logger.InfoWithContext("Alert suppressed",
@@ -906,10 +906,14 @@ func (sam *SLAAlertManager) getCurrentSLAValue(ctx context.Context, slaType SLAT
 // isWindowViolating checks if the current window is violating the SLA
 func (sam *SLAAlertManager) isWindowViolating(burnRates BurnRateInfo, window AlertWindow) bool {
 	// Check if any burn rate exceeds the threshold for this window
-	for _, rate := range burnRates.BurnRates {
-		if rate.BurnRate > window.BurnRateThreshold {
-			return true
-		}
+	if burnRates.ShortWindow.BurnRate > window.BurnRate {
+		return true
+	}
+	if burnRates.MediumWindow.BurnRate > window.BurnRate {
+		return true
+	}
+	if burnRates.LongWindow.BurnRate > window.BurnRate {
+		return true
 	}
 	return false
 }
@@ -920,70 +924,88 @@ func (sam *SLAAlertManager) calculateCompliance(currentValue float64, target SLA
 }
 
 // calculateErrorBudget calculates the remaining error budget
-func (sam *SLAAlertManager) calculateErrorBudget(currentValue float64, target SLATarget, burnRates BurnRateInfo) float64 {
-	remainingBudget := 1 - target.Threshold
-	consumedBudget := target.Threshold - currentValue
+func (sam *SLAAlertManager) calculateErrorBudget(currentValue float64, target SLATarget, burnRates BurnRateInfo) ErrorBudgetInfo {
+	remainingBudget := 1 - target.Target
+	consumedBudget := target.Target - currentValue
 	if consumedBudget < 0 {
 		consumedBudget = 0
 	}
-	return (remainingBudget - consumedBudget) / remainingBudget * 100
+	
+	return ErrorBudgetInfo{
+		Total:           remainingBudget,
+		Remaining:       remainingBudget - consumedBudget,
+		Consumed:        consumedBudget,
+		ConsumedPercent: (consumedBudget / remainingBudget) * 100,
+		TimeToExhaustion: nil, // Would be calculated based on burn rate
+	}
 }
 
 // enrichAlertContext adds additional context to the alert
-func (sam *SLAAlertManager) enrichAlertContext(ctx context.Context, slaType SLAType, currentValue float64) map[string]interface{} {
+func (sam *SLAAlertManager) enrichAlertContext(ctx context.Context, slaType SLAType, currentValue float64) AlertContext {
 	// Add additional context based on the target and current conditions
-	context := make(map[string]interface{})
-	context["sla_type"] = string(slaType)
-	context["current_value"] = currentValue
-	context["enriched_at"] = time.Now()
-	return context
+	return AlertContext{
+		Component:       "nephoran-operator",
+		Service:         string(slaType),
+		Region:          "default",
+		Environment:     "production",
+		RelatedMetrics:  []MetricSnapshot{},
+		RecentIncidents: []IncidentSummary{},
+		DashboardLinks:  []string{},
+		LogQueries:      []LogQuery{},
+	}
 }
 
 // calculateBusinessImpact calculates the business impact of the SLA violation
-func (sam *SLAAlertManager) calculateBusinessImpact(slaType SLAType, target SLATarget, currentValue float64, compliance float64) string {
-	deficit := target.Threshold - currentValue
-	if deficit <= 0 {
-		return "none"
+func (sam *SLAAlertManager) calculateBusinessImpact(slaType SLAType, target SLATarget, currentValue float64, errorBudget float64) BusinessImpactInfo {
+	deficit := target.Target - currentValue
+	severity := "none"
+	if deficit > 0 {
+		if deficit < 0.001 {
+			severity = "low"
+		} else if deficit < 0.005 {
+			severity = "medium"
+		} else {
+			severity = "high"
+		}
 	}
 	
-	if deficit < 0.001 {
-		return "low"
-	} else if deficit < 0.005 {
-		return "medium"
-	} else {
-		return "high"
+	return BusinessImpactInfo{
+		Severity:       severity,
+		AffectedUsers:  0, // Would be calculated from actual metrics
+		RevenueImpact:  0.0,
+		SLABreach:      deficit > 0,
+		CustomerFacing: true,
+		ServiceTier:    "production",
 	}
 }
 
 // generateAlertName generates a descriptive name for the alert
-func (sam *SLAAlertManager) generateAlertName(target SLATarget) string {
-	return fmt.Sprintf("SLA Violation - %s", target.Name)
+func (sam *SLAAlertManager) generateAlertName(slaType SLAType, severity AlertSeverity) string {
+	return fmt.Sprintf("SLA Violation - %s (%s)", string(slaType), string(severity))
 }
 
 // generateAlertDescription generates a detailed description for the alert
-func (sam *SLAAlertManager) generateAlertDescription(target SLATarget, currentValue float64, compliance float64, errorBudget float64) string {
-	return fmt.Sprintf("SLA %s is violating threshold %.3f with current value %.3f (%.2f%% compliance, %.2f%% error budget remaining)",
-		target.Name, target.Threshold, currentValue, compliance, errorBudget)
+func (sam *SLAAlertManager) generateAlertDescription(slaType SLAType, currentValue float64, target SLATarget, window AlertWindow) string {
+	return fmt.Sprintf("SLA %s is violating threshold %.3f with current value %.3f",
+		string(slaType), target.Target, currentValue)
 }
 
 // generateAlertLabels generates labels for the alert
-func (sam *SLAAlertManager) generateAlertLabels(target SLATarget, businessImpact string) map[string]string {
+func (sam *SLAAlertManager) generateAlertLabels(slaType SLAType, target SLATarget, window AlertWindow) map[string]string {
 	return map[string]string{
-		"sla_name":        target.Name,
-		"sla_type":        string(target.Type),
-		"business_impact": businessImpact,
-		"severity":        sam.calculateSeverity(businessImpact),
+		"sla_name":    string(slaType),
+		"sla_type":    string(slaType),
+		"severity":    string(window.Severity),
+		"window":      "alert-window",
 	}
 }
 
 // generateAlertAnnotations generates annotations for the alert
-func (sam *SLAAlertManager) generateAlertAnnotations(target SLATarget, description string, compliance float64, errorBudget float64) map[string]string {
+func (sam *SLAAlertManager) generateAlertAnnotations(slaType SLAType, target SLATarget, window AlertWindow) map[string]string {
 	return map[string]string{
-		"description":    description,
-		"runbook":        sam.getRunbookURL(target),
-		"compliance":     fmt.Sprintf("%.2f%%", compliance),
-		"error_budget":   fmt.Sprintf("%.2f%%", errorBudget),
-		"dashboard":      sam.getDashboardURL(target),
+		"description": fmt.Sprintf("SLA %s violation", string(slaType)),
+		"runbook":     sam.getRunbookURL(target),
+		"dashboard":   sam.getDashboardURL(target),
 	}
 }
 
@@ -1003,10 +1025,72 @@ func (sam *SLAAlertManager) calculateSeverity(businessImpact string) string {
 
 // getRunbookURL returns the runbook URL for the SLA target
 func (sam *SLAAlertManager) getRunbookURL(target SLATarget) string {
-	return fmt.Sprintf("https://runbooks.example.com/sla/%s", target.Name)
+	return "https://runbooks.example.com/sla/default"
 }
 
 // getDashboardURL returns the dashboard URL for the SLA target
 func (sam *SLAAlertManager) getDashboardURL(target SLATarget) string {
-	return fmt.Sprintf("https://dashboards.example.com/sla/%s", target.Name)
+	return "https://dashboards.example.com/sla/default"
 }
+
+// generateRunbookURL returns the runbook URL for the SLA target
+func (sam *SLAAlertManager) generateRunbookURL(target SLATarget) string {
+	return "https://runbooks.example.com/sla/default"
+}
+
+// generateRunbookSteps returns runbook steps for the alert
+func (sam *SLAAlertManager) generateRunbookSteps(slaType SLAType, severity AlertSeverity) []string {
+	return []string{
+		fmt.Sprintf("Check %s metrics dashboard", string(slaType)),
+		"Verify system health status",
+		"Review recent deployments",
+		"Check error logs",
+		"Contact on-call engineer if needed",
+	}
+}
+
+// shouldSuppressAlert checks if an alert should be suppressed due to maintenance
+func (sam *SLAAlertManager) shouldSuppressAlert(slaType SLAType) bool {
+	// Check maintenance windows
+	now := time.Now()
+	for _, window := range sam.maintenanceWindows {
+		if now.After(window.StartTime) && now.Before(window.EndTime) {
+			// Check if this SLA type is covered by the maintenance window
+			for _, service := range window.Services {
+				if service == string(slaType) || service == "*" {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// updateMaintenanceWindows updates the maintenance windows configuration
+func (sam *SLAAlertManager) updateMaintenanceWindows() {
+	// In production, this would load from configuration or API
+	// For now, use empty maintenance windows
+	sam.maintenanceWindows = []*MaintenanceWindow{}
+}
+
+// updateMetrics updates the internal metrics
+func (sam *SLAAlertManager) updateMetrics() {
+	// Update alerting metrics
+	if sam.metrics != nil && sam.metrics.AlertsGenerated != nil {
+		sam.metrics.AlertsGenerated.WithLabelValues("sla_violation").Inc()
+	}
+}
+
+// cleanupOldAlerts removes old resolved alerts from memory
+func (sam *SLAAlertManager) cleanupOldAlerts() {
+	cutoff := time.Now().Add(-24 * time.Hour) // Keep alerts for 24 hours
+	sam.mu.Lock()
+	defer sam.mu.Unlock()
+	
+	for id, alert := range sam.activeAlerts {
+		if alert.EndsAt != nil && alert.EndsAt.Before(cutoff) {
+			delete(sam.activeAlerts, id)
+		}
+	}
+}
+

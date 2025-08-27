@@ -14,6 +14,68 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
+// MaintenanceWindow represents a scheduled maintenance window
+type MaintenanceWindow struct {
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	StartTime   time.Time `json:"start_time"`
+	EndTime     time.Time `json:"end_time"`
+	Recurrence  string    `json:"recurrence,omitempty"`
+}
+
+// BusinessImpactScore represents business impact metrics
+type BusinessImpactScore struct {
+	OverallScore        float64 `json:"overall_score"`
+	CustomerFacing      bool    `json:"customer_facing"`
+	RevenueImpact       float64 `json:"revenue_impact"`
+	ServiceDependencies int     `json:"service_dependencies"`
+}
+
+// SLAAlert represents an SLA violation alert
+type SLAAlert struct {
+	ID             string              `json:"id"`
+	Name           string              `json:"name"`
+	Description    string              `json:"description"`
+	Severity       AlertSeverity       `json:"severity"`
+	SLAType        SLAType             `json:"sla_type"`
+	State          AlertState          `json:"state"`
+	BusinessImpact BusinessImpactScore `json:"business_impact"`
+	CreatedAt      time.Time           `json:"created_at"`
+	UpdatedAt      time.Time           `json:"updated_at"`
+	Metadata       map[string]string   `json:"metadata,omitempty"`
+}
+
+// AlertState represents the current state of an alert
+type AlertState string
+
+const (
+	AlertStatePending  AlertState = "pending"
+	AlertStateFiring   AlertState = "firing"
+	AlertStateResolved AlertState = "resolved"
+)
+
+// SLAType represents different types of SLA metrics
+type SLAType string
+
+const (
+	SLATypeAvailability SLAType = "availability"
+	SLATypeLatency     SLAType = "latency"
+	SLAThroughput      SLAType = "throughput"
+	SLAErrorRate       SLAType = "error_rate"
+)
+
+// AlertSeverity represents the severity of an alert
+type AlertSeverity string
+
+const (
+	AlertSeverityInfo     AlertSeverity = "info"
+	AlertSeverityWarning  AlertSeverity = "warning"
+	AlertSeverityMajor    AlertSeverity = "major"
+	AlertSeverityCritical AlertSeverity = "critical"
+	AlertSeverityUrgent   AlertSeverity = "urgent"
+)
+
 // EscalationEngine manages automated escalation policies and workflows
 // providing intelligent, time-based escalation with business context awareness
 type EscalationEngine struct {
