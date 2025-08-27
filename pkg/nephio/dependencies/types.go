@@ -3370,13 +3370,14 @@ type CompatibilityRule struct {
 
 // RolloutConfig represents configuration for rollout strategy
 type RolloutConfig struct {
-	Strategy         RolloutStrategy `json:"strategy"`
-	BatchSize        int             `json:"batchSize"`
-	BatchDelay       time.Duration   `json:"batchDelay"`
-	MaxConcurrency   int             `json:"maxConcurrency"`
-	FailureThreshold float64         `json:"failureThreshold"`
-	RollbackEnabled  bool            `json:"rollbackEnabled"`
-	CanaryConfig     *CanaryConfig   `json:"canaryConfig,omitempty"`
+	Strategy            RolloutStrategy `json:"strategy"`
+	BatchSize           int             `json:"batchSize"`
+	BatchDelay          time.Duration   `json:"batchDelay"`
+	MaxConcurrency      int             `json:"maxConcurrency"`
+	FailureThreshold    float64         `json:"failureThreshold"`
+	RollbackEnabled     bool            `json:"rollbackEnabled"`
+	EnableStagedRollout bool            `json:"enableStagedRollout"`
+	CanaryConfig        *CanaryConfig   `json:"canaryConfig,omitempty"`
 }
 
 // RolloutStrategy defines rollout strategies
@@ -4005,6 +4006,7 @@ type UpdatePlan struct {
 	ID                string               `json:"id"`
 	Description       string               `json:"description"`
 	Updates           []*PlannedUpdate     `json:"updates"`
+	UpdateSteps       []*UpdateStep        `json:"updateSteps,omitempty"`
 	Dependencies      []*UpdateDependency  `json:"dependencies,omitempty"`
 	EstimatedDuration time.Duration        `json:"estimatedDuration"`
 	RiskAssessment    *RiskAssessment      `json:"riskAssessment,omitempty"`
@@ -4314,7 +4316,52 @@ type UpdaterMetrics struct {
 	ThroughputPPS         float64       `json:"throughputPPS"` // Packages per second
 	ErrorRate             float64       `json:"errorRate"`
 	LastUpdated           time.Time     `json:"lastUpdated"`
+	
+	// Prometheus metrics for impact analysis
+	ImpactAnalysisTime    *prometheus.HistogramVec `json:"-"`
+	ImpactAnalysisTotal   *prometheus.CounterVec   `json:"-"`
 }
+
+// Additional missing types for stub implementations
+
+type CrossUpdateImpact struct {
+	Updates      []*DependencyUpdate `json:"updates"`
+	Conflicts    []*UpdateConflict   `json:"conflicts,omitempty"`
+	Dependencies []*CrossDependency  `json:"dependencies,omitempty"`
+	RiskLevel    string              `json:"riskLevel"`
+}
+
+type UpdateConflict struct {
+	ID           string             `json:"id"`
+	Update1      *DependencyUpdate  `json:"update1"`
+	Update2      *DependencyUpdate  `json:"update2"`
+	ConflictType string             `json:"conflictType"`
+	Description  string             `json:"description"`
+}
+
+type CrossDependency struct {
+	ID           string            `json:"id"`
+	Source       *PackageReference `json:"source"`
+	Target       *PackageReference `json:"target"`
+	Relationship string            `json:"relationship"`
+}
+
+type RolloutStage struct {
+	ID          string        `json:"id"`
+	Name        string        `json:"name"`
+	Status      RolloutStatus `json:"status"`
+	StartedAt   *time.Time    `json:"startedAt,omitempty"`
+	CompletedAt *time.Time    `json:"completedAt,omitempty"`
+}
+
+// UpdateAnalysisResult represents the result of analyzing a single update
+type UpdateAnalysisResult struct {
+	UpdateID  string            `json:"updateId"`
+	Package   *PackageReference `json:"package"`
+	Impact    UpdateImpact      `json:"impact"`
+	RiskLevel string            `json:"riskLevel"`
+}
+
 
 // The very last missing types from validator.go
 
