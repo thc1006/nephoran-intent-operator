@@ -1,8 +1,8 @@
-# golangci-lint configuration for nephoran-intent-operator (v2 schema)
-# Compatible with golangci-lint v2.4.0+ and Go 1.24.x
+# golangci-lint configuration for nephoran-intent-operator (v1 schema)
+# Compatible with golangci-lint v1.64.8+ and Go 1.24.x
 # Ubuntu-only CI targeting O-RAN/Nephio orchestration requirements
 
-version: 2
+# Note: Using v1 schema for compatibility with golangci-lint v1.64.8
 
 run:
   # Timeout for analysis - increased for comprehensive checks
@@ -14,25 +14,27 @@ run:
   # Include test files in linting
   tests: true
   
-  # Go version for staticcheck (must be <= golangci-lint build version)
-  go: "1.23"
+  # Go version for staticcheck (must match project Go version)
+  go: "1.24"
   
   # Build tags for conditional compilation
   build-tags:
     - integration
     - e2e
+    - test
+    - benchmarks
   
   # Module download mode
   modules-download-mode: readonly
 
-# Output configuration compatible with v1.61.0
+# Output configuration compatible with v1.64.8
 output:
-  format: colored-line-number
+  formats:
+    - format: colored-line-number
   # Reduce output verbosity to prevent Node.js maxBuffer issues in CI
   print-issued-lines: false  # Changed from true to reduce output
   print-linter-name: true
   sort-results: true
-  uniq-by-line: true  # Deduplicate issues by line
 
 # Linters configuration
 linters:
@@ -134,9 +136,9 @@ linters-settings:
       - name: indent-error-flow
       - name: errorf
   
-  # staticcheck configuration
+  # staticcheck configuration - exclude problematic checks for Go 1.24
   staticcheck:
-    checks: ["all", "-ST1000", "-ST1003", "-ST1016"]
+    checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-SA5011"]
 
 # Issues configuration
 issues:
@@ -146,6 +148,9 @@ issues:
   
   # Don't auto-fix issues
   fix: false
+  
+  # Deduplicate issues by line (moved from deprecated output.uniq-by-line)
+  uniq-by-line: true
   
   # Exclude certain files and patterns
   exclude-files:

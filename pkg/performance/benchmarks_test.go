@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
-	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
+	"unsafe"
 )
 
 // BenchmarkOptimizedHTTPClient tests HTTP client performance

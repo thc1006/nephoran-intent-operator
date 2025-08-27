@@ -673,6 +673,13 @@ func (c *ResponseCache) Stop() {
 	})
 }
 
+// IsStopped returns whether the cache has been stopped
+func (c *ResponseCache) IsStopped() bool {
+	c.l1Mutex.RLock()
+	defer c.l1Mutex.RUnlock()
+	return c.stopped
+}
+
 // Clear removes all entries from the cache
 func (c *ResponseCache) Clear() {
 	c.l1Mutex.Lock()

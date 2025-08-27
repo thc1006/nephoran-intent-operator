@@ -22,13 +22,13 @@ import (
 func TestO2Adaptor_DeployVNF(t *testing.T) {
 	tests := []struct {
 		name    string
-		request *o2.VNFDeployRequest
+		request *o2.O2VNFDeployRequest
 		setup   func(*fake.Clientset, client.Client)
-		want    func(*testing.T, *o2.VNFInstance, error)
+		want    func(*testing.T, *o2.O2VNFInstance, error)
 	}{
 		{
 			name: "successful VNF deployment with basic configuration",
-			request: &o2.VNFDeployRequest{
+			request: &o2.O2VNFDeployRequest{
 				Name:         "test-amf",
 				Namespace:    "o-ran-vnfs",
 				VNFPackageID: "amf-v1.0.0",
@@ -59,7 +59,7 @@ func TestO2Adaptor_DeployVNF(t *testing.T) {
 			setup: func(clientset *fake.Clientset, k8sClient client.Client) {
 				// Setup any required resources
 			},
-			want: func(t *testing.T, instance *o2.VNFInstance, err error) {
+			want: func(t *testing.T, instance *o2.O2VNFInstance, err error) {
 				require.NoError(t, err)
 				assert.NotNil(t, instance)
 				assert.Equal(t, "test-amf", instance.Name)
@@ -72,7 +72,7 @@ func TestO2Adaptor_DeployVNF(t *testing.T) {
 		},
 		{
 			name: "VNF deployment with network configuration",
-			request: &o2.VNFDeployRequest{
+			request: &o2.O2VNFDeployRequest{
 				Name:         "test-smf",
 				Namespace:    "o-ran-vnfs",
 				VNFPackageID: "smf-v1.0.0",
@@ -97,7 +97,7 @@ func TestO2Adaptor_DeployVNF(t *testing.T) {
 					},
 				},
 			},
-			want: func(t *testing.T, instance *o2.VNFInstance, err error) {
+			want: func(t *testing.T, instance *o2.O2VNFInstance, err error) {
 				require.NoError(t, err)
 				assert.NotNil(t, instance)
 				assert.Equal(t, "test-smf", instance.Name)
@@ -114,7 +114,7 @@ func TestO2Adaptor_DeployVNF(t *testing.T) {
 		},
 		{
 			name: "VNF deployment with volume configuration",
-			request: &o2.VNFDeployRequest{
+			request: &o2.O2VNFDeployRequest{
 				Name:         "test-upf",
 				Namespace:    "o-ran-vnfs",
 				VNFPackageID: "upf-v1.0.0",
@@ -150,7 +150,7 @@ func TestO2Adaptor_DeployVNF(t *testing.T) {
 					},
 				},
 			},
-			want: func(t *testing.T, instance *o2.VNFInstance, err error) {
+			want: func(t *testing.T, instance *o2.O2VNFInstance, err error) {
 				require.NoError(t, err)
 				assert.NotNil(t, instance)
 				assert.Equal(t, "test-upf", instance.Name)
@@ -331,7 +331,7 @@ func TestO2Adaptor_GetVNFInstance(t *testing.T) {
 		name       string
 		instanceID string
 		setup      func(*fake.Clientset, client.Client)
-		want       func(*testing.T, *o2.VNFInstance, error)
+		want       func(*testing.T, *o2.O2VNFInstance, error)
 	}{
 		{
 			name:       "get existing VNF instance successfully",
@@ -388,7 +388,7 @@ func TestO2Adaptor_GetVNFInstance(t *testing.T) {
 				}
 				require.NoError(t, k8sClient.Create(context.Background(), service))
 			},
-			want: func(t *testing.T, instance *o2.VNFInstance, err error) {
+			want: func(t *testing.T, instance *o2.O2VNFInstance, err error) {
 				require.NoError(t, err)
 				assert.NotNil(t, instance)
 				assert.Equal(t, "o-ran-vnfs-test-amf", instance.ID)
@@ -404,7 +404,7 @@ func TestO2Adaptor_GetVNFInstance(t *testing.T) {
 		{
 			name:       "handle non-existent VNF instance",
 			instanceID: "o-ran-vnfs-non-existent",
-			want: func(t *testing.T, instance *o2.VNFInstance, err error) {
+			want: func(t *testing.T, instance *o2.O2VNFInstance, err error) {
 				require.Error(t, err)
 				assert.Nil(t, instance)
 				assert.Contains(t, err.Error(), "failed to get deployment")
@@ -526,7 +526,7 @@ func BenchmarkO2Adaptor_DeployVNF(b *testing.B) {
 	clientset := fake.NewSimpleClientset()
 	adaptor := o2.NewO2Adaptor(k8sClient, clientset, nil)
 
-	request := &o2.VNFDeployRequest{
+	request := &o2.O2VNFDeployRequest{
 		Name:         "bench-vnf",
 		Namespace:    "default",
 		VNFPackageID: "test-package",

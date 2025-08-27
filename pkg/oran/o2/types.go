@@ -16,6 +16,7 @@ import (
 type O2IMSConfig struct {
 	ServerAddress    string        `json:"serverAddress"`
 	Port             int           `json:"port"`
+	ServerPort       int           `json:"serverPort,omitempty"`
 	TLSEnabled       bool          `json:"tlsEnabled"`
 	CertPath         string        `json:"certPath,omitempty"`
 	KeyPath          string        `json:"keyPath,omitempty"`
@@ -36,6 +37,7 @@ type O2IMSConfig struct {
 	// Database
 	DatabaseURL      string        `json:"databaseUrl"`
 	DatabaseType     string        `json:"databaseType"`
+	DatabaseConfig   map[string]interface{} `json:"databaseConfig,omitempty"`
 	ConnectionPool   int           `json:"connectionPool"`
 	
 	// Monitoring
@@ -55,6 +57,10 @@ type O2IMSConfig struct {
 	KeyFile             string                            `json:"keyFile,omitempty"`
 	NotificationConfig  *NotificationConfig               `json:"notificationConfig,omitempty"`
 	ResourceConfig      *ResourceConfig                   `json:"resourceConfig,omitempty"`
+	// Test and compliance settings
+	ComplianceMode       bool   `json:"complianceMode,omitempty"`
+	SpecificationVersion string `json:"specificationVersion,omitempty"`
+	ProviderConfigs      map[string]interface{} `json:"providerConfigs,omitempty"`
 }
 
 // O2IMSService defines the interface for O2 IMS core service

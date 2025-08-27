@@ -440,3 +440,27 @@ func DefaultConfig(serviceName, version, environment string) Config {
 		TimeFormat:  time.RFC3339,
 	}
 }
+
+// NewLogger creates a simple logger for backwards compatibility
+func NewLogger(serviceName string, level string) *StructuredLogger {
+	logLevel := LevelInfo
+	switch strings.ToLower(level) {
+	case "debug":
+		logLevel = LevelDebug
+	case "warn", "warning":
+		logLevel = LevelWarn
+	case "error":
+		logLevel = LevelError
+	}
+	
+	config := Config{
+		Level:       logLevel,
+		Format:      "text",
+		ServiceName: serviceName,
+		Version:     "1.0.0",
+		Environment: "development",
+		AddSource:   false,
+	}
+	
+	return NewStructuredLogger(config)
+}

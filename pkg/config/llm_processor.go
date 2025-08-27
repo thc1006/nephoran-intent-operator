@@ -15,6 +15,7 @@ import (
 // LLMProcessorConfig holds configuration specific to the LLM processor service
 type LLMProcessorConfig struct {
 	// Service Configuration
+	Enabled          bool          // Whether the LLM processor service is enabled
 	Port             string
 	LogLevel         string
 	ServiceVersion   string
@@ -102,6 +103,7 @@ type LLMProcessorConfig struct {
 // DefaultLLMProcessorConfig returns a configuration with sensible defaults
 func DefaultLLMProcessorConfig() *LLMProcessorConfig {
 	return &LLMProcessorConfig{
+		Enabled:          true, // Default to enabled
 		Port:             "8080",
 		LogLevel:         "info",
 		ServiceVersion:   "v2.0.0",

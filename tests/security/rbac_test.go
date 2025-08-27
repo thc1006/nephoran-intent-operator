@@ -540,8 +540,8 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-// Test RBAC compliance
-func TestRBACCompliance(t *testing.T) {
+// Test RBAC compliance with role permissions
+func TestRBACComplianceRoles(t *testing.T) {
 	testCases := []struct {
 		name     string
 		role     string

@@ -107,7 +107,7 @@ type TestA1Validator struct {
 
 func NewTestA1Validator() A1Validator {
 	return &TestA1Validator{
-		schemaValidator: NewJSONSchemaValidator(),
+		schemaValidator: &TestJSONSchemaValidator{},
 	}
 }
 
@@ -1099,13 +1099,11 @@ type SchemaValidator interface {
 	ValidateAgainstSchema(data map[string]interface{}, schema map[string]interface{}) error
 }
 
-type JSONSchemaValidator struct{}
+type TestJSONSchemaValidator struct{}
 
-func NewJSONSchemaValidator() SchemaValidator {
-	return &JSONSchemaValidator{}
-}
 
-func (v *JSONSchemaValidator) ValidateSchema(schema map[string]interface{}) error {
+
+func (v *TestJSONSchemaValidator) ValidateSchema(schema map[string]interface{}) error {
 	// Basic schema validation - in real implementation, use a JSON schema library
 	if schema == nil || len(schema) == 0 {
 		return fmt.Errorf("schema cannot be empty")
@@ -1135,7 +1133,7 @@ func (v *JSONSchemaValidator) ValidateSchema(schema map[string]interface{}) erro
 	return nil
 }
 
-func (v *JSONSchemaValidator) ValidateAgainstSchema(data map[string]interface{}, schema map[string]interface{}) error {
+func (v *TestJSONSchemaValidator) ValidateAgainstSchema(data map[string]interface{}, schema map[string]interface{}) error {
 	// Simplified validation - in real implementation, use a proper JSON schema validator
 	if data == nil {
 		return fmt.Errorf("data cannot be nil")
@@ -1181,7 +1179,7 @@ func (v *JSONSchemaValidator) ValidateAgainstSchema(data map[string]interface{},
 	return nil
 }
 
-func (v *JSONSchemaValidator) validateField(value interface{}, schema map[string]interface{}) error {
+func (v *TestJSONSchemaValidator) validateField(value interface{}, schema map[string]interface{}) error {
 	// Basic field validation
 	if fieldType, ok := schema["type"]; ok {
 		switch fieldType {
@@ -1294,20 +1292,5 @@ func ValidateURL(urlStr string) error {
 	return nil
 }
 
-type ValidationError struct {
-	Message string
-	Field   string
-	Value   interface{}
-}
 
-func NewValidationError(message, field string, value interface{}) error {
-	return &ValidationError{
-		Message: message,
-		Field:   field,
-		Value:   value,
-	}
-}
 
-func (e *ValidationError) Error() string {
-	return fmt.Sprintf("validation error in field '%s': %s (value: %v)", e.Field, e.Message, e.Value)
-}

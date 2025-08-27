@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit"
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring/sla"
@@ -245,33 +246,6 @@ type FrameworkReporter interface {
 	GetRequirements() []*ComplianceRequirement
 }
 
-// ComplianceReport contains compliance assessment results
-type ComplianceReport struct {
-	ID               string              `json:"id"`
-	Framework        RegulatoryFramework `json:"framework"`
-	GenerationTime   time.Time           `json:"generation_time"`
-	ReportingPeriod  ReportingPeriod     `json:"reporting_period"`
-	OverallScore     float64             `json:"overall_score"`
-	ComplianceStatus ComplianceStatus    `json:"compliance_status"`
-
-	// Section scores
-	SectionScores      map[string]float64   `json:"section_scores"`
-	RequirementResults []*RequirementResult `json:"requirement_results"`
-
-	// Evidence and attestation
-	Evidence     []EvidenceReference    `json:"evidence"`
-	Attestations []AttestationReference `json:"attestations"`
-
-	// Executive summary
-	ExecutiveSummary string   `json:"executive_summary"`
-	KeyFindings      []string `json:"key_findings"`
-	Recommendations  []string `json:"recommendations"`
-
-	// Signatures and authenticity
-	ReportHash       string `json:"report_hash"`
-	DigitalSignature string `json:"digital_signature"`
-	Timestamp        string `json:"timestamp"`
-}
 
 // ComplianceStatus represents overall compliance status
 type ComplianceStatus string

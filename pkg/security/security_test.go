@@ -1,10 +1,8 @@
 package security
 
 import (
-	"context"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,7 +14,7 @@ func TestAuditLogger(t *testing.T) {
 	tmpFile := "/tmp/audit-test.log"
 	defer os.Remove(tmpFile)
 
-	auditLogger, err := NewAuditLogger(tmpFile, AuditLevelInfo)
+	auditLogger, err := NewAuditLogger(tmpFile, interfaces.AuditLevelInfo)
 	require.NoError(t, err)
 	defer auditLogger.Close()
 
@@ -29,8 +27,8 @@ func TestAuditLogger(t *testing.T) {
 	// Test unauthorized access logging
 	auditLogger.LogUnauthorizedAccess("/admin", "user123", "192.168.1.1", "Mozilla/5.0", "insufficient privileges")
 
-	// Test security violation logging
-	auditLogger.LogSecurityViolation("path_traversal", "Attempted directory traversal", "user123", "192.168.1.1", AuditLevelWarn)
+	// Test security violation logging with proper AuditLevel type
+	auditLogger.LogSecurityViolation("path_traversal", "Attempted directory traversal", "user123", "192.168.1.1", interfaces.AuditLevelWarn)
 
 	// Verify log file was created and has content
 	info, err := os.Stat(tmpFile)
@@ -152,7 +150,7 @@ func TestAuditLevels(t *testing.T) {
 	defer os.Remove(tmpFile)
 
 	// Test with different minimum levels
-	auditLogger, err := NewAuditLogger(tmpFile, AuditLevelWarn)
+	auditLogger, err := NewAuditLogger(tmpFile, interfaces.AuditLevelWarn)
 	require.NoError(t, err)
 	defer auditLogger.Close()
 

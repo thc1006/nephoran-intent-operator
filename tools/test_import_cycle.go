@@ -25,7 +25,7 @@ func main() {
 	cfg := config.DefaultConfig()
 	fmt.Printf("Default config created: %v\n", cfg != nil)
 
-	auditLogger, err := security.NewAuditLogger("", security.AuditLevelInfo)
+	auditLogger, err := security.NewAuditLogger("", interfaces.AuditLevelInfo)
 	if err != nil {
 		fmt.Printf("Error creating audit logger: %v\n", err)
 	} else {

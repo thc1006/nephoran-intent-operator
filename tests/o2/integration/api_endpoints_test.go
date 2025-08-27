@@ -63,7 +63,7 @@ func (suite *O2APITestSuite) SetupSuite() {
 	}
 
 	var err error
-	suite.o2Server, err = o2.NewO2APIServer(config, suite.testLogger, nil)
+	suite.o2Server, err = o2.NewO2APIServer(config)
 	suite.Require().NoError(err)
 
 	suite.server = httptest.NewServer(suite.o2Server.GetRouter())

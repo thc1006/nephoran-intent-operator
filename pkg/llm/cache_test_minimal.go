@@ -134,9 +134,7 @@ func testBasicStopFunctionality() {
 	cache := NewResponseCacheTest(5*time.Minute, 10)
 
 	// Test initial state
-	cache.mutex.RLock()
-	stopped := cache.stopped
-	cache.mutex.RUnlock()
+	stopped := cache.IsStopped()
 
 	if stopped {
 		fmt.Println("FAIL: Cache should not be stopped initially")
@@ -190,9 +188,7 @@ func testMultipleStopCalls() {
 
 	wg.Wait()
 
-	cache.mutex.RLock()
-	stopped := cache.stopped
-	cache.mutex.RUnlock()
+	stopped := cache.IsStopped()
 
 	if !stopped {
 		fmt.Println("FAIL: Cache should be stopped")
@@ -343,9 +339,7 @@ func testConcurrentAccess() {
 		cache.Stop()
 	}
 
-	cache.mutex.RLock()
-	stopped := cache.stopped
-	cache.mutex.RUnlock()
+	stopped := cache.IsStopped()
 
 	if !stopped {
 		fmt.Println("FAIL: Cache should be stopped")
@@ -456,4 +450,11 @@ func main() {
 
 	fmt.Println("============================================================")
 	fmt.Println("All tests completed successfully!")
+}
+
+// IsStopped returns whether the cache is stopped
+func (c *ResponseCache) IsStopped() bool {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.stopped
 }

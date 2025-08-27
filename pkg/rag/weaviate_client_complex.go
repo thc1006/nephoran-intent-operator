@@ -1352,3 +1352,42 @@ func (c *simpleWeaviateRAGClient) Shutdown(ctx context.Context) error {
 	c.logger.Info("Simple Weaviate RAG client shut down gracefully")
 	return nil
 }
+
+// ProcessIntent processes an intent using Weaviate search
+func (c *simpleWeaviateRAGClient) ProcessIntent(ctx context.Context, intent string) (string, error) {
+	docs, err := c.Retrieve(ctx, intent)
+	if err != nil {
+		return "", fmt.Errorf("failed to retrieve documents: %w", err)
+	}
+	
+	if len(docs) == 0 {
+		return "No relevant information found", nil
+	}
+	
+	// Simple response construction from top document
+	return fmt.Sprintf("Based on available documentation: %s", docs[0].Content), nil
+}
+
+// IsHealthy checks if the Weaviate client is healthy
+func (c *simpleWeaviateRAGClient) IsHealthy() bool {
+	if c.config.WeaviateURL == "" {
+		return false
+	}
+	
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	
+	// Quick health check by testing connectivity
+	req, err := http.NewRequestWithContext(ctx, "GET", c.config.WeaviateURL+"/v1/meta", nil)
+	if err != nil {
+		return false
+	}
+	
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	
+	return resp.StatusCode == 200
+}

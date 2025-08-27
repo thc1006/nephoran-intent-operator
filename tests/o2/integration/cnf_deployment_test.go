@@ -27,7 +27,6 @@ import (
 type CNFDeploymentTestSuite struct {
 	suite.Suite
 	o2Adaptor     *o2.O2Adaptor
-	o2Manager     *o2.O2Manager
 	k8sClient     client.Client
 	k8sClientset  *fake.Clientset
 	testLogger    *logging.StructuredLogger
@@ -59,7 +58,7 @@ func (suite *CNFDeploymentTestSuite) SetupSuite() {
 	}
 
 	suite.o2Adaptor = o2.NewO2Adaptor(suite.k8sClient, suite.k8sClientset, config)
-	suite.o2Manager = o2.NewO2Manager(suite.o2Adaptor)
+	// O2Manager functionality is available through O2Adaptor
 
 	// Create test namespace
 	ns := &corev1.Namespace{
@@ -217,7 +216,7 @@ func (suite *CNFDeploymentTestSuite) TestAMFCNFDeployment() {
 		}
 
 		// Deploy the AMF CNF
-		deploymentStatus, err := suite.o2Manager.DeployVNF(ctx, amfDescriptor)
+		deploymentStatus, err := suite.o2Adaptor.DeployVNF(ctx, amfDescriptor)
 		suite.Require().NoError(err)
 		suite.Assert().NotNil(deploymentStatus)
 		suite.Assert().Equal("test-amf-cnf", deploymentStatus.Name)
@@ -405,7 +404,7 @@ func (suite *CNFDeploymentTestSuite) TestSMFCNFDeployment() {
 		}
 
 		// Deploy the SMF CNF
-		deploymentStatus, err := suite.o2Manager.DeployVNF(ctx, smfDescriptor)
+		deploymentStatus, err := suite.o2Adaptor.DeployVNF(ctx, smfDescriptor)
 		suite.Require().NoError(err)
 		suite.Assert().NotNil(deploymentStatus)
 		suite.Assert().Equal("test-smf-cnf", deploymentStatus.Name)
@@ -574,7 +573,7 @@ func (suite *CNFDeploymentTestSuite) TestUPFCNFDeployment() {
 		}
 
 		// Deploy the UPF CNF
-		deploymentStatus, err := suite.o2Manager.DeployVNF(ctx, upfDescriptor)
+		deploymentStatus, err := suite.o2Adaptor.DeployVNF(ctx, upfDescriptor)
 		suite.Require().NoError(err)
 		suite.Assert().NotNil(deploymentStatus)
 		suite.Assert().Equal("test-upf-cnf", deploymentStatus.Name)
@@ -661,14 +660,14 @@ func (suite *CNFDeploymentTestSuite) TestCNFScaling() {
 			},
 		}
 
-		deploymentStatus, err := suite.o2Manager.DeployVNF(ctx, simpleDescriptor)
+		deploymentStatus, err := suite.o2Adaptor.DeployVNF(ctx, simpleDescriptor)
 		suite.Require().NoError(err)
 
 		// Wait for initial deployment
 		time.Sleep(100 * time.Millisecond)
 
 		// Scale up to 5 replicas
-		err = suite.o2Manager.ScaleWorkload(ctx, fmt.Sprintf("%s/scalable-cnf", suite.testNamespace), 5)
+		err = suite.o2Adaptor.ScaleWorkload(ctx, fmt.Sprintf("%s/scalable-cnf", suite.testNamespace), 5)
 		suite.Require().NoError(err)
 
 		// Verify scaling up
@@ -681,7 +680,7 @@ func (suite *CNFDeploymentTestSuite) TestCNFScaling() {
 		suite.Assert().Equal(int32(5), *deployment.Spec.Replicas)
 
 		// Scale down to 1 replica
-		err = suite.o2Manager.ScaleWorkload(ctx, fmt.Sprintf("%s/scalable-cnf", suite.testNamespace), 1)
+		err = suite.o2Adaptor.ScaleWorkload(ctx, fmt.Sprintf("%s/scalable-cnf", suite.testNamespace), 1)
 		suite.Require().NoError(err)
 
 		// Verify scaling down
@@ -764,7 +763,7 @@ func (suite *CNFDeploymentTestSuite) TestCNFResourceDiscovery() {
 		}
 
 		// Discover cluster resources
-		resourceMap, err := suite.o2Manager.DiscoverResources(ctx)
+		resourceMap, err := suite.o2Adaptor.DiscoverResources(ctx)
 		suite.Require().NoError(err)
 		suite.Assert().NotNil(resourceMap)
 
@@ -843,7 +842,7 @@ func (suite *CNFDeploymentTestSuite) TestCNFHealthMonitoring() {
 			},
 		}
 
-		deploymentStatus, err := suite.o2Manager.DeployVNF(ctx, healthyDescriptor)
+		deploymentStatus, err := suite.o2Adaptor.DeployVNF(ctx, healthyDescriptor)
 		suite.Require().NoError(err)
 
 		// Verify deployment has health checks configured

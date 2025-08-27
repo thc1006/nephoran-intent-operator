@@ -829,116 +829,16 @@ func (w *testResponseWriter) WriteHeader(statusCode int) {
 // Missing type definitions that are referenced but not defined in the original files
 // These are minimal implementations for testing purposes
 
-type A1ServerConfig struct {
-	Host                 string
-	Port                 int
-	ReadTimeout          time.Duration
-	WriteTimeout         time.Duration
-	IdleTimeout          time.Duration
-	MaxHeaderBytes       int
-	Logger               *logging.StructuredLogger
-	EnableA1P            bool
-	EnableA1C            bool
-	EnableA1EI           bool
-	TLSEnabled           bool
-	CertFile             string
-	KeyFile              string
-	MetricsConfig        *MetricsConfig
-	AuthenticationConfig *AuthenticationConfig
-	RateLimitConfig      *RateLimitConfig
-}
 
-type MetricsConfig struct {
-	Enabled   bool
-	Namespace string
-	Subsystem string
-	Endpoint  string
-}
 
-type AuthenticationConfig struct {
-	Enabled bool
-}
 
-type RateLimitConfig struct {
-	Enabled bool
-}
 
-type CircuitBreakerConfig struct {
-	MaxRequests   uint32
-	Interval      time.Duration
-	Timeout       time.Duration
-	ReadyToTrip   func(counts Counts) bool
-	OnStateChange func(name string, from State, to State)
-}
 
-type State int
 
-const (
-	StateClosed State = iota
-	StateHalfOpen
-	StateOpen
-)
 
-func (s State) String() string {
-	switch s {
-	case StateClosed:
-		return "Closed"
-	case StateHalfOpen:
-		return "HalfOpen"
-	case StateOpen:
-		return "Open"
-	default:
-		return "Unknown"
-	}
-}
 
-type Counts struct {
-	Requests             uint64
-	TotalSuccesses       uint64
-	TotalFailures        uint64
-	ConsecutiveSuccesses uint64
-	ConsecutiveFailures  uint64
-}
 
-func DefaultA1ServerConfig() *A1ServerConfig {
-	return &A1ServerConfig{
-		Host:           "0.0.0.0",
-		Port:           8080,
-		ReadTimeout:    5 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		IdleTimeout:    60 * time.Second,
-		MaxHeaderBytes: 1 << 20, // 1MB
-		EnableA1P:      true,
-		EnableA1C:      true,
-		EnableA1EI:     true,
-		TLSEnabled:     false,
-		MetricsConfig: &MetricsConfig{
-			Enabled:   true,
-			Namespace: "a1",
-			Subsystem: "server",
-			Endpoint:  "/metrics",
-		},
-		AuthenticationConfig: &AuthenticationConfig{
-			Enabled: false,
-		},
-		RateLimitConfig: &RateLimitConfig{
-			Enabled: false,
-		},
-	}
-}
 
-// Interface definitions for testing
-type A1Service interface {
-	CreatePolicyType(ctx context.Context, policyType *PolicyType) error
-	GetPolicyType(ctx context.Context, policyTypeID int) (*PolicyType, error)
-	GetPolicyTypes(ctx context.Context) ([]int, error)
-	DeletePolicyType(ctx context.Context, policyTypeID int) error
-	CreatePolicyInstance(ctx context.Context, instance *PolicyInstance) error
-	GetPolicyInstance(ctx context.Context, policyTypeID int, policyID string) (*PolicyInstance, error)
-	GetPolicyInstances(ctx context.Context, policyTypeID int) ([]string, error)
-	DeletePolicyInstance(ctx context.Context, policyTypeID int, policyID string) error
-	GetPolicyStatus(ctx context.Context, policyTypeID int, policyID string) (*PolicyStatus, error)
-}
 
 type A1TestValidator interface {
 	ValidatePolicyType(policyType *PolicyType) error
@@ -947,103 +847,9 @@ type A1TestValidator interface {
 	ValidateEIJob(eiType *EnrichmentInfoType, job *EnrichmentInfoJob) error
 }
 
-type A1Storage interface {
-	StorePolicyType(ctx context.Context, policyType *PolicyType) error
-	GetPolicyType(ctx context.Context, policyTypeID int) (*PolicyType, error)
-	GetPolicyTypes(ctx context.Context) ([]int, error)
-	DeletePolicyType(ctx context.Context, policyTypeID int) error
-	StorePolicyInstance(ctx context.Context, instance *PolicyInstance) error
-	GetPolicyInstance(ctx context.Context, policyTypeID int, policyID string) (*PolicyInstance, error)
-	GetPolicyInstances(ctx context.Context, policyTypeID int) ([]string, error)
-	DeletePolicyInstance(ctx context.Context, policyTypeID int, policyID string) error
-	StorePolicyStatus(ctx context.Context, policyTypeID int, policyID string, status *PolicyStatus) error
-	GetPolicyStatus(ctx context.Context, policyTypeID int, policyID string) (*PolicyStatus, error)
-}
 
-type A1Metrics interface {
-	IncrementRequestCount(interface_ A1Interface, method string, statusCode int)
-	RecordRequestDuration(interface_ A1Interface, method string, duration time.Duration)
-	RecordPolicyCount(policyTypeID int, instanceCount int)
-	RecordConsumerCount(consumerCount int)
-	RecordEIJobCount(eiTypeID string, jobCount int)
-	RecordCircuitBreakerState(name string, state State)
-	RecordValidationErrors(interface_ A1Interface, errorType string)
-}
 
-type A1Handlers struct {
-	service   A1Service
-	validator A1TestValidator
-	storage   A1Storage
-	metrics   A1Metrics
-	logger    *logging.StructuredLogger
-	config    *A1ServerConfig
-}
 
-func NewA1Handlers(service A1Service, validator A1TestValidator, storage A1Storage, metrics A1Metrics, logger *logging.StructuredLogger, config *A1ServerConfig) *A1Handlers {
-	return &A1Handlers{
-		service:   service,
-		validator: validator,
-		storage:   storage,
-		metrics:   metrics,
-		logger:    logger,
-		config:    config,
-	}
-}
 
-// Placeholder handler methods
-func (h *A1Handlers) HealthCheckHandler(w http.ResponseWriter, r *http.Request)         {}
-func (h *A1Handlers) ReadinessCheckHandler(w http.ResponseWriter, r *http.Request)      {}
-func (h *A1Handlers) HandleGetPolicyTypes(w http.ResponseWriter, r *http.Request)       {}
-func (h *A1Handlers) HandleGetPolicyType(w http.ResponseWriter, r *http.Request)        {}
-func (h *A1Handlers) HandleCreatePolicyType(w http.ResponseWriter, r *http.Request)     {}
-func (h *A1Handlers) HandleDeletePolicyType(w http.ResponseWriter, r *http.Request)     {}
-func (h *A1Handlers) HandleGetPolicyInstances(w http.ResponseWriter, r *http.Request)   {}
-func (h *A1Handlers) HandleGetPolicyInstance(w http.ResponseWriter, r *http.Request)    {}
-func (h *A1Handlers) HandleCreatePolicyInstance(w http.ResponseWriter, r *http.Request) {}
-func (h *A1Handlers) HandleDeletePolicyInstance(w http.ResponseWriter, r *http.Request) {}
-func (h *A1Handlers) HandleGetPolicyStatus(w http.ResponseWriter, r *http.Request)      {}
-func (h *A1Handlers) HandleListConsumers(w http.ResponseWriter, r *http.Request)        {}
-func (h *A1Handlers) HandleGetConsumer(w http.ResponseWriter, r *http.Request)          {}
-func (h *A1Handlers) HandleRegisterConsumer(w http.ResponseWriter, r *http.Request)     {}
-func (h *A1Handlers) HandleUnregisterConsumer(w http.ResponseWriter, r *http.Request)   {}
-func (h *A1Handlers) HandleGetEITypes(w http.ResponseWriter, r *http.Request)           {}
-func (h *A1Handlers) HandleGetEIType(w http.ResponseWriter, r *http.Request)            {}
-func (h *A1Handlers) HandleCreateEIType(w http.ResponseWriter, r *http.Request)         {}
-func (h *A1Handlers) HandleDeleteEIType(w http.ResponseWriter, r *http.Request)         {}
-func (h *A1Handlers) HandleGetEIJobs(w http.ResponseWriter, r *http.Request)            {}
-func (h *A1Handlers) HandleGetEIJob(w http.ResponseWriter, r *http.Request)             {}
-func (h *A1Handlers) HandleCreateEIJob(w http.ResponseWriter, r *http.Request)          {}
-func (h *A1Handlers) HandleDeleteEIJob(w http.ResponseWriter, r *http.Request)          {}
-func (h *A1Handlers) HandleGetEIJobStatus(w http.ResponseWriter, r *http.Request)       {}
 
-// Error handling placeholder functions
-func WriteA1Error(w http.ResponseWriter, err error) {
-	w.WriteHeader(http.StatusInternalServerError)
-}
 
-func NewAuthenticationRequiredError() error {
-	return fmt.Errorf("authentication required")
-}
-
-func NewInvalidRequestError(msg string) error {
-	return fmt.Errorf("invalid request: %s", msg)
-}
-
-func NewInternalServerError(msg string, cause error) error {
-	if cause != nil {
-		return fmt.Errorf("internal server error: %s: %w", msg, cause)
-	}
-	return fmt.Errorf("internal server error: %s", msg)
-}
-
-func ErrorMiddleware(handler func(http.ResponseWriter, *http.Request, error)) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-func DefaultErrorHandler(w http.ResponseWriter, r *http.Request, err error) {
-	WriteA1Error(w, err)
-}

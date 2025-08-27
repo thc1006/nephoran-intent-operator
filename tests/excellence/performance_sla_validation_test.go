@@ -1,7 +1,6 @@
 package excellence_test
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"

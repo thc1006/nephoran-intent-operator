@@ -1,13 +1,11 @@
 package nephio
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
 
 	"github.com/thc1006/nephoran-intent-operator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func TestGeneratePackage_IntentTypeRouting(t *testing.T) {
@@ -83,9 +81,8 @@ func TestGeneratePackage_IntentTypeRouting(t *testing.T) {
 				t.Fatalf("Failed to create package generator: %v", err)
 			}
 
-			// Create test parameters based on intent type
-			params := createTestParameters(tt.intentType)
-			paramsJSON, _ := json.Marshal(params)
+			// Create test parameters based on intent type  
+			_ = createTestParameters(tt.intentType)
 
 			// Create a test NetworkIntent
 			intent := &v1.NetworkIntent{
@@ -95,10 +92,7 @@ func TestGeneratePackage_IntentTypeRouting(t *testing.T) {
 				},
 				Spec: v1.NetworkIntentSpec{
 					Intent:     "Test intent for " + tt.intentType,
-					IntentType: tt.intentType,
-					Parameters: runtime.RawExtension{
-						Raw: paramsJSON,
-					},
+					IntentType: v1.IntentType(tt.intentType),
 				},
 			}
 
@@ -144,8 +138,7 @@ func TestGeneratePackage_DefaultsToDeployment(t *testing.T) {
 	}
 
 	// Create test parameters for deployment
-	params := createTestParameters("deployment")
-	paramsJSON, _ := json.Marshal(params)
+	_ = createTestParameters("deployment")
 
 	// Create a NetworkIntent without IntentType specified
 	intent := &v1.NetworkIntent{
@@ -156,9 +149,6 @@ func TestGeneratePackage_DefaultsToDeployment(t *testing.T) {
 		Spec: v1.NetworkIntentSpec{
 			Intent: "Deploy a network function",
 			// IntentType is intentionally not set
-			Parameters: runtime.RawExtension{
-				Raw: paramsJSON,
-			},
 		},
 	}
 

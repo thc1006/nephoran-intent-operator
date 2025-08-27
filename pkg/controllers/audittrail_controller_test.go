@@ -7,9 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	corev1 "k8s.io/api/core/v1"
@@ -21,7 +19,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	nephv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/audit"
@@ -186,7 +183,7 @@ func (suite *AuditTrailControllerTestSuite) TestControllerLifecycle() {
 		suite.NoError(err)
 
 		// Reconcile deletion
-		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
+		result, err := suite.controller.Reconcile(context.Background(), ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "test-audit-trail",
 				Namespace: "default",
@@ -431,7 +428,7 @@ func (suite *AuditTrailControllerTestSuite) TestErrorHandling() {
 		err := suite.client.Create(context.Background(), auditTrail)
 		suite.NoError(err)
 
-		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
+		result, err := suite.controller.Reconcile(context.Background(), ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "creation-failure-test",
 				Namespace: "default",
@@ -572,7 +569,7 @@ func (suite *AuditTrailControllerTestSuite) TestFinalizerHandling() {
 		suite.NoError(err)
 
 		// Reconcile deletion
-		result, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
+		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "finalizer-test",
 				Namespace: "default",
@@ -612,7 +609,7 @@ func (suite *AuditTrailControllerTestSuite) TestConcurrentReconciliation() {
 
 		for i := 0; i < numConcurrent; i++ {
 			go func() {
-				_, err := suite.controller.Reconcile(context.Background(), ctrl.Request{
+				_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
 					NamespacedName: types.NamespacedName{
 						Name:      "concurrent-test",
 						Namespace: "default",

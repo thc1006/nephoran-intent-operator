@@ -12,6 +12,45 @@ import (
 	"time"
 )
 
+// ResponseValidator validates LLM responses for required fields
+type ResponseValidator struct {
+	requiredFields map[string]bool
+}
+
+// ValidationError represents validation errors with missing fields
+type ValidationError struct {
+	MissingFields []string
+	Message       string
+}
+
+func (e *ValidationError) Error() string {
+	return e.Message
+}
+
+// ValidateResponse validates a JSON response for required fields
+func (rv *ResponseValidator) ValidateResponse(jsonData []byte) error {
+	var response map[string]interface{}
+	if err := json.Unmarshal(jsonData, &response); err != nil {
+		return err
+	}
+
+	var missing []string
+	for field := range rv.requiredFields {
+		if _, exists := response[field]; !exists {
+			missing = append(missing, field)
+		}
+	}
+
+	if len(missing) > 0 {
+		return &ValidationError{
+			MissingFields: missing,
+			Message:       fmt.Sprintf("Missing required fields: %v", missing),
+		}
+	}
+
+	return nil
+}
+
 // TestProcessIntentWithTimeout tests that ProcessIntent respects timeout settings
 func TestProcessIntentWithTimeout(t *testing.T) {
 	// Set environment variable for timeout

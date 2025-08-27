@@ -91,8 +91,8 @@ type O2DeploymentStatus struct {
 	Message  string `json:"message,omitempty"`
 }
 
-// O2VNFDeployRequest represents a request to deploy a VNF
-type O2VNFDeployRequest struct {
+// O2TestVNFDeployRequest represents a request to deploy a VNF (test-specific)
+type O2TestVNFDeployRequest struct {
 	Name         string                      `json:"name"`
 	Namespace    string                      `json:"namespace"`
 	VNFPackageID string                      `json:"vnfPackageId"`
@@ -327,7 +327,7 @@ func (m *O2Manager) DeployVNF(ctx context.Context, vnfSpec *O2VNFDescriptor) (*O
 }
 
 // DeployVNF method for O2Adaptor
-func (a *O2Adaptor) DeployVNF(ctx context.Context, request *O2VNFDeployRequest) (*O2VNFInstance, error) {
+func (a *O2Adaptor) DeployVNF(ctx context.Context, request *O2TestVNFDeployRequest) (*O2VNFInstance, error) {
 	// Create VNF instance
 	instance := &O2VNFInstance{
 		ID:           fmt.Sprintf("%s-%s", request.Namespace, request.Name),
@@ -942,13 +942,13 @@ func TestO2Manager_DeployVNF(t *testing.T) {
 func TestO2Adaptor_DeployVNF(t *testing.T) {
 	tests := []struct {
 		name          string
-		deployRequest *O2VNFDeployRequest
+		deployRequest *O2TestVNFDeployRequest
 		expectedError bool
 		validateFunc  func(*testing.T, *O2VNFInstance)
 	}{
 		{
 			name: "basic VNF deployment",
-			deployRequest: &O2VNFDeployRequest{
+			deployRequest: &O2TestVNFDeployRequest{
 				Name:         "test-vnf",
 				Namespace:    "test-ns",
 				VNFPackageID: "vnf-package-1",
@@ -1233,7 +1233,7 @@ func BenchmarkO2Adaptor_DeployVNF(b *testing.B) {
 	}
 	ctx := context.Background()
 
-	deployRequest := &O2VNFDeployRequest{
+	deployRequest := &O2TestVNFDeployRequest{
 		Name:         "bench-vnf",
 		Namespace:    "bench-ns",
 		VNFPackageID: "bench-package",

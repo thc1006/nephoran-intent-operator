@@ -170,7 +170,7 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 
 	Context("Circuit Breaker with Enhanced Client", func() {
 		var (
-			enhancedClient *EnhancedClient
+			enhancedClient *EnhancedPerformanceClient
 			failureServer  *httptest.Server
 			successServer  *httptest.Server
 		)
@@ -199,27 +199,31 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 				json.NewEncoder(w).Encode(response)
 			}))
 
-			config := EnhancedClientConfig{
-				ClientConfig: ClientConfig{
+			config := &EnhancedClientConfig{
+				BaseConfig: ClientConfig{
 					APIKey:      "test-key",
 					ModelName:   "test-model",
 					MaxTokens:   1000,
 					BackendType: "test",
 					Timeout:     5 * time.Second,
 				},
-				CircuitBreakerThreshold: 3,
-				CircuitBreakerTimeout:   500 * time.Millisecond,
-				RateLimitTokens:         100, // High limit to avoid rate limiting
-				RateLimitRefillRate:     50,
-				HealthCheckInterval:     time.Minute,
-				HealthCheckTimeout:      time.Second,
+				CircuitBreakerConfig: CircuitBreakerConfig{
+					FailureThreshold: 3,
+					Timeout:         500 * time.Millisecond,
+				},
+				HealthCheckConfig: HealthCheckConfig{
+					Interval: time.Minute,
+					Timeout:  time.Second,
+				},
 			}
 
-			enhancedClient = NewEnhancedClient(failureServer.URL, config)
+			var err error
+			enhancedClient, err = NewEnhancedPerformanceClient(config)
+			Expect(err).To(BeNil())
 		})
 
 		AfterEach(func() {
-			enhancedClient.healthChecker.Stop()
+			// Health checker stops automatically
 			failureServer.Close()
 			if successServer != nil {
 				successServer.Close()
@@ -229,7 +233,7 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 		It("should demonstrate circuit breaker recovery", func() {
 			// Initial requests should fail and open the circuit
 			for i := 0; i < 5; i++ {
-				_, err := enhancedClient.ProcessIntentWithEnhancements(
+				_, err := enhancedClient.ProcessIntent(
 					context.Background(),
 					fmt.Sprintf("failing request %d", i),
 				)
@@ -238,21 +242,21 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 
 			// Circuit should be open
 			Eventually(func() CircuitState {
-				return enhancedClient.circuitBreaker.getState()
+				return enhancedClient.circuitBreaker.GetState()
 			}, time.Second).Should(Equal(StateOpen))
 
 			// Wait for circuit to move to half-open
 			time.Sleep(600 * time.Millisecond)
 
 			// Next request should succeed and close the circuit
-			result, err := enhancedClient.ProcessIntentWithEnhancements(
+			result, err := enhancedClient.ProcessIntent(
 				context.Background(),
 				"recovery request",
 			)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result).To(ContainSubstring("recovery-nf"))
-			Expect(enhancedClient.circuitBreaker.getState()).To(Equal(StateClosed))
+			Expect(enhancedClient.circuitBreaker.GetState()).To(Equal(StateClosed))
 		})
 
 		It("should handle rapid state transitions", func() {
@@ -262,7 +266,7 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 
 			// Make rapid requests
 			for i := 0; i < numRequests; i++ {
-				result, err := enhancedClient.ProcessIntentWithEnhancements(
+				result, err := enhancedClient.ProcessIntent(
 					context.Background(),
 					fmt.Sprintf("rapid request %d", i),
 				)
@@ -279,8 +283,7 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 			for _, err := range errors {
 				if err != nil {
 					failureCount++
-					var enhancedErr *EnhancedError
-					if errors.As(err, &enhancedErr) && enhancedErr.Type == ErrorTypeCircuitBreaker {
+					if err.Error() == "circuit breaker is open" {
 						circuitBreakerErrors++
 					}
 				} else {
@@ -322,7 +325,10 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 			Expect(circuitBreaker.getState()).To(Equal(StateOpen))
 
 			// Reset circuit breaker
-			circuitBreaker = NewCircuitBreaker(3, time.Second)
+			circuitBreaker = NewCircuitBreaker("test", &CircuitBreakerConfig{
+				FailureThreshold: 3,
+				Timeout:         time.Second,
+			})
 
 			// Test non-retryable errors (these still count as failures for circuit breaker)
 			for _, err := range nonRetryableErrors {

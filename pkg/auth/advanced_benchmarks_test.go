@@ -8,7 +8,6 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"runtime"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"

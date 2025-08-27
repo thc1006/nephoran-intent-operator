@@ -3,7 +3,6 @@ package webhooks
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -25,10 +24,7 @@ func createTestValidator() (*NetworkIntentValidator, error) {
 		return nil, err
 	}
 
-	decoder, err := admission.NewDecoder(scheme)
-	if err != nil {
-		return nil, err
-	}
+	decoder := admission.NewDecoder(scheme)
 
 	validator := NewNetworkIntentValidator()
 	err = validator.InjectDecoder(decoder)

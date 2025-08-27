@@ -153,7 +153,6 @@ func TestMemoryLeakDetection(t *testing.T) {
 
 // TestGoroutineLeakDetection tests for goroutine leaks
 func TestGoroutineLeakDetection(t *testing.T) {
-	ctx := context.Background()
 	initialGoroutines := runtime.NumGoroutine()
 
 	// Run operations that spawn goroutines

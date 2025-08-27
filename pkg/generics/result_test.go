@@ -90,7 +90,7 @@ func TestResult_Map(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := Map(tt.input, tt.fn)
+			result := MapResult(tt.input, tt.fn)
 
 			if result.IsOk() != tt.isOk {
 				t.Errorf("Expected isOk %v, got %v", tt.isOk, result.IsOk())
@@ -527,12 +527,12 @@ func BenchmarkResult_Ok(b *testing.B) {
 }
 
 func BenchmarkResult_Map(b *testing.B) {
-	result := Ok[int, error](42)
-	fn := func(x int) int { return x * 2 }
+	resultVal := Ok[int, error](42)
+	fnVal := func(x int) int { return x * 2 }
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = Map(result, fn)
+		_ = MapResult(resultVal, fnVal)
 	}
 }
 

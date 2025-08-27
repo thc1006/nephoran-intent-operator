@@ -29,6 +29,16 @@ func (c *noOpRAGClient) Initialize(ctx context.Context) error {
 	return nil
 }
 
+// ProcessIntent returns a no-op response
+func (c *noOpRAGClient) ProcessIntent(ctx context.Context, intent string) (string, error) {
+	return "RAG support is not enabled", nil
+}
+
+// IsHealthy always returns false for no-op client  
+func (c *noOpRAGClient) IsHealthy() bool {
+	return false
+}
+
 // Shutdown is a no-op for the no-op implementation
 func (c *noOpRAGClient) Shutdown(ctx context.Context) error {
 	// No-op client requires no shutdown

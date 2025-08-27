@@ -133,7 +133,11 @@ func TestO2APILoadPerformance(t *testing.T) {
 	corev1.AddToScheme(scheme)
 	k8sClient := fakeClient.NewClientBuilder().WithScheme(scheme).Build()
 	k8sClientset := fake.NewSimpleClientset()
-	testLogger := logging.NewLogger("o2-load-test", "info")
+	testLogger := logging.NewStructuredLogger(logging.Config{
+		Level:       logging.LevelInfo,
+		ServiceName: "o2-load-test",
+		Format:      "text",
+	})
 
 	// Setup O2 API server
 	config := &o2.O2IMSConfig{
@@ -151,7 +155,7 @@ func TestO2APILoadPerformance(t *testing.T) {
 		},
 	}
 
-	o2Server, err := o2.NewO2APIServer(config, testLogger, nil)
+	o2Server, err := o2.NewO2APIServer(config)
 	require.NoError(t, err)
 	defer o2Server.Shutdown(context.Background())
 
@@ -644,7 +648,7 @@ func BenchmarkO2APIOperations(b *testing.B) {
 		},
 	}
 
-	o2Server, err := o2.NewO2APIServer(config, testLogger, nil)
+	o2Server, err := o2.NewO2APIServer(config)
 	require.NoError(b, err)
 	defer o2Server.Shutdown(context.Background())
 
@@ -763,7 +767,7 @@ func TestMemoryUsage(t *testing.T) {
 		},
 	}
 
-	o2Server, err := o2.NewO2APIServer(config, testLogger, nil)
+	o2Server, err := o2.NewO2APIServer(config)
 	require.NoError(t, err)
 	defer o2Server.Shutdown(context.Background())
 

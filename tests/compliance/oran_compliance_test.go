@@ -482,8 +482,8 @@ func TestORANCompliance(t *testing.T) {
 	suite.Run(t, new(ORANComplianceTestSuite))
 }
 
-// ComplianceReport generates a compliance report
-type ComplianceReport struct {
+// ORANComplianceReport generates a compliance report
+type ORANComplianceReport struct {
 	Timestamp      time.Time             `json:"timestamp"`
 	Version        string                `json:"version"`
 	TotalTests     int                   `json:"total_tests"`
@@ -501,8 +501,8 @@ type TestResult struct {
 }
 
 // GenerateComplianceReport generates a detailed compliance report
-func GenerateComplianceReport(results *testing.T) (*ComplianceReport, error) {
-	report := &ComplianceReport{
+func GenerateComplianceReport(results *testing.T) (*ORANComplianceReport, error) {
+	report := &ORANComplianceReport{
 		Timestamp: time.Now(),
 		Version:   "2.0.0",
 		Details:   make(map[string]TestResult),

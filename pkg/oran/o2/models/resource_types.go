@@ -65,6 +65,9 @@ type ResourceType struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	CreatedBy string    `json:"createdBy,omitempty"`
 	UpdatedBy string    `json:"updatedBy,omitempty"`
+	
+	// Compliance information for test compatibility
+	Compliance *ComplianceInfo `json:"compliance,omitempty"`
 }
 
 // YANGModelReference represents a reference to a YANG model
@@ -673,6 +676,7 @@ type ResourceTypeSpec struct {
 	RequiredPorts    []PortSpec        `json:"requiredPorts,omitempty"`
 	OptionalPorts    []PortSpec        `json:"optionalPorts,omitempty"`
 	Properties       map[string]interface{} `json:"properties,omitempty"`
+	Capabilities     map[string]interface{} `json:"capabilities,omitempty"`
 }
 
 // PortSpec represents a port specification for network services
@@ -680,4 +684,14 @@ type PortSpec struct {
 	Name     string `json:"name"`
 	Port     int32  `json:"port"`
 	Protocol string `json:"protocol"`
+}
+
+// ComplianceInfo represents compliance information for resources
+type ComplianceInfo struct {
+	Standard           string                 `json:"standard"`
+	Version            string                 `json:"version"`
+	Certified          bool                   `json:"certified"`
+	CertificationLevel string                 `json:"certificationLevel,omitempty"`
+	TestResults        map[string]interface{} `json:"testResults,omitempty"`
+	ValidatedAt        *time.Time             `json:"validatedAt,omitempty"`
 }

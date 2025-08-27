@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/interfaces"
 	"github.com/thc1006/nephoran-intent-operator/pkg/security"
 )
 
@@ -17,7 +18,7 @@ func TestLoadAuthConfig_CustomFilePath(t *testing.T) {
 	defer func() {
 		security.GlobalAuditLogger = originalAuditLogger
 	}()
-	security.GlobalAuditLogger, _ = security.NewAuditLogger("", security.AuditLevelInfo)
+	security.GlobalAuditLogger, _ = security.NewAuditLogger("", interfaces.AuditLevelInfo)
 
 	tests := []struct {
 		name           string
@@ -157,7 +158,7 @@ func TestLoadAuthConfig_PathPrecedence(t *testing.T) {
 	defer func() {
 		security.GlobalAuditLogger = originalAuditLogger
 	}()
-	security.GlobalAuditLogger, _ = security.NewAuditLogger("", security.AuditLevelInfo)
+	security.GlobalAuditLogger, _ = security.NewAuditLogger("", interfaces.AuditLevelInfo)
 
 	// Create temp directory for test files
 	tempDir := t.TempDir()

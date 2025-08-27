@@ -484,8 +484,8 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 		}),
 	}
 
-	// Register metrics
-	prometheus.MustRegister(
+	// Register metrics with duplicate handling
+	metricsToRegister := []prometheus.Collector{
 		metrics.AlertsGenerated,
 		metrics.AlertsResolved,
 		metrics.AlertsFalsePositive,
@@ -494,7 +494,17 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 		metrics.ActiveAlerts,
 		metrics.BusinessImpactScore,
 		metrics.RevenueAtRisk,
-	)
+	}
+
+	// Register each metric, ignoring duplicate registration errors
+	for _, metric := range metricsToRegister {
+		if err := prometheus.Register(metric); err != nil {
+			if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
+				// Only propagate non-duplicate errors
+				logger.Error("Failed to register metric", "error", err)
+			}
+		}
+	}
 
 	sam := &SLAAlertManager{
 		logger:             logger.WithComponent("sla-alert-manager"),

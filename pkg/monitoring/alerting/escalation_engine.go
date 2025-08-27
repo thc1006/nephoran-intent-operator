@@ -593,13 +593,23 @@ func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLog
 		}),
 	}
 
-	// Register metrics
-	prometheus.MustRegister(
+	// Register metrics with duplicate handling
+	escalationMetrics := []prometheus.Collector{
 		metrics.EscalationsStarted,
 		metrics.EscalationsResolved,
 		metrics.EscalationDuration,
 		metrics.ActiveEscalations,
-	)
+	}
+
+	// Register each metric, ignoring duplicate registration errors
+	for _, metric := range escalationMetrics {
+		if err := prometheus.Register(metric); err != nil {
+			if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
+				// Only propagate non-duplicate errors
+				logger.Error("Failed to register escalation metric", "error", err)
+			}
+		}
+	}
 
 	ee := &EscalationEngine{
 		logger:             logger.WithComponent("escalation-engine"),

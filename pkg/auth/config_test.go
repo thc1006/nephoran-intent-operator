@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/interfaces"
 	"github.com/thc1006/nephoran-intent-operator/pkg/security"
 )
 
@@ -180,7 +181,7 @@ func TestGetOAuth2ClientSecret_ErrorScenarios(t *testing.T) {
 	}()
 
 	// Create a real audit logger for testing but with null output
-	security.GlobalAuditLogger, _ = security.NewAuditLogger("", security.AuditLevelInfo)
+	security.GlobalAuditLogger, _ = security.NewAuditLogger("", interfaces.AuditLevelInfo)
 
 	tests := []struct {
 		name             string
@@ -367,7 +368,7 @@ func TestLoadProviders_ErrorPropagation(t *testing.T) {
 		security.GlobalAuditLogger = originalAuditLogger
 	}()
 
-	security.GlobalAuditLogger, _ = security.NewAuditLogger("", security.AuditLevelInfo)
+	security.GlobalAuditLogger, _ = security.NewAuditLogger("", interfaces.AuditLevelInfo)
 
 	tests := []struct {
 		name                string
@@ -920,7 +921,7 @@ func TestLoadAuthConfig_IntegrationTests(t *testing.T) {
 		security.GlobalAuditLogger = originalAuditLogger
 	}()
 
-	security.GlobalAuditLogger, _ = security.NewAuditLogger("", security.AuditLevelInfo)
+	security.GlobalAuditLogger, _ = security.NewAuditLogger("", interfaces.AuditLevelInfo)
 
 	tests := []struct {
 		name                string
@@ -1065,7 +1066,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 	defer func() {
 		security.GlobalAuditLogger = originalAuditLogger
 	}()
-	security.GlobalAuditLogger, _ = security.NewAuditLogger("", security.AuditLevelInfo)
+	security.GlobalAuditLogger, _ = security.NewAuditLogger("", interfaces.AuditLevelInfo)
 
 	tests := []struct {
 		name                   string

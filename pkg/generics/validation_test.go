@@ -4,7 +4,6 @@ package generics
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -236,8 +235,8 @@ func TestValidationBuilder_OneOf(t *testing.T) {
 
 	builder := NewValidationBuilder[Status]()
 	validator := builder.
-		OneOf("status", []string{"active", "inactive", "pending"},
-			func(s Status) string { return s.Value }).
+		OneOf("status", []interface{}{"active", "inactive", "pending"},
+			func(s Status) interface{} { return s.Value }).
 		Build()
 
 	tests := []struct {
@@ -725,7 +724,7 @@ func TestUniqueSliceValidator(t *testing.T) {
 		Items []int
 	}
 
-	validator := UniqueSlice("items", func(d ListData) []int { return d.Items })
+	validator := ValidateUniqueSlice("items", func(d ListData) []int { return d.Items })
 
 	tests := []struct {
 		name  string

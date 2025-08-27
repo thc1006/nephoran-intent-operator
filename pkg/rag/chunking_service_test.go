@@ -1,6 +1,9 @@
 package rag
 
 import (
+	"context"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -14,11 +17,11 @@ var _ = Describe("ChunkingService", func() {
 	BeforeEach(func() {
 		config = &ChunkingConfig{
 			ChunkSize:         500,
-			OverlapSize:       50,
+			ChunkOverlap:      50,
 			MinChunkSize:      100,
 			MaxChunkSize:      1000,
-			SeparatorType:     "sentence",
-			PreserveStructure: true,
+			UseSemanticBoundaries: true,
+			PreserveHierarchy: true,
 		}
 		service = NewChunkingService(config)
 	})
@@ -40,13 +43,18 @@ var _ = Describe("ChunkingService", func() {
 	Describe("ChunkDocument", func() {
 		Context("when chunking regular text", func() {
 			It("should split text into appropriate chunks", func() {
-				document := &Document{
+				document := &LoadedDocument{
+					ID:      "test-doc-1",
 					Content: "This is the first sentence. This is the second sentence. This is the third sentence. This is a very long sentence that should demonstrate how the chunking algorithm works with longer pieces of text that might exceed the normal chunk size limits.",
 					Title:   "Test Document",
-					Source:  "test",
+					Metadata: &DocumentMetadata{
+						Source:   "test",
+						DocumentType: "txt",
+					},
+					LoadedAt: time.Now(),
 				}
 
-				chunks, err := service.ChunkDocument(document)
+				chunks, err := service.ChunkDocument(context.Background(), document)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(chunks)).To(BeNumerically(">", 0))
@@ -54,46 +62,58 @@ var _ = Describe("ChunkingService", func() {
 				for _, chunk := range chunks {
 					Expect(len(chunk.Content)).To(BeNumerically(">=", config.MinChunkSize))
 					Expect(len(chunk.Content)).To(BeNumerically("<=", config.MaxChunkSize))
-					Expect(chunk.Source).To(Equal(document.Source))
-					Expect(chunk.Title).To(Equal(document.Title))
+					Expect(chunk.DocumentID).To(Equal(document.ID))
+					if chunk.DocumentMetadata != nil {
+						Expect(chunk.DocumentMetadata.Source).To(Equal(document.Metadata.Source))
+					}
 				}
 			})
 
 			It("should preserve overlap between chunks", func() {
 				longText := "Sentence one. Sentence two. Sentence three. Sentence four. Sentence five. Sentence six. Sentence seven. Sentence eight. Sentence nine. Sentence ten."
-				document := &Document{
+				document := &LoadedDocument{
+					ID:      "test-doc-2",
 					Content: longText,
 					Title:   "Long Document",
-					Source:  "test",
+					Metadata: &DocumentMetadata{
+						Source:   "test",
+						DocumentType: "txt",
+					},
+					LoadedAt: time.Now(),
 				}
 
-				chunks, err := service.ChunkDocument(document)
+				chunks, err := service.ChunkDocument(context.Background(), document)
 
 				Expect(err).ToNot(HaveOccurred())
 				if len(chunks) > 1 {
 					// Check that consecutive chunks have some overlap
 					for i := 1; i < len(chunks); i++ {
 						// There should be some overlap between chunks
-						Expect(chunks[i-1].ChunkEnd).To(BeNumerically(">", chunks[i].ChunkStart))
+						Expect(chunks[i-1].EndOffset).To(BeNumerically(">", chunks[i].StartOffset))
 					}
 				}
 			})
 
 			It("should handle empty documents", func() {
-				document := &Document{
+				document := &LoadedDocument{
+					ID:      "test-doc-3",
 					Content: "",
 					Title:   "Empty Document",
-					Source:  "test",
+					Metadata: &DocumentMetadata{
+						Source:       "test",
+						DocumentType: "txt",
+					},
+					LoadedAt: time.Now(),
 				}
 
-				chunks, err := service.ChunkDocument(document)
+				chunks, err := service.ChunkDocument(context.Background(), document)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(chunks)).To(Equal(0))
 			})
 
 			It("should handle very short documents", func() {
-				document := &Document{
+				document := &LoadedDocument{
 					Content: "Short text.",
 					Title:   "Short Document",
 					Source:  "test",
@@ -109,7 +129,7 @@ var _ = Describe("ChunkingService", func() {
 
 		Context("when chunking telecom documents", func() {
 			It("should preserve technical terminology", func() {
-				document := &Document{
+				document := &LoadedDocument{
 					Content: "The gNB (next generation Node B) is a key component in 5G networks. It handles radio resource management for the New Radio (NR) interface. The gNB connects to the 5G Core (5GC) through the N2 and N3 interfaces.",
 					Title:   "5G Architecture",
 					Source:  "3GPP TS 38.300",
@@ -131,7 +151,7 @@ var _ = Describe("ChunkingService", func() {
 			})
 
 			It("should handle structured technical documents", func() {
-				document := &Document{
+				document := &LoadedDocument{
 					Content: `
 # 5G Network Architecture
 
@@ -175,7 +195,7 @@ The RAN includes:
 			})
 
 			It("should chunk by paragraphs", func() {
-				document := &Document{
+				document := &LoadedDocument{
 					Content: "First paragraph with multiple sentences. This continues the first paragraph.\n\nSecond paragraph starts here. It also has multiple sentences.\n\nThird paragraph is the final one.",
 					Title:   "Multi-paragraph Document",
 					Source:  "test",
@@ -290,7 +310,7 @@ The RAN includes:
 
 		Context("when document has invalid content type", func() {
 			It("should handle gracefully", func() {
-				document := &Document{
+				document := &LoadedDocument{
 					Content: string([]byte{0, 1, 2, 3, 4, 5}), // Binary content
 					Title:   "Binary Document",
 					Source:  "test",

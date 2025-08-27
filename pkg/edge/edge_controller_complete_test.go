@@ -223,10 +223,10 @@ func TestEdgeController_Reconcile(t *testing.T) {
 					},
 					Spec: nephoran.NetworkIntentSpec{
 						Intent:     "Deploy edge processing for low latency",
-						IntentType: "edge-optimization",
-						ParametersMap: map[string]string{
-							"edge":    "true",
-							"latency": "5ms",
+						IntentType: nephoran.IntentTypeDeployment,
+						ProcessedParameters: &nephoran.ProcessedParameters{
+							NetworkFunction: "edge-gateway",
+							Region:         "edge",
 						},
 					},
 				}
@@ -258,9 +258,9 @@ func TestEdgeController_Reconcile(t *testing.T) {
 					},
 					Spec: nephoran.NetworkIntentSpec{
 						Intent:     "Deploy standard network service",
-						IntentType: "standard",
-						ParametersMap: map[string]string{
-							"type": "standard",
+						IntentType: nephoran.IntentTypeDeployment,
+						ProcessedParameters: &nephoran.ProcessedParameters{
+							NetworkFunction: "standard-gateway",
 						},
 					},
 				}
@@ -501,10 +501,9 @@ func TestEdgeController_ProcessNetworkIntent(t *testing.T) {
 			name: "low latency intent",
 			intent: &nephoran.NetworkIntent{
 				Spec: nephoran.NetworkIntentSpec{
-					IntentType: "low-latency",
-					ParametersMap: map[string]string{
-						"maxLatency":   "5ms",
-						"minBandwidth": "100Mbps",
+					IntentType: nephoran.IntentTypeOptimization,
+					ProcessedParameters: &nephoran.ProcessedParameters{
+						NetworkFunction: "low-latency-gateway",
 					},
 				},
 			},
@@ -517,9 +516,9 @@ func TestEdgeController_ProcessNetworkIntent(t *testing.T) {
 			name: "high throughput intent",
 			intent: &nephoran.NetworkIntent{
 				Spec: nephoran.NetworkIntentSpec{
-					IntentType: "high-throughput",
-					ParametersMap: map[string]string{
-						"minBandwidth": "1Gbps",
+					IntentType: nephoran.IntentTypeOptimization,
+					ProcessedParameters: &nephoran.ProcessedParameters{
+						NetworkFunction: "high-throughput-gateway",
 					},
 				},
 			},
@@ -532,9 +531,9 @@ func TestEdgeController_ProcessNetworkIntent(t *testing.T) {
 			name: "ML workload intent",
 			intent: &nephoran.NetworkIntent{
 				Spec: nephoran.NetworkIntentSpec{
-					IntentType: "ml-inference",
-					ParametersMap: map[string]string{
-						"gpuRequired": "true",
+					IntentType: nephoran.IntentTypeOptimization,
+					ProcessedParameters: &nephoran.ProcessedParameters{
+						NetworkFunction: "ml-inference-gateway",
 					},
 				},
 			},
@@ -988,9 +987,9 @@ func BenchmarkEdgeController_ProcessIntent(b *testing.B) {
 
 	intent := &nephoran.NetworkIntent{
 		Spec: nephoran.NetworkIntentSpec{
-			IntentType: "low-latency",
-			ParametersMap: map[string]string{
-				"maxLatency": "5ms",
+			IntentType: nephoran.IntentTypeOptimization,
+			ProcessedParameters: &nephoran.ProcessedParameters{
+				NetworkFunction: "low-latency-gateway",
 			},
 		},
 	}

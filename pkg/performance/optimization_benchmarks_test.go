@@ -1,10 +1,7 @@
 package performance
 
 import (
-	"context"
 	"fmt"
-	"math"
-	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"runtime"
@@ -791,7 +788,7 @@ func TestGenerateBenchmarkReport(t *testing.T) {
 		},
 	}
 
-	fmt.Println("\n=== NEPHORAN INTENT OPERATOR OPTIMIZATION BENCHMARKS ===\n")
+	fmt.Println("\n=== NEPHORAN INTENT OPERATOR OPTIMIZATION BENCHMARKS ===")
 	fmt.Printf("%-30s %15s %15s %12s %12s\n", "Benchmark", "Before (ns/op)", "After (ns/op)", "Speedup", "Improvement")
 	fmt.Println(strings.Repeat("-", 100))
 
@@ -829,7 +826,7 @@ func TestGenerateBenchmarkReport(t *testing.T) {
 		(1-1/avgSpeedup)*100)
 
 	// Memory allocation comparison
-	fmt.Println("\n=== MEMORY ALLOCATION COMPARISON ===\n")
+	fmt.Println("\n=== MEMORY ALLOCATION COMPARISON ===")
 	fmt.Printf("%-30s %15s %15s %15s %15s\n", "Benchmark", "Before Allocs", "After Allocs", "Before Bytes", "After Bytes")
 	fmt.Println(strings.Repeat("-", 95))
 
@@ -863,7 +860,7 @@ func TestGenerateBenchmarkReport(t *testing.T) {
 	}
 
 	// Performance targets validation
-	fmt.Println("\n=== PERFORMANCE TARGETS VALIDATION ===\n")
+	fmt.Println("\n=== PERFORMANCE TARGETS VALIDATION ===")
 
 	// Simulate latency measurements
 	p99LatencyBefore := 45 * time.Second

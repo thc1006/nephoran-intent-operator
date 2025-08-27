@@ -18,8 +18,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/hack/testtools"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/testutil"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2"
+	gittestutil "github.com/thc1006/nephoran-intent-operator/hack/testtools"
 	gitfake "github.com/thc1006/nephoran-intent-operator/pkg/git/fake"
 )
 
@@ -245,26 +246,21 @@ func TestE2NodeSetController_Reconcile(t *testing.T) {
 				},
 			},
 			existingObjects: []client.Object{},
-			e2ManagerSetup: func(mgr *fakeE2Manager) {
+			e2ManagerSetup: func(mgr *testutil.FakeE2Manager) {
 				// Pre-populate with existing nodes
 				for i := 0; i < 2; i++ {
 					nodeID := fmt.Sprintf("default-test-e2nodeset-node-%d", i)
-					mgr.nodes[nodeID] = &e2.E2Node{
+					mgr.AddNode(nodeID, &e2.E2Node{
 						NodeID: nodeID,
-						HealthStatus: e2.HealthStatus{
-							Status: "HEALTHY",
-						},
-						ConnectionStatus: e2.ConnectionStatus{
-							State: "CONNECTED",
-						},
-					}
+						// Health and Connection status fields simplified for testing
+					})
 				}
 			},
-			gitClientSetup: func(gc *fake.Client) {},
+			gitClientSetup: func(gc *gitfake.Client) {},
 			expectedResult: ctrl.Result{},
 			expectedError:  false,
-			expectedCalls: func(t *testing.T, mgr *fakeE2Manager, gc *fake.Client) {
-				assert.GreaterOrEqual(t, mgr.listCallCount, 1, "ListE2Nodes should be called for cleanup")
+			expectedCalls: func(t *testing.T, mgr *testutil.FakeE2Manager, gc *gitfake.Client) {
+				assert.GreaterOrEqual(t, mgr.GetListCallCount(), 1, "ListE2Nodes should be called for cleanup")
 			},
 			expectedStatus: func(t *testing.T, e2nodeSet *nephoranv1.E2NodeSet) {
 				// Finalizer should be removed after successful cleanup
@@ -285,14 +281,14 @@ func TestE2NodeSetController_Reconcile(t *testing.T) {
 				},
 			},
 			existingObjects: []client.Object{},
-			e2ManagerSetup:  func(mgr *fakeE2Manager) {},
-			gitClientSetup:  func(gc *fake.Client) {},
+			e2ManagerSetup:  func(mgr *testutil.FakeE2Manager) {},
+			gitClientSetup:  func(gc *gitfake.Client) {},
 			expectedResult:  ctrl.Result{},
 			expectedError:   false,
-			expectedCalls: func(t *testing.T, mgr *fakeE2Manager, gc *fake.Client) {
-				assert.Equal(t, 1, mgr.provisionCallCount, "ProvisionNode should be called once")
-				assert.Equal(t, 1, mgr.connectionCallCount, "SetupE2Connection should be called once")
-				assert.Equal(t, 1, mgr.registrationCallCount, "RegisterE2Node should be called once")
+			expectedCalls: func(t *testing.T, mgr *testutil.FakeE2Manager, gc *gitfake.Client) {
+				assert.Equal(t, 1, mgr.GetProvisionCallCount(), "ProvisionNode should be called once")
+				assert.Equal(t, 1, mgr.GetConnectionCallCount(), "SetupE2Connection should be called once")
+				assert.Equal(t, 1, mgr.GetRegistrationCallCount(), "RegisterE2Node should be called once")
 			},
 			expectedStatus: func(t *testing.T, e2nodeSet *nephoranv1.E2NodeSet) {
 				assert.Equal(t, int32(1), e2nodeSet.Status.ReadyReplicas, "ReadyReplicas should be 1")
@@ -313,27 +309,22 @@ func TestE2NodeSetController_Reconcile(t *testing.T) {
 				},
 			},
 			existingObjects: []client.Object{},
-			e2ManagerSetup: func(mgr *fakeE2Manager) {
+			e2ManagerSetup: func(mgr *testutil.FakeE2Manager) {
 				// Pre-populate with 2 existing nodes that should be removed
 				for i := 0; i < 2; i++ {
 					nodeID := fmt.Sprintf("default-test-e2nodeset-node-%d", i)
-					mgr.nodes[nodeID] = &e2.E2Node{
+					mgr.AddNode(nodeID, &e2.E2Node{
 						NodeID: nodeID,
-						HealthStatus: e2.HealthStatus{
-							Status: "HEALTHY",
-						},
-						ConnectionStatus: e2.ConnectionStatus{
-							State: "CONNECTED",
-						},
-					}
+						// Health and Connection status fields simplified for testing
+					})
 				}
 			},
-			gitClientSetup: func(gc *fake.Client) {},
+			gitClientSetup: func(gc *gitfake.Client) {},
 			expectedResult: ctrl.Result{},
 			expectedError:  false,
-			expectedCalls: func(t *testing.T, mgr *fakeE2Manager, gc *fake.Client) {
-				assert.Equal(t, 1, mgr.provisionCallCount, "ProvisionNode should be called once")
-				assert.GreaterOrEqual(t, mgr.listCallCount, 1, "ListE2Nodes should be called")
+			expectedCalls: func(t *testing.T, mgr *testutil.FakeE2Manager, gc *gitfake.Client) {
+				assert.Equal(t, 1, mgr.GetProvisionCallCount(), "ProvisionNode should be called once")
+				assert.GreaterOrEqual(t, mgr.GetListCallCount(), 1, "ListE2Nodes should be called")
 			},
 			expectedStatus: func(t *testing.T, e2nodeSet *nephoranv1.E2NodeSet) {
 				assert.Equal(t, int32(0), e2nodeSet.Status.ReadyReplicas, "ReadyReplicas should be 0")

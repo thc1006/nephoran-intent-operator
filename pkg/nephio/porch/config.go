@@ -1581,6 +1581,22 @@ func (cb *ConfigBuilder) validate() error {
 
 // Configuration factory functions
 
+// NewConfig creates a new empty configuration
+func NewConfig() *Config {
+	return &Config{
+		Repositories: make(map[string]*RepositoryConfig),
+		Clusters:     make(map[string]*ClusterConfig),
+	}
+}
+
+// WithDefaults adds default values to the configuration
+func (c *Config) WithDefaults() *Config {
+	builder := NewConfigBuilder()
+	builder.config = c
+	builder.applyDefaults()
+	return builder.config
+}
+
 // NewDefaultConfig creates a default configuration
 func NewDefaultConfig() *Config {
 	return NewConfigBuilder().Build()

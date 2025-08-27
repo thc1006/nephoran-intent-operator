@@ -640,10 +640,6 @@ func (suite *DisasterRecoveryTestSuite) waitForDeploymentReady(name, namespace s
 	}
 }
 
-func int32Ptr(i int32) *int32 {
-	return &i
-}
-
 // Comprehensive disaster recovery testing
 func (suite *DisasterRecoveryTestSuite) TestComprehensiveDisasterRecovery() {
 	suite.T().Log("Starting comprehensive disaster recovery test suite")

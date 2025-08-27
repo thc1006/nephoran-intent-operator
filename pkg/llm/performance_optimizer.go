@@ -26,7 +26,7 @@ type PerformanceOptimizer struct {
 	meter  metric.Meter
 
 	// Latency tracking
-	latencyBuffer []LatencyDataPoint
+	latencyBuffer []LLMLatencyDataPoint
 	bufferMutex   sync.RWMutex
 	maxBufferSize int
 
@@ -43,8 +43,8 @@ type PerformanceOptimizer struct {
 	config *PerformanceConfig
 }
 
-// LatencyDataPoint represents a single latency measurement
-type LatencyDataPoint struct {
+// LLMLatencyDataPoint represents a single latency measurement
+type LLMLatencyDataPoint struct {
 	Timestamp    time.Time
 	Duration     time.Duration
 	IntentType   string
@@ -120,7 +120,7 @@ func NewPerformanceOptimizer(config *PerformanceConfig) *PerformanceOptimizer {
 		logger:        logger,
 		tracer:        tracer,
 		meter:         meter,
-		latencyBuffer: make([]LatencyDataPoint, 0, config.LatencyBufferSize),
+		latencyBuffer: make([]LLMLatencyDataPoint, 0, config.LatencyBufferSize),
 		maxBufferSize: config.LatencyBufferSize,
 		config:        config,
 	}
@@ -264,7 +264,7 @@ func (po *PerformanceOptimizer) initializeMetrics() {
 }
 
 // RecordLatency records a latency data point
-func (po *PerformanceOptimizer) RecordLatency(dataPoint LatencyDataPoint) {
+func (po *PerformanceOptimizer) RecordLatency(dataPoint LLMLatencyDataPoint) {
 	po.bufferMutex.Lock()
 	defer po.bufferMutex.Unlock()
 
@@ -283,7 +283,7 @@ func (po *PerformanceOptimizer) RecordLatency(dataPoint LatencyDataPoint) {
 }
 
 // updateMetrics updates Prometheus and OpenTelemetry metrics
-func (po *PerformanceOptimizer) updateMetrics(dataPoint LatencyDataPoint) {
+func (po *PerformanceOptimizer) updateMetrics(dataPoint LLMLatencyDataPoint) {
 	// Prometheus metrics
 	labels := prometheus.Labels{
 		"intent_type": dataPoint.IntentType,
@@ -337,7 +337,7 @@ func (po *PerformanceOptimizer) GetLatencyProfile() *LatencyProfile {
 	}
 
 	// Create a copy for analysis
-	data := make([]LatencyDataPoint, len(po.latencyBuffer))
+	data := make([]LLMLatencyDataPoint, len(po.latencyBuffer))
 	copy(data, po.latencyBuffer)
 
 	// Sort by duration
@@ -366,7 +366,7 @@ func (po *PerformanceOptimizer) GetLatencyProfile() *LatencyProfile {
 	profile.SuccessRate = float64(successCount) / float64(len(data))
 
 	// Group by intent type
-	intentGroups := make(map[string][]LatencyDataPoint)
+	intentGroups := make(map[string][]LLMLatencyDataPoint)
 	for _, dp := range data {
 		intentGroups[dp.IntentType] = append(intentGroups[dp.IntentType], dp)
 	}
@@ -380,7 +380,7 @@ func (po *PerformanceOptimizer) GetLatencyProfile() *LatencyProfile {
 	}
 
 	// Group by model
-	modelGroups := make(map[string][]LatencyDataPoint)
+	modelGroups := make(map[string][]LLMLatencyDataPoint)
 	for _, dp := range data {
 		modelGroups[dp.ModelName] = append(modelGroups[dp.ModelName], dp)
 	}
@@ -514,7 +514,7 @@ func (po *PerformanceOptimizer) updateCacheMetrics() {
 }
 
 // Helper functions
-func calculatePercentiles(data []LatencyDataPoint) LatencyPercentiles {
+func calculatePercentiles(data []LLMLatencyDataPoint) LatencyPercentiles {
 	if len(data) == 0 {
 		return LatencyPercentiles{}
 	}
@@ -528,7 +528,7 @@ func calculatePercentiles(data []LatencyDataPoint) LatencyPercentiles {
 	}
 }
 
-func calculateSuccessRate(data []LatencyDataPoint) float64 {
+func calculateSuccessRate(data []LLMLatencyDataPoint) float64 {
 	if len(data) == 0 {
 		return 0
 	}
@@ -543,7 +543,7 @@ func calculateSuccessRate(data []LatencyDataPoint) float64 {
 	return float64(successCount) / float64(len(data))
 }
 
-func calculateAvgTokenCount(data []LatencyDataPoint) float64 {
+func calculateAvgTokenCount(data []LLMLatencyDataPoint) float64 {
 	if len(data) == 0 {
 		return 0
 	}

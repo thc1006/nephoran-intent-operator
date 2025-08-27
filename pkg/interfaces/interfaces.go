@@ -5,6 +5,16 @@ import (
 	"time"
 )
 
+// AuditLevel represents the severity level of audit events
+type AuditLevel int
+
+const (
+	AuditLevelInfo AuditLevel = iota
+	AuditLevelWarn
+	AuditLevelError
+	AuditLevelCritical
+)
+
 // SecretManager interface defines methods for secure secret operations
 type SecretManager interface {
 	// GetSecretValue retrieves a value from a secret source (Kubernetes or environment)
@@ -44,7 +54,7 @@ type AuditLogger interface {
 	LogUnauthorizedAccess(resource, userID, ipAddress, userAgent string, reason string)
 
 	// LogSecurityViolation logs security violations
-	LogSecurityViolation(violationType, description, userID, ipAddress string, severity int)
+	LogSecurityViolation(violationType, description, userID, ipAddress string, severity AuditLevel)
 
 	// SetEnabled enables or disables audit logging
 	SetEnabled(enabled bool)

@@ -389,6 +389,125 @@ type PipelineResponse struct {
 	Error     *FunctionError    `json:"error,omitempty"`
 }
 
+// Transformation and Validation Types
+
+// TransformationRequest represents a resource transformation request
+type TransformationRequest struct {
+	Resources []KRMResource                `json:"resources"`
+	Rules     []TransformationRule         `json:"rules"`
+	Context   map[string]interface{}       `json:"context,omitempty"`
+	Options   *TransformationOptions       `json:"options,omitempty"`
+}
+
+// TransformationResponse represents a resource transformation response
+type TransformationResponse struct {
+	Resources []KRMResource          `json:"resources"`
+	Applied   []TransformationResult `json:"applied,omitempty"`
+	Errors    []TransformationError  `json:"errors,omitempty"`
+	Warnings  []TransformationError  `json:"warnings,omitempty"`
+}
+
+// TransformationRule defines a transformation rule
+type TransformationRule struct {
+	Name        string                 `json:"name"`
+	Type        string                 `json:"type"`
+	Selector    *ResourceSelector      `json:"selector,omitempty"`
+	Operations  []TransformationOp     `json:"operations"`
+	Conditions  []TransformationCond   `json:"conditions,omitempty"`
+	Config      map[string]interface{} `json:"config,omitempty"`
+}
+
+// TransformationOp defines a transformation operation
+type TransformationOp struct {
+	Operation string      `json:"operation"` // add, remove, replace, merge
+	Path      string      `json:"path"`
+	Value     interface{} `json:"value,omitempty"`
+	From      string      `json:"from,omitempty"`
+}
+
+// TransformationCond defines a transformation condition
+type TransformationCond struct {
+	Path     string      `json:"path"`
+	Operator string      `json:"operator"` // equals, contains, matches
+	Value    interface{} `json:"value"`
+}
+
+// TransformationOptions defines transformation options
+type TransformationOptions struct {
+	DryRun      bool `json:"dryRun,omitempty"`
+	ValidateOnly bool `json:"validateOnly,omitempty"`
+	Force       bool `json:"force,omitempty"`
+}
+
+// TransformationResult represents a transformation result
+type TransformationResult struct {
+	Rule       string `json:"rule"`
+	Applied    bool   `json:"applied"`
+	Message    string `json:"message,omitempty"`
+	Resource   string `json:"resource,omitempty"`
+}
+
+// TransformationError represents a transformation error
+type TransformationError struct {
+	Rule     string `json:"rule,omitempty"`
+	Resource string `json:"resource,omitempty"`
+	Path     string `json:"path,omitempty"`
+	Message  string `json:"message"`
+	Code     string `json:"code,omitempty"`
+}
+
+// ORANValidationRequest represents an O-RAN compliance validation request
+type ORANValidationRequest struct {
+	Resources   []KRMResource            `json:"resources"`
+	Interfaces  []ORANInterface          `json:"interfaces,omitempty"`
+	Standards   []StandardRef            `json:"standards,omitempty"`
+	Rules       []ComplianceRule         `json:"rules,omitempty"`
+	Context     map[string]interface{}   `json:"context,omitempty"`
+	Options     *ORANValidationOptions   `json:"options,omitempty"`
+}
+
+// ORANValidationResponse represents an O-RAN compliance validation response
+type ORANValidationResponse struct {
+	Valid       bool                    `json:"valid"`
+	Score       float64                 `json:"score,omitempty"`
+	Results     []ORANValidationResult  `json:"results"`
+	Errors      []ValidationError       `json:"errors,omitempty"`
+	Warnings    []ValidationError       `json:"warnings,omitempty"`
+	Summary     *ORANValidationSummary  `json:"summary,omitempty"`
+}
+
+// ORANValidationOptions defines O-RAN validation options
+type ORANValidationOptions struct {
+	Strict       bool     `json:"strict,omitempty"`
+	FailOnWarn   bool     `json:"failOnWarn,omitempty"`
+	SkipRules    []string `json:"skipRules,omitempty"`
+	ExtraChecks  []string `json:"extraChecks,omitempty"`
+}
+
+// ORANValidationResult represents an O-RAN validation result
+type ORANValidationResult struct {
+	Rule       string                 `json:"rule"`
+	Interface  string                 `json:"interface,omitempty"`
+	Standard   string                 `json:"standard,omitempty"`
+	Resource   string                 `json:"resource,omitempty"`
+	Valid      bool                   `json:"valid"`
+	Score      float64                `json:"score,omitempty"`
+	Message    string                 `json:"message,omitempty"`
+	Details    map[string]interface{} `json:"details,omitempty"`
+	Severity   string                 `json:"severity,omitempty"`
+}
+
+// ORANValidationSummary provides validation summary
+type ORANValidationSummary struct {
+	TotalRules    int                        `json:"totalRules"`
+	PassedRules   int                        `json:"passedRules"`
+	FailedRules   int                        `json:"failedRules"`
+	SkippedRules  int                        `json:"skippedRules"`
+	Interfaces    map[string]int             `json:"interfaces,omitempty"`
+	Standards     map[string]int             `json:"standards,omitempty"`
+	Severities    map[string]int             `json:"severities,omitempty"`
+}
+
 // KRM Resource Types
 
 // KRMResource represents a Kubernetes resource manifest
@@ -924,6 +1043,12 @@ func IsValidLifecycle(lifecycle PackageRevisionLifecycle) bool {
 	}
 }
 
+// CanTransitionTo is a helper function that works like a method for PackageRevisionLifecycle
+// Usage: CanTransitionTo(current, target) instead of current.CanTransitionTo(target)
+func CanTransitionTo(current, target PackageRevisionLifecycle) bool {
+	return CanPackageRevisionTransitionTo(current, target)
+}
+
 // CanPackageRevisionTransitionTo checks if lifecycle transition is valid
 func CanPackageRevisionTransitionTo(current PackageRevisionLifecycle, target PackageRevisionLifecycle) bool {
 	transitions := map[PackageRevisionLifecycle][]PackageRevisionLifecycle{
@@ -1141,7 +1266,9 @@ const (
 	LabelComponent       = "porch.nephoran.com/component"
 	LabelRepository      = "porch.nephoran.com/repository"
 	LabelPackageName     = "porch.nephoran.com/package-name"
+	LabelPackage         = "porch.nephoran.com/package-name" // Alias for backward compatibility
 	LabelRevision        = "porch.nephoran.com/revision"
+	LabelVersion         = "porch.nephoran.com/revision" // Alias for backward compatibility
 	LabelLifecycle       = "porch.nephoran.com/lifecycle"
 	LabelIntentType      = "porch.nephoran.com/intent-type"
 	LabelTargetComponent = "porch.nephoran.com/target-component"

@@ -17,7 +17,7 @@ import (
 // Test RFC 7807 Error Structure
 
 func TestA1Error_Structure(t *testing.T) {
-	err := &A1Error{
+	err := &A1TestError{
 		Type:      ErrorTypePolicyTypeNotFound,
 		Title:     "Policy Type Not Found",
 		Status:    http.StatusNotFound,
@@ -40,7 +40,7 @@ func TestA1Error_Structure(t *testing.T) {
 }
 
 func TestA1Error_JSON_Serialization(t *testing.T) {
-	originalErr := &A1Error{
+	originalErr := &A1TestError{
 		Type:      ErrorTypeInvalidRequest,
 		Title:     "Invalid Request",
 		Status:    http.StatusBadRequest,
@@ -84,7 +84,7 @@ func TestA1Error_JSON_Serialization(t *testing.T) {
 }
 
 func TestA1Error_Error_Method(t *testing.T) {
-	err := &A1Error{
+	err := &A1TestError{
 		Type:   ErrorTypePolicyInstanceNotFound,
 		Title:  "Policy Instance Not Found",
 		Detail: "Policy instance 'test-policy-1' not found for policy type 123",
@@ -266,7 +266,7 @@ func TestWriteA1Error_BasicError(t *testing.T) {
 }
 
 func TestWriteA1Error_WithExtensions(t *testing.T) {
-	err := &A1Error{
+	err := &A1TestError{
 		Type:   ErrorTypePolicyValidationFailed,
 		Title:  "Validation Failed",
 		Status: http.StatusBadRequest,
@@ -420,7 +420,7 @@ func TestConvertToA1Error_HTTPStatusCodes(t *testing.T) {
 // Test Error Logging
 
 func TestA1Error_LogFields(t *testing.T) {
-	err := &A1Error{
+	err := &A1TestError{
 		Type:     ErrorTypePolicyInstanceConflict,
 		Title:    "Policy Instance Conflict",
 		Status:   http.StatusConflict,
@@ -533,7 +533,7 @@ func BenchmarkWriteA1Error(b *testing.B) {
 }
 
 func BenchmarkA1Error_JSON_Marshal(b *testing.B) {
-	err := &A1Error{
+	err := &A1TestError{
 		Type:     ErrorTypePolicyValidationFailed,
 		Title:    "Validation Failed",
 		Status:   http.StatusBadRequest,
@@ -579,8 +579,8 @@ type ValidationDetail struct {
 	Value   interface{} `json:"value,omitempty"`
 }
 
-// Enhanced A1Error with additional fields for comprehensive error handling
-type A1Error struct {
+// Enhanced A1TestError with additional fields for comprehensive error handling
+type A1TestError struct {
 	Type       A1ErrorType            `json:"type"`
 	Title      string                 `json:"title"`
 	Status     int                    `json:"status"`
@@ -591,70 +591,17 @@ type A1Error struct {
 	Cause      error                  `json:"-"` // Not serialized
 }
 
-func (e *A1Error) Error() string {
+func (e *A1TestError) Error() string {
 	if e.Detail != "" {
 		return fmt.Sprintf("[%s] %s: %s", e.Type, e.Title, e.Detail)
 	}
 	return fmt.Sprintf("[%s] %s", e.Type, e.Title)
 }
 
-func (e *A1Error) Unwrap() error {
-	return e.Cause
-}
-
-func (e *A1Error) Is(target error) bool {
-	if other, ok := target.(*A1Error); ok {
-		return e.Type == other.Type && e.Status == other.Status
-	}
-	return false
-}
-
-func (e *A1Error) MarshalJSON() ([]byte, error) {
-	// Create a map with all fields
-	result := map[string]interface{}{
-		"type":      e.Type,
-		"title":     e.Title,
-		"status":    e.Status,
-		"detail":    e.Detail,
-		"timestamp": e.Timestamp,
-	}
-
-	if e.Instance != "" {
-		result["instance"] = e.Instance
-	}
-
-	// Add extensions to the top level
-	for k, v := range e.Extensions {
-		result[k] = v
-	}
-
-	return json.Marshal(result)
-}
-
-func (e *A1Error) LogFields() map[string]interface{} {
-	fields := map[string]interface{}{
-		"error_type":   string(e.Type),
-		"error_title":  e.Title,
-		"error_status": e.Status,
-		"error_detail": e.Detail,
-	}
-
-	if e.Instance != "" {
-		fields["error_instance"] = e.Instance
-	}
-
-	// Add extensions
-	for k, v := range e.Extensions {
-		fields[k] = v
-	}
-
-	return fields
-}
-
 // Error constructors
 
-func NewA1Error(errorType A1ErrorType, message string, statusCode int, cause error) *A1Error {
-	return &A1Error{
+func NewTestA1Error(errorType A1ErrorType, message string, statusCode int, cause error) *A1Error {
+	return &A1TestError{
 		Type:       errorType,
 		Title:      message,
 		Detail:     message,
@@ -665,37 +612,10 @@ func NewA1Error(errorType A1ErrorType, message string, statusCode int, cause err
 	}
 }
 
-func NewPolicyTypeNotFoundError(policyTypeID int) *A1Error {
-	err := &A1Error{
-		Type:      ErrorTypePolicyTypeNotFound,
-		Title:     "Policy Type Not Found",
-		Status:    http.StatusNotFound,
-		Detail:    fmt.Sprintf("Policy type with ID %d was not found", policyTypeID),
-		Timestamp: time.Now(),
-		Extensions: map[string]interface{}{
-			"policy_type_id": policyTypeID,
-		},
-	}
-	return err
-}
 
-func NewPolicyInstanceNotFoundError(policyTypeID int, policyID string) *A1Error {
-	err := &A1Error{
-		Type:      ErrorTypePolicyInstanceNotFound,
-		Title:     "Policy Instance Not Found",
-		Status:    http.StatusNotFound,
-		Detail:    fmt.Sprintf("Policy instance '%s' not found for policy type %d", policyID, policyTypeID),
-		Timestamp: time.Now(),
-		Extensions: map[string]interface{}{
-			"policy_type_id": policyTypeID,
-			"policy_id":      policyID,
-		},
-	}
-	return err
-}
 
 func NewPolicyValidationError(message string, validationErrors []ValidationDetail) *A1Error {
-	err := &A1Error{
+	err := &A1TestError{
 		Type:      ErrorTypePolicyValidationFailed,
 		Title:     "Policy Validation Failed",
 		Status:    http.StatusBadRequest,
@@ -708,19 +628,6 @@ func NewPolicyValidationError(message string, validationErrors []ValidationDetai
 	return err
 }
 
-func NewCircuitBreakerOpenError(circuitBreakerName string) *A1Error {
-	err := &A1Error{
-		Type:      ErrorTypeCircuitBreakerOpen,
-		Title:     "Circuit Breaker Open",
-		Status:    http.StatusServiceUnavailable,
-		Detail:    fmt.Sprintf("Circuit breaker '%s' is open due to repeated failures", circuitBreakerName),
-		Timestamp: time.Now(),
-		Extensions: map[string]interface{}{
-			"circuit_breaker": circuitBreakerName,
-		},
-	}
-	return err
-}
 
 // Error conversion functions
 
@@ -729,7 +636,7 @@ func ConvertToA1Error(err error, context string) *A1Error {
 		return a1Err
 	}
 
-	return &A1Error{
+	return &A1TestError{
 		Type:      ErrorTypeInternalServerError,
 		Title:     "Internal Server Error",
 		Status:    http.StatusInternalServerError,
@@ -743,7 +650,7 @@ func ConvertToA1Error(err error, context string) *A1Error {
 }
 
 func ConvertValidationError(err error, field string) *A1Error {
-	return &A1Error{
+	return &A1TestError{
 		Type:      ErrorTypePolicyValidationFailed,
 		Title:     "Policy Validation Failed",
 		Status:    http.StatusBadRequest,
@@ -791,7 +698,7 @@ func ConvertHTTPStatusToA1Error(statusCode int, message string) *A1Error {
 		title = "Internal Server Error"
 	}
 
-	return &A1Error{
+	return &A1TestError{
 		Type:      errorType,
 		Title:     title,
 		Status:    statusCode,
@@ -811,7 +718,7 @@ func RecoverToA1Error(r interface{}, context string) *A1Error {
 		detail = fmt.Sprintf("%s: %v", context, r)
 	}
 
-	return &A1Error{
+	return &A1TestError{
 		Type:      ErrorTypeInternalServerError,
 		Title:     "Internal Server Error",
 		Status:    http.StatusInternalServerError,
@@ -826,44 +733,10 @@ func RecoverToA1Error(r interface{}, context string) *A1Error {
 
 // Error response writing
 
-func WriteA1Error(w http.ResponseWriter, err error) {
-	var a1Err *A1Error
 
-	if err == nil {
-		a1Err = NewA1Error(ErrorTypeInternalServerError, "Unknown error occurred", http.StatusInternalServerError, nil)
-	} else if a1Error, ok := err.(*A1Error); ok {
-		a1Err = a1Error
-	} else {
-		a1Err = ConvertToA1Error(err, "unhandled error")
-	}
-
-	// Set headers
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.Header().Set("X-Error-ID", fmt.Sprintf("err_%d", time.Now().UnixNano()))
-	w.WriteHeader(a1Err.Status)
-
-	// Write JSON response
-	if jsonData, jsonErr := json.Marshal(a1Err); jsonErr == nil {
-		w.Write(jsonData)
-	} else {
-		// Fallback if JSON marshaling fails
-		fallback := fmt.Sprintf(`{"type":"%s","title":"Error serialization failed","status":%d,"detail":"Failed to serialize error response"}`,
-			ErrorTypeInternalServerError, http.StatusInternalServerError)
-		w.Write([]byte(fallback))
-	}
-}
-
-// Default error handler for middleware
-func DefaultErrorHandler(w http.ResponseWriter, r *http.Request, err error) {
-	WriteA1Error(w, err)
-}
 
 // Additional helper functions for error handling
 
-func IsA1Error(err error) bool {
-	_, ok := err.(*A1Error)
-	return ok
-}
 
 func GetA1ErrorType(err error) A1ErrorType {
 	if a1Err, ok := err.(*A1Error); ok {

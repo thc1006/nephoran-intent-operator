@@ -613,8 +613,8 @@ func TestContainerSecurityCompliance(t *testing.T) {
 	})
 }
 
-// TestRBACCompliance validates RBAC configuration
-func TestRBACCompliance(t *testing.T) {
+// TestRBACComplianceComprehensive validates RBAC configuration comprehensively
+func TestRBACComplianceComprehensive(t *testing.T) {
 	t.Run("NoWildcardPermissions", func(t *testing.T) {
 		roles := getClusterRoles(t)
 		

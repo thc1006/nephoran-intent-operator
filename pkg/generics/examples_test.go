@@ -10,7 +10,7 @@ import (
 )
 
 // Example: Complete Network Intent Processing Pipeline
-func ExampleNetworkIntentPipeline() {
+func Example_networkIntentPipeline() {
 	// Define network intent data structure
 	type NetworkIntent struct {
 		ID       string
@@ -29,7 +29,7 @@ func ExampleNetworkIntentPipeline() {
 	}
 
 	// 1. Configuration Management
-	configManager := NewConfigManager(map[string]any{
+	configManager := NewConfigManager[map[string]any](map[string]any{
 		"max_concurrency": 10,
 		"timeout":         30,
 	})
@@ -37,10 +37,10 @@ func ExampleNetworkIntentPipeline() {
 	// 2. Validation Pipeline
 	validator := NewValidationBuilder[NetworkIntent]().
 		Required("id", func(ni NetworkIntent) any { return ni.ID }).
-		OneOf("type", []string{"5G-Core", "RAN", "Edge"},
-			func(ni NetworkIntent) string { return ni.Type }).
-		OneOf("region", []string{"us-east", "us-west", "eu-central"},
-			func(ni NetworkIntent) string { return ni.Region }).
+		OneOf("type", []interface{}{"5G-Core", "RAN", "Edge"},
+			func(ni NetworkIntent) interface{} { return ni.Type }).
+		OneOf("region", []interface{}{"us-east", "us-west", "eu-central"},
+			func(ni NetworkIntent) interface{} { return ni.Region }).
 		Range("priority", 1, 10,
 			func(ni NetworkIntent) int64 { return int64(ni.Priority) }).
 		Build()
@@ -113,9 +113,10 @@ func ExampleNetworkIntentPipeline() {
 		}
 
 		// Process with middleware
+		configValue := config.Value()
 		request := ProcessingRequest{
 			Intent: intent,
-			Config: config.Value().(map[string]any),
+			Config: configValue,
 		}
 
 		result := chain.Execute(ctx, request, processor)
@@ -139,7 +140,7 @@ func ExampleNetworkIntentPipeline() {
 }
 
 // Example: Client Pool with Circuit Breaker
-func ExampleClientPoolWithCircuitBreaker() {
+func Example_clientPoolWithCircuitBreaker() {
 	type APIRequest struct {
 		Action string
 		Data   map[string]any
@@ -206,7 +207,7 @@ func ExampleClientPoolWithCircuitBreaker() {
 }
 
 // Example: Event-Driven Microservices with Aggregation
-func ExampleEventDrivenMicroservices() {
+func Example_eventDrivenMicroservices() {
 	// Define event types
 	type DeploymentEvent struct {
 		ServiceID string
@@ -353,7 +354,7 @@ func ExampleEventDrivenMicroservices() {
 }
 
 // Example: Advanced Validation with Cross-Field Dependencies
-func ExampleAdvancedValidation() {
+func Example_advancedValidation() {
 	type NetworkConfig struct {
 		Environment string // "dev", "staging", "prod"
 		Region      string
@@ -373,8 +374,8 @@ func ExampleAdvancedValidation() {
 	// Build complex validator
 	validator := NewValidationBuilder[NetworkConfig]().
 		Required("environment", func(nc NetworkConfig) any { return nc.Environment }).
-		OneOf("environment", []string{"dev", "staging", "prod"},
-			func(nc NetworkConfig) string { return nc.Environment }).
+		OneOf("environment", []interface{}{"dev", "staging", "prod"},
+			func(nc NetworkConfig) interface{} { return nc.Environment }).
 		Required("region", func(nc NetworkConfig) any { return nc.Region }).
 		Range("cpu", 1, 64, func(nc NetworkConfig) int64 { return int64(nc.Resources.CPU) }).
 		Range("memory", 1, 256, func(nc NetworkConfig) int64 { return int64(nc.Resources.Memory) }).
@@ -456,20 +457,20 @@ func TestFullIntegration(t *testing.T) {
 	// combining all the generic components in a realistic scenario
 
 	t.Run("NetworkIntentPipeline", func(t *testing.T) {
-		ExampleNetworkIntentPipeline()
+		Example_networkIntentPipeline()
 	})
 
 	t.Run("ClientPoolWithCircuitBreaker", func(t *testing.T) {
 		// Note: This would normally require mock HTTP servers
-		// ExampleClientPoolWithCircuitBreaker()
+		// Example_clientPoolWithCircuitBreaker()
 	})
 
 	t.Run("EventDrivenMicroservices", func(t *testing.T) {
-		ExampleEventDrivenMicroservices()
+		Example_eventDrivenMicroservices()
 	})
 
 	t.Run("AdvancedValidation", func(t *testing.T) {
-		ExampleAdvancedValidation()
+		Example_advancedValidation()
 	})
 }
 
@@ -477,25 +478,25 @@ func TestFullIntegration(t *testing.T) {
 func BenchmarkGenericVsInterface(b *testing.B) {
 	// Generic version
 	b.Run("Generic", func(b *testing.B) {
-		result := Ok[int, error](42)
-		transform := func(x int) int { return x * 2 }
+		resultVal := Ok[int, error](42)
+		transformFunc := func(x int) int { return x * 2 }
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_ = Map(result, transform)
+			_ = MapResult(resultVal, transformFunc)
 		}
 	})
 
 	// Interface version (for comparison)
 	b.Run("Interface", func(b *testing.B) {
-		var result interface{} = 42
-		transform := func(x interface{}) interface{} {
+		var resultVal interface{} = 42
+		transformFunc := func(x interface{}) interface{} {
 			return x.(int) * 2
 		}
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_ = transform(result)
+			_ = transformFunc(resultVal)
 		}
 	})
 }

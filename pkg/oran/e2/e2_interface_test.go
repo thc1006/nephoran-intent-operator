@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+
 // TestE2InterfaceComplete demonstrates the complete E2 interface implementation
 func TestE2InterfaceComplete(t *testing.T) {
 	t.Run("E2AP_Messages", func(t *testing.T) {
@@ -21,21 +22,21 @@ func TestE2InterfaceComplete(t *testing.T) {
 			RANFunctionsList: []RANFunctionItem{
 				{
 					RANFunctionID:         1,
-					RANFunctionDefinition: "KPM Service Model",
+					RANFunctionDefinition: []byte("KPM Service Model"),
 					RANFunctionRevision:   1,
-					RANFunctionOID:        "1.3.6.1.4.1.53148.1.2.2.100",
+					RANFunctionOID:        stringPtr("1.3.6.1.4.1.53148.1.2.2.100"),
 				},
 				{
 					RANFunctionID:         2,
-					RANFunctionDefinition: "RC Service Model",
+					RANFunctionDefinition: []byte("RC Service Model"),
 					RANFunctionRevision:   1,
-					RANFunctionOID:        "1.3.6.1.4.1.53148.1.2.2.101",
+					RANFunctionOID:        stringPtr("1.3.6.1.4.1.53148.1.2.2.101"),
 				},
 				{
 					RANFunctionID:         3,
-					RANFunctionDefinition: "NI Service Model",
+					RANFunctionDefinition: []byte("NI Service Model"),
 					RANFunctionRevision:   1,
-					RANFunctionOID:        "1.3.6.1.4.1.53148.1.2.2.102",
+					RANFunctionOID:        stringPtr("1.3.6.1.4.1.53148.1.2.2.102"),
 				},
 			},
 		}
@@ -67,9 +68,9 @@ func TestE2InterfaceComplete(t *testing.T) {
 				RANFunctionsList: []RANFunctionItem{
 					{
 						RANFunctionID:         1,
-						RANFunctionDefinition: "Test Function",
+						RANFunctionDefinition: []byte("Test Function"),
 						RANFunctionRevision:   1,
-						RANFunctionOID:        "1.3.6.1.4.1.53148.1.2.2.100",
+						RANFunctionOID:        stringPtr("1.3.6.1.4.1.53148.1.2.2.100"),
 					},
 				},
 			},
@@ -197,50 +198,53 @@ func TestE2InterfaceComplete(t *testing.T) {
 	t.Run("E2_Subscription", func(t *testing.T) {
 		// Test subscription request creation
 		requestID := RICRequestID{
-			RequestorID: 123,
-			InstanceID:  456,
+			RICRequestorID: 123,
+			RICInstanceID:  456,
 		}
 
 		subscriptionReq := &RICSubscriptionRequest{
-			RequestID:              requestID,
-			RANFunctionID:          1,
-			EventTriggerDefinition: []byte("event_trigger"),
-			ActionsToBeSetupList: []RICActionToBeSetupItem{
-				{
-					ActionID:         1,
-					ActionType:       RICActionTypeReport,
-					ActionDefinition: []byte("action_definition"),
+			RICRequestID:  requestID,
+			RANFunctionID: 1,
+			RICSubscriptionDetails: RICSubscriptionDetails{
+				RICEventTriggerDefinition: []byte("event_trigger"),
+				RICActionToBeSetupList: []RICActionToBeSetupItem{
+					{
+						RICActionID:         1,
+						RICActionType:       RICActionTypeReport,
+						RICActionDefinition: []byte("action_definition"),
+					},
 				},
 			},
 		}
 
-		if subscriptionReq.RequestID.RequestorID != 123 {
-			t.Errorf("Expected requestor ID 123, got %d", subscriptionReq.RequestID.RequestorID)
+		if subscriptionReq.RICRequestID.RICRequestorID != 123 {
+			t.Errorf("Expected requestor ID 123, got %d", subscriptionReq.RICRequestID.RICRequestorID)
 		}
 
-		if len(subscriptionReq.ActionsToBeSetupList) != 1 {
-			t.Errorf("Expected 1 action, got %d", len(subscriptionReq.ActionsToBeSetupList))
+		if len(subscriptionReq.RICSubscriptionDetails.RICActionToBeSetupList) != 1 {
+			t.Errorf("Expected 1 action, got %d", len(subscriptionReq.RICSubscriptionDetails.RICActionToBeSetupList))
 		}
 	})
 
 	t.Run("E2_Indication", func(t *testing.T) {
 		// Test indication message
+		indicationSN := RICIndicationSN(1000)
 		indication := &RICIndication{
-			RequestID:         RICRequestID{RequestorID: 123, InstanceID: 456},
-			RANFunctionID:     1,
-			ActionID:          1,
-			IndicationSN:      1000,
-			IndicationType:    RICIndicationTypeReport,
-			IndicationHeader:  []byte("indication_header"),
-			IndicationMessage: []byte("indication_message"),
+			RICRequestID:         RICRequestID{RICRequestorID: 123, RICInstanceID: 456},
+			RANFunctionID:        1,
+			RICActionID:          1,
+			RICIndicationSN:      &indicationSN,
+			RICIndicationType:    RICIndicationTypeReport,
+			RICIndicationHeader:  []byte("indication_header"),
+			RICIndicationMessage: []byte("indication_message"),
 		}
 
-		if indication.IndicationType != RICIndicationTypeReport {
-			t.Errorf("Expected indication type REPORT, got %v", indication.IndicationType)
+		if indication.RICIndicationType != RICIndicationTypeReport {
+			t.Errorf("Expected indication type REPORT, got %v", indication.RICIndicationType)
 		}
 
-		if indication.IndicationSN != 1000 {
-			t.Errorf("Expected indication SN 1000, got %d", indication.IndicationSN)
+		if *indication.RICIndicationSN != 1000 {
+			t.Errorf("Expected indication SN 1000, got %d", *indication.RICIndicationSN)
 		}
 	})
 
@@ -307,14 +311,16 @@ func TestE2InterfaceComplete(t *testing.T) {
 					},
 				},
 			},
-			ConnectionStatus:  E2ConnectionStatusConnected,
+			ConnectionStatus: E2ConnectionStatus{
+				State: "CONNECTED",
+			},
 			HealthStatus:      NodeHealth{Status: "HEALTHY"},
 			SubscriptionCount: 5,
 			LastSeen:          time.Now(),
 		}
 
-		if node.ConnectionStatus != E2ConnectionStatusConnected {
-			t.Errorf("Expected CONNECTED status, got %s", node.ConnectionStatus)
+		if node.ConnectionStatus.State != "CONNECTED" {
+			t.Errorf("Expected CONNECTED status, got %s", node.ConnectionStatus.State)
 		}
 	})
 
@@ -330,9 +336,9 @@ func TestE2InterfaceComplete(t *testing.T) {
 				NodeID:       "gNB-001",
 			},
 			[]RANFunctionItem{
-				{RANFunctionID: 1, RANFunctionDefinition: "KPM"},
-				{RANFunctionID: 2, RANFunctionDefinition: "RC"},
-				{RANFunctionID: 3, RANFunctionDefinition: "NI"},
+				{RANFunctionID: 1, RANFunctionDefinition: []byte("KPM")},
+				{RANFunctionID: 2, RANFunctionDefinition: []byte("RC")},
+				{RANFunctionID: 3, RANFunctionDefinition: []byte("NI")},
 			},
 		)
 
@@ -342,15 +348,15 @@ func TestE2InterfaceComplete(t *testing.T) {
 
 		// 2. RIC Subscription
 		subscriptionReq := CreateRICSubscriptionRequest(
-			RICRequestID{RequestorID: 1, InstanceID: 1},
+			RICRequestID{RICRequestorID: 1, RICInstanceID: 1},
 			1, // RAN Function ID for KPM
 			RICSubscriptionDetails{
-				EventTriggerDefinition: []byte("periodic:1000ms"),
-				ActionsToBeSetupList: []RICActionToBeSetup{
+				RICEventTriggerDefinition: []byte("periodic:1000ms"),
+				RICActionToBeSetupList: []RICActionToBeSetupItem{
 					{
-						ActionID:         1,
-						ActionType:       RICActionTypeReport,
-						ActionDefinition: []byte("cell_metrics"),
+						RICActionID:         1,
+						RICActionType:       RICActionTypeReport,
+						RICActionDefinition: []byte("cell_metrics"),
 					},
 				},
 			},
@@ -362,7 +368,7 @@ func TestE2InterfaceComplete(t *testing.T) {
 
 		// 3. RIC Control
 		controlReq := CreateRICControlRequest(
-			RICRequestID{RequestorID: 1, InstanceID: 2},
+			RICRequestID{RICRequestorID: 1, RICInstanceID: 2},
 			2, // RAN Function ID for RC
 			[]byte("control_header"),
 			[]byte("control_message"),

@@ -35,6 +35,7 @@ import (
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
+	"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
 )
 
 // BenchmarkSuite provides performance testing utilities
@@ -52,7 +53,7 @@ type BenchmarkSuite struct {
 	manifestController *SpecializedManifestGenerationController
 
 	// Mock services
-	mockLLMClient          *MockLLMClient
+	mockLLMClient          *testutils.MockLLMClient
 	mockRAGService         *MockRAGService
 	mockResourceCalculator *MockTelecomResourceCalculator
 	mockTemplateEngine     *MockKubernetesTemplateEngine

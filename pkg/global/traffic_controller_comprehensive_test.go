@@ -2,21 +2,17 @@ package global
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
-	"github.com/go-logr/logr"
-	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -31,7 +27,7 @@ type fakePrometheusAPI struct {
 	queriedMetrics []string
 }
 
-func (f *fakePrometheusAPI) Query(ctx context.Context, query string, ts time.Time) (model.Value, v1.Warnings, error) {
+func (f *fakePrometheusAPI) Query(ctx context.Context, query string, ts time.Time, opts ...v1.Option) (model.Value, v1.Warnings, error) {
 	f.callCount++
 	f.queriedMetrics = append(f.queriedMetrics, query)
 
@@ -51,24 +47,28 @@ func (f *fakePrometheusAPI) Query(ctx context.Context, query string, ts time.Tim
 	}, nil, nil
 }
 
-func (f *fakePrometheusAPI) QueryRange(ctx context.Context, query string, r v1.Range) (model.Value, v1.Warnings, error) {
-	return f.Query(ctx, query, time.Now())
+func (f *fakePrometheusAPI) QueryRange(ctx context.Context, query string, r v1.Range, opts ...v1.Option) (model.Value, v1.Warnings, error) {
+	return f.Query(ctx, query, time.Now(), opts...)
 }
 
-func (f *fakePrometheusAPI) LabelNames(ctx context.Context, matches []string, startTime time.Time, endTime time.Time) ([]string, v1.Warnings, error) {
+func (f *fakePrometheusAPI) LabelNames(ctx context.Context, matches []string, startTime time.Time, endTime time.Time, opts ...v1.Option) ([]string, v1.Warnings, error) {
 	return []string{}, nil, nil
 }
 
-func (f *fakePrometheusAPI) LabelValues(ctx context.Context, label string, matches []string, startTime time.Time, endTime time.Time) (model.LabelValues, v1.Warnings, error) {
+func (f *fakePrometheusAPI) LabelValues(ctx context.Context, label string, matches []string, startTime time.Time, endTime time.Time, opts ...v1.Option) (model.LabelValues, v1.Warnings, error) {
 	return model.LabelValues{}, nil, nil
 }
 
-func (f *fakePrometheusAPI) Series(ctx context.Context, matches []string, startTime time.Time, endTime time.Time) ([]model.LabelSet, v1.Warnings, error) {
+func (f *fakePrometheusAPI) Series(ctx context.Context, matches []string, startTime time.Time, endTime time.Time, opts ...v1.Option) ([]model.LabelSet, v1.Warnings, error) {
 	return []model.LabelSet{}, nil, nil
 }
 
 func (f *fakePrometheusAPI) GetValue(ctx context.Context, query string, ts time.Time) (model.Value, v1.Warnings, error) {
 	return f.Query(ctx, query, ts)
+}
+
+func (f *fakePrometheusAPI) QueryExemplars(ctx context.Context, query string, startTime time.Time, endTime time.Time) ([]v1.ExemplarQueryResult, error) {
+	return []v1.ExemplarQueryResult{}, nil
 }
 
 func (f *fakePrometheusAPI) Alerts(ctx context.Context) (v1.AlertsResult, error) {
@@ -115,12 +115,16 @@ func (f *fakePrometheusAPI) Metadata(ctx context.Context, metric string, limit s
 	return map[string][]v1.Metadata{}, nil
 }
 
-func (f *fakePrometheusAPI) TSDB(ctx context.Context) (v1.TSDBResult, error) {
+func (f *fakePrometheusAPI) TSDB(ctx context.Context, opts ...v1.Option) (v1.TSDBResult, error) {
 	return v1.TSDBResult{}, nil
 }
 
 func (f *fakePrometheusAPI) Runtimeinfo(ctx context.Context) (v1.RuntimeinfoResult, error) {
 	return v1.RuntimeinfoResult{}, nil
+}
+
+func (f *fakePrometheusAPI) WalReplay(ctx context.Context) (v1.WalReplayStatus, error) {
+	return v1.WalReplayStatus{}, nil
 }
 
 func (f *fakePrometheusAPI) Buildinfo(ctx context.Context) (v1.BuildinfoResult, error) {

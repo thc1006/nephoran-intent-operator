@@ -542,7 +542,7 @@ func (c *EnhancedPerformanceClient) ProcessIntentWithOptions(ctx context.Context
 	success := err == nil
 
 	// Record latency data
-	latencyData := LatencyDataPoint{
+	latencyData := LLMLatencyDataPoint{
 		Timestamp:    start,
 		Duration:     duration,
 		IntentType:   options.IntentType,

@@ -18,7 +18,7 @@ import (
 // LLMTestSuite provides comprehensive testing for LLM components
 type LLMTestSuite struct {
 	*framework.TestSuite
-	llmClient *llm.EnhancedClient
+	llmClient *llm.EnhancedPerformanceClient
 }
 
 // TestLLMComponents runs the LLM test suite
@@ -33,16 +33,18 @@ func (suite *LLMTestSuite) SetupSuite() {
 	suite.TestSuite.SetupSuite()
 
 	// Initialize LLM client with test configuration
-	config := &llm.Config{
-		Provider:    "mock",
-		Model:       "gpt-4o-mini",
-		APIKey:      "test-key",
-		MaxTokens:   2048,
-		Temperature: 0.0,
-		Timeout:     30 * time.Second,
+	config := &llm.EnhancedClientConfig{
+		Config: &llm.Config{
+			Provider:    "mock",
+			Model:       "gpt-4o-mini",
+			APIKey:      "test-key",
+			MaxTokens:   2048,
+			Temperature: 0.0,
+			Timeout:     30 * time.Second,
+		},
 	}
 
-	client, err := llm.NewEnhancedClient(config)
+	client, err := llm.NewEnhancedPerformanceClient(config)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	suite.llmClient = client

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"runtime"
 	"runtime/debug"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -79,7 +78,7 @@ func benchmarkPackageGeneration(b *testing.B, ctx context.Context, nephioSystem 
 				Version:   "v1.0.0",
 				Namespace: "telecom-core",
 				Replicas:  3,
-				Resources: ResourceRequirements{
+				Resources: BenchmarkResourceRequirements{
 					CPU:    "500m",
 					Memory: "1Gi",
 				},
@@ -96,7 +95,7 @@ func benchmarkPackageGeneration(b *testing.B, ctx context.Context, nephioSystem 
 			var generationErrors int64
 
 			// Enhanced memory tracking
-			var startMemStats, peakMemStats runtime.MemStats
+			var startMemStats runtime.MemStats
 			runtime.GC()
 			runtime.ReadMemStats(&startMemStats)
 			peakMemory := int64(startMemStats.Alloc)
@@ -138,7 +137,6 @@ func benchmarkPackageGeneration(b *testing.B, ctx context.Context, nephioSystem 
 				currentAlloc := int64(currentMemStats.Alloc)
 				if currentAlloc > peakMemory {
 					peakMemory = currentAlloc
-					peakMemStats = currentMemStats
 				}
 			}
 
@@ -513,8 +511,8 @@ func benchmarkConfigSyncPerformance(b *testing.B, ctx context.Context, nephioSys
 
 				result, err := nephioSystem.PerformConfigSync(ctx, configSyncSpec)
 
-				syncLatency := time.Since(syncStart)
-				atomic.AddInt64(&syncLatency, syncLatency.Nanoseconds())
+				syncLatencyNs := time.Since(syncStart)
+				atomic.AddInt64(&syncLatency, syncLatencyNs.Nanoseconds())
 
 				if err != nil {
 					atomic.AddInt64(&syncErrors, 1)
@@ -810,10 +808,10 @@ func generatePolicyRules(count int) []PolicyRule {
 
 	for i := range rules {
 		rules[i] = PolicyRule{
-			Name:       fmt.Sprintf("rule-%d", i),
-			Type:       "validation",
-			Expression: fmt.Sprintf("spec.replicas <= %d", 10+i),
-			Severity:   "medium",
+			Name:      fmt.Sprintf("rule-%d", i),
+			Resources: []string{"pods"},
+			Verbs:     []string{"get", "list"},
+			Subjects:  []string{"user"},
 		}
 	}
 
@@ -879,14 +877,14 @@ func setupBenchmarkNephioSystem() *EnhancedNephioSystem {
 // Enhanced Nephio System types and interfaces
 
 type EnhancedNephioSystem struct {
-	packageGenerator PackageGenerator
-	krmRuntime       KRMFunctionRuntime
-	porchClient      PorchClient
-	gitClient        GitClient
-	configSync       ConfigSyncManager
-	policyEngine     PolicyEngine
-	resourceManager  ResourceManager
-	metrics          NephioMetrics
+	packageGenerator interface{}
+	krmRuntime       interface{}
+	porchClient      interface{}
+	gitClient        interface{}
+	configSync       interface{}
+	policyEngine     interface{}
+	resourceManager  interface{}
+	metrics          interface{}
 }
 
 type PackageSpec struct {
@@ -895,11 +893,11 @@ type PackageSpec struct {
 	Version       string
 	Namespace     string
 	Replicas      int
-	Resources     ResourceRequirements
+	Resources     BenchmarkResourceRequirements
 	Configuration map[string]interface{}
 }
 
-type ResourceRequirements struct {
+type BenchmarkResourceRequirements struct {
 	CPU    string
 	Memory string
 }
@@ -983,11 +981,7 @@ type ConfigSyncSpec struct {
 	UpdateFreq     string
 }
 
-type ConfigSyncResult struct {
-	ResourcesSynced int
-	ReconcileTime   time.Duration
-	ApplyTime       time.Duration
-}
+// ConfigSyncResult already defined in workflow_orchestrator.go
 
 type PolicySpec struct {
 	Name         string
@@ -997,12 +991,7 @@ type PolicySpec struct {
 	Rules        []PolicyRule
 }
 
-type PolicyRule struct {
-	Name       string
-	Type       string
-	Expression string
-	Severity   string
-}
+// PolicyRule already defined in package_catalog.go
 
 type PolicyValidationResult struct {
 	RulesEvaluated int
@@ -1156,12 +1145,4 @@ func (n *EnhancedNephioSystem) ManageResources(ctx context.Context, spec Resourc
 	}, nil
 }
 
-// Interface placeholders
-type PackageGenerator interface{}
-type KRMFunctionRuntime interface{}
-type PorchClient interface{}
-type GitClient interface{}
-type ConfigSyncManager interface{}
-type PolicyEngine interface{}
-type ResourceManager interface{}
-type NephioMetrics interface{}
+// Interface placeholders - removed redeclared types

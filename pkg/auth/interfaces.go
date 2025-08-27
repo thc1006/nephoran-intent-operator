@@ -12,8 +12,8 @@ import (
 
 // JWTManagerInterface defines the interface for JWT management
 type JWTManagerInterface interface {
-	GenerateToken(claims jwt.MapClaims) (string, error)
-	ValidateToken(tokenString string) (*jwt.Token, error)
+	GenerateToken(user *providers.UserInfo, customClaims map[string]interface{}) (string, error)
+	ValidateToken(tokenString string) (jwt.MapClaims, error)
 	RefreshToken(tokenString string) (string, error)
 	RevokeToken(tokenString string) error
 	SetSigningKey(privateKey *rsa.PrivateKey, keyID string) error

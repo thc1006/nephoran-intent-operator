@@ -18,6 +18,7 @@ type MockLLMClient struct {
 	processingDelay time.Duration
 	callCount       int
 	lastIntent      string
+	shouldReturnError bool
 }
 
 // NewMockLLMClient creates a new mock LLM client
@@ -39,6 +40,11 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 	case <-ctx.Done():
 		return "", ctx.Err()
 	case <-time.After(m.processingDelay):
+	}
+
+	// Check for global error flag
+	if m.shouldReturnError {
+		return "", fmt.Errorf("mock LLM client configured to return error")
 	}
 
 	// Check for specific error responses
@@ -70,6 +76,11 @@ func (m *MockLLMClient) SetProcessingDelay(delay time.Duration) {
 	m.processingDelay = delay
 }
 
+// SetShouldReturnError sets whether the mock should return errors for all requests
+func (m *MockLLMClient) SetShouldReturnError(shouldError bool) {
+	m.shouldReturnError = shouldError
+}
+
 // GetCallCount returns the number of times ProcessIntent was called
 func (m *MockLLMClient) GetCallCount() int {
 	return m.callCount
@@ -87,6 +98,7 @@ func (m *MockLLMClient) ResetMock() {
 	m.callCount = 0
 	m.lastIntent = ""
 	m.processingDelay = 100 * time.Millisecond
+	m.shouldReturnError = false
 }
 
 // generateDefaultResponse creates a default response based on intent content

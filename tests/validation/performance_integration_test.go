@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,7 +24,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/tests/framework"
 )
 
-var _ = ginkgo.Describe("Performance Validation Integration Tests", func() {
+var _ = Describe("Performance Validation Integration Tests", func() {
 	var (
 		ctx               context.Context
 		cancel            context.CancelFunc
@@ -35,7 +35,7 @@ var _ = ginkgo.Describe("Performance Validation Integration Tests", func() {
 		loadGenerator     *LoadTestGenerator
 	)
 
-	ginkgo.BeforeEach(func() {
+	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 30*time.Minute)
 
 		// Initialize test suite
@@ -59,174 +59,174 @@ var _ = ginkgo.Describe("Performance Validation Integration Tests", func() {
 		loadGenerator = NewLoadTestGenerator(k8sClient, metricsRegistry)
 	})
 
-	ginkgo.AfterEach(func() {
+	AfterEach(func() {
 		defer cancel()
 		testSuite.TearDownSuite()
 		loadGenerator.Cleanup()
 	})
 
-	ginkgo.Context("Performance Benchmarks - 23 Points Target", func() {
-		ginkgo.It("should achieve P95 latency < 2s for intent processing [8 points]", func() {
-			ginkgo.By("Running comprehensive latency benchmarks")
+	Context("Performance Benchmarks - 23 Points Target", func() {
+		It("should achieve P95 latency < 2s for intent processing [8 points]", func() {
+			By("Running comprehensive latency benchmarks")
 
 			result, err := performanceTester.ExecuteComprehensivePerformanceTest(ctx)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			// Verify P95 latency requirement
-			gomega.Expect(result.P95Latency).To(gomega.BeNumerically("<=", 2*time.Second),
+			Expect(result.P95Latency).To(BeNumerically("<=", 2*time.Second),
 				"P95 latency must be under 2 seconds")
 
 			// Verify P99 latency requirement
-			gomega.Expect(result.P99Latency).To(gomega.BeNumerically("<=", 5*time.Second),
+			Expect(result.P99Latency).To(BeNumerically("<=", 5*time.Second),
 				"P99 latency must be under 5 seconds")
 
 			// Verify latency score
-			gomega.Expect(result.LatencyScore).To(gomega.BeNumerically(">=", 6),
+			Expect(result.LatencyScore).To(BeNumerically(">=", 6),
 				"Should achieve at least 6/8 points for latency")
 
 			// Log detailed metrics
-			ginkgo.By(fmt.Sprintf("Latency Results: P50=%v, P95=%v, P99=%v, Score=%d/8",
+			By(fmt.Sprintf("Latency Results: P50=%v, P95=%v, P99=%v, Score=%d/8",
 				result.P50Latency, result.P95Latency, result.P99Latency, result.LatencyScore))
 		})
 
-		ginkgo.It("should achieve throughput >= 45 intents/minute [8 points]", func() {
-			ginkgo.By("Running comprehensive throughput benchmarks")
+		It("should achieve throughput >= 45 intents/minute [8 points]", func() {
+			By("Running comprehensive throughput benchmarks")
 
 			result, err := performanceTester.ExecuteComprehensivePerformanceTest(ctx)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			// Verify sustained throughput
-			gomega.Expect(result.SustainedThroughput).To(gomega.BeNumerically(">=", 45.0),
+			Expect(result.SustainedThroughput).To(BeNumerically(">=", 45.0),
 				"Sustained throughput must be at least 45 intents/minute")
 
 			// Verify peak throughput
-			gomega.Expect(result.PeakThroughput).To(gomega.BeNumerically(">=", 60.0),
+			Expect(result.PeakThroughput).To(BeNumerically(">=", 60.0),
 				"Peak throughput should be at least 60 intents/minute")
 
 			// Verify throughput score
-			gomega.Expect(result.ThroughputScore).To(gomega.BeNumerically(">=", 6),
+			Expect(result.ThroughputScore).To(BeNumerically(">=", 6),
 				"Should achieve at least 6/8 points for throughput")
 
-			ginkgo.By(fmt.Sprintf("Throughput Results: Sustained=%.1f, Peak=%.1f, Score=%d/8",
+			By(fmt.Sprintf("Throughput Results: Sustained=%.1f, Peak=%.1f, Score=%d/8",
 				result.SustainedThroughput, result.PeakThroughput, result.ThroughputScore))
 		})
 
-		ginkgo.It("should handle 200+ concurrent operations [5 points]", func() {
-			ginkgo.By("Running scalability benchmarks")
+		It("should handle 200+ concurrent operations [5 points]", func() {
+			By("Running scalability benchmarks")
 
 			result, err := performanceTester.ExecuteComprehensivePerformanceTest(ctx)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			// Verify max concurrency
-			gomega.Expect(result.MaxConcurrency).To(gomega.BeNumerically(">=", 100),
+			Expect(result.MaxConcurrency).To(BeNumerically(">=", 100),
 				"Must handle at least 100 concurrent operations")
 
 			// Verify linear scaling
-			gomega.Expect(result.ScalingEfficiency).To(gomega.BeNumerically(">=", 0.6),
+			Expect(result.ScalingEfficiency).To(BeNumerically(">=", 0.6),
 				"Scaling efficiency should be at least 60%")
 
 			// Verify scalability score
-			gomega.Expect(result.ScalabilityScore).To(gomega.BeNumerically(">=", 3),
+			Expect(result.ScalabilityScore).To(BeNumerically(">=", 3),
 				"Should achieve at least 3/5 points for scalability")
 
-			ginkgo.By(fmt.Sprintf("Scalability Results: MaxConcurrency=%d, Efficiency=%.1f%%, Score=%d/5",
+			By(fmt.Sprintf("Scalability Results: MaxConcurrency=%d, Efficiency=%.1f%%, Score=%d/5",
 				result.MaxConcurrency, result.ScalingEfficiency*100, result.ScalabilityScore))
 		})
 
-		ginkgo.It("should maintain resource efficiency under load [2 points]", func() {
-			ginkgo.By("Running resource efficiency benchmarks")
+		It("should maintain resource efficiency under load [2 points]", func() {
+			By("Running resource efficiency benchmarks")
 
 			result, err := performanceTester.ExecuteComprehensivePerformanceTest(ctx)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			// Verify memory efficiency
-			gomega.Expect(result.MemoryUsageMB).To(gomega.BeNumerically("<=", 4096),
+			Expect(result.MemoryUsageMB).To(BeNumerically("<=", 4096),
 				"Memory usage should not exceed 4GB")
 
 			// Verify CPU efficiency
-			gomega.Expect(result.CPUUsagePercent).To(gomega.BeNumerically("<=", 200),
+			Expect(result.CPUUsagePercent).To(BeNumerically("<=", 200),
 				"CPU usage should not exceed 2 cores (200%)")
 
 			// Verify resource score
-			gomega.Expect(result.ResourceScore).To(gomega.BeNumerically(">=", 1),
+			Expect(result.ResourceScore).To(BeNumerically(">=", 1),
 				"Should achieve at least 1/2 points for resource efficiency")
 
-			ginkgo.By(fmt.Sprintf("Resource Results: Memory=%.1fMB, CPU=%.1f%%, Score=%d/2",
+			By(fmt.Sprintf("Resource Results: Memory=%.1fMB, CPU=%.1f%%, Score=%d/2",
 				result.MemoryUsageMB, result.CPUUsagePercent, result.ResourceScore))
 		})
 	})
 
-	ginkgo.Context("Component-Specific Performance Testing", func() {
-		ginkgo.It("should benchmark LLM/RAG pipeline performance", func() {
-			ginkgo.By("Testing LLM/RAG pipeline latency and throughput")
+	Context("Component-Specific Performance Testing", func() {
+		It("should benchmark LLM/RAG pipeline performance", func() {
+			By("Testing LLM/RAG pipeline latency and throughput")
 
 			llmTester := NewLLMPerformanceTester(k8sClient)
 			result := llmTester.BenchmarkLLMPipeline(ctx)
 
-			gomega.Expect(result.P95Latency).To(gomega.BeNumerically("<=", 500*time.Millisecond),
+			Expect(result.P95Latency).To(BeNumerically("<=", 500*time.Millisecond),
 				"LLM pipeline P95 latency should be under 500ms")
 
-			gomega.Expect(result.TokenProcessingRate).To(gomega.BeNumerically(">=", 1000),
+			Expect(result.TokenProcessingRate).To(BeNumerically(">=", 1000),
 				"Should process at least 1000 tokens per second")
 
-			gomega.Expect(result.ContextRetrievalTime).To(gomega.BeNumerically("<=", 200*time.Millisecond),
+			Expect(result.ContextRetrievalTime).To(BeNumerically("<=", 200*time.Millisecond),
 				"Context retrieval should complete within 200ms")
 		})
 
-		ginkgo.It("should benchmark Porch package management performance", func() {
-			ginkgo.By("Testing Porch package CRUD operations")
+		It("should benchmark Porch package management performance", func() {
+			By("Testing Porch package CRUD operations")
 
 			porchTester := NewPorchPerformanceTester(k8sClient)
 			result := porchTester.BenchmarkPackageOperations(ctx)
 
-			gomega.Expect(result.CreateLatency).To(gomega.BeNumerically("<=", 300*time.Millisecond),
+			Expect(result.CreateLatency).To(BeNumerically("<=", 300*time.Millisecond),
 				"Package creation should complete within 300ms")
 
-			gomega.Expect(result.UpdateLatency).To(gomega.BeNumerically("<=", 250*time.Millisecond),
+			Expect(result.UpdateLatency).To(BeNumerically("<=", 250*time.Millisecond),
 				"Package update should complete within 250ms")
 
-			gomega.Expect(result.DeleteLatency).To(gomega.BeNumerically("<=", 200*time.Millisecond),
+			Expect(result.DeleteLatency).To(BeNumerically("<=", 200*time.Millisecond),
 				"Package deletion should complete within 200ms")
 		})
 
-		ginkgo.It("should benchmark multi-cluster propagation performance", func() {
-			ginkgo.By("Testing multi-cluster package distribution")
+		It("should benchmark multi-cluster propagation performance", func() {
+			By("Testing multi-cluster package distribution")
 
 			clusterTester := NewMultiClusterPerformanceTester(k8sClient)
 			result := clusterTester.BenchmarkPropagation(ctx)
 
-			gomega.Expect(result.PropagationLatency).To(gomega.BeNumerically("<=", 5*time.Second),
+			Expect(result.PropagationLatency).To(BeNumerically("<=", 5*time.Second),
 				"Multi-cluster propagation should complete within 5 seconds")
 
-			gomega.Expect(result.ConsistencyWindow).To(gomega.BeNumerically("<=", 10*time.Second),
+			Expect(result.ConsistencyWindow).To(BeNumerically("<=", 10*time.Second),
 				"Eventual consistency should be achieved within 10 seconds")
 		})
 
-		ginkgo.It("should benchmark O-RAN interface performance", func() {
-			ginkgo.By("Testing O-RAN interface latencies")
+		It("should benchmark O-RAN interface performance", func() {
+			By("Testing O-RAN interface latencies")
 
 			oranTester := NewORANPerformanceTester(k8sClient)
 
 			// Test A1 interface
 			a1Result := oranTester.BenchmarkA1Interface(ctx)
-			gomega.Expect(a1Result.PolicyCreationLatency).To(gomega.BeNumerically("<=", 100*time.Millisecond),
+			Expect(a1Result.PolicyCreationLatency).To(BeNumerically("<=", 100*time.Millisecond),
 				"A1 policy creation should complete within 100ms")
 
 			// Test E2 interface
 			e2Result := oranTester.BenchmarkE2Interface(ctx)
-			gomega.Expect(e2Result.ControlMessageLatency).To(gomega.BeNumerically("<=", 50*time.Millisecond),
+			Expect(e2Result.ControlMessageLatency).To(BeNumerically("<=", 50*time.Millisecond),
 				"E2 control messages should complete within 50ms")
 
 			// Test O1 interface
 			o1Result := oranTester.BenchmarkO1Interface(ctx)
-			gomega.Expect(o1Result.ConfigUpdateLatency).To(gomega.BeNumerically("<=", 200*time.Millisecond),
+			Expect(o1Result.ConfigUpdateLatency).To(BeNumerically("<=", 200*time.Millisecond),
 				"O1 configuration updates should complete within 200ms")
 		})
 	})
 
-	ginkgo.Context("Load Testing Scenarios", func() {
-		ginkgo.It("should handle realistic telecom workload patterns", func() {
-			ginkgo.By("Simulating realistic telecom traffic patterns")
+	Context("Load Testing Scenarios", func() {
+		It("should handle realistic telecom workload patterns", func() {
+			By("Simulating realistic telecom traffic patterns")
 
 			scenario := &TelecomWorkloadScenario{
 				BaseLoad:      30,  // 30 intents/minute baseline
@@ -237,15 +237,15 @@ var _ = ginkgo.Describe("Performance Validation Integration Tests", func() {
 
 			result := loadGenerator.RunTelecomScenario(ctx, scenario)
 
-			gomega.Expect(result.SuccessRate).To(gomega.BeNumerically(">=", 0.99),
+			Expect(result.SuccessRate).To(BeNumerically(">=", 0.99),
 				"Success rate should be at least 99%")
 
-			gomega.Expect(result.P95Latency).To(gomega.BeNumerically("<=", 2*time.Second),
+			Expect(result.P95Latency).To(BeNumerically("<=", 2*time.Second),
 				"P95 latency should remain under 2s during realistic load")
 		})
 
-		ginkgo.It("should handle burst traffic patterns", func() {
-			ginkgo.By("Testing system behavior under burst load")
+		It("should handle burst traffic patterns", func() {
+			By("Testing system behavior under burst load")
 
 			burstConfig := &BurstLoadConfig{
 				BaseLoad:      20,
@@ -257,15 +257,15 @@ var _ = ginkgo.Describe("Performance Validation Integration Tests", func() {
 
 			result := loadGenerator.RunBurstScenario(ctx, burstConfig)
 
-			gomega.Expect(result.DroppedRequests).To(gomega.BeNumerically("<=", 5),
+			Expect(result.DroppedRequests).To(BeNumerically("<=", 5),
 				"Should drop minimal requests during bursts")
 
-			gomega.Expect(result.RecoveryTime).To(gomega.BeNumerically("<=", 30*time.Second),
+			Expect(result.RecoveryTime).To(BeNumerically("<=", 30*time.Second),
 				"Should recover from burst within 30 seconds")
 		})
 
-		ginkgo.It("should maintain performance during sustained load", func() {
-			ginkgo.By("Running sustained load test")
+		It("should maintain performance during sustained load", func() {
+			By("Running sustained load test")
 
 			sustainedConfig := &SustainedLoadConfig{
 				TargetThroughput: 45, // intents/minute
@@ -275,17 +275,17 @@ var _ = ginkgo.Describe("Performance Validation Integration Tests", func() {
 
 			result := loadGenerator.RunSustainedLoad(ctx, sustainedConfig)
 
-			gomega.Expect(result.AchievedThroughput).To(gomega.BeNumerically(">=", 45),
+			Expect(result.AchievedThroughput).To(BeNumerically(">=", 45),
 				"Should maintain target throughput")
 
-			gomega.Expect(result.LatencyVariance).To(gomega.BeNumerically("<=", 0.2),
+			Expect(result.LatencyVariance).To(BeNumerically("<=", 0.2),
 				"Latency variance should be low during sustained load")
 		})
 	})
 
-	ginkgo.Context("Performance Regression Detection", func() {
-		ginkgo.It("should detect performance regressions", func() {
-			ginkgo.By("Comparing current performance against baseline")
+	Context("Performance Regression Detection", func() {
+		It("should detect performance regressions", func() {
+			By("Comparing current performance against baseline")
 
 			detector := NewPerformanceRegressionDetector(metricsRegistry)
 
@@ -294,12 +294,12 @@ var _ = ginkgo.Describe("Performance Validation Integration Tests", func() {
 
 			// Run current performance test
 			current, err := performanceTester.ExecuteComprehensivePerformanceTest(ctx)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			// Detect regressions
 			regressions := detector.DetectRegressions(baseline, current)
 
-			gomega.Expect(regressions).To(gomega.BeEmpty(),
+			Expect(regressions).To(BeEmpty(),
 				"No performance regressions should be detected")
 
 			// Save current metrics as new baseline if no regressions
@@ -309,9 +309,9 @@ var _ = ginkgo.Describe("Performance Validation Integration Tests", func() {
 		})
 	})
 
-	ginkgo.Context("Performance Monitoring Integration", func() {
-		ginkgo.It("should export metrics to Prometheus", func() {
-			ginkgo.By("Exporting performance metrics to Prometheus")
+	Context("Performance Monitoring Integration", func() {
+		It("should export metrics to Prometheus", func() {
+			By("Exporting performance metrics to Prometheus")
 
 			// Create Prometheus pusher
 			pusher := push.New("http://localhost:9091", "performance_tests").
@@ -319,7 +319,7 @@ var _ = ginkgo.Describe("Performance Validation Integration Tests", func() {
 
 			// Run performance test with metrics export
 			result, err := performanceTester.ExecuteComprehensivePerformanceTest(ctx)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			// Export metrics
 			exportMetrics(metricsRegistry, result)
@@ -327,12 +327,12 @@ var _ = ginkgo.Describe("Performance Validation Integration Tests", func() {
 			// Push to Prometheus (in test environment, this might fail)
 			err = pusher.Push()
 			if err != nil {
-				ginkgo.By(fmt.Sprintf("Prometheus push failed (expected in test): %v", err))
+				By(fmt.Sprintf("Prometheus push failed (expected in test): %v", err))
 			}
 		})
 
-		ginkgo.It("should generate performance dashboards", func() {
-			ginkgo.By("Generating Grafana dashboard configuration")
+		It("should generate performance dashboards", func() {
+			By("Generating Grafana dashboard configuration")
 
 			dashboardGen := NewPerformanceDashboardGenerator()
 
@@ -340,14 +340,17 @@ var _ = ginkgo.Describe("Performance Validation Integration Tests", func() {
 			dashboard := dashboardGen.GenerateDashboard("Nephoran Performance")
 
 			// Validate dashboard structure
-			gomega.Expect(dashboard).To(gomega.HaveKey("panels"))
-			gomega.Expect(dashboard["panels"]).To(gomega.HaveLen(gomega.BeNumerically(">=", 10)))
+			Expect(dashboard).To(HaveKey("panels"))
+			panels := dashboard["panels"]
+			if panelSlice, ok := panels.([]interface{}); ok {
+				Expect(len(panelSlice)).To(BeNumerically(">=", 10))
+			}
 
 			// Save dashboard
 			dashboardJSON, err := json.MarshalIndent(dashboard, "", "  ")
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			ginkgo.By(fmt.Sprintf("Dashboard generated: %d bytes", len(dashboardJSON)))
+			By(fmt.Sprintf("Dashboard generated: %d bytes", len(dashboardJSON)))
 		})
 	})
 })
@@ -600,7 +603,7 @@ func (prd *PerformanceRegressionDetector) SaveBaseline(filename string, result *
 	}
 
 	// In production, write to file
-	ginkgo.By(fmt.Sprintf("Baseline saved: %d bytes", len(data)))
+	By(fmt.Sprintf("Baseline saved: %d bytes", len(data)))
 	return nil
 }
 

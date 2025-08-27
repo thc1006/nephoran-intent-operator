@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -109,8 +110,9 @@ type O2Adaptor struct {
 // O2Config holds comprehensive O2 interface configuration
 type O2Config struct {
 	// Basic configuration
-	Namespace      string `yaml:"namespace"`
-	ServiceAccount string `yaml:"serviceAccount"`
+	Namespace        string                        `yaml:"namespace"`
+	ServiceAccount   string                        `yaml:"serviceAccount"`
+	DefaultResources *corev1.ResourceRequirements  `yaml:"defaultResources,omitempty"`
 
 	// Multi-cloud configuration
 	Providers       map[string]*ProviderConfig `yaml:"providers"`

@@ -36,6 +36,7 @@ import (
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
+	"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
 )
 
 // IntegrationTestSuite manages all controllers and their coordination
@@ -54,8 +55,8 @@ type IntegrationTestSuite struct {
 	manifestGenerationController *SpecializedManifestGenerationController
 
 	// Mock services (shared across controllers)
-	mockLLMClient          *MockLLMClient
-	mockRAGService         *MockRAGService
+	mockLLMClient          *testutils.MockLLMClient
+	mockRAGService         *IntentProcessingMockRAGService
 	mockResourceCalculator *MockTelecomResourceCalculator
 	mockOptimizationEngine *MockResourceOptimizationEngine
 	mockTemplateEngine     *MockKubernetesTemplateEngine
@@ -179,7 +180,7 @@ func (s *IntegrationTestSuite) initializeConfigurations() {
 // initializeMockServices creates and configures all mock services
 func (s *IntegrationTestSuite) initializeMockServices() {
 	// Create mock services with reasonable defaults for integration tests
-	s.mockLLMClient = NewMockLLMClient()
+	s.mockLLMClient = testutils.NewMockLLMClient()
 	s.mockRAGService = NewMockRAGService()
 	s.mockResourceCalculator = NewMockTelecomResourceCalculator()
 	s.mockOptimizationEngine = NewMockResourceOptimizationEngine()
@@ -187,7 +188,7 @@ func (s *IntegrationTestSuite) initializeMockServices() {
 	s.mockManifestValidator = NewMockManifestValidator()
 
 	// Configure mocks for successful integration flow
-	s.mockLLMClient.SetResponseDelay(50 * time.Millisecond)
+	s.mockLLMClient.SetProcessingDelay(50 * time.Millisecond)
 	s.mockRAGService.SetQueryDelay(25 * time.Millisecond)
 	s.mockResourceCalculator.SetCalculationDelay(30 * time.Millisecond)
 	s.mockTemplateEngine.SetProcessingDelay(20 * time.Millisecond)
@@ -584,7 +585,7 @@ func (s *IntegrationTestSuite) ProcessIntentWithCoordination(intent *nephoranv1.
 }
 
 // WaitForEventType waits for a specific event type with timeout
-func (s *IntegrationTestSuite) WaitForEventType(eventType EventType, timeout time.Duration) bool {
+func (s *IntegrationTestSuite) WaitForEventType(eventType string, timeout time.Duration) bool {
 	deadline := time.Now().Add(timeout)
 
 	for time.Now().Before(deadline) {
@@ -601,7 +602,7 @@ func (s *IntegrationTestSuite) WaitForEventType(eventType EventType, timeout tim
 }
 
 // CountEventsOfType counts events of a specific type
-func (s *IntegrationTestSuite) CountEventsOfType(eventType EventType) int {
+func (s *IntegrationTestSuite) CountEventsOfType(eventType string) int {
 	events := s.GetEventHistory()
 	count := 0
 	for _, event := range events {
@@ -961,7 +962,7 @@ var _ = Describe("Controller Integration and Coordination", func() {
 			intent := suite.testNetworkIntent.DeepCopy()
 
 			// Configure long processing delays
-			suite.mockLLMClient.SetResponseDelay(2 * time.Second)
+			suite.mockLLMClient.SetProcessingDelay(2 * time.Second)
 			suite.mockRAGService.SetQueryDelay(2 * time.Second)
 			suite.mockResourceCalculator.SetCalculationDelay(2 * time.Second)
 

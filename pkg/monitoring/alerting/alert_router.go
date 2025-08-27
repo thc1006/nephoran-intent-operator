@@ -409,8 +409,8 @@ func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger)
 		}),
 	}
 
-	// Register metrics
-	prometheus.MustRegister(
+	// Register metrics with duplicate handling
+	routerMetrics := []prometheus.Collector{
 		metrics.AlertsRouted,
 		metrics.AlertsDeduped,
 		metrics.NotificationsSent,
@@ -418,7 +418,17 @@ func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger)
 		metrics.RoutingLatency,
 		metrics.RuleMatches,
 		metrics.QueueDepth,
-	)
+	}
+
+	// Register each metric, ignoring duplicate registration errors
+	for _, metric := range routerMetrics {
+		if err := prometheus.Register(metric); err != nil {
+			if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
+				// Only propagate non-duplicate errors
+				logger.Error("Failed to register router metric", "error", err)
+			}
+		}
+	}
 
 	ar := &AlertRouter{
 		logger:               logger.WithComponent("alert-router"),

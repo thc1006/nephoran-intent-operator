@@ -222,7 +222,7 @@ func TestRoleMappingFromProviders(t *testing.T) {
 
 func TestPermissionCaching(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	config := &RBACConfig{
+	config := &RBACManagerConfig{
 		CacheTTL: 100 * time.Millisecond, // Short TTL for testing
 	}
 	manager := NewRBACManager(config, logger)

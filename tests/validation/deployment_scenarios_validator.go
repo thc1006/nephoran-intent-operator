@@ -801,9 +801,10 @@ SCENARIO DETAILS:
 	return report
 }
 
-// Helper function to convert int to int32 pointer
+
+// Helper function to get strings from interface
+
+// int32Ptr returns a pointer to the provided int32 value
 func int32Ptr(i int32) *int32 {
 	return &i
 }
-
-// Helper function to get strings from interface

@@ -104,7 +104,7 @@ func TestE2Adaptor_RegisterE2Node(t *testing.T) {
 	nodeInfo, err := adaptor.GetE2Node(ctx, "test-node")
 	require.NoError(t, err)
 	assert.Equal(t, "test-node", nodeInfo.NodeID)
-	assert.Len(t, nodeInfo.RanFunctions, 1)
+	assert.Len(t, nodeInfo.RANFunctions, 1)
 	assert.Equal(t, "CONNECTED", nodeInfo.ConnectionStatus.State)
 }
 
@@ -347,7 +347,7 @@ func TestE2Adaptor_ConfigureE2Interface(t *testing.T) {
 	nodeInfo, err := adaptor.GetE2Node(ctx, "test-me")
 	require.NoError(t, err)
 	assert.Equal(t, "test-me", nodeInfo.NodeID)
-	assert.Len(t, nodeInfo.RanFunctions, 1)
+	assert.Len(t, nodeInfo.RANFunctions, 1)
 
 	// Verify subscription is created
 	subscriptions, err := adaptor.ListSubscriptions(ctx, "test-me")
@@ -512,9 +512,10 @@ func TestE2Adaptor_ListE2Nodes(t *testing.T) {
 	adaptor.mutex.Lock()
 	adaptor.nodeRegistry["node1"] = &E2NodeInfo{
 		NodeID: "node1",
-		GlobalE2NodeID: E2NodeID{
-			NodeID:   "node1",
-			NodeType: "gNB",
+		GlobalE2NodeID: GlobalE2NodeID{
+			PLMNIdentity: PLMNIdentity{MCC: "001", MNC: "01"},
+			NodeType:     E2NodeTypegNB,
+			NodeID:       "node1",
 		},
 		ConnectionStatus: E2ConnectionStatus{
 			State: "CONNECTED",
@@ -522,9 +523,10 @@ func TestE2Adaptor_ListE2Nodes(t *testing.T) {
 	}
 	adaptor.nodeRegistry["node2"] = &E2NodeInfo{
 		NodeID: "node2",
-		GlobalE2NodeID: E2NodeID{
-			NodeID:   "node2",
-			NodeType: "eNB",
+		GlobalE2NodeID: GlobalE2NodeID{
+			PLMNIdentity: PLMNIdentity{MCC: "001", MNC: "01"},
+			NodeType:     E2NodeTypeeNB,
+			NodeID:       "node2",
 		},
 		ConnectionStatus: E2ConnectionStatus{
 			State: "DISCONNECTED",

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"testing"
@@ -623,7 +624,7 @@ func TestAPISecurityValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateAPISecurityt(tt.request)
+			err := validateAPISecurity(tt.request)
 			if tt.wantError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errorMsg)

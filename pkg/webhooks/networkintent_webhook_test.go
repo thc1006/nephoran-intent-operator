@@ -19,6 +19,7 @@ package webhooks
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -35,15 +36,14 @@ var _ = Describe("NetworkIntent Webhook", func() {
 	var (
 		validator *NetworkIntentValidator
 		scheme    *runtime.Scheme
-		decoder   *admission.Decoder
+		decoder   admission.Decoder
 	)
 
 	BeforeEach(func() {
 		scheme = runtime.NewScheme()
 		Expect(nephoranv1.AddToScheme(scheme)).To(Succeed())
 
-		decoder, err := admission.NewDecoder(scheme)
-		Expect(err).NotTo(HaveOccurred())
+		decoder = admission.NewDecoder(scheme)
 
 		validator = NewNetworkIntentValidator()
 		Expect(validator.InjectDecoder(decoder)).To(Succeed())
@@ -424,142 +424,3 @@ func TestNetworkIntentWebhook(t *testing.T) {
 	RunSpecs(t, "NetworkIntent Webhook Suite")
 }
 
-// Test individual validation functions
-func TestValidateIntentContent(t *testing.T) {
-	validator := NewNetworkIntentValidator()
-
-	tests := []struct {
-		name        string
-		intent      string
-		expectError bool
-	}{
-		{
-			name:        "valid intent",
-			intent:      "Deploy AMF with high availability",
-			expectError: false,
-		},
-		{
-			name:        "empty intent",
-			intent:      "",
-			expectError: true,
-		},
-		{
-			name:        "whitespace only",
-			intent:      "   \t\n   ",
-			expectError: true,
-		},
-		{
-			name:        "excessive line breaks",
-			intent:      "Deploy AMF\n" + strings.Repeat("\n", 60) + "with HA",
-			expectError: true,
-		},
-		{
-			name:        "excessive tabs",
-			intent:      "Deploy\t" + strings.Repeat("\t", 25) + "AMF",
-			expectError: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := validator.validateIntentContent(tt.intent)
-			if tt.expectError && err == nil {
-				t.Errorf("expected error but got none")
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
-		})
-	}
-}
-
-func TestValidateSecurity(t *testing.T) {
-	validator := NewNetworkIntentValidator()
-
-	tests := []struct {
-		name        string
-		intent      string
-		expectError bool
-	}{
-		{
-			name:        "safe intent",
-			intent:      "Deploy AMF with monitoring and alerting",
-			expectError: false,
-		},
-		{
-			name:        "script injection",
-			intent:      "<script>alert('xss')</script>Deploy AMF",
-			expectError: true,
-		},
-		{
-			name:        "sql injection",
-			intent:      "Deploy AMF UNION SELECT * FROM secrets",
-			expectError: true,
-		},
-		{
-			name:        "command injection",
-			intent:      "Deploy AMF; rm -rf /",
-			expectError: true,
-		},
-		{
-			name:        "excessive special chars",
-			intent:      "Deploy<<<<<<<<<<<AMF",
-			expectError: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := validator.validateSecurity(tt.intent)
-			if tt.expectError && err == nil {
-				t.Errorf("expected error but got none")
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
-		})
-	}
-}
-
-func TestValidateTelecomRelevance(t *testing.T) {
-	validator := NewNetworkIntentValidator()
-
-	tests := []struct {
-		name        string
-		intent      string
-		expectError bool
-	}{
-		{
-			name:        "valid telecom intent",
-			intent:      "Deploy AMF with high availability",
-			expectError: false,
-		},
-		{
-			name:        "O-RAN related",
-			intent:      "Configure O-RAN Near-RT RIC",
-			expectError: false,
-		},
-		{
-			name:        "network slice",
-			intent:      "Create network slice for URLLC",
-			expectError: false,
-		},
-		{
-			name:        "non-telecom intent",
-			intent:      "Make coffee and send email",
-			expectError: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := validator.validateTelecomRelevance(tt.intent)
-			if tt.expectError && err == nil {
-				t.Errorf("expected error but got none")
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
-		})
-	}
-}

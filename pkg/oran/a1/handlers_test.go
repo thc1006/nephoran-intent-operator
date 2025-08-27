@@ -1074,8 +1074,8 @@ func (m *MockA1Service) CreateEIJob(ctx context.Context, job *EnrichmentInfoJob)
 }
 
 // Error type for proper error handling in tests
-func NewA1Error(errorType A1ErrorType, message string, statusCode int, cause error) error {
-	return &A1Error{
+func NewHandlerTestA1Error(errorType A1ErrorType, message string, statusCode int, cause error) error {
+	return &A1HandlerTestError{
 		Type:     errorType,
 		Title:    message,
 		Status:   statusCode,
@@ -1085,7 +1085,7 @@ func NewA1Error(errorType A1ErrorType, message string, statusCode int, cause err
 	}
 }
 
-type A1Error struct {
+type A1HandlerTestError struct {
 	Type     A1ErrorType `json:"type"`
 	Title    string      `json:"title"`
 	Status   int         `json:"status"`
@@ -1094,6 +1094,3 @@ type A1Error struct {
 	Cause    error       `json:"-"`
 }
 
-func (e *A1Error) Error() string {
-	return fmt.Sprintf("[%s] %s: %s", e.Type, e.Title, e.Detail)
-}

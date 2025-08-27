@@ -53,9 +53,7 @@ func TestResponseCacheStop(t *testing.T) {
 		defer cache.Stop()
 
 		// Initially should not be stopped
-		cache.mutex.RLock()
-		stopped := cache.stopped
-		cache.mutex.RUnlock()
+		stopped := cache.IsStopped()
 
 		if stopped {
 			t.Error("Cache should not be stopped initially")
@@ -65,9 +63,7 @@ func TestResponseCacheStop(t *testing.T) {
 		cache.Stop()
 
 		// Should now be stopped
-		cache.mutex.RLock()
-		stopped = cache.stopped
-		cache.mutex.RUnlock()
+		stopped = cache.IsStopped()
 
 		if !stopped {
 			t.Error("Cache should be stopped after calling Stop()")
@@ -83,9 +79,7 @@ func TestResponseCacheStop(t *testing.T) {
 		cache.Stop()
 
 		// Should still be in consistent state
-		cache.mutex.RLock()
-		stopped := cache.stopped
-		cache.mutex.RUnlock()
+		stopped := cache.IsStopped()
 
 		if !stopped {
 			t.Error("Cache should be stopped")
@@ -110,9 +104,7 @@ func TestResponseCacheStop(t *testing.T) {
 		wg.Wait()
 
 		// Should be in consistent state
-		cache.mutex.RLock()
-		stopped := cache.stopped
-		cache.mutex.RUnlock()
+		stopped := cache.IsStopped()
 
 		if !stopped {
 			t.Error("Cache should be stopped after concurrent calls")
@@ -265,9 +257,7 @@ func TestResponseCacheConcurrentAccess(t *testing.T) {
 		}
 
 		// Verify stopped state
-		cache.mutex.RLock()
-		stopped := cache.stopped
-		cache.mutex.RUnlock()
+		stopped := cache.IsStopped()
 
 		if !stopped {
 			t.Error("Cache should be stopped")

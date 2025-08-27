@@ -30,7 +30,11 @@ type ORANComplianceTestSuite struct {
 }
 
 func (suite *ORANComplianceTestSuite) SetupSuite() {
-	suite.testLogger = logging.NewLogger("oran-compliance-test", "debug")
+	suite.testLogger = logging.NewStructuredLogger(logging.Config{
+		Level:       logging.LevelDebug,
+		ServiceName: "oran-compliance-test",
+		Format:      "text",
+	})
 
 	// Setup O2 IMS server according to O-RAN specifications
 	config := &o2.O2IMSConfig{
@@ -46,7 +50,7 @@ func (suite *ORANComplianceTestSuite) SetupSuite() {
 	}
 
 	var err error
-	suite.o2Server, err = o2.NewO2APIServer(config, suite.testLogger, nil)
+	suite.o2Server, err = o2.NewO2APIServer(config)
 	suite.Require().NoError(err)
 
 	suite.server = httptest.NewServer(suite.o2Server.GetRouter())

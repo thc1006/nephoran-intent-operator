@@ -214,8 +214,8 @@ type LatencyStats struct {
 	Max    float64 `json:"max"`
 }
 
-// LatencyDataPoint represents a latency measurement over time
-type LatencyDataPoint struct {
+// SLALatencyDataPoint represents a latency measurement over time for SLA monitoring
+type SLALatencyDataPoint struct {
 	Timestamp time.Time `json:"timestamp"`
 	P95       float64   `json:"p95"`
 	P99       float64   `json:"p99"`

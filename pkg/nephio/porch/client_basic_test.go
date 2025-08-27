@@ -132,7 +132,7 @@ func TestPackageRevisionLifecycle_CanTransitionTo(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := tt.from.CanTransitionTo(tt.to)
+			result := CanTransitionTo(tt.from, tt.to)
 			if result != tt.expected {
 				t.Errorf("CanTransitionTo() = %v, want %v for %s -> %s",
 					result, tt.expected, tt.from, tt.to)

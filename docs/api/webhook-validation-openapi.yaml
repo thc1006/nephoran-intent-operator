@@ -1,0 +1,481 @@
+openapi: 3.0.3
+info:
+  title: NetworkIntent Webhook Validation API
+  description: |
+    Kubernetes admission webhook for validating NetworkIntent resources in the Nephoran Intent Operator.
+    
+    This webhook provides comprehensive security validation, telecommunications relevance checking,
+    and business logic enforcement for NetworkIntent custom resources.
+  version: 1.0.0
+  contact:
+    name: Nephoran Intent Operator
+    url: https://github.com/thc1006/nephoran-intent-operator
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: https://nephoran-webhook.nephoran-system.svc.cluster.local
+    description: Production webhook endpoint in Kubernetes cluster
+  - url: https://localhost:9443
+    description: Development webhook endpoint
+
+paths:
+  /validate/networkintents:
+    post:
+      summary: Validate NetworkIntent Resource
+      description: |
+        Validates a NetworkIntent resource according to Kubernetes admission webhook protocol.
+        Performs security scanning, telecommunications relevance checking, and business logic validation.
+      operationId: validateNetworkIntent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdmissionReview'
+            examples:
+              valid_create_request:
+                summary: Valid CREATE request
+                value:
+                  apiVersion: admission.k8s.io/v1
+                  kind: AdmissionReview
+                  request:
+                    uid: "12345-67890"
+                    operation: CREATE
+                    object:
+                      apiVersion: nephoran.io/v1
+                      kind: NetworkIntent
+                      metadata:
+                        name: amf-deployment
+                        namespace: telecom-core
+                      spec:
+                        intent: "Deploy AMF with high availability configuration for 5G core network"
+              invalid_security_request:
+                summary: Request with security violation
+                value:
+                  apiVersion: admission.k8s.io/v1
+                  kind: AdmissionReview
+                  request:
+                    uid: "12345-67890"
+                    operation: CREATE
+                    object:
+                      apiVersion: nephoran.io/v1
+                      kind: NetworkIntent
+                      metadata:
+                        name: malicious-intent
+                        namespace: default
+                      spec:
+                        intent: "Deploy AMF <script>alert('xss')</script>"
+      responses:
+        '200':
+          description: Validation completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdmissionReviewResponse'
+              examples:
+                allowed_response:
+                  summary: Intent allowed
+                  value:
+                    apiVersion: admission.k8s.io/v1
+                    kind: AdmissionReview
+                    response:
+                      uid: "12345-67890"
+                      allowed: true
+                      result:
+                        code: 200
+                        message: "Intent validation successful"
+                denied_security_response:
+                  summary: Intent denied - security violation
+                  value:
+                    apiVersion: admission.k8s.io/v1
+                    kind: AdmissionReview
+                    response:
+                      uid: "12345-67890"
+                      allowed: false
+                      result:
+                        code: 403
+                        message: "Intent contains malicious pattern: script injection detected"
+                        reason: "SecurityViolation"
+                denied_telecom_response:
+                  summary: Intent denied - not telecommunications related
+                  value:
+                    apiVersion: admission.k8s.io/v1
+                    kind: AdmissionReview
+                    response:
+                      uid: "12345-67890"
+                      allowed: false
+                      result:
+                        code: 422
+                        message: "Intent must be telecommunications-related and contain relevant technical keywords"
+                        reason: "ValidationFailure"
+        '400':
+          description: Bad request - malformed JSON or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Invalid JSON structure"
+                details: "Failed to parse admission review request"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Internal validation error"
+                details: "Failed to process intent validation"
+
+  /healthz:
+    get:
+      summary: Health Check
+      description: Returns the health status of the webhook service
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "healthy"
+                timestamp: "2025-01-01T12:00:00Z"
+                checks:
+                  validator: "ok"
+                  decoder: "ok"
+                  security_scanner: "ok"
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "unhealthy"
+                timestamp: "2025-01-01T12:00:00Z"
+                checks:
+                  validator: "ok"
+                  decoder: "error"
+                  security_scanner: "ok"
+
+components:
+  schemas:
+    AdmissionReview:
+      type: object
+      required:
+        - apiVersion
+        - kind
+        - request
+      properties:
+        apiVersion:
+          type: string
+          enum: ["admission.k8s.io/v1", "admission.k8s.io/v1beta1"]
+          example: "admission.k8s.io/v1"
+        kind:
+          type: string
+          enum: ["AdmissionReview"]
+          example: "AdmissionReview"
+        request:
+          $ref: '#/components/schemas/AdmissionRequest'
+
+    AdmissionRequest:
+      type: object
+      required:
+        - uid
+        - operation
+      properties:
+        uid:
+          type: string
+          description: Unique identifier for this admission review request
+          example: "12345-67890"
+        kind:
+          $ref: '#/components/schemas/GroupVersionKind'
+        resource:
+          $ref: '#/components/schemas/GroupVersionResource'
+        operation:
+          type: string
+          enum: ["CREATE", "UPDATE", "DELETE"]
+          description: Type of operation being performed
+          example: "CREATE"
+        object:
+          $ref: '#/components/schemas/NetworkIntent'
+        oldObject:
+          $ref: '#/components/schemas/NetworkIntent'
+        namespace:
+          type: string
+          description: Namespace of the resource
+          example: "telecom-core"
+        name:
+          type: string
+          description: Name of the resource
+          example: "amf-deployment"
+
+    NetworkIntent:
+      type: object
+      required:
+        - apiVersion
+        - kind
+        - metadata
+        - spec
+      properties:
+        apiVersion:
+          type: string
+          enum: ["nephoran.io/v1"]
+          example: "nephoran.io/v1"
+        kind:
+          type: string
+          enum: ["NetworkIntent"]
+          example: "NetworkIntent"
+        metadata:
+          $ref: '#/components/schemas/ObjectMeta'
+        spec:
+          $ref: '#/components/schemas/NetworkIntentSpec'
+
+    ObjectMeta:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+          minLength: 3
+          maxLength: 63
+          description: Name of the NetworkIntent resource
+          example: "amf-deployment"
+        namespace:
+          type: string
+          pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+          description: Namespace containing the resource
+          example: "telecom-core"
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+          description: Labels for the resource
+          example:
+            app: "amf"
+            version: "v1.0.0"
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+          description: Annotations for the resource
+
+    NetworkIntentSpec:
+      type: object
+      required:
+        - intent
+      properties:
+        intent:
+          type: string
+          minLength: 3
+          maxLength: 1000
+          pattern: '^[a-zA-Z0-9\s\-_.,:;()\[\]]+$'
+          description: |
+            Natural language description of the desired network operation.
+            Must be telecommunications-related and contain actionable intent.
+          examples:
+            - "Deploy AMF with high availability configuration for 5G core network"
+            - "Configure O-RAN Near-RT RIC with xApp orchestration capabilities"
+            - "Setup network slice for URLLC applications with 1ms latency requirements"
+
+    AdmissionReviewResponse:
+      type: object
+      required:
+        - apiVersion
+        - kind
+        - response
+      properties:
+        apiVersion:
+          type: string
+          enum: ["admission.k8s.io/v1", "admission.k8s.io/v1beta1"]
+          example: "admission.k8s.io/v1"
+        kind:
+          type: string
+          enum: ["AdmissionReview"]
+          example: "AdmissionReview"
+        response:
+          $ref: '#/components/schemas/AdmissionResponse'
+
+    AdmissionResponse:
+      type: object
+      required:
+        - uid
+        - allowed
+      properties:
+        uid:
+          type: string
+          description: UID from the corresponding request
+          example: "12345-67890"
+        allowed:
+          type: boolean
+          description: Whether the request is allowed
+          example: true
+        result:
+          $ref: '#/components/schemas/Status'
+        patch:
+          type: string
+          format: byte
+          description: Base64-encoded JSON patch (if mutations are applied)
+        patchType:
+          type: string
+          enum: ["JSONPatch"]
+          description: Type of patch being applied
+
+    Status:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: HTTP status code
+          enum: [200, 400, 403, 422, 500]
+          example: 200
+        message:
+          type: string
+          description: Human-readable description of the status
+          example: "Intent validation successful"
+        reason:
+          type: string
+          description: Machine-readable reason code
+          enum:
+            - "ValidationSuccess"
+            - "SecurityViolation"
+            - "ValidationFailure"
+            - "BusinessLogicViolation"
+            - "InternalError"
+          example: "ValidationSuccess"
+        details:
+          $ref: '#/components/schemas/StatusDetails'
+
+    StatusDetails:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the resource
+        group:
+          type: string
+          description: API group of the resource
+        kind:
+          type: string
+          description: Kind of the resource
+        causes:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatusCause'
+
+    StatusCause:
+      type: object
+      properties:
+        reason:
+          type: string
+          description: Machine-readable reason for the status
+          enum:
+            - "FieldValueRequired"
+            - "FieldValueInvalid"
+            - "FieldValueForbidden"
+            - "FieldValueTooLong"
+            - "FieldValueTooShort"
+        message:
+          type: string
+          description: Human-readable description of the cause
+        field:
+          type: string
+          description: Field path that caused the issue
+
+    GroupVersionKind:
+      type: object
+      properties:
+        group:
+          type: string
+          example: "nephoran.io"
+        version:
+          type: string
+          example: "v1"
+        kind:
+          type: string
+          example: "NetworkIntent"
+
+    GroupVersionResource:
+      type: object
+      properties:
+        group:
+          type: string
+          example: "nephoran.io"
+        version:
+          type: string
+          example: "v1"
+        resource:
+          type: string
+          example: "networkintents"
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+        - checks
+      properties:
+        status:
+          type: string
+          enum: ["healthy", "unhealthy"]
+          description: Overall health status
+        timestamp:
+          type: string
+          format: date-time
+          description: Time when health check was performed
+        checks:
+          type: object
+          properties:
+            validator:
+              type: string
+              enum: ["ok", "error"]
+              description: Status of the validation engine
+            decoder:
+              type: string
+              enum: ["ok", "error"]
+              description: Status of the admission decoder
+            security_scanner:
+              type: string
+              enum: ["ok", "error"]
+              description: Status of the security scanner
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+        details:
+          type: string
+          description: Additional error details
+        code:
+          type: integer
+          description: HTTP status code
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Kubernetes service account token
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: validation
+    description: NetworkIntent validation operations
+  - name: health
+    description: Service health monitoring
+
+externalDocs:
+  description: NetworkIntent Webhook Validation API Documentation
+  url: https://github.com/thc1006/nephoran-intent-operator/blob/main/docs/api/webhook-validation-api.md

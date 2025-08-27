@@ -562,20 +562,4 @@ func TestCodecDecodeInvalidJSON(t *testing.T) {
 	}
 }
 
-// Helper function to implement String() method for E2APMessageType in tests
-func (m E2APMessageType) String() string {
-	switch m {
-	case E2APMessageTypeSetupRequest:
-		return "E2SetupRequest"
-	case E2APMessageTypeSetupResponse:
-		return "E2SetupResponse"
-	case E2APMessageTypeRICSubscriptionRequest:
-		return "RICSubscriptionRequest"
-	case E2APMessageTypeRICControlRequest:
-		return "RICControlRequest"
-	case E2APMessageTypeRICIndication:
-		return "RICIndication"
-	default:
-		return "Unknown"
-	}
-}
+// Note: String() method for E2APMessageType is defined in e2_interface_test.go
