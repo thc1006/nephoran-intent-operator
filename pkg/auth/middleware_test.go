@@ -13,6 +13,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/testutil"
 )
 
@@ -300,14 +301,16 @@ func TestAuthMiddleware(t *testing.T) {
 
 	// Create test user and tokens
 	user := uf.CreateBasicUser()
-	claims := jwt.MapClaims{
-		"sub":  user.Subject,
-		"name": user.Name,
-		"email": user.Email,
-		"exp":   time.Now().Add(time.Hour).Unix(),
-		"iat":   time.Now().Unix(),
+	userInfo := &providers.UserInfo{
+		Subject:   user.Subject,
+		Email:     user.Email,
+		Name:      user.Name,
 	}
-	validToken, err := jwtManager.GenerateToken(claims)
+	customClaims := map[string]interface{}{
+		"exp": time.Now().Add(time.Hour).Unix(),
+		"iat": time.Now().Unix(),
+	}
+	validToken, err := jwtManager.GenerateToken(userInfo, customClaims)
 	require.NoError(t, err)
 
 	validSession, err := sessionManager.CreateSession(context.Background(), user)
@@ -951,14 +954,16 @@ func TestChainMiddlewares(t *testing.T) {
 
 	// Create test data
 	user := uf.CreateBasicUser()
-	claims := jwt.MapClaims{
-		"sub":  user.Subject,
-		"name": user.Name,
-		"email": user.Email,
-		"exp":   time.Now().Add(time.Hour).Unix(),
-		"iat":   time.Now().Unix(),
+	userInfo := &providers.UserInfo{
+		Subject:   user.Subject,
+		Email:     user.Email,
+		Name:      user.Name,
 	}
-	token, err := jwtManager.GenerateToken(claims)
+	customClaims := map[string]interface{}{
+		"exp": time.Now().Add(time.Hour).Unix(),
+		"iat": time.Now().Unix(),
+	}
+	token, err := jwtManager.GenerateToken(userInfo, customClaims)
 	require.NoError(t, err)
 
 	// Setup RBAC
@@ -1101,14 +1106,16 @@ func BenchmarkAuthMiddleware(b *testing.B) {
 	uf := testutil.NewUserFactory()
 
 	user := uf.CreateBasicUser()
-	claims := jwt.MapClaims{
-		"sub":  user.Subject,
-		"name": user.Name,
-		"email": user.Email,
-		"exp":   time.Now().Add(time.Hour).Unix(),
-		"iat":   time.Now().Unix(),
+	userInfo := &providers.UserInfo{
+		Subject:   user.Subject,
+		Email:     user.Email,
+		Name:      user.Name,
 	}
-	token, err := jwtManager.GenerateToken(claims)
+	customClaims := map[string]interface{}{
+		"exp": time.Now().Add(time.Hour).Unix(),
+		"iat": time.Now().Unix(),
+	}
+	token, err := jwtManager.GenerateToken(userInfo, customClaims)
 	if err != nil {
 		b.Fatal(err)
 	}

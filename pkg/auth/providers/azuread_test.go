@@ -33,7 +33,7 @@ func TestNewAzureADProvider(t *testing.T) {
 			redirectURL:  "http://localhost:8080/callback",
 			tenantID:     "test-tenant-123",
 			wantName:     "azuread",
-			wantScopes:   []string{"openid", "email", "profile", "User.Read"},
+			wantScopes:   []string{"openid", "profile", "email", "User.Read", "Directory.Read.All"},
 			wantTenant:   "test-tenant-123",
 		},
 		{
@@ -43,14 +43,14 @@ func TestNewAzureADProvider(t *testing.T) {
 			redirectURL:  "http://localhost:8080/callback",
 			tenantID:     "common",
 			wantName:     "azuread",
-			wantScopes:   []string{"openid", "email", "profile", "User.Read"},
+			wantScopes:   []string{"openid", "profile", "email", "User.Read", "Directory.Read.All"},
 			wantTenant:   "common",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			provider := NewAzureADProvider(tt.clientID, tt.clientSecret, tt.redirectURL, tt.tenantID)
+			provider := NewAzureADProvider(tt.tenantID, tt.clientID, tt.clientSecret, tt.redirectURL)
 
 			assert.NotNil(t, provider)
 			assert.Equal(t, tt.wantName, provider.GetProviderName())
@@ -66,12 +66,12 @@ func TestNewAzureADProvider(t *testing.T) {
 }
 
 func TestAzureADProvider_GetProviderName(t *testing.T) {
-	provider := NewAzureADProvider("test-id", "test-secret", "http://localhost:8080/callback", "common")
+	provider := NewAzureADProvider("common", "test-id", "test-secret", "http://localhost:8080/callback")
 	assert.Equal(t, "azuread", provider.GetProviderName())
 }
 
 func TestAzureADProvider_SupportsFeature(t *testing.T) {
-	provider := NewAzureADProvider("test-id", "test-secret", "http://localhost:8080/callback", "common")
+	provider := NewAzureADProvider("common", "test-id", "test-secret", "http://localhost:8080/callback")
 
 	tests := []struct {
 		feature  ProviderFeature
@@ -97,7 +97,7 @@ func TestAzureADProvider_SupportsFeature(t *testing.T) {
 }
 
 func TestAzureADProvider_GetAuthorizationURL(t *testing.T) {
-	provider := NewAzureADProvider("test-id", "test-secret", "http://localhost:8080/callback", "test-tenant")
+	provider := NewAzureADProvider("test-tenant", "test-id", "test-secret", "http://localhost:8080/callback")
 
 	tests := []struct {
 		name        string
@@ -240,7 +240,7 @@ func TestAzureADProvider_ExchangeCodeForToken(t *testing.T) {
 	defer server.Close()
 
 	// Create provider with custom endpoint
-	provider := NewAzureADProvider("test-id", "test-secret", "http://localhost:8080/callback", "test-tenant")
+	provider := NewAzureADProvider("test-tenant", "test-id", "test-secret", "http://localhost:8080/callback")
 	provider.oauth2Cfg.Endpoint = oauth2.Endpoint{
 		TokenURL: server.URL + "/test-tenant/oauth2/v2.0/token",
 	}
@@ -339,7 +339,7 @@ func TestAzureADProvider_RefreshToken(t *testing.T) {
 	}))
 	defer server.Close()
 
-	provider := NewAzureADProvider("test-id", "test-secret", "http://localhost:8080/callback", "test-tenant")
+	provider := NewAzureADProvider("test-tenant", "test-id", "test-secret", "http://localhost:8080/callback")
 	provider.oauth2Cfg.Endpoint = oauth2.Endpoint{
 		TokenURL: server.URL + "/test-tenant/oauth2/v2.0/token",
 	}
@@ -468,7 +468,7 @@ func TestAzureADProvider_GetUserInfo(t *testing.T) {
 	}))
 	defer server.Close()
 
-	provider := NewAzureADProvider("test-id", "test-secret", "http://localhost:8080/callback", "test-tenant")
+	provider := NewAzureADProvider("test-tenant", "test-id", "test-secret", "http://localhost:8080/callback")
 	provider.config.Endpoints.UserInfoURL = server.URL + "/v1.0/me"
 
 	tests := []struct {
@@ -620,7 +620,7 @@ func TestAzureADProvider_GetGroups(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			provider := NewAzureADProvider("test-id", "test-secret", "http://localhost:8080/callback", "test-tenant")
+			provider := NewAzureADProvider("test-tenant", "test-id", "test-secret", "http://localhost:8080/callback")
 
 			// Call GetGroups method directly
 			groups, err := provider.GetGroups(ctx, tt.token)
@@ -663,7 +663,7 @@ func TestAzureADProvider_ValidateToken(t *testing.T) {
 	}))
 	defer server.Close()
 
-	provider := NewAzureADProvider("test-id", "test-secret", "http://localhost:8080/callback", "test-tenant")
+	provider := NewAzureADProvider("test-tenant", "test-id", "test-secret", "http://localhost:8080/callback")
 	provider.config.Endpoints.UserInfoURL = server.URL + "/v1.0/me"
 
 	tests := []struct {
@@ -732,7 +732,7 @@ func TestAzureADProvider_RevokeToken(t *testing.T) {
 	}))
 	defer server.Close()
 
-	provider := NewAzureADProvider("test-id", "test-secret", "http://localhost:8080/callback", "test-tenant")
+	provider := NewAzureADProvider("test-tenant", "test-id", "test-secret", "http://localhost:8080/callback")
 
 	tests := []struct {
 		name      string
@@ -798,7 +798,7 @@ func TestAzureADProvider_DiscoverConfiguration(t *testing.T) {
 	}))
 	defer server.Close()
 
-	provider := NewAzureADProvider("test-id", "test-secret", "http://localhost:8080/callback", "test-tenant")
+	provider := NewAzureADProvider("test-tenant", "test-id", "test-secret", "http://localhost:8080/callback")
 
 	// Call DiscoverConfiguration method directly
 	ctx := context.Background()
@@ -814,7 +814,7 @@ func TestAzureADProvider_DiscoverConfiguration(t *testing.T) {
 }
 
 func TestAzureADProvider_GetConfiguration(t *testing.T) {
-	provider := NewAzureADProvider("test-id", "test-secret", "http://localhost:8080/callback", "test-tenant")
+	provider := NewAzureADProvider("test-tenant", "test-id", "test-secret", "http://localhost:8080/callback")
 	config := provider.GetConfiguration()
 
 	assert.NotNil(t, config)
@@ -834,7 +834,7 @@ func TestAzureADProvider_GetConfiguration(t *testing.T) {
 }
 
 func TestAzureADProvider_MultiTenant(t *testing.T) {
-	provider := NewAzureADProvider("test-id", "test-secret", "http://localhost:8080/callback", "common")
+	provider := NewAzureADProvider("common", "test-id", "test-secret", "http://localhost:8080/callback")
 
 	assert.True(t, provider.isMultiTenant)
 	assert.Equal(t, "common", provider.tenantID)
@@ -845,7 +845,7 @@ func TestAzureADProvider_MultiTenant(t *testing.T) {
 }
 
 func TestAzureADProvider_TenantSpecific(t *testing.T) {
-	provider := NewAzureADProvider("test-id", "test-secret", "http://localhost:8080/callback", "specific-tenant-123")
+	provider := NewAzureADProvider("specific-tenant-123", "test-id", "test-secret", "http://localhost:8080/callback")
 
 	assert.False(t, provider.isMultiTenant)
 	assert.Equal(t, "specific-tenant-123", provider.tenantID)
@@ -857,7 +857,7 @@ func TestAzureADProvider_TenantSpecific(t *testing.T) {
 
 // Benchmark tests
 func BenchmarkAzureADProvider_GetAuthorizationURL(b *testing.B) {
-	provider := NewAzureADProvider("test-id", "test-secret", "http://localhost:8080/callback", "test-tenant")
+	provider := NewAzureADProvider("test-tenant", "test-id", "test-secret", "http://localhost:8080/callback")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -866,7 +866,7 @@ func BenchmarkAzureADProvider_GetAuthorizationURL(b *testing.B) {
 }
 
 func BenchmarkAzureADProvider_GetAuthorizationURL_WithPKCE(b *testing.B) {
-	provider := NewAzureADProvider("test-id", "test-secret", "http://localhost:8080/callback", "test-tenant")
+	provider := NewAzureADProvider("test-tenant", "test-id", "test-secret", "http://localhost:8080/callback")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -876,7 +876,7 @@ func BenchmarkAzureADProvider_GetAuthorizationURL_WithPKCE(b *testing.B) {
 
 // Helper functions for testing
 func createTestAzureADProvider() *AzureADProvider {
-	return NewAzureADProvider("test-client-id", "test-client-secret", "http://localhost:8080/callback", "test-tenant")
+	return NewAzureADProvider("test-tenant", "test-client-id", "test-client-secret", "http://localhost:8080/callback")
 }
 
 func createMockAzureADServer() *httptest.Server {
@@ -924,13 +924,13 @@ func createMockAzureADServer() *httptest.Server {
 // Test edge cases and error conditions
 func TestAzureADProvider_EdgeCases(t *testing.T) {
 	t.Run("Empty tenant ID defaults to common", func(t *testing.T) {
-		provider := NewAzureADProvider("test-id", "test-secret", "http://localhost:8080/callback", "")
+		provider := NewAzureADProvider("", "test-id", "test-secret", "http://localhost:8080/callback")
 		assert.Equal(t, "common", provider.tenantID)
 		assert.True(t, provider.isMultiTenant)
 	})
 
 	t.Run("Invalid client credentials", func(t *testing.T) {
-		provider := NewAzureADProvider("", "", "http://localhost:8080/callback", "test-tenant")
+		provider := NewAzureADProvider("test-tenant", "", "", "http://localhost:8080/callback")
 		assert.NotNil(t, provider)
 
 		config := provider.GetConfiguration()
@@ -945,7 +945,7 @@ func TestAzureADProvider_EdgeCases(t *testing.T) {
 		}))
 		defer server.Close()
 
-		provider := NewAzureADProvider("test-id", "test-secret", "http://localhost:8080/callback", "test-tenant")
+		provider := NewAzureADProvider("test-tenant", "test-id", "test-secret", "http://localhost:8080/callback")
 		provider.oauth2Cfg.Endpoint = oauth2.Endpoint{
 			TokenURL: server.URL + "/test-tenant/oauth2/v2.0/token",
 		}

@@ -622,7 +622,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [changes]
     if: needs.changes.outputs.go-code == 'true'
-    timeout-minutes: 20
+    timeout-minutes: 30
     outputs:
       security_status: ${{ steps.security-summary.outputs.status }}
       sarif_uploaded: ${{ steps.security-summary.outputs.sarif_uploaded }}
@@ -665,16 +665,27 @@ jobs:
           export GOSUMDB="sum.golang.org"
           export GOTIMEOUT="120s"
           
-          # Attempt go mod download with timeout
-          timeout 180s go mod download || {
-            echo "⚠️ go mod download timed out or failed - continuing with cached modules"
-          }
+          # Attempt go mod download with retries
+          for i in {1..3}; do
+            echo "Attempt $i/3: go mod download"
+            if timeout 240s go mod download; then
+              echo "✅ go mod download succeeded on attempt $i"
+              break
+            fi
+            echo "⚠️ go mod download attempt $i failed/timed out"
+            [ $i -lt 3 ] && sleep 10
+          done
           
-          # Attempt go mod verify
-          timeout 60s go mod verify || {
-            echo "⚠️ go mod verify failed - this may be due to network issues or cache state"
-            echo "Attempting to continue with available modules..."
-          }
+          # Attempt go mod verify with retry
+          for i in {1..2}; do
+            echo "Attempt $i/2: go mod verify"
+            if timeout 120s go mod verify; then
+              echo "✅ go mod verify succeeded on attempt $i"
+              break
+            fi
+            echo "⚠️ go mod verify attempt $i failed - this may be due to network issues"
+            [ $i -lt 2 ] && sleep 5
+          done
           
           # Check if we have sufficient modules to proceed
           module_count=$(find ~/go/pkg/mod -name "go.mod" 2>/dev/null | wc -l || echo "0")
@@ -697,15 +708,23 @@ jobs:
         run: |
           echo "=== Installing security scanning tools ==="
           
-          # Try to install govulncheck with timeout
-          timeout 120s go install golang.org/x/vuln/cmd/govulncheck@v1.1.4 || {
-            echo "⚠️ govulncheck installation failed or timed out"
-            echo "Checking if govulncheck is already available..."
-            if command -v govulncheck >/dev/null 2>&1; then
-              echo "✅ govulncheck is available from cache/previous install"
-            else
-              echo "❌ govulncheck not available - security scan may be limited"
+          # Try to install govulncheck with retries
+          for i in {1..3}; do
+            echo "Attempt $i/3: Installing govulncheck"
+            if timeout 180s go install golang.org/x/vuln/cmd/govulncheck@v1.1.4; then
+              echo "✅ govulncheck installed successfully on attempt $i"
+              break
             fi
+            echo "⚠️ govulncheck installation attempt $i failed/timed out"
+            [ $i -lt 3 ] && sleep 10
+          done
+          
+          # Verify govulncheck is available
+          if command -v govulncheck >/dev/null 2>&1; then
+            echo "✅ govulncheck is available"
+            govulncheck version
+          else
+            echo "❌ govulncheck not available after retries - security scan will be limited"
           }
 
       - name: Run govulncheck with enhanced resilience
@@ -720,8 +739,8 @@ jobs:
           if command -v govulncheck >/dev/null 2>&1; then
             echo "✅ govulncheck available, starting scan with timeout..."
             
-            # Run with timeout and comprehensive error handling
-            if timeout 300s govulncheck -json ./... > .excellence-reports/govulncheck.json 2>&1; then
+            # Run with increased timeout and comprehensive error handling
+            if timeout 600s govulncheck -json ./... > .excellence-reports/govulncheck.json 2>&1; then
               echo "✅ Vulnerability scan completed successfully"
               
               # Validate JSON output

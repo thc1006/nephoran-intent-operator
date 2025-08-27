@@ -18,6 +18,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
@@ -104,7 +106,7 @@ func (f *fakeHTTPClient) Reset() {
 
 // fakeDependencies implements Dependencies interface for testing
 type fakeDependencies struct {
-	gitClient        *fake.Client
+	gitClient        git.ClientInterface
 	llmClient        *fakeLLMClient
 	packageGenerator *fakePackageGenerator
 	httpClient       *fakeHTTPClient

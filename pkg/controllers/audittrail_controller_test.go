@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -185,7 +186,7 @@ func (suite *AuditTrailControllerTestSuite) TestControllerLifecycle() {
 		suite.NoError(err)
 
 		// Reconcile deletion
-		result, err := suite.controller.Reconcile(context.Background(), ctrl.Request{
+		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "test-audit-trail",
 				Namespace: "default",
@@ -226,17 +227,17 @@ func (suite *AuditTrailControllerTestSuite) TestConfigurationHandling() {
 						Settings: runtime.RawExtension{
 							Raw: []byte(`{"urls": ["http://localhost:9200"], "index": "audit-logs"}`),
 						},
-						RetryPolicy: &nephv1.RetryPolicy{
+						RetryPolicy: &nephv1.RetryPolicySpec{
 							MaxRetries:    5,
 							InitialDelay:  2,
 							MaxDelay:      30,
 							BackoffFactor: 2.0,
 						},
-						TLS: &nephv1.TLSConfig{
+						TLS: &nephv1.TLSConfigSpec{
 							Enabled:    true,
 							ServerName: "elasticsearch.local",
 						},
-						Filter: &nephv1.FilterConfig{
+						Filter: &nephv1.FilterConfigSpec{
 							MinSeverity:   "error",
 							EventTypes:    []string{"authentication", "authorization"},
 							Components:    []string{"auth-service"},
@@ -386,7 +387,7 @@ func (suite *AuditTrailControllerTestSuite) TestErrorHandling() {
 		suite.NoError(err)
 
 		// Reconcile should handle the error gracefully
-		result, err := suite.controller.Reconcile(context.Background(), ctrl.Request{
+		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "malformed-test",
 				Namespace: "default",
@@ -430,7 +431,7 @@ func (suite *AuditTrailControllerTestSuite) TestErrorHandling() {
 		err := suite.client.Create(context.Background(), auditTrail)
 		suite.NoError(err)
 
-		result, err := suite.controller.Reconcile(context.Background(), ctrl.Request{
+		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "creation-failure-test",
 				Namespace: "default",
@@ -470,7 +471,7 @@ func (suite *AuditTrailControllerTestSuite) TestStatusUpdates() {
 		suite.NoError(err)
 
 		// Initial reconcile
-		result, err := suite.controller.Reconcile(context.Background(), ctrl.Request{
+		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "status-test",
 				Namespace: "default",
@@ -513,7 +514,7 @@ func (suite *AuditTrailControllerTestSuite) TestStatusUpdates() {
 		err := suite.client.Create(context.Background(), auditTrail)
 		suite.NoError(err)
 
-		result, err := suite.controller.Reconcile(context.Background(), ctrl.Request{
+		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "disabled-test",
 				Namespace: "default",
@@ -549,7 +550,7 @@ func (suite *AuditTrailControllerTestSuite) TestFinalizerHandling() {
 		suite.NoError(err)
 
 		// Initial reconcile should add finalizer
-		result, err := suite.controller.Reconcile(context.Background(), ctrl.Request{
+		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "finalizer-test",
 				Namespace: "default",
@@ -658,7 +659,7 @@ func (suite *AuditTrailControllerTestSuite) TestMetricsAndEvents() {
 		}
 
 		// Reconcile
-		result, err := suite.controller.Reconcile(context.Background(), ctrl.Request{
+		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "events-test",
 				Namespace: "default",
@@ -712,17 +713,7 @@ func (suite *AuditTrailControllerTestSuite) TestKubernetesIntegration() {
 						Settings: runtime.RawExtension{
 							Raw: []byte(`{"url": "https://webhook.example.com/audit"}`),
 						},
-						Auth: nephv1.AuthConfig{
-							Type: "basic",
-							SecretRef: &nephv1.SecretReference{
-								Name: "audit-backend-secret",
-								Key:  "username",
-							},
-							PasswordSecretRef: &nephv1.SecretReference{
-								Name: "audit-backend-secret",
-								Key:  "password",
-							},
-						},
+						// Auth configuration removed - not part of AuditBackendConfig
 					},
 				},
 			},
@@ -732,7 +723,7 @@ func (suite *AuditTrailControllerTestSuite) TestKubernetesIntegration() {
 		suite.NoError(err)
 
 		// Reconcile
-		result, err := suite.controller.Reconcile(context.Background(), ctrl.Request{
+		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "secret-test",
 				Namespace: "default",
@@ -780,10 +771,7 @@ func (suite *AuditTrailControllerTestSuite) TestKubernetesIntegration() {
 						Type:    "elasticsearch",
 						Enabled: true,
 						Name:    "configmap-elasticsearch",
-						ConfigMapRef: &nephv1.ConfigMapReference{
-							Name: "audit-backend-config",
-							Key:  "elasticsearch.json",
-						},
+						// ConfigMapRef configuration removed - not part of AuditBackendConfig
 					},
 				},
 			},
@@ -792,7 +780,7 @@ func (suite *AuditTrailControllerTestSuite) TestKubernetesIntegration() {
 		err = suite.client.Create(context.Background(), auditTrail)
 		suite.NoError(err)
 
-		result, err := suite.controller.Reconcile(context.Background(), ctrl.Request{
+		_, err = suite.controller.Reconcile(context.Background(), ctrl.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      "configmap-test",
 				Namespace: "default",
