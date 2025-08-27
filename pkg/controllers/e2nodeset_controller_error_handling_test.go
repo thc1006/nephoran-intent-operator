@@ -318,7 +318,7 @@ func TestRetryCountManagement(t *testing.T) {
 	}
 }
 
-func TestSetRetryCount(t *testing.T) {
+func TestSetRetryCountWithAnnotations(t *testing.T) {
 	e2nodeSet := createTestE2NodeSet("test", "default", 1)
 	operation := "configmap-operations"
 	count := 3
@@ -334,7 +334,7 @@ func TestSetRetryCount(t *testing.T) {
 	assert.Equal(t, count, retrievedCount)
 }
 
-func TestClearRetryCount(t *testing.T) {
+func TestClearRetryCountWithAnnotations(t *testing.T) {
 	e2nodeSet := createTestE2NodeSet("test", "default", 1)
 	operation := "configmap-operations"
 

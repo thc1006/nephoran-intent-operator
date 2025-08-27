@@ -1,3 +1,5 @@
+// FIXME: Adding package comment per revive linter
+// Package fake provides mock implementations of Git client interfaces for testing
 package fake
 
 import (

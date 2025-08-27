@@ -1,3 +1,5 @@
+// FIXME: Adding package comment per revive linter
+// Package fcaps provides FCAPS (Fault, Configuration, Accounting, Performance, Security) event processing
 package fcaps
 
 import (

@@ -108,7 +108,11 @@ func TestRequestSizeLimits(t *testing.T) {
 				}
 
 				w.Header().Set("Content-Type", "application/json")
-				_ = json.NewEncoder(w).Encode(response)
+				_ = // FIXME: Adding error check for json encoder per errcheck linter
+ if err := json.NewEncoder(w).Encode(response); err != nil {
+ 	log.Printf("Error encoding JSON: %v", err)
+ 	return
+ }
 			})
 
 			// Wrap the handler with size limits
@@ -459,7 +463,11 @@ func (h *MockLLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(response)
+	_ = // FIXME: Adding error check for json encoder per errcheck linter
+ if err := json.NewEncoder(w).Encode(response); err != nil {
+ 	log.Printf("Error encoding JSON: %v", err)
+ 	return
+ }
 }
 
 // ============================================================================
@@ -540,7 +548,8 @@ func createTestTLSCertificates(t *testing.T) (certPath, keyPath string, cleanup 
 	}
 
 	cleanup = func() {
-		_ = os.RemoveAll(tmpDir)
+		_ = // FIXME: Adding error check per errcheck linter
+ _ = os.RemoveAll(tmpDir)
 	}
 
 	return certPath, keyPath, cleanup
@@ -740,15 +749,18 @@ func TestTLSCertificateValidation(t *testing.T) {
 				keyPath := filepath.Join(tmpDir, "key.pem")
 
 				// Create empty cert file
-				_ = os.WriteFile(certPath, []byte(""), 0644)
+				_ = // FIXME: Adding error check per errcheck linter
+ _ = os.WriteFile(certPath, []byte(""), 0644)
 
 				// Create valid key file
 				_, keyContent, cleanup := createTestTLSCertificates(t)
 				keyData, _ := os.ReadFile(keyContent)
-				_ = os.WriteFile(keyPath, keyData, 0644)
+				_ = // FIXME: Adding error check per errcheck linter
+ _ = os.WriteFile(keyPath, keyData, 0644)
 				cleanup() // Clean up the temp certs
 
-				return certPath, keyPath, func() { _ = os.RemoveAll(tmpDir) }
+				return certPath, keyPath, func() { _ = // FIXME: Adding error check per errcheck linter
+ _ = os.RemoveAll(tmpDir) }
 			},
 			expectError:    true,
 			errorSubstring: "tls: failed to find any PEM data in certificate input",
@@ -767,13 +779,16 @@ func TestTLSCertificateValidation(t *testing.T) {
 				// Create valid cert file
 				certContent, _, cleanup := createTestTLSCertificates(t)
 				certData, _ := os.ReadFile(certContent)
-				_ = os.WriteFile(certPath, certData, 0644)
+				_ = // FIXME: Adding error check per errcheck linter
+ _ = os.WriteFile(certPath, certData, 0644)
 				cleanup() // Clean up the temp certs
 
 				// Create empty key file
-				_ = os.WriteFile(keyPath, []byte(""), 0644)
+				_ = // FIXME: Adding error check per errcheck linter
+ _ = os.WriteFile(keyPath, []byte(""), 0644)
 
-				return certPath, keyPath, func() { _ = os.RemoveAll(tmpDir) }
+				return certPath, keyPath, func() { _ = // FIXME: Adding error check per errcheck linter
+ _ = os.RemoveAll(tmpDir) }
 			},
 			expectError:    true,
 			errorSubstring: "tls: failed to find any PEM data in key input",
@@ -1001,7 +1016,15 @@ func TestEndToEndTLSConnections(t *testing.T) {
 			// Create TLS server
 			server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(map[string]string{"status": "success", "protocol": "https"})
+				// FIXME: Adding error check for json encoder per errcheck linter
+
+				if err := json.NewEncoder(w).Encode(map[string]string{"status": "success", "protocol": "https"}); err != nil {
+
+					log.Printf("Error encoding JSON: %v", err)
+
+					return
+
+				}
 			}))
 
 			// Load certificate for server
@@ -1015,7 +1038,7 @@ func TestEndToEndTLSConnections(t *testing.T) {
 			}
 
 			server.StartTLS()
-			defer server.Close()
+			defer func() { _ = server.Close() }()
 
 			// Create client with specified TLS config
 			client := &http.Client{
@@ -1118,16 +1141,19 @@ func TestTLSConfigurationIntegration(t *testing.T) {
 
 			// Set test environment variables
 			for key, value := range tt.envVars {
-				_ = os.Setenv(key, value)
+				_ = // FIXME: Adding error check per errcheck linter
+ _ = os.Setenv(key, value)
 			}
 
 			// Restore environment after test
 			defer func() {
 				for key, value := range originalEnv {
 					if value == "" {
-						_ = os.Unsetenv(key)
+						_ = // FIXME: Adding error check per errcheck linter
+ _ = os.Unsetenv(key)
 					} else {
-						_ = os.Setenv(key, value)
+						_ = // FIXME: Adding error check per errcheck linter
+ _ = os.Setenv(key, value)
 					}
 				}
 			}()
@@ -1172,6 +1198,8 @@ func TestIPAllowlistMiddleware(t *testing.T) {
 	// Mock handler that returns "OK"
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
+		// FIXME: Adding error check per errcheck linter
+
 		_, _ = w.Write([]byte("OK"))
 	})
 
@@ -1341,6 +1369,8 @@ func TestMetricsEndpointConfiguration(t *testing.T) {
 			mockMetricsHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "text/plain")
 				w.WriteHeader(http.StatusOK)
+				// FIXME: Adding error check per errcheck linter
+
 				_, _ = w.Write([]byte("# HELP test_metric A test metric\n# TYPE test_metric counter\ntest_metric 1\n"))
 			})
 

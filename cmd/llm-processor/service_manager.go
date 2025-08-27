@@ -212,7 +212,8 @@ func (sm *ServiceManager) registerHealthChecks() {
 			}
 
 			// Check if any circuit breakers are open
-			var openBreakers []string
+			// Preallocate slice with expected capacity for performance
+			openBreakers := make([]string, 0, len(stats))
 			for name, state := range stats {
 				if cbStats, ok := state.(map[string]interface{}); ok {
 					if cbState, exists := cbStats["state"]; exists && cbState == "open" {
@@ -429,7 +430,15 @@ func (sm *ServiceManager) processIntentHandler(w http.ResponseWriter, r *http.Re
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(response)
+		// FIXME: Adding error check for json encoder per errcheck linter
+
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+
+			sm.logger.Error("Error encoding JSON", slog.String("error", err.Error()))
+
+			return
+
+		}
 		return
 	}
 
@@ -442,7 +451,15 @@ func (sm *ServiceManager) processIntentHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	// FIXME: Adding error check for json encoder per errcheck linter
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+
+		sm.logger.Error("Error encoding JSON", slog.String("error", err.Error()))
+
+		return
+
+	}
 
 	sm.logger.Info("Intent processed successfully",
 		slog.String("request_id", reqID),
@@ -466,7 +483,15 @@ func (sm *ServiceManager) statusHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(status)
+	// FIXME: Adding error check for json encoder per errcheck linter
+
+	if err := json.NewEncoder(w).Encode(status); err != nil {
+
+		sm.logger.Error("Error encoding JSON", slog.String("error", err.Error()))
+
+		return
+
+	}
 }
 
 // metricsHandler provides comprehensive metrics
@@ -508,7 +533,15 @@ func (sm *ServiceManager) metricsHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(metrics)
+	// FIXME: Adding error check for json encoder per errcheck linter
+
+	if err := json.NewEncoder(w).Encode(metrics); err != nil {
+
+		sm.logger.Error("Error encoding JSON", slog.String("error", err.Error()))
+
+		return
+
+	}
 }
 
 // streamingHandler handles Server-Sent Events streaming requests
@@ -594,12 +627,28 @@ func (sm *ServiceManager) circuitBreakerStatusHandler(w http.ResponseWriter, r *
 		}
 
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+		// FIXME: Adding error check for json encoder per errcheck linter
+
+		if err := json.NewEncoder(w).Encode(map[string]string{"status": "success"}); err != nil {
+
+			sm.logger.Error("Error encoding JSON", slog.String("error", err.Error()))
+
+			return
+
+		}
 		return
 	}
 
 	// Handle GET requests for status
 	stats := sm.circuitBreakerMgr.GetAllStats()
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(stats)
+	// FIXME: Adding error check for json encoder per errcheck linter
+
+	if err := json.NewEncoder(w).Encode(stats); err != nil {
+
+		sm.logger.Error("Error encoding JSON", slog.String("error", err.Error()))
+
+		return
+
+	}
 }

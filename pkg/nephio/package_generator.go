@@ -791,3 +791,12 @@ func (pg *PackageGenerator) GeneratePatchAndPublishToPorch(ctx context.Context, 
 func (pg *PackageGenerator) SetPorchClient(client porch.PorchClient) {
 	pg.porchClient = client
 }
+
+// GenerateCNFPackage generates a CNF package from a CNFDeployment and configuration
+func (pg *PackageGenerator) GenerateCNFPackage(cnf *v1.CNFDeployment, config map[string]interface{}) ([]byte, error) {
+	// For now, return a simple stub package
+	// This would be implemented to convert the CNF deployment to a proper Nephio package
+	packageContent := fmt.Sprintf("# CNF Package Generated\n# CNF: %s\n# Function: %s\n# Config: %v\n", 
+		cnf.Name, cnf.Spec.Function, config)
+	return []byte(packageContent), nil
+}

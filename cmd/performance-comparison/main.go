@@ -155,7 +155,11 @@ func benchmarkJSONProcessing() int64 {
 
 		// Unmarshal
 		var result map[string]interface{}
-		json.Unmarshal(data, &result)
+		// FIXME: Adding error check for json.Unmarshal per errcheck linter
+		if err := json.Unmarshal(data, &result); err != nil {
+			// In benchmark, continue on error but log it
+			log.Printf("JSON unmarshal error in benchmark: %v", err)
+		}
 
 		operations++
 	}
@@ -320,21 +324,55 @@ func generateTextReport(comparison *PerformanceComparison) {
 	}
 	defer func() { _ = file.Close() }()
 
-	fmt.Fprintf(file, "Nephoran Intent Operator - Performance Comparison Report\n")
-	fmt.Fprintf(file, "======================================================\n\n")
-	fmt.Fprintf(file, "Summary: %s\n", comparison.Summary)
-	fmt.Fprintf(file, "Timestamp: %s\n", comparison.Timestamp.Format("2006-01-02 15:04:05"))
-	fmt.Fprintf(file, "Go Version: %s\n", comparison.GoVersion)
-	fmt.Fprintf(file, "Overall Performance Gain: %.2f%%\n\n", comparison.OverallGain)
+	// FIXME: Batch error handling for multiple fmt.Fprintf calls
+	var writeErr error
+	if _, err := fmt.Fprintf(file, "Nephoran Intent Operator - Performance Comparison Report\n"); err != nil && writeErr == nil {
+		writeErr = err
+	}
+	if _, err := fmt.Fprintf(file, "======================================================\n\n"); err != nil && writeErr == nil {
+		writeErr = err
+	}
+	if _, err := fmt.Fprintf(file, "Summary: %s\n", comparison.Summary); err != nil && writeErr == nil {
+		writeErr = err
+	}
+	if _, err := fmt.Fprintf(file, "Timestamp: %s\n", comparison.Timestamp.Format("2006-01-02 15:04:05")); err != nil && writeErr == nil {
+		writeErr = err
+	}
+	if _, err := fmt.Fprintf(file, "Go Version: %s\n", comparison.GoVersion); err != nil && writeErr == nil {
+		writeErr = err
+	}
+	if _, err := fmt.Fprintf(file, "Overall Performance Gain: %.2f%%\n\n", comparison.OverallGain); err != nil && writeErr == nil {
+		writeErr = err
+	}
 
-	fmt.Fprintf(file, "Detailed Results:\n")
-	fmt.Fprintf(file, "-----------------\n")
+	if _, err := fmt.Fprintf(file, "Detailed Results:\n"); err != nil && writeErr == nil {
+		writeErr = err
+	}
+	if _, err := fmt.Fprintf(file, "-----------------\n"); err != nil && writeErr == nil {
+		writeErr = err
+	}
 	for _, result := range comparison.Results {
-		fmt.Fprintf(file, "Metric: %s\n", result.Metric)
-		fmt.Fprintf(file, "  Old Value: %.2f\n", result.OldValue)
-		fmt.Fprintf(file, "  New Value: %.2f\n", result.NewValue)
-		fmt.Fprintf(file, "  Improvement: %.2f%%\n", result.ImprovementPercent)
-		fmt.Fprintf(file, "  Status: %s\n\n", result.Status)
+		if _, err := fmt.Fprintf(file, "Metric: %s\n", result.Metric); err != nil && writeErr == nil {
+			writeErr = err
+		}
+		if _, err := fmt.Fprintf(file, "  Old Value: %.2f\n", result.OldValue); err != nil && writeErr == nil {
+			writeErr = err
+		}
+		if _, err := fmt.Fprintf(file, "  New Value: %.2f\n", result.NewValue); err != nil && writeErr == nil {
+			writeErr = err
+		}
+		if _, err := fmt.Fprintf(file, "  Improvement: %.2f%%\n", result.ImprovementPercent); err != nil && writeErr == nil {
+			writeErr = err
+		}
+		if _, err := fmt.Fprintf(file, "  Status: %s\n\n", result.Status); err != nil && writeErr == nil {
+			writeErr = err
+		}
+	}
+	
+	// Check for any write errors
+	if writeErr != nil {
+		log.Printf("Error writing text report: %v", writeErr)
+		return
 	}
 
 	fmt.Println("📄 Text report generated: performance-comparison.txt")
@@ -349,15 +387,33 @@ func generateMarkdownReport(comparison *PerformanceComparison) {
 	}
 	defer func() { _ = file.Close() }()
 
-	fmt.Fprintf(file, "# Nephoran Intent Operator - Performance Comparison Report\n\n")
-	fmt.Fprintf(file, "**Summary:** %s\n\n", comparison.Summary)
-	fmt.Fprintf(file, "**Timestamp:** %s\n\n", comparison.Timestamp.Format("2006-01-02 15:04:05"))
-	fmt.Fprintf(file, "**Go Version:** %s\n\n", comparison.GoVersion)
-	fmt.Fprintf(file, "**Overall Performance Gain:** %.2f%%\n\n", comparison.OverallGain)
+	// FIXME: Batch error handling for multiple fmt.Fprintf calls in markdown generation
+	var mdWriteErr error
+	if _, err := fmt.Fprintf(file, "# Nephoran Intent Operator - Performance Comparison Report\n\n"); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "**Summary:** %s\n\n", comparison.Summary); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "**Timestamp:** %s\n\n", comparison.Timestamp.Format("2006-01-02 15:04:05")); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "**Go Version:** %s\n\n", comparison.GoVersion); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "**Overall Performance Gain:** %.2f%%\n\n", comparison.OverallGain); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
 
-	fmt.Fprintf(file, "## Performance Metrics\n\n")
-	fmt.Fprintf(file, "| Metric | Old Value | New Value | Improvement | Status |\n")
-	fmt.Fprintf(file, "|--------|-----------|-----------|-------------|--------|\n")
+	if _, err := fmt.Fprintf(file, "## Performance Metrics\n\n"); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "| Metric | Old Value | New Value | Improvement | Status |\n"); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "|--------|-----------|-----------|-------------|--------|\n"); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
 
 	for _, result := range comparison.Results {
 		status := "✅"
@@ -367,31 +423,63 @@ func generateMarkdownReport(comparison *PerformanceComparison) {
 			status = "🔄"
 		}
 
-		fmt.Fprintf(file, "| %s | %.2f | %.2f | %.2f%% | %s %s |\n",
+		if _, err := fmt.Fprintf(file, "| %s | %.2f | %.2f | %.2f%% | %s %s |\n",
 			result.Metric,
 			result.OldValue,
 			result.NewValue,
 			result.ImprovementPercent,
 			status,
-			result.Status)
+			result.Status); err != nil && mdWriteErr == nil {
+			mdWriteErr = err
+		}
 	}
 
-	fmt.Fprintf(file, "\n## Key Improvements\n\n")
+	if _, err := fmt.Fprintf(file, "\n## Key Improvements\n\n"); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
 	if comparison.OverallGain > 0 {
-		fmt.Fprintf(file, "- **Overall Performance Gain:** %.2f%%\n", comparison.OverallGain)
-		fmt.Fprintf(file, "- **Go 1.24+ Optimizations:** Successfully applied\n")
-		fmt.Fprintf(file, "- **Memory Efficiency:** Improved through advanced memory pools\n")
-		fmt.Fprintf(file, "- **HTTP/3 Support:** Enhanced network performance\n")
-		fmt.Fprintf(file, "- **Cryptographic Operations:** Optimized with modern algorithms\n")
+		if _, err := fmt.Fprintf(file, "- **Overall Performance Gain:** %.2f%%\n", comparison.OverallGain); err != nil && mdWriteErr == nil {
+			mdWriteErr = err
+		}
+		if _, err := fmt.Fprintf(file, "- **Go 1.24+ Optimizations:** Successfully applied\n"); err != nil && mdWriteErr == nil {
+			mdWriteErr = err
+		}
+		if _, err := fmt.Fprintf(file, "- **Memory Efficiency:** Improved through advanced memory pools\n"); err != nil && mdWriteErr == nil {
+			mdWriteErr = err
+		}
+		if _, err := fmt.Fprintf(file, "- **HTTP/3 Support:** Enhanced network performance\n"); err != nil && mdWriteErr == nil {
+			mdWriteErr = err
+		}
+		if _, err := fmt.Fprintf(file, "- **Cryptographic Operations:** Optimized with modern algorithms\n"); err != nil && mdWriteErr == nil {
+			mdWriteErr = err
+		}
 	} else {
-		fmt.Fprintf(file, "- Performance analysis indicates potential areas for optimization\n")
+		if _, err := fmt.Fprintf(file, "- Performance analysis indicates potential areas for optimization\n"); err != nil && mdWriteErr == nil {
+			mdWriteErr = err
+		}
 	}
 
-	fmt.Fprintf(file, "\n## Next Steps\n\n")
-	fmt.Fprintf(file, "1. Monitor production metrics\n")
-	fmt.Fprintf(file, "2. Validate improvements in real-world scenarios\n")
-	fmt.Fprintf(file, "3. Continue optimization efforts\n")
-	fmt.Fprintf(file, "4. Update performance baselines\n")
+	if _, err := fmt.Fprintf(file, "\n## Next Steps\n\n"); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "1. Monitor production metrics\n"); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "2. Validate improvements in real-world scenarios\n"); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "3. Continue optimization efforts\n"); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "4. Update performance baselines\n"); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	
+	// Check for any write errors in markdown generation
+	if mdWriteErr != nil {
+		log.Printf("Error writing markdown report: %v", mdWriteErr)
+		return
+	}
 
 	fmt.Println("📄 Markdown report generated: performance-comparison.md")
 }

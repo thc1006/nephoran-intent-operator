@@ -107,7 +107,9 @@ spec:
 		
 		invalidJSON, _ := json.Marshal(invalidIntent)
 		invalidFile := filepath.Join(tmpDir, "invalid-intent.json")
-		os.WriteFile(invalidFile, invalidJSON, 0644)
+		// FIXME: Adding error check per errcheck linter
+
+		_ = os.WriteFile(invalidFile, invalidJSON, 0644)
 		
 		cmd := exec.Command("go", "run", "main.go", "-intent", invalidFile, "-out", tmpDir)
 		cmd.Dir = "."

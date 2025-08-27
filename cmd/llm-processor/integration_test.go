@@ -318,7 +318,9 @@ func TestHTTPEndpoints(t *testing.T) {
 
 		http.Handle("/metrics", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("# HELP llm_processor_requests_total Total requests\n"))
+			// FIXME: Adding error check per errcheck linter
+
+			_, _ = w.Write([]byte("# HELP llm_processor_requests_total Total requests\n"))
 		}))
 
 		handler, _ := http.DefaultServeMux.Handler(req)

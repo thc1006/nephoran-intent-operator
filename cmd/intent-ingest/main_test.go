@@ -64,7 +64,8 @@ func setupTestServer(t *testing.T) (*httptest.Server, string, func()) {
 	
 	// Set up HTTP mux exactly like main()
 	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) // FIXME: Adding error check per errcheck linter
+ _, _ = {
 		_, _ = w.Write([]byte("ok"))
 	})
 	mux.HandleFunc("/intent", h.HandleIntent)
@@ -486,7 +487,8 @@ func TestServer_Intent_BadRequest_Scenarios(t *testing.T) {
 				req.Header.Set("Content-Type", tt.contentType)
 			}
 			
-			resp, err := http.DefaultClient.Do(req)
+			client := &http.Client{Timeout: 30 * time.Second}
+			resp, err := client.Do(req)
 			if err != nil {
 				t.Fatalf("Failed to send request: %v", err)
 			}
@@ -523,7 +525,8 @@ func TestServer_Intent_MethodNotAllowed(t *testing.T) {
 				t.Fatalf("Failed to create request: %v", err)
 			}
 			
-			resp, err := http.DefaultClient.Do(req)
+			client := &http.Client{Timeout: 30 * time.Second}
+			resp, err := client.Do(req)
 			if err != nil {
 				t.Fatalf("Failed to send request: %v", err)
 			}
@@ -779,7 +782,8 @@ func TestServer_EdgeCases(t *testing.T) {
 				req.Header.Set("Content-Type", tt.contentType)
 			}
 			
-			resp, err := http.DefaultClient.Do(req)
+			client := &http.Client{Timeout: 30 * time.Second}
+			resp, err := client.Do(req)
 			if err != nil {
 				t.Fatalf("Failed to send request: %v", err)
 			}

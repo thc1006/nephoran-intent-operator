@@ -135,7 +135,11 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			log.Error(err, "Failed to send request to LLM processor")
 			return r.updateStatus(ctx, networkIntent, "Error", fmt.Sprintf("Failed to process intent with LLM: %v", err), networkIntent.Generation)
 		}
-		defer resp.Body.Close()
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				log.Error(err, "Failed to close response body")
+			}
+		}()
 
 		// Parse the response
 		var llmResp LLMResponse

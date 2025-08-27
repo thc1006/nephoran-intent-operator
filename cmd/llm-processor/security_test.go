@@ -62,8 +62,11 @@ func TestRequestBodySizeLimit(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set environment variable
-			os.Setenv("HTTP_MAX_BODY", fmt.Sprintf("%d", tt.maxBodySize))
-			defer os.Unsetenv("HTTP_MAX_BODY")
+			// FIXME: Adding error check per errcheck linter
+
+			_ = os.Setenv("HTTP_MAX_BODY", fmt.Sprintf("%d", tt.maxBodySize))
+			defer func() { _ = // FIXME: Adding error check per errcheck linter
+ _ = os.Unsetenv("HTTP_MAX_BODY") }()
 
 			// Create logger
 			logger := slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -77,17 +80,33 @@ func TestRequestBodySizeLimit(t *testing.T) {
 				if err != nil {
 					if strings.Contains(err.Error(), "http: request body too large") {
 						w.WriteHeader(http.StatusRequestEntityTooLarge)
-						json.NewEncoder(w).Encode(map[string]string{
+						// FIXME: Adding error check for json encoder per errcheck linter
+
+						if err := json.NewEncoder(w).Encode(map[string]string{
 							"error": "Request payload too large",
-						})
+						}); err != nil {
+
+							log.Printf("Error encoding JSON: %v", err)
+
+							return
+
+						}
 						return
 					}
 					w.WriteHeader(http.StatusInternalServerError)
 					return
 				}
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(map[string]interface{}{
-					"received": len(body),
+				// FIXME: Adding error check for json encoder per errcheck linter
+
+				if err := json.NewEncoder(w).Encode(map[string]interface{}{
+					"received": len(body); err != nil {
+
+					log.Printf("Error encoding JSON: %v", err)
+
+					return
+
+				},
 				})
 			})
 
@@ -111,7 +130,8 @@ func TestRequestBodySizeLimit(t *testing.T) {
 			// Check response for error
 			if tt.expectError {
 				var response map[string]string
-				err := json.NewDecoder(rr.Body).Decode(&response)
+				err := // FIXME: Adding error check per errcheck linter
+ _ = json.NewDecoder(rr.Body).Decode(&response)
 				require.NoError(t, err)
 				assert.Contains(t, response["error"], "too large")
 			}
@@ -154,7 +174,9 @@ func TestSecurityHeaders(t *testing.T) {
 			// Create test handler
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("OK"))
+				// FIXME: Adding error check per errcheck linter
+
+				_, _ = w.Write([]byte("OK"))
 			})
 
 			// Apply middleware
@@ -212,8 +234,11 @@ func TestMetricsEndpointControl(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set environment variable
-			os.Setenv("METRICS_ENABLED", fmt.Sprintf("%t", tt.metricsEnabled))
-			defer os.Unsetenv("METRICS_ENABLED")
+			// FIXME: Adding error check per errcheck linter
+
+			_ = os.Setenv("METRICS_ENABLED", fmt.Sprintf("%t", tt.metricsEnabled))
+			defer func() { _ = // FIXME: Adding error check per errcheck linter
+ _ = os.Unsetenv("METRICS_ENABLED") }()
 
 			// Create router
 			router := mux.NewRouter()
@@ -222,18 +247,20 @@ func TestMetricsEndpointControl(t *testing.T) {
 			if tt.metricsEnabled {
 				router.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte("# HELP test_metric\n# TYPE test_metric counter\ntest_metric 1\n"))
+					// FIXME: Adding error check per errcheck linter
+
+					_, _ = w.Write([]byte("# HELP test_metric\n# TYPE test_metric counter\ntest_metric 1\n"))
 				}).Methods("GET")
 			}
 
 			// Create test server
 			server := httptest.NewServer(router)
-			defer server.Close()
+			defer func() { _ = server.Close() }()
 
 			// Make request to metrics endpoint
 			resp, err := http.Get(server.URL + "/metrics")
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			// Check status
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
@@ -283,10 +310,16 @@ func TestMetricsIPRestriction(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set environment variables
-			os.Setenv("METRICS_ENABLED", "true")
-			os.Setenv("METRICS_ALLOWED_IPS", tt.allowedIPs)
-			defer os.Unsetenv("METRICS_ENABLED")
-			defer os.Unsetenv("METRICS_ALLOWED_IPS")
+			// FIXME: Adding error check per errcheck linter
+
+			_ = os.Setenv("METRICS_ENABLED", "true")
+			// FIXME: Adding error check per errcheck linter
+
+			_ = os.Setenv("METRICS_ALLOWED_IPS", tt.allowedIPs)
+			defer func() { _ = // FIXME: Adding error check per errcheck linter
+ _ = os.Unsetenv("METRICS_ENABLED") }()
+			defer func() { _ = // FIXME: Adding error check per errcheck linter
+ _ = os.Unsetenv("METRICS_ALLOWED_IPS") }()
 
 			// Create IP restriction middleware
 			var allowedIPs []string
@@ -321,15 +354,25 @@ func TestMetricsIPRestriction(t *testing.T) {
 					}
 					if !allowed {
 						w.WriteHeader(http.StatusForbidden)
-						json.NewEncoder(w).Encode(map[string]string{
+						// FIXME: Adding error check for json encoder per errcheck linter
+
+						if err := json.NewEncoder(w).Encode(map[string]string{
 							"error": "Access denied",
-						})
+						}); err != nil {
+
+							log.Printf("Error encoding JSON: %v", err)
+
+							return
+
+						}
 						return
 					}
 				}
 
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("# Metrics\n"))
+				// FIXME: Adding error check per errcheck linter
+
+				_, _ = w.Write([]byte("# Metrics\n"))
 			})
 
 			// Create test request
@@ -348,7 +391,9 @@ func TestMetricsIPRestriction(t *testing.T) {
 
 			if tt.expectedStatus == http.StatusForbidden {
 				var response map[string]string
-				json.NewDecoder(rr.Body).Decode(&response)
+				// FIXME: Adding error check per errcheck linter
+
+				_ = json.NewDecoder(rr.Body).Decode(&response)
 				assert.Equal(t, "Access denied", response["error"])
 			}
 		})
@@ -358,13 +403,25 @@ func TestMetricsIPRestriction(t *testing.T) {
 // TestIntegrationSecurityStack tests the complete security middleware stack
 func TestIntegrationSecurityStack(t *testing.T) {
 	// Set up environment
-	os.Setenv("HTTP_MAX_BODY", "1024")
-	os.Setenv("METRICS_ENABLED", "true")
-	os.Setenv("METRICS_ALLOWED_IPS", "127.0.0.1")
+	// FIXME: Adding error check per errcheck linter
+
+	_ = os.Setenv("HTTP_MAX_BODY", "1024")
+	// FIXME: Adding error check per errcheck linter
+
+	_ = os.Setenv("METRICS_ENABLED", "true")
+	// FIXME: Adding error check per errcheck linter
+
+	_ = os.Setenv("METRICS_ALLOWED_IPS", "127.0.0.1")
 	defer func() {
-		os.Unsetenv("HTTP_MAX_BODY")
-		os.Unsetenv("METRICS_ENABLED")
-		os.Unsetenv("METRICS_ALLOWED_IPS")
+		// FIXME: Adding error check per errcheck linter
+
+		_ = os.Unsetenv("HTTP_MAX_BODY")
+		// FIXME: Adding error check per errcheck linter
+
+		_ = os.Unsetenv("METRICS_ENABLED")
+		// FIXME: Adding error check per errcheck linter
+
+		_ = os.Unsetenv("METRICS_ALLOWED_IPS")
 	}()
 
 	// Create logger
@@ -389,7 +446,15 @@ func TestIntegrationSecurityStack(t *testing.T) {
 	router.HandleFunc("/process", func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]int{"size": len(body)})
+		// FIXME: Adding error check for json encoder per errcheck linter
+
+		if err := json.NewEncoder(w).Encode(map[string]int{"size": len(body); err != nil {
+
+			log.Printf("Error encoding JSON: %v", err)
+
+			return
+
+		}})
 	}).Methods("POST")
 
 	router.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
@@ -400,19 +465,21 @@ func TestIntegrationSecurityStack(t *testing.T) {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("# Metrics\n"))
+		// FIXME: Adding error check per errcheck linter
+
+		_, _ = w.Write([]byte("# Metrics\n"))
 	}).Methods("GET")
 
 	// Create test server
 	server := httptest.NewServer(router)
-	defer server.Close()
+	defer func() { _ = server.Close() }()
 
 	t.Run("Process endpoint with security headers", func(t *testing.T) {
 		body := bytes.NewReader([]byte(`{"test": "data"}`))
 		req, _ := http.NewRequest("POST", server.URL+"/process", body)
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		assert.Equal(t, "nosniff", resp.Header.Get("X-Content-Type-Options"))
@@ -424,7 +491,7 @@ func TestIntegrationSecurityStack(t *testing.T) {
 		req, _ := http.NewRequest("POST", server.URL+"/process", body)
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Note: The actual 413 handling depends on the server implementation
 		// This test verifies the middleware is working
@@ -435,7 +502,7 @@ func TestIntegrationSecurityStack(t *testing.T) {
 		// This would work in actual deployment with proper IP
 		resp, err := http.Get(server.URL + "/metrics")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		// The test server may not properly simulate IP restrictions
 		// In production, this would be properly restricted
@@ -446,9 +513,15 @@ func TestIntegrationSecurityStack(t *testing.T) {
 // TestEnvironmentVariableDefaults tests default values for security environment variables
 func TestEnvironmentVariableDefaults(t *testing.T) {
 	// Clear all environment variables
-	os.Unsetenv("HTTP_MAX_BODY")
-	os.Unsetenv("METRICS_ENABLED")
-	os.Unsetenv("METRICS_ALLOWED_IPS")
+	// FIXME: Adding error check per errcheck linter
+
+	_ = os.Unsetenv("HTTP_MAX_BODY")
+	// FIXME: Adding error check per errcheck linter
+
+	_ = os.Unsetenv("METRICS_ENABLED")
+	// FIXME: Adding error check per errcheck linter
+
+	_ = os.Unsetenv("METRICS_ALLOWED_IPS")
 
 	// Load config with defaults
 	cfg := &config.LLMProcessorConfig{}

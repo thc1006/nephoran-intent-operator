@@ -127,7 +127,8 @@ func TestMain_EndToEndWorkflow(t *testing.T) {
 					"namespace": "default"
 				}`
 				intentFile := filepath.Join(handoffDir, "intent-scale.json")
-				require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0644))
+				require.NoError(t, // FIXME: Adding error check per errcheck linter
+ _ = os.WriteFile(intentFile, []byte(intentContent), 0644))
 			},
 			verifyResult: func(t *testing.T) {
 				// Verify intent file was moved to processed
@@ -169,7 +170,8 @@ func TestMain_EndToEndWorkflow(t *testing.T) {
 						"replicas": %d
 					}`, i, i*2)
 					intentFile := filepath.Join(handoffDir, fmt.Sprintf("intent-%d.json", i))
-					require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0644))
+					require.NoError(t, // FIXME: Adding error check per errcheck linter
+ _ = os.WriteFile(intentFile, []byte(intentContent), 0644))
 				}
 			},
 			verifyResult: func(t *testing.T) {
@@ -251,7 +253,8 @@ func TestMain_SignalHandling(t *testing.T) {
 	// Create an intent file
 	intentFile := filepath.Join(handoffDir, "intent-signal-test.json")
 	intentContent := `{"action": "scale", "target": "deployment/test", "replicas": 3}`
-	require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0644))
+	require.NoError(t, // FIXME: Adding error check per errcheck linter
+ _ = os.WriteFile(intentFile, []byte(intentContent), 0644))
 
 	// Start conductor-loop (without -once, so it runs continuously)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -371,7 +374,8 @@ func TestMain_ExitCodes(t *testing.T) {
 				mockPorch := createMockPorch(t, testDir, 0, "success", "")
 				
 				intentFile := filepath.Join(handoffDir, "intent-test.json")
-				require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
+				require.NoError(t, // FIXME: Adding error check per errcheck linter
+ _ = os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
 				
 				// Setup test arguments - create local args slice
 				testArgs := []string{"-handoff", handoffDir, "-porch", mockPorch, "-once"}
@@ -495,7 +499,8 @@ func BenchmarkMain_SingleFileProcessing(b *testing.B) {
 		require.NoError(b, os.MkdirAll(handoffDir, 0755))
 		
 		intentFile := filepath.Join(handoffDir, fmt.Sprintf("intent-%d.json", i))
-		require.NoError(b, os.WriteFile(intentFile, []byte(intentContent), 0644))
+		require.NoError(b, // FIXME: Adding error check per errcheck linter
+ _ = os.WriteFile(intentFile, []byte(intentContent), 0644))
 		
 		b.StartTimer()
 		

@@ -12,8 +12,8 @@ import (
 	"k8s.io/client-go/tools/record"
 )
 
-// MockDependencies implements the Dependencies interface for testing
-type MockDependencies struct {
+// MockCleanupDependencies implements the Dependencies interface for testing
+type MockCleanupDependencies struct {
 	gitClient        git.ClientInterface
 	llmClient        shared.ClientInterface
 	packageGenerator *nephio.PackageGenerator
@@ -21,23 +21,23 @@ type MockDependencies struct {
 	eventRecorder    record.EventRecorder
 }
 
-func (m *MockDependencies) GetGitClient() git.ClientInterface {
+func (m *MockCleanupDependencies) GetGitClient() git.ClientInterface {
 	return m.gitClient
 }
 
-func (m *MockDependencies) GetLLMClient() shared.ClientInterface {
+func (m *MockCleanupDependencies) GetLLMClient() shared.ClientInterface {
 	return m.llmClient
 }
 
-func (m *MockDependencies) GetPackageGenerator() *nephio.PackageGenerator {
+func (m *MockCleanupDependencies) GetPackageGenerator() *nephio.PackageGenerator {
 	return m.packageGenerator
 }
 
-func (m *MockDependencies) GetHTTPClient() *http.Client {
+func (m *MockCleanupDependencies) GetHTTPClient() *http.Client {
 	return m.httpClient
 }
 
-func (m *MockDependencies) GetEventRecorder() record.EventRecorder {
+func (m *MockCleanupDependencies) GetEventRecorder() record.EventRecorder {
 	return m.eventRecorder
 }
 
@@ -228,13 +228,13 @@ func (m *ScenarioBasedMockGitClient) InitRepo() error {
 	return args.Error(0)
 }
 
-// MockDependenciesBuilder provides a fluent interface for building mock dependencies
-type MockDependenciesBuilder struct {
-	deps *MockDependencies
+// MockCleanupDependenciesBuilder provides a fluent interface for building mock dependencies
+type MockCleanupDependenciesBuilder struct {
+	deps *MockCleanupDependencies
 }
 
-func NewMockDependenciesBuilder() *MockDependenciesBuilder {
-	return &MockDependenciesBuilder{
+func NewMockCleanupDependenciesBuilder() *MockCleanupDependenciesBuilder {
+	return &MockCleanupDependenciesBuilder{
 		deps: &MockDependencies{
 			httpClient:    &http.Client{},
 			eventRecorder: &record.FakeRecorder{Events: make(chan string, 100)},
@@ -242,32 +242,32 @@ func NewMockDependenciesBuilder() *MockDependenciesBuilder {
 	}
 }
 
-func (b *MockDependenciesBuilder) WithGitClient(client git.ClientInterface) *MockDependenciesBuilder {
+func (b *MockCleanupDependenciesBuilder) WithGitClient(client git.ClientInterface) *MockCleanupDependenciesBuilder {
 	b.deps.gitClient = client
 	return b
 }
 
-func (b *MockDependenciesBuilder) WithLLMClient(client shared.ClientInterface) *MockDependenciesBuilder {
+func (b *MockCleanupDependenciesBuilder) WithLLMClient(client shared.ClientInterface) *MockCleanupDependenciesBuilder {
 	b.deps.llmClient = client
 	return b
 }
 
-func (b *MockDependenciesBuilder) WithPackageGenerator(generator *nephio.PackageGenerator) *MockDependenciesBuilder {
+func (b *MockCleanupDependenciesBuilder) WithPackageGenerator(generator *nephio.PackageGenerator) *MockCleanupDependenciesBuilder {
 	b.deps.packageGenerator = generator
 	return b
 }
 
-func (b *MockDependenciesBuilder) WithHTTPClient(client *http.Client) *MockDependenciesBuilder {
+func (b *MockCleanupDependenciesBuilder) WithHTTPClient(client *http.Client) *MockCleanupDependenciesBuilder {
 	b.deps.httpClient = client
 	return b
 }
 
-func (b *MockDependenciesBuilder) WithEventRecorder(recorder record.EventRecorder) *MockDependenciesBuilder {
+func (b *MockCleanupDependenciesBuilder) WithEventRecorder(recorder record.EventRecorder) *MockCleanupDependenciesBuilder {
 	b.deps.eventRecorder = recorder
 	return b
 }
 
-func (b *MockDependenciesBuilder) Build() *MockDependencies {
+func (b *MockCleanupDependenciesBuilder) Build() *MockCleanupDependencies {
 	return b.deps
 }
 

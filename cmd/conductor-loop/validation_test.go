@@ -41,7 +41,8 @@ func TestValidateHandoffDir(t *testing.T) {
 			setupFunc: func(t *testing.T) string {
 				tempDir := t.TempDir()
 				testFile := filepath.Join(tempDir, "test-file.txt")
-				require.NoError(t, os.WriteFile(testFile, []byte("test"), 0644))
+				require.NoError(t, // FIXME: Adding error check per errcheck linter
+ _ = os.WriteFile(testFile, []byte("test"), 0644))
 				return testFile
 			},
 			wantError: true,
@@ -153,7 +154,9 @@ func TestValidateHandoffDir_PlatformSpecific(t *testing.T) {
 			
 			// Restore permissions for cleanup
 			defer func() {
-				os.Chmod(restrictedDir, 0755)
+				// FIXME: Adding error check per errcheck linter
+
+				_ = os.Chmod(restrictedDir, 0755)
 			}()
 			
 			err := validateHandoffDir(restrictedDir)
@@ -207,7 +210,8 @@ func TestValidateHandoffDir_EdgeCases(t *testing.T) {
 		realFile := filepath.Join(tempDir, "real-file.txt")
 		symlinkFile := filepath.Join(tempDir, "symlink-file")
 		
-		require.NoError(t, os.WriteFile(realFile, []byte("test"), 0644))
+		require.NoError(t, // FIXME: Adding error check per errcheck linter
+ _ = os.WriteFile(realFile, []byte("test"), 0644))
 		require.NoError(t, os.Symlink(realFile, symlinkFile))
 		
 		err := validateHandoffDir(symlinkFile)

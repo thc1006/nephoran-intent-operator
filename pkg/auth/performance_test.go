@@ -2,20 +2,20 @@ package auth
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	mathrand "math/rand"
 	"net/http"
 	"net/http/httptest"
 	"runtime"
-	"sync"
 	"testing"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/testutil"
 )
+
+// Use testutil types with explicit package prefix to avoid naming conflicts
 
 // BenchmarkSuite provides comprehensive performance benchmarking
 type BenchmarkSuite struct {
@@ -56,13 +56,7 @@ func (suite *BenchmarkSuite) setupTestData() {
 		suite.testUsers = append(suite.testUsers, user)
 
 		// Generate tokens for users
-		claims := jwt.MapClaims{
-			"sub":   user.Subject,
-			"email": user.Email,
-			"exp":   time.Now().Add(time.Hour).Unix(),
-			"iat":   time.Now().Unix(),
-		}
-		if token, err := suite.jwtManager.GenerateToken(claims); err == nil {
+		if token, err := suite.jwtManager.GenerateToken(user, nil); err == nil {
 			suite.testTokens = append(suite.testTokens, token)
 		}
 
@@ -370,7 +364,7 @@ func BenchmarkRBACManager_CreateRole(b *testing.B) {
 	ctx := context.Background()
 	rf := testutil.NewRoleFactory()
 
-	roles := make([]*Role, b.N)
+	roles := make([]*testutil.Role, b.N)
 	for i := 0; i < b.N; i++ {
 		role := rf.CreateBasicRole()
 		role.Name = fmt.Sprintf("bench-create-role-%d", i)
@@ -393,7 +387,7 @@ func BenchmarkRBACManager_CreatePermission(b *testing.B) {
 	ctx := context.Background()
 	pf := testutil.NewPermissionFactory()
 
-	permissions := make([]*Permission, b.N)
+	permissions := make([]*testutil.Permission, b.N)
 	for i := 0; i < b.N; i++ {
 		perm := pf.CreateBasicPermission()
 		perm.Name = fmt.Sprintf("bench:permission:%d", i)
@@ -415,7 +409,7 @@ func BenchmarkRBACManager_CreatePermission(b *testing.B) {
 func BenchmarkAuthMiddleware_ValidToken(b *testing.B) {
 	suite := NewBenchmarkSuite()
 
-	middleware := NewAuthMiddleware(&AuthMiddlewareConfig{
+	middleware := testutil.NewAuthMiddleware(&testutil.AuthMiddlewareConfig{
 		JWTManager:  suite.jwtManager,
 		RequireAuth: true,
 		HeaderName:  "Authorization",
@@ -444,7 +438,7 @@ func BenchmarkAuthMiddleware_ValidToken(b *testing.B) {
 func BenchmarkAuthMiddleware_SessionAuth(b *testing.B) {
 	suite := NewBenchmarkSuite()
 
-	middleware := NewAuthMiddleware(&AuthMiddlewareConfig{
+	middleware := testutil.NewAuthMiddleware(&testutil.AuthMiddlewareConfig{
 		SessionManager: suite.sessionManager,
 		RequireAuth:    true,
 		CookieName:     "session",
@@ -476,7 +470,7 @@ func BenchmarkAuthMiddleware_SessionAuth(b *testing.B) {
 func BenchmarkRBACMiddleware_PermissionCheck(b *testing.B) {
 	suite := NewBenchmarkSuite()
 
-	middleware := NewRBACMiddleware(&RBACMiddlewareConfig{
+	middleware := testutil.NewRBACMiddleware(&testutil.RBACMiddlewareConfig{
 		RBACManager: suite.rbacManager,
 		ResourceExtractor: func(r *http.Request) string {
 			return "api"
@@ -486,7 +480,7 @@ func BenchmarkRBACMiddleware_PermissionCheck(b *testing.B) {
 		},
 		UserIDExtractor: func(r *http.Request) string {
 			if userCtx := r.Context().Value("user"); userCtx != nil {
-				return userCtx.(*UserContext).UserID
+				return userCtx.(*testutil.UserContext).UserID
 			}
 			return ""
 		},
@@ -504,7 +498,7 @@ func BenchmarkRBACMiddleware_PermissionCheck(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		req := httptest.NewRequest("GET", "/api/data", nil)
-		req = req.WithContext(context.WithValue(req.Context(), "user", &UserContext{
+		req = req.WithContext(context.WithValue(req.Context(), "user", &testutil.UserContext{
 			UserID: userID,
 		}))
 		w := httptest.NewRecorder()
@@ -605,7 +599,7 @@ func BenchmarkAuthSystem_HighLoad(b *testing.B) {
 	operations := []func(){
 		func() {
 			// Token generation and validation
-			user := suite.testUsers[rand.Intn(len(suite.testUsers))]
+			user := suite.testUsers[mathrand.Intn(len(suite.testUsers))]
 			token, err := suite.jwtManager.GenerateToken(user, nil)
 			if err != nil {
 				return
@@ -615,14 +609,14 @@ func BenchmarkAuthSystem_HighLoad(b *testing.B) {
 		func() {
 			// Session validation
 			if len(suite.testSessions) > 0 {
-				session := suite.testSessions[rand.Intn(len(suite.testSessions))]
+				session := suite.testSessions[mathrand.Intn(len(suite.testSessions))]
 				suite.sessionManager.ValidateSession(context.Background(), session.ID)
 			}
 		},
 		func() {
 			// Permission check
 			if len(suite.testUsers) > 0 {
-				user := suite.testUsers[rand.Intn(len(suite.testUsers))]
+				user := suite.testUsers[mathrand.Intn(len(suite.testUsers))]
 				suite.rbacManager.CheckPermission(context.Background(), user.Subject, "api", "read")
 			}
 		},
@@ -633,7 +627,7 @@ func BenchmarkAuthSystem_HighLoad(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			op := operations[rand.Intn(len(operations))]
+			op := operations[mathrand.Intn(len(operations))]
 			op()
 		}
 	})
@@ -727,7 +721,7 @@ func BenchmarkAuthSystem_ThroughputTest(b *testing.B) {
 	mux := http.NewServeMux()
 
 	// Auth middleware
-	authMiddleware := NewAuthMiddleware(&AuthMiddlewareConfig{
+	authMiddleware := testutil.NewAuthMiddleware(&testutil.AuthMiddlewareConfig{
 		JWTManager:  suite.jwtManager,
 		RequireAuth: true,
 		HeaderName:  "Authorization",
@@ -828,7 +822,6 @@ func BenchmarkJWTManager_BlacklistCleanup(b *testing.B) {
 func BenchmarkSessionManager_SessionCleanup(b *testing.B) {
 	suite := NewBenchmarkSuite()
 	user := suite.testUsers[0]
-	ctx := context.Background()
 
 	// Create many expired sessions
 	for i := 0; i < 1000; i++ {

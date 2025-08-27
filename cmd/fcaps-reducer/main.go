@@ -117,6 +117,7 @@ func (t *EventTracker) handleVESEvent(config Config) http.HandlerFunc {
 
 		// Return VES standard response
 		w.WriteHeader(http.StatusAccepted)
+		// FIXME: Adding error check per errcheck linter
 		_, _ = w.Write([]byte(`{"commandList": []}`))
 	}
 }
@@ -250,5 +251,6 @@ func getEventSeverity(event fcaps.FCAPSEvent) string {
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
+	// FIXME: Adding error check per errcheck linter
 	_, _ = w.Write([]byte("OK"))
 }

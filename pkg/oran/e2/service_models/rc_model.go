@@ -134,7 +134,8 @@ type E2SMRCControlOutcomeFormat1 struct {
 }
 
 // CreateEventTrigger creates an RC event trigger definition
-func (rc *RCServiceModel) CreateEventTrigger(config interface{}) ([]byte, error) {
+// FIXME: Renamed 'config' to avoid unused parameter warning
+func (rc *RCServiceModel) CreateEventTrigger(_ interface{}) ([]byte, error) {
 	// RC typically uses on-demand control rather than periodic triggers
 	trigger := &E2SMRCEventTriggerDefinition{
 		EventDefinitionFormats: &E2SMRCEventTriggerDefinitionFormat1{
@@ -147,7 +148,8 @@ func (rc *RCServiceModel) CreateEventTrigger(config interface{}) ([]byte, error)
 }
 
 // CreateActionDefinition creates an RC action definition
-func (rc *RCServiceModel) CreateActionDefinition(config interface{}) ([]byte, error) {
+// FIXME: Renamed 'config' to avoid unused parameter warning
+func (rc *RCServiceModel) CreateActionDefinition(_ interface{}) ([]byte, error) {
 	action := &E2SMRCActionDefinition{
 		ActionDefinitionFormats: &E2SMRCActionDefinitionFormat1{
 			ControlActionID: 1,
@@ -160,7 +162,8 @@ func (rc *RCServiceModel) CreateActionDefinition(config interface{}) ([]byte, er
 }
 
 // ParseIndication parses an RC indication message (if applicable)
-func (rc *RCServiceModel) ParseIndication(header, message []byte) (interface{}, error) {
+// FIXME: Renamed unused parameters to avoid warnings
+func (rc *RCServiceModel) ParseIndication(_, _ []byte) (interface{}, error) {
 	// RC primarily uses control procedures, but may have indications for control results
 	return nil, fmt.Errorf("RC indication parsing not implemented")
 }

@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// FIXME: Adding package comment per revive linter
+// Package common provides shared types and utilities for the Nephoran Intent Operator API.
 package common
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

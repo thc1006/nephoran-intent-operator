@@ -223,7 +223,8 @@ func (s *LLMProcessorService) registerHealthChecks() {
 			}
 
 			// Check if any circuit breakers are open
-			var openBreakers []string
+			// Preallocate slice with expected capacity for performance
+			openBreakers := make([]string, 0, len(stats))
 			for name, cbStats := range stats {
 				if cbMap, ok := cbStats.(map[string]interface{}); ok {
 					if state, ok := cbMap["state"].(string); ok && state == "open" {

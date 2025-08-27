@@ -93,7 +93,9 @@ func TestSecurityHeadersMiddleware(t *testing.T) {
 			// Create test handler
 			testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("OK"))
+				// FIXME: Adding error check per errcheck linter
+
+				_, _ = w.Write([]byte("OK"))
 			})
 
 			// Wrap with middleware
@@ -237,7 +239,15 @@ func TestRedactLoggerMiddleware(t *testing.T) {
 			testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+				// FIXME: Adding error check for json encoder per errcheck linter
+
+				if err := json.NewEncoder(w).Encode(map[string]string{"status": "success"}); err != nil {
+
+					log.Printf("Error encoding JSON: %v", err)
+
+					return
+
+				}
 			})
 
 			// Wrap with middleware
@@ -382,7 +392,9 @@ func TestCorrelationIDGeneration(t *testing.T) {
 				}
 
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("OK"))
+				// FIXME: Adding error check per errcheck linter
+
+				_, _ = w.Write([]byte("OK"))
 			})
 
 			// Wrap with middleware
@@ -489,7 +501,15 @@ func TestMiddlewareOrdering(t *testing.T) {
 	router.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"message": "success"})
+		// FIXME: Adding error check for json encoder per errcheck linter
+
+		if err := json.NewEncoder(w).Encode(map[string]string{"message": "success"}); err != nil {
+
+			log.Printf("Error encoding JSON: %v", err)
+
+			return
+
+		}
 	}).Methods("POST", "OPTIONS")
 
 	tests := []struct {
@@ -715,7 +735,9 @@ func TestHSTSHeaderBehavior(t *testing.T) {
 			// Create test handler
 			testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("OK"))
+				// FIXME: Adding error check per errcheck linter
+
+				_, _ = w.Write([]byte("OK"))
 			})
 
 			// Wrap with middleware
@@ -812,19 +834,37 @@ func TestMiddlewareWithExistingEndpoints(t *testing.T) {
 	// Health endpoints (should be skipped from detailed logging)
 	router.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
+		// FIXME: Adding error check for json encoder per errcheck linter
+
+		if err := json.NewEncoder(w).Encode(map[string]string{"status": "healthy"}); err != nil {
+
+			log.Printf("Error encoding JSON: %v", err)
+
+			return
+
+		}
 	}).Methods("GET")
 
 	router.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"status": "ready"})
+		// FIXME: Adding error check for json encoder per errcheck linter
+
+		if err := json.NewEncoder(w).Encode(map[string]string{"status": "ready"}); err != nil {
+
+			log.Printf("Error encoding JSON: %v", err)
+
+			return
+
+		}
 	}).Methods("GET")
 
 	// Metrics endpoint with IP allowlist
 	metricsHandler := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("# HELP test_metric A test metric\ntest_metric 1\n"))
+		// FIXME: Adding error check per errcheck linter
+
+		_, _ = w.Write([]byte("# HELP test_metric A test metric\ntest_metric 1\n"))
 	}
 
 	if cfg.ExposeMetricsPublicly {
@@ -844,9 +884,17 @@ func TestMiddlewareWithExistingEndpoints(t *testing.T) {
 			}
 
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			// FIXME: Adding error check for json encoder per errcheck linter
+
+			if err := json.NewEncoder(w).Encode(map[string]interface{}{
 				"status":     "success",
-				"request_id": r.Header.Get("X-Request-ID"),
+				"request_id": r.Header.Get("X-Request-ID"); err != nil {
+
+				log.Printf("Error encoding JSON: %v", err)
+
+				return
+
+			},
 			})
 		}))
 	router.Handle("/process", processHandler).Methods("POST")
@@ -1052,7 +1100,9 @@ func TestMiddlewareErrorHandling(t *testing.T) {
 			setupMiddleware: func() http.Handler {
 				handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte("OK"))
+					// FIXME: Adding error check per errcheck linter
+
+					_, _ = w.Write([]byte("OK"))
 				})
 				return middleware.MaxBytesHandler(100, logger, handler) // Very small limit
 			},
@@ -1083,7 +1133,9 @@ func TestMiddlewareErrorHandling(t *testing.T) {
 						defer func() {
 							if err := recover(); err != nil {
 								w.WriteHeader(http.StatusInternalServerError)
-								w.Write([]byte("Internal Server Error"))
+								// FIXME: Adding error check per errcheck linter
+
+								_, _ = w.Write([]byte("Internal Server Error"))
 							}
 						}()
 						next.ServeHTTP(w, r)

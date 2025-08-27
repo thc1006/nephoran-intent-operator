@@ -1,3 +1,5 @@
+// FIXME: Adding package comment per revive linter
+// Package security implements O1 interface security types and authentication for O-RAN networks
 package security
 
 import (

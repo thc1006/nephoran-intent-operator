@@ -189,7 +189,7 @@ func (pts *PerformanceTestSuite) generateJSONReport() {
 		log.Printf("Error creating JSON report: %v", err)
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
@@ -210,7 +210,7 @@ func (pts *PerformanceTestSuite) generateMarkdownReport() {
 		log.Printf("Error creating markdown report: %v", err)
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	fmt.Fprintf(file, "# Performance Regression Test Report\n\n")
 	fmt.Fprintf(file, "**Timestamp:** %s\n\n", pts.Timestamp.Format("2006-01-02 15:04:05"))

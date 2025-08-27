@@ -1,3 +1,5 @@
+// FIXME: Adding package comment per revive linter
+// Package service_models provides E2 service model implementations for KPM, RIC, and NI services
 package service_models
 
 import (
@@ -204,17 +206,20 @@ func (kpm *KPMServiceModel) ParseIndication(header, message []byte) (interface{}
 }
 
 // CreateControlHeader is not applicable for KPM (measurement-only model)
-func (kpm *KPMServiceModel) CreateControlHeader(params interface{}) ([]byte, error) {
+// FIXME: Renamed 'params' to avoid unused parameter warning
+func (kpm *KPMServiceModel) CreateControlHeader(_ interface{}) ([]byte, error) {
 	return nil, fmt.Errorf("KPM service model does not support control procedures")
 }
 
 // CreateControlMessage is not applicable for KPM
-func (kpm *KPMServiceModel) CreateControlMessage(params interface{}) ([]byte, error) {
+// FIXME: Renamed 'params' to avoid unused parameter warning
+func (kpm *KPMServiceModel) CreateControlMessage(_ interface{}) ([]byte, error) {
 	return nil, fmt.Errorf("KPM service model does not support control procedures")
 }
 
 // ParseControlOutcome is not applicable for KPM
-func (kpm *KPMServiceModel) ParseControlOutcome(outcome []byte) (interface{}, error) {
+// FIXME: Renamed 'outcome' to avoid unused parameter warning
+func (kpm *KPMServiceModel) ParseControlOutcome(_ []byte) (interface{}, error) {
 	return nil, fmt.Errorf("KPM service model does not support control procedures")
 }
 
@@ -255,7 +260,8 @@ func (kpm *KPMServiceModel) ValidateActionDefinition(action []byte) error {
 }
 
 // ValidateControlMessage is not applicable for KPM
-func (kpm *KPMServiceModel) ValidateControlMessage(message []byte) error {
+// FIXME: Renamed 'message' to avoid unused parameter warning
+func (kpm *KPMServiceModel) ValidateControlMessage(_ []byte) error {
 	return fmt.Errorf("KPM service model does not support control procedures")
 }
 

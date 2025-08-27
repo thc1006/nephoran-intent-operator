@@ -606,14 +606,14 @@ var _ = Describe("NetworkIntent Controller", func() {
 
 // Mock implementations for testing
 
-type MockLLMClient struct {
+type MockLLMClientRegular struct {
 	Response  string
 	Error     error
 	CallCount int
 	FailCount int // Number of times to fail before succeeding
 }
 
-func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (string, error) {
+func (m *MockLLMClientRegular) ProcessIntent(ctx context.Context, intent string) (string, error) {
 	m.CallCount++
 
 	if m.FailCount > 0 && m.CallCount <= m.FailCount {
@@ -627,21 +627,21 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 	return m.Response, nil
 }
 
-type MockGitClient struct {
+type MockGitClientRegular struct {
 	CommitHash string
 	Error      error
 	CallCount  int
 	FailCount  int
 }
 
-func (m *MockGitClient) InitRepo() error {
+func (m *MockGitClientRegular) InitRepo() error {
 	if m.Error != nil {
 		return m.Error
 	}
 	return nil
 }
 
-func (m *MockGitClient) CommitAndPush(files map[string]string, message string) (string, error) {
+func (m *MockGitClientRegular) CommitAndPush(files map[string]string, message string) (string, error) {
 	m.CallCount++
 
 	if m.FailCount > 0 && m.CallCount <= m.FailCount {

@@ -29,35 +29,133 @@ import (
 
 // JWTManagerMock provides mock JWT functionality
 type JWTManagerMock struct {
-	privateKey *rsa.PrivateKey
-	keyID      string
+	privateKey     *rsa.PrivateKey
+	keyID          string
+	blacklistedTokens map[string]bool
 }
 
-func (j *JWTManagerMock) GenerateToken(claims jwt.MapClaims) (string, error) {
+func (j *JWTManagerMock) GenerateToken(user *providers.UserInfo, customClaims map[string]interface{}) (string, error) {
 	if j.privateKey == nil {
 		return "", fmt.Errorf("private key not set")
 	}
+	
+	claims := jwt.MapClaims{
+		"sub":   user.Subject,
+		"email": user.Email,
+		"name":  user.Name,
+		"exp":   time.Now().Add(time.Hour).Unix(),
+		"iat":   time.Now().Unix(),
+	}
+	
+	// Add custom claims if provided
+	for k, v := range customClaims {
+		claims[k] = v
+	}
+	
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	token.Header["kid"] = j.keyID
 	return token.SignedString(j.privateKey)
 }
 
+func (j *JWTManagerMock) GenerateTokenWithTTL(user *providers.UserInfo, customClaims map[string]interface{}, ttl time.Duration) (string, error) {
+	if j.privateKey == nil {
+		return "", fmt.Errorf("private key not set")
+	}
+	
+	claims := jwt.MapClaims{
+		"sub":   user.Subject,
+		"email": user.Email,
+		"name":  user.Name,
+		"exp":   time.Now().Add(ttl).Unix(),
+		"iat":   time.Now().Unix(),
+	}
+	
+	// Add custom claims if provided
+	for k, v := range customClaims {
+		claims[k] = v
+	}
+	
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	token.Header["kid"] = j.keyID
+	return token.SignedString(j.privateKey)
+}
+
+func (j *JWTManagerMock) GenerateTokenPair(user *providers.UserInfo, customClaims map[string]interface{}) (string, string, error) {
+	accessToken, err := j.GenerateToken(user, customClaims)
+	if err != nil {
+		return "", "", err
+	}
+	
+	// Generate refresh token with longer TTL
+	refreshClaims := jwt.MapClaims{
+		"sub":  user.Subject,
+		"type": "refresh",
+		"exp":  time.Now().Add(24 * time.Hour).Unix(),
+		"iat":  time.Now().Unix(),
+	}
+	
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodRS256, refreshClaims)
+	refreshToken.Header["kid"] = j.keyID
+	refreshTokenString, err := refreshToken.SignedString(j.privateKey)
+	if err != nil {
+		return "", "", err
+	}
+	
+	return accessToken, refreshTokenString, nil
+}
+
 func (j *JWTManagerMock) ValidateToken(tokenString string) (*jwt.Token, error) {
+	// Check if token is blacklisted
+	if j.blacklistedTokens != nil && j.blacklistedTokens[tokenString] {
+		return nil, fmt.Errorf("token has been revoked")
+	}
+	
 	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return &j.privateKey.PublicKey, nil
 	})
 }
 
-func (j *JWTManagerMock) RefreshToken(tokenString string) (string, error) {
-	claims := jwt.MapClaims{
-		"exp": time.Now().Add(time.Hour).Unix(),
-		"iat": time.Now().Unix(),
+func (j *JWTManagerMock) RefreshToken(refreshTokenString string) (string, string, error) {
+	// Validate refresh token first
+	token, err := j.ValidateToken(refreshTokenString)
+	if err != nil {
+		return "", "", err
 	}
-	return j.GenerateToken(claims)
+	
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", "", fmt.Errorf("invalid token claims")
+	}
+	
+	// Extract user info from refresh token
+	subject, _ := claims["sub"].(string)
+	
+	// Create a basic user info for new token generation
+	user := &providers.UserInfo{
+		Subject: subject,
+		Email:   fmt.Sprintf("%s@example.com", subject),
+		Name:    fmt.Sprintf("User %s", subject),
+	}
+	
+	// Generate new token pair
+	return j.GenerateTokenPair(user, nil)
+}
+
+func (j *JWTManagerMock) BlacklistToken(tokenString string) error {
+	if j.blacklistedTokens == nil {
+		j.blacklistedTokens = make(map[string]bool)
+	}
+	j.blacklistedTokens[tokenString] = true
+	return nil
+}
+
+func (j *JWTManagerMock) CleanupBlacklist() error {
+	// Mock implementation - in real scenario would clean up expired tokens
+	return nil
 }
 
 func (j *JWTManagerMock) RevokeToken(tokenString string) error {
-	return nil // Mock implementation
+	return j.BlacklistToken(tokenString)
 }
 
 func (j *JWTManagerMock) SetSigningKey(privateKey *rsa.PrivateKey, keyID string) error {
@@ -166,7 +264,7 @@ type MockSession struct {
 	Data      map[string]interface{}
 }
 
-func (s *SessionManagerMock) CreateSession(ctx context.Context, userInfo *providers.UserInfo) (*MockSession, error) {
+func (s *SessionManagerMock) CreateSession(ctx context.Context, userInfo *providers.UserInfo, metadata ...map[string]interface{}) (*MockSession, error) {
 	if s.sessions == nil {
 		s.sessions = make(map[string]*MockSession)
 	}
@@ -178,6 +276,14 @@ func (s *SessionManagerMock) CreateSession(ctx context.Context, userInfo *provid
 		ExpiresAt: time.Now().Add(time.Hour),
 		Data:      make(map[string]interface{}),
 	}
+	
+	// Add metadata if provided
+	if len(metadata) > 0 {
+		for k, v := range metadata[0] {
+			session.Data[k] = v
+		}
+	}
+	
 	s.sessions[session.ID] = session
 	return session, nil
 }
@@ -239,6 +345,46 @@ func (s *SessionManagerMock) GetSessionFromRequest(r *http.Request) (*MockSessio
 		return nil, err
 	}
 	return s.GetSession(r.Context(), cookie.Value)
+}
+
+func (s *SessionManagerMock) ValidateSession(ctx context.Context, sessionID string) (*MockSession, error) {
+	session, err := s.GetSession(ctx, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Check if session is expired
+	if time.Now().After(session.ExpiresAt) {
+		return nil, fmt.Errorf("session expired")
+	}
+	
+	return session, nil
+}
+
+func (s *SessionManagerMock) RefreshSession(ctx context.Context, sessionID string) (*MockSession, error) {
+	session, err := s.GetSession(ctx, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Extend session expiry
+	session.ExpiresAt = time.Now().Add(time.Hour)
+	return session, nil
+}
+
+func (s *SessionManagerMock) CleanupExpiredSessions() error {
+	if s.sessions == nil {
+		return nil
+	}
+	
+	now := time.Now()
+	for id, session := range s.sessions {
+		if now.After(session.ExpiresAt) {
+			delete(s.sessions, id)
+		}
+	}
+	
+	return nil
 }
 
 func (s *SessionManagerMock) Close() {

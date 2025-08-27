@@ -94,7 +94,8 @@ func TestExtractCorrelationID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create test file
 			testFile := filepath.Join(tempDir, "test-intent.json")
-			err := os.WriteFile(testFile, []byte(tt.jsonContent), 0644)
+			err := // FIXME: Adding error check per errcheck linter
+ _ = os.WriteFile(testFile, []byte(tt.jsonContent), 0644)
 			if err != nil {
 				t.Fatalf("Failed to create test file: %v", err)
 			}
@@ -106,7 +107,8 @@ func TestExtractCorrelationID(t *testing.T) {
 			}
 
 			// Clean up
-			_ = os.Remove(testFile)
+			_ = // FIXME: Adding error check per errcheck linter
+ _ = os.Remove(testFile)
 		})
 	}
 

@@ -34,8 +34,8 @@ import (
 // MockDependencies implements Dependencies interface for testing
 type MockDependencies struct {
 	mock.Mock
-	gitClient            *MockGitClient
-	llmClient            *MockLLMClient
+	gitClient            *MockGitClientComprehensive
+	llmClient            *MockLLMClientComprehensive
 	packageGenerator     *MockPackageGenerator
 	httpClient           *http.Client
 	eventRecorder        record.EventRecorder
@@ -45,8 +45,8 @@ type MockDependencies struct {
 
 func NewMockDependencies() *MockDependencies {
 	return &MockDependencies{
-		gitClient:            NewMockGitClient(),
-		llmClient:            NewMockLLMClient(),
+		gitClient:            NewMockGitClientComprehensive(),
+		llmClient:            NewMockLLMClientComprehensive(),
 		packageGenerator:     NewMockPackageGenerator(),
 		httpClient:           &http.Client{Timeout: 30 * time.Second},
 		eventRecorder:        &record.FakeRecorder{},
@@ -84,7 +84,7 @@ func (m *MockDependencies) GetMetricsCollector() *monitoring.MetricsCollector {
 }
 
 // MockLLMClient for testing LLM integration
-type MockLLMClient struct {
+type MockLLMClientComprehensive struct {
 	mock.Mock
 	response  string
 	err       error
@@ -93,11 +93,11 @@ type MockLLMClient struct {
 	processed bool
 }
 
-func NewMockLLMClient() *MockLLMClient {
-	return &MockLLMClient{}
+func NewMockLLMClientComprehensive() *MockLLMClientComprehensive {
+	return &MockLLMClientComprehensive{}
 }
 
-func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (string, error) {
+func (m *MockLLMClientComprehensive) ProcessIntent(ctx context.Context, intent string) (string, error) {
 	m.callCount++
 	if m.failCount > 0 && m.callCount <= m.failCount {
 		return "", m.err
@@ -105,48 +105,48 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 	return m.response, nil
 }
 
-func (m *MockLLMClient) SetResponse(response string) {
+func (m *MockLLMClientComprehensive) SetResponse(response string) {
 	m.response = response
 }
 
-func (m *MockLLMClient) SetError(err error) {
+func (m *MockLLMClientComprehensive) SetError(err error) {
 	m.err = err
 }
 
-func (m *MockLLMClient) SetFailCount(count int) {
+func (m *MockLLMClientComprehensive) SetFailCount(count int) {
 	m.failCount = count
 }
 
 // MockGitClient for testing Git operations
-type MockGitClient struct {
+type MockGitClientComprehensive struct {
 	mock.Mock
 	shouldFail bool
 	filePaths  []string
 }
 
-func NewMockGitClient() *MockGitClient {
-	return &MockGitClient{}
+func NewMockGitClientComprehensive() *MockGitClientComprehensive {
+	return &MockGitClientComprehensive{}
 }
 
-func (m *MockGitClient) CommitFiles(files map[string]string, message string) (string, error) {
+func (m *MockGitClientComprehensive) CommitFiles(files map[string]string, message string) (string, error) {
 	if m.shouldFail {
 		return "", errors.New("git commit failed")
 	}
 	return "abc123", nil
 }
 
-func (m *MockGitClient) PushChanges() error {
+func (m *MockGitClientComprehensive) PushChanges() error {
 	if m.shouldFail {
 		return errors.New("git push failed")
 	}
 	return nil
 }
 
-func (m *MockGitClient) Clone(url, branch string) error {
+func (m *MockGitClientComprehensive) Clone(url, branch string) error {
 	return nil
 }
 
-func (m *MockGitClient) DeleteFiles(filePaths []string) error {
+func (m *MockGitClientComprehensive) DeleteFiles(filePaths []string) error {
 	if m.shouldFail {
 		return errors.New("git delete failed")
 	}
@@ -154,7 +154,7 @@ func (m *MockGitClient) DeleteFiles(filePaths []string) error {
 	return nil
 }
 
-func (m *MockGitClient) SetShouldFail(shouldFail bool) {
+func (m *MockGitClientComprehensive) SetShouldFail(shouldFail bool) {
 	m.shouldFail = shouldFail
 }
 
@@ -313,7 +313,7 @@ func TestReconcile(t *testing.T) {
 			expectedPhase:   "Processed",
 			validationCheck: func(t *testing.T, ni *nephoranv1.NetworkIntent) {
 				assert.Equal(t, "Processed", ni.Status.Phase)
-				assert.True(t, isConditionTrue(ni.Status.Conditions, "Processed"))
+				assert.True(t, isConditionTrueLocal(ni.Status.Conditions, "Processed"))
 			},
 		},
 		{
@@ -534,7 +534,7 @@ func TestUpdatePhase(t *testing.T) {
 }
 
 // Test helper functions for conditions
-func isConditionTrue(conditions []metav1.Condition, conditionType string) bool {
+func isConditionTrueLocal(conditions []metav1.Condition, conditionType string) bool {
 	for _, condition := range conditions {
 		if condition.Type == conditionType {
 			return condition.Status == metav1.ConditionTrue

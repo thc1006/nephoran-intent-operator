@@ -30,7 +30,8 @@ func main() {
 	)
 
 	// Set concurrent push limit via environment
-	_ = os.Setenv("GIT_CONCURRENT_PUSH_LIMIT", "2")
+	_ = // FIXME: Adding error check per errcheck linter
+ _ = os.Setenv("GIT_CONCURRENT_PUSH_LIMIT", "2")
 
 	fmt.Println("=== Observability Features Verification ===")
 	fmt.Println()

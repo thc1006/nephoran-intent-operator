@@ -1,3 +1,5 @@
+// FIXME: Adding package comment per revive linter
+// Package main provides import cycle detection utilities for the codebase
 package main
 
 import (

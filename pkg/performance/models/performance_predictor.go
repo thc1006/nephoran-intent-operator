@@ -1,3 +1,5 @@
+// FIXME: Adding package comment per revive linter
+// Package models provides machine learning models for performance prediction and optimization
 package models
 
 import (

@@ -174,7 +174,8 @@ func (r *TestRunner) discoverPackages() ([]string, error) {
 	}
 
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
-	var packages []string
+	// Preallocate slice with expected capacity for performance
+	packages := make([]string, 0, len(lines))
 
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
@@ -311,7 +312,8 @@ func (r *TestRunner) runTests(packages []string) ([]TestResult, error) {
 	wg.Wait()
 	
 	// Filter out empty results if context was cancelled
-	var filteredResults []TestResult
+	// Preallocate slice with expected capacity for performance
+	filteredResults := make([]TestResult, 0, len(results))
 	for _, result := range results {
 		if result.Package != "" {
 			filteredResults = append(filteredResults, result)
@@ -441,7 +443,7 @@ func (r *TestRunner) generateJUnitReport(results []TestResult) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	
 	fmt.Fprintf(file, `<?xml version="1.0" encoding="UTF-8"?>`)
 	fmt.Fprintf(file, `<testsuite name="shard-%d" tests="%d" failures="%d" time="%.2f">`,
@@ -466,7 +468,8 @@ func (r *TestRunner) generateJUnitReport(results []TestResult) error {
 
 // generateCoverageReport combines coverage files and generates reports
 func (r *TestRunner) generateCoverageReport(results []TestResult) error {
-	var coverageFiles []string
+	// Preallocate slice with expected capacity for performance
+	coverageFiles := make([]string, 0, len(results))
 	
 	for _, result := range results {
 		if result.Coverage != "" {
@@ -485,7 +488,7 @@ func (r *TestRunner) generateCoverageReport(results []TestResult) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	
 	fmt.Fprintln(file, "mode: atomic")
 	
@@ -521,7 +524,7 @@ func (r *TestRunner) generateTimingReport(results []TestResult) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	
 	fmt.Fprintf(file, "Test Timing Report - Shard %d\n", r.ShardIndex)
 	fmt.Fprintf(file, "=====================================\n\n")

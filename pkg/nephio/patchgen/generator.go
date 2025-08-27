@@ -1,3 +1,5 @@
+// FIXME: Adding package comment per revive linter
+// Package patchgen provides Kubernetes resource patch generation for Nephio package operations
 package patchgen
 
 import (
@@ -105,8 +107,9 @@ func validateResourceConstraints(limits ResourceLimits) error {
 }
 
 // createPackage is an internal method to create the actual package
+// FIXME: Renamed 'ctx' to avoid unused parameter warning
 func createPackage(
-	ctx context.Context, 
+	_ context.Context, 
 	pkgName string, 
 	opts *PackageOptions,
 ) (*Package, error) {

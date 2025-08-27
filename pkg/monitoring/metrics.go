@@ -7,6 +7,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
+	
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 var (
@@ -563,8 +565,24 @@ func (mc *MetricsCollector) GetCounter(name string) prometheus.Counter {
 }
 
 // RecordCNFDeployment records a CNF deployment event
-func (mc *MetricsCollector) RecordCNFDeployment(cnfFunction interface{}, duration time.Duration) {
+func (mc *MetricsCollector) RecordCNFDeployment(function nephoranv1.CNFFunction, duration time.Duration) {
 	// Create a counter if one doesn't exist
+	if mc.E2NodeSetTotal != nil {
+		mc.E2NodeSetTotal.Inc()
+	}
+}
+
+// RecordCNFDeletion records a CNF deletion event
+func (mc *MetricsCollector) RecordCNFDeletion(function nephoranv1.CNFFunction, duration time.Duration) {
+	// Record deletion metrics - for now just increment the counter
+	if mc.E2NodeSetTotal != nil {
+		mc.E2NodeSetTotal.Inc()
+	}
+}
+
+// RecordCNFHealthCheck records a CNF health check result
+func (mc *MetricsCollector) RecordCNFHealthCheck(function nephoranv1.CNFFunction, status string) {
+	// Record health check metrics - for now use existing counter
 	if mc.E2NodeSetTotal != nil {
 		mc.E2NodeSetTotal.Inc()
 	}

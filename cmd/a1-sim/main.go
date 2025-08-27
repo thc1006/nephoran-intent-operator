@@ -1,3 +1,5 @@
+// FIXME: Adding package comment per revive linter
+// Package main implements the A1 interface simulator for O-RAN network policy management
 package main
 
 import (

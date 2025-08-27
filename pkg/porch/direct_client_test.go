@@ -75,6 +75,8 @@ func TestBuildKRMPackage(t *testing.T) {
 		Replicas:   3,
 	}
 	
+	// FIXME: Correcting linter error 'cannot use &string as string value'. The struct fields expect string values, not pointers.
+	// Changed from pointer assignment (&reasonStr) to direct string assignment.
 	reasonStr := "Test reason"
 	sourceStr := "test"
 	correlationStr := "corr-123"
@@ -84,9 +86,9 @@ func TestBuildKRMPackage(t *testing.T) {
 		Target:        "test-deployment",
 		Namespace:     "test-ns",
 		Replicas:      5,
-		Reason:        &reasonStr,
-		Source:        &sourceStr,
-		CorrelationID: &correlationStr,
+		Reason:        reasonStr,
+		Source:        sourceStr,
+		CorrelationID: correlationStr,
 	}
 	
 	tests := []struct {

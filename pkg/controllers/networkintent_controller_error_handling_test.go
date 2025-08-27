@@ -774,14 +774,14 @@ func (t *TestDependencies) GetMetricsCollector() interface{} {
 }
 
 // Enhanced MockLLMClient for error testing
-type MockLLMClient struct {
+type MockLLMClientErrorHandling struct {
 	Response  string
 	Error     error
 	CallCount int
 	FailCount int
 }
 
-func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (string, error) {
+func (m *MockLLMClientErrorHandling) ProcessIntent(ctx context.Context, intent string) (string, error) {
 	m.CallCount++
 
 	if m.FailCount > 0 && m.CallCount <= m.FailCount {
@@ -796,7 +796,7 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 }
 
 // Enhanced MockGitClient for error testing
-type MockGitClient struct {
+type MockGitClientErrorHandling struct {
 	CommitHash           string
 	Error                error
 	InitError            error
@@ -806,7 +806,7 @@ type MockGitClient struct {
 	FailCount            int
 }
 
-func (m *MockGitClient) InitRepo() error {
+func (m *MockGitClientErrorHandling) InitRepo() error {
 	if m.InitError != nil {
 		return m.InitError
 	}
@@ -816,7 +816,7 @@ func (m *MockGitClient) InitRepo() error {
 	return nil
 }
 
-func (m *MockGitClient) CommitAndPush(files map[string]string, message string) (string, error) {
+func (m *MockGitClientErrorHandling) CommitAndPush(files map[string]string, message string) (string, error) {
 	m.CallCount++
 
 	if m.CommitPushError != nil {
@@ -834,7 +834,7 @@ func (m *MockGitClient) CommitAndPush(files map[string]string, message string) (
 	return m.CommitHash, nil
 }
 
-func (m *MockGitClient) RemoveDirectory(path, message string) error {
+func (m *MockGitClientErrorHandling) RemoveDirectory(path, message string) error {
 	if m.RemoveDirectoryError != nil {
 		return m.RemoveDirectoryError
 	}
@@ -856,10 +856,10 @@ func getConditionByType(conditions []metav1.Condition, conditionType string) *me
 
 // Constants that should match the main implementation
 const (
-	BaseBackoffDelay  = 1 * time.Second
-	MaxBackoffDelay   = 5 * time.Minute
-	BackoffMultiplier = 2.0
-	JitterFactor      = 0.1 // 10% jitter
+	BaseBackoffDelayTest  = 1 * time.Second
+	MaxBackoffDelayTest   = 5 * time.Minute
+	BackoffMultiplierTest = 2.0
+	JitterFactorTest      = 0.1 // 10% jitter
 )
 
 // Table-driven test for comprehensive scenarios

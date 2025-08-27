@@ -664,9 +664,6 @@ func (s *NephoranAPIServer) mustMarshalString(v interface{}) string {
 
 // createPackage handles POST /api/v1/packages
 func (s *NephoranAPIServer) createPackage(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	_ = ctx // Use ctx to avoid unused warning
-	
 	var req PackageRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		s.writeErrorResponse(w, http.StatusBadRequest, "invalid_request", "Invalid package request")
@@ -679,62 +676,30 @@ func (s *NephoranAPIServer) createPackage(w http.ResponseWriter, r *http.Request
 
 // updatePackage handles PUT /api/v1/packages/{name}
 func (s *NephoranAPIServer) updatePackage(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	_ = ctx // Use ctx to avoid unused warning
-	vars := mux.Vars(r)
-	name := vars["name"]
-	_ = name // Use name to avoid unused warning
-	
 	// TODO: Implement actual package update
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package update not yet implemented")
 }
 
 // deletePackage handles DELETE /api/v1/packages/{name}
 func (s *NephoranAPIServer) deletePackage(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	_ = ctx // Use ctx to avoid unused warning
-	vars := mux.Vars(r)
-	name := vars["name"]
-	_ = name // Use name to avoid unused warning
-	
 	// TODO: Implement actual package deletion
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package deletion not yet implemented")
 }
 
 // listPackageRevisions handles GET /api/v1/packages/{name}/revisions
 func (s *NephoranAPIServer) listPackageRevisions(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	_ = ctx // Use ctx to avoid unused warning
-	vars := mux.Vars(r)
-	name := vars["name"]
-	_ = name // Use name to avoid unused warning
-	
 	// TODO: Implement actual package revision listing
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"revisions": []interface{}{}})
 }
 
 // getPackageRevision handles GET /api/v1/packages/{name}/revisions/{revision}
 func (s *NephoranAPIServer) getPackageRevision(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	_ = ctx // Use ctx to avoid unused warning
-	vars := mux.Vars(r)
-	name := vars["name"]
-	revision := vars["revision"]
-	_ = name    // Use name to avoid unused warning
-	_ = revision // Use revision to avoid unused warning
-	
 	// TODO: Implement actual package revision retrieval
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package revision retrieval not yet implemented")
 }
 
 // publishPackage handles POST /api/v1/packages/{name}/publish
 func (s *NephoranAPIServer) publishPackage(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	_ = ctx // Use ctx to avoid unused warning
-	vars := mux.Vars(r)
-	name := vars["name"]
-	_ = name // Use name to avoid unused warning
-	
 	// TODO: Implement actual package publishing
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package publishing not yet implemented")
 }
@@ -753,48 +718,24 @@ func (s *NephoranAPIServer) rejectPackage(w http.ResponseWriter, r *http.Request
 
 // rollbackPackage handles POST /api/v1/packages/{name}/rollback
 func (s *NephoranAPIServer) rollbackPackage(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	_ = ctx // Use ctx to avoid unused warning
-	vars := mux.Vars(r)
-	name := vars["name"]
-	_ = name // Use name to avoid unused warning
-	
 	// TODO: Implement actual package rollback
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package rollback not yet implemented")
 }
 
 // testPackage handles POST /api/v1/packages/{name}/test
 func (s *NephoranAPIServer) testPackage(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	_ = ctx // Use ctx to avoid unused warning
-	vars := mux.Vars(r)
-	name := vars["name"]
-	_ = name // Use name to avoid unused warning
-	
 	// TODO: Implement actual package testing
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package testing not yet implemented")
 }
 
 // lintPackage handles POST /api/v1/packages/{name}/lint
 func (s *NephoranAPIServer) lintPackage(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	_ = ctx // Use ctx to avoid unused warning
-	vars := mux.Vars(r)
-	name := vars["name"]
-	_ = name // Use name to avoid unused warning
-	
 	// TODO: Implement actual package linting
 	s.writeErrorResponse(w, http.StatusNotImplemented, "not_implemented", "Package linting not yet implemented")
 }
 
 // getPackageResources handles GET /api/v1/packages/{name}/resources
 func (s *NephoranAPIServer) getPackageResources(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	_ = ctx // Use ctx to avoid unused warning
-	vars := mux.Vars(r)
-	name := vars["name"]
-	_ = name // Use name to avoid unused warning
-	
 	// TODO: Implement actual package resource retrieval
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{"resources": []interface{}{}})
 }

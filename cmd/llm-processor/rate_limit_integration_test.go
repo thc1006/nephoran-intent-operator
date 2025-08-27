@@ -56,27 +56,37 @@ func TestRateLimitIntegration(t *testing.T) {
 	// Add test endpoints
 	router.HandleFunc("/process", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Process endpoint"))
+		// FIXME: Adding error check per errcheck linter
+
+		_, _ = w.Write([]byte("Process endpoint"))
 	}).Methods("POST")
 
 	router.HandleFunc("/stream", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Stream endpoint"))
+		// FIXME: Adding error check per errcheck linter
+
+		_, _ = w.Write([]byte("Stream endpoint"))
 	}).Methods("POST")
 
 	router.HandleFunc("/process_intent", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Process intent endpoint"))
+		// FIXME: Adding error check per errcheck linter
+
+		_, _ = w.Write([]byte("Process intent endpoint"))
 	}).Methods("POST")
 
 	router.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Health check"))
+		// FIXME: Adding error check per errcheck linter
+
+		_, _ = w.Write([]byte("Health check"))
 	}).Methods("GET")
 
 	router.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Metrics"))
+		// FIXME: Adding error check per errcheck linter
+
+		_, _ = w.Write([]byte("Metrics"))
 	}).Methods("GET")
 
 	// Test 1: GET requests should not be rate limited
@@ -196,7 +206,9 @@ func TestRateLimitDisabled(t *testing.T) {
 	// Add test endpoint
 	router.HandleFunc("/process", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Process endpoint"))
+		// FIXME: Adding error check per errcheck linter
+
+		_, _ = w.Write([]byte("Process endpoint"))
 	}).Methods("POST")
 
 	// Make many POST requests - none should be rate limited

@@ -107,7 +107,8 @@ func TestMain(t *testing.T) {
 			// Setup test files
 			for filename, content := range tt.setupFiles {
 				filePath := filepath.Join(tempDir, filename)
-				require.NoError(t, os.WriteFile(filePath, []byte(content), 0644))
+				require.NoError(t, // FIXME: Adding error check per errcheck linter
+ _ = os.WriteFile(filePath, []byte(content), 0644))
 			}
 
 			// Create logger for testing
@@ -281,7 +282,8 @@ func TestRunFunction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create intent file
 			intentFile := filepath.Join(tempDir, fmt.Sprintf("intent_%s.json", strings.ReplaceAll(tt.name, " ", "_")))
-			require.NoError(t, os.WriteFile(intentFile, []byte(tt.intentJSON), 0644))
+			require.NoError(t, // FIXME: Adding error check per errcheck linter
+ _ = os.WriteFile(intentFile, []byte(tt.intentJSON), 0644))
 
 			// Create output directory if test expects success
 			if !tt.expectError {
@@ -432,7 +434,8 @@ func TestVerboseLogging(t *testing.T) {
 		"namespace": "default",
 		"replicas": 3
 	}`
-	require.NoError(t, os.WriteFile(intentFile, []byte(intentJSON), 0644))
+	require.NoError(t, // FIXME: Adding error check per errcheck linter
+ _ = os.WriteFile(intentFile, []byte(intentJSON), 0644))
 
 	outputDir := filepath.Join(tempDir, "output")
 	require.NoError(t, os.MkdirAll(outputDir, 0755))
@@ -477,7 +480,8 @@ func TestPackagePathGeneration(t *testing.T) {
 			}`, tt.target)
 			
 			intentFile := filepath.Join(tempDir, "intent.json")
-			require.NoError(t, os.WriteFile(intentFile, []byte(intentJSON), 0644))
+			require.NoError(t, // FIXME: Adding error check per errcheck linter
+ _ = os.WriteFile(intentFile, []byte(intentJSON), 0644))
 
 			outputDir := filepath.Join(tempDir, "output")
 			require.NoError(t, os.MkdirAll(outputDir, 0755))

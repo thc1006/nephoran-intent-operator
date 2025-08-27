@@ -572,7 +572,8 @@ type CNFDeploymentList struct {
 
 // ValidateCNFDeployment validates the CNF deployment specification
 func (cnf *CNFDeployment) ValidateCNFDeployment() error {
-	var errors []string
+	// Preallocate slice with expected capacity for performance
+	errors := make([]string, 0, 4)
 
 	// Validate function compatibility with CNF type
 	if err := cnf.validateFunctionCompatibility(); err != nil {

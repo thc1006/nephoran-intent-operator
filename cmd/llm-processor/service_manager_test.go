@@ -138,7 +138,9 @@ func (m *MockStreamingProcessor) HandleStreamingRequest(w http.ResponseWriter, r
 	}
 	// Default mock implementation - just return success
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("mock streaming response"))
+	// FIXME: Adding error check per errcheck linter
+
+	_, _ = w.Write([]byte("mock streaming response"))
 	return nil
 }
 
@@ -251,7 +253,9 @@ func TestStructuredLoggingInStreamingHandler(t *testing.T) {
 						return tt.mockError
 					}
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte("test response"))
+					// FIXME: Adding error check per errcheck linter
+
+					_, _ = w.Write([]byte("test response"))
 					return nil
 				},
 			}

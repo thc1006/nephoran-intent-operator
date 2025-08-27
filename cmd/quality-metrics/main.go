@@ -279,27 +279,69 @@ func (qmr *QualityMetricsReport) generateMarkdownReport() {
 	}
 	defer func() { _ = file.Close() }()
 
-	fmt.Fprintf(file, "# Code Quality Metrics Report\n\n")
-	fmt.Fprintf(file, "**Timestamp:** %s\n\n", qmr.Timestamp.Format("2006-01-02 15:04:05"))
-	fmt.Fprintf(file, "**Overall Score:** %.2f (%s)\n\n", qmr.Summary.OverallScore, qmr.Summary.Grade)
-	fmt.Fprintf(file, "**Status:** %s\n\n", qmr.Summary.Status)
+	// FIXME: Batch error handling for multiple fmt.Fprintf calls in markdown generation
+	var mdWriteErr error
+	if _, err := fmt.Fprintf(file, "# Code Quality Metrics Report\n\n"); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "**Timestamp:** %s\n\n", qmr.Timestamp.Format("2006-01-02 15:04:05")); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "**Overall Score:** %.2f (%s)\n\n", qmr.Summary.OverallScore, qmr.Summary.Grade); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "**Status:** %s\n\n", qmr.Summary.Status); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
 
-	fmt.Fprintf(file, "## Summary\n\n")
-	fmt.Fprintf(file, "- **Total Issues:** %d\n", qmr.Summary.TotalIssues)
-	fmt.Fprintf(file, "- **Critical Issues:** %d\n", qmr.Summary.CriticalIssues)
-	fmt.Fprintf(file, "- **Warning Issues:** %d\n", qmr.Summary.WarningIssues)
-	fmt.Fprintf(file, "- **Info Issues:** %d\n", qmr.Summary.InfoIssues)
+	if _, err := fmt.Fprintf(file, "## Summary\n\n"); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "- **Total Issues:** %d\n", qmr.Summary.TotalIssues); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "- **Critical Issues:** %d\n", qmr.Summary.CriticalIssues); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "- **Warning Issues:** %d\n", qmr.Summary.WarningIssues); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "- **Info Issues:** %d\n", qmr.Summary.InfoIssues); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
 
-	fmt.Fprintf(file, "\n## Code Metrics\n\n")
-	fmt.Fprintf(file, "- **Lines of Code:** %d\n", qmr.CodeMetrics.LinesOfCode)
-	fmt.Fprintf(file, "- **Code Coverage:** %.2f%%\n", qmr.CodeMetrics.CodeCoverage)
-	fmt.Fprintf(file, "- **Maintainability:** %.2f\n", qmr.CodeMetrics.Maintainability)
+	if _, err := fmt.Fprintf(file, "\n## Code Metrics\n\n"); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "- **Lines of Code:** %d\n", qmr.CodeMetrics.LinesOfCode); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "- **Code Coverage:** %.2f%%\n", qmr.CodeMetrics.CodeCoverage); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "- **Maintainability:** %.2f\n", qmr.CodeMetrics.Maintainability); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
 
-	fmt.Fprintf(file, "\n## Recommendations\n\n")
+	if _, err := fmt.Fprintf(file, "\n## Recommendations\n\n"); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
 	for _, rec := range qmr.Recommendations {
-		fmt.Fprintf(file, "### %s (%s)\n", rec.Type, strings.Title(rec.Severity))
-		fmt.Fprintf(file, "%s\n\n", rec.Description)
-		fmt.Fprintf(file, "**Action:** %s\n\n", rec.Action)
+		if _, err := fmt.Fprintf(file, "### %s (%s)\n", rec.Type, strings.Title(rec.Severity)); err != nil && mdWriteErr == nil {
+			mdWriteErr = err
+		}
+		if _, err := fmt.Fprintf(file, "%s\n\n", rec.Description); err != nil && mdWriteErr == nil {
+			mdWriteErr = err
+		}
+		if _, err := fmt.Fprintf(file, "**Action:** %s\n\n", rec.Action); err != nil && mdWriteErr == nil {
+			mdWriteErr = err
+		}
+	}
+	
+	// Check for any write errors
+	if mdWriteErr != nil {
+		log.Printf("Error writing markdown report: %v", mdWriteErr)
+		return
 	}
 
 	fmt.Printf("📄 Markdown report generated: %s\n", filename)
@@ -345,12 +387,16 @@ func (qmr *QualityMetricsReport) generateHTMLReport() {
 </body>
 </html>`
 
-	fmt.Fprintf(file, html,
+	// FIXME: Adding error check for fmt.Fprintf per errcheck linter
+	if _, err := fmt.Fprintf(file, html,
 		qmr.Summary.OverallScore, qmr.Summary.Grade, qmr.Summary.Status,
 		qmr.Timestamp.Format("2006-01-02 15:04:05"),
 		qmr.CodeMetrics.LinesOfCode,
 		qmr.CodeMetrics.CodeCoverage,
-		qmr.CodeMetrics.Maintainability)
+		qmr.CodeMetrics.Maintainability); err != nil {
+		log.Printf("Error writing HTML report: %v", err)
+		return
+	}
 
 	fmt.Printf("📄 HTML report generated: %s\n", filename)
 }

@@ -4,8 +4,10 @@ package distributed
 
 import (
 	"context"
+	crypto_rand "crypto/rand"
 	"fmt"
 	"math"
+	"math/big"
 	"math/rand"
 	"net/http"
 	"sync"
@@ -823,7 +825,9 @@ func (tlt *TelecomLoadTester) simulateIntentProcessing(ctx context.Context, inte
 func (tlt *TelecomLoadTester) simulateComponent(ctx context.Context, component string, duration time.Duration) error {
 	// Add realistic variability (±30%)
 	variability := 0.3
-	actualDuration := time.Duration(float64(duration) * (1 + variability*(rand.Float64()-0.5)*2))
+	n, _ := crypto_rand.Int(crypto_rand.Reader, big.NewInt(1000))
+	randFloat := float64(n.Int64()) / 1000.0
+	actualDuration := time.Duration(float64(duration) * (1 + variability*(randFloat-0.5)*2))
 
 	// Simulate CPU-intensive work
 	end := time.Now().Add(actualDuration)
@@ -833,12 +837,14 @@ func (tlt *TelecomLoadTester) simulateComponent(ctx context.Context, component s
 			return ctx.Err()
 		default:
 			// Simulate CPU work
-			_ = math.Sqrt(rand.Float64())
+			n, _ := crypto_rand.Int(crypto_rand.Reader, big.NewInt(1000))
+			_ = math.Sqrt(float64(n.Int64()) / 1000.0)
 		}
 	}
 
 	// Simulate occasional errors (1% error rate)
-	if rand.Float64() < 0.01 {
+	n, _ := crypto_rand.Int(crypto_rand.Reader, big.NewInt(100))
+	if n.Int64() < 1 { // 1% chance
 		return fmt.Errorf("simulated %s processing error", component)
 	}
 
@@ -1043,7 +1049,7 @@ func (tlt *TelecomLoadTester) collectCurrentStats() *CurrentStats {
 	// Collect stats from all workers
 	var totalReqs, totalErrors int64
 	var latencySum int64
-	// var latencySamples []time.Duration // unused
+	// latencySamples would be used for detailed latency analysis but not needed currently
 
 	for _, worker := range tlt.workers {
 		totalReqs += atomic.LoadInt64(&worker.Metrics.RequestsTotal)

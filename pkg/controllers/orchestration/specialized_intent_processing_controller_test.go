@@ -44,15 +44,15 @@ import (
 )
 
 // Mock implementations for testing
-type MockLLMClient struct {
+type MockLLMClientOrchestration struct {
 	responses         map[string]string
 	shouldReturnError bool
 	responseDelay     time.Duration
 	tokenUsage        int
 }
 
-func NewMockLLMClient() *MockLLMClient {
-	return &MockLLMClient{
+func NewMockLLMClientOrchestration() *MockLLMClient {
+	return &MockLLMClientOrchestration{
 		responses: map[string]string{
 			"default": `{
 				"network_functions": [
@@ -108,7 +108,7 @@ func NewMockLLMClient() *MockLLMClient {
 	}
 }
 
-func (m *MockLLMClient) ProcessIntent(ctx context.Context, prompt string) (string, error) {
+func (m *MockLLMClientOrchestration) ProcessIntent(ctx context.Context, prompt string) (string, error) {
 	if m.shouldReturnError {
 		return "", fmt.Errorf("mock LLM error")
 	}
@@ -128,15 +128,15 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, prompt string) (strin
 	return m.responses["default"], nil
 }
 
-func (m *MockLLMClient) SetShouldReturnError(shouldError bool) {
+func (m *MockLLMClientOrchestration) SetShouldReturnError(shouldError bool) {
 	m.shouldReturnError = shouldError
 }
 
-func (m *MockLLMClient) SetResponseDelay(delay time.Duration) {
+func (m *MockLLMClientOrchestration) SetResponseDelay(delay time.Duration) {
 	m.responseDelay = delay
 }
 
-func (m *MockLLMClient) SetResponse(key, response string) {
+func (m *MockLLMClientOrchestration) SetResponse(key, response string) {
 	m.responses[key] = response
 }
 
@@ -425,7 +425,7 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 		fakeRecorder = record.NewFakeRecorder(100)
 
 		// Create mock services
-		mockLLMClient = NewMockLLMClient()
+		mockLLMClient = NewMockLLMClientOrchestration()
 		mockRAGService = NewMockRAGService()
 		mockPromptEngine = NewMockPromptEngine()
 		mockStreamingProcessor = NewMockStreamingProcessor()

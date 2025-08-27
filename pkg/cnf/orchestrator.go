@@ -34,8 +34,6 @@ import (
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 )
 
@@ -61,14 +59,26 @@ const (
 	EventCNFHealthCheckFailed   = "CNFHealthCheckFailed"
 )
 
+// PackageGeneratorInterface defines the interface for CNF package generation
+type PackageGeneratorInterface interface {
+	GenerateCNFPackage(cnf *nephoranv1.CNFDeployment, config map[string]interface{}) ([]byte, error)
+}
+
+// MetricsCollectorInterface defines the interface for metrics collection
+type MetricsCollectorInterface interface {
+	RecordCNFDeployment(function nephoranv1.CNFFunction, duration time.Duration)
+	RecordCNFDeletion(function nephoranv1.CNFFunction, duration time.Duration)
+	RecordCNFHealthCheck(function nephoranv1.CNFFunction, status string)
+}
+
 // CNFOrchestrator manages the lifecycle of Cloud Native Functions
 type CNFOrchestrator struct {
 	client.Client
 	Scheme           *runtime.Scheme
 	Recorder         record.EventRecorder
-	PackageGenerator *nephio.PackageGenerator
+	PackageGenerator PackageGeneratorInterface
 	GitClient        git.ClientInterface
-	MetricsCollector *monitoring.MetricsCollector
+	MetricsCollector MetricsCollectorInterface
 	ORANClient       *oran.Client
 	HelmSettings     *cli.EnvSettings
 
@@ -997,8 +1007,10 @@ func (c *CNFOrchestrator) initEdgeTemplates() {
 
 // generateCNFPackage generates a CNF package for GitOps deployment
 func (c *CNFOrchestrator) generateCNFPackage(cnf *nephoranv1.CNFDeployment, config map[string]interface{}) ([]byte, error) {
-	// Stub implementation - would generate proper Nephio/Kpt package
-	return []byte("# Generated CNF Package\n"), nil
+	if c.PackageGenerator == nil {
+		return nil, fmt.Errorf("package generator not configured")
+	}
+	return c.PackageGenerator.GenerateCNFPackage(cnf, config)
 }
 
 // commitPackage commits a package to the Git repository

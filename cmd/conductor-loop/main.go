@@ -265,7 +265,7 @@ func main() {
 		}
 	}
 	
-	// Safe defer pattern - only register Close() after successful creation
+	// Safe defer func() { _ = pattern - only register Close() after successful creation
 	defer func() {
 		if watcher != nil {
 			if err := watcher.Close(); err != nil {

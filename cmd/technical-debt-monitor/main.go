@@ -318,20 +318,46 @@ func (tdm *TechnicalDebtMonitor) generateMarkdownReport() {
 	}
 	defer func() { _ = file.Close() }()
 
-	fmt.Fprintf(file, "# Technical Debt Report\n\n")
-	fmt.Fprintf(file, "**Generated:** %s\n\n", tdm.Timestamp.Format("2006-01-02 15:04:05"))
-	fmt.Fprintf(file, "**Go Version:** %s\n\n", runtime.Version())
+	// FIXME: Batch error handling for fmt.Fprintf calls per errcheck linter
+	var mdWriteErr error
+	if _, err := fmt.Fprintf(file, "# Technical Debt Report\n\n"); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "**Generated:** %s\n\n", tdm.Timestamp.Format("2006-01-02 15:04:05")); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "**Go Version:** %s\n\n", runtime.Version()); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
 
-	fmt.Fprintf(file, "## Summary\n\n")
-	fmt.Fprintf(file, "- **Total Debt Items:** %d\n", tdm.Summary.TotalItems)
-	fmt.Fprintf(file, "- **Total Estimated Hours:** %.1f\n", tdm.Summary.TotalHours)
-	fmt.Fprintf(file, "- **Debt Ratio:** %.2f%%\n", tdm.Summary.DebtRatio)
-	fmt.Fprintf(file, "- **Trend Direction:** %s\n\n", tdm.Summary.TrendDirection)
+	if _, err := fmt.Fprintf(file, "## Summary\n\n"); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "- **Total Debt Items:** %d\n", tdm.Summary.TotalItems); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "- **Total Estimated Hours:** %.1f\n", tdm.Summary.TotalHours); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "- **Debt Ratio:** %.2f%%\n", tdm.Summary.DebtRatio); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "- **Trend Direction:** %s\n\n", tdm.Summary.TrendDirection); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
 
-	fmt.Fprintf(file, "## Priority Breakdown\n\n")
-	fmt.Fprintf(file, "- **High Priority:** %d items\n", tdm.Summary.HighPriorityItems)
-	fmt.Fprintf(file, "- **Medium Priority:** %d items\n", tdm.Summary.MediumPriorityItems)
-	fmt.Fprintf(file, "- **Low Priority:** %d items\n\n", tdm.Summary.LowPriorityItems)
+	if _, err := fmt.Fprintf(file, "## Priority Breakdown\n\n"); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "- **High Priority:** %d items\n", tdm.Summary.HighPriorityItems); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "- **Medium Priority:** %d items\n", tdm.Summary.MediumPriorityItems); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
+	if _, err := fmt.Fprintf(file, "- **Low Priority:** %d items\n\n", tdm.Summary.LowPriorityItems); err != nil && mdWriteErr == nil {
+		mdWriteErr = err
+	}
 
 	fmt.Fprintf(file, "## Debt Items\n\n")
 	fmt.Fprintf(file, "| ID | Type | Severity | Description | Location | Hours |\n")
@@ -367,16 +393,28 @@ func (tdm *TechnicalDebtMonitor) generateCSVReport() {
 	defer func() { _ = file.Close() }()
 
 	// Write CSV header
-	fmt.Fprintf(file, "ID,Type,Severity,Priority,Description,Location,EstimatedHours,Category,Status,CreatedAt,UpdatedAt\n")
+	// FIXME: Adding error check for fmt.Fprintf per errcheck linter
+	var csvWriteErr error
+	if _, err := fmt.Fprintf(file, "ID,Type,Severity,Priority,Description,Location,EstimatedHours,Category,Status,CreatedAt,UpdatedAt\n"); err != nil {
+		csvWriteErr = err
+	}
 
 	// Write debt items
 	for _, item := range tdm.DebtItems {
-		fmt.Fprintf(file, "%s,%s,%s,%d,%s,%s,%.1f,%s,%s,%s,%s\n",
+		if _, err := fmt.Fprintf(file, "%s,%s,%s,%d,%s,%s,%.1f,%s,%s,%s,%s\n",
 			item.ID, item.Type, item.Severity, item.Priority,
 			item.Description, item.Location, item.EstimatedHours,
 			item.Category, item.Status,
 			item.CreatedAt.Format("2006-01-02"),
-			item.UpdatedAt.Format("2006-01-02"))
+			item.UpdatedAt.Format("2006-01-02")); err != nil && csvWriteErr == nil {
+			csvWriteErr = err
+		}
+	}
+	
+	// Check for any write errors
+	if csvWriteErr != nil {
+		log.Printf("Error writing CSV report: %v", csvWriteErr)
+		return
 	}
 
 	fmt.Printf("📄 CSV report generated: %s\n", filename)

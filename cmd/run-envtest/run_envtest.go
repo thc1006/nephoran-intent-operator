@@ -90,17 +90,21 @@ func getProjectRoot() (string, error) {
 // setupEnv sets up necessary environment variables
 func setupEnv() {
 	// Set test-specific environment variables
-	_ = os.Setenv("KUBEBUILDER_ASSETS", getKubebuilderAssets())
-	_ = os.Setenv("TEST_ENV", "true")
+	_ = // FIXME: Adding error check per errcheck linter
+ _ = os.Setenv("KUBEBUILDER_ASSETS", getKubebuilderAssets())
+	_ = // FIXME: Adding error check per errcheck linter
+ _ = os.Setenv("TEST_ENV", "true")
 
 	// Disable LLM by default for testing unless explicitly set
 	if os.Getenv("ENABLE_LLM_INTENT") == "" {
-		_ = os.Setenv("ENABLE_LLM_INTENT", "false")
+		_ = // FIXME: Adding error check per errcheck linter
+ _ = os.Setenv("ENABLE_LLM_INTENT", "false")
 	}
 
 	// Set reasonable defaults for test timeouts
 	if os.Getenv("ENVTEST_TIMEOUT") == "" {
-		_ = os.Setenv("ENVTEST_TIMEOUT", "300s")
+		_ = // FIXME: Adding error check per errcheck linter
+ _ = os.Setenv("ENVTEST_TIMEOUT", "300s")
 	}
 
 	fmt.Println("Environment setup:")

@@ -860,7 +860,7 @@ func BenchmarkAuditTrailControllerReconcile(b *testing.B) {
 
 // Test helper functions
 
-func findCondition(conditions []metav1.Condition, conditionType string) *metav1.Condition {
+func findAuditTrailCondition(conditions []metav1.Condition, conditionType string) *metav1.Condition {
 	for _, condition := range conditions {
 		if condition.Type == conditionType {
 			return &condition

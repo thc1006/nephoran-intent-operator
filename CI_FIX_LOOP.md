@@ -120,4 +120,17 @@ The codebase is now **CI-ready** with systematic fixes applied across all critic
 ---
 
 **🎉 LOOP SUCCESSFULLY COMPLETED - CI FAILURES ELIMINATED! 🎉**
+
+---
+
+## 🔄 ITERATION #2 - Systematic Fix Loop (2025-08-27)
+
+### **Iteration 2.1: Type Mismatch Fix**
+- **Error**: `pkg\porch\direct_client_test.go:87-89`: cannot use &string as string value in struct literal
+- **Research**: Go struct fields expecting `string` cannot receive `*string` pointers directly
+- **Root Cause**: ScalingIntent struct fields (Reason, Source, CorrelationID) are defined as `string` type, not `*string`
+- **Fix Applied**: Changed from pointer assignment (`&reasonStr`) to direct value assignment (`reasonStr`)
+- **Lines Fixed**: 87-89 → 89-91
+- **Status**: ✅ FIXED
+
 ---

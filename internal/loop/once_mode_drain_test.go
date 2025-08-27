@@ -122,7 +122,7 @@ func TestOnceModeDoesNotExitPrematurely(t *testing.T) {
 	}
 
 	// Track when files were queued
-	// queuedTime := time.Now() // unused for now
+	// queuedTime would be used for timing analysis but not needed in this test
 	
 	// Start and wait for completion
 	startTime := time.Now()

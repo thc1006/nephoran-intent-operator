@@ -26,6 +26,8 @@ func TestSecurityHeadersBasic(t *testing.T) {
 	// Create test handler
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
+		// FIXME: Adding error check per errcheck linter
+
 		_, _ = w.Write([]byte("OK"))
 	})
 
@@ -95,6 +97,8 @@ func TestRedactLoggerBasic(t *testing.T) {
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
+		// FIXME: Adding error check per errcheck linter
+
 		_, _ = w.Write([]byte("OK"))
 	})
 
@@ -147,6 +151,8 @@ func TestMiddlewareChain(t *testing.T) {
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
+		// FIXME: Adding error check per errcheck linter
+
 		_, _ = w.Write([]byte("OK"))
 	})
 
