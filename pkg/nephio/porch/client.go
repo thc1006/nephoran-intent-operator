@@ -910,6 +910,30 @@ func (c *Client) RunFunction(ctx context.Context, req *FunctionRequest) (*Functi
 	return result.(*FunctionResponse), nil
 }
 
+// ExecuteFunction delegates to the function runner
+func (c *Client) ExecuteFunction(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
+	if c.functionRunner == nil {
+		return &FunctionResponse{}, nil
+	}
+	return c.functionRunner.ExecuteFunction(ctx, req)
+}
+
+// ValidateFunction delegates to the function runner
+func (c *Client) ValidateFunction(ctx context.Context, functionName string) (*FunctionValidation, error) {
+	if c.functionRunner == nil {
+		return &FunctionValidation{Valid: true}, nil
+	}
+	return c.functionRunner.ValidateFunction(ctx, functionName)
+}
+
+// ListFunctions delegates to the function runner
+func (c *Client) ListFunctions(ctx context.Context) ([]*FunctionInfo, error) {
+	if c.functionRunner == nil {
+		return []*FunctionInfo{}, nil
+	}
+	return c.functionRunner.ListFunctions(ctx)
+}
+
 // ValidatePackage validates a package revision
 func (c *Client) ValidatePackage(ctx context.Context, name string, revision string) (*ValidationResult, error) {
 	start := time.Now()

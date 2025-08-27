@@ -18,7 +18,9 @@ package porch
 
 import (
 	"context"
+	"fmt"
 	goruntime "runtime"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -67,7 +69,7 @@ func (m *MockSimplePorchClient) DeleteRepository(ctx context.Context, name strin
 	return args.Error(0)
 }
 
-func (m *MockSimplePorchClient) GetPackageRevision(ctx context.Context, name string) (*PackageRevision, error) {
+func (m *MockSimplePorchClient) GetPackageRevision(ctx context.Context, name string, revision string) (*PackageRevision, error) {
 	args := m.Called(ctx, name)
 	return args.Get(0).(*PackageRevision), args.Error(1)
 }
@@ -277,23 +279,32 @@ func createTestClient() *Client {
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	fakeDynamic := dynamicfake.NewSimpleDynamicClient(scheme)
 
-	config := NewConfig().WithDefaults()
+	config := &ClientConfig{}
 
-	return &Client{
+	client := &Client{
 		client:  fakeClient,
 		dynamic: fakeDynamic,
 		config:  config,
-		cache:   newClientCache(config),
-		metrics: initClientMetrics(),
+		cache: &clientCache{
+			cache:   make(map[string]*cacheEntry),
+			ttl:     5 * time.Minute,
+			maxSize: 100,
+		},
+		metrics: &ClientMetrics{},
 	}
+	
+	// Initialize function runner stub
+	client.functionRunner = &functionRunnerStub{client: client}
+	
+	return client
 }
 
 // Unit Tests
 
 func TestNewClient(t *testing.T) {
-	config := NewConfig().WithDefaults()
+	config := &ClientConfig{}
 
-	client, err := NewClient(config)
+	client, err := NewClient(ClientOptions{Config: config})
 	require.NoError(t, err)
 	assert.NotNil(t, client)
 	assert.NotNil(t, client.config)
@@ -416,7 +427,7 @@ func TestClientPackageRevisionOperations(t *testing.T) {
 				require.NoError(t, err)
 
 				// Get
-				retrieved, err := client.GetPackageRevision(context.Background(), pkg.Name)
+				retrieved, err := client.GetPackageRevision(context.Background(), pkg.Name, "v1")
 				assert.NoError(t, err)
 				assert.NotNil(t, retrieved)
 				assert.Equal(t, pkg.Name, retrieved.Name)
@@ -714,7 +725,7 @@ func BenchmarkClientPackageRevisionOperations(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_, err := client.GetPackageRevision(context.Background(), pkg.Name)
+			_, err := client.GetPackageRevision(context.Background(), pkg.Name, "v1")
 			if err != nil {
 				b.Fatal(err)
 			}
