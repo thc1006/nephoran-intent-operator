@@ -1,3 +1,6 @@
+// Package auth provides authentication, authorization, and multi-factor authentication (MFA)
+// functionality for the Nephoran Intent Operator. This package implements security controls
+// required for O-RAN/5G network orchestration in production environments.
 package auth
 
 import (
@@ -479,9 +482,9 @@ func (mfa *MFAManager) verifyBackupCode(ctx context.Context, request *MFAVerific
 // Helper methods
 
 func (mfa *MFAManager) generateNumericCode(length int) (string, error) {
-	max := 1
+	maxValue := 1
 	for i := 0; i < length; i++ {
-		max *= 10
+		maxValue *= 10
 	}
 
 	bytes := make([]byte, 4)
@@ -495,7 +498,7 @@ func (mfa *MFAManager) generateNumericCode(length int) (string, error) {
 		num = num*256 + int(b)
 	}
 
-	code := strconv.Itoa(num % max)
+	code := strconv.Itoa(num % maxValue)
 
 	// Pad with zeros if necessary
 	for len(code) < length {

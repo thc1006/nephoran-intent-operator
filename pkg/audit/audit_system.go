@@ -1,3 +1,6 @@
+// Package audit provides comprehensive audit logging functionality for the Nephoran Intent Operator.
+// It implements enterprise-grade audit trails for tracking all operator actions, security events,
+// and compliance requirements in O-RAN/5G network orchestration environments.
 package audit
 
 import (

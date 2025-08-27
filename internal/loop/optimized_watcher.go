@@ -357,8 +357,8 @@ func (ow *OptimizedWatcher) recordLatencyFast(duration time.Duration) {
 	// Update exponential moving average
 	for {
 		old := ow.stats.throughputEMA.Load()
-		new := (old*7 + nanos) / 8 // EMA with α=0.125
-		if ow.stats.throughputEMA.CompareAndSwap(old, new) {
+		newValue := (old*7 + nanos) / 8 // EMA with α=0.125
+		if ow.stats.throughputEMA.CompareAndSwap(old, newValue) {
 			break
 		}
 	}

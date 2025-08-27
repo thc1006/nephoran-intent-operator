@@ -1,3 +1,6 @@
+// Package controllers implements Kubernetes controller logic for managing NetworkIntent
+// and related custom resources. It provides the core reconciliation loops for the
+// Nephoran Intent Operator in O-RAN/5G network orchestration.
 package controllers
 
 import (

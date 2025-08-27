@@ -197,6 +197,94 @@ type AdvancedRecoveryMetrics struct {
 	mutex sync.RWMutex
 }
 
+// deepCopy creates a deep copy of AdvancedRecoveryMetrics without copying the mutex
+func (arm *AdvancedRecoveryMetrics) deepCopy() *AdvancedRecoveryMetrics {
+	metricsCopy := &AdvancedRecoveryMetrics{
+		// Basic statistics
+		TotalRequests:        arm.TotalRequests,
+		SuccessfulRecoveries: arm.SuccessfulRecoveries,
+		FailedRecoveries:     arm.FailedRecoveries,
+
+		// Performance statistics  
+		AverageRecoveryTime: arm.AverageRecoveryTime,
+		P95RecoveryTime:     arm.P95RecoveryTime,
+		P99RecoveryTime:     arm.P99RecoveryTime,
+
+		// Timing
+		LastUpdated: arm.LastUpdated,
+
+		// Initialize new mutex instead of copying
+		mutex: sync.RWMutex{},
+	}
+
+	// Deep copy strategy stats
+	if arm.StrategyStats != nil {
+		metricsCopy.StrategyStats = make(map[RecoveryStrategy]*StrategyMetrics)
+		for k, v := range arm.StrategyStats {
+			if v != nil {
+				metricsCopy.StrategyStats[k] = &StrategyMetrics{
+					UsageCount:     v.UsageCount,
+					SuccessRate:    v.SuccessRate,
+					AverageLatency: v.AverageLatency,
+					FailureReasons: make(map[string]int64),
+				}
+				// Deep copy failure reasons map
+				for reason, count := range v.FailureReasons {
+					metricsCopy.StrategyStats[k].FailureReasons[reason] = count
+				}
+			}
+		}
+	}
+
+	// Deep copy component stats
+	if arm.ComponentStats != nil {
+		metricsCopy.ComponentStats = make(map[string]*ComponentRecoveryStats)
+		for k, v := range arm.ComponentStats {
+			if v != nil {
+				metricsCopy.ComponentStats[k] = &ComponentRecoveryStats{
+					RecoveryCount:       v.RecoveryCount,
+					SuccessRate:         v.SuccessRate,
+					AverageRecoveryTime: v.AverageRecoveryTime,
+					CommonErrors:        make(map[string]int64),
+					LastRecovery:        v.LastRecovery,
+				}
+				// Deep copy common errors map
+				for errType, count := range v.CommonErrors {
+					metricsCopy.ComponentStats[k].CommonErrors[errType] = count
+				}
+			}
+		}
+	}
+
+	// Deep copy correlation stats
+	if arm.CorrelationStats != nil {
+		metricsCopy.CorrelationStats = &CorrelationMetrics{
+			CorrelatedGroups:    arm.CorrelationStats.CorrelatedGroups,
+			AverageGroupSize:    arm.CorrelationStats.AverageGroupSize,
+			LargestGroup:        arm.CorrelationStats.LargestGroup,
+			CorrelationPatterns: make(map[string]int64),
+		}
+		// Deep copy correlation patterns map
+		for pattern, count := range arm.CorrelationStats.CorrelationPatterns {
+			metricsCopy.CorrelationStats.CorrelationPatterns[pattern] = count
+		}
+	}
+
+	// Deep copy resource stats
+	if arm.ResourceStats != nil {
+		metricsCopy.ResourceStats = &ResourceUtilizationStats{
+			PeakMemoryUsage:    arm.ResourceStats.PeakMemoryUsage,
+			AverageMemoryUsage: arm.ResourceStats.AverageMemoryUsage,
+			PeakCPUUsage:       arm.ResourceStats.PeakCPUUsage,
+			AverageCPUUsage:    arm.ResourceStats.AverageCPUUsage,
+			NetworkTraffic:     arm.ResourceStats.NetworkTraffic,
+			DiskIO:             arm.ResourceStats.DiskIO,
+		}
+	}
+
+	return metricsCopy
+}
+
 // StrategyMetrics tracks metrics for each recovery strategy
 type StrategyMetrics struct {
 	UsageCount     int64            `json:"usageCount"`
@@ -939,9 +1027,8 @@ func (arm *AdvancedRecoveryManager) GetAdvancedMetrics() *AdvancedRecoveryMetric
 	arm.metrics.mutex.RLock()
 	defer arm.metrics.mutex.RUnlock()
 
-	// Return a deep copy of metrics to prevent concurrent access issues
-	metricsCopy := *arm.metrics
-	return &metricsCopy
+	// Return a copy of metrics without copying the mutex
+	return arm.metrics.deepCopy()
 }
 
 // Helper functions and supporting types
