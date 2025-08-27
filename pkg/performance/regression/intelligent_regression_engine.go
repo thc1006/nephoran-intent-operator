@@ -1156,6 +1156,7 @@ type PredictionCache struct{}
 type AccuracyMetrics struct{}
 type AnomalyDetectionConfig struct{}
 type ChangePointConfig struct{}
+
 // Alert-related types removed - defined in intelligent_alert_manager.go
 type ModelRepository struct{}
 type TrainingScheduler struct{}
@@ -1193,6 +1194,7 @@ type CachedAggregateData struct{}
 type UserExperienceImpact struct{}
 type BusinessImpactAssessment struct{}
 type RollbackPlan struct{}
+
 // NWDAFInsights removed - defined in nwdaf_analyzer.go
 type LearningFeedback struct{}
 type IsolationTree struct{}

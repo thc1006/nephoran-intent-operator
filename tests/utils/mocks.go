@@ -184,11 +184,11 @@ func (m *MockGitClient) RemoveDirectory(path string, commitMessage string) error
 func (m *MockGitClient) RemoveAndPush(path string, commitMessage string) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	if err := m.pushResults["RemoveAndPush"]; err != nil {
 		return "", err
 	}
-	
+
 	commitHash := fmt.Sprintf("commit-%d", len(m.commits))
 	m.commits = append(m.commits, commitHash)
 	return commitHash, nil

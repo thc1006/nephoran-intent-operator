@@ -830,7 +830,7 @@ func (wp *WorkerPool) updateMetrics()      {}
 func (wp *WorkerPool) GetMetrics() *WorkerPoolMetrics {
 	wp.metrics.mutex.RLock()
 	defer wp.metrics.mutex.RUnlock()
-	
+
 	// Return a copy of the metrics
 	return &WorkerPoolMetrics{
 		TasksSubmitted:      wp.metrics.TasksSubmitted,

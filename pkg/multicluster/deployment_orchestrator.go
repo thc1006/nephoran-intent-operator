@@ -52,7 +52,7 @@ func (pdo *PackageDeploymentOrchestrator) selectDeploymentTargets(
 	// TODO: Implement intelligent target selection based on options
 	clusters := pdo.clusterRegistry.ListClusters()
 	targets := make([]*DeploymentTarget, 0, len(clusters))
-	
+
 	for _, cluster := range clusters {
 		target := &DeploymentTarget{
 			Cluster:     cluster,
@@ -62,7 +62,7 @@ func (pdo *PackageDeploymentOrchestrator) selectDeploymentTargets(
 		}
 		targets = append(targets, target)
 	}
-	
+
 	return targets, nil
 }
 

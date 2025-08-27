@@ -259,16 +259,16 @@ func updateCondition(conditions *[]metav1.Condition, newCondition metav1.Conditi
 func calculateExponentialBackoffForOperation(retryCount int, operation string) time.Duration {
 	// Use default constants if not provided
 	constants := &configPkg.Constants{
-		BaseBackoffDelay:           1 * time.Second,
-		MaxBackoffDelay:            5 * time.Minute,
-		BackoffMultiplier:          2.0,
-		JitterFactor:               0.1,
-		LLMProcessingBaseDelay:     2 * time.Second,
-		LLMProcessingMaxDelay:      3 * time.Minute,
-		GitOperationsBaseDelay:     1 * time.Second,
-		GitOperationsMaxDelay:      2 * time.Minute,
-		ResourcePlanningBaseDelay:  3 * time.Second,
-		ResourcePlanningMaxDelay:   4 * time.Minute,
+		BaseBackoffDelay:          1 * time.Second,
+		MaxBackoffDelay:           5 * time.Minute,
+		BackoffMultiplier:         2.0,
+		JitterFactor:              0.1,
+		LLMProcessingBaseDelay:    2 * time.Second,
+		LLMProcessingMaxDelay:     3 * time.Minute,
+		GitOperationsBaseDelay:    1 * time.Second,
+		GitOperationsMaxDelay:     2 * time.Minute,
+		ResourcePlanningBaseDelay: 3 * time.Second,
+		ResourcePlanningMaxDelay:  4 * time.Minute,
 	}
 
 	return CalculateExponentialBackoffForNetworkIntentOperation(retryCount, operation, constants)

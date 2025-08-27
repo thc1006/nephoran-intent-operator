@@ -207,13 +207,13 @@ type ResponsePostprocessor struct {
 type PostprocessingFunc func(map[string]interface{}, *ProcessingContext) (map[string]interface{}, error)
 
 type ProcessingContext struct {
-	RequestID        string                 `json:"request_id"`
-	Intent           string                 `json:"intent"`
-	Classification   ClassificationResult   `json:"classification"`
-	EnrichmentData   *EnrichmentContext     `json:"enrichment_data"`
+	RequestID        string                         `json:"request_id"`
+	Intent           string                         `json:"intent"`
+	Classification   ClassificationResult           `json:"classification"`
+	EnrichmentData   *EnrichmentContext             `json:"enrichment_data"`
 	ValidationResult *PipelineInputValidationResult `json:"validation_result"`
-	ProcessingStart  time.Time              `json:"processing_start"`
-	Metadata         map[string]interface{} `json:"metadata"`
+	ProcessingStart  time.Time                      `json:"processing_start"`
+	Metadata         map[string]interface{}         `json:"metadata"`
 }
 
 // NewProcessingPipeline creates a new processing pipeline

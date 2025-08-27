@@ -552,7 +552,7 @@ func TestSessionSecurity(t *testing.T) {
 		// Test concurrent session limits
 		userID := "user123"
 		maxSessions := 3
-		
+
 		t.Logf("Testing concurrent session limit for user: %s", userID)
 
 		sessions := make([]string, 0)

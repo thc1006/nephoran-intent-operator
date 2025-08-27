@@ -43,9 +43,9 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 					Namespace: namespace,
 				},
 				Spec: nephoran.NetworkIntentSpec{
-					Intent:      "Health monitoring test for controller",
-					IntentType:  nephoran.IntentTypeScaling,
-					Priority:    1,
+					Intent:     "Health monitoring test for controller",
+					IntentType: nephoran.IntentTypeScaling,
+					Priority:   1,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 					},
@@ -92,9 +92,9 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 					Namespace: namespace,
 				},
 				Spec: nephoran.NetworkIntentSpec{
-					Intent:      "This intent is designed to test error handling and should trigger error conditions",
-					IntentType:  nephoran.IntentTypeConfiguration,
-					Priority:    1,
+					Intent:     "This intent is designed to test error handling and should trigger error conditions",
+					IntentType: nephoran.IntentTypeConfiguration,
+					Priority:   1,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 						nephoran.NetworkTargetComponentSMF,
@@ -142,7 +142,7 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 	Context("Service Health Endpoints", func() {
 		It("should provide comprehensive health status for all services", func() {
 			Skip("Skipping until services are running in test environment")
-			
+
 			services := []struct {
 				name string
 				url  string
@@ -155,7 +155,7 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 
 			for _, service := range services {
 				By(fmt.Sprintf("Checking health for %s service", service.name))
-				
+
 				resp, err := httpClient.Get(service.url + "/health")
 				if err != nil {
 					Skip(fmt.Sprintf("%s service not available: %v", service.name, err))
@@ -174,7 +174,7 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 				By(fmt.Sprintf("Verifying %s health response structure", service.name))
 				Expect(healthResponse["status"]).Should(Equal("healthy"))
 				Expect(healthResponse["timestamp"]).ShouldNot(BeEmpty())
-				
+
 				if uptime, ok := healthResponse["uptime_seconds"]; ok {
 					Expect(uptime).Should(BeNumerically(">=", 0))
 				}
@@ -183,15 +183,15 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 
 		It("should provide detailed metrics endpoints", func() {
 			Skip("Skipping until services are running in test environment")
-			
+
 			services := []string{
-				"http://localhost:8080/metrics",  // Controller metrics
-				"http://localhost:8001/metrics",  // RAG service metrics
+				"http://localhost:8080/metrics", // Controller metrics
+				"http://localhost:8001/metrics", // RAG service metrics
 			}
 
 			for _, metricsURL := range services {
 				By(fmt.Sprintf("Checking metrics endpoint: %s", metricsURL))
-				
+
 				resp, err := httpClient.Get(metricsURL)
 				if err != nil {
 					Skip(fmt.Sprintf("Metrics endpoint not available: %v", err))
@@ -224,9 +224,9 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 						Namespace: namespace,
 					},
 					Spec: nephoran.NetworkIntentSpec{
-						Intent:      fmt.Sprintf("Resource monitoring test intent: %s", name),
-						IntentType:  nephoran.IntentTypeScaling,
-						Priority:    1,
+						Intent:     fmt.Sprintf("Resource monitoring test intent: %s", name),
+						IntentType: nephoran.IntentTypeScaling,
+						Priority:   1,
 						TargetComponents: []nephoran.NetworkTargetComponent{
 							nephoran.NetworkTargetComponentUPF,
 						},
@@ -240,7 +240,7 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 			for _, intent := range createdIntents {
 				lookupKey := types.NamespacedName{Name: intent.Name, Namespace: namespace}
 				retrievedIntent := &nephoran.NetworkIntent{}
-				
+
 				Eventually(func() string {
 					err := k8sClient.Get(ctx, lookupKey, retrievedIntent)
 					if err != nil {
@@ -255,7 +255,7 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 			for _, intent := range createdIntents {
 				lookupKey := types.NamespacedName{Name: intent.Name, Namespace: namespace}
 				retrievedIntent := &nephoran.NetworkIntent{}
-				
+
 				err := k8sClient.Get(ctx, lookupKey, retrievedIntent)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(retrievedIntent.Status.Phase).Should(Equal("Processing"))
@@ -271,16 +271,16 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 			By("Creating and deleting intents rapidly")
 			for i := 0; i < 5; i++ {
 				intentName := fmt.Sprintf("cleanup-test-%d", i)
-				
+
 				intent := &nephoran.NetworkIntent{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      intentName,
 						Namespace: namespace,
 					},
 					Spec: nephoran.NetworkIntentSpec{
-						Intent:      fmt.Sprintf("Cleanup test intent %d", i),
-						IntentType:  nephoran.IntentTypeScaling,
-						Priority:    1,
+						Intent:     fmt.Sprintf("Cleanup test intent %d", i),
+						IntentType: nephoran.IntentTypeScaling,
+						Priority:   1,
 						TargetComponents: []nephoran.NetworkTargetComponent{
 							nephoran.NetworkTargetComponentUPF,
 						},
@@ -288,7 +288,7 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 				}
 
 				Expect(k8sClient.Create(ctx, intent)).Should(Succeed())
-				
+
 				// Wait a short time then delete
 				time.Sleep(500 * time.Millisecond)
 				Expect(k8sClient.Delete(ctx, intent)).Should(Succeed())
@@ -296,12 +296,12 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 
 			By("Verifying no lingering resources")
 			time.Sleep(5 * time.Second) // Allow cleanup to complete
-			
+
 			// List all NetworkIntents and verify our test ones are gone
 			intentList := &nephoran.NetworkIntentList{}
 			err := k8sClient.List(ctx, intentList, &client.ListOptions{Namespace: namespace})
 			Expect(err).ShouldNot(HaveOccurred())
-			
+
 			for _, intent := range intentList.Items {
 				Expect(intent.Name).ShouldNot(ContainSubstring("cleanup-test-"))
 			}
@@ -318,9 +318,9 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 					Namespace: namespace,
 				},
 				Spec: nephoran.NetworkIntentSpec{
-					Intent:      "End-to-end health validation: Deploy and scale 5G core network with monitoring",
-					IntentType:  nephoran.IntentTypeDeployment,
-					Priority:    1,
+					Intent:     "End-to-end health validation: Deploy and scale 5G core network with monitoring",
+					IntentType: nephoran.IntentTypeDeployment,
+					Priority:   1,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentAMF,
 						nephoran.NetworkTargetComponentSMF,
@@ -347,13 +347,13 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 			By("Verifying comprehensive status reporting")
 			Expect(createdIntent.Status.LastProcessed).ShouldNot(BeNil())
 			Expect(len(createdIntent.Status.Conditions)).Should(BeNumerically(">=", 1))
-			
+
 			// Check for expected condition types
 			conditionTypes := make(map[string]bool)
 			for _, condition := range createdIntent.Status.Conditions {
 				conditionTypes[condition.Type] = true
 			}
-			
+
 			// Should have at least basic condition types
 			expectedTypes := []string{"Ready", "Processing"}
 			foundExpectedType := false
@@ -385,9 +385,9 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 					},
 				},
 				Spec: nephoran.NetworkIntentSpec{
-					Intent:      "Test recovery mechanisms and error handling resilience",
-					IntentType:  nephoran.IntentTypeOptimization,
-					Priority:    1,
+					Intent:     "Test recovery mechanisms and error handling resilience",
+					IntentType: nephoran.IntentTypeOptimization,
+					Priority:   1,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 					},

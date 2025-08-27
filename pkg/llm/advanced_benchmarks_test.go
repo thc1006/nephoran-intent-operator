@@ -377,9 +377,9 @@ func benchmarkWorkerPoolEfficiency(b *testing.B, ctx context.Context, processor 
 		b.Run(config.name, func(b *testing.B) {
 			// Configure worker pool
 			workerPool, err := NewWorkerPool(&WorkerPoolConfig{
-				MaxWorkers:    int32(config.poolSize),
-				QueueSize:     config.queueSize,
-				TaskTimeout:   time.Second * 30,
+				MaxWorkers:  int32(config.poolSize),
+				QueueSize:   config.queueSize,
+				TaskTimeout: time.Second * 30,
 			})
 			if err != nil {
 				b.Fatalf("Failed to create worker pool: %v", err)
@@ -529,7 +529,7 @@ func (m *MockLLMClient) SetFailureRate(rate float64) {
 
 // Enhanced LLM Processor with all optimizations
 type EnhancedLLMProcessor struct {
-	client         LLMClient
+	client         BenchmarkLLMClient
 	cache          *IntelligentCache
 	circuitBreaker *CircuitBreaker
 	tokenManager   *TokenManager
@@ -537,7 +537,7 @@ type EnhancedLLMProcessor struct {
 	metrics        *ProcessorMetrics
 }
 
-func NewEnhancedLLMProcessor(client LLMClient) *EnhancedLLMProcessor {
+func NewEnhancedLLMProcessor(client BenchmarkLLMClient) *EnhancedLLMProcessor {
 	return &EnhancedLLMProcessor{
 		client:         client,
 		cache:          NewIntelligentCache(),
@@ -635,7 +635,7 @@ type ProcessedIntent struct {
 	ProcessingTime   time.Duration
 }
 
-type LLMClient interface {
+type BenchmarkLLMClient interface {
 	ProcessRequest(ctx context.Context, request *LLMRequest) (*LLMResponse, error)
 }
 
@@ -693,7 +693,7 @@ func IsRateLimitError(err error) bool {
 func NewMockCircuitBreaker() *mockCircuitBreaker                      { return &mockCircuitBreaker{} }
 func NewMockTokenManager(config TokenManagerConfig) *mockTokenManager { return &mockTokenManager{} }
 func NewMockWorkerPool(config WorkerPoolConfig) *mockWorkerPool       { return &mockWorkerPool{} }
-func NewProcessorMetrics() *mockMetrics                           { return &mockMetrics{} }
+func NewProcessorMetrics() *mockMetrics                               { return &mockMetrics{} }
 
 // Mock implementations
 type mockCache struct{}

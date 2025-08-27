@@ -531,7 +531,6 @@ func (m *MockEmbeddingService) CheckStatus(ctx context.Context) (*ComponentStatu
 	}, nil
 }
 
-
 // MockRedisCache for testing
 type MockRedisCache struct {
 	cache       map[string]interface{}

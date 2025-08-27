@@ -63,14 +63,14 @@ type OptimizationRanker struct {
 
 // PerformanceIssue represents a performance issue
 type PerformanceIssue struct {
-	Name        string        `json:"name"`
-	Description string        `json:"description"`
-	Severity    SeverityLevel `json:"severity"`
-	Impact      ImpactLevel   `json:"impact"`
-	Component   ComponentType `json:"component"`
-	MetricName  string        `json:"metricName"`
-	Threshold   float64       `json:"threshold"`
-	CurrentValue float64      `json:"currentValue"`
+	Name         string        `json:"name"`
+	Description  string        `json:"description"`
+	Severity     SeverityLevel `json:"severity"`
+	Impact       ImpactLevel   `json:"impact"`
+	Component    ComponentType `json:"component"`
+	MetricName   string        `json:"metricName"`
+	Threshold    float64       `json:"threshold"`
+	CurrentValue float64       `json:"currentValue"`
 }
 
 // ResourceConstraint represents a resource constraint
@@ -84,13 +84,13 @@ type ResourceConstraint struct {
 
 // OptimizationOpportunity represents an optimization opportunity
 type OptimizationOpportunity struct {
-	Name             string          `json:"name"`
-	Description      string          `json:"description"`
-	PotentialImpact  *ExpectedImpact `json:"potentialImpact"`
-	EstimatedEffort  string          `json:"estimatedEffort"`
-	Confidence       float64         `json:"confidence"`
-	Prerequisites    []string        `json:"prerequisites"`
-	RecommendedAction string         `json:"recommendedAction"`
+	Name              string          `json:"name"`
+	Description       string          `json:"description"`
+	PotentialImpact   *ExpectedImpact `json:"potentialImpact"`
+	EstimatedEffort   string          `json:"estimatedEffort"`
+	Confidence        float64         `json:"confidence"`
+	Prerequisites     []string        `json:"prerequisites"`
+	RecommendedAction string          `json:"recommendedAction"`
 }
 
 // ResourceUtilization represents resource utilization data
@@ -104,46 +104,46 @@ type ResourceUtilization struct {
 
 // ComponentPerformanceMetrics contains component-specific performance metrics
 type ComponentPerformanceMetrics struct {
-	Latency       time.Duration `json:"latency"`
-	Throughput    float64       `json:"throughput"`
-	ErrorRate     float64       `json:"errorRate"`
-	Availability  float64       `json:"availability"`
-	ResponseTime  time.Duration `json:"responseTime"`
-	RequestRate   float64       `json:"requestRate"`
-	SuccessRate   float64       `json:"successRate"`
+	Latency      time.Duration `json:"latency"`
+	Throughput   float64       `json:"throughput"`
+	ErrorRate    float64       `json:"errorRate"`
+	Availability float64       `json:"availability"`
+	ResponseTime time.Duration `json:"responseTime"`
+	RequestRate  float64       `json:"requestRate"`
+	SuccessRate  float64       `json:"successRate"`
 }
 
 // PerformanceBottleneck represents an identified bottleneck
 type PerformanceBottleneck struct {
-	ComponentType ComponentType `json:"componentType"`
-	BottleneckType string       `json:"bottleneckType"`
-	Severity      SeverityLevel `json:"severity"`
-	Impact        ImpactLevel   `json:"impact"`
-	Description   string        `json:"description"`
-	MetricName    string        `json:"metricName"`
-	CurrentValue  float64       `json:"currentValue"`
-	ThresholdValue float64      `json:"thresholdValue"`
-	Resolution    []string      `json:"resolution"`
+	ComponentType  ComponentType `json:"componentType"`
+	BottleneckType string        `json:"bottleneckType"`
+	Severity       SeverityLevel `json:"severity"`
+	Impact         ImpactLevel   `json:"impact"`
+	Description    string        `json:"description"`
+	MetricName     string        `json:"metricName"`
+	CurrentValue   float64       `json:"currentValue"`
+	ThresholdValue float64       `json:"thresholdValue"`
+	Resolution     []string      `json:"resolution"`
 }
 
 // PerformanceTrend represents performance trend data
 type PerformanceTrend struct {
-	MetricName  string        `json:"metricName"`
-	Component   ComponentType `json:"component"`
-	Direction   TrendDirection `json:"direction"`
-	Rate        float64       `json:"rate"`
-	Confidence  float64       `json:"confidence"`
-	TimeWindow  time.Duration `json:"timeWindow"`
-	Prediction  *TrendPrediction `json:"prediction"`
+	MetricName string           `json:"metricName"`
+	Component  ComponentType    `json:"component"`
+	Direction  TrendDirection   `json:"direction"`
+	Rate       float64          `json:"rate"`
+	Confidence float64          `json:"confidence"`
+	TimeWindow time.Duration    `json:"timeWindow"`
+	Prediction *TrendPrediction `json:"prediction"`
 }
 
 // TrendPrediction represents trend predictions
 type TrendPrediction struct {
-	NextValue     float64       `json:"nextValue"`
-	TimeHorizon   time.Duration `json:"timeHorizon"`
-	Confidence    float64       `json:"confidence"`
-	UpperBound    float64       `json:"upperBound"`
-	LowerBound    float64       `json:"lowerBound"`
+	NextValue   float64       `json:"nextValue"`
+	TimeHorizon time.Duration `json:"timeHorizon"`
+	Confidence  float64       `json:"confidence"`
+	UpperBound  float64       `json:"upperBound"`
+	LowerBound  float64       `json:"lowerBound"`
 }
 
 // Constructor functions for missing types

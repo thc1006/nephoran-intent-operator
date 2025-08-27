@@ -51,16 +51,16 @@ type WeaviateConnectionPool struct {
 
 // PooledConnection represents a connection in the pool
 type PooledConnection struct {
-	Client         *weaviate.Client  // Renamed from client
-	HTTPClient     *http.Client      // Added from optimized version  
-	FastHTTPClient *fasthttp.Client  // Added from optimized version
-	ID             string            // Renamed from id
-	CreatedAt      time.Time         // Renamed from createdAt
-	LastUsed       time.Time         // Renamed from lastUsed
-	UsageCount     int64             // Renamed from usageCount
-	IsHealthy      bool              // Renamed from isHealthy
-	InUse          bool              // Renamed from inUse
-	mu             sync.RWMutex      // Keep unexported for safety
+	Client         *weaviate.Client // Renamed from client
+	HTTPClient     *http.Client     // Added from optimized version
+	FastHTTPClient *fasthttp.Client // Added from optimized version
+	ID             string           // Renamed from id
+	CreatedAt      time.Time        // Renamed from createdAt
+	LastUsed       time.Time        // Renamed from lastUsed
+	UsageCount     int64            // Renamed from usageCount
+	IsHealthy      bool             // Renamed from isHealthy
+	InUse          bool             // Renamed from inUse
+	mu             sync.RWMutex     // Keep unexported for safety
 }
 
 // PoolConfig configures the connection pool
@@ -442,7 +442,7 @@ func (p *WeaviateConnectionPool) GetMetrics() *PoolMetrics {
 		AverageLatency:       p.metrics.AverageLatency,
 		TotalLatency:         p.metrics.TotalLatency,
 	}
-	
+
 	return &metrics
 }
 

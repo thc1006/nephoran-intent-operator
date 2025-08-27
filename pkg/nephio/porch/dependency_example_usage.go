@@ -33,7 +33,7 @@ func Example5GCoreDeploymentWithDependencies() error {
 		Config: &ClientConfig{
 			Endpoint: "https://porch.example.com",
 			AuthConfig: &AuthConfig{
-				Type: AuthTypeToken,
+				Type:  AuthTypeToken,
 				Token: "token",
 			},
 		},
@@ -121,19 +121,19 @@ func Example5GCoreDeploymentWithDependencies() error {
 		{
 			PackageRef: amfPackage,
 			Constraint: &VersionConstraint{
-				Operator: ConstraintOperatorGreaterEquals, 
-				Version: "2.0.0",
+				Operator: ConstraintOperatorGreaterEquals,
+				Version:  "2.0.0",
 			},
-			Priority: 100,
+			Priority:  100,
 			Mandatory: true,
 		},
 		{
 			PackageRef: &PackageReference{Repository: "5g-core", PackageName: "udm"},
 			Constraint: &VersionConstraint{
-				Operator: ConstraintOperatorTilde, 
-				Version: "2.1.0",
+				Operator: ConstraintOperatorTilde,
+				Version:  "2.1.0",
 			},
-			Priority: 80,
+			Priority:  80,
 			Mandatory: false,
 		},
 	}
@@ -341,7 +341,7 @@ func ExampleORANDeploymentWithDependencies() error {
 		Config: &ClientConfig{
 			Endpoint: "https://porch.example.com",
 			AuthConfig: &AuthConfig{
-				Type: AuthTypeToken,
+				Type:  AuthTypeToken,
 				Token: "token",
 			},
 		},
@@ -407,7 +407,7 @@ func ExampleNetworkSliceDependencies() error {
 		Config: &ClientConfig{
 			Endpoint: "https://porch.example.com",
 			AuthConfig: &AuthConfig{
-				Type: AuthTypeToken,
+				Type:  AuthTypeToken,
 				Token: "token",
 			},
 		},

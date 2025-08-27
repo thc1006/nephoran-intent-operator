@@ -9,54 +9,54 @@ import (
 
 // SearchResult represents a single search result from RAG
 type SearchResult struct {
-	ID          string                 `json:"id"`
-	Content     string                 `json:"content"`
-	Metadata    map[string]interface{} `json:"metadata"`
-	Score       float32                `json:"score"`
-	Source      string                 `json:"source"`
-	Chunk       int                    `json:"chunk"`
-	Title       string                 `json:"title"`
-	Summary     string                 `json:"summary"`
-	CreatedAt   time.Time              `json:"created_at"`
-	UpdatedAt   time.Time              `json:"updated_at"`
+	ID        string                 `json:"id"`
+	Content   string                 `json:"content"`
+	Metadata  map[string]interface{} `json:"metadata"`
+	Score     float32                `json:"score"`
+	Source    string                 `json:"source"`
+	Chunk     int                    `json:"chunk"`
+	Title     string                 `json:"title"`
+	Summary   string                 `json:"summary"`
+	CreatedAt time.Time              `json:"created_at"`
+	UpdatedAt time.Time              `json:"updated_at"`
 }
 
 // SearchQuery represents a query to the RAG system
 type SearchQuery struct {
-	Query       string                 `json:"query"`
-	Limit       int                    `json:"limit,omitempty"`
-	Threshold   float32                `json:"threshold,omitempty"`
-	Filters     map[string]interface{} `json:"filters,omitempty"`
-	ContextID   string                 `json:"context_id,omitempty"`
-	UserID      string                 `json:"user_id,omitempty"`
-	Namespace   string                 `json:"namespace,omitempty"`
+	Query     string                 `json:"query"`
+	Limit     int                    `json:"limit,omitempty"`
+	Threshold float32                `json:"threshold,omitempty"`
+	Filters   map[string]interface{} `json:"filters,omitempty"`
+	ContextID string                 `json:"context_id,omitempty"`
+	UserID    string                 `json:"user_id,omitempty"`
+	Namespace string                 `json:"namespace,omitempty"`
 }
 
 // RAGResponse represents the response from RAG system
 type RAGResponse struct {
-	Query     string         `json:"query"`
-	Results   []SearchResult `json:"results"`
-	Context   string         `json:"context"`
+	Query     string            `json:"query"`
+	Results   []SearchResult    `json:"results"`
+	Context   string            `json:"context"`
 	Documents []TelecomDocument `json:"documents"`
-	TotalTime time.Duration  `json:"total_time"`
-	Error     *RAGError      `json:"error,omitempty"`
+	TotalTime time.Duration     `json:"total_time"`
+	Error     *RAGError         `json:"error,omitempty"`
 }
 
 // TelecomDocument represents a telecom-specific document
 type TelecomDocument struct {
-	ID          string                 `json:"id"`
-	Title       string                 `json:"title"`
-	Content     string                 `json:"content"`
-	Type        DocumentType           `json:"type"`
-	Category    string                 `json:"category"`
-	Standard    string                 `json:"standard"`    // e.g., "3GPP TS 38.401"
-	Version     string                 `json:"version"`     // e.g., "16.0.0"
-	Section     string                 `json:"section"`     // e.g., "7.2.1"
-	Keywords    []string               `json:"keywords"`
-	Metadata    map[string]interface{} `json:"metadata"`
-	CreatedAt   time.Time              `json:"created_at"`
-	UpdatedAt   time.Time              `json:"updated_at"`
-	Indexed     bool                   `json:"indexed"`
+	ID        string                 `json:"id"`
+	Title     string                 `json:"title"`
+	Content   string                 `json:"content"`
+	Type      DocumentType           `json:"type"`
+	Category  string                 `json:"category"`
+	Standard  string                 `json:"standard"` // e.g., "3GPP TS 38.401"
+	Version   string                 `json:"version"`  // e.g., "16.0.0"
+	Section   string                 `json:"section"`  // e.g., "7.2.1"
+	Keywords  []string               `json:"keywords"`
+	Metadata  map[string]interface{} `json:"metadata"`
+	CreatedAt time.Time              `json:"created_at"`
+	UpdatedAt time.Time              `json:"updated_at"`
+	Indexed   bool                   `json:"indexed"`
 }
 
 // DocumentType represents the type of telecom document

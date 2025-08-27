@@ -13,39 +13,39 @@ import (
 // GPUMemoryMetrics provides comprehensive metrics for GPU memory management
 type GPUMemoryMetrics struct {
 	// Memory allocation metrics
-	allocationLatency         prometheus.HistogramVec
-	allocationCount          prometheus.CounterVec
-	deallocationLatency      prometheus.HistogramVec
-	deallocationCount        prometheus.CounterVec
-	
+	allocationLatency   prometheus.HistogramVec
+	allocationCount     prometheus.CounterVec
+	deallocationLatency prometheus.HistogramVec
+	deallocationCount   prometheus.CounterVec
+
 	// Memory usage metrics
-	memoryUsage              prometheus.GaugeVec
-	memoryUtilization        prometheus.GaugeVec
-	peakMemoryUsage          prometheus.GaugeVec
-	memoryFragmentation      prometheus.GaugeVec
-	
+	memoryUsage         prometheus.GaugeVec
+	memoryUtilization   prometheus.GaugeVec
+	peakMemoryUsage     prometheus.GaugeVec
+	memoryFragmentation prometheus.GaugeVec
+
 	// Pool metrics
-	poolSize                 prometheus.GaugeVec
-	poolUtilization          prometheus.GaugeVec
-	poolHitRate              prometheus.GaugeVec
-	
+	poolSize        prometheus.GaugeVec
+	poolUtilization prometheus.GaugeVec
+	poolHitRate     prometheus.GaugeVec
+
 	// Performance metrics
 	defragmentationLatency   prometheus.HistogramVec
 	garbageCollectionLatency prometheus.HistogramVec
 	compressionRatio         prometheus.GaugeVec
 	compressionLatency       prometheus.HistogramVec
-	
+
 	// Error metrics
-	allocationFailures       prometheus.CounterVec
-	deallocationFailures     prometheus.CounterVec
-	outOfMemoryEvents       prometheus.CounterVec
-	fragmentationEvents     prometheus.CounterVec
-	
+	allocationFailures   prometheus.CounterVec
+	deallocationFailures prometheus.CounterVec
+	outOfMemoryEvents    prometheus.CounterVec
+	fragmentationEvents  prometheus.CounterVec
+
 	// OpenTelemetry metrics
-	allocationLatencyOTel    metric.Float64Histogram
-	memoryUsageOTel         metric.Float64Gauge
-	fragmentationOTel       metric.Float64Gauge
-	poolUtilizationOTel     metric.Float64Gauge
+	allocationLatencyOTel metric.Float64Histogram
+	memoryUsageOTel       metric.Float64Gauge
+	fragmentationOTel     metric.Float64Gauge
+	poolUtilizationOTel   metric.Float64Gauge
 }
 
 // NewGPUMemoryMetrics creates a new GPU memory metrics instance
@@ -263,7 +263,7 @@ func (gmm *GPUMemoryMetrics) RecordAllocationFailure(purpose AllocationPurpose, 
 // RecordDeallocation records metrics for a memory deallocation
 func (gmm *GPUMemoryMetrics) RecordDeallocation(duration time.Duration) {
 	seconds := duration.Seconds()
-	deviceID := "0" // Default device
+	deviceID := "0"      // Default device
 	purpose := "general" // Could be parameterized
 
 	labels := prometheus.Labels{
@@ -302,13 +302,13 @@ func (gmm *GPUMemoryMetrics) RecordMemoryUsage(usedBytes int64, deviceID int) {
 
 	// Record different memory types
 	memoryTypes := []string{"allocated", "cached", "reserved"}
-	
+
 	for _, memType := range memoryTypes {
 		labels := prometheus.Labels{
 			"device_id":   deviceIDStr,
 			"memory_type": memType,
 		}
-		
+
 		// For simplicity, using the same value for all types
 		// In practice, these would be different measurements
 		gmm.memoryUsage.With(labels).Set(float64(usedBytes))
@@ -471,11 +471,11 @@ func getSizeRange(size int64) string {
 
 	switch {
 	case size < 1*MB:
-		return "small"  // < 1MB
+		return "small" // < 1MB
 	case size < 100*MB:
 		return "medium" // 1MB - 100MB
 	case size < 1*GB:
-		return "large"  // 100MB - 1GB
+		return "large" // 100MB - 1GB
 	default:
 		return "xlarge" // > 1GB
 	}
@@ -485,121 +485,121 @@ func getSizeRange(size int64) string {
 func (gmm *GPUMemoryMetrics) GetMemoryMetricsSummary() *GPUMemoryMetricsSummary {
 	// In a real implementation, this would query actual metric values
 	return &GPUMemoryMetricsSummary{
-		TotalAllocations:      50000,
-		SuccessfulAllocations: 49500,
-		FailedAllocations:     500,
-		AverageAllocationTime: 0.25,
-		PeakMemoryUsageGB:     22.4,
-		AverageUtilization:    78.5,
-		FragmentationLevel:    0.15,
-		DefragmentationCount:  25,
+		TotalAllocations:       50000,
+		SuccessfulAllocations:  49500,
+		FailedAllocations:      500,
+		AverageAllocationTime:  0.25,
+		PeakMemoryUsageGB:      22.4,
+		AverageUtilization:     78.5,
+		FragmentationLevel:     0.15,
+		DefragmentationCount:   25,
 		GarbageCollectionCount: 150,
-		OutOfMemoryEvents:     3,
+		OutOfMemoryEvents:      3,
 	}
 }
 
 // GPUMemoryMetricsSummary provides a high-level overview of memory metrics
 type GPUMemoryMetricsSummary struct {
-	TotalAllocations        int64   `json:"total_allocations"`
-	SuccessfulAllocations   int64   `json:"successful_allocations"`
-	FailedAllocations       int64   `json:"failed_allocations"`
-	AverageAllocationTime   float64 `json:"average_allocation_time_ms"`
-	PeakMemoryUsageGB       float64 `json:"peak_memory_usage_gb"`
-	AverageUtilization      float64 `json:"average_utilization_percent"`
-	FragmentationLevel      float64 `json:"fragmentation_level"`
-	DefragmentationCount    int64   `json:"defragmentation_count"`
-	GarbageCollectionCount  int64   `json:"garbage_collection_count"`
-	OutOfMemoryEvents       int64   `json:"out_of_memory_events"`
+	TotalAllocations       int64   `json:"total_allocations"`
+	SuccessfulAllocations  int64   `json:"successful_allocations"`
+	FailedAllocations      int64   `json:"failed_allocations"`
+	AverageAllocationTime  float64 `json:"average_allocation_time_ms"`
+	PeakMemoryUsageGB      float64 `json:"peak_memory_usage_gb"`
+	AverageUtilization     float64 `json:"average_utilization_percent"`
+	FragmentationLevel     float64 `json:"fragmentation_level"`
+	DefragmentationCount   int64   `json:"defragmentation_count"`
+	GarbageCollectionCount int64   `json:"garbage_collection_count"`
+	OutOfMemoryEvents      int64   `json:"out_of_memory_events"`
 }
 
 // GPUMemoryReport provides detailed memory analysis
 type GPUMemoryReport struct {
-	Summary               *GPUMemoryMetricsSummary    `json:"summary"`
-	DeviceBreakdown       []*DeviceMemoryReport       `json:"device_breakdown"`
-	AllocationPatterns    *AllocationPatternsReport   `json:"allocation_patterns"`
-	PoolPerformance       *PoolPerformanceReport      `json:"pool_performance"`
+	Summary               *GPUMemoryMetricsSummary     `json:"summary"`
+	DeviceBreakdown       []*DeviceMemoryReport        `json:"device_breakdown"`
+	AllocationPatterns    *AllocationPatternsReport    `json:"allocation_patterns"`
+	PoolPerformance       *PoolPerformanceReport       `json:"pool_performance"`
 	FragmentationAnalysis *FragmentationAnalysisReport `json:"fragmentation_analysis"`
-	PerformanceTrends     *MemoryPerformanceTrends    `json:"performance_trends"`
-	Recommendations       []*MemoryOptimizationRec    `json:"recommendations"`
-	Timestamp             time.Time                   `json:"timestamp"`
-	ReportPeriod          time.Duration               `json:"report_period"`
+	PerformanceTrends     *MemoryPerformanceTrends     `json:"performance_trends"`
+	Recommendations       []*MemoryOptimizationRec     `json:"recommendations"`
+	Timestamp             time.Time                    `json:"timestamp"`
+	ReportPeriod          time.Duration                `json:"report_period"`
 }
 
 // DeviceMemoryReport provides per-device memory analysis
 type DeviceMemoryReport struct {
-	DeviceID              int                    `json:"device_id"`
-	TotalMemoryGB         float64               `json:"total_memory_gb"`
-	PeakUsageGB           float64               `json:"peak_usage_gb"`
-	AverageUtilization    float64               `json:"average_utilization_percent"`
-	FragmentationLevel    float64               `json:"fragmentation_level"`
-	AllocationsByPurpose  map[string]int64      `json:"allocations_by_purpose"`
-	AllocationLatency     map[string]float64    `json:"allocation_latency_by_purpose"`
-	PoolUtilization       map[string]float64    `json:"pool_utilization"`
-	ErrorCounts           map[string]int64      `json:"error_counts"`
+	DeviceID             int                `json:"device_id"`
+	TotalMemoryGB        float64            `json:"total_memory_gb"`
+	PeakUsageGB          float64            `json:"peak_usage_gb"`
+	AverageUtilization   float64            `json:"average_utilization_percent"`
+	FragmentationLevel   float64            `json:"fragmentation_level"`
+	AllocationsByPurpose map[string]int64   `json:"allocations_by_purpose"`
+	AllocationLatency    map[string]float64 `json:"allocation_latency_by_purpose"`
+	PoolUtilization      map[string]float64 `json:"pool_utilization"`
+	ErrorCounts          map[string]int64   `json:"error_counts"`
 }
 
 // AllocationPatternsReport analyzes allocation patterns
 type AllocationPatternsReport struct {
-	AllocationsBySize     map[string]int64      `json:"allocations_by_size"`
-	AllocationsByPurpose  map[string]int64      `json:"allocations_by_purpose"`
-	PeakAllocationTimes   []time.Time           `json:"peak_allocation_times"`
-	AverageLifetime       map[string]float64    `json:"average_lifetime_by_purpose"`
-	FrequentSizes         []int64               `json:"frequent_sizes"`
-	UnusualPatterns       []string              `json:"unusual_patterns"`
+	AllocationsBySize    map[string]int64   `json:"allocations_by_size"`
+	AllocationsByPurpose map[string]int64   `json:"allocations_by_purpose"`
+	PeakAllocationTimes  []time.Time        `json:"peak_allocation_times"`
+	AverageLifetime      map[string]float64 `json:"average_lifetime_by_purpose"`
+	FrequentSizes        []int64            `json:"frequent_sizes"`
+	UnusualPatterns      []string           `json:"unusual_patterns"`
 }
 
 // PoolPerformanceReport analyzes memory pool performance
 type PoolPerformanceReport struct {
-	PoolsByType           map[string]*PoolStats `json:"pools_by_type"`
-	HitRates              map[string]float64    `json:"hit_rates"`
-	UtilizationRates      map[string]float64    `json:"utilization_rates"`
-	GrowthPatterns        map[string][]float64  `json:"growth_patterns"`
-	OptimalSizes          map[string]int64      `json:"optimal_sizes"`
+	PoolsByType      map[string]*PoolStats `json:"pools_by_type"`
+	HitRates         map[string]float64    `json:"hit_rates"`
+	UtilizationRates map[string]float64    `json:"utilization_rates"`
+	GrowthPatterns   map[string][]float64  `json:"growth_patterns"`
+	OptimalSizes     map[string]int64      `json:"optimal_sizes"`
 }
 
 // PoolStats provides detailed pool statistics
 type PoolStats struct {
-	PoolType            string    `json:"pool_type"`
-	CurrentSizeBytes    int64     `json:"current_size_bytes"`
-	PeakSizeBytes       int64     `json:"peak_size_bytes"`
-	HitRate             float64   `json:"hit_rate_percent"`
-	UtilizationRate     float64   `json:"utilization_rate_percent"`
-	AllocationCount     int64     `json:"allocation_count"`
-	DeallocationCount   int64     `json:"deallocation_count"`
-	EvictionCount       int64     `json:"eviction_count"`
+	PoolType          string  `json:"pool_type"`
+	CurrentSizeBytes  int64   `json:"current_size_bytes"`
+	PeakSizeBytes     int64   `json:"peak_size_bytes"`
+	HitRate           float64 `json:"hit_rate_percent"`
+	UtilizationRate   float64 `json:"utilization_rate_percent"`
+	AllocationCount   int64   `json:"allocation_count"`
+	DeallocationCount int64   `json:"deallocation_count"`
+	EvictionCount     int64   `json:"eviction_count"`
 }
 
 // FragmentationAnalysisReport analyzes memory fragmentation
 type FragmentationAnalysisReport struct {
-	OverallFragmentation  float64               `json:"overall_fragmentation"`
-	FragmentationByDevice map[int]float64       `json:"fragmentation_by_device"`
-	FragmentationTrend    string                `json:"fragmentation_trend"`
-	LargestFreeBlock      int64                 `json:"largest_free_block_bytes"`
-	FreeBlockDistribution map[string]int        `json:"free_block_distribution"`
-	DefragmentationEvents int64                 `json:"defragmentation_events"`
-	DefragmentationGains  []float64             `json:"defragmentation_gains"`
+	OverallFragmentation  float64         `json:"overall_fragmentation"`
+	FragmentationByDevice map[int]float64 `json:"fragmentation_by_device"`
+	FragmentationTrend    string          `json:"fragmentation_trend"`
+	LargestFreeBlock      int64           `json:"largest_free_block_bytes"`
+	FreeBlockDistribution map[string]int  `json:"free_block_distribution"`
+	DefragmentationEvents int64           `json:"defragmentation_events"`
+	DefragmentationGains  []float64       `json:"defragmentation_gains"`
 }
 
 // MemoryPerformanceTrends analyzes performance trends over time
 type MemoryPerformanceTrends struct {
-	AllocationLatencyTrend   string                `json:"allocation_latency_trend"`
-	MemoryUsageTrend         string                `json:"memory_usage_trend"`
-	FragmentationTrend       string                `json:"fragmentation_trend"`
-	ErrorRateTrend           string                `json:"error_rate_trend"`
-	HourlyPatterns           map[int]float64       `json:"hourly_patterns"`
-	DailyPatterns            map[string]float64    `json:"daily_patterns"`
-	SeasonalPatterns         map[string]float64    `json:"seasonal_patterns"`
+	AllocationLatencyTrend string             `json:"allocation_latency_trend"`
+	MemoryUsageTrend       string             `json:"memory_usage_trend"`
+	FragmentationTrend     string             `json:"fragmentation_trend"`
+	ErrorRateTrend         string             `json:"error_rate_trend"`
+	HourlyPatterns         map[int]float64    `json:"hourly_patterns"`
+	DailyPatterns          map[string]float64 `json:"daily_patterns"`
+	SeasonalPatterns       map[string]float64 `json:"seasonal_patterns"`
 }
 
 // MemoryOptimizationRec provides actionable memory optimization recommendations
 type MemoryOptimizationRec struct {
-	Type         string  `json:"type"`        // "fragmentation", "pool_sizing", "allocation_strategy", etc.
-	Priority     string  `json:"priority"`    // "high", "medium", "low"
-	Title        string  `json:"title"`
-	Description  string  `json:"description"`
-	Impact       string  `json:"impact"`      // Expected performance impact
-	Confidence   float64 `json:"confidence"`  // Confidence in the recommendation (0-1)
-	Action       string  `json:"action"`      // Specific action to take
-	Effort       string  `json:"effort"`      // Implementation effort level
-	Savings      string  `json:"savings"`     // Expected resource savings
+	Type        string  `json:"type"`     // "fragmentation", "pool_sizing", "allocation_strategy", etc.
+	Priority    string  `json:"priority"` // "high", "medium", "low"
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	Impact      string  `json:"impact"`     // Expected performance impact
+	Confidence  float64 `json:"confidence"` // Confidence in the recommendation (0-1)
+	Action      string  `json:"action"`     // Specific action to take
+	Effort      string  `json:"effort"`     // Implementation effort level
+	Savings     string  `json:"savings"`    // Expected resource savings
 }

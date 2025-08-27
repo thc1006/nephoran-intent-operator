@@ -30,28 +30,28 @@ import (
 
 // AutomatedSecurityValidator performs comprehensive security control validation
 type AutomatedSecurityValidator struct {
-	client        client.Client
-	k8sClient     kubernetes.Interface
-	config        *rest.Config
-	namespace     string
-	results       *SecurityValidationResults
-	mutex         sync.RWMutex
+	client    client.Client
+	k8sClient kubernetes.Interface
+	config    *rest.Config
+	namespace string
+	results   *SecurityValidationResults
+	mutex     sync.RWMutex
 }
 
 // SecurityValidationResults stores comprehensive validation results
 type SecurityValidationResults struct {
-	ValidationID      string                      `json:"validation_id"`
-	Timestamp         time.Time                   `json:"timestamp"`
-	Duration          time.Duration               `json:"duration"`
-	TotalControls     int                         `json:"total_controls"`
-	PassedControls    int                         `json:"passed_controls"`
-	FailedControls    int                         `json:"failed_controls"`
-	SkippedControls   int                         `json:"skipped_controls"`
-	ComplianceScore   float64                     `json:"compliance_score"`
-	SecurityControls  []SecurityControlResult     `json:"security_controls"`
+	ValidationID         string                      `json:"validation_id"`
+	Timestamp            time.Time                   `json:"timestamp"`
+	Duration             time.Duration               `json:"duration"`
+	TotalControls        int                         `json:"total_controls"`
+	PassedControls       int                         `json:"passed_controls"`
+	FailedControls       int                         `json:"failed_controls"`
+	SkippedControls      int                         `json:"skipped_controls"`
+	ComplianceScore      float64                     `json:"compliance_score"`
+	SecurityControls     []SecurityControlResult     `json:"security_controls"`
 	ComplianceFrameworks map[string]ComplianceResult `json:"compliance_frameworks"`
-	Recommendations   []SecurityRecommendation    `json:"recommendations"`
-	DetailedFindings  map[string]interface{}      `json:"detailed_findings"`
+	Recommendations      []SecurityRecommendation    `json:"recommendations"`
+	DetailedFindings     map[string]interface{}      `json:"detailed_findings"`
 }
 
 // SecurityControlResult represents the result of a security control validation
@@ -70,26 +70,26 @@ type SecurityControlResult struct {
 
 // ComplianceResult represents compliance framework validation results
 type ComplianceResult struct {
-	Framework     string  `json:"framework"`
-	Version       string  `json:"version"`
-	Score         float64 `json:"score"`
-	TotalControls int     `json:"total_controls"`
-	PassedControls int    `json:"passed_controls"`
-	FailedControls int    `json:"failed_controls"`
-	Requirements  []string `json:"requirements"`
+	Framework      string   `json:"framework"`
+	Version        string   `json:"version"`
+	Score          float64  `json:"score"`
+	TotalControls  int      `json:"total_controls"`
+	PassedControls int      `json:"passed_controls"`
+	FailedControls int      `json:"failed_controls"`
+	Requirements   []string `json:"requirements"`
 }
 
 // SecurityRecommendation represents security improvement recommendations
 type SecurityRecommendation struct {
-	ID          string    `json:"id"`
-	Priority    string    `json:"priority"`
-	Category    string    `json:"category"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Impact      string    `json:"impact"`
-	Effort      string    `json:"effort"`
-	Timeline    string    `json:"timeline"`
-	References  []string  `json:"references"`
+	ID          string   `json:"id"`
+	Priority    string   `json:"priority"`
+	Category    string   `json:"category"`
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	Impact      string   `json:"impact"`
+	Effort      string   `json:"effort"`
+	Timeline    string   `json:"timeline"`
+	References  []string `json:"references"`
 }
 
 // NewAutomatedSecurityValidator creates a new security validator
@@ -298,7 +298,7 @@ func (v *AutomatedSecurityValidator) validateNonRootUsers(ctx context.Context) S
 	for _, pod := range pods.Items {
 		for _, container := range pod.Spec.Containers {
 			totalContainers++
-			
+
 			// Check if container runs as root
 			if container.SecurityContext != nil && container.SecurityContext.RunAsUser != nil {
 				if *container.SecurityContext.RunAsUser == 0 {
@@ -360,7 +360,7 @@ func (v *AutomatedSecurityValidator) validateReadOnlyRootFS(ctx context.Context)
 	for _, pod := range pods.Items {
 		for _, container := range pod.Spec.Containers {
 			totalContainers++
-			
+
 			// Check if container uses read-only root filesystem
 			if container.SecurityContext == nil ||
 				container.SecurityContext.ReadOnlyRootFilesystem == nil ||
@@ -416,7 +416,7 @@ func (v *AutomatedSecurityValidator) validateCapabilityDropping(ctx context.Cont
 	for _, pod := range pods.Items {
 		for _, container := range pod.Spec.Containers {
 			totalContainers++
-			
+
 			// Check if container drops all capabilities
 			if container.SecurityContext == nil ||
 				container.SecurityContext.Capabilities == nil ||
@@ -486,7 +486,7 @@ func (v *AutomatedSecurityValidator) validateSecurityContexts(ctx context.Contex
 	for _, pod := range pods.Items {
 		for _, container := range pod.Spec.Containers {
 			totalContainers++
-			
+
 			// Comprehensive security context validation
 			secCtx := container.SecurityContext
 			if secCtx == nil {
@@ -556,7 +556,7 @@ func (v *AutomatedSecurityValidator) validateResourceLimits(ctx context.Context)
 	for _, pod := range pods.Items {
 		for _, container := range pod.Spec.Containers {
 			totalContainers++
-			
+
 			// Check if container has resource limits
 			if container.Resources.Limits == nil || len(container.Resources.Limits) == 0 {
 				violations++
@@ -706,7 +706,7 @@ func (v *AutomatedSecurityValidator) validateTLSCertificates(ctx context.Context
 	for _, secret := range secrets.Items {
 		if secret.Type == corev1.SecretTypeTLS {
 			tlsCerts++
-			
+
 			// Validate certificate
 			certData, exists := secret.Data["tls.crt"]
 			if !exists {
@@ -873,10 +873,10 @@ func (v *AutomatedSecurityValidator) validateRegistrySecurity(ctx context.Contex
 func (v *AutomatedSecurityValidator) addSecurityControlResult(result SecurityControlResult) {
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
-	
+
 	v.results.SecurityControls = append(v.results.SecurityControls, result)
 	v.results.TotalControls++
-	
+
 	if result.Status == "passed" {
 		v.results.PassedControls++
 	} else if result.Status == "failed" {
@@ -889,26 +889,26 @@ func (v *AutomatedSecurityValidator) addSecurityControlResult(result SecurityCon
 func (v *AutomatedSecurityValidator) generateSecurityValidationReport() {
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
-	
+
 	v.results.Duration = time.Since(v.results.Timestamp)
-	
+
 	// Calculate compliance score
 	if v.results.TotalControls > 0 {
 		v.results.ComplianceScore = (float64(v.results.PassedControls) / float64(v.results.TotalControls)) * 100
 	}
-	
+
 	// Generate compliance framework results
 	v.generateComplianceFrameworkResults()
-	
+
 	// Generate recommendations
 	v.generateSecurityRecommendations()
-	
+
 	// Save report to file
 	reportData, _ := json.MarshalIndent(v.results, "", "  ")
 	reportFile := fmt.Sprintf("test-results/security/security-validation-report-%s.json", v.results.ValidationID)
 	os.MkdirAll("test-results/security", 0755)
 	os.WriteFile(reportFile, reportData, 0644)
-	
+
 	// Generate HTML report
 	v.generateHTMLValidationReport()
 }
@@ -924,7 +924,7 @@ func (v *AutomatedSecurityValidator) generateComplianceFrameworkResults() {
 		FailedControls: v.results.FailedControls,
 		Requirements:   []string{"Identify", "Protect", "Detect", "Respond", "Recover"},
 	}
-	
+
 	// CIS Kubernetes Benchmark compliance
 	v.results.ComplianceFrameworks["CIS-K8S"] = ComplianceResult{
 		Framework:      "CIS Kubernetes Benchmark",
@@ -973,7 +973,7 @@ func (v *AutomatedSecurityValidator) generateSecurityRecommendations() {
 			References:  []string{"https://external-secrets.io/"},
 		},
 	}
-	
+
 	v.results.Recommendations = recommendations
 }
 
@@ -1047,7 +1047,7 @@ func (v *AutomatedSecurityValidator) generateHTMLValidationReport() {
 		v.results.PassedControls,
 		v.results.FailedControls,
 	)
-	
+
 	htmlFile := fmt.Sprintf("test-results/security/security-validation-report-%s.html", v.results.ValidationID)
 	os.WriteFile(htmlFile, []byte(htmlContent), 0644)
 }

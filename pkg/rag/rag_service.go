@@ -118,7 +118,7 @@ type RAGRequest struct {
 // RAGResponse represents the response from RAG processing
 type RAGResponse struct {
 	Answer          string                 `json:"answer"`
-	SourceDocuments []*types.SearchResult `json:"source_documents"`
+	SourceDocuments []*types.SearchResult  `json:"source_documents"`
 	Confidence      float32                `json:"confidence"`
 	ProcessingTime  time.Duration          `json:"processing_time"`
 	RetrievalTime   time.Duration          `json:"retrieval_time"`
@@ -266,9 +266,9 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 
 	go func() {
 		defer close(searchResultCh)
-		
+
 		searchResponse, err := rs.weaviateClient.Search(ctx, searchQuery)
-		
+
 		select {
 		case searchResultCh <- struct {
 			response *SearchResponse
@@ -303,7 +303,7 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 	// Step 2: Convert local results to shared results with concurrent processing
 	resultCount := len(searchResponse.Results)
 	sharedResults := make([]*types.SearchResult, resultCount)
-	
+
 	// Use worker pool for concurrent document conversion if we have multiple results
 	if resultCount > 1 {
 		// Create buffered channel to limit concurrent workers
@@ -312,13 +312,13 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 		if workerCount > maxWorkers {
 			workerCount = maxWorkers
 		}
-		
+
 		workCh := make(chan int, resultCount)
 		resultCh := make(chan struct {
 			index  int
 			result *types.SearchResult
 		}, resultCount)
-		
+
 		// Start workers
 		for w := 0; w < workerCount; w++ {
 			go func() {
@@ -332,7 +332,7 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 						},
 						Score: result.Score,
 					}
-					
+
 					select {
 					case resultCh <- struct {
 						index  int
@@ -344,7 +344,7 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 				}
 			}()
 		}
-		
+
 		// Send work
 		go func() {
 			defer close(workCh)
@@ -356,7 +356,7 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 				}
 			}
 		}()
-		
+
 		// Collect results
 		for i := 0; i < resultCount; i++ {
 			select {
@@ -382,7 +382,7 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 			}
 		}
 	}
-	
+
 	context, contextMetadata := rs.prepareContext(sharedResults, request)
 
 	// Step 3: Generate response using LLM

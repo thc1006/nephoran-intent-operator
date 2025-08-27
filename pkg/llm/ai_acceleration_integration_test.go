@@ -367,10 +367,10 @@ func TestGPUMemoryManagerIntegration(t *testing.T) {
 	t.Run("MultipleAllocations", func(t *testing.T) {
 		var allocations []*MemoryAllocation
 		sizes := []int64{
-			1 * 1024 * 1024,   // 1MB
-			5 * 1024 * 1024,   // 5MB
-			10 * 1024 * 1024,  // 10MB
-			50 * 1024 * 1024,  // 50MB
+			1 * 1024 * 1024,  // 1MB
+			5 * 1024 * 1024,  // 5MB
+			10 * 1024 * 1024, // 10MB
+			50 * 1024 * 1024, // 50MB
 		}
 
 		// Allocate multiple blocks
@@ -407,7 +407,7 @@ func TestGPUMemoryManagerIntegration(t *testing.T) {
 
 	t.Run("MemoryStats", func(t *testing.T) {
 		stats := manager.GetMemoryStats()
-		
+
 		if stats == nil {
 			t.Fatal("Memory stats is nil")
 		}

@@ -14,31 +14,31 @@ import (
 
 // PerformanceIntegrator integrates all performance components
 type PerformanceIntegrator struct {
-	profiler         *ProfilerManager
-	cacheManager     *CacheManager
-	asyncProcessor   *AsyncProcessor
-	dbManager        *OptimizedDBManager
-	monitor          *PerformanceMonitor
-	config           *IntegrationConfig
-	middleware       *PerformanceMiddleware
-	initialized      bool
-	mu               sync.RWMutex
+	profiler       *ProfilerManager
+	cacheManager   *CacheManager
+	asyncProcessor *AsyncProcessor
+	dbManager      *OptimizedDBManager
+	monitor        *PerformanceMonitor
+	config         *IntegrationConfig
+	middleware     *PerformanceMiddleware
+	initialized    bool
+	mu             sync.RWMutex
 }
 
 // IntegrationConfig contains integration configuration
 type IntegrationConfig struct {
 	// Component enablement
-	EnableProfiler      bool
-	EnableCache         bool
-	EnableAsync         bool
-	EnableDB            bool
-	EnableMonitoring    bool
+	EnableProfiler   bool
+	EnableCache      bool
+	EnableAsync      bool
+	EnableDB         bool
+	EnableMonitoring bool
 
 	// Performance targets
-	TargetResponseTime  time.Duration
-	TargetThroughput    float64
-	TargetCPUUsage      float64
-	TargetMemoryUsage   float64
+	TargetResponseTime time.Duration
+	TargetThroughput   float64
+	TargetCPUUsage     float64
+	TargetMemoryUsage  float64
 
 	// Auto-optimization
 	EnableAutoOptimization bool
@@ -48,7 +48,7 @@ type IntegrationConfig struct {
 	// Integration settings
 	SharedMetricsRegistry bool
 	CrossComponentCaching bool
-	UnifiedLogging       bool
+	UnifiedLogging        bool
 }
 
 // PerformanceMiddleware provides HTTP middleware for performance optimization
@@ -80,7 +80,7 @@ func NewPerformanceIntegrator(config *IntegrationConfig) (*PerformanceIntegrator
 // DefaultIntegrationConfig returns default integration configuration
 func DefaultIntegrationConfig() *IntegrationConfig {
 	return &IntegrationConfig{
-		EnableProfiler:          true,
+		EnableProfiler:         true,
 		EnableCache:            true,
 		EnableAsync:            true,
 		EnableDB:               true,
@@ -94,7 +94,7 @@ func DefaultIntegrationConfig() *IntegrationConfig {
 		OptimizationThreshold:  0.8,
 		SharedMetricsRegistry:  true,
 		CrossComponentCaching:  true,
-		UnifiedLogging:        true,
+		UnifiedLogging:         true,
 	}
 }
 
@@ -106,7 +106,7 @@ func (pi *PerformanceIntegrator) initializeComponents() error {
 		profilerConfig.EnableCPUProfiling = true
 		profilerConfig.EnableMemoryProfiling = true
 		profilerConfig.EnableGoroutineMonitoring = true
-		
+
 		var err error
 		pi.profiler, err = NewProfilerManager(profilerConfig)
 		if err != nil {
@@ -121,7 +121,7 @@ func (pi *PerformanceIntegrator) initializeComponents() error {
 		cacheConfig.RedisEnabled = true
 		cacheConfig.MemoryCacheEnabled = true
 		cacheConfig.CompressionEnabled = true
-		
+
 		var err error
 		pi.cacheManager, err = NewCacheManager(cacheConfig)
 		if err != nil {
@@ -136,7 +136,7 @@ func (pi *PerformanceIntegrator) initializeComponents() error {
 		asyncConfig.DefaultWorkers = 8
 		asyncConfig.BatchSize = 100
 		asyncConfig.RateLimitEnabled = true
-		
+
 		var err error
 		pi.asyncProcessor, err = NewAsyncProcessor(asyncConfig)
 		if err != nil {
@@ -152,7 +152,7 @@ func (pi *PerformanceIntegrator) initializeComponents() error {
 		dbConfig.MaxIdleConns = 10
 		dbConfig.EnableQueryCache = true
 		dbConfig.EnableHealthCheck = true
-		
+
 		var err error
 		pi.dbManager, err = NewOptimizedDBManager(dbConfig)
 		if err != nil {
@@ -168,7 +168,7 @@ func (pi *PerformanceIntegrator) initializeComponents() error {
 		monitorConfig.EnableProfiling = true
 		monitorConfig.EnableDashboards = true
 		monitorConfig.EnableRealTimeStreaming = true
-		
+
 		var err error
 		pi.monitor, err = NewPerformanceMonitor(monitorConfig)
 		if err != nil {
@@ -329,11 +329,11 @@ func (pi *PerformanceIntegrator) GetPerformanceReport() *IntegratedPerformanceRe
 type IntegratedPerformanceReport struct {
 	GeneratedAt     time.Time
 	OverallScore    float64
-	Grade          string
-	Components     map[string]interface{}
+	Grade           string
+	Components      map[string]interface{}
 	Recommendations []PerformanceRecommendation
-	Issues         []PerformanceIssue
-	Trends         map[string]string
+	Issues          []PerformanceIssue
+	Trends          map[string]string
 }
 
 // PerformanceIssue represents a performance issue
@@ -363,9 +363,9 @@ func (pi *PerformanceIntegrator) startAutoOptimization() {
 // performAutoOptimization performs automatic performance optimization
 func (pi *PerformanceIntegrator) performAutoOptimization() {
 	report := pi.GetPerformanceReport()
-	
+
 	// Check if optimization is needed
-	if report.OverallScore > pi.config.OptimizationThreshold * 100 {
+	if report.OverallScore > pi.config.OptimizationThreshold*100 {
 		return // Performance is acceptable
 	}
 
@@ -399,9 +399,9 @@ func (pi *PerformanceIntegrator) calculatePerformanceScore(report *IntegratedPer
 
 	// Cache score (Hit rate, Memory usage)
 	if cacheData, ok := report.Components["cache"].(*CacheMetrics); ok {
-		score := cacheData.HitRate * 1.2 // Hit rate is primary metric
+		score := cacheData.HitRate * 1.2           // Hit rate is primary metric
 		if cacheData.MemoryUsage > 100*1024*1024 { // 100MB threshold
-			score -= float64(cacheData.MemoryUsage) / (10*1024*1024) // Penalty for high memory
+			score -= float64(cacheData.MemoryUsage) / (10 * 1024 * 1024) // Penalty for high memory
 		}
 		scores = append(scores, min(100, max(0, score)))
 		weights = append(weights, 0.2)
@@ -469,11 +469,11 @@ func (pi *PerformanceIntegrator) generateRecommendations(report *IntegratedPerfo
 	if profilerData, ok := report.Components["profiler"].(ProfilerMetrics); ok {
 		if profilerData.CPUUsagePercent > pi.config.TargetCPUUsage {
 			recommendations = append(recommendations, PerformanceRecommendation{
-				Type:        "cpu",
-				Priority:    1,
-				Impact:      "high",
-				Description: "High CPU usage detected",
-				Action:      "Consider scaling horizontally or optimizing CPU-intensive operations",
+				Type:                 "cpu",
+				Priority:             1,
+				Impact:               "high",
+				Description:          "High CPU usage detected",
+				Action:               "Consider scaling horizontally or optimizing CPU-intensive operations",
 				EstimatedImprovement: 20.0,
 			})
 		}
@@ -483,11 +483,11 @@ func (pi *PerformanceIntegrator) generateRecommendations(report *IntegratedPerfo
 	if profilerData, ok := report.Components["profiler"].(ProfilerMetrics); ok {
 		if profilerData.MemoryUsageMB > 1000 {
 			recommendations = append(recommendations, PerformanceRecommendation{
-				Type:        "memory",
-				Priority:    1,
-				Impact:      "high",
-				Description: "High memory usage detected",
-				Action:      "Optimize memory allocations, enable compression, or increase available memory",
+				Type:                 "memory",
+				Priority:             1,
+				Impact:               "high",
+				Description:          "High memory usage detected",
+				Action:               "Optimize memory allocations, enable compression, or increase available memory",
 				EstimatedImprovement: 15.0,
 			})
 		}
@@ -497,11 +497,11 @@ func (pi *PerformanceIntegrator) generateRecommendations(report *IntegratedPerfo
 	if cacheData, ok := report.Components["cache"].(*CacheMetrics); ok {
 		if cacheData.HitRate < 80 {
 			recommendations = append(recommendations, PerformanceRecommendation{
-				Type:        "cache",
-				Priority:    2,
-				Impact:      "medium",
-				Description: "Low cache hit rate",
-				Action:      "Review caching strategy, increase cache size, or adjust TTL values",
+				Type:                 "cache",
+				Priority:             2,
+				Impact:               "medium",
+				Description:          "Low cache hit rate",
+				Action:               "Review caching strategy, increase cache size, or adjust TTL values",
 				EstimatedImprovement: 10.0,
 			})
 		}
@@ -512,11 +512,11 @@ func (pi *PerformanceIntegrator) generateRecommendations(report *IntegratedPerfo
 		avgQueryTimeMs := float64(dbData.AverageQueryTime) / 1e6
 		if avgQueryTimeMs > 100 {
 			recommendations = append(recommendations, PerformanceRecommendation{
-				Type:        "database",
-				Priority:    1,
-				Impact:      "high",
-				Description: "Slow database queries detected",
-				Action:      "Optimize queries, add indexes, or increase connection pool size",
+				Type:                 "database",
+				Priority:             1,
+				Impact:               "high",
+				Description:          "Slow database queries detected",
+				Action:               "Optimize queries, add indexes, or increase connection pool size",
 				EstimatedImprovement: 25.0,
 			})
 		}
@@ -560,8 +560,8 @@ func (pm *PerformanceMiddleware) Middleware(next http.Handler) http.Handler {
 		// Wrap response writer to capture response for caching
 		wrapper := &CacheResponseWriter{
 			ResponseWriter: w,
-			body:          make([]byte, 0),
-			headers:       make(map[string]string),
+			body:           make([]byte, 0),
+			headers:        make(map[string]string),
 		}
 
 		// Process request normally
@@ -655,7 +655,7 @@ func shouldProfile(r *http.Request) bool {
 
 func isCacheable(r *http.Request) bool {
 	// Only cache GET requests to certain endpoints
-	return r.Method == "GET" && 
+	return r.Method == "GET" &&
 		(r.URL.Path == "/api/data" || r.URL.Path == "/metrics")
 }
 

@@ -15,42 +15,42 @@ import (
 func (a *O2Adaptor) GetResourcePools(ctx context.Context, filter *models.ResourcePoolFilter) ([]*models.ResourcePool, error) {
 	a.mutex.RLock()
 	defer a.mutex.RUnlock()
-	
+
 	var pools []*models.ResourcePool
 	for _, pool := range a.resourcePools {
 		if matchesResourcePoolFilter(pool, filter) {
 			pools = append(pools, pool)
 		}
 	}
-	
+
 	return pools, nil
 }
 
 func (a *O2Adaptor) GetResourcePool(ctx context.Context, poolID string) (*models.ResourcePool, error) {
 	a.mutex.RLock()
 	defer a.mutex.RUnlock()
-	
+
 	pool, exists := a.resourcePools[poolID]
 	if !exists {
 		return nil, fmt.Errorf("resource pool not found: %s", poolID)
 	}
-	
+
 	return pool, nil
 }
 
 func (a *O2Adaptor) CreateResourcePool(ctx context.Context, req *models.CreateResourcePoolRequest) (*models.ResourcePool, error) {
 	poolID := fmt.Sprintf("pool-%d", time.Now().UnixNano())
-	
+
 	pool := &models.ResourcePool{
 		ResourcePoolID:   poolID,
-		Name:            req.Name,
-		Description:     req.Description,
-		Location:        req.Location,
-		OCloudID:        req.OCloudID,
+		Name:             req.Name,
+		Description:      req.Description,
+		Location:         req.Location,
+		OCloudID:         req.OCloudID,
 		GlobalLocationID: req.GlobalLocationID,
-		Provider:        req.Provider,
-		Region:          req.Region,
-		Zone:            req.Zone,
+		Provider:         req.Provider,
+		Region:           req.Region,
+		Zone:             req.Zone,
 		Status: &models.ResourcePoolStatus{
 			State:           models.ResourcePoolStateAvailable,
 			Health:          models.ResourcePoolHealthHealthy,
@@ -60,23 +60,23 @@ func (a *O2Adaptor) CreateResourcePool(ctx context.Context, req *models.CreateRe
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	
+
 	a.mutex.Lock()
 	a.resourcePools[poolID] = pool
 	a.mutex.Unlock()
-	
+
 	return pool, nil
 }
 
 func (a *O2Adaptor) UpdateResourcePool(ctx context.Context, poolID string, req *models.UpdateResourcePoolRequest) error {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
-	
+
 	pool, exists := a.resourcePools[poolID]
 	if !exists {
 		return fmt.Errorf("resource pool not found: %s", poolID)
 	}
-	
+
 	if req.Name != nil {
 		pool.Name = *req.Name
 	}
@@ -89,20 +89,20 @@ func (a *O2Adaptor) UpdateResourcePool(ctx context.Context, poolID string, req *
 	if req.GlobalLocationID != nil {
 		pool.GlobalLocationID = *req.GlobalLocationID
 	}
-	
+
 	pool.UpdatedAt = time.Now()
-	
+
 	return nil
 }
 
 func (a *O2Adaptor) DeleteResourcePool(ctx context.Context, poolID string) error {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
-	
+
 	if _, exists := a.resourcePools[poolID]; !exists {
 		return fmt.Errorf("resource pool not found: %s", poolID)
 	}
-	
+
 	delete(a.resourcePools, poolID)
 	return nil
 }
@@ -132,13 +132,13 @@ func (a *O2Adaptor) GetResource(ctx context.Context, resourceID string) (*models
 func (a *O2Adaptor) CreateResource(ctx context.Context, req *models.CreateResourceRequest) (*models.Resource, error) {
 	// Placeholder implementation - would create via providers
 	resourceID := fmt.Sprintf("resource-%d", time.Now().UnixNano())
-	
+
 	resource := &models.Resource{
 		ResourceID:       resourceID,
-		Name:            req.Name,
-		Description:     req.Description,
-		ResourceTypeID:  req.ResourceTypeID,
-		ResourcePoolID:  req.ResourcePoolID,
+		Name:             req.Name,
+		Description:      req.Description,
+		ResourceTypeID:   req.ResourceTypeID,
+		ResourcePoolID:   req.ResourcePoolID,
 		ParentResourceID: req.ParentResourceID,
 		Status: &models.ResourceStatus{
 			State:               models.ResourceStatePending,
@@ -151,7 +151,7 @@ func (a *O2Adaptor) CreateResource(ctx context.Context, req *models.CreateResour
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	
+
 	return resource, nil
 }
 
@@ -177,21 +177,21 @@ func (a *O2Adaptor) GetDeploymentTemplate(ctx context.Context, templateID string
 
 func (a *O2Adaptor) CreateDeploymentTemplate(ctx context.Context, req *models.CreateDeploymentTemplateRequest) (*models.DeploymentTemplate, error) {
 	templateID := fmt.Sprintf("template-%d", time.Now().UnixNano())
-	
+
 	template := &models.DeploymentTemplate{
 		DeploymentTemplateID: templateID,
-		Name:                req.Name,
-		Description:         req.Description,
-		Version:             req.Version,
-		Category:            req.Category,
-		Author:              req.Author,
+		Name:                 req.Name,
+		Description:          req.Description,
+		Version:              req.Version,
+		Category:             req.Category,
+		Author:               req.Author,
 		TemplateSpec: &models.TemplateSpecification{
 			Type:        req.Type,
 			Content:     req.Content,
 			ContentType: "yaml",
 		},
-		RequiredResources:   req.Requirements,
-		Tags:               req.Metadata,
+		RequiredResources: req.Requirements,
+		Tags:              req.Metadata,
 		Status: &models.TemplateStatus{
 			State:            "DRAFT", // Fixed constant
 			ValidationStatus: "PENDING",
@@ -199,19 +199,19 @@ func (a *O2Adaptor) CreateDeploymentTemplate(ctx context.Context, req *models.Cr
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	
+
 	// Register the template and return it if successful
 	err := a.catalogService.RegisterDeploymentTemplate(ctx, template)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return template, nil
 }
 
 func (a *O2Adaptor) UpdateDeploymentTemplate(ctx context.Context, templateID string, req *models.UpdateDeploymentTemplateRequest) error {
 	updates := make(map[string]interface{})
-	
+
 	if req.Name != nil {
 		updates["name"] = *req.Name
 	}
@@ -221,7 +221,7 @@ func (a *O2Adaptor) UpdateDeploymentTemplate(ctx context.Context, templateID str
 	if req.Version != nil {
 		updates["version"] = *req.Version
 	}
-	
+
 	return a.catalogService.UpdateDeploymentTemplate(ctx, templateID, updates)
 }
 
@@ -233,16 +233,16 @@ func (a *O2Adaptor) DeleteDeploymentTemplate(ctx context.Context, templateID str
 
 func (a *O2Adaptor) CreateDeployment(ctx context.Context, req *models.CreateDeploymentRequest) (*models.Deployment, error) {
 	deploymentID := fmt.Sprintf("deployment-%d", time.Now().UnixNano())
-	
+
 	deployment := &models.Deployment{
 		DeploymentManagerID: deploymentID,
-		Name:               req.Name,
-		Description:        req.Description,
-		ParentDeploymentID: req.ParentDeploymentID,
-		TemplateID:         req.TemplateID,
-		TemplateVersion:    req.TemplateVersion,
-		InputParameters:    req.InputParameters,
-		ResourcePoolID:     req.ResourcePoolID,
+		Name:                req.Name,
+		Description:         req.Description,
+		ParentDeploymentID:  req.ParentDeploymentID,
+		TemplateID:          req.TemplateID,
+		TemplateVersion:     req.TemplateVersion,
+		InputParameters:     req.InputParameters,
+		ResourcePoolID:      req.ResourcePoolID,
 		Status: &models.DeploymentStatus{
 			State:           models.DeploymentStatePending,
 			Phase:           models.DeploymentPhaseCreating,
@@ -253,69 +253,69 @@ func (a *O2Adaptor) CreateDeployment(ctx context.Context, req *models.CreateDepl
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	
+
 	a.mutex.Lock()
 	a.deployments[deploymentID] = deployment
 	a.mutex.Unlock()
-	
+
 	return deployment, nil
 }
 
 func (a *O2Adaptor) GetDeployments(ctx context.Context, filter *models.DeploymentFilter) ([]*models.Deployment, error) {
 	a.mutex.RLock()
 	defer a.mutex.RUnlock()
-	
+
 	var deployments []*models.Deployment
 	for _, deployment := range a.deployments {
 		if matchesDeploymentFilter(deployment, filter) {
 			deployments = append(deployments, deployment)
 		}
 	}
-	
+
 	return deployments, nil
 }
 
 func (a *O2Adaptor) GetDeployment(ctx context.Context, deploymentID string) (*models.Deployment, error) {
 	a.mutex.RLock()
 	defer a.mutex.RUnlock()
-	
+
 	deployment, exists := a.deployments[deploymentID]
 	if !exists {
 		return nil, fmt.Errorf("deployment not found: %s", deploymentID)
 	}
-	
+
 	return deployment, nil
 }
 
 func (a *O2Adaptor) UpdateDeployment(ctx context.Context, deploymentID string, req *models.UpdateDeploymentRequest) error {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
-	
+
 	deployment, exists := a.deployments[deploymentID]
 	if !exists {
 		return fmt.Errorf("deployment not found: %s", deploymentID)
 	}
-	
+
 	if req.Description != nil {
 		deployment.Description = *req.Description
 	}
 	if req.InputParameters != nil {
 		deployment.InputParameters = req.InputParameters
 	}
-	
+
 	deployment.UpdatedAt = time.Now()
-	
+
 	return nil
 }
 
 func (a *O2Adaptor) DeleteDeployment(ctx context.Context, deploymentID string) error {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
-	
+
 	if _, exists := a.deployments[deploymentID]; !exists {
 		return fmt.Errorf("deployment not found: %s", deploymentID)
 	}
-	
+
 	delete(a.deployments, deploymentID)
 	return nil
 }
@@ -324,17 +324,17 @@ func (a *O2Adaptor) DeleteDeployment(ctx context.Context, deploymentID string) e
 
 func (a *O2Adaptor) CreateSubscription(ctx context.Context, req *models.CreateSubscriptionRequest) (*models.Subscription, error) {
 	subscriptionID := fmt.Sprintf("subscription-%d", time.Now().UnixNano())
-	
+
 	subscription := &models.Subscription{
 		SubscriptionID:         subscriptionID,
-		Name:                  req.Name,
-		Description:           req.Description,
-		CallbackUri:           req.CallbackUri,
+		Name:                   req.Name,
+		Description:            req.Description,
+		CallbackUri:            req.CallbackUri,
 		ConsumerSubscriptionId: req.ConsumerSubscriptionId,
-		EventTypes:            req.EventTypes,
-		Filter:                req.Filter,
-		EventConfig:           req.EventConfig,
-		Authentication:        req.Authentication,
+		EventTypes:             req.EventTypes,
+		Filter:                 req.Filter,
+		EventConfig:            req.EventConfig,
+		Authentication:         req.Authentication,
 		Status: &models.SubscriptionStatus{
 			State:           models.SubscriptionStateActive,
 			Health:          models.SubscriptionHealthHealthy,
@@ -344,47 +344,47 @@ func (a *O2Adaptor) CreateSubscription(ctx context.Context, req *models.CreateSu
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	
+
 	a.mutex.Lock()
 	a.subscriptions[subscriptionID] = subscription
 	a.mutex.Unlock()
-	
+
 	return subscription, nil
 }
 
 func (a *O2Adaptor) GetSubscriptions(ctx context.Context, filter *models.SubscriptionFilter) ([]*models.Subscription, error) {
 	a.mutex.RLock()
 	defer a.mutex.RUnlock()
-	
+
 	var subscriptions []*models.Subscription
 	for _, subscription := range a.subscriptions {
 		subscriptions = append(subscriptions, subscription)
 	}
-	
+
 	return subscriptions, nil
 }
 
 func (a *O2Adaptor) GetSubscription(ctx context.Context, subscriptionID string) (*models.Subscription, error) {
 	a.mutex.RLock()
 	defer a.mutex.RUnlock()
-	
+
 	subscription, exists := a.subscriptions[subscriptionID]
 	if !exists {
 		return nil, fmt.Errorf("subscription not found: %s", subscriptionID)
 	}
-	
+
 	return subscription, nil
 }
 
 func (a *O2Adaptor) UpdateSubscription(ctx context.Context, subscriptionID string, req *models.UpdateSubscriptionRequest) error {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
-	
+
 	subscription, exists := a.subscriptions[subscriptionID]
 	if !exists {
 		return fmt.Errorf("subscription not found: %s", subscriptionID)
 	}
-	
+
 	if req.Name != nil {
 		subscription.Name = *req.Name
 	}
@@ -394,20 +394,20 @@ func (a *O2Adaptor) UpdateSubscription(ctx context.Context, subscriptionID strin
 	if req.CallbackUri != nil {
 		subscription.CallbackUri = *req.CallbackUri
 	}
-	
+
 	subscription.UpdatedAt = time.Now()
-	
+
 	return nil
 }
 
 func (a *O2Adaptor) DeleteSubscription(ctx context.Context, subscriptionID string) error {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
-	
+
 	if _, exists := a.subscriptions[subscriptionID]; !exists {
 		return fmt.Errorf("subscription not found: %s", subscriptionID)
 	}
-	
+
 	delete(a.subscriptions, subscriptionID)
 	return nil
 }
@@ -427,7 +427,7 @@ func (a *O2Adaptor) GetNotificationEventTypes(ctx context.Context) ([]*models.No
 			UpdatedAt:   time.Now(),
 		},
 		{
-			EventTypeID: "ResourceUpdated", 
+			EventTypeID: "ResourceUpdated",
 			Name:        "Resource Updated",
 			Description: "Triggered when a resource is updated",
 			Category:    models.EventCategoryLifecycle,
@@ -437,7 +437,7 @@ func (a *O2Adaptor) GetNotificationEventTypes(ctx context.Context) ([]*models.No
 		},
 		{
 			EventTypeID: "ResourceDeleted",
-			Name:        "Resource Deleted", 
+			Name:        "Resource Deleted",
 			Description: "Triggered when a resource is deleted",
 			Category:    models.EventCategoryLifecycle,
 			Severity:    models.EventSeverityInfo,
@@ -454,7 +454,7 @@ func (a *O2Adaptor) GetNotificationEventTypes(ctx context.Context) ([]*models.No
 			UpdatedAt:   time.Now(),
 		},
 	}
-	
+
 	return eventTypes, nil
 }
 
@@ -498,7 +498,7 @@ func matchesResourcePoolFilter(pool *models.ResourcePool, filter *models.Resourc
 	if filter == nil {
 		return true
 	}
-	
+
 	// Check names filter
 	if len(filter.Names) > 0 {
 		found := false
@@ -512,7 +512,7 @@ func matchesResourcePoolFilter(pool *models.ResourcePool, filter *models.Resourc
 			return false
 		}
 	}
-	
+
 	// Check providers filter
 	if len(filter.Providers) > 0 {
 		found := false
@@ -526,7 +526,7 @@ func matchesResourcePoolFilter(pool *models.ResourcePool, filter *models.Resourc
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -534,7 +534,7 @@ func matchesDeploymentFilter(deployment *models.Deployment, filter *models.Deplo
 	if filter == nil {
 		return true
 	}
-	
+
 	// Check names filter
 	if len(filter.Names) > 0 {
 		found := false
@@ -548,7 +548,7 @@ func matchesDeploymentFilter(deployment *models.Deployment, filter *models.Deplo
 			return false
 		}
 	}
-	
+
 	// Check template IDs filter
 	if len(filter.TemplateIDs) > 0 {
 		found := false
@@ -562,6 +562,6 @@ func matchesDeploymentFilter(deployment *models.Deployment, filter *models.Deplo
 			return false
 		}
 	}
-	
+
 	return true
 }

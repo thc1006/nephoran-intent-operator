@@ -139,7 +139,7 @@ func (s *LLMProcessorService) initializeLLMComponents(ctx context.Context) error
 	// Initialize main processor with circuit breaker
 	circuitBreaker := s.circuitBreakerMgr.GetOrCreate("llm-processor", nil)
 	s.processor = &handlers.IntentProcessor{
-		LLMClient:      llmClient,
+		LLMClient: llmClient,
 		// RAGEnhancedClient: ragEnhanced, // TODO: uncomment when RAG is properly initialized
 		CircuitBreaker: circuitBreaker,
 		Logger:         s.logger,

@@ -32,21 +32,21 @@ import (
 
 // IntentRequest represents a request to create or update an intent
 type IntentRequest struct {
-	Name                string                          `json:"name"`
-	Namespace           string                          `json:"namespace,omitempty"`
-	Intent              string                          `json:"intent"`
-	IntentType          nephoranv1.IntentType                    `json:"intent_type"`
-	Priority            nephoranv1.NetworkPriority               `json:"priority,omitempty"`
-	TargetComponents    []nephoranv1.NetworkTargetComponent      `json:"target_components,omitempty"`
+	Name                string                                 `json:"name"`
+	Namespace           string                                 `json:"namespace,omitempty"`
+	Intent              string                                 `json:"intent"`
+	IntentType          nephoranv1.IntentType                  `json:"intent_type"`
+	Priority            nephoranv1.NetworkPriority             `json:"priority,omitempty"`
+	TargetComponents    []nephoranv1.NetworkTargetComponent    `json:"target_components,omitempty"`
 	ResourceConstraints *nephoranv1.NetworkResourceConstraints `json:"resource_constraints,omitempty"`
-	TargetNamespace     string                          `json:"target_namespace,omitempty"`
-	TargetCluster       string                          `json:"target_cluster,omitempty"`
-	NetworkSlice        string                          `json:"network_slice,omitempty"`
-	Region              string                          `json:"region,omitempty"`
-	TimeoutSeconds      *int32                          `json:"timeout_seconds,omitempty"`
-	MaxRetries          *int32                          `json:"max_retries,omitempty"`
-	Labels              map[string]string               `json:"labels,omitempty"`
-	Annotations         map[string]string               `json:"annotations,omitempty"`
+	TargetNamespace     string                                 `json:"target_namespace,omitempty"`
+	TargetCluster       string                                 `json:"target_cluster,omitempty"`
+	NetworkSlice        string                                 `json:"network_slice,omitempty"`
+	Region              string                                 `json:"region,omitempty"`
+	TimeoutSeconds      *int32                                 `json:"timeout_seconds,omitempty"`
+	MaxRetries          *int32                                 `json:"max_retries,omitempty"`
+	Labels              map[string]string                      `json:"labels,omitempty"`
+	Annotations         map[string]string                      `json:"annotations,omitempty"`
 }
 
 // IntentResponse represents an intent response with extended information
@@ -306,7 +306,7 @@ func (s *NephoranAPIServer) createIntent(w http.ResponseWriter, r *http.Request)
 	createdIntent.CreationTimestamp = metav1.Now()
 	createdIntent.Generation = 1
 	createdIntent.UID = "mock-uid-12345"
-	
+
 	s.logger.Info("Intent created (mock implementation)", "name", req.Name, "namespace", req.Namespace)
 
 	// Invalidate cache
@@ -362,7 +362,7 @@ func (s *NephoranAPIServer) getIntent(w http.ResponseWriter, r *http.Request) {
 			Priority:   nephoranv1.NetworkPriorityNormal,
 		},
 	}
-	
+
 	s.logger.Info("Retrieved intent (mock implementation)", "name", name, "namespace", namespace)
 
 	response := s.buildIntentResponse(&intent)
@@ -421,7 +421,7 @@ func (s *NephoranAPIServer) updateIntent(w http.ResponseWriter, r *http.Request)
 			Priority:   nephoranv1.NetworkPriorityNormal,
 		},
 	}
-	
+
 	s.logger.Info("Retrieved existing intent for update (mock implementation)", "name", name, "namespace", namespace)
 
 	// Update the intent spec
@@ -455,7 +455,7 @@ func (s *NephoranAPIServer) updateIntent(w http.ResponseWriter, r *http.Request)
 	updatedIntent := existingIntent
 	updatedIntent.Generation++
 	updatedIntent.ResourceVersion = "2"
-	
+
 	s.logger.Info("Updated intent (mock implementation)", "name", name, "namespace", namespace)
 
 	// Invalidate cache
@@ -543,7 +543,7 @@ func (s *NephoranAPIServer) getIntentStatus(w http.ResponseWriter, r *http.Reque
 			LastMessage: "Mock processing status",
 		},
 	}
-	
+
 	s.logger.Info("Retrieved intent status (mock implementation)", "name", name, "namespace", namespace)
 
 	// Build detailed status response

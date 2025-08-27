@@ -873,12 +873,12 @@ func (ers *EnhancedRetrievalService) GetMetrics() *RetrievalMetrics {
 		CacheMisses:            ers.metrics.CacheMisses,
 		LastUpdated:            ers.metrics.LastUpdated,
 	}
-	
+
 	// Deep copy map
 	for k, v := range ers.metrics.IntentTypeMetrics {
 		metrics.IntentTypeMetrics[k] = v
 	}
-	
+
 	return metrics
 }
 

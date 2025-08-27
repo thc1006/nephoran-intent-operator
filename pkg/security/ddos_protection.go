@@ -56,90 +56,90 @@ var (
 // DDoSProtectionConfig contains DDoS protection configuration
 type DDoSProtectionConfig struct {
 	// Rate limiting tiers
-	GlobalRateLimit     int           `json:"global_rate_limit"`     // Requests per second globally
-	PerIPRateLimit      int           `json:"per_ip_rate_limit"`     // Requests per second per IP
-	BurstSize           int           `json:"burst_size"`            // Burst capacity
-	WindowSize          time.Duration `json:"window_size"`           // Time window for rate limiting
+	GlobalRateLimit int           `json:"global_rate_limit"` // Requests per second globally
+	PerIPRateLimit  int           `json:"per_ip_rate_limit"` // Requests per second per IP
+	BurstSize       int           `json:"burst_size"`        // Burst capacity
+	WindowSize      time.Duration `json:"window_size"`       // Time window for rate limiting
 
 	// Connection limits
-	MaxConcurrentConns  int `json:"max_concurrent_conns"`  // Maximum concurrent connections
-	MaxConnsPerIP       int `json:"max_conns_per_ip"`      // Maximum connections per IP
-	ConnectionTimeout   time.Duration `json:"connection_timeout"`   // Connection timeout
+	MaxConcurrentConns int           `json:"max_concurrent_conns"` // Maximum concurrent connections
+	MaxConnsPerIP      int           `json:"max_conns_per_ip"`     // Maximum connections per IP
+	ConnectionTimeout  time.Duration `json:"connection_timeout"`   // Connection timeout
 
 	// Detection thresholds
-	SuspiciousThreshold int           `json:"suspicious_threshold"`  // Requests to trigger suspicious behavior
-	AttackThreshold     int           `json:"attack_threshold"`      // Requests to trigger attack detection
-	DetectionWindow     time.Duration `json:"detection_window"`      // Time window for attack detection
+	SuspiciousThreshold int           `json:"suspicious_threshold"` // Requests to trigger suspicious behavior
+	AttackThreshold     int           `json:"attack_threshold"`     // Requests to trigger attack detection
+	DetectionWindow     time.Duration `json:"detection_window"`     // Time window for attack detection
 
 	// Blocking and mitigation
-	BlockDuration       time.Duration `json:"block_duration"`        // How long to block attacking IPs
-	TempBanDuration     time.Duration `json:"temp_ban_duration"`     // Temporary ban duration
-	MaxBlockedIPs       int           `json:"max_blocked_ips"`       // Maximum number of IPs to block
+	BlockDuration   time.Duration `json:"block_duration"`    // How long to block attacking IPs
+	TempBanDuration time.Duration `json:"temp_ban_duration"` // Temporary ban duration
+	MaxBlockedIPs   int           `json:"max_blocked_ips"`   // Maximum number of IPs to block
 
 	// Whitelist and blacklist
-	WhitelistIPs        []string      `json:"whitelist_ips"`         // Always allowed IPs
-	WhitelistCIDRs      []string      `json:"whitelist_cidrs"`       // Always allowed CIDR ranges
-	BlacklistIPs        []string      `json:"blacklist_ips"`         // Always blocked IPs
-	BlacklistCIDRs      []string      `json:"blacklist_cidrs"`       // Always blocked CIDR ranges
+	WhitelistIPs   []string `json:"whitelist_ips"`   // Always allowed IPs
+	WhitelistCIDRs []string `json:"whitelist_cidrs"` // Always allowed CIDR ranges
+	BlacklistIPs   []string `json:"blacklist_ips"`   // Always blocked IPs
+	BlacklistCIDRs []string `json:"blacklist_cidrs"` // Always blocked CIDR ranges
 
 	// Geolocation filtering
-	EnableGeoFiltering  bool          `json:"enable_geo_filtering"`  // Enable geolocation-based filtering
-	AllowedCountries    []string      `json:"allowed_countries"`     // Allowed country codes
-	BlockedCountries    []string      `json:"blocked_countries"`     // Blocked country codes
+	EnableGeoFiltering bool     `json:"enable_geo_filtering"` // Enable geolocation-based filtering
+	AllowedCountries   []string `json:"allowed_countries"`    // Allowed country codes
+	BlockedCountries   []string `json:"blocked_countries"`    // Blocked country codes
 
 	// Challenge mechanisms
-	EnableCaptcha       bool          `json:"enable_captcha"`        // Enable CAPTCHA challenges
-	EnableRateProof     bool          `json:"enable_rate_proof"`     // Enable proof-of-work challenges
-	ChallengeThreshold  int           `json:"challenge_threshold"`   // Requests to trigger challenge
+	EnableCaptcha      bool `json:"enable_captcha"`      // Enable CAPTCHA challenges
+	EnableRateProof    bool `json:"enable_rate_proof"`   // Enable proof-of-work challenges
+	ChallengeThreshold int  `json:"challenge_threshold"` // Requests to trigger challenge
 
 	// Monitoring and alerting
-	EnableAlerts        bool          `json:"enable_alerts"`         // Enable security alerts
-	AlertWebhook        string        `json:"alert_webhook"`         // Webhook URL for alerts
-	MetricsRetention    time.Duration `json:"metrics_retention"`     // How long to keep metrics
+	EnableAlerts     bool          `json:"enable_alerts"`     // Enable security alerts
+	AlertWebhook     string        `json:"alert_webhook"`     // Webhook URL for alerts
+	MetricsRetention time.Duration `json:"metrics_retention"` // How long to keep metrics
 }
 
 // DDoSProtector implements comprehensive DDoS protection
 type DDoSProtector struct {
-	config         *DDoSProtectionConfig
-	logger         *slog.Logger
+	config *DDoSProtectionConfig
+	logger *slog.Logger
 
 	// Rate limiting
-	globalLimiter  *rate.Limiter
-	ipLimiters     sync.Map // map[string]*IPLimiter
-	
+	globalLimiter *rate.Limiter
+	ipLimiters    sync.Map // map[string]*IPLimiter
+
 	// Connection tracking
-	activeConns    int64
-	connsByIP      sync.Map // map[string]int64
-	
+	activeConns int64
+	connsByIP   sync.Map // map[string]int64
+
 	// Attack detection
-	requestCounts  sync.Map // map[string]*RequestCounter
-	blockedIPs     sync.Map // map[string]*BlockedIP
-	suspiciousIPs  sync.Map // map[string]*SuspiciousActivity
-	
+	requestCounts sync.Map // map[string]*RequestCounter
+	blockedIPs    sync.Map // map[string]*BlockedIP
+	suspiciousIPs sync.Map // map[string]*SuspiciousActivity
+
 	// Network lists
-	whitelist      *NetworkList
-	blacklist      *NetworkList
-	
+	whitelist *NetworkList
+	blacklist *NetworkList
+
 	// Geolocation filter
-	geoFilter      *GeolocationFilter
-	
+	geoFilter *GeolocationFilter
+
 	// Challenge system
-	challenges     sync.Map // map[string]*Challenge
-	
+	challenges sync.Map // map[string]*Challenge
+
 	// Metrics and stats
-	stats          *DDoSStats
-	
+	stats *DDoSStats
+
 	// Background tasks
-	cleanup        *time.Ticker
-	shutdown       chan struct{}
-	wg             sync.WaitGroup
+	cleanup  *time.Ticker
+	shutdown chan struct{}
+	wg       sync.WaitGroup
 }
 
 // IPLimiter tracks rate limiting for a specific IP
 type IPLimiter struct {
-	limiter      *rate.Limiter
-	lastAccess   time.Time
-	violations   int64
+	limiter       *rate.Limiter
+	lastAccess    time.Time
+	violations    int64
 	totalRequests int64
 }
 
@@ -172,17 +172,17 @@ type SuspiciousActivity struct {
 
 // SuspiciousEvent represents a suspicious event
 type SuspiciousEvent struct {
-	Timestamp   time.Time
-	EventType   string
-	Details     string
-	Severity    int
+	Timestamp time.Time
+	EventType string
+	Details   string
+	Severity  int
 }
 
 // NetworkList manages IP whitelists and blacklists
 type NetworkList struct {
-	ips     map[string]bool
-	cidrs   []*net.IPNet
-	mu      sync.RWMutex
+	ips   map[string]bool
+	cidrs []*net.IPNet
+	mu    sync.RWMutex
 }
 
 // GeolocationFilter provides geolocation-based filtering
@@ -195,14 +195,14 @@ type GeolocationFilter struct {
 
 // Challenge represents a security challenge
 type Challenge struct {
-	ID          string
-	IP          string
-	Type        string
-	CreatedAt   time.Time
-	ExpiresAt   time.Time
-	Attempts    int
-	Solved      bool
-	Token       string
+	ID        string
+	IP        string
+	Type      string
+	CreatedAt time.Time
+	ExpiresAt time.Time
+	Attempts  int
+	Solved    bool
+	Token     string
 }
 
 // DDoSStats tracks DDoS protection statistics
@@ -231,11 +231,11 @@ func NewDDoSProtector(config *DDoSProtectionConfig, logger *slog.Logger) (*DDoSP
 	}
 
 	ddp := &DDoSProtector{
-		config:    config,
-		logger:    logger.With(slog.String("component", "ddos_protector")),
-		stats:     &DDoSStats{},
-		cleanup:   time.NewTicker(1 * time.Minute),
-		shutdown:  make(chan struct{}),
+		config:   config,
+		logger:   logger.With(slog.String("component", "ddos_protector")),
+		stats:    &DDoSStats{},
+		cleanup:  time.NewTicker(1 * time.Minute),
+		shutdown: make(chan struct{}),
 	}
 
 	// Initialize global rate limiter
@@ -253,7 +253,7 @@ func NewDDoSProtector(config *DDoSProtectionConfig, logger *slog.Logger) (*DDoSP
 			allowedCountries: make(map[string]bool),
 			blockedCountries: make(map[string]bool),
 		}
-		
+
 		for _, country := range config.AllowedCountries {
 			ddp.geoFilter.allowedCountries[strings.ToUpper(country)] = true
 		}
@@ -378,7 +378,7 @@ func (ddp *DDoSProtector) ProcessRequest(r *http.Request) (bool, string, error) 
 	// Check for suspicious activity
 	if ddp.detectSuspiciousActivity(clientIP, r) {
 		atomic.AddInt64(&ddp.stats.SuspiciousRequests, 1)
-		
+
 		// Send challenge if enabled
 		if ddp.config.EnableCaptcha || ddp.config.EnableRateProof {
 			if ddp.shouldChallenge(clientIP) {
@@ -394,12 +394,12 @@ func (ddp *DDoSProtector) ProcessRequest(r *http.Request) (bool, string, error) 
 		atomic.AddInt64(&ddp.stats.BlockedRequests, 1)
 		ddosAttacksDetected.WithLabelValues("volumetric", clientIP).Inc()
 		ddp.stats.LastAttack = time.Now()
-		
+
 		// Send alert if enabled
 		if ddp.config.EnableAlerts {
 			go ddp.sendSecurityAlert("DDoS Attack Detected", clientIP, "volumetric")
 		}
-		
+
 		return false, "DDoS attack detected, IP blocked", nil
 	}
 
@@ -524,21 +524,21 @@ func (ddp *DDoSProtector) checkConnectionLimits(ip string) bool {
 // updateAttackDetection updates attack detection counters
 func (ddp *DDoSProtector) updateAttackDetection(ip string) {
 	now := time.Now()
-	
+
 	counterInfo, _ := ddp.requestCounts.LoadOrStore(ip, &RequestCounter{
 		firstSeen:   now,
 		windowStart: now,
 	})
-	
+
 	counter := counterInfo.(*RequestCounter)
 	counter.lastSeen = now
-	
+
 	// Reset counter if window has passed
 	if now.Sub(counter.windowStart) > ddp.config.DetectionWindow {
 		counter.count = 0
 		counter.windowStart = now
 	}
-	
+
 	atomic.AddInt64(&counter.count, 1)
 }
 
@@ -546,23 +546,23 @@ func (ddp *DDoSProtector) updateAttackDetection(ip string) {
 func (ddp *DDoSProtector) detectSuspiciousActivity(ip string, r *http.Request) bool {
 	// Check for suspicious patterns
 	suspicious := false
-	
+
 	// Check user agent
 	userAgent := r.UserAgent()
 	if userAgent == "" || strings.Contains(strings.ToLower(userAgent), "bot") {
 		suspicious = true
 	}
-	
+
 	// Check for suspicious headers
 	if r.Header.Get("X-Forwarded-For") != "" && len(strings.Split(r.Header.Get("X-Forwarded-For"), ",")) > 3 {
 		suspicious = true
 	}
-	
+
 	// Check request patterns
 	if strings.Contains(r.URL.Path, "..") || strings.Contains(r.URL.Path, "admin") {
 		suspicious = true
 	}
-	
+
 	if suspicious {
 		now := time.Now()
 		suspiciousInfo, _ := ddp.suspiciousIPs.LoadOrStore(ip, &SuspiciousActivity{
@@ -570,7 +570,7 @@ func (ddp *DDoSProtector) detectSuspiciousActivity(ip string, r *http.Request) b
 			FirstDetected: now,
 			ThreatScore:   0,
 		})
-		
+
 		activity := suspiciousInfo.(*SuspiciousActivity)
 		activity.LastSeen = now
 		activity.ThreatScore++
@@ -581,7 +581,7 @@ func (ddp *DDoSProtector) detectSuspiciousActivity(ip string, r *http.Request) b
 			Severity:  1,
 		})
 	}
-	
+
 	return suspicious
 }
 
@@ -590,13 +590,13 @@ func (ddp *DDoSProtector) detectDDoSAttack(ip string) bool {
 	if counterInfo, exists := ddp.requestCounts.Load(ip); exists {
 		counter := counterInfo.(*RequestCounter)
 		currentCount := atomic.LoadInt64(&counter.count)
-		
+
 		// Check if request count exceeds attack threshold
 		if currentCount > int64(ddp.config.AttackThreshold) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -605,10 +605,10 @@ func (ddp *DDoSProtector) shouldChallenge(ip string) bool {
 	if counterInfo, exists := ddp.requestCounts.Load(ip); exists {
 		counter := counterInfo.(*RequestCounter)
 		currentCount := atomic.LoadInt64(&counter.count)
-		
+
 		return currentCount > int64(ddp.config.ChallengeThreshold)
 	}
-	
+
 	return false
 }
 
@@ -616,7 +616,7 @@ func (ddp *DDoSProtector) shouldChallenge(ip string) bool {
 func (ddp *DDoSProtector) blockIP(ip, reason, attackType string) {
 	now := time.Now()
 	expiresAt := now.Add(ddp.config.BlockDuration)
-	
+
 	blocked := &BlockedIP{
 		IP:         ip,
 		BlockedAt:  now,
@@ -624,17 +624,17 @@ func (ddp *DDoSProtector) blockIP(ip, reason, attackType string) {
 		Reason:     reason,
 		AttackType: attackType,
 	}
-	
+
 	if counterInfo, exists := ddp.requestCounts.Load(ip); exists {
 		counter := counterInfo.(*RequestCounter)
 		blocked.RequestCount = atomic.LoadInt64(&counter.count)
 	}
-	
+
 	ddp.blockedIPs.Store(ip, blocked)
 	atomic.AddInt64(&ddp.stats.IPsBlocked, 1)
 	atomic.AddInt64(&ddp.stats.ActiveBlocks, 1)
 	ddp.stats.LastBlock = now
-	
+
 	ddp.logger.Warn("IP blocked",
 		slog.String("ip", ip),
 		slog.String("reason", reason),
@@ -647,7 +647,7 @@ func (ddp *DDoSProtector) sendSecurityAlert(alertType, ip, details string) {
 	if ddp.config.AlertWebhook == "" {
 		return
 	}
-	
+
 	// In production, send alert to webhook
 	ddp.logger.Error("Security alert",
 		slog.String("type", alertType),
@@ -667,7 +667,7 @@ func (ddp *DDoSProtector) CreateHTTPMiddleware() func(http.Handler) http.Handler
 				atomic.AddInt64(connCount.(*int64), 1)
 				activeConnections.WithLabelValues("http").Inc()
 			}
-			
+
 			defer func() {
 				atomic.AddInt64(&ddp.activeConns, -1)
 				if clientIP != "" {
@@ -677,7 +677,7 @@ func (ddp *DDoSProtector) CreateHTTPMiddleware() func(http.Handler) http.Handler
 					activeConnections.WithLabelValues("http").Dec()
 				}
 			}()
-			
+
 			// Process request through DDoS protection
 			allowed, reason, err := ddp.ProcessRequest(r)
 			if err != nil {
@@ -685,23 +685,23 @@ func (ddp *DDoSProtector) CreateHTTPMiddleware() func(http.Handler) http.Handler
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
-			
+
 			if !allowed {
 				ddp.logger.Warn("Request blocked by DDoS protection",
 					slog.String("client_ip", clientIP),
 					slog.String("reason", reason),
 					slog.String("path", r.URL.Path),
 					slog.String("user_agent", r.UserAgent()))
-				
+
 				// Add security headers
 				w.Header().Set("X-Content-Type-Options", "nosniff")
 				w.Header().Set("X-Frame-Options", "DENY")
 				w.Header().Set("Retry-After", "60")
-				
+
 				http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
 				return
 			}
-			
+
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -710,7 +710,7 @@ func (ddp *DDoSProtector) CreateHTTPMiddleware() func(http.Handler) http.Handler
 // backgroundCleanup performs cleanup tasks
 func (ddp *DDoSProtector) backgroundCleanup() {
 	defer ddp.wg.Done()
-	
+
 	for {
 		select {
 		case <-ddp.cleanup.C:
@@ -725,7 +725,7 @@ func (ddp *DDoSProtector) backgroundCleanup() {
 func (ddp *DDoSProtector) cleanupExpiredEntries() {
 	now := time.Now()
 	cleanupThreshold := now.Add(-1 * time.Hour)
-	
+
 	// Clean up IP limiters
 	ddp.ipLimiters.Range(func(key, value interface{}) bool {
 		limiter := value.(*IPLimiter)
@@ -734,7 +734,7 @@ func (ddp *DDoSProtector) cleanupExpiredEntries() {
 		}
 		return true
 	})
-	
+
 	// Clean up request counters
 	ddp.requestCounts.Range(func(key, value interface{}) bool {
 		counter := value.(*RequestCounter)
@@ -743,7 +743,7 @@ func (ddp *DDoSProtector) cleanupExpiredEntries() {
 		}
 		return true
 	})
-	
+
 	// Clean up blocked IPs
 	ddp.blockedIPs.Range(func(key, value interface{}) bool {
 		blocked := value.(*BlockedIP)
@@ -753,7 +753,7 @@ func (ddp *DDoSProtector) cleanupExpiredEntries() {
 		}
 		return true
 	})
-	
+
 	// Clean up suspicious IPs
 	ddp.suspiciousIPs.Range(func(key, value interface{}) bool {
 		activity := value.(*SuspiciousActivity)
@@ -774,7 +774,7 @@ func (ddp *DDoSProtector) Close() error {
 	ddp.cleanup.Stop()
 	close(ddp.shutdown)
 	ddp.wg.Wait()
-	
+
 	ddp.logger.Info("DDoS protector shut down")
 	return nil
 }
@@ -784,23 +784,23 @@ func DefaultDDoSProtectionConfig() *DDoSProtectionConfig {
 	return &DDoSProtectionConfig{
 		GlobalRateLimit:     1000,
 		PerIPRateLimit:      50,
-		BurstSize:          100,
-		WindowSize:         1 * time.Minute,
-		MaxConcurrentConns: 10000,
-		MaxConnsPerIP:      100,
-		ConnectionTimeout:  30 * time.Second,
+		BurstSize:           100,
+		WindowSize:          1 * time.Minute,
+		MaxConcurrentConns:  10000,
+		MaxConnsPerIP:       100,
+		ConnectionTimeout:   30 * time.Second,
 		SuspiciousThreshold: 100,
-		AttackThreshold:    200,
-		DetectionWindow:    1 * time.Minute,
-		BlockDuration:      15 * time.Minute,
-		TempBanDuration:    1 * time.Hour,
-		MaxBlockedIPs:      10000,
-		EnableGeoFiltering: false,
-		EnableCaptcha:      false,
-		EnableRateProof:    false,
-		ChallengeThreshold: 50,
-		EnableAlerts:       true,
-		MetricsRetention:   24 * time.Hour,
+		AttackThreshold:     200,
+		DetectionWindow:     1 * time.Minute,
+		BlockDuration:       15 * time.Minute,
+		TempBanDuration:     1 * time.Hour,
+		MaxBlockedIPs:       10000,
+		EnableGeoFiltering:  false,
+		EnableCaptcha:       false,
+		EnableRateProof:     false,
+		ChallengeThreshold:  50,
+		EnableAlerts:        true,
+		MetricsRetention:    24 * time.Hour,
 	}
 }
 

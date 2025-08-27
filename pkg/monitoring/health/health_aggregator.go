@@ -472,9 +472,9 @@ const (
 type RecommendationPriority string
 
 const (
-	PriorityEmergency     RecommendationPriority = "emergency"
-	PriorityHigh          RecommendationPriority = "high"
-	PriorityMedium        RecommendationPriority = "medium"
+	PriorityEmergency RecommendationPriority = "emergency"
+	PriorityHigh      RecommendationPriority = "high"
+	PriorityMedium    RecommendationPriority = "medium"
 	// PriorityLow removed - use ActionPriority from types.go instead
 	PriorityInformational RecommendationPriority = "informational"
 )

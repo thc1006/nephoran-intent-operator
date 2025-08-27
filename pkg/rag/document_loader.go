@@ -1417,7 +1417,7 @@ func (dl *DocumentLoader) GetMetrics() *LoaderMetrics {
 		TotalProcessingTime: dl.metrics.TotalProcessingTime,
 		LastProcessedAt:     dl.metrics.LastProcessedAt,
 	}
-	
+
 	return metrics
 }
 

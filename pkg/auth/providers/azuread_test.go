@@ -623,23 +623,20 @@ func TestAzureADProvider_GetGroups(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 
-			// Check if provider implements EnterpriseProvider
-			if ep, ok := provider.(EnterpriseProvider); ok {
-				groups, err := ep.GetGroups(ctx, tt.token)
+			// Since provider is *AzureADProvider which implements EnterpriseProvider,
+			// we can directly call GetGroups method
+			groups, err := provider.GetGroups(ctx, tt.token)
 
-				if tt.wantError {
-					assert.Error(t, err)
-					return
-				}
+			if tt.wantError {
+				assert.Error(t, err)
+				return
+			}
 
-				assert.NoError(t, err)
-				assert.Len(t, groups, tt.wantGroupCount)
+			assert.NoError(t, err)
+			assert.Len(t, groups, tt.wantGroupCount)
 
-				if tt.wantGroupCount > 0 {
-					assert.Equal(t, tt.wantFirstGroup, groups[0])
-				}
-			} else {
-				t.Skip("AzureADProvider does not implement EnterpriseProvider")
+			if tt.wantGroupCount > 0 {
+				assert.Equal(t, tt.wantFirstGroup, groups[0])
 			}
 		})
 	}

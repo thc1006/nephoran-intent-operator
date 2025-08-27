@@ -1,9 +1,1 @@
-{
-  "intent_type": "scaling",
-  "target": "e2-node-001",
-  "namespace": "default",
-  "replicas": 3,
-  "reason": "High PRB utilization (92%) and high latency (135ms)",
-  "source": "planner",
-  "correlation_id": "planner-test-1234567890"
-}
+{"version":"v1","type":"scaling","target":{"service":"test-cnf","namespace":"default","replicas":3}}

@@ -81,11 +81,11 @@ type BenchmarkResults struct {
 
 // TestSuiteResults provides overall test suite results
 type TestSuiteResults struct {
-	TotalTests   int                    `json:"total_tests"`
-	PassedTests  int                    `json:"passed_tests"`
-	FailedTests  int                    `json:"failed_tests"`
-	TestCoverage float64                `json:"test_coverage"`
-	OverallScore float64                `json:"overall_score"`
+	TotalTests   int                             `json:"total_tests"`
+	PassedTests  int                             `json:"passed_tests"`
+	FailedTests  int                             `json:"failed_tests"`
+	TestCoverage float64                         `json:"test_coverage"`
+	OverallScore float64                         `json:"overall_score"`
 	TestResults  map[string]*BenchmarkTestResult `json:"test_results"`
 }
 
@@ -242,10 +242,10 @@ type SystemInfo struct {
 
 // TestDataset holds test data for benchmarking
 type TestDataset struct {
-	Queries         []*TestQuery                      `json:"queries"`
-	ExpectedResults map[string]*ExpectedResult        `json:"expected_results"`
+	Queries         []*TestQuery                     `json:"queries"`
+	ExpectedResults map[string]*ExpectedResult       `json:"expected_results"`
 	GroundTruth     map[string][]*types.SearchResult `json:"ground_truth"`
-	QueryComplexity map[string]string                 `json:"query_complexity"`
+	QueryComplexity map[string]string                `json:"query_complexity"`
 }
 
 // TestQuery represents a test query with metadata

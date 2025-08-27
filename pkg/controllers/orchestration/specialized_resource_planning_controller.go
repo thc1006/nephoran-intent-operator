@@ -69,7 +69,7 @@ type SpecializedResourcePlanningController struct {
 }
 
 // ResourcePlanningConfig holds configuration for resource planning
-type ResourcePlanningConfig struct {
+type ResourcePlanningConfig_Specialized struct {
 	// Planning parameters
 	DefaultCPURequest     string  `json:"defaultCpuRequest"`
 	DefaultMemoryRequest  string  `json:"defaultMemoryRequest"`

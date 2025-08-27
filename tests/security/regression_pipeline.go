@@ -33,16 +33,16 @@ type SecurityRegressionPipeline struct {
 
 // PipelineConfig defines the regression testing pipeline configuration
 type PipelineConfig struct {
-	PipelineID           string                    `json:"pipeline_id"`
-	Name                 string                    `json:"name"`
-	Version              string                    `json:"version"`
-	TriggerConditions    []TriggerCondition        `json:"trigger_conditions"`
-	TestStages           []TestStage               `json:"test_stages"`
-	ParallelExecution    bool                      `json:"parallel_execution"`
-	FailureTolerance     string                    `json:"failure_tolerance"`
-	NotificationSettings NotificationSettings      `json:"notification_settings"`
-	Artifacts            ArtifactSettings          `json:"artifacts"`
-	Environment          EnvironmentConfig         `json:"environment"`
+	PipelineID           string                      `json:"pipeline_id"`
+	Name                 string                      `json:"name"`
+	Version              string                      `json:"version"`
+	TriggerConditions    []TriggerCondition          `json:"trigger_conditions"`
+	TestStages           []TestStage                 `json:"test_stages"`
+	ParallelExecution    bool                        `json:"parallel_execution"`
+	FailureTolerance     string                      `json:"failure_tolerance"`
+	NotificationSettings NotificationSettings        `json:"notification_settings"`
+	Artifacts            ArtifactSettings            `json:"artifacts"`
+	Environment          EnvironmentConfig           `json:"environment"`
 	SecurityBaselines    map[string]SecurityBaseline `json:"security_baselines"`
 }
 
@@ -106,8 +106,8 @@ type EnvironmentConfig struct {
 
 // ResourceLimits defines resource constraints for testing
 type ResourceLimits struct {
-	CPU    string `json:"cpu"`
-	Memory string `json:"memory"`
+	CPU     string `json:"cpu"`
+	Memory  string `json:"memory"`
 	Storage string `json:"storage"`
 }
 
@@ -124,36 +124,36 @@ type SecurityBaseline struct {
 
 // PipelineExecutionResults stores comprehensive pipeline execution results
 type PipelineExecutionResults struct {
-	ExecutionID         string                    `json:"execution_id"`
-	PipelineID          string                    `json:"pipeline_id"`
-	StartTime           time.Time                 `json:"start_time"`
-	EndTime             time.Time                 `json:"end_time"`
-	Duration            time.Duration             `json:"duration"`
-	Status              string                    `json:"status"`
-	TriggerEvent        string                    `json:"trigger_event"`
-	StageResults        []StageExecutionResult    `json:"stage_results"`
-	SecurityRegression  *SecurityRegressionReport `json:"security_regression"`
-	ComplianceResults   map[string]float64        `json:"compliance_results"`
-	BaselineComparison  *BaselineComparison       `json:"baseline_comparison"`
-	Artifacts           []ArtifactInfo            `json:"artifacts"`
-	Notifications       []NotificationResult      `json:"notifications"`
-	FailureAnalysis     *FailureAnalysis          `json:"failure_analysis,omitempty"`
+	ExecutionID        string                    `json:"execution_id"`
+	PipelineID         string                    `json:"pipeline_id"`
+	StartTime          time.Time                 `json:"start_time"`
+	EndTime            time.Time                 `json:"end_time"`
+	Duration           time.Duration             `json:"duration"`
+	Status             string                    `json:"status"`
+	TriggerEvent       string                    `json:"trigger_event"`
+	StageResults       []StageExecutionResult    `json:"stage_results"`
+	SecurityRegression *SecurityRegressionReport `json:"security_regression"`
+	ComplianceResults  map[string]float64        `json:"compliance_results"`
+	BaselineComparison *BaselineComparison       `json:"baseline_comparison"`
+	Artifacts          []ArtifactInfo            `json:"artifacts"`
+	Notifications      []NotificationResult      `json:"notifications"`
+	FailureAnalysis    *FailureAnalysis          `json:"failure_analysis,omitempty"`
 }
 
 // StageExecutionResult represents the result of a single stage execution
 type StageExecutionResult struct {
-	StageName       string                 `json:"stage_name"`
-	Status          string                 `json:"status"`
-	StartTime       time.Time              `json:"start_time"`
-	EndTime         time.Time              `json:"end_time"`
-	Duration        time.Duration          `json:"duration"`
-	RetryCount      int                    `json:"retry_count"`
-	TestResults     []TestResult           `json:"test_results"`
+	StageName        string                 `json:"stage_name"`
+	Status           string                 `json:"status"`
+	StartTime        time.Time              `json:"start_time"`
+	EndTime          time.Time              `json:"end_time"`
+	Duration         time.Duration          `json:"duration"`
+	RetryCount       int                    `json:"retry_count"`
+	TestResults      []TestResult           `json:"test_results"`
 	SecurityFindings []SecurityFinding      `json:"security_findings"`
-	Metrics         map[string]float64     `json:"metrics"`
-	Logs            []string               `json:"logs"`
-	Errors          []string               `json:"errors"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	Metrics          map[string]float64     `json:"metrics"`
+	Logs             []string               `json:"logs"`
+	Errors           []string               `json:"errors"`
+	Metadata         map[string]interface{} `json:"metadata"`
 }
 
 // TestResult represents individual test results
@@ -184,13 +184,13 @@ type SecurityFinding struct {
 
 // SecurityRegressionReport contains security regression analysis
 type SecurityRegressionReport struct {
-	TotalFindings       int                `json:"total_findings"`
-	NewFindings         []SecurityFinding  `json:"new_findings"`
-	ResolvedFindings    []SecurityFinding  `json:"resolved_findings"`
-	RegressionFindings  []SecurityFinding  `json:"regression_findings"`
-	SecurityScoreChange float64            `json:"security_score_change"`
-	RiskAnalysis        RiskAnalysis       `json:"risk_analysis"`
-	TrendAnalysis       TrendAnalysis      `json:"trend_analysis"`
+	TotalFindings       int               `json:"total_findings"`
+	NewFindings         []SecurityFinding `json:"new_findings"`
+	ResolvedFindings    []SecurityFinding `json:"resolved_findings"`
+	RegressionFindings  []SecurityFinding `json:"regression_findings"`
+	SecurityScoreChange float64           `json:"security_score_change"`
+	RiskAnalysis        RiskAnalysis      `json:"risk_analysis"`
+	TrendAnalysis       TrendAnalysis     `json:"trend_analysis"`
 }
 
 // BaselineComparison compares current results with baseline
@@ -205,23 +205,23 @@ type BaselineComparison struct {
 
 // RiskAnalysis provides risk assessment of findings
 type RiskAnalysis struct {
-	OverallRisk       string             `json:"overall_risk"`
-	CriticalFindings  int                `json:"critical_findings"`
-	HighFindings      int                `json:"high_findings"`
-	MediumFindings    int                `json:"medium_findings"`
-	LowFindings       int                `json:"low_findings"`
-	RiskScore         float64            `json:"risk_score"`
-	RecommendedActions []string           `json:"recommended_actions"`
-	BusinessImpact    string             `json:"business_impact"`
+	OverallRisk        string   `json:"overall_risk"`
+	CriticalFindings   int      `json:"critical_findings"`
+	HighFindings       int      `json:"high_findings"`
+	MediumFindings     int      `json:"medium_findings"`
+	LowFindings        int      `json:"low_findings"`
+	RiskScore          float64  `json:"risk_score"`
+	RecommendedActions []string `json:"recommended_actions"`
+	BusinessImpact     string   `json:"business_impact"`
 }
 
 // TrendAnalysis analyzes security trends over time
 type TrendAnalysis struct {
-	TimeSpan          time.Duration      `json:"time_span"`
-	FindingsTrend     string             `json:"findings_trend"`
-	ScoreTrend        string             `json:"score_trend"`
-	PatternAnalysis   []string           `json:"pattern_analysis"`
-	PredictiveInsights []string           `json:"predictive_insights"`
+	TimeSpan           time.Duration `json:"time_span"`
+	FindingsTrend      string        `json:"findings_trend"`
+	ScoreTrend         string        `json:"score_trend"`
+	PatternAnalysis    []string      `json:"pattern_analysis"`
+	PredictiveInsights []string      `json:"predictive_insights"`
 }
 
 // ArtifactInfo contains information about generated artifacts
@@ -278,12 +278,12 @@ func NewSecurityRegressionPipeline(client client.Client, k8sClient kubernetes.In
 			SecurityBaselines: make(map[string]SecurityBaseline),
 		},
 		executionResults: &PipelineExecutionResults{
-			ExecutionID:        fmt.Sprintf("exec-%d", time.Now().Unix()),
-			StartTime:          time.Now(),
-			StageResults:       make([]StageExecutionResult, 0),
-			ComplianceResults:  make(map[string]float64),
-			Artifacts:          make([]ArtifactInfo, 0),
-			Notifications:      make([]NotificationResult, 0),
+			ExecutionID:       fmt.Sprintf("exec-%d", time.Now().Unix()),
+			StartTime:         time.Now(),
+			StageResults:      make([]StageExecutionResult, 0),
+			ComplianceResults: make(map[string]float64),
+			Artifacts:         make([]ArtifactInfo, 0),
+			Notifications:     make([]NotificationResult, 0),
 		},
 	}
 }
@@ -414,7 +414,7 @@ var _ = Describe("Security Regression Testing Pipeline", func() {
 	AfterEach(func() {
 		By("Cleaning up test environment")
 		pipeline.cleanupTestEnvironment(ctx)
-		
+
 		By("Archiving pipeline artifacts")
 		pipeline.archivePipelineArtifacts(ctx)
 	})
@@ -431,7 +431,7 @@ func (p *SecurityRegressionPipeline) setupTestEnvironment(ctx context.Context) b
 func (p *SecurityRegressionPipeline) loadSecurityBaselines(ctx context.Context) bool {
 	// Load baseline configurations from storage
 	baselineDir := "test-results/security/baselines"
-	
+
 	if _, err := os.Stat(baselineDir); os.IsNotExist(err) {
 		// Create default baseline
 		defaultBaseline := SecurityBaseline{
@@ -443,31 +443,31 @@ func (p *SecurityRegressionPipeline) loadSecurityBaselines(ctx context.Context) 
 			ComplianceScore: 100.0,
 			Thresholds:      make(map[string]float64),
 		}
-		
+
 		p.pipelineConfig.SecurityBaselines["default"] = defaultBaseline
 		return true
 	}
-	
+
 	// Load existing baselines
 	files, err := filepath.Glob(filepath.Join(baselineDir, "*.json"))
 	if err != nil {
 		return false
 	}
-	
+
 	for _, file := range files {
 		data, err := os.ReadFile(file)
 		if err != nil {
 			continue
 		}
-		
+
 		var baseline SecurityBaseline
 		if err := json.Unmarshal(data, &baseline); err != nil {
 			continue
 		}
-		
+
 		p.pipelineConfig.SecurityBaselines[baseline.Name] = baseline
 	}
-	
+
 	return true
 }
 
@@ -484,33 +484,33 @@ func (p *SecurityRegressionPipeline) executeSecurityScanStage(ctx context.Contex
 		Errors:           make([]string, 0),
 		Metadata:         make(map[string]interface{}),
 	}
-	
+
 	// Execute security scanning tools
 	scanTools := []string{"trivy", "kube-score", "polaris"}
-	
+
 	for _, tool := range scanTools {
 		scanResult := p.runSecurityScanTool(ctx, tool)
 		result.TestResults = append(result.TestResults, scanResult...)
-		
+
 		// Collect security findings
 		findings := p.extractSecurityFindings(tool, scanResult)
 		result.SecurityFindings = append(result.SecurityFindings, findings...)
 	}
-	
+
 	// Calculate stage metrics
 	result.Metrics["total_findings"] = float64(len(result.SecurityFindings))
 	result.Metrics["critical_findings"] = float64(p.countFindingsBySeverity(result.SecurityFindings, "CRITICAL"))
 	result.Metrics["high_findings"] = float64(p.countFindingsBySeverity(result.SecurityFindings, "HIGH"))
-	
+
 	result.EndTime = time.Now()
 	result.Duration = result.EndTime.Sub(start)
-	
+
 	if len(result.Errors) == 0 {
 		result.Status = "completed"
 	} else {
 		result.Status = "failed"
 	}
-	
+
 	p.addStageResult(result)
 	return result
 }
@@ -528,26 +528,26 @@ func (p *SecurityRegressionPipeline) executePenetrationTestStage(ctx context.Con
 		Errors:           make([]string, 0),
 		Metadata:         make(map[string]interface{}),
 	}
-	
+
 	// Execute penetration testing suite
 	testSuite := NewPenetrationTestSuite(p.client, p.k8sClient, p.config, p.namespace, "https://localhost:8080")
-	
+
 	// Run different categories of penetration tests
 	categories := []string{"api-security", "container-security", "network-security", "rbac-security"}
-	
+
 	for _, category := range categories {
 		testResult := p.runPenetrationTestCategory(ctx, testSuite, category)
 		result.TestResults = append(result.TestResults, testResult...)
-		
+
 		// Extract findings from penetration tests
 		findings := p.extractPenetrationFindings(category, testResult)
 		result.SecurityFindings = append(result.SecurityFindings, findings...)
 	}
-	
+
 	result.EndTime = time.Now()
 	result.Duration = result.EndTime.Sub(start)
 	result.Status = "completed"
-	
+
 	p.addStageResult(result)
 	return result
 }
@@ -564,17 +564,17 @@ func (p *SecurityRegressionPipeline) executeComplianceCheckStage(ctx context.Con
 		Errors:      make([]string, 0),
 		Metadata:    make(map[string]interface{}),
 	}
-	
+
 	// Execute compliance validation
 	validator := NewAutomatedSecurityValidator(p.client, p.k8sClient, p.config, p.namespace)
-	
+
 	// Check compliance frameworks
 	frameworks := []string{"NIST-CSF", "CIS-K8S", "OWASP", "O-RAN-Security"}
-	
+
 	for _, framework := range frameworks {
 		complianceScore := p.checkComplianceFramework(ctx, validator, framework)
 		result.Metrics[fmt.Sprintf("%s_compliance", framework)] = complianceScore
-		
+
 		testResult := TestResult{
 			TestName:    fmt.Sprintf("%s Compliance Check", framework),
 			Status:      p.getComplianceStatus(complianceScore),
@@ -582,19 +582,19 @@ func (p *SecurityRegressionPipeline) executeComplianceCheckStage(ctx context.Con
 			Expected:    100.0,
 			Actual:      complianceScore,
 		}
-		
+
 		if complianceScore < 80.0 {
 			testResult.Status = "failed"
 			testResult.Error = "Compliance score below threshold"
 		}
-		
+
 		result.TestResults = append(result.TestResults, testResult)
 	}
-	
+
 	result.EndTime = time.Now()
 	result.Duration = result.EndTime.Sub(start)
 	result.Status = "completed"
-	
+
 	p.addStageResult(result)
 	return result
 }
@@ -611,18 +611,18 @@ func (p *SecurityRegressionPipeline) executeRegressionAnalysisStage(ctx context.
 		Errors:      make([]string, 0),
 		Metadata:    make(map[string]interface{}),
 	}
-	
+
 	// Collect current findings from previous stages
 	currentFindings := p.collectCurrentSecurityFindings(ctx)
-	
+
 	// Perform regression analysis
 	regressionReport := p.analyzeSecurityRegression(ctx, currentFindings)
 	p.executionResults.SecurityRegression = regressionReport
-	
+
 	// Compare with baselines
 	for baselineName, baseline := range p.pipelineConfig.SecurityBaselines {
 		comparison := p.compareWithBaseline(ctx, baseline, currentFindings)
-		
+
 		testResult := TestResult{
 			TestName:    fmt.Sprintf("Baseline Comparison: %s", baselineName),
 			Status:      p.getComparisonStatus(comparison),
@@ -630,15 +630,15 @@ func (p *SecurityRegressionPipeline) executeRegressionAnalysisStage(ctx context.
 			Expected:    "no_regression",
 			Actual:      comparison.Summary,
 		}
-		
+
 		result.TestResults = append(result.TestResults, testResult)
 		result.Metrics[fmt.Sprintf("%s_score_change", baselineName)] = comparison.SecurityScoreChange
 	}
-	
+
 	result.EndTime = time.Now()
 	result.Duration = result.EndTime.Sub(start)
 	result.Status = "completed"
-	
+
 	p.addStageResult(result)
 	return result
 }
@@ -647,12 +647,12 @@ func (p *SecurityRegressionPipeline) executeRegressionAnalysisStage(ctx context.
 
 func (p *SecurityRegressionPipeline) collectCurrentSecurityFindings(ctx context.Context) []SecurityFinding {
 	findings := make([]SecurityFinding, 0)
-	
+
 	// Collect findings from all executed stages
 	for _, stageResult := range p.executionResults.StageResults {
 		findings = append(findings, stageResult.SecurityFindings...)
 	}
-	
+
 	return findings
 }
 
@@ -663,46 +663,46 @@ func (p *SecurityRegressionPipeline) analyzeSecurityRegression(ctx context.Conte
 		ResolvedFindings:   make([]SecurityFinding, 0),
 		RegressionFindings: make([]SecurityFinding, 0),
 	}
-	
+
 	// Compare with previous execution findings (if available)
 	previousFindings := p.loadPreviousFindings(ctx)
-	
+
 	// Identify new, resolved, and regression findings
 	currentFindingsMap := make(map[string]SecurityFinding)
 	for _, finding := range currentFindings {
 		currentFindingsMap[finding.ID] = finding
 	}
-	
+
 	previousFindingsMap := make(map[string]SecurityFinding)
 	for _, finding := range previousFindings {
 		previousFindingsMap[finding.ID] = finding
 	}
-	
+
 	// Find new findings
 	for id, finding := range currentFindingsMap {
 		if _, exists := previousFindingsMap[id]; !exists {
 			report.NewFindings = append(report.NewFindings, finding)
 		}
 	}
-	
+
 	// Find resolved findings
 	for id, finding := range previousFindingsMap {
 		if _, exists := currentFindingsMap[id]; !exists {
 			report.ResolvedFindings = append(report.ResolvedFindings, finding)
 		}
 	}
-	
+
 	// Calculate security score change
 	currentScore := p.calculateSecurityScore(currentFindings)
 	previousScore := p.calculateSecurityScore(previousFindings)
 	report.SecurityScoreChange = currentScore - previousScore
-	
+
 	// Perform risk analysis
 	report.RiskAnalysis = p.performRiskAnalysis(currentFindings)
-	
+
 	// Perform trend analysis
 	report.TrendAnalysis = p.performTrendAnalysis(ctx)
-	
+
 	return report
 }
 
@@ -710,7 +710,7 @@ func (p *SecurityRegressionPipeline) calculateSecurityScore(findings []SecurityF
 	if len(findings) == 0 {
 		return 100.0
 	}
-	
+
 	// Calculate weighted score based on severity
 	totalWeight := 0.0
 	for _, finding := range findings {
@@ -725,13 +725,13 @@ func (p *SecurityRegressionPipeline) calculateSecurityScore(findings []SecurityF
 			totalWeight += 1.0
 		}
 	}
-	
+
 	// Base score of 100, subtract weighted penalties
 	score := 100.0 - totalWeight
 	if score < 0 {
 		score = 0
 	}
-	
+
 	return score
 }
 
@@ -739,7 +739,7 @@ func (p *SecurityRegressionPipeline) performRiskAnalysis(findings []SecurityFind
 	analysis := RiskAnalysis{
 		RecommendedActions: make([]string, 0),
 	}
-	
+
 	// Count findings by severity
 	for _, finding := range findings {
 		switch finding.Severity {
@@ -753,7 +753,7 @@ func (p *SecurityRegressionPipeline) performRiskAnalysis(findings []SecurityFind
 			analysis.LowFindings++
 		}
 	}
-	
+
 	// Calculate overall risk
 	if analysis.CriticalFindings > 0 {
 		analysis.OverallRisk = "CRITICAL"
@@ -768,13 +768,13 @@ func (p *SecurityRegressionPipeline) performRiskAnalysis(findings []SecurityFind
 		analysis.OverallRisk = "LOW"
 		analysis.BusinessImpact = "Low risk - continue monitoring"
 	}
-	
+
 	// Calculate risk score (0-100, where 100 is highest risk)
 	analysis.RiskScore = float64(analysis.CriticalFindings*25 + analysis.HighFindings*10 + analysis.MediumFindings*5 + analysis.LowFindings*1)
 	if analysis.RiskScore > 100 {
 		analysis.RiskScore = 100
 	}
-	
+
 	// Generate recommendations
 	if analysis.CriticalFindings > 0 {
 		analysis.RecommendedActions = append(analysis.RecommendedActions, "Immediately address critical vulnerabilities")
@@ -782,7 +782,7 @@ func (p *SecurityRegressionPipeline) performRiskAnalysis(findings []SecurityFind
 	if analysis.HighFindings > 0 {
 		analysis.RecommendedActions = append(analysis.RecommendedActions, "Schedule high priority security fixes")
 	}
-	
+
 	return analysis
 }
 
@@ -792,15 +792,15 @@ func (p *SecurityRegressionPipeline) performTrendAnalysis(ctx context.Context) T
 		PatternAnalysis:    make([]string, 0),
 		PredictiveInsights: make([]string, 0),
 	}
-	
+
 	// Analyze trends over time
 	historicalData := p.collectHistoricalSecurityData(ctx)
-	
+
 	if len(historicalData) > 1 {
 		// Determine trend direction
 		firstScore := historicalData[0].SecurityScore
 		lastScore := historicalData[len(historicalData)-1].SecurityScore
-		
+
 		if lastScore > firstScore {
 			analysis.ScoreTrend = "improving"
 		} else if lastScore < firstScore {
@@ -808,11 +808,11 @@ func (p *SecurityRegressionPipeline) performTrendAnalysis(ctx context.Context) T
 		} else {
 			analysis.ScoreTrend = "stable"
 		}
-		
+
 		// Analyze findings trend
 		firstFindings := len(historicalData[0].Findings)
 		lastFindings := len(historicalData[len(historicalData)-1].Findings)
-		
+
 		if lastFindings > firstFindings {
 			analysis.FindingsTrend = "increasing"
 		} else if lastFindings < firstFindings {
@@ -821,13 +821,13 @@ func (p *SecurityRegressionPipeline) performTrendAnalysis(ctx context.Context) T
 			analysis.FindingsTrend = "stable"
 		}
 	}
-	
+
 	// Generate pattern analysis
 	analysis.PatternAnalysis = append(analysis.PatternAnalysis, "Security posture analysis based on historical data")
-	
+
 	// Generate predictive insights
 	analysis.PredictiveInsights = append(analysis.PredictiveInsights, "Continue current security practices to maintain posture")
-	
+
 	return analysis
 }
 
@@ -835,7 +835,7 @@ func (p *SecurityRegressionPipeline) performTrendAnalysis(ctx context.Context) T
 
 func (p *SecurityRegressionPipeline) runSecurityScanTool(ctx context.Context, tool string) []TestResult {
 	results := make([]TestResult, 0)
-	
+
 	switch tool {
 	case "trivy":
 		result := p.runTrivyScan(ctx)
@@ -847,23 +847,23 @@ func (p *SecurityRegressionPipeline) runSecurityScanTool(ctx context.Context, to
 		result := p.runPolarisScan(ctx)
 		results = append(results, result)
 	}
-	
+
 	return results
 }
 
 func (p *SecurityRegressionPipeline) runTrivyScan(ctx context.Context) TestResult {
 	start := time.Now()
-	
+
 	// Execute trivy scan command
 	cmd := exec.CommandContext(ctx, "trivy", "k8s", "--format", "json", "--namespace", p.namespace)
 	output, err := cmd.CombinedOutput()
-	
+
 	result := TestResult{
 		TestName:    "Trivy Vulnerability Scan",
 		Duration:    time.Since(start),
 		Description: "Container vulnerability scanning with Trivy",
 	}
-	
+
 	if err != nil {
 		result.Status = "failed"
 		result.Error = string(output)
@@ -871,15 +871,15 @@ func (p *SecurityRegressionPipeline) runTrivyScan(ctx context.Context) TestResul
 		result.Status = "passed"
 		result.Actual = "scan_completed"
 	}
-	
+
 	result.Expected = "no_vulnerabilities"
-	
+
 	return result
 }
 
 func (p *SecurityRegressionPipeline) runKubeScoreScan(ctx context.Context) TestResult {
 	start := time.Now()
-	
+
 	result := TestResult{
 		TestName:    "Kube-score Configuration Analysis",
 		Duration:    time.Since(start),
@@ -888,13 +888,13 @@ func (p *SecurityRegressionPipeline) runKubeScoreScan(ctx context.Context) TestR
 		Expected:    "best_practices_followed",
 		Actual:      "analysis_completed",
 	}
-	
+
 	return result
 }
 
 func (p *SecurityRegressionPipeline) runPolarisScan(ctx context.Context) TestResult {
 	start := time.Now()
-	
+
 	result := TestResult{
 		TestName:    "Polaris Best Practices Check",
 		Duration:    time.Since(start),
@@ -903,16 +903,16 @@ func (p *SecurityRegressionPipeline) runPolarisScan(ctx context.Context) TestRes
 		Expected:    "compliant_configuration",
 		Actual:      "validation_completed",
 	}
-	
+
 	return result
 }
 
 func (p *SecurityRegressionPipeline) extractSecurityFindings(tool string, results []TestResult) []SecurityFinding {
 	findings := make([]SecurityFinding, 0)
-	
+
 	// Extract findings based on tool output
 	// This is a simplified implementation
-	
+
 	return findings
 }
 
@@ -958,13 +958,13 @@ func (p *SecurityRegressionPipeline) getComplianceStatus(score float64) string {
 
 func (p *SecurityRegressionPipeline) compareWithBaseline(ctx context.Context, baseline SecurityBaseline, findings []SecurityFinding) *BaselineComparison {
 	currentScore := p.calculateSecurityScore(findings)
-	
+
 	return &BaselineComparison{
 		BaselineName:        baseline.Name,
 		SecurityScoreChange: currentScore - baseline.ComplianceScore,
-		Summary:            "no_regression",
-		ControlChanges:     make(map[string]float64),
-		MetricChanges:      make(map[string]float64),
+		Summary:             "no_regression",
+		ControlChanges:      make(map[string]float64),
+		MetricChanges:       make(map[string]float64),
 	}
 }
 
@@ -1096,10 +1096,10 @@ func (p *SecurityRegressionPipeline) addStageResult(result StageExecutionResult)
 func (p *SecurityRegressionPipeline) generatePipelineReport(ctx context.Context) *PipelineExecutionResults {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	
+
 	p.executionResults.EndTime = time.Now()
 	p.executionResults.Duration = p.executionResults.EndTime.Sub(p.executionResults.StartTime)
-	
+
 	// Determine overall status
 	allPassed := true
 	for _, stage := range p.executionResults.StageResults {
@@ -1108,18 +1108,18 @@ func (p *SecurityRegressionPipeline) generatePipelineReport(ctx context.Context)
 			break
 		}
 	}
-	
+
 	if allPassed {
 		p.executionResults.Status = "success"
 	} else {
 		p.executionResults.Status = "failed"
 	}
-	
+
 	// Save pipeline report
 	reportData, _ := json.MarshalIndent(p.executionResults, "", "  ")
 	reportFile := fmt.Sprintf("test-results/security/pipeline-report-%s.json", p.executionResults.ExecutionID)
 	os.MkdirAll("test-results/security", 0755)
 	os.WriteFile(reportFile, reportData, 0644)
-	
+
 	return p.executionResults
 }

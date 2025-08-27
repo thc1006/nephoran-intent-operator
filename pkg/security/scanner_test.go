@@ -409,7 +409,7 @@ var _ = Describe("SecurityScanner", func() {
 		Context("when calculating risk scores", func() {
 			BeforeEach(func() {
 				// Add some test vulnerabilities
-				scanner.results.Vulnerabilities = []Vulnerability{
+				scanner.results.Vulnerabilities = []ScannerVulnerability{
 					{Severity: "Critical", CVSS: 9.0},
 					{Severity: "High", CVSS: 7.5},
 					{Severity: "Medium", CVSS: 5.0},

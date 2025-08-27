@@ -916,6 +916,7 @@ type PredictiveAnalyticsInsights struct{}
 type CapacityAnalyticsInsights struct{}
 type PerformanceHotspot struct{}
 type OptimizationOpportunity struct{}
+
 // PerformanceForecast removed - defined in regression_detector.go with actual implementation
 type AnomalyCorrelation struct{}
 type AnomalyImpactAssessment struct{}

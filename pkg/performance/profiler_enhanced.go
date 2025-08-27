@@ -18,7 +18,6 @@ import (
 	"github.com/google/pprof/profile"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/klog/v2"
-
 	// "github.com/thc1006/nephoran-intent-operator/pkg/performance/regression"
 )
 
@@ -48,7 +47,6 @@ type EnhancedProfiler struct {
 	traceAnalyzer    *TraceAnalyzer
 	mutex            sync.RWMutex
 }
-
 
 // ActiveProfile represents a currently running profiling session
 type ActiveProfile struct {

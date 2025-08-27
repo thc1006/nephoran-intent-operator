@@ -157,7 +157,7 @@ type MeasurementCollection struct {
 
 // MeasurementFilter defines filtering criteria for data collection
 type MeasurementFilter struct {
-	TimeRange        *PerformanceTimeRange              `json:"time_range,omitempty"`
+	TimeRange        *PerformanceTimeRange   `json:"time_range,omitempty"`
 	ValueFilters     map[string]*ValueFilter `json:"value_filters,omitempty"`
 	AttributeFilters map[string]string       `json:"attribute_filters,omitempty"`
 	SamplingRate     float64                 `json:"sampling_rate,omitempty"`
@@ -264,7 +264,6 @@ type PerformanceThresholdManager struct {
 	alertManager    *ThresholdAlertManager
 	mutex           sync.RWMutex
 }
-
 
 // Threshold represents a configurable threshold value
 type Threshold struct {
@@ -389,7 +388,6 @@ type HistoricalQuery struct {
 	Offset           int                    `json:"offset,omitempty"`
 }
 
-
 // DataIndexManager manages data indexing for fast queries
 type DataIndexManager struct {
 	timeIndex        map[time.Time][]string
@@ -478,13 +476,13 @@ type BaselineManager struct {
 
 // PerformanceBaseline represents normal performance characteristics
 type PerformanceBaseline struct {
-	ObjectID        string              `json:"object_id"`
-	MeasurementType string              `json:"measurement_type"`
+	ObjectID        string                         `json:"object_id"`
+	MeasurementType string                         `json:"measurement_type"`
 	BaselineData    *PerformanceStatisticalSummary `json:"baseline_data"`
-	CreatedAt       time.Time           `json:"created_at"`
-	UpdatedAt       time.Time           `json:"updated_at"`
-	ValidUntil      time.Time           `json:"valid_until"`
-	Confidence      float64             `json:"confidence"`
+	CreatedAt       time.Time                      `json:"created_at"`
+	UpdatedAt       time.Time                      `json:"updated_at"`
+	ValidUntil      time.Time                      `json:"valid_until"`
+	Confidence      float64                        `json:"confidence"`
 }
 
 // PerformanceStatisticalSummary provides statistical summary of performance measurement data
@@ -1194,13 +1192,13 @@ type MeasurementQuery struct {
 
 // MeasurementQueryResult represents the result of a measurement query
 type MeasurementQueryResult struct {
-	Query          *MeasurementQuery  `json:"query"`
-	RawData        []*MeasurementData `json:"raw_data,omitempty"`
-	AggregatedData []*AggregatedData  `json:"aggregated_data,omitempty"`
-	QueryTime      time.Time          `json:"query_time"`
-	DataPointCount int                `json:"data_point_count"`
-	TimeRange      *PerformanceTimeRange         `json:"time_range"`
-	ExecutionTime  time.Duration      `json:"execution_time"`
+	Query          *MeasurementQuery     `json:"query"`
+	RawData        []*MeasurementData    `json:"raw_data,omitempty"`
+	AggregatedData []*AggregatedData     `json:"aggregated_data,omitempty"`
+	QueryTime      time.Time             `json:"query_time"`
+	DataPointCount int                   `json:"data_point_count"`
+	TimeRange      *PerformanceTimeRange `json:"time_range"`
+	ExecutionTime  time.Duration         `json:"execution_time"`
 }
 
 // PerformanceStatistics provides comprehensive performance statistics

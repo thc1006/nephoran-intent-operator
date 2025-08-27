@@ -18,46 +18,46 @@ import (
 
 // Config represents the service configuration
 type Config struct {
-	ServiceVersion         string
-	SecretNamespace        string
-	LLMModelName           string
-	LLMMaxTokens           int
-	StreamingEnabled       bool
-	MaxRequestSize         int64
-	UseKubernetesSecrets   bool
-	AuthEnabled            bool
-	AuthConfigFile         string
-	JWTSecretKey           string
-	RequireAuth            bool
-	AdminUsers             []string
-	OperatorUsers          []string
-	RAGAPIURL              string
-	LLMAPIKey              string
-	LLMBackendType         string
-	LLMTimeout             time.Duration
-	EnableContextBuilder   bool
-	RAGEnabled             bool
+	ServiceVersion       string
+	SecretNamespace      string
+	LLMModelName         string
+	LLMMaxTokens         int
+	StreamingEnabled     bool
+	MaxRequestSize       int64
+	UseKubernetesSecrets bool
+	AuthEnabled          bool
+	AuthConfigFile       string
+	JWTSecretKey         string
+	RequireAuth          bool
+	AdminUsers           []string
+	OperatorUsers        []string
+	RAGAPIURL            string
+	LLMAPIKey            string
+	LLMBackendType       string
+	LLMTimeout           time.Duration
+	EnableContextBuilder bool
+	RAGEnabled           bool
 	// Additional streaming fields
-	MaxConcurrentStreams   int
-	StreamTimeout          time.Duration
+	MaxConcurrentStreams int
+	StreamTimeout        time.Duration
 	// Additional service fields
-	Port                   string
-	RequestTimeout         time.Duration
-	GracefulShutdown       time.Duration
-	ExposeMetricsPublicly  bool
-	MetricsAllowedCIDRs    []string
-	MetricsAllowedIPs      []string
-	MetricsEnabled         bool
+	Port                  string
+	RequestTimeout        time.Duration
+	GracefulShutdown      time.Duration
+	ExposeMetricsPublicly bool
+	MetricsAllowedCIDRs   []string
+	MetricsAllowedIPs     []string
+	MetricsEnabled        bool
 	// Additional fields for test compatibility
-	LogLevel               string
-	OpenAIAPIURL          string
-	OpenAIAPIKey          string
-	CircuitBreakerEnabled bool
+	LogLevel                string
+	OpenAIAPIURL            string
+	OpenAIAPIKey            string
+	CircuitBreakerEnabled   bool
 	CircuitBreakerThreshold int
-	CircuitBreakerTimeout  time.Duration
-	MaxRetries            int
-	RetryDelay            time.Duration
-	RetryBackoff          string
+	CircuitBreakerTimeout   time.Duration
+	MaxRetries              int
+	RetryDelay              time.Duration
+	RetryBackoff            string
 }
 
 // IntentProcessor represents a processor for network intents
@@ -97,7 +97,7 @@ type ProcessIntentRequest struct {
 	Intent string `json:"intent"`
 }
 
-// ProcessIntentResponse represents a response structure  
+// ProcessIntentResponse represents a response structure
 type ProcessIntentResponse struct {
 	Result         string `json:"result"`
 	Status         string `json:"status"`

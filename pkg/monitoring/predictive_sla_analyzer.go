@@ -22,27 +22,27 @@ type PredictiveSLAAnalyzer struct {
 	throughputPredictor   *ThroughputPredictor
 
 	// Time series analysis
-	trendAnalyzer        *TrendAnalyzer
-	seasonalityDetector  *SeasonalityDetector
-	anomalyDetector      *AnomalyDetector
+	trendAnalyzer       *TrendAnalyzer
+	seasonalityDetector *SeasonalityDetector
+	anomalyDetector     *AnomalyDetector
 
 	// Configuration
 	config *SLAMonitoringConfig
 	logger *zap.Logger
 
 	// ML training state
-	trainingData *TrainingDataSet
+	trainingData  *TrainingDataSet
 	modelAccuracy map[string]*ModelAccuracy
-	
+
 	// Prediction cache
 	predictionCache map[string]*PredictionResult
 	cacheExpiry     time.Duration
-	
+
 	// Metrics
 	predictionAccuracy   *prometheus.GaugeVec
 	modelPerformance     *prometheus.HistogramVec
 	violationProbability *prometheus.GaugeVec
-	
+
 	mu sync.RWMutex
 }
 
@@ -56,12 +56,12 @@ type AvailabilityPredictor struct {
 }
 
 type LatencyPredictor struct {
-	model        *PolynomialRegressionModel
-	seasonality  *SeasonalityModel
-	features     []string
-	windowSize   time.Duration
-	accuracy     float64
-	lastUpdate   time.Time
+	model       *PolynomialRegressionModel
+	seasonality *SeasonalityModel
+	features    []string
+	windowSize  time.Duration
+	accuracy    float64
+	lastUpdate  time.Time
 }
 
 type ThroughputPredictor struct {
@@ -80,45 +80,45 @@ type ThroughputPredictor struct {
 
 // Data structures
 type TrainingDataSet struct {
-	features       [][]float64
-	labels         []float64
-	timestamps     []time.Time
-	size           int
-	maxSize        int
-	featureNames   []string
-	normalization  *DataNormalization
+	features      [][]float64
+	labels        []float64
+	timestamps    []time.Time
+	size          int
+	maxSize       int
+	featureNames  []string
+	normalization *DataNormalization
 }
 
 type ModelAccuracy struct {
-	MAE          float64 // Mean Absolute Error
-	RMSE         float64 // Root Mean Square Error
-	R2Score      float64 // R-squared score
-	Precision    float64
-	Recall       float64
-	F1Score      float64
-	LastUpdated  time.Time
-	SampleSize   int
+	MAE         float64 // Mean Absolute Error
+	RMSE        float64 // Root Mean Square Error
+	R2Score     float64 // R-squared score
+	Precision   float64
+	Recall      float64
+	F1Score     float64
+	LastUpdated time.Time
+	SampleSize  int
 }
 
 type PredictionResult struct {
-	MetricType       string
-	PredictedValue   float64
-	ConfidenceLevel  float64
-	PredictionTime   time.Time
-	TimeHorizon      time.Duration
-	Probability      float64
-	Risk             string // "low", "medium", "high"
-	Features         map[string]float64
+	MetricType      string
+	PredictedValue  float64
+	ConfidenceLevel float64
+	PredictionTime  time.Time
+	TimeHorizon     time.Duration
+	Probability     float64
+	Risk            string // "low", "medium", "high"
+	Features        map[string]float64
 }
 
 // ML algorithm implementations
 type LinearRegressionModel struct {
-	weights    []float64
-	bias       float64
-	features   int
-	trained    bool
+	weights        []float64
+	bias           float64
+	features       int
+	trained        bool
 	regularization float64
-	trainedAt  time.Time
+	trainedAt      time.Time
 }
 
 type PolynomialRegressionModel struct {
@@ -130,34 +130,34 @@ type PolynomialRegressionModel struct {
 }
 
 type ARIMAModel struct {
-	p, d, q     int // ARIMA parameters
-	ar_params   []float64 // Autoregressive parameters
-	ma_params   []float64 // Moving average parameters
-	residuals   []float64
-	trained     bool
-	trainedAt   time.Time
+	p, d, q   int       // ARIMA parameters
+	ar_params []float64 // Autoregressive parameters
+	ma_params []float64 // Moving average parameters
+	residuals []float64
+	trained   bool
+	trainedAt time.Time
 }
 
 type SeasonalityModel struct {
-	patterns     []SeasonalPattern
-	trend        []float64
-	seasonal     []float64
-	residuals    []float64
-	period       int
-	strength     float64
-	trained      bool
-	trainedAt    time.Time
+	patterns  []SeasonalPattern
+	trend     []float64
+	seasonal  []float64
+	residuals []float64
+	period    int
+	strength  float64
+	trained   bool
+	trainedAt time.Time
 }
 
 // Data preprocessing
 type DataNormalization struct {
-	method   string // "minmax", "zscore", "robust"
-	min      []float64
-	max      []float64
-	mean     []float64
-	std      []float64
-	medians  []float64
-	iqr      []float64
+	method  string // "minmax", "zscore", "robust"
+	min     []float64
+	max     []float64
+	mean    []float64
+	std     []float64
+	medians []float64
+	iqr     []float64
 }
 
 // TrendModel is defined in types.go
@@ -182,7 +182,7 @@ func NewPredictiveSLAAnalyzer(config *SLAMonitoringConfig, logger *zap.Logger) *
 	// Initialize analyzers
 	analyzer.trendAnalyzer = NewTrendAnalyzer()
 	analyzer.seasonalityDetector = NewSeasonalityDetector()
-	// Use a default NWDAF config and convert zap.Logger to logr.Logger  
+	// Use a default NWDAF config and convert zap.Logger to logr.Logger
 	nwdafConfig := &NWDAFConfig{}
 	logrLogger := logr.Discard() // Use discard logger for simplicity
 	analyzer.anomalyDetector = NewAnomalyDetector(nwdafConfig, logrLogger)
@@ -237,8 +237,8 @@ func (psa *PredictiveSLAAnalyzer) PredictAvailabilityViolation(
 		PredictionTime:  time.Now(),
 		TimeHorizon:     timeHorizon,
 		Probability:     psa.calculateViolationProbability("availability", prediction),
-		Risk:           psa.assessRisk("availability", prediction),
-		Features:       psa.featuresToMap(features),
+		Risk:            psa.assessRisk("availability", prediction),
+		Features:        psa.featuresToMap(features),
 	}
 
 	// Cache result
@@ -276,8 +276,8 @@ func (psa *PredictiveSLAAnalyzer) PredictLatencyViolation(
 		PredictionTime:  time.Now(),
 		TimeHorizon:     timeHorizon,
 		Probability:     psa.calculateViolationProbability("latency", prediction),
-		Risk:           psa.assessRisk("latency", prediction),
-		Features:       psa.featuresToMap(features),
+		Risk:            psa.assessRisk("latency", prediction),
+		Features:        psa.featuresToMap(features),
 	}
 
 	psa.cachePrediction(cacheKey, result)
@@ -311,8 +311,8 @@ func (psa *PredictiveSLAAnalyzer) PredictThroughputViolation(
 		PredictionTime:  time.Now(),
 		TimeHorizon:     timeHorizon,
 		Probability:     psa.calculateViolationProbability("throughput", prediction),
-		Risk:           psa.assessRisk("throughput", prediction),
-		Features:       psa.featuresToMap(features),
+		Risk:            psa.assessRisk("throughput", prediction),
+		Features:        psa.featuresToMap(features),
 	}
 
 	psa.cachePrediction(cacheKey, result)
@@ -440,7 +440,7 @@ func (lrm *LinearRegressionModel) Predict(features []float64) float64 {
 func (prm *PolynomialRegressionModel) Train(features [][]float64, labels []float64) error {
 	// Transform features to polynomial features
 	polyFeatures := prm.transformToPolynomial(features)
-	
+
 	// Use least squares to solve for coefficients
 	coeffs, err := prm.leastSquaresSolve(polyFeatures, labels)
 	if err != nil {
@@ -460,7 +460,7 @@ func (prm *PolynomialRegressionModel) transformToPolynomial(features [][]float64
 
 	m := len(features)
 	originalN := len(features[0])
-	
+
 	// Calculate number of polynomial features
 	polyN := 1 // bias term
 	for d := 1; d <= prm.degree; d++ {
@@ -471,7 +471,7 @@ func (prm *PolynomialRegressionModel) transformToPolynomial(features [][]float64
 	for i := 0; i < m; i++ {
 		polyFeatures[i] = make([]float64, polyN)
 		idx := 0
-		
+
 		// Bias term
 		polyFeatures[i][idx] = 1.0
 		idx++
@@ -497,7 +497,7 @@ func (prm *PolynomialRegressionModel) transformToPolynomial(features [][]float64
 func (prm *PolynomialRegressionModel) leastSquaresSolve(X [][]float64, y []float64) ([]float64, error) {
 	m := len(X)
 	n := len(X[0])
-	
+
 	// Calculate X^T * X
 	XTX := make([][]float64, n)
 	for i := 0; i < n; i++ {
@@ -606,12 +606,12 @@ func (psa *PredictiveSLAAnalyzer) extractAvailabilityFeatures(ctx context.Contex
 	features[2] = float64(now.Day()) / 31.0
 
 	// Mock system metrics (in real implementation, these would come from monitoring)
-	features[3] = 0.995 // Current availability
-	features[4] = 0.001 // Current error rate
-	features[5] = 0.75  // CPU utilization
-	features[6] = 0.60  // Memory utilization
-	features[7] = 0.85  // Network utilization
-	features[8] = 0.99  // Dependency health average
+	features[3] = 0.995           // Current availability
+	features[4] = 0.001           // Current error rate
+	features[5] = 0.75            // CPU utilization
+	features[6] = 0.60            // Memory utilization
+	features[7] = 0.85            // Network utilization
+	features[8] = 0.99            // Dependency health average
 	features[9] = 1200.0 / 5000.0 // Normalized request rate
 
 	return features, nil
@@ -626,18 +626,18 @@ func (psa *PredictiveSLAAnalyzer) extractLatencyFeatures(ctx context.Context) ([
 	features[1] = float64(now.Weekday()) / 7.0
 
 	// Latency percentiles (normalized)
-	features[2] = 500.0 / 5000.0   // P50 latency
-	features[3] = 1200.0 / 5000.0  // P95 latency
-	features[4] = 2500.0 / 5000.0  // P99 latency
+	features[2] = 500.0 / 5000.0  // P50 latency
+	features[3] = 1200.0 / 5000.0 // P95 latency
+	features[4] = 2500.0 / 5000.0 // P99 latency
 
 	// System load features
-	features[5] = 0.75  // CPU utilization
-	features[6] = 0.60  // Memory utilization
+	features[5] = 0.75            // CPU utilization
+	features[6] = 0.60            // Memory utilization
 	features[7] = 1200.0 / 5000.0 // Normalized request rate
 
 	// Queue and processing features
-	features[8] = 10.0 / 100.0   // Queue depth normalized
-	features[9] = 25.0 / 1000.0  // Processing backlog normalized
+	features[8] = 10.0 / 100.0  // Queue depth normalized
+	features[9] = 25.0 / 1000.0 // Processing backlog normalized
 
 	// Network and I/O
 	features[10] = 0.85 // Network utilization
@@ -659,8 +659,8 @@ func (psa *PredictiveSLAAnalyzer) extractThroughputFeatures(ctx context.Context)
 	features[3] = 0.75            // Capacity utilization
 
 	// Resource constraints
-	features[4] = 0.75 // CPU utilization
-	features[5] = 0.60 // Memory utilization
+	features[4] = 0.75         // CPU utilization
+	features[5] = 0.60         // Memory utilization
 	features[6] = 10.0 / 100.0 // Queue depth normalized
 
 	// Historical trend
@@ -688,11 +688,11 @@ func (psa *PredictiveSLAAnalyzer) calculateConfidence(metricType string, feature
 	// Simplified confidence calculation based on model accuracy and feature quality
 	if accuracy, exists := psa.modelAccuracy[metricType]; exists {
 		baseConfidence := accuracy.R2Score
-		
+
 		// Adjust based on feature quality (mock calculation)
 		featureQuality := 0.9 // Would be calculated from feature variance, completeness, etc.
-		
-		return math.Min(baseConfidence * featureQuality, 1.0)
+
+		return math.Min(baseConfidence*featureQuality, 1.0)
 	}
 	return 0.5 // Default moderate confidence
 }
@@ -725,7 +725,7 @@ func (psa *PredictiveSLAAnalyzer) calculateViolationProbability(metricType strin
 
 func (psa *PredictiveSLAAnalyzer) assessRisk(metricType string, prediction float64) string {
 	probability := psa.calculateViolationProbability(metricType, prediction)
-	
+
 	if probability > 0.7 {
 		return "high"
 	} else if probability > 0.3 {
@@ -737,18 +737,18 @@ func (psa *PredictiveSLAAnalyzer) assessRisk(metricType string, prediction float
 func (psa *PredictiveSLAAnalyzer) featuresToMap(features []float64) map[string]float64 {
 	// Convert feature vector to named features map
 	featureMap := make(map[string]float64)
-	
+
 	if len(features) >= 3 {
 		featureMap["hour_of_day"] = features[0]
 		featureMap["day_of_week"] = features[1]
 		featureMap["day_of_month"] = features[2]
 	}
-	
+
 	// Add other features based on context
 	for i, value := range features {
 		featureMap[fmt.Sprintf("feature_%d", i)] = value
 	}
-	
+
 	return featureMap
 }
 
@@ -758,10 +758,10 @@ type TrainingAggregator struct {
 	latencyData      *TimeSeries
 	throughputData   *TimeSeries
 	errorRateData    *TimeSeries
-	
-	featureWindow    time.Duration
-	labelWindow      time.Duration
-	mu               sync.RWMutex
+
+	featureWindow time.Duration
+	labelWindow   time.Duration
+	mu            sync.RWMutex
 }
 
 func NewTrainingAggregator() *TrainingAggregator {
@@ -814,11 +814,11 @@ func (ta *TrainingAggregator) GenerateTrainingData(ctx context.Context) (*Traini
 		feature := make([]float64, 8)
 		feature[0] = availabilityValues[i]
 		feature[1] = latencyValues[i]
-		feature[2] = float64(i%24) / 24.0 // Mock hour of day
-		feature[3] = float64(i%7) / 7.0   // Mock day of week
+		feature[2] = float64(i%24) / 24.0    // Mock hour of day
+		feature[3] = float64(i%7) / 7.0      // Mock day of week
 		feature[4] = availabilityValues[i-1] // Previous value
-		feature[5] = latencyValues[i-1]     // Previous value
-		
+		feature[5] = latencyValues[i-1]      // Previous value
+
 		// Calculate simple moving averages
 		feature[6] = ta.calculateMovingAverage(availabilityValues, i, 10)
 		feature[7] = ta.calculateMovingAverage(latencyValues, i, 10)
@@ -850,14 +850,14 @@ func (ta *TrainingAggregator) calculateMovingAverage(values []float64, index, wi
 	if start < 0 {
 		start = 0
 	}
-	
+
 	sum := 0.0
 	count := 0
 	for i := start; i < index; i++ {
 		sum += values[i]
 		count++
 	}
-	
+
 	if count == 0 {
 		return 0.0
 	}
@@ -934,7 +934,7 @@ func (psa *PredictiveSLAAnalyzer) updatePredictionMetrics(ctx context.Context) {
 func (psa *PredictiveSLAAnalyzer) updateModelAccuracy(ctx context.Context) {
 	// Compare recent predictions with actual values to calculate accuracy
 	// This is a simplified implementation
-	
+
 	for metricType := range psa.modelAccuracy {
 		// Mock accuracy calculation
 		accuracy := &ModelAccuracy{
@@ -947,7 +947,7 @@ func (psa *PredictiveSLAAnalyzer) updateModelAccuracy(ctx context.Context) {
 			LastUpdated: time.Now(),
 			SampleSize:  1000,
 		}
-		
+
 		psa.modelAccuracy[metricType] = accuracy
 		psa.predictionAccuracy.WithLabelValues(metricType, "r2_score").Set(accuracy.R2Score)
 		psa.predictionAccuracy.WithLabelValues(metricType, "precision").Set(accuracy.Precision)

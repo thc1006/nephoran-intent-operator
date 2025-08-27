@@ -112,8 +112,10 @@ type E2SetupFailure struct {
 // RICSubscriptionRequest represents RIC Subscription Request message
 type RICSubscriptionRequest struct {
 	RICRequestID           RICRequestID           `json:"ric_request_id"`
+	RequestID              RICRequestID           `json:"request_id"`                // Missing field added
 	RANFunctionID          RANFunctionID          `json:"ran_function_id"`
 	RICSubscriptionDetails RICSubscriptionDetails `json:"ric_subscription_details"`
+	EventTriggerDefinition []byte                 `json:"event_trigger_definition"` // Missing field added
 }
 
 // RICSubscriptionResponse represents RIC Subscription Response message

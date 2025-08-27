@@ -1360,7 +1360,7 @@ func (cs *ChunkingService) GetMetrics() *ChunkingMetrics {
 		HierarchyDepthStats:   make(map[int]int64),
 		LastProcessedAt:       cs.metrics.LastProcessedAt,
 	}
-	
+
 	// Deep copy maps
 	for k, v := range cs.metrics.TypeDistribution {
 		metrics.TypeDistribution[k] = v
@@ -1368,7 +1368,7 @@ func (cs *ChunkingService) GetMetrics() *ChunkingMetrics {
 	for k, v := range cs.metrics.HierarchyDepthStats {
 		metrics.HierarchyDepthStats[k] = v
 	}
-	
+
 	return metrics
 }
 

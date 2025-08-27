@@ -350,11 +350,11 @@ type ConfigurationOperation struct {
 
 // OperationResult represents the result of a configuration operation
 type OperationResult struct {
-	Success          bool                   `json:"success"`
-	Error            string                 `json:"error,omitempty"`
-	ValidationResult *ConfigValidationResult      `json:"validation_result,omitempty"`
-	AppliedAt        time.Time              `json:"applied_at"`
-	Metadata         map[string]interface{} `json:"metadata"`
+	Success          bool                    `json:"success"`
+	Error            string                  `json:"error,omitempty"`
+	ValidationResult *ConfigValidationResult `json:"validation_result,omitempty"`
+	AppliedAt        time.Time               `json:"applied_at"`
+	Metadata         map[string]interface{}  `json:"metadata"`
 }
 
 // WorkerPool manages concurrent operation execution

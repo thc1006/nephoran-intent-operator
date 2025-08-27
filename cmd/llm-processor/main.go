@@ -23,13 +23,13 @@ import (
 )
 
 var (
-	cfg                    *config.LLMProcessorConfig
-	logger                 *slog.Logger
-	service                *services.LLMProcessorService
-	handler                *handlers.LLMProcessorHandler
-	performanceIntegrator  *performance.PerformanceIntegrator
-	startTime              = time.Now()
-	postRateLimiter        *middleware.PostOnlyRateLimiter // Declare at package level for shutdown
+	cfg                   *config.LLMProcessorConfig
+	logger                *slog.Logger
+	service               *services.LLMProcessorService
+	handler               *handlers.LLMProcessorHandler
+	performanceIntegrator *performance.PerformanceIntegrator
+	startTime             = time.Now()
+	postRateLimiter       *middleware.PostOnlyRateLimiter // Declare at package level for shutdown
 )
 
 func main() {
@@ -63,13 +63,13 @@ func main() {
 	performanceConfig.EnableMonitoring = true
 	performanceConfig.TargetResponseTime = 100 * time.Millisecond
 	performanceConfig.TargetThroughput = 1000.0
-	
+
 	performanceIntegrator, err = performance.NewPerformanceIntegrator(performanceConfig)
 	if err != nil {
 		logger.Error("Failed to initialize performance integrator", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
-	
+
 	logger.Info("Starting LLM Processor service with performance optimization",
 		slog.String("version", cfg.ServiceVersion),
 		slog.String("port", cfg.Port),
@@ -92,7 +92,7 @@ func main() {
 		logger.Error("Failed to initialize service", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
-	
+
 	// Connect performance components to service
 	if cacheManager := performanceIntegrator.GetCacheManager(); cacheManager != nil {
 		service.SetCacheManager(cacheManager)
@@ -485,14 +485,14 @@ func setupHTTPServer() *http.Server {
 				slog.String("performance_health", "http://localhost:8090/health"),
 				slog.String("performance_profiling", "http://localhost:8090/debug/pprof/"))
 		}
-		
+
 		// Add performance report endpoint to main service
 		router.HandleFunc("/performance/report", func(w http.ResponseWriter, r *http.Request) {
 			report := performanceIntegrator.GetPerformanceReport()
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(report)
 		}).Methods("GET")
-		
+
 		// Add performance optimization trigger endpoint
 		router.HandleFunc("/performance/optimize", func(w http.ResponseWriter, r *http.Request) {
 			if err := performanceIntegrator.OptimizePerformance(); err != nil {

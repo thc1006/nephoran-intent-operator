@@ -31,4 +31,3 @@ const (
 	ComponentTypeGitOpsController   = contracts.ComponentTypeGitOpsController
 	ComponentTypeDeploymentVerifier = contracts.ComponentTypeDeploymentVerifier
 )
-

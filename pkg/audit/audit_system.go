@@ -63,10 +63,10 @@ type AuditSystemConfig struct {
 
 	// EnabledSources defines which sources to audit
 	EnabledSources []string `json:"enabled_sources" yaml:"enabled_sources"`
-	
+
 	// RetentionDays defines how long to keep audit events
 	RetentionDays int `json:"retention_days" yaml:"retention_days"`
-	
+
 	// Storage defines storage backend configuration
 	Storage StorageConfig `json:"storage" yaml:"storage"`
 
@@ -95,9 +95,9 @@ type AuditSystemConfig struct {
 // DefaultAuditConfig returns a default configuration for the audit system
 func DefaultAuditConfig() *AuditSystemConfig {
 	return &AuditSystemConfig{
-		Enabled:         true,
-		EnabledSources:  []string{"kubernetes", "oran", "nephio"},
-		RetentionDays:   365,
+		Enabled:        true,
+		EnabledSources: []string{"kubernetes", "oran", "nephio"},
+		RetentionDays:  365,
 		Storage: StorageConfig{
 			Type: "local",
 			Local: &LocalStorageConfig{
@@ -627,7 +627,7 @@ func (as *AuditSystem) GetMetrics() Metrics {
 		LastEventTime:     stats.LastFlushTime,
 		StorageUsed:       0, // TODO: implement storage size tracking
 		TotalEvents:       stats.EventsReceived,
-		ErrorCount:        0, // TODO: implement error tracking
+		ErrorCount:        0,                  // TODO: implement error tracking
 		BackendsHealthy:   stats.BackendCount, // TODO: implement health checking
 		BackendsTotal:     stats.BackendCount,
 		QueueSize:         stats.QueueSize,

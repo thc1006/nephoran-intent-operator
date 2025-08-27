@@ -114,13 +114,13 @@ type FiveGCoreCatalog struct {
 
 // BlueprintTemplate represents a complete blueprint template
 type BlueprintTemplate struct {
-	ID            string             `json:"id" yaml:"id"`
-	Name          string             `json:"name" yaml:"name"`
-	Description   string             `json:"description" yaml:"description"`
-	Version       string             `json:"version" yaml:"version"`
-	Category      string             `json:"category" yaml:"category"`
+	ID            string                    `json:"id" yaml:"id"`
+	Name          string                    `json:"name" yaml:"name"`
+	Description   string                    `json:"description" yaml:"description"`
+	Version       string                    `json:"version" yaml:"version"`
+	Category      string                    `json:"category" yaml:"category"`
 	ComponentType v1.NetworkTargetComponent `json:"componentType" yaml:"componentType"`
-	IntentTypes   []v1.IntentType    `json:"intentTypes" yaml:"intentTypes"`
+	IntentTypes   []v1.IntentType           `json:"intentTypes" yaml:"intentTypes"`
 
 	// O-RAN Compliance
 	ORANCompliant bool     `json:"oranCompliant" yaml:"oranCompliant"`
@@ -299,9 +299,9 @@ type SecretTemplate struct {
 
 type BlueprintDependency struct {
 	ComponentType v1.NetworkTargetComponent `json:"componentType" yaml:"componentType"`
-	Version       string             `json:"version" yaml:"version"`
-	Required      bool               `json:"required" yaml:"required"`
-	Interface     string             `json:"interface,omitempty" yaml:"interface,omitempty"`
+	Version       string                    `json:"version" yaml:"version"`
+	Required      bool                      `json:"required" yaml:"required"`
+	Interface     string                    `json:"interface,omitempty" yaml:"interface,omitempty"`
 }
 
 type BlueprintConstraint struct {
@@ -388,8 +388,8 @@ type PolicyRule struct {
 
 type EnforcementPoint struct {
 	ComponentType v1.NetworkTargetComponent `json:"componentType" yaml:"componentType"`
-	Interface     string             `json:"interface" yaml:"interface"`
-	Method        string             `json:"method" yaml:"method"`
+	Interface     string                    `json:"interface" yaml:"interface"`
+	Method        string                    `json:"method" yaml:"method"`
 }
 
 type DataPlaneConfig struct {
@@ -1140,69 +1140,69 @@ func (obm *ORANBlueprintManager) CreateORANBlueprint(ctx context.Context, intent
 
 // NetworkFunctionConfigGenerator generates network function configurations
 type NetworkFunctionConfigGenerator struct {
-	config   *BlueprintConfig
-	logger   *zap.Logger
-	catalog  map[string]*NetworkFunctionTemplate
-	mutex    sync.RWMutex
+	config  *BlueprintConfig
+	logger  *zap.Logger
+	catalog map[string]*NetworkFunctionTemplate
+	mutex   sync.RWMutex
 }
 
 // NetworkFunctionTemplate represents a network function template
 type NetworkFunctionTemplate struct {
-	Name              string                        `json:"name" yaml:"name"`
-	Type              v1.NetworkTargetComponent     `json:"type" yaml:"type"`
-	Description       string                        `json:"description" yaml:"description"`
-	Version           string                        `json:"version" yaml:"version"`
-	ORANCompliant     bool                          `json:"oranCompliant" yaml:"oranCompliant"`
-	Interfaces        []string                      `json:"interfaces" yaml:"interfaces"`
-	ConfigurationSpec NetworkFunctionConfigSpec     `json:"configurationSpec" yaml:"configurationSpec"`
-	Dependencies      []NetworkFunctionDependency   `json:"dependencies" yaml:"dependencies"`
+	Name              string                      `json:"name" yaml:"name"`
+	Type              v1.NetworkTargetComponent   `json:"type" yaml:"type"`
+	Description       string                      `json:"description" yaml:"description"`
+	Version           string                      `json:"version" yaml:"version"`
+	ORANCompliant     bool                        `json:"oranCompliant" yaml:"oranCompliant"`
+	Interfaces        []string                    `json:"interfaces" yaml:"interfaces"`
+	ConfigurationSpec NetworkFunctionConfigSpec   `json:"configurationSpec" yaml:"configurationSpec"`
+	Dependencies      []NetworkFunctionDependency `json:"dependencies" yaml:"dependencies"`
 }
 
 // NetworkFunctionConfigSpec specifies the configuration structure
 type NetworkFunctionConfigSpec struct {
-	Parameters       []ConfigParameter     `json:"parameters" yaml:"parameters"`
-	ConfigFiles      []ConfigFileTemplate  `json:"configFiles" yaml:"configFiles"`
-	Environment      []EnvVarTemplate      `json:"environment" yaml:"environment"`
-	InitContainers   []InitContainerSpec   `json:"initContainers,omitempty" yaml:"initContainers,omitempty"`
-	Sidecars         []SidecarSpec         `json:"sidecars,omitempty" yaml:"sidecars,omitempty"`
-	ServicePorts     []ServicePortSpec     `json:"servicePorts" yaml:"servicePorts"`
-	HealthChecks     HealthCheckSpecs      `json:"healthChecks" yaml:"healthChecks"`
-	ResourceProfile  ResourceProfile       `json:"resourceProfile" yaml:"resourceProfile"`
+	Parameters      []ConfigParameter    `json:"parameters" yaml:"parameters"`
+	ConfigFiles     []ConfigFileTemplate `json:"configFiles" yaml:"configFiles"`
+	Environment     []EnvVarTemplate     `json:"environment" yaml:"environment"`
+	InitContainers  []InitContainerSpec  `json:"initContainers,omitempty" yaml:"initContainers,omitempty"`
+	Sidecars        []SidecarSpec        `json:"sidecars,omitempty" yaml:"sidecars,omitempty"`
+	ServicePorts    []ServicePortSpec    `json:"servicePorts" yaml:"servicePorts"`
+	HealthChecks    HealthCheckSpecs     `json:"healthChecks" yaml:"healthChecks"`
+	ResourceProfile ResourceProfile      `json:"resourceProfile" yaml:"resourceProfile"`
 }
 
 // ConfigParameter defines a configuration parameter
 type ConfigParameter struct {
-	Name         string      `json:"name" yaml:"name"`
-	Type         string      `json:"type" yaml:"type"`
-	Description  string      `json:"description" yaml:"description"`
-	Required     bool        `json:"required" yaml:"required"`
-	DefaultValue interface{} `json:"defaultValue,omitempty" yaml:"defaultValue,omitempty"`
+	Name         string               `json:"name" yaml:"name"`
+	Type         string               `json:"type" yaml:"type"`
+	Description  string               `json:"description" yaml:"description"`
+	Required     bool                 `json:"required" yaml:"required"`
+	DefaultValue interface{}          `json:"defaultValue,omitempty" yaml:"defaultValue,omitempty"`
 	Validation   *ParameterValidation `json:"validation,omitempty" yaml:"validation,omitempty"`
 }
 
 // ParameterValidation defines parameter validation rules
 type ParameterValidation struct {
-	Min        *int     `json:"min,omitempty" yaml:"min,omitempty"`
-	Max        *int     `json:"max,omitempty" yaml:"max,omitempty"`
-	Pattern    string   `json:"pattern,omitempty" yaml:"pattern,omitempty"`
-	Enum       []string `json:"enum,omitempty" yaml:"enum,omitempty"`
+	Min     *int     `json:"min,omitempty" yaml:"min,omitempty"`
+	Max     *int     `json:"max,omitempty" yaml:"max,omitempty"`
+	Pattern string   `json:"pattern,omitempty" yaml:"pattern,omitempty"`
+	Enum    []string `json:"enum,omitempty" yaml:"enum,omitempty"`
 }
 
 // ConfigFileTemplate defines configuration file templates
 type ConfigFileTemplate struct {
-	Name        string            `json:"name" yaml:"name"`
-	Path        string            `json:"path" yaml:"path"`
-	Template    string            `json:"template" yaml:"template"`
-	Format      string            `json:"format" yaml:"format"`
-	Permissions string            `json:"permissions,omitempty" yaml:"permissions,omitempty"`
-	Owner       string            `json:"owner,omitempty" yaml:"owner,omitempty"`
-	Group       string            `json:"group,omitempty" yaml:"group,omitempty"`
+	Name        string `json:"name" yaml:"name"`
+	Path        string `json:"path" yaml:"path"`
+	Template    string `json:"template" yaml:"template"`
+	Format      string `json:"format" yaml:"format"`
+	Permissions string `json:"permissions,omitempty" yaml:"permissions,omitempty"`
+	Owner       string `json:"owner,omitempty" yaml:"owner,omitempty"`
+	Group       string `json:"group,omitempty" yaml:"group,omitempty"`
 }
 
 // EnvVarTemplate defines environment variable templates
 type EnvVarTemplate struct {
-	Name      string `json:"name" yaml:"name"`
-	Value     string `json:"value" yaml:"value"`
+	Name      string        `json:"name" yaml:"name"`
+	Value     string        `json:"value" yaml:"value"`
 	ValueFrom *EnvVarSource `json:"valueFrom,omitempty" yaml:"valueFrom,omitempty"`
 }
 
@@ -1232,24 +1232,24 @@ type FieldRef struct {
 
 // InitContainerSpec defines init container specifications
 type InitContainerSpec struct {
-	Name            string            `json:"name" yaml:"name"`
-	Image           string            `json:"image" yaml:"image"`
-	Command         []string          `json:"command,omitempty" yaml:"command,omitempty"`
-	Args            []string          `json:"args,omitempty" yaml:"args,omitempty"`
-	Environment     []EnvVarTemplate  `json:"environment,omitempty" yaml:"environment,omitempty"`
-	VolumeMounts    []VolumeMount     `json:"volumeMounts,omitempty" yaml:"volumeMounts,omitempty"`
-	ResourceLimits  ResourceLimits    `json:"resourceLimits,omitempty" yaml:"resourceLimits,omitempty"`
+	Name           string           `json:"name" yaml:"name"`
+	Image          string           `json:"image" yaml:"image"`
+	Command        []string         `json:"command,omitempty" yaml:"command,omitempty"`
+	Args           []string         `json:"args,omitempty" yaml:"args,omitempty"`
+	Environment    []EnvVarTemplate `json:"environment,omitempty" yaml:"environment,omitempty"`
+	VolumeMounts   []VolumeMount    `json:"volumeMounts,omitempty" yaml:"volumeMounts,omitempty"`
+	ResourceLimits ResourceLimits   `json:"resourceLimits,omitempty" yaml:"resourceLimits,omitempty"`
 }
 
 // SidecarSpec defines sidecar container specifications
 type SidecarSpec struct {
-	Name            string            `json:"name" yaml:"name"`
-	Image           string            `json:"image" yaml:"image"`
-	Ports           []ContainerPort   `json:"ports,omitempty" yaml:"ports,omitempty"`
-	Environment     []EnvVarTemplate  `json:"environment,omitempty" yaml:"environment,omitempty"`
-	VolumeMounts    []VolumeMount     `json:"volumeMounts,omitempty" yaml:"volumeMounts,omitempty"`
-	ResourceLimits  ResourceLimits    `json:"resourceLimits,omitempty" yaml:"resourceLimits,omitempty"`
-	HealthCheck     *HealthCheck      `json:"healthCheck,omitempty" yaml:"healthCheck,omitempty"`
+	Name           string           `json:"name" yaml:"name"`
+	Image          string           `json:"image" yaml:"image"`
+	Ports          []ContainerPort  `json:"ports,omitempty" yaml:"ports,omitempty"`
+	Environment    []EnvVarTemplate `json:"environment,omitempty" yaml:"environment,omitempty"`
+	VolumeMounts   []VolumeMount    `json:"volumeMounts,omitempty" yaml:"volumeMounts,omitempty"`
+	ResourceLimits ResourceLimits   `json:"resourceLimits,omitempty" yaml:"resourceLimits,omitempty"`
+	HealthCheck    *HealthCheck     `json:"healthCheck,omitempty" yaml:"healthCheck,omitempty"`
 }
 
 // VolumeMount defines volume mount specifications
@@ -1286,15 +1286,15 @@ type HealthCheckSpecs struct {
 
 // HealthCheck defines health check configuration
 type HealthCheck struct {
-	Type                string             `json:"type" yaml:"type"`
-	HTTPGet             *HTTPGetAction     `json:"httpGet,omitempty" yaml:"httpGet,omitempty"`
-	TCPSocket           *TCPSocketAction   `json:"tcpSocket,omitempty" yaml:"tcpSocket,omitempty"`
-	Exec                *ExecAction        `json:"exec,omitempty" yaml:"exec,omitempty"`
-	InitialDelaySeconds int32              `json:"initialDelaySeconds,omitempty" yaml:"initialDelaySeconds,omitempty"`
-	PeriodSeconds       int32              `json:"periodSeconds,omitempty" yaml:"periodSeconds,omitempty"`
-	TimeoutSeconds      int32              `json:"timeoutSeconds,omitempty" yaml:"timeoutSeconds,omitempty"`
-	FailureThreshold    int32              `json:"failureThreshold,omitempty" yaml:"failureThreshold,omitempty"`
-	SuccessThreshold    int32              `json:"successThreshold,omitempty" yaml:"successThreshold,omitempty"`
+	Type                string           `json:"type" yaml:"type"`
+	HTTPGet             *HTTPGetAction   `json:"httpGet,omitempty" yaml:"httpGet,omitempty"`
+	TCPSocket           *TCPSocketAction `json:"tcpSocket,omitempty" yaml:"tcpSocket,omitempty"`
+	Exec                *ExecAction      `json:"exec,omitempty" yaml:"exec,omitempty"`
+	InitialDelaySeconds int32            `json:"initialDelaySeconds,omitempty" yaml:"initialDelaySeconds,omitempty"`
+	PeriodSeconds       int32            `json:"periodSeconds,omitempty" yaml:"periodSeconds,omitempty"`
+	TimeoutSeconds      int32            `json:"timeoutSeconds,omitempty" yaml:"timeoutSeconds,omitempty"`
+	FailureThreshold    int32            `json:"failureThreshold,omitempty" yaml:"failureThreshold,omitempty"`
+	SuccessThreshold    int32            `json:"successThreshold,omitempty" yaml:"successThreshold,omitempty"`
 }
 
 // HTTPGetAction defines HTTP GET health check
@@ -1316,15 +1316,15 @@ type ExecAction struct {
 
 // ResourceProfile defines resource allocation profiles
 type ResourceProfile struct {
-	Profile     string           `json:"profile" yaml:"profile"`
-	Requests    ResourceRequests `json:"requests" yaml:"requests"`
-	Limits      ResourceLimits   `json:"limits" yaml:"limits"`
-	NodeAffinity *NodeAffinity   `json:"nodeAffinity,omitempty" yaml:"nodeAffinity,omitempty"`
+	Profile      string           `json:"profile" yaml:"profile"`
+	Requests     ResourceRequests `json:"requests" yaml:"requests"`
+	Limits       ResourceLimits   `json:"limits" yaml:"limits"`
+	NodeAffinity *NodeAffinity    `json:"nodeAffinity,omitempty" yaml:"nodeAffinity,omitempty"`
 }
 
 // NodeAffinity defines node affinity rules
 type NodeAffinity struct {
-	RequiredDuringScheduling  []NodeSelectorTerm `json:"requiredDuringScheduling,omitempty" yaml:"requiredDuringScheduling,omitempty"`
+	RequiredDuringScheduling  []NodeSelectorTerm        `json:"requiredDuringScheduling,omitempty" yaml:"requiredDuringScheduling,omitempty"`
 	PreferredDuringScheduling []PreferredSchedulingTerm `json:"preferredDuringScheduling,omitempty" yaml:"preferredDuringScheduling,omitempty"`
 }
 
@@ -1349,12 +1349,12 @@ type PreferredSchedulingTerm struct {
 
 // NetworkFunctionDependency defines dependencies between network functions
 type NetworkFunctionDependency struct {
-	Name         string                    `json:"name" yaml:"name"`
-	Type         v1.NetworkTargetComponent `json:"type" yaml:"type"`
-	Version      string                    `json:"version" yaml:"version"`
-	Interface    string                    `json:"interface" yaml:"interface"`
-	Required     bool                      `json:"required" yaml:"required"`
-	Conditions   []DependencyCondition     `json:"conditions,omitempty" yaml:"conditions,omitempty"`
+	Name       string                    `json:"name" yaml:"name"`
+	Type       v1.NetworkTargetComponent `json:"type" yaml:"type"`
+	Version    string                    `json:"version" yaml:"version"`
+	Interface  string                    `json:"interface" yaml:"interface"`
+	Required   bool                      `json:"required" yaml:"required"`
+	Conditions []DependencyCondition     `json:"conditions,omitempty" yaml:"conditions,omitempty"`
 }
 
 // DependencyCondition defines conditions for dependencies
@@ -1382,8 +1382,8 @@ type NetworkFunctionConfigResult struct {
 
 // ValidationResult represents configuration validation results
 type ValidationResult struct {
-	Valid    bool               `json:"valid" yaml:"valid"`
-	Errors   []ValidationError  `json:"errors,omitempty" yaml:"errors,omitempty"`
+	Valid    bool                `json:"valid" yaml:"valid"`
+	Errors   []ValidationError   `json:"errors,omitempty" yaml:"errors,omitempty"`
 	Warnings []ValidationWarning `json:"warnings,omitempty" yaml:"warnings,omitempty"`
 }
 
@@ -1403,12 +1403,12 @@ type ValidationWarning struct {
 
 // BlueprintOperation represents a blueprint operation
 type BlueprintOperation struct {
-	Type        string
-	Intent      *v1.NetworkIntent
-	Templates   []*BlueprintTemplate
-	Callback    func(*porch.PackageRevision, error)
-	Context     context.Context
-	StartTime   time.Time
+	Type      string
+	Intent    *v1.NetworkIntent
+	Templates []*BlueprintTemplate
+	Callback  func(*porch.PackageRevision, error)
+	Context   context.Context
+	StartTime time.Time
 }
 
 // NewNetworkFunctionConfigGenerator creates a new network function config generator
@@ -1591,7 +1591,7 @@ func (nfcg *NetworkFunctionConfigGenerator) validateConfiguration(result *Networ
 func (nfcg *NetworkFunctionConfigGenerator) initializeDefaultTemplates() error {
 	// This would typically load templates from configuration or files
 	// For now, we'll create basic templates programmatically
-	
+
 	nfcg.logger.Debug("Initializing default network function templates")
 	return nil
 }
@@ -1656,14 +1656,14 @@ func (obm *ORANBlueprintManager) buildBlueprintMetadata(
 	intent *v1.NetworkIntent,
 ) *BlueprintMetadata {
 	return &BlueprintMetadata{
-		Name:           intent.Name,
-		Version:        "1.0.0",
-		Description:    "Generated blueprint",
-		ComponentType:  v1.NetworkTargetComponent("generic"),
-		IntentType:     intent.Spec.IntentType,
-		ORANCompliant:  true,
-		CreatedAt:      time.Now(),
-		GeneratedBy:    "nephoran-intent-operator",
+		Name:          intent.Name,
+		Version:       "1.0.0",
+		Description:   "Generated blueprint",
+		ComponentType: v1.NetworkTargetComponent("generic"),
+		IntentType:    intent.Spec.IntentType,
+		ORANCompliant: true,
+		CreatedAt:     time.Now(),
+		GeneratedBy:   "nephoran-intent-operator",
 	}
 }
 
@@ -1683,8 +1683,8 @@ func (obm *ORANBlueprintManager) createPackageRevision(
 			Name:      fmt.Sprintf("%s-blueprint-%d", intent.Name, time.Now().Unix()),
 			Namespace: intent.Namespace,
 			Annotations: map[string]string{
-				"nephoran.com/blueprint":     "true",
-				"nephoran.com/intent":        intent.Name,
+				"nephoran.com/blueprint":      "true",
+				"nephoran.com/intent":         intent.Name,
 				"nephoran.com/oran-compliant": fmt.Sprintf("%t", renderedBlueprint.ORANCompliant),
 				"nephoran.com/generated-at":   time.Now().Format(time.RFC3339),
 			},

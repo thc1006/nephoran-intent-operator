@@ -22,7 +22,6 @@ type PerformanceReporter struct {
 	logger    logr.Logger
 }
 
-
 // NewPerformanceReporter creates a new performance reporter
 func NewPerformanceReporter() *PerformanceReporter {
 	reporter := &PerformanceReporter{
@@ -46,15 +45,15 @@ func (r *PerformanceReporter) RecordMetrics(component string, metrics *Performan
 
 	metrics.Component = component
 	metrics.Timestamp = time.Now()
-	
+
 	r.metrics[component] = metrics
-	
+
 	r.logger.V(1).Info("Recorded performance metrics",
 		"component", component,
 		"throughput", metrics.Throughput,
 		"latency", metrics.Latency.String(),
 		"error_rate", metrics.ErrorRate)
-	
+
 	return nil
 }
 
@@ -78,7 +77,7 @@ func (r *PerformanceReporter) GenerateReport(ctx context.Context, config *Report
 	for component, metrics := range r.metrics {
 		if r.isInTimeRange(metrics.Timestamp, config.TimeRange) {
 			reportMetrics = append(reportMetrics, *metrics)
-			
+
 			// Check for threshold alerts
 			alerts = append(alerts, r.checkThresholds(component, metrics, config.ThresholdAlerts)...)
 		}
@@ -305,10 +304,10 @@ func (r *PerformanceReporter) calculateSummary(metrics []PerformanceMetrics, ale
 
 	return ReportSummary{
 		TotalComponents: len(metrics),
-		AvgThroughput:  totalThroughput / float64(len(metrics)),
-		AvgLatency:     avgLatency.String(),
-		OverallHealth:  totalAvailability / float64(len(metrics)),
-		CriticalAlerts: criticalAlerts,
+		AvgThroughput:   totalThroughput / float64(len(metrics)),
+		AvgLatency:      avgLatency.String(),
+		OverallHealth:   totalAvailability / float64(len(metrics)),
+		CriticalAlerts:  criticalAlerts,
 	}
 }
 

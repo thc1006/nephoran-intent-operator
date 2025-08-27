@@ -55,8 +55,8 @@ func ExampleSecurityImplementation() {
 
 		// Rate Limiting Configuration
 		RateLimit: &RateLimitConfig{
-			QPS:             20,               // 20 requests per second per IP
-			Burst:           40,               // Allow burst of 40 requests
+			QPS:             20, // 20 requests per second per IP
+			Burst:           40, // Allow burst of 40 requests
 			CleanupInterval: 10 * time.Minute,
 			IPTimeout:       1 * time.Hour,
 		},
@@ -200,7 +200,7 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 func csrfTokenHandler(suite *SecuritySuite) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := suite.GenerateCSRFToken()
-		
+
 		// Set CSRF cookie
 		http.SetCookie(w, &http.Cookie{
 			Name:     suite.config.CSRFCookieName,
@@ -211,7 +211,7 @@ func csrfTokenHandler(suite *SecuritySuite) http.HandlerFunc {
 			SameSite: http.SameSiteStrictMode,
 			MaxAge:   86400, // 24 hours
 		})
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
 			"token": token,
@@ -231,7 +231,7 @@ func listIntentsHandler(w http.ResponseWriter, r *http.Request) {
 			"target_name": "o-ran-du",
 		},
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"intents": intents,
@@ -246,18 +246,18 @@ func createIntentHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Validate intent structure (example)
 	if intent["name"] == nil || intent["target_type"] == nil {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Create intent (example response)
 	intent["id"] = fmt.Sprintf("intent-%d", time.Now().Unix())
 	intent["status"] = "pending"
 	intent["created_at"] = time.Now()
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(intent)
@@ -266,7 +266,7 @@ func createIntentHandler(w http.ResponseWriter, r *http.Request) {
 func getIntentHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	intentID := vars["id"]
-	
+
 	// Example response
 	intent := map[string]interface{}{
 		"id":          intentID,
@@ -281,7 +281,7 @@ func getIntentHandler(w http.ResponseWriter, r *http.Request) {
 			"mem_request": "1Gi",
 		},
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(intent)
 }
@@ -289,17 +289,17 @@ func getIntentHandler(w http.ResponseWriter, r *http.Request) {
 func updateIntentHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	intentID := vars["id"]
-	
+
 	var updates map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Update intent (example response)
 	updates["id"] = intentID
 	updates["updated_at"] = time.Now()
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(updates)
 }
@@ -307,7 +307,7 @@ func updateIntentHandler(w http.ResponseWriter, r *http.Request) {
 func deleteIntentHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	intentID := vars["id"]
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"id":      intentID,
@@ -319,19 +319,19 @@ func deleteIntentHandler(w http.ResponseWriter, r *http.Request) {
 func scaleIntentHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	intentID := vars["id"]
-	
+
 	var scaleRequest map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&scaleRequest); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Validate scale request
 	if scaleRequest["replicas"] == nil {
 		http.Error(w, "Missing replicas field", http.StatusBadRequest)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -349,25 +349,25 @@ func validateIntentHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Perform validation
 	validationResult := map[string]interface{}{
-		"valid": true,
-		"errors": []string{},
+		"valid":    true,
+		"errors":   []string{},
 		"warnings": []string{},
 	}
-	
+
 	// Example validation rules
 	if intent["name"] == nil {
 		validationResult["valid"] = false
 		validationResult["errors"] = append(validationResult["errors"].([]string), "Missing required field: name")
 	}
-	
+
 	if intent["target_type"] == nil {
 		validationResult["valid"] = false
 		validationResult["errors"] = append(validationResult["errors"].([]string), "Missing required field: target_type")
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	if !validationResult["valid"].(bool) {
 		w.WriteHeader(http.StatusBadRequest)
@@ -388,7 +388,7 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 		"avg_response_time":  "125ms",
 		"uptime":             "72h15m",
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(metrics)
 }
@@ -403,12 +403,12 @@ func ExampleCustomValidation() {
 		if r.Header.Get("X-Nephoran-Version") == "" {
 			return fmt.Errorf("missing required header: X-Nephoran-Version")
 		}
-		
+
 		// Validate intent structure for POST/PUT requests
 		if r.Method == "POST" || r.Method == "PUT" {
 			// Add specific validation logic here
 		}
-		
+
 		return nil
 	}
 
@@ -420,7 +420,7 @@ func ExampleCustomValidation() {
 	}
 
 	validator, _ := NewInputValidator(config, logger)
-	
+
 	// Use validator in your middleware chain
 	_ = validator
 }

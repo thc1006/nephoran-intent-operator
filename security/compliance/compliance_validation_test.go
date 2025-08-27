@@ -14,7 +14,7 @@ import (
 // TestComprehensiveComplianceFramework validates the main compliance framework
 func TestComprehensiveComplianceFramework(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	
+
 	// Test framework initialization
 	framework := NewComprehensiveComplianceFramework(logger)
 	require.NotNil(t, framework)
@@ -65,7 +65,7 @@ func TestAutomatedComplianceMonitor(t *testing.T) {
 	// Create a mock Kubernetes config (in real implementation, this would be actual config)
 	// For testing purposes, we'll test with nil config and expect appropriate handling
 	monitor, err := NewAutomatedComplianceMonitor(nil, framework, logger)
-	
+
 	// In this test, we expect an error due to nil config
 	// In production, this would be a valid Kubernetes config
 	assert.Error(t, err)
@@ -74,8 +74,8 @@ func TestAutomatedComplianceMonitor(t *testing.T) {
 	// Test alert thresholds
 	thresholds := &ComplianceAlertThresholds{
 		CriticalScore:         80.0,
-		WarningScore:         90.0,
-		MaxViolations:        10,
+		WarningScore:          90.0,
+		MaxViolations:         10,
 		MaxCriticalViolations: 3,
 		ResponseTimeMinutes:   5,
 	}
@@ -90,7 +90,7 @@ func TestAutomatedComplianceMonitor(t *testing.T) {
 // TestOPAPolicyEngine validates the OPA policy enforcement system
 func TestOPAPolicyEngine(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	
+
 	// Test OPA engine initialization
 	engine, err := NewOPACompliancePolicyEngine(logger)
 	require.NoError(t, err)
@@ -141,11 +141,11 @@ violation[{"msg": "Test violation"}] {
 func TestCISKubernetesCompliance(t *testing.T) {
 	// Test CIS compliance check structure
 	status := CISComplianceStatus{
-		Version:           "1.8.0",
-		OverallScore:      95.5,
-		ComplianceLevel:   "L2",
-		FailedControls:    []CISControl{},
-		PassedControls:    []CISControl{},
+		Version:               "1.8.0",
+		OverallScore:          95.5,
+		ComplianceLevel:       "L2",
+		FailedControls:        []CISControl{},
+		PassedControls:        []CISControl{},
 		NotApplicableControls: []CISControl{},
 	}
 
@@ -157,16 +157,16 @@ func TestCISKubernetesCompliance(t *testing.T) {
 
 	// Test CIS control structure
 	control := CISControl{
-		ID:              "1.2.1",
-		Title:           "Ensure anonymous-auth is not set to true",
-		Description:     "Disable anonymous authentication to the API server",
-		Level:           "L1",
-		Status:          "PASS",
-		Severity:        "HIGH",
-		Remediation:     "Set --anonymous-auth=false in API server configuration",
-		Evidence:        "API server configured with anonymous-auth=false",
-		LastChecked:     time.Now(),
-		AutomatedCheck:  true,
+		ID:                 "1.2.1",
+		Title:              "Ensure anonymous-auth is not set to true",
+		Description:        "Disable anonymous authentication to the API server",
+		Level:              "L1",
+		Status:             "PASS",
+		Severity:           "HIGH",
+		Remediation:        "Set --anonymous-auth=false in API server configuration",
+		Evidence:           "API server configured with anonymous-auth=false",
+		LastChecked:        time.Now(),
+		AutomatedCheck:     true,
 		ManualVerification: false,
 	}
 
@@ -181,15 +181,15 @@ func TestCISKubernetesCompliance(t *testing.T) {
 func TestNISTCybersecurityFramework(t *testing.T) {
 	// Test NIST compliance status
 	status := NISTComplianceStatus{
-		Framework:       "NIST CSF 2.0",
-		OverallMaturity: "Tier 3",
-		IdentifyScore:   92.0,
-		ProtectScore:    94.5,
-		DetectScore:     89.0,
-		RespondScore:    87.5,
-		RecoverScore:    85.0,
+		Framework:           "NIST CSF 2.0",
+		OverallMaturity:     "Tier 3",
+		IdentifyScore:       92.0,
+		ProtectScore:        94.5,
+		DetectScore:         89.0,
+		RespondScore:        87.5,
+		RecoverScore:        85.0,
 		ImplementedControls: []NISTControl{},
-		GapAnalysis:     []NISTGap{},
+		GapAnalysis:         []NISTGap{},
 	}
 
 	assert.Equal(t, "NIST CSF 2.0", status.Framework)
@@ -201,15 +201,15 @@ func TestNISTCybersecurityFramework(t *testing.T) {
 
 	// Test NIST control structure
 	control := NISTControl{
-		FunctionArea:  "ID",
-		Category:      "ID.AM",
-		Subcategory:   "ID.AM-1",
-		Reference:     "Physical devices and systems within the organization are inventoried",
+		FunctionArea:   "ID",
+		Category:       "ID.AM",
+		Subcategory:    "ID.AM-1",
+		Reference:      "Physical devices and systems within the organization are inventoried",
 		Implementation: "Asset inventory management system implemented",
-		MaturityLevel: 3,
-		Status:       "IMPLEMENTED",
-		Evidence:     "CMDB contains all physical devices",
-		LastAssessed: time.Now(),
+		MaturityLevel:  3,
+		Status:         "IMPLEMENTED",
+		Evidence:       "CMDB contains all physical devices",
+		LastAssessed:   time.Now(),
 	}
 
 	assert.Equal(t, "ID", control.FunctionArea)
@@ -222,12 +222,12 @@ func TestNISTCybersecurityFramework(t *testing.T) {
 func TestOWASPTop10Protection(t *testing.T) {
 	// Test OWASP compliance status
 	status := OWASPComplianceStatus{
-		OWASPVersion:           "2021",
-		OverallProtectionScore: 91.5,
+		OWASPVersion:            "2021",
+		OverallProtectionScore:  91.5,
 		VulnerabilityAssessment: []OWASPVulnerability{},
-		ProtectionMechanisms:   []OWASPProtectionMechanism{},
-		RiskMitigation:         []OWASPRiskMitigation{},
-		SecurityControls:       []OWASPSecurityControl{},
+		ProtectionMechanisms:    []OWASPProtectionMechanism{},
+		RiskMitigation:          []OWASPRiskMitigation{},
+		SecurityControls:        []OWASPSecurityControl{},
 	}
 
 	assert.Equal(t, "2021", status.OWASPVersion)
@@ -278,7 +278,7 @@ func TestGDPRDataProtection(t *testing.T) {
 		ConsentMechanismImplemented: true,
 		ConsentWithdrawalEnabled:    true,
 		ConsentRecords:              1500,
-		LastConsentAudit:           time.Now().AddDate(0, -1, 0),
+		LastConsentAudit:            time.Now().AddDate(0, -1, 0),
 	}
 
 	assert.True(t, consentStatus.ConsentMechanismImplemented)
@@ -290,13 +290,13 @@ func TestGDPRDataProtection(t *testing.T) {
 func TestORANWG11SecurityCompliance(t *testing.T) {
 	// Test O-RAN compliance status
 	status := ORANComplianceStatus{
-		WG11Specification:      "R4.0",
-		OverallSecurityPosture: 93.5,
-		InterfaceSecurityScore: 96.0,
+		WG11Specification:       "R4.0",
+		OverallSecurityPosture:  93.5,
+		InterfaceSecurityScore:  96.0,
 		ZeroTrustImplementation: 91.0,
-		ThreatModelingMaturity: 89.5,
-		SecurityControlsActive: []ORANSecurityControl{},
-		ComplianceGaps:         []ORANComplianceGap{},
+		ThreatModelingMaturity:  89.5,
+		SecurityControlsActive:  []ORANSecurityControl{},
+		ComplianceGaps:          []ORANComplianceGap{},
 	}
 
 	assert.Equal(t, "R4.0", status.WG11Specification)
@@ -334,9 +334,9 @@ func TestComplianceViolationHandling(t *testing.T) {
 		Status:            "ACTIVE",
 		RemediationAction: "Update pod security context to non-privileged",
 		Evidence: map[string]interface{}{
-			"privileged":         true,
-			"security_context":   "root",
-			"capabilities":       []string{"SYS_ADMIN"},
+			"privileged":       true,
+			"security_context": "root",
+			"capabilities":     []string{"SYS_ADMIN"},
 		},
 	}
 
@@ -397,8 +397,8 @@ func TestComplianceAuditTrail(t *testing.T) {
 		Action:    "compliance_assessment",
 		Result:    "PASS",
 		Details: map[string]interface{}{
-			"score":            95.5,
-			"violations":       2,
+			"score":           95.5,
+			"violations":      2,
 			"recommendations": 3,
 		},
 	}
@@ -415,9 +415,9 @@ func TestComplianceAuditTrail(t *testing.T) {
 func TestComplianceDashboard(t *testing.T) {
 	// Test dashboard structure
 	dashboard := ComplianceDashboard{
-		OverallHealth: "HEALTHY",
-		ActiveAlerts:  []ComplianceAlert{},
-		TrendData:     []ComplianceTrendPoint{},
+		OverallHealth:   "HEALTHY",
+		ActiveAlerts:    []ComplianceAlert{},
+		TrendData:       []ComplianceTrendPoint{},
 		FrameworkStatus: []FrameworkStatusCard{},
 	}
 
@@ -428,11 +428,11 @@ func TestComplianceDashboard(t *testing.T) {
 
 	// Test compliance alert structure
 	alert := ComplianceAlert{
-		ID:        "alert-001",
-		Severity:  "HIGH",
-		Framework: "OWASP",
-		Message:   "Vulnerability scan detected critical issues",
-		Timestamp: time.Now(),
+		ID:           "alert-001",
+		Severity:     "HIGH",
+		Framework:    "OWASP",
+		Message:      "Vulnerability scan detected critical issues",
+		Timestamp:    time.Now(),
 		Acknowledged: false,
 	}
 
@@ -512,7 +512,7 @@ func TestPolicyEvaluationPerformance(t *testing.T) {
 
 	// Test policy evaluation performance
 	start := time.Now()
-	
+
 	// Simulate multiple policy evaluations
 	for i := 0; i < 100; i++ {
 		// In a real test, this would evaluate actual admission requests
@@ -522,10 +522,10 @@ func TestPolicyEvaluationPerformance(t *testing.T) {
 			t.Error("Expected CIS pod security policy to be cached")
 		}
 	}
-	
+
 	duration := time.Since(start)
 	t.Logf("100 policy cache lookups took: %v", duration)
-	
+
 	// Ensure performance is reasonable (under 10ms for 100 lookups)
 	assert.Less(t, duration, 10*time.Millisecond)
 }
@@ -533,7 +533,7 @@ func TestPolicyEvaluationPerformance(t *testing.T) {
 // TestComplianceIntegration validates integration between components
 func TestComplianceIntegration(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	
+
 	// Test that all major components can be initialized together
 	framework := NewComprehensiveComplianceFramework(logger)
 	require.NotNil(t, framework)
@@ -558,11 +558,11 @@ func TestComplianceIntegration(t *testing.T) {
 // TestErrorHandling validates error scenarios
 func TestErrorHandling(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	
+
 	// Test with invalid configurations
 	invalidFramework := &ComprehensiveComplianceFramework{}
 	status, err := invalidFramework.RunComprehensiveComplianceCheck(context.Background())
-	
+
 	// Should handle gracefully
 	assert.Error(t, err)
 	assert.Nil(t, status)

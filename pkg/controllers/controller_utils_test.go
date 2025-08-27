@@ -157,10 +157,10 @@ func TestUpdateCondition(t *testing.T) {
 
 func TestCalculateExponentialBackoffWithConstants(t *testing.T) {
 	constants := &configPkg.Constants{
-		BaseBackoffDelay:    2 * time.Second,
-		MaxBackoffDelay:     10 * time.Minute,
-		BackoffMultiplier:   2.0,
-		JitterFactor:        0.1,
+		BaseBackoffDelay:  2 * time.Second,
+		MaxBackoffDelay:   10 * time.Minute,
+		BackoffMultiplier: 2.0,
+		JitterFactor:      0.1,
 	}
 
 	// Test with zero base delay - should use constants

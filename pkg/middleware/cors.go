@@ -39,7 +39,7 @@ type CORSConfig struct {
 // DefaultCORSConfig returns a secure default CORS configuration
 func DefaultCORSConfig() *CORSConfig {
 	return &CORSConfig{
-		AllowedOrigins:   []string{},  // Must be explicitly configured
+		AllowedOrigins:   []string{}, // Must be explicitly configured
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"},
 		ExposedHeaders:   []string{},

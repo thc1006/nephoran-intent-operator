@@ -39,21 +39,21 @@ const (
 type NetworkTargetComponent string
 
 const (
-	NetworkTargetComponentAMF    NetworkTargetComponent = "AMF"
-	NetworkTargetComponentSMF    NetworkTargetComponent = "SMF"
-	NetworkTargetComponentUPF    NetworkTargetComponent = "UPF"
-	NetworkTargetComponentNRF    NetworkTargetComponent = "NRF"
-	NetworkTargetComponentUDM    NetworkTargetComponent = "UDM"
-	NetworkTargetComponentUDR    NetworkTargetComponent = "UDR"
-	NetworkTargetComponentPCF    NetworkTargetComponent = "PCF"
-	NetworkTargetComponentAUSF   NetworkTargetComponent = "AUSF"
-	NetworkTargetComponentNSSF   NetworkTargetComponent = "NSSF"
-	NetworkTargetComponentCUCP   NetworkTargetComponent = "CU-CP"
-	NetworkTargetComponentCUUP   NetworkTargetComponent = "CU-UP"
-	NetworkTargetComponentDU     NetworkTargetComponent = "DU"
-	NetworkTargetComponentNEF    NetworkTargetComponent = "NEF"
-	NetworkTargetComponentNWDAF  NetworkTargetComponent = "NWDAF"
-	NetworkTargetComponentAF     NetworkTargetComponent = "AF"
+	NetworkTargetComponentAMF   NetworkTargetComponent = "AMF"
+	NetworkTargetComponentSMF   NetworkTargetComponent = "SMF"
+	NetworkTargetComponentUPF   NetworkTargetComponent = "UPF"
+	NetworkTargetComponentNRF   NetworkTargetComponent = "NRF"
+	NetworkTargetComponentUDM   NetworkTargetComponent = "UDM"
+	NetworkTargetComponentUDR   NetworkTargetComponent = "UDR"
+	NetworkTargetComponentPCF   NetworkTargetComponent = "PCF"
+	NetworkTargetComponentAUSF  NetworkTargetComponent = "AUSF"
+	NetworkTargetComponentNSSF  NetworkTargetComponent = "NSSF"
+	NetworkTargetComponentCUCP  NetworkTargetComponent = "CU-CP"
+	NetworkTargetComponentCUUP  NetworkTargetComponent = "CU-UP"
+	NetworkTargetComponentDU    NetworkTargetComponent = "DU"
+	NetworkTargetComponentNEF   NetworkTargetComponent = "NEF"
+	NetworkTargetComponentNWDAF NetworkTargetComponent = "NWDAF"
+	NetworkTargetComponentAF    NetworkTargetComponent = "AF"
 )
 
 // NetworkPriority represents processing priority levels (to avoid conflict with disaster recovery)
@@ -108,48 +108,51 @@ type NetworkIntentSpec struct {
 	// +kubebuilder:validation:MaxLength=1000
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9\s\-_.,;:()\[\]]*$`
 	Intent string `json:"intent"`
-	
+
 	// IntentType specifies the type of network intent
 	// +kubebuilder:validation:Enum=scaling;deployment;configuration;optimization;maintenance
 	IntentType IntentType `json:"intentType,omitempty"`
-	
+
 	// Parameters contains structured parameters extracted from the intent
 	Parameters *runtime.RawExtension `json:"parameters,omitempty"`
-	
+
+	// ParametersMap contains key-value parameters extracted from the intent
+	ParametersMap map[string]string `json:"parametersMap,omitempty"`
+
 	// TargetCluster specifies the target cluster for deployment
 	TargetCluster string `json:"targetCluster,omitempty"`
-	
+
 	// Priority defines the processing priority
 	// +kubebuilder:validation:Enum=low;normal;high;critical
 	Priority NetworkPriority `json:"priority,omitempty"`
-	
+
 	// TargetComponents specifies the target components for the intent
 	TargetComponents []NetworkTargetComponent `json:"targetComponents,omitempty"`
-	
+
 	// ResourceRequirements specifies resource requirements
 	ResourceRequirements *ResourceRequirements `json:"resourceRequirements,omitempty"`
-	
+
 	// Constraints defines deployment constraints
 	Constraints map[string]string `json:"constraints,omitempty"`
-	
+
 	// ResourceConstraints defines resource constraints for deployments
 	ResourceConstraints *NetworkResourceConstraints `json:"resourceConstraints,omitempty"`
-	
+
 	// TargetNamespace specifies the target namespace for deployment
 	TargetNamespace string `json:"targetNamespace,omitempty"`
-	
+
 	// NetworkSlice identifies the network slice for this intent
 	NetworkSlice string `json:"networkSlice,omitempty"`
-	
+
 	// Region specifies the target region for deployment
 	Region string `json:"region,omitempty"`
-	
+
 	// TimeoutSeconds specifies the timeout for operations in seconds
 	TimeoutSeconds *int32 `json:"timeoutSeconds,omitempty"`
-	
+
 	// MaxRetries specifies the maximum number of retry attempts
 	MaxRetries *int32 `json:"maxRetries,omitempty"`
-	
+
 	// ProcessedParameters contains parameters extracted during processing
 	ProcessedParameters *runtime.RawExtension `json:"processedParameters,omitempty"`
 }
@@ -167,43 +170,43 @@ type NetworkIntentStatus struct {
 
 	// LastUpdateTime indicates when the status was last updated
 	LastUpdateTime metav1.Time `json:"lastUpdateTime,omitempty"`
-	
+
 	// LastProcessed indicates when the intent was last processed
 	LastProcessed *metav1.Time `json:"lastProcessed,omitempty"`
-	
+
 	// Conditions represent the current conditions of the NetworkIntent
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
-	
+
 	// ProcessingCompletionTime indicates when processing completed
 	ProcessingCompletionTime *metav1.Time `json:"processingCompletionTime,omitempty"`
-	
+
 	// ProcessingStartTime indicates when processing started
 	ProcessingStartTime *metav1.Time `json:"processingStartTime,omitempty"`
-	
+
 	// DeploymentCompletionTime indicates when deployment completed
 	DeploymentCompletionTime *metav1.Time `json:"deploymentCompletionTime,omitempty"`
-	
+
 	// GitCommitHash contains the hash of the commit created in GitOps repository
-	GitCommitHash string `json:"gitCommitHash,omitempty"` 
-	
+	GitCommitHash string `json:"gitCommitHash,omitempty"`
+
 	// CompletionTime indicates when the intent was completed
 	CompletionTime *metav1.Time `json:"completionTime,omitempty"`
-	
+
 	// ErrorMessage contains error details if the intent failed
 	ErrorMessage string `json:"errorMessage,omitempty"`
-	
+
 	// ResourcePlan contains the generated resource deployment plan
 	ResourcePlan *NetworkResourcePlan `json:"resourcePlan,omitempty"`
-	
+
 	// ValidationErrors contains any validation errors
 	ValidationErrors []string `json:"validationErrors,omitempty"`
-	
+
 	// DeploymentStatus contains detailed deployment status information
 	DeploymentStatus *DeploymentStatus `json:"deploymentStatus,omitempty"`
-	
+
 	// PackageRevision contains reference to the generated package revision
 	PackageRevision *PackageRevisionReference `json:"packageRevision,omitempty"`
-	
+
 	// ProcessingResults contains structured processing results
 	ProcessingResults *ProcessingResult `json:"processingResults,omitempty"`
 }
@@ -235,13 +238,13 @@ type NetworkIntentList struct {
 type ResourceRequirements struct {
 	// CPU requirements
 	CPU string `json:"cpu,omitempty"`
-	
-	// Memory requirements  
+
+	// Memory requirements
 	Memory string `json:"memory,omitempty"`
-	
+
 	// Storage requirements
 	Storage string `json:"storage,omitempty"`
-	
+
 	// Kubernetes resource requirements
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 }
@@ -250,25 +253,25 @@ type ResourceRequirements struct {
 type NetworkResourceConstraints struct {
 	// Maximum CPU allocation (string form for backward compatibility)
 	MaxCpu string `json:"maxCpu,omitempty"`
-	
+
 	// Maximum memory allocation (string form for backward compatibility)
 	MaxMem string `json:"maxMem,omitempty"`
-	
+
 	// Maximum storage allocation (string form for backward compatibility)
 	MaxStorage string `json:"maxStorage,omitempty"`
-	
+
 	// Maximum CPU allocation as resource.Quantity (for blueprint engine compatibility)
 	MaxCPU *resource.Quantity `json:"maxCPU,omitempty"`
-	
+
 	// Maximum memory allocation as resource.Quantity (for blueprint engine compatibility)
 	MaxMemory *resource.Quantity `json:"maxMemory,omitempty"`
-	
+
 	// Minimum resource requirements
 	MinResources *corev1.ResourceRequirements `json:"minResources,omitempty"`
-	
+
 	// Maximum resource limits
 	MaxResources *corev1.ResourceRequirements `json:"maxResources,omitempty"`
-	
+
 	// Resource quotas
 	ResourceQuota map[string]string `json:"resourceQuota,omitempty"`
 }
@@ -277,13 +280,13 @@ type NetworkResourceConstraints struct {
 type NetworkResourcePlan struct {
 	// Resources to be deployed
 	Resources []NetworkPlannedResource `json:"resources,omitempty"`
-	
+
 	// Dependencies between resources
 	Dependencies []NetworkResourceDependency `json:"dependencies,omitempty"`
-	
+
 	// Deployment phases
 	Phases []NetworkDeploymentPhase `json:"phases,omitempty"`
-	
+
 	// Estimated cost
 	EstimatedCost *ResourceCost `json:"estimatedCost,omitempty"`
 }
@@ -292,16 +295,16 @@ type NetworkResourcePlan struct {
 type NetworkPlannedResource struct {
 	// Name of the resource
 	Name string `json:"name"`
-	
+
 	// Type of resource (e.g., "CNF", "VNF", "Service")
 	Type string `json:"type"`
-	
+
 	// Configuration for the resource
 	Configuration *runtime.RawExtension `json:"configuration,omitempty"`
-	
+
 	// Target cluster
 	TargetCluster string `json:"targetCluster,omitempty"`
-	
+
 	// Status of the resource
 	Status string `json:"status,omitempty"`
 }
@@ -310,10 +313,10 @@ type NetworkPlannedResource struct {
 type NetworkResourceDependency struct {
 	// Source resource name
 	Source string `json:"source"`
-	
-	// Target resource name  
+
+	// Target resource name
 	Target string `json:"target"`
-	
+
 	// Dependency type
 	Type string `json:"type"`
 }
@@ -322,10 +325,10 @@ type NetworkResourceDependency struct {
 type NetworkDeploymentPhase struct {
 	// Name of the phase
 	Name string `json:"name"`
-	
+
 	// Resources to deploy in this phase
 	Resources []string `json:"resources"`
-	
+
 	// Phase order
 	Order int `json:"order"`
 }
@@ -334,13 +337,13 @@ type NetworkDeploymentPhase struct {
 type ResourceCost struct {
 	// CPU cost per hour
 	CPUCostPerHour float64 `json:"cpuCostPerHour,omitempty"`
-	
+
 	// Memory cost per hour
 	MemoryCostPerHour float64 `json:"memoryCostPerHour,omitempty"`
-	
+
 	// Storage cost per hour
 	StorageCostPerHour float64 `json:"storageCostPerHour,omitempty"`
-	
+
 	// Total estimated cost per hour
 	TotalCostPerHour float64 `json:"totalCostPerHour,omitempty"`
 }
@@ -349,16 +352,16 @@ type ResourceCost struct {
 type ProcessingResult struct {
 	// LLMResponse contains the response from the LLM processing
 	LLMResponse string `json:"llmResponse,omitempty"`
-	
+
 	// NetworkFunctionType identifies the detected network function type
 	NetworkFunctionType string `json:"networkFunctionType,omitempty"`
-	
+
 	// DeploymentParameters contains extracted deployment parameters
 	DeploymentParameters map[string]string `json:"deploymentParameters,omitempty"`
-	
+
 	// ConfidenceScore indicates the confidence level of the processing (0-1)
 	ConfidenceScore float64 `json:"confidenceScore,omitempty"`
-	
+
 	// ProcessingTime indicates how long the processing took
 	ProcessingTime metav1.Duration `json:"processingTime,omitempty"`
 }
@@ -382,13 +385,13 @@ func (np NetworkPriority) String() string {
 type PackageRevisionReference struct {
 	// Repository name where the package is stored
 	Repository string `json:"repository"`
-	
+
 	// PackageName name of the package
 	PackageName string `json:"packageName"`
-	
+
 	// Revision specific revision of the package
 	Revision string `json:"revision"`
-	
+
 	// WorkspaceName name of the workspace (optional)
 	WorkspaceName string `json:"workspaceName,omitempty"`
 }
@@ -397,16 +400,16 @@ type PackageRevisionReference struct {
 type DeploymentStatus struct {
 	// Phase current phase of deployment
 	Phase string `json:"phase,omitempty"`
-	
+
 	// Targets list of deployment target statuses
 	Targets []DeploymentTargetStatus `json:"targets,omitempty"`
-	
+
 	// StartedAt timestamp when deployment started
 	StartedAt *metav1.Time `json:"startedAt,omitempty"`
-	
+
 	// CompletedAt timestamp when deployment completed
 	CompletedAt *metav1.Time `json:"completedAt,omitempty"`
-	
+
 	// Conditions current deployment conditions
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
@@ -415,19 +418,19 @@ type DeploymentStatus struct {
 type DeploymentTargetStatus struct {
 	// Cluster name of the target cluster
 	Cluster string `json:"cluster"`
-	
+
 	// Namespace target namespace
 	Namespace string `json:"namespace"`
-	
+
 	// Status deployment status for this target
 	Status string `json:"status"`
-	
+
 	// Message optional status message
 	Message string `json:"message,omitempty"`
-	
+
 	// LastUpdateTime when this status was last updated
 	LastUpdateTime *metav1.Time `json:"lastUpdateTime,omitempty"`
-	
+
 	// Resources deployed resources for this target
 	Resources []DeployedResourceStatus `json:"resources,omitempty"`
 }
@@ -443,46 +446,45 @@ func NetworkTargetComponentsToStrings(components []NetworkTargetComponent) []str
 	return result
 }
 
-
 // Alias types for backward compatibility with existing code
 // These provide shorter names that match the existing usage patterns
 
 const (
 	// O-RAN Core Network Functions - Aliases for compatibility using raw string values
-	TargetComponentAMF    = "AMF"
-	TargetComponentSMF    = "SMF"
-	TargetComponentUPF    = "UPF"
-	TargetComponentNRF    = "NRF"
-	TargetComponentUDM    = "UDM"
-	TargetComponentUDR    = "UDR"
-	TargetComponentPCF    = "PCF"
-	TargetComponentAUSF   = "AUSF"
-	TargetComponentNSSF   = "NSSF"
-	
+	TargetComponentAMF  = "AMF"
+	TargetComponentSMF  = "SMF"
+	TargetComponentUPF  = "UPF"
+	TargetComponentNRF  = "NRF"
+	TargetComponentUDM  = "UDM"
+	TargetComponentUDR  = "UDR"
+	TargetComponentPCF  = "PCF"
+	TargetComponentAUSF = "AUSF"
+	TargetComponentNSSF = "NSSF"
+
 	// O-RAN RAN Functions - Aliases for compatibility using raw string values
-	TargetComponentCUCP   = "CU-CP"
-	TargetComponentCUUP   = "CU-UP"
-	TargetComponentDU     = "DU"
-	TargetComponentNEF    = "NEF"
-	TargetComponentNWDAF  = "NWDAF"
-	TargetComponentAF     = "AF"
-	
+	TargetComponentCUCP  = "CU-CP"
+	TargetComponentCUUP  = "CU-UP"
+	TargetComponentDU    = "DU"
+	TargetComponentNEF   = "NEF"
+	TargetComponentNWDAF = "NWDAF"
+	TargetComponentAF    = "AF"
+
 	// Additional O-RAN components referenced in the codebase
-	TargetComponentSMO         = "SMO"         // Service Management and Orchestration
-	TargetComponentNearRTRIC   = "Near-RT-RIC" // Near Real-Time RAN Intelligent Controller
-	TargetComponentNonRTRIC    = "Non-RT-RIC"  // Non Real-Time RAN Intelligent Controller
-	TargetComponentXApp        = "xApp"        // RIC xApplication
-	TargetComponentRApp        = "rApp"        // RIC rApplication
-	TargetComponentGNodeB      = "gNodeB"      // 5G Base Station
-	TargetComponentENodeB      = "eNodeB"      // 4G Base Station
-	TargetComponentODU         = "O-DU"        // O-RAN Distributed Unit
-	TargetComponentOCUCP       = "O-CU-CP"     // O-RAN Centralized Unit Control Plane
-	TargetComponentOCUUP       = "O-CU-UP"     // O-RAN Centralized Unit User Plane
+	TargetComponentSMO       = "SMO"         // Service Management and Orchestration
+	TargetComponentNearRTRIC = "Near-RT-RIC" // Near Real-Time RAN Intelligent Controller
+	TargetComponentNonRTRIC  = "Non-RT-RIC"  // Non Real-Time RAN Intelligent Controller
+	TargetComponentXApp      = "xApp"        // RIC xApplication
+	TargetComponentRApp      = "rApp"        // RIC rApplication
+	TargetComponentGNodeB    = "gNodeB"      // 5G Base Station
+	TargetComponentENodeB    = "eNodeB"      // 4G Base Station
+	TargetComponentODU       = "O-DU"        // O-RAN Distributed Unit
+	TargetComponentOCUCP     = "O-CU-CP"     // O-RAN Centralized Unit Control Plane
+	TargetComponentOCUUP     = "O-CU-UP"     // O-RAN Centralized Unit User Plane
 )
 
 const (
 	// Priority constants for general use (raw string values to avoid conflicts)
-	PriorityNormalNet   = "normal"  // Additional priority level for network intents
+	PriorityNormalNet = "normal" // Additional priority level for network intents
 )
 
 // NetworkIntent processing phases - additional phase constants for general use
@@ -492,10 +494,9 @@ const (
 	PhaseProcessing         = "Processing"
 	PhaseResourcePlanning   = "ResourcePlanning"
 	PhaseManifestGeneration = "ManifestGeneration"
-	PhaseDeployed          = "Deployed"
-	PhaseFailed            = "Failed"
+	PhaseDeployed           = "Deployed"
+	PhaseFailed             = "Failed"
 )
-
 
 func init() {
 	SchemeBuilder.Register(&NetworkIntent{}, &NetworkIntentList{})

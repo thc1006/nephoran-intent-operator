@@ -20,69 +20,69 @@ import (
 
 // ComprehensiveSecurityTestSuite orchestrates all security testing components
 type ComprehensiveSecurityTestSuite struct {
-	client                     client.Client
-	k8sClient                  kubernetes.Interface
-	config                     *rest.Config
-	namespace                  string
-	penetrationTester          *PenetrationTestSuite
-	securityValidator          *AutomatedSecurityValidator
-	continuousMonitor          *ContinuousSecurityMonitor
-	regressionPipeline         *SecurityRegressionPipeline
-	testResults               *ComprehensiveTestResults
-	mutex                     sync.RWMutex
+	client             client.Client
+	k8sClient          kubernetes.Interface
+	config             *rest.Config
+	namespace          string
+	penetrationTester  *PenetrationTestSuite
+	securityValidator  *AutomatedSecurityValidator
+	continuousMonitor  *ContinuousSecurityMonitor
+	regressionPipeline *SecurityRegressionPipeline
+	testResults        *ComprehensiveTestResults
+	mutex              sync.RWMutex
 }
 
 // ComprehensiveTestResults aggregates all security test results
 type ComprehensiveTestResults struct {
-	TestSuiteID           string                          `json:"test_suite_id"`
-	ExecutionTimestamp    time.Time                       `json:"execution_timestamp"`
-	TotalDuration         time.Duration                   `json:"total_duration"`
-	OverallStatus         string                          `json:"overall_status"`
-	SecurityScore         float64                         `json:"security_score"`
-	ComplianceScore       float64                         `json:"compliance_score"`
-	ThreatDetections      int                             `json:"threat_detections"`
-	Vulnerabilities       int                             `json:"vulnerabilities"`
-	CriticalIssues        int                             `json:"critical_issues"`
-	TestCategories        map[string]CategoryResult       `json:"test_categories"`
-	DetailedResults       *DetailedSecurityResults        `json:"detailed_results"`
-	ExecutionSummary      *ExecutionSummary               `json:"execution_summary"`
-	ComplianceFrameworks  map[string]ComplianceResult     `json:"compliance_frameworks"`
-	SecurityRecommendations []SecurityRecommendation      `json:"security_recommendations"`
-	TrendAnalysis         *SecurityTrendAnalysis          `json:"trend_analysis"`
+	TestSuiteID             string                      `json:"test_suite_id"`
+	ExecutionTimestamp      time.Time                   `json:"execution_timestamp"`
+	TotalDuration           time.Duration               `json:"total_duration"`
+	OverallStatus           string                      `json:"overall_status"`
+	SecurityScore           float64                     `json:"security_score"`
+	ComplianceScore         float64                     `json:"compliance_score"`
+	ThreatDetections        int                         `json:"threat_detections"`
+	Vulnerabilities         int                         `json:"vulnerabilities"`
+	CriticalIssues          int                         `json:"critical_issues"`
+	TestCategories          map[string]CategoryResult   `json:"test_categories"`
+	DetailedResults         *DetailedSecurityResults    `json:"detailed_results"`
+	ExecutionSummary        *ExecutionSummary           `json:"execution_summary"`
+	ComplianceFrameworks    map[string]ComplianceResult `json:"compliance_frameworks"`
+	SecurityRecommendations []SecurityRecommendation    `json:"security_recommendations"`
+	TrendAnalysis           *SecurityTrendAnalysis      `json:"trend_analysis"`
 }
 
 // CategoryResult represents results for a specific test category
 type CategoryResult struct {
-	Category      string        `json:"category"`
-	Status        string        `json:"status"`
-	TestsRun      int           `json:"tests_run"`
-	TestsPassed   int           `json:"tests_passed"`
-	TestsFailed   int           `json:"tests_failed"`
-	TestsSkipped  int           `json:"tests_skipped"`
-	Duration      time.Duration `json:"duration"`
-	Score         float64       `json:"score"`
-	Issues        []string      `json:"issues"`
-	Findings      int           `json:"findings"`
+	Category     string        `json:"category"`
+	Status       string        `json:"status"`
+	TestsRun     int           `json:"tests_run"`
+	TestsPassed  int           `json:"tests_passed"`
+	TestsFailed  int           `json:"tests_failed"`
+	TestsSkipped int           `json:"tests_skipped"`
+	Duration     time.Duration `json:"duration"`
+	Score        float64       `json:"score"`
+	Issues       []string      `json:"issues"`
+	Findings     int           `json:"findings"`
 }
 
 // DetailedSecurityResults contains detailed results from each component
 type DetailedSecurityResults struct {
-	PenetrationTestResults    *TestResults                `json:"penetration_test_results"`
-	SecurityValidationResults *SecurityValidationResults  `json:"security_validation_results"`
+	PenetrationTestResults    *TestResults               `json:"penetration_test_results"`
+	SecurityValidationResults *SecurityValidationResults `json:"security_validation_results"`
 	ContinuousMonitoringData  *MonitoringData            `json:"continuous_monitoring_data"`
 	RegressionPipelineResults *PipelineExecutionResults  `json:"regression_pipeline_results"`
 }
 
 // ExecutionSummary provides high-level execution information
 type ExecutionSummary struct {
-	StartTime              time.Time `json:"start_time"`
-	EndTime                time.Time `json:"end_time"`
-	TotalExecutionTime     time.Duration `json:"total_execution_time"`
-	ParallelExecution      bool      `json:"parallel_execution"`
-	TestEnvironment        string    `json:"test_environment"`
-	KubernetesVersion      string    `json:"kubernetes_version"`
-	TestDataGenerated      int64     `json:"test_data_generated_bytes"`
-	ResourcesUsed          ResourceUsage `json:"resources_used"`
+	StartTime          time.Time     `json:"start_time"`
+	EndTime            time.Time     `json:"end_time"`
+	TotalExecutionTime time.Duration `json:"total_execution_time"`
+	ParallelExecution  bool          `json:"parallel_execution"`
+	TestEnvironment    string        `json:"test_environment"`
+	KubernetesVersion  string        `json:"kubernetes_version"`
+	TestDataGenerated  int64         `json:"test_data_generated_bytes"`
+	ResourcesUsed      ResourceUsage `json:"resources_used"`
 }
 
 // ResourceUsage tracks resource consumption during testing
@@ -96,12 +96,12 @@ type ResourceUsage struct {
 
 // SecurityTrendAnalysis provides trend analysis across test executions
 type SecurityTrendAnalysis struct {
-	HistoricalScores      []float64 `json:"historical_scores"`
-	TrendDirection        string    `json:"trend_direction"`
-	ScoreImprovement      float64   `json:"score_improvement"`
-	RecentRegression      bool      `json:"recent_regression"`
-	PredictedFutureScore  float64   `json:"predicted_future_score"`
-	RecommendedActions    []string  `json:"recommended_actions"`
+	HistoricalScores     []float64 `json:"historical_scores"`
+	TrendDirection       string    `json:"trend_direction"`
+	ScoreImprovement     float64   `json:"score_improvement"`
+	RecentRegression     bool      `json:"recent_regression"`
+	PredictedFutureScore float64   `json:"predicted_future_score"`
+	RecommendedActions   []string  `json:"recommended_actions"`
 }
 
 // NewComprehensiveSecurityTestSuite creates a new comprehensive test suite
@@ -112,10 +112,10 @@ func NewComprehensiveSecurityTestSuite(client client.Client, k8sClient kubernete
 		config:    config,
 		namespace: namespace,
 		testResults: &ComprehensiveTestResults{
-			TestSuiteID:         fmt.Sprintf("comprehensive-security-test-%d", time.Now().Unix()),
-			ExecutionTimestamp:  time.Now(),
-			TestCategories:      make(map[string]CategoryResult),
-			ComplianceFrameworks: make(map[string]ComplianceResult),
+			TestSuiteID:             fmt.Sprintf("comprehensive-security-test-%d", time.Now().Unix()),
+			ExecutionTimestamp:      time.Now(),
+			TestCategories:          make(map[string]CategoryResult),
+			ComplianceFrameworks:    make(map[string]ComplianceResult),
 			SecurityRecommendations: make([]SecurityRecommendation, 0),
 		},
 	}
@@ -150,7 +150,7 @@ func (suite *ComprehensiveSecurityTestSuite) ExecuteComprehensiveSecurityTests(c
 		suite.addCategoryResult("penetration_testing", result)
 	}()
 
-	// Category 2: Security Control Validation  
+	// Category 2: Security Control Validation
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -191,7 +191,7 @@ func (suite *ComprehensiveSecurityTestSuite) ExecuteComprehensiveSecurityTests(c
 
 	// Calculate overall results
 	suite.calculateOverallResults()
-	
+
 	// Generate trend analysis
 	suite.performTrendAnalysis(ctx)
 
@@ -233,13 +233,13 @@ func (suite *ComprehensiveSecurityTestSuite) executePenetrationTesting(ctx conte
 
 	// Execute penetration tests
 	penetrationResults := suite.runPenetrationTests(ctx)
-	
+
 	// Process results
 	result.TestsRun = len(penetrationResults.PenetrationResults)
 	result.TestsPassed = 0
 	result.TestsFailed = 0
 	result.Vulnerabilities = penetrationResults.VulnerabilityCount
-	
+
 	for _, penResult := range penetrationResults.PenetrationResults {
 		if penResult.Status == "passed" {
 			result.TestsPassed++
@@ -252,10 +252,10 @@ func (suite *ComprehensiveSecurityTestSuite) executePenetrationTesting(ctx conte
 			result.TestsSkipped++
 		}
 	}
-	
+
 	result.Score = penetrationResults.SecurityScore
 	result.Duration = time.Since(start)
-	
+
 	if result.TestsFailed == 0 && result.Vulnerabilities == 0 {
 		result.Status = "passed"
 	} else {
@@ -275,12 +275,12 @@ func (suite *ComprehensiveSecurityTestSuite) executeSecurityControlValidation(ct
 
 	// Execute security control validation
 	validationResults := suite.runSecurityControlValidation(ctx)
-	
+
 	// Process results
 	result.TestsRun = len(validationResults.SecurityControls)
 	result.TestsPassed = 0
 	result.TestsFailed = 0
-	
+
 	for _, control := range validationResults.SecurityControls {
 		if control.Status == "passed" {
 			result.TestsPassed++
@@ -291,10 +291,10 @@ func (suite *ComprehensiveSecurityTestSuite) executeSecurityControlValidation(ct
 			result.TestsSkipped++
 		}
 	}
-	
+
 	result.Score = validationResults.ComplianceScore
 	result.Duration = time.Since(start)
-	
+
 	if result.TestsFailed == 0 {
 		result.Status = "passed"
 	} else {
@@ -314,11 +314,11 @@ func (suite *ComprehensiveSecurityTestSuite) executeContinuousMonitoring(ctx con
 
 	// Execute continuous monitoring for a short period
 	monitoringData := suite.runContinuousMonitoring(ctx, 2*time.Minute)
-	
+
 	// Process monitoring results
 	result.TestsRun = 1 // Monitoring is a single long-running test
 	result.Findings = len(monitoringData.ThreatDetections)
-	
+
 	if len(monitoringData.SecurityAlerts) == 0 && len(monitoringData.ThreatDetections) == 0 {
 		result.TestsPassed = 1
 		result.Status = "passed"
@@ -327,12 +327,12 @@ func (suite *ComprehensiveSecurityTestSuite) executeContinuousMonitoring(ctx con
 		result.TestsFailed = 1
 		result.Status = "failed"
 		result.Score = 70.0 // Reduced score due to threats/alerts
-		
+
 		for _, alert := range monitoringData.SecurityAlerts {
 			result.Issues = append(result.Issues, alert.Title)
 		}
 	}
-	
+
 	result.Duration = time.Since(start)
 	return result
 }
@@ -347,12 +347,12 @@ func (suite *ComprehensiveSecurityTestSuite) executeRegressionTesting(ctx contex
 
 	// Execute regression testing pipeline
 	pipelineResults := suite.runRegressionPipeline(ctx)
-	
+
 	// Process pipeline results
 	result.TestsRun = len(pipelineResults.StageResults)
 	result.TestsPassed = 0
 	result.TestsFailed = 0
-	
+
 	for _, stage := range pipelineResults.StageResults {
 		if stage.Status == "completed" {
 			result.TestsPassed++
@@ -363,7 +363,7 @@ func (suite *ComprehensiveSecurityTestSuite) executeRegressionTesting(ctx contex
 			result.TestsSkipped++
 		}
 	}
-	
+
 	// Calculate score based on compliance results
 	totalCompliance := 0.0
 	complianceCount := 0
@@ -371,15 +371,15 @@ func (suite *ComprehensiveSecurityTestSuite) executeRegressionTesting(ctx contex
 		totalCompliance += score
 		complianceCount++
 	}
-	
+
 	if complianceCount > 0 {
 		result.Score = totalCompliance / float64(complianceCount)
 	} else {
 		result.Score = 100.0
 	}
-	
+
 	result.Duration = time.Since(start)
-	
+
 	if result.TestsFailed == 0 {
 		result.Status = "passed"
 	} else {
@@ -394,7 +394,7 @@ func (suite *ComprehensiveSecurityTestSuite) executeRegressionTesting(ctx contex
 func (suite *ComprehensiveSecurityTestSuite) runPenetrationTests(ctx context.Context) *TestResults {
 	// Simulate comprehensive penetration testing
 	// In real implementation, this would run the full penetration testing suite
-	
+
 	return &TestResults{
 		TestID:             fmt.Sprintf("pen-test-%d", time.Now().Unix()),
 		Timestamp:          time.Now(),
@@ -434,7 +434,7 @@ func (suite *ComprehensiveSecurityTestSuite) runPenetrationTests(ctx context.Con
 func (suite *ComprehensiveSecurityTestSuite) runSecurityControlValidation(ctx context.Context) *SecurityValidationResults {
 	// Simulate security control validation
 	// In real implementation, this would run the full validation suite
-	
+
 	return &SecurityValidationResults{
 		ValidationID:    fmt.Sprintf("validation-%d", time.Now().Unix()),
 		Timestamp:       time.Now(),
@@ -473,7 +473,7 @@ func (suite *ComprehensiveSecurityTestSuite) runSecurityControlValidation(ctx co
 func (suite *ComprehensiveSecurityTestSuite) runContinuousMonitoring(ctx context.Context, duration time.Duration) *MonitoringData {
 	// Simulate continuous monitoring for specified duration
 	// In real implementation, this would start the monitoring system
-	
+
 	return &MonitoringData{
 		StartTime:        time.Now(),
 		LastUpdate:       time.Now().Add(duration),
@@ -502,7 +502,7 @@ func (suite *ComprehensiveSecurityTestSuite) runContinuousMonitoring(ctx context
 func (suite *ComprehensiveSecurityTestSuite) runRegressionPipeline(ctx context.Context) *PipelineExecutionResults {
 	// Simulate regression pipeline execution
 	// In real implementation, this would run the full pipeline
-	
+
 	return &PipelineExecutionResults{
 		ExecutionID:  fmt.Sprintf("pipeline-%d", time.Now().Unix()),
 		PipelineID:   "security-regression",
@@ -551,7 +551,7 @@ func (suite *ComprehensiveSecurityTestSuite) calculateOverallResults() {
 		totalSkipped += category.TestsSkipped
 		totalScore += category.Score
 		categoryCount++
-		
+
 		if category.Status != "passed" {
 			allPassed = false
 		}
@@ -585,14 +585,14 @@ func (suite *ComprehensiveSecurityTestSuite) calculateOverallResults() {
 func (suite *ComprehensiveSecurityTestSuite) performTrendAnalysis(ctx context.Context) {
 	// Load historical test data
 	historicalScores := suite.loadHistoricalScores()
-	
+
 	// Analyze trends
 	currentScore := suite.testResults.SecurityScore
-	
+
 	trendAnalysis := &SecurityTrendAnalysis{
 		HistoricalScores: historicalScores,
 	}
-	
+
 	// Determine trend direction
 	if len(historicalScores) > 0 {
 		lastScore := historicalScores[len(historicalScores)-1]
@@ -608,7 +608,7 @@ func (suite *ComprehensiveSecurityTestSuite) performTrendAnalysis(ctx context.Co
 			trendAnalysis.ScoreImprovement = 0.0
 		}
 	}
-	
+
 	// Generate predictions (simplified)
 	if len(historicalScores) >= 3 {
 		recentAvg := (historicalScores[len(historicalScores)-1] + historicalScores[len(historicalScores)-2] + historicalScores[len(historicalScores)-3]) / 3
@@ -616,7 +616,7 @@ func (suite *ComprehensiveSecurityTestSuite) performTrendAnalysis(ctx context.Co
 	} else {
 		trendAnalysis.PredictedFutureScore = currentScore
 	}
-	
+
 	// Generate recommendations
 	if trendAnalysis.RecentRegression {
 		trendAnalysis.RecommendedActions = append(trendAnalysis.RecommendedActions, "Investigate recent security regression")
@@ -624,13 +624,13 @@ func (suite *ComprehensiveSecurityTestSuite) performTrendAnalysis(ctx context.Co
 	if currentScore < 90.0 {
 		trendAnalysis.RecommendedActions = append(trendAnalysis.RecommendedActions, "Focus on improving security controls")
 	}
-	
+
 	suite.testResults.TrendAnalysis = trendAnalysis
 }
 
 func (suite *ComprehensiveSecurityTestSuite) generateSecurityRecommendations() {
 	recommendations := make([]SecurityRecommendation, 0)
-	
+
 	// Generate recommendations based on test results
 	for category, result := range suite.testResults.TestCategories {
 		if result.Status == "failed" || result.Score < 80.0 {
@@ -647,7 +647,7 @@ func (suite *ComprehensiveSecurityTestSuite) generateSecurityRecommendations() {
 			recommendations = append(recommendations, recommendation)
 		}
 	}
-	
+
 	// Add general recommendations
 	if suite.testResults.SecurityScore < 90.0 {
 		recommendations = append(recommendations, SecurityRecommendation{
@@ -661,7 +661,7 @@ func (suite *ComprehensiveSecurityTestSuite) generateSecurityRecommendations() {
 			Timeline:    "6-8 weeks",
 		})
 	}
-	
+
 	suite.testResults.SecurityRecommendations = recommendations
 }
 
@@ -721,18 +721,18 @@ func (suite *ComprehensiveSecurityTestSuite) generateComprehensiveReport() {
 	// Create reports directory
 	reportsDir := "test-results/security/comprehensive"
 	os.MkdirAll(reportsDir, 0755)
-	
+
 	// Generate JSON report
 	jsonReport, _ := json.MarshalIndent(suite.testResults, "", "  ")
 	jsonFile := filepath.Join(reportsDir, fmt.Sprintf("comprehensive-security-report-%s.json", suite.testResults.TestSuiteID))
 	os.WriteFile(jsonFile, jsonReport, 0644)
-	
+
 	// Generate HTML report
 	suite.generateHTMLComprehensiveReport(reportsDir)
-	
+
 	// Generate summary report
 	suite.generateSummaryReport(reportsDir)
-	
+
 	fmt.Printf("📊 Reports generated in: %s\n", reportsDir)
 }
 

@@ -36,7 +36,7 @@ func BenchmarkGPUInference(b *testing.B) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		_, err := accelerator.ProcessInference(ctx, request)
 		cancel()
-		
+
 		if err != nil {
 			b.Fatalf("Inference failed: %v", err)
 		}
@@ -77,7 +77,7 @@ func BenchmarkGPUBatchInference(b *testing.B) {
 				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 				_, err := accelerator.ProcessBatch(ctx, requests)
 				cancel()
-				
+
 				if err != nil {
 					b.Fatalf("Batch inference failed: %v", err)
 				}
@@ -118,7 +118,7 @@ func BenchmarkModelCaching(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		// Random model access pattern
 		modelName := models[rand.Intn(len(models))]
-		
+
 		start := time.Now()
 		_, found, err := cache.GetModel(ctx, modelName, deviceID)
 		latency := time.Since(start)
@@ -163,7 +163,7 @@ func BenchmarkVectorSearch(b *testing.B) {
 						"id":       i,
 						"category": fmt.Sprintf("cat_%d", i%10),
 					}
-					
+
 					err := accelerator.IndexVector(ctx, fmt.Sprintf("vec_%d", i), vector, metadata)
 					if err != nil {
 						b.Fatalf("Failed to index vector: %v", err)
@@ -196,9 +196,9 @@ func BenchmarkVectorSearch(b *testing.B) {
 // BenchmarkGPUMemoryAllocation benchmarks GPU memory management
 func BenchmarkGPUMemoryAllocation(b *testing.B) {
 	allocationSizes := []int64{
-		1024 * 1024,       // 1MB
-		10 * 1024 * 1024,  // 10MB
-		100 * 1024 * 1024, // 100MB
+		1024 * 1024,        // 1MB
+		10 * 1024 * 1024,   // 10MB
+		100 * 1024 * 1024,  // 100MB
 		1024 * 1024 * 1024, // 1GB
 	}
 
@@ -215,7 +215,7 @@ func BenchmarkGPUMemoryAllocation(b *testing.B) {
 			b.ReportAllocs()
 
 			allocations := make([]*MemoryAllocation, b.N)
-			
+
 			// Allocation phase
 			for i := 0; i < b.N; i++ {
 				ctx := context.Background()
@@ -267,7 +267,7 @@ func BenchmarkEmbeddingGeneration(b *testing.B) {
 
 				for i := 0; i < b.N; i++ {
 					ctx := context.Background()
-					
+
 					if batchSize == 1 {
 						_, err := accelerator.GenerateEmbedding(ctx, texts[0], modelName)
 						if err != nil {
@@ -297,7 +297,7 @@ func BenchmarkConcurrentInference(b *testing.B) {
 		b.Run(fmt.Sprintf("Concurrency%d", concurrency), func(b *testing.B) {
 			config := getDefaultGPUConfig()
 			config.EnableBatching = true
-			
+
 			accelerator, err := NewGPUAccelerator(config)
 			if err != nil {
 				b.Skipf("GPU accelerator not available: %v", err)
@@ -348,7 +348,7 @@ func BenchmarkConcurrentInference(b *testing.B) {
 func BenchmarkMemoryFragmentation(b *testing.B) {
 	config := getDefaultGPUMemoryConfig()
 	config.EnableAutoDefrag = true
-	
+
 	manager, err := NewGPUMemoryManager(config, []int{0})
 	if err != nil {
 		b.Skipf("GPU memory manager not available: %v", err)
@@ -384,7 +384,7 @@ func BenchmarkMemoryFragmentation(b *testing.B) {
 		start := time.Now()
 		largeAlloc, err := manager.AllocateMemory(ctx, largeSize, AllocationPurposeModelWeights, 0)
 		defragTime := time.Since(start)
-		
+
 		if err == nil {
 			b.ReportMetric(defragTime.Seconds()*1000, "defrag_time_ms")
 			manager.DeallocateMemory(ctx, largeAlloc)
@@ -574,7 +574,7 @@ func BenchmarkStressTest(b *testing.B) {
 
 	config := getDefaultGPUConfig()
 	config.EnableBatching = true
-	
+
 	accelerator, err := NewGPUAccelerator(config)
 	if err != nil {
 		b.Skipf("GPU accelerator not available: %v", err)
@@ -607,8 +607,8 @@ func BenchmarkStressTest(b *testing.B) {
 			request := &InferenceRequest{
 				ModelName:   "gpt-3.5-turbo",
 				InputTokens: generateRandomTokens(rand.Intn(200) + 50), // Variable length
-				MaxTokens:   rand.Intn(100) + 20,                      // Variable output
-				Temperature: rand.Float64(),                           // Variable temperature
+				MaxTokens:   rand.Intn(100) + 20,                       // Variable output
+				Temperature: rand.Float64(),                            // Variable temperature
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

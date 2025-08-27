@@ -22,130 +22,130 @@ type EnhancedModelCache struct {
 
 	// Multi-tier cache architecture
 	l1GPU    *GPUModelCache    // GPU memory cache (fastest)
-	l2Memory *MemoryModelCache // System RAM cache  
+	l2Memory *MemoryModelCache // System RAM cache
 	l3Disk   *DiskModelCache   // Persistent storage cache
 
 	// Intelligent caching strategies
-	predictor    *ModelUsagePredictor
-	preloader    *SmartModelPreloader
-	scheduler    *ModelLoadScheduler
-	optimizer    *CacheOptimizer
+	predictor *ModelUsagePredictor
+	preloader *SmartModelPreloader
+	scheduler *ModelLoadScheduler
+	optimizer *CacheOptimizer
 
 	// Access pattern analysis
 	accessTracker *ModelAccessTracker
 	usageAnalyzer *UsagePatternAnalyzer
 
 	// Configuration and policies
-	config      *EnhancedCacheConfig
-	policies    *CachingPolicies
-	eviction    *IntelligentEvictionManager
+	config   *EnhancedCacheConfig
+	policies *CachingPolicies
+	eviction *IntelligentEvictionManager
 
 	// Performance monitoring
-	metrics     *CacheMetrics
-	profiler    *CacheProfiler
+	metrics  *CacheMetrics
+	profiler *CacheProfiler
 
-	// State management  
-	state       CacheState
-	stateMutex  sync.RWMutex
+	// State management
+	state      CacheState
+	stateMutex sync.RWMutex
 
 	// Background processing
 	backgroundCtx    context.Context
 	backgroundCancel context.CancelFunc
-	wg              sync.WaitGroup
+	wg               sync.WaitGroup
 }
 
 // GPUModelCache manages models in GPU memory for ultra-fast access
 type GPUModelCache struct {
 	// Device-specific caches
 	deviceCaches map[int]*DeviceModelCache
-	
+
 	// Load balancing and placement
-	placement   *ModelPlacementManager
-	balancer    *GPULoadBalancer
+	placement *ModelPlacementManager
+	balancer  *GPULoadBalancer
 
 	// Memory management
-	allocator   *GPUMemoryAllocator
+	allocator    *GPUMemoryAllocator
 	defragmenter *GPUMemoryDefragmenter
 
 	// Model optimization
-	quantizer   *ModelQuantizer
-	compressor  *ModelCompressor
+	quantizer  *ModelQuantizer
+	compressor *ModelCompressor
 
 	mutex sync.RWMutex
 }
 
 // DeviceModelCache represents a model cache for a specific GPU device
 type DeviceModelCache struct {
-	deviceID     int
-	totalMemory  int64
-	usedMemory   int64
-	
+	deviceID    int
+	totalMemory int64
+	usedMemory  int64
+
 	// Model storage
-	models       map[string]*CachedGPUModel
-	loadOrder    []string // LRU tracking
-	
+	models    map[string]*CachedGPUModel
+	loadOrder []string // LRU tracking
+
 	// Performance tracking
-	hitCount     int64
-	missCount    int64
-	lastAccess   time.Time
-	
+	hitCount   int64
+	missCount  int64
+	lastAccess time.Time
+
 	// CUDA streams for async operations
-	streams      []CUDAStream
-	
-	mutex        sync.RWMutex
+	streams []CUDAStream
+
+	mutex sync.RWMutex
 }
 
 // CachedGPUModel represents a model cached in GPU memory
 type CachedGPUModel struct {
-	ModelID      string
-	ModelName    string
-	ModelPath    string
-	
+	ModelID   string
+	ModelName string
+	ModelPath string
+
 	// GPU-specific data
-	DeviceID     int
-	MemoryPtr    GPUMemoryPtr
-	MemorySize   int64
-	StreamID     int
-	
+	DeviceID   int
+	MemoryPtr  GPUMemoryPtr
+	MemorySize int64
+	StreamID   int
+
 	// Model metadata
 	ModelType    ModelType
 	Precision    ModelPrecision
 	Quantization QuantizationType
-	
+
 	// Performance characteristics
-	LoadTime     time.Duration
+	LoadTime         time.Duration
 	InferenceAvgTime time.Duration
-	ThroughputTPS float64
-	
+	ThroughputTPS    float64
+
 	// Access tracking
-	AccessCount  int64
-	LastAccess   time.Time
-	CreatedAt    time.Time
-	
+	AccessCount int64
+	LastAccess  time.Time
+	CreatedAt   time.Time
+
 	// Model state
-	IsLoaded     bool
-	IsOptimized  bool
-	RefCount     int32
-	
-	mutex        sync.RWMutex
+	IsLoaded    bool
+	IsOptimized bool
+	RefCount    int32
+
+	mutex sync.RWMutex
 }
 
 // ModelUsagePredictor uses ML to predict which models will be needed
 type ModelUsagePredictor struct {
 	// Historical data
-	accessHistory  []ModelAccessRecord
-	usagePatterns  map[string]*UsagePattern
-	
+	accessHistory []ModelAccessRecord
+	usagePatterns map[string]*UsagePattern
+
 	// Prediction models
 	timeSeriesModel *TimeSeriesPredictor
 	patternModel    *PatternPredictor
 	contextModel    *ContextAwarePredictor
-	
+
 	// Configuration
-	historyWindow   time.Duration
+	historyWindow     time.Duration
 	predictionHorizon time.Duration
-	confidence      float64
-	
+	confidence        float64
+
 	mutex sync.RWMutex
 }
 
@@ -153,21 +153,21 @@ type ModelUsagePredictor struct {
 type SmartModelPreloader struct {
 	// Preloading strategies
 	strategies []PreloadStrategy
-	
+
 	// Resource monitoring
 	resourceMonitor *ResourceMonitor
-	
+
 	// Preload queue and scheduling
-	preloadQueue   *PriorityPreloadQueue
-	scheduler      *PreloadScheduler
-	
+	preloadQueue *PriorityPreloadQueue
+	scheduler    *PreloadScheduler
+
 	// Performance tracking
-	preloadHits    int64
-	preloadWaste   int64
-	
+	preloadHits  int64
+	preloadWaste int64
+
 	config *PreloaderConfig
 	logger *slog.Logger
-	
+
 	mutex sync.RWMutex
 }
 
@@ -177,29 +177,29 @@ type EnhancedCacheConfig struct {
 	L1GPUConfig    GPUCacheConfig    `json:"l1_gpu_config"`
 	L2MemoryConfig MemoryCacheConfig `json:"l2_memory_config"`
 	L3DiskConfig   DiskCacheConfig   `json:"l3_disk_config"`
-	
+
 	// Intelligent features
 	EnablePrediction   bool    `json:"enable_prediction"`
 	EnablePreloading   bool    `json:"enable_preloading"`
 	EnableOptimization bool    `json:"enable_optimization"`
 	PredictionAccuracy float64 `json:"prediction_accuracy_threshold"`
-	
+
 	// Performance tuning
-	MaxModelsPerGPU    int           `json:"max_models_per_gpu"`
-	MemoryReserveRatio float64       `json:"memory_reserve_ratio"`
-	LoadTimeoutSeconds int           `json:"load_timeout_seconds"`
-	EvictionThreshold  float64       `json:"eviction_threshold"`
-	
+	MaxModelsPerGPU    int     `json:"max_models_per_gpu"`
+	MemoryReserveRatio float64 `json:"memory_reserve_ratio"`
+	LoadTimeoutSeconds int     `json:"load_timeout_seconds"`
+	EvictionThreshold  float64 `json:"eviction_threshold"`
+
 	// Background processing
 	AnalysisInterval     time.Duration `json:"analysis_interval"`
 	OptimizationInterval time.Duration `json:"optimization_interval"`
 	CleanupInterval      time.Duration `json:"cleanup_interval"`
-	
+
 	// Model optimization
-	EnableQuantization   bool             `json:"enable_quantization"`
-	DefaultQuantization  QuantizationType `json:"default_quantization"`
-	EnableCompression    bool             `json:"enable_compression"`
-	CompressionRatio     float64          `json:"compression_ratio"`
+	EnableQuantization  bool             `json:"enable_quantization"`
+	DefaultQuantization QuantizationType `json:"default_quantization"`
+	EnableCompression   bool             `json:"enable_compression"`
+	CompressionRatio    float64          `json:"compression_ratio"`
 }
 
 // NewEnhancedModelCache creates a new enhanced model cache
@@ -312,14 +312,14 @@ func (emc *EnhancedModelCache) GetModel(ctx context.Context, modelName string, d
 	// Try L2 memory cache
 	if modelData, found := emc.l2Memory.GetModel(modelName); found {
 		emc.metrics.RecordCacheHit("l2_memory")
-		
+
 		// Asynchronously promote to L1 GPU cache
 		go func() {
 			// Use background context for async promotion
 			ctx := context.Background()
 			emc.promoteToGPU(ctx, modelName, modelData, deviceID)
 		}()
-		
+
 		span.SetAttributes(attribute.String("cache_level", "l2_memory"))
 		return emc.wrapMemoryModel(modelData), true, nil
 	}
@@ -327,14 +327,14 @@ func (emc *EnhancedModelCache) GetModel(ctx context.Context, modelName string, d
 	// Try L3 disk cache
 	if modelPath, found := emc.l3Disk.GetModel(modelName); found {
 		emc.metrics.RecordCacheHit("l3_disk")
-		
+
 		// Load from disk and promote through cache levels
 		go func() {
 			// Use background context for async loading
 			ctx := context.Background()
 			emc.loadAndPromoteModel(ctx, modelName, modelPath, deviceID)
 		}()
-		
+
 		span.SetAttributes(attribute.String("cache_level", "l3_disk"))
 		return nil, false, nil // Async loading
 	}
@@ -487,10 +487,10 @@ func (emc *EnhancedModelCache) OptimizeCache(ctx context.Context) error {
 	defer span.End()
 
 	start := time.Now()
-	
+
 	// Analyze current cache performance
 	analysis := emc.analyzer()
-	
+
 	// Generate optimization recommendations
 	recommendations, err := emc.optimizer.GenerateRecommendations(analysis)
 	if err != nil {
@@ -677,47 +677,77 @@ func getDefaultEnhancedCacheConfig() *EnhancedCacheConfig {
 }
 
 // Placeholder implementations - these would need actual implementation
-func NewGPUModelCacheWithConfig(config GPUCacheConfig) (*GPUModelCache, error) { return &GPUModelCache{deviceCaches: make(map[int]*DeviceModelCache)}, nil }
-func NewMemoryModelCache(config MemoryCacheConfig) (*MemoryModelCache, error) { return &MemoryModelCache{}, nil }
-func NewDiskModelCache(config DiskCacheConfig) (*DiskModelCache, error) { return &DiskModelCache{}, nil }
-func NewModelUsagePredictor() *ModelUsagePredictor { return &ModelUsagePredictor{} }
-func NewModelAccessTracker() *ModelAccessTracker { return &ModelAccessTracker{} }
+func NewGPUModelCacheWithConfig(config GPUCacheConfig) (*GPUModelCache, error) {
+	return &GPUModelCache{deviceCaches: make(map[int]*DeviceModelCache)}, nil
+}
+func NewMemoryModelCache(config MemoryCacheConfig) (*MemoryModelCache, error) {
+	return &MemoryModelCache{}, nil
+}
+func NewDiskModelCache(config DiskCacheConfig) (*DiskModelCache, error) {
+	return &DiskModelCache{}, nil
+}
+func NewModelUsagePredictor() *ModelUsagePredictor   { return &ModelUsagePredictor{} }
+func NewModelAccessTracker() *ModelAccessTracker     { return &ModelAccessTracker{} }
 func NewUsagePatternAnalyzer() *UsagePatternAnalyzer { return &UsagePatternAnalyzer{} }
-func NewSmartModelPreloader(config *EnhancedCacheConfig) *SmartModelPreloader { return &SmartModelPreloader{} }
+func NewSmartModelPreloader(config *EnhancedCacheConfig) *SmartModelPreloader {
+	return &SmartModelPreloader{}
+}
 func NewModelLoadScheduler() *ModelLoadScheduler { return &ModelLoadScheduler{} }
-func NewCacheOptimizer() *CacheOptimizer { return &CacheOptimizer{} }
-func NewIntelligentEvictionManager() *IntelligentEvictionManager { return &IntelligentEvictionManager{} }
+func NewCacheOptimizer() *CacheOptimizer         { return &CacheOptimizer{} }
+func NewIntelligentEvictionManager() *IntelligentEvictionManager {
+	return &IntelligentEvictionManager{}
+}
 func NewCacheProfiler() *CacheProfiler { return &CacheProfiler{} }
 
-func (gmc *GPUModelCache) GetModel(modelName string, deviceID int) (*CachedGPUModel, bool) { return nil, false }
-func (gmc *GPUModelCache) LoadModel(ctx context.Context, modelName string, modelData interface{}, deviceID int) error { return nil }
+func (gmc *GPUModelCache) GetModel(modelName string, deviceID int) (*CachedGPUModel, bool) {
+	return nil, false
+}
+func (gmc *GPUModelCache) LoadModel(ctx context.Context, modelName string, modelData interface{}, deviceID int) error {
+	return nil
+}
 func (gmc *GPUModelCache) Close() {}
 
-func (mmc *MemoryModelCache) GetModel(modelName string) (interface{}, bool) { return nil, false }
+func (mmc *MemoryModelCache) GetModel(modelName string) (interface{}, bool)            { return nil, false }
 func (mmc *MemoryModelCache) StoreModel(modelName string, modelData interface{}) error { return nil }
-func (mmc *MemoryModelCache) Close() {}
+func (mmc *MemoryModelCache) Close()                                                   {}
 
-func (dmc *DiskModelCache) GetModel(modelName string) (string, bool) { return "", false }
-func (dmc *DiskModelCache) HasModel(modelName string) bool { return false }
+func (dmc *DiskModelCache) GetModel(modelName string) (string, bool)     { return "", false }
+func (dmc *DiskModelCache) HasModel(modelName string) bool               { return false }
 func (dmc *DiskModelCache) StoreModel(modelName, modelPath string) error { return nil }
-func (dmc *DiskModelCache) Close() {}
+func (dmc *DiskModelCache) Close()                                       {}
 
-func (emc *EnhancedModelCache) promoteToGPU(ctx context.Context, modelName string, modelData interface{}, deviceID int) {}
-func (emc *EnhancedModelCache) loadAndPromoteModel(ctx context.Context, modelName, modelPath string, deviceID int) {}
-func (emc *EnhancedModelCache) wrapMemoryModel(modelData interface{}) *CachedGPUModel { return &CachedGPUModel{} }
+func (emc *EnhancedModelCache) promoteToGPU(ctx context.Context, modelName string, modelData interface{}, deviceID int) {
+}
+func (emc *EnhancedModelCache) loadAndPromoteModel(ctx context.Context, modelName, modelPath string, deviceID int) {
+}
+func (emc *EnhancedModelCache) wrapMemoryModel(modelData interface{}) *CachedGPUModel {
+	return &CachedGPUModel{}
+}
 func (emc *EnhancedModelCache) loadModelData(modelPath string) (interface{}, error) { return nil, nil }
-func (emc *EnhancedModelCache) preloadModel(ctx context.Context, pred *ModelPrediction) error { return nil }
+func (emc *EnhancedModelCache) preloadModel(ctx context.Context, pred *ModelPrediction) error {
+	return nil
+}
 func (emc *EnhancedModelCache) analyzer() *CacheAnalysis { return &CacheAnalysis{} }
-func (emc *EnhancedModelCache) applyOptimization(ctx context.Context, rec *OptimizationRecommendation) error { return nil }
+func (emc *EnhancedModelCache) applyOptimization(ctx context.Context, rec *OptimizationRecommendation) error {
+	return nil
+}
 func (emc *EnhancedModelCache) performUsageAnalysis() error { return nil }
-func (emc *EnhancedModelCache) performCleanup() {}
+func (emc *EnhancedModelCache) performCleanup()             {}
 
-func (mup *ModelUsagePredictor) PredictUsage(duration time.Duration) ([]*ModelPrediction, error) { return nil, nil }
-func (smp *SmartModelPreloader) HasSufficientResources(modelName string, deviceID int) bool { return true }
-func (co *CacheOptimizer) GenerateRecommendations(analysis *CacheAnalysis) ([]*OptimizationRecommendation, error) { return nil, nil }
-func (mat *ModelAccessTracker) RecordAccess(modelName string, deviceID int) {}
+func (mup *ModelUsagePredictor) PredictUsage(duration time.Duration) ([]*ModelPrediction, error) {
+	return nil, nil
+}
+func (smp *SmartModelPreloader) HasSufficientResources(modelName string, deviceID int) bool {
+	return true
+}
+func (co *CacheOptimizer) GenerateRecommendations(analysis *CacheAnalysis) ([]*OptimizationRecommendation, error) {
+	return nil, nil
+}
+func (mat *ModelAccessTracker) RecordAccess(modelName string, deviceID int)      {}
 func (upa *UsagePatternAnalyzer) RecordModelLoad(modelName string, deviceID int) {}
-func (mpm *ModelPlacementManager) FindOptimalDevice(modelName string, preferredDeviceID int) (int, error) { return preferredDeviceID, nil }
+func (mpm *ModelPlacementManager) FindOptimalDevice(modelName string, preferredDeviceID int) (int, error) {
+	return preferredDeviceID, nil
+}
 
 // Supporting type definitions
 type MemoryModelCache struct{}

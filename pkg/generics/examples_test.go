@@ -482,7 +482,7 @@ func BenchmarkGenericVsInterface(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_ = Map(result, transform)
+			_ = MapResult(result, transform)
 		}
 	})
 

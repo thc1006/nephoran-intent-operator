@@ -541,7 +541,7 @@ func (t *Tracker) StartIntent(ctx context.Context, intentType, userID, requestID
 	t.intentsMu.Unlock()
 
 	// Update metrics
-	atomic.AddUint64(&t.trackingCount, 1)
+	t.trackingCount.Add(1)
 	t.metrics.ActiveIntents.Inc()
 	t.metrics.IntentsTracked.WithLabelValues(intentType, t.getUserType(userID)).Inc()
 
@@ -609,7 +609,7 @@ func (t *Tracker) CompleteIntent(intentID string, success bool, errorDetails *In
 	t.intentsMu.Unlock()
 
 	// Update metrics
-	atomic.AddUint64(&t.completionCount, 1)
+	t.completionCount.Add(1)
 	t.metrics.ActiveIntents.Dec()
 
 	criticalPathStr := "false"
@@ -620,7 +620,7 @@ func (t *Tracker) CompleteIntent(intentID string, success bool, errorDetails *In
 	statusStr := "completed"
 	if !success {
 		statusStr = "failed"
-		atomic.AddUint64(&t.errorCount, 1)
+		t.errorCount.Add(1)
 
 		if intent.CriticalPath {
 			t.metrics.CriticalPathErrors.Inc()
@@ -724,7 +724,7 @@ func (t *Tracker) CompleteStage(intentID, stageName string, success bool, errorM
 			// Record component latency
 			intent.ComponentLatencies[stageName] = stage.Duration
 			if !success {
-				intent.ComponentErrors[stageName] = fmt.Errorf(errorMsg)
+				intent.ComponentErrors[stageName] = fmt.Errorf("%s", errorMsg)
 			}
 
 			break
@@ -766,7 +766,7 @@ func (t *Tracker) RecordQueueMetrics(queueName string, depth int, latency time.D
 
 	queue.Depth.Store(int64(depth))
 	queue.Throughput.Add(1)
-	queue.Latency.Add(time.Now(), float64(latency.Milliseconds()))
+	queue.Latency.Add(float64(latency.Milliseconds()))
 
 	// Update Prometheus metrics
 	t.metrics.QueueDepth.WithLabelValues(queueName, "default").Set(float64(depth))
@@ -820,10 +820,10 @@ func (t *Tracker) GetTrackerStats() TrackerStats {
 
 	return TrackerStats{
 		ActiveIntents:  activeCount,
-		TotalTracked:   atomic.LoadUint64(&t.trackingCount),
-		TotalCompleted: atomic.LoadUint64(&t.completionCount),
-		TotalErrors:    atomic.LoadUint64(&t.errorCount),
-		TotalTimeouts:  atomic.LoadUint64(&t.timeoutCount),
+		TotalTracked:   t.trackingCount.Load(),
+		TotalCompleted: t.completionCount.Load(),
+		TotalErrors:    t.errorCount.Load(),
+		TotalTimeouts:  t.timeoutCount.Load(),
 	}
 }
 
@@ -878,7 +878,7 @@ func (t *Tracker) performCleanup() {
 			intent.mu.Unlock()
 
 			expiredIntents = append(expiredIntents, intentID)
-			atomic.AddUint64(&t.timeoutCount, 1)
+			t.timeoutCount.Add(1)
 
 			// Record timeout metrics
 			criticalPathStr := "false"
@@ -967,7 +967,7 @@ func (t *Tracker) recordComponentLatency(component, intentType string, latency t
 	}
 
 	latencyMs := float64(latency.Milliseconds())
-	tracker.measurements.Add(time.Now(), latencyMs)
+	tracker.measurements.Add(latencyMs)
 	tracker.quantiles.AddObservation(latencyMs)
 
 	// Record Prometheus metrics
@@ -975,7 +975,7 @@ func (t *Tracker) recordComponentLatency(component, intentType string, latency t
 
 	// Check for SLO violations
 	if timeout, exists := t.config.ComponentTimeouts[component]; exists && latency > timeout {
-		atomic.AddUint64(&tracker.violationCount, 1)
+		tracker.violationCount.Add(1)
 		t.metrics.ComponentErrors.WithLabelValues(component, "timeout", "medium").Inc()
 
 		t.logger.WarnWithContext("Component latency SLO violation",

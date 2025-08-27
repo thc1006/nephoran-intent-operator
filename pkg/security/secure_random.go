@@ -35,16 +35,16 @@ func NewSecureRandom() *SecureRandom {
 func (sr *SecureRandom) Int63() int64 {
 	sr.mu.Lock()
 	defer sr.mu.Unlock()
-	
+
 	// Generate 8 bytes and mask to 63 bits
 	b := make([]byte, 8)
 	if _, err := io.ReadFull(sr.reader, b); err != nil {
 		panic(fmt.Sprintf("secure random generation failed: %v", err))
 	}
-	
+
 	// Convert to int64 and mask to 63 bits (remove sign bit)
-	return int64(uint64(b[0])<<56 | uint64(b[1])<<48 | uint64(b[2])<<40 | uint64(b[3])<<32 |
-		uint64(b[4])<<24 | uint64(b[5])<<16 | uint64(b[6])<<8 | uint64(b[7])) & 0x7fffffffffffffff
+	return int64(uint64(b[0])<<56|uint64(b[1])<<48|uint64(b[2])<<40|uint64(b[3])<<32|
+		uint64(b[4])<<24|uint64(b[5])<<16|uint64(b[6])<<8|uint64(b[7])) & 0x7fffffffffffffff
 }
 
 // Intn returns, as an int, a non-negative pseudo-random number in [0,n)
@@ -53,17 +53,17 @@ func (sr *SecureRandom) Intn(n int) int {
 	if n <= 0 {
 		panic("invalid argument to Intn")
 	}
-	
+
 	sr.mu.Lock()
 	defer sr.mu.Unlock()
-	
+
 	// Use crypto/rand to generate a big.Int in the range [0, n)
 	nBig := big.NewInt(int64(n))
 	result, err := rand.Int(sr.reader, nBig)
 	if err != nil {
 		panic(fmt.Sprintf("secure random generation failed: %v", err))
 	}
-	
+
 	return int(result.Int64())
 }
 
@@ -92,7 +92,7 @@ func (sr *SecureRandom) Int() int {
 // This is a drop-in replacement for math/rand.Float64()
 func (sr *SecureRandom) Float64() float64 {
 	// Generate 53 bits of precision (mantissa of float64)
-	val := sr.Int63() >> 11  // Use top 53 bits
+	val := sr.Int63() >> 11 // Use top 53 bits
 	return float64(val) / (1 << 53)
 }
 
@@ -100,7 +100,7 @@ func (sr *SecureRandom) Float64() float64 {
 // This is a drop-in replacement for math/rand.Float32()
 func (sr *SecureRandom) Float32() float32 {
 	// Generate 24 bits of precision (mantissa of float32)
-	val := sr.Int31() >> 8   // Use top 24 bits
+	val := sr.Int31() >> 8 // Use top 24 bits
 	return float32(val) / (1 << 24)
 }
 
@@ -119,16 +119,16 @@ func (sr *SecureRandom) Int63n(n int64) int64 {
 	if n <= 0 {
 		panic("invalid argument to Int63n")
 	}
-	
+
 	sr.mu.Lock()
 	defer sr.mu.Unlock()
-	
+
 	nBig := big.NewInt(n)
 	result, err := rand.Int(sr.reader, nBig)
 	if err != nil {
 		panic(fmt.Sprintf("secure random generation failed: %v", err))
 	}
-	
+
 	return result.Int64()
 }
 
@@ -138,18 +138,18 @@ func (sr *SecureRandom) Perm(n int) []int {
 	if n < 0 {
 		panic("invalid argument to Perm")
 	}
-	
+
 	p := make([]int, n)
 	for i := range p {
 		p[i] = i
 	}
-	
+
 	// Fisher-Yates shuffle using secure random
 	for i := n - 1; i > 0; i-- {
 		j := sr.Intn(i + 1)
 		p[i], p[j] = p[j], p[i]
 	}
-	
+
 	return p
 }
 
@@ -159,7 +159,7 @@ func (sr *SecureRandom) Shuffle(n int, swap func(i, j int)) {
 	if n < 0 {
 		panic("invalid argument to Shuffle")
 	}
-	
+
 	// Fisher-Yates shuffle
 	for i := n - 1; i > 0; i-- {
 		j := sr.Intn(i + 1)
@@ -194,7 +194,7 @@ func (sr *SecureRandom) NormFloat64() float64 {
 func (sr *SecureRandom) Bytes(b []byte) {
 	sr.mu.Lock()
 	defer sr.mu.Unlock()
-	
+
 	if _, err := io.ReadFull(sr.reader, b); err != nil {
 		panic(fmt.Sprintf("secure random generation failed: %v", err))
 	}
@@ -311,7 +311,7 @@ func SecureJitter(base time.Duration, jitterPercent float64) time.Duration {
 	if jitterPercent <= 0 || jitterPercent > 1 {
 		return base
 	}
-	
+
 	maxJitter := time.Duration(float64(base) * jitterPercent)
 	jitter := Duration(-maxJitter, maxJitter)
 	return base + jitter
@@ -322,15 +322,15 @@ func SecureBackoff(attempt int, baseDelay, maxDelay time.Duration) time.Duration
 	if attempt < 0 {
 		attempt = 0
 	}
-	
+
 	// Calculate exponential backoff
 	delay := time.Duration(float64(baseDelay) * math.Pow(2, float64(attempt)))
-	
+
 	// Cap at max delay
 	if delay > maxDelay {
 		delay = maxDelay
 	}
-	
+
 	// Add secure jitter (±25%)
 	return SecureJitter(delay, 0.25)
 }
@@ -341,7 +341,7 @@ func SecureChoice[T any](items []T) T {
 		var zero T
 		return zero
 	}
-	
+
 	index := Intn(len(items))
 	return items[index]
 }
@@ -352,18 +352,18 @@ func SecureWeightedChoice[T any](items []T, weights []int) T {
 		var zero T
 		return zero
 	}
-	
+
 	// Calculate total weight
 	totalWeight := 0
 	for _, w := range weights {
 		totalWeight += w
 	}
-	
+
 	if totalWeight <= 0 {
 		var zero T
 		return zero
 	}
-	
+
 	// Generate random number and select based on cumulative weights
 	r := Intn(totalWeight)
 	cumulative := 0
@@ -373,7 +373,7 @@ func SecureWeightedChoice[T any](items []T, weights []int) T {
 			return items[i]
 		}
 	}
-	
+
 	// Fallback to last item (shouldn't happen)
 	return items[len(items)-1]
 }
@@ -387,28 +387,28 @@ func ValidateSecureRandomness() error {
 			return fmt.Errorf("Float64() returned %f, expected [0,1)", val)
 		}
 	}
-	
+
 	// Test randomness quality (basic chi-square test)
 	buckets := make([]int, 10)
 	samples := 10000
-	
+
 	for i := 0; i < samples; i++ {
 		val := Intn(10)
 		buckets[val]++
 	}
-	
+
 	expected := samples / 10
 	chiSquare := 0.0
-	
+
 	for _, count := range buckets {
 		diff := float64(count - expected)
 		chiSquare += (diff * diff) / float64(expected)
 	}
-	
+
 	// With 9 degrees of freedom, chi-square should be less than 27.88 for 99% confidence
 	if chiSquare > 27.88 {
 		return fmt.Errorf("randomness test failed: chi-square = %f (too high)", chiSquare)
 	}
-	
+
 	return nil
 }

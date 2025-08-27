@@ -24,12 +24,12 @@ func BenchmarkLLMProcessing(b *testing.B) {
 		LLMTimeout:     30 * time.Second,
 		ServiceVersion: "test",
 	}
-	
+
 	logger := slog.Default()
-	
+
 	// Create mock LLM client
 	client := createMockLLMClient()
-	
+
 	// Create intent processor
 	processor := &handlers.IntentProcessor{
 		LLMClient: client,
@@ -61,10 +61,10 @@ func BenchmarkConcurrentLLMProcessing(b *testing.B) {
 		LLMTimeout:     30 * time.Second,
 		ServiceVersion: "test",
 	}
-	
+
 	logger := slog.Default()
 	client := createMockLLMClient()
-	
+
 	processor := &handlers.IntentProcessor{
 		LLMClient: client,
 		Logger:    logger,
@@ -86,12 +86,12 @@ func BenchmarkConcurrentLLMProcessing(b *testing.B) {
 		for pb.Next() {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			intent := testIntents[i%len(testIntents)]
-			
+
 			_, err := processor.ProcessIntent(ctx, intent)
 			if err != nil {
 				b.Errorf("ProcessIntent failed: %v", err)
 			}
-			
+
 			cancel()
 			i++
 		}
@@ -102,7 +102,7 @@ func BenchmarkConcurrentLLMProcessing(b *testing.B) {
 func BenchmarkHealthChecks(b *testing.B) {
 	logger := slog.Default()
 	hc := health.NewHealthChecker("test-service", "1.0.0", logger)
-	
+
 	// Register some test health checks
 	for i := 0; i < 10; i++ {
 		name := "test-check-" + string(rune('0'+i))
@@ -141,7 +141,7 @@ func BenchmarkStringOperations(b *testing.B) {
 	b.Run("StringBuilder", func(b *testing.B) {
 		b.ResetTimer()
 		b.ReportAllocs()
-		
+
 		for i := 0; i < b.N; i++ {
 			var builder strings.Builder
 			totalLen := 0
@@ -149,7 +149,7 @@ func BenchmarkStringOperations(b *testing.B) {
 				totalLen += len(s)
 			}
 			totalLen += len(testStrings) - 1 // separators
-			
+
 			builder.Grow(totalLen)
 			for j, s := range testStrings {
 				if j > 0 {
@@ -164,7 +164,7 @@ func BenchmarkStringOperations(b *testing.B) {
 	b.Run("StringJoin", func(b *testing.B) {
 		b.ResetTimer()
 		b.ReportAllocs()
-		
+
 		for i := 0; i < b.N; i++ {
 			_ = strings.Join(testStrings, ":")
 		}
@@ -176,7 +176,7 @@ func BenchmarkMemoryPools(b *testing.B) {
 	b.Run("WithPool", func(b *testing.B) {
 		b.ResetTimer()
 		b.ReportAllocs()
-		
+
 		for i := 0; i < b.N; i++ {
 			builder := llm.GetStringBuilder()
 			builder.WriteString("test-string")
@@ -191,7 +191,7 @@ func BenchmarkMemoryPools(b *testing.B) {
 	b.Run("WithoutPool", func(b *testing.B) {
 		b.ResetTimer()
 		b.ReportAllocs()
-		
+
 		for i := 0; i < b.N; i++ {
 			var builder strings.Builder
 			builder.WriteString("test-string")
@@ -212,7 +212,7 @@ func BenchmarkServiceInitialization(b *testing.B) {
 		LLMTimeout:     30 * time.Second,
 		ServiceVersion: "test",
 	}
-	
+
 	logger := slog.Default()
 
 	b.ResetTimer()
@@ -221,12 +221,12 @@ func BenchmarkServiceInitialization(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		service := services.NewLLMProcessorService(config, logger)
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-		
+
 		err := service.Initialize(ctx)
 		if err != nil {
 			b.Errorf("Service initialization failed: %v", err)
 		}
-		
+
 		_ = service.Shutdown(ctx)
 		cancel()
 	}
@@ -255,7 +255,7 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 		return "", ctx.Err()
 	case <-time.After(m.latency):
 	}
-	
+
 	// Return mock response
 	if response, exists := m.responses[intent]; exists {
 		return response, nil

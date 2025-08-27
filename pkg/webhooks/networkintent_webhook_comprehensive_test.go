@@ -224,7 +224,7 @@ func TestNetworkIntentValidator_Handle(t *testing.T) {
 	}
 }
 
-func TestValidateIntentContent(t *testing.T) {
+func TestValidateIntentContentComprehensive(t *testing.T) {
 	validator, err := createTestValidator()
 	require.NoError(t, err)
 

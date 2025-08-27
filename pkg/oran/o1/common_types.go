@@ -39,21 +39,21 @@ type Report struct {
 
 // ReportSchedule represents a report generation schedule (defined here to avoid duplicates)
 type ReportSchedule struct {
-	ID          string        `json:"id"`
-	Name        string        `json:"name"`
-	Description string        `json:"description"`
-	ReportType  string        `json:"report_type"`
-	Schedule    string        `json:"schedule"` // CRON expression
-	Template    string        `json:"template"`
-	Recipients  []string      `json:"recipients"`
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	ReportType  string                 `json:"report_type"`
+	Schedule    string                 `json:"schedule"` // CRON expression
+	Template    string                 `json:"template"`
+	Recipients  []string               `json:"recipients"`
 	Parameters  map[string]interface{} `json:"parameters"`
-	Enabled     bool          `json:"enabled"`
-	NextRun     time.Time     `json:"next_run"`
-	LastRun     time.Time     `json:"last_run"`
-	RunCount    int64         `json:"run_count"`
-	Status      string        `json:"status"` // ACTIVE, INACTIVE, ERROR
-	CreatedAt   time.Time     `json:"created_at"`
-	UpdatedAt   time.Time     `json:"updated_at"`
+	Enabled     bool                   `json:"enabled"`
+	NextRun     time.Time              `json:"next_run"`
+	LastRun     time.Time              `json:"last_run"`
+	RunCount    int64                  `json:"run_count"`
+	Status      string                 `json:"status"` // ACTIVE, INACTIVE, ERROR
+	CreatedAt   time.Time              `json:"created_at"`
+	UpdatedAt   time.Time              `json:"updated_at"`
 }
 
 // NotificationChannel interface for sending notifications (used by multiple managers)
@@ -64,7 +64,6 @@ type NotificationChannel interface {
 	IsEnabled() bool
 	GetConfiguration() map[string]interface{}
 }
-
 
 // EventCallback is a generic callback function for events
 type EventCallback func(event interface{})
@@ -112,7 +111,7 @@ func NewDefaultReportDistributor(config *DistributorConfig) *DefaultReportDistri
 			BufferSize:      1000,
 		}
 	}
-	
+
 	return &DefaultReportDistributor{
 		channels: make(map[string]DistributionChannel),
 		config:   config,
@@ -124,7 +123,7 @@ func (d *DefaultReportDistributor) DistributeReport(ctx context.Context, report 
 		if !channel.IsEnabled() {
 			continue
 		}
-		
+
 		// Distribute to channel with retry logic
 		go func(ch DistributionChannel) {
 			for attempt := 1; attempt <= d.config.MaxRetries; attempt++ {
@@ -194,7 +193,7 @@ func (e *EmailDistributionChannel) GetConfiguration() map[string]interface{} {
 	return e.config
 }
 
-// API distribution channel implementation  
+// API distribution channel implementation
 type APIDistributionChannel struct {
 	id       string
 	endpoint string

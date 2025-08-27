@@ -1,9 +1,9 @@
 package errorsx
 
 const (
-	CategoryCapacity      = "capacity"
-	CategoryRateLimit     = "rate_limit"
-	CategoryBackpressure  = "backpressure"
+	CategoryCapacity     = "capacity"
+	CategoryRateLimit    = "rate_limit"
+	CategoryBackpressure = "backpressure"
 )
 
 type ProcessingError struct {

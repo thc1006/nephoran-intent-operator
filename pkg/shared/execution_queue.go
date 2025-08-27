@@ -29,14 +29,14 @@ import (
 
 // ExecutionTask represents a task to be executed
 type ExecutionTask struct {
-	IntentName   types.NamespacedName       `json:"intentName"`
+	IntentName   types.NamespacedName      `json:"intentName"`
 	Phase        contracts.ProcessingPhase `json:"phase"`
-	Priority     int                        `json:"priority"`
-	Timestamp    time.Time                  `json:"timestamp"`
-	Context      map[string]interface{}     `json:"context"`
-	RetryCount   int                        `json:"retryCount"`
-	MaxRetries   int                        `json:"maxRetries"`
-	Dependencies []string                   `json:"dependencies,omitempty"`
+	Priority     int                       `json:"priority"`
+	Timestamp    time.Time                 `json:"timestamp"`
+	Context      map[string]interface{}    `json:"context"`
+	RetryCount   int                       `json:"retryCount"`
+	MaxRetries   int                       `json:"maxRetries"`
+	Dependencies []string                  `json:"dependencies,omitempty"`
 
 	// Internal fields
 	index int // For heap implementation
@@ -445,13 +445,13 @@ type QueueStats struct {
 
 // TaskFilter allows filtering tasks based on criteria
 type TaskFilter struct {
-	IntentNamespace string                     `json:"intentNamespace,omitempty"`
-	IntentName      string                     `json:"intentName,omitempty"`
+	IntentNamespace string                    `json:"intentNamespace,omitempty"`
+	IntentName      string                    `json:"intentName,omitempty"`
 	Phase           contracts.ProcessingPhase `json:"phase,omitempty"`
-	MinPriority     *int                       `json:"minPriority,omitempty"`
-	MaxPriority     *int                       `json:"maxPriority,omitempty"`
-	CreatedAfter    *time.Time                 `json:"createdAfter,omitempty"`
-	CreatedBefore   *time.Time                 `json:"createdBefore,omitempty"`
+	MinPriority     *int                      `json:"minPriority,omitempty"`
+	MaxPriority     *int                      `json:"maxPriority,omitempty"`
+	CreatedAfter    *time.Time                `json:"createdAfter,omitempty"`
+	CreatedBefore   *time.Time                `json:"createdBefore,omitempty"`
 }
 
 // FilterTasks filters tasks based on criteria

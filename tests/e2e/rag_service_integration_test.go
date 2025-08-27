@@ -33,7 +33,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 	Context("RAG Service Health and Status", func() {
 		It("should respond to health check requests", func() {
 			Skip("Skipping until RAG service is running in test environment")
-			
+
 			By("Making health check request")
 			resp, err := httpClient.Get(ragServiceURL + "/health")
 			if err != nil {
@@ -49,14 +49,14 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			var healthResponse map[string]interface{}
 			err = json.Unmarshal(body, &healthResponse)
 			Expect(err).ShouldNot(HaveOccurred())
-			
+
 			Expect(healthResponse["status"]).Should(Equal("healthy"))
 			Expect(healthResponse["service"]).Should(Equal("rag-service"))
 		})
 
 		It("should report vector database connectivity", func() {
 			Skip("Skipping until RAG service is running in test environment")
-			
+
 			By("Checking vector database status")
 			resp, err := httpClient.Get(ragServiceURL + "/api/v1/status")
 			if err != nil {
@@ -76,7 +76,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			By("Verifying vector database is connected")
 			Expect(statusResponse["vector_db_status"]).Should(Equal("connected"))
 			Expect(statusResponse["embeddings_model"]).ShouldNot(BeEmpty())
-			
+
 			if indexCount, ok := statusResponse["indexed_documents"]; ok {
 				Expect(indexCount).Should(BeNumerically(">=", 0))
 			}
@@ -86,7 +86,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 	Context("Document Processing and Indexing", func() {
 		It("should index telecom knowledge documents", func() {
 			Skip("Skipping until RAG service is running in test environment")
-			
+
 			By("Uploading test document for indexing")
 			testDocument := map[string]interface{}{
 				"content": "5G Core Network Components: AMF (Access and Mobility Management Function) handles " +
@@ -128,7 +128,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 
 		It("should process batch document uploads", func() {
 			Skip("Skipping until RAG service is running in test environment")
-			
+
 			By("Uploading multiple documents in batch")
 			batchDocuments := map[string]interface{}{
 				"documents": []map[string]interface{}{
@@ -190,7 +190,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 	Context("Knowledge Retrieval and Query", func() {
 		It("should retrieve relevant context for telecom queries", func() {
 			Skip("Skipping until RAG service is running in test environment")
-			
+
 			By("Querying for 5G core network information")
 			queryRequest := map[string]interface{}{
 				"query":     "What are the main components of 5G core network?",
@@ -235,7 +235,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 
 		It("should handle intent-specific knowledge retrieval", func() {
 			Skip("Skipping until RAG service is running in test environment")
-			
+
 			intentQueries := []struct {
 				intent   string
 				expected []string
@@ -256,7 +256,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 
 			for _, tc := range intentQueries {
 				By(fmt.Sprintf("Querying for: %s", tc.intent))
-				
+
 				queryRequest := map[string]interface{}{
 					"query":       tc.intent,
 					"intent_type": "scaling",
@@ -292,7 +292,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 
 		It("should support semantic similarity search", func() {
 			Skip("Skipping until RAG service is running in test environment")
-			
+
 			By("Performing semantic similarity search")
 			similarityRequest := map[string]interface{}{
 				"text":       "network function virtualization",
@@ -336,7 +336,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 	Context("Knowledge Base Management", func() {
 		It("should support knowledge base statistics", func() {
 			Skip("Skipping until RAG service is running in test environment")
-			
+
 			By("Retrieving knowledge base statistics")
 			resp, err := httpClient.Get(ragServiceURL + "/api/v1/kb/stats")
 			if err != nil {
@@ -357,7 +357,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			Expect(stats["total_documents"]).Should(BeNumerically(">=", 0))
 			Expect(stats["total_embeddings"]).Should(BeNumerically(">=", 0))
 			Expect(stats["index_size_mb"]).Should(BeNumerically(">=", 0))
-			
+
 			if categories, ok := stats["categories"]; ok {
 				Expect(categories).Should(BeAssignableToTypeOf(map[string]interface{}{}))
 			}
@@ -365,10 +365,10 @@ var _ = Describe("RAG Service Integration Tests", func() {
 
 		It("should support knowledge base refresh", func() {
 			Skip("Skipping until RAG service is running in test environment")
-			
+
 			By("Triggering knowledge base refresh")
 			refreshRequest := map[string]interface{}{
-				"full_refresh": true,
+				"full_refresh":  true,
 				"rebuild_index": false,
 			}
 
@@ -402,7 +402,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 	Context("Error Handling and Validation", func() {
 		It("should validate query parameters", func() {
 			Skip("Skipping until RAG service is running in test environment")
-			
+
 			testCases := []struct {
 				name           string
 				payload        map[string]interface{}
@@ -427,7 +427,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 
 			for _, tc := range testCases {
 				By(fmt.Sprintf("Testing %s", tc.name))
-				
+
 				jsonPayload, err := json.Marshal(tc.payload)
 				Expect(err).ShouldNot(HaveOccurred())
 
@@ -447,7 +447,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 
 		It("should handle vector database connection failures gracefully", func() {
 			Skip("Skipping until RAG service is running in test environment")
-			
+
 			By("Making query when vector DB might be unavailable")
 			queryRequest := map[string]interface{}{
 				"query": "test query during db failure",
@@ -481,7 +481,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 				var errorResponse map[string]interface{}
 				err = json.Unmarshal(body, &errorResponse)
 				Expect(err).ShouldNot(HaveOccurred())
-				
+
 				Expect(errorResponse["error"]).ShouldNot(BeEmpty())
 			}
 		})
@@ -490,7 +490,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 	Context("Performance and Load Testing", func() {
 		It("should handle concurrent queries efficiently", func() {
 			Skip("Skipping until RAG service is running in test environment")
-			
+
 			By("Sending multiple concurrent queries")
 			concurrentQueries := 5
 			queryRequest := map[string]interface{}{
@@ -502,12 +502,12 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			results := make(chan int, concurrentQueries)
-			
+
 			// Send concurrent requests
 			for i := 0; i < concurrentQueries; i++ {
 				go func() {
 					defer GinkgoRecover()
-					
+
 					resp, err := httpClient.Post(
 						ragServiceURL+"/api/v1/query",
 						"application/json",
@@ -518,7 +518,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 						return
 					}
 					defer resp.Body.Close()
-					
+
 					results <- resp.StatusCode
 				}()
 			}
@@ -538,7 +538,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 
 		It("should have reasonable response times for complex queries", func() {
 			Skip("Skipping until RAG service is running in test environment")
-			
+
 			By("Measuring response time for complex query")
 			complexQuery := map[string]interface{}{
 				"query": "Explain the complete 5G network architecture including core network functions, " +
@@ -550,7 +550,7 @@ var _ = Describe("RAG Service Integration Tests", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			startTime := time.Now()
-			
+
 			resp, err := httpClient.Post(
 				ragServiceURL+"/api/v1/query",
 				"application/json",

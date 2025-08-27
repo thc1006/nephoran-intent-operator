@@ -23,10 +23,10 @@ type TestUser struct {
 func TestValidationBuilder_Required(t *testing.T) {
 	ctx, cancel := testutil.ContextWithTimeout(t)
 	defer cancel()
-	
+
 	builder := NewValidationBuilder[TestUser]()
 	require.NotNil(t, builder, "validation builder should not be nil")
-	
+
 	validator := builder.
 		Required("name", func(u TestUser) any { return u.Name }).
 		Build()
@@ -57,7 +57,7 @@ func TestValidationBuilder_Required(t *testing.T) {
 			default:
 				result := validator(tt.user)
 				require.NotNil(t, result, "validation result should not be nil")
-				
+
 				if result.Valid != tt.valid {
 					t.Errorf("Expected valid=%v, got %v", tt.valid, result.Valid)
 				}
@@ -251,8 +251,8 @@ func TestValidationBuilder_OneOf(t *testing.T) {
 
 	builder := NewValidationBuilder[Status]()
 	validator := builder.
-		OneOf("status", []string{"active", "inactive", "pending"},
-			func(s Status) string { return s.Value }).
+		OneOf("status", []interface{}{"active", "inactive", "pending"},
+			func(s Status) interface{} { return s.Value }).
 		Build()
 
 	tests := []struct {

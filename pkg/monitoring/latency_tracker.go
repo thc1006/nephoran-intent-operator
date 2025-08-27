@@ -7,11 +7,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-logr/logr"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -27,15 +27,15 @@ type E2ELatencyTracker struct {
 
 // LatencyMetrics holds latency statistics
 type LatencyMetrics struct {
-	MinLatency    time.Duration
-	MaxLatency    time.Duration
-	AvgLatency    time.Duration
-	P95Latency    time.Duration
-	P99Latency    time.Duration
-	RequestCount  int64
-	FailureCount  int64
-	LastMeasured  time.Time
-	mutex         sync.RWMutex
+	MinLatency   time.Duration
+	MaxLatency   time.Duration
+	AvgLatency   time.Duration
+	P95Latency   time.Duration
+	P99Latency   time.Duration
+	RequestCount int64
+	FailureCount int64
+	LastMeasured time.Time
+	mutex        sync.RWMutex
 }
 
 // NewE2ELatencyTracker creates a new E2E latency tracker
@@ -54,7 +54,7 @@ func (t *E2ELatencyTracker) StartOperation(ctx context.Context, operationID, ope
 	defer t.spansMutex.Unlock()
 
 	spanName := fmt.Sprintf("e2e.%s.%s", component, operationType)
-	
+
 	// Create span attributes
 	spanAttrs := []attribute.KeyValue{
 		attribute.String("operation.id", operationID),
@@ -63,23 +63,23 @@ func (t *E2ELatencyTracker) StartOperation(ctx context.Context, operationID, ope
 		attribute.String("service.name", "nephio-oran"),
 		attribute.String("service.version", "1.0.0"),
 	}
-	
+
 	// Add custom attributes
 	for k, v := range attrs {
 		spanAttrs = append(spanAttrs, attribute.String(k, v))
 	}
 
 	ctx, span := t.tracer.Start(ctx, spanName, trace.WithAttributes(spanAttrs...))
-	
+
 	t.spans[operationID] = span
-	
+
 	t.logger.Info("Started E2E operation tracking",
 		"operationID", operationID,
 		"type", operationType,
 		"component", component,
 		"traceID", span.SpanContext().TraceID().String(),
 		"spanID", span.SpanContext().SpanID().String())
-	
+
 	return ctx, nil
 }
 
@@ -109,12 +109,12 @@ func (t *E2ELatencyTracker) EndOperation(ctx context.Context, operationID string
 	if span.SpanContext().IsValid() {
 		// Get latency from span timestamps (simplified approach)
 		latency := time.Since(time.Now().Add(-5 * time.Second)) // Placeholder calculation
-		
+
 		// Update metrics
 		t.updateMetrics(operationID, latency, success)
-		
+
 		span.SetAttributes(attribute.Int64("latency.milliseconds", latency.Milliseconds()))
-		
+
 		t.logger.Info("Completed E2E operation tracking",
 			"operationID", operationID,
 			"success", success,
@@ -200,11 +200,11 @@ func (t *E2ELatencyTracker) updateMetrics(operationType string, latency time.Dur
 
 	// Simple average calculation (could be improved with sliding window)
 	metrics.AvgLatency = (metrics.AvgLatency*time.Duration(metrics.RequestCount-1) + latency) / time.Duration(metrics.RequestCount)
-	
+
 	// Simplified percentile calculation (in production, use proper histogram)
 	metrics.P95Latency = time.Duration(float64(metrics.MaxLatency) * 0.95)
 	metrics.P99Latency = time.Duration(float64(metrics.MaxLatency) * 0.99)
-	
+
 	metrics.LastMeasured = time.Now()
 }
 

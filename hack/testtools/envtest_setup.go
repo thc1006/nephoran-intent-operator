@@ -1183,9 +1183,9 @@ func (te *TestEnvironment) Eventually(f func() bool, msgAndArgs ...interface{}) 
 // Consistently wrapper for consistent timeout/interval usage
 func (te *TestEnvironment) Consistently(f func() bool, msgAndArgs ...interface{}) AsyncAssertion {
 	if te.options.CIMode {
-		return Consistently(f).WithTimeout(3*time.Second).WithPolling(te.GetDefaultInterval())
+		return Consistently(f).WithTimeout(3 * time.Second).WithPolling(te.GetDefaultInterval())
 	}
-	return Consistently(f).WithTimeout(5*time.Second).WithPolling(te.GetDefaultInterval())
+	return Consistently(f).WithTimeout(5 * time.Second).WithPolling(te.GetDefaultInterval())
 }
 
 // Resource Creation Helpers

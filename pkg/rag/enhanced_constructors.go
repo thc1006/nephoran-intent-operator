@@ -48,7 +48,7 @@ func NewEnhancedCostManager(limits EnhancedCostLimits) *EnhancedCostManager {
 		alerts:       []EnhancedCostAlert{}, // Convert alerts when needed
 		// Don't copy mutex - initialize a new one
 	}
-	
+
 	// Copy the data from base manager without copying the mutex
 	baseCostManager.mutex.RLock()
 	for k, v := range baseCostManager.dailySpend {

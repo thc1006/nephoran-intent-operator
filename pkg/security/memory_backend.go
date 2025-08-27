@@ -26,7 +26,7 @@ func NewMemoryBackend() *MemoryBackend {
 func (mb *MemoryBackend) Store(ctx context.Context, key string, value *EncryptedSecret) error {
 	mb.mu.Lock()
 	defer mb.mu.Unlock()
-	
+
 	mb.secrets[key] = value
 	return nil
 }
@@ -35,12 +35,12 @@ func (mb *MemoryBackend) Store(ctx context.Context, key string, value *Encrypted
 func (mb *MemoryBackend) Retrieve(ctx context.Context, key string) (*EncryptedSecret, error) {
 	mb.mu.RLock()
 	defer mb.mu.RUnlock()
-	
+
 	secret, exists := mb.secrets[key]
 	if !exists {
 		return nil, fmt.Errorf("secret not found: %s", key)
 	}
-	
+
 	return secret, nil
 }
 
@@ -48,11 +48,11 @@ func (mb *MemoryBackend) Retrieve(ctx context.Context, key string) (*EncryptedSe
 func (mb *MemoryBackend) Delete(ctx context.Context, key string) error {
 	mb.mu.Lock()
 	defer mb.mu.Unlock()
-	
+
 	if _, exists := mb.secrets[key]; !exists {
 		return fmt.Errorf("secret not found: %s", key)
 	}
-	
+
 	delete(mb.secrets, key)
 	return nil
 }
@@ -61,14 +61,14 @@ func (mb *MemoryBackend) Delete(ctx context.Context, key string) error {
 func (mb *MemoryBackend) List(ctx context.Context, prefix string) ([]string, error) {
 	mb.mu.RLock()
 	defer mb.mu.RUnlock()
-	
+
 	var result []string
 	for key := range mb.secrets {
 		if prefix == "" || strings.HasPrefix(key, prefix) {
 			result = append(result, key)
 		}
 	}
-	
+
 	return result, nil
 }
 
@@ -76,7 +76,7 @@ func (mb *MemoryBackend) List(ctx context.Context, prefix string) ([]string, err
 func (mb *MemoryBackend) Backup(ctx context.Context) ([]byte, error) {
 	mb.mu.RLock()
 	defer mb.mu.RUnlock()
-	
+
 	return json.Marshal(mb.secrets)
 }
 
@@ -84,12 +84,12 @@ func (mb *MemoryBackend) Backup(ctx context.Context) ([]byte, error) {
 func (mb *MemoryBackend) Restore(ctx context.Context, data []byte) error {
 	mb.mu.Lock()
 	defer mb.mu.Unlock()
-	
+
 	var secrets map[string]*EncryptedSecret
 	if err := json.Unmarshal(data, &secrets); err != nil {
 		return fmt.Errorf("failed to unmarshal backup data: %w", err)
 	}
-	
+
 	mb.secrets = secrets
 	return nil
 }
@@ -103,11 +103,11 @@ func (mb *MemoryBackend) Health(ctx context.Context) error {
 func (mb *MemoryBackend) Close() error {
 	mb.mu.Lock()
 	defer mb.mu.Unlock()
-	
+
 	// Clear all secrets
 	for k := range mb.secrets {
 		delete(mb.secrets, k)
 	}
-	
+
 	return nil
 }

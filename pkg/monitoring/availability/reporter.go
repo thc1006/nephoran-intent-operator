@@ -347,7 +347,6 @@ type BusinessHours struct {
 	Holidays     []time.Time `json:"holidays"`
 }
 
-
 // AlertThresholds represents alerting thresholds for availability
 type AlertThresholds struct {
 	AvailabilityWarning  float64       `json:"availability_warning"`  // 0-1

@@ -956,8 +956,8 @@ func (p *DefaultTemplateProcessor) ProcessTemplate(ctx context.Context, template
 		RenderedContent: renderedContent,
 		Parameters:      parameters,
 		Metadata: map[string]string{
-			"template_id":   template.DeploymentTemplateID,
-			"processed_at":  time.Now().Format(time.RFC3339),
+			"template_id":  template.DeploymentTemplateID,
+			"processed_at": time.Now().Format(time.RFC3339),
 		},
 	}
 

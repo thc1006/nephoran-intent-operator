@@ -55,7 +55,7 @@ func (f *FaultNotificationChannelImpl) SendAlarmNotification(ctx context.Context
 			"additional_info": alarm.AdditionalText,
 		},
 	}
-	
+
 	return f.SendNotification(ctx, notification)
 }
 
@@ -66,22 +66,22 @@ func (f *FaultNotificationChannelImpl) GetChannelType() string {
 func (f *FaultNotificationChannelImpl) formatMessage(alarm *EnhancedAlarm, template *NotificationTemplate) string {
 	// Simple template formatting - in production would use proper templating
 	message := template.Body
-	
+
 	// Replace common variables
 	replacements := map[string]string{
-		"{{.AlarmID}}":          alarm.AlarmID,
-		"{{.Severity}}":         alarm.PerceivedSeverity,
-		"{{.Type}}":             alarm.AlarmType,
-		"{{.ProbableCause}}":    alarm.ProbableCause,
-		"{{.SpecificProblem}}":  alarm.AdditionalText,
-		"{{.ManagedElement}}":   alarm.ManagedObjectID,
-		"{{.TimeRaised}}":       alarm.AlarmRaisedTime.Format(time.RFC3339),
-		"{{.AdditionalInfo}}":   alarm.AdditionalText,
+		"{{.AlarmID}}":         alarm.AlarmID,
+		"{{.Severity}}":        alarm.PerceivedSeverity,
+		"{{.Type}}":            alarm.AlarmType,
+		"{{.ProbableCause}}":   alarm.ProbableCause,
+		"{{.SpecificProblem}}": alarm.AdditionalText,
+		"{{.ManagedElement}}":  alarm.ManagedObjectID,
+		"{{.TimeRaised}}":      alarm.AlarmRaisedTime.Format(time.RFC3339),
+		"{{.AdditionalInfo}}":  alarm.AdditionalText,
 	}
-	
+
 	for placeholder, value := range replacements {
 		message = strings.Replace(message, placeholder, value, -1)
 	}
-	
+
 	return message
 }

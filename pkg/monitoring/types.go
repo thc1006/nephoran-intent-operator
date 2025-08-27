@@ -10,10 +10,10 @@ import (
 
 // MonitoringManager coordinates all monitoring activities
 type MonitoringManager struct {
-	LatencyTracker   LatencyTracker
-	ReportGenerator  ReportGenerator
+	LatencyTracker      LatencyTracker
+	ReportGenerator     ReportGenerator
 	AvailabilityMonitor AvailabilityMonitor
-	AlertManager     AlertManager
+	AlertManager        AlertManager
 }
 
 // LatencyTracker interface for tracking operation latencies
@@ -43,31 +43,30 @@ type AvailabilityMonitor interface {
 	Shutdown(ctx context.Context) error
 }
 
-
 // Common types used across monitoring components
 
 // PerformanceMetrics holds performance data
 type PerformanceMetrics struct {
 	Component     string                 `json:"component"`
-	Timestamp     time.Time             `json:"timestamp"`
-	Throughput    float64               `json:"throughput"`
-	Latency       time.Duration         `json:"latency"`
-	ErrorRate     float64               `json:"error_rate"`
-	Availability  float64               `json:"availability"`
+	Timestamp     time.Time              `json:"timestamp"`
+	Throughput    float64                `json:"throughput"`
+	Latency       time.Duration          `json:"latency"`
+	ErrorRate     float64                `json:"error_rate"`
+	Availability  float64                `json:"availability"`
 	CustomMetrics map[string]interface{} `json:"custom_metrics"`
 }
 
 // PerformanceReport represents a generated performance report
 type PerformanceReport struct {
-	ID          string            `json:"id"`
-	Title       string            `json:"title"`
-	GeneratedAt time.Time         `json:"generated_at"`
-	TimeRange   TimeRange         `json:"time_range"`
-	Summary     ReportSummary     `json:"summary"`
+	ID          string               `json:"id"`
+	Title       string               `json:"title"`
+	GeneratedAt time.Time            `json:"generated_at"`
+	TimeRange   TimeRange            `json:"time_range"`
+	Summary     ReportSummary        `json:"summary"`
 	Metrics     []PerformanceMetrics `json:"metrics"`
-	Alerts      []AlertItem       `json:"alerts"`
-	Content     string            `json:"content"`
-	Format      string            `json:"format"`
+	Alerts      []AlertItem          `json:"alerts"`
+	Content     string               `json:"content"`
+	Format      string               `json:"format"`
 }
 
 // TimeRange defines a time range for reports
@@ -78,7 +77,7 @@ type TimeRange struct {
 
 // ReportSummary provides high-level report statistics
 type ReportSummary struct {
-	TotalComponents  int     `json:"total_components"`
+	TotalComponents int     `json:"total_components"`
 	AvgThroughput   float64 `json:"avg_throughput"`
 	AvgLatency      string  `json:"avg_latency"`
 	OverallHealth   float64 `json:"overall_health"`
@@ -98,39 +97,38 @@ type AlertItem struct {
 
 // ReportConfig holds configuration for report generation
 type ReportConfig struct {
-	IncludeMetrics   []string          `json:"include_metrics"`
-	TimeRange        TimeRange         `json:"time_range"`
-	OutputFormat     string            `json:"output_format"`
-	CustomFields     map[string]string `json:"custom_fields"`
-	ThresholdAlerts  map[string]float64 `json:"threshold_alerts"`
+	IncludeMetrics  []string           `json:"include_metrics"`
+	TimeRange       TimeRange          `json:"time_range"`
+	OutputFormat    string             `json:"output_format"`
+	CustomFields    map[string]string  `json:"custom_fields"`
+	ThresholdAlerts map[string]float64 `json:"threshold_alerts"`
 }
 
 // SyntheticCheck defines a synthetic check configuration
 type SyntheticCheck struct {
-	ID          string        `json:"id"`
-	Name        string        `json:"name"`
-	Type        string        `json:"type"` // http, tcp, grpc
-	Target      string        `json:"target"`
-	Interval    time.Duration `json:"interval"`
-	Timeout     time.Duration `json:"timeout"`
-	Enabled     bool          `json:"enabled"`
-	Headers     map[string]string `json:"headers,omitempty"`
-	ExpectedCode int           `json:"expected_code,omitempty"`
-	ExpectedBody string        `json:"expected_body,omitempty"`
-	ThresholdMs  int           `json:"threshold_ms"`
+	ID           string            `json:"id"`
+	Name         string            `json:"name"`
+	Type         string            `json:"type"` // http, tcp, grpc
+	Target       string            `json:"target"`
+	Interval     time.Duration     `json:"interval"`
+	Timeout      time.Duration     `json:"timeout"`
+	Enabled      bool              `json:"enabled"`
+	Headers      map[string]string `json:"headers,omitempty"`
+	ExpectedCode int               `json:"expected_code,omitempty"`
+	ExpectedBody string            `json:"expected_body,omitempty"`
+	ThresholdMs  int               `json:"threshold_ms"`
 }
 
 // CheckResult represents the result of a synthetic check
 type CheckResult struct {
-	CheckID     string        `json:"check_id"`
-	Timestamp   time.Time     `json:"timestamp"`
-	Success     bool          `json:"success"`
+	CheckID      string        `json:"check_id"`
+	Timestamp    time.Time     `json:"timestamp"`
+	Success      bool          `json:"success"`
 	ResponseTime time.Duration `json:"response_time"`
-	StatusCode   int          `json:"status_code,omitempty"`
-	Error        string       `json:"error,omitempty"`
-	Message     string       `json:"message"`
-	Availability float64      `json:"availability"`
+	StatusCode   int           `json:"status_code,omitempty"`
+	Error        string        `json:"error,omitempty"`
+	Message      string        `json:"message"`
+	Availability float64       `json:"availability"`
 }
 
 // Alert represents an alert instance
-

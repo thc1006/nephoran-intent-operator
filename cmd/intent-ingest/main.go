@@ -24,24 +24,24 @@ func main() {
 
 	// SECURITY FIX: Set up comprehensive security middleware
 	securityConfig := middleware.DefaultSecuritySuiteConfig()
-	securityConfig.RateLimit.QPS = 10        // 10 requests per second per IP
-	securityConfig.RateLimit.Burst = 20      // Allow bursts up to 20 requests
-	securityConfig.RequireAuth = false       // No authentication required for this service
-	
+	securityConfig.RateLimit.QPS = 10   // 10 requests per second per IP
+	securityConfig.RateLimit.Burst = 20 // Allow bursts up to 20 requests
+	securityConfig.RequireAuth = false  // No authentication required for this service
+
 	securitySuite, err := middleware.NewSecuritySuite(securityConfig, nil)
 	if err != nil {
 		log.Fatalf("failed to create security suite: %v", err)
 	}
 
 	mux := http.NewServeMux()
-	
+
 	// Health endpoint with basic security
-	healthHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { 
+	healthHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok")) 
+		w.Write([]byte("ok"))
 	})
 	mux.Handle("/healthz", securitySuite.Middleware(healthHandler))
-	
+
 	// Intent endpoint with full security middleware
 	intentHandler := http.HandlerFunc(h.HandleIntent)
 	mux.Handle("/intent", securitySuite.Middleware(intentHandler))

@@ -628,7 +628,7 @@ func TestNetworkConnectivity(t *testing.T) {
 	// This would require setting up a test environment with k8sClient and namespace
 	// For now, this is a placeholder test
 	t.Skip("Network connectivity test requires live cluster setup")
-	
+
 	// When implemented, this test would:
 	// 1. Create test pods in different namespaces
 	// 2. Apply network policies

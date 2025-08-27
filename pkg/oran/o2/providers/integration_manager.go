@@ -542,17 +542,17 @@ func (ma *MetricsAggregator) RecordScaling(provider, resourceID, direction strin
 
 // EventProcessor processes events from providers
 type EventProcessor struct {
-	handlers []EventHandler
+	handlers []EventHandlerFuncFunc
 	mu       sync.RWMutex
 	stopCh   chan struct{}
 	eventCh  chan *ProviderEvent
 }
 
-type EventHandler func(event *ProviderEvent)
+type EventHandlerFunc func(event *ProviderEvent)
 
 func NewEventProcessor() *EventProcessor {
 	return &EventProcessor{
-		handlers: make([]EventHandler, 0),
+		handlers: make([]EventHandlerFuncFunc, 0),
 		stopCh:   make(chan struct{}),
 		eventCh:  make(chan *ProviderEvent, 100),
 	}
@@ -591,7 +591,7 @@ func (ep *EventProcessor) RegisterHandler(handler EventHandler) {
 
 func (ep *EventProcessor) processEvent(event *ProviderEvent) {
 	ep.mu.RLock()
-	handlers := make([]EventHandler, len(ep.handlers))
+	handlers := make([]EventHandlerFunc, len(ep.handlers))
 	copy(handlers, ep.handlers)
 	ep.mu.RUnlock()
 

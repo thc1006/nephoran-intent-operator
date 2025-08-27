@@ -164,15 +164,6 @@ type ResourceResponse struct {
 	UpdatedAt     time.Time              `json:"updatedAt"`
 }
 
-// ResourceEvent represents an event related to a resource
-type ResourceEvent struct {
-	Type      string                 `json:"type"`
-	Reason    string                 `json:"reason"`
-	Message   string                 `json:"message"`
-	Source    string                 `json:"source"`
-	Timestamp time.Time              `json:"timestamp"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
-}
 
 // ResourceFilter defines filters for resource queries
 type ResourceFilter struct {
@@ -278,23 +269,6 @@ type ScalingCapabilities struct {
 
 // Health and monitoring types
 
-// HealthStatus represents the health status of a resource
-type HealthStatus struct {
-	Status      string                 `json:"status"` // healthy, unhealthy, unknown
-	Message     string                 `json:"message,omitempty"`
-	Checks      []*HealthCheck         `json:"checks,omitempty"`
-	LastUpdated time.Time              `json:"lastUpdated"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
-}
-
-// HealthCheck represents an individual health check
-type HealthCheck struct {
-	Name        string    `json:"name"`
-	Type        string    `json:"type"`
-	Status      string    `json:"status"`
-	Message     string    `json:"message,omitempty"`
-	LastChecked time.Time `json:"lastChecked"`
-}
 
 // Network service types
 
@@ -460,16 +434,6 @@ type ServiceResponse struct {
 // EventCallback represents a callback function for provider events
 type EventCallback func(event *ProviderEvent)
 
-// ProviderEvent represents an event from a cloud provider
-type ProviderEvent struct {
-	ID        string                 `json:"id"`
-	Type      string                 `json:"type"`
-	Source    string                 `json:"source"`
-	Subject   string                 `json:"subject"`
-	Data      map[string]interface{} `json:"data"`
-	Timestamp time.Time              `json:"timestamp"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
-}
 
 // Configuration types
 

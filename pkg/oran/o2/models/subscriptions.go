@@ -87,13 +87,13 @@ type EventConfiguration struct {
 
 // SubscriptionAuth defines authentication for subscriptions
 type SubscriptionAuth struct {
-	Type      string                 `json:"type"` // NONE, BASIC, BEARER, OAUTH2, MTLS
-	Username  string                 `json:"username,omitempty"`
-	Password  string                 `json:"password,omitempty"`
-	Token     string                 `json:"token,omitempty"`
-	OAuth2    *OAuth2Config          `json:"oauth2,omitempty"`
-	TLS       *TLSConfig             `json:"tls,omitempty"`
-	Headers   map[string]string      `json:"headers,omitempty"`
+	Type       string                 `json:"type"` // NONE, BASIC, BEARER, OAUTH2, MTLS
+	Username   string                 `json:"username,omitempty"`
+	Password   string                 `json:"password,omitempty"`
+	Token      string                 `json:"token,omitempty"`
+	OAuth2     *OAuth2Config          `json:"oauth2,omitempty"`
+	TLS        *TLSConfig             `json:"tls,omitempty"`
+	Headers    map[string]string      `json:"headers,omitempty"`
 	Parameters map[string]interface{} `json:"parameters,omitempty"`
 }
 
@@ -117,15 +117,15 @@ type TLSConfig struct {
 
 // SubscriptionStatus represents the status of a subscription
 type SubscriptionStatus struct {
-	State           string                    `json:"state"`           // ACTIVE, PAUSED, FAILED, TERMINATED
-	Health          string                    `json:"health"`          // HEALTHY, DEGRADED, UNHEALTHY
-	EventsDelivered int64                     `json:"eventsDelivered"` // Total events delivered
-	EventsFailed    int64                     `json:"eventsFailed"`    // Failed delivery events
-	LastEventTime   *time.Time                `json:"lastEventTime,omitempty"`
-	LastErrorTime   *time.Time                `json:"lastErrorTime,omitempty"`
-	LastError       string                    `json:"lastError,omitempty"`
-	Statistics      *SubscriptionStatistics   `json:"statistics,omitempty"`
-	Conditions      []SubscriptionCondition   `json:"conditions,omitempty"`
+	State           string                     `json:"state"`           // ACTIVE, PAUSED, FAILED, TERMINATED
+	Health          string                     `json:"health"`          // HEALTHY, DEGRADED, UNHEALTHY
+	EventsDelivered int64                      `json:"eventsDelivered"` // Total events delivered
+	EventsFailed    int64                      `json:"eventsFailed"`    // Failed delivery events
+	LastEventTime   *time.Time                 `json:"lastEventTime,omitempty"`
+	LastErrorTime   *time.Time                 `json:"lastErrorTime,omitempty"`
+	LastError       string                     `json:"lastError,omitempty"`
+	Statistics      *SubscriptionStatistics    `json:"statistics,omitempty"`
+	Conditions      []SubscriptionCondition    `json:"conditions,omitempty"`
 	Events          []*SubscriptionStatusEvent `json:"events,omitempty"`
 }
 
@@ -161,21 +161,21 @@ type SubscriptionStatusEvent struct {
 
 // InfrastructureEvent represents an infrastructure event
 type InfrastructureEvent struct {
-	EventID     string `json:"eventId"`
-	EventType   string `json:"eventType"`
-	EventTime   string `json:"eventTime"`
-	Domain      string `json:"domain"`
-	EventName   string `json:"eventName"`
-	SourceName  string `json:"sourceName"`
-	SourceID    string `json:"sourceId"`
-	ReportingID string `json:"reportingEntityId"`
-	Priority    string `json:"priority"`
-	Version     string `json:"version"`
-	VesVersion  string `json:"vesEventListenerVersion"`
-	TimeZone    string `json:"timeZoneOffset"`
-	LastEpochMicrosec int64  `json:"lastEpochMicrosec"`
+	EventID            string `json:"eventId"`
+	EventType          string `json:"eventType"`
+	EventTime          string `json:"eventTime"`
+	Domain             string `json:"domain"`
+	EventName          string `json:"eventName"`
+	SourceName         string `json:"sourceName"`
+	SourceID           string `json:"sourceId"`
+	ReportingID        string `json:"reportingEntityId"`
+	Priority           string `json:"priority"`
+	Version            string `json:"version"`
+	VesVersion         string `json:"vesEventListenerVersion"`
+	TimeZone           string `json:"timeZoneOffset"`
+	LastEpochMicrosec  int64  `json:"lastEpochMicrosec"`
 	StartEpochMicrosec int64  `json:"startEpochMicrosec"`
-	Sequence    int64  `json:"sequence"`
+	Sequence           int64  `json:"sequence"`
 
 	// Event data payload
 	EventData *runtime.RawExtension `json:"eventData,omitempty"`
@@ -193,47 +193,47 @@ type InfrastructureEvent struct {
 	Source         string `json:"source,omitempty"`
 
 	// Lifecycle information
-	ProcessedAt  *time.Time `json:"processedAt,omitempty"`
-	DeliveredAt  *time.Time `json:"deliveredAt,omitempty"`
+	ProcessedAt    *time.Time `json:"processedAt,omitempty"`
+	DeliveredAt    *time.Time `json:"deliveredAt,omitempty"`
 	AcknowledgedAt *time.Time `json:"acknowledgedAt,omitempty"`
 }
 
 // EventBatch represents a batch of events for delivery
 type EventBatch struct {
-	BatchID      string                  `json:"batchId"`
-	Events       []*InfrastructureEvent  `json:"events"`
-	BatchSize    int                     `json:"batchSize"`
-	CreatedAt    time.Time               `json:"createdAt"`
-	ExpiresAt    *time.Time              `json:"expiresAt,omitempty"`
-	Metadata     map[string]interface{}  `json:"metadata,omitempty"`
-	DeliveryInfo *EventDeliveryInfo      `json:"deliveryInfo,omitempty"`
+	BatchID      string                 `json:"batchId"`
+	Events       []*InfrastructureEvent `json:"events"`
+	BatchSize    int                    `json:"batchSize"`
+	CreatedAt    time.Time              `json:"createdAt"`
+	ExpiresAt    *time.Time             `json:"expiresAt,omitempty"`
+	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	DeliveryInfo *EventDeliveryInfo     `json:"deliveryInfo,omitempty"`
 }
 
 // EventDeliveryInfo tracks event delivery status
 type EventDeliveryInfo struct {
-	SubscriptionID string    `json:"subscriptionId"`
-	AttemptCount   int       `json:"attemptCount"`
-	FirstAttempt   time.Time `json:"firstAttempt"`
+	SubscriptionID string     `json:"subscriptionId"`
+	AttemptCount   int        `json:"attemptCount"`
+	FirstAttempt   time.Time  `json:"firstAttempt"`
 	LastAttempt    *time.Time `json:"lastAttempt,omitempty"`
-	DeliveryStatus string    `json:"deliveryStatus"` // PENDING, DELIVERED, FAILED, EXPIRED
-	ErrorMessage   string    `json:"errorMessage,omitempty"`
-	ResponseCode   int       `json:"responseCode,omitempty"`
-	ResponseBody   string    `json:"responseBody,omitempty"`
+	DeliveryStatus string     `json:"deliveryStatus"` // PENDING, DELIVERED, FAILED, EXPIRED
+	ErrorMessage   string     `json:"errorMessage,omitempty"`
+	ResponseCode   int        `json:"responseCode,omitempty"`
+	ResponseBody   string     `json:"responseBody,omitempty"`
 }
 
 // EventTemplate defines templates for event generation
 type EventTemplate struct {
-	TemplateID   string                 `json:"templateId"`
-	Name         string                 `json:"name"`
-	Description  string                 `json:"description,omitempty"`
-	EventType    string                 `json:"eventType"`
-	Version      string                 `json:"version"`
-	Schema       *runtime.RawExtension  `json:"schema"`
-	Template     *runtime.RawExtension  `json:"template"`
-	Variables    map[string]interface{} `json:"variables,omitempty"`
-	Metadata     map[string]string      `json:"metadata,omitempty"`
-	CreatedAt    time.Time              `json:"createdAt"`
-	UpdatedAt    time.Time              `json:"updatedAt"`
+	TemplateID  string                 `json:"templateId"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description,omitempty"`
+	EventType   string                 `json:"eventType"`
+	Version     string                 `json:"version"`
+	Schema      *runtime.RawExtension  `json:"schema"`
+	Template    *runtime.RawExtension  `json:"template"`
+	Variables   map[string]interface{} `json:"variables,omitempty"`
+	Metadata    map[string]string      `json:"metadata,omitempty"`
+	CreatedAt   time.Time              `json:"createdAt"`
+	UpdatedAt   time.Time              `json:"updatedAt"`
 }
 
 // Filter types for subscription queries
@@ -289,16 +289,16 @@ type CreateSubscriptionRequest struct {
 
 // UpdateSubscriptionRequest represents a request to update a subscription
 type UpdateSubscriptionRequest struct {
-	Name                   *string               `json:"name,omitempty"`
-	Description            *string               `json:"description,omitempty"`
-	CallbackUri            *string               `json:"callbackUri,omitempty"`
-	ConsumerSubscriptionId *string               `json:"consumerSubscriptionId,omitempty"`
-	EventTypes             []string              `json:"eventTypes,omitempty"`
-	Filter                 *SubscriptionFilter   `json:"filter,omitempty"`
-	EventConfig            *EventConfiguration   `json:"eventConfig,omitempty"`
-	Authentication         *SubscriptionAuth     `json:"authentication,omitempty"`
+	Name                   *string                `json:"name,omitempty"`
+	Description            *string                `json:"description,omitempty"`
+	CallbackUri            *string                `json:"callbackUri,omitempty"`
+	ConsumerSubscriptionId *string                `json:"consumerSubscriptionId,omitempty"`
+	EventTypes             []string               `json:"eventTypes,omitempty"`
+	Filter                 *SubscriptionFilter    `json:"filter,omitempty"`
+	EventConfig            *EventConfiguration    `json:"eventConfig,omitempty"`
+	Authentication         *SubscriptionAuth      `json:"authentication,omitempty"`
 	Extensions             map[string]interface{} `json:"extensions,omitempty"`
-	Metadata               map[string]string     `json:"metadata,omitempty"`
+	Metadata               map[string]string      `json:"metadata,omitempty"`
 }
 
 // Constants for subscription management

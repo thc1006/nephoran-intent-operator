@@ -39,14 +39,14 @@ type ComponentStatus = contracts.ComponentStatus
 
 // SystemHealth represents the overall health of the system
 type SystemHealth struct {
-	OverallStatus  string                      `json:"overallStatus"`
-	Healthy        bool                        `json:"healthy"`
+	OverallStatus  string                                `json:"overallStatus"`
+	Healthy        bool                                  `json:"healthy"`
 	Components     map[string]*contracts.ComponentStatus `json:"components"`
-	LastUpdate     time.Time                   `json:"lastUpdate"`
-	ActiveIntents  int                         `json:"activeIntents"`
-	ProcessingRate float64                     `json:"processingRate"`
-	ErrorRate      float64                     `json:"errorRate"`
-	ResourceUsage  ResourceUsage               `json:"resourceUsage"`
+	LastUpdate     time.Time                             `json:"lastUpdate"`
+	ActiveIntents  int                                   `json:"activeIntents"`
+	ProcessingRate float64                               `json:"processingRate"`
+	ErrorRate      float64                               `json:"errorRate"`
+	ResourceUsage  ResourceUsage                         `json:"resourceUsage"`
 }
 
 // ResourceUsage represents resource utilization

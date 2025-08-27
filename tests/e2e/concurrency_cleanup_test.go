@@ -54,9 +54,9 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 							},
 						},
 						Spec: nephoran.NetworkIntentSpec{
-							Intent:      fmt.Sprintf("Concurrent creation test %d: Scale UPF instances", index),
-							IntentType:  nephoran.IntentTypeScaling,
-							Priority:    1,
+							Intent:     fmt.Sprintf("Concurrent creation test %d: Scale UPF instances", index),
+							IntentType: nephoran.IntentTypeScaling,
+							Priority:   1,
 							TargetComponents: []nephoran.NetworkTargetComponent{
 								nephoran.NetworkTargetComponentUPF,
 							},
@@ -64,7 +64,7 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 					}
 
 					err := k8sClient.Create(ctx, intent)
-					
+
 					mu.Lock()
 					results[index] = err
 					if err == nil {
@@ -115,7 +115,7 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 				if intent == nil {
 					continue
 				}
-				
+
 				cleanupWg.Add(1)
 				go func(intentToDelete *nephoran.NetworkIntent) {
 					defer GinkgoRecover()
@@ -138,9 +138,9 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 					},
 				},
 				Spec: nephoran.NetworkIntentSpec{
-					Intent:      "Base intent for concurrent update testing",
-					IntentType:  nephoran.IntentTypeScaling,
-					Priority:    1,
+					Intent:     "Base intent for concurrent update testing",
+					IntentType: nephoran.IntentTypeScaling,
+					Priority:   1,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 					},
@@ -156,7 +156,7 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 			updateResults := make([]error, concurrentUpdates)
 
 			lookupKey := types.NamespacedName{Name: intentName, Namespace: namespace}
-			
+
 			for i := 0; i < concurrentUpdates; i++ {
 				updateWg.Add(1)
 				go func(updateIndex int) {
@@ -174,9 +174,9 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 					}
 
 					// Modify the intent
-					intentToUpdate.Spec.Intent = fmt.Sprintf("Updated intent %d: %s", 
+					intentToUpdate.Spec.Intent = fmt.Sprintf("Updated intent %d: %s",
 						updateIndex, intentToUpdate.Spec.Intent)
-					
+
 					// Add annotation to track update
 					if intentToUpdate.Annotations == nil {
 						intentToUpdate.Annotations = make(map[string]string)
@@ -195,7 +195,7 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 			By("Verifying update results")
 			successfulUpdates := 0
 			conflictErrors := 0
-			
+
 			for i, err := range updateResults {
 				if err == nil {
 					successfulUpdates++
@@ -240,9 +240,9 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 						},
 					},
 					Spec: nephoran.NetworkIntentSpec{
-						Intent:      fmt.Sprintf("Concurrent deletion test %d", i),
-						IntentType:  nephoran.IntentTypeScaling,
-						Priority:    1,
+						Intent:     fmt.Sprintf("Concurrent deletion test %d", i),
+						IntentType: nephoran.IntentTypeScaling,
+						Priority:   1,
 						TargetComponents: []nephoran.NetworkTargetComponent{
 							nephoran.NetworkTargetComponentUPF,
 						},
@@ -329,9 +329,9 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 					},
 				},
 				Spec: nephoran.NetworkIntentSpec{
-					Intent:      "Test resource cleanup when intent is deleted",
-					IntentType:  nephoran.IntentTypeDeployment,
-					Priority:    1,
+					Intent:     "Test resource cleanup when intent is deleted",
+					IntentType: nephoran.IntentTypeDeployment,
+					Priority:   1,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 						nephoran.NetworkTargetComponentSMF,
@@ -371,10 +371,10 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 					if err != nil {
 						return false
 					}
-					
+
 					// Check if finalizers are being processed
 					return len(createdIntent.Finalizers) < len(intent.Finalizers) ||
-						   createdIntent.DeletionTimestamp != nil
+						createdIntent.DeletionTimestamp != nil
 				}, 45*time.Second, 2*time.Second).Should(BeTrue())
 			}
 
@@ -387,7 +387,7 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 			By("Verifying no orphaned resources remain")
 			// Check that no related resources are left behind
 			relatedIntents := &nephoran.NetworkIntentList{}
-			err := k8sClient.List(ctx, relatedIntents, 
+			err := k8sClient.List(ctx, relatedIntents,
 				client.InNamespace(namespace),
 				client.MatchingLabels{"nephoran.io/test-type": "resource-cleanup"})
 			Expect(err).ShouldNot(HaveOccurred())
@@ -397,10 +397,10 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 		It("should handle cleanup during rapid create/delete cycles", func() {
 			By("Performing rapid create/delete cycles")
 			cycles := 5
-			
+
 			for cycle := 0; cycle < cycles; cycle++ {
 				intentName := fmt.Sprintf("rapid-cleanup-cycle-%d", cycle)
-				
+
 				By(fmt.Sprintf("Cycle %d: Creating intent %s", cycle, intentName))
 				intent := &nephoran.NetworkIntent{
 					ObjectMeta: metav1.ObjectMeta{
@@ -412,9 +412,9 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 						},
 					},
 					Spec: nephoran.NetworkIntentSpec{
-						Intent:      fmt.Sprintf("Rapid cleanup cycle %d test", cycle),
-						IntentType:  nephoran.IntentTypeScaling,
-						Priority:    1,
+						Intent:     fmt.Sprintf("Rapid cleanup cycle %d test", cycle),
+						IntentType: nephoran.IntentTypeScaling,
+						Priority:   1,
 						TargetComponents: []nephoran.NetworkTargetComponent{
 							nephoran.NetworkTargetComponentUPF,
 						},
@@ -445,9 +445,9 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 					Namespace: namespace,
 				},
 				Spec: nephoran.NetworkIntentSpec{
-					Intent:      "Post rapid cleanup stability test",
-					IntentType:  nephoran.IntentTypeScaling,
-					Priority:    1,
+					Intent:     "Post rapid cleanup stability test",
+					IntentType: nephoran.IntentTypeScaling,
+					Priority:   1,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 					},
@@ -485,9 +485,9 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 					},
 				},
 				Spec: nephoran.NetworkIntentSpec{
-					Intent:      "Test resource leak prevention during error scenarios",
-					IntentType:  nephoran.IntentTypeDeployment,
-					Priority:    1,
+					Intent:     "Test resource leak prevention during error scenarios",
+					IntentType: nephoran.IntentTypeDeployment,
+					Priority:   1,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentAMF,
 						nephoran.NetworkTargetComponentSMF,
@@ -562,9 +562,9 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 							},
 						},
 						Spec: nephoran.NetworkIntentSpec{
-							Intent:      fmt.Sprintf("High volume test %d: Load testing intent processing", index),
-							IntentType:  nephoran.IntentTypeScaling,
-							Priority:    1,
+							Intent:     fmt.Sprintf("High volume test %d: Load testing intent processing", index),
+							IntentType: nephoran.IntentTypeScaling,
+							Priority:   1,
 							TargetComponents: []nephoran.NetworkTargetComponent{
 								nephoran.NetworkTargetComponentUPF,
 							},
@@ -572,7 +572,7 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 					}
 
 					err := k8sClient.Create(ctx, intent)
-					
+
 					mu.Lock()
 					creationErrors[index] = err
 					if err == nil {
@@ -593,19 +593,19 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 					By(fmt.Sprintf("Creation %d failed: %v", i, err))
 				}
 			}
-			
+
 			// Should achieve high success rate
 			successRate := float64(successfulCreations) / float64(highVolumeCount)
 			Expect(successRate).Should(BeNumerically(">=", 0.9)) // 90% success rate
 
 			By("Monitoring processing under high load")
 			processedCount := 0
-			
+
 			for _, intent := range createdIntents {
 				if intent == nil {
 					continue
 				}
-				
+
 				lookupKey := types.NamespacedName{Name: intent.Name, Namespace: namespace}
 				retrievedIntent := &nephoran.NetworkIntent{}
 
@@ -630,7 +630,7 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 				if intent == nil {
 					continue
 				}
-				
+
 				cleanupWg.Add(1)
 				go func(index int, intentToDelete *nephoran.NetworkIntent) {
 					defer GinkgoRecover()
@@ -667,16 +667,16 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 			var mu sync.Mutex
 			operationCount := 0
 			errorCount := 0
-			
+
 			startTime := time.Now()
-			
+
 			// Run operations for specified duration
 			for time.Since(startTime) < duration {
 				if operationCount >= maxConcurrent {
 					time.Sleep(100 * time.Millisecond)
 					continue
 				}
-				
+
 				operationWg.Add(1)
 				go func(opIndex int) {
 					defer GinkgoRecover()
@@ -702,9 +702,9 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 							},
 						},
 						Spec: nephoran.NetworkIntentSpec{
-							Intent:      fmt.Sprintf("Sustained load test operation %d", currentOp),
-							IntentType:  nephoran.IntentTypeScaling,
-							Priority:    1,
+							Intent:     fmt.Sprintf("Sustained load test operation %d", currentOp),
+							IntentType: nephoran.IntentTypeScaling,
+							Priority:   1,
 							TargetComponents: []nephoran.NetworkTargetComponent{
 								nephoran.NetworkTargetComponentUPF,
 							},
@@ -741,9 +741,9 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 			totalOperations := operationCount + errorCount
 			if totalOperations > 0 {
 				errorRate := float64(errorCount) / float64(totalOperations)
-				By(fmt.Sprintf("Sustained load: %d operations, %d errors, %.2f%% error rate", 
+				By(fmt.Sprintf("Sustained load: %d operations, %d errors, %.2f%% error rate",
 					totalOperations, errorCount, errorRate*100))
-				
+
 				// Should maintain reasonable error rate under sustained load
 				Expect(errorRate).Should(BeNumerically("<=", 0.2)) // Max 20% error rate
 			}
@@ -755,9 +755,9 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 					Namespace: namespace,
 				},
 				Spec: nephoran.NetworkIntentSpec{
-					Intent:      "Post sustained load stability verification",
-					IntentType:  nephoran.IntentTypeScaling,
-					Priority:    1,
+					Intent:     "Post sustained load stability verification",
+					IntentType: nephoran.IntentTypeScaling,
+					Priority:   1,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 					},

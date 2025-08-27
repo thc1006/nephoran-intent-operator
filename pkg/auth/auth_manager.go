@@ -7,28 +7,28 @@ import (
 
 // AuthManager provides a unified interface for all authentication components
 type AuthManager struct {
-	JWTManager     *JWTManager
-	SessionManager *SessionManager
-	RBACManager    *RBACManager
-	OAuth2Manager  *OAuth2Manager
+	JWTManager      *JWTManager
+	SessionManager  *SessionManager
+	RBACManager     *RBACManager
+	OAuth2Manager   *OAuth2Manager
 	SecurityManager *SecurityManager
-	logger         *slog.Logger
+	logger          *slog.Logger
 }
 
 // AuthManagerConfig holds configuration for the unified auth manager
 type AuthManagerConfig struct {
-	JWTConfig     *JWTConfig
-	SessionConfig *SessionConfig
-	RBACConfig    *RBACManagerConfig
-	OAuth2Config  *OAuth2ManagerConfig
+	JWTConfig      *JWTConfig
+	SessionConfig  *SessionConfig
+	RBACConfig     *RBACManagerConfig
+	OAuth2Config   *OAuth2ManagerConfig
 	SecurityConfig *SecurityManagerConfig
 }
 
 // SecurityManagerConfig holds configuration for security manager
 type SecurityManagerConfig struct {
-	CSRFSecret []byte        `json:"csrf_secret"`
-	PKCE       PKCEConfig    `json:"pkce"`
-	CSRF       CSRFConfig    `json:"csrf"`
+	CSRFSecret []byte     `json:"csrf_secret"`
+	PKCE       PKCEConfig `json:"pkce"`
+	CSRF       CSRFConfig `json:"csrf"`
 }
 
 // PKCEConfig holds PKCE configuration
@@ -36,7 +36,7 @@ type PKCEConfig struct {
 	TTL time.Duration `json:"ttl"`
 }
 
-// CSRFConfig holds CSRF configuration  
+// CSRFConfig holds CSRF configuration
 type CSRFConfig struct {
 	Secret []byte        `json:"secret"`
 	TTL    time.Duration `json:"ttl"`

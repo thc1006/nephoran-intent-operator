@@ -38,12 +38,12 @@ type AccountingCorrelationRule struct {
 
 // AccountingReportTemplate defines accounting report structure and content
 type AccountingReportTemplate struct {
-	ID                 string           `json:"id"`
-	Name               string           `json:"name"`
-	Description        string           `json:"description"`
-	ReportType         string           `json:"report_type"` // BILLING, USAGE, REVENUE, FRAUD
-	Sections           []string         `json:"sections"`
-	Template           string           `json:"template"`
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	ReportType  string   `json:"report_type"` // BILLING, USAGE, REVENUE, FRAUD
+	Sections    []string `json:"sections"`
+	Template    string   `json:"template"`
 }
 
 // AccountingReportGeneratorInterface generates accounting reports
@@ -1327,10 +1327,10 @@ type UsageQuery struct {
 
 // DeletionCriteria defines criteria for data deletion
 type DeletionCriteria struct {
-	OlderThan  time.Time `json:"older_than"`
-	DataType   string    `json:"data_type"`
-	Quality    string    `json:"quality"`
-	ObjectIDs  []string  `json:"object_ids,omitempty"`
+	OlderThan  time.Time              `json:"older_than"`
+	DataType   string                 `json:"data_type"`
+	Quality    string                 `json:"quality"`
+	ObjectIDs  []string               `json:"object_ids,omitempty"`
 	Conditions map[string]interface{} `json:"conditions,omitempty"`
 }
 
@@ -1565,9 +1565,9 @@ func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *Compreh
 	usageStorage := NewInMemoryUsageStorage()
 
 	cam := &ComprehensiveAccountingManager{
-		config:      config,
-		metrics:     initializeAccountingMetrics(),
-		stopChan:    make(chan struct{}),
+		config:       config,
+		metrics:      initializeAccountingMetrics(),
+		stopChan:     make(chan struct{}),
 		usageStorage: usageStorage,
 	}
 
@@ -1930,7 +1930,7 @@ func NewInMemoryUsageStorage() *InMemoryUsageStorage {
 func (imus *InMemoryUsageStorage) Store(ctx context.Context, events []*UsageEvent) error {
 	imus.mutex.Lock()
 	defer imus.mutex.Unlock()
-	
+
 	imus.events = append(imus.events, events...)
 	return nil
 }
@@ -1938,7 +1938,7 @@ func (imus *InMemoryUsageStorage) Store(ctx context.Context, events []*UsageEven
 func (imus *InMemoryUsageStorage) Query(ctx context.Context, query *UsageQuery) ([]*UsageEvent, error) {
 	imus.mutex.RLock()
 	defer imus.mutex.RUnlock()
-	
+
 	var results []*UsageEvent
 	for _, event := range imus.events {
 		// Simple filtering logic
@@ -1946,19 +1946,19 @@ func (imus *InMemoryUsageStorage) Query(ctx context.Context, query *UsageQuery) 
 			results = append(results, event)
 		}
 	}
-	
+
 	// Apply limit if specified
 	if query.Limit > 0 && len(results) > query.Limit {
 		results = results[:query.Limit]
 	}
-	
+
 	return results, nil
 }
 
 func (imus *InMemoryUsageStorage) Delete(ctx context.Context, criteria *DeletionCriteria) error {
 	imus.mutex.Lock()
 	defer imus.mutex.Unlock()
-	
+
 	// Simple deletion logic
 	var filtered []*UsageEvent
 	for _, event := range imus.events {
@@ -1966,7 +1966,7 @@ func (imus *InMemoryUsageStorage) Delete(ctx context.Context, criteria *Deletion
 			filtered = append(filtered, event)
 		}
 	}
-	
+
 	imus.events = filtered
 	return nil
 }
@@ -1974,14 +1974,14 @@ func (imus *InMemoryUsageStorage) Delete(ctx context.Context, criteria *Deletion
 func (imus *InMemoryUsageStorage) GetStatistics() *StorageStatistics {
 	imus.mutex.RLock()
 	defer imus.mutex.RUnlock()
-	
+
 	if len(imus.events) == 0 {
 		return &StorageStatistics{}
 	}
-	
+
 	oldest := imus.events[0].Timestamp
 	newest := imus.events[0].Timestamp
-	
+
 	for _, event := range imus.events {
 		if event.Timestamp.Before(oldest) {
 			oldest = event.Timestamp
@@ -1990,7 +1990,7 @@ func (imus *InMemoryUsageStorage) GetStatistics() *StorageStatistics {
 			newest = event.Timestamp
 		}
 	}
-	
+
 	return &StorageStatistics{
 		TotalRecords:     int64(len(imus.events)),
 		StorageSize:      int64(len(imus.events) * 1024), // Rough estimate

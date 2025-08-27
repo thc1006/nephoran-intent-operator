@@ -16,7 +16,7 @@ import (
 // TestKubernetesProviderBasics tests basic provider functionality
 func TestKubernetesProviderBasics(t *testing.T) {
 	fakeClient := fake.NewSimpleClientset()
-	
+
 	provider, err := NewKubernetesProvider(nil, fakeClient, map[string]string{
 		"endpoint":   "https://kubernetes.default.svc",
 		"in_cluster": "true",
@@ -313,7 +313,7 @@ func TestKubernetesProviderScaling(t *testing.T) {
 	}
 
 	fakeClient := fake.NewSimpleClientset(deployment)
-	
+
 	// Add a reaction to handle the GetScale call
 	fakeClient.PrependReactor("get", "deployments", func(action ktesting.Action) (handled bool, ret runtime.Object, err error) {
 		if action.GetSubresource() == "scale" {

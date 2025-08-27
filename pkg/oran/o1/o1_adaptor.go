@@ -83,7 +83,6 @@ type MetricCollector struct {
 	cancel           context.CancelFunc
 }
 
-
 // AlarmCallback is called when alarms are received
 type AlarmCallback func(alarm *Alarm)
 
@@ -168,7 +167,7 @@ func NewO1Adaptor(config *O1Config, kubeClient client.Client) *O1Adaptor {
 }
 
 // resolveSecretValue resolves a secret value from Kubernetes Secret reference
-func (a *O1Adaptor) resolveSecretValue(ctx context.Context, secretRef *nephoranv1.SecretReference, defaultNamespace string) (string, error) {
+func (a *O1Adaptor) resolveSecretValue(ctx context.Context, secretRef *corev1.SecretKeySelector, defaultNamespace string) (string, error) {
 	if secretRef == nil {
 		return "", fmt.Errorf("secret reference is nil")
 	}
@@ -177,11 +176,8 @@ func (a *O1Adaptor) resolveSecretValue(ctx context.Context, secretRef *nephoranv
 		return "", fmt.Errorf("no Kubernetes client available for secret resolution")
 	}
 
-	// Determine namespace - use the one from secretRef or fall back to default
-	namespace := secretRef.Namespace
-	if namespace == "" {
-		namespace = defaultNamespace
-	}
+	// SecretKeySelector doesn't have namespace field, use default
+	namespace := defaultNamespace
 
 	// Get the secret from Kubernetes
 	secret := &corev1.Secret{}
@@ -200,6 +196,7 @@ func (a *O1Adaptor) resolveSecretValue(ctx context.Context, secretRef *nephoranv
 
 	return "", fmt.Errorf("key %s not found in secret %s/%s", secretRef.Key, namespace, secretRef.Name)
 }
+
 
 // buildTLSConfig builds TLS configuration from certificate references in credentials
 func (a *O1Adaptor) buildTLSConfig(ctx context.Context, me *nephoranv1.ManagedElement) (*tls.Config, error) {
@@ -265,13 +262,19 @@ func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1.ManagedElement) 
 	logger.Info("establishing O1 connection", "managedElement", me.Name)
 
 	// Extract connection details from spec
-	host := me.Spec.Host
-	port := me.Spec.Port
+	clientID, err := a.getClientID(me)
+	if err != nil {
+		return err
+	}
+
+	// Parse endpoint to get host and port for connection
+	host, port, err := a.parseEndpoint(me.Spec.Endpoint)
+	if err != nil {
+		return fmt.Errorf("failed to parse endpoint: %w", err)
+	}
 	if port == 0 {
 		port = a.config.DefaultPort
 	}
-
-	clientID := fmt.Sprintf("%s:%d", host, port)
 
 	// Check if already connected
 	a.clientsMux.RLock()
@@ -376,7 +379,10 @@ func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1.ManagedElement) 
 func (a *O1Adaptor) Disconnect(ctx context.Context, me *nephoranv1.ManagedElement) error {
 	logger := log.FromContext(ctx)
 
-	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
+	clientID, err := a.getClientID(me)
+	if err != nil {
+		return err
+	}
 
 	a.clientsMux.Lock()
 	defer a.clientsMux.Unlock()
@@ -394,7 +400,10 @@ func (a *O1Adaptor) Disconnect(ctx context.Context, me *nephoranv1.ManagedElemen
 
 // IsConnected checks if there's an active connection to the managed element
 func (a *O1Adaptor) IsConnected(me *nephoranv1.ManagedElement) bool {
-	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
+	clientID, err := a.getClientID(me)
+	if err != nil {
+		return false // If endpoint can't be parsed, assume not connected
+	}
 
 	a.clientsMux.RLock()
 	defer a.clientsMux.RUnlock()
@@ -418,7 +427,10 @@ func (a *O1Adaptor) ApplyConfiguration(ctx context.Context, me *nephoranv1.Manag
 	}
 
 	// Get NETCONF client
-	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
+	clientID, err := a.getClientID(me)
+	if err != nil {
+		return err
+	}
 	a.clientsMux.RLock()
 	client, exists := a.clients[clientID]
 	a.clientsMux.RUnlock()
@@ -427,14 +439,26 @@ func (a *O1Adaptor) ApplyConfiguration(ctx context.Context, me *nephoranv1.Manag
 		return fmt.Errorf("no active client found for managed element")
 	}
 
+	// Get O1 configuration from ManagedElement
+	o1Config := ""
+	if config, exists := me.Spec.Configuration["o1"]; exists {
+		o1Config = config
+	} else if len(me.Spec.Configuration) > 0 {
+		// Use the first configuration as fallback
+		for _, config := range me.Spec.Configuration {
+			o1Config = config
+			break
+		}
+	}
+
 	// Validate configuration
-	if err := a.ValidateConfiguration(ctx, me.Spec.O1Config); err != nil {
+	if err := a.ValidateConfiguration(ctx, o1Config); err != nil {
 		return fmt.Errorf("configuration validation failed: %w", err)
 	}
 
 	// Prepare configuration data
 	configData := &ConfigData{
-		XMLData:   me.Spec.O1Config,
+		XMLData:   o1Config,
 		Format:    "xml",
 		Operation: "merge", // Default to merge operation
 	}
@@ -476,7 +500,10 @@ func (a *O1Adaptor) GetConfiguration(ctx context.Context, me *nephoranv1.Managed
 	}
 
 	// Get NETCONF client
-	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
+	clientID, err := a.getClientID(me)
+	if err != nil {
+		return "", err
+	}
 	a.clientsMux.RLock()
 	client, exists := a.clients[clientID]
 	a.clientsMux.RUnlock()
@@ -541,7 +568,10 @@ func (a *O1Adaptor) GetAlarms(ctx context.Context, me *nephoranv1.ManagedElement
 	}
 
 	// Get NETCONF client
-	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
+	clientID, err := a.getClientID(me)
+	if err != nil {
+		return nil, err
+	}
 	a.clientsMux.RLock()
 	client, exists := a.clients[clientID]
 	a.clientsMux.RUnlock()
@@ -598,7 +628,10 @@ func (a *O1Adaptor) SubscribeToAlarms(ctx context.Context, me *nephoranv1.Manage
 	}
 
 	// Get NETCONF client
-	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
+	clientID, err := a.getClientID(me)
+	if err != nil {
+		return err
+	}
 	a.clientsMux.RLock()
 	client, exists := a.clients[clientID]
 	a.clientsMux.RUnlock()
@@ -643,7 +676,10 @@ func (a *O1Adaptor) GetMetrics(ctx context.Context, me *nephoranv1.ManagedElemen
 	}
 
 	// Use real NETCONF client to collect metrics
-	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
+	clientID, err := a.getClientID(me)
+	if err != nil {
+		return nil, err
+	}
 	metrics, err := a.collectMetricsFromDevice(ctx, clientID, metricNames)
 	if err != nil {
 		return nil, fmt.Errorf("failed to collect metrics from device: %w", err)
@@ -669,7 +705,10 @@ func (a *O1Adaptor) StartMetricCollection(ctx context.Context, me *nephoranv1.Ma
 
 	// Create metric collector
 	collectorID := fmt.Sprintf("%s-%d", me.Name, time.Now().Unix())
-	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
+	clientID, err := a.getClientID(me)
+	if err != nil {
+		return err
+	}
 
 	collector := &MetricCollector{
 		ID:               collectorID,
@@ -761,7 +800,10 @@ func (a *O1Adaptor) UpdateSecurityPolicy(ctx context.Context, me *nephoranv1.Man
 	}
 
 	// Get NETCONF client
-	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
+	clientID, err := a.getClientID(me)
+	if err != nil {
+		return err
+	}
 	a.clientsMux.RLock()
 	client, exists := a.clients[clientID]
 	a.clientsMux.RUnlock()
@@ -832,3 +874,60 @@ func parseNetconfResponse(response string) (string, error) {
 	}
 	return response, nil
 }
+
+
+// parseEndpoint parses an endpoint string to extract host and port
+func (a *O1Adaptor) parseEndpoint(endpoint string) (string, int, error) {
+	if endpoint == "" {
+		return "", 0, fmt.Errorf("endpoint is empty")
+	}
+
+	// Handle different endpoint formats
+	if strings.Contains(endpoint, "://") {
+		// URL format like "netconf://host:port" or "https://host:port"
+		parts := strings.Split(endpoint, "://")
+		if len(parts) != 2 {
+			return "", 0, fmt.Errorf("invalid endpoint format: %s", endpoint)
+		}
+		hostPort := parts[1]
+		return a.parseHostPort(hostPort)
+	}
+
+	// Direct host:port format
+	return a.parseHostPort(endpoint)
+}
+
+// parseHostPort parses "host:port" format
+func (a *O1Adaptor) parseHostPort(hostPort string) (string, int, error) {
+	parts := strings.Split(hostPort, ":")
+	if len(parts) == 1 {
+		// Only host provided, use default port
+		return parts[0], 0, nil
+	}
+	if len(parts) == 2 {
+		// Host and port provided
+		host := parts[0]
+		port := 0
+		if parts[1] != "" {
+			_, err := fmt.Sscanf(parts[1], "%d", &port)
+			if err != nil {
+				return "", 0, fmt.Errorf("invalid port in endpoint: %s", parts[1])
+			}
+		}
+		return host, port, nil
+	}
+	return "", 0, fmt.Errorf("invalid host:port format: %s", hostPort)
+}
+
+// getClientID generates a client ID from managed element
+func (a *O1Adaptor) getClientID(me *nephoranv1.ManagedElement) (string, error) {
+	host, port, err := a.parseEndpoint(me.Spec.Endpoint)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse endpoint: %w", err)
+	}
+	if port == 0 {
+		port = a.config.DefaultPort
+	}
+	return fmt.Sprintf("%s:%d", host, port), nil
+}
+

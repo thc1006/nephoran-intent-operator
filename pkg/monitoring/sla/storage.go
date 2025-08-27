@@ -15,7 +15,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 )
 
 // StorageManager provides efficient time series data storage with compression and retention
@@ -118,7 +117,6 @@ type DataPoint struct {
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
-
 // StorageMetrics contains Prometheus metrics for the storage manager
 type StorageMetrics struct {
 	// Write metrics
@@ -153,7 +151,7 @@ type StorageMetrics struct {
 
 // MemoryStore provides in-memory time series storage
 type MemoryStore struct {
-	series  map[string]*monitoring.TimeSeries
+	series  map[string]*StorageTimeSeries
 	maxSize int
 	mu      sync.RWMutex
 }
@@ -400,7 +398,7 @@ func NewStorageManager(config *StorageConfig, logger *logging.StructuredLogger) 
 
 	// Initialize storage components
 	memoryStore := &MemoryStore{
-		series:  make(map[string]*monitoring.TimeSeries),
+		series:  make(map[string]*StorageTimeSeries),
 		maxSize: 10000, // Store up to 10k series in memory
 	}
 
@@ -576,7 +574,7 @@ func (sm *StorageManager) WriteDataPoint(seriesName string, point *DataPoint) er
 	start := time.Now()
 	defer func() {
 		sm.metrics.WriteLatency.WithLabelValues(seriesName, "single").Observe(time.Since(start).Seconds())
-		atomic.AddUint64(&sm.writesCount, 1)
+		sm.writesCount.Add(1)
 	}()
 
 	// Add to write buffer
@@ -601,7 +599,7 @@ func (sm *StorageManager) WriteDataPoints(seriesName string, points []*DataPoint
 	start := time.Now()
 	defer func() {
 		sm.metrics.WriteLatency.WithLabelValues(seriesName, "batch").Observe(time.Since(start).Seconds())
-		atomic.AddUint64(&sm.writesCount, uint64(len(points)))
+		sm.writesCount.Add(uint64(len(points)))
 	}()
 
 	sm.writeBuffer.mu.Lock()
@@ -625,7 +623,7 @@ func (sm *StorageManager) ReadTimeSeries(seriesName string, start, end time.Time
 	readStart := time.Now()
 	defer func() {
 		sm.metrics.ReadLatency.WithLabelValues(seriesName, "combined").Observe(time.Since(readStart).Seconds())
-		atomic.AddUint64(&sm.readsCount, 1)
+		sm.readsCount.Add(1)
 	}()
 
 	// Generate cache key
@@ -861,7 +859,7 @@ func (sm *StorageManager) writeToMemory(seriesName string, points []*DataPoint) 
 
 	series, exists := sm.memoryStore.series[seriesName]
 	if !exists {
-		series = &monitoring.TimeSeries{
+		series = &StorageTimeSeries{
 			Name:        seriesName,
 			Points:      make([]*DataPoint, 0),
 			LastUpdated: time.Now(),
@@ -960,7 +958,7 @@ func (sm *StorageManager) generateSeriesName(labels map[string]string) string {
 	return name
 }
 
-func (sm *StorageManager) trimSeriesPoints(series *monitoring.TimeSeries) {
+func (sm *StorageManager) trimSeriesPoints(series *StorageTimeSeries) {
 	// Trim old points to maintain memory efficiency
 	maxPoints := 1000 // Keep last 1000 points in memory
 	if len(series.Points) > maxPoints {
@@ -1162,7 +1160,7 @@ func (sm *StorageManager) performCompaction(task *CompactionTask) {
 	defer func() {
 		sm.metrics.CompactionLatency.Observe(time.Since(start).Seconds())
 		sm.metrics.CompactionsTotal.Inc()
-		atomic.AddUint64(&sm.compactionsCount, 1)
+		sm.compactionsCount.Add(1)
 	}()
 
 	sm.logger.InfoWithContext("Performing compaction", "task_type", task.Type)
@@ -1328,4 +1326,12 @@ func (im *IndexManager) findMatchingSeries(matchers map[string]string) []string 
 
 func (im *IndexManager) updateIndex(seriesName string, points []*DataPoint) {
 	// Placeholder implementation
+}
+
+// StorageTimeSeries represents a time series used by the storage manager
+// (separate from monitoring.TimeSeries to avoid field conflicts)
+type StorageTimeSeries struct {
+	Name        string       `json:"name"`
+	Points      []*DataPoint `json:"points"`
+	LastUpdated time.Time    `json:"last_updated"`
 }

@@ -18,7 +18,7 @@ import (
 type SMOIntegrationLayer struct {
 	config                 *SMOIntegrationConfig
 	o1AdapterRegistry      *O1AdapterRegistry
-	networkFunctionManager *NetworkFunctionManager
+	networkFunctionManager NetworkFunctionManager
 	serviceDiscovery       *ServiceDiscoveryManager
 	hierarchicalManager    *HierarchicalManagementService
 	multiVendorSupport     *MultiVendorSupportEngine
@@ -225,7 +225,6 @@ type ActiveFailover struct {
 	Reason           string    `json:"reason"`
 	ImpactedElements []string  `json:"impacted_elements"`
 }
-
 
 // FunctionType defines network function types
 type FunctionType struct {
@@ -793,12 +792,17 @@ func (sil *SMOIntegrationLayer) convertServiceToNetworkFunction(service *Discove
 	// Convert discovered service to network function
 	// This would contain logic to map service metadata to network function attributes
 	return &NetworkFunction{
-		ID:           service.ID,
-		Name:         service.Name,
-		Type:         service.Type,
-		Status:       "RUNNING",
-		HealthStatus: service.HealthStatus,
-		CreatedAt:    service.LastSeen,
+		NFID:               service.ID,
+		NFType:             service.Type,
+		NFStatus:           "RUNNING",
+		ManagementEndpoint: fmt.Sprintf("%s:%d", service.Address, service.Port),
+		AdditionalInfo: map[string]interface{}{
+			"name":         service.Name,
+			"healthStatus": service.HealthStatus,
+			"createdAt":    service.LastSeen,
+			"tags":         service.Tags,
+			"metadata":     service.Metadata,
+		},
 	}
 }
 
@@ -899,17 +903,64 @@ func (oar *O1AdapterRegistry) GetActiveAdapterCount() int {
 	return count
 }
 
-func NewNetworkFunctionManager() *NetworkFunctionManager {
-	return &NetworkFunctionManager{
+// ConcreteNetworkFunctionManager implements the NetworkFunctionManager interface
+type ConcreteNetworkFunctionManager struct {
+	networkFunctions    map[string]*NetworkFunction
+	functionTypes       map[string]*FunctionType
+	deploymentTemplates map[string]*DeploymentTemplate
+}
+
+func NewNetworkFunctionManager() NetworkFunctionManager {
+	return &ConcreteNetworkFunctionManager{
 		networkFunctions:    make(map[string]*NetworkFunction),
 		functionTypes:       make(map[string]*FunctionType),
 		deploymentTemplates: make(map[string]*DeploymentTemplate),
 	}
 }
 
-func (nfm *NetworkFunctionManager) Start(ctx context.Context) error { return nil }
-func (nfm *NetworkFunctionManager) Stop(ctx context.Context) error  { return nil }
-func (nfm *NetworkFunctionManager) GetFunctionCount() int           { return len(nfm.networkFunctions) }
+func (nfm *ConcreteNetworkFunctionManager) Start(ctx context.Context) error { return nil }
+func (nfm *ConcreteNetworkFunctionManager) Stop(ctx context.Context) error  { return nil }
+func (nfm *ConcreteNetworkFunctionManager) GetFunctionCount() int           { return len(nfm.networkFunctions) }
+
+// Implement the remaining interface methods
+func (nfm *ConcreteNetworkFunctionManager) RegisterNetworkFunction(ctx context.Context, nf *NetworkFunction) error {
+	nfm.networkFunctions[nf.NFID] = nf
+	return nil
+}
+
+func (nfm *ConcreteNetworkFunctionManager) DeregisterNetworkFunction(ctx context.Context, nfID string) error {
+	delete(nfm.networkFunctions, nfID)
+	return nil
+}
+
+func (nfm *ConcreteNetworkFunctionManager) UpdateNetworkFunction(ctx context.Context, nfID string, updates *NetworkFunctionUpdate) error {
+	// Implementation would update the network function with the given updates
+	return nil
+}
+
+func (nfm *ConcreteNetworkFunctionManager) DiscoverNetworkFunctions(ctx context.Context, criteria *DiscoveryCriteria) ([]*NetworkFunction, error) {
+	// Implementation would discover network functions based on criteria
+	var result []*NetworkFunction
+	for _, nf := range nfm.networkFunctions {
+		result = append(result, nf)
+	}
+	return result, nil
+}
+
+func (nfm *ConcreteNetworkFunctionManager) GetNetworkFunctionStatus(ctx context.Context, nfID string) (*NetworkFunctionStatus, error) {
+	// Implementation would return the status of the specified network function
+	return &NetworkFunctionStatus{}, nil
+}
+
+func (nfm *ConcreteNetworkFunctionManager) ConfigureNetworkFunction(ctx context.Context, nfID string, config *NetworkFunctionConfig) error {
+	// Implementation would configure the network function
+	return nil
+}
+
+func (nfm *ConcreteNetworkFunctionManager) GetNetworkFunctionConfiguration(ctx context.Context, nfID string) (*NetworkFunctionConfig, error) {
+	// Implementation would return the configuration of the specified network function
+	return &NetworkFunctionConfig{}, nil
+}
 
 func NewServiceDiscoveryManager(method string) *ServiceDiscoveryManager {
 	return &ServiceDiscoveryManager{

@@ -4,16 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
+	"github.com/bep/debounce"
 	"github.com/fsnotify/fsnotify"
 )
 
@@ -65,6 +69,11 @@ func main() {
 		log.Fatalf("Failed to add directory to watcher: %v", err)
 	}
 
+	// Create debounced file processors to handle rapid file changes
+	// Map from file path to debounced processor
+	processors := make(map[string]func())
+	processorsMutex := &sync.RWMutex{}
+
 	// Start event processing
 	go func() {
 		for {
@@ -77,10 +86,32 @@ func main() {
 				}
 				if event.Op&fsnotify.Create == fsnotify.Create {
 					if isIntentFile(event.Name) {
-						log.Printf("New intent file detected: %s", event.Name)
-						// Add small delay to ensure file is fully written
-						time.Sleep(100 * time.Millisecond)
-						processIntentFile(event.Name, outDir)
+						log.Printf("New intent file detected: %s (setting up debounced processing)", event.Name)
+						
+						// Create or get existing debounced processor for this file
+						processorsMutex.Lock()
+						processor, exists := processors[event.Name]
+						if !exists {
+							// Create new debounced processor with 500ms window
+							filePath := event.Name // Capture for closure
+							debouncedFunc := debounce.New(500 * time.Millisecond)
+							processor = func() {
+								debouncedFunc(func() {
+									log.Printf("Processing debounced intent file: %s", filePath)
+									processIntentFile(filePath, outDir)
+									
+									// Clean up processor after execution to prevent memory leaks
+									processorsMutex.Lock()
+									delete(processors, filePath)
+									processorsMutex.Unlock()
+								})
+							}
+							processors[event.Name] = processor
+						}
+						processorsMutex.Unlock()
+						
+						// Trigger debounced processing
+						processor()
 					}
 				}
 			case err, ok := <-watcher.Errors:
@@ -99,8 +130,19 @@ func main() {
 	log.Println("Shutdown signal received, stopping conductor...")
 	cancel()
 
-	// Give goroutines time to finish
-	time.Sleep(500 * time.Millisecond)
+	// Give goroutines and debounced operations time to finish
+	// Wait longer to ensure any pending debounced operations complete
+	time.Sleep(1 * time.Second)
+	
+	// Log any remaining processors (should be cleaned up by now)
+	processorsMutex.RLock()
+	remainingProcessors := len(processors)
+	processorsMutex.RUnlock()
+	
+	if remainingProcessors > 0 {
+		log.Printf("Warning: %d debounced processors still pending during shutdown", remainingProcessors)
+	}
+	
 	log.Println("Conductor stopped")
 }
 
@@ -141,7 +183,14 @@ func processIntentFile(intentPath string, outDir string) {
 		return
 	}
 
-	cmd := exec.Command("go", "run", "./cmd/porch-publisher", "-intent", absIntentPath, "-out", absOutDir)
+	// Find porch-publisher binary path
+	publisherBinary := findPorchPublisherBinary()
+	if publisherBinary == "" {
+		log.Printf("Error: porch-publisher binary not found. Please run 'make build-porch-publisher' first.")
+		return
+	}
+
+	cmd := exec.Command(publisherBinary, "-intent", absIntentPath, "-out", absOutDir)
 
 	// Capture output
 	output, err := cmd.CombinedOutput()
@@ -159,28 +208,28 @@ func processIntentFile(intentPath string, outDir string) {
 func isValidPath(path string) bool {
 	// Reject paths containing dangerous characters or patterns
 	dangerousPatterns := []string{
-		";", "|", "&", "$", "`", "$(", "${",  // Command injection
-		"../", "..\\",                         // Directory traversal
-		"\x00",                                // Null byte
+		";", "|", "&", "$", "`", "$(", "${", // Command injection
+		"../", "..\\", // Directory traversal
+		"\x00", // Null byte
 	}
-	
+
 	for _, pattern := range dangerousPatterns {
 		if strings.Contains(path, pattern) {
 			return false
 		}
 	}
-	
+
 	// Only allow alphanumeric, dash, underscore, dot, slash, and backslash
 	validPathRegex := regexp.MustCompile(`^[a-zA-Z0-9._/\-\\:]+$`)
 	if !validPathRegex.MatchString(path) {
 		return false
 	}
-	
+
 	// Reject paths that are too long (potential buffer overflow)
 	if len(path) > 4096 {
 		return false
 	}
-	
+
 	return true
 }
 
@@ -199,4 +248,106 @@ func extractCorrelationID(path string) string {
 	}
 
 	return intent.CorrelationID
+}
+
+// findPorchPublisherBinary locates the porch-publisher binary with fallback options
+func findPorchPublisherBinary() string {
+	// Define potential binary paths in order of preference
+	candidates := []string{
+		"bin/porch-publisher",         // Relative to project root (most common)
+		"./bin/porch-publisher",       // Explicit relative path
+		"porch-publisher",             // In PATH
+	}
+
+	// On Windows, also check .exe variants
+	if runtime.GOOS == "windows" {
+		windowsCandidates := make([]string, 0, len(candidates)*2)
+		for _, candidate := range candidates {
+			windowsCandidates = append(windowsCandidates, candidate)
+			windowsCandidates = append(windowsCandidates, candidate+".exe")
+		}
+		candidates = windowsCandidates
+	}
+
+	// Try each candidate path
+	for _, candidate := range candidates {
+		// Convert relative paths to absolute for consistency
+		absPath, err := filepath.Abs(candidate)
+		if err != nil {
+			continue
+		}
+
+		// Check if the file exists and is executable
+		if fileInfo, err := os.Stat(absPath); err == nil && !fileInfo.IsDir() {
+			// On Windows, any file is considered executable
+			// On Unix-like systems, check executable bit
+			if runtime.GOOS == "windows" || fileInfo.Mode()&0111 != 0 {
+				log.Printf("Found porch-publisher binary at: %s", absPath)
+				// For relative paths, use the original candidate to avoid Windows path issues
+				if !filepath.IsAbs(candidate) {
+					return candidate
+				}
+				return absPath
+			}
+		}
+
+		// Also try the candidate as-is (for PATH lookups)
+		if candidate == "porch-publisher" || (runtime.GOOS == "windows" && candidate == "porch-publisher.exe") {
+			if _, err := exec.LookPath(candidate); err == nil {
+				log.Printf("Found porch-publisher binary in PATH: %s", candidate)
+				return candidate
+			}
+		}
+	}
+
+	// If not found, try to build it automatically
+	log.Printf("porch-publisher binary not found, attempting to build...")
+	if err := buildPorchPublisher(); err != nil {
+		log.Printf("Failed to build porch-publisher: %v", err)
+		return ""
+	}
+
+	// Try again after building
+	primaryPath := "bin/porch-publisher"
+	if runtime.GOOS == "windows" {
+		primaryPath += ".exe"
+	}
+
+	if absPath, err := filepath.Abs(primaryPath); err == nil {
+		if _, err := os.Stat(absPath); err == nil {
+			log.Printf("Successfully built and found porch-publisher at: %s", absPath)
+			return absPath
+		}
+	}
+
+	return ""
+}
+
+// buildPorchPublisher attempts to build the porch-publisher binary using go build
+func buildPorchPublisher() error {
+	log.Printf("Building porch-publisher binary...")
+
+	// Create bin directory if it doesn't exist
+	if err := os.MkdirAll("bin", 0755); err != nil {
+		return err
+	}
+
+	// Determine output binary name
+	outputPath := "bin/porch-publisher"
+	if runtime.GOOS == "windows" {
+		outputPath += ".exe"
+	}
+
+	// Build command
+	cmd := exec.Command("go", "build", "-o", outputPath, "./cmd/porch-publisher")
+	cmd.Env = os.Environ()
+
+	// Run the build
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("build failed: %v\nOutput: %s", err, string(output))
+	}
+
+	log.Printf("Successfully built porch-publisher: %s", outputPath)
+	return nil
 }

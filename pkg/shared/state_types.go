@@ -34,8 +34,8 @@ type IntentState struct {
 
 	// Processing state
 	CurrentPhase     contracts.ProcessingPhase `json:"currentPhase"`
-	PhaseStartTime   time.Time                  `json:"phaseStartTime"`
-	PhaseTransitions []PhaseTransition          `json:"phaseTransitions"`
+	PhaseStartTime   time.Time                 `json:"phaseStartTime"`
+	PhaseTransitions []PhaseTransition         `json:"phaseTransitions"`
 
 	// Phase-specific data
 	PhaseData   map[contracts.ProcessingPhase]interface{} `json:"phaseData"`
@@ -58,7 +58,7 @@ type IntentState struct {
 	ResourceLocks      []ResourceLock       `json:"resourceLocks"`
 
 	// Processing metrics
-	ProcessingDuration time.Duration                               `json:"processingDuration"`
+	ProcessingDuration time.Duration                              `json:"processingDuration"`
 	PhaseMetrics       map[contracts.ProcessingPhase]PhaseMetrics `json:"phaseMetrics"`
 
 	// Metadata and annotations
@@ -70,12 +70,12 @@ type IntentState struct {
 type PhaseTransition struct {
 	FromPhase     contracts.ProcessingPhase `json:"fromPhase"`
 	ToPhase       contracts.ProcessingPhase `json:"toPhase"`
-	Timestamp     time.Time                  `json:"timestamp"`
-	Duration      time.Duration              `json:"duration"`
-	TriggerReason string                     `json:"triggerReason,omitempty"`
-	Metadata      map[string]interface{}     `json:"metadata,omitempty"`
-	Success       bool                       `json:"success"`
-	ErrorMessage  string                     `json:"errorMessage,omitempty"`
+	Timestamp     time.Time                 `json:"timestamp"`
+	Duration      time.Duration             `json:"duration"`
+	TriggerReason string                    `json:"triggerReason,omitempty"`
+	Metadata      map[string]interface{}    `json:"metadata,omitempty"`
+	Success       bool                      `json:"success"`
+	ErrorMessage  string                    `json:"errorMessage,omitempty"`
 }
 
 // StateCondition represents a condition in the intent state
@@ -90,12 +90,12 @@ type StateCondition struct {
 
 // IntentDependency represents a dependency on another intent
 type IntentDependency struct {
-	Intent    string                     `json:"intent"`
+	Intent    string                    `json:"intent"`
 	Phase     contracts.ProcessingPhase `json:"phase"`
-	Type      string                     `json:"type"` // "blocking", "soft", "notification"
-	Timestamp time.Time                  `json:"timestamp"`
-	Condition string                     `json:"condition,omitempty"`
-	Timeout   time.Duration              `json:"timeout,omitempty"`
+	Type      string                    `json:"type"` // "blocking", "soft", "notification"
+	Timestamp time.Time                 `json:"timestamp"`
+	Condition string                    `json:"condition,omitempty"`
+	Timeout   time.Duration             `json:"timeout,omitempty"`
 }
 
 // ResourceAllocation represents allocated resources for an intent
@@ -136,15 +136,15 @@ type PhaseMetrics struct {
 
 // StateChangeEvent represents a state change event
 type StateChangeEvent struct {
-	Type           string                     `json:"type"`
-	IntentName     types.NamespacedName       `json:"intentName"`
+	Type           string                    `json:"type"`
+	IntentName     types.NamespacedName      `json:"intentName"`
 	OldPhase       contracts.ProcessingPhase `json:"oldPhase,omitempty"`
 	NewPhase       contracts.ProcessingPhase `json:"newPhase"`
-	Version        string                     `json:"version"`
-	Timestamp      time.Time                  `json:"timestamp"`
-	ChangeReason   string                     `json:"changeReason,omitempty"`
-	Metadata       map[string]interface{}     `json:"metadata,omitempty"`
-	AffectedFields []string                   `json:"affectedFields,omitempty"`
+	Version        string                    `json:"version"`
+	Timestamp      time.Time                 `json:"timestamp"`
+	ChangeReason   string                    `json:"changeReason,omitempty"`
+	Metadata       map[string]interface{}    `json:"metadata,omitempty"`
+	AffectedFields []string                  `json:"affectedFields,omitempty"`
 }
 
 // StateStatistics provides statistics about state management
@@ -260,22 +260,22 @@ type StateRecoveryInfo struct {
 
 // StateQuery represents a query for intent states
 type StateQuery struct {
-	Namespace       string                       `json:"namespace,omitempty"`
-	Name            string                       `json:"name,omitempty"`
+	Namespace       string                      `json:"namespace,omitempty"`
+	Name            string                      `json:"name,omitempty"`
 	Phase           contracts.ProcessingPhase   `json:"phase,omitempty"`
 	Phases          []contracts.ProcessingPhase `json:"phases,omitempty"`
-	Labels          map[string]string            `json:"labels,omitempty"`
-	Tags            []string                     `json:"tags,omitempty"`
-	CreatedAfter    *time.Time                   `json:"createdAfter,omitempty"`
-	CreatedBefore   *time.Time                   `json:"createdBefore,omitempty"`
-	ModifiedAfter   *time.Time                   `json:"modifiedAfter,omitempty"`
-	ModifiedBefore  *time.Time                   `json:"modifiedBefore,omitempty"`
-	HasErrors       *bool                        `json:"hasErrors,omitempty"`
-	HasDependencies *bool                        `json:"hasDependencies,omitempty"`
-	OrderBy         string                       `json:"orderBy,omitempty"` // "name", "created", "modified", "phase"
-	Order           string                       `json:"order,omitempty"`   // "asc", "desc"
-	Limit           int                          `json:"limit,omitempty"`
-	Offset          int                          `json:"offset,omitempty"`
+	Labels          map[string]string           `json:"labels,omitempty"`
+	Tags            []string                    `json:"tags,omitempty"`
+	CreatedAfter    *time.Time                  `json:"createdAfter,omitempty"`
+	CreatedBefore   *time.Time                  `json:"createdBefore,omitempty"`
+	ModifiedAfter   *time.Time                  `json:"modifiedAfter,omitempty"`
+	ModifiedBefore  *time.Time                  `json:"modifiedBefore,omitempty"`
+	HasErrors       *bool                       `json:"hasErrors,omitempty"`
+	HasDependencies *bool                       `json:"hasDependencies,omitempty"`
+	OrderBy         string                      `json:"orderBy,omitempty"` // "name", "created", "modified", "phase"
+	Order           string                      `json:"order,omitempty"`   // "asc", "desc"
+	Limit           int                         `json:"limit,omitempty"`
+	Offset          int                         `json:"offset,omitempty"`
 }
 
 // StateQueryResult represents the result of a state query

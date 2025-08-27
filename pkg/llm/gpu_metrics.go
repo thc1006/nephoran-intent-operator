@@ -13,28 +13,28 @@ import (
 // GPUMetrics provides comprehensive metrics for GPU acceleration
 type GPUMetrics struct {
 	// Prometheus metrics
-	inferenceLatency      prometheus.HistogramVec
-	inferenceCount        prometheus.CounterVec
-	batchSize             prometheus.HistogramVec
-	gpuUtilization        prometheus.GaugeVec
-	gpuMemoryUsage        prometheus.GaugeVec
-	gpuTemperature        prometheus.GaugeVec
-	gpuPowerUsage         prometheus.GaugeVec
-	modelLoadTime         prometheus.HistogramVec
-	cacheHitRate          prometheus.GaugeVec
-	throughput            prometheus.GaugeVec
-	queueDepth            prometheus.GaugeVec
-	errorCount            prometheus.CounterVec
+	inferenceLatency prometheus.HistogramVec
+	inferenceCount   prometheus.CounterVec
+	batchSize        prometheus.HistogramVec
+	gpuUtilization   prometheus.GaugeVec
+	gpuMemoryUsage   prometheus.GaugeVec
+	gpuTemperature   prometheus.GaugeVec
+	gpuPowerUsage    prometheus.GaugeVec
+	modelLoadTime    prometheus.HistogramVec
+	cacheHitRate     prometheus.GaugeVec
+	throughput       prometheus.GaugeVec
+	queueDepth       prometheus.GaugeVec
+	errorCount       prometheus.CounterVec
 
 	// OpenTelemetry metrics
-	inferenceLatencyOTel  metric.Float64Histogram
-	inferenceCountOTel    metric.Int64Counter
-	batchSizeOTel         metric.Int64Histogram
-	gpuUtilizationOTel    metric.Float64Gauge
-	gpuMemoryUsageOTel    metric.Float64Gauge
-	modelLoadTimeOTel     metric.Float64Histogram
-	throughputOTel        metric.Float64Gauge
-	errorCountOTel        metric.Int64Counter
+	inferenceLatencyOTel metric.Float64Histogram
+	inferenceCountOTel   metric.Int64Counter
+	batchSizeOTel        metric.Int64Histogram
+	gpuUtilizationOTel   metric.Float64Gauge
+	gpuMemoryUsageOTel   metric.Float64Gauge
+	modelLoadTimeOTel    metric.Float64Histogram
+	throughputOTel       metric.Float64Gauge
+	errorCountOTel       metric.Int64Counter
 }
 
 // NewGPUMetrics creates a new GPU metrics instance
@@ -107,7 +107,7 @@ func NewGPUMetrics(meter metric.Meter) *GPUMetrics {
 
 	// Initialize OpenTelemetry metrics
 	var err error
-	
+
 	metrics.inferenceLatencyOTel, err = meter.Float64Histogram(
 		"gpu.inference.duration",
 		metric.WithDescription("Duration of GPU inference operations"),
@@ -185,7 +185,7 @@ func (gm *GPUMetrics) RecordInferenceLatency(duration time.Duration, modelName s
 	seconds := duration.Seconds()
 	deviceIDStr := "0"
 	batchSizeStr := "1"
-	
+
 	if len(deviceID) > 0 {
 		deviceIDStr = string(rune('0' + deviceID[0]))
 	}
@@ -211,7 +211,7 @@ func (gm *GPUMetrics) RecordInferenceLatency(duration time.Duration, modelName s
 // RecordSuccessfulInference records a successful inference operation
 func (gm *GPUMetrics) RecordSuccessfulInference(modelName string, deviceID int) {
 	deviceIDStr := string(rune('0' + deviceID))
-	
+
 	// Prometheus
 	labels := prometheus.Labels{
 		"model_name": modelName,
@@ -233,7 +233,7 @@ func (gm *GPUMetrics) RecordSuccessfulInference(modelName string, deviceID int) 
 // RecordFailedInference records a failed inference operation
 func (gm *GPUMetrics) RecordFailedInference(modelName string, deviceID int, errorType string) {
 	deviceIDStr := string(rune('0' + deviceID))
-	
+
 	// Prometheus
 	inferenceLabels := prometheus.Labels{
 		"model_name": modelName,
@@ -269,7 +269,7 @@ func (gm *GPUMetrics) RecordFailedInference(modelName string, deviceID int, erro
 // RecordBatchSize records the size of an inference batch
 func (gm *GPUMetrics) RecordBatchSize(batchSize int, modelName string, deviceID int) {
 	deviceIDStr := string(rune('0' + deviceID))
-	
+
 	// Prometheus
 	labels := prometheus.Labels{
 		"model_name": modelName,
@@ -289,7 +289,7 @@ func (gm *GPUMetrics) RecordBatchSize(batchSize int, modelName string, deviceID 
 // RecordDeviceMetrics records comprehensive device metrics
 func (gm *GPUMetrics) RecordDeviceMetrics(device *GPUDevice) {
 	deviceIDStr := string(rune('0' + device.ID))
-	
+
 	// GPU Utilization
 	utilizationLabels := prometheus.Labels{
 		"device_id":   deviceIDStr,
@@ -333,7 +333,7 @@ func (gm *GPUMetrics) RecordDeviceMetrics(device *GPUDevice) {
 	}
 
 	gm.gpuUtilizationOTel.Record(ctx, device.Utilization, metric.WithAttributes(deviceAttrs...))
-	
+
 	memoryAttrs := append(deviceAttrs, attribute.String("memory_type", "allocated"))
 	gm.gpuMemoryUsageOTel.Record(ctx, float64(device.AllocatedMemory), metric.WithAttributes(memoryAttrs...))
 }
@@ -368,7 +368,7 @@ func (gm *GPUMetrics) RecordModelLoadTime(duration time.Duration, modelName stri
 // RecordCacheHitRate records the cache hit rate for different cache types
 func (gm *GPUMetrics) RecordCacheHitRate(hitRate float64, cacheType string, deviceID int) {
 	deviceIDStr := string(rune('0' + deviceID))
-	
+
 	labels := prometheus.Labels{
 		"cache_type": cacheType,
 		"device_id":  deviceIDStr,
@@ -379,7 +379,7 @@ func (gm *GPUMetrics) RecordCacheHitRate(hitRate float64, cacheType string, devi
 // RecordThroughput records the inference throughput
 func (gm *GPUMetrics) RecordThroughput(tokensPerSecond float64, modelName string, deviceID int) {
 	deviceIDStr := string(rune('0' + deviceID))
-	
+
 	// Prometheus
 	labels := prometheus.Labels{
 		"model_name": modelName,
@@ -399,7 +399,7 @@ func (gm *GPUMetrics) RecordThroughput(tokensPerSecond float64, modelName string
 // RecordQueueDepth records the depth of processing queues
 func (gm *GPUMetrics) RecordQueueDepth(depth int, modelName string, deviceID int, queueType string) {
 	deviceIDStr := string(rune('0' + deviceID))
-	
+
 	labels := prometheus.Labels{
 		"model_name": modelName,
 		"device_id":  deviceIDStr,
@@ -413,92 +413,92 @@ func (gm *GPUMetrics) GetMetricsSummary() *GPUMetricsSummary {
 	// This would gather current metric values
 	// In a real implementation, this would query the metric registry
 	return &GPUMetricsSummary{
-		TotalInferences:   1000, // Example values
-		SuccessRate:      0.995,
-		AverageLatency:   45.2,
-		TotalGPUs:        1,
-		ActiveGPUs:       1,
+		TotalInferences:    1000, // Example values
+		SuccessRate:        0.995,
+		AverageLatency:     45.2,
+		TotalGPUs:          1,
+		ActiveGPUs:         1,
 		AverageUtilization: 78.5,
-		TotalMemoryGB:    24.0,
-		UsedMemoryGB:     18.2,
-		AverageThroughput: 850.3,
+		TotalMemoryGB:      24.0,
+		UsedMemoryGB:       18.2,
+		AverageThroughput:  850.3,
 	}
 }
 
 // GPUMetricsSummary provides a high-level overview of GPU performance
 type GPUMetricsSummary struct {
-	TotalInferences     int64   `json:"total_inferences"`
-	SuccessRate         float64 `json:"success_rate"`
-	AverageLatency      float64 `json:"average_latency_ms"`
-	TotalGPUs           int     `json:"total_gpus"`
-	ActiveGPUs          int     `json:"active_gpus"`
-	AverageUtilization  float64 `json:"average_utilization_percent"`
-	TotalMemoryGB       float64 `json:"total_memory_gb"`
-	UsedMemoryGB        float64 `json:"used_memory_gb"`
-	AverageThroughput   float64 `json:"average_throughput_tokens_per_sec"`
-	CacheHitRate        float64 `json:"cache_hit_rate_percent"`
-	ErrorRate           float64 `json:"error_rate_percent"`
+	TotalInferences    int64   `json:"total_inferences"`
+	SuccessRate        float64 `json:"success_rate"`
+	AverageLatency     float64 `json:"average_latency_ms"`
+	TotalGPUs          int     `json:"total_gpus"`
+	ActiveGPUs         int     `json:"active_gpus"`
+	AverageUtilization float64 `json:"average_utilization_percent"`
+	TotalMemoryGB      float64 `json:"total_memory_gb"`
+	UsedMemoryGB       float64 `json:"used_memory_gb"`
+	AverageThroughput  float64 `json:"average_throughput_tokens_per_sec"`
+	CacheHitRate       float64 `json:"cache_hit_rate_percent"`
+	ErrorRate          float64 `json:"error_rate_percent"`
 }
 
 // GPUPerformanceReport provides detailed performance analysis
 type GPUPerformanceReport struct {
-	Summary           *GPUMetricsSummary       `json:"summary"`
-	DeviceBreakdown   []*DeviceMetrics         `json:"device_breakdown"`
-	ModelBreakdown    []*ModelMetrics          `json:"model_breakdown"`
-	ThroughputTrends  []*ThroughputDataPoint   `json:"throughput_trends"`
-	LatencyTrends     []*LatencyDataPoint      `json:"latency_trends"`
-	ErrorAnalysis     *ErrorAnalysis           `json:"error_analysis"`
-	Recommendations   []*OptimizationRecommendation `json:"recommendations"`
-	Timestamp         time.Time                `json:"timestamp"`
-	ReportPeriod      time.Duration            `json:"report_period"`
+	Summary          *GPUMetricsSummary            `json:"summary"`
+	DeviceBreakdown  []*DeviceMetrics              `json:"device_breakdown"`
+	ModelBreakdown   []*ModelMetrics               `json:"model_breakdown"`
+	ThroughputTrends []*ThroughputDataPoint        `json:"throughput_trends"`
+	LatencyTrends    []*LatencyDataPoint           `json:"latency_trends"`
+	ErrorAnalysis    *ErrorAnalysis                `json:"error_analysis"`
+	Recommendations  []*OptimizationRecommendation `json:"recommendations"`
+	Timestamp        time.Time                     `json:"timestamp"`
+	ReportPeriod     time.Duration                 `json:"report_period"`
 }
 
 // DeviceMetrics provides per-device performance metrics
 type DeviceMetrics struct {
-	DeviceID          int     `json:"device_id"`
-	DeviceName        string  `json:"device_name"`
-	Utilization       float64 `json:"utilization_percent"`
-	MemoryUsageGB     float64 `json:"memory_usage_gb"`
-	TotalMemoryGB     float64 `json:"total_memory_gb"`
-	Temperature       int     `json:"temperature_celsius"`
-	PowerUsage        float64 `json:"power_usage_watts"`
-	ThroughputTPS     float64 `json:"throughput_tokens_per_second"`
-	AverageLatency    float64 `json:"average_latency_ms"`
-	InferenceCount    int64   `json:"inference_count"`
-	ErrorCount        int64   `json:"error_count"`
-	ActiveStreams     int     `json:"active_streams"`
+	DeviceID       int     `json:"device_id"`
+	DeviceName     string  `json:"device_name"`
+	Utilization    float64 `json:"utilization_percent"`
+	MemoryUsageGB  float64 `json:"memory_usage_gb"`
+	TotalMemoryGB  float64 `json:"total_memory_gb"`
+	Temperature    int     `json:"temperature_celsius"`
+	PowerUsage     float64 `json:"power_usage_watts"`
+	ThroughputTPS  float64 `json:"throughput_tokens_per_second"`
+	AverageLatency float64 `json:"average_latency_ms"`
+	InferenceCount int64   `json:"inference_count"`
+	ErrorCount     int64   `json:"error_count"`
+	ActiveStreams  int     `json:"active_streams"`
 }
 
 // ModelMetrics provides per-model performance metrics
 type ModelMetrics struct {
-	ModelName         string  `json:"model_name"`
-	InferenceCount    int64   `json:"inference_count"`
-	AverageLatency    float64 `json:"average_latency_ms"`
-	ThroughputTPS     float64 `json:"throughput_tokens_per_second"`
-	CacheHitRate      float64 `json:"cache_hit_rate_percent"`
-	ErrorRate         float64 `json:"error_rate_percent"`
-	AverageBatchSize  float64 `json:"average_batch_size"`
-	MemoryUsageGB     float64 `json:"memory_usage_gb"`
-	LoadTime          float64 `json:"load_time_seconds"`
+	ModelName        string  `json:"model_name"`
+	InferenceCount   int64   `json:"inference_count"`
+	AverageLatency   float64 `json:"average_latency_ms"`
+	ThroughputTPS    float64 `json:"throughput_tokens_per_second"`
+	CacheHitRate     float64 `json:"cache_hit_rate_percent"`
+	ErrorRate        float64 `json:"error_rate_percent"`
+	AverageBatchSize float64 `json:"average_batch_size"`
+	MemoryUsageGB    float64 `json:"memory_usage_gb"`
+	LoadTime         float64 `json:"load_time_seconds"`
 }
 
 // ThroughputDataPoint represents a throughput measurement over time
 type ThroughputDataPoint struct {
-	Timestamp      time.Time `json:"timestamp"`
-	TokensPerSec   float64   `json:"tokens_per_second"`
-	ModelName      string    `json:"model_name"`
-	DeviceID       int       `json:"device_id"`
+	Timestamp    time.Time `json:"timestamp"`
+	TokensPerSec float64   `json:"tokens_per_second"`
+	ModelName    string    `json:"model_name"`
+	DeviceID     int       `json:"device_id"`
 }
 
 // ErrorAnalysis provides detailed error analysis
 type ErrorAnalysis struct {
-	TotalErrors       int64                    `json:"total_errors"`
-	ErrorRate         float64                  `json:"error_rate_percent"`
-	ErrorsByType      map[string]int64         `json:"errors_by_type"`
-	ErrorsByDevice    map[int]int64            `json:"errors_by_device"`
-	ErrorsByModel     map[string]int64         `json:"errors_by_model"`
-	MostFrequentError string                   `json:"most_frequent_error"`
-	ErrorTrends       []*ErrorTrendDataPoint   `json:"error_trends"`
+	TotalErrors       int64                  `json:"total_errors"`
+	ErrorRate         float64                `json:"error_rate_percent"`
+	ErrorsByType      map[string]int64       `json:"errors_by_type"`
+	ErrorsByDevice    map[int]int64          `json:"errors_by_device"`
+	ErrorsByModel     map[string]int64       `json:"errors_by_model"`
+	MostFrequentError string                 `json:"most_frequent_error"`
+	ErrorTrends       []*ErrorTrendDataPoint `json:"error_trends"`
 }
 
 // ErrorTrendDataPoint represents error trends over time
@@ -510,10 +510,10 @@ type ErrorTrendDataPoint struct {
 
 // OptimizationRecommendation provides actionable performance recommendations
 type OptimizationRecommendation struct {
-	Type        string  `json:"type"`        // "memory", "batching", "model_placement", etc.
-	Priority    string  `json:"priority"`    // "high", "medium", "low"
+	Type        string  `json:"type"`     // "memory", "batching", "model_placement", etc.
+	Priority    string  `json:"priority"` // "high", "medium", "low"
 	Description string  `json:"description"`
-	Impact      string  `json:"impact"`      // Expected performance impact
-	Confidence  float64 `json:"confidence"`  // Confidence in the recommendation (0-1)
-	Action      string  `json:"action"`      // Specific action to take
+	Impact      string  `json:"impact"`     // Expected performance impact
+	Confidence  float64 `json:"confidence"` // Confidence in the recommendation (0-1)
+	Action      string  `json:"action"`     // Specific action to take
 }

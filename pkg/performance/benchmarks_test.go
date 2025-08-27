@@ -21,7 +21,7 @@ import (
 // BenchmarkOptimizedHTTPClient tests HTTP client performance
 func BenchmarkOptimizedHTTPClient(b *testing.B) {
 	testutil.SkipIfShort(b)
-	
+
 	// Create mock HTTP server instead of using external service
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -32,10 +32,10 @@ func BenchmarkOptimizedHTTPClient(b *testing.B) {
 
 	config := DefaultHTTPConfig()
 	require.NotNil(b, config, "HTTP config should not be nil")
-	
+
 	client := NewOptimizedHTTPClient(config)
 	require.NotNil(b, client, "HTTP client should not be nil")
-	
+
 	ctx, cancel := testutil.ContextWithDeadline(b, 30*time.Second)
 	defer cancel()
 	defer client.Shutdown(ctx)
@@ -48,11 +48,11 @@ func BenchmarkOptimizedHTTPClient(b *testing.B) {
 				if err != nil {
 					b.Fatalf("Failed to create request: %v", err)
 				}
-				
+
 				requestCtx, requestCancel := context.WithTimeout(ctx, 5*time.Second)
 				resp, err := client.DoWithOptimizations(requestCtx, req)
 				requestCancel()
-				
+
 				if err != nil {
 					b.Errorf("HTTP request failed: %v", err)
 					continue
@@ -66,7 +66,7 @@ func BenchmarkOptimizedHTTPClient(b *testing.B) {
 
 	b.Run("ConnectionPooling", func(b *testing.B) {
 		require.NotNil(b, client.connectionPool, "connection pool should not be nil")
-		
+
 		for i := 0; i < b.N; i++ {
 			clientFromPool := client.connectionPool.GetClient()
 			if clientFromPool == nil {
@@ -79,7 +79,7 @@ func BenchmarkOptimizedHTTPClient(b *testing.B) {
 
 	b.Run("BufferPooling", func(b *testing.B) {
 		require.NotNil(b, client.bufferPool, "buffer pool should not be nil")
-		
+
 		for i := 0; i < b.N; i++ {
 			buffer := client.bufferPool.GetBuffer(1024)
 			require.NotNil(b, buffer, "buffer should not be nil")
@@ -91,13 +91,13 @@ func BenchmarkOptimizedHTTPClient(b *testing.B) {
 // BenchmarkMemoryPoolManager tests memory pool performance
 func BenchmarkMemoryPoolManager(b *testing.B) {
 	testutil.SkipIfShort(b)
-	
+
 	config := DefaultMemoryConfig()
 	require.NotNil(b, config, "memory config should not be nil")
-	
+
 	mpm := NewMemoryPoolManager(config)
 	require.NotNil(b, mpm, "memory pool manager should not be nil")
-	
+
 	ctx, cancel := testutil.ContextWithDeadline(b, 30*time.Second)
 	defer cancel()
 	defer mpm.Shutdown()
@@ -107,10 +107,10 @@ func BenchmarkMemoryPoolManager(b *testing.B) {
 		stringPool := NewObjectPool[string](
 			"test_strings",
 			func() string { return "" },
-			func(s string) { 
+			func(s string) {
 				// Safe reset operation - avoid potential panic on slice bounds
 				if len(s) > 0 {
-					_ = s[:0] 
+					_ = s[:0]
 				}
 			},
 		)
@@ -133,7 +133,7 @@ func BenchmarkMemoryPoolManager(b *testing.B) {
 	b.Run("RingBuffer", func(b *testing.B) {
 		ringBuffer := NewRingBuffer(1024)
 		require.NotNil(b, ringBuffer, "ring buffer should not be nil")
-		
+
 		mpm.RegisterRingBuffer("test_ring", ringBuffer)
 
 		b.RunParallel(func(pb *testing.PB) {
@@ -176,13 +176,13 @@ func BenchmarkMemoryPoolManager(b *testing.B) {
 // BenchmarkOptimizedJSONProcessor tests JSON processing performance
 func BenchmarkOptimizedJSONProcessor(b *testing.B) {
 	testutil.SkipIfShort(b)
-	
+
 	config := DefaultJSONConfig()
 	require.NotNil(b, config, "JSON config should not be nil")
-	
+
 	processor := NewOptimizedJSONProcessor(config)
 	require.NotNil(b, processor, "JSON processor should not be nil")
-	
+
 	ctx, cancel := testutil.ContextWithDeadline(b, 30*time.Second)
 	defer cancel()
 	defer processor.Shutdown(ctx)
@@ -282,13 +282,13 @@ func BenchmarkOptimizedJSONProcessor(b *testing.B) {
 // BenchmarkEnhancedGoroutinePool tests goroutine pool performance
 func BenchmarkEnhancedGoroutinePool(b *testing.B) {
 	testutil.SkipIfShort(b)
-	
+
 	config := DefaultPoolConfig()
 	require.NotNil(b, config, "pool config should not be nil")
-	
+
 	pool := NewEnhancedGoroutinePool(config)
 	require.NotNil(b, pool, "goroutine pool should not be nil")
-	
+
 	ctx, cancel := testutil.ContextWithDeadline(b, 30*time.Second)
 	defer cancel()
 	defer pool.Shutdown(ctx)
@@ -298,7 +298,7 @@ func BenchmarkEnhancedGoroutinePool(b *testing.B) {
 			b.Skip("invalid benchmark N value")
 			return
 		}
-		
+
 		tasks := make([]*Task, b.N)
 		for i := 0; i < b.N; i++ {
 			tasks[i] = &Task{
@@ -327,7 +327,7 @@ func BenchmarkEnhancedGoroutinePool(b *testing.B) {
 				}
 				task := tasks[i]
 				require.NotNil(b, task, "task should not be nil")
-				
+
 				err := pool.SubmitTask(task)
 				if err != nil {
 					b.Errorf("Task submission failed: %v", err)

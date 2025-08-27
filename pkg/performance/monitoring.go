@@ -52,12 +52,12 @@ type MonitoringConfig struct {
 	EnableBenchmarking      bool
 
 	// Metrics Configuration
-	MetricsInterval         time.Duration
-	MetricsRetention        time.Duration
-	PrometheusEnabled       bool
-	CustomMetricsEnabled    bool
-	HistogramBuckets        []float64
-	EnableDetailedMetrics   bool
+	MetricsInterval       time.Duration
+	MetricsRetention      time.Duration
+	PrometheusEnabled     bool
+	CustomMetricsEnabled  bool
+	HistogramBuckets      []float64
+	EnableDetailedMetrics bool
 
 	// Dashboard Configuration
 	DashboardPort           int
@@ -67,74 +67,74 @@ type MonitoringConfig struct {
 	EnableAlerts            bool
 
 	// Export Configuration
-	ExportEnabled           bool
-	ExportFormats           []string // "json", "csv", "prometheus"
-	ExportInterval          time.Duration
-	ExportPath              string
+	ExportEnabled  bool
+	ExportFormats  []string // "json", "csv", "prometheus"
+	ExportInterval time.Duration
+	ExportPath     string
 
 	// Alerting Configuration
-	AlertingEnabled         bool
-	AlertThresholds         map[string]float64
-	AlertCooldown          time.Duration
-	WebhookURLs            []string
-	EmailNotifications     []string
+	AlertingEnabled    bool
+	AlertThresholds    map[string]float64
+	AlertCooldown      time.Duration
+	WebhookURLs        []string
+	EmailNotifications []string
 
 	// Real-time Configuration
-	StreamingEnabled        bool
-	StreamingPort          int
-	MaxConnections         int
-	BufferSize             int
-	UpdateFrequency        time.Duration
+	StreamingEnabled bool
+	StreamingPort    int
+	MaxConnections   int
+	BufferSize       int
+	UpdateFrequency  time.Duration
 
 	// Security Configuration
-	AuthEnabled            bool
-	APIKey                 string
-	AllowedIPs            []string
-	TLSEnabled            bool
-	CertPath              string
-	KeyPath               string
+	AuthEnabled bool
+	APIKey      string
+	AllowedIPs  []string
+	TLSEnabled  bool
+	CertPath    string
+	KeyPath     string
 }
 
 // CustomMetrics contains custom Prometheus metrics
 type CustomMetrics struct {
 	// Request metrics
-	RequestDuration    *prometheus.HistogramVec
-	RequestsTotal      *prometheus.CounterVec
-	RequestsInFlight   *prometheus.GaugeVec
-	RequestSize        *prometheus.HistogramVec
-	ResponseSize       *prometheus.HistogramVec
+	RequestDuration  *prometheus.HistogramVec
+	RequestsTotal    *prometheus.CounterVec
+	RequestsInFlight *prometheus.GaugeVec
+	RequestSize      *prometheus.HistogramVec
+	ResponseSize     *prometheus.HistogramVec
 
 	// Application metrics
-	GoRoutines         prometheus.Gauge
-	MemoryUsage        prometheus.Gauge
-	CPUUsage           prometheus.Gauge
-	GCDuration         prometheus.Gauge
-	OpenConnections    prometheus.Gauge
+	GoRoutines      prometheus.Gauge
+	MemoryUsage     prometheus.Gauge
+	CPUUsage        prometheus.Gauge
+	GCDuration      prometheus.Gauge
+	OpenConnections prometheus.Gauge
 
 	// Cache metrics
-	CacheHits          *prometheus.CounterVec
-	CacheMisses        *prometheus.CounterVec
-	CacheSize          *prometheus.GaugeVec
-	CacheOperations    *prometheus.CounterVec
+	CacheHits       *prometheus.CounterVec
+	CacheMisses     *prometheus.CounterVec
+	CacheSize       *prometheus.GaugeVec
+	CacheOperations *prometheus.CounterVec
 
 	// Database metrics
-	DBConnections      *prometheus.GaugeVec
-	DBQueries          *prometheus.CounterVec
-	DBQueryDuration    *prometheus.HistogramVec
-	DBSlowQueries      *prometheus.CounterVec
+	DBConnections   *prometheus.GaugeVec
+	DBQueries       *prometheus.CounterVec
+	DBQueryDuration *prometheus.HistogramVec
+	DBSlowQueries   *prometheus.CounterVec
 
 	// Async processing metrics
-	TasksSubmitted     *prometheus.CounterVec
-	TasksCompleted     *prometheus.CounterVec
-	TasksFailed        *prometheus.CounterVec
-	TaskDuration       *prometheus.HistogramVec
-	WorkerUtilization  *prometheus.GaugeVec
-	QueueDepth         *prometheus.GaugeVec
+	TasksSubmitted    *prometheus.CounterVec
+	TasksCompleted    *prometheus.CounterVec
+	TasksFailed       *prometheus.CounterVec
+	TaskDuration      *prometheus.HistogramVec
+	WorkerUtilization *prometheus.GaugeVec
+	QueueDepth        *prometheus.GaugeVec
 
 	// Custom business metrics
-	CustomCounters     map[string]*prometheus.CounterVec
-	CustomGauges      map[string]*prometheus.GaugeVec
-	CustomHistograms  map[string]*prometheus.HistogramVec
+	CustomCounters   map[string]*prometheus.CounterVec
+	CustomGauges     map[string]*prometheus.GaugeVec
+	CustomHistograms map[string]*prometheus.HistogramVec
 }
 
 // DashboardManager manages performance dashboards
@@ -229,11 +229,11 @@ type Alert struct {
 
 // NotificationManager handles alert notifications
 type NotificationManager struct {
-	webhooks     []WebhookNotifier
-	emails       []EmailNotifier
-	slackBots    []SlackNotifier
+	webhooks        []WebhookNotifier
+	emails          []EmailNotifier
+	slackBots       []SlackNotifier
 	customNotifiers []CustomNotifier
-	mu           sync.RWMutex
+	mu              sync.RWMutex
 }
 
 // WebhookNotifier sends webhook notifications
@@ -275,10 +275,10 @@ type CustomNotifier interface {
 
 // MetricsExportManager handles metrics export
 type MetricsExportManager struct {
-	config      *MonitoringConfig
-	exporters   map[string]MetricsExporter
-	scheduler   *ExportScheduler
-	mu          sync.RWMutex
+	config    *MonitoringConfig
+	exporters map[string]MetricsExporter
+	scheduler *ExportScheduler
+	mu        sync.RWMutex
 }
 
 // MetricsExporter interface for different export formats
@@ -297,13 +297,13 @@ type ExportScheduler struct {
 
 // ExportJob represents an export job
 type ExportJob struct {
-	ID        string
-	Format    string
-	Path      string
-	Schedule  string // cron format
-	LastRun   time.Time
-	NextRun   time.Time
-	Enabled   bool
+	ID       string
+	Format   string
+	Path     string
+	Schedule string // cron format
+	LastRun  time.Time
+	NextRun  time.Time
+	Enabled  bool
 }
 
 // SystemHealthChecker performs comprehensive system health checks
@@ -340,7 +340,7 @@ type SystemHealthResult struct {
 
 // SystemHealth represents overall system health
 type SystemHealth struct {
-	Status      string // "healthy", "degraded", "unhealthy"
+	Status      string  // "healthy", "degraded", "unhealthy"
 	Score       float64 // 0-100
 	Components  map[string]SystemHealthResult
 	LastUpdated time.Time
@@ -350,26 +350,26 @@ type SystemHealth struct {
 
 // PerformanceLogger logs performance data
 type PerformanceLogger struct {
-	config       *LoggingConfig
-	loggers      map[string]Logger
-	buffers      map[string]*LogBuffer
-	processors   []LogProcessor
-	exporters    []LogExporter
-	mu           sync.RWMutex
+	config     *LoggingConfig
+	loggers    map[string]Logger
+	buffers    map[string]*LogBuffer
+	processors []LogProcessor
+	exporters  []LogExporter
+	mu         sync.RWMutex
 }
 
 // LoggingConfig contains logging configuration
 type LoggingConfig struct {
-	Level           string
-	Format          string // "json", "text"
-	BufferSize      int
-	FlushInterval   time.Duration
-	EnableSampling  bool
-	SampleRate      float64
-	EnableAsync     bool
-	MaxFileSize     int64
-	MaxBackups      int
-	MaxAge          int // days
+	Level          string
+	Format         string // "json", "text"
+	BufferSize     int
+	FlushInterval  time.Duration
+	EnableSampling bool
+	SampleRate     float64
+	EnableAsync    bool
+	MaxFileSize    int64
+	MaxBackups     int
+	MaxAge         int // days
 }
 
 // Logger interface for different log implementations
@@ -381,10 +381,10 @@ type Logger interface {
 
 // LogBuffer buffers log entries
 type LogBuffer struct {
-	entries     []LogEntry
-	maxSize     int
-	flushTime   time.Time
-	mu          sync.Mutex
+	entries   []LogEntry
+	maxSize   int
+	flushTime time.Time
+	mu        sync.Mutex
 }
 
 // LogEntry represents a log entry
@@ -416,14 +416,14 @@ type RealTimeStreamer struct {
 
 // StreamConnection represents a streaming connection
 type StreamConnection struct {
-	ID         string
-	ClientIP   string
+	ID          string
+	ClientIP    string
 	ConnectedAt time.Time
-	LastPing   time.Time
-	Filters    []string
-	Channel    chan StreamMessage
-	Context    context.Context
-	Cancel     context.CancelFunc
+	LastPing    time.Time
+	Filters     []string
+	Channel     chan StreamMessage
+	Context     context.Context
+	Cancel      context.CancelFunc
 }
 
 // StreamMessage represents a streaming message
@@ -433,7 +433,6 @@ type StreamMessage struct {
 	Data      interface{} `json:"data"`
 	Source    string      `json:"source"`
 }
-
 
 // LatencyMetrics contains latency measurements
 type LatencyMetrics struct {
@@ -449,13 +448,13 @@ type LatencyMetrics struct {
 
 // MemoryMetrics contains memory measurements
 type MemoryMetrics struct {
-	HeapAlloc      uint64
-	HeapSys        uint64
-	HeapInuse      uint64
-	StackInuse     uint64
-	TotalAlloc     uint64
-	NumGC          uint32
-	GCCPUFraction  float64
+	HeapAlloc     uint64
+	HeapSys       uint64
+	HeapInuse     uint64
+	StackInuse    uint64
+	TotalAlloc    uint64
+	NumGC         uint32
+	GCCPUFraction float64
 }
 
 // CPUMetrics contains CPU measurements
@@ -466,7 +465,6 @@ type CPUMetrics struct {
 	NumCPU        int
 	NumGoroutines int
 }
-
 
 // NewPerformanceMonitor creates a new performance monitor
 func NewPerformanceMonitor(config *MonitoringConfig) (*PerformanceMonitor, error) {
@@ -501,10 +499,10 @@ func DefaultMonitoringConfig() *MonitoringConfig {
 		// HTTP Server Configuration
 		Port:                    8090,
 		EnableProfiling:         true,
-		EnableMetrics:          true,
-		EnableDashboards:       true,
+		EnableMetrics:           true,
+		EnableDashboards:        true,
 		EnableRealTimeStreaming: true,
-		EnableBenchmarking:     true,
+		EnableBenchmarking:      true,
 
 		// Metrics Configuration
 		MetricsInterval:       30 * time.Second,
@@ -517,9 +515,9 @@ func DefaultMonitoringConfig() *MonitoringConfig {
 		// Dashboard Configuration
 		DashboardPort:           8091,
 		DashboardUpdateInterval: 5 * time.Second,
-		EnableFlameGraphs:      true,
-		EnableTopTables:        true,
-		EnableAlerts:           true,
+		EnableFlameGraphs:       true,
+		EnableTopTables:         true,
+		EnableAlerts:            true,
 
 		// Export Configuration
 		ExportEnabled:  true,
@@ -530,19 +528,19 @@ func DefaultMonitoringConfig() *MonitoringConfig {
 		// Alerting Configuration
 		AlertingEnabled: true,
 		AlertThresholds: map[string]float64{
-			"cpu_usage":       80.0,
-			"memory_usage":    80.0,
-			"error_rate":      5.0,
-			"response_time":   1000.0, // ms
+			"cpu_usage":     80.0,
+			"memory_usage":  80.0,
+			"error_rate":    5.0,
+			"response_time": 1000.0, // ms
 		},
 		AlertCooldown: 5 * time.Minute,
 
 		// Real-time Configuration
 		StreamingEnabled: true,
-		StreamingPort:   8092,
-		MaxConnections:  100,
-		BufferSize:     1000,
-		UpdateFrequency: 1 * time.Second,
+		StreamingPort:    8092,
+		MaxConnections:   100,
+		BufferSize:       1000,
+		UpdateFrequency:  1 * time.Second,
 
 		// Security Configuration
 		AuthEnabled: false,
@@ -883,20 +881,20 @@ func (pm *PerformanceMonitor) registerHealthChecks() {
 		Check: func() SystemHealthResult {
 			var m runtime.MemStats
 			runtime.ReadMemStats(&m)
-			
+
 			memUsageMB := float64(m.Alloc) / 1024 / 1024
 			healthy := memUsageMB < 1000 // 1GB threshold
-			
+
 			return SystemHealthResult{
 				Healthy:   healthy,
 				Status:    getHealthStatus(healthy),
 				Message:   fmt.Sprintf("Memory usage: %.2f MB", memUsageMB),
 				Timestamp: time.Now(),
 				Metadata: map[string]interface{}{
-					"alloc_mb":      memUsageMB,
-					"total_alloc":   m.TotalAlloc,
-					"sys_mb":        float64(m.Sys) / 1024 / 1024,
-					"gc_count":      m.NumGC,
+					"alloc_mb":    memUsageMB,
+					"total_alloc": m.TotalAlloc,
+					"sys_mb":      float64(m.Sys) / 1024 / 1024,
+					"gc_count":    m.NumGC,
 				},
 			}
 		},
@@ -910,7 +908,7 @@ func (pm *PerformanceMonitor) registerHealthChecks() {
 		Check: func() SystemHealthResult {
 			count := runtime.NumGoroutine()
 			healthy := count < 10000 // 10k goroutines threshold
-			
+
 			return SystemHealthResult{
 				Healthy:   healthy,
 				Status:    getHealthStatus(healthy),
@@ -932,7 +930,7 @@ func (pm *PerformanceMonitor) registerHealthChecks() {
 			Check: func() SystemHealthResult {
 				metrics := pm.dbManager.GetMetrics()
 				healthy := metrics.ErrorCount < 10 && metrics.ActiveConnections > 0
-				
+
 				return SystemHealthResult{
 					Healthy:   healthy,
 					Status:    getHealthStatus(healthy),
@@ -940,8 +938,8 @@ func (pm *PerformanceMonitor) registerHealthChecks() {
 					Timestamp: time.Now(),
 					Metadata: map[string]interface{}{
 						"active_connections": metrics.ActiveConnections,
-						"error_count":       metrics.ErrorCount,
-						"query_count":       metrics.QueryCount,
+						"error_count":        metrics.ErrorCount,
+						"query_count":        metrics.QueryCount,
 					},
 				}
 			},
@@ -959,15 +957,15 @@ func (pm *PerformanceMonitor) registerBenchmarks() {
 		Category:    "performance",
 		TestFunc: func() BenchmarkResult {
 			start := time.Now()
-			
+
 			// CPU-intensive task
 			sum := 0
 			for i := 0; i < 1000000; i++ {
 				sum += i * i
 			}
-			
+
 			duration := time.Since(start)
-			
+
 			return BenchmarkResult{
 				Duration:  duration,
 				TPS:       1000000.0 / duration.Seconds(),
@@ -987,19 +985,19 @@ func (pm *PerformanceMonitor) registerBenchmarks() {
 			start := time.Now()
 			var m1 runtime.MemStats
 			runtime.ReadMemStats(&m1)
-			
+
 			// Allocate memory
 			data := make([][]byte, 1000)
 			for i := range data {
 				data[i] = make([]byte, 1024)
 			}
-			
+
 			var m2 runtime.MemStats
 			runtime.ReadMemStats(&m2)
 			duration := time.Since(start)
-			
+
 			return BenchmarkResult{
-				Duration:  duration,
+				Duration: duration,
 				Memory: MemoryMetrics{
 					HeapAlloc:  m2.HeapAlloc - m1.HeapAlloc,
 					TotalAlloc: m2.TotalAlloc - m1.TotalAlloc,
@@ -1021,7 +1019,7 @@ func (pm *PerformanceMonitor) handleCustomMetrics(w http.ResponseWriter, r *http
 	// Update metrics
 	pm.customMetrics.GoRoutines.Set(float64(runtime.NumGoroutine()))
 	pm.customMetrics.MemoryUsage.Set(float64(m.Alloc))
-	
+
 	// Get CPU usage (simplified)
 	cpuUsage := float64(runtime.NumGoroutine()) / 100.0 // Placeholder
 	pm.customMetrics.CPUUsage.Set(cpuUsage)
@@ -1048,10 +1046,10 @@ func (pm *PerformanceMonitor) handleMetricsSummary(w http.ResponseWriter, r *htt
 	if pm.profiler != nil {
 		profilerMetrics := pm.profiler.GetMetrics()
 		summary["profiler"] = map[string]interface{}{
-			"cpu_usage":    profilerMetrics.CPUUsagePercent,
-			"memory_mb":    profilerMetrics.MemoryUsageMB,
-			"heap_mb":      profilerMetrics.HeapSizeMB,
-			"gc_count":     profilerMetrics.GCCount,
+			"cpu_usage": profilerMetrics.CPUUsagePercent,
+			"memory_mb": profilerMetrics.MemoryUsageMB,
+			"heap_mb":   profilerMetrics.HeapSizeMB,
+			"gc_count":  profilerMetrics.GCCount,
 		}
 	}
 
@@ -1067,9 +1065,9 @@ func (pm *PerformanceMonitor) handleMetricsSummary(w http.ResponseWriter, r *htt
 	if pm.asyncProcessor != nil {
 		asyncMetrics := pm.asyncProcessor.GetMetrics()
 		summary["async"] = map[string]interface{}{
-			"tasks_submitted": asyncMetrics.TasksSubmitted,
-			"tasks_completed": asyncMetrics.TasksCompleted,
-			"tasks_failed":    asyncMetrics.TasksFailed,
+			"tasks_submitted":    asyncMetrics.TasksSubmitted,
+			"tasks_completed":    asyncMetrics.TasksCompleted,
+			"tasks_failed":       asyncMetrics.TasksFailed,
 			"worker_utilization": asyncMetrics.WorkerUtilization,
 		}
 	}
@@ -1077,9 +1075,9 @@ func (pm *PerformanceMonitor) handleMetricsSummary(w http.ResponseWriter, r *htt
 	if pm.dbManager != nil {
 		dbMetrics := pm.dbManager.GetMetrics()
 		summary["database"] = map[string]interface{}{
-			"query_count":        dbMetrics.QueryCount,
-			"avg_query_time_ms":  pm.dbManager.GetAverageQueryTime(),
-			"active_connections": dbMetrics.ActiveConnections,
+			"query_count":            dbMetrics.QueryCount,
+			"avg_query_time_ms":      pm.dbManager.GetAverageQueryTime(),
+			"active_connections":     dbMetrics.ActiveConnections,
 			"connection_utilization": pm.dbManager.GetConnectionUtilization(),
 		}
 	}
@@ -1090,11 +1088,11 @@ func (pm *PerformanceMonitor) handleMetricsSummary(w http.ResponseWriter, r *htt
 
 func (pm *PerformanceMonitor) handleHealth(w http.ResponseWriter, r *http.Request) {
 	health := pm.healthChecker.GetOverallHealth()
-	
+
 	if health.Status != "healthy" {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(health)
 }
@@ -1110,7 +1108,7 @@ func (pm *PerformanceMonitor) handleDashboard(w http.ResponseWriter, r *http.Req
 		http.Error(w, "Dashboards not enabled", http.StatusNotFound)
 		return
 	}
-	
+
 	dashboard := pm.dashboards.GetMainDashboard()
 	pm.renderDashboard(w, dashboard)
 }
@@ -1120,7 +1118,7 @@ func (pm *PerformanceMonitor) handleStream(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Real-time streaming not enabled", http.StatusNotFound)
 		return
 	}
-	
+
 	pm.realTimeStreamer.HandleConnection(w, r)
 }
 
@@ -1129,7 +1127,7 @@ func (pm *PerformanceMonitor) handleBenchmark(w http.ResponseWriter, r *http.Req
 		http.Error(w, "Benchmarking not enabled", http.StatusNotFound)
 		return
 	}
-	
+
 	results := pm.benchmarkRunner.GetResults()
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(results)
@@ -1140,7 +1138,7 @@ func (pm *PerformanceMonitor) handleAlerts(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Alerting not enabled", http.StatusNotFound)
 		return
 	}
-	
+
 	alerts := pm.alertManager.GetActiveAlerts()
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(alerts)
@@ -1151,13 +1149,13 @@ func (pm *PerformanceMonitor) handleAlerts(w http.ResponseWriter, r *http.Reques
 func (pm *PerformanceMonitor) loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		
+
 		// Wrap response writer to capture status code
 		wrapper := &responseWrapper{ResponseWriter: w, statusCode: 200}
 		next.ServeHTTP(wrapper, r)
-		
+
 		duration := time.Since(start)
-		
+
 		// Update metrics
 		if pm.customMetrics != nil {
 			pm.customMetrics.RequestDuration.WithLabelValues(
@@ -1165,14 +1163,14 @@ func (pm *PerformanceMonitor) loggingMiddleware(next http.Handler) http.Handler 
 				r.URL.Path,
 				strconv.Itoa(wrapper.statusCode),
 			).Observe(duration.Seconds())
-			
+
 			pm.customMetrics.RequestsTotal.WithLabelValues(
 				r.Method,
 				r.URL.Path,
 				strconv.Itoa(wrapper.statusCode),
 			).Inc()
 		}
-		
+
 		// Log request
 		if pm.performanceLogger != nil {
 			pm.performanceLogger.LogRequest(r.Method, r.URL.Path, wrapper.statusCode, duration)
@@ -1186,14 +1184,14 @@ func (pm *PerformanceMonitor) authMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		
+
 		// Simple API key authentication
 		apiKey := r.Header.Get("X-API-Key")
 		if apiKey != pm.config.APIKey {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -1203,12 +1201,12 @@ func (pm *PerformanceMonitor) corsMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
-		
+
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -1240,7 +1238,7 @@ func (pm *PerformanceMonitor) startBackgroundTasks() {
 		defer pm.wg.Done()
 		ticker := time.NewTicker(pm.config.MetricsInterval)
 		defer ticker.Stop()
-		
+
 		for {
 			select {
 			case <-ticker.C:
@@ -1302,31 +1300,31 @@ func (pm *PerformanceMonitor) collectMetrics() {
 	// Update system metrics
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	
+
 	if pm.customMetrics != nil {
 		pm.customMetrics.GoRoutines.Set(float64(runtime.NumGoroutine()))
 		pm.customMetrics.MemoryUsage.Set(float64(m.Alloc))
 		// CPU usage would be calculated using system calls
 	}
-	
+
 	// Update component metrics if available
 	if pm.profiler != nil {
 		profilerMetrics := pm.profiler.GetMetrics()
 		pm.customMetrics.CPUUsage.Set(profilerMetrics.CPUUsagePercent)
 	}
-	
+
 	if pm.cacheManager != nil {
 		cacheStats := pm.cacheManager.GetStats()
 		pm.customMetrics.CacheHits.WithLabelValues("default", "memory").Add(float64(cacheStats.Hits))
 		pm.customMetrics.CacheMisses.WithLabelValues("default", "memory").Add(float64(cacheStats.Misses))
 	}
-	
+
 	if pm.asyncProcessor != nil {
 		asyncStats := pm.asyncProcessor.GetMetrics()
 		pm.customMetrics.TasksSubmitted.WithLabelValues("default", "normal").Add(float64(asyncStats.TasksSubmitted))
 		pm.customMetrics.TasksCompleted.WithLabelValues("default", "success").Add(float64(asyncStats.TasksCompleted))
 	}
-	
+
 	if pm.dbManager != nil {
 		dbStats := pm.dbManager.GetMetrics()
 		pm.customMetrics.DBConnections.WithLabelValues("default", "active").Set(float64(dbStats.ActiveConnections))
@@ -1365,23 +1363,23 @@ func (pm *PerformanceMonitor) SetDBManager(dbManager *OptimizedDBManager) {
 // Shutdown gracefully shuts down the performance monitor
 func (pm *PerformanceMonitor) Shutdown(ctx context.Context) error {
 	klog.Info("Shutting down performance monitor")
-	
+
 	close(pm.shutdown)
-	
+
 	// Shutdown HTTP server
 	if pm.httpServer != nil {
 		if err := pm.httpServer.Shutdown(ctx); err != nil {
 			klog.Errorf("Failed to shutdown HTTP server: %v", err)
 		}
 	}
-	
+
 	// Wait for background tasks
 	done := make(chan struct{})
 	go func() {
 		pm.wg.Wait()
 		close(done)
 	}()
-	
+
 	select {
 	case <-done:
 		klog.Info("Performance monitor shutdown completed")
@@ -1416,28 +1414,29 @@ func NewRealTimeStreamer(config *MonitoringConfig) *RealTimeStreamer {
 	return &RealTimeStreamer{config: config, connections: make(map[string]*StreamConnection)}
 }
 
-
 // Placeholder methods for component interfaces
 func (dm *DashboardManager) GetMainDashboard() *Dashboard { return &Dashboard{Name: "main"} }
 func (dm *DashboardManager) Start(shutdown chan struct{}) {}
 
-func (am *AlertManager) AddRule(rule *AlertRule) {}
-func (am *AlertManager) GetActiveAlerts() []*Alert { return nil }
+func (am *AlertManager) AddRule(rule *AlertRule)      {}
+func (am *AlertManager) GetActiveAlerts() []*Alert    { return nil }
 func (am *AlertManager) Start(shutdown chan struct{}) {}
 
 func (shc *SystemHealthChecker) RegisterCheck(check SystemHealthCheck) {}
-func (shc *SystemHealthChecker) GetOverallHealth() *SystemHealth { return &SystemHealth{Status: "healthy"} }
+func (shc *SystemHealthChecker) GetOverallHealth() *SystemHealth {
+	return &SystemHealth{Status: "healthy"}
+}
 func (shc *SystemHealthChecker) GetDetailedHealth() map[string]SystemHealthResult { return nil }
-func (shc *SystemHealthChecker) Start(shutdown chan struct{}) {}
+func (shc *SystemHealthChecker) Start(shutdown chan struct{})                     {}
 
 func (pl *PerformanceLogger) LogRequest(method, path string, status int, duration time.Duration) {}
 
 func (rts *RealTimeStreamer) HandleConnection(w http.ResponseWriter, r *http.Request) {}
-func (rts *RealTimeStreamer) Start(shutdown chan struct{}) {}
+func (rts *RealTimeStreamer) Start(shutdown chan struct{})                            {}
 
 func (br *BenchmarkRunner) RegisterBenchmark(benchmark *Benchmark) {}
-func (br *BenchmarkRunner) GetResults() *BenchmarkResults { return &BenchmarkResults{} }
-func (br *BenchmarkRunner) Start(shutdown chan struct{}) {}
+func (br *BenchmarkRunner) GetResults() *BenchmarkResults          { return &BenchmarkResults{} }
+func (br *BenchmarkRunner) Start(shutdown chan struct{})           {}
 
 func (pm *PerformanceMonitor) renderDashboard(w http.ResponseWriter, dashboard *Dashboard) {
 	w.Header().Set("Content-Type", "text/html")
@@ -1445,19 +1444,19 @@ func (pm *PerformanceMonitor) renderDashboard(w http.ResponseWriter, dashboard *
 }
 
 // Additional handler stubs
-func (pm *PerformanceMonitor) handleMetricsExport(w http.ResponseWriter, r *http.Request) {}
+func (pm *PerformanceMonitor) handleMetricsExport(w http.ResponseWriter, r *http.Request)    {}
 func (pm *PerformanceMonitor) handlePerformanceDebug(w http.ResponseWriter, r *http.Request) {}
-func (pm *PerformanceMonitor) handleFlameGraph(w http.ResponseWriter, r *http.Request) {}
-func (pm *PerformanceMonitor) handleTrace(w http.ResponseWriter, r *http.Request) {}
-func (pm *PerformanceMonitor) handleNamedDashboard(w http.ResponseWriter, r *http.Request) {}
-func (pm *PerformanceMonitor) handleDashboardData(w http.ResponseWriter, r *http.Request) {}
+func (pm *PerformanceMonitor) handleFlameGraph(w http.ResponseWriter, r *http.Request)       {}
+func (pm *PerformanceMonitor) handleTrace(w http.ResponseWriter, r *http.Request)            {}
+func (pm *PerformanceMonitor) handleNamedDashboard(w http.ResponseWriter, r *http.Request)   {}
+func (pm *PerformanceMonitor) handleDashboardData(w http.ResponseWriter, r *http.Request)    {}
 func (pm *PerformanceMonitor) handleComponentsHealth(w http.ResponseWriter, r *http.Request) {}
-func (pm *PerformanceMonitor) handleMetricsStream(w http.ResponseWriter, r *http.Request) {}
-func (pm *PerformanceMonitor) handleLogsStream(w http.ResponseWriter, r *http.Request) {}
-func (pm *PerformanceMonitor) handleRunBenchmark(w http.ResponseWriter, r *http.Request) {}
+func (pm *PerformanceMonitor) handleMetricsStream(w http.ResponseWriter, r *http.Request)    {}
+func (pm *PerformanceMonitor) handleLogsStream(w http.ResponseWriter, r *http.Request)       {}
+func (pm *PerformanceMonitor) handleRunBenchmark(w http.ResponseWriter, r *http.Request)     {}
 func (pm *PerformanceMonitor) handleBenchmarkResults(w http.ResponseWriter, r *http.Request) {}
-func (pm *PerformanceMonitor) handleAlertRules(w http.ResponseWriter, r *http.Request) {}
-func (pm *PerformanceMonitor) handleSilenceAlert(w http.ResponseWriter, r *http.Request) {}
-func (pm *PerformanceMonitor) handleAPIStatus(w http.ResponseWriter, r *http.Request) {}
-func (pm *PerformanceMonitor) handleAPIConfig(w http.ResponseWriter, r *http.Request) {}
-func (pm *PerformanceMonitor) handleAPIMetrics(w http.ResponseWriter, r *http.Request) {}
+func (pm *PerformanceMonitor) handleAlertRules(w http.ResponseWriter, r *http.Request)       {}
+func (pm *PerformanceMonitor) handleSilenceAlert(w http.ResponseWriter, r *http.Request)     {}
+func (pm *PerformanceMonitor) handleAPIStatus(w http.ResponseWriter, r *http.Request)        {}
+func (pm *PerformanceMonitor) handleAPIConfig(w http.ResponseWriter, r *http.Request)        {}
+func (pm *PerformanceMonitor) handleAPIMetrics(w http.ResponseWriter, r *http.Request)       {}

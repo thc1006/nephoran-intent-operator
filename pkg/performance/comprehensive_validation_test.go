@@ -71,8 +71,8 @@ func NewComprehensiveValidationSuite() *ComprehensiveValidationSuite {
 		targetCacheHitRatePct:  87,    // 87% cache hit rate claim
 
 		// Statistical testing configuration - optimized for faster tests
-		confidenceLevel:    0.95,            // 95% confidence level
-		statisticalSamples: 100,             // Reduced from 1000 for faster tests
+		confidenceLevel:    0.95,             // 95% confidence level
+		statisticalSamples: 100,              // Reduced from 1000 for faster tests
 		testDuration:       30 * time.Second, // Reduced from 5 minutes
 		warmupDuration:     5 * time.Second,  // Reduced from 30 seconds
 	}
@@ -789,7 +789,7 @@ func (s *ComprehensiveValidationSuite) runConcurrencyTest(t *testing.T, concurre
 	// This would run actual concurrency tests
 	// For demonstration, returning simulated results
 
-	testDuration := 10 * time.Second // Reduced from 2 minutes for faster tests
+	testDuration := 10 * time.Second                             // Reduced from 2 minutes for faster tests
 	totalRequests := int64(concurrentUsers * 60)                 // Assume 1 request per second per user
 	errorRate := math.Min(float64(concurrentUsers-100)/50*2, 10) // Error rate increases with load
 	if errorRate < 0 {
@@ -1229,7 +1229,7 @@ func (m *mockRegressionDetector) AnalyzeRegression(ctx context.Context, measurem
 			severity = "Medium"
 		}
 	}
-	
+
 	return &RegressionAnalysis{
 		HasRegression:      hasRegression,
 		RegressionSeverity: severity,
@@ -1265,9 +1265,9 @@ func (m *mockDistributedTester) ExecuteDistributedTest(ctx context.Context) (*Di
 		},
 		ValidationResults: &ValidationSummary{
 			TargetsMet: map[string]bool{
-				"P95 Latency":     true,
-				"Throughput":      true,
-				"Error Rate":      true,
+				"P95 Latency":      true,
+				"Throughput":       true,
+				"Error Rate":       true,
 				"Concurrent Users": true,
 			},
 		},

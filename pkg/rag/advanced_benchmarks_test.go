@@ -82,10 +82,10 @@ func benchmarkVectorRetrieval(b *testing.B, ctx context.Context, ragSystem *Enha
 	for _, scenario := range retrievalScenarios {
 		b.Run(scenario.name, func(b *testing.B) {
 			config := &RetrievalConfig{
-				DefaultLimit:              scenario.topK,
-				MinConfidenceThreshold:    float32(scenario.minScore),
-				IncludeSourceMetadata:     true,
-				EnableSemanticReranking:   true,
+				DefaultLimit:            scenario.topK,
+				MinConfidenceThreshold:  float32(scenario.minScore),
+				IncludeSourceMetadata:   true,
+				EnableSemanticReranking: true,
 			}
 
 			var totalLatency int64
@@ -441,8 +441,8 @@ func benchmarkConcurrentRetrieval(b *testing.B, ctx context.Context, ragSystem *
 					start := time.Now()
 
 					config := &RetrievalConfig{
-						DefaultLimit:              10,
-						MinConfidenceThreshold:    0.6,
+						DefaultLimit:           10,
+						MinConfidenceThreshold: 0.6,
 					}
 
 					results, err := ragSystem.RetrieveDocuments(ctx, query, config)
@@ -619,10 +619,10 @@ func benchmarkChunkingEfficiency(b *testing.B, ctx context.Context, ragSystem *E
 	for _, strategy := range chunkingStrategies {
 		b.Run(strategy.name, func(b *testing.B) {
 			chunkConfig := &ChunkingConfig{
-				ChunkSize:     strategy.chunkSize,
-				ChunkOverlap:  strategy.overlap,
-				MinChunkSize:  100,
-				MaxChunkSize:  strategy.chunkSize * 2,
+				ChunkSize:    strategy.chunkSize,
+				ChunkOverlap: strategy.overlap,
+				MinChunkSize: 100,
+				MaxChunkSize: strategy.chunkSize * 2,
 			}
 
 			var totalChunks, totalTokens int64
@@ -882,9 +882,9 @@ func setupBenchmarkRAGSystem() *EnhancedRAGSystem {
 			Dimensions: 1536,
 		},
 		Cache: CacheConfig{
-			EnableCache:     true,
-			MaxSize:        1000,
-			TTL:            time.Minute * 10,
+			EnableCache: true,
+			MaxSize:     1000,
+			TTL:         time.Minute * 10,
 		},
 		ConnectionPool: ConnectionPoolConfig{
 			MaxIdleConnections:    50,
@@ -909,7 +909,6 @@ type EnhancedRAGSystem struct {
 
 // Document is now defined in pkg/shared/types/common_types.go
 
-
 type SearchConfig struct {
 	TopK             int
 	MinSimilarity    float64
@@ -926,7 +925,6 @@ type ContextConfig struct {
 	Template        string
 }
 
-
 type RAGSystemConfig struct {
 	VectorDB       VectorDBConfig
 	Embedding      EmbeddingConfig
@@ -940,9 +938,6 @@ type VectorDBConfig struct {
 	Index      string
 	Dimensions int
 }
-
-
-
 
 // Placeholder implementations
 func NewEnhancedRAGSystem(config RAGSystemConfig) *EnhancedRAGSystem {
@@ -989,7 +984,6 @@ type GeneratedContext struct {
 	Content    string
 	TokenCount int
 }
-
 
 // Interface placeholders
 type VectorDB interface{}

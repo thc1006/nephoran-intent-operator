@@ -91,7 +91,7 @@ func TestCircuitBreakerConfigContract(t *testing.T) {
 	// Import the shared package config
 	// This test verifies that MaxConcurrentRequests field exists
 	// and can be used in performance_optimizer.go
-	
+
 	// This would be the type of config used in performance_optimizer.go
 	type TestCircuitBreakerConfig struct {
 		FailureThreshold      int

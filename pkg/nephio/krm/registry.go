@@ -311,7 +311,6 @@ type RegistryMetrics struct {
 	HealthCheckFailures prometheus.CounterVec
 }
 
-
 // Default registry configuration
 var DefaultRegistryConfig = &RegistryConfig{
 	DefaultRepositories: []RepositoryConfig{

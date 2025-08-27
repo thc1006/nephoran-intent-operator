@@ -23,17 +23,17 @@ type VectorSearchMetrics struct {
 	searchAccuracy             prometheus.GaugeVec
 	cacheHitRate               prometheus.GaugeVec
 	indexSize                  prometheus.GaugeVec
-	gpuMemoryUsage            prometheus.GaugeVec
-	throughputTPS             prometheus.GaugeVec
-	errorCount                prometheus.CounterVec
+	gpuMemoryUsage             prometheus.GaugeVec
+	throughputTPS              prometheus.GaugeVec
+	errorCount                 prometheus.CounterVec
 
 	// OpenTelemetry metrics
-	embeddingLatencyOTel  metric.Float64Histogram
-	searchLatencyOTel     metric.Float64Histogram
-	indexingLatencyOTel   metric.Float64Histogram
-	throughputOTel        metric.Float64Gauge
-	cacheHitRateOTel      metric.Float64Gauge
-	errorCountOTel        metric.Int64Counter
+	embeddingLatencyOTel metric.Float64Histogram
+	searchLatencyOTel    metric.Float64Histogram
+	indexingLatencyOTel  metric.Float64Histogram
+	throughputOTel       metric.Float64Gauge
+	cacheHitRateOTel     metric.Float64Gauge
+	errorCountOTel       metric.Int64Counter
 }
 
 // NewVectorSearchMetrics creates a new vector search metrics instance
@@ -236,7 +236,7 @@ func (vsm *VectorSearchMetrics) RecordBatchEmbeddingGeneration(duration time.Dur
 // RecordVectorIndexing records metrics for vector indexing operations
 func (vsm *VectorSearchMetrics) RecordVectorIndexing(duration time.Duration) {
 	seconds := duration.Seconds()
-	indexType := "hnsw" // Default, could be parameterized
+	indexType := "hnsw"  // Default, could be parameterized
 	dimensions := "1536" // Default, could be parameterized
 
 	// Prometheus
@@ -271,7 +271,7 @@ func (vsm *VectorSearchMetrics) RecordVectorSearch(duration time.Duration, topK 
 	// Prometheus
 	labels := prometheus.Labels{
 		"search_method":     searchMethod,
-		"top_k_range":      topKRange,
+		"top_k_range":       topKRange,
 		"similarity_metric": similarityMetric,
 	}
 	vsm.vectorSearchLatency.With(labels).Observe(seconds)
@@ -479,7 +479,7 @@ func (vsm *VectorSearchMetrics) GetMetricsSummary() *VectorSearchMetricsSummary 
 		AverageSearchLatency:    25.5,
 		AverageEmbeddingLatency: 150.2,
 		CacheHitRate:            85.3,
-		IndexSize:              1000000,
+		IndexSize:               1000000,
 		ErrorRate:               0.2,
 		ThroughputEPS:           450.7,
 		ThroughputSPS:           89.2,
@@ -505,89 +505,89 @@ type VectorSearchMetricsSummary struct {
 
 // VectorSearchReport provides detailed performance analysis
 type VectorSearchReport struct {
-	Summary              *VectorSearchMetricsSummary   `json:"summary"`
-	EmbeddingBreakdown   *EmbeddingMetricsBreakdown    `json:"embedding_breakdown"`
-	SearchBreakdown      *SearchMetricsBreakdown       `json:"search_breakdown"`
-	CacheAnalysis        *CacheAnalysisReport          `json:"cache_analysis"`
-	PerformanceTrends    *PerformanceTrendsReport      `json:"performance_trends"`
-	ErrorAnalysis        *ErrorAnalysisReport          `json:"error_analysis"`
-	ResourceUtilization  *ResourceUtilizationReport    `json:"resource_utilization"`
-	Recommendations      []*PerformanceRecommendation  `json:"recommendations"`
-	Timestamp            time.Time                     `json:"timestamp"`
-	ReportPeriod         time.Duration                 `json:"report_period"`
+	Summary             *VectorSearchMetricsSummary  `json:"summary"`
+	EmbeddingBreakdown  *EmbeddingMetricsBreakdown   `json:"embedding_breakdown"`
+	SearchBreakdown     *SearchMetricsBreakdown      `json:"search_breakdown"`
+	CacheAnalysis       *CacheAnalysisReport         `json:"cache_analysis"`
+	PerformanceTrends   *PerformanceTrendsReport     `json:"performance_trends"`
+	ErrorAnalysis       *ErrorAnalysisReport         `json:"error_analysis"`
+	ResourceUtilization *ResourceUtilizationReport   `json:"resource_utilization"`
+	Recommendations     []*PerformanceRecommendation `json:"recommendations"`
+	Timestamp           time.Time                    `json:"timestamp"`
+	ReportPeriod        time.Duration                `json:"report_period"`
 }
 
 // EmbeddingMetricsBreakdown provides detailed embedding metrics
 type EmbeddingMetricsBreakdown struct {
-	TotalRequests        int64                    `json:"total_requests"`
-	RequestsByModel      map[string]int64         `json:"requests_by_model"`
-	LatencyByModel       map[string]float64       `json:"latency_by_model_ms"`
-	ThroughputByModel    map[string]float64       `json:"throughput_by_model_eps"`
-	BatchSizeDistribution map[string]float64      `json:"batch_size_distribution"`
-	ErrorsByModel        map[string]int64         `json:"errors_by_model"`
+	TotalRequests         int64              `json:"total_requests"`
+	RequestsByModel       map[string]int64   `json:"requests_by_model"`
+	LatencyByModel        map[string]float64 `json:"latency_by_model_ms"`
+	ThroughputByModel     map[string]float64 `json:"throughput_by_model_eps"`
+	BatchSizeDistribution map[string]float64 `json:"batch_size_distribution"`
+	ErrorsByModel         map[string]int64   `json:"errors_by_model"`
 }
 
 // SearchMetricsBreakdown provides detailed search metrics
 type SearchMetricsBreakdown struct {
-	TotalSearches        int64                    `json:"total_searches"`
-	SearchesByMethod     map[string]int64         `json:"searches_by_method"`
-	LatencyByMethod      map[string]float64       `json:"latency_by_method_ms"`
-	AccuracyByMethod     map[string]float64       `json:"accuracy_by_method"`
-	TopKDistribution     map[string]float64       `json:"top_k_distribution"`
-	ResultsDistribution  map[string]float64       `json:"results_distribution"`
+	TotalSearches       int64              `json:"total_searches"`
+	SearchesByMethod    map[string]int64   `json:"searches_by_method"`
+	LatencyByMethod     map[string]float64 `json:"latency_by_method_ms"`
+	AccuracyByMethod    map[string]float64 `json:"accuracy_by_method"`
+	TopKDistribution    map[string]float64 `json:"top_k_distribution"`
+	ResultsDistribution map[string]float64 `json:"results_distribution"`
 }
 
 // CacheAnalysisReport provides cache performance analysis
 type CacheAnalysisReport struct {
-	OverallHitRate       float64                  `json:"overall_hit_rate_percent"`
-	HitRateByType        map[string]float64       `json:"hit_rate_by_type"`
-	HitRateByLevel       map[string]float64       `json:"hit_rate_by_level"`
-	CacheSizes           map[string]int64         `json:"cache_sizes"`
-	EvictionCounts       map[string]int64         `json:"eviction_counts"`
-	CacheEfficiency      float64                  `json:"cache_efficiency_score"`
+	OverallHitRate  float64            `json:"overall_hit_rate_percent"`
+	HitRateByType   map[string]float64 `json:"hit_rate_by_type"`
+	HitRateByLevel  map[string]float64 `json:"hit_rate_by_level"`
+	CacheSizes      map[string]int64   `json:"cache_sizes"`
+	EvictionCounts  map[string]int64   `json:"eviction_counts"`
+	CacheEfficiency float64            `json:"cache_efficiency_score"`
 }
 
 // PerformanceTrendsReport provides performance trend analysis
 type PerformanceTrendsReport struct {
-	LatencyTrend         string                   `json:"latency_trend"`
-	ThroughputTrend      string                   `json:"throughput_trend"`
-	ErrorRateTrend       string                   `json:"error_rate_trend"`
-	ResourceUsageTrend   string                   `json:"resource_usage_trend"`
-	HourlyPatterns       map[int]float64          `json:"hourly_patterns"`
-	DailyPatterns        map[string]float64       `json:"daily_patterns"`
+	LatencyTrend       string             `json:"latency_trend"`
+	ThroughputTrend    string             `json:"throughput_trend"`
+	ErrorRateTrend     string             `json:"error_rate_trend"`
+	ResourceUsageTrend string             `json:"resource_usage_trend"`
+	HourlyPatterns     map[int]float64    `json:"hourly_patterns"`
+	DailyPatterns      map[string]float64 `json:"daily_patterns"`
 }
 
 // ErrorAnalysisReport provides error analysis and diagnostics
 type ErrorAnalysisReport struct {
-	TotalErrors          int64                    `json:"total_errors"`
-	ErrorsByType         map[string]int64         `json:"errors_by_type"`
-	ErrorsByModel        map[string]int64         `json:"errors_by_model"`
-	ErrorRate            float64                  `json:"error_rate_percent"`
-	TopErrors            []string                 `json:"top_errors"`
-	ErrorTrends          map[string]float64       `json:"error_trends"`
-	RecoveryRate         float64                  `json:"recovery_rate_percent"`
-	MTTR                 float64                  `json:"mean_time_to_recovery_seconds"`
+	TotalErrors   int64              `json:"total_errors"`
+	ErrorsByType  map[string]int64   `json:"errors_by_type"`
+	ErrorsByModel map[string]int64   `json:"errors_by_model"`
+	ErrorRate     float64            `json:"error_rate_percent"`
+	TopErrors     []string           `json:"top_errors"`
+	ErrorTrends   map[string]float64 `json:"error_trends"`
+	RecoveryRate  float64            `json:"recovery_rate_percent"`
+	MTTR          float64            `json:"mean_time_to_recovery_seconds"`
 }
 
 // ResourceUtilizationReport provides resource usage analysis
 type ResourceUtilizationReport struct {
-	GPUUtilization       float64                  `json:"gpu_utilization_percent"`
-	GPUMemoryUsage       float64                  `json:"gpu_memory_usage_percent"`
-	CPUUtilization       float64                  `json:"cpu_utilization_percent"`
-	SystemMemoryUsage    float64                  `json:"system_memory_usage_percent"`
-	DiskIOUtilization    float64                  `json:"disk_io_utilization_percent"`
-	NetworkUtilization   float64                  `json:"network_utilization_percent"`
-	ResourceEfficiency   float64                  `json:"resource_efficiency_score"`
+	GPUUtilization     float64 `json:"gpu_utilization_percent"`
+	GPUMemoryUsage     float64 `json:"gpu_memory_usage_percent"`
+	CPUUtilization     float64 `json:"cpu_utilization_percent"`
+	SystemMemoryUsage  float64 `json:"system_memory_usage_percent"`
+	DiskIOUtilization  float64 `json:"disk_io_utilization_percent"`
+	NetworkUtilization float64 `json:"network_utilization_percent"`
+	ResourceEfficiency float64 `json:"resource_efficiency_score"`
 }
 
 // PerformanceRecommendation provides actionable performance recommendations
 type PerformanceRecommendation struct {
-	Type         string  `json:"type"`        // "cache", "batch_size", "gpu_memory", etc.
-	Priority     string  `json:"priority"`    // "high", "medium", "low"
-	Title        string  `json:"title"`
-	Description  string  `json:"description"`
-	Impact       string  `json:"impact"`      // Expected performance impact
-	Confidence   float64 `json:"confidence"`  // Confidence in the recommendation (0-1)
-	Action       string  `json:"action"`      // Specific action to take
-	Effort       string  `json:"effort"`      // Implementation effort level
+	Type        string  `json:"type"`     // "cache", "batch_size", "gpu_memory", etc.
+	Priority    string  `json:"priority"` // "high", "medium", "low"
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	Impact      string  `json:"impact"`     // Expected performance impact
+	Confidence  float64 `json:"confidence"` // Confidence in the recommendation (0-1)
+	Action      string  `json:"action"`     // Specific action to take
+	Effort      string  `json:"effort"`     // Implementation effort level
 }

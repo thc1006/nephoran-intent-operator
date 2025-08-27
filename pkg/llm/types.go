@@ -122,14 +122,14 @@ type TokenManager interface {
 	AllocateTokens(request string) (int, error)
 	ReleaseTokens(count int) error
 	GetAvailableTokens() int
-	
+
 	// Model capability methods
 	EstimateTokensForModel(model string, text string) (int, error)
 	SupportsSystemPrompt(model string) bool
 	SupportsChatFormat(model string) bool
 	SupportsStreaming(model string) bool
 	TruncateToFit(text string, maxTokens int, model string) (string, error)
-	
+
 	// Additional methods for compatibility
 	GetTokenCount(text string) int
 	ValidateModel(model string) error
@@ -165,7 +165,7 @@ func NewStreamingContextManager(tokenManager TokenManager, injectionOverhead tim
 func (scm *StreamingContextManager) Close() error {
 	scm.mutex.Lock()
 	defer scm.mutex.Unlock()
-	
+
 	// Clear all active streams
 	scm.activeStreams = make(map[string]*StreamingContext)
 	return nil

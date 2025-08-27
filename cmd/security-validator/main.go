@@ -128,16 +128,16 @@ func getKubernetesConfig(kubeconfigPath string) (*rest.Config, error) {
 }
 
 func contains(s, substr string) bool {
-	return len(s) > 0 && len(substr) > 0 && 
-		(s == substr || 
-		 fmt.Sprintf(",%s,", s) != fmt.Sprintf(",%s,", fmt.Sprintf(",%s,", s)[1:len(fmt.Sprintf(",%s,", s))-1]))
+	return len(s) > 0 && len(substr) > 0 &&
+		(s == substr ||
+			fmt.Sprintf(",%s,", s) != fmt.Sprintf(",%s,", fmt.Sprintf(",%s,", s)[1:len(fmt.Sprintf(",%s,", s))-1]))
 }
 
-func executeSelectiveTests(ctx context.Context, suite *security.ComprehensiveSecurityTestSuite, 
+func executeSelectiveTests(ctx context.Context, suite *security.ComprehensiveSecurityTestSuite,
 	runPenetration, runValidation, runMonitoring, runRegression bool) *security.ComprehensiveTestResults {
-	
+
 	fmt.Println("🎯 Running Selective Security Tests...")
-	
+
 	// This is a simplified version for selective testing
 	// In a real implementation, you would modify the suite to support selective execution
 	results := &security.ComprehensiveTestResults{
@@ -153,13 +153,13 @@ func executeSelectiveTests(ctx context.Context, suite *security.ComprehensiveSec
 		fmt.Println("🎯 Running Penetration Tests...")
 		// Run penetration tests
 		results.TestCategories["penetration_testing"] = security.CategoryResult{
-			Category:     "Penetration Testing",
-			Status:       "passed",
-			TestsRun:     10,
-			TestsPassed:  9,
-			TestsFailed:  1,
-			Score:        90.0,
-			Duration:     2 * time.Minute,
+			Category:    "Penetration Testing",
+			Status:      "passed",
+			TestsRun:    10,
+			TestsPassed: 9,
+			TestsFailed: 1,
+			Score:       90.0,
+			Duration:    2 * time.Minute,
 		}
 	}
 
@@ -167,13 +167,13 @@ func executeSelectiveTests(ctx context.Context, suite *security.ComprehensiveSec
 		fmt.Println("✅ Running Security Control Validation...")
 		// Run validation tests
 		results.TestCategories["security_validation"] = security.CategoryResult{
-			Category:     "Security Control Validation",
-			Status:       "passed",
-			TestsRun:     15,
-			TestsPassed:  14,
-			TestsFailed:  1,
-			Score:        93.0,
-			Duration:     1 * time.Minute,
+			Category:    "Security Control Validation",
+			Status:      "passed",
+			TestsRun:    15,
+			TestsPassed: 14,
+			TestsFailed: 1,
+			Score:       93.0,
+			Duration:    1 * time.Minute,
 		}
 	}
 
@@ -181,13 +181,13 @@ func executeSelectiveTests(ctx context.Context, suite *security.ComprehensiveSec
 		fmt.Println("📊 Running Continuous Monitoring Tests...")
 		// Run monitoring tests
 		results.TestCategories["continuous_monitoring"] = security.CategoryResult{
-			Category:     "Continuous Monitoring",
-			Status:       "passed",
-			TestsRun:     5,
-			TestsPassed:  5,
-			TestsFailed:  0,
-			Score:        100.0,
-			Duration:     30 * time.Second,
+			Category:    "Continuous Monitoring",
+			Status:      "passed",
+			TestsRun:    5,
+			TestsPassed: 5,
+			TestsFailed: 0,
+			Score:       100.0,
+			Duration:    30 * time.Second,
 		}
 	}
 
@@ -195,13 +195,13 @@ func executeSelectiveTests(ctx context.Context, suite *security.ComprehensiveSec
 		fmt.Println("🔄 Running Regression Tests...")
 		// Run regression tests
 		results.TestCategories["regression_testing"] = security.CategoryResult{
-			Category:     "Regression Testing",
-			Status:       "passed",
-			TestsRun:     8,
-			TestsPassed:  7,
-			TestsFailed:  1,
-			Score:        88.0,
-			Duration:     3 * time.Minute,
+			Category:    "Regression Testing",
+			Status:      "passed",
+			TestsRun:    8,
+			TestsPassed: 7,
+			TestsFailed: 1,
+			Score:       88.0,
+			Duration:    3 * time.Minute,
 		}
 	}
 
@@ -242,11 +242,11 @@ func displayResultsSummary(results *security.ComprehensiveTestResults, duration 
 	fmt.Printf("Security Score: %.2f/100\n", results.SecurityScore)
 	fmt.Printf("Compliance Score: %.2f/100\n", results.ComplianceScore)
 	fmt.Printf("Execution Time: %s\n", duration.String())
-	
+
 	if results.ThreatDetections > 0 {
 		fmt.Printf("Threat Detections: %d\n", results.ThreatDetections)
 	}
-	
+
 	if results.CriticalIssues > 0 {
 		fmt.Printf("Critical Issues: %d\n", results.CriticalIssues)
 	}
@@ -254,16 +254,16 @@ func displayResultsSummary(results *security.ComprehensiveTestResults, duration 
 	fmt.Println()
 	fmt.Println("Category Results:")
 	fmt.Println("-----------------")
-	
+
 	for _, category := range results.TestCategories {
 		statusIcon := getStatusIcon(category.Status)
-		fmt.Printf("• %s: %s (Score: %.1f, Duration: %s)\n", 
+		fmt.Printf("• %s: %s (Score: %.1f, Duration: %s)\n",
 			category.Category, statusIcon, category.Score, category.Duration.String())
-		
+
 		if verbose {
 			fmt.Printf("  Tests: %d run, %d passed, %d failed, %d skipped\n",
 				category.TestsRun, category.TestsPassed, category.TestsFailed, category.TestsSkipped)
-			
+
 			if len(category.Issues) > 0 {
 				fmt.Printf("  Issues: %v\n", category.Issues)
 			}
@@ -282,9 +282,9 @@ func displayResultsSummary(results *security.ComprehensiveTestResults, duration 
 				}
 			}
 		}
-		
+
 		if len(results.SecurityRecommendations) > 3 {
-			fmt.Printf("... and %d more recommendations in the detailed report\n", 
+			fmt.Printf("... and %d more recommendations in the detailed report\n",
 				len(results.SecurityRecommendations)-3)
 		}
 	}
@@ -308,17 +308,17 @@ func getStatusIcon(status string) string {
 func generateAdditionalReports(results *security.ComprehensiveTestResults, reportDir string) {
 	// Generate CSV report for easy analysis
 	generateCSVReport(results, reportDir)
-	
+
 	// Generate JUnit XML for CI/CD integration
 	generateJUnitReport(results, reportDir)
-	
+
 	// Generate metrics file for monitoring systems
 	generateMetricsReport(results, reportDir)
 }
 
 func generateCSVReport(results *security.ComprehensiveTestResults, reportDir string) {
 	csvContent := "Category,Status,Tests_Run,Tests_Passed,Tests_Failed,Score,Duration_Seconds\n"
-	
+
 	for _, category := range results.TestCategories {
 		csvContent += fmt.Sprintf("%s,%s,%d,%d,%d,%.2f,%.0f\n",
 			category.Category,
@@ -329,7 +329,7 @@ func generateCSVReport(results *security.ComprehensiveTestResults, reportDir str
 			category.Score,
 			category.Duration.Seconds())
 	}
-	
+
 	csvFile := filepath.Join(reportDir, fmt.Sprintf("security-test-results-%s.csv", results.TestSuiteID))
 	if err := os.WriteFile(csvFile, []byte(csvContent), 0644); err != nil {
 		log.Printf("Failed to write CSV report: %v", err)
@@ -358,12 +358,12 @@ func generateJUnitReport(results *security.ComprehensiveTestResults, reportDir s
 `, testName, category.Duration.Seconds()/float64(category.TestsRun))
 			}
 		}
-		
+
 		junitXML += "  </testsuite>\n"
 	}
-	
+
 	junitXML += "</testsuites>\n"
-	
+
 	junitFile := filepath.Join(reportDir, fmt.Sprintf("junit-security-tests-%s.xml", results.TestSuiteID))
 	if err := os.WriteFile(junitFile, []byte(junitXML), 0644); err != nil {
 		log.Printf("Failed to write JUnit report: %v", err)
@@ -377,18 +377,18 @@ security_compliance_score %.2f
 security_threat_detections %d
 security_critical_issues %d
 security_execution_time_seconds %.0f
-`, results.SecurityScore, results.ComplianceScore, results.ThreatDetections, 
-   results.CriticalIssues, results.TotalDuration.Seconds())
+`, results.SecurityScore, results.ComplianceScore, results.ThreatDetections,
+		results.CriticalIssues, results.TotalDuration.Seconds())
 
 	for name, category := range results.TestCategories {
-		metrics += fmt.Sprintf("security_category_%s_score %.2f\n", 
+		metrics += fmt.Sprintf("security_category_%s_score %.2f\n",
 			sanitizeMetricName(name), category.Score)
-		metrics += fmt.Sprintf("security_category_%s_tests_run %d\n", 
+		metrics += fmt.Sprintf("security_category_%s_tests_run %d\n",
 			sanitizeMetricName(name), category.TestsRun)
-		metrics += fmt.Sprintf("security_category_%s_tests_failed %d\n", 
+		metrics += fmt.Sprintf("security_category_%s_tests_failed %d\n",
 			sanitizeMetricName(name), category.TestsFailed)
 	}
-	
+
 	metricsFile := filepath.Join(reportDir, fmt.Sprintf("security-metrics-%s.txt", results.TestSuiteID))
 	if err := os.WriteFile(metricsFile, []byte(metrics), 0644); err != nil {
 		log.Printf("Failed to write metrics report: %v", err)

@@ -918,7 +918,7 @@ func (engine *OptimizationRecommendationEngine) estimateEffort(steps []Implement
 func (engine *OptimizationRecommendationEngine) determinePriority(impact *ExpectedImpact, risk *RiskAssessment, analysis *ComponentAnalysis) OptimizationPriority {
 	// Simple priority determination based on impact and risk
 	totalImpact := impact.LatencyReduction + impact.ThroughputIncrease + impact.EfficiencyGain
-	
+
 	if totalImpact > 80 && risk.OverallRiskLevel <= RiskLevelMedium {
 		return PriorityCritical
 	} else if totalImpact > 50 && risk.OverallRiskLevel <= RiskLevelMedium {
@@ -946,18 +946,18 @@ func (engine *OptimizationRecommendationEngine) determineUrgency(analysis *Compo
 func (engine *OptimizationRecommendationEngine) calculateConfidenceLevel(recommendation *OptimizationRecommendation, analysisResult *PerformanceAnalysisResult) float64 {
 	// Simple confidence calculation based on data quality and risk
 	baseConfidence := 0.8
-	
+
 	if analysisResult.DataQuality == DataQualityExcellent {
 		baseConfidence += 0.1
 	} else if analysisResult.DataQuality == DataQualityPoor {
 		baseConfidence -= 0.2
 	}
-	
+
 	if recommendation.RiskAssessment.OverallRiskLevel == RiskLevelLow {
 		baseConfidence += 0.05
 	} else if recommendation.RiskAssessment.OverallRiskLevel == RiskLevelHigh {
 		baseConfidence -= 0.1
 	}
-	
+
 	return math.Max(0.1, math.Min(1.0, baseConfidence))
 }

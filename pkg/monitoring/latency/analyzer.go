@@ -796,7 +796,7 @@ func (t *TrendAnalyzer) AnalyzeTrend(component string, latency time.Duration) *T
 
 	// Combine results using ensemble method (weighted average of all three methods)
 	ensembleTrend := (linearTrend*0.5 + expTrend*0.3 + maTrend*0.2)
-	
+
 	if ensembleTrend > 0.1 {
 		trend.TrendDirection = "increasing"
 	} else if ensembleTrend < -0.1 {

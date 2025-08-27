@@ -18,7 +18,7 @@ package porch
 
 import (
 	"time"
-	
+
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -325,7 +325,7 @@ func (ws *WorkflowStatus) DeepCopyInto(out *WorkflowStatus) {
 	}
 	// StartTime is a value type, not a pointer
 	out.StartTime = ws.StartTime
-	
+
 	if ws.EndTime != nil {
 		out.EndTime = new(time.Time)
 		*out.EndTime = *ws.EndTime

@@ -57,7 +57,6 @@ func (rm *ResourceMonitor) Stop() *ResourceUsage {
 	}
 }
 
-
 // BenchmarkRunner provides a unified interface for running all Nephoran Intent Operator benchmarks
 type BenchmarkRunner struct {
 	config     *BenchmarkConfig
@@ -262,11 +261,11 @@ type TargetResult struct {
 
 // BaselineComparison compares current results with baseline
 type BaselineComparison struct {
-	BaselineFile       string                       `json:"baseline_file"`
+	BaselineFile       string                                `json:"baseline_file"`
 	ComparisonResults  map[string]*BenchmarkComparisonResult `json:"comparison_results"`
-	OverallImprovement float64                      `json:"overall_improvement_percent"`
-	Regressions        []string                     `json:"regressions"`
-	Improvements       []string                     `json:"improvements"`
+	OverallImprovement float64                               `json:"overall_improvement_percent"`
+	Regressions        []string                              `json:"regressions"`
+	Improvements       []string                              `json:"improvements"`
 }
 
 // BenchmarkComparisonResult contains comparison data for a specific benchmark

@@ -13,26 +13,25 @@ import (
 
 	"golang.org/x/crypto/ssh"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
 	// nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1" // unused import removed
 )
 
 // NetconfServer provides a NETCONF server implementation for O-RAN O1 interface
 type NetconfServer struct {
-	config         *NetconfServerConfig
-	sshServer      *ssh.ServerConfig
-	sessions       map[string]*NetconfSession
-	sessionsMux    sync.RWMutex
-	capabilities   []string
-	datastores     map[string]*ConfigDatastore
-	datastoresMux  sync.RWMutex
-	yangModels     map[string]*YANGModel
-	subscriptions  map[string]*NotificationSubscription
-	subsMux        sync.RWMutex
+	config          *NetconfServerConfig
+	sshServer       *ssh.ServerConfig
+	sessions        map[string]*NetconfSession
+	sessionsMux     sync.RWMutex
+	capabilities    []string
+	datastores      map[string]*ConfigDatastore
+	datastoresMux   sync.RWMutex
+	yangModels      map[string]*YANGModel
+	subscriptions   map[string]*NotificationSubscription
+	subsMux         sync.RWMutex
 	messageHandlers map[string]MessageHandler
-	running        bool
-	mutex          sync.RWMutex
-	listener       net.Listener
+	running         bool
+	mutex           sync.RWMutex
+	listener        net.Listener
 }
 
 // NetconfServerConfig holds server configuration
@@ -67,22 +66,22 @@ type NetconfSession struct {
 
 // ConfigDatastore represents a NETCONF datastore
 type ConfigDatastore struct {
-	Name      string                 // running, candidate, startup
-	Data      map[string]interface{} // XML data stored as structured data
-	Locked    bool
-	LockedBy  string
-	mutex     sync.RWMutex
+	Name     string                 // running, candidate, startup
+	Data     map[string]interface{} // XML data stored as structured data
+	Locked   bool
+	LockedBy string
+	mutex    sync.RWMutex
 }
 
 // NotificationSubscription represents a NETCONF notification subscription
 type NotificationSubscription struct {
-	ID         string
-	SessionID  string
-	Stream     string
-	Filter     string
-	StartTime  time.Time
-	StopTime   time.Time
-	Active     bool
+	ID          string
+	SessionID   string
+	Stream      string
+	Filter      string
+	StartTime   time.Time
+	StopTime    time.Time
+	Active      bool
 	messageChan chan *NetconfNotification
 }
 
@@ -108,10 +107,10 @@ type NetconfMessage struct {
 
 // NetconfResponse represents a NETCONF response
 type NetconfResponse struct {
-	XMLName   xml.Name `xml:"rpc-reply"`
-	MessageID string   `xml:"message-id,attr"`
-	OK        *struct{} `xml:"ok,omitempty"`
-	Data      interface{} `xml:",omitempty"`
+	XMLName   xml.Name      `xml:"rpc-reply"`
+	MessageID string        `xml:"message-id,attr"`
+	OK        *struct{}     `xml:"ok,omitempty"`
+	Data      interface{}   `xml:",omitempty"`
 	Error     *NetconfError `xml:"rpc-error,omitempty"`
 }
 
@@ -479,7 +478,7 @@ func (ns *NetconfServer) handleMessage(ctx context.Context, session *NetconfSess
 // cleanupSession cleans up a NETCONF session
 func (ns *NetconfServer) cleanupSession(session *NetconfSession) {
 	session.cancel()
-	
+
 	if session.conn != nil {
 		session.conn.Close()
 	}
@@ -563,7 +562,7 @@ func (ns *NetconfServer) generateTempHostKey() {
 	// In production, you should use proper key generation
 	key := make([]byte, 32)
 	rand.Read(key)
-	
+
 	// For now, just skip key generation in testing scenarios
 	// In a real implementation, you'd generate an actual SSH key
 }
@@ -571,7 +570,7 @@ func (ns *NetconfServer) generateTempHostKey() {
 // initializeDatastores initializes the NETCONF datastores
 func (ns *NetconfServer) initializeDatastores() {
 	datastoreNames := []string{"running", "candidate", "startup"}
-	
+
 	for _, name := range datastoreNames {
 		ns.datastores[name] = &ConfigDatastore{
 			Name: name,
@@ -584,8 +583,8 @@ func (ns *NetconfServer) initializeDatastores() {
 func (ns *NetconfServer) initializeYANGModels() {
 	for _, modelName := range ns.config.SupportedYANG {
 		ns.yangModels[modelName] = &YANGModel{
-			Name:    modelName,
-			Version: "1.0",
+			Name:     modelName,
+			Version:  "1.0",
 			Features: []string{},
 		}
 	}
@@ -610,6 +609,7 @@ func generateSessionID() string {
 // Message handler implementations (simplified)
 
 type GetHandler struct{}
+
 func (h *GetHandler) GetOperation() string { return "get" }
 func (h *GetHandler) HandleMessage(ctx context.Context, session *NetconfSession, message *NetconfMessage) (*NetconfResponse, error) {
 	return &NetconfResponse{
@@ -619,6 +619,7 @@ func (h *GetHandler) HandleMessage(ctx context.Context, session *NetconfSession,
 }
 
 type GetConfigHandler struct{}
+
 func (h *GetConfigHandler) GetOperation() string { return "get-config" }
 func (h *GetConfigHandler) HandleMessage(ctx context.Context, session *NetconfSession, message *NetconfMessage) (*NetconfResponse, error) {
 	return &NetconfResponse{
@@ -628,6 +629,7 @@ func (h *GetConfigHandler) HandleMessage(ctx context.Context, session *NetconfSe
 }
 
 type EditConfigHandler struct{}
+
 func (h *EditConfigHandler) GetOperation() string { return "edit-config" }
 func (h *EditConfigHandler) HandleMessage(ctx context.Context, session *NetconfSession, message *NetconfMessage) (*NetconfResponse, error) {
 	return &NetconfResponse{
@@ -637,6 +639,7 @@ func (h *EditConfigHandler) HandleMessage(ctx context.Context, session *NetconfS
 }
 
 type LockHandler struct{}
+
 func (h *LockHandler) GetOperation() string { return "lock" }
 func (h *LockHandler) HandleMessage(ctx context.Context, session *NetconfSession, message *NetconfMessage) (*NetconfResponse, error) {
 	return &NetconfResponse{
@@ -646,6 +649,7 @@ func (h *LockHandler) HandleMessage(ctx context.Context, session *NetconfSession
 }
 
 type UnlockHandler struct{}
+
 func (h *UnlockHandler) GetOperation() string { return "unlock" }
 func (h *UnlockHandler) HandleMessage(ctx context.Context, session *NetconfSession, message *NetconfMessage) (*NetconfResponse, error) {
 	return &NetconfResponse{
@@ -655,6 +659,7 @@ func (h *UnlockHandler) HandleMessage(ctx context.Context, session *NetconfSessi
 }
 
 type CloseSessionHandler struct{}
+
 func (h *CloseSessionHandler) GetOperation() string { return "close-session" }
 func (h *CloseSessionHandler) HandleMessage(ctx context.Context, session *NetconfSession, message *NetconfMessage) (*NetconfResponse, error) {
 	return &NetconfResponse{

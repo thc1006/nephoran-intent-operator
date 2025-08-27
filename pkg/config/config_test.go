@@ -14,10 +14,10 @@ func TestDefaultConfig(t *testing.T) {
 	// Ensure test isolation
 	envGuard := testutil.NewEnvironmentGuard(t)
 	testutil.CleanupCommonEnvVars(t)
-	
+
 	ctx, cancel := testutil.ContextWithTimeout(t)
 	defer cancel()
-	
+
 	// Test with clean environment
 	select {
 	case <-ctx.Done():
@@ -42,7 +42,7 @@ func TestDefaultConfig(t *testing.T) {
 		assert.Equal(t, "default", cfg.Namespace)
 		assert.Equal(t, "deployments/crds", cfg.CRDPath)
 	}
-	
+
 	// Verify cleanup
 	_ = envGuard
 }
@@ -220,7 +220,7 @@ func TestConfig_Validate_EnhancedValidation(t *testing.T) {
 func TestLoadFromEnv_ValidConfiguration(t *testing.T) {
 	envGuard := testutil.NewEnvironmentGuard(t)
 	testutil.CleanupCommonEnvVars(t)
-	
+
 	ctx, cancel := testutil.ContextWithTimeout(t)
 	defer cancel()
 
@@ -241,7 +241,7 @@ func TestLoadFromEnv_ValidConfiguration(t *testing.T) {
 func TestLoadFromEnv_EnvironmentOverrides(t *testing.T) {
 	envGuard := testutil.NewEnvironmentGuard(t)
 	testutil.CleanupCommonEnvVars(t)
-	
+
 	ctx, cancel := testutil.ContextWithTimeout(t)
 	defer cancel()
 
@@ -304,7 +304,7 @@ func TestLoadFromEnv_EnvironmentOverrides(t *testing.T) {
 func TestLoadFromEnv_InvalidConfiguration(t *testing.T) {
 	envGuard := testutil.NewEnvironmentGuard(t)
 	testutil.CleanupCommonEnvVars(t)
-	
+
 	ctx, cancel := testutil.ContextWithTimeout(t)
 	defer cancel()
 

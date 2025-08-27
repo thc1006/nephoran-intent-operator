@@ -37,11 +37,11 @@ type SlowQueryInfo struct {
 
 // QueryPattern identifies common query patterns for optimization
 type QueryPattern struct {
-	Pattern     string    `json:"pattern"`
-	Count       int64     `json:"count"`
+	Pattern     string        `json:"pattern"`
+	Count       int64         `json:"count"`
 	AvgDuration time.Duration `json:"avg_duration"`
-	Tables      []string  `json:"tables"`
-	LastSeen    time.Time `json:"last_seen"`
+	Tables      []string      `json:"tables"`
+	LastSeen    time.Time     `json:"last_seen"`
 }
 
 // AlertThresholds defines when to trigger alerts
@@ -56,14 +56,14 @@ type AlertThresholds struct {
 
 // DBMonitorMetrics tracks monitoring metrics
 type DBMonitorMetrics struct {
-	TotalQueries       int64     `json:"total_queries"`
-	SlowQueries        int64     `json:"slow_queries"`
-	FastQueries        int64     `json:"fast_queries"`
-	ErrorQueries       int64     `json:"error_queries"`
-	AverageQueryTime   time.Duration `json:"average_query_time"`
-	P99QueryTime       time.Duration `json:"p99_query_time"`
-	ConnectionPoolUsage float64   `json:"connection_pool_usage"`
-	LastUpdated        time.Time `json:"last_updated"`
+	TotalQueries        int64         `json:"total_queries"`
+	SlowQueries         int64         `json:"slow_queries"`
+	FastQueries         int64         `json:"fast_queries"`
+	ErrorQueries        int64         `json:"error_queries"`
+	AverageQueryTime    time.Duration `json:"average_query_time"`
+	P99QueryTime        time.Duration `json:"p99_query_time"`
+	ConnectionPoolUsage float64       `json:"connection_pool_usage"`
+	LastUpdated         time.Time     `json:"last_updated"`
 }
 
 // NewDBMonitor creates a new database monitor
@@ -75,10 +75,10 @@ func NewDBMonitor(db *sql.DB) *DBMonitor {
 		alertThresholds: &AlertThresholds{
 			SlowQueryThreshold:    500 * time.Millisecond,
 			ConnectionUtilization: 0.8,
-			ErrorRate:            0.05, // 5%
-			CacheHitRate:         0.8,  // 80%
-			DeadlockCount:        10,
-			ReplicationLag:       5 * time.Second,
+			ErrorRate:             0.05, // 5%
+			CacheHitRate:          0.8,  // 80%
+			DeadlockCount:         10,
+			ReplicationLag:        5 * time.Second,
 		},
 		metrics: &DBMonitorMetrics{},
 		stopCh:  make(chan struct{}),
@@ -90,16 +90,16 @@ func NewDBMonitor(db *sql.DB) *DBMonitor {
 func (dm *DBMonitor) Start(ctx context.Context) error {
 	// Monitor slow queries
 	go dm.monitorSlowQueries(ctx)
-	
+
 	// Monitor connection pool
 	go dm.monitorConnectionPool(ctx)
-	
+
 	// Monitor query patterns
 	go dm.analyzeQueryPatterns(ctx)
-	
+
 	// Generate performance reports
 	go dm.generateReports(ctx)
-	
+
 	dm.logger.Println("Database monitor started")
 	return nil
 }
@@ -198,13 +198,13 @@ func (dm *DBMonitor) monitorConnectionPool(ctx context.Context) {
 // updateConnectionMetrics updates connection pool metrics
 func (dm *DBMonitor) updateConnectionMetrics() {
 	stats := dm.db.Stats()
-	
+
 	dm.mu.Lock()
 	defer dm.mu.Unlock()
-	
+
 	dm.metrics.ConnectionPoolUsage = float64(stats.OpenConnections) / float64(stats.MaxOpenConnections)
 	dm.metrics.LastUpdated = time.Now()
-	
+
 	// Alert if connection utilization is high
 	if dm.metrics.ConnectionPoolUsage > dm.alertThresholds.ConnectionUtilization {
 		dm.logger.Printf("HIGH CONNECTION UTILIZATION: %.2f%% (%d/%d connections)",

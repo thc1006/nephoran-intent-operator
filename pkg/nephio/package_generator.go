@@ -307,7 +307,7 @@ func (pg *PackageGenerator) generateKptfile(intent *v1.NetworkIntent) (string, e
 func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent) (map[string]string, error) {
 	resources := make(map[string]string)
 
-	// Get structured parameters 
+	// Get structured parameters
 	params := intent.Spec.Parameters
 	if params == nil {
 		return nil, fmt.Errorf("no parameters found in intent")
@@ -361,7 +361,7 @@ func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent
 func (pg *PackageGenerator) generateScalingResources(intent *v1.NetworkIntent) (map[string]string, error) {
 	resources := make(map[string]string)
 
-	// Get structured parameters 
+	// Get structured parameters
 	params := intent.Spec.Parameters
 	if params == nil {
 		return nil, fmt.Errorf("no parameters found in intent")
@@ -392,7 +392,7 @@ func (pg *PackageGenerator) generateScalingResources(intent *v1.NetworkIntent) (
 func (pg *PackageGenerator) generatePolicyResources(intent *v1.NetworkIntent) (map[string]string, error) {
 	resources := make(map[string]string)
 
-	// Get structured parameters 
+	// Get structured parameters
 	params := intent.Spec.Parameters
 	if params == nil {
 		return nil, fmt.Errorf("no parameters found in intent")
@@ -443,7 +443,6 @@ func (pg *PackageGenerator) generateReadme(intent *v1.NetworkIntent) (string, er
 
 	return strings.TrimSpace(buf.String()), nil
 }
-
 
 // generateFunctionConfig generates the function configuration
 func (pg *PackageGenerator) generateFunctionConfig(intent *v1.NetworkIntent) (string, error) {

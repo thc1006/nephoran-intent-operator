@@ -46,19 +46,18 @@ type O1InterfaceController struct {
 	config               *O1ControllerConfig
 }
 
-
 // O1ControllerConfig represents O1 controller specific configuration
 type O1ControllerConfig struct {
-	NetconfPort           int               `yaml:"netconf_port"`
-	StreamingPort         int               `yaml:"streaming_port"`
-	EnableTLS             bool              `yaml:"enable_tls"`
-	TLSCertSecret         string            `yaml:"tls_cert_secret"`
-	AuthenticationMethod  string            `yaml:"authentication_method"`
-	MaxConnections        int               `yaml:"max_connections"`
-	SessionTimeout        time.Duration     `yaml:"session_timeout"`
-	PerformanceCollection PerformanceConfig `yaml:"performance_collection"`
-	FaultManagement       FaultConfig       `yaml:"fault_management"`
-	SecurityPolicies      SecurityConfig    `yaml:"security_policies"`
+	NetconfPort             int               `yaml:"netconf_port"`
+	StreamingPort           int               `yaml:"streaming_port"`
+	EnableTLS               bool              `yaml:"enable_tls"`
+	TLSCertSecret           string            `yaml:"tls_cert_secret"`
+	AuthenticationMethod    string            `yaml:"authentication_method"`
+	MaxConnections          int               `yaml:"max_connections"`
+	SessionTimeout          time.Duration     `yaml:"session_timeout"`
+	PerformanceCollection   PerformanceConfig `yaml:"performance_collection"`
+	FaultManagement         FaultConfig       `yaml:"fault_management"`
+	SecurityPolicies        SecurityConfig    `yaml:"security_policies"`
 	EnableMetrics           bool              `yaml:"enable_metrics"`
 	MaxConcurrentReconciles int               `yaml:"max_concurrent_reconciles"`
 	ReconcileInterval       time.Duration     `yaml:"reconcile_interval"`
@@ -601,7 +600,7 @@ func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1I
 			EnableAnomalyDetection:  o1Interface.Spec.FCAPS.PerformanceManagement.AnomalyDetection,
 			EnableReporting:         true,
 			ReportingInterval:       15 * time.Minute,
-			MaxDataPoints:          10000,
+			MaxDataPoints:           10000,
 		}
 
 		perfManager := NewCompletePerformanceManager(perfConfig)
@@ -618,7 +617,7 @@ func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1I
 	// configMgrConfig := &AdvancedConfigurationManagerConfig{...}
 	// configManager, err := NewAdvancedConfigurationManager(configMgrConfig, r.Log.WithName("config-manager"))
 
-	// TODO: Initialize security manager when available  
+	// TODO: Initialize security manager when available
 	if o1Interface.Spec.FCAPS.SecurityManagement.Enabled {
 		// securityConfig := &ComprehensiveSecurityManagerConfig{
 		//     EnableCertificateManagement: o1Interface.Spec.FCAPS.SecurityManagement.CertificateManagement,
@@ -724,7 +723,7 @@ func (r *O1InterfaceController) performHealthCheck(instance *O1AdaptorInstance) 
 
 	// Check O1 adaptor health
 	if instance.O1Adaptor != nil {
-		// TODO: Add IsHealthy() method to O1Adaptor  
+		// TODO: Add IsHealthy() method to O1Adaptor
 		// if !instance.O1Adaptor.IsHealthy() {
 		//     instance.Status.Phase = O1InstancePhaseFailed
 		//     instance.Status.Message = "O1 adaptor is unhealthy"
@@ -744,8 +743,8 @@ func (r *O1InterfaceController) performHealthCheck(instance *O1AdaptorInstance) 
 func (r *O1InterfaceController) buildNetconfServerConfig(o1Interface *oranv1.O1Interface) *NetconfServerConfig {
 	return &NetconfServerConfig{
 		Port:             o1Interface.Spec.Port,
-		Username:         "netconf", // Default username
-		Password:         "netconf", // Default password - should come from secret
+		Username:         "netconf",        // Default username
+		Password:         "netconf",        // Default password - should come from secret
 		SessionTimeout:   60 * time.Second, // Default
 		MaxSessions:      100,              // Default
 		EnableValidation: true,
@@ -777,7 +776,7 @@ func (r *O1InterfaceController) buildStreamingConfig(o1Interface *oranv1.O1Inter
 	if o1Interface.Spec.StreamingConfig != nil {
 		maxConnections = o1Interface.Spec.StreamingConfig.MaxConnections
 	}
-	
+
 	return &StreamingConfig{
 		MaxConnections:          maxConnections,
 		ConnectionTimeout:       60 * time.Second, // Default

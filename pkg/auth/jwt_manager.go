@@ -51,8 +51,8 @@ type JWTManager struct {
 	consentRequired    bool
 
 	// Security hardening - COMPLIANCE: CIS 5.2 pod security standards
-	enforceFIPSMode    bool
-	auditTokenAccess   bool
+	enforceFIPSMode     bool
+	auditTokenAccess    bool
 	rateLimitingEnabled bool
 }
 
@@ -67,21 +67,21 @@ type JWTConfig struct {
 	RequireSecureCookies bool          `json:"require_secure_cookies"`
 	CookieDomain         string        `json:"cookie_domain"`
 	CookiePath           string        `json:"cookie_path"`
-	
+
 	// GDPR compliance configuration
 	GDPRCompliance    bool `json:"gdpr_compliance" default:"true"`
 	DataRetentionDays int  `json:"data_retention_days" validate:"max=730"` // COMPLIANCE: Max 2 years
 	ConsentRequired   bool `json:"consent_required" default:"true"`
-	
+
 	// Security hardening
 	EnforceFIPSMode     bool `json:"enforce_fips_mode" default:"true"`
 	AuditTokenAccess    bool `json:"audit_token_access" default:"true"`
 	RateLimitingEnabled bool `json:"rate_limiting_enabled" default:"true"`
-	
+
 	// O-RAN specific settings
-	ORANSecurityLevel   string `json:"oran_security_level" validate:"oneof=basic enhanced"`
-	InterfaceType       string `json:"interface_type" validate:"oneof=E2 A1 O1 O2"`
-	ZeroTrustMode       bool   `json:"zero_trust_mode" default:"true"`
+	ORANSecurityLevel string `json:"oran_security_level" validate:"oneof=basic enhanced"`
+	InterfaceType     string `json:"interface_type" validate:"oneof=E2 A1 O1 O2"`
+	ZeroTrustMode     bool   `json:"zero_trust_mode" default:"true"`
 }
 
 // NephoranJWTClaims extends standard JWT claims with Nephoran-specific fields
@@ -115,16 +115,16 @@ type NephoranJWTClaims struct {
 	// Security context - COMPLIANCE: NIST PR.AC-3 remote access management
 	IPAddress string `json:"ip_address,omitempty"`
 	UserAgent string `json:"user_agent,omitempty"`
-	
+
 	// GDPR compliance fields
-	ConsentGiven     bool      `json:"consent_given,omitempty"`
-	ConsentTimestamp time.Time `json:"consent_timestamp,omitempty"`
-	DataProcessingPurpose string `json:"data_processing_purpose,omitempty"`
-	
+	ConsentGiven          bool      `json:"consent_given,omitempty"`
+	ConsentTimestamp      time.Time `json:"consent_timestamp,omitempty"`
+	DataProcessingPurpose string    `json:"data_processing_purpose,omitempty"`
+
 	// O-RAN specific security context
-	ORANInterface    string `json:"oran_interface,omitempty"` // E2, A1, O1, O2
-	SecurityLevel    string `json:"security_level,omitempty"`
-	TrustLevel       string `json:"trust_level,omitempty"`
+	ORANInterface string `json:"oran_interface,omitempty"` // E2, A1, O1, O2
+	SecurityLevel string `json:"security_level,omitempty"`
+	TrustLevel    string `json:"trust_level,omitempty"`
 
 	// Custom attributes - COMPLIANCE: NIST ID.AM-3 organizational data flow mapping
 	Attributes map[string]interface{} `json:"attributes,omitempty"`
@@ -150,7 +150,7 @@ type TokenStore interface {
 
 	// Cleanup expired tokens - COMPLIANCE: GDPR Art. 5 storage limitation
 	CleanupExpired(ctx context.Context) error
-	
+
 	// GDPR compliance methods
 	DeleteUserData(ctx context.Context, userID string) error
 	ExportUserData(ctx context.Context, userID string) (map[string]interface{}, error)
@@ -168,7 +168,7 @@ type TokenBlacklist interface {
 
 	// Remove expired entries
 	CleanupExpired(ctx context.Context) error
-	
+
 	// GDPR compliance methods
 	BlacklistUserTokens(ctx context.Context, userID string, reason string) error
 	GetBlacklistAuditTrail(ctx context.Context, tokenID string) ([]AuditEvent, error)
@@ -190,48 +190,48 @@ type TokenInfo struct {
 	Attributes map[string]interface{} `json:"attributes,omitempty"`
 	LastUsed   time.Time              `json:"last_used"`
 	UseCount   int64                  `json:"use_count"`
-	
+
 	// GDPR compliance tracking
 	ConsentGiven       bool      `json:"consent_given"`
 	ConsentTimestamp   time.Time `json:"consent_timestamp"`
 	ProcessingPurpose  string    `json:"processing_purpose"`
 	DataClassification string    `json:"data_classification"`
 	RetentionExpiry    time.Time `json:"retention_expiry"`
-	
+
 	// Security audit fields
-	CreatedBy          string                 `json:"created_by"`
-	SecurityEvents     []SecurityEvent        `json:"security_events"`
-	ComplianceFlags    map[string]bool        `json:"compliance_flags"`
-	RiskScore          float64               `json:"risk_score"`
+	CreatedBy       string          `json:"created_by"`
+	SecurityEvents  []SecurityEvent `json:"security_events"`
+	ComplianceFlags map[string]bool `json:"compliance_flags"`
+	RiskScore       float64         `json:"risk_score"`
 }
 
 // SecurityEvent represents security-related events for audit trail
 // COMPLIANCE: NIST DE.AE-3 event data collected and correlated
 type SecurityEvent struct {
-	EventID     string                 `json:"event_id"`
-	EventType   string                 `json:"event_type"`
-	Timestamp   time.Time              `json:"timestamp"`
-	IPAddress   string                 `json:"ip_address"`
-	UserAgent   string                 `json:"user_agent"`
-	Details     map[string]interface{} `json:"details"`
-	RiskLevel   string                 `json:"risk_level"`
-	Mitigated   bool                   `json:"mitigated"`
+	EventID   string                 `json:"event_id"`
+	EventType string                 `json:"event_type"`
+	Timestamp time.Time              `json:"timestamp"`
+	IPAddress string                 `json:"ip_address"`
+	UserAgent string                 `json:"user_agent"`
+	Details   map[string]interface{} `json:"details"`
+	RiskLevel string                 `json:"risk_level"`
+	Mitigated bool                   `json:"mitigated"`
 }
 
 // AuditEvent represents audit trail events
 // COMPLIANCE: GDPR Art. 30 records of processing activities
 type AuditEvent struct {
-	EventID       string                 `json:"event_id"`
-	Timestamp     time.Time              `json:"timestamp"`
-	EventType     string                 `json:"event_type"`
-	UserID        string                 `json:"user_id"`
-	TokenID       string                 `json:"token_id"`
-	Action        string                 `json:"action"`
-	Result        string                 `json:"result"`
-	IPAddress     string                 `json:"ip_address"`
-	UserAgent     string                 `json:"user_agent"`
-	Metadata      map[string]interface{} `json:"metadata"`
-	ComplianceContext string              `json:"compliance_context"`
+	EventID           string                 `json:"event_id"`
+	Timestamp         time.Time              `json:"timestamp"`
+	EventType         string                 `json:"event_type"`
+	UserID            string                 `json:"user_id"`
+	TokenID           string                 `json:"token_id"`
+	Action            string                 `json:"action"`
+	Result            string                 `json:"result"`
+	IPAddress         string                 `json:"ip_address"`
+	UserAgent         string                 `json:"user_agent"`
+	Metadata          map[string]interface{} `json:"metadata"`
+	ComplianceContext string                 `json:"compliance_context"`
 }
 
 // JWTMetrics contains JWT-related metrics with compliance tracking
@@ -267,12 +267,12 @@ func NewJWTManager(config *JWTConfig, tokenStore TokenStore, blacklist TokenBlac
 		blacklist:            blacklist,
 		logger:               logger,
 		metrics:              &JWTMetrics{},
-		
+
 		// GDPR compliance settings
 		gdprComplianceMode: config.GDPRCompliance,
 		dataRetentionDays:  config.DataRetentionDays,
 		consentRequired:    config.ConsentRequired,
-		
+
 		// Security hardening
 		enforceFIPSMode:     config.EnforceFIPSMode,
 		auditTokenAccess:    config.AuditTokenAccess,
@@ -331,19 +331,19 @@ func (jm *JWTManager) GenerateAccessToken(ctx context.Context, userInfo *provide
 			IssuedAt:  jwt.NewNumericDate(now),
 			Issuer:    jm.issuer,
 		},
-		Provider:      userInfo.Provider,
-		ProviderID:    userInfo.ProviderID,
-		SessionID:     sessionID,
-		TokenType:     "access",
-		Scope:         opts.Scope,
-		IPAddress:     opts.IPAddress,
-		UserAgent:     opts.UserAgent,
-		
+		Provider:   userInfo.Provider,
+		ProviderID: userInfo.ProviderID,
+		SessionID:  sessionID,
+		TokenType:  "access",
+		Scope:      opts.Scope,
+		IPAddress:  opts.IPAddress,
+		UserAgent:  opts.UserAgent,
+
 		// GDPR compliance fields
 		ConsentGiven:          jm.consentRequired,
 		ConsentTimestamp:      now,
 		DataProcessingPurpose: "authentication_authorization",
-		
+
 		// O-RAN specific fields
 		ORANInterface: opts.ORANInterface,
 		SecurityLevel: opts.SecurityLevel,
@@ -373,7 +373,7 @@ func (jm *JWTManager) GenerateAccessToken(ctx context.Context, userInfo *provide
 	token := jwt.NewWithClaims(jwt.SigningMethodRS384, claims)
 	token.Header["kid"] = jm.keyID
 	token.Header["alg"] = "RS384" // Enhanced security
-	
+
 	// Add compliance headers
 	token.Header["fips_compliant"] = jm.enforceFIPSMode
 	token.Header["gdpr_compliant"] = jm.gdprComplianceMode
@@ -398,21 +398,21 @@ func (jm *JWTManager) GenerateAccessToken(ctx context.Context, userInfo *provide
 		Attributes: userInfo.Attributes,
 		LastUsed:   now,
 		UseCount:   0,
-		
+
 		// GDPR compliance tracking
 		ConsentGiven:       jm.consentRequired,
 		ConsentTimestamp:   now,
 		ProcessingPurpose:  "authentication_authorization",
 		DataClassification: jm.classifyTokenData(userInfo),
 		RetentionExpiry:    now.AddDate(0, 0, jm.dataRetentionDays),
-		
+
 		// Security audit
-		CreatedBy:       "jwt_manager",
-		SecurityEvents:  []SecurityEvent{},
+		CreatedBy:      "jwt_manager",
+		SecurityEvents: []SecurityEvent{},
 		ComplianceFlags: map[string]bool{
-			"gdpr_compliant":  jm.gdprComplianceMode,
-			"fips_compliant":  jm.enforceFIPSMode,
-			"oran_compliant":  true,
+			"gdpr_compliant": jm.gdprComplianceMode,
+			"fips_compliant": jm.enforceFIPSMode,
+			"oran_compliant": true,
 		},
 		RiskScore: jm.calculateRiskScore(userInfo, opts),
 	}
@@ -516,7 +516,7 @@ func (jm *JWTManager) ValidateToken(ctx context.Context, tokenString string) (*N
 	if tokenInfo, err := jm.tokenStore.GetToken(ctx, claims.ID); err == nil {
 		tokenInfo.LastUsed = time.Now()
 		tokenInfo.UseCount++
-		
+
 		// COMPLIANCE: Detect unusual usage patterns
 		if jm.detectAnomalousUsage(tokenInfo) {
 			jm.logSecurityEvent(ctx, "anomalous_token_usage", claims.ID, claims.Subject, "Unusual token usage pattern detected")
@@ -531,9 +531,9 @@ func (jm *JWTManager) ValidateToken(ctx context.Context, tokenString string) (*N
 	if jm.auditTokenAccess {
 		jm.logTokenEvent(ctx, "token_validated", claims.ID, claims.Subject, map[string]interface{}{
 			"validation_duration": time.Since(startTime),
-			"ip_address":         claims.IPAddress,
-			"user_agent":         claims.UserAgent,
-			"scope":              claims.Scope,
+			"ip_address":          claims.IPAddress,
+			"user_agent":          claims.UserAgent,
+			"scope":               claims.Scope,
 		})
 	}
 
@@ -566,7 +566,7 @@ func (jm *JWTManager) initializeSigningKey(config *JWTConfig) error {
 		if config.EnforceFIPSMode {
 			keySize = 4096 // Ensure FIPS compliance
 		}
-		
+
 		privateKey, err = rsa.GenerateKey(rand.Reader, keySize)
 		if err != nil {
 			return fmt.Errorf("failed to generate signing key: %w", err)
@@ -593,11 +593,11 @@ func (jm *JWTManager) validateKeyStrength(key *rsa.PrivateKey) error {
 	if jm.enforceFIPSMode {
 		minKeySize = 3072 // FIPS 140-3 requirement
 	}
-	
+
 	if key.Size()*8 < minKeySize {
 		return fmt.Errorf("RSA key size %d bits below minimum required %d bits", key.Size()*8, minKeySize)
 	}
-	
+
 	return nil
 }
 
@@ -651,47 +651,47 @@ func (jm *JWTManager) classifyTokenData(userInfo *providers.UserInfo) string {
 func (jm *JWTManager) calculateRiskScore(userInfo *providers.UserInfo, opts *TokenOptions) float64 {
 	// COMPLIANCE: Risk-based authentication
 	score := 0.0
-	
+
 	// High-privilege roles increase risk
 	for _, role := range userInfo.Roles {
 		if role == "admin" || role == "cluster-admin" {
 			score += 0.3
 		}
 	}
-	
+
 	// Unknown IP addresses increase risk
 	if opts.IPAddress == "" {
 		score += 0.2
 	}
-	
+
 	// Long token lifetime increases risk
 	if opts.TTL > 4*time.Hour {
 		score += 0.2
 	}
-	
+
 	return score
 }
 
 func (jm *JWTManager) validateTokenRisk(ctx context.Context, claims *NephoranJWTClaims) error {
 	// COMPLIANCE: Risk-based token validation
 	riskFactors := []string{}
-	
+
 	// Check for unusual timestamp patterns
 	if time.Since(claims.IssuedAt.Time) > 24*time.Hour {
 		riskFactors = append(riskFactors, "old_token")
 	}
-	
+
 	// Check for privilege escalation
 	for _, role := range claims.Roles {
 		if role == "cluster-admin" {
 			riskFactors = append(riskFactors, "high_privilege")
 		}
 	}
-	
+
 	if len(riskFactors) > 2 {
 		return fmt.Errorf("high risk token: %v", riskFactors)
 	}
-	
+
 	return nil
 }
 
@@ -701,12 +701,12 @@ func (jm *JWTManager) detectAnomalousUsage(tokenInfo *TokenInfo) bool {
 	if tokenInfo.UseCount > 1000 {
 		return true
 	}
-	
+
 	// Detect usage from multiple IPs (simplified check)
 	if tokenInfo.IPAddress != "" && len(tokenInfo.SecurityEvents) > 10 {
 		return true
 	}
-	
+
 	return false
 }
 
@@ -723,7 +723,7 @@ func (jm *JWTManager) logTokenEvent(ctx context.Context, eventType, tokenID, use
 		Metadata:          metadata,
 		ComplianceContext: "jwt_management",
 	}
-	
+
 	// Log to structured logger
 	jm.logger.Info("JWT audit event",
 		"event_id", auditEvent.EventID,
@@ -731,7 +731,7 @@ func (jm *JWTManager) logTokenEvent(ctx context.Context, eventType, tokenID, use
 		"user_id", userID,
 		"token_id", tokenID,
 		"metadata", metadata)
-	
+
 	jm.metrics.ComplianceAuditEvents++
 }
 
@@ -745,14 +745,14 @@ func (jm *JWTManager) logSecurityEvent(ctx context.Context, eventType, tokenID, 
 		RiskLevel: "medium",
 		Mitigated: false,
 	}
-	
+
 	jm.logger.Warn("JWT security event",
 		"event_id", securityEvent.EventID,
 		"event_type", eventType,
 		"user_id", userID,
 		"token_id", tokenID,
 		"details", details)
-	
+
 	jm.metrics.SecurityViolations++
 }
 
@@ -763,17 +763,17 @@ func (jm *JWTManager) complianceMonitoringLoop() {
 
 	for range ticker.C {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-		
+
 		// COMPLIANCE: GDPR data retention enforcement
 		if jm.gdprComplianceMode {
 			if err := jm.tokenStore.ApplyDataRetention(ctx, jm.dataRetentionDays); err != nil {
 				jm.logger.Error("Failed to apply GDPR data retention", "error", err)
 			}
 		}
-		
+
 		// COMPLIANCE: Security monitoring
 		jm.performSecurityHealthCheck(ctx)
-		
+
 		cancel()
 	}
 }
@@ -831,19 +831,19 @@ func validateJWTConfig(config *JWTConfig) error {
 	if config.DefaultTTL > time.Hour {
 		return fmt.Errorf("default TTL exceeds maximum allowed (1 hour)")
 	}
-	
+
 	if config.RefreshTTL > 168*time.Hour {
 		return fmt.Errorf("refresh TTL exceeds maximum allowed (7 days)")
 	}
-	
+
 	if config.KeyRotationPeriod < 24*time.Hour {
 		return fmt.Errorf("key rotation period below minimum required (24 hours)")
 	}
-	
+
 	if config.DataRetentionDays > 730 {
 		return fmt.Errorf("data retention period exceeds maximum allowed (2 years)")
 	}
-	
+
 	return nil
 }
 
@@ -871,7 +871,7 @@ type TokenOptions struct {
 	Scope     string
 	IPAddress string
 	UserAgent string
-	
+
 	// O-RAN specific options
 	ORANInterface string
 	SecurityLevel string
@@ -1038,7 +1038,7 @@ func (jm *JWTManager) RevokeToken(ctx context.Context, tokenString string) error
 
 	jm.logTokenEvent(ctx, "token_revoked", claims.ID, claims.Subject, map[string]interface{}{
 		"revocation_time": time.Now(),
-		"reason":         "manual_revocation",
+		"reason":          "manual_revocation",
 	})
 
 	jm.metrics.TokensRevoked++
@@ -1065,7 +1065,7 @@ func (jm *JWTManager) RevokeUserTokens(ctx context.Context, userID string) error
 	}
 
 	jm.logTokenEvent(ctx, "user_tokens_revoked", "", userID, map[string]interface{}{
-		"tokens_revoked": len(tokens),
+		"tokens_revoked":  len(tokens),
 		"revocation_time": time.Now(),
 	})
 

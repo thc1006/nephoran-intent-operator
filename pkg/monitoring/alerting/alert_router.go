@@ -910,7 +910,7 @@ func (ar *AlertRouter) metricsUpdateLoop(ctx context.Context) {
 func (ar *AlertRouter) correlateAlert(alert *Alert) *AlertGroup {
 	// TODO: Implement alert correlation
 	return &AlertGroup{
-		ID: alert.ID,
+		ID:     alert.ID,
 		Alerts: []*Alert{alert},
 	}
 }
@@ -934,10 +934,10 @@ func (pc *PriorityCalculator) CalculatePriority(alert *Alert) int {
 type ImpactAnalysis struct {
 	BusinessImpact   string
 	AffectedServices []string
-	UserImpact      float64
+	UserImpact       float64
 }
 
-// Missing ImpactAnalyzer method  
+// Missing ImpactAnalyzer method
 func (ia *ImpactAnalyzer) AnalyzeImpact(alert *Alert) BusinessImpactScore {
 	// TODO: Implement impact analysis logic
 	return BusinessImpactScore{
@@ -959,7 +959,7 @@ func (ce *ContextEnricher) FindRelatedIncidents(alert *Alert) []string {
 	return []string{}
 }
 
-// Missing GeographicRouter method  
+// Missing GeographicRouter method
 func (gr *GeographicRouter) GetContextForAlert(alert *Alert) map[string]interface{} {
 	// TODO: Implement geographic context finder
 	return map[string]interface{}{

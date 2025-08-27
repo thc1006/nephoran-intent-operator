@@ -210,7 +210,6 @@ type AlarmMask struct {
 	Parameters map[string]interface{} `json:"parameters"`
 }
 
-
 // RootCauseAnalyzer provides AI-enhanced root cause analysis
 type RootCauseAnalyzer struct {
 	knowledgeBase *RootCauseKnowledgeBase

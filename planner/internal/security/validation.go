@@ -18,11 +18,11 @@ type ValidationConfig struct {
 	MaxLatency        float64 // Maximum acceptable latency in ms (default: 10000)
 	MaxReplicas       int     // Maximum replica count (default: 100)
 	MaxActiveUEs      int     // Maximum active UEs (default: 10000)
-	
+
 	// File path validation
 	AllowedExtensions []string // Allowed file extensions
 	MaxPathLength     int      // Maximum path length (default: 4096)
-	
+
 	// URL validation
 	AllowedSchemes []string // Allowed URL schemes (default: http, https)
 	MaxURLLength   int      // Maximum URL length (default: 2048)
@@ -51,7 +51,7 @@ type ValidationError struct {
 }
 
 func (e ValidationError) Error() string {
-	return fmt.Sprintf("validation failed for %s (value: %v): %s [context: %s]", 
+	return fmt.Sprintf("validation failed for %s (value: %v): %s [context: %s]",
 		e.Field, e.Value, e.Reason, e.Context)
 }
 
@@ -77,7 +77,7 @@ func (v *Validator) ValidateKMPData(data rules.KPMData) error {
 			Context: "KMP data validation",
 		}
 	}
-	
+
 	// Timestamp should not be too far in the future (prevent time-based attacks)
 	maxFuture := time.Now().Add(5 * time.Minute)
 	if data.Timestamp.After(maxFuture) {
@@ -88,7 +88,7 @@ func (v *Validator) ValidateKMPData(data rules.KPMData) error {
 			Context: "KMP data validation",
 		}
 	}
-	
+
 	// Timestamp should not be too old (prevent replay attacks)
 	maxAge := time.Now().Add(-24 * time.Hour)
 	if data.Timestamp.Before(maxAge) {
@@ -380,11 +380,11 @@ func (v *Validator) ValidateFilePath(path string, context string) error {
 		sensitiveDirectories := []string{
 			// Unix/Linux sensitive directories
 			"/etc", "/proc", "/sys", "/dev", "/root", "/var/log", "/boot",
-			// Windows sensitive directories  
+			// Windows sensitive directories
 			"c:\\windows", "c:\\system32", "c:\\program files", "c:\\programdata",
 			"c:\\users\\all users", "c:\\users\\default", "c:\\boot",
 		}
-		
+
 		for _, sensitive := range sensitiveDirectories {
 			if strings.HasPrefix(lowerPath, sensitive) {
 				return ValidationError{
@@ -470,11 +470,11 @@ func (v *Validator) SanitizeForLogging(value string) string {
 	sanitized := strings.ReplaceAll(value, "\n", "\\n")
 	sanitized = strings.ReplaceAll(sanitized, "\r", "\\r")
 	sanitized = strings.ReplaceAll(sanitized, "\t", "\\t")
-	
+
 	// Truncate long values to prevent log flooding
 	if len(sanitized) > 256 {
 		sanitized = sanitized[:253] + "..."
 	}
-	
+
 	return sanitized
 }

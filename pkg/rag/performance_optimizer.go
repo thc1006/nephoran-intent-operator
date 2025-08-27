@@ -146,10 +146,10 @@ func (po *PerformanceOptimizer) CollectMetrics() *PerformanceMetrics {
 		LastOptimization:        po.metrics.LastOptimization,
 		PerformanceGain:         po.metrics.PerformanceGain,
 	}
-	
+
 	// Deep copy slice
 	copy(metricsCopy.GCPauses, po.metrics.GCPauses)
-	
+
 	return metricsCopy
 }
 

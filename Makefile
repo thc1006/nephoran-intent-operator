@@ -475,6 +475,25 @@ build: gen fmt vet ## Build the operator binary with optimizations
 	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) \
 		go build $(FAST_BUILD_FLAGS) $(LDFLAGS) -o bin/manager cmd/main.go
 
+.PHONY: build-porch-publisher
+build-porch-publisher: ## Build the porch-publisher binary
+	@echo "Building porch-publisher binary..."
+	@mkdir -p bin
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) \
+		go build $(FAST_BUILD_FLAGS) $(LDFLAGS) -o bin/porch-publisher cmd/porch-publisher/main.go
+
+.PHONY: build-conductor
+build-conductor: ## Build the conductor binary
+	@echo "Building conductor binary..."
+	@mkdir -p bin
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) \
+		go build $(FAST_BUILD_FLAGS) $(LDFLAGS) -o bin/conductor cmd/conductor/main.go
+
+.PHONY: build-all-binaries
+build-all-binaries: build build-porch-publisher build-conductor ## Build all core binaries
+	@echo "All binaries built successfully!"
+	@ls -la bin/
+
 .PHONY: build-debug
 build-debug: gen fmt vet ## Build the operator binary with debug info
 	@echo "Building operator binary with debug info..."

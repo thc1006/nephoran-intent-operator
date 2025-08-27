@@ -87,9 +87,9 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 
 			for _, tc := range testCases {
 				By(fmt.Sprintf("Testing %s: %s", tc.name, tc.description))
-				
+
 				err := k8sClient.Create(ctx, tc.intent)
-				
+
 				if tc.shouldFail {
 					Expect(err).Should(HaveOccurred())
 					By(fmt.Sprintf("Correctly rejected invalid intent: %s", tc.name))
@@ -127,9 +127,9 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 
 			for i, tc := range malformedIntents {
 				intentName := fmt.Sprintf("malformed-intent-%d", i)
-				
+
 				By(fmt.Sprintf("Testing malformed intent: %s", tc.name))
-				
+
 				networkIntent := &nephoran.NetworkIntent{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      intentName,
@@ -146,7 +146,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 				}
 
 				err := k8sClient.Create(ctx, networkIntent)
-				
+
 				if err == nil {
 					// If creation succeeded, verify controller handles it gracefully
 					lookupKey := types.NamespacedName{Name: intentName, Namespace: namespace}
@@ -158,7 +158,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 						if err != nil {
 							return false
 						}
-						
+
 						// Controller should either process it or report an error gracefully
 						return len(createdIntent.Status.Conditions) > 0
 					}, 30*time.Second, 2*time.Second).Should(BeTrue())
@@ -172,7 +172,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 							break
 						}
 					}
-					
+
 					// Should have at least some status reporting
 					Expect(hasCondition || createdIntent.Status.Phase == "Processing").Should(BeTrue())
 
@@ -192,8 +192,8 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 					Name:      intentName,
 					Namespace: namespace,
 					Annotations: map[string]string{
-						"nephoran.io/test-timeout":  "true",
-						"nephoran.io/complexity":    "high",
+						"nephoran.io/test-timeout": "true",
+						"nephoran.io/complexity":   "high",
 					},
 				},
 				Spec: nephoran.NetworkIntentSpec{
@@ -224,7 +224,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 
 			By("Monitoring for timeout handling in controller")
 			timeoutDetected := false
-			
+
 			// Monitor for a reasonable time, but expect timeout handling
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, lookupKey, createdIntent)
@@ -235,22 +235,22 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 				// Check for timeout-related conditions or messages
 				for _, condition := range createdIntent.Status.Conditions {
 					if strings.Contains(strings.ToLower(condition.Message), "timeout") ||
-					   strings.Contains(strings.ToLower(condition.Message), "timed out") ||
-					   strings.Contains(strings.ToLower(condition.Reason), "timeout") {
+						strings.Contains(strings.ToLower(condition.Message), "timed out") ||
+						strings.Contains(strings.ToLower(condition.Reason), "timeout") {
 						timeoutDetected = true
 						return true
 					}
 				}
 
 				// Or check if it's still processing after reasonable time
-				return createdIntent.Status.Phase == "Processing" && 
-					   len(createdIntent.Status.Conditions) > 0
+				return createdIntent.Status.Phase == "Processing" &&
+					len(createdIntent.Status.Conditions) > 0
 			}, 120*time.Second, 5*time.Second).Should(BeTrue())
 
 			By("Verifying timeout is handled gracefully with proper error reporting")
 			if timeoutDetected {
 				By("Timeout was properly detected and reported")
-				
+
 				// Verify timeout condition has proper details
 				hasTimeoutCondition := false
 				for _, condition := range createdIntent.Status.Conditions {
@@ -279,7 +279,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 					Name:      intentName,
 					Namespace: namespace,
 					Annotations: map[string]string{
-						"nephoran.io/test-recovery": "true",
+						"nephoran.io/test-recovery":    "true",
 						"nephoran.io/simulate-failure": "transient",
 					},
 				},
@@ -300,7 +300,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 
 			By("Monitoring recovery behavior")
 			var statusProgression []string
-			
+
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, lookupKey, createdIntent)
 				if err != nil {
@@ -315,8 +315,8 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 				// Look for recovery indicators
 				for _, condition := range createdIntent.Status.Conditions {
 					if strings.Contains(strings.ToLower(condition.Message), "retry") ||
-					   strings.Contains(strings.ToLower(condition.Message), "recover") ||
-					   condition.Type == "Recovering" {
+						strings.Contains(strings.ToLower(condition.Message), "recover") ||
+						condition.Type == "Recovering" {
 						return true
 					}
 				}
@@ -327,7 +327,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 
 			By("Verifying recovery progression")
 			Expect(len(statusProgression)).Should(BeNumerically(">=", 1))
-			
+
 			// Should have some status updates indicating activity
 			Expect(createdIntent.Status.LastProcessed).ShouldNot(BeNil())
 			Expect(len(createdIntent.Status.Conditions)).Should(BeNumerically(">=", 1))
@@ -346,7 +346,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 					Name:      intentName,
 					Namespace: namespace,
 					Annotations: map[string]string{
-						"nephoran.io/test-constraints": "true",
+						"nephoran.io/test-constraints":   "true",
 						"nephoran.io/resource-intensive": "true",
 					},
 				},
@@ -377,10 +377,10 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 				for _, condition := range createdIntent.Status.Conditions {
 					message := strings.ToLower(condition.Message)
 					if strings.Contains(message, "resource") ||
-					   strings.Contains(message, "capacity") ||
-					   strings.Contains(message, "insufficient") ||
-					   strings.Contains(message, "quota") ||
-					   strings.Contains(message, "limit") {
+						strings.Contains(message, "capacity") ||
+						strings.Contains(message, "insufficient") ||
+						strings.Contains(message, "quota") ||
+						strings.Contains(message, "limit") {
 						return true
 					}
 				}
@@ -393,9 +393,9 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 			hasResourceCondition := false
 			for _, condition := range createdIntent.Status.Conditions {
 				message := strings.ToLower(condition.Message)
-				if strings.Contains(message, "resource") || 
-				   strings.Contains(message, "capacity") ||
-				   condition.Status == "False" {
+				if strings.Contains(message, "resource") ||
+					strings.Contains(message, "capacity") ||
+					condition.Status == "False" {
 					Expect(condition.Message).ShouldNot(BeEmpty())
 					Expect(condition.LastTransitionTime).ShouldNot(BeNil())
 					hasResourceCondition = true
@@ -418,7 +418,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 					Name:      intentName,
 					Namespace: namespace,
 					Annotations: map[string]string{
-						"nephoran.io/test-network-errors": "true",
+						"nephoran.io/test-network-errors":   "true",
 						"nephoran.io/external-dependencies": "true",
 					},
 				},
@@ -450,9 +450,9 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 					message := strings.ToLower(condition.Message)
 					reason := strings.ToLower(condition.Reason)
 					if strings.Contains(message, "connection") ||
-					   strings.Contains(message, "network") ||
-					   strings.Contains(message, "unreachable") ||
-					   strings.Contains(reason, "network") {
+						strings.Contains(message, "network") ||
+						strings.Contains(message, "unreachable") ||
+						strings.Contains(reason, "network") {
 						return true
 					}
 				}
@@ -513,7 +513,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 					if err != nil {
 						return false
 					}
-					
+
 					// Should have some status, whether success or error
 					return len(retrievedIntent.Status.Conditions) > 0 || retrievedIntent.Status.Phase != ""
 				}, 60*time.Second, 2*time.Second).Should(BeTrue())
@@ -547,7 +547,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 			By("Creating and processing various error-inducing intents")
 			errorScenarios := []string{
 				"system-stability-test-1",
-				"system-stability-test-2", 
+				"system-stability-test-2",
 				"system-stability-test-3",
 			}
 

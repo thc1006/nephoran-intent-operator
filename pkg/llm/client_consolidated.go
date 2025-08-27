@@ -128,19 +128,19 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 		// O-RAN WG11 Compliance: TLS 1.3 minimum required
 		MinVersion: tls.VersionTLS13,
 		MaxVersion: tls.VersionTLS13,
-		
+
 		// TLS 1.3 AEAD cipher suites (strongest available)
 		CipherSuites: []uint16{
-			tls.TLS_AES_256_GCM_SHA384,        // Primary choice - strongest AEAD
-			tls.TLS_CHACHA20_POLY1305_SHA256,  // Alternative for performance
+			tls.TLS_AES_256_GCM_SHA384,       // Primary choice - strongest AEAD
+			tls.TLS_CHACHA20_POLY1305_SHA256, // Alternative for performance
 		},
-		
+
 		// Security hardening
 		PreferServerCipherSuites: true,
-		SessionTicketsDisabled:   true,  // Perfect forward secrecy
-		Renegotiation:           tls.RenegotiateNever,
-		NextProtos:              []string{"h2", "http/1.1"},
-		
+		SessionTicketsDisabled:   true, // Perfect forward secrecy
+		Renegotiation:            tls.RenegotiateNever,
+		NextProtos:               []string{"h2", "http/1.1"},
+
 		// SECURITY: Never skip verification in production
 		InsecureSkipVerify: false,
 	}

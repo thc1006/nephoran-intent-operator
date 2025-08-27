@@ -407,7 +407,7 @@ func (sv *StandardYANGValidator) ValidateXPath(xpath string, modelName string) e
 	// TODO: Add Schema field to YANGModel to support XPath validation
 	// var currentSchema interface{} = model.Schema
 	return fmt.Errorf("XPath validation not supported - Schema field missing from YANGModel")
-	
+
 	// Commented out entire XPath validation function due to missing Schema field
 	// for i, part := range parts {
 	//     ... [entire function body commented out]
@@ -541,12 +541,12 @@ func (yr *YANGModelRegistry) GetStatistics() map[string]interface{} {
 	modelStats := make(map[string]interface{})
 	for name, model := range yr.models {
 		modelStats[name] = map[string]interface{}{
-			"version":    model.Version,
+			"version": model.Version,
 			// "revision":   model.Revision, // Field not available in YANGModel
-			"namespace":  model.Namespace,
+			"namespace": model.Namespace,
 			// "load_time":  model.LoadTime, // Field not available in YANGModel
 			// "has_schema": len(model.Schema) > 0, // Field not available in YANGModel
-			"features":   len(model.Features),
+			"features": len(model.Features),
 		}
 	}
 	stats["models"] = modelStats

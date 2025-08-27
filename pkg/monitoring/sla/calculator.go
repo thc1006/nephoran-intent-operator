@@ -294,7 +294,7 @@ type ThroughputCalculator struct {
 	// Rate tracking
 	requestCounter    *RateCounter
 	capacityTracker   *CapacityTracker
-	queueDepthMonitor *QueueDepthMonitor
+	queueDepthMonitor *ThroughputQueueDepthMonitor
 
 	// Historical data
 	throughputHistory *TimeSeries
@@ -531,7 +531,7 @@ func NewCalculator(config *CalculatorConfig, logger *logging.StructuredLogger) (
 	throughputCalc := &ThroughputCalculator{
 		requestCounter:    NewRateCounter(),
 		capacityTracker:   NewCapacityTracker(),
-		queueDepthMonitor: NewQueueDepthMonitor(),
+		queueDepthMonitor: NewThroughputQueueDepthMonitor(),
 		throughputHistory: NewTimeSeries(config.MaxHistoryPoints),
 		peakTracker:       NewPeakTracker(),
 		metrics: &ThroughputMetrics{
@@ -766,7 +766,7 @@ func (c *Calculator) performCalculation() {
 	defer func() {
 		duration := time.Since(start)
 		c.metrics.CalculationLatency.WithLabelValues("full_cycle").Observe(duration.Seconds())
-		atomic.AddUint64(&c.calculationCount, 1)
+		c.calculationCount.Add(1)
 	}()
 
 	// Calculate each SLI dimension
@@ -795,8 +795,8 @@ func (c *Calculator) performCalculation() {
 	c.currentState = state
 	c.mu.Unlock()
 
-	// Add to history
-	c.stateHistory.Add(state.Timestamp, 0) // Simplified for circular buffer
+	// Add to history - store composite availability as the tracked metric
+	c.stateHistory.Add(state.CompositeAvailability)
 
 	// Update metrics
 	c.updateSLIMetrics(state)
@@ -1019,7 +1019,7 @@ func (c *Calculator) calculateSLOCompliance(state *SLIState) {
 		}
 	}
 	state.ViolationCount = violationCount
-	atomic.StoreUint64(&c.violationCount, uint64(violationCount))
+	c.violationCount.Store(uint64(violationCount))
 }
 
 // updateSLIMetrics updates Prometheus metrics with current SLI values
@@ -1221,7 +1221,7 @@ func NewRateCounter() *RateCounter {
 	return &RateCounter{windows: make(map[time.Duration]*SlidingWindow)}
 }
 func NewCapacityTracker() *CapacityTracker     { return &CapacityTracker{} }
-func NewQueueDepthMonitor() *QueueDepthMonitor { return &QueueDepthMonitor{} }
+func NewThroughputQueueDepthMonitor() *ThroughputQueueDepthMonitor { return &ThroughputQueueDepthMonitor{} }
 func NewPeakTracker() *PeakTracker             { return &PeakTracker{} }
 func NewErrorCounter() *ErrorCounter {
 	return &ErrorCounter{errorsByType: make(map[string]*atomic.Uint64), errorsBySeverity: make(map[string]*atomic.Uint64)}
@@ -1241,7 +1241,7 @@ func NewDowntimeTracker() *DowntimeTracker { return &DowntimeTracker{} }
 type LatencyTimeSeries struct{}
 type LatencyViolationTracker struct{}
 type CapacityTracker struct{}
-type QueueDepthMonitor struct{}
+type ThroughputQueueDepthMonitor struct{}
 type PeakTracker struct{}
 type SLOComplianceTracker struct{}
 type DowntimeTracker struct{}
@@ -1288,10 +1288,10 @@ func NewCircularBuffer(capacity int) *CircularBuffer {
 func (cb *CircularBuffer) Add(value float64) {
 	cb.mu.Lock()
 	defer cb.mu.Unlock()
-	
+
 	cb.data[cb.tail] = value
 	cb.tail = (cb.tail + 1) % cb.capacity
-	
+
 	if cb.size < cb.capacity {
 		cb.size++
 	} else {
@@ -1303,7 +1303,7 @@ func (cb *CircularBuffer) Add(value float64) {
 func (cb *CircularBuffer) GetAll() []float64 {
 	cb.mu.RLock()
 	defer cb.mu.RUnlock()
-	
+
 	result := make([]float64, cb.size)
 	for i := 0; i < cb.size; i++ {
 		idx := (cb.head + i) % cb.capacity
@@ -1337,9 +1337,9 @@ func NewTimeSeries(capacity int) *TimeSeries {
 func (ts *TimeSeries) Add(timestamp time.Time, value float64) {
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
-	
+
 	point := TimePoint{Timestamp: timestamp, Value: value}
-	
+
 	if len(ts.points) >= ts.capacity {
 		ts.points = ts.points[1:]
 	}
@@ -1350,7 +1350,7 @@ func (ts *TimeSeries) Add(timestamp time.Time, value float64) {
 func (ts *TimeSeries) GetPoints() []TimePoint {
 	ts.mu.RLock()
 	defer ts.mu.RUnlock()
-	
+
 	result := make([]TimePoint, len(ts.points))
 	copy(result, ts.points)
 	return result

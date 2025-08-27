@@ -7,7 +7,6 @@ import (
 
 // Shared types used across multiple O1 managers to avoid duplicates
 
-
 // EventCallback is a generic callback function for events (used by multiple managers)
 // EventCallback defined in common_types.go
 
@@ -28,14 +27,14 @@ type ReportGeneratorInterface interface {
 type BaseReportGenerator struct {
 	name             string
 	supportedFormats []string
-	config          map[string]interface{}
+	config           map[string]interface{}
 }
 
 func NewBaseReportGenerator(name string, formats []string, config map[string]interface{}) *BaseReportGenerator {
 	return &BaseReportGenerator{
 		name:             name,
 		supportedFormats: formats,
-		config:          config,
+		config:           config,
 	}
 }
 

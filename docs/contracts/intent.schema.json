@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://example.com/schemas/intent.schema.json",
+  "$id": "https://github.com/thc1006/nephoran-intent-operator/schemas/intent.schema.json",
   "title": "ScalingIntent",
   "type": "object",
   "additionalProperties": false,

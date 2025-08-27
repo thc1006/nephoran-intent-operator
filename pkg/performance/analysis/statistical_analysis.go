@@ -39,11 +39,11 @@ func (sa *StatisticalAnalyzer) DescriptiveStatistics() DescriptiveStats {
 	if len(values) == 0 {
 		return DescriptiveStats{}
 	}
-	
+
 	sortedValues := make([]float64, len(values))
 	copy(sortedValues, values)
 	sort.Float64s(sortedValues)
-	
+
 	return DescriptiveStats{
 		Mean:         stat.Mean(values, nil),
 		Median:       median(sortedValues),
@@ -143,15 +143,15 @@ func percentile(sortedValues []float64, p float64) float64 {
 	if p >= 1 {
 		return sortedValues[len(sortedValues)-1]
 	}
-	
+
 	index := p * float64(len(sortedValues)-1)
 	lower := int(index)
 	upper := lower + 1
-	
+
 	if upper >= len(sortedValues) {
 		return sortedValues[lower]
 	}
-	
+
 	weight := index - float64(lower)
 	return sortedValues[lower]*(1-weight) + sortedValues[upper]*weight
 }

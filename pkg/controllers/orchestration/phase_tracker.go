@@ -28,8 +28,8 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
-// Conflict represents a resource conflict between intents
-type Conflict struct {
+// Conflict_PhaseTracker represents a resource conflict between intents
+type Conflict_PhaseTracker struct {
 	ID          string                 `json:"id"`
 	Type        string                 `json:"type"`
 	IntentID1   string                 `json:"intentId1"`
@@ -41,15 +41,15 @@ type Conflict struct {
 	Timestamp   time.Time              `json:"timestamp"`
 }
 
-// CoordinationContext holds coordination state for an intent
-type CoordinationContext struct {
+// CoordinationContext_PhaseTracker holds coordination state for an intent
+type CoordinationContext_PhaseTracker struct {
 	IntentID        string
 	CurrentPhase    interfaces.ProcessingPhase
 	CompletedPhases []interfaces.ProcessingPhase
 	FailedPhases    []interfaces.ProcessingPhase
 	Locks           []string
 	Dependencies    []string
-	Conflicts       []Conflict
+	Conflicts       []Conflict_PhaseTracker
 	ErrorHistory    []string
 	RetryCount      int
 	StartTime       time.Time
@@ -156,7 +156,7 @@ type ConflictResolver struct {
 }
 
 // ConflictResolutionStrategy defines how to resolve a specific type of conflict
-type ConflictResolutionStrategy func(conflict Conflict) (bool, error)
+type ConflictResolutionStrategy func(conflict Conflict_PhaseTracker) (bool, error)
 
 // NewConflictResolver creates a new ConflictResolver
 func NewConflictResolver(client client.Client, logger logr.Logger) *ConflictResolver {
@@ -172,7 +172,7 @@ func NewConflictResolver(client client.Client, logger logr.Logger) *ConflictReso
 }
 
 // ResolveConflict attempts to resolve a conflict
-func (cr *ConflictResolver) ResolveConflict(ctx context.Context, conflict Conflict) (bool, error) {
+func (cr *ConflictResolver) ResolveConflict(ctx context.Context, conflict Conflict_PhaseTracker) (bool, error) {
 	if strategy, exists := cr.resolutionStrategies[conflict.Type]; exists {
 		return strategy(conflict)
 	}
@@ -182,7 +182,7 @@ func (cr *ConflictResolver) ResolveConflict(ctx context.Context, conflict Confli
 }
 
 // genericResolution provides generic conflict resolution
-func (cr *ConflictResolver) genericResolution(conflict Conflict) (bool, error) {
+func (cr *ConflictResolver) genericResolution(conflict Conflict_PhaseTracker) (bool, error) {
 	// For now, log and return false (manual intervention required)
 	cr.logger.Info("Generic conflict resolution not implemented", "conflictType", conflict.Type, "conflictId", conflict.ID)
 	return false, nil
@@ -190,18 +190,18 @@ func (cr *ConflictResolver) genericResolution(conflict Conflict) (bool, error) {
 
 // Resolution strategies
 
-func resolveNamespaceConflict(conflict Conflict) (bool, error) {
+func resolveNamespaceConflict(conflict Conflict_PhaseTracker) (bool, error) {
 	// Simplified namespace conflict resolution
 	// In practice, this might involve creating separate namespaces or prioritizing based on intent priority
 	return true, nil // Assume we can always resolve namespace conflicts
 }
 
-func resolveResourceConflict(conflict Conflict) (bool, error) {
+func resolveResourceConflict(conflict Conflict_PhaseTracker) (bool, error) {
 	// Resource conflicts might be resolved by resource sharing or priority-based allocation
 	return false, nil // Require manual intervention for now
 }
 
-func resolveDependencyConflict(conflict Conflict) (bool, error) {
+func resolveDependencyConflict(conflict Conflict_PhaseTracker) (bool, error) {
 	// Dependency conflicts might be resolved by reordering or parallel execution
 	return true, nil // Assume we can resolve dependency conflicts
 }

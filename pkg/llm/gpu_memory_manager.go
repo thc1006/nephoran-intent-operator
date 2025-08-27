@@ -4,12 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"sort"
 	"sync"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -24,192 +21,192 @@ type GPUMemoryManager struct {
 
 	// Memory pools per device
 	devicePools map[int]*DeviceMemoryPool
-	
+
 	// Global memory coordination
 	globalAllocator *GlobalMemoryAllocator
-	defragmenter   *MemoryDefragmenter
-	gcManager      *GPUGCManager
+	defragmenter    *MemoryDefragmenter
+	gcManager       *GPUGCManager
 
 	// Memory optimization
-	optimizer      *MemoryOptimizer
-	compressor     *MemoryCompressor
-	prefetcher     *MemoryPrefetcher
+	optimizer  *MemoryOptimizer
+	compressor *MemoryCompressor
+	prefetcher *MemoryPrefetcher
 
 	// Resource tracking
-	tracker        *ResourceTracker
-	monitor        *MemoryMonitor
-	profiler       *MemoryProfiler
+	tracker  *ResourceTracker
+	monitor  *MemoryMonitor
+	profiler *MemoryProfiler
 
 	// Configuration
-	config         *GPUMemoryConfig
-	
+	config *GPUMemoryConfig
+
 	// Metrics
-	metrics        *GPUMemoryMetrics
+	metrics *GPUMemoryMetrics
 
 	// State management
-	state          ManagerState
-	stateMutex     sync.RWMutex
+	state      ManagerState
+	stateMutex sync.RWMutex
 }
 
 // DeviceMemoryPool manages memory allocation for a specific GPU device
 type DeviceMemoryPool struct {
-	deviceID       int
-	totalMemory    int64
+	deviceID        int
+	totalMemory     int64
 	availableMemory int64
-	
+
 	// Memory segments by size class
-	smallBlocks    *MemoryBlockPool // < 100MB
-	mediumBlocks   *MemoryBlockPool // 100MB - 1GB
-	largeBlocks    *MemoryBlockPool // > 1GB
-	
+	smallBlocks  *MemoryBlockPool // < 100MB
+	mediumBlocks *MemoryBlockPool // 100MB - 1GB
+	largeBlocks  *MemoryBlockPool // > 1GB
+
 	// Allocation tracking
 	activeAllocations map[uintptr]*MemoryAllocation
 	allocationHistory []AllocationRecord
-	
+
 	// Memory fragmentation management
 	fragmentationLevel float64
 	defragThreshold    float64
 	lastDefragTime     time.Time
-	
+
 	// Performance optimization
-	allocationCache    *AllocationCache
-	reusableBuffers    *BufferPool
-	
+	allocationCache *AllocationCache
+	reusableBuffers *BufferPool
+
 	// Metrics and monitoring
-	allocStats        *AllocationStats
-	peakUsage         int64
-	
-	mutex             sync.RWMutex
+	allocStats *AllocationStats
+	peakUsage  int64
+
+	mutex sync.RWMutex
 }
 
 // MemoryBlockPool manages a pool of memory blocks of similar sizes
 type MemoryBlockPool struct {
-	blockSize         int64
-	maxBlocks         int
-	availableBlocks   []*MemoryBlock
-	allocatedBlocks   []*MemoryBlock
-	
+	blockSize       int64
+	maxBlocks       int
+	availableBlocks []*MemoryBlock
+	allocatedBlocks []*MemoryBlock
+
 	// Pool statistics
-	totalAllocations  int64
+	totalAllocations   int64
 	totalDeallocations int64
-	peakUtilization   float64
-	
+	peakUtilization    float64
+
 	// Optimization features
-	preallocationSize int
-	growthStrategy    GrowthStrategy
+	preallocationSize  int
+	growthStrategy     GrowthStrategy
 	compressionEnabled bool
-	
-	mutex             sync.RWMutex
+
+	mutex sync.RWMutex
 }
 
 // MemoryBlock represents a GPU memory block
 type MemoryBlock struct {
-	ptr               GPUMemoryPtr
-	size              int64
-	deviceID          int
-	streamID          int
-	
+	ptr      GPUMemoryPtr
+	size     int64
+	deviceID int
+	streamID int
+
 	// Allocation metadata
-	allocatedAt       time.Time
-	lastAccessed      time.Time
-	accessCount       int64
-	
+	allocatedAt  time.Time
+	lastAccessed time.Time
+	accessCount  int64
+
 	// Memory characteristics
-	isContiguous      bool
-	isAligned         bool
-	isPinned          bool
-	
+	isContiguous bool
+	isAligned    bool
+	isPinned     bool
+
 	// Optimization flags
-	isCompressed      bool
-	compressionRatio  float64
-	isDefragmented    bool
-	
+	isCompressed     bool
+	compressionRatio float64
+	isDefragmented   bool
+
 	// Usage tracking
-	ownerID           string
-	ownerType         MemoryOwnerType
-	priority          AllocationPriority
-	
-	mutex             sync.RWMutex
+	ownerID   string
+	ownerType MemoryOwnerType
+	priority  AllocationPriority
+
+	mutex sync.RWMutex
 }
 
 // MemoryAllocation tracks a specific memory allocation
 type MemoryAllocation struct {
-	ID                string
-	Block             *MemoryBlock
-	RequestedSize     int64
-	AllocatedSize     int64
-	
+	ID            string
+	Block         *MemoryBlock
+	RequestedSize int64
+	AllocatedSize int64
+
 	// Allocation context
-	OwnerID           string
-	OwnerType         MemoryOwnerType
-	Purpose           AllocationPurpose
-	Priority          AllocationPriority
-	
+	OwnerID   string
+	OwnerType MemoryOwnerType
+	Purpose   AllocationPurpose
+	Priority  AllocationPriority
+
 	// Performance tracking
 	AllocationTime    time.Duration
 	AccessPattern     AccessPattern
 	FragmentationCost float64
-	
+
 	// Lifecycle management
-	CreatedAt         time.Time
-	LastAccessed      time.Time
-	ExpiresAt         time.Time
-	RefCount          int32
-	
-	mutex             sync.RWMutex
+	CreatedAt    time.Time
+	LastAccessed time.Time
+	ExpiresAt    time.Time
+	RefCount     int32
+
+	mutex sync.RWMutex
 }
 
 // GPUMemoryConfig holds comprehensive memory management configuration
 type GPUMemoryConfig struct {
 	// Per-device configuration
-	DeviceConfigs       map[int]*DeviceMemoryConfig `json:"device_configs"`
-	
+	DeviceConfigs map[int]*DeviceMemoryConfig `json:"device_configs"`
+
 	// Memory pool configuration
-	EnableMemoryPools   bool    `json:"enable_memory_pools"`
-	PoolGrowthFactor    float64 `json:"pool_growth_factor"`
-	MaxPoolSizeRatio    float64 `json:"max_pool_size_ratio"`
-	
+	EnableMemoryPools bool    `json:"enable_memory_pools"`
+	PoolGrowthFactor  float64 `json:"pool_growth_factor"`
+	MaxPoolSizeRatio  float64 `json:"max_pool_size_ratio"`
+
 	// Fragmentation management
 	DefragmentationThreshold float64       `json:"defragmentation_threshold"`
 	DefragmentationInterval  time.Duration `json:"defragmentation_interval"`
-	EnableAutoDefrag        bool          `json:"enable_auto_defrag"`
-	
+	EnableAutoDefrag         bool          `json:"enable_auto_defrag"`
+
 	// Garbage collection
-	GCTriggerThreshold      float64       `json:"gc_trigger_threshold"`
-	GCInterval              time.Duration `json:"gc_interval"`
-	EnablePredictiveGC      bool          `json:"enable_predictive_gc"`
-	
+	GCTriggerThreshold float64       `json:"gc_trigger_threshold"`
+	GCInterval         time.Duration `json:"gc_interval"`
+	EnablePredictiveGC bool          `json:"enable_predictive_gc"`
+
 	// Memory optimization
-	EnableCompression       bool    `json:"enable_compression"`
-	CompressionThreshold    int64   `json:"compression_threshold"`
-	CompressionRatio        float64 `json:"target_compression_ratio"`
-	
+	EnableCompression    bool    `json:"enable_compression"`
+	CompressionThreshold int64   `json:"compression_threshold"`
+	CompressionRatio     float64 `json:"target_compression_ratio"`
+
 	// Allocation strategy
-	AllocationStrategy      AllocationStrategy `json:"allocation_strategy"`
-	AlignmentRequirement    int64             `json:"alignment_requirement"`
-	EnableCoalescing        bool              `json:"enable_coalescing"`
-	
+	AllocationStrategy   AllocationStrategy `json:"allocation_strategy"`
+	AlignmentRequirement int64              `json:"alignment_requirement"`
+	EnableCoalescing     bool               `json:"enable_coalescing"`
+
 	// Monitoring and profiling
-	EnableProfiling         bool          `json:"enable_profiling"`
-	ProfileInterval         time.Duration `json:"profile_interval"`
-	EnableAllocationTracking bool         `json:"enable_allocation_tracking"`
-	
+	EnableProfiling          bool          `json:"enable_profiling"`
+	ProfileInterval          time.Duration `json:"profile_interval"`
+	EnableAllocationTracking bool          `json:"enable_allocation_tracking"`
+
 	// Error handling and recovery
-	EnableMemoryRecovery    bool    `json:"enable_memory_recovery"`
+	EnableMemoryRecovery   bool    `json:"enable_memory_recovery"`
 	OOMThreshold           float64 `json:"oom_threshold"`
 	FallbackToSystemMemory bool    `json:"fallback_to_system_memory"`
 }
 
 // DeviceMemoryConfig holds per-device memory configuration
 type DeviceMemoryConfig struct {
-	DeviceID              int     `json:"device_id"`
-	ReserveRatio          float64 `json:"reserve_ratio"`
-	SmallBlockSizeKB      int64   `json:"small_block_size_kb"`
-	MediumBlockSizeMB     int64   `json:"medium_block_size_mb"`
-	LargeBlockSizeGB      int64   `json:"large_block_size_gb"`
-	MaxCachedBlocks       int     `json:"max_cached_blocks"`
-	EnablePrefetch        bool    `json:"enable_prefetch"`
-	PrefetchSizeRatio     float64 `json:"prefetch_size_ratio"`
+	DeviceID          int     `json:"device_id"`
+	ReserveRatio      float64 `json:"reserve_ratio"`
+	SmallBlockSizeKB  int64   `json:"small_block_size_kb"`
+	MediumBlockSizeMB int64   `json:"medium_block_size_mb"`
+	LargeBlockSizeGB  int64   `json:"large_block_size_gb"`
+	MaxCachedBlocks   int     `json:"max_cached_blocks"`
+	EnablePrefetch    bool    `json:"enable_prefetch"`
+	PrefetchSizeRatio float64 `json:"prefetch_size_ratio"`
 }
 
 // NewGPUMemoryManager creates a new GPU memory manager
@@ -223,13 +220,13 @@ func NewGPUMemoryManager(config *GPUMemoryConfig, availableDevices []int) (*GPUM
 	meter := otel.Meter("nephoran-intent-operator/llm/memory")
 
 	manager := &GPUMemoryManager{
-		logger:       logger,
-		tracer:       tracer,
-		meter:        meter,
-		devicePools:  make(map[int]*DeviceMemoryPool),
-		config:       config,
-		metrics:      NewGPUMemoryMetrics(meter),
-		state:        ManagerStateActive,
+		logger:      logger,
+		tracer:      tracer,
+		meter:       meter,
+		devicePools: make(map[int]*DeviceMemoryPool),
+		config:      config,
+		metrics:     NewGPUMemoryMetrics(meter),
+		state:       ManagerStateActive,
 	}
 
 	// Initialize device memory pools
@@ -311,7 +308,7 @@ func (gmm *GPUMemoryManager) AllocateMemory(ctx context.Context, size int64, pur
 					return nil, fmt.Errorf("memory recovery failed: %w", err)
 				}
 			} else {
-				return nil, fmt.Errorf("insufficient memory on device %d: requested %d, available %d", 
+				return nil, fmt.Errorf("insufficient memory on device %d: requested %d, available %d",
 					deviceID, size, pool.availableMemory)
 			}
 		}
@@ -480,7 +477,7 @@ func (gmm *GPUMemoryManager) GetMemoryStats() *MemoryStats {
 		pool.mutex.RUnlock()
 
 		stats.DeviceStats[deviceID] = deviceStats
-		
+
 		totalMemory += deviceStats.TotalMemory
 		totalUsed += deviceStats.UsedMemory
 		totalAvailable += deviceStats.AvailableMemory
@@ -538,7 +535,7 @@ func (gmm *GPUMemoryManager) garbageCollectionRoutine() {
 
 func (gmm *GPUMemoryManager) performMemoryMonitoring() {
 	stats := gmm.GetMemoryStats()
-	
+
 	// Update metrics
 	for deviceID, deviceStats := range stats.DeviceStats {
 		gmm.metrics.RecordMemoryUsage(deviceStats.UsedMemory, deviceID)
@@ -548,14 +545,14 @@ func (gmm *GPUMemoryManager) performMemoryMonitoring() {
 	// Check for memory pressure
 	for deviceID, pool := range gmm.devicePools {
 		utilizationPercent := float64(pool.totalMemory-pool.availableMemory) / float64(pool.totalMemory)
-		
+
 		if utilizationPercent > gmm.config.OOMThreshold {
 			gmm.logger.Warn("High memory utilization detected",
 				"device_id", deviceID,
 				"utilization", utilizationPercent*100,
 				"threshold", gmm.config.OOMThreshold*100,
 			)
-			
+
 			// Trigger emergency garbage collection
 			go gmm.performGarbageCollection(deviceID)
 		}
@@ -629,41 +626,41 @@ func (gmm *GPUMemoryManager) Close() error {
 
 func getDefaultGPUMemoryConfig() *GPUMemoryConfig {
 	return &GPUMemoryConfig{
-		EnableMemoryPools:           true,
-		PoolGrowthFactor:           1.5,
-		MaxPoolSizeRatio:           0.8,
-		DefragmentationThreshold:   0.3,
-		DefragmentationInterval:    5 * time.Minute,
-		EnableAutoDefrag:           true,
-		GCTriggerThreshold:         0.8,
-		GCInterval:                 2 * time.Minute,
-		EnablePredictiveGC:         true,
-		EnableCompression:          true,
-		CompressionThreshold:       1024 * 1024, // 1MB
-		CompressionRatio:           0.7,
-		AllocationStrategy:         AllocationStrategyBestFit,
-		AlignmentRequirement:       256,
-		EnableCoalescing:           true,
-		EnableProfiling:            true,
-		ProfileInterval:            30 * time.Second,
-		EnableAllocationTracking:   true,
-		EnableMemoryRecovery:       true,
-		OOMThreshold:               0.9,
-		FallbackToSystemMemory:     false,
-		DeviceConfigs:              make(map[int]*DeviceMemoryConfig),
+		EnableMemoryPools:        true,
+		PoolGrowthFactor:         1.5,
+		MaxPoolSizeRatio:         0.8,
+		DefragmentationThreshold: 0.3,
+		DefragmentationInterval:  5 * time.Minute,
+		EnableAutoDefrag:         true,
+		GCTriggerThreshold:       0.8,
+		GCInterval:               2 * time.Minute,
+		EnablePredictiveGC:       true,
+		EnableCompression:        true,
+		CompressionThreshold:     1024 * 1024, // 1MB
+		CompressionRatio:         0.7,
+		AllocationStrategy:       AllocationStrategyBestFit,
+		AlignmentRequirement:     256,
+		EnableCoalescing:         true,
+		EnableProfiling:          true,
+		ProfileInterval:          30 * time.Second,
+		EnableAllocationTracking: true,
+		EnableMemoryRecovery:     true,
+		OOMThreshold:             0.9,
+		FallbackToSystemMemory:   false,
+		DeviceConfigs:            make(map[int]*DeviceMemoryConfig),
 	}
 }
 
 func getDefaultDeviceMemoryConfig(deviceID int) *DeviceMemoryConfig {
 	return &DeviceMemoryConfig{
-		DeviceID:              deviceID,
-		ReserveRatio:          0.1,
-		SmallBlockSizeKB:      1024,    // 1MB
-		MediumBlockSizeMB:     100,     // 100MB
-		LargeBlockSizeGB:      1,       // 1GB
-		MaxCachedBlocks:       1000,
-		EnablePrefetch:        true,
-		PrefetchSizeRatio:     0.1,
+		DeviceID:          deviceID,
+		ReserveRatio:      0.1,
+		SmallBlockSizeKB:  1024, // 1MB
+		MediumBlockSizeMB: 100,  // 100MB
+		LargeBlockSizeGB:  1,    // 1GB
+		MaxCachedBlocks:   1000,
+		EnablePrefetch:    true,
+		PrefetchSizeRatio: 0.1,
 	}
 }
 
@@ -717,13 +714,13 @@ type AllocationStats struct {
 type AllocationRecord struct{}
 
 type MemoryStats struct {
-	TotalMemory            int64                        `json:"total_memory"`
-	TotalUsedMemory        int64                        `json:"total_used_memory"`
-	TotalAvailableMemory   int64                        `json:"total_available_memory"`
-	TotalAllocations       int64                        `json:"total_allocations"`
-	MemoryUtilization      float64                      `json:"memory_utilization_percent"`
-	DeviceStats            map[int]*DeviceMemoryStats   `json:"device_stats"`
-	Timestamp              time.Time                    `json:"timestamp"`
+	TotalMemory          int64                      `json:"total_memory"`
+	TotalUsedMemory      int64                      `json:"total_used_memory"`
+	TotalAvailableMemory int64                      `json:"total_available_memory"`
+	TotalAllocations     int64                      `json:"total_allocations"`
+	MemoryUtilization    float64                    `json:"memory_utilization_percent"`
+	DeviceStats          map[int]*DeviceMemoryStats `json:"device_stats"`
+	Timestamp            time.Time                  `json:"timestamp"`
 }
 
 type DeviceMemoryStats struct {
@@ -739,23 +736,25 @@ type DeviceMemoryStats struct {
 // Placeholder implementations
 func NewDeviceMemoryPool(deviceID int, config *DeviceMemoryConfig) (*DeviceMemoryPool, error) {
 	return &DeviceMemoryPool{
-		deviceID:              deviceID,
-		totalMemory:          8 * 1024 * 1024 * 1024, // 8GB default
-		availableMemory:      6 * 1024 * 1024 * 1024, // 6GB available
-		activeAllocations:    make(map[uintptr]*MemoryAllocation),
-		fragmentationLevel:   0.1,
-		defragThreshold:      0.3,
-		allocStats:          &AllocationStats{},
+		deviceID:           deviceID,
+		totalMemory:        8 * 1024 * 1024 * 1024, // 8GB default
+		availableMemory:    6 * 1024 * 1024 * 1024, // 6GB available
+		activeAllocations:  make(map[uintptr]*MemoryAllocation),
+		fragmentationLevel: 0.1,
+		defragThreshold:    0.3,
+		allocStats:         &AllocationStats{},
 	}, nil
 }
 
-func NewGlobalMemoryAllocator(pools map[int]*DeviceMemoryPool) *GlobalMemoryAllocator { return &GlobalMemoryAllocator{} }
+func NewGlobalMemoryAllocator(pools map[int]*DeviceMemoryPool) *GlobalMemoryAllocator {
+	return &GlobalMemoryAllocator{}
+}
 func NewMemoryDefragmenter(config *GPUMemoryConfig) *MemoryDefragmenter { return &MemoryDefragmenter{} }
-func NewGPUGCManager(config *GPUMemoryConfig) *GPUGCManager { return &GPUGCManager{} }
-func NewMemoryOptimizer(config *GPUMemoryConfig) *MemoryOptimizer { return &MemoryOptimizer{} }
-func NewResourceTracker() *ResourceTracker { return &ResourceTracker{} }
-func NewMemoryMonitor(config *GPUMemoryConfig) *MemoryMonitor { return &MemoryMonitor{} }
-func NewMemoryProfiler(interval time.Duration) *MemoryProfiler { return &MemoryProfiler{} }
+func NewGPUGCManager(config *GPUMemoryConfig) *GPUGCManager             { return &GPUGCManager{} }
+func NewMemoryOptimizer(config *GPUMemoryConfig) *MemoryOptimizer       { return &MemoryOptimizer{} }
+func NewResourceTracker() *ResourceTracker                              { return &ResourceTracker{} }
+func NewMemoryMonitor(config *GPUMemoryConfig) *MemoryMonitor           { return &MemoryMonitor{} }
+func NewMemoryProfiler(interval time.Duration) *MemoryProfiler          { return &MemoryProfiler{} }
 
 func (dmp *DeviceMemoryPool) HasAvailableMemory(size int64) bool { return dmp.availableMemory >= size }
 func (dmp *DeviceMemoryPool) Allocate(ctx context.Context, size int64, purpose AllocationPurpose) (*MemoryAllocation, error) {
@@ -772,23 +771,23 @@ func (dmp *DeviceMemoryPool) Allocate(ctx context.Context, size int64, purpose A
 			size:     size,
 		},
 	}
-	
+
 	dmp.availableMemory -= size
 	dmp.activeAllocations[uintptr(time.Now().UnixNano())] = allocation
 	return allocation, nil
 }
-func (dmp *DeviceMemoryPool) Deallocate(ctx context.Context, allocation *MemoryAllocation) error { 
+func (dmp *DeviceMemoryPool) Deallocate(ctx context.Context, allocation *MemoryAllocation) error {
 	dmp.availableMemory += allocation.AllocatedSize
-	return nil 
+	return nil
 }
 func (dmp *DeviceMemoryPool) Optimize(ctx context.Context) error { return nil }
-func (dmp *DeviceMemoryPool) Close() error { return nil }
+func (dmp *DeviceMemoryPool) Close() error                       { return nil }
 
 func (rt *ResourceTracker) TrackAllocation(allocation *MemoryAllocation) {}
-func (rt *ResourceTracker) UntrackAllocation(allocationID string) {}
+func (rt *ResourceTracker) UntrackAllocation(allocationID string)        {}
 
-func (md *MemoryDefragmenter) DefragmentDevice(ctx context.Context, deviceID int) error { return nil }
-func (gcm *GPUGCManager) CollectDevice(ctx context.Context, deviceID int) error { return nil }
+func (md *MemoryDefragmenter) DefragmentDevice(ctx context.Context, deviceID int) error   { return nil }
+func (gcm *GPUGCManager) CollectDevice(ctx context.Context, deviceID int) error           { return nil }
 func (mc *MemoryCompressor) CompressUnusedMemory(ctx context.Context, deviceID int) error { return nil }
-func (mp *MemoryProfiler) Close() {}
-func (mm *MemoryMonitor) Close() {}
+func (mp *MemoryProfiler) Close()                                                         {}
+func (mm *MemoryMonitor) Close()                                                          {}

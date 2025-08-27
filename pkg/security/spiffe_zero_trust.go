@@ -21,7 +21,6 @@ import (
 	// "github.com/spiffe/go-spiffe/v2/svid/jwtsvid" // Removed unused import
 	// "github.com/spiffe/go-spiffe/v2/svid/x509svid" // Removed unused import
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
@@ -63,58 +62,58 @@ var (
 // ZeroTrustConfig contains zero-trust authentication configuration
 type ZeroTrustConfig struct {
 	// SPIFFE configuration
-	SpiffeSocketPath    string
-	TrustDomain         string
-	ServiceSpiffeID     string
-	AllowedSpiffeIDs    []string
-	RequiredAudiences   []string
-	
+	SpiffeSocketPath  string
+	TrustDomain       string
+	ServiceSpiffeID   string
+	AllowedSpiffeIDs  []string
+	RequiredAudiences []string
+
 	// JWT configuration
-	JWTIssuer          string
-	JWTSigningKey      []byte
-	JWTExpirationTime  time.Duration
-	JWTRefreshWindow   time.Duration
-	
+	JWTIssuer         string
+	JWTSigningKey     []byte
+	JWTExpirationTime time.Duration
+	JWTRefreshWindow  time.Duration
+
 	// Policy configuration
 	EnableAuthzPolicies bool
 	PolicyRefreshTime   time.Duration
 	DefaultDenyPolicy   bool
-	
+
 	// TLS configuration
-	RequireMTLS        bool
-	MinTLSVersion      uint16
+	RequireMTLS         bool
+	MinTLSVersion       uint16
 	AllowedCipherSuites []uint16
-	
+
 	// Service configuration
-	ServiceName        string
-	ServiceVersion     string
-	Environment        string
+	ServiceName    string
+	ServiceVersion string
+	Environment    string
 }
 
 // ZeroTrustAuthenticator implements zero-trust authentication
 type ZeroTrustAuthenticator struct {
-	config        *ZeroTrustConfig
-	logger        *slog.Logger
-	
+	config *ZeroTrustConfig
+	logger *slog.Logger
+
 	// SPIFFE components
-	source        *workloadapi.X509Source
-	jwtSource     *workloadapi.JWTSource
+	source    *workloadapi.X509Source
+	jwtSource *workloadapi.JWTSource
 	// validator     *jwtsvid.Validator // TODO: jwtsvid.Validator may not exist in current SPIFFE version
-	
+
 	// Policy engine
-	policyEngine  *ZeroTrustPolicyEngine
-	
+	policyEngine *ZeroTrustPolicyEngine
+
 	// TLS configuration
-	tlsConfig     *tls.Config
-	
+	tlsConfig *tls.Config
+
 	// JWT management
-	jwtKeys       sync.Map // map[string]*jwt.Token
-	
+	jwtKeys sync.Map // map[string]*jwt.Token
+
 	// Metrics and monitoring
-	stats         *AuthStats
-	
-	mu            sync.RWMutex
-	shutdown      chan struct{}
+	stats *AuthStats
+
+	mu       sync.RWMutex
+	shutdown chan struct{}
 }
 
 // ZeroTrustPolicyEngine implements authorization policies
@@ -126,18 +125,18 @@ type ZeroTrustPolicyEngine struct {
 
 // AuthzPolicy represents an authorization policy
 type AuthzPolicy struct {
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	Rules       []ZeroTrustPolicyRule      `json:"rules"`
-	Principals  []string          `json:"principals"`
-	Resources   []string          `json:"resources"`
-	Actions     []string          `json:"actions"`
-	Conditions  map[string]string `json:"conditions"`
-	Effect      PolicyDecision    `json:"effect"`
-	Priority    int               `json:"priority"`
-	CreatedAt   time.Time         `json:"created_at"`
-	UpdatedAt   time.Time         `json:"updated_at"`
+	ID          string                `json:"id"`
+	Name        string                `json:"name"`
+	Description string                `json:"description"`
+	Rules       []ZeroTrustPolicyRule `json:"rules"`
+	Principals  []string              `json:"principals"`
+	Resources   []string              `json:"resources"`
+	Actions     []string              `json:"actions"`
+	Conditions  map[string]string     `json:"conditions"`
+	Effect      PolicyDecision        `json:"effect"`
+	Priority    int                   `json:"priority"`
+	CreatedAt   time.Time             `json:"created_at"`
+	UpdatedAt   time.Time             `json:"updated_at"`
 }
 
 // ZeroTrustPolicyRule defines a specific authorization rule (renamed to avoid conflicts)
@@ -161,40 +160,40 @@ const (
 // AuthContext contains authentication and authorization context
 type AuthContext struct {
 	// SPIFFE identity
-	SpiffeID      spiffeid.ID
-	TrustDomain   string
-	ServiceName   string
-	
+	SpiffeID    spiffeid.ID
+	TrustDomain string
+	ServiceName string
+
 	// JWT claims
-	JWTClaims     jwt.MapClaims
-	Issuer        string
-	Audience      []string
-	
+	JWTClaims jwt.MapClaims
+	Issuer    string
+	Audience  []string
+
 	// Request context
-	Method        string
-	Path          string
-	RemoteAddr    string
-	UserAgent     string
-	
+	Method     string
+	Path       string
+	RemoteAddr string
+	UserAgent  string
+
 	// Authorization context
-	Roles         []string
-	Permissions   []string
-	Attributes    map[string]interface{}
-	
+	Roles       []string
+	Permissions []string
+	Attributes  map[string]interface{}
+
 	// Temporal context
-	AuthTime      time.Time
+	AuthTime       time.Time
 	ExpirationTime time.Time
 }
 
 // AuthStats tracks authentication statistics
 type AuthStats struct {
-	TotalAuths         int64     `json:"total_auths"`
-	SuccessfulAuths    int64     `json:"successful_auths"`
-	FailedAuths        int64     `json:"failed_auths"`
-	PolicyDenials      int64     `json:"policy_denials"`
-	SvidRotations      int64     `json:"svid_rotations"`
-	LastAuthTime       time.Time `json:"last_auth_time"`
-	LastSvidRotation   time.Time `json:"last_svid_rotation"`
+	TotalAuths       int64     `json:"total_auths"`
+	SuccessfulAuths  int64     `json:"successful_auths"`
+	FailedAuths      int64     `json:"failed_auths"`
+	PolicyDenials    int64     `json:"policy_denials"`
+	SvidRotations    int64     `json:"svid_rotations"`
+	LastAuthTime     time.Time `json:"last_auth_time"`
+	LastSvidRotation time.Time `json:"last_svid_rotation"`
 }
 
 // NewZeroTrustAuthenticator creates a new zero-trust authenticator
@@ -254,7 +253,7 @@ func NewZeroTrustAuthenticator(config *ZeroTrustConfig, logger *slog.Logger) (*Z
 
 	// Initialize policy engine
 	zta.policyEngine = &ZeroTrustPolicyEngine{
-		policies: make(map[string]*AuthzPolicy),
+		policies:      make(map[string]*AuthzPolicy),
 		defaultPolicy: PolicyDeny,
 	}
 	if !config.DefaultDenyPolicy {
@@ -282,7 +281,7 @@ func NewZeroTrustAuthenticator(config *ZeroTrustConfig, logger *slog.Logger) (*Z
 func (zta *ZeroTrustAuthenticator) configureTLS() error {
 	// Create TLS config with SPIFFE certificates
 	tlsConfig := tlsconfig.MTLSServerConfig(zta.source, zta.source, tlsconfig.AuthorizeAny())
-	
+
 	// Apply security hardening
 	tlsConfig.MinVersion = zta.config.MinTLSVersion
 	if len(zta.config.AllowedCipherSuites) > 0 {
@@ -295,10 +294,10 @@ func (zta *ZeroTrustAuthenticator) configureTLS() error {
 			tls.TLS_AES_128_GCM_SHA256,
 		}
 	}
-	
+
 	// Custom verification for SPIFFE ID authorization
 	tlsConfig.VerifyPeerCertificate = zta.verifyPeerCertificate
-	
+
 	zta.tlsConfig = tlsConfig
 	return nil
 }
@@ -340,7 +339,7 @@ func (zta *ZeroTrustAuthenticator) verifyPeerCertificate(rawCerts [][]byte, veri
 	// Verify trust domain
 	if spiffeID.TrustDomain().String() != zta.config.TrustDomain {
 		spiffePolicyViolations.WithLabelValues("mtls", "trust_domain_mismatch").Inc()
-		return fmt.Errorf("trust domain mismatch: expected %s, got %s", 
+		return fmt.Errorf("trust domain mismatch: expected %s, got %s",
 			zta.config.TrustDomain, spiffeID.TrustDomain().String())
 	}
 
@@ -768,14 +767,14 @@ func (zta *ZeroTrustAuthenticator) GetStats() *AuthStats {
 // Close shuts down the zero-trust authenticator
 func (zta *ZeroTrustAuthenticator) Close() error {
 	close(zta.shutdown)
-	
+
 	if zta.source != nil {
 		zta.source.Close()
 	}
 	if zta.jwtSource != nil {
 		zta.jwtSource.Close()
 	}
-	
+
 	zta.logger.Info("Zero-trust authenticator shut down")
 	return nil
 }
@@ -791,18 +790,18 @@ func GetAuthContextFromRequest(r *http.Request) (*AuthContext, bool) {
 // DefaultZeroTrustConfig returns default configuration for zero-trust authentication
 func DefaultZeroTrustConfig() *ZeroTrustConfig {
 	return &ZeroTrustConfig{
-		SpiffeSocketPath:   "unix:///tmp/spire-agent/public/api.sock",
-		TrustDomain:        "nephoran.local",
-		ServiceSpiffeID:    "spiffe://nephoran.local/nephoran-intent-operator",
-		JWTExpirationTime:  1 * time.Hour,
-		JWTRefreshWindow:   15 * time.Minute,
-		PolicyRefreshTime:  5 * time.Minute,
-		RequireMTLS:        true,
-		MinTLSVersion:      tls.VersionTLS13,
+		SpiffeSocketPath:    "unix:///tmp/spire-agent/public/api.sock",
+		TrustDomain:         "nephoran.local",
+		ServiceSpiffeID:     "spiffe://nephoran.local/nephoran-intent-operator",
+		JWTExpirationTime:   1 * time.Hour,
+		JWTRefreshWindow:    15 * time.Minute,
+		PolicyRefreshTime:   5 * time.Minute,
+		RequireMTLS:         true,
+		MinTLSVersion:       tls.VersionTLS13,
 		EnableAuthzPolicies: true,
 		DefaultDenyPolicy:   true,
-		ServiceName:        "nephoran-intent-operator",
-		ServiceVersion:     "v1.0.0",
-		Environment:        "production",
+		ServiceName:         "nephoran-intent-operator",
+		ServiceVersion:      "v1.0.0",
+		Environment:         "production",
 	}
 }

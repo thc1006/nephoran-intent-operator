@@ -676,11 +676,11 @@ type QueryOptions struct {
 
 // QueryResponse represents a RAG query response
 type QueryResponse struct {
-	Query          string          `json:"query"`
+	Query          string                  `json:"query"`
 	Results        []*EnhancedSearchResult `json:"results"`
-	ProcessingTime time.Duration   `json:"processing_time"`
-	EmbeddingCost  float64         `json:"embedding_cost"`
-	ProviderUsed   string          `json:"provider_used"`
+	ProcessingTime time.Duration           `json:"processing_time"`
+	EmbeddingCost  float64                 `json:"embedding_cost"`
+	ProviderUsed   string                  `json:"provider_used"`
 }
 
 // MockVectorStore is a simple in-memory vector store for testing
@@ -722,10 +722,10 @@ func (m *MockVectorStore) Search(ctx context.Context, queryEmbedding []float32, 
 		score := cosineSimilarity(queryEmbedding, entry.embedding)
 		results = append(results, &EnhancedSearchResult{
 			SearchResult: &SearchResult{
-				ID:       id,
-				Score:    score,
-				Metadata: entry.metadata,
-				Content:  "", // Add default empty content
+				ID:         id,
+				Score:      score,
+				Metadata:   entry.metadata,
+				Content:    "", // Add default empty content
 				Confidence: float64(score),
 			},
 			RelevanceScore: score,

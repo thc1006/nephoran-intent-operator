@@ -100,10 +100,10 @@ type RedisCacheMetrics struct {
 	LastCleanup time.Time `json:"last_cleanup"`
 
 	LastUpdated time.Time `json:"last_updated"`
-	
+
 	// Added for compatibility with prometheus_metrics.go
 	CategoryStats map[string]interface{} `json:"category_stats,omitempty"`
-	mutex       sync.RWMutex
+	mutex         sync.RWMutex
 }
 
 // CacheKey represents a cache key with category information
@@ -164,16 +164,16 @@ func NewRedisCache(config *RedisCacheConfig) (*RedisCache, error) {
 
 	// Create Redis client
 	rdb := redis.NewClient(&redis.Options{
-		Addr:         config.Address,
-		Password:     config.Password,
-		DB:           config.Database,
-		PoolSize:     config.PoolSize,
-		MinIdleConns: config.MinIdleConns,
-		MaxRetries:   config.MaxRetries,
-		DialTimeout:  config.DialTimeout,
-		ReadTimeout:  config.ReadTimeout,
-		WriteTimeout: config.WriteTimeout,
-		ConnMaxIdleTime:  config.IdleTimeout,
+		Addr:            config.Address,
+		Password:        config.Password,
+		DB:              config.Database,
+		PoolSize:        config.PoolSize,
+		MinIdleConns:    config.MinIdleConns,
+		MaxRetries:      config.MaxRetries,
+		DialTimeout:     config.DialTimeout,
+		ReadTimeout:     config.ReadTimeout,
+		WriteTimeout:    config.WriteTimeout,
+		ConnMaxIdleTime: config.IdleTimeout,
 	})
 
 	cache := &RedisCache{
@@ -736,14 +736,14 @@ func (rc *RedisCache) GetMetrics() *RedisCacheMetrics {
 		LastUpdated:       rc.metrics.LastUpdated,
 		CategoryStats:     make(map[string]interface{}),
 	}
-	
+
 	// Deep copy map if not nil
 	if rc.metrics.CategoryStats != nil {
 		for k, v := range rc.metrics.CategoryStats {
 			metrics.CategoryStats[k] = v
 		}
 	}
-	
+
 	return metrics
 }
 

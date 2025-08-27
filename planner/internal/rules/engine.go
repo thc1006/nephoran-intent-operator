@@ -52,8 +52,8 @@ type Config struct {
 	PRBThresholdLow      float64
 	EvaluationWindow     time.Duration
 	// Performance optimization settings
-	MaxHistorySize       int           // Maximum metrics history size (default: 300)
-	PruneInterval        time.Duration // How often to prune history (default: 30s)
+	MaxHistorySize int           // Maximum metrics history size (default: 300)
+	PruneInterval  time.Duration // How often to prune history (default: 30s)
 }
 
 // Validator interface for KMP data validation
@@ -63,12 +63,12 @@ type Validator interface {
 }
 
 type RuleEngine struct {
-	config          Config
-	state           *State
-	mu              sync.RWMutex
-	lastPruneTime   time.Time
-	pruneThreshold  time.Duration // Cached 24h threshold for pruning
-	validator       Validator     // Security validator for KMP data
+	config         Config
+	state          *State
+	mu             sync.RWMutex
+	lastPruneTime  time.Time
+	pruneThreshold time.Duration // Cached 24h threshold for pruning
+	validator      Validator     // Security validator for KMP data
 }
 
 func NewRuleEngine(cfg Config) *RuleEngine {
@@ -262,7 +262,7 @@ func (e *RuleEngine) addMetric(data KPMData) {
 		copy(e.state.MetricsHistory, e.state.MetricsHistory[removeCount:])
 		e.state.MetricsHistory = e.state.MetricsHistory[:len(e.state.MetricsHistory)-removeCount]
 	}
-	
+
 	e.state.MetricsHistory = append(e.state.MetricsHistory, data)
 }
 
@@ -272,7 +272,7 @@ func (e *RuleEngine) conditionalPrune() {
 	if now.Sub(e.lastPruneTime) < e.config.PruneInterval {
 		return
 	}
-	
+
 	e.lastPruneTime = now
 	e.pruneHistoryInPlace()
 }
@@ -280,7 +280,7 @@ func (e *RuleEngine) conditionalPrune() {
 // pruneHistoryInPlace performs in-place pruning to avoid slice reallocation
 func (e *RuleEngine) pruneHistoryInPlace() {
 	cutoff := time.Now().Add(-e.pruneThreshold)
-	
+
 	// Find first valid entry (binary search could be used for large datasets)
 	writeIndex := 0
 	for readIndex, metric := range e.state.MetricsHistory {
@@ -291,7 +291,7 @@ func (e *RuleEngine) pruneHistoryInPlace() {
 			writeIndex++
 		}
 	}
-	
+
 	// Truncate slice to new length without reallocation
 	if writeIndex < len(e.state.MetricsHistory) {
 		// Zero out unused elements to help GC

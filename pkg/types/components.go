@@ -17,8 +17,8 @@ limitations under the License.
 package types
 
 import (
-	"time"
 	"github.com/thc1006/nephoran-intent-operator/pkg/contracts"
+	"time"
 )
 
 // ComponentStatus is an alias to the contracts package for backward compatibility

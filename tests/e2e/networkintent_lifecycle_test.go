@@ -28,7 +28,7 @@ var _ = Describe("NetworkIntent Lifecycle E2E Tests", func() {
 	Context("NetworkIntent CRUD Operations", func() {
 		It("should create, read, update and delete NetworkIntent successfully", func() {
 			intentName := "test-lifecycle-intent"
-			
+
 			// Create
 			networkIntent := &nephoran.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
@@ -36,9 +36,9 @@ var _ = Describe("NetworkIntent Lifecycle E2E Tests", func() {
 					Namespace: namespace,
 				},
 				Spec: nephoran.NetworkIntentSpec{
-					Intent:      "Scale up UPF instances to handle increased traffic",
-					IntentType:  nephoran.IntentTypeScaling,
-					Priority:    1,
+					Intent:     "Scale up UPF instances to handle increased traffic",
+					IntentType: nephoran.IntentTypeScaling,
+					Priority:   1,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 					},
@@ -51,7 +51,7 @@ var _ = Describe("NetworkIntent Lifecycle E2E Tests", func() {
 			By("Verifying the NetworkIntent exists")
 			lookupKey := types.NamespacedName{Name: intentName, Namespace: namespace}
 			createdIntent := &nephoran.NetworkIntent{}
-			
+
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, lookupKey, createdIntent)
 				return err == nil
@@ -124,9 +124,9 @@ var _ = Describe("NetworkIntent Lifecycle E2E Tests", func() {
 						Namespace: namespace,
 					},
 					Spec: nephoran.NetworkIntentSpec{
-						Intent:      intentData.intent,
-						IntentType:  nephoran.IntentTypeScaling,
-						Priority:    intentData.priority,
+						Intent:     intentData.intent,
+						IntentType: nephoran.IntentTypeScaling,
+						Priority:   intentData.priority,
 						TargetComponents: []nephoran.NetworkTargetComponent{
 							nephoran.NetworkTargetComponentUPF,
 						},
@@ -140,7 +140,7 @@ var _ = Describe("NetworkIntent Lifecycle E2E Tests", func() {
 			for _, intentData := range intents {
 				lookupKey := types.NamespacedName{Name: intentData.name, Namespace: namespace}
 				retrievedIntent := &nephoran.NetworkIntent{}
-				
+
 				Eventually(func() bool {
 					err := k8sClient.Get(ctx, lookupKey, retrievedIntent)
 					return err == nil
@@ -192,16 +192,16 @@ var _ = Describe("NetworkIntent Lifecycle E2E Tests", func() {
 	Context("NetworkIntent Status Progression", func() {
 		It("should progress through status phases correctly", func() {
 			intentName := "status-progression-intent"
-			
+
 			networkIntent := &nephoran.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      intentName,
 					Namespace: namespace,
 				},
 				Spec: nephoran.NetworkIntentSpec{
-					Intent:      "Test status progression for scaling AMF",
-					IntentType:  nephoran.IntentTypeScaling,
-					Priority:    1,
+					Intent:     "Test status progression for scaling AMF",
+					IntentType: nephoran.IntentTypeScaling,
+					Priority:   1,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentAMF,
 					},
@@ -243,16 +243,16 @@ var _ = Describe("NetworkIntent Lifecycle E2E Tests", func() {
 	Context("NetworkIntent with Complex Scenarios", func() {
 		It("should handle deployment intent with multiple components", func() {
 			intentName := "complex-deployment-intent"
-			
+
 			networkIntent := &nephoran.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      intentName,
 					Namespace: namespace,
 				},
 				Spec: nephoran.NetworkIntentSpec{
-					Intent:      "Deploy a complete 5G standalone core with all components",
-					IntentType:  nephoran.IntentTypeDeployment,
-					Priority:    1,
+					Intent:     "Deploy a complete 5G standalone core with all components",
+					IntentType: nephoran.IntentTypeDeployment,
+					Priority:   1,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentAMF,
 						nephoran.NetworkTargetComponentSMF,
@@ -297,16 +297,16 @@ var _ = Describe("NetworkIntent Lifecycle E2E Tests", func() {
 
 		It("should handle optimization intent with custom parameters", func() {
 			intentName := "optimization-intent"
-			
+
 			networkIntent := &nephoran.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      intentName,
 					Namespace: namespace,
 				},
 				Spec: nephoran.NetworkIntentSpec{
-					Intent:      "Optimize UPF throughput for high-bandwidth applications",
-					IntentType:  nephoran.IntentTypeOptimization,
-					Priority:    2,
+					Intent:     "Optimize UPF throughput for high-bandwidth applications",
+					IntentType: nephoran.IntentTypeOptimization,
+					Priority:   2,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 					},

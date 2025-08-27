@@ -534,9 +534,9 @@ func (c *GRPCWeaviateClient) convertToSearchResponse(grpcResp *VectorSearchRespo
 	}
 
 	return &SearchResponse{
-		Results:     convertSharedSearchResults(results),
-		Took:        0, // Timing should be calculated by the caller
-		Total:       int64(len(results)),
+		Results: convertSharedSearchResults(results),
+		Took:    0, // Timing should be calculated by the caller
+		Total:   int64(len(results)),
 	}
 }
 
@@ -551,7 +551,7 @@ func convertSharedSearchResults(sharedResults []*types.SearchResult) []*SearchRe
 			id = sharedResult.Document.ID
 			content = sharedResult.Document.Content
 		}
-		
+
 		results[i] = &SearchResult{
 			ID:         id,
 			Content:    content,

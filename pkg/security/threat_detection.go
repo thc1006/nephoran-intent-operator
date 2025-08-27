@@ -3,11 +3,8 @@
 package security
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
-	"net"
 	"net/http"
 	"regexp"
 	"strings"
@@ -57,70 +54,70 @@ var (
 // ThreatDetectionConfig contains threat detection configuration
 type ThreatDetectionConfig struct {
 	// Detection rules
-	EnableBehavioralAnalysis  bool              `json:"enable_behavioral_analysis"`
-	EnableSignatureDetection  bool              `json:"enable_signature_detection"`
-	EnableAnomalyDetection    bool              `json:"enable_anomaly_detection"`
-	EnableMLDetection         bool              `json:"enable_ml_detection"`
-	
+	EnableBehavioralAnalysis bool `json:"enable_behavioral_analysis"`
+	EnableSignatureDetection bool `json:"enable_signature_detection"`
+	EnableAnomalyDetection   bool `json:"enable_anomaly_detection"`
+	EnableMLDetection        bool `json:"enable_ml_detection"`
+
 	// Thresholds
-	HighThreatThreshold       int               `json:"high_threat_threshold"`     // Score threshold for high threats
-	MediumThreatThreshold     int               `json:"medium_threat_threshold"`   // Score threshold for medium threats
-	AnomalyThreshold          float64           `json:"anomaly_threshold"`         // Anomaly detection threshold
-	
+	HighThreatThreshold   int     `json:"high_threat_threshold"`   // Score threshold for high threats
+	MediumThreatThreshold int     `json:"medium_threat_threshold"` // Score threshold for medium threats
+	AnomalyThreshold      float64 `json:"anomaly_threshold"`       // Anomaly detection threshold
+
 	// Time windows
-	AnalysisWindow            time.Duration     `json:"analysis_window"`           // Time window for analysis
-	BaselinePeriod            time.Duration     `json:"baseline_period"`           // Baseline establishment period
-	AlertCooldown             time.Duration     `json:"alert_cooldown"`            // Cooldown between alerts
-	
+	AnalysisWindow time.Duration `json:"analysis_window"` // Time window for analysis
+	BaselinePeriod time.Duration `json:"baseline_period"` // Baseline establishment period
+	AlertCooldown  time.Duration `json:"alert_cooldown"`  // Cooldown between alerts
+
 	// Response actions
-	AutoBlockThreats          bool              `json:"auto_block_threats"`        // Automatically block high threats
-	AutoQuarantineThreats     bool              `json:"auto_quarantine_threats"`   // Quarantine suspicious activities
-	SendAlerts                bool              `json:"send_alerts"`               // Send security alerts
-	
+	AutoBlockThreats      bool `json:"auto_block_threats"`      // Automatically block high threats
+	AutoQuarantineThreats bool `json:"auto_quarantine_threats"` // Quarantine suspicious activities
+	SendAlerts            bool `json:"send_alerts"`             // Send security alerts
+
 	// Integration settings
-	SIEMIntegration           bool              `json:"siem_integration"`          // Enable SIEM integration
-	SIEMEndpoint              string            `json:"siem_endpoint"`             // SIEM endpoint URL
-	ThreatIntelFeeds          []string          `json:"threat_intel_feeds"`        // Threat intelligence feeds
-	
+	SIEMIntegration  bool     `json:"siem_integration"`   // Enable SIEM integration
+	SIEMEndpoint     string   `json:"siem_endpoint"`      // SIEM endpoint URL
+	ThreatIntelFeeds []string `json:"threat_intel_feeds"` // Threat intelligence feeds
+
 	// Monitoring settings
-	MonitoringInterval        time.Duration     `json:"monitoring_interval"`       // How often to run analysis
-	RetentionPeriod           time.Duration     `json:"retention_period"`          // How long to keep data
-	MaxEvents                 int               `json:"max_events"`                // Maximum events to keep in memory
+	MonitoringInterval time.Duration `json:"monitoring_interval"` // How often to run analysis
+	RetentionPeriod    time.Duration `json:"retention_period"`    // How long to keep data
+	MaxEvents          int           `json:"max_events"`          // Maximum events to keep in memory
 }
 
 // ThreatDetector implements comprehensive threat detection and monitoring
 type ThreatDetector struct {
-	config              *ThreatDetectionConfig
-	logger              *slog.Logger
-	
+	config *ThreatDetectionConfig
+	logger *slog.Logger
+
 	// Detection engines
-	behavioralEngine    *BehavioralAnalysisEngine
-	signatureEngine     *SignatureDetectionEngine
-	anomalyEngine       *AnomalyDetectionEngine
-	mlEngine            *MLDetectionEngine
-	
+	behavioralEngine *BehavioralAnalysisEngine
+	signatureEngine  *SignatureDetectionEngine
+	anomalyEngine    *AnomalyDetectionEngine
+	mlEngine         *MLDetectionEngine
+
 	// Event tracking
-	securityEvents      []SecurityEvent
-	threatScores        sync.Map // map[string]*ThreatScore
-	incidentHistory     []SecurityIncident
-	
+	securityEvents  []SecurityEvent
+	threatScores    sync.Map // map[string]*ThreatScore
+	incidentHistory []SecurityIncident
+
 	// Baseline and patterns
-	trafficBaseline     *TrafficBaseline
+	trafficBaseline      *TrafficBaseline
 	userBehaviorPatterns map[string]*UserBehaviorPattern
-	
+
 	// Active monitoring
-	activeThreats       sync.Map // map[string]*ActiveThreat
-	quarantinedIPs      sync.Map // map[string]*QuarantineInfo
-	
+	activeThreats  sync.Map // map[string]*ActiveThreat
+	quarantinedIPs sync.Map // map[string]*QuarantineInfo
+
 	// Statistics
-	stats               *ThreatDetectionStats
-	
+	stats *ThreatDetectionStats
+
 	// Background processing
-	analysisWorkers     int
-	eventQueue          chan SecurityEvent
-	shutdown            chan struct{}
-	wg                  sync.WaitGroup
-	mu                  sync.RWMutex
+	analysisWorkers int
+	eventQueue      chan SecurityEvent
+	shutdown        chan struct{}
+	wg              sync.WaitGroup
+	mu              sync.RWMutex
 }
 
 // SecurityEvent represents a security-related event
@@ -142,35 +139,35 @@ type SecurityEvent struct {
 
 // ThreatScore tracks threat scoring for IP addresses
 type ThreatScore struct {
-	IP                string    `json:"ip"`
-	Score             int       `json:"score"`
-	LastUpdated       time.Time `json:"last_updated"`
-	Events            []string  `json:"events"`
-	Category          string    `json:"category"`
-	Confidence        float64   `json:"confidence"`
-	DecayRate         float64   `json:"decay_rate"`
+	IP          string    `json:"ip"`
+	Score       int       `json:"score"`
+	LastUpdated time.Time `json:"last_updated"`
+	Events      []string  `json:"events"`
+	Category    string    `json:"category"`
+	Confidence  float64   `json:"confidence"`
+	DecayRate   float64   `json:"decay_rate"`
 }
 
 // ThreatIncident represents a threat-specific incident (uses SecurityIncident from incident_response.go)
 
 // ActiveThreat represents an active threat being monitored
 type ActiveThreat struct {
-	ID            string                 `json:"id"`
-	Type          string                 `json:"type"`
-	Source        string                 `json:"source"`
-	FirstSeen     time.Time              `json:"first_seen"`
-	LastSeen      time.Time              `json:"last_seen"`
-	EventCount    int64                  `json:"event_count"`
-	ThreatScore   int                    `json:"threat_score"`
-	Active        bool                   `json:"active"`
-	Mitigated     bool                   `json:"mitigated"`
-	Indicators    []ThreatIndicator      `json:"indicators"`
-	Metadata      map[string]interface{} `json:"metadata"`
+	ID          string                 `json:"id"`
+	Type        string                 `json:"type"`
+	Source      string                 `json:"source"`
+	FirstSeen   time.Time              `json:"first_seen"`
+	LastSeen    time.Time              `json:"last_seen"`
+	EventCount  int64                  `json:"event_count"`
+	ThreatScore int                    `json:"threat_score"`
+	Active      bool                   `json:"active"`
+	Mitigated   bool                   `json:"mitigated"`
+	Indicators  []ThreatIndicator      `json:"indicators"`
+	Metadata    map[string]interface{} `json:"metadata"`
 }
 
 // ThreatIndicator represents an indicator of compromise (IoC)
 type ThreatIndicator struct {
-	Type        string    `json:"type"`        // ip, domain, hash, pattern
+	Type        string    `json:"type"` // ip, domain, hash, pattern
 	Value       string    `json:"value"`
 	Confidence  float64   `json:"confidence"`
 	Source      string    `json:"source"`
@@ -181,48 +178,48 @@ type ThreatIndicator struct {
 
 // QuarantineInfo represents quarantine information
 type QuarantineInfo struct {
-	IP            string    `json:"ip"`
-	QuarantinedAt time.Time `json:"quarantined_at"`
-	ExpiresAt     time.Time `json:"expires_at"`
-	Reason        string    `json:"reason"`
-	ThreatScore   int       `json:"threat_score"`
-	AutoQuarantine bool     `json:"auto_quarantine"`
+	IP             string    `json:"ip"`
+	QuarantinedAt  time.Time `json:"quarantined_at"`
+	ExpiresAt      time.Time `json:"expires_at"`
+	Reason         string    `json:"reason"`
+	ThreatScore    int       `json:"threat_score"`
+	AutoQuarantine bool      `json:"auto_quarantine"`
 }
 
 // TrafficBaseline represents normal traffic patterns
 type TrafficBaseline struct {
-	RequestsPerMinute    float64            `json:"requests_per_minute"`
-	AverageResponseTime  float64            `json:"average_response_time"`
-	ErrorRate           float64            `json:"error_rate"`
-	TopUserAgents       map[string]int     `json:"top_user_agents"`
-	TopPaths            map[string]int     `json:"top_paths"`
+	RequestsPerMinute      float64         `json:"requests_per_minute"`
+	AverageResponseTime    float64         `json:"average_response_time"`
+	ErrorRate              float64         `json:"error_rate"`
+	TopUserAgents          map[string]int  `json:"top_user_agents"`
+	TopPaths               map[string]int  `json:"top_paths"`
 	GeographicDistribution map[string]int  `json:"geographic_distribution"`
-	TimeOfDayPatterns   map[int]float64    `json:"time_of_day_patterns"`
-	EstablishedAt       time.Time          `json:"established_at"`
-	LastUpdated         time.Time          `json:"last_updated"`
+	TimeOfDayPatterns      map[int]float64 `json:"time_of_day_patterns"`
+	EstablishedAt          time.Time       `json:"established_at"`
+	LastUpdated            time.Time       `json:"last_updated"`
 }
 
 // UserBehaviorPattern represents user behavior patterns
 type UserBehaviorPattern struct {
-	UserID              string            `json:"user_id"`
-	NormalAccessTimes   []time.Duration   `json:"normal_access_times"`
-	TypicalPaths        map[string]int    `json:"typical_paths"`
-	AverageSessionTime  time.Duration     `json:"average_session_time"`
-	DeviceFingerprints  []string          `json:"device_fingerprints"`
-	IPRanges            []string          `json:"ip_ranges"`
-	LastUpdated         time.Time         `json:"last_updated"`
+	UserID             string          `json:"user_id"`
+	NormalAccessTimes  []time.Duration `json:"normal_access_times"`
+	TypicalPaths       map[string]int  `json:"typical_paths"`
+	AverageSessionTime time.Duration   `json:"average_session_time"`
+	DeviceFingerprints []string        `json:"device_fingerprints"`
+	IPRanges           []string        `json:"ip_ranges"`
+	LastUpdated        time.Time       `json:"last_updated"`
 }
 
 // ThreatDetectionStats tracks detection statistics
 type ThreatDetectionStats struct {
-	TotalEvents         int64     `json:"total_events"`
-	ThreatsDetected     int64     `json:"threats_detected"`
-	IncidentsCreated    int64     `json:"incidents_created"`
-	AutoBlocks          int64     `json:"auto_blocks"`
-	FalsePositives      int64     `json:"false_positives"`
+	TotalEvents         int64         `json:"total_events"`
+	ThreatsDetected     int64         `json:"threats_detected"`
+	IncidentsCreated    int64         `json:"incidents_created"`
+	AutoBlocks          int64         `json:"auto_blocks"`
+	FalsePositives      int64         `json:"false_positives"`
 	AverageResponseTime time.Duration `json:"average_response_time"`
-	LastAnalysis        time.Time `json:"last_analysis"`
-	SystemHealth        string    `json:"system_health"`
+	LastAnalysis        time.Time     `json:"last_analysis"`
+	SystemHealth        string        `json:"system_health"`
 }
 
 // Detection engines (simplified interfaces)
@@ -287,8 +284,8 @@ func NewThreatDetector(config *ThreatDetectionConfig, logger *slog.Logger) (*Thr
 		userBehaviorPatterns: make(map[string]*UserBehaviorPattern),
 		stats:                &ThreatDetectionStats{SystemHealth: "healthy"},
 		analysisWorkers:      4,
-		eventQueue:          make(chan SecurityEvent, 1000),
-		shutdown:            make(chan struct{}),
+		eventQueue:           make(chan SecurityEvent, 1000),
+		shutdown:             make(chan struct{}),
 	}
 
 	// Initialize detection engines
@@ -345,7 +342,7 @@ func (td *ThreatDetector) initializeEngines() error {
 // ProcessRequest processes an HTTP request for threat detection
 func (td *ThreatDetector) ProcessRequest(r *http.Request) *SecurityEvent {
 	clientIP := getClientIP(r)
-	
+
 	// Create security event
 	event := SecurityEvent{
 		ID:          generateEventID(),
@@ -369,7 +366,7 @@ func (td *ThreatDetector) ProcessRequest(r *http.Request) *SecurityEvent {
 
 	// Analyze the request
 	td.analyzeEvent(&event)
-	
+
 	// Queue event for processing
 	select {
 	case td.eventQueue <- event:
@@ -385,7 +382,7 @@ func (td *ThreatDetector) ProcessRequest(r *http.Request) *SecurityEvent {
 // analyzeEvent performs real-time analysis on a security event
 func (td *ThreatDetector) analyzeEvent(event *SecurityEvent) {
 	threatScore := 0
-	
+
 	// Signature-based detection
 	if td.config.EnableSignatureDetection {
 		score := td.runSignatureDetection(event)
@@ -411,7 +408,7 @@ func (td *ThreatDetector) analyzeEvent(event *SecurityEvent) {
 	}
 
 	event.ThreatScore = threatScore
-	
+
 	// Update threat score for source IP
 	td.updateThreatScore(event.SourceIP, threatScore, event.EventType)
 
@@ -467,7 +464,7 @@ func (td *ThreatDetector) runSignatureDetection(event *SecurityEvent) int {
 				case "low":
 					score += 5
 				}
-				
+
 				event.Tags = append(event.Tags, "signature_match:"+signature.Name)
 				td.logger.Warn("Threat signature matched",
 					slog.String("signature", signature.Name),
@@ -488,7 +485,7 @@ func (td *ThreatDetector) runBehavioralAnalysis(event *SecurityEvent) int {
 	}
 
 	score := 0
-	
+
 	// Check for rapid requests from same IP
 	if td.isRapidRequests(event.SourceIP) {
 		score += 20
@@ -521,7 +518,7 @@ func (td *ThreatDetector) runAnomalyDetection(event *SecurityEvent) int {
 	}
 
 	score := 0
-	
+
 	// Check for unusual request patterns
 	if td.isAnomalousTraffic(event) {
 		score += 20
@@ -551,7 +548,7 @@ func (td *ThreatDetector) runMLDetection(event *SecurityEvent) int {
 // updateThreatScore updates the threat score for an IP address
 func (td *ThreatDetector) updateThreatScore(ip string, scoreIncrement int, eventType string) {
 	now := time.Now()
-	
+
 	scoreInfo, _ := td.threatScores.LoadOrStore(ip, &ThreatScore{
 		IP:          ip,
 		Score:       0,
@@ -559,19 +556,19 @@ func (td *ThreatDetector) updateThreatScore(ip string, scoreIncrement int, event
 		Events:      make([]string, 0),
 		DecayRate:   0.1, // 10% decay per hour
 	})
-	
+
 	score := scoreInfo.(*ThreatScore)
-	
+
 	// Apply decay based on time since last update
 	timeDiff := now.Sub(score.LastUpdated)
 	decay := score.DecayRate * timeDiff.Hours()
 	score.Score = int(float64(score.Score) * (1.0 - decay))
-	
+
 	// Add new score
 	score.Score += scoreIncrement
 	score.LastUpdated = now
 	score.Events = append(score.Events, eventType)
-	
+
 	// Limit event history
 	if len(score.Events) > 100 {
 		score.Events = score.Events[len(score.Events)-100:]
@@ -635,18 +632,18 @@ func (td *ThreatDetector) blockIP(ip, reason string, threatScore int) {
 // quarantineIP quarantines an IP address
 func (td *ThreatDetector) quarantineIP(ip, reason string, threatScore int) {
 	expiresAt := time.Now().Add(1 * time.Hour)
-	
+
 	quarantineInfo := &QuarantineInfo{
-		IP:            ip,
-		QuarantinedAt: time.Now(),
-		ExpiresAt:     expiresAt,
-		Reason:        reason,
-		ThreatScore:   threatScore,
+		IP:             ip,
+		QuarantinedAt:  time.Now(),
+		ExpiresAt:      expiresAt,
+		Reason:         reason,
+		ThreatScore:    threatScore,
 		AutoQuarantine: true,
 	}
-	
+
 	td.quarantinedIPs.Store(ip, quarantineInfo)
-	
+
 	td.logger.Info("IP quarantined",
 		slog.String("ip", ip),
 		slog.String("reason", reason),
@@ -669,11 +666,11 @@ func (td *ThreatDetector) createSecurityIncident(event *SecurityEvent) {
 		Timeline:    []*TimelineEvent{},
 		Actions:     []*ResponseAction{},
 		Artifacts: map[string]interface{}{
-			"threat_score":    event.ThreatScore,
-			"source_ip":       event.SourceIP,
-			"event_type":      event.EventType,
-			"auto_created":    true,
-			"event_id":        event.ID,
+			"threat_score": event.ThreatScore,
+			"source_ip":    event.SourceIP,
+			"event_type":   event.EventType,
+			"auto_created": true,
+			"event_id":     event.ID,
 		},
 	}
 
@@ -709,12 +706,12 @@ func (td *ThreatDetector) startAnalysisWorkers() {
 // analysisWorker processes events from the queue
 func (td *ThreatDetector) analysisWorker() {
 	defer td.wg.Done()
-	
+
 	for {
 		select {
 		case event := <-td.eventQueue:
 			start := time.Now()
-			
+
 			// Store event
 			td.mu.Lock()
 			td.securityEvents = append(td.securityEvents, event)
@@ -723,11 +720,11 @@ func (td *ThreatDetector) analysisWorker() {
 				td.securityEvents = td.securityEvents[len(td.securityEvents)-td.config.MaxEvents:]
 			}
 			td.mu.Unlock()
-			
+
 			// Record response time
 			responseTime := time.Since(start)
 			incidentResponseTime.WithLabelValues(event.EventType, "analysis").Observe(responseTime.Seconds())
-			
+
 		case <-td.shutdown:
 			return
 		}
@@ -737,12 +734,12 @@ func (td *ThreatDetector) analysisWorker() {
 // startPeriodicTasks starts periodic maintenance tasks
 func (td *ThreatDetector) startPeriodicTasks() {
 	ticker := time.NewTicker(td.config.MonitoringInterval)
-	
+
 	td.wg.Add(1)
 	go func() {
 		defer td.wg.Done()
 		defer ticker.Stop()
-		
+
 		for {
 			select {
 			case <-ticker.C:
@@ -760,16 +757,16 @@ func (td *ThreatDetector) periodicMaintenance() {
 	if td.config.EnableAnomalyDetection {
 		td.updateBaseline()
 	}
-	
+
 	// Clean up old quarantines
 	td.cleanupQuarantines()
-	
+
 	// Decay threat scores
 	td.decayThreatScores()
-	
+
 	// Update statistics
 	td.updateStats()
-	
+
 	td.stats.LastAnalysis = time.Now()
 }
 
@@ -895,7 +892,7 @@ func (td *ThreatDetector) decayThreatScores() {
 		timeDiff := now.Sub(score.LastUpdated)
 		decay := score.DecayRate * timeDiff.Hours()
 		score.Score = int(float64(score.Score) * (1.0 - decay))
-		
+
 		if score.Score <= 0 {
 			td.threatScores.Delete(key)
 			threatScoreGauge.DeleteLabelValues(score.IP)
@@ -919,7 +916,7 @@ func (td *ThreatDetector) GetStats() *ThreatDetectionStats {
 func (td *ThreatDetector) Close() error {
 	close(td.shutdown)
 	td.wg.Wait()
-	
+
 	td.logger.Info("Threat detector shut down")
 	return nil
 }

@@ -302,7 +302,7 @@ func (r *CNFDeploymentReconciler) checkDirectDeploymentReadiness(ctx context.Con
 		Name:      cnfDeployment.Name,
 		Namespace: cnfDeployment.Namespace,
 	}, deployment)
-	
+
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return false, nil
@@ -324,13 +324,13 @@ func (r *CNFDeploymentReconciler) checkGitOpsDeploymentReadiness(ctx context.Con
 // deployWithHelm deploys the CNF using Helm
 func (r *CNFDeploymentReconciler) deployWithHelm(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) error {
 	logger := log.FromContext(ctx).WithValues("cnfdeployment", cnfDeployment.Name, "strategy", "helm")
-	
+
 	if cnfDeployment.Spec.Helm == nil {
 		return fmt.Errorf("helm configuration is required for Helm deployment strategy")
 	}
 
 	logger.Info("Deploying CNF with Helm", "chart", cnfDeployment.Spec.Helm.ChartName, "version", cnfDeployment.Spec.Helm.ChartVersion)
-	
+
 	// Use CNF Orchestrator to deploy with Helm
 	if r.CNFOrchestrator != nil {
 		return r.CNFOrchestrator.DeployWithHelm(ctx, cnfDeployment)
@@ -345,13 +345,13 @@ func (r *CNFDeploymentReconciler) deployWithHelm(ctx context.Context, cnfDeploym
 // deployWithOperator deploys the CNF using an operator
 func (r *CNFDeploymentReconciler) deployWithOperator(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) error {
 	logger := log.FromContext(ctx).WithValues("cnfdeployment", cnfDeployment.Name, "strategy", "operator")
-	
+
 	if cnfDeployment.Spec.Operator == nil {
 		return fmt.Errorf("operator configuration is required for Operator deployment strategy")
 	}
 
 	logger.Info("Deploying CNF with Operator", "operator", cnfDeployment.Spec.Operator.Name)
-	
+
 	// Use CNF Orchestrator to deploy with operator
 	if r.CNFOrchestrator != nil {
 		return r.CNFOrchestrator.DeployWithOperator(ctx, cnfDeployment)
@@ -399,7 +399,7 @@ func (r *CNFDeploymentReconciler) deployDirect(ctx context.Context, cnfDeploymen
 // deployWithGitOps deploys the CNF using GitOps
 func (r *CNFDeploymentReconciler) deployWithGitOps(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) error {
 	logger := log.FromContext(ctx).WithValues("cnfdeployment", cnfDeployment.Name, "strategy", "gitops")
-	
+
 	// Use CNF Orchestrator to deploy with GitOps
 	if r.CNFOrchestrator != nil {
 		return r.CNFOrchestrator.DeployWithGitOps(ctx, cnfDeployment)
@@ -413,7 +413,7 @@ func (r *CNFDeploymentReconciler) deployWithGitOps(ctx context.Context, cnfDeplo
 func (r *CNFDeploymentReconciler) updateCNFDeploymentStatus(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment, phase, message string) {
 	cnfDeployment.Status.Phase = phase
 	cnfDeployment.Status.LastUpdatedTime = &metav1.Time{Time: time.Now()}
-	
+
 	// Update condition
 	condition := metav1.Condition{
 		Type:               "Ready",
@@ -422,12 +422,12 @@ func (r *CNFDeploymentReconciler) updateCNFDeploymentStatus(ctx context.Context,
 		Message:            message,
 		LastTransitionTime: metav1.Now(),
 	}
-	
+
 	if phase == "Failed" {
 		condition.Status = metav1.ConditionFalse
 		condition.Reason = "DeploymentFailed"
 	}
-	
+
 	// Update or add condition
 	found := false
 	for i, existingCondition := range cnfDeployment.Status.Conditions {
@@ -462,7 +462,7 @@ func (r *CNFDeploymentReconciler) updateHealthStatus(ctx context.Context, cnfDep
 
 	cnfDeployment.Status.Health.Status = "Healthy"
 	cnfDeployment.Status.Health.LastCheckTime = &metav1.Time{Time: time.Now()}
-	
+
 	// Add health check details
 	if cnfDeployment.Status.Health.Details == nil {
 		cnfDeployment.Status.Health.Details = make(map[string]string)
@@ -474,10 +474,10 @@ func (r *CNFDeploymentReconciler) updateHealthStatus(ctx context.Context, cnfDep
 // createKubernetesDeployment creates a Kubernetes Deployment for the CNF
 func (r *CNFDeploymentReconciler) createKubernetesDeployment(cnfDeployment *nephoranv1.CNFDeployment) *appsv1.Deployment {
 	labels := map[string]string{
-		"app":                          cnfDeployment.Name,
-		"cnf-type":                     string(cnfDeployment.Spec.CNFType),
-		"cnf-function":                 string(cnfDeployment.Spec.Function),
-		"nephoran.nephio.org/managed":  "true",
+		"app":                         cnfDeployment.Name,
+		"cnf-type":                    string(cnfDeployment.Spec.CNFType),
+		"cnf-function":                string(cnfDeployment.Spec.Function),
+		"nephoran.nephio.org/managed": "true",
 	}
 
 	deployment := &appsv1.Deployment{
@@ -534,10 +534,10 @@ func (r *CNFDeploymentReconciler) createKubernetesDeployment(cnfDeployment *neph
 // createKubernetesService creates a Kubernetes Service for the CNF
 func (r *CNFDeploymentReconciler) createKubernetesService(cnfDeployment *nephoranv1.CNFDeployment) *corev1.Service {
 	labels := map[string]string{
-		"app":                          cnfDeployment.Name,
-		"cnf-type":                     string(cnfDeployment.Spec.CNFType),
-		"cnf-function":                 string(cnfDeployment.Spec.Function),
-		"nephoran.nephio.org/managed":  "true",
+		"app":                         cnfDeployment.Name,
+		"cnf-type":                    string(cnfDeployment.Spec.CNFType),
+		"cnf-function":                string(cnfDeployment.Spec.Function),
+		"nephoran.nephio.org/managed": "true",
 	}
 
 	service := &corev1.Service{
@@ -567,10 +567,10 @@ func (r *CNFDeploymentReconciler) createKubernetesService(cnfDeployment *nephora
 // createHorizontalPodAutoscaler creates an HPA for auto-scaling
 func (r *CNFDeploymentReconciler) createHorizontalPodAutoscaler(cnfDeployment *nephoranv1.CNFDeployment) *autoscalingv2.HorizontalPodAutoscaler {
 	labels := map[string]string{
-		"app":                          cnfDeployment.Name,
-		"cnf-type":                     string(cnfDeployment.Spec.CNFType),
-		"cnf-function":                 string(cnfDeployment.Spec.Function),
-		"nephoran.nephio.org/managed":  "true",
+		"app":                         cnfDeployment.Name,
+		"cnf-type":                    string(cnfDeployment.Spec.CNFType),
+		"cnf-function":                string(cnfDeployment.Spec.Function),
+		"nephoran.nephio.org/managed": "true",
 	}
 
 	hpa := &autoscalingv2.HorizontalPodAutoscaler{
@@ -592,7 +592,7 @@ func (r *CNFDeploymentReconciler) createHorizontalPodAutoscaler(cnfDeployment *n
 
 	// Add metrics
 	var metrics []autoscalingv2.MetricSpec
-	
+
 	if cnfDeployment.Spec.AutoScaling.CPUUtilization != nil {
 		metrics = append(metrics, autoscalingv2.MetricSpec{
 			Type: autoscalingv2.ResourceMetricSourceType,
@@ -605,7 +605,7 @@ func (r *CNFDeploymentReconciler) createHorizontalPodAutoscaler(cnfDeployment *n
 			},
 		})
 	}
-	
+
 	if cnfDeployment.Spec.AutoScaling.MemoryUtilization != nil {
 		metrics = append(metrics, autoscalingv2.MetricSpec{
 			Type: autoscalingv2.ResourceMetricSourceType,

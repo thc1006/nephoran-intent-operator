@@ -23,7 +23,7 @@ const (
 	SeverityLow      AlertSeverity = "low"
 	SeverityMedium   AlertSeverity = "medium"
 	SeverityHigh     AlertSeverity = "high"
-	
+
 	// Aliases for compatibility
 	AlertSeverityInfo     = SeverityInfo
 	AlertSeverityWarning  = SeverityWarning

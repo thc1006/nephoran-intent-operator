@@ -39,23 +39,23 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Frame-Options", "DENY")
 	w.Header().Set("X-XSS-Protection", "1; mode=block")
 	w.Header().Set("Content-Security-Policy", "default-src 'self'")
-	
+
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", "POST")
 		http.Error(w, fmt.Sprintf("Method %s not allowed. Only POST is supported for this endpoint.", r.Method), http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	// SECURITY FIX: Validate Content-Type header to prevent MIME confusion attacks
 	ct := r.Header.Get("Content-Type")
 	if ct != "" && !strings.HasPrefix(ct, "application/json") && !strings.HasPrefix(ct, "text/json") && !strings.HasPrefix(ct, "text/plain") {
 		http.Error(w, "Invalid Content-Type. Only application/json, text/json, and text/plain are allowed", http.StatusUnsupportedMediaType)
 		return
 	}
-	
+
 	// SECURITY FIX: Limit request body size to prevent DoS attacks
 	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024) // 1MB limit
-	
+
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Request body too large or malformed", http.StatusRequestEntityTooLarge)
@@ -100,28 +100,28 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid timestamp format", http.StatusInternalServerError)
 		return
 	}
-	
+
 	filename := fmt.Sprintf("intent-%s.json", ts)
 	if !isValidFilename(filename) {
 		http.Error(w, "Generated filename contains invalid characters", http.StatusInternalServerError)
 		return
 	}
-	
+
 	// Ensure the output directory exists and is within expected bounds
 	absOutDir, err := filepath.Abs(h.outDir)
 	if err != nil {
 		http.Error(w, "Invalid output directory configuration", http.StatusInternalServerError)
 		return
 	}
-	
+
 	outFile := filepath.Join(absOutDir, filename)
-	
+
 	// Verify the resulting file path is still within the intended directory (prevent path traversal)
 	if !strings.HasPrefix(filepath.Clean(outFile), filepath.Clean(absOutDir)) {
 		http.Error(w, "Invalid file path detected", http.StatusBadRequest)
 		return
 	}
-	
+
 	if err := os.WriteFile(outFile, payload, 0o644); err != nil {
 		http.Error(w, "Failed to save intent to handoff directory", http.StatusInternalServerError)
 		return
@@ -162,7 +162,7 @@ func isValidFilename(filename string) bool {
 	if len(filename) == 0 || len(filename) > 255 {
 		return false
 	}
-	
+
 	// Reject dangerous characters
 	dangerousChars := []string{"..", "/", "\\", ":", "*", "?", "\"", "<", ">", "|", "\x00"}
 	for _, char := range dangerousChars {
@@ -170,7 +170,7 @@ func isValidFilename(filename string) bool {
 			return false
 		}
 	}
-	
+
 	// Only allow specific pattern: intent-YYYYMMDDTHHMMSSZ.json
 	matched, _ := regexp.MatchString(`^intent-\d{8}T\d{6}Z\.json$`, filename)
 	return matched

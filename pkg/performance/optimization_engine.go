@@ -60,7 +60,6 @@ type GoroutinePool struct {
 	metrics    *PoolMetrics
 }
 
-
 // NewOptimizationEngine creates a new optimization engine
 func NewOptimizationEngine() *OptimizationEngine {
 	engine := &OptimizationEngine{
@@ -201,11 +200,6 @@ func NewMultiLevelCache() *MultiLevelCache {
 	}
 }
 
-
-
-
-
-
 // DiskCache provides disk-based caching
 type DiskCache struct {
 	basePath string
@@ -257,7 +251,6 @@ func (c *MultiLevelCache) updateHitRate(level string, hit bool) {
 		c.hitRates[hitKey]++
 	}
 }
-
 
 // NewGoroutinePool creates a new goroutine pool
 func NewGoroutinePool(maxWorkers int) *GoroutinePool {

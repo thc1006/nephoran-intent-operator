@@ -56,7 +56,7 @@ type ClientConfig struct {
 
 // AuthConfig defines authentication configuration
 type AuthConfig struct {
-	Type       string            // kubeconfig, bearer, basic
+	Type       string // kubeconfig, bearer, basic
 	Token      string
 	Username   string
 	Password   string

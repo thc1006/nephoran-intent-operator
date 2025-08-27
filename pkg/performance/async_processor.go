@@ -16,54 +16,54 @@ import (
 
 // AsyncProcessor provides high-performance asynchronous processing
 type AsyncProcessor struct {
-	config           *AsyncConfig
-	workerPools      map[string]*WorkerPool
-	batchProcessor   *BatchProcessor
-	taskQueue        *TaskQueue
-	resultCollector  *ResultCollector
-	rateLimiter      *RateLimiter
-	circuitBreaker   *CircuitBreaker
-	metrics          *AsyncMetrics
-	healthChecker    *AsyncHealthChecker
-	retryManager     *RetryManager
-	priorityManager  *PriorityManager
-	loadBalancer     *AsyncLoadBalancer
-	eventBus         *EventBus
-	shutdown         chan struct{}
-	wg               sync.WaitGroup
-	mu               sync.RWMutex
+	config          *AsyncConfig
+	workerPools     map[string]*WorkerPool
+	batchProcessor  *BatchProcessor
+	taskQueue       *TaskQueue
+	resultCollector *ResultCollector
+	rateLimiter     *RateLimiter
+	circuitBreaker  *CircuitBreaker
+	metrics         *AsyncMetrics
+	healthChecker   *AsyncHealthChecker
+	retryManager    *RetryManager
+	priorityManager *PriorityManager
+	loadBalancer    *AsyncLoadBalancer
+	eventBus        *EventBus
+	shutdown        chan struct{}
+	wg              sync.WaitGroup
+	mu              sync.RWMutex
 }
 
 // AsyncConfig contains configuration for async processing
 type AsyncConfig struct {
 	// Worker Pool Configuration
-	DefaultWorkers         int
-	MaxWorkers            int
-	MinWorkers            int
-	WorkerIdleTimeout     time.Duration
-	WorkerScalingEnabled  bool
-	AutoScalingThreshold  float64
+	DefaultWorkers       int
+	MaxWorkers           int
+	MinWorkers           int
+	WorkerIdleTimeout    time.Duration
+	WorkerScalingEnabled bool
+	AutoScalingThreshold float64
 
 	// Batch Processing Configuration
-	BatchSize             int
-	BatchTimeout          time.Duration
-	BatchFlushInterval    time.Duration
-	MaxBatchSize          int
+	BatchSize               int
+	BatchTimeout            time.Duration
+	BatchFlushInterval      time.Duration
+	MaxBatchSize            int
 	AdaptiveBatchingEnabled bool
 
 	// Queue Configuration
-	QueueSize             int
-	QueueType             string // "memory", "disk", "redis"
-	PersistentQueue       bool
-	QueuePriorities       int
-	DeadLetterQueue       bool
-	RetryPolicy           RetryPolicy
+	QueueSize       int
+	QueueType       string // "memory", "disk", "redis"
+	PersistentQueue bool
+	QueuePriorities int
+	DeadLetterQueue bool
+	RetryPolicy     RetryPolicy
 
 	// Rate Limiting
-	RateLimitEnabled      bool
-	RequestsPerSecond     float64
-	BurstCapacity         int
-	SlidingWindow         bool
+	RateLimitEnabled  bool
+	RequestsPerSecond float64
+	BurstCapacity     int
+	SlidingWindow     bool
 
 	// Circuit Breaker
 	CircuitBreakerEnabled bool
@@ -72,100 +72,100 @@ type AsyncConfig struct {
 	HalfOpenRequests      int
 
 	// Monitoring
-	MetricsEnabled        bool
-	MetricsInterval       time.Duration
-	HealthCheckEnabled    bool
-	HealthCheckInterval   time.Duration
-	AlertingEnabled       bool
+	MetricsEnabled      bool
+	MetricsInterval     time.Duration
+	HealthCheckEnabled  bool
+	HealthCheckInterval time.Duration
+	AlertingEnabled     bool
 
 	// Advanced Features
-	LoadBalancingEnabled  bool
-	AffinityEnabled       bool
-	CompressionEnabled    bool
-	EncryptionEnabled     bool
+	LoadBalancingEnabled bool
+	AffinityEnabled      bool
+	CompressionEnabled   bool
+	EncryptionEnabled    bool
 }
 
 // AsyncMetrics tracks async processing performance
 type AsyncMetrics struct {
 	// Task Statistics
-	TasksSubmitted        int64
-	TasksCompleted        int64
-	TasksFailed           int64
-	TasksRetried          int64
-	TasksCanceled         int64
-	TasksTimeout          int64
+	TasksSubmitted int64
+	TasksCompleted int64
+	TasksFailed    int64
+	TasksRetried   int64
+	TasksCanceled  int64
+	TasksTimeout   int64
 
 	// Performance Metrics
-	AvgProcessingTime     time.Duration
-	MaxProcessingTime     time.Duration
-	MinProcessingTime     time.Duration
-	TotalProcessingTime   time.Duration
-	P50ProcessingTime     time.Duration
-	P95ProcessingTime     time.Duration
-	P99ProcessingTime     time.Duration
+	AvgProcessingTime   time.Duration
+	MaxProcessingTime   time.Duration
+	MinProcessingTime   time.Duration
+	TotalProcessingTime time.Duration
+	P50ProcessingTime   time.Duration
+	P95ProcessingTime   time.Duration
+	P99ProcessingTime   time.Duration
 
 	// Throughput Metrics
-	TasksPerSecond        float64
-	BytesPerSecond        int64
-	PeakThroughput        float64
-	AvgThroughput         float64
+	TasksPerSecond float64
+	BytesPerSecond int64
+	PeakThroughput float64
+	AvgThroughput  float64
 
 	// Worker Metrics
-	ActiveWorkers         int64
-	IdleWorkers           int64
-	TotalWorkers          int64
-	WorkerUtilization     float64
-	WorkerScaleEvents     int64
+	ActiveWorkers     int64
+	IdleWorkers       int64
+	TotalWorkers      int64
+	WorkerUtilization float64
+	WorkerScaleEvents int64
 
 	// Queue Metrics
-	QueueSize             int64
-	QueueDepth            int64
-	MaxQueueDepth         int64
-	QueueUtilization      float64
-	DeadLetterCount       int64
+	QueueSize        int64
+	QueueDepth       int64
+	MaxQueueDepth    int64
+	QueueUtilization float64
+	DeadLetterCount  int64
 
 	// Batch Metrics
-	BatchesProcessed      int64
-	AvgBatchSize          float64
-	MaxBatchSize          int64
-	BatchEfficiency       float64
+	BatchesProcessed int64
+	AvgBatchSize     float64
+	MaxBatchSize     int64
+	BatchEfficiency  float64
 
 	// Error Metrics
-	ErrorRate             float64
-	RetryRate             float64
-	CircuitBreakerTrips   int64
-	RateLimitHits         int64
+	ErrorRate           float64
+	RetryRate           float64
+	CircuitBreakerTrips int64
+	RateLimitHits       int64
 }
 
 // WorkerPool manages a pool of workers for async processing
 type WorkerPool struct {
-	name            string
-	config          *AsyncConfig
-	workers         []*Worker
-	taskChannel     chan AsyncTask
-	resultChannel   chan TaskResult
-	activeWorkers   int64
-	idleWorkers     int64
-	totalWorkers    int64
-	scaling         *AutoScaling
-	affinity        *WorkerAffinity
-	mu              sync.RWMutex
+	name          string
+	config        *AsyncConfig
+	workers       []*Worker
+	taskChannel   chan AsyncTask
+	resultChannel chan TaskResult
+	activeWorkers int64
+	idleWorkers   int64
+	totalWorkers  int64
+	scaling       *AutoScaling
+	affinity      *WorkerAffinity
+	mu            sync.RWMutex
 }
 
 // Worker represents a single worker goroutine
 type Worker struct {
-	id              int
-	pool            *WorkerPool
-	taskChannel     chan AsyncTask
-	resultChannel   chan TaskResult
-	active          bool
-	startTime       time.Time
-	lastTaskTime    time.Time
-	tasksProcessed  int64
-	processingTime  time.Duration
-	errors          int64
-	ctx             context.Context
-	cancel          context.CancelFunc
+	id             int
+	pool           *WorkerPool
+	taskChannel    chan AsyncTask
+	resultChannel  chan TaskResult
+	active         bool
+	startTime      time.Time
+	lastTaskTime   time.Time
+	tasksProcessed int64
+	processingTime time.Duration
+	errors         int64
+	ctx            context.Context
+	cancel         context.CancelFunc
 }
 
 // AutoScaling manages automatic worker scaling
@@ -183,81 +183,81 @@ type AutoScaling struct {
 
 // ScalingMetrics tracks scaling events
 type ScalingMetrics struct {
-	ScaleUpEvents     int64
-	ScaleDownEvents   int64
-	LastScaleUp       time.Time
-	LastScaleDown     time.Time
-	CurrentCapacity   int64
-	DesiredCapacity   int64
+	ScaleUpEvents      int64
+	ScaleDownEvents    int64
+	LastScaleUp        time.Time
+	LastScaleDown      time.Time
+	CurrentCapacity    int64
+	DesiredCapacity    int64
 	UtilizationHistory []float64
 }
 
 // WorkerAffinity manages worker affinity for tasks
 type WorkerAffinity struct {
-	enabled         bool
-	affinityMap     map[string]int // task type -> preferred worker
+	enabled          bool
+	affinityMap      map[string]int // task type -> preferred worker
 	stickyScheduling bool
-	mu              sync.RWMutex
+	mu               sync.RWMutex
 }
 
 // Task represents a unit of work
 type AsyncTask struct {
-	ID              string
-	Type            string
-	Priority        int
-	Data            interface{}
-	Context         context.Context
-	Metadata        map[string]interface{}
-	SubmittedAt     time.Time
-	Timeout         time.Duration
-	RetryPolicy     *RetryPolicy
-	Callback        func(TaskResult)
-	Dependencies    []string
-	Tags            []string
-	Affinity        string
-	BatchID         string
-	PartitionKey    string
+	ID           string
+	Type         string
+	Priority     int
+	Data         interface{}
+	Context      context.Context
+	Metadata     map[string]interface{}
+	SubmittedAt  time.Time
+	Timeout      time.Duration
+	RetryPolicy  *RetryPolicy
+	Callback     func(TaskResult)
+	Dependencies []string
+	Tags         []string
+	Affinity     string
+	BatchID      string
+	PartitionKey string
 }
 
 // TaskResult represents the result of task processing
 type TaskResult struct {
-	TaskID          string
-	Success         bool
-	Result          interface{}
-	Error           error
-	ProcessingTime  time.Duration
-	WorkerID        int
-	Attempt         int
-	CompletedAt     time.Time
-	Metadata        map[string]interface{}
+	TaskID         string
+	Success        bool
+	Result         interface{}
+	Error          error
+	ProcessingTime time.Duration
+	WorkerID       int
+	Attempt        int
+	CompletedAt    time.Time
+	Metadata       map[string]interface{}
 }
 
 // BatchProcessor handles batch processing operations
 type BatchProcessor struct {
-	config          *AsyncConfig
-	batches         map[string]*Batch
-	batchQueue      chan *Batch
-	flushTimer      *time.Ticker
-	processor       BatchProcessorFunc
-	metrics         *BatchMetrics
-	mu              sync.RWMutex
+	config     *AsyncConfig
+	batches    map[string]*Batch
+	batchQueue chan *Batch
+	flushTimer *time.Ticker
+	processor  BatchProcessorFunc
+	metrics    *BatchMetrics
+	mu         sync.RWMutex
 }
 
 // Batch represents a collection of tasks processed together
 type Batch struct {
-	ID              string
-	Tasks           []AsyncTask
-	CreatedAt       time.Time
-	ProcessedAt     time.Time
-	CompletedAt     time.Time
-	Size            int
-	MaxSize         int
-	Timeout         time.Duration
-	Priority        int
-	Status          BatchStatus
-	Results         []TaskResult
-	ProcessorFunc   BatchProcessorFunc
-	Metadata        map[string]interface{}
+	ID            string
+	Tasks         []AsyncTask
+	CreatedAt     time.Time
+	ProcessedAt   time.Time
+	CompletedAt   time.Time
+	Size          int
+	MaxSize       int
+	Timeout       time.Duration
+	Priority      int
+	Status        BatchStatus
+	Results       []TaskResult
+	ProcessorFunc BatchProcessorFunc
+	Metadata      map[string]interface{}
 }
 
 // BatchStatus represents batch processing status
@@ -307,12 +307,12 @@ type PriorityQueue struct {
 
 // QueuedTask represents a task in the queue
 type QueuedTask struct {
-	Task      Task
-	QueuedAt  time.Time
-	Attempts  int
-	Priority  int
-	Delay     time.Duration
-	Index     int // for heap operations
+	Task     AsyncTask
+	QueuedAt time.Time
+	Attempts int
+	Priority int
+	Delay    time.Duration
+	Index    int // for heap operations
 }
 
 // DeadLetterQueue handles failed tasks
@@ -325,9 +325,9 @@ type DeadLetterQueue struct {
 
 // QueuePersistence handles persistent queuing
 type QueuePersistence struct {
-	enabled    bool
-	storage    QueueStorage
-	batchSize  int
+	enabled      bool
+	storage      QueueStorage
+	batchSize    int
 	syncInterval time.Duration
 }
 
@@ -353,12 +353,12 @@ type QueueMetrics struct {
 
 // ResultCollector manages task result collection
 type ResultCollector struct {
-	results         map[string]*TaskResult
-	callbacks       map[string][]ResultCallback
-	subscribers     map[string][]ResultSubscriber
-	aggregators     map[string]ResultAggregator
-	storage         ResultStorage
-	mu              sync.RWMutex
+	results     map[string]*TaskResult
+	callbacks   map[string][]ResultCallback
+	subscribers map[string][]ResultSubscriber
+	aggregators map[string]ResultAggregator
+	storage     ResultStorage
+	mu          sync.RWMutex
 }
 
 // ResultCallback is called when a task completes
@@ -387,32 +387,32 @@ type ResultStorage interface {
 
 // RateLimiter implements advanced rate limiting
 type RateLimiter struct {
-	config      *RateLimiterConfig
-	limiters    map[string]*TokenBucket
-	global      *TokenBucket
+	config        *RateLimiterConfig
+	limiters      map[string]*TokenBucket
+	global        *TokenBucket
 	slidingWindow *SlidingWindow
-	metrics     *RateLimitMetrics
-	mu          sync.RWMutex
+	metrics       *RateLimitMetrics
+	mu            sync.RWMutex
 }
 
 // RateLimiterConfig contains rate limiter configuration
 type RateLimiterConfig struct {
-	Algorithm       string  // "token_bucket", "sliding_window", "fixed_window"
-	Rate            float64 // requests per second
-	Burst           int     // burst capacity
-	WindowSize      time.Duration
-	Granularity     time.Duration
-	PerClientLimit  bool
-	GlobalLimit     bool
+	Algorithm      string  // "token_bucket", "sliding_window", "fixed_window"
+	Rate           float64 // requests per second
+	Burst          int     // burst capacity
+	WindowSize     time.Duration
+	Granularity    time.Duration
+	PerClientLimit bool
+	GlobalLimit    bool
 }
 
 // TokenBucket implements token bucket rate limiting
 type TokenBucket struct {
-	capacity    int
-	tokens      int
-	rate        float64
-	lastRefill  time.Time
-	mu          sync.Mutex
+	capacity   int
+	tokens     int
+	rate       float64
+	lastRefill time.Time
+	mu         sync.Mutex
 }
 
 // SlidingWindow implements sliding window rate limiting
@@ -434,24 +434,24 @@ type RateLimitMetrics struct {
 
 // CircuitBreaker implements circuit breaker pattern
 type CircuitBreaker struct {
-	config          *CircuitBreakerConfig
-	state           CircuitBreakerState
-	failures        int64
-	requests        int64
-	successes       int64
-	lastFailureTime time.Time
-	lastStateChange time.Time
+	config           *CircuitBreakerConfig
+	state            CircuitBreakerState
+	failures         int64
+	requests         int64
+	successes        int64
+	lastFailureTime  time.Time
+	lastStateChange  time.Time
 	halfOpenRequests int64
-	mu              sync.RWMutex
+	mu               sync.RWMutex
 }
 
 // CircuitBreakerConfig contains circuit breaker configuration
 type CircuitBreakerConfig struct {
-	FailureThreshold   int
-	RecoveryTimeout    time.Duration
-	HalfOpenRequests   int
-	SuccessThreshold   int
-	MinRequests        int64
+	FailureThreshold     int
+	RecoveryTimeout      time.Duration
+	HalfOpenRequests     int
+	SuccessThreshold     int
+	MinRequests          int64
 	ConsecutiveSuccesses int
 }
 
@@ -474,14 +474,14 @@ type RetryManager struct {
 
 // RetryPolicy defines retry behavior
 type RetryPolicy struct {
-	MaxAttempts    int
-	InitialDelay   time.Duration
-	MaxDelay       time.Duration
-	BackoffType    string // "exponential", "linear", "constant", "custom"
-	Multiplier     float64
-	Jitter         bool
+	MaxAttempts     int
+	InitialDelay    time.Duration
+	MaxDelay        time.Duration
+	BackoffType     string // "exponential", "linear", "constant", "custom"
+	Multiplier      float64
+	Jitter          bool
 	RetryableErrors []string
-	CustomBackoff  BackoffFunc
+	CustomBackoff   BackoffFunc
 }
 
 // BackoffFunc calculates retry delay
@@ -497,10 +497,10 @@ type ExponentialBackoff struct {
 
 // LinearBackoff implements linear backoff
 type LinearBackoff struct {
-	base     time.Duration
+	base      time.Duration
 	increment time.Duration
-	maxDelay time.Duration
-	jitter   bool
+	maxDelay  time.Duration
+	jitter    bool
 }
 
 // PriorityManager handles task prioritization
@@ -512,7 +512,7 @@ type PriorityManager struct {
 
 // PriorityScheduler schedules tasks based on priority
 type PriorityScheduler interface {
-	Schedule(tasks []Task) []Task
+	Schedule(tasks []AsyncTask) []AsyncTask
 	UpdatePriority(taskID string, priority int) error
 }
 
@@ -556,20 +556,20 @@ type EventPublisher interface {
 
 // AsyncHealthChecker monitors async processor health
 type AsyncHealthChecker struct {
-	checks    map[string]HealthCheck
-	interval  time.Duration
-	timeout   time.Duration
-	mu        sync.RWMutex
+	checks   map[string]HealthCheck
+	interval time.Duration
+	timeout  time.Duration
+	mu       sync.RWMutex
 }
 
 // HealthCheck represents a health check
 type HealthCheck struct {
-	Name        string
-	Check       func() error
-	LastCheck   time.Time
-	LastResult  error
-	Healthy     bool
-	FailCount   int64
+	Name         string
+	Check        func() error
+	LastCheck    time.Time
+	LastResult   error
+	Healthy      bool
+	FailCount    int64
 	SuccessCount int64
 }
 
@@ -601,7 +601,7 @@ func NewAsyncProcessor(config *AsyncConfig) (*AsyncProcessor, error) {
 func DefaultAsyncConfig() *AsyncConfig {
 	return &AsyncConfig{
 		// Worker Pool Configuration
-		DefaultWorkers:        runtime.NumCPU(),
+		DefaultWorkers:       runtime.NumCPU(),
 		MaxWorkers:           runtime.NumCPU() * 4,
 		MinWorkers:           1,
 		WorkerIdleTimeout:    5 * time.Minute,
@@ -609,10 +609,10 @@ func DefaultAsyncConfig() *AsyncConfig {
 		AutoScalingThreshold: 0.8,
 
 		// Batch Processing Configuration
-		BatchSize:              100,
-		BatchTimeout:           5 * time.Second,
-		BatchFlushInterval:     1 * time.Second,
-		MaxBatchSize:          1000,
+		BatchSize:               100,
+		BatchTimeout:            5 * time.Second,
+		BatchFlushInterval:      1 * time.Second,
+		MaxBatchSize:            1000,
 		AdaptiveBatchingEnabled: true,
 
 		// Queue Configuration
@@ -625,14 +625,14 @@ func DefaultAsyncConfig() *AsyncConfig {
 		// Rate Limiting
 		RateLimitEnabled:  true,
 		RequestsPerSecond: 1000.0,
-		BurstCapacity:    2000,
-		SlidingWindow:    true,
+		BurstCapacity:     2000,
+		SlidingWindow:     true,
 
 		// Circuit Breaker
 		CircuitBreakerEnabled: true,
-		FailureThreshold:     10,
-		RecoveryTimeout:      30 * time.Second,
-		HalfOpenRequests:     5,
+		FailureThreshold:      10,
+		RecoveryTimeout:       30 * time.Second,
+		HalfOpenRequests:      5,
 
 		// Monitoring
 		MetricsEnabled:      true,
@@ -643,9 +643,9 @@ func DefaultAsyncConfig() *AsyncConfig {
 
 		// Advanced Features
 		LoadBalancingEnabled: true,
-		AffinityEnabled:     false,
-		CompressionEnabled:  false,
-		EncryptionEnabled:   false,
+		AffinityEnabled:      false,
+		CompressionEnabled:   false,
+		EncryptionEnabled:    false,
 	}
 }
 
@@ -707,7 +707,7 @@ func (ap *AsyncProcessor) initializeComponents() error {
 }
 
 // SubmitTask submits a task for async processing
-func (ap *AsyncProcessor) SubmitTask(task Task) error {
+func (ap *AsyncProcessor) SubmitTask(task AsyncTask) error {
 	// Apply rate limiting
 	if ap.rateLimiter != nil {
 		if !ap.rateLimiter.Allow(task.Type) {
@@ -753,7 +753,7 @@ func (ap *AsyncProcessor) SubmitTask(task Task) error {
 }
 
 // SubmitBatch submits a batch of tasks
-func (ap *AsyncProcessor) SubmitBatch(tasks []Task) error {
+func (ap *AsyncProcessor) SubmitBatch(tasks []AsyncTask) error {
 	batch := &Batch{
 		ID:        generateBatchID(),
 		Tasks:     tasks,
@@ -886,7 +886,7 @@ func (ap *AsyncProcessor) taskDispatcher() {
 func (ap *AsyncProcessor) dispatchTasks() {
 	// Get tasks from queue
 	tasks := ap.taskQueue.Dequeue(ap.config.DefaultWorkers)
-	
+
 	for _, task := range tasks {
 		// Select appropriate worker pool
 		poolName := ap.selectWorkerPool(task)
@@ -905,7 +905,7 @@ func (ap *AsyncProcessor) dispatchTasks() {
 }
 
 // selectWorkerPool selects the appropriate worker pool for a task
-func (ap *AsyncProcessor) selectWorkerPool(task Task) string {
+func (ap *AsyncProcessor) selectWorkerPool(task AsyncTask) string {
 	// Simple selection based on task type
 	if task.Type != "" {
 		return task.Type
@@ -933,7 +933,7 @@ func (ap *AsyncProcessor) collectMetrics() {
 	// Calculate throughput
 	_ = time.Now() // Used for future timestamp-based metrics
 	static := ap.GetMetrics()
-	
+
 	// Update throughput metrics (simplified calculation)
 	timeDiff := ap.config.MetricsInterval.Seconds()
 	if timeDiff > 0 {
@@ -942,7 +942,7 @@ func (ap *AsyncProcessor) collectMetrics() {
 
 	// Log metrics periodically
 	klog.V(2).Infof("Async processor metrics - Tasks: %d submitted, %d completed, %d failed, Workers: %d/%d active",
-		static.TasksSubmitted, static.TasksCompleted, static.TasksFailed, 
+		static.TasksSubmitted, static.TasksCompleted, static.TasksFailed,
 		static.ActiveWorkers, static.TotalWorkers)
 }
 
@@ -956,7 +956,7 @@ func (ap *AsyncProcessor) registerHealthChecks() {
 				return fmt.Errorf("task queue not initialized")
 			}
 			stats := ap.taskQueue.GetStats()
-			if float64(stats.CurrentSize) / float64(ap.config.QueueSize) > 0.9 {
+			if float64(stats.CurrentSize)/float64(ap.config.QueueSize) > 0.9 {
 				return fmt.Errorf("queue utilization too high: %d/%d", stats.CurrentSize, ap.config.QueueSize)
 			}
 			return nil
@@ -1028,7 +1028,7 @@ func NewWorkerPool(name string, config *AsyncConfig) *WorkerPool {
 	return &WorkerPool{
 		name:          name,
 		config:        config,
-		taskChannel:   make(chan Task, config.QueueSize),
+		taskChannel:   make(chan AsyncTask, config.QueueSize),
 		resultChannel: make(chan TaskResult, config.QueueSize),
 	}
 }
@@ -1044,20 +1044,20 @@ func NewBatchProcessor(config *AsyncConfig) *BatchProcessor {
 
 func NewTaskQueue(config *AsyncConfig) *TaskQueue {
 	tq := &TaskQueue{
-		config: config,
-		queues: make(map[int]*PriorityQueue),
+		config:  config,
+		queues:  make(map[int]*PriorityQueue),
 		metrics: &QueueMetrics{},
 	}
-	
+
 	// Initialize priority queues
 	for i := 0; i < config.QueuePriorities; i++ {
 		tq.queues[i] = &PriorityQueue{priority: i}
 	}
-	
+
 	if config.DeadLetterQueue {
 		tq.deadLetterQueue = &DeadLetterQueue{maxSize: 1000, retention: 24 * time.Hour}
 	}
-	
+
 	return tq
 }
 
@@ -1135,8 +1135,8 @@ func NewAsyncHealthChecker(interval time.Duration) *AsyncHealthChecker {
 
 // Method stubs for component interfaces
 func (wp *WorkerPool) Start(shutdown chan struct{}) {}
-func (wp *WorkerPool) SubmitTask(task Task) error { return nil }
-func (wp *WorkerPool) GetStats() *WorkerPoolStats { return &WorkerPoolStats{} }
+func (wp *WorkerPool) SubmitTask(task AsyncTask) error   { return nil }
+func (wp *WorkerPool) GetStats() *WorkerPoolStats   { return &WorkerPoolStats{} }
 
 type WorkerPoolStats struct {
 	TotalWorkers  int64
@@ -1144,15 +1144,17 @@ type WorkerPoolStats struct {
 	IdleWorkers   int64
 }
 
-func (bp *BatchProcessor) Start(shutdown chan struct{}) {}
+func (bp *BatchProcessor) Start(shutdown chan struct{})    {}
 func (bp *BatchProcessor) ProcessBatch(batch *Batch) error { return nil }
 
-func (tq *TaskQueue) Enqueue(task Task) error { return nil }
-func (tq *TaskQueue) Dequeue(count int) []Task { return nil }
-func (tq *TaskQueue) EnqueueDeadLetter(task Task, err error) error { return nil }
-func (tq *TaskQueue) GetStats() *QueueMetrics { return tq.metrics }
+func (tq *TaskQueue) Enqueue(task AsyncTask) error                      { return nil }
+func (tq *TaskQueue) Dequeue(count int) []AsyncTask                     { return nil }
+func (tq *TaskQueue) EnqueueDeadLetter(task AsyncTask, err error) error { return nil }
+func (tq *TaskQueue) GetStats() *QueueMetrics                      { return tq.metrics }
 
-func (rc *ResultCollector) GetResult(taskID string) (*TaskResult, error) { return nil, fmt.Errorf("not found") }
+func (rc *ResultCollector) GetResult(taskID string) (*TaskResult, error) {
+	return nil, fmt.Errorf("not found")
+}
 
 func (rl *RateLimiter) Allow(taskType string) bool { return true }
 
@@ -1160,8 +1162,8 @@ func (cb *CircuitBreaker) State() CircuitBreakerState { return cb.state }
 
 func (pm *PriorityManager) GetPriority(taskType string) int { return 1 }
 
-func (eb *EventBus) Publish(event Event) error { return nil }
+func (eb *EventBus) Publish(event Event) error    { return nil }
 func (eb *EventBus) Start(shutdown chan struct{}) {}
 
-func (ahc *AsyncHealthChecker) Register(check HealthCheck) {}
+func (ahc *AsyncHealthChecker) Register(check HealthCheck)   {}
 func (ahc *AsyncHealthChecker) Start(shutdown chan struct{}) {}

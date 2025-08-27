@@ -14,7 +14,7 @@ import (
 func TestSet_BasicOperations(t *testing.T) {
 	ctx, cancel := testutil.ContextWithTimeout(t)
 	defer cancel()
-	
+
 	set := NewSet[int]()
 	require.NotNil(t, set, "set should not be nil")
 

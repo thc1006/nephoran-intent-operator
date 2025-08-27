@@ -4672,13 +4672,7 @@ func (in *ManagedElementSpec) DeepCopyInto(out *ManagedElementSpec) {
 			(*out)[key] = val
 		}
 	}
-	if in.A1Policy != nil {
-		in, out := &in.A1Policy, &out.A1Policy
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	}
+	in.A1Policy.DeepCopyInto(&out.A1Policy)
 	if in.E2Configuration != nil {
 		in, out := &in.E2Configuration, &out.E2Configuration
 		*out = make(map[string]string, len(*in))

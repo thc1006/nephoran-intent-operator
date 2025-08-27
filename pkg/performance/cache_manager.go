@@ -19,21 +19,21 @@ import (
 
 // CacheManager provides comprehensive caching with Redis and in-memory layers
 type CacheManager struct {
-	config          *CacheConfig
-	redisClient     *redis.Client
-	redisCluster    *redis.ClusterClient
-	memoryCache     *MemoryCache
+	config           *CacheConfig
+	redisClient      *redis.Client
+	redisCluster     *redis.ClusterClient
+	memoryCache      *MemoryCache
 	distributedCache *DistributedCache
-	cacheMetrics    *CacheMetrics
-	compressionMgr  *CompressionManager
+	cacheMetrics     *CacheMetrics
+	compressionMgr   *CompressionManager
 	serializationMgr *SerializationManager
-	ttlManager      *TTLManager
-	evictionMgr     *EvictionManager
-	replicationMgr  *ReplicationManager
-	shardingMgr     *ShardingManager
-	mu              sync.RWMutex
-	shutdown        chan struct{}
-	wg              sync.WaitGroup
+	ttlManager       *TTLManager
+	evictionMgr      *EvictionManager
+	replicationMgr   *ReplicationManager
+	shardingMgr      *ShardingManager
+	mu               sync.RWMutex
+	shutdown         chan struct{}
+	wg               sync.WaitGroup
 }
 
 // CacheConfig contains cache configuration
@@ -59,32 +59,32 @@ type CacheConfig struct {
 	MemoryEvictionPolicy string // "lru", "lfu", "ttl"
 
 	// Distributed Cache Configuration
-	DistributedEnabled     bool
-	ConsistencyLevel       string // "eventual", "strong", "session"
-	ReplicationFactor      int
-	ShardingEnabled        bool
-	ShardCount             int
-	LoadBalancingStrategy  string // "round_robin", "consistent_hash", "weighted"
+	DistributedEnabled    bool
+	ConsistencyLevel      string // "eventual", "strong", "session"
+	ReplicationFactor     int
+	ShardingEnabled       bool
+	ShardCount            int
+	LoadBalancingStrategy string // "round_robin", "consistent_hash", "weighted"
 
 	// Performance Configuration
-	CompressionEnabled     bool
-	CompressionAlgorithm   string // "gzip", "lz4", "zstd"
-	CompressionThreshold   int64  // bytes
-	SerializationFormat    string // "json", "msgpack", "protobuf"
-	AsyncWriteEnabled      bool
-	BatchWriteEnabled      bool
-	BatchSize              int
-	BatchFlushInterval     time.Duration
+	CompressionEnabled   bool
+	CompressionAlgorithm string // "gzip", "lz4", "zstd"
+	CompressionThreshold int64  // bytes
+	SerializationFormat  string // "json", "msgpack", "protobuf"
+	AsyncWriteEnabled    bool
+	BatchWriteEnabled    bool
+	BatchSize            int
+	BatchFlushInterval   time.Duration
 
 	// Cache Policies
-	DefaultTTL             time.Duration
-	MaxTTL                 time.Duration
-	RefreshAheadEnabled    bool
-	RefreshAheadThreshold  time.Duration
-	WriteThrough           bool
-	WriteBack              bool
-	WriteBehind            bool
-	CacheWarmupEnabled     bool
+	DefaultTTL            time.Duration
+	MaxTTL                time.Duration
+	RefreshAheadEnabled   bool
+	RefreshAheadThreshold time.Duration
+	WriteThrough          bool
+	WriteBack             bool
+	WriteBehind           bool
+	CacheWarmupEnabled    bool
 
 	// Monitoring
 	MetricsEnabled         bool
@@ -98,54 +98,54 @@ type CacheConfig struct {
 // CacheMetrics tracks cache performance
 type CacheMetrics struct {
 	// Hit/Miss Statistics
-	Hits                   int64
-	Misses                 int64
-	HitRate                float64
-	MissRate               float64
+	Hits     int64
+	Misses   int64
+	HitRate  float64
+	MissRate float64
 
 	// Operation Statistics
-	Gets                   int64
-	Sets                   int64
-	Deletes                int64
-	Exists                 int64
-	Increments             int64
-	Decrements             int64
+	Gets       int64
+	Sets       int64
+	Deletes    int64
+	Exists     int64
+	Increments int64
+	Decrements int64
 
 	// Performance Metrics
-	AvgGetLatency          time.Duration
-	AvgSetLatency          time.Duration
-	AvgDeleteLatency       time.Duration
-	MaxLatency             time.Duration
-	P50Latency             time.Duration
-	P95Latency             time.Duration
-	P99Latency             time.Duration
+	AvgGetLatency    time.Duration
+	AvgSetLatency    time.Duration
+	AvgDeleteLatency time.Duration
+	MaxLatency       time.Duration
+	P50Latency       time.Duration
+	P95Latency       time.Duration
+	P99Latency       time.Duration
 
 	// Memory Metrics
-	MemoryUsage            int64
-	MaxMemoryUsage         int64
-	EvictionCount          int64
-	ExpirationCount        int64
+	MemoryUsage     int64
+	MaxMemoryUsage  int64
+	EvictionCount   int64
+	ExpirationCount int64
 
 	// Network Metrics
-	NetworkBytesIn         int64
-	NetworkBytesOut        int64
-	ConnectionCount        int64
-	ActiveConnections      int64
-	IdleConnections        int64
-	ConnectionPoolHitRate  float64
+	NetworkBytesIn        int64
+	NetworkBytesOut       int64
+	ConnectionCount       int64
+	ActiveConnections     int64
+	IdleConnections       int64
+	ConnectionPoolHitRate float64
 
 	// Error Metrics
-	Errors                 int64
-	Timeouts               int64
-	ConnectionErrors       int64
-	SerializationErrors    int64
-	CompressionErrors      int64
+	Errors              int64
+	Timeouts            int64
+	ConnectionErrors    int64
+	SerializationErrors int64
+	CompressionErrors   int64
 
 	// Cache Efficiency
-	CompressionRatio       float64
-	CacheEfficiencyScore   float64
-	MemoryEfficiency       float64
-	NetworkEfficiency      float64
+	CompressionRatio     float64
+	CacheEfficiencyScore float64
+	MemoryEfficiency     float64
+	NetworkEfficiency    float64
 }
 
 // MemoryCache provides high-performance in-memory caching
@@ -178,12 +178,12 @@ type CacheItem struct {
 
 // CacheIndex provides fast key lookup and management
 type CacheIndex struct {
-	keyToHash    map[string]string
-	hashToKey    map[string]string
-	tagIndex     map[string][]string
-	sizeIndex    map[int64][]string
-	expiryIndex  map[time.Time][]string
-	mu           sync.RWMutex
+	keyToHash   map[string]string
+	hashToKey   map[string]string
+	tagIndex    map[string][]string
+	sizeIndex   map[int64][]string
+	expiryIndex map[time.Time][]string
+	mu          sync.RWMutex
 }
 
 // LRUEviction implements LRU eviction policy
@@ -254,42 +254,42 @@ type DistributedCache struct {
 
 // CacheNode represents a cache node in the distributed system
 type CacheNode struct {
-	ID            string
-	Address       string
-	Weight        int
-	Healthy       bool
-	LastSeen      time.Time
-	Load          float64
-	Connections   int64
-	client        *redis.Client
-	mu            sync.RWMutex
+	ID          string
+	Address     string
+	Weight      int
+	Healthy     bool
+	LastSeen    time.Time
+	Load        float64
+	Connections int64
+	client      *redis.Client
+	mu          sync.RWMutex
 }
 
 // ConsistentHash provides consistent hashing for cache distribution
 type ConsistentHash struct {
-	ring      map[uint32]*CacheNode
+	ring       map[uint32]*CacheNode
 	sortedKeys []uint32
-	nodes     map[string]*CacheNode
-	replicas  int
-	mu        sync.RWMutex
+	nodes      map[string]*CacheNode
+	replicas   int
+	mu         sync.RWMutex
 }
 
 // CacheReplicator handles cache replication
 type CacheReplicator struct {
-	enabled         bool
+	enabled           bool
 	replicationFactor int
-	strategy        string
-	syncInterval    time.Duration
-	mu              sync.RWMutex
+	strategy          string
+	syncInterval      time.Duration
+	mu                sync.RWMutex
 }
 
 // CachePartitioner handles cache partitioning
 type CachePartitioner struct {
-	enabled       bool
-	shardCount    int
-	strategy      string
-	balancer      *LoadBalancer
-	mu            sync.RWMutex
+	enabled    bool
+	shardCount int
+	strategy   string
+	balancer   *LoadBalancer
+	mu         sync.RWMutex
 }
 
 // LoadBalancer provides load balancing for cache operations
@@ -302,11 +302,11 @@ type LoadBalancer struct {
 
 // CompressionManager handles data compression
 type CompressionManager struct {
-	enabled     bool
-	algorithm   string
-	threshold   int64
-	compressor  Compressor
-	mu          sync.RWMutex
+	enabled    bool
+	algorithm  string
+	threshold  int64
+	compressor Compressor
+	mu         sync.RWMutex
 }
 
 // Compressor interface for different compression algorithms
@@ -331,12 +331,12 @@ type Serializer interface {
 
 // TTLManager manages time-to-live for cache entries
 type TTLManager struct {
-	entries        map[string]*TTLEntry
-	expiryQueue    *TTLPriorityQueue
-	cleanupTicker  *time.Ticker
-	refreshAhead   bool
+	entries          map[string]*TTLEntry
+	expiryQueue      *TTLPriorityQueue
+	cleanupTicker    *time.Ticker
+	refreshAhead     bool
 	refreshThreshold time.Duration
-	mu             sync.RWMutex
+	mu               sync.RWMutex
 }
 
 // TTLEntry represents a TTL entry
@@ -365,11 +365,11 @@ type EvictionManager struct {
 
 // ReplicationManager handles cache replication
 type ReplicationManager struct {
-	enabled       bool
-	factor        int
-	nodes         []*CacheNode
-	syncInterval  time.Duration
-	mu            sync.RWMutex
+	enabled      bool
+	factor       int
+	nodes        []*CacheNode
+	syncInterval time.Duration
+	mu           sync.RWMutex
 }
 
 // ShardingManager handles cache sharding
@@ -383,10 +383,10 @@ type ShardingManager struct {
 
 // CacheShard represents a cache shard
 type CacheShard struct {
-	ID     int
-	Node   *CacheNode
-	Size   int64
-	Load   float64
+	ID      int
+	Node    *CacheNode
+	Size    int64
+	Load    float64
 	Healthy bool
 }
 
@@ -443,22 +443,22 @@ func DefaultCacheConfig() *CacheConfig {
 		ConsistencyLevel:      "eventual",
 		ReplicationFactor:     2,
 		ShardingEnabled:       false,
-		ShardCount:           4,
+		ShardCount:            4,
 		LoadBalancingStrategy: "round_robin",
 
 		// Performance Configuration
-		CompressionEnabled:     true,
-		CompressionAlgorithm:   "gzip",
-		CompressionThreshold:   1024, // 1KB
-		SerializationFormat:    "json",
-		AsyncWriteEnabled:      true,
-		BatchWriteEnabled:      true,
-		BatchSize:             100,
-		BatchFlushInterval:    100 * time.Millisecond,
+		CompressionEnabled:   true,
+		CompressionAlgorithm: "gzip",
+		CompressionThreshold: 1024, // 1KB
+		SerializationFormat:  "json",
+		AsyncWriteEnabled:    true,
+		BatchWriteEnabled:    true,
+		BatchSize:            100,
+		BatchFlushInterval:   100 * time.Millisecond,
 
 		// Cache Policies
 		DefaultTTL:            1 * time.Hour,
-		MaxTTL:               24 * time.Hour,
+		MaxTTL:                24 * time.Hour,
 		RefreshAheadEnabled:   true,
 		RefreshAheadThreshold: 10 * time.Minute,
 		WriteThrough:          false,
@@ -957,7 +957,7 @@ func (cm *CacheManager) GetStats() *CacheMetrics {
 	defer cm.mu.RUnlock()
 
 	stats := *cm.cacheMetrics
-	
+
 	// Calculate hit rate
 	totalOps := stats.Hits + stats.Misses
 	if totalOps > 0 {
@@ -978,7 +978,7 @@ func (cm *CacheManager) GetStats() *CacheMetrics {
 		poolStats := cm.redisClient.PoolStats()
 		stats.ActiveConnections = int64(poolStats.HitRate)
 		stats.IdleConnections = int64(poolStats.IdleConns)
-		stats.ConnectionPoolHitRate = float64(poolStats.Hits) / float64(poolStats.Hits + poolStats.Misses) * 100
+		stats.ConnectionPoolHitRate = float64(poolStats.Hits) / float64(poolStats.Hits+poolStats.Misses) * 100
 	}
 
 	return &stats
@@ -1169,8 +1169,8 @@ func (cm *CacheManager) generateCacheKey(prefix, key string) string {
 
 func NewMemoryCache(config *CacheConfig) *MemoryCache {
 	mc := &MemoryCache{
-		data:   make(map[string]*CacheItem),
-		index:  &CacheIndex{
+		data: make(map[string]*CacheItem),
+		index: &CacheIndex{
 			keyToHash:   make(map[string]string),
 			hashToKey:   make(map[string]string),
 			tagIndex:    make(map[string][]string),
@@ -1253,8 +1253,8 @@ func (mc *MemoryCache) Set(key string, value interface{}, ttl time.Duration) {
 	}
 
 	// Check if we need to evict
-	if mc.stats.ItemCount >= mc.config.MemoryMaxItems || 
-		mc.stats.Size + size > mc.config.MemoryCacheSize {
+	if mc.stats.ItemCount >= mc.config.MemoryMaxItems ||
+		mc.stats.Size+size > mc.config.MemoryCacheSize {
 		mc.evict()
 	}
 
@@ -1367,35 +1367,57 @@ func (mc *MemoryCache) evict() {
 }
 
 // Simplified implementations for other components
-func NewDistributedCache(config *CacheConfig) *DistributedCache { return &DistributedCache{config: config} }
-func NewCompressionManager(config *CacheConfig) *CompressionManager { return &CompressionManager{enabled: config.CompressionEnabled} }
-func NewSerializationManager(config *CacheConfig) *SerializationManager { return &SerializationManager{format: config.SerializationFormat} }
-func NewTTLManager(config *CacheConfig) *TTLManager { return &TTLManager{entries: make(map[string]*TTLEntry)} }
-func NewEvictionManager(config *CacheConfig) *EvictionManager { return &EvictionManager{policy: config.MemoryEvictionPolicy} }
-func NewReplicationManager(config *CacheConfig) *ReplicationManager { return &ReplicationManager{enabled: true} }
-func NewShardingManager(config *CacheConfig) *ShardingManager { return &ShardingManager{enabled: config.ShardingEnabled} }
+func NewDistributedCache(config *CacheConfig) *DistributedCache {
+	return &DistributedCache{config: config}
+}
+func NewCompressionManager(config *CacheConfig) *CompressionManager {
+	return &CompressionManager{enabled: config.CompressionEnabled}
+}
+func NewSerializationManager(config *CacheConfig) *SerializationManager {
+	return &SerializationManager{format: config.SerializationFormat}
+}
+func NewTTLManager(config *CacheConfig) *TTLManager {
+	return &TTLManager{entries: make(map[string]*TTLEntry)}
+}
+func NewEvictionManager(config *CacheConfig) *EvictionManager {
+	return &EvictionManager{policy: config.MemoryEvictionPolicy}
+}
+func NewReplicationManager(config *CacheConfig) *ReplicationManager {
+	return &ReplicationManager{enabled: true}
+}
+func NewShardingManager(config *CacheConfig) *ShardingManager {
+	return &ShardingManager{enabled: config.ShardingEnabled}
+}
 
 // Placeholder methods for complex components
-func (lru *LRUEviction) moveToHead(key string) {}
+func (lru *LRUEviction) moveToHead(key string)           {}
 func (lru *LRUEviction) add(key string, item *CacheItem) {}
-func (lru *LRUEviction) remove(key string) {}
-func (lru *LRUEviction) evictLRU() {}
+func (lru *LRUEviction) remove(key string)               {}
+func (lru *LRUEviction) evictLRU()                       {}
 
-func (lfu *LFUEviction) updateFrequency(key string) {}
+func (lfu *LFUEviction) updateFrequency(key string)      {}
 func (lfu *LFUEviction) add(key string, item *CacheItem) {}
-func (lfu *LFUEviction) remove(key string) {}
-func (lfu *LFUEviction) evictLFU() {}
+func (lfu *LFUEviction) remove(key string)               {}
+func (lfu *LFUEviction) evictLFU()                       {}
 
-func (dc *DistributedCache) Get(ctx context.Context, key string) (interface{}, error) { return nil, fmt.Errorf("not implemented") }
-func (dc *DistributedCache) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error { return nil }
-func (dc *DistributedCache) Delete(ctx context.Context, key string) error { return nil }
+func (dc *DistributedCache) Get(ctx context.Context, key string) (interface{}, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (dc *DistributedCache) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+	return nil
+}
+func (dc *DistributedCache) Delete(ctx context.Context, key string) error         { return nil }
 func (dc *DistributedCache) Exists(ctx context.Context, key string) (bool, error) { return false, nil }
-func (dc *DistributedCache) HealthCheck() {}
+func (dc *DistributedCache) HealthCheck()                                         {}
 
-func (cm *CompressionManager) Compress(data []byte) ([]byte, error) { return data, nil }
+func (cm *CompressionManager) Compress(data []byte) ([]byte, error)   { return data, nil }
 func (cm *CompressionManager) Decompress(data []byte) ([]byte, error) { return data, nil }
 
-func (sm *SerializationManager) Serialize(data interface{}) ([]byte, error) { return json.Marshal(data) }
-func (sm *SerializationManager) Deserialize(data []byte, target interface{}) error { return json.Unmarshal(data, target) }
+func (sm *SerializationManager) Serialize(data interface{}) ([]byte, error) {
+	return json.Marshal(data)
+}
+func (sm *SerializationManager) Deserialize(data []byte, target interface{}) error {
+	return json.Unmarshal(data, target)
+}
 
 func (ttl *TTLManager) StartCleanup(shutdown chan struct{}) {}

@@ -64,24 +64,24 @@ type ThroughputSLI struct {
 }
 
 type ComponentAvailabilitySLI struct {
-	ServiceUptime         *prometheus.GaugeVec
-	ComponentReadiness    *prometheus.GaugeVec
-	HealthCheckSuccess    *prometheus.CounterVec
+	ServiceUptime          *prometheus.GaugeVec
+	ComponentReadiness     *prometheus.GaugeVec
+	HealthCheckSuccess     *prometheus.CounterVec
 	DependencyAvailability *prometheus.GaugeVec
 	AvailabilityCompliance prometheus.Gauge
-	DowntimeDuration      prometheus.Counter
+	DowntimeDuration       prometheus.Counter
 }
 
 // SLO (Service Level Objectives) types
 type LatencySLO struct {
-	P50Target               time.Duration
-	P95Target               time.Duration
-	P99Target               time.Duration
-	ComplianceThreshold     float64
-	MeasurementWindow       time.Duration
-	AlertingEnabled         bool
-	EscalationPolicy        string
-	BusinessJustification   string
+	P50Target             time.Duration
+	P95Target             time.Duration
+	P99Target             time.Duration
+	ComplianceThreshold   float64
+	MeasurementWindow     time.Duration
+	AlertingEnabled       bool
+	EscalationPolicy      string
+	BusinessJustification string
 }
 
 type AvailabilitySLO struct {
@@ -95,22 +95,22 @@ type AvailabilitySLO struct {
 }
 
 type ErrorBudgetSLO struct {
-	ErrorBudgetPercentage        float64 // e.g., 0.1% for 99.9% SLO
-	BurnRateThreshold            float64 // Alert when burn rate > threshold
-	FastBurnThreshold            float64 // Quick depletion alerting
-	ErrorBudgetLookbackWindow    time.Duration
-	BusinessImpactWeight         map[string]float64 // Weight errors by business impact
-	AlertOnBudgetDepletion       bool
-	AutoScaleOnBudgetExhaustion  bool
+	ErrorBudgetPercentage       float64 // e.g., 0.1% for 99.9% SLO
+	BurnRateThreshold           float64 // Alert when burn rate > threshold
+	FastBurnThreshold           float64 // Quick depletion alerting
+	ErrorBudgetLookbackWindow   time.Duration
+	BusinessImpactWeight        map[string]float64 // Weight errors by business impact
+	AlertOnBudgetDepletion      bool
+	AutoScaleOnBudgetExhaustion bool
 }
 
 type ThroughputSLO struct {
-	MinThroughputRPS         float64
-	SustainedThroughputRPS   float64
-	BurstCapacityRPS         float64
-	ComplianceWindow         time.Duration
-	DegradationThreshold     float64
-	RecoveryTimeObjective    time.Duration
+	MinThroughputRPS       float64
+	SustainedThroughputRPS float64
+	BurstCapacityRPS       float64
+	ComplianceWindow       time.Duration
+	DegradationThreshold   float64
+	RecoveryTimeObjective  time.Duration
 }
 
 // Status types for SLI reporting
@@ -137,16 +137,16 @@ type LatencyStatus struct {
 }
 
 type ErrorStatus struct {
-	TotalErrors            int64
-	ErrorRate              float64
-	CriticalErrorRate      float64
-	ErrorBudgetConsumed    float64
-	ErrorBudgetRemaining   float64
-	BusinessImpactScore    float64
-	RevenueImpact          float64
-	UserExperienceImpact   float64
-	ErrorTrend             string
-	TopErrorCategories     []ErrorCategory
+	TotalErrors          int64
+	ErrorRate            float64
+	CriticalErrorRate    float64
+	ErrorBudgetConsumed  float64
+	ErrorBudgetRemaining float64
+	BusinessImpactScore  float64
+	RevenueImpact        float64
+	UserExperienceImpact float64
+	ErrorTrend           string
+	TopErrorCategories   []ErrorCategory
 }
 
 type ThroughputStatus struct {
@@ -163,15 +163,15 @@ type ThroughputStatus struct {
 
 // Supporting types
 type ErrorCategory struct {
-	Name        string
-	Count       int64
-	Percentage  float64
-	Severity    string
+	Name           string
+	Count          int64
+	Percentage     float64
+	Severity       string
 	BusinessImpact float64
 }
 
 type CapacityForecastPoint struct {
-	Timestamp          time.Time
+	Timestamp           time.Time
 	PredictedThroughput float64
 	ConfidenceInterval  float64
 }
@@ -183,12 +183,12 @@ type SLAMetricsCalculator struct {
 	alertManager     *SLAAlertManager
 	reportGenerator  *SLAReportGenerator
 	costCalculator   *SLACostCalculator
-	
+
 	// Historical data tracking
 	availabilityHistory *SLATimeSeries
-	latencyHistory     *SLATimeSeries
-	errorHistory       *SLATimeSeries
-	throughputHistory  *SLATimeSeries
+	latencyHistory      *SLATimeSeries
+	errorHistory        *SLATimeSeries
+	throughputHistory   *SLATimeSeries
 }
 
 // Multi-objective SLA optimizer
@@ -201,20 +201,20 @@ type MultiObjectiveSLAOptimizer struct {
 }
 
 type SLAObjective struct {
-	Name        string
-	Type        string // "minimize", "maximize"
-	Weight      float64
-	Current     float64
-	Target      float64
-	Tolerance   float64
+	Name      string
+	Type      string // "minimize", "maximize"
+	Weight    float64
+	Current   float64
+	Target    float64
+	Tolerance float64
 }
 
 type SLAConstraint struct {
-	Name        string
-	Type        string // "hard", "soft"
-	Condition   string
-	Threshold   float64
-	Penalty     float64
+	Name      string
+	Type      string // "hard", "soft"
+	Condition string
+	Threshold float64
+	Penalty   float64
 }
 
 // Advanced alerting and escalation
@@ -248,21 +248,21 @@ type EscalationPolicy struct {
 }
 
 type EscalationStep struct {
-	Level       int
-	Recipients  []string
-	Channels    []string
-	Delay       time.Duration
-	Conditions  []string
+	Level      int
+	Recipients []string
+	Channels   []string
+	Delay      time.Duration
+	Conditions []string
 }
 
 // Historical data analysis and prediction
 type SLATrendAnalyzer struct {
-	historicalData   *SLAHistoricalDataStore
-	trendModels      map[string]*TrendModel
-	seasonality      *SeasonalityDetector
-	anomalyDetector  *AnomalyDetector
-	predictor        *SLAPredictor
-	mu               sync.RWMutex
+	historicalData  *SLAHistoricalDataStore
+	trendModels     map[string]*TrendModel
+	seasonality     *SeasonalityDetector
+	anomalyDetector *AnomalyDetector
+	predictor       *SLAPredictor
+	mu              sync.RWMutex
 }
 
 // TrendModel is defined in types.go
@@ -273,37 +273,37 @@ type SLATrendAnalyzer struct {
 
 // Business impact and cost analysis
 type BusinessImpactAnalyzer struct {
-	impactModels     map[string]*ImpactModel
-	costCalculator   *CostCalculator
-	riskAssessment   *RiskAssessment
-	businessMetrics  *BusinessMetricsCollector
-	mu               sync.RWMutex
+	impactModels    map[string]*ImpactModel
+	costCalculator  *CostCalculator
+	riskAssessment  *RiskAssessment
+	businessMetrics *BusinessMetricsCollector
+	mu              sync.RWMutex
 }
 
 type ImpactModel struct {
-	Name           string
-	Type           string // "revenue", "user_experience", "operational"
-	Parameters     map[string]float64
-	Calculations   []ImpactCalculation
-	WeightFactors  map[string]float64
+	Name          string
+	Type          string // "revenue", "user_experience", "operational"
+	Parameters    map[string]float64
+	Calculations  []ImpactCalculation
+	WeightFactors map[string]float64
 }
 
 type ImpactCalculation struct {
-	Metric      string
-	Formula     string
-	Impact      float64
-	Confidence  float64
-	TimeRange   time.Duration
+	Metric     string
+	Formula    string
+	Impact     float64
+	Confidence float64
+	TimeRange  time.Duration
 }
 
 // Compliance and audit tracking
 type SLAComplianceTracker struct {
-	complianceRules    []*ComplianceRule
-	auditTrail         *AuditTrail
-	reportScheduler    *ComplianceReportScheduler
-	attestations       map[string]*Attestation
-	violations         []*ComplianceViolation
-	mu                 sync.RWMutex
+	complianceRules []*ComplianceRule
+	auditTrail      *AuditTrail
+	reportScheduler *ComplianceReportScheduler
+	attestations    map[string]*Attestation
+	violations      []*ComplianceViolation
+	mu              sync.RWMutex
 }
 
 type ComplianceRule struct {
@@ -334,31 +334,31 @@ type AuditEntry struct {
 
 // Advanced quantile estimation using P² algorithm
 type P2QuantileEstimator struct {
-	quantile  float64
-	count     int64
-	markers   [5]float64
-	positions [5]int64
+	quantile   float64
+	count      int64
+	markers    [5]float64
+	positions  [5]int64
 	increments [5]float64
-	mu        sync.Mutex
+	mu         sync.Mutex
 }
 
 func NewP2QuantileEstimator(quantile float64) *P2QuantileEstimator {
 	p2 := &P2QuantileEstimator{
 		quantile:   quantile,
-		increments: [5]float64{0, quantile/2, quantile, (1+quantile)/2, 1},
+		increments: [5]float64{0, quantile / 2, quantile, (1 + quantile) / 2, 1},
 	}
-	
+
 	for i := range p2.positions {
 		p2.positions[i] = int64(i + 1)
 	}
-	
+
 	return p2
 }
 
 func (p2 *P2QuantileEstimator) Add(value float64) {
 	p2.mu.Lock()
 	defer p2.mu.Unlock()
-	
+
 	if p2.count < 5 {
 		p2.markers[p2.count] = value
 		p2.count++
@@ -374,7 +374,7 @@ func (p2 *P2QuantileEstimator) Add(value float64) {
 		}
 		return
 	}
-	
+
 	// Find position to insert
 	k := -1
 	if value < p2.markers[0] {
@@ -391,60 +391,60 @@ func (p2 *P2QuantileEstimator) Add(value float64) {
 			}
 		}
 	}
-	
+
 	if k >= 0 {
 		// Increment positions
 		for i := k + 1; i < 5; i++ {
 			p2.positions[i]++
 		}
-		
+
 		// Increment desired positions
 		for i := 0; i < 5; i++ {
 			p2.increments[i] += float64(i) / 4.0
 		}
-		
+
 		// Adjust heights of markers if necessary
 		for i := 1; i < 4; i++ {
 			d := p2.increments[i] - float64(p2.positions[i])
 			if (d >= 1 && p2.positions[i+1]-p2.positions[i] > 1) ||
 				(d <= -1 && p2.positions[i-1]-p2.positions[i] < -1) {
-				
+
 				sign := 1.0
 				if d < 0 {
 					sign = -1.0
 				}
-				
+
 				// Parabolic formula
-				newHeight := p2.markers[i] + sign/(float64(p2.positions[i+1]-p2.positions[i-1])) *
+				newHeight := p2.markers[i] + sign/(float64(p2.positions[i+1]-p2.positions[i-1]))*
 					((float64(p2.positions[i])-float64(p2.positions[i-1])+sign)*
-						(p2.markers[i+1]-p2.markers[i])/float64(p2.positions[i+1]-p2.positions[i]) +
+						(p2.markers[i+1]-p2.markers[i])/float64(p2.positions[i+1]-p2.positions[i])+
 						(float64(p2.positions[i+1])-float64(p2.positions[i])-sign)*
 							(p2.markers[i]-p2.markers[i-1])/float64(p2.positions[i]-p2.positions[i-1]))
-				
+
 				// Use linear formula if parabolic gives bad result
 				if (newHeight <= p2.markers[i-1]) || (newHeight >= p2.markers[i+1]) {
 					newHeight = p2.markers[i] + sign*(p2.markers[int(i)+int(sign)]-p2.markers[i])/
 						float64(p2.positions[int(i)+int(sign)]-p2.positions[i])
 				}
-				
+
 				p2.markers[i] = newHeight
 				p2.positions[i] += int64(sign)
 			}
 		}
 	}
-	
+
 	p2.count++
 }
 
 func (p2 *P2QuantileEstimator) Quantile() float64 {
 	p2.mu.Lock()
 	defer p2.mu.Unlock()
-	
+
 	if p2.count < 5 {
 		// Use exact calculation for small samples
 		return p2.exactQuantile()
 	}
-	
+
 	return p2.markers[2]
 }
 
@@ -452,11 +452,11 @@ func (p2 *P2QuantileEstimator) exactQuantile() float64 {
 	if p2.count == 0 {
 		return 0
 	}
-	
+
 	// Sort markers
 	sorted := make([]float64, p2.count)
 	copy(sorted, p2.markers[:p2.count])
-	
+
 	for i := 0; i < int(p2.count)-1; i++ {
 		for j := i + 1; j < int(p2.count); j++ {
 			if sorted[i] > sorted[j] {
@@ -464,15 +464,15 @@ func (p2 *P2QuantileEstimator) exactQuantile() float64 {
 			}
 		}
 	}
-	
+
 	index := p2.quantile * float64(p2.count-1)
 	i := int(index)
 	d := index - float64(i)
-	
+
 	if i >= int(p2.count)-1 {
 		return sorted[p2.count-1]
 	}
-	
+
 	return p2.markers[i] - d*(p2.markers[i]-p2.markers[i-1])/float64(p2.positions[i]-p2.positions[i-1])
 }
 
@@ -508,9 +508,9 @@ func (ts *SLATimeSeries) Add(timestamp time.Time, value float64) {
 		Timestamp: timestamp,
 		Value:     value,
 	}
-	
+
 	ts.points = append(ts.points, point)
-	
+
 	// Remove oldest points if exceeded max
 	if len(ts.points) > ts.maxPoints {
 		ts.points = ts.points[len(ts.points)-ts.maxPoints:]
@@ -521,21 +521,21 @@ func (ts *SLATimeSeries) Add(timestamp time.Time, value float64) {
 func (ts *SLATimeSeries) GetTrend(duration time.Duration) float64 {
 	ts.mu.RLock()
 	defer ts.mu.RUnlock()
-	
+
 	now := time.Now()
 	cutoff := now.Add(-duration)
-	
+
 	var relevantPoints []TimePoint
 	for _, point := range ts.points {
 		if point.Timestamp.After(cutoff) {
 			relevantPoints = append(relevantPoints, point)
 		}
 	}
-	
+
 	if len(relevantPoints) < 2 {
 		return 0.0
 	}
-	
+
 	// Calculate linear regression slope
 	return ts.calculateSlope(relevantPoints)
 }
@@ -545,24 +545,24 @@ func (ts *SLATimeSeries) calculateSlope(points []TimePoint) float64 {
 	if n < 2 {
 		return 0.0
 	}
-	
+
 	var sumX, sumY, sumXY, sumXX float64
-	
+
 	for _, point := range points {
 		x := float64(point.Timestamp.Unix())
 		y := point.Value
-		
+
 		sumX += x
 		sumY += y
 		sumXY += x * y
 		sumXX += x * x
 	}
-	
+
 	denominator := n*sumXX - sumX*sumX
 	if math.Abs(denominator) < 1e-10 {
 		return 0.0
 	}
-	
+
 	slope := (n*sumXY - sumX*sumY) / denominator
 	return slope
 }
@@ -600,15 +600,15 @@ func (sli *LatencySLI) GetStatus(ctx context.Context) (*LatencyStatus, error) {
 
 func (sli *BusinessImpactErrorSLI) GetStatus(ctx context.Context) (*ErrorStatus, error) {
 	return &ErrorStatus{
-		TotalErrors:            1234,
-		ErrorRate:              0.001,
-		CriticalErrorRate:      0.0001,
-		ErrorBudgetConsumed:    0.2,
-		ErrorBudgetRemaining:   0.8,
-		BusinessImpactScore:    0.1,
-		RevenueImpact:          1000.0,
-		UserExperienceImpact:   0.05,
-		ErrorTrend:             "improving",
+		TotalErrors:          1234,
+		ErrorRate:            0.001,
+		CriticalErrorRate:    0.0001,
+		ErrorBudgetConsumed:  0.2,
+		ErrorBudgetRemaining: 0.8,
+		BusinessImpactScore:  0.1,
+		RevenueImpact:        1000.0,
+		UserExperienceImpact: 0.05,
+		ErrorTrend:           "improving",
 		TopErrorCategories: []ErrorCategory{
 			{Name: "timeout", Count: 500, Percentage: 40.5, Severity: "medium", BusinessImpact: 0.3},
 			{Name: "validation", Count: 300, Percentage: 24.3, Severity: "low", BusinessImpact: 0.1},
@@ -641,9 +641,11 @@ type SLAAlert struct{}
 type AlertSilence struct{}
 type AlertCorrelator struct{}
 type AlertCondition struct{}
+
 // AlertSeverity is defined in types.go
 type SLAHistoricalDataStore struct{}
 type SLAPredictor struct{}
+
 // AnomalyDetector is defined in types.go
 type CostCalculator struct{}
 type RiskAssessment struct{}
@@ -654,18 +656,18 @@ type ComplianceViolation struct{}
 
 // Embedded monitoring components
 type SLAMonitoringManager struct {
-	calculator           *SLAMetricsCalculator
-	optimizer           *MultiObjectiveSLAOptimizer
-	alertManager        *SLAAlertManager
-	trendAnalyzer       *SLATrendAnalyzer
-	impactAnalyzer      *BusinessImpactAnalyzer
-	complianceTracker   *SLAComplianceTracker
-	syntheticMonitor    *SyntheticMonitor
-	remediationEngine   *AutomatedRemediationEngine
-	ctx                 context.Context
-	cancel              context.CancelFunc
-	logger              *zap.Logger
-	mu                  sync.RWMutex
+	calculator        *SLAMetricsCalculator
+	optimizer         *MultiObjectiveSLAOptimizer
+	alertManager      *SLAAlertManager
+	trendAnalyzer     *SLATrendAnalyzer
+	impactAnalyzer    *BusinessImpactAnalyzer
+	complianceTracker *SLAComplianceTracker
+	syntheticMonitor  *SyntheticMonitor
+	remediationEngine *AutomatedRemediationEngine
+	ctx               context.Context
+	cancel            context.CancelFunc
+	logger            *zap.Logger
+	mu                sync.RWMutex
 }
 
 // Storage and persistence layer
@@ -808,10 +810,10 @@ func (sct *SLAComplianceTracker) Start(ctx context.Context) error {
 
 // SyntheticMonitor performs synthetic availability checks (also defined in availability/synthetic.go)
 type SyntheticMonitor struct {
-	checks    map[string]*SyntheticCheck
-	results   map[string]*CheckResult
-	mutex     sync.RWMutex
-	logger    logr.Logger
+	checks     map[string]*SyntheticCheck
+	results    map[string]*CheckResult
+	mutex      sync.RWMutex
+	logger     logr.Logger
 	httpClient *http.Client
 }
 type AutomatedRemediationEngine struct{}

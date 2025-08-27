@@ -48,9 +48,9 @@ func (nif *NetworkIntentFixtures) CreateBasicNetworkIntent(name, namespace strin
 			Namespace: namespace,
 		},
 		Spec: nephoranv1.NetworkIntentSpec{
-			Intent:     "Deploy a high-performance 5G AMF instance with auto-scaling enabled",
-			Priority:   nephoranv1.NetworkPriorityHigh,
-			MaxRetries: &[]int32{3}[0],
+			Intent:         "Deploy a high-performance 5G AMF instance with auto-scaling enabled",
+			Priority:       nephoranv1.NetworkPriorityHigh,
+			MaxRetries:     &[]int32{3}[0],
 			TimeoutSeconds: &[]int32{300}[0], // 5 minutes
 			Constraints: map[string]string{
 				"deployment.replicas": "3",
@@ -112,7 +112,7 @@ func (enf *E2NodeSetFixtures) CreateBasicE2NodeSet(name, namespace string, repli
 			Replicas:           replicas,
 			E2InterfaceVersion: "v3.0",
 			RICEndpoint:        "http://ric-service:8080",
-			HeartbeatInterval: "30s",
+			HeartbeatInterval:  "30s",
 			SimulationConfig: &nephoranv1.SimulationConfig{
 				UECount:           100,
 				TrafficGeneration: true,

@@ -1118,12 +1118,12 @@ func (es *EmbeddingService) GetMetrics() *EmbeddingMetrics {
 		ModelStats:         make(map[string]ModelUsageStats),
 		LastUpdated:        es.metrics.LastUpdated,
 	}
-	
+
 	// Deep copy map
 	for k, v := range es.metrics.ModelStats {
 		metrics.ModelStats[k] = v
 	}
-	
+
 	return metrics
 }
 

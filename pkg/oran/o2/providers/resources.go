@@ -6,26 +6,26 @@ import (
 
 // ClusterSpec defines the specification for creating a Kubernetes cluster
 type ClusterSpec struct {
-	Name              string            `json:"name"`
-	Version           string            `json:"version"`
-	NodeCount         int               `json:"nodeCount"`
-	NodeSize          string            `json:"nodeSize"`
-	Region            string            `json:"region,omitempty"`
-	Zones             []string          `json:"zones,omitempty"`
-	NetworkConfig     *NetworkConfig    `json:"networkConfig,omitempty"`
-	AddOns            []string          `json:"addOns,omitempty"`
-	Labels            map[string]string `json:"labels,omitempty"`
-	Annotations       map[string]string `json:"annotations,omitempty"`
+	Name          string            `json:"name"`
+	Version       string            `json:"version"`
+	NodeCount     int               `json:"nodeCount"`
+	NodeSize      string            `json:"nodeSize"`
+	Region        string            `json:"region,omitempty"`
+	Zones         []string          `json:"zones,omitempty"`
+	NetworkConfig *NetworkConfig    `json:"networkConfig,omitempty"`
+	AddOns        []string          `json:"addOns,omitempty"`
+	Labels        map[string]string `json:"labels,omitempty"`
+	Annotations   map[string]string `json:"annotations,omitempty"`
 }
 
 // ClusterResource represents a managed Kubernetes cluster
 type ClusterResource struct {
 	Resource
-	Endpoint    string            `json:"endpoint"`
-	Version     string            `json:"version"`
-	NodeCount   int               `json:"nodeCount"`
-	Status      ClusterStatus     `json:"status"`
-	Conditions  []ClusterCondition `json:"conditions,omitempty"`
+	Endpoint   string             `json:"endpoint"`
+	Version    string             `json:"version"`
+	NodeCount  int                `json:"nodeCount"`
+	Status     ClusterStatus      `json:"status"`
+	Conditions []ClusterCondition `json:"conditions,omitempty"`
 }
 
 // ClusterStatus represents the status of a cluster
@@ -42,41 +42,41 @@ const (
 
 // ClusterCondition represents a condition of cluster status
 type ClusterCondition struct {
-	Type    string    `json:"type"`
-	Status  string    `json:"status"`
-	Reason  string    `json:"reason,omitempty"`
-	Message string    `json:"message,omitempty"`
+	Type        string    `json:"type"`
+	Status      string    `json:"status"`
+	Reason      string    `json:"reason,omitempty"`
+	Message     string    `json:"message,omitempty"`
 	LastUpdated time.Time `json:"lastUpdated"`
 }
 
 // NetworkConfig defines network configuration for resources
 type NetworkConfig struct {
-	CIDR            string   `json:"cidr,omitempty"`
-	SubnetCIDRs     []string `json:"subnetCIDRs,omitempty"`
-	ServiceCIDR     string   `json:"serviceCIDR,omitempty"`
-	PodCIDR         string   `json:"podCIDR,omitempty"`
-	DNSServers      []string `json:"dnsServers,omitempty"`
-	EnablePrivate   bool     `json:"enablePrivate,omitempty"`
+	CIDR          string   `json:"cidr,omitempty"`
+	SubnetCIDRs   []string `json:"subnetCIDRs,omitempty"`
+	ServiceCIDR   string   `json:"serviceCIDR,omitempty"`
+	PodCIDR       string   `json:"podCIDR,omitempty"`
+	DNSServers    []string `json:"dnsServers,omitempty"`
+	EnablePrivate bool     `json:"enablePrivate,omitempty"`
 }
 
 // NetworkSpec defines the specification for creating a network
 type NetworkSpec struct {
-	Name        string            `json:"name"`
-	Type        string            `json:"type"` // vpc, subnet, security-group
-	CIDR        string            `json:"cidr,omitempty"`
-	Region      string            `json:"region,omitempty"`
-	Labels      map[string]string `json:"labels,omitempty"`
-	Rules       []SecurityRule    `json:"rules,omitempty"`
+	Name   string            `json:"name"`
+	Type   string            `json:"type"` // vpc, subnet, security-group
+	CIDR   string            `json:"cidr,omitempty"`
+	Region string            `json:"region,omitempty"`
+	Labels map[string]string `json:"labels,omitempty"`
+	Rules  []SecurityRule    `json:"rules,omitempty"`
 }
 
 // NetworkResource represents a managed network
 type NetworkResource struct {
 	Resource
-	Type         string         `json:"type"`
-	CIDR         string         `json:"cidr,omitempty"`
-	Subnets      []Subnet       `json:"subnets,omitempty"`
-	Routes       []Route        `json:"routes,omitempty"`
-	Attachments  []string       `json:"attachments,omitempty"` // attached resource IDs
+	Type        string   `json:"type"`
+	CIDR        string   `json:"cidr,omitempty"`
+	Subnets     []Subnet `json:"subnets,omitempty"`
+	Routes      []Route  `json:"routes,omitempty"`
+	Attachments []string `json:"attachments,omitempty"` // attached resource IDs
 }
 
 // SecurityRule defines network security rules
@@ -85,7 +85,7 @@ type SecurityRule struct {
 	Port      string `json:"port,omitempty"`
 	Source    string `json:"source,omitempty"`
 	Target    string `json:"target,omitempty"`
-	Action    string `json:"action"` // allow, deny
+	Action    string `json:"action"`    // allow, deny
 	Direction string `json:"direction"` // inbound, outbound
 }
 
@@ -106,10 +106,10 @@ type Route struct {
 
 // NetworkTopology represents network connectivity information
 type NetworkTopology struct {
-	NetworkID   string              `json:"networkId"`
-	Nodes       []TopologyNode      `json:"nodes"`
+	NetworkID   string               `json:"networkId"`
+	Nodes       []TopologyNode       `json:"nodes"`
 	Connections []TopologyConnection `json:"connections"`
-	Metadata    map[string]string   `json:"metadata,omitempty"`
+	Metadata    map[string]string    `json:"metadata,omitempty"`
 }
 
 // TopologyNode represents a node in network topology
@@ -143,12 +143,12 @@ type VolumeSpec struct {
 // VolumeResource represents a managed persistent volume
 type VolumeResource struct {
 	Resource
-	Size             int64       `json:"size"`
-	Type             string      `json:"type"`
-	Encrypted        bool        `json:"encrypted"`
-	AvailabilityZone string      `json:"availabilityZone,omitempty"`
-	AttachedTo       string      `json:"attachedTo,omitempty"` // node ID if attached
-	Snapshots        []string    `json:"snapshots,omitempty"`  // snapshot IDs
+	Size             int64    `json:"size"`
+	Type             string   `json:"type"`
+	Encrypted        bool     `json:"encrypted"`
+	AvailabilityZone string   `json:"availabilityZone,omitempty"`
+	AttachedTo       string   `json:"attachedTo,omitempty"` // node ID if attached
+	Snapshots        []string `json:"snapshots,omitempty"`  // snapshot IDs
 }
 
 // SnapshotResource represents a volume snapshot
@@ -187,9 +187,9 @@ type LogsQuery struct {
 
 // LogsResult contains collected log data
 type LogsResult struct {
-	ResourceID string      `json:"resourceId"`
-	Logs       []LogEntry  `json:"logs"`
-	TotalCount int         `json:"totalCount"`
+	ResourceID string     `json:"resourceId"`
+	Logs       []LogEntry `json:"logs"`
+	TotalCount int        `json:"totalCount"`
 }
 
 // LogEntry represents a single log entry
@@ -202,24 +202,24 @@ type LogEntry struct {
 
 // AlertSpec defines the specification for creating an alert
 type AlertSpec struct {
-	Name        string                 `json:"name"`
-	Description string                 `json:"description,omitempty"`
-	Query       string                 `json:"query"`
-	Threshold   float64                `json:"threshold"`
-	Comparison  string                 `json:"comparison"` // gt, lt, eq, ne
-	Duration    time.Duration          `json:"duration"`
-	Actions     []AlertAction          `json:"actions,omitempty"`
-	Labels      map[string]string      `json:"labels,omitempty"`
+	Name        string            `json:"name"`
+	Description string            `json:"description,omitempty"`
+	Query       string            `json:"query"`
+	Threshold   float64           `json:"threshold"`
+	Comparison  string            `json:"comparison"` // gt, lt, eq, ne
+	Duration    time.Duration     `json:"duration"`
+	Actions     []AlertAction     `json:"actions,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
 }
 
 // AlertResource represents a monitoring alert
 type AlertResource struct {
 	Resource
-	Query      string        `json:"query"`
-	Threshold  float64       `json:"threshold"`
-	State      string        `json:"state"` // firing, pending, inactive
-	LastFired  *time.Time    `json:"lastFired,omitempty"`
-	Actions    []AlertAction `json:"actions,omitempty"`
+	Query     string        `json:"query"`
+	Threshold float64       `json:"threshold"`
+	State     string        `json:"state"` // firing, pending, inactive
+	LastFired *time.Time    `json:"lastFired,omitempty"`
+	Actions   []AlertAction `json:"actions,omitempty"`
 }
 
 // AlertAction defines an action to take when alert fires

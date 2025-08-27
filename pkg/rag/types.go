@@ -47,8 +47,8 @@ type SearchResult struct {
 	Confidence float64
 	Metadata   map[string]interface{}
 	// Additional fields for compatibility
-	Score      float32 `json:"score"`
-	Document   *types.TelecomDocument `json:"document"`
+	Score    float32                `json:"score"`
+	Document *types.TelecomDocument `json:"document"`
 }
 
 // RAGClientConfig holds configuration for RAG clients
@@ -124,12 +124,12 @@ func (w *WeaviateClient) Close() error {
 
 // WeaviateConfig holds Weaviate configuration
 type WeaviateConfig struct {
-	Host     string        `json:"host"`
-	Scheme   string        `json:"scheme"`
-	APIKey   string        `json:"api_key"`
-	Timeout  time.Duration `json:"timeout"`
-	Headers  map[string]string `json:"headers"`
-	Retries  int           `json:"retries"`
+	Host    string            `json:"host"`
+	Scheme  string            `json:"scheme"`
+	APIKey  string            `json:"api_key"`
+	Timeout time.Duration     `json:"timeout"`
+	Headers map[string]string `json:"headers"`
+	Retries int               `json:"retries"`
 }
 
 // SearchQuery represents a search query

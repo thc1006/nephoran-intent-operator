@@ -121,16 +121,16 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 			return p.timeoutManager.ExecuteWithTimeout(ctx, resilience.OperationTypeLLM,
 				func(timeoutCtx context.Context) (interface{}, error) {
 					request := &shared.LLMRequest{
-					Model:       "default", // Use default model
-					Messages:    []shared.ChatMessage{{Role: "user", Content: securePrompt}},
-					MaxTokens:   1000,
-					Temperature: 0.1,
-				}
-				response, err := llmClient.ProcessRequest(timeoutCtx, request)
-				if err != nil {
-					return nil, err
-				}
-				return response.Content, nil
+						Model:       "default", // Use default model
+						Messages:    []shared.ChatMessage{{Role: "user", Content: securePrompt}},
+						MaxTokens:   1000,
+						Temperature: 0.1,
+					}
+					response, err := llmClient.ProcessRequest(timeoutCtx, request)
+					if err != nil {
+						return nil, err
+					}
+					return response.Content, nil
 				})
 		},
 		// Fallback operation when circuit is open

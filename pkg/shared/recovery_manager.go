@@ -117,19 +117,19 @@ type RecoveryHandler func(ctx context.Context, attempt *RecoveryAttempt) error
 
 // RecoveryAttempt tracks a recovery attempt
 type RecoveryAttempt struct {
-	ID                  string                     `json:"id"`
-	IntentName          types.NamespacedName       `json:"intentName"`
+	ID                  string                    `json:"id"`
+	IntentName          types.NamespacedName      `json:"intentName"`
 	Phase               contracts.ProcessingPhase `json:"phase"`
-	Strategy            *RecoveryStrategy          `json:"strategy"`
-	StartTime           time.Time                  `json:"startTime"`
-	EndTime             time.Time                  `json:"endTime"`
-	AttemptNumber       int                        `json:"attemptNumber"`
-	Status              string                     `json:"status"` // "running", "success", "failed", "timeout"
-	Error               string                     `json:"error,omitempty"`
-	RecoveryActions     []RecoveryAction           `json:"recoveryActions"`
-	StateBeforeRecovery *IntentState               `json:"stateBeforeRecovery,omitempty"`
-	StateAfterRecovery  *IntentState               `json:"stateAfterRecovery,omitempty"`
-	Metadata            map[string]interface{}     `json:"metadata,omitempty"`
+	Strategy            *RecoveryStrategy         `json:"strategy"`
+	StartTime           time.Time                 `json:"startTime"`
+	EndTime             time.Time                 `json:"endTime"`
+	AttemptNumber       int                       `json:"attemptNumber"`
+	Status              string                    `json:"status"` // "running", "success", "failed", "timeout"
+	Error               string                    `json:"error,omitempty"`
+	RecoveryActions     []RecoveryAction          `json:"recoveryActions"`
+	StateBeforeRecovery *IntentState              `json:"stateBeforeRecovery,omitempty"`
+	StateAfterRecovery  *IntentState              `json:"stateAfterRecovery,omitempty"`
+	Metadata            map[string]interface{}    `json:"metadata,omitempty"`
 }
 
 // RecoveryAction represents an action taken during recovery

@@ -66,7 +66,7 @@ type ScanResults struct {
 	TotalTests        int                    `json:"total_tests"`
 	PassedTests       int                    `json:"passed_tests"`
 	FailedTests       int                    `json:"failed_tests"`
-	Vulnerabilities   []ScannerVulnerability        `json:"vulnerabilities"`
+	Vulnerabilities   []ScannerVulnerability `json:"vulnerabilities"`
 	OpenPorts         []Port                 `json:"open_ports"`
 	TLSFindings       []TLSFinding           `json:"tls_findings"`
 	AuthFindings      []AuthFinding          `json:"auth_findings"`

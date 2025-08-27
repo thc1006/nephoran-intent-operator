@@ -27,7 +27,7 @@ var (
 			return &strings.Builder{}
 		},
 	}
-	
+
 	bufferPool = sync.Pool{
 		New: func() interface{} {
 			return bytes.NewBuffer(make([]byte, 0, 1024))
@@ -199,11 +199,11 @@ func NewLegacyClientWithConfig(url string, config LegacyClientConfig) (*LegacyCl
 		// Return error instead of creating insecure client
 		return nil, fmt.Errorf("SECURITY ERROR: TLS verification cannot be disabled - violates security policy")
 	}
-	
+
 	// Enforce additional TLS security measures
-	tlsConfig.MinVersion = tls.VersionTLS13  // Upgrade to TLS 1.3 minimum
-	tlsConfig.MaxVersion = tls.VersionTLS13  // Lock to TLS 1.3 only
-	tlsConfig.SessionTicketsDisabled = true  // Perfect forward secrecy
+	tlsConfig.MinVersion = tls.VersionTLS13 // Upgrade to TLS 1.3 minimum
+	tlsConfig.MaxVersion = tls.VersionTLS13 // Lock to TLS 1.3 only
+	tlsConfig.SessionTicketsDisabled = true // Perfect forward secrecy
 	tlsConfig.Renegotiation = tls.RenegotiateNever
 
 	// Create HTTP client with enhanced configuration
@@ -504,7 +504,7 @@ func (c *LegacyClient) generateCacheKeyOptimized(intent, intentType string) stri
 	// Pre-calculate total size for efficient allocation
 	totalSize := len(c.backendType) + len(c.modelName) + len(intentType) + len(intent) + 6 // 6 for separators
 	keyBuilder.Grow(totalSize)
-	
+
 	keyBuilder.WriteString(c.backendType)
 	keyBuilder.WriteByte(':')
 	keyBuilder.WriteString(c.modelName)
@@ -1078,7 +1078,7 @@ func isValidMemoryFormat(memory string) bool {
 func (c *LegacyResponseCache) cleanup() {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -1100,22 +1100,22 @@ func (c *LegacyResponseCache) cleanup() {
 func (c *LegacyResponseCache) Get(key string) (*types.CacheEntry, bool) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	
+
 	if c.stopped {
 		return nil, false
 	}
-	
+
 	entry, exists := c.entries[key]
 	if !exists {
 		return nil, false
 	}
-	
+
 	// Check if entry has expired
 	if time.Since(entry.Timestamp) > c.ttl {
 		delete(c.entries, key)
 		return nil, false
 	}
-	
+
 	return entry, true
 }
 
@@ -1123,11 +1123,11 @@ func (c *LegacyResponseCache) Get(key string) (*types.CacheEntry, bool) {
 func (c *LegacyResponseCache) Set(key string, entry *types.CacheEntry) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	
+
 	if c.stopped {
 		return
 	}
-	
+
 	// If cache is full, remove oldest entry
 	if len(c.entries) >= c.maxSize {
 		var oldestKey string
@@ -1144,7 +1144,7 @@ func (c *LegacyResponseCache) Set(key string, entry *types.CacheEntry) {
 			delete(c.entries, oldestKey)
 		}
 	}
-	
+
 	c.entries[key] = entry
 }
 

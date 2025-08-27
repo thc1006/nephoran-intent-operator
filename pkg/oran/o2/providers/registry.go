@@ -551,20 +551,20 @@ type ProviderSelectionCriteria struct {
 	SelectionStrategy    string   // Selection strategy (random, least-loaded, round-robin)
 }
 
-// ProviderFactory creates provider instances
-type ProviderFactory struct {
+// DefaultProviderFactoryImpl creates provider instances
+type DefaultProviderFactoryImpl struct {
 	registry *ProviderRegistry
 }
 
-// NewProviderFactory creates a new provider factory
-func NewProviderFactory(registry *ProviderRegistry) *ProviderFactory {
-	return &ProviderFactory{
+// NewDefaultProviderFactory creates a new provider factory
+func NewDefaultProviderFactory(registry *ProviderRegistry) *DefaultProviderFactoryImpl {
+	return &DefaultProviderFactoryImpl{
 		registry: registry,
 	}
 }
 
 // CreateProvider creates a new provider instance based on configuration
-func (f *ProviderFactory) CreateProvider(config *ProviderConfiguration) (CloudProvider, error) {
+func (f *DefaultProviderFactoryImpl) CreateProvider(config *ProviderConfiguration) (CloudProvider, error) {
 	switch config.Type {
 	case ProviderTypeKubernetes:
 		// Would need to pass appropriate clients
@@ -585,7 +585,7 @@ func (f *ProviderFactory) CreateProvider(config *ProviderConfiguration) (CloudPr
 }
 
 // CreateAndRegisterProvider creates and registers a provider
-func (f *ProviderFactory) CreateAndRegisterProvider(name string, config *ProviderConfiguration) error {
+func (f *DefaultProviderFactoryImpl) CreateAndRegisterProvider(name string, config *ProviderConfiguration) error {
 	provider, err := f.CreateProvider(config)
 	if err != nil {
 		return fmt.Errorf("failed to create provider: %w", err)

@@ -771,12 +771,12 @@ func (s *NephoranAPIServer) getClusterNetwork(w http.ResponseWriter, r *http.Req
 
 	// Mock network information - would integrate with actual cluster manager
 	networkInfo := map[string]interface{}{
-		"cluster_id":  clusterID,
+		"cluster_id": clusterID,
 		"network_info": &NetworkInformation{
-			ClusterCIDR:        "10.244.0.0/16",
-			ServiceCIDR:        "10.96.0.0/12",
-			PodCIDR:            "10.244.0.0/16",
-			DNSClusterIP:       "10.96.0.10",
+			ClusterCIDR:  "10.244.0.0/16",
+			ServiceCIDR:  "10.96.0.0/12",
+			PodCIDR:      "10.244.0.0/16",
+			DNSClusterIP: "10.96.0.10",
 			LoadBalancers: []*LoadBalancerInfo{
 				{
 					Name:       "nginx-lb",
@@ -802,9 +802,9 @@ func (s *NephoranAPIServer) getClusterNetwork(w http.ResponseWriter, r *http.Req
 		},
 		"performance": map[string]interface{}{
 			"bandwidth_utilization": 45.2,
-			"latency_ms":           12.5,
-			"packet_loss_percent":  0.01,
-			"connection_count":     1250,
+			"latency_ms":            12.5,
+			"packet_loss_percent":   0.01,
+			"connection_count":      1250,
 		},
 		"last_updated": time.Now(),
 	}

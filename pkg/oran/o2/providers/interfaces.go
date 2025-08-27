@@ -10,28 +10,28 @@ import (
 type Provider interface {
 	// GetInfo returns metadata about this provider implementation
 	GetInfo() ProviderInfo
-	
+
 	// Initialize configures the provider with given configuration
 	Initialize(ctx context.Context, config ProviderConfig) error
-	
+
 	// CreateResource creates a new resource
 	CreateResource(ctx context.Context, req ResourceRequest) (*Resource, error)
-	
+
 	// GetResource retrieves a resource by ID
 	GetResource(ctx context.Context, id string) (*Resource, error)
-	
+
 	// ListResources returns resources matching the filter criteria
 	ListResources(ctx context.Context, filter ResourceFilter) ([]*Resource, error)
-	
+
 	// UpdateResource updates an existing resource
 	UpdateResource(ctx context.Context, id string, req ResourceRequest) (*Resource, error)
-	
+
 	// DeleteResource removes a resource
 	DeleteResource(ctx context.Context, id string) error
-	
+
 	// GetResourceStatus returns the current status of a resource
 	GetResourceStatus(ctx context.Context, id string) (ResourceStatus, error)
-	
+
 	// Close cleans up provider resources
 	Close() error
 }
@@ -40,16 +40,16 @@ type Provider interface {
 // for managing Kubernetes clusters and O-Cloud infrastructure.
 type ClusterProvider interface {
 	Provider
-	
+
 	// CreateCluster creates a new Kubernetes cluster
 	CreateCluster(ctx context.Context, spec ClusterSpec) (*ClusterResource, error)
-	
+
 	// ScaleCluster scales cluster nodes
 	ScaleCluster(ctx context.Context, clusterID string, nodeCount int) error
-	
+
 	// GetClusterConfig returns kubeconfig for accessing the cluster
 	GetClusterConfig(ctx context.Context, clusterID string) ([]byte, error)
-	
+
 	// UpgradeCluster upgrades cluster to specified version
 	UpgradeCluster(ctx context.Context, clusterID string, version string) error
 }
@@ -58,16 +58,16 @@ type ClusterProvider interface {
 // for managing O-RAN network functions and connectivity.
 type NetworkProvider interface {
 	Provider
-	
+
 	// CreateNetwork creates a virtual network
 	CreateNetwork(ctx context.Context, spec NetworkSpec) (*NetworkResource, error)
-	
+
 	// AttachToNetwork connects a resource to a network
 	AttachToNetwork(ctx context.Context, networkID, resourceID string) error
-	
-	// DetachFromNetwork disconnects a resource from a network  
+
+	// DetachFromNetwork disconnects a resource from a network
 	DetachFromNetwork(ctx context.Context, networkID, resourceID string) error
-	
+
 	// GetNetworkTopology returns network topology information
 	GetNetworkTopology(ctx context.Context, networkID string) (*NetworkTopology, error)
 }
@@ -76,16 +76,16 @@ type NetworkProvider interface {
 // for managing persistent volumes and data services.
 type StorageProvider interface {
 	Provider
-	
+
 	// CreateVolume creates a persistent volume
 	CreateVolume(ctx context.Context, spec VolumeSpec) (*VolumeResource, error)
-	
+
 	// AttachVolume attaches volume to a compute resource
 	AttachVolume(ctx context.Context, volumeID, nodeID string) error
-	
+
 	// DetachVolume detaches volume from a compute resource
 	DetachVolume(ctx context.Context, volumeID, nodeID string) error
-	
+
 	// CreateSnapshot creates a snapshot of a volume
 	CreateSnapshot(ctx context.Context, volumeID, snapshotName string) (*SnapshotResource, error)
 }
@@ -94,16 +94,16 @@ type StorageProvider interface {
 // for collecting metrics, logs, and traces from managed resources.
 type MonitoringProvider interface {
 	Provider
-	
+
 	// GetMetrics retrieves metrics for a resource
 	GetMetrics(ctx context.Context, resourceID string, query MetricsQuery) (*MetricsResult, error)
-	
+
 	// GetLogs retrieves logs for a resource
 	GetLogs(ctx context.Context, resourceID string, query LogsQuery) (*LogsResult, error)
-	
+
 	// CreateAlert creates a monitoring alert
 	CreateAlert(ctx context.Context, spec AlertSpec) (*AlertResource, error)
-	
+
 	// GetResourceHealth returns health status of a resource
 	GetResourceHealth(ctx context.Context, resourceID string) (*HealthStatus, error)
 }
@@ -112,7 +112,7 @@ type MonitoringProvider interface {
 type EventHandler interface {
 	// HandleResourceEvent is called when resource state changes
 	HandleResourceEvent(ctx context.Context, event ResourceEvent) error
-	
+
 	// HandleProviderEvent is called for provider-level events
 	HandleProviderEvent(ctx context.Context, event ProviderEvent) error
 }
@@ -121,10 +121,10 @@ type EventHandler interface {
 type ProviderFactory interface {
 	// CreateProvider creates a new provider instance
 	CreateProvider(providerType string, config ProviderConfig) (Provider, error)
-	
+
 	// ListSupportedTypes returns supported provider types
 	ListSupportedTypes() []string
-	
+
 	// GetProviderSchema returns configuration schema for a provider type
 	GetProviderSchema(providerType string) (map[string]interface{}, error)
 }

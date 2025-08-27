@@ -19,6 +19,7 @@ package v1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // Credentials defines authentication credentials for managed elements
@@ -52,22 +53,22 @@ type Credentials struct {
 type ManagedElementSpec struct {
 	// NetworkElementType specifies the type of network element (e.g., "DU", "CU", "RU")
 	NetworkElementType string `json:"networkElementType"`
-	
+
 	// Endpoint is the management endpoint URL for the network element
 	Endpoint string `json:"endpoint"`
-	
+
 	// Credentials contains authentication information for the network element
 	Credentials *Credentials `json:"credentials,omitempty"`
-	
+
 	// Version specifies the software version of the network element
 	Version string `json:"version,omitempty"`
-	
+
 	// Configuration holds network element specific configuration
 	Configuration map[string]string `json:"configuration,omitempty"`
 
 	// A1Policy contains A1 policy configuration for the managed element
 	// +optional
-	A1Policy map[string]string `json:"a1Policy,omitempty"`
+	A1Policy runtime.RawExtension `json:"a1Policy,omitempty"`
 
 	// E2Configuration contains E2 interface configuration for the managed element
 	// +optional
@@ -78,22 +79,22 @@ type ManagedElementSpec struct {
 type ManagedElementStatus struct {
 	// Phase represents the current lifecycle phase of the managed element
 	Phase string `json:"phase,omitempty"`
-	
+
 	// ConnectionStatus indicates whether the element is reachable
 	ConnectionStatus string `json:"connectionStatus,omitempty"`
-	
+
 	// LastSeen timestamp of the last successful communication
 	LastSeen *metav1.Time `json:"lastSeen,omitempty"`
-	
+
 	// OperationalStatus indicates if the element is operational
 	OperationalStatus string `json:"operationalStatus,omitempty"`
-	
-	// ConfigurationStatus indicates if configuration is applied successfully  
+
+	// ConfigurationStatus indicates if configuration is applied successfully
 	ConfigurationStatus string `json:"configurationStatus,omitempty"`
-	
+
 	// Message provides human-readable status information
 	Message string `json:"message,omitempty"`
-	
+
 	// Conditions represent the latest available observations of the element's state
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }

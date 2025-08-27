@@ -153,8 +153,8 @@ type TokenTracker struct {
 	totalTokens    int64
 	tokensByModel  map[string]int64
 	tokensByIntent map[string]int64
-	requestCount   int64  // Added missing field
-	totalCost      float64  // Added missing field
+	requestCount   int64   // Added missing field
+	totalCost      float64 // Added missing field
 	mutex          sync.RWMutex
 }
 

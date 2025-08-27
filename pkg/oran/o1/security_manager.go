@@ -582,7 +582,6 @@ type PolicyEngine struct {
 	mutex      sync.RWMutex
 }
 
-
 // PolicyEvaluator interface for policy evaluation
 type PolicyEvaluator interface {
 	EvaluatePolicy(ctx context.Context, policy *SecurityPolicy, request *AccessRequest) *PolicyDecision
@@ -1273,7 +1272,6 @@ type AuditLog struct {
 	integrity  *LogIntegrityService
 	mutex      sync.RWMutex
 }
-
 
 // AuditFilter defines filtering criteria for audit logs
 type AuditFilter struct {
@@ -2385,7 +2383,6 @@ type IncidentEscalation struct {
 	notifications *EscalationNotifications
 }
 
-
 // EscalationMatrix defines escalation paths
 type EscalationMatrix struct {
 	Levels map[int]*EscalationLevel
@@ -3158,4 +3155,3 @@ type SecureChannelConfig struct {
 	MaxConnections    int
 	IdleTimeout       time.Duration
 }
-

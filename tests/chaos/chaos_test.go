@@ -702,7 +702,7 @@ func (suite *ChaosTestSuite) TestServiceFailures() {
 				result, _ := controller.Reconcile(ctx, req)
 				processingTime := time.Since(start)
 
-				// Should timeout gracefully  
+				// Should timeout gracefully
 				_ = result
 				fmt.Printf("Hang test completed in %v\n", processingTime)
 				gomega.Expect(processingTime).To(gomega.BeNumerically("<", 6*time.Second))

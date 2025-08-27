@@ -78,59 +78,59 @@ type ProfilerMetrics struct {
 
 // GoroutineMonitor monitors goroutine leaks and lifecycle
 type GoroutineMonitor struct {
-	config                *ProfilerConfig
-	goroutineHistory      []GoroutineSnapshot
-	leakDetectionEnabled  bool
-	suspiciousGoroutines  map[uint64]*SuspiciousGoroutine
-	baselineCount         int64
-	maxAllowedGoroutines  int64
-	alertCallback         func(leak *GoroutineLeak)
-	mu                    sync.RWMutex
+	config               *ProfilerConfig
+	goroutineHistory     []GoroutineSnapshot
+	leakDetectionEnabled bool
+	suspiciousGoroutines map[uint64]*SuspiciousGoroutine
+	baselineCount        int64
+	maxAllowedGoroutines int64
+	alertCallback        func(leak *GoroutineLeak)
+	mu                   sync.RWMutex
 }
 
 // GoroutineSnapshot represents a snapshot of goroutine information
 type GoroutineSnapshot struct {
-	Timestamp    time.Time
-	Count        int64
-	Stacks       []GoroutineStack
-	Categories   map[string]int64
+	Timestamp     time.Time
+	Count         int64
+	Stacks        []GoroutineStack
+	Categories    map[string]int64
 	TrendAnalysis TrendAnalysis
 }
 
 // GoroutineStack contains stack trace information
 type GoroutineStack struct {
-	ID          uint64
-	State       string
-	Function    string
-	File        string
-	Line        int
-	Duration    time.Duration
-	Created     time.Time
-	LastSeen    time.Time
-	Category    string
-	Suspicious  bool
+	ID         uint64
+	State      string
+	Function   string
+	File       string
+	Line       int
+	Duration   time.Duration
+	Created    time.Time
+	LastSeen   time.Time
+	Category   string
+	Suspicious bool
 }
 
 // SuspiciousGoroutine tracks potentially leaked goroutines
 type SuspiciousGoroutine struct {
-	ID           uint64
-	FirstSeen    time.Time
-	LastSeen     time.Time
-	Count        int64
-	Stack        string
-	Category     string
-	Confidence   float64
-	IsLeak       bool
+	ID         uint64
+	FirstSeen  time.Time
+	LastSeen   time.Time
+	Count      int64
+	Stack      string
+	Category   string
+	Confidence float64
+	IsLeak     bool
 }
 
 // GoroutineLeak represents a detected goroutine leak
 type GoroutineLeak struct {
-	DetectedAt   time.Time
-	Goroutines   []SuspiciousGoroutine
-	LeakType     string
-	Severity     string
-	Suggestion   string
-	StackTrace   string
+	DetectedAt time.Time
+	Goroutines []SuspiciousGoroutine
+	LeakType   string
+	Severity   string
+	Suggestion string
+	StackTrace string
 }
 
 // TrendAnalysis contains trend analysis data
@@ -142,37 +142,36 @@ type TrendAnalysis struct {
 
 // MemoryOptimizer provides advanced memory optimization
 type MemoryOptimizer struct {
-	config               *ProfilerConfig
-	memoryProfile        *MemoryProfile
-	allocationTracker    *AllocationTracker
-	gcOptimizer          *GCOptimizer
-	memoryLeakDetector   *MemoryLeakDetector
-	compressionEnabled   bool
-	poolManager          *PoolManager
-	lastOptimization     time.Time
-	optimizationCount    int64
-	mu                   sync.RWMutex
+	config             *ProfilerConfig
+	memoryProfile      *MemoryProfile
+	allocationTracker  *AllocationTracker
+	gcOptimizer        *GCOptimizer
+	memoryLeakDetector *MemoryLeakDetector
+	compressionEnabled bool
+	poolManager        *PoolManager
+	lastOptimization   time.Time
+	optimizationCount  int64
+	mu                 sync.RWMutex
 }
-
 
 // AllocationTracker tracks memory allocations
 type AllocationTracker struct {
-	allocations  map[string]*AllocationStats
-	hotPaths     []HotAllocationPath
-	leakSources  []string
-	enabled      bool
-	mu           sync.RWMutex
+	allocations map[string]*AllocationStats
+	hotPaths    []HotAllocationPath
+	leakSources []string
+	enabled     bool
+	mu          sync.RWMutex
 }
 
 // AllocationStats contains allocation statistics
 type AllocationStats struct {
-	Count       int64
-	TotalBytes  int64
-	AvgBytes    float64
-	MaxBytes    int64
-	LastAlloc   time.Time
-	Stack       []string
-	Category    string
+	Count      int64
+	TotalBytes int64
+	AvgBytes   float64
+	MaxBytes   int64
+	LastAlloc  time.Time
+	Stack      []string
+	Category   string
 }
 
 // HotAllocationPath represents frequently allocating code paths
@@ -187,17 +186,16 @@ type HotAllocationPath struct {
 	Optimization string
 }
 
-
 // MemoryLeakDetector detects memory leaks
 type MemoryLeakDetector struct {
-	enabled         bool
-	baselineMemory  int64
-	thresholdBytes  int64
-	checkInterval   time.Duration
-	leakCandidates  map[string]*LeakCandidate
-	confirmedLeaks  []MemoryLeak
-	lastCheck       time.Time
-	mu              sync.RWMutex
+	enabled        bool
+	baselineMemory int64
+	thresholdBytes int64
+	checkInterval  time.Duration
+	leakCandidates map[string]*LeakCandidate
+	confirmedLeaks []MemoryLeak
+	lastCheck      time.Time
+	mu             sync.RWMutex
 }
 
 // LeakCandidate represents a potential memory leak
@@ -213,69 +211,67 @@ type LeakCandidate struct {
 
 // MemoryLeak represents a confirmed memory leak
 type MemoryLeak struct {
-	Component     string
-	LeakedBytes   int64
-	DetectedAt    time.Time
-	GrowthRate    float64
-	StackTrace    string
-	Severity      string
-	Mitigation    string
+	Component   string
+	LeakedBytes int64
+	DetectedAt  time.Time
+	GrowthRate  float64
+	StackTrace  string
+	Severity    string
+	Mitigation  string
 }
 
 // PoolManager manages object pools for memory optimization
 type PoolManager struct {
-	pools    map[string]*sync.Pool
-	stats    map[string]*PoolStats
-	enabled  bool
-	mu       sync.RWMutex
+	pools   map[string]*sync.Pool
+	stats   map[string]*PoolStats
+	enabled bool
+	mu      sync.RWMutex
 }
-
 
 // CPUProfiler provides advanced CPU profiling
 type CPUProfiler struct {
-	enabled        bool
-	profileFile    string
-	duration       time.Duration
-	sampleRate     int
-	profiling      bool
-	profiles       []*CPUProfile
-	hotspots       []CPUHotspot
-	lastProfile    time.Time
-	mu             sync.RWMutex
+	enabled     bool
+	profileFile string
+	duration    time.Duration
+	sampleRate  int
+	profiling   bool
+	profiles    []*CPUProfile
+	hotspots    []CPUHotspot
+	lastProfile time.Time
+	mu          sync.RWMutex
 }
-
 
 // CPUHotspot represents a CPU hotspot
 type CPUHotspot struct {
-	Function      string
-	File          string
-	Line          int
-	SampleCount   int64
-	Percentage    float64
-	CumulativeP   float64
-	FlatTime      time.Duration
-	CumTime       time.Duration
-	Optimization  string
+	Function     string
+	File         string
+	Line         int
+	SampleCount  int64
+	Percentage   float64
+	CumulativeP  float64
+	FlatTime     time.Duration
+	CumTime      time.Duration
+	Optimization string
 }
 
 // TraceCollector collects execution traces
 type TraceCollector struct {
-	enabled     bool
-	traceFile   string
-	collecting  bool
-	traces      []*ExecutionTrace
-	mu          sync.RWMutex
+	enabled    bool
+	traceFile  string
+	collecting bool
+	traces     []*ExecutionTrace
+	mu         sync.RWMutex
 }
 
 // ExecutionTrace represents an execution trace
 type ExecutionTrace struct {
-	StartTime    time.Time
-	EndTime      time.Time
-	Duration     time.Duration
-	Events       int64
-	Goroutines   int64
-	TraceData    []byte
-	Analysis     TraceAnalysis
+	StartTime  time.Time
+	EndTime    time.Time
+	Duration   time.Duration
+	Events     int64
+	Goroutines int64
+	TraceData  []byte
+	Analysis   TraceAnalysis
 }
 
 // TraceAnalysis contains trace analysis results
@@ -291,12 +287,12 @@ type TraceAnalysis struct {
 
 // BlockingOperation represents a blocking operation in traces
 type BlockingOperation struct {
-	Type       string
-	Duration   time.Duration
-	Function   string
-	Goroutine  int64
-	Timestamp  time.Time
-	Impact     string
+	Type      string
+	Duration  time.Duration
+	Function  string
+	Goroutine int64
+	Timestamp time.Time
+	Impact    string
 }
 
 // TracePerformanceMetrics contains performance metrics from traces
@@ -304,11 +300,9 @@ type TracePerformanceMetrics struct {
 	AvgGoroutineLatency time.Duration
 	MaxGoroutineLatency time.Duration
 	NetworkLatency      time.Duration
-	GCImpact           time.Duration
-	SchedulerOverhead  time.Duration
+	GCImpact            time.Duration
+	SchedulerOverhead   time.Duration
 }
-
-
 
 // CPUAnalysisResult contains CPU analysis results
 type CPUAnalysisResult struct {
@@ -322,13 +316,13 @@ type CPUAnalysisResult struct {
 
 // MemoryAnalysisResult contains memory analysis results
 type MemoryAnalysisResult struct {
-	AvgUsage       float64
-	PeakUsage      float64
-	GCEfficiency   float64
-	LeakDetection  []MemoryLeak
-	Fragmentation  float64
-	Optimization   []string
-	Trend          TrendAnalysis
+	AvgUsage      float64
+	PeakUsage     float64
+	GCEfficiency  float64
+	LeakDetection []MemoryLeak
+	Fragmentation float64
+	Optimization  []string
+	Trend         TrendAnalysis
 }
 
 // GoroutineAnalysisResult contains goroutine analysis results
@@ -373,20 +367,20 @@ type IOLatencyMetrics struct {
 
 // IOBottleneck represents an I/O bottleneck
 type IOBottleneck struct {
-	Type        string
-	Component   string
-	Latency     time.Duration
-	Throughput  float64
-	Impact      string
-	Mitigation  string
+	Type       string
+	Component  string
+	Latency    time.Duration
+	Throughput float64
+	Impact     string
+	Mitigation string
 }
 
 // NetworkAnalysisResult contains network analysis results
 type NetworkAnalysisResult struct {
-	ConnectionCount    int64
-	ActiveConnections  int64
-	IdleConnections    int64
-	Throughput         float64
+	ConnectionCount   int64
+	ActiveConnections int64
+	IdleConnections   int64
+	Throughput        float64
 	Latency           time.Duration
 	ErrorRate         float64
 	ConnectionPooling PoolingAnalysis
@@ -402,26 +396,25 @@ type PoolingAnalysis struct {
 	Efficiency      float64
 }
 
-
 // PerformanceRecommendation represents optimization recommendations
 type PerformanceRecommendation struct {
-	Type        string
-	Priority    int
-	Impact      string
-	Description string
-	Action      string
+	Type                 string
+	Priority             int
+	Impact               string
+	Description          string
+	Action               string
 	EstimatedImprovement float64
 	ImplementationCost   int
 }
 
 // PerformanceTrends tracks performance trends over time
 type PerformanceTrends struct {
-	CPU       TrendAnalysis
-	Memory    TrendAnalysis
+	CPU        TrendAnalysis
+	Memory     TrendAnalysis
 	Goroutines TrendAnalysis
-	IO        TrendAnalysis
-	Network   TrendAnalysis
-	Overall   TrendAnalysis
+	IO         TrendAnalysis
+	Network    TrendAnalysis
+	Overall    TrendAnalysis
 }
 
 // PerformanceScore represents overall performance scoring
@@ -438,25 +431,25 @@ type PerformanceScore struct {
 
 // PerformanceAlertManager manages performance alerts
 type PerformanceAlertManager struct {
-	alerts         []*PerformanceAlert
-	thresholds     map[string]float64
-	callbacks      map[string]func(*PerformanceAlert)
-	enabled        bool
-	mu             sync.RWMutex
+	alerts     []*PerformanceAlert
+	thresholds map[string]float64
+	callbacks  map[string]func(*PerformanceAlert)
+	enabled    bool
+	mu         sync.RWMutex
 }
 
 // PerformanceAlert represents a performance alert
 type PerformanceAlert struct {
-	ID          string
-	Type        string
-	Severity    string
-	Message     string
-	Value       float64
-	Threshold   float64
-	Component   string
-	Timestamp   time.Time
+	ID           string
+	Type         string
+	Severity     string
+	Message      string
+	Value        float64
+	Threshold    float64
+	Component    string
+	Timestamp    time.Time
 	Acknowledged bool
-	Actions     []string
+	Actions      []string
 }
 
 // NewProfilerManager creates a new profiler manager with optimizations
@@ -734,7 +727,7 @@ func (pm *ProfilerManager) StopTrace() error {
 func (pm *ProfilerManager) GetMetrics() ProfilerMetrics {
 	pm.mu.RLock()
 	defer pm.mu.RUnlock()
-	
+
 	metrics := *pm.metrics
 	metrics.CPUUsagePercent = getCPUUsage()
 	return metrics
@@ -905,18 +898,18 @@ func getCPUUsage() float64 {
 
 func NewGoroutineMonitor(config *ProfilerConfig) *GoroutineMonitor {
 	return &GoroutineMonitor{
-		config:                config,
-		leakDetectionEnabled:  config.EnableGoroutineMonitoring,
-		suspiciousGoroutines:  make(map[uint64]*SuspiciousGoroutine),
-		baselineCount:         int64(runtime.NumGoroutine()),
-		maxAllowedGoroutines:  int64(config.GoroutineThreshold),
+		config:               config,
+		leakDetectionEnabled: config.EnableGoroutineMonitoring,
+		suspiciousGoroutines: make(map[uint64]*SuspiciousGoroutine),
+		baselineCount:        int64(runtime.NumGoroutine()),
+		maxAllowedGoroutines: int64(config.GoroutineThreshold),
 	}
 }
 
 func NewMemoryOptimizer(config *ProfilerConfig) *MemoryOptimizer {
 	return &MemoryOptimizer{
-		config:            config,
-		memoryProfile:     &MemoryProfile{},
+		config:        config,
+		memoryProfile: &MemoryProfile{},
 		allocationTracker: &AllocationTracker{
 			allocations: make(map[string]*AllocationStats),
 			enabled:     true,
@@ -955,7 +948,6 @@ func NewTraceCollector(config *ProfilerConfig) *TraceCollector {
 	}
 }
 
-
 // Method implementations for components (simplified)
 
 func (gm *GoroutineMonitor) StartMonitoring(shutdown chan struct{}) {
@@ -992,7 +984,7 @@ func (gm *GoroutineMonitor) takeSnapshot() {
 func (gm *GoroutineMonitor) DetectLeaks() {
 	current := int64(runtime.NumGoroutine())
 	if current > gm.maxAllowedGoroutines {
-		klog.Warningf("Potential goroutine leak detected: %d goroutines (threshold: %d)", 
+		klog.Warningf("Potential goroutine leak detected: %d goroutines (threshold: %d)",
 			current, gm.maxAllowedGoroutines)
 	}
 }
@@ -1106,7 +1098,7 @@ func (tc *TraceCollector) StartTrace() error {
 
 	tc.collecting = true
 	tc.traceFile = filename
-	
+
 	// Auto-stop after 30 seconds
 	go func() {
 		time.Sleep(30 * time.Second)
@@ -1134,7 +1126,7 @@ func (tc *TraceCollector) StopTrace() error {
 
 	tc.traces = append(tc.traces, execTrace)
 	klog.Infof("Trace collection stopped: %s", tc.traceFile)
-	
+
 	return nil
 }
 

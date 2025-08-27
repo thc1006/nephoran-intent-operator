@@ -190,6 +190,7 @@ require (
 )
 
 require (
+	github.com/bep/debounce v1.2.1
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/open-policy-agent/opa v1.7.1
 	github.com/spiffe/go-spiffe/v2 v2.5.0

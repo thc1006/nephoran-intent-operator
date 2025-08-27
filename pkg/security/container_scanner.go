@@ -62,80 +62,80 @@ var (
 // ContainerSecurityConfig contains container security configuration
 type ContainerSecurityConfig struct {
 	// Scanning configuration
-	EnableContainerScanning   bool              `json:"enable_container_scanning"`
-	ScanningTools            []string          `json:"scanning_tools"`        // trivy, clair, anchore
-	ScanInterval             time.Duration     `json:"scan_interval"`
-	ScanTimeout              time.Duration     `json:"scan_timeout"`
-	MaxConcurrentScans       int               `json:"max_concurrent_scans"`
-	
+	EnableContainerScanning bool          `json:"enable_container_scanning"`
+	ScanningTools           []string      `json:"scanning_tools"` // trivy, clair, anchore
+	ScanInterval            time.Duration `json:"scan_interval"`
+	ScanTimeout             time.Duration `json:"scan_timeout"`
+	MaxConcurrentScans      int           `json:"max_concurrent_scans"`
+
 	// Vulnerability thresholds
-	BlockCriticalVulns       bool              `json:"block_critical_vulns"`
-	BlockHighVulns           bool              `json:"block_high_vulns"`
-	MaxCriticalVulns         int               `json:"max_critical_vulns"`
-	MaxHighVulns             int               `json:"max_high_vulns"`
-	MaxMediumVulns           int               `json:"max_medium_vulns"`
-	
+	BlockCriticalVulns bool `json:"block_critical_vulns"`
+	BlockHighVulns     bool `json:"block_high_vulns"`
+	MaxCriticalVulns   int  `json:"max_critical_vulns"`
+	MaxHighVulns       int  `json:"max_high_vulns"`
+	MaxMediumVulns     int  `json:"max_medium_vulns"`
+
 	// RBAC configuration
-	EnableRBACEnforcement    bool              `json:"enable_rbac_enforcement"`
-	StrictRBACMode           bool              `json:"strict_rbac_mode"`
-	MinimumPrivileges        bool              `json:"minimum_privileges"`
-	ForbiddenCapabilities   []string          `json:"forbidden_capabilities"`
-	RequiredSecurityContext  bool              `json:"required_security_context"`
-	
+	EnableRBACEnforcement   bool     `json:"enable_rbac_enforcement"`
+	StrictRBACMode          bool     `json:"strict_rbac_mode"`
+	MinimumPrivileges       bool     `json:"minimum_privileges"`
+	ForbiddenCapabilities   []string `json:"forbidden_capabilities"`
+	RequiredSecurityContext bool     `json:"required_security_context"`
+
 	// Policy enforcement
-	EnablePolicyEnforcement  bool              `json:"enable_policy_enforcement"`
-	PolicyEngine             string            `json:"policy_engine"`     // opa, gatekeeper, falco
-	PolicySets               []string          `json:"policy_sets"`
-	EnforcementAction        string            `json:"enforcement_action"` // warn, block, audit
-	
+	EnablePolicyEnforcement bool     `json:"enable_policy_enforcement"`
+	PolicyEngine            string   `json:"policy_engine"` // opa, gatekeeper, falco
+	PolicySets              []string `json:"policy_sets"`
+	EnforcementAction       string   `json:"enforcement_action"` // warn, block, audit
+
 	// Image security
-	TrustedRegistries        []string          `json:"trusted_registries"`
-	RequireSignedImages      bool              `json:"require_signed_images"`
-	AllowedBaseImages        []string          `json:"allowed_base_images"`
-	ForbiddenPackages        []string          `json:"forbidden_packages"`
-	
+	TrustedRegistries   []string `json:"trusted_registries"`
+	RequireSignedImages bool     `json:"require_signed_images"`
+	AllowedBaseImages   []string `json:"allowed_base_images"`
+	ForbiddenPackages   []string `json:"forbidden_packages"`
+
 	// Runtime security
-	EnableRuntimeMonitoring  bool              `json:"enable_runtime_monitoring"`
-	RuntimeSecurityTools     []string          `json:"runtime_security_tools"` // falco, sysdig
-	AnomalyDetection         bool              `json:"anomaly_detection"`
-	
+	EnableRuntimeMonitoring bool     `json:"enable_runtime_monitoring"`
+	RuntimeSecurityTools    []string `json:"runtime_security_tools"` // falco, sysdig
+	AnomalyDetection        bool     `json:"anomaly_detection"`
+
 	// Compliance frameworks
-	ComplianceFrameworks     []string          `json:"compliance_frameworks"` // pci, sox, hipaa
-	AuditLogging             bool              `json:"audit_logging"`
-	ComplianceReports        bool              `json:"compliance_reports"`
+	ComplianceFrameworks []string `json:"compliance_frameworks"` // pci, sox, hipaa
+	AuditLogging         bool     `json:"audit_logging"`
+	ComplianceReports    bool     `json:"compliance_reports"`
 }
 
 // ContainerSecurityManager manages container security and RBAC
 type ContainerSecurityManager struct {
-	config          *ContainerSecurityConfig
-	logger          *slog.Logger
-	kubeClient      kubernetes.Interface
-	
+	config     *ContainerSecurityConfig
+	logger     *slog.Logger
+	kubeClient kubernetes.Interface
+
 	// Scanning components
-	scanners        map[string]ContainerScanner
-	scanQueue       chan ScanRequest
-	scanResults     sync.Map // map[string]*ScanResult
-	
+	scanners    map[string]ContainerScanner
+	scanQueue   chan ScanRequest
+	scanResults sync.Map // map[string]*ScanResult
+
 	// RBAC enforcement
-	rbacPolicies    []*RBACPolicy
+	rbacPolicies     []*RBACPolicy
 	policyViolations []PolicyViolation
-	
+
 	// Security policies
 	securityPolicies map[string]*SecurityPolicy
 	policyEngine     PolicyEngine
-	
+
 	// Image verification
-	imageVerifier   *ImageVerifier
-	signatureCache  sync.Map // map[string]*ImageSignature
-	
+	imageVerifier  *ImageVerifier
+	signatureCache sync.Map // map[string]*ImageSignature
+
 	// Statistics
-	stats           *ContainerSecurityStats
-	
+	stats *ContainerSecurityStats
+
 	// Background tasks
-	scanWorkers     int
-	shutdown        chan struct{}
-	wg              sync.WaitGroup
-	mu              sync.RWMutex
+	scanWorkers int
+	shutdown    chan struct{}
+	wg          sync.WaitGroup
+	mu          sync.RWMutex
 }
 
 // ContainerScanner defines the interface for container scanners
@@ -158,38 +158,38 @@ type ScanRequest struct {
 
 // ScanResult represents the result of a container scan
 type ScanResult struct {
-	ID               string                 `json:"id"`
-	Image            string                 `json:"image"`
-	Scanner          string                 `json:"scanner"`
-	ScanTime         time.Time              `json:"scan_time"`
-	Duration         time.Duration          `json:"duration"`
-	Status           string                 `json:"status"`
-	SecurityScore    int                    `json:"security_score"`
-	Vulnerabilities  []Vulnerability        `json:"vulnerabilities"`
-	Misconfigurations []Misconfiguration    `json:"misconfigurations"`
-	Secrets          []SecretLeak           `json:"secrets"`
-	Compliance       ComplianceResult       `json:"compliance"`
-	Metadata         map[string]interface{} `json:"metadata"`
+	ID                string                 `json:"id"`
+	Image             string                 `json:"image"`
+	Scanner           string                 `json:"scanner"`
+	ScanTime          time.Time              `json:"scan_time"`
+	Duration          time.Duration          `json:"duration"`
+	Status            string                 `json:"status"`
+	SecurityScore     int                    `json:"security_score"`
+	Vulnerabilities   []Vulnerability        `json:"vulnerabilities"`
+	Misconfigurations []Misconfiguration     `json:"misconfigurations"`
+	Secrets           []SecretLeak           `json:"secrets"`
+	Compliance        ComplianceResult       `json:"compliance"`
+	Metadata          map[string]interface{} `json:"metadata"`
 }
 
 // Vulnerability represents a security vulnerability
 type Vulnerability struct {
-	ID              string            `json:"id"`
-	Title           string            `json:"title"`
-	Description     string            `json:"description"`
-	Severity        string            `json:"severity"`
-	CVSS            float64           `json:"cvss"`
-	CVE             string            `json:"cve"`
-	Package         string            `json:"package"`
-	Version         string            `json:"version"`
-	FixedVersion    string            `json:"fixed_version"`
-	References      []string          `json:"references"`
-	PrimaryURL      string            `json:"primary_url"`
-	PublishedDate   time.Time         `json:"published_date"`
-	LastModified    time.Time         `json:"last_modified"`
-	Exploitable     bool              `json:"exploitable"`
-	InProduction    bool              `json:"in_production"`
-	Metadata        map[string]string `json:"metadata"`
+	ID            string            `json:"id"`
+	Title         string            `json:"title"`
+	Description   string            `json:"description"`
+	Severity      string            `json:"severity"`
+	CVSS          float64           `json:"cvss"`
+	CVE           string            `json:"cve"`
+	Package       string            `json:"package"`
+	Version       string            `json:"version"`
+	FixedVersion  string            `json:"fixed_version"`
+	References    []string          `json:"references"`
+	PrimaryURL    string            `json:"primary_url"`
+	PublishedDate time.Time         `json:"published_date"`
+	LastModified  time.Time         `json:"last_modified"`
+	Exploitable   bool              `json:"exploitable"`
+	InProduction  bool              `json:"in_production"`
+	Metadata      map[string]string `json:"metadata"`
 }
 
 // Misconfiguration represents a security misconfiguration
@@ -219,13 +219,13 @@ type SecretLeak struct {
 
 // ComplianceResult represents compliance scan results
 type ComplianceResult struct {
-	Framework     string                    `json:"framework"`
-	Version       string                    `json:"version"`
-	Score         float64                   `json:"score"`
-	PassedChecks  int                       `json:"passed_checks"`
-	FailedChecks  int                       `json:"failed_checks"`
-	Results       []ComplianceCheck         `json:"results"`
-	Summary       map[string]interface{}    `json:"summary"`
+	Framework    string                 `json:"framework"`
+	Version      string                 `json:"version"`
+	Score        float64                `json:"score"`
+	PassedChecks int                    `json:"passed_checks"`
+	FailedChecks int                    `json:"failed_checks"`
+	Results      []ComplianceCheck      `json:"results"`
+	Summary      map[string]interface{} `json:"summary"`
 }
 
 // ComplianceCheck represents a compliance check
@@ -241,25 +241,25 @@ type ComplianceCheck struct {
 
 // ScannerInfo provides information about a scanner
 type ScannerInfo struct {
-	Name           string    `json:"name"`
-	Version        string    `json:"version"`
-	DatabaseVersion string   `json:"database_version"`
-	LastUpdated    time.Time `json:"last_updated"`
-	Capabilities   []string  `json:"capabilities"`
+	Name            string    `json:"name"`
+	Version         string    `json:"version"`
+	DatabaseVersion string    `json:"database_version"`
+	LastUpdated     time.Time `json:"last_updated"`
+	Capabilities    []string  `json:"capabilities"`
 }
 
 // RBACPolicy represents an RBAC security policy
 type RBACPolicy struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Description     string                 `json:"description"`
-	Namespace       string                 `json:"namespace"`
-	Rules           []RBACRule             `json:"rules"`
-	Enforcement     string                 `json:"enforcement"` // enforce, warn, audit
-	Exceptions      []string               `json:"exceptions"`
-	CreatedAt       time.Time              `json:"created_at"`
-	UpdatedAt       time.Time              `json:"updated_at"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	Namespace   string                 `json:"namespace"`
+	Rules       []RBACRule             `json:"rules"`
+	Enforcement string                 `json:"enforcement"` // enforce, warn, audit
+	Exceptions  []string               `json:"exceptions"`
+	CreatedAt   time.Time              `json:"created_at"`
+	UpdatedAt   time.Time              `json:"updated_at"`
+	Metadata    map[string]interface{} `json:"metadata"`
 }
 
 // RBACRule represents an RBAC rule
@@ -424,14 +424,14 @@ func (csm *ContainerSecurityManager) initializeScanners() error {
 				return fmt.Errorf("failed to initialize Trivy scanner: %w", err)
 			}
 			csm.scanners[tool] = scanner
-			
+
 		case "clair":
 			scanner, err := NewClairScanner(csm.logger)
 			if err != nil {
 				return fmt.Errorf("failed to initialize Clair scanner: %w", err)
 			}
 			csm.scanners[tool] = scanner
-			
+
 		default:
 			csm.logger.Warn("Unknown scanning tool", slog.String("tool", tool))
 		}
@@ -453,7 +453,7 @@ func (csm *ContainerSecurityManager) initializePolicyEngine() error {
 			return fmt.Errorf("failed to initialize OPA policy engine: %w", err)
 		}
 		csm.policyEngine = engine
-		
+
 	default:
 		return fmt.Errorf("unsupported policy engine: %s", csm.config.PolicyEngine)
 	}
@@ -559,7 +559,7 @@ func (csm *ContainerSecurityManager) EvaluateRBAC(ctx context.Context, resource 
 		if violation != nil {
 			violations = append(violations, *violation)
 			rbacViolationsTotal.WithLabelValues(violation.PolicyID, violation.Namespace).Inc()
-			
+
 			if policy.Enforcement == "enforce" {
 				csm.stats.BlockedDeployments++
 			}
@@ -573,7 +573,7 @@ func (csm *ContainerSecurityManager) EvaluateRBAC(ctx context.Context, resource 
 func (csm *ContainerSecurityManager) checkRBACPolicy(policy *RBACPolicy, resource interface{}) *PolicyViolation {
 	// Simplified RBAC policy checking
 	// In production, this would be more comprehensive
-	
+
 	if pod, ok := resource.(*corev1.Pod); ok {
 		// Check security context
 		if csm.config.RequiredSecurityContext {
@@ -675,7 +675,7 @@ func (csm *ContainerSecurityManager) scanWorker() {
 		select {
 		case scanReq := <-csm.scanQueue:
 			csm.processScanRequest(scanReq)
-			
+
 		case <-csm.shutdown:
 			return
 		}
@@ -686,7 +686,7 @@ func (csm *ContainerSecurityManager) scanWorker() {
 func (csm *ContainerSecurityManager) processScanRequest(req ScanRequest) {
 	start := time.Now()
 	csm.stats.TotalScans++
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), csm.config.ScanTimeout)
 	defer cancel()
 
@@ -792,12 +792,12 @@ func (csm *ContainerSecurityManager) calculateSecurityScore(result *ScanResult) 
 // startPeriodicTasks starts periodic maintenance tasks
 func (csm *ContainerSecurityManager) startPeriodicTasks() {
 	ticker := time.NewTicker(csm.config.ScanInterval)
-	
+
 	csm.wg.Add(1)
 	go func() {
 		defer csm.wg.Done()
 		defer ticker.Stop()
-		
+
 		for {
 			select {
 			case <-ticker.C:
@@ -835,7 +835,7 @@ func (csm *ContainerSecurityManager) performPeriodicTasks() {
 // cleanupOldResults cleans up old scan results
 func (csm *ContainerSecurityManager) cleanupOldResults() {
 	cutoff := time.Now().Add(-24 * time.Hour)
-	
+
 	csm.scanResults.Range(func(key, value interface{}) bool {
 		result := value.(*ScanResult)
 		if result.ScanTime.Before(cutoff) {
@@ -859,14 +859,14 @@ func (csm *ContainerSecurityManager) updateStats() {
 	// Calculate average security score
 	totalScore := 0
 	scanCount := 0
-	
+
 	csm.scanResults.Range(func(key, value interface{}) bool {
 		result := value.(*ScanResult)
 		totalScore += result.SecurityScore
 		scanCount++
 		return true
 	})
-	
+
 	if scanCount > 0 {
 		csm.stats.AverageSecurityScore = float64(totalScore) / float64(scanCount)
 	}
@@ -915,7 +915,7 @@ func generateViolationID() string {
 // DefaultContainerSecurityConfig returns default configuration
 func DefaultContainerSecurityConfig() *ContainerSecurityConfig {
 	return &ContainerSecurityConfig{
-		EnableContainerScanning:  true,
+		EnableContainerScanning: true,
 		ScanningTools:           []string{"trivy"},
 		ScanInterval:            6 * time.Hour,
 		ScanTimeout:             10 * time.Minute,
@@ -987,10 +987,10 @@ func NewOPAPolicyEngine(logger *slog.Logger) (PolicyEngine, error) {
 func (o *OPAPolicyEngine) EvaluatePolicy(ctx context.Context, policy *SecurityPolicy, resource interface{}) (bool, error) {
 	o.mu.RLock()
 	defer o.mu.RUnlock()
-	
+
 	// Simple policy evaluation - this would normally use OPA's Rego engine
 	o.logger.Info("Evaluating policy", "policy", policy.ID, "resource", fmt.Sprintf("%T", resource))
-	
+
 	// For now, return true (allow) for all policies
 	// TODO: Implement actual OPA integration
 	return true, nil
@@ -1000,12 +1000,12 @@ func (o *OPAPolicyEngine) EvaluatePolicy(ctx context.Context, policy *SecurityPo
 func (o *OPAPolicyEngine) LoadPolicies(ctx context.Context, policies []*SecurityPolicy) error {
 	o.mu.Lock()
 	defer o.mu.Unlock()
-	
+
 	for _, policy := range policies {
 		o.policies[policy.ID] = policy
 		o.logger.Info("Loaded policy", "id", policy.ID, "name", policy.Name)
 	}
-	
+
 	return nil
 }
 
@@ -1013,10 +1013,10 @@ func (o *OPAPolicyEngine) LoadPolicies(ctx context.Context, policies []*Security
 func (o *OPAPolicyEngine) GetViolations(ctx context.Context) ([]PolicyViolation, error) {
 	o.mu.RLock()
 	defer o.mu.RUnlock()
-	
+
 	// Return a copy to avoid race conditions
 	violations := make([]PolicyViolation, len(o.violations))
 	copy(violations, o.violations)
-	
+
 	return violations, nil
 }

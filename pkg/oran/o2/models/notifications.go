@@ -8,15 +8,15 @@ import (
 
 // NotificationEventType represents a type of notification event
 type NotificationEventType struct {
-	EventTypeID   string                 `json:"eventTypeId"`
-	Name          string                 `json:"name"`
-	Description   string                 `json:"description,omitempty"`
-	Schema        string                 `json:"schema,omitempty"`
-	Category      string                 `json:"category,omitempty"`
-	Severity      string                 `json:"severity,omitempty"`
-	Extensions    map[string]interface{} `json:"extensions,omitempty"`
-	CreatedAt     time.Time              `json:"createdAt"`
-	UpdatedAt     time.Time              `json:"updatedAt"`
+	EventTypeID string                 `json:"eventTypeId"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description,omitempty"`
+	Schema      string                 `json:"schema,omitempty"`
+	Category    string                 `json:"category,omitempty"`
+	Severity    string                 `json:"severity,omitempty"`
+	Extensions  map[string]interface{} `json:"extensions,omitempty"`
+	CreatedAt   time.Time              `json:"createdAt"`
+	UpdatedAt   time.Time              `json:"updatedAt"`
 }
 
 // Alarm represents an alarm in the system

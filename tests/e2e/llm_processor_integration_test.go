@@ -20,10 +20,10 @@ import (
 
 var _ = Describe("LLM Processor Integration Tests", func() {
 	var (
-		ctx               context.Context
-		namespace         string
-		llmProcessorURL   string
-		httpClient        *http.Client
+		ctx             context.Context
+		namespace       string
+		llmProcessorURL string
+		httpClient      *http.Client
 	)
 
 	BeforeEach(func() {
@@ -39,7 +39,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 	Context("LLM Processor Service Health", func() {
 		It("should respond to health check requests", func() {
 			Skip("Skipping until LLM processor service is running in test environment")
-			
+
 			By("Making health check request")
 			resp, err := httpClient.Get(llmProcessorURL + "/health")
 			if err != nil {
@@ -61,7 +61,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 
 		It("should respond to metrics endpoint", func() {
 			Skip("Skipping until LLM processor service is running in test environment")
-			
+
 			By("Making metrics request")
 			resp, err := httpClient.Get(llmProcessorURL + "/metrics")
 			if err != nil {
@@ -76,7 +76,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 	Context("LLM Processing Requests", func() {
 		It("should process NetworkIntent and return structured output", func() {
 			Skip("Skipping until LLM processor service is running in test environment")
-			
+
 			// Create a NetworkIntent first
 			intentName := "llm-processing-test-intent"
 			networkIntent := &nephoran.NetworkIntent{
@@ -85,9 +85,9 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 					Namespace: namespace,
 				},
 				Spec: nephoran.NetworkIntentSpec{
-					Intent:      "Scale up UPF instances to handle 10x increased traffic during peak hours",
-					IntentType:  nephoran.IntentTypeScaling,
-					Priority:    1,
+					Intent:     "Scale up UPF instances to handle 10x increased traffic during peak hours",
+					IntentType: nephoran.IntentTypeScaling,
+					Priority:   1,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 					},
@@ -107,10 +107,10 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 
 			By("Sending processing request to LLM processor")
 			requestPayload := map[string]interface{}{
-				"intent":           createdIntent.Spec.Intent,
-				"intent_type":      string(createdIntent.Spec.IntentType),
+				"intent":            createdIntent.Spec.Intent,
+				"intent_type":       string(createdIntent.Spec.IntentType),
 				"target_components": createdIntent.Spec.TargetComponents,
-				"priority":         createdIntent.Spec.Priority,
+				"priority":          createdIntent.Spec.Priority,
 			}
 
 			jsonPayload, err := json.Marshal(requestPayload)
@@ -146,16 +146,16 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 
 		It("should handle streaming responses for complex intents", func() {
 			Skip("Skipping until LLM processor service is running in test environment")
-			
+
 			By("Creating complex intent for streaming test")
 			complexIntent := map[string]interface{}{
 				"intent": "Deploy a complete 5G SA network with advanced eMBB, URLLC, and mMTC slices, " +
 					"optimize for ultra-low latency applications, implement edge computing capabilities, " +
 					"and ensure 99.999% availability with automatic failover mechanisms",
-				"intent_type":      "deployment",
+				"intent_type":       "deployment",
 				"target_components": []string{"AMF", "SMF", "UPF", "NRF", "UDM", "UDR", "PCF", "AUSF", "NSSF"},
-				"priority":         1,
-				"streaming":        true,
+				"priority":          1,
+				"streaming":         true,
 			}
 
 			jsonPayload, err := json.Marshal(complexIntent)
@@ -186,7 +186,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 
 		It("should validate input and return appropriate errors", func() {
 			Skip("Skipping until LLM processor service is running in test environment")
-			
+
 			testCases := []struct {
 				name           string
 				payload        map[string]interface{}
@@ -195,8 +195,8 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 				{
 					name: "empty intent",
 					payload: map[string]interface{}{
-						"intent":           "",
-						"intent_type":      "scaling",
+						"intent":            "",
+						"intent_type":       "scaling",
 						"target_components": []string{"UPF"},
 					},
 					expectedStatus: http.StatusBadRequest,
@@ -204,8 +204,8 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 				{
 					name: "invalid intent type",
 					payload: map[string]interface{}{
-						"intent":           "Scale UPF instances",
-						"intent_type":      "invalid_type",
+						"intent":            "Scale UPF instances",
+						"intent_type":       "invalid_type",
 						"target_components": []string{"UPF"},
 					},
 					expectedStatus: http.StatusBadRequest,
@@ -221,7 +221,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 
 			for _, tc := range testCases {
 				By(fmt.Sprintf("Testing %s", tc.name))
-				
+
 				jsonPayload, err := json.Marshal(tc.payload)
 				Expect(err).ShouldNot(HaveOccurred())
 
@@ -241,16 +241,16 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 
 		It("should handle timeout scenarios gracefully", func() {
 			Skip("Skipping until LLM processor service is running in test environment")
-			
+
 			By("Creating a very complex intent that might timeout")
 			timeoutIntent := map[string]interface{}{
 				"intent": "Perform comprehensive network optimization across all 5G core components, " +
 					"analyze traffic patterns, implement ML-based load balancing, optimize slice configurations, " +
 					"and provide detailed performance recommendations with implementation roadmap",
-				"intent_type":      "optimization",
+				"intent_type":       "optimization",
 				"target_components": []string{"AMF", "SMF", "UPF", "NRF", "UDM", "UDR", "PCF", "AUSF", "NSSF"},
-				"priority":         1,
-				"timeout":          1, // 1 second timeout to force timeout
+				"priority":          1,
+				"timeout":           1, // 1 second timeout to force timeout
 			}
 
 			jsonPayload, err := json.Marshal(timeoutIntent)
@@ -284,7 +284,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 	Context("Circuit Breaker Integration", func() {
 		It("should activate circuit breaker under high error rate", func() {
 			Skip("Skipping until LLM processor service is running in test environment")
-			
+
 			By("Sending multiple invalid requests to trigger circuit breaker")
 			invalidPayload := map[string]interface{}{
 				"invalid_field": "this should cause errors",
@@ -308,7 +308,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 				if resp.StatusCode >= 400 {
 					errorCount++
 				}
-				
+
 				time.Sleep(100 * time.Millisecond)
 			}
 
@@ -339,13 +339,13 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 	Context("Rate Limiting", func() {
 		It("should enforce rate limits under high load", func() {
 			Skip("Skipping until LLM processor service is running in test environment")
-			
+
 			By("Sending rapid requests to test rate limiting")
 			validPayload := map[string]interface{}{
-				"intent":           "Quick scaling test",
-				"intent_type":      "scaling",
+				"intent":            "Quick scaling test",
+				"intent_type":       "scaling",
 				"target_components": []string{"UPF"},
-				"priority":         1,
+				"priority":          1,
 			}
 			jsonPayload, err := json.Marshal(validPayload)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -377,11 +377,11 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 	Context("Authentication and Authorization", func() {
 		It("should require valid authentication tokens", func() {
 			Skip("Skipping until LLM processor service is running with auth enabled")
-			
+
 			By("Making request without authentication token")
 			payload := map[string]interface{}{
-				"intent":           "Test authentication",
-				"intent_type":      "scaling",
+				"intent":            "Test authentication",
+				"intent_type":       "scaling",
 				"target_components": []string{"UPF"},
 			}
 			jsonPayload, err := json.Marshal(payload)
@@ -403,11 +403,11 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 
 		It("should accept valid authentication tokens", func() {
 			Skip("Skipping until LLM processor service is running with auth enabled")
-			
+
 			By("Making request with valid authentication token")
 			payload := map[string]interface{}{
-				"intent":           "Test authentication",
-				"intent_type":      "scaling",
+				"intent":            "Test authentication",
+				"intent_type":       "scaling",
 				"target_components": []string{"UPF"},
 			}
 			jsonPayload, err := json.Marshal(payload)

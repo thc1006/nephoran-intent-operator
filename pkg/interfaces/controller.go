@@ -54,26 +54,26 @@ type ResourceReference = contracts.ResourceReference
 type ControllerInterface interface {
 	// Process handles the specific phase for this controller
 	Process(ctx context.Context, intent *nephoranv1.NetworkIntent) (*ProcessingResult, error)
-	
+
 	// GetPhase returns the processing phase this controller handles
 	GetPhase() ProcessingPhase
-	
+
 	// CanProcess checks if this controller can handle the given intent in its current state
 	CanProcess(intent *nephoranv1.NetworkIntent) bool
-	
+
 	// GetDependencies returns the phases this controller depends on
 	GetDependencies() []ProcessingPhase
-	
+
 	// GetMetrics returns controller-specific metrics
 	GetMetrics() map[string]float64
-	
+
 	// HealthCheck performs a health check for this controller
 	HealthCheck(ctx context.Context) error
-	
+
 	// GetComponentType returns the component type (for shared package compatibility)
 	GetComponentType() ComponentType
-	
-	// IsHealthy returns current health status (for shared package compatibility)  
+
+	// IsHealthy returns current health status (for shared package compatibility)
 	IsHealthy() bool
 }
 

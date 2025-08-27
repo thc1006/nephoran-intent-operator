@@ -627,7 +627,7 @@ func getDefaultOptimizedControllerConfig() *OptimizedControllerConfig {
 		HTTPClientConfig: getDefaultOptimizedClientConfig(),
 		CacheConfig:      getDefaultIntelligentCacheConfig(),
 		WorkerPoolConfig: getDefaultWorkerPoolConfig(),
-		BatchConfig:      &BatchProcessorConfig{
+		BatchConfig: &BatchProcessorConfig{
 			BatchSize:       10,
 			FlushInterval:   100 * time.Millisecond,
 			MaxConcurrency:  5,

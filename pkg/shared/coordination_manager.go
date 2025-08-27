@@ -75,13 +75,13 @@ type CoordinationConfig struct {
 	PhaseTransitionTimeout time.Duration `json:"phaseTransitionTimeout"`
 
 	// Parallel processing
-	EnableParallelProcessing bool                                    `json:"enableParallelProcessing"`
+	EnableParallelProcessing bool                                   `json:"enableParallelProcessing"`
 	ParallelLimits           map[contracts.ProcessingPhase]int      `json:"parallelLimits"`
 	ParallelGroups           map[string][]contracts.ProcessingPhase `json:"parallelGroups"`
 
 	// Error handling
-	MaxRetryAttempts int                                          `json:"maxRetryAttempts"`
-	RetryBackoff     time.Duration                                `json:"retryBackoff"`
+	MaxRetryAttempts int                                         `json:"maxRetryAttempts"`
+	RetryBackoff     time.Duration                               `json:"retryBackoff"`
 	ErrorStrategies  map[contracts.ProcessingPhase]ErrorStrategy `json:"errorStrategies"`
 
 	// Health monitoring

@@ -9,8 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -24,55 +22,55 @@ type VectorSearchAccelerator struct {
 	meter  metric.Meter
 
 	// Vector storage and indexing
-	vectorStore   *AcceleratedVectorStore
-	indexManager  *VectorIndexManager
-	embeddingGen  *FastEmbeddingGenerator
+	vectorStore  *AcceleratedVectorStore
+	indexManager *VectorIndexManager
+	embeddingGen *FastEmbeddingGenerator
 
 	// GPU acceleration components
-	gpuCompute    *GPUVectorCompute
-	simdAccel     *SIMDVectorAccelerator
-	memoryPool    *VectorMemoryPool
+	gpuCompute *GPUVectorCompute
+	simdAccel  *SIMDVectorAccelerator
+	memoryPool *VectorMemoryPool
 
 	// Search optimization
-	searchCache   *VectorSearchCache
+	searchCache    *VectorSearchCache
 	queryOptimizer *QueryOptimizer
 	resultReranker *IntelligentReranker
 
 	// Performance monitoring
-	metrics       *VectorSearchMetrics
-	profiler      *SearchProfiler
+	metrics  *VectorSearchMetrics
+	profiler *SearchProfiler
 
 	// Configuration
-	config        *VectorSearchConfig
+	config *VectorSearchConfig
 
 	// State management
-	state         AcceleratorState
-	stateMutex    sync.RWMutex
+	state      AcceleratorState
+	stateMutex sync.RWMutex
 }
 
 // AcceleratedVectorStore provides high-performance vector storage
 type AcceleratedVectorStore struct {
 	// Multi-tier storage
-	l1Cache       *VectorL1Cache      // GPU memory for hot vectors
-	l2Cache       *VectorL2Cache      // System RAM for warm vectors
-	l3Storage     *VectorL3Storage    // Persistent storage for cold vectors
+	l1Cache   *VectorL1Cache   // GPU memory for hot vectors
+	l2Cache   *VectorL2Cache   // System RAM for warm vectors
+	l3Storage *VectorL3Storage // Persistent storage for cold vectors
 
 	// Index structures
-	hnsw          *HNSWIndex          // Hierarchical Navigable Small World
-	ivf           *IVFIndex           // Inverted File Index
-	pq            *ProductQuantizer   // Product Quantization
-	lsh           *LSHIndex          // Locality Sensitive Hashing
+	hnsw *HNSWIndex        // Hierarchical Navigable Small World
+	ivf  *IVFIndex         // Inverted File Index
+	pq   *ProductQuantizer // Product Quantization
+	lsh  *LSHIndex         // Locality Sensitive Hashing
 
 	// Vector compression and optimization
-	compressor    *VectorCompressor
-	quantizer     *VectorQuantizer
-	optimizer     *VectorOptimizer
+	compressor *VectorCompressor
+	quantizer  *VectorQuantizer
+	optimizer  *VectorOptimizer
 
 	// Metadata and filtering
 	metadataIndex *MetadataIndex
 	filterEngine  *VectorFilterEngine
 
-	mutex         sync.RWMutex
+	mutex sync.RWMutex
 }
 
 // VectorL1Cache represents GPU-accelerated vector cache
@@ -83,41 +81,41 @@ type VectorL1Cache struct {
 	usedCapacity  int64
 
 	// Vector organization
-	hotVectors    map[string]*GPUVector
-	accessOrder   []string // LRU tracking
-	loadOrder     []string
+	hotVectors  map[string]*GPUVector
+	accessOrder []string // LRU tracking
+	loadOrder   []string
 
 	// Performance optimization
-	batchLoader   *BatchVectorLoader
-	prefetcher    *VectorPrefetcher
-	
+	batchLoader *BatchVectorLoader
+	prefetcher  *VectorPrefetcher
+
 	// Metrics
 	hitRate       float64
 	evictionCount int64
-	
-	mutex         sync.RWMutex
+
+	mutex sync.RWMutex
 }
 
 // GPUVector represents a vector stored in GPU memory
 type GPUVector struct {
-	ID            string
-	Embedding     GPUFloatArray
-	Dimensions    int
-	Metadata      map[string]interface{}
-	
+	ID         string
+	Embedding  GPUFloatArray
+	Dimensions int
+	Metadata   map[string]interface{}
+
 	// GPU-specific data
-	GPUPointer    GPUMemoryPtr
-	DeviceID      int
-	StreamID      int
-	
+	GPUPointer GPUMemoryPtr
+	DeviceID   int
+	StreamID   int
+
 	// Performance data
-	AccessCount   int64
-	LastAccess    time.Time
-	CreatedAt     time.Time
-	
+	AccessCount int64
+	LastAccess  time.Time
+	CreatedAt   time.Time
+
 	// Optimization flags
-	IsNormalized  bool
-	IsQuantized   bool
+	IsNormalized     bool
+	IsQuantized      bool
 	CompressionLevel int
 }
 
@@ -126,21 +124,21 @@ type FastEmbeddingGenerator struct {
 	// Model management
 	embeddingModels map[string]*EmbeddingModel
 	modelCache      *EmbeddingModelCache
-	
+
 	// GPU acceleration
-	gpuInference    *GPUEmbeddingInference
-	batchProcessor  *EmbeddingBatchProcessor
-	
+	gpuInference   *GPUEmbeddingInference
+	batchProcessor *EmbeddingBatchProcessor
+
 	// Optimization techniques
 	dimensionReducer *DimensionReducer
-	normalizer      *VectorNormalizer
-	
+	normalizer       *VectorNormalizer
+
 	// Performance tracking
-	avgLatency      time.Duration
-	throughput      float64
-	
-	config          *EmbeddingConfig
-	mutex           sync.RWMutex
+	avgLatency time.Duration
+	throughput float64
+
+	config *EmbeddingConfig
+	mutex  sync.RWMutex
 }
 
 // GPUVectorCompute handles GPU-accelerated vector operations
@@ -148,55 +146,55 @@ type GPUVectorCompute struct {
 	// CUDA kernels and streams
 	similarityKernels map[SimilarityMetric]*CUDAKernel
 	computeStreams    []CUDAComputeStream
-	
+
 	// Optimized operations
-	dotProductEngine  *GPUDotProductEngine
-	cosineEngine      *GPUCosineEngine
-	euclideanEngine   *GPUEuclideanEngine
-	
+	dotProductEngine *GPUDotProductEngine
+	cosineEngine     *GPUCosineEngine
+	euclideanEngine  *GPUEuclideanEngine
+
 	// Batch processing
-	batchManager      *GPUBatchManager
-	resultAggregator  *GPUResultAggregator
-	
+	batchManager     *GPUBatchManager
+	resultAggregator *GPUResultAggregator
+
 	// Memory management
 	workspaceAllocator *GPUWorkspaceAllocator
-	resultBuffer      *GPUResultBuffer
-	
-	deviceID          int
-	maxBatchSize      int
+	resultBuffer       *GPUResultBuffer
+
+	deviceID     int
+	maxBatchSize int
 }
 
 // VectorSearchConfig holds comprehensive search configuration
 type VectorSearchConfig struct {
 	// GPU acceleration settings
-	EnableGPUAcceleration bool              `json:"enable_gpu_acceleration"`
-	PreferredDeviceID     int               `json:"preferred_device_id"`
-	GPUMemoryLimitGB      float64           `json:"gpu_memory_limit_gb"`
-	BatchSizeOptimal      int               `json:"batch_size_optimal"`
-	
+	EnableGPUAcceleration bool    `json:"enable_gpu_acceleration"`
+	PreferredDeviceID     int     `json:"preferred_device_id"`
+	GPUMemoryLimitGB      float64 `json:"gpu_memory_limit_gb"`
+	BatchSizeOptimal      int     `json:"batch_size_optimal"`
+
 	// Vector storage configuration
-	L1CacheSize           int64             `json:"l1_cache_size"`
-	L2CacheSize           int64             `json:"l2_cache_size"`
-	VectorDimensions      int               `json:"vector_dimensions"`
-	SimilarityMetric      SimilarityMetric  `json:"similarity_metric"`
-	
+	L1CacheSize      int64            `json:"l1_cache_size"`
+	L2CacheSize      int64            `json:"l2_cache_size"`
+	VectorDimensions int              `json:"vector_dimensions"`
+	SimilarityMetric SimilarityMetric `json:"similarity_metric"`
+
 	// Index configuration
-	HNSWConfig            HNSWConfig        `json:"hnsw_config"`
-	IVFConfig             IVFConfig         `json:"ivf_config"`
-	EnableQuantization    bool              `json:"enable_quantization"`
-	QuantizationBits      int               `json:"quantization_bits"`
-	
+	HNSWConfig         HNSWConfig `json:"hnsw_config"`
+	IVFConfig          IVFConfig  `json:"ivf_config"`
+	EnableQuantization bool       `json:"enable_quantization"`
+	QuantizationBits   int        `json:"quantization_bits"`
+
 	// Search optimization
-	EnableSearchCache     bool              `json:"enable_search_cache"`
-	CacheTTL              time.Duration     `json:"cache_ttl"`
-	EnablePrefetch        bool              `json:"enable_prefetch"`
-	PrefetchThreshold     float64           `json:"prefetch_threshold"`
-	
+	EnableSearchCache bool          `json:"enable_search_cache"`
+	CacheTTL          time.Duration `json:"cache_ttl"`
+	EnablePrefetch    bool          `json:"enable_prefetch"`
+	PrefetchThreshold float64       `json:"prefetch_threshold"`
+
 	// Performance tuning
-	NumThreads            int               `json:"num_threads"`
-	SearchTimeoutMS       int               `json:"search_timeout_ms"`
-	MaxResultsPerQuery    int               `json:"max_results_per_query"`
-	EnableReranking       bool              `json:"enable_reranking"`
+	NumThreads         int  `json:"num_threads"`
+	SearchTimeoutMS    int  `json:"search_timeout_ms"`
+	MaxResultsPerQuery int  `json:"max_results_per_query"`
+	EnableReranking    bool `json:"enable_reranking"`
 }
 
 // NewVectorSearchAccelerator creates a new accelerated vector search engine
@@ -231,24 +229,24 @@ func NewVectorSearchAccelerator(config *VectorSearchConfig) (*VectorSearchAccele
 	}
 
 	accelerator := &VectorSearchAccelerator{
-		logger:        logger,
-		tracer:        tracer,
-		meter:         meter,
-		vectorStore:   vectorStore,
-		embeddingGen:  embeddingGen,
-		gpuCompute:    gpuCompute,
-		metrics:       NewVectorSearchMetrics(meter),
-		config:        config,
-		state:         AcceleratorStateActive,
+		logger:       logger,
+		tracer:       tracer,
+		meter:        meter,
+		vectorStore:  vectorStore,
+		embeddingGen: embeddingGen,
+		gpuCompute:   gpuCompute,
+		metrics:      NewVectorSearchMetrics(meter),
+		config:       config,
+		state:        AcceleratorStateActive,
 	}
 
 	// Initialize optimization components
 	if config.EnableSearchCache {
 		accelerator.searchCache = NewVectorSearchCache(config.CacheTTL)
 	}
-	
+
 	accelerator.queryOptimizer = NewQueryOptimizer(config)
-	
+
 	if config.EnableReranking {
 		accelerator.resultReranker = NewIntelligentReranker()
 	}
@@ -325,7 +323,7 @@ func (vsa *VectorSearchAccelerator) IndexVector(ctx context.Context, id string, 
 
 	// Validate vector dimensions
 	if len(embedding) != vsa.config.VectorDimensions {
-		return fmt.Errorf("vector dimension mismatch: expected %d, got %d", 
+		return fmt.Errorf("vector dimension mismatch: expected %d, got %d",
 			vsa.config.VectorDimensions, len(embedding))
 	}
 
@@ -361,7 +359,7 @@ func (vsa *VectorSearchAccelerator) SearchSimilar(ctx context.Context, queryVect
 
 	// Validate input
 	if len(queryVector) != vsa.config.VectorDimensions {
-		return nil, fmt.Errorf("query vector dimension mismatch: expected %d, got %d", 
+		return nil, fmt.Errorf("query vector dimension mismatch: expected %d, got %d",
 			vsa.config.VectorDimensions, len(queryVector))
 	}
 
@@ -540,9 +538,9 @@ func (vsa *VectorSearchAccelerator) selectTopKResults(similarities []float32, to
 	matches := make([]*VectorMatch, len(similarities))
 	for i, sim := range similarities {
 		matches[i] = &VectorMatch{
-			VectorID:   fmt.Sprintf("vec_%d", i),
-			Score:      sim,
-			Metadata:   make(map[string]interface{}),
+			VectorID: fmt.Sprintf("vec_%d", i),
+			Score:    sim,
+			Metadata: make(map[string]interface{}),
 		}
 	}
 
@@ -596,7 +594,7 @@ func normalizeVector(vector []float32) []float32 {
 		norm += val * val
 	}
 	norm = float32(math.Sqrt(float64(norm)))
-	
+
 	if norm == 0 {
 		return vector
 	}
@@ -628,9 +626,9 @@ func getDefaultVectorSearchConfig() *VectorSearchConfig {
 		PreferredDeviceID:     0,
 		GPUMemoryLimitGB:      8.0,
 		BatchSizeOptimal:      1024,
-		L1CacheSize:           1000000,    // 1M vectors
-		L2CacheSize:           10000000,   // 10M vectors
-		VectorDimensions:      1536,       // OpenAI ada-002 dimensions
+		L1CacheSize:           1000000,  // 1M vectors
+		L2CacheSize:           10000000, // 10M vectors
+		VectorDimensions:      1536,     // OpenAI ada-002 dimensions
 		SimilarityMetric:      SimilarityMetricCosine,
 		EnableSearchCache:     true,
 		CacheTTL:              30 * time.Minute,
@@ -646,8 +644,8 @@ func getDefaultVectorSearchConfig() *VectorSearchConfig {
 			EfSearch:       50,
 		},
 		IVFConfig: IVFConfig{
-			NumClusters:   1000,
-			ProbeCount:    10,
+			NumClusters: 1000,
+			ProbeCount:  10,
 		},
 		EnableQuantization: true,
 		QuantizationBits:   8,
@@ -739,37 +737,55 @@ type VectorMatch struct {
 }
 
 // Placeholder implementations
-func NewAcceleratedVectorStore(config *VectorSearchConfig) (*AcceleratedVectorStore, error) { return &AcceleratedVectorStore{}, nil }
-func NewGPUVectorCompute(deviceID int, config *VectorSearchConfig) (*GPUVectorCompute, error) { return &GPUVectorCompute{}, nil }
-func NewFastEmbeddingGenerator(config *VectorSearchConfig) (*FastEmbeddingGenerator, error) { return &FastEmbeddingGenerator{}, nil }
-func NewVectorSearchCache(ttl time.Duration) *VectorSearchCache { return &VectorSearchCache{} }
+func NewAcceleratedVectorStore(config *VectorSearchConfig) (*AcceleratedVectorStore, error) {
+	return &AcceleratedVectorStore{}, nil
+}
+func NewGPUVectorCompute(deviceID int, config *VectorSearchConfig) (*GPUVectorCompute, error) {
+	return &GPUVectorCompute{}, nil
+}
+func NewFastEmbeddingGenerator(config *VectorSearchConfig) (*FastEmbeddingGenerator, error) {
+	return &FastEmbeddingGenerator{}, nil
+}
+func NewVectorSearchCache(ttl time.Duration) *VectorSearchCache    { return &VectorSearchCache{} }
 func NewQueryOptimizer(config *VectorSearchConfig) *QueryOptimizer { return &QueryOptimizer{} }
-func NewIntelligentReranker() *IntelligentReranker { return &IntelligentReranker{} }
+func NewIntelligentReranker() *IntelligentReranker                 { return &IntelligentReranker{} }
 
-func (avs *AcceleratedVectorStore) AddVector(ctx context.Context, id string, embedding []float32, metadata map[string]interface{}) error { return nil }
+func (avs *AcceleratedVectorStore) AddVector(ctx context.Context, id string, embedding []float32, metadata map[string]interface{}) error {
+	return nil
+}
 func (avs *AcceleratedVectorStore) GetHotVectors(count int) [][]float32 { return nil }
-func (avs *AcceleratedVectorStore) BruteForceSearch(vector []float32, topK int, metric SimilarityMetric) ([]*VectorMatch, error) { return nil, nil }
+func (avs *AcceleratedVectorStore) BruteForceSearch(vector []float32, topK int, metric SimilarityMetric) ([]*VectorMatch, error) {
+	return nil, nil
+}
 func (avs *AcceleratedVectorStore) Optimize(ctx context.Context) error { return nil }
-func (avs *AcceleratedVectorStore) Close() {}
+func (avs *AcceleratedVectorStore) Close()                             {}
 
-func (feg *FastEmbeddingGenerator) GenerateEmbedding(ctx context.Context, text, modelName string) ([]float32, error) { return nil, nil }
-func (feg *FastEmbeddingGenerator) GenerateEmbeddingBatch(ctx context.Context, texts []string, modelName string) ([][]float32, error) { return nil, nil }
+func (feg *FastEmbeddingGenerator) GenerateEmbedding(ctx context.Context, text, modelName string) ([]float32, error) {
+	return nil, nil
+}
+func (feg *FastEmbeddingGenerator) GenerateEmbeddingBatch(ctx context.Context, texts []string, modelName string) ([][]float32, error) {
+	return nil, nil
+}
 func (feg *FastEmbeddingGenerator) Close() {}
 
-func (gvc *GPUVectorCompute) ComputeSimilarities(query []float32, vectors [][]float32, metric SimilarityMetric) ([]float32, error) { return nil, nil }
+func (gvc *GPUVectorCompute) ComputeSimilarities(query []float32, vectors [][]float32, metric SimilarityMetric) ([]float32, error) {
+	return nil, nil
+}
 func (gvc *GPUVectorCompute) OptimizeKernels(ctx context.Context) error { return nil }
-func (gvc *GPUVectorCompute) Close() {}
+func (gvc *GPUVectorCompute) Close()                                    {}
 
 func (vsc *VectorSearchCache) Get(key string) (*VectorSearchResult, bool) { return nil, false }
 func (vsc *VectorSearchCache) Set(key string, result *VectorSearchResult) {}
-func (vsc *VectorSearchCache) OptimizeEvictionPolicy() {}
-func (vsc *VectorSearchCache) Close() {}
+func (vsc *VectorSearchCache) OptimizeEvictionPolicy()                    {}
+func (vsc *VectorSearchCache) Close()                                     {}
 
 func (qo *QueryOptimizer) OptimizeQuery(vector []float32, topK int, filters map[string]interface{}) *OptimizedQuery {
 	return &OptimizedQuery{Vector: vector, TopK: topK, Filters: filters}
 }
 
-func (ir *IntelligentReranker) Rerank(query []float32, results []*VectorMatch) []*VectorMatch { return results }
+func (ir *IntelligentReranker) Rerank(query []float32, results []*VectorMatch) []*VectorMatch {
+	return results
+}
 
 func (hi *HNSWIndex) Search(vector []float32, topK int) ([]*VectorMatch, error) { return nil, nil }
-func (ii *IVFIndex) Search(vector []float32, topK int) ([]*VectorMatch, error) { return nil, nil }
+func (ii *IVFIndex) Search(vector []float32, topK int) ([]*VectorMatch, error)  { return nil, nil }

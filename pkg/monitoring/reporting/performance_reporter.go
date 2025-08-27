@@ -11,7 +11,7 @@ import (
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	
+
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring/types"
 )
 

@@ -334,9 +334,9 @@ func TestO1AdaptorControllerCompatibility(t *testing.T) {
 		// Test that status fields can be set (as a controller would do)
 		me.Status.Conditions = []metav1.Condition{
 			{
-				Type:   "ConfigurationApplied",
-				Status: metav1.ConditionTrue,
-				Reason: "ConfigurationValid",
+				Type:               "ConfigurationApplied",
+				Status:             metav1.ConditionTrue,
+				Reason:             "ConfigurationValid",
 				LastTransitionTime: metav1.Now(),
 			},
 		}

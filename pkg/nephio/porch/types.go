@@ -21,9 +21,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // PorchClient defines the interface for interacting with Porch API
@@ -471,30 +473,30 @@ type ValidationResult struct {
 
 // TransformationRequest contains resource transformation request
 type TransformationRequest struct {
-	Resources []KRMResource              `json:"resources"`
-	Config    map[string]interface{}     `json:"config,omitempty"`
-	Metadata  map[string]interface{}     `json:"metadata,omitempty"`
+	Resources []KRMResource          `json:"resources"`
+	Config    map[string]interface{} `json:"config,omitempty"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // TransformationResponse contains resource transformation response
 type TransformationResponse struct {
-	Resources []KRMResource              `json:"resources"`
-	Results   []FunctionResult           `json:"results,omitempty"`
-	Metadata  map[string]interface{}     `json:"metadata,omitempty"`
+	Resources []KRMResource          `json:"resources"`
+	Results   []FunctionResult       `json:"results,omitempty"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // ORANValidationRequest contains O-RAN compliance validation request
 type ORANValidationRequest struct {
-	Resources []KRMResource              `json:"resources"`
-	Config    map[string]interface{}     `json:"config,omitempty"`
-	Metadata  map[string]interface{}     `json:"metadata,omitempty"`
+	Resources []KRMResource          `json:"resources"`
+	Config    map[string]interface{} `json:"config,omitempty"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // ORANValidationResponse contains O-RAN compliance validation response
 type ORANValidationResponse struct {
-	Valid     bool                       `json:"valid"`
-	Results   []ValidationResult         `json:"results,omitempty"`
-	Metadata  map[string]interface{}     `json:"metadata,omitempty"`
+	Valid    bool                   `json:"valid"`
+	Results  []ValidationResult     `json:"results,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // ValidationError represents a validation error
@@ -1150,21 +1152,21 @@ func (rs *RepositoryStatus) DeepCopyInto(out *RepositoryStatus) {
 type OptimizationType string
 
 const (
-	OptimizationTypeLatency      OptimizationType = "latency"
-	OptimizationTypeThroughput   OptimizationType = "throughput"
-	OptimizationTypeResource     OptimizationType = "resource"
-	OptimizationTypeCost         OptimizationType = "cost"
-	OptimizationTypeReliability  OptimizationType = "reliability"
+	OptimizationTypeLatency     OptimizationType = "latency"
+	OptimizationTypeThroughput  OptimizationType = "throughput"
+	OptimizationTypeResource    OptimizationType = "resource"
+	OptimizationTypeCost        OptimizationType = "cost"
+	OptimizationTypeReliability OptimizationType = "reliability"
 )
 
 // ConflictAnalysis provides analysis of dependency conflicts
 type ConflictAnalysis struct {
-	ConflictType        string                 `json:"conflictType"`
-	ConflictingPackages []*PackageReference    `json:"conflictingPackages"`
-	Severity           string                 `json:"severity"`
-	Impact             string                 `json:"impact"`
-	ResolutionOptions  []ConflictResolution   `json:"resolutionOptions"`
-	Recommendations    []string               `json:"recommendations"`
+	ConflictType        string               `json:"conflictType"`
+	ConflictingPackages []*PackageReference  `json:"conflictingPackages"`
+	Severity            string               `json:"severity"`
+	Impact              string               `json:"impact"`
+	ResolutionOptions   []ConflictResolution `json:"resolutionOptions"`
+	Recommendations     []string             `json:"recommendations"`
 }
 
 // ConflictResolution is defined in content_manager.go
@@ -1191,20 +1193,20 @@ type ResolutionResult struct {
 
 // ResolvedPackage contains information about a resolved package
 type ResolvedPackage struct {
-	Reference        *PackageReference   `json:"reference"`
-	ResolvedVersion  string              `json:"resolvedVersion"`
-	Source           string              `json:"source"`
-	Dependencies     []*PackageReference `json:"dependencies,omitempty"`
-	Constraints      []*VersionConstraint `json:"constraints,omitempty"`
-	SelectionReason  string              `json:"selectionReason"`
+	Reference       *PackageReference    `json:"reference"`
+	ResolvedVersion string               `json:"resolvedVersion"`
+	Source          string               `json:"source"`
+	Dependencies    []*PackageReference  `json:"dependencies,omitempty"`
+	Constraints     []*VersionConstraint `json:"constraints,omitempty"`
+	SelectionReason string               `json:"selectionReason"`
 }
 
 // DependencyGraph represents the complete dependency graph
 type DependencyGraph struct {
-	RootPackages []*PackageReference     `json:"rootPackages"`
-	Nodes        map[string]*GraphNode   `json:"nodes"`
-	Edges        []*DependencyEdge      `json:"edges"`
-	Metadata     *GraphMetadata         `json:"metadata,omitempty"`
+	RootPackages []*PackageReference   `json:"rootPackages"`
+	Nodes        map[string]*GraphNode `json:"nodes"`
+	Edges        []*DependencyEdge     `json:"edges"`
+	Metadata     *GraphMetadata        `json:"metadata,omitempty"`
 }
 
 // GraphNode represents a node in the dependency graph
@@ -1219,22 +1221,22 @@ type GraphNode struct {
 
 // DependencyEdge represents an edge in the dependency graph
 type DependencyEdge struct {
-	From         *PackageReference  `json:"from"`
-	To           *PackageReference  `json:"to"`
-	Constraint   *VersionConstraint `json:"constraint,omitempty"`
-	EdgeType     DependencyType     `json:"edgeType"`
-	Optional     bool               `json:"optional,omitempty"`
+	From       *PackageReference  `json:"from"`
+	To         *PackageReference  `json:"to"`
+	Constraint *VersionConstraint `json:"constraint,omitempty"`
+	EdgeType   DependencyType     `json:"edgeType"`
+	Optional   bool               `json:"optional,omitempty"`
 }
 
 // GraphMetadata contains metadata about the dependency graph
 type GraphMetadata struct {
-	NodeCount      int                    `json:"nodeCount"`
-	EdgeCount      int                    `json:"edgeCount"`
-	MaxDepth       int                    `json:"maxDepth"`
-	HasCycles      bool                   `json:"hasCycles"`
-	Cycles         []*DependencyCycle     `json:"cycles,omitempty"`
-	BuildTime      time.Time              `json:"buildTime"`
-	GeneratedBy    string                 `json:"generatedBy"`
+	NodeCount   int                `json:"nodeCount"`
+	EdgeCount   int                `json:"edgeCount"`
+	MaxDepth    int                `json:"maxDepth"`
+	HasCycles   bool               `json:"hasCycles"`
+	Cycles      []*DependencyCycle `json:"cycles,omitempty"`
+	BuildTime   time.Time          `json:"buildTime"`
+	GeneratedBy string             `json:"generatedBy"`
 }
 
 // DependencyCycle represents a circular dependency
@@ -1291,10 +1293,10 @@ type GraphAnalysisResult struct {
 
 // GraphBuildOptions defines options for building dependency graphs
 type GraphBuildOptions struct {
-	IncludeTransitive bool            `json:"includeTransitive"`
-	IncludeOptional   bool            `json:"includeOptional"`
-	MaxDepth          int             `json:"maxDepth,omitempty"`
-	Filter            *PackageFilter  `json:"filter,omitempty"`
+	IncludeTransitive bool             `json:"includeTransitive"`
+	IncludeOptional   bool             `json:"includeOptional"`
+	MaxDepth          int              `json:"maxDepth,omitempty"`
+	Filter            *PackageFilter   `json:"filter,omitempty"`
 	Optimization      OptimizationType `json:"optimization,omitempty"`
 }
 
@@ -1390,11 +1392,11 @@ const (
 
 // RollbackOptions defines options for rollback operations
 type RollbackOptions struct {
-	Target       string            `json:"target"`
-	DryRun       bool              `json:"dryRun,omitempty"`
-	Force        bool              `json:"force,omitempty"`
-	SkipValidation bool            `json:"skipValidation,omitempty"`
-	Metadata     map[string]string `json:"metadata,omitempty"`
+	Target         string            `json:"target"`
+	DryRun         bool              `json:"dryRun,omitempty"`
+	Force          bool              `json:"force,omitempty"`
+	SkipValidation bool              `json:"skipValidation,omitempty"`
+	Metadata       map[string]string `json:"metadata,omitempty"`
 }
 
 // PromotionCheckpoint represents a checkpoint during promotion
@@ -1409,11 +1411,11 @@ type PromotionCheckpoint struct {
 
 // CheckpointRollbackResult contains the result of a checkpoint rollback
 type CheckpointRollbackResult struct {
-	Success     bool              `json:"success"`
+	Success     bool                 `json:"success"`
 	Checkpoint  *PromotionCheckpoint `json:"checkpoint"`
-	RestoreTime time.Time         `json:"restoreTime"`
-	Error       string            `json:"error,omitempty"`
-	Metadata    map[string]string `json:"metadata,omitempty"`
+	RestoreTime time.Time            `json:"restoreTime"`
+	Error       string               `json:"error,omitempty"`
+	Metadata    map[string]string    `json:"metadata,omitempty"`
 }
 
 // RollbackOption defines a rollback option
@@ -1426,9 +1428,9 @@ type RollbackOption struct {
 
 // PipelineRollbackPolicy defines rollback behavior for pipelines
 type PipelineRollbackPolicy struct {
-	EnableAutoRollback bool              `json:"enableAutoRollback"`
-	RollbackTimeout    time.Duration     `json:"rollbackTimeout,omitempty"`
-	MaxRetries         int32             `json:"maxRetries,omitempty"`
+	EnableAutoRollback bool                `json:"enableAutoRollback"`
+	RollbackTimeout    time.Duration       `json:"rollbackTimeout,omitempty"`
+	MaxRetries         int32               `json:"maxRetries,omitempty"`
 	Conditions         []RollbackCondition `json:"conditions,omitempty"`
 }
 
@@ -1443,74 +1445,74 @@ type RollbackCondition struct {
 
 // HealthWaitResult contains the result of a health wait operation
 type HealthWaitResult struct {
-	Success   bool          `json:"success"`
-	Duration  time.Duration `json:"duration"`
-	Status    string        `json:"status"`
-	Error     string        `json:"error,omitempty"`
-	Checkups  []HealthCheck `json:"checkups,omitempty"`
+	Success  bool          `json:"success"`
+	Duration time.Duration `json:"duration"`
+	Status   string        `json:"status"`
+	Error    string        `json:"error,omitempty"`
+	Checkups []HealthCheck `json:"checkups,omitempty"`
 }
 
 // HealthCheck is defined in promotion_engine.go
 
 // ChainValidationResult contains the result of chain validation
 type ChainValidationResult struct {
-	Valid     bool                   `json:"valid"`
-	Chain     []string               `json:"chain"`
-	Issues    []ValidationIssue      `json:"issues,omitempty"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Valid    bool                   `json:"valid"`
+	Chain    []string               `json:"chain"`
+	Issues   []ValidationIssue      `json:"issues,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // ValidationIssue is defined in content_manager.go
 
 // PipelineExecutionResult contains the result of pipeline execution
 type PipelineExecutionResult struct {
-	Success    bool                   `json:"success"`
-	Stage      string                 `json:"stage"`
-	Duration   time.Duration          `json:"duration"`
-	Output     map[string]interface{} `json:"output,omitempty"`
-	Error      string                 `json:"error,omitempty"`
-	Logs       []string               `json:"logs,omitempty"`
+	Success  bool                   `json:"success"`
+	Stage    string                 `json:"stage"`
+	Duration time.Duration          `json:"duration"`
+	Output   map[string]interface{} `json:"output,omitempty"`
+	Error    string                 `json:"error,omitempty"`
+	Logs     []string               `json:"logs,omitempty"`
 }
 
 // PromotionReportOptions defines options for promotion reporting
 type PromotionReportOptions struct {
-	IncludeDetails    bool     `json:"includeDetails"`
-	IncludeMetrics    bool     `json:"includeMetrics"`
-	IncludeLogs       bool     `json:"includeLogs"`
-	Format            string   `json:"format,omitempty"`
-	Sections          []string `json:"sections,omitempty"`
+	IncludeDetails bool     `json:"includeDetails"`
+	IncludeMetrics bool     `json:"includeMetrics"`
+	IncludeLogs    bool     `json:"includeLogs"`
+	Format         string   `json:"format,omitempty"`
+	Sections       []string `json:"sections,omitempty"`
 }
 
 // PromotionReport contains a complete promotion report
 type PromotionReport struct {
-	ID           string                 `json:"id"`
-	Timestamp    time.Time              `json:"timestamp"`
-	Status       string                 `json:"status"`
-	Summary      string                 `json:"summary"`
-	Duration     time.Duration          `json:"duration"`
-	Stages       []StageReport          `json:"stages"`
-	Metrics      map[string]interface{} `json:"metrics,omitempty"`
-	Logs         []string               `json:"logs,omitempty"`
-	Metadata     map[string]string      `json:"metadata,omitempty"`
+	ID        string                 `json:"id"`
+	Timestamp time.Time              `json:"timestamp"`
+	Status    string                 `json:"status"`
+	Summary   string                 `json:"summary"`
+	Duration  time.Duration          `json:"duration"`
+	Stages    []StageReport          `json:"stages"`
+	Metrics   map[string]interface{} `json:"metrics,omitempty"`
+	Logs      []string               `json:"logs,omitempty"`
+	Metadata  map[string]string      `json:"metadata,omitempty"`
 }
 
 // StageReport contains a report for a single stage
 type StageReport struct {
-	Name      string        `json:"name"`
-	Status    string        `json:"status"`
-	Duration  time.Duration `json:"duration"`
-	Message   string        `json:"message,omitempty"`
-	Details   []string      `json:"details,omitempty"`
+	Name     string        `json:"name"`
+	Status   string        `json:"status"`
+	Duration time.Duration `json:"duration"`
+	Message  string        `json:"message,omitempty"`
+	Details  []string      `json:"details,omitempty"`
 }
 
 // PromotionEngineHealth represents the health status of the promotion engine
 type PromotionEngineHealth struct {
-	Status          string                 `json:"status"`
-	ActivePromotions int                   `json:"activePromotions"`
-	QueuedPromotions int                   `json:"queuedPromotions"`
-	LastPromotion   time.Time              `json:"lastPromotion,omitempty"`
-	Metrics         map[string]interface{} `json:"metrics,omitempty"`
-	Errors          []string               `json:"errors,omitempty"`
+	Status           string                 `json:"status"`
+	ActivePromotions int                    `json:"activePromotions"`
+	QueuedPromotions int                    `json:"queuedPromotions"`
+	LastPromotion    time.Time              `json:"lastPromotion,omitempty"`
+	Metrics          map[string]interface{} `json:"metrics,omitempty"`
+	Errors           []string               `json:"errors,omitempty"`
 }
 
 // TimeRange represents a time period
@@ -1546,22 +1548,22 @@ const (
 
 // GraphStatistics contains statistical information about a dependency graph
 type GraphStatistics struct {
-	NodeCount            int     `json:"nodeCount"`
-	EdgeCount            int     `json:"edgeCount"`
-	MaxDepth             int     `json:"maxDepth"`
-	AverageOutDegree     float64 `json:"averageOutDegree"`
-	AverageInDegree      float64 `json:"averageInDegree"`
-	CyclicComplexity     int     `json:"cyclicComplexity"`
-	StronglyConnectedComponents int `json:"stronglyConnectedComponents"`
+	NodeCount                   int     `json:"nodeCount"`
+	EdgeCount                   int     `json:"edgeCount"`
+	MaxDepth                    int     `json:"maxDepth"`
+	AverageOutDegree            float64 `json:"averageOutDegree"`
+	AverageInDegree             float64 `json:"averageInDegree"`
+	CyclicComplexity            int     `json:"cyclicComplexity"`
+	StronglyConnectedComponents int     `json:"stronglyConnectedComponents"`
 }
 
 // WorkflowStatus represents the status of a workflow
 type WorkflowStatus struct {
-	Phase       string            `json:"phase"`
-	Message     string            `json:"message,omitempty"`
-	Conditions  []metav1.Condition `json:"conditions,omitempty"`
-	StartTime   *time.Time        `json:"startTime,omitempty"`
-	EndTime     *time.Time        `json:"endTime,omitempty"`
+	Phase      string             `json:"phase"`
+	Message    string             `json:"message,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	StartTime  *time.Time         `json:"startTime,omitempty"`
+	EndTime    *time.Time         `json:"endTime,omitempty"`
 }
 
 // ConflictResolution defines resolution strategies for conflicts
@@ -1576,9 +1578,9 @@ const (
 type ConflictType string
 
 const (
-	ConflictTypeVersion   ConflictType = "version"
-	ConflictTypeResource  ConflictType = "resource"
-	ConflictTypePolicy    ConflictType = "policy"
+	ConflictTypeVersion  ConflictType = "version"
+	ConflictTypeResource ConflictType = "resource"
+	ConflictTypePolicy   ConflictType = "policy"
 )
 
 // OptimizationSuggestion represents a suggestion for optimization
@@ -1591,19 +1593,456 @@ type OptimizationSuggestion struct {
 
 // HealthCheck represents a health check configuration
 type HealthCheck struct {
-	Name        string        `json:"name"`
-	Type        string        `json:"type"`
-	Interval    time.Duration `json:"interval"`
-	Timeout     time.Duration `json:"timeout"`
-	Retries     int           `json:"retries"`
-	Endpoint    string        `json:"endpoint,omitempty"`
-	Command     []string      `json:"command,omitempty"`
+	Name     string        `json:"name"`
+	Type     string        `json:"type"`
+	Interval time.Duration `json:"interval"`
+	Timeout  time.Duration `json:"timeout"`
+	Retries  int           `json:"retries"`
+	Endpoint string        `json:"endpoint,omitempty"`
+	Command  []string      `json:"command,omitempty"`
 }
 
 // ValidationIssue represents a validation problem
 type ValidationIssue struct {
-	Severity    string `json:"severity"`
-	Message     string `json:"message"`
-	Path        string `json:"path,omitempty"`
-	Suggestion  string `json:"suggestion,omitempty"`
+	Severity   string `json:"severity"`
+	Message    string `json:"message"`
+	Path       string `json:"path,omitempty"`
+	Suggestion string `json:"suggestion,omitempty"`
+}
+
+// Missing types for PackageRevision lifecycle management
+
+// LifecycleManager provides comprehensive PackageRevision lifecycle orchestration
+type LifecycleManager interface {
+	// State transition management
+	TransitionToProposed(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error)
+	TransitionToPublished(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error)
+	TransitionToDraft(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error)
+	TransitionToDeletable(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error)
+
+	// Rollback capabilities
+	CreateRollbackPoint(ctx context.Context, ref *PackageReference, description string) (*RollbackPoint, error)
+	RollbackToPoint(ctx context.Context, ref *PackageReference, pointID string) (*RollbackResult, error)
+	ListRollbackPoints(ctx context.Context, ref *PackageReference) ([]*RollbackPoint, error)
+
+	// Health and maintenance
+	GetManagerHealth(ctx context.Context) (*LifecycleManagerHealth, error)
+	Close() error
+}
+
+// LifecycleManagerConfig contains configuration for the lifecycle manager
+type LifecycleManagerConfig struct {
+	// Event handling settings
+	EventQueueSize      int           `yaml:"eventQueueSize"`
+	EventWorkers        int           `yaml:"eventWorkers"`
+	LockCleanupInterval time.Duration `yaml:"lockCleanupInterval"`
+	DefaultLockTimeout  time.Duration `yaml:"defaultLockTimeout"`
+	EnableMetrics       bool          `yaml:"enableMetrics"`
+
+	// Rollback settings
+	MaxRollbackPoints        int           `yaml:"maxRollbackPoints"`
+	RollbackRetentionPeriod  time.Duration `yaml:"rollbackRetentionPeriod"`
+	AutoCreateRollbackPoints bool          `yaml:"autoCreateRollbackPoints"`
+
+	// Validation settings
+	EnableValidation bool          `yaml:"enableValidation"`
+	ValidationTimeout time.Duration `yaml:"validationTimeout"`
+
+	// Performance settings
+	MaxConcurrentTransitions int           `yaml:"maxConcurrentTransitions"`
+	TransitionTimeout        time.Duration `yaml:"transitionTimeout"`
+	BatchProcessingEnabled   bool          `yaml:"batchProcessingEnabled"`
+}
+
+// RollbackPoint represents a point in time to rollback to
+type RollbackPoint struct {
+	ID          string                   `json:"id"`
+	CreatedAt   time.Time                `json:"createdAt"`
+	Description string                   `json:"description"`
+	PackageRef  *PackageReference        `json:"packageRef"`
+	Lifecycle   PackageRevisionLifecycle `json:"lifecycle"`
+	Version     string                   `json:"version"`
+	Resources   []KRMResource            `json:"resources,omitempty"`
+	Metadata    map[string]string        `json:"metadata,omitempty"`
+}
+
+// TransitionOptions configures lifecycle transitions
+type TransitionOptions struct {
+	SkipValidation      bool              `json:"skipValidation,omitempty"`
+	CreateRollbackPoint bool              `json:"createRollbackPoint,omitempty"`
+	RollbackDescription string            `json:"rollbackDescription,omitempty"`
+	ForceTransition     bool              `json:"forceTransition,omitempty"`
+	Timeout             time.Duration     `json:"timeout,omitempty"`
+	DryRun              bool              `json:"dryRun,omitempty"`
+	Metadata            map[string]string `json:"metadata,omitempty"`
+}
+
+// TransitionResult contains lifecycle transition results
+type TransitionResult struct {
+	Success         bool                           `json:"success"`
+	PreviousStage   PackageRevisionLifecycle       `json:"previousStage"`
+	NewStage        PackageRevisionLifecycle       `json:"newStage"`
+	TransitionTime  time.Time                      `json:"transitionTime"`
+	Duration        time.Duration                  `json:"duration"`
+	RollbackPoint   *RollbackPoint                 `json:"rollbackPoint,omitempty"`
+	Warnings        []string                       `json:"warnings,omitempty"`
+	Metadata        map[string]interface{}         `json:"metadata,omitempty"`
+}
+
+// RollbackResult contains rollback operation results
+type RollbackResult struct {
+	Success           bool                           `json:"success"`
+	RollbackPoint     *RollbackPoint                 `json:"rollbackPoint"`
+	PreviousStage     PackageRevisionLifecycle       `json:"previousStage"`
+	RestoredStage     PackageRevisionLifecycle       `json:"restoredStage"`
+	Duration          time.Duration                  `json:"duration"`
+	RestoredResources []KRMResource                  `json:"restoredResources,omitempty"`
+	Warnings          []string                       `json:"warnings,omitempty"`
+}
+
+// LifecycleManagerHealth represents the health status of the lifecycle manager
+type LifecycleManagerHealth struct {
+	Status            string            `json:"status"`
+	ActiveTransitions int               `json:"activeTransitions"`
+	QueuedOperations  int               `json:"queuedOperations"`
+	ComponentHealth   map[string]string `json:"componentHealth"`
+	LastActivity      time.Time         `json:"lastActivity"`
+	Uptime            time.Duration     `json:"uptime"`
+	Version           string            `json:"version"`
+}
+
+// Implementation stub for LifecycleManager
+type lifecycleManagerStub struct {
+	client PorchClient
+	config *LifecycleManagerConfig
+	logger logr.Logger
+}
+
+// NewLifecycleManager creates a new lifecycle manager instance
+func NewLifecycleManager(client PorchClient, config *LifecycleManagerConfig) (LifecycleManager, error) {
+	if client == nil {
+		return nil, fmt.Errorf("client cannot be nil")
+	}
+	if config == nil {
+		config = GetDefaultLifecycleManagerConfig()
+	}
+
+	return &lifecycleManagerStub{
+		client: client,
+		config: config,
+		logger: log.Log.WithName("porch-lifecycle-manager"),
+	}, nil
+}
+
+// GetDefaultLifecycleManagerConfig returns default configuration for lifecycle manager
+func GetDefaultLifecycleManagerConfig() *LifecycleManagerConfig {
+	return &LifecycleManagerConfig{
+		EventQueueSize:               1000,
+		EventWorkers:                 5,
+		LockCleanupInterval:          5 * time.Minute,
+		DefaultLockTimeout:           30 * time.Minute,
+		EnableMetrics:                true,
+		MaxRollbackPoints:            10,
+		RollbackRetentionPeriod:      7 * 24 * time.Hour, // 7 days
+		AutoCreateRollbackPoints:     false,
+		EnableValidation:             true,
+		ValidationTimeout:            5 * time.Minute,
+		MaxConcurrentTransitions:     10,
+		TransitionTimeout:            30 * time.Minute,
+		BatchProcessingEnabled:       true,
+	}
+}
+
+// Implementation methods for lifecycleManagerStub
+func (lm *lifecycleManagerStub) TransitionToProposed(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error) {
+	lm.logger.Info("TransitionToProposed called", "package", ref.GetPackageKey())
+	return &TransitionResult{
+		Success:        true,
+		PreviousStage:  PackageRevisionLifecycleDraft,
+		NewStage:       PackageRevisionLifecycleProposed,
+		TransitionTime: time.Now(),
+		Duration:       time.Second,
+	}, nil
+}
+
+func (lm *lifecycleManagerStub) TransitionToPublished(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error) {
+	lm.logger.Info("TransitionToPublished called", "package", ref.GetPackageKey())
+	return &TransitionResult{
+		Success:        true,
+		PreviousStage:  PackageRevisionLifecycleProposed,
+		NewStage:       PackageRevisionLifecyclePublished,
+		TransitionTime: time.Now(),
+		Duration:       time.Second,
+	}, nil
+}
+
+func (lm *lifecycleManagerStub) TransitionToDraft(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error) {
+	lm.logger.Info("TransitionToDraft called", "package", ref.GetPackageKey())
+	return &TransitionResult{
+		Success:        true,
+		PreviousStage:  PackageRevisionLifecycleProposed,
+		NewStage:       PackageRevisionLifecycleDraft,
+		TransitionTime: time.Now(),
+		Duration:       time.Second,
+	}, nil
+}
+
+func (lm *lifecycleManagerStub) TransitionToDeletable(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error) {
+	lm.logger.Info("TransitionToDeletable called", "package", ref.GetPackageKey())
+	return &TransitionResult{
+		Success:        true,
+		PreviousStage:  PackageRevisionLifecyclePublished,
+		NewStage:       PackageRevisionLifecycleDeletable,
+		TransitionTime: time.Now(),
+		Duration:       time.Second,
+	}, nil
+}
+
+func (lm *lifecycleManagerStub) CreateRollbackPoint(ctx context.Context, ref *PackageReference, description string) (*RollbackPoint, error) {
+	lm.logger.Info("CreateRollbackPoint called", "package", ref.GetPackageKey(), "description", description)
+	return &RollbackPoint{
+		ID:          fmt.Sprintf("rollback-%d", time.Now().UnixNano()),
+		CreatedAt:   time.Now(),
+		Description: description,
+		PackageRef:  ref,
+		Lifecycle:   PackageRevisionLifecycleDraft, // Assume current state
+		Version:     ref.Revision,
+		Metadata:    map[string]string{},
+	}, nil
+}
+
+func (lm *lifecycleManagerStub) RollbackToPoint(ctx context.Context, ref *PackageReference, pointID string) (*RollbackResult, error) {
+	lm.logger.Info("RollbackToPoint called", "package", ref.GetPackageKey(), "pointID", pointID)
+	return &RollbackResult{
+		Success:       true,
+		PreviousStage: PackageRevisionLifecyclePublished,
+		RestoredStage: PackageRevisionLifecycleDraft,
+		Duration:      time.Second,
+	}, nil
+}
+
+func (lm *lifecycleManagerStub) ListRollbackPoints(ctx context.Context, ref *PackageReference) ([]*RollbackPoint, error) {
+	lm.logger.Info("ListRollbackPoints called", "package", ref.GetPackageKey())
+	return []*RollbackPoint{}, nil
+}
+
+func (lm *lifecycleManagerStub) GetManagerHealth(ctx context.Context) (*LifecycleManagerHealth, error) {
+	lm.logger.Info("GetManagerHealth called")
+	return &LifecycleManagerHealth{
+		Status:            "healthy",
+		ActiveTransitions: 0,
+		QueuedOperations:  0,
+		ComponentHealth:   map[string]string{"core": "healthy"},
+		LastActivity:      time.Now(),
+		Uptime:            time.Hour,
+		Version:           "1.0.0",
+	}, nil
+}
+
+func (lm *lifecycleManagerStub) Close() error {
+	lm.logger.Info("LifecycleManager Close called")
+	return nil
+}
+
+// ClientConfig_Types contains configuration for Porch client
+type ClientConfig_Types struct {
+	// Server endpoint
+	Endpoint string `yaml:"endpoint"`
+
+	// Authentication settings
+	Auth *AuthConfig_Types `yaml:"auth,omitempty"`
+
+	// Connection settings
+	Timeout         time.Duration `yaml:"timeout"`
+	RetryCount      int           `yaml:"retryCount"`
+	RetryBackoff    time.Duration `yaml:"retryBackoff"`
+	KeepAlive       bool          `yaml:"keepAlive"`
+	MaxIdleConns    int           `yaml:"maxIdleConns"`
+	IdleConnTimeout time.Duration `yaml:"idleConnTimeout"`
+
+	// TLS settings
+	TLS *TLSConfig_Types `yaml:"tls,omitempty"`
+
+	// HTTP client settings
+	UserAgent     string            `yaml:"userAgent,omitempty"`
+	Headers       map[string]string `yaml:"headers,omitempty"`
+	EnableMetrics bool              `yaml:"enableMetrics"`
+	
+	// Feature flags
+	EnableCompression bool `yaml:"enableCompression"`
+	EnableHTTP2       bool `yaml:"enableHTTP2"`
+}
+
+// AuthConfig_Types defines authentication configuration (referenced but defined elsewhere)
+type AuthConfig_Types struct {
+	Type      string `yaml:"type"` // basic, bearer, oauth2, etc.
+	Username  string `yaml:"username,omitempty"`
+	Password  string `yaml:"password,omitempty"`
+	Token     string `yaml:"token,omitempty"`
+	TokenFile string `yaml:"tokenFile,omitempty"`
+}
+
+// TLSConfig_Types defines TLS configuration
+type TLSConfig_Types struct {
+	Enabled            bool   `yaml:"enabled"`
+	InsecureSkipVerify bool   `yaml:"insecureSkipVerify,omitempty"`
+	CertFile           string `yaml:"certFile,omitempty"`
+	KeyFile            string `yaml:"keyFile,omitempty"`
+	CAFile             string `yaml:"caFile,omitempty"`
+	ServerName         string `yaml:"serverName,omitempty"`
+}
+
+// NewClient_Types creates a new Porch client with the given configuration
+func NewClient_Types(config *ClientConfig_Types) (PorchClient, error) {
+	if config == nil {
+		return nil, fmt.Errorf("config cannot be nil")
+	}
+	if config.Endpoint == "" {
+		return nil, fmt.Errorf("endpoint is required")
+	}
+
+	// Return a stub implementation for now
+	return &porchClientStub{
+		endpoint: config.Endpoint,
+		config:   config,
+		logger:   log.Log.WithName("porch-client"),
+	}, nil
+}
+
+// Implementation stub for PorchClient
+type porchClientStub struct {
+	endpoint string
+	config   *ClientConfig_Types
+	logger   logr.Logger
+}
+
+// Minimal implementation of required methods for PorchClient
+func (c *porchClientStub) Health(ctx context.Context) (*HealthStatus, error) {
+	c.logger.Info("Health check called")
+	return &HealthStatus{
+		Status:    "healthy",
+		Timestamp: &metav1.Time{Time: time.Now()},
+		Components: []ComponentHealth{
+			{Name: "api", Status: "healthy"},
+			{Name: "database", Status: "healthy"},
+		},
+	}, nil
+}
+
+func (c *porchClientStub) GetPackageRevision(ctx context.Context, name string, revision string) (*PackageRevision, error) {
+	c.logger.Info("GetPackageRevision called", "name", name, "revision", revision)
+	return &PackageRevision{
+		Spec: PackageRevisionSpec{
+			PackageName: name,
+			Revision:    revision,
+			Lifecycle:   PackageRevisionLifecycleDraft,
+		},
+	}, nil
+}
+
+func (c *porchClientStub) CreatePackageRevision(ctx context.Context, pkg *PackageRevision) (*PackageRevision, error) {
+	c.logger.Info("CreatePackageRevision called", "package", pkg.Spec.PackageName)
+	// Return the same package with some default status
+	result := pkg.DeepCopy()
+	if result.Status.PublishTime == nil {
+		result.Status.PublishTime = &metav1.Time{Time: time.Now()}
+	}
+	return result, nil
+}
+
+// Add other required PorchClient methods as stubs
+func (c *porchClientStub) GetRepository(ctx context.Context, name string) (*Repository, error) {
+	return &Repository{}, nil
+}
+
+func (c *porchClientStub) ListRepositories(ctx context.Context, opts *ListOptions) (*RepositoryList, error) {
+	return &RepositoryList{}, nil
+}
+
+func (c *porchClientStub) CreateRepository(ctx context.Context, repo *Repository) (*Repository, error) {
+	return repo, nil
+}
+
+func (c *porchClientStub) UpdateRepository(ctx context.Context, repo *Repository) (*Repository, error) {
+	return repo, nil
+}
+
+func (c *porchClientStub) DeleteRepository(ctx context.Context, name string) error {
+	return nil
+}
+
+func (c *porchClientStub) SyncRepository(ctx context.Context, name string) error {
+	return nil
+}
+
+func (c *porchClientStub) ListPackageRevisions(ctx context.Context, opts *ListOptions) (*PackageRevisionList, error) {
+	return &PackageRevisionList{}, nil
+}
+
+func (c *porchClientStub) UpdatePackageRevision(ctx context.Context, pkg *PackageRevision) (*PackageRevision, error) {
+	return pkg, nil
+}
+
+func (c *porchClientStub) DeletePackageRevision(ctx context.Context, name string, revision string) error {
+	return nil
+}
+
+func (c *porchClientStub) ApprovePackageRevision(ctx context.Context, name string, revision string) error {
+	return nil
+}
+
+func (c *porchClientStub) ProposePackageRevision(ctx context.Context, name string, revision string) error {
+	return nil
+}
+
+func (c *porchClientStub) RejectPackageRevision(ctx context.Context, name string, revision string, reason string) error {
+	return nil
+}
+
+func (c *porchClientStub) GetPackageContents(ctx context.Context, name string, revision string) (map[string][]byte, error) {
+	return map[string][]byte{}, nil
+}
+
+func (c *porchClientStub) UpdatePackageContents(ctx context.Context, name string, revision string, contents map[string][]byte) error {
+	return nil
+}
+
+func (c *porchClientStub) RenderPackage(ctx context.Context, name string, revision string) (*RenderResult, error) {
+	return &RenderResult{}, nil
+}
+
+func (c *porchClientStub) RunFunction(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
+	return &FunctionResponse{}, nil
+}
+
+func (c *porchClientStub) ValidatePackage(ctx context.Context, name string, revision string) (*ValidationResult, error) {
+	return &ValidationResult{Valid: true}, nil
+}
+
+func (c *porchClientStub) GetWorkflow(ctx context.Context, name string) (*Workflow, error) {
+	return &Workflow{}, nil
+}
+
+func (c *porchClientStub) ListWorkflows(ctx context.Context, opts *ListOptions) (*WorkflowList, error) {
+	return &WorkflowList{}, nil
+}
+
+func (c *porchClientStub) CreateWorkflow(ctx context.Context, workflow *Workflow) (*Workflow, error) {
+	return workflow, nil
+}
+
+func (c *porchClientStub) UpdateWorkflow(ctx context.Context, workflow *Workflow) (*Workflow, error) {
+	return workflow, nil
+}
+
+func (c *porchClientStub) DeleteWorkflow(ctx context.Context, name string) error {
+	return nil
+}
+
+func (c *porchClientStub) Version(ctx context.Context) (*VersionInfo, error) {
+	return &VersionInfo{
+		Version:   "1.0.0",
+		GitCommit: "abc123",
+		BuildTime: time.Now(),
+	}, nil
 }

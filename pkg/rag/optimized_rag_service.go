@@ -1249,7 +1249,7 @@ func (ors *OptimizedRAGService) enhanceResponseWithQuality(response string, resu
 // Define missing types for compilation
 type OptimizedSearchResult struct {
 	Document *types.TelecomDocument `json:"document"`
-	Score    float32               `json:"score"`
+	Score    float32                `json:"score"`
 	Metadata map[string]interface{} `json:"metadata"`
 }
 

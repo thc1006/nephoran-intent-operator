@@ -845,7 +845,7 @@ func (am *AlertManager) handleAlertFiring(rule *AlertRule, value float64) {
 		am.sendNotification(alert)
 
 		// Update metrics
-		atomic.AddUint64(&am.alertsGenerated, 1)
+		am.alertsGenerated.Add(1)
 		am.metrics.AlertsGenerated.WithLabelValues(rule.Name, rule.Severity, rule.Metric).Inc()
 		am.metrics.ActiveAlertsGauge.WithLabelValues(rule.Severity, rule.Metric).Inc()
 
@@ -883,7 +883,7 @@ func (am *AlertManager) handleAlertResolution(ruleName string) {
 			delete(am.activeAlerts, fingerprint)
 
 			// Update metrics
-			atomic.AddUint64(&am.alertsResolved, 1)
+			am.alertsResolved.Add(1)
 			am.metrics.AlertsResolved.WithLabelValues(alert.Rule.Name, alert.Rule.Severity, "condition_resolved").Inc()
 			am.metrics.AlertDuration.WithLabelValues(alert.Rule.Name, alert.Rule.Severity).Observe(duration.Seconds())
 			am.metrics.ActiveAlertsGauge.WithLabelValues(alert.Rule.Severity, alert.Rule.Metric).Dec()

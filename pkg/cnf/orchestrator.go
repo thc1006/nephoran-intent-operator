@@ -1151,7 +1151,7 @@ func (c *CNFOrchestrator) CleanupOperatorDeployment(ctx context.Context, cnfDepl
 
 	// For operator deployments, we need to delete the custom resources
 	// This is a placeholder implementation as the actual operator CRDs would need to be defined
-	logger.Info("Operator deployment cleanup - custom resource deletion would be implemented here", 
+	logger.Info("Operator deployment cleanup - custom resource deletion would be implemented here",
 		"operator", cnfDeployment.Spec.Operator.Name)
 
 	// In a real implementation, this would:
@@ -1189,8 +1189,8 @@ func (c *CNFOrchestrator) CleanupGitOpsDeployment(ctx context.Context, cnfDeploy
 
 	// For demonstration, we'll simulate the Git operations
 	if c.Config != nil && c.Config.GitRepoURL != "" {
-		logger.Info("Would remove manifests from Git repository", 
-			"repo", c.Config.GitRepoURL, 
+		logger.Info("Would remove manifests from Git repository",
+			"repo", c.Config.GitRepoURL,
 			"path", c.Config.GitDeployPath,
 			"branch", c.Config.GitBranch)
 	}

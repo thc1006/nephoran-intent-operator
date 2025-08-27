@@ -1256,16 +1256,16 @@ func (cm *contentManager) generateUnifiedDiff(file1, file2 []byte) string {
 	// Simple unified diff implementation
 	lines1 := strings.Split(string(file1), "\n")
 	lines2 := strings.Split(string(file2), "\n")
-	
+
 	var result strings.Builder
 	result.WriteString("--- a/file\n+++ b/file\n")
-	
+
 	// Simple line-by-line comparison
 	maxLen := len(lines1)
 	if len(lines2) > maxLen {
 		maxLen = len(lines2)
 	}
-	
+
 	for i := 0; i < maxLen; i++ {
 		line1 := ""
 		line2 := ""
@@ -1275,7 +1275,7 @@ func (cm *contentManager) generateUnifiedDiff(file1, file2 []byte) string {
 		if i < len(lines2) {
 			line2 = lines2[i]
 		}
-		
+
 		if line1 != line2 {
 			if i < len(lines1) {
 				result.WriteString("-" + line1 + "\n")
@@ -1285,7 +1285,7 @@ func (cm *contentManager) generateUnifiedDiff(file1, file2 []byte) string {
 			}
 		}
 	}
-	
+
 	return result.String()
 }
 
@@ -1298,17 +1298,17 @@ func (cm *contentManager) generateSimpleDiff(file1, file2 []byte) string {
 func (cm *contentManager) calculateDiffStatistics(file1, file2 []byte) *DiffStatistics {
 	lines1 := strings.Split(string(file1), "\n")
 	lines2 := strings.Split(string(file2), "\n")
-	
+
 	// Simple statistics calculation
 	added := 0
 	deleted := 0
-	
+
 	if len(lines2) > len(lines1) {
 		added = len(lines2) - len(lines1)
 	} else {
 		deleted = len(lines1) - len(lines2)
 	}
-	
+
 	return &DiffStatistics{
 		LinesAdded:   added,
 		LinesDeleted: deleted,
@@ -1416,13 +1416,13 @@ func (cm *contentManager) calculateContentSize(content map[string][]byte) int64 
 // AnalyzeContent performs comprehensive content analysis
 func (cm *contentManager) AnalyzeContent(ctx context.Context, ref *PackageReference) (*ContentAnalysis, error) {
 	cm.logger.Info("Analyzing package content", "package", ref.GetPackageKey())
-	
+
 	// Get package content
 	content, err := cm.GetContent(ctx, ref, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get content: %w", err)
 	}
-	
+
 	analysis := &ContentAnalysis{
 		PackageRef:              ref,
 		TotalFiles:              len(content.Files),
@@ -1437,13 +1437,13 @@ func (cm *contentManager) AnalyzeContent(ctx context.Context, ref *PackageRefere
 		QualityMetrics:          &ContentQualityMetrics{},
 		GeneratedAt:             time.Now(),
 	}
-	
+
 	// Calculate total size and file type statistics
 	var totalSize int64
 	for filename, fileContent := range content.Files {
 		size := int64(len(fileContent))
 		totalSize += size
-		
+
 		// Determine file type
 		ext := filepath.Ext(filename)
 		if ext == "" {
@@ -1451,19 +1451,19 @@ func (cm *contentManager) AnalyzeContent(ctx context.Context, ref *PackageRefere
 		}
 		analysis.FilesByType[ext]++
 		analysis.SizeByType[ext] += size
-		
+
 		// Check for templates
 		if strings.Contains(string(fileContent), "{{") {
 			analysis.TemplateFiles = append(analysis.TemplateFiles, filename)
 		}
-		
+
 		// Track largest files
 		fileInfo := FileInfo{Name: filename, Size: size}
 		if len(analysis.LargestFiles) < 10 {
 			analysis.LargestFiles = append(analysis.LargestFiles, fileInfo)
 		}
 	}
-	
+
 	analysis.TotalSize = totalSize
 	return analysis, nil
 }
@@ -1534,7 +1534,7 @@ func (cm *contentManager) CreateMergeProposal(ctx context.Context, ref *PackageR
 		SourceRef:       ref, // Using same ref for now
 		ProposedContent: incomingContent,
 		MergeStrategy:   "three-way", // Default strategy
-		AutoApplicable:  true,                  // Can be auto-applied if no conflicts
+		AutoApplicable:  true,        // Can be auto-applied if no conflicts
 		CreatedAt:       time.Now(),
 		ExpiresAt:       time.Now().Add(24 * time.Hour), // Expires in 24 hours
 	}
@@ -1571,11 +1571,11 @@ func (cm *contentManager) analyzeConflictSummary(base, incoming *PackageContent)
 	}
 
 	summary := &ConflictSummary{
-		TotalConflicts:        conflictCount,
-		ConflictsByType:       make(map[ConflictType]int),
-		ConflictsBySeverity:   make(map[ConflictSeverity]int),
-		AutoResolvableCount:   0, // For now, assume manual resolution needed
-		FilesAffected:         []string{}, // Will be populated with actual conflicts
+		TotalConflicts:      conflictCount,
+		ConflictsByType:     make(map[ConflictType]int),
+		ConflictsBySeverity: make(map[ConflictSeverity]int),
+		AutoResolvableCount: 0,          // For now, assume manual resolution needed
+		FilesAffected:       []string{}, // Will be populated with actual conflicts
 	}
 
 	return summary, nil
@@ -1645,11 +1645,11 @@ func (cm *contentManager) DetectConflicts(ctx context.Context, ref *PackageRefer
 
 	// Create conflict summary
 	conflictSummary := &ConflictSummary{
-		TotalConflicts:        len(conflictFiles),
-		ConflictsByType:       make(map[ConflictType]int),
-		ConflictsBySeverity:   make(map[ConflictSeverity]int),
-		AutoResolvableCount:   0, // For now, assume manual resolution needed
-		FilesAffected:         []string{},
+		TotalConflicts:      len(conflictFiles),
+		ConflictsByType:     make(map[ConflictType]int),
+		ConflictsBySeverity: make(map[ConflictSeverity]int),
+		AutoResolvableCount: 0, // For now, assume manual resolution needed
+		FilesAffected:       []string{},
 	}
 
 	for _, conflict := range conflictFiles {
@@ -1675,7 +1675,7 @@ func (cm *contentManager) GeneratePatch(ctx context.Context, oldContent, newCont
 
 	// Compare files and generate patches
 	allFiles := make(map[string]bool)
-	
+
 	// Add all files from both contents
 	for filename := range oldContent.Files {
 		allFiles[filename] = true
@@ -1758,7 +1758,7 @@ func (cm *contentManager) GetContentMetrics(ctx context.Context, ref *PackageRef
 	// Calculate metrics
 	var totalSize int64
 	fileCount := len(content.Files)
-	
+
 	for _, data := range content.Files {
 		totalSize += int64(len(data))
 	}
@@ -1766,7 +1766,7 @@ func (cm *contentManager) GetContentMetrics(ctx context.Context, ref *PackageRef
 	metrics := &ContentMetrics{
 		TotalFiles:      int64(fileCount),
 		TotalSize:       totalSize,
-		ValidationScore: 0.95,      // Placeholder - would implement validation scoring
+		ValidationScore: 0.95,       // Placeholder - would implement validation scoring
 		LastUpdated:     time.Now(), // Placeholder - would track actual modification time
 	}
 
@@ -1835,12 +1835,12 @@ func (cm *contentManager) MergeContent(ctx context.Context, baseContent, sourceC
 			Files:   make(map[string][]byte),
 			Kptfile: nil,
 		},
-		Conflicts:     []*FileConflict{},
-		Statistics:    nil, // Will be populated later
-		AppliedRules:  []string{},
-		Success:       true,
+		Conflicts:    []*FileConflict{},
+		Statistics:   nil, // Will be populated later
+		AppliedRules: []string{},
+		Success:      true,
 	}
-	
+
 	var mergedFiles []string
 	var conflictFiles []string
 
@@ -1882,7 +1882,7 @@ func (cm *contentManager) MergeContent(ctx context.Context, baseContent, sourceC
 			}
 			result.Conflicts = append(result.Conflicts, conflict)
 			result.Success = false
-			
+
 			// For conflicts, prefer source content for now
 			if sourceData != nil {
 				result.MergedContent.Files[filename] = sourceData
@@ -1891,7 +1891,7 @@ func (cm *contentManager) MergeContent(ctx context.Context, baseContent, sourceC
 			}
 		}
 	}
-	
+
 	// Update statistics - using a simple approach for now
 	// In a real implementation, MergeStatistics would be defined properly
 
@@ -1928,7 +1928,7 @@ func (cm *contentManager) RegisterTemplateFunction(name string, fn interface{}) 
 	if name == "" {
 		return fmt.Errorf("function name cannot be empty")
 	}
-	
+
 	if fn == nil {
 		return fmt.Errorf("function cannot be nil")
 	}

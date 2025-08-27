@@ -47,13 +47,13 @@ const (
 
 // ComponentStatus represents the status of a component
 type ComponentStatus struct {
-	Type       ComponentType              `json:"type"`
-	Name       string                     `json:"name"`
-	Status     string                     `json:"status"`
-	Healthy    bool                       `json:"healthy"`
-	LastUpdate time.Time                  `json:"lastUpdate"`
-	Version    string                     `json:"version,omitempty"`
-	Metadata   map[string]interface{}     `json:"metadata,omitempty"`
-	Metrics    map[string]float64         `json:"metrics,omitempty"`
-	Errors     []string                   `json:"errors,omitempty"`
+	Type       ComponentType          `json:"type"`
+	Name       string                 `json:"name"`
+	Status     string                 `json:"status"`
+	Healthy    bool                   `json:"healthy"`
+	LastUpdate time.Time              `json:"lastUpdate"`
+	Version    string                 `json:"version,omitempty"`
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Metrics    map[string]float64     `json:"metrics,omitempty"`
+	Errors     []string               `json:"errors,omitempty"`
 }

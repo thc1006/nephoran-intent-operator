@@ -28,13 +28,13 @@ type ExpectedImpact struct {
 	EfficiencyGain     float64 `json:"efficiencyGain"`
 
 	// Resource improvements
-	ResourceSavings    float64 `json:"resourceSavings"`
-	CostSavings        float64 `json:"costSavings"`
-	EnergyEfficiency   float64 `json:"energyEfficiency"`
+	ResourceSavings  float64 `json:"resourceSavings"`
+	CostSavings      float64 `json:"costSavings"`
+	EnergyEfficiency float64 `json:"energyEfficiency"`
 
 	// Reliability improvements
 	ReliabilityImprovement float64 `json:"reliabilityImprovement"`
-	AvailabilityGain      float64 `json:"availabilityGain"`
+	AvailabilityGain       float64 `json:"availabilityGain"`
 
 	// Telecom-specific impacts
 	SignalingEfficiencyGain float64 `json:"signalingEfficiencyGain"`
@@ -55,7 +55,7 @@ type OptimizationPriority string
 
 const (
 	PriorityCritical OptimizationPriority = "critical"
-	PriorityHigh     OptimizationPriority = "high" 
+	PriorityHigh     OptimizationPriority = "high"
 	PriorityMedium   OptimizationPriority = "medium"
 	PriorityLow      OptimizationPriority = "low"
 )
@@ -82,22 +82,22 @@ func (ip *ImpactPredictor) PredictImpact(
 ) *ExpectedImpact {
 	// Simplified impact prediction based on strategy benefits and current metrics
 	baseBenefits := strategy.ExpectedBenefits
-	
+
 	// Scale benefits based on current performance issues
 	scalingFactor := ip.calculateScalingFactor(analysis)
-	
+
 	impact := &ExpectedImpact{
-		LatencyReduction:         baseBenefits.LatencyReduction * scalingFactor,
-		ThroughputIncrease:       baseBenefits.ThroughputIncrease * scalingFactor,
-		EfficiencyGain:           baseBenefits.EnergyEfficiencyGain * scalingFactor,
-		ResourceSavings:          baseBenefits.ResourceSavings * scalingFactor,
-		CostSavings:              baseBenefits.CostSavings * scalingFactor,
-		ReliabilityImprovement:   baseBenefits.ReliabilityImprovement * scalingFactor,
-		SignalingEfficiencyGain:  baseBenefits.SignalingEfficiencyGain * scalingFactor,
-		SpectrumEfficiencyGain:   baseBenefits.SpectrumEfficiencyGain * scalingFactor,
-		InteropImprovements:      baseBenefits.InteropImprovements * scalingFactor,
-		ConfidenceLevel:          0.8, // Default confidence
-		DataQuality:              0.85, // Default data quality
+		LatencyReduction:        baseBenefits.LatencyReduction * scalingFactor,
+		ThroughputIncrease:      baseBenefits.ThroughputIncrease * scalingFactor,
+		EfficiencyGain:          baseBenefits.EnergyEfficiencyGain * scalingFactor,
+		ResourceSavings:         baseBenefits.ResourceSavings * scalingFactor,
+		CostSavings:             baseBenefits.CostSavings * scalingFactor,
+		ReliabilityImprovement:  baseBenefits.ReliabilityImprovement * scalingFactor,
+		SignalingEfficiencyGain: baseBenefits.SignalingEfficiencyGain * scalingFactor,
+		SpectrumEfficiencyGain:  baseBenefits.SpectrumEfficiencyGain * scalingFactor,
+		InteropImprovements:     baseBenefits.InteropImprovements * scalingFactor,
+		ConfidenceLevel:         0.8,  // Default confidence
+		DataQuality:             0.85, // Default data quality
 	}
 
 	// Adjust based on component health
@@ -105,7 +105,7 @@ func (ip *ImpactPredictor) PredictImpact(
 		impact.ConfidenceLevel *= 0.9 // Slightly less confident with critical health
 	}
 
-	ip.logger.V(1).Info("Predicted impact", 
+	ip.logger.V(1).Info("Predicted impact",
 		"strategy", strategy.Name,
 		"scalingFactor", scalingFactor,
 		"latencyReduction", impact.LatencyReduction)
@@ -173,7 +173,7 @@ func (rc *ROICalculator) CalculateROI(
 	// Calculate ROI as percentage
 	if implementationCost > 0 {
 		roi := ((adjustedBenefits - implementationCost) / implementationCost) * 100
-		rc.logger.V(1).Info("Calculated ROI", 
+		rc.logger.V(1).Info("Calculated ROI",
 			"strategy", strategy.Name,
 			"benefits", adjustedBenefits,
 			"cost", implementationCost,
@@ -187,10 +187,10 @@ func (rc *ROICalculator) CalculateROI(
 // estimateImplementationCost estimates the cost of implementing a strategy
 func (rc *ROICalculator) estimateImplementationCost(strategy *OptimizationStrategy) float64 {
 	baseCost := 1000.0 // Base cost in arbitrary units
-	
+
 	// Scale cost based on number of implementation steps
 	stepCost := float64(len(strategy.ImplementationSteps)) * 200.0
-	
+
 	// Scale cost based on automation level
 	automationDiscount := 0.0
 	for _, step := range strategy.ImplementationSteps {
@@ -205,10 +205,10 @@ func (rc *ROICalculator) estimateImplementationCost(strategy *OptimizationStrate
 			// No discount for manual steps
 		}
 	}
-	
+
 	totalCost := baseCost + stepCost
 	totalCost *= (1.0 - (automationDiscount / float64(len(strategy.ImplementationSteps))))
-	
+
 	return totalCost
 }
 
@@ -216,7 +216,7 @@ func (rc *ROICalculator) estimateImplementationCost(strategy *OptimizationStrate
 func (rc *ROICalculator) calculateRiskAdjustment(riskAssessment *RiskAssessment) float64 {
 	// Start with 100% (no adjustment)
 	adjustment := 1.0
-	
+
 	// Adjust based on overall risk level
 	switch riskAssessment.OverallRiskLevel {
 	case RiskLevelVeryLow:
@@ -230,7 +230,7 @@ func (rc *ROICalculator) calculateRiskAdjustment(riskAssessment *RiskAssessment)
 	case RiskLevelVeryHigh:
 		adjustment = 0.50 // Significant discount for high risk
 	}
-	
+
 	return adjustment
 }
 
@@ -273,24 +273,24 @@ func (ra *RiskAssessor) AssessRisk(
 	// Adjust risk based on strategy category
 	categoryRiskMultiplier := ra.getCategoryRiskMultiplier(strategy.Category)
 	assessment.ImplementationRisk *= categoryRiskMultiplier
-	
+
 	// Calculate overall risk level based on individual risk scores
 	totalRisk := assessment.ImplementationRisk + assessment.PerformanceRisk +
 		assessment.AvailabilityRisk + assessment.SecurityRisk + assessment.ComplianceRisk
-	
+
 	assessment.OverallRiskLevel = ra.determineOverallRiskLevel(totalRisk)
-	
+
 	// Populate risk score breakdown
 	assessment.RiskScoreBreakdown["implementation"] = assessment.ImplementationRisk * 100
 	assessment.RiskScoreBreakdown["performance"] = assessment.PerformanceRisk * 100
 	assessment.RiskScoreBreakdown["availability"] = assessment.AvailabilityRisk * 100
 	assessment.RiskScoreBreakdown["security"] = assessment.SecurityRisk * 100
 	assessment.RiskScoreBreakdown["compliance"] = assessment.ComplianceRisk * 100
-	
+
 	// Add mitigation strategies
 	assessment.MitigationStrategies = ra.generateMitigationStrategies(strategy, assessment)
 
-	ra.logger.V(1).Info("Assessed risk", 
+	ra.logger.V(1).Info("Assessed risk",
 		"strategy", strategy.Name,
 		"overallRiskLevel", assessment.OverallRiskLevel,
 		"totalRisk", totalRisk)
@@ -360,7 +360,7 @@ func (ra *RiskAssessor) generateMitigationStrategies(
 			Name:            "Phased Implementation",
 			Description:     "Implement optimization in phases to reduce risk",
 			Effectiveness:   0.7,
-			Cost:           500.0,
+			Cost:            500.0,
 			TimeToImplement: 0, // No additional time
 		})
 	}
@@ -371,7 +371,7 @@ func (ra *RiskAssessor) generateMitigationStrategies(
 			Name:            "Performance Monitoring",
 			Description:     "Implement comprehensive performance monitoring during rollout",
 			Effectiveness:   0.8,
-			Cost:           300.0,
+			Cost:            300.0,
 			TimeToImplement: 0,
 		})
 	}
@@ -382,7 +382,7 @@ func (ra *RiskAssessor) generateMitigationStrategies(
 			Name:            "Rollback Plan",
 			Description:     "Prepare detailed rollback procedures",
 			Effectiveness:   0.9,
-			Cost:           200.0,
+			Cost:            200.0,
 			TimeToImplement: 0,
 		})
 	}
@@ -392,9 +392,9 @@ func (ra *RiskAssessor) generateMitigationStrategies(
 
 // OptimizationKnowledgeBase contains historical data and best practices
 type OptimizationKnowledgeBase struct {
-	strategies      map[string]*OptimizationStrategy
-	historicalData  map[string]interface{}
-	bestPractices   map[string]string
+	strategies     map[string]*OptimizationStrategy
+	historicalData map[string]interface{}
+	bestPractices  map[string]string
 }
 
 // NewOptimizationKnowledgeBase creates a new knowledge base

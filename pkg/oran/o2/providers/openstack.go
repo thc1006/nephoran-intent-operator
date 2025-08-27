@@ -776,7 +776,7 @@ func (o *OpenStackProvider) GetResourceMetrics(ctx context.Context, resourceID s
 			servers.Server
 			extendedstatus.ServerExtendedStatusExt
 		}
-		
+
 		// Extract the server with extended status information
 		err = servers.Get(o.computeClient, server.ID).ExtractInto(&extendedServer)
 		if err == nil {
@@ -788,7 +788,7 @@ func (o *OpenStackProvider) GetResourceMetrics(ctx context.Context, resourceID s
 			// Fallback to basic status
 			metrics["status"] = server.Status
 			metrics["power_state"] = "unknown"
-			metrics["vm_state"] = "unknown" 
+			metrics["vm_state"] = "unknown"
 			metrics["task_state"] = "unknown"
 		}
 		metrics["created"] = server.Created
@@ -824,7 +824,7 @@ func (o *OpenStackProvider) GetResourceMetrics(ctx context.Context, resourceID s
 			networks.Network
 			external.NetworkExternalExt
 		}
-		
+
 		var err error
 		err = networks.Get(o.networkClient, id).ExtractInto(&extendedNetwork)
 		if err != nil {

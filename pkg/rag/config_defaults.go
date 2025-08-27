@@ -245,11 +245,11 @@ func getDefaultRedisCacheConfig() *RedisCacheConfig {
 		QueryResultTTL:     2 * time.Hour,      // Longer cache for query results
 		ContextTTL:         1 * time.Hour,      // Longer context cache
 		EnableCompression:  true,
-		CompressionLevel:   4,                  // Faster compression
-		MaxValueSize:       20 * 1024 * 1024,   // 20MB for large documents
+		CompressionLevel:   4,                // Faster compression
+		MaxValueSize:       20 * 1024 * 1024, // 20MB for large documents
 		EnableCleanup:      true,
-		CleanupInterval:    30 * time.Minute,   // More frequent cleanup
-		MaxMemoryThreshold: 0.75,               // Lower threshold for proactive cleanup
+		CleanupInterval:    30 * time.Minute, // More frequent cleanup
+		MaxMemoryThreshold: 0.75,             // Lower threshold for proactive cleanup
 	}
 }
 

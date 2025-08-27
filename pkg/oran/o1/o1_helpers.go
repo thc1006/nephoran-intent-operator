@@ -50,27 +50,27 @@ func (a *O1Adaptor) parseAlarmData(xmlData string, managedElementID string) ([]*
 		}
 
 		alarm := &Alarm{
-			ID:               fmt.Sprintf("%d-%s", oranAlarm.FaultID, oranAlarm.FaultSource),
-			ManagedElementID: managedElementID,
-			Severity:         strings.ToUpper(oranAlarm.Severity),
-			Type:             "EQUIPMENT", // Default type for O-RAN alarms
-			ProbableCause:    oranAlarm.FaultSource,
-			SpecificProblem:  oranAlarm.FaultText,
-			TimeRaised:       oranAlarm.EventTime,
+			AlarmID:           fmt.Sprintf("%d-%s", oranAlarm.FaultID, oranAlarm.FaultSource),
+			ManagedObjectID:   managedElementID,
+			PerceivedSeverity: strings.ToUpper(oranAlarm.Severity),
+			AlarmType:         "EQUIPMENT", // Default type for O-RAN alarms
+			ProbableCause:     oranAlarm.FaultSource,
+			AdditionalText:    oranAlarm.FaultText,
+			EventTime:         oranAlarm.EventTime,
 		}
 
 		// Map O-RAN severity to standard alarm severity
 		switch strings.ToLower(oranAlarm.Severity) {
 		case "critical":
-			alarm.Severity = "CRITICAL"
+			alarm.PerceivedSeverity = "CRITICAL"
 		case "major":
-			alarm.Severity = "MAJOR"
+			alarm.PerceivedSeverity = "MAJOR"
 		case "minor":
-			alarm.Severity = "MINOR"
+			alarm.PerceivedSeverity = "MINOR"
 		case "warning":
-			alarm.Severity = "WARNING"
+			alarm.PerceivedSeverity = "WARNING"
 		default:
-			alarm.Severity = "MINOR"
+			alarm.PerceivedSeverity = "MINOR"
 		}
 
 		alarms = append(alarms, alarm)
@@ -90,14 +90,14 @@ func (a *O1Adaptor) parseGenericAlarmData(xmlData string, managedElementID strin
 	if strings.Contains(xmlData, "alarm") || strings.Contains(xmlData, "fault") {
 		// Create a generic alarm entry
 		alarm := &Alarm{
-			ID:               fmt.Sprintf("generic-%d", time.Now().Unix()),
-			ManagedElementID: managedElementID,
-			Severity:         "MINOR",
-			Type:             "COMMUNICATIONS",
-			ProbableCause:    "UNKNOWN",
-			SpecificProblem:  "Generic alarm parsed from NETCONF response",
-			TimeRaised:       time.Now(),
-			AdditionalInfo:   "Parsed from XML: " + xmlData[:min(100, len(xmlData))],
+			AlarmID:           fmt.Sprintf("generic-%d", time.Now().Unix()),
+			ManagedObjectID:   managedElementID,
+			PerceivedSeverity: "MINOR",
+			AlarmType:         "COMMUNICATIONS",
+			ProbableCause:     "UNKNOWN",
+			AdditionalText:    "Generic alarm parsed from NETCONF response",
+			EventTime:         time.Now(),
+			AdditionalInfo:    map[string]interface{}{"xml": xmlData[:min(100, len(xmlData))]},
 		}
 		alarms = append(alarms, alarm)
 	}
@@ -113,31 +113,31 @@ func (a *O1Adaptor) convertEventToAlarm(event *NetconfEvent, managedElementID st
 
 	// Extract alarm information from event data
 	alarm := &Alarm{
-		ID:               fmt.Sprintf("event-%d", time.Now().UnixNano()),
-		ManagedElementID: managedElementID,
-		Severity:         "MINOR",
-		Type:             "COMMUNICATIONS",
-		ProbableCause:    "EVENT_NOTIFICATION",
-		SpecificProblem:  "Alarm notification received",
-		TimeRaised:       event.Timestamp,
+		AlarmID:           fmt.Sprintf("event-%d", time.Now().UnixNano()),
+		ManagedObjectID:   managedElementID,
+		PerceivedSeverity: "MINOR",
+		AlarmType:         "COMMUNICATIONS",
+		ProbableCause:     "EVENT_NOTIFICATION",
+		AdditionalText:    "Alarm notification received",
+		EventTime:         event.Timestamp,
 	}
 
 	// Extract more specific information from event data
 	if eventType, exists := event.Data["event_type"]; exists {
 		if eventTypeStr, ok := eventType.(string); ok {
-			alarm.Type = strings.ToUpper(eventTypeStr)
+			alarm.AlarmType = strings.ToUpper(eventTypeStr)
 		}
 	}
 
 	if severity, exists := event.Data["severity"]; exists {
 		if severityStr, ok := severity.(string); ok {
-			alarm.Severity = strings.ToUpper(severityStr)
+			alarm.PerceivedSeverity = strings.ToUpper(severityStr)
 		}
 	}
 
 	if description, exists := event.Data["description"]; exists {
 		if descStr, ok := description.(string); ok {
-			alarm.SpecificProblem = descStr
+			alarm.AdditionalText = descStr
 		}
 	}
 

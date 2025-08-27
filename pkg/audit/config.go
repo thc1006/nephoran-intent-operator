@@ -84,7 +84,7 @@ type SearchCriteria struct {
 	Namespaces    []string `json:"namespaces,omitempty"`
 
 	// Network filtering
-	SourceIPs []string `json:"source_ips,omitempty"`
+	SourceIPs  []string `json:"source_ips,omitempty"`
 	UserAgents []string `json:"user_agents,omitempty"`
 
 	// Content filtering

@@ -1,1 +1,0 @@
-{"intent_type": "scaling", "target": "test-deployment", "namespace": "default", "replicas": 2, "reason": "Second E2E test", "source": "test", "correlation_id": "e2e-test-456"}

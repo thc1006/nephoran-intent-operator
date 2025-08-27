@@ -29,9 +29,9 @@ func TestSecuritySuiteIntegration(t *testing.T) {
 			ReferrerPolicy:        "strict-origin-when-cross-origin",
 		},
 		InputValidation: &InputValidationConfig{
-			EnableSQLInjectionProtection: false, // Disabled for testing
-			EnableXSSProtection:          false, // Disabled for testing
-			BlockOnViolation:             false, // Disabled for testing
+			EnableSQLInjectionProtection: false,       // Disabled for testing
+			EnableXSSProtection:          false,       // Disabled for testing
+			BlockOnViolation:             false,       // Disabled for testing
 			MaxBodySize:                  1024 * 1024, // 1MB
 		},
 		RateLimit: &RateLimitConfig{
@@ -66,9 +66,9 @@ func TestSecuritySuiteIntegration(t *testing.T) {
 		// Simulate HTTPS connection for HSTS
 		req.Header.Set("X-Forwarded-Proto", "https")
 		rec := httptest.NewRecorder()
-		
+
 		securedHandler.ServeHTTP(rec, req)
-		
+
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.NotEmpty(t, rec.Header().Get("Strict-Transport-Security"))
 		assert.NotEmpty(t, rec.Header().Get("Content-Security-Policy"))
@@ -81,9 +81,9 @@ func TestSecuritySuiteIntegration(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.Header.Set("Origin", "https://example.com")
 		rec := httptest.NewRecorder()
-		
+
 		securedHandler.ServeHTTP(rec, req)
-		
+
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Equal(t, "https://example.com", rec.Header().Get("Access-Control-Allow-Origin"))
 	})
@@ -92,9 +92,9 @@ func TestSecuritySuiteIntegration(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.Header.Set("Origin", "https://malicious.com")
 		rec := httptest.NewRecorder()
-		
+
 		securedHandler.ServeHTTP(rec, req)
-		
+
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Empty(t, rec.Header().Get("Access-Control-Allow-Origin"))
 	})
@@ -105,19 +105,19 @@ func TestSecuritySuiteIntegration(t *testing.T) {
 			req := httptest.NewRequest("GET", "/test", nil)
 			req.RemoteAddr = "192.168.1.100:12345"
 			rec := httptest.NewRecorder()
-			
+
 			securedHandler.ServeHTTP(rec, req)
-			
+
 			if i < 20 {
 				assert.Equal(t, http.StatusOK, rec.Code, "Request %d should succeed", i+1)
 			}
 		}
-		
+
 		// Next request should be rate limited
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.RemoteAddr = "192.168.1.100:12345"
 		rec := httptest.NewRecorder()
-		
+
 		securedHandler.ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusTooManyRequests, rec.Code)
 	})
@@ -125,13 +125,13 @@ func TestSecuritySuiteIntegration(t *testing.T) {
 	t.Run("Request Size Limit", func(t *testing.T) {
 		// Create a large body
 		largeBody := strings.Repeat("x", 2*1024*1024) // 2MB
-		
+
 		req := httptest.NewRequest("POST", "/test", strings.NewReader(largeBody))
 		req.Header.Set("Content-Type", "text/plain")
 		rec := httptest.NewRecorder()
-		
+
 		securedHandler.ServeHTTP(rec, req)
-		
+
 		// The request should still go through but body will be truncated by MaxBytesReader
 		assert.Equal(t, http.StatusOK, rec.Code)
 	})
@@ -167,9 +167,9 @@ func TestSecuritySuiteWithAuth(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.Header.Set("Authorization", "Bearer valid-token")
 		rec := httptest.NewRecorder()
-		
+
 		securedHandler.ServeHTTP(rec, req)
-		
+
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Equal(t, "Authenticated", rec.Body.String())
 	})
@@ -178,18 +178,18 @@ func TestSecuritySuiteWithAuth(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.Header.Set("Authorization", "Bearer invalid-token")
 		rec := httptest.NewRecorder()
-		
+
 		securedHandler.ServeHTTP(rec, req)
-		
+
 		assert.Equal(t, http.StatusUnauthorized, rec.Code)
 	})
 
 	t.Run("Missing Authentication", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		rec := httptest.NewRecorder()
-		
+
 		securedHandler.ServeHTTP(rec, req)
-		
+
 		assert.Equal(t, http.StatusUnauthorized, rec.Code)
 	})
 }
@@ -218,7 +218,7 @@ func TestSecuritySuiteIPFiltering(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.RemoteAddr = "192.168.1.100:12345"
 		rec := httptest.NewRecorder()
-		
+
 		securedHandler.ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusForbidden, rec.Code)
 
@@ -226,7 +226,7 @@ func TestSecuritySuiteIPFiltering(t *testing.T) {
 		req = httptest.NewRequest("GET", "/test", nil)
 		req.RemoteAddr = "192.168.1.101:12345"
 		rec = httptest.NewRecorder()
-		
+
 		securedHandler.ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusOK, rec.Code)
 	})
@@ -251,7 +251,7 @@ func TestSecuritySuiteIPFiltering(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.RemoteAddr = "192.168.1.100:12345"
 		rec := httptest.NewRecorder()
-		
+
 		securedHandler.ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusOK, rec.Code)
 
@@ -259,7 +259,7 @@ func TestSecuritySuiteIPFiltering(t *testing.T) {
 		req = httptest.NewRequest("GET", "/test", nil)
 		req.RemoteAddr = "192.168.1.101:12345"
 		rec = httptest.NewRecorder()
-		
+
 		securedHandler.ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusForbidden, rec.Code)
 	})
@@ -293,7 +293,7 @@ func TestSecuritySuiteCSRF(t *testing.T) {
 	t.Run("GET Request (No CSRF Check)", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		rec := httptest.NewRecorder()
-		
+
 		securedHandler.ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusOK, rec.Code)
 	})
@@ -306,7 +306,7 @@ func TestSecuritySuiteCSRF(t *testing.T) {
 			Value: token,
 		})
 		rec := httptest.NewRecorder()
-		
+
 		securedHandler.ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusOK, rec.Code)
 	})
@@ -319,7 +319,7 @@ func TestSecuritySuiteCSRF(t *testing.T) {
 			Value: token,
 		})
 		rec := httptest.NewRecorder()
-		
+
 		securedHandler.ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusForbidden, rec.Code)
 	})
@@ -327,7 +327,7 @@ func TestSecuritySuiteCSRF(t *testing.T) {
 	t.Run("POST with Missing CSRF Token", func(t *testing.T) {
 		req := httptest.NewRequest("POST", "/test", bytes.NewReader([]byte("data")))
 		rec := httptest.NewRecorder()
-		
+
 		securedHandler.ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusForbidden, rec.Code)
 	})
@@ -361,9 +361,9 @@ func TestRequestFingerprinting(t *testing.T) {
 	req.Header.Set("Accept", "application/json")
 	req.RemoteAddr = "192.168.1.100:12345"
 	rec := httptest.NewRecorder()
-	
+
 	securedHandler.ServeHTTP(rec, req)
-	
+
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.NotEmpty(t, fingerprintCaptured)
 	assert.Len(t, fingerprintCaptured, 64) // SHA256 hex string length
@@ -425,14 +425,14 @@ func TestSecuritySuiteTimeout(t *testing.T) {
 
 	req := httptest.NewRequest("GET", "/test", nil)
 	rec := httptest.NewRecorder()
-	
+
 	// Create a context with timeout
 	done := make(chan bool)
 	go func() {
 		securedHandler.ServeHTTP(rec, req)
 		done <- true
 	}()
-	
+
 	select {
 	case <-done:
 		// Handler completed
@@ -457,17 +457,17 @@ func TestCleanupExpiredTokens(t *testing.T) {
 	// Generate tokens
 	token1 := suite.GenerateCSRFToken()
 	token2 := suite.GenerateCSRFToken()
-	
+
 	// Validate tokens exist
 	assert.True(t, suite.ValidateCSRFToken(token1))
 	assert.True(t, suite.ValidateCSRFToken(token2))
-	
+
 	// Manually expire token1 by setting its expiry to past
 	suite.csrfTokens.Store(token1, time.Now().Add(-1*time.Hour))
-	
+
 	// Cleanup expired tokens
 	suite.CleanupExpiredTokens()
-	
+
 	// Check that expired token is removed and valid token remains
 	assert.False(t, suite.ValidateCSRFToken(token1))
 	assert.True(t, suite.ValidateCSRFToken(token2))

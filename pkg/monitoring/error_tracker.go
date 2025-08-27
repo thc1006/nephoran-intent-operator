@@ -34,67 +34,67 @@ import (
 type ErrorTrackingConfig struct {
 	// EnablePrometheus enables Prometheus metrics collection
 	EnablePrometheus bool
-	
+
 	// PrometheusEnabled enables Prometheus metrics
 	PrometheusEnabled bool
-	
+
 	// PrometheusNamespace sets the Prometheus namespace
 	PrometheusNamespace string
-	
+
 	// ErrorBufferSize sets the error buffer size
 	ErrorBufferSize int
 
 	// EnableOpenTelemetry enables OpenTelemetry metrics collection
 	EnableOpenTelemetry bool
-	
+
 	// OpenTelemetryEnabled enables OpenTelemetry
 	OpenTelemetryEnabled bool
-	
+
 	// ServiceName sets the service name for tracing
 	ServiceName string
-	
+
 	// ProcessingWorkers sets number of processing workers
 	ProcessingWorkers int
 
 	// AlertingEnabled enables alerting on error thresholds
 	AlertingEnabled bool
-	
+
 	// NotificationChannels defines notification channels
 	NotificationChannels []NotificationChannel
 
 	// DashboardEnabled enables dashboard metrics export
 	DashboardEnabled bool
-	
+
 	// DashboardPort sets the dashboard port
 	DashboardPort int
-	
+
 	// AnalyticsEnabled enables analytics
 	AnalyticsEnabled bool
-	
+
 	// PredictionEnabled enables prediction
 	PredictionEnabled bool
-	
+
 	// AnomalyDetectionEnabled enables anomaly detection
 	AnomalyDetectionEnabled bool
 
 	// ReportsEnabled enables error reports generation
 	ReportsEnabled bool
-	
+
 	// Enabled enables the error tracking system
 	Enabled bool
-	
+
 	// MetricsPort sets the metrics port
 	MetricsPort int
-	
+
 	// AlertRules defines alert rules
 	AlertRules []AlertRule
-	
+
 	// MetricsRetentionDays sets metrics retention
 	MetricsRetentionDays int
-	
+
 	// TracesRetentionDays sets traces retention
 	TracesRetentionDays int
-	
+
 	// ReportsRetentionDays sets reports retention
 	ReportsRetentionDays int
 
@@ -173,24 +173,24 @@ type ErrorRecord struct {
 
 // ErrorTracker tracks and analyzes errors for monitoring and alerting
 type ErrorTracker struct {
-	config           *ErrorTrackingConfig
-	logger           logr.Logger
-	mu               sync.RWMutex
-	errors           []ErrorRecord
-	patterns         map[string]*ErrorPattern
-	
+	config   *ErrorTrackingConfig
+	logger   logr.Logger
+	mu       sync.RWMutex
+	errors   []ErrorRecord
+	patterns map[string]*ErrorPattern
+
 	// Prometheus metrics
-	errorCounter     prometheus.Counter
-	errorHistogram   prometheus.Histogram
-	patternGauge     *prometheus.GaugeVec
-	
-	// OpenTelemetry metrics  
+	errorCounter   prometheus.Counter
+	errorHistogram prometheus.Histogram
+	patternGauge   *prometheus.GaugeVec
+
+	// OpenTelemetry metrics
 	otelErrorCounter metric.Int64Counter
 	otelErrorHisto   metric.Int64Histogram
-	
+
 	// Internal state
-	startTime        time.Time
-	lastCleanup      time.Time
+	startTime   time.Time
+	lastCleanup time.Time
 }
 
 // NewErrorTracker creates a new ErrorTracker instance
@@ -238,7 +238,7 @@ func NewErrorTracker(config *ErrorTrackingConfig, logger logr.Logger) (*ErrorTra
 	// Initialize OpenTelemetry metrics if enabled
 	if config.EnableOpenTelemetry {
 		meter := otel.Meter("nephoran.monitoring.error_tracker")
-		
+
 		var err error
 		tracker.otelErrorCounter, err = meter.Int64Counter(
 			"nephoran.errors.count",
@@ -333,8 +333,8 @@ func (et *ErrorTracker) TrackError(ctx context.Context, err error, component, er
 	// Cleanup old errors if needed
 	et.cleanupOldErrors()
 
-	et.logger.Error(err, "Error tracked", 
-		"component", component, 
+	et.logger.Error(err, "Error tracked",
+		"component", component,
 		"errorType", errorType,
 		"pattern", pattern,
 		"errorId", record.ID)

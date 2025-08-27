@@ -408,10 +408,10 @@ Provide confidence scores for each extracted element.`,
 // extractCNFDeploymentSpecs extracts CNF deployment specifications from LLM response
 func (p *CNFIntentProcessor) extractCNFDeploymentSpecs(ctx context.Context, intentContext *CNFIntentContext) (*nephoranv1.CNFIntentProcessingResult, error) {
 	result := &nephoranv1.CNFIntentProcessingResult{
-		DetectedFunctions:  []nephoranv1.CNFFunction{},
-		CNFDeployments:     []nephoranv1.CNFDeploymentIntent{},
-		Warnings:           []string{},
-		Errors:             []string{},
+		DetectedFunctions: []nephoranv1.CNFFunction{},
+		CNFDeployments:    []nephoranv1.CNFDeploymentIntent{},
+		Warnings:          []string{},
+		Errors:            []string{},
 	}
 
 	if intentContext.LLMResponse == nil {
@@ -529,7 +529,7 @@ func (p *CNFIntentProcessor) mapToCNFFunction(funcStr string) nephoranv1.CNFFunc
 func (p *CNFIntentProcessor) mapToDeploymentStrategy(strategy string) nephoranv1.DeploymentStrategy {
 	mappings := map[string]nephoranv1.DeploymentStrategy{
 		"helm":     "Helm",
-		"operator": "Operator", 
+		"operator": "Operator",
 		"direct":   "Direct",
 		"gitops":   "GitOps",
 	}

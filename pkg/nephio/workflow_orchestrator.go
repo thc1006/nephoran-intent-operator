@@ -249,36 +249,36 @@ type NephioPackageCatalog struct {
 
 // BlueprintPackage represents a blueprint package in the catalog
 type BlueprintPackage struct {
-	Name           string                 `json:"name"`
-	Repository     string                 `json:"repository"`
-	Version        string                 `json:"version"`
-	Description    string                 `json:"description"`
-	Category       string                 `json:"category"`
-	IntentTypes    []string `json:"intentTypes"`
-	Dependencies   []PackageDependency    `json:"dependencies"`
-	Parameters     []ParameterDefinition  `json:"parameters"`
-	Validations    []ValidationRule       `json:"validations"`
-	Resources      []ResourceTemplate     `json:"resources"`
-	Functions      []FunctionDefinition   `json:"functions"`
-	Specialization *SpecializationSpec    `json:"specialization,omitempty"`
-	Metadata       map[string]string      `json:"metadata"`
-	CreatedAt      time.Time              `json:"createdAt"`
-	UpdatedAt      time.Time              `json:"updatedAt"`
+	Name           string                `json:"name"`
+	Repository     string                `json:"repository"`
+	Version        string                `json:"version"`
+	Description    string                `json:"description"`
+	Category       string                `json:"category"`
+	IntentTypes    []string              `json:"intentTypes"`
+	Dependencies   []PackageDependency   `json:"dependencies"`
+	Parameters     []ParameterDefinition `json:"parameters"`
+	Validations    []ValidationRule      `json:"validations"`
+	Resources      []ResourceTemplate    `json:"resources"`
+	Functions      []FunctionDefinition  `json:"functions"`
+	Specialization *SpecializationSpec   `json:"specialization,omitempty"`
+	Metadata       map[string]string     `json:"metadata"`
+	CreatedAt      time.Time             `json:"createdAt"`
+	UpdatedAt      time.Time             `json:"updatedAt"`
 }
 
 // PackageVariant represents a specialized package for a target cluster
 type PackageVariant struct {
-	Name              string                 `json:"name"`
-	Blueprint         *BlueprintPackage      `json:"blueprint"`
-	TargetCluster     *WorkloadCluster       `json:"targetCluster"`
-	Specialization    *SpecializationRequest `json:"specialization"`
-	Status            PackageVariantStatus   `json:"status"`
-	PackageRevision   *porch.PackageRevision `json:"packageRevision"`
-	DeploymentStatus  *porch.DeploymentStatus      `json:"deploymentStatus,omitempty"`
-	ValidationResults []*ValidationResult    `json:"validationResults,omitempty"`
-	Errors            []string               `json:"errors,omitempty"`
-	CreatedAt         time.Time              `json:"createdAt"`
-	UpdatedAt         time.Time              `json:"updatedAt"`
+	Name              string                  `json:"name"`
+	Blueprint         *BlueprintPackage       `json:"blueprint"`
+	TargetCluster     *WorkloadCluster        `json:"targetCluster"`
+	Specialization    *SpecializationRequest  `json:"specialization"`
+	Status            PackageVariantStatus    `json:"status"`
+	PackageRevision   *porch.PackageRevision  `json:"packageRevision"`
+	DeploymentStatus  *porch.DeploymentStatus `json:"deploymentStatus,omitempty"`
+	ValidationResults []*ValidationResult     `json:"validationResults,omitempty"`
+	Errors            []string                `json:"errors,omitempty"`
+	CreatedAt         time.Time               `json:"createdAt"`
+	UpdatedAt         time.Time               `json:"updatedAt"`
 }
 
 // SpecializationRequest defines how to specialize a blueprint
@@ -316,18 +316,18 @@ type NephioWorkflowEngine struct {
 
 // WorkflowDefinition defines a Nephio workflow
 type WorkflowDefinition struct {
-	Name          string                 `json:"name"`
-	Description   string                 `json:"description"`
-	IntentTypes   []string `json:"intentTypes"`
-	Phases        []WorkflowPhase        `json:"phases"`
-	Conditions    []WorkflowCondition    `json:"conditions"`
-	Rollback      *RollbackStrategy      `json:"rollback,omitempty"`
-	Approvals     *ApprovalStrategy      `json:"approvals,omitempty"`
-	Notifications *NotificationStrategy  `json:"notifications,omitempty"`
-	Timeouts      *TimeoutStrategy       `json:"timeouts,omitempty"`
-	Metadata      map[string]string      `json:"metadata"`
-	CreatedAt     time.Time              `json:"createdAt"`
-	UpdatedAt     time.Time              `json:"updatedAt"`
+	Name          string                `json:"name"`
+	Description   string                `json:"description"`
+	IntentTypes   []string              `json:"intentTypes"`
+	Phases        []WorkflowPhase       `json:"phases"`
+	Conditions    []WorkflowCondition   `json:"conditions"`
+	Rollback      *RollbackStrategy     `json:"rollback,omitempty"`
+	Approvals     *ApprovalStrategy     `json:"approvals,omitempty"`
+	Notifications *NotificationStrategy `json:"notifications,omitempty"`
+	Timeouts      *TimeoutStrategy      `json:"timeouts,omitempty"`
+	Metadata      map[string]string     `json:"metadata"`
+	CreatedAt     time.Time             `json:"createdAt"`
+	UpdatedAt     time.Time             `json:"updatedAt"`
 }
 
 // WorkflowPhase represents a phase in the workflow
@@ -1194,25 +1194,25 @@ func generateExecutionID() string {
 // classifyIntentType classifies the intent based on natural language keywords
 func (nwo *NephioWorkflowOrchestrator) classifyIntentType(intent string) string {
 	intentLower := strings.ToLower(intent)
-	
+
 	// Scaling intent patterns
-	if strings.Contains(intentLower, "scale") || strings.Contains(intentLower, "autoscal") || 
-		 strings.Contains(intentLower, "replicas") || strings.Contains(intentLower, "horizontal") {
+	if strings.Contains(intentLower, "scale") || strings.Contains(intentLower, "autoscal") ||
+		strings.Contains(intentLower, "replicas") || strings.Contains(intentLower, "horizontal") {
 		return "scaling"
 	}
-	
-	// Configuration intent patterns  
+
+	// Configuration intent patterns
 	if strings.Contains(intentLower, "configur") || strings.Contains(intentLower, "network slice") ||
-		 strings.Contains(intentLower, "policy") || strings.Contains(intentLower, "parameter") {
+		strings.Contains(intentLower, "policy") || strings.Contains(intentLower, "parameter") {
 		return "configuration"
 	}
-	
+
 	// Deployment intent patterns (default)
 	if strings.Contains(intentLower, "deploy") || strings.Contains(intentLower, "install") ||
-		 strings.Contains(intentLower, "create") || strings.Contains(intentLower, "setup") {
+		strings.Contains(intentLower, "create") || strings.Contains(intentLower, "setup") {
 		return "deployment"
 	}
-	
+
 	// Default to deployment if unclear
 	return "deployment"
 }
@@ -1311,17 +1311,17 @@ func (nwo *NephioWorkflowOrchestrator) updateIntentWithWorkflowStatus(ctx contex
 func (nwo *NephioWorkflowOrchestrator) executeConfigurationPhase(ctx context.Context, execution *WorkflowExecution, phaseExec *WorkflowPhaseExecution, phaseDef *WorkflowPhase) error {
 	ctx, span := nwo.tracer.Start(ctx, "configuration-phase")
 	defer span.End()
-	
+
 	logger := log.FromContext(ctx).WithName("configuration")
 	logger.Info("Starting configuration phase")
-	
+
 	// Execute configuration actions
 	for _, action := range phaseDef.Actions {
 		if err := nwo.executeAction(ctx, execution, &action); err != nil {
 			return fmt.Errorf("configuration action %s failed: %w", action.Name, err)
 		}
 	}
-	
+
 	logger.Info("Configuration phase completed successfully")
 	return nil
 }
@@ -1354,17 +1354,6 @@ func convertPorchValidationWarnings(porchWarnings []porch.ValidationError) []Val
 }
 
 // Missing types for compilation
-
-
-
-
-
-
-
-
-
-
-
 
 // executeAction executes a workflow action
 func (nwo *NephioWorkflowOrchestrator) executeAction(ctx context.Context, execution *WorkflowExecution, action *WorkflowAction) error {
@@ -1439,19 +1428,3 @@ func (nwo *NephioWorkflowOrchestrator) executeNotifyUsersAction(ctx context.Cont
 }
 
 // Missing types for compilation
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

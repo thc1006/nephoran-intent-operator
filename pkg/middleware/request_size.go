@@ -11,10 +11,10 @@ import (
 type RequestSizeConfig struct {
 	// MaxBodySize defines the maximum request body size in bytes
 	MaxBodySize int64
-	
+
 	// MaxHeaderSize defines the maximum header size in bytes
 	MaxHeaderSize int64
-	
+
 	// EnableLogging controls whether to log size limit violations
 	EnableLogging bool
 }

@@ -10,13 +10,13 @@ type CloudProvider interface {
 	// Provider metadata
 	GetProviderInfo() *ProviderInfo
 	GetCapabilities() *ProviderCapabilities
-	
+
 	// Connection management
 	Connect(ctx context.Context) error
 	Disconnect(ctx context.Context) error
 	IsConnected() bool
 	HealthCheck(ctx context.Context) error
-	
+
 	// Resource lifecycle
 	CreateResource(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error)
 	GetResource(ctx context.Context, resourceID string) (*ResourceResponse, error)
@@ -94,36 +94,36 @@ type ResourceFilter struct {
 
 // ResourceEvent represents an event related to a resource
 type ResourceEvent struct {
-	EventID     string                 `json:"eventId"`
-	Type        string                 `json:"type"`
-	Reason      string                 `json:"reason"`
-	Message     string                 `json:"message"`
-	Source      string                 `json:"source"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	EventID   string                 `json:"eventId"`
+	Type      string                 `json:"type"`
+	Reason    string                 `json:"reason"`
+	Message   string                 `json:"message"`
+	Source    string                 `json:"source"`
+	Timestamp time.Time              `json:"timestamp"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // ProviderEvent represents an event from a provider
 type ProviderEvent struct {
-	EventID     string                 `json:"eventId"`
-	ProviderID  string                 `json:"providerId"`
-	ResourceID  string                 `json:"resourceId,omitempty"`
-	EventType   string                 `json:"eventType"`
-	Severity    string                 `json:"severity"`
-	Message     string                 `json:"message"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	EventID    string                 `json:"eventId"`
+	ProviderID string                 `json:"providerId"`
+	ResourceID string                 `json:"resourceId,omitempty"`
+	EventType  string                 `json:"eventType"`
+	Severity   string                 `json:"severity"`
+	Message    string                 `json:"message"`
+	Timestamp  time.Time              `json:"timestamp"`
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // Resource status constants
 const (
-	ResourceStatusPending   = "PENDING"
-	ResourceStatusCreating  = "CREATING"
-	ResourceStatusActive    = "ACTIVE"
-	ResourceStatusUpdating  = "UPDATING"
-	ResourceStatusDeleting  = "DELETING"
-	ResourceStatusFailed    = "FAILED"
-	ResourceStatusUnknown   = "UNKNOWN"
+	ResourceStatusPending  = "PENDING"
+	ResourceStatusCreating = "CREATING"
+	ResourceStatusActive   = "ACTIVE"
+	ResourceStatusUpdating = "UPDATING"
+	ResourceStatusDeleting = "DELETING"
+	ResourceStatusFailed   = "FAILED"
+	ResourceStatusUnknown  = "UNKNOWN"
 )
 
 // Event type constants

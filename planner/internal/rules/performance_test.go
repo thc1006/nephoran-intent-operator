@@ -1,3 +1,4 @@
+//go:build performance
 // +build performance
 
 package rules
@@ -19,7 +20,7 @@ func StressTestRuleEngine_HighFrequencyInserts(t *testing.T) {
 	}
 
 	tests := []struct {
-		name            string
+		name             string
 		insertionsPerSec int
 		duration         time.Duration
 		maxHistorySize   int
@@ -73,8 +74,8 @@ func StressTestRuleEngine_HighFrequencyInserts(t *testing.T) {
 							Timestamp:       now,
 							NodeID:          "stress-node",
 							PRBUtilization:  0.3 + float64(i%70)/100.0, // Varies 0.3-1.0
-							P95Latency:      30 + float64(i%150),        // Varies 30-180
-							CurrentReplicas: 2 + i%8,                    // Varies 2-9
+							P95Latency:      30 + float64(i%150),       // Varies 30-180
+							CurrentReplicas: 2 + i%8,                   // Varies 2-9
 						}
 
 						decision := engine.Evaluate(data)
@@ -437,7 +438,7 @@ func StressTestRuleEngine_MemoryLeaks(t *testing.T) {
 
 	// Allow for some growth, but not excessive
 	growthRatio := float64(secondHalfAvg) / float64(firstHalfAvg)
-	
+
 	t.Logf("Memory Leak Analysis:")
 	t.Logf("  Test Duration: %v", testDuration)
 	t.Logf("  Memory Samples: %d", len(memSamples))
@@ -462,7 +463,7 @@ func StressTestRuleEngine_MemoryLeaks(t *testing.T) {
 
 	// Validate history size is controlled
 	if historyAvg > float64(engine.config.MaxHistorySize)*1.1 {
-		t.Errorf("History size not properly controlled: %.1f avg vs %d limit", 
+		t.Errorf("History size not properly controlled: %.1f avg vs %d limit",
 			historyAvg, engine.config.MaxHistorySize)
 	}
 }

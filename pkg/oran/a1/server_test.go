@@ -83,8 +83,6 @@ func (m *MockA1Validator) ValidatePolicyInstance(policyTypeID int, instance *Pol
 	return args.Get(0).(*ValidationResult)
 }
 
-
-
 func (m *MockA1Validator) ValidateConsumerInfo(info *ConsumerInfo) *ValidationResult {
 	args := m.Called(info)
 	return args.Get(0).(*ValidationResult)
@@ -949,7 +947,6 @@ type A1Service interface {
 	DeletePolicyInstance(ctx context.Context, policyTypeID int, policyID string) error
 	GetPolicyStatus(ctx context.Context, policyTypeID int, policyID string) (*PolicyStatus, error)
 }
-
 
 type A1Storage interface {
 	StorePolicyType(ctx context.Context, policyType *PolicyType) error

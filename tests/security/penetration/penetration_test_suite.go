@@ -23,31 +23,31 @@ import (
 
 // PenetrationTestSuite orchestrates comprehensive security testing
 type PenetrationTestSuite struct {
-	client        client.Client
-	k8sClient     kubernetes.Interface
-	config        *rest.Config
-	namespace     string
-	baseURL       string
-	testResults   *TestResults
-	mutex         sync.RWMutex
+	client      client.Client
+	k8sClient   kubernetes.Interface
+	config      *rest.Config
+	namespace   string
+	baseURL     string
+	testResults *TestResults
+	mutex       sync.RWMutex
 }
 
 // TestResults stores comprehensive penetration test results
 type TestResults struct {
-	TestID              string                 `json:"test_id"`
-	Timestamp           time.Time              `json:"timestamp"`
-	Duration            time.Duration          `json:"duration"`
-	TotalTests          int                    `json:"total_tests"`
-	PassedTests         int                    `json:"passed_tests"`
-	FailedTests         int                    `json:"failed_tests"`
-	SkippedTests        int                    `json:"skipped_tests"`
-	SecurityScore       float64                `json:"security_score"`
-	VulnerabilityCount  int                    `json:"vulnerability_count"`
-	CriticalIssues      []SecurityIssue        `json:"critical_issues"`
-	ComplianceResults   map[string]bool        `json:"compliance_results"`
-	PenetrationResults  []PenetrationResult    `json:"penetration_results"`
-	RecommendedActions  []string               `json:"recommended_actions"`
-	DetailedFindings    map[string]interface{} `json:"detailed_findings"`
+	TestID             string                 `json:"test_id"`
+	Timestamp          time.Time              `json:"timestamp"`
+	Duration           time.Duration          `json:"duration"`
+	TotalTests         int                    `json:"total_tests"`
+	PassedTests        int                    `json:"passed_tests"`
+	FailedTests        int                    `json:"failed_tests"`
+	SkippedTests       int                    `json:"skipped_tests"`
+	SecurityScore      float64                `json:"security_score"`
+	VulnerabilityCount int                    `json:"vulnerability_count"`
+	CriticalIssues     []SecurityIssue        `json:"critical_issues"`
+	ComplianceResults  map[string]bool        `json:"compliance_results"`
+	PenetrationResults []PenetrationResult    `json:"penetration_results"`
+	RecommendedActions []string               `json:"recommended_actions"`
+	DetailedFindings   map[string]interface{} `json:"detailed_findings"`
 }
 
 // SecurityIssue represents a discovered security vulnerability
@@ -474,14 +474,14 @@ func (s *PenetrationTestSuite) testInputValidationBypass(ctx context.Context) Pe
 func (s *PenetrationTestSuite) testSQLPayload(ctx context.Context, payload string) bool {
 	// Simulate SQL injection testing
 	client := &http.Client{Timeout: 10 * time.Second}
-	
+
 	// Test against various endpoints with SQL payload
 	endpoints := []string{
 		"/api/v1/networkintents",
 		"/api/v1/search",
 		"/api/v1/users",
 	}
-	
+
 	for _, endpoint := range endpoints {
 		testURL := fmt.Sprintf("%s%s?q=%s", s.baseURL, endpoint, url.QueryEscape(payload))
 		resp, err := client.Get(testURL)
@@ -489,65 +489,65 @@ func (s *PenetrationTestSuite) testSQLPayload(ctx context.Context, payload strin
 			continue
 		}
 		defer resp.Body.Close()
-		
+
 		// Check for SQL error indicators or successful injection
 		if resp.StatusCode == 200 || strings.Contains(resp.Header.Get("Content-Type"), "application/json") {
 			// Additional checks would be performed here in real implementation
 			return false // No vulnerability detected
 		}
 	}
-	
+
 	return false // No vulnerability detected
 }
 
 func (s *PenetrationTestSuite) testXSSPayload(ctx context.Context, payload string) bool {
 	// Simulate XSS testing
 	client := &http.Client{Timeout: 10 * time.Second}
-	
+
 	// Test XSS payload in various contexts
 	endpoints := []string{
 		"/api/v1/networkintents",
 		"/dashboard",
 	}
-	
+
 	for _, endpoint := range endpoints {
 		data := url.Values{}
 		data.Set("input", payload)
-		
+
 		resp, err := client.PostForm(fmt.Sprintf("%s%s", s.baseURL, endpoint), data)
 		if err != nil {
 			continue
 		}
 		defer resp.Body.Close()
-		
+
 		// Check for reflected XSS or stored XSS indicators
 		// In real implementation, this would check response body for unescaped payload
 		return false // No vulnerability detected
 	}
-	
+
 	return false // No vulnerability detected
 }
 
 func (s *PenetrationTestSuite) testAuthBypass(ctx context.Context, attempt map[string]string) bool {
 	// Simulate authentication bypass testing
 	client := &http.Client{Timeout: 10 * time.Second}
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/api/v1/admin", s.baseURL), nil)
 	if err != nil {
 		return false
 	}
-	
+
 	// Apply bypass attempt
 	if header, exists := attempt["header"]; exists {
 		req.Header.Set(header, attempt["value"])
 	}
-	
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return false
 	}
 	defer resp.Body.Close()
-	
+
 	// Check if bypass was successful (should return 401/403 for proper security)
 	return resp.StatusCode == 200 // Vulnerability if admin endpoint accessible
 }
@@ -644,7 +644,7 @@ func (s *PenetrationTestSuite) testTLSConfiguration(ctx context.Context) Penetra
 		result.Details["error"] = err.Error()
 	} else {
 		defer resp.Body.Close()
-		
+
 		// Check TLS configuration
 		if resp.TLS != nil {
 			if resp.TLS.Version < tls.VersionTLS12 {
@@ -661,7 +661,7 @@ func (s *PenetrationTestSuite) testTLSConfiguration(ctx context.Context) Penetra
 				result.Vulnerabilities = append(result.Vulnerabilities, issue)
 			}
 		}
-		
+
 		if len(result.Vulnerabilities) == 0 {
 			result.Status = "passed"
 			result.Details["message"] = "TLS configuration is secure"
@@ -704,16 +704,16 @@ func (s *PenetrationTestSuite) testServiceAccountTokenAbuse(ctx context.Context)
 func (s *PenetrationTestSuite) addPenetrationResult(result PenetrationResult) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	
+
 	s.testResults.PenetrationResults = append(s.testResults.PenetrationResults, result)
 	s.testResults.TotalTests++
-	
+
 	if result.Status == "passed" {
 		s.testResults.PassedTests++
 	} else if result.Status == "failed" {
 		s.testResults.FailedTests++
 		s.testResults.VulnerabilityCount += len(result.Vulnerabilities)
-		
+
 		// Add critical issues
 		for _, vuln := range result.Vulnerabilities {
 			if vuln.Severity == "CRITICAL" {
@@ -729,9 +729,9 @@ func (s *PenetrationTestSuite) addPenetrationResult(result PenetrationResult) {
 func (s *PenetrationTestSuite) generatePenetrationReport() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	
+
 	s.testResults.Duration = time.Since(s.testResults.Timestamp)
-	
+
 	// Calculate security score (0-100)
 	if s.testResults.TotalTests > 0 {
 		passRate := float64(s.testResults.PassedTests) / float64(s.testResults.TotalTests)
@@ -741,16 +741,16 @@ func (s *PenetrationTestSuite) generatePenetrationReport() {
 			s.testResults.SecurityScore = 0
 		}
 	}
-	
+
 	// Generate recommended actions
 	s.generateRecommendedActions()
-	
+
 	// Save report to file
 	reportData, _ := json.MarshalIndent(s.testResults, "", "  ")
 	reportFile := fmt.Sprintf("test-results/security/penetration-test-report-%s.json", s.testResults.TestID)
 	os.MkdirAll("test-results/security", 0755)
 	os.WriteFile(reportFile, reportData, 0644)
-	
+
 	// Generate HTML report
 	s.generateHTMLReport()
 }
@@ -764,15 +764,15 @@ func (s *PenetrationTestSuite) generateRecommendedActions() {
 		"Regular security assessments and penetration testing",
 		"Implement defense-in-depth security architecture",
 	}
-	
+
 	if s.testResults.VulnerabilityCount > 0 {
 		recommendations = append(recommendations, "Address identified vulnerabilities immediately")
 	}
-	
+
 	if len(s.testResults.CriticalIssues) > 0 {
 		recommendations = append(recommendations, "URGENT: Critical security issues require immediate attention")
 	}
-	
+
 	s.testResults.RecommendedActions = recommendations
 }
 
@@ -831,7 +831,7 @@ func (s *PenetrationTestSuite) generateHTMLReport() {
 		s.testResults.VulnerabilityCount,
 		len(s.testResults.CriticalIssues),
 	)
-	
+
 	htmlFile := fmt.Sprintf("test-results/security/penetration-test-report-%s.html", s.testResults.TestID)
 	os.WriteFile(htmlFile, []byte(htmlContent), 0644)
 }

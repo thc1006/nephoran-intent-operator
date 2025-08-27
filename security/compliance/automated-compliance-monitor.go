@@ -16,35 +16,35 @@ import (
 
 // AutomatedComplianceMonitor provides continuous compliance monitoring and automated remediation
 type AutomatedComplianceMonitor struct {
-	kubeClient            kubernetes.Interface
-	dynamicClient         dynamic.Interface
-	complianceFramework   *ComprehensiveComplianceFramework
-	logger               *slog.Logger
-	metricsCollector     *ComplianceMetricsCollector
-	
+	kubeClient          kubernetes.Interface
+	dynamicClient       dynamic.Interface
+	complianceFramework *ComprehensiveComplianceFramework
+	logger              *slog.Logger
+	metricsCollector    *ComplianceMetricsCollector
+
 	// Monitoring configuration
-	monitoringInterval   time.Duration
-	remediationEnabled   bool
-	alertThresholds      *ComplianceAlertThresholds
-	
+	monitoringInterval time.Duration
+	remediationEnabled bool
+	alertThresholds    *ComplianceAlertThresholds
+
 	// State management
-	lastComplianceCheck  time.Time
-	currentStatus        *ComplianceStatus
-	violationHistory     []ComplianceViolation
-	remediationActions   []RemediationAction
-	mutex                sync.RWMutex
-	
+	lastComplianceCheck time.Time
+	currentStatus       *ComplianceStatus
+	violationHistory    []ComplianceViolation
+	remediationActions  []RemediationAction
+	mutex               sync.RWMutex
+
 	// Background processes
-	stopChannel          chan struct{}
-	monitoringActive     bool
+	stopChannel      chan struct{}
+	monitoringActive bool
 }
 
 type ComplianceAlertThresholds struct {
-	CriticalScore      float64 `json:"critical_score"`
-	WarningScore       float64 `json:"warning_score"`
-	MaxViolations      int     `json:"max_violations"`
-	MaxCriticalViolations int  `json:"max_critical_violations"`
-	ResponseTimeMinutes   int  `json:"response_time_minutes"`
+	CriticalScore         float64 `json:"critical_score"`
+	WarningScore          float64 `json:"warning_score"`
+	MaxViolations         int     `json:"max_violations"`
+	MaxCriticalViolations int     `json:"max_critical_violations"`
+	ResponseTimeMinutes   int     `json:"response_time_minutes"`
 }
 
 type RemediationAction struct {
@@ -64,67 +64,67 @@ type RemediationAction struct {
 
 // ComplianceAutomationConfig defines automation behavior
 type ComplianceAutomationConfig struct {
-	EnabledFrameworks        []string                    `json:"enabled_frameworks"`
-	AutoRemediationEnabled   bool                        `json:"auto_remediation_enabled"`
-	RemediationRules         []AutoRemediationRule       `json:"remediation_rules"`
-	NotificationChannels     []NotificationChannel       `json:"notification_channels"`
-	EscalationPolicies      []EscalationPolicy          `json:"escalation_policies"`
-	MaintenanceWindows      []MaintenanceWindow         `json:"maintenance_windows"`
+	EnabledFrameworks      []string              `json:"enabled_frameworks"`
+	AutoRemediationEnabled bool                  `json:"auto_remediation_enabled"`
+	RemediationRules       []AutoRemediationRule `json:"remediation_rules"`
+	NotificationChannels   []NotificationChannel `json:"notification_channels"`
+	EscalationPolicies     []EscalationPolicy    `json:"escalation_policies"`
+	MaintenanceWindows     []MaintenanceWindow   `json:"maintenance_windows"`
 }
 
 type AutoRemediationRule struct {
-	RuleID              string            `json:"rule_id"`
-	Framework           string            `json:"framework"`
-	ViolationType       string            `json:"violation_type"`
-	Severity            string            `json:"severity"`
-	AutoRemediate       bool              `json:"auto_remediate"`
-	RequireApproval     bool              `json:"require_approval"`
-	RemediationAction   string            `json:"remediation_action"`
-	MaxRetries          int               `json:"max_retries"`
-	RollbackOnFailure   bool              `json:"rollback_on_failure"`
-	NotificationRequired bool             `json:"notification_required"`
-	Conditions          map[string]string `json:"conditions"`
+	RuleID               string            `json:"rule_id"`
+	Framework            string            `json:"framework"`
+	ViolationType        string            `json:"violation_type"`
+	Severity             string            `json:"severity"`
+	AutoRemediate        bool              `json:"auto_remediate"`
+	RequireApproval      bool              `json:"require_approval"`
+	RemediationAction    string            `json:"remediation_action"`
+	MaxRetries           int               `json:"max_retries"`
+	RollbackOnFailure    bool              `json:"rollback_on_failure"`
+	NotificationRequired bool              `json:"notification_required"`
+	Conditions           map[string]string `json:"conditions"`
 }
 
 type NotificationChannel struct {
-	ChannelID    string            `json:"channel_id"`
-	Type         string            `json:"type"` // email, slack, webhook, pagerduty
-	Endpoint     string            `json:"endpoint"`
-	Credentials  map[string]string `json:"credentials"`
-	Enabled      bool              `json:"enabled"`
-	SeverityFilter []string        `json:"severity_filter"`
+	ChannelID      string            `json:"channel_id"`
+	Type           string            `json:"type"` // email, slack, webhook, pagerduty
+	Endpoint       string            `json:"endpoint"`
+	Credentials    map[string]string `json:"credentials"`
+	Enabled        bool              `json:"enabled"`
+	SeverityFilter []string          `json:"severity_filter"`
 }
 
 type EscalationPolicy struct {
-	PolicyID         string            `json:"policy_id"`
-	Name             string            `json:"name"`
+	PolicyID          string             `json:"policy_id"`
+	Name              string             `json:"name"`
 	TriggerConditions []TriggerCondition `json:"trigger_conditions"`
-	EscalationLevels []EscalationLevel  `json:"escalation_levels"`
-	Enabled          bool              `json:"enabled"`
+	EscalationLevels  []EscalationLevel  `json:"escalation_levels"`
+	Enabled           bool               `json:"enabled"`
 }
 
 type TriggerCondition struct {
-	Metric       string  `json:"metric"`
-	Operator     string  `json:"operator"`
-	Threshold    float64 `json:"threshold"`
-	Duration     string  `json:"duration"`
+	Metric    string  `json:"metric"`
+	Operator  string  `json:"operator"`
+	Threshold float64 `json:"threshold"`
+	Duration  string  `json:"duration"`
 }
 
 type EscalationLevel struct {
-	Level             int               `json:"level"`
-	DelayMinutes      int               `json:"delay_minutes"`
-	NotificationChannels []string       `json:"notification_channels"`
-	Actions           []string          `json:"actions"`
-	RequireAck        bool              `json:"require_acknowledgment"`
+	Level                int      `json:"level"`
+	DelayMinutes         int      `json:"delay_minutes"`
+	NotificationChannels []string `json:"notification_channels"`
+	Actions              []string `json:"actions"`
+	RequireAck           bool     `json:"require_acknowledgment"`
 }
 
 type MaintenanceWindow struct {
-	WindowID     string    `json:"window_id"`
-	StartTime    time.Time `json:"start_time"`
-	EndTime      time.Time `json:"end_time"`
-	Recurrence   string    `json:"recurrence"`
-	Description  string    `json:"description"`
-	AllowedActions []string `json:"allowed_actions"`
+	WindowID       string    `json:"window_id"`
+	StartTime      time.Time `json:"start_time"`
+	EndTime        time.Time `json:"end_time"`
+	Recurrence     string    `json:"recurrence"`
+	Description    string    `json:"description"`
+	AllowedActions []string  `json:"allowed_actions"`
 }
 
 // =============================================================================
@@ -146,19 +146,19 @@ func NewAutomatedComplianceMonitor(config *rest.Config, complianceFramework *Com
 		kubeClient:          kubeClient,
 		dynamicClient:       dynamicClient,
 		complianceFramework: complianceFramework,
-		logger:             logger,
-		metricsCollector:   NewComplianceMetricsCollector(),
-		monitoringInterval: 15 * time.Minute,
-		remediationEnabled: false,
+		logger:              logger,
+		metricsCollector:    NewComplianceMetricsCollector(),
+		monitoringInterval:  15 * time.Minute,
+		remediationEnabled:  false,
 		alertThresholds: &ComplianceAlertThresholds{
 			CriticalScore:         80.0,
-			WarningScore:         90.0,
-			MaxViolations:        10,
+			WarningScore:          90.0,
+			MaxViolations:         10,
 			MaxCriticalViolations: 3,
 			ResponseTimeMinutes:   5,
 		},
-		stopChannel:      make(chan struct{}),
-		violationHistory: make([]ComplianceViolation, 0),
+		stopChannel:        make(chan struct{}),
+		violationHistory:   make([]ComplianceViolation, 0),
 		remediationActions: make([]RemediationAction, 0),
 	}
 
@@ -237,7 +237,7 @@ func (acm *AutomatedComplianceMonitor) continuousMonitoringLoop(ctx context.Cont
 
 func (acm *AutomatedComplianceMonitor) runComplianceCheckAndProcess(ctx context.Context) {
 	startTime := time.Now()
-	
+
 	// Run comprehensive compliance check
 	status, err := acm.complianceFramework.RunComprehensiveComplianceCheck(ctx)
 	if err != nil {
@@ -354,7 +354,7 @@ func (acm *AutomatedComplianceMonitor) executeRemediation(ctx context.Context, v
 			acm.remediationActions[i].CompletedAt = &completedTime
 			acm.remediationActions[i].Success = success
 			acm.remediationActions[i].Status = "COMPLETED"
-			
+
 			if err != nil {
 				acm.remediationActions[i].ErrorMessage = err.Error()
 				acm.remediationActions[i].Status = "FAILED"
@@ -367,7 +367,7 @@ func (acm *AutomatedComplianceMonitor) executeRemediation(ctx context.Context, v
 	if success {
 		acm.logger.Info("Auto-remediation succeeded", "action_id", remediationAction.ID)
 		acm.metricsCollector.remediationCounter.WithLabelValues(violation.Framework, "success").Inc()
-		
+
 		// Send success notification
 		if rule.NotificationRequired {
 			acm.sendRemediationNotification(remediationAction, true)
@@ -377,12 +377,12 @@ func (acm *AutomatedComplianceMonitor) executeRemediation(ctx context.Context, v
 			"action_id", remediationAction.ID,
 			"error", err)
 		acm.metricsCollector.remediationCounter.WithLabelValues(violation.Framework, "failure").Inc()
-		
+
 		// Execute rollback if configured
 		if rule.RollbackOnFailure {
 			acm.executeRollback(ctx, remediationAction)
 		}
-		
+
 		// Send failure notification
 		if rule.NotificationRequired {
 			acm.sendRemediationNotification(remediationAction, false)
@@ -539,10 +539,10 @@ func (acm *AutomatedComplianceMonitor) enablePodSecurityStandard(ctx context.Con
 	// Apply Pod Security Standard labels
 	namespaceLabels := map[string]string{
 		"pod-security.kubernetes.io/enforce": "restricted",
-		"pod-security.kubernetes.io/audit":   "restricted", 
+		"pod-security.kubernetes.io/audit":   "restricted",
 		"pod-security.kubernetes.io/warn":    "restricted",
 	}
-	
+
 	return acm.updateNamespaceLabels(ctx, namespace, namespaceLabels)
 }
 
@@ -635,7 +635,7 @@ func (acm *AutomatedComplianceMonitor) applyKubernetesResource(ctx context.Conte
 	// Parse and apply the Kubernetes resource
 	// This is a simplified implementation - in production you'd use proper YAML parsing
 	acm.logger.Info("Applying Kubernetes resource", "resource", resourceYAML[:100])
-	
+
 	// Simulate successful application
 	time.Sleep(2 * time.Second)
 	return true, nil
@@ -646,20 +646,20 @@ func (acm *AutomatedComplianceMonitor) updateNamespaceLabels(ctx context.Context
 	if err != nil {
 		return false, fmt.Errorf("failed to get namespace %s: %w", namespace, err)
 	}
-	
+
 	if ns.Labels == nil {
 		ns.Labels = make(map[string]string)
 	}
-	
+
 	for key, value := range labels {
 		ns.Labels[key] = value
 	}
-	
+
 	_, err = acm.kubeClient.CoreV1().Namespaces().Update(ctx, ns, metav1.UpdateOptions{})
 	if err != nil {
 		return false, fmt.Errorf("failed to update namespace %s: %w", namespace, err)
 	}
-	
+
 	return true, nil
 }
 
@@ -667,17 +667,17 @@ func (acm *AutomatedComplianceMonitor) findApplicableRemediationRule(violation C
 	// This would load remediation rules from configuration
 	// For now, return a default rule based on framework
 	rule := &AutoRemediationRule{
-		RuleID:            fmt.Sprintf("default-%s", violation.Framework),
-		Framework:         violation.Framework,
-		ViolationType:     violation.Category,
-		Severity:          violation.Severity,
-		AutoRemediate:     true,
-		RequireApproval:   violation.Severity == "CRITICAL",
-		MaxRetries:        3,
-		RollbackOnFailure: true,
+		RuleID:               fmt.Sprintf("default-%s", violation.Framework),
+		Framework:            violation.Framework,
+		ViolationType:        violation.Category,
+		Severity:             violation.Severity,
+		AutoRemediate:        true,
+		RequireApproval:      violation.Severity == "CRITICAL",
+		MaxRetries:           3,
+		RollbackOnFailure:    true,
 		NotificationRequired: true,
 	}
-	
+
 	// Set appropriate remediation action based on framework and violation
 	switch violation.Framework {
 	case "CIS Kubernetes Benchmark":
@@ -693,7 +693,7 @@ func (acm *AutomatedComplianceMonitor) findApplicableRemediationRule(violation C
 	case "OPA Policy Enforcement":
 		rule.RemediationAction = "deploy_policy"
 	}
-	
+
 	return rule
 }
 
@@ -721,16 +721,16 @@ func (acm *AutomatedComplianceMonitor) isInMaintenanceWindow() bool {
 
 func (acm *AutomatedComplianceMonitor) createPendingRemediationAction(violation ComplianceViolation, rule *AutoRemediationRule) {
 	action := RemediationAction{
-		ID:          fmt.Sprintf("pending-%s-%d", violation.ID, time.Now().Unix()),
-		ViolationID: violation.ID,
-		ActionType:  rule.RemediationAction,
-		Description: "Pending approval for remediation",
-		Status:      "PENDING_APPROVAL",
-		ExecutedAt:  time.Now(),
-		RollbackPlan: acm.generateRollbackPlan(violation, rule),
+		ID:                fmt.Sprintf("pending-%s-%d", violation.ID, time.Now().Unix()),
+		ViolationID:       violation.ID,
+		ActionType:        rule.RemediationAction,
+		Description:       "Pending approval for remediation",
+		Status:            "PENDING_APPROVAL",
+		ExecutedAt:        time.Now(),
+		RollbackPlan:      acm.generateRollbackPlan(violation, rule),
 		ResourcesAffected: []string{violation.AffectedResource},
 	}
-	
+
 	acm.mutex.Lock()
 	acm.remediationActions = append(acm.remediationActions, action)
 	acm.mutex.Unlock()
@@ -800,13 +800,13 @@ func (acm *AutomatedComplianceMonitor) collectAndPublishMetrics() {
 	if acm.currentStatus != nil {
 		// Update compliance metrics
 		acm.metricsCollector.complianceScore.WithLabelValues("overall").Set(acm.currentStatus.OverallCompliance)
-		
+
 		// Count violations by severity
 		violationCounts := make(map[string]int)
 		for _, violation := range acm.violationHistory {
 			violationCounts[violation.Severity]++
 		}
-		
+
 		for severity, count := range violationCounts {
 			acm.metricsCollector.violationCounter.WithLabelValues("all", severity).Add(float64(count))
 		}
@@ -840,10 +840,10 @@ func (acm *AutomatedComplianceMonitor) processAlerts() {
 
 	// Check for alert conditions
 	if status.OverallCompliance < acm.alertThresholds.CriticalScore {
-		acm.triggerAlert("CRITICAL", fmt.Sprintf("Overall compliance score %.2f%% below critical threshold %.2f%%", 
+		acm.triggerAlert("CRITICAL", fmt.Sprintf("Overall compliance score %.2f%% below critical threshold %.2f%%",
 			status.OverallCompliance, acm.alertThresholds.CriticalScore))
 	} else if status.OverallCompliance < acm.alertThresholds.WarningScore {
-		acm.triggerAlert("WARNING", fmt.Sprintf("Overall compliance score %.2f%% below warning threshold %.2f%%", 
+		acm.triggerAlert("WARNING", fmt.Sprintf("Overall compliance score %.2f%% below warning threshold %.2f%%",
 			status.OverallCompliance, acm.alertThresholds.WarningScore))
 	}
 
@@ -856,7 +856,7 @@ func (acm *AutomatedComplianceMonitor) processAlerts() {
 	}
 
 	if criticalViolations > acm.alertThresholds.MaxCriticalViolations {
-		acm.triggerAlert("CRITICAL", fmt.Sprintf("Critical violations count %d exceeds threshold %d", 
+		acm.triggerAlert("CRITICAL", fmt.Sprintf("Critical violations count %d exceeds threshold %d",
 			criticalViolations, acm.alertThresholds.MaxCriticalViolations))
 	}
 }
@@ -872,11 +872,11 @@ func (acm *AutomatedComplianceMonitor) checkAndTriggerAlerts(status *ComplianceS
 
 func (acm *AutomatedComplianceMonitor) triggerAlert(severity, message string) {
 	alert := ComplianceAlert{
-		ID:        fmt.Sprintf("alert-%d", time.Now().Unix()),
-		Severity:  severity,
-		Framework: "multi-framework",
-		Message:   message,
-		Timestamp: time.Now(),
+		ID:           fmt.Sprintf("alert-%d", time.Now().Unix()),
+		Severity:     severity,
+		Framework:    "multi-framework",
+		Message:      message,
+		Timestamp:    time.Now(),
 		Acknowledged: false,
 	}
 
@@ -899,7 +899,7 @@ func (acm *AutomatedComplianceMonitor) sendRemediationNotification(action Remedi
 	if !success {
 		status = "FAILURE"
 	}
-	
+
 	acm.logger.Info("Sending remediation notification",
 		"action_id", action.ID,
 		"status", status)
@@ -917,7 +917,7 @@ func (acm *AutomatedComplianceMonitor) sendAlertNotification(alert ComplianceAle
 func (acm *AutomatedComplianceMonitor) updateMonitoringMetrics(status *ComplianceStatus) {
 	// Update Prometheus metrics
 	acm.metricsCollector.complianceScore.WithLabelValues("overall").Set(status.OverallCompliance)
-	
+
 	for _, violation := range status.ComplianceViolations {
 		acm.metricsCollector.violationCounter.WithLabelValues(violation.Framework, violation.Severity).Inc()
 	}
@@ -947,7 +947,7 @@ func (acm *AutomatedComplianceMonitor) GetRemediationActions() []RemediationActi
 func (acm *AutomatedComplianceMonitor) EnableAutoRemediation() error {
 	acm.mutex.Lock()
 	defer acm.mutex.Unlock()
-	
+
 	acm.remediationEnabled = true
 	acm.logger.Info("Auto-remediation enabled")
 	return nil
@@ -956,7 +956,7 @@ func (acm *AutomatedComplianceMonitor) EnableAutoRemediation() error {
 func (acm *AutomatedComplianceMonitor) DisableAutoRemediation() error {
 	acm.mutex.Lock()
 	defer acm.mutex.Unlock()
-	
+
 	acm.remediationEnabled = false
 	acm.logger.Info("Auto-remediation disabled")
 	return nil
@@ -965,7 +965,7 @@ func (acm *AutomatedComplianceMonitor) DisableAutoRemediation() error {
 func (acm *AutomatedComplianceMonitor) ApproveRemediationAction(actionID string) error {
 	acm.mutex.Lock()
 	defer acm.mutex.Unlock()
-	
+
 	for i, action := range acm.remediationActions {
 		if action.ID == actionID && action.Status == "PENDING_APPROVAL" {
 			acm.remediationActions[i].Status = "APPROVED"
@@ -973,7 +973,7 @@ func (acm *AutomatedComplianceMonitor) ApproveRemediationAction(actionID string)
 			return nil
 		}
 	}
-	
+
 	return fmt.Errorf("remediation action %s not found or not pending approval", actionID)
 }
 

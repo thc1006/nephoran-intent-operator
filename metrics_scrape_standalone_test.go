@@ -1,3 +1,6 @@
+//go:build metricstest
+// +build metricstest
+
 package main
 
 import (

@@ -187,9 +187,9 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 
 	go func() {
 		defer close(resultCh)
-		
+
 		result, err := h.processor.ProcessIntent(ctx, req.Intent)
-		
+
 		select {
 		case resultCh <- struct {
 			result string
@@ -507,7 +507,7 @@ func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string) (str
 		// Start processing in a goroutine to enable cancellation
 		go func() {
 			defer close(resultCh)
-			
+
 			// Try RAG-enhanced processing first if available
 			if p.RAGEnhancedClient != nil {
 				// RAG-enhanced processing would go here if implemented
@@ -516,7 +516,7 @@ func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string) (str
 
 			// Process with base LLM client
 			result, err := p.LLMClient.ProcessIntent(ctx, intent)
-			
+
 			select {
 			case resultCh <- struct {
 				result string

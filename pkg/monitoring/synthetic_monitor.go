@@ -6,23 +6,20 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
 )
-
 
 // AvailabilityStats holds availability statistics
 type AvailabilityStats struct {
-	CheckID        string    `json:"check_id"`
-	TotalChecks    int64     `json:"total_checks"`
-	SuccessfulChecks int64   `json:"successful_checks"`
-	FailedChecks   int64     `json:"failed_checks"`
-	Availability   float64   `json:"availability"`
-	AvgResponseTime time.Duration `json:"avg_response_time"`
-	LastCheck      time.Time `json:"last_check"`
-	Uptime         time.Duration `json:"uptime"`
-	Downtime       time.Duration `json:"downtime"`
+	CheckID          string        `json:"check_id"`
+	TotalChecks      int64         `json:"total_checks"`
+	SuccessfulChecks int64         `json:"successful_checks"`
+	FailedChecks     int64         `json:"failed_checks"`
+	Availability     float64       `json:"availability"`
+	AvgResponseTime  time.Duration `json:"avg_response_time"`
+	LastCheck        time.Time     `json:"last_check"`
+	Uptime           time.Duration `json:"uptime"`
+	Downtime         time.Duration `json:"downtime"`
 }
-
 
 // AddCheck adds a synthetic check
 func (sm *SyntheticMonitor) AddCheck(check *SyntheticCheck) error {
@@ -42,7 +39,7 @@ func (sm *SyntheticMonitor) AddCheck(check *SyntheticCheck) error {
 	}
 
 	sm.checks[check.ID] = check
-	
+
 	sm.logger.Info("Added synthetic check",
 		"checkID", check.ID,
 		"name", check.Name,
@@ -63,7 +60,7 @@ func (sm *SyntheticMonitor) RemoveCheck(checkID string) error {
 
 	delete(sm.checks, checkID)
 	delete(sm.results, checkID)
-	
+
 	sm.logger.Info("Removed synthetic check", "checkID", checkID)
 	return nil
 }
@@ -136,7 +133,7 @@ func (sm *SyntheticMonitor) executeCheck(ctx context.Context, check *SyntheticCh
 	// Check if response time exceeds threshold
 	if check.ThresholdMs > 0 && result.ResponseTime > time.Duration(check.ThresholdMs)*time.Millisecond {
 		result.Success = false
-		result.Message = fmt.Sprintf("Response time %s exceeds threshold %dms", 
+		result.Message = fmt.Sprintf("Response time %s exceeds threshold %dms",
 			result.ResponseTime, check.ThresholdMs)
 	}
 
@@ -184,7 +181,7 @@ func (sm *SyntheticMonitor) executeHTTPCheck(ctx context.Context, check *Synthet
 
 	if resp.StatusCode != expectedCode {
 		result.Success = false
-		result.Error = fmt.Sprintf("unexpected status code: %d, expected: %d", 
+		result.Error = fmt.Sprintf("unexpected status code: %d, expected: %d",
 			resp.StatusCode, expectedCode)
 		return result
 	}
@@ -323,7 +320,7 @@ func (sm *SyntheticMonitor) UpdateCheck(check *SyntheticCheck) error {
 	}
 
 	sm.checks[check.ID] = check
-	
+
 	sm.logger.Info("Updated synthetic check",
 		"checkID", check.ID,
 		"name", check.Name,

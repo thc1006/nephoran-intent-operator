@@ -39,7 +39,7 @@ type AuditSummary struct {
 	LowIssues           int      `json:"low_issues"`
 	ComplianceStatus    string   `json:"compliance_status"` // PASS, FAIL, PARTIAL
 	ORANCompliant       bool     `json:"oran_compliant"`
-	SecurityPosture     string   `json:"security_posture"`   // EXCELLENT, GOOD, FAIR, POOR, CRITICAL
+	SecurityPosture     string   `json:"security_posture"` // EXCELLENT, GOOD, FAIR, POOR, CRITICAL
 	TopRisks            []string `json:"top_risks"`
 }
 
@@ -78,39 +78,39 @@ type CertificateFinding struct {
 
 // CipherFinding represents cipher suite findings
 type CipherFinding struct {
-	CipherSuite     string   `json:"cipher_suite"`
-	TLSVersion      string   `json:"tls_version"`
-	Strength        string   `json:"strength"` // STRONG, MEDIUM, WEAK
-	KeyExchange     string   `json:"key_exchange"`
-	Authentication  string   `json:"authentication"`
-	Encryption      string   `json:"encryption"`
-	MAC             string   `json:"mac"`
-	ForwardSecrecy  bool     `json:"forward_secrecy"`
-	Issues          []string `json:"issues"`
-	Recommendation  string   `json:"recommendation"`
-	ORANApproved    bool     `json:"oran_approved"`
+	CipherSuite    string   `json:"cipher_suite"`
+	TLSVersion     string   `json:"tls_version"`
+	Strength       string   `json:"strength"` // STRONG, MEDIUM, WEAK
+	KeyExchange    string   `json:"key_exchange"`
+	Authentication string   `json:"authentication"`
+	Encryption     string   `json:"encryption"`
+	MAC            string   `json:"mac"`
+	ForwardSecrecy bool     `json:"forward_secrecy"`
+	Issues         []string `json:"issues"`
+	Recommendation string   `json:"recommendation"`
+	ORANApproved   bool     `json:"oran_approved"`
 }
 
 // TLSComplianceReport represents compliance status against standards
 type TLSComplianceReport struct {
-	ORANCompliance     ComplianceDetails `json:"oran_wg11"`
-	NISTCompliance     ComplianceDetails `json:"nist_sp_800_52"`
-	OWASPCompliance    ComplianceDetails `json:"owasp_tls"`
-	CustomCompliance   []ComplianceDetails `json:"custom,omitempty"`
-	OverallCompliance  float64           `json:"overall_compliance_percentage"`
+	ORANCompliance    ComplianceDetails   `json:"oran_wg11"`
+	NISTCompliance    ComplianceDetails   `json:"nist_sp_800_52"`
+	OWASPCompliance   ComplianceDetails   `json:"owasp_tls"`
+	CustomCompliance  []ComplianceDetails `json:"custom,omitempty"`
+	OverallCompliance float64             `json:"overall_compliance_percentage"`
 }
 
 // ComplianceDetails provides detailed compliance information
 type ComplianceDetails struct {
-	Standard        string            `json:"standard"`
-	Version         string            `json:"version"`
-	Status          string            `json:"status"` // COMPLIANT, NON_COMPLIANT, PARTIAL
-	Score           float64           `json:"score"`  // 0-100
-	PassedChecks    int               `json:"passed_checks"`
-	FailedChecks    int               `json:"failed_checks"`
-	TotalChecks     int               `json:"total_checks"`
-	FailedRules     []TLSComplianceRule  `json:"failed_rules"`
-	Exemptions      []string          `json:"exemptions,omitempty"`
+	Standard     string              `json:"standard"`
+	Version      string              `json:"version"`
+	Status       string              `json:"status"` // COMPLIANT, NON_COMPLIANT, PARTIAL
+	Score        float64             `json:"score"`  // 0-100
+	PassedChecks int                 `json:"passed_checks"`
+	FailedChecks int                 `json:"failed_checks"`
+	TotalChecks  int                 `json:"total_checks"`
+	FailedRules  []TLSComplianceRule `json:"failed_rules"`
+	Exemptions   []string            `json:"exemptions,omitempty"`
 }
 
 // TLSComplianceRule represents a specific TLS compliance requirement (renamed to avoid conflict)
@@ -161,11 +161,11 @@ func NewTLSAuditor(config *AuditorConfig) *TLSAuditor {
 	return &TLSAuditor{
 		config: config,
 		report: &TLSAuditReport{
-			Timestamp:    time.Now(),
-			ReportID:     generateReportID(),
-			TLSFindings:  []TLSAuditFinding{},
-			CertFindings: []CertificateFinding{},
-			CipherFindings: []CipherFinding{},
+			Timestamp:       time.Now(),
+			ReportID:        generateReportID(),
+			TLSFindings:     []TLSAuditFinding{},
+			CertFindings:    []CertificateFinding{},
+			CipherFindings:  []CipherFinding{},
 			Recommendations: []SecurityRecommendation{},
 		},
 	}
@@ -174,31 +174,31 @@ func NewTLSAuditor(config *AuditorConfig) *TLSAuditor {
 // AuditEndpoint performs a comprehensive TLS audit on a single endpoint
 func (a *TLSAuditor) AuditEndpoint(endpoint string) error {
 	startTime := time.Now()
-	
+
 	// Test TLS versions
 	a.testTLSVersions(endpoint)
-	
+
 	// Test cipher suites
 	a.testCipherSuites(endpoint)
-	
+
 	// Test certificate chain
 	a.testCertificateChain(endpoint)
-	
+
 	// Test for vulnerabilities
 	if a.config.DeepScan {
 		a.testVulnerabilities(endpoint)
 	}
-	
+
 	// Check OCSP if enabled
 	if a.config.CheckOCSP {
 		a.checkOCSPStatus(endpoint)
 	}
-	
+
 	// Check CRL if enabled
 	if a.config.CheckCRL {
 		a.checkCRLStatus(endpoint)
 	}
-	
+
 	a.report.ScanDuration = time.Since(startTime)
 	return nil
 }
@@ -216,21 +216,21 @@ func (a *TLSAuditor) testTLSVersions(endpoint string) {
 		{tls.VersionTLS12, "TLS 1.2", true},
 		{tls.VersionTLS13, "TLS 1.3", true},
 	}
-	
+
 	for _, v := range versions {
 		config := &tls.Config{
 			MinVersion:         v.version,
 			MaxVersion:         v.version,
 			InsecureSkipVerify: true,
 		}
-		
+
 		conn, err := tls.DialWithDialer(&net.Dialer{
 			Timeout: a.config.Timeout,
 		}, "tcp", endpoint, config)
-		
+
 		if err == nil {
 			defer conn.Close()
-			
+
 			if !v.secure {
 				a.report.TLSFindings = append(a.report.TLSFindings, TLSAuditFinding{
 					Endpoint:    endpoint,
@@ -261,7 +261,7 @@ func (a *TLSAuditor) testCipherSuites(endpoint string) {
 		tls.TLS_RSA_WITH_AES_128_CBC_SHA,
 		tls.TLS_RSA_WITH_AES_256_CBC_SHA,
 	}
-	
+
 	strongCiphers := []uint16{
 		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
@@ -269,7 +269,7 @@ func (a *TLSAuditor) testCipherSuites(endpoint string) {
 		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 		tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
 	}
-	
+
 	// Test weak ciphers
 	if a.config.TestWeakCiphers {
 		for _, cipher := range weakCiphers {
@@ -278,14 +278,14 @@ func (a *TLSAuditor) testCipherSuites(endpoint string) {
 				CipherSuites:       []uint16{cipher},
 				InsecureSkipVerify: true,
 			}
-			
+
 			conn, err := tls.DialWithDialer(&net.Dialer{
 				Timeout: a.config.Timeout,
 			}, "tcp", endpoint, config)
-			
+
 			if err == nil {
 				conn.Close()
-				
+
 				a.report.CipherFindings = append(a.report.CipherFindings, CipherFinding{
 					CipherSuite:    tls.CipherSuiteName(cipher),
 					TLSVersion:     "TLS 1.2",
@@ -298,7 +298,7 @@ func (a *TLSAuditor) testCipherSuites(endpoint string) {
 			}
 		}
 	}
-	
+
 	// Test strong ciphers
 	for _, cipher := range strongCiphers {
 		config := &tls.Config{
@@ -306,14 +306,14 @@ func (a *TLSAuditor) testCipherSuites(endpoint string) {
 			CipherSuites:       []uint16{cipher},
 			InsecureSkipVerify: true,
 		}
-		
+
 		conn, err := tls.DialWithDialer(&net.Dialer{
 			Timeout: a.config.Timeout,
 		}, "tcp", endpoint, config)
-		
+
 		if err == nil {
 			conn.Close()
-			
+
 			a.report.CipherFindings = append(a.report.CipherFindings, CipherFinding{
 				CipherSuite:    tls.CipherSuiteName(cipher),
 				TLSVersion:     "TLS 1.2",
@@ -332,11 +332,11 @@ func (a *TLSAuditor) testCertificateChain(endpoint string) {
 	config := &tls.Config{
 		InsecureSkipVerify: true,
 	}
-	
+
 	conn, err := tls.DialWithDialer(&net.Dialer{
 		Timeout: a.config.Timeout,
 	}, "tcp", endpoint, config)
-	
+
 	if err != nil {
 		a.report.CertFindings = append(a.report.CertFindings, CertificateFinding{
 			Subject:         "Unknown",
@@ -348,12 +348,12 @@ func (a *TLSAuditor) testCertificateChain(endpoint string) {
 		return
 	}
 	defer conn.Close()
-	
+
 	state := conn.ConnectionState()
-	
+
 	for i, cert := range state.PeerCertificates {
 		daysToExpiry := int(time.Until(cert.NotAfter).Hours() / 24)
-		
+
 		finding := CertificateFinding{
 			Subject:       cert.Subject.String(),
 			Issuer:        cert.Issuer.String(),
@@ -367,7 +367,7 @@ func (a *TLSAuditor) testCertificateChain(endpoint string) {
 			Issues:        []string{},
 			ChainValid:    true,
 		}
-		
+
 		// Check expiry
 		if daysToExpiry < 0 {
 			finding.Issues = append(finding.Issues, "Certificate expired")
@@ -379,7 +379,7 @@ func (a *TLSAuditor) testCertificateChain(endpoint string) {
 			finding.Issues = append(finding.Issues, fmt.Sprintf("Certificate expiring in %d days", daysToExpiry))
 			finding.Severity = "MEDIUM"
 		}
-		
+
 		// Check key strength
 		if finding.KeySize < 2048 && strings.Contains(finding.KeyAlgorithm, "RSA") {
 			finding.Issues = append(finding.Issues, "Weak RSA key size")
@@ -389,20 +389,20 @@ func (a *TLSAuditor) testCertificateChain(endpoint string) {
 			finding.Issues = append(finding.Issues, "Weak ECDSA key size")
 			finding.Severity = "HIGH"
 		}
-		
+
 		// Check signature algorithm
 		if strings.Contains(strings.ToLower(finding.SignatureAlgo), "sha1") ||
-		   strings.Contains(strings.ToLower(finding.SignatureAlgo), "md5") {
+			strings.Contains(strings.ToLower(finding.SignatureAlgo), "md5") {
 			finding.Issues = append(finding.Issues, "Weak signature algorithm")
 			finding.Severity = "HIGH"
 		}
-		
+
 		// Check if self-signed (only for leaf certificate)
 		if i == 0 && cert.Subject.String() == cert.Issuer.String() {
 			finding.Issues = append(finding.Issues, "Self-signed certificate")
 			finding.Severity = "MEDIUM"
 		}
-		
+
 		a.report.CertFindings = append(a.report.CertFindings, finding)
 	}
 }
@@ -413,13 +413,13 @@ func (a *TLSAuditor) testVulnerabilities(endpoint string) {
 	if a.config.TestRenegotiation {
 		a.testRenegotiation(endpoint)
 	}
-	
+
 	// Test for BEAST vulnerability (TLS 1.0 CBC ciphers)
 	a.testBEAST(endpoint)
-	
+
 	// Test for CRIME vulnerability (TLS compression)
 	a.testCRIME(endpoint)
-	
+
 	// Test for Heartbleed (would require OpenSSL version check)
 	// Test for POODLE (SSL 3.0 fallback)
 	// Test for FREAK (export ciphers)
@@ -432,14 +432,14 @@ func (a *TLSAuditor) testRenegotiation(endpoint string) {
 		Renegotiation:      tls.RenegotiateFreelyAsClient,
 		InsecureSkipVerify: true,
 	}
-	
+
 	conn, err := tls.DialWithDialer(&net.Dialer{
 		Timeout: a.config.Timeout,
 	}, "tcp", endpoint, config)
-	
+
 	if err == nil {
 		defer conn.Close()
-		
+
 		// Attempt renegotiation
 		err = conn.Handshake()
 		if err == nil {
@@ -463,22 +463,22 @@ func (a *TLSAuditor) testRenegotiation(endpoint string) {
 func (a *TLSAuditor) testBEAST(endpoint string) {
 	// Test TLS 1.0 with CBC ciphers
 	config := &tls.Config{
-		MinVersion:   tls.VersionTLS10,
-		MaxVersion:   tls.VersionTLS10,
+		MinVersion: tls.VersionTLS10,
+		MaxVersion: tls.VersionTLS10,
 		CipherSuites: []uint16{
 			tls.TLS_RSA_WITH_AES_128_CBC_SHA,
 			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
 		},
 		InsecureSkipVerify: true,
 	}
-	
+
 	conn, err := tls.DialWithDialer(&net.Dialer{
 		Timeout: a.config.Timeout,
 	}, "tcp", endpoint, config)
-	
+
 	if err == nil {
 		conn.Close()
-		
+
 		a.report.TLSFindings = append(a.report.TLSFindings, TLSAuditFinding{
 			Endpoint:    endpoint,
 			Finding:     "Vulnerable to BEAST attack",
@@ -517,23 +517,23 @@ func (a *TLSAuditor) checkCRLStatus(endpoint string) {
 func (a *TLSAuditor) GenerateReport() *TLSAuditReport {
 	// Calculate summary statistics
 	a.calculateSummary()
-	
+
 	// Evaluate compliance
 	a.evaluateCompliance()
-	
+
 	// Generate recommendations
 	a.generateRecommendations()
-	
+
 	// Calculate risk score
 	a.calculateRiskScore()
-	
+
 	return a.report
 }
 
 // calculateSummary calculates audit summary statistics
 func (a *TLSAuditor) calculateSummary() {
 	summary := &a.report.Summary
-	
+
 	// Count issues by severity
 	for _, finding := range a.report.TLSFindings {
 		switch finding.Severity {
@@ -547,7 +547,7 @@ func (a *TLSAuditor) calculateSummary() {
 			summary.LowIssues++
 		}
 	}
-	
+
 	for _, finding := range a.report.CertFindings {
 		switch finding.Severity {
 		case "CRITICAL":
@@ -560,7 +560,7 @@ func (a *TLSAuditor) calculateSummary() {
 			summary.LowIssues++
 		}
 	}
-	
+
 	// Determine security posture
 	if summary.CriticalIssues > 0 {
 		summary.SecurityPosture = "CRITICAL"
@@ -573,7 +573,7 @@ func (a *TLSAuditor) calculateSummary() {
 	} else {
 		summary.SecurityPosture = "EXCELLENT"
 	}
-	
+
 	// Identify top risks
 	summary.TopRisks = a.identifyTopRisks()
 }
@@ -584,19 +584,19 @@ func (a *TLSAuditor) evaluateCompliance() {
 	oranCompliance := a.evaluateORANCompliance()
 	a.report.Compliance.ORANCompliance = oranCompliance
 	a.report.Summary.ORANCompliant = oranCompliance.Status == "COMPLIANT"
-	
+
 	// Evaluate NIST compliance
 	a.report.Compliance.NISTCompliance = a.evaluateNISTCompliance()
-	
+
 	// Evaluate OWASP compliance
 	a.report.Compliance.OWASPCompliance = a.evaluateOWASPCompliance()
-	
+
 	// Calculate overall compliance
-	totalScore := oranCompliance.Score + 
-	              a.report.Compliance.NISTCompliance.Score + 
-	              a.report.Compliance.OWASPCompliance.Score
+	totalScore := oranCompliance.Score +
+		a.report.Compliance.NISTCompliance.Score +
+		a.report.Compliance.OWASPCompliance.Score
 	a.report.Compliance.OverallCompliance = totalScore / 3.0
-	
+
 	// Set compliance status
 	if a.report.Compliance.OverallCompliance >= 90 {
 		a.report.Summary.ComplianceStatus = "PASS"
@@ -617,17 +617,17 @@ func (a *TLSAuditor) evaluateORANCompliance() ComplianceDetails {
 		TotalChecks:  10,
 		PassedChecks: 0,
 	}
-	
+
 	// Check TLS version
 	hasWeakTLS := false
 	for _, finding := range a.report.TLSFindings {
-		if strings.Contains(finding.Finding, "TLS 1.0") || 
-		   strings.Contains(finding.Finding, "TLS 1.1") ||
-		   strings.Contains(finding.Finding, "SSL") {
+		if strings.Contains(finding.Finding, "TLS 1.0") ||
+			strings.Contains(finding.Finding, "TLS 1.1") ||
+			strings.Contains(finding.Finding, "SSL") {
 			hasWeakTLS = true
 		}
 	}
-	
+
 	if !hasWeakTLS {
 		details.PassedChecks++
 	} else {
@@ -641,7 +641,7 @@ func (a *TLSAuditor) evaluateORANCompliance() ComplianceDetails {
 			Remediation: "Disable TLS 1.0 and TLS 1.1",
 		})
 	}
-	
+
 	// Check cipher suites
 	hasWeakCiphers := false
 	for _, cipher := range a.report.CipherFindings {
@@ -650,7 +650,7 @@ func (a *TLSAuditor) evaluateORANCompliance() ComplianceDetails {
 			break
 		}
 	}
-	
+
 	if !hasWeakCiphers {
 		details.PassedChecks++
 	} else {
@@ -664,7 +664,7 @@ func (a *TLSAuditor) evaluateORANCompliance() ComplianceDetails {
 			Remediation: "Use only AEAD cipher suites",
 		})
 	}
-	
+
 	// Check certificate strength
 	hasWeakKeys := false
 	for _, cert := range a.report.CertFindings {
@@ -675,7 +675,7 @@ func (a *TLSAuditor) evaluateORANCompliance() ComplianceDetails {
 			}
 		}
 	}
-	
+
 	if !hasWeakKeys {
 		details.PassedChecks++
 	} else {
@@ -689,11 +689,11 @@ func (a *TLSAuditor) evaluateORANCompliance() ComplianceDetails {
 			Remediation: "Use stronger key sizes",
 		})
 	}
-	
+
 	// Calculate compliance score
 	details.FailedChecks = details.TotalChecks - details.PassedChecks
 	details.Score = float64(details.PassedChecks) / float64(details.TotalChecks) * 100
-	
+
 	if details.Score >= 90 {
 		details.Status = "COMPLIANT"
 	} else if details.Score >= 70 {
@@ -701,7 +701,7 @@ func (a *TLSAuditor) evaluateORANCompliance() ComplianceDetails {
 	} else {
 		details.Status = "NON_COMPLIANT"
 	}
-	
+
 	return details
 }
 
@@ -750,7 +750,7 @@ func (a *TLSAuditor) generateRecommendations() {
 			},
 		})
 	}
-	
+
 	// Medium priority: Improve configuration
 	if !a.report.Summary.ORANCompliant {
 		a.report.Recommendations = append(a.report.Recommendations, SecurityRecommendation{
@@ -771,7 +771,7 @@ func (a *TLSAuditor) generateRecommendations() {
 			},
 		})
 	}
-	
+
 	// Low priority: Best practices
 	a.report.Recommendations = append(a.report.Recommendations, SecurityRecommendation{
 		Priority:    3,
@@ -797,30 +797,30 @@ func (a *TLSAuditor) generateRecommendations() {
 func (a *TLSAuditor) calculateRiskScore() {
 	// Base score starts at 0 (best)
 	score := 0
-	
+
 	// Add points for issues (higher is worse)
 	score += a.report.Summary.CriticalIssues * 20
 	score += a.report.Summary.HighIssues * 10
 	score += a.report.Summary.MediumIssues * 5
 	score += a.report.Summary.LowIssues * 2
-	
+
 	// Adjust for compliance
 	if !a.report.Summary.ORANCompliant {
 		score += 15
 	}
-	
+
 	// Cap at 100
 	if score > 100 {
 		score = 100
 	}
-	
+
 	a.report.RiskScore = score
 }
 
 // identifyTopRisks identifies the top security risks
 func (a *TLSAuditor) identifyTopRisks() []string {
 	risks := []string{}
-	
+
 	// Check for critical risks
 	for _, finding := range a.report.TLSFindings {
 		if finding.Severity == "CRITICAL" {
@@ -830,7 +830,7 @@ func (a *TLSAuditor) identifyTopRisks() []string {
 			}
 		}
 	}
-	
+
 	// Add high risks if space available
 	for _, finding := range a.report.TLSFindings {
 		if finding.Severity == "HIGH" {
@@ -840,7 +840,7 @@ func (a *TLSAuditor) identifyTopRisks() []string {
 			}
 		}
 	}
-	
+
 	return risks
 }
 
@@ -903,7 +903,7 @@ func (a *TLSAuditor) generateHTMLReport() ([]byte, error) {
 		a.report.Summary.MediumIssues,
 		a.report.Summary.LowIssues,
 	)
-	
+
 	return []byte(html), nil
 }
 

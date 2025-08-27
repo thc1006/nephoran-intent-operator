@@ -957,4 +957,3 @@ func GetDefaultPipelineConfig() *PipelineConfig {
 		ComponentConfigs:            make(map[ComponentType]interface{}),
 	}
 }
-

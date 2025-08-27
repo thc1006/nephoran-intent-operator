@@ -724,9 +724,9 @@ func (h *HNSWOptimizer) GetMetrics() *HNSWMetrics {
 		PerformanceHistory:      make([]*HNSWPerformanceMetrics, len(h.metrics.PerformanceHistory)),
 		LastOptimization:        h.metrics.LastOptimization,
 	}
-	
+
 	// Deep copy slice
 	copy(metrics.PerformanceHistory, h.metrics.PerformanceHistory)
-	
+
 	return metrics
 }

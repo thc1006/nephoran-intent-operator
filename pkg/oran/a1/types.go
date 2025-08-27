@@ -378,11 +378,11 @@ type ResponseInfo struct {
 
 // HealthCheck represents health check response
 type HealthCheck struct {
-	Status     interface{}          `json:"status"`
-	Timestamp  time.Time            `json:"timestamp"`
-	Version    string               `json:"version,omitempty"`
+	Status     interface{}            `json:"status"`
+	Timestamp  time.Time              `json:"timestamp"`
+	Version    string                 `json:"version,omitempty"`
 	Components map[string]interface{} `json:"components,omitempty"`
-	Checks     []ComponentCheck     `json:"checks,omitempty"`
+	Checks     []ComponentCheck       `json:"checks,omitempty"`
 }
 
 // ComponentCheck represents a single component health check

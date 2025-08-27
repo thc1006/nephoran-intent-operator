@@ -22,49 +22,49 @@ import (
 // ORANTLSCompliance implements O-RAN WG11 security specifications for TLS
 type ORANTLSCompliance struct {
 	// O-RAN specific configurations
-	InterfaceType    string // A1, E1, E2, O1, O2
-	SecurityProfile  string // baseline, enhanced, strict
-	ComplianceLevel  string // L1, L2, L3
-	
+	InterfaceType   string // A1, E1, E2, O1, O2
+	SecurityProfile string // baseline, enhanced, strict
+	ComplianceLevel string // L1, L2, L3
+
 	// Core TLS settings enforcing O-RAN requirements
 	MinTLSVersion    uint16
 	MaxTLSVersion    uint16
 	CipherSuites     []uint16
 	CurvePreferences []tls.CurveID
-	
+
 	// Certificate requirements
-	RequireEKU           bool
-	RequiredEKUs         []x509.ExtKeyUsage
-	RequireStrongKeys    bool
-	MinRSAKeySize        int
-	MinECDSAKeySize      int
-	
+	RequireEKU        bool
+	RequiredEKUs      []x509.ExtKeyUsage
+	RequireStrongKeys bool
+	MinRSAKeySize     int
+	MinECDSAKeySize   int
+
 	// OCSP requirements (mandatory for O-RAN)
 	OCSPStaplingRequired bool
 	OCSPMustStaple       bool
 	OCSPSoftFail         bool
 	OCSPResponseMaxAge   time.Duration
-	
+
 	// Session management
-	SessionTicketsDisabled  bool
-	SessionCacheSize        int
-	SessionTimeout          time.Duration
-	RenegotiationPolicy     tls.RenegotiationSupport
-	
+	SessionTicketsDisabled bool
+	SessionCacheSize       int
+	SessionTimeout         time.Duration
+	RenegotiationPolicy    tls.RenegotiationSupport
+
 	// Rate limiting for DoS protection
-	HandshakeRateLimit      *rate.Limiter
-	ConnectionRateLimit     *rate.Limiter
-	PerIPRateLimit          map[string]*rate.Limiter
-	
+	HandshakeRateLimit  *rate.Limiter
+	ConnectionRateLimit *rate.Limiter
+	PerIPRateLimit      map[string]*rate.Limiter
+
 	// Audit and monitoring
-	AuditLogger         TLSAuditLogger
-	MetricsCollector    *TLSMetricsCollector
-	
+	AuditLogger      TLSAuditLogger
+	MetricsCollector *TLSMetricsCollector
+
 	// Validation callbacks
 	PreHandshakeHook    func(*tls.ClientHelloInfo) error
 	PostHandshakeHook   func(tls.ConnectionState) error
 	CertificateVerifier func([][]byte, [][]*x509.Certificate) error
-	
+
 	mu sync.RWMutex
 }
 
@@ -144,11 +144,11 @@ var ORANSecurityProfiles = map[string]*ORANTLSCompliance{
 
 // InterfaceSecurityRequirements defines O-RAN interface-specific requirements
 var InterfaceSecurityRequirements = map[string]struct {
-	RequireMTLS          bool
-	RequireOCSP          bool
-	RequireClientAuth    bool
-	AllowedProfiles      []string
-	MinComplianceLevel   string
+	RequireMTLS        bool
+	RequireOCSP        bool
+	RequireClientAuth  bool
+	AllowedProfiles    []string
+	MinComplianceLevel string
 }{
 	"A1": {
 		RequireMTLS:        true,
@@ -187,7 +187,7 @@ func NewORANCompliantTLS(interfaceType, profile string) (*ORANTLSCompliance, err
 	if !ok {
 		return nil, fmt.Errorf("unknown O-RAN interface type: %s", interfaceType)
 	}
-	
+
 	// Validate profile is allowed for this interface
 	profileAllowed := false
 	for _, allowed := range requirements.AllowedProfiles {
@@ -199,22 +199,22 @@ func NewORANCompliantTLS(interfaceType, profile string) (*ORANTLSCompliance, err
 	if !profileAllowed {
 		return nil, fmt.Errorf("profile %s not allowed for interface %s", profile, interfaceType)
 	}
-	
+
 	// Get base profile
 	baseConfig, ok := ORANSecurityProfiles[profile]
 	if !ok {
 		return nil, fmt.Errorf("unknown security profile: %s", profile)
 	}
-	
+
 	// Create compliance configuration
 	config := *baseConfig
 	config.InterfaceType = interfaceType
-	
+
 	// Apply interface-specific requirements
 	if requirements.RequireOCSP {
 		config.OCSPStaplingRequired = true
 	}
-	
+
 	// Set compliance level based on profile
 	switch profile {
 	case "strict":
@@ -224,20 +224,20 @@ func NewORANCompliantTLS(interfaceType, profile string) (*ORANTLSCompliance, err
 	default:
 		config.ComplianceLevel = "L1"
 	}
-	
+
 	// Initialize rate limiters for DoS protection
 	config.HandshakeRateLimit = rate.NewLimiter(rate.Every(100*time.Millisecond), 10)
 	config.ConnectionRateLimit = rate.NewLimiter(rate.Every(time.Second), 100)
 	config.PerIPRateLimit = make(map[string]*rate.Limiter)
-	
+
 	// Initialize metrics collector
 	config.MetricsCollector = &TLSMetricsCollector{}
-	
+
 	// Set default verification functions
 	config.PreHandshakeHook = config.defaultPreHandshakeHook
 	config.PostHandshakeHook = config.defaultPostHandshakeHook
 	config.CertificateVerifier = config.defaultCertificateVerifier
-	
+
 	return &config, nil
 }
 
@@ -245,25 +245,25 @@ func NewORANCompliantTLS(interfaceType, profile string) (*ORANTLSCompliance, err
 func (c *ORANTLSCompliance) BuildTLSConfig() (*tls.Config, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	
+
 	config := &tls.Config{
-		MinVersion:               c.MinTLSVersion,
-		MaxVersion:               c.MaxTLSVersion,
-		CipherSuites:            c.CipherSuites,
-		CurvePreferences:        c.CurvePreferences,
-		SessionTicketsDisabled:  c.SessionTicketsDisabled,
+		MinVersion:             c.MinTLSVersion,
+		MaxVersion:             c.MaxTLSVersion,
+		CipherSuites:           c.CipherSuites,
+		CurvePreferences:       c.CurvePreferences,
+		SessionTicketsDisabled: c.SessionTicketsDisabled,
 		Renegotiation:          c.RenegotiationPolicy,
 		VerifyPeerCertificate:  c.CertificateVerifier,
 		GetConfigForClient:     c.getConfigForClient,
 	}
-	
+
 	// Set client auth based on interface requirements
 	if requirements, ok := InterfaceSecurityRequirements[c.InterfaceType]; ok {
 		if requirements.RequireClientAuth {
 			config.ClientAuth = tls.RequireAndVerifyClientCert
 		}
 	}
-	
+
 	return config, nil
 }
 
@@ -274,7 +274,7 @@ func (c *ORANTLSCompliance) defaultPreHandshakeHook(hello *tls.ClientHelloInfo) 
 	if err != nil {
 		return fmt.Errorf("invalid client address: %w", err)
 	}
-	
+
 	c.mu.Lock()
 	limiter, exists := c.PerIPRateLimit[clientIP]
 	if !exists {
@@ -282,7 +282,7 @@ func (c *ORANTLSCompliance) defaultPreHandshakeHook(hello *tls.ClientHelloInfo) 
 		c.PerIPRateLimit[clientIP] = limiter
 	}
 	c.mu.Unlock()
-	
+
 	if !limiter.Allow() {
 		if c.AuditLogger != nil {
 			c.AuditLogger.LogSecurityEvent("tls_rate_limit_exceeded", map[string]interface{}{
@@ -292,12 +292,12 @@ func (c *ORANTLSCompliance) defaultPreHandshakeHook(hello *tls.ClientHelloInfo) 
 		}
 		return errors.New("rate limit exceeded")
 	}
-	
+
 	// Check global handshake rate limit
 	if !c.HandshakeRateLimit.Allow() {
 		return errors.New("global handshake rate limit exceeded")
 	}
-	
+
 	// Validate TLS version
 	if hello.SupportedVersions != nil {
 		validVersion := false
@@ -311,7 +311,7 @@ func (c *ORANTLSCompliance) defaultPreHandshakeHook(hello *tls.ClientHelloInfo) 
 			return fmt.Errorf("no acceptable TLS version (min: %x, max: %x)", c.MinTLSVersion, c.MaxTLSVersion)
 		}
 	}
-	
+
 	// Log handshake attempt
 	if c.AuditLogger != nil {
 		c.AuditLogger.LogSecurityEvent("tls_handshake_started", map[string]interface{}{
@@ -320,7 +320,7 @@ func (c *ORANTLSCompliance) defaultPreHandshakeHook(hello *tls.ClientHelloInfo) 
 			"interface":   c.InterfaceType,
 		})
 	}
-	
+
 	return nil
 }
 
@@ -330,7 +330,7 @@ func (c *ORANTLSCompliance) defaultPostHandshakeHook(state tls.ConnectionState) 
 	if state.Version < c.MinTLSVersion {
 		return fmt.Errorf("negotiated TLS version %x below minimum %x", state.Version, c.MinTLSVersion)
 	}
-	
+
 	// Verify cipher suite for TLS 1.2
 	if state.Version == tls.VersionTLS12 {
 		approved := false
@@ -344,22 +344,22 @@ func (c *ORANTLSCompliance) defaultPostHandshakeHook(state tls.ConnectionState) 
 			return fmt.Errorf("unapproved cipher suite: %x", state.CipherSuite)
 		}
 	}
-	
+
 	// Log successful handshake
 	if c.AuditLogger != nil {
 		c.AuditLogger.LogSecurityEvent("tls_handshake_completed", map[string]interface{}{
-			"tls_version":   fmt.Sprintf("%x", state.Version),
-			"cipher_suite":  fmt.Sprintf("%x", state.CipherSuite),
-			"interface":     c.InterfaceType,
-			"profile":       c.SecurityProfile,
+			"tls_version":  fmt.Sprintf("%x", state.Version),
+			"cipher_suite": fmt.Sprintf("%x", state.CipherSuite),
+			"interface":    c.InterfaceType,
+			"profile":      c.SecurityProfile,
 		})
 	}
-	
+
 	// Update metrics
 	if c.MetricsCollector != nil {
 		c.MetricsCollector.RecordHandshake(state.Version, state.CipherSuite)
 	}
-	
+
 	return nil
 }
 
@@ -368,26 +368,26 @@ func (c *ORANTLSCompliance) defaultCertificateVerifier(rawCerts [][]byte, verifi
 	if len(rawCerts) == 0 {
 		return errors.New("no certificates provided")
 	}
-	
+
 	cert, err := x509.ParseCertificate(rawCerts[0])
 	if err != nil {
 		return fmt.Errorf("failed to parse certificate: %w", err)
 	}
-	
+
 	// Verify key strength
 	if c.RequireStrongKeys {
 		if err := c.verifyKeyStrength(cert); err != nil {
 			return err
 		}
 	}
-	
+
 	// Verify Extended Key Usage if required
 	if c.RequireEKU {
 		if err := c.verifyExtendedKeyUsage(cert); err != nil {
 			return err
 		}
 	}
-	
+
 	// Verify OCSP if required
 	if c.OCSPStaplingRequired {
 		if err := c.verifyOCSPStatus(cert, verifiedChains); err != nil {
@@ -404,25 +404,25 @@ func (c *ORANTLSCompliance) defaultCertificateVerifier(rawCerts [][]byte, verifi
 			}
 		}
 	}
-	
+
 	// Check certificate validity period
 	now := time.Now()
 	if now.Before(cert.NotBefore) || now.After(cert.NotAfter) {
 		return fmt.Errorf("certificate not valid: notBefore=%v, notAfter=%v", cert.NotBefore, cert.NotAfter)
 	}
-	
+
 	// Log successful verification
 	if c.AuditLogger != nil {
 		c.AuditLogger.LogSecurityEvent("certificate_verified", map[string]interface{}{
-			"subject":     cert.Subject.String(),
-			"issuer":      cert.Issuer.String(),
-			"serial":      hex.EncodeToString(cert.SerialNumber.Bytes()),
-			"interface":   c.InterfaceType,
-			"profile":     c.SecurityProfile,
-			"compliance":  c.ComplianceLevel,
+			"subject":    cert.Subject.String(),
+			"issuer":     cert.Issuer.String(),
+			"serial":     hex.EncodeToString(cert.SerialNumber.Bytes()),
+			"interface":  c.InterfaceType,
+			"profile":    c.SecurityProfile,
+			"compliance": c.ComplianceLevel,
 		})
 	}
-	
+
 	return nil
 }
 
@@ -455,7 +455,7 @@ func (c *ORANTLSCompliance) verifyExtendedKeyUsage(cert *x509.Certificate) error
 			x509.ExtKeyUsageClientAuth,
 		}
 	}
-	
+
 	for _, required := range c.RequiredEKUs {
 		found := false
 		for _, eku := range cert.ExtKeyUsage {
@@ -468,7 +468,7 @@ func (c *ORANTLSCompliance) verifyExtendedKeyUsage(cert *x509.Certificate) error
 			return fmt.Errorf("missing required extended key usage: %v", required)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -477,9 +477,9 @@ func (c *ORANTLSCompliance) verifyOCSPStatus(cert *x509.Certificate, verifiedCha
 	if len(verifiedChains) == 0 || len(verifiedChains[0]) < 2 {
 		return errors.New("cannot determine issuer for OCSP verification")
 	}
-	
+
 	issuer := verifiedChains[0][1]
-	
+
 	// Check for OCSP Must-Staple extension
 	if c.OCSPMustStaple {
 		mustStaple := false
@@ -494,25 +494,25 @@ func (c *ORANTLSCompliance) verifyOCSPStatus(cert *x509.Certificate, verifiedCha
 			return errors.New("certificate lacks OCSP Must-Staple extension")
 		}
 	}
-	
+
 	// Get OCSP responder URL
 	if len(cert.OCSPServer) == 0 {
 		return errors.New("no OCSP responder URL in certificate")
 	}
-	
+
 	// Create and send OCSP request
 	ocspReq, err := ocsp.CreateRequest(cert, issuer, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create OCSP request: %w", err)
 	}
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	
+
 	// Send OCSP request (simplified - production should use proper HTTP client)
 	_ = ctx
 	_ = ocspReq
-	
+
 	// For now, return nil (would implement actual OCSP checking)
 	return nil
 }
@@ -525,7 +525,7 @@ func (c *ORANTLSCompliance) getConfigForClient(hello *tls.ClientHelloInfo) (*tls
 			return nil, err
 		}
 	}
-	
+
 	// Build and return config
 	return c.BuildTLSConfig()
 }
@@ -537,7 +537,7 @@ func (c *ORANTLSCompliance) ValidateCompliance() error {
 	if !ok {
 		return fmt.Errorf("unknown interface type: %s", c.InterfaceType)
 	}
-	
+
 	// Validate minimum compliance level
 	switch requirements.MinComplianceLevel {
 	case "L3":
@@ -549,26 +549,26 @@ func (c *ORANTLSCompliance) ValidateCompliance() error {
 			return fmt.Errorf("interface %s requires minimum L2 compliance, current: %s", c.InterfaceType, c.ComplianceLevel)
 		}
 	}
-	
+
 	// Validate OCSP requirements
 	if requirements.RequireOCSP && !c.OCSPStaplingRequired {
 		return fmt.Errorf("interface %s requires OCSP stapling", c.InterfaceType)
 	}
-	
+
 	// Validate TLS version
 	if c.MinTLSVersion < tls.VersionTLS12 {
 		return errors.New("O-RAN requires minimum TLS 1.2")
 	}
-	
+
 	// Validate cipher suites for TLS 1.2
 	if c.MinTLSVersion == tls.VersionTLS12 {
 		hasSecureCipher := false
 		for _, suite := range c.CipherSuites {
 			switch suite {
 			case tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-				 tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-				 tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-				 tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:
 				hasSecureCipher = true
 			}
 		}
@@ -576,7 +576,7 @@ func (c *ORANTLSCompliance) ValidateCompliance() error {
 			return errors.New("no O-RAN approved cipher suites for TLS 1.2")
 		}
 	}
-	
+
 	return nil
 }
 

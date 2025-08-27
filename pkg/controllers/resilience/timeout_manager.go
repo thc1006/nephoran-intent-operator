@@ -52,9 +52,9 @@ type TimeoutManager struct {
 // NewTimeoutManager creates a new timeout manager
 func NewTimeoutManager(configs map[string]*TimeoutConfig, logger logr.Logger) *TimeoutManager {
 	tm := &TimeoutManager{
-		configs:    make(map[string]*TimeoutConfig),
-		metrics:    &TimeoutMetrics{OperationsByTimeout: make(map[time.Duration]int64)},
-		logger:     logger.WithName("timeout-manager"),
+		configs: make(map[string]*TimeoutConfig),
+		metrics: &TimeoutMetrics{OperationsByTimeout: make(map[time.Duration]int64)},
+		logger:  logger.WithName("timeout-manager"),
 	}
 
 	// Copy configurations
@@ -443,15 +443,21 @@ func (tm *TimeoutManager) GetMetrics() *TimeoutMetrics {
 	tm.metrics.mutex.RLock()
 	defer tm.metrics.mutex.RUnlock()
 
-	// Create a copy to prevent concurrent access
-	metricsCopy := *tm.metrics
-	metricsCopy.OperationsByTimeout = make(map[time.Duration]int64)
+	// Create a copy without the mutex to prevent concurrent access issues
+	metricsCopy := &TimeoutMetrics{
+		TotalOperations:     tm.metrics.TotalOperations,
+		TimeoutOperations:   tm.metrics.TimeoutOperations,
+		AverageLatency:      tm.metrics.AverageLatency,
+		TimeoutRate:         tm.metrics.TimeoutRate,
+		AdaptiveAdjustments: tm.metrics.AdaptiveAdjustments,
+		OperationsByTimeout: make(map[time.Duration]int64),
+	}
 
 	for k, v := range tm.metrics.OperationsByTimeout {
 		metricsCopy.OperationsByTimeout[k] = v
 	}
 
-	return &metricsCopy
+	return metricsCopy
 }
 
 // GetActiveOperations returns the count of currently active operations
@@ -472,9 +478,19 @@ func (tm *TimeoutManager) GetOperationStatus(operationID string) (*TimeoutOperat
 		operation.mutex.RLock()
 		defer operation.mutex.RUnlock()
 
-		// Return a copy to prevent concurrent access issues
-		operationCopy := *operation
-		return &operationCopy, true
+		// Return a copy without the mutex to prevent concurrent access issues
+		operationCopy := &TimeoutOperation{
+			ID:            operation.ID,
+			StartTime:     operation.StartTime,
+			Timeout:       operation.Timeout,
+			Context:       operation.Context,
+			Cancel:        operation.Cancel,
+			CancelFunc:    operation.CancelFunc,
+			CompletedChan: operation.CompletedChan,
+			TimeoutChan:   operation.TimeoutChan,
+			// Note: mutex field is intentionally omitted to prevent copying
+		}
+		return operationCopy, true
 	}
 
 	return nil, false

@@ -40,15 +40,15 @@ type ContinuousSecurityMonitor struct {
 
 // MonitoringData stores real-time monitoring information
 type MonitoringData struct {
-	StartTime          time.Time                `json:"start_time"`
-	LastUpdate         time.Time                `json:"last_update"`
-	SecurityAlerts     []SecurityAlert          `json:"security_alerts"`
-	ThreatDetections   []ThreatDetection        `json:"threat_detections"`
-	ComplianceDrifts   []ComplianceDrift        `json:"compliance_drifts"`
-	MetricsCollection  map[string]MetricValue   `json:"metrics_collection"`
-	HealthChecks       map[string]HealthStatus  `json:"health_checks"`
-	AuditEvents        []AuditEvent             `json:"audit_events"`
-	ResponseActions    []ResponseAction         `json:"response_actions"`
+	StartTime         time.Time               `json:"start_time"`
+	LastUpdate        time.Time               `json:"last_update"`
+	SecurityAlerts    []SecurityAlert         `json:"security_alerts"`
+	ThreatDetections  []ThreatDetection       `json:"threat_detections"`
+	ComplianceDrifts  []ComplianceDrift       `json:"compliance_drifts"`
+	MetricsCollection map[string]MetricValue  `json:"metrics_collection"`
+	HealthChecks      map[string]HealthStatus `json:"health_checks"`
+	AuditEvents       []AuditEvent            `json:"audit_events"`
+	ResponseActions   []ResponseAction        `json:"response_actions"`
 }
 
 // SecurityAlert represents a security alert
@@ -70,18 +70,18 @@ type SecurityAlert struct {
 
 // ThreatDetection represents detected security threats
 type ThreatDetection struct {
-	ID            string                 `json:"id"`
-	Timestamp     time.Time              `json:"timestamp"`
-	ThreatType    string                 `json:"threat_type"`
-	Confidence    float64                `json:"confidence"`
-	Source        string                 `json:"source"`
-	Target        string                 `json:"target"`
-	Description   string                 `json:"description"`
-	Indicators    []ThreatIndicator      `json:"indicators"`
-	Remediation   string                 `json:"remediation"`
-	Severity      string                 `json:"severity"`
-	Status        string                 `json:"status"`
-	Metadata      map[string]interface{} `json:"metadata"`
+	ID          string                 `json:"id"`
+	Timestamp   time.Time              `json:"timestamp"`
+	ThreatType  string                 `json:"threat_type"`
+	Confidence  float64                `json:"confidence"`
+	Source      string                 `json:"source"`
+	Target      string                 `json:"target"`
+	Description string                 `json:"description"`
+	Indicators  []ThreatIndicator      `json:"indicators"`
+	Remediation string                 `json:"remediation"`
+	Severity    string                 `json:"severity"`
+	Status      string                 `json:"status"`
+	Metadata    map[string]interface{} `json:"metadata"`
 }
 
 // ThreatIndicator represents indicators of compromise
@@ -112,14 +112,14 @@ type ComplianceDrift struct {
 
 // MetricValue represents a monitoring metric
 type MetricValue struct {
-	Name        string                 `json:"name"`
-	Value       float64                `json:"value"`
-	Unit        string                 `json:"unit"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Labels      map[string]string      `json:"labels"`
-	Threshold   *ThresholdConfig       `json:"threshold,omitempty"`
-	Status      string                 `json:"status"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Name      string                 `json:"name"`
+	Value     float64                `json:"value"`
+	Unit      string                 `json:"unit"`
+	Timestamp time.Time              `json:"timestamp"`
+	Labels    map[string]string      `json:"labels"`
+	Threshold *ThresholdConfig       `json:"threshold,omitempty"`
+	Status    string                 `json:"status"`
+	Metadata  map[string]interface{} `json:"metadata"`
 }
 
 // ThresholdConfig defines alerting thresholds
@@ -131,13 +131,13 @@ type ThresholdConfig struct {
 
 // HealthStatus represents component health status
 type HealthStatus struct {
-	Component   string                 `json:"component"`
-	Status      string                 `json:"status"`
-	LastCheck   time.Time              `json:"last_check"`
-	Message     string                 `json:"message"`
-	Metrics     map[string]float64     `json:"metrics"`
-	Dependencies []string              `json:"dependencies"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Component    string                 `json:"component"`
+	Status       string                 `json:"status"`
+	LastCheck    time.Time              `json:"last_check"`
+	Message      string                 `json:"message"`
+	Metrics      map[string]float64     `json:"metrics"`
+	Dependencies []string               `json:"dependencies"`
+	Metadata     map[string]interface{} `json:"metadata"`
 }
 
 // AuditEvent represents security audit events
@@ -169,10 +169,10 @@ type ResponseAction struct {
 
 // AlertManager handles alert routing and notifications
 type AlertManager struct {
-	webhookURL     string
-	slackChannel   string
+	webhookURL      string
+	slackChannel    string
 	emailRecipients []string
-	mutex          sync.RWMutex
+	mutex           sync.RWMutex
 }
 
 // NewContinuousSecurityMonitor creates a new continuous security monitor
@@ -316,7 +316,7 @@ var _ = Describe("Continuous Security Monitoring", func() {
 	AfterEach(func() {
 		By("Stopping continuous monitoring")
 		monitor.StopMonitoring()
-		
+
 		By("Generating monitoring report")
 		report := monitor.generateMonitoringReport()
 		Expect(report).ToNot(BeNil())
@@ -350,7 +350,7 @@ func (m *ContinuousSecurityMonitor) StartMonitoring(ctx context.Context) {
 func (m *ContinuousSecurityMonitor) StopMonitoring() {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	if m.isRunning {
 		close(m.stopChannel)
 		m.isRunning = false
@@ -376,11 +376,11 @@ func (m *ContinuousSecurityMonitor) performMonitoringCycle(ctx context.Context) 
 
 	for _, threat := range allThreats {
 		m.addThreatDetection(threat)
-		
+
 		// Convert threat to alert
 		alert := m.convertThreatToAlert(threat)
 		m.addSecurityAlert(alert)
-		
+
 		// Handle the alert
 		go m.handleSecurityAlert(ctx, alert)
 	}
@@ -389,7 +389,7 @@ func (m *ContinuousSecurityMonitor) performMonitoringCycle(ctx context.Context) 
 	drifts := m.detectComplianceDrift(ctx)
 	for _, drift := range drifts {
 		m.addComplianceDrift(drift)
-		
+
 		if drift.AutoRemediate {
 			go m.remediateComplianceDrift(ctx, drift)
 		}
@@ -399,7 +399,7 @@ func (m *ContinuousSecurityMonitor) performMonitoringCycle(ctx context.Context) 
 	metrics := m.collectSecurityMetrics(ctx)
 	for name, metric := range metrics {
 		m.addMetricValue(name, metric)
-		
+
 		// Check thresholds
 		if metric.Threshold != nil {
 			m.checkMetricThresholds(metric)
@@ -428,10 +428,10 @@ func (m *ContinuousSecurityMonitor) detectContainerThreats(ctx context.Context) 
 	for _, pod := range pods.Items {
 		// Check for privileged containers
 		for _, container := range pod.Spec.Containers {
-			if container.SecurityContext != nil && 
-				container.SecurityContext.Privileged != nil && 
+			if container.SecurityContext != nil &&
+				container.SecurityContext.Privileged != nil &&
 				*container.SecurityContext.Privileged {
-				
+
 				threat := ThreatDetection{
 					ID:          fmt.Sprintf("PRIV-CONTAINER-%d", time.Now().Unix()),
 					Timestamp:   time.Now(),
@@ -469,25 +469,25 @@ func (m *ContinuousSecurityMonitor) detectContainerThreats(ctx context.Context) 
 
 func (m *ContinuousSecurityMonitor) detectNetworkThreats(ctx context.Context) []ThreatDetection {
 	threats := make([]ThreatDetection, 0)
-	
+
 	// Placeholder for network threat detection
 	// In real implementation, this would analyze network traffic, detect suspicious connections, etc.
-	
+
 	return threats
 }
 
 func (m *ContinuousSecurityMonitor) detectRBACViolations(ctx context.Context) []ThreatDetection {
 	threats := make([]ThreatDetection, 0)
-	
+
 	// Placeholder for RBAC violation detection
 	// In real implementation, this would analyze role bindings, detect privilege escalation, etc.
-	
+
 	return threats
 }
 
 func (m *ContinuousSecurityMonitor) detectSecretsExposure(ctx context.Context) []ThreatDetection {
 	threats := make([]ThreatDetection, 0)
-	
+
 	// Get all secrets in the namespace
 	secrets := &corev1.SecretList{}
 	err := m.client.List(ctx, secrets, client.InNamespace(m.namespace))
@@ -551,7 +551,7 @@ func (m *ContinuousSecurityMonitor) detectSecretsExposure(ctx context.Context) [
 
 func (m *ContinuousSecurityMonitor) detectComplianceDrift(ctx context.Context) []ComplianceDrift {
 	drifts := make([]ComplianceDrift, 0)
-	
+
 	// Example: Check for missing network policies
 	pods := &corev1.PodList{}
 	err := m.client.List(ctx, pods, client.InNamespace(m.namespace))
@@ -575,7 +575,7 @@ func (m *ContinuousSecurityMonitor) detectComplianceDrift(ctx context.Context) [
 			AutoRemediate: false,
 			Metadata: map[string]interface{}{
 				"control_description": "Minimize the admission of containers which lack network policies",
-				"pod_count":          len(pods.Items),
+				"pod_count":           len(pods.Items),
 			},
 		}
 		drifts = append(drifts, drift)
@@ -586,7 +586,7 @@ func (m *ContinuousSecurityMonitor) detectComplianceDrift(ctx context.Context) [
 
 func (m *ContinuousSecurityMonitor) autoRemediateCompliance(ctx context.Context, drifts []ComplianceDrift) int {
 	remediated := 0
-	
+
 	for _, drift := range drifts {
 		if drift.AutoRemediate {
 			success := m.remediateComplianceDrift(ctx, drift)
@@ -595,14 +595,14 @@ func (m *ContinuousSecurityMonitor) autoRemediateCompliance(ctx context.Context,
 			}
 		}
 	}
-	
+
 	return remediated
 }
 
 func (m *ContinuousSecurityMonitor) remediateComplianceDrift(ctx context.Context, drift ComplianceDrift) bool {
 	// Placeholder for compliance remediation
 	// In real implementation, this would apply remediation actions based on the drift type
-	
+
 	action := ResponseAction{
 		ID:          fmt.Sprintf("REMEDIATE-%d", time.Now().Unix()),
 		Timestamp:   time.Now(),
@@ -618,7 +618,7 @@ func (m *ContinuousSecurityMonitor) remediateComplianceDrift(ctx context.Context
 			"resource":  drift.Resource,
 		},
 	}
-	
+
 	m.addResponseAction(action)
 	return true
 }
@@ -640,7 +640,7 @@ func (m *ContinuousSecurityMonitor) handleSecurityAlert(ctx context.Context, ale
 	}
 
 	start := time.Now()
-	
+
 	// Handle based on severity and category
 	switch alert.Severity {
 	case "CRITICAL":
@@ -660,7 +660,7 @@ func (m *ContinuousSecurityMonitor) handleSecurityAlert(ctx context.Context, ale
 	action.Duration = time.Since(start)
 	action.Status = "completed"
 	action.Result = "success"
-	
+
 	m.addResponseAction(action)
 	return action
 }
@@ -687,17 +687,17 @@ func (m *ContinuousSecurityMonitor) sendAlertNotification(alert SecurityAlert) b
 			return resp.StatusCode == 200
 		}
 	}
-	
+
 	// Send to Slack if configured
 	if m.alertManager.slackChannel != "" {
 		// Implementation would send to Slack
 	}
-	
+
 	// Send email if configured
 	if len(m.alertManager.emailRecipients) > 0 {
 		// Implementation would send email
 	}
-	
+
 	return true
 }
 
@@ -710,7 +710,7 @@ func (m *ContinuousSecurityMonitor) escalateIncident(ctx context.Context, alert 
 
 func (m *ContinuousSecurityMonitor) collectSecurityMetrics(ctx context.Context) map[string]MetricValue {
 	metrics := make(map[string]MetricValue)
-	
+
 	// Example metrics collection
 	metrics["security_alerts_total"] = MetricValue{
 		Name:      "security_alerts_total",
@@ -725,7 +725,7 @@ func (m *ContinuousSecurityMonitor) collectSecurityMetrics(ctx context.Context) 
 			Unit:     "count",
 		},
 	}
-	
+
 	metrics["threat_detections_total"] = MetricValue{
 		Name:      "threat_detections_total",
 		Value:     float64(len(m.monitoringData.ThreatDetections)),
@@ -745,7 +745,7 @@ func (m *ContinuousSecurityMonitor) collectSecurityMetrics(ctx context.Context) 
 
 func (m *ContinuousSecurityMonitor) checkComponentHealth(ctx context.Context) map[string]HealthStatus {
 	healthChecks := make(map[string]HealthStatus)
-	
+
 	// Check API server health
 	healthChecks["api_server"] = HealthStatus{
 		Component: "api_server",
@@ -758,7 +758,7 @@ func (m *ContinuousSecurityMonitor) checkComponentHealth(ctx context.Context) ma
 		},
 		Dependencies: []string{"etcd", "network"},
 	}
-	
+
 	// Check controller health
 	healthChecks["controller"] = HealthStatus{
 		Component: "controller",
@@ -766,7 +766,7 @@ func (m *ContinuousSecurityMonitor) checkComponentHealth(ctx context.Context) ma
 		LastCheck: time.Now(),
 		Message:   "Controller is processing events normally",
 		Metrics: map[string]float64{
-			"queue_depth":    5.0,
+			"queue_depth":     5.0,
 			"processing_rate": 100.0,
 		},
 		Dependencies: []string{"api_server"},
@@ -777,10 +777,10 @@ func (m *ContinuousSecurityMonitor) checkComponentHealth(ctx context.Context) ma
 
 func (m *ContinuousSecurityMonitor) analyzeMetricTrends(ctx context.Context) map[string]interface{} {
 	trends := make(map[string]interface{})
-	
+
 	// Analyze trend patterns in collected metrics
 	// This is a placeholder for trend analysis logic
-	
+
 	return trends
 }
 
@@ -788,7 +788,7 @@ func (m *ContinuousSecurityMonitor) checkMetricThresholds(metric MetricValue) {
 	if metric.Threshold == nil {
 		return
 	}
-	
+
 	if metric.Value >= metric.Threshold.Critical {
 		// Generate critical alert
 		alert := SecurityAlert{
@@ -877,12 +877,12 @@ func (m *ContinuousSecurityMonitor) addResponseAction(action ResponseAction) {
 func (m *ContinuousSecurityMonitor) generateMonitoringReport() *MonitoringData {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	// Save report to file
 	reportData, _ := json.MarshalIndent(m.monitoringData, "", "  ")
 	reportFile := fmt.Sprintf("test-results/security/continuous-monitoring-report-%d.json", time.Now().Unix())
 	os.MkdirAll("test-results/security", 0755)
 	os.WriteFile(reportFile, reportData, 0644)
-	
+
 	return m.monitoringData
 }

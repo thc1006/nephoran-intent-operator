@@ -669,7 +669,7 @@ func (v *VMwareProvider) GetResourceMetrics(ctx context.Context, resourceID stri
 		}
 		// Note: CommittedStorage and UncommittedStorage might not be available in all govmomi versions
 		// Skipping these fields for now
-		
+
 		// Add VM config metrics
 		metrics["vcpus"] = vmObj.Summary.Config.NumCpu
 		metrics["memory_mb"] = vmObj.Summary.Config.MemorySizeMB

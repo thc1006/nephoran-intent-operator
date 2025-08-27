@@ -32,7 +32,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 )
 
-// TrendAnalyzer analyzes trends in error patterns  
+// TrendAnalyzer analyzes trends in error patterns
 type TrendAnalyzer struct {
 	logger logr.Logger
 	mutex  sync.RWMutex
@@ -69,10 +69,10 @@ func NewTimeSeries(maxSize int) *TimeSeries {
 func (ts *TimeSeries) Add(timestamp time.Time, value float64) {
 	ts.mutex.Lock()
 	defer ts.mutex.Unlock()
-	
+
 	ts.Timestamps = append(ts.Timestamps, timestamp)
 	ts.Values = append(ts.Values, value)
-	
+
 	// Keep only the most recent maxSize points
 	if len(ts.Timestamps) > ts.maxSize {
 		ts.Timestamps = ts.Timestamps[len(ts.Timestamps)-ts.maxSize:]
@@ -84,16 +84,16 @@ func (ts *TimeSeries) Add(timestamp time.Time, value float64) {
 func (ts *TimeSeries) GetRecent(n int) ([]time.Time, []float64) {
 	ts.mutex.RLock()
 	defer ts.mutex.RUnlock()
-	
+
 	size := len(ts.Timestamps)
 	if n > size {
 		n = size
 	}
-	
+
 	if n <= 0 {
 		return []time.Time{}, []float64{}
 	}
-	
+
 	startIdx := size - n
 	return ts.Timestamps[startIdx:], ts.Values[startIdx:]
 }
@@ -122,12 +122,12 @@ func NewSeasonalityDetector() *SeasonalityDetector {
 func (sd *SeasonalityDetector) GetSeasonalAdjustment(timestamp time.Time, horizon time.Duration) float64 {
 	// Mock seasonal adjustment based on hour of day
 	hour := timestamp.Hour()
-	
+
 	// Simple seasonal pattern: higher values during business hours
 	if hour >= 9 && hour <= 17 {
 		return 0.1 // 10% adjustment during business hours
 	}
-	
+
 	return -0.05 // 5% negative adjustment during off-hours
 }
 
@@ -579,7 +579,6 @@ type ErrorAnalyzer struct {
 	logger logr.Logger
 	mutex  sync.RWMutex
 }
-
 
 // CorrelationRule defines how errors are correlated
 type CorrelationRule struct {
@@ -1153,6 +1152,7 @@ func NewErrorProcessingWorker(id int, stream chan *ErrorEvent, ets *ErrorTrackin
 // Placeholder methods
 // Note: AlertManager Start/Stop methods are defined in alerting.go
 func (am *AlertManager) GetMetrics() map[string]interface{} { return make(map[string]interface{}) }
+
 // Note: AlertManager Start/Stop methods are defined in alerting.go
 
 func (dm *DashboardManager) Start(ctx context.Context) { /* Implementation */ }
@@ -1165,7 +1165,7 @@ func (ea *ErrorAnalyzer) GetMetrics() map[string]interface{} { return make(map[s
 func (epw *ErrorProcessingWorker) Start(ctx context.Context) { /* Implementation */ }
 func (epw *ErrorProcessingWorker) Stop()                     { /* Implementation */ }
 
-// Note: ErrorTrackingConfig, ErrorPattern, AlertRule, AlertSeverity, NotificationChannel 
+// Note: ErrorTrackingConfig, ErrorPattern, AlertRule, AlertSeverity, NotificationChannel
 // AlertManagerConfig, NWDAFConfig and related types are defined in other monitoring files to avoid duplication
 
 // InferenceConfig represents model inference configuration

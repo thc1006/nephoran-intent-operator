@@ -135,9 +135,9 @@ func (r *AuditTrailController) ensureAuditSystem(ctx context.Context, auditTrail
 
 	// Create new audit system
 	config := &audit.AuditConfig{
-		Enabled:         auditTrail.Spec.Enabled,
-		EnabledSources:  auditTrail.Spec.ComplianceMode,
-		RetentionDays:   365, // Default retention
+		Enabled:        auditTrail.Spec.Enabled,
+		EnabledSources: auditTrail.Spec.ComplianceMode,
+		RetentionDays:  365, // Default retention
 		Storage: audit.StorageConfig{
 			Type: "local", // Default to local storage
 		},
@@ -199,10 +199,10 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 		auditTrail.Status.Phase = "Failed"
 		// Add condition instead of message
 		condition := metav1.Condition{
-			Type:   "Ready",
-			Status: metav1.ConditionFalse,
-			Reason: "AuditSystemNotFound",
-			Message: "Audit system not found",
+			Type:               "Ready",
+			Status:             metav1.ConditionFalse,
+			Reason:             "AuditSystemNotFound",
+			Message:            "Audit system not found",
 			LastTransitionTime: metav1.Now(),
 		}
 		auditTrail.Status.Conditions = []metav1.Condition{condition}
@@ -211,26 +211,26 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 
 	// Get metrics from audit system
 	metrics := auditSystem.GetMetrics()
-	
+
 	// Update status based on audit system state
 	if auditSystem.IsHealthy() {
 		auditTrail.Status.Phase = "Running"
 		// Set ready condition
 		condition := metav1.Condition{
-			Type:   "Ready",
-			Status: metav1.ConditionTrue,
-			Reason: "AuditSystemRunning",
-			Message: "Audit system is running",
+			Type:               "Ready",
+			Status:             metav1.ConditionTrue,
+			Reason:             "AuditSystemRunning",
+			Message:            "Audit system is running",
 			LastTransitionTime: metav1.Now(),
 		}
 		auditTrail.Status.Conditions = []metav1.Condition{condition}
 	} else {
 		auditTrail.Status.Phase = "Failed"
 		condition := metav1.Condition{
-			Type:   "Ready",
-			Status: metav1.ConditionFalse,
-			Reason: "AuditSystemDegraded",
-			Message: "Audit system is experiencing issues",
+			Type:               "Ready",
+			Status:             metav1.ConditionFalse,
+			Reason:             "AuditSystemDegraded",
+			Message:            "Audit system is experiencing issues",
 			LastTransitionTime: metav1.Now(),
 		}
 		auditTrail.Status.Conditions = []metav1.Condition{condition}
@@ -257,14 +257,14 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 func (r *AuditTrailController) validateAuditTrail(auditTrail *nephv1.AuditTrail) error {
 	// Validate compliance modes (audit sources)
 	validCompliance := map[string]bool{
-		"soc2":      true,
-		"iso27001":  true,
-		"pci_dss":   true,
-		"hipaa":     true,
-		"gdpr":      true,
-		"ccpa":      true,
-		"fisma":     true,
-		"nist_csf":  true,
+		"soc2":     true,
+		"iso27001": true,
+		"pci_dss":  true,
+		"hipaa":    true,
+		"gdpr":     true,
+		"ccpa":     true,
+		"fisma":    true,
+		"nist_csf": true,
 	}
 
 	for _, compliance := range auditTrail.Spec.ComplianceMode {
@@ -317,7 +317,7 @@ func (r *AuditTrailController) handleAuditEvent(ctx context.Context, event *audi
 // GetAuditTrails returns all active audit trails
 func (r *AuditTrailController) GetAuditTrails(ctx context.Context, namespace string) (*nephv1.AuditTrailList, error) {
 	var auditTrails nephv1.AuditTrailList
-	
+
 	listOpts := []client.ListOption{}
 	if namespace != "" {
 		listOpts = append(listOpts, client.InNamespace(namespace))

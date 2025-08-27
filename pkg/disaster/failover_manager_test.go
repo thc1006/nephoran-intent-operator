@@ -74,9 +74,9 @@ func (suite *FailoverManagerTestSuite) SetupTest() {
 	}
 
 	suite.manager = &FailoverManager{
-		logger:          suite.logger,
-		k8sClient:       suite.k8sClient,
-		config:          config,
+		logger:    suite.logger,
+		k8sClient: suite.k8sClient,
+		config:    config,
 		// route53Client will be set by the manager internally
 		healthCheckers:  make(map[string]RegionHealthChecker),
 		currentRegion:   config.PrimaryRegion,
@@ -530,7 +530,7 @@ func BenchmarkInitiateFailover(b *testing.B) {
 }
 
 // Mock implementations for testing
-type MockRoute53Client struct{
+type MockRoute53Client struct {
 	shouldFail bool
 }
 
@@ -565,7 +565,6 @@ func (m *MockRegionHealthChecker) CheckHealth(ctx context.Context, region string
 func (m *MockRegionHealthChecker) GetRegionName() string {
 	return "mock-region"
 }
-
 
 // Helper functions and type definitions for testing
 // Note: Using types defined in main package to avoid redeclaration
@@ -691,4 +690,3 @@ func (fm *FailoverManager) updateDNSRecord(ctx context.Context, targetRegion str
 	// Simple test implementation
 	return nil // Skip DNS update in basic test
 }
-

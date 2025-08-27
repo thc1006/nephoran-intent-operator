@@ -748,7 +748,7 @@ func (mps *MultiProviderEmbeddingService) GetMetrics() *EmbeddingMetrics {
 		ModelStats:         make(map[string]ModelUsageStats),
 		LastUpdated:        mps.metrics.LastUpdated,
 	}
-	
+
 	// Deep copy map
 	for k, v := range mps.metrics.ModelStats {
 		metrics.ModelStats[k] = v

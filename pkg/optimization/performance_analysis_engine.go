@@ -30,21 +30,21 @@ import (
 type PerformanceAnalysisEngine struct {
 	logger logr.Logger
 	config *AnalysisConfig
-	
+
 	// Data stores
-	metricsStore     *MetricsStore
-	historicalStore  *HistoricalDataStore
-	patternDetector  *PatternDetector
-	
+	metricsStore    *MetricsStore
+	historicalStore *HistoricalDataStore
+	patternDetector *PatternDetector
+
 	// ML components
 	bottleneckPredictor *BottleneckPredictor
-	forecaster         *PerformanceForecaster
-	ranker            *OptimizationRanker
-	
+	forecaster          *PerformanceForecaster
+	ranker              *OptimizationRanker
+
 	// Analysis state
 	lastAnalysis *PerformanceAnalysisResult
 	baselines    map[ComponentType]*PerformanceBaseline
-	
+
 	mutex sync.RWMutex
 }
 
@@ -77,10 +77,10 @@ type AnalysisConfig struct {
 
 // ComponentAnalysisConfig defines analysis configuration for specific components
 type ComponentAnalysisConfig struct {
-	Name     string                `json:"name"`
-	Type     ComponentType         `json:"type"`
-	Metrics  []MetricConfig        `json:"metrics"`
-	Priority OptimizationPriority  `json:"priority"`
+	Name     string               `json:"name"`
+	Type     ComponentType        `json:"type"`
+	Metrics  []MetricConfig       `json:"metrics"`
+	Priority OptimizationPriority `json:"priority"`
 }
 
 // MetricConfig defines configuration for individual metrics
@@ -104,79 +104,79 @@ const (
 
 // PerformanceAnalysisResult contains comprehensive analysis results
 type PerformanceAnalysisResult struct {
-	AnalysisID      string                              `json:"analysisId"`
-	Timestamp       time.Time                           `json:"timestamp"`
-	SystemHealth    SystemHealthStatus                  `json:"systemHealth"`
-	OverallScore    float64                             `json:"overallScore"`
+	AnalysisID        string                               `json:"analysisId"`
+	Timestamp         time.Time                            `json:"timestamp"`
+	SystemHealth      SystemHealthStatus                   `json:"systemHealth"`
+	OverallScore      float64                              `json:"overallScore"`
 	ComponentAnalyses map[ComponentType]*ComponentAnalysis `json:"componentAnalyses"`
-	
+
 	// Performance insights
-	Bottlenecks              []*PerformanceBottleneck     `json:"bottlenecks"`
-	Trends                   []*PerformanceTrend          `json:"trends"`
-	Patterns                 []*PerformancePattern        `json:"patterns"`
-	Anomalies               []*PerformanceAnomaly        `json:"anomalies"`
-	
+	Bottlenecks []*PerformanceBottleneck `json:"bottlenecks"`
+	Trends      []*PerformanceTrend      `json:"trends"`
+	Patterns    []*PerformancePattern    `json:"patterns"`
+	Anomalies   []*PerformanceAnomaly    `json:"anomalies"`
+
 	// Predictive analysis
-	Forecast                *PerformanceForecast         `json:"forecast"`
-	RiskAssessment          *SystemRiskAssessment        `json:"riskAssessment"`
-	
+	Forecast       *PerformanceForecast  `json:"forecast"`
+	RiskAssessment *SystemRiskAssessment `json:"riskAssessment"`
+
 	// Recommendations
-	ImmediateActions        []string                     `json:"immediateActions"`
+	ImmediateActions          []string                   `json:"immediateActions"`
 	OptimizationOpportunities []*OptimizationOpportunity `json:"optimizationOpportunities"`
-	
+
 	// Analysis metadata
-	AnalysisDuration        time.Duration                `json:"analysisDuration"`
-	DataQuality             DataQualityLevel             `json:"dataQuality"`
-	ConfidenceLevel         float64                      `json:"confidenceLevel"`
+	AnalysisDuration time.Duration    `json:"analysisDuration"`
+	DataQuality      DataQualityLevel `json:"dataQuality"`
+	ConfidenceLevel  float64          `json:"confidenceLevel"`
 }
 
 // ComponentAnalysis contains analysis results for a specific component
 type ComponentAnalysis struct {
-	ComponentType         ComponentType                    `json:"componentType"`
-	HealthStatus          HealthStatus                     `json:"healthStatus"`
-	PerformanceScore      float64                         `json:"performanceScore"`
-	MetricAnalyses        map[string]*MetricAnalysis       `json:"metricAnalyses"`
-	ResourceUtilization   *ResourceUtilization            `json:"resourceUtilization"`
-	PerformanceMetrics    *ComponentPerformanceMetrics    `json:"performanceMetrics"`
-	
+	ComponentType       ComponentType                `json:"componentType"`
+	HealthStatus        HealthStatus                 `json:"healthStatus"`
+	PerformanceScore    float64                      `json:"performanceScore"`
+	MetricAnalyses      map[string]*MetricAnalysis   `json:"metricAnalyses"`
+	ResourceUtilization *ResourceUtilization         `json:"resourceUtilization"`
+	PerformanceMetrics  *ComponentPerformanceMetrics `json:"performanceMetrics"`
+
 	// Issues and opportunities
-	PerformanceIssues        []*PerformanceIssue          `json:"performanceIssues"`
-	ResourceConstraints      []*ResourceConstraint        `json:"resourceConstraints"`
+	PerformanceIssues         []*PerformanceIssue        `json:"performanceIssues"`
+	ResourceConstraints       []*ResourceConstraint      `json:"resourceConstraints"`
 	OptimizationOpportunities []*OptimizationOpportunity `json:"optimizationOpportunities"`
-	
+
 	// Analysis details
-	Bottlenecks             []*PerformanceBottleneck      `json:"bottlenecks"`
-	Trends                  []*PerformanceTrend           `json:"trends"`
-	Baseline                *PerformanceBaseline          `json:"baseline"`
-	
+	Bottlenecks []*PerformanceBottleneck `json:"bottlenecks"`
+	Trends      []*PerformanceTrend      `json:"trends"`
+	Baseline    *PerformanceBaseline     `json:"baseline"`
+
 	// Recommendations
-	RecommendedActions      []string                      `json:"recommendedActions"`
-	Priority                OptimizationPriority          `json:"priority"`
+	RecommendedActions []string             `json:"recommendedActions"`
+	Priority           OptimizationPriority `json:"priority"`
 }
 
 // MetricAnalysis contains analysis for a specific metric
 type MetricAnalysis struct {
-	MetricName      string              `json:"metricName"`
-	CurrentValue    float64             `json:"currentValue"`
-	TargetValue     float64             `json:"targetValue"`
-	Deviation       float64             `json:"deviation"`
-	Status          MetricStatus        `json:"status"`
-	Trend           TrendDirection      `json:"trend"`
-	TrendStrength   float64             `json:"trendStrength"`
-	StatisticalInfo *StatisticalInfo    `json:"statisticalInfo"`
-	AnomalyInfo     *AnomalyInfo        `json:"anomalyInfo,omitempty"`
+	MetricName      string           `json:"metricName"`
+	CurrentValue    float64          `json:"currentValue"`
+	TargetValue     float64          `json:"targetValue"`
+	Deviation       float64          `json:"deviation"`
+	Status          MetricStatus     `json:"status"`
+	Trend           TrendDirection   `json:"trend"`
+	TrendStrength   float64          `json:"trendStrength"`
+	StatisticalInfo *StatisticalInfo `json:"statisticalInfo"`
+	AnomalyInfo     *AnomalyInfo     `json:"anomalyInfo,omitempty"`
 }
 
 // StatisticalInfo contains statistical analysis for metrics
 type StatisticalInfo struct {
-	Mean           float64 `json:"mean"`
-	Median         float64 `json:"median"`
-	StandardDev    float64 `json:"standardDeviation"`
-	Min            float64 `json:"min"`
-	Max            float64 `json:"max"`
-	Percentile95   float64 `json:"percentile95"`
-	Percentile99   float64 `json:"percentile99"`
-	SampleCount    int     `json:"sampleCount"`
+	Mean               float64             `json:"mean"`
+	Median             float64             `json:"median"`
+	StandardDev        float64             `json:"standardDeviation"`
+	Min                float64             `json:"min"`
+	Max                float64             `json:"max"`
+	Percentile95       float64             `json:"percentile95"`
+	Percentile99       float64             `json:"percentile99"`
+	SampleCount        int                 `json:"sampleCount"`
 	ConfidenceInterval *ConfidenceInterval `json:"confidenceInterval"`
 }
 
@@ -189,36 +189,36 @@ type ConfidenceInterval struct {
 
 // AnomalyInfo contains anomaly detection information
 type AnomalyInfo struct {
-	IsAnomaly       bool               `json:"isAnomaly"`
-	AnomalyScore    float64           `json:"anomalyScore"`
-	AnomalyType     AnomalyType       `json:"anomalyType"`
-	ExpectedValue   float64           `json:"expectedValue"`
-	ActualValue     float64           `json:"actualValue"`
-	Severity        SeverityLevel     `json:"severity"`
-	Context         map[string]interface{} `json:"context"`
+	IsAnomaly     bool                   `json:"isAnomaly"`
+	AnomalyScore  float64                `json:"anomalyScore"`
+	AnomalyType   AnomalyType            `json:"anomalyType"`
+	ExpectedValue float64                `json:"expectedValue"`
+	ActualValue   float64                `json:"actualValue"`
+	Severity      SeverityLevel          `json:"severity"`
+	Context       map[string]interface{} `json:"context"`
 }
 
 // AnomalyType defines types of anomalies
 type AnomalyType string
 
 const (
-	AnomalyTypeSpike     AnomalyType = "spike"
-	AnomalyTypeDip       AnomalyType = "dip"
-	AnomalyTypeDrift     AnomalyType = "drift"
+	AnomalyTypeSpike       AnomalyType = "spike"
+	AnomalyTypeDip         AnomalyType = "dip"
+	AnomalyTypeDrift       AnomalyType = "drift"
 	AnomalyTypeOscillation AnomalyType = "oscillation"
-	AnomalyTypeContextual AnomalyType = "contextual"
+	AnomalyTypeContextual  AnomalyType = "contextual"
 )
 
 // PerformancePattern represents identified performance patterns
 type PerformancePattern struct {
-	PatternType    PatternType         `json:"patternType"`
-	Description    string              `json:"description"`
-	Components     []ComponentType     `json:"components"`
-	Metrics        []string            `json:"metrics"`
-	TimeWindow     time.Duration       `json:"timeWindow"`
-	Confidence     float64             `json:"confidence"`
-	Impact         ImpactLevel         `json:"impact"`
-	Frequency      PatternFrequency    `json:"frequency"`
+	PatternType     PatternType        `json:"patternType"`
+	Description     string             `json:"description"`
+	Components      []ComponentType    `json:"components"`
+	Metrics         []string           `json:"metrics"`
+	TimeWindow      time.Duration      `json:"timeWindow"`
+	Confidence      float64            `json:"confidence"`
+	Impact          ImpactLevel        `json:"impact"`
+	Frequency       PatternFrequency   `json:"frequency"`
 	Characteristics map[string]float64 `json:"characteristics"`
 }
 
@@ -226,12 +226,12 @@ type PerformancePattern struct {
 type PatternType string
 
 const (
-	PatternTypeCyclical    PatternType = "cyclical"
-	PatternTypeSeasonal    PatternType = "seasonal"
-	PatternTypeBursty      PatternType = "bursty"
-	PatternTypeGradual     PatternType = "gradual"
-	PatternTypeSudden      PatternType = "sudden"
-	PatternTypeCorrelated  PatternType = "correlated"
+	PatternTypeCyclical   PatternType = "cyclical"
+	PatternTypeSeasonal   PatternType = "seasonal"
+	PatternTypeBursty     PatternType = "bursty"
+	PatternTypeGradual    PatternType = "gradual"
+	PatternTypeSudden     PatternType = "sudden"
+	PatternTypeCorrelated PatternType = "correlated"
 )
 
 // PatternFrequency defines pattern frequency
@@ -247,40 +247,40 @@ const (
 
 // PerformanceAnomaly represents detected anomalies
 type PerformanceAnomaly struct {
-	AnomalyID    string          `json:"anomalyId"`
-	Timestamp    time.Time       `json:"timestamp"`
-	Component    ComponentType   `json:"component"`
-	MetricName   string          `json:"metricName"`
-	AnomalyType  AnomalyType     `json:"anomalyType"`
-	Severity     SeverityLevel   `json:"severity"`
-	Score        float64         `json:"score"`
-	ExpectedValue float64        `json:"expectedValue"`
-	ActualValue   float64        `json:"actualValue"`
-	Deviation     float64        `json:"deviation"`
+	AnomalyID     string                 `json:"anomalyId"`
+	Timestamp     time.Time              `json:"timestamp"`
+	Component     ComponentType          `json:"component"`
+	MetricName    string                 `json:"metricName"`
+	AnomalyType   AnomalyType            `json:"anomalyType"`
+	Severity      SeverityLevel          `json:"severity"`
+	Score         float64                `json:"score"`
+	ExpectedValue float64                `json:"expectedValue"`
+	ActualValue   float64                `json:"actualValue"`
+	Deviation     float64                `json:"deviation"`
 	Context       map[string]interface{} `json:"context"`
-	RootCause     string         `json:"rootCause,omitempty"`
-	Resolution    []string       `json:"resolution,omitempty"`
+	RootCause     string                 `json:"rootCause,omitempty"`
+	Resolution    []string               `json:"resolution,omitempty"`
 }
 
 // PerformanceForecast contains predictive analysis results
 type PerformanceForecast struct {
-	ForecastHorizon  time.Duration              `json:"forecastHorizon"`
+	ForecastHorizon  time.Duration                `json:"forecastHorizon"`
 	Predictions      map[string]*MetricPrediction `json:"predictions"`
-	SystemPrediction *SystemPrediction          `json:"systemPrediction"`
-	RiskAnalysis     *ForecastRiskAnalysis      `json:"riskAnalysis"`
-	Confidence       float64                    `json:"confidence"`
-	ModelAccuracy    float64                    `json:"modelAccuracy"`
+	SystemPrediction *SystemPrediction            `json:"systemPrediction"`
+	RiskAnalysis     *ForecastRiskAnalysis        `json:"riskAnalysis"`
+	Confidence       float64                      `json:"confidence"`
+	ModelAccuracy    float64                      `json:"modelAccuracy"`
 }
 
 // MetricPrediction contains predictions for specific metrics
 type MetricPrediction struct {
-	MetricName    string             `json:"metricName"`
-	Component     ComponentType      `json:"component"`
-	CurrentValue  float64            `json:"currentValue"`
-	PredictedValue float64           `json:"predictedValue"`
-	Trend         TrendDirection     `json:"trend"`
-	Confidence    float64            `json:"confidence"`
-	ValueRange    *PredictionRange   `json:"valueRange"`
+	MetricName      string           `json:"metricName"`
+	Component       ComponentType    `json:"component"`
+	CurrentValue    float64          `json:"currentValue"`
+	PredictedValue  float64          `json:"predictedValue"`
+	Trend           TrendDirection   `json:"trend"`
+	Confidence      float64          `json:"confidence"`
+	ValueRange      *PredictionRange `json:"valueRange"`
 	TimeToThreshold time.Duration    `json:"timeToThreshold,omitempty"`
 }
 
@@ -293,20 +293,20 @@ type PredictionRange struct {
 
 // SystemPrediction contains system-wide predictions
 type SystemPrediction struct {
-	ExpectedLoad         float64                `json:"expectedLoad"`
-	ResourceRequirements map[string]float64     `json:"resourceRequirements"`
+	ExpectedLoad           float64                  `json:"expectedLoad"`
+	ResourceRequirements   map[string]float64       `json:"resourceRequirements"`
 	ScalingRecommendations []*ScalingRecommendation `json:"scalingRecommendations"`
-	RiskFactors         []string               `json:"riskFactors"`
+	RiskFactors            []string                 `json:"riskFactors"`
 }
 
 // ScalingRecommendation contains scaling recommendations
 type ScalingRecommendation struct {
-	Component     ComponentType `json:"component"`
-	Action        ScalingAction `json:"action"`
-	Magnitude     float64       `json:"magnitude"`
-	Urgency       UrgencyLevel  `json:"urgency"`
-	Reason        string        `json:"reason"`
-	ExpectedTime  time.Duration `json:"expectedTime"`
+	Component    ComponentType `json:"component"`
+	Action       ScalingAction `json:"action"`
+	Magnitude    float64       `json:"magnitude"`
+	Urgency      UrgencyLevel  `json:"urgency"`
+	Reason       string        `json:"reason"`
+	ExpectedTime time.Duration `json:"expectedTime"`
 }
 
 // ScalingAction defines scaling actions
@@ -320,47 +320,47 @@ const (
 
 // ForecastRiskAnalysis contains risk analysis for forecasts
 type ForecastRiskAnalysis struct {
-	OverallRiskLevel    RiskLevel                `json:"overallRiskLevel"`
-	RiskFactors         []*ForecastRiskFactor    `json:"riskFactors"`
-	MitigationActions   []string                 `json:"mitigationActions"`
-	MonitoringPoints    []string                 `json:"monitoringPoints"`
+	OverallRiskLevel  RiskLevel             `json:"overallRiskLevel"`
+	RiskFactors       []*ForecastRiskFactor `json:"riskFactors"`
+	MitigationActions []string              `json:"mitigationActions"`
+	MonitoringPoints  []string              `json:"monitoringPoints"`
 }
 
 // ForecastRiskFactor represents a risk factor in forecasts
 type ForecastRiskFactor struct {
-	Name        string      `json:"name"`
-	Probability float64     `json:"probability"`
-	Impact      ImpactLevel `json:"impact"`
+	Name        string        `json:"name"`
+	Probability float64       `json:"probability"`
+	Impact      ImpactLevel   `json:"impact"`
 	TimeFrame   time.Duration `json:"timeFrame"`
-	Mitigation  string      `json:"mitigation"`
+	Mitigation  string        `json:"mitigation"`
 }
 
 // SystemRiskAssessment contains system-wide risk assessment
 type SystemRiskAssessment struct {
-	OverallRisk     RiskLevel              `json:"overallRisk"`
+	OverallRisk     RiskLevel                 `json:"overallRisk"`
 	ComponentRisks  map[ComponentType]float64 `json:"componentRisks"`
-	ThreatAnalysis  *ThreatAnalysis        `json:"threatAnalysis"`
-	Vulnerabilities []*SystemVulnerability `json:"vulnerabilities"`
-	RiskScore       float64                `json:"riskScore"`
+	ThreatAnalysis  *ThreatAnalysis           `json:"threatAnalysis"`
+	Vulnerabilities []*SystemVulnerability    `json:"vulnerabilities"`
+	RiskScore       float64                   `json:"riskScore"`
 }
 
 // ThreatAnalysis contains threat analysis information
 type ThreatAnalysis struct {
-	ThreatsIdentified  []string    `json:"threatsIdentified"`
-	LikelihoodAnalysis map[string]float64 `json:"likelihoodAnalysis"`
+	ThreatsIdentified  []string               `json:"threatsIdentified"`
+	LikelihoodAnalysis map[string]float64     `json:"likelihoodAnalysis"`
 	ImpactAnalysis     map[string]ImpactLevel `json:"impactAnalysis"`
-	ThreatVectors      []string    `json:"threatVectors"`
+	ThreatVectors      []string               `json:"threatVectors"`
 }
 
 // SystemVulnerability represents system vulnerabilities
 type SystemVulnerability struct {
-	VulnerabilityID string        `json:"vulnerabilityId"`
-	Component       ComponentType `json:"component"`
-	Severity        SeverityLevel `json:"severity"`
-	Description     string        `json:"description"`
-	Impact          ImpactLevel   `json:"impact"`
-	ExploitProbability float64    `json:"exploitProbability"`
-	Remediation     []string      `json:"remediation"`
+	VulnerabilityID    string        `json:"vulnerabilityId"`
+	Component          ComponentType `json:"component"`
+	Severity           SeverityLevel `json:"severity"`
+	Description        string        `json:"description"`
+	Impact             ImpactLevel   `json:"impact"`
+	ExploitProbability float64       `json:"exploitProbability"`
+	Remediation        []string      `json:"remediation"`
 }
 
 // Enums and constants
@@ -369,18 +369,18 @@ type SystemVulnerability struct {
 type ComponentType string
 
 const (
-	ComponentTypeLLMProcessor    ComponentType = "llm_processor"
-	ComponentTypeDatabase        ComponentType = "database"
-	ComponentTypeCache           ComponentType = "cache"
-	ComponentTypeAPI             ComponentType = "api"
-	ComponentTypeMessageQueue    ComponentType = "message_queue"
-	ComponentTypeStorage         ComponentType = "storage"
-	ComponentTypeNetwork         ComponentType = "network"
-	ComponentTypeLoadBalancer    ComponentType = "load_balancer"
-	ComponentTypeKubernetesNode  ComponentType = "kubernetes_node"
-	ComponentTypeKubernetesPod   ComponentType = "kubernetes_pod"
+	ComponentTypeLLMProcessor   ComponentType = "llm_processor"
+	ComponentTypeDatabase       ComponentType = "database"
+	ComponentTypeCache          ComponentType = "cache"
+	ComponentTypeAPI            ComponentType = "api"
+	ComponentTypeMessageQueue   ComponentType = "message_queue"
+	ComponentTypeStorage        ComponentType = "storage"
+	ComponentTypeNetwork        ComponentType = "network"
+	ComponentTypeLoadBalancer   ComponentType = "load_balancer"
+	ComponentTypeKubernetesNode ComponentType = "kubernetes_node"
+	ComponentTypeKubernetesPod  ComponentType = "kubernetes_pod"
 	ComponentTypeRAGSystem      ComponentType = "rag_system"
-	ComponentTypeKubernetes      ComponentType = "kubernetes"
+	ComponentTypeKubernetes     ComponentType = "kubernetes"
 )
 
 // SystemHealthStatus represents overall system health
@@ -433,17 +433,17 @@ func NewPerformanceAnalysisEngine(config *AnalysisConfig, logger logr.Logger) *P
 		config:    config,
 		baselines: make(map[ComponentType]*PerformanceBaseline),
 	}
-	
+
 	// Initialize data stores
 	engine.metricsStore = NewMetricsStore()
 	engine.historicalStore = NewHistoricalDataStore()
 	engine.patternDetector = NewPatternDetector(config.PatternDetectionWindow)
-	
+
 	// Initialize ML components
 	engine.bottleneckPredictor = NewBottleneckPredictor(config, logger)
 	engine.forecaster = NewPerformanceForecaster(config, logger)
 	engine.ranker = NewOptimizationRanker(config, logger)
-	
+
 	return engine
 }
 
@@ -451,21 +451,21 @@ func NewPerformanceAnalysisEngine(config *AnalysisConfig, logger logr.Logger) *P
 func (engine *PerformanceAnalysisEngine) AnalyzePerformance(ctx context.Context) (*PerformanceAnalysisResult, error) {
 	startTime := time.Now()
 	analysisID := fmt.Sprintf("analysis_%d", startTime.Unix())
-	
+
 	engine.logger.Info("Starting performance analysis", "analysisId", analysisID)
-	
+
 	result := &PerformanceAnalysisResult{
-		AnalysisID:           analysisID,
-		Timestamp:           startTime,
-		ComponentAnalyses:   make(map[ComponentType]*ComponentAnalysis),
-		Bottlenecks:         make([]*PerformanceBottleneck, 0),
-		Trends:              make([]*PerformanceTrend, 0),
-		Patterns:            make([]*PerformancePattern, 0),
-		Anomalies:          make([]*PerformanceAnomaly, 0),
-		ImmediateActions:   make([]string, 0),
+		AnalysisID:                analysisID,
+		Timestamp:                 startTime,
+		ComponentAnalyses:         make(map[ComponentType]*ComponentAnalysis),
+		Bottlenecks:               make([]*PerformanceBottleneck, 0),
+		Trends:                    make([]*PerformanceTrend, 0),
+		Patterns:                  make([]*PerformancePattern, 0),
+		Anomalies:                 make([]*PerformanceAnomaly, 0),
+		ImmediateActions:          make([]string, 0),
 		OptimizationOpportunities: make([]*OptimizationOpportunity, 0),
 	}
-	
+
 	// Analyze each configured component
 	for _, componentConfig := range engine.config.Components {
 		componentAnalysis, err := engine.analyzeComponent(ctx, componentConfig)
@@ -474,12 +474,12 @@ func (engine *PerformanceAnalysisEngine) AnalyzePerformance(ctx context.Context)
 			continue
 		}
 		result.ComponentAnalyses[componentConfig.Type] = componentAnalysis
-		
+
 		// Aggregate bottlenecks, trends, etc.
 		result.Bottlenecks = append(result.Bottlenecks, componentAnalysis.Bottlenecks...)
 		result.Trends = append(result.Trends, componentAnalysis.Trends...)
 	}
-	
+
 	// Detect patterns across components
 	patterns, err := engine.patternDetector.DetectPatterns(ctx, engine.metricsStore)
 	if err != nil {
@@ -487,7 +487,7 @@ func (engine *PerformanceAnalysisEngine) AnalyzePerformance(ctx context.Context)
 	} else {
 		result.Patterns = patterns
 	}
-	
+
 	// Perform predictive analysis
 	forecast, err := engine.forecaster.GenerateForecast(ctx, result)
 	if err != nil {
@@ -495,12 +495,12 @@ func (engine *PerformanceAnalysisEngine) AnalyzePerformance(ctx context.Context)
 	} else {
 		result.Forecast = forecast
 	}
-	
+
 	// Calculate overall system health
 	systemHealth, overallScore := engine.calculateSystemHealth(result)
 	result.SystemHealth = systemHealth
 	result.OverallScore = overallScore
-	
+
 	// Generate optimization opportunities
 	opportunities, err := engine.ranker.RankOptimizationOpportunities(ctx, result)
 	if err != nil {
@@ -508,23 +508,23 @@ func (engine *PerformanceAnalysisEngine) AnalyzePerformance(ctx context.Context)
 	} else {
 		result.OptimizationOpportunities = opportunities
 	}
-	
+
 	result.AnalysisDuration = time.Since(startTime)
-	result.DataQuality = DataQualityGood  // Simplified
-	result.ConfidenceLevel = 0.85         // Simplified
-	
+	result.DataQuality = DataQualityGood // Simplified
+	result.ConfidenceLevel = 0.85        // Simplified
+
 	// Cache the result
 	engine.mutex.Lock()
 	engine.lastAnalysis = result
 	engine.mutex.Unlock()
-	
+
 	engine.logger.Info("Completed performance analysis",
 		"analysisId", analysisID,
 		"duration", result.AnalysisDuration,
 		"systemHealth", result.SystemHealth,
 		"overallScore", result.OverallScore,
 	)
-	
+
 	return result, nil
 }
 
@@ -539,68 +539,68 @@ func (engine *PerformanceAnalysisEngine) GetLatestAnalysis() *PerformanceAnalysi
 func (engine *PerformanceAnalysisEngine) analyzeComponent(ctx context.Context, config ComponentAnalysisConfig) (*ComponentAnalysis, error) {
 	analysis := &ComponentAnalysis{
 		ComponentType:             config.Type,
-		MetricAnalyses:           make(map[string]*MetricAnalysis),
-		PerformanceIssues:        make([]*PerformanceIssue, 0),
-		ResourceConstraints:      make([]*ResourceConstraint, 0),
+		MetricAnalyses:            make(map[string]*MetricAnalysis),
+		PerformanceIssues:         make([]*PerformanceIssue, 0),
+		ResourceConstraints:       make([]*ResourceConstraint, 0),
 		OptimizationOpportunities: make([]*OptimizationOpportunity, 0),
-		Bottlenecks:              make([]*PerformanceBottleneck, 0),
-		Trends:                   make([]*PerformanceTrend, 0),
-		RecommendedActions:       make([]string, 0),
-		Priority:                 config.Priority,
+		Bottlenecks:               make([]*PerformanceBottleneck, 0),
+		Trends:                    make([]*PerformanceTrend, 0),
+		RecommendedActions:        make([]string, 0),
+		Priority:                  config.Priority,
 	}
-	
+
 	// Analyze each metric for the component
 	totalScore := 0.0
 	totalWeight := 0.0
-	
+
 	for _, metricConfig := range config.Metrics {
 		metricAnalysis, err := engine.analyzeMetric(ctx, metricConfig, config.Type)
 		if err != nil {
-			engine.logger.Error(err, "Failed to analyze metric", 
-				"component", config.Name, 
+			engine.logger.Error(err, "Failed to analyze metric",
+				"component", config.Name,
 				"metric", metricConfig.Name)
 			continue
 		}
-		
+
 		analysis.MetricAnalyses[metricConfig.Name] = metricAnalysis
-		
+
 		// Calculate weighted score
 		metricScore := engine.calculateMetricScore(metricAnalysis)
 		totalScore += metricScore * metricConfig.Weight
 		totalWeight += metricConfig.Weight
 	}
-	
+
 	// Calculate performance score
 	if totalWeight > 0 {
 		analysis.PerformanceScore = totalScore / totalWeight
 	}
-	
+
 	// Determine health status
 	analysis.HealthStatus = engine.determineHealthStatus(analysis.PerformanceScore)
-	
+
 	// Get resource utilization (simplified simulation)
 	analysis.ResourceUtilization = &ResourceUtilization{
-		CPU:     math.Min(50.0 + analysis.PerformanceScore*0.5, 100.0),
-		Memory:  math.Min(40.0 + analysis.PerformanceScore*0.6, 100.0),
-		Storage: math.Min(30.0 + analysis.PerformanceScore*0.3, 100.0),
-		Network: math.Min(20.0 + analysis.PerformanceScore*0.4, 100.0),
+		CPU:     math.Min(50.0+analysis.PerformanceScore*0.5, 100.0),
+		Memory:  math.Min(40.0+analysis.PerformanceScore*0.6, 100.0),
+		Storage: math.Min(30.0+analysis.PerformanceScore*0.3, 100.0),
+		Network: math.Min(20.0+analysis.PerformanceScore*0.4, 100.0),
 	}
-	
+
 	// Get performance metrics (simplified simulation)
 	analysis.PerformanceMetrics = &ComponentPerformanceMetrics{
 		Latency:      time.Duration(1000.0-analysis.PerformanceScore*8) * time.Millisecond,
 		Throughput:   analysis.PerformanceScore * 10,
 		ErrorRate:    math.Max(0.01, (100.0-analysis.PerformanceScore)*0.001),
-		Availability: math.Min(0.95 + analysis.PerformanceScore*0.0005, 1.0),
+		Availability: math.Min(0.95+analysis.PerformanceScore*0.0005, 1.0),
 		ResponseTime: time.Duration(800.0-analysis.PerformanceScore*6) * time.Millisecond,
 		RequestRate:  analysis.PerformanceScore * 8,
-		SuccessRate:  math.Min(0.98 + analysis.PerformanceScore*0.0002, 1.0),
+		SuccessRate:  math.Min(0.98+analysis.PerformanceScore*0.0002, 1.0),
 	}
-	
+
 	// Detect component-specific issues and opportunities
 	engine.detectComponentIssues(analysis)
 	engine.detectOptimizationOpportunities(analysis)
-	
+
 	return analysis, nil
 }
 
@@ -608,36 +608,36 @@ func (engine *PerformanceAnalysisEngine) analyzeComponent(ctx context.Context, c
 func (engine *PerformanceAnalysisEngine) analyzeMetric(ctx context.Context, config MetricConfig, componentType ComponentType) (*MetricAnalysis, error) {
 	// Simulate metric data collection (in real implementation, would query Prometheus)
 	currentValue := engine.simulateMetricValue(config.Name, componentType)
-	
+
 	analysis := &MetricAnalysis{
 		MetricName:    config.Name,
 		CurrentValue:  currentValue,
 		TargetValue:   config.Target,
-		Deviation:     math.Abs(currentValue - config.Target) / config.Target * 100,
+		Deviation:     math.Abs(currentValue-config.Target) / config.Target * 100,
 		Trend:         TrendDirectionStable, // Simplified
 		TrendStrength: 0.5,                  // Simplified
 	}
-	
+
 	// Calculate statistical info (simplified)
 	analysis.StatisticalInfo = &StatisticalInfo{
-		Mean:        currentValue,
-		Median:      currentValue * 0.98,
-		StandardDev: currentValue * 0.1,
-		Min:         currentValue * 0.8,
-		Max:         currentValue * 1.2,
+		Mean:         currentValue,
+		Median:       currentValue * 0.98,
+		StandardDev:  currentValue * 0.1,
+		Min:          currentValue * 0.8,
+		Max:          currentValue * 1.2,
 		Percentile95: currentValue * 1.1,
 		Percentile99: currentValue * 1.15,
-		SampleCount: 100,
+		SampleCount:  100,
 		ConfidenceInterval: &ConfidenceInterval{
 			Lower:      currentValue * 0.95,
 			Upper:      currentValue * 1.05,
 			Confidence: 0.95,
 		},
 	}
-	
+
 	// Determine metric status
 	analysis.Status = engine.determineMetricStatus(analysis.Deviation)
-	
+
 	// Check for anomalies (simplified)
 	if analysis.Deviation > 20.0 {
 		analysis.AnomalyInfo = &AnomalyInfo{
@@ -650,7 +650,7 @@ func (engine *PerformanceAnalysisEngine) analyzeMetric(ctx context.Context, conf
 			Context:       make(map[string]interface{}),
 		}
 	}
-	
+
 	return analysis, nil
 }
 
@@ -659,7 +659,7 @@ func (engine *PerformanceAnalysisEngine) simulateMetricValue(metricName string, 
 	// Simple simulation based on metric name and component type
 	baseValue := 100.0
 	variation := (math.Sin(float64(time.Now().Unix())/10.0) + 1.0) * 50.0
-	
+
 	switch metricName {
 	case "request_duration":
 		return 0.5 + variation*0.01 // seconds
@@ -679,16 +679,16 @@ func (engine *PerformanceAnalysisEngine) simulateMetricValue(metricName string, 
 // calculateMetricScore calculates a score for a metric based on its analysis
 func (engine *PerformanceAnalysisEngine) calculateMetricScore(analysis *MetricAnalysis) float64 {
 	baseScore := 100.0
-	
+
 	// Penalize deviation from target
 	deviationPenalty := analysis.Deviation * 0.5
 	score := baseScore - deviationPenalty
-	
+
 	// Additional penalties for anomalies
 	if analysis.AnomalyInfo != nil && analysis.AnomalyInfo.IsAnomaly {
 		score -= analysis.AnomalyInfo.AnomalyScore * 20
 	}
-	
+
 	return math.Max(0.0, math.Min(100.0, score))
 }
 
@@ -726,19 +726,19 @@ func (engine *PerformanceAnalysisEngine) detectComponentIssues(analysis *Compone
 	for metricName, metricAnalysis := range analysis.MetricAnalyses {
 		if metricAnalysis.Status == MetricStatusCritical {
 			issue := &PerformanceIssue{
-				Name:        fmt.Sprintf("Critical %s performance", metricName),
-				Description: fmt.Sprintf("Metric %s is performing critically with deviation %.2f%%", metricName, metricAnalysis.Deviation),
-				Severity:    SeverityHigh,
-				Impact:      ImpactHigh,
-				Component:   analysis.ComponentType,
-				MetricName:  metricName,
+				Name:         fmt.Sprintf("Critical %s performance", metricName),
+				Description:  fmt.Sprintf("Metric %s is performing critically with deviation %.2f%%", metricName, metricAnalysis.Deviation),
+				Severity:     SeverityHigh,
+				Impact:       ImpactHigh,
+				Component:    analysis.ComponentType,
+				MetricName:   metricName,
 				CurrentValue: metricAnalysis.CurrentValue,
-				Threshold:   metricAnalysis.TargetValue,
+				Threshold:    metricAnalysis.TargetValue,
 			}
 			analysis.PerformanceIssues = append(analysis.PerformanceIssues, issue)
 		}
 	}
-	
+
 	// Check for resource constraints
 	if analysis.ResourceUtilization != nil {
 		if analysis.ResourceUtilization.CPU > engine.config.CPUBottleneckThreshold {
@@ -751,7 +751,7 @@ func (engine *PerformanceAnalysisEngine) detectComponentIssues(analysis *Compone
 			}
 			analysis.ResourceConstraints = append(analysis.ResourceConstraints, constraint)
 		}
-		
+
 		if analysis.ResourceUtilization.Memory > engine.config.MemoryBottleneckThreshold {
 			constraint := &ResourceConstraint{
 				ResourceType:     "Memory",
@@ -770,8 +770,8 @@ func (engine *PerformanceAnalysisEngine) detectOptimizationOpportunities(analysi
 	// Detect opportunities based on performance scores and resource utilization
 	if analysis.PerformanceScore < 80 {
 		opportunity := &OptimizationOpportunity{
-			Name:             "Performance Optimization",
-			Description:      fmt.Sprintf("Component %s has performance score %.2f, below optimal threshold", analysis.ComponentType, analysis.PerformanceScore),
+			Name:        "Performance Optimization",
+			Description: fmt.Sprintf("Component %s has performance score %.2f, below optimal threshold", analysis.ComponentType, analysis.PerformanceScore),
 			PotentialImpact: &ExpectedImpact{
 				LatencyReduction:   20.0,
 				ThroughputIncrease: 15.0,
@@ -784,13 +784,13 @@ func (engine *PerformanceAnalysisEngine) detectOptimizationOpportunities(analysi
 		}
 		analysis.OptimizationOpportunities = append(analysis.OptimizationOpportunities, opportunity)
 	}
-	
+
 	// Resource optimization opportunities
 	if analysis.ResourceUtilization != nil {
 		if analysis.ResourceUtilization.CPU < 30 {
 			opportunity := &OptimizationOpportunity{
-				Name:             "CPU Resource Optimization",
-				Description:      fmt.Sprintf("Component %s has low CPU utilization (%.2f%%), consider resource reallocation", analysis.ComponentType, analysis.ResourceUtilization.CPU),
+				Name:        "CPU Resource Optimization",
+				Description: fmt.Sprintf("Component %s has low CPU utilization (%.2f%%), consider resource reallocation", analysis.ComponentType, analysis.ResourceUtilization.CPU),
 				PotentialImpact: &ExpectedImpact{
 					ResourceSavings: 30.0,
 					CostSavings:     200.0,
@@ -809,14 +809,14 @@ func (engine *PerformanceAnalysisEngine) calculateSystemHealth(result *Performan
 	if len(result.ComponentAnalyses) == 0 {
 		return SystemHealthCritical, 0.0
 	}
-	
+
 	totalScore := 0.0
 	criticalComponents := 0
 	unhealthyComponents := 0
-	
+
 	for _, analysis := range result.ComponentAnalyses {
 		totalScore += analysis.PerformanceScore
-		
+
 		if analysis.HealthStatus == HealthStatusCritical || analysis.HealthStatus == HealthStatusUnhealthy {
 			unhealthyComponents++
 		}
@@ -824,12 +824,12 @@ func (engine *PerformanceAnalysisEngine) calculateSystemHealth(result *Performan
 			criticalComponents++
 		}
 	}
-	
+
 	overallScore := totalScore / float64(len(result.ComponentAnalyses))
-	
+
 	// Determine system health based on overall score and component status
 	var systemHealth SystemHealthStatus
-	
+
 	switch {
 	case criticalComponents > 0:
 		systemHealth = SystemHealthCritical
@@ -842,7 +842,7 @@ func (engine *PerformanceAnalysisEngine) calculateSystemHealth(result *Performan
 	default:
 		systemHealth = SystemHealthFair
 	}
-	
+
 	return systemHealth, overallScore
 }
 
@@ -858,7 +858,7 @@ func (forecaster *PerformanceForecaster) GenerateForecast(ctx context.Context, a
 			ExpectedLoad:           analysis.OverallScore * 1.1,
 			ResourceRequirements:   make(map[string]float64),
 			ScalingRecommendations: make([]*ScalingRecommendation, 0),
-			RiskFactors:           []string{"Increasing load trend"},
+			RiskFactors:            []string{"Increasing load trend"},
 		},
 		RiskAnalysis: &ForecastRiskAnalysis{
 			OverallRiskLevel:  RiskLevelLow,
@@ -869,22 +869,22 @@ func (forecaster *PerformanceForecaster) GenerateForecast(ctx context.Context, a
 		Confidence:    0.8,
 		ModelAccuracy: 0.85,
 	}
-	
+
 	return forecast, nil
 }
 
 // RankOptimizationOpportunities ranks optimization opportunities
 func (ranker *OptimizationRanker) RankOptimizationOpportunities(ctx context.Context, analysis *PerformanceAnalysisResult) ([]*OptimizationOpportunity, error) {
 	var allOpportunities []*OptimizationOpportunity
-	
+
 	// Collect opportunities from all components
 	for _, componentAnalysis := range analysis.ComponentAnalyses {
 		allOpportunities = append(allOpportunities, componentAnalysis.OptimizationOpportunities...)
 	}
-	
+
 	// Simple ranking by confidence and potential impact
 	// In a real implementation, this would use more sophisticated ranking algorithms
-	
+
 	return allOpportunities, nil
 }
 

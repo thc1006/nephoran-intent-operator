@@ -1,1 +1,0 @@
-{"intent_type": "scaling", "target": "ran-deployment", "namespace": "nephoran-system", "replicas": 3, "reason": "E2E test", "source": "test", "correlation_id": "e2e-test-123"}

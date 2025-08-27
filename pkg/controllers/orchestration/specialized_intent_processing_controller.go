@@ -72,7 +72,7 @@ type SpecializedIntentProcessingController struct {
 }
 
 // IntentProcessingConfig holds configuration for intent processing
-type IntentProcessingConfig struct {
+type IntentProcessingConfig_Specialized struct {
 	// LLM Configuration
 	LLMEndpoint string  `json:"llmEndpoint"`
 	LLMAPIKey   string  `json:"llmApiKey"`

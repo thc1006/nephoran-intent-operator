@@ -27,12 +27,12 @@ type EnvironmentGuard struct {
 // NewEnvironmentGuard creates a new environment guard for test isolation
 func NewEnvironmentGuard(t *testing.T) *EnvironmentGuard {
 	t.Helper()
-	
+
 	guard := &EnvironmentGuard{
 		t:           t,
 		originalEnv: make(map[string]string),
 	}
-	
+
 	t.Cleanup(guard.Restore)
 	return guard
 }
@@ -41,9 +41,9 @@ func NewEnvironmentGuard(t *testing.T) *EnvironmentGuard {
 func (eg *EnvironmentGuard) Set(key, value string) {
 	eg.mu.Lock()
 	defer eg.mu.Unlock()
-	
+
 	eg.t.Helper()
-	
+
 	// Store original value if we haven't seen this key before
 	if _, exists := eg.originalEnv[key]; !exists {
 		if originalValue, wasSet := os.LookupEnv(key); wasSet {
@@ -52,7 +52,7 @@ func (eg *EnvironmentGuard) Set(key, value string) {
 			eg.originalEnv[key] = "__UNSET__" // Special marker for unset vars
 		}
 	}
-	
+
 	eg.t.Setenv(key, value)
 }
 
@@ -60,9 +60,9 @@ func (eg *EnvironmentGuard) Set(key, value string) {
 func (eg *EnvironmentGuard) Unset(key string) {
 	eg.mu.Lock()
 	defer eg.mu.Unlock()
-	
+
 	eg.t.Helper()
-	
+
 	// Store original value if we haven't seen this key before
 	if _, exists := eg.originalEnv[key]; !exists {
 		if originalValue, wasSet := os.LookupEnv(key); wasSet {
@@ -71,7 +71,7 @@ func (eg *EnvironmentGuard) Unset(key string) {
 			eg.originalEnv[key] = "__UNSET__"
 		}
 	}
-	
+
 	os.Unsetenv(key)
 }
 
@@ -79,7 +79,7 @@ func (eg *EnvironmentGuard) Unset(key string) {
 func (eg *EnvironmentGuard) Restore() {
 	eg.mu.Lock()
 	defer eg.mu.Unlock()
-	
+
 	for key, originalValue := range eg.originalEnv {
 		if originalValue == "__UNSET__" {
 			os.Unsetenv(key)
@@ -99,20 +99,20 @@ type MockHTTPServer struct {
 // NewMockHTTPServer creates a new mock HTTP server
 func NewMockHTTPServer(t *testing.T) *MockHTTPServer {
 	t.Helper()
-	
+
 	mock := &MockHTTPServer{
 		handlers: make(map[string]http.HandlerFunc),
 	}
-	
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", mock.defaultHandler)
-	
+
 	mock.server = httptest.NewServer(mux)
-	
+
 	t.Cleanup(func() {
 		mock.server.Close()
 	})
-	
+
 	return mock
 }
 
@@ -149,12 +149,12 @@ func (m *MockHTTPServer) defaultHandler(w http.ResponseWriter, r *http.Request) 
 	m.mu.RLock()
 	handler, exists := m.handlers[r.URL.Path]
 	m.mu.RUnlock()
-	
+
 	if exists {
 		handler(w, r)
 		return
 	}
-	
+
 	// Default success response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -186,7 +186,7 @@ func RequireNotNil(t *testing.T, ptr interface{}, msgAndArgs ...interface{}) {
 // RequireValidSliceIndex checks that a slice index is valid
 func RequireValidSliceIndex(t *testing.T, slice interface{}, index int, msgAndArgs ...interface{}) {
 	t.Helper()
-	
+
 	var length int
 	switch s := slice.(type) {
 	case []interface{}:
@@ -201,7 +201,7 @@ func RequireValidSliceIndex(t *testing.T, slice interface{}, index int, msgAndAr
 		t.Errorf("unsupported slice type: %T", slice)
 		return
 	}
-	
+
 	if index < 0 || index >= length {
 		args := append([]interface{}{
 			fmt.Sprintf("slice index %d out of bounds for slice of length %d", index, length),
@@ -287,7 +287,7 @@ func (mc *MockConfig) GetBool(key string, defaultValue bool) bool {
 // SafeStringSliceAccess safely accesses a string slice with bounds checking
 func SafeStringSliceAccess(t *testing.T, slice []string, index int, msgAndArgs ...interface{}) string {
 	t.Helper()
-	
+
 	if index < 0 || index >= len(slice) {
 		args := append([]interface{}{
 			fmt.Sprintf("string slice index %d out of bounds for slice of length %d", index, len(slice)),
@@ -295,14 +295,14 @@ func SafeStringSliceAccess(t *testing.T, slice []string, index int, msgAndArgs .
 		t.Fatal(args...)
 		return ""
 	}
-	
+
 	return slice[index]
 }
 
 // SafeMapAccess safely accesses a map with nil checking
 func SafeMapAccess[K comparable, V any](t *testing.T, m map[K]V, key K, msgAndArgs ...interface{}) (V, bool) {
 	t.Helper()
-	
+
 	var zero V
 	if m == nil {
 		args := append([]interface{}{
@@ -311,7 +311,7 @@ func SafeMapAccess[K comparable, V any](t *testing.T, m map[K]V, key K, msgAndAr
 		t.Error(args...)
 		return zero, false
 	}
-	
+
 	value, exists := m[key]
 	return value, exists
 }
@@ -319,7 +319,7 @@ func SafeMapAccess[K comparable, V any](t *testing.T, m map[K]V, key K, msgAndAr
 // CleanupCommonEnvVars cleans up commonly used environment variables in tests
 func CleanupCommonEnvVars(t *testing.T) {
 	t.Helper()
-	
+
 	commonEnvVars := []string{
 		// Config-related
 		"OPENAI_API_KEY",
@@ -340,7 +340,7 @@ func CleanupCommonEnvVars(t *testing.T) {
 		"OPENAI_EMBEDDING_MODEL",
 		"NAMESPACE",
 		"CRD_PATH",
-		
+
 		// Test-specific
 		"ENABLE_NETWORK_INTENT",
 		"ENABLE_LLM_INTENT",
@@ -350,17 +350,17 @@ func CleanupCommonEnvVars(t *testing.T) {
 		"HTTP_MAX_BODY",
 		"METRICS_ENABLED",
 		"METRICS_ALLOWED_IPS",
-		
+
 		// CI-related
 		"CI",
 		"GITHUB_ACTIONS",
 		"RUNNING_IN_CI",
-		
+
 		// Performance-related
 		"GOMAXPROCS",
 		"GOGC",
 	}
-	
+
 	for _, envVar := range commonEnvVars {
 		// Use t.Setenv with empty string to effectively unset for the test
 		if _, exists := os.LookupEnv(envVar); exists {
@@ -372,7 +372,7 @@ func CleanupCommonEnvVars(t *testing.T) {
 // WithRetry executes a function with retry logic for flaky operations
 func WithRetry(t *testing.T, maxRetries int, delay time.Duration, fn func() error) error {
 	t.Helper()
-	
+
 	var lastErr error
 	for i := 0; i < maxRetries; i++ {
 		if err := fn(); err == nil {
@@ -390,13 +390,13 @@ func WithRetry(t *testing.T, maxRetries int, delay time.Duration, fn func() erro
 // AssertEventuallyTrue waits for a condition to become true within a timeout
 func AssertEventuallyTrue(t *testing.T, condition func() bool, timeout time.Duration, message string) {
 	t.Helper()
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	
+
 	ticker := time.NewTicker(10 * time.Millisecond)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -429,7 +429,7 @@ func (mfs *MockFileSystem) WriteFile(path string, data []byte) {
 	mfs.mu.Lock()
 	defer mfs.mu.Unlock()
 	mfs.files[path] = data
-	
+
 	// Create parent directories
 	parts := strings.Split(path, "/")
 	for i := 1; i < len(parts); i++ {

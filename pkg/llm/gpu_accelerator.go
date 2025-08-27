@@ -20,10 +20,10 @@ type GPUAccelerator struct {
 	meter  metric.Meter
 
 	// GPU resources
-	devices      []*GPUDevice
-	devicePool   *GPUDevicePool
-	memoryPool   *GPUMemoryPool
-	streamPool   *CUDAStreamPool
+	devices    []*GPUDevice
+	devicePool *GPUDevicePool
+	memoryPool *GPUMemoryPool
+	streamPool *CUDAStreamPool
 
 	// Model management
 	modelCache   *GPUModelCache
@@ -40,7 +40,7 @@ type GPUAccelerator struct {
 
 	// Configuration
 	config *GPUAcceleratorConfig
-	
+
 	// Metrics
 	metrics *GPUMetrics
 
@@ -59,32 +59,32 @@ type GPUDevice struct {
 	CoreCount         int
 	ClockRate         int
 	MemoryBandwidth   int64
-	
+
 	// Runtime state
 	Utilization     float64
 	Temperature     int
 	PowerUsage      float64
 	ActiveStreams   int
 	AllocatedMemory int64
-	
+
 	// CUDA context
 	Context    CUDAContext
 	IsActive   bool
 	LastAccess time.Time
-	
+
 	mutex sync.RWMutex
 }
 
 // GPUDevicePool manages a pool of GPU devices
 type GPUDevicePool struct {
-	devices     []*GPUDevice
-	roundRobin  int
+	devices      []*GPUDevice
+	roundRobin   int
 	loadBalancer *GPULoadBalancer
-	
+
 	// Device selection strategies
 	selectionStrategy DeviceSelectionStrategy
-	affinityMap      map[string]int // Model to preferred device mapping
-	
+	affinityMap       map[string]int // Model to preferred device mapping
+
 	mutex sync.RWMutex
 }
 
@@ -92,25 +92,23 @@ type GPUDevicePool struct {
 type GPUMemoryPool struct {
 	// Memory pools by size class
 	smallPool  *MemoryChunkPool // < 100MB
-	mediumPool *MemoryChunkPool // 100MB - 1GB  
+	mediumPool *MemoryChunkPool // 100MB - 1GB
 	largePool  *MemoryChunkPool // > 1GB
-	
+
 	// Allocation tracking
 	totalAllocated int64
 	peakAllocated  int64
 	allocationMap  map[uintptr]*MemoryChunk
-	
+
 	// Memory defragmentation
 	defragmenter *MemoryDefragmenter
 	gcTrigger    *GPUGCTrigger
-	
+
 	// Statistics
 	stats *MemoryPoolStats
-	
+
 	mutex sync.RWMutex
 }
-
-
 
 // GPUBatchProcessor handles batching for optimal GPU utilization
 type GPUBatchProcessor struct {
@@ -118,63 +116,63 @@ type GPUBatchProcessor struct {
 	maxBatchSize    int
 	batchTimeout    time.Duration
 	dynamicBatching bool
-	
+
 	// Request queues by model
 	modelQueues map[string]*ModelRequestQueue
-	
+
 	// Processing strategies
 	batchingStrategy BatchingStrategy
 	paddingStrategy  PaddingStrategy
 	sortingStrategy  SortingStrategy
-	
+
 	// Performance optimization
 	throughputOptimizer *ThroughputOptimizer
-	latencyOptimizer   *LatencyOptimizer
-	
+	latencyOptimizer    *LatencyOptimizer
+
 	// Metrics
 	batchMetrics *BatchProcessingMetrics
-	
+
 	mutex sync.RWMutex
 }
 
 // GPUAcceleratorConfig holds GPU acceleration configuration
 type GPUAcceleratorConfig struct {
 	// Device configuration
-	EnabledDevices     []int             `json:"enabled_devices"`
-	DeviceSelection    string            `json:"device_selection"` // round_robin, load_balanced, affinity
-	EnableMultiGPU     bool              `json:"enable_multi_gpu"`
-	EnableTensorParallel bool            `json:"enable_tensor_parallel"`
-	
+	EnabledDevices       []int  `json:"enabled_devices"`
+	DeviceSelection      string `json:"device_selection"` // round_robin, load_balanced, affinity
+	EnableMultiGPU       bool   `json:"enable_multi_gpu"`
+	EnableTensorParallel bool   `json:"enable_tensor_parallel"`
+
 	// Memory management
 	MemoryPoolConfig   GPUMemoryPoolConfig `json:"memory_pool_config"`
 	EnableMemoryPool   bool                `json:"enable_memory_pool"`
 	GCThresholdPercent float64             `json:"gc_threshold_percent"`
-	
+
 	// Model caching
-	ModelCacheConfig   ModelCacheConfig `json:"model_cache_config"`
-	EnableModelCache   bool             `json:"enable_model_cache"`
-	PreloadModels      []string         `json:"preload_models"`
-	
+	ModelCacheConfig ModelCacheConfig `json:"model_cache_config"`
+	EnableModelCache bool             `json:"enable_model_cache"`
+	PreloadModels    []string         `json:"preload_models"`
+
 	// Batch processing
 	BatchConfig        BatchProcessorConfig `json:"batch_config"`
 	EnableBatching     bool                 `json:"enable_batching"`
 	DynamicBatchSizing bool                 `json:"dynamic_batch_sizing"`
-	
+
 	// Performance tuning
-	EnableOptimization    bool    `json:"enable_optimization"`
-	TargetLatency        float64 `json:"target_latency_ms"`
-	TargetThroughput     float64 `json:"target_throughput"`
-	EnableAutoTuning     bool    `json:"enable_auto_tuning"`
-	
+	EnableOptimization bool    `json:"enable_optimization"`
+	TargetLatency      float64 `json:"target_latency_ms"`
+	TargetThroughput   float64 `json:"target_throughput"`
+	EnableAutoTuning   bool    `json:"enable_auto_tuning"`
+
 	// CUDA settings
-	CUDAStreamsPerDevice int     `json:"cuda_streams_per_device"`
-	EnableCUDAGraphs     bool    `json:"enable_cuda_graphs"`
-	GraphCaptureWarmup   int     `json:"graph_capture_warmup"`
-	
+	CUDAStreamsPerDevice int  `json:"cuda_streams_per_device"`
+	EnableCUDAGraphs     bool `json:"enable_cuda_graphs"`
+	GraphCaptureWarmup   int  `json:"graph_capture_warmup"`
+
 	// Monitoring
-	MetricsInterval      time.Duration `json:"metrics_interval"`
-	EnableProfiling      bool          `json:"enable_profiling"`
-	ProfileOutputPath    string        `json:"profile_output_path"`
+	MetricsInterval   time.Duration `json:"metrics_interval"`
+	EnableProfiling   bool          `json:"enable_profiling"`
+	ProfileOutputPath string        `json:"profile_output_path"`
 }
 
 // NewGPUAccelerator creates a new GPU accelerator
@@ -345,15 +343,15 @@ func (ga *GPUAccelerator) GetDeviceInfo() []*GPUDeviceInfo {
 	for i, device := range ga.devices {
 		device.mutex.RLock()
 		info[i] = &GPUDeviceInfo{
-			ID:               device.ID,
-			Name:             device.Name,
+			ID:                device.ID,
+			Name:              device.Name,
 			ComputeCapability: device.ComputeCapability,
-			TotalMemory:      device.TotalMemory,
-			AvailableMemory:  device.AvailableMemory,
-			Utilization:      device.Utilization,
-			Temperature:      device.Temperature,
-			PowerUsage:       device.PowerUsage,
-			IsActive:         device.IsActive,
+			TotalMemory:       device.TotalMemory,
+			AvailableMemory:   device.AvailableMemory,
+			Utilization:       device.Utilization,
+			Temperature:       device.Temperature,
+			PowerUsage:        device.PowerUsage,
+			IsActive:          device.IsActive,
 		}
 		device.mutex.RUnlock()
 	}
@@ -503,17 +501,17 @@ func discoverGPUDevices(enabledDevices []int) ([]*GPUDevice, error) {
 	devices := []*GPUDevice{
 		{
 			ID:                0,
-			Name:             "NVIDIA RTX 4090",
+			Name:              "NVIDIA RTX 4090",
 			ComputeCapability: "8.9",
-			TotalMemory:      24 * 1024 * 1024 * 1024, // 24GB
-			AvailableMemory:  20 * 1024 * 1024 * 1024, // 20GB available
-			CoreCount:        16384,
-			ClockRate:        2520,
-			MemoryBandwidth:  1008 * 1024 * 1024 * 1024, // 1008 GB/s
-			IsActive:         true,
+			TotalMemory:       24 * 1024 * 1024 * 1024, // 24GB
+			AvailableMemory:   20 * 1024 * 1024 * 1024, // 20GB available
+			CoreCount:         16384,
+			ClockRate:         2520,
+			MemoryBandwidth:   1008 * 1024 * 1024 * 1024, // 1008 GB/s
+			IsActive:          true,
 		},
 	}
-	
+
 	// Filter by enabled devices if specified
 	if len(enabledDevices) > 0 {
 		filtered := make([]*GPUDevice, 0)
@@ -527,7 +525,7 @@ func discoverGPUDevices(enabledDevices []int) ([]*GPUDevice, error) {
 		}
 		return filtered, nil
 	}
-	
+
 	return devices, nil
 }
 
@@ -543,7 +541,7 @@ func getDefaultGPUConfig() *GPUAcceleratorConfig {
 		EnableBatching:       true,
 		DynamicBatchSizing:   true,
 		EnableOptimization:   true,
-		TargetLatency:        100.0, // 100ms
+		TargetLatency:        100.0,  // 100ms
 		TargetThroughput:     1000.0, // 1000 tokens/sec
 		EnableAutoTuning:     true,
 		CUDAStreamsPerDevice: 4,
@@ -595,7 +593,6 @@ type MemoryChunk struct{}
 type GPUMemoryPoolConfig struct{}
 type ModelCacheConfig struct{}
 
-
 type InferenceRequest struct {
 	ModelName   string
 	InputTokens []int
@@ -610,15 +607,15 @@ type InferenceResponse struct {
 }
 
 type GPUDeviceInfo struct {
-	ID               int
-	Name             string
+	ID                int
+	Name              string
 	ComputeCapability string
-	TotalMemory      int64
-	AvailableMemory  int64
-	Utilization      float64
-	Temperature      int
-	PowerUsage       float64
-	IsActive         bool
+	TotalMemory       int64
+	AvailableMemory   int64
+	Utilization       float64
+	Temperature       int
+	PowerUsage        float64
+	IsActive          bool
 }
 
 const (
@@ -628,24 +625,46 @@ const (
 
 // Placeholder methods
 func getDeviceSelectionStrategy(strategy string) DeviceSelectionStrategy { return 0 }
-func NewGPUMemoryPool(config GPUMemoryPoolConfig) (*GPUMemoryPool, error) { return &GPUMemoryPool{}, nil }
+func NewGPUMemoryPool(config GPUMemoryPoolConfig) (*GPUMemoryPool, error) {
+	return &GPUMemoryPool{}, nil
+}
 func NewGPUModelCache(config ModelCacheConfig) (*GPUModelCache, error) { return &GPUModelCache{}, nil }
-func NewGPUBatchProcessor(config BatchProcessorConfig) (*GPUBatchProcessor, error) { return &GPUBatchProcessor{}, nil }
-func NewGPUPerformanceOptimizer(ga *GPUAccelerator) *GPUPerformanceOptimizer { return &GPUPerformanceOptimizer{} }
-func NewGPUWorkloadScheduler(ga *GPUAccelerator) *GPUWorkloadScheduler { return &GPUWorkloadScheduler{} }
+func NewGPUBatchProcessor(config BatchProcessorConfig) (*GPUBatchProcessor, error) {
+	return &GPUBatchProcessor{}, nil
+}
+func NewGPUPerformanceOptimizer(ga *GPUAccelerator) *GPUPerformanceOptimizer {
+	return &GPUPerformanceOptimizer{}
+}
+func NewGPUWorkloadScheduler(ga *GPUAccelerator) *GPUWorkloadScheduler {
+	return &GPUWorkloadScheduler{}
+}
 
-func (dp *GPUDevicePool) SelectDevice(request *InferenceRequest) (*GPUDevice, error) { return dp.devices[0], nil }
-func (ga *GPUAccelerator) ensureModelLoaded(ctx context.Context, modelName string, device *GPUDevice) (interface{}, error) { return nil, nil }
-func (ga *GPUAccelerator) prepareInputTensors(request *InferenceRequest, device *GPUDevice) (interface{}, error) { return nil, nil }
-func (ga *GPUAccelerator) executeInference(ctx context.Context, model, inputTensors interface{}, device *GPUDevice) (interface{}, error) { return nil, nil }
-func (ga *GPUAccelerator) processOutput(outputTensors interface{}, request *InferenceRequest) (*InferenceResponse, error) { return &InferenceResponse{}, nil }
-func (ga *GPUAccelerator) processSequentially(ctx context.Context, requests []*InferenceRequest) ([]*InferenceResponse, error) { return nil, nil }
+func (dp *GPUDevicePool) SelectDevice(request *InferenceRequest) (*GPUDevice, error) {
+	return dp.devices[0], nil
+}
+func (ga *GPUAccelerator) ensureModelLoaded(ctx context.Context, modelName string, device *GPUDevice) (interface{}, error) {
+	return nil, nil
+}
+func (ga *GPUAccelerator) prepareInputTensors(request *InferenceRequest, device *GPUDevice) (interface{}, error) {
+	return nil, nil
+}
+func (ga *GPUAccelerator) executeInference(ctx context.Context, model, inputTensors interface{}, device *GPUDevice) (interface{}, error) {
+	return nil, nil
+}
+func (ga *GPUAccelerator) processOutput(outputTensors interface{}, request *InferenceRequest) (*InferenceResponse, error) {
+	return &InferenceResponse{}, nil
+}
+func (ga *GPUAccelerator) processSequentially(ctx context.Context, requests []*InferenceRequest) ([]*InferenceResponse, error) {
+	return nil, nil
+}
 func (ga *GPUAccelerator) updateDeviceStats(device *GPUDevice) {}
-func (ga *GPUAccelerator) triggerMemoryGC(device *GPUDevice) {}
-func (ga *GPUAccelerator) preloadModels(models []string) {}
+func (ga *GPUAccelerator) triggerMemoryGC(device *GPUDevice)   {}
+func (ga *GPUAccelerator) preloadModels(models []string)       {}
 
-func (bp *GPUBatchProcessor) ProcessBatch(ctx context.Context, requests []*InferenceRequest) ([]*InferenceResponse, error) { return nil, nil }
+func (bp *GPUBatchProcessor) ProcessBatch(ctx context.Context, requests []*InferenceRequest) ([]*InferenceResponse, error) {
+	return nil, nil
+}
 func (bp *GPUBatchProcessor) Close() {}
 
-func (mp *GPUMemoryPool) Close() {}
+func (mp *GPUMemoryPool) Close()                                                   {}
 func (opt *GPUPerformanceOptimizer) OptimizePerformance(ctx context.Context) error { return nil }

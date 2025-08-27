@@ -40,11 +40,11 @@ type ResilienceConfig struct {
 
 	// Feature flags for enabling/disabling patterns
 	TimeoutEnabled        bool
-	BulkheadEnabled      bool
+	BulkheadEnabled       bool
 	CircuitBreakerEnabled bool
-	RateLimitingEnabled  bool
-	RetryEnabled         bool
-	HealthCheckEnabled   bool
+	RateLimitingEnabled   bool
+	RetryEnabled          bool
+	HealthCheckEnabled    bool
 
 	// Timeout configurations for different operation types
 	TimeoutConfigs map[string]*TimeoutConfig
@@ -61,23 +61,23 @@ type ResilienceConfig struct {
 
 // TimeoutConfig defines timeout configuration for a specific operation
 type TimeoutConfig struct {
-	Name             string
-	DefaultTimeout   time.Duration
-	MaxTimeout       time.Duration
-	MinTimeout       time.Duration
-	AdaptiveTimeout  bool
-	TimeoutGradient  bool
+	Name            string
+	DefaultTimeout  time.Duration
+	MaxTimeout      time.Duration
+	MinTimeout      time.Duration
+	AdaptiveTimeout bool
+	TimeoutGradient bool
 }
 
 // CircuitBreakerConfig defines circuit breaker configuration
 type CircuitBreakerConfig struct {
-	Name                string
-	MaxRequests         uint32
-	Interval            time.Duration
-	Timeout             time.Duration
-	ReadyToTrip         func(counts gobreaker.Counts) bool
-	OnStateChange       func(name string, from gobreaker.State, to gobreaker.State)
-	IsSuccessful        func(err error) bool
+	Name          string
+	MaxRequests   uint32
+	Interval      time.Duration
+	Timeout       time.Duration
+	ReadyToTrip   func(counts gobreaker.Counts) bool
+	OnStateChange func(name string, from gobreaker.State, to gobreaker.State)
+	IsSuccessful  func(err error) bool
 }
 
 // RateLimitConfig defines rate limiting configuration
@@ -140,12 +140,12 @@ type CircuitBreakerMetrics struct {
 	ConsecutiveFail int64
 }
 
-// RateLimitMetrics contains rate limiting metrics  
+// RateLimitMetrics contains rate limiting metrics
 type RateLimitMetrics struct {
-	AllowedRequests  int64
-	DroppedRequests  int64
-	CurrentQPS       float64
-	BurstCapacity    int
+	AllowedRequests int64
+	DroppedRequests int64
+	CurrentQPS      float64
+	BurstCapacity   int
 }
 
 // RetryMetrics contains retry-related metrics
@@ -174,11 +174,11 @@ type HealthMetrics struct {
 
 // ResilienceManager implements resilience patterns for distributed systems
 type ResilienceManager struct {
-	config  *ResilienceConfig
-	logger  logr.Logger
-	mu      sync.RWMutex
-	ctx     context.Context
-	cancel  context.CancelFunc
+	config *ResilienceConfig
+	logger logr.Logger
+	mu     sync.RWMutex
+	ctx    context.Context
+	cancel context.CancelFunc
 
 	// Pattern implementations
 	circuitBreakers map[string]*gobreaker.CircuitBreaker
@@ -190,9 +190,9 @@ type ResilienceManager struct {
 	metrics *ResilienceMetrics
 
 	// Internal state
-	running       bool
-	healthTicker  *time.Ticker
-	healthChecks  map[string]HealthCheckFunc
+	running      bool
+	healthTicker *time.Ticker
+	healthChecks map[string]HealthCheckFunc
 }
 
 // HealthCheckFunc defines a function that performs a health check
@@ -243,11 +243,11 @@ func NewResilienceManager(config *ResilienceConfig, logger logr.Logger) *Resilie
 			MaxConcurrentOperations: 100,
 			HealthCheckInterval:     30 * time.Second,
 			TimeoutEnabled:          true,
-			BulkheadEnabled:        true,
-			CircuitBreakerEnabled:  true,
-			RateLimitingEnabled:    true,
-			RetryEnabled:           true,
-			HealthCheckEnabled:     true,
+			BulkheadEnabled:         true,
+			CircuitBreakerEnabled:   true,
+			RateLimitingEnabled:     true,
+			RetryEnabled:            true,
+			HealthCheckEnabled:      true,
 		}
 	}
 
@@ -319,7 +319,7 @@ func (rm *ResilienceManager) ExecuteWithTimeout(ctx context.Context, operationTy
 	}
 
 	config := rm.getTimeoutConfig(operationType)
-	
+
 	timeoutCtx, cancel := context.WithTimeout(ctx, config.DefaultTimeout)
 	defer cancel()
 
@@ -349,7 +349,7 @@ func (rm *ResilienceManager) ExecuteWithRateLimit(ctx context.Context, limiterNa
 	}
 
 	limiter := rm.getRateLimiter(limiterName)
-	
+
 	if !limiter.Allow() {
 		rm.updateRateLimitMetrics(false)
 		return fmt.Errorf("rate limit exceeded for %s", limiterName)
@@ -366,7 +366,7 @@ func (rm *ResilienceManager) ExecuteWithBulkhead(ctx context.Context, bulkheadNa
 	}
 
 	sem := rm.getSemaphore(bulkheadName)
-	
+
 	if err := sem.Acquire(ctx); err != nil {
 		rm.updateBulkheadMetrics(bulkheadName, false)
 		return fmt.Errorf("failed to acquire bulkhead permit: %w", err)
@@ -385,7 +385,7 @@ func (rm *ResilienceManager) ExecuteWithRetry(ctx context.Context, retryName str
 
 	config := rm.getRetryConfig(retryName)
 	var lastErr error
-	
+
 	for attempt := 0; attempt < config.MaxAttempts; attempt++ {
 		lastErr = fn()
 		if lastErr == nil {
@@ -413,7 +413,7 @@ func (rm *ResilienceManager) ExecuteWithRetry(ctx context.Context, retryName str
 func (rm *ResilienceManager) RegisterHealthCheck(name string, healthCheck HealthCheckFunc) {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
-	
+
 	rm.healthChecks[name] = healthCheck
 	rm.logger.Info("Health check registered", "name", name)
 }
@@ -422,7 +422,7 @@ func (rm *ResilienceManager) RegisterHealthCheck(name string, healthCheck Health
 func (rm *ResilienceManager) GetMetrics() *ResilienceMetrics {
 	rm.mu.RLock()
 	defer rm.mu.RUnlock()
-	
+
 	// Return a copy to avoid concurrent access issues
 	return &ResilienceMetrics{
 		TimeoutMetrics:        rm.metrics.TimeoutMetrics,
@@ -458,7 +458,7 @@ func (rm *ResilienceManager) initializeMetrics() {
 			State: "closed",
 		},
 		RateLimitMetrics: &RateLimitMetrics{},
-		RetryMetrics: &RetryMetrics{},
+		RetryMetrics:     &RetryMetrics{},
 		BulkheadMetrics: &BulkheadMetrics{
 			MaxConcurrency: rm.config.MaxConcurrentOperations,
 		},
@@ -609,7 +609,7 @@ func (rm *ResilienceManager) createRateLimiter(name string, config *RateLimitCon
 // calculateBackoff calculates backoff duration for retry
 func (rm *ResilienceManager) calculateBackoff(config *RetryConfig, attempt int) time.Duration {
 	backoff := time.Duration(float64(config.InitialBackoff) * (config.Multiplier * float64(attempt)))
-	
+
 	if backoff > config.MaxBackoff {
 		backoff = config.MaxBackoff
 	}
@@ -632,7 +632,7 @@ func (rm *ResilienceManager) updateTimeoutMetrics(duration time.Duration, timedO
 	if timedOut {
 		rm.metrics.TimeoutMetrics.TimeoutOperations++
 	}
-	
+
 	// Update average latency (simple moving average)
 	totalOps := rm.metrics.TimeoutMetrics.TotalOperations
 	currentAvg := rm.metrics.TimeoutMetrics.AverageLatency
@@ -700,7 +700,7 @@ func (rm *ResilienceManager) performHealthChecks() {
 
 		healthy := err == nil
 		rm.metrics.HealthMetrics.ComponentsHealthy[name] = healthy
-		
+
 		if !healthy {
 			overallHealthy = false
 			rm.metrics.HealthMetrics.HealthCheckErrors++

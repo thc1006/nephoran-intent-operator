@@ -54,18 +54,18 @@ func (m *MockProvider) GetInfo() ProviderInfo {
 func (m *MockProvider) Initialize(ctx context.Context, config ProviderConfig) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	if m.initialized {
 		return fmt.Errorf("provider already initialized")
 	}
-	
+
 	if m.closed {
 		return fmt.Errorf("provider is closed")
 	}
-	
+
 	m.config = config
 	m.initialized = true
-	
+
 	return nil
 }
 
@@ -73,18 +73,18 @@ func (m *MockProvider) Initialize(ctx context.Context, config ProviderConfig) er
 func (m *MockProvider) CreateResource(ctx context.Context, req ResourceRequest) (*Resource, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	if !m.initialized {
 		return nil, fmt.Errorf("provider not initialized")
 	}
-	
+
 	if m.closed {
 		return nil, fmt.Errorf("provider is closed")
 	}
-	
+
 	// Generate a simple ID
 	id := fmt.Sprintf("%s-%d", req.Name, time.Now().Unix())
-	
+
 	resource := &Resource{
 		ID:        id,
 		Name:      req.Name,
@@ -95,9 +95,9 @@ func (m *MockProvider) CreateResource(ctx context.Context, req ResourceRequest) 
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	
+
 	m.resources[id] = resource
-	
+
 	// Simulate async creation
 	go func() {
 		time.Sleep(100 * time.Millisecond)
@@ -108,7 +108,7 @@ func (m *MockProvider) CreateResource(ctx context.Context, req ResourceRequest) 
 			res.UpdatedAt = time.Now()
 		}
 	}()
-	
+
 	return resource, nil
 }
 
@@ -116,16 +116,16 @@ func (m *MockProvider) CreateResource(ctx context.Context, req ResourceRequest) 
 func (m *MockProvider) GetResource(ctx context.Context, id string) (*Resource, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	if !m.initialized {
 		return nil, fmt.Errorf("provider not initialized")
 	}
-	
+
 	resource, exists := m.resources[id]
 	if !exists {
 		return nil, fmt.Errorf("resource %s not found", id)
 	}
-	
+
 	// Return a copy to avoid external modifications
 	resourceCopy := *resource
 	return &resourceCopy, nil
@@ -135,13 +135,13 @@ func (m *MockProvider) GetResource(ctx context.Context, id string) (*Resource, e
 func (m *MockProvider) ListResources(ctx context.Context, filter ResourceFilter) ([]*Resource, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	if !m.initialized {
 		return nil, fmt.Errorf("provider not initialized")
 	}
-	
+
 	var results []*Resource
-	
+
 	for _, resource := range m.resources {
 		if m.matchesFilter(resource, filter) {
 			// Return a copy to avoid external modifications
@@ -149,7 +149,7 @@ func (m *MockProvider) ListResources(ctx context.Context, filter ResourceFilter)
 			results = append(results, &resourceCopy)
 		}
 	}
-	
+
 	return results, nil
 }
 
@@ -157,23 +157,23 @@ func (m *MockProvider) ListResources(ctx context.Context, filter ResourceFilter)
 func (m *MockProvider) UpdateResource(ctx context.Context, id string, req ResourceRequest) (*Resource, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	if !m.initialized {
 		return nil, fmt.Errorf("provider not initialized")
 	}
-	
+
 	resource, exists := m.resources[id]
 	if !exists {
 		return nil, fmt.Errorf("resource %s not found", id)
 	}
-	
+
 	// Update resource fields
 	resource.Name = req.Name
 	resource.Spec = req.Spec
 	resource.Labels = req.Labels
 	resource.Status = StatusUpdating
 	resource.UpdatedAt = time.Now()
-	
+
 	// Simulate async update
 	go func() {
 		time.Sleep(50 * time.Millisecond)
@@ -184,7 +184,7 @@ func (m *MockProvider) UpdateResource(ctx context.Context, id string, req Resour
 			res.UpdatedAt = time.Now()
 		}
 	}()
-	
+
 	// Return a copy
 	resourceCopy := *resource
 	return &resourceCopy, nil
@@ -194,19 +194,19 @@ func (m *MockProvider) UpdateResource(ctx context.Context, id string, req Resour
 func (m *MockProvider) DeleteResource(ctx context.Context, id string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	if !m.initialized {
 		return fmt.Errorf("provider not initialized")
 	}
-	
+
 	resource, exists := m.resources[id]
 	if !exists {
 		return fmt.Errorf("resource %s not found", id)
 	}
-	
+
 	resource.Status = StatusDeleting
 	resource.UpdatedAt = time.Now()
-	
+
 	// Simulate async deletion
 	go func() {
 		time.Sleep(50 * time.Millisecond)
@@ -214,7 +214,7 @@ func (m *MockProvider) DeleteResource(ctx context.Context, id string) error {
 		defer m.mu.Unlock()
 		delete(m.resources, id)
 	}()
-	
+
 	return nil
 }
 
@@ -222,16 +222,16 @@ func (m *MockProvider) DeleteResource(ctx context.Context, id string) error {
 func (m *MockProvider) GetResourceStatus(ctx context.Context, id string) (ResourceStatus, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	if !m.initialized {
 		return StatusUnknown, fmt.Errorf("provider not initialized")
 	}
-	
+
 	resource, exists := m.resources[id]
 	if !exists {
 		return StatusUnknown, fmt.Errorf("resource %s not found", id)
 	}
-	
+
 	return resource.Status, nil
 }
 
@@ -239,16 +239,16 @@ func (m *MockProvider) GetResourceStatus(ctx context.Context, id string) (Resour
 func (m *MockProvider) Close() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	if m.closed {
 		return nil // Already closed
 	}
-	
+
 	// Clear resources
 	m.resources = make(map[string]*Resource)
 	m.initialized = false
 	m.closed = true
-	
+
 	return nil
 }
 
@@ -258,17 +258,17 @@ func (m *MockProvider) matchesFilter(resource *Resource, filter ResourceFilter) 
 	if filter.Type != nil && *filter.Type != resource.Type {
 		return false
 	}
-	
+
 	// Status filter
 	if filter.Status != nil && *filter.Status != resource.Status {
 		return false
 	}
-	
+
 	// Name prefix filter
 	if filter.NamePrefix != "" && !startsWith(resource.Name, filter.NamePrefix) {
 		return false
 	}
-	
+
 	// Labels filter
 	if filter.Labels != nil {
 		for key, value := range filter.Labels {
@@ -280,7 +280,7 @@ func (m *MockProvider) matchesFilter(resource *Resource, filter ResourceFilter) 
 			}
 		}
 	}
-	
+
 	return true
 }
 
@@ -297,15 +297,15 @@ func MockProviderConstructor(config ProviderConfig) (Provider, error) {
 			name = nameStr
 		}
 	}
-	
+
 	provider := NewMockProvider(name)
-	
+
 	// Initialize with the provided config
 	ctx := context.Background()
 	if err := provider.Initialize(ctx, config); err != nil {
 		return nil, fmt.Errorf("failed to initialize mock provider: %w", err)
 	}
-	
+
 	return provider, nil
 }
 

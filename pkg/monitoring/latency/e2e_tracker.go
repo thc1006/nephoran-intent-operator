@@ -281,7 +281,7 @@ func NewE2ELatencyTracker(config *E2ETrackerConfig) *E2ELatencyTracker {
 
 // StartIntent begins tracking a new intent
 func (t *E2ELatencyTracker) StartIntent(ctx context.Context, intentID, intentType string) context.Context {
-	trace := &IntentTrace{
+	intentTrace := &IntentTrace{
 		ID:         fmt.Sprintf("trace-%s-%d", intentID, time.Now().UnixNano()),
 		IntentID:   intentID,
 		IntentType: intentType,
@@ -291,20 +291,20 @@ func (t *E2ELatencyTracker) StartIntent(ctx context.Context, intentID, intentTyp
 	}
 
 	// Extract trace context if available
-	if span := trace.SpanFromContext(ctx); span != nil {
-		trace.TraceContext = span.SpanContext()
+	if span := trace.SpanFromContext(ctx); span.SpanContext().IsValid() {
+		intentTrace.TraceContext = span.SpanContext()
 	}
 
 	// Store active trace
 	t.mu.Lock()
-	t.activeIntents[intentID] = trace
+	t.activeIntents[intentID] = intentTrace
 	t.mu.Unlock()
 
 	// Update statistics
 	t.stats.TotalIntents.Add(1)
 
 	// Store trace ID in context
-	ctx = context.WithValue(ctx, "e2e_trace_id", trace.ID)
+	ctx = context.WithValue(ctx, "e2e_trace_id", intentTrace.ID)
 
 	return ctx
 }

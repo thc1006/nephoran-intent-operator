@@ -8,24 +8,24 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/ims"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/ims"
 )
 
 // Missing types for O2 adaptor compilation
 
 // NotificationEventType represents a type of notification event
 type NotificationEventType struct {
-	EventTypeID   string                 `json:"eventTypeId"`
-	Name          string                 `json:"name"`
-	Description   string                 `json:"description,omitempty"`
-	Schema        string                 `json:"schema,omitempty"`
-	Category      string                 `json:"category,omitempty"`
-	Severity      string                 `json:"severity,omitempty"`
-	Extensions    map[string]interface{} `json:"extensions,omitempty"`
-	CreatedAt     time.Time              `json:"createdAt"`
-	UpdatedAt     time.Time              `json:"updatedAt"`
+	EventTypeID string                 `json:"eventTypeId"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description,omitempty"`
+	Schema      string                 `json:"schema,omitempty"`
+	Category    string                 `json:"category,omitempty"`
+	Severity    string                 `json:"severity,omitempty"`
+	Extensions  map[string]interface{} `json:"extensions,omitempty"`
+	CreatedAt   time.Time              `json:"createdAt"`
+	UpdatedAt   time.Time              `json:"updatedAt"`
 }
 
 // AlarmAcknowledgementRequest represents a request to acknowledge an alarm
@@ -72,17 +72,17 @@ type NetworkPolicyRule struct {
 
 // Asset represents an infrastructure asset (placeholder implementation)
 type Asset struct {
-	ID           string                 `json:"id"`
-	Name         string                 `json:"name"`
-	Type         string                 `json:"type"`
-	Category     string                 `json:"category"`
-	Status       string                 `json:"status"`
-	Location     string                 `json:"location,omitempty"`
-	Owner        string                 `json:"owner,omitempty"`
+	ID            string                 `json:"id"`
+	Name          string                 `json:"name"`
+	Type          string                 `json:"type"`
+	Category      string                 `json:"category"`
+	Status        string                 `json:"status"`
+	Location      string                 `json:"location,omitempty"`
+	Owner         string                 `json:"owner,omitempty"`
 	Configuration map[string]interface{} `json:"configuration,omitempty"`
-	Metadata     map[string]string      `json:"metadata,omitempty"`
-	CreatedAt    time.Time              `json:"createdAt"`
-	UpdatedAt    time.Time              `json:"updatedAt"`
+	Metadata      map[string]string      `json:"metadata,omitempty"`
+	CreatedAt     time.Time              `json:"createdAt"`
+	UpdatedAt     time.Time              `json:"updatedAt"`
 }
 
 // AlarmFilter defines filters for querying alarms
@@ -104,15 +104,15 @@ type AlarmFilter struct {
 
 // MetricsFilter defines filters for querying metrics
 type MetricsFilter struct {
-	ResourceIDs  []string          `json:"resourceIds,omitempty"`
-	MetricNames  []string          `json:"metricNames,omitempty"`
-	StartTime    *time.Time        `json:"startTime,omitempty"`
-	EndTime      *time.Time        `json:"endTime,omitempty"`
-	Labels       map[string]string `json:"labels,omitempty"`
-	Aggregation  string            `json:"aggregation,omitempty"`
-	Interval     string            `json:"interval,omitempty"`
-	Limit        int               `json:"limit,omitempty"`
-	Offset       int               `json:"offset,omitempty"`
+	ResourceIDs []string          `json:"resourceIds,omitempty"`
+	MetricNames []string          `json:"metricNames,omitempty"`
+	StartTime   *time.Time        `json:"startTime,omitempty"`
+	EndTime     *time.Time        `json:"endTime,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	Aggregation string            `json:"aggregation,omitempty"`
+	Interval    string            `json:"interval,omitempty"`
+	Limit       int               `json:"limit,omitempty"`
+	Offset      int               `json:"offset,omitempty"`
 }
 
 // Stub IMS service implementations for missing services

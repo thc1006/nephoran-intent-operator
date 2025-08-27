@@ -503,7 +503,7 @@ func (p *OptimizedRAGPipeline) executeBatchSearch(ctx context.Context, requests 
 				Document: sharedResult.Document,
 			}
 		}
-		
+
 		ragResponses[i] = &RAGResponse{
 			Answer:          "",
 			SourceDocuments: make([]*types.SearchResult, len(searchResponse.Results)),

@@ -26,7 +26,7 @@ type MetricsCollector struct {
 	goroutineCount int
 	mu             sync.RWMutex
 	stopChan       chan struct{}
-	
+
 	// CNF deployment metrics
 	cnfDeployments map[string]time.Duration
 	cnfMutex       sync.RWMutex
@@ -97,7 +97,7 @@ func (mc *MetricsCollector) calculateCPUUsage() float64 {
 func (mc *MetricsCollector) RecordCNFDeployment(function CNFFunction, duration time.Duration) {
 	mc.cnfMutex.Lock()
 	defer mc.cnfMutex.Unlock()
-	
+
 	// Store the deployment duration for the CNF function
 	mc.cnfDeployments[string(function)] = duration
 }
@@ -106,7 +106,7 @@ func (mc *MetricsCollector) RecordCNFDeployment(function CNFFunction, duration t
 func (mc *MetricsCollector) GetCNFDeploymentMetrics() map[string]time.Duration {
 	mc.cnfMutex.RLock()
 	defer mc.cnfMutex.RUnlock()
-	
+
 	result := make(map[string]time.Duration)
 	for k, v := range mc.cnfDeployments {
 		result[k] = v
@@ -175,12 +175,12 @@ func (mc *MetricsCollector) ExportMetrics(registry *prometheus.Registry) {
 		Name: "cnf_deployment_duration_seconds",
 		Help: "Duration of CNF deployments in seconds",
 	}, []string{"function"})
-	
+
 	for function, duration := range mc.cnfDeployments {
 		cnfGauge.WithLabelValues(function).Set(duration.Seconds())
 	}
 	mc.cnfMutex.RUnlock()
-	
+
 	registry.MustRegister(cnfGauge)
 
 	// Export analyzer metrics

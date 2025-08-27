@@ -13,11 +13,11 @@ import (
 
 // AlertRouter handles alert routing and delivery
 type AlertRouter struct {
-	rules      map[string]*AlertRule
-	channels   map[string]AlertChannel
-	alerts     map[string]*Alert
-	mutex      sync.RWMutex
-	logger     logr.Logger
+	rules    map[string]*AlertRule
+	channels map[string]AlertChannel
+	alerts   map[string]*Alert
+	mutex    sync.RWMutex
+	logger   logr.Logger
 }
 
 // AlertChannel represents a notification channel
@@ -30,11 +30,11 @@ type AlertChannel interface {
 
 // AlertStats holds alert statistics
 type AlertStats struct {
-	TotalAlerts     int64     `json:"total_alerts"`
-	FiringAlerts    int64     `json:"firing_alerts"`
-	ResolvedAlerts  int64     `json:"resolved_alerts"`
-	SuppressedAlerts int64    `json:"suppressed_alerts"`
-	LastAlert       *time.Time `json:"last_alert,omitempty"`
+	TotalAlerts       int64            `json:"total_alerts"`
+	FiringAlerts      int64            `json:"firing_alerts"`
+	ResolvedAlerts    int64            `json:"resolved_alerts"`
+	SuppressedAlerts  int64            `json:"suppressed_alerts"`
+	LastAlert         *time.Time       `json:"last_alert,omitempty"`
 	AlertsByComponent map[string]int64 `json:"alerts_by_component"`
 	AlertsBySeverity  map[string]int64 `json:"alerts_by_severity"`
 }
@@ -104,7 +104,7 @@ func (ar *AlertRouter) AddRule(rule *AlertRule) error {
 	}
 
 	ar.rules[rule.ID] = rule
-	
+
 	ar.logger.Info("Added alert rule",
 		"ruleID", rule.ID,
 		"name", rule.Name,
@@ -124,7 +124,7 @@ func (ar *AlertRouter) RemoveRule(ruleID string) error {
 	}
 
 	delete(ar.rules, ruleID)
-	
+
 	ar.logger.Info("Removed alert rule", "ruleID", ruleID)
 	return nil
 }
@@ -135,7 +135,7 @@ func (ar *AlertRouter) AddChannel(channel AlertChannel) error {
 	defer ar.mutex.Unlock()
 
 	ar.channels[channel.ID()] = channel
-	
+
 	ar.logger.Info("Added alert channel",
 		"channelID", channel.ID(),
 		"name", channel.Name())
@@ -153,7 +153,7 @@ func (ar *AlertRouter) RemoveChannel(channelID string) error {
 	}
 
 	delete(ar.channels, channelID)
-	
+
 	ar.logger.Info("Removed alert channel", "channelID", channelID)
 	return nil
 }
@@ -175,8 +175,8 @@ func (ar *AlertRouter) FireAlert(ctx context.Context, ruleID string, labels map[
 
 	// Check cooldown period
 	if rule.LastFired != nil && time.Since(*rule.LastFired) < rule.Cooldown {
-		ar.logger.V(1).Info("Rule is in cooldown period, skipping alert", 
-			"ruleID", ruleID, 
+		ar.logger.V(1).Info("Rule is in cooldown period, skipping alert",
+			"ruleID", ruleID,
 			"cooldown", rule.Cooldown.String())
 		return nil
 	}
@@ -234,7 +234,7 @@ func (ar *AlertRouter) sendAlert(ctx context.Context, alert *Alert, rule *AlertR
 	for _, channelID := range rule.Channels {
 		channel, exists := ar.channels[channelID]
 		if !exists {
-			ar.logger.Error(fmt.Errorf("channel not found"), "Failed to send alert", 
+			ar.logger.Error(fmt.Errorf("channel not found"), "Failed to send alert",
 				"channelID", channelID, "alertID", alert.ID)
 			continue
 		}
@@ -403,16 +403,16 @@ func (ar *AlertRouter) formatAlertMessage(rule *AlertRule, value float64) string
 
 // formatAlertDescription formats the alert description
 func (ar *AlertRouter) formatAlertDescription(rule *AlertRule, labels map[string]string, value float64) string {
-	desc := fmt.Sprintf("Alert triggered for rule '%s' in component '%s'. Current value %.2f %s threshold %.2f.",
-		rule.Name, rule.Component, value, rule.Condition, rule.Threshold)
-	
+	desc := fmt.Sprintf("Alert triggered for rule '%s' in component '%s'. Current value %.2f vs threshold %.2f.",
+		rule.Name, rule.Component, value, rule.Threshold)
+
 	if len(labels) > 0 {
 		desc += " Labels: "
 		for k, v := range labels {
 			desc += fmt.Sprintf("%s=%s ", k, v)
 		}
 	}
-	
+
 	return desc
 }
 

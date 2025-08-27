@@ -26,7 +26,7 @@ func NewFileBackend(basePath string, logger *slog.Logger) (SecretsBackend, error
 	if err := os.MkdirAll(basePath, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create backend directory: %w", err)
 	}
-	
+
 	return &FileBackend{
 		basePath: basePath,
 		logger:   logger,
@@ -37,17 +37,17 @@ func NewFileBackend(basePath string, logger *slog.Logger) (SecretsBackend, error
 func (fb *FileBackend) Store(ctx context.Context, key string, value *EncryptedSecret) error {
 	fb.mu.Lock()
 	defer fb.mu.Unlock()
-	
+
 	data, err := json.Marshal(value)
 	if err != nil {
 		return fmt.Errorf("failed to marshal secret: %w", err)
 	}
-	
+
 	filePath := filepath.Join(fb.basePath, key+".json")
 	if err := os.WriteFile(filePath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write secret file: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -55,7 +55,7 @@ func (fb *FileBackend) Store(ctx context.Context, key string, value *EncryptedSe
 func (fb *FileBackend) Retrieve(ctx context.Context, key string) (*EncryptedSecret, error) {
 	fb.mu.RLock()
 	defer fb.mu.RUnlock()
-	
+
 	filePath := filepath.Join(fb.basePath, key+".json")
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -64,12 +64,12 @@ func (fb *FileBackend) Retrieve(ctx context.Context, key string) (*EncryptedSecr
 		}
 		return nil, fmt.Errorf("failed to read secret file: %w", err)
 	}
-	
+
 	var secret EncryptedSecret
 	if err := json.Unmarshal(data, &secret); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal secret: %w", err)
 	}
-	
+
 	return &secret, nil
 }
 
@@ -77,7 +77,7 @@ func (fb *FileBackend) Retrieve(ctx context.Context, key string) (*EncryptedSecr
 func (fb *FileBackend) Delete(ctx context.Context, key string) error {
 	fb.mu.Lock()
 	defer fb.mu.Unlock()
-	
+
 	filePath := filepath.Join(fb.basePath, key+".json")
 	if err := os.Remove(filePath); err != nil {
 		if os.IsNotExist(err) {
@@ -85,7 +85,7 @@ func (fb *FileBackend) Delete(ctx context.Context, key string) error {
 		}
 		return fmt.Errorf("failed to delete secret file: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -93,29 +93,29 @@ func (fb *FileBackend) Delete(ctx context.Context, key string) error {
 func (fb *FileBackend) List(ctx context.Context, prefix string) ([]string, error) {
 	fb.mu.RLock()
 	defer fb.mu.RUnlock()
-	
+
 	entries, err := os.ReadDir(fb.basePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read directory: %w", err)
 	}
-	
+
 	var result []string
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
 		}
-		
+
 		name := entry.Name()
 		if !strings.HasSuffix(name, ".json") {
 			continue
 		}
-		
+
 		key := strings.TrimSuffix(name, ".json")
 		if prefix == "" || strings.HasPrefix(key, prefix) {
 			result = append(result, key)
 		}
 	}
-	
+
 	return result, nil
 }
 
@@ -123,19 +123,19 @@ func (fb *FileBackend) List(ctx context.Context, prefix string) ([]string, error
 func (fb *FileBackend) Backup(ctx context.Context) ([]byte, error) {
 	fb.mu.RLock()
 	defer fb.mu.RUnlock()
-	
+
 	secrets := make(map[string]*EncryptedSecret)
-	
+
 	entries, err := os.ReadDir(fb.basePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read directory: %w", err)
 	}
-	
+
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
 			continue
 		}
-		
+
 		key := strings.TrimSuffix(entry.Name(), ".json")
 		secret, err := fb.Retrieve(ctx, key)
 		if err != nil {
@@ -143,7 +143,7 @@ func (fb *FileBackend) Backup(ctx context.Context) ([]byte, error) {
 		}
 		secrets[key] = secret
 	}
-	
+
 	return json.Marshal(secrets)
 }
 
@@ -151,18 +151,18 @@ func (fb *FileBackend) Backup(ctx context.Context) ([]byte, error) {
 func (fb *FileBackend) Restore(ctx context.Context, data []byte) error {
 	fb.mu.Lock()
 	defer fb.mu.Unlock()
-	
+
 	var secrets map[string]*EncryptedSecret
 	if err := json.Unmarshal(data, &secrets); err != nil {
 		return fmt.Errorf("failed to unmarshal backup data: %w", err)
 	}
-	
+
 	for key, secret := range secrets {
 		if err := fb.Store(ctx, key, secret); err != nil {
 			return fmt.Errorf("failed to restore secret %s: %w", key, err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -172,13 +172,13 @@ func (fb *FileBackend) Health(ctx context.Context) error {
 	if _, err := os.Stat(fb.basePath); err != nil {
 		return fmt.Errorf("backend directory not accessible: %w", err)
 	}
-	
+
 	// Try to create a temporary file to test write permissions
 	tempFile := filepath.Join(fb.basePath, ".health_check")
 	if err := os.WriteFile(tempFile, []byte("test"), 0600); err != nil {
 		return fmt.Errorf("backend not writable: %w", err)
 	}
-	
+
 	// Clean up
 	os.Remove(tempFile)
 	return nil
@@ -206,7 +206,7 @@ func NewHashiCorpVaultBackend(config map[string]string, logger *slog.Logger) (Se
 			return nil, fmt.Errorf("missing required config field: %s", field)
 		}
 	}
-	
+
 	return &HashiCorpVaultBackend{
 		config: config,
 		logger: logger,
@@ -282,7 +282,7 @@ func NewKubernetesBackend(config map[string]string, logger *slog.Logger) (Secret
 	if namespace == "" {
 		namespace = "default"
 	}
-	
+
 	return &KubernetesBackend{
 		config:    config,
 		logger:    logger,
@@ -351,21 +351,21 @@ func LoadKeyFromFile(filePath string) ([]byte, error) {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("key file does not exist: %s", filePath)
 	}
-	
+
 	// Read the file
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read key file: %w", err)
 	}
-	
+
 	// Trim any whitespace/newlines
 	key := strings.TrimSpace(string(data))
-	
+
 	// Decode if it's base64 encoded
 	if decoded, err := base64.StdEncoding.DecodeString(key); err == nil {
 		return decoded, nil
 	}
-	
+
 	// If not base64, return as raw bytes
 	return []byte(key), nil
 }

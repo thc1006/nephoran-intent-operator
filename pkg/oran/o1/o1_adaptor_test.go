@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestNewO1Adaptor(t *testing.T) {
+func TestNewO1AdaptorConstruction(t *testing.T) {
 	tests := []struct {
 		name   string
 		config *O1Config

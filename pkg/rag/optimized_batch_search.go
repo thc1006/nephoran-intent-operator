@@ -560,7 +560,7 @@ func (c *OptimizedBatchSearchClient) convertToSharedSearchResponses(responses []
 				Metadata: result.Metadata,
 			}
 		}
-		
+
 		sharedResponses[i] = &types.SearchResponse{
 			Results: sharedResults,
 			Took:    int64(resp.Took.Nanoseconds()), // Convert duration to nanoseconds

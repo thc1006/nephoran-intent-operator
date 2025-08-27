@@ -3,7 +3,7 @@ package rag
 import (
 	"context"
 	"testing"
-	
+
 	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 )
 
@@ -11,19 +11,19 @@ import (
 func TestDocumentTypeIntegration(t *testing.T) {
 	// Create a TelecomDocument using the alias in pkg/rag
 	ragDoc := &TelecomDocument{
-		ID:       "integration-test-1",
-		Title:    "Integration Test Document",
-		Content:  "This tests the integration between pkg/rag and pkg/types",
-		Source:   "test",
-		Category: "integration-test",
-		Version:  "1.0",
-		Keywords: []string{"integration", "test"},
-		Language: "en",
-		DocumentType: "test-document",
+		ID:              "integration-test-1",
+		Title:           "Integration Test Document",
+		Content:         "This tests the integration between pkg/rag and pkg/types",
+		Source:          "test",
+		Category:        "integration-test",
+		Version:         "1.0",
+		Keywords:        []string{"integration", "test"},
+		Language:        "en",
+		DocumentType:    "test-document",
 		NetworkFunction: []string{"test-nf"},
-		Technology: []string{"test-tech"},
-		UseCase: []string{"testing"},
-		Confidence: 0.95,
+		Technology:      []string{"test-tech"},
+		UseCase:         []string{"testing"},
+		Confidence:      0.95,
 		Metadata: map[string]interface{}{
 			"test_field": "test_value",
 			"created_by": "integration_test",
@@ -42,7 +42,7 @@ func TestDocumentTypeIntegration(t *testing.T) {
 	// Test WeaviateClient AddDocument with the document
 	client := &WeaviateClient{}
 	ctx := context.Background()
-	
+
 	err := client.AddDocument(ctx, ragDoc)
 	if err != nil {
 		t.Errorf("AddDocument should not return error for stub implementation, got %v", err)

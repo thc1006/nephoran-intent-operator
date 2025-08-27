@@ -559,7 +559,6 @@ type AlarmData struct {
 	Attributes  map[string]interface{} `json:"attributes"`
 }
 
-
 // ConfigurationChange represents configuration changes
 type ConfigurationChange struct {
 	Source     string                 `json:"source"`

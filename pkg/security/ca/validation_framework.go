@@ -118,6 +118,7 @@ type PolicyValidationResult struct {
 	Valid      bool                     `json:"valid"`
 	Violations []PolicyViolation        `json:"violations"`
 	Warnings   []PolicyWarning          `json:"warnings"`
+	Errors     []string                 `json:"errors,omitempty"`       // Missing field added
 	Score      float64                  `json:"score"`
 	Details    *PolicyValidationDetails `json:"details,omitempty"`
 }

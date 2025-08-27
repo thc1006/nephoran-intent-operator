@@ -15,73 +15,73 @@ import (
 
 // OPACompliancePolicyEngine implements comprehensive policy enforcement for all compliance frameworks
 type OPACompliancePolicyEngine struct {
-	opaStore         storage.Store
-	regoPolicies     map[string]*rego.PreparedQuery
-	admissionWebhook *AdmissionWebhookController
-	networkPolicies  *NetworkPolicyEnforcer
-	rbacPolicies     *RBACPolicyEnforcer
+	opaStore           storage.Store
+	regoPolicies       map[string]*rego.PreparedQuery
+	admissionWebhook   *AdmissionWebhookController
+	networkPolicies    *NetworkPolicyEnforcer
+	rbacPolicies       *RBACPolicyEnforcer
 	compliancePolicies *CompliancePolicyEnforcer
-	runtimePolicies  *RuntimePolicyEnforcer
-	auditPolicies    *AuditPolicyEnforcer
-	logger           *slog.Logger
-	policyCache      *PolicyCache
-	violationStore   *ViolationStore
+	runtimePolicies    *RuntimePolicyEnforcer
+	auditPolicies      *AuditPolicyEnforcer
+	logger             *slog.Logger
+	policyCache        *PolicyCache
+	violationStore     *ViolationStore
 }
 
 // PolicyDefinition represents a comprehensive compliance policy
 type PolicyDefinition struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Framework       string                 `json:"framework"` // CIS, NIST, OWASP, GDPR, ORAN, Custom
-	Category        string                 `json:"category"`
-	Severity        string                 `json:"severity"`
-	Description     string                 `json:"description"`
-	RegoPolicy      string                 `json:"rego_policy"`
-	Enabled         bool                   `json:"enabled"`
-	Enforcement     string                 `json:"enforcement"` // deny, warn, dryrun
-	Scope           PolicyScope            `json:"scope"`
-	Metadata        PolicyMetadata         `json:"metadata"`
-	CreatedAt       time.Time              `json:"created_at"`
-	UpdatedAt       time.Time              `json:"updated_at"`
-	Version         string                 `json:"version"`
-	Dependencies    []string               `json:"dependencies"`
-	Exceptions      []PolicyException      `json:"exceptions"`
-	Parameters      map[string]interface{} `json:"parameters"`
+	ID           string                 `json:"id"`
+	Name         string                 `json:"name"`
+	Framework    string                 `json:"framework"` // CIS, NIST, OWASP, GDPR, ORAN, Custom
+	Category     string                 `json:"category"`
+	Severity     string                 `json:"severity"`
+	Description  string                 `json:"description"`
+	RegoPolicy   string                 `json:"rego_policy"`
+	Enabled      bool                   `json:"enabled"`
+	Enforcement  string                 `json:"enforcement"` // deny, warn, dryrun
+	Scope        PolicyScope            `json:"scope"`
+	Metadata     PolicyMetadata         `json:"metadata"`
+	CreatedAt    time.Time              `json:"created_at"`
+	UpdatedAt    time.Time              `json:"updated_at"`
+	Version      string                 `json:"version"`
+	Dependencies []string               `json:"dependencies"`
+	Exceptions   []PolicyException      `json:"exceptions"`
+	Parameters   map[string]interface{} `json:"parameters"`
 }
 
 type PolicyScope struct {
-	Resources   []string `json:"resources"`
-	Namespaces  []string `json:"namespaces"`
+	Resources   []string          `json:"resources"`
+	Namespaces  []string          `json:"namespaces"`
 	Labels      map[string]string `json:"labels"`
 	Annotations map[string]string `json:"annotations"`
 }
 
 type PolicyMetadata struct {
-	Source      string            `json:"source"`
-	Reference   string            `json:"reference"`
-	Tags        []string          `json:"tags"`
-	Attributes  map[string]string `json:"attributes"`
-	Owner       string            `json:"owner"`
-	Maintainer  string            `json:"maintainer"`
+	Source     string            `json:"source"`
+	Reference  string            `json:"reference"`
+	Tags       []string          `json:"tags"`
+	Attributes map[string]string `json:"attributes"`
+	Owner      string            `json:"owner"`
+	Maintainer string            `json:"maintainer"`
 }
 
 type PolicyException struct {
-	ID          string            `json:"id"`
-	Reason      string            `json:"reason"`
-	Conditions  map[string]string `json:"conditions"`
-	ExpiresAt   *time.Time        `json:"expires_at,omitempty"`
-	ApprovedBy  string            `json:"approved_by"`
-	ApprovedAt  time.Time         `json:"approved_at"`
+	ID         string            `json:"id"`
+	Reason     string            `json:"reason"`
+	Conditions map[string]string `json:"conditions"`
+	ExpiresAt  *time.Time        `json:"expires_at,omitempty"`
+	ApprovedBy string            `json:"approved_by"`
+	ApprovedAt time.Time         `json:"approved_at"`
 }
 
 type PolicyEvaluationResult struct {
-	PolicyID      string                 `json:"policy_id"`
-	Allowed       bool                   `json:"allowed"`
+	PolicyID      string                  `json:"policy_id"`
+	Allowed       bool                    `json:"allowed"`
 	Violations    []PolicyViolationDetail `json:"violations"`
-	Warnings      []string               `json:"warnings"`
-	Metadata      map[string]interface{} `json:"metadata"`
-	EvaluatedAt   time.Time              `json:"evaluated_at"`
-	ExecutionTime time.Duration          `json:"execution_time"`
+	Warnings      []string                `json:"warnings"`
+	Metadata      map[string]interface{}  `json:"metadata"`
+	EvaluatedAt   time.Time               `json:"evaluated_at"`
+	ExecutionTime time.Duration           `json:"execution_time"`
 }
 
 type PolicyViolationDetail struct {
@@ -537,7 +537,7 @@ violation contains result if {
 `
 
 // =============================================================================
-// GDPR Data Protection Policies  
+// GDPR Data Protection Policies
 // =============================================================================
 
 const GDPRDataProtectionPolicy = `
@@ -873,10 +873,10 @@ violation contains result if {
 func NewOPACompliancePolicyEngine(logger *slog.Logger) (*OPACompliancePolicyEngine, error) {
 	// Initialize OPA store
 	store := inmem.New()
-	
+
 	engine := &OPACompliancePolicyEngine{
-		opaStore:        store,
-		regoPolicies:    make(map[string]*rego.PreparedQuery),
+		opaStore:       store,
+		regoPolicies:   make(map[string]*rego.PreparedQuery),
 		logger:         logger,
 		policyCache:    NewPolicyCache(),
 		violationStore: NewViolationStore(),
@@ -928,7 +928,7 @@ func (ope *OPACompliancePolicyEngine) loadDefaultPolicies() error {
 			Enabled:     true,
 			Enforcement: "deny",
 			Scope: PolicyScope{
-				Resources: []string{"NetworkPolicy", "Namespace"},
+				Resources:  []string{"NetworkPolicy", "Namespace"},
 				Namespaces: []string{"*"},
 			},
 			CreatedAt: time.Now(),
@@ -945,7 +945,7 @@ func (ope *OPACompliancePolicyEngine) loadDefaultPolicies() error {
 			Enabled:     true,
 			Enforcement: "warn",
 			Scope: PolicyScope{
-				Resources: []string{"ServiceAccount", "Service", "RoleBinding", "Secret"},
+				Resources:  []string{"ServiceAccount", "Service", "RoleBinding", "Secret"},
 				Namespaces: []string{"*"},
 			},
 			CreatedAt: time.Now(),
@@ -962,7 +962,7 @@ func (ope *OPACompliancePolicyEngine) loadDefaultPolicies() error {
 			Enabled:     true,
 			Enforcement: "deny",
 			Scope: PolicyScope{
-				Resources: []string{"Pod", "Ingress", "Service"},
+				Resources:  []string{"Pod", "Ingress", "Service"},
 				Namespaces: []string{"*"},
 			},
 			CreatedAt: time.Now(),
@@ -979,7 +979,7 @@ func (ope *OPACompliancePolicyEngine) loadDefaultPolicies() error {
 			Enabled:     true,
 			Enforcement: "deny",
 			Scope: PolicyScope{
-				Resources: []string{"Pod", "Deployment", "ConfigMap", "StatefulSet"},
+				Resources:  []string{"Pod", "Deployment", "ConfigMap", "StatefulSet"},
 				Namespaces: []string{"*"},
 			},
 			CreatedAt: time.Now(),
@@ -996,7 +996,7 @@ func (ope *OPACompliancePolicyEngine) loadDefaultPolicies() error {
 			Enabled:     true,
 			Enforcement: "deny",
 			Scope: PolicyScope{
-				Resources: []string{"Pod", "Service", "Ingress", "NetworkPolicy", "Deployment"},
+				Resources:  []string{"Pod", "Service", "Ingress", "NetworkPolicy", "Deployment"},
 				Namespaces: []string{"*"},
 			},
 			CreatedAt: time.Now(),
@@ -1041,7 +1041,7 @@ func (ope *OPACompliancePolicyEngine) LoadPolicy(policy PolicyDefinition) error 
 
 func (ope *OPACompliancePolicyEngine) EvaluateAdmission(ctx context.Context, req admission.Request) (*PolicyEvaluationResult, error) {
 	startTime := time.Now()
-	
+
 	input := map[string]interface{}{
 		"request": map[string]interface{}{
 			"uid":       req.UID,
@@ -1164,9 +1164,9 @@ func (ope *OPACompliancePolicyEngine) isPolicyApplicable(policy PolicyDefinition
 func (ope *OPACompliancePolicyEngine) parseViolationDetail(violationMap map[string]interface{}, policy PolicyDefinition) PolicyViolationDetail {
 	detail := PolicyViolationDetail{
 		Metadata: map[string]interface{}{
-			"policy_id":    policy.ID,
-			"framework":    policy.Framework,
-			"enforcement":  policy.Enforcement,
+			"policy_id":   policy.ID,
+			"framework":   policy.Framework,
+			"enforcement": policy.Enforcement,
 		},
 	}
 

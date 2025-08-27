@@ -19,92 +19,92 @@ import (
 // SecuritySuiteConfig provides comprehensive security configuration
 type SecuritySuiteConfig struct {
 	// Core security components
-	SecurityHeaders  *SecurityHeadersConfig
-	InputValidation  *InputValidationConfig
-	RateLimit        *RateLimitConfig
-	RequestSize      *RequestSizeConfig
-	CORS             *CORSConfig
+	SecurityHeaders *SecurityHeadersConfig
+	InputValidation *InputValidationConfig
+	RateLimit       *RateLimitConfig
+	RequestSize     *RequestSizeConfig
+	CORS            *CORSConfig
 
 	// Authentication & Authorization
-	RequireAuth      bool
-	AuthValidator    func(r *http.Request) (bool, error)
-	
+	RequireAuth   bool
+	AuthValidator func(r *http.Request) (bool, error)
+
 	// Audit & Logging
-	EnableAudit      bool
-	AuditLogger      *slog.Logger
-	
+	EnableAudit bool
+	AuditLogger *slog.Logger
+
 	// Metrics
-	EnableMetrics    bool
-	MetricsPrefix    string
-	
+	EnableMetrics bool
+	MetricsPrefix string
+
 	// Security Policy
-	EnableCSRF       bool
-	CSRFTokenHeader  string
-	CSRFCookieName   string
-	
+	EnableCSRF      bool
+	CSRFTokenHeader string
+	CSRFCookieName  string
+
 	// Request fingerprinting for anomaly detection
 	EnableFingerprinting bool
-	
+
 	// IP-based security
-	IPWhitelist      []string
-	IPBlacklist      []string
-	
+	IPWhitelist []string
+	IPBlacklist []string
+
 	// Timeout configurations
-	ReadTimeout      time.Duration
-	WriteTimeout     time.Duration
-	IdleTimeout      time.Duration
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+	IdleTimeout  time.Duration
 }
 
 // DefaultSecuritySuiteConfig returns a comprehensive secure configuration
 func DefaultSecuritySuiteConfig() *SecuritySuiteConfig {
 	return &SecuritySuiteConfig{
-		SecurityHeaders:  DefaultSecurityHeadersConfig(),
-		InputValidation:  DefaultInputValidationConfig(),
-		RateLimit:        DefaultRateLimitConfig(),
-		RequestSize:      DefaultRequestSizeConfig(),
-		CORS:            DefaultCORSConfig(),
-		RequireAuth:      false,
-		EnableAudit:      true,
-		EnableMetrics:    true,
-		MetricsPrefix:    "nephoran_security",
-		EnableCSRF:       false,
-		CSRFTokenHeader:  "X-CSRF-Token",
-		CSRFCookieName:   "csrf_token",
+		SecurityHeaders:      DefaultSecurityHeadersConfig(),
+		InputValidation:      DefaultInputValidationConfig(),
+		RateLimit:            DefaultRateLimitConfig(),
+		RequestSize:          DefaultRequestSizeConfig(),
+		CORS:                 DefaultCORSConfig(),
+		RequireAuth:          false,
+		EnableAudit:          true,
+		EnableMetrics:        true,
+		MetricsPrefix:        "nephoran_security",
+		EnableCSRF:           false,
+		CSRFTokenHeader:      "X-CSRF-Token",
+		CSRFCookieName:       "csrf_token",
 		EnableFingerprinting: true,
-		ReadTimeout:      30 * time.Second,
-		WriteTimeout:     30 * time.Second,
-		IdleTimeout:      120 * time.Second,
+		ReadTimeout:          30 * time.Second,
+		WriteTimeout:         30 * time.Second,
+		IdleTimeout:          120 * time.Second,
 	}
 }
 
 // SecuritySuite provides comprehensive security middleware
 type SecuritySuite struct {
-	config          *SecuritySuiteConfig
-	logger          *slog.Logger
-	
+	config *SecuritySuiteConfig
+	logger *slog.Logger
+
 	// Component middlewares
-	headers         *SecurityHeaders
-	validator       *InputValidator
-	rateLimiter     *RateLimiter
-	sizeLimit       *RequestSizeLimiter
-	cors            *CORS
-	
+	headers     *SecurityHeaders
+	validator   *InputValidator
+	rateLimiter *RateLimiter
+	sizeLimit   *RequestSizeLimiter
+	cors        *CORS
+
 	// Security state
 	fingerprintCache sync.Map
 	csrfTokens       sync.Map
-	
+
 	// Metrics
-	metrics         *securityMetrics
+	metrics *securityMetrics
 }
 
 // securityMetrics holds Prometheus metrics for security monitoring
 type securityMetrics struct {
-	requestsTotal       *prometheus.CounterVec
-	requestsDuration    *prometheus.HistogramVec
-	securityViolations  *prometheus.CounterVec
-	authFailures        *prometheus.CounterVec
-	rateLimitHits       prometheus.Counter
-	maliciousRequests   *prometheus.CounterVec
+	requestsTotal      *prometheus.CounterVec
+	requestsDuration   *prometheus.HistogramVec
+	securityViolations *prometheus.CounterVec
+	authFailures       *prometheus.CounterVec
+	rateLimitHits      prometheus.Counter
+	maliciousRequests  *prometheus.CounterVec
 }
 
 // NewSecuritySuite creates a comprehensive security middleware suite
@@ -357,7 +357,7 @@ func (ss *SecuritySuite) checkIPFilters(r *http.Request) error {
 // generateFingerprint creates a unique fingerprint for the request
 func (ss *SecuritySuite) generateFingerprint(r *http.Request) string {
 	h := sha256.New()
-	
+
 	// Include various request attributes
 	h.Write([]byte(r.Method))
 	h.Write([]byte(r.URL.Path))
@@ -366,7 +366,7 @@ func (ss *SecuritySuite) generateFingerprint(r *http.Request) string {
 	h.Write([]byte(r.Header.Get("Accept-Language")))
 	h.Write([]byte(r.Header.Get("Accept-Encoding")))
 	h.Write([]byte(ss.getClientIP(r)))
-	
+
 	return hex.EncodeToString(h.Sum(nil))
 }
 
@@ -490,10 +490,10 @@ func (ss *SecuritySuite) GenerateCSRFToken() string {
 	}
 	h := sha256.Sum256(token)
 	tokenStr := hex.EncodeToString(h[:])
-	
+
 	// Store token with expiry
 	ss.csrfTokens.Store(tokenStr, time.Now().Add(24*time.Hour))
-	
+
 	return tokenStr
 }
 

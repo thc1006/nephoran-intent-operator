@@ -138,13 +138,13 @@ type CacheMetrics struct {
 	L1HitRate    float64
 	L2HitRate    float64
 	TotalHitRate float64
-	
+
 	// Added for compatibility with rag_service.go references
-	Hits         int64
-	Misses       int64
-	TotalItems   int64
-	Evictions    int64
-	mutex        sync.RWMutex
+	Hits       int64
+	Misses     int64
+	TotalItems int64
+	Evictions  int64
+	mutex      sync.RWMutex
 }
 
 // LRUCache implements an LRU cache for embeddings
