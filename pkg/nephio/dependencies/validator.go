@@ -20,9 +20,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"regexp"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
@@ -937,12 +935,12 @@ func (v *dependencyValidator) generateResolutionSuggestions(ctx context.Context,
 
 	for _, conflict := range report.DependencyConflicts {
 		suggestion := &ConflictResolutionSuggestion{
-			ID:          conflict.ID,
-			Type:        "version_upgrade",
-			Description: fmt.Sprintf("Consider upgrading to a compatible version of %v", conflict.ConflictingPackages),
-			Actions:     []*ResolutionAction{{Type: "upgrade", Description: "Upgrade package versions"}},
-			Priority:    "medium",
-			Confidence:  0.7,
+			ID:              conflict.ID,
+			Type:            "version_upgrade",
+			Description:     fmt.Sprintf("Consider upgrading to a compatible version of %v", conflict.ConflictingPackages),
+			Actions:         []*ResolutionAction{{Type: "upgrade", Description: "Upgrade package versions"}},
+			Priority:        "medium",
+			Confidence:      0.7,
 			EstimatedEffort: "medium",
 		}
 		suggestions = append(suggestions, suggestion)
@@ -1050,8 +1048,8 @@ func (v *dependencyValidator) checkSecurityPolicyViolations(vulnerabilities []*V
 	}
 
 	// Check against default policy limits (since SecurityPolicies structure is different)
-	maxCritical := 0  // Default: no critical vulnerabilities allowed
-	maxHigh := 5      // Default: maximum 5 high vulnerabilities allowed
+	maxCritical := 0 // Default: no critical vulnerabilities allowed
+	maxHigh := 5     // Default: maximum 5 high vulnerabilities allowed
 
 	if criticalRiskCount > maxCritical {
 		violations = append(violations, &PolicyViolation{
@@ -1066,7 +1064,7 @@ func (v *dependencyValidator) checkSecurityPolicyViolations(vulnerabilities []*V
 
 	if highRiskCount > maxHigh {
 		violations = append(violations, &PolicyViolation{
-			PolicyName:  "Maximum High Vulnerabilities", 
+			PolicyName:  "Maximum High Vulnerabilities",
 			RuleName:    "max_high_vulnerabilities",
 			Description: fmt.Sprintf("Found %d high vulnerabilities, maximum allowed is %d", highRiskCount, maxHigh),
 			Severity:    "medium",
@@ -1235,7 +1233,7 @@ func (v *dependencyValidator) AnalyzeConflictImpact(ctx context.Context, conflic
 	// Analyze conflicts and determine impact
 	criticalCount := 0
 	highCount := 0
-	
+
 	for _, conflict := range conflicts {
 		switch conflict.Severity {
 		case ConflictSeverityCritical:
@@ -1243,7 +1241,7 @@ func (v *dependencyValidator) AnalyzeConflictImpact(ctx context.Context, conflic
 		case ConflictSeverityHigh:
 			highCount++
 		}
-		
+
 		// Add affected packages
 		for _, pkg := range conflict.ConflictingPackages {
 			analysis.AffectedPackages = append(analysis.AffectedPackages, &AffectedPackage{
@@ -1286,7 +1284,7 @@ func (v *dependencyValidator) DetectBreakingChanges(ctx context.Context, oldPkgs
 	report := &BreakingChangeReport{
 		Package:         nil, // Will be set for each package comparison
 		FromVersion:     "multiple",
-		ToVersion:       "multiple", 
+		ToVersion:       "multiple",
 		BreakingChanges: make([]*BreakingChange, 0),
 		GeneratedAt:     time.Now(),
 	}
@@ -1313,7 +1311,7 @@ func (v *dependencyValidator) DetectBreakingChanges(ctx context.Context, oldPkgs
 
 	detectionTime := time.Since(startTime)
 
-	v.logger.V(1).Info("Breaking change detection completed", 
+	v.logger.V(1).Info("Breaking change detection completed",
 		"breakingChanges", len(report.BreakingChanges),
 		"duration", detectionTime)
 
@@ -1342,9 +1340,9 @@ func (v *dependencyValidator) detectPackageBreakingChanges(oldPkg, newPkg *Packa
 func (v *dependencyValidator) isBreakingVersionChange(oldVersion, newVersion string) bool {
 	// Simple semantic versioning check - major version changes are breaking
 	// This is a simplified implementation
-	return oldVersion != newVersion && 
-		   len(oldVersion) > 0 && len(newVersion) > 0 &&
-		   oldVersion[0] != newVersion[0] // Simple major version check
+	return oldVersion != newVersion &&
+		len(oldVersion) > 0 && len(newVersion) > 0 &&
+		oldVersion[0] != newVersion[0] // Simple major version check
 }
 
 // ValidateUpgradePath validates the upgrade path between package versions
@@ -1377,7 +1375,7 @@ func (v *dependencyValidator) ValidateUpgradePath(ctx context.Context, from, to 
 			Description: "Potential breaking changes detected",
 			Resolution:  "Review changelog and test thoroughly",
 		})
-		
+
 		// Create risk assessment
 		validation.RiskAssessment = &RiskAssessment{
 			OverallRisk: RiskLevelHigh,
@@ -1410,7 +1408,7 @@ func (v *dependencyValidator) DetectDependencyConflicts(ctx context.Context, gra
 
 	// Run conflict detectors on the graph packages
 	allPackages := v.extractPackagesFromGraph(graph)
-	
+
 	for _, detector := range v.conflictDetectors {
 		conflicts, err := detector.DetectConflicts(allPackages)
 		if err != nil {
@@ -1444,11 +1442,11 @@ func (v *dependencyValidator) DetectDependencyConflicts(ctx context.Context, gra
 // extractPackagesFromGraph extracts all packages from a dependency graph
 func (v *dependencyValidator) extractPackagesFromGraph(graph *DependencyGraph) []*PackageReference {
 	packages := make([]*PackageReference, 0)
-	
+
 	for _, node := range graph.Nodes {
 		packages = append(packages, node.PackageRef)
 	}
-	
+
 	return packages
 }
 
@@ -1459,9 +1457,9 @@ func (v *dependencyValidator) GetValidationHealth(ctx context.Context) (*Validat
 		LastValidation:   time.Now(),
 		TotalValidations: v.metrics.TotalValidations,
 		ErrorRate:        v.metrics.ErrorRate,
-		UpTime:          time.Since(time.Now().Add(-24 * time.Hour)), // Simplified
-		Issues:          make([]string, 0),
-		CheckedAt:       time.Now(),
+		UpTime:           time.Since(time.Now().Add(-24 * time.Hour)), // Simplified
+		Issues:           make([]string, 0),
+		CheckedAt:        time.Now(),
 	}
 
 	// Add health checks
@@ -1486,7 +1484,7 @@ func (v *dependencyValidator) GetValidationMetrics(ctx context.Context) (*Valida
 func (v *dependencyValidator) UpdateValidationRules(ctx context.Context, rules *ValidationRules) error {
 	v.mu.Lock()
 	defer v.mu.Unlock()
-	
+
 	v.validationRules = rules
 	v.logger.Info("Validation rules updated", "rules", len(rules.Rules))
 	return nil
@@ -1568,15 +1566,15 @@ func (v *dependencyValidator) ValidateVersion(ctx context.Context, pkg *PackageR
 	return validation, nil
 }
 
-// ValidatePlatform validates packages against platform constraints  
+// ValidatePlatform validates packages against platform constraints
 func (v *dependencyValidator) ValidatePlatform(ctx context.Context, packages []*PackageReference, platform *PlatformConstraints) (*PlatformValidation, error) {
 	validation := &PlatformValidation{
-		Packages:         packages,
-		Platform:         platform,
-		Compatible:       true,
-		Valid:           true,
-		Issues:          make([]string, 0),
-		ValidatedAt:     time.Now(),
+		Packages:    packages,
+		Platform:    platform,
+		Compatible:  true,
+		Valid:       true,
+		Issues:      make([]string, 0),
+		ValidatedAt: time.Now(),
 	}
 
 	// Platform validation logic would go here
@@ -1613,10 +1611,10 @@ func (v *dependencyValidator) ValidateCompliance(ctx context.Context, packages [
 // ValidatePerformanceImpact validates performance impact of packages
 func (v *dependencyValidator) ValidatePerformanceImpact(ctx context.Context, packages []*PackageReference) (*PerformanceValidation, error) {
 	validation := &PerformanceValidation{
-		Valid:           true,
-		Score:           100.0,
-		Issues:          make([]*PerformanceIssue, 0),
-		ValidatedAt:     time.Now(),
+		Valid:       true,
+		Score:       100.0,
+		Issues:      make([]*PerformanceIssue, 0),
+		ValidatedAt: time.Now(),
 	}
 
 	// Performance validation logic would go here
@@ -1627,11 +1625,11 @@ func (v *dependencyValidator) ValidatePerformanceImpact(ctx context.Context, pac
 // ValidateResourceUsage validates resource usage of packages
 func (v *dependencyValidator) ValidateResourceUsage(ctx context.Context, packages []*PackageReference, limits *ResourceLimits) (*ResourceValidation, error) {
 	validation := &ResourceValidation{
-		Valid:           true,
-		Score:           100.0,
-		Limits:          limits,
-		Issues:         make([]*ResourceValidationIssue, 0),
-		ValidatedAt:    time.Now(),
+		Valid:       true,
+		Score:       100.0,
+		Limits:      limits,
+		Issues:      make([]*ResourceValidationIssue, 0),
+		ValidatedAt: time.Now(),
 	}
 
 	// Resource validation logic would go here
@@ -1642,9 +1640,9 @@ func (v *dependencyValidator) ValidateResourceUsage(ctx context.Context, package
 // ValidateSecurityPolicies validates packages against security policies
 func (v *dependencyValidator) ValidateSecurityPolicies(ctx context.Context, packages []*PackageReference, policies *SecurityPolicies) (*SecurityValidation, error) {
 	validation := &SecurityValidation{
-		Valid:           true,
-		SecurityScore:   100.0,
-		ValidatedAt:     time.Now(),
+		Valid:         true,
+		SecurityScore: 100.0,
+		ValidatedAt:   time.Now(),
 	}
 
 	// Security policy validation logic would go here
@@ -1655,9 +1653,9 @@ func (v *dependencyValidator) ValidateSecurityPolicies(ctx context.Context, pack
 // ValidateOrganizationalPolicies validates packages against organizational policies
 func (v *dependencyValidator) ValidateOrganizationalPolicies(ctx context.Context, packages []*PackageReference, policies *OrganizationalPolicies) (*PolicyValidation, error) {
 	validation := &PolicyValidation{
-		Valid:           true,
-		Score:           100.0,
-		ValidatedAt:     time.Now(),
+		Valid:       true,
+		Score:       100.0,
+		ValidatedAt: time.Now(),
 	}
 
 	// Organizational policy validation logic would go here
@@ -1668,11 +1666,11 @@ func (v *dependencyValidator) ValidateOrganizationalPolicies(ctx context.Context
 // ValidateArchitecturalCompliance validates packages against architectural constraints
 func (v *dependencyValidator) ValidateArchitecturalCompliance(ctx context.Context, packages []*PackageReference, architecture *ArchitecturalConstraints) (*ArchitecturalValidation, error) {
 	validation := &ArchitecturalValidation{
-		Valid:           true,
-		Score:           100.0,
-		Constraints:     architecture,
-		Issues:          make([]*ArchitecturalValidationIssue, 0),
-		ValidatedAt:     time.Now(),
+		Valid:       true,
+		Score:       100.0,
+		Constraints: architecture,
+		Issues:      make([]*ArchitecturalValidationIssue, 0),
+		ValidatedAt: time.Now(),
 	}
 
 	// Architectural validation logic would go here
@@ -1737,7 +1735,7 @@ func (v *dependencyValidator) performCrossPackageValidations(ctx context.Context
 // calculateOverallResults calculates overall validation results and scores
 func (v *dependencyValidator) calculateOverallResults(validationCtx *ValidationContext) {
 	result := validationCtx.Result
-	
+
 	// Calculate overall success
 	if len(result.Errors) > 0 {
 		result.Success = false
@@ -1745,13 +1743,13 @@ func (v *dependencyValidator) calculateOverallResults(validationCtx *ValidationC
 
 	// Calculate overall score based on various factors
 	score := 100.0
-	
+
 	// Deduct points for errors
 	score -= float64(len(result.Errors)) * 10.0
 	if score < 0 {
 		score = 0
 	}
-	
+
 	// Deduct points for warnings
 	score -= float64(len(result.Warnings)) * 5.0
 	if score < 0 {

@@ -721,10 +721,10 @@ func (irm *InfrastructureResourceManager) CreateResource(ctx context.Context, re
 		Labels:           req.Labels,
 		Extensions:       req.Extensions,
 		Status: &models.ResourceStatus{
-			State:          models.LifecycleStateProvisioning,
-			Health:         models.ResourceHealthUnknown,
-			Message:        "Resource provisioning initiated",
-			LastTransition: time.Now(),
+			State:           models.LifecycleStateProvisioning,
+			Health:          models.ResourceHealthUnknown,
+			ErrorMessage:    "Resource provisioning initiated",
+			LastHealthCheck: time.Now(),
 		},
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -768,7 +768,7 @@ func (irm *InfrastructureResourceManager) CreateResource(ctx context.Context, re
 		if _, err := irm.lifecycleManager.ProvisionResource(ctx, provisionReq); err != nil {
 			logger.Info("provisioning failed, resource will remain in provisioning state", "error", err)
 			resource.Status.State = models.LifecycleStateFailed
-			resource.Status.Message = fmt.Sprintf("Provisioning failed: %v", err)
+			resource.Status.ErrorMessage = fmt.Sprintf("Provisioning failed: %v", err)
 			irm.storage.UpdateResource(ctx, resource.ResourceID, map[string]interface{}{
 				"status": resource.Status,
 			})
@@ -779,7 +779,7 @@ func (irm *InfrastructureResourceManager) CreateResource(ctx context.Context, re
 		} else {
 			resource.Status.State = models.LifecycleStateActive
 			resource.Status.Health = models.ResourceHealthHealthy
-			resource.Status.Message = "Resource provisioned successfully"
+			resource.Status.ErrorMessage = ""
 			irm.storage.UpdateResource(ctx, resource.ResourceID, map[string]interface{}{
 				"status": resource.Status,
 			})
@@ -950,14 +950,14 @@ func (irm *InfrastructureResourceManager) DeleteResource(ctx context.Context, re
 
 	// Terminate resource if lifecycle manager is available
 	if irm.lifecycleManager != nil {
-		if err := irm.lifecycleManager.TerminateResource(ctx, resourceID); err != nil {
+		if err := irm.lifecycleManager.TerminateResource(ctx, resourceID, false); err != nil {
 			logger.Info("resource termination failed, proceeding with deletion", "error", err)
 		}
 	}
 
 	// Update resource status before deletion
 	resource.Status.State = models.LifecycleStateTerminating
-	resource.Status.Message = "Resource termination in progress"
+	resource.Status.ErrorMessage = ""
 	irm.storage.UpdateResource(ctx, resourceID, map[string]interface{}{
 		"status": resource.Status,
 	})
@@ -1085,7 +1085,7 @@ func (irm *InfrastructureResourceManager) stopResourceMonitoring(ctx context.Con
 func (irm *InfrastructureResourceManager) enrichResourcesWithRealTimeData(ctx context.Context, resources []*models.Resource) error {
 	for _, resource := range resources {
 		if err := irm.enrichResourceWithRealTimeData(ctx, resource); err != nil {
-			irm.logger.Error(err, "failed to enrich resource with real-time data", "resourceId", resource.ResourceID)
+			irm.logger.Error("failed to enrich resource with real-time data", "resourceId", resource.ResourceID, "error", err)
 		}
 	}
 	return nil

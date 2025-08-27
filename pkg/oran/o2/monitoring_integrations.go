@@ -670,3 +670,50 @@ type ComponentHealthStatus struct {
 	LastCheck time.Time          `json:"lastCheck"`
 	Metrics   map[string]float64 `json:"metrics,omitempty"`
 }
+
+
+// Stub constructor functions
+func NewGrafanaClient(config *GrafanaConfig, logger *logging.StructuredLogger) *GrafanaClient {
+	return &GrafanaClient{}
+}
+
+func NewAlertmanagerClient(config *AlertmanagerConfig, logger *logging.StructuredLogger) *AlertmanagerClient {
+	return &AlertmanagerClient{}
+}
+
+func NewJaegerClient(config *JaegerConfig, logger *logging.StructuredLogger) *JaegerClient {
+	return &JaegerClient{}
+}
+
+func NewEventProcessor(config *EventProcessingConfig, logger *logging.StructuredLogger) *EventProcessor {
+	return &EventProcessor{}
+}
+
+func NewAlertProcessor(config *MonitoringIntegrationConfig, logger *logging.StructuredLogger) *AlertProcessor {
+	return &AlertProcessor{}
+}
+
+func NewDashboardManager(config *DashboardConfig, grafanaClient *GrafanaClient, logger *logging.StructuredLogger) *DashboardManager {
+	return &DashboardManager{}
+}
+
+// Stub methods for the client types
+func (g *GrafanaClient) CreateDashboard(ctx context.Context, spec *DashboardSpec) error {
+	return nil
+}
+
+func (g *GrafanaClient) UpdateDashboard(ctx context.Context, spec *DashboardSpec) error {
+	return nil
+}
+
+func (g *GrafanaClient) DeleteDashboard(ctx context.Context, name string) error {
+	return nil
+}
+
+func (a *AlertmanagerClient) CreateAlertRule(ctx context.Context, rule *AlertRule) error {
+	return nil
+}
+
+func (e *EventProcessor) ProcessEvent(ctx context.Context, event *Event) error {
+	return nil
+}

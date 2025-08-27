@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -416,7 +415,7 @@ func (s *NephoranAPIServer) deployToCluster(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Perform deployment
-	result, err := (*s.clusterManager).PropagatePackage(ctx, req.PackageName, options)
+	result, err := s.clusterManager.PropagatePackage(ctx, req.PackageName, options)
 	if err != nil {
 		s.logger.Error(err, "Failed to deploy to cluster",
 			"cluster", clusterID, "package", req.PackageName)
@@ -558,7 +557,7 @@ func (s *NephoranAPIServer) registerCluster(w http.ResponseWriter, r *http.Reque
 		MinimumResourceThreshold: req.Resources,
 	}
 
-	err := (*s.clusterManager).RegisterCluster(ctx, cluster, options)
+	err := s.clusterManager.RegisterCluster(ctx, cluster, options)
 	if err != nil {
 		s.logger.Error(err, "Failed to register cluster", "name", req.Name)
 		s.writeErrorResponse(w, http.StatusInternalServerError, "registration_failed",

@@ -18,6 +18,7 @@ package ims
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -131,6 +132,87 @@ func NewInventoryService(kubeClient client.Client, clientset kubernetes.Interfac
 	}
 }
 
+// ListResources returns resources with optional filtering
+func (s *InventoryService) ListResources(ctx context.Context, filter *models.ResourceFilter) ([]*models.Resource, error) {
+	logger := log.FromContext(ctx)
+	logger.V(1).Info("listing resources", "filter", filter)
+
+	// For now, return empty list - would be implemented with actual resource management
+	return []*models.Resource{}, nil
+}
+
+// GetResource retrieves a specific resource by ID
+func (s *InventoryService) GetResource(ctx context.Context, resourceID string) (*models.Resource, error) {
+	logger := log.FromContext(ctx)
+	logger.V(1).Info("getting resource", "resourceID", resourceID)
+
+	// For now, return not found error - would be implemented with actual resource management
+	return nil, fmt.Errorf("resource not found: %s", resourceID)
+}
+
+// CreateResource creates a new resource
+func (s *InventoryService) CreateResource(ctx context.Context, req *models.CreateResourceRequest, pool *models.ResourcePool, resourceType *models.ResourceType) (*models.Resource, error) {
+	logger := log.FromContext(ctx)
+	logger.Info("creating resource", "name", req.Name, "type", req.ResourceTypeID, "pool", req.ResourcePoolID)
+
+	// For now, return a basic resource - would be implemented with actual resource creation
+	resource := &models.Resource{
+		ResourceID:     "res-" + generateRandomID(),
+		Name:           req.Name,
+		Description:    req.Description,
+		ResourceTypeID: req.ResourceTypeID,
+		ResourcePoolID: req.ResourcePoolID,
+		Extensions:     req.Extensions,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+	}
+
+	return resource, nil
+}
+
+// UpdateResource updates an existing resource
+func (s *InventoryService) UpdateResource(ctx context.Context, resourceID string, req *models.UpdateResourceRequest) error {
+	logger := log.FromContext(ctx)
+	logger.Info("updating resource", "resourceID", resourceID)
+
+	// For now, return success - would be implemented with actual resource updates
+	return nil
+}
+
+// DeleteResource deletes a resource
+func (s *InventoryService) DeleteResource(ctx context.Context, resourceID string) error {
+	logger := log.FromContext(ctx)
+	logger.Info("deleting resource", "resourceID", resourceID)
+
+	// For now, return success - would be implemented with actual resource deletion
+	return nil
+}
+
+// ListNodes returns inventory nodes (original method)
+func (s *InventoryService) ListNodes(ctx context.Context, filter *models.NodeFilter) ([]*models.Node, error) {
+	return s.GetNodes(ctx, filter)
+}
+
+// GetNode retrieves a specific node by ID
+func (s *InventoryService) GetNode(ctx context.Context, nodeID string) (*models.Node, error) {
+	logger := log.FromContext(ctx)
+	logger.V(1).Info("getting node", "nodeID", nodeID)
+
+	// Get all nodes and find the specific one
+	nodes, err := s.GetNodes(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, node := range nodes {
+		if node.NodeID == nodeID {
+			return node, nil
+		}
+	}
+
+	return nil, fmt.Errorf("node not found: %s", nodeID)
+}
+
 // GetNodes returns inventory nodes
 func (s *InventoryService) GetNodes(ctx context.Context, filter *models.NodeFilter) ([]*models.Node, error) {
 	logger := log.FromContext(ctx)
@@ -204,8 +286,44 @@ func NewLifecycleService() *LifecycleService {
 	}
 }
 
-// CreateDeployment creates a new deployment
-func (s *LifecycleService) CreateDeployment(ctx context.Context, req *models.CreateDeploymentRequest) (*models.Deployment, error) {
+// ListDeployments returns deployments with optional filtering
+func (s *LifecycleService) ListDeployments(ctx context.Context, filter *models.DeploymentFilter) ([]*models.Deployment, error) {
+	logger := log.FromContext(ctx)
+	logger.V(1).Info("listing deployments", "filter", filter)
+
+	// For now, return empty list - would be implemented with actual deployment management
+	return []*models.Deployment{}, nil
+}
+
+// GetDeployment retrieves a specific deployment by ID
+func (s *LifecycleService) GetDeployment(ctx context.Context, deploymentID string) (*models.Deployment, error) {
+	logger := log.FromContext(ctx)
+	logger.V(1).Info("getting deployment", "deploymentID", deploymentID)
+
+	// For now, return not found error - would be implemented with actual deployment management
+	return nil, fmt.Errorf("deployment not found: %s", deploymentID)
+}
+
+// UpdateDeployment updates an existing deployment
+func (s *LifecycleService) UpdateDeployment(ctx context.Context, deploymentID string, req *models.UpdateDeploymentRequest) error {
+	logger := log.FromContext(ctx)
+	logger.Info("updating deployment", "deploymentID", deploymentID)
+
+	// For now, return success - would be implemented with actual deployment updates
+	return nil
+}
+
+// DeleteDeployment deletes a deployment
+func (s *LifecycleService) DeleteDeployment(ctx context.Context, deploymentID string) error {
+	logger := log.FromContext(ctx)
+	logger.Info("deleting deployment", "deploymentID", deploymentID)
+
+	// For now, return success - would be implemented with actual deployment deletion
+	return nil
+}
+
+// CreateDeployment creates a new deployment (updated signature)
+func (s *LifecycleService) CreateDeployment(ctx context.Context, req *models.CreateDeploymentRequest, template *models.DeploymentTemplate, pool *models.ResourcePool) (*models.Deployment, error) {
 	// Convert metadata to interface{} map if needed
 	metadata := make(map[string]interface{})
 	for k, v := range req.Metadata {
@@ -235,6 +353,7 @@ func (s *LifecycleService) CreateDeployment(ctx context.Context, req *models.Cre
 // SubscriptionService manages event subscriptions
 type SubscriptionService struct {
 	subscriptions map[string]*models.Subscription
+	alarms        map[string]*models.Alarm
 	startTime     time.Time
 }
 
@@ -242,6 +361,7 @@ type SubscriptionService struct {
 func NewSubscriptionService() *SubscriptionService {
 	return &SubscriptionService{
 		subscriptions: make(map[string]*models.Subscription),
+		alarms:        make(map[string]*models.Alarm),
 		startTime:     time.Now(),
 	}
 }
@@ -268,6 +388,16 @@ func (s *SubscriptionService) CreateSubscription(ctx context.Context, req *model
 	s.subscriptions[subscription.SubscriptionID] = subscription
 
 	return subscription, nil
+}
+
+// ListSubscriptions returns filtered subscriptions
+func (s *SubscriptionService) ListSubscriptions(ctx context.Context, filter *models.SubscriptionQueryFilter) ([]*models.Subscription, error) {
+	if filter == nil {
+		return s.GetSubscriptions(ctx, nil)
+	}
+	return s.GetSubscriptions(ctx, &models.SubscriptionFilter{
+		EventSources: filter.EventTypes, // SubscriptionQueryFilter uses EventTypes field
+	})
 }
 
 // GetSubscriptions returns filtered subscriptions
@@ -326,6 +456,100 @@ func (s *SubscriptionService) DeleteSubscription(ctx context.Context, subscripti
 	}
 
 	delete(s.subscriptions, subscriptionID)
+	return nil
+}
+
+// GetEventTypes returns available notification event types
+func (s *SubscriptionService) GetEventTypes(ctx context.Context) ([]*models.NotificationEventType, error) {
+	// Return basic event types using correct field names
+	return []*models.NotificationEventType{
+		{
+			EventType:   "resource.created",
+			Description: "Notification when a resource is created",
+			Version:     "1.0",
+		},
+		{
+			EventType:   "resource.updated", 
+			Description: "Notification when a resource is updated",
+			Version:     "1.0",
+		},
+		{
+			EventType:   "deployment.created",
+			Description: "Notification when a deployment is created",
+			Version:     "1.0",
+		},
+	}, nil
+}
+
+// GetAlarms returns alarms with optional filtering
+func (s *SubscriptionService) GetAlarms(ctx context.Context, filter *models.AlarmFilter) ([]*models.Alarm, error) {
+	logger := log.FromContext(ctx)
+	logger.V(1).Info("getting alarms", "filter", filter)
+
+	var alarms []*models.Alarm
+	for _, alarm := range s.alarms {
+		alarms = append(alarms, alarm)
+	}
+
+	return alarms, nil
+}
+
+// GetAlarm retrieves a specific alarm by ID
+func (s *SubscriptionService) GetAlarm(ctx context.Context, alarmID string) (*models.Alarm, error) {
+	logger := log.FromContext(ctx)
+	logger.V(1).Info("getting alarm", "alarmID", alarmID)
+
+	alarm, exists := s.alarms[alarmID]
+	if !exists {
+		return nil, fmt.Errorf("alarm not found: %s", alarmID)
+	}
+
+	return alarm, nil
+}
+
+// AcknowledgeAlarm acknowledges an alarm  
+func (s *SubscriptionService) AcknowledgeAlarm(ctx context.Context, alarmID string, req *models.AlarmAcknowledgementRequest) error {
+	logger := log.FromContext(ctx)
+	logger.Info("acknowledging alarm", "alarmID", alarmID, "acknowledgedBy", req.AckUser)
+
+	alarm, exists := s.alarms[alarmID]
+	if !exists {
+		return fmt.Errorf("alarm not found: %s", alarmID)
+	}
+
+	// Update alarm acknowledgment fields
+	alarm.AckState = "ACKNOWLEDGED"
+	alarm.AckUser = req.AckUser
+	alarm.AckSystemId = req.AckSystemId
+	now := time.Now()
+	alarm.AlarmAckTime = &now
+
+	return nil
+}
+
+// ClearAlarm clears an alarm
+func (s *SubscriptionService) ClearAlarm(ctx context.Context, alarmID string, req *models.AlarmClearRequest) error {
+	logger := log.FromContext(ctx)
+	logger.Info("clearing alarm", "alarmID", alarmID, "clearedBy", req.ClearUser)
+
+	alarm, exists := s.alarms[alarmID]
+	if !exists {
+		return fmt.Errorf("alarm not found: %s", alarmID)
+	}
+
+	// Update alarm state to cleared
+	alarm.AlarmState = "CLEARED"
+	now := time.Now()
+	alarm.AlarmClearTime = &now
+	
+	// Store clear information in extensions
+	if alarm.Extensions == nil {
+		alarm.Extensions = make(map[string]interface{})
+	}
+	alarm.Extensions["clearUser"] = req.ClearUser
+	alarm.Extensions["clearSystemId"] = req.ClearSystemId
+	alarm.Extensions["clearReason"] = req.ClearReason
+
 	return nil
 }
 

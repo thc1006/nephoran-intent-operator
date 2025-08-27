@@ -143,7 +143,6 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/pprof v0.0.0-20250403155104-27863c87afa6
 	github.com/gophercloud/gophercloud v1.14.1
-	github.com/gorilla/handlers v1.5.2
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
 	github.com/hashicorp/vault/api v1.20.0
 	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728

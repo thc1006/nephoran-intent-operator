@@ -789,7 +789,7 @@ func (rtm *ResourceTypeManager) processYANGModel(ctx context.Context, resourceTy
 func (rtm *ResourceTypeManager) enrichTypesWithYANGModels(ctx context.Context, types []*models.ResourceType) error {
 	for _, resourceType := range types {
 		if err := rtm.enrichTypeWithYANGModel(ctx, resourceType); err != nil {
-			rtm.logger.Error(err, "failed to enrich type with YANG model", "typeId", resourceType.ResourceTypeID)
+			rtm.logger.Error("failed to enrich type with YANG model", "error", err, "typeId", resourceType.ResourceTypeID)
 		}
 	}
 	return nil

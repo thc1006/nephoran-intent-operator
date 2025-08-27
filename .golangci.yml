@@ -15,7 +15,7 @@ run:
   tests: true
   
   # Go version for staticcheck (must be <= golangci-lint build version)
-  go: "1.25"
+  go: "1.24"
   
   # Build tags for conditional compilation
   build-tags:
@@ -172,6 +172,7 @@ issues:
     - ".*/tmp/.*\\.go$"         # Exclude tmp directories
     - ".*/temp/.*\\.go$"        # Exclude temp directories
     - ".*/\\.cache/.*\\.go$"     # Exclude cache directories
+    - "test_.*\\.go$"           # Exclude temporary test files in root
   
   # Exclude certain issue patterns
   exclude-rules:

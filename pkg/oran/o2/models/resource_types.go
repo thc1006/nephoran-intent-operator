@@ -545,12 +545,13 @@ type CreateResourceRequest struct {
 	ResourceTypeID       string                 `json:"resourceTypeId"`
 	ResourcePoolID       string                 `json:"resourcePoolId"`
 	ParentResourceID     string                 `json:"parentResourceId,omitempty"`
+	Provider             string                 `json:"provider,omitempty"` // Added Provider field
 	Configuration        *runtime.RawExtension  `json:"configuration,omitempty"`
+	Metadata             map[string]interface{} `json:"metadata,omitempty"` // Added Metadata field
 	PlacementConstraints *ResourcePlacement     `json:"placementConstraints,omitempty"`
 	Tags                 map[string]string      `json:"tags,omitempty"`
 	Labels               map[string]string      `json:"labels,omitempty"`
 	Extensions           map[string]interface{} `json:"extensions,omitempty"`
-	Metadata             map[string]string      `json:"metadata,omitempty"`
 }
 
 // UpdateResourceRequest represents a request to update a resource

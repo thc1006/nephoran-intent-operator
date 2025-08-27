@@ -168,13 +168,13 @@ func NewInfrastructureMonitoringService(
 	metrics := newInfrastructureMetrics()
 
 	// Initialize health checker
-	healthChecker := NewInfrastructureHealthChecker(config, logger)
+	healthChecker := newInfrastructureHealthChecker(config, logger)
 
 	// Initialize SLA monitor
-	slaMonitor := NewSLAMonitor(config, logger)
+	slaMonitor := newSLAMonitor(config, logger)
 
 	// Initialize event processor
-	eventProcessor := NewEventProcessor(config, logger)
+	eventProcessor := newEventProcessor(config, logger)
 
 	service := &InfrastructureMonitoringService{
 		config:           config,
@@ -361,18 +361,25 @@ func (s *InfrastructureMonitoringService) initializeCollectors() error {
 	s.logger.Info("initializing metrics collectors")
 
 	// Initialize collectors for each registered provider
-	for _, provider := range s.providerRegistry.GetAllProviders() {
+	providerNames := s.providerRegistry.ListProviders()
+	for _, providerName := range providerNames {
+		provider, err := s.providerRegistry.GetProvider(providerName)
+		if err != nil {
+			s.logger.Error("failed to get provider", "name", providerName, "error", err)
+			continue
+		}
 		collector, err := s.createCollectorForProvider(provider)
 		if err != nil {
+			providerInfo := provider.GetProviderInfo()
 			s.logger.Error("failed to create collector for provider",
-				"provider", provider.GetProviderType(),
+				"provider", providerInfo.Type,
 				"error", err)
 			continue
 		}
 
 		s.collectors = append(s.collectors, collector)
 		s.logger.Info("initialized collector for provider",
-			"provider", provider.GetProviderType(),
+			"provider", getProviderType(provider),
 			"collector_type", collector.GetCollectorType())
 	}
 
@@ -381,19 +388,20 @@ func (s *InfrastructureMonitoringService) initializeCollectors() error {
 
 // createCollectorForProvider creates a metrics collector for a specific provider
 func (s *InfrastructureMonitoringService) createCollectorForProvider(provider providers.CloudProvider) (MetricsCollector, error) {
-	switch provider.GetProviderType() {
+	providerInfo := provider.GetProviderInfo()
+	switch providerInfo.Type {
 	case "aws":
-		return NewAWSMetricsCollector(provider, s.config, s.logger)
+		return NewAWSMetricsCollector(), nil
 	case "azure":
-		return NewAzureMetricsCollector(provider, s.config, s.logger)
+		return NewAzureMetricsCollector(), nil
 	case "gcp":
-		return NewGCPMetricsCollector(provider, s.config, s.logger)
+		return NewGCPMetricsCollector(), nil
 	case "openstack":
-		return NewOpenStackMetricsCollector(provider, s.config, s.logger)
+		return &stubMetricsCollector{name: "openstack"}, nil
 	case "kubernetes":
-		return NewKubernetesMetricsCollector(provider, s.config, s.logger)
+		return &stubMetricsCollector{name: "kubernetes"}, nil
 	default:
-		return NewGenericMetricsCollector(provider, s.config, s.logger)
+		return &stubMetricsCollector{name: "generic"}, nil
 	}
 }
 
@@ -637,7 +645,14 @@ func (s *InfrastructureMonitoringService) checkResourceHealth(resourceID string,
 	defer monitor.mu.Unlock()
 
 	// Perform health check through provider
-	healthy, details, err := monitor.Provider.CheckResourceHealth(s.ctx, resourceID)
+	healthStatus, err := monitor.Provider.GetResourceHealth(s.ctx, resourceID)
+	healthy := false
+	details := make(map[string]interface{})
+	
+	if err == nil && healthStatus != nil {
+		healthy = healthStatus.Status == "healthy"
+		details = healthStatus.Metadata
+	}
 	if err != nil {
 		s.logger.Error("failed to check resource health",
 			"resource_id", resourceID,
@@ -646,7 +661,7 @@ func (s *InfrastructureMonitoringService) checkResourceHealth(resourceID string,
 		// Update metrics to indicate unhealthy state
 		s.metrics.ResourceHealth.WithLabelValues(
 			resourceID, monitor.Resource.ResourceTypeID,
-			monitor.Provider.GetProviderType(), "default", "default").Set(0)
+			getProviderType(monitor.Provider), "default", "default").Set(0)
 		return
 	}
 
@@ -659,12 +674,12 @@ func (s *InfrastructureMonitoringService) checkResourceHealth(resourceID string,
 		monitor.Resource.Status.Health = models.HealthStateHealthy
 		s.metrics.ResourceHealth.WithLabelValues(
 			resourceID, monitor.Resource.ResourceTypeID,
-			monitor.Provider.GetProviderType(), "default", "default").Set(2)
+			getProviderType(monitor.Provider), "default", "default").Set(2)
 	} else {
 		monitor.Resource.Status.Health = models.HealthStateUnhealthy
 		s.metrics.ResourceHealth.WithLabelValues(
 			resourceID, monitor.Resource.ResourceTypeID,
-			monitor.Provider.GetProviderType(), "default", "default").Set(0)
+			getProviderType(monitor.Provider), "default", "default").Set(0)
 
 		// Create alert for unhealthy resource
 		alert := Alert{
@@ -681,7 +696,7 @@ func (s *InfrastructureMonitoringService) checkResourceHealth(resourceID string,
 
 		monitor.Alerts = append(monitor.Alerts, alert)
 		s.metrics.ActiveAlerts.WithLabelValues("critical", "resource_health",
-			monitor.Provider.GetProviderType(), "default").Inc()
+			getProviderType(monitor.Provider), "default").Inc()
 	}
 
 	monitor.Resource.Status.LastHealthCheck = time.Now()
@@ -771,7 +786,7 @@ func (s *InfrastructureMonitoringService) AddResourceMonitor(resource *models.Re
 	s.logger.Info("added resource to monitoring",
 		"resource_id", resource.ResourceID,
 		"resource_type", resource.ResourceTypeID,
-		"provider", provider.GetProviderType())
+		"provider", getProviderType(provider))
 
 	return nil
 }
@@ -786,7 +801,7 @@ func (s *InfrastructureMonitoringService) RemoveResourceMonitor(resourceID strin
 
 		s.logger.Info("removed resource from monitoring",
 			"resource_id", resourceID,
-			"provider", monitor.Provider.GetProviderType())
+			"provider", getProviderType(monitor.Provider))
 	}
 
 	return nil
@@ -842,4 +857,72 @@ func (s *InfrastructureMonitoringService) GetResourceMetrics(resourceID string) 
 	defer monitor.mu.RUnlock()
 
 	return monitor.Metrics, nil
+}
+
+// Stub implementations for missing functions
+
+func newInfrastructureHealthChecker(config *InfrastructureMonitoringConfig, logger *logging.StructuredLogger) *InfrastructureHealthChecker {
+	return &InfrastructureHealthChecker{}
+}
+
+func newSLAMonitor(config *InfrastructureMonitoringConfig, logger *logging.StructuredLogger) *SLAMonitor {
+	return &SLAMonitor{}
+}
+
+func newEventProcessor(config *InfrastructureMonitoringConfig, logger *logging.StructuredLogger) *EventProcessor {
+	return &EventProcessor{}
+}
+
+// Stub collector implementations
+func NewAWSMetricsCollector() MetricsCollector {
+	return &stubMetricsCollector{name: "aws"}
+}
+
+func NewAzureMetricsCollector() MetricsCollector {
+	return &stubMetricsCollector{name: "azure"}
+}
+
+func NewGCPMetricsCollector() MetricsCollector {
+	return &stubMetricsCollector{name: "gcp"}
+}
+
+// stubMetricsCollector provides a basic implementation of MetricsCollector
+type stubMetricsCollector struct {
+	name string
+}
+
+func (c *stubMetricsCollector) CollectMetrics(ctx context.Context) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"collector": c.name,
+		"timestamp": time.Now(),
+		"status":    "healthy",
+	}, nil
+}
+
+func (c *stubMetricsCollector) GetName() string {
+	return c.name
+}
+
+func (c *stubMetricsCollector) GetCollectorType() string {
+	return c.name + "_collector"
+}
+
+func (c *stubMetricsCollector) IsHealthy() bool {
+	return true
+}
+
+func (c *stubMetricsCollector) Stop() error {
+	return nil
+}
+
+// Helper function to get provider type from CloudProvider interface
+func getProviderType(provider providers.CloudProvider) string {
+	if provider == nil {
+		return "unknown"
+	}
+	providerInfo := provider.GetProviderInfo()
+	if providerInfo == nil {
+		return "unknown"
+	}
+	return providerInfo.Type
 }

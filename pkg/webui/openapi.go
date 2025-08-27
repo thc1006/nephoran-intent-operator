@@ -17,7 +17,6 @@ limitations under the License.
 package webui
 
 import (
-	"encoding/json"
 	"net/http"
 )
 

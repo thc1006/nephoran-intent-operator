@@ -20,8 +20,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"math"
-	"sort"
 	"sync"
 	"time"
 
@@ -1287,7 +1285,7 @@ func (a *dependencyAnalyzer) GenerateCostReport(ctx context.Context, scope *Cost
 		}
 
 		report.TotalCost = costAnalysis.TotalCost
-		
+
 		// Set cost breakdown with default values
 		report.CostBreakdown = &CostBreakdown{
 			LicenseCost:        costAnalysis.TotalCost.Amount * 0.3, // 30% license
@@ -1328,23 +1326,23 @@ func (a *dependencyAnalyzer) ScorePackageHealth(ctx context.Context, pkg *Packag
 	a.logger.V(1).Info("Scoring package health", "package", pkg.Name)
 
 	score := &HealthScore{
-		Package:            pkg,
-		OverallScore:       0.0,
-		SecurityScore:      0.8,  // Default good security score
-		MaintenanceScore:   0.7,  // Default maintenance score
-		QualityScore:       0.75, // Default quality score
-		PerformanceScore:   0.8,  // Default performance score
-		CriticalIssues:     make([]*CriticalIssue, 0),
-		Warnings:           make([]*HealthWarning, 0),
-		Recommendations:    make([]*HealthRecommendation, 0),
-		LastAssessed:       time.Now(),
-		AssessmentVersion:  "1.0.0",
+		Package:           pkg,
+		OverallScore:      0.0,
+		SecurityScore:     0.8,  // Default good security score
+		MaintenanceScore:  0.7,  // Default maintenance score
+		QualityScore:      0.75, // Default quality score
+		PerformanceScore:  0.8,  // Default performance score
+		CriticalIssues:    make([]*CriticalIssue, 0),
+		Warnings:          make([]*HealthWarning, 0),
+		Recommendations:   make([]*HealthRecommendation, 0),
+		LastAssessed:      time.Now(),
+		AssessmentVersion: "1.0.0",
 	}
 
 	// Calculate overall score as weighted average
 	weights := []float64{0.3, 0.25, 0.25, 0.2} // Security, Maintenance, Quality, Performance
 	scores := []float64{score.SecurityScore, score.MaintenanceScore, score.QualityScore, score.PerformanceScore}
-	
+
 	var weightedSum float64
 	for i, weight := range weights {
 		weightedSum += weight * scores[i]
@@ -1354,10 +1352,10 @@ func (a *dependencyAnalyzer) ScorePackageHealth(ctx context.Context, pkg *Packag
 	// Add sample warning if score is below threshold
 	if score.OverallScore < 0.6 {
 		warning := &HealthWarning{
-			Type:        "low_health_score",
-			Severity:    "medium",
-			Message:     fmt.Sprintf("Package %s has a low health score: %.2f", pkg.Name, score.OverallScore),
-			DetectedAt:  time.Now(),
+			Type:       "low_health_score",
+			Severity:   "medium",
+			Message:    fmt.Sprintf("Package %s has a low health score: %.2f", pkg.Name, score.OverallScore),
+			DetectedAt: time.Now(),
 		}
 		score.Warnings = append(score.Warnings, warning)
 	}
@@ -1413,11 +1411,11 @@ func (a *dependencyAnalyzer) analyzeSecurityHealth(ctx context.Context, packages
 // analyzeMaintenanceHealth analyzes maintenance health of packages
 func (a *dependencyAnalyzer) analyzeMaintenanceHealth(ctx context.Context, packages []*PackageReference) *MaintenanceHealth {
 	health := &MaintenanceHealth{
-		Score:               0.75, // Default maintenance score
-		OutdatedPackages:    2,    // 2 outdated packages
-		DeprecatedPackages:  0,    // No deprecated packages
-		LastMaintenance:     time.Now().Add(-30 * 24 * time.Hour), // 30 days ago
-		MaintenanceIssues:   make([]string, 0),
+		Score:              0.75,                                 // Default maintenance score
+		OutdatedPackages:   2,                                    // 2 outdated packages
+		DeprecatedPackages: 0,                                    // No deprecated packages
+		LastMaintenance:    time.Now().Add(-30 * 24 * time.Hour), // 30 days ago
+		MaintenanceIssues:  make([]string, 0),
 	}
 
 	// Analyze maintenance metrics for packages (stub implementation)
@@ -1574,13 +1572,13 @@ func (a *dependencyAnalyzer) AnalyzeComplianceRisks(ctx context.Context, package
 	}
 
 	analysis := &ComplianceRiskAnalysis{
-		AnalysisID:        fmt.Sprintf("compliance-analysis-%d", time.Now().UnixNano()),
-		Packages:          packages,
-		ComplianceStatus:  ComplianceStatusCompliant, // Assume compliant by default
-		RiskLevel:         RiskLevelLow,
-		ComplianceIssues:  make([]*ComplianceIssue, 0),
-		RequiredActions:   make([]*ComplianceAction, 0),
-		AnalyzedAt:        time.Now(),
+		AnalysisID:       fmt.Sprintf("compliance-analysis-%d", time.Now().UnixNano()),
+		Packages:         packages,
+		ComplianceStatus: ComplianceStatusCompliant, // Assume compliant by default
+		RiskLevel:        RiskLevelLow,
+		ComplianceIssues: make([]*ComplianceIssue, 0),
+		RequiredActions:  make([]*ComplianceAction, 0),
+		AnalyzedAt:       time.Now(),
 	}
 
 	// Add sample compliance issue for demonstration
@@ -1656,15 +1654,15 @@ func (a *dependencyAnalyzer) GenerateAnalysisReport(ctx context.Context, analysi
 
 	switch format {
 	case ReportFormatJSON:
-		return []byte(fmt.Sprintf(`{"analysisId":"%s","packages":%d,"overallScore":%.2f}`, 
+		return []byte(fmt.Sprintf(`{"analysisId":"%s","packages":%d,"overallScore":%.2f}`,
 			analysis.AnalysisID, len(analysis.Packages), analysis.OverallScore)), nil
 	case ReportFormatHTML:
-		return []byte(fmt.Sprintf("<html><body><h1>Analysis Report</h1><p>Analysis ID: %s</p></body></html>", 
+		return []byte(fmt.Sprintf("<html><body><h1>Analysis Report</h1><p>Analysis ID: %s</p></body></html>",
 			analysis.AnalysisID)), nil
 	case ReportFormatPDF:
 		return []byte("PDF report data"), nil // Stub implementation
 	case ReportFormatCSV:
-		return []byte(fmt.Sprintf("AnalysisID,Packages,Score\n%s,%d,%.2f", 
+		return []byte(fmt.Sprintf("AnalysisID,Packages,Score\n%s,%d,%.2f",
 			analysis.AnalysisID, len(analysis.Packages), analysis.OverallScore)), nil
 	default:
 		return nil, fmt.Errorf("unsupported report format: %s", format)
@@ -1679,10 +1677,10 @@ func (a *dependencyAnalyzer) ExportAnalysisData(ctx context.Context, analysis *A
 
 	switch format {
 	case DataFormatJSON:
-		return []byte(fmt.Sprintf(`{"analysisId":"%s","exportedAt":"%s"}`, 
+		return []byte(fmt.Sprintf(`{"analysisId":"%s","exportedAt":"%s"}`,
 			analysis.AnalysisID, time.Now().Format(time.RFC3339))), nil
 	case DataFormatCSV:
-		return []byte("id,timestamp,packages\n" + analysis.AnalysisID + "," + 
+		return []byte("id,timestamp,packages\n" + analysis.AnalysisID + "," +
 			time.Now().Format(time.RFC3339) + "," + fmt.Sprintf("%d", len(analysis.Packages))), nil
 	case DataFormatParquet:
 		return []byte("parquet data"), nil // Stub implementation
@@ -1696,12 +1694,12 @@ func (a *dependencyAnalyzer) ExportAnalysisData(ctx context.Context, analysis *A
 // GetAnalyzerHealth returns the current health status of the analyzer
 func (a *dependencyAnalyzer) GetAnalyzerHealth(ctx context.Context) (*AnalyzerHealth, error) {
 	health := &AnalyzerHealth{
-		Status:             "healthy",
-		Uptime:             time.Since(time.Now().Add(-time.Hour)), // Dummy uptime calculation
-		ComponentsHealthy:  5,
-		ComponentsTotal:    5,
-		LastHealthCheck:    time.Now(),
-		Issues:             make([]HealthIssue, 0),
+		Status:            "healthy",
+		Uptime:            time.Since(time.Now().Add(-time.Hour)), // Dummy uptime calculation
+		ComponentsHealthy: 5,
+		ComponentsTotal:   5,
+		LastHealthCheck:   time.Now(),
+		Issues:            make([]HealthIssue, 0),
 	}
 
 	// Check if analyzer is closed
@@ -1718,7 +1716,7 @@ func (a *dependencyAnalyzer) GetAnalyzerHealth(ctx context.Context) (*AnalyzerHe
 func (a *dependencyAnalyzer) GetAnalyzerMetrics(ctx context.Context) (*AnalyzerMetrics, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
-	
+
 	return a.metrics, nil
 }
 
@@ -1790,12 +1788,12 @@ func (a *dependencyAnalyzer) generateVersionOptimizations(ctx context.Context, p
 	for _, pkg := range packages {
 		if pkg.Version != "latest" {
 			optimization := &VersionOptimization{
-				PackageName:         pkg.Name,
-				CurrentVersion:      pkg.Version,
-				RecommendedVersion:  "latest",
-				Reason:              "Security updates and performance improvements",
-				Priority:            "low",
-				Impact:              "Security improvements and bug fixes",
+				PackageName:        pkg.Name,
+				CurrentVersion:     pkg.Version,
+				RecommendedVersion: "latest",
+				Reason:             "Security updates and performance improvements",
+				Priority:           "low",
+				Impact:             "Security improvements and bug fixes",
 			}
 			optimizations = append(optimizations, optimization)
 		}
@@ -1810,11 +1808,11 @@ func (a *dependencyAnalyzer) generateDependencyOptimizations(ctx context.Context
 
 	// Sample dependency optimization
 	optimization := &DependencyOptimization{
-		Type:                 "dependency_reduction",
-		Description:          "Remove unused transitive dependencies",
-		AffectedPackages:     []string{},
-		Benefit:              "Reduced bundle size and improved load times",
-		Effort:               string(ImplementationEffortMedium),
+		Type:             "dependency_reduction",
+		Description:      "Remove unused transitive dependencies",
+		AffectedPackages: []string{},
+		Benefit:          "Reduced bundle size and improved load times",
+		Effort:           string(ImplementationEffortMedium),
 	}
 
 	for _, pkg := range packages {
@@ -1831,11 +1829,11 @@ func (a *dependencyAnalyzer) generateMLRecommendations(ctx context.Context, pack
 
 	// Sample ML recommendation
 	recommendation := &MLRecommendation{
-		Type:        "ml_optimization",
-		Description: "ML-based package optimization recommendation",
-		Confidence:  0.85,
+		Type:         "ml_optimization",
+		Description:  "ML-based package optimization recommendation",
+		Confidence:   0.85,
 		ModelVersion: "1.0.0",
-		Evidence:    []string{"usage_patterns", "cost_metrics", "performance_data"},
+		Evidence:     []string{"usage_patterns", "cost_metrics", "performance_data"},
 	}
 	recommendations = append(recommendations, recommendation)
 
@@ -1901,8 +1899,8 @@ func (a *dependencyAnalyzer) prioritizeRecommendations(recommendations *Optimiza
 // estimateOptimizationBenefits estimates the benefits of optimization recommendations
 func (a *dependencyAnalyzer) estimateOptimizationBenefits(recommendations *OptimizationRecommendations) *OptimizationBenefits {
 	benefits := &OptimizationBenefits{
-		CostSavings:         &Cost{Amount: 0.0, Currency: a.config.Currency},
-		PerformanceGains:    10.0, // 10% improvement
+		CostSavings:          &Cost{Amount: 0.0, Currency: a.config.Currency},
+		PerformanceGains:     10.0, // 10% improvement
 		SecurityImprovements: []string{"Reduced vulnerability count"},
 		MaintenanceReduction: "Improved code quality metrics",
 	}
@@ -1965,7 +1963,7 @@ func (a *dependencyAnalyzer) calculateQualityScore(result *AnalysisResult) float
 // usageDataCollectionProcess runs usage data collection in background
 func (a *dependencyAnalyzer) usageDataCollectionProcess() {
 	defer a.wg.Done()
-	
+
 	ticker := time.NewTicker(5 * time.Minute) // Collect data every 5 minutes
 	defer ticker.Stop()
 
@@ -1983,7 +1981,7 @@ func (a *dependencyAnalyzer) usageDataCollectionProcess() {
 // metricsCollectionProcess runs metrics collection in background
 func (a *dependencyAnalyzer) metricsCollectionProcess() {
 	defer a.wg.Done()
-	
+
 	ticker := time.NewTicker(1 * time.Minute) // Collect metrics every minute
 	defer ticker.Stop()
 
@@ -2017,7 +2015,7 @@ func (a *dependencyAnalyzer) eventProcessingLoop() {
 // mlModelUpdateProcess runs ML model updates in background
 func (a *dependencyAnalyzer) mlModelUpdateProcess() {
 	defer a.wg.Done()
-	
+
 	ticker := time.NewTicker(24 * time.Hour) // Update models daily
 	defer ticker.Stop()
 
@@ -2068,11 +2066,11 @@ func (a *dependencyAnalyzer) updateAnalysisMetrics(result *AnalysisResult) {
 	// Metrics would be updated here using prometheus counters
 	// a.metrics.TotalAnalyses.Inc()
 	// a.metrics.TotalPackagesAnalyzed.Add(float64(len(result.Packages)))
-	
+
 	if len(result.Errors) > 0 {
 		// a.metrics.AnalysisErrors.Inc()
 	}
-	
+
 	if result.AnalysisTime > 0 {
 		// Update average analysis time (would use prometheus histogram)
 		// a.metrics.AnalysisTime.Observe(result.AnalysisTime.Seconds())

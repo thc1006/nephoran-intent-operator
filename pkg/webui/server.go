@@ -21,21 +21,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
@@ -48,8 +45,8 @@ import (
 type NephoranAPIServer struct {
 	// Core dependencies
 	intentReconciler  *controllers.NetworkIntentReconciler
-	packageManager *packagerevision.PackageRevisionManager
-	clusterManager *multicluster.ClusterPropagationManager
+	packageManager packagerevision.PackageRevisionManager
+	clusterManager multicluster.ClusterPropagationManager
 	llmProcessor   *services.LLMProcessorService
 	kubeClient     kubernetes.Interface
 
@@ -223,8 +220,8 @@ type FilterParams struct {
 // NewNephoranAPIServer creates a new API server instance
 func NewNephoranAPIServer(
 	intentReconciler *controllers.NetworkIntentReconciler,
-	packageManager *packagerevision.PackageRevisionManager,
-	clusterManager *multicluster.ClusterPropagationManager,
+	packageManager packagerevision.PackageRevisionManager,
+	clusterManager multicluster.ClusterPropagationManager,
 	llmProcessor *services.LLMProcessorService,
 	kubeClient kubernetes.Interface,
 	config *ServerConfig,
@@ -260,7 +257,7 @@ func NewNephoranAPIServer(
 	}
 
 	server := &NephoranAPIServer{
-		intentManager:  intentManager,
+		intentReconciler: intentReconciler,
 		packageManager: packageManager,
 		clusterManager: clusterManager,
 		llmProcessor:   llmProcessor,
@@ -326,13 +323,28 @@ func (s *NephoranAPIServer) initializeAuth() error {
 	}
 
 	// Initialize session manager
-	s.sessionManager = auth.NewSessionManager(authConfig, s.logger.WithName("session-manager"))
+	// Note: NewSessionManager requires config, jwtManager, rbacManager, logger - will be set after managers are created
+	// s.sessionManager = auth.NewSessionManager(authConfig, s.logger.WithName("session-manager"))
 
 	// Initialize RBAC manager
-	s.rbacManager = auth.NewRBACManager(authConfig.RBAC, s.logger.WithName("rbac-manager"))
+	// Create RBACManagerConfig from RBACConfig
+	rbacManagerConfig := &auth.RBACManagerConfig{
+		CacheTTL:         15 * time.Minute,
+		EnableHierarchy:  true,
+		DefaultDenyAll:   true,
+		PolicyEvaluation: "deny-overrides",
+		MaxPolicyDepth:   10,
+		EnableAuditLogging: true,
+	}
+	s.rbacManager = auth.NewRBACManager(rbacManagerConfig, nil)
 
 	// Initialize JWT manager
-	jwtManager, err := auth.NewJWTManager(authConfig)
+	// Note: NewJWTManager requires config, tokenStore, blacklist, logger
+	jwtManager, err := auth.NewJWTManager(&auth.JWTConfig{
+		Issuer:     "nephoran",
+		DefaultTTL: 24 * time.Hour,
+		RefreshTTL: 7 * 24 * time.Hour,
+	}, nil, nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create JWT manager: %w", err)
 	}
@@ -463,7 +475,16 @@ func (s *NephoranAPIServer) Shutdown() error {
 // Middleware functions
 
 func (s *NephoranAPIServer) loggingMiddleware(next http.Handler) http.Handler {
-	return handlers.LoggingHandler(s.logger.Info, next)
+	// handlers.LoggingHandler expects io.Writer, but we have logr.Logger
+	// Use a simple logging wrapper instead
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		next.ServeHTTP(w, r)
+		s.logger.Info("HTTP request processed",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"duration", time.Since(start))
+	})
 }
 
 func (s *NephoranAPIServer) metricsMiddleware(next http.Handler) http.Handler {

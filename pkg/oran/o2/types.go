@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,6 +35,7 @@ type O2IMSConfig struct {
 	
 	// Database
 	DatabaseURL      string        `json:"databaseUrl"`
+	DatabaseType     string        `json:"databaseType"`
 	ConnectionPool   int           `json:"connectionPool"`
 	
 	// Monitoring
@@ -51,6 +53,8 @@ type O2IMSConfig struct {
 	MetricsConfig       *MetricsConfig            `json:"metricsConfig,omitempty"`
 	CertFile            string                    `json:"certFile,omitempty"`
 	KeyFile             string                    `json:"keyFile,omitempty"`
+	NotificationConfig  *NotificationConfig       `json:"notificationConfig,omitempty"`
+	ResourceConfig      *ResourceConfig           `json:"resourceConfig,omitempty"`
 }
 
 // O2IMSService defines the interface for O2 IMS core service
@@ -366,6 +370,7 @@ type ResourceFilter struct {
 
 type Resource struct {
 	ID           string                 `json:"id"`
+	ResourceID   string                 `json:"resourceId"` // Added for compatibility
 	Type         string                 `json:"type"`
 	Name         string                 `json:"name"`
 	Description  string                 `json:"description,omitempty"`
@@ -379,14 +384,24 @@ type Resource struct {
 // ResourceStatus is defined in helper_types.go to avoid duplication
 
 type ResourcePool struct {
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	Description string            `json:"description,omitempty"`
-	Capacity    CapacityInfo      `json:"capacity"`
-	Resources   []string          `json:"resources"`
-	Metadata    map[string]string `json:"metadata,omitempty"`
-	CreatedAt   time.Time         `json:"createdAt"`
-	UpdatedAt   time.Time         `json:"updatedAt"`
+	ID             string            `json:"id"`
+	ResourcePoolID string            `json:"resourcePoolId"` // Added for compatibility
+	Name           string            `json:"name"`
+	Description    string            `json:"description,omitempty"`
+	Capacity       CapacityInfo      `json:"capacity"`
+	Resources      []string          `json:"resources"`
+	Metadata       map[string]string `json:"metadata,omitempty"`
+	Status         *ResourcePoolStatus `json:"status,omitempty"` // Added Status field
+	CreatedAt      time.Time         `json:"createdAt"`
+	UpdatedAt      time.Time         `json:"updatedAt"`
+}
+
+// ResourcePoolStatus represents the current status of a resource pool
+type ResourcePoolStatus struct {
+	State        string `json:"state"`  // AVAILABLE, UNAVAILABLE, MAINTENANCE
+	Health       string `json:"health"` // HEALTHY, DEGRADED, UNHEALTHY
+	Utilization  float64 `json:"utilization"`
+	ErrorMessage string `json:"errorMessage,omitempty"`
 }
 
 type DeploymentManager struct {
@@ -481,7 +496,19 @@ type ResourceMetrics struct{}
 type EventFilter struct{}
 type ResourceEvent struct{}
 type InventoryStatus struct{}
-type ResourceType struct{}
+type ResourceType struct {
+	ID             string            `json:"id"`
+	ResourceTypeID string            `json:"resourceTypeId"` // Added for compatibility
+	Name           string            `json:"name"`
+	Description    string            `json:"description,omitempty"`
+	Vendor         string            `json:"vendor,omitempty"`
+	Version        string            `json:"version,omitempty"`
+	Model          string            `json:"model,omitempty"`
+	Properties     map[string]interface{} `json:"properties,omitempty"`
+	Metadata       map[string]string `json:"metadata,omitempty"`
+	CreatedAt      time.Time         `json:"createdAt"`
+	UpdatedAt      time.Time         `json:"updatedAt"`
+}
 type CapacityInfo struct{}
 type CapacityReservation struct{}
 type TimeRange struct{}
@@ -501,8 +528,30 @@ type InfrastructureHealthChecker struct{}
 // Note: ResourceStatus, AlarmFilter, Alarm, ComponentCheck are defined in other files
 type SLAMonitor struct{}
 type EventProcessor struct{}
-type O2IMSStorage struct{}
-type NotificationConfig struct{}
+// O2IMSStorage interface defines storage operations for O2 IMS
+type O2IMSStorage interface {
+	// Resource Pools
+	ListResourcePools(ctx context.Context, filter *models.ResourcePoolFilter) ([]*models.ResourcePool, error)
+	GetResourcePool(ctx context.Context, resourcePoolID string) (*models.ResourcePool, error)
+	StoreResourcePool(ctx context.Context, pool *models.ResourcePool) error
+	UpdateResourcePool(ctx context.Context, resourcePoolID string, updates map[string]interface{}) error
+	DeleteResourcePool(ctx context.Context, resourcePoolID string) error
+	
+	// Resource Types
+	ListResourceTypes(ctx context.Context, filter *models.ResourceTypeFilter) ([]*models.ResourceType, error)
+	GetResourceType(ctx context.Context, resourceTypeID string) (*models.ResourceType, error)
+	StoreResourceType(ctx context.Context, resourceType *models.ResourceType) error
+	UpdateResourceType(ctx context.Context, resourceTypeID string, resourceType *models.ResourceType) error
+	DeleteResourceType(ctx context.Context, resourceTypeID string) error
+	
+	// Resources  
+	ListResources(ctx context.Context, filter *models.ResourceFilter) ([]*models.Resource, error)
+	GetResource(ctx context.Context, resourceID string) (*models.Resource, error)
+	StoreResource(ctx context.Context, resource *models.Resource) error
+	UpdateResource(ctx context.Context, resourceID string, updates map[string]interface{}) error
+	DeleteResource(ctx context.Context, resourceID string) error
+}
+// Removed - defined below
 type DiscoveryEngine struct{}
 type RelationshipEngine struct{}
 type AuditEngine struct{}
@@ -534,12 +583,32 @@ type ResourceHealthSummary struct {
 	UnknownResources   int `json:"unknownResources"`
 }
 
-type ResourceState struct{}
+type ResourceState struct {
+	ResourceID string `json:"resourceId"`
+}
+
 type ResourceLifecycleEvent struct{}
 type ResourceEventBus struct{}
 type EventSubscriber struct{}
-type ResourceLifecycleMetrics struct{}
+
+type ResourceLifecycleMetrics struct {
+	OperationsFailure  map[string]int
+	OperationsSuccess  map[string]int
+	OperationsDuration map[string]time.Duration
+}
+
 type ResourcePolicies struct{}
+
+// Operation type constants
+const (
+	OperationTypeProvision  = "provision"
+	OperationTypeConfigure  = "configure"
+	OperationTypeScale      = "scale"
+	OperationTypeTerminate  = "terminate"
+	OperationTypeMigrate    = "migrate"
+	OperationTypeBackup     = "backup"
+	OperationTypeRestore    = "restore"
+)
 
 // HealthServiceStatus represents the status of an external service dependency
 type HealthServiceStatus struct {
@@ -548,6 +617,18 @@ type HealthServiceStatus struct {
 	Endpoint    string        `json:"endpoint"`
 	LastCheck   time.Time     `json:"lastCheck"`
 	Latency     time.Duration `json:"latency"`
+}
+
+// Missing configuration types
+type NotificationConfig struct {
+	Enabled bool `json:"enabled"`
+}
+
+type ResourceConfig struct {
+	Enabled                    bool          `json:"enabled"`
+	MaxConcurrentOperations    int           `json:"maxConcurrentOperations"`
+	StateReconcileInterval     time.Duration `json:"stateReconcileInterval"`
+	AutoDiscoveryEnabled       bool          `json:"autoDiscoveryEnabled"`
 }
 
 
@@ -623,13 +704,19 @@ type InputValidationConfig struct {
 
 // BasicAuthConfig defines basic authentication configuration
 type BasicAuthConfig struct {
-	Enabled bool `json:"enabled"`
+	Enabled         bool   `json:"enabled"`
+	JWTSecret       string `json:"jwtSecret,omitempty"`
+	TokenValidation bool   `json:"tokenValidation,omitempty"`
 }
+
+// AuthenticationConfig alias for compatibility
+type AuthenticationConfig = BasicAuthConfig
 
 // APIHealthCheckConfig defines health check configuration for API server
 type APIHealthCheckConfig struct {
-	Enabled  bool          `json:"enabled"`
-	Interval time.Duration `json:"interval"`
+	Enabled         bool          `json:"enabled"`
+	Interval        time.Duration `json:"interval"`
+	DeepHealthCheck bool          `json:"deepHealthCheck,omitempty"`
 }
 
 // MetricsConfig defines metrics configuration

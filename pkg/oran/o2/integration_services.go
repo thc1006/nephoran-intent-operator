@@ -160,7 +160,7 @@ func NewIntegratedO2IMS(
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Initialize provider registry
-	providerRegistry := providers.NewProviderRegistry(config.O2IMSConfig.CloudProviders)
+	providerRegistry := providers.NewProviderRegistry()
 
 	integrated := &IntegratedO2IMS{
 		config:           config,
@@ -396,7 +396,7 @@ func (i *IntegratedO2IMS) Stop() error {
 		name     string
 		stopFunc func() error
 	}{
-		{"O2 API Server", i.apiServer.Shutdown},
+		{"O2 API Server", func() error { return i.apiServer.Shutdown(context.Background()) }},
 		{"Infrastructure Monitoring", i.infrastructureMonitoring.Stop},
 		{"Inventory Management", i.inventoryManagement.Stop},
 		{"CNF Management", i.cnfManagement.Stop},
@@ -502,10 +502,7 @@ func (i *IntegratedO2IMS) GetIntegratedHealth(ctx context.Context) (*IntegratedH
 	defer i.mu.RUnlock()
 
 	// Get infrastructure health
-	infraHealth, err := i.infrastructureMonitoring.GetActiveAlerts()
-	if err != nil {
-		i.logger.Error("failed to get infrastructure health", "error", err)
-	}
+	infraHealth := i.infrastructureMonitoring.GetActiveAlerts()
 
 	// Get CNF status
 	cnfs, err := i.cnfManagement.ListCNFs(ctx)

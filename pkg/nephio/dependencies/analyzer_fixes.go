@@ -18,9 +18,7 @@ package dependencies
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -29,19 +27,19 @@ import (
 // DefaultAnalyzerConfig returns a default AnalyzerConfig configuration
 func DefaultAnalyzerConfig() *AnalyzerConfig {
 	return &AnalyzerConfig{
-		EnableMLAnalysis:       false,
-		EnableMLOptimization:   false,
-		EnableCaching:          true,
-		EnableConcurrency:      true,
+		EnableMLAnalysis:     false,
+		EnableMLOptimization: false,
+		EnableCaching:        true,
+		EnableConcurrency:    true,
 		// EnableBenchmarking:     false, // Field does not exist
 		// EnableResourceAnalysis: false, // Field does not exist
-		EnableTrendAnalysis:    true,
-		WorkerCount:           4,
-		QueueSize:             100,
-		UsageAnalyzerConfig:      &UsageAnalyzerConfig{},
-		CostAnalyzerConfig:       &CostAnalyzerConfig{},
-		HealthAnalyzerConfig:     &HealthAnalyzerConfig{},
-		RiskAnalyzerConfig:       &RiskAnalyzerConfig{},
+		EnableTrendAnalysis:       true,
+		WorkerCount:               4,
+		QueueSize:                 100,
+		UsageAnalyzerConfig:       &UsageAnalyzerConfig{},
+		CostAnalyzerConfig:        &CostAnalyzerConfig{},
+		HealthAnalyzerConfig:      &HealthAnalyzerConfig{},
+		RiskAnalyzerConfig:        &RiskAnalyzerConfig{},
 		PerformanceAnalyzerConfig: &PerformanceAnalyzerConfig{},
 	}
 }
@@ -51,18 +49,18 @@ type AnalyzerMetrics struct {
 	// Cache metrics
 	AnalysisCacheHits   prometheus.Counter
 	AnalysisCacheMisses prometheus.Counter
-	
+
 	// System metrics
-	Uptime              prometheus.Gauge
+	Uptime prometheus.Gauge
 
 	// Analysis metrics
-	UsageAnalysisTotal    prometheus.Counter
-	UsageAnalysisTime     prometheus.Histogram
-	CostAnalysisTotal     prometheus.Counter
-	CostAnalysisTime      prometheus.Histogram
-	HealthAnalysisTotal   prometheus.Counter
-	HealthAnalysisTime    prometheus.Histogram
-	
+	UsageAnalysisTotal  prometheus.Counter
+	UsageAnalysisTime   prometheus.Histogram
+	CostAnalysisTotal   prometheus.Counter
+	CostAnalysisTime    prometheus.Histogram
+	HealthAnalysisTotal prometheus.Counter
+	HealthAnalysisTime  prometheus.Histogram
+
 	// Optimization metrics
 	OptimizationRecommendationsGenerated prometheus.Counter
 	OptimizationRecommendationTime       prometheus.Histogram
@@ -118,7 +116,7 @@ func NewAnalyzerMetrics() *AnalyzerMetrics {
 
 // Note: The following methods have been moved to analyzer.go to avoid duplicates:
 // - generateAnalysisCacheKey
-// - performMLAnalysis  
+// - performMLAnalysis
 // - updateAnalysisMetrics
 // - usageDataCollectionProcess
 // - metricsCollectionProcess
@@ -182,7 +180,7 @@ func (a *dependencyAnalyzer) generateComplianceActions(issues []*ComplianceIssue
 				Priority:    issue.Severity,
 				// DueDate field doesn't exist in ComplianceAction
 				// DueDate:     time.Now().Add(30 * 24 * time.Hour), // 30 days
-				Status:      "pending",
+				Status: "pending",
 			}
 			actions = append(actions, action)
 		}

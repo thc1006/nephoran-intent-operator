@@ -19,7 +19,6 @@ package dependencies
 import (
 	"context"
 	"fmt"
-	"sort"
 	"sync"
 	"time"
 
@@ -994,7 +993,9 @@ func generatePropagationID() string {
 	return fmt.Sprintf("propagation-%d", time.Now().UnixNano())
 }
 
-func generateUpdateAnalysisID() string {	return fmt.Sprintf("update-analysis-%d", time.Now().UnixNano())}
+func generateUpdateAnalysisID() string {
+	return fmt.Sprintf("update-analysis-%d", time.Now().UnixNano())
+}
 
 func generateUpdateItemID() string {
 	return fmt.Sprintf("item-%d", time.Now().UnixNano())
@@ -1040,7 +1041,7 @@ func (u *dependencyUpdater) ConfigureNotifications(ctx context.Context, config *
 // createUpdatePlan creates an update plan from dependency updates
 func (u *dependencyUpdater) createUpdatePlan(ctx context.Context, updates []*DependencyUpdate, strategy UpdateStrategy) (*UpdatePlan, error) {
 	u.logger.V(1).Info("Creating update plan", "updates", len(updates), "strategy", strategy)
-	
+
 	// Convert DependencyUpdate to PlannedUpdate
 	plannedUpdates := make([]*PlannedUpdate, len(updates))
 	for i, update := range updates {
@@ -1048,7 +1049,7 @@ func (u *dependencyUpdater) createUpdatePlan(ctx context.Context, updates []*Dep
 			Package: update.Package,
 		}
 	}
-	
+
 	plan := &UpdatePlan{
 		ID:          generateUpdatePlanID(),
 		Description: fmt.Sprintf("Update plan for %s strategy", strategy),
@@ -1058,7 +1059,7 @@ func (u *dependencyUpdater) createUpdatePlan(ctx context.Context, updates []*Dep
 		Status:      "pending",
 		UpdateSteps: make([]*UpdateStep, len(updates)),
 	}
-	
+
 	// Create update steps from updates
 	for i, update := range updates {
 		plan.UpdateSteps[i] = &UpdateStep{
@@ -1069,14 +1070,14 @@ func (u *dependencyUpdater) createUpdatePlan(ctx context.Context, updates []*Dep
 			Order:   i,
 		}
 	}
-	
+
 	return plan, nil
 }
 
 // validateUpdatePlan validates an update plan
 func (u *dependencyUpdater) validateUpdatePlan(ctx context.Context, plan *UpdatePlan) (*PlanValidation, error) {
 	u.logger.V(1).Info("Validating update plan", "planID", plan.ID)
-	
+
 	validation := &PlanValidation{
 		Valid:           true,
 		ValidationScore: 1.0,
@@ -1085,7 +1086,7 @@ func (u *dependencyUpdater) validateUpdatePlan(ctx context.Context, plan *Update
 		ValidatedAt:     time.Now(),
 		ValidatedBy:     "system",
 	}
-	
+
 	// Basic validation - check for nil updates
 	for i, update := range plan.Updates {
 		if update == nil {
@@ -1098,14 +1099,14 @@ func (u *dependencyUpdater) validateUpdatePlan(ctx context.Context, plan *Update
 			validation.Issues = append(validation.Issues, issue)
 		}
 	}
-	
+
 	return validation, nil
 }
 
 // executeStagedRollout executes a staged rollout
 func (u *dependencyUpdater) executeStagedRollout(ctx context.Context, plan *UpdatePlan) (*RolloutExecution, error) {
 	u.logger.V(1).Info("Executing staged rollout", "planID", plan.ID)
-	
+
 	now := time.Now()
 	execution := &RolloutExecution{
 		ID:        generateRolloutID(),
@@ -1114,40 +1115,40 @@ func (u *dependencyUpdater) executeStagedRollout(ctx context.Context, plan *Upda
 		Progress:  RolloutProgress{TotalBatches: 1, CompletedBatches: 0, ProgressPercent: 0.0},
 		Batches:   make([]*BatchExecution, 0),
 	}
-	
+
 	// For now, mark as completed
 	execution.Status = RolloutStatusCompleted
 	execution.CompletedAt = &now
 	execution.Progress = RolloutProgress{TotalBatches: 1, CompletedBatches: 1, ProgressPercent: 100.0}
-	
+
 	return execution, nil
 }
 
 // analyzeUpdateImpactStub provides stub implementation for update impact analysis
 func (u *dependencyUpdater) analyzeUpdateImpactStub(ctx context.Context, update *DependencyUpdate) (*UpdateAnalysisResult, error) {
 	u.logger.V(2).Info("Analyzing update impact", "package", update.Package.Name)
-	
+
 	result := &UpdateAnalysisResult{
 		UpdateID:  update.ID,
 		Package:   update.Package,
 		Impact:    UpdateImpactMinimal,
 		RiskLevel: "low",
 	}
-	
+
 	return result, nil
 }
 
 // analyzeCrossUpdateImpactStub provides stub implementation for cross-update impact analysis
 func (u *dependencyUpdater) analyzeCrossUpdateImpactStub(ctx context.Context, updates []*DependencyUpdate) (*CrossUpdateImpact, error) {
 	u.logger.V(2).Info("Analyzing cross-update impact", "updates", len(updates))
-	
+
 	impact := &CrossUpdateImpact{
 		Updates:      updates,
 		Conflicts:    make([]*UpdateConflict, 0),
 		Dependencies: make([]*CrossDependency, 0),
 		RiskLevel:    "low",
 	}
-	
+
 	return impact, nil
 }
 
@@ -1181,9 +1182,9 @@ func (u *dependencyUpdater) CreateRollbackPlan(ctx context.Context, rolloutID st
 func (u *dependencyUpdater) ExecuteRollback(ctx context.Context, rollbackPlan *RollbackPlan) (*RollbackResult, error) {
 	u.logger.V(1).Info("Executing rollback", "planID", rollbackPlan.PlanID)
 	result := &RollbackResult{
-		PlanID:      rollbackPlan.PlanID,
-		Success:     true,
-		Steps:       make([]interface{}, 0),
+		PlanID:       rollbackPlan.PlanID,
+		Success:      true,
+		Steps:        make([]interface{}, 0),
 		RolledBackAt: time.Now(),
 	}
 	return result, nil
@@ -1297,12 +1298,12 @@ func (u *dependencyUpdater) SendUpdateNotification(ctx context.Context, notifica
 func (u *dependencyUpdater) GetUpdaterHealth(ctx context.Context) (*UpdaterHealth, error) {
 	u.logger.V(1).Info("Getting updater health")
 	health := &UpdaterHealth{
-		Status:         "healthy",
-		Components:     map[string]string{"updater": "healthy", "queue": "healthy"},
-		LastCheck:      time.Now(),
-		Issues:         make([]string, 0),
-		ActiveUpdates:  0,
-		QueuedUpdates:  0,
+		Status:           "healthy",
+		Components:       map[string]string{"updater": "healthy", "queue": "healthy"},
+		LastCheck:        time.Now(),
+		Issues:           make([]string, 0),
+		ActiveUpdates:    0,
+		QueuedUpdates:    0,
 		ScheduledUpdates: 0,
 	}
 	return health, nil
@@ -1321,7 +1322,6 @@ func generateUpdatePlanID() string {
 func generateRolloutID() string {
 	return fmt.Sprintf("rollout-%d", time.Now().UnixNano())
 }
-
 
 // Close gracefully shuts down the dependency updater
 func (u *dependencyUpdater) Close() error {

@@ -882,3 +882,26 @@ type AcceleratorRequirement struct {
 	Memory     string                 `json:"memory,omitempty"`
 	Properties map[string]interface{} `json:"properties,omitempty"`
 }
+
+// ResourceSpec defines resource specifications for provisioning
+type ResourceSpec struct {
+	CPU    string `json:"cpu,omitempty"`
+	Memory string `json:"memory,omitempty"`
+	Storage string `json:"storage,omitempty"`
+	GPU    string `json:"gpu,omitempty"`
+}
+
+// Constants for resource lifecycle operations
+
+// Scale types
+const (
+	ScaleTypeHorizontal = "horizontal"
+	ScaleTypeVertical   = "vertical"
+)
+
+// Backup types
+const (
+	BackupTypeFull         = "full"
+	BackupTypeIncremental  = "incremental"
+	BackupTypeDifferential = "differential"
+)

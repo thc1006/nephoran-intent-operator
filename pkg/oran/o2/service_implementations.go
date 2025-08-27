@@ -550,18 +550,69 @@ func (s *O2IMSServiceImpl) GetResourceMetrics(ctx context.Context, resourceID st
 }
 
 // RegisterCloudProvider registers a new cloud provider
-func (s *O2IMSServiceImpl) RegisterCloudProvider(ctx context.Context, provider *CloudProviderConfig) error {
-	return s.providerRegistry.RegisterProvider(provider)
+func (s *O2IMSServiceImpl) RegisterCloudProvider(ctx context.Context, providerConfig *CloudProviderConfig) error {
+	// This would require creating an actual CloudProvider implementation from config
+	// For now, return not implemented
+	return fmt.Errorf("RegisterCloudProvider not implemented - requires CloudProvider implementation")
 }
 
 // GetCloudProviders retrieves cloud providers
 func (s *O2IMSServiceImpl) GetCloudProviders(ctx context.Context) ([]*CloudProviderConfig, error) {
-	return s.providerRegistry.GetAllProviders(), nil
+	providerNames := s.providerRegistry.ListProviders()
+	var configs []*CloudProviderConfig
+	
+	for _, name := range providerNames {
+		provider, err := s.providerRegistry.GetProvider(name)
+		if err != nil {
+			s.logger.Error("Failed to get provider", "name", name, "error", err)
+			continue
+		}
+		
+		providerInfo := provider.GetProviderInfo()
+		config := &CloudProviderConfig{
+			ID:          name,
+			Name:        providerInfo.Name,
+			Type:        providerInfo.Type,
+			Version:     providerInfo.Version,
+			Description: providerInfo.Description,
+			Enabled:     true,
+			Region:      providerInfo.Region,
+			Zone:        providerInfo.Zone,
+			Endpoint:    providerInfo.Endpoint,
+			Status:      "active",
+			CreatedAt:   providerInfo.LastUpdated,
+			UpdatedAt:   providerInfo.LastUpdated,
+		}
+		configs = append(configs, config)
+	}
+	
+	return configs, nil
 }
 
 // GetCloudProvider retrieves a specific cloud provider
 func (s *O2IMSServiceImpl) GetCloudProvider(ctx context.Context, providerID string) (*CloudProviderConfig, error) {
-	return s.providerRegistry.GetProviderConfig(providerID)
+	provider, err := s.providerRegistry.GetProvider(providerID)
+	if err != nil {
+		return nil, err
+	}
+	
+	providerInfo := provider.GetProviderInfo()
+	config := &CloudProviderConfig{
+		ID:          providerID,
+		Name:        providerInfo.Name,
+		Type:        providerInfo.Type,
+		Version:     providerInfo.Version,
+		Description: providerInfo.Description,
+		Enabled:     true,
+		Region:      providerInfo.Region,
+		Zone:        providerInfo.Zone,
+		Endpoint:    providerInfo.Endpoint,
+		Status:      "active",
+		CreatedAt:   providerInfo.LastUpdated,
+		UpdatedAt:   providerInfo.LastUpdated,
+	}
+	
+	return config, nil
 }
 
 // UpdateCloudProvider updates an existing cloud provider

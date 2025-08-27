@@ -17,11 +17,8 @@ limitations under the License.
 package webui
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -323,7 +320,7 @@ func (s *NephoranAPIServer) handleWebSocketSubscribe(conn *WebSocketConnection, 
 	select {
 	case conn.Send <- mustMarshal(response):
 	default:
-		s.logger.Warn("Failed to send subscription confirmation", "connection_id", conn.ID)
+		s.logger.V(1).Info("Failed to send subscription confirmation", "connection_id", conn.ID)
 	}
 }
 
@@ -352,7 +349,7 @@ func (s *NephoranAPIServer) handleWebSocketUnsubscribe(conn *WebSocketConnection
 	select {
 	case conn.Send <- mustMarshal(response):
 	default:
-		s.logger.Warn("Failed to send unsubscription confirmation", "connection_id", conn.ID)
+		s.logger.V(1).Info("Failed to send unsubscription confirmation", "connection_id", conn.ID)
 	}
 }
 
@@ -372,7 +369,7 @@ func (s *NephoranAPIServer) handleWebSocketPing(conn *WebSocketConnection, msg *
 	select {
 	case conn.Send <- mustMarshal(response):
 	default:
-		s.logger.Warn("Failed to send pong response", "connection_id", conn.ID)
+		s.logger.V(1).Info("Failed to send pong response", "connection_id", conn.ID)
 	}
 }
 
@@ -406,7 +403,7 @@ func (s *NephoranAPIServer) handleWebSocketGetStatus(conn *WebSocketConnection, 
 	select {
 	case conn.Send <- mustMarshal(response):
 	default:
-		s.logger.Warn("Failed to send status response", "connection_id", conn.ID)
+		s.logger.V(1).Info("Failed to send status response", "connection_id", conn.ID)
 	}
 }
 
@@ -430,7 +427,7 @@ func (s *NephoranAPIServer) sendWebSocketError(conn *WebSocketConnection, reques
 	select {
 	case conn.Send <- mustMarshal(errorMsg):
 	default:
-		s.logger.Warn("Failed to send error message", "connection_id", conn.ID)
+		s.logger.V(1).Info("Failed to send error message", "connection_id", conn.ID)
 	}
 }
 
@@ -745,4 +742,38 @@ func (s *NephoranAPIServer) shouldSendToConnection(filters map[string]interface{
 
 	// Additional filter logic would be implemented here based on the actual data structure
 	return true
+}
+
+// getStreamInfo handles GET /api/v1/realtime/streams/{id}
+func (s *NephoranAPIServer) getStreamInfo(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	streamID := vars["id"]
+	
+	// TODO: Implement actual stream info retrieval
+	streamInfo := map[string]interface{}{
+		"stream_id": streamID,
+		"status":    "active",
+		"type":      "websocket",
+		"created_at": time.Now(),
+		"message_count": 0,
+	}
+	
+	s.writeJSONResponse(w, http.StatusOK, streamInfo)
+}
+
+// closeStream handles DELETE /api/v1/realtime/streams/{id}/close
+func (s *NephoranAPIServer) closeStream(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	streamID := vars["id"]
+	
+	// TODO: Implement actual stream closing logic
+	s.logger.Info("Closing stream", "streamID", streamID)
+	
+	response := map[string]interface{}{
+		"stream_id": streamID,
+		"status":    "closed",
+		"closed_at": time.Now(),
+	}
+	
+	s.writeJSONResponse(w, http.StatusOK, response)
 }

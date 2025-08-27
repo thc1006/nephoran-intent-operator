@@ -313,13 +313,32 @@ func (a *O2Adaptor) CreateDeploymentTemplate(ctx context.Context, req *models.Cr
 		InputSchema:          req.InputSchema,
 		OutputSchema:         req.OutputSchema,
 		Author:               req.Author,
-		License:              req.License,
-		Keywords:             req.Keywords,
-		Dependencies:         req.Dependencies,
-		Requirements:         req.Requirements,
 		Extensions:           req.Extensions,
 		CreatedAt:            time.Now(),
 		UpdatedAt:            time.Now(),
+	}
+
+	// Handle fields that may exist in request but not in current struct
+	if req.License != "" {
+		if template.Extensions == nil {
+			template.Extensions = make(map[string]interface{})
+		}
+		template.Extensions["license"] = req.License
+	}
+	if len(req.Keywords) > 0 {
+		if template.Extensions == nil {
+			template.Extensions = make(map[string]interface{})
+		}
+		template.Extensions["keywords"] = req.Keywords
+	}
+	if len(req.Dependencies) > 0 {
+		if template.Extensions == nil {
+			template.Extensions = make(map[string]interface{})
+		}
+		template.Extensions["dependencies"] = req.Dependencies
+	}
+	if req.Requirements != nil {
+		template.RequiredResources = req.Requirements
 	}
 
 	// Register template with catalog service
@@ -534,7 +553,7 @@ func (a *O2Adaptor) GetAlarm(ctx context.Context, alarmID string) (*models.Alarm
 // AcknowledgeAlarm acknowledges an alarm
 func (a *O2Adaptor) AcknowledgeAlarm(ctx context.Context, alarmID string, req *models.AlarmAcknowledgementRequest) error {
 	logger := log.FromContext(ctx)
-	logger.Info("acknowledging alarm", "alarmID", alarmID, "acknowledgedBy", req.AcknowledgedBy)
+	logger.Info("acknowledging alarm", "alarmID", alarmID, "acknowledgedBy", req.AckUser)
 
 	return a.subscriptionService.AcknowledgeAlarm(ctx, alarmID, req)
 }
@@ -542,7 +561,7 @@ func (a *O2Adaptor) AcknowledgeAlarm(ctx context.Context, alarmID string, req *m
 // ClearAlarm clears an alarm
 func (a *O2Adaptor) ClearAlarm(ctx context.Context, alarmID string, req *models.AlarmClearRequest) error {
 	logger := log.FromContext(ctx)
-	logger.Info("clearing alarm", "alarmID", alarmID, "clearedBy", req.ClearedBy)
+	logger.Info("clearing alarm", "alarmID", alarmID, "clearedBy", req.ClearUser)
 
 	return a.subscriptionService.ClearAlarm(ctx, alarmID, req)
 }

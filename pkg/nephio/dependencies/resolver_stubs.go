@@ -20,9 +20,6 @@ import (
 	"context"
 	"fmt"
 	"time"
-
-	"github.com/go-logr/logr"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // Stub implementations to resolve compilation errors
@@ -130,7 +127,7 @@ func (r *dependencyResolver) buildDependencyTree(ctx context.Context, resCtx *Re
 }
 
 func (r *dependencyResolver) solveConstraints(ctx context.Context, resCtx *ResolutionContext) (*ConstraintSolution, error) {
-	// Stub implementation  
+	// Stub implementation
 	return &ConstraintSolution{}, nil
 }
 
