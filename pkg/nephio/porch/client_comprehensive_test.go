@@ -18,17 +18,14 @@ package porch_test
 
 import (
 	"context"
-	"errors"
-	"strings"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"

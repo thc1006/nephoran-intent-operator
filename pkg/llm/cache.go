@@ -623,8 +623,19 @@ func (c *ResponseCache) GetMetrics() *CacheMetrics {
 	c.metrics.mutex.RLock()
 	defer c.metrics.mutex.RUnlock()
 
-	metrics := *c.metrics
-	return &metrics
+	// Create new metrics struct to avoid copying mutex
+	metrics := &CacheMetrics{
+		L1Hits:                 c.metrics.L1Hits,
+		L2Hits:                 c.metrics.L2Hits,
+		Misses:                 c.metrics.Misses,
+		Evictions:              c.metrics.Evictions,
+		HitRate:                c.metrics.HitRate,
+		L1HitRate:              c.metrics.L1HitRate,
+		L2HitRate:              c.metrics.L2HitRate,
+		SemanticHits:           c.metrics.SemanticHits,
+		AdaptiveTTLAdjustments: c.metrics.AdaptiveTTLAdjustments,
+	}
+	return metrics
 }
 
 // GetStats returns detailed cache statistics

@@ -234,7 +234,7 @@ func runSecure(ctx context.Context, intentPath, outputDir string, apply bool, co
 }
 
 // applyPatchSecurely applies the patch using secure command execution
-func applyPatchSecurely(ctx context.Context, packagePath string, logger logr.Logger) error {
+func applyPatchSecurely(_ context.Context, packagePath string, logger logr.Logger) error {
 	logger.V(1).Info("Initializing secure command executor")
 
 	secureExecutor, err := security.NewSecureCommandExecutor()

@@ -23,7 +23,11 @@ func TestSecretLoaderSecurity(t *testing.T) {
 		// Create temp directory for testing
 		tempDir, err := os.MkdirTemp("", "secret-loader-test")
 		require.NoError(t, err)
-		defer os.RemoveAll(tempDir)
+		defer func() {
+			if err := os.RemoveAll(tempDir); err != nil {
+				t.Logf("failed to remove temp dir %s: %v", tempDir, err)
+			}
+		}()
 
 		// Create a test secret file
 		secretFile := filepath.Join(tempDir, "test-secret")
@@ -72,13 +76,17 @@ func TestSecretLoaderSecurity(t *testing.T) {
 		// Create temp directory
 		tempDir, err := os.MkdirTemp("", "secret-loader-abs-test")
 		require.NoError(t, err)
-		defer os.RemoveAll(tempDir)
+		defer func() {
+			if err := os.RemoveAll(tempDir); err != nil {
+				t.Logf("failed to remove temp dir %s: %v", tempDir, err)
+			}
+		}()
 
 		// Test that relative path gets converted to absolute
 		loader, err := NewSecretLoader(tempDir, nil)
 		assert.NoError(t, err)
 		assert.NotNil(t, loader)
-		
+
 		// The basePath should be absolute
 		assert.True(t, filepath.IsAbs(loader.basePath))
 	})
@@ -87,7 +95,11 @@ func TestSecretLoaderSecurity(t *testing.T) {
 		// Create temp directory for testing
 		tempDir, err := os.MkdirTemp("", "secret-loader-noioutil-test")
 		require.NoError(t, err)
-		defer os.RemoveAll(tempDir)
+		defer func() {
+			if err := os.RemoveAll(tempDir); err != nil {
+				t.Logf("failed to remove temp dir %s: %v", tempDir, err)
+			}
+		}()
 
 		// Create a test secret file
 		secretFile := filepath.Join(tempDir, "test-secret")
@@ -97,7 +109,7 @@ func TestSecretLoaderSecurity(t *testing.T) {
 		loader, err := NewSecretLoader(tempDir, nil)
 		require.NoError(t, err)
 
-		// This should use os.ReadFile internally, not ioutil.ReadFile
+		// This should use os.ReadFile internally, not os.ReadFile
 		content, err := loader.LoadSecret("test-secret")
 		assert.NoError(t, err)
 		assert.Equal(t, "test-content", content)

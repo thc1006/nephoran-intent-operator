@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net"
 	"net/http"
@@ -41,7 +40,7 @@ func TestChaosTestSuite(t *testing.T) {
 
 func (suite *ChaosTestSuite) SetupSuite() {
 	var err error
-	suite.tempDir, err = ioutil.TempDir("", "chaos_test")
+	suite.tempDir, err = os.MkdirTemp("", "chaos_test")
 	suite.Require().NoError(err)
 
 	// Setup chaos server that randomly fails

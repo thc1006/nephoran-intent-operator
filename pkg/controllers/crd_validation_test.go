@@ -3,10 +3,7 @@
 package controllers
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -17,8 +14,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/testutil"
 )
 
 var _ = Describe("CRD Validation and Schema Tests", func() {

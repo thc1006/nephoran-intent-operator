@@ -99,7 +99,7 @@ func TestA1Error_Error_Method(t *testing.T) {
 // Test Error Constructors
 
 func TestNewA1Error_Basic(t *testing.T) {
-	err := NewA1Error(ErrorTypeInvalidRequest, "Invalid JSON syntax", http.StatusBadRequest, nil)
+	err := NewA1Error(ErrorTypeInvalidRequest, "Invalid JSON syntax", http.StatusBadRequest, "Invalid JSON syntax")
 
 	assert.Equal(t, ErrorTypeInvalidRequest, err.Type)
 	assert.Equal(t, "Invalid JSON syntax", err.Title)

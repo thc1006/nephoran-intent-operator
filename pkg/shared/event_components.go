@@ -361,7 +361,7 @@ func (el *EventLog) getLogFiles() ([]string, error) {
 }
 
 func (el *EventLog) readEventsFromFile(filename string, filter func(ProcessingEvent) bool) ([]ProcessingEvent, error) {
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}

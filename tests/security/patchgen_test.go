@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
-	"path/filepath"
 	"strings"
 	"sync"
 	"testing"

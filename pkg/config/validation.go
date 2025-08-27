@@ -694,7 +694,7 @@ func (sl *SecretLoader) LoadSecret(secretName string) (string, error) {
 		return "", fmt.Errorf("path traversal attempt detected")
 	}
 
-	// Use os.ReadFile instead of deprecated ioutil.ReadFile
+	// Use os.ReadFile instead of deprecated os.ReadFile
 	content, err := os.ReadFile(cleanPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to read secret %s: %w", secretName, err)

@@ -58,14 +58,14 @@ type AzureADDirectoryRole struct {
 	ID             string `json:"id"`
 	DisplayName    string `json:"displayName"`
 	Description    string `json:"description"`
-	RoleTemplateId string `json:"roleTemplateId"`
+	RoleTemplateID string `json:"roleTemplateId"`
 }
 
 // AzureADApplication represents an Azure AD application
 type AzureADApplication struct {
 	ID          string           `json:"id"`
 	DisplayName string           `json:"displayName"`
-	AppId       string           `json:"appId"`
+	AppID       string           `json:"appId"`
 	AppRoles    []AzureADAppRole `json:"appRoles"`
 }
 

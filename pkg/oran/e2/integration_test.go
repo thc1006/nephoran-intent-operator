@@ -2,7 +2,6 @@ package e2
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"testing"
@@ -218,10 +217,11 @@ func TestE2ManagerIntegration(t *testing.T) {
 
 	t.Run("TestControlMessage", func(t *testing.T) {
 		// Create control request
+		processID := RICCallProcessID("test-process-001")
 		controlReq := &RICControlRequest{
 			RICRequestID:      RICRequestID{RICRequestorID: 1, RICInstanceID: 1},
 			RANFunctionID:     2, // RC service model
-			RICCallProcessID:  RICCallProcessID("test-process-001"),
+			RICCallProcessID:  &processID,
 			RICControlHeader:  []byte(`{"action_type":"qos_flow_mapping","priority":1}`),
 			RICControlMessage: []byte(`{"qos_class":"guaranteed_bitrate","bitrate_adjustment":0.1}`),
 		}

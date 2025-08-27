@@ -3,7 +3,6 @@
 package controllers
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -14,12 +13,10 @@ import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )

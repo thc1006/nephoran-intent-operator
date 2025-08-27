@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -390,7 +389,7 @@ func (cm *ConfigurationManager) loadConfigFromFile(configType, filePath string) 
 	}
 
 	// Read file
-	data, err := ioutil.ReadFile(filePath)
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to read config file: %w", err)
 	}
@@ -476,7 +475,7 @@ func (cm *ConfigurationManager) saveConfigToFile(filePath string, config interfa
 
 	// Write file atomically
 	tmpPath := filePath + ".tmp"
-	if err := ioutil.WriteFile(tmpPath, data, 0644); err != nil {
+	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write temp config file: %w", err)
 	}
 

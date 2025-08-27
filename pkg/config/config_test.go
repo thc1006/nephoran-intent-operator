@@ -241,7 +241,7 @@ func TestLoadFromEnv_EnvironmentOverrides(t *testing.T) {
 
 	for key, value := range envVars {
 		// Ignore setenv error in test
-	_ = os.Setenv(key, value)
+		_ = os.Setenv(key, value)
 	}
 
 	cfg, err := LoadFromEnv()
@@ -317,9 +317,9 @@ func TestLoadFromEnv_InvalidDurationValues(t *testing.T) {
 
 			// Set required environment variables
 			// Ignore setenv error in test
-	_ = os.Setenv("OPENAI_API_KEY", "sk-test-api-key")
+			_ = os.Setenv("OPENAI_API_KEY", "sk-test-api-key")
 			// Ignore setenv error in test
-	_ = os.Setenv(tt.envVar, tt.value)
+			_ = os.Setenv(tt.envVar, tt.value)
 
 			cfg, err := LoadFromEnv()
 			if tt.wantErr {
@@ -370,9 +370,9 @@ func TestLoadFromEnv_InvalidBooleanValues(t *testing.T) {
 
 			// Set required environment variables
 			// Ignore setenv error in test
-	_ = os.Setenv("OPENAI_API_KEY", "sk-test-api-key")
+			_ = os.Setenv("OPENAI_API_KEY", "sk-test-api-key")
 			// Ignore setenv error in test
-	_ = os.Setenv(tt.envVar, tt.value)
+			_ = os.Setenv(tt.envVar, tt.value)
 
 			cfg, err := LoadFromEnv()
 			require.NoError(t, err)
@@ -599,12 +599,12 @@ func TestEnvironmentVariables(t *testing.T) {
 
 					// Set required API key
 					// Ignore setenv error in test
-	_ = os.Setenv("OPENAI_API_KEY", "sk-test-key")
+					_ = os.Setenv("OPENAI_API_KEY", "sk-test-key")
 
 					// Set test environment variable if value is not empty (to test default behavior)
 					if tc.value != "" {
 						// Ignore setenv error in test
-	_ = os.Setenv(test.envVar, tc.value)
+						_ = os.Setenv(test.envVar, tc.value)
 					}
 
 					cfg, err := LoadFromEnv()
@@ -675,7 +675,7 @@ func TestEnvironmentVariablesEdgeCases(t *testing.T) {
 			name: "LLM_TIMEOUT_SECS with very large value",
 			setupEnv: func() {
 				// Ignore setenv error in test
-	_ = os.Setenv("LLM_TIMEOUT_SECS", "86400") // 24 hours
+				_ = os.Setenv("LLM_TIMEOUT_SECS", "86400") // 24 hours
 			},
 			validate: func(t *testing.T, cfg *Config) {
 				assert.Equal(t, 86400*time.Second, cfg.LLMTimeout)
@@ -685,7 +685,7 @@ func TestEnvironmentVariablesEdgeCases(t *testing.T) {
 			name: "HTTP_MAX_BODY with maximum int64 value",
 			setupEnv: func() {
 				// Ignore setenv error in test
-	_ = os.Setenv("HTTP_MAX_BODY", "9223372036854775807") // max int64
+				_ = os.Setenv("HTTP_MAX_BODY", "9223372036854775807") // max int64
 			},
 			validate: func(t *testing.T, cfg *Config) {
 				assert.Equal(t, int64(9223372036854775807), cfg.HTTPMaxBody)
@@ -695,7 +695,7 @@ func TestEnvironmentVariablesEdgeCases(t *testing.T) {
 			name: "METRICS_ALLOWED_IPS with complex whitespace",
 			setupEnv: func() {
 				// Ignore setenv error in test
-	_ = os.Setenv("METRICS_ALLOWED_IPS", "\t127.0.0.1\n,\r192.168.1.1\t,   10.0.0.1   \n")
+				_ = os.Setenv("METRICS_ALLOWED_IPS", "\t127.0.0.1\n,\r192.168.1.1\t,   10.0.0.1   \n")
 			},
 			validate: func(t *testing.T, cfg *Config) {
 				expected := []string{"127.0.0.1", "192.168.1.1", "10.0.0.1"}
@@ -706,11 +706,11 @@ func TestEnvironmentVariablesEdgeCases(t *testing.T) {
 			name: "All boolean env vars with enable/disable values",
 			setupEnv: func() {
 				// Ignore setenv error in test
-	_ = os.Setenv("ENABLE_NETWORK_INTENT", "disable")
+				_ = os.Setenv("ENABLE_NETWORK_INTENT", "disable")
 				// Ignore setenv error in test
-	_ = os.Setenv("ENABLE_LLM_INTENT", "enable")
+				_ = os.Setenv("ENABLE_LLM_INTENT", "enable")
 				// Ignore setenv error in test
-	_ = os.Setenv("METRICS_ENABLED", "enabled")
+				_ = os.Setenv("METRICS_ENABLED", "enabled")
 			},
 			validate: func(t *testing.T, cfg *Config) {
 				assert.False(t, cfg.EnableNetworkIntent)
@@ -722,11 +722,11 @@ func TestEnvironmentVariablesEdgeCases(t *testing.T) {
 			name: "Integer env vars with boundary values",
 			setupEnv: func() {
 				// Ignore setenv error in test
-	_ = os.Setenv("LLM_MAX_RETRIES", "0")
+				_ = os.Setenv("LLM_MAX_RETRIES", "0")
 				// Ignore setenv error in test
-	_ = os.Setenv("LLM_CACHE_MAX_ENTRIES", "1")
+				_ = os.Setenv("LLM_CACHE_MAX_ENTRIES", "1")
 				// Ignore setenv error in test
-	_ = os.Setenv("HTTP_MAX_BODY", "0")
+				_ = os.Setenv("HTTP_MAX_BODY", "0")
 			},
 			validate: func(t *testing.T, cfg *Config) {
 				assert.Equal(t, 0, cfg.LLMMaxRetries)
@@ -738,7 +738,7 @@ func TestEnvironmentVariablesEdgeCases(t *testing.T) {
 			name: "METRICS_ALLOWED_IPS with IPv6 addresses",
 			setupEnv: func() {
 				// Ignore setenv error in test
-	_ = os.Setenv("METRICS_ALLOWED_IPS", "::1,2001:db8::1,127.0.0.1")
+				_ = os.Setenv("METRICS_ALLOWED_IPS", "::1,2001:db8::1,127.0.0.1")
 			},
 			validate: func(t *testing.T, cfg *Config) {
 				expected := []string{"::1", "2001:db8::1", "127.0.0.1"}
@@ -751,7 +751,7 @@ func TestEnvironmentVariablesEdgeCases(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cleanupTargetEnv(t)
 			// Ignore setenv error in test
-	_ = os.Setenv("OPENAI_API_KEY", "sk-test-key")
+			_ = os.Setenv("OPENAI_API_KEY", "sk-test-key")
 
 			tt.setupEnv()
 
@@ -825,9 +825,9 @@ func TestSpecialLLMTimeoutSecsConversion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cleanupTargetEnv(t)
 			// Ignore setenv error in test
-	_ = os.Setenv("OPENAI_API_KEY", "sk-test-key")
+			_ = os.Setenv("OPENAI_API_KEY", "sk-test-key")
 			// Ignore setenv error in test
-	_ = os.Setenv("LLM_TIMEOUT_SECS", tt.envValue)
+			_ = os.Setenv("LLM_TIMEOUT_SECS", tt.envValue)
 
 			cfg, err := LoadFromEnv()
 			require.NoError(t, err)

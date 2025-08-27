@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -316,7 +315,7 @@ func (m *TLSManager) loadTLSConfig(certPath *CertificatePaths, config *TLSConfig
 
 		// Load CA bundle for client certificate verification
 		if certPath.CAFile != "" {
-			caCert, err := ioutil.ReadFile(certPath.CAFile)
+			caCert, err := os.ReadFile(certPath.CAFile)
 			if err != nil {
 				return nil, fmt.Errorf("failed to read CA file: %w", err)
 			}
@@ -627,7 +626,7 @@ func NewRBACManager(config *RBACConfig) (*RBACManager, error) {
 
 // loadPoliciesFromFile loads RBAC policies from a file
 func (m *RBACManager) loadPoliciesFromFile(policyPath string) error {
-	data, err := ioutil.ReadFile(policyPath)
+	data, err := os.ReadFile(policyPath)
 	if err != nil {
 		return fmt.Errorf("failed to read policy file: %w", err)
 	}
@@ -793,7 +792,7 @@ func NewCertificateManager() *CertificateManager {
 
 // LoadCertificate loads a certificate from file
 func (m *CertificateManager) LoadCertificate(name, certFile string) error {
-	data, err := ioutil.ReadFile(certFile)
+	data, err := os.ReadFile(certFile)
 	if err != nil {
 		return fmt.Errorf("failed to read certificate file: %w", err)
 	}

@@ -4,9 +4,7 @@
 package security_test
 
 import (
-	"context"
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"

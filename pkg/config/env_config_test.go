@@ -172,24 +172,28 @@ func TestConfigEnvironmentVariables(t *testing.T) {
 			// Set test environment variables
 			for key, value := range tt.envVars {
 				// Ignore setenv error in test
-	_ = os.Setenv(key, value)
+				_ = os.Setenv(key, value)
 			}
 
 			// Set required OPENAI_API_KEY for validation
 			// Ignore setenv error in test
-	_ = os.Setenv("OPENAI_API_KEY", "test-key")
+			_ = os.Setenv("OPENAI_API_KEY", "test-key")
 
 			// Clean up after test
 			defer func() {
 				for key, originalValue := range originalEnv {
 					if originalValue == "" {
-						os.Unsetenv(key)
+						if err := os.Unsetenv(key); err != nil {
+							t.Logf("failed to unset %s: %v", key, err)
+						}
 					} else {
 						// Ignore setenv error in test
-	_ = os.Setenv(key, originalValue)
+						_ = os.Setenv(key, originalValue)
 					}
 				}
-				os.Unsetenv("OPENAI_API_KEY") // Clean up test API key
+				if err := os.Unsetenv("OPENAI_API_KEY"); err != nil {
+					t.Logf("failed to unset OPENAI_API_KEY: %v", err)
+				} // Clean up test API key
 			}()
 
 			// Load configuration
@@ -221,17 +225,21 @@ func TestConfigDefaults(t *testing.T) {
 	originalEnv := make(map[string]string)
 	for _, key := range envVars {
 		originalEnv[key] = os.Getenv(key)
-		os.Unsetenv(key)
+		if err := os.Unsetenv(key); err != nil {
+			t.Logf("failed to unset %s: %v", key, err)
+		}
 	}
 
 	// Clean up after test
 	defer func() {
 		for key, originalValue := range originalEnv {
 			if originalValue == "" {
-				os.Unsetenv(key)
+				if err := os.Unsetenv(key); err != nil {
+					t.Logf("failed to unset %s: %v", key, err)
+				}
 			} else {
 				// Ignore setenv error in test
-	_ = os.Setenv(key, originalValue)
+				_ = os.Setenv(key, originalValue)
 			}
 		}
 	}()

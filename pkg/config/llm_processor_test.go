@@ -465,7 +465,7 @@ func TestLLMProcessorConfig_Validate_CORS(t *testing.T) {
 			},
 			setupEnv: func(t *testing.T) {
 				// Ignore setenv error in test
-	_ = os.Setenv("LLM_ENVIRONMENT", "development")
+				_ = os.Setenv("LLM_ENVIRONMENT", "development")
 				t.Cleanup(func() { os.Unsetenv("LLM_ENVIRONMENT") })
 			},
 			description: "CORS enabled with wildcard in development should be valid",
@@ -483,7 +483,7 @@ func TestLLMProcessorConfig_Validate_CORS(t *testing.T) {
 			},
 			setupEnv: func(t *testing.T) {
 				// Ignore setenv error in test
-	_ = os.Setenv("LLM_ENVIRONMENT", "production")
+				_ = os.Setenv("LLM_ENVIRONMENT", "production")
 				t.Cleanup(func() { os.Unsetenv("LLM_ENVIRONMENT") })
 			},
 			description: "CORS enabled with wildcard in production should be invalid",
@@ -590,7 +590,7 @@ func TestParseAllowedOrigins(t *testing.T) {
 			input: "*",
 			setupEnv: func(t *testing.T) {
 				// Ignore setenv error in test
-	_ = os.Setenv("LLM_ENVIRONMENT", "development")
+				_ = os.Setenv("LLM_ENVIRONMENT", "development")
 				t.Cleanup(func() { os.Unsetenv("LLM_ENVIRONMENT") })
 			},
 			expected:    []string{"*"},
@@ -602,7 +602,7 @@ func TestParseAllowedOrigins(t *testing.T) {
 			input: "*",
 			setupEnv: func(t *testing.T) {
 				// Ignore setenv error in test
-	_ = os.Setenv("LLM_ENVIRONMENT", "production")
+				_ = os.Setenv("LLM_ENVIRONMENT", "production")
 				t.Cleanup(func() { os.Unsetenv("LLM_ENVIRONMENT") })
 			},
 			wantErr:     true,
@@ -762,7 +762,7 @@ func TestLoadLLMProcessorConfig_CORSConfiguration(t *testing.T) {
 			// Set test environment variables
 			for key, value := range tt.envVars {
 				// Ignore setenv error in test
-	_ = os.Setenv(key, value)
+				_ = os.Setenv(key, value)
 			}
 
 			cfg, err := LoadLLMProcessorConfig()
@@ -845,7 +845,7 @@ func TestLoadLLMProcessorConfig_EnvironmentOverrides(t *testing.T) {
 
 	for key, value := range envVars {
 		// Ignore setenv error in test
-	_ = os.Setenv(key, value)
+		_ = os.Setenv(key, value)
 	}
 
 	cfg, err := LoadLLMProcessorConfig()
@@ -953,7 +953,7 @@ func TestLoadLLMProcessorConfig_ValidationErrors(t *testing.T) {
 			// Set test environment variables
 			for key, value := range tt.envVars {
 				// Ignore setenv error in test
-	_ = os.Setenv(key, value)
+				_ = os.Setenv(key, value)
 			}
 
 			cfg, err := LoadLLMProcessorConfig()
@@ -1234,7 +1234,7 @@ func TestLoadLLMProcessorConfig_TLSFromEnvironment(t *testing.T) {
 			// Set base environment variables
 			for key, value := range tt.envVars {
 				// Ignore setenv error in test
-	_ = os.Setenv(key, value)
+				_ = os.Setenv(key, value)
 			}
 
 			// Setup test files if needed
@@ -1242,9 +1242,9 @@ func TestLoadLLMProcessorConfig_TLSFromEnvironment(t *testing.T) {
 			if tt.setupFiles != nil {
 				certPath, keyPath, cleanupFunc := tt.setupFiles(t)
 				// Ignore setenv error in test
-	_ = os.Setenv("TLS_CERT_PATH", certPath)
+				_ = os.Setenv("TLS_CERT_PATH", certPath)
 				// Ignore setenv error in test
-	_ = os.Setenv("TLS_KEY_PATH", keyPath)
+				_ = os.Setenv("TLS_KEY_PATH", keyPath)
 				cleanup = cleanupFunc
 			}
 
@@ -1402,7 +1402,9 @@ OGZhoQQiCjRGD5mPjDfSKt9vq6ZV2V3xm1qhU8lXJ8kYgZLB0+9q1m9tQ9qx
 	require.NoError(t, err)
 
 	cleanup = func() {
-		os.RemoveAll(tmpDir)
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("failed to remove temp dir %s: %v", tmpDir, err)
+		}
 	}
 
 	return certPath, keyPath, cleanup

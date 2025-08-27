@@ -1,11 +1,12 @@
 package analysis
 
 import (
+	"math"
+	"sort"
+
 	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/stat"
 	"gonum.org/v1/gonum/stat/distuv"
-	"math"
-	"sort"
 )
 
 // PerformanceMetric represents a single performance measurement

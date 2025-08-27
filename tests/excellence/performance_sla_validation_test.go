@@ -3,7 +3,6 @@ package excellence_test
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -39,7 +38,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 							return err
 						}
 						if strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml") {
-							content, err := ioutil.ReadFile(path)
+							content, err := os.ReadFile(path)
 							if err != nil {
 								return err
 							}
@@ -63,7 +62,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 			for _, workloadFile := range workloadFiles {
 				GinkgoWriter.Printf("Analyzing resource configuration: %s\n", workloadFile)
 
-				content, err := ioutil.ReadFile(workloadFile)
+				content, err := os.ReadFile(workloadFile)
 				Expect(err).NotTo(HaveOccurred())
 
 				docs := strings.Split(string(content), "---")
@@ -241,7 +240,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 							return err
 						}
 						if strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml") {
-							content, err := ioutil.ReadFile(path)
+							content, err := os.ReadFile(path)
 							if err != nil {
 								return err
 							}
@@ -266,7 +265,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 				for _, hpaFile := range hpaFiles {
 					GinkgoWriter.Printf("  - %s\n", hpaFile)
 
-					content, err := ioutil.ReadFile(hpaFile)
+					content, err := os.ReadFile(hpaFile)
 					Expect(err).NotTo(HaveOccurred())
 
 					var hpaData map[string]interface{}
@@ -348,7 +347,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 							return err
 						}
 						if strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml") {
-							content, err := ioutil.ReadFile(path)
+							content, err := os.ReadFile(path)
 							if err != nil {
 								return err
 							}
@@ -544,7 +543,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 							return err
 						}
 						if strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml") {
-							content, err := ioutil.ReadFile(path)
+							content, err := os.ReadFile(path)
 							if err != nil {
 								return err
 							}
@@ -575,7 +574,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 
 				// Validate monitoring resource configurations
 				for _, file := range files {
-					content, err := ioutil.ReadFile(file)
+					content, err := os.ReadFile(file)
 					if err != nil {
 						continue
 					}
@@ -667,7 +666,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 							return err
 						}
 						if strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml") {
-							content, err := ioutil.ReadFile(path)
+							content, err := os.ReadFile(path)
 							if err != nil {
 								return err
 							}
@@ -760,7 +759,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 			reportData, err := json.MarshalIndent(report, "", "  ")
 			Expect(err).NotTo(HaveOccurred())
 
-			err = ioutil.WriteFile(reportPath, reportData, 0644)
+			err = os.WriteFile(reportPath, reportData, 0644)
 			Expect(err).NotTo(HaveOccurred())
 
 			GinkgoWriter.Printf("Performance SLA validation report generated: %s\n", reportPath)

@@ -3,7 +3,6 @@ package excellence_test
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -53,7 +52,7 @@ var _ = Describe("API Specification Validation Tests", func() {
 			for _, crdFile := range crdFiles {
 				GinkgoWriter.Printf("Validating CRD: %s\n", crdFile)
 
-				content, err := ioutil.ReadFile(crdFile)
+				content, err := os.ReadFile(crdFile)
 				Expect(err).NotTo(HaveOccurred(), "Should be able to read CRD file: %s", crdFile)
 
 				// Parse YAML
@@ -121,7 +120,7 @@ var _ = Describe("API Specification Validation Tests", func() {
 			apiVersions := make(map[string][]string) // group -> versions
 
 			for _, crdFile := range crdFiles {
-				content, err := ioutil.ReadFile(crdFile)
+				content, err := os.ReadFile(crdFile)
 				Expect(err).NotTo(HaveOccurred())
 
 				var crdData map[string]interface{}
@@ -183,7 +182,7 @@ var _ = Describe("API Specification Validation Tests", func() {
 
 				if err != nil {
 					// If kubectl fails, at least check basic YAML structure
-					content, readErr := ioutil.ReadFile(crdFile)
+					content, readErr := os.ReadFile(crdFile)
 					Expect(readErr).NotTo(HaveOccurred())
 
 					var crdData map[string]interface{}
@@ -218,7 +217,7 @@ var _ = Describe("API Specification Validation Tests", func() {
 			Expect(len(goFiles)).To(BeNumerically(">", 0), "Should have at least one API Go file")
 
 			for _, goFile := range goFiles {
-				content, err := ioutil.ReadFile(goFile)
+				content, err := os.ReadFile(goFile)
 				Expect(err).NotTo(HaveOccurred())
 
 				goContent := string(content)
@@ -304,7 +303,7 @@ var _ = Describe("API Specification Validation Tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, goFile := range goFiles {
-				content, err := ioutil.ReadFile(goFile)
+				content, err := os.ReadFile(goFile)
 				Expect(err).NotTo(HaveOccurred())
 
 				goContent := string(content)
@@ -371,7 +370,7 @@ var _ = Describe("API Specification Validation Tests", func() {
 						return err
 					}
 					if strings.HasSuffix(info.Name(), ".go") {
-						content, err := ioutil.ReadFile(path)
+						content, err := os.ReadFile(path)
 						if err != nil {
 							return err
 						}
@@ -453,7 +452,7 @@ var _ = Describe("API Specification Validation Tests", func() {
 
 			for _, specPath := range specPaths {
 				if _, err := os.Stat(specPath); err == nil {
-					content, err := ioutil.ReadFile(specPath)
+					content, err := os.ReadFile(specPath)
 					Expect(err).NotTo(HaveOccurred())
 
 					var specData map[string]interface{}
@@ -517,7 +516,7 @@ var _ = Describe("API Specification Validation Tests", func() {
 			reportData, err := json.MarshalIndent(report, "", "  ")
 			Expect(err).NotTo(HaveOccurred())
 
-			err = ioutil.WriteFile(reportPath, reportData, 0644)
+			err = os.WriteFile(reportPath, reportData, 0644)
 			Expect(err).NotTo(HaveOccurred())
 
 			GinkgoWriter.Printf("API specification validation report generated: %s\n", reportPath)

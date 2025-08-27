@@ -5,7 +5,7 @@ package integration
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -15,8 +15,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -28,7 +26,6 @@ import (
 
 	nephv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/audit"
-	"github.com/thc1006/nephoran-intent-operator/pkg/audit/backends"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
 )
 
@@ -56,7 +53,7 @@ func TestE2EAuditTestSuite(t *testing.T) {
 func (suite *E2EAuditTestSuite) SetupSuite() {
 	// Setup temporary directory
 	var err error
-	suite.tempDir, err = ioutil.TempDir("", "e2e_audit_test")
+	suite.tempDir, err = os.MkdirTemp("", "e2e_audit_test")
 	suite.Require().NoError(err)
 
 	// Setup HTTP server for webhook testing
@@ -65,7 +62,7 @@ func (suite *E2EAuditTestSuite) SetupSuite() {
 		defer suite.eventMutex.Unlock()
 
 		var event AuditEvent
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		if err == nil {
 			// In a real implementation, we'd unmarshal the JSON
 			// For testing, we'll create a mock event
@@ -253,7 +250,7 @@ func (suite *E2EAuditTestSuite) TestCompleteAuditTrailLifecycle() {
 
 		// Verify events were written to file
 		logFile := filepath.Join(suite.tempDir, "audit.log")
-		content, err := ioutil.ReadFile(logFile)
+		content, err := os.ReadFile(logFile)
 		suite.NoError(err)
 		suite.NotEmpty(content)
 
@@ -625,7 +622,7 @@ func (suite *E2EAuditTestSuite) TestErrorRecovery() {
 
 		// Verify backup file received events (webhook should fail but file should succeed)
 		backupFile := filepath.Join(suite.tempDir, "backup.log")
-		content, err := ioutil.ReadFile(backupFile)
+		content, err := os.ReadFile(backupFile)
 		suite.NoError(err)
 		suite.NotEmpty(content)
 	})
@@ -744,7 +741,7 @@ func (suite *E2EAuditTestSuite) TestComplianceIntegration() {
 
 		// Verify compliance metadata was added
 		logFile := filepath.Join(suite.tempDir, "compliance.log")
-		content, err := ioutil.ReadFile(logFile)
+		content, err := os.ReadFile(logFile)
 		suite.NoError(err)
 		suite.NotEmpty(content)
 
@@ -934,7 +931,7 @@ func (suite *E2EAuditTestSuite) TestKubernetesIntegration() {
 
 		// Verify log file contains Kubernetes-specific fields
 		logFile := filepath.Join(suite.tempDir, "basic.log")
-		content, err := ioutil.ReadFile(logFile)
+		content, err := os.ReadFile(logFile)
 		suite.NoError(err)
 
 		contentStr := string(content)

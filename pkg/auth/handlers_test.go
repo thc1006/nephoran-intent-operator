@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -15,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/testutil"
 )
 

@@ -3,7 +3,6 @@ package mtls
 import (
 	"crypto/rand"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -23,7 +22,7 @@ func loadCertificateFile(certPath string) ([]byte, error) {
 	}
 
 	// Read certificate file
-	certData, err := ioutil.ReadFile(certPath)
+	certData, err := os.ReadFile(certPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read certificate file %s: %w", certPath, err)
 	}
@@ -56,18 +55,18 @@ func (c *Client) storeCertificateFiles(resp *ca.CertificateResponse) error {
 	}
 
 	// Store certificate
-	if err := ioutil.WriteFile(c.config.ClientCertPath, []byte(resp.CertificatePEM), 0640); err != nil {
+	if err := os.WriteFile(c.config.ClientCertPath, []byte(resp.CertificatePEM), 0640); err != nil {
 		return fmt.Errorf("failed to store client certificate: %w", err)
 	}
 
 	// Store private key
-	if err := ioutil.WriteFile(c.config.ClientKeyPath, []byte(resp.PrivateKeyPEM), 0600); err != nil {
+	if err := os.WriteFile(c.config.ClientKeyPath, []byte(resp.PrivateKeyPEM), 0600); err != nil {
 		return fmt.Errorf("failed to store client private key: %w", err)
 	}
 
 	// Store CA certificate if provided
 	if resp.CACertificatePEM != "" && c.config.CACertPath != "" {
-		if err := ioutil.WriteFile(c.config.CACertPath, []byte(resp.CACertificatePEM), 0644); err != nil {
+		if err := os.WriteFile(c.config.CACertPath, []byte(resp.CACertificatePEM), 0644); err != nil {
 			return fmt.Errorf("failed to store CA certificate: %w", err)
 		}
 	}
@@ -88,18 +87,18 @@ func (s *Server) storeCertificateFiles(resp *ca.CertificateResponse) error {
 	}
 
 	// Store certificate
-	if err := ioutil.WriteFile(s.config.ServerCertPath, []byte(resp.CertificatePEM), 0640); err != nil {
+	if err := os.WriteFile(s.config.ServerCertPath, []byte(resp.CertificatePEM), 0640); err != nil {
 		return fmt.Errorf("failed to store server certificate: %w", err)
 	}
 
 	// Store private key
-	if err := ioutil.WriteFile(s.config.ServerKeyPath, []byte(resp.PrivateKeyPEM), 0600); err != nil {
+	if err := os.WriteFile(s.config.ServerKeyPath, []byte(resp.PrivateKeyPEM), 0600); err != nil {
 		return fmt.Errorf("failed to store server private key: %w", err)
 	}
 
 	// Store CA certificate if provided
 	if resp.CACertificatePEM != "" && s.config.CACertPath != "" {
-		if err := ioutil.WriteFile(s.config.CACertPath, []byte(resp.CACertificatePEM), 0644); err != nil {
+		if err := os.WriteFile(s.config.CACertPath, []byte(resp.CACertificatePEM), 0644); err != nil {
 			return fmt.Errorf("failed to store CA certificate: %w", err)
 		}
 	}
@@ -250,5 +249,5 @@ func writeSecureFile(filepath string, data []byte, perm os.FileMode) error {
 	}
 
 	// Write file with specified permissions
-	return ioutil.WriteFile(filepath, data, perm)
+	return os.WriteFile(filepath, data, perm)
 }

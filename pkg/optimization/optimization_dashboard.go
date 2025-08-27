@@ -20,16 +20,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"strconv"
+	"sync"
+	"time"
+
 	"github.com/go-logr/logr"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
-	"net/http"
-	"strconv"
-	"sync"
-	"time"
 )
 
 // OptimizationDashboard provides real-time monitoring and control of optimization processes

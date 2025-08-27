@@ -4,15 +4,13 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"crypto/tls"
 	"encoding/json"
-	"fmt"
 	"io"
+	"log"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"

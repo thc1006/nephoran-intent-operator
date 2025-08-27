@@ -3,7 +3,6 @@ package audit
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"runtime"
 	"sync"
@@ -176,7 +175,7 @@ func BenchmarkEventSerialization(b *testing.B) {
 
 // BenchmarkBackendPerformance measures backend-specific performance
 func BenchmarkBackendPerformance(b *testing.B) {
-	tempDir, err := ioutil.TempDir("", "benchmark_backend")
+	tempDir, err := os.MkdirTemp("", "benchmark_backend")
 	require.NoError(b, err)
 	defer os.RemoveAll(tempDir)
 

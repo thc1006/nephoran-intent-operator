@@ -220,7 +220,7 @@ func (r *OptimizedE2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 // getE2NodeSetOptimized retrieves E2NodeSet using optimized API calls
 func (r *OptimizedE2NodeSetReconciler) getE2NodeSetOptimized(ctx context.Context, key types.NamespacedName) (*nephoranv1.E2NodeSet, error) {
-	timer := r.metrics.NewApiCallTimer(OptimizedE2NodeSetController, "get", "E2NodeSet")
+	timer := r.metrics.NewAPICallTimer(OptimizedE2NodeSetController, "get", "E2NodeSet")
 
 	var e2nodeSet nephoranv1.E2NodeSet
 	err := r.Get(ctx, key, &e2nodeSet)
@@ -332,7 +332,7 @@ func (r *OptimizedE2NodeSetReconciler) getExistingConfigMapsOptimized(ctx contex
 		}
 	}
 
-	timer := r.metrics.NewApiCallTimer(OptimizedE2NodeSetController, "list", "ConfigMap")
+	timer := r.metrics.NewAPICallTimer(OptimizedE2NodeSetController, "list", "ConfigMap")
 
 	var configMapList corev1.ConfigMapList
 	err := r.List(ctx, &configMapList,
@@ -501,7 +501,7 @@ func (r *OptimizedE2NodeSetReconciler) updateExistingNodesOptimized(
 
 // createE2NodeOptimized creates a single E2 node ConfigMap
 func (r *OptimizedE2NodeSetReconciler) createE2NodeOptimized(ctx context.Context, e2nodeSet *nephoranv1.E2NodeSet, nodeIndex int) error {
-	timer := r.metrics.NewApiCallTimer(OptimizedE2NodeSetController, "create", "ConfigMap")
+	timer := r.metrics.NewAPICallTimer(OptimizedE2NodeSetController, "create", "ConfigMap")
 
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -541,7 +541,7 @@ func (r *OptimizedE2NodeSetReconciler) createE2NodeOptimized(ctx context.Context
 
 // deleteE2NodeOptimized deletes a single E2 node ConfigMap
 func (r *OptimizedE2NodeSetReconciler) deleteE2NodeOptimized(ctx context.Context, configMap *corev1.ConfigMap) error {
-	timer := r.metrics.NewApiCallTimer(OptimizedE2NodeSetController, "delete", "ConfigMap")
+	timer := r.metrics.NewAPICallTimer(OptimizedE2NodeSetController, "delete", "ConfigMap")
 
 	err := r.Delete(ctx, configMap)
 	timer.FinishWithResult(err == nil, r.backoffManager.ClassifyError(err).String())
@@ -581,7 +581,7 @@ func (r *OptimizedE2NodeSetReconciler) hasFinalizer(e2nodeSet *nephoranv1.E2Node
 func (r *OptimizedE2NodeSetReconciler) addFinalizerOptimized(ctx context.Context, e2nodeSet *nephoranv1.E2NodeSet) error {
 	e2nodeSet.Finalizers = append(e2nodeSet.Finalizers, E2NodeSetFinalizer)
 
-	timer := r.metrics.NewApiCallTimer(OptimizedE2NodeSetController, "update", "E2NodeSet")
+	timer := r.metrics.NewAPICallTimer(OptimizedE2NodeSetController, "update", "E2NodeSet")
 	err := r.Update(ctx, e2nodeSet)
 	timer.FinishWithResult(err == nil, r.backoffManager.ClassifyError(err).String())
 
@@ -641,7 +641,7 @@ func (r *OptimizedE2NodeSetReconciler) handleDeletionOptimized(
 	}
 	e2nodeSet.Finalizers = finalizers
 
-	timer := r.metrics.NewApiCallTimer(OptimizedE2NodeSetController, "update", "E2NodeSet")
+	timer := r.metrics.NewAPICallTimer(OptimizedE2NodeSetController, "update", "E2NodeSet")
 	err = r.Update(ctx, e2nodeSet)
 	timer.FinishWithResult(err == nil, r.backoffManager.ClassifyError(err).String())
 

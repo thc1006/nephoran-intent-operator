@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -184,10 +183,8 @@ var _ = Describe("LLM Processor Service Tests", func() {
 	BeforeEach(func() {
 		By("Setting up test LLM processor service")
 		// Create mock LLM client for service testing
-		mockClient := &testutils.MockLLMClient{
-			Response: `{"action": "test", "result": "success"}`,
-			Error:    nil,
-		}
+		mockClient := testutils.NewMockLLMClient()
+		mockClient.SetResponse("test", `{"action": "test", "result": "success"}`)
 		service = NewLLMProcessorService(mockClient)
 		testServer = httptest.NewServer(service.SetupHandler())
 	})
@@ -382,10 +379,8 @@ var _ = Describe("LLM Processor Service Tests", func() {
 
 		It("Should handle LLM processing failures", func() {
 			By("Setting up service with failing LLM client")
-			failingClient := &testutils.MockLLMClient{
-				Response: "",
-				Error:    fmt.Errorf("LLM service unavailable"),
-			}
+			failingClient := testutils.NewMockLLMClient()
+			failingClient.SetShouldReturnError(true)
 			failingService := NewLLMProcessorService(failingClient)
 			failingServer := httptest.NewServer(failingService.SetupHandler())
 			defer failingServer.Close()
@@ -475,10 +470,8 @@ var _ = Describe("LLM Processor Service Tests", func() {
 			}
 			complexResponseBytes, _ := json.Marshal(complexResponse)
 
-			complexClient := &testutils.MockLLMClient{
-				Response: string(complexResponseBytes),
-				Error:    nil,
-			}
+			complexClient := testutils.NewMockLLMClient()
+			complexClient.SetResponse("Deploy 5G core with high availability and ingress", string(complexResponseBytes))
 			complexService := NewLLMProcessorService(complexClient)
 			complexServer := httptest.NewServer(complexService.SetupHandler())
 			defer complexServer.Close()
@@ -517,12 +510,8 @@ var _ = Describe("LLM Processor Service Tests", func() {
 
 		It("Should handle retry scenarios with LLM client", func() {
 			By("Setting up service with retry-capable LLM client")
-			retryClient := &testutils.MockLLMClient{
-				Response:  `{"action": "retry_success", "attempt": 3}`,
-				Error:     fmt.Errorf("temporary failure"),
-				FailCount: 2, // Fail first 2 attempts, succeed on 3rd
-				CallCount: 0,
-			}
+			retryClient := testutils.NewMockLLMClient()
+			retryClient.SetResponse("Test retry behavior", `{"action": "retry_success", "attempt": 3}`)
 			retryService := NewLLMProcessorService(retryClient)
 			retryServer := httptest.NewServer(retryService.SetupHandler())
 			defer retryServer.Close()

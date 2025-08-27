@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
@@ -31,9 +32,12 @@ func setEnvVars(t *testing.T, vars map[string]string) func() {
 		for key := range vars {
 			if origVal, exists := original[key]; exists {
 				// Ignore setenv error in test
-	_ = os.Setenv(key, origVal)
+				_ = os.Setenv(key, origVal)
 			} else {
-				os.Unsetenv(key)
+				if err := os.Unsetenv(key); err != nil {
+					// Log error but don't fail test cleanup
+					fmt.Printf("failed to unset %s: %v\n", key, err)
+				}
 			}
 		}
 	}
@@ -898,7 +902,12 @@ func TestValidateDurationRange(t *testing.T) {
 func BenchmarkGetEnvOrDefault(b *testing.B) {
 	// Ignore setenv error in test
 	_ = os.Setenv("BENCH_KEY", "benchmark_value")
-	defer os.Unsetenv("BENCH_KEY")
+	defer func() {
+		if err := os.Unsetenv("BENCH_KEY"); err != nil {
+			// Log error but don't fail benchmark
+			fmt.Printf("failed to unset BENCH_KEY: %v\n", err)
+		}
+	}()
 
 	for i := 0; i < b.N; i++ {
 		GetEnvOrDefault("BENCH_KEY", "default")
@@ -908,7 +917,12 @@ func BenchmarkGetEnvOrDefault(b *testing.B) {
 func BenchmarkGetBoolEnv(b *testing.B) {
 	// Ignore setenv error in test
 	_ = os.Setenv("BENCH_BOOL", "true")
-	defer os.Unsetenv("BENCH_BOOL")
+	defer func() {
+		if err := os.Unsetenv("BENCH_BOOL"); err != nil {
+			// Log error but don't fail benchmark
+			fmt.Printf("failed to unset BENCH_BOOL: %v\n", err)
+		}
+	}()
 
 	for i := 0; i < b.N; i++ {
 		GetBoolEnv("BENCH_BOOL", false)
@@ -918,7 +932,12 @@ func BenchmarkGetBoolEnv(b *testing.B) {
 func BenchmarkGetStringSliceEnv(b *testing.B) {
 	// Ignore setenv error in test
 	_ = os.Setenv("BENCH_SLICE", "item1,item2,item3,item4,item5")
-	defer os.Unsetenv("BENCH_SLICE")
+	defer func() {
+		if err := os.Unsetenv("BENCH_SLICE"); err != nil {
+			// Log error but don't fail benchmark
+			fmt.Printf("failed to unset BENCH_SLICE: %v\n", err)
+		}
+	}()
 
 	for i := 0; i < b.N; i++ {
 		GetStringSliceEnv("BENCH_SLICE", []string{})

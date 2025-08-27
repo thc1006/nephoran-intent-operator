@@ -20,7 +20,6 @@ package porch
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"runtime"
 	"sync"
@@ -30,6 +29,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // IntegrationTestSuite provides integration testing for the complete Porch client

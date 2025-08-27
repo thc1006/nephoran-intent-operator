@@ -3,7 +3,6 @@ package excellence_test
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -73,7 +72,7 @@ var _ = Describe("Security Compliance Tests", func() {
 				}
 
 				// Read file content
-				content, err := ioutil.ReadFile(path)
+				content, err := os.ReadFile(path)
 				if err != nil {
 					return err
 				}
@@ -151,7 +150,7 @@ var _ = Describe("Security Compliance Tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, goFile := range goFiles {
-				content, err := ioutil.ReadFile(goFile)
+				content, err := os.ReadFile(goFile)
 				Expect(err).NotTo(HaveOccurred())
 
 				fileContent := string(content)
@@ -227,7 +226,7 @@ var _ = Describe("Security Compliance Tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			for _, goFile := range goFiles {
-				content, err := ioutil.ReadFile(goFile)
+				content, err := os.ReadFile(goFile)
 				Expect(err).NotTo(HaveOccurred())
 
 				fileContent := string(content)
@@ -298,7 +297,7 @@ var _ = Describe("Security Compliance Tests", func() {
 			securityIssues := []string{}
 
 			for _, dockerfile := range dockerfiles {
-				content, err := ioutil.ReadFile(dockerfile)
+				content, err := os.ReadFile(dockerfile)
 				Expect(err).NotTo(HaveOccurred())
 
 				dockerfileContent := string(content)
@@ -369,7 +368,7 @@ var _ = Describe("Security Compliance Tests", func() {
 						}
 						if strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml") {
 							// Check if file contains RBAC resources
-							content, err := ioutil.ReadFile(path)
+							content, err := os.ReadFile(path)
 							if err != nil {
 								return err
 							}
@@ -410,7 +409,7 @@ var _ = Describe("Security Compliance Tests", func() {
 			for _, rbacFile := range rbacFiles {
 				GinkgoWriter.Printf("Validating RBAC file: %s\n", rbacFile)
 
-				content, err := ioutil.ReadFile(rbacFile)
+				content, err := os.ReadFile(rbacFile)
 				Expect(err).NotTo(HaveOccurred())
 
 				// Parse YAML documents
@@ -523,7 +522,7 @@ var _ = Describe("Security Compliance Tests", func() {
 							return err
 						}
 						if strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml") {
-							content, err := ioutil.ReadFile(path)
+							content, err := os.ReadFile(path)
 							if err != nil {
 								return err
 							}
@@ -544,7 +543,7 @@ var _ = Describe("Security Compliance Tests", func() {
 			securityContextIssues := []string{}
 
 			for _, deploymentFile := range deploymentFiles {
-				content, err := ioutil.ReadFile(deploymentFile)
+				content, err := os.ReadFile(deploymentFile)
 				Expect(err).NotTo(HaveOccurred())
 
 				docs := strings.Split(string(content), "---")
@@ -676,7 +675,7 @@ var _ = Describe("Security Compliance Tests", func() {
 							return err
 						}
 						if strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml") {
-							content, err := ioutil.ReadFile(path)
+							content, err := os.ReadFile(path)
 							if err != nil {
 								return err
 							}
@@ -701,7 +700,7 @@ var _ = Describe("Security Compliance Tests", func() {
 
 				// Validate network policies
 				for _, policyFile := range networkPolicyFiles {
-					content, err := ioutil.ReadFile(policyFile)
+					content, err := os.ReadFile(policyFile)
 					Expect(err).NotTo(HaveOccurred())
 
 					var policyData map[string]interface{}
@@ -749,7 +748,7 @@ var _ = Describe("Security Compliance Tests", func() {
 				GinkgoWriter.Printf("govulncheck not available, skipping automated vulnerability scan\n")
 
 				// Alternative: check for obviously outdated dependencies
-				content, err := ioutil.ReadFile(goModPath)
+				content, err := os.ReadFile(goModPath)
 				Expect(err).NotTo(HaveOccurred())
 
 				goModContent := string(content)
@@ -776,7 +775,7 @@ var _ = Describe("Security Compliance Tests", func() {
 			// Check go.mod for insecure patterns
 			goModPath := filepath.Join(projectRoot, "go.mod")
 			if _, err := os.Stat(goModPath); err == nil {
-				content, err := ioutil.ReadFile(goModPath)
+				content, err := os.ReadFile(goModPath)
 				Expect(err).NotTo(HaveOccurred())
 
 				goModContent := string(content)
@@ -804,7 +803,7 @@ var _ = Describe("Security Compliance Tests", func() {
 			// Check for package.json if it exists
 			packageJSONPath := filepath.Join(projectRoot, "package.json")
 			if _, err := os.Stat(packageJSONPath); err == nil {
-				content, err := ioutil.ReadFile(packageJSONPath)
+				content, err := os.ReadFile(packageJSONPath)
 				Expect(err).NotTo(HaveOccurred())
 
 				var packageData map[string]interface{}
@@ -877,7 +876,7 @@ var _ = Describe("Security Compliance Tests", func() {
 			reportData, err := json.MarshalIndent(report, "", "  ")
 			Expect(err).NotTo(HaveOccurred())
 
-			err = ioutil.WriteFile(reportPath, reportData, 0644)
+			err = os.WriteFile(reportPath, reportData, 0644)
 			Expect(err).NotTo(HaveOccurred())
 
 			GinkgoWriter.Printf("Security compliance report generated: %s\n", reportPath)

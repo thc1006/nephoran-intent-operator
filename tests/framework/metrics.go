@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"runtime"
 	"sync"
@@ -456,7 +455,7 @@ func (tm *TestMetrics) GenerateReport() {
 	// Write report to file
 	reportData, _ := json.MarshalIndent(report, "", "  ")
 	filename := fmt.Sprintf("test-report-%d.json", time.Now().Unix())
-	ioutil.WriteFile(filename, reportData, 0644)
+	os.WriteFile(filename, reportData, 0644)
 
 	// Print summary to console
 	tm.printSummary(report)

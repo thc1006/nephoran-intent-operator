@@ -3,6 +3,7 @@ package rag
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"math"
 	"strings"
 	"sync"

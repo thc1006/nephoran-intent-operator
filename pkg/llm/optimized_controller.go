@@ -325,15 +325,8 @@ func (oci *OptimizedControllerIntegration) ProcessLLMPhaseOptimized(
 		return nil, fmt.Errorf("failed to submit to worker pool: %w", err)
 	}
 
-	// Wait for result (this would be improved with proper async handling)
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-time.After(30 * time.Second): // Timeout
-		return nil, fmt.Errorf("processing timeout")
-	}
-
-	// For now, fallback to direct optimized processing
+	// For now, fallback to direct optimized processing instead of waiting
+	// TODO: Implement proper async result handling from worker pool
 	return oci.processDirectOptimized(ctx, intent, parameters, intentType)
 }
 

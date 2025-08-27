@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/thc1006/nephoran-intent-operator/api/v1"
+	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
@@ -39,8 +39,8 @@ const (
 	// O-RAN Blueprint Categories
 	BlueprintCategoryNearRTRIC = "near-rt-ric"
 	BlueprintCategoryNonRTRIC  = "non-rt-ric"
-	BlueprintCategoryORAN_DU   = "oran-du"
-	BlueprintCategoryORAN_CU   = "oran-cu"
+	BlueprintCategoryORANDU    = "oran-du"
+	BlueprintCategoryORANCU    = "oran-cu"
 	BlueprintCategoryXApp      = "xapp"
 	BlueprintCategoryRApp      = "rapp"
 	BlueprintCategorySMO       = "smo"
@@ -91,8 +91,8 @@ type ORANBlueprintManager struct {
 type ORANBlueprintCatalog struct {
 	NearRTRIC  map[string]*BlueprintTemplate
 	NonRTRIC   map[string]*BlueprintTemplate
-	ORAN_DU    map[string]*BlueprintTemplate
-	ORAN_CU    map[string]*BlueprintTemplate
+	ORANDU     map[string]*BlueprintTemplate
+	ORANCU     map[string]*BlueprintTemplate
 	xApps      map[string]*BlueprintTemplate
 	rApps      map[string]*BlueprintTemplate
 	SMO        map[string]*BlueprintTemplate
@@ -1024,8 +1024,8 @@ func NewORANBlueprintCatalog(config *BlueprintConfig, logger *zap.Logger) (*ORAN
 	catalog := &ORANBlueprintCatalog{
 		NearRTRIC:  make(map[string]*BlueprintTemplate),
 		NonRTRIC:   make(map[string]*BlueprintTemplate),
-		ORAN_DU:    make(map[string]*BlueprintTemplate),
-		ORAN_CU:    make(map[string]*BlueprintTemplate),
+		ORANDU:     make(map[string]*BlueprintTemplate),
+		ORANCU:     make(map[string]*BlueprintTemplate),
 		xApps:      make(map[string]*BlueprintTemplate),
 		rApps:      make(map[string]*BlueprintTemplate),
 		SMO:        make(map[string]*BlueprintTemplate),

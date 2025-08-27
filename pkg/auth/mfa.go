@@ -601,8 +601,18 @@ func (mfa *MFAManager) GetMetrics() *MFAMetrics {
 	mfa.metrics.mutex.RLock()
 	defer mfa.metrics.mutex.RUnlock()
 
-	metrics := *mfa.metrics
-	return &metrics
+	// Create new metrics struct to avoid copying mutex
+	metrics := &MFAMetrics{
+		TotalVerifications:      mfa.metrics.TotalVerifications,
+		SuccessfulVerifications: mfa.metrics.SuccessfulVerifications,
+		FailedVerifications:     mfa.metrics.FailedVerifications,
+		MethodStats:             mfa.metrics.MethodStats,
+		AverageVerificationTime: mfa.metrics.AverageVerificationTime,
+		BruteForceAttempts:      mfa.metrics.BruteForceAttempts,
+		BackupCodesUsed:         mfa.metrics.BackupCodesUsed,
+		LastUpdated:             mfa.metrics.LastUpdated,
+	}
+	return metrics
 }
 
 // EmailClient handles email sending for MFA

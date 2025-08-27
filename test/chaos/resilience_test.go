@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/rest"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )

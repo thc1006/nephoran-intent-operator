@@ -160,7 +160,7 @@ type ClientConfig struct {
 type Client struct {
 	RepoURL  string
 	Branch   string
-	SshKey   string
+	SSHKey   string
 	RepoPath string
 	logger   *slog.Logger
 	pushSem  chan struct{} // Semaphore for concurrent git operations (buffered channel with capacity 4)
@@ -231,7 +231,7 @@ func NewClientFromConfig(config *ClientConfig) *Client {
 	return &Client{
 		RepoURL:  config.RepoURL,
 		Branch:   config.Branch,
-		SshKey:   config.Token,
+		SSHKey:   config.Token,
 		RepoPath: config.RepoPath,
 		logger:   config.Logger,
 		pushSem:  make(chan struct{}, limit), // Initialize semaphore with configurable capacity
@@ -255,7 +255,7 @@ func NewClient(repoURL, branch, sshKey string) *Client {
 	return &Client{
 		RepoURL:  repoURL,
 		Branch:   branch,
-		SshKey:   sshKey,
+		SSHKey:   sshKey,
 		RepoPath: "/tmp/deployment-repo",
 		logger:   logger,
 		pushSem:  make(chan struct{}, limit), // Initialize semaphore with configurable capacity
@@ -281,7 +281,7 @@ func NewClientWithLogger(repoURL, branch, sshKey string, logger *slog.Logger) *C
 	return &Client{
 		RepoURL:  repoURL,
 		Branch:   branch,
-		SshKey:   sshKey,
+		SSHKey:   sshKey,
 		RepoPath: "/tmp/deployment-repo",
 		logger:   logger,
 		pushSem:  make(chan struct{}, limit), // Initialize semaphore with configurable capacity
@@ -465,7 +465,7 @@ func (c *Client) CommitAndPush(files map[string]string, message string) (string,
 		return "", fmt.Errorf("failed to get commit object: %w", err)
 	}
 
-	auth, err := ssh.NewPublicKeys("git", []byte(c.SshKey), "")
+	auth, err := ssh.NewPublicKeys("git", []byte(c.SSHKey), "")
 	if err != nil {
 		return "", fmt.Errorf("failed to create ssh auth: %w", err)
 	}
@@ -537,7 +537,7 @@ func (c *Client) CommitAndPushChanges(message string) error {
 		return fmt.Errorf("failed to commit: %w", err)
 	}
 
-	auth, err := ssh.NewPublicKeys("git", []byte(c.SshKey), "")
+	auth, err := ssh.NewPublicKeys("git", []byte(c.SSHKey), "")
 	if err != nil {
 		return fmt.Errorf("failed to create ssh auth: %w", err)
 	}
@@ -627,7 +627,7 @@ func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 	}
 
 	// Push the changes
-	auth, err := ssh.NewPublicKeys("git", []byte(c.SshKey), "")
+	auth, err := ssh.NewPublicKeys("git", []byte(c.SSHKey), "")
 	if err != nil {
 		return fmt.Errorf("failed to create ssh auth: %w", err)
 	}

@@ -5,11 +5,9 @@ package security
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"net/http"
 	"sync"
-	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"

@@ -30,9 +30,9 @@ type ControllerMetrics struct {
 	StatusQueueSize      *prometheus.GaugeVec
 
 	// API client metrics
-	ApiCallDuration *prometheus.HistogramVec
-	ApiCallTotal    *prometheus.CounterVec
-	ApiCallErrors   *prometheus.CounterVec
+	APICallDuration *prometheus.HistogramVec
+	APICallTotal    *prometheus.CounterVec
+	APICallErrors   *prometheus.CounterVec
 
 	// Resource metrics
 	ActiveReconcilers *prometheus.GaugeVec
@@ -152,7 +152,7 @@ func NewControllerMetrics() *ControllerMetrics {
 			[]string{"controller"},
 		),
 
-		ApiCallDuration: prometheus.NewHistogramVec(
+		APICallDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "controller_api_call_duration_seconds",
 				Help:    "Duration of Kubernetes API calls",
@@ -161,7 +161,7 @@ func NewControllerMetrics() *ControllerMetrics {
 			[]string{"controller", "operation", "resource_type"},
 		),
 
-		ApiCallTotal: prometheus.NewCounterVec(
+		APICallTotal: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "controller_api_call_total",
 				Help: "Total number of Kubernetes API calls",
@@ -169,7 +169,7 @@ func NewControllerMetrics() *ControllerMetrics {
 			[]string{"controller", "operation", "result"},
 		),
 
-		ApiCallErrors: prometheus.NewCounterVec(
+		APICallErrors: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "controller_api_call_errors_total",
 				Help: "Total number of Kubernetes API call errors",
@@ -217,9 +217,9 @@ func NewControllerMetrics() *ControllerMetrics {
 		cm.StatusUpdatesDropped,
 		cm.StatusUpdatesFailed,
 		cm.StatusQueueSize,
-		cm.ApiCallDuration,
-		cm.ApiCallTotal,
-		cm.ApiCallErrors,
+		cm.APICallDuration,
+		cm.APICallTotal,
+		cm.APICallErrors,
 		cm.ActiveReconcilers,
 		cm.MemoryUsage,
 		cm.GoroutineCount,
@@ -258,8 +258,8 @@ func (rt *ReconcileTimer) Finish() {
 	).Observe(duration)
 }
 
-// ApiCallTimer provides timing functionality for API calls
-type ApiCallTimer struct {
+// APICallTimer provides timing functionality for API calls
+type APICallTimer struct {
 	metrics    *ControllerMetrics
 	controller string
 	operation  string
@@ -269,9 +269,9 @@ type ApiCallTimer struct {
 	finished   bool
 }
 
-// NewApiCallTimer creates a new API call timer
-func (cm *ControllerMetrics) NewApiCallTimer(controller, operation, resource string) *ApiCallTimer {
-	return &ApiCallTimer{
+// NewAPICallTimer creates a new API call timer
+func (cm *ControllerMetrics) NewAPICallTimer(controller, operation, resource string) *APICallTimer {
+	return &APICallTimer{
 		metrics:    cm,
 		controller: controller,
 		operation:  operation,
@@ -281,7 +281,7 @@ func (cm *ControllerMetrics) NewApiCallTimer(controller, operation, resource str
 }
 
 // FinishWithResult completes the timing and records the result
-func (act *ApiCallTimer) FinishWithResult(success bool, errorType string) {
+func (act *APICallTimer) FinishWithResult(success bool, errorType string) {
 	act.mu.Lock()
 	defer act.mu.Unlock()
 
@@ -291,19 +291,19 @@ func (act *ApiCallTimer) FinishWithResult(success bool, errorType string) {
 	act.finished = true
 
 	duration := time.Since(act.startTime).Seconds()
-	act.metrics.ApiCallDuration.WithLabelValues(
+	act.metrics.APICallDuration.WithLabelValues(
 		act.controller, act.operation, act.resource,
 	).Observe(duration)
 
 	result := "success"
 	if !success {
 		result = "error"
-		act.metrics.ApiCallErrors.WithLabelValues(
+		act.metrics.APICallErrors.WithLabelValues(
 			act.controller, act.operation, errorType,
 		).Inc()
 	}
 
-	act.metrics.ApiCallTotal.WithLabelValues(
+	act.metrics.APICallTotal.WithLabelValues(
 		act.controller, act.operation, result,
 	).Inc()
 }

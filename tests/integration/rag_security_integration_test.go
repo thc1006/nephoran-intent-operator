@@ -11,7 +11,6 @@ import (
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 	"github.com/thc1006/nephoran-intent-operator/pkg/security"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 var _ = Describe("RAG Security Integration", func() {

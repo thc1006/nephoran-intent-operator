@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -776,7 +775,7 @@ func TestSecurityManager_Integration(t *testing.T) {
 func createTempCertificates(t *testing.T) string {
 	t.Helper()
 
-	certDir, err := ioutil.TempDir("", "test-certs")
+	certDir, err := os.MkdirTemp("", "test-certs")
 	require.NoError(t, err)
 
 	// Generate CA key and certificate
@@ -808,7 +807,7 @@ func createTempCertificates(t *testing.T) string {
 	// Save CA certificate
 	caCertFile := filepath.Join(certDir, "ca.crt")
 	caCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caCertDER})
-	err = ioutil.WriteFile(caCertFile, caCertPEM, 0644)
+	err = os.WriteFile(caCertFile, caCertPEM, 0644)
 	require.NoError(t, err)
 
 	// Generate server key and certificate
@@ -839,13 +838,13 @@ func createTempCertificates(t *testing.T) string {
 	// Save server certificate
 	serverCertFile := filepath.Join(certDir, "server.crt")
 	serverCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: serverCertDER})
-	err = ioutil.WriteFile(serverCertFile, serverCertPEM, 0644)
+	err = os.WriteFile(serverCertFile, serverCertPEM, 0644)
 	require.NoError(t, err)
 
 	// Save server key
 	serverKeyFile := filepath.Join(certDir, "server.key")
 	serverKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(serverKey)})
-	err = ioutil.WriteFile(serverKeyFile, serverKeyPEM, 0644)
+	err = os.WriteFile(serverKeyFile, serverKeyPEM, 0644)
 	require.NoError(t, err)
 
 	return certDir
@@ -854,7 +853,7 @@ func createTempCertificates(t *testing.T) string {
 func createTempPolicyFile(t *testing.T, policies []*RBACPolicy) string {
 	t.Helper()
 
-	tmpfile, err := ioutil.TempFile("", "policies*.json")
+	tmpfile, err := os.CreateTemp("", "policies*.json")
 	require.NoError(t, err)
 
 	err = json.NewEncoder(tmpfile).Encode(policies)
@@ -927,7 +926,7 @@ func BenchmarkOAuthManager_TokenCache(b *testing.B) {
 
 func BenchmarkTLSManager_GetTLSConfig(b *testing.B) {
 	// Create temporary certificates
-	certDir, err := ioutil.TempDir("", "bench-certs")
+	certDir, err := os.MkdirTemp("", "bench-certs")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -959,8 +958,8 @@ d17jO/vCKmYfAiEAn4G6KAKGdZgz0xRGJlGLOj+1vJGLQ+h88XKfvr+9YEkCIDYj
 	certFile := filepath.Join(certDir, "bench.crt")
 	keyFile := filepath.Join(certDir, "bench.key")
 
-	ioutil.WriteFile(certFile, []byte(certContent), 0644)
-	ioutil.WriteFile(keyFile, []byte(keyContent), 0644)
+	os.WriteFile(certFile, []byte(certContent), 0644)
+	os.WriteFile(keyFile, []byte(keyContent), 0644)
 
 	config := &TLSConfig{
 		Enabled: true,

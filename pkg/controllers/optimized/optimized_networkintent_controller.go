@@ -224,7 +224,7 @@ func (r *OptimizedNetworkIntentReconciler) Reconcile(ctx context.Context, req ct
 
 // getNetworkIntentOptimized retrieves NetworkIntent using optimized API calls
 func (r *OptimizedNetworkIntentReconciler) getNetworkIntentOptimized(ctx context.Context, key types.NamespacedName) (*nephoranv1.NetworkIntent, error) {
-	timer := r.metrics.NewApiCallTimer(OptimizedNetworkIntentController, "get", "NetworkIntent")
+	timer := r.metrics.NewAPICallTimer(OptimizedNetworkIntentController, "get", "NetworkIntent")
 
 	var networkIntent nephoranv1.NetworkIntent
 	err := r.Get(ctx, key, &networkIntent)
@@ -541,7 +541,7 @@ func (r *OptimizedNetworkIntentReconciler) hasFinalizer(networkIntent *nephoranv
 func (r *OptimizedNetworkIntentReconciler) addFinalizerOptimized(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) error {
 	networkIntent.Finalizers = append(networkIntent.Finalizers, NetworkIntentFinalizer)
 
-	timer := r.metrics.NewApiCallTimer(OptimizedNetworkIntentController, "update", "NetworkIntent")
+	timer := r.metrics.NewAPICallTimer(OptimizedNetworkIntentController, "update", "NetworkIntent")
 	err := r.Update(ctx, networkIntent)
 	timer.FinishWithResult(err == nil, r.backoffManager.ClassifyError(err).String())
 
@@ -568,7 +568,7 @@ func (r *OptimizedNetworkIntentReconciler) handleDeletionOptimized(ctx context.C
 	}
 	networkIntent.Finalizers = finalizers
 
-	timer := r.metrics.NewApiCallTimer(OptimizedNetworkIntentController, "update", "NetworkIntent")
+	timer := r.metrics.NewAPICallTimer(OptimizedNetworkIntentController, "update", "NetworkIntent")
 	err := r.Update(ctx, networkIntent)
 	timer.FinishWithResult(err == nil, r.backoffManager.ClassifyError(err).String())
 

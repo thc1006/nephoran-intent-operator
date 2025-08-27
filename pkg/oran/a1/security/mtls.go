@@ -8,9 +8,10 @@ import (
 	"encoding/asn1"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -300,7 +301,7 @@ func (m *MTLSManager) loadCACertificates() error {
 
 	// Load main CA file
 	if m.config.CAFile != "" {
-		caCert, err := ioutil.ReadFile(m.config.CAFile)
+		caCert, err := os.ReadFile(m.config.CAFile)
 		if err != nil {
 			return fmt.Errorf("failed to read CA file: %w", err)
 		}
@@ -312,7 +313,7 @@ func (m *MTLSManager) loadCACertificates() error {
 
 	// Load additional client CA files
 	for _, caFile := range m.config.ClientCAFiles {
-		caCert, err := ioutil.ReadFile(caFile)
+		caCert, err := os.ReadFile(caFile)
 		if err != nil {
 			return fmt.Errorf("failed to read client CA file %s: %w", caFile, err)
 		}
@@ -437,7 +438,7 @@ func (m *MTLSManager) checkOCSP(cert *x509.Certificate, verifiedChains [][]*x509
 	}
 	defer httpResp.Body.Close()
 
-	ocspRespBytes, err := ioutil.ReadAll(httpResp.Body)
+	ocspRespBytes, err := io.ReadAll(httpResp.Body)
 	if err != nil {
 		return fmt.Errorf("failed to read OCSP response: %w", err)
 	}
@@ -560,7 +561,7 @@ func (m *MTLSManager) fetchCRL(url string) (*pkix.CertificateList, error) {
 	}
 	defer resp.Body.Close()
 
-	crlBytes, err := ioutil.ReadAll(resp.Body)
+	crlBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

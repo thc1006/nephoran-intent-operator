@@ -30,9 +30,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/resilience"
-	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 )
 

@@ -311,7 +311,17 @@ func (tb *TokenBlacklistManager) GetBlacklistStats(ctx context.Context) (*Blackl
 	tb.metrics.mutex.RLock()
 	defer tb.metrics.mutex.RUnlock()
 
-	stats := *tb.metrics
+	// Create new metrics struct to avoid copying mutex
+	stats := &BlacklistMetrics{
+		TotalBlacklisted:     tb.metrics.TotalBlacklisted,
+		TotalChecks:          tb.metrics.TotalChecks,
+		CacheHits:            tb.metrics.CacheHits,
+		CacheMisses:          tb.metrics.CacheMisses,
+		RedisErrors:          tb.metrics.RedisErrors,
+		AverageCheckTime:     tb.metrics.AverageCheckTime,
+		LastCleanup:          tb.metrics.LastCleanup,
+		RemovedExpiredTokens: tb.metrics.RemovedExpiredTokens,
+	}
 
 	// Get Redis stats
 	_, err := tb.redisClient.Info(ctx, "keyspace").Result()
@@ -321,7 +331,7 @@ func (tb *TokenBlacklistManager) GetBlacklistStats(ctx context.Context) (*Blackl
 		stats.LastCleanup = time.Now()
 	}
 
-	return &stats, nil
+	return stats, nil
 }
 
 // CleanupExpiredTokens removes expired tokens from the blacklist

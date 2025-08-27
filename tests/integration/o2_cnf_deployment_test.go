@@ -6,22 +6,19 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
-	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/prometheus/client_golang/prometheus"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
 var _ = Describe("O2 CNF Deployment Workflow Integration Tests", func() {

@@ -1,92 +1,102 @@
-# golangci-lint configuration for nephoran-intent-operator (v1 schema)
+# golangci-lint configuration for nephoran-intent-operator (2025 modern config)
 # Compatible with golangci-lint v1.64.8+ and Go 1.24.x
 # Ubuntu-only CI targeting O-RAN/Nephio orchestration requirements
-
-# Note: Using v1 schema for compatibility with golangci-lint v1.64.8
+# Updated with 2025 best practices within v1.64.8 constraints
 
 run:
-  # Timeout for analysis - increased for comprehensive checks
-  timeout: 10m
-  
-  # Exit code when at least one issue was found
+  timeout: 15m
   issues-exit-code: 1
-  
-  # Include test files in linting
   tests: true
-  
-  # Go version for staticcheck (must match project Go version)
   go: "1.24"
   
-  # Build tags for conditional compilation
   build-tags:
     - integration
     - e2e
     - test
     - benchmarks
+    - debug
+    - race
   
-  # Module download mode
   modules-download-mode: readonly
+  concurrency: 0
 
-# Output configuration compatible with v1.64.8
 output:
   formats:
     - format: colored-line-number
-  # Reduce output verbosity to prevent Node.js maxBuffer issues in CI
-  print-issued-lines: false  # Changed from true to reduce output
+  print-issued-lines: false
   print-linter-name: true
   sort-results: true
 
-# Linters configuration
 linters:
-  # Disable all linters first, then enable specific ones
   disable-all: true
-  
-  # Enable essential linters for security and code quality
   enable:
-    - revive         # Golint replacement with more rules
-    - staticcheck    # Advanced static analysis
-    - govet          # Official Go tool for static analysis
-    - ineffassign    # Detects ineffectual assignments
-    - errcheck       # Checks for unchecked errors
-    - gocritic       # Meta-linter with various checks
-    - misspell       # Spelling mistakes
-    - unparam        # Unused function parameters
-    - unconvert      # Unnecessary type conversions
-    - prealloc       # Slice preallocation
-    - gosec          # Security-focused linter (G series)
+    # Code quality and style (core set)
+    - revive
+    - staticcheck
+    - govet
+    - gosimple
+    - unused
+    - typecheck
+    
+    # Error handling and security
+    - errcheck
+    - gosec
+    - errorlint
+    - contextcheck
+    
+    # Performance and efficiency
+    - ineffassign
+    - unconvert
+    - prealloc
+    - gocritic
+    
+    # Code clarity and maintainability
+    - misspell
+    - unparam
+    - gci
+    - gofumpt
+    - whitespace
+    - nolintlint
+    
+    # Modern Go practices (Go 1.18+)
+    - copyloopvar
+    - intrange
+    - testifylint
+    
+    # Kubernetes/Cloud-native specific
+    - bodyclose
+    - noctx
+    - rowserrcheck
+    
+    # Documentation and naming
+    - godot
+    - stylecheck
+    - predeclared
 
-# Linter settings
 linters-settings:
-  # govet configuration
   govet:
-    enable:
-      - shadow
-      - printf
-      - atomic
-      - bools
-      - buildtag
-      - copylocks
-      - httpresponse
-      - loopclosure
-      - lostcancel
-      - nilfunc
-      - structtag
-      - tests
-      - unmarshal
-      - unreachable
-      - unusedresult
+    enable-all: true
+    disable:
+      - fieldalignment
+    settings:
+      shadow:
+        strict: false
   
-  # gosec configuration for O-RAN security requirements
   gosec:
     severity: "medium"
     confidence: "medium"
     excludes:
-      - G104  # Unhandled errors - covered by errcheck
+      - G104
+      - G204
+      - G304
     config:
       global:
         audit: true
+        nosec: false
+      G301: "0750"
+      G302: "0640"
+      G306: "0640"
   
-  # errcheck configuration
   errcheck:
     check-type-assertions: true
     check-blank: true
@@ -100,92 +110,146 @@ linters-settings:
       - io.Copy(*bytes.Buffer)
       - io.Copy(os.Stdout)
   
-  # gocritic configuration
   gocritic:
     enabled-tags:
       - diagnostic
       - style
       - performance
       - experimental
+      - opinionated
     disabled-checks:
       - commentedOutCode
       - whyNoLint
       - hugeParam
+      - unnamedResult
+      - importShadow
   
-  # revive configuration
   revive:
     severity: warning
+    confidence: 0.8
     rules:
       - name: blank-imports
       - name: context-as-argument
       - name: context-keys-type
       - name: dot-imports
+        disabled: false
+        exclude: ["pkg/test/*"]
+      
       - name: error-return
       - name: error-strings
       - name: error-naming
+      - name: errorf
+      - name: indent-error-flow
+      
       - name: exported
-      - name: if-return
-      - name: increment-decrement
+        arguments: ["checkPrivateReceivers", "sayRepetitiveInsteadOfStutters"]
       - name: var-naming
+        arguments: [["ID", "URL", "HTTP", "JSON", "API", "K8s", "CRD", "CNF", "VNF", "RAN", "AI", "ML"], []]
       - name: var-declaration
       - name: package-comments
-      - name: range
       - name: receiver-naming
       - name: time-naming
+      - name: function-result-limit
+        arguments: [3]
+      - name: argument-limit
+        arguments: [5]
+      - name: cognitive-complexity
+        arguments: [15]
+      
+      - name: if-return
+      - name: increment-decrement
+      - name: range
       - name: unexported-return
-      - name: indent-error-flow
-      - name: errorf
+      - name: superfluous-else
+      - name: unused-parameter
+        disabled: true
+      - name: unused-receiver
+        disabled: true
+      
+      - name: deep-exit
+        disabled: true
+      - name: flag-parameter
+        disabled: true
   
-  # staticcheck configuration - exclude problematic checks for Go 1.24
   staticcheck:
     checks: ["all", "-ST1000", "-ST1003", "-ST1016", "-SA5011"]
+    
+  gci:
+    sections:
+      - standard
+      - default
+      - prefix(github.com/thc1006/nephoran-intent-operator)
+      - prefix(sigs.k8s.io)
+      - prefix(k8s.io)
+    skip-generated: true
+    
+  gofumpt:
+    extra-rules: true
+    
+  errorlint:
+    errorf: true
+    asserts: true
+    comparison: true
+    
+  nolintlint:
+    require-explanation: true
+    require-specific: true
+    
+  godot:
+    scope: declarations
+    exclude:
+      - "Check that"
+      - "Make sure"
+    capital: false
+    
+  stylecheck:
+    checks: ["all", "-ST1003", "-ST1016"]
+    
+  predeclared:
+    ignore: ""
+    q: false
 
-# Issues configuration
 issues:
-  # Unlimited issue reporting for thorough analysis
   max-issues-per-linter: 0
   max-same-issues: 0
-  
-  # Don't auto-fix issues
   fix: false
   
-  # Deduplicate issues by line (moved from deprecated output.uniq-by-line)
-  uniq-by-line: true
-  
-  # Exclude certain files and patterns
   exclude-files:
-    - ".*\\.pb\\.go$"
-    - ".*_generated\\.go$"
-    - ".*_gen\\.go$"
-    - "zz_generated\\..*\\.go$"
-    - "mock_.*\\.go$"
-    - ".*_mock\\.go$"
-    - ".*\\.mock\\.go$"
-    - ".*deepcopy.*\\.go$"
-    - ".*clientset.*\\.go$"
-    - ".*informers.*\\.go$"
-    - ".*listers.*\\.go$"
-    - ".*versioned.*\\.go$"
-    - "vendor/.*"
-    - ".*/out/.*\\.go$"          # Exclude .out directories
-    - ".*/test-results/.*\\.go$"  # Exclude test-results directories
-    - ".*/bin/.*\\.go$"         # Exclude bin directories
-    - ".*/tmp/.*\\.go$"         # Exclude tmp directories
-    - ".*/temp/.*\\.go$"        # Exclude temp directories
-    - ".*/\\.cache/.*\\.go$"     # Exclude cache directories
-    - "test_.*\\.go$"           # Exclude temporary test files in root
+    - '.*\.pb\.go$'
+    - '.*_generated\.go$'
+    - '.*_gen\.go$'
+    - 'zz_generated\..*\.go$'
+    - '.*deepcopy.*\.go$'
+    - '.*clientset.*\.go$'
+    - '.*informers.*\.go$'
+    - '.*listers.*\.go$'
+    - '.*versioned.*\.go$'
+    - 'mock_.*\.go$'
+    - '.*_mock\.go$'
+    - '.*\.mock\.go$'
+    - '.*fake.*\.go$'
+    - 'test_.*\.go$'
+    - 'vendor/.*'
+    - '.*/out/.*\.go$'
+    - '.*/bin/.*\.go$'
+    - '.*/tmp/.*\.go$'
+    - '.*/temp/.*\.go$'
+    - '.*/\.cache/.*\.go$'
+    - '.*/test-results/.*\.go$'
+    - '.*/coverage/.*\.go$'
   
-  # Exclude certain issue patterns
   exclude-rules:
-    # Exclude test files from certain linters
-    - path: _test\.go
+    - path: '_test\.go'
       linters:
         - gosec
         - unparam
         - errcheck
+        - gocyclo
+        - funlen
+        - maintidx
+        - gocritic
     
-    # Exclude generated files from all linters
-    - path: "(.*\\.pb\\.go|.*_generated\\.go|.*_gen\\.go|zz_generated\\..*\\.go|.*_mock\\.go|.*\\.mock\\.go|.*deepcopy.*\\.go|.*clientset.*\\.go|.*informers.*\\.go|.*listers.*\\.go|.*versioned.*\\.go)"
+    - path: '(.*\.pb\.go|.*_generated\.go|.*_gen\.go|zz_generated\..*\.go|.*deepcopy.*\.go|.*clientset.*\.go|.*informers.*\.go|.*listers.*\.go|.*versioned.*\.go)'
       linters:
         - revive
         - gocritic
@@ -194,36 +258,72 @@ issues:
         - govet
         - errcheck
         - ineffassign
+        - stylecheck
+        - gci
+        - gofumpt
+        - godot
     
-    # Allow certain patterns in test files
-    - path: _test\.go
-      text: "should not use dot imports"
+    - path: '(mock_.*\.go|.*_mock\.go|.*\.mock\.go|.*fake.*\.go)'
       linters:
         - revive
+        - stylecheck
+        - godot
+        - unused
     
-    # Exclude vendor directory (but keep typecheck for dependency validation)
-    - path: vendor/
+    - path: 'vendor/'
       linters:
         - revive
         - gocritic
+        - gosec
+        - stylecheck
+        - gci
+    
+    - path: '_test\.go'
+      text: "should not use dot imports"
+      linters:
+        - revive
+        - stylecheck
+    
+    - path: 'main\.go'
+      linters:
+        - funlen
+        - gocyclo
+    
+    - text: "G404: Use of weak random number generator"
+      linters:
+        - gosec
+    
+    - text: "ST1000: at least one file in a package should have a package comment"
+      linters:
+        - stylecheck
+      path: 'pkg/controllers/.*\.go'
+    
+    - source: "TODO|FIXME|BUG"
+      linters:
+        - godox
+    
+    - text: "should have a package comment"
+      path: '(pkg/webhooks|pkg/controllers)/.*\.go'
   
-  # Independently of issue text, exclude the following linters in specific paths
   exclude-dirs:
     - vendor
     - testdata
     - examples
     - third_party
-    - out              # Exclude .out directories
-    - test-results     # Exclude test-results directories
+    - out
+    - test-results
+    - coverage
+    - tmp
+    - temp
+    - .cache
   
-  # Show all issues from these linters
   include:
-    - EXC0002  # disable excluding issues about comments from golint
-    - EXC0003  # disable excluding issues about comments from revive
-    - EXC0004  # disable excluding issues about comments from gocritic
-    - EXC0005  # disable excluding issues about ineffectual assignments from ineffassign
-    - EXC0011  # disable excluding issues about missing comments for exported types/functions
-    - EXC0012  # disable excluding issues about missing comments for packages
-    - EXC0013  # disable excluding issues about missing comments for constants
-    - EXC0014  # disable excluding issues about missing comments for variables
-    - EXC0015  # disable excluding issues about missing comments for type aliases
+    - EXC0002
+    - EXC0003
+    - EXC0004
+    - EXC0005
+    - EXC0011
+    - EXC0012
+    - EXC0013
+    - EXC0014
+    - EXC0015

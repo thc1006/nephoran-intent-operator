@@ -1,3 +1,4 @@
+// Package interfaces provides common interfaces and types for the Nephoran Intent Operator.
 package interfaces
 
 import (
@@ -9,6 +10,7 @@ import (
 type AuditLevel int
 
 const (
+	// AuditLevelInfo represents informational audit events
 	AuditLevelInfo AuditLevel = iota
 	AuditLevelWarn
 	AuditLevelError

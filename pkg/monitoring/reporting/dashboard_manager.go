@@ -11,8 +11,9 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -532,7 +533,7 @@ func (dm *DashboardManager) loadTemplates() error {
 	}
 
 	for _, file := range files {
-		content, err := ioutil.ReadFile(file)
+		content, err := os.ReadFile(file)
 		if err != nil {
 			dm.logger.WithError(err).WithField("file", file).Warn("Failed to read template file")
 			continue
@@ -566,7 +567,7 @@ func (dm *DashboardManager) provisionDashboards(ctx context.Context) error {
 	}
 
 	for _, file := range files {
-		content, err := ioutil.ReadFile(file)
+		content, err := os.ReadFile(file)
 		if err != nil {
 			dm.logger.WithError(err).WithField("file", file).Warn("Failed to read dashboard file")
 			continue
@@ -754,7 +755,7 @@ func (dm *DashboardManager) sendGrafanaRequest(ctx context.Context, method, path
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("Grafana API error %d: %s", resp.StatusCode, string(body))
 	}
 

@@ -57,7 +57,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 					}
 				} else {
 					// Verify file has substantial content
-					content, err := ioutil.ReadFile(filePath)
+					content, err := os.ReadFile(filePath)
 					Expect(err).NotTo(HaveOccurred())
 
 					if len(content) < 100 {
@@ -73,7 +73,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 			goModPath := filepath.Join(projectRoot, "go.mod")
 			Expect(goModPath).To(BeAnExistingFile())
 
-			content, err := ioutil.ReadFile(goModPath)
+			content, err := os.ReadFile(goModPath)
 			Expect(err).NotTo(HaveOccurred())
 
 			goModContent := string(content)
@@ -170,7 +170,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 
 			formattingIssues := 0
 			for _, goFile := range goFiles {
-				content, err := ioutil.ReadFile(goFile)
+				content, err := os.ReadFile(goFile)
 				Expect(err).NotTo(HaveOccurred())
 
 				goContent := string(content)
@@ -241,7 +241,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 			// Check for test organization
 			hasTestSuite := false
 			for _, testFile := range testFiles {
-				content, err := ioutil.ReadFile(testFile)
+				content, err := os.ReadFile(testFile)
 				if err != nil {
 					continue
 				}
@@ -283,7 +283,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 			totalErrorChecks := 0
 
 			for _, goFile := range goFiles {
-				content, err := ioutil.ReadFile(goFile)
+				content, err := os.ReadFile(goFile)
 				if err != nil {
 					continue
 				}
@@ -334,7 +334,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 			readmePath := filepath.Join(projectRoot, "README.md")
 			Expect(readmePath).To(BeAnExistingFile())
 
-			content, err := ioutil.ReadFile(readmePath)
+			content, err := os.ReadFile(readmePath)
 			Expect(err).NotTo(HaveOccurred())
 
 			readmeContent := string(content)
@@ -408,7 +408,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 							return err
 						}
 						if strings.HasSuffix(info.Name(), ".go") {
-							content, err := ioutil.ReadFile(path)
+							content, err := os.ReadFile(path)
 							if err != nil {
 								return err
 							}
@@ -447,7 +447,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 					hasDeploymentDoc = true
 					if !stat.IsDir() {
 						// Check content quality
-						content, err := ioutil.ReadFile(docPath)
+						content, err := os.ReadFile(docPath)
 						if err == nil && len(content) > 300 {
 							GinkgoWriter.Printf("✅ Found substantial deployment documentation: %s\n", docPath)
 						}
@@ -467,7 +467,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 							return err
 						}
 						if strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml") {
-							content, err := ioutil.ReadFile(path)
+							content, err := os.ReadFile(path)
 							if err == nil {
 								// Look for documentation comments in YAML
 								if strings.Contains(string(content), "#") &&
@@ -538,7 +538,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 					hasContributingGuide = true
 
 					// Validate content
-					content, err := ioutil.ReadFile(contributingPath)
+					content, err := os.ReadFile(contributingPath)
 					if err == nil {
 						contributingContent := string(content)
 
@@ -586,7 +586,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 					GinkgoWriter.Printf("✅ Found security policy: %s\n", securityPath)
 
 					// Validate content
-					content, err := ioutil.ReadFile(securityPath)
+					content, err := os.ReadFile(securityPath)
 					if err == nil && len(content) > 200 {
 						GinkgoWriter.Printf("✅ Security policy has substantial content\n")
 					}
@@ -643,7 +643,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 			// Check go.mod for version
 			goModPath := filepath.Join(projectRoot, "go.mod")
 			if _, err := os.Stat(goModPath); err == nil {
-				content, err := ioutil.ReadFile(goModPath)
+				content, err := os.ReadFile(goModPath)
 				if err == nil {
 					// Look for version tags in module references
 					if strings.Contains(string(content), "/v") {
@@ -672,7 +672,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 					hasChangelog = true
 
 					// Validate changelog content
-					content, err := ioutil.ReadFile(changelogPath)
+					content, err := os.ReadFile(changelogPath)
 					if err == nil {
 						changelogContent := string(content)
 
@@ -722,7 +722,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 						}
 					} else if strings.Contains(autoPath, "Makefile") {
 						// Check Makefile for release targets
-						content, err := ioutil.ReadFile(autoPath)
+						content, err := os.ReadFile(autoPath)
 						if err == nil && strings.Contains(string(content), "release") {
 							hasReleaseAutomation = true
 							GinkgoWriter.Printf("✅ Found release automation in Makefile\n")
@@ -791,7 +791,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 			reportData, err := json.MarshalIndent(report, "", "  ")
 			Expect(err).NotTo(HaveOccurred())
 
-			err = ioutil.WriteFile(reportPath, reportData, 0644)
+			err = os.WriteFile(reportPath, reportData, 0644)
 			Expect(err).NotTo(HaveOccurred())
 
 			GinkgoWriter.Printf("Community asset validation report generated: %s\n", reportPath)

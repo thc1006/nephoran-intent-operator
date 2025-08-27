@@ -581,7 +581,14 @@ func (p *GoroutinePool) Shutdown(ctx context.Context) error {
 func (p *GoroutinePool) GetMetrics() BasicPoolMetrics {
 	p.metrics.mu.RLock()
 	defer p.metrics.mu.RUnlock()
-	return *p.metrics
+	// Create new metrics struct to avoid copying mutex
+	return BasicPoolMetrics{
+		ActiveWorkers:  p.metrics.ActiveWorkers,
+		QueuedTasks:    p.metrics.QueuedTasks,
+		CompletedTasks: p.metrics.CompletedTasks,
+		FailedTasks:    p.metrics.FailedTasks,
+		AvgProcessTime: p.metrics.AvgProcessTime,
+	}
 }
 
 // initializeCircuitBreakers sets up circuit breakers for external services

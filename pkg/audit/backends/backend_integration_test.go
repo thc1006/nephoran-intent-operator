@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -38,7 +38,7 @@ func TestBackendIntegrationSuite(t *testing.T) {
 
 func (suite *BackendIntegrationTestSuite) SetupSuite() {
 	var err error
-	suite.tempDir, err = ioutil.TempDir("", "audit_backend_test")
+	suite.tempDir, err = os.MkdirTemp("", "audit_backend_test")
 	suite.Require().NoError(err)
 }
 
@@ -362,7 +362,7 @@ func (suite *BackendIntegrationTestSuite) TestWebhookBackend() {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			var event audit.AuditEvent
-			body, err := ioutil.ReadAll(r.Body)
+			body, err := io.ReadAll(r.Body)
 			suite.NoError(err)
 
 			err = json.Unmarshal(body, &event)
@@ -737,7 +737,7 @@ func fileExists(path string) bool {
 }
 
 func readFileContent(t *testing.T, path string) string {
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	require.NoError(t, err)
 	return string(content)
 }
@@ -760,7 +760,7 @@ func calculateBackoffDelays(policy RetryPolicy) []time.Duration {
 // Benchmark tests
 
 func BenchmarkFileBackendWriteEvent(b *testing.B) {
-	tempDir, err := ioutil.TempDir("", "benchmark_test")
+	tempDir, err := os.MkdirTemp("", "benchmark_test")
 	require.NoError(b, err)
 	defer os.RemoveAll(tempDir)
 
@@ -790,7 +790,7 @@ func BenchmarkFileBackendWriteEvent(b *testing.B) {
 }
 
 func BenchmarkFileBackendWriteBatch(b *testing.B) {
-	tempDir, err := ioutil.TempDir("", "benchmark_batch_test")
+	tempDir, err := os.MkdirTemp("", "benchmark_batch_test")
 	require.NoError(b, err)
 	defer os.RemoveAll(tempDir)
 

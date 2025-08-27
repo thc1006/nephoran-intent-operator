@@ -23,9 +23,10 @@ import (
 	"testing"
 	"time"
 
+	"log/slog"
+
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
-	"log/slog"
 )
 
 func TestRequestSizeLimits(t *testing.T) {
@@ -667,7 +668,7 @@ func TestTLSServerStartup(t *testing.T) {
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
 					// Ignore write error in test handler
-		_, _ = fmt.Fprint(w, "OK")
+					_, _ = fmt.Fprint(w, "OK")
 				}),
 			}
 
@@ -896,7 +897,7 @@ func TestGracefulShutdownWithTLS(t *testing.T) {
 					time.Sleep(100 * time.Millisecond)
 					w.WriteHeader(http.StatusOK)
 					// Ignore write error in test handler
-		_, _ = fmt.Fprint(w, "OK")
+					_, _ = fmt.Fprint(w, "OK")
 					requestCompleted <- true
 				}),
 			}
@@ -1162,7 +1163,7 @@ func TestTLSConfigurationIntegration(t *testing.T) {
 				for key, value := range originalEnv {
 					if value == "" {
 						// Ignore unsetenv error in test cleanup
-			_ = os.Unsetenv(key)
+						_ = os.Unsetenv(key)
 					} else {
 						_ = os.Setenv(key, value)
 					}

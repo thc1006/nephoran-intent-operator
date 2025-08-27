@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -23,7 +22,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/testutil"
 	gitfake "github.com/thc1006/nephoran-intent-operator/pkg/git/fake"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"

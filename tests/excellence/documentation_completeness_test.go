@@ -26,7 +26,7 @@ var _ = Describe("Documentation Completeness Tests", func() {
 			readmePath := filepath.Join(projectRoot, "README.md")
 			Expect(readmePath).To(BeAnExistingFile())
 
-			content, err := ioutil.ReadFile(readmePath)
+			content, err := os.ReadFile(readmePath)
 			Expect(err).NotTo(HaveOccurred())
 
 			readmeContent := string(content)
@@ -61,7 +61,7 @@ var _ = Describe("Documentation Completeness Tests", func() {
 				if _, err := os.Stat(path); err == nil {
 					found = true
 					// Verify content is substantial
-					content, err := ioutil.ReadFile(path)
+					content, err := os.ReadFile(path)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(len(content)).To(BeNumerically(">", 500), "Installation documentation should be detailed")
 					break
@@ -91,7 +91,7 @@ var _ = Describe("Documentation Completeness Tests", func() {
 						}
 					} else {
 						// Single file - check content
-						content, err := ioutil.ReadFile(path)
+						content, err := os.ReadFile(path)
 						Expect(err).NotTo(HaveOccurred())
 						if len(content) > 200 {
 							found = true
@@ -114,7 +114,7 @@ var _ = Describe("Documentation Completeness Tests", func() {
 			found := false
 			for _, path := range troubleshootingPaths {
 				if _, err := os.Stat(path); err == nil {
-					content, err := ioutil.ReadFile(path)
+					content, err := os.ReadFile(path)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(len(content)).To(BeNumerically(">", 300), "Troubleshooting documentation should be helpful")
 					found = true
@@ -129,7 +129,7 @@ var _ = Describe("Documentation Completeness Tests", func() {
 			contributingPath := filepath.Join(projectRoot, "CONTRIBUTING.md")
 			Expect(contributingPath).To(BeAnExistingFile())
 
-			content, err := ioutil.ReadFile(contributingPath)
+			content, err := os.ReadFile(contributingPath)
 			Expect(err).NotTo(HaveOccurred())
 
 			contributingContent := string(content)
@@ -178,7 +178,7 @@ var _ = Describe("Documentation Completeness Tests", func() {
 			found := false
 			for _, path := range licensePaths {
 				if _, err := os.Stat(path); err == nil {
-					content, err := ioutil.ReadFile(path)
+					content, err := os.ReadFile(path)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(len(content)).To(BeNumerically(">", 100), "License file should contain actual license text")
 					found = true
@@ -197,7 +197,7 @@ var _ = Describe("Documentation Completeness Tests", func() {
 				// Check for Helm chart documentation
 				readmePath := filepath.Join(helmDocsPath, "nephoran-operator", "README.md")
 				if _, err := os.Stat(readmePath); err == nil {
-					content, err := ioutil.ReadFile(readmePath)
+					content, err := os.ReadFile(readmePath)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(len(content)).To(BeNumerically(">", 200), "Helm chart documentation should be informative")
 
@@ -208,7 +208,7 @@ var _ = Describe("Documentation Completeness Tests", func() {
 				// Check for values documentation
 				valuesPath := filepath.Join(helmDocsPath, "nephoran-operator", "values.yaml")
 				if _, err := os.Stat(valuesPath); err == nil {
-					content, err := ioutil.ReadFile(valuesPath)
+					content, err := os.ReadFile(valuesPath)
 					Expect(err).NotTo(HaveOccurred())
 
 					valuesContent := string(content)
@@ -242,7 +242,7 @@ var _ = Describe("Documentation Completeness Tests", func() {
 				if len(apiFiles) > 0 {
 					// Check that APIs have documentation comments
 					for _, apiFile := range apiFiles {
-						content, err := ioutil.ReadFile(apiFile)
+						content, err := os.ReadFile(apiFile)
 						Expect(err).NotTo(HaveOccurred())
 
 						apiContent := string(content)
@@ -299,7 +299,7 @@ var _ = Describe("Documentation Completeness Tests", func() {
 
 			formattingIssues := 0
 			for _, mdFile := range markdownFiles {
-				content, err := ioutil.ReadFile(mdFile)
+				content, err := os.ReadFile(mdFile)
 				Expect(err).NotTo(HaveOccurred())
 
 				mdContent := string(content)
@@ -359,7 +359,7 @@ var _ = Describe("Documentation Completeness Tests", func() {
 				}
 
 				if strings.HasSuffix(info.Name(), ".md") || strings.HasSuffix(info.Name(), ".rst") {
-					content, err := ioutil.ReadFile(path)
+					content, err := os.ReadFile(path)
 					if err != nil {
 						return err
 					}
@@ -426,7 +426,7 @@ var _ = Describe("Documentation Completeness Tests", func() {
 			reportData, err := json.MarshalIndent(report, "", "  ")
 			Expect(err).NotTo(HaveOccurred())
 
-			err = ioutil.WriteFile(reportPath, reportData, 0644)
+			err = os.WriteFile(reportPath, reportData, 0644)
 			Expect(err).NotTo(HaveOccurred())
 
 			GinkgoWriter.Printf("Documentation completeness report generated: %s\n", reportPath)

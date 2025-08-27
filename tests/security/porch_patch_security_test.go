@@ -1,9 +1,7 @@
 package security
 
 import (
-	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -11,7 +9,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/util/rand"
 )
 
