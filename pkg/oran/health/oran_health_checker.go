@@ -344,7 +344,6 @@ func (ohc *ORANHealthChecker) calculateMetrics() HealthMetrics {
 	}
 
 	// Calculate aggregate metrics from history
-	var totalResponseTime time.Duration
 	var healthyCount int64
 
 	for _, snapshot := range ohc.healthHistory {
