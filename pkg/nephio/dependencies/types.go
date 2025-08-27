@@ -22,6 +22,7 @@ import (
 	"time"
 	
 	"github.com/go-logr/logr"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // Core missing types for dependency analyzer
@@ -196,6 +197,34 @@ type AnalysisConfig struct {
 	Currency             string `json:"currency,omitempty"`
 }
 
+// VersionStatistics contains statistics about version resolution
+type VersionStatistics struct {
+	TotalPackages      int           `json:"totalPackages"`
+	ResolvedPackages   int           `json:"resolvedPackages"`
+	ConflictedPackages int           `json:"conflictedPackages"`
+	CacheHits          int           `json:"cacheHits"`
+	CacheMisses        int           `json:"cacheMisses"`
+	ResolutionTime     time.Duration `json:"resolutionTime"`
+}
+
+// VersionResolutionResult contains aggregate results for version resolution of multiple packages
+type VersionResolutionResult struct {
+	Success        bool                              `json:"success"`
+	Resolutions    map[string]*VersionResolution     `json:"resolutions"`
+	Conflicts      []*VersionConflict                `json:"conflicts"`
+	Statistics     *VersionStatistics                `json:"statistics"`
+	ResolutionTime time.Duration                     `json:"resolutionTime"`
+}
+
+
+// ConflictStatistics contains statistics about conflict detection
+type ConflictStatistics struct {
+	TotalConflicts     int           `json:"totalConflicts"`
+	ResolvedConflicts  int           `json:"resolvedConflicts"`
+	UnresolvedConflicts int          `json:"unresolvedConflicts"`
+	DetectionTime      time.Duration `json:"detectionTime"`
+}
+
 // Component configuration types (placeholder implementations)
 type UsageAnalyzerConfig struct{}
 type CostAnalyzerConfig struct{}
@@ -210,7 +239,11 @@ type EventProcessorConfig struct{}
 type PredictionModelConfig struct{}
 type RecommendationModelConfig struct{}
 type AnomalyDetectorConfig struct{}
-type AnalysisCacheConfig struct{}
+type AnalysisCacheConfig struct {
+	TTL               time.Duration `json:"ttl"`
+	MaxEntries        int           `json:"maxEntries"`
+	CleanupInterval   time.Duration `json:"cleanupInterval"`
+}
 type DataStoreConfig struct{}
 
 // Validate validates the analyzer configuration
@@ -2600,6 +2633,14 @@ type ConstraintSolution struct {
 	Confidence  float64                `json:"confidence"`
 	Valid       bool                   `json:"valid"`
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	
+	// Additional fields needed by resolver.go
+	Satisfiable bool                      `json:"satisfiable"`
+	Assignments map[string]interface{}    `json:"assignments"`
+	Conflicts   []*ConstraintConflict     `json:"conflicts"`
+	Statistics  interface{}               `json:"statistics"`
+	SolvingTime time.Duration             `json:"solvingTime"`
+	Algorithm   string                    `json:"algorithm"`
 }
 
 // SolutionType defines types of constraint solutions
@@ -2896,6 +2937,20 @@ type ResolverMetrics struct {
 	NetworkRequestsTotal    int64         `json:"networkRequestsTotal"`
 	NetworkRequestsFailed   int64         `json:"networkRequestsFailed"`
 	LastUpdated             time.Time     `json:"lastUpdated"`
+	
+	// Prometheus counters and histograms referenced in resolver.go
+	CacheHits                    prometheus.Counter
+	CacheMisses                  prometheus.Counter
+	ConstraintCacheHits          prometheus.Counter
+	ConstraintCacheMisses        prometheus.Counter
+	ConstraintSolvingTime        prometheus.Histogram
+	ConstraintSolvingSuccess     prometheus.Counter
+	ConstraintSolvingFailures    prometheus.Counter
+	VersionResolutionTime        prometheus.Histogram
+	VersionResolutionSuccess     prometheus.Counter
+	VersionResolutionFailures    prometheus.Counter
+	ConflictDetectionTime        prometheus.Histogram
+	ConflictsDetected            prometheus.Counter
 }
 
 // Very final missing types from resolver.go
@@ -3110,15 +3165,168 @@ type RateLimiter interface {
 
 // ResolverConfig represents configuration for dependency resolver
 type ResolverConfig struct {
-	MaxConcurrency      int           `json:"maxConcurrency"`
-	Timeout             time.Duration `json:"timeout"`
-	RetryCount          int           `json:"retryCount"`
-	CacheEnabled        bool          `json:"cacheEnabled"`
-	CacheTTL            time.Duration `json:"cacheTTL"`
-	RateLimitEnabled    bool          `json:"rateLimitEnabled"`
-	RateLimit           int           `json:"rateLimit"`
-	WorkerPoolSize      int           `json:"workerPoolSize"`
-	EnableConflictResolution bool     `json:"enableConflictResolution"`
+	MaxConcurrency       int           `json:"maxConcurrency"`
+	Timeout              time.Duration `json:"timeout"`
+	RetryCount           int           `json:"retryCount"`
+	CacheEnabled         bool          `json:"cacheEnabled"`
+	CacheTTL             time.Duration `json:"cacheTTL"`
+	RateLimitEnabled     bool          `json:"rateLimitEnabled"`
+	RateLimit            int           `json:"rateLimit"`
+	WorkerPoolSize       int           `json:"workerPoolSize"`
+	EnableConflictResolution bool      `json:"enableConflictResolution"`
+	
+	// Strategy and solver configuration
+	DefaultStrategy           ResolutionStrategy `json:"defaultStrategy"`
+	MaxSolverIterations       int               `json:"maxSolverIterations"`
+	MaxSolverBacktracks       int               `json:"maxSolverBacktracks"`
+	EnableSolverHeuristics    bool              `json:"enableSolverHeuristics"`
+	ParallelSolving           bool              `json:"parallelSolving"`
+	EnableCaching             bool              `json:"enableCaching"`
+	EnableConcurrency         bool              `json:"enableConcurrency"`
+	WorkerCount               int               `json:"workerCount"`
+	QueueSize                 int               `json:"queueSize"`
+	
+	// Version and prerelease handling
+	PrereleaseStrategy        PrereleaseStrategy    `json:"prereleaseStrategy"`
+	BuildMetadataStrategy     BuildMetadataStrategy `json:"buildMetadataStrategy"`
+	StrictSemVer              bool                  `json:"strictSemVer"`
+	
+	// Machine learning and conflict prediction
+	EnableMLConflictPrediction bool                           `json:"enableMLConflictPrediction"`
+	ConflictStrategies         map[string]interface{}        `json:"conflictStrategies"`
+	
+	// Cache configuration
+	CacheConfig               *CacheConfig          `json:"cacheConfig"`
+	CacheCleanupInterval      time.Duration         `json:"cacheCleanupInterval"`
+	MetricsCollectionInterval time.Duration         `json:"metricsCollectionInterval"`
+	HealthCheckInterval       time.Duration         `json:"healthCheckInterval"`
+	
+	// Provider configurations
+	GitConfig                 *GitConfig            `json:"gitConfig"`
+	OCIConfig                 *OCIConfig            `json:"ociConfig"`
+	HelmConfig                *HelmConfig           `json:"helmConfig"`
+	LocalConfig               *LocalConfig          `json:"localConfig"`
+}
+
+// Configuration types for providers  
+type CacheConfig struct {
+	TTL             time.Duration `json:"ttl"`
+	MaxEntries      int           `json:"maxEntries"`
+	CleanupInterval time.Duration `json:"cleanupInterval"`
+}
+
+type GitConfig struct {
+	DefaultBranch string `json:"defaultBranch"`
+	Token         string `json:"token,omitempty"`
+}
+
+type OCIConfig struct {
+	Registry string `json:"registry"`
+	Token    string `json:"token,omitempty"`
+}
+
+type HelmConfig struct {
+	Repository string `json:"repository"`
+}
+
+type LocalConfig struct {
+	RootPath string `json:"rootPath"`
+}
+
+// Validate validates the resolver configuration
+func (c *ResolverConfig) Validate() error {
+	if c.MaxConcurrency <= 0 {
+		return fmt.Errorf("max concurrency must be positive")
+	}
+	if c.Timeout <= 0 {
+		return fmt.Errorf("timeout must be positive")  
+	}
+	if c.WorkerCount <= 0 {
+		c.WorkerCount = 4 // Default
+	}
+	if c.QueueSize <= 0 {
+		c.QueueSize = 100 // Default
+	}
+	return nil
+}
+
+// DefaultResolverConfig returns a default resolver configuration
+func DefaultResolverConfig() *ResolverConfig {
+	return &ResolverConfig{
+		MaxConcurrency:             10,
+		Timeout:                    30 * time.Second,
+		RetryCount:                 3,
+		CacheEnabled:               true,
+		CacheTTL:                   1 * time.Hour,
+		RateLimitEnabled:           true,
+		RateLimit:                  100,
+		WorkerPoolSize:             5,
+		EnableConflictResolution:   true,
+		DefaultStrategy:            ResolutionStrategy("stable"),
+		MaxSolverIterations:        1000,
+		MaxSolverBacktracks:        100,
+		EnableSolverHeuristics:     true,
+		ParallelSolving:            true,
+		EnableCaching:              true,
+		EnableConcurrency:          true,
+		WorkerCount:                4,
+		QueueSize:                  100,
+		PrereleaseStrategy:         PrereleaseStrategy("ignore"),
+		BuildMetadataStrategy:      BuildMetadataStrategy("ignore"),
+		StrictSemVer:               true,
+		EnableMLConflictPrediction: false,
+		ConflictStrategies:         make(map[string]interface{}),
+		CacheConfig: &CacheConfig{
+			TTL:             1 * time.Hour,
+			MaxEntries:      1000,
+			CleanupInterval: 10 * time.Minute,
+		},
+		CacheCleanupInterval:      10 * time.Minute,
+		MetricsCollectionInterval: 1 * time.Minute,
+		HealthCheckInterval:       30 * time.Second,
+		GitConfig: &GitConfig{
+			DefaultBranch: "main",
+		},
+		OCIConfig: &OCIConfig{
+			Registry: "ghcr.io",
+		},
+		HelmConfig: &HelmConfig{
+			Repository: "https://charts.helm.sh/stable",
+		},
+		LocalConfig: &LocalConfig{
+			RootPath: "./packages",
+		},
+	}
+}
+
+// NewResolverMetrics creates a new resolver metrics instance
+func NewResolverMetrics() *ResolverMetrics {
+	return &ResolverMetrics{
+		ResolutionsTotal:        0,
+		ResolutionsSuccessful:   0,
+		ResolutionsFailed:       0,
+		AverageResolutionTime:   0,
+		CacheHitRate:            0.0,
+		ConflictsTotal:          0,
+		ConflictsResolved:       0,
+		NetworkRequestsTotal:    0,
+		NetworkRequestsFailed:   0,
+		LastUpdated:             time.Now(),
+		
+		// Initialize prometheus metrics
+		CacheHits:                    prometheus.NewCounter(prometheus.CounterOpts{Name: "cache_hits_total"}),
+		CacheMisses:                  prometheus.NewCounter(prometheus.CounterOpts{Name: "cache_misses_total"}),
+		ConstraintCacheHits:          prometheus.NewCounter(prometheus.CounterOpts{Name: "constraint_cache_hits_total"}),
+		ConstraintCacheMisses:        prometheus.NewCounter(prometheus.CounterOpts{Name: "constraint_cache_misses_total"}),
+		ConstraintSolvingTime:        prometheus.NewHistogram(prometheus.HistogramOpts{Name: "constraint_solving_duration_seconds"}),
+		ConstraintSolvingSuccess:     prometheus.NewCounter(prometheus.CounterOpts{Name: "constraint_solving_success_total"}),
+		ConstraintSolvingFailures:    prometheus.NewCounter(prometheus.CounterOpts{Name: "constraint_solving_failures_total"}),
+		VersionResolutionTime:        prometheus.NewHistogram(prometheus.HistogramOpts{Name: "version_resolution_duration_seconds"}),
+		VersionResolutionSuccess:     prometheus.NewCounter(prometheus.CounterOpts{Name: "version_resolution_success_total"}),
+		VersionResolutionFailures:    prometheus.NewCounter(prometheus.CounterOpts{Name: "version_resolution_failures_total"}),
+		ConflictDetectionTime:        prometheus.NewHistogram(prometheus.HistogramOpts{Name: "conflict_detection_duration_seconds"}),
+		ConflictsDetected:            prometheus.NewCounter(prometheus.CounterOpts{Name: "conflicts_detected_total"}),
+	}
 }
 
 // DependencyProvider interface for providing dependencies

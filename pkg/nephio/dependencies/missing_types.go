@@ -291,3 +291,256 @@ type UsageDataPoint struct {
 	Timestamp   time.Time              `json:"timestamp"`
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
+
+// ConstraintSolverConfig provides configuration for the constraint solver
+type ConstraintSolverConfig struct {
+	MaxIterations    int                 `json:"maxIterations"`
+	MaxBacktracks    int                 `json:"maxBacktracks"`
+	EnableHeuristics bool                `json:"enableHeuristics"`
+	ParallelSolving  bool                `json:"parallelSolving"`
+	Timeout          time.Duration       `json:"timeout"`
+	Workers          int                 `json:"workers"`
+	DebugMode        bool                `json:"debugMode"`
+}
+
+// ConstraintCacheConfig provides configuration for constraint cache
+type ConstraintCacheConfig struct {
+	TTL time.Duration
+}
+
+// NewConstraintSolver creates a new constraint solver with the given configuration
+func NewConstraintSolver(config *ConstraintSolverConfig) *ConstraintSolver {
+	if config == nil {
+		config = &ConstraintSolverConfig{
+			MaxIterations:    1000,
+			MaxBacktracks:    100,
+			EnableHeuristics: true,
+			ParallelSolving:  true,
+			Timeout:          30 * time.Second,
+			Workers:          4,
+			DebugMode:        false,
+		}
+	}
+	
+	cacheConfig := &CacheConfig{TTL: 1 * time.Hour}
+	return &ConstraintSolver{
+		logger:        log.Log.WithName("constraint-solver"),
+		cache:         NewConstraintCache(cacheConfig),
+		maxIterations: config.MaxIterations,
+		maxBacktracks: config.MaxBacktracks,
+		heuristics:    make([]SolverHeuristic, 0),
+		optimizers:    make([]ConstraintOptimizer, 0),
+		parallel:      config.ParallelSolving,
+		workers:       config.Workers,
+	}
+}
+
+// constraintCacheImpl implements the ConstraintCache interface from types.go
+type constraintCacheImpl struct {
+	logger logr.Logger
+}
+
+// NewConstraintCache creates a new constraint cache - return as pointer to interface for resolver.go compatibility
+func NewConstraintCache(config *CacheConfig) *constraintCacheImpl {
+	return &constraintCacheImpl{
+		logger: log.Log.WithName("constraint-cache"),
+	}
+}
+
+func (c *constraintCacheImpl) Get(key string) (interface{}, bool) {
+	return nil, false
+}
+
+func (c *constraintCacheImpl) Set(key string, value interface{}) {
+	// Stub implementation
+}
+
+func (c *constraintCacheImpl) Delete(key string) {
+	// Stub implementation
+}
+
+func (c *constraintCacheImpl) Clear() {
+	// Stub implementation  
+}
+
+func (c *constraintCacheImpl) Size() int {
+	return 0
+}
+
+func (c *constraintCacheImpl) Stats() *CacheStats {
+	return &CacheStats{}
+}
+
+func (c *constraintCacheImpl) Close() error {
+	return nil
+}
+
+// Additional missing types and functions needed for resolver.go compilation
+
+// VersionSolverConfig provides configuration for version solver
+type VersionSolverConfig struct {
+	PrereleaseStrategy    PrereleaseStrategy    
+	BuildMetadataStrategy BuildMetadataStrategy 
+	StrictSemVer          bool                  
+}
+
+// ConflictResolverConfig provides configuration for conflict resolver
+type ConflictResolverConfig struct {
+	EnableMLPrediction bool
+	ConflictStrategies map[string]interface{}
+}
+
+// NewVersionSolver creates a new version solver
+func NewVersionSolver(config *VersionSolverConfig) *VersionSolver {
+	return &VersionSolver{
+		logger: log.Log.WithName("version-solver"),
+	}
+}
+
+// NewConflictResolver creates a new conflict resolver
+func NewConflictResolver(config *ConflictResolverConfig) *ConflictResolver {
+	return &ConflictResolver{
+		logger: log.Log.WithName("conflict-resolver"),
+	}
+}
+
+// resolutionCacheImpl implements ResolutionCache interface
+type resolutionCacheImpl struct {
+	logger logr.Logger
+}
+
+// NewResolutionCache creates a new resolution cache - return as pointer to interface for resolver.go compatibility
+func NewResolutionCache(config *CacheConfig) *resolutionCacheImpl {
+	return &resolutionCacheImpl{
+		logger: log.Log.WithName("resolution-cache"),
+	}
+}
+
+func (c *resolutionCacheImpl) Get(key string) (interface{}, bool) {
+	return nil, false
+}
+
+func (c *resolutionCacheImpl) Set(key string, value interface{}, ttl time.Duration) {
+	// Stub implementation
+}
+
+func (c *resolutionCacheImpl) Delete(key string) {
+	// Stub implementation
+}
+
+func (c *resolutionCacheImpl) Clear() {
+	// Stub implementation
+}
+
+func (c *resolutionCacheImpl) Size() int {
+	return 0
+}
+
+func (c *resolutionCacheImpl) Stats() *CacheStats {
+	return &CacheStats{}
+}
+
+func (c *resolutionCacheImpl) Close() error {
+	return nil
+}
+
+// versionCacheImpl implements VersionCache interface
+type versionCacheImpl struct {
+	logger logr.Logger
+}
+
+// NewVersionCache creates a new version cache - return as pointer to interface for resolver.go compatibility
+func NewVersionCache(config *CacheConfig) *versionCacheImpl {
+	return &versionCacheImpl{
+		logger: log.Log.WithName("version-cache"),
+	}
+}
+
+func (c *versionCacheImpl) Get(packageName, version string) (interface{}, bool) {
+	return nil, false
+}
+
+func (c *versionCacheImpl) Set(packageName, version string, value interface{}) {
+	// Stub implementation
+}
+
+func (c *versionCacheImpl) Delete(packageName, version string) {
+	// Stub implementation
+}
+
+func (c *versionCacheImpl) Clear() {
+	// Stub implementation
+}
+
+func (c *versionCacheImpl) Size() int {
+	return 0
+}
+
+func (c *versionCacheImpl) Stats() *CacheStats {
+	return &CacheStats{}
+}
+
+func (c *versionCacheImpl) Close() error {
+	return nil
+}
+
+// workerPoolImpl implements WorkerPool interface
+type workerPoolImpl struct {
+	logger     logr.Logger
+	workers    int
+	activeJobs int
+}
+
+// NewWorkerPool creates a new worker pool - return as pointer to interface for resolver.go compatibility
+func NewWorkerPool(workerCount, queueSize int) WorkerPool {
+	return &workerPoolImpl{
+		logger:  log.Log.WithName("worker-pool"),
+		workers: workerCount,
+	}
+}
+
+func (w *workerPoolImpl) Submit(task func() error) error {
+	// Stub implementation
+	return task()
+}
+
+func (w *workerPoolImpl) Workers() int {
+	return w.workers
+}
+
+func (w *workerPoolImpl) ActiveJobs() int {
+	return w.activeJobs
+}
+
+func (w *workerPoolImpl) Close() error {
+	return nil
+}
+
+// rateLimiterImpl implements RateLimiter interface
+type rateLimiterImpl struct {
+	logger logr.Logger
+	limit  int
+}
+
+// NewRateLimiter creates a new rate limiter - return as pointer to interface for resolver.go compatibility
+func NewRateLimiter(limit int) *RateLimiter {
+	var limiter RateLimiter = &rateLimiterImpl{
+		logger: log.Log.WithName("rate-limiter"),
+		limit:  limit,
+	}
+	return &limiter
+}
+
+func (r *rateLimiterImpl) Allow() bool {
+	return true // Stub implementation
+}
+
+func (r *rateLimiterImpl) Wait(ctx context.Context) error {
+	return nil // Stub implementation
+}
+
+func (r *rateLimiterImpl) Limit() int {
+	return r.limit
+}
+
+// End of missing_types.go - helper types are already defined in types.go

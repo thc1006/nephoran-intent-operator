@@ -46,7 +46,7 @@ type DependencyResolver interface {
 	ValidateConstraints(ctx context.Context, constraints []*DependencyConstraint) (*ConstraintValidation, error)
 
 	// Version resolution and compatibility
-	ResolveVersions(ctx context.Context, requirements []*VersionRequirement) (*VersionResolution, error)
+	ResolveVersions(ctx context.Context, requirements []*VersionRequirement) (*VersionResolutionResult, error)
 	FindCompatibleVersions(ctx context.Context, pkg *PackageReference, constraints []*VersionConstraint) ([]*VersionCandidate, error)
 
 	// Conflict detection and resolution
@@ -87,12 +87,12 @@ type dependencyResolver struct {
 	conflictResolver *ConflictResolver
 
 	// Caching infrastructure
-	resolutionCache *ResolutionCache
-	constraintCache *ConstraintCache
-	versionCache    *VersionCache
+	resolutionCache *resolutionCacheImpl
+	constraintCache *constraintCacheImpl
+	versionCache    *versionCacheImpl
 
 	// Concurrent processing
-	workerPool  *WorkerPool
+	workerPool  WorkerPool
 	rateLimiter *RateLimiter
 
 	// Configuration and state
@@ -193,7 +193,7 @@ type VersionConstraint struct {
 type ConstraintSolver struct {
 	logger  logr.Logger
 	metrics *ConstraintSolverMetrics
-	cache   *ConstraintCache
+	cache   *constraintCacheImpl
 
 	// SAT solver configuration
 	maxIterations int
@@ -212,7 +212,7 @@ type ConstraintSolver struct {
 type VersionSolver struct {
 	logger  logr.Logger
 	metrics *VersionSolverMetrics
-	cache   *VersionCache
+	cache   *versionCacheImpl
 
 	// Version comparison and resolution
 	comparator VersionComparator
@@ -429,10 +429,12 @@ func (r *dependencyResolver) ResolveDependencies(ctx context.Context, spec *Reso
 	// Check cache first if enabled
 	if spec.UseCache && r.resolutionCache != nil {
 		cacheKey := r.generateCacheKey(spec)
-		if cached, err := r.resolutionCache.Get(ctx, cacheKey); err == nil {
-			r.metrics.CacheHits.Inc()
-			r.logger.V(1).Info("Using cached resolution result", "cacheKey", cacheKey)
-			return cached, nil
+		if cached, found := r.resolutionCache.Get(cacheKey); found {
+			if result, ok := cached.(*ResolutionResult); ok {
+				r.metrics.CacheHits.Inc()
+				r.logger.V(1).Info("Using cached resolution result", "cacheKey", cacheKey)
+				return result, nil
+			}
 		}
 		r.metrics.CacheMisses.Inc()
 	}
@@ -489,9 +491,7 @@ func (r *dependencyResolver) ResolveDependencies(ctx context.Context, spec *Reso
 	// Cache result if successful and caching enabled
 	if result.Success && spec.UseCache && r.resolutionCache != nil {
 		cacheKey := r.generateCacheKey(spec)
-		if err := r.resolutionCache.Set(ctx, cacheKey, result); err != nil {
-			r.logger.Error(err, "Failed to cache resolution result")
-		}
+		r.resolutionCache.Set(cacheKey, result, time.Hour) // Set TTL to 1 hour
 	}
 
 	// Update metrics
@@ -520,9 +520,11 @@ func (r *dependencyResolver) SolveConstraints(ctx context.Context, constraints [
 	// Check constraint cache
 	if r.constraintCache != nil {
 		cacheKey := r.generateConstraintCacheKey(constraints)
-		if cached, err := r.constraintCache.Get(ctx, cacheKey); err == nil {
-			r.metrics.ConstraintCacheHits.Inc()
-			return cached, nil
+		if cached, found := r.constraintCache.Get(cacheKey); found {
+			if solution, ok := cached.(*ConstraintSolution); ok {
+				r.metrics.ConstraintCacheHits.Inc()
+				return solution, nil
+			}
 		}
 		r.metrics.ConstraintCacheMisses.Inc()
 	}
@@ -564,9 +566,7 @@ func (r *dependencyResolver) SolveConstraints(ctx context.Context, constraints [
 	// Cache solution
 	if r.constraintCache != nil {
 		cacheKey := r.generateConstraintCacheKey(constraints)
-		if err := r.constraintCache.Set(ctx, cacheKey, solution); err != nil {
-			r.logger.Error(err, "Failed to cache constraint solution")
-		}
+		r.constraintCache.Set(cacheKey, solution)
 	}
 
 	// Update metrics
@@ -581,7 +581,7 @@ func (r *dependencyResolver) SolveConstraints(ctx context.Context, constraints [
 }
 
 // ResolveVersions resolves package versions using semantic versioning
-func (r *dependencyResolver) ResolveVersions(ctx context.Context, requirements []*VersionRequirement) (*VersionResolution, error) {
+func (r *dependencyResolver) ResolveVersions(ctx context.Context, requirements []*VersionRequirement) (*VersionResolutionResult, error) {
 	startTime := time.Now()
 
 	r.logger.V(1).Info("Resolving package versions", "requirements", len(requirements))
@@ -589,9 +589,9 @@ func (r *dependencyResolver) ResolveVersions(ctx context.Context, requirements [
 	// Group requirements by package
 	packageRequirements := r.groupVersionRequirements(requirements)
 
-	resolution := &VersionResolution{
+	resolution := &VersionResolutionResult{
 		Success:        true,
-		Resolutions:    make(map[string]*ResolvedVersion),
+		Resolutions:    make(map[string]*VersionResolution),
 		Conflicts:      make([]*VersionConflict, 0),
 		Statistics:     &VersionStatistics{},
 		ResolutionTime: time.Since(startTime),
@@ -638,11 +638,14 @@ func (r *dependencyResolver) DetectConflicts(ctx context.Context, packages []*Pa
 	r.logger.V(1).Info("Detecting dependency conflicts", "packages", len(packages))
 
 	report := &ConflictReport{
-		Packages:        packages,
-		Conflicts:       make([]*DependencyConflict, 0),
-		ConflictsByType: make(map[ConflictType][]*DependencyConflict),
-		Statistics:      &ConflictStatistics{},
-		DetectionTime:   time.Since(startTime),
+		Packages:            packages,
+		VersionConflicts:    make([]*VersionConflict, 0),
+		DependencyConflicts: make([]*DependencyConflict, 0),
+		LicenseConflicts:    make([]*LicenseConflict, 0),
+		PolicyConflicts:     make([]*PolicyConflict, 0),
+		DetectionTime:       time.Since(startTime),
+		DetectedAt:          time.Now(),
+		DetectionAlgorithms: make([]string, 0),
 	}
 
 	// Run conflict detection algorithms concurrently
@@ -659,7 +662,18 @@ func (r *dependencyResolver) DetectConflicts(ctx context.Context, packages []*Pa
 
 		g.Go(func() error {
 			defer close(conflictCh)
-			return detector.DetectConflicts(gCtx, packages, conflictCh)
+			conflicts, err := detector.DetectConflicts(packages)
+			if err != nil {
+				return err
+			}
+			for _, conflict := range conflicts {
+				select {
+				case conflictCh <- conflict:
+				case <-gCtx.Done():
+					return gCtx.Err()
+				}
+			}
+			return nil
 		})
 	}
 
@@ -683,10 +697,10 @@ func (r *dependencyResolver) DetectConflicts(ctx context.Context, packages []*Pa
 
 	// Update metrics
 	r.metrics.ConflictDetectionTime.Observe(report.DetectionTime.Seconds())
-	r.metrics.ConflictsDetected.Add(float64(len(report.Conflicts)))
+	r.metrics.ConflictsDetected.Add(float64(len(report.DependencyConflicts)))
 
 	r.logger.V(1).Info("Conflict detection completed",
-		"conflicts", len(report.Conflicts),
+		"conflicts", len(report.DependencyConflicts),
 		"duration", report.DetectionTime)
 
 	return report, nil
