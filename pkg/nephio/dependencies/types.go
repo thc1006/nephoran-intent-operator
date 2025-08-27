@@ -365,6 +365,11 @@ type UsagePattern struct {
 	Frequency   int64     `json:"frequency"`
 	TimeRange   *TimePeriod `json:"timeRange"`
 	Description string    `json:"description,omitempty"`
+	
+	// Additional fields referenced in usage_analysis_helpers.go
+	Type        string                 `json:"type"`
+	Strength    float64                `json:"strength"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // PeakUsageTime represents peak usage time periods
@@ -390,6 +395,10 @@ type UsageRanking struct {
 	UsageCount  int64   `json:"usageCount"`
 	Rank        int     `json:"rank"`
 	Score       float64 `json:"score,omitempty"`
+	
+	// Additional fields referenced in usage_analysis_helpers.go
+	Usage       int64                  `json:"usage"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // TrendingPackage represents trending packages
@@ -399,6 +408,12 @@ type TrendingPackage struct {
 	UsageCount  int64   `json:"usageCount"`
 	TrendScore  float64 `json:"trendScore"`
 	Period      *TimePeriod `json:"period"`
+	
+	// Additional fields referenced in usage_analysis_helpers.go
+	TrendStrength float64                `json:"trendStrength"`
+	Direction     TrendDirection         `json:"direction"`
+	Confidence    float64                `json:"confidence"`
+	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // UnusedPackage represents packages that are not being used
@@ -407,6 +422,13 @@ type UnusedPackage struct {
 	LastUsed        time.Time `json:"lastUsed"`
 	DaysUnused      int       `json:"daysUnused"`
 	RecommendAction string    `json:"recommendAction,omitempty"`
+	
+	// Additional fields referenced in usage_analysis_helpers.go
+	Package         *PackageReference      `json:"package"`
+	UnusedDuration  time.Duration          `json:"unusedDuration"`
+	Reason          string                 `json:"reason"`
+	Impact          string                 `json:"impact"`
+	Metadata        map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // UnderutilizedPackage represents packages with low utilization
@@ -415,6 +437,12 @@ type UnderutilizedPackage struct {
 	UtilizationRate    float64 `json:"utilizationRate"`
 	ExpectedUtilization float64 `json:"expectedUtilization"`
 	RecommendAction    string  `json:"recommendAction,omitempty"`
+	
+	// Additional fields referenced in usage_analysis_helpers.go
+	CurrentUsage       int64                  `json:"currentUsage"`
+	ExpectedUsage      int64                  `json:"expectedUsage"`
+	Recommendation     string                 `json:"recommendation"`
+	Metadata           map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // Additional analysis types
@@ -426,6 +454,13 @@ type UsageOptimization struct {
 	Description    string  `json:"description"`
 	Priority       string  `json:"priority"` // high, medium, low
 	PotentialSavings float64 `json:"potentialSavings,omitempty"`
+	
+	// Additional fields referenced in usage_analysis_helpers.go
+	Impact            string                 `json:"impact"`
+	Effort            string                 `json:"effort"`
+	EstimatedBenefit  float64                `json:"estimatedBenefit"`
+	Packages          []*PackageReference    `json:"packages"`
+	Metadata          map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // Cost represents monetary cost
@@ -2859,12 +2894,15 @@ type ConflictImpactAnalysis struct {
 // ImpactRecommendation represents a recommendation based on impact analysis
 type ImpactRecommendation struct {
 	Type            string    `json:"type"`
-	Priority        string    `json:"priority"`
+	Priority        RiskLevel `json:"priority"`
 	Description     string    `json:"description"`
 	AffectedPackages []*PackageReference `json:"affectedPackages"`
 	Actions         []string  `json:"actions"`
 	Timeline        string    `json:"timeline,omitempty"`
 	Resources       []string  `json:"resources,omitempty"`
+	
+	// Additional field referenced in updater_helpers.go
+	Action          string    `json:"action"`
 }
 
 // Final final batch of missing types from resolver.go
@@ -3458,13 +3496,18 @@ type EscalationPolicy struct {
 
 // UpdatedPackage represents a package that was successfully updated
 type UpdatedPackage struct {
-	Package     *PackageReference `json:"package"`
-	OldVersion  string            `json:"oldVersion"`
-	NewVersion  string            `json:"newVersion"`
-	UpdatedAt   time.Time         `json:"updatedAt"`
-	Duration    time.Duration     `json:"duration"`
-	Changes     []string          `json:"changes,omitempty"`
-	Impact      UpdateImpact      `json:"impact"`
+	Package         *PackageReference `json:"package"`
+	OldVersion      string            `json:"oldVersion"`
+	NewVersion      string            `json:"newVersion"`
+	UpdatedAt       time.Time         `json:"updatedAt"`
+	Duration        time.Duration     `json:"duration"`
+	Changes         []string          `json:"changes,omitempty"`
+	Impact          UpdateImpact      `json:"impact"`
+	
+	// Additional fields referenced in updater_helpers.go
+	PreviousVersion string            `json:"previousVersion"`
+	UpdateTime      time.Time         `json:"updateTime"`
+	UpdateDuration  time.Duration     `json:"updateDuration"`
 }
 
 // FailedUpdate represents a package that failed to update
@@ -3475,6 +3518,9 @@ type FailedUpdate struct {
 	Retryable   bool              `json:"retryable"`
 	Attempts    int               `json:"attempts"`
 	MaxAttempts int               `json:"maxAttempts"`
+	
+	// Additional fields referenced in updater_helpers.go
+	Retries     int               `json:"retries"`
 }
 
 // SkippedUpdate represents a package that was skipped during update
@@ -3543,6 +3589,10 @@ type MitigationStrategy struct {
 	Prerequisites       []string          `json:"prerequisites,omitempty"`
 	Monitoring          []string          `json:"monitoring,omitempty"`
 	RollbackPlan        *RollbackPlan     `json:"rollbackPlan,omitempty"`
+	
+	// Additional fields referenced in updater_helpers.go
+	Name                string            `json:"name"`
+	Priority            RiskLevel         `json:"priority"`
 }
 
 // Absolutely final missing types
@@ -4168,6 +4218,11 @@ type UpdateRecord struct {
 	TestResults     []string          `json:"testResults,omitempty"`
 	RollbackRecord  *RollbackRecord   `json:"rollbackRecord,omitempty"`
 	Metadata        map[string]interface{} `json:"metadata,omitempty"`
+	
+	// Additional fields referenced in updater_helpers.go
+	Type            string                 `json:"type"`
+	Packages        []*PackageReference    `json:"packages"`
+	Requester       string                 `json:"requester"`
 }
 
 // UpdateStatus defines update statuses
@@ -4255,6 +4310,10 @@ type UpdateNotification struct {
 	SentAt      *time.Time             `json:"sentAt,omitempty"`
 	ReadAt      *time.Time             `json:"readAt,omitempty"`
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	
+	// Additional fields referenced in updater_helpers.go
+	Title       string                 `json:"title"`
+	CreatedAt   time.Time              `json:"createdAt"`
 }
 
 // NotificationType defines notification types
@@ -4320,6 +4379,13 @@ type UpdaterMetrics struct {
 	// Prometheus metrics for impact analysis
 	ImpactAnalysisTime    *prometheus.HistogramVec `json:"-"`
 	ImpactAnalysisTotal   *prometheus.CounterVec   `json:"-"`
+	
+	// Additional Prometheus metrics referenced in updater_helpers.go
+	UpdatesTotal        prometheus.Counter   `json:"-"`
+	UpdateDuration      prometheus.Histogram `json:"-"`
+	UpdateErrors        *prometheus.CounterVec `json:"-"`
+	PropagationsTotal   prometheus.Counter   `json:"-"`
+	PropagationDuration prometheus.Histogram `json:"-"`
 }
 
 // Additional missing types for stub implementations
@@ -4673,6 +4739,9 @@ type SecurityImpact struct {
 	CriticalIssuesFixed   int               `json:"criticalIssuesFixed"`
 	SecurityRecommendations []string        `json:"securityRecommendations,omitempty"`
 	ComplianceImpact      *ComplianceImpact `json:"complianceImpact,omitempty"`
+	
+	// Additional field referenced in updater_helpers.go
+	Vulnerabilities       []string          `json:"vulnerabilities,omitempty"`
 }
 
 // ComplianceImpact represents compliance impact of an update  

@@ -44,7 +44,7 @@ func (a *UsageAnalyzer) AnalyzePatterns(usageData []UsageDataPoint) []*UsagePatt
 	if len(usageData) > 0 {
 		pattern := &UsagePattern{
 			Type:        "daily",
-			Frequency:   24 * time.Hour,
+			Frequency:   int64(24 * time.Hour),
 			Strength:    0.8,
 			Description: "Daily usage pattern detected",
 			Metadata:    make(map[string]interface{}),
@@ -261,12 +261,12 @@ func (a *dependencyAnalyzer) generateUsageOptimizations(analysis *UsageAnalysis)
 			Impact:         "medium",
 			Effort:         "low",
 			EstimatedBenefit: 0.3,
-			Packages:       make([]string, len(analysis.UnusedPackages)),
+			Packages:       make([]*PackageReference, len(analysis.UnusedPackages)),
 			Metadata:       make(map[string]interface{}),
 		}
 		
 		for i, pkg := range analysis.UnusedPackages {
-			opt.Packages[i] = pkg.Package.Name
+			opt.Packages[i] = pkg.Package
 		}
 		
 		optimizations = append(optimizations, opt)
@@ -280,12 +280,14 @@ func (a *dependencyAnalyzer) generateUsageOptimizations(analysis *UsageAnalysis)
 			Impact:         "medium",
 			Effort:         "medium",
 			EstimatedBenefit: 0.2,
-			Packages:       make([]string, len(analysis.UnderutilizedPackages)),
+			Packages:       make([]*PackageReference, len(analysis.UnderutilizedPackages)),
 			Metadata:       make(map[string]interface{}),
 		}
 		
 		for i, pkg := range analysis.UnderutilizedPackages {
-			opt.Packages[i] = pkg.PackageName
+			opt.Packages[i] = &PackageReference{
+				Name: pkg.PackageName,
+			}
 		}
 		
 		optimizations = append(optimizations, opt)
