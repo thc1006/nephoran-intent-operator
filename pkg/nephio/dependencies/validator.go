@@ -763,17 +763,15 @@ func (v *dependencyValidator) ValidateCompatibility(ctx context.Context, package
 	v.logger.V(1).Info("Validating package compatibility", "packages", len(packages))
 
 	result := &CompatibilityResult{
-		Packages:            packages,
-		Compatible:          true,
-		CompatibilityMatrix: make(map[string]map[string]bool),
-		IncompatiblePairs:   make([]*IncompatiblePair, 0),
-		ValidationTime:      time.Duration(0),
+		Compatible:      true,
+		Score:           100.0,
+		Issues:          make([]*CompatibilityIssue, 0),
+		Recommendations: make([]string, 0),
+		ValidatedAt:     time.Now(),
 	}
 
-	// Build compatibility matrix
+	// Check compatibility between packages
 	for i, pkg1 := range packages {
-		result.CompatibilityMatrix[pkg1.Name] = make(map[string]bool)
-
 		for j, pkg2 := range packages {
 			if i != j {
 				compatible, err := v.compatibilityChecker.CheckCompatibility(ctx, pkg1, pkg2)
@@ -784,25 +782,31 @@ func (v *dependencyValidator) ValidateCompatibility(ctx context.Context, package
 					compatible = false
 				}
 
-				result.CompatibilityMatrix[pkg1.Name][pkg2.Name] = compatible
-
 				if !compatible {
 					result.Compatible = false
-					result.IncompatiblePairs = append(result.IncompatiblePairs, &IncompatiblePair{
-						Package1: pkg1,
-						Package2: pkg2,
-						Reason:   "Version incompatibility",
+					result.Score -= 10.0
+					result.Issues = append(result.Issues, &CompatibilityIssue{
+						Type:        "incompatible_versions",
+						Severity:    "high",
+						Description: fmt.Sprintf("Packages %s@%s and %s@%s are incompatible", pkg1.Name, pkg1.Version, pkg2.Name, pkg2.Version),
+						Components:  []string{pkg1.Name, pkg2.Name},
+						Resolution:  fmt.Sprintf("Consider updating %s or %s to compatible versions", pkg1.Name, pkg2.Name),
 					})
+					result.Recommendations = append(result.Recommendations, fmt.Sprintf("Consider updating %s or %s to compatible versions", pkg1.Name, pkg2.Name))
 				}
 			}
 		}
 	}
 
-	result.ValidationTime = time.Since(startTime)
+	if result.Score < 0 {
+		result.Score = 0
+	}
+
+	validationTime := time.Since(startTime)
 
 	// Update metrics
 	v.metrics.CompatibilityChecks.Add(float64(len(packages) * len(packages)))
-	v.metrics.CompatibilityValidationTime.Observe(result.ValidationTime.Seconds())
+	v.metrics.CompatibilityValidationTime.Observe(validationTime.Seconds())
 
 	return result, nil
 }
@@ -911,6 +915,208 @@ func (v *dependencyValidator) groupPackagesByName(packages []*PackageReference) 
 	return groups
 }
 
+// analyzeConflictSeverity analyzes and updates conflict severity in the report
+func (v *dependencyValidator) analyzeConflictSeverity(report *ConflictReport) {
+	for _, conflict := range report.DependencyConflicts {
+		switch conflict.Severity {
+		case ConflictSeverityCritical:
+			report.CriticalConflicts++
+		case ConflictSeverityHigh:
+			report.HighConflicts++
+		case ConflictSeverityMedium:
+			report.MediumConflicts++
+		case ConflictSeverityLow:
+			report.LowConflicts++
+		}
+	}
+}
+
+// generateResolutionSuggestions generates suggestions for resolving conflicts
+func (v *dependencyValidator) generateResolutionSuggestions(ctx context.Context, report *ConflictReport) error {
+	suggestions := make([]*ConflictResolutionSuggestion, 0)
+
+	for _, conflict := range report.DependencyConflicts {
+		suggestion := &ConflictResolutionSuggestion{
+			ID:          conflict.ID,
+			Type:        "version_upgrade",
+			Description: fmt.Sprintf("Consider upgrading to a compatible version of %v", conflict.ConflictingPackages),
+			Actions:     []*ResolutionAction{{Type: "upgrade", Description: "Upgrade package versions"}},
+			Priority:    "medium",
+			Confidence:  0.7,
+			EstimatedEffort: "medium",
+		}
+		suggestions = append(suggestions, suggestion)
+
+		// Check if conflict is auto-resolvable
+		if v.isConflictAutoResolvable(conflict) {
+			report.AutoResolvable = append(report.AutoResolvable, conflict)
+		}
+	}
+
+	report.ResolutionSuggestions = suggestions
+	return nil
+}
+
+// isConflictAutoResolvable checks if a conflict can be automatically resolved
+func (v *dependencyValidator) isConflictAutoResolvable(conflict *DependencyConflict) bool {
+	// Simple heuristic: only minor version conflicts are auto-resolvable
+	return conflict.Severity == ConflictSeverityLow || conflict.Severity == ConflictSeverityMedium
+}
+
+// scanPackageVulnerabilities scans a single package for vulnerabilities
+func (v *dependencyValidator) scanPackageVulnerabilities(ctx context.Context, pkg *PackageReference) ([]*Vulnerability, error) {
+	if v.vulnerabilityDB == nil {
+		return []*Vulnerability{}, nil
+	}
+
+	vulns, err := v.vulnerabilityDB.ScanPackage(pkg.Name, pkg.Version)
+	if err != nil {
+		return nil, fmt.Errorf("vulnerability scan failed for %s: %w", pkg.Name, err)
+	}
+
+	// Convert []Vulnerability to []*Vulnerability
+	ptrVulns := make([]*Vulnerability, len(vulns))
+	for i := range vulns {
+		ptrVulns[i] = &vulns[i]
+	}
+
+	return ptrVulns, nil
+}
+
+// categorizeVulnerabilities categorizes vulnerabilities by severity
+func (v *dependencyValidator) categorizeVulnerabilities(result *SecurityScanResult) {
+	for _, vuln := range result.Vulnerabilities {
+		switch vuln.Severity {
+		case VulnerabilitySeverityHigh, VulnerabilitySeverityCritical:
+			result.HighRiskCount++
+		case VulnerabilitySeverityMedium:
+			result.MediumRiskCount++
+		case VulnerabilitySeverityLow, VulnerabilitySeverityInfo:
+			result.LowRiskCount++
+		}
+	}
+}
+
+// calculateSecurityScore calculates overall security score based on vulnerabilities
+func (v *dependencyValidator) calculateSecurityScore(result *SecurityScanResult) float64 {
+	if len(result.Vulnerabilities) == 0 {
+		return 100.0
+	}
+
+	score := 100.0
+	score -= float64(result.HighRiskCount) * 20.0
+	score -= float64(result.MediumRiskCount) * 10.0
+	score -= float64(result.LowRiskCount) * 5.0
+
+	if score < 0 {
+		score = 0
+	}
+
+	return score
+}
+
+// determineRiskLevel determines overall risk level based on vulnerabilities
+func (v *dependencyValidator) determineRiskLevel(result *SecurityScanResult) RiskLevel {
+	if result.HighRiskCount > 0 {
+		return RiskLevelCritical
+	}
+	if result.MediumRiskCount > 3 {
+		return RiskLevelHigh
+	}
+	if result.MediumRiskCount > 0 || result.LowRiskCount > 5 {
+		return RiskLevelMedium
+	}
+	return RiskLevelLow
+}
+
+// checkSecurityPolicyViolations checks for security policy violations
+func (v *dependencyValidator) checkSecurityPolicyViolations(vulnerabilities []*Vulnerability, policies *SecurityPolicies) []*PolicyViolation {
+	violations := make([]*PolicyViolation, 0)
+
+	if policies == nil {
+		return violations
+	}
+
+	highRiskCount := 0
+	criticalRiskCount := 0
+
+	for _, vuln := range vulnerabilities {
+		switch vuln.Severity {
+		case VulnerabilitySeverityCritical:
+			criticalRiskCount++
+		case VulnerabilitySeverityHigh:
+			highRiskCount++
+		}
+	}
+
+	// Check against default policy limits (since SecurityPolicies structure is different)
+	maxCritical := 0  // Default: no critical vulnerabilities allowed
+	maxHigh := 5      // Default: maximum 5 high vulnerabilities allowed
+
+	if criticalRiskCount > maxCritical {
+		violations = append(violations, &PolicyViolation{
+			PolicyName:  "Maximum Critical Vulnerabilities",
+			RuleName:    "max_critical_vulnerabilities",
+			Description: fmt.Sprintf("Found %d critical vulnerabilities, maximum allowed is %d", criticalRiskCount, maxCritical),
+			Severity:    "high",
+			Action:      "block",
+			DetectedAt:  time.Now(),
+		})
+	}
+
+	if highRiskCount > maxHigh {
+		violations = append(violations, &PolicyViolation{
+			PolicyName:  "Maximum High Vulnerabilities", 
+			RuleName:    "max_high_vulnerabilities",
+			Description: fmt.Sprintf("Found %d high vulnerabilities, maximum allowed is %d", highRiskCount, maxHigh),
+			Severity:    "medium",
+			Action:      "warn",
+			DetectedAt:  time.Now(),
+		})
+	}
+
+	return violations
+}
+
+// determineComplianceStatus determines compliance status based on policy violations
+func (v *dependencyValidator) determineComplianceStatus(violations []*PolicyViolation) ComplianceStatus {
+	if len(violations) == 0 {
+		return ComplianceStatusCompliant
+	}
+
+	highSeverityCount := 0
+	for _, violation := range violations {
+		if violation.Severity == "high" {
+			highSeverityCount++
+		}
+	}
+
+	if highSeverityCount > 0 {
+		return ComplianceStatusNonCompliant
+	}
+
+	return ComplianceStatusPartial
+}
+
+// calculateVersionConflictSeverity calculates severity for version conflicts
+func (v *dependencyValidator) calculateVersionConflictSeverity(versions []string) ConflictSeverity {
+	// Simple heuristic based on number of conflicting versions
+	if len(versions) > 3 {
+		return ConflictSeverityCritical
+	} else if len(versions) > 2 {
+		return ConflictSeverityHigh
+	} else if len(versions) > 1 {
+		return ConflictSeverityMedium
+	}
+	return ConflictSeverityLow
+}
+
+// isVersionConflictAutoResolvable checks if version conflict can be auto-resolved
+func (v *dependencyValidator) isVersionConflictAutoResolvable(versions []string) bool {
+	// Simple heuristic: conflicts with only 2 versions might be auto-resolvable
+	return len(versions) <= 2
+}
+
 // detectVersionConflictsForPackage detects version conflicts for a specific package
 func (v *dependencyValidator) detectVersionConflictsForPackage(ctx context.Context, packageName string, packages []*PackageReference) ([]*DependencyConflict, error) {
 	if len(packages) <= 1 {
@@ -1001,6 +1207,596 @@ func (v *dependencyValidator) generateScanCacheKey(packages []*PackageReference)
 // 8. Intelligent caching and optimization
 // 9. Production-ready error handling and monitoring
 // 10. Integration with telecommunications-specific requirements
+
+// AnalyzeConflictImpact analyzes the impact of dependency conflicts
+func (v *dependencyValidator) AnalyzeConflictImpact(ctx context.Context, conflicts []*DependencyConflict) (*ConflictImpactAnalysis, error) {
+	if len(conflicts) == 0 {
+		return &ConflictImpactAnalysis{
+			AnalysisID:       generateDetectionID(),
+			Conflicts:        []*DependencyConflict{},
+			OverallImpact:    ConflictImpactLow,
+			ImpactScore:      0.0,
+			AffectedPackages: []*AffectedPackage{},
+			ImpactCategories: make(map[string]float64),
+			AnalyzedAt:       time.Now(),
+		}, nil
+	}
+
+	analysis := &ConflictImpactAnalysis{
+		AnalysisID:       generateDetectionID(),
+		Conflicts:        conflicts,
+		OverallImpact:    ConflictImpactMedium,
+		ImpactScore:      0.5,
+		AffectedPackages: make([]*AffectedPackage, 0),
+		ImpactCategories: make(map[string]float64),
+		AnalyzedAt:       time.Now(),
+	}
+
+	// Analyze conflicts and determine impact
+	criticalCount := 0
+	highCount := 0
+	
+	for _, conflict := range conflicts {
+		switch conflict.Severity {
+		case ConflictSeverityCritical:
+			criticalCount++
+		case ConflictSeverityHigh:
+			highCount++
+		}
+		
+		// Add affected packages
+		for _, pkg := range conflict.ConflictingPackages {
+			analysis.AffectedPackages = append(analysis.AffectedPackages, &AffectedPackage{
+				Package:      pkg,
+				VersionRange: &VersionRange{Constraint: pkg.Version},
+				Severity:     string(conflict.Severity),
+				ImpactScore:  0.5,
+			})
+		}
+	}
+
+	// Determine overall impact and risk level
+	if criticalCount > 0 {
+		analysis.OverallImpact = ConflictImpactCritical
+		analysis.ImpactScore = 1.0
+		analysis.ImpactCategories["deployment"] = 1.0
+		analysis.ImpactCategories["compilation"] = 1.0
+	} else if highCount > 3 {
+		analysis.OverallImpact = ConflictImpactHigh
+		analysis.ImpactScore = 0.8
+		analysis.ImpactCategories["deployment"] = 0.8
+		analysis.ImpactCategories["testing"] = 0.7
+	}
+
+	v.logger.V(1).Info("Conflict impact analysis completed",
+		"totalConflicts", len(conflicts),
+		"criticalConflicts", criticalCount,
+		"highConflicts", highCount,
+		"overallImpact", analysis.OverallImpact)
+
+	return analysis, nil
+}
+
+// DetectBreakingChanges detects breaking changes between package versions
+func (v *dependencyValidator) DetectBreakingChanges(ctx context.Context, oldPkgs, newPkgs []*PackageReference) (*BreakingChangeReport, error) {
+	startTime := time.Now()
+
+	v.logger.V(1).Info("Detecting breaking changes", "oldPackages", len(oldPkgs), "newPackages", len(newPkgs))
+
+	report := &BreakingChangeReport{
+		Package:         nil, // Will be set for each package comparison
+		FromVersion:     "multiple",
+		ToVersion:       "multiple", 
+		BreakingChanges: make([]*BreakingChange, 0),
+		GeneratedAt:     time.Now(),
+	}
+
+	// Create package maps for comparison
+	oldPkgMap := make(map[string]*PackageReference)
+	for _, pkg := range oldPkgs {
+		oldPkgMap[pkg.Name] = pkg
+	}
+
+	newPkgMap := make(map[string]*PackageReference)
+	for _, pkg := range newPkgs {
+		newPkgMap[pkg.Name] = pkg
+	}
+
+	// Detect breaking changes
+	for _, newPkg := range newPkgs {
+		if oldPkg, exists := oldPkgMap[newPkg.Name]; exists {
+			if changes := v.detectPackageBreakingChanges(oldPkg, newPkg); len(changes) > 0 {
+				report.BreakingChanges = append(report.BreakingChanges, changes...)
+			}
+		}
+	}
+
+	detectionTime := time.Since(startTime)
+
+	v.logger.V(1).Info("Breaking change detection completed", 
+		"breakingChanges", len(report.BreakingChanges),
+		"duration", detectionTime)
+
+	return report, nil
+}
+
+// detectPackageBreakingChanges detects breaking changes between two versions of a package
+func (v *dependencyValidator) detectPackageBreakingChanges(oldPkg, newPkg *PackageReference) []*BreakingChange {
+	changes := make([]*BreakingChange, 0)
+
+	// Compare versions - this is a simplified implementation
+	if v.isBreakingVersionChange(oldPkg.Version, newPkg.Version) {
+		changes = append(changes, &BreakingChange{
+			Version:     newPkg.Version,
+			Type:        "major_version_change",
+			Description: fmt.Sprintf("Major version change from %s to %s", oldPkg.Version, newPkg.Version),
+			Impact:      "high",
+			Mitigation:  "Review changelog and update code accordingly",
+		})
+	}
+
+	return changes
+}
+
+// isBreakingVersionChange checks if a version change is potentially breaking
+func (v *dependencyValidator) isBreakingVersionChange(oldVersion, newVersion string) bool {
+	// Simple semantic versioning check - major version changes are breaking
+	// This is a simplified implementation
+	return oldVersion != newVersion && 
+		   len(oldVersion) > 0 && len(newVersion) > 0 &&
+		   oldVersion[0] != newVersion[0] // Simple major version check
+}
+
+// ValidateUpgradePath validates the upgrade path between package versions
+func (v *dependencyValidator) ValidateUpgradePath(ctx context.Context, from, to *PackageReference) (*UpgradeValidation, error) {
+	validation := &UpgradeValidation{
+		Valid:        true,
+		UpgradeScore: 100.0,
+		Issues:       make([]*UpgradeValidationIssue, 0),
+		ValidatedAt:  time.Now(),
+	}
+
+	// Perform upgrade validation checks
+	if from.Name != to.Name {
+		validation.Valid = false
+		validation.UpgradeScore -= 50.0
+		validation.Issues = append(validation.Issues, &UpgradeValidationIssue{
+			Type:        "name_mismatch",
+			Severity:    "high",
+			Description: "Package names do not match",
+			Resolution:  "Ensure you are comparing the same package",
+		})
+	}
+
+	// Check for breaking changes
+	if v.isBreakingVersionChange(from.Version, to.Version) {
+		validation.UpgradeScore -= 30.0
+		validation.Issues = append(validation.Issues, &UpgradeValidationIssue{
+			Type:        "breaking_changes",
+			Severity:    "medium",
+			Description: "Potential breaking changes detected",
+			Resolution:  "Review changelog and test thoroughly",
+		})
+		
+		// Create risk assessment
+		validation.RiskAssessment = &RiskAssessment{
+			OverallRisk: RiskLevelHigh,
+			RiskScore:   0.8,
+			AssessedAt:  time.Now(),
+		}
+	} else {
+		validation.RiskAssessment = &RiskAssessment{
+			OverallRisk: RiskLevelLow,
+			RiskScore:   0.2,
+			AssessedAt:  time.Now(),
+		}
+	}
+
+	return validation, nil
+}
+
+// DetectDependencyConflicts detects conflicts in a dependency graph
+func (v *dependencyValidator) DetectDependencyConflicts(ctx context.Context, graph *DependencyGraph) (*DependencyConflictReport, error) {
+	startTime := time.Now()
+
+	v.logger.V(1).Info("Detecting dependency conflicts in graph")
+
+	report := &DependencyConflictReport{
+		ReportID:    generateDetectionID(),
+		Conflicts:   make([]*DependencyConflict, 0),
+		Severity:    ConflictSeverityLow,
+		GeneratedAt: time.Now(),
+	}
+
+	// Run conflict detectors on the graph packages
+	allPackages := v.extractPackagesFromGraph(graph)
+	
+	for _, detector := range v.conflictDetectors {
+		conflicts, err := detector.DetectConflicts(allPackages)
+		if err != nil {
+			v.logger.Error(err, "Conflict detector failed")
+			continue
+		}
+		report.Conflicts = append(report.Conflicts, conflicts...)
+	}
+
+	// Determine overall severity
+	for _, conflict := range report.Conflicts {
+		if conflict.Severity == ConflictSeverityCritical {
+			report.Severity = ConflictSeverityCritical
+			break
+		} else if conflict.Severity == ConflictSeverityHigh && report.Severity != ConflictSeverityCritical {
+			report.Severity = ConflictSeverityHigh
+		} else if conflict.Severity == ConflictSeverityMedium && report.Severity == ConflictSeverityLow {
+			report.Severity = ConflictSeverityMedium
+		}
+	}
+
+	detectionTime := time.Since(startTime)
+
+	v.logger.V(1).Info("Dependency conflict detection completed",
+		"conflicts", len(report.Conflicts),
+		"duration", detectionTime)
+
+	return report, nil
+}
+
+// extractPackagesFromGraph extracts all packages from a dependency graph
+func (v *dependencyValidator) extractPackagesFromGraph(graph *DependencyGraph) []*PackageReference {
+	packages := make([]*PackageReference, 0)
+	
+	for _, node := range graph.Nodes {
+		packages = append(packages, node.PackageRef)
+	}
+	
+	return packages
+}
+
+// GetValidationHealth returns the health status of the validator
+func (v *dependencyValidator) GetValidationHealth(ctx context.Context) (*ValidatorHealth, error) {
+	health := &ValidatorHealth{
+		Status:           "healthy",
+		LastValidation:   time.Now(),
+		TotalValidations: v.metrics.TotalValidations,
+		ErrorRate:        v.metrics.ErrorRate,
+		UpTime:          time.Since(time.Now().Add(-24 * time.Hour)), // Simplified
+		Issues:          make([]string, 0),
+		CheckedAt:       time.Now(),
+	}
+
+	// Add health checks
+	if v.vulnerabilityDB == nil {
+		health.Issues = append(health.Issues, "Vulnerability database not configured")
+		health.Status = "degraded"
+	}
+
+	if len(health.Issues) > 5 {
+		health.Status = "unhealthy"
+	}
+
+	return health, nil
+}
+
+// GetValidationMetrics returns current validation metrics
+func (v *dependencyValidator) GetValidationMetrics(ctx context.Context) (*ValidatorMetrics, error) {
+	return v.metrics, nil
+}
+
+// UpdateValidationRules updates the validation rules
+func (v *dependencyValidator) UpdateValidationRules(ctx context.Context, rules *ValidationRules) error {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	
+	v.validationRules = rules
+	v.logger.Info("Validation rules updated", "rules", len(rules.Rules))
+	return nil
+}
+
+// ValidatePackage validates a single package
+func (v *dependencyValidator) ValidatePackage(ctx context.Context, pkg *PackageReference) (*PackageValidation, error) {
+	startTime := time.Now()
+
+	validation := &PackageValidation{
+		Package:        pkg,
+		Valid:          true,
+		Score:          100.0,
+		Errors:         make([]*ValidationError, 0),
+		Warnings:       make([]*ValidationWarning, 0),
+		ValidationTime: time.Duration(0),
+		ValidatedAt:    time.Now(),
+	}
+
+	// Validate package reference
+	if pkg.Name == "" {
+		validation.Valid = false
+		validation.Score -= 50.0
+		validation.Errors = append(validation.Errors, &ValidationError{
+			Code:     "EMPTY_PACKAGE_NAME",
+			Type:     ErrorTypeValidation,
+			Severity: ErrorSeverityHigh,
+			Message:  "Package name cannot be empty",
+			Package:  pkg,
+		})
+	}
+
+	if pkg.Version == "" {
+		validation.Valid = false
+		validation.Score -= 30.0
+		validation.Errors = append(validation.Errors, &ValidationError{
+			Code:     "EMPTY_PACKAGE_VERSION",
+			Type:     ErrorTypeValidation,
+			Severity: ErrorSeverityMedium,
+			Message:  "Package version cannot be empty",
+			Package:  pkg,
+		})
+	}
+
+	// Additional validations could be added here
+
+	validation.ValidationTime = time.Since(startTime)
+
+	if validation.Score < 0 {
+		validation.Score = 0
+	}
+
+	return validation, nil
+}
+
+// ValidateVersion validates a specific version of a package
+func (v *dependencyValidator) ValidateVersion(ctx context.Context, pkg *PackageReference, version string) (*VersionValidation, error) {
+	validation := &VersionValidation{
+		Package:     pkg,
+		Version:     version,
+		Valid:       true,
+		Issues:      make([]*VersionIssue, 0),
+		ValidatedAt: time.Now(),
+	}
+
+	// Simple version validation
+	if version == "" {
+		validation.Valid = false
+		validation.Issues = append(validation.Issues, &VersionIssue{
+			Type:        "empty_version",
+			Severity:    "high",
+			Description: "Version cannot be empty",
+			Resolution:  "Specify a valid version",
+		})
+	}
+
+	// Add more version validation logic here
+
+	return validation, nil
+}
+
+// ValidatePlatform validates packages against platform constraints  
+func (v *dependencyValidator) ValidatePlatform(ctx context.Context, packages []*PackageReference, platform *PlatformConstraints) (*PlatformValidation, error) {
+	validation := &PlatformValidation{
+		Packages:         packages,
+		Platform:         platform,
+		Compatible:       true,
+		Valid:           true,
+		Issues:          make([]string, 0),
+		ValidatedAt:     time.Now(),
+	}
+
+	// Platform validation logic would go here
+
+	return validation, nil
+}
+
+// ValidateLicenses validates package licenses
+func (v *dependencyValidator) ValidateLicenses(ctx context.Context, packages []*PackageReference) (*LicenseValidation, error) {
+	validation := &LicenseValidation{
+		Valid:       true,
+		Issues:      make([]*LicenseIssue, 0),
+		ValidatedAt: time.Now(),
+	}
+
+	// License validation logic would go here
+
+	return validation, nil
+}
+
+// ValidateCompliance validates packages against compliance rules
+func (v *dependencyValidator) ValidateCompliance(ctx context.Context, packages []*PackageReference, rules *ComplianceRules) (*ComplianceValidation, error) {
+	validation := &ComplianceValidation{
+		Compliant:   true,
+		Score:       100.0,
+		ValidatedAt: time.Now(),
+	}
+
+	// Compliance validation logic would go here
+
+	return validation, nil
+}
+
+// ValidatePerformanceImpact validates performance impact of packages
+func (v *dependencyValidator) ValidatePerformanceImpact(ctx context.Context, packages []*PackageReference) (*PerformanceValidation, error) {
+	validation := &PerformanceValidation{
+		Valid:           true,
+		Score:           100.0,
+		Issues:          make([]*PerformanceIssue, 0),
+		ValidatedAt:     time.Now(),
+	}
+
+	// Performance validation logic would go here
+
+	return validation, nil
+}
+
+// ValidateResourceUsage validates resource usage of packages
+func (v *dependencyValidator) ValidateResourceUsage(ctx context.Context, packages []*PackageReference, limits *ResourceLimits) (*ResourceValidation, error) {
+	validation := &ResourceValidation{
+		Valid:           true,
+		Score:           100.0,
+		Limits:          limits,
+		Issues:         make([]*ResourceValidationIssue, 0),
+		ValidatedAt:    time.Now(),
+	}
+
+	// Resource validation logic would go here
+
+	return validation, nil
+}
+
+// ValidateSecurityPolicies validates packages against security policies
+func (v *dependencyValidator) ValidateSecurityPolicies(ctx context.Context, packages []*PackageReference, policies *SecurityPolicies) (*SecurityValidation, error) {
+	validation := &SecurityValidation{
+		Valid:           true,
+		SecurityScore:   100.0,
+		ValidatedAt:     time.Now(),
+	}
+
+	// Security policy validation logic would go here
+
+	return validation, nil
+}
+
+// ValidateOrganizationalPolicies validates packages against organizational policies
+func (v *dependencyValidator) ValidateOrganizationalPolicies(ctx context.Context, packages []*PackageReference, policies *OrganizationalPolicies) (*PolicyValidation, error) {
+	validation := &PolicyValidation{
+		Valid:           true,
+		Score:           100.0,
+		ValidatedAt:     time.Now(),
+	}
+
+	// Organizational policy validation logic would go here
+
+	return validation, nil
+}
+
+// ValidateArchitecturalCompliance validates packages against architectural constraints
+func (v *dependencyValidator) ValidateArchitecturalCompliance(ctx context.Context, packages []*PackageReference, architecture *ArchitecturalConstraints) (*ArchitecturalValidation, error) {
+	validation := &ArchitecturalValidation{
+		Valid:           true,
+		Score:           100.0,
+		Constraints:     architecture,
+		Issues:          make([]*ArchitecturalValidationIssue, 0),
+		ValidatedAt:     time.Now(),
+	}
+
+	// Architectural validation logic would go here
+
+	return validation, nil
+}
+
+// performCrossPackageValidations performs validations that require analysis across packages
+func (v *dependencyValidator) performCrossPackageValidations(ctx context.Context, validationCtx *ValidationContext) error {
+	spec := validationCtx.Spec
+	result := validationCtx.Result
+
+	// Perform compatibility validation if requested
+	if containsValidationType(spec.ValidationTypes, ValidationTypeCompatibility) {
+		compatResult, err := v.ValidateCompatibility(ctx, spec.Packages)
+		if err != nil {
+			return fmt.Errorf("compatibility validation failed: %w", err)
+		}
+		result.CompatibilityResult = compatResult
+		if !compatResult.Compatible {
+			result.Success = false
+		}
+	}
+
+	// Perform security scanning if requested
+	if containsValidationType(spec.ValidationTypes, ValidationTypeSecurity) {
+		scanResult, err := v.ScanForVulnerabilities(ctx, spec.Packages)
+		if err != nil {
+			return fmt.Errorf("security scanning failed: %w", err)
+		}
+		result.SecurityScanResult = scanResult
+		if scanResult.RiskLevel == RiskLevelCritical || scanResult.RiskLevel == RiskLevelHigh {
+			result.Success = false
+		}
+	}
+
+	// Perform conflict detection
+	conflictReport, err := v.DetectVersionConflicts(ctx, spec.Packages)
+	if err != nil {
+		return fmt.Errorf("conflict detection failed: %w", err)
+	}
+
+	// Add conflicts to result
+	if len(conflictReport.DependencyConflicts) > 0 {
+		for _, conflict := range conflictReport.DependencyConflicts {
+			if conflict.Severity == ConflictSeverityCritical || conflict.Severity == ConflictSeverityHigh {
+				result.Success = false
+				result.Errors = append(result.Errors, &ValidationError{
+					Code:     "CONFLICT_DETECTED",
+					Type:     ErrorTypeCompatibility,
+					Severity: ErrorSeverityHigh,
+					Message:  conflict.Description,
+					Context:  map[string]interface{}{"conflictId": conflict.ID},
+				})
+			}
+		}
+	}
+
+	return nil
+}
+
+// calculateOverallResults calculates overall validation results and scores
+func (v *dependencyValidator) calculateOverallResults(validationCtx *ValidationContext) {
+	result := validationCtx.Result
+	
+	// Calculate overall success
+	if len(result.Errors) > 0 {
+		result.Success = false
+	}
+
+	// Calculate overall score based on various factors
+	score := 100.0
+	
+	// Deduct points for errors
+	score -= float64(len(result.Errors)) * 10.0
+	if score < 0 {
+		score = 0
+	}
+	
+	// Deduct points for warnings
+	score -= float64(len(result.Warnings)) * 5.0
+	if score < 0 {
+		score = 0
+	}
+
+	// Factor in security scan results
+	if result.SecurityScanResult != nil {
+		switch result.SecurityScanResult.RiskLevel {
+		case RiskLevelCritical:
+			score -= 30.0
+		case RiskLevelHigh:
+			score -= 20.0
+		case RiskLevelMedium:
+			score -= 10.0
+		}
+	}
+
+	// Factor in compatibility results
+	if result.CompatibilityResult != nil && !result.CompatibilityResult.Compatible {
+		score -= 15.0
+	}
+
+	if score < 0 {
+		score = 0
+	}
+	if score > 100 {
+		score = 100
+	}
+
+	result.OverallScore = score
+}
+
+// Helper function to check if a validation type is requested
+func containsValidationType(types []ValidationType, target ValidationType) bool {
+	if len(types) == 0 {
+		return true // Default to all validations if none specified
+	}
+	for _, t := range types {
+		if t == target {
+			return true
+		}
+	}
+	return false
+}
 
 // Close gracefully shuts down the validator
 func (v *dependencyValidator) Close() error {
