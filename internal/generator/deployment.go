@@ -43,7 +43,7 @@ func (g *DeploymentGenerator) Generate(intent *intent.ScalingIntent) ([]byte, er
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: int32Ptr(int32(intent.Replicas)),
+			Replicas: int32Ptr(safeIntToInt32(intent.Replicas)),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": intent.Target,
@@ -211,6 +211,19 @@ func (g *DeploymentGenerator) GenerateService(intent *intent.ScalingIntent) ([]b
 
 func int32Ptr(i int32) *int32 {
 	return &i
+}
+
+// safeIntToInt32 safely converts an int to int32 with bounds checking
+func safeIntToInt32(i int) int32 {
+	// Check for overflow - int32 max value is 2147483647
+	const maxInt32 = int(^uint32(0) >> 1)
+	if i > maxInt32 {
+		return int32(maxInt32)
+	}
+	if i < 0 {
+		return 0
+	}
+	return int32(i)
 }
 
 // mustParseQuantity parses a resource quantity and panics if it fails

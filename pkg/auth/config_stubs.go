@@ -1,3 +1,5 @@
+//go:build stubs || test
+
 package auth
 
 import (

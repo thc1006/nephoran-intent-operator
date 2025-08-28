@@ -377,7 +377,7 @@ func (eb *ElasticsearchBackend) createIndexTemplate() error {
 	}
 
 	url := fmt.Sprintf("%s/_index_template/%s-template", eb.baseURL, eb.indexPrefix)
-	req, err := http.NewRequest("PUT", url, bytes.NewReader(templateBytes))
+	req, err := http.NewRequestWithContext(context.Background(), "PUT", url, bytes.NewReader(templateBytes))
 	if err != nil {
 		return fmt.Errorf("failed to create template request: %w", err)
 	}
@@ -403,7 +403,7 @@ func (eb *ElasticsearchBackend) createIndex() error {
 	indexName := eb.getIndexName(time.Now())
 	url := fmt.Sprintf("%s/%s", eb.baseURL, indexName)
 
-	req, err := http.NewRequest("HEAD", url, nil)
+	req, err := http.NewRequestWithContext(context.Background(), "HEAD", url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create index check request: %w", err)
 	}
@@ -421,7 +421,7 @@ func (eb *ElasticsearchBackend) createIndex() error {
 	}
 
 	// Create the index
-	req, err = http.NewRequest("PUT", url, nil)
+	req, err = http.NewRequestWithContext(context.Background(), "PUT", url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create index request: %w", err)
 	}
@@ -460,7 +460,7 @@ func (eb *ElasticsearchBackend) createAlias() error {
 	}
 
 	url := fmt.Sprintf("%s/_aliases", eb.baseURL)
-	req, err := http.NewRequest("POST", url, bytes.NewReader(aliasBytes))
+	req, err := http.NewRequestWithContext(context.Background(), "POST", url, bytes.NewReader(aliasBytes))
 	if err != nil {
 		return fmt.Errorf("failed to create alias request: %w", err)
 	}

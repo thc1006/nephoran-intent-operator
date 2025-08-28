@@ -1,0 +1,1533 @@
+﻿2025-08-28T20:57:59.9326026Z Current runner version: '2.328.0'
+2025-08-28T20:57:59.9357379Z ##[group]Runner Image Provisioner
+2025-08-28T20:57:59.9358630Z Hosted Compute Agent
+2025-08-28T20:57:59.9359438Z Version: 20250825.382
+2025-08-28T20:57:59.9360376Z Commit: 7109f2abf901479dac39397456e363ac0cca0730
+2025-08-28T20:57:59.9361577Z Build Date: 2025-08-25T22:55:50Z
+2025-08-28T20:57:59.9362755Z ##[endgroup]
+2025-08-28T20:57:59.9363557Z ##[group]Operating System
+2025-08-28T20:57:59.9364579Z Ubuntu
+2025-08-28T20:57:59.9365303Z 24.04.3
+2025-08-28T20:57:59.9366129Z LTS
+2025-08-28T20:57:59.9367559Z ##[endgroup]
+2025-08-28T20:57:59.9368344Z ##[group]Runner Image
+2025-08-28T20:57:59.9369187Z Image: ubuntu-24.04
+2025-08-28T20:57:59.9370013Z Version: 20250824.1.0
+2025-08-28T20:57:59.9371730Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250824.1/images/ubuntu/Ubuntu2404-Readme.md
+2025-08-28T20:57:59.9374632Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250824.1
+2025-08-28T20:57:59.9376250Z ##[endgroup]
+2025-08-28T20:57:59.9378065Z ##[group]GITHUB_TOKEN Permissions
+2025-08-28T20:57:59.9380847Z Contents: read
+2025-08-28T20:57:59.9381672Z Metadata: read
+2025-08-28T20:57:59.9382666Z Packages: read
+2025-08-28T20:57:59.9383555Z ##[endgroup]
+2025-08-28T20:57:59.9386578Z Secret source: Actions
+2025-08-28T20:57:59.9388065Z Prepare workflow directory
+2025-08-28T20:58:00.0144566Z Prepare all required actions
+2025-08-28T20:58:00.0200804Z Getting action download info
+2025-08-28T20:58:00.3692128Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+2025-08-28T20:58:00.4407857Z Download action repository 'actions/setup-go@v5' (SHA:d35c59abb061a4a6fb18e82ac0862c26744d6ab5)
+2025-08-28T20:58:00.6949272Z Download action repository 'actions/cache@v4' (SHA:0400d5f644dc74513175e3cd8d07132dd4860809)
+2025-08-28T20:58:00.8286848Z Download action repository 'golangci/golangci-lint-action@v6' (SHA:55c2c1448f86e01eaae002a5a3a9624417608d84)
+2025-08-28T20:58:01.0799728Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2025-08-28T20:58:01.2847588Z Complete job name: Code Quality
+2025-08-28T20:58:01.3559678Z ##[group]Run actions/checkout@v4
+2025-08-28T20:58:01.3560953Z with:
+2025-08-28T20:58:01.3561642Z   fetch-depth: 0
+2025-08-28T20:58:01.3562733Z   repository: thc1006/nephoran-intent-operator
+2025-08-28T20:58:01.3564069Z   token: ***
+2025-08-28T20:58:01.3564789Z   ssh-strict: true
+2025-08-28T20:58:01.3565531Z   ssh-user: git
+2025-08-28T20:58:01.3566294Z   persist-credentials: true
+2025-08-28T20:58:01.3567146Z   clean: true
+2025-08-28T20:58:01.3567921Z   sparse-checkout-cone-mode: true
+2025-08-28T20:58:01.3568855Z   fetch-tags: false
+2025-08-28T20:58:01.3569630Z   show-progress: true
+2025-08-28T20:58:01.3570405Z   lfs: false
+2025-08-28T20:58:01.3571111Z   submodules: false
+2025-08-28T20:58:01.3571893Z   set-safe-directory: true
+2025-08-28T20:58:01.3573209Z env:
+2025-08-28T20:58:01.3573906Z   GO_VERSION_FILE: go.mod
+2025-08-28T20:58:01.3574789Z   REGISTRY_BASE: ghcr.io/thc1006
+2025-08-28T20:58:01.3575738Z   PLATFORMS: linux/amd64,linux/arm64
+2025-08-28T20:58:01.3576729Z   GOLANGCI_LINT_VERSION: 1.64.3
+2025-08-28T20:58:01.3577627Z   GOVULNCHECK_VERSION: 1.1.4
+2025-08-28T20:58:01.3578593Z   GOPROXY: https://proxy.golang.org,direct
+2025-08-28T20:58:01.3579621Z   GOSUMDB: sum.golang.org
+2025-08-28T20:58:01.3580443Z   GO111MODULE: on
+2025-08-28T20:58:01.3581190Z   CGO_ENABLED: 0
+2025-08-28T20:58:01.3581908Z ##[endgroup]
+2025-08-28T20:58:01.4684134Z Syncing repository: thc1006/nephoran-intent-operator
+2025-08-28T20:58:01.4687687Z ##[group]Getting Git version info
+2025-08-28T20:58:01.4689550Z Working directory is '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+2025-08-28T20:58:01.4691941Z [command]/usr/bin/git version
+2025-08-28T20:58:01.4701564Z git version 2.51.0
+2025-08-28T20:58:01.4727869Z ##[endgroup]
+2025-08-28T20:58:01.4740787Z Temporarily overriding HOME='/home/runner/work/_temp/e95b7c8b-270c-4531-8351-2af749f4396f' before making global git config changes
+2025-08-28T20:58:01.4744216Z Adding repository directory to the temporary git global config as a safe directory
+2025-08-28T20:58:01.4747258Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-08-28T20:58:01.4779200Z Deleting the contents of '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+2025-08-28T20:58:01.4781818Z ##[group]Initializing the repository
+2025-08-28T20:58:01.4786510Z [command]/usr/bin/git init /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-08-28T20:58:01.4858297Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-08-28T20:58:01.4860935Z hint: is subject to change. To configure the initial branch name to use in all
+2025-08-28T20:58:01.4863984Z hint: of your new repositories, which will suppress this warning, call:
+2025-08-28T20:58:01.4866333Z hint:
+2025-08-28T20:58:01.4867882Z hint: 	git config --global init.defaultBranch <name>
+2025-08-28T20:58:01.4869851Z hint:
+2025-08-28T20:58:01.4871658Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-08-28T20:58:01.4874995Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-08-28T20:58:01.4877378Z hint:
+2025-08-28T20:58:01.4878550Z hint: 	git branch -m <name>
+2025-08-28T20:58:01.4879908Z hint:
+2025-08-28T20:58:01.4881419Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-08-28T20:58:01.4883946Z Initialized empty Git repository in /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/.git/
+2025-08-28T20:58:01.4889070Z [command]/usr/bin/git remote add origin https://github.com/thc1006/nephoran-intent-operator
+2025-08-28T20:58:01.4910183Z ##[endgroup]
+2025-08-28T20:58:01.4912797Z ##[group]Disabling automatic garbage collection
+2025-08-28T20:58:01.4915129Z [command]/usr/bin/git config --local gc.auto 0
+2025-08-28T20:58:01.4945366Z ##[endgroup]
+2025-08-28T20:58:01.4947619Z ##[group]Setting up auth
+2025-08-28T20:58:01.4952952Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-08-28T20:58:01.4985542Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-08-28T20:58:01.5266180Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-08-28T20:58:01.5298025Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-08-28T20:58:01.5516161Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-08-28T20:58:01.5568581Z ##[endgroup]
+2025-08-28T20:58:01.5570067Z ##[group]Fetching the repository
+2025-08-28T20:58:01.5577495Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+2025-08-28T20:58:09.6869405Z From https://github.com/thc1006/nephoran-intent-operator
+2025-08-28T20:58:09.6871418Z  * [new branch]        chore/ci-autofix-setup  -> origin/chore/ci-autofix-setup
+2025-08-28T20:58:09.6872826Z  * [new branch]        chore/claude-commands-and-hooks -> origin/chore/claude-commands-and-hooks
+2025-08-28T20:58:09.6874106Z  * [new branch]        chore/conductor-governance -> origin/chore/conductor-governance
+2025-08-28T20:58:09.6875214Z  * [new branch]        chore/conductor-setup   -> origin/chore/conductor-setup
+2025-08-28T20:58:09.6876427Z  * [new branch]        chore/repo-hygiene      -> origin/chore/repo-hygiene
+2025-08-28T20:58:09.6877360Z  * [new branch]        ci/fix-safety-docs-scan -> origin/ci/fix-safety-docs-scan
+2025-08-28T20:58:09.6878424Z  * [new branch]        claude/issue-99-20250824-0007 -> origin/claude/issue-99-20250824-0007
+2025-08-28T20:58:09.6879737Z  * [new branch]        clean-feat-conductor-loop -> origin/clean-feat-conductor-loop
+2025-08-28T20:58:09.6881123Z  * [new branch]        dependabot/github_actions/actions/checkout-5 -> origin/dependabot/github_actions/actions/checkout-5
+2025-08-28T20:58:09.6882918Z  * [new branch]        dependabot/github_actions/actions/configure-pages-5 -> origin/dependabot/github_actions/actions/configure-pages-5
+2025-08-28T20:58:09.6884587Z  * [new branch]        dependabot/github_actions/codecov/codecov-action-5 -> origin/dependabot/github_actions/codecov/codecov-action-5
+2025-08-28T20:58:09.6886545Z  * [new branch]        dependabot/github_actions/golangci/golangci-lint-action-8 -> origin/dependabot/github_actions/golangci/golangci-lint-action-8
+2025-08-28T20:58:09.6888310Z  * [new branch]        dependabot/github_actions/helm/kind-action-1.12.0 -> origin/dependabot/github_actions/helm/kind-action-1.12.0
+2025-08-28T20:58:09.6890051Z  * [new branch]        dependabot/go_modules/cloud.google.com/go/compute-1.44.0 -> origin/dependabot/go_modules/cloud.google.com/go/compute-1.44.0
+2025-08-28T20:58:09.6892208Z  * [new branch]        dependabot/go_modules/cloud.google.com/go/container-1.44.0 -> origin/dependabot/go_modules/cloud.google.com/go/container-1.44.0
+2025-08-28T20:58:09.6894510Z  * [new branch]        dependabot/go_modules/github.com/Azure/azure-sdk-for-go/sdk/azcore-1.19.0 -> origin/dependabot/go_modules/github.com/Azure/azure-sdk-for-go/sdk/azcore-1.19.0
+2025-08-28T20:58:09.6896500Z  * [new branch]        dependabot/go_modules/github.com/aws/aws-sdk-go-v2-1.38.1 -> origin/dependabot/go_modules/github.com/aws/aws-sdk-go-v2-1.38.1
+2025-08-28T20:58:09.6898692Z  * [new branch]        dependabot/go_modules/github.com/aws/aws-sdk-go-v2/credentials-1.18.6 -> origin/dependabot/go_modules/github.com/aws/aws-sdk-go-v2/credentials-1.18.6
+2025-08-28T20:58:09.6900844Z  * [new branch]        dependabot/go_modules/github.com/aws/aws-sdk-go-v2/service/sts-1.38.0 -> origin/dependabot/go_modules/github.com/aws/aws-sdk-go-v2/service/sts-1.38.0
+2025-08-28T20:58:09.6903489Z  * [new branch]        dependabot/go_modules/go.opentelemetry.io/otel/exporters/prometheus-0.59.1 -> origin/dependabot/go_modules/go.opentelemetry.io/otel/exporters/prometheus-0.59.1
+2025-08-28T20:58:09.6905588Z  * [new branch]        dependabot/go_modules/golang.org/x/net-0.43.0 -> origin/dependabot/go_modules/golang.org/x/net-0.43.0
+2025-08-28T20:58:09.6907088Z  * [new branch]        dependabot/go_modules/helm.sh/helm/v3-3.18.6 -> origin/dependabot/go_modules/helm.sh/helm/v3-3.18.6
+2025-08-28T20:58:09.6908556Z  * [new branch]        dependabot/go_modules/k8s.io/client-go-0.33.4 -> origin/dependabot/go_modules/k8s.io/client-go-0.33.4
+2025-08-28T20:58:09.6909987Z  * [new branch]        feat/a1-policy-sim      -> origin/feat/a1-policy-sim
+2025-08-28T20:58:09.6910958Z  * [new branch]        feat/admission-webhook  -> origin/feat/admission-webhook
+2025-08-28T20:58:09.6911920Z  * [new branch]        feat/ci-guard           -> origin/feat/ci-guard
+2025-08-28T20:58:09.6913314Z  * [new branch]        feat/conductor-file-watcher -> origin/feat/conductor-file-watcher
+2025-08-28T20:58:09.6914438Z  * [new branch]        feat/conductor-loop     -> origin/feat/conductor-loop
+2025-08-28T20:58:09.6915546Z  * [new branch]        feat/e2-kpm-sim         -> origin/feat/e2-kpm-sim
+2025-08-28T20:58:09.6916654Z  * [new branch]        feat/e2e                -> origin/feat/e2e
+2025-08-28T20:58:09.6917574Z  * [new branch]        feat/examples-mvp       -> origin/feat/examples-mvp
+2025-08-28T20:58:09.6918467Z  * [new branch]        feat/ingest-llm         -> origin/feat/ingest-llm
+2025-08-28T20:58:09.6919632Z  * [new branch]        feat/ingest-tests-and-errors -> origin/feat/ingest-tests-and-errors
+2025-08-28T20:58:09.6920680Z  * [new branch]        feat/o1-ves-sim         -> origin/feat/o1-ves-sim
+2025-08-28T20:58:09.6921586Z  * [new branch]        feat/planner            -> origin/feat/planner
+2025-08-28T20:58:09.6922827Z  * [new branch]        feat/porch-direct       -> origin/feat/porch-direct
+2025-08-28T20:58:09.6924081Z  * [new branch]        feat/porch-publisher    -> origin/feat/porch-publisher
+2025-08-28T20:58:09.6925229Z  * [new branch]        feat/porch-structured-patch -> origin/feat/porch-structured-patch
+2025-08-28T20:58:09.6926474Z  * [new branch]        feat/sim-fcaps-to-intent -> origin/feat/sim-fcaps-to-intent
+2025-08-28T20:58:09.6927472Z  * [new branch]        feat/test-harness       -> origin/feat/test-harness
+2025-08-28T20:58:09.6928664Z  * [new branch]        fix/graceful-shutdown-exit-codes -> origin/fix/graceful-shutdown-exit-codes
+2025-08-28T20:58:09.6929906Z  * [new branch]        fix/unused-import-lint-ci -> origin/fix/unused-import-lint-ci
+2025-08-28T20:58:09.6930952Z  * [new branch]        integrate/mvp           -> origin/integrate/mvp
+2025-08-28T20:58:09.6931836Z  * [new branch]        main                    -> origin/main
+2025-08-28T20:58:09.6933108Z  * [new branch]        wip/keep-local-20250820-164908 -> origin/wip/keep-local-20250820-164908
+2025-08-28T20:58:09.6934426Z  * [new tag]           backup/pre-cleanup-20250813234213 -> backup/pre-cleanup-20250813234213
+2025-08-28T20:58:09.6935468Z  * [new tag]           v0.1.0-mvp              -> v0.1.0-mvp
+2025-08-28T20:58:09.7009022Z [command]/usr/bin/git branch --list --remote origin/feat/conductor-loop
+2025-08-28T20:58:09.7038653Z   origin/feat/conductor-loop
+2025-08-28T20:58:09.7048779Z [command]/usr/bin/git rev-parse refs/remotes/origin/feat/conductor-loop
+2025-08-28T20:58:09.7067685Z 649a1f274466df5c2ee00ba1fa214c45cdcb185a
+2025-08-28T20:58:09.7073350Z ##[endgroup]
+2025-08-28T20:58:09.7074169Z ##[group]Determining the checkout info
+2025-08-28T20:58:09.7075205Z ##[endgroup]
+2025-08-28T20:58:09.7078193Z [command]/usr/bin/git sparse-checkout disable
+2025-08-28T20:58:09.7114738Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-08-28T20:58:09.7139878Z ##[group]Checking out the ref
+2025-08-28T20:58:09.7144600Z [command]/usr/bin/git checkout --progress --force -B feat/conductor-loop refs/remotes/origin/feat/conductor-loop
+2025-08-28T20:58:09.9933806Z Switched to a new branch 'feat/conductor-loop'
+2025-08-28T20:58:09.9935981Z branch 'feat/conductor-loop' set up to track 'origin/feat/conductor-loop'.
+2025-08-28T20:58:09.9969541Z ##[endgroup]
+2025-08-28T20:58:10.0014189Z [command]/usr/bin/git log -1 --format=%H
+2025-08-28T20:58:10.0036541Z 649a1f274466df5c2ee00ba1fa214c45cdcb185a
+2025-08-28T20:58:10.0254348Z ##[group]Run actions/setup-go@v5
+2025-08-28T20:58:10.0254753Z with:
+2025-08-28T20:58:10.0255058Z   go-version-file: go.mod
+2025-08-28T20:58:10.0255332Z   check-latest: true
+2025-08-28T20:58:10.0255657Z   cache: true
+2025-08-28T20:58:10.0256075Z   token: ***
+2025-08-28T20:58:10.0256383Z env:
+2025-08-28T20:58:10.0256680Z   GO_VERSION_FILE: go.mod
+2025-08-28T20:58:10.0256973Z   REGISTRY_BASE: ghcr.io/thc1006
+2025-08-28T20:58:10.0257320Z   PLATFORMS: linux/amd64,linux/arm64
+2025-08-28T20:58:10.0321619Z   GOLANGCI_LINT_VERSION: 1.64.3
+2025-08-28T20:58:10.0322083Z   GOVULNCHECK_VERSION: 1.1.4
+2025-08-28T20:58:10.0322791Z   GOPROXY: https://proxy.golang.org,direct
+2025-08-28T20:58:10.0323278Z   GOSUMDB: sum.golang.org
+2025-08-28T20:58:10.0323684Z   GO111MODULE: on
+2025-08-28T20:58:10.0324035Z   CGO_ENABLED: 0
+2025-08-28T20:58:10.0324421Z ##[endgroup]
+2025-08-28T20:58:10.1898221Z Setup go version spec 1.24.6
+2025-08-28T20:58:10.1902401Z Attempting to resolve the latest version from the manifest...
+2025-08-28T20:58:10.5314725Z matching 1.24.6...
+2025-08-28T20:58:10.5345925Z Resolved as '1.24.6'
+2025-08-28T20:58:10.5651549Z Found in cache @ /opt/hostedtoolcache/go/1.24.6/x64
+2025-08-28T20:58:10.5656205Z Added go to the path
+2025-08-28T20:58:10.5659924Z Successfully set up Go version 1.24.6
+2025-08-28T20:58:11.0799669Z [command]/opt/hostedtoolcache/go/1.24.6/x64/bin/go env GOMODCACHE
+2025-08-28T20:58:11.0825421Z [command]/opt/hostedtoolcache/go/1.24.6/x64/bin/go env GOCACHE
+2025-08-28T20:58:11.0847705Z /home/runner/go/pkg/mod
+2025-08-28T20:58:11.0865357Z /home/runner/.cache/go-build
+2025-08-28T20:58:11.1717725Z Cache hit for: setup-go-Linux-x64-ubuntu24-go-1.24.6-ed783e7c984b83ad9d53262ba6a6b23fc3b9ad399c5060d43af297c06f6ffab1
+2025-08-28T20:58:12.2285503Z Received 247463936 of 510373920 (48.5%), 235.8 MBs/sec
+2025-08-28T20:58:13.2296977Z Received 501985312 of 510373920 (98.4%), 239.1 MBs/sec
+2025-08-28T20:58:13.3453895Z Received 510373920 of 510373920 (100.0%), 229.8 MBs/sec
+2025-08-28T20:58:13.3455613Z Cache Size: ~487 MB (510373920 B)
+2025-08-28T20:58:13.3567410Z [command]/usr/bin/tar -xf /home/runner/work/_temp/a4ea89cf-e871-4ed6-96c2-0a6637f97963/cache.tzst -P -C /home/runner/work/nephoran-intent-operator/nephoran-intent-operator --use-compress-program unzstd
+2025-08-28T20:58:18.4621061Z Cache restored successfully
+2025-08-28T20:58:18.5551861Z Cache restored from key: setup-go-Linux-x64-ubuntu24-go-1.24.6-ed783e7c984b83ad9d53262ba6a6b23fc3b9ad399c5060d43af297c06f6ffab1
+2025-08-28T20:58:18.5575778Z go version go1.24.6 linux/amd64
+2025-08-28T20:58:18.5576062Z 
+2025-08-28T20:58:18.5576473Z ##[group]go env
+2025-08-28T20:58:18.6107958Z AR='ar'
+2025-08-28T20:58:18.6108283Z CC='gcc'
+2025-08-28T20:58:18.6108588Z CGO_CFLAGS='-O2 -g'
+2025-08-28T20:58:18.6108945Z CGO_CPPFLAGS=''
+2025-08-28T20:58:18.6109249Z CGO_CXXFLAGS='-O2 -g'
+2025-08-28T20:58:18.6109471Z CGO_ENABLED='0'
+2025-08-28T20:58:18.6109678Z CGO_FFLAGS='-O2 -g'
+2025-08-28T20:58:18.6109880Z CGO_LDFLAGS='-O2 -g'
+2025-08-28T20:58:18.6110171Z CXX='g++'
+2025-08-28T20:58:18.6110419Z GCCGO='gccgo'
+2025-08-28T20:58:18.6110613Z GO111MODULE='on'
+2025-08-28T20:58:18.6110796Z GOAMD64='v1'
+2025-08-28T20:58:18.6110978Z GOARCH='amd64'
+2025-08-28T20:58:18.6111161Z GOAUTH='netrc'
+2025-08-28T20:58:18.6111332Z GOBIN=''
+2025-08-28T20:58:18.6111545Z GOCACHE='/home/runner/.cache/go-build'
+2025-08-28T20:58:18.6111809Z GOCACHEPROG=''
+2025-08-28T20:58:18.6112002Z GODEBUG=''
+2025-08-28T20:58:18.6112202Z GOENV='/home/runner/.config/go/env'
+2025-08-28T20:58:18.6112441Z GOEXE=''
+2025-08-28T20:58:18.6112790Z GOEXPERIMENT=''
+2025-08-28T20:58:18.6112979Z GOFIPS140='off'
+2025-08-28T20:58:18.6113175Z GOFLAGS=''
+2025-08-28T20:58:18.6113780Z GOGCCFLAGS='-fPIC -m64 -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=/tmp/go-build3773063423=/tmp/go-build -gno-record-gcc-switches'
+2025-08-28T20:58:18.6114363Z GOHOSTARCH='amd64'
+2025-08-28T20:58:18.6114578Z GOHOSTOS='linux'
+2025-08-28T20:58:18.6114773Z GOINSECURE=''
+2025-08-28T20:58:18.6115391Z GOMOD='/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/go.mod'
+2025-08-28T20:58:18.6115845Z GOMODCACHE='/home/runner/go/pkg/mod'
+2025-08-28T20:58:18.6116101Z GONOPROXY=''
+2025-08-28T20:58:18.6116293Z GONOSUMDB=''
+2025-08-28T20:58:18.6116464Z GOOS='linux'
+2025-08-28T20:58:18.6116651Z GOPATH='/home/runner/go'
+2025-08-28T20:58:18.6116865Z GOPRIVATE=''
+2025-08-28T20:58:18.6117102Z GOPROXY='https://proxy.golang.org,direct'
+2025-08-28T20:58:18.6117413Z GOROOT='/opt/hostedtoolcache/go/1.24.6/x64'
+2025-08-28T20:58:18.6117684Z GOSUMDB='sum.golang.org'
+2025-08-28T20:58:18.6117897Z GOTELEMETRY='local'
+2025-08-28T20:58:18.6118162Z GOTELEMETRYDIR='/home/runner/.config/go/telemetry'
+2025-08-28T20:58:18.6118450Z GOTMPDIR=''
+2025-08-28T20:58:18.6118629Z GOTOOLCHAIN='auto'
+2025-08-28T20:58:18.6118931Z GOTOOLDIR='/opt/hostedtoolcache/go/1.24.6/x64/pkg/tool/linux_amd64'
+2025-08-28T20:58:18.6119257Z GOVCS=''
+2025-08-28T20:58:18.6119431Z GOVERSION='go1.24.6'
+2025-08-28T20:58:18.6119622Z GOWORK=''
+2025-08-28T20:58:18.6119818Z PKG_CONFIG='pkg-config'
+2025-08-28T20:58:18.6119955Z 
+2025-08-28T20:58:18.6120239Z ##[endgroup]
+2025-08-28T20:58:18.9883726Z ##[group]Run actions/cache@v4
+2025-08-28T20:58:18.9884014Z with:
+2025-08-28T20:58:18.9884334Z   path: ~/.cache/golangci-lint
+~/.cache/go-build
+~/go/bin/golangci-lint
+
+2025-08-28T20:58:18.9884932Z   key: Linux-golangci-lint-v1.64.3-4a15485aebf823369a0b6a984ce7f97c125dfb8c19dae1d1750effc8d841381a
+2025-08-28T20:58:18.9885546Z   restore-keys: Linux-golangci-lint-v1.64.3-
+Linux-golangci-lint-
+Linux-go-build-
+
+2025-08-28T20:58:18.9885941Z   enableCrossOsArchive: false
+2025-08-28T20:58:18.9886184Z   fail-on-cache-miss: false
+2025-08-28T20:58:18.9886620Z   lookup-only: false
+2025-08-28T20:58:18.9886816Z   save-always: false
+2025-08-28T20:58:18.9887001Z env:
+2025-08-28T20:58:18.9887176Z   GO_VERSION_FILE: go.mod
+2025-08-28T20:58:18.9887393Z   REGISTRY_BASE: ghcr.io/thc1006
+2025-08-28T20:58:18.9887636Z   PLATFORMS: linux/amd64,linux/arm64
+2025-08-28T20:58:18.9887884Z   GOLANGCI_LINT_VERSION: 1.64.3
+2025-08-28T20:58:18.9888106Z   GOVULNCHECK_VERSION: 1.1.4
+2025-08-28T20:58:18.9888423Z   GOPROXY: https://proxy.golang.org,direct
+2025-08-28T20:58:18.9888692Z   GOSUMDB: sum.golang.org
+2025-08-28T20:58:18.9888896Z   GO111MODULE: on
+2025-08-28T20:58:18.9889080Z   CGO_ENABLED: 0
+2025-08-28T20:58:18.9889258Z ##[endgroup]
+2025-08-28T20:58:19.1875589Z Cache not found for input keys: Linux-golangci-lint-v1.64.3-4a15485aebf823369a0b6a984ce7f97c125dfb8c19dae1d1750effc8d841381a, Linux-golangci-lint-v1.64.3-, Linux-golangci-lint-, Linux-go-build-
+2025-08-28T20:58:19.1956978Z ##[group]Run echo "=== Ultra-resilient Go module download with advanced caching ==="
+2025-08-28T20:58:19.1957625Z [36;1mecho "=== Ultra-resilient Go module download with advanced caching ==="[0m
+2025-08-28T20:58:19.1958000Z [36;1m[0m
+2025-08-28T20:58:19.1958284Z [36;1m# Configure Go environment for maximum cache efficiency[0m
+2025-08-28T20:58:19.1958686Z [36;1mexport GOPROXY="https://proxy.golang.org,direct"[0m
+2025-08-28T20:58:19.1959022Z [36;1mexport GOSUMDB="sum.golang.org"[0m
+2025-08-28T20:58:19.1959284Z [36;1mexport GOPRIVATE=""[0m
+2025-08-28T20:58:19.1959510Z [36;1mexport GONOSUMDB=""[0m
+2025-08-28T20:58:19.1959733Z [36;1mexport GONOPROXY=""[0m
+2025-08-28T20:58:19.1959961Z [36;1mexport GO111MODULE=on[0m
+2025-08-28T20:58:19.1960198Z [36;1mexport CGO_ENABLED=0[0m
+2025-08-28T20:58:19.1960405Z [36;1m[0m
+2025-08-28T20:58:19.1960615Z [36;1m# Pre-populate module cache directory[0m
+2025-08-28T20:58:19.1960898Z [36;1mmkdir -p ~/go/pkg/mod[0m
+2025-08-28T20:58:19.1961144Z [36;1m[0m
+2025-08-28T20:58:19.1961346Z [36;1mecho "Go environment configuration:"[0m
+2025-08-28T20:58:19.1961708Z [36;1mgo env | grep -E "(GOPROXY|GOSUMDB|GO111MODULE|GOMODCACHE|GOCACHE)"[0m
+2025-08-28T20:58:19.1962179Z [36;1m[0m
+2025-08-28T20:58:19.1962399Z [36;1m# Multi-strategy download with timeout handling[0m
+2025-08-28T20:58:19.1963015Z [36;1mdownload_success=false[0m
+2025-08-28T20:58:19.1963308Z [36;1mfor strategy in "cached" "direct" "fallback"; do[0m
+2025-08-28T20:58:19.1963638Z [36;1m  echo "Attempting download strategy: $strategy"[0m
+2025-08-28T20:58:19.1963898Z [36;1m  [0m
+2025-08-28T20:58:19.1964079Z [36;1m  case "$strategy" in[0m
+2025-08-28T20:58:19.1964300Z [36;1m    "cached")[0m
+2025-08-28T20:58:19.1964517Z [36;1m      # Try with existing cache first[0m
+2025-08-28T20:58:19.1964809Z [36;1m      if timeout 180s go mod download -x; then[0m
+2025-08-28T20:58:19.1965084Z [36;1m        download_success=true[0m
+2025-08-28T20:58:19.1965326Z [36;1m        break[0m
+2025-08-28T20:58:19.1965603Z [36;1m      fi[0m
+2025-08-28T20:58:19.1965924Z [36;1m      ;;[0m
+2025-08-28T20:58:19.1966108Z [36;1m    "direct")[0m
+2025-08-28T20:58:19.1966342Z [36;1m      # Force fresh download bypassing some caches[0m
+2025-08-28T20:58:19.1966631Z [36;1m      export GOPROXY="direct"[0m
+2025-08-28T20:58:19.1966905Z [36;1m      if timeout 240s go mod download -x; then[0m
+2025-08-28T20:58:19.1967180Z [36;1m        download_success=true[0m
+2025-08-28T20:58:19.1967410Z [36;1m        break[0m
+2025-08-28T20:58:19.1967599Z [36;1m      fi[0m
+2025-08-28T20:58:19.1967850Z [36;1m      export GOPROXY="https://proxy.golang.org,direct"[0m
+2025-08-28T20:58:19.1968142Z [36;1m      ;;[0m
+2025-08-28T20:58:19.1968323Z [36;1m    "fallback")[0m
+2025-08-28T20:58:19.1968586Z [36;1m      # Minimal download for critical dependencies only[0m
+2025-08-28T20:58:19.1968934Z [36;1m      if timeout 120s go list -m all >/dev/null 2>&1; then[0m
+2025-08-28T20:58:19.1969323Z [36;1m        echo "Module list successful - proceeding with minimal cache"[0m
+2025-08-28T20:58:19.1969846Z [36;1m        download_success=true[0m
+2025-08-28T20:58:19.1970083Z [36;1m        break[0m
+2025-08-28T20:58:19.1970266Z [36;1m      fi[0m
+2025-08-28T20:58:19.1970440Z [36;1m      ;;[0m
+2025-08-28T20:58:19.1970611Z [36;1m  esac[0m
+2025-08-28T20:58:19.1970781Z [36;1m  [0m
+2025-08-28T20:58:19.1971011Z [36;1m  echo "Strategy $strategy failed, trying next..."[0m
+2025-08-28T20:58:19.1971294Z [36;1m  sleep 2[0m
+2025-08-28T20:58:19.1971472Z [36;1mdone[0m
+2025-08-28T20:58:19.1971647Z [36;1m[0m
+2025-08-28T20:58:19.1971848Z [36;1mif [ "$download_success" = "true" ]; then[0m
+2025-08-28T20:58:19.1972168Z [36;1m  echo "Dependencies download completed successfully"[0m
+2025-08-28T20:58:19.1972692Z [36;1m  # Verify and report cache status[0m
+2025-08-28T20:58:19.1973064Z [36;1m  cache_size=$(du -sh ~/go/pkg/mod 2>/dev/null | cut -f1 || echo "unknown")[0m
+2025-08-28T20:58:19.1973596Z [36;1m  echo "Go module cache size: $cache_size"[0m
+2025-08-28T20:58:19.1973873Z [36;1melse[0m
+2025-08-28T20:58:19.1974209Z [36;1m  echo "WARNING: All download strategies failed - will continue with existing cache"[0m
+2025-08-28T20:58:19.1974615Z [36;1m  echo "Existing cache contents:"[0m
+2025-08-28T20:58:19.1975104Z [36;1m  find ~/go/pkg/mod -maxdepth 2 -type d 2>/dev/null | head -10 || echo "No cache found"[0m
+2025-08-28T20:58:19.1975479Z [36;1mfi[0m
+2025-08-28T20:58:19.2031916Z shell: /usr/bin/bash -e {0}
+2025-08-28T20:58:19.2032204Z env:
+2025-08-28T20:58:19.2032390Z   GO_VERSION_FILE: go.mod
+2025-08-28T20:58:19.2032912Z   REGISTRY_BASE: ghcr.io/thc1006
+2025-08-28T20:58:19.2033186Z   PLATFORMS: linux/amd64,linux/arm64
+2025-08-28T20:58:19.2033438Z   GOLANGCI_LINT_VERSION: 1.64.3
+2025-08-28T20:58:19.2033691Z   GOVULNCHECK_VERSION: 1.1.4
+2025-08-28T20:58:19.2033958Z   GOPROXY: https://proxy.golang.org,direct
+2025-08-28T20:58:19.2034236Z   GOSUMDB: sum.golang.org
+2025-08-28T20:58:19.2034535Z   GO111MODULE: on
+2025-08-28T20:58:19.2034727Z   CGO_ENABLED: 0
+2025-08-28T20:58:19.2034908Z ##[endgroup]
+2025-08-28T20:58:19.2105133Z === Ultra-resilient Go module download with advanced caching ===
+2025-08-28T20:58:19.2119187Z Go environment configuration:
+2025-08-28T20:58:19.2177500Z GO111MODULE='on'
+2025-08-28T20:58:19.2177803Z GOCACHE='/home/runner/.cache/go-build'
+2025-08-28T20:58:19.2178078Z GOCACHEPROG=''
+2025-08-28T20:58:19.2178311Z GOMODCACHE='/home/runner/go/pkg/mod'
+2025-08-28T20:58:19.2178638Z GOPROXY='https://proxy.golang.org,direct'
+2025-08-28T20:58:19.2179143Z GOSUMDB='sum.golang.org'
+2025-08-28T20:58:19.2180717Z Attempting download strategy: cached
+2025-08-28T20:58:19.2910984Z Dependencies download completed successfully
+2025-08-28T20:58:19.6732824Z Go module cache size: 1.7G
+2025-08-28T20:58:19.6784173Z ##[group]Run golangci/golangci-lint-action@v6
+2025-08-28T20:58:19.6784481Z with:
+2025-08-28T20:58:19.6784657Z   version: v1.64.3
+2025-08-28T20:58:19.6784991Z   args: --timeout=10m --out-format=json:golangci-lint.json,colored-line-number
+2025-08-28T20:58:19.6785353Z   skip-cache: false
+2025-08-28T20:58:19.6785561Z   install-mode: binary
+2025-08-28T20:58:19.6785929Z   github-token: ***
+2025-08-28T20:58:19.6786135Z   verify: true
+2025-08-28T20:58:19.6786327Z   only-new-issues: false
+2025-08-28T20:58:19.6786541Z   skip-save-cache: false
+2025-08-28T20:58:19.6786765Z   problem-matchers: false
+2025-08-28T20:58:19.6786998Z   cache-invalidation-interval: 7
+2025-08-28T20:58:19.6787220Z env:
+2025-08-28T20:58:19.6787394Z   GO_VERSION_FILE: go.mod
+2025-08-28T20:58:19.6787615Z   REGISTRY_BASE: ghcr.io/thc1006
+2025-08-28T20:58:19.6787854Z   PLATFORMS: linux/amd64,linux/arm64
+2025-08-28T20:58:19.6788105Z   GOLANGCI_LINT_VERSION: 1.64.3
+2025-08-28T20:58:19.6788337Z   GOVULNCHECK_VERSION: 1.1.4
+2025-08-28T20:58:19.6788613Z   GOPROXY: https://proxy.golang.org,direct
+2025-08-28T20:58:19.6788892Z   GOSUMDB: sum.golang.org
+2025-08-28T20:58:19.6789104Z   GO111MODULE: on
+2025-08-28T20:58:19.6789333Z   CGO_ENABLED: 0
+2025-08-28T20:58:19.6789511Z ##[endgroup]
+2025-08-28T20:58:19.8484974Z ##[group]prepare environment
+2025-08-28T20:58:19.8489879Z Checking for go.mod: go.mod
+2025-08-28T20:58:19.9407202Z Cache hit for: golangci-lint.cache-Linux-2904-2b8a20466aefbd9f4d16eab709531c3fd6d5fdec
+2025-08-28T20:58:20.0874787Z Received 3941161 of 3941161 (100.0%), 41.3 MBs/sec
+2025-08-28T20:58:20.0876432Z Cache Size: ~4 MB (3941161 B)
+2025-08-28T20:58:20.0921504Z [command]/usr/bin/tar -xf /home/runner/work/_temp/900891b2-9aa0-4f3b-a394-4bf624183462/cache.tzst -P -C /home/runner/work/nephoran-intent-operator/nephoran-intent-operator --use-compress-program unzstd
+2025-08-28T20:58:20.9595370Z Cache restored successfully
+2025-08-28T20:58:20.9608110Z Restored cache for golangci-lint from key 'golangci-lint.cache-Linux-2904-2b8a20466aefbd9f4d16eab709531c3fd6d5fdec' in 1112ms
+2025-08-28T20:58:20.9609368Z Finding needed golangci-lint version...
+2025-08-28T20:58:20.9612260Z Installation mode: binary
+2025-08-28T20:58:20.9613606Z Installing golangci-lint binary v1.64.3...
+2025-08-28T20:58:20.9615017Z Downloading binary https://github.com/golangci/golangci-lint/releases/download/v1.64.3/golangci-lint-1.64.3-linux-amd64.tar.gz ...
+2025-08-28T20:58:21.1900738Z [command]/usr/bin/tar xz --overwrite --warning=no-unknown-keyword --overwrite -C /home/runner -f /home/runner/work/_temp/e6d19742-f4fd-4282-a605-4f3cad55e870
+2025-08-28T20:58:21.3988392Z Installed golangci-lint into /home/runner/golangci-lint-1.64.3-linux-amd64/golangci-lint in 437ms
+2025-08-28T20:58:21.3989473Z Prepared env in 1550ms
+2025-08-28T20:58:21.3990831Z ##[endgroup]
+2025-08-28T20:58:21.3993326Z ##[group]run golangci-lint
+2025-08-28T20:58:21.4001417Z Running [/home/runner/golangci-lint-1.64.3-linux-amd64/golangci-lint config path] in [/home/runner/work/nephoran-intent-operator/nephoran-intent-operator] ...
+2025-08-28T20:58:21.4837750Z Running [/home/runner/golangci-lint-1.64.3-linux-amd64/golangci-lint config verify] in [/home/runner/work/nephoran-intent-operator/nephoran-intent-operator] ...
+2025-08-28T20:58:21.6191102Z Running [/home/runner/golangci-lint-1.64.3-linux-amd64/golangci-lint run --out-format=json:golangci-lint.json,colored-line-number --timeout=10m] in [/home/runner/work/nephoran-intent-operator/nephoran-intent-operator] ...
+2025-08-28T21:03:50.1590467Z ##[error]api/intent/v1alpha1/groupversion_info.go:4:1: File is not properly formatted (gci)
+2025-08-28T21:03:50.1599573Z ##[error]api/intent/v1alpha1/groupversion_info.go:9:2: Comment should end in a period (godot)
+2025-08-28T21:03:50.1601142Z ##[error]api/intent/v1alpha1/groupversion_info.go:12:2: Comment should end in a period (godot)
+2025-08-28T21:03:50.1603101Z ##[error]api/intent/v1alpha1/groupversion_info.go:15:2: Comment should end in a period (godot)
+2025-08-28T21:03:50.1605562Z ##[error]api/intent/v1alpha1/webhook.go:14:1: Comment should end in a period (godot)
+2025-08-28T21:03:50.1607521Z ##[error]api/intent/v1alpha1/webhook.go:24:1: Comment should end in a period (godot)
+2025-08-28T21:03:50.1638910Z ##[error]api/intent/v1alpha1/webhook.go:74:5: emptyStringTest: replace `len(ni.Spec.Target) == 0` with `ni.Spec.Target == ""` (gocritic)
+2025-08-28T21:03:50.1641611Z ##[error]api/intent/v1alpha1/webhook.go:79:5: emptyStringTest: replace `len(ni.Spec.Namespace) == 0` with `ni.Spec.Namespace == ""` (gocritic)
+2025-08-28T21:03:50.1644099Z ##[error]api/v1/e2nodeset_types.go:159:2: deprecatedComment: use `Deprecated: ` (note the casing) instead of `DEPRECATED: ` (gocritic)
+2025-08-28T21:03:50.1645678Z ##[error]api/v1/groupversion_info.go:7:1: File is not properly formatted (gci)
+2025-08-28T21:03:50.1647081Z ##[error]cmd/conductor-loop/main.go:71:73: non-wrapping format verb for fmt.Errorf. Use `%w` to format errors (errorlint)
+2025-08-28T21:03:50.1648544Z ##[error]cmd/conductor-loop/main.go:225:4: exitAfterDefer: log.Fatalf will exit, and `defer processor.Stop()` will not run (gocritic)
+2025-08-28T21:03:50.1649858Z ##[error]cmd/conductor-loop/main.go:309:4: ifElseChain: rewrite if-else to switch statement (gocritic)
+2025-08-28T21:03:50.1651060Z ##[error]cmd/conductor-loop/main.go:343:4: ifElseChain: rewrite if-else to switch statement (gocritic)
+2025-08-28T21:03:50.1652895Z ##[error]cmd/conductor/main.go:57:3: exitAfterDefer: log.Fatalf will exit, and `defer cancel()` will not run (gocritic)
+2025-08-28T21:03:50.1654674Z ##[error]cmd/conductor/main.go:113:1: paramTypeCombine: func(intentPath string, outDir string) could be replaced with func(intentPath, outDir string) (gocritic)
+2025-08-28T21:03:50.1656072Z ##[error]cmd/e2-kpm-sim/main.go:22:36: octalLiteral: use new octal literal style, 0o750 (gocritic)
+2025-08-28T21:03:50.1657291Z ##[error]cmd/fcaps-reducer/main.go:129:6: Error return value of `w.Write` is not checked (errcheck)
+2025-08-28T21:03:50.1658468Z ##[error]cmd/fcaps-reducer/main.go:263:5: Error return value of `w.Write` is not checked (errcheck)
+2025-08-28T21:03:50.1659718Z ##[error]cmd/fcaps-sim/main.go:117:10: elseif: can replace 'else {if cond {}}' with 'else if cond {}' (gocritic)
+2025-08-28T21:03:50.1661057Z ##[error]cmd/fcaps-sim/main.go:219:29: should rewrite http.NewRequestWithContext or add (*Request).WithContext (noctx)
+2025-08-28T21:03:50.1662656Z ##[error]cmd/fcaps-sim/main.go:286:29: should rewrite http.NewRequestWithContext or add (*Request).WithContext (noctx)
+2025-08-28T21:03:50.1664948Z ##[error]cmd/llm-processor/service_manager.go:61:38: Function `initializeOAuth2Manager->NewOAuth2Manager->LoadAuthConfig->loadProviders->getOAuth2ClientSecret->auditSecretAccess` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.1666549Z ##[error]cmd/llm-processor/service_manager.go:448:3: unnecessary trailing newline (whitespace)
+2025-08-28T21:03:50.1667677Z ##[error]cmd/llm-processor/service_manager.go:469:2: unnecessary trailing newline (whitespace)
+2025-08-28T21:03:50.1668815Z ##[error]cmd/llm-processor/service_manager.go:501:2: unnecessary trailing newline (whitespace)
+2025-08-28T21:03:50.1669910Z ##[error]cmd/llm-processor/service_manager.go:551:2: unnecessary trailing newline (whitespace)
+2025-08-28T21:03:50.1671032Z ##[error]cmd/llm-processor/service_manager.go:645:3: unnecessary trailing newline (whitespace)
+2025-08-28T21:03:50.1672402Z ##[error]cmd/quality-metrics/main.go:26:6: exported: exported type QualitySummary should have comment or be unexported (revive)
+2025-08-28T21:03:50.1674146Z ##[error]cmd/quality-metrics/main.go:36:6: exported: exported type CodeMetrics should have comment or be unexported (revive)
+2025-08-28T21:03:50.1675650Z ##[error]cmd/quality-metrics/main.go:47:6: exported: exported type TestMetrics should have comment or be unexported (revive)
+2025-08-28T21:03:50.1677085Z ##[error]cmd/quality-metrics/main.go:57:6: exported: exported type SecurityMetrics should have comment or be unexported (revive)
+2025-08-28T21:03:50.1678755Z ##[error]cmd/quality-metrics/main.go:66:6: exported: exported type TechnicalDebtReport should have comment or be unexported (revive)
+2025-08-28T21:03:50.1680253Z ##[error]cmd/quality-metrics/main.go:74:6: exported: exported type Recommendation should have comment or be unexported (revive)
+2025-08-28T21:03:50.1682781Z ##[error]cmd/quality-metrics/main.go:330:61: SA1019: strings.Title has been deprecated since Go 1.18 and an alternative has been available since Go 1.0: The rule Title uses for word boundaries does not handle Unicode punctuation properly. Use golang.org/x/text/cases instead. (staticcheck)
+2025-08-28T21:03:50.1684583Z ##[error]cmd/quality-metrics/main.go:391:33: SA5009: couldn't parse format string (staticcheck)
+2025-08-28T21:03:50.1685915Z ##[error]cmd/secure-porch-patch/main.go:248:45: Function `ExecuteSecure` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.1687194Z ##[error]cmd/technical-debt-monitor/main.go:360:3: ineffectual assignment to mdWriteErr (ineffassign)
+2025-08-28T21:03:50.1688650Z ##[error]internal/fcaps/processor.go:1:1: ST1000: package comment should be of the form "Package fcaps..." (stylecheck)
+2025-08-28T21:03:50.1690217Z ##[error]internal/fcaps/reducer.go:139:1: paramTypeCombine: func() (total int, critical int) could be replaced with func() (total, critical int) (gocritic)
+2025-08-28T21:03:50.1691613Z ##[error]internal/generator/deployment.go:46:28: G115: integer overflow conversion int -> int32 (gosec)
+2025-08-28T21:03:50.1693349Z ##[error]internal/ingest/handler.go:31:2: Error return value of `os.MkdirAll` is not checked (errcheck)
+2025-08-28T21:03:50.1694870Z ##[error]internal/ingest/handler.go:82:41: Non-inherited new context, use function like `context.WithXXX` or `r.Context` instead (contextcheck)
+2025-08-28T21:03:50.1696295Z ##[error]internal/ingest/handler.go:103:21: sprintfQuotedString: use %q instead of "%s" for quoted strings (gocritic)
+2025-08-28T21:03:50.1697540Z ##[error]internal/ingest/handler.go:111:3: ifElseChain: rewrite if-else to switch statement (gocritic)
+2025-08-28T21:03:50.1698853Z ##[error]internal/ingest/handler.go:139:2: Error return value of `(*encoding/json.Encoder).Encode` is not checked (errcheck)
+2025-08-28T21:03:50.1700191Z ##[error]internal/ingest/schema_validator.go:157:7: builtinShadow: shadowing of predeclared identifier: min (gocritic)
+2025-08-28T21:03:50.1701501Z ##[error]internal/ingest/schema_validator.go:164:7: builtinShadow: shadowing of predeclared identifier: max (gocritic)
+2025-08-28T21:03:50.1703034Z ##[error]internal/ingest/validator.go:1:1: ST1000: package comment should be of the form "Package ingest..." (stylecheck)
+2025-08-28T21:03:50.1704749Z ##[error]internal/kpm/generator.go:17:6: exported: type name will be used as kpm.KPMMetric by other packages, and that stutters; consider calling this Metric (revive)
+2025-08-28T21:03:50.1706114Z ##[error]internal/kpm/generator.go:83:43: octalLiteral: use new octal literal style, 0o600 (gocritic)
+2025-08-28T21:03:50.1707446Z ##[error]internal/loop/adaptive_worker_pool.go:135:2: for loop can be changed to use an integer range (Go 1.22+) (intrange)
+2025-08-28T21:03:50.1708809Z ##[error]internal/loop/adaptive_worker_pool.go:228:42: `(*AdaptiveWorkerPool).processItem` - `workerID` is unused (unparam)
+2025-08-28T21:03:50.1710115Z ##[error]internal/loop/adaptive_worker_pool.go:325:3: for loop can be changed to use an integer range (Go 1.22+) (intrange)
+2025-08-28T21:03:50.1711386Z ##[error]internal/loop/adaptive_worker_pool.go:331:3: for loop can be changed to use an integer range (Go 1.22+) (intrange)
+2025-08-28T21:03:50.1712895Z ##[error]internal/loop/adaptive_worker_pool.go:438:6: builtinShadowDecl: shadowing of predeclared identifier: max (gocritic)
+2025-08-28T21:03:50.1714346Z ##[error]internal/loop/adaptive_worker_pool.go:446:6: builtinShadowDecl: shadowing of predeclared identifier: min (gocritic)
+2025-08-28T21:03:50.1715624Z ##[error]internal/loop/async_io.go:123:2: for loop can be changed to use an integer range (Go 1.22+) (intrange)
+2025-08-28T21:03:50.1716980Z ##[error]internal/loop/async_io.go:306:38: `(*AsyncIOManager).writeWorker` - `id` is unused (unparam)
+2025-08-28T21:03:50.1718641Z ##[error]internal/loop/bounded_stats.go:168:1: paramTypeCombine: func(filename string, errorType string) could be replaced with func(filename, errorType string) (gocritic)
+2025-08-28T21:03:50.1720133Z ##[error]internal/loop/bounded_stats.go:335:3: for loop can be changed to use an integer range (Go 1.22+) (intrange)
+2025-08-28T21:03:50.1721422Z ##[error]internal/loop/bounded_stats.go:542:2: builtinShadow: shadowing of predeclared identifier: max (gocritic)
+2025-08-28T21:03:50.1722995Z ##[error]internal/loop/defer_patterns.go:79:71: non-wrapping format verb for fmt.Errorf. Use `%w` to format errors (errorlint)
+2025-08-28T21:03:50.1724553Z ##[error]internal/loop/defer_patterns.go:100:3: exitAfterDefer: log.Fatalf will exit, and `defer watcher.Close()` will not run (gocritic)
+2025-08-28T21:03:50.1726026Z ##[error]internal/loop/defer_patterns.go:122:3: exitAfterDefer: log.Fatalf will exit, and `defer func(){...}(...)` will not run (gocritic)
+2025-08-28T21:03:50.1727296Z ##[error]internal/loop/example_metrics_usage.go:53:23: net/http.Get must not be called (noctx)
+2025-08-28T21:03:50.1728399Z ##[error]internal/loop/example_metrics_usage.go:76:22: net/http.Get must not be called (noctx)
+2025-08-28T21:03:50.1729623Z ##[error]internal/loop/example_metrics_usage.go:83:6: Error return value of `resp.Body.Read` is not checked (errcheck)
+2025-08-28T21:03:50.1730957Z ##[error]internal/loop/example_metrics_usage.go:89:22: net/http.Get must not be called (noctx)
+2025-08-28T21:03:50.1732187Z ##[error]internal/loop/example_metrics_usage.go:197:2: S1000: should use for range instead of for { select {} } (gosimple)
+2025-08-28T21:03:50.1734195Z ##[error]internal/loop/filename_sanitizer.go:54:4: assignOp: replace `parts[0] = parts[0] + "-file"` with `parts[0] += "-file"` (gocritic)
+2025-08-28T21:03:50.1735635Z ##[error]internal/loop/filename_sanitizer.go:84:3: assignOp: replace `sanitized = sanitized + ext` with `sanitized += ext` (gocritic)
+2025-08-28T21:03:50.1736921Z ##[error]internal/loop/fsync_unix.go:80:13: Error return value of `dirFd.Sync` is not checked (errcheck)
+2025-08-28T21:03:50.1738101Z ##[error]internal/loop/fsync_unix.go:182:32: octalLiteral: use new octal literal style, 0o755 (gocritic)
+2025-08-28T21:03:50.1739260Z ##[error]internal/loop/manager.go:47:30: octalLiteral: use new octal literal style, 0o755 (gocritic)
+2025-08-28T21:03:50.1740876Z ##[error]internal/loop/manager.go:64:1: paramTypeCombine: func(filePath string, errorMsg string) error could be replaced with func(filePath, errorMsg string) error (gocritic)
+2025-08-28T21:03:50.1742229Z ##[error]internal/loop/manager.go:144:15: G302: Expect file permissions to be 0640 or less (gosec)
+2025-08-28T21:03:50.1743903Z ##[error]internal/loop/optimized_watcher.go:8:2: dupImport: package is imported 2 times under different aliases on lines 8 and 9 (gocritic)
+2025-08-28T21:03:50.1745395Z ##[error]internal/loop/optimized_watcher.go:9:2: dupImport: package is imported 2 times under different aliases on lines 8 and 9 (gocritic)
+2025-08-28T21:03:50.1746679Z ##[error]internal/loop/optimized_watcher.go:119:62: G115: integer overflow conversion int -> int32 (gosec)
+2025-08-28T21:03:50.1747885Z ##[error]internal/loop/optimized_watcher.go:238:17: G115: integer overflow conversion int -> int32 (gosec)
+2025-08-28T21:03:50.1749058Z ##[error]internal/loop/optimized_watcher.go:248:21: G115: integer overflow conversion int -> int32 (gosec)
+2025-08-28T21:03:50.1750217Z ##[error]internal/loop/optimized_watcher.go:249:21: G115: integer overflow conversion int -> int32 (gosec)
+2025-08-28T21:03:50.1751404Z ##[error]internal/loop/optimized_watcher.go:355:17: G115: integer overflow conversion int64 -> uint64 (gosec)
+2025-08-28T21:03:50.1752853Z ##[error]internal/loop/processor.go:222:4: assignOp: replace `backoff = backoff * 2` with `backoff *= 2` (gocritic)
+2025-08-28T21:03:50.1754572Z ##[error]internal/loop/processor.go:259:6: comparing with == will fail on wrapped errors. Use errors.Is to check for a specific error (errorlint)
+2025-08-28T21:03:50.1755926Z ##[error]internal/loop/processor.go:346:66: octalLiteral: use new octal literal style, 0o644 (gocritic)
+2025-08-28T21:03:50.1757109Z ##[error]internal/loop/processor.go:354:54: octalLiteral: use new octal literal style, 0o644 (gocritic)
+2025-08-28T21:03:50.1758263Z ##[error]internal/loop/processor.go:376:12: G302: Expect file permissions to be 0640 or less (gosec)
+2025-08-28T21:03:50.1759965Z ##[error]internal/loop/shutdown.go:60:2: S1008: should use 'return containsSignalKeywords(errMsg)' instead of 'if containsSignalKeywords(errMsg) { return true }; return false' (gosimple)
+2025-08-28T21:03:50.1761518Z ##[error]internal/loop/state.go:155:48: (*StateManager).createBackupAndReset - result 0 (error) is always nil (unparam)
+2025-08-28T21:03:50.1763154Z ##[error]internal/loop/state.go:181:6: comparing with == will fail on wrapped errors. Use errors.Is to check for a specific error (errorlint)
+2025-08-28T21:03:50.1764920Z ##[error]internal/loop/state.go:221:1: paramTypeCombine: func(filePath string, status string) error could be replaced with func(filePath, status string) error (gocritic)
+2025-08-28T21:03:50.1766512Z ##[error]internal/loop/state.go:229:6: comparing with == will fail on wrapped errors. Use errors.Is to check for a specific error (errorlint)
+2025-08-28T21:03:50.1767666Z ##[error]internal/loop/watcher.go:20:1: File is not properly formatted (gci)
+2025-08-28T21:03:50.1768980Z ##[error]internal/loop/watcher.go:65:3: ifElseChain: rewrite if-else to switch statement (gocritic)
+2025-08-28T21:03:50.1770259Z ##[error]internal/loop/watcher.go:582:40: (*Watcher).startMetricsServer - result 0 (error) is always nil (unparam)
+2025-08-28T21:03:50.1771498Z ##[error]internal/loop/watcher.go:751:14: Error return value of `writer.Write` is not checked (errcheck)
+2025-08-28T21:03:50.1772756Z ##[error]internal/loop/watcher.go:869:10: SA9003: empty branch (staticcheck)
+2025-08-28T21:03:50.1774124Z ##[error]internal/loop/watcher.go:945:73: `(*Watcher).handleIntentFileWithEnhancedDebounce` - `eventOp` is unused (unparam)
+2025-08-28T21:03:50.1775506Z ##[error]internal/loop/watcher.go:1217:28: Error return value of `w.stateManager.MarkFailed` is not checked (errcheck)
+2025-08-28T21:03:50.1776837Z ##[error]internal/loop/watcher.go:1218:29: Error return value of `w.fileManager.MoveToFailed` is not checked (errcheck)
+2025-08-28T21:03:50.1777988Z ##[error]internal/loop/watcher.go:1237:10: ineffectual assignment to err (ineffassign)
+2025-08-28T21:03:50.1779217Z ##[error]internal/loop/watcher.go:1452:3: singleCaseSwitch: should rewrite switch statement to if statement (gocritic)
+2025-08-28T21:03:50.1780653Z ##[error]internal/loop/watcher.go:1734:22: regexpSimplify: can re-write `^[a-z0-9.-]+/v[0-9]+([a-z]+[0-9]*)?$` as `^[a-z0-9.-]+/v\d+([a-z]+\d*)?$` (gocritic)
+2025-08-28T21:03:50.1782026Z ##[error]internal/loop/watcher.go:1735:22: regexpSimplify: can re-write `^v[0-9]+([a-z]+[0-9]*)?$` as `^v\d+([a-z]+\d*)?$` (gocritic)
+2025-08-28T21:03:50.1783756Z ##[error]internal/loop/watcher.go:1736:22: regexpSimplify: can re-write `^nephoran\.com/v[0-9]+([a-z]+[0-9]*)?$` as `^nephoran\.com/v\d+([a-z]+\d*)?$` (gocritic)
+2025-08-28T21:03:50.1785185Z ##[error]internal/loop/watcher.go:2136:33: non-wrapping format verb for fmt.Errorf. Use `%w` to format errors (errorlint)
+2025-08-28T21:03:50.1786506Z ##[error]internal/loop/watcher.go:2175:5: emptyStringTest: replace `len(name) == 0` with `name == ""` (gocritic)
+2025-08-28T21:03:50.1787778Z ##[error]internal/loop/watcher.go:2192:5: emptyStringTest: replace `len(key) == 0` with `key == ""` (gocritic)
+2025-08-28T21:03:50.1789044Z ##[error]internal/loop/watcher.go:2219:5: emptyStringTest: replace `len(value) == 0` with `value == ""` (gocritic)
+2025-08-28T21:03:50.1790350Z ##[error]internal/patch/generator.go:98:9: G306: Expect WriteFile permissions to be 0640 or less (gosec)
+2025-08-28T21:03:50.1791546Z ##[error]internal/patch/generator.go:124:9: G306: Expect WriteFile permissions to be 0640 or less (gosec)
+2025-08-28T21:03:50.1793037Z ##[error]internal/patch/generator.go:148:9: G306: Expect WriteFile permissions to be 0640 or less (gosec)
+2025-08-28T21:03:50.1794300Z ##[error]internal/patch/generator.go:173:9: G306: Expect WriteFile permissions to be 0640 or less (gosec)
+2025-08-28T21:03:50.1795462Z ##[error]internal/patchgen/generator.go:184:6: func `readFile` is unused (unused)
+2025-08-28T21:03:50.1796691Z ##[error]internal/pathutil/pathwin.go:176:29: octalLiteral: use new octal literal style, 0o755 (gocritic)
+2025-08-28T21:03:50.1797916Z ##[error]internal/pathutil/windows_path.go:129:38: SA6005: should use strings.EqualFold instead (staticcheck)
+2025-08-28T21:03:50.1799145Z ##[error]internal/pathutil/windows_path.go:168:16: ST1005: error strings should not be capitalized (stylecheck)
+2025-08-28T21:03:50.1800370Z ##[error]internal/pathutil/windows_path.go:203:29: octalLiteral: use new octal literal style, 0o755 (gocritic)
+2025-08-28T21:03:50.1801770Z ##[error]internal/platform/crossplatform.go:1:1: ST1000: at least one file in a package should have a package comment (stylecheck)
+2025-08-28T21:03:50.1803300Z ##[error]internal/platform/crossplatform.go:73:29: octalLiteral: use new octal literal style, 0o755 (gocritic)
+2025-08-28T21:03:50.1804543Z ##[error]internal/platform/crossplatform.go:77:14: octalLiteral: use new octal literal style, 0o644 (gocritic)
+2025-08-28T21:03:50.1805889Z ##[error]internal/platform/crossplatform.go:197:15: sprintfQuotedString: use %q instead of "%s" for quoted strings (gocritic)
+2025-08-28T21:03:50.1807477Z ##[error]internal/platform/crossplatform.go:202:15: sprintfQuotedString: use %q instead of "%s" for quoted strings (gocritic)
+2025-08-28T21:03:50.1808877Z ##[error]internal/platform/crossplatform.go:303:15: sprintfQuotedString: use %q instead of "%s" for quoted strings (gocritic)
+2025-08-28T21:03:50.1810274Z ##[error]internal/platform/crossplatform.go:308:15: sprintfQuotedString: use %q instead of "%s" for quoted strings (gocritic)
+2025-08-28T21:03:50.1811580Z ##[error]internal/platform/crossplatform.go:338:21: octalLiteral: use new octal literal style, 0o111 (gocritic)
+2025-08-28T21:03:50.1813028Z ##[error]internal/platform/crossplatform.go:350:18: octalLiteral: use new octal literal style, 0o200 (gocritic)
+2025-08-28T21:03:50.1814329Z ##[error]internal/platform/crossplatform.go:351:11: G302: Expect file permissions to be 0640 or less (gosec)
+2025-08-28T21:03:50.1815542Z ##[error]internal/platform/crossplatform.go:357:9: G302: Expect file permissions to be 0640 or less (gosec)
+2025-08-28T21:03:50.1816945Z ##[error]internal/porch/client.go:1:1: ST1000: at least one file in a package should have a package comment (stylecheck)
+2025-08-28T21:03:50.1818079Z ##[error]internal/porch/client.go:23:40: unnecessary leading newline (whitespace)
+2025-08-28T21:03:50.1819336Z ##[error]internal/porch/cmd_unix.go:4:1: ST1000: at least one file in a package should have a package comment (stylecheck)
+2025-08-28T21:03:50.1820645Z ##[error]internal/porch/executor.go:1:1: ST1000: at least one file in a package should have a package comment (stylecheck)
+2025-08-28T21:03:50.1821769Z ##[error]internal/porch/executor.go:170:18: `getExitCode` - `cmd` is unused (unparam)
+2025-08-28T21:03:50.1823420Z ##[error]internal/porch/executor.go:175:22: type assertion on error will fail on wrapped errors. Use errors.As to check for specific errors (errorlint)
+2025-08-28T21:03:50.1824923Z ##[error]internal/porch/executor.go:197:66: non-wrapping format verb for fmt.Errorf. Use `%w` to format errors (errorlint)
+2025-08-28T21:03:50.1826280Z ##[error]internal/porch/executor.go:199:52: non-wrapping format verb for fmt.Errorf. Use `%w` to format errors (errorlint)
+2025-08-28T21:03:50.1827632Z ##[error]internal/porch/graceful_executor.go:1:1: ST1000: at least one file in a package should have a package comment (stylecheck)
+2025-08-28T21:03:50.1829174Z ##[error]internal/porch/graceful_executor.go:88:21: type assertion on error will fail on wrapped errors. Use errors.As to check for specific errors (errorlint)
+2025-08-28T21:03:50.1831256Z ##[error]internal/porch/testutil.go:211:1: paramTypeCombine: func(tempDir string, failPattern string) (string, error) could be replaced with func(tempDir, failPattern string) (string, error) (gocritic)
+2025-08-28T21:03:50.1833654Z ##[error]internal/porch/writer.go:12:1: paramTypeCombine: func(intent interface{}, outDir string, format string) error could be replaced with func(intent interface{}, outDir, format string) error (gocritic)
+2025-08-28T21:03:50.1835344Z ##[error]internal/security/command.go:202:15: Error return value of `filepath.Match` is not checked (errcheck)
+2025-08-28T21:03:50.1836536Z ##[error]internal/security/command.go:229:2: Consider pre-allocating `sanitized` (prealloc)
+2025-08-28T21:03:50.1837772Z ##[error]internal/security/command.go:234:16: Error return value of `regexp.MatchString` is not checked (errcheck)
+2025-08-28T21:03:50.1839069Z ##[error]internal/security/command.go:246:17: Error return value of `regexp.MatchString` is not checked (errcheck)
+2025-08-28T21:03:50.1840578Z ##[error]internal/security/secure_patchgen.go:224:13: Error return value of `g.crypto.GenerateCollisionResistantTimestamp` is not checked (errcheck)
+2025-08-28T21:03:50.1842012Z ##[error]internal/security/validator.go:341:15: Error return value of `regexp.MatchString` is not checked (errcheck)
+2025-08-28T21:03:50.1843475Z ##[error]internal/ves/event.go:96:5: Error return value of `rand.Read` is not checked (errcheck)
+2025-08-28T21:03:50.1845205Z ##[error]pkg/audit/backends/elasticsearch.go:380:29: should rewrite http.NewRequestWithContext or add (*Request).WithContext (noctx)
+2025-08-28T21:03:50.1846729Z ##[error]pkg/audit/backends/elasticsearch.go:463:29: should rewrite http.NewRequestWithContext or add (*Request).WithContext (noctx)
+2025-08-28T21:03:50.1848003Z ##[error]pkg/audit/backends/splunk.go:209:2: Consider pre-allocating `splunkEvents` (prealloc)
+2025-08-28T21:03:50.1849391Z ##[error]pkg/audit/middleware.go:308:19: comparing with != will fail on wrapped errors. Use errors.Is to check for a specific error (errorlint)
+2025-08-28T21:03:50.1851111Z ##[error]pkg/audit/types/events.go:17:2: exported: exported const SeverityEmergency should have comment (or a comment on this block) or be unexported (revive)
+2025-08-28T21:03:50.1852984Z ##[error]pkg/audit/types/events.go:55:2: exported: comment on exported const EventTypeAuthentication should be of the form "EventTypeAuthentication ..." (revive)
+2025-08-28T21:03:50.1854832Z ##[error]pkg/audit/types/events.go:57:2: exported: exported const EventTypeAuthenticationFailed should have comment (or a comment on this block) or be unexported (revive)
+2025-08-28T21:03:50.1856409Z ##[error]pkg/auth/config.go:302:42: (*AuthConfig).loadLDAPProviders - result 0 (error) is always nil (unparam)
+2025-08-28T21:03:50.1857610Z ##[error]pkg/auth/config.go:521:10: octalLiteral: use new octal literal style, 0o044 (gocritic)
+2025-08-28T21:03:50.1858853Z ##[error]pkg/auth/config.go:1053:5: emptyStringTest: replace `len(provider) == 0` with `provider == ""` (gocritic)
+2025-08-28T21:03:50.1860098Z ##[error]pkg/auth/config.go:1117:3: appendCombine: can combine chain of 2 appends into one (gocritic)
+2025-08-28T21:03:50.1861283Z ##[error]pkg/auth/config.go:1204:3: appendCombine: can combine chain of 2 appends into one (gocritic)
+2025-08-28T21:03:50.1862444Z ##[error]pkg/auth/config.go:1249:10: octalLiteral: use new octal literal style, 0o044 (gocritic)
+2025-08-28T21:03:50.1864208Z ##[error]pkg/auth/config.go:1313:5: emptyStringTest: replace `len(strings.TrimLeft(secret, string(secret[0]))) == 0` with `strings.TrimLeft(secret, string(secret[0])) == ""` (gocritic)
+2025-08-28T21:03:50.1866026Z ##[error]pkg/auth/config.go:1348:16: SA1012: do not pass a nil Context, even if a function permits it; pass context.TODO if you are unsure about which Context to use (staticcheck)
+2025-08-28T21:03:50.1867431Z ##[error]pkg/auth/config.go:1424:37: filepathJoin: "/secrets/oauth2" contains a path separator (gocritic)
+2025-08-28T21:03:50.1869511Z ##[error]pkg/auth/config_stubs.go:8:1: paramTypeCombine: func(manager interface{}, logger interface{}) AuthHandlersInterface could be replaced with func(manager, logger interface{}) AuthHandlersInterface (gocritic)
+2025-08-28T21:03:50.1871261Z ##[error]pkg/auth/enhanced_oauth2_manager.go:121:57: `(*EnhancedOAuth2Manager).configureOAuth2Routes` - `router` is unused (unparam)
+2025-08-28T21:03:50.1872660Z ##[error]pkg/auth/enhanced_oauth2_manager.go:236:2: Consider pre-allocating `allowedNetworks` (prealloc)
+2025-08-28T21:03:50.1873834Z ##[error]pkg/auth/jwt_manager.go:622:2: S1031: unnecessary nil check around range (gosimple)
+2025-08-28T21:03:50.1875067Z ##[error]pkg/auth/ldap_middleware.go:466:106: `(*LDAPAuthMiddleware).createTokens` - `provider` is unused (unparam)
+2025-08-28T21:03:50.1876402Z ##[error]pkg/auth/ldap_middleware.go:550:76: `(*LDAPAuthMiddleware).requireAuthentication` - `r` is unused (unparam)
+2025-08-28T21:03:50.1877555Z ##[error]pkg/auth/mfa.go:332:35: `(*MFAManager).verifyTOTP` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.1878669Z ##[error]pkg/auth/mfa.go:370:44: `(*MFAManager).verifyTemporaryCode` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.1879782Z ##[error]pkg/auth/mfa.go:447:41: `(*MFAManager).verifyBackupCode` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.1880974Z ##[error]pkg/auth/mfa.go:553:66: (*MFAManager).getUserTOTPSecret - result 1 (error) is always nil (unparam)
+2025-08-28T21:03:50.1882277Z ##[error]pkg/auth/nephoran_integration.go:4:2: commentedOutImport: remove commented-out "context" import (gocritic)
+2025-08-28T21:03:50.1883850Z ##[error]pkg/auth/providers/azuread.go:182:2: Consider pre-allocating `authOpts` (prealloc)
+2025-08-28T21:03:50.1885088Z ##[error]pkg/auth/providers/azuread.go:251:23: S1024: should use time.Until instead of t.Sub(time.Now()) (gosimple)
+2025-08-28T21:03:50.1886363Z ##[error]pkg/auth/providers/azuread.go:280:23: S1024: should use time.Until instead of t.Sub(time.Now()) (gosimple)
+2025-08-28T21:03:50.1887719Z ##[error]pkg/auth/providers/azuread.go:294:14: httpNoBody: http.NoBody should be preferred to the nil request body (gocritic)
+2025-08-28T21:03:50.1889103Z ##[error]pkg/auth/providers/azuread.go:377:14: httpNoBody: http.NoBody should be preferred to the nil request body (gocritic)
+2025-08-28T21:03:50.1890472Z ##[error]pkg/auth/providers/azuread.go:452:14: httpNoBody: http.NoBody should be preferred to the nil request body (gocritic)
+2025-08-28T21:03:50.1891740Z ##[error]pkg/auth/providers/azuread.go:467:15: ST1005: error strings should not be capitalized (stylecheck)
+2025-08-28T21:03:50.1893203Z ##[error]pkg/auth/providers/azuread.go:488:14: httpNoBody: http.NoBody should be preferred to the nil request body (gocritic)
+2025-08-28T21:03:50.1894593Z ##[error]pkg/auth/providers/azuread.go:552:14: httpNoBody: http.NoBody should be preferred to the nil request body (gocritic)
+2025-08-28T21:03:50.1895862Z ##[error]pkg/auth/providers/github.go:152:14: Error return value of `url.Parse` is not checked (errcheck)
+2025-08-28T21:03:50.1897066Z ##[error]pkg/auth/providers/github.go:160:14: Error return value of `url.Parse` is not checked (errcheck)
+2025-08-28T21:03:50.1898311Z ##[error]pkg/auth/providers/github.go:192:23: S1024: should use time.Until instead of t.Sub(time.Now()) (gosimple)
+2025-08-28T21:03:50.1899570Z ##[error]pkg/auth/providers/github.go:214:23: S1024: should use time.Until instead of t.Sub(time.Now()) (gosimple)
+2025-08-28T21:03:50.1900723Z ##[error]pkg/auth/providers/google.go:147:2: Consider pre-allocating `authOpts` (prealloc)
+2025-08-28T21:03:50.1901921Z ##[error]pkg/auth/providers/google.go:214:23: S1024: should use time.Until instead of t.Sub(time.Now()) (gosimple)
+2025-08-28T21:03:50.1903333Z ##[error]pkg/auth/providers/google.go:363:5: builtinShadow: shadowing of predeclared identifier: error (gocritic)
+2025-08-28T21:03:50.1904665Z ##[error]pkg/auth/providers/ldap.go:173:3: dupBranchBody: both branches in if statement have same body (gocritic)
+2025-08-28T21:03:50.1905950Z ##[error]pkg/auth/providers/ldap.go:181:3: dupBranchBody: both branches in if statement have same body (gocritic)
+2025-08-28T21:03:50.1907376Z ##[error]pkg/auth/providers/ldap.go:207:15: SA1019: ldap.DialTLS is deprecated:  Use DialURL instead. (staticcheck)
+2025-08-28T21:03:50.1908682Z ##[error]pkg/auth/providers/ldap.go:210:15: SA1019: ldap.Dial is deprecated:  Use DialURL instead. (staticcheck)
+2025-08-28T21:03:50.1909813Z ##[error]pkg/auth/providers/ldap.go:704:2: Consider pre-allocating `groups` (prealloc)
+2025-08-28T21:03:50.1911041Z ##[error]pkg/auth/providers/ldap_pool.go:336:47: `(*LDAPConnectionPool).createConnection` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.1912379Z ##[error]pkg/auth/providers/ldap_pool.go:540:48: `(*LDAPHealthChecker).performHealthCheck` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.1913732Z ##[error]pkg/auth/rbac.go:713:40: `(*RBACManager).evaluatePolicies` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.1914862Z ##[error]pkg/auth/session_manager.go:197:2: Consider pre-allocating `authOptions` (prealloc)
+2025-08-28T21:03:50.1916277Z ##[error]pkg/auth/testutil/fixtures.go:232:13: Error return value of `providers.GeneratePKCEChallenge` is not checked (errcheck)
+2025-08-28T21:03:50.1917527Z ##[error]pkg/auth/testutil/fixtures.go:398:2: Consider pre-allocating `permissions` (prealloc)
+2025-08-28T21:03:50.1918705Z ##[error]pkg/auth/testutil/mocks.go:448:15: Error return value of `url.Parse` is not checked (errcheck)
+2025-08-28T21:03:50.1919969Z ##[error]pkg/auth/testutil/testing.go:815:8: Error return value of `r.CreateRole` is not checked (errcheck)
+2025-08-28T21:03:50.1921403Z ##[error]pkg/auth/testutil/testing.go:816:22: Error return value of `r.GrantRoleToUser` is not checked (errcheck)
+2025-08-28T21:03:50.1922699Z ##[error]pkg/auth/testutil/testing.go:1047:2: S1031: unnecessary nil check around range (gosimple)
+2025-08-28T21:03:50.1924970Z ##[error]pkg/auth/testutil/testing.go:1218:41: SA1019: strings.Title has been deprecated since Go 1.18 and an alternative has been available since Go 1.0: The rule Title uses for word boundaries does not handle Unicode punctuation properly. Use golang.org/x/text/cases instead. (staticcheck)
+2025-08-28T21:03:50.1927783Z ##[error]pkg/auth/testutil/testing.go:1220:18: SA1019: strings.Title has been deprecated since Go 1.18 and an alternative has been available since Go 1.0: The rule Title uses for word boundaries does not handle Unicode punctuation properly. Use golang.org/x/text/cases instead. (staticcheck)
+2025-08-28T21:03:50.1929744Z ##[error]pkg/auth/token_blacklist.go:161:6: comparing with == will fail on wrapped errors. Use errors.Is to check for a specific error (errorlint)
+2025-08-28T21:03:50.1931218Z ##[error]pkg/auth/token_blacklist.go:183:3: Function `removeExpiredToken` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.1932815Z ##[error]pkg/auth/token_blacklist.go:295:6: comparing with == will fail on wrapped errors. Use errors.Is to check for a specific error (errorlint)
+2025-08-28T21:03:50.1934286Z ##[error]pkg/auth/token_blacklist.go:404:79: (*TokenBlacklistManager).marshalEntry - result 1 (error) is always nil (unparam)
+2025-08-28T21:03:50.1935438Z ##[error]pkg/auth/token_blacklist.go:405:2: SA9003: empty branch (staticcheck)
+2025-08-28T21:03:50.1936644Z ##[error]pkg/automation/failure_prediction.go:483:2: Consider pre-allocating `errorRates` (prealloc)
+2025-08-28T21:03:50.1938067Z ##[error]pkg/automation/health_monitor.go:126:27: Function `updateComponentMetrics` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.1939691Z ##[error]pkg/chaos/engine.go:539:27: Function `handleSLAViolation->rollbackExperiment` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.1940957Z ##[error]pkg/chaos/failure_injection.go:248:4: S1039: unnecessary use of fmt.Sprintf (gosimple)
+2025-08-28T21:03:50.1942071Z ##[error]pkg/chaos/failure_injection.go:253:4: S1039: unnecessary use of fmt.Sprintf (gosimple)
+2025-08-28T21:03:50.1943690Z ##[error]pkg/chaos/failure_injection.go:380:41: Function `injectNetworkPartition$1` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.1945380Z ##[error]pkg/chaos/failure_injection.go:611:41: Function `injectDatabaseConnectionDrop$1` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.1946707Z ##[error]pkg/chaos/failure_injection.go:637:4: S1039: unnecessary use of fmt.Sprintf (gosimple)
+2025-08-28T21:03:50.1948032Z ##[error]pkg/chaos/failure_injection.go:772:41: Function `injectLoadChaos$1` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.1949450Z ##[error]pkg/chaos/failure_injection.go:892:41: Function `injectDNSFailure$1` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.1952207Z ##[error]pkg/chaos/recovery_tester.go:585:9: SA1019: wait.PollImmediate is deprecated: This method does not return errors from context, use PollUntilContextTimeout. Note that the new method will no longer return ErrWaitTimeout and instead return errors defined by the context package. Will be removed in a future release. (staticcheck)
+2025-08-28T21:03:50.1954621Z ##[error]pkg/chaos/recovery_tester.go:758:17: SA1019: corev1.Endpoints is deprecated: This API is deprecated in v1.33+. Use discoveryv1.EndpointSlice. (staticcheck)
+2025-08-28T21:03:50.1956354Z ##[error]pkg/chaos/recovery_tester.go:847:17: SA1019: corev1.Endpoints is deprecated: This API is deprecated in v1.33+. Use discoveryv1.EndpointSlice. (staticcheck)
+2025-08-28T21:03:50.1959148Z ##[error]pkg/chaos/recovery_tester.go:990:9: SA1019: wait.PollImmediate is deprecated: This method does not return errors from context, use PollUntilContextTimeout. Note that the new method will no longer return ErrWaitTimeout and instead return errors defined by the context package. Will be removed in a future release. (staticcheck)
+2025-08-28T21:03:50.1961456Z ##[error]pkg/clients/mtls_git_client.go:46:15: SA4010: this result of append is never used, except maybe in other appends (staticcheck)
+2025-08-28T21:03:50.1963027Z ##[error]pkg/cnf/orchestrator.go:343:11: ST1005: error strings should not be capitalized (stylecheck)
+2025-08-28T21:03:50.1964645Z ##[error]pkg/config/config.go:672:1: exported: comment on exported type APIKeys should be of the form "APIKeys ..." (with optional leading article) (revive)
+2025-08-28T21:03:50.1966625Z ##[error]pkg/config/config.go:680:1: exported: comment on exported function NewSecretManager should be of the form "NewSecretManager ..." (revive)
+2025-08-28T21:03:50.1968429Z ##[error]pkg/config/config.go:685:1: exported: exported function LoadFileBasedAPIKeysWithValidation should have comment or be unexported (revive)
+2025-08-28T21:03:50.1970273Z ##[error]pkg/config/config.go:689:1: exported: comment on exported method SecretManager.GetSecretValue should be of the form "GetSecretValue ..." (revive)
+2025-08-28T21:03:50.1971980Z ##[error]pkg/config/config.go:694:1: exported: exported method SecretManager.CreateSecretFromEnvVars should have comment or be unexported (revive)
+2025-08-28T21:03:50.1973850Z ##[error]pkg/config/config.go:698:1: exported: exported method SecretManager.UpdateSecret should have comment or be unexported (revive)
+2025-08-28T21:03:50.1975455Z ##[error]pkg/config/config.go:702:1: exported: exported method SecretManager.SecretExists should have comment or be unexported (revive)
+2025-08-28T21:03:50.1977283Z ##[error]pkg/config/config.go:706:1: exported: exported method SecretManager.RotateSecret should have comment or be unexported (revive)
+2025-08-28T21:03:50.1979035Z ##[error]pkg/config/config.go:710:1: exported: exported method SecretManager.GetSecretRotationInfo should have comment or be unexported (revive)
+2025-08-28T21:03:50.1980646Z ##[error]pkg/config/config.go:714:1: exported: exported method SecretManager.GetAPIKeys should have comment or be unexported (revive)
+2025-08-28T21:03:50.1982003Z ##[error]pkg/config/constants.go:343:10: ST1005: error strings should not be capitalized (stylecheck)
+2025-08-28T21:03:50.1983475Z ##[error]pkg/config/env_helpers.go:356:7: equalFold: consider replacing with strings.EqualFold(value, allowed) (gocritic)
+2025-08-28T21:03:50.1984795Z ##[error]pkg/config/env_helpers.go:370:23: builtinShadow: shadowing of predeclared identifier: min (gocritic)
+2025-08-28T21:03:50.1986210Z ##[error]pkg/config/env_helpers.go:385:28: builtinShadow: shadowing of predeclared identifier: min (gocritic)
+2025-08-28T21:03:50.1987594Z ##[error]pkg/config/example_usage.go:54:2: unnecessaryDefer: defer func(){...}(...) is placed just before return (gocritic)
+2025-08-28T21:03:50.1988907Z ##[error]pkg/config/llm_processor.go:380:9: elseif: can replace 'else {if cond {}}' with 'else if cond {}' (gocritic)
+2025-08-28T21:03:50.1990005Z ##[error]pkg/config/llm_processor.go:479:3: SA9003: empty branch (staticcheck)
+2025-08-28T21:03:50.1991764Z ##[error]pkg/config/llm_processor.go:507:10: indent-error-flow: if block ends with a return statement, so drop this else and outdent its block (move short variable declaration to its own line if necessary) (revive)
+2025-08-28T21:03:50.1994016Z ##[error]pkg/config/llm_processor.go:522:10: indent-error-flow: if block ends with a return statement, so drop this else and outdent its block (move short variable declaration to its own line if necessary) (revive)
+2025-08-28T21:03:50.1996134Z ##[error]pkg/config/llm_processor.go:537:10: indent-error-flow: if block ends with a return statement, so drop this else and outdent its block (move short variable declaration to its own line if necessary) (revive)
+2025-08-28T21:03:50.1997746Z ##[error]pkg/config/llm_processor.go:576:6: equalFold: consider replacing with strings.EqualFold(level, valid) (gocritic)
+2025-08-28T21:03:50.1999471Z ##[error]pkg/config/llm_processor.go:586:6: equalFold: consider replacing with strings.EqualFold(backendType, valid) (gocritic)
+2025-08-28T21:03:50.2000750Z ##[error]pkg/config/llm_processor.go:617:2: ifElseChain: rewrite if-else to switch statement (gocritic)
+2025-08-28T21:03:50.2002070Z ##[error]pkg/config/llm_processor.go:654:6: equalFold: consider replacing with strings.EqualFold(backoff, valid) (gocritic)
+2025-08-28T21:03:50.2003428Z ##[error]pkg/config/llm_processor.go:668:2: Consider pre-allocating `validOrigins` (prealloc)
+2025-08-28T21:03:50.2004530Z ##[error]pkg/config/llm_processor.go:842:2: Consider pre-allocating `validCIDRs` (prealloc)
+2025-08-28T21:03:50.2005620Z ##[error]pkg/config/llm_processor.go:983:2: Consider pre-allocating `validIPs` (prealloc)
+2025-08-28T21:03:50.2006717Z ##[error]pkg/config/validation.go:114:2: Consider pre-allocating `rules` (prealloc)
+2025-08-28T21:03:50.2008087Z ##[error]pkg/config/validation.go:284:40: regexpSimplify: can re-write `^[0-9]+(\.[0-9]+)?([mM]?[i]?|[KMGTPE]i?)$` as `^\d+(\.\d+)?([mM]?i?|[KMGTPE]i?)$` (gocritic)
+2025-08-28T21:03:50.2009718Z ##[error]pkg/config/validation.go:336:35: regexpSimplify: can re-write `^https?://[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})(:[0-9]+)?(/.*)?$` as `^https?://[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})(:\d+)?(/.*)?$` (gocritic)
+2025-08-28T21:03:50.2011046Z ##[error]pkg/context/enhanced_context.go:40:2: field `resourceType` is unused (unused)
+2025-08-28T21:03:50.2012122Z ##[error]pkg/context/enhanced_context.go:41:2: field `resourceID` is unused (unused)
+2025-08-28T21:03:50.2013299Z ##[error]pkg/context/enhanced_context.go:42:2: field `resourceName` is unused (unused)
+2025-08-28T21:03:50.2014910Z ##[error]pkg/context/enhanced_context.go:64:6: exported: type name will be used as context.ContextMetrics by other packages, and that stutters; consider calling this Metrics (revive)
+2025-08-28T21:03:50.2016779Z ##[error]pkg/context/enhanced_context.go:74:6: exported: type name will be used as context.ContextBuilder by other packages, and that stutters; consider calling this Builder (revive)
+2025-08-28T21:03:50.2018361Z ##[error]pkg/context/enhanced_context.go:92:24: Non-inherited new context, use function like `context.WithXXX` instead (contextcheck)
+2025-08-28T21:03:50.2020164Z ##[error]pkg/context/enhanced_context.go:543:1: exported: comment on exported type ContextMiddleware should be of the form "ContextMiddleware ..." (with optional leading article) (revive)
+2025-08-28T21:03:50.2022103Z ##[error]pkg/context/enhanced_context.go:544:6: exported: type name will be used as context.ContextMiddleware by other packages, and that stutters; consider calling this Middleware (revive)
+2025-08-28T21:03:50.2024532Z ##[error]pkg/controllers/certificate_controller.go:298:49: Function `ProcessManualRequest->processProvisioningRequest->generateServiceCertificate` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2026768Z ##[error]pkg/controllers/certificate_controller.go:458:49: Function `ProcessManualRequest->processProvisioningRequest->generateServiceCertificate` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2028539Z ##[error]pkg/controllers/e2nodeset_controller.go:810:11: G109: Potential Integer overflow made by strconv.Atoi result conversion to int16/32 (gosec)
+2025-08-28T21:03:50.2029881Z ##[error]pkg/controllers/e2nodeset_controller.go:980:2: Consider pre-allocating `e2NodeStatuses` (prealloc)
+2025-08-28T21:03:50.2031035Z ##[error]pkg/controllers/gitops_handler.go:329:2: Consider pre-allocating `names` (prealloc)
+2025-08-28T21:03:50.2032181Z ##[error]pkg/controllers/networkintent_controller.go:744:2: Consider pre-allocating `pairs` (prealloc)
+2025-08-28T21:03:50.2034053Z ##[error]pkg/controllers/orchestration/components.go:39:14: SA1019: workqueue.RateLimitingInterface is deprecated: Use TypedRateLimitingInterface instead. (staticcheck)
+2025-08-28T21:03:50.2035913Z ##[error]pkg/controllers/orchestration/components.go:55:12: SA1019: workqueue.RateLimitingInterface is deprecated: Use TypedRateLimitingInterface instead. (staticcheck)
+2025-08-28T21:03:50.2037918Z ##[error]pkg/controllers/orchestration/components.go:64:58: SA1019: workqueue.RateLimitingInterface is deprecated: Use TypedRateLimitingInterface instead. (staticcheck)
+2025-08-28T21:03:50.2039389Z ##[error]pkg/controllers/orchestration/event_driven_coordinator.go:647:2: Consider pre-allocating `events` (prealloc)
+2025-08-28T21:03:50.2040887Z ##[error]pkg/controllers/orchestration/intent_processing_controller.go:397:5: S1009: should omit nil check; len() for nil maps is defined as zero (gosimple)
+2025-08-28T21:03:50.2042366Z ##[error]pkg/controllers/orchestration/resource_planning_controller.go:640:2: Consider pre-allocating `complianceResults` (prealloc)
+2025-08-28T21:03:50.2043935Z ##[error]pkg/controllers/orchestration/resource_planning_controller.go:641:2: Consider pre-allocating `validationResults` (prealloc)
+2025-08-28T21:03:50.2045357Z ##[error]pkg/controllers/orchestration/resource_planning_controller.go:1132:2: Consider pre-allocating `plannedResources` (prealloc)
+2025-08-28T21:03:50.2047058Z ##[error]pkg/controllers/orchestration/specialized_intent_processing_controller.go:842:4: SA4011: ineffective break statement. Did you mean to break out of the outer loop? (staticcheck)
+2025-08-28T21:03:50.2048718Z ##[error]pkg/controllers/orchestration/specialized_manifest_generation_controller.go:431:2: ineffectual assignment to generatedManifests (ineffassign)
+2025-08-28T21:03:50.2050265Z ##[error]pkg/controllers/orchestration/specialized_manifest_generation_controller.go:432:2: ineffectual assignment to manifestMetadata (ineffassign)
+2025-08-28T21:03:50.2051770Z ##[error]pkg/controllers/orchestration/specialized_manifest_generation_controller.go:988:2: Consider pre-allocating `hashComponents` (prealloc)
+2025-08-28T21:03:50.2053676Z ##[error]pkg/controllers/orchestration/work_queue_manager.go:55:40: SA1019: workqueue.RateLimitingInterface is deprecated: Use TypedRateLimitingInterface instead. (staticcheck)
+2025-08-28T21:03:50.2055555Z ##[error]pkg/controllers/orchestration/work_queue_manager.go:81:54: SA1019: workqueue.RateLimitingInterface is deprecated: Use TypedRateLimitingInterface instead. (staticcheck)
+2025-08-28T21:03:50.2057553Z ##[error]pkg/controllers/orchestration/work_queue_manager.go:110:4: SA1019: workqueue.DefaultControllerRateLimiter is deprecated: Use DefaultTypedControllerRateLimiter instead. (staticcheck)
+2025-08-28T21:03:50.2059758Z ##[error]pkg/controllers/parallel/processing_engine.go:1084:2: S1008: should use 'return bm.currentLoad > bm.thresholds["high"]' instead of 'if bm.currentLoad > bm.thresholds["high"] { return true }; return false' (gosimple)
+2025-08-28T21:03:50.2061576Z ##[error]pkg/controllers/reconciler.go:125:5: SA1019: result.Requeue is deprecated: Use `RequeueAfter` instead. (staticcheck)
+2025-08-28T21:03:50.2063139Z ##[error]pkg/controllers/reconciler.go:126:71: SA1019: result.Requeue is deprecated: Use `RequeueAfter` instead. (staticcheck)
+2025-08-28T21:03:50.2064544Z ##[error]pkg/controllers/reconciler.go:183:20: SA1019: result.Requeue is deprecated: Use `RequeueAfter` instead. (staticcheck)
+2025-08-28T21:03:50.2065935Z ##[error]pkg/controllers/reconciler.go:202:20: SA1019: result.Requeue is deprecated: Use `RequeueAfter` instead. (staticcheck)
+2025-08-28T21:03:50.2067322Z ##[error]pkg/controllers/reconciler.go:221:20: SA1019: result.Requeue is deprecated: Use `RequeueAfter` instead. (staticcheck)
+2025-08-28T21:03:50.2068571Z ##[error]pkg/controllers/resource_planner.go:328:2: Consider pre-allocating `healthChecks` (prealloc)
+2025-08-28T21:03:50.2069715Z ##[error]pkg/controllers/resource_planner.go:788:2: Consider pre-allocating `ports` (prealloc)
+2025-08-28T21:03:50.2070905Z ##[error]pkg/disaster/backup_manager.go:449:2: Consider pre-allocating `errors` (prealloc)
+2025-08-28T21:03:50.2072033Z ##[error]pkg/disaster/failover_manager.go:806:26: (*net/http.Client).Get must not be called (noctx)
+2025-08-28T21:03:50.2073303Z ##[error]pkg/disaster/failover_manager.go:958:26: (*net/http.Client).Get must not be called (noctx)
+2025-08-28T21:03:50.2074958Z ##[error]pkg/disaster/restore_manager.go:969:13: G305: File traversal when extracting zip/tar archive (gosec)
+2025-08-28T21:03:50.2076641Z ##[error]pkg/disaster/restore_manager.go:973:45: G115: integer overflow conversion int64 -> uint32 (gosec)
+2025-08-28T21:03:50.2078034Z ##[error]pkg/disaster/restore_manager.go:981:68: G115: integer overflow conversion int64 -> uint32 (gosec)
+2025-08-28T21:03:50.2079652Z ##[error]pkg/disaster/restore_manager.go:986:13: G110: Potential DoS vulnerability via decompression bomb (gosec)
+2025-08-28T21:03:50.2081108Z ##[error]pkg/disaster/restore_manager.go:1117:25: (*net/http.Client).Get must not be called (noctx)
+2025-08-28T21:03:50.2082840Z ##[error]pkg/errors/aggregation.go:741:2: Consider pre-allocating `messages` (prealloc)
+2025-08-28T21:03:50.2084564Z ##[error]pkg/errors/errors.go:239:20: Function `newError` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2086105Z ##[error]pkg/errors/stack.go:77:27: SA6002: argument should be pointer-like to avoid allocations (staticcheck)
+2025-08-28T21:03:50.2089161Z ##[error]pkg/errors/stack.go:251:15: SA1019: runtime.GOROOT has been deprecated since Go 1.24: The root used during the Go build will not be meaningful if the binary is copied to another machine. Use the system path to locate the “go” binary, and use “go env GOROOT” to find its GOROOT. (staticcheck)
+2025-08-28T21:03:50.2091311Z ##[error]pkg/generics/clients.go:196:36: G115: integer overflow conversion int -> uint (gosec)
+2025-08-28T21:03:50.2092946Z ##[error]pkg/generics/clients.go:346:3: ineffectual assignment to opts (ineffassign)
+2025-08-28T21:03:50.2131007Z ##[error]pkg/generics/config.go:116:7: ineffectual assignment to lastErr (ineffassign)
+2025-08-28T21:03:50.2132593Z ##[error]pkg/generics/config.go:126:7: ineffectual assignment to lastErr (ineffassign)
+2025-08-28T21:03:50.2133795Z ##[error]pkg/generics/config.go:130:7: ineffectual assignment to lastErr (ineffassign)
+2025-08-28T21:03:50.2134933Z ##[error]pkg/generics/validation.go:69:2: Consider pre-allocating `messages` (prealloc)
+2025-08-28T21:03:50.2136144Z ##[error]pkg/global/traffic_controller.go:256:25: response body must be closed (bodyclose)
+2025-08-28T21:03:50.2137539Z ##[error]pkg/health/health_checker.go:292:27: Error return value of `(*encoding/json.Encoder).Encode` is not checked (errcheck)
+2025-08-28T21:03:50.2138946Z ##[error]pkg/health/health_checker.go:326:27: Error return value of `(*encoding/json.Encoder).Encode` is not checked (errcheck)
+2025-08-28T21:03:50.2140634Z ##[error]pkg/interfaces/interfaces.go:15:2: exported: exported const AuditLevelWarn should have comment (or a comment on this block) or be unexported (revive)
+2025-08-28T21:03:50.2142923Z ##[error]pkg/knowledge/knowledge_adapter.go:12:6: exported: type name will be used as knowledge.KnowledgeBaseAdapter by other packages, and that stutters; consider calling this BaseAdapter (revive)
+2025-08-28T21:03:50.2144376Z ##[error]pkg/knowledge/knowledge_adapter.go:14:2: field `mu` is unused (unused)
+2025-08-28T21:03:50.2145465Z ##[error]pkg/knowledge/lazy_loader.go:731:2: Consider pre-allocating `results` (prealloc)
+2025-08-28T21:03:50.2146658Z ##[error]pkg/llm/advanced_circuit_breaker.go:78:2: ineffectual assignment to ctx (ineffassign)
+2025-08-28T21:03:50.2147844Z ##[error]pkg/llm/batch_processor.go:450:43: `(*BatchWorker).processRequest` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2149083Z ##[error]pkg/llm/cache.go:7:2: G501: Blocklisted import crypto/md5: weak cryptographic primitive (gosec)
+2025-08-28T21:03:50.2150259Z ##[error]pkg/llm/cache.go:293:42: `(*ResponseCache).promoteToL1` - `response` is unused (unparam)
+2025-08-28T21:03:50.2151499Z ##[error]pkg/llm/clean_stubs.go:285:6: S1009: should omit nil check; len() for nil maps is defined as zero (gosimple)
+2025-08-28T21:03:50.2152920Z ##[error]pkg/llm/clean_stubs.go:594:74: `(*ContextBuilder).generateMockResults` - `searchType` is unused (unparam)
+2025-08-28T21:03:50.2154292Z ##[error]pkg/llm/dynamic_context_manager.go:832:49: `(*ORANContextStrategy).selectORANContext` - `request` is unused (unparam)
+2025-08-28T21:03:50.2155921Z ##[error]pkg/llm/dynamic_context_manager.go:866:56: `(*FiveGCoreContextStrategy).select5GCoreContext` - `request` is unused (unparam)
+2025-08-28T21:03:50.2157472Z ##[error]pkg/llm/enhanced_performance_client.go:560:32: Function `RecordLatency->updateMetrics` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2158944Z ##[error]pkg/llm/enhanced_performance_client.go:563:17: Function `updateMetrics` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2160385Z ##[error]pkg/llm/enhanced_performance_client.go:568:20: Function `trackTokenUsage` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2161809Z ##[error]pkg/llm/enhanced_performance_client.go:571:21: Function `trackTokenCosts` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2163386Z ##[error]pkg/llm/intelligent_cache.go:589:2: S1000: should use for range instead of for { select {} } (gosimple)
+2025-08-28T21:03:50.2164694Z ##[error]pkg/llm/intelligent_cache.go:601:2: S1000: should use for range instead of for { select {} } (gosimple)
+2025-08-28T21:03:50.2165930Z ##[error]pkg/llm/intelligent_cache.go:613:2: S1000: should use for range instead of for { select {} } (gosimple)
+2025-08-28T21:03:50.2167057Z ##[error]pkg/llm/optimized_controller.go:250:35: unnecessary leading newline (whitespace)
+2025-08-28T21:03:50.2168117Z ##[error]pkg/llm/optimized_controller.go:339:35: unnecessary leading newline (whitespace)
+2025-08-28T21:03:50.2169537Z ##[error]pkg/llm/optimized_controller.go:382:2: `(*OptimizedControllerIntegration).buildOptimizedRequest` - `parameters` is unused (unparam)
+2025-08-28T21:03:50.2170778Z ##[error]pkg/llm/optimized_controller.go:384:25: unnecessary leading newline (whitespace)
+2025-08-28T21:03:50.2172058Z ##[error]pkg/llm/optimized_controller.go:388:27: SA6002: argument should be pointer-like to avoid allocations (staticcheck)
+2025-08-28T21:03:50.2173589Z ##[error]pkg/llm/optimized_controller.go:557:2: S1000: should use for range instead of for { select {} } (gosimple)
+2025-08-28T21:03:50.2174931Z ##[error]pkg/llm/optimized_http_client.go:353:25: SA6002: argument should be pointer-like to avoid allocations (staticcheck)
+2025-08-28T21:03:50.2176283Z ##[error]pkg/llm/optimized_http_client.go:401:25: SA6002: argument should be pointer-like to avoid allocations (staticcheck)
+2025-08-28T21:03:50.2177743Z ##[error]pkg/llm/performance_benchmarks.go:188:18: (*PerformanceBenchmarks).benchmarkOriginal - result 1 (error) is always nil (unparam)
+2025-08-28T21:03:50.2179401Z ##[error]pkg/llm/performance_benchmarks.go:261:18: (*PerformanceBenchmarks).benchmarkOptimized - result 1 (error) is always nil (unparam)
+2025-08-28T21:03:50.2180947Z ##[error]pkg/llm/performance_benchmarks.go:337:61: `(*PerformanceBenchmarks).benchmarkHTTPOptimizations` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2182442Z ##[error]pkg/llm/performance_benchmarks.go:376:62: `(*PerformanceBenchmarks).benchmarkCacheOptimizations` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2184078Z ##[error]pkg/llm/performance_benchmarks.go:413:61: `(*PerformanceBenchmarks).benchmarkJSONOptimizations` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2185548Z ##[error]pkg/llm/performance_benchmarks.go:456:59: `(*PerformanceBenchmarks).benchmarkBatchProcessing` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2186964Z ##[error]pkg/llm/performance_benchmarks.go:553:52: `(*PerformanceBenchmarks).parseJSONStandard` - `data` is unused (unparam)
+2025-08-28T21:03:50.2188362Z ##[error]pkg/llm/performance_benchmarks.go:560:55: `(*OriginalController).processLLMPhaseOriginal` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2189712Z ##[error]pkg/llm/processing.go:546:101: `(*ProcessingEngine).processBatchGroup` - `results` is unused (unparam)
+2025-08-28T21:03:50.2191065Z ##[error]pkg/llm/processing_pipeline.go:372:45: `(*ProcessingPipeline).updateMetrics` - `processingTime` is unused (unparam)
+2025-08-28T21:03:50.2192399Z ##[error]pkg/llm/processing_pipeline.go:608:49: `(*ContextEnricher).buildNetworkTopology` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2194053Z ##[error]pkg/llm/processing_pipeline.go:625:51: `(*ContextEnricher).buildDeploymentContext` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2195365Z ##[error]pkg/llm/processing_pipeline.go:642:47: `(*ContextEnricher).buildPolicyContext` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2196667Z ##[error]pkg/llm/processing_pipeline.go:655:48: `(*ContextEnricher).buildHistoricalData` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2197994Z ##[error]pkg/llm/processing_pipeline.go:695:37: SA1000: error parsing regexp: invalid repeat count: `{1,2048}` (staticcheck)
+2025-08-28T21:03:50.2199207Z ##[error]pkg/llm/prompt_engine.go:532:2: Consider pre-allocating `relevantExamples` (prealloc)
+2025-08-28T21:03:50.2200608Z ##[error]pkg/llm/prompt_engine.go:597:64: `(*TelecomPromptEngine).generateIntentSpecificGuidelines` - `intentType` is unused (unparam)
+2025-08-28T21:03:50.2202047Z ##[error]pkg/llm/rag_aware_prompt_builder.go:442:87: `(*RAGAwarePromptBuilder).processRAGContext` - `modelName` is unused (unparam)
+2025-08-28T21:03:50.2203503Z ##[error]pkg/llm/rag_aware_prompt_builder.go:448:2: Consider pre-allocating `contextParts` (prealloc)
+2025-08-28T21:03:50.2204631Z ##[error]pkg/llm/rag_aware_prompt_builder.go:449:2: Consider pre-allocating `sources` (prealloc)
+2025-08-28T21:03:50.2205767Z ##[error]pkg/llm/rag_aware_prompt_builder.go:534:2: Consider pre-allocating `scoredExamples` (prealloc)
+2025-08-28T21:03:50.2207160Z ##[error]pkg/llm/rag_aware_prompt_builder.go:642:149: (*RAGAwarePromptBuilder).optimizeForTokens - result 2 (error) is always nil (unparam)
+2025-08-28T21:03:50.2208525Z ##[error]pkg/llm/retry_engine.go:408:96: `(*RetryEngine).applyAdaptiveAdjustment` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2209747Z ##[error]pkg/llm/worker_pool.go:528:35: (*WorkerPool).addWorker - result 0 (error) is always nil (unparam)
+2025-08-28T21:03:50.2210865Z ##[error]pkg/llm/worker_pool.go:692:33: `(*Worker).processLLMTask` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2212407Z ##[error]pkg/logging/structured_logger.go:18:2: exported: exported const LevelDebug should have comment (or a comment on this block) or be unexported (revive)
+2025-08-28T21:03:50.2213901Z ##[error]pkg/middleware/rate_limit.go:92:18: Error return value is not checked (errcheck)
+2025-08-28T21:03:50.2214972Z ##[error]pkg/middleware/rate_limit.go:108:17: Error return value is not checked (errcheck)
+2025-08-28T21:03:50.2215996Z ##[error]pkg/middleware/rate_limit.go:183:39: unnecessary conversion (unconvert)
+2025-08-28T21:03:50.2217026Z ##[error]pkg/middleware/rate_limit.go:210:9: Error return value is not checked (errcheck)
+2025-08-28T21:03:50.2218213Z ##[error]pkg/middleware/rate_limit.go:211:18: Error return value is not checked (errcheck)
+2025-08-28T21:03:50.2219605Z ##[error]pkg/middleware/rate_limit_example.go:1:1: ST1000: package comment should be of the form "Package middleware..." (stylecheck)
+2025-08-28T21:03:50.2220901Z ##[error]pkg/middleware/rate_limit_example.go:33:10: Error return value of `w.Write` is not checked (errcheck)
+2025-08-28T21:03:50.2222184Z ##[error]pkg/middleware/rate_limit_example.go:44:21: Error return value of `http.ListenAndServe` is not checked (errcheck)
+2025-08-28T21:03:50.2223555Z ##[error]pkg/middleware/rate_limit_example.go:66:10: Error return value of `w.Write` is not checked (errcheck)
+2025-08-28T21:03:50.2224748Z ##[error]pkg/middleware/rate_limit_example.go:71:10: Error return value of `w.Write` is not checked (errcheck)
+2025-08-28T21:03:50.2226019Z ##[error]pkg/middleware/rate_limit_example.go:85:21: Error return value of `http.ListenAndServe` is not checked (errcheck)
+2025-08-28T21:03:50.2227474Z ##[error]pkg/middleware/redact_logger.go:531:8: equalFold: consider replacing with strings.EqualFold(sensitiveField, lowerKey) (gocritic)
+2025-08-28T21:03:50.2228735Z ##[error]pkg/middleware/redact_logger.go:600:2: Consider pre-allocating `skipPatterns` (prealloc)
+2025-08-28T21:03:50.2229859Z ##[error]pkg/middleware/request_size.go:59:1: File is not properly formatted (gci)
+2025-08-28T21:03:50.2231744Z ##[error]pkg/middleware/security_headers.go:318:1: paramTypeCombine: func(policy string, reportURI string) http.Handler could be replaced with func(policy, reportURI string) http.Handler (gocritic)
+2025-08-28T21:03:50.2233517Z ##[error]pkg/ml/optimization_engine.go:1:1: ST1000: package comment should be of the form "Package ml..." (stylecheck)
+2025-08-28T21:03:50.2235181Z ##[error]pkg/monitoring/alerting.go:182:30: Function `registerDefaultAlertRules->RegisterAlertRule` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2236499Z ##[error]pkg/monitoring/alerting.go:477:33: (*net/http.Client).Post must not be called (noctx)
+2025-08-28T21:03:50.2237598Z ##[error]pkg/monitoring/alerting.go:520:33: (*net/http.Client).Post must not be called (noctx)
+2025-08-28T21:03:50.2238965Z ##[error]pkg/monitoring/alerting/alert_router.go:7:2: G501: Blocklisted import crypto/md5: weak cryptographic primitive (gosec)
+2025-08-28T21:03:50.2240393Z ##[error]pkg/monitoring/alerting/alert_router.go:486:28: Error return value of `ar.loadDefaultRoutingRules` is not checked (errcheck)
+2025-08-28T21:03:50.2241883Z ##[error]pkg/monitoring/alerting/alert_router.go:487:36: Error return value of `ar.loadDefaultNotificationChannels` is not checked (errcheck)
+2025-08-28T21:03:50.2243592Z ##[error]pkg/monitoring/alerting/alert_router.go:488:30: Error return value of `ar.loadDefaultImpactProfiles` is not checked (errcheck)
+2025-08-28T21:03:50.2245020Z ##[error]pkg/monitoring/alerting/alert_router.go:619:19: Error return value of `ar.correlateAlert` is not checked (errcheck)
+2025-08-28T21:03:50.2246529Z ##[error]pkg/monitoring/alerting/alert_router.go:622:12: Error return value of `ar.priorityCalculator.CalculatePriority` is not checked (errcheck)
+2025-08-28T21:03:50.2248045Z ##[error]pkg/monitoring/alerting/alert_router.go:626:10: Error return value of `ar.impactAnalyzer.AnalyzeImpact` is not checked (errcheck)
+2025-08-28T21:03:50.2249325Z ##[error]pkg/monitoring/alerting/alert_router.go:723:44: G401: Use of weak cryptographic primitive (gosec)
+2025-08-28T21:03:50.2250502Z ##[error]pkg/monitoring/alerting/alert_router.go:749:43: G401: Use of weak cryptographic primitive (gosec)
+2025-08-28T21:03:50.2251669Z ##[error]pkg/monitoring/alerting/alert_router.go:780:27: G401: Use of weak cryptographic primitive (gosec)
+2025-08-28T21:03:50.2253278Z ##[error]pkg/monitoring/alerting/alert_router.go:1017:5: SA4011: ineffective break statement. Did you mean to break out of the outer loop? (staticcheck)
+2025-08-28T21:03:50.2255035Z ##[error]pkg/monitoring/alerting/alert_router.go:1022:5: SA4011: ineffective break statement. Did you mean to break out of the outer loop? (staticcheck)
+2025-08-28T21:03:50.2256654Z ##[error]pkg/monitoring/alerting/alert_router.go:1028:5: SA4011: ineffective break statement. Did you mean to break out of the outer loop? (staticcheck)
+2025-08-28T21:03:50.2258171Z ##[error]pkg/monitoring/alerting/escalation_engine.go:856:29: Error return value of `ee.executeEscalationAction` is not checked (errcheck)
+2025-08-28T21:03:50.2259615Z ##[error]pkg/monitoring/alerting/escalation_engine.go:861:23: Error return value of `ee.notifyStakeholder` is not checked (errcheck)
+2025-08-28T21:03:50.2260933Z ##[error]pkg/monitoring/alerting/escalation_engine.go:1011:2: ineffectual assignment to basePriority (ineffassign)
+2025-08-28T21:03:50.2262184Z ##[error]pkg/monitoring/alerting/predictive_alerting.go:774:2: Consider pre-allocating `features` (prealloc)
+2025-08-28T21:03:50.2263547Z ##[error]pkg/monitoring/alerting/predictive_alerting.go:963:2: Consider pre-allocating `features` (prealloc)
+2025-08-28T21:03:50.2264754Z ##[error]pkg/monitoring/alerting/predictive_alerting.go:964:2: Consider pre-allocating `labels` (prealloc)
+2025-08-28T21:03:50.2266115Z ##[error]pkg/monitoring/alerting/sla_alert_manager.go:8:2: G501: Blocklisted import crypto/md5: weak cryptographic primitive (gosec)
+2025-08-28T21:03:50.2267396Z ##[error]pkg/monitoring/alerting/sla_alert_manager.go:840:27: G401: Use of weak cryptographic primitive (gosec)
+2025-08-28T21:03:50.2268812Z ##[error]pkg/monitoring/alerting/sla_alert_manager.go:846:27: G401: Use of weak cryptographic primitive (gosec)
+2025-08-28T21:03:50.2270082Z ##[error]pkg/monitoring/availability/calculator.go:342:2: ineffectual assignment to ctx (ineffassign)
+2025-08-28T21:03:50.2271655Z ##[error]pkg/monitoring/availability/tracker.go:992:22: ST1023: should omit type time.Duration from declaration; it will be inferred from the right-hand side (stylecheck)
+2025-08-28T21:03:50.2275332Z ##[error]pkg/monitoring/distributed_tracing.go:15:2: SA1019: "go.opentelemetry.io/otel/exporters/jaeger" is deprecated: This module is no longer supported. OpenTelemetry dropped support for Jaeger exporter in July 2023. Jaeger officially accepts and recommends using OTLP. Use [go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp] or [go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc] instead. (staticcheck)
+2025-08-28T21:03:50.2277557Z ##[error]pkg/monitoring/distributed_tracing.go:857:2: ineffectual assignment to message (ineffassign)
+2025-08-28T21:03:50.2278859Z ##[error]pkg/monitoring/health/dependency_health.go:1059:31: G115: integer overflow conversion int -> uint (gosec)
+2025-08-28T21:03:50.2280108Z ##[error]pkg/monitoring/health/dependency_health.go:1063:32: G115: integer overflow conversion int -> uint (gosec)
+2025-08-28T21:03:50.2281352Z ##[error]pkg/monitoring/health/health_aggregator.go:763:2: Consider pre-allocating `businessScores` (prealloc)
+2025-08-28T21:03:50.2282698Z ##[error]pkg/monitoring/health/health_aggregator.go:764:2: Consider pre-allocating `technicalScores` (prealloc)
+2025-08-28T21:03:50.2283984Z ##[error]pkg/monitoring/health/health_aggregator.go:765:2: Consider pre-allocating `performanceScores` (prealloc)
+2025-08-28T21:03:50.2285244Z ##[error]pkg/monitoring/health/health_aggregator.go:766:2: Consider pre-allocating `businessWeights` (prealloc)
+2025-08-28T21:03:50.2286495Z ##[error]pkg/monitoring/health/health_aggregator.go:767:2: Consider pre-allocating `technicalWeights` (prealloc)
+2025-08-28T21:03:50.2287766Z ##[error]pkg/monitoring/health/health_aggregator.go:768:2: Consider pre-allocating `performanceWeights` (prealloc)
+2025-08-28T21:03:50.2288938Z ##[error]pkg/monitoring/health/health_aggregator.go:992:2: Consider pre-allocating `x` (prealloc)
+2025-08-28T21:03:50.2290194Z ##[error]pkg/monitoring/latency/analyzer.go:1082:2: Consider pre-allocating `recommendations` (prealloc)
+2025-08-28T21:03:50.2291340Z ##[error]pkg/monitoring/latency/analyzer.go:1119:2: Consider pre-allocating `all` (prealloc)
+2025-08-28T21:03:50.2292769Z ##[error]pkg/monitoring/latency/bottleneck_detector.go:485:2: Consider pre-allocating `bottlenecks` (prealloc)
+2025-08-28T21:03:50.2294057Z ##[error]pkg/monitoring/latency/bottleneck_detector.go:547:2: Consider pre-allocating `active` (prealloc)
+2025-08-28T21:03:50.2295276Z ##[error]pkg/monitoring/latency/bottleneck_detector.go:711:2: Consider pre-allocating `evidence` (prealloc)
+2025-08-28T21:03:50.2296478Z ##[error]pkg/monitoring/latency/bottleneck_detector.go:758:2: Consider pre-allocating `evidence` (prealloc)
+2025-08-28T21:03:50.2297698Z ##[error]pkg/monitoring/latency/bottleneck_detector.go:869:2: Consider pre-allocating `impactors` (prealloc)
+2025-08-28T21:03:50.2298953Z ##[error]pkg/monitoring/latency/component_monitor.go:653:33: G115: integer overflow conversion uint64 -> int64 (gosec)
+2025-08-28T21:03:50.2300187Z ##[error]pkg/monitoring/latency/profiler.go:524:24: G115: integer overflow conversion uint64 -> int64 (gosec)
+2025-08-28T21:03:50.2301375Z ##[error]pkg/monitoring/latency/profiler.go:526:32: G115: integer overflow conversion uint64 -> int64 (gosec)
+2025-08-28T21:03:50.2302653Z ##[error]pkg/monitoring/latency/profiler.go:554:2: Consider pre-allocating `components` (prealloc)
+2025-08-28T21:03:50.2303819Z ##[error]pkg/monitoring/latency/profiler.go:749:2: Consider pre-allocating `profiles` (prealloc)
+2025-08-28T21:03:50.2305139Z ##[error]pkg/monitoring/reporting/metrics_exporter.go:769:11: Error return value of `gz.Write` is not checked (errcheck)
+2025-08-28T21:03:50.2306736Z ##[error]pkg/monitoring/reporting/sla_reporter.go:661:27: Error return value of `(*encoding/json.Encoder).Encode` is not checked (errcheck)
+2025-08-28T21:03:50.2308195Z ##[error]pkg/monitoring/reporting/sla_reporter.go:736:28: Error return value of `(*encoding/json.Encoder).Encode` is not checked (errcheck)
+2025-08-28T21:03:50.2309620Z ##[error]pkg/monitoring/sla/alerting.go:705:22: Error return value of `am.EvaluateAlerts` is not checked (errcheck)
+2025-08-28T21:03:50.2310851Z ##[error]pkg/monitoring/sla/calculator.go:1022:31: G115: integer overflow conversion int -> uint64 (gosec)
+2025-08-28T21:03:50.2312193Z ##[error]pkg/monitoring/sla/calculator.go:1112:2: S1021: should merge variable declaration with assignment on next line (gosimple)
+2025-08-28T21:03:50.2313599Z ##[error]pkg/monitoring/sla/collector.go:641:22: G115: integer overflow conversion uint64 -> int (gosec)
+2025-08-28T21:03:50.2314762Z ##[error]pkg/monitoring/sla/collector.go:769:25: G115: integer overflow conversion int -> uint64 (gosec)
+2025-08-28T21:03:50.2315930Z ##[error]pkg/monitoring/sla/collector.go:792:25: G115: integer overflow conversion int -> uint64 (gosec)
+2025-08-28T21:03:50.2317149Z ##[error]pkg/monitoring/sla/storage.go:568:16: Error return value of `sm.flushBuffer` is not checked (errcheck)
+2025-08-28T21:03:50.2318382Z ##[error]pkg/monitoring/sla/storage.go:598:17: Error return value of `sm.flushBuffer` is not checked (errcheck)
+2025-08-28T21:03:50.2319646Z ##[error]pkg/monitoring/sla/storage.go:622:17: Error return value of `sm.flushBuffer` is not checked (errcheck)
+2025-08-28T21:03:50.2320880Z ##[error]pkg/monitoring/sla/storage.go:772:19: Error return value of `sm.flushBuffer` is not checked (errcheck)
+2025-08-28T21:03:50.2322055Z ##[error]pkg/monitoring/sla/storage.go:1014:15: G302: Expect file permissions to be 0640 or less (gosec)
+2025-08-28T21:03:50.2323334Z ##[error]pkg/monitoring/sla/storage.go:1059:22: G115: integer overflow conversion int -> uint32 (gosec)
+2025-08-28T21:03:50.2324485Z ##[error]pkg/monitoring/sla/storage.go:1065:19: G115: integer overflow conversion int -> uint32 (gosec)
+2025-08-28T21:03:50.2325627Z ##[error]pkg/monitoring/sla/storage.go:1066:21: G115: integer overflow conversion int -> uint32 (gosec)
+2025-08-28T21:03:50.2326730Z ##[error]pkg/monitoring/sla_components.go:559:60: unnecessary leading newline (whitespace)
+2025-08-28T21:03:50.2328023Z ##[error]pkg/monitoring/throughput/load_tester.go:157:18: SA4008: variable in loop condition never changes (staticcheck)
+2025-08-28T21:03:50.2329717Z ##[error]pkg/nephio/blueprint/catalog.go:436:34: Function `validateDependencies` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2330990Z ##[error]pkg/nephio/blueprint/catalog.go:1176:2: Consider pre-allocating `deps` (prealloc)
+2025-08-28T21:03:50.2332101Z ##[error]pkg/nephio/configsync_client.go:200:2: Consider pre-allocating `resources` (prealloc)
+2025-08-28T21:03:50.2333338Z ##[error]pkg/nephio/configsync_client.go:255:2: ineffectual assignment to ctx (ineffassign)
+2025-08-28T21:03:50.2334428Z ##[error]pkg/nephio/configsync_client.go:496:2: ineffectual assignment to ctx (ineffassign)
+2025-08-28T21:03:50.2335772Z ##[error]pkg/nephio/dependencies/analyzer.go:820:3: The copy of the 'for' variable "pkg" can be deleted (Go 1.22+) (copyloopvar)
+2025-08-28T21:03:50.2337563Z ##[error]pkg/nephio/dependencies/analyzer.go:913:3: S1011: should replace loop with `analysis.CriticalIssues = append(analysis.CriticalIssues, healthScore.CriticalIssues...)` (gosimple)
+2025-08-28T21:03:50.2339496Z ##[error]pkg/nephio/dependencies/analyzer.go:918:3: S1011: should replace loop with `analysis.HealthWarnings = append(analysis.HealthWarnings, healthScore.Warnings...)` (gosimple)
+2025-08-28T21:03:50.2341093Z ##[error]pkg/nephio/dependencies/analyzer.go:1098:3: The copy of the 'for' variable "analysisType" can be deleted (Go 1.22+) (copyloopvar)
+2025-08-28T21:03:50.2342378Z ##[error]pkg/nephio/dependencies/graph.go:569:2: ineffectual assignment to currentLayer (ineffassign)
+2025-08-28T21:03:50.2344030Z ##[error]pkg/nephio/dependencies/graph.go:699:3: The copy of the 'for' variable "rootPkg" can be deleted (Go 1.22+) (copyloopvar)
+2025-08-28T21:03:50.2345376Z ##[error]pkg/nephio/dependencies/graph.go:766:3: The copy of the 'for' variable "dep" can be deleted (Go 1.22+) (copyloopvar)
+2025-08-28T21:03:50.2346744Z ##[error]pkg/nephio/dependencies/resolver.go:654:3: The copy of the 'for' variable "detector" can be deleted (Go 1.22+) (copyloopvar)
+2025-08-28T21:03:50.2348114Z ##[error]pkg/nephio/dependencies/resolver.go:655:3: The copy of the 'for' variable "i" can be deleted (Go 1.22+) (copyloopvar)
+2025-08-28T21:03:50.2349335Z ##[error]pkg/nephio/dependencies/types.go:5108:3: ineffectual assignment to config (ineffassign)
+2025-08-28T21:03:50.2350630Z ##[error]pkg/nephio/dependencies/updater.go:819:3: The copy of the 'for' variable "update" can be deleted (Go 1.22+) (copyloopvar)
+2025-08-28T21:03:50.2351970Z ##[error]pkg/nephio/dependencies/updater.go:967:3: The copy of the 'for' variable "step" can be deleted (Go 1.22+) (copyloopvar)
+2025-08-28T21:03:50.2353543Z ##[error]pkg/nephio/dependencies/validator.go:618:3: The copy of the 'for' variable "packageName" can be deleted (Go 1.22+) (copyloopvar)
+2025-08-28T21:03:50.2355025Z ##[error]pkg/nephio/dependencies/validator.go:619:3: The copy of the 'for' variable "packageVersions" can be deleted (Go 1.22+) (copyloopvar)
+2025-08-28T21:03:50.2356408Z ##[error]pkg/nephio/dependencies/validator.go:697:3: The copy of the 'for' variable "pkg" can be deleted (Go 1.22+) (copyloopvar)
+2025-08-28T21:03:50.2357765Z ##[error]pkg/nephio/dependencies/validator.go:868:3: The copy of the 'for' variable "pkg" can be deleted (Go 1.22+) (copyloopvar)
+2025-08-28T21:03:50.2359060Z ##[error]pkg/nephio/krm/function_manager.go:511:2: Consider pre-allocating `functions` (prealloc)
+2025-08-28T21:03:50.2360320Z ##[error]pkg/nephio/krm/functions/network-slice-config.go:891:2: Consider pre-allocating `nfTypes` (prealloc)
+2025-08-28T21:03:50.2361597Z ##[error]pkg/nephio/krm/functions/o-ran-interface.go:1246:2: Consider pre-allocating `interfaceTypes` (prealloc)
+2025-08-28T21:03:50.2362913Z ##[error]pkg/nephio/krm/pipeline.go:1323:2: Consider pre-allocating `result` (prealloc)
+2025-08-28T21:03:50.2364175Z ##[error]pkg/nephio/multicluster/sync_engine.go:140:35: G115: integer overflow conversion int -> uint (gosec)
+2025-08-28T21:03:50.2365461Z ##[error]pkg/nephio/porch/client.go:1784:2: Consider pre-allocating `interfaceResources` (prealloc)
+2025-08-28T21:03:50.2366628Z ##[error]pkg/nephio/porch/client.go:1841:2: Consider pre-allocating `currentResources` (prealloc)
+2025-08-28T21:03:50.2367912Z ##[error]pkg/nephio/porch/client.go:2328:43: G115: integer overflow conversion int -> uint32 (gosec)
+2025-08-28T21:03:50.2369096Z ##[error]pkg/nephio/porch/client.go:2335:34: G115: integer overflow conversion int -> uint32 (gosec)
+2025-08-28T21:03:50.2370351Z ##[error]pkg/nephio/porch/dependency_types.go:342:8: S1005: unnecessary assignment to the blank identifier (gosimple)
+2025-08-28T21:03:50.2371744Z ##[error]pkg/nephio/porch/workflow_engine.go:585:5: Function `StartWorkflow$1` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2373432Z ##[error]pkg/nephio/testutil/porch_fixtures.go:54:21: Non-inherited new context, use function like `context.WithXXX` instead (contextcheck)
+2025-08-28T21:03:50.2374896Z ##[error]pkg/nephio/webui/api_server.go:193:21: Function `Shutdown` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2376200Z ##[error]pkg/nephio/webui/api_server.go:195:21: Function `Shutdown` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2377382Z ##[error]pkg/nephio/workflow_orchestrator.go:620:2: ineffectual assignment to ctx (ineffassign)
+2025-08-28T21:03:50.2378800Z ##[error]pkg/nephio/workload/config_sync.go:1147:11: SA4010: this result of append is never used, except maybe in other appends (staticcheck)
+2025-08-28T21:03:50.2380097Z ##[error]pkg/nephio/workload/fleet_manager.go:1460:3: ineffectual assignment to healthScore (ineffassign)
+2025-08-28T21:03:50.2381626Z ##[error]pkg/optimization/performance_analysis_engine.go:793:7: SA4006: this value of `threshold` is never used (staticcheck)
+2025-08-28T21:03:50.2383069Z ##[error]pkg/oran/a1/a1_adaptor.go:354:2: Consider pre-allocating `policyTypes` (prealloc)
+2025-08-28T21:03:50.2384176Z ##[error]pkg/oran/a1/a1_adaptor.go:488:2: Consider pre-allocating `instances` (prealloc)
+2025-08-28T21:03:50.2385463Z ##[error]pkg/oran/a1/a1_adaptor.go:1069:2: Non-inherited new context, use function like `context.WithXXX` instead (contextcheck)
+2025-08-28T21:03:50.2386640Z ##[error]pkg/oran/a1/a1_ei_interface.go:161:2: Consider pre-allocating `eiTypes` (prealloc)
+2025-08-28T21:03:50.2387702Z ##[error]pkg/oran/a1/a1_ei_interface.go:299:2: Consider pre-allocating `eiJobs` (prealloc)
+2025-08-28T21:03:50.2389083Z ##[error]pkg/oran/a1/errors.go:510:11: type assertion on error will fail on wrapped errors. Use errors.As to check for specific errors (errorlint)
+2025-08-28T21:03:50.2390681Z ##[error]pkg/oran/a1/errors.go:516:18: type assertion on error will fail on wrapped errors. Use errors.As to check for specific errors (errorlint)
+2025-08-28T21:03:50.2392104Z ##[error]pkg/oran/a1/server.go:191:31: Non-inherited new context, use function like `context.WithXXX` instead (contextcheck)
+2025-08-28T21:03:50.2393679Z ##[error]pkg/oran/a1/server.go:194:36: comparing with != will fail on wrapped errors. Use errors.Is to check for a specific error (errorlint)
+2025-08-28T21:03:50.2395042Z ##[error]pkg/oran/a1/server.go:399:26: Function `LogHTTPRequest` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2396193Z ##[error]pkg/oran/a1/validation.go:363:2: Consider pre-allocating `schemaIDs` (prealloc)
+2025-08-28T21:03:50.2397637Z ##[error]pkg/oran/a1/validation.go:376:26: type assertion on error will fail on wrapped errors. Use errors.As to check for specific errors (errorlint)
+2025-08-28T21:03:50.2398962Z ##[error]pkg/oran/e2/asn1_codec.go:26:54: G115: integer overflow conversion int32 -> uint16 (gosec)
+2025-08-28T21:03:50.2400066Z ##[error]pkg/oran/e2/asn1_codec.go:31:26: G115: integer overflow conversion int -> uint8 (gosec)
+2025-08-28T21:03:50.2401172Z ##[error]pkg/oran/e2/asn1_codec.go:37:53: G115: integer overflow conversion int32 -> uint8 (gosec)
+2025-08-28T21:03:50.2402283Z ##[error]pkg/oran/e2/asn1_codec.go:224:54: G115: integer overflow conversion int32 -> uint16 (gosec)
+2025-08-28T21:03:50.2403543Z ##[error]pkg/oran/e2/asn1_codec.go:287:54: G115: integer overflow conversion int32 -> uint16 (gosec)
+2025-08-28T21:03:50.2404662Z ##[error]pkg/oran/e2/asn1_codec.go:292:54: G115: integer overflow conversion int32 -> uint16 (gosec)
+2025-08-28T21:03:50.2405902Z ##[error]pkg/oran/e2/asn1_codec.go:298:55: G115: integer overflow conversion int32 -> uint32 (gosec)
+2025-08-28T21:03:50.2407051Z ##[error]pkg/oran/e2/asn1_codec.go:358:25: G115: integer overflow conversion uint32 -> int32 (gosec)
+2025-08-28T21:03:50.2408155Z ##[error]pkg/oran/e2/asn1_codec.go:400:51: G115: integer overflow conversion int -> uint8 (gosec)
+2025-08-28T21:03:50.2409252Z ##[error]pkg/oran/e2/asn1_codec.go:547:49: G115: integer overflow conversion int -> uint8 (gosec)
+2025-08-28T21:03:50.2410354Z ##[error]pkg/oran/e2/asn1_codec.go:553:50: G115: integer overflow conversion int -> uint16 (gosec)
+2025-08-28T21:03:50.2411453Z ##[error]pkg/oran/e2/asn1_codec.go:731:52: G115: integer overflow conversion int32 -> uint16 (gosec)
+2025-08-28T21:03:50.2412658Z ##[error]pkg/oran/e2/asn1_codec.go:834:51: G115: integer overflow conversion int -> uint8 (gosec)
+2025-08-28T21:03:50.2413800Z ##[error]pkg/oran/e2/asn1_codec.go:1036:53: G115: integer overflow conversion int -> uint16 (gosec)
+2025-08-28T21:03:50.2414919Z ##[error]pkg/oran/e2/asn1_codec.go:1077:51: G115: integer overflow conversion int -> uint8 (gosec)
+2025-08-28T21:03:50.2416024Z ##[error]pkg/oran/e2/asn1_codec.go:1082:49: G115: integer overflow conversion int -> uint16 (gosec)
+2025-08-28T21:03:50.2417123Z ##[error]pkg/oran/e2/asn1_codec.go:1489:53: G115: integer overflow conversion int -> uint16 (gosec)
+2025-08-28T21:03:50.2418413Z ##[error]pkg/oran/e2/e2_adaptor.go:864:2: Consider pre-allocating `ranFunctions` (prealloc)
+2025-08-28T21:03:50.2419580Z ##[error]pkg/oran/e2/e2ap_messages.go:614:48: G115: integer overflow conversion int32 -> uint32 (gosec)
+2025-08-28T21:03:50.2420722Z ##[error]pkg/oran/e2/e2ap_messages.go:615:49: G115: integer overflow conversion int32 -> uint32 (gosec)
+2025-08-28T21:03:50.2421855Z ##[error]pkg/oran/e2/e2ap_messages.go:633:24: G115: integer overflow conversion uint32 -> int32 (gosec)
+2025-08-28T21:03:50.2423114Z ##[error]pkg/oran/e2/e2ap_messages.go:634:24: G115: integer overflow conversion uint32 -> int32 (gosec)
+2025-08-28T21:03:50.2424449Z ##[error]pkg/oran/e2/service_models.go:537:28: SA4010: this result of append is never used, except maybe in other appends (staticcheck)
+2025-08-28T21:03:50.2425979Z ##[error]pkg/oran/e2/service_models/kpm_model.go:1:1: ST1000: package comment should be of the form "Package service_models..." (stylecheck)
+2025-08-28T21:03:50.2427356Z ##[error]pkg/oran/e2/xapp_sdk.go:244:37: Function `SubscribeE2` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2428976Z ##[error]pkg/oran/health/oran_health_checker.go:137:14: ST1023: should omit type health.Status from declaration; it will be inferred from the right-hand side (stylecheck)
+2025-08-28T21:03:50.2430699Z ##[error]pkg/oran/health/oran_health_checker.go:172:14: ST1023: should omit type health.Status from declaration; it will be inferred from the right-hand side (stylecheck)
+2025-08-28T21:03:50.2432410Z ##[error]pkg/oran/health/oran_health_checker.go:206:14: ST1023: should omit type health.Status from declaration; it will be inferred from the right-hand side (stylecheck)
+2025-08-28T21:03:50.2434245Z ##[error]pkg/oran/health/oran_health_checker.go:235:14: ST1023: should omit type health.Status from declaration; it will be inferred from the right-hand side (stylecheck)
+2025-08-28T21:03:50.2435666Z ##[error]pkg/oran/o1/fault_manager.go:511:2: S1031: unnecessary nil check around range (gosimple)
+2025-08-28T21:03:50.2436822Z ##[error]pkg/oran/o1/fault_manager.go:703:15: G115: integer overflow conversion int64 -> uint32 (gosec)
+2025-08-28T21:03:50.2437925Z ##[error]pkg/oran/o1/fault_manager.go:765:2: Consider pre-allocating `allAlarms` (prealloc)
+2025-08-28T21:03:50.2439107Z ##[error]pkg/oran/o1/netconf_client.go:152:20: G106: Use of ssh InsecureIgnoreHostKey should be audited (gosec)
+2025-08-28T21:03:50.2440484Z ##[error]pkg/oran/o1/netconf_server.go:136:26: SA5008: invalid XML tag: cannot specify name together with option ,innerxml (staticcheck)
+2025-08-28T21:03:50.2442050Z ##[error]pkg/oran/o1/netconf_server.go:144:25: SA5008: invalid XML tag: cannot specify name together with option ,innerxml (staticcheck)
+2025-08-28T21:03:50.2443494Z ##[error]pkg/oran/o1/o1_controller.go:980:2: S1033: unnecessary guard around call to delete (gosimple)
+2025-08-28T21:03:50.2444921Z ##[error]pkg/oran/o1/security/security_types.go:1:1: ST1000: package comment should be of the form "Package security..." (stylecheck)
+2025-08-28T21:03:50.2446873Z ##[error]pkg/oran/o1/security/security_types.go:208:6: exported: type name will be used as security.SecurityPolicyEngine by other packages, and that stutters; consider calling this PolicyEngine (revive)
+2025-08-28T21:03:50.2448842Z ##[error]pkg/oran/o1/security/security_types.go:229:6: exported: type name will be used as security.SecurityPolicy by other packages, and that stutters; consider calling this Policy (revive)
+2025-08-28T21:03:50.2450764Z ##[error]pkg/oran/o1/security/security_types.go:445:6: exported: type name will be used as security.SecurityStatus by other packages, and that stutters; consider calling this Status (revive)
+2025-08-28T21:03:50.2452764Z ##[error]pkg/oran/o1/security/security_types.go:480:6: exported: type name will be used as security.SecurityAlert by other packages, and that stutters; consider calling this Alert (revive)
+2025-08-28T21:03:50.2454161Z ##[error]pkg/oran/o1/security_manager.go:2843:2: Consider pre-allocating `result` (prealloc)
+2025-08-28T21:03:50.2455508Z ##[error]pkg/oran/o2/health_checker.go:82:2: Consider pre-allocating `checks` (prealloc)
+2025-08-28T21:03:50.2456652Z ##[error]pkg/oran/o2/ims/ims_services.go:226:2: Consider pre-allocating `o2Nodes` (prealloc)
+2025-08-28T21:03:50.2457742Z ##[error]pkg/oran/o2/ims/ims_services.go:488:2: Consider pre-allocating `alarms` (prealloc)
+2025-08-28T21:03:50.2459154Z ##[error]pkg/oran/o2/inventory_management.go:306:3: Function `discoveryLoop->performDiscovery` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2460753Z ##[error]pkg/oran/o2/inventory_management.go:437:19: comparing with != will fail on wrapped errors. Use errors.Is to check for a specific error (errorlint)
+2025-08-28T21:03:50.2462105Z ##[error]pkg/oran/o2/providers/azure.go:77:16: S1039: unnecessary use of fmt.Sprintf (gosimple)
+2025-08-28T21:03:50.2463363Z ##[error]pkg/oran/o2/providers/gcp.go:75:16: S1039: unnecessary use of fmt.Sprintf (gosimple)
+2025-08-28T21:03:50.2464742Z ##[error]pkg/oran/o2/providers/integration_manager.go:62:40: Function `RegisterProvider` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2466247Z ##[error]pkg/oran/o2/providers/integration_manager.go:124:40: Function `RegisterProvider` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2467767Z ##[error]pkg/oran/o2/providers/integration_manager.go:162:42: Function `UnregisterProvider` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2469064Z ##[error]pkg/oran/o2/providers/kubernetes.go:1440:2: ineffectual assignment to status (ineffassign)
+2025-08-28T21:03:50.2470220Z ##[error]pkg/oran/o2/providers/kubernetes.go:1441:2: ineffectual assignment to health (ineffassign)
+2025-08-28T21:03:50.2471359Z ##[error]pkg/oran/o2/providers/kubernetes.go:1522:2: ineffectual assignment to health (ineffassign)
+2025-08-28T21:03:50.2472599Z ##[error]pkg/oran/o2/providers/kubernetes.go:1571:2: ineffectual assignment to status (ineffassign)
+2025-08-28T21:03:50.2473767Z ##[error]pkg/oran/o2/providers/kubernetes.go:1572:2: ineffectual assignment to phase (ineffassign)
+2025-08-28T21:03:50.2474939Z ##[error]pkg/oran/o2/providers/openstack.go:599:2: Consider pre-allocating `deployments` (prealloc)
+2025-08-28T21:03:50.2476061Z ##[error]pkg/oran/o2/providers/openstack.go:1166:2: Consider pre-allocating `tags` (prealloc)
+2025-08-28T21:03:50.2477384Z ##[error]pkg/oran/o2/service_implementations.go:517:6: Function `CreateResource$1` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2478816Z ##[error]pkg/oran/o2/service_implementations.go:583:6: Function `UpdateResource$1` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2480181Z ##[error]pkg/oran/o2/service_implementations.go:735:2: Consider pre-allocating `configs` (prealloc)
+2025-08-28T21:03:50.2481582Z ##[error]pkg/oran/o2/service_implementations.go:799:46: Function `UnregisterProvider` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2483180Z ##[error]pkg/oran/o2/service_implementations.go:804:46: Function `UnregisterProvider` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2484425Z ##[error]pkg/oran/o2/storage.go:353:2: Consider pre-allocating `templates` (prealloc)
+2025-08-28T21:03:50.2485507Z ##[error]pkg/oran/o2/storage.go:414:2: Consider pre-allocating `deployments` (prealloc)
+2025-08-28T21:03:50.2486585Z ##[error]pkg/oran/o2/storage.go:475:2: Consider pre-allocating `subscriptions` (prealloc)
+2025-08-28T21:03:50.2487638Z ##[error]pkg/oran/o2/storage.go:536:2: Consider pre-allocating `providers` (prealloc)
+2025-08-28T21:03:50.2488896Z ##[error]pkg/oran/security/security.go:547:17: Error return value of `m.refreshJWKS` is not checked (errcheck)
+2025-08-28T21:03:50.2489979Z ##[error]pkg/oran/smo_manager.go:140:2: field `failures` is unused (unused)
+2025-08-28T21:03:50.2491513Z ##[error]pkg/packagerevision/factory.go:419:52: Function `NewLifecycleManager->eventWorker->processEvent` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2493575Z ##[error]pkg/packagerevision/factory.go:432:52: Function `NewTemplateEngine->catalogRefreshWorker` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2495165Z ##[error]pkg/packagerevision/manager.go:716:4: SA4011: ineffective break statement. Did you mean to break out of the outer loop? (staticcheck)
+2025-08-28T21:03:50.2497171Z ##[error]pkg/performance/analysis/performance_validation.go:172:1: exported: comment on exported type ValidationResult should be of the form "ValidationResult ..." (with optional leading article) (revive)
+2025-08-28T21:03:50.2498982Z ##[error]pkg/performance/analysis/performance_validation.go:178:6: exported: exported type PerformanceReport should have comment or be unexported (revive)
+2025-08-28T21:03:50.2500915Z ##[error]pkg/performance/analysis/statistical_analysis.go:141:1: exported: comment on exported type DescriptiveStats should be of the form "DescriptiveStats ..." (with optional leading article) (revive)
+2025-08-28T21:03:50.2502754Z ##[error]pkg/performance/analysis/statistical_analysis.go:151:6: exported: exported type OutlierResult should have comment or be unexported (revive)
+2025-08-28T21:03:50.2504393Z ##[error]pkg/performance/analysis/statistical_analysis.go:156:6: exported: exported type HypothesisResult should have comment or be unexported (revive)
+2025-08-28T21:03:50.2505664Z ##[error]pkg/performance/benchmark_runner.go:590:21: unnecessary conversion (unconvert)
+2025-08-28T21:03:50.2506715Z ##[error]pkg/performance/benchmark_runner.go:591:21: unnecessary conversion (unconvert)
+2025-08-28T21:03:50.2508260Z ##[error]pkg/performance/benchmark_suite.go:24:14: SA1019: workqueue.RateLimiter is deprecated: RateLimiter is deprecated, use TypedRateLimiter instead. (staticcheck)
+2025-08-28T21:03:50.2510669Z ##[error]pkg/performance/benchmark_suite.go:100:16: SA1019: workqueue.NewItemExponentialFailureRateLimiter is deprecated: NewItemExponentialFailureRateLimiter is deprecated, use NewTypedItemExponentialFailureRateLimiter instead. (staticcheck)
+2025-08-28T21:03:50.2512380Z ##[error]pkg/performance/cache_optimized.go:248:29: G115: integer overflow conversion int -> uint64 (gosec)
+2025-08-28T21:03:50.2513773Z ##[error]pkg/performance/db_optimized.go:434:19: Error return value of `txn.tx.Rollback` is not checked (errcheck)
+2025-08-28T21:03:50.2514927Z ##[error]pkg/performance/db_optimized.go:865:2: Consider pre-allocating `result` (prealloc)
+2025-08-28T21:03:50.2516150Z ##[error]pkg/performance/db_optimized.go:889:18: Error return value of `result.RowsAffected` is not checked (errcheck)
+2025-08-28T21:03:50.2517708Z ##[error]pkg/performance/distributed/telecom_load_tester.go:828:5: Error return value of `crypto_rand.Int` is not checked (errcheck)
+2025-08-28T21:03:50.2519172Z ##[error]pkg/performance/distributed/telecom_load_tester.go:840:7: Error return value of `crypto_rand.Int` is not checked (errcheck)
+2025-08-28T21:03:50.2520614Z ##[error]pkg/performance/distributed/telecom_load_tester.go:846:10: Error return value of `crypto_rand.Int` is not checked (errcheck)
+2025-08-28T21:03:50.2522001Z ##[error]pkg/performance/example_integration.go:114:3: The copy of the 'for' variable "i" can be deleted (Go 1.22+) (copyloopvar)
+2025-08-28T21:03:50.2523399Z ##[error]pkg/performance/example_integration.go:116:14: G115: integer overflow conversion int -> uint64 (gosec)
+2025-08-28T21:03:50.2524624Z ##[error]pkg/performance/example_integration.go:168:20: SA4006: this value of `b` is never used (staticcheck)
+2025-08-28T21:03:50.2525919Z ##[error]pkg/performance/example_integration.go:224:3: The copy of the 'for' variable "i" can be deleted (Go 1.22+) (copyloopvar)
+2025-08-28T21:03:50.2527236Z ##[error]pkg/performance/example_integration.go:243:17: Error return value of `os.cache.Set` is not checked (errcheck)
+2025-08-28T21:03:50.2528551Z ##[error]pkg/performance/example_integration.go:279:3: The copy of the 'for' variable "i" can be deleted (Go 1.22+) (copyloopvar)
+2025-08-28T21:03:50.2529845Z ##[error]pkg/performance/example_integration.go:361:15: Error return value of `os.cache.Set` is not checked (errcheck)
+2025-08-28T21:03:50.2531343Z ##[error]pkg/performance/example_integration.go:367:3: The copy of the 'for' variable "i" can be deleted (Go 1.22+) (copyloopvar)
+2025-08-28T21:03:50.2532762Z ##[error]pkg/performance/example_integration.go:380:18: Error return value of `os.cache.Set` is not checked (errcheck)
+2025-08-28T21:03:50.2534073Z ##[error]pkg/performance/example_integration.go:390:19: Error return value of `os.cache.Set` is not checked (errcheck)
+2025-08-28T21:03:50.2535362Z ##[error]pkg/performance/example_integration.go:494:17: Error return value of `os.cache.Set` is not checked (errcheck)
+2025-08-28T21:03:50.2536592Z ##[error]pkg/performance/example_integration.go:500:23: SA4006: this value of `b` is never used (staticcheck)
+2025-08-28T21:03:50.2537858Z ##[error]pkg/performance/example_integration.go:633:23: Error return value of `system.Shutdown` is not checked (errcheck)
+2025-08-28T21:03:50.2539137Z ##[error]pkg/performance/goroutine_pools.go:686:20: Error return value of `pool.SubmitTask` is not checked (errcheck)
+2025-08-28T21:03:50.2540278Z ##[error]pkg/performance/goroutine_pools.go:801:28: unnecessary conversion (unconvert)
+2025-08-28T21:03:50.2541535Z ##[error]pkg/performance/http_optimized.go:153:27: Error return value of `http2.ConfigureTransport` is not checked (errcheck)
+2025-08-28T21:03:50.2543001Z ##[error]pkg/performance/http_optimized.go:275:23: SA6002: argument should be pointer-like to avoid allocations (staticcheck)
+2025-08-28T21:03:50.2544718Z ##[error]pkg/performance/http_optimized.go:366:26: Function `performHealthChecks->performHealthChecks$1->checkEndpoint` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2546054Z ##[error]pkg/performance/http_optimized.go:461:27: response body must be closed (bodyclose)
+2025-08-28T21:03:50.2547291Z ##[error]pkg/performance/load-testing/framework.go:903:2: Consider pre-allocating `reports` (prealloc)
+2025-08-28T21:03:50.2548632Z ##[error]pkg/performance/load-testing/monitoring.go:289:26: Function `Collect` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2550034Z ##[error]pkg/performance/memory_pools.go:618:28: Error return value of `mpm.mmapManager.UnmapFile` is not checked (errcheck)
+2025-08-28T21:03:50.2584711Z ##[error]pkg/performance/models/performance_predictor.go:1:1: ST1000: package comment should be of the form "Package models..." (stylecheck)
+2025-08-28T21:03:50.2586606Z ##[error]pkg/performance/optimization_engine.go:23:29: SA1019: workqueue.RateLimiter is deprecated: RateLimiter is deprecated, use TypedRateLimiter instead. (staticcheck)
+2025-08-28T21:03:50.2588625Z ##[error]pkg/performance/optimization_engine.go:92:36: SA1019: workqueue.RateLimiter is deprecated: RateLimiter is deprecated, use TypedRateLimiter instead. (staticcheck)
+2025-08-28T21:03:50.2590142Z ##[error]pkg/performance/optimization_engine.go:484:10: Error return value of `bp.flush` is not checked (errcheck)
+2025-08-28T21:03:50.2592454Z ##[error]pkg/performance/optimization_engine.go:638:26: SA1019: workqueue.NewItemExponentialFailureRateLimiter is deprecated: NewItemExponentialFailureRateLimiter is deprecated, use NewTypedItemExponentialFailureRateLimiter instead. (staticcheck)
+2025-08-28T21:03:50.2595420Z ##[error]pkg/performance/optimization_engine.go:644:31: SA1019: workqueue.NewItemExponentialFailureRateLimiter is deprecated: NewItemExponentialFailureRateLimiter is deprecated, use NewTypedItemExponentialFailureRateLimiter instead. (staticcheck)
+2025-08-28T21:03:50.2598189Z ##[error]pkg/performance/optimization_engine.go:650:26: SA1019: workqueue.NewItemExponentialFailureRateLimiter is deprecated: NewItemExponentialFailureRateLimiter is deprecated, use NewTypedItemExponentialFailureRateLimiter instead. (staticcheck)
+2025-08-28T21:03:50.2599852Z ##[error]pkg/performance/optimization_engine.go:707:19: response body must be closed (bodyclose)
+2025-08-28T21:03:50.2600992Z ##[error]pkg/performance/optimization_engine.go:756:2: Consider pre-allocating `errs` (prealloc)
+2025-08-28T21:03:50.2602265Z ##[error]pkg/performance/performance_analyzer.go:201:9: Error return value of `json.Marshal` is not checked (errcheck)
+2025-08-28T21:03:50.2603931Z ##[error]pkg/performance/performance_analyzer.go:203:17: Error return value of `json.Unmarshal` is not checked (errcheck)
+2025-08-28T21:03:50.2605376Z ##[error]pkg/performance/profiler_enhanced.go:9:2: G108: Profiling endpoint is automatically exposed on /debug/pprof (gosec)
+2025-08-28T21:03:50.2606855Z ##[error]pkg/performance/profiler_enhanced.go:725:38: Error return value of `ep.metricsCollector.registry.Gather` is not checked (errcheck)
+2025-08-28T21:03:50.2608212Z ##[error]pkg/performance/regression/api_integration.go:97:2: field `metricStore` is unused (unused)
+2025-08-28T21:03:50.2609407Z ##[error]pkg/performance/regression/api_integration.go:587:4: Error return value is not checked (errcheck)
+2025-08-28T21:03:50.2610698Z ##[error]pkg/performance/regression/api_integration.go:838:15: Error return value of `json.Marshal` is not checked (errcheck)
+2025-08-28T21:03:50.2612412Z ##[error]pkg/performance/regression/api_integration.go:866:30: Function `performConnectionTests->testPrometheusConnection` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2614046Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:78:2: field `config` is unused (unused)
+2025-08-28T21:03:50.2615304Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:80:2: field `timeSeriesAnalyzer` is unused (unused)
+2025-08-28T21:03:50.2616564Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:81:2: field `patternMatcher` is unused (unused)
+2025-08-28T21:03:50.2617820Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:88:2: field `correlationMetrics` is unused (unused)
+2025-08-28T21:03:50.2619025Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:165:2: field `config` is unused (unused)
+2025-08-28T21:03:50.2620306Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:166:2: field `feedbackProcessor` is unused (unused)
+2025-08-28T21:03:50.2621575Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:167:2: field `patternRecognizer` is unused (unused)
+2025-08-28T21:03:50.2622953Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:168:2: field `thresholdOptimizer` is unused (unused)
+2025-08-28T21:03:50.2624230Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:171:2: field `historicalAlerts` is unused (unused)
+2025-08-28T21:03:50.2625472Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:172:2: field `alertOutcomes` is unused (unused)
+2025-08-28T21:03:50.2626878Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:173:2: field `humanFeedback` is unused (unused)
+2025-08-28T21:03:50.2628182Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:176:2: field `falsePositiveModel` is unused (unused)
+2025-08-28T21:03:50.2629425Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:177:2: field `severityModel` is unused (unused)
+2025-08-28T21:03:50.2630678Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:178:2: field `escalationModel` is unused (unused)
+2025-08-28T21:03:50.2631920Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:181:2: field `learningMetrics` is unused (unused)
+2025-08-28T21:03:50.2633268Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:197:2: field `channel` is unused (unused)
+2025-08-28T21:03:50.2634470Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:198:2: field `username` is unused (unused)
+2025-08-28T21:03:50.2635671Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:199:2: field `iconEmoji` is unused (unused)
+2025-08-28T21:03:50.2636845Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:205:2: field `name` is unused (unused)
+2025-08-28T21:03:50.2638038Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:206:2: field `smtpServer` is unused (unused)
+2025-08-28T21:03:50.2639235Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:207:2: field `smtpPort` is unused (unused)
+2025-08-28T21:03:50.2640605Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:208:2: field `username` is unused (unused)
+2025-08-28T21:03:50.2641793Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:209:2: field `password` is unused (unused)
+2025-08-28T21:03:50.2643135Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:210:2: field `fromAddress` is unused (unused)
+2025-08-28T21:03:50.2644361Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:211:2: field `toAddresses` is unused (unused)
+2025-08-28T21:03:50.2645555Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:212:2: field `config` is unused (unused)
+2025-08-28T21:03:50.2646738Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:217:2: field `name` is unused (unused)
+2025-08-28T21:03:50.2647909Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:218:2: field `url` is unused (unused)
+2025-08-28T21:03:50.2649092Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:219:2: field `headers` is unused (unused)
+2025-08-28T21:03:50.2650273Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:220:2: field `timeout` is unused (unused)
+2025-08-28T21:03:50.2651439Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:221:2: field `retries` is unused (unused)
+2025-08-28T21:03:50.2652768Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:222:2: field `config` is unused (unused)
+2025-08-28T21:03:50.2654051Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:227:2: field `name` is unused (unused)
+2025-08-28T21:03:50.2655251Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:228:2: field `routingKey` is unused (unused)
+2025-08-28T21:03:50.2656430Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:229:2: field `apiUrl` is unused (unused)
+2025-08-28T21:03:50.2657615Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:230:2: field `severityMap` is unused (unused)
+2025-08-28T21:03:50.2658795Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:231:2: field `config` is unused (unused)
+2025-08-28T21:03:50.2660116Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:569:15: Error return value of `json.Marshal` is not checked (errcheck)
+2025-08-28T21:03:50.2661598Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:652:37: func `(*IntelligentAlertManager).buildSlackPayload` is unused (unused)
+2025-08-28T21:03:50.2663499Z ##[error]pkg/performance/regression/intelligent_alert_manager.go:696:37: func `(*IntelligentAlertManager).getSeverityColor` is unused (unused)
+2025-08-28T21:03:50.2664872Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:37:2: field `mutex` is unused (unused)
+2025-08-28T21:03:50.2666133Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:102:2: field `baselineHistory` is unused (unused)
+2025-08-28T21:03:50.2667416Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:154:2: field `historicalData` is unused (unused)
+2025-08-28T21:03:50.2668636Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:168:2: field `name` is unused (unused)
+2025-08-28T21:03:50.2669846Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:169:2: field `parameters` is unused (unused)
+2025-08-28T21:03:50.2671042Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:174:2: field `name` is unused (unused)
+2025-08-28T21:03:50.2672244Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:175:2: field `parameters` is unused (unused)
+2025-08-28T21:03:50.2673598Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:176:2: field `trees` is unused (unused)
+2025-08-28T21:03:50.2674816Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:182:2: field `parameters` is unused (unused)
+2025-08-28T21:03:50.2676037Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:183:2: field `neighbors` is unused (unused)
+2025-08-28T21:03:50.2677574Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:191:2: field `historicalChanges` is unused (unused)
+2025-08-28T21:03:50.2678825Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:203:2: field `priorProb` is unused (unused)
+2025-08-28T21:03:50.2680041Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:204:2: field `hazardRate` is unused (unused)
+2025-08-28T21:03:50.2681280Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:213:2: field `historicalData` is unused (unused)
+2025-08-28T21:03:50.2682658Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:214:2: field `predictionCache` is unused (unused)
+2025-08-28T21:03:50.2683904Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:228:2: field `p` is unused (unused)
+2025-08-28T21:03:50.2685114Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:229:2: field `parameters` is unused (unused)
+2025-08-28T21:03:50.2686343Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:230:2: field `residuals` is unused (unused)
+2025-08-28T21:03:50.2687556Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:231:2: field `accuracy` is unused (unused)
+2025-08-28T21:03:50.2688755Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:237:2: field `alpha` is unused (unused)
+2025-08-28T21:03:50.2689948Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:238:2: field `beta` is unused (unused)
+2025-08-28T21:03:50.2691132Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:239:2: field `gamma` is unused (unused)
+2025-08-28T21:03:50.2692334Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:240:2: field `seasonal` is unused (unused)
+2025-08-28T21:03:50.2693677Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:241:2: field `accuracy` is unused (unused)
+2025-08-28T21:03:50.2694925Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:309:2: field `feedbackStore` is unused (unused)
+2025-08-28T21:03:50.2696190Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:310:2: field `modelRepository` is unused (unused)
+2025-08-28T21:03:50.2697473Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:311:2: field `trainingScheduler` is unused (unused)
+2025-08-28T21:03:50.2698777Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:312:2: field `performanceTracker` is unused (unused)
+2025-08-28T21:03:50.2700195Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:315:2: field `feedbackProcessor` is unused (unused)
+2025-08-28T21:03:50.2701514Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:316:2: field `featureExtractor` is unused (unused)
+2025-08-28T21:03:50.2702902Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:317:2: field `modelOptimizer` is unused (unused)
+2025-08-28T21:03:50.2704197Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:318:2: field `knowledgeBase` is unused (unused)
+2025-08-28T21:03:50.2705464Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:323:2: field `feedbackEntries` is unused (unused)
+2025-08-28T21:03:50.2706690Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:324:2: field `outcomes` is unused (unused)
+2025-08-28T21:03:50.2707915Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:325:2: field `annotations` is unused (unused)
+2025-08-28T21:03:50.2709166Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:343:2: field `slaViolations` is unused (unused)
+2025-08-28T21:03:50.2710394Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:370:2: field `metricStore` is unused (unused)
+2025-08-28T21:03:50.2711682Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:371:2: field `externalDataSources` is unused (unused)
+2025-08-28T21:03:50.2713243Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:373:2: field `lagAnalyzer` is unused (unused)
+2025-08-28T21:03:50.2714516Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:374:2: field `causalityAnalyzer` is unused (unused)
+2025-08-28T21:03:50.2715774Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:392:2: field `timeSeriesDB` is unused (unused)
+2025-08-28T21:03:50.2717007Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:393:2: field `aggregator` is unused (unused)
+2025-08-28T21:03:50.2718231Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:394:2: field `compressor` is unused (unused)
+2025-08-28T21:03:50.2719482Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:395:2: field `indexer` is unused (unused)
+2025-08-28T21:03:50.2720738Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:396:2: field `retentionPolicy` is unused (unused)
+2025-08-28T21:03:50.2721962Z ##[error]pkg/performance/regression/intelligent_regression_engine.go:401:2: field `mutex` is unused (unused)
+2025-08-28T21:03:50.2723284Z ##[error]pkg/performance/regression/nwdaf_analyzer.go:31:2: field `correlationMatrix` is unused (unused)
+2025-08-28T21:03:50.2724469Z ##[error]pkg/performance/regression/nwdaf_analyzer.go:34:2: field `streamingProcessor` is unused (unused)
+2025-08-28T21:03:50.2726308Z ##[error]pkg/performance/validation/statistical_validator.go:23:6: exported: type name will be used as validation.ValidationConfig by other packages, and that stutters; consider calling this Config (revive)
+2025-08-28T21:03:50.2728380Z ##[error]pkg/performance/validation/statistical_validator.go:126:6: exported: type name will be used as validation.ValidationResult by other packages, and that stutters; consider calling this Result (revive)
+2025-08-28T21:03:50.2730202Z ##[error]pkg/performance/validation/statistical_validator.go:642:1: exported: exported function NewBatchValidation should have comment or be unexported (revive)
+2025-08-28T21:03:50.2731935Z ##[error]pkg/performance/validation/statistical_validator.go:650:1: exported: exported method BatchValidation.AddTarget should have comment or be unexported (revive)
+2025-08-28T21:03:50.2733821Z ##[error]pkg/performance/validation/statistical_validator.go:667:1: exported: exported method BatchValidation.GetResults should have comment or be unexported (revive)
+2025-08-28T21:03:50.2735614Z ##[error]pkg/performance/validation/statistical_validator.go:671:1: exported: exported method BatchValidation.GenerateReport should have comment or be unexported (revive)
+2025-08-28T21:03:50.2737160Z ##[error]pkg/porch/client.go:118:32: (*net/http.Client).Post must not be called (noctx)
+2025-08-28T21:03:50.2738324Z ##[error]pkg/porch/client.go:125:9: Error return value of `io.ReadAll` is not checked (errcheck)
+2025-08-28T21:03:50.2739453Z ##[error]pkg/porch/client.go:156:9: Error return value of `io.ReadAll` is not checked (errcheck)
+2025-08-28T21:03:50.2740520Z ##[error]pkg/porch/client.go:167:31: (*net/http.Client).Get must not be called (noctx)
+2025-08-28T21:03:50.2741607Z ##[error]pkg/porch/client.go:178:9: Error return value of `io.ReadAll` is not checked (errcheck)
+2025-08-28T21:03:50.2742781Z ##[error]pkg/porch/client.go:209:32: (*net/http.Client).Post must not be called (noctx)
+2025-08-28T21:03:50.2743902Z ##[error]pkg/porch/client.go:216:9: Error return value of `io.ReadAll` is not checked (errcheck)
+2025-08-28T21:03:50.2745173Z ##[error]pkg/porch/client.go:243:33: should rewrite http.NewRequestWithContext or add (*Request).WithContext (noctx)
+2025-08-28T21:03:50.2746374Z ##[error]pkg/porch/client.go:256:9: Error return value of `io.ReadAll` is not checked (errcheck)
+2025-08-28T21:03:50.2747550Z ##[error]pkg/porch/client.go:316:14: Error return value of `json.MarshalIndent` is not checked (errcheck)
+2025-08-28T21:03:50.2748763Z ##[error]pkg/rag/enhanced_rag_integration.go:444:2: Consider pre-allocating `scores` (prealloc)
+2025-08-28T21:03:50.2750056Z ##[error]pkg/rag/enhanced_rag_integration.go:727:2: Consider pre-allocating `results` (prealloc)
+2025-08-28T21:03:50.2751252Z ##[error]pkg/recovery/disaster_recovery.go:334:2: Consider pre-allocating `errors` (prealloc)
+2025-08-28T21:03:50.2752364Z ##[error]pkg/recovery/disaster_recovery.go:950:2: Consider pre-allocating `backups` (prealloc)
+2025-08-28T21:03:50.2753629Z ##[error]pkg/security/audit.go:9:1: File is not properly formatted (gci)
+2025-08-28T21:03:50.2754716Z ##[error]pkg/security/audit.go:49:78: octalLiteral: use new octal literal style, 0o600 (gocritic)
+2025-08-28T21:03:50.2756736Z ##[error]pkg/security/audit.go:108:1: paramTypeCombine: func(secretName, rotationType string, userID string, success bool, err error) could be replaced with func(secretName, rotationType, userID string, success bool, err error) (gocritic)
+2025-08-28T21:03:50.2759030Z ##[error]pkg/security/audit.go:153:1: paramTypeCombine: func(resource, userID, ipAddress, userAgent string, reason string) could be replaced with func(resource, userID, ipAddress, userAgent, reason string) (gocritic)
+2025-08-28T21:03:50.2761278Z ##[error]pkg/security/ca/automation_engine.go:593:4: Function `processAutomationRequest->processProvisioningRequest->generateServiceCertificate` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2763205Z ##[error]pkg/security/ca/automation_engine.go:661:53: Function `PerformHealthCheck->performGRPCCheck` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2765785Z ##[error]pkg/security/ca/automation_integration.go:81:34: Function `initializeCAManager->NewCAManager->NewCertificatePool->runMaintenanceTasks->performMaintenance->cleanupExpiredCertificates->removeFromKubernetes` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2767862Z ##[error]pkg/security/ca/automation_integration.go:370:26: Function `performHealthChecks->GetHealthStatus` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2769171Z ##[error]pkg/security/ca/distributor.go:541:2: Consider pre-allocating `targets` (prealloc)
+2025-08-28T21:03:50.2770300Z ##[error]pkg/security/ca/distributor.go:764:28: (*net/http.Client).Post must not be called (noctx)
+2025-08-28T21:03:50.2772136Z ##[error]pkg/security/ca/enhanced_revocation_system.go:772:2: S1008: should use 'return time.Since(dp.LastUpdate) > updateWindow*3' instead of 'if time.Since(dp.LastUpdate) > updateWindow*3 { return true }; return false' (gosimple)
+2025-08-28T21:03:50.2774099Z ##[error]pkg/security/ca/enhanced_revocation_system.go:827:14: SA1019: x509.ParseCRL has been deprecated since Go 1.19: Use [ParseRevocationList] instead. (staticcheck)
+2025-08-28T21:03:50.2775867Z ##[error]pkg/security/ca/enhanced_revocation_system.go:1100:3: Function `runCRLUpdater->updateAllCRLs` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2777575Z ##[error]pkg/security/ca/enhanced_revocation_system.go:1107:4: Function `runAsyncWorker->processAsyncRequest` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2779349Z ##[error]pkg/security/ca/enhanced_revocation_system.go:1114:3: Function `runBatchProcessor->processBatch->processBatch$1` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2781174Z ##[error]pkg/security/ca/enhanced_revocation_system.go:1120:3: Function `runAutomaticReplacer->processReplacementRequest` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2782978Z ##[error]pkg/security/ca/external_backend.go:923:11: SA1019: x509.ParseCRL has been deprecated since Go 1.19: Use [ParseRevocationList] instead. (staticcheck)
+2025-08-28T21:03:50.2784613Z ##[error]pkg/security/ca/external_backend.go:928:9: SA1019: x509.ParseCRL has been deprecated since Go 1.19: Use [ParseRevocationList] instead. (staticcheck)
+2025-08-28T21:03:50.2786211Z ##[error]pkg/security/ca/health_checker.go:399:15: SA1019: grpc.Dial is deprecated: use NewClient instead.  Will be supported throughout 1.x. (staticcheck)
+2025-08-28T21:03:50.2787983Z ##[error]pkg/security/ca/health_checker.go:401:3: SA1019: grpc.WithTimeout is deprecated: this DialOption is not supported by NewClient. Will be supported throughout 1.x. (staticcheck)
+2025-08-28T21:03:50.2789854Z ##[error]pkg/security/ca/manager.go:428:46: Function `StoreCertificate->persistToKubernetes` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2791393Z ##[error]pkg/security/ca/manager.go:460:47: Function `GetCertificate->loadFromStorage` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2793086Z ##[error]pkg/security/ca/manager.go:483:47: Function `UpdateCertificate->persistToKubernetes` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2794660Z ##[error]pkg/security/ca/manager.go:501:55: Function `GetCertificate->loadFromStorage` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2796208Z ##[error]pkg/security/ca/manager.go:539:46: Function `StoreCertificate->persistToKubernetes` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2797830Z ##[error]pkg/security/ca/performance_cache.go:476:17: ST1023: should omit type time.Time from declaration; it will be inferred from the right-hand side (stylecheck)
+2025-08-28T21:03:50.2799493Z ##[error]pkg/security/ca/performance_cache.go:498:17: ST1023: should omit type time.Time from declaration; it will be inferred from the right-hand side (stylecheck)
+2025-08-28T21:03:50.2800954Z ##[error]pkg/security/ca/policy_engine.go:528:5: S1009: should omit nil check; len() for nil slices is defined as zero (gosimple)
+2025-08-28T21:03:50.2802592Z ##[error]pkg/security/ca/revocation_checker.go:606:14: SA1019: x509.ParseCRL has been deprecated since Go 1.19: Use [ParseRevocationList] instead. (staticcheck)
+2025-08-28T21:03:50.2804250Z ##[error]pkg/security/ca/rotation_coordinator.go:453:15: SA1019: grpc.Dial is deprecated: use NewClient instead.  Will be supported throughout 1.x. (staticcheck)
+2025-08-28T21:03:50.2806073Z ##[error]pkg/security/ca/rotation_coordinator.go:455:3: SA1019: grpc.WithTimeout is deprecated: this DialOption is not supported by NewClient. Will be supported throughout 1.x. (staticcheck)
+2025-08-28T21:03:50.2807975Z ##[error]pkg/security/ca/self_signed_backend.go:442:3: SA1019: template.RevokedCertificates has been deprecated since Go 1.21: Use RevokedCertificateEntries instead. (staticcheck)
+2025-08-28T21:03:50.2809666Z ##[error]pkg/security/ca/self_signed_backend.go:474:9: SA1019: x509.ParseCRL has been deprecated since Go 1.19: Use [ParseRevocationList] instead. (staticcheck)
+2025-08-28T21:03:50.2812377Z ##[error]pkg/security/ca/service_discovery.go:161:3: Function `watchServices->watchServices$1->handleServiceAdded->provisionCertificateForService->ProcessManualRequest->processProvisioningRequest->generateServiceCertificate` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2815551Z ##[error]pkg/security/ca/service_discovery.go:167:3: Function `runPreProvisioning->performPreProvisioning->provisionCertificateForService->ProcessManualRequest->processProvisioningRequest->generateServiceCertificate` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2817585Z ##[error]pkg/security/ca/service_discovery.go:204:19: SA1019: cache.NewInformer is deprecated: Use NewInformerWithOptions instead. (staticcheck)
+2025-08-28T21:03:50.2818871Z ##[error]pkg/security/ca/service_discovery.go:521:2: Consider pre-allocating `dnsNames` (prealloc)
+2025-08-28T21:03:50.2820545Z ##[error]pkg/security/ca/service_discovery.go:572:2: S1008: should use 'return existingDNS != updatedDNS' instead of 'if existingDNS != updatedDNS { return true }; return false' (gosimple)
+2025-08-28T21:03:50.2821916Z ##[error]pkg/security/ca/service_discovery.go:750:2: Consider pre-allocating `result` (prealloc)
+2025-08-28T21:03:50.2823213Z ##[error]pkg/security/cert_manager.go:505:2: Consider pre-allocating `revokedCerts` (prealloc)
+2025-08-28T21:03:50.2824487Z ##[error]pkg/security/compliance_manager.go:120:2: appendCombine: can combine chain of 10 appends into one (gocritic)
+2025-08-28T21:03:50.2825798Z ##[error]pkg/security/compliance_manager.go:198:2: appendCombine: can combine chain of 5 appends into one (gocritic)
+2025-08-28T21:03:50.2827268Z ##[error]pkg/security/compliance_manager.go:285:2: appendCombine: can combine chain of 4 appends into one (gocritic)
+2025-08-28T21:03:50.2828634Z ##[error]pkg/security/compliance_manager.go:370:52: `(*ComplianceManager).checkInterfaceSecurity` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2829965Z ##[error]pkg/security/compliance_manager.go:428:3: appendCombine: can combine chain of 2 appends into one (gocritic)
+2025-08-28T21:03:50.2831336Z ##[error]pkg/security/compliance_manager.go:443:53: `(*ComplianceManager).checkSecurityMonitoring` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2832830Z ##[error]pkg/security/compliance_manager.go:486:51: `(*ComplianceManager).checkIncidentResponse` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2834237Z ##[error]pkg/security/compliance_manager.go:504:50: `(*ComplianceManager).checkSecurityTesting` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2835640Z ##[error]pkg/security/compliance_manager.go:522:54: `(*ComplianceManager).checkSupplyChainSecurity` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2837064Z ##[error]pkg/security/compliance_manager.go:540:56: `(*ComplianceManager).checkCryptographicControls` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2838477Z ##[error]pkg/security/compliance_manager.go:617:54: `(*ComplianceManager).performVulnerabilityScan` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2839879Z ##[error]pkg/security/crypto_modern.go:173:3: assignOp: replace `p.pool[i] = p.pool[i] ^ byte(i)` with `p.pool[i] ^= byte(i)` (gocritic)
+2025-08-28T21:03:50.2841198Z ##[error]pkg/security/crypto_utils.go:250:40: builtinShadow: shadowing of predeclared identifier: max (gocritic)
+2025-08-28T21:03:50.2842292Z ##[error]pkg/security/crypto_utils.go:394:3: SA9003: empty branch (staticcheck)
+2025-08-28T21:03:50.2843587Z ##[error]pkg/security/incident_response.go:678:43: `(*IncidentResponse).isolateSystem` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2844822Z ##[error]pkg/security/incident_response.go:684:37: `(*IncidentResponse).blockIP` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2846043Z ##[error]pkg/security/incident_response.go:690:41: `(*IncidentResponse).disableUser` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2847288Z ##[error]pkg/security/incident_response.go:696:42: `(*IncidentResponse).createTicket` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2848560Z ##[error]pkg/security/incident_response.go:702:46: `(*IncidentResponse).sendNotification` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2850015Z ##[error]pkg/security/incident_response.go:802:51: `(*IncidentResponse).sendEmailNotification` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2851404Z ##[error]pkg/security/incident_response.go:807:51: `(*IncidentResponse).sendSlackNotification` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2852865Z ##[error]pkg/security/incident_response.go:812:49: `(*IncidentResponse).sendSMSNotification` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2854217Z ##[error]pkg/security/incident_response.go:817:48: `(*IncidentResponse).sendPagerDutyAlert` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2855571Z ##[error]pkg/security/incident_response.go:992:51: `(*ForensicsCollector).collectEvidenceType` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2856954Z ##[error]pkg/security/incident_response.go:1169:55: `(*IncidentResponse).processThreatIntelligence` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2858327Z ##[error]pkg/security/incident_response.go:1186:51: `(*IncidentResponse).processGenericWebhook` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2859876Z ##[error]pkg/security/llm_sanitizer.go:83:22: regexpSimplify: can re-write `(?i)https?://[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}` as `(?i)https?://\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}` (gocritic)
+2025-08-28T21:03:50.2861460Z ##[error]pkg/security/llm_sanitizer.go:187:3: nestingReduce: invert if cond, replace body with `continue`, move old body after the statement (gocritic)
+2025-08-28T21:03:50.2863518Z ##[error]pkg/security/llm_sanitizer.go:357:10: ST1018: string literal contains the Unicode format character U+200B, consider using the '\u200b' escape sequence instead (stylecheck)
+2025-08-28T21:03:50.2865355Z ##[error]pkg/security/llm_sanitizer.go:358:10: ST1018: string literal contains the Unicode format character U+200B, consider using the '\u200b' escape sequence instead (stylecheck)
+2025-08-28T21:03:50.2867180Z ##[error]pkg/security/llm_sanitizer.go:359:10: ST1018: string literal contains the Unicode format character U+200B, consider using the '\u200b' escape sequence instead (stylecheck)
+2025-08-28T21:03:50.2868988Z ##[error]pkg/security/llm_sanitizer.go:360:10: ST1018: string literal contains the Unicode format character U+200B, consider using the '\u200b' escape sequence instead (stylecheck)
+2025-08-28T21:03:50.2870793Z ##[error]pkg/security/llm_sanitizer.go:361:10: ST1018: string literal contains the Unicode format character U+200B, consider using the '\u200b' escape sequence instead (stylecheck)
+2025-08-28T21:03:50.2872309Z ##[error]pkg/security/llm_security_headers.go:297:5: emptyStringTest: replace `len(substr) == 0` with `substr == ""` (gocritic)
+2025-08-28T21:03:50.2874027Z ##[error]pkg/security/mtls/integration_example.go:440:49: Function `RotateServiceIdentity` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2875415Z ##[error]pkg/security/mtls/metric_collectors.go:419:2: Consider pre-allocating `connectionDurations` (prealloc)
+2025-08-28T21:03:50.2876834Z ##[error]pkg/security/mtls/metric_collectors.go:424:25: SA4010: this result of append is never used, except maybe in other appends (staticcheck)
+2025-08-28T21:03:50.2878303Z ##[error]pkg/security/mtls/server.go:601:19: Non-inherited new context, use function like `context.WithXXX` instead (contextcheck)
+2025-08-28T21:03:50.2879526Z ##[error]pkg/security/network_policy_manager.go:574:2: Consider pre-allocating `peers` (prealloc)
+2025-08-28T21:03:50.2880705Z ##[error]pkg/security/rotation.go:323:29: octalLiteral: use new octal literal style, 0o700 (gocritic)
+2025-08-28T21:03:50.2881874Z ##[error]pkg/security/rotation.go:328:53: octalLiteral: use new octal literal style, 0o600 (gocritic)
+2025-08-28T21:03:50.2883184Z ##[error]pkg/security/rotation.go:344:11: ST1005: error strings should not be capitalized (stylecheck)
+2025-08-28T21:03:50.2884356Z ##[error]pkg/security/scanner.go:330:37: `(*SecurityScanner).scanPort` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2885559Z ##[error]pkg/security/scanner.go:394:11: `(*SecurityScanner).runOWASPTests$1` - `rank` is unused (unparam)
+2025-08-28T21:03:50.2886975Z ##[error]pkg/security/scanner.go:532:52: `(*SecurityScanner).testEndpointWithPayload` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2888168Z ##[error]pkg/security/scanner.go:537:28: (*net/http.Client).Get must not be called (noctx)
+2025-08-28T21:03:50.2889274Z ##[error]pkg/security/scanner.go:548:32: (*net/http.Client).PostForm must not be called (noctx)
+2025-08-28T21:03:50.2890541Z ##[error]pkg/security/scanner.go:558:62: `(*SecurityScanner).analyzeInjectionResponse` - `method` is unused (unparam)
+2025-08-28T21:03:50.2892032Z ##[error]pkg/security/scanner.go:584:3: nestingReduce: invert if cond, replace body with `continue`, move old body after the statement (gocritic)
+2025-08-28T21:03:50.2893555Z ##[error]pkg/security/scanner.go:604:51: `(*SecurityScanner).testDefaultCredentials` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2894728Z ##[error]pkg/security/scanner.go:613:34: (*net/http.Client).PostForm must not be called (noctx)
+2025-08-28T21:03:50.2896019Z ##[error]pkg/security/scanner.go:617:3: deferInLoop: Possible resource leak, 'defer' is called in the 'for' loop (gocritic)
+2025-08-28T21:03:50.2897330Z ##[error]pkg/security/scanner.go:654:49: `(*SecurityScanner).testTLSConfiguration` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2899373Z ##[error]pkg/security/scanner.go:657:3: SA1019: tls.VersionSSL30 has been deprecated since Go 1.13 because it shouldn't be used: SSLv3 is cryptographically broken, and is no longer supported by this package. See golang.org/issue/32716. (staticcheck)
+2025-08-28T21:03:50.2901057Z ##[error]pkg/security/scanner.go:668:25: G402: TLS InsecureSkipVerify set true. (gosec)
+2025-08-28T21:03:50.2902232Z ##[error]pkg/security/scanner.go:688:44: `(*SecurityScanner).testCertificate` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2903434Z ##[error]pkg/security/scanner.go:690:26: G402: TLS MinVersion too low. (gosec)
+2025-08-28T21:03:50.2905389Z ##[error]pkg/security/scanner.go:857:3: SA1019: tls.VersionSSL30 has been deprecated since Go 1.13 because it shouldn't be used: SSLv3 is cryptographically broken, and is no longer supported by this package. See golang.org/issue/32716. (staticcheck)
+2025-08-28T21:03:50.2907055Z ##[error]pkg/security/scanner.go:936:6: builtinShadowDecl: shadowing of predeclared identifier: min (gocritic)
+2025-08-28T21:03:50.2908279Z ##[error]pkg/security/secure_channels.go:267:35: `(*SecureChannel).setupPFS` - `config` is unused (unparam)
+2025-08-28T21:03:50.2909484Z ##[error]pkg/security/secure_channels.go:496:25: G115: integer overflow conversion uint64 -> uint32 (gosec)
+2025-08-28T21:03:50.2910666Z ##[error]pkg/security/secure_channels.go:506:21: G115: integer overflow conversion uint64 -> uint32 (gosec)
+2025-08-28T21:03:50.2911855Z ##[error]pkg/security/secure_channels.go:510:18: G115: integer overflow conversion uint64 -> uint32 (gosec)
+2025-08-28T21:03:50.2913289Z ##[error]pkg/security/secure_channels.go:565:69: (*SecureChannel).encodeMessage - result 1 (error) is always nil (unparam)
+2025-08-28T21:03:50.2914530Z ##[error]pkg/security/secure_channels.go:591:49: G115: integer overflow conversion int64 -> uint64 (gosec)
+2025-08-28T21:03:50.2915711Z ##[error]pkg/security/secure_channels.go:647:13: ineffectual assignment to offset (ineffassign)
+2025-08-28T21:03:50.2917017Z ##[error]pkg/security/security_validator.go:217:8: S1009: should omit nil check; len() for nil slices is defined as zero (gosimple)
+2025-08-28T21:03:50.2919840Z ##[error]pkg/security/security_validator.go:779:6: SA1019: x509.IsEncryptedPEMBlock has been deprecated since Go 1.16 because it shouldn't be used: Legacy PEM encryption as specified in RFC 1423 is insecure by design. Since it does not authenticate the ciphertext, it is vulnerable to padding oracle attacks that can let an attacker recover the plaintext. (staticcheck)
+2025-08-28T21:03:50.2921693Z ##[error]pkg/security/tls_enhanced.go:164:16: G402: TLS MinVersion too low. (gosec)
+2025-08-28T21:03:50.2923037Z ##[error]pkg/security/tls_enhanced.go:234:69: `(*TLSEnhancedConfig).checkOCSPStatus` - `rawCerts` is unused (unparam)
+2025-08-28T21:03:50.2924352Z ##[error]pkg/security/tls_enhanced.go:330:2: SA9003: empty branch (staticcheck)
+2025-08-28T21:03:50.2925420Z ##[error]pkg/security/tls_manager.go:198:18: G402: TLS MinVersion too low. (gosec)
+2025-08-28T21:03:50.2926585Z ##[error]pkg/security/vuln_manager.go:339:42: `(*VulnerabilityManager).scanCVEs` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2927814Z ##[error]pkg/security/vuln_manager.go:407:42: `(*VulnerabilityManager).scanCode` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2929081Z ##[error]pkg/security/vuln_manager.go:617:48: `(*VulnerabilityManager).processResults` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2930366Z ##[error]pkg/security/vuln_manager.go:814:48: `(*VulnerabilityManager).sendSlackAlert` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2931758Z ##[error]pkg/security/vuln_manager.go:819:48: `(*VulnerabilityManager).sendEmailAlert` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2933558Z ##[error]pkg/security/vuln_manager.go:824:50: `(*VulnerabilityManager).sendWebhookAlert` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2935249Z ##[error]pkg/security/vuln_manager.go:829:50: `(*VulnerabilityManager).createJiraTicket` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2936888Z ##[error]pkg/servicemesh/abstraction/factory.go:71:57: unnecessary conversion (unconvert)
+2025-08-28T21:03:50.2939845Z ##[error]pkg/servicemesh/controller.go:93:27: Function `shouldManageService->isNamespaceMeshEnabled` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2941816Z ##[error]pkg/servicemesh/istio/istio.go:646:2: ineffectual assignment to svc (ineffassign)
+2025-08-28T21:03:50.2943961Z ##[error]pkg/shared/coordination_manager.go:563:100: (*CoordinationManager).determineNextPhase - result 1 (error) is always nil (unparam)
+2025-08-28T21:03:50.2945702Z ##[error]pkg/shared/coordination_manager.go:708:97: `(*CoordinationManager).retryPhase` - `phase` is unused (unparam)
+2025-08-28T21:03:50.2947459Z ##[error]pkg/shared/coordination_manager.go:769:88: (*CoordinationManager).parseIntentName - result 1 (error) is always nil (unparam)
+2025-08-28T21:03:50.2949238Z ##[error]pkg/shared/enhanced_event_bus.go:519:19: Function `processBatch` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2950859Z ##[error]pkg/shared/enhanced_event_bus.go:524:20: Function `processBatch` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.2952741Z ##[error]pkg/shared/integration_manager.go:190:54: (*IntegrationManager).initializeComponents - result 0 (error) is always nil (unparam)
+2025-08-28T21:03:50.2954536Z ##[error]pkg/shared/integration_manager.go:507:50: `(*IntegrationManager).updateSystemHealth` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2956181Z ##[error]pkg/shared/integration_manager.go:568:46: `(*IntegrationManager).collectMetrics` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2958010Z ##[error]pkg/shared/main_integration.go:345:70: `(*ConfigurationChangeHandler).handleIntegrationConfigChange` - `oldConfig` is unused (unparam)
+2025-08-28T21:03:50.2959934Z ##[error]pkg/shared/main_integration.go:351:71: `(*ConfigurationChangeHandler).handleStateManagerConfigChange` - `oldConfig` is unused (unparam)
+2025-08-28T21:03:50.2961809Z ##[error]pkg/shared/main_integration.go:357:67: `(*ConfigurationChangeHandler).handleEventBusConfigChange` - `oldConfig` is unused (unparam)
+2025-08-28T21:03:50.2963895Z ##[error]pkg/shared/main_integration.go:363:71: `(*ConfigurationChangeHandler).handleCoordinationConfigChange` - `oldConfig` is unused (unparam)
+2025-08-28T21:03:50.2965886Z ##[error]pkg/shared/main_integration.go:369:70: `(*ConfigurationChangeHandler).handlePerformanceConfigChange` - `oldConfig` is unused (unparam)
+2025-08-28T21:03:50.2967725Z ##[error]pkg/shared/main_integration.go:375:67: `(*ConfigurationChangeHandler).handleRecoveryConfigChange` - `oldConfig` is unused (unparam)
+2025-08-28T21:03:50.2969572Z ##[error]pkg/shared/performance_optimizer.go:630:57: `(*PerformanceMonitor).recordMetric` - `value` always receives `0.0` (`0`) (unparam)
+2025-08-28T21:03:50.2971459Z ##[error]pkg/shared/performance_optimizer.go:816:91: `(*BatchProcessor).updatePerformanceMetrics` - `success` is unused (unparam)
+2025-08-28T21:03:50.2973311Z ##[error]pkg/shared/recovery_manager.go:510:75: `(*RecoveryManager).evaluateCondition` - `intentName` is unused (unparam)
+2025-08-28T21:03:50.2975037Z ##[error]pkg/shared/recovery_manager.go:724:84: (*RecoveryManager).parseIntentName - result 1 (error) is always nil (unparam)
+2025-08-28T21:03:50.2976740Z ##[error]pkg/shared/recovery_manager.go:732:51: `(*RecoveryManager).restoreStateFromBackup` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2978369Z ##[error]pkg/shared/recovery_manager.go:738:48: `(*RecoveryManager).recreateIntentState` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2979990Z ##[error]pkg/shared/recovery_manager.go:744:48: `(*RecoveryManager).sendCorruptionAlert` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2981623Z ##[error]pkg/shared/state_manager.go:585:42: `(*StateManager).performStateSync` - `ctx` is unused (unparam)
+2025-08-28T21:03:50.2983937Z ##[error]pkg/telecom/context_matcher.go:104:1: exported: comment on exported type LatencyRequirement should be of the form "LatencyRequirement ..." (with optional leading article) (revive)
+2025-08-28T21:03:50.2986912Z ##[error]pkg/telecom/context_matcher.go:111:6: exported: exported type ThroughputRequirement should have comment or be unexported (revive)
+2025-08-28T21:03:50.2988846Z ##[error]pkg/telecom/context_matcher.go:117:6: exported: exported type ReliabilityRequirement should have comment or be unexported (revive)
+2025-08-28T21:03:50.2990863Z ##[error]pkg/telecom/context_matcher.go:123:6: exported: exported type ScalabilityRequirement should have comment or be unexported (revive)
+2025-08-28T21:03:50.2992881Z ##[error]pkg/telecom/context_matcher.go:129:6: exported: exported type SecurityRequirement should have comment or be unexported (revive)
+2025-08-28T21:03:50.2994761Z ##[error]pkg/telecom/context_matcher.go:136:6: exported: exported type AvailabilityRequirement should have comment or be unexported (revive)
+2025-08-28T21:03:50.2996444Z ##[error]pkg/telecom/context_matcher.go:647:11: Error return value of `regexp.MatchString` is not checked (errcheck)
+2025-08-28T21:03:50.2997978Z ##[error]pkg/telecom/context_matcher.go:717:12: Error return value of `fmt.Sscanf` is not checked (errcheck)
+2025-08-28T21:03:50.3000089Z ##[error]pkg/telecom/knowledge_base.go:12:6: exported: type name will be used as telecom.TelecomKnowledgeBase by other packages, and that stutters; consider calling this KnowledgeBase (revive)
+2025-08-28T21:03:50.3002431Z ##[error]pkg/telecom/knowledge_base.go:136:1: exported: comment on exported type ConfigParameter should be of the form "ConfigParameter ..." (with optional leading article) (revive)
+2025-08-28T21:03:50.3004477Z ##[error]pkg/telecom/knowledge_base.go:146:6: exported: exported type HealthCheck should have comment or be unexported (revive)
+2025-08-28T21:03:50.3006257Z ##[error]pkg/telecom/knowledge_base.go:156:6: exported: exported type MetricDefinition should have comment or be unexported (revive)
+2025-08-28T21:03:50.3007984Z ##[error]pkg/telecom/knowledge_base.go:164:6: exported: exported type AlertRule should have comment or be unexported (revive)
+2025-08-28T21:03:50.3009693Z ##[error]pkg/telecom/knowledge_base.go:172:6: exported: exported type CustomMetric should have comment or be unexported (revive)
+2025-08-28T21:03:50.3011413Z ##[error]pkg/telecom/knowledge_base.go:178:6: exported: exported type EncryptionSpec should have comment or be unexported (revive)
+2025-08-28T21:03:50.3013274Z ##[error]pkg/telecom/knowledge_base.go:184:6: exported: exported type NetworkPolicy should have comment or be unexported (revive)
+2025-08-28T21:03:50.3015051Z ##[error]pkg/telecom/knowledge_base.go:191:6: exported: exported type SecurityContext should have comment or be unexported (revive)
+2025-08-28T21:03:50.3016894Z ##[error]pkg/telecom/knowledge_base.go:199:6: exported: exported type LoadBalancerSpec should have comment or be unexported (revive)
+2025-08-28T21:03:50.3018793Z ##[error]pkg/telecom/knowledge_base.go:206:6: exported: exported type HealthCheckLB should have comment or be unexported (revive)
+2025-08-28T21:03:50.3020622Z ##[error]pkg/telecom/knowledge_base.go:213:6: exported: exported type MonitoringConfig should have comment or be unexported (revive)
+2025-08-28T21:03:50.3022391Z ##[error]pkg/telecom/knowledge_base.go:221:6: exported: exported type BackupPolicy should have comment or be unexported (revive)
+2025-08-28T21:03:50.3024373Z ##[error]pkg/telecom/knowledge_base.go:227:6: exported: exported type EndpointSpec should have comment or be unexported (revive)
+2025-08-28T21:03:50.3026140Z ##[error]pkg/telecom/knowledge_base.go:234:6: exported: exported type SecurityModel should have comment or be unexported (revive)
+2025-08-28T21:03:50.3027891Z ##[error]pkg/telecom/knowledge_base.go:240:6: exported: exported type QosRequirements should have comment or be unexported (revive)
+2025-08-28T21:03:50.3029662Z ##[error]pkg/telecom/knowledge_base.go:247:6: exported: exported type ReliabilitySpec should have comment or be unexported (revive)
+2025-08-28T21:03:50.3031349Z ##[error]pkg/telecom/knowledge_base.go:253:6: exported: exported type QosProfile should have comment or be unexported (revive)
+2025-08-28T21:03:50.3033227Z ##[error]pkg/telecom/knowledge_base.go:265:6: exported: exported type SliceTypeSpec should have comment or be unexported (revive)
+2025-08-28T21:03:50.3035013Z ##[error]pkg/telecom/knowledge_base.go:275:6: exported: exported type SliceRequirements should have comment or be unexported (revive)
+2025-08-28T21:03:50.3036935Z ##[error]pkg/telecom/knowledge_base.go:282:6: exported: exported type ThroughputReq should have comment or be unexported (revive)
+2025-08-28T21:03:50.3038682Z ##[error]pkg/telecom/knowledge_base.go:288:6: exported: exported type LatencyReq should have comment or be unexported (revive)
+2025-08-28T21:03:50.3040408Z ##[error]pkg/telecom/knowledge_base.go:294:6: exported: exported type ReliabilityReq should have comment or be unexported (revive)
+2025-08-28T21:03:50.3042118Z ##[error]pkg/telecom/knowledge_base.go:300:6: exported: exported type DensityReq should have comment or be unexported (revive)
+2025-08-28T21:03:50.3044008Z ##[error]pkg/telecom/knowledge_base.go:306:6: exported: exported type ResourceProfile should have comment or be unexported (revive)
+2025-08-28T21:03:50.3045750Z ##[error]pkg/telecom/knowledge_base.go:312:6: exported: exported type ComputeProfile should have comment or be unexported (revive)
+2025-08-28T21:03:50.3047511Z ##[error]pkg/telecom/knowledge_base.go:319:6: exported: exported type NetworkProfile should have comment or be unexported (revive)
+2025-08-28T21:03:50.3049274Z ##[error]pkg/telecom/knowledge_base.go:327:6: exported: exported type StorageProfile should have comment or be unexported (revive)
+2025-08-28T21:03:50.3051024Z ##[error]pkg/telecom/knowledge_base.go:334:6: exported: exported type KPISpec should have comment or be unexported (revive)
+2025-08-28T21:03:50.3074279Z ##[error]pkg/telecom/knowledge_base.go:344:6: exported: exported type Thresholds should have comment or be unexported (revive)
+2025-08-28T21:03:50.3075964Z ##[error]pkg/telecom/knowledge_base.go:350:6: exported: exported type SLASpec should have comment or be unexported (revive)
+2025-08-28T21:03:50.3077487Z ##[error]pkg/telecom/knowledge_base.go:356:6: exported: exported type DeploymentPattern should have comment or be unexported (revive)
+2025-08-28T21:03:50.3079051Z ##[error]pkg/telecom/knowledge_base.go:366:6: exported: exported type DeploymentArchitecture should have comment or be unexported (revive)
+2025-08-28T21:03:50.3080526Z ##[error]pkg/telecom/knowledge_base.go:374:6: exported: exported type ScalingPattern should have comment or be unexported (revive)
+2025-08-28T21:03:50.3081986Z ##[error]pkg/telecom/knowledge_base.go:381:6: exported: exported type ResiliencePattern should have comment or be unexported (revive)
+2025-08-28T21:03:50.3083697Z ##[error]pkg/telecom/knowledge_base.go:389:6: exported: exported type PerformancePattern should have comment or be unexported (revive)
+2025-08-28T21:03:50.3085083Z ##[error]pkg/telecom/knowledge_base.go:1217:2: Consider pre-allocating `names` (prealloc)
+2025-08-28T21:03:50.3086320Z ##[error]pkg/telecom/knowledge_base.go:1362:13: Error return value of `fmt.Sscanf` is not checked (errcheck)
+2025-08-28T21:03:50.3087523Z ##[error]pkg/telecom/knowledge_base.go:1367:13: Error return value of `fmt.Sscanf` is not checked (errcheck)
+2025-08-28T21:03:50.3088743Z ##[error]pkg/telecom/knowledge_base.go:1372:13: Error return value of `fmt.Sscanf` is not checked (errcheck)
+2025-08-28T21:03:50.3089970Z ##[error]pkg/telecom/knowledge_base.go:1391:13: Error return value of `fmt.Sscanf` is not checked (errcheck)
+2025-08-28T21:03:50.3091133Z ##[error]pkg/testing/go124_testing.go:22:2: field `suite` is unused (unused)
+2025-08-28T21:03:50.3092179Z ##[error]pkg/testing/go124_testing.go:46:2: field `isolationLevel` is unused (unused)
+2025-08-28T21:03:50.3093415Z ##[error]pkg/testing/go124_testing.go:47:2: field `resourceLimits` is unused (unused)
+2025-08-28T21:03:50.3094480Z ##[error]pkg/testing/go124_testing.go:50:2: field `assertionCount` is unused (unused)
+2025-08-28T21:03:50.3095511Z ##[error]pkg/testing/go124_testing.go:51:2: field `failureReasons` is unused (unused)
+2025-08-28T21:03:50.3096499Z ##[error]pkg/testing/go124_testing.go:57:2: field `mu` is unused (unused)
+2025-08-28T21:03:50.3097586Z ##[error]pkg/testing/go124_testing.go:369:24: G115: integer overflow conversion uint64 -> int64 (gosec)
+2025-08-28T21:03:50.3098936Z ##[error]pkg/testing/go124_testing.go:541:58: G115: integer overflow conversion uint64 -> int64 (gosec)
+2025-08-28T21:03:50.3100449Z ##[error]pkg/webui/cache.go:298:17: ST1023: should omit type time.Time from declaration; it will be inferred from the right-hand side (stylecheck)
+2025-08-28T21:03:50.3101810Z ##[error]pkg/webui/server.go:441:19: Function `Shutdown` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.3103440Z ##[error]planner/internal/rules/engine.go:19:6: exported: exported type KPMData should have comment or be unexported (revive)
+2025-08-28T21:03:50.3104924Z ##[error]planner/internal/rules/engine.go:28:6: exported: exported type ScalingDecision should have comment or be unexported (revive)
+2025-08-28T21:03:50.3106336Z ##[error]planner/internal/rules/engine.go:37:6: exported: exported type State should have comment or be unexported (revive)
+2025-08-28T21:03:50.3107702Z ##[error]planner/internal/rules/engine.go:44:6: exported: exported type Config should have comment or be unexported (revive)
+2025-08-28T21:03:50.3109093Z ##[error]planner/internal/rules/engine.go:65:6: exported: exported type RuleEngine should have comment or be unexported (revive)
+2025-08-28T21:03:50.3110548Z ##[error]planner/internal/rules/engine.go:74:1: exported: exported function NewRuleEngine should have comment or be unexported (revive)
+2025-08-28T21:03:50.3112058Z ##[error]planner/internal/rules/engine.go:106:1: exported: exported method RuleEngine.Evaluate should have comment or be unexported (revive)
+2025-08-28T21:03:50.3113762Z ##[error]planner/internal/rules/engine.go:219:6: exported: exported type AverageMetrics should have comment or be unexported (revive)
+2025-08-28T21:03:50.3115278Z ##[error]planner/internal/security/validation.go:124:2: if-return: redundant if ...; err != nil check, just return error instead. (revive)
+2025-08-28T21:03:50.3116610Z ##[error]scripts/lint-fixes-2025.go:69:13: G306: Expect WriteFile permissions to be 0640 or less (gosec)
+2025-08-28T21:03:50.3118012Z ##[error]scripts/lint-fixes-2025.go:362:1: exported: comment on exported var QuickFixes should be of the form "QuickFixes ..." (revive)
+2025-08-28T21:03:50.3119531Z ##[error]scripts/lint-fixes-2025.go:475:1: exported: comment on exported var LintPatterns should be of the form "LintPatterns ..." (revive)
+2025-08-28T21:03:50.3120912Z ##[error]tests/disaster-recovery/backup_manager.go:241:2: Consider pre-allocating `backups` (prealloc)
+2025-08-28T21:03:50.3122115Z ##[error]tests/disaster-recovery/backup_manager.go:290:2: Consider pre-allocating `resources` (prealloc)
+2025-08-28T21:03:50.3123576Z ##[error]tests/disaster-recovery/backup_manager.go:483:2: Consider pre-allocating `results` (prealloc)
+2025-08-28T21:03:50.3126315Z ##[error]tests/disaster-recovery/recovery_orchestrator.go:474:9: SA1019: wait.PollImmediate is deprecated: This method does not return errors from context, use PollUntilContextTimeout. Note that the new method will no longer return ErrWaitTimeout and instead return errors defined by the context package. Will be removed in a future release. (staticcheck)
+2025-08-28T21:03:50.3128296Z ##[error]tests/framework/metrics.go:255:2: Consider pre-allocating `latencies` (prealloc)
+2025-08-28T21:03:50.3129632Z ##[error]tests/performance/validation/cmd.go:70:17: Error return value of `viper.BindPFlag` is not checked (errcheck)
+2025-08-28T21:03:50.3130942Z ##[error]tests/performance/validation/cmd.go:71:17: Error return value of `viper.BindPFlag` is not checked (errcheck)
+2025-08-28T21:03:50.3132971Z ##[error]tests/performance/validation/cmd.go:72:17: Error return value of `viper.BindPFlag` is not checked (errcheck)
+2025-08-28T21:03:50.3134474Z ##[error]tests/performance/validation/cmd.go:73:17: Error return value of `viper.BindPFlag` is not checked (errcheck)
+2025-08-28T21:03:50.3135767Z ##[error]tests/performance/validation/cmd.go:74:17: Error return value of `viper.BindPFlag` is not checked (errcheck)
+2025-08-28T21:03:50.3137104Z ##[error]tests/performance/validation/cmd.go:192:22: Error return value of `cmd.MarkFlagRequired` is not checked (errcheck)
+2025-08-28T21:03:50.3138782Z ##[error]tests/performance/validation/cmd.go:373:19: Error return value of `(*github.com/spf13/pflag.FlagSet).GetBool` is not checked (errcheck)
+2025-08-28T21:03:50.3140318Z ##[error]tests/performance/validation/cmd.go:388:9: Error return value of `(*github.com/spf13/pflag.FlagSet).GetString` is not checked (errcheck)
+2025-08-28T21:03:50.3141836Z ##[error]tests/performance/validation/cmd.go:389:8: Error return value of `(*github.com/spf13/pflag.FlagSet).GetInt` is not checked (errcheck)
+2025-08-28T21:03:50.3143958Z ##[error]tests/performance/validation/cmd.go:390:10: Error return value of `(*github.com/spf13/pflag.FlagSet).GetString` is not checked (errcheck)
+2025-08-28T21:03:50.3145514Z ##[error]tests/performance/validation/cmd.go:396:19: Error return value of `(*github.com/spf13/pflag.FlagSet).GetString` is not checked (errcheck)
+2025-08-28T21:03:50.3147043Z ##[error]tests/performance/validation/cmd.go:402:17: Error return value of `(*github.com/spf13/pflag.FlagSet).GetString` is not checked (errcheck)
+2025-08-28T21:03:50.3148458Z ##[error]tests/performance/validation/cmd.go:422:9: Error return value of `json.MarshalIndent` is not checked (errcheck)
+2025-08-28T21:03:50.3149911Z ##[error]tests/performance/validation/cmd.go:434:9: Error return value of `(*github.com/spf13/pflag.FlagSet).GetString` is not checked (errcheck)
+2025-08-28T21:03:50.3151460Z ##[error]tests/performance/validation/cmd.go:499:14: Error return value of `(*github.com/spf13/pflag.FlagSet).GetDuration` is not checked (errcheck)
+2025-08-28T21:03:50.3153109Z ##[error]tests/performance/validation/cmd.go:503:17: Error return value of `(*github.com/spf13/pflag.FlagSet).GetInt` is not checked (errcheck)
+2025-08-28T21:03:50.3154663Z ##[error]tests/performance/validation/cmd.go:507:17: Error return value of `(*github.com/spf13/pflag.FlagSet).GetFloat64` is not checked (errcheck)
+2025-08-28T21:03:50.3155971Z ##[error]tests/performance/validation/data_manager.go:735:2: Consider pre-allocating `claims` (prealloc)
+2025-08-28T21:03:50.3157359Z ##[error]tests/performance/validation/evidence_collector.go:565:23: Error return value of `ec.saveEvidenceReport` is not checked (errcheck)
+2025-08-28T21:03:50.3160208Z ##[error]tests/utils/security_helpers.go:233:9: SA1019: wait.PollImmediateUntil is deprecated: This method does not return errors from context, use PollUntilContextCancel. Note that the new method will no longer return ErrWaitTimeout and instead return errors defined by the context package. Will be removed in a future release. (staticcheck)
+2025-08-28T21:03:50.3162331Z ##[error]tests/validation/alert_system.go:616:2: Consider pre-allocating `recommendations` (prealloc)
+2025-08-28T21:03:50.3163700Z ##[error]tests/validation/baseline_manager.go:124:2: Consider pre-allocating `history` (prealloc)
+2025-08-28T21:03:50.3164864Z ##[error]tests/validation/baseline_manager.go:396:2: Consider pre-allocating `baselines` (prealloc)
+2025-08-28T21:03:50.3166353Z ##[error]tests/validation/performance_benchmarker.go:185:8: Function `measureSingleRequestLatency$1` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.3167951Z ##[error]tests/validation/performance_benchmarker.go:335:8: Function `processThroughputIntent$1` should pass the context parameter (contextcheck)
+2025-08-28T21:03:50.3169334Z ##[error]tests/validation/performance_load_generator.go:264:66: G115: integer overflow conversion uint64 -> int (gosec)
+2025-08-28T21:03:50.3170983Z ##[error]tests/validation/reliability_validator.go:409:17: SA1019: corev1.Endpoints is deprecated: This API is deprecated in v1.33+. Use discoveryv1.EndpointSlice. (staticcheck)
+2025-08-28T21:03:50.3172687Z ##[error]tests/validation/security_validator.go:1113:7: S1009: should omit nil check; len() for nil maps is defined as zero (gosimple)
+2025-08-28T21:03:50.3174184Z ##[error]tests/validation/validator_interfaces.go:27:26: param min has same name as predeclared identifier (predeclared)
+2025-08-28T21:03:50.3176035Z ##[error]tools/flaky-detector/main.go:106:9: superfluous-else: if block ends with call to os.Exit function, so drop this else and outdent its block (revive)
+2025-08-28T21:03:50.3177332Z ##[error]tools/flaky-detector/main.go:163:2: Consider pre-allocating `testResults` (prealloc)
+2025-08-28T21:03:50.3178958Z ##[error]tools/kmpgen/cmd/kmpgen/main.go:24:1: exported: comment on exported type KMPWindow should be of the form "KMPWindow ..." (with optional leading article) (revive)
+2025-08-28T21:03:50.3180578Z ##[error]tools/kmpgen/cmd/kmpgen/main.go:286:53: comparing with != will fail on wrapped errors. Use errors.Is to check for a specific error (errorlint)
+2025-08-28T21:03:50.3181427Z 
+2025-08-28T21:03:50.3191722Z ##[error]issues found
+2025-08-28T21:03:50.3192649Z Ran golangci-lint in 328537ms
+2025-08-28T21:03:50.3193079Z ##[endgroup]
+2025-08-28T21:03:50.3231056Z ##[group]Run echo "## Code Quality Report" >> $GITHUB_STEP_SUMMARY
+2025-08-28T21:03:50.3231542Z [36;1mecho "## Code Quality Report" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-28T21:03:50.3231913Z [36;1mecho "" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-28T21:03:50.3232156Z [36;1m[0m
+2025-08-28T21:03:50.3232335Z [36;1mcritical_issues=0[0m
+2025-08-28T21:03:50.3232736Z [36;1mtotal_issues=0[0m
+2025-08-28T21:03:50.3232948Z [36;1mquality_score=100[0m
+2025-08-28T21:03:50.3233152Z [36;1m[0m
+2025-08-28T21:03:50.3233377Z [36;1m# Analyze golangci-lint results if file exists[0m
+2025-08-28T21:03:50.3233691Z [36;1mif [ -f "golangci-lint.json" ]; then[0m
+2025-08-28T21:03:50.3233971Z [36;1m  # Count issues by severity[0m
+2025-08-28T21:03:50.3234335Z [36;1m  if command -v jq >/dev/null 2>&1 && jq empty < golangci-lint.json 2>/dev/null; then[0m
+2025-08-28T21:03:50.3234794Z [36;1m    total_issues=$(jq '[.Issues // []] | length' golangci-lint.json)[0m
+2025-08-28T21:03:50.3235136Z [36;1m    [0m
+2025-08-28T21:03:50.3235399Z [36;1m    # Count critical issues (errors and high-severity warnings)[0m
+2025-08-28T21:03:50.3235725Z [36;1m    critical_issues=$(jq '[0m
+2025-08-28T21:03:50.3235972Z [36;1m      [.Issues // [] | .[] | [0m
+2025-08-28T21:03:50.3236280Z [36;1m       select(.Severity == "error" or .Severity == "warning")] | [0m
+2025-08-28T21:03:50.3236612Z [36;1m      length' golangci-lint.json)[0m
+2025-08-28T21:03:50.3236857Z [36;1m    [0m
+2025-08-28T21:03:50.3237134Z [36;1m    # Calculate quality score (100 - (critical * 10 + total * 2), min 0)[0m
+2025-08-28T21:03:50.3237656Z [36;1m    quality_score=$(echo "100 - ($critical_issues * 10 + $total_issues * 2)" | bc | awk '{print ($1 < 0) ? 0 : $1}')[0m
+2025-08-28T21:03:50.3238070Z [36;1m    [0m
+2025-08-28T21:03:50.3238299Z [36;1m    echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-28T21:03:50.3238621Z [36;1m    echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-28T21:03:50.3238777Z [36;1m    echo "| Total Issues | $total_issues |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-28T21:03:50.3238955Z [36;1m    echo "| Critical Issues | $critical_issues |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-28T21:03:50.3239128Z [36;1m    echo "| Quality Score | $quality_score/100 |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-28T21:03:50.3239202Z [36;1m    [0m
+2025-08-28T21:03:50.3239292Z [36;1m    # Add severity breakdown[0m
+2025-08-28T21:03:50.3239391Z [36;1m    if [ "$total_issues" -gt 0 ]; then[0m
+2025-08-28T21:03:50.3239484Z [36;1m      echo "" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-28T21:03:50.3239616Z [36;1m      echo "### Issue Breakdown" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-28T21:03:50.3239691Z [36;1m      jq -r '[0m
+2025-08-28T21:03:50.3239807Z [36;1m        [.Issues // [] | group_by(.Severity) | .[] | [0m
+2025-08-28T21:03:50.3239929Z [36;1m         {severity: .[0].Severity, count: length}] |[0m
+2025-08-28T21:03:50.3240022Z [36;1m        sort_by(.count) | reverse |[0m
+2025-08-28T21:03:50.3240142Z [36;1m        .[] | "- **\(.severity | ascii_upcase)**: \(.count)"[0m
+2025-08-28T21:03:50.3240266Z [36;1m      ' golangci-lint.json >> $GITHUB_STEP_SUMMARY[0m
+2025-08-28T21:03:50.3240489Z [36;1m    fi[0m
+2025-08-28T21:03:50.3240561Z [36;1m  else[0m
+2025-08-28T21:03:50.3240756Z [36;1m    echo "Could not parse golangci-lint JSON output" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-28T21:03:50.3240842Z [36;1m    quality_score=85[0m
+2025-08-28T21:03:50.3240910Z [36;1m  fi[0m
+2025-08-28T21:03:50.3240979Z [36;1melse[0m
+2025-08-28T21:03:50.3241249Z [36;1m  echo "golangci-lint output not found - may have completed without issues" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-28T21:03:50.3241329Z [36;1m  quality_score=95[0m
+2025-08-28T21:03:50.3241396Z [36;1mfi[0m
+2025-08-28T21:03:50.3241466Z [36;1m[0m
+2025-08-28T21:03:50.3241583Z [36;1mecho "score=$quality_score" >> $GITHUB_OUTPUT[0m
+2025-08-28T21:03:50.3241730Z [36;1mecho "critical_issues=$critical_issues" >> $GITHUB_OUTPUT[0m
+2025-08-28T21:03:50.3241799Z [36;1m[0m
+2025-08-28T21:03:50.3242036Z [36;1m# Add quality gate status[0m
+2025-08-28T21:03:50.3242134Z [36;1mecho "" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-28T21:03:50.3242240Z [36;1mif [ "$critical_issues" -eq 0 ]; then[0m
+2025-08-28T21:03:50.3242444Z [36;1m  echo "**Quality Gate: PASSED** - No critical issues found" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-28T21:03:50.3242658Z [36;1melif [ "$critical_issues" -lt 5 ]; then[0m
+2025-08-28T21:03:50.3242906Z [36;1m  echo "**Quality Gate: WARNING** - $critical_issues critical issues found" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-28T21:03:50.3242978Z [36;1melse[0m
+2025-08-28T21:03:50.3243214Z [36;1m  echo "**Quality Gate: FAILED** - $critical_issues critical issues found" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-28T21:03:50.3243280Z [36;1mfi[0m
+2025-08-28T21:03:50.3272761Z shell: /usr/bin/bash -e {0}
+2025-08-28T21:03:50.3272838Z env:
+2025-08-28T21:03:50.3272925Z   GO_VERSION_FILE: go.mod
+2025-08-28T21:03:50.3273015Z   REGISTRY_BASE: ghcr.io/thc1006
+2025-08-28T21:03:50.3273119Z   PLATFORMS: linux/amd64,linux/arm64
+2025-08-28T21:03:50.3273202Z   GOLANGCI_LINT_VERSION: 1.64.3
+2025-08-28T21:03:50.3273290Z   GOVULNCHECK_VERSION: 1.1.4
+2025-08-28T21:03:50.3273419Z   GOPROXY: https://proxy.golang.org,direct
+2025-08-28T21:03:50.3273502Z   GOSUMDB: sum.golang.org
+2025-08-28T21:03:50.3273577Z   GO111MODULE: on
+2025-08-28T21:03:50.3273647Z   CGO_ENABLED: 0
+2025-08-28T21:03:50.3273721Z ##[endgroup]
+2025-08-28T21:03:50.3804386Z ##[group]Run actions/upload-artifact@v4
+2025-08-28T21:03:50.3804684Z with:
+2025-08-28T21:03:50.3804870Z   name: quality-reports
+2025-08-28T21:03:50.3805117Z   path: golangci-lint.json
+golangci-lint.xml
+
+2025-08-28T21:03:50.3805423Z   if-no-files-found: ignore
+2025-08-28T21:03:50.3805640Z   retention-days: 7
+2025-08-28T21:03:50.3805834Z   compression-level: 6
+2025-08-28T21:03:50.3806030Z   overwrite: false
+2025-08-28T21:03:50.3806229Z   include-hidden-files: false
+2025-08-28T21:03:50.3806443Z env:
+2025-08-28T21:03:50.3806608Z   GO_VERSION_FILE: go.mod
+2025-08-28T21:03:50.3806823Z   REGISTRY_BASE: ghcr.io/thc1006
+2025-08-28T21:03:50.3807069Z   PLATFORMS: linux/amd64,linux/arm64
+2025-08-28T21:03:50.3807316Z   GOLANGCI_LINT_VERSION: 1.64.3
+2025-08-28T21:03:50.3807563Z   GOVULNCHECK_VERSION: 1.1.4
+2025-08-28T21:03:50.3807825Z   GOPROXY: https://proxy.golang.org,direct
+2025-08-28T21:03:50.3808093Z   GOSUMDB: sum.golang.org
+2025-08-28T21:03:50.3808297Z   GO111MODULE: on
+2025-08-28T21:03:50.3808504Z   CGO_ENABLED: 0
+2025-08-28T21:03:50.3808680Z ##[endgroup]
+2025-08-28T21:03:50.5911986Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2025-08-28T21:03:50.5916685Z The least common ancestor is /home/runner/work/nephoran-intent-operator/nephoran-intent-operator. This will be the root directory of the artifact
+2025-08-28T21:03:50.5917997Z With the provided path, there will be 1 file uploaded
+2025-08-28T21:03:50.5922974Z Artifact name is valid!
+2025-08-28T21:03:50.5924268Z Root directory input is valid!
+2025-08-28T21:03:50.7100395Z Beginning upload of artifact content to blob storage
+2025-08-28T21:03:50.8199917Z Uploaded bytes 48358
+2025-08-28T21:03:50.8480537Z Finished uploading artifact content to blob storage!
+2025-08-28T21:03:50.8484591Z SHA256 digest of uploaded artifact zip is 83d7d897c017f95229c4e40aec220bd9de723f4fce882f55e8e492f6269ed6eb
+2025-08-28T21:03:50.8486301Z Finalizing artifact upload
+2025-08-28T21:03:50.9535155Z Artifact quality-reports.zip successfully finalized. Artifact ID 3877773746
+2025-08-28T21:03:50.9536421Z Artifact quality-reports has been successfully uploaded! Final size is 48358 bytes. Artifact ID is 3877773746
+2025-08-28T21:03:50.9543626Z Artifact download URL: https://github.com/thc1006/nephoran-intent-operator/actions/runs/17307734316/artifacts/3877773746
+2025-08-28T21:03:50.9665494Z Post job cleanup.
+2025-08-28T21:03:51.1463514Z Cache hit occurred on the primary key golangci-lint.cache-Linux-2904-2b8a20466aefbd9f4d16eab709531c3fd6d5fdec, not saving cache.
+2025-08-28T21:03:51.1603262Z Post job cleanup.
+2025-08-28T21:03:51.2528540Z [command]/usr/bin/git version
+2025-08-28T21:03:51.2566811Z git version 2.51.0
+2025-08-28T21:03:51.2612014Z Temporarily overriding HOME='/home/runner/work/_temp/86e43403-b95f-489a-aa79-719dc6507ebe' before making global git config changes
+2025-08-28T21:03:51.2613312Z Adding repository directory to the temporary git global config as a safe directory
+2025-08-28T21:03:51.2624555Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-08-28T21:03:51.2657502Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-08-28T21:03:51.2688417Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-08-28T21:03:51.2913001Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-08-28T21:03:51.2933248Z http.https://github.com/.extraheader
+2025-08-28T21:03:51.2946023Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-08-28T21:03:51.2975360Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-08-28T21:03:51.3303279Z Evaluate and set job outputs
+2025-08-28T21:03:51.3309757Z Set output 'quality_score'
+2025-08-28T21:03:51.3311795Z Set output 'critical_issues'
+2025-08-28T21:03:51.3313355Z Cleaning up orphan processes

@@ -68,7 +68,7 @@ func validateHandoffDir(path string) error {
 
 			// Recursively check if parent is valid for directory creation
 			if err := validateHandoffDir(parent); err != nil {
-				return fmt.Errorf("invalid parent directory for %s: %v", cleanPath, err)
+				return fmt.Errorf("invalid parent directory for %s: %w", cleanPath, err)
 			}
 
 			// Parent exists and is valid, so we can create the directory
@@ -222,7 +222,8 @@ func main() {
 		// Create and start the watcher with processor
 		watcher, err = loop.NewWatcherWithProcessor(absHandoffDir, processor)
 		if err != nil {
-			log.Fatalf("Failed to create watcher: %v", err)
+			log.Printf("Failed to create watcher: %v", err)
+			os.Exit(1)
 		}
 	} else {
 		// Legacy Config-based approach setup

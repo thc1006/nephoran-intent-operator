@@ -156,7 +156,7 @@ type E2NodeSetSpec struct {
 	RICConfiguration *RICConfiguration `json:"ricConfiguration,omitempty"`
 
 	// RicEndpoint is the Near-RT RIC endpoint for E2 connections.
-	// DEPRECATED: Use ricConfiguration.ricEndpoint instead
+	// Deprecated: Use ricConfiguration.ricEndpoint instead
 	// If not specified, defaults to "http://near-rt-ric:38080".
 	// +kubebuilder:validation:Pattern=`^https?://[a-zA-Z0-9.-]+:[0-9]+$`
 	// +optional

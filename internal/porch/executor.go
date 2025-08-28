@@ -194,9 +194,9 @@ func ValidatePorchPath(porchPath string) error {
 	if err != nil {
 		stderrStr := strings.TrimSpace(stderr.String())
 		if stderrStr != "" {
-			return fmt.Errorf("porch validation failed: %v (stderr: %s)", err, stderrStr)
+			return fmt.Errorf("porch validation failed: %w (stderr: %s)", err, stderrStr)
 		}
-		return fmt.Errorf("porch validation failed: %v", err)
+		return fmt.Errorf("porch validation failed: %w", err)
 	}
 
 	return nil

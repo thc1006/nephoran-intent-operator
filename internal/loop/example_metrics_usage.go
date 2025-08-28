@@ -1,8 +1,10 @@
 package loop
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"time"
@@ -50,7 +52,14 @@ func ExampleMetricsUsage() {
 
 	// Example 2: Access JSON metrics via HTTP
 	fmt.Println("\n=== HTTP JSON Metrics ===")
-	resp, err := http.Get("http://localhost:8080/metrics")
+	ctx := context.Background()
+	req, err := http.NewRequestWithContext(ctx, "GET", "http://localhost:8080/metrics", nil)
+	if err != nil {
+		log.Printf("Failed to create request: %v", err)
+		return
+	}
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("Failed to get metrics: %v", err)
 	} else {
@@ -73,20 +82,34 @@ func ExampleMetricsUsage() {
 
 	// Example 3: Prometheus metrics format
 	fmt.Println("\n=== Prometheus Metrics ===")
-	resp, err = http.Get("http://localhost:8080/metrics/prometheus")
+	req, err = http.NewRequestWithContext(ctx, "GET", "http://localhost:8080/metrics/prometheus", nil)
+	if err != nil {
+		log.Printf("Failed to create request: %v", err)
+		return
+	}
+	resp, err = client.Do(req)
 	if err != nil {
 		log.Printf("Failed to get Prometheus metrics: %v", err)
 	} else {
 		defer resp.Body.Close()
 		// Show first few lines of Prometheus metrics
 		buf := make([]byte, 500)
-		n, _ := resp.Body.Read(buf)
-		fmt.Printf("%s...\n", string(buf[:n]))
+		n, err := resp.Body.Read(buf)
+		if err != nil && err != io.EOF {
+			log.Printf("Failed to read Prometheus metrics: %v", err)
+		} else {
+			fmt.Printf("%s...\n", string(buf[:n]))
+		}
 	}
 
 	// Example 4: Health check
 	fmt.Println("\n=== Health Check ===")
-	resp, err = http.Get("http://localhost:8080/health")
+	req, err = http.NewRequestWithContext(ctx, "GET", "http://localhost:8080/health", nil)
+	if err != nil {
+		log.Printf("Failed to create request: %v", err)
+		return
+	}
+	resp, err = client.Do(req)
 	if err != nil {
 		log.Printf("Failed to get health status: %v", err)
 	} else {
@@ -194,11 +217,8 @@ func AlertingExample(watcher *Watcher) {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			checkAlerts()
-		}
+	for range ticker.C {
+		checkAlerts()
 	}
 }
 

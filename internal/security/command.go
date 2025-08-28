@@ -199,7 +199,11 @@ func (e *SecureCommandExecutor) validateBinaryPath(binaryName string, policy Bin
 	// Validate against allowed paths
 	allowed := false
 	for _, allowedPath := range policy.AllowedPaths {
-		if matched, _ := filepath.Match(allowedPath, absBinaryPath); matched {
+		matched, err := filepath.Match(allowedPath, absBinaryPath)
+		if err != nil {
+			return "", fmt.Errorf("invalid allowed path pattern %s: %w", allowedPath, err)
+		}
+		if matched {
 			allowed = true
 			break
 		}
@@ -231,7 +235,11 @@ func (e *SecureCommandExecutor) sanitizeArguments(args []string, policy BinaryPo
 	for _, arg := range args {
 		// Check forbidden arguments
 		for _, forbidden := range policy.ForbiddenArgs {
-			if matched, _ := regexp.MatchString(forbidden, arg); matched {
+			matched, err := regexp.MatchString(forbidden, arg)
+			if err != nil {
+				return nil, fmt.Errorf("invalid forbidden argument pattern %s: %w", forbidden, err)
+			}
+			if matched {
 				return nil, fmt.Errorf("forbidden argument pattern: %s", forbidden)
 			}
 		}
@@ -243,7 +251,11 @@ func (e *SecureCommandExecutor) sanitizeArguments(args []string, policy BinaryPo
 		if len(policy.AllowedArgs) > 0 {
 			allowed := false
 			for _, pattern := range policy.AllowedArgs {
-				if matched, _ := regexp.MatchString(pattern, clean); matched {
+				matched, err := regexp.MatchString(pattern, clean)
+				if err != nil {
+					return nil, fmt.Errorf("invalid allowed argument pattern %s: %w", pattern, err)
+				}
+				if matched {
 					allowed = true
 					break
 				}

@@ -332,7 +332,7 @@ func (r *RingBuffer) GetAll() []float64 {
 			result[idx] = r.data[i]
 			idx++
 		}
-		for i := 0; i < r.position; i++ {
+		for i := range r.position {
 			result[idx] = r.data[i]
 			idx++
 		}

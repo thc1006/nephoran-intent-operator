@@ -13,15 +13,25 @@ import (
 // Severity levels for audit events (aligned with syslog RFC 5424)
 type Severity int
 
+// Severity constants represent different levels of audit event importance,
+// aligned with syslog RFC 5424 severity levels.
 const (
-	SeverityEmergency Severity = iota // System is unusable
-	SeverityAlert                     // Action must be taken immediately
-	SeverityCritical                  // Critical conditions
-	SeverityError                     // Error conditions
-	SeverityWarning                   // Warning conditions
-	SeverityNotice                    // Normal but significant condition
-	SeverityInfo                      // Informational messages
-	SeverityDebug                     // Debug-level messages
+	// SeverityEmergency indicates the system is unusable
+	SeverityEmergency Severity = iota
+	// SeverityAlert indicates action must be taken immediately
+	SeverityAlert
+	// SeverityCritical indicates critical conditions
+	SeverityCritical
+	// SeverityError indicates error conditions
+	SeverityError
+	// SeverityWarning indicates warning conditions
+	SeverityWarning
+	// SeverityNotice indicates normal but significant condition
+	SeverityNotice
+	// SeverityInfo indicates informational messages
+	SeverityInfo
+	// SeverityDebug indicates debug-level messages
+	SeverityDebug
 )
 
 // String returns the string representation of the severity
@@ -52,9 +62,10 @@ func (s Severity) String() string {
 type EventType string
 
 const (
-	// Authentication and Authorization Events
-	EventTypeAuthentication        EventType = "authentication"
-	EventTypeAuthenticationFailed  EventType = "authentication_failed"
+	// EventTypeAuthentication indicates an authentication attempt event
+	EventTypeAuthentication EventType = "authentication"
+	// EventTypeAuthenticationFailed indicates a failed authentication attempt
+	EventTypeAuthenticationFailed EventType = "authentication_failed"
 	EventTypeAuthenticationSuccess EventType = "authentication_success"
 	EventTypeAuthorization         EventType = "authorization"
 	EventTypeAuthorizationFailed   EventType = "authorization_failed"

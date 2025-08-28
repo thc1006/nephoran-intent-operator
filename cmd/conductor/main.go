@@ -110,7 +110,7 @@ func isIntentFile(path string) bool {
 }
 
 // processIntentFile triggers porch-publisher for the given intent file
-func processIntentFile(intentPath string, outDir string) {
+func processIntentFile(intentPath, outDir string) {
 	// Try to extract correlation_id from the intent file
 	correlationID := extractCorrelationID(intentPath)
 	if correlationID != "" {

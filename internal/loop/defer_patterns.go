@@ -76,7 +76,7 @@ func ExampleSafeDeferPattern4() error {
 
 	// Handle both errors
 	if watcherErr != nil && closeErr != nil {
-		return fmt.Errorf("watcher error: %w, close error: %v", watcherErr, closeErr)
+		return fmt.Errorf("watcher error: %w, close error: %w", watcherErr, closeErr)
 	}
 	if watcherErr != nil {
 		return watcherErr

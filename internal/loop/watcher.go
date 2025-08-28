@@ -748,7 +748,9 @@ func (w *Watcher) handlePrometheusMetrics(writer http.ResponseWriter, request *h
 	}
 
 	writer.Header().Set("Content-Type", "text/plain")
-	writer.Write(buf.Bytes())
+	if _, err := writer.Write(buf.Bytes()); err != nil {
+		log.Printf("Failed to write Prometheus metrics: %v", err)
+	}
 }
 
 // handleHealth handles health check endpoint
@@ -866,9 +868,8 @@ func (w *Watcher) Start() error {
 		// In once mode, wait for all work to complete before exiting
 		if w.processor == nil {
 			w.waitForWorkersToFinish()
-		} else {
-			// IntentProcessor doesn't use batching, no need to flush
 		}
+		// IntentProcessor doesn't use batching, no need to flush
 		return nil
 	}
 
@@ -1214,8 +1215,12 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 		w.recordValidationError(err.Error())
 
 		// Mark as failed and move to failed directory
-		w.stateManager.MarkFailed(filePath)
-		w.fileManager.MoveToFailed(filePath, fmt.Sprintf("Validation failed: %v", err))
+		if err := w.stateManager.MarkFailed(filePath); err != nil {
+			log.Printf("LOOP:WARNING - Worker %d: Failed to mark file as failed %s: %v", workerID, filepath.Base(filePath), err)
+		}
+		if err := w.fileManager.MoveToFailed(filePath, fmt.Sprintf("Validation failed: %v", err)); err != nil {
+			log.Printf("LOOP:WARNING - Worker %d: Failed to move file to failed directory %s: %v", workerID, filepath.Base(filePath), err)
+		}
 		if statusErr := w.writeStatusFileAtomic(filePath, "failed", fmt.Sprintf("JSON validation failed: %v", err)); statusErr != nil {
 			log.Printf("LOOP:WARNING - Worker %d: Failed to write status file for %s: %v", workerID, filepath.Base(filePath), statusErr)
 		}
@@ -1234,7 +1239,7 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 	}
 
 	// Execute porch command with context timeout
-	result, err := w.executor.Execute(workItem.Ctx, filePath)
+	result, _ := w.executor.Execute(workItem.Ctx, filePath)
 
 	// Record processing latency
 	processingDuration := time.Since(startTime)
@@ -1449,8 +1454,7 @@ func (w *Watcher) validateJSONDepth(reader io.Reader, maxDepth int) error {
 			return err
 		}
 
-		switch token := token.(type) {
-		case json.Delim:
+		if token, ok := token.(json.Delim); ok {
 			if token == '{' || token == '[' {
 				depth++
 				if depth > maxDepth {
@@ -2133,7 +2137,7 @@ func (w *Watcher) validateScalingIntentSpec(spec map[string]interface{}) error {
 	// Basic validation for ScalingIntent
 	if replicas, exists := spec["replicas"]; exists {
 		if err := validateScalingReplicas(replicas); err != nil {
-			return fmt.Errorf("spec.%v", err)
+			return fmt.Errorf("spec.%w", err)
 		}
 	}
 	return nil

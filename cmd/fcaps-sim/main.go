@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -114,10 +115,8 @@ func main() {
 					log.Printf("Successfully sent scaling intent to %s", config.IntentURL)
 				}
 			}
-		} else {
-			if config.Verbose {
-				log.Printf("No scaling action needed")
-			}
+		} else if config.Verbose {
+			log.Printf("No scaling action needed")
 		}
 
 		// Wait before processing next event (except for the last one)
@@ -215,8 +214,8 @@ func sendVESEvent(collectorURL string, event fcaps.FCAPSEvent, verbose bool) err
 		log.Printf("Sending VES event: %s", string(eventJSON))
 	}
 
-	// Create HTTP request
-	req, err := http.NewRequest("POST", collectorURL, bytes.NewBuffer(eventJSON))
+	// Create HTTP request with context
+	req, err := http.NewRequestWithContext(context.Background(), "POST", collectorURL, bytes.NewBuffer(eventJSON))
 	if err != nil {
 		return fmt.Errorf("failed to create VES request: %w", err)
 	}
@@ -282,8 +281,8 @@ func sendIntent(intentURL string, intent *ingest.Intent) error {
 		return fmt.Errorf("failed to marshal intent: %w", err)
 	}
 
-	// Create HTTP request
-	req, err := http.NewRequest("POST", intentURL, bytes.NewBuffer(intentJSON))
+	// Create HTTP request with context
+	req, err := http.NewRequestWithContext(context.Background(), "POST", intentURL, bytes.NewBuffer(intentJSON))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}

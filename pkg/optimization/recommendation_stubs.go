@@ -1,3 +1,5 @@
+//go:build stubs
+
 /*
 Copyright 2025.
 

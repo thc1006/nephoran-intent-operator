@@ -1,7 +1,11 @@
+// Package porch provides functionality for managing and interacting with
+// the Google ConfigSync Porch (Package Orchestration) system, including
+// graceful command execution with proper signal handling.
 package porch
 
 import (
 	"context"
+	"errors"
 	"log"
 	"os/exec"
 	"runtime"
@@ -85,7 +89,8 @@ func (gc *GracefulCommand) RunWithGracefulShutdown() error {
 	err := gc.Wait()
 	if err != nil {
 		// Check if the error is due to graceful termination
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
 			if exitErr.ExitCode() == -1 || exitErr.ExitCode() == 130 || exitErr.ExitCode() == 143 {
 				log.Printf("Process %d terminated gracefully (exit code: %d)", gc.Process.Pid, exitErr.ExitCode())
 				return nil // Consider graceful termination as success

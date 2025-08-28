@@ -19,7 +19,7 @@ func main() {
 	)
 	flag.Parse()
 
-	if err := os.MkdirAll(*outputDir, 0750); err != nil {
+	if err := os.MkdirAll(*outputDir, 0o750); err != nil {
 		log.Fatalf("Failed to create output directory: %v", err)
 	}
 

@@ -3,7 +3,6 @@
 package ingest
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -28,7 +27,9 @@ type Handler struct {
 }
 
 func NewHandler(v ValidatorInterface, outDir string, provider IntentProvider) *Handler {
-	_ = os.MkdirAll(outDir, 0o755)
+	if err := os.MkdirAll(outDir, 0o755); err != nil {
+		log.Printf("Warning: Failed to create output directory %s: %v", outDir, err)
+	}
 	return &Handler{v: v, outDir: outDir, provider: provider}
 }
 
@@ -78,7 +79,7 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	} else {
 		// Try provider first (LLM or other custom parser)
 		if h.provider != nil {
-			ctx := context.Background()
+			ctx := r.Context()
 			intent, err := h.provider.ParseIntent(ctx, string(body))
 			if err == nil {
 				// Convert intent map to JSON
@@ -96,7 +97,7 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 				if len(body) == 0 {
 					http.Error(w, "Request body is empty. Expected JSON intent or plain text command like: scale <target> to <replicas> in ns <namespace>", http.StatusBadRequest)
 				} else {
-					http.Error(w, fmt.Sprintf("Invalid plain text format. Expected: 'scale <target> to <replicas> in ns <namespace>'. Received: %q", string(body)), http.StatusBadRequest)
+					http.Error(w, "Invalid plain text format. Expected: 'scale <target> to <replicas> in ns <namespace>'. Received: "+string(body), http.StatusBadRequest)
 				}
 				return
 			}
@@ -108,11 +109,13 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errMsg := fmt.Sprintf("Intent validation failed: %s", err.Error())
 		// Add hint for common errors
-		if strings.Contains(err.Error(), "intent_type") {
+		errStr := err.Error()
+		switch {
+		case strings.Contains(errStr, "intent_type"):
 			errMsg += ". Note: Currently only 'scaling' intent type is supported."
-		} else if strings.Contains(err.Error(), "replicas") {
+		case strings.Contains(errStr, "replicas"):
 			errMsg += ". Note: Replicas must be between 1 and 100."
-		} else if strings.Contains(err.Error(), "source") {
+		case strings.Contains(errStr, "source"):
 			errMsg += ". Note: Source must be one of: 'user', 'planner', or 'test'."
 		}
 		http.Error(w, errMsg, http.StatusBadRequest)
@@ -136,9 +139,11 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	if err := json.NewEncoder(w).Encode(map[string]any{
 		"status":  "accepted",
 		"saved":   outFile,
 		"preview": intent,
-	})
+	}); err != nil {
+		log.Printf("Failed to encode response JSON: %v", err)
+	}
 }

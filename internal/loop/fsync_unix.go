@@ -6,6 +6,7 @@ package loop
 import (
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -77,7 +78,9 @@ func writeFileWithSync(filename string, data []byte, perm os.FileMode) error {
 	// Also sync the directory to ensure the file entry is persisted
 	dirFd, err := os.Open(filepath.Dir(filename))
 	if err == nil {
-		dirFd.Sync()
+		if err := dirFd.Sync(); err != nil {
+			log.Printf("Warning: Failed to sync directory %s: %v", filepath.Dir(filename), err)
+		}
 		dirFd.Close()
 	}
 
