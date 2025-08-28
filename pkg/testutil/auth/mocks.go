@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/mock"
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
+	authproviders "github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
 
 // MockOAuthProvider provides a mock implementation of the OAuthProvider interface
@@ -33,29 +33,29 @@ func (m *MockOAuthProvider) GetProviderName() string {
 	return args.String(0)
 }
 
-func (m *MockOAuthProvider) GetAuthorizationURL(state, redirectURI string, options ...providers.AuthOption) (string, *providers.PKCEChallenge, error) {
+func (m *MockOAuthProvider) GetAuthorizationURL(state, redirectURI string, options ...authproviders.AuthOption) (string, *authproviders.PKCEChallenge, error) {
 	args := m.Called(state, redirectURI, options)
-	return args.String(0), args.Get(1).(*providers.PKCEChallenge), args.Error(2)
+	return args.String(0), args.Get(1).(*authproviders.PKCEChallenge), args.Error(2)
 }
 
-func (m *MockOAuthProvider) ExchangeCodeForToken(ctx context.Context, code, redirectURI string, challenge *providers.PKCEChallenge) (*providers.TokenResponse, error) {
+func (m *MockOAuthProvider) ExchangeCodeForToken(ctx context.Context, code, redirectURI string, challenge *authproviders.PKCEChallenge) (*authproviders.TokenResponse, error) {
 	args := m.Called(ctx, code, redirectURI, challenge)
-	return args.Get(0).(*providers.TokenResponse), args.Error(1)
+	return args.Get(0).(*authproviders.TokenResponse), args.Error(1)
 }
 
-func (m *MockOAuthProvider) RefreshToken(ctx context.Context, refreshToken string) (*providers.TokenResponse, error) {
+func (m *MockOAuthProvider) RefreshToken(ctx context.Context, refreshToken string) (*authproviders.TokenResponse, error) {
 	args := m.Called(ctx, refreshToken)
-	return args.Get(0).(*providers.TokenResponse), args.Error(1)
+	return args.Get(0).(*authproviders.TokenResponse), args.Error(1)
 }
 
-func (m *MockOAuthProvider) GetUserInfo(ctx context.Context, accessToken string) (*providers.UserInfo, error) {
+func (m *MockOAuthProvider) GetUserInfo(ctx context.Context, accessToken string) (*authproviders.UserInfo, error) {
 	args := m.Called(ctx, accessToken)
-	return args.Get(0).(*providers.UserInfo), args.Error(1)
+	return args.Get(0).(*authproviders.UserInfo), args.Error(1)
 }
 
-func (m *MockOAuthProvider) ValidateToken(ctx context.Context, accessToken string) (*providers.TokenValidation, error) {
+func (m *MockOAuthProvider) ValidateToken(ctx context.Context, accessToken string) (*authproviders.TokenValidation, error) {
 	args := m.Called(ctx, accessToken)
-	return args.Get(0).(*providers.TokenValidation), args.Error(1)
+	return args.Get(0).(*authproviders.TokenValidation), args.Error(1)
 }
 
 func (m *MockOAuthProvider) RevokeToken(ctx context.Context, token string) error {
@@ -63,14 +63,14 @@ func (m *MockOAuthProvider) RevokeToken(ctx context.Context, token string) error
 	return args.Error(0)
 }
 
-func (m *MockOAuthProvider) SupportsFeature(feature providers.ProviderFeature) bool {
+func (m *MockOAuthProvider) SupportsFeature(feature authproviders.ProviderFeature) bool {
 	args := m.Called(feature)
 	return args.Bool(0)
 }
 
-func (m *MockOAuthProvider) GetConfiguration() *providers.ProviderConfig {
+func (m *MockOAuthProvider) GetConfiguration() *authproviders.ProviderConfig {
 	args := m.Called()
-	return args.Get(0).(*providers.ProviderConfig)
+	return args.Get(0).(*authproviders.ProviderConfig)
 }
 
 // MockOIDCProvider extends MockOAuthProvider with OIDC functionality
@@ -84,24 +84,24 @@ func NewMockOIDCProvider(name string) *MockOIDCProvider {
 	}
 }
 
-func (m *MockOIDCProvider) DiscoverConfiguration(ctx context.Context) (*providers.OIDCConfiguration, error) {
+func (m *MockOIDCProvider) DiscoverConfiguration(ctx context.Context) (*authproviders.OIDCConfiguration, error) {
 	args := m.Called(ctx)
-	return args.Get(0).(*providers.OIDCConfiguration), args.Error(1)
+	return args.Get(0).(*authproviders.OIDCConfiguration), args.Error(1)
 }
 
-func (m *MockOIDCProvider) ValidateIDToken(ctx context.Context, idToken string) (*providers.IDTokenClaims, error) {
+func (m *MockOIDCProvider) ValidateIDToken(ctx context.Context, idToken string) (*authproviders.IDTokenClaims, error) {
 	args := m.Called(ctx, idToken)
-	return args.Get(0).(*providers.IDTokenClaims), args.Error(1)
+	return args.Get(0).(*authproviders.IDTokenClaims), args.Error(1)
 }
 
-func (m *MockOIDCProvider) GetJWKS(ctx context.Context) (*providers.JWKS, error) {
+func (m *MockOIDCProvider) GetJWKS(ctx context.Context) (*authproviders.JWKS, error) {
 	args := m.Called(ctx)
-	return args.Get(0).(*providers.JWKS), args.Error(1)
+	return args.Get(0).(*authproviders.JWKS), args.Error(1)
 }
 
-func (m *MockOIDCProvider) GetUserInfoFromIDToken(idToken string) (*providers.UserInfo, error) {
+func (m *MockOIDCProvider) GetUserInfoFromIDToken(idToken string) (*authproviders.UserInfo, error) {
 	args := m.Called(idToken)
-	return args.Get(0).(*providers.UserInfo), args.Error(1)
+	return args.Get(0).(*authproviders.UserInfo), args.Error(1)
 }
 
 // MockEnterpriseProvider extends MockOAuthProvider with enterprise features
@@ -130,12 +130,12 @@ func (m *MockEnterpriseProvider) CheckGroupMembership(ctx context.Context, acces
 	return args.Get(0).([]string), args.Error(1)
 }
 
-func (m *MockEnterpriseProvider) GetOrganizations(ctx context.Context, accessToken string) ([]providers.Organization, error) {
+func (m *MockEnterpriseProvider) GetOrganizations(ctx context.Context, accessToken string) ([]authproviders.Organization, error) {
 	args := m.Called(ctx, accessToken)
-	return args.Get(0).([]providers.Organization), args.Error(1)
+	return args.Get(0).([]authproviders.Organization), args.Error(1)
 }
 
-func (m *MockEnterpriseProvider) ValidateUserAccess(ctx context.Context, accessToken string, requiredLevel providers.AccessLevel) error {
+func (m *MockEnterpriseProvider) ValidateUserAccess(ctx context.Context, accessToken string, requiredLevel authproviders.AccessLevel) error {
 	args := m.Called(ctx, accessToken, requiredLevel)
 	return args.Error(0)
 }
@@ -154,14 +154,14 @@ func (m *MockLDAPProvider) Connect(ctx context.Context) error {
 	return args.Error(0)
 }
 
-func (m *MockLDAPProvider) Authenticate(ctx context.Context, username, password string) (*providers.UserInfo, error) {
+func (m *MockLDAPProvider) Authenticate(ctx context.Context, username, password string) (*authproviders.UserInfo, error) {
 	args := m.Called(ctx, username, password)
-	return args.Get(0).(*providers.UserInfo), args.Error(1)
+	return args.Get(0).(*authproviders.UserInfo), args.Error(1)
 }
 
-func (m *MockLDAPProvider) SearchUser(ctx context.Context, username string) (*providers.UserInfo, error) {
+func (m *MockLDAPProvider) SearchUser(ctx context.Context, username string) (*authproviders.UserInfo, error) {
 	args := m.Called(ctx, username)
-	return args.Get(0).(*providers.UserInfo), args.Error(1)
+	return args.Get(0).(*authproviders.UserInfo), args.Error(1)
 }
 
 func (m *MockLDAPProvider) GetUserGroups(ctx context.Context, username string) ([]string, error) {
@@ -329,8 +329,8 @@ func (s *MockLDAPServer) IsClosed() bool {
 type OAuth2MockServer struct {
 	Server        *httptest.Server
 	Provider      string
-	Users         map[string]*providers.UserInfo
-	Tokens        map[string]*providers.TokenResponse
+	Users         map[string]*authproviders.UserInfo
+	Tokens        map[string]*authproviders.TokenResponse
 	InvalidTokens map[string]bool
 	mutex         sync.RWMutex
 }
@@ -338,8 +338,8 @@ type OAuth2MockServer struct {
 func NewOAuth2MockServer(provider string) *OAuth2MockServer {
 	ms := &OAuth2MockServer{
 		Provider:      provider,
-		Users:         make(map[string]*providers.UserInfo),
-		Tokens:        make(map[string]*providers.TokenResponse),
+		Users:         make(map[string]*authproviders.UserInfo),
+		Tokens:        make(map[string]*authproviders.TokenResponse),
 		InvalidTokens: make(map[string]bool),
 	}
 
@@ -356,7 +356,7 @@ func NewOAuth2MockServer(provider string) *OAuth2MockServer {
 
 func (ms *OAuth2MockServer) setupDefaultData() {
 	// Add test users
-	testUser := &providers.UserInfo{
+	testUser := &authproviders.UserInfo{
 		Subject:       "test-user-123",
 		Email:         "testuser@example.com",
 		EmailVerified: true,
@@ -370,7 +370,7 @@ func (ms *OAuth2MockServer) setupDefaultData() {
 		Roles:         []string{"viewer"},
 	}
 
-	adminUser := &providers.UserInfo{
+	adminUser := &authproviders.UserInfo{
 		Subject:       "admin-user-456",
 		Email:         "admin@example.com",
 		EmailVerified: true,
@@ -388,7 +388,7 @@ func (ms *OAuth2MockServer) setupDefaultData() {
 	ms.Users["admin-access-token"] = adminUser
 
 	// Add token responses
-	ms.Tokens["test-auth-code"] = &providers.TokenResponse{
+	ms.Tokens["test-auth-code"] = &authproviders.TokenResponse{
 		AccessToken:  "test-access-token",
 		RefreshToken: "test-refresh-token",
 		TokenType:    "Bearer",
@@ -397,7 +397,7 @@ func (ms *OAuth2MockServer) setupDefaultData() {
 		IssuedAt:     time.Now(),
 	}
 
-	ms.Tokens["admin-auth-code"] = &providers.TokenResponse{
+	ms.Tokens["admin-auth-code"] = &authproviders.TokenResponse{
 		AccessToken:  "admin-access-token",
 		RefreshToken: "admin-refresh-token",
 		TokenType:    "Bearer",
@@ -500,10 +500,10 @@ func (ms *OAuth2MockServer) handleRefreshTokenGrant(w http.ResponseWriter, r *ht
 
 	// Find token by refresh token
 	ms.mutex.RLock()
-	var tokenResponse *providers.TokenResponse
+	var tokenResponse *authproviders.TokenResponse
 	for _, token := range ms.Tokens {
 		if token.RefreshToken == refreshToken {
-			tokenResponse = &providers.TokenResponse{
+			tokenResponse = &authproviders.TokenResponse{
 				AccessToken:  token.AccessToken + "-refreshed",
 				RefreshToken: token.RefreshToken,
 				TokenType:    token.TokenType,
@@ -628,7 +628,7 @@ func (ms *OAuth2MockServer) handleRevoke(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusOK)
 }
 
-func (ms *OAuth2MockServer) AddUser(token string, user *providers.UserInfo) {
+func (ms *OAuth2MockServer) AddUser(token string, user *authproviders.UserInfo) {
 	ms.mutex.Lock()
 	defer ms.mutex.Unlock()
 	ms.Users[token] = user

@@ -24,7 +24,7 @@ type SecurityTestSuite struct {
 	tlsConfig    *TLSEnhancedConfig
 	cryptoModern *CryptoModern
 	certManager  *CertManager
-	keyManager   *KeyManager
+	keyManager   *DefaultKeyManager
 
 	// Test results
 	results map[string]*TestResult

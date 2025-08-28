@@ -2,12 +2,20 @@ package security
 
 import (
 	"time"
+	
+	"github.com/thc1006/nephoran-intent-operator/pkg/interfaces"
 )
 
-// CommonSecurityConfig defines the unified security configuration interface
-type CommonSecurityConfig struct {
-	// TLS Configuration
-	TLS *TLSConfig `json:"tls,omitempty"`
+// Type aliases to maintain compatibility while breaking import cycle
+type CommonSecurityConfig = interfaces.CommonSecurityConfig
+type TLSConfig = interfaces.TLSConfig
+type SecurityHeadersConfig = interfaces.SecurityHeadersConfig
+type CertificatePaths = interfaces.CertificatePaths
+
+// Extended security config with additional fields not in the core interfaces
+type ExtendedSecurityConfig struct {
+	// Embed the common config from interfaces
+	*CommonSecurityConfig
 
 	// Authentication Configuration
 	Auth *AuthConfig `json:"auth,omitempty"`
@@ -24,9 +32,6 @@ type CommonSecurityConfig struct {
 	// Input Validation Configuration
 	InputValidation *InputValidationConfig `json:"input_validation,omitempty"`
 
-	// Security Headers Configuration
-	SecurityHeaders *SecurityHeadersConfig `json:"security_headers,omitempty"`
-
 	// Audit Configuration
 	Audit *AuditConfig `json:"audit,omitempty"`
 
@@ -34,28 +39,6 @@ type CommonSecurityConfig struct {
 	Encryption *EncryptionConfig `json:"encryption,omitempty"`
 }
 
-// TLSConfig holds TLS configuration
-type TLSConfig struct {
-	Enabled        bool                         `json:"enabled"`
-	MutualTLS      bool                         `json:"mutual_tls"`
-	CertFile       string                       `json:"cert_file,omitempty"`
-	KeyFile        string                       `json:"key_file,omitempty"`
-	CAFile         string                       `json:"ca_file,omitempty"`
-	CABundle       string                       `json:"ca_bundle,omitempty"`
-	MinVersion     string                       `json:"min_version,omitempty"`
-	MaxVersion     string                       `json:"max_version,omitempty"`
-	CipherSuites   []string                     `json:"cipher_suites,omitempty"`
-	AutoReload     bool                         `json:"auto_reload"`
-	ReloadInterval string                       `json:"reload_interval,omitempty"`
-	Certificates   map[string]*CertificatePaths `json:"certificates,omitempty"`
-}
-
-// CertificatePaths holds paths to certificate files
-type CertificatePaths struct {
-	CertFile string `json:"cert_file"`
-	KeyFile  string `json:"key_file"`
-	CAFile   string `json:"ca_file,omitempty"`
-}
 
 // AuthConfig holds authentication configuration
 type AuthConfig struct {
@@ -152,21 +135,6 @@ type InputValidationConfig struct {
 	RequiredHeaders        []string `json:"required_headers,omitempty"`
 }
 
-// SecurityHeadersConfig defines security headers configuration
-type SecurityHeadersConfig struct {
-	Enabled                   bool              `json:"enabled"`
-	StrictTransportSecurity   string            `json:"strict_transport_security,omitempty"`
-	ContentSecurityPolicy     string            `json:"content_security_policy,omitempty"`
-	XContentTypeOptions       string            `json:"x_content_type_options,omitempty"`
-	XFrameOptions             string            `json:"x_frame_options,omitempty"`
-	XXSSProtection            string            `json:"x_xss_protection,omitempty"`
-	ReferrerPolicy            string            `json:"referrer_policy,omitempty"`
-	PermissionsPolicy         string            `json:"permissions_policy,omitempty"`
-	CrossOriginEmbedderPolicy string            `json:"cross_origin_embedder_policy,omitempty"`
-	CrossOriginOpenerPolicy   string            `json:"cross_origin_opener_policy,omitempty"`
-	CrossOriginResourcePolicy string            `json:"cross_origin_resource_policy,omitempty"`
-	CustomHeaders             map[string]string `json:"custom_headers,omitempty"`
-}
 
 // AuditConfig holds audit configuration
 type AuditConfig struct {
@@ -201,12 +169,22 @@ func ToCommonConfig(config interface{}) *CommonSecurityConfig {
 }
 
 // DefaultSecurityConfig returns a default security configuration
-func DefaultSecurityConfig() *CommonSecurityConfig {
-	return &CommonSecurityConfig{
-		TLS: &TLSConfig{
-			Enabled:    true,
-			MinVersion: "1.2",
-			AutoReload: true,
+func DefaultSecurityConfig() *ExtendedSecurityConfig {
+	return &ExtendedSecurityConfig{
+		CommonSecurityConfig: &CommonSecurityConfig{
+			TLS: &TLSConfig{
+				Enabled:    true,
+				MinVersion: "1.2",
+				AutoReload: true,
+			},
+			SecurityHeaders: &SecurityHeadersConfig{
+				Enabled:                 true,
+				StrictTransportSecurity: "max-age=31536000; includeSubDomains",
+				ContentSecurityPolicy:   "default-src 'self'",
+				XContentTypeOptions:     "nosniff",
+				XFrameOptions:           "DENY",
+				ReferrerPolicy:          "strict-origin-when-cross-origin",
+			},
 		},
 		Auth: &AuthConfig{
 			Enabled:        true,
@@ -236,15 +214,6 @@ func DefaultSecurityConfig() *CommonSecurityConfig {
 			StrictValidation:       true,
 			EnableSchemaValidation: true,
 			SanitizeInput:          true,
-		},
-		SecurityHeaders: &SecurityHeadersConfig{
-			Enabled:                 true,
-			StrictTransportSecurity: "max-age=31536000; includeSubDomains",
-			ContentSecurityPolicy:   "default-src 'self'",
-			XContentTypeOptions:     "nosniff",
-			XFrameOptions:           "DENY",
-			XXSSProtection:          "1; mode=block",
-			ReferrerPolicy:          "strict-origin-when-cross-origin",
 		},
 		Audit: &AuditConfig{
 			Enabled:               true,

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
 
 // Local type definitions to avoid import cycles

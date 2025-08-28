@@ -20,11 +20,15 @@ import (
 	"context"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
+	audittypes "github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
 )
 
 // Re-export types from the types package for convenience
-type Backend = types.Backend
+type Backend = audittypes.Backend
+type AuditEvent = audittypes.AuditEvent
+type ComplianceStandard = audittypes.ComplianceStandard
+type EventType = audittypes.EventType
+type Result = audittypes.Result
 type BackendConfig struct {
 	Type          string                 `json:"type"`   // "elasticsearch", "file", etc.
 	Config        map[string]interface{} `json:"config"` // Backend-specific config

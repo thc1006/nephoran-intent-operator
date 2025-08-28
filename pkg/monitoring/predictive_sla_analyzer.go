@@ -607,8 +607,17 @@ func (lrm *LinearRegressionModel) UpdateModel(ctx context.Context, newData *Trai
 	return lrm.Train(ctx, newData)
 }
 
+// Train trains the polynomial regression model
+func (prm *PolynomialRegressionModel) Train(ctx context.Context, data *TrainingDataSet) error {
+	if data == nil || len(data.Features) == 0 || len(data.Labels) == 0 {
+		return fmt.Errorf("invalid training data")
+	}
+
+	// Transform features to polynomial space
+	polyFeatures := prm.transformToPolynomial(data.Features)
+
 	// Use least squares to solve for coefficients
-	coeffs, err := prm.leastSquaresSolve(polyFeatures, labels)
+	coeffs, err := prm.leastSquaresSolve(polyFeatures, data.Labels)
 	if err != nil {
 		return err
 	}
@@ -1224,6 +1233,15 @@ func (psa *PredictiveSLAAnalyzer) extractAvailabilityFeatures(trend *TrendResult
 	// Add more sophisticated feature extraction
 	return features
 }
+
+// updateViolationProbabilities updates metrics for all prediction horizons
+func (psa *PredictiveSLAAnalyzer) updateViolationProbabilities(ctx context.Context) {
+	horizons := []time.Duration{
+		5 * time.Minute,
+		15 * time.Minute,
+		30 * time.Minute,
+		1 * time.Hour,
+	}
 
 	for _, horizon := range horizons {
 		// Availability prediction

@@ -538,15 +538,15 @@ func (cm *CacheManager) initializeComponents() error {
 func (cm *CacheManager) initializeRedis() error {
 	if cm.config.RedisClusterEnabled {
 		cm.redisCluster = redis.NewClusterClient(&redis.ClusterOptions{
-			Addrs:        cm.config.RedisAddrs,
-			Password:     cm.config.RedisPassword,
-			PoolSize:     cm.config.RedisPoolSize,
-			MinIdleConns: cm.config.RedisMinIdleConns,
-			MaxRetries:   cm.config.RedisMaxRetries,
-			DialTimeout:  cm.config.RedisDialTimeout,
-			ReadTimeout:  cm.config.RedisReadTimeout,
-			WriteTimeout: cm.config.RedisWriteTimeout,
-			IdleTimeout:  cm.config.RedisIdleTimeout,
+			Addrs:           cm.config.RedisAddrs,
+			Password:        cm.config.RedisPassword,
+			PoolSize:        cm.config.RedisPoolSize,
+			MinIdleConns:    cm.config.RedisMinIdleConns,
+			MaxRetries:      cm.config.RedisMaxRetries,
+			DialTimeout:     cm.config.RedisDialTimeout,
+			ReadTimeout:     cm.config.RedisReadTimeout,
+			WriteTimeout:    cm.config.RedisWriteTimeout,
+			ConnMaxIdleTime: cm.config.RedisIdleTimeout,
 		})
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -557,16 +557,16 @@ func (cm *CacheManager) initializeRedis() error {
 		}
 	} else {
 		cm.redisClient = redis.NewClient(&redis.Options{
-			Addr:         cm.config.RedisAddrs[0],
-			Password:     cm.config.RedisPassword,
-			DB:           cm.config.RedisDB,
-			PoolSize:     cm.config.RedisPoolSize,
-			MinIdleConns: cm.config.RedisMinIdleConns,
-			MaxRetries:   cm.config.RedisMaxRetries,
-			DialTimeout:  cm.config.RedisDialTimeout,
-			ReadTimeout:  cm.config.RedisReadTimeout,
-			WriteTimeout: cm.config.RedisWriteTimeout,
-			IdleTimeout:  cm.config.RedisIdleTimeout,
+			Addr:            cm.config.RedisAddrs[0],
+			Password:        cm.config.RedisPassword,
+			DB:              cm.config.RedisDB,
+			PoolSize:        cm.config.RedisPoolSize,
+			MinIdleConns:    cm.config.RedisMinIdleConns,
+			MaxRetries:      cm.config.RedisMaxRetries,
+			DialTimeout:     cm.config.RedisDialTimeout,
+			ReadTimeout:     cm.config.RedisReadTimeout,
+			WriteTimeout:    cm.config.RedisWriteTimeout,
+			ConnMaxIdleTime: cm.config.RedisIdleTimeout,
 		})
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

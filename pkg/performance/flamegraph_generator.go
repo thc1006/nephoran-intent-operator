@@ -38,7 +38,7 @@ type ProfileData struct {
 	ProfilePath  string
 	FlameGraph   string
 	TotalSamples int64
-	HotSpots     []types.HotSpot
+	HotSpots     []sharedtypes.HotSpot
 	Metrics      ProfileMetrics
 }
 
@@ -429,11 +429,11 @@ func (fg *FlameGraphGenerator) analyzeProfile(profileData *ProfileData) error {
 	}
 
 	// Sort and convert to HotSpot slice
-	var spots []types.HotSpot
+	var spots []sharedtypes.HotSpot
 	for funcName, samples := range hotSpots {
 		percentage := float64(samples) / float64(totalSamples) * 100
 		if percentage > 0.1 { // Only include functions > 0.1%
-			spots = append(spots, types.HotSpot{
+			spots = append(spots, sharedtypes.HotSpot{
 				Function:     funcName,
 				File:         "", // File info not available in this context
 				Line:         0,  // Line info not available in this context
@@ -635,12 +635,12 @@ func (fg *FlameGraphGenerator) analyzeHotSpotChanges(before, after *ProfileData)
 	changes := make([]HotSpotChange, 0)
 
 	// Create maps for easy lookup
-	beforeMap := make(map[string]types.HotSpot)
+	beforeMap := make(map[string]sharedtypes.HotSpot)
 	for _, spot := range before.HotSpots {
 		beforeMap[spot.Function] = spot
 	}
 
-	afterMap := make(map[string]types.HotSpot)
+	afterMap := make(map[string]sharedtypes.HotSpot)
 	for _, spot := range after.HotSpots {
 		afterMap[spot.Function] = spot
 	}

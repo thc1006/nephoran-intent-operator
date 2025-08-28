@@ -149,11 +149,6 @@ type ServiceLevelObjectiveEngine struct {
 
 // LatencySLO is defined in sla_components.go
 
-	// Alerting thresholds
-	FastBurnThreshold float64 // 2% of error budget in 1 hour
-	SlowBurnThreshold float64 // 5% of error budget in 6 hours
-}
-
 // LatencySLO defines latency service level objectives
 type LatencySLO struct {
 	P95Target         time.Duration // 2 seconds

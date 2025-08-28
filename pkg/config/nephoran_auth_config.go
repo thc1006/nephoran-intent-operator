@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 	
-	securityconfig "github.com/thc1006/nephoran-intent-operator/pkg/security"
+	"github.com/thc1006/nephoran-intent-operator/pkg/interfaces"
 )
 
 // NephoranAuthConfig holds authentication configuration for Nephoran
@@ -69,7 +69,7 @@ type SessionConfig struct {
 }
 
 // SecurityConfig holds security settings - use common config type
-type SecurityConfig = securityconfig.CommonSecurityConfig
+type SecurityConfig = interfaces.CommonSecurityConfig
 
 // AuditConfig holds audit configuration
 type AuditConfig struct {
@@ -122,10 +122,10 @@ func LoadNephoranAuthConfig() (*NephoranAuthConfig, error) {
 			MaxConcurrent: GetIntEnv("NEPHORAN_SESSIONS_MAX_CONCURRENT", 100),
 		},
 		Security: &SecurityConfig{
-			SecurityHeaders: &securityconfig.SecurityHeadersConfig{
+			SecurityHeaders: &interfaces.SecurityHeadersConfig{
 				Enabled: GetBoolEnv("NEPHORAN_SECURITY_CSRF_ENABLED", true),
 			},
-			TLS: &securityconfig.TLSConfig{
+			TLS: &interfaces.TLSConfig{
 				Enabled: GetBoolEnv("NEPHORAN_SECURITY_REQUIRE_HTTPS", false),
 			},
 		},

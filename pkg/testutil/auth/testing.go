@@ -22,7 +22,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
+	authproviders "github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
 
 // Define auth types locally to avoid import cycles
@@ -145,13 +145,13 @@ type SessionManagerMock struct {
 type MockSession struct {
 	ID        string
 	UserID    string
-	UserInfo  *providers.UserInfo
+	UserInfo  *authproviders.UserInfo
 	CreatedAt time.Time
 	ExpiresAt time.Time
 	Data      map[string]interface{}
 }
 
-func (s *SessionManagerMock) CreateSession(ctx context.Context, userInfo *providers.UserInfo) (*MockSession, error) {
+func (s *SessionManagerMock) CreateSession(ctx context.Context, userInfo *authproviders.UserInfo) (*MockSession, error) {
 	if s.sessions == nil {
 		s.sessions = make(map[string]*MockSession)
 	}
@@ -399,8 +399,8 @@ func (tc *TestContext) CreateTestToken(claims jwt.MapClaims) string {
 }
 
 // CreateTestUser creates a test user info
-func (tc *TestContext) CreateTestUser(userID string) *providers.UserInfo {
-	return &providers.UserInfo{
+func (tc *TestContext) CreateTestUser(userID string) *authproviders.UserInfo {
+	return &authproviders.UserInfo{
 		Subject:       userID,
 		Email:         fmt.Sprintf("%s@example.com", userID),
 		EmailVerified: true,
@@ -810,67 +810,3 @@ func (m *MockTokenBlacklist) Close() error {
 	return nil
 }
 
-// MockLDAPServer provides a mock LDAP server for testing
-type MockLDAPServer struct {
-	users map[string]*MockLDAPUser
-	groups map[string]*MockLDAPGroup
-	running bool
-	mutex sync.RWMutex
-}
-
-type MockLDAPUser struct {
-	DN string
-	CN string
-	SN string
-	Mail string
-	UID string
-	GidNumber int
-	Groups []string
-}
-
-type MockLDAPGroup struct {
-	DN string
-	CN string
-	GidNumber int
-	Members []string
-}
-
-func NewMockLDAPServer() *MockLDAPServer {
-	return &MockLDAPServer{
-		users: make(map[string]*MockLDAPUser),
-		groups: make(map[string]*MockLDAPGroup),
-		running: true,
-	}
-}
-
-func (m *MockLDAPServer) AddUser(user *MockLDAPUser) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	m.users[user.UID] = user
-}
-
-func (m *MockLDAPServer) AddGroup(group *MockLDAPGroup) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	m.groups[group.CN] = group
-}
-
-func (m *MockLDAPServer) GetUser(uid string) (*MockLDAPUser, bool) {
-	m.mutex.RLock()
-	defer m.mutex.RUnlock()
-	user, exists := m.users[uid]
-	return user, exists
-}
-
-func (m *MockLDAPServer) GetGroup(cn string) (*MockLDAPGroup, bool) {
-	m.mutex.RLock()
-	defer m.mutex.RUnlock()
-	group, exists := m.groups[cn]
-	return group, exists
-}
-
-func (m *MockLDAPServer) Close() {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	m.running = false
-}

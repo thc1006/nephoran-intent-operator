@@ -100,15 +100,18 @@ type ConfigProvider interface {
 
 // APIKeys holds all API keys used by the system
 type APIKeys struct {
-	OpenAI    string
-	Weaviate  string
-	Generic   string
-	JWTSecret string
+	OpenAI    string `json:"openai,omitempty"`
+	Anthropic string `json:"anthropic,omitempty"`
+	GoogleAI  string `json:"google_ai,omitempty"`
+	Weaviate  string `json:"weaviate,omitempty"`
+	Generic   string `json:"generic,omitempty"`
+	JWTSecret string `json:"jwt_secret,omitempty"`
 }
 
 // IsEmpty returns true if all API keys are empty
 func (ak *APIKeys) IsEmpty() bool {
-	return ak.OpenAI == "" && ak.Weaviate == "" && ak.Generic == "" && ak.JWTSecret == ""
+	return ak.OpenAI == "" && ak.Anthropic == "" && ak.GoogleAI == "" &&
+		ak.Weaviate == "" && ak.Generic == "" && ak.JWTSecret == ""
 }
 
 // RotationResult contains the result of a secret rotation operation
@@ -121,4 +124,52 @@ type RotationResult struct {
 	BackupCreated bool      `json:"backup_created"`
 	Timestamp     time.Time `json:"timestamp"`
 	Error         string    `json:"error,omitempty"`
+}
+
+// CertificatePaths holds paths to certificate files
+type CertificatePaths struct {
+	CertFile string `json:"cert_file"`
+	KeyFile  string `json:"key_file"`
+}
+
+// CommonSecurityConfig defines the unified security configuration interface
+type CommonSecurityConfig struct {
+	// TLS Configuration
+	TLS *TLSConfig `json:"tls,omitempty"`
+
+	// Security Headers Configuration
+	SecurityHeaders *SecurityHeadersConfig `json:"security_headers,omitempty"`
+
+	// Other configurations can be added as needed
+	// without causing import cycles
+}
+
+// TLSConfig holds TLS configuration
+type TLSConfig struct {
+	Enabled        bool                         `json:"enabled"`
+	MutualTLS      bool                         `json:"mutual_tls"`
+	CertFile       string                       `json:"cert_file,omitempty"`
+	KeyFile        string                       `json:"key_file,omitempty"`
+	CAFile         string                       `json:"ca_file,omitempty"`
+	CABundle       string                       `json:"ca_bundle,omitempty"`
+	MinVersion     string                       `json:"min_version,omitempty"`
+	MaxVersion     string                       `json:"max_version,omitempty"`
+	CipherSuites   []string                     `json:"cipher_suites,omitempty"`
+	AutoReload     bool                         `json:"auto_reload"`
+	ReloadInterval string                       `json:"reload_interval,omitempty"`
+	Certificates   map[string]*CertificatePaths `json:"certificates,omitempty"`
+}
+
+// SecurityHeadersConfig holds security headers configuration
+type SecurityHeadersConfig struct {
+	Enabled                   bool   `json:"enabled"`
+	ContentSecurityPolicy     string `json:"content_security_policy,omitempty"`
+	StrictTransportSecurity   string `json:"strict_transport_security,omitempty"`
+	XFrameOptions            string `json:"x_frame_options,omitempty"`
+	XContentTypeOptions      string `json:"x_content_type_options,omitempty"`
+	ReferrerPolicy           string `json:"referrer_policy,omitempty"`
+	PermissionsPolicy        string `json:"permissions_policy,omitempty"`
+	CrossOriginEmbedderPolicy string `json:"cross_origin_embedder_policy,omitempty"`
+	CrossOriginOpenerPolicy   string `json:"cross_origin_opener_policy,omitempty"`
+	CrossOriginResourcePolicy string `json:"cross_origin_resource_policy,omitempty"`
 }
