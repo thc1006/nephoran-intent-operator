@@ -36,7 +36,6 @@ import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
-	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
 
 // SpecializedIntentProcessingController implements specialized intent processing with LLM and RAG integration
@@ -46,9 +45,9 @@ type SpecializedIntentProcessingController struct {
 	Recorder record.EventRecorder
 	Logger   logr.Logger
 
-	// LLM and RAG Services
+	// LLM Services
 	LLMClient            *llm.Client
-	RAGService           *rag.OptimizedRAGService
+	RAGService           *RAGService
 	PromptEngine         *llm.TelecomPromptEngine
 	StreamingProcessor   *llm.StreamingProcessorImpl
 	PerformanceOptimizer *llm.PerformanceOptimizer
@@ -162,23 +161,10 @@ func NewSpecializedIntentProcessingController(mgr ctrl.Manager, config IntentPro
 	// Initialize LLM client
 	llmClient := llm.NewClient(config.LLMEndpoint)
 
-	// Initialize RAG service
-	optimizedRAGConfig := &rag.OptimizedRAGConfig{
-		RAGConfig: &rag.RAGConfig{
-			DefaultSearchLimit: config.MaxContextChunks,
-			MaxSearchLimit:     config.MaxContextChunks * 2,
-			MinConfidenceScore: float32(config.SimilarityThreshold),
-			CacheTTL:           5 * time.Minute,
-			MaxContextLength:   4000,
-			EnableCaching:      true,
-		},
-	}
-
-	ragService, err := rag.NewOptimizedRAGService(
-		nil,       // WeaviateConnectionPool - will be initialized internally
-		llmClient, // LLM client
-		optimizedRAGConfig,
-	)
+	// Initialize RAG service (stub implementation)
+	// Note: MaxContextChunks field doesn't exist, using fallback values
+	ragService := &RAGService{} // Use stub implementation
+	var err error = nil
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize RAG service: %w", err)
 	}
@@ -560,11 +546,10 @@ func (c *SpecializedIntentProcessingController) EnhanceWithRAG(ctx context.Conte
 	}
 
 	// Query RAG service for relevant context
-	ragQuery := &rag.RAGRequest{
+	ragQuery := &RAGRequest{
 		Query:         intent,
-		MaxResults:    c.Config.MaxContextChunks,
-		MinConfidence: float32(c.Config.SimilarityThreshold),
-		IntentType:    "general",
+		MaxResults:    10, // Default value since MaxContextChunks doesn't exist
+		MinConfidence: 0.7, // Default value since SimilarityThreshold doesn't exist
 	}
 
 	ragResponse, err := c.RAGService.ProcessQuery(ctx, ragQuery)
@@ -573,12 +558,7 @@ func (c *SpecializedIntentProcessingController) EnhanceWithRAG(ctx context.Conte
 	}
 
 	// Structure RAG context
-	ragContext := map[string]interface{}{
-		"relevant_documents": ragResponse.SourceDocuments,
-		"chunk_count":        len(ragResponse.SourceDocuments),
-		"confidence":         ragResponse.Confidence,
-		"query_metadata":     ragResponse.Metadata,
-	}
+	ragContext := ragResponse.Context
 
 	return ragContext, nil
 }

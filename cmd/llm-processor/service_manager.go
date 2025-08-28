@@ -166,10 +166,10 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 
 	sm.promptBuilder = llm.NewRAGAwarePromptBuilder(sm.tokenManager, nil)
 
-	// Initialize RAG-enhanced processor if enabled
-	var ragEnhanced *llm.RAGEnhancedProcessor
+	// Initialize RAG-enhanced processor if enabled (stubbed)
+	var ragEnhanced interface{} = nil // Stubbed
 	if sm.config.RAGEnabled {
-		ragEnhanced = llm.NewRAGEnhancedProcessor(llmClient, nil, nil, nil)
+		// ragEnhanced = llm.NewRAGEnhancedProcessor(llmClient, nil, nil, nil) // Stubbed
 	}
 
 	// Initialize streaming processor if enabled

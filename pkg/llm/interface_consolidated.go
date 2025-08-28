@@ -103,6 +103,11 @@ type StreamingRequest struct {
 	Metadata   map[string]interface{} `json:"metadata,omitempty"`
 }
 
+// WeaviateConnectionPool is a stub type for the connection pool
+type WeaviateConnectionPool struct {
+	// Stub implementation - no actual fields needed
+}
+
 // ContextBuilder provides context building functionality for RAG systems
 type ContextBuilder struct {
 	weaviatePool *WeaviateConnectionPool // Using our type alias

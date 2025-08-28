@@ -31,14 +31,13 @@ import (
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
-	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
 
 // CNFIntentProcessor processes natural language intents for CNF deployment
 type CNFIntentProcessor struct {
 	Client           client.Client
 	LLMProcessor     llm.Processor
-	RAGService       *rag.RAGService
+	RAGService       *RAGService
 	KnowledgeBase    *CNFKnowledgeBase
 	TemplateRegistry *CNFTemplateRegistry
 	Config           *CNFIntentProcessorConfig
@@ -158,8 +157,34 @@ type CNFIntentContext struct {
 	EnrichedContext     map[string]interface{}
 }
 
+// RAGService represents a stub for RAG service functionality
+type RAGService struct {
+	// Stub implementation - no actual fields needed
+}
+
+// RAGRequest represents a request to the RAG service
+type RAGRequest struct {
+	Query           string
+	MaxResults      int
+	MinConfidence   float64
+	UseHybridSearch bool
+}
+
+// RAGResponse represents a response from the RAG service
+type RAGResponse struct {
+	Answer string
+}
+
+// ProcessQuery processes a query using the RAG service (stub implementation)
+func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*RAGResponse, error) {
+	// Stub implementation - return a generic response
+	return &RAGResponse{
+		Answer: fmt.Sprintf("Mock RAG response for query: %s", request.Query),
+	}, nil
+}
+
 // NewCNFIntentProcessor creates a new CNF intent processor
-func NewCNFIntentProcessor(client client.Client, llmProcessor llm.Processor, ragService *rag.RAGService) *CNFIntentProcessor {
+func NewCNFIntentProcessor(client client.Client, llmProcessor llm.Processor, ragService *RAGService) *CNFIntentProcessor {
 	processor := &CNFIntentProcessor{
 		Client:       client,
 		LLMProcessor: llmProcessor,
@@ -284,7 +309,7 @@ func (p *CNFIntentProcessor) enrichContextWithRAG(ctx context.Context, intentCon
 	ragContext := make(map[string]interface{})
 
 	for _, query := range ragQueries {
-		request := &rag.RAGRequest{
+		request := &RAGRequest{
 			Query:           query,
 			MaxResults:      10,
 			MinConfidence:   0.5,

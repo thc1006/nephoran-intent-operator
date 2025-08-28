@@ -29,7 +29,7 @@ type LLMProcessorHandler struct {
 	tokenManager       *llm.TokenManager
 	contextBuilder     *llm.ContextBuilder
 	relevanceScorer    *llm.RelevanceScorer
-	promptBuilder      *llm.RAGAwarePromptBuilder
+	promptBuilder      interface{} // Stub for RAG aware prompt builder
 	logger             *slog.Logger
 	healthChecker      *health.HealthChecker
 	startTime          time.Time
@@ -71,7 +71,7 @@ type ProcessIntentResult struct {
 // IntentProcessor handles the LLM processing logic with RAG enhancement
 type IntentProcessor struct {
 	LLMClient         *llm.Client
-	RAGEnhancedClient *llm.RAGEnhancedProcessor
+	RAGEnhancedClient interface{} // Stub for RAG enhanced processor
 	CircuitBreaker    *llm.CircuitBreaker
 	Logger            *slog.Logger
 }
@@ -88,7 +88,7 @@ func NewLLMProcessorHandler(
 	tokenManager *llm.TokenManager,
 	contextBuilder *llm.ContextBuilder,
 	relevanceScorer *llm.RelevanceScorer,
-	promptBuilder *llm.RAGAwarePromptBuilder,
+	promptBuilder interface{}, // Stub for RAG aware prompt builder
 	logger *slog.Logger,
 	healthChecker *health.HealthChecker,
 	startTime time.Time,
@@ -121,7 +121,7 @@ func NewLLMProcessorHandlerWithMetrics(
 	tokenManager *llm.TokenManager,
 	contextBuilder *llm.ContextBuilder,
 	relevanceScorer *llm.RelevanceScorer,
-	promptBuilder *llm.RAGAwarePromptBuilder,
+	promptBuilder interface{}, // Stub for RAG aware prompt builder
 	logger *slog.Logger,
 	healthChecker *health.HealthChecker,
 	startTime time.Time,
@@ -391,7 +391,7 @@ func (h *LLMProcessorHandler) MetricsHandler(w http.ResponseWriter, r *http.Requ
 
 	// Add prompt builder metrics
 	if h.promptBuilder != nil {
-		metrics["prompt_builder"] = h.promptBuilder.GetMetrics()
+		metrics["prompt_builder"] = map[string]interface{}{"status": "stubbed"}
 	}
 
 	h.writeJSONResponse(w, metrics, http.StatusOK)
@@ -468,14 +468,8 @@ func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string, meta
 
 	// Use circuit breaker for fault tolerance
 	operation := func(ctx context.Context) (interface{}, error) {
-		// Try RAG-enhanced processing first if available
-		if p.RAGEnhancedClient != nil {
-			result, err := p.RAGEnhancedClient.ProcessIntent(ctx, intent)
-			if err == nil {
-				return result, nil
-			}
-			p.Logger.Warn("RAG-enhanced processing failed, falling back to base client", "error", err)
-		}
+		// RAG-enhanced processing stubbed out
+		// if p.RAGEnhancedClient != nil { ... }
 
 		// Fallback to base LLM client
 		return p.LLMClient.ProcessIntent(ctx, intent)

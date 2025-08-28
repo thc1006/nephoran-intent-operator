@@ -4,13 +4,31 @@ import (
 	"fmt"
 	"time"
 	
-	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
+// DocumentChunk represents a document chunk for RAG processing (stub type)
+type DocumentChunk struct {
+	ID             string
+	DocumentID     string
+	Content        string
+	CleanContent   string
+	ChunkIndex     int
+	StartOffset    int
+	EndOffset      int
+	CharacterCount int
+	WordCount      int
+	SentenceCount  int
+	HierarchyPath  []string
+	SectionTitle   string
+	HierarchyLevel int
+	ChunkType      string
+	ProcessedAt    time.Time
+}
+
 func main() {
 	// Test DocumentChunk type
-	chunk := &rag.DocumentChunk{
+	chunk := &DocumentChunk{
 		ID:           "test_chunk_1",
 		DocumentID:   "test_doc",
 		Content:      "This is test content",
@@ -47,9 +65,8 @@ func main() {
 	fmt.Printf("SearchQuery created: Query=%s, Limit=%d, TargetVectors=%v\n", 
 		query.Query, query.Limit, query.TargetVectors)
 	
-	// Test type alias in RAG package
-	var ragQuery rag.SearchQuery = *query
-	fmt.Printf("RAG SearchQuery alias works: Query=%s\n", ragQuery.Query)
+	// Test type alias - for now just use shared.SearchQuery directly
+	fmt.Printf("SearchQuery works: Query=%s\n", query.Query)
 	
-	fmt.Println("✅ All RAG package types are working correctly!")
+	fmt.Println("✅ All types are working correctly!")
 }

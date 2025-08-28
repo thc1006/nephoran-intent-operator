@@ -7,7 +7,6 @@ import (
 	"log"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
-	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
 
 func main() {
@@ -36,13 +35,15 @@ func main() {
 	fmt.Printf("ContextBuilder Metrics: %+v\n", metrics)
 
 	// Test with connection pool (would require actual Weaviate instance)
-	poolConfig := rag.DefaultPoolConfig()
-	poolConfig.URL = "http://localhost:8080" // This would need a real Weaviate instance
-
-	// This would work if Weaviate was running:
-	// pool := rag.NewWeaviateConnectionPool(poolConfig)
-	// cbWithPool := llm.NewContextBuilderWithPool(pool)
-	// contextDocs, err = cbWithPool.BuildContext(ctx, intent, maxDocs)
+	// For now, just create a mock pool
+	mockPool := &llm.WeaviateConnectionPool{}
+	cbWithPool := llm.NewContextBuilderWithPool(mockPool)
+	contextDocs2, err2 := cbWithPool.BuildContext(ctx, intent, maxDocs)
+	if err2 != nil {
+		log.Printf("Error with pool-based context builder: %v", err2)
+	} else {
+		log.Printf("Pool-based context builder returned %d documents", len(contextDocs2))
+	}
 
 	fmt.Println("ContextBuilder implementation test completed successfully!")
 }

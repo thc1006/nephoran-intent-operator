@@ -40,7 +40,6 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/cnf"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
-	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
 
 const (
@@ -56,7 +55,6 @@ type CNFDeploymentReconciler struct {
 	Recorder         record.EventRecorder
 	CNFOrchestrator  *cnf.CNFOrchestrator
 	LLMProcessor     *llm.Processor
-	RAGService       *rag.RAGService
 	MetricsCollector *monitoring.MetricsCollector
 	Config           *CNFControllerConfig
 }

@@ -11,8 +11,16 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
-	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
+
+// RetrievedDocument represents a document retrieved from a vector store (stub)
+type RetrievedDocument struct {
+	ID       string
+	Content  string
+	Score    float32
+	Source   string
+	Metadata map[string]interface{}
+}
 
 // MockLLMService simulates LLM service behavior
 type MockLLMService struct {
@@ -118,7 +126,7 @@ type MockWeaviateService struct {
 	mu            sync.RWMutex
 	documents     map[string]llm.Document
 	vectors       map[string][]float32
-	searchResults map[string][]rag.RetrievedDocument
+	searchResults map[string][]RetrievedDocument
 	errors        map[string]error
 	latency       time.Duration
 	queryCount    int
@@ -130,7 +138,7 @@ func NewMockWeaviateService() *MockWeaviateService {
 	return &MockWeaviateService{
 		documents:     make(map[string]llm.Document),
 		vectors:       make(map[string][]float32),
-		searchResults: make(map[string][]rag.RetrievedDocument),
+		searchResults: make(map[string][]RetrievedDocument),
 		errors:        make(map[string]error),
 		latency:       50 * time.Millisecond,
 		failureRate:   0.0,
@@ -190,7 +198,7 @@ func (m *MockWeaviateService) GetDocument(ctx context.Context, docID string) (*l
 }
 
 // SearchSimilar simulates vector similarity search
-func (m *MockWeaviateService) SearchSimilar(ctx context.Context, query string, limit int) ([]rag.RetrievedDocument, error) {
+func (m *MockWeaviateService) SearchSimilar(ctx context.Context, query string, limit int) ([]RetrievedDocument, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -215,7 +223,7 @@ func (m *MockWeaviateService) SearchSimilar(ctx context.Context, query string, l
 	}
 
 	// Generate mock search results
-	var results []rag.RetrievedDocument
+	var results []RetrievedDocument
 
 	// Return a subset of stored documents with random scores
 	count := 0
@@ -228,7 +236,7 @@ func (m *MockWeaviateService) SearchSimilar(ctx context.Context, query string, l
 		score := m.calculateSimilarityScore(query, doc.Content)
 
 		if score > 0.3 { // Minimum relevance threshold
-			results = append(results, rag.RetrievedDocument{
+			results = append(results, RetrievedDocument{
 				ID:       doc.ID,
 				Content:  doc.Content,
 				Score:    float32(score),
@@ -278,7 +286,7 @@ func (m *MockWeaviateService) calculateSimilarityScore(query, content string) fl
 }
 
 // SetSearchResults configures search results for a specific query
-func (m *MockWeaviateService) SetSearchResults(query string, results []rag.RetrievedDocument) {
+func (m *MockWeaviateService) SetSearchResults(query string, results []RetrievedDocument) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.searchResults[query] = results

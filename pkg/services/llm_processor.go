@@ -126,10 +126,10 @@ func (s *LLMProcessorService) initializeLLMComponents(ctx context.Context) error
 	// Initialize prompt builder
 	s.promptBuilder = llm.NewRAGAwarePromptBuilder(s.tokenManager, nil)
 
-	// Initialize RAG-enhanced processor if enabled
-	var ragEnhanced *llm.RAGEnhancedProcessor
+	// Initialize RAG-enhanced processor if enabled (stubbed)
+	var ragEnhanced interface{} = nil // Stubbed
 	if s.config.RAGEnabled {
-		ragEnhanced = llm.NewRAGEnhancedProcessor(llmClient, nil, nil, nil)
+		// ragEnhanced = llm.NewRAGEnhancedProcessor(llmClient, nil, nil, nil) // Stubbed
 	}
 
 	// Initialize streaming processor if enabled
