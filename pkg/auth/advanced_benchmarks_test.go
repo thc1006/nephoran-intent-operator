@@ -400,9 +400,8 @@ func benchmarkSessionManagement(b *testing.B, ctx context.Context, authSystem *E
 		b.Run(scenario.name, func(b *testing.B) {
 			// Configure session management
 			sessionConfig := SessionConfig{
-				TTL:             scenario.sessionTTL,
-				StorageBackend:  scenario.storageBackend,
-				CleanupInterval: time.Minute * 5,
+				SessionTTL:    scenario.sessionTTL,
+				CleanupPeriod: time.Minute * 5,
 			}
 
 			authSystem.ConfigureSessionManagement(sessionConfig)
@@ -505,7 +504,7 @@ func benchmarkConcurrentAuthentication(b *testing.B, ctx context.Context, authSy
 			var successCount, errorCount int64
 
 			// Enhanced memory tracking for concurrent operations
-			var startMemStats, peakMemStats runtime.MemStats
+			var startMemStats runtime.MemStats
 			runtime.GC()
 			runtime.ReadMemStats(&startMemStats)
 			peakMemory := int64(startMemStats.Alloc)
@@ -538,8 +537,8 @@ func benchmarkConcurrentAuthentication(b *testing.B, ctx context.Context, authSy
 							Provider:    "github",
 						}
 						_, err = authSystem.ExchangeOAuth2Token(ctx, oauth2Token, OAuth2Config{
-							Provider: "github",
-							ClientID: "test-client",
+							DefaultScopes: []string{"read:user"},
+							TokenTTL:      time.Hour,
 						})
 						atomic.AddInt64(&oauth2Exchanges, 1)
 					}
@@ -559,7 +558,6 @@ func benchmarkConcurrentAuthentication(b *testing.B, ctx context.Context, authSy
 					currentAlloc := int64(currentMemStats.Alloc)
 					if currentAlloc > peakMemory {
 						peakMemory = currentAlloc
-						peakMemStats = currentMemStats
 					}
 
 					localIterations++
@@ -810,10 +808,9 @@ func generateJWTTokens(algorithm string, keySize int, claimsCount int, expiry ti
 
 func setupRBACConfiguration(roleCount, permissionCount, resourceTypes, userGroups, hierarchyDepth int) RBACConfig {
 	return RBACConfig{
-		Roles:          generateRoles(roleCount, permissionCount),
-		Permissions:    generatePermissions(permissionCount, resourceTypes),
-		UserGroups:     generateUserGroups(userGroups),
-		HierarchyDepth: hierarchyDepth,
+		Enabled:     true,
+		DefaultRole: "user",
+		Permissions: generatePermissions(permissionCount, resourceTypes),
 	}
 }
 
@@ -842,17 +839,15 @@ func generateRolePermissions(roleIndex, maxPermissions int) []string {
 	return permissions
 }
 
-func generatePermissions(count, resourceTypes int) []Permission {
-	permissions := make([]Permission, count)
-
+func generatePermissions(count, resourceTypes int) map[string][]string {
+	permissions := make(map[string][]string)
+	
 	actions := []string{"read", "write", "delete", "create", "update"}
 
-	for i := range permissions {
-		permissions[i] = Permission{
-			Name:     fmt.Sprintf("permission-%d", i),
-			Resource: fmt.Sprintf("resource-type-%d", i%resourceTypes),
-			Action:   actions[i%len(actions)],
-		}
+	for i := 0; i < count; i++ {
+		role := fmt.Sprintf("role-%d", i%resourceTypes)
+		permission := fmt.Sprintf("%s:%s", actions[i%len(actions)], fmt.Sprintf("resource-type-%d", i%resourceTypes))
+		permissions[role] = append(permissions[role], permission)
 	}
 
 	return permissions
@@ -1037,8 +1032,7 @@ func min(a, b int) int {
 func setupBenchmarkAuthSystem() *EnhancedAuthSystem {
 	config := AuthSystemConfig{
 		JWTConfig: JWTConfig{
-			SigningMethod: "RS256",
-			KeySize:       2048,
+			Secret: "test-secret-key",
 		},
 		LDAPConfig: providers.LDAPConfig{
 			Host:   "localhost:389",

@@ -15,7 +15,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// Local type reference to avoid import issues - this maps to the type in sla_monitoring_architecture.go
+// SLAMonitoringConfig configuration for SLA monitoring  
 type SLAMonitoringConfig struct {
 	MetricsCollectionInterval time.Duration
 	HighFrequencyInterval     time.Duration
