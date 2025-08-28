@@ -21,36 +21,6 @@ run:
   concurrency: 0  # Use all available CPUs for CI
   allow-parallel-runners: true  # Enable parallel execution
   
-  # Performance optimization: skip rarely changing directories
-  skip-dirs:
-    - vendor
-    - testdata
-    - examples
-    - third_party
-    - out
-    - test-results
-    - coverage
-    - tmp
-    - temp
-    - .cache
-    - bin
-    - artifacts
-    - .git
-    
-  # Early filtering of generated files for performance
-  skip-files:
-    - '.*\.pb\.go$'
-    - '.*_generated\.go$'
-    - '.*_gen\.go$'
-    - 'zz_generated\..*\.go$'
-    - '.*deepcopy.*\.go$'
-    - 'mock_.*\.go$'
-    - '.*_mock\.go$'
-    - 'vendor/.*'
-
-# Enable caching for significant performance gains
-cache:
-  enabled: true
 
 output:
   formats:
@@ -350,6 +320,9 @@ issues:
     - tmp
     - temp
     - .cache
+    - bin
+    - artifacts
+    - .git
   
   include:
     - EXC0002
