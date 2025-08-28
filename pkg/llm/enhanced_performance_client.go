@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.opentelemetry.io/otel"
@@ -25,7 +26,7 @@ type EnhancedPerformanceClient struct {
 	baseClient     *Client
 	performanceOpt *PerformanceOptimizer
 	retryEngine    *RetryEngine
-	batchProcessor *BatchProcessor
+	batchProcessor BatchProcessor
 	circuitBreaker *AdvancedCircuitBreaker
 
 	// Configuration
@@ -180,8 +181,17 @@ func NewEnhancedPerformanceClient(config *EnhancedClientConfig) (*EnhancedPerfor
 	// Create base client
 	baseClient := NewClientWithConfig("", config.BaseConfig)
 
-	// Create circuit breaker
-	circuitBreaker := NewAdvancedCircuitBreaker(config.CircuitBreakerConfig)
+	// Create circuit breaker - convert local config to shared config
+	sharedCBConfig := shared.CircuitBreakerConfig{
+		FailureThreshold:    config.CircuitBreakerConfig.FailureThreshold,
+		SuccessThreshold:    config.CircuitBreakerConfig.SuccessThreshold,
+		Timeout:             config.CircuitBreakerConfig.Timeout,
+		HalfOpenTimeout:     config.CircuitBreakerConfig.HalfOpenTimeout,
+		ResetTimeout:        config.CircuitBreakerConfig.ResetTimeout,
+		FailureRate:         config.CircuitBreakerConfig.FailureRate,
+		MinimumRequestCount: config.CircuitBreakerConfig.MinimumRequestCount,
+	}
+	circuitBreaker := NewAdvancedCircuitBreaker(sharedCBConfig)
 
 	// Create performance optimizer
 	performanceOpt := NewPerformanceOptimizer(config.PerformanceConfig)
@@ -740,7 +750,7 @@ func (c *EnhancedPerformanceClient) performHealthCheck() {
 	}
 }
 
-func (c *EnhancedPerformanceClient) onCircuitBreakerStateChange(oldState, newState int32, reason string) {
+func (c *EnhancedPerformanceClient) onCircuitBreakerStateChange(oldState, newState CircuitState, reason string) {
 	c.prometheusMetrics.circuitBreakerState.WithLabelValues(c.config.BaseConfig.BackendType).Set(float64(newState))
 	c.prometheusMetrics.circuitBreakerTrips.WithLabelValues(c.config.BaseConfig.BackendType, reason).Inc()
 

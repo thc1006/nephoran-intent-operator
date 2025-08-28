@@ -24,7 +24,7 @@ type OptimizedControllerIntegration struct {
 	httpClient     *OptimizedHTTPClient
 	cache          *IntelligentCache
 	workerPool     *WorkerPool
-	batchProcessor *BatchProcessor
+	batchProcessor BatchProcessor
 
 	// JSON optimization
 	jsonProcessor *FastJSONProcessor

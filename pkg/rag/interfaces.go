@@ -13,6 +13,9 @@ type EmbeddingServiceInterface interface {
 	// EmbedBatch generates embeddings for multiple texts
 	EmbedBatch(ctx context.Context, texts []string) ([][]float32, error)
 
+	// CalculateSimilarity calculates semantic similarity between two texts
+	CalculateSimilarity(ctx context.Context, text1, text2 string) (float32, error)
+
 	// GetDimension returns the dimension of the embeddings
 	GetDimension() int
 
@@ -35,7 +38,7 @@ type EmbeddingServiceInterface interface {
 	GetCostEstimate(text string) float64
 
 	// GetMetrics returns service metrics
-	GetMetrics() EmbeddingMetrics
+	GetMetrics() *EmbeddingMetrics
 }
 
 // Note: EmbeddingMetrics is defined in embedding_service.go

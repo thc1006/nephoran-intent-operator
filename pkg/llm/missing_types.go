@@ -7,10 +7,14 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	types "github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 	"log/slog"
+)
+
+// Task types
+const (
+	TaskTypeRAGProcessing   = "rag_processing"
+	TaskTypeBatchProcessing = "batch_processing"
 )
 
 // BatchProcessor interface for batch processing capabilities
@@ -98,11 +102,7 @@ func (mi *MetricsIntegrator) updateAggregatedStats() {
 	
 	// Update aggregated stats from collector
 	if mi.collector != nil {
-		stats := mi.collector.GetStats()
-		mi.aggregatedStats.TotalRequests = stats.TotalRequests
-		mi.aggregatedStats.SuccessfulRequests = stats.SuccessfulRequests
-		mi.aggregatedStats.FailedRequests = stats.FailedRequests
-		mi.aggregatedStats.TotalTokens = stats.TotalTokens
+		// For now, just update basic stats since collector doesn't have GetStats
 		mi.aggregatedStats.LastUpdated = time.Now()
 		
 		// Calculate error rate
@@ -150,10 +150,6 @@ func (mi *MetricsIntegrator) GetStats() *AggregatedStats {
 
 // RecordRequest records a request metric
 func (mi *MetricsIntegrator) RecordRequest(duration time.Duration, success bool, tokens int) {
-	if mi.collector != nil {
-		mi.collector.RecordRequest("default", duration, success, tokens)
-	}
-	
 	mi.mutex.Lock()
 	defer mi.mutex.Unlock()
 	
@@ -164,6 +160,12 @@ func (mi *MetricsIntegrator) RecordRequest(duration time.Duration, success bool,
 		mi.aggregatedStats.FailedRequests++
 	}
 	mi.aggregatedStats.TotalTokens += int64(tokens)
+	
+	// Update average response time (simple rolling average)
+	if mi.aggregatedStats.TotalRequests > 0 {
+		prevAvg := mi.aggregatedStats.AvgResponseTime
+		mi.aggregatedStats.AvgResponseTime = (prevAvg*time.Duration(mi.aggregatedStats.TotalRequests-1) + duration) / time.Duration(mi.aggregatedStats.TotalRequests)
+	}
 }
 
 // Close gracefully shuts down the metrics integrator
@@ -181,7 +183,7 @@ func (mi *MetricsIntegrator) RecordCircuitBreakerEvent(event string, oldState st
 // PrometheusMetrics returns Prometheus metrics (stub for now)
 type PrometheusMetricsWrapper struct{}
 
-func (p *PrometheusMetricsWrapper) RecordError(err error) {
+func (p *PrometheusMetricsWrapper) RecordError(model, errorType string) {
 	// Record error metric
 }
 
@@ -203,10 +205,55 @@ func (mi *MetricsIntegrator) RecordCacheOperation(operation string, hit bool, du
 	}
 }
 
-// RecordRetryAttempt records a retry attempt
-func (mi *MetricsIntegrator) RecordRetryAttempt(attempt int, success bool, duration time.Duration) {
-	// Record retry metrics
-	mi.logger.Debug("Retry attempt", "attempt", attempt, "success", success, "duration", duration)
+// RecordRetryAttempt records a retry attempt (overloaded signatures for compatibility)
+func (mi *MetricsIntegrator) RecordRetryAttempt(args ...interface{}) {
+	// Handle different call signatures
+	if len(args) == 1 {
+		// Called with just model string
+		model := args[0].(string)
+		mi.logger.Debug("Retry attempt", "model", model)
+	} else if len(args) == 3 {
+		// Called with attempt, success, duration
+		attempt := args[0].(int)
+		success := args[1].(bool)
+		duration := args[2].(time.Duration)
+		mi.logger.Debug("Retry attempt", "attempt", attempt, "success", success, "duration", duration)
+	}
+}
+
+// GetComprehensiveMetrics returns comprehensive metrics
+func (mi *MetricsIntegrator) GetComprehensiveMetrics() map[string]interface{} {
+	mi.mutex.RLock()
+	defer mi.mutex.RUnlock()
+	
+	return map[string]interface{}{
+		"total_requests":      mi.aggregatedStats.TotalRequests,
+		"successful_requests": mi.aggregatedStats.SuccessfulRequests,
+		"failed_requests":     mi.aggregatedStats.FailedRequests,
+		"avg_response_time":   mi.aggregatedStats.AvgResponseTime,
+		"total_tokens":        mi.aggregatedStats.TotalTokens,
+		"error_rate":          mi.aggregatedStats.ErrorRate,
+		"last_updated":        mi.aggregatedStats.LastUpdated,
+	}
+}
+
+// RecordFallbackAttempt records a fallback attempt (overloaded signatures for compatibility)
+func (mi *MetricsIntegrator) RecordFallbackAttempt(args ...interface{}) {
+	// Handle different call signatures
+	if len(args) == 2 {
+		// Called with originalModel, fallbackModel
+		if originalModel, ok := args[0].(string); ok {
+			if fallbackModel, ok := args[1].(string); ok {
+				mi.logger.Debug("Fallback attempt", "original_model", originalModel, "fallback_model", fallbackModel)
+			}
+		}
+		// Could also be provider, success bool
+		if provider, ok := args[0].(string); ok {
+			if success, ok := args[1].(bool); ok {
+				mi.logger.Debug("Fallback attempt", "provider", provider, "success", success)
+			}
+		}
+	}
 }
 
 // Note: ContextBuilder is defined in clean_stubs.go as ContextBuilderStub

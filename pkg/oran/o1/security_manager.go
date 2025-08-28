@@ -412,7 +412,7 @@ type TOTPService struct {
 }
 
 // RateLimiter provides rate limiting functionality
-type RateLimiter struct {
+type SecurityRateLimiter struct {
 	MaxRequests int
 	WindowSize  time.Duration
 	requests    map[string][]time.Time
@@ -424,7 +424,7 @@ type SMSService struct {
 	provider  string
 	apiKey    string
 	templates map[string]string
-	rateLimit *RateLimiter
+	rateLimit *SecurityRateLimiter
 }
 
 // EmailTemplate represents an email template
@@ -442,7 +442,7 @@ type EmailService struct {
 	username   string
 	password   string
 	templates  map[string]*EmailTemplate
-	rateLimit  *RateLimiter
+	rateLimit  *SecurityRateLimiter
 }
 
 // PushProvider interface for push notification providers

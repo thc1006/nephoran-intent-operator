@@ -145,7 +145,7 @@ type SSEEvent struct {
 
 // NewStreamingProcessor creates a new streaming processor
 
-func NewStreamingProcessorImpl(baseClient Client, tokenManager *TokenManager, config *StreamingConfig) *StreamingProcessorImpl {
+func NewStreamingProcessorImpl(baseClient Client, tokenManager TokenManager, config *StreamingConfig) *StreamingProcessorImpl {
 
 	if config == nil {
 		config = getDefaultStreamingConfig()

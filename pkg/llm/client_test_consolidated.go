@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+	
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // TestNewClient tests client creation with default configuration
@@ -366,12 +368,12 @@ func TestCircuitBreaker(t *testing.T) {
 		APIKey:      "test-key",
 		BackendType: "openai",
 		Timeout:     5 * time.Second,
-		CircuitBreakerConfig: &CircuitBreakerConfig{
+		CircuitBreakerConfig: &shared.CircuitBreakerConfig{
 			FailureThreshold:    3,
-			FailureRate:         0.5,
-			MinimumRequestCount: 3,
+			SuccessThreshold:    2,
 			Timeout:             1 * time.Second,
-			ResetTimeout:        100 * time.Millisecond,
+			HalfOpenTimeout:     500 * time.Millisecond,
+			ResetTimeout:        10 * time.Second,
 		},
 	}
 

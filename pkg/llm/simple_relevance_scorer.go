@@ -57,7 +57,7 @@ func NewSimpleRelevanceScorerWithEmbeddingService(embeddingService *rag.Embeddin
 	// Create adapter for backward compatibility
 	var embeddingInterface rag.EmbeddingServiceInterface
 	if embeddingService != nil {
-		embeddingInterface = rag.NewEmbeddingServiceAdapter(embeddingService)
+		embeddingInterface = embeddingService
 	}
 
 	return &SimpleRelevanceScorer{

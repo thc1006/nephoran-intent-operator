@@ -276,8 +276,7 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 		c.updateMetrics(success, time.Since(start), cacheHit, retryCount)
 		// Record specific error types for Prometheus metrics
 		if processingError != nil && c.metricsIntegrator != nil {
-			errorType := c.categorizeError(processingError)
-			c.metricsIntegrator.prometheusMetrics.RecordError(c.modelName, errorType)
+			c.metricsIntegrator.prometheusMetrics().RecordError(c.modelName, processingError.Error())
 		}
 	}()
 
@@ -592,11 +591,6 @@ func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit boo
 
 	// Record Prometheus metrics via integrator
 	if c.metricsIntegrator != nil {
-		status := "success"
-		if !success {
-			status = "error"
-		}
-
 		// Get current token stats for this request
 		// Note: This gives cumulative stats, not per-request, but it's the best we can do
 		// with the current TokenTracker implementation
@@ -604,14 +598,14 @@ func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit boo
 		totalTokens := int(tokenStats["total_tokens"].(int64))
 
 		// Record LLM request metrics
-		c.metricsIntegrator.RecordLLMRequest(c.modelName, status, latency, totalTokens)
+		c.metricsIntegrator.RecordLLMRequest(c.modelName, latency, totalTokens, success)
 
 		// Record cache operation
-		c.metricsIntegrator.RecordCacheOperation(c.modelName, "get", cacheHit)
+		c.metricsIntegrator.RecordCacheOperation("get", cacheHit, latency)
 
 		// Record retry attempts if any occurred
 		for i := 0; i < retryCount; i++ {
-			c.metricsIntegrator.RecordRetryAttempt(c.modelName)
+			c.metricsIntegrator.RecordRetryAttempt(i+1, i == retryCount-1 && success, latency)
 		}
 	}
 }

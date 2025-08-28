@@ -13,7 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 )
 
 // IntelligentCache provides advanced caching with intelligent invalidation strategies
@@ -395,11 +394,7 @@ func (ic *IntelligentCache) Set(ctx context.Context, key string, value interface
 		entry.Value = serializedValue
 	}
 
-	if valueBytes, ok := entry.Value.([]byte); ok {
-		entry.Size = int64(len(valueBytes))
-	} else {
-		entry.Size = int64(len(serializedValue))
-	}
+	entry.Size = int64(len(entry.Value))
 	entry.SerializationType = opts.Serialization
 
 	// Calculate TTL with adaptive policy

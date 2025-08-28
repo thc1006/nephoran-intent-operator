@@ -273,7 +273,7 @@ func NewConfigSetRequest(path string, data map[string]interface{}) *ConfigReques
 }
 
 // NewPerformanceRequest creates a performance data request
-func NewPerformanceRequest(measurementTypes []string, startTime, endTime time.Time, granularity int) *PerformanceRequest {
+func NewPerformanceRequest(measurementTypes []string, startTime, endTime time.Time, granularity string) *PerformanceRequest {
 	return &PerformanceRequest{
 		MeasurementTypes: measurementTypes,
 		StartTime:        startTime,
@@ -303,7 +303,7 @@ func (f *AlarmFilter) WithAlarmTypes(alarmTypes []string) *AlarmFilter {
 
 // WithTimeRange adds time range filter to alarm filter
 func (f *AlarmFilter) WithTimeRange(startTime, endTime time.Time) *AlarmFilter {
-	f.StartTime = startTime
-	f.EndTime = endTime
+	f.StartTime = &startTime
+	f.EndTime = &endTime
 	return f
 }

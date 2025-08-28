@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
@@ -34,7 +33,7 @@ type StreamingProcessorStub struct {
 
 // StreamingRequest is defined in types.go
 
-func NewStreamingProcessor() *StreamingProcessorStub {
+func NewStreamingProcessor(args ...interface{}) *StreamingProcessorStub {
 	return &StreamingProcessorStub{
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
@@ -126,6 +125,23 @@ func (sp *StreamingProcessorStub) GetMetrics() map[string]interface{} {
 func (sp *StreamingProcessorStub) Shutdown(ctx context.Context) error {
 	sp.logger.Info("Shutting down streaming processor")
 	return nil
+}
+
+func (sp *StreamingProcessorStub) SetRAGEndpoints(url string) {
+	sp.mutex.Lock()
+	defer sp.mutex.Unlock()
+	sp.ragAPIURL = url
+	sp.logger.Info("Set RAG endpoint", "url", url)
+}
+
+func (sp *StreamingProcessorStub) Close() error {
+	return sp.Shutdown(context.Background())
+}
+
+func (sp *StreamingProcessorStub) GetConfiguredEndpoints() (string, string, string) {
+	sp.mutex.RLock()
+	defer sp.mutex.RUnlock()
+	return sp.ragAPIURL, sp.ragAPIURL + "/stream", sp.ragAPIURL + "/health"
 }
 
 

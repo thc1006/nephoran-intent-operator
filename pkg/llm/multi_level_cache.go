@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 )
 
 // MultiLevelCache implements a multi-tier caching system with Redis and in-memory layers

@@ -110,6 +110,7 @@ type QueryRequest struct {
 type EmbeddingServiceInterface interface {
 	CreateEmbedding(ctx context.Context, text string) ([]float32, error)
 	CreateBatchEmbeddings(ctx context.Context, texts []string) ([][]float32, error)
+	CalculateSimilarity(ctx context.Context, text1, text2 string) (float32, error)
 	GetDimensions() int
 	GetModel() string
 }

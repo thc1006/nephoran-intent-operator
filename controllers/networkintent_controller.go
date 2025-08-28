@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -56,9 +56,9 @@ type LLMResponse struct {
 	Error   string `json:"error,omitempty"`
 }
 
-//+kubebuilder:rbac:groups=nephoran.com,resources=networkintents,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=nephoran.com,resources=networkintents/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=nephoran.com,resources=networkintents/finalizers,verbs=update
+//+kubebuilder:rbac:groups=intent.nephoran.com,resources=networkintents,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=intent.nephoran.com,resources=networkintents/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=intent.nephoran.com,resources=networkintents/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -69,7 +69,7 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	log := log.FromContext(ctx).WithValues("networkintent", req.NamespacedName)
 
 	// Fetch the NetworkIntent instance
-	networkIntent := &nephoranv1.NetworkIntent{}
+	networkIntent := &intentv1alpha1.NetworkIntent{}
 	err := r.Get(ctx, req.NamespacedName, networkIntent)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -89,9 +89,10 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
-	// Validate the intent field
-	if networkIntent.Spec.Intent == "" {
-		return r.updateStatus(ctx, networkIntent, "Error", "Intent field cannot be empty", networkIntent.Generation)
+	// For intentv1alpha1.NetworkIntent, we work with Spec.Target instead of Spec.Intent
+	// Validate the target field (which contains the scaling intent)
+	if networkIntent.Spec.Target == "" {
+		return r.updateStatus(ctx, networkIntent, "Error", "Target field cannot be empty", networkIntent.Generation)
 	}
 
 	// Initial validation passed
@@ -101,11 +102,11 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// If LLM intent processing is enabled, send to LLM processor
 	if r.EnableLLMIntent {
-		log.Info("Processing intent with LLM", "intent", networkIntent.Spec.Intent)
+		log.Info("Processing intent with LLM", "target", networkIntent.Spec.Target)
 
-		// Prepare the request
+		// Prepare the request using target field
 		llmReq := LLMRequest{
-			Intent: networkIntent.Spec.Intent,
+			Intent: networkIntent.Spec.Target,
 		}
 
 		jsonData, err := json.Marshal(llmReq)
@@ -163,14 +164,43 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 }
 
 // updateStatus updates the status of the NetworkIntent
-func (r *NetworkIntentReconciler) updateStatus(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase, message string, generation int64) (ctrl.Result, error) {
+func (r *NetworkIntentReconciler) updateStatus(ctx context.Context, networkIntent *intentv1alpha1.NetworkIntent, phase, message string, generation int64) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	// Update the status fields
-	networkIntent.Status.Phase = nephoranv1.NetworkIntentPhase(phase)
-	networkIntent.Status.LastMessage = message
-	networkIntent.Status.ObservedGeneration = generation
-	networkIntent.Status.LastUpdateTime = metav1.Now()
+	// Update the status fields based on intentv1alpha1.NetworkIntent structure
+	// The intentv1alpha1.NetworkIntentStatus only has ObservedReplicas and Conditions
+	// We'll add a condition instead of directly setting phase/message
+	condition := metav1.Condition{
+		Type:               "Processed",
+		Status:             metav1.ConditionTrue,
+		Reason:             phase,
+		Message:            message,
+		LastTransitionTime: metav1.Now(),
+		ObservedGeneration: generation,
+	}
+
+	if phase == "Error" {
+		condition.Status = metav1.ConditionFalse
+		condition.Type = "ProcessingFailed"
+	}
+
+	// Update or add the condition
+	found := false
+	for i, cond := range networkIntent.Status.Conditions {
+		if cond.Type == condition.Type {
+			networkIntent.Status.Conditions[i] = condition
+			found = true
+			break
+		}
+	}
+	if !found {
+		networkIntent.Status.Conditions = append(networkIntent.Status.Conditions, condition)
+	}
+
+	// Update observed replicas if available
+	if networkIntent.Spec.Replicas > 0 {
+		networkIntent.Status.ObservedReplicas = &networkIntent.Spec.Replicas
+	}
 
 	// Update the status subresource
 	if err := r.Status().Update(ctx, networkIntent); err != nil {
@@ -194,7 +224,7 @@ func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&nephoranv1.NetworkIntent{}).
+		For(&intentv1alpha1.NetworkIntent{}).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 10, // 2025 best practice: increase concurrency
 		}).

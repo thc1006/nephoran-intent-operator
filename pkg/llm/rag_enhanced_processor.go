@@ -14,11 +14,33 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 )
+
+// convertSearchResults converts types.SearchResult to rag.SearchResult
+func convertSearchResults(typesResults []*types.SearchResult) []*rag.SearchResult {
+	if typesResults == nil {
+		return nil
+	}
+	ragResults := make([]*rag.SearchResult, len(typesResults))
+	for i, tr := range typesResults {
+		if tr != nil {
+			ragResults[i] = &rag.SearchResult{
+				ID:       tr.Document.ID,
+				Content:  tr.Document.Content,
+				Metadata: tr.Metadata,
+				Score:    tr.Score,
+				Distance: tr.Distance,
+				Source:   tr.Document.Source,
+			}
+		}
+	}
+	return ragResults
+}
 
 // RAGEnhancedProcessorImpl provides LLM processing enhanced with RAG capabilities
 type RAGEnhancedProcessorImpl struct {
-	baseClient     Client
+	baseClient     interface{}  // Use interface{} to allow type assertions
 	ragService     *rag.RAGService
 	weaviateClient *rag.WeaviateClient
 	config         *RAGProcessorConfig
@@ -312,7 +334,7 @@ func (rep *RAGEnhancedProcessorImpl) processWithRAG(ctx context.Context, intent 
 		Content:    ragResponse.Answer,
 		UsedRAG:    true,
 		Confidence: ragResponse.Confidence,
-		Sources:    ragResponse.SourceDocuments,
+		Sources:    convertSearchResults(ragResponse.SourceDocuments),
 		IntentType: intentType,
 		Metadata: map[string]interface{}{
 			"rag_retrieval_time":  ragResponse.RetrievalTime,
@@ -327,7 +349,13 @@ func (rep *RAGEnhancedProcessorImpl) processWithRAG(ctx context.Context, intent 
 func (rep *RAGEnhancedProcessorImpl) processWithBase(ctx context.Context, intent string) (*EnhancedResponse, error) {
 	rep.logger.Info("Processing intent with base client", "intent", intent)
 
-	response, err := rep.baseClient.ProcessIntent(ctx, intent)
+	// Type assert to get the ProcessIntent method
+	processor, ok := rep.baseClient.(interface{ ProcessIntent(context.Context, string) (string, error) })
+	if !ok {
+		return nil, fmt.Errorf("base client does not support ProcessIntent method")
+	}
+
+	response, err := processor.ProcessIntent(ctx, intent)
 	if err != nil {
 		return nil, fmt.Errorf("base client processing failed: %w", err)
 	}

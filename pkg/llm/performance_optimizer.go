@@ -39,7 +39,7 @@ type PerformanceOptimizer struct {
 	circuitBreaker *AdvancedCircuitBreaker
 
 	// Batch processor
-	batchProcessor *BatchProcessor
+	batchProcessor BatchProcessor
 
 	// Configuration
 	config *PerformanceConfig
@@ -564,7 +564,7 @@ func (po *PerformanceOptimizer) GetCircuitBreaker() *AdvancedCircuitBreaker {
 }
 
 // GetBatchProcessor returns the batch processor instance
-func (po *PerformanceOptimizer) GetBatchProcessor() *BatchProcessor {
+func (po *PerformanceOptimizer) GetBatchProcessor() BatchProcessor {
 	return po.batchProcessor
 }
 

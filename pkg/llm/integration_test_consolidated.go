@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // TestFullIntegrationWorkflow tests the complete LLM processing workflow
@@ -318,7 +320,7 @@ func TestCircuitBreakerIntegration(t *testing.T) {
 	defer server.Close()
 
 	// Configure circuit breaker with low thresholds for testing
-	cbConfig := &CircuitBreakerConfig{
+	cbConfig := &shared.CircuitBreakerConfig{
 		FailureThreshold:    3,
 		FailureRate:         0.6,
 		MinimumRequestCount: 3,

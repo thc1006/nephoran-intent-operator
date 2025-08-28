@@ -1,120 +1,45 @@
 package o1
 
 import (
-	"context"
 	"time"
 )
 
-// Interface represents the O-RAN O1 Management Interface
-type Interface interface {
-	// Configuration Management
-	GetConfig(ctx context.Context, path string) (*ConfigResponse, error)
-	SetConfig(ctx context.Context, config *ConfigRequest) (*ConfigResponse, error)
-	
-	// Performance Management
-	GetPerformanceData(ctx context.Context, request *PerformanceRequest) (*PerformanceResponse, error)
-	SubscribePerformanceData(ctx context.Context, subscription *PerformanceSubscription) (<-chan *PerformanceData, error)
-	
-	// Fault Management
-	GetAlarms(ctx context.Context, filter *AlarmFilter) (*AlarmResponse, error)
-	SubscribeAlarms(ctx context.Context, subscription *AlarmSubscription) (<-chan *Alarm, error)
-	AcknowledgeAlarm(ctx context.Context, alarmID string) error
-	
-	// File Management
-	UploadFile(ctx context.Context, file *FileUploadRequest) (*FileUploadResponse, error)
-	DownloadFile(ctx context.Context, fileID string) (*FileDownloadResponse, error)
-	
-	// Heartbeat
-	SendHeartbeat(ctx context.Context) (*HeartbeatResponse, error)
-}
+// Performance measurement type constants
+const (
+	PerfTypeRRCConnections = "RRC_CONNECTIONS"
+	PerfTypeThroughput    = "THROUGHPUT"
+)
 
-// ConfigRequest represents a configuration request
-type ConfigRequest struct {
-	Path      string                 `json:"path"`
-	Operation string                 `json:"operation"` // "get", "set", "delete"
-	Data      map[string]interface{} `json:"data,omitempty"`
-	Format    string                 `json:"format"` // "json", "xml"
-}
+// Object type constants
+const (
+	ObjectTypeCell = "CELL"
+	ObjectTypeODU  = "ODU"
+)
 
-// ConfigResponse represents a configuration response
-type ConfigResponse struct {
-	Path      string                 `json:"path"`
-	Data      map[string]interface{} `json:"data"`
-	Status    string                 `json:"status"`
-	Message   string                 `json:"message,omitempty"`
-	Timestamp time.Time              `json:"timestamp"`
-}
+// Alarm severity constants
+const (
+	AlarmSeverityMajor   = "major"
+	AlarmSeverityMinor   = "minor"
+	AlarmSeverityWarning = "warning"
+)
 
-// PerformanceRequest represents a performance data request
-type PerformanceRequest struct {
-	MeasurementTypes []string  `json:"measurement_types"`
-	ObjectInstances  []string  `json:"object_instances,omitempty"`
-	StartTime        time.Time `json:"start_time"`
-	EndTime          time.Time `json:"end_time"`
-	Granularity      int       `json:"granularity"` // in seconds
-}
-
-// PerformanceResponse represents a performance data response
-type PerformanceResponse struct {
-	RequestID string            `json:"request_id"`
-	Data      []PerformanceData `json:"data"`
-	Status    string            `json:"status"`
-	Message   string            `json:"message,omitempty"`
-}
-
-// PerformanceData represents performance measurement data
-type PerformanceData struct {
-	ObjectInstance   string                 `json:"object_instance"`
-	MeasurementType  string                 `json:"measurement_type"`
-	Value            float64                `json:"value"`
-	Unit             string                 `json:"unit"`
-	Timestamp        time.Time              `json:"timestamp"`
-	AdditionalFields map[string]interface{} `json:"additional_fields,omitempty"`
-}
-
-// PerformanceSubscription represents a performance data subscription
-type PerformanceSubscription struct {
-	SubscriptionID   string   `json:"subscription_id"`
-	MeasurementTypes []string `json:"measurement_types"`
-	ObjectInstances  []string `json:"object_instances,omitempty"`
-	ReportingPeriod  int      `json:"reporting_period"` // in seconds
-	NotificationURI  string   `json:"notification_uri"`
-}
-
-// AlarmFilter represents filtering criteria for alarms
-type AlarmFilter struct {
-	AlarmTypes    []string  `json:"alarm_types,omitempty"`
-	Severities    []string  `json:"severities,omitempty"`
-	ObjectTypes   []string  `json:"object_types,omitempty"`
-	StartTime     time.Time `json:"start_time,omitempty"`
-	EndTime       time.Time `json:"end_time,omitempty"`
-	Acknowledged  *bool     `json:"acknowledged,omitempty"`
-	Limit         int       `json:"limit,omitempty"`
-	Offset        int       `json:"offset,omitempty"`
-}
-
-// AlarmResponse represents an alarm response
-type AlarmResponse struct {
-	Alarms     []Alarm `json:"alarms"`
-	TotalCount int     `json:"total_count"`
-	Status     string  `json:"status"`
-	Message    string  `json:"message,omitempty"`
-}
-
-// Alarm represents an O-RAN alarm
+// Alarm represents an O-RAN alarm with all required fields
 type Alarm struct {
-	AlarmID         string                 `json:"alarm_id"`
-	AlarmType       string                 `json:"alarm_type"`
-	ObjectType      string                 `json:"object_type"`
-	ObjectInstance  string                 `json:"object_instance"`
-	Severity        string                 `json:"severity"` // "critical", "major", "minor", "warning"
-	ProbableCause   string                 `json:"probable_cause"`
-	SpecificProblem string                 `json:"specific_problem"`
-	AlarmText       string                 `json:"alarm_text"`
-	EventTime       time.Time              `json:"event_time"`
-	Acknowledged    bool                   `json:"acknowledged"`
-	ClearedTime     *time.Time             `json:"cleared_time,omitempty"`
-	AdditionalInfo  map[string]interface{} `json:"additional_info,omitempty"`
+	AlarmID           string                 `json:"alarm_id"`
+	AlarmType         string                 `json:"alarm_type"`
+	ObjectType        string                 `json:"object_type"`
+	ObjectInstance    string                 `json:"object_instance"`
+	ManagedObjectID   string                 `json:"managed_object_id"`    // Added missing field
+	Severity          string                 `json:"severity"`             // "critical", "major", "minor", "warning"
+	PerceivedSeverity string                 `json:"perceived_severity"`   // Added missing field - O-RAN specific severity
+	ProbableCause     string                 `json:"probable_cause"`
+	SpecificProblem   string                 `json:"specific_problem"`
+	AlarmText         string                 `json:"alarm_text"`
+	AdditionalText    string                 `json:"additional_text"`      // Added missing field
+	EventTime         time.Time              `json:"event_time"`
+	Acknowledged      bool                   `json:"acknowledged"`
+	ClearedTime       *time.Time             `json:"cleared_time,omitempty"`
+	AdditionalInfo    map[string]interface{} `json:"additional_info,omitempty"`
 }
 
 // AlarmSubscription represents an alarm subscription
@@ -148,121 +73,154 @@ type FileUploadResponse struct {
 type FileDownloadResponse struct {
 	FileID    string            `json:"file_id"`
 	FileName  string            `json:"file_name"`
-	FileType  string            `json:"file_type"`
+	FileType  string            `json:"file_type"`    // Added missing field
 	FileSize  int64             `json:"file_size"`
 	Content   []byte            `json:"content"`
 	Metadata  map[string]string `json:"metadata,omitempty"`
 	Status    string            `json:"status"`
 	Message   string            `json:"message,omitempty"`
+	Timestamp time.Time         `json:"timestamp"`
 }
 
-// HeartbeatResponse represents a heartbeat response
+// FileTransferRequest represents a file transfer request for O1
+type FileTransferRequest struct {
+	RequestID   string `json:"request_id"`
+	Operation   string `json:"operation"` // "upload" or "download"
+	FileName    string `json:"file_name"`
+	FileType    string `json:"file_type"`
+	Source      string `json:"source"`
+	Destination string `json:"destination"`
+	Priority    int    `json:"priority"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// FileTransferResponse represents the response to a file transfer request
+type FileTransferResponse struct {
+	RequestID string    `json:"request_id"`
+	Status    string    `json:"status"`
+	Message   string    `json:"message,omitempty"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+// NotificationEvent represents a generic notification event
+type NotificationEvent struct {
+	EventID     string                 `json:"event_id"`
+	EventType   string                 `json:"event_type"`
+	Source      string                 `json:"source"`
+	Target      string                 `json:"target"`
+	Timestamp   time.Time              `json:"timestamp"`
+	Severity    string                 `json:"severity"`
+	Message     string                 `json:"message"`
+	Data        map[string]interface{} `json:"data,omitempty"`
+}
+
+// Client represents an O1 client
+type Client struct {
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	Type        string                 `json:"type"`
+	Endpoint    string                 `json:"endpoint"`
+	Credentials map[string]interface{} `json:"credentials,omitempty"`
+	Connected   bool                   `json:"connected"`
+	LastSeen    time.Time              `json:"last_seen"`
+}
+
+// ConfigRequest represents a configuration request
+type ConfigRequest struct {
+	RequestID   string                 `json:"request_id"`
+	ClientID    string                 `json:"client_id"`
+	Operation   string                 `json:"operation"` // GET, SET, CREATE, DELETE
+	Path        string                 `json:"path"`      // Added missing field
+	Target      string                 `json:"target"`
+	Format      string                 `json:"format,omitempty"`    // Added missing field
+	Parameters  map[string]interface{} `json:"parameters,omitempty"`
+	Data        interface{}            `json:"data,omitempty"`
+	Timestamp   time.Time              `json:"timestamp"`
+}
+
+// ConfigResponse represents a configuration response
+type ConfigResponse struct {
+	RequestID string      `json:"request_id"`
+	Path      string      `json:"path"`    // Added missing field
+	Status    string      `json:"status"`  // SUCCESS, ERROR
+	Message   string      `json:"message"` // Added missing field
+	Data      interface{} `json:"data,omitempty"`
+	Error     string      `json:"error,omitempty"`
+	Timestamp time.Time   `json:"timestamp"`
+}
+
+// PerformanceRequest represents a performance data request
+type PerformanceRequest struct {
+	RequestID        string            `json:"request_id"`
+	ClientID         string            `json:"client_id"`
+	MetricType       string            `json:"metric_type"`
+	MeasurementTypes []string          `json:"measurement_types,omitempty"` // Added missing field
+	StartTime        time.Time         `json:"start_time"`
+	EndTime          time.Time         `json:"end_time"`
+	Granularity      string            `json:"granularity,omitempty"`       // Added missing field - changed to string
+	Filters          map[string]string `json:"filters,omitempty"`
+	Timestamp        time.Time         `json:"timestamp"`
+}
+
+// PerformanceResponse represents a performance data response
+type PerformanceResponse struct {
+	RequestID string                   `json:"request_id"`
+	Status    string                   `json:"status"`
+	Data      []PerformanceData        `json:"data,omitempty"`  // Changed to use PerformanceData
+	Error     string                   `json:"error,omitempty"`
+	Timestamp time.Time                `json:"timestamp"`
+}
+
+// PerformanceDataPoint represents a single performance data point
+type PerformanceDataPoint struct {
+	MetricName  string                 `json:"metric_name"`
+	Value       float64                `json:"value"`
+	Unit        string                 `json:"unit"`
+	Timestamp   time.Time              `json:"timestamp"`
+	Labels      map[string]string      `json:"labels,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// PerformanceData represents performance measurement data with all required fields
+type PerformanceData struct {
+	ObjectInstance   string                 `json:"object_instance"`   // Added missing field
+	MeasurementType  string                 `json:"measurement_type"`  // Added missing field  
+	Value            float64                `json:"value"`             // Added missing field
+	Unit             string                 `json:"unit"`              // Added missing field
+	Timestamp        time.Time              `json:"timestamp"`
+	Source           string                 `json:"source,omitempty"`
+	Type             string                 `json:"type,omitempty"`
+	DataPoints       []PerformanceDataPoint `json:"data_points,omitempty"`
+	Metadata         map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// PerformanceSubscription represents a performance data subscription
+type PerformanceSubscription struct {
+	SubscriptionID   string            `json:"subscription_id"`
+	MetricTypes      []string          `json:"metric_types"`
+	Interval         time.Duration     `json:"interval"`
+	ReportingPeriod  time.Duration     `json:"reporting_period"`  // Added missing field
+	Filters          map[string]string `json:"filters,omitempty"`
+	NotificationURI  string            `json:"notification_uri"`
+	Active           bool              `json:"active"`
+}
+
+// AlarmResponse represents a response to alarm operations
+type AlarmResponse struct {
+	RequestID  string    `json:"request_id"`
+	AlarmID    string    `json:"alarm_id,omitempty"`
+	Status     string    `json:"status"`
+	Message    string    `json:"message,omitempty"`
+	Error      string    `json:"error,omitempty"`
+	Alarms     []Alarm   `json:"alarms,omitempty"`     // Changed to []Alarm to match usage
+	TotalCount int       `json:"total_count,omitempty"` // Added missing field
+	Timestamp  time.Time `json:"timestamp"`
+}
+
+// HeartbeatResponse represents a response to heartbeat operations
 type HeartbeatResponse struct {
 	Status    string    `json:"status"`
-	Timestamp time.Time `json:"timestamp"`
 	Message   string    `json:"message,omitempty"`
+	Timestamp time.Time `json:"timestamp"`
+	Uptime    time.Duration `json:"uptime"`
 }
-
-// NotificationEvent represents a notification event from O1
-type NotificationEvent struct {
-	EventType   string                 `json:"event_type"` // "alarm", "performance", "config_change"
-	EventID     string                 `json:"event_id"`
-	ObjectType  string                 `json:"object_type"`
-	ObjectID    string                 `json:"object_id"`
-	EventTime   time.Time              `json:"event_time"`
-	EventData   map[string]interface{} `json:"event_data"`
-	Severity    string                 `json:"severity,omitempty"`
-	Description string                 `json:"description,omitempty"`
-}
-
-// Client represents an O1 interface client
-type Client struct {
-	endpoint   string
-	httpClient interface{} // HTTP client for REST API calls
-	timeout    time.Duration
-	headers    map[string]string
-}
-
-// ClientConfig represents O1 client configuration
-type ClientConfig struct {
-	Endpoint        string            `json:"endpoint"`
-	Username        string            `json:"username,omitempty"`
-	Password        string            `json:"password,omitempty"`
-	CertFile        string            `json:"cert_file,omitempty"`
-	KeyFile         string            `json:"key_file,omitempty"`
-	CAFile          string            `json:"ca_file,omitempty"`
-	Timeout         time.Duration     `json:"timeout"`
-	Headers         map[string]string `json:"headers,omitempty"`
-	InsecureSkipTLS bool              `json:"insecure_skip_tls"`
-}
-
-// NewClient creates a new O1 interface client
-func NewClient(config *ClientConfig) Interface {
-	if config == nil {
-		config = &ClientConfig{
-			Endpoint: "http://localhost:8080",
-			Timeout:  30 * time.Second,
-			Headers:  make(map[string]string),
-		}
-	}
-
-	return &Client{
-		endpoint: config.Endpoint,
-		timeout:  config.Timeout,
-		headers:  config.Headers,
-	}
-}
-
-// Common error types for O1 interface
-type ErrorType string
-
-const (
-	ErrorTypeInvalidRequest   ErrorType = "invalid_request"
-	ErrorTypeUnauthorized     ErrorType = "unauthorized"
-	ErrorTypeNotFound         ErrorType = "not_found"
-	ErrorTypeInternalError    ErrorType = "internal_error"
-	ErrorTypeTimeout          ErrorType = "timeout"
-	ErrorTypeUnsupported      ErrorType = "unsupported_operation"
-)
-
-// O1Error represents an O1 interface error
-type O1Error struct {
-	Type    ErrorType `json:"error_type"`
-	Message string    `json:"message"`
-	Code    int       `json:"code,omitempty"`
-	Details string    `json:"details,omitempty"`
-}
-
-func (e *O1Error) Error() string {
-	return e.Message
-}
-
-// Constants for O-RAN O1 interface
-const (
-	// Configuration paths
-	ConfigPathRAN         = "/ran"
-	ConfigPathCellular    = "/cellular"
-	ConfigPathInterfaces  = "/interfaces"
-	ConfigPathPerformance = "/performance"
-	
-	// Alarm severities
-	AlarmSeverityCritical = "critical"
-	AlarmSeverityMajor    = "major"
-	AlarmSeverityMinor    = "minor"
-	AlarmSeverityWarning  = "warning"
-	
-	// Performance measurement types
-	PerfTypeRRCConnections  = "rrc_connections"
-	PerfTypeThroughput      = "throughput"
-	PerfTypeLatency         = "latency"
-	PerfTypePacketLoss      = "packet_loss"
-	PerfTypeCPUUtilization  = "cpu_utilization"
-	PerfTypeMemoryUtilization = "memory_utilization"
-	
-	// Object types
-	ObjectTypeNearRTRIC    = "near_rt_ric"
-	ObjectTypeODU          = "o_du"
-	ObjectTypeOCU          = "o_cu"
-	ObjectTypeCell         = "cell"
-	ObjectTypeUE           = "ue"
-)

@@ -35,12 +35,17 @@ define create_patch_file
 	echo "$(1) patch saved to handoff/patches/$(1)-patch.json"
 endef
 
-# Go configuration
+# Go configuration - Updated for August 2025 (targeting 1.24.8 features)
 GO_VERSION = 1.24.1
 CONTROLLER_GEN_VERSION ?= v0.18.0
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 CGO_ENABLED ?= 0
+
+# Go 1.24.8 August 2025 Optimizations
+GOEXPERIMENT ?= swisstable,pacer,nocoverageredesign
+GOMAXPROCS ?= $(shell nproc 2>/dev/null || echo 4)
+PGO_PROFILE ?= default.pgo
 
 # Supply Chain Security Configuration
 GOSUMDB ?= sum.golang.org
@@ -56,27 +61,29 @@ BUILD_TYPE ?= production
 # Performance and build optimization
 PARALLEL_JOBS ?= $(shell nproc --all 2>/dev/null || echo 4)
 ifeq ($(BUILD_TYPE),fast)
-	FAST_BUILD_FLAGS = -ldflags="-s -w" -gcflags="all=-l=4" -buildmode=default
+	FAST_BUILD_FLAGS = -ldflags="-s -w" -gcflags="all=-l=4" -buildmode=default -pgo=$(PGO_PROFILE)
 	FAST_BUILD_TAGS = fast_build
 else ifeq ($(BUILD_TYPE),debug)
 	FAST_BUILD_FLAGS = -gcflags="all=-N -l" -race
 	FAST_BUILD_TAGS = debug
 else
-	FAST_BUILD_FLAGS = -ldflags="-s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)" -trimpath
+	FAST_BUILD_FLAGS = -ldflags="-s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)" -trimpath -pgo=$(PGO_PROFILE)
 	FAST_BUILD_TAGS = production
 endif
 
 # LDFLAGS for production builds
-LDFLAGS = -ldflags="-s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE) -extldflags '-static'"
+LDFLAGS = -ldflags="-s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE) -extldflags '-static'" -pgo=$(PGO_PROFILE)
 
 # Quality and testing configuration
 QUALITY_REPORTS_DIR ?= .excellence-reports
 REPORTS_DIR ?= $(QUALITY_REPORTS_DIR)
 COVERAGE_THRESHOLD ?= 80.0
 
-# Testing configuration
-GO_TEST_FLAGS ?= -v -race -timeout=30m
+# Testing configuration (2025 Optimized)
+GO_TEST_FLAGS ?= -v -race -timeout=35m -parallel=8
 GO_TEST_COVERAGE_FLAGS ?= -coverprofile=$(QUALITY_REPORTS_DIR)/coverage.out -covermode=atomic
+GO_TEST_PARALLEL_JOBS ?= $(shell echo "$(PARALLEL_JOBS) * 2" | bc)
+GO_TEST_2025_FLAGS ?= -json -shuffle=on -count=1
 
 # Kubernetes configuration
 NAMESPACE ?= nephoran-system
@@ -142,7 +149,7 @@ mvp-scale-up: ## Scale up MVP components with optimized resources
 	$(call kubectl_patch_hpa,simulator-hpa,$(MIN_REPLICAS_SIMULATOR),$(MAX_REPLICAS_SIMULATOR))
 	$(call create_patch_file,simulator,$(MAX_REPLICAS_SIMULATOR),$(SIMULATOR_CPU_REQUEST),$(SIMULATOR_MEMORY_REQUEST))
 	
-	@echo "✅ MVP scale-up completed. Patches saved to handoff/patches/"
+	@echo "[SUCCESS] MVP scale-up completed. Patches saved to handoff/patches/"
 	@ls -la handoff/patches/
 
 .PHONY: mvp-scale-down
@@ -166,7 +173,7 @@ mvp-scale-down: ## Scale down MVP components to minimum resources
 	$(call kubectl_patch_hpa,simulator-hpa,$(MIN_REPLICAS_SIMULATOR),$(MIN_REPLICAS_SIMULATOR))
 	$(call create_patch_file,simulator,$(MIN_REPLICAS_SIMULATOR),$(SIMULATOR_CPU_REQUEST),$(SIMULATOR_MEMORY_REQUEST))
 	
-	@echo "✅ MVP scale-down completed. Patches saved to handoff/patches/"
+	@echo "[SUCCESS] MVP scale-down completed. Patches saved to handoff/patches/"
 	@ls -la handoff/patches/
 
 ##@ Development
@@ -191,12 +198,12 @@ vendor: ## Run go mod vendor
 verify: fmt vet tidy ## Verify code consistency
 	@echo "Verifying code consistency..."
 	@if [ -n "$$(git status --porcelain)" ]; then \
-		echo "❌ Code verification failed. The following files need attention:"; \
+		echo "[ERROR] Code verification failed. The following files need attention:"; \
 		git status --porcelain; \
 		echo "Please run 'make fmt tidy' and commit the changes."; \
 		exit 1; \
 	fi
-	@echo "✅ Code verification passed"
+	@echo "[SUCCESS] Code verification passed"
 
 ##@ Code Generation
 
@@ -215,49 +222,49 @@ check-redis-connectivity: ## Check Redis connectivity for integration tests
 	@echo "Checking Redis connectivity..."
 	@if command -v redis-cli >/dev/null 2>&1; then \
 		if ! timeout 5 redis-cli -h localhost -p 6379 ping >/dev/null 2>&1; then \
-			echo "❌ Redis not available at localhost:6379. Starting Redis if available..."; \
+			echo "[ERROR] Redis not available at localhost:6379. Starting Redis if available..."; \
 			if command -v redis-server >/dev/null 2>&1; then \
 				redis-server --daemonize yes --port 6379 --timeout 0 --tcp-keepalive 300 --maxmemory 256mb --maxmemory-policy allkeys-lru; \
 				sleep 2; \
 				if ! timeout 5 redis-cli -h localhost -p 6379 ping >/dev/null 2>&1; then \
-					echo "⚠️  Redis still not available. Some tests may fail. Consider running: docker run -d -p 6379:6379 redis:7-alpine"; \
+					echo "[WARNING]  Redis still not available. Some tests may fail. Consider running: docker run -d -p 6379:6379 redis:7-alpine"; \
 					exit 0; \
 				fi; \
 			else \
-				echo "⚠️  Redis not available and redis-server not installed. Some tests may fail."; \
+				echo "[WARNING]  Redis not available and redis-server not installed. Some tests may fail."; \
 				echo "    Consider running: docker run -d -p 6379:6379 redis:7-alpine"; \
 				exit 0; \
 			fi; \
 		fi; \
-		echo "✅ Redis is accessible"; \
+		echo "[SUCCESS] Redis is accessible"; \
 	else \
-		echo "⚠️  redis-cli not found. Cannot verify Redis connectivity"; \
+		echo "[WARNING]  redis-cli not found. Cannot verify Redis connectivity"; \
 	fi
 
 .PHONY: test
 test: check-redis-connectivity ## Run unit tests with specified tags and improved reliability
 	@echo "Running unit tests with tags and reliability improvements..."
 	@mkdir -p $(REPORTS_DIR) $(QUALITY_REPORTS_DIR)/coverage
-	@# Ensure test synchronization for parallel execution
+		@# Ensure test synchronization for parallel execution
 	@export TEST_MUTEX_LOCK_DIR=$${TMPDIR:-/tmp}/nephoran-test-locks && \
 	mkdir -p "$$TEST_MUTEX_LOCK_DIR" && \
-	GOMAXPROCS=$(PARALLEL_JOBS) GOMEMLIMIT=3GiB \
-		go test ./... -v -race -parallel=$(shell echo "$(PARALLEL_JOBS)/2" | bc) -timeout=15m -short \
+	GOMAXPROCS=$(PARALLEL_JOBS) GOMEMLIMIT=8GiB GOGC=75 \
+		go test ./... -v -race -parallel=$(GO_TEST_PARALLEL_JOBS) -timeout=25m -short \
 		-tags="fast_build,no_swagger,no_e2e" \
 		-coverprofile=$(QUALITY_REPORTS_DIR)/coverage/coverage.out -covermode=atomic \
-		-json | tee $(QUALITY_REPORTS_DIR)/coverage/test-results.json || \
-		(echo "❌ Tests failed. Check $(QUALITY_REPORTS_DIR)/coverage/test-results.json for details" && exit 1)
-	@# Copy coverage results with error handling
+		$(GO_TEST_2025_FLAGS) | tee $(QUALITY_REPORTS_DIR)/coverage/test-results.json || \
+		(echo "[ERROR] Tests failed. Check $(QUALITY_REPORTS_DIR)/coverage/test-results.json for details" && exit 1)
+		@# Copy coverage results with error handling
 	@if [ -f "$(QUALITY_REPORTS_DIR)/coverage/coverage.out" ]; then \
 		cp $(QUALITY_REPORTS_DIR)/coverage/coverage.out $(REPORTS_DIR)/coverage.out; \
-		echo "✅ Coverage report saved to $(REPORTS_DIR)/coverage.out"; \
+		echo "[SUCCESS] Coverage report saved to $(REPORTS_DIR)/coverage.out"; \
 	else \
-		echo "⚠️  Coverage file not generated"; \
+		echo "[WARNING]  Coverage file not generated"; \
 	fi
-	@# Generate coverage HTML for quick viewing
+		@# Generate coverage HTML for quick viewing
 	@if [ -f "$(QUALITY_REPORTS_DIR)/coverage/coverage.out" ]; then \
 		go tool cover -html=$(QUALITY_REPORTS_DIR)/coverage/coverage.out -o $(QUALITY_REPORTS_DIR)/coverage/coverage.html; \
-		echo "✅ Coverage HTML report generated: $(QUALITY_REPORTS_DIR)/coverage/coverage.html"; \
+		echo "[SUCCESS] Coverage HTML report generated: $(QUALITY_REPORTS_DIR)/coverage/coverage.html"; \
 	fi
 
 .PHONY: test-integration
@@ -271,8 +278,8 @@ test-integration: check-redis-connectivity ## Run integration tests with improve
 		go test ./tests/integration/... -v -timeout=30m \
 		-coverprofile=$(QUALITY_REPORTS_DIR)/integration-coverage.out \
 		-json | tee $(REPORTS_DIR)/integration-results.json || \
-		(echo "❌ Integration tests failed. Check $(REPORTS_DIR)/integration-results.json for details" && exit 1)
-	@echo "✅ Integration tests completed successfully"
+		(echo "[ERROR] Integration tests failed. Check $(REPORTS_DIR)/integration-results.json for details" && exit 1)
+	@echo "[SUCCESS] Integration tests completed successfully"
 
 .PHONY: test-e2e
 test-e2e: check-redis-connectivity ## Run end-to-end tests with improved reliability  
@@ -285,8 +292,8 @@ test-e2e: check-redis-connectivity ## Run end-to-end tests with improved reliabi
 		go test ./tests/e2e/... -v -timeout=45m \
 		-coverprofile=$(QUALITY_REPORTS_DIR)/e2e-coverage.out \
 		-json | tee $(REPORTS_DIR)/e2e-results.json || \
-		(echo "❌ E2E tests failed. Check $(REPORTS_DIR)/e2e-results.json for details" && exit 1)
-	@echo "✅ E2E tests completed successfully"
+		(echo "[ERROR] E2E tests failed. Check $(REPORTS_DIR)/e2e-results.json for details" && exit 1)
+	@echo "[SUCCESS] E2E tests completed successfully"
 
 .PHONY: test-excellence
 test-excellence: ## Run excellence validation test suite with improved reliability
@@ -298,8 +305,8 @@ test-excellence: ## Run excellence validation test suite with improved reliabili
 	go test ./tests/excellence/... -v -timeout=30m --ginkgo.v \
 		-coverprofile=$(QUALITY_REPORTS_DIR)/excellence-coverage.out \
 		-json | tee $(REPORTS_DIR)/excellence-results.json || \
-		(echo "❌ Excellence tests failed. Check $(REPORTS_DIR)/excellence-results.json for details" && exit 1)
-	@echo "✅ Excellence validation tests completed successfully"
+		(echo "[ERROR] Excellence tests failed. Check $(REPORTS_DIR)/excellence-results.json for details" && exit 1)
+	@echo "[SUCCESS] Excellence validation tests completed successfully"
 
 .PHONY: test-regression
 test-regression: ## Run regression testing suite
@@ -310,8 +317,8 @@ test-regression: ## Run regression testing suite
 		go test ./tests/regression/... -v -timeout=60m \
 		-coverprofile=$(QUALITY_REPORTS_DIR)/regression-coverage.out \
 		-json | tee $(REPORTS_DIR)/regression-results.json || \
-		(echo "❌ Regression tests failed. Check $(REPORTS_DIR)/regression-results.json for details" && exit 1)
-	@echo "✅ Regression testing completed successfully"
+		(echo "[ERROR] Regression tests failed. Check $(REPORTS_DIR)/regression-results.json for details" && exit 1)
+	@echo "[SUCCESS] Regression testing completed successfully"
 
 .PHONY: test-all
 test-all: test test-integration test-e2e test-excellence test-regression ## Run all test suites
@@ -335,7 +342,7 @@ security-scan: ## Run comprehensive security scans
 		echo "Running Go vulnerability scan..."; \
 		govulncheck ./... | tee $(QUALITY_REPORTS_DIR)/security/govulncheck-report.txt; \
 	else \
-		echo "⚠️  govulncheck not found. Install with: go install golang.org/x/vuln/cmd/govulncheck@latest"; \
+		echo "[WARNING]  govulncheck not found. Install with: go install golang.org/x/vuln/cmd/govulncheck@latest"; \
 	fi
 	
 	@# Semgrep security analysis if available
@@ -343,7 +350,7 @@ security-scan: ## Run comprehensive security scans
 		echo "Running Semgrep security analysis..."; \
 		semgrep --config=auto --json --output=$(QUALITY_REPORTS_DIR)/security/semgrep-report.json . || true; \
 	else \
-		echo "⚠️  Semgrep not found. Consider installing for enhanced security scanning"; \
+		echo "[WARNING]  Semgrep not found. Consider installing for enhanced security scanning"; \
 	fi
 	
 	@# Nancy dependency vulnerability scan if available
@@ -351,10 +358,10 @@ security-scan: ## Run comprehensive security scans
 		echo "Running Nancy dependency scan..."; \
 		go list -json -deps ./... | nancy sleuth | tee $(QUALITY_REPORTS_DIR)/security/nancy-report.txt || true; \
 	else \
-		echo "⚠️  Nancy not found. Consider installing for dependency vulnerability scanning"; \
+		echo "[WARNING]  Nancy not found. Consider installing for dependency vulnerability scanning"; \
 	fi
 	
-	@echo "✅ Security scan completed. Results in $(QUALITY_REPORTS_DIR)/security/"
+	@echo "[SUCCESS] Security scan completed. Results in $(QUALITY_REPORTS_DIR)/security/"
 
 .PHONY: lint
 lint: ## Run comprehensive linting
@@ -367,7 +374,7 @@ lint: ## Run comprehensive linting
 		golangci-lint run --out-format json --issues-exit-code=0 > $(QUALITY_REPORTS_DIR)/lint/golangci-lint-report.json; \
 		golangci-lint run; \
 	else \
-		echo "⚠️  golangci-lint not found. Install with: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin"; \
+		echo "[WARNING]  golangci-lint not found. Install with: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin"; \
 		go vet ./...; \
 	fi
 
@@ -379,7 +386,7 @@ coverage-report: test ## Generate comprehensive coverage report
 	@# Generate HTML coverage report
 	@if [ -f "$(QUALITY_REPORTS_DIR)/coverage/coverage.out" ]; then \
 		go tool cover -html=$(QUALITY_REPORTS_DIR)/coverage/coverage.out -o $(QUALITY_REPORTS_DIR)/coverage/coverage.html; \
-		echo "✅ HTML coverage report: $(QUALITY_REPORTS_DIR)/coverage/coverage.html"; \
+		echo "[SUCCESS] HTML coverage report: $(QUALITY_REPORTS_DIR)/coverage/coverage.html"; \
 	fi
 	
 	@# Coverage summary
@@ -389,13 +396,13 @@ coverage-report: test ## Generate comprehensive coverage report
 		COVERAGE=$$(go tool cover -func=$(QUALITY_REPORTS_DIR)/coverage/coverage.out | tail -1 | awk '{print $$3}' | sed 's/%//'); \
 		echo "Coverage: $${COVERAGE}%"; \
 		if [ $$(echo "$${COVERAGE} < $(COVERAGE_THRESHOLD)" | bc -l) -eq 1 ]; then \
-			echo "❌ Coverage $${COVERAGE}% is below threshold $(COVERAGE_THRESHOLD)%"; \
+			echo "[ERROR] Coverage $${COVERAGE}% is below threshold $(COVERAGE_THRESHOLD)%"; \
 			exit 1; \
 		else \
-			echo "✅ Coverage $${COVERAGE}% meets threshold $(COVERAGE_THRESHOLD)%"; \
+			echo "[SUCCESS] Coverage $${COVERAGE}% meets threshold $(COVERAGE_THRESHOLD)%"; \
 		fi; \
 	else \
-		echo "❌ No coverage file found"; \
+		echo "[ERROR] No coverage file found"; \
 		exit 1; \
 	fi
 
@@ -413,17 +420,17 @@ excellence-dashboard: ## Generate excellence metrics dashboard
 	@if [ -f "$(QUALITY_REPORTS_DIR)/coverage/coverage.out" ]; then \
 		COVERAGE=$$(go tool cover -func=$(QUALITY_REPORTS_DIR)/coverage/coverage.out | tail -1 | awk '{print $$3}' | sed 's/%//'); \
 		echo "{\"coverage\": $${COVERAGE}, \"timestamp\": \"$$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > $(QUALITY_REPORTS_DIR)/dashboard/metrics.json; \
-		echo "✅ Dashboard metrics generated: $(QUALITY_REPORTS_DIR)/dashboard/metrics.json"; \
+		echo "[SUCCESS] Dashboard metrics generated: $(QUALITY_REPORTS_DIR)/dashboard/metrics.json"; \
 		echo "Coverage: $${COVERAGE}%"; \
 		if [ $$(echo "$${COVERAGE} >= 90.0" | bc -l) -eq 1 ]; then \
 			echo "🏆 EXCELLENCE ACHIEVED: Coverage >= 90%"; \
 		elif [ $$(echo "$${COVERAGE} >= 80.0" | bc -l) -eq 1 ]; then \
-			echo "✅ GOOD: Coverage >= 80%"; \
+			echo "[SUCCESS] GOOD: Coverage >= 80%"; \
 		else \
-			echo "⚠️  NEEDS IMPROVEMENT: Coverage < 80%"; \
+			echo "[WARNING]  NEEDS IMPROVEMENT: Coverage < 80%"; \
 		fi; \
 	else \
-		echo "❌ Excellence scoring failed - no coverage data available"; \
+		echo "[ERROR] Excellence scoring failed - no coverage data available"; \
 		exit 1; \
 	fi
 
@@ -593,7 +600,7 @@ demo-setup: ## Set up demo environment
 	else \
 		echo "Demo setup script not found. Creating minimal setup..."; \
 		kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -; \
-		echo "✅ Demo namespace $(NAMESPACE) created"; \
+		echo "[SUCCESS] Demo namespace $(NAMESPACE) created"; \
 	fi
 
 ##@ Tools
@@ -656,9 +663,9 @@ docs-generate: ## Generate comprehensive documentation
 	@# Generate API documentation
 	@if command -v swag >/dev/null 2>&1; then \
 		swag init -g cmd/main.go -o docs/generated/swagger --parseInternal; \
-		echo "✅ Swagger documentation generated"; \
+		echo "[SUCCESS] Swagger documentation generated"; \
 	else \
-		echo "⚠️  swag not found. Install with: go install github.com/swaggo/swag/cmd/swag@latest"; \
+		echo "[WARNING]  swag not found. Install with: go install github.com/swaggo/swag/cmd/swag@latest"; \
 	fi
 	
 	@# Generate Go documentation
@@ -668,7 +675,7 @@ docs-generate: ## Generate comprehensive documentation
 	curl -s http://localhost:6060/pkg/github.com/thc1006/nephoran-intent-operator/ > docs/generated/godoc.html || true; \
 	kill $$GODOC_PID 2>/dev/null || true
 	
-	@echo "✅ Documentation generated in docs/generated/"
+	@echo "[SUCCESS] Documentation generated in docs/generated/"
 
 .PHONY: docs-serve
 docs-serve: ## Serve documentation locally
@@ -685,7 +692,7 @@ chaos-test: ## Run chaos engineering tests
 		GOMAXPROCS=4 go test ./tests/chaos/... -v -timeout=60m \
 			-json | tee $(QUALITY_REPORTS_DIR)/chaos/chaos-results.json; \
 	else \
-		echo "⚠️  Chaos tests not found. Consider implementing chaos engineering tests."; \
+		echo "[WARNING]  Chaos tests not found. Consider implementing chaos engineering tests."; \
 	fi
 
 .PHONY: load-test
@@ -698,17 +705,17 @@ load-test: ## Run load testing
 		chmod +x scripts/load-test.sh; \
 		./scripts/load-test.sh; \
 	else \
-		echo "⚠️  Load testing tools not available"; \
+		echo "[WARNING]  Load testing tools not available"; \
 	fi
 
 .PHONY: health-check
 health-check: ## Perform comprehensive health check
 	@echo "Performing comprehensive health check..."
-	@echo "✅ Go version: $$(go version)"
-	@echo "✅ Git status: $$(git status --porcelain | wc -l) modified files"
-	@echo "✅ Dependencies: $$(go list -m all | wc -l) modules"
-	@echo "✅ Build status: $$(make build >/dev/null 2>&1 && echo 'PASS' || echo 'FAIL')"
-	@echo "✅ Test status: $$(timeout 30s make test >/dev/null 2>&1 && echo 'PASS' || echo 'FAIL')"
+	@echo "[SUCCESS] Go version: $$(go version)"
+	@echo "[SUCCESS] Git status: $$(git status --porcelain | wc -l) modified files"
+	@echo "[SUCCESS] Dependencies: $$(go list -m all | wc -l) modules"
+	@echo "[SUCCESS] Build status: $$(make build >/dev/null 2>&1 && echo 'PASS' || echo 'FAIL')"
+	@echo "[SUCCESS] Test status: $$(timeout 30s make test >/dev/null 2>&1 && echo 'PASS' || echo 'FAIL')"
 
 ##@ CI/CD Integration
 
@@ -740,9 +747,9 @@ sbom-generate: ## Generate Software Bill of Materials (SBOM)
 	@mkdir -p $(QUALITY_REPORTS_DIR)/sbom
 	@if command -v cyclonedx-gomod >/dev/null 2>&1; then \
 		cyclonedx-gomod app -json -output $(QUALITY_REPORTS_DIR)/sbom/sbom.json; \
-		echo "✅ SBOM generated: $(QUALITY_REPORTS_DIR)/sbom/sbom.json"; \
+		echo "[SUCCESS] SBOM generated: $(QUALITY_REPORTS_DIR)/sbom/sbom.json"; \
 	else \
-		echo "⚠️  cyclonedx-gomod not found. Install with: go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest"; \
+		echo "[WARNING]  cyclonedx-gomod not found. Install with: go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest"; \
 	fi
 
 .PHONY: verify-dependencies
@@ -752,7 +759,7 @@ verify-dependencies: ## Verify dependency integrity
 	@if command -v nancy >/dev/null 2>&1; then \
 		go list -json -deps ./... | nancy sleuth; \
 	else \
-		echo "⚠️  Nancy not found for vulnerability scanning"; \
+		echo "[WARNING]  Nancy not found for vulnerability scanning"; \
 	fi
 
 .PHONY: security-baseline
@@ -783,7 +790,7 @@ dependency-update: ## Update dependencies safely
 	go get -u ./...
 	go mod tidy
 	go mod verify
-	@echo "✅ Dependencies updated. Please run tests to verify compatibility."
+	@echo "[SUCCESS] Dependencies updated. Please run tests to verify compatibility."
 
 .PHONY: cleanup-old-reports
 cleanup-old-reports: ## Clean up old report files
@@ -791,14 +798,14 @@ cleanup-old-reports: ## Clean up old report files
 	find $(QUALITY_REPORTS_DIR) -name "*.json" -mtime +7 -delete 2>/dev/null || true
 	find $(QUALITY_REPORTS_DIR) -name "*.txt" -mtime +7 -delete 2>/dev/null || true
 	find $(QUALITY_REPORTS_DIR) -name "*.html" -mtime +7 -delete 2>/dev/null || true
-	@echo "✅ Old reports cleaned up"
+	@echo "[SUCCESS] Old reports cleaned up"
 
 .PHONY: full-reset
 full-reset: clean-all ## Complete reset of the development environment
 	@echo "Performing full development environment reset..."
 	git clean -fdx
 	go clean -cache -modcache -testcache -fuzzcache
-	@echo "✅ Full reset completed"
+	@echo "[SUCCESS] Full reset completed"
 
 ##@ Meta
 

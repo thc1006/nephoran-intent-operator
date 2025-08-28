@@ -66,9 +66,11 @@ type TelecomDocument struct {
 	Content     string    `json:"content"`
 	Type        string    `json:"type"`
 	Source      string    `json:"source"`
-	Category    string    `json:"category"`
-	Tags        []string  `json:"tags"`
-	CreatedAt   time.Time `json:"created_at"`
+	Category        string    `json:"category"`
+	Tags            []string  `json:"tags"`
+	Technology      []string  `json:"technology"`
+	NetworkFunction []string  `json:"network_function"`
+	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 	Version     string    `json:"version"`
 	Metadata    Metadata  `json:"metadata"`

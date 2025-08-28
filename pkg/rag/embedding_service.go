@@ -1641,3 +1641,99 @@ func (es *EmbeddingService) CheckStatus(ctx context.Context) (*ComponentStatus, 
 		Details:   details,
 	}, nil
 }
+
+// CalculateSimilarity calculates semantic similarity between two texts
+func (es *EmbeddingService) CalculateSimilarity(ctx context.Context, text1, text2 string) (float32, error) {
+	// Generate embeddings for both texts
+	embeddings1, err := es.Embed(ctx, text1)
+	if err != nil {
+		return 0, fmt.Errorf("failed to generate embedding for text1: %w", err)
+	}
+
+	embeddings2, err := es.Embed(ctx, text2)
+	if err != nil {
+		return 0, fmt.Errorf("failed to generate embedding for text2: %w", err)
+	}
+
+	// Calculate cosine similarity
+	return cosineSimilarity(embeddings1, embeddings2), nil
+}
+
+// Embed generates embeddings for a single text (interface method)
+func (es *EmbeddingService) Embed(ctx context.Context, text string) ([]float32, error) {
+	request := &EmbeddingRequest{
+		Texts: []string{text},
+	}
+	response, err := es.GenerateEmbeddings(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+	if len(response.Embeddings) == 0 {
+		return nil, fmt.Errorf("no embeddings generated")
+	}
+	return response.Embeddings[0], nil
+}
+
+// EmbedBatch generates embeddings for multiple texts (interface method)
+func (es *EmbeddingService) EmbedBatch(ctx context.Context, texts []string) ([][]float32, error) {
+	request := &EmbeddingRequest{
+		Texts: texts,
+	}
+	response, err := es.GenerateEmbeddings(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+	return response.Embeddings, nil
+}
+
+// GetDimension returns the dimension of the embeddings (interface method)
+func (es *EmbeddingService) GetDimension() int {
+	return es.config.Dimensions
+}
+
+// GetModel returns the model name being used (interface method)
+func (es *EmbeddingService) GetModel() string {
+	return es.config.ModelName
+}
+
+// Close gracefully shuts down the embedding service (interface method)
+func (es *EmbeddingService) Close() error {
+	// Close any resources if needed
+	return nil
+}
+
+// GetUsage returns token usage statistics (interface method)
+func (es *EmbeddingService) GetUsage() EmbeddingTokenUsage {
+	// Return usage stats from metrics
+	metrics := es.GetMetrics()
+	return EmbeddingTokenUsage{
+		TotalTokens: int(metrics.TotalTokens),
+	}
+}
+
+// ResetUsage resets the token usage counters (interface method)
+func (es *EmbeddingService) ResetUsage() {
+	es.updateMetrics(func(m *EmbeddingMetrics) {
+		m.TotalTokens = 0
+		m.TotalRequests = 0
+		m.SuccessfulRequests = 0
+		m.FailedRequests = 0
+	})
+}
+
+// HealthCheck verifies the service is operational (interface method)
+func (es *EmbeddingService) HealthCheck(ctx context.Context) error {
+	status, err := es.CheckStatus(ctx)
+	if err != nil {
+		return err
+	}
+	if status.Status != "healthy" {
+		return fmt.Errorf("service not healthy: %s", status.Message)
+	}
+	return nil
+}
+
+// GetCostEstimate returns cost estimate for the given text (interface method)
+func (es *EmbeddingService) GetCostEstimate(text string) float64 {
+	return es.estimateCost([]string{text})
+}

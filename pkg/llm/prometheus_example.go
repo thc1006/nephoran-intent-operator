@@ -120,8 +120,8 @@ func ExamplePrometheusMetricsTypes() {
 	fmt.Println("Recording error metrics...")
 	// This would normally come from actual processing errors, but we can simulate
 	if client.metricsIntegrator != nil {
-		client.metricsIntegrator.prometheusMetrics.RecordError("gpt-4o-mini", "timeout")
-		client.metricsIntegrator.prometheusMetrics.RecordError("gpt-4o-mini", "rate_limit_exceeded")
+		client.metricsIntegrator.prometheusMetrics().RecordError("gpt-4o-mini", "timeout")
+		client.metricsIntegrator.prometheusMetrics().RecordError("gpt-4o-mini", "rate_limit_exceeded")
 	}
 
 	// 4. Retry attempts (records: retry_attempts_total)
