@@ -202,6 +202,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           
+      - name: Setup Cache Strategy
+        id: cache-strategy
+        run: |
+          echo "Setting up progressive cache strategy..."
+          # Start with GitHub Actions cache only, registry cache will be available after first build
+          echo "Using GitHub Actions cache as primary, registry cache as fallback"
+          
       - name: Build Optimized Container
         uses: docker/build-push-action@v6
         with:
@@ -214,7 +221,6 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}:${{ github.sha }}
           cache-from: |
             type=gha,scope=${{ matrix.service }}
-            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}:buildcache
           cache-to: |
             type=gha,mode=max,scope=${{ matrix.service }}
             type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}:buildcache,mode=max
@@ -345,4 +351,4 @@ jobs:
             exit 1
           fi
           
-          echo "✅ Ultra-Fast CI completed successfully!"
+          echo "[SUCCESS] Ultra-Fast CI completed successfully!"

@@ -506,7 +506,7 @@ build-conductor: ## Build the conductor binary
 		go build $(FAST_BUILD_FLAGS) $(LDFLAGS) -o bin/conductor cmd/conductor/main.go
 
 .PHONY: build-all-binaries
-build-all-binaries: build build-porch-publisher build-conductor ## Build all core binaries
+build-all-binaries: build build-porch-publisher build-conductor conductor-loop-build ## Build all core binaries
 	@echo "All binaries built successfully!"
 	@ls -la bin/
 

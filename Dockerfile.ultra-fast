@@ -45,19 +45,42 @@ RUN --mount=type=cache,target=/go/pkg/mod \
       ./cmd/${SERVICE}
 
 # =============================================================================
-# STAGE 2: Scratch/Distroless Final Image
+# STAGE 2: Binary Selector (Alpine with shell for conditional logic)
 # =============================================================================
-FROM gcr.io/distroless/static-debian12:nonroot AS final
-
-# Copy pre-built binary or built binary
+FROM alpine:3.20 AS binary-selector
 ARG PREBUILT_BINARY
 ARG SERVICE
 
-# If pre-built binary exists, use it; otherwise use builder stage
-COPY --from=builder /app /app
+# Copy the built binary as fallback
+COPY --from=builder /app /tmp/built-binary
 
-# For pre-built binaries (when passed via build context)
-COPY ${PREBUILT_BINARY} /app 2>/dev/null || true
+# Create a script to select the appropriate binary
+RUN echo '#!/bin/sh' > /select-binary.sh && \
+    echo 'if [ -n "$PREBUILT_BINARY" ] && [ -f "$PREBUILT_BINARY" ]; then' >> /select-binary.sh && \
+    echo '  echo "Using pre-built binary: $PREBUILT_BINARY"' >> /select-binary.sh && \
+    echo '  cp "$PREBUILT_BINARY" /final-binary' >> /select-binary.sh && \
+    echo 'else' >> /select-binary.sh && \
+    echo '  echo "Using builder binary"' >> /select-binary.sh && \
+    echo '  cp /tmp/built-binary /final-binary' >> /select-binary.sh && \
+    echo 'fi' >> /select-binary.sh && \
+    echo 'chmod +x /final-binary' >> /select-binary.sh && \
+    chmod +x /select-binary.sh
+
+# Copy build context files (including potential pre-built binaries)
+COPY . /build-context/
+
+# Execute binary selection
+RUN PREBUILT_BINARY=${PREBUILT_BINARY:+/build-context/${PREBUILT_BINARY}} /select-binary.sh
+
+# =============================================================================
+# STAGE 3: Final Distroless Image
+# =============================================================================
+FROM gcr.io/distroless/static-debian12:nonroot AS final
+
+ARG SERVICE
+
+# Copy the selected binary
+COPY --from=binary-selector /final-binary /app
 
 # Security: Run as non-root
 USER nonroot:nonroot
