@@ -155,6 +155,7 @@ type CertRotationManager struct {
 	nextCert     *tls.Certificate
 	rotationTime time.Time
 	mu           sync.RWMutex
+	stopCh       chan struct{}
 }
 
 // NewMTLSManager creates a new mTLS manager
@@ -208,7 +209,11 @@ func NewMTLSManager(config *MTLSConfig, logger *logging.StructuredLogger) (*MTLS
 			config: config.AutoRotation,
 			logger: logger,
 		}
-		go m.rotationManager.Start()
+		go func() {
+			if err := m.rotationManager.Start(context.Background()); err != nil {
+				m.logger.Error("certificate rotation manager failed to start", "error", err)
+			}
+		}()
 	}
 
 	// Initialize multi-tenant configurations

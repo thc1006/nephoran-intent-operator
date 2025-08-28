@@ -1,4 +1,4 @@
-package models
+package perfmodels
 
 import (
 	"gonum.org/v1/gonum/mat"

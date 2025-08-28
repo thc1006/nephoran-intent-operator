@@ -1,4 +1,4 @@
-package providers
+package authproviders
 
 import (
 	"log/slog"

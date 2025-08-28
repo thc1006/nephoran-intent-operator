@@ -148,10 +148,10 @@ type SanitizationResult struct {
 
 // Violation represents a sanitization violation
 type Violation struct {
-	Field    string            `json:"field"`
-	Rule     string            `json:"rule"`
-	Value    interface{}       `json:"value,omitempty"`
-	Message  string            `json:"message"`
+	Field    string        `json:"field"`
+	Rule     string        `json:"rule"`
+	Value    interface{}   `json:"value,omitempty"`
+	Message  string        `json:"message"`
 	Severity EventSeverity `json:"severity"`
 }
 

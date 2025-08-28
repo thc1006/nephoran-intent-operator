@@ -1,5 +1,5 @@
 // Package auth provides testing utilities and helpers for auth package
-package auth
+package authtest
 
 import (
 	"context"

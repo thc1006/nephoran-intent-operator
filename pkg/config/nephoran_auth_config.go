@@ -3,6 +3,8 @@ package config
 import (
 	"strings"
 	"time"
+	
+	securityconfig "github.com/thc1006/nephoran-intent-operator/pkg/security"
 )
 
 // NephoranAuthConfig holds authentication configuration for Nephoran
@@ -14,7 +16,7 @@ type NephoranAuthConfig struct {
 	JWT         JWTConfig
 	RBAC        RBACConfig
 	Sessions    SessionConfig
-	Security    SecurityConfig
+	Security    *SecurityConfig
 	Audit       AuditConfig
 	Controller  ControllerAuthConfig
 	Endpoints   EndpointConfig
@@ -66,11 +68,8 @@ type SessionConfig struct {
 	MaxConcurrent int
 }
 
-// SecurityConfig holds security settings
-type SecurityConfig struct {
-	CSRFProtection bool
-	RequireHTTPS   bool
-}
+// SecurityConfig holds security settings - use common config type
+type SecurityConfig = securityconfig.CommonSecurityConfig
 
 // AuditConfig holds audit configuration
 type AuditConfig struct {
@@ -122,9 +121,13 @@ func LoadNephoranAuthConfig() (*NephoranAuthConfig, error) {
 			Timeout:       GetDurationEnv("NEPHORAN_SESSIONS_TIMEOUT", 30*time.Minute),
 			MaxConcurrent: GetIntEnv("NEPHORAN_SESSIONS_MAX_CONCURRENT", 100),
 		},
-		Security: SecurityConfig{
-			CSRFProtection: GetBoolEnv("NEPHORAN_SECURITY_CSRF_ENABLED", true),
-			RequireHTTPS:   GetBoolEnv("NEPHORAN_SECURITY_REQUIRE_HTTPS", false),
+		Security: &SecurityConfig{
+			SecurityHeaders: &securityconfig.SecurityHeadersConfig{
+				Enabled: GetBoolEnv("NEPHORAN_SECURITY_CSRF_ENABLED", true),
+			},
+			TLS: &securityconfig.TLSConfig{
+				Enabled: GetBoolEnv("NEPHORAN_SECURITY_REQUIRE_HTTPS", false),
+			},
 		},
 		Audit: AuditConfig{
 			Enabled:       GetBoolEnv("NEPHORAN_AUDIT_ENABLED", true),

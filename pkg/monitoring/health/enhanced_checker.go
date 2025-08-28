@@ -1,7 +1,7 @@
 // Package health provides enhanced multi-tiered health monitoring for the Nephoran Intent Operator.
 // This system offers comprehensive health assessment with weighted scoring, contextual checks,
 // and performance optimization achieving sub-100ms execution times.
-package health
+package monitoringhealth
 
 import (
 	"context"

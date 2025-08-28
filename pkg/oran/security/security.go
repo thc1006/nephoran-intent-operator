@@ -15,6 +15,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	securityconfig "github.com/thc1006/nephoran-intent-operator/pkg/security"
 )
 
 // SecurityManager manages security configurations and operations
@@ -29,7 +30,7 @@ type SecurityManager struct {
 type TLSManager struct {
 	mu           sync.RWMutex
 	tlsConfigs   map[string]*tls.Config
-	certPaths    map[string]*CertificatePaths
+	certPaths    map[string]*securityconfig.CertificatePaths
 	autoReload   bool
 	reloadTicker *time.Ticker
 }
@@ -59,12 +60,8 @@ type CertificateManager struct {
 	rotationInterval time.Duration
 }
 
-// CertificatePaths holds paths to certificate files
-type CertificatePaths struct {
-	CertFile string
-	KeyFile  string
-	CAFile   string
-}
+// CertificatePaths - use common type alias
+type CertificatePaths = securityconfig.CertificatePaths
 
 // CertificateInfo holds certificate information
 type CertificateInfo struct {
@@ -179,44 +176,13 @@ type User struct {
 	CreatedAt  time.Time         `json:"created_at"`
 }
 
-// SecurityConfig holds security configuration
-type SecurityConfig struct {
-	TLS   *TLSConfig   `json:"tls"`
-	OAuth *OAuthConfig `json:"oauth"`
-	RBAC  *RBACConfig  `json:"rbac"`
-}
+// SecurityConfig holds security configuration - use common config type
+type SecurityConfig = securityconfig.CommonSecurityConfig
 
-// TLSConfig holds TLS configuration
-type TLSConfig struct {
-	Enabled        bool                         `json:"enabled"`
-	MutualTLS      bool                         `json:"mutual_tls"`
-	Certificates   map[string]*CertificatePaths `json:"certificates"`
-	CABundle       string                       `json:"ca_bundle"`
-	MinVersion     string                       `json:"min_version"`
-	CipherSuites   []string                     `json:"cipher_suites"`
-	AutoReload     bool                         `json:"auto_reload"`
-	ReloadInterval string                       `json:"reload_interval"`
-}
-
-// OAuthConfig holds OAuth configuration
-type OAuthConfig struct {
-	Enabled        bool                     `json:"enabled"`
-	Providers      map[string]*OIDCProvider `json:"providers"`
-	DefaultScopes  []string                 `json:"default_scopes"`
-	TokenTTL       string                   `json:"token_ttl"`
-	RefreshEnabled bool                     `json:"refresh_enabled"`
-	CacheEnabled   bool                     `json:"cache_enabled"`
-	CacheTTL       string                   `json:"cache_ttl"`
-}
-
-// RBACConfig holds RBAC configuration
-type RBACConfig struct {
-	Enabled       bool     `json:"enabled"`
-	PolicyPath    string   `json:"policy_path"`
-	DefaultPolicy string   `json:"default_policy"` // ALLOW, DENY
-	AdminUsers    []string `json:"admin_users"`
-	AdminRoles    []string `json:"admin_roles"`
-}
+// Use common config types as type aliases for backwards compatibility
+type TLSConfig = securityconfig.TLSConfig
+type OAuthConfig = securityconfig.AuthConfig  // OAuth is part of Auth in common config
+type RBACConfig = securityconfig.RBACConfig
 
 // NewSecurityManager creates a new security manager
 func NewSecurityManager(config *SecurityConfig) (*SecurityManager, error) {
@@ -225,7 +191,7 @@ func NewSecurityManager(config *SecurityConfig) (*SecurityManager, error) {
 		return nil, fmt.Errorf("failed to create TLS manager: %w", err)
 	}
 
-	oauthManager, err := NewOAuthManager(config.OAuth)
+	oauthManager, err := NewOAuthManager(config.Auth)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create OAuth manager: %w", err)
 	}
@@ -250,13 +216,13 @@ func NewTLSManager(config *TLSConfig) (*TLSManager, error) {
 	if config == nil || !config.Enabled {
 		return &TLSManager{
 			tlsConfigs: make(map[string]*tls.Config),
-			certPaths:  make(map[string]*CertificatePaths),
+			certPaths:  make(map[string]*securityconfig.CertificatePaths),
 		}, nil
 	}
 
 	manager := &TLSManager{
 		tlsConfigs: make(map[string]*tls.Config),
-		certPaths:  make(map[string]*CertificatePaths),
+		certPaths:  make(map[string]*securityconfig.CertificatePaths),
 		autoReload: config.AutoReload,
 	}
 
@@ -285,7 +251,7 @@ func NewTLSManager(config *TLSConfig) (*TLSManager, error) {
 }
 
 // loadTLSConfig loads TLS configuration from certificate files
-func (m *TLSManager) loadTLSConfig(certPath *CertificatePaths, config *TLSConfig) (*tls.Config, error) {
+func (m *TLSManager) loadTLSConfig(certPath *securityconfig.CertificatePaths, config *TLSConfig) (*tls.Config, error) {
 	cert, err := tls.LoadX509KeyPair(certPath.CertFile, certPath.KeyFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load certificate: %w", err)
@@ -408,13 +374,23 @@ func NewOAuthManager(config *OAuthConfig) (*OAuthManager, error) {
 		},
 	}
 
-	// Initialize providers
-	for name, provider := range config.Providers {
-		provider.Name = name
-		if err := manager.initializeProvider(provider); err != nil {
-			return nil, fmt.Errorf("failed to initialize OAuth provider %s: %w", name, err)
+	// Initialize providers from OAuthProviders map
+	if config.OAuthProviders != nil {
+		for name, provider := range config.OAuthProviders {
+			oidcProvider := &OIDCProvider{
+				Name:         provider.Name,
+				IssuerURL:    provider.IssuerURL,
+				ClientID:     provider.ClientID,
+				ClientSecret: provider.ClientSecret,
+				RedirectURL:  provider.RedirectURL,
+				Scopes:       provider.Scopes,
+				ExtraParams:  provider.ExtraParams,
+			}
+			if err := manager.initializeProvider(oidcProvider); err != nil {
+				return nil, fmt.Errorf("failed to initialize OAuth provider %s: %w", name, err)
+			}
+			manager.providers[name] = oidcProvider
 		}
-		manager.providers[name] = provider
 	}
 
 	// Start token cleanup routine
