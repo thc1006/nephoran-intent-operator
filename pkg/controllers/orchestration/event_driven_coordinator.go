@@ -475,12 +475,52 @@ func (edc *EventDrivenCoordinator) GetCoordinationContext(intentID string) (*Coo
 
 	coordCtx, exists := edc.coordinationContexts[intentID]
 	if exists {
-		// Return a copy to avoid race conditions
-		contextCopy := *coordCtx
-		contextCopy.CompletedPhases = make([]interfaces.ProcessingPhase, len(coordCtx.CompletedPhases))
-		copy(contextCopy.CompletedPhases, coordCtx.CompletedPhases)
+		// Return a field-by-field copy to avoid copying mutex
+		contextCopy := &CoordinationContext{
+			IntentID:       coordCtx.IntentID,
+			CorrelationID:  coordCtx.CorrelationID,
+			StartTime:      coordCtx.StartTime,
+			CurrentPhase:   coordCtx.CurrentPhase,
+			RetryCount:     coordCtx.RetryCount,
+			LastActivity:   coordCtx.LastActivity,
+			LastUpdateTime: coordCtx.LastUpdateTime,
+		}
 
-		return &contextCopy, true
+		// Deep copy slices to avoid shared references
+		if coordCtx.PhaseHistory != nil {
+			contextCopy.PhaseHistory = make([]PhaseExecution, len(coordCtx.PhaseHistory))
+			copy(contextCopy.PhaseHistory, coordCtx.PhaseHistory)
+		}
+
+		if coordCtx.Locks != nil {
+			contextCopy.Locks = make([]string, len(coordCtx.Locks))
+			copy(contextCopy.Locks, coordCtx.Locks)
+		}
+
+		if coordCtx.Conflicts != nil {
+			contextCopy.Conflicts = make([]Conflict, len(coordCtx.Conflicts))
+			copy(contextCopy.Conflicts, coordCtx.Conflicts)
+		}
+
+		if coordCtx.CompletedPhases != nil {
+			contextCopy.CompletedPhases = make([]interfaces.ProcessingPhase, len(coordCtx.CompletedPhases))
+			copy(contextCopy.CompletedPhases, coordCtx.CompletedPhases)
+		}
+
+		if coordCtx.ErrorHistory != nil {
+			contextCopy.ErrorHistory = make([]string, len(coordCtx.ErrorHistory))
+			copy(contextCopy.ErrorHistory, coordCtx.ErrorHistory)
+		}
+
+		// Deep copy map to avoid shared references
+		if coordCtx.Metadata != nil {
+			contextCopy.Metadata = make(map[string]interface{})
+			for k, v := range coordCtx.Metadata {
+				contextCopy.Metadata[k] = v
+			}
+		}
+
+		return contextCopy, true
 	}
 
 	return nil, false
