@@ -98,7 +98,8 @@ const (
 	PriorityLow Priority = iota
 	PriorityNormal
 	PriorityHigh
-	PriorityCritical
+	PriorityUrgent // Same as critical
+	PriorityCritical = PriorityUrgent // Alias for backward compatibility
 )
 
 // BatchWorker processes batches

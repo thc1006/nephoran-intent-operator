@@ -4,17 +4,70 @@ package validation_test
 
 import (
 	"context"
+	"fmt"
+	"path/filepath"
+	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"github.com/thc1006/nephoran-intent-operator/tests/framework"
+	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/tests/validation"
 )
+
+// These tests use Ginkgo (BDD-style Go testing framework)
+var cfg *rest.Config
+var k8sClient client.Client
+var testEnv *envtest.Environment
+var testCtx context.Context
+var testCancel context.CancelFunc
+
+func TestORANInterfaceIntegration(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "O-RAN Interface Integration Test Suite")
+}
+
+var _ = BeforeSuite(func() {
+	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+
+	testCtx, testCancel = context.WithCancel(context.TODO())
+
+	By("bootstrapping test environment")
+	testEnv = &envtest.Environment{
+		CRDDirectoryPaths: []string{
+			filepath.Join("..", "..", "config", "crd", "bases"),
+		},
+		ErrorIfCRDPathMissing: true,
+	}
+
+	var err error
+	cfg, err = testEnv.Start()
+	Expect(err).NotTo(HaveOccurred())
+	Expect(cfg).NotTo(BeNil())
+
+	err = nephoran.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(k8sClient).NotTo(BeNil())
+})
+
+var _ = AfterSuite(func() {
+	testCancel()
+	By("tearing down the test environment")
+	err := testEnv.Stop()
+	Expect(err).NotTo(HaveOccurred())
+})
 
 var _ = Describe("O-RAN Interface Integration Tests", func() {
 	var (
@@ -34,7 +87,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 		// Create test namespace
 		testNamespace = &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: framework.GetUniqueNamespace("oran-test"),
+				GenerateName: "oran-test-",
 				Labels: map[string]string{
 					"test-suite": "oran-interface",
 					"test-type":  "integration",
@@ -45,10 +98,11 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 
 		// Initialize validation components
 		validationConfig = &validation.ValidationConfig{
-			TestMode:          "integration",
-			TimeoutDuration:   5 * time.Minute,
-			EnablePerformance: true,
-			EnableReliability: true,
+			TimeoutDuration:       5 * time.Minute,
+			EnableLoadTesting:     true,
+			EnableChaosTesting:    true,
+			EnableSecurityTesting: true,
+			EnableE2ETesting:      true,
 		}
 
 		oranValidator = validation.NewORANInterfaceValidator(validationConfig)
@@ -84,7 +138,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 					if err != nil {
 						return ""
 					}
-					return policyIntent.Status.Phase
+					return string(policyIntent.Status.Phase)
 				}, 2*time.Minute, 5*time.Second).ShouldNot(Equal("Pending"))
 
 				By("Verifying policy-specific processing occurred")
@@ -206,7 +260,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				xappTypes := []string{"qoe-optimizer", "load-balancer", "anomaly-detector", "slice-optimizer"}
 
 				for _, xappType := range xappTypes {
-					By(GinkgoWriter.Printf("Testing %s xApp lifecycle", xappType))
+					By(fmt.Sprintf("Testing %s xApp lifecycle", xappType))
 
 					// Deploy xApp
 					xappConfig := testFactory.CreateXAppConfig(xappType)
@@ -684,7 +738,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 					if err != nil {
 						return ""
 					}
-					return edgeIntent.Status.Phase
+					return string(edgeIntent.Status.Phase)
 				}, 2*time.Minute, 5*time.Second).ShouldNot(Equal("Pending"))
 
 				// Hybrid deployment
@@ -693,7 +747,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 					if err != nil {
 						return ""
 					}
-					return hybridIntent.Status.Phase
+					return string(hybridIntent.Status.Phase)
 				}, 2*time.Minute, 5*time.Second).ShouldNot(Equal("Pending"))
 
 				// Container deployment
@@ -702,7 +756,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 					if err != nil {
 						return ""
 					}
-					return containerIntent.Status.Phase
+					return string(containerIntent.Status.Phase)
 				}, 2*time.Minute, 5*time.Second).ShouldNot(Equal("Pending"))
 
 				By("Cleanup")
@@ -749,7 +803,8 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				Expect(o2Metrics.AverageLatency).To(BeNumerically("<", 5*time.Second), "O2 average latency should be < 5s")
 			}
 
-			By(GinkgoWriter.Printf("Achieved O-RAN compliance score: %d/%d points", totalScore, targetScore))
+			GinkgoWriter.Printf("Achieved O-RAN compliance score: %d/%d points\n", totalScore, targetScore)
+			By(fmt.Sprintf("Achieved O-RAN compliance score: %d/%d points", totalScore, targetScore))
 		})
 
 		It("should demonstrate multi-vendor interoperability", func() {

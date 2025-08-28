@@ -207,18 +207,16 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 	}
 
 	// Configure LLM parameters
+	contextMap := make(map[string]interface{})
 	if intentProcessing.Spec.ProcessingConfiguration != nil {
 		config := intentProcessing.Spec.ProcessingConfiguration
-		// Add provider info to context instead of direct field
-		if request.Context == nil {
-			request.Context = make(map[string]interface{})
-		}
-		request.Context["provider"] = string(config.Provider)
-		request.Context["intentType"] = string(intentProcessing.Spec.ParentIntentRef.Kind)
-		request.Context["priority"] = string(intentProcessing.Spec.Priority)
+		// Add provider info to context map
+		contextMap["provider"] = string(config.Provider)
+		contextMap["intentType"] = string(intentProcessing.Spec.ParentIntentRef.Kind)
+		contextMap["priority"] = string(intentProcessing.Spec.Priority)
 		request.Model = config.Model
 		if config.Temperature != nil {
-			request.Temperature = *config.Temperature
+			request.Temperature = float32(*config.Temperature)
 		}
 		if config.MaxTokens != nil {
 			request.MaxTokens = int(*config.MaxTokens)
@@ -234,12 +232,22 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 			log.Error(err, "Failed to enhance with RAG, continuing without enhancement")
 			// Continue without RAG enhancement rather than failing
 		} else {
-			request.Context = enhancedContext
-			// Store RAG metrics in context for status update
-			if request.Context == nil {
-				request.Context = make(map[string]interface{})
+			// Merge enhanced context with existing context map
+			for k, v := range enhancedContext {
+				contextMap[k] = v
 			}
-			request.Context["ragMetrics"] = ragMetrics
+			// Store RAG metrics in context for status update
+			contextMap["ragMetrics"] = ragMetrics
+		}
+	}
+
+	// Serialize context map to JSON string for ProcessingRequest.Context field
+	if len(contextMap) > 0 {
+		contextBytes, err := json.Marshal(contextMap)
+		if err != nil {
+			log.Error(err, "Failed to serialize context map")
+		} else {
+			request.Context = string(contextBytes)
 		}
 	}
 
@@ -252,8 +260,8 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 
 	// Convert string response to ProcessingResponse for validation
 	processingResp := &llm.ProcessingResponse{
-		ProcessedIntent: response,
-		Confidence:      0.9, // Default confidence for now
+		Response:   response,
+		Confidence: 0.9, // Default confidence for now
 	}
 	// Validate response quality
 	qualityScore, validationErrors := r.validateResponse(processingResp)
@@ -267,7 +275,7 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 		QualityScore:     qualityScore,
 		ValidationErrors: validationErrors,
 		TokenUsage:       nil, // No token usage info from string response
-		RAGMetrics:       extractRAGMetricsFromContext(request.Context),
+		RAGMetrics:       r.extractRAGMetricsFromContextString(request.Context),
 	}
 
 	// Extract structured parameters
@@ -342,26 +350,32 @@ func (r *IntentProcessingController) validateResponse(response *llm.ProcessingRe
 		return qualityScore, validationErrors
 	}
 
-	// Check if response contains structured parameters
-	if response.StructuredParameters == nil {
+	// Parse structured parameters from JSON
+	var structuredParams map[string]interface{}
+	if response.ProcessedParameters != "" {
+		if err := json.Unmarshal([]byte(response.ProcessedParameters), &structuredParams); err != nil {
+			validationErrors = append(validationErrors, "invalid structured parameters JSON")
+			qualityScore -= 0.3
+		}
+	} else {
 		validationErrors = append(validationErrors, "response lacks structured parameters")
 		qualityScore -= 0.3
 	}
 
 	// Check if response contains structured parameters (indicates network function information)
-	if response.StructuredParameters == nil || len(response.StructuredParameters) == 0 {
+	if structuredParams == nil || len(structuredParams) == 0 {
 		validationErrors = append(validationErrors, "response lacks network function information")
 		qualityScore -= 0.2
 	}
 
 	// Check response length
-	if len(response.ProcessedIntent) < 50 {
-		validationErrors = append(validationErrors, "processed intent too short")
+	if len(response.Response) < 50 {
+		validationErrors = append(validationErrors, "response too short")
 		qualityScore -= 0.1
 	}
 
 	// Check for telecommunications keywords
-	if !r.containsTelecomKeywords(response.ProcessedIntent) {
+	if !r.containsTelecomKeywords(response.Response) {
 		validationErrors = append(validationErrors, "response lacks telecommunications domain keywords")
 		qualityScore -= 0.2
 	}
@@ -396,24 +410,30 @@ func (r *IntentProcessingController) containsTelecomKeywords(text string) bool {
 
 // extractProcessedParameters extracts structured parameters from the response
 func (r *IntentProcessingController) extractProcessedParameters(response *llm.ProcessingResponse) (*nephoranv1.ProcessedParameters, error) {
-	if response.StructuredParameters == nil {
-		return nil, fmt.Errorf("no structured parameters in response")
+	if response.ProcessedParameters == "" {
+		return nil, fmt.Errorf("no processed parameters in response")
+	}
+
+	// Parse JSON structured parameters
+	var structuredParams map[string]interface{}
+	if err := json.Unmarshal([]byte(response.ProcessedParameters), &structuredParams); err != nil {
+		return nil, fmt.Errorf("failed to parse structured parameters: %w", err)
 	}
 
 	params := &nephoranv1.ProcessedParameters{}
 
 	// Extract network function
-	if nf, ok := response.StructuredParameters["network_function"].(string); ok {
+	if nf, ok := structuredParams["network_function"].(string); ok {
 		params.NetworkFunction = nf
 	}
 
 	// Extract region
-	if region, ok := response.StructuredParameters["region"].(string); ok {
+	if region, ok := structuredParams["region"].(string); ok {
 		params.Region = region
 	}
 
 	// Extract scale parameters
-	if scaleParams, ok := response.StructuredParameters["scale_parameters"]; ok {
+	if scaleParams, ok := structuredParams["scale_parameters"]; ok {
 		// This would need proper conversion based on ScaleParameters type
 		// For now, just extract basic parameters
 		if scaleMap, ok := scaleParams.(map[string]interface{}); ok {
@@ -435,18 +455,30 @@ func (r *IntentProcessingController) extractProcessedParameters(response *llm.Pr
 func (r *IntentProcessingController) extractTelecomEntities(response *llm.ProcessingResponse) (map[string]string, error) {
 	entities := make(map[string]string)
 
-	if response.ExtractedEntities == nil {
-		return entities, nil
+	// Since ProcessingResponse doesn't have ExtractedEntities field,
+	// extract entities from ProcessedParameters JSON or Response text
+	if response.ProcessedParameters != "" {
+		var params map[string]interface{}
+		if err := json.Unmarshal([]byte(response.ProcessedParameters), &params); err == nil {
+			// Extract known telecom entities from structured parameters
+			if nf, ok := params["network_function"].(string); ok {
+				entities["network_function"] = nf
+			}
+			if region, ok := params["region"].(string); ok {
+				entities["region"] = region
+			}
+			if deploymentPattern, ok := params["deployment_pattern"].(string); ok {
+				entities["deployment_pattern"] = deploymentPattern
+			}
+		}
 	}
 
-	for key, value := range response.ExtractedEntities {
-		if strValue, ok := value.(string); ok {
-			entities[key] = strValue
-		} else {
-			// Convert non-string values to JSON string
-			if jsonBytes, err := json.Marshal(value); err == nil {
-				entities[key] = string(jsonBytes)
-			}
+	// Extract additional entities from response text using simple keyword detection
+	responseText := response.Response
+	telecomKeywords := []string{"AMF", "SMF", "UPF", "5G", "4G", "gNB", "eNB", "PLMN", "TAC"}
+	for _, keyword := range telecomKeywords {
+		if strings.Contains(responseText, keyword) {
+			entities["detected_"+strings.ToLower(keyword)] = keyword
 		}
 	}
 
@@ -652,6 +684,20 @@ type LLMProcessingResult struct {
 	ValidationErrors    []string
 	TokenUsage          *nephoranv1.TokenUsageInfo
 	RAGMetrics          *nephoranv1.RAGMetrics
+}
+
+// extractRAGMetricsFromContextString extracts RAG metrics from JSON context string
+func (r *IntentProcessingController) extractRAGMetricsFromContextString(contextStr string) *nephoranv1.RAGMetrics {
+	if contextStr == "" {
+		return nil
+	}
+
+	var context map[string]interface{}
+	if err := json.Unmarshal([]byte(contextStr), &context); err != nil {
+		return nil
+	}
+
+	return extractRAGMetricsFromContext(context)
 }
 
 // extractRAGMetricsFromContext extracts RAG metrics from request context

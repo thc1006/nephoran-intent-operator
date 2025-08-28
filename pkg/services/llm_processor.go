@@ -115,12 +115,12 @@ func (s *LLMProcessorService) initializeLLMComponents(ctx context.Context) error
 		return fmt.Errorf("failed to create LLM client - nil client returned")
 	}
 
-	// Initialize relevance scorer
-	s.relevanceScorer = llm.NewRelevanceScorer(nil, nil)
+	// Initialize relevance scorer stub
+	s.relevanceScorer = llm.NewRelevanceScorerStub()
 
 	// Initialize context builder if enabled
 	if s.config.EnableContextBuilder {
-		s.contextBuilder = llm.NewContextBuilder()
+		s.contextBuilder = llm.NewContextBuilderStub()
 	}
 
 	// Initialize prompt builder

@@ -14,18 +14,21 @@ func main() {
 	fmt.Println("Testing ContextBuilder implementation...")
 
 	// Create a ContextBuilder without a connection pool to test graceful handling
-	cb := llm.NewContextBuilder()
+	cb := llm.NewContextBuilderStub()
 
 	// Test BuildContext with no pool (should return empty context)
 	ctx := context.Background()
 	intent := "Deploy a 5G AMF function with high availability"
-	documents := []llm.Document{} // Empty documents for test
+	maxDocs := 5 // Max documents to retrieve
 
-	contextStr, err := cb.BuildContext(ctx, intent, documents)
+	contextData, err := cb.BuildContext(ctx, intent, maxDocs)
 	if err != nil {
 		log.Printf("Error building context: %v", err)
 	} else {
-		log.Printf("Successfully built context: %s", contextStr)
+		log.Printf("Successfully built context with %d documents", len(contextData))
+		if len(contextData) > 0 {
+			fmt.Printf("Sample context data: %+v\n", contextData[0])
+		}
 	}
 
 	// Test metrics

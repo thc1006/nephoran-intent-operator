@@ -16,7 +16,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
@@ -124,45 +123,16 @@ func (sp *StreamingProcessorStub) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// ContextBuilder provides RAG context building capabilities
-type ContextBuilderStub struct {
-	weaviatePool *rag.WeaviateConnectionPool
-	logger       *slog.Logger
-	config       *ContextBuilderConfig
-	metrics      *ContextBuilderMetrics
-	mutex        sync.RWMutex
-}
+// ContextBuilderStub provides RAG context building capabilities
+// Note: The actual ContextBuilder type is defined in interface_consolidated.go
 
-// ContextBuilderConfig holds configuration for the context builder
-type ContextBuilderConfig struct {
-	DefaultMaxDocs        int           `json:"default_max_docs"`
-	MaxContextLength      int           `json:"max_context_length"`
-	MinConfidenceScore    float32       `json:"min_confidence_score"`
-	QueryTimeout          time.Duration `json:"query_timeout"`
-	EnableHybridSearch    bool          `json:"enable_hybrid_search"`
-	HybridAlpha           float32       `json:"hybrid_alpha"`
-	TelecomKeywords       []string      `json:"telecom_keywords"`
-	QueryExpansionEnabled bool          `json:"query_expansion_enabled"`
-}
-
-// ContextBuilderMetrics tracks context building performance
-type ContextBuilderMetrics struct {
-	TotalQueries          int64         `json:"total_queries"`
-	SuccessfulQueries     int64         `json:"successful_queries"`
-	FailedQueries         int64         `json:"failed_queries"`
-	AverageQueryDuration  time.Duration `json:"average_query_duration"`
-	AverageDocumentsFound int           `json:"average_documents_found"`
-	CacheHits             int64         `json:"cache_hits"`
-	CacheMisses           int64         `json:"cache_misses"`
-	TotalLatency          time.Duration `json:"total_latency"`
-	mutex                 sync.RWMutex
-}
+// Note: ContextBuilderConfig and ContextBuilderMetrics are now defined in interface_consolidated.go
 
 func NewContextBuilderStub() *ContextBuilder {
 	return NewContextBuilderWithPool(nil)
 }
 
-func NewContextBuilderWithPool(pool *rag.WeaviateConnectionPool) *ContextBuilder {
+func NewContextBuilderWithPool(pool *WeaviateConnectionPool) *ContextBuilder {
 	config := &ContextBuilderConfig{
 		DefaultMaxDocs:        5,
 		MaxContextLength:      8192,
@@ -180,10 +150,13 @@ func NewContextBuilderWithPool(pool *rag.WeaviateConnectionPool) *ContextBuilder
 		},
 	}
 
-	// Note: Using the simplified ContextBuilder from interface_consolidated.go
-	// The original RAG-specific fields (weaviatePool, logger, config, metrics) are not available
-	// in the stub implementation
-	cb := &ContextBuilder{}
+	// Use the ContextBuilder from interface_consolidated.go with proper initialization
+	cb := &ContextBuilder{
+		weaviatePool: pool,
+		config:       config,
+		logger:       slog.Default().With("component", "context-builder"),
+		metrics:      &ContextBuilderMetrics{},
+	}
 
 	// Log configuration attempt for debugging
 	if slog.Default() != nil {
@@ -196,7 +169,7 @@ func NewContextBuilderWithPool(pool *rag.WeaviateConnectionPool) *ContextBuilder
 }
 
 // BuildContext retrieves and builds context from the RAG system using semantic search
-func (cb *ContextBuilderStub) BuildContext(ctx context.Context, intent string, maxDocs int) ([]map[string]any, error) {
+func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDocs int) ([]map[string]any, error) {
 	startTime := time.Now()
 
 	// Update metrics
@@ -218,7 +191,9 @@ func (cb *ContextBuilderStub) BuildContext(ctx context.Context, intent string, m
 
 	// Check if we have a connection pool
 	if cb.weaviatePool == nil {
-		cb.logger.Warn("No Weaviate connection pool available, returning empty context")
+		if cb.logger != nil {
+			cb.logger.Warn("No Weaviate connection pool available, returning empty context")
+		}
 		cb.updateMetrics(func(m *ContextBuilderMetrics) {
 			m.FailedQueries++
 		})
@@ -268,10 +243,12 @@ func (cb *ContextBuilderStub) BuildContext(ctx context.Context, intent string, m
 
 		// Check content length limits
 		if totalContentLength+len(doc.Content) > cb.config.MaxContextLength {
-			cb.logger.Debug("Context length limit reached, truncating results",
-				"current_length", totalContentLength,
-				"max_length", cb.config.MaxContextLength,
-			)
+			if cb.logger != nil {
+				cb.logger.Debug("Context length limit reached, truncating results",
+					"current_length", totalContentLength,
+					"max_length", cb.config.MaxContextLength,
+				)
+			}
 			break
 		}
 
@@ -328,19 +305,21 @@ func (cb *ContextBuilderStub) BuildContext(ctx context.Context, intent string, m
 		}
 	})
 
-	cb.logger.Info("Context building completed",
-		"intent", intent,
-		"enhanced_query", enhancedQuery,
-		"documents_found", len(contextDocs),
-		"total_content_length", totalContentLength,
-		"duration", duration,
-	)
+	if cb.logger != nil {
+		cb.logger.Info("Context building completed",
+			"intent", intent,
+			"enhanced_query", enhancedQuery,
+			"documents_found", len(contextDocs),
+			"total_content_length", totalContentLength,
+			"duration", duration,
+		)
+	}
 
 	return contextDocs, nil
 }
 
 // expandQuery enhances the query with telecom-specific context
-func (cb *ContextBuilderStub) expandQuery(query string) string {
+func (cb *ContextBuilder) expandQuery(query string) string {
 	// Convert to lowercase for matching
 	lowerQuery := strings.ToLower(query)
 
@@ -363,11 +342,13 @@ func (cb *ContextBuilderStub) expandQuery(query string) string {
 	// Enhance the query if relevant keywords were found
 	if len(relevantKeywords) > 0 {
 		enhanced := fmt.Sprintf("%s %s", query, strings.Join(relevantKeywords, " "))
-		cb.logger.Debug("Enhanced query with telecom keywords",
-			"original", query,
-			"enhanced", enhanced,
-			"added_keywords", relevantKeywords,
-		)
+		if cb.logger != nil {
+			cb.logger.Debug("Enhanced query with telecom keywords",
+				"original", query,
+				"enhanced", enhanced,
+				"added_keywords", relevantKeywords,
+			)
+		}
 		return enhanced
 	}
 
@@ -375,7 +356,7 @@ func (cb *ContextBuilderStub) expandQuery(query string) string {
 }
 
 // isRelatedKeyword determines if a keyword is contextually related to the query
-func (cb *ContextBuilderStub) isRelatedKeyword(query, keyword string) bool {
+func (cb *ContextBuilder) isRelatedKeyword(query, keyword string) bool {
 	// Define keyword relationships for telecom domain
 	relations := map[string][]string{
 		"deploy":    {"orchestration", "5G", "Core", "RAN"},
@@ -404,13 +385,13 @@ func (cb *ContextBuilderStub) isRelatedKeyword(query, keyword string) bool {
 }
 
 // updateMetrics safely updates metrics with a function
-func (cb *ContextBuilderStub) updateMetrics(updateFunc func(*ContextBuilderMetrics)) {
+func (cb *ContextBuilder) updateMetrics(updateFunc func(*ContextBuilderMetrics)) {
 	cb.mutex.Lock()
 	defer cb.mutex.Unlock()
 	updateFunc(cb.metrics)
 }
 
-func (cb *ContextBuilderStub) GetMetrics() map[string]interface{} {
+func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
 	cb.mutex.RLock()
 	defer cb.mutex.RUnlock()
 
@@ -435,7 +416,7 @@ func (cb *ContextBuilderStub) GetMetrics() map[string]interface{} {
 }
 
 // getSuccessRate calculates the success rate percentage
-func (cb *ContextBuilderStub) getSuccessRate() float64 {
+func (cb *ContextBuilder) getSuccessRate() float64 {
 	if cb.metrics.TotalQueries == 0 {
 		return 0.0
 	}
@@ -443,7 +424,7 @@ func (cb *ContextBuilderStub) getSuccessRate() float64 {
 }
 
 // getCacheHitRate calculates the cache hit rate percentage
-func (cb *ContextBuilderStub) getCacheHitRate() float64 {
+func (cb *ContextBuilder) getCacheHitRate() float64 {
 	totalCacheOps := cb.metrics.CacheHits + cb.metrics.CacheMisses
 	if totalCacheOps == 0 {
 		return 0.0
@@ -452,7 +433,7 @@ func (cb *ContextBuilderStub) getCacheHitRate() float64 {
 }
 
 // parseSearchResult converts a GraphQL result item to a SearchResult
-func (cb *ContextBuilderStub) parseSearchResult(item map[string]interface{}) *shared.SearchResult {
+func (cb *ContextBuilder) parseSearchResult(item map[string]interface{}) *shared.SearchResult {
 	doc := &shared.TelecomDocument{}
 	result := &shared.SearchResult{Document: doc}
 
@@ -544,10 +525,7 @@ func (cb *ContextBuilderStub) parseSearchResult(item map[string]interface{}) *sh
 	return result
 }
 
-// RelevanceScorer stub implementation
-type RelevanceScorerStub struct {
-	impl *SimpleRelevanceScorer
-}
+// RelevanceScorer stub implementation - Note: actual type is defined in interface_consolidated.go
 
 func NewRelevanceScorerStub() *RelevanceScorer {
 	// Create RelevanceScorer with proper field structure
@@ -561,12 +539,8 @@ func NewRelevanceScorerStub() *RelevanceScorer {
 }
 
 // Score calculates the relevance score between a document and intent using semantic similarity
-func (rs *RelevanceScorerStub) Score(ctx context.Context, doc string, intent string) (float32, error) {
-	// Stub implementation - return a default relevance score
-	if rs.impl != nil {
-		return rs.impl.Score(ctx, doc, intent)
-	}
-	// Simple keyword matching for stub
+func (rs *RelevanceScorer) Score(ctx context.Context, doc string, intent string) (float32, error) {
+	// Simple keyword matching for stub implementation
 	docLower := strings.ToLower(doc)
 	intentLower := strings.ToLower(intent)
 	words := strings.Fields(intentLower)
@@ -584,10 +558,7 @@ func (rs *RelevanceScorerStub) Score(ctx context.Context, doc string, intent str
 	return score, nil
 }
 
-func (rs *RelevanceScorerStub) GetMetrics() map[string]interface{} {
-	if rs.impl != nil {
-		return rs.impl.GetMetrics()
-	}
+func (rs *RelevanceScorer) GetMetrics() map[string]interface{} {
 	return map[string]interface{}{
 		"relevance_scorer_enabled": false,
 		"status":                   "stub_implementation",
@@ -610,17 +581,17 @@ func (rpb *RAGAwarePromptBuilderStub) GetMetrics() map[string]interface{} {
 }
 
 // generateMockHybridSearchResults generates mock search results for hybrid search
-func (cb *ContextBuilderStub) generateMockHybridSearchResults(query string, maxDocs int) []*shared.SearchResult {
+func (cb *ContextBuilder) generateMockHybridSearchResults(query string, maxDocs int) []*shared.SearchResult {
 	return cb.generateMockResults(query, maxDocs, "hybrid")
 }
 
 // generateMockVectorSearchResults generates mock search results for vector search
-func (cb *ContextBuilderStub) generateMockVectorSearchResults(query string, maxDocs int) []*shared.SearchResult {
+func (cb *ContextBuilder) generateMockVectorSearchResults(query string, maxDocs int) []*shared.SearchResult {
 	return cb.generateMockResults(query, maxDocs, "vector")
 }
 
 // generateMockResults generates mock search results based on telecom keywords
-func (cb *ContextBuilderStub) generateMockResults(query string, maxDocs int, searchType string) []*shared.SearchResult {
+func (cb *ContextBuilder) generateMockResults(query string, maxDocs int, searchType string) []*shared.SearchResult {
 	if maxDocs <= 0 {
 		maxDocs = 3
 	}
@@ -688,7 +659,7 @@ func (cb *ContextBuilderStub) generateMockResults(query string, maxDocs int, sea
 }
 
 // calculateMockRelevanceScore calculates a simple relevance score for mock results
-func (cb *ContextBuilderStub) calculateMockRelevanceScore(query string, keywords []string, content string) float32 {
+func (cb *ContextBuilder) calculateMockRelevanceScore(query string, keywords []string, content string) float32 {
 	score := float32(0.0)
 	queryWords := strings.Fields(query)
 

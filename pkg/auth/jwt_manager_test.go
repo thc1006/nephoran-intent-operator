@@ -3,6 +3,7 @@ package auth_test
 import (
 	"context"
 	"crypto/rsa"
+	"sync"
 	"testing"
 	"time"
 
@@ -10,51 +11,71 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/testutil"
 )
 
 // Mock implementations for testing
 type mockTokenStore struct{}
 
-func (m *mockTokenStore) StoreToken(ctx context.Context, tokenID string, token string, expiry time.Time) error {
+func (m *mockTokenStore) StoreToken(ctx context.Context, tokenID string, token *auth.TokenInfo) error {
 	return nil
 }
 
-func (m *mockTokenStore) GetToken(ctx context.Context, tokenID string) (string, error) {
-	return "", nil
+func (m *mockTokenStore) GetToken(ctx context.Context, tokenID string) (*auth.TokenInfo, error) {
+	return nil, nil
 }
 
-func (m *mockTokenStore) RevokeToken(ctx context.Context, tokenID string) error {
+func (m *mockTokenStore) UpdateToken(ctx context.Context, tokenID string, token *auth.TokenInfo) error {
 	return nil
 }
 
-func (m *mockTokenStore) IsTokenRevoked(ctx context.Context, tokenID string) (bool, error) {
-	return false, nil
+func (m *mockTokenStore) DeleteToken(ctx context.Context, tokenID string) error {
+	return nil
 }
 
-func (m *mockTokenStore) Cleanup(ctx context.Context) error {
-	return nil
+func (m *mockTokenStore) ListUserTokens(ctx context.Context, userID string) ([]*auth.TokenInfo, error) {
+	return nil, nil
 }
 
 func (m *mockTokenStore) CleanupExpired(ctx context.Context) error {
 	return nil
 }
 
-type mockTokenBlacklist struct{}
+type mockTokenBlacklist struct {
+	blacklisted map[string]time.Time
+	mutex       sync.RWMutex
+}
 
-func (m *mockTokenBlacklist) AddToken(ctx context.Context, tokenID string, expiry time.Time) error {
+func newMockTokenBlacklist() *mockTokenBlacklist {
+	return &mockTokenBlacklist{
+		blacklisted: make(map[string]time.Time),
+	}
+}
+
+func (m *mockTokenBlacklist) BlacklistToken(ctx context.Context, tokenID string, expiresAt time.Time) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.blacklisted[tokenID] = expiresAt
 	return nil
 }
 
-func (m *mockTokenBlacklist) IsBlacklisted(ctx context.Context, tokenID string) (bool, error) {
-	return false, nil
-}
-
-func (m *mockTokenBlacklist) Cleanup(ctx context.Context) error {
-	return nil
+func (m *mockTokenBlacklist) IsTokenBlacklisted(ctx context.Context, tokenID string) (bool, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	_, exists := m.blacklisted[tokenID]
+	return exists, nil
 }
 
 func (m *mockTokenBlacklist) CleanupExpired(ctx context.Context) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	now := time.Now()
+	for tokenID, expiresAt := range m.blacklisted {
+		if now.After(expiresAt) {
+			delete(m.blacklisted, tokenID)
+		}
+	}
 	return nil
 }
 
@@ -117,7 +138,7 @@ func TestNewJWTManager(t *testing.T) {
 
 			// Create mock implementations for test
 		mockStore := &mockTokenStore{}
-		mockBlacklist := &mockTokenBlacklist{}
+		mockBlacklist := newMockTokenBlacklist()
 		manager, err := auth.NewJWTManager(tt.config, mockStore, mockBlacklist, tc.Logger)
 
 			if tt.expectError {
@@ -139,7 +160,16 @@ func TestJWTManager_SetSigningKey(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	manager := tc.SetupJWTManager()
+	// Create real JWT manager for this test
+	config := &auth.JWTConfig{
+		Issuer:     "test-issuer",
+		DefaultTTL: time.Hour,
+		RefreshTTL: 24 * time.Hour,
+	}
+	mockStore := &mockTokenStore{}
+	mockBlacklist := newMockTokenBlacklist()
+	manager, err := auth.NewJWTManager(config, mockStore, mockBlacklist, tc.Logger)
+	require.NoError(t, err)
 
 	tests := []struct {
 		name        string
@@ -185,7 +215,7 @@ func TestJWTManager_GenerateToken(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	manager := tc.SetupJWTManager()
+	manager := setupRealJWTManager(tc)
 
 	uf := testutil.NewUserFactory()
 	user := uf.CreateBasicUser()
@@ -273,9 +303,19 @@ func TestJWTManager_GenerateToken(t *testing.T) {
 			var err error
 
 			if tt.ttl != nil {
-				tokenStr, err = manager.GenerateTokenWithTTL(tt.userInfo, tt.customClaims, *tt.ttl)
+				if tt.userInfo != nil {
+					userInfo := tt.userInfo.(*providers.UserInfo)
+					tokenStr, err = manager.GenerateTokenWithTTL(userInfo, tt.customClaims, *tt.ttl)
+				} else {
+					tokenStr, err = manager.GenerateTokenWithTTL(nil, tt.customClaims, *tt.ttl)
+				}
 			} else {
-				tokenStr, err = manager.GenerateToken(tt.userInfo, tt.customClaims)
+				if tt.userInfo != nil {
+					userInfo := tt.userInfo.(*providers.UserInfo)
+					tokenStr, err = manager.GenerateToken(userInfo, tt.customClaims)
+				} else {
+					tokenStr, err = manager.GenerateToken(nil, tt.customClaims)
+				}
 			}
 
 			if tt.expectError {
@@ -296,13 +336,23 @@ func TestJWTManager_ValidateToken(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	manager := tc.SetupJWTManager()
+	// Create real JWT manager for this test
+	config := &auth.JWTConfig{
+		Issuer:     "test-issuer",
+		DefaultTTL: time.Hour,
+		RefreshTTL: 24 * time.Hour,
+	}
+	mockStore := &mockTokenStore{}
+	mockBlacklist := newMockTokenBlacklist()
+	manager, err := auth.NewJWTManager(config, mockStore, mockBlacklist, tc.Logger)
+	require.NoError(t, err)
+
 	uf := testutil.NewUserFactory()
 	tf := testutil.NewTokenFactory("test-issuer")
 
 	// Generate a valid token
 	user := uf.CreateBasicUser()
-	validToken, err := manager.GenerateToken(user, nil)
+	validToken, _, err := manager.GenerateAccessToken(context.Background(), user, "test-session")
 	require.NoError(t, err)
 
 	// Create test tokens
@@ -316,16 +366,16 @@ func TestJWTManager_ValidateToken(t *testing.T) {
 		name        string
 		token       string
 		expectError bool
-		checkClaims func(*testing.T, jwt.MapClaims)
+		checkClaims func(*testing.T, *auth.NephoranJWTClaims)
 	}{
 		{
 			name:        "Valid token",
 			token:       validToken,
 			expectError: false,
-			checkClaims: func(t *testing.T, claims jwt.MapClaims) {
-				assert.Equal(t, user.Subject, claims["sub"])
-				assert.Equal(t, user.Email, claims["email"])
-				assert.Equal(t, "test-issuer", claims["iss"])
+			checkClaims: func(t *testing.T, claims *auth.NephoranJWTClaims) {
+				assert.Equal(t, user.Subject, claims.Subject)
+				assert.Equal(t, user.Email, claims.Email)
+				assert.Equal(t, "test-issuer", claims.Issuer)
 			},
 		},
 		{
@@ -352,7 +402,7 @@ func TestJWTManager_ValidateToken(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			claims, err := manager.ValidateToken(tt.token)
+			claims, err := manager.ValidateToken(context.Background(), tt.token)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -373,13 +423,13 @@ func TestJWTManager_RefreshToken(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	manager := tc.SetupJWTManager()
+	manager := setupRealJWTManager(tc)
 	uf := testutil.NewUserFactory()
 
 	user := uf.CreateBasicUser()
 
 	// Generate initial tokens
-	accessToken, refreshTokenStr, err := manager.GenerateTokenPair(user, nil)
+	accessToken, refreshTokenStr, err := manager.GenerateTokenPair(context.Background(), user, "test-session")
 	require.NoError(t, err)
 	require.NotEmpty(t, accessToken)
 	require.NotEmpty(t, refreshTokenStr)
@@ -401,9 +451,9 @@ func TestJWTManager_RefreshToken(t *testing.T) {
 				assert.NotEqual(t, refreshTokenStr, newRefresh)
 
 				// Validate new access token
-				claims, err := manager.ValidateToken(newAccess)
+				claims, err := manager.ValidateToken(context.Background(), newAccess)
 				assert.NoError(t, err)
-				assert.Equal(t, user.Subject, claims["sub"])
+				assert.Equal(t, user.Subject, claims.Subject)
 			},
 		},
 		{
@@ -441,7 +491,7 @@ func TestJWTManager_BlacklistToken(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	manager := tc.SetupJWTManager()
+	manager := setupRealJWTManager(tc)
 	uf := testutil.NewUserFactory()
 
 	user := uf.CreateBasicUser()
@@ -482,11 +532,12 @@ func TestJWTManager_BlacklistToken(t *testing.T) {
 			assert.NoError(t, err)
 
 			// Verify token is blacklisted
-			isBlacklisted := manager.IsTokenBlacklisted(tt.token)
+			isBlacklisted, err := manager.IsTokenBlacklisted(context.Background(), tt.token)
+			assert.NoError(t, err)
 			assert.True(t, isBlacklisted)
 
 			// Verify blacklisted token fails validation
-			_, err = manager.ValidateToken(tt.token)
+			_, err = manager.ValidateToken(context.Background(), tt.token)
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "blacklisted")
 		})
@@ -497,7 +548,7 @@ func TestJWTManager_GetPublicKey(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	manager := tc.SetupJWTManager()
+	manager := setupRealJWTManager(tc)
 
 	tests := []struct {
 		name        string
@@ -542,25 +593,29 @@ func TestJWTManager_GetJWKS(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	manager := tc.SetupJWTManager()
+	manager := setupRealJWTManager(tc)
 
 	jwks, err := manager.GetJWKS()
 	assert.NoError(t, err)
 	assert.NotNil(t, jwks)
-	assert.Len(t, jwks.Keys, 1)
+	
+	keys, ok := jwks["keys"].([]interface{})
+	assert.True(t, ok)
+	assert.Len(t, keys, 1)
 
-	key := jwks.Keys[0]
-	assert.Equal(t, "RSA", key.KeyType)
-	assert.Equal(t, tc.KeyID, key.KeyID)
-	assert.Equal(t, "sig", key.Use)
-	assert.Equal(t, "RS256", key.Algorithm)
+	key, ok := keys[0].(map[string]interface{})
+	assert.True(t, ok)
+	assert.Equal(t, "RSA", key["kty"])
+	assert.Equal(t, manager.GetKeyID(), key["kid"])
+	assert.Equal(t, "sig", key["use"])
+	assert.Equal(t, "RS256", key["alg"])
 }
 
 func TestJWTManager_RotateKeys(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	manager := tc.SetupJWTManager()
+	manager := setupRealJWTManager(tc)
 
 	// Get initial key ID
 	initialKeyID := manager.GetKeyID()
@@ -579,16 +634,16 @@ func TestJWTManager_RotateKeys(t *testing.T) {
 	token, err := manager.GenerateToken(user, nil)
 	assert.NoError(t, err)
 
-	claims, err := manager.ValidateToken(token)
+	claims, err := manager.ValidateToken(context.Background(), token)
 	assert.NoError(t, err)
-	assert.Equal(t, user.Subject, claims["sub"])
+	assert.Equal(t, user.Subject, claims.Subject)
 }
 
 func TestJWTManager_ExtractClaims(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	manager := tc.SetupJWTManager()
+	manager := setupRealJWTManager(tc)
 	uf := testutil.NewUserFactory()
 
 	user := uf.CreateBasicUser()
@@ -649,9 +704,18 @@ func TestJWTManager_GenerateTokenPair(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	manager := tc.SetupJWTManager()
-	uf := testutil.NewUserFactory()
+	// Create real JWT manager for this test
+	config := &auth.JWTConfig{
+		Issuer:     "test-issuer",
+		DefaultTTL: time.Hour,
+		RefreshTTL: 24 * time.Hour,
+	}
+	mockStore := &mockTokenStore{}
+	mockBlacklist := newMockTokenBlacklist()
+	manager, err := auth.NewJWTManager(config, mockStore, mockBlacklist, tc.Logger)
+	require.NoError(t, err)
 
+	uf := testutil.NewUserFactory()
 	user := uf.CreateBasicUser()
 
 	tests := []struct {
@@ -671,9 +735,9 @@ func TestJWTManager_GenerateTokenPair(t *testing.T) {
 				assert.NotEqual(t, accessToken, refreshToken)
 
 				// Validate access token
-				accessClaims, err := manager.ValidateToken(accessToken)
+				accessClaims, err := manager.ValidateToken(context.Background(), accessToken)
 				assert.NoError(t, err)
-				assert.Equal(t, user.Subject, accessClaims["sub"])
+				assert.Equal(t, user.Subject, accessClaims.Subject)
 
 				// Validate refresh token structure (without expiration validation)
 				refreshClaims, err := manager.ExtractClaims(refreshToken)
@@ -690,12 +754,12 @@ func TestJWTManager_GenerateTokenPair(t *testing.T) {
 			},
 			expectError: false,
 			checkTokens: func(t *testing.T, accessToken, refreshToken string) {
-				accessClaims, err := manager.ValidateToken(accessToken)
+				accessClaims, err := manager.ValidateToken(context.Background(), accessToken)
 				assert.NoError(t, err)
 
-				roles, ok := accessClaims["roles"].([]interface{})
-				assert.True(t, ok)
-				assert.Equal(t, "admin", roles[0])
+				assert.NotNil(t, accessClaims.Roles)
+				assert.Len(t, accessClaims.Roles, 1)
+				assert.Equal(t, "admin", accessClaims.Roles[0])
 			},
 		},
 		{
@@ -707,7 +771,15 @@ func TestJWTManager_GenerateTokenPair(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			accessToken, refreshToken, err := manager.GenerateTokenPair(tt.userInfo, tt.customClaims)
+			var accessToken, refreshToken string
+			var err error
+
+			if tt.userInfo != nil {
+				userInfo := tt.userInfo.(*providers.UserInfo)
+				accessToken, refreshToken, err = manager.GenerateTokenPair(context.Background(), userInfo, "test-session")
+			} else {
+				accessToken, refreshToken, err = manager.GenerateTokenPair(context.Background(), nil, "test-session")
+			}
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -728,7 +800,7 @@ func TestJWTManager_TokenValidationWithContext(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	manager := tc.SetupJWTManager()
+	manager := setupRealJWTManager(tc)
 	uf := testutil.NewUserFactory()
 
 	user := uf.CreateBasicUser()
@@ -790,7 +862,7 @@ func TestJWTManager_CleanupBlacklist(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	manager := tc.SetupJWTManager()
+	manager := setupRealJWTManager(tc)
 	uf := testutil.NewUserFactory()
 
 	user := uf.CreateBasicUser()
@@ -811,8 +883,13 @@ func TestJWTManager_CleanupBlacklist(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify both are blacklisted
-	assert.True(t, manager.IsTokenBlacklisted(token1))
-	assert.True(t, manager.IsTokenBlacklisted(token2))
+	isBlacklisted1, err := manager.IsTokenBlacklisted(context.Background(), token1)
+	assert.NoError(t, err)
+	assert.True(t, isBlacklisted1)
+	
+	isBlacklisted2, err := manager.IsTokenBlacklisted(context.Background(), token2)
+	assert.NoError(t, err)
+	assert.True(t, isBlacklisted2)
 
 	// Wait for first token to expire
 	time.Sleep(150 * time.Millisecond)
@@ -822,8 +899,13 @@ func TestJWTManager_CleanupBlacklist(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify expired token is removed from blacklist but valid token remains
-	assert.False(t, manager.IsTokenBlacklisted(token1)) // Expired, should be cleaned up
-	assert.True(t, manager.IsTokenBlacklisted(token2))  // Still valid, should remain
+	isBlacklistedAfter1, err := manager.IsTokenBlacklisted(context.Background(), token1)
+	assert.NoError(t, err)
+	assert.False(t, isBlacklistedAfter1) // Expired, should be cleaned up
+	
+	isBlacklistedAfter2, err := manager.IsTokenBlacklisted(context.Background(), token2)
+	assert.NoError(t, err)
+	assert.True(t, isBlacklistedAfter2)  // Still valid, should remain
 }
 
 // Benchmark tests
@@ -831,7 +913,7 @@ func BenchmarkJWTManager_GenerateToken(b *testing.B) {
 	tc := testutil.NewTestContext(&testing.T{})
 	defer tc.Cleanup()
 
-	manager := tc.SetupJWTManager()
+	manager := setupRealJWTManager(tc)
 	uf := testutil.NewUserFactory()
 	user := uf.CreateBasicUser()
 
@@ -848,7 +930,7 @@ func BenchmarkJWTManager_ValidateToken(b *testing.B) {
 	tc := testutil.NewTestContext(&testing.T{})
 	defer tc.Cleanup()
 
-	manager := tc.SetupJWTManager()
+	manager := setupRealJWTManager(tc)
 	uf := testutil.NewUserFactory()
 	user := uf.CreateBasicUser()
 
@@ -859,7 +941,7 @@ func BenchmarkJWTManager_ValidateToken(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := manager.ValidateToken(token)
+		_, err := manager.ValidateToken(context.Background(), token)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -870,13 +952,13 @@ func BenchmarkJWTManager_GenerateTokenPair(b *testing.B) {
 	tc := testutil.NewTestContext(&testing.T{})
 	defer tc.Cleanup()
 
-	manager := tc.SetupJWTManager()
+	manager := setupRealJWTManager(tc)
 	uf := testutil.NewUserFactory()
 	user := uf.CreateBasicUser()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _, err := manager.GenerateTokenPair(user, nil)
+		_, _, err := manager.GenerateTokenPair(context.Background(), user, "test-session")
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -887,12 +969,12 @@ func BenchmarkJWTManager_RefreshToken(b *testing.B) {
 	tc := testutil.NewTestContext(&testing.T{})
 	defer tc.Cleanup()
 
-	manager := tc.SetupJWTManager()
+	manager := setupRealJWTManager(tc)
 	uf := testutil.NewUserFactory()
 	user := uf.CreateBasicUser()
 
 	// Generate initial token pair
-	_, refreshToken, err := manager.GenerateTokenPair(user, nil)
+	_, refreshToken, err := manager.GenerateTokenPair(context.Background(), user, "test-session")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -911,8 +993,44 @@ func BenchmarkJWTManager_RefreshToken(b *testing.B) {
 // Helper functions for testing
 func createJWTManagerForTest(t *testing.T) (*auth.JWTManager, *testutil.TestContext) {
 	tc := testutil.NewTestContext(t)
-	manager := tc.SetupJWTManager()
+	
+	// Create real JWT manager for tests
+	config := &auth.JWTConfig{
+		Issuer:     "test-issuer",
+		DefaultTTL: time.Hour,
+		RefreshTTL: 24 * time.Hour,
+	}
+	mockStore := &mockTokenStore{}
+	mockBlacklist := newMockTokenBlacklist()
+	manager, err := auth.NewJWTManager(config, mockStore, mockBlacklist, tc.Logger)
+	if err != nil {
+		t.Fatalf("Failed to create JWT manager: %v", err)
+	}
+
 	return manager, tc
+}
+
+func setupRealJWTManager(tc *testutil.TestContext) *auth.JWTManager {
+	// Create real JWT manager for tests
+	config := &auth.JWTConfig{
+		Issuer:     "test-issuer",
+		DefaultTTL: time.Hour,
+		RefreshTTL: 24 * time.Hour,
+	}
+	mockStore := &mockTokenStore{}
+	mockBlacklist := newMockTokenBlacklist()
+	manager, err := auth.NewJWTManager(config, mockStore, mockBlacklist, tc.Logger)
+	if err != nil {
+		tc.T.Fatalf("Failed to create JWT manager: %v", err)
+	}
+	
+	// Set the JWT manager to use the test context's key for consistency
+	err = manager.SetSigningKey(tc.PrivateKey, tc.KeyID)
+	if err != nil {
+		tc.T.Fatalf("Failed to set signing key: %v", err)
+	}
+	
+	return manager
 }
 
 func generateTestTokenWithClaims(t *testing.T, manager *auth.JWTManager, claims map[string]interface{}) string {
@@ -929,7 +1047,7 @@ func TestJWTManager_ComprehensiveValidation(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
 
-	manager := tc.SetupJWTManager()
+	manager := setupRealJWTManager(tc)
 	uf := testutil.NewUserFactory()
 	tf := testutil.NewTokenFactory("test-issuer")
 
@@ -997,7 +1115,7 @@ func TestJWTManager_ComprehensiveValidation(t *testing.T) {
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
 			token := tt.setupToken()
-			claims, err := manager.ValidateToken(token)
+			claims, err := manager.ValidateToken(context.Background(), token)
 
 			if tt.expectError {
 				assert.Error(t, err)

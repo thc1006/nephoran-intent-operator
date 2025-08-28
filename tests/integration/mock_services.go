@@ -65,10 +65,12 @@ func (m *MockLLMService) ProcessRequest(ctx context.Context, request *llm.Intent
 	}
 
 	return &llm.IntentResponse{
-		Response:   responseText,
-		Confidence: 0.8 + rand.Float64()*0.2, // 0.8-1.0
-		Tokens:     50 + rand.Intn(200),      // 50-250 tokens
-		Duration:   m.latencySimulation,
+		Response:       responseText,
+		Confidence:     float32(0.8 + rand.Float64()*0.2), // 0.8-1.0 (cast to float32)
+		TokensUsed:     50 + rand.Intn(200),                // 50-250 tokens
+		ProcessingTime: m.latencySimulation,
+		ModelUsed:      "mock-llm-model",
+		CacheHit:       false,
 		Metadata: map[string]interface{}{
 			"mock_call_count": m.callCount,
 			"model_name":      "mock-llm-model",

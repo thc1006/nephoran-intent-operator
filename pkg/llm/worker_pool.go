@@ -883,7 +883,7 @@ type FastJSONParser struct{}
 type ResponsePool struct{}
 
 const (
-	PriorityUrgent Priority = iota + 10 // Offset to avoid conflicts
+	// PriorityUrgent is defined in batch_processor.go with value 3
 	// PriorityHigh - defined in batch_processor.go
 	// PriorityNormal - defined in batch_processor.go
 	// PriorityLow - defined in batch_processor.go

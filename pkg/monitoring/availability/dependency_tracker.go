@@ -1,7 +1,5 @@
-//go:build !integration
-
 // Package availability provides dependency chain tracking for availability monitoring.
-// This is a minimal stub implementation used when integration tag is not set.
+// This is a stub implementation that provides the DependencyChainTracker type and basic functionality.
 package availability
 
 import (

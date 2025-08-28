@@ -44,8 +44,9 @@ type NetworkIntentResponse struct {
 	OriginalIntent     string      `json:"originalIntent"`
 	Spec               interface{} `json:"spec"`
 	ProcessingMetadata struct {
-		ModelUsed       string  `json:"modelUsed"`
-		ConfidenceScore float64 `json:"confidenceScore"`
+		ModelUsed        string  `json:"modelUsed"`
+		ConfidenceScore  float64 `json:"confidenceScore"`
+		ProcessingTimeMS int64   `json:"processingTimeMS"`
 	} `json:"processingMetadata"`
 }
 
@@ -55,7 +56,8 @@ type HealthResponse struct {
 }
 
 type ReadinessResponse struct {
-	Status string `json:"status"`
+	Status       string   `json:"status"`
+	Dependencies []string `json:"dependencies,omitempty"`
 }
 
 type ErrorResponse struct {
@@ -157,11 +159,11 @@ var _ = Describe("End-to-End LLM Processor Tests", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		// Get initialized components
-		processor, streamingProcessor, circuitBreakerMgr, tokenManager, contextBuilder, relevanceScorer, promptBuilder, healthChecker := testService.GetComponents()
+		processor, _, circuitBreakerMgr, tokenManager, contextBuilder, relevanceScorer, promptBuilder, healthChecker := testService.GetComponents()
 
 		// Create handler with initialized components
 		testHandler = handlers.NewLLMProcessorHandler(
-			testConfig, processor, streamingProcessor, circuitBreakerMgr,
+			testConfig, processor, nil, circuitBreakerMgr,
 			tokenManager, contextBuilder, relevanceScorer, promptBuilder,
 			testLogger, healthChecker, time.Now(),
 		)

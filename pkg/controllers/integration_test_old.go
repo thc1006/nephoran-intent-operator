@@ -97,13 +97,13 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Verifying NetworkIntent status progression")
-			Eventually(func() nephoranv1.NetworkIntentPhase {
+			Eventually(func() string {
 				updated := &nephoranv1.NetworkIntent{}
 				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated); err != nil {
 					return ""
 				}
 				return updated.Status.Phase
-			}, timeout, interval).Should(Equal(nephoranv1.NetworkIntentPhaseDeployed))
+			}, timeout, interval).Should(Equal("Completed"))
 
 			By("Verifying final NetworkIntent state")
 			final := &nephoranv1.NetworkIntent{}
@@ -113,16 +113,21 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			Expect(isConditionTrue(final.Status.Conditions, "Processed")).To(BeTrue())
 			Expect(isConditionTrue(final.Status.Conditions, "Deployed")).To(BeTrue())
 
-			// Verify processing results are available (LLM response moved to status)
-			if final.Status.LLMResponse.Raw != nil && len(final.Status.LLMResponse.Raw) > 0 {
-				var extractedParams map[string]interface{}
-				Expect(json.Unmarshal(final.Status.LLMResponse.Raw, &extractedParams)).To(Succeed())
-				Expect(extractedParams["action"]).To(Equal("scale"))
-				Expect(extractedParams["replicas"]).To(Equal(float64(5)))
-			}
+			// Verify parameters were extracted
+			Expect(final.Spec.Parameters.Raw).NotTo(BeEmpty())
+			var extractedParams map[string]interface{}
+			Expect(json.Unmarshal(final.Spec.Parameters.Raw, &extractedParams)).To(Succeed())
+			Expect(extractedParams["action"]).To(Equal("scale"))
+			Expect(extractedParams["replicas"]).To(Equal(float64(5)))
 
-			// Verify processing results are available
-			Expect(final.Status.ProcessingResults).NotTo(BeNil())
+			// Verify Git deployment
+			Expect(final.Status.GitCommitHash).To(Equal("e2e-test-commit-123"))
+
+			// Verify timing fields
+			Expect(final.Status.ProcessingStartTime).NotTo(BeNil())
+			Expect(final.Status.ProcessingCompletionTime).NotTo(BeNil())
+			Expect(final.Status.DeploymentStartTime).NotTo(BeNil())
+			Expect(final.Status.DeploymentCompletionTime).NotTo(BeNil())
 		})
 
 		It("Should handle NetworkIntent failure and recovery workflow", func() {
@@ -134,12 +139,16 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			)
 
 			// Set up mock LLM client that fails initially
-			mockLLMClient := networkIntentReconciler.deps.(*testutils.MockDependencies).LLMClient.(*testutils.MockLLMClient)
-			mockLLMClient.SetShouldReturnError(true)
-			mockLLMClient.Error = fmt.Errorf("temporary service unavailable")
-
-			mockGitClient := networkIntentReconciler.deps.(*testutils.MockDependencies).GitClient.(*testutils.MockGitClient)
-			mockGitClient.SetCommitHash("recovery-commit-456")
+			mockLLMClient := &MockLLMClient{
+				Response:  "",
+				Error:     fmt.Errorf("temporary service unavailable"),
+				FailCount: 2, // Fail first 2 attempts
+			}
+			networkIntentReconciler.LLMClient = mockLLMClient
+			networkIntentReconciler.GitClient = &MockGitClient{
+				CommitHash: "recovery-commit-456",
+				Error:      nil,
+			}
 
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
@@ -151,17 +160,21 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			}
 
 			By("First reconciliation should fail and schedule retry")
-			_, err := networkIntentReconciler.Reconcile(ctx, req)
-			Expect(err).To(HaveOccurred()) // Should have error due to LLM failure
+			result, err := networkIntentReconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.RequeueAfter).To(Equal(networkIntentReconciler.RetryDelay))
 
 			By("Verifying retry state")
 			updated := &nephoranv1.NetworkIntent{}
 			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)).To(Succeed())
-			Expect(updated.Status.Phase).To(Equal(nephoranv1.NetworkIntentPhaseProcessing))
+			Expect(updated.Status.Phase).To(Equal("Processing"))
+			retryCount := getRetryCount(updated, "llm-processing")
+			Expect(retryCount).To(Equal(1))
 
 			By("Second reconciliation should also fail")
-			_, err = networkIntentReconciler.Reconcile(ctx, req)
-			Expect(err).To(HaveOccurred()) // Should still fail
+			result, err = networkIntentReconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.RequeueAfter).To(Equal(networkIntentReconciler.RetryDelay))
 
 			By("Third reconciliation should succeed after LLM recovery")
 			// Setup successful response for third attempt
@@ -172,18 +185,18 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 				"ha_mode":   true,
 			}
 			mockResponseBytes, _ := json.Marshal(mockResponse)
-			mockLLMClient.SetShouldReturnError(false)
-			mockLLMClient.SetResponse(networkIntent.Spec.Intent, string(mockResponseBytes))
+			mockLLMClient.Response = string(mockResponseBytes)
 			mockLLMClient.Error = nil
 
-			_, err = networkIntentReconciler.Reconcile(ctx, req)
+			result, err = networkIntentReconciler.Reconcile(ctx, req)
 			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
 
 			By("Verifying successful recovery")
-			Eventually(func() nephoranv1.NetworkIntentPhase {
+			Eventually(func() string {
 				Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)).To(Succeed())
 				return updated.Status.Phase
-			}, timeout, interval).Should(Equal(nephoranv1.NetworkIntentPhaseDeployed))
+			}, timeout, interval).Should(Equal("Completed"))
 
 			Expect(isConditionTrue(updated.Status.Conditions, "Processed")).To(BeTrue())
 			Expect(isConditionTrue(updated.Status.Conditions, "Deployed")).To(BeTrue())
@@ -198,9 +211,9 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 		BeforeEach(func() {
 			By("Setting up E2NodeSet reconciler for integration testing")
 			e2nodeSetReconciler = &E2NodeSetReconciler{
-				Client:   k8sClient,
-				Scheme:   testEnv.Scheme,
-				Recorder: &record.FakeRecorder{},
+				Client:        k8sClient,
+				Scheme:        testEnv.Scheme,
+				EventRecorder: &record.FakeRecorder{},
 			}
 		})
 
@@ -222,8 +235,9 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			}
 
 			By("Initial reconciliation should create ConfigMaps")
-			_, err := e2nodeSetReconciler.Reconcile(ctx, req)
+			result, err := e2nodeSetReconciler.Reconcile(ctx, req)
 			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
 
 			By("Verifying initial ConfigMaps were created")
 			Eventually(func() int {
@@ -255,8 +269,9 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			Expect(k8sClient.Update(ctx, e2nodeSet)).To(Succeed())
 
 			By("Reconciling after scale up")
-			_, err = e2nodeSetReconciler.Reconcile(ctx, req)
+			result, err = e2nodeSetReconciler.Reconcile(ctx, req)
 			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
 
 			By("Verifying scale up completed")
 			Eventually(func() int {
@@ -287,8 +302,9 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			Expect(k8sClient.Update(ctx, e2nodeSet)).To(Succeed())
 
 			By("Reconciling after scale down")
-			_, err = e2nodeSetReconciler.Reconcile(ctx, req)
+			result, err = e2nodeSetReconciler.Reconcile(ctx, req)
 			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
 
 			By("Verifying scale down completed")
 			Eventually(func() int {
@@ -332,7 +348,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			}
 
 			By("Initial reconciliation to create ConfigMaps")
-			_, err := e2nodeSetReconciler.Reconcile(ctx, req)
+			result, err := e2nodeSetReconciler.Reconcile(ctx, req)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Verifying ConfigMaps were created")
@@ -389,9 +405,9 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 
 			// Set up E2NodeSet reconciler
 			e2nodeSetReconciler := &E2NodeSetReconciler{
-				Client:   k8sClient,
-				Scheme:   testEnv.Scheme,
-				Recorder: &record.FakeRecorder{},
+				Client:        k8sClient,
+				Scheme:        testEnv.Scheme,
+				EventRecorder: &record.FakeRecorder{},
 			}
 
 			By("Initial E2NodeSet reconciliation")
@@ -402,7 +418,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 				},
 			}
 
-			_, err := e2nodeSetReconciler.Reconcile(ctx, e2nsReq)
+			result, err := e2nodeSetReconciler.Reconcile(ctx, e2nsReq)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Verifying initial E2NodeSet state")
@@ -422,14 +438,12 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			)
 
 			// Set up NetworkIntent reconciler with mock that returns scaling parameters
-			mockDeps := &testutils.MockDependencies{
-				LLMClient: testutils.NewMockLLMClient(),
-				GitClient: testutils.NewMockGitClient(),
-			}
 			networkIntentReconciler := &NetworkIntentReconciler{
-				Client: k8sClient,
-				Scheme: testEnv.Scheme,
-				deps:   mockDeps,
+				Client:        k8sClient,
+				Scheme:        testEnv.Scheme,
+				EventRecorder: &record.FakeRecorder{},
+				MaxRetries:    3,
+				RetryDelay:    time.Second * 1,
 			}
 
 			mockResponse := map[string]interface{}{
@@ -440,11 +454,14 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 				"namespace":   namespaceName,
 			}
 			mockResponseBytes, _ := json.Marshal(mockResponse)
-			mockLLMClient := mockDeps.LLMClient.(*testutils.MockLLMClient)
-			mockLLMClient.SetResponse(networkIntent.Spec.Intent, string(mockResponseBytes))
-
-			mockGitClient := mockDeps.GitClient.(*testutils.MockGitClient)
-			mockGitClient.SetCommitHash("integration-commit-789")
+			networkIntentReconciler.LLMClient = &MockLLMClient{
+				Response: string(mockResponseBytes),
+				Error:    nil,
+			}
+			networkIntentReconciler.GitClient = &MockGitClient{
+				CommitHash: "integration-commit-789",
+				Error:      nil,
+			}
 
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
@@ -456,7 +473,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 				},
 			}
 
-			_, err = networkIntentReconciler.Reconcile(ctx, niReq)
+			result, err = networkIntentReconciler.Reconcile(ctx, niReq)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Verifying NetworkIntent processing completed")
@@ -477,7 +494,7 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			Expect(k8sClient.Update(ctx, e2nodeSet)).To(Succeed())
 
 			By("Re-reconciling E2NodeSet after scaling")
-			_, err = e2nodeSetReconciler.Reconcile(ctx, e2nsReq)
+			result, err = e2nodeSetReconciler.Reconcile(ctx, e2nsReq)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Verifying E2NodeSet scaled according to NetworkIntent")
@@ -561,9 +578,6 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 				namespaceName,
 				"Scale all O-CU E2NodeSets to 3 replicas",
 			)
-			if scaleIntent.Labels == nil {
-				scaleIntent.Labels = make(map[string]string)
-			}
 			scaleIntent.Labels["operation"] = "scale"
 			scaleIntent.Labels["target-type"] = "O-CU"
 			Expect(k8sClient.Create(ctx, scaleIntent)).To(Succeed())
@@ -575,9 +589,6 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 				namespaceName,
 				"Deploy additional O-RU components",
 			)
-			if deployIntent.Labels == nil {
-				deployIntent.Labels = make(map[string]string)
-			}
 			deployIntent.Labels["operation"] = "deploy"
 			deployIntent.Labels["target-type"] = "O-RU"
 			Expect(k8sClient.Create(ctx, deployIntent)).To(Succeed())

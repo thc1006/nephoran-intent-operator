@@ -28,7 +28,10 @@ type ServiceManager struct {
 	secretManager      *config.SecretManager
 	oauth2Manager      *auth.OAuth2Manager
 	processor          *handlers.IntentProcessor
-	streamingProcessor *llm.StreamingProcessor
+	streamingProcessor interface{
+		HandleStreamingRequest(w http.ResponseWriter, r *http.Request, req *llm.StreamingRequest) error
+		GetMetrics() map[string]interface{}
+	}
 	circuitBreakerMgr  *llm.CircuitBreakerManager
 	tokenManager       *llm.TokenManager
 	contextBuilder     *llm.ContextBuilder
@@ -155,10 +158,10 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 	}
 
 	// Initialize supporting components
-	sm.relevanceScorer = llm.NewRelevanceScorer(nil, nil)
+	sm.relevanceScorer = llm.NewRelevanceScorerStub()
 
 	if sm.config.EnableContextBuilder {
-		sm.contextBuilder = llm.NewContextBuilder()
+		sm.contextBuilder = llm.NewContextBuilderStub()
 	}
 
 	sm.promptBuilder = llm.NewRAGAwarePromptBuilder(sm.tokenManager, nil)
@@ -172,10 +175,7 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 	// Initialize streaming processor if enabled
 	if sm.config.StreamingEnabled {
 		// Use stub implementation for now
-		stub := llm.NewStreamingProcessor()
-		// Convert stub to actual type - this is a temporary workaround
-		sm.streamingProcessor = nil // Use nil for now
-		_ = stub                    // Avoid unused variable error
+		sm.streamingProcessor = llm.NewStreamingProcessor()
 	}
 
 	// Initialize main processor with circuit breaker
@@ -374,7 +374,10 @@ func (sm *ServiceManager) GetProcessor() *handlers.IntentProcessor {
 }
 
 // GetStreamingProcessor returns the streaming processor
-func (sm *ServiceManager) GetStreamingProcessor() *llm.StreamingProcessor {
+func (sm *ServiceManager) GetStreamingProcessor() interface{
+	HandleStreamingRequest(w http.ResponseWriter, r *http.Request, req *llm.StreamingRequest) error
+	GetMetrics() map[string]interface{}
+} {
 	return sm.streamingProcessor
 }
 

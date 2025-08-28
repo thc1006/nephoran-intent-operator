@@ -2,7 +2,8 @@ package llm
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
+	"strings"
 	"sync"
 	"time"
 )
@@ -46,233 +47,163 @@ type PromptGenerator interface {
 	ExtractParameters(intent string) map[string]interface{}
 }
 
-// ESSENTIAL TYPES ONLY - Consolidated from scattered definitions
+// NOTE: The following types are defined in their respective files:
+// - ClientMetrics: client_consolidated.go
+// - Priority, BatchResult, BatchProcessorStats: batch_processor.go
 
-// Note: StreamingRequest and BatchRequest types are defined in their respective implementation files
-
-// Note: ProcessingResult, ProcessingMetrics, MetricsCollector, MetricsIntegrator types are defined in their respective files
-
-// Note: MetricsIntegrator methods are defined in prometheus_metrics.go
-
-// Missing type definitions for compilation
-type RequestContext struct {
-	ID        string
-	Intent    string
-	StartTime time.Time
-	Metadata  map[string]interface{}
+// ProcessingRequest represents a request for LLM processing
+type ProcessingRequest struct {
+	ID                string                 `json:"id"`
+	Intent            string                 `json:"intent"`
+	IntentType        string                 `json:"intent_type,omitempty"`
+	Context           string                 `json:"context,omitempty"`
+	SystemPrompt      string                 `json:"system_prompt,omitempty"`
+	UserPrompt        string                 `json:"user_prompt,omitempty"`
+	ModelName         string                 `json:"model_name,omitempty"`
+	Model             string                 `json:"model,omitempty"` // Alias for ModelName
+	MaxTokens         int                    `json:"max_tokens,omitempty"`
+	Temperature       float32                `json:"temperature,omitempty"`
+	Priority          Priority               `json:"priority,omitempty"`
+	RequestID         string                 `json:"request_id,omitempty"`
+	ProcessingTimeout time.Duration          `json:"processing_timeout,omitempty"`
+	Metadata          map[string]interface{} `json:"metadata,omitempty"`
 }
 
-type HealthChecker struct {
-	// Stub implementation
+// ProcessingResponse represents a response from LLM processing
+type ProcessingResponse struct {
+	ID                  string                 `json:"id"`
+	Response            string                 `json:"response"`
+	ProcessedParameters string                 `json:"processed_parameters,omitempty"` // JSON string of parameters
+	Confidence          float32                `json:"confidence"`
+	TokensUsed          int                    `json:"tokens_used"`
+	Cost                float64                `json:"cost"`
+	ProcessingTime      time.Duration          `json:"processing_time"`
+	ModelUsed           string                 `json:"model_used"`
+	CacheHit            bool                   `json:"cache_hit"`
+	IntentType          string                 `json:"intent_type,omitempty"`
+	ExtractedIntent     string                 `json:"extracted_intent,omitempty"`
+	Metadata            map[string]interface{} `json:"metadata,omitempty"`
 }
 
-type EndpointPool struct {
-	// Stub implementation
+// StreamingRequest represents a request for streaming LLM processing
+type StreamingRequest struct {
+	Query      string                 `json:"query"`
+	Context    string                 `json:"context,omitempty"`
+	ModelName  string                 `json:"model_name,omitempty"`
+	Stream     bool                   `json:"stream"`
+	SessionID  string                 `json:"session_id,omitempty"`
+	EnableRAG  bool                   `json:"enable_rag"`
+	IntentType string                 `json:"intent_type,omitempty"`
+	MaxTokens  int                    `json:"max_tokens,omitempty"`
+	Temperature float32               `json:"temperature,omitempty"`
+	ClientID   string                 `json:"client_id,omitempty"`
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
 }
 
-type BatchProcessorConfig struct {
-	// Stub implementation
+// ContextBuilder provides context building functionality for RAG systems
+type ContextBuilder struct {
+	weaviatePool *WeaviateConnectionPool // Using our type alias
+	config       *ContextBuilderConfig
+	logger       *slog.Logger // Using concrete type instead of interface{}
+	metrics      *ContextBuilderMetrics
+	mutex        sync.RWMutex
 }
 
-type TokenManager struct {
-	// Stub implementation
-	maxTokens int
+// ContextBuilderConfig holds configuration for context building
+type ContextBuilderConfig struct {
+	DefaultMaxDocs        int           `json:"default_max_docs"`
+	MaxContextLength      int           `json:"max_context_length"`
+	MinConfidenceScore    float32       `json:"min_confidence_score"`
+	QueryTimeout          time.Duration `json:"query_timeout"`
+	EnableHybridSearch    bool          `json:"enable_hybrid_search"`
+	HybridAlpha           float32       `json:"hybrid_alpha"`
+	TelecomKeywords       []string      `json:"telecom_keywords"`
+	QueryExpansionEnabled bool          `json:"query_expansion_enabled"`
 }
 
-func NewTokenManager() *TokenManager {
-	return &TokenManager{maxTokens: 4096}
+// ContextBuilderMetrics tracks context building performance
+type ContextBuilderMetrics struct {
+	TotalQueries          int64         `json:"total_queries"`
+	SuccessfulQueries     int64         `json:"successful_queries"`
+	FailedQueries         int64         `json:"failed_queries"`
+	AverageQueryDuration  time.Duration `json:"average_query_duration"`
+	AverageDocumentsFound int           `json:"average_documents_found"`
+	CacheHits             int64         `json:"cache_hits"`
+	CacheMisses           int64         `json:"cache_misses"`
+	TotalLatency          time.Duration `json:"total_latency"`
+	mutex                 sync.RWMutex
 }
 
-func (tm *TokenManager) GetSupportedModels() []string { return []string{"gpt-4o-mini"} }
-
-func (tm *TokenManager) CountTokens(text string) int {
-	// Simple estimation: ~4 characters per token
-	return len(text) / 4
+// RelevanceScorer provides relevance scoring functionality
+type RelevanceScorer struct {
+	config          *RelevanceScorerConfig
+	logger          *slog.Logger // Using concrete type instead of interface{}
+	embeddings      interface{} // rag.EmbeddingServiceInterface
+	domainKnowledge interface{} // *TelecomDomainKnowledge
+	metrics         *ScoringMetrics
+	mutex           sync.RWMutex
 }
 
-func (tm *TokenManager) CalculateTokenBudget(ctx context.Context, model, systemPrompt, userPrompt, context string) (TokenBudget, error) {
-	systemTokens := tm.CountTokens(systemPrompt)
-	userTokens := tm.CountTokens(userPrompt)
-	contextTokens := tm.CountTokens(context)
-	totalInput := systemTokens + userTokens + contextTokens
-	availableOutput := tm.maxTokens - totalInput - 100 // Reserve 100 tokens
-
-	if availableOutput < 0 {
-		availableOutput = 0
-	}
-
-	return TokenBudget{
-		SystemTokens:    systemTokens,
-		UserTokens:      userTokens,
-		ContextTokens:   contextTokens,
-		TotalInput:      totalInput,
-		AvailableOutput: availableOutput,
-		MaxTokens:       tm.maxTokens,
-	}, nil
+// RelevanceScorerConfig holds configuration for relevance scoring
+type RelevanceScorerConfig struct {
+	// Scoring weights
+	SemanticWeight        float64 `json:"semantic_weight"`
+	AuthorityWeight       float64 `json:"authority_weight"`
+	RecencyWeight         float64 `json:"recency_weight"`
+	DomainWeight          float64 `json:"domain_weight"`
+	IntentAlignmentWeight float64 `json:"intent_alignment_weight"`
+	
+	// Additional configuration fields
+	MinSemanticSimilarity float64            `json:"min_semantic_similarity"`
+	UseEmbeddingDistance  bool               `json:"use_embedding_distance"`
+	AuthorityScores       map[string]float64 `json:"authority_scores"`
+	StandardsMultiplier   float64            `json:"standards_multiplier"`
+	RecencyHalfLife       time.Duration      `json:"recency_half_life"`
+	MaxAge                time.Duration      `json:"max_age"`
+	CacheScores           bool               `json:"cache_scores"`
+	ScoreCacheTTL         time.Duration      `json:"score_cache_ttl"`
+	ParallelProcessing    bool               `json:"parallel_processing"`
+	MaxProcessingTime     time.Duration      `json:"max_processing_time"`
 }
 
-func (tm *TokenManager) OptimizeContext(contexts []string, maxTokens int, model string) []string {
-	var result []string
-	currentTokens := 0
-
-	for _, ctx := range contexts {
-		tokens := tm.CountTokens(ctx)
-		if currentTokens+tokens <= maxTokens {
-			result = append(result, ctx)
-			currentTokens += tokens
-		} else {
-			break
-		}
-	}
-
-	return result
+// ScoringMetrics tracks scoring performance
+type ScoringMetrics struct {
+	TotalScores        int64         `json:"total_scores"`
+	AverageScoringTime time.Duration `json:"average_scoring_time"`
+	CacheHitRate       float64       `json:"cache_hit_rate"`
+	SemanticScores     int64         `json:"semantic_scores"`
+	AuthorityScores    int64         `json:"authority_scores"`
+	RecencyScores      int64         `json:"recency_scores"`
+	DomainScores       int64         `json:"domain_scores"`
+	IntentScores       int64         `json:"intent_scores"`
+	LastUpdated        time.Time     `json:"last_updated"`
+	mutex              sync.RWMutex
 }
 
-// EstimateTokensForModel estimates tokens for a specific model
-func (tm *TokenManager) EstimateTokensForModel(text, modelName string) int {
-	// For now, use the same estimation regardless of model
-	// This could be enhanced to have model-specific token counting
-	return tm.CountTokens(text)
+// SimpleRelevanceScorer provides a simple relevance scoring implementation
+type SimpleRelevanceScorer struct {
+	embeddingService interface{} // rag.EmbeddingServiceInterface
+	legacyEmbedding  interface{} // *rag.EmbeddingService
+	logger           *slog.Logger
+	metrics          *SimpleRelevanceScorerMetrics
+	mutex            sync.RWMutex
 }
 
-// SupportsSystemPrompt checks if the model supports system prompts
-func (tm *TokenManager) SupportsSystemPrompt(modelName string) bool {
-	// Most modern models support system prompts
-	// Could be enhanced with a model-specific capability map
-	return true
+// SimpleRelevanceScorerMetrics tracks simple scoring performance
+type SimpleRelevanceScorerMetrics struct {
+	TotalScores      int64         `json:"total_scores"`
+	SuccessfulScores int64         `json:"successful_scores"`
+	FailedScores     int64         `json:"failed_scores"`
+	AverageLatency   time.Duration `json:"average_latency"`
+	EmbeddingCalls   int64         `json:"embedding_calls"`
+	FallbackUses     int64         `json:"fallback_uses"`
+	LastUpdated      time.Time     `json:"last_updated"`
+	mutex            sync.RWMutex
 }
 
-// SupportsChatFormat checks if the model supports chat format
-func (tm *TokenManager) SupportsChatFormat(modelName string) bool {
-	// Most modern models support chat format
-	return true
-}
+// Additional types needed by various components
 
-// TruncateToFit truncates text to fit within token limits
-func (tm *TokenManager) TruncateToFit(text string, maxTokens int, modelName string) string {
-	currentTokens := tm.EstimateTokensForModel(text, modelName)
-	if currentTokens <= maxTokens {
-		return text
-	}
-
-	// Rough approximation: truncate proportionally
-	ratio := float64(maxTokens) / float64(currentTokens)
-	newLength := int(float64(len(text)) * ratio)
-
-	if newLength < len(text) {
-		return text[:newLength]
-	}
-	return text
-}
-
-// SupportsStreaming checks if the model supports streaming
-func (tm *TokenManager) SupportsStreaming(modelName string) bool {
-	// Most modern models support streaming
-	// Could be enhanced with a model-specific capability map
-	return true
-}
-
-type TokenBudget struct {
-	SystemTokens    int
-	UserTokens      int
-	ContextTokens   int
-	TotalInput      int
-	AvailableOutput int
-	MaxTokens       int
-}
-
-type StreamingContextManager struct {
-	tokenManager *TokenManager
-	overhead     time.Duration
-}
-
-// NewStreamingContextManager creates a new streaming context manager
-func NewStreamingContextManager(tokenManager *TokenManager, overhead time.Duration) *StreamingContextManager {
-	return &StreamingContextManager{
-		tokenManager: tokenManager,
-		overhead:     overhead,
-	}
-}
-
-// Close shuts down the streaming context manager
-func (scm *StreamingContextManager) Close() {
-	// No resources to clean up in stub implementation
-}
-
-type Document struct {
-	ID       string                 `json:"id"`
-	Title    string                 `json:"title"`
-	Content  string                 `json:"content"`
-	Source   string                 `json:"source"`
-	Metadata map[string]interface{} `json:"metadata"`
-}
-
-// ContextBuilder is defined in clean_stubs.go
-
-func (cb *ContextBuilder) BuildContext(ctx context.Context, query string, documents []Document) (string, error) {
-	scores, err := cb.CalculateRelevanceScores(ctx, query, documents)
-	if err != nil {
-		return "", err
-	}
-
-	var context string
-	currentTokens := 0
-
-	for i, doc := range documents {
-		if scores[i] >= float64(cb.config.MinConfidenceScore) {
-			docContent := doc.Title + "\n" + doc.Content
-			docTokens := cb.tokenManager.CountTokens(docContent)
-
-			if currentTokens+docTokens <= cb.config.MaxContextLength {
-				if context != "" {
-					context += "\n---\n"
-				}
-				context += docContent
-				currentTokens += docTokens
-			} else {
-				break
-			}
-		}
-	}
-
-	return context, nil
-}
-
-func (cb *ContextBuilder) CalculateRelevanceScores(ctx context.Context, query string, documents []Document) ([]float64, error) {
-	scores := make([]float64, len(documents))
-
-	for i, doc := range documents {
-		// Simple scoring based on title and content matching
-		score := 0.0
-		if len(doc.Title) > 0 && len(query) > 0 {
-			score = 0.5 + float64(len(doc.Content)%100)/200.0 // Mock relevance score
-		}
-		scores[i] = score
-	}
-
-	return scores, nil
-}
-
-// CircuitBreaker types are defined in circuit_breaker.go
-
-// Stub methods for StreamingProcessor (disable_rag builds)
-func (sp *StreamingProcessor) HandleStreamingRequest(w interface{}, r interface{}, req *StreamingRequest) error {
-	// Stub implementation - just return an error indicating streaming is disabled
-	return fmt.Errorf("streaming functionality is disabled with disable_rag build tag")
-}
-
-func (sp *StreamingProcessor) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{"streaming_disabled": true}
-}
-
-func (sp *StreamingProcessor) Shutdown(ctx context.Context) error {
-	// Stub implementation - nothing to shutdown
-	return nil
-}
-
-// Note: ClientMetrics type is defined in llm.go
-
-// SimpleTokenTracker tracks token usage and costs
+// SimpleTokenTracker tracks token usage statistics
 type SimpleTokenTracker struct {
 	totalTokens  int64
 	totalCost    float64
@@ -280,7 +211,7 @@ type SimpleTokenTracker struct {
 	mutex        sync.RWMutex
 }
 
-// NewSimpleTokenTracker creates a new simple token tracker
+// NewSimpleTokenTracker creates a new token tracker
 func NewSimpleTokenTracker() *SimpleTokenTracker {
 	return &SimpleTokenTracker{}
 }
@@ -289,25 +220,21 @@ func NewSimpleTokenTracker() *SimpleTokenTracker {
 func (tt *SimpleTokenTracker) RecordUsage(tokens int) {
 	tt.mutex.Lock()
 	defer tt.mutex.Unlock()
-
 	tt.totalTokens += int64(tokens)
 	tt.requestCount++
-
 	// Simple cost calculation (adjust based on model pricing)
 	costPerToken := 0.0001 // Example: $0.0001 per token
 	tt.totalCost += float64(tokens) * costPerToken
 }
 
-// GetStats returns token usage statistics
+// GetStats returns usage statistics
 func (tt *SimpleTokenTracker) GetStats() map[string]interface{} {
 	tt.mutex.RLock()
 	defer tt.mutex.RUnlock()
-
 	avgTokensPerRequest := float64(0)
 	if tt.requestCount > 0 {
 		avgTokensPerRequest = float64(tt.totalTokens) / float64(tt.requestCount)
 	}
-
 	return map[string]interface{}{
 		"total_tokens":           tt.totalTokens,
 		"total_cost":             tt.totalCost,
@@ -316,121 +243,147 @@ func (tt *SimpleTokenTracker) GetStats() map[string]interface{} {
 	}
 }
 
-// ProcessingRequest represents a request for LLM processing
-type ProcessingRequest struct {
-	Intent            string                 `json:"intent"`
-	Prompt            string                 `json:"prompt,omitempty"`
-	SystemPrompt      string                 `json:"systemPrompt,omitempty"`
-	UserPrompt        string                 `json:"userPrompt,omitempty"`
-	Context           map[string]interface{} `json:"context,omitempty"`
-	MaxTokens         int                    `json:"maxTokens,omitempty"`
-	Temperature       float64                `json:"temperature,omitempty"`
-	Model             string                 `json:"model,omitempty"`
-	RequestID         string                 `json:"requestId,omitempty"`
-	ProcessingTimeout time.Duration          `json:"processingTimeout,omitempty"`
+// RequestContext contains context for LLM requests
+type RequestContext struct {
+	ID          string                 // Unique identifier for this context
+	RequestID   string                 // Request ID
+	UserID      string                 // User identifier
+	SessionID   string                 // Session identifier
+	Priority    int                    // Request priority
+	Intent      string                 // User intent
+	Metadata    map[string]interface{} // Additional metadata
+	StartTime   time.Time              // Request start time
+	Deadline    time.Time              // Request deadline
 }
 
-// ProcessingResponse represents the response from LLM processing
-type ProcessingResponse struct {
-	ProcessedIntent      string                 `json:"processedIntent"`
-	ProcessedParameters  string                 `json:"processedParameters,omitempty"` // JSON string of processed parameters
-	StructuredParameters map[string]interface{} `json:"structuredParameters,omitempty"`
-	ExtractedEntities    map[string]interface{} `json:"extractedEntities,omitempty"`
-	Confidence           float64                `json:"confidence"`
-	TokensUsed           int                    `json:"tokensUsed"`
-	ProcessingTime       time.Duration          `json:"processingTime"`
-	Metadata             map[string]interface{} `json:"metadata,omitempty"`
+// HealthChecker performs health checks on endpoints
+type HealthChecker interface {
+	CheckHealth(ctx context.Context, endpoint string) error
 }
 
-// BACKWARD COMPATIBILITY SECTION
-// These maintain compatibility with existing code but should be phased out
-
-// Config represents LLM client configuration (from old interface.go)
-type Config struct {
-	Endpoint string
-	Timeout  time.Duration
-	APIKey   string
-	Model    string
+// EndpointPool manages a pool of service endpoints
+type EndpointPool interface {
+	GetHealthyEndpoint() (string, error)
+	ReportError(endpoint string, err error)
+	GetAllEndpoints() []string
 }
 
-// IntentRequest represents a request to process an intent (from old interface.go)
-type IntentRequest struct {
-	Intent      string                 `json:"intent"`
-	Prompt      string                 `json:"prompt"`
-	Context     map[string]interface{} `json:"context"`
-	MaxTokens   int                    `json:"maxTokens"`
-	Temperature float64                `json:"temperature"`
+// BatchProcessorConfig contains batch processor configuration
+type BatchProcessorConfig struct {
+	MaxBatchSize     int
+	MaxWaitTime      time.Duration
+	MaxWorkers       int
+	QueueSize        int
+	RetryAttempts    int
+	RetryDelay       time.Duration
+	Priority         int
+	ProcessingTimeout time.Duration
 }
 
-// IntentResponse represents the response from intent processing (from old interface.go)
-type IntentResponse struct {
-	Response   string                 `json:"response"`
-	Confidence float64                `json:"confidence"`
-	Tokens     int                    `json:"tokens"`
-	Duration   time.Duration          `json:"duration"`
-	Metadata   map[string]interface{} `json:"metadata"`
+// TokenManager manages token counting and limits
+type TokenManager struct {
+	maxTokens     int
+	tokensPerWord float64
+	mutex         sync.RWMutex
 }
 
-// STUB IMPLEMENTATIONS - Consolidated from stubs.go
-// These provide default implementations for components not yet fully implemented
-
-// ContextBuilder stub implementation (consolidated from stubs.go)
-type ContextBuilder struct {
-	config       *ContextBuilderConfig
-	tokenManager *TokenManager
-}
-
-// ContextBuilderConfig is defined in clean_stubs.go
-
-func NewContextBuilder() *ContextBuilder {
-	return &ContextBuilder{
-		config: &ContextBuilderConfig{
-			DefaultMaxDocs:        10,
-			MaxContextLength:      2000,
-			MinConfidenceScore:    0.5,
-			QueryTimeout:          30 * time.Second,
-			EnableHybridSearch:    false,
-			HybridAlpha:           0.5,
-			TelecomKeywords:       []string{"amf", "upf", "smf", "ric"},
-			QueryExpansionEnabled: false,
-		},
-		tokenManager: NewTokenManager(),
+// NewTokenManager creates a new token manager
+func NewTokenManager() *TokenManager {
+	return &TokenManager{
+		maxTokens:     8192,
+		tokensPerWord: 1.3, // Average tokens per word
 	}
 }
 
-func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"context_builder_enabled": false,
-		"status":                  "not_implemented",
-	}
+// CountTokens estimates token count from text
+func (tm *TokenManager) CountTokens(text string) int {
+	// Simple approximation: count words and multiply by average tokens per word
+	words := len(strings.Fields(text))
+	return int(float64(words) * tm.tokensPerWord)
 }
 
-// RelevanceScorer implementation moved to relevance_scorer.go
+// EstimateTokensForModel estimates tokens for a specific model
+func (tm *TokenManager) EstimateTokensForModel(text string, model string) int {
+	// For now, use the same estimation for all models
+	return tm.CountTokens(text)
+}
 
-// RAGAwarePromptBuilder implementation moved to rag_aware_prompt_builder.go
-
-// UTILITY FUNCTIONS
-
-// Use getDefaultCircuitBreakerConfig from circuit_breaker.go to avoid duplicates
-
-// isValidKubernetesName validates Kubernetes resource names
-func isValidKubernetesName(name string) bool {
-	if len(name) == 0 || len(name) > 253 {
-		return false
-	}
-
-	// Kubernetes names must match DNS subdomain format
-	for i, r := range name {
-		if !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' || r == '.') {
-			return false
-		}
-		if i == 0 && (r == '-' || r == '.') {
-			return false
-		}
-		if i == len(name)-1 && (r == '-' || r == '.') {
-			return false
-		}
-	}
-
+// SupportsSystemPrompt checks if model supports system prompts
+func (tm *TokenManager) SupportsSystemPrompt(model string) bool {
+	// Most modern models support system prompts
 	return true
 }
+
+// SupportsChatFormat checks if model supports chat format
+func (tm *TokenManager) SupportsChatFormat(model string) bool {
+	// Most modern models support chat format
+	return true
+}
+
+// TruncateToFit truncates text to fit within token limit
+func (tm *TokenManager) TruncateToFit(text string, maxTokens int, model string) string {
+	// Model parameter is for compatibility, using same logic for all models
+	tokens := tm.CountTokens(text)
+	if tokens <= maxTokens {
+		return text
+	}
+	// Simple truncation by character ratio
+	ratio := float64(maxTokens) / float64(tokens)
+	targetLen := int(float64(len(text)) * ratio * 0.95) // 95% to ensure we're under limit
+	if targetLen > len(text) {
+		return text
+	}
+	return text[:targetLen] + "..."
+}
+
+// SupportsStreaming checks if model supports streaming
+func (tm *TokenManager) SupportsStreaming(model string) bool {
+	// Most modern models support streaming
+	return true
+}
+
+// GetSupportedModels returns list of supported models
+func (tm *TokenManager) GetSupportedModels() []string {
+	return []string{
+		"gpt-3.5-turbo",
+		"gpt-4",
+		"claude-2",
+		"claude-3",
+		"llama2",
+		"mistral",
+	}
+}
+
+// StreamingContextManager manages streaming context
+type StreamingContextManager struct {
+	contexts map[string]interface{}
+	mutex    sync.RWMutex
+}
+
+// NewStreamingContextManager creates a new streaming context manager
+func NewStreamingContextManager(tokenManager *TokenManager, contextOverhead time.Duration) *StreamingContextManager {
+	// Parameters are for compatibility but not used in stub implementation
+	return &StreamingContextManager{
+		contexts: make(map[string]interface{}),
+	}
+}
+
+// Close closes the streaming context manager
+func (scm *StreamingContextManager) Close() {
+	// No resources to clean up in stub implementation
+}
+
+// Document represents a document for context building
+type Document struct {
+	ID       string                 `json:"id"`
+	Title    string                 `json:"title"`
+	Content  string                 `json:"content"`
+	Source   string                 `json:"source"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// IntentRequest represents a legacy request structure (backward compatibility)
+type IntentRequest = ProcessingRequest
+
+// IntentResponse represents a legacy response structure (backward compatibility)
+type IntentResponse = ProcessingResponse

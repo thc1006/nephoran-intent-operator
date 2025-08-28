@@ -4,11 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
+	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
+	"k8s.io/client-go/tools/record"
 )
 
 // MockLLMClient provides a mock implementation of the LLM client interface
@@ -673,6 +678,29 @@ func (m *MockGitClient) GetLog(options git.LogOptions) ([]git.CommitInfo, error)
 		},
 	}, nil
 }
+
+// MockDependencies provides a mock implementation of the Dependencies interface
+type MockDependencies struct {
+	LLMClient *MockLLMClient
+	GitClient *MockGitClient
+}
+
+// GetLLMClient returns the mock LLM client
+func (m *MockDependencies) GetLLMClient() shared.ClientInterface {
+	return m.LLMClient
+}
+
+// GetGitClient returns the mock Git client
+func (m *MockDependencies) GetGitClient() git.ClientInterface {
+	return m.GitClient
+}
+
+// Placeholder implementations for other dependencies (can be extended as needed)
+func (m *MockDependencies) GetPackageGenerator() *nephio.PackageGenerator { return nil }
+func (m *MockDependencies) GetHTTPClient() *http.Client { return &http.Client{} }
+func (m *MockDependencies) GetEventRecorder() record.EventRecorder { return &record.FakeRecorder{} }
+func (m *MockDependencies) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase { return nil }
+func (m *MockDependencies) GetMetricsCollector() *monitoring.MetricsCollector { return nil }
 
 // Ensure mock clients implement the expected interfaces
 var _ shared.ClientInterface = (*MockLLMClient)(nil)

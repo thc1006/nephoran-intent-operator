@@ -1,7 +1,5 @@
-//go:build !integration
-
 // Package availability provides synthetic monitoring check executors.
-// These are minimal stub implementations used when integration tag is not set.
+// These are stub implementations that provide the CheckExecutor interface and basic functionality.
 package availability
 
 import (

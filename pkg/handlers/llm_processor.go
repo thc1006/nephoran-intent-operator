@@ -21,7 +21,10 @@ import (
 type LLMProcessorHandler struct {
 	config             *config.LLMProcessorConfig
 	processor          *IntentProcessor
-	streamingProcessor *llm.StreamingProcessor
+	streamingProcessor interface{
+		HandleStreamingRequest(w http.ResponseWriter, r *http.Request, req *llm.StreamingRequest) error
+		GetMetrics() map[string]interface{}
+	}
 	circuitBreakerMgr  *llm.CircuitBreakerManager
 	tokenManager       *llm.TokenManager
 	contextBuilder     *llm.ContextBuilder
@@ -77,7 +80,10 @@ type IntentProcessor struct {
 func NewLLMProcessorHandler(
 	config *config.LLMProcessorConfig,
 	processor *IntentProcessor,
-	streamingProcessor *llm.StreamingProcessor,
+	streamingProcessor interface{
+		HandleStreamingRequest(w http.ResponseWriter, r *http.Request, req *llm.StreamingRequest) error
+		GetMetrics() map[string]interface{}
+	},
 	circuitBreakerMgr *llm.CircuitBreakerManager,
 	tokenManager *llm.TokenManager,
 	contextBuilder *llm.ContextBuilder,
@@ -107,7 +113,10 @@ func NewLLMProcessorHandler(
 func NewLLMProcessorHandlerWithMetrics(
 	config *config.LLMProcessorConfig,
 	processor *IntentProcessor,
-	streamingProcessor *llm.StreamingProcessor,
+	streamingProcessor interface{
+		HandleStreamingRequest(w http.ResponseWriter, r *http.Request, req *llm.StreamingRequest) error
+		GetMetrics() map[string]interface{}
+	},
 	circuitBreakerMgr *llm.CircuitBreakerManager,
 	tokenManager *llm.TokenManager,
 	contextBuilder *llm.ContextBuilder,

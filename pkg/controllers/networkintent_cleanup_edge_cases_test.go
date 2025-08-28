@@ -37,13 +37,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 		namespaceName = CreateIsolatedNamespace("cleanup-edge-cases")
 
 		By("Setting up the reconciler with mock dependencies")
-		mockDeps = &MockDependencies{
-			gitClient:        &MockGitClientInterface{},
-			llmClient:        &MockLLMClientInterface{},
-			packageGenerator: nil,
-			httpClient:       &http.Client{Timeout: 30 * time.Second},
-			eventRecorder:    &record.FakeRecorder{Events: make(chan string, 100)},
-		}
+		mockDeps = NewMockDependencies()
 
 		config := &Config{
 			MaxRetries:      3,
@@ -86,7 +80,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			networkIntent.Namespace = longNamespace
 
 			By("Setting up Git client expectations")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.GetGitClient().(*MockGitClientComprehensive)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", longNamespace, longName)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", longNamespace, longName)
 
@@ -107,7 +101,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			networkIntent.Namespace = "test-namespace-123"
 
 			By("Setting up Git client expectations")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.GetGitClient().(*MockGitClientComprehensive)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
@@ -138,7 +132,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			cancel() // Immediately cancel the context
 
 			By("Setting up Git client to detect context cancellation")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.GetGitClient().(*MockGitClientComprehensive)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
@@ -155,7 +149,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 
 		It("Should handle intermittent Git repository locks", func() {
 			By("Setting up Git client to simulate repository lock contention")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.GetGitClient().(*MockGitClientComprehensive)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
@@ -315,7 +309,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 		It("Should handle NetworkIntent with multiple finalizers", func() {
 			By("Creating NetworkIntent with multiple finalizers")
 			networkIntent.Finalizers = []string{
-				NetworkIntentFinalizer,
+				reconciler.constants.NetworkIntentFinalizer,
 				"other.controller/finalizer",
 				"third.controller/finalizer",
 			}
@@ -323,7 +317,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
 			By("Setting up successful Git cleanup")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.GetGitClient().(*MockGitClientComprehensive)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 			mockGitClient.On("RemoveDirectory", expectedPath, expectedMessage).Return(nil)
@@ -343,7 +337,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 				if err != nil {
 					return false
 				}
-				return !containsFinalizer(updated.Finalizers, NetworkIntentFinalizer) &&
+				return !containsFinalizer(updated.Finalizers, reconciler.constants.NetworkIntentFinalizer) &&
 					containsFinalizer(updated.Finalizers, "other.controller/finalizer")
 			}, timeout, interval).Should(BeTrue())
 
@@ -352,12 +346,12 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 
 		It("Should handle deletion of already deleted resources", func() {
 			By("Creating and immediately deleting NetworkIntent")
-			networkIntent.Finalizers = []string{NetworkIntentFinalizer}
+			networkIntent.Finalizers = []string{reconciler.constants.NetworkIntentFinalizer}
 			networkIntent.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
 			By("Setting up Git client to simulate already cleaned resources")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.GetGitClient().(*MockGitClientComprehensive)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 
@@ -377,12 +371,12 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 
 		It("Should handle update conflicts during finalizer removal", func() {
 			By("Creating NetworkIntent for conflict test")
-			networkIntent.Finalizers = []string{NetworkIntentFinalizer}
+			networkIntent.Finalizers = []string{reconciler.constants.NetworkIntentFinalizer}
 			networkIntent.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
 			By("Setting up successful Git cleanup")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.GetGitClient().(*MockGitClientComprehensive)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 			mockGitClient.On("RemoveDirectory", expectedPath, expectedMessage).Return(nil)
@@ -418,7 +412,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 				namespaceName,
 				"Test cleanup with slow Kubernetes API",
 			)
-			networkIntent.Finalizers = []string{NetworkIntentFinalizer}
+			networkIntent.Finalizers = []string{reconciler.constants.NetworkIntentFinalizer}
 
 			By("Creating resources that might be slow to list/delete")
 			for i := 0; i < 10; i++ {
@@ -438,7 +432,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			}
 
 			By("Setting up Git cleanup expectations")
-			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
+			mockGitClient := mockDeps.GetGitClient().(*MockGitClientComprehensive)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
 			mockGitClient.On("RemoveDirectory", expectedPath, expectedMessage).Return(nil)
@@ -585,7 +579,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 	Context("Finalizer management edge cases", func() {
 		It("Should handle containsFinalizer with empty slice", func() {
 			By("Testing containsFinalizer with empty finalizers")
-			result := containsFinalizer([]string{}, NetworkIntentFinalizer)
+			result := containsFinalizer([]string{}, reconciler.constants.NetworkIntentFinalizer)
 
 			By("Verifying empty slice returns false")
 			Expect(result).To(BeFalse())
@@ -593,7 +587,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 
 		It("Should handle containsFinalizer with nil slice", func() {
 			By("Testing containsFinalizer with nil finalizers")
-			result := containsFinalizer(nil, NetworkIntentFinalizer)
+			result := containsFinalizer(nil, reconciler.constants.NetworkIntentFinalizer)
 
 			By("Verifying nil slice returns false")
 			Expect(result).To(BeFalse())
@@ -602,24 +596,24 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 		It("Should handle removeFinalizer with duplicate finalizers", func() {
 			By("Testing removeFinalizer with duplicates")
 			finalizers := []string{
-				NetworkIntentFinalizer,
+				reconciler.constants.NetworkIntentFinalizer,
 				"other.finalizer",
-				NetworkIntentFinalizer, // Duplicate
+				reconciler.constants.NetworkIntentFinalizer, // Duplicate
 				"third.finalizer",
 			}
-			result := removeFinalizer(finalizers, NetworkIntentFinalizer)
+			result := removeFinalizer(finalizers, reconciler.constants.NetworkIntentFinalizer)
 
 			By("Verifying all instances are removed")
 			Expect(result).To(HaveLen(2))
 			Expect(result).To(ContainElement("other.finalizer"))
 			Expect(result).To(ContainElement("third.finalizer"))
-			Expect(result).NotTo(ContainElement(NetworkIntentFinalizer))
+			Expect(result).NotTo(ContainElement(reconciler.constants.NetworkIntentFinalizer))
 		})
 
 		It("Should handle removeFinalizer with non-existent finalizer", func() {
 			By("Testing removeFinalizer with non-existent finalizer")
 			finalizers := []string{"other.finalizer", "third.finalizer"}
-			result := removeFinalizer(finalizers, NetworkIntentFinalizer)
+			result := removeFinalizer(finalizers, reconciler.constants.NetworkIntentFinalizer)
 
 			By("Verifying original slice is preserved")
 			Expect(result).To(HaveLen(2))

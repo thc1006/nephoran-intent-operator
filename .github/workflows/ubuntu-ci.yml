@@ -16,14 +16,14 @@ permissions:
 
 env:
   GO_VERSION: "1.24.x"
-  GOLANGCI_LINT_VERSION: "v1.62.0"  # Updated to match main CI and support Go 1.24+
+  GOLANGCI_LINT_VERSION: "v1.64.3"  # Updated for Go 1.24 compatibility
 
 jobs:
   # ==========================================================================
   # Lint Job - Ubuntu Only
   # ==========================================================================
   lint:
-    name: Code Quality - Detailed (golangci-lint v1.62.0)
+    name: Code Quality - Detailed (golangci-lint v1.64.3)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     
@@ -137,7 +137,7 @@ jobs:
           echo ""
           echo "=== ✅ Build/vet gate passed - proceeding with lint ==="
 
-      - name: Install and verify golangci-lint v1.62.0 with detailed output
+      - name: Install and verify golangci-lint v1.64.3 with detailed output
         run: |
           echo "=== Installing golangci-lint ${{ env.GOLANGCI_LINT_VERSION }} ==="
           

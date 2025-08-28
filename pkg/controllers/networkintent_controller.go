@@ -671,3 +671,80 @@ func (r *NetworkIntentReconciler) generateFallbackResponse(intent string) string
 	// No suitable fallback found
 	return ""
 }
+
+// cleanupResources performs comprehensive cleanup of all NetworkIntent resources
+func (r *NetworkIntentReconciler) cleanupResources(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) error {
+	r.logger.Info("Starting comprehensive resource cleanup", "intent", networkIntent.Name)
+	
+	// Perform GitOps cleanup
+	gitClient := r.deps.GetGitClient()
+	if err := r.cleanupGitOpsPackages(ctx, networkIntent, gitClient); err != nil {
+		r.logger.Error(err, "Failed to cleanup GitOps packages", "intent", networkIntent.Name)
+		return err
+	}
+	
+	// Perform generated resources cleanup
+	if err := r.cleanupGeneratedResources(ctx, networkIntent); err != nil {
+		r.logger.Error(err, "Failed to cleanup generated resources", "intent", networkIntent.Name)
+		return err
+	}
+	
+	// Perform cached data cleanup
+	if err := r.cleanupCachedData(ctx, networkIntent); err != nil {
+		r.logger.Error(err, "Failed to cleanup cached data", "intent", networkIntent.Name)
+		// Don't return error for cache cleanup failures as they're non-critical
+	}
+	
+	r.logger.Info("Successfully completed comprehensive resource cleanup", "intent", networkIntent.Name)
+	return nil
+}
+
+// cleanupCachedData performs cleanup of cached data related to the NetworkIntent
+func (r *NetworkIntentReconciler) cleanupCachedData(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) error {
+	if r.config.LLMProcessorURL == "" {
+		r.logger.Info("LLM processor URL not configured, skipping cache cleanup", "intent", networkIntent.Name)
+		return nil
+	}
+	
+	// Create cache cleanup request
+	cacheKey := fmt.Sprintf("%s-%s", networkIntent.Namespace, networkIntent.Name)
+	cleanupURL := fmt.Sprintf("%s/cache/cleanup/%s", r.config.LLMProcessorURL, cacheKey)
+	
+	// Create HTTP request with timeout
+	req, err := http.NewRequestWithContext(ctx, "DELETE", cleanupURL, nil)
+	if err != nil {
+		r.logger.Error(err, "Failed to create cache cleanup request", "intent", networkIntent.Name)
+		return nil // Non-critical, don't propagate error
+	}
+	
+	// Perform the request
+	resp, err := r.deps.GetHTTPClient().Do(req)
+	if err != nil {
+		r.logger.Info("Cache cleanup request failed (non-critical)", "intent", networkIntent.Name, "error", err)
+		return nil // Non-critical, don't propagate error
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode >= 400 {
+		r.logger.Info("Cache cleanup returned error status (non-critical)", 
+			"intent", networkIntent.Name, "status", resp.Status)
+	} else {
+		r.logger.Info("Successfully cleaned up cached data", "intent", networkIntent.Name)
+	}
+	
+	return nil
+}
+
+// createLabelSelector creates a label selector string from a map of labels
+func createLabelSelector(labels map[string]string) string {
+	if len(labels) == 0 {
+		return ""
+	}
+	
+	var pairs []string
+	for key, value := range labels {
+		pairs = append(pairs, fmt.Sprintf("%s=%s", key, value))
+	}
+	
+	return strings.Join(pairs, ",")
+}

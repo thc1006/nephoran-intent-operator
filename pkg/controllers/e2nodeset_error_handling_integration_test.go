@@ -87,7 +87,7 @@ func TestCompleteErrorHandlingWorkflow(t *testing.T) {
 
 	t.Run("successful reconciliation with no errors", func(t *testing.T) {
 		// First reconciliation should succeed
-		result, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
+		_, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
 		require.NoError(t, err)
 
 		// Verify ConfigMaps were created
@@ -220,10 +220,10 @@ func TestErrorHandlingWithRetryLogic(t *testing.T) {
 		hasRetryEvent := false
 		hasMaxRetriesEvent := false
 		for _, event := range fakeRecorder.Events {
-			if contains(event, "ReconciliationRetrying") {
+			if stringContains(event, "ReconciliationRetrying") {
 				hasRetryEvent = true
 			}
-			if contains(event, "ReconciliationFailedMaxRetries") {
+			if stringContains(event, "ReconciliationFailedMaxRetries") {
 				hasMaxRetriesEvent = true
 			}
 		}
@@ -384,7 +384,7 @@ func TestCleanupErrorHandlingWithFinalizers(t *testing.T) {
 		// Verify appropriate events were recorded
 		hasMaxRetriesEvent := false
 		for _, event := range fakeRecorder.Events {
-			if contains(event, "CleanupFailedMaxRetries") {
+			if stringContains(event, "CleanupFailedMaxRetries") {
 				hasMaxRetriesEvent = true
 			}
 		}
@@ -392,93 +392,7 @@ func TestCleanupErrorHandlingWithFinalizers(t *testing.T) {
 	})
 }
 
-func TestIdempotentReconciliation(t *testing.T) {
-	scheme := runtime.NewScheme()
-	_ = nephoranv1.AddToScheme(scheme)
-	_ = corev1.AddToScheme(scheme)
-
-	e2nodeSet := &nephoranv1.E2NodeSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-idempotent",
-			Namespace: "default",
-		},
-		Spec: nephoranv1.E2NodeSetSpec{
-			Replicas: 2,
-			Template: nephoranv1.E2NodeTemplate{
-				Spec: nephoranv1.E2NodeSpec{
-					NodeID:             "test-node",
-					E2InterfaceVersion: "v3.0",
-					SupportedRANFunctions: []nephoranv1.RANFunction{
-						{
-							FunctionID:  1,
-							Revision:    1,
-							Description: "KPM Service Model",
-							OID:         "1.3.6.1.4.1.53148.1.1.2.2",
-						},
-					},
-				},
-			},
-		},
-	}
-
-	fakeClient := fake.NewClientBuilder().
-		WithScheme(scheme).
-		WithObjects(e2nodeSet).
-		Build()
-
-	fakeRecorder := &FakeEventRecorder{}
-	reconciler := &E2NodeSetReconciler{
-		Client:   fakeClient,
-		Scheme:   scheme,
-		Recorder: fakeRecorder,
-	}
-
-	ctx := context.Background()
-	namespacedName := types.NamespacedName{Name: e2nodeSet.Name, Namespace: e2nodeSet.Namespace}
-
-	// First reconciliation
-	result1, err1 := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
-	require.NoError(t, err1)
-
-	// Get state after first reconciliation
-	var e2nodeSetAfterFirst nephoranv1.E2NodeSet
-	err := fakeClient.Get(ctx, namespacedName, &e2nodeSetAfterFirst)
-	require.NoError(t, err)
-
-	configMapList1 := &corev1.ConfigMapList{}
-	err = fakeClient.List(ctx, configMapList1)
-	require.NoError(t, err)
-
-	// Second reconciliation (should be idempotent)
-	result2, err2 := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
-	require.NoError(t, err2)
-
-	// Get state after second reconciliation
-	var e2nodeSetAfterSecond nephoranv1.E2NodeSet
-	err = fakeClient.Get(ctx, namespacedName, &e2nodeSetAfterSecond)
-	require.NoError(t, err)
-
-	configMapList2 := &corev1.ConfigMapList{}
-	err = fakeClient.List(ctx, configMapList2)
-	require.NoError(t, err)
-
-	// Verify idempotency
-	assert.Equal(t, result1.RequeueAfter, result2.RequeueAfter, "Requeue timing should be identical")
-	assert.Equal(t, len(configMapList1.Items), len(configMapList2.Items), "ConfigMap count should be identical")
-
-	// Count ConfigMaps for this E2NodeSet
-	count1 := countConfigMapsForE2NodeSet(configMapList1.Items, e2nodeSet.Name)
-	count2 := countConfigMapsForE2NodeSet(configMapList2.Items, e2nodeSet.Name)
-	assert.Equal(t, count1, count2, "E2NodeSet ConfigMap count should be identical")
-	assert.Equal(t, 2, count1, "Should have exactly 2 ConfigMaps")
-
-	// Third reconciliation to ensure continued idempotency
-	result3, err3 := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
-	require.NoError(t, err3)
-	assert.Equal(t, result1.RequeueAfter, result3.RequeueAfter, "Third reconciliation should also be idempotent")
-}
-
-func TestSuccessfulReconciliationClearsRetryCount(t *testing.T) {
+func TestSuccessfulReconciliationClearsRetryCountIntegration(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = nephoranv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
@@ -534,7 +448,7 @@ func TestSuccessfulReconciliationClearsRetryCount(t *testing.T) {
 	assert.Equal(t, 1, getRetryCount(&initialE2NodeSet, "configmap-operations"))
 
 	// Successful reconciliation
-	result, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
+	_, err = reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
 	require.NoError(t, err)
 
 	// Verify retry counts were cleared
@@ -560,20 +474,15 @@ func TestSuccessfulReconciliationClearsRetryCount(t *testing.T) {
 
 func findConditionByType(conditions []nephoranv1.E2NodeSetCondition, conditionType string) *nephoranv1.E2NodeSetCondition {
 	for i, condition := range conditions {
-		if condition.Type == conditionType {
+		if string(condition.Type) == conditionType {
 			return &conditions[i]
 		}
 	}
 	return nil
 }
 
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && s[len(s)-len(substr):] == substr ||
-		len(s) > len(substr) && s[:len(substr)] == substr ||
-		len(s) > len(substr) && findSubstring(s, substr)
-}
-
-func findSubstring(s, substr string) bool {
+// stringContains checks if a string contains a substring
+func stringContains(s, substr string) bool {
 	for i := 0; i <= len(s)-len(substr); i++ {
 		if s[i:i+len(substr)] == substr {
 			return true

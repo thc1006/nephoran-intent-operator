@@ -571,15 +571,6 @@ func hasConditionWithStatus(conditions []metav1.Condition, conditionType string,
 	return false
 }
 
-func getConditionMessage(conditions []metav1.Condition, conditionType string) string {
-	for _, condition := range conditions {
-		if condition.Type == conditionType {
-			return condition.Message
-		}
-	}
-	return ""
-}
-
 // Benchmark phase transition performance
 func BenchmarkPhaseTransition(b *testing.B) {
 	scheme := runtime.NewScheme()

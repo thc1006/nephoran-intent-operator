@@ -399,11 +399,14 @@ Provide confidence scores for each extracted element.`,
 		intentContext.TargetCluster,
 		intentContext.Priority)
 
+	// Convert RAG context to JSON string for the Context field
+	ragContextJSON, _ := json.Marshal(intentContext.RAGContext)
+	
 	return &llm.ProcessingRequest{
 		Intent:            intentContext.Intent,
 		SystemPrompt:      systemPrompt,
 		UserPrompt:        userPrompt,
-		Context:           intentContext.RAGContext,
+		Context:           string(ragContextJSON),
 		MaxTokens:         2000,
 		Temperature:       0.3,
 		RequestID:         intentContext.RequestID,
