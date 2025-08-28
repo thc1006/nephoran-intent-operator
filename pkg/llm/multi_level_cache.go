@@ -456,8 +456,26 @@ func (mlc *MultiLevelCache) GetMetrics() *MultiLevelCacheMetrics {
 	// Update L1 size
 	mlc.metrics.L1Size = int64(mlc.l1Cache.Size())
 
-	metrics := *mlc.metrics
-	return &metrics
+	// Create a copy without the mutex
+	metrics := &MultiLevelCacheMetrics{
+		L1Hits:          mlc.metrics.L1Hits,
+		L1Misses:        mlc.metrics.L1Misses,
+		L1Sets:          mlc.metrics.L1Sets,
+		L1Evictions:     mlc.metrics.L1Evictions,
+		L1Size:          mlc.metrics.L1Size,
+		L2Hits:          mlc.metrics.L2Hits,
+		L2Misses:        mlc.metrics.L2Misses,
+		L2Sets:          mlc.metrics.L2Sets,
+		L2Errors:        mlc.metrics.L2Errors,
+		TotalHits:       mlc.metrics.TotalHits,
+		TotalMisses:     mlc.metrics.TotalMisses,
+		OverallHitRate:  mlc.metrics.OverallHitRate,
+		AverageGetTime:  mlc.metrics.AverageGetTime,
+		AverageSetTime:  mlc.metrics.AverageSetTime,
+		TotalMemoryUsage: mlc.metrics.TotalMemoryUsage,
+		LastUpdated:     mlc.metrics.LastUpdated,
+	}
+	return metrics
 }
 
 // GetStats returns detailed cache statistics

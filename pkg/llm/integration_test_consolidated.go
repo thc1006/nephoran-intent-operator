@@ -250,9 +250,9 @@ func TestWorkerPoolIntegration(t *testing.T) {
 	}
 
 	// Submit tasks
-	for _, task := range tasks {
-		if err := pool.Submit(&task); err != nil {
-			t.Errorf("Failed to submit task %s: %v", task.ID, err)
+	for i := range tasks {
+		if err := pool.Submit(&tasks[i]); err != nil {
+			t.Errorf("Failed to submit task %s: %v", tasks[i].ID, err)
 		}
 	}
 

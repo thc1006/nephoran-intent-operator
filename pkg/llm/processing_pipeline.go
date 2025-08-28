@@ -382,10 +382,23 @@ func (pp *ProcessingPipeline) updateMetrics(processingTime time.Duration, succes
 }
 
 // GetMetrics returns current pipeline metrics
-func (pp *ProcessingPipeline) GetMetrics() PipelineMetrics {
+func (pp *ProcessingPipeline) GetMetrics() *PipelineMetrics {
 	pp.metrics.mutex.RLock()
 	defer pp.metrics.mutex.RUnlock()
-	return *pp.metrics
+	
+	// Create a copy without the mutex
+	metrics := PipelineMetrics{
+		TotalRequests:      pp.metrics.TotalRequests,
+		SuccessfulRequests: pp.metrics.SuccessfulRequests,
+		FailedRequests:     pp.metrics.FailedRequests,
+		ValidationFailures: pp.metrics.ValidationFailures,
+		PreprocessingTime:  pp.metrics.PreprocessingTime,
+		ClassificationTime: pp.metrics.ClassificationTime,
+		EnrichmentTime:     pp.metrics.EnrichmentTime,
+		TransformationTime: pp.metrics.TransformationTime,
+		PostprocessingTime: pp.metrics.PostprocessingTime,
+	}
+	return &metrics
 }
 
 // NewIntentPreprocessor creates a new intent preprocessor
@@ -553,8 +566,16 @@ func (ce *ContextEnricher) Enrich(ctx context.Context, processingCtx *Processing
 
 	ce.mutex.RLock()
 	if cached, exists := ce.contextCache[cacheKey]; exists {
+		// Create a copy of the cached enrichment context to avoid sharing
+		cachedCopy := &EnrichmentContext{
+			NetworkTopology:   cached.NetworkTopology,
+			DeploymentContext: cached.DeploymentContext,
+			PolicyContext:     cached.PolicyContext,
+			HistoricalData:    cached.HistoricalData,
+			Timestamp:         cached.Timestamp,
+		}
 		ce.mutex.RUnlock()
-		return cached, nil
+		return cachedCopy, nil
 	}
 	ce.mutex.RUnlock()
 
@@ -914,5 +935,27 @@ func (kb *TelecomKnowledgeBase) GetNetworkFunctionSpec(name string) (NetworkFunc
 	defer kb.mutex.RUnlock()
 
 	spec, exists := kb.networkFunctions[name]
-	return spec, exists
+	if !exists {
+		return NetworkFunctionSpec{}, false
+	}
+	
+	// Create a copy to avoid returning a reference to internal data
+	specCopy := NetworkFunctionSpec{
+		Name:             spec.Name,
+		Type:             spec.Type,
+		DefaultResources: make(map[string]string),
+		RequiredPorts:    make([]PortSpec, len(spec.RequiredPorts)),
+		Dependencies:     make([]string, len(spec.Dependencies)),
+		Constraints:      make([]string, len(spec.Constraints)),
+	}
+	
+	// Copy maps and slices
+	for k, v := range spec.DefaultResources {
+		specCopy.DefaultResources[k] = v
+	}
+	copy(specCopy.RequiredPorts, spec.RequiredPorts)
+	copy(specCopy.Dependencies, spec.Dependencies)
+	copy(specCopy.Constraints, spec.Constraints)
+	
+	return specCopy, true
 }

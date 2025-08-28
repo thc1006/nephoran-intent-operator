@@ -586,8 +586,18 @@ func (pe *ProcessingEngine) GetMetrics() *ProcessingMetrics {
 	pe.metrics.mutex.RLock()
 	defer pe.metrics.mutex.RUnlock()
 
-	metrics := *pe.metrics
-	return &metrics
+	// Create a copy without the mutex
+	metrics := &ProcessingMetrics{
+		TotalRequests:   pe.metrics.TotalRequests,
+		BatchedRequests: pe.metrics.BatchedRequests,
+		StreamRequests:  pe.metrics.StreamRequests,
+		RAGRequests:     pe.metrics.RAGRequests,
+		AverageLatency:  pe.metrics.AverageLatency,
+		ThroughputRPS:   pe.metrics.ThroughputRPS,
+		CacheHitRate:    pe.metrics.CacheHitRate,
+		BatchEfficiency: pe.metrics.BatchEfficiency,
+	}
+	return metrics
 }
 
 // Shutdown gracefully shuts down the processing engine

@@ -586,8 +586,21 @@ func (sv *SecurityValidator) GetMetrics() *SecurityMetrics {
 	sv.metrics.mutex.RLock()
 	defer sv.metrics.mutex.RUnlock()
 
-	metrics := *sv.metrics
-	return &metrics
+	// Create a copy without the mutex
+	metrics := &SecurityMetrics{
+		TotalRequests:           sv.metrics.TotalRequests,
+		ValidatedRequests:       sv.metrics.ValidatedRequests,
+		RejectedRequests:        sv.metrics.RejectedRequests,
+		RateLimitedRequests:     sv.metrics.RateLimitedRequests,
+		PromptInjectionAttempts: sv.metrics.PromptInjectionAttempts,
+		ContentFilterBlocks:     sv.metrics.ContentFilterBlocks,
+		IPFilterBlocks:          sv.metrics.IPFilterBlocks,
+		APIKeyFailures:          sv.metrics.APIKeyFailures,
+		ValidationErrors:        sv.metrics.ValidationErrors,
+		AverageValidationTime:   sv.metrics.AverageValidationTime,
+		LastUpdated:             sv.metrics.LastUpdated,
+	}
+	return metrics
 }
 
 // NewRateLimiter creates a new rate limiter

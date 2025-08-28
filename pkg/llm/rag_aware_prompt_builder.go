@@ -673,8 +673,19 @@ func (pb *RAGAwarePromptBuilder) GetMetrics() *PromptBuilderMetrics {
 	pb.metrics.mutex.RLock()
 	defer pb.metrics.mutex.RUnlock()
 
-	metrics := *pb.metrics
-	return &metrics
+	// Create a copy without the mutex
+	metrics := &PromptBuilderMetrics{
+		TotalPrompts:           pb.metrics.TotalPrompts,
+		CachedPrompts:          pb.metrics.CachedPrompts,
+		ContextOptimizations:   pb.metrics.ContextOptimizations,
+		AbbreviationExpansions: pb.metrics.AbbreviationExpansions,
+		StandardsMappings:      pb.metrics.StandardsMappings,
+		FewShotExamplesUsed:    pb.metrics.FewShotExamplesUsed,
+		AveragePromptTokens:    pb.metrics.AveragePromptTokens,
+		AverageProcessingTime:  pb.metrics.AverageProcessingTime,
+		LastUpdated:            pb.metrics.LastUpdated,
+	}
+	return metrics
 }
 
 // NewTelecomQueryEnhancer creates a new telecom query enhancer
@@ -840,6 +851,9 @@ func NewDomainClassifier() *DomainClassifier {
 
 // Classify classifies a query into telecom domains
 func (dc *DomainClassifier) Classify(query string) string {
+	dc.mutex.RLock()
+	defer dc.mutex.RUnlock()
+	
 	queryLower := strings.ToLower(query)
 
 	domainScores := make(map[string]int)

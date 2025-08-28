@@ -957,9 +957,29 @@ func (wp *WorkerPool) GetMetrics() *WorkerPoolMetrics {
 	wp.metrics.mutex.RLock()
 	defer wp.metrics.mutex.RUnlock()
 
-	// Create a copy to avoid race conditions
-	metrics := &WorkerPoolMetrics{}
-	*metrics = *wp.metrics
+	// Create a copy without the mutex to avoid race conditions
+	metrics := &WorkerPoolMetrics{
+		TasksSubmitted:      wp.metrics.TasksSubmitted,
+		TasksCompleted:      wp.metrics.TasksCompleted,
+		TasksFailed:         wp.metrics.TasksFailed,
+		TasksRetried:        wp.metrics.TasksRetried,
+		TasksDropped:        wp.metrics.TasksDropped,
+		TotalProcessingTime: wp.metrics.TotalProcessingTime,
+		AverageQueueTime:    wp.metrics.AverageQueueTime,
+		AverageProcessTime:  wp.metrics.AverageProcessTime,
+		ActiveWorkers:       wp.metrics.ActiveWorkers,
+		IdleWorkers:         wp.metrics.IdleWorkers,
+		TotalWorkers:        wp.metrics.TotalWorkers,
+		WorkerUtilization:   wp.metrics.WorkerUtilization,
+		QueueLength:         wp.metrics.QueueLength,
+		MaxQueueLength:      wp.metrics.MaxQueueLength,
+		QueueUtilization:    wp.metrics.QueueUtilization,
+		TotalMemoryUsage:    wp.metrics.TotalMemoryUsage,
+		TotalCPUUsage:       wp.metrics.TotalCPUUsage,
+		ThroughputRPS:       wp.metrics.ThroughputRPS,
+		LatencyP95:          wp.metrics.LatencyP95,
+		LatencyP99:          wp.metrics.LatencyP99,
+	}
 
 	// Update real-time values
 	metrics.ActiveWorkers = atomic.LoadInt32(&wp.workerCount)

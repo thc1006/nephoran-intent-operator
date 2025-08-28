@@ -16,7 +16,7 @@ import (
 
 // StreamingProcessorImpl handles Server-Sent Events (SSE) streaming for real-time LLM responses
 type StreamingProcessorImpl struct {
-	baseClient     Client
+	baseClient     *Client
 	contextManager *StreamingContextManager
 	tokenManager   *TokenManager
 	config         *StreamingConfig
@@ -128,7 +128,7 @@ type SSEEvent struct {
 }
 
 // NewStreamingProcessor creates a new streaming processor
-func NewStreamingProcessorImpl(baseClient Client, tokenManager *TokenManager, config *StreamingConfig) *StreamingProcessorImpl {
+func NewStreamingProcessorImpl(baseClient *Client, tokenManager *TokenManager, config *StreamingConfig) *StreamingProcessorImpl {
 	if config == nil {
 		config = getDefaultStreamingConfig()
 	}
@@ -802,8 +802,21 @@ func (sp *StreamingProcessorImpl) GetMetrics() *StreamingMetrics {
 	sp.metrics.mutex.RLock()
 	defer sp.metrics.mutex.RUnlock()
 
-	metrics := *sp.metrics
-	return &metrics
+	// Create a copy without the mutex
+	metrics := &StreamingMetrics{
+		ActiveStreams:      sp.metrics.ActiveStreams,
+		TotalStreams:       sp.metrics.TotalStreams,
+		CompletedStreams:   sp.metrics.CompletedStreams,
+		FailedStreams:      sp.metrics.FailedStreams,
+		AverageStreamTime:  sp.metrics.AverageStreamTime,
+		TotalBytesStreamed: sp.metrics.TotalBytesStreamed,
+		AverageLatency:     sp.metrics.AverageLatency,
+		ContextInjections:  sp.metrics.ContextInjections,
+		Reconnections:      sp.metrics.Reconnections,
+		HeartbeatsSent:     sp.metrics.HeartbeatsSent,
+		LastUpdated:        sp.metrics.LastUpdated,
+	}
+	return metrics
 }
 
 // GetConfig returns the current configuration
@@ -811,6 +824,7 @@ func (sp *StreamingProcessorImpl) GetConfig() *StreamingConfig {
 	sp.mutex.RLock()
 	defer sp.mutex.RUnlock()
 
+	// Create a copy of the config
 	config := *sp.config
 	return &config
 }

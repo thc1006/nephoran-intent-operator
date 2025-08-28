@@ -576,10 +576,26 @@ func (c *OptimizedHTTPClient) putResponse(resp *OptimizedResponse) {
 }
 
 // GetStats returns current HTTP client statistics
-func (c *OptimizedHTTPClient) GetStats() HTTPClientStats {
+func (c *OptimizedHTTPClient) GetStats() *HTTPClientStats {
 	c.stats.mutex.RLock()
 	defer c.stats.mutex.RUnlock()
-	return *c.stats
+	
+	// Create a copy without the mutex
+	stats := HTTPClientStats{
+		RequestsTotal:      c.stats.RequestsTotal,
+		RequestsSuccessful: c.stats.RequestsSuccessful,
+		RequestsFailed:     c.stats.RequestsFailed,
+		TotalLatency:       c.stats.TotalLatency,
+		AverageLatency:     c.stats.AverageLatency,
+		P95Latency:         c.stats.P95Latency,
+		P99Latency:         c.stats.P99Latency,
+		ConnectionsCreated: c.stats.ConnectionsCreated,
+		ConnectionsReused:  c.stats.ConnectionsReused,
+		ConnectionsClosed:  c.stats.ConnectionsClosed,
+		BufferPoolHits:     c.stats.BufferPoolHits,
+		BufferPoolMisses:   c.stats.BufferPoolMisses,
+	}
+	return &stats
 }
 
 // getDefaultOptimizedClientConfig returns default configuration
