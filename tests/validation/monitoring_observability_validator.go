@@ -1,5 +1,5 @@
-// Package validation provides monitoring and observability validation for production readiness
-// This validator ensures comprehensive observability stack is properly configured and functional
+// Package validation provides monitoring and observability validation for production readiness.
+// This validator ensures comprehensive observability stack is properly configured and functional.
 package validation
 
 import (
@@ -19,49 +19,49 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// MonitoringObservabilityValidator validates comprehensive observability stack
-// Targets 2/2 points for monitoring and observability in production readiness
+// MonitoringObservabilityValidator validates comprehensive observability stack.
+// Targets 2/2 points for monitoring and observability in production readiness.
 type MonitoringObservabilityValidator struct {
 	client    client.Client
 	clientset *kubernetes.Clientset
 	config    *ValidationConfig
 
-	// Monitoring metrics
+	// Monitoring metrics.
 	metrics *ObservabilityMetrics
 	mu      sync.RWMutex
 }
 
-// ObservabilityMetrics tracks monitoring and observability validation results
+// ObservabilityMetrics tracks monitoring and observability validation results.
 type ObservabilityMetrics struct {
-	// Metrics Collection (1 point)
+	// Metrics Collection (1 point).
 	PrometheusDeployed        bool
 	ServiceMonitorsConfigured bool
 	MetricsEndpointsActive    bool
 	CustomMetricsAvailable    bool
 	AlertRulesConfigured      bool
 
-	// Logging & Tracing (1 point)
+	// Logging & Tracing (1 point).
 	LogAggregationActive         bool
 	DistributedTracingActive     bool
 	LogRetentionConfigured       bool
 	TracingInstrumentationActive bool
 
-	// Dashboard & Alerting
+	// Dashboard & Alerting.
 	GrafanaDashboards      bool
 	AlertManagerConfigured bool
 	NotificationChannels   bool
 	SLOMonitoringEnabled   bool
 
-	// Health & Status
+	// Health & Status.
 	AllComponentsHealthy    bool
 	DataRetentionCompliant  bool
 	QueryPerformanceOptimal bool
 
-	// Detailed component status
+	// Detailed component status.
 	ComponentStatus map[string]ComponentHealth
 }
 
-// ComponentHealth represents the health status of an observability component
+// ComponentHealth represents the health status of an observability component.
 type ComponentHealth struct {
 	Name         string
 	Deployed     bool
@@ -73,7 +73,7 @@ type ComponentHealth struct {
 	Metrics      map[string]interface{}
 }
 
-// ObservabilityComponent represents a component in the observability stack
+// ObservabilityComponent represents a component in the observability stack.
 type ObservabilityComponent struct {
 	Name            string
 	Type            ComponentType
@@ -86,18 +86,23 @@ type ObservabilityComponent struct {
 	Required        bool
 }
 
-// ComponentType defines the type of observability component
+// ComponentType defines the type of observability component.
 type ComponentType string
 
 const (
-	ComponentTypeMetrics   ComponentType = "metrics"
-	ComponentTypeLogs      ComponentType = "logs"
-	ComponentTypeTracing   ComponentType = "tracing"
+	// ComponentTypeMetrics holds componenttypemetrics value.
+	ComponentTypeMetrics ComponentType = "metrics"
+	// ComponentTypeLogs holds componenttypelogs value.
+	ComponentTypeLogs ComponentType = "logs"
+	// ComponentTypeTracing holds componenttypetracing value.
+	ComponentTypeTracing ComponentType = "tracing"
+	// ComponentTypeDashboard holds componenttypedashboard value.
 	ComponentTypeDashboard ComponentType = "dashboard"
-	ComponentTypeAlerting  ComponentType = "alerting"
+	// ComponentTypeAlerting holds componenttypealerting value.
+	ComponentTypeAlerting ComponentType = "alerting"
 )
 
-// NewMonitoringObservabilityValidator creates a new monitoring and observability validator
+// NewMonitoringObservabilityValidator creates a new monitoring and observability validator.
 func NewMonitoringObservabilityValidator(client client.Client, clientset *kubernetes.Clientset, config *ValidationConfig) *MonitoringObservabilityValidator {
 	return &MonitoringObservabilityValidator{
 		client:    client,
@@ -109,15 +114,15 @@ func NewMonitoringObservabilityValidator(client client.Client, clientset *kubern
 	}
 }
 
-// ValidateMonitoringObservability executes comprehensive monitoring and observability validation
-// Returns score out of 2 points for monitoring and observability
+// ValidateMonitoringObservability executes comprehensive monitoring and observability validation.
+// Returns score out of 2 points for monitoring and observability.
 func (mov *MonitoringObservabilityValidator) ValidateMonitoringObservability(ctx context.Context) (int, error) {
 	ginkgo.By("Starting Monitoring and Observability Validation")
 
 	totalScore := 0
 	maxScore := 2
 
-	// Phase 1: Metrics Collection Validation (1 point)
+	// Phase 1: Metrics Collection Validation (1 point).
 	metricsScore, err := mov.validateMetricsCollection(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("metrics collection validation failed: %w", err)
@@ -125,7 +130,7 @@ func (mov *MonitoringObservabilityValidator) ValidateMonitoringObservability(ctx
 	totalScore += metricsScore
 	ginkgo.By(fmt.Sprintf("Metrics Collection Score: %d/1 points", metricsScore))
 
-	// Phase 2: Logging and Tracing Validation (1 point)
+	// Phase 2: Logging and Tracing Validation (1 point).
 	loggingScore, err := mov.validateLoggingTracing(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("logging and tracing validation failed: %w", err)
@@ -133,7 +138,7 @@ func (mov *MonitoringObservabilityValidator) ValidateMonitoringObservability(ctx
 	totalScore += loggingScore
 	ginkgo.By(fmt.Sprintf("Logging and Tracing Score: %d/1 points", loggingScore))
 
-	// Additional validations for comprehensive coverage
+	// Additional validations for comprehensive coverage.
 	mov.validateDashboardsAlerting(ctx)
 	mov.validateDataRetention(ctx)
 	mov.validatePerformance(ctx)
@@ -143,13 +148,13 @@ func (mov *MonitoringObservabilityValidator) ValidateMonitoringObservability(ctx
 	return totalScore, nil
 }
 
-// validateMetricsCollection validates Prometheus metrics collection setup
+// validateMetricsCollection validates Prometheus metrics collection setup.
 func (mov *MonitoringObservabilityValidator) validateMetricsCollection(ctx context.Context) (int, error) {
 	ginkgo.By("Validating Metrics Collection Infrastructure")
 
 	score := 0
 
-	// Check for Prometheus deployment
+	// Check for Prometheus deployment.
 	if mov.validatePrometheusDeployment(ctx) {
 		score = 1
 		ginkgo.By("✓ Prometheus metrics collection validated")
@@ -161,7 +166,7 @@ func (mov *MonitoringObservabilityValidator) validateMetricsCollection(ctx conte
 		ginkgo.By("✗ Prometheus metrics collection not properly configured")
 	}
 
-	// Additional metrics validation
+	// Additional metrics validation.
 	mov.validateServiceMonitors(ctx)
 	mov.validateMetricsEndpoints(ctx)
 	mov.validateCustomMetrics(ctx)
@@ -170,7 +175,7 @@ func (mov *MonitoringObservabilityValidator) validateMetricsCollection(ctx conte
 	return score, nil
 }
 
-// validatePrometheusDeployment checks for Prometheus server deployment
+// validatePrometheusDeployment checks for Prometheus server deployment.
 func (mov *MonitoringObservabilityValidator) validatePrometheusDeployment(ctx context.Context) bool {
 	components := []ObservabilityComponent{
 		{
@@ -200,25 +205,25 @@ func (mov *MonitoringObservabilityValidator) validatePrometheusDeployment(ctx co
 		}
 	}
 
-	// Require at least one Prometheus component
+	// Require at least one Prometheus component.
 	return validComponents > 0
 }
 
-// validateObservabilityComponent validates a single observability component
+// validateObservabilityComponent validates a single observability component.
 func (mov *MonitoringObservabilityValidator) validateObservabilityComponent(ctx context.Context, component ObservabilityComponent) bool {
 	health := ComponentHealth{
 		Name:        component.Name,
 		LastChecked: time.Now(),
 	}
 
-	// Check deployment
+	// Check deployment.
 	deployment := &appsv1.Deployment{}
 	key := types.NamespacedName{
 		Name:      component.DeploymentName,
 		Namespace: component.Namespace,
 	}
 
-	// Try multiple namespaces if none specified
+	// Try multiple namespaces if none specified.
 	namespaces := []string{"monitoring", "prometheus", "nephoran-system", "kube-system"}
 	if component.Namespace != "" {
 		namespaces = []string{component.Namespace}
@@ -234,7 +239,7 @@ func (mov *MonitoringObservabilityValidator) validateObservabilityComponent(ctx 
 	}
 
 	if !health.Deployed {
-		// Try by label selector as fallback
+		// Try by label selector as fallback.
 		deployments := &appsv1.DeploymentList{}
 		listOpts := []client.ListOption{
 			client.MatchingLabels(map[string]string{
@@ -250,26 +255,26 @@ func (mov *MonitoringObservabilityValidator) validateObservabilityComponent(ctx 
 	}
 
 	if health.Deployed {
-		// Check if deployment is ready
+		// Check if deployment is ready.
 		health.Healthy = deployment.Status.ReadyReplicas > 0
 
-		// Get version from deployment
+		// Get version from deployment.
 		if deployment.Labels != nil {
 			if version, exists := deployment.Labels["version"]; exists {
 				health.Version = version
 			}
 		}
 
-		// Validate service
+		// Validate service.
 		mov.validateComponentService(ctx, component, &health)
 
-		// Validate endpoints if healthy
+		// Validate endpoints if healthy.
 		if health.Healthy {
 			mov.validateComponentEndpoints(ctx, component, &health)
 		}
 	}
 
-	// Store component health
+	// Store component health.
 	mov.mu.Lock()
 	mov.metrics.ComponentStatus[component.Name] = health
 	mov.mu.Unlock()
@@ -277,7 +282,7 @@ func (mov *MonitoringObservabilityValidator) validateObservabilityComponent(ctx 
 	return health.Deployed && (health.Healthy || !component.Required)
 }
 
-// validateComponentService validates the service for an observability component
+// validateComponentService validates the service for an observability component.
 func (mov *MonitoringObservabilityValidator) validateComponentService(ctx context.Context, component ObservabilityComponent, health *ComponentHealth) {
 	service := &corev1.Service{}
 	key := types.NamespacedName{
@@ -286,7 +291,7 @@ func (mov *MonitoringObservabilityValidator) validateComponentService(ctx contex
 	}
 
 	if err := mov.client.Get(ctx, key, service); err == nil {
-		// Service exists, collect endpoint information
+		// Service exists, collect endpoint information.
 		for _, port := range service.Spec.Ports {
 			endpoint := fmt.Sprintf("%s:%d", service.Name, port.Port)
 			health.Endpoints = append(health.Endpoints, endpoint)
@@ -294,14 +299,14 @@ func (mov *MonitoringObservabilityValidator) validateComponentService(ctx contex
 	}
 }
 
-// validateComponentEndpoints validates health and metrics endpoints
+// validateComponentEndpoints validates health and metrics endpoints.
 func (mov *MonitoringObservabilityValidator) validateComponentEndpoints(ctx context.Context, component ObservabilityComponent, health *ComponentHealth) {
 	if component.HealthEndpoint == "" && component.MetricsEndpoint == "" {
 		return
 	}
 
-	// For now, we'll validate by checking if pods are ready
-	// In a real implementation, you'd make HTTP requests to the endpoints
+	// For now, we'll validate by checking if pods are ready.
+	// In a real implementation, you'd make HTTP requests to the endpoints.
 	pods := &corev1.PodList{}
 	listOpts := []client.ListOption{
 		client.InNamespace(component.Namespace),
@@ -317,7 +322,7 @@ func (mov *MonitoringObservabilityValidator) validateComponentEndpoints(ctx cont
 	readyPods := 0
 	for _, pod := range pods.Items {
 		if pod.Status.Phase == corev1.PodRunning {
-			// Check if all containers are ready
+			// Check if all containers are ready.
 			allReady := true
 			for _, condition := range pod.Status.Conditions {
 				if condition.Type == corev1.PodReady && condition.Status != corev1.ConditionTrue {
@@ -338,7 +343,7 @@ func (mov *MonitoringObservabilityValidator) validateComponentEndpoints(ctx cont
 	}
 }
 
-// validateServiceMonitors checks for ServiceMonitor configurations
+// validateServiceMonitors checks for ServiceMonitor configurations.
 func (mov *MonitoringObservabilityValidator) validateServiceMonitors(ctx context.Context) {
 	serviceMonitors := &metav1.PartialObjectMetadataList{}
 	serviceMonitors.SetGroupVersionKind(schema.GroupVersionKind{
@@ -367,7 +372,7 @@ func (mov *MonitoringObservabilityValidator) validateServiceMonitors(ctx context
 	}
 }
 
-// validateMetricsEndpoints checks for metrics endpoints in services
+// validateMetricsEndpoints checks for metrics endpoints in services.
 func (mov *MonitoringObservabilityValidator) validateMetricsEndpoints(ctx context.Context) {
 	services := &corev1.ServiceList{}
 	if err := mov.client.List(ctx, services, client.InNamespace("nephoran-system")); err != nil {
@@ -392,9 +397,9 @@ func (mov *MonitoringObservabilityValidator) validateMetricsEndpoints(ctx contex
 	}
 }
 
-// validateCustomMetrics checks for custom application metrics
+// validateCustomMetrics checks for custom application metrics.
 func (mov *MonitoringObservabilityValidator) validateCustomMetrics(ctx context.Context) {
-	// Check for custom metrics annotations or ServiceMonitor configurations
+	// Check for custom metrics annotations or ServiceMonitor configurations.
 	services := &corev1.ServiceList{}
 	if err := mov.client.List(ctx, services, client.InNamespace("nephoran-system")); err != nil {
 		return
@@ -403,7 +408,7 @@ func (mov *MonitoringObservabilityValidator) validateCustomMetrics(ctx context.C
 	customMetricsFound := false
 	for _, service := range services.Items {
 		if service.Annotations != nil {
-			// Look for Prometheus annotations
+			// Look for Prometheus annotations.
 			if _, exists := service.Annotations["prometheus.io/scrape"]; exists {
 				customMetricsFound = true
 				break
@@ -420,7 +425,7 @@ func (mov *MonitoringObservabilityValidator) validateCustomMetrics(ctx context.C
 	}
 }
 
-// validateAlertRules checks for Prometheus alert rules
+// validateAlertRules checks for Prometheus alert rules.
 func (mov *MonitoringObservabilityValidator) validateAlertRules(ctx context.Context) {
 	prometheusRules := &metav1.PartialObjectMetadataList{}
 	prometheusRules.SetGroupVersionKind(schema.GroupVersionKind{
@@ -447,20 +452,20 @@ func (mov *MonitoringObservabilityValidator) validateAlertRules(ctx context.Cont
 	}
 }
 
-// validateLoggingTracing validates logging aggregation and distributed tracing
+// validateLoggingTracing validates logging aggregation and distributed tracing.
 func (mov *MonitoringObservabilityValidator) validateLoggingTracing(ctx context.Context) (int, error) {
 	ginkgo.By("Validating Logging and Tracing Infrastructure")
 
 	score := 0
 
-	// Check logging infrastructure
+	// Check logging infrastructure.
 	loggingValid := mov.validateLoggingInfrastructure(ctx)
 
-	// Check tracing infrastructure
+	// Check tracing infrastructure.
 	tracingValid := mov.validateTracingInfrastructure(ctx)
 
-	// Award 1 point if either logging or tracing is properly configured
-	// Award full point if both are configured
+	// Award 1 point if either logging or tracing is properly configured.
+	// Award full point if both are configured.
 	if loggingValid && tracingValid {
 		score = 1
 		ginkgo.By("✓ Logging and tracing infrastructure validated")
@@ -474,7 +479,7 @@ func (mov *MonitoringObservabilityValidator) validateLoggingTracing(ctx context.
 	return score, nil
 }
 
-// validateLoggingInfrastructure checks for log aggregation setup
+// validateLoggingInfrastructure checks for log aggregation setup.
 func (mov *MonitoringObservabilityValidator) validateLoggingInfrastructure(ctx context.Context) bool {
 	loggingComponents := []ObservabilityComponent{
 		{
@@ -528,7 +533,7 @@ func (mov *MonitoringObservabilityValidator) validateLoggingInfrastructure(ctx c
 		}
 	}
 
-	// Also check for DaemonSets (common for log collectors)
+	// Also check for DaemonSets (common for log collectors).
 	loggingDaemonSets := mov.validateLoggingDaemonSets(ctx)
 
 	isValid := validComponents > 0 || loggingDaemonSets > 0
@@ -545,7 +550,7 @@ func (mov *MonitoringObservabilityValidator) validateLoggingInfrastructure(ctx c
 	return isValid
 }
 
-// validateLoggingDaemonSets checks for logging DaemonSets
+// validateLoggingDaemonSets checks for logging DaemonSets.
 func (mov *MonitoringObservabilityValidator) validateLoggingDaemonSets(ctx context.Context) int {
 	daemonSets := &appsv1.DaemonSetList{}
 	if err := mov.client.List(ctx, daemonSets); err != nil {
@@ -568,7 +573,7 @@ func (mov *MonitoringObservabilityValidator) validateLoggingDaemonSets(ctx conte
 	return loggingDaemonSets
 }
 
-// validateTracingInfrastructure checks for distributed tracing setup
+// validateTracingInfrastructure checks for distributed tracing setup.
 func (mov *MonitoringObservabilityValidator) validateTracingInfrastructure(ctx context.Context) bool {
 	tracingComponents := []ObservabilityComponent{
 		{
@@ -636,19 +641,19 @@ func (mov *MonitoringObservabilityValidator) validateTracingInfrastructure(ctx c
 	return isValid
 }
 
-// validateDashboardsAlerting validates dashboard and alerting setup
+// validateDashboardsAlerting validates dashboard and alerting setup.
 func (mov *MonitoringObservabilityValidator) validateDashboardsAlerting(ctx context.Context) {
-	// Check for Grafana dashboards
+	// Check for Grafana dashboards.
 	mov.validateGrafanaDashboards(ctx)
 
-	// Check for AlertManager
+	// Check for AlertManager.
 	mov.validateAlertManager(ctx)
 
-	// Check for notification channels
+	// Check for notification channels.
 	mov.validateNotificationChannels(ctx)
 }
 
-// validateGrafanaDashboards checks for Grafana deployment and dashboards
+// validateGrafanaDashboards checks for Grafana deployment and dashboards.
 func (mov *MonitoringObservabilityValidator) validateGrafanaDashboards(ctx context.Context) {
 	grafanaComponent := ObservabilityComponent{
 		Name:           "grafana",
@@ -662,7 +667,7 @@ func (mov *MonitoringObservabilityValidator) validateGrafanaDashboards(ctx conte
 
 	grafanaValid := mov.validateObservabilityComponent(ctx, grafanaComponent)
 
-	// Check for ConfigMaps containing dashboards
+	// Check for ConfigMaps containing dashboards.
 	configMaps := &corev1.ConfigMapList{}
 	dashboardConfigMaps := 0
 
@@ -687,7 +692,7 @@ func (mov *MonitoringObservabilityValidator) validateGrafanaDashboards(ctx conte
 	}
 }
 
-// validateAlertManager checks for AlertManager deployment
+// validateAlertManager checks for AlertManager deployment.
 func (mov *MonitoringObservabilityValidator) validateAlertManager(ctx context.Context) {
 	alertManagerComponent := ObservabilityComponent{
 		Name:           "alertmanager",
@@ -710,9 +715,9 @@ func (mov *MonitoringObservabilityValidator) validateAlertManager(ctx context.Co
 	}
 }
 
-// validateNotificationChannels checks for notification channel configurations
+// validateNotificationChannels checks for notification channel configurations.
 func (mov *MonitoringObservabilityValidator) validateNotificationChannels(ctx context.Context) {
-	// Check for AlertManager configuration containing receivers
+	// Check for AlertManager configuration containing receivers.
 	secrets := &corev1.SecretList{}
 	configFound := false
 
@@ -721,7 +726,7 @@ func (mov *MonitoringObservabilityValidator) validateNotificationChannels(ctx co
 		if err := mov.client.List(ctx, secrets, client.InNamespace(namespace)); err == nil {
 			for _, secret := range secrets.Items {
 				if strings.Contains(secret.Name, "alertmanager") {
-					// Check if secret contains webhook or email configurations
+					// Check if secret contains webhook or email configurations.
 					if secret.Data != nil {
 						for key := range secret.Data {
 							if strings.Contains(key, "webhook") ||
@@ -746,9 +751,9 @@ func (mov *MonitoringObservabilityValidator) validateNotificationChannels(ctx co
 	}
 }
 
-// validateDataRetention validates data retention policies
+// validateDataRetention validates data retention policies.
 func (mov *MonitoringObservabilityValidator) validateDataRetention(ctx context.Context) {
-	// Check for PersistentVolumes for data storage
+	// Check for PersistentVolumes for data storage.
 	pvcs := &corev1.PersistentVolumeClaimList{}
 	retentionConfigured := false
 
@@ -771,9 +776,9 @@ func (mov *MonitoringObservabilityValidator) validateDataRetention(ctx context.C
 	}
 }
 
-// validatePerformance validates observability stack performance
+// validatePerformance validates observability stack performance.
 func (mov *MonitoringObservabilityValidator) validatePerformance(ctx context.Context) {
-	// Check resource limits and requests are properly configured
+	// Check resource limits and requests are properly configured.
 	deployments := &appsv1.DeploymentList{}
 	performanceOptimal := true
 
@@ -782,7 +787,7 @@ func (mov *MonitoringObservabilityValidator) validatePerformance(ctx context.Con
 		if err := mov.client.List(ctx, deployments, client.InNamespace(namespace)); err == nil {
 			for _, deployment := range deployments.Items {
 				for _, container := range deployment.Spec.Template.Spec.Containers {
-					// Check if resources are specified
+					// Check if resources are specified.
 					if container.Resources.Requests == nil && container.Resources.Limits == nil {
 						performanceOptimal = false
 					}
@@ -800,14 +805,14 @@ func (mov *MonitoringObservabilityValidator) validatePerformance(ctx context.Con
 	}
 }
 
-// GetObservabilityMetrics returns the current observability metrics
+// GetObservabilityMetrics returns the current observability metrics.
 func (mov *MonitoringObservabilityValidator) GetObservabilityMetrics() *ObservabilityMetrics {
 	mov.mu.RLock()
 	defer mov.mu.RUnlock()
 	return mov.metrics
 }
 
-// GenerateObservabilityReport generates a comprehensive observability report
+// GenerateObservabilityReport generates a comprehensive observability report.
 func (mov *MonitoringObservabilityValidator) GenerateObservabilityReport() string {
 	mov.mu.RLock()
 	defer mov.mu.RUnlock()
@@ -853,7 +858,7 @@ COMPONENT HEALTH STATUS:
 		mov.metrics.SLOMonitoringEnabled,
 	)
 
-	// Add component status details
+	// Add component status details.
 	for name, health := range mov.metrics.ComponentStatus {
 		status := "❌"
 		if health.Healthy {

@@ -14,7 +14,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// BatchSearchRequest represents a batch of search requests
+// BatchSearchRequest represents a batch of search requests.
 type BatchSearchRequest struct {
 	Queries           []*SearchQuery         `json:"queries"`
 	MaxConcurrency    int                    `json:"max_concurrency"`
@@ -23,7 +23,7 @@ type BatchSearchRequest struct {
 	Metadata          map[string]interface{} `json:"metadata"`
 }
 
-// BatchSearchResponse represents the response from batch search
+// BatchSearchResponse represents the response from batch search.
 type BatchSearchResponse struct {
 	Results             []*SearchResponse      `json:"results"`
 	AggregatedResults   []*shared.SearchResult `json:"aggregated_results"`
@@ -33,7 +33,7 @@ type BatchSearchResponse struct {
 	Metadata            map[string]interface{} `json:"metadata"`
 }
 
-// SearchBatch represents a batch of related queries
+// SearchBatch represents a batch of related queries.
 type SearchBatch struct {
 	ID          string         `json:"id"`
 	Queries     []*SearchQuery `json:"queries"`
@@ -42,7 +42,7 @@ type SearchBatch struct {
 	MaxWaitTime time.Duration  `json:"max_wait_time"`
 }
 
-// BatchOptimizer handles batching optimization
+// BatchOptimizer handles batching optimization.
 type BatchOptimizer struct {
 	maxBatchSize        int
 	maxWaitTime         time.Duration
@@ -54,7 +54,7 @@ type BatchOptimizer struct {
 	logger              *slog.Logger
 }
 
-// OptimizedBatchSearchClient provides high-performance batch searching
+// OptimizedBatchSearchClient provides high-performance batch searching.
 type OptimizedBatchSearchClient struct {
 	client      *WeaviateClient
 	optimizer   *BatchOptimizer
@@ -66,7 +66,7 @@ type OptimizedBatchSearchClient struct {
 	queryPool   sync.Pool // Pool for query objects
 }
 
-// BatchSearchConfig holds configuration for batch searching
+// BatchSearchConfig holds configuration for batch searching.
 type BatchSearchConfig struct {
 	MaxBatchSize            int           `json:"max_batch_size"`
 	MaxConcurrency          int           `json:"max_concurrency"`
@@ -79,7 +79,7 @@ type BatchSearchConfig struct {
 	CacheTTL                time.Duration `json:"cache_ttl"`
 }
 
-// BatchSearchMetrics tracks batch search performance
+// BatchSearchMetrics tracks batch search performance.
 type BatchSearchMetrics struct {
 	TotalBatches         int64         `json:"total_batches"`
 	TotalQueries         int64         `json:"total_queries"`
@@ -91,7 +91,7 @@ type BatchSearchMetrics struct {
 	mutex                sync.RWMutex
 }
 
-// QueryResultCache provides intelligent caching for batch queries
+// QueryResultCache provides intelligent caching for batch queries.
 type QueryResultCache struct {
 	data     sync.Map
 	ttl      time.Duration
@@ -100,7 +100,7 @@ type QueryResultCache struct {
 	logger   *slog.Logger
 }
 
-// CachedQueryResult represents a cached query result
+// CachedQueryResult represents a cached query result.
 type CachedQueryResult struct {
 	Result      *SearchResponse `json:"result"`
 	CreatedAt   time.Time       `json:"created_at"`
@@ -108,7 +108,7 @@ type CachedQueryResult struct {
 	Vector      []float32       `json:"vector"`
 }
 
-// NewOptimizedBatchSearchClient creates a new optimized batch search client
+// NewOptimizedBatchSearchClient creates a new optimized batch search client.
 func NewOptimizedBatchSearchClient(weaviateClient *WeaviateClient, config *BatchSearchConfig) *OptimizedBatchSearchClient {
 	if config == nil {
 		config = getDefaultBatchSearchConfig()
@@ -142,19 +142,19 @@ func NewOptimizedBatchSearchClient(weaviateClient *WeaviateClient, config *Batch
 		metrics:    &BatchSearchMetrics{},
 	}
 
-	// Initialize query pool for object reuse
+	// Initialize query pool for object reuse.
 	client.queryPool.New = func() interface{} {
 		return &SearchQuery{}
 	}
 
-	// Start background processing
+	// Start background processing.
 	go client.startBatchProcessor()
 	go client.startCacheEviction()
 
 	return client
 }
 
-// getDefaultBatchSearchConfig returns default batch search configuration
+// getDefaultBatchSearchConfig returns default batch search configuration.
 func getDefaultBatchSearchConfig() *BatchSearchConfig {
 	return &BatchSearchConfig{
 		MaxBatchSize:            50,
@@ -169,7 +169,7 @@ func getDefaultBatchSearchConfig() *BatchSearchConfig {
 	}
 }
 
-// BatchSearch performs optimized batch searching
+// BatchSearch performs optimized batch searching.
 func (c *OptimizedBatchSearchClient) BatchSearch(ctx context.Context, request *BatchSearchRequest) (*BatchSearchResponse, error) {
 	startTime := time.Now()
 
@@ -177,7 +177,7 @@ func (c *OptimizedBatchSearchClient) BatchSearch(ctx context.Context, request *B
 		return nil, fmt.Errorf("batch search request cannot be nil or empty")
 	}
 
-	// Set defaults
+	// Set defaults.
 	if request.MaxConcurrency == 0 {
 		request.MaxConcurrency = c.config.MaxConcurrency
 	}
@@ -187,22 +187,22 @@ func (c *OptimizedBatchSearchClient) BatchSearch(ctx context.Context, request *B
 		"max_concurrency", request.MaxConcurrency,
 	)
 
-	// Step 1: Deduplicate and optimize queries
+	// Step 1: Deduplicate and optimize queries.
 	optimizedQueries := c.optimizeQueries(request.Queries)
 
-	// Step 2: Check cache for existing results
+	// Step 2: Check cache for existing results.
 	cachedResults, remainingQueries := c.checkCache(ctx, optimizedQueries)
 
-	// Step 3: Execute remaining queries in parallel
+	// Step 3: Execute remaining queries in parallel.
 	freshResults, err := c.executeParallelSearch(ctx, remainingQueries, request.MaxConcurrency)
 	if err != nil {
 		return nil, fmt.Errorf("parallel search failed: %w", err)
 	}
 
-	// Step 4: Combine cached and fresh results
+	// Step 4: Combine cached and fresh results.
 	allResults := append(cachedResults, freshResults...)
 
-	// Step 5: Aggregate results if requested
+	// Step 5: Aggregate results if requested.
 	var aggregatedResults []*shared.SearchResult
 	if request.EnableAggregation {
 		aggregatedResults = c.aggregateResults(allResults)
@@ -221,7 +221,7 @@ func (c *OptimizedBatchSearchClient) BatchSearch(ctx context.Context, request *B
 		},
 	}
 
-	// Update metrics
+	// Update metrics.
 	c.updateMetrics(response)
 
 	c.logger.Info("Batch search completed",
@@ -234,7 +234,7 @@ func (c *OptimizedBatchSearchClient) BatchSearch(ctx context.Context, request *B
 	return response, nil
 }
 
-// optimizeQueries deduplicates and optimizes queries
+// optimizeQueries deduplicates and optimizes queries.
 func (c *OptimizedBatchSearchClient) optimizeQueries(queries []*SearchQuery) []*SearchQuery {
 	if !c.config.EnableQueryOptimization {
 		return queries
@@ -244,11 +244,11 @@ func (c *OptimizedBatchSearchClient) optimizeQueries(queries []*SearchQuery) []*
 	optimized := make([]*SearchQuery, 0, len(queries))
 
 	for _, query := range queries {
-		// Create deduplication key
+		// Create deduplication key.
 		key := c.createQueryKey(query)
 
 		if existing, exists := seen[key]; exists {
-			// Merge with existing query if similar
+			// Merge with existing query if similar.
 			if c.areSimilarQueries(query, existing) {
 				continue
 			}
@@ -261,7 +261,7 @@ func (c *OptimizedBatchSearchClient) optimizeQueries(queries []*SearchQuery) []*
 	return optimized
 }
 
-// checkCache checks for cached results
+// checkCache checks for cached results.
 func (c *OptimizedBatchSearchClient) checkCache(ctx context.Context, queries []*SearchQuery) ([]*SearchResponse, []*SearchQuery) {
 	if !c.config.EnableVectorCaching {
 		return nil, queries
@@ -275,13 +275,13 @@ func (c *OptimizedBatchSearchClient) checkCache(ctx context.Context, queries []*
 
 		if cached, found := c.queryCache.data.Load(key); found {
 			if cachedResult, ok := cached.(*CachedQueryResult); ok {
-				// Check if still valid
+				// Check if still valid.
 				if time.Since(cachedResult.CreatedAt) < c.queryCache.ttl {
 					cachedResults = append(cachedResults, cachedResult.Result)
 					cachedResult.AccessCount++
 					continue
 				}
-				// Remove expired entry
+				// Remove expired entry.
 				c.queryCache.data.Delete(key)
 			}
 		}
@@ -292,7 +292,7 @@ func (c *OptimizedBatchSearchClient) checkCache(ctx context.Context, queries []*
 	return cachedResults, remainingQueries
 }
 
-// executeParallelSearch executes queries in parallel
+// executeParallelSearch executes queries in parallel.
 func (c *OptimizedBatchSearchClient) executeParallelSearch(ctx context.Context, queries []*SearchQuery, maxConcurrency int) ([]*SearchResponse, error) {
 	if len(queries) == 0 {
 		return nil, nil
@@ -300,11 +300,11 @@ func (c *OptimizedBatchSearchClient) executeParallelSearch(ctx context.Context, 
 
 	results := make([]*SearchResponse, len(queries))
 
-	// Create error group with concurrency limit
+	// Create error group with concurrency limit.
 	g, ctx := errgroup.WithContext(ctx)
 	g.SetLimit(maxConcurrency)
 
-	// Process queries in parallel
+	// Process queries in parallel.
 	for i, query := range queries {
 		i, query := i, query // Capture loop variables
 
@@ -316,7 +316,7 @@ func (c *OptimizedBatchSearchClient) executeParallelSearch(ctx context.Context, 
 
 			results[i] = result
 
-			// Cache the result
+			// Cache the result.
 			if c.config.EnableVectorCaching {
 				key := c.createQueryKey(query)
 				cachedResult := &CachedQueryResult{
@@ -338,7 +338,7 @@ func (c *OptimizedBatchSearchClient) executeParallelSearch(ctx context.Context, 
 	return results, nil
 }
 
-// aggregateResults aggregates and deduplicates search results
+// aggregateResults aggregates and deduplicates search results.
 func (c *OptimizedBatchSearchClient) aggregateResults(responses []*SearchResponse) []*shared.SearchResult {
 	seen := make(map[string]*shared.SearchResult)
 	var aggregated []*shared.SearchResult
@@ -351,12 +351,12 @@ func (c *OptimizedBatchSearchClient) aggregateResults(responses []*SearchRespons
 
 			key := result.Document.ID
 			if existing, exists := seen[key]; exists {
-				// Combine scores using max
+				// Combine scores using max.
 				if result.Score > existing.Score {
 					existing.Score = result.Score
 				}
 			} else {
-				// Convert local SearchResult to shared.SearchResult
+				// Convert local SearchResult to shared.SearchResult.
 				sharedResult := &shared.SearchResult{
 					Document: result.Document, // Assuming Document can be directly assigned
 					Score:    result.Score,
@@ -370,7 +370,7 @@ func (c *OptimizedBatchSearchClient) aggregateResults(responses []*SearchRespons
 	return aggregated
 }
 
-// ParallelMultiQuery executes multiple different query types in parallel
+// ParallelMultiQuery executes multiple different query types in parallel.
 func (c *OptimizedBatchSearchClient) ParallelMultiQuery(ctx context.Context, queries map[string]*SearchQuery) (map[string]*SearchResponse, error) {
 	results := make(map[string]*SearchResponse)
 	resultsMutex := sync.Mutex{}
@@ -402,7 +402,7 @@ func (c *OptimizedBatchSearchClient) ParallelMultiQuery(ctx context.Context, que
 	return results, nil
 }
 
-// StreamingBatchSearch provides streaming results for large batches
+// StreamingBatchSearch provides streaming results for large batches.
 func (c *OptimizedBatchSearchClient) StreamingBatchSearch(ctx context.Context, queries []*SearchQuery, resultChan chan<- *SearchResponse) error {
 	defer close(resultChan)
 
@@ -432,14 +432,14 @@ func (c *OptimizedBatchSearchClient) StreamingBatchSearch(ctx context.Context, q
 	return g.Wait()
 }
 
-// Helper methods
+// Helper methods.
 
 func (c *OptimizedBatchSearchClient) createQueryKey(query *SearchQuery) string {
 	key := fmt.Sprintf("%s|%d|%t|%.2f|%t",
 		query.Query, query.Limit, query.HybridSearch,
 		query.HybridAlpha, query.UseReranker)
 
-	// Add filters to key
+	// Add filters to key.
 	if len(query.Filters) > 0 {
 		if filtersJSON, err := json.Marshal(query.Filters); err == nil {
 			key += "|" + string(filtersJSON)
@@ -450,7 +450,7 @@ func (c *OptimizedBatchSearchClient) createQueryKey(query *SearchQuery) string {
 }
 
 func (c *OptimizedBatchSearchClient) areSimilarQueries(q1, q2 *SearchQuery) bool {
-	// Simple similarity check - can be enhanced with semantic similarity
+	// Simple similarity check - can be enhanced with semantic similarity.
 	return q1.Query == q2.Query &&
 		q1.HybridSearch == q2.HybridSearch &&
 		q1.UseReranker == q2.UseReranker
@@ -463,7 +463,7 @@ func (c *OptimizedBatchSearchClient) updateMetrics(response *BatchSearchResponse
 	c.metrics.TotalBatches++
 	c.metrics.TotalQueries += int64(len(response.Results))
 
-	// Update average latency
+	// Update average latency.
 	if c.metrics.TotalBatches == 1 {
 		c.metrics.AverageLatency = response.TotalProcessingTime
 	} else {
@@ -471,19 +471,19 @@ func (c *OptimizedBatchSearchClient) updateMetrics(response *BatchSearchResponse
 			response.TotalProcessingTime) / time.Duration(c.metrics.TotalBatches)
 	}
 
-	// Update throughput (queries per second)
+	// Update throughput (queries per second).
 	c.metrics.ThroughputQPS = float64(c.metrics.TotalQueries) /
 		(float64(c.metrics.AverageLatency.Nanoseconds()) / 1e9)
 
-	// Update cache hit rate
+	// Update cache hit rate.
 	if len(response.Results) > 0 {
 		c.metrics.CacheHitRate = float64(response.CacheHits) / float64(len(response.Results))
 	}
 }
 
 func (c *OptimizedBatchSearchClient) startBatchProcessor() {
-	// Background batch processing logic would go here
-	// This would handle queuing and batching of requests
+	// Background batch processing logic would go here.
+	// This would handle queuing and batching of requests.
 }
 
 func (c *OptimizedBatchSearchClient) startCacheEviction() {
@@ -522,12 +522,12 @@ func (c *OptimizedBatchSearchClient) evictExpiredCacheEntries() {
 	}
 }
 
-// GetMetrics returns current batch search metrics
+// GetMetrics returns current batch search metrics.
 func (c *OptimizedBatchSearchClient) GetMetrics() *BatchSearchMetrics {
 	c.metrics.mutex.RLock()
 	defer c.metrics.mutex.RUnlock()
 
-	// Return a copy without the mutex
+	// Return a copy without the mutex.
 	metrics := &BatchSearchMetrics{
 		TotalBatches:         c.metrics.TotalBatches,
 		TotalQueries:         c.metrics.TotalQueries,
@@ -540,9 +540,9 @@ func (c *OptimizedBatchSearchClient) GetMetrics() *BatchSearchMetrics {
 	return metrics
 }
 
-// Close cleans up resources
+// Close cleans up resources.
 func (c *OptimizedBatchSearchClient) Close() error {
 	c.logger.Info("Closing optimized batch search client")
-	// Cleanup resources
+	// Cleanup resources.
 	return nil
 }

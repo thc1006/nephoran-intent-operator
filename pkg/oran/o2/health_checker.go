@@ -8,7 +8,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
-// newHealthChecker creates a new health checker instance
+// newHealthChecker creates a new health checker instance.
 func newHealthChecker(config *APIHealthCheckerConfig, logger *logging.StructuredLogger) (*HealthChecker, error) {
 	if config == nil {
 		config = &APIHealthCheckerConfig{
@@ -33,12 +33,12 @@ func newHealthChecker(config *APIHealthCheckerConfig, logger *logging.Structured
 	}, nil
 }
 
-// RegisterHealthCheck registers a health check for a component
+// RegisterHealthCheck registers a health check for a component.
 func (h *HealthChecker) RegisterHealthCheck(name string, check ComponentHealthCheck) {
 	h.healthChecks[name] = check
 }
 
-// Start starts the health checker background process
+// Start starts the health checker background process.
 func (h *HealthChecker) Start(ctx context.Context) {
 	if !h.config.Enabled {
 		return
@@ -47,7 +47,7 @@ func (h *HealthChecker) Start(ctx context.Context) {
 	h.ticker = time.NewTicker(h.config.CheckInterval)
 	defer h.ticker.Stop()
 
-	// Perform initial health check
+	// Perform initial health check.
 	h.performHealthCheck(ctx)
 
 	for {
@@ -62,19 +62,19 @@ func (h *HealthChecker) Start(ctx context.Context) {
 	}
 }
 
-// Stop stops the health checker
+// Stop stops the health checker.
 func (h *HealthChecker) Stop() {
 	close(h.stopCh)
 }
 
-// GetHealthStatus returns the current health status
+// GetHealthStatus returns the current health status.
 func (h *HealthChecker) GetHealthStatus() *HealthCheck {
-	// Return a copy to prevent modifications
+	// Return a copy to prevent modifications.
 	healthCopy := *h.lastHealthData
 	return &healthCopy
 }
 
-// performHealthCheck executes all registered health checks
+// performHealthCheck executes all registered health checks.
 func (h *HealthChecker) performHealthCheck(ctx context.Context) {
 	checkCtx, cancel := context.WithTimeout(ctx, h.config.Timeout)
 	defer cancel()
@@ -83,7 +83,7 @@ func (h *HealthChecker) performHealthCheck(ctx context.Context) {
 	var wg sync.WaitGroup
 	checksChan := make(chan ComponentCheck, len(h.healthChecks))
 
-	// Execute all health checks concurrently
+	// Execute all health checks concurrently.
 	for name, check := range h.healthChecks {
 		wg.Add(1)
 		go func(name string, check ComponentHealthCheck) {
@@ -95,21 +95,21 @@ func (h *HealthChecker) performHealthCheck(ctx context.Context) {
 		}(name, check)
 	}
 
-	// Wait for all checks to complete
+	// Wait for all checks to complete.
 	go func() {
 		wg.Wait()
 		close(checksChan)
 	}()
 
-	// Collect results
+	// Collect results.
 	for check := range checksChan {
 		checks = append(checks, check)
 	}
 
-	// Calculate overall health status
+	// Calculate overall health status.
 	overallStatus := h.calculateOverallStatus(checks)
 
-	// Update health data
+	// Update health data.
 	h.lastHealthData = &HealthCheck{
 		Status:     overallStatus,
 		Timestamp:  time.Now(),
@@ -122,7 +122,7 @@ func (h *HealthChecker) performHealthCheck(ctx context.Context) {
 	}
 }
 
-// calculateOverallStatus determines the overall health status based on component checks
+// calculateOverallStatus determines the overall health status based on component checks.
 func (h *HealthChecker) calculateOverallStatus(checks []ComponentCheck) string {
 	if len(checks) == 0 {
 		return "UNKNOWN"
@@ -149,7 +149,7 @@ func (h *HealthChecker) calculateOverallStatus(checks []ComponentCheck) string {
 	return "UP"
 }
 
-// buildComponentsMap builds a map of component health information
+// buildComponentsMap builds a map of component health information.
 func (h *HealthChecker) buildComponentsMap(checks []ComponentCheck) map[string]interface{} {
 	components := make(map[string]interface{})
 
@@ -167,12 +167,12 @@ func (h *HealthChecker) buildComponentsMap(checks []ComponentCheck) map[string]i
 	return components
 }
 
-// getServiceStatuses returns the status of external service dependencies
+// getServiceStatuses returns the status of external service dependencies.
 func (h *HealthChecker) getServiceStatuses() []HealthServiceStatus {
 	// This would typically check external dependencies like databases, message queues, etc.
 	var services []HealthServiceStatus
 
-	// Example service status check
+	// Example service status check.
 	services = append(services, HealthServiceStatus{
 		ServiceName: "database",
 		Status:      "UP",
@@ -184,9 +184,9 @@ func (h *HealthChecker) getServiceStatuses() []HealthServiceStatus {
 	return services
 }
 
-// getResourceHealthSummary returns a summary of resource health
+// getResourceHealthSummary returns a summary of resource health.
 func (h *HealthChecker) getResourceHealthSummary() *ResourceHealthSummary {
-	// This would typically aggregate resource health across all providers
+	// This would typically aggregate resource health across all providers.
 	return &ResourceHealthSummary{
 		TotalResources:     100,
 		HealthyResources:   95,
@@ -196,7 +196,7 @@ func (h *HealthChecker) getResourceHealthSummary() *ResourceHealthSummary {
 	}
 }
 
-// ComponentCheck represents the result of a component health check
+// ComponentCheck represents the result of a component health check.
 type ComponentCheck struct {
 	Name      string                 `json:"name" validate:"required"`
 	Status    string                 `json:"status" validate:"required,oneof=UP DOWN DEGRADED"`

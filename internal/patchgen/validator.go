@@ -9,7 +9,7 @@ import (
 	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
-// IntentSchema defines the JSON Schema 2020-12 for Intent validation
+// IntentSchema defines the JSON Schema 2020-12 for Intent validation.
 const IntentSchema = `{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://nephoran.io/schemas/intent.json",
@@ -55,24 +55,24 @@ const IntentSchema = `{
   "additionalProperties": false
 }`
 
-// Validator handles JSON Schema validation using JSON Schema 2020-12
+// Validator handles JSON Schema validation using JSON Schema 2020-12.
 type Validator struct {
 	schema *jsonschema.Schema
 	logger logr.Logger
 }
 
-// NewValidator creates a new validator instance with the Intent schema
+// NewValidator creates a new validator instance with the Intent schema.
 func NewValidator(logger logr.Logger) (*Validator, error) {
 	compiler := jsonschema.NewCompiler()
 	compiler.DefaultDraft(jsonschema.Draft2020)
 
-	// Parse the schema as JSON
+	// Parse the schema as JSON.
 	var schemaDoc interface{}
 	if err := json.Unmarshal([]byte(IntentSchema), &schemaDoc); err != nil {
 		return nil, fmt.Errorf("failed to parse schema JSON: %w", err)
 	}
 
-	// Add the schema to the compiler
+	// Add the schema to the compiler.
 	if err := compiler.AddResource("https://nephoran.io/schemas/intent.json", schemaDoc); err != nil {
 		return nil, fmt.Errorf("failed to add schema resource: %w", err)
 	}
@@ -85,9 +85,9 @@ func NewValidator(logger logr.Logger) (*Validator, error) {
 	return &Validator{schema: schema, logger: logger.WithName("validator")}, nil
 }
 
-// ValidateIntent validates the intent JSON against the schema and returns the parsed Intent
+// ValidateIntent validates the intent JSON against the schema and returns the parsed Intent.
 func (v *Validator) ValidateIntent(intentData []byte) (*Intent, error) {
-	// First validate against schema
+	// First validate against schema.
 	var rawIntent interface{}
 	if err := json.Unmarshal(intentData, &rawIntent); err != nil {
 		return nil, fmt.Errorf("invalid JSON: %w", err)
@@ -97,7 +97,7 @@ func (v *Validator) ValidateIntent(intentData []byte) (*Intent, error) {
 		return nil, fmt.Errorf("schema validation failed: %w", err)
 	}
 
-	// Parse into struct
+	// Parse into struct.
 	var intent Intent
 	if err := json.Unmarshal(intentData, &intent); err != nil {
 		return nil, fmt.Errorf("failed to parse intent: %w", err)
@@ -106,7 +106,7 @@ func (v *Validator) ValidateIntent(intentData []byte) (*Intent, error) {
 	return &intent, nil
 }
 
-// ValidateIntentFile reads and validates an intent file
+// ValidateIntentFile reads and validates an intent file.
 func (v *Validator) ValidateIntentFile(filePath string) (*Intent, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -116,7 +116,7 @@ func (v *Validator) ValidateIntentFile(filePath string) (*Intent, error) {
 	return v.ValidateIntent(data)
 }
 
-// ValidateIntentMap validates an intent provided as a map
+// ValidateIntentMap validates an intent provided as a map.
 func (v *Validator) ValidateIntentMap(intent map[string]interface{}) error {
 	v.logger.V(1).Info("Validating intent", "intent", intent)
 
@@ -128,7 +128,7 @@ func (v *Validator) ValidateIntentMap(intent map[string]interface{}) error {
 	return nil
 }
 
-// LoadIntent reads and parses an intent JSON file with validation
+// LoadIntent reads and parses an intent JSON file with validation.
 func LoadIntent(path string) (*Intent, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -140,7 +140,7 @@ func LoadIntent(path string) (*Intent, error) {
 		return nil, fmt.Errorf("failed to parse intent JSON: %w", err)
 	}
 
-	// Validate required fields
+	// Validate required fields.
 	if intent.IntentType != "scaling" {
 		return nil, fmt.Errorf("unsupported intent_type: %s (expected 'scaling')", intent.IntentType)
 	}

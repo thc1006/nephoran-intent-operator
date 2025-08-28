@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-// QueryEnhancer provides query enhancement capabilities for telecom domain queries
+// QueryEnhancer provides query enhancement capabilities for telecom domain queries.
 type QueryEnhancer struct {
 	config            *RetrievalConfig
 	logger            *slog.Logger
@@ -20,7 +20,7 @@ type QueryEnhancer struct {
 	mutex             sync.RWMutex
 }
 
-// TelecomDictionary contains telecom-specific terminology and expansions
+// TelecomDictionary contains telecom-specific terminology and expansions.
 type TelecomDictionary struct {
 	Acronyms        map[string][]string            `json:"acronyms"`         // AMF -> ["Access and Mobility Management Function"]
 	Synonyms        map[string][]string            `json:"synonyms"`         // "base station" -> ["gNB", "eNB", "node"]
@@ -31,7 +31,7 @@ type TelecomDictionary struct {
 	mutex           sync.RWMutex
 }
 
-// TechnicalTermInfo contains detailed information about technical terms
+// TechnicalTermInfo contains detailed information about technical terms.
 type TechnicalTermInfo struct {
 	FullForm      string   `json:"full_form"`
 	Abbreviations []string `json:"abbreviations"`
@@ -43,7 +43,7 @@ type TechnicalTermInfo struct {
 	Popularity    float64  `json:"popularity"` // How often used in domain
 }
 
-// SynonymExpander handles synonym expansion for queries
+// SynonymExpander handles synonym expansion for queries.
 type SynonymExpander struct {
 	synonymSets        [][]string          // Groups of synonymous terms
 	contextualSynonyms map[string][]string // Context-dependent synonyms
@@ -51,7 +51,7 @@ type SynonymExpander struct {
 	mutex              sync.RWMutex
 }
 
-// SpellChecker provides spell checking and correction for telecom terms
+// SpellChecker provides spell checking and correction for telecom terms.
 type SpellChecker struct {
 	dictionary      map[string]bool     // Valid telecom terms
 	corrections     map[string]string   // Common misspellings -> corrections
@@ -60,14 +60,14 @@ type SpellChecker struct {
 	mutex           sync.RWMutex
 }
 
-// NewQueryEnhancer creates a new query enhancer
+// NewQueryEnhancer creates a new query enhancer.
 func NewQueryEnhancer(config *RetrievalConfig) *QueryEnhancer {
 	enhancer := &QueryEnhancer{
 		config: config,
 		logger: slog.Default().With("component", "query-enhancer"),
 	}
 
-	// Initialize components
+	// Initialize components.
 	enhancer.telecomDictionary = NewTelecomDictionary()
 	enhancer.synonymExpander = NewSynonymExpander()
 	enhancer.spellChecker = NewSpellChecker()
@@ -75,7 +75,7 @@ func NewQueryEnhancer(config *RetrievalConfig) *QueryEnhancer {
 	return enhancer
 }
 
-// EnhanceQuery enhances a query using various techniques
+// EnhanceQuery enhances a query using various techniques.
 func (qe *QueryEnhancer) EnhanceQuery(ctx context.Context, request *EnhancedSearchRequest) (string, *QueryEnhancements, error) {
 	originalQuery := request.Query
 	currentQuery := originalQuery
@@ -93,7 +93,7 @@ func (qe *QueryEnhancer) EnhanceQuery(ctx context.Context, request *EnhancedSear
 		EnhancementApplied:  []string{},
 	}
 
-	// Step 1: Spell correction
+	// Step 1: Spell correction.
 	if qe.config.EnableSpellCorrection {
 		corrected, corrections := qe.spellChecker.CorrectQuery(currentQuery)
 		if len(corrections) > 0 {
@@ -104,7 +104,7 @@ func (qe *QueryEnhancer) EnhanceQuery(ctx context.Context, request *EnhancedSear
 		}
 	}
 
-	// Step 2: Telecom-specific term expansion
+	// Step 2: Telecom-specific term expansion.
 	if qe.config.EnableQueryExpansion {
 		expanded, expandedTerms := qe.expandTelecomTerms(currentQuery, request.IntentType)
 		if len(expandedTerms) > 0 {
@@ -115,7 +115,7 @@ func (qe *QueryEnhancer) EnhanceQuery(ctx context.Context, request *EnhancedSear
 		}
 	}
 
-	// Step 3: Synonym expansion
+	// Step 3: Synonym expansion.
 	if qe.config.EnableSynonymExpansion {
 		synonymized, synonyms := qe.synonymExpander.ExpandSynonyms(currentQuery, request.IntentType)
 		if len(synonyms) > 0 {
@@ -126,7 +126,7 @@ func (qe *QueryEnhancer) EnhanceQuery(ctx context.Context, request *EnhancedSear
 		}
 	}
 
-	// Step 4: Query rewriting for intent optimization
+	// Step 4: Query rewriting for intent optimization.
 	if qe.config.EnableQueryRewriting {
 		rewritten := qe.rewriteForIntent(currentQuery, request)
 		if rewritten != currentQuery {
@@ -136,7 +136,7 @@ func (qe *QueryEnhancer) EnhanceQuery(ctx context.Context, request *EnhancedSear
 		}
 	}
 
-	// Step 5: Context-aware enhancement
+	// Step 5: Context-aware enhancement.
 	if len(request.ConversationHistory) > 0 {
 		contextEnhanced := qe.enhanceWithContext(currentQuery, request.ConversationHistory)
 		if contextEnhanced != currentQuery {
@@ -157,18 +157,18 @@ func (qe *QueryEnhancer) EnhanceQuery(ctx context.Context, request *EnhancedSear
 	return currentQuery, enhancements, nil
 }
 
-// expandTelecomTerms expands technical terms with their full forms and related terms
+// expandTelecomTerms expands technical terms with their full forms and related terms.
 func (qe *QueryEnhancer) expandTelecomTerms(query, intentType string) (string, []string) {
 	var expandedTerms []string
 	expandedQuery := query
 
-	// Find acronyms and expand them
+	// Find acronyms and expand them.
 	acronymPattern := regexp.MustCompile(`\b[A-Z]{2,}\b`)
 	acronyms := acronymPattern.FindAllString(query, -1)
 
 	for _, acronym := range acronyms {
 		if expansions, exists := qe.telecomDictionary.getAcronymExpansions(acronym); exists {
-			// Add the full form as additional search terms
+			// Add the full form as additional search terms.
 			for _, expansion := range expansions {
 				if !strings.Contains(expandedQuery, expansion) {
 					expandedQuery += " " + expansion
@@ -178,7 +178,7 @@ func (qe *QueryEnhancer) expandTelecomTerms(query, intentType string) (string, [
 		}
 	}
 
-	// Add domain-specific related terms
+	// Add domain-specific related terms.
 	if intentType != "" {
 		if relatedTerms, exists := qe.telecomDictionary.getDomainTerms(intentType); exists {
 			for _, term := range relatedTerms {
@@ -186,11 +186,11 @@ func (qe *QueryEnhancer) expandTelecomTerms(query, intentType string) (string, [
 					continue // Already present
 				}
 
-				// Add related terms with lower weight
+				// Add related terms with lower weight.
 				expandedQuery += " " + term
 				expandedTerms = append(expandedTerms, term)
 
-				// Limit expansion to avoid over-expansion
+				// Limit expansion to avoid over-expansion.
 				if len(expandedTerms) >= qe.config.QueryExpansionTerms {
 					break
 				}
@@ -201,7 +201,7 @@ func (qe *QueryEnhancer) expandTelecomTerms(query, intentType string) (string, [
 	return expandedQuery, expandedTerms
 }
 
-// rewriteForIntent rewrites the query to be more effective for specific intent types
+// rewriteForIntent rewrites the query to be more effective for specific intent types.
 func (qe *QueryEnhancer) rewriteForIntent(query string, request *EnhancedSearchRequest) string {
 	intentType := request.IntentType
 	if intentType == "" {
@@ -212,7 +212,7 @@ func (qe *QueryEnhancer) rewriteForIntent(query string, request *EnhancedSearchR
 
 	switch intentType {
 	case "configuration":
-		// Add configuration-specific terms
+		// Add configuration-specific terms.
 		if !strings.Contains(lowerQuery, "config") && !strings.Contains(lowerQuery, "parameter") {
 			query += " configuration parameter setting"
 		}
@@ -221,7 +221,7 @@ func (qe *QueryEnhancer) rewriteForIntent(query string, request *EnhancedSearchR
 		}
 
 	case "troubleshooting":
-		// Add troubleshooting-specific terms
+		// Add troubleshooting-specific terms.
 		if !strings.Contains(lowerQuery, "problem") && !strings.Contains(lowerQuery, "issue") && !strings.Contains(lowerQuery, "error") {
 			query += " problem issue troubleshoot"
 		}
@@ -230,7 +230,7 @@ func (qe *QueryEnhancer) rewriteForIntent(query string, request *EnhancedSearchR
 		}
 
 	case "optimization":
-		// Add optimization-specific terms
+		// Add optimization-specific terms.
 		if !strings.Contains(lowerQuery, "optimize") && !strings.Contains(lowerQuery, "performance") {
 			query += " optimize performance improve"
 		}
@@ -239,7 +239,7 @@ func (qe *QueryEnhancer) rewriteForIntent(query string, request *EnhancedSearchR
 		}
 
 	case "monitoring":
-		// Add monitoring-specific terms
+		// Add monitoring-specific terms.
 		if !strings.Contains(lowerQuery, "monitor") && !strings.Contains(lowerQuery, "metric") {
 			query += " monitoring metrics measurement"
 		}
@@ -248,7 +248,7 @@ func (qe *QueryEnhancer) rewriteForIntent(query string, request *EnhancedSearchR
 		}
 	}
 
-	// Add network domain context if specified
+	// Add network domain context if specified.
 	if request.NetworkDomain != "" {
 		domainLower := strings.ToLower(request.NetworkDomain)
 		if !strings.Contains(lowerQuery, domainLower) {
@@ -259,16 +259,16 @@ func (qe *QueryEnhancer) rewriteForIntent(query string, request *EnhancedSearchR
 	return query
 }
 
-// enhanceWithContext enhances query using conversation history
+// enhanceWithContext enhances query using conversation history.
 func (qe *QueryEnhancer) enhanceWithContext(query string, history []string) string {
 	if len(history) == 0 {
 		return query
 	}
 
-	// Extract important terms from recent conversation
+	// Extract important terms from recent conversation.
 	contextTerms := qe.extractContextTerms(history)
 
-	// Add relevant context terms that aren't already in the query
+	// Add relevant context terms that aren't already in the query.
 	enhanced := query
 	lowerQuery := strings.ToLower(query)
 
@@ -282,12 +282,12 @@ func (qe *QueryEnhancer) enhanceWithContext(query string, history []string) stri
 	return enhanced
 }
 
-// extractContextTerms extracts important technical terms from conversation history
+// extractContextTerms extracts important technical terms from conversation history.
 func (qe *QueryEnhancer) extractContextTerms(history []string) []string {
 	var contextTerms []string
 	termFreq := make(map[string]int)
 
-	// Combine recent history (last 3 messages)
+	// Combine recent history (last 3 messages).
 	recentHistory := history
 	if len(history) > 3 {
 		recentHistory = history[len(history)-3:]
@@ -295,7 +295,7 @@ func (qe *QueryEnhancer) extractContextTerms(history []string) []string {
 
 	text := strings.Join(recentHistory, " ")
 
-	// Extract technical terms using patterns
+	// Extract technical terms using patterns.
 	patterns := []string{
 		`\b[A-Z]{2,}\b`,               // Acronyms
 		`\b\d+G\b`,                    // Technology generations
@@ -311,7 +311,7 @@ func (qe *QueryEnhancer) extractContextTerms(history []string) []string {
 		}
 	}
 
-	// Sort by frequency and take top terms
+	// Sort by frequency and take top terms.
 	type termCount struct {
 		term  string
 		count int
@@ -324,7 +324,7 @@ func (qe *QueryEnhancer) extractContextTerms(history []string) []string {
 		}
 	}
 
-	// Sort by frequency
+	// Sort by frequency.
 	for i := 0; i < len(terms)-1; i++ {
 		for j := i + 1; j < len(terms); j++ {
 			if terms[i].count < terms[j].count {
@@ -333,7 +333,7 @@ func (qe *QueryEnhancer) extractContextTerms(history []string) []string {
 		}
 	}
 
-	// Return top terms
+	// Return top terms.
 	maxTerms := 3
 	for i, tc := range terms {
 		if i >= maxTerms {
@@ -345,9 +345,9 @@ func (qe *QueryEnhancer) extractContextTerms(history []string) []string {
 	return contextTerms
 }
 
-// TelecomDictionary implementation
+// TelecomDictionary implementation.
 
-// NewTelecomDictionary creates a new telecom dictionary
+// NewTelecomDictionary creates a new telecom dictionary.
 func NewTelecomDictionary() *TelecomDictionary {
 	td := &TelecomDictionary{
 		Acronyms:        make(map[string][]string),
@@ -358,7 +358,7 @@ func NewTelecomDictionary() *TelecomDictionary {
 		ContextualTerms: make(map[string]map[string][]string),
 	}
 
-	// Initialize with common telecom terms
+	// Initialize with common telecom terms.
 	td.initializeAcronyms()
 	td.initializeSynonyms()
 	td.initializeTechnicalTerms()
@@ -368,7 +368,7 @@ func NewTelecomDictionary() *TelecomDictionary {
 	return td
 }
 
-// initializeAcronyms sets up common telecom acronyms
+// initializeAcronyms sets up common telecom acronyms.
 func (td *TelecomDictionary) initializeAcronyms() {
 	td.Acronyms = map[string][]string{
 		"5G":    {"Fifth Generation", "5th Generation"},
@@ -413,7 +413,7 @@ func (td *TelecomDictionary) initializeAcronyms() {
 	}
 }
 
-// initializeSynonyms sets up synonym mappings
+// initializeSynonyms sets up synonym mappings.
 func (td *TelecomDictionary) initializeSynonyms() {
 	td.Synonyms = map[string][]string{
 		"base station":    {"node", "cell", "site", "tower"},
@@ -439,7 +439,7 @@ func (td *TelecomDictionary) initializeSynonyms() {
 	}
 }
 
-// initializeTechnicalTerms sets up detailed technical term information
+// initializeTechnicalTerms sets up detailed technical term information.
 func (td *TelecomDictionary) initializeTechnicalTerms() {
 	td.TechnicalTerms = map[string]TechnicalTermInfo{
 		"AMF": {
@@ -475,7 +475,7 @@ func (td *TelecomDictionary) initializeTechnicalTerms() {
 	}
 }
 
-// initializeDomainMappings sets up domain-specific term mappings
+// initializeDomainMappings sets up domain-specific term mappings.
 func (td *TelecomDictionary) initializeDomainMappings() {
 	td.DomainMapping = map[string][]string{
 		"RAN": {
@@ -516,7 +516,7 @@ func (td *TelecomDictionary) initializeDomainMappings() {
 	}
 }
 
-// initializeIntentPatterns sets up common query patterns for different intents
+// initializeIntentPatterns sets up common query patterns for different intents.
 func (td *TelecomDictionary) initializeIntentPatterns() {
 	td.IntentPatterns = map[string][]string{
 		"configuration": {
@@ -538,7 +538,7 @@ func (td *TelecomDictionary) initializeIntentPatterns() {
 	}
 }
 
-// getAcronymExpansions returns expansions for an acronym
+// getAcronymExpansions returns expansions for an acronym.
 func (td *TelecomDictionary) getAcronymExpansions(acronym string) ([]string, bool) {
 	td.mutex.RLock()
 	defer td.mutex.RUnlock()
@@ -547,7 +547,7 @@ func (td *TelecomDictionary) getAcronymExpansions(acronym string) ([]string, boo
 	return expansions, exists
 }
 
-// getDomainTerms returns terms related to a domain
+// getDomainTerms returns terms related to a domain.
 func (td *TelecomDictionary) getDomainTerms(domain string) ([]string, bool) {
 	td.mutex.RLock()
 	defer td.mutex.RUnlock()
@@ -556,9 +556,9 @@ func (td *TelecomDictionary) getDomainTerms(domain string) ([]string, bool) {
 	return terms, exists
 }
 
-// SynonymExpander implementation
+// SynonymExpander implementation.
 
-// NewSynonymExpander creates a new synonym expander
+// NewSynonymExpander creates a new synonym expander.
 func NewSynonymExpander() *SynonymExpander {
 	se := &SynonymExpander{
 		synonymSets:        [][]string{},
@@ -572,7 +572,7 @@ func NewSynonymExpander() *SynonymExpander {
 	return se
 }
 
-// initializeSynonymSets sets up synonym groups
+// initializeSynonymSets sets up synonym groups.
 func (se *SynonymExpander) initializeSynonymSets() {
 	se.synonymSets = [][]string{
 		{"base station", "gNB", "eNB", "node", "cell site"},
@@ -589,7 +589,7 @@ func (se *SynonymExpander) initializeSynonymSets() {
 	}
 }
 
-// initializeTelecomSynonyms sets up telecom-specific synonyms
+// initializeTelecomSynonyms sets up telecom-specific synonyms.
 func (se *SynonymExpander) initializeTelecomSynonyms() {
 	se.telecomSynonyms = map[string][]string{
 		"5G":           {"NR", "New Radio", "fifth generation"},
@@ -603,7 +603,7 @@ func (se *SynonymExpander) initializeTelecomSynonyms() {
 	}
 }
 
-// ExpandSynonyms expands query with synonyms
+// ExpandSynonyms expands query with synonyms.
 func (se *SynonymExpander) ExpandSynonyms(query, intentType string) (string, map[string]string) {
 	se.mutex.RLock()
 	defer se.mutex.RUnlock()
@@ -612,11 +612,11 @@ func (se *SynonymExpander) ExpandSynonyms(query, intentType string) (string, map
 	expandedQuery := query
 	queryLower := strings.ToLower(query)
 
-	// Check telecom-specific synonyms first
+	// Check telecom-specific synonyms first.
 	for original, synonyms := range se.telecomSynonyms {
 		originalLower := strings.ToLower(original)
 		if strings.Contains(queryLower, originalLower) {
-			// Add the first synonym as expansion
+			// Add the first synonym as expansion.
 			if len(synonyms) > 0 {
 				synonym := synonyms[0]
 				if !strings.Contains(queryLower, strings.ToLower(synonym)) {
@@ -627,12 +627,12 @@ func (se *SynonymExpander) ExpandSynonyms(query, intentType string) (string, map
 		}
 	}
 
-	// Check synonym sets
+	// Check synonym sets.
 	for _, synonymSet := range se.synonymSets {
 		for _, term := range synonymSet {
 			termLower := strings.ToLower(term)
 			if strings.Contains(queryLower, termLower) {
-				// Add other terms from the same set
+				// Add other terms from the same set.
 				for _, synonym := range synonymSet {
 					synonymLower := strings.ToLower(synonym)
 					if synonym != term && !strings.Contains(queryLower, synonymLower) {
@@ -649,9 +649,9 @@ func (se *SynonymExpander) ExpandSynonyms(query, intentType string) (string, map
 	return expandedQuery, synonymReplacements
 }
 
-// SpellChecker implementation
+// SpellChecker implementation.
 
-// NewSpellChecker creates a new spell checker
+// NewSpellChecker creates a new spell checker.
 func NewSpellChecker() *SpellChecker {
 	sc := &SpellChecker{
 		dictionary:      make(map[string]bool),
@@ -666,23 +666,23 @@ func NewSpellChecker() *SpellChecker {
 	return sc
 }
 
-// initializeDictionary sets up the telecom term dictionary
+// initializeDictionary sets up the telecom term dictionary.
 func (sc *SpellChecker) initializeDictionary() {
-	// Common telecom terms that should be in the dictionary
+	// Common telecom terms that should be in the dictionary.
 	terms := []string{
-		// Acronyms
+		// Acronyms.
 		"5G", "4G", "3G", "2G", "AMF", "SMF", "UPF", "PCF", "UDM", "UDR",
 		"AUSF", "NRF", "NSSF", "NEF", "gNB", "eNB", "DU", "CU", "RU",
 		"RAN", "EPC", "5GC", "QoS", "SLA", "KPI", "OAM", "SON",
 		"NFV", "SDN", "MANO", "VNF", "CNF", "URLLC", "eMBB", "mMTC",
 
-		// Full terms
+		// Full terms.
 		"beamforming", "handover", "throughput", "latency", "bandwidth",
 		"coverage", "interference", "spectrum", "authentication",
 		"configuration", "optimization", "monitoring", "troubleshooting",
 		"performance", "deployment", "maintenance", "orchestration",
 
-		// Technology terms
+		// Technology terms.
 		"MIMO", "OFDM", "LTE", "NR", "WiFi", "Bluetooth", "Ethernet",
 		"fiber", "backhaul", "fronthaul", "xhaul", "virtualization",
 	}
@@ -692,10 +692,10 @@ func (sc *SpellChecker) initializeDictionary() {
 	}
 }
 
-// initializeCorrections sets up common misspellings and their corrections
+// initializeCorrections sets up common misspellings and their corrections.
 func (sc *SpellChecker) initializeCorrections() {
 	sc.corrections = map[string]string{
-		// Common misspellings of telecom terms
+		// Common misspellings of telecom terms.
 		"5g":    "5G",
 		"4g":    "4G",
 		"gnb":   "gNB",
@@ -726,7 +726,7 @@ func (sc *SpellChecker) initializeCorrections() {
 		"embb":  "eMBB",
 		"mmtc":  "mMTC",
 
-		// Common typos
+		// Common typos.
 		"confguration":    "configuration",
 		"optimizaton":     "optimization",
 		"performace":      "performance",
@@ -741,7 +741,7 @@ func (sc *SpellChecker) initializeCorrections() {
 	}
 }
 
-// CorrectQuery corrects spelling errors in the query
+// CorrectQuery corrects spelling errors in the query.
 func (sc *SpellChecker) CorrectQuery(query string) (string, map[string]string) {
 	sc.mutex.RLock()
 	defer sc.mutex.RUnlock()
@@ -751,16 +751,16 @@ func (sc *SpellChecker) CorrectQuery(query string) (string, map[string]string) {
 	correctedWords := make([]string, len(words))
 
 	for i, word := range words {
-		// Clean word (remove punctuation for checking)
+		// Clean word (remove punctuation for checking).
 		cleanWord := regexp.MustCompile(`[^\w]`).ReplaceAllString(word, "")
 		cleanWordLower := strings.ToLower(cleanWord)
 
-		// Check if there's a direct correction
+		// Check if there's a direct correction.
 		if correction, exists := sc.corrections[cleanWordLower]; exists {
 			correctedWords[i] = strings.Replace(word, cleanWord, correction, 1)
 			corrections[cleanWord] = correction
 		} else if !sc.dictionary[cleanWordLower] && len(cleanWord) > 2 {
-			// Try to find a suggestion
+			// Try to find a suggestion.
 			if suggestion := sc.findBestSuggestion(cleanWordLower); suggestion != "" {
 				correctedWords[i] = strings.Replace(word, cleanWord, suggestion, 1)
 				corrections[cleanWord] = suggestion
@@ -776,12 +776,12 @@ func (sc *SpellChecker) CorrectQuery(query string) (string, map[string]string) {
 	return correctedQuery, corrections
 }
 
-// findBestSuggestion finds the best spelling suggestion for a word
+// findBestSuggestion finds the best spelling suggestion for a word.
 func (sc *SpellChecker) findBestSuggestion(word string) string {
 	bestSuggestion := ""
 	minDistance := sc.maxEditDistance + 1
 
-	// Check all dictionary words
+	// Check all dictionary words.
 	for dictWord := range sc.dictionary {
 		distance := sc.editDistance(word, dictWord)
 		if distance <= sc.maxEditDistance && distance < minDistance {
@@ -793,7 +793,7 @@ func (sc *SpellChecker) findBestSuggestion(word string) string {
 	return bestSuggestion
 }
 
-// editDistance calculates the edit distance between two strings
+// editDistance calculates the edit distance between two strings.
 func (sc *SpellChecker) editDistance(s1, s2 string) int {
 	len1, len2 := len(s1), len(s2)
 	matrix := make([][]int, len1+1)
@@ -825,7 +825,7 @@ func (sc *SpellChecker) editDistance(s1, s2 string) int {
 	return matrix[len1][len2]
 }
 
-// min returns the minimum of three integers
+// min returns the minimum of three integers.
 func min3(a, b, c int) int {
 	if a < b {
 		if a < c {

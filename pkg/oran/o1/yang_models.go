@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// YANGModelRegistry manages YANG model schemas and validation
+// YANGModelRegistry manages YANG model schemas and validation.
 type YANGModelRegistry struct {
 	models        map[string]*YANGModel
 	modelsByNS    map[string]*YANGModel
@@ -21,7 +21,7 @@ type YANGModelRegistry struct {
 	loadedModules map[string]time.Time
 }
 
-// YANGModel represents a YANG model definition
+// YANGModel represents a YANG model definition.
 type YANGModel struct {
 	Name         string                 `json:"name"`
 	Namespace    string                 `json:"namespace"`
@@ -36,20 +36,20 @@ type YANGModel struct {
 	LoadTime     time.Time              `json:"load_time"`
 }
 
-// YANGValidator provides validation functionality for YANG models
+// YANGValidator provides validation functionality for YANG models.
 type YANGValidator interface {
 	ValidateData(data interface{}, modelName string) error
 	ValidateXPath(xpath string, modelName string) error
 	GetModelInfo(modelName string) (*YANGModel, error)
 }
 
-// StandardYANGValidator implements basic YANG validation
+// StandardYANGValidator implements basic YANG validation.
 type StandardYANGValidator struct {
 	registry *YANGModelRegistry
 	mutex    sync.RWMutex
 }
 
-// YANGNode represents a YANG schema node
+// YANGNode represents a YANG schema node.
 type YANGNode struct {
 	Name        string                 `json:"name"`
 	Type        string                 `json:"type"` // container, leaf, leaf-list, list, choice, case
@@ -62,7 +62,7 @@ type YANGNode struct {
 	Constraints map[string]interface{} `json:"constraints,omitempty"`
 }
 
-// NewYANGModelRegistry creates a new YANG model registry
+// NewYANGModelRegistry creates a new YANG model registry.
 func NewYANGModelRegistry() *YANGModelRegistry {
 	registry := &YANGModelRegistry{
 		models:        make(map[string]*YANGModel),
@@ -71,21 +71,21 @@ func NewYANGModelRegistry() *YANGModelRegistry {
 		loadedModules: make(map[string]time.Time),
 	}
 
-	// Register default validator
+	// Register default validator.
 	validator := &StandardYANGValidator{registry: registry}
 	registry.validators["standard"] = validator
 
-	// Load standard O-RAN YANG models
+	// Load standard O-RAN YANG models.
 	registry.loadORANModels()
 
 	return registry
 }
 
-// loadORANModels loads standard O-RAN YANG models
+// loadORANModels loads standard O-RAN YANG models.
 func (yr *YANGModelRegistry) loadORANModels() {
 	logger := log.Log.WithName("yang-registry")
 
-	// Define O-RAN standard models
+	// Define O-RAN standard models.
 	oranModels := []*YANGModel{
 		{
 			Name:         "o-ran-hardware",
@@ -366,7 +366,7 @@ func (yr *YANGModelRegistry) loadORANModels() {
 		},
 	}
 
-	// Register all models
+	// Register all models.
 	for _, model := range oranModels {
 		model.LoadTime = time.Now()
 		if err := yr.RegisterModel(model); err != nil {
@@ -377,7 +377,7 @@ func (yr *YANGModelRegistry) loadORANModels() {
 	}
 }
 
-// RegisterModel registers a YANG model in the registry
+// RegisterModel registers a YANG model in the registry.
 func (yr *YANGModelRegistry) RegisterModel(model *YANGModel) error {
 	yr.mutex.Lock()
 	defer yr.mutex.Unlock()
@@ -390,7 +390,7 @@ func (yr *YANGModelRegistry) RegisterModel(model *YANGModel) error {
 		return fmt.Errorf("model namespace cannot be empty")
 	}
 
-	// Check for conflicts
+	// Check for conflicts.
 	if existing, exists := yr.models[model.Name]; exists {
 		if existing.Version != model.Version {
 			return fmt.Errorf("model version conflict: %s exists with version %s, attempting to register version %s",
@@ -405,7 +405,7 @@ func (yr *YANGModelRegistry) RegisterModel(model *YANGModel) error {
 	return nil
 }
 
-// GetModel retrieves a YANG model by name
+// GetModel retrieves a YANG model by name.
 func (yr *YANGModelRegistry) GetModel(name string) (*YANGModel, error) {
 	yr.mutex.RLock()
 	defer yr.mutex.RUnlock()
@@ -418,7 +418,7 @@ func (yr *YANGModelRegistry) GetModel(name string) (*YANGModel, error) {
 	return model, nil
 }
 
-// GetModelByNamespace retrieves a YANG model by namespace
+// GetModelByNamespace retrieves a YANG model by namespace.
 func (yr *YANGModelRegistry) GetModelByNamespace(namespace string) (*YANGModel, error) {
 	yr.mutex.RLock()
 	defer yr.mutex.RUnlock()
@@ -431,7 +431,7 @@ func (yr *YANGModelRegistry) GetModelByNamespace(namespace string) (*YANGModel, 
 	return model, nil
 }
 
-// ListModels returns all registered models
+// ListModels returns all registered models.
 func (yr *YANGModelRegistry) ListModels() []*YANGModel {
 	yr.mutex.RLock()
 	defer yr.mutex.RUnlock()
@@ -444,7 +444,7 @@ func (yr *YANGModelRegistry) ListModels() []*YANGModel {
 	return models
 }
 
-// ValidateConfig validates configuration data against YANG schemas
+// ValidateConfig validates configuration data against YANG schemas.
 func (yr *YANGModelRegistry) ValidateConfig(ctx context.Context, data interface{}, modelName string) error {
 	validator, exists := yr.validators["standard"]
 	if !exists {
@@ -454,7 +454,7 @@ func (yr *YANGModelRegistry) ValidateConfig(ctx context.Context, data interface{
 	return validator.ValidateData(data, modelName)
 }
 
-// ValidateXPath validates an XPath expression against YANG schemas
+// ValidateXPath validates an XPath expression against YANG schemas.
 func (yr *YANGModelRegistry) ValidateXPath(xpath string, modelName string) error {
 	validator, exists := yr.validators["standard"]
 	if !exists {
@@ -464,20 +464,20 @@ func (yr *YANGModelRegistry) ValidateXPath(xpath string, modelName string) error
 	return validator.ValidateXPath(xpath, modelName)
 }
 
-// GetSchemaNode retrieves a specific schema node by path
+// GetSchemaNode retrieves a specific schema node by path.
 func (yr *YANGModelRegistry) GetSchemaNode(modelName string, path string) (*YANGNode, error) {
 	model, err := yr.GetModel(modelName)
 	if err != nil {
 		return nil, err
 	}
 
-	// Parse path and navigate to node
+	// Parse path and navigate to node.
 	pathParts := strings.Split(strings.Trim(path, "/"), "/")
 	if len(pathParts) == 0 {
 		return nil, fmt.Errorf("invalid path")
 	}
 
-	// Start from root schema
+	// Start from root schema.
 	rootNode, ok := model.Schema[pathParts[0]]
 	if !ok {
 		return nil, fmt.Errorf("root node not found: %s", pathParts[0])
@@ -488,7 +488,7 @@ func (yr *YANGModelRegistry) GetSchemaNode(modelName string, path string) (*YANG
 		return nil, fmt.Errorf("invalid root node type")
 	}
 
-	// Navigate through path
+	// Navigate through path.
 	for i := 1; i < len(pathParts); i++ {
 		if currentNode.Children == nil {
 			return nil, fmt.Errorf("node has no children: %s", pathParts[i-1])
@@ -505,22 +505,22 @@ func (yr *YANGModelRegistry) GetSchemaNode(modelName string, path string) (*YANG
 	return currentNode, nil
 }
 
-// StandardYANGValidator implementation
+// StandardYANGValidator implementation.
 
-// ValidateData validates data against a YANG model
+// ValidateData validates data against a YANG model.
 func (sv *StandardYANGValidator) ValidateData(data interface{}, modelName string) error {
 	model, err := sv.registry.GetModel(modelName)
 	if err != nil {
 		return fmt.Errorf("model validation failed: %w", err)
 	}
 
-	// Convert data to map for validation
+	// Convert data to map for validation.
 	var dataMap map[string]interface{}
 	switch v := data.(type) {
 	case map[string]interface{}:
 		dataMap = v
 	case string:
-		// Try to parse as JSON
+		// Try to parse as JSON.
 		if err := json.Unmarshal([]byte(v), &dataMap); err != nil {
 			return fmt.Errorf("failed to parse data as JSON: %w", err)
 		}
@@ -528,11 +528,11 @@ func (sv *StandardYANGValidator) ValidateData(data interface{}, modelName string
 		return fmt.Errorf("unsupported data type for validation")
 	}
 
-	// Validate against schema
+	// Validate against schema.
 	return sv.validateNode(dataMap, model.Schema)
 }
 
-// validateNode validates a data node against schema node
+// validateNode validates a data node against schema node.
 func (sv *StandardYANGValidator) validateNode(data map[string]interface{}, schema map[string]interface{}) error {
 	for schemaKey, schemaValue := range schema {
 		schemaNode, ok := schemaValue.(*YANGNode)
@@ -542,7 +542,7 @@ func (sv *StandardYANGValidator) validateNode(data map[string]interface{}, schem
 
 		dataValue, exists := data[schemaKey]
 
-		// Check mandatory fields
+		// Check mandatory fields.
 		if schemaNode.Mandatory && !exists {
 			return fmt.Errorf("mandatory field missing: %s", schemaKey)
 		}
@@ -551,7 +551,7 @@ func (sv *StandardYANGValidator) validateNode(data map[string]interface{}, schem
 			continue
 		}
 
-		// Validate based on node type
+		// Validate based on node type.
 		switch schemaNode.Type {
 		case "leaf":
 			if err := sv.validateLeaf(dataValue, schemaNode); err != nil {
@@ -585,9 +585,9 @@ func (sv *StandardYANGValidator) validateNode(data map[string]interface{}, schem
 	return nil
 }
 
-// validateLeaf validates a leaf node value
+// validateLeaf validates a leaf node value.
 func (sv *StandardYANGValidator) validateLeaf(value interface{}, node *YANGNode) error {
-	// Basic type validation
+	// Basic type validation.
 	switch node.DataType {
 	case "string":
 		if _, ok := value.(string); !ok {
@@ -600,7 +600,7 @@ func (sv *StandardYANGValidator) validateLeaf(value interface{}, node *YANGNode)
 	case "uint16", "uint32", "uint64", "int16", "int32", "int64":
 		switch value.(type) {
 		case int, int16, int32, int64, uint, uint16, uint32, uint64, float64:
-			// OK
+			// OK.
 		default:
 			return fmt.Errorf("expected numeric type, got %T", value)
 		}
@@ -627,20 +627,20 @@ func (sv *StandardYANGValidator) validateLeaf(value interface{}, node *YANGNode)
 	return nil
 }
 
-// ValidateXPath validates an XPath expression
+// ValidateXPath validates an XPath expression.
 func (sv *StandardYANGValidator) ValidateXPath(xpath string, modelName string) error {
-	// Basic XPath syntax validation
+	// Basic XPath syntax validation.
 	if xpath == "" {
 		return fmt.Errorf("XPath cannot be empty")
 	}
 
-	// Check for basic XPath syntax
+	// Check for basic XPath syntax.
 	xpathRegex := regexp.MustCompile(`^(/[a-zA-Z0-9_-]+(\[[^\]]+\])*)+$`)
 	if !xpathRegex.MatchString(xpath) {
 		return fmt.Errorf("invalid XPath syntax: %s", xpath)
 	}
 
-	// Implement comprehensive XPath validation against schema
+	// Implement comprehensive XPath validation against schema.
 	sv.mutex.RLock()
 	model, exists := sv.registry.models[modelName]
 	sv.mutex.RUnlock()
@@ -649,16 +649,16 @@ func (sv *StandardYANGValidator) ValidateXPath(xpath string, modelName string) e
 		return fmt.Errorf("model %s not found for XPath validation", modelName)
 	}
 
-	// Parse XPath into components for validation
+	// Parse XPath into components for validation.
 	parts := strings.Split(strings.TrimPrefix(xpath, "/"), "/")
 	if len(parts) == 0 {
 		return fmt.Errorf("invalid XPath structure: %s", xpath)
 	}
 
-	// Validate each XPath component against the model schema
+	// Validate each XPath component against the model schema.
 	var currentSchema interface{} = model.Schema
 	for i, part := range parts {
-		// Handle array indices [condition]
+		// Handle array indices [condition].
 		nodeName := part
 		var condition string
 		if bracketStart := strings.Index(part, "["); bracketStart != -1 {
@@ -670,22 +670,22 @@ func (sv *StandardYANGValidator) ValidateXPath(xpath string, modelName string) e
 			condition = part[bracketStart+1 : bracketEnd]
 		}
 
-		// Check if the node exists in the current schema level
+		// Check if the node exists in the current schema level.
 		if currentSchemaMap, ok := currentSchema.(map[string]interface{}); ok {
 			if nodeSchema, exists := currentSchemaMap[nodeName]; exists {
-				// Move to the next schema level
+				// Move to the next schema level.
 				if nodeMap, ok := nodeSchema.(map[string]interface{}); ok {
 					if childrenSchema, exists := nodeMap["children"]; exists {
 						currentSchema = childrenSchema
 					} else {
-						// Leaf node - validate this is the last component
+						// Leaf node - validate this is the last component.
 						if i != len(parts)-1 {
 							return fmt.Errorf("XPath attempts to traverse beyond leaf node: %s at %s", nodeName, xpath)
 						}
 					}
 				}
 
-				// Validate condition syntax if present
+				// Validate condition syntax if present.
 				if condition != "" {
 					if err := sv.validateXPathCondition(condition, nodeSchema); err != nil {
 						return fmt.Errorf("invalid XPath condition '%s' in %s: %w", condition, part, err)
@@ -695,7 +695,7 @@ func (sv *StandardYANGValidator) ValidateXPath(xpath string, modelName string) e
 				return fmt.Errorf("XPath component '%s' not found in model %s schema", nodeName, modelName)
 			}
 		} else if currentSchemaSlice, ok := currentSchema.([]interface{}); ok {
-			// Handle array/list schemas
+			// Handle array/list schemas.
 			found := false
 			for _, item := range currentSchemaSlice {
 				if itemMap, ok := item.(map[string]interface{}); ok {
@@ -720,45 +720,45 @@ func (sv *StandardYANGValidator) ValidateXPath(xpath string, modelName string) e
 }
 
 // validateXPathCondition validates XPath condition syntax against schema.
-// It supports the following XPath condition patterns:
+// It supports the following XPath condition patterns:.
 //
 // 1. Numeric indices: [1], [2], [3], etc.
-//   - Used for selecting the nth occurrence of an element
-//   - Example: /network-functions/function[1]
+//   - Used for selecting the nth occurrence of an element.
+//   - Example: /network-functions/function[1].
 //
-// 2. Attribute conditions: [@attr='value']
-//   - Tests if an attribute equals a specific value
-//   - Validates that the attribute exists in the schema
-//   - Example: /interface[@name='eth0']
+// 2. Attribute conditions: [@attr='value'].
+//   - Tests if an attribute equals a specific value.
+//   - Validates that the attribute exists in the schema.
+//   - Example: /interface[@name='eth0'].
 //
-// 3. Text content conditions: [text()='value']
-//   - Tests if the text content of a node equals a value
-//   - Example: /status[text()='active']
+// 3. Text content conditions: [text()='value'].
+//   - Tests if the text content of a node equals a value.
+//   - Example: /status[text()='active'].
 //
-// 4. Position conditions: [position()=N], [position()>N], [position()<N]
-//   - Tests the position of a node in its sibling set
-//   - Supports operators: =, <, >, <=, >=
-//   - Example: /item[position()<=5]
+// 4. Position conditions: [position()=N], [position()>N], [position()<N].
+//   - Tests the position of a node in its sibling set.
+//   - Supports operators: =, <, >, <=, >=.
+//   - Example: /item[position()<=5].
 //
-// 5. Last position: [last()]
-//   - Selects the last element in a node set
-//   - Example: /logs/entry[last()]
+// 5. Last position: [last()].
+//   - Selects the last element in a node set.
+//   - Example: /logs/entry[last()].
 //
-// 6. Complex conditions: condition1 and condition2, condition1 or condition2
-//   - Combines multiple conditions with logical operators
-//   - Recursively validates each sub-condition
-//   - Example: [@type='interface' and @status='up']
+// 6. Complex conditions: condition1 and condition2, condition1 or condition2.
+//   - Combines multiple conditions with logical operators.
+//   - Recursively validates each sub-condition.
+//   - Example: [@type='interface' and @status='up'].
 //
-// The function performs schema validation to ensure that referenced attributes
+// The function performs schema validation to ensure that referenced attributes.
 // exist in the YANG model schema when available.
 //
-// Returns an error if:
-// - The condition is empty
-// - The syntax doesn't match any supported pattern
-// - An attribute referenced in the condition doesn't exist in the schema
-// - A sub-condition in a complex expression is invalid
+// Returns an error if:.
+// - The condition is empty.
+// - The syntax doesn't match any supported pattern.
+// - An attribute referenced in the condition doesn't exist in the schema.
+// - A sub-condition in a complex expression is invalid.
 func (sv *StandardYANGValidator) validateXPathCondition(condition string, nodeSchema interface{}) error {
-	// Basic condition validation - empty conditions are not allowed
+	// Basic condition validation - empty conditions are not allowed.
 	if condition == "" {
 		return fmt.Errorf("empty condition not allowed")
 	}
@@ -768,13 +768,13 @@ func (sv *StandardYANGValidator) validateXPathCondition(condition string, nodeSc
 		return nil // Valid numeric index
 	}
 
-	// Handle attribute conditions like [@attr='value']
+	// Handle attribute conditions like [@attr='value'].
 	if attrRegex := regexp.MustCompile(`^@\w+\s*=\s*['"][^'"]*['"]$`); attrRegex.MatchString(condition) {
-		// Extract attribute name and validate against schema
+		// Extract attribute name and validate against schema.
 		attrMatch := regexp.MustCompile(`^@(\w+)`).FindStringSubmatch(condition)
 		if len(attrMatch) > 1 {
 			attrName := attrMatch[1]
-			// Check if attribute exists in schema
+			// Check if attribute exists in schema.
 			if nodeMap, ok := nodeSchema.(map[string]interface{}); ok {
 				if attributes, exists := nodeMap["attributes"]; exists {
 					if attrMap, ok := attributes.(map[string]interface{}); ok {
@@ -788,24 +788,24 @@ func (sv *StandardYANGValidator) validateXPathCondition(condition string, nodeSc
 		return nil
 	}
 
-	// Handle node value conditions like [text()='value']
+	// Handle node value conditions like [text()='value'].
 	if textRegex := regexp.MustCompile(`^text\(\)\s*=\s*['"][^'"]*['"]$`); textRegex.MatchString(condition) {
 		return nil // Valid text condition
 	}
 
-	// Handle position conditions like [position()=1]
+	// Handle position conditions like [position()=1].
 	if positionRegex := regexp.MustCompile(`^position\(\)\s*[=<>]=?\s*\d+$`); positionRegex.MatchString(condition) {
 		return nil // Valid position condition
 	}
 
-	// Handle last() condition
+	// Handle last() condition.
 	if condition == "last()" {
 		return nil
 	}
 
-	// Handle complex conditions with logical operators
+	// Handle complex conditions with logical operators.
 	if complexRegex := regexp.MustCompile(`^.+\s+(and|or)\s+.+$`); complexRegex.MatchString(condition) {
-		// Split by logical operators and validate each part
+		// Split by logical operators and validate each part.
 		parts := regexp.MustCompile(`\s+(and|or)\s+`).Split(condition, -1)
 		for _, part := range parts {
 			if err := sv.validateXPathCondition(strings.TrimSpace(part), nodeSchema); err != nil {
@@ -818,12 +818,12 @@ func (sv *StandardYANGValidator) validateXPathCondition(condition string, nodeSc
 	return fmt.Errorf("unsupported condition syntax: %s", condition)
 }
 
-// GetModelInfo returns model information
+// GetModelInfo returns model information.
 func (sv *StandardYANGValidator) GetModelInfo(modelName string) (*YANGModel, error) {
 	return sv.registry.GetModel(modelName)
 }
 
-// Helper function to convert YANG children to schema format
+// Helper function to convert YANG children to schema format.
 func convertYANGChildren(children map[string]*YANGNode) map[string]interface{} {
 	result := make(map[string]interface{})
 	for key, value := range children {
@@ -832,7 +832,7 @@ func convertYANGChildren(children map[string]*YANGNode) map[string]interface{} {
 	return result
 }
 
-// GetStatistics returns registry statistics
+// GetStatistics returns registry statistics.
 func (yr *YANGModelRegistry) GetStatistics() map[string]interface{} {
 	yr.mutex.RLock()
 	defer yr.mutex.RUnlock()

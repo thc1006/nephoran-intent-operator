@@ -38,26 +38,35 @@ import (
 )
 
 const (
-	// Labels for CNF integration
-	CNFIntentLabel           = "nephoran.com/cnf-intent"
+	// Labels for CNF integration.
+	CNFIntentLabel = "nephoran.com/cnf-intent"
+	// CNFDeploymentSourceLabel holds cnfdeploymentsourcelabel value.
 	CNFDeploymentSourceLabel = "nephoran.com/source"
+	// CNFDeploymentSourceValue holds cnfdeploymentsourcevalue value.
 	CNFDeploymentSourceValue = "network-intent"
+	// CNFDeploymentIntentLabel holds cnfdeploymentintentlabel value.
 	CNFDeploymentIntentLabel = "nephoran.com/network-intent"
 
-	// Annotations for CNF tracking
+	// Annotations for CNF tracking.
 	CNFProcessingResultAnnotation = "nephoran.com/cnf-processing-result"
-	CNFLastProcessedAnnotation    = "nephoran.com/cnf-last-processed"
+	// CNFLastProcessedAnnotation holds cnflastprocessedannotation value.
+	CNFLastProcessedAnnotation = "nephoran.com/cnf-last-processed"
 
-	// Events for CNF processing
-	EventCNFIntentDetected      = "CNFIntentDetected"
-	EventCNFProcessingStarted   = "CNFProcessingStarted"
+	// Events for CNF processing.
+	EventCNFIntentDetected = "CNFIntentDetected"
+	// EventCNFProcessingStarted holds eventcnfprocessingstarted value.
+	EventCNFProcessingStarted = "CNFProcessingStarted"
+	// EventCNFProcessingCompleted holds eventcnfprocessingcompleted value.
 	EventCNFProcessingCompleted = "CNFProcessingCompleted"
-	EventCNFProcessingFailed    = "CNFProcessingFailed"
-	EventCNFDeploymentCreated   = "CNFDeploymentCreated"
-	EventCNFDeploymentFailed    = "CNFDeploymentFailed"
+	// EventCNFProcessingFailed holds eventcnfprocessingfailed value.
+	EventCNFProcessingFailed = "CNFProcessingFailed"
+	// EventCNFDeploymentCreated holds eventcnfdeploymentcreated value.
+	EventCNFDeploymentCreated = "CNFDeploymentCreated"
+	// EventCNFDeploymentFailed holds eventcnfdeploymentfailed value.
+	EventCNFDeploymentFailed = "CNFDeploymentFailed"
 )
 
-// CNFIntegrationManager manages CNF deployment integration with NetworkIntent
+// CNFIntegrationManager manages CNF deployment integration with NetworkIntent.
 type CNFIntegrationManager struct {
 	Client             client.Client
 	Scheme             *runtime.Scheme
@@ -67,7 +76,7 @@ type CNFIntegrationManager struct {
 	Config             *CNFIntegrationConfig
 }
 
-// CNFIntegrationConfig holds configuration for CNF integration
+// CNFIntegrationConfig holds configuration for CNF integration.
 type CNFIntegrationConfig struct {
 	EnableCNFIntegration    bool
 	CNFProcessingTimeout    time.Duration
@@ -80,7 +89,7 @@ type CNFIntegrationConfig struct {
 	RetryPolicy             CNFRetryPolicy
 }
 
-// CNFRetryPolicy defines retry behavior for CNF operations
+// CNFRetryPolicy defines retry behavior for CNF operations.
 type CNFRetryPolicy struct {
 	MaxRetries        int
 	InitialDelay      time.Duration
@@ -88,7 +97,7 @@ type CNFRetryPolicy struct {
 	BackoffMultiplier float64
 }
 
-// CNFDeploymentContext holds context for CNF deployment operations
+// CNFDeploymentContext holds context for CNF deployment operations.
 type CNFDeploymentContext struct {
 	NetworkIntent    *nephoranv1.NetworkIntent
 	ProcessingResult *nephoranv1.CNFIntentProcessingResult
@@ -100,7 +109,7 @@ type CNFDeploymentContext struct {
 	Warnings         []string
 }
 
-// NewCNFIntegrationManager creates a new CNF integration manager
+// NewCNFIntegrationManager creates a new CNF integration manager.
 func NewCNFIntegrationManager(
 	client client.Client,
 	scheme *runtime.Scheme,
@@ -108,7 +117,6 @@ func NewCNFIntegrationManager(
 	cnfProcessor *cnf.CNFIntentProcessor,
 	cnfOrchestrator *cnf.CNFOrchestrator,
 ) *CNFIntegrationManager {
-
 	return &CNFIntegrationManager{
 		Client:             client,
 		Scheme:             scheme,
@@ -133,7 +141,7 @@ func NewCNFIntegrationManager(
 	}
 }
 
-// ProcessCNFIntent processes a NetworkIntent for CNF deployment requirements
+// ProcessCNFIntent processes a NetworkIntent for CNF deployment requirements.
 func (m *CNFIntegrationManager) ProcessCNFIntent(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) error {
 	logger := log.FromContext(ctx)
 	logger.Info("Processing NetworkIntent for CNF deployment", "intent", networkIntent.Name)
@@ -143,13 +151,13 @@ func (m *CNFIntegrationManager) ProcessCNFIntent(ctx context.Context, networkInt
 		return nil
 	}
 
-	// Check if this intent contains CNF-related requirements
+	// Check if this intent contains CNF-related requirements.
 	if !m.isCNFIntent(networkIntent) {
 		logger.Info("NetworkIntent does not contain CNF deployment requirements")
 		return nil
 	}
 
-	// Create processing context
+	// Create processing context.
 	deploymentContext := &CNFDeploymentContext{
 		NetworkIntent:   networkIntent,
 		StartTime:       time.Now(),
@@ -157,17 +165,17 @@ func (m *CNFIntegrationManager) ProcessCNFIntent(ctx context.Context, networkInt
 		ProcessingPhase: "Detection",
 	}
 
-	// Record CNF intent detection
+	// Record CNF intent detection.
 	m.Recorder.Event(networkIntent, "Normal", EventCNFIntentDetected,
 		"CNF deployment intent detected in NetworkIntent")
 
-	// Check for existing processing results
+	// Check for existing processing results.
 	if m.hasExistingProcessingResult(networkIntent) && !m.shouldReprocess(networkIntent) {
 		logger.Info("CNF intent already processed, using existing results")
 		return m.deployExistingCNFs(ctx, deploymentContext)
 	}
 
-	// Process the intent for CNF deployment specifications
+	// Process the intent for CNF deployment specifications.
 	deploymentContext.ProcessingPhase = "Processing"
 	m.Recorder.Event(networkIntent, "Normal", EventCNFProcessingStarted,
 		"Starting CNF intent processing")
@@ -182,14 +190,14 @@ func (m *CNFIntegrationManager) ProcessCNFIntent(ctx context.Context, networkInt
 
 	deploymentContext.ProcessingResult = processingResult
 
-	// Validate processing results
+	// Validate processing results.
 	if err := m.validateProcessingResults(processingResult); err != nil {
 		logger.Error(err, "CNF processing results validation failed")
 		deploymentContext.Errors = append(deploymentContext.Errors, err)
 		return err
 	}
 
-	// Store processing results in NetworkIntent annotations
+	// Store processing results in NetworkIntent annotations.
 	if err := m.storeProcessingResults(ctx, networkIntent, processingResult); err != nil {
 		logger.Error(err, "Failed to store CNF processing results")
 		deploymentContext.Warnings = append(deploymentContext.Warnings, err.Error())
@@ -198,14 +206,14 @@ func (m *CNFIntegrationManager) ProcessCNFIntent(ctx context.Context, networkInt
 	m.Recorder.Event(networkIntent, "Normal", EventCNFProcessingCompleted,
 		fmt.Sprintf("CNF intent processing completed. Detected %d CNF functions", len(processingResult.DetectedFunctions)))
 
-	// Create CNF deployments
+	// Create CNF deployments.
 	deploymentContext.ProcessingPhase = "Deployment"
 	if err := m.createCNFDeployments(ctx, deploymentContext); err != nil {
 		logger.Error(err, "Failed to create CNF deployments")
 		return err
 	}
 
-	// Update NetworkIntent status with CNF deployment information
+	// Update NetworkIntent status with CNF deployment information.
 	if err := m.updateNetworkIntentWithCNFStatus(ctx, networkIntent, deploymentContext); err != nil {
 		logger.Error(err, "Failed to update NetworkIntent status")
 	}
@@ -218,7 +226,7 @@ func (m *CNFIntegrationManager) ProcessCNFIntent(ctx context.Context, networkInt
 	return nil
 }
 
-// isCNFIntent determines if a NetworkIntent contains CNF deployment requirements
+// isCNFIntent determines if a NetworkIntent contains CNF deployment requirements.
 func (m *CNFIntegrationManager) isCNFIntent(networkIntent *nephoranv1.NetworkIntent) bool {
 	intent := strings.ToLower(networkIntent.Spec.Intent)
 
@@ -238,7 +246,7 @@ func (m *CNFIntegrationManager) isCNFIntent(networkIntent *nephoranv1.NetworkInt
 		}
 	}
 
-	// Check for CNF-related target components
+	// Check for CNF-related target components.
 	for _, component := range networkIntent.Spec.TargetComponents {
 		cnfComponents := []nephoranv1.ORANComponent{
 			nephoranv1.ORANComponentAMF, nephoranv1.ORANComponentSMF, nephoranv1.ORANComponentUPF,
@@ -252,7 +260,7 @@ func (m *CNFIntegrationManager) isCNFIntent(networkIntent *nephoranv1.NetworkInt
 		}
 	}
 
-	// Check processed parameters for CNF-related content
+	// Check processed parameters for CNF-related content.
 	if networkIntent.Spec.ProcessedParameters != nil {
 		if networkIntent.Spec.ProcessedParameters.NetworkFunction != "" {
 			cnfFunctions := []string{"amf", "smf", "upf", "nrf", "ausf", "udm", "o-du", "o-cu", "ric"}
@@ -268,7 +276,7 @@ func (m *CNFIntegrationManager) isCNFIntent(networkIntent *nephoranv1.NetworkInt
 	return false
 }
 
-// hasExistingProcessingResult checks if there are existing CNF processing results
+// hasExistingProcessingResult checks if there are existing CNF processing results.
 func (m *CNFIntegrationManager) hasExistingProcessingResult(networkIntent *nephoranv1.NetworkIntent) bool {
 	if networkIntent.Annotations == nil {
 		return false
@@ -278,7 +286,7 @@ func (m *CNFIntegrationManager) hasExistingProcessingResult(networkIntent *nepho
 	return exists
 }
 
-// shouldReprocess determines if CNF processing should be redone
+// shouldReprocess determines if CNF processing should be redone.
 func (m *CNFIntegrationManager) shouldReprocess(networkIntent *nephoranv1.NetworkIntent) bool {
 	if networkIntent.Annotations == nil {
 		return true
@@ -294,16 +302,16 @@ func (m *CNFIntegrationManager) shouldReprocess(networkIntent *nephoranv1.Networ
 		return true
 	}
 
-	// Reprocess if the intent was modified after last processing
+	// Reprocess if the intent was modified after last processing.
 	return networkIntent.GetGeneration() != networkIntent.Status.ObservedGeneration ||
 		networkIntent.GetCreationTimestamp().After(lastProcessed)
 }
 
-// deployExistingCNFs deploys CNFs based on existing processing results
+// deployExistingCNFs deploys CNFs based on existing processing results.
 func (m *CNFIntegrationManager) deployExistingCNFs(ctx context.Context, deploymentContext *CNFDeploymentContext) error {
 	logger := log.FromContext(ctx)
 
-	// Retrieve existing processing results
+	// Retrieve existing processing results.
 	resultStr, exists := deploymentContext.NetworkIntent.Annotations[CNFProcessingResultAnnotation]
 	if !exists {
 		return fmt.Errorf("no existing CNF processing results found")
@@ -319,7 +327,7 @@ func (m *CNFIntegrationManager) deployExistingCNFs(ctx context.Context, deployme
 	return m.createCNFDeployments(ctx, deploymentContext)
 }
 
-// validateProcessingResults validates the CNF processing results
+// validateProcessingResults validates the CNF processing results.
 func (m *CNFIntegrationManager) validateProcessingResults(result *nephoranv1.CNFIntentProcessingResult) error {
 	if result == nil {
 		return fmt.Errorf("processing result is nil")
@@ -344,7 +352,7 @@ func (m *CNFIntegrationManager) validateProcessingResults(result *nephoranv1.CNF
 	return nil
 }
 
-// storeProcessingResults stores CNF processing results in NetworkIntent annotations
+// storeProcessingResults stores CNF processing results in NetworkIntent annotations.
 func (m *CNFIntegrationManager) storeProcessingResults(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, result *nephoranv1.CNFIntentProcessingResult) error {
 	resultBytes, err := json.Marshal(result)
 	if err != nil {
@@ -361,7 +369,7 @@ func (m *CNFIntegrationManager) storeProcessingResults(ctx context.Context, netw
 	return m.Client.Update(ctx, networkIntent)
 }
 
-// createCNFDeployments creates CNFDeployment resources based on processing results
+// createCNFDeployments creates CNFDeployment resources based on processing results.
 func (m *CNFIntegrationManager) createCNFDeployments(ctx context.Context, deploymentContext *CNFDeploymentContext) error {
 	logger := log.FromContext(ctx)
 	logger.Info("Creating CNF deployments", "count", len(deploymentContext.ProcessingResult.CNFDeployments))
@@ -373,7 +381,7 @@ func (m *CNFIntegrationManager) createCNFDeployments(ctx context.Context, deploy
 			continue
 		}
 
-		// Create the CNFDeployment resource
+		// Create the CNFDeployment resource.
 		if err := m.Client.Create(ctx, cnfDeployment); err != nil {
 			if !errors.IsAlreadyExists(err) {
 				logger.Error(err, "Failed to create CNF deployment", "cnf", cnfDeployment.Name)
@@ -382,14 +390,14 @@ func (m *CNFIntegrationManager) createCNFDeployments(ctx context.Context, deploy
 					fmt.Sprintf("Failed to create CNF deployment %s: %v", cnfDeployment.Name, err))
 				continue
 			}
-			// If already exists, try to update
+			// If already exists, try to update.
 			existingCNF := &nephoranv1.CNFDeployment{}
 			if err := m.Client.Get(ctx, types.NamespacedName{Name: cnfDeployment.Name, Namespace: cnfDeployment.Namespace}, existingCNF); err != nil {
 				logger.Error(err, "Failed to get existing CNF deployment")
 				continue
 			}
 
-			// Update the existing deployment
+			// Update the existing deployment.
 			existingCNF.Spec = cnfDeployment.Spec
 			if err := m.Client.Update(ctx, existingCNF); err != nil {
 				logger.Error(err, "Failed to update existing CNF deployment")
@@ -418,12 +426,12 @@ func (m *CNFIntegrationManager) createCNFDeployments(ctx context.Context, deploy
 	return nil
 }
 
-// createCNFDeploymentResource creates a CNFDeployment resource from the intent specification
+// createCNFDeploymentResource creates a CNFDeployment resource from the intent specification.
 func (m *CNFIntegrationManager) createCNFDeploymentResource(networkIntent *nephoranv1.NetworkIntent, cnfSpec *nephoranv1.CNFDeploymentIntent, index int) (*nephoranv1.CNFDeployment, error) {
-	// Generate CNF deployment name
+	// Generate CNF deployment name.
 	cnfName := fmt.Sprintf("%s-%s-%d", networkIntent.Name, strings.ToLower(string(cnfSpec.Function)), index)
 
-	// Determine target namespace
+	// Determine target namespace.
 	targetNamespace := m.Config.DefaultTargetNamespace
 	if networkIntent.Spec.TargetNamespace != "" {
 		targetNamespace = networkIntent.Spec.TargetNamespace
@@ -461,32 +469,32 @@ func (m *CNFIntegrationManager) createCNFDeploymentResource(networkIntent *nepho
 		},
 	}
 
-	// Set replicas if specified
+	// Set replicas if specified.
 	if cnfSpec.Replicas != nil {
 		cnfDeployment.Spec.Replicas = *cnfSpec.Replicas
 	}
 
-	// Convert auto-scaling intent
+	// Convert auto-scaling intent.
 	if cnfSpec.AutoScaling != nil && cnfSpec.AutoScaling.Enabled {
 		cnfDeployment.Spec.AutoScaling = m.convertAutoScalingIntent(cnfSpec.AutoScaling)
 	}
 
-	// Convert service mesh intent
+	// Convert service mesh intent.
 	if cnfSpec.ServiceMesh != nil && cnfSpec.ServiceMesh.Enabled {
 		cnfDeployment.Spec.ServiceMesh = m.convertServiceMeshIntent(cnfSpec.ServiceMesh)
 	}
 
-	// Convert monitoring intent
+	// Convert monitoring intent.
 	if cnfSpec.Monitoring != nil && cnfSpec.Monitoring.Enabled {
 		cnfDeployment.Spec.Monitoring = m.convertMonitoringIntent(cnfSpec.Monitoring)
 	}
 
-	// Set owner reference to NetworkIntent
+	// Set owner reference to NetworkIntent.
 	if err := controllerutil.SetControllerReference(networkIntent, cnfDeployment, m.Scheme); err != nil {
 		return nil, fmt.Errorf("failed to set owner reference: %w", err)
 	}
 
-	// Set default Helm configuration if strategy is Helm
+	// Set default Helm configuration if strategy is Helm.
 	if cnfDeployment.Spec.DeploymentStrategy == nephoranv1.CNFDeploymentStrategy(nephoranv1.DeploymentStrategyHelm) {
 		cnfDeployment.Spec.Helm = m.getDefaultHelmConfig(cnfSpec.Function)
 	}
@@ -494,11 +502,11 @@ func (m *CNFIntegrationManager) createCNFDeploymentResource(networkIntent *nepho
 	return cnfDeployment, nil
 }
 
-// Helper methods for converting intent specifications to deployment specifications
+// Helper methods for converting intent specifications to deployment specifications.
 
 func (m *CNFIntegrationManager) convertResourceIntent(resourceIntent *nephoranv1.CNFResourceIntent) nephoranv1.CNFResources {
 	if resourceIntent == nil {
-		// Return minimal default resources
+		// Return minimal default resources.
 		return nephoranv1.CNFResources{
 			CPU:    mustParseQuantity("500m"),
 			Memory: mustParseQuantity("1Gi"),
@@ -570,7 +578,7 @@ func (m *CNFIntegrationManager) convertAutoScalingIntent(autoScalingIntent *neph
 		autoScaling.MemoryUtilization = autoScalingIntent.TargetMemoryUtilization
 	}
 
-	// Convert custom metrics
+	// Convert custom metrics.
 	for _, metricName := range autoScalingIntent.CustomMetrics {
 		customMetric := nephoranv1.CustomMetric{
 			Name:        metricName,
@@ -604,7 +612,7 @@ func (m *CNFIntegrationManager) convertServiceMeshIntent(serviceMeshIntent *neph
 		}
 	}
 
-	// Convert traffic management preferences to policies
+	// Convert traffic management preferences to policies.
 	for _, trafficMgmt := range serviceMeshIntent.TrafficManagement {
 		policy := nephoranv1.TrafficPolicy{
 			Name:        fmt.Sprintf("policy-%s", trafficMgmt),
@@ -642,7 +650,7 @@ func (m *CNFIntegrationManager) convertMonitoringIntent(monitoringIntent *nephor
 }
 
 func (m *CNFIntegrationManager) getDefaultHelmConfig(function nephoranv1.CNFFunction) *nephoranv1.HelmConfig {
-	// Map CNF functions to their default Helm charts
+	// Map CNF functions to their default Helm charts.
 	functionChartMap := map[nephoranv1.CNFFunction]nephoranv1.HelmConfig{
 		nephoranv1.CNFFunctionAMF: {
 			Repository:   "https://charts.5g-core.io",
@@ -675,7 +683,7 @@ func (m *CNFIntegrationManager) getDefaultHelmConfig(function nephoranv1.CNFFunc
 		return &helmConfig
 	}
 
-	// Default Helm configuration
+	// Default Helm configuration.
 	return &nephoranv1.HelmConfig{
 		Repository:   "https://charts.nephoran.io",
 		ChartName:    strings.ToLower(string(function)),
@@ -683,11 +691,11 @@ func (m *CNFIntegrationManager) getDefaultHelmConfig(function nephoranv1.CNFFunc
 	}
 }
 
-// handleProcessingError handles errors during CNF processing
+// handleProcessingError handles errors during CNF processing.
 func (m *CNFIntegrationManager) handleProcessingError(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, deploymentContext *CNFDeploymentContext, processingErr error) error {
 	logger := log.FromContext(ctx)
 
-	// Update NetworkIntent status with error
+	// Update NetworkIntent status with error.
 	networkIntent.Status.ValidationErrors = append(networkIntent.Status.ValidationErrors,
 		fmt.Sprintf("CNF processing failed: %v", processingErr))
 
@@ -699,18 +707,18 @@ func (m *CNFIntegrationManager) handleProcessingError(ctx context.Context, netwo
 	return processingErr
 }
 
-// updateNetworkIntentWithCNFStatus updates NetworkIntent status with CNF deployment information
+// updateNetworkIntentWithCNFStatus updates NetworkIntent status with CNF deployment information.
 func (m *CNFIntegrationManager) updateNetworkIntentWithCNFStatus(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, deploymentContext *CNFDeploymentContext) error {
-	// Add CNF deployment information to NetworkIntent status
+	// Add CNF deployment information to NetworkIntent status.
 	if networkIntent.Status.DeployedComponents == nil {
 		networkIntent.Status.DeployedComponents = []nephoranv1.TargetComponent{}
 	}
 
-	// Map CNF functions to target components
+	// Map CNF functions to target components.
 	for _, cnfDeployment := range deploymentContext.CNFDeployments {
 		targetComponent := m.mapCNFFunctionToTargetComponent(cnfDeployment.Spec.Function)
 		if targetComponent != "" {
-			// Check if component is already in the list
+			// Check if component is already in the list.
 			found := false
 			for _, existing := range networkIntent.Status.DeployedComponents {
 				if existing.Name == string(targetComponent) {
@@ -727,7 +735,7 @@ func (m *CNFIntegrationManager) updateNetworkIntentWithCNFStatus(ctx context.Con
 		}
 	}
 
-	// Update processing duration
+	// Update processing duration.
 	if deploymentContext.ProcessingResult != nil {
 		duration := time.Since(deploymentContext.StartTime)
 		networkIntent.Status.ProcessingDuration = &metav1.Duration{Duration: duration}
@@ -736,7 +744,7 @@ func (m *CNFIntegrationManager) updateNetworkIntentWithCNFStatus(ctx context.Con
 	return m.Client.Status().Update(ctx, networkIntent)
 }
 
-// mapCNFFunctionToTargetComponent maps CNF functions to ORANComponent enum
+// mapCNFFunctionToTargetComponent maps CNF functions to ORANComponent enum.
 func (m *CNFIntegrationManager) mapCNFFunctionToTargetComponent(function nephoranv1.CNFFunction) nephoranv1.ORANComponent {
 	mapping := map[nephoranv1.CNFFunction]nephoranv1.ORANComponent{
 		nephoranv1.CNFFunctionAMF:       nephoranv1.ORANComponentAMF,
@@ -748,14 +756,14 @@ func (m *CNFIntegrationManager) mapCNFFunctionToTargetComponent(function nephora
 		nephoranv1.CNFFunctionOENB:      nephoranv1.ORANComponentGNodeB, // Map O-eNB to gNodeB component
 	}
 
-	// Return the mapped component, or an empty component if not found
+	// Return the mapped component, or an empty component if not found.
 	if component, exists := mapping[function]; exists {
 		return component
 	}
 	return "" // Default empty component for unmapped functions
 }
 
-// mustParseQuantity parses a quantity string and panics if it fails (for constants)
+// mustParseQuantity parses a quantity string and panics if it fails (for constants).
 func mustParseQuantity(s string) resource.Quantity {
 	q, err := resource.ParseQuantity(s)
 	if err != nil {

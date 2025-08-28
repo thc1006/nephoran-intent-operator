@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// TechnicalDebtMonitor represents the main technical debt monitoring system
+// TechnicalDebtMonitor represents the main technical debt monitoring system.
 type TechnicalDebtMonitor struct {
 	ProjectPath string              `json:"project_path"`
 	Timestamp   time.Time           `json:"timestamp"`
@@ -20,7 +20,7 @@ type TechnicalDebtMonitor struct {
 	Actions     []ActionItem        `json:"actions"`
 }
 
-// TechnicalDebtItem represents a single item of technical debt
+// TechnicalDebtItem represents a single item of technical debt.
 type TechnicalDebtItem struct {
 	ID             string    `json:"id"`
 	Type           string    `json:"type"`
@@ -35,7 +35,7 @@ type TechnicalDebtItem struct {
 	Category       string    `json:"category"`
 }
 
-// DebtSummary provides an overview of technical debt
+// DebtSummary provides an overview of technical debt.
 type DebtSummary struct {
 	TotalItems          int            `json:"total_items"`
 	TotalHours          float64        `json:"total_hours"`
@@ -47,7 +47,7 @@ type DebtSummary struct {
 	TrendDirection      string         `json:"trend_direction"`
 }
 
-// DebtTrend represents trend data for technical debt
+// DebtTrend represents trend data for technical debt.
 type DebtTrend struct {
 	Date         time.Time `json:"date"`
 	TotalDebt    float64   `json:"total_debt"`
@@ -56,7 +56,7 @@ type DebtTrend struct {
 	DebtRatio    float64   `json:"debt_ratio"`
 }
 
-// ActionItem represents a recommended action to address technical debt
+// ActionItem represents a recommended action to address technical debt.
 type ActionItem struct {
 	Type            string  `json:"type"`
 	Priority        int     `json:"priority"`
@@ -70,7 +70,7 @@ func main() {
 	fmt.Println("🚀 Nephoran Technical Debt Monitor")
 	fmt.Println("==================================")
 
-	// Initialize monitor
+	// Initialize monitor.
 	monitor := &TechnicalDebtMonitor{
 		ProjectPath: ".",
 		Timestamp:   time.Now(),
@@ -79,21 +79,21 @@ func main() {
 		Actions:     []ActionItem{},
 	}
 
-	// Scan for technical debt
+	// Scan for technical debt.
 	if err := monitor.scanTechnicalDebt(); err != nil {
 		log.Fatalf("Failed to scan technical debt: %v", err)
 	}
 
-	// Generate summary
+	// Generate summary.
 	monitor.generateSummary()
 
-	// Analyze trends
+	// Analyze trends.
 	monitor.analyzeTrends()
 
-	// Generate action items
+	// Generate action items.
 	monitor.generateActionItems()
 
-	// Generate reports
+	// Generate reports.
 	monitor.generateReports()
 
 	fmt.Println("✅ Technical debt monitoring completed!")
@@ -102,7 +102,7 @@ func main() {
 func (tdm *TechnicalDebtMonitor) scanTechnicalDebt() error {
 	fmt.Println("🔍 Scanning for technical debt...")
 
-	// Simulate debt items found during scanning
+	// Simulate debt items found during scanning.
 	tdm.DebtItems = []TechnicalDebtItem{
 		{
 			ID:             "TD-001",
@@ -221,7 +221,7 @@ func (tdm *TechnicalDebtMonitor) generateSummary() {
 func (tdm *TechnicalDebtMonitor) analyzeTrends() {
 	fmt.Println("📈 Analyzing debt trends...")
 
-	// Simulate trend data for the last 30 days
+	// Simulate trend data for the last 30 days.
 	for i := 30; i >= 0; i-- {
 		date := time.Now().AddDate(0, 0, -i)
 		trend := DebtTrend{
@@ -277,13 +277,13 @@ func (tdm *TechnicalDebtMonitor) generateActionItems() {
 func (tdm *TechnicalDebtMonitor) generateReports() {
 	fmt.Println("📄 Generating technical debt reports...")
 
-	// Generate JSON report
+	// Generate JSON report.
 	tdm.generateJSONReport()
 
-	// Generate markdown report
+	// Generate markdown report.
 	tdm.generateMarkdownReport()
 
-	// Generate CSV report for tracking
+	// Generate CSV report for tracking.
 	tdm.generateCSVReport()
 }
 
@@ -319,7 +319,7 @@ func (tdm *TechnicalDebtMonitor) generateMarkdownReport() {
 	}
 	defer func() { _ = file.Close() }()
 
-	// FIXME: Batch error handling for fmt.Fprintf calls per errcheck linter
+	// FIXME: Batch error handling for fmt.Fprintf calls per errcheck linter.
 	var mdWriteErr error
 	if _, err := fmt.Fprintf(file, "# Technical Debt Report\n\n"); err != nil && mdWriteErr == nil {
 		mdWriteErr = err
@@ -393,14 +393,14 @@ func (tdm *TechnicalDebtMonitor) generateCSVReport() {
 	}
 	defer func() { _ = file.Close() }()
 
-	// Write CSV header
-	// FIXME: Adding error check for fmt.Fprintf per errcheck linter
+	// Write CSV header.
+	// FIXME: Adding error check for fmt.Fprintf per errcheck linter.
 	var csvWriteErr error
 	if _, err := fmt.Fprintf(file, "ID,Type,Severity,Priority,Description,Location,EstimatedHours,Category,Status,CreatedAt,UpdatedAt\n"); err != nil {
 		csvWriteErr = err
 	}
 
-	// Write debt items
+	// Write debt items.
 	for _, item := range tdm.DebtItems {
 		if _, err := fmt.Fprintf(file, "%s,%s,%s,%d,%s,%s,%.1f,%s,%s,%s,%s\n",
 			item.ID, item.Type, item.Severity, item.Priority,
@@ -412,7 +412,7 @@ func (tdm *TechnicalDebtMonitor) generateCSVReport() {
 		}
 	}
 
-	// Check for any write errors
+	// Check for any write errors.
 	if csvWriteErr != nil {
 		log.Printf("Error writing CSV report: %v", csvWriteErr)
 		return

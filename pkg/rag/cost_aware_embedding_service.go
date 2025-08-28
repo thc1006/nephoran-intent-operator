@@ -15,7 +15,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// CostAwareEmbeddingService provides intelligent embedding provider selection
+// CostAwareEmbeddingService provides intelligent embedding provider selection.
 type CostAwareEmbeddingService struct {
 	logger          *zap.Logger
 	providers       map[string]EmbeddingProvider
@@ -28,7 +28,7 @@ type CostAwareEmbeddingService struct {
 	mu              sync.RWMutex
 }
 
-// CostAwareProviderConfig holds configuration for each embedding provider
+// CostAwareProviderConfig holds configuration for each embedding provider.
 type CostAwareProviderConfig struct {
 	Name            string
 	CostPerToken    float64
@@ -40,7 +40,7 @@ type CostAwareProviderConfig struct {
 	Enabled         bool
 }
 
-// CostTracker tracks costs and budgets
+// CostTracker tracks costs and budgets.
 type CostAwareCostTracker struct {
 	hourlyBudget   float64
 	dailyBudget    float64
@@ -50,7 +50,7 @@ type CostAwareCostTracker struct {
 	mu             sync.RWMutex
 }
 
-// CostAccumulator tracks accumulated costs
+// CostAccumulator tracks accumulated costs.
 type CostAccumulator struct {
 	hourly    atomic.Value // float64
 	daily     atomic.Value // float64
@@ -58,7 +58,7 @@ type CostAccumulator struct {
 	lastReset time.Time
 }
 
-// ProviderStats tracks provider performance statistics
+// ProviderStats tracks provider performance statistics.
 type ProviderStats struct {
 	TotalRequests  atomic.Int64
 	SuccessfulReqs atomic.Int64
@@ -69,14 +69,14 @@ type ProviderStats struct {
 	LastUsed       atomic.Int64 // unix timestamp
 }
 
-// HealthMonitor monitors provider health
+// HealthMonitor monitors provider health.
 type HealthMonitor struct {
 	healthChecks  map[string]*CostAwareHealthStatus
 	checkInterval time.Duration
 	mu            sync.RWMutex
 }
 
-// HealthStatus represents provider health
+// HealthStatus represents provider health.
 type CostAwareHealthStatus struct {
 	Healthy          atomic.Bool
 	LastCheck        atomic.Int64 // unix timestamp
@@ -84,7 +84,7 @@ type CostAwareHealthStatus struct {
 	ResponseTime     atomic.Int64 // milliseconds
 }
 
-// CircuitBreaker implements circuit breaker pattern
+// CircuitBreaker implements circuit breaker pattern.
 type CircuitBreaker struct {
 	state        atomic.Int32 // 0=closed, 1=open, 2=half-open
 	failures     atomic.Int32
@@ -93,14 +93,14 @@ type CircuitBreaker struct {
 	config       CircuitBreakerConfig
 }
 
-// CircuitBreakerConfig holds circuit breaker configuration
+// CircuitBreakerConfig holds circuit breaker configuration.
 type CircuitBreakerConfig struct {
 	FailureThreshold int32
 	RecoveryTimeout  time.Duration
 	SuccessThreshold int32
 }
 
-// CostAwareEmbeddingRequest represents a request for cost-aware embeddings
+// CostAwareEmbeddingRequest represents a request for cost-aware embeddings.
 type CostAwareEmbeddingRequest struct {
 	Text              string
 	MaxBudget         float64
@@ -109,7 +109,7 @@ type CostAwareEmbeddingRequest struct {
 	PreferredProvider string
 }
 
-// EmbeddingResponse represents the embedding result
+// EmbeddingResponse represents the embedding result.
 type CostAwareEmbeddingResponse struct {
 	Embeddings []float64
 	Provider   string
@@ -118,7 +118,7 @@ type CostAwareEmbeddingResponse struct {
 	Quality    float64
 }
 
-// costAwareMetrics tracks performance metrics
+// costAwareMetrics tracks performance metrics.
 type costAwareMetrics struct {
 	requestsTotal       prometheus.Counter
 	requestsPerProvider *prometheus.CounterVec
@@ -131,7 +131,7 @@ type costAwareMetrics struct {
 	circuitBreakerTrips prometheus.Counter
 }
 
-// NewCostAwareEmbeddingService creates a new cost-aware embedding service
+// NewCostAwareEmbeddingService creates a new cost-aware embedding service.
 func NewCostAwareEmbeddingService(logger *zap.Logger) *CostAwareEmbeddingService {
 	metrics := &costAwareMetrics{
 		requestsTotal: prometheus.NewCounter(prometheus.CounterOpts{
@@ -173,7 +173,7 @@ func NewCostAwareEmbeddingService(logger *zap.Logger) *CostAwareEmbeddingService
 		}),
 	}
 
-	// Register metrics
+	// Register metrics.
 	prometheus.MustRegister(
 		metrics.requestsTotal,
 		metrics.requestsPerProvider,
@@ -205,26 +205,26 @@ func NewCostAwareEmbeddingService(logger *zap.Logger) *CostAwareEmbeddingService
 		},
 	}
 
-	// Initialize atomic values
+	// Initialize atomic values.
 	service.costTracker.currentCosts.hourly.Store(0.0)
 	service.costTracker.currentCosts.daily.Store(0.0)
 	service.costTracker.currentCosts.monthly.Store(0.0)
 
-	// Start background tasks
+	// Start background tasks.
 	go service.monitorHealth()
 	go service.resetCostTracking()
 
 	return service
 }
 
-// ConfigureProvider adds or updates a provider configuration
+// ConfigureProvider adds or updates a provider configuration.
 func (s *CostAwareEmbeddingService) ConfigureProvider(config CostAwareProviderConfig) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	s.providerConfigs[config.Name] = &config
 
-	// Initialize circuit breaker
+	// Initialize circuit breaker.
 	if _, exists := s.circuitBreakers[config.Name]; !exists {
 		s.circuitBreakers[config.Name] = &CircuitBreaker{
 			config: CircuitBreakerConfig{
@@ -235,14 +235,14 @@ func (s *CostAwareEmbeddingService) ConfigureProvider(config CostAwareProviderCo
 		}
 	}
 
-	// Initialize health status
+	// Initialize health status.
 	if _, exists := s.healthMonitor.healthChecks[config.Name]; !exists {
 		status := &CostAwareHealthStatus{}
 		status.Healthy.Store(true)
 		s.healthMonitor.healthChecks[config.Name] = status
 	}
 
-	// Initialize provider stats
+	// Initialize provider stats.
 	if _, exists := s.costTracker.historicalData[config.Name]; !exists {
 		stats := &ProviderStats{}
 		stats.TotalCost.Store(0.0)
@@ -256,7 +256,7 @@ func (s *CostAwareEmbeddingService) ConfigureProvider(config CostAwareProviderCo
 		zap.Float64("quality_score", config.QualityScore))
 }
 
-// SetBudgets sets cost budgets
+// SetBudgets sets cost budgets.
 func (s *CostAwareEmbeddingService) SetBudgets(hourly, daily, monthly float64) {
 	s.costTracker.mu.Lock()
 	defer s.costTracker.mu.Unlock()
@@ -266,33 +266,33 @@ func (s *CostAwareEmbeddingService) SetBudgets(hourly, daily, monthly float64) {
 	s.costTracker.monthlyBudget = monthly
 }
 
-// SetFallbackChain sets fallback providers for a primary provider
+// SetFallbackChain sets fallback providers for a primary provider.
 func (s *CostAwareEmbeddingService) SetFallbackChain(primary string, fallbacks []string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.fallbackChains[primary] = fallbacks
 }
 
-// GetEmbeddings generates embeddings with cost optimization
+// GetEmbeddings generates embeddings with cost optimization.
 func (s *CostAwareEmbeddingService) GetEmbeddings(
 	ctx context.Context,
 	request CostAwareEmbeddingRequest,
 ) (*CostAwareEmbeddingResponse, error) {
 	s.metrics.requestsTotal.Inc()
 
-	// Select optimal provider
+	// Select optimal provider.
 	provider, providerName := s.selectProvider(request)
 	if provider == nil {
 		return nil, fmt.Errorf("no available provider found")
 	}
 
-	// Try primary provider
+	// Try primary provider.
 	response, err := s.tryProvider(ctx, provider, providerName, request)
 	if err == nil {
 		return response, nil
 	}
 
-	// Try fallback providers
+	// Try fallback providers.
 	s.metrics.fallbacksUsed.Inc()
 	fallbacks := s.getFallbackChain(providerName)
 	for _, fallbackName := range fallbacks {
@@ -313,12 +313,12 @@ func (s *CostAwareEmbeddingService) GetEmbeddings(
 	return nil, fmt.Errorf("all providers failed for request")
 }
 
-// selectProvider selects the optimal provider based on constraints
+// selectProvider selects the optimal provider based on constraints.
 func (s *CostAwareEmbeddingService) selectProvider(request CostAwareEmbeddingRequest) (EmbeddingProvider, string) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	// If preferred provider is specified and available, use it
+	// If preferred provider is specified and available, use it.
 	if request.PreferredProvider != "" {
 		if provider, exists := s.providers[request.PreferredProvider]; exists {
 			if s.isProviderAvailable(request.PreferredProvider) {
@@ -327,7 +327,7 @@ func (s *CostAwareEmbeddingService) selectProvider(request CostAwareEmbeddingReq
 		}
 	}
 
-	// Score and rank providers
+	// Score and rank providers.
 	type providerScore struct {
 		name     string
 		provider EmbeddingProvider
@@ -346,7 +346,7 @@ func (s *CostAwareEmbeddingService) selectProvider(request CostAwareEmbeddingReq
 			continue
 		}
 
-		// Calculate provider score
+		// Calculate provider score.
 		score := s.calculateProviderScore(name, config, request)
 		candidates = append(candidates, providerScore{
 			name:     name,
@@ -355,7 +355,7 @@ func (s *CostAwareEmbeddingService) selectProvider(request CostAwareEmbeddingReq
 		})
 	}
 
-	// Sort by score (higher is better)
+	// Sort by score (higher is better).
 	sort.Slice(candidates, func(i, j int) bool {
 		return candidates[i].score > candidates[j].score
 	})
@@ -367,7 +367,7 @@ func (s *CostAwareEmbeddingService) selectProvider(request CostAwareEmbeddingReq
 	return nil, ""
 }
 
-// calculateProviderScore calculates a provider's suitability score
+// calculateProviderScore calculates a provider's suitability score.
 func (s *CostAwareEmbeddingService) calculateProviderScore(
 	name string,
 	config *CostAwareProviderConfig,
@@ -375,7 +375,7 @@ func (s *CostAwareEmbeddingService) calculateProviderScore(
 ) float64 {
 	score := 100.0
 
-	// Cost factor (40% weight)
+	// Cost factor (40% weight).
 	estimatedCost := s.estimateCost(config, request.Text)
 	if request.MaxBudget > 0 && estimatedCost > request.MaxBudget {
 		return 0 // Provider exceeds budget
@@ -383,7 +383,7 @@ func (s *CostAwareEmbeddingService) calculateProviderScore(
 	costScore := math.Max(0, 1-estimatedCost/request.MaxBudget) * 40
 	score = score * (1 + costScore/100)
 
-	// Quality factor (30% weight)
+	// Quality factor (30% weight).
 	if request.QualityRequired > 0 {
 		if config.QualityScore < request.QualityRequired {
 			return 0 // Provider doesn't meet quality requirements
@@ -392,7 +392,7 @@ func (s *CostAwareEmbeddingService) calculateProviderScore(
 		score = score * (1 + qualityScore/100)
 	}
 
-	// Performance factor (20% weight)
+	// Performance factor (20% weight).
 	stats := s.costTracker.historicalData[name]
 	if stats != nil {
 		successRate := float64(stats.SuccessfulReqs.Load()) / float64(stats.TotalRequests.Load()+1)
@@ -400,38 +400,38 @@ func (s *CostAwareEmbeddingService) calculateProviderScore(
 		score = score * (1 + perfScore/100)
 	}
 
-	// Latency factor (10% weight)
+	// Latency factor (10% weight).
 	if request.LatencyBudget > 0 && config.LatencyTarget > request.LatencyBudget {
 		latencyPenalty := float64(config.LatencyTarget-request.LatencyBudget) / float64(request.LatencyBudget)
 		score = score * (1 - latencyPenalty*0.1)
 	}
 
-	// Apply priority boost
+	// Apply priority boost.
 	score = score * (1 + float64(config.Priority)/100)
 
 	return score
 }
 
-// tryProvider attempts to get embeddings from a specific provider
+// tryProvider attempts to get embeddings from a specific provider.
 func (s *CostAwareEmbeddingService) tryProvider(
 	ctx context.Context,
 	provider EmbeddingProvider,
 	providerName string,
 	request CostAwareEmbeddingRequest,
 ) (*CostAwareEmbeddingResponse, error) {
-	// Check circuit breaker
+	// Check circuit breaker.
 	if !s.checkCircuitBreaker(providerName) {
 		return nil, fmt.Errorf("circuit breaker open for provider %s", providerName)
 	}
 
 	start := time.Now()
 
-	// Get embeddings
+	// Get embeddings.
 	embeddings, err := provider.GenerateBatchEmbeddings(ctx, []string{request.Text})
 
 	duration := time.Since(start)
 
-	// Update metrics
+	// Update metrics.
 	s.metrics.requestsPerProvider.WithLabelValues(providerName).Inc()
 	s.metrics.providerLatency.WithLabelValues(providerName).Observe(duration.Seconds())
 
@@ -440,23 +440,23 @@ func (s *CostAwareEmbeddingService) tryProvider(
 		return nil, err
 	}
 
-	// Calculate cost
+	// Calculate cost.
 	config := s.providerConfigs[providerName]
 	cost := s.estimateCost(config, request.Text)
 
-	// Update cost tracking
+	// Update cost tracking.
 	s.updateCostTracking(providerName, cost)
 
-	// Record success
+	// Record success.
 	s.recordSuccess(providerName, duration)
 
-	// Convert embeddings for quality assessment (float32 to float64)
+	// Convert embeddings for quality assessment (float32 to float64).
 	embedding64 := make([]float64, len(embeddings[0]))
 	for i, v := range embeddings[0] {
 		embedding64[i] = float64(v)
 	}
 
-	// Assess quality
+	// Assess quality.
 	quality := s.assessQuality(embedding64)
 
 	response := &CostAwareEmbeddingResponse{
@@ -470,31 +470,31 @@ func (s *CostAwareEmbeddingService) tryProvider(
 	return response, nil
 }
 
-// estimateCost estimates the cost for a request
+// estimateCost estimates the cost for a request.
 func (s *CostAwareEmbeddingService) estimateCost(config *CostAwareProviderConfig, text string) float64 {
-	// Simple token estimation (rough approximation)
+	// Simple token estimation (rough approximation).
 	tokenCount := len(text) / 4
 	return config.CostPerRequest + (float64(tokenCount) * config.CostPerToken)
 }
 
-// assessQuality assesses the quality of embeddings
+// assessQuality assesses the quality of embeddings.
 func (s *CostAwareEmbeddingService) assessQuality(embeddings []float64) float64 {
-	// Simple quality assessment based on embedding properties
-	// In practice, this would use more sophisticated methods
+	// Simple quality assessment based on embedding properties.
+	// In practice, this would use more sophisticated methods.
 
-	// Check embedding magnitude
+	// Check embedding magnitude.
 	magnitude := 0.0
 	for _, val := range embeddings {
 		magnitude += val * val
 	}
 	magnitude = math.Sqrt(magnitude)
 
-	// Check for reasonable values
+	// Check for reasonable values.
 	if magnitude < 0.1 || magnitude > 10.0 {
 		return 0.5 // Low quality
 	}
 
-	// Check dimension
+	// Check dimension.
 	if len(embeddings) < 384 {
 		return 0.7 // Medium quality
 	}
@@ -502,26 +502,26 @@ func (s *CostAwareEmbeddingService) assessQuality(embeddings []float64) float64 
 	return 0.9 // High quality
 }
 
-// isProviderAvailable checks if a provider is available
+// isProviderAvailable checks if a provider is available.
 func (s *CostAwareEmbeddingService) isProviderAvailable(name string) bool {
-	// Check if provider exists
+	// Check if provider exists.
 	if _, exists := s.providers[name]; !exists {
 		return false
 	}
 
-	// Check health status
+	// Check health status.
 	if health, exists := s.healthMonitor.healthChecks[name]; exists {
 		if !health.Healthy.Load() {
 			return false
 		}
 	}
 
-	// Check circuit breaker
+	// Check circuit breaker.
 	if !s.checkCircuitBreaker(name) {
 		return false
 	}
 
-	// Check budget
+	// Check budget.
 	if !s.checkBudget() {
 		return false
 	}
@@ -529,7 +529,7 @@ func (s *CostAwareEmbeddingService) isProviderAvailable(name string) bool {
 	return true
 }
 
-// checkCircuitBreaker checks if circuit breaker allows requests
+// checkCircuitBreaker checks if circuit breaker allows requests.
 func (s *CostAwareEmbeddingService) checkCircuitBreaker(name string) bool {
 	breaker, exists := s.circuitBreakers[name]
 	if !exists {
@@ -541,7 +541,7 @@ func (s *CostAwareEmbeddingService) checkCircuitBreaker(name string) bool {
 	case 0: // Closed
 		return true
 	case 1: // Open
-		// Check if recovery timeout has passed
+		// Check if recovery timeout has passed.
 		lastFailure := time.Unix(breaker.lastFailure.Load(), 0)
 		if time.Since(lastFailure) > breaker.config.RecoveryTimeout {
 			breaker.state.Store(2) // Move to half-open
@@ -555,7 +555,7 @@ func (s *CostAwareEmbeddingService) checkCircuitBreaker(name string) bool {
 	}
 }
 
-// checkBudget checks if we're within budget limits
+// checkBudget checks if we're within budget limits.
 func (s *CostAwareEmbeddingService) checkBudget() bool {
 	s.costTracker.mu.RLock()
 	defer s.costTracker.mu.RUnlock()
@@ -580,9 +580,9 @@ func (s *CostAwareEmbeddingService) checkBudget() bool {
 	return true
 }
 
-// updateCostTracking updates cost tracking
+// updateCostTracking updates cost tracking.
 func (s *CostAwareEmbeddingService) updateCostTracking(provider string, cost float64) {
-	// Update current costs
+	// Update current costs.
 	for {
 		oldHourly := s.costTracker.currentCosts.hourly.Load().(float64)
 		if s.costTracker.currentCosts.hourly.CompareAndSwap(oldHourly, oldHourly+cost) {
@@ -602,7 +602,7 @@ func (s *CostAwareEmbeddingService) updateCostTracking(provider string, cost flo
 		}
 	}
 
-	// Update provider stats
+	// Update provider stats.
 	if stats, exists := s.costTracker.historicalData[provider]; exists {
 		for {
 			oldCost := stats.TotalCost.Load().(float64)
@@ -612,12 +612,12 @@ func (s *CostAwareEmbeddingService) updateCostTracking(provider string, cost flo
 		}
 	}
 
-	// Update metrics
+	// Update metrics.
 	s.metrics.costTotal.Add(cost)
 	s.metrics.costPerProvider.WithLabelValues(provider).Add(cost)
 }
 
-// recordSuccess records a successful request
+// recordSuccess records a successful request.
 func (s *CostAwareEmbeddingService) recordSuccess(provider string, duration time.Duration) {
 	if stats, exists := s.costTracker.historicalData[provider]; exists {
 		stats.TotalRequests.Add(1)
@@ -626,7 +626,7 @@ func (s *CostAwareEmbeddingService) recordSuccess(provider string, duration time
 		stats.LastUsed.Store(time.Now().Unix())
 	}
 
-	// Update circuit breaker
+	// Update circuit breaker.
 	if breaker, exists := s.circuitBreakers[provider]; exists {
 		breaker.failures.Store(0)
 		if breaker.state.Load() == 2 { // Half-open
@@ -639,14 +639,14 @@ func (s *CostAwareEmbeddingService) recordSuccess(provider string, duration time
 	}
 }
 
-// recordFailure records a failed request
+// recordFailure records a failed request.
 func (s *CostAwareEmbeddingService) recordFailure(provider string) {
 	if stats, exists := s.costTracker.historicalData[provider]; exists {
 		stats.TotalRequests.Add(1)
 		stats.FailedReqs.Add(1)
 	}
 
-	// Update circuit breaker
+	// Update circuit breaker.
 	if breaker, exists := s.circuitBreakers[provider]; exists {
 		failures := breaker.failures.Add(1)
 		breaker.lastFailure.Store(time.Now().Unix())
@@ -667,14 +667,14 @@ func (s *CostAwareEmbeddingService) recordFailure(provider string) {
 	}
 }
 
-// getFallbackChain returns the fallback chain for a provider
+// getFallbackChain returns the fallback chain for a provider.
 func (s *CostAwareEmbeddingService) getFallbackChain(provider string) []string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.fallbackChains[provider]
 }
 
-// monitorHealth periodically checks provider health
+// monitorHealth periodically checks provider health.
 func (s *CostAwareEmbeddingService) monitorHealth() {
 	ticker := time.NewTicker(s.healthMonitor.checkInterval)
 	defer ticker.Stop()
@@ -693,14 +693,14 @@ func (s *CostAwareEmbeddingService) monitorHealth() {
 	}
 }
 
-// checkProviderHealth checks the health of a single provider
+// checkProviderHealth checks the health of a single provider.
 func (s *CostAwareEmbeddingService) checkProviderHealth(name string, provider EmbeddingProvider) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	start := time.Now()
 
-	// Simple health check - try to get embeddings for a small text
+	// Simple health check - try to get embeddings for a small text.
 	_, err := provider.GenerateBatchEmbeddings(ctx, []string{"health check"})
 
 	duration := time.Since(start)
@@ -727,7 +727,7 @@ func (s *CostAwareEmbeddingService) checkProviderHealth(name string, provider Em
 	}
 }
 
-// resetCostTracking periodically resets cost accumulators
+// resetCostTracking periodically resets cost accumulators.
 func (s *CostAwareEmbeddingService) resetCostTracking() {
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
@@ -735,17 +735,17 @@ func (s *CostAwareEmbeddingService) resetCostTracking() {
 	for range ticker.C {
 		now := time.Now()
 
-		// Reset hourly costs
+		// Reset hourly costs.
 		if now.Hour() != s.costTracker.currentCosts.lastReset.Hour() {
 			s.costTracker.currentCosts.hourly.Store(0.0)
 		}
 
-		// Reset daily costs
+		// Reset daily costs.
 		if now.Day() != s.costTracker.currentCosts.lastReset.Day() {
 			s.costTracker.currentCosts.daily.Store(0.0)
 		}
 
-		// Reset monthly costs
+		// Reset monthly costs.
 		if now.Month() != s.costTracker.currentCosts.lastReset.Month() {
 			s.costTracker.currentCosts.monthly.Store(0.0)
 		}

@@ -11,11 +11,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
-// O-RAN Interface Metrics following O-RAN Alliance specifications
-// These metrics provide comprehensive monitoring of O-RAN interface operations
+// O-RAN Interface Metrics following O-RAN Alliance specifications.
+// These metrics provide comprehensive monitoring of O-RAN interface operations.
 
 var (
-	// A1 Interface Metrics - Policy Management and Control
+	// A1 Interface Metrics - Policy Management and Control.
 	a1PolicyOperationsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "nephoran",
@@ -77,7 +77,7 @@ var (
 		[]string{"operation", "final_status"},
 	)
 
-	// E2 Interface Metrics - Near-RT RIC Communication
+	// E2 Interface Metrics - Near-RT RIC Communication.
 	e2MessageOperationsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "nephoran",
@@ -149,7 +149,7 @@ var (
 		[]string{"node_id"},
 	)
 
-	// O1 Interface Metrics - Configuration and Fault Management
+	// O1 Interface Metrics - Configuration and Fault Management.
 	o1ConfigurationOperationsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "nephoran",
@@ -191,7 +191,7 @@ var (
 		[]string{"element_type", "vendor"},
 	)
 
-	// O2 Interface Metrics - Cloud Infrastructure Management
+	// O2 Interface Metrics - Cloud Infrastructure Management.
 	o2InfrastructureOperationsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "nephoran",
@@ -233,7 +233,7 @@ var (
 		[]string{"deployment_id", "application_type", "cluster"},
 	)
 
-	// General O-RAN Health and Performance Metrics
+	// General O-RAN Health and Performance Metrics.
 	oranHealthCheckStatus = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "nephoran",
@@ -275,7 +275,7 @@ var (
 		[]string{"interface", "reason"},
 	)
 
-	// Performance and Resource Metrics
+	// Performance and Resource Metrics.
 	oranConcurrentConnections = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "nephoran",
@@ -307,19 +307,19 @@ var (
 	)
 )
 
-// ORANMetricsCollector provides methods to update O-RAN metrics
+// ORANMetricsCollector provides methods to update O-RAN metrics.
 type ORANMetricsCollector struct {
-	// Component registry for cleanup
+	// Component registry for cleanup.
 	componentRegistry map[string]bool
 }
 
-// NewORANMetricsCollector creates a new O-RAN metrics collector
+// NewORANMetricsCollector creates a new O-RAN metrics collector.
 func NewORANMetricsCollector() *ORANMetricsCollector {
 	collector := &ORANMetricsCollector{
 		componentRegistry: make(map[string]bool),
 	}
 
-	// Register all metrics with controller-runtime
+	// Register all metrics with controller-runtime.
 	metrics.Registry.MustRegister(
 		a1PolicyOperationsTotal,
 		a1PolicyOperationDuration,
@@ -354,25 +354,25 @@ func NewORANMetricsCollector() *ORANMetricsCollector {
 	return collector
 }
 
-// A1 Interface Metrics Methods
+// A1 Interface Metrics Methods.
 
-// RecordA1PolicyOperation records an A1 policy operation
+// RecordA1PolicyOperation records an A1 policy operation.
 func (c *ORANMetricsCollector) RecordA1PolicyOperation(operation, policyTypeID, status string, duration time.Duration) {
 	a1PolicyOperationsTotal.WithLabelValues(operation, policyTypeID, status).Inc()
 	a1PolicyOperationDuration.WithLabelValues(operation, policyTypeID).Observe(duration.Seconds())
 }
 
-// UpdateA1PolicyTypesActive updates the number of active A1 policy types
+// UpdateA1PolicyTypesActive updates the number of active A1 policy types.
 func (c *ORANMetricsCollector) UpdateA1PolicyTypesActive(ricID string, count int) {
 	a1PolicyTypesActive.WithLabelValues(ricID).Set(float64(count))
 }
 
-// UpdateA1PolicyInstancesActive updates the number of active A1 policy instances
+// UpdateA1PolicyInstancesActive updates the number of active A1 policy instances.
 func (c *ORANMetricsCollector) UpdateA1PolicyInstancesActive(policyTypeID, ricID, enforcementStatus string, count int) {
 	a1PolicyInstancesActive.WithLabelValues(policyTypeID, ricID, enforcementStatus).Set(float64(count))
 }
 
-// UpdateA1CircuitBreakerState updates the A1 circuit breaker state
+// UpdateA1CircuitBreakerState updates the A1 circuit breaker state.
 func (c *ORANMetricsCollector) UpdateA1CircuitBreakerState(ricID string, state string) {
 	var stateValue float64
 	switch state {
@@ -386,40 +386,40 @@ func (c *ORANMetricsCollector) UpdateA1CircuitBreakerState(ricID string, state s
 	a1CircuitBreakerState.WithLabelValues(ricID).Set(stateValue)
 }
 
-// RecordA1RetryAttempt records an A1 retry attempt
+// RecordA1RetryAttempt records an A1 retry attempt.
 func (c *ORANMetricsCollector) RecordA1RetryAttempt(operation, finalStatus string) {
 	a1RetryAttemptsTotal.WithLabelValues(operation, finalStatus).Inc()
 }
 
-// E2 Interface Metrics Methods
+// E2 Interface Metrics Methods.
 
-// RecordE2MessageOperation records an E2AP message operation
+// RecordE2MessageOperation records an E2AP message operation.
 func (c *ORANMetricsCollector) RecordE2MessageOperation(messageType, nodeID, status string, duration time.Duration) {
 	e2MessageOperationsTotal.WithLabelValues(messageType, nodeID, status).Inc()
 	e2MessageOperationDuration.WithLabelValues(messageType, nodeID).Observe(duration.Seconds())
 }
 
-// UpdateE2SubscriptionsActive updates the number of active E2 subscriptions
+// UpdateE2SubscriptionsActive updates the number of active E2 subscriptions.
 func (c *ORANMetricsCollector) UpdateE2SubscriptionsActive(nodeID, ranFunctionID, subscriptionType string, count int) {
 	e2SubscriptionsActive.WithLabelValues(nodeID, ranFunctionID, subscriptionType).Set(float64(count))
 }
 
-// UpdateE2NodesConnected updates the number of connected E2 nodes
+// UpdateE2NodesConnected updates the number of connected E2 nodes.
 func (c *ORANMetricsCollector) UpdateE2NodesConnected(nodeType, plmnID string, count int) {
 	e2NodesConnected.WithLabelValues(nodeType, plmnID).Set(float64(count))
 }
 
-// RecordE2Indication records an E2 indication received
+// RecordE2Indication records an E2 indication received.
 func (c *ORANMetricsCollector) RecordE2Indication(nodeID, ranFunctionID, actionID, indicationType string) {
 	e2IndicationsReceived.WithLabelValues(nodeID, ranFunctionID, actionID, indicationType).Inc()
 }
 
-// RecordE2ControlRequest records an E2 control request
+// RecordE2ControlRequest records an E2 control request.
 func (c *ORANMetricsCollector) RecordE2ControlRequest(nodeID, ranFunctionID, status string) {
 	e2ControlRequestsTotal.WithLabelValues(nodeID, ranFunctionID, status).Inc()
 }
 
-// UpdateE2CircuitBreakerState updates the E2 circuit breaker state
+// UpdateE2CircuitBreakerState updates the E2 circuit breaker state.
 func (c *ORANMetricsCollector) UpdateE2CircuitBreakerState(nodeID string, state string) {
 	var stateValue float64
 	switch state {
@@ -433,38 +433,38 @@ func (c *ORANMetricsCollector) UpdateE2CircuitBreakerState(nodeID string, state 
 	e2CircuitBreakerState.WithLabelValues(nodeID).Set(stateValue)
 }
 
-// O1 Interface Metrics Methods
+// O1 Interface Metrics Methods.
 
-// RecordO1ConfigurationOperation records an O1 configuration operation
+// RecordO1ConfigurationOperation records an O1 configuration operation.
 func (c *ORANMetricsCollector) RecordO1ConfigurationOperation(operation, managedElement, status string, duration time.Duration) {
 	o1ConfigurationOperationsTotal.WithLabelValues(operation, managedElement, status).Inc()
 	o1ConfigurationOperationDuration.WithLabelValues(operation, managedElement).Observe(duration.Seconds())
 }
 
-// RecordO1FaultNotification records an O1 fault notification
+// RecordO1FaultNotification records an O1 fault notification.
 func (c *ORANMetricsCollector) RecordO1FaultNotification(managedElement, alarmType, severity string) {
 	o1FaultNotificationsTotal.WithLabelValues(managedElement, alarmType, severity).Inc()
 }
 
-// UpdateO1ManagedElementsConnected updates the number of connected O1 managed elements
+// UpdateO1ManagedElementsConnected updates the number of connected O1 managed elements.
 func (c *ORANMetricsCollector) UpdateO1ManagedElementsConnected(elementType, vendor string, count int) {
 	o1ManagedElementsConnected.WithLabelValues(elementType, vendor).Set(float64(count))
 }
 
-// O2 Interface Metrics Methods
+// O2 Interface Metrics Methods.
 
-// RecordO2InfrastructureOperation records an O2 infrastructure operation
+// RecordO2InfrastructureOperation records an O2 infrastructure operation.
 func (c *ORANMetricsCollector) RecordO2InfrastructureOperation(operation, resourceType, status string, duration time.Duration) {
 	o2InfrastructureOperationsTotal.WithLabelValues(operation, resourceType, status).Inc()
 	o2InfrastructureOperationDuration.WithLabelValues(operation, resourceType).Observe(duration.Seconds())
 }
 
-// UpdateO2ResourceUtilization updates O2 resource utilization
+// UpdateO2ResourceUtilization updates O2 resource utilization.
 func (c *ORANMetricsCollector) UpdateO2ResourceUtilization(resourceType, resourceID, cluster string, utilizationPercent float64) {
 	o2ResourceUtilization.WithLabelValues(resourceType, resourceID, cluster).Set(utilizationPercent)
 }
 
-// UpdateO2DeploymentStatus updates O2 deployment status
+// UpdateO2DeploymentStatus updates O2 deployment status.
 func (c *ORANMetricsCollector) UpdateO2DeploymentStatus(deploymentID, applicationType, cluster string, status string) {
 	var statusValue float64
 	switch status {
@@ -480,9 +480,9 @@ func (c *ORANMetricsCollector) UpdateO2DeploymentStatus(deploymentID, applicatio
 	o2DeploymentStatus.WithLabelValues(deploymentID, applicationType, cluster).Set(statusValue)
 }
 
-// General O-RAN Metrics Methods
+// General O-RAN Metrics Methods.
 
-// RecordHealthCheck records an O-RAN health check
+// RecordHealthCheck records an O-RAN health check.
 func (c *ORANMetricsCollector) RecordHealthCheck(interfaceName, component string, status string, duration time.Duration) {
 	var statusValue float64
 	switch status {
@@ -497,7 +497,7 @@ func (c *ORANMetricsCollector) RecordHealthCheck(interfaceName, component string
 	oranHealthCheckDuration.WithLabelValues(interfaceName, component).Observe(duration.Seconds())
 }
 
-// UpdateDependencyStatus updates dependency status
+// UpdateDependencyStatus updates dependency status.
 func (c *ORANMetricsCollector) UpdateDependencyStatus(dependencyName, dependencyType string, isHealthy bool) {
 	var statusValue float64
 	if isHealthy {
@@ -506,29 +506,29 @@ func (c *ORANMetricsCollector) UpdateDependencyStatus(dependencyName, dependency
 	oranDependencyStatus.WithLabelValues(dependencyName, dependencyType).Set(statusValue)
 }
 
-// RecordCircuitBreakerTrip records a circuit breaker trip
+// RecordCircuitBreakerTrip records a circuit breaker trip.
 func (c *ORANMetricsCollector) RecordCircuitBreakerTrip(interfaceName, reason string) {
 	oranCircuitBreakerTrips.WithLabelValues(interfaceName, reason).Inc()
 }
 
-// UpdateConcurrentConnections updates concurrent connections count
+// UpdateConcurrentConnections updates concurrent connections count.
 func (c *ORANMetricsCollector) UpdateConcurrentConnections(interfaceName, endpoint string, count int) {
 	oranConcurrentConnections.WithLabelValues(interfaceName, endpoint).Set(float64(count))
 }
 
-// UpdateThroughput updates message throughput
+// UpdateThroughput updates message throughput.
 func (c *ORANMetricsCollector) UpdateThroughput(interfaceName, direction string, messagesPerSecond float64) {
 	oranThroughput.WithLabelValues(interfaceName, direction).Set(messagesPerSecond)
 }
 
-// UpdateErrorRate updates error rate percentage
+// UpdateErrorRate updates error rate percentage.
 func (c *ORANMetricsCollector) UpdateErrorRate(interfaceName, errorType string, errorRatePercent float64) {
 	oranErrorRate.WithLabelValues(interfaceName, errorType).Set(errorRatePercent)
 }
 
-// Utility Methods
+// Utility Methods.
 
-// StartMetricsCollection starts periodic metrics collection
+// StartMetricsCollection starts periodic metrics collection.
 func (c *ORANMetricsCollector) StartMetricsCollection(ctx context.Context, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -543,17 +543,17 @@ func (c *ORANMetricsCollector) StartMetricsCollection(ctx context.Context, inter
 	}
 }
 
-// collectSystemMetrics collects system-level metrics
+// collectSystemMetrics collects system-level metrics.
 func (c *ORANMetricsCollector) collectSystemMetrics() {
-	// This method would collect system-level metrics
-	// Implementation would depend on the specific monitoring requirements
-	// and available system information
+	// This method would collect system-level metrics.
+	// Implementation would depend on the specific monitoring requirements.
+	// and available system information.
 }
 
-// Reset resets all metrics (useful for testing)
+// Reset resets all metrics (useful for testing).
 func (c *ORANMetricsCollector) Reset() {
-	// Reset counters by re-creating them
-	// Note: In production, this should be used carefully
+	// Reset counters by re-creating them.
+	// Note: In production, this should be used carefully.
 	a1PolicyOperationsTotal.Reset()
 	e2MessageOperationsTotal.Reset()
 	o1ConfigurationOperationsTotal.Reset()
@@ -565,17 +565,17 @@ func (c *ORANMetricsCollector) Reset() {
 	oranCircuitBreakerTrips.Reset()
 }
 
-// GetMetricsFamilies returns all registered metric families for debugging
+// GetMetricsFamilies returns all registered metric families for debugging.
 func (c *ORANMetricsCollector) GetMetricsFamilies() ([]*dto.MetricFamily, error) {
 	return prometheus.DefaultGatherer.Gather()
 }
 
-// Helper function to convert int to string for labels
+// Helper function to convert int to string for labels.
 func intToString(i int) string {
 	return strconv.Itoa(i)
 }
 
-// Helper function to convert int64 to string for labels
+// Helper function to convert int64 to string for labels.
 func int64ToString(i int64) string {
 	return strconv.FormatInt(i, 10)
 }

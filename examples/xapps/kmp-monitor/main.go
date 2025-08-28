@@ -16,7 +16,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2/service_models"
 )
 
-// KMPMonitorXApp demonstrates a complete KMP monitoring xApp
+// KMPMonitorXApp demonstrates a complete KMP monitoring xApp.
 type KMPMonitorXApp struct {
 	sdk        *e2.XAppSDK
 	kmpModel   *service_models.KPMServiceModel
@@ -24,7 +24,7 @@ type KMPMonitorXApp struct {
 	httpServer *http.Server
 }
 
-// CellMetrics stores aggregated metrics for a cell
+// CellMetrics stores aggregated metrics for a cell.
 type CellMetrics struct {
 	CellID            string             `json:"cell_id"`
 	LastUpdate        time.Time          `json:"last_update"`
@@ -38,7 +38,7 @@ type CellMetrics struct {
 }
 
 func main() {
-	// Configuration from environment variables
+	// Configuration from environment variables.
 	xappConfig := &e2.XAppConfig{
 		XAppName:        config.GetEnvOrDefault("XAPP_NAME", "kmp-monitor-xapp"),
 		XAppVersion:     config.GetEnvOrDefault("XAPP_VERSION", "1.0.0"),
@@ -60,39 +60,39 @@ func main() {
 		},
 	}
 
-	// Create xApp instance
+	// Create xApp instance.
 	xapp, err := NewKMPMonitorXApp(xappConfig)
 	if err != nil {
 		log.Fatalf("Failed to create xApp: %v", err)
 	}
 
-	// Setup signal handling for graceful shutdown
+	// Setup signal handling for graceful shutdown.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	// Start xApp
+	// Start xApp.
 	if err := xapp.Start(ctx); err != nil {
 		log.Fatalf("Failed to start xApp: %v", err)
 	}
 
 	log.Printf("KMP Monitor xApp started successfully")
 
-	// Wait for shutdown signal
+	// Wait for shutdown signal.
 	<-sigChan
 	log.Println("Shutdown signal received, stopping xApp...")
 
-	// Graceful shutdown
+	// Graceful shutdown.
 	if err := xapp.Stop(ctx); err != nil {
 		log.Printf("Error during shutdown: %v", err)
 	}
 }
 
-// NewKMPMonitorXApp creates a new KMP monitoring xApp instance
+// NewKMPMonitorXApp creates a new KMP monitoring xApp instance.
 func NewKMPMonitorXApp(config *e2.XAppConfig) (*KMPMonitorXApp, error) {
-	// Create E2Manager
+	// Create E2Manager.
 	e2Manager, err := e2.NewE2Manager(&e2.E2ManagerConfig{
 		DefaultRICURL:     config.NearRTRICURL,
 		DefaultAPIVersion: "v1",
@@ -106,7 +106,7 @@ func NewKMPMonitorXApp(config *e2.XAppConfig) (*KMPMonitorXApp, error) {
 		return nil, fmt.Errorf("failed to create E2Manager: %w", err)
 	}
 
-	// Create xApp SDK
+	// Create xApp SDK.
 	sdk, err := e2.NewXAppSDK(config, e2Manager)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create xApp SDK: %w", err)
@@ -118,23 +118,23 @@ func NewKMPMonitorXApp(config *e2.XAppConfig) (*KMPMonitorXApp, error) {
 		metrics:  make(map[string]*CellMetrics),
 	}
 
-	// Register indication handler
+	// Register indication handler.
 	sdk.RegisterIndicationHandler("default", xapp.handleKMPIndication)
 
-	// Setup HTTP server for metrics API
+	// Setup HTTP server for metrics API.
 	xapp.setupHTTPServer()
 
 	return xapp, nil
 }
 
-// Start initializes and starts the xApp
+// Start initializes and starts the xApp.
 func (x *KMPMonitorXApp) Start(ctx context.Context) error {
-	// Start xApp SDK
+	// Start xApp SDK.
 	if err := x.sdk.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start SDK: %w", err)
 	}
 
-	// Start HTTP server
+	// Start HTTP server.
 	go func() {
 		log.Printf("Starting HTTP server on :8080")
 		if err := x.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -142,7 +142,7 @@ func (x *KMPMonitorXApp) Start(ctx context.Context) error {
 		}
 	}()
 
-	// Create KMP subscriptions for multiple cells
+	// Create KMP subscriptions for multiple cells.
 	cells := []string{"cell-001", "cell-002", "cell-003"}
 	if err := x.createKMPSubscriptions(ctx, cells); err != nil {
 		return fmt.Errorf("failed to create subscriptions: %w", err)
@@ -151,9 +151,9 @@ func (x *KMPMonitorXApp) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop gracefully shuts down the xApp
+// Stop gracefully shuts down the xApp.
 func (x *KMPMonitorXApp) Stop(ctx context.Context) error {
-	// Stop HTTP server
+	// Stop HTTP server.
 	if x.httpServer != nil {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
@@ -162,11 +162,11 @@ func (x *KMPMonitorXApp) Stop(ctx context.Context) error {
 		}
 	}
 
-	// Stop xApp SDK
+	// Stop xApp SDK.
 	return x.sdk.Stop(ctx)
 }
 
-// createKMPSubscriptions creates KMP subscriptions for specified cells
+// createKMPSubscriptions creates KMP subscriptions for specified cells.
 func (x *KMPMonitorXApp) createKMPSubscriptions(ctx context.Context, cells []string) error {
 	measurements := []string{
 		"RRC.ConnEstabAtt",
@@ -184,13 +184,13 @@ func (x *KMPMonitorXApp) createKMPSubscriptions(ctx context.Context, cells []str
 	}
 
 	for _, cellID := range cells {
-		// Create subscription using KMP service model
+		// Create subscription using KMP service model.
 		subscription, err := x.kmpModel.CreateKPMSubscription(x.sdk.GetConfig().E2NodeID, cellID, measurements)
 		if err != nil {
 			return fmt.Errorf("failed to create KMP subscription for cell %s: %w", cellID, err)
 		}
 
-		// Subscribe through SDK
+		// Subscribe through SDK.
 		_, err = x.sdk.Subscribe(ctx, &e2.E2SubscriptionRequest{
 			SubscriptionID:  subscription.SubscriptionID,
 			RequestorID:     x.sdk.GetConfig().XAppName,
@@ -206,7 +206,7 @@ func (x *KMPMonitorXApp) createKMPSubscriptions(ctx context.Context, cells []str
 
 		log.Printf("Created KMP subscription for cell %s", cellID)
 
-		// Initialize metrics for this cell
+		// Initialize metrics for this cell.
 		x.metrics[cellID] = &CellMetrics{
 			CellID:       cellID,
 			LastUpdate:   time.Now(),
@@ -217,9 +217,9 @@ func (x *KMPMonitorXApp) createKMPSubscriptions(ctx context.Context, cells []str
 	return nil
 }
 
-// handleKMPIndication processes incoming KMP indication messages
+// handleKMPIndication processes incoming KMP indication messages.
 func (x *KMPMonitorXApp) handleKMPIndication(ctx context.Context, indication *e2.RICIndication) error {
-	// Parse indication using KMP service model
+	// Parse indication using KMP service model.
 	report, err := x.kmpModel.ParseIndication(
 		indication.RICIndicationHeader,
 		indication.RICIndicationMessage,
@@ -233,17 +233,17 @@ func (x *KMPMonitorXApp) handleKMPIndication(ctx context.Context, indication *e2
 		return fmt.Errorf("unexpected report type")
 	}
 
-	// Update metrics
+	// Update metrics.
 	x.updateCellMetrics(kmpReport)
 
-	// Log metrics (for demo purposes)
+	// Log metrics (for demo purposes).
 	log.Printf("KMP Report - Cell: %s, UEs: %d, Measurements: %d",
 		kmpReport.CellID, kmpReport.UECount, len(kmpReport.Measurements))
 
 	return nil
 }
 
-// updateCellMetrics updates the stored metrics for a cell
+// updateCellMetrics updates the stored metrics for a cell.
 func (x *KMPMonitorXApp) updateCellMetrics(report *service_models.KPMReport) {
 	cellMetrics, exists := x.metrics[report.CellID]
 	if !exists {
@@ -254,29 +254,29 @@ func (x *KMPMonitorXApp) updateCellMetrics(report *service_models.KPMReport) {
 		x.metrics[report.CellID] = cellMetrics
 	}
 
-	// Update basic info
+	// Update basic info.
 	cellMetrics.LastUpdate = report.Timestamp
 	cellMetrics.ActiveUEs = report.UECount
 
-	// Store raw measurements
+	// Store raw measurements.
 	for name, value := range report.Measurements {
 		cellMetrics.Measurements[name] = value
 	}
 
-	// Calculate derived metrics
+	// Calculate derived metrics.
 	x.calculateDerivedMetrics(cellMetrics)
 }
 
-// calculateDerivedMetrics computes useful derived metrics from raw measurements
+// calculateDerivedMetrics computes useful derived metrics from raw measurements.
 func (x *KMPMonitorXApp) calculateDerivedMetrics(metrics *CellMetrics) {
-	// Connection success rate
+	// Connection success rate.
 	if connAtt, ok := metrics.Measurements["RRC.ConnEstabAtt"]; ok && connAtt > 0 {
 		if connSucc, ok := metrics.Measurements["RRC.ConnEstabSucc"]; ok {
 			metrics.ConnectionSuccess = (connSucc / connAtt) * 100
 		}
 	}
 
-	// PRB utilization
+	// PRB utilization.
 	if prbUsedDl, ok := metrics.Measurements["RRU.PrbUsedDl"]; ok {
 		if prbTotDl, ok := metrics.Measurements["RRU.PrbTotDl"]; ok && prbTotDl > 0 {
 			metrics.PRBUtilizationDL = (prbUsedDl / prbTotDl) * 100
@@ -289,7 +289,7 @@ func (x *KMPMonitorXApp) calculateDerivedMetrics(metrics *CellMetrics) {
 		}
 	}
 
-	// Throughput in Mbps (assuming volume is in bytes and measured over 1 second)
+	// Throughput in Mbps (assuming volume is in bytes and measured over 1 second).
 	if volDl, ok := metrics.Measurements["DRB.PdcpSduVolumeDL"]; ok {
 		metrics.ThroughputDL = (volDl * 8) / (1024 * 1024) // Convert bytes to Mbps
 	}
@@ -299,18 +299,18 @@ func (x *KMPMonitorXApp) calculateDerivedMetrics(metrics *CellMetrics) {
 	}
 }
 
-// setupHTTPServer configures the HTTP server for metrics API
+// setupHTTPServer configures the HTTP server for metrics API.
 func (x *KMPMonitorXApp) setupHTTPServer() {
 	mux := http.NewServeMux()
 
-	// Health check endpoint
+	// Health check endpoint.
 	mux.HandleFunc("/health", x.handleHealth)
 
-	// Metrics endpoints
+	// Metrics endpoints.
 	mux.HandleFunc("/metrics", x.handleMetrics)
 	mux.HandleFunc("/metrics/", x.handleCellMetrics)
 
-	// xApp info endpoint
+	// xApp info endpoint.
 	mux.HandleFunc("/info", x.handleInfo)
 
 	x.httpServer = &http.Server{
@@ -319,7 +319,7 @@ func (x *KMPMonitorXApp) setupHTTPServer() {
 	}
 }
 
-// handleHealth provides health check information
+// handleHealth provides health check information.
 func (x *KMPMonitorXApp) handleHealth(w http.ResponseWriter, r *http.Request) {
 	state := x.sdk.GetState()
 	metrics := x.sdk.GetMetrics()
@@ -344,13 +344,13 @@ func (x *KMPMonitorXApp) handleHealth(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(health)
 }
 
-// handleMetrics returns metrics for all cells
+// handleMetrics returns metrics for all cells.
 func (x *KMPMonitorXApp) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(x.metrics)
 }
 
-// handleCellMetrics returns metrics for a specific cell
+// handleCellMetrics returns metrics for a specific cell.
 func (x *KMPMonitorXApp) handleCellMetrics(w http.ResponseWriter, r *http.Request) {
 	cellID := r.URL.Path[len("/metrics/"):]
 	if cellID == "" {
@@ -368,7 +368,7 @@ func (x *KMPMonitorXApp) handleCellMetrics(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(metrics)
 }
 
-// handleInfo returns xApp information
+// handleInfo returns xApp information.
 func (x *KMPMonitorXApp) handleInfo(w http.ResponseWriter, r *http.Request) {
 	config := x.sdk.GetConfig()
 	info := map[string]interface{}{
@@ -386,4 +386,4 @@ func (x *KMPMonitorXApp) handleInfo(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(info)
 }
 
-// Note: Helper functions have been moved to pkg/config/env_helpers.go
+// Note: Helper functions have been moved to pkg/config/env_helpers.go.

@@ -1,4 +1,4 @@
-// Package conductor provides the core reconciliation and watch functionality
+// Package conductor provides the core reconciliation and watch functionality.
 // for the Nephoran Intent Operator's intent processing and lifecycle management.
 package conductor
 
@@ -23,7 +23,7 @@ import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-// WatchReconciler reconciles a NetworkIntent object for conductor-watch
+// WatchReconciler reconciles a NetworkIntent object for conductor-watch.
 type WatchReconciler struct {
 	client.Client
 	Scheme    *runtime.Scheme
@@ -38,38 +38,38 @@ type WatchReconciler struct {
 //+kubebuilder:rbac:groups=nephoran.com,resources=networkintents/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=nephoran.com,resources=networkintents/finalizers,verbs=update
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// Reconcile is part of the main kubernetes reconciliation loop which aims to.
 // move the current state of the cluster closer to the desired state.
 func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	// Use injected logger or fallback to context logger
+	// Use injected logger or fallback to context logger.
 	logger := r.Logger
 	if logger.GetSink() == nil {
 		logger = log.FromContext(ctx)
 	}
 
-	// Enhance logger with request context
+	// Enhance logger with request context.
 	logger = logger.WithValues(
 		"reconcile.namespace", req.Namespace,
 		"reconcile.name", req.Name,
 		"reconcile.namespacedName", req.NamespacedName.String(),
 	)
 
-	// Log reconciliation start
+	// Log reconciliation start.
 	logger.Info("Starting NetworkIntent reconciliation")
 
-	// Fetch the NetworkIntent instance
+	// Fetch the NetworkIntent instance.
 	var networkIntent nephoranv1.NetworkIntent
 	if err := r.Get(ctx, req.NamespacedName, &networkIntent); err != nil {
 		if client.IgnoreNotFound(err) != nil {
 			logger.Error(err, "Failed to get NetworkIntent")
 			return ctrl.Result{}, err
 		}
-		// Object was deleted
+		// Object was deleted.
 		logger.Info("NetworkIntent not found, likely deleted - reconciliation complete")
 		return ctrl.Result{}, nil
 	}
 
-	// Enhance logger with object metadata
+	// Enhance logger with object metadata.
 	logger = logger.WithValues(
 		"object.generation", networkIntent.Generation,
 		"object.resourceVersion", networkIntent.ResourceVersion,
@@ -77,13 +77,13 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		"object.creationTimestamp", networkIntent.CreationTimestamp.Format(time.RFC3339),
 	)
 
-	// Log the NetworkIntent details
+	// Log the NetworkIntent details.
 	logger.Info("NetworkIntent found and processing",
 		"generation", networkIntent.Generation,
 		"resourceVersion", networkIntent.ResourceVersion,
 	)
 
-	// Log and validate the spec
+	// Log and validate the spec.
 	intentSummary := "<empty>"
 	if networkIntent.Spec.Intent != "" {
 		intentSummary = networkIntent.Spec.Intent
@@ -99,7 +99,7 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
-	// Log status if present
+	// Log status if present.
 	if networkIntent.Status.Phase != "" {
 		logger.Info("Current NetworkIntent status",
 			"phase", networkIntent.Status.Phase,
@@ -108,14 +108,14 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		)
 	}
 
-	// Parse intent and generate JSON
+	// Parse intent and generate JSON.
 	logger.Info("Parsing NetworkIntent spec to JSON")
 	intentData, err := r.parseIntentToJSON(&networkIntent)
 	if err != nil {
 		logger.Error(err, "Failed to parse intent to JSON",
 			"intent", networkIntent.Spec.Intent,
 		)
-		// Requeue after 30 seconds on parse error
+		// Requeue after 30 seconds on parse error.
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
@@ -126,7 +126,7 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		"correlationId", intentData["correlation_id"],
 	)
 
-	// Write intent JSON to file
+	// Write intent JSON to file.
 	logger.Info("Writing intent JSON to file")
 	intentFile, err := r.writeIntentJSON(req.NamespacedName.String(), intentData)
 	if err != nil {
@@ -139,7 +139,7 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		"outputDir", r.OutputDir,
 	)
 
-	// Execute porch CLI (conditional on dry-run flag)
+	// Execute porch CLI (conditional on dry-run flag).
 	if r.DryRun {
 		logger.Info("Dry-run mode: skipping porch execution",
 			"intentFile", intentFile,
@@ -158,7 +158,7 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 				"porchPath", r.PorchPath,
 				"mode", r.PorchMode,
 			)
-			// Requeue after 1 minute on porch error
+			// Requeue after 1 minute on porch error.
 			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
 		logger.Info("Successfully executed porch CLI")
@@ -173,11 +173,11 @@ func (r *WatchReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	return ctrl.Result{}, nil
 }
 
-// parseIntentToJSON converts NetworkIntent spec to intent JSON
+// parseIntentToJSON converts NetworkIntent spec to intent JSON.
 func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[string]interface{}, error) {
 	intent := ni.Spec.Intent
 
-	// Regex patterns for different intent formats
+	// Regex patterns for different intent formats.
 	patterns := []struct {
 		regex *regexp.Regexp
 		name  string
@@ -216,12 +216,12 @@ func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[s
 		return nil, fmt.Errorf("unable to parse intent: %s", intent)
 	}
 
-	// Validate replicas
+	// Validate replicas.
 	if replicas > 100 {
 		return nil, fmt.Errorf("replicas count too high: %d (max 100)", replicas)
 	}
 
-	// Create intent JSON matching docs/contracts/intent.schema.json
+	// Create intent JSON matching docs/contracts/intent.schema.json.
 	return map[string]interface{}{
 		"intent_type":    "scaling",
 		"target":         target,
@@ -233,14 +233,14 @@ func (r *WatchReconciler) parseIntentToJSON(ni *nephoranv1.NetworkIntent) (map[s
 	}, nil
 }
 
-// writeIntentJSON writes the intent data to a JSON file
+// writeIntentJSON writes the intent data to a JSON file.
 func (r *WatchReconciler) writeIntentJSON(name string, data map[string]interface{}) (string, error) {
-	// Ensure output directory exists
-	if err := os.MkdirAll(r.OutputDir, 0755); err != nil {
+	// Ensure output directory exists.
+	if err := os.MkdirAll(r.OutputDir, 0o755); err != nil {
 		return "", fmt.Errorf("failed to create output directory: %w", err)
 	}
 
-	// Generate filename with timestamp
+	// Generate filename with timestamp.
 	timestamp := time.Now().Format("20060102T150405")
 	filename := fmt.Sprintf("intent-%s-%s.json",
 		strings.ReplaceAll(name, "/", "-"),
@@ -248,23 +248,23 @@ func (r *WatchReconciler) writeIntentJSON(name string, data map[string]interface
 	)
 	filepath := filepath.Join(r.OutputDir, filename)
 
-	// Marshal to JSON
+	// Marshal to JSON.
 	jsonData, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 
-	// Write file
-	if err := os.WriteFile(filepath, jsonData, 0644); err != nil {
+	// Write file.
+	if err := os.WriteFile(filepath, jsonData, 0o640); err != nil {
 		return "", fmt.Errorf("failed to write file: %w", err)
 	}
 
 	return filepath, nil
 }
 
-// executePorch executes the porch CLI with the intent file
+// executePorch executes the porch CLI with the intent file.
 func (r *WatchReconciler) executePorch(logger logr.Logger, intentFile string, name string) error {
-	// Build command arguments
+	// Build command arguments.
 	args := []string{
 		"generate",
 		"--intent", intentFile,
@@ -278,14 +278,14 @@ func (r *WatchReconciler) executePorch(logger logr.Logger, intentFile string, na
 		"workingDir", r.OutputDir,
 	)
 
-	// Create command
+	// Create command.
 	cmd := exec.Command(r.PorchPath, args...)
 	cmd.Dir = r.OutputDir
 
-	// Set environment
+	// Set environment.
 	cmd.Env = os.Environ()
 
-	// Execute command
+	// Execute command.
 	logger.Info("Executing porch command")
 	output, err := cmd.CombinedOutput()
 	if err != nil {

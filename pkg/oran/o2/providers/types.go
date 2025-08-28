@@ -6,7 +6,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
-// Region represents a cloud provider region
+// Region represents a cloud provider region.
 type Region struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
@@ -14,7 +14,7 @@ type Region struct {
 	Status   string `json:"status,omitempty"`
 }
 
-// AvailabilityZone represents an availability zone within a region
+// AvailabilityZone represents an availability zone within a region.
 type AvailabilityZone struct {
 	ID     string `json:"id"`
 	Name   string `json:"name"`
@@ -22,7 +22,7 @@ type AvailabilityZone struct {
 	Status string `json:"status"`
 }
 
-// InstanceType represents a compute instance type
+// InstanceType represents a compute instance type.
 type InstanceType struct {
 	Name         string  `json:"name"`
 	CPU          string  `json:"cpu"`
@@ -34,7 +34,7 @@ type InstanceType struct {
 	Description  string  `json:"description,omitempty"`
 }
 
-// QuotaInfo represents quota information for a region
+// QuotaInfo represents quota information for a region.
 type QuotaInfo struct {
 	ComputeInstances int    `json:"computeInstances"`
 	VCPUs            int    `json:"vcpus"`
@@ -45,7 +45,7 @@ type QuotaInfo struct {
 	FloatingIPs      int    `json:"floatingIPs,omitempty"`
 }
 
-// CreateResourcePoolRequest represents a request to create a resource pool
+// CreateResourcePoolRequest represents a request to create a resource pool.
 type CreateResourcePoolRequest struct {
 	Name        string                   `json:"name"`
 	Description string                   `json:"description,omitempty"`
@@ -58,7 +58,7 @@ type CreateResourcePoolRequest struct {
 	Properties  map[string]interface{}   `json:"properties,omitempty"`
 }
 
-// UpdateResourcePoolRequest represents a request to update a resource pool
+// UpdateResourcePoolRequest represents a request to update a resource pool.
 type UpdateResourcePoolRequest struct {
 	Name        string                   `json:"name,omitempty"`
 	Description string                   `json:"description,omitempty"`
@@ -68,7 +68,7 @@ type UpdateResourcePoolRequest struct {
 	Properties  map[string]interface{}   `json:"properties,omitempty"`
 }
 
-// ResourcePoolFilter represents filters for resource pool queries
+// ResourcePoolFilter represents filters for resource pool queries.
 type ResourcePoolFilter struct {
 	Names       []string          `json:"names,omitempty"`
 	Regions     []string          `json:"regions,omitempty"`
@@ -81,7 +81,7 @@ type ResourcePoolFilter struct {
 	Offset      int               `json:"offset,omitempty"`
 }
 
-// CreateComputeInstanceRequest represents a request to create a compute instance
+// CreateComputeInstanceRequest represents a request to create a compute instance.
 type CreateComputeInstanceRequest struct {
 	Name           string            `json:"name"`
 	Description    string            `json:"description,omitempty"`
@@ -100,7 +100,7 @@ type CreateComputeInstanceRequest struct {
 	Tags           map[string]string `json:"tags,omitempty"`
 }
 
-// NetworkConfig represents network configuration for instances
+// NetworkConfig represents network configuration for instances.
 type NetworkConfig struct {
 	SubnetID       string   `json:"subnetId,omitempty"`
 	SecurityGroups []string `json:"securityGroups,omitempty"`
@@ -109,7 +109,7 @@ type NetworkConfig struct {
 	FloatingIP     string   `json:"floatingIP,omitempty"`
 }
 
-// StorageConfig represents storage configuration for instances
+// StorageConfig represents storage configuration for instances.
 type StorageConfig struct {
 	RootVolumeSize    int                `json:"rootVolumeSize,omitempty"`
 	RootVolumeType    string             `json:"rootVolumeType,omitempty"`
@@ -117,7 +117,7 @@ type StorageConfig struct {
 	EncryptionConfig  *EncryptionConfig  `json:"encryptionConfig,omitempty"`
 }
 
-// AdditionalVolume represents additional storage volumes
+// AdditionalVolume represents additional storage volumes.
 type AdditionalVolume struct {
 	Size       int    `json:"size"`
 	Type       string `json:"type"`
@@ -125,44 +125,44 @@ type AdditionalVolume struct {
 	Encrypted  bool   `json:"encrypted,omitempty"`
 }
 
-// EncryptionConfig represents encryption configuration
+// EncryptionConfig represents encryption configuration.
 type EncryptionConfig struct {
 	Enabled   bool   `json:"enabled"`
 	KeyID     string `json:"keyId,omitempty"`
 	Algorithm string `json:"algorithm,omitempty"`
 }
 
-// CloudProviderInterface defines the common interface for all cloud providers
+// CloudProviderInterface defines the common interface for all cloud providers.
 type CloudProviderInterface interface {
-	// Provider identification
+	// Provider identification.
 	GetProviderType() string
 
-	// Connection management
+	// Connection management.
 	Initialize(ctx context.Context, config map[string]interface{}) error
 	ValidateCredentials(ctx context.Context) error
 
-	// Region and zone management
+	// Region and zone management.
 	GetRegions(ctx context.Context) ([]Region, error)
 	GetAvailabilityZones(ctx context.Context, region string) ([]AvailabilityZone, error)
 
-	// Instance type management
+	// Instance type management.
 	GetInstanceTypes(ctx context.Context, region string) ([]InstanceType, error)
 
-	// Quota management
+	// Quota management.
 	GetQuotas(ctx context.Context, region string) (*QuotaInfo, error)
 
-	// Resource pool management
+	// Resource pool management.
 	CreateResourcePool(ctx context.Context, req *CreateResourcePoolRequest) (*models.ResourcePool, error)
 	GetResourcePool(ctx context.Context, poolID string) (*models.ResourcePool, error)
 	UpdateResourcePool(ctx context.Context, poolID string, req *UpdateResourcePoolRequest) (*models.ResourcePool, error)
 	DeleteResourcePool(ctx context.Context, poolID string) error
 	ListResourcePools(ctx context.Context, filter *ResourcePoolFilter) ([]*models.ResourcePool, error)
 
-	// Compute instance management
+	// Compute instance management.
 	CreateComputeInstance(ctx context.Context, req *CreateComputeInstanceRequest) (*models.ResourceInstance, error)
 	GetComputeInstance(ctx context.Context, instanceID string) (*models.ResourceInstance, error)
 	DeleteComputeInstance(ctx context.Context, instanceID string) error
 
-	// Monitoring
+	// Monitoring.
 	GetResourceMetrics(ctx context.Context, resourceID string) (*models.ResourceMetrics, error)
 }

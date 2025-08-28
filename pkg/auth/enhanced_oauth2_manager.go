@@ -11,8 +11,8 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
 )
 
-// EnhancedOAuth2Manager provides comprehensive route configuration management
-// while maintaining proper separation of concerns for different route types
+// EnhancedOAuth2Manager provides comprehensive route configuration management.
+// while maintaining proper separation of concerns for different route types.
 type EnhancedOAuth2Manager struct {
 	authMiddleware *AuthMiddleware
 	authHandlers   *AuthHandlers
@@ -20,9 +20,9 @@ type EnhancedOAuth2Manager struct {
 	logger         *slog.Logger
 }
 
-// EnhancedOAuth2ManagerConfig extends the original config with public route configuration
+// EnhancedOAuth2ManagerConfig extends the original config with public route configuration.
 type EnhancedOAuth2ManagerConfig struct {
-	// Original OAuth2 configuration
+	// Original OAuth2 configuration.
 	Enabled          bool
 	AuthConfigFile   string
 	JWTSecretKey     string
@@ -32,20 +32,20 @@ type EnhancedOAuth2ManagerConfig struct {
 	StreamingEnabled bool
 	MaxRequestSize   int64
 
-	// Public endpoint configuration
+	// Public endpoint configuration.
 	ExposeMetricsPublicly  bool
 	MetricsAllowedCIDRs    []string
 	HealthEndpointsEnabled bool // Allow disabling health endpoints in specific contexts
 }
 
-// PublicRouteHandlers holds handlers for public (non-authenticated) routes
+// PublicRouteHandlers holds handlers for public (non-authenticated) routes.
 type PublicRouteHandlers struct {
 	Health  http.HandlerFunc
 	Ready   http.HandlerFunc
 	Metrics http.HandlerFunc
 }
 
-// ProtectedRouteHandlers holds handlers for protected (authenticated) routes
+// ProtectedRouteHandlers holds handlers for protected (authenticated) routes.
 type ProtectedRouteHandlers struct {
 	ProcessIntent        http.HandlerFunc
 	Status               http.HandlerFunc
@@ -53,17 +53,17 @@ type ProtectedRouteHandlers struct {
 	StreamingHandler     http.HandlerFunc
 }
 
-// NewEnhancedOAuth2Manager creates a new enhanced OAuth2Manager instance
+// NewEnhancedOAuth2Manager creates a new enhanced OAuth2Manager instance.
 func NewEnhancedOAuth2Manager(config *EnhancedOAuth2ManagerConfig, logger *slog.Logger) (*EnhancedOAuth2Manager, error) {
 	manager := &EnhancedOAuth2Manager{
 		config: config,
 		logger: logger,
 	}
 
-	// Initialize OAuth2 components only if authentication is enabled
+	// Initialize OAuth2 components only if authentication is enabled.
 	if config.Enabled {
-		// For now, we'll use a simplified approach that delegates to the existing OAuth2Manager
-		// This avoids the complex JWT/RBAC setup issues while still centralizing routes
+		// For now, we'll use a simplified approach that delegates to the existing OAuth2Manager.
+		// This avoids the complex JWT/RBAC setup issues while still centralizing routes.
 		oauth2ManagerConfig := &OAuth2ManagerConfig{
 			Enabled:          config.Enabled,
 			AuthConfigFile:   config.AuthConfigFile,
@@ -80,8 +80,8 @@ func NewEnhancedOAuth2Manager(config *EnhancedOAuth2ManagerConfig, logger *slog.
 			return nil, fmt.Errorf("failed to create OAuth2Manager: %w", err)
 		}
 
-		// Extract the middleware and handlers from the OAuth2Manager
-		// This is a temporary solution to maintain compatibility
+		// Extract the middleware and handlers from the OAuth2Manager.
+		// This is a temporary solution to maintain compatibility.
 		manager.authMiddleware = oauth2Manager.authMiddleware
 
 		logger.Info("OAuth2 authentication enabled (using simplified approach)")
@@ -92,20 +92,20 @@ func NewEnhancedOAuth2Manager(config *EnhancedOAuth2ManagerConfig, logger *slog.
 	return manager, nil
 }
 
-// ConfigureAllRoutes is the main entry point for configuring all routes
-// This method centralizes all route configuration while maintaining separation of concerns
+// ConfigureAllRoutes is the main entry point for configuring all routes.
+// This method centralizes all route configuration while maintaining separation of concerns.
 func (eom *EnhancedOAuth2Manager) ConfigureAllRoutes(
 	router *mux.Router,
 	publicHandlers *PublicRouteHandlers,
 	protectedHandlers *ProtectedRouteHandlers,
 ) error {
-	// 1. Configure OAuth2 routes (if enabled)
+	// 1. Configure OAuth2 routes (if enabled).
 	eom.configureOAuth2Routes(router)
 
-	// 2. Configure public routes (health, metrics)
+	// 2. Configure public routes (health, metrics).
 	eom.configurePublicRoutes(router, publicHandlers)
 
-	// 3. Configure protected routes (business logic endpoints)
+	// 3. Configure protected routes (business logic endpoints).
 	eom.configureProtectedRoutes(router, protectedHandlers)
 
 	eom.logger.Info("All routes configured",
@@ -117,41 +117,41 @@ func (eom *EnhancedOAuth2Manager) ConfigureAllRoutes(
 	return nil
 }
 
-// configureOAuth2Routes sets up OAuth2 authentication routes
+// configureOAuth2Routes sets up OAuth2 authentication routes.
 func (eom *EnhancedOAuth2Manager) configureOAuth2Routes(router *mux.Router) {
 	if !eom.config.Enabled {
 		return
 	}
 
-	// For now, we'll skip OAuth2 route configuration as the existing
-	// OAuth2Manager implementation has issues with NewAuthMiddleware
-	// The main goal is to centralize route configuration which is achieved
-	// through ConfigureAllRoutes method
+	// For now, we'll skip OAuth2 route configuration as the existing.
+	// OAuth2Manager implementation has issues with NewAuthMiddleware.
+	// The main goal is to centralize route configuration which is achieved.
+	// through ConfigureAllRoutes method.
 
 	eom.logger.Info("OAuth2 routes configuration skipped (pending auth middleware fix)")
 }
 
-// configurePublicRoutes sets up public routes (health, metrics) with appropriate security
+// configurePublicRoutes sets up public routes (health, metrics) with appropriate security.
 func (eom *EnhancedOAuth2Manager) configurePublicRoutes(router *mux.Router, handlers *PublicRouteHandlers) {
 	if handlers == nil {
 		eom.logger.Warn("Public route handlers are nil, skipping public route configuration")
 		return
 	}
 
-	// Health endpoints - typically always public for orchestration systems
+	// Health endpoints - typically always public for orchestration systems.
 	if eom.config.HealthEndpointsEnabled && handlers.Health != nil && handlers.Ready != nil {
 		router.HandleFunc("/healthz", handlers.Health).Methods("GET")
 		router.HandleFunc("/readyz", handlers.Ready).Methods("GET")
 		eom.logger.Info("Health endpoints configured")
 	}
 
-	// Metrics endpoint with conditional IP allowlisting
+	// Metrics endpoint with conditional IP allowlisting.
 	if handlers.Metrics != nil {
 		if eom.config.ExposeMetricsPublicly {
 			router.HandleFunc("/metrics", handlers.Metrics).Methods("GET")
 			eom.logger.Info("Metrics endpoint exposed publicly")
 		} else {
-			// Create IP allowlist handler
+			// Create IP allowlist handler.
 			protectedMetricsHandler := eom.createIPAllowlistHandler(
 				handlers.Metrics,
 				eom.config.MetricsAllowedCIDRs,
@@ -163,19 +163,19 @@ func (eom *EnhancedOAuth2Manager) configurePublicRoutes(router *mux.Router, hand
 	}
 }
 
-// configureProtectedRoutes sets up business logic routes with appropriate authentication
+// configureProtectedRoutes sets up business logic routes with appropriate authentication.
 func (eom *EnhancedOAuth2Manager) configureProtectedRoutes(router *mux.Router, handlers *ProtectedRouteHandlers) {
 	if handlers == nil {
 		eom.logger.Warn("Protected route handlers are nil, skipping protected route configuration")
 		return
 	}
 
-	// Apply size limits to POST endpoints
+	// Apply size limits to POST endpoints.
 	processIntentHandler := eom.applySizeLimit(handlers.ProcessIntent)
 	streamingHandler := eom.applySizeLimit(handlers.StreamingHandler)
 
 	if !eom.config.Enabled || !eom.config.RequireAuth || eom.authMiddleware == nil {
-		// No authentication required - setup direct routes
+		// No authentication required - setup direct routes.
 		eom.setupDirectRoutes(router, &ProtectedRouteHandlers{
 			ProcessIntent:        processIntentHandler,
 			Status:               handlers.Status,
@@ -185,9 +185,9 @@ func (eom *EnhancedOAuth2Manager) configureProtectedRoutes(router *mux.Router, h
 		return
 	}
 
-	// For now, setup routes without authentication middleware
-	// The actual authentication should be handled by the OAuth2Manager
-	// This maintains the centralized route configuration goal
+	// For now, setup routes without authentication middleware.
+	// The actual authentication should be handled by the OAuth2Manager.
+	// This maintains the centralized route configuration goal.
 	eom.setupDirectRoutes(router, &ProtectedRouteHandlers{
 		ProcessIntent:        processIntentHandler,
 		Status:               handlers.Status,
@@ -198,7 +198,7 @@ func (eom *EnhancedOAuth2Manager) configureProtectedRoutes(router *mux.Router, h
 	eom.logger.Info("Protected routes configured with authentication")
 }
 
-// setupDirectRoutes configures routes without authentication
+// setupDirectRoutes configures routes without authentication.
 func (eom *EnhancedOAuth2Manager) setupDirectRoutes(router *mux.Router, handlers *ProtectedRouteHandlers) {
 	if handlers.ProcessIntent != nil {
 		router.HandleFunc("/process", handlers.ProcessIntent).Methods("POST")
@@ -210,7 +210,7 @@ func (eom *EnhancedOAuth2Manager) setupDirectRoutes(router *mux.Router, handlers
 		router.HandleFunc("/circuit-breaker/status", handlers.CircuitBreakerStatus).Methods("GET")
 	}
 
-	// Streaming endpoint (conditional registration)
+	// Streaming endpoint (conditional registration).
 	if eom.config.StreamingEnabled && handlers.StreamingHandler != nil {
 		router.HandleFunc("/stream", handlers.StreamingHandler).Methods("POST")
 	}
@@ -218,7 +218,7 @@ func (eom *EnhancedOAuth2Manager) setupDirectRoutes(router *mux.Router, handlers
 	eom.logger.Info("Direct routes configured without authentication")
 }
 
-// applySizeLimit applies MaxBytesHandler to POST endpoints if configured
+// applySizeLimit applies MaxBytesHandler to POST endpoints if configured.
 func (eom *EnhancedOAuth2Manager) applySizeLimit(handler http.HandlerFunc) http.HandlerFunc {
 	if handler == nil {
 		return nil
@@ -230,9 +230,9 @@ func (eom *EnhancedOAuth2Manager) applySizeLimit(handler http.HandlerFunc) http.
 	return handler
 }
 
-// createIPAllowlistHandler creates a handler that restricts access based on client IP addresses
+// createIPAllowlistHandler creates a handler that restricts access based on client IP addresses.
 func (eom *EnhancedOAuth2Manager) createIPAllowlistHandler(next http.HandlerFunc, allowedCIDRs []string) http.HandlerFunc {
-	// Parse CIDR blocks once during initialization for efficiency
+	// Parse CIDR blocks once during initialization for efficiency.
 	var allowedNetworks []*net.IPNet
 	for _, cidrStr := range allowedCIDRs {
 		_, network, err := net.ParseCIDR(cidrStr)
@@ -256,7 +256,7 @@ func (eom *EnhancedOAuth2Manager) createIPAllowlistHandler(next http.HandlerFunc
 			slog.String("client_ip", clientIP),
 			slog.String("path", r.URL.Path))
 
-		// Parse client IP
+		// Parse client IP.
 		ip := net.ParseIP(clientIP)
 		if ip == nil {
 			eom.logger.Warn("Invalid client IP address",
@@ -266,7 +266,7 @@ func (eom *EnhancedOAuth2Manager) createIPAllowlistHandler(next http.HandlerFunc
 			return
 		}
 
-		// Check if client IP is allowed
+		// Check if client IP is allowed.
 		allowed := false
 		for _, network := range allowedNetworks {
 			if network.Contains(ip) {
@@ -286,30 +286,30 @@ func (eom *EnhancedOAuth2Manager) createIPAllowlistHandler(next http.HandlerFunc
 			return
 		}
 
-		// IP is allowed, proceed with the original handler
+		// IP is allowed, proceed with the original handler.
 		next(w, r)
 	}
 }
 
-// getClientIP extracts the real client IP address from various headers
+// getClientIP extracts the real client IP address from various headers.
 func (eom *EnhancedOAuth2Manager) getClientIP(r *http.Request) string {
-	// Check X-Forwarded-For header first (most common)
+	// Check X-Forwarded-For header first (most common).
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 		ips := strings.Split(xff, ",")
 		return strings.TrimSpace(ips[0])
 	}
 
-	// Check X-Real-IP header (used by some proxies)
+	// Check X-Real-IP header (used by some proxies).
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
 		return strings.TrimSpace(xri)
 	}
 
-	// Check CF-Connecting-IP header (Cloudflare)
+	// Check CF-Connecting-IP header (Cloudflare).
 	if cfip := r.Header.Get("CF-Connecting-IP"); cfip != "" {
 		return strings.TrimSpace(cfip)
 	}
 
-	// Fall back to RemoteAddr (direct connection)
+	// Fall back to RemoteAddr (direct connection).
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return r.RemoteAddr
@@ -317,36 +317,37 @@ func (eom *EnhancedOAuth2Manager) getClientIP(r *http.Request) string {
 	return ip
 }
 
-// Legacy compatibility methods to maintain existing API
+// Legacy compatibility methods to maintain existing API.
 func (eom *EnhancedOAuth2Manager) IsEnabled() bool {
 	return eom.config.Enabled
 }
 
+// RequiresAuth performs requiresauth operation.
 func (eom *EnhancedOAuth2Manager) RequiresAuth() bool {
 	return eom.config.RequireAuth
 }
 
-// GetAuthenticationInfo returns information about the current authentication configuration
+// GetAuthenticationInfo returns information about the current authentication configuration.
 func (eom *EnhancedOAuth2Manager) GetAuthenticationInfo() *AuthenticationInfo {
 	info := &AuthenticationInfo{
 		Enabled:     eom.config.Enabled,
 		RequireAuth: eom.config.RequireAuth,
 	}
 
-	// For now, we'll return empty providers list
-	// since we're using simplified OAuth2Manager delegation
+	// For now, we'll return empty providers list.
+	// since we're using simplified OAuth2Manager delegation.
 	info.Providers = []string{}
 
 	return info
 }
 
-// ValidateConfiguration validates the enhanced OAuth2 manager configuration
+// ValidateConfiguration validates the enhanced OAuth2 manager configuration.
 func (config *EnhancedOAuth2ManagerConfig) Validate() error {
 	if config.Enabled && config.JWTSecretKey == "" {
 		return ErrMissingJWTSecret
 	}
 
-	// Validate CIDR blocks if metrics are not public
+	// Validate CIDR blocks if metrics are not public.
 	if !config.ExposeMetricsPublicly {
 		for _, cidr := range config.MetricsAllowedCIDRs {
 			_, _, err := net.ParseCIDR(cidr)
@@ -362,11 +363,11 @@ func (config *EnhancedOAuth2ManagerConfig) Validate() error {
 	return nil
 }
 
-// Helper function to create config from LLMProcessorConfig
+// Helper function to create config from LLMProcessorConfig.
 func NewEnhancedConfigFromLLMConfig(llmConfig interface{}, authEnabled, requireAuth bool, jwtSecret string) *EnhancedOAuth2ManagerConfig {
-	// Type assertion to get the specific config fields we need
-	// This assumes the config has the necessary fields - in a real implementation,
-	// you might want to use reflection or interface methods
+	// Type assertion to get the specific config fields we need.
+	// This assumes the config has the necessary fields - in a real implementation,.
+	// you might want to use reflection or interface methods.
 	return &EnhancedOAuth2ManagerConfig{
 		Enabled:                authEnabled,
 		RequireAuth:            requireAuth,

@@ -10,9 +10,9 @@ import (
 	"time"
 )
 
-// O-RAN compliant A1 interface implementation
+// O-RAN compliant A1 interface implementation.
 
-// A1PolicyTypeResponse represents O-RAN compliant policy type response
+// A1PolicyTypeResponse represents O-RAN compliant policy type response.
 type A1PolicyTypeResponse struct {
 	PolicyTypeID int                    `json:"policy_type_id"`
 	Name         string                 `json:"name"`
@@ -21,7 +21,7 @@ type A1PolicyTypeResponse struct {
 	CreateSchema map[string]interface{} `json:"create_schema,omitempty"`
 }
 
-// A1ErrorResponse represents O-RAN compliant error response (RFC 7807)
+// A1ErrorResponse represents O-RAN compliant error response (RFC 7807).
 type A1ErrorResponse struct {
 	Type     string `json:"type"`
 	Title    string `json:"title"`
@@ -30,18 +30,18 @@ type A1ErrorResponse struct {
 	Instance string `json:"instance,omitempty"`
 }
 
-// EnrichmentInfoType is defined in types.go
+// EnrichmentInfoType is defined in types.go.
 
-// EnrichmentInfoJob is defined in types.go
+// EnrichmentInfoJob is defined in types.go.
 
-// O-RAN Compliant A1-P Interface Methods
+// O-RAN Compliant A1-P Interface Methods.
 
-// CreatePolicyTypeCompliant creates a policy type using O-RAN compliant endpoints
+// CreatePolicyTypeCompliant creates a policy type using O-RAN compliant endpoints.
 func (a *A1Adaptor) CreatePolicyTypeCompliant(ctx context.Context, policyType *A1PolicyType) error {
-	// O-RAN compliant URL format
+	// O-RAN compliant URL format.
 	url := fmt.Sprintf("%s/A1-P/v2/policytypes/%d", a.ricURL, policyType.PolicyTypeID)
 
-	// Convert to O-RAN compliant format
+	// Convert to O-RAN compliant format.
 	oranPolicyType := A1PolicyTypeResponse{
 		PolicyTypeID: policyType.PolicyTypeID,
 		Name:         policyType.Name,
@@ -60,7 +60,7 @@ func (a *A1Adaptor) CreatePolicyTypeCompliant(ctx context.Context, policyType *A
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// O-RAN compliant headers
+	// O-RAN compliant headers.
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json, application/problem+json")
 
@@ -70,7 +70,7 @@ func (a *A1Adaptor) CreatePolicyTypeCompliant(ctx context.Context, policyType *A
 	}
 	defer resp.Body.Close()
 
-	// O-RAN compliant status code handling
+	// O-RAN compliant status code handling.
 	switch resp.StatusCode {
 	case http.StatusCreated:
 		return nil // Policy type created successfully
@@ -87,7 +87,7 @@ func (a *A1Adaptor) CreatePolicyTypeCompliant(ctx context.Context, policyType *A
 	}
 }
 
-// GetPolicyTypeCompliant retrieves a policy type using O-RAN compliant format
+// GetPolicyTypeCompliant retrieves a policy type using O-RAN compliant format.
 func (a *A1Adaptor) GetPolicyTypeCompliant(ctx context.Context, policyTypeID int) (*A1PolicyTypeResponse, error) {
 	url := fmt.Sprintf("%s/A1-P/v2/policytypes/%d", a.ricURL, policyTypeID)
 
@@ -118,7 +118,7 @@ func (a *A1Adaptor) GetPolicyTypeCompliant(ctx context.Context, policyTypeID int
 	}
 }
 
-// ListPolicyTypesCompliant lists all policy types in O-RAN compliant format
+// ListPolicyTypesCompliant lists all policy types in O-RAN compliant format.
 func (a *A1Adaptor) ListPolicyTypesCompliant(ctx context.Context) ([]int, error) {
 	url := fmt.Sprintf("%s/A1-P/v2/policytypes", a.ricURL)
 
@@ -147,7 +147,7 @@ func (a *A1Adaptor) ListPolicyTypesCompliant(ctx context.Context) ([]int, error)
 	return policyTypeIDs, nil
 }
 
-// DeletePolicyTypeCompliant deletes a policy type using O-RAN compliant format
+// DeletePolicyTypeCompliant deletes a policy type using O-RAN compliant format.
 func (a *A1Adaptor) DeletePolicyTypeCompliant(ctx context.Context, policyTypeID int) error {
 	url := fmt.Sprintf("%s/A1-P/v2/policytypes/%d", a.ricURL, policyTypeID)
 
@@ -176,9 +176,9 @@ func (a *A1Adaptor) DeletePolicyTypeCompliant(ctx context.Context, policyTypeID 
 	}
 }
 
-// CreatePolicyInstanceCompliant creates a policy instance with proper validation
+// CreatePolicyInstanceCompliant creates a policy instance with proper validation.
 func (a *A1Adaptor) CreatePolicyInstanceCompliant(ctx context.Context, policyTypeID int, instanceID string, policyData map[string]interface{}) error {
-	// First, validate policy data against schema
+	// First, validate policy data against schema.
 	if err := a.validatePolicyData(ctx, policyTypeID, policyData); err != nil {
 		return fmt.Errorf("policy validation failed: %w", err)
 	}
@@ -220,7 +220,7 @@ func (a *A1Adaptor) CreatePolicyInstanceCompliant(ctx context.Context, policyTyp
 	}
 }
 
-// GetPolicyStatusCompliant retrieves policy status with detailed information
+// GetPolicyStatusCompliant retrieves policy status with detailed information.
 func (a *A1Adaptor) GetPolicyStatusCompliant(ctx context.Context, policyTypeID int, instanceID string) (*A1PolicyStatusCompliant, error) {
 	url := fmt.Sprintf("%s/A1-P/v2/policytypes/%d/policies/%s/status", a.ricURL, policyTypeID, instanceID)
 
@@ -251,7 +251,7 @@ func (a *A1Adaptor) GetPolicyStatusCompliant(ctx context.Context, policyTypeID i
 	}
 }
 
-// A1PolicyStatusCompliant represents O-RAN compliant policy status
+// A1PolicyStatusCompliant represents O-RAN compliant policy status.
 type A1PolicyStatusCompliant struct {
 	EnforcementStatus string                 `json:"enforcement_status"`
 	EnforcementReason string                 `json:"enforcement_reason,omitempty"`
@@ -262,18 +262,18 @@ type A1PolicyStatusCompliant struct {
 	AdditionalInfo    map[string]interface{} `json:"additional_info,omitempty"`
 }
 
-// validatePolicyData validates policy data against the policy type schema
+// validatePolicyData validates policy data against the policy type schema.
 func (a *A1Adaptor) validatePolicyData(ctx context.Context, policyTypeID int, policyData map[string]interface{}) error {
-	// Get policy type schema
+	// Get policy type schema.
 	policyType, err := a.GetPolicyTypeCompliant(ctx, policyTypeID)
 	if err != nil {
 		return fmt.Errorf("failed to get policy type: %w", err)
 	}
 
-	// Implement JSON schema validation here
-	// This is a simplified version - in production, use a proper JSON schema validator
+	// Implement JSON schema validation here.
+	// This is a simplified version - in production, use a proper JSON schema validator.
 	if policyType.Schema != nil {
-		// Check required fields
+		// Check required fields.
 		if requiredFields, ok := policyType.Schema["required"].([]interface{}); ok {
 			for _, field := range requiredFields {
 				if fieldName, ok := field.(string); ok {
@@ -288,11 +288,11 @@ func (a *A1Adaptor) validatePolicyData(ctx context.Context, policyTypeID int, po
 	return nil
 }
 
-// handleErrorResponse handles O-RAN compliant error responses
+// handleErrorResponse handles O-RAN compliant error responses.
 func (a *A1Adaptor) handleErrorResponse(resp *http.Response, defaultMessage string) error {
 	bodyBytes, _ := io.ReadAll(resp.Body)
 
-	// Try to parse as O-RAN error response (RFC 7807 format)
+	// Try to parse as O-RAN error response (RFC 7807 format).
 	if resp.Header.Get("Content-Type") == "application/problem+json" {
 		var errorResp A1ErrorResponse
 		if err := json.Unmarshal(bodyBytes, &errorResp); err == nil {
@@ -300,6 +300,6 @@ func (a *A1Adaptor) handleErrorResponse(resp *http.Response, defaultMessage stri
 		}
 	}
 
-	// Fallback to generic error
+	// Fallback to generic error.
 	return fmt.Errorf("%s: status=%d, body=%s", defaultMessage, resp.StatusCode, string(bodyBytes))
 }

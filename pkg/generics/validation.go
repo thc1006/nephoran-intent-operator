@@ -276,7 +276,7 @@ func (sv *StructValidator[T]) Validate(obj T) ValidationResult {
 	objValue := reflect.ValueOf(obj)
 	objType := reflect.TypeOf(obj)
 
-	// Handle pointer types
+	// Handle pointer types.
 	if objValue.Kind() == reflect.Ptr {
 		objValue = objValue.Elem()
 		objType = objType.Elem()
@@ -287,24 +287,24 @@ func (sv *StructValidator[T]) Validate(obj T) ValidationResult {
 		return result
 	}
 
-	// Validate each field
+	// Validate each field.
 	for i := 0; i < objValue.NumField(); i++ {
 		fieldType := objType.Field(i)
 		fieldValue := objValue.Field(i)
 		fieldName := fieldType.Name
 
-		// Skip unexported fields
+		// Skip unexported fields.
 		if !fieldValue.CanInterface() {
 			continue
 		}
 
-		// Check for validation tag
+		// Check for validation tag.
 		if tag := fieldType.Tag.Get("validate"); tag != "" {
 			tagResult := sv.validateTag(fieldName, fieldValue, tag)
 			result.Combine(tagResult)
 		}
 
-		// Apply custom field validators
+		// Apply custom field validators.
 		if validators, exists := sv.fieldValidators[fieldName]; exists {
 			for _, validator := range validators {
 				fieldResult := validator.Validator(fieldValue)
@@ -430,7 +430,7 @@ func (av *AsyncValidator[T]) ValidateAsync(ctx context.Context, obj T) <-chan Va
 		select {
 		case resultChan <- result:
 		case <-ctx.Done():
-			// Context cancelled
+			// Context cancelled.
 		}
 	}()
 
@@ -459,7 +459,7 @@ func NewBatchValidator[T any](validator Validator[T], maxConcurrency int) *Batch
 func (bv *BatchValidator[T]) ValidateBatch(ctx context.Context, objects []T) <-chan BatchValidationResult[T] {
 	resultChan := make(chan BatchValidationResult[T], len(objects))
 
-	// Create semaphore for concurrency control
+	// Create semaphore for concurrency control.
 	semaphore := make(chan struct{}, bv.maxConcurrency)
 
 	go func() {
@@ -472,7 +472,7 @@ func (bv *BatchValidator[T]) ValidateBatch(ctx context.Context, objects []T) <-c
 			go func(index int, object T) {
 				defer wg.Done()
 
-				// Acquire semaphore
+				// Acquire semaphore.
 				semaphore <- struct{}{}
 				defer func() { <-semaphore }()
 
@@ -553,7 +553,7 @@ func (cv *ConditionalValidator[T]) Validate(obj T) ValidationResult {
 	return NewValidationResult()
 }
 
-// Utility functions
+// Utility functions.
 
 // isZeroValue checks if a value is the zero value.
 func isZeroValue(value any) bool {
@@ -604,7 +604,7 @@ func validateMaxReflectValue(value reflect.Value, max int64) bool {
 	return true
 }
 
-// Predefined validators
+// Predefined validators.
 
 // NotEmpty validates that a string is not empty.
 func NotEmpty[T any](fieldName string, extractor func(T) string) Validator[T] {

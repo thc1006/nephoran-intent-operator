@@ -30,8 +30,8 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
 )
 
-// Dependencies interface defines the external dependencies for the controller
-// This interface is implemented by the injection.Container
+// Dependencies interface defines the external dependencies for the controller.
+// This interface is implemented by the injection.Container.
 type Dependencies interface {
 	GetGitClient() git.ClientInterface
 	GetLLMClient() shared.ClientInterface
@@ -42,10 +42,10 @@ type Dependencies interface {
 	GetMetricsCollector() *monitoring.MetricsCollector
 }
 
-// GitClientInterface is an alias to the git package ClientInterface
+// GitClientInterface is an alias to the git package ClientInterface.
 type GitClientInterface = git.ClientInterface
 
-// Config holds the configuration for the NetworkIntentReconciler
+// Config holds the configuration for the NetworkIntentReconciler.
 type Config struct {
 	MaxRetries      int
 	RetryDelay      time.Duration
@@ -56,22 +56,27 @@ type Config struct {
 	LLMProcessorURL string
 	UseNephioPorch  bool
 
-	// Configuration constants reference
+	// Configuration constants reference.
 	Constants *configPkg.Constants
 }
 
-// ProcessingPhase represents the current phase of intent processing
+// ProcessingPhase represents the current phase of intent processing.
 type ProcessingPhase string
 
 const (
-	PhaseLLMProcessing          ProcessingPhase = "LLMProcessing"
-	PhaseResourcePlanning       ProcessingPhase = "ResourcePlanning"
-	PhaseManifestGeneration     ProcessingPhase = "ManifestGeneration"
-	PhaseGitOpsCommit           ProcessingPhase = "GitOpsCommit"
+	// PhaseLLMProcessing holds phasellmprocessing value.
+	PhaseLLMProcessing ProcessingPhase = "LLMProcessing"
+	// PhaseResourcePlanning holds phaseresourceplanning value.
+	PhaseResourcePlanning ProcessingPhase = "ResourcePlanning"
+	// PhaseManifestGeneration holds phasemanifestgeneration value.
+	PhaseManifestGeneration ProcessingPhase = "ManifestGeneration"
+	// PhaseGitOpsCommit holds phasegitopscommit value.
+	PhaseGitOpsCommit ProcessingPhase = "GitOpsCommit"
+	// PhaseDeploymentVerification holds phasedeploymentverification value.
 	PhaseDeploymentVerification ProcessingPhase = "DeploymentVerification"
 )
 
-// ProcessingContext holds context information for multi-phase processing
+// ProcessingContext holds context information for multi-phase processing.
 type ProcessingContext struct {
 	StartTime         time.Time
 	CurrentPhase      ProcessingPhase
@@ -85,7 +90,7 @@ type ProcessingContext struct {
 	Metrics           map[string]float64
 }
 
-// ResourcePlan represents the planned resources for deployment
+// ResourcePlan represents the planned resources for deployment.
 type ResourcePlan struct {
 	NetworkFunctions     []PlannedNetworkFunction `json:"network_functions"`
 	ResourceRequirements ResourceRequirements     `json:"resource_requirements"`
@@ -97,7 +102,7 @@ type ResourcePlan struct {
 	EstimatedCost        float64                  `json:"estimated_cost"`
 }
 
-// PlannedNetworkFunction represents a planned network function deployment
+// PlannedNetworkFunction represents a planned network function deployment.
 type PlannedNetworkFunction struct {
 	Name          string                 `json:"name"`
 	Type          string                 `json:"type"`
@@ -111,7 +116,7 @@ type PlannedNetworkFunction struct {
 	Monitoring    MonitoringSpec         `json:"monitoring"`
 }
 
-// ResourceRequirements represents compute resource requirements
+// ResourceRequirements represents compute resource requirements.
 type ResourceRequirements struct {
 	CPU         string `json:"cpu"`
 	Memory      string `json:"memory"`
@@ -121,7 +126,7 @@ type ResourceRequirements struct {
 	Accelerator string `json:"accelerator,omitempty"`
 }
 
-// SliceConfiguration represents network slice configuration
+// SliceConfiguration represents network slice configuration.
 type SliceConfiguration struct {
 	SliceType  string                 `json:"slice_type"`
 	SST        int                    `json:"sst"`
@@ -131,7 +136,7 @@ type SliceConfiguration struct {
 	Parameters map[string]interface{} `json:"parameters"`
 }
 
-// NetworkIntentReconciler orchestrates the reconciliation of NetworkIntent resources
+// NetworkIntentReconciler orchestrates the reconciliation of NetworkIntent resources.
 type NetworkIntentReconciler struct {
 	client.Client
 	Scheme            *runtime.Scheme
@@ -147,7 +152,7 @@ type NetworkIntentReconciler struct {
 	metrics           *ControllerMetrics
 }
 
-// Note: Exponential backoff helper functions are defined in e2nodeset_controller.go to avoid duplication
+// Note: Exponential backoff helper functions are defined in e2nodeset_controller.go to avoid duplication.
 
 func (r *NetworkIntentReconciler) setReadyCondition(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, status metav1.ConditionStatus, reason, message string) error {
 	condition := metav1.Condition{
@@ -161,9 +166,9 @@ func (r *NetworkIntentReconciler) setReadyCondition(ctx context.Context, network
 	return r.safeStatusUpdate(ctx, networkIntent)
 }
 
-// NewNetworkIntentReconciler creates a new NetworkIntentReconciler with proper initialization
+// NewNetworkIntentReconciler creates a new NetworkIntentReconciler with proper initialization.
 func NewNetworkIntentReconciler(client client.Client, scheme *runtime.Scheme, deps Dependencies, config *Config) (*NetworkIntentReconciler, error) {
-	// Note: Random number generator is automatically seeded in Go 1.20+
+	// Note: Random number generator is automatically seeded in Go 1.20+.
 
 	if client == nil {
 		return nil, fmt.Errorf("client cannot be nil")
@@ -175,25 +180,25 @@ func NewNetworkIntentReconciler(client client.Client, scheme *runtime.Scheme, de
 		return nil, fmt.Errorf("dependencies cannot be nil")
 	}
 
-	// Load constants if not provided in config
+	// Load constants if not provided in config.
 	constants := config.Constants
 	if constants == nil {
 		constants = configPkg.LoadConstants()
 		config.Constants = constants
 	}
 
-	// Validate configuration using constants
+	// Validate configuration using constants.
 	if err := configPkg.ValidateConstants(constants); err != nil {
 		return nil, fmt.Errorf("configuration validation failed: %w", err)
 	}
 
-	// Validate and set defaults for config
+	// Validate and set defaults for config.
 	validatedConfig, err := validateAndSetConfigDefaults(config, constants)
 	if err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
 
-	// Initialize LLM sanitizer with constants configuration
+	// Initialize LLM sanitizer with constants configuration.
 	sanitizerConfig := &security.SanitizerConfig{
 		MaxInputLength:  constants.MaxInputLength,
 		MaxOutputLength: constants.MaxOutputLength,
@@ -204,10 +209,10 @@ func NewNetworkIntentReconciler(client client.Client, scheme *runtime.Scheme, de
 	}
 	llmSanitizer := security.NewLLMSanitizer(sanitizerConfig)
 
-	// Initialize resilience components
+	// Initialize resilience components.
 	metricsCollector := deps.GetMetricsCollector()
 
-	// Configure circuit breaker for LLM operations using constants
+	// Configure circuit breaker for LLM operations using constants.
 	circuitConfig := &resilience.CircuitBreakerConfig{
 		FailureThreshold:    constants.CircuitBreakerFailureThreshold,
 		RecoveryTimeout:     constants.CircuitBreakerRecoveryTimeout,
@@ -218,7 +223,7 @@ func NewNetworkIntentReconciler(client client.Client, scheme *runtime.Scheme, de
 		FailureRate:         constants.CircuitBreakerFailureRate,
 	}
 
-	// Configure timeouts for different operations using constants
+	// Configure timeouts for different operations using constants.
 	timeoutConfig := &resilience.TimeoutConfig{
 		LLMTimeout:               constants.LLMTimeout,
 		GitTimeout:               constants.GitTimeout,
@@ -229,13 +234,13 @@ func NewNetworkIntentReconciler(client client.Client, scheme *runtime.Scheme, de
 		DefaultTimeout:           constants.DefaultTimeout,
 	}
 
-	// Create circuit breaker manager
+	// Create circuit breaker manager.
 	circuitBreakerMgr := resilience.NewCircuitBreakerManager(circuitConfig, metricsCollector)
 
-	// Create timeout manager
+	// Create timeout manager.
 	timeoutManager := resilience.NewTimeoutManager(timeoutConfig, metricsCollector)
 
-	// Create LLM circuit breaker
+	// Create LLM circuit breaker.
 	llmCircuitBreaker := circuitBreakerMgr.GetOrCreateCircuitBreaker("llm-processor", circuitConfig)
 
 	r := &NetworkIntentReconciler{
@@ -252,19 +257,19 @@ func NewNetworkIntentReconciler(client client.Client, scheme *runtime.Scheme, de
 		metrics:           NewControllerMetrics("networkintent"),
 	}
 
-	// Initialize the modular reconciler
+	// Initialize the modular reconciler.
 	r.reconciler = NewReconciler(r)
 
 	return r, nil
 }
 
-// validateAndSetConfigDefaults validates and sets default values for the configuration
+// validateAndSetConfigDefaults validates and sets default values for the configuration.
 func validateAndSetConfigDefaults(config *Config, constants *configPkg.Constants) (*Config, error) {
 	if config == nil {
 		config = &Config{}
 	}
 
-	// Set defaults from constants
+	// Set defaults from constants.
 	if config.MaxRetries <= 0 {
 		config.MaxRetries = constants.MaxRetries
 	}
@@ -278,7 +283,7 @@ func validateAndSetConfigDefaults(config *Config, constants *configPkg.Constants
 		config.GitDeployPath = constants.GitDeployPath
 	}
 
-	// Validate limits using constants
+	// Validate limits using constants.
 	if config.MaxRetries > constants.MaxAllowedRetries {
 		return nil, fmt.Errorf("MaxRetries (%d) exceeds maximum allowed (%d)", config.MaxRetries, constants.MaxAllowedRetries)
 	}
@@ -289,18 +294,18 @@ func validateAndSetConfigDefaults(config *Config, constants *configPkg.Constants
 	return config, nil
 }
 
-// Reconcile is the main entry point for reconciliation
+// Reconcile is the main entry point for reconciliation.
 func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	startTime := time.Now()
 
-	// Delegate to the modular reconciler
+	// Delegate to the modular reconciler.
 	result, err := r.reconciler.Reconcile(ctx, req)
 
-	// Record metrics
+	// Record metrics.
 	processingDuration := time.Since(startTime).Seconds()
 
 	if err != nil {
-		// Determine error type for better metrics granularity
+		// Determine error type for better metrics granularity.
 		errorType := "unknown"
 		if strings.Contains(err.Error(), "not found") {
 			errorType = "not_found"
@@ -317,17 +322,17 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		r.metrics.RecordSuccess(req.Namespace, req.Name)
 	}
 
-	// Record processing duration
+	// Record processing duration.
 	r.metrics.RecordProcessingDuration(req.Namespace, req.Name, "total", processingDuration)
 
 	return result, err
 }
 
-// extractIntentType extracts the intent type from the intent text
+// extractIntentType extracts the intent type from the intent text.
 func (r *NetworkIntentReconciler) extractIntentType(intent string) string {
 	intentLower := strings.ToLower(intent)
 
-	// Check for slice types
+	// Check for slice types.
 	if strings.Contains(intentLower, "embb") || strings.Contains(intentLower, "broadband") {
 		return "embb"
 	} else if strings.Contains(intentLower, "urllc") || strings.Contains(intentLower, "low latency") {
@@ -336,7 +341,7 @@ func (r *NetworkIntentReconciler) extractIntentType(intent string) string {
 		return "mmtc"
 	}
 
-	// Check for network functions
+	// Check for network functions.
 	if strings.Contains(intentLower, "amf") || strings.Contains(intentLower, "access") {
 		return "5gc-control"
 	} else if strings.Contains(intentLower, "upf") || strings.Contains(intentLower, "user plane") {
@@ -348,12 +353,12 @@ func (r *NetworkIntentReconciler) extractIntentType(intent string) string {
 	return "generic"
 }
 
-// Helper functions for managing retry counts in annotations
+// Helper functions for managing retry counts in annotations.
 func parseQuantity(qty string) corev1.ResourceList {
-	// Simple parser for comma-separated CPU,Memory values
+	// Simple parser for comma-separated CPU,Memory values.
 	_ = strings.Split(qty, ",")
 	result := make(corev1.ResourceList)
-	// This is a simplified implementation - in production you'd use resource.ParseQuantity
+	// This is a simplified implementation - in production you'd use resource.ParseQuantity.
 	return result
 }
 
@@ -366,7 +371,7 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-// Condition and status helper functions
+// Condition and status helper functions.
 func isConditionTrue(conditions []metav1.Condition, conditionType string) bool {
 	for _, condition := range conditions {
 		if condition.Type == conditionType && condition.Status == metav1.ConditionTrue {
@@ -391,7 +396,7 @@ func updateCondition(conditions *[]metav1.Condition, newCondition metav1.Conditi
 	*conditions = append(*conditions, newCondition)
 }
 
-// getNetworkIntentRetryCount gets the retry count for a specific operation from NetworkIntent annotations
+// getNetworkIntentRetryCount gets the retry count for a specific operation from NetworkIntent annotations.
 func getNetworkIntentRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string) int {
 	if networkIntent.Annotations == nil {
 		return 0
@@ -406,7 +411,7 @@ func getNetworkIntentRetryCount(networkIntent *nephoranv1.NetworkIntent, operati
 	return 0
 }
 
-// setNetworkIntentRetryCount sets the retry count for a specific operation in NetworkIntent annotations
+// setNetworkIntentRetryCount sets the retry count for a specific operation in NetworkIntent annotations.
 func setNetworkIntentRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string, count int) {
 	if networkIntent.Annotations == nil {
 		networkIntent.Annotations = make(map[string]string)
@@ -415,7 +420,7 @@ func setNetworkIntentRetryCount(networkIntent *nephoranv1.NetworkIntent, operati
 	networkIntent.Annotations[key] = strconv.Itoa(count)
 }
 
-// clearNetworkIntentRetryCount clears the retry count for a specific operation from NetworkIntent annotations
+// clearNetworkIntentRetryCount clears the retry count for a specific operation from NetworkIntent annotations.
 func clearNetworkIntentRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string) {
 	if networkIntent.Annotations == nil {
 		return
@@ -424,7 +429,7 @@ func clearNetworkIntentRetryCount(networkIntent *nephoranv1.NetworkIntent, opera
 	delete(networkIntent.Annotations, key)
 }
 
-// Deletion handling functions
+// Deletion handling functions.
 func (r *NetworkIntentReconciler) handleDeletion(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) (ctrl.Result, error) {
 	return r.reconcileDelete(ctx, networkIntent)
 }
@@ -432,13 +437,13 @@ func (r *NetworkIntentReconciler) handleDeletion(ctx context.Context, networkInt
 func (r *NetworkIntentReconciler) reconcileDelete(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) (ctrl.Result, error) {
 	logger := log.FromContext(ctx).WithValues("operation", "delete")
 
-	// Perform cleanup operations
+	// Perform cleanup operations.
 	if err := r.performCleanup(ctx, networkIntent); err != nil {
 		logger.Error(err, "Failed to perform cleanup")
 		return ctrl.Result{RequeueAfter: time.Minute}, err
 	}
 
-	// Remove finalizer
+	// Remove finalizer.
 	networkIntent.Finalizers = removeFinalizer(networkIntent.Finalizers, r.constants.NetworkIntentFinalizer)
 	if err := r.safeUpdate(ctx, networkIntent); err != nil {
 		logger.Error(err, "Failed to remove finalizer")
@@ -450,11 +455,11 @@ func (r *NetworkIntentReconciler) reconcileDelete(ctx context.Context, networkIn
 }
 
 func (r *NetworkIntentReconciler) performCleanup(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) error {
-	// Use GitOps handler for cleanup
+	// Use GitOps handler for cleanup.
 	return r.reconciler.gitopsHandler.CleanupGitOpsResources(ctx, networkIntent)
 }
 
-// cleanupGitOpsPackages removes GitOps packages for the NetworkIntent
+// cleanupGitOpsPackages removes GitOps packages for the NetworkIntent.
 func (r *NetworkIntentReconciler) cleanupGitOpsPackages(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, gitClient GitClientInterface) error {
 	if gitClient == nil {
 		return fmt.Errorf("git client is nil")
@@ -463,9 +468,9 @@ func (r *NetworkIntentReconciler) cleanupGitOpsPackages(ctx context.Context, net
 	packagePath := fmt.Sprintf("networkintents/%s", networkIntent.Name)
 	commitMsg := fmt.Sprintf("Remove NetworkIntent package: %s", networkIntent.Name)
 
-	// Remove the package directory
+	// Remove the package directory.
 	if err := gitClient.RemoveDirectory(packagePath, commitMsg); err != nil {
-		// If directory doesn't exist, that's fine - it might already be cleaned up
+		// If directory doesn't exist, that's fine - it might already be cleaned up.
 		if !isNotFoundError(err) {
 			return fmt.Errorf("failed to remove package directory: %w", err)
 		}
@@ -473,7 +478,7 @@ func (r *NetworkIntentReconciler) cleanupGitOpsPackages(ctx context.Context, net
 		return nil
 	}
 
-	// Commit and push changes
+	// Commit and push changes.
 	if err := gitClient.CommitAndPushChanges(commitMsg); err != nil {
 		return fmt.Errorf("failed to commit and push changes: %w", err)
 	}
@@ -482,22 +487,22 @@ func (r *NetworkIntentReconciler) cleanupGitOpsPackages(ctx context.Context, net
 	return nil
 }
 
-// cleanupGeneratedResources removes generated Kubernetes resources for the NetworkIntent
+// cleanupGeneratedResources removes generated Kubernetes resources for the NetworkIntent.
 func (r *NetworkIntentReconciler) cleanupGeneratedResources(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) error {
-	// List all resources with the NetworkIntent label
+	// List all resources with the NetworkIntent label.
 	labelSelector := fmt.Sprintf("nephoran.io/network-intent=%s", networkIntent.Name)
 
-	// Remove ConfigMaps
+	// Remove ConfigMaps.
 	if err := r.cleanupResourcesByLabel(ctx, &corev1.ConfigMapList{}, labelSelector, networkIntent.Namespace); err != nil {
 		return fmt.Errorf("failed to cleanup ConfigMaps: %w", err)
 	}
 
-	// Remove Secrets
+	// Remove Secrets.
 	if err := r.cleanupResourcesByLabel(ctx, &corev1.SecretList{}, labelSelector, networkIntent.Namespace); err != nil {
 		return fmt.Errorf("failed to cleanup Secrets: %w", err)
 	}
 
-	// Remove Services
+	// Remove Services.
 	if err := r.cleanupResourcesByLabel(ctx, &corev1.ServiceList{}, labelSelector, networkIntent.Namespace); err != nil {
 		return fmt.Errorf("failed to cleanup Services: %w", err)
 	}
@@ -506,7 +511,7 @@ func (r *NetworkIntentReconciler) cleanupGeneratedResources(ctx context.Context,
 	return nil
 }
 
-// cleanupResourcesByLabel removes resources of a specific type that match the label selector
+// cleanupResourcesByLabel removes resources of a specific type that match the label selector.
 func (r *NetworkIntentReconciler) cleanupResourcesByLabel(ctx context.Context, list client.ObjectList, labelSelector, namespace string) error {
 	opts := []client.ListOption{
 		client.InNamespace(namespace),
@@ -517,7 +522,7 @@ func (r *NetworkIntentReconciler) cleanupResourcesByLabel(ctx context.Context, l
 		return fmt.Errorf("failed to list resources: %w", err)
 	}
 
-	// Extract items using reflection
+	// Extract items using reflection.
 	items := reflect.ValueOf(list).Elem().FieldByName("Items")
 	if !items.IsValid() {
 		return fmt.Errorf("unable to extract items from list")
@@ -527,7 +532,7 @@ func (r *NetworkIntentReconciler) cleanupResourcesByLabel(ctx context.Context, l
 		item := items.Index(i).Addr().Interface().(client.Object)
 		if err := r.Delete(ctx, item); err != nil && !apierrors.IsNotFound(err) {
 			r.logger.Error(err, "Failed to delete resource", "resource", item.GetName())
-			// Continue with other resources instead of failing completely
+			// Continue with other resources instead of failing completely.
 		} else {
 			r.logger.Info("Deleted resource", "type", reflect.TypeOf(item), "name", item.GetName())
 		}
@@ -536,12 +541,12 @@ func (r *NetworkIntentReconciler) cleanupResourcesByLabel(ctx context.Context, l
 	return nil
 }
 
-// Helper function to check if error is a not found error
+// Helper function to check if error is a not found error.
 func isNotFoundError(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "not found")
 }
 
-// Helper function to parse label selector string
+// Helper function to parse label selector string.
 func parseLabels(labelSelector string) map[string]string {
 	labels := make(map[string]string)
 	if labelSelector == "" {
@@ -558,7 +563,7 @@ func parseLabels(labelSelector string) map[string]string {
 	return labels
 }
 
-// Finalizer helper functions
+// Finalizer helper functions.
 func containsFinalizer(finalizers []string, finalizer string) bool {
 	for _, f := range finalizers {
 		if f == finalizer {
@@ -578,7 +583,7 @@ func removeFinalizer(finalizers []string, finalizer string) []string {
 	return result
 }
 
-// Safe client operation wrappers
+// Safe client operation wrappers.
 func (r *NetworkIntentReconciler) safeGet(ctx context.Context, key client.ObjectKey, obj client.Object) error {
 	return r.Get(ctx, key, obj)
 }
@@ -597,7 +602,7 @@ func (r *NetworkIntentReconciler) updatePhase(ctx context.Context, networkIntent
 	return r.safeStatusUpdate(ctx, networkIntent)
 }
 
-// Event recording functions
+// Event recording functions.
 func (r *NetworkIntentReconciler) recordEvent(networkIntent *nephoranv1.NetworkIntent, eventType, reason, message string) {
 	if recorder := r.deps.GetEventRecorder(); recorder != nil {
 		recorder.Event(networkIntent, eventType, reason, message)
@@ -608,22 +613,22 @@ func (r *NetworkIntentReconciler) recordFailureEvent(networkIntent *nephoranv1.N
 	r.recordEvent(networkIntent, "Warning", reason, message)
 }
 
-// SetupWithManager sets up the controller with the Manager
+// SetupWithManager sets up the controller with the Manager.
 func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoranv1.NetworkIntent{}).
 		Complete(r)
 }
 
-// generateFallbackResponse generates a basic fallback response when LLM is unavailable
+// generateFallbackResponse generates a basic fallback response when LLM is unavailable.
 func (r *NetworkIntentReconciler) generateFallbackResponse(intent string) string {
 	logger := ctrl.Log.WithName("fallback-generator")
 	logger.V(1).Info("Generating fallback response for intent", "intent_length", len(intent))
 
-	// Simple pattern matching for basic intents
+	// Simple pattern matching for basic intents.
 	intentLower := strings.ToLower(intent)
 
-	// Basic AMF deployment
+	// Basic AMF deployment.
 	if strings.Contains(intentLower, "amf") && (strings.Contains(intentLower, "deploy") || strings.Contains(intentLower, "create")) {
 		return `{
 			"network_functions": ["AMF"],
@@ -638,7 +643,7 @@ func (r *NetworkIntentReconciler) generateFallbackResponse(intent string) string
 		}`
 	}
 
-	// Basic SMF deployment
+	// Basic SMF deployment.
 	if strings.Contains(intentLower, "smf") && (strings.Contains(intentLower, "deploy") || strings.Contains(intentLower, "create")) {
 		return `{
 			"network_functions": ["SMF"],
@@ -653,7 +658,7 @@ func (r *NetworkIntentReconciler) generateFallbackResponse(intent string) string
 		}`
 	}
 
-	// Basic UPF deployment
+	// Basic UPF deployment.
 	if strings.Contains(intentLower, "upf") && (strings.Contains(intentLower, "deploy") || strings.Contains(intentLower, "create")) {
 		return `{
 			"network_functions": ["UPF"],
@@ -668,56 +673,56 @@ func (r *NetworkIntentReconciler) generateFallbackResponse(intent string) string
 		}`
 	}
 
-	// No suitable fallback found
+	// No suitable fallback found.
 	return ""
 }
 
-// cleanupResources performs comprehensive cleanup of all NetworkIntent resources
+// cleanupResources performs comprehensive cleanup of all NetworkIntent resources.
 func (r *NetworkIntentReconciler) cleanupResources(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) error {
 	r.logger.Info("Starting comprehensive resource cleanup", "intent", networkIntent.Name)
 
-	// Perform GitOps cleanup
+	// Perform GitOps cleanup.
 	gitClient := r.deps.GetGitClient()
 	if err := r.cleanupGitOpsPackages(ctx, networkIntent, gitClient); err != nil {
 		r.logger.Error(err, "Failed to cleanup GitOps packages", "intent", networkIntent.Name)
 		return err
 	}
 
-	// Perform generated resources cleanup
+	// Perform generated resources cleanup.
 	if err := r.cleanupGeneratedResources(ctx, networkIntent); err != nil {
 		r.logger.Error(err, "Failed to cleanup generated resources", "intent", networkIntent.Name)
 		return err
 	}
 
-	// Perform cached data cleanup
+	// Perform cached data cleanup.
 	if err := r.cleanupCachedData(ctx, networkIntent); err != nil {
 		r.logger.Error(err, "Failed to cleanup cached data", "intent", networkIntent.Name)
-		// Don't return error for cache cleanup failures as they're non-critical
+		// Don't return error for cache cleanup failures as they're non-critical.
 	}
 
 	r.logger.Info("Successfully completed comprehensive resource cleanup", "intent", networkIntent.Name)
 	return nil
 }
 
-// cleanupCachedData performs cleanup of cached data related to the NetworkIntent
+// cleanupCachedData performs cleanup of cached data related to the NetworkIntent.
 func (r *NetworkIntentReconciler) cleanupCachedData(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) error {
 	if r.config.LLMProcessorURL == "" {
 		r.logger.Info("LLM processor URL not configured, skipping cache cleanup", "intent", networkIntent.Name)
 		return nil
 	}
 
-	// Create cache cleanup request
+	// Create cache cleanup request.
 	cacheKey := fmt.Sprintf("%s-%s", networkIntent.Namespace, networkIntent.Name)
 	cleanupURL := fmt.Sprintf("%s/cache/cleanup/%s", r.config.LLMProcessorURL, cacheKey)
 
-	// Create HTTP request with timeout
+	// Create HTTP request with timeout.
 	req, err := http.NewRequestWithContext(ctx, "DELETE", cleanupURL, nil)
 	if err != nil {
 		r.logger.Error(err, "Failed to create cache cleanup request", "intent", networkIntent.Name)
 		return nil // Non-critical, don't propagate error
 	}
 
-	// Perform the request
+	// Perform the request.
 	resp, err := r.deps.GetHTTPClient().Do(req)
 	if err != nil {
 		r.logger.Info("Cache cleanup request failed (non-critical)", "intent", networkIntent.Name, "error", err)
@@ -735,7 +740,7 @@ func (r *NetworkIntentReconciler) cleanupCachedData(ctx context.Context, network
 	return nil
 }
 
-// createLabelSelector creates a label selector string from a map of labels
+// createLabelSelector creates a label selector string from a map of labels.
 func createLabelSelector(labels map[string]string) string {
 	if len(labels) == 0 {
 		return ""

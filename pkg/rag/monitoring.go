@@ -15,7 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// RAGMonitor provides comprehensive monitoring and observability for RAG components
+// RAGMonitor provides comprehensive monitoring and observability for RAG components.
 type RAGMonitor struct {
 	config         *MonitoringConfig
 	logger         *slog.Logger
@@ -24,7 +24,7 @@ type RAGMonitor struct {
 	alertManager   *AlertManager
 	mutex          sync.RWMutex
 
-	// Prometheus metrics
+	// Prometheus metrics.
 	queryLatencyHistogram   *prometheus.HistogramVec
 	queryCountCounter       *prometheus.CounterVec
 	embeddingLatencyHist    *prometheus.HistogramVec
@@ -38,36 +38,36 @@ type RAGMonitor struct {
 	systemResourceGauges    map[string]prometheus.Gauge
 }
 
-// MonitoringConfig holds monitoring configuration
+// MonitoringConfig holds monitoring configuration.
 type MonitoringConfig struct {
-	// Server configuration
+	// Server configuration.
 	MetricsPort     int    `json:"metrics_port"`
 	MetricsPath     string `json:"metrics_path"`
 	HealthCheckPath string `json:"health_check_path"`
 
-	// Collection intervals
+	// Collection intervals.
 	MetricsInterval     time.Duration `json:"metrics_interval"`
 	HealthCheckInterval time.Duration `json:"health_check_interval"`
 
-	// Alerting configuration
+	// Alerting configuration.
 	EnableAlerting  bool                      `json:"enable_alerting"`
 	AlertThresholds map[string]AlertThreshold `json:"alert_thresholds"`
 	AlertWebhooks   []string                  `json:"alert_webhooks"`
 
-	// Log configuration
+	// Log configuration.
 	EnableStructuredLogs bool   `json:"enable_structured_logs"`
 	LogLevel             string `json:"log_level"`
 
-	// Trace sampling
+	// Trace sampling.
 	TraceSampleRate          float64 `json:"trace_sample_rate"`
 	EnableDistributedTracing bool    `json:"enable_distributed_tracing"`
 
-	// Performance monitoring
+	// Performance monitoring.
 	EnableResourceMonitoring   bool          `json:"enable_resource_monitoring"`
 	ResourceMonitoringInterval time.Duration `json:"resource_monitoring_interval"`
 }
 
-// AlertThreshold defines thresholds for alerting
+// AlertThreshold defines thresholds for alerting.
 type AlertThreshold struct {
 	MetricName    string  `json:"metric_name"`
 	Threshold     float64 `json:"threshold"`
@@ -76,13 +76,13 @@ type AlertThreshold struct {
 	Severity      string  `json:"severity"` // "critical", "warning", "info"
 }
 
-// HealthChecker interface for component health checks
+// HealthChecker interface for component health checks.
 type HealthChecker interface {
 	CheckHealth(ctx context.Context) HealthStatus
 	GetComponentName() string
 }
 
-// HealthStatus represents the health status of a component
+// HealthStatus represents the health status of a component.
 type HealthStatus struct {
 	ComponentName       string                 `json:"component_name"`
 	IsHealthy           bool                   `json:"is_healthy"`
@@ -95,7 +95,7 @@ type HealthStatus struct {
 	Metadata            map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// SystemHealth represents overall system health
+// SystemHealth represents overall system health.
 type SystemHealth struct {
 	Status        string                  `json:"status"`
 	IsHealthy     bool                    `json:"is_healthy"`
@@ -105,7 +105,7 @@ type SystemHealth struct {
 	UptimeSeconds int64                   `json:"uptime_seconds"`
 }
 
-// SystemMetrics holds system-level metrics
+// SystemMetrics holds system-level metrics.
 type SystemMetrics struct {
 	CPUUsagePercent    float64 `json:"cpu_usage_percent"`
 	MemoryUsagePercent float64 `json:"memory_usage_percent"`
@@ -116,7 +116,7 @@ type SystemMetrics struct {
 	HeapSizeMB         float64 `json:"heap_size_mb"`
 }
 
-// AlertManager handles alerting based on metrics and thresholds
+// AlertManager handles alerting based on metrics and thresholds.
 type AlertManager struct {
 	config   *MonitoringConfig
 	logger   *slog.Logger
@@ -125,7 +125,7 @@ type AlertManager struct {
 	mutex    sync.RWMutex
 }
 
-// Alert represents an active alert
+// Alert represents an active alert.
 type Alert struct {
 	ID          string                 `json:"id"`
 	MetricName  string                 `json:"metric_name"`
@@ -138,7 +138,7 @@ type Alert struct {
 	Metadata    map[string]interface{} `json:"metadata"`
 }
 
-// RAGMetricsCollector collects metrics from all RAG components
+// RAGMetricsCollector collects metrics from all RAG components.
 type RAGMetricsCollector struct {
 	monitor          *RAGMonitor
 	ragService       *RAGService
@@ -148,7 +148,7 @@ type RAGMetricsCollector struct {
 	mutex            sync.RWMutex
 }
 
-// NewRAGMonitor creates a new RAG monitoring system
+// NewRAGMonitor creates a new RAG monitoring system.
 func NewRAGMonitor(config *MonitoringConfig) *RAGMonitor {
 	if config == nil {
 		config = getDefaultMonitoringConfig()
@@ -162,15 +162,15 @@ func NewRAGMonitor(config *MonitoringConfig) *RAGMonitor {
 		systemResourceGauges: make(map[string]prometheus.Gauge),
 	}
 
-	// Initialize Prometheus metrics
+	// Initialize Prometheus metrics.
 	monitor.initializePrometheusMetrics()
 
-	// Start metrics server
+	// Start metrics server.
 	if err := monitor.startMetricsServer(); err != nil {
 		monitor.logger.Error("Failed to start metrics server", "error", err)
 	}
 
-	// Start background monitoring tasks
+	// Start background monitoring tasks.
 	go monitor.startHealthChecking()
 	go monitor.startMetricsCollection()
 
@@ -181,9 +181,9 @@ func NewRAGMonitor(config *MonitoringConfig) *RAGMonitor {
 	return monitor
 }
 
-// initializePrometheusMetrics initializes all Prometheus metrics
+// initializePrometheusMetrics initializes all Prometheus metrics.
 func (rm *RAGMonitor) initializePrometheusMetrics() {
-	// Query metrics
+	// Query metrics.
 	rm.queryLatencyHistogram = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "rag_query_latency_seconds",
@@ -201,7 +201,7 @@ func (rm *RAGMonitor) initializePrometheusMetrics() {
 		[]string{"intent_type", "status"},
 	)
 
-	// Embedding metrics
+	// Embedding metrics.
 	rm.embeddingLatencyHist = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "rag_embedding_latency_seconds",
@@ -219,7 +219,7 @@ func (rm *RAGMonitor) initializePrometheusMetrics() {
 		[]string{"model_name", "status"},
 	)
 
-	// Cache metrics
+	// Cache metrics.
 	rm.cacheHitRateGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "rag_cache_hit_rate",
@@ -228,7 +228,7 @@ func (rm *RAGMonitor) initializePrometheusMetrics() {
 		[]string{"cache_type"},
 	)
 
-	// Document processing metrics
+	// Document processing metrics.
 	rm.documentProcessingGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Name: "rag_documents_processing",
@@ -236,7 +236,7 @@ func (rm *RAGMonitor) initializePrometheusMetrics() {
 		},
 	)
 
-	// Component latency metrics
+	// Component latency metrics.
 	rm.chunkingLatencyHist = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "rag_chunking_latency_seconds",
@@ -264,7 +264,7 @@ func (rm *RAGMonitor) initializePrometheusMetrics() {
 		[]string{"strategy"},
 	)
 
-	// Error metrics
+	// Error metrics.
 	rm.errorRateCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "rag_errors_total",
@@ -273,7 +273,7 @@ func (rm *RAGMonitor) initializePrometheusMetrics() {
 		[]string{"component", "error_type"},
 	)
 
-	// System resource metrics
+	// System resource metrics.
 	resourceMetrics := []string{
 		"cpu_usage_percent",
 		"memory_usage_percent",
@@ -291,7 +291,7 @@ func (rm *RAGMonitor) initializePrometheusMetrics() {
 		)
 	}
 
-	// Register all metrics
+	// Register all metrics.
 	prometheus.MustRegister(
 		rm.queryLatencyHistogram,
 		rm.queryCountCounter,
@@ -310,20 +310,20 @@ func (rm *RAGMonitor) initializePrometheusMetrics() {
 	}
 }
 
-// startMetricsServer starts the HTTP server for metrics and health checks
+// startMetricsServer starts the HTTP server for metrics and health checks.
 func (rm *RAGMonitor) startMetricsServer() error {
 	mux := http.NewServeMux()
 
-	// Metrics endpoint
+	// Metrics endpoint.
 	mux.Handle(rm.config.MetricsPath, promhttp.Handler())
 
-	// Health check endpoint
+	// Health check endpoint.
 	mux.HandleFunc(rm.config.HealthCheckPath, rm.handleHealthCheck)
 
-	// System status endpoint
+	// System status endpoint.
 	mux.HandleFunc("/status", rm.handleSystemStatus)
 
-	// Component metrics endpoint
+	// Component metrics endpoint.
 	mux.HandleFunc("/metrics/components", rm.handleComponentMetrics)
 
 	rm.metricsServer = &http.Server{
@@ -341,7 +341,7 @@ func (rm *RAGMonitor) startMetricsServer() error {
 	return nil
 }
 
-// RegisterHealthChecker registers a health checker for a component
+// RegisterHealthChecker registers a health checker for a component.
 func (rm *RAGMonitor) RegisterHealthChecker(checker HealthChecker) {
 	rm.mutex.Lock()
 	defer rm.mutex.Unlock()
@@ -350,7 +350,7 @@ func (rm *RAGMonitor) RegisterHealthChecker(checker HealthChecker) {
 	rm.logger.Info("Health checker registered", "component", checker.GetComponentName())
 }
 
-// startHealthChecking starts background health checking
+// startHealthChecking starts background health checking.
 func (rm *RAGMonitor) startHealthChecking() {
 	ticker := time.NewTicker(rm.config.HealthCheckInterval)
 	defer ticker.Stop()
@@ -360,7 +360,7 @@ func (rm *RAGMonitor) startHealthChecking() {
 	}
 }
 
-// performHealthChecks performs health checks on all registered components
+// performHealthChecks performs health checks on all registered components.
 func (rm *RAGMonitor) performHealthChecks(ctx context.Context) {
 	rm.mutex.RLock()
 	checkers := make(map[string]HealthChecker)
@@ -389,7 +389,7 @@ func (rm *RAGMonitor) performHealthChecks(ctx context.Context) {
 					"error", status.ErrorMessage,
 				)
 
-				// Trigger alert if alerting is enabled
+				// Trigger alert if alerting is enabled.
 				if rm.config.EnableAlerting {
 					rm.alertManager.TriggerAlert(Alert{
 						ID:         fmt.Sprintf("health_%s_%d", name, time.Now().Unix()),
@@ -409,7 +409,7 @@ func (rm *RAGMonitor) performHealthChecks(ctx context.Context) {
 	}
 }
 
-// startMetricsCollection starts background metrics collection
+// startMetricsCollection starts background metrics collection.
 func (rm *RAGMonitor) startMetricsCollection() {
 	ticker := time.NewTicker(rm.config.MetricsInterval)
 	defer ticker.Stop()
@@ -419,10 +419,10 @@ func (rm *RAGMonitor) startMetricsCollection() {
 	}
 }
 
-// collectAndUpdateMetrics collects metrics from all components and updates Prometheus metrics
+// collectAndUpdateMetrics collects metrics from all components and updates Prometheus metrics.
 func (rm *RAGMonitor) collectAndUpdateMetrics() {
-	// This would collect metrics from registered components
-	// For now, we'll update based on component health
+	// This would collect metrics from registered components.
+	// For now, we'll update based on component health.
 
 	rm.mutex.RLock()
 	checkers := make(map[string]HealthChecker)
@@ -441,15 +441,15 @@ func (rm *RAGMonitor) collectAndUpdateMetrics() {
 		}
 	}
 
-	// Update system health metrics
+	// Update system health metrics.
 	if totalComponents > 0 {
 		healthRate := float64(healthyComponents) / float64(totalComponents)
-		// In a real implementation, you would update specific metrics here
+		// In a real implementation, you would update specific metrics here.
 		rm.logger.Debug("System health rate", "rate", healthRate)
 	}
 }
 
-// startResourceMonitoring starts system resource monitoring
+// startResourceMonitoring starts system resource monitoring.
 func (rm *RAGMonitor) startResourceMonitoring() {
 	ticker := time.NewTicker(rm.config.ResourceMonitoringInterval)
 	defer ticker.Stop()
@@ -460,10 +460,10 @@ func (rm *RAGMonitor) startResourceMonitoring() {
 	}
 }
 
-// collectSystemMetrics collects system resource metrics
+// collectSystemMetrics collects system resource metrics.
 func (rm *RAGMonitor) collectSystemMetrics() SystemMetrics {
-	// In a real implementation, you would collect actual system metrics
-	// For now, return mock data
+	// In a real implementation, you would collect actual system metrics.
+	// For now, return mock data.
 	return SystemMetrics{
 		CPUUsagePercent:    50.0,
 		MemoryUsagePercent: 60.0,
@@ -475,7 +475,7 @@ func (rm *RAGMonitor) collectSystemMetrics() SystemMetrics {
 	}
 }
 
-// updateSystemResourceMetrics updates Prometheus metrics with system resource data
+// updateSystemResourceMetrics updates Prometheus metrics with system resource data.
 func (rm *RAGMonitor) updateSystemResourceMetrics(metrics SystemMetrics) {
 	rm.systemResourceGauges["cpu_usage_percent"].Set(metrics.CPUUsagePercent)
 	rm.systemResourceGauges["memory_usage_percent"].Set(metrics.MemoryUsagePercent)
@@ -484,9 +484,9 @@ func (rm *RAGMonitor) updateSystemResourceMetrics(metrics SystemMetrics) {
 	rm.systemResourceGauges["heap_size_mb"].Set(metrics.HeapSizeMB)
 }
 
-// HTTP handlers
+// HTTP handlers.
 
-// handleHealthCheck handles health check requests
+// handleHealthCheck handles health check requests.
 func (rm *RAGMonitor) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -528,7 +528,7 @@ func (rm *RAGMonitor) handleHealthCheck(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(systemHealth)
 }
 
-// handleSystemStatus handles system status requests
+// handleSystemStatus handles system status requests.
 func (rm *RAGMonitor) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
 	status := map[string]interface{}{
 		"service":        "nephoran-rag-pipeline",
@@ -547,20 +547,20 @@ func (rm *RAGMonitor) handleSystemStatus(w http.ResponseWriter, r *http.Request)
 	json.NewEncoder(w).Encode(status)
 }
 
-// handleComponentMetrics handles component-specific metrics requests
+// handleComponentMetrics handles component-specific metrics requests.
 func (rm *RAGMonitor) handleComponentMetrics(w http.ResponseWriter, r *http.Request) {
 	componentMetrics := make(map[string]interface{})
 
-	// Collect metrics from components
-	// This would be implemented based on actual component interfaces
+	// Collect metrics from components.
+	// This would be implemented based on actual component interfaces.
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(componentMetrics)
 }
 
-// Metric recording methods
+// Metric recording methods.
 
-// RecordQueryLatency records query processing latency
+// RecordQueryLatency records query processing latency.
 func (rm *RAGMonitor) RecordQueryLatency(duration time.Duration, intentType string, enhancement, reranking bool) {
 	rm.queryLatencyHistogram.WithLabelValues(
 		intentType,
@@ -571,13 +571,13 @@ func (rm *RAGMonitor) RecordQueryLatency(duration time.Duration, intentType stri
 	rm.queryCountCounter.WithLabelValues(intentType, "success").Inc()
 }
 
-// RecordQueryError records query processing errors
+// RecordQueryError records query processing errors.
 func (rm *RAGMonitor) RecordQueryError(intentType, errorType string) {
 	rm.queryCountCounter.WithLabelValues(intentType, "error").Inc()
 	rm.errorRateCounter.WithLabelValues("query_processing", errorType).Inc()
 }
 
-// RecordEmbeddingLatency records embedding generation latency
+// RecordEmbeddingLatency records embedding generation latency.
 func (rm *RAGMonitor) RecordEmbeddingLatency(duration time.Duration, modelName string, batchSize int) {
 	rm.embeddingLatencyHist.WithLabelValues(
 		modelName,
@@ -587,34 +587,34 @@ func (rm *RAGMonitor) RecordEmbeddingLatency(duration time.Duration, modelName s
 	rm.embeddingCountCounter.WithLabelValues(modelName, "success").Inc()
 }
 
-// RecordCacheHitRate records cache hit rates
+// RecordCacheHitRate records cache hit rates.
 func (rm *RAGMonitor) RecordCacheHitRate(cacheType string, hitRate float64) {
 	rm.cacheHitRateGauge.WithLabelValues(cacheType).Set(hitRate)
 }
 
-// RecordDocumentProcessing records document processing metrics
+// RecordDocumentProcessing records document processing metrics.
 func (rm *RAGMonitor) RecordDocumentProcessing(count int) {
 	rm.documentProcessingGauge.Set(float64(count))
 }
 
-// RecordChunkingLatency records document chunking latency
+// RecordChunkingLatency records document chunking latency.
 func (rm *RAGMonitor) RecordChunkingLatency(duration time.Duration, strategy string) {
 	rm.chunkingLatencyHist.WithLabelValues(strategy).Observe(duration.Seconds())
 }
 
-// RecordRetrievalLatency records document retrieval latency
+// RecordRetrievalLatency records document retrieval latency.
 func (rm *RAGMonitor) RecordRetrievalLatency(duration time.Duration, searchType string) {
 	rm.retrievalLatencyHist.WithLabelValues(searchType).Observe(duration.Seconds())
 }
 
-// RecordContextAssemblyLatency records context assembly latency
+// RecordContextAssemblyLatency records context assembly latency.
 func (rm *RAGMonitor) RecordContextAssemblyLatency(duration time.Duration, strategy string) {
 	rm.contextAssemblyHist.WithLabelValues(strategy).Observe(duration.Seconds())
 }
 
-// Alert Manager implementation
+// Alert Manager implementation.
 
-// NewAlertManager creates a new alert manager
+// NewAlertManager creates a new alert manager.
 func NewAlertManager(config *MonitoringConfig) *AlertManager {
 	return &AlertManager{
 		config:   config,
@@ -624,7 +624,7 @@ func NewAlertManager(config *MonitoringConfig) *AlertManager {
 	}
 }
 
-// TriggerAlert triggers an alert
+// TriggerAlert triggers an alert.
 func (am *AlertManager) TriggerAlert(alert Alert) {
 	am.mutex.Lock()
 	defer am.mutex.Unlock()
@@ -638,15 +638,15 @@ func (am *AlertManager) TriggerAlert(alert Alert) {
 		"metric", alert.MetricName,
 	)
 
-	// Send webhook notifications
+	// Send webhook notifications.
 	for _, webhook := range am.webhooks {
 		go am.sendWebhookNotification(webhook, alert)
 	}
 }
 
-// sendWebhookNotification sends alert notification to webhook
+// sendWebhookNotification sends alert notification to webhook.
 func (am *AlertManager) sendWebhookNotification(webhook string, alert Alert) {
-	// In a real implementation, you would send HTTP POST to the webhook
+	// In a real implementation, you would send HTTP POST to the webhook.
 	am.logger.Info("Would send webhook notification",
 		"webhook", webhook,
 		"alert_id", alert.ID,
@@ -654,7 +654,7 @@ func (am *AlertManager) sendWebhookNotification(webhook string, alert Alert) {
 	)
 }
 
-// GetActiveAlerts returns all active alerts
+// GetActiveAlerts returns all active alerts.
 func (am *AlertManager) GetActiveAlerts() []Alert {
 	am.mutex.RLock()
 	defer am.mutex.RUnlock()
@@ -667,7 +667,7 @@ func (am *AlertManager) GetActiveAlerts() []Alert {
 	return alerts
 }
 
-// ClearAlert clears an alert
+// ClearAlert clears an alert.
 func (am *AlertManager) ClearAlert(alertID string) {
 	am.mutex.Lock()
 	defer am.mutex.Unlock()
@@ -676,7 +676,7 @@ func (am *AlertManager) ClearAlert(alertID string) {
 	am.logger.Info("Alert cleared", "id", alertID)
 }
 
-// Shutdown gracefully shuts down the monitoring system
+// Shutdown gracefully shuts down the monitoring system.
 func (rm *RAGMonitor) Shutdown(ctx context.Context) error {
 	rm.logger.Info("Shutting down RAG monitor")
 
@@ -689,13 +689,14 @@ func (rm *RAGMonitor) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// Health checker implementations for RAG components
+// Health checker implementations for RAG components.
 
-// RAGServiceHealthChecker implements health checking for RAGService
+// RAGServiceHealthChecker implements health checking for RAGService.
 type RAGServiceHealthChecker struct {
 	ragService *RAGService
 }
 
+// CheckHealth performs checkhealth operation.
 func (hc *RAGServiceHealthChecker) CheckHealth(ctx context.Context) HealthStatus {
 	status := HealthStatus{
 		ComponentName: "rag-service",
@@ -704,7 +705,7 @@ func (hc *RAGServiceHealthChecker) CheckHealth(ctx context.Context) HealthStatus
 		LastCheck:     time.Now(),
 	}
 
-	// Check if the service is operational
+	// Check if the service is operational.
 	if hc.ragService == nil {
 		status.IsHealthy = false
 		status.Status = "unhealthy"
@@ -712,7 +713,7 @@ func (hc *RAGServiceHealthChecker) CheckHealth(ctx context.Context) HealthStatus
 		return status
 	}
 
-	// Get service metrics and health
+	// Get service metrics and health.
 	health := hc.ragService.GetHealth()
 	if healthStatus, ok := health["status"].(string); ok && healthStatus != "healthy" {
 		status.IsHealthy = false
@@ -724,15 +725,17 @@ func (hc *RAGServiceHealthChecker) CheckHealth(ctx context.Context) HealthStatus
 	return status
 }
 
+// GetComponentName performs getcomponentname operation.
 func (hc *RAGServiceHealthChecker) GetComponentName() string {
 	return "rag-service"
 }
 
-// EmbeddingServiceHealthChecker implements health checking for EmbeddingService
+// EmbeddingServiceHealthChecker implements health checking for EmbeddingService.
 type EmbeddingServiceHealthChecker struct {
 	embeddingService *EmbeddingService
 }
 
+// CheckHealth performs checkhealth operation.
 func (hc *EmbeddingServiceHealthChecker) CheckHealth(ctx context.Context) HealthStatus {
 	status := HealthStatus{
 		ComponentName: "embedding-service",
@@ -748,7 +751,7 @@ func (hc *EmbeddingServiceHealthChecker) CheckHealth(ctx context.Context) Health
 		return status
 	}
 
-	// Get service metrics
+	// Get service metrics.
 	metrics := hc.embeddingService.GetMetrics()
 	status.Metadata = map[string]interface{}{
 		"total_requests":      metrics.TotalRequests,
@@ -758,7 +761,7 @@ func (hc *EmbeddingServiceHealthChecker) CheckHealth(ctx context.Context) Health
 		"cache_hit_rate":      metrics.CacheStats.HitRate,
 	}
 
-	// Check error rate
+	// Check error rate.
 	if metrics.TotalRequests > 0 {
 		errorRate := float64(metrics.FailedRequests) / float64(metrics.TotalRequests)
 		if errorRate > 0.1 { // 10% error rate threshold
@@ -771,15 +774,17 @@ func (hc *EmbeddingServiceHealthChecker) CheckHealth(ctx context.Context) Health
 	return status
 }
 
+// GetComponentName performs getcomponentname operation.
 func (hc *EmbeddingServiceHealthChecker) GetComponentName() string {
 	return "embedding-service"
 }
 
-// RedisHealthChecker implements health checking for Redis cache
+// RedisHealthChecker implements health checking for Redis cache.
 type RedisHealthChecker struct {
 	redisCache *RedisCache
 }
 
+// CheckHealth performs checkhealth operation.
 func (hc *RedisHealthChecker) CheckHealth(ctx context.Context) HealthStatus {
 	status := HealthStatus{
 		ComponentName: "redis-cache",
@@ -795,7 +800,7 @@ func (hc *RedisHealthChecker) CheckHealth(ctx context.Context) HealthStatus {
 		return status
 	}
 
-	// Get Redis health status
+	// Get Redis health status.
 	health := hc.redisCache.GetHealthStatus(ctx)
 	if healthy, ok := health["healthy"].(bool); ok && !healthy {
 		status.IsHealthy = false
@@ -809,6 +814,7 @@ func (hc *RedisHealthChecker) CheckHealth(ctx context.Context) HealthStatus {
 	return status
 }
 
+// GetComponentName performs getcomponentname operation.
 func (hc *RedisHealthChecker) GetComponentName() string {
 	return "redis-cache"
 }

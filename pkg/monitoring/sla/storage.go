@@ -17,73 +17,73 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
-// StorageManager provides efficient time series data storage with compression and retention
+// StorageManager provides efficient time series data storage with compression and retention.
 type StorageManager struct {
 	config  *StorageConfig
 	logger  *logging.StructuredLogger
 	started atomic.Bool
 
-	// Storage backends
+	// Storage backends.
 	memoryStore *MemoryStore
 	diskStore   *DiskStore
 	compressor  *Compressor
 
-	// Data lifecycle management
+	// Data lifecycle management.
 	retentionMgr  *RetentionManager
 	compactionMgr *CompactionManager
 
-	// Performance optimization
+	// Performance optimization.
 	writeBuffer  *WriteBuffer
 	readCache    *ReadCache
 	indexManager *IndexManager
 
-	// Background processing
+	// Background processing.
 	flushTicker   *time.Ticker
 	compactTicker *time.Ticker
 	cleanupTicker *time.Ticker
 
-	// Performance metrics
+	// Performance metrics.
 	metrics          *StorageMetrics
 	writesCount      atomic.Uint64
 	readsCount       atomic.Uint64
 	compactionsCount atomic.Uint64
 
-	// Synchronization
+	// Synchronization.
 	mu     sync.RWMutex
 	stopCh chan struct{}
 	wg     sync.WaitGroup
 }
 
-// StorageConfig holds configuration for the storage manager
+// StorageConfig holds configuration for the storage manager.
 type StorageConfig struct {
-	// Data retention
+	// Data retention.
 	RetentionPeriod    time.Duration `yaml:"retention_period"`
 	CompactionInterval time.Duration `yaml:"compaction_interval"`
 	MaxDiskUsageMB     int64         `yaml:"max_disk_usage_mb"`
 
-	// Compression settings
+	// Compression settings.
 	CompressionEnabled bool    `yaml:"compression_enabled"`
 	CompressionLevel   int     `yaml:"compression_level"`
 	CompressionRatio   float64 `yaml:"compression_ratio"`
 
-	// Performance tuning
+	// Performance tuning.
 	WriteBufferSize int           `yaml:"write_buffer_size"`
 	ReadCacheSize   int           `yaml:"read_cache_size"`
 	FlushInterval   time.Duration `yaml:"flush_interval"`
 	BatchSize       int           `yaml:"batch_size"`
 
-	// Storage paths
+	// Storage paths.
 	DataDirectory   string `yaml:"data_directory"`
 	IndexDirectory  string `yaml:"index_directory"`
 	BackupDirectory string `yaml:"backup_directory"`
 
-	// Recovery settings
+	// Recovery settings.
 	BackupEnabled   bool          `yaml:"backup_enabled"`
 	BackupInterval  time.Duration `yaml:"backup_interval"`
 	RecoveryEnabled bool          `yaml:"recovery_enabled"`
 }
 
-// DefaultStorageConfig returns optimized default configuration
+// DefaultStorageConfig returns optimized default configuration.
 func DefaultStorageConfig() *StorageConfig {
 	return &StorageConfig{
 		RetentionPeriod:    7 * 24 * time.Hour, // 7 days
@@ -109,7 +109,7 @@ func DefaultStorageConfig() *StorageConfig {
 	}
 }
 
-// DataPoint represents a single time series data point
+// DataPoint represents a single time series data point.
 type DataPoint struct {
 	Timestamp time.Time              `json:"timestamp"`
 	Value     float64                `json:"value"`
@@ -117,7 +117,7 @@ type DataPoint struct {
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// TimeSeries represents a time series with metadata
+// TimeSeries represents a time series with metadata.
 type TimeSeries struct {
 	Name        string            `json:"name"`
 	Labels      map[string]string `json:"labels"`
@@ -126,46 +126,46 @@ type TimeSeries struct {
 	LastUpdated time.Time         `json:"last_updated"`
 }
 
-// StorageMetrics contains Prometheus metrics for the storage manager
+// StorageMetrics contains Prometheus metrics for the storage manager.
 type StorageMetrics struct {
-	// Write metrics
+	// Write metrics.
 	WritesTotal     *prometheus.CounterVec
 	WriteLatency    *prometheus.HistogramVec
 	WriteBufferSize prometheus.Gauge
 	WriteThroughput prometheus.Gauge
 
-	// Read metrics
+	// Read metrics.
 	ReadsTotal      *prometheus.CounterVec
 	ReadLatency     *prometheus.HistogramVec
 	ReadCacheHits   prometheus.Counter
 	ReadCacheMisses prometheus.Counter
 
-	// Storage metrics
+	// Storage metrics.
 	DiskUsageBytes   prometheus.Gauge
 	DataPointsStored prometheus.Gauge
 	TimeSeriesCount  prometheus.Gauge
 	CompressionRatio prometheus.Gauge
 
-	// Compaction metrics
+	// Compaction metrics.
 	CompactionsTotal  prometheus.Counter
 	CompactionLatency prometheus.Histogram
 	CompactionSavings prometheus.Gauge
 
-	// Performance metrics
+	// Performance metrics.
 	FlushOperations prometheus.Counter
 	FlushLatency    prometheus.Histogram
 	IndexOperations *prometheus.CounterVec
 	IndexSize       prometheus.Gauge
 }
 
-// MemoryStore provides in-memory time series storage
+// MemoryStore provides in-memory time series storage.
 type MemoryStore struct {
 	series  map[string]*TimeSeries
 	maxSize int
 	mu      sync.RWMutex
 }
 
-// DiskStore provides persistent disk-based storage
+// DiskStore provides persistent disk-based storage.
 type DiskStore struct {
 	basePath    string
 	partitions  map[string]*DiskPartition
@@ -173,7 +173,7 @@ type DiskStore struct {
 	mu          sync.RWMutex
 }
 
-// DiskPartition represents a time-based partition on disk
+// DiskPartition represents a time-based partition on disk.
 type DiskPartition struct {
 	StartTime  time.Time
 	EndTime    time.Time
@@ -183,7 +183,7 @@ type DiskPartition struct {
 	PointCount int64
 }
 
-// Compressor handles data compression operations
+// Compressor handles data compression operations.
 type Compressor struct {
 	enabled          bool
 	level            int
@@ -191,14 +191,14 @@ type Compressor struct {
 	mu               sync.RWMutex
 }
 
-// RetentionManager manages data retention policies
+// RetentionManager manages data retention policies.
 type RetentionManager struct {
 	policies     map[string]*RetentionPolicy
 	cleanupQueue chan *CleanupTask
 	mu           sync.RWMutex
 }
 
-// RetentionPolicy defines data retention rules
+// RetentionPolicy defines data retention rules.
 type RetentionPolicy struct {
 	Name     string        `json:"name"`
 	Duration time.Duration `json:"duration"`
@@ -207,7 +207,7 @@ type RetentionPolicy struct {
 	Priority int           `json:"priority"`
 }
 
-// CompactionManager handles data compaction operations
+// CompactionManager handles data compaction operations.
 type CompactionManager struct {
 	strategy     CompactionStrategy
 	thresholds   CompactionThresholds
@@ -216,7 +216,7 @@ type CompactionManager struct {
 	mu           sync.RWMutex
 }
 
-// CompactionStrategy defines how data is compacted
+// CompactionStrategy defines how data is compacted.
 type CompactionStrategy struct {
 	Type           string          `json:"type"` // time_based, size_based, hybrid
 	TimeWindows    []time.Duration `json:"time_windows"`
@@ -224,7 +224,7 @@ type CompactionStrategy struct {
 	MaxFiles       int             `json:"max_files"`
 }
 
-// CompactionThresholds defines when compaction is triggered
+// CompactionThresholds defines when compaction is triggered.
 type CompactionThresholds struct {
 	MinFiles      int     `json:"min_files"`
 	MaxFiles      int     `json:"max_files"`
@@ -232,7 +232,7 @@ type CompactionThresholds struct {
 	FragmentRatio float64 `json:"fragment_ratio"`
 }
 
-// WriteBuffer provides efficient batched writes
+// WriteBuffer provides efficient batched writes.
 type WriteBuffer struct {
 	buffer    []*DataPoint
 	maxSize   int
@@ -241,7 +241,7 @@ type WriteBuffer struct {
 	mu        sync.Mutex
 }
 
-// ReadCache provides LRU caching for read operations
+// ReadCache provides LRU caching for read operations.
 type ReadCache struct {
 	cache   map[string]*CacheEntry
 	maxSize int
@@ -250,7 +250,7 @@ type ReadCache struct {
 	mu      sync.RWMutex
 }
 
-// CacheEntry represents a cached read result
+// CacheEntry represents a cached read result.
 type CacheEntry struct {
 	Data      interface{}   `json:"data"`
 	Timestamp time.Time     `json:"timestamp"`
@@ -258,14 +258,14 @@ type CacheEntry struct {
 	Size      int           `json:"size"`
 }
 
-// IndexManager manages time series indexes
+// IndexManager manages time series indexes.
 type IndexManager struct {
 	indexes     map[string]*Index
 	indexWriter *IndexWriter
 	mu          sync.RWMutex
 }
 
-// Index represents a time series index
+// Index represents a time series index.
 type Index struct {
 	Name        string                 `json:"name"`
 	Type        string                 `json:"type"` // hash, btree, inverted
@@ -274,7 +274,7 @@ type Index struct {
 	LastUpdated time.Time              `json:"last_updated"`
 }
 
-// IndexEntry represents a single index entry
+// IndexEntry represents a single index entry.
 type IndexEntry struct {
 	Key       string    `json:"key"`
 	SeriesID  string    `json:"series_id"`
@@ -282,13 +282,13 @@ type IndexEntry struct {
 	Location  string    `json:"location"`
 }
 
-// TimeRange represents a time range
+// TimeRange represents a time range.
 type TimeRange struct {
 	Start time.Time `json:"start"`
 	End   time.Time `json:"end"`
 }
 
-// NewStorageManager creates a new time series storage manager
+// NewStorageManager creates a new time series storage manager.
 func NewStorageManager(config *StorageConfig, logger *logging.StructuredLogger) (*StorageManager, error) {
 	if config == nil {
 		config = DefaultStorageConfig()
@@ -298,7 +298,7 @@ func NewStorageManager(config *StorageConfig, logger *logging.StructuredLogger) 
 		return nil, fmt.Errorf("logger is required")
 	}
 
-	// Initialize metrics
+	// Initialize metrics.
 	metrics := &StorageMetrics{
 		WritesTotal: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "sla_storage_writes_total",
@@ -400,12 +400,12 @@ func NewStorageManager(config *StorageConfig, logger *logging.StructuredLogger) 
 		}),
 	}
 
-	// Create directories
+	// Create directories.
 	if err := createDirectories(config); err != nil {
 		return nil, fmt.Errorf("failed to create storage directories: %w", err)
 	}
 
-	// Initialize storage components
+	// Initialize storage components.
 	memoryStore := &MemoryStore{
 		series:  make(map[string]*TimeSeries),
 		maxSize: 10000, // Store up to 10k series in memory
@@ -498,7 +498,7 @@ func NewStorageManager(config *StorageConfig, logger *logging.StructuredLogger) 
 	return storageManager, nil
 }
 
-// Start begins the storage manager operations
+// Start begins the storage manager operations.
 func (sm *StorageManager) Start(ctx context.Context) error {
 	if sm.started.Load() {
 		return fmt.Errorf("storage manager already started")
@@ -511,12 +511,12 @@ func (sm *StorageManager) Start(ctx context.Context) error {
 		"max_disk_usage_mb", sm.config.MaxDiskUsageMB,
 	)
 
-	// Initialize tickers
+	// Initialize tickers.
 	sm.flushTicker = time.NewTicker(sm.config.FlushInterval)
 	sm.compactTicker = time.NewTicker(sm.config.CompactionInterval)
 	sm.cleanupTicker = time.NewTicker(1 * time.Hour)
 
-	// Start background processes
+	// Start background processes.
 	sm.wg.Add(1)
 	go sm.runFlushLoop(ctx)
 
@@ -529,13 +529,13 @@ func (sm *StorageManager) Start(ctx context.Context) error {
 	sm.wg.Add(1)
 	go sm.runMetricsUpdater(ctx)
 
-	// Start compaction workers
+	// Start compaction workers.
 	for i := 0; i < 2; i++ {
 		sm.wg.Add(1)
 		go sm.runCompactionWorker(ctx, i)
 	}
 
-	// Start retention cleanup worker
+	// Start retention cleanup worker.
 	sm.wg.Add(1)
 	go sm.runRetentionWorker(ctx)
 
@@ -545,7 +545,7 @@ func (sm *StorageManager) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop gracefully stops the storage manager
+// Stop gracefully stops the storage manager.
 func (sm *StorageManager) Stop(ctx context.Context) error {
 	if !sm.started.Load() {
 		return nil
@@ -553,7 +553,7 @@ func (sm *StorageManager) Stop(ctx context.Context) error {
 
 	sm.logger.InfoWithContext("Stopping storage manager")
 
-	// Stop tickers
+	// Stop tickers.
 	if sm.flushTicker != nil {
 		sm.flushTicker.Stop()
 	}
@@ -564,13 +564,13 @@ func (sm *StorageManager) Stop(ctx context.Context) error {
 		sm.cleanupTicker.Stop()
 	}
 
-	// Flush pending data
+	// Flush pending data.
 	sm.flushBuffer()
 
-	// Signal stop
+	// Signal stop.
 	close(sm.stopCh)
 
-	// Wait for background processes
+	// Wait for background processes.
 	sm.wg.Wait()
 
 	sm.logger.InfoWithContext("Storage manager stopped")
@@ -578,7 +578,7 @@ func (sm *StorageManager) Stop(ctx context.Context) error {
 	return nil
 }
 
-// WriteDataPoint writes a single data point to storage
+// WriteDataPoint writes a single data point to storage.
 func (sm *StorageManager) WriteDataPoint(seriesName string, point *DataPoint) error {
 	start := time.Now()
 	defer func() {
@@ -586,14 +586,14 @@ func (sm *StorageManager) WriteDataPoint(seriesName string, point *DataPoint) er
 		sm.writesCount.Add(1)
 	}()
 
-	// Add to write buffer
+	// Add to write buffer.
 	sm.writeBuffer.mu.Lock()
 	defer sm.writeBuffer.mu.Unlock()
 
 	sm.writeBuffer.buffer = append(sm.writeBuffer.buffer, point)
 	sm.metrics.WriteBufferSize.Set(float64(len(sm.writeBuffer.buffer)))
 
-	// Flush if buffer is full
+	// Flush if buffer is full.
 	if len(sm.writeBuffer.buffer) >= sm.writeBuffer.flushSize {
 		sm.flushBuffer()
 	}
@@ -603,7 +603,7 @@ func (sm *StorageManager) WriteDataPoint(seriesName string, point *DataPoint) er
 	return nil
 }
 
-// WriteDataPoints writes multiple data points to storage
+// WriteDataPoints writes multiple data points to storage.
 func (sm *StorageManager) WriteDataPoints(seriesName string, points []*DataPoint) error {
 	start := time.Now()
 	defer func() {
@@ -617,7 +617,7 @@ func (sm *StorageManager) WriteDataPoints(seriesName string, points []*DataPoint
 	sm.writeBuffer.buffer = append(sm.writeBuffer.buffer, points...)
 	sm.metrics.WriteBufferSize.Set(float64(len(sm.writeBuffer.buffer)))
 
-	// Flush if buffer is approaching capacity
+	// Flush if buffer is approaching capacity.
 	if len(sm.writeBuffer.buffer) >= sm.writeBuffer.maxSize-len(points) {
 		sm.flushBuffer()
 	}
@@ -627,7 +627,7 @@ func (sm *StorageManager) WriteDataPoints(seriesName string, points []*DataPoint
 	return nil
 }
 
-// ReadTimeSeries reads time series data within a time range
+// ReadTimeSeries reads time series data within a time range.
 func (sm *StorageManager) ReadTimeSeries(seriesName string, start, end time.Time) ([]*DataPoint, error) {
 	readStart := time.Now()
 	defer func() {
@@ -635,10 +635,10 @@ func (sm *StorageManager) ReadTimeSeries(seriesName string, start, end time.Time
 		sm.readsCount.Add(1)
 	}()
 
-	// Generate cache key
+	// Generate cache key.
 	cacheKey := fmt.Sprintf("%s:%d:%d", seriesName, start.Unix(), end.Unix())
 
-	// Check cache first
+	// Check cache first.
 	if cachedData := sm.readCache.get(cacheKey); cachedData != nil {
 		sm.metrics.ReadCacheHits.Inc()
 		sm.metrics.ReadsTotal.WithLabelValues(seriesName, "cache_hit").Inc()
@@ -650,33 +650,33 @@ func (sm *StorageManager) ReadTimeSeries(seriesName string, start, end time.Time
 
 	var result []*DataPoint
 
-	// Read from memory store
+	// Read from memory store.
 	memoryPoints := sm.readFromMemory(seriesName, start, end)
 	result = append(result, memoryPoints...)
 
-	// Read from disk store
+	// Read from disk store.
 	diskPoints := sm.readFromDisk(seriesName, start, end)
 	result = append(result, diskPoints...)
 
-	// Sort by timestamp
+	// Sort by timestamp.
 	sort.Slice(result, func(i, j int) bool {
 		return result[i].Timestamp.Before(result[j].Timestamp)
 	})
 
-	// Cache the result
+	// Cache the result.
 	sm.readCache.set(cacheKey, result, 5*time.Minute)
 
 	return result, nil
 }
 
-// QueryTimeSeries performs a time series query with filters
+// QueryTimeSeries performs a time series query with filters.
 func (sm *StorageManager) QueryTimeSeries(query *TimeSeriesQuery) (*TimeSeriesResult, error) {
 	start := time.Now()
 	defer func() {
 		sm.metrics.ReadLatency.WithLabelValues("query", "aggregated").Observe(time.Since(start).Seconds())
 	}()
 
-	// Use index to find matching series
+	// Use index to find matching series.
 	matchingSeries := sm.indexManager.findMatchingSeries(query.LabelMatchers)
 
 	result := &TimeSeriesResult{
@@ -687,7 +687,7 @@ func (sm *StorageManager) QueryTimeSeries(query *TimeSeriesQuery) (*TimeSeriesRe
 		QueryTime: time.Since(start),
 	}
 
-	// Read data for each matching series
+	// Read data for each matching series.
 	for _, seriesName := range matchingSeries {
 		points, err := sm.ReadTimeSeries(seriesName, query.Start, query.End)
 		if err != nil {
@@ -698,7 +698,7 @@ func (sm *StorageManager) QueryTimeSeries(query *TimeSeriesQuery) (*TimeSeriesRe
 			continue
 		}
 
-		// Apply aggregation if specified
+		// Apply aggregation if specified.
 		if query.Aggregation != "" {
 			points = sm.aggregatePoints(points, query.Aggregation, query.Step)
 		}
@@ -709,7 +709,7 @@ func (sm *StorageManager) QueryTimeSeries(query *TimeSeriesQuery) (*TimeSeriesRe
 	return result, nil
 }
 
-// flushBuffer flushes the write buffer to persistent storage
+// flushBuffer flushes the write buffer to persistent storage.
 func (sm *StorageManager) flushBuffer() error {
 	start := time.Now()
 	defer func() {
@@ -721,28 +721,28 @@ func (sm *StorageManager) flushBuffer() error {
 		return nil
 	}
 
-	// Group points by series
+	// Group points by series.
 	seriesPoints := make(map[string][]*DataPoint)
 	for _, point := range sm.writeBuffer.buffer {
 		seriesName := sm.generateSeriesName(point.Labels)
 		seriesPoints[seriesName] = append(seriesPoints[seriesName], point)
 	}
 
-	// Write to memory store first
+	// Write to memory store first.
 	for seriesName, points := range seriesPoints {
 		sm.writeToMemory(seriesName, points)
 	}
 
-	// Schedule disk writes
+	// Schedule disk writes.
 	for seriesName, points := range seriesPoints {
 		sm.scheduleWriteToDisk(seriesName, points)
 	}
 
-	// Update metrics
+	// Update metrics.
 	totalPoints := len(sm.writeBuffer.buffer)
 	sm.metrics.DataPointsStored.Add(float64(totalPoints))
 
-	// Clear buffer
+	// Clear buffer.
 	sm.writeBuffer.buffer = sm.writeBuffer.buffer[:0]
 	sm.writeBuffer.lastFlush = time.Now()
 	sm.metrics.WriteBufferSize.Set(0)
@@ -756,7 +756,7 @@ func (sm *StorageManager) flushBuffer() error {
 	return nil
 }
 
-// runFlushLoop runs the periodic buffer flush loop
+// runFlushLoop runs the periodic buffer flush loop.
 func (sm *StorageManager) runFlushLoop(ctx context.Context) {
 	defer sm.wg.Done()
 
@@ -776,7 +776,7 @@ func (sm *StorageManager) runFlushLoop(ctx context.Context) {
 	}
 }
 
-// runCompactionLoop runs the periodic compaction loop
+// runCompactionLoop runs the periodic compaction loop.
 func (sm *StorageManager) runCompactionLoop(ctx context.Context) {
 	defer sm.wg.Done()
 
@@ -792,7 +792,7 @@ func (sm *StorageManager) runCompactionLoop(ctx context.Context) {
 	}
 }
 
-// runCleanupLoop runs the periodic cleanup loop
+// runCleanupLoop runs the periodic cleanup loop.
 func (sm *StorageManager) runCleanupLoop(ctx context.Context) {
 	defer sm.wg.Done()
 
@@ -808,7 +808,7 @@ func (sm *StorageManager) runCleanupLoop(ctx context.Context) {
 	}
 }
 
-// runMetricsUpdater updates storage performance metrics
+// runMetricsUpdater updates storage performance metrics.
 func (sm *StorageManager) runMetricsUpdater(ctx context.Context) {
 	defer sm.wg.Done()
 
@@ -827,26 +827,26 @@ func (sm *StorageManager) runMetricsUpdater(ctx context.Context) {
 	}
 }
 
-// updateStorageMetrics updates storage-related metrics
+// updateStorageMetrics updates storage-related metrics.
 func (sm *StorageManager) updateStorageMetrics() {
-	// Update disk usage
+	// Update disk usage.
 	diskUsage := sm.calculateDiskUsage()
 	sm.metrics.DiskUsageBytes.Set(float64(diskUsage))
 
-	// Update time series count
+	// Update time series count.
 	sm.memoryStore.mu.RLock()
 	seriesCount := len(sm.memoryStore.series)
 	sm.memoryStore.mu.RUnlock()
 
 	sm.metrics.TimeSeriesCount.Set(float64(seriesCount))
 
-	// Update compression ratio
+	// Update compression ratio.
 	if sm.compressor.enabled {
 		ratio := float64(sm.compressor.compressionRatio.Load()) / 100.0
 		sm.metrics.CompressionRatio.Set(ratio)
 	}
 
-	// Update cache hit ratio
+	// Update cache hit ratio.
 	hits := sm.readCache.hits.Load()
 	misses := sm.readCache.misses.Load()
 	total := hits + misses
@@ -860,7 +860,7 @@ func (sm *StorageManager) updateStorageMetrics() {
 	}
 }
 
-// Helper methods and background processes
+// Helper methods and background processes.
 
 func (sm *StorageManager) writeToMemory(seriesName string, points []*DataPoint) {
 	sm.memoryStore.mu.Lock()
@@ -879,12 +879,12 @@ func (sm *StorageManager) writeToMemory(seriesName string, points []*DataPoint) 
 	series.Points = append(series.Points, points...)
 	series.LastUpdated = time.Now()
 
-	// Trim old points to maintain memory limits
+	// Trim old points to maintain memory limits.
 	sm.trimSeriesPoints(series)
 }
 
 func (sm *StorageManager) scheduleWriteToDisk(seriesName string, points []*DataPoint) {
-	// This would schedule asynchronous writes to disk
+	// This would schedule asynchronous writes to disk.
 	go func() {
 		if err := sm.writeToDisk(seriesName, points); err != nil {
 			sm.logger.ErrorWithContext("Failed to write to disk",
@@ -897,15 +897,15 @@ func (sm *StorageManager) scheduleWriteToDisk(seriesName string, points []*DataP
 }
 
 func (sm *StorageManager) writeToDisk(seriesName string, points []*DataPoint) error {
-	// Create partition based on time
+	// Create partition based on time.
 	partition := sm.getOrCreatePartition(points[0].Timestamp)
 
-	// Write data to partition file
+	// Write data to partition file.
 	if err := sm.writeToPartition(partition, seriesName, points); err != nil {
 		return fmt.Errorf("failed to write to partition: %w", err)
 	}
 
-	// Update index
+	// Update index.
 	sm.indexManager.updateIndex(seriesName, points)
 
 	return nil
@@ -931,7 +931,7 @@ func (sm *StorageManager) readFromMemory(seriesName string, start, end time.Time
 }
 
 func (sm *StorageManager) readFromDisk(seriesName string, start, end time.Time) []*DataPoint {
-	// Find relevant partitions
+	// Find relevant partitions.
 	partitions := sm.findPartitions(start, end)
 
 	var result []*DataPoint
@@ -943,10 +943,10 @@ func (sm *StorageManager) readFromDisk(seriesName string, start, end time.Time) 
 	return result
 }
 
-// Placeholder implementations for complex operations
+// Placeholder implementations for complex operations.
 
 func (sm *StorageManager) calculateDiskUsage() int64 {
-	// Calculate total disk usage
+	// Calculate total disk usage.
 	var totalSize int64
 
 	sm.diskStore.mu.RLock()
@@ -959,7 +959,7 @@ func (sm *StorageManager) calculateDiskUsage() int64 {
 }
 
 func (sm *StorageManager) generateSeriesName(labels map[string]string) string {
-	// Generate a series name from labels
+	// Generate a series name from labels.
 	name := labels["__name__"]
 	if name == "" {
 		name = "unknown"
@@ -968,7 +968,7 @@ func (sm *StorageManager) generateSeriesName(labels map[string]string) string {
 }
 
 func (sm *StorageManager) trimSeriesPoints(series *TimeSeries) {
-	// Trim old points to maintain memory efficiency
+	// Trim old points to maintain memory efficiency.
 	maxPoints := 1000 // Keep last 1000 points in memory
 	if len(series.Points) > maxPoints {
 		series.Points = series.Points[len(series.Points)-maxPoints:]
@@ -976,7 +976,7 @@ func (sm *StorageManager) trimSeriesPoints(series *TimeSeries) {
 }
 
 func (sm *StorageManager) getOrCreatePartition(timestamp time.Time) *DiskPartition {
-	// Create hourly partitions
+	// Create hourly partitions.
 	partitionKey := timestamp.Format("2006010215")
 
 	sm.diskStore.mu.Lock()
@@ -1010,8 +1010,8 @@ func (sm *StorageManager) findPartitions(start, end time.Time) []*DiskPartition 
 }
 
 func (sm *StorageManager) writeToPartition(partition *DiskPartition, seriesName string, points []*DataPoint) error {
-	// Open or create partition file
-	file, err := os.OpenFile(partition.FilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	// Open or create partition file.
+	file, err := os.OpenFile(partition.FilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
 	if err != nil {
 		return fmt.Errorf("failed to open partition file: %w", err)
 	}
@@ -1019,7 +1019,7 @@ func (sm *StorageManager) writeToPartition(partition *DiskPartition, seriesName 
 
 	var writer io.Writer = file
 
-	// Apply compression if enabled
+	// Apply compression if enabled.
 	if sm.compressor.enabled {
 		gzipWriter, err := gzip.NewWriterLevel(file, sm.compressor.level)
 		if err != nil {
@@ -1030,32 +1030,32 @@ func (sm *StorageManager) writeToPartition(partition *DiskPartition, seriesName 
 		partition.Compressed = true
 	}
 
-	// Write binary data
+	// Write binary data.
 	for _, point := range points {
 		if err := sm.writeBinaryDataPoint(writer, point); err != nil {
 			return fmt.Errorf("failed to write data point: %w", err)
 		}
 	}
 
-	// Update partition metadata
+	// Update partition metadata.
 	partition.PointCount += int64(len(points))
 
 	return nil
 }
 
 func (sm *StorageManager) writeBinaryDataPoint(writer io.Writer, point *DataPoint) error {
-	// Write timestamp
+	// Write timestamp.
 	timestamp := point.Timestamp.UnixNano()
 	if err := binary.Write(writer, binary.LittleEndian, timestamp); err != nil {
 		return err
 	}
 
-	// Write value
+	// Write value.
 	if err := binary.Write(writer, binary.LittleEndian, point.Value); err != nil {
 		return err
 	}
 
-	// Write labels (simplified - in production would use more efficient encoding)
+	// Write labels (simplified - in production would use more efficient encoding).
 	labelCount := uint32(len(point.Labels))
 	if err := binary.Write(writer, binary.LittleEndian, labelCount); err != nil {
 		return err
@@ -1083,15 +1083,15 @@ func (sm *StorageManager) writeBinaryDataPoint(writer io.Writer, point *DataPoin
 }
 
 func (sm *StorageManager) readFromPartition(partition *DiskPartition, seriesName string, start, end time.Time) []*DataPoint {
-	// Placeholder implementation
+	// Placeholder implementation.
 	return []*DataPoint{}
 }
 
 func (sm *StorageManager) performCleanup() {
-	// Remove expired data based on retention policies
+	// Remove expired data based on retention policies.
 	cutoff := time.Now().Add(-sm.config.RetentionPeriod)
 
-	// Clean up memory store
+	// Clean up memory store.
 	sm.memoryStore.mu.Lock()
 	for name, series := range sm.memoryStore.series {
 		filteredPoints := make([]*DataPoint, 0)
@@ -1102,18 +1102,18 @@ func (sm *StorageManager) performCleanup() {
 		}
 		series.Points = filteredPoints
 
-		// Remove empty series
+		// Remove empty series.
 		if len(series.Points) == 0 {
 			delete(sm.memoryStore.series, name)
 		}
 	}
 	sm.memoryStore.mu.Unlock()
 
-	// Clean up disk partitions
+	// Clean up disk partitions.
 	sm.diskStore.mu.Lock()
 	for key, partition := range sm.diskStore.partitions {
 		if partition.EndTime.Before(cutoff) {
-			// Remove partition file
+			// Remove partition file.
 			os.Remove(partition.FilePath)
 			delete(sm.diskStore.partitions, key)
 		}
@@ -1124,7 +1124,7 @@ func (sm *StorageManager) performCleanup() {
 }
 
 func (sm *StorageManager) scheduleCompaction() {
-	// Schedule compaction based on thresholds
+	// Schedule compaction based on thresholds.
 	sm.diskStore.mu.RLock()
 	partitionCount := len(sm.diskStore.partitions)
 	sm.diskStore.mu.RUnlock()
@@ -1174,13 +1174,13 @@ func (sm *StorageManager) performCompaction(task *CompactionTask) {
 
 	sm.logger.InfoWithContext("Performing compaction", "task_type", task.Type)
 
-	// Simplified compaction - in production would merge multiple partitions
-	// into larger, more efficient files
+	// Simplified compaction - in production would merge multiple partitions.
+	// into larger, more efficient files.
 
 	sizeBefore := sm.calculateDiskUsage()
 
-	// Perform actual compaction work here
-	// This is a placeholder for the complex compaction logic
+	// Perform actual compaction work here.
+	// This is a placeholder for the complex compaction logic.
 
 	sizeAfter := sm.calculateDiskUsage()
 	savings := sizeBefore - sizeAfter
@@ -1211,7 +1211,7 @@ func (sm *StorageManager) runRetentionWorker(ctx context.Context) {
 }
 
 func (sm *StorageManager) processRetentionTask(task *CleanupTask) {
-	// Process retention cleanup tasks
+	// Process retention cleanup tasks.
 	sm.logger.DebugWithContext("Processing retention task",
 		"task_type", task.Type,
 		"resource", task.Resource,
@@ -1219,8 +1219,8 @@ func (sm *StorageManager) processRetentionTask(task *CleanupTask) {
 }
 
 func (sm *StorageManager) aggregatePoints(points []*DataPoint, aggregation string, step time.Duration) []*DataPoint {
-	// Implement aggregation (sum, avg, max, min, etc.)
-	// This is a simplified placeholder
+	// Implement aggregation (sum, avg, max, min, etc.).
+	// This is a simplified placeholder.
 	return points
 }
 
@@ -1234,7 +1234,7 @@ func (rc *ReadCache) get(key string) interface{} {
 		return nil
 	}
 
-	// Check TTL
+	// Check TTL.
 	if time.Since(entry.Timestamp) > entry.TTL {
 		delete(rc.cache, key)
 		rc.misses.Add(1)
@@ -1249,7 +1249,7 @@ func (rc *ReadCache) set(key string, data interface{}, ttl time.Duration) {
 	rc.mu.Lock()
 	defer rc.mu.Unlock()
 
-	// Implement LRU eviction if cache is full
+	// Implement LRU eviction if cache is full.
 	if len(rc.cache) >= rc.maxSize {
 		rc.evictLRU()
 	}
@@ -1262,7 +1262,7 @@ func (rc *ReadCache) set(key string, data interface{}, ttl time.Duration) {
 }
 
 func (rc *ReadCache) evictLRU() {
-	// Simple eviction - remove oldest entry
+	// Simple eviction - remove oldest entry.
 	var oldestKey string
 	var oldestTime time.Time
 
@@ -1278,7 +1278,7 @@ func (rc *ReadCache) evictLRU() {
 	}
 }
 
-// Helper functions
+// Helper functions.
 func createDirectories(config *StorageConfig) error {
 	dirs := []string{
 		config.DataDirectory,
@@ -1287,7 +1287,7 @@ func createDirectories(config *StorageConfig) error {
 	}
 
 	for _, dir := range dirs {
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)
 		}
 	}
@@ -1295,7 +1295,7 @@ func createDirectories(config *StorageConfig) error {
 	return nil
 }
 
-// Placeholder types and functions
+// Placeholder types and functions.
 type TimeSeriesQuery struct {
 	LabelMatchers map[string]string
 	Start         time.Time
@@ -1304,6 +1304,7 @@ type TimeSeriesQuery struct {
 	Aggregation   string
 }
 
+// TimeSeriesResult represents a timeseriesresult.
 type TimeSeriesResult struct {
 	Query     *TimeSeriesQuery
 	Series    map[string][]*DataPoint
@@ -1312,27 +1313,34 @@ type TimeSeriesResult struct {
 	QueryTime time.Duration
 }
 
+// CleanupTask represents a cleanuptask.
 type CleanupTask struct {
 	Type     string
 	Resource string
 }
 
+// CompactionTask represents a compactiontask.
 type CompactionTask struct {
 	Type      string
 	Priority  int
 	CreatedAt time.Time
 }
 
-type CompactionWorker struct{}
-type IndexWriter struct{}
+// CompactionWorker represents a compactionworker.
+type (
+	CompactionWorker struct{}
+	// IndexWriter represents a indexwriter.
+	IndexWriter struct{}
+)
 
+// NewIndexWriter performs newindexwriter operation.
 func NewIndexWriter(directory string) *IndexWriter { return &IndexWriter{} }
 
 func (im *IndexManager) findMatchingSeries(matchers map[string]string) []string {
-	// Placeholder implementation
+	// Placeholder implementation.
 	return []string{}
 }
 
 func (im *IndexManager) updateIndex(seriesName string, points []*DataPoint) {
-	// Placeholder implementation
+	// Placeholder implementation.
 }

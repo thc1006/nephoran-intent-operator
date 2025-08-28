@@ -21,7 +21,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/internal/porch"
 )
 
-// Config holds configuration for the watcher
+// Config holds configuration for the watcher.
 type Config struct {
 	PorchPath    string        `json:"porch_path"`
 	PorchURL     string        `json:"porch_url"`
@@ -40,9 +40,9 @@ type Config struct {
 	MetricsPass  string        `json:"metrics_pass"` // Basic auth password
 }
 
-// Validate checks if the configuration is valid and secure
+// Validate checks if the configuration is valid and secure.
 func (c *Config) Validate() error {
-	// Validate MaxWorkers - handle extreme values gracefully
+	// Validate MaxWorkers - handle extreme values gracefully.
 	maxSafeWorkers := runtime.NumCPU() * 4
 	if c.MaxWorkers < 1 {
 		log.Printf("Warning: max_workers %d is too low, using default value 2", c.MaxWorkers)
@@ -53,14 +53,14 @@ func (c *Config) Validate() error {
 		c.MaxWorkers = maxSafeWorkers
 	}
 
-	// Validate MetricsPort
+	// Validate MetricsPort.
 	if c.MetricsPort != 0 { // 0 means disabled
 		if c.MetricsPort < 1024 || c.MetricsPort > 65535 {
 			return fmt.Errorf("metrics_port must be between 1024-65535 or 0 to disable")
 		}
 	}
 
-	// Validate DebounceDur - handle negative values gracefully
+	// Validate DebounceDur - handle negative values gracefully.
 	if c.DebounceDur != 0 {
 		if c.DebounceDur < 0 {
 			log.Printf("Warning: debounce_duration %v is negative, using default 100ms", c.DebounceDur)
@@ -74,7 +74,7 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	// Validate Period (for periodic mode)
+	// Validate Period (for periodic mode).
 	if c.Period != 0 {
 		if c.Period < 100*time.Millisecond {
 			return fmt.Errorf("period must be at least 100ms")
@@ -84,7 +84,7 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	// Validate CleanupAfter
+	// Validate CleanupAfter.
 	if c.CleanupAfter != 0 {
 		if c.CleanupAfter < 1*time.Hour {
 			return fmt.Errorf("cleanup_after must be at least 1 hour")
@@ -94,7 +94,7 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	// Validate GracePeriod
+	// Validate GracePeriod.
 	if c.GracePeriod != 0 {
 		if c.GracePeriod < 1*time.Second {
 			return fmt.Errorf("grace_period must be at least 1 second")
@@ -104,7 +104,7 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	// Validate metrics authentication
+	// Validate metrics authentication.
 	if c.MetricsAuth {
 		if c.MetricsUser == "" || c.MetricsPass == "" {
 			return fmt.Errorf("metrics_auth requires both metrics_user and metrics_pass")
@@ -114,13 +114,13 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	// Validate Mode
+	// Validate Mode.
 	validModes := map[string]bool{"watch": true, "once": true, "periodic": true, "direct": true, "structured": true}
 	if c.Mode != "" && !validModes[c.Mode] {
 		return fmt.Errorf("invalid mode %q, must be one of: watch, once, periodic, direct, structured", c.Mode)
 	}
 
-	// Validate OutDir permissions if specified
+	// Validate OutDir permissions if specified.
 	if c.OutDir != "" {
 		if err := validateOutputDirectory(c.OutDir); err != nil {
 			return fmt.Errorf("cannot write to output directory %q: %w", c.OutDir, err)
@@ -130,24 +130,24 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// validateOutputDirectory checks if the output directory exists and is writable
+// validateOutputDirectory checks if the output directory exists and is writable.
 func validateOutputDirectory(outDir string) error {
-	// Check if directory exists
+	// Check if directory exists.
 	info, err := os.Stat(outDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			// Try to create parent directory to test permissions
+			// Try to create parent directory to test permissions.
 			return validateParentDirectoryWritable(outDir)
 		}
 		return fmt.Errorf("cannot access directory: %w", err)
 	}
 
-	// Check if it's actually a directory
+	// Check if it's actually a directory.
 	if !info.IsDir() {
 		return fmt.Errorf("path exists but is not a directory")
 	}
 
-	// Test write permissions by creating a temporary file
+	// Test write permissions by creating a temporary file.
 	testFile := filepath.Join(outDir, ".permission-test-"+fmt.Sprintf("%d", time.Now().UnixNano()))
 	f, err := os.Create(testFile)
 	if err != nil {
@@ -159,29 +159,29 @@ func validateOutputDirectory(outDir string) error {
 	return nil
 }
 
-// validateParentDirectoryWritable checks if the parent directory of the given path is writable
+// validateParentDirectoryWritable checks if the parent directory of the given path is writable.
 func validateParentDirectoryWritable(path string) error {
 	parentDir := filepath.Dir(path)
 	if parentDir == path || parentDir == "." || parentDir == "/" {
 		return fmt.Errorf("output directory parent does not exist")
 	}
 
-	// Check if parent exists
+	// Check if parent exists.
 	info, err := os.Stat(parentDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			// Recursively check parent's parent
+			// Recursively check parent's parent.
 			return validateParentDirectoryWritable(parentDir)
 		}
 		return fmt.Errorf("cannot access parent directory: %w", err)
 	}
 
-	// Check if parent is a directory
+	// Check if parent is a directory.
 	if !info.IsDir() {
 		return fmt.Errorf("parent path exists but is not a directory")
 	}
 
-	// Test write permissions on parent directory
+	// Test write permissions on parent directory.
 	testFile := filepath.Join(parentDir, ".permission-test-"+fmt.Sprintf("%d", time.Now().UnixNano()))
 	f, err := os.Create(testFile)
 	if err != nil {
@@ -193,14 +193,14 @@ func validateParentDirectoryWritable(path string) error {
 	return nil
 }
 
-// FileProcessingState tracks the state of file processing to prevent duplicates
+// FileProcessingState tracks the state of file processing to prevent duplicates.
 type FileProcessingState struct {
 	processing   map[string]*sync.Mutex // file-level locks
 	recentEvents map[string]time.Time   // recent CREATE/WRITE events
 	mu           sync.RWMutex           // protects the maps above
 }
 
-// WorkerPool manages a pool of workers with backpressure control
+// WorkerPool manages a pool of workers with backpressure control.
 type WorkerPool struct {
 	workQueue     chan WorkItem
 	workers       sync.WaitGroup
@@ -210,22 +210,22 @@ type WorkerPool struct {
 	closed        int32 // atomic flag to prevent double closes
 }
 
-// WorkItem represents a unit of work for the worker pool
+// WorkItem represents a unit of work for the worker pool.
 type WorkItem struct {
 	FilePath string
 	Attempt  int
 	Ctx      context.Context
 }
 
-// DirectoryManager handles directory creation with sync.Once pattern
+// DirectoryManager handles directory creation with sync.Once pattern.
 type DirectoryManager struct {
 	dirOnce map[string]*sync.Once
 	mu      sync.RWMutex
 }
 
-// WatcherMetrics holds comprehensive metrics for monitoring and observability
+// WatcherMetrics holds comprehensive metrics for monitoring and observability.
 type WatcherMetrics struct {
-	// Performance Metrics (atomic counters for thread safety)
+	// Performance Metrics (atomic counters for thread safety).
 	FilesProcessedTotal     int64 // Total files processed successfully
 	FilesFailedTotal        int64 // Total files that failed processing
 	ProcessingDurationTotal int64 // Total processing time in nanoseconds
@@ -234,58 +234,65 @@ type WatcherMetrics struct {
 	QueueDepthCurrent       int64 // Current queue depth
 	BackpressureEventsTotal int64 // Total backpressure events
 
-	// Latency Metrics (for percentile calculations)
+	// Latency Metrics (for percentile calculations).
 	ProcessingLatencies []int64 // Ring buffer for latency samples
 	latencyIndex        int64   // Current index in ring buffer
 	latencyMutex        sync.RWMutex
 
-	// Error Metrics
+	// Error Metrics.
 	ValidationErrorsByType map[string]int64 // Validation errors by type
 	ProcessingErrorsByType map[string]int64 // Processing errors by type
 	TimeoutCount           int64            // Number of timeouts
 
-	// Resource Metrics
+	// Resource Metrics.
 	MemoryUsageBytes    int64 // Current memory usage
 	GoroutineCount      int64 // Current number of goroutines
 	FileDescriptorCount int64 // Current file descriptor usage
 	DirectorySizeBytes  int64 // Watched directory size
 
-	// Business Metrics
+	// Business Metrics.
 	ThroughputFilesPerSecond float64       // Files processed per second
 	AverageProcessingTime    time.Duration // Average processing time
 	WorkerUtilization        float64       // Worker pool utilization %
 	StatusFileGenerationRate float64       // Status files generated per second
 
-	// Metrics collection metadata
+	// Metrics collection metadata.
 	StartTime      time.Time
 	LastUpdateTime time.Time
 	MetricsEnabled bool
 
-	// Mutex for non-atomic fields
+	// Mutex for non-atomic fields.
 	mu sync.RWMutex
 }
 
-// MetricsSample holds a sample for latency calculations
+// MetricsSample holds a sample for latency calculations.
 type MetricsSample struct {
 	Timestamp time.Time
 	Value     time.Duration
 }
 
-// Security and validation constants
+// Security and validation constants.
 const (
-	MaxJSONSize       = 5 * 1024 * 1024 // 5MB max JSON size for handling larger intent files
-	MaxStatusSize     = 256 * 1024      // 256KB max status file size (reduced for efficiency)
-	MaxMessageSize    = 64 * 1024       // 64KB max error message size
-	MaxFileNameLength = 255             // Max filename length
-	MaxPathDepth      = 10              // Max directory depth for path traversal prevention
-	MaxJSONDepth      = 100             // Max JSON nesting depth for JSON bomb prevention
+	// MaxJSONSize holds maxjsonsize value.
+	MaxJSONSize = 5 * 1024 * 1024 // 5MB max JSON size for handling larger intent files
+	// MaxStatusSize holds maxstatussize value.
+	MaxStatusSize = 256 * 1024 // 256KB max status file size (reduced for efficiency)
+	// MaxMessageSize holds maxmessagesize value.
+	MaxMessageSize = 64 * 1024 // 64KB max error message size
+	// MaxFileNameLength holds maxfilenamelength value.
+	MaxFileNameLength = 255 // Max filename length
+	// MaxPathDepth holds maxpathdepth value.
+	MaxPathDepth = 10 // Max directory depth for path traversal prevention
+	// MaxJSONDepth holds maxjsondepth value.
+	MaxJSONDepth = 100 // Max JSON nesting depth for JSON bomb prevention
 
-	// Metrics constants
-	LatencyRingBufferSize = 1000             // Size of latency ring buffer
+	// Metrics constants.
+	LatencyRingBufferSize = 1000 // Size of latency ring buffer
+	// MetricsUpdateInterval holds metricsupdateinterval value.
 	MetricsUpdateInterval = 10 * time.Second // Metrics update frequency
 )
 
-// IntentSchema defines the expected structure of an intent file
+// IntentSchema defines the expected structure of an intent file.
 type IntentSchema struct {
 	APIVersion string                 `json:"apiVersion"`
 	Kind       string                 `json:"kind"`
@@ -293,7 +300,7 @@ type IntentSchema struct {
 	Spec       map[string]interface{} `json:"spec"`
 }
 
-// Watcher monitors a directory for intent file changes
+// Watcher monitors a directory for intent file changes.
 type Watcher struct {
 	watcher      *fsnotify.Watcher
 	dir          string
@@ -302,32 +309,32 @@ type Watcher struct {
 	fileManager  *FileManager
 	executor     *porch.StatefulExecutor
 
-	// Enhanced debouncing and file processing state
+	// Enhanced debouncing and file processing state.
 	fileState  *FileProcessingState
 	workerPool *WorkerPool
 	dirManager *DirectoryManager
 
-	// Metrics and monitoring
+	// Metrics and monitoring.
 	metrics       *WatcherMetrics
 	metricsServer *http.Server
 
-	// Context for graceful shutdown
+	// Context for graceful shutdown.
 	ctx              context.Context
 	cancel           context.CancelFunc
 	shutdownComplete chan struct{}
 
-	// IntentProcessor for new pattern support
+	// IntentProcessor for new pattern support.
 	processor *IntentProcessor
 }
 
-// NewWatcher creates a new file system watcher (backward compatibility with Config approach)
+// NewWatcher creates a new file system watcher (backward compatibility with Config approach).
 func NewWatcher(dir string, config Config) (*Watcher, error) {
 	return NewWatcherWithConfig(dir, config, nil)
 }
 
-// NewWatcherWithProcessor creates a new file system watcher with processor (new approach)
+// NewWatcherWithProcessor creates a new file system watcher with processor (new approach).
 func NewWatcherWithProcessor(dir string, processor *IntentProcessor) (*Watcher, error) {
-	// Use default config when using processor approach
+	// Use default config when using processor approach.
 	defaultConfig := Config{
 		MaxWorkers:   2,
 		CleanupAfter: 7 * 24 * time.Hour,
@@ -339,9 +346,9 @@ func NewWatcherWithProcessor(dir string, processor *IntentProcessor) (*Watcher, 
 	return NewWatcherWithConfig(dir, defaultConfig, processor)
 }
 
-// NewWatcherWithConfig creates a new file system watcher with both config and processor support
+// NewWatcherWithConfig creates a new file system watcher with both config and processor support.
 func NewWatcherWithConfig(dir string, config Config, processor *IntentProcessor) (*Watcher, error) {
-	// Set defaults before validation
+	// Set defaults before validation.
 	if config.MaxWorkers <= 0 {
 		config.MaxWorkers = 2
 	}
@@ -361,7 +368,7 @@ func NewWatcherWithConfig(dir string, config Config, processor *IntentProcessor)
 		config.GracePeriod = 5 * time.Second // Default grace period
 	}
 
-	// Validate configuration for security
+	// Validate configuration for security.
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
@@ -370,13 +377,13 @@ func NewWatcherWithConfig(dir string, config Config, processor *IntentProcessor)
 		return nil, fmt.Errorf("failed to create fsnotify watcher: %w", err)
 	}
 
-	// Add the directory to watch
+	// Add the directory to watch.
 	if err := watcher.Add(dir); err != nil {
 		watcher.Close()
 		return nil, fmt.Errorf("failed to add directory %s to watcher: %w", dir, err)
 	}
 
-	// Create state manager (only if not using processor approach)
+	// Create state manager (only if not using processor approach).
 	var stateManager *StateManager
 	var fileManager *FileManager
 	var executor *porch.StatefulExecutor
@@ -388,14 +395,14 @@ func NewWatcherWithConfig(dir string, config Config, processor *IntentProcessor)
 			return nil, fmt.Errorf("failed to create state manager: %w", err)
 		}
 
-		// Create file manager
+		// Create file manager.
 		fileManager, err = NewFileManager(dir)
 		if err != nil {
 			watcher.Close()
 			return nil, fmt.Errorf("failed to create file manager: %w", err)
 		}
 
-		// Create porch executor
+		// Create porch executor.
 		executor = porch.NewStatefulExecutor(porch.ExecutorConfig{
 			PorchPath: config.PorchPath,
 			Mode:      config.Mode,
@@ -403,7 +410,7 @@ func NewWatcherWithConfig(dir string, config Config, processor *IntentProcessor)
 			Timeout:   30 * time.Second,
 		})
 
-		// Validate porch path
+		// Validate porch path.
 		if err := porch.ValidatePorchPath(config.PorchPath); err != nil {
 			log.Printf("Warning: Porch validation failed: %v", err)
 		}
@@ -411,7 +418,7 @@ func NewWatcherWithConfig(dir string, config Config, processor *IntentProcessor)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// Initialize enhanced components
+	// Initialize enhanced components.
 	fileState := &FileProcessingState{
 		processing:   make(map[string]*sync.Mutex),
 		recentEvents: make(map[string]time.Time),
@@ -427,7 +434,7 @@ func NewWatcherWithConfig(dir string, config Config, processor *IntentProcessor)
 		dirOnce: make(map[string]*sync.Once),
 	}
 
-	// Initialize metrics
+	// Initialize metrics.
 	metrics := &WatcherMetrics{
 		ProcessingLatencies:    make([]int64, LatencyRingBufferSize),
 		ValidationErrorsByType: make(map[string]int64),
@@ -454,10 +461,10 @@ func NewWatcherWithConfig(dir string, config Config, processor *IntentProcessor)
 		processor:        processor, // Support for IntentProcessor pattern
 	}
 
-	// Start metrics collection
+	// Start metrics collection.
 	w.startMetricsCollection()
 
-	// Start metrics HTTP server
+	// Start metrics HTTP server.
 	if err := w.startMetricsServer(); err != nil {
 		log.Printf("Warning: Failed to start metrics server: %v", err)
 	}
@@ -465,7 +472,7 @@ func NewWatcherWithConfig(dir string, config Config, processor *IntentProcessor)
 	return w, nil
 }
 
-// startMetricsCollection starts background metrics collection
+// startMetricsCollection starts background metrics collection.
 func (w *Watcher) startMetricsCollection() {
 	go func() {
 		ticker := time.NewTicker(MetricsUpdateInterval)
@@ -482,7 +489,7 @@ func (w *Watcher) startMetricsCollection() {
 	}()
 }
 
-// updateMetrics updates system and runtime metrics
+// updateMetrics updates system and runtime metrics.
 func (w *Watcher) updateMetrics() {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
@@ -490,11 +497,11 @@ func (w *Watcher) updateMetrics() {
 	w.metrics.mu.Lock()
 	defer w.metrics.mu.Unlock()
 
-	// Update resource metrics
+	// Update resource metrics.
 	atomic.StoreInt64(&w.metrics.MemoryUsageBytes, int64(m.Alloc))
 	atomic.StoreInt64(&w.metrics.GoroutineCount, int64(runtime.NumGoroutine()))
 
-	// Update business metrics with proper locking
+	// Update business metrics with proper locking.
 	now := time.Now()
 	duration := now.Sub(w.metrics.StartTime).Seconds()
 
@@ -504,25 +511,25 @@ func (w *Watcher) updateMetrics() {
 		w.metrics.ThroughputFilesPerSecond = float64(totalProcessed) / duration
 	}
 
-	// Update average processing time
+	// Update average processing time.
 	totalDuration := atomic.LoadInt64(&w.metrics.ProcessingDurationTotal)
 	totalFiles := atomic.LoadInt64(&w.metrics.FilesProcessedTotal)
 	if totalFiles > 0 {
 		w.metrics.AverageProcessingTime = time.Duration(totalDuration / totalFiles)
 	}
 
-	// Update worker utilization
+	// Update worker utilization.
 	activeWorkers := atomic.LoadInt64(&w.workerPool.activeWorkers)
 	w.metrics.WorkerUtilization = float64(activeWorkers) / float64(w.workerPool.maxWorkers) * 100
 
-	// Update last update time
+	// Update last update time.
 	w.metrics.LastUpdateTime = now
 	w.metrics.mu.Unlock()
 
-	// Update queue depth
+	// Update queue depth.
 	atomic.StoreInt64(&w.metrics.QueueDepthCurrent, int64(len(w.workerPool.workQueue)))
 
-	// Update directory size
+	// Update directory size.
 	if dirSize, err := w.calculateDirectorySize(w.dir); err == nil {
 		atomic.StoreInt64(&w.metrics.DirectorySizeBytes, dirSize)
 	}
@@ -530,7 +537,7 @@ func (w *Watcher) updateMetrics() {
 	w.metrics.LastUpdateTime = now
 }
 
-// calculateDirectorySize calculates the total size of files in a directory
+// calculateDirectorySize calculates the total size of files in a directory.
 func (w *Watcher) calculateDirectorySize(dir string) (int64, error) {
 	var totalSize int64
 
@@ -547,20 +554,20 @@ func (w *Watcher) calculateDirectorySize(dir string) (int64, error) {
 	return totalSize, err
 }
 
-// recordProcessingLatency records a processing latency sample
+// recordProcessingLatency records a processing latency sample.
 func (w *Watcher) recordProcessingLatency(duration time.Duration) {
 	w.metrics.latencyMutex.Lock()
 	defer w.metrics.latencyMutex.Unlock()
 
-	// Add to ring buffer
+	// Add to ring buffer.
 	index := atomic.AddInt64(&w.metrics.latencyIndex, 1) % LatencyRingBufferSize
 	w.metrics.ProcessingLatencies[index] = duration.Nanoseconds()
 
-	// Update total processing duration
+	// Update total processing duration.
 	atomic.AddInt64(&w.metrics.ProcessingDurationTotal, duration.Nanoseconds())
 }
 
-// recordValidationError records a validation error by type
+// recordValidationError records a validation error by type.
 func (w *Watcher) recordValidationError(errorType string) {
 	atomic.AddInt64(&w.metrics.ValidationFailuresTotal, 1)
 
@@ -569,7 +576,7 @@ func (w *Watcher) recordValidationError(errorType string) {
 	w.metrics.mu.Unlock()
 }
 
-// recordProcessingError records a processing error by type
+// recordProcessingError records a processing error by type.
 func (w *Watcher) recordProcessingError(errorType string) {
 	atomic.AddInt64(&w.metrics.FilesFailedTotal, 1)
 
@@ -578,9 +585,9 @@ func (w *Watcher) recordProcessingError(errorType string) {
 	w.metrics.mu.Unlock()
 }
 
-// startMetricsServer starts the HTTP metrics server with security features
+// startMetricsServer starts the HTTP metrics server with security features.
 func (w *Watcher) startMetricsServer() error {
-	// Skip if metrics are disabled
+	// Skip if metrics are disabled.
 	if w.config.MetricsPort == 0 {
 		log.Printf("Metrics server disabled (port=0)")
 		return nil
@@ -588,7 +595,7 @@ func (w *Watcher) startMetricsServer() error {
 
 	mux := http.NewServeMux()
 
-	// Wrap handlers with authentication if enabled
+	// Wrap handlers with authentication if enabled.
 	if w.config.MetricsAuth {
 		mux.HandleFunc("/metrics", w.basicAuth(w.handleMetrics))
 		mux.HandleFunc("/metrics/prometheus", w.basicAuth(w.handlePrometheusMetrics))
@@ -599,7 +606,7 @@ func (w *Watcher) startMetricsServer() error {
 		mux.HandleFunc("/health", w.handleHealth)
 	}
 
-	// Bind to specific address (default: localhost only)
+	// Bind to specific address (default: localhost only).
 	addr := fmt.Sprintf("%s:%d", w.config.MetricsAddr, w.config.MetricsPort)
 
 	w.metricsServer = &http.Server{
@@ -620,7 +627,7 @@ func (w *Watcher) startMetricsServer() error {
 	return nil
 }
 
-// basicAuth wraps an HTTP handler with basic authentication
+// basicAuth wraps an HTTP handler with basic authentication.
 func (w *Watcher) basicAuth(handler http.HandlerFunc) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 		user, pass, ok := req.BasicAuth()
@@ -636,12 +643,12 @@ func (w *Watcher) basicAuth(handler http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// handleMetrics handles JSON metrics endpoint
+// handleMetrics handles JSON metrics endpoint.
 func (w *Watcher) handleMetrics(writer http.ResponseWriter, request *http.Request) {
 	w.metrics.mu.RLock()
 	defer w.metrics.mu.RUnlock()
 
-	// Calculate latency percentiles
+	// Calculate latency percentiles.
 	latencies := w.getLatencyPercentiles()
 
 	response := map[string]interface{}{
@@ -683,14 +690,14 @@ func (w *Watcher) handleMetrics(writer http.ResponseWriter, request *http.Reques
 	json.NewEncoder(writer).Encode(response)
 }
 
-// handlePrometheusMetrics handles Prometheus-format metrics endpoint
+// handlePrometheusMetrics handles Prometheus-format metrics endpoint.
 func (w *Watcher) handlePrometheusMetrics(writer http.ResponseWriter, request *http.Request) {
 	w.metrics.mu.RLock()
 	defer w.metrics.mu.RUnlock()
 
 	var buf bytes.Buffer
 
-	// Write Prometheus-format metrics
+	// Write Prometheus-format metrics.
 	buf.WriteString("# HELP conductor_loop_files_processed_total Total number of files processed successfully\n")
 	buf.WriteString("# TYPE conductor_loop_files_processed_total counter\n")
 	buf.WriteString(fmt.Sprintf("conductor_loop_files_processed_total %d\n", atomic.LoadInt64(&w.metrics.FilesProcessedTotal)))
@@ -739,7 +746,7 @@ func (w *Watcher) handlePrometheusMetrics(writer http.ResponseWriter, request *h
 	buf.WriteString("# TYPE conductor_loop_timeout_count_total counter\n")
 	buf.WriteString(fmt.Sprintf("conductor_loop_timeout_count_total %d\n", atomic.LoadInt64(&w.metrics.TimeoutCount)))
 
-	// Latency histogram
+	// Latency histogram.
 	latencies := w.getLatencyPercentiles()
 	for percentile, value := range latencies {
 		buf.WriteString(fmt.Sprintf("# HELP conductor_loop_processing_latency_seconds_p%s Processing latency %s percentile in seconds\n", percentile, percentile))
@@ -753,7 +760,7 @@ func (w *Watcher) handlePrometheusMetrics(writer http.ResponseWriter, request *h
 	}
 }
 
-// handleHealth handles health check endpoint
+// handleHealth handles health check endpoint.
 func (w *Watcher) handleHealth(writer http.ResponseWriter, request *http.Request) {
 	health := map[string]interface{}{
 		"status":    "healthy",
@@ -772,12 +779,12 @@ func (w *Watcher) handleHealth(writer http.ResponseWriter, request *http.Request
 	json.NewEncoder(writer).Encode(health)
 }
 
-// getLatencyPercentiles calculates latency percentiles from the ring buffer
+// getLatencyPercentiles calculates latency percentiles from the ring buffer.
 func (w *Watcher) getLatencyPercentiles() map[string]float64 {
 	w.metrics.latencyMutex.RLock()
 	defer w.metrics.latencyMutex.RUnlock()
 
-	// Collect non-zero latencies and convert to float64
+	// Collect non-zero latencies and convert to float64.
 	var latencies []float64
 	for _, latency := range w.metrics.ProcessingLatencies {
 		if latency > 0 {
@@ -793,7 +800,7 @@ func (w *Watcher) getLatencyPercentiles() map[string]float64 {
 		}
 	}
 
-	// Simple percentile calculation (for production, consider using a proper algorithm)
+	// Simple percentile calculation (for production, consider using a proper algorithm).
 	return map[string]float64{
 		"50": percentile(latencies, 50) / 1e9, // Convert to seconds
 		"95": percentile(latencies, 95) / 1e9,
@@ -801,11 +808,11 @@ func (w *Watcher) getLatencyPercentiles() map[string]float64 {
 	}
 }
 
-// Note: percentile function is defined in bounded_stats.go
+// Note: percentile function is defined in bounded_stats.go.
 
-// ProcessExistingFiles processes any existing intent files in the directory (for restart idempotency)
+// ProcessExistingFiles processes any existing intent files in the directory (for restart idempotency).
 func (w *Watcher) ProcessExistingFiles() error {
-	// If using IntentProcessor pattern, delegate to processor
+	// If using IntentProcessor pattern, delegate to processor.
 	if w.processor != nil {
 		entries, err := os.ReadDir(w.dir)
 		if err != nil {
@@ -823,7 +830,7 @@ func (w *Watcher) ProcessExistingFiles() error {
 				if w.processor != nil {
 					if err := w.processor.ProcessFile(fullPath); err != nil {
 						log.Printf("Error processing existing file %s: %v", fullPath, err)
-						// Continue processing other files
+						// Continue processing other files.
 					}
 				}
 				count++
@@ -832,53 +839,53 @@ func (w *Watcher) ProcessExistingFiles() error {
 
 		if count > 0 {
 			log.Printf("Processed %d existing intent files", count)
-			// No need to flush batch - IntentProcessor doesn't use batching
+			// No need to flush batch - IntentProcessor doesn't use batching.
 		}
 
 		return nil
 	}
 
-	// Fallback to legacy processing approach
+	// Fallback to legacy processing approach.
 	return w.processExistingFiles()
 }
 
-// Start begins watching for file events
+// Start begins watching for file events.
 func (w *Watcher) Start() error {
 	log.Printf("LOOP:START - Starting watcher on directory: %s", w.dir)
 	log.Printf("Configuration: workers=%d, debounce=%v, once=%t, period=%v, metrics_port=%d, processor=%t",
 		w.config.MaxWorkers, w.config.DebounceDur, w.config.Once, w.config.Period, w.config.MetricsPort, w.processor != nil)
 
-	// Start enhanced worker pool (only if not using processor)
+	// Start enhanced worker pool (only if not using processor).
 	if w.processor == nil {
 		w.startWorkerPool()
 
-		// Start cleanup routine
+		// Start cleanup routine.
 		go w.cleanupRoutine()
 	}
 
-	// Start file state cleanup routine
+	// Start file state cleanup routine.
 	go w.fileStateCleanupRoutine()
 
-	// If in "once" mode, process existing files first
+	// If in "once" mode, process existing files first.
 	if w.config.Once {
 		if err := w.ProcessExistingFiles(); err != nil {
 			log.Printf("Warning: failed to process existing files: %v", err)
 		}
 
-		// In once mode, wait for all work to complete before exiting
+		// In once mode, wait for all work to complete before exiting.
 		if w.processor == nil {
 			w.waitForWorkersToFinish()
 		}
-		// IntentProcessor doesn't use batching, no need to flush
+		// IntentProcessor doesn't use batching, no need to flush.
 		return nil
 	}
 
-	// Use polling if period is set, otherwise use fsnotify
+	// Use polling if period is set, otherwise use fsnotify.
 	if w.config.Period > 0 {
 		return w.startPolling()
 	}
 
-	// Main event loop (fsnotify)
+	// Main event loop (fsnotify).
 	for {
 		select {
 		case <-w.ctx.Done():
@@ -896,10 +903,10 @@ func (w *Watcher) Start() error {
 				}
 				return nil
 			}
-			// Process only Create and Write events for intent files
+			// Process only Create and Write events for intent files.
 			if event.Op&(fsnotify.Create|fsnotify.Write) != 0 {
 				if IsIntentFile(filepath.Base(event.Name)) {
-					// Use hybrid processing approach
+					// Use hybrid processing approach.
 					w.handleIntentFile(event)
 				}
 			}
@@ -919,7 +926,7 @@ func (w *Watcher) Start() error {
 	}
 }
 
-// handleIntentFile processes detected intent files using hybrid approach
+// handleIntentFile processes detected intent files using hybrid approach.
 func (w *Watcher) handleIntentFile(event fsnotify.Event) {
 	operation := "UNKNOWN"
 	if event.Op&fsnotify.Create != 0 {
@@ -930,7 +937,7 @@ func (w *Watcher) handleIntentFile(event fsnotify.Event) {
 
 	log.Printf("LOOP:%s - Intent file detected: %s", operation, filepath.Base(event.Name))
 
-	// If we have a processor, use it directly
+	// If we have a processor, use it directly.
 	if w.processor != nil {
 		if err := w.processor.ProcessFile(event.Name); err != nil {
 			log.Printf("Error processing file %s: %v", event.Name, err)
@@ -938,11 +945,11 @@ func (w *Watcher) handleIntentFile(event fsnotify.Event) {
 		return
 	}
 
-	// Fallback to enhanced legacy processing with debouncing
+	// Fallback to enhanced legacy processing with debouncing.
 	w.handleIntentFileWithEnhancedDebounce(event.Name, event.Op)
 }
 
-// handleIntentFileWithEnhancedDebounce handles file events with enhanced debouncing to prevent duplicate processing
+// handleIntentFileWithEnhancedDebounce handles file events with enhanced debouncing to prevent duplicate processing.
 func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp fsnotify.Op) {
 	w.fileState.mu.Lock()
 	defer w.fileState.mu.Unlock()
@@ -954,7 +961,7 @@ func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp 
 		absPath = filePath
 	}
 
-	// Check for recent events to prevent duplicate processing of CREATE+WRITE sequences
+	// Check for recent events to prevent duplicate processing of CREATE+WRITE sequences.
 	if lastEvent, exists := w.fileState.recentEvents[absPath]; exists {
 		if now.Sub(lastEvent) < w.config.DebounceDur {
 			log.Printf("LOOP:DEBOUNCE - Skipping duplicate event for %s (last: %v ago)",
@@ -963,15 +970,15 @@ func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp 
 		}
 	}
 
-	// Record this event
+	// Record this event.
 	w.fileState.recentEvents[absPath] = now
 
-	// Debounce the processing with cross-platform file system timing
+	// Debounce the processing with cross-platform file system timing.
 	go func() {
-		// Use adaptive debouncing based on runtime OS
+		// Use adaptive debouncing based on runtime OS.
 		debounceTime := w.config.DebounceDur
 		if runtime.GOOS == "windows" {
-			// Windows needs longer debounce due to file system latency
+			// Windows needs longer debounce due to file system latency.
 			if debounceTime < 200*time.Millisecond {
 				debounceTime = 200 * time.Millisecond
 			}
@@ -979,13 +986,13 @@ func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp 
 
 		time.Sleep(debounceTime)
 
-		// Additional file existence and stability check
+		// Additional file existence and stability check.
 		if !w.isFileStable(absPath) {
 			log.Printf("LOOP:UNSTABLE - File %s not stable, skipping", filepath.Base(filePath))
 			return
 		}
 
-		// Create work item with timeout context
+		// Create work item with timeout context.
 		workCtx, cancel := context.WithTimeout(w.ctx, 60*time.Second)
 		workItem := WorkItem{
 			FilePath: absPath,
@@ -993,29 +1000,29 @@ func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp 
 			Ctx:      workCtx,
 		}
 
-		// Queue work item with backpressure handling
+		// Queue work item with backpressure handling.
 		select {
 		case w.workerPool.workQueue <- workItem:
-			// Successfully queued - defer cancel to ensure cleanup
+			// Successfully queued - defer cancel to ensure cleanup.
 			defer cancel()
 		case <-w.ctx.Done():
 			cancel()
 			return
 		default:
-			// Work queue is full, implement backpressure
+			// Work queue is full, implement backpressure.
 			log.Printf("LOOP:BACKPRESSURE - Work queue full, applying backpressure for %s",
 				filepath.Base(filePath))
 
-			// Record backpressure event
+			// Record backpressure event.
 			atomic.AddInt64(&w.metrics.BackpressureEventsTotal, 1)
 
-			// Try again with exponential backoff
+			// Try again with exponential backoff.
 			go w.retryWithBackoff(workItem, cancel)
 		}
 	}()
 }
 
-// processExistingFiles processes all existing intent files in the directory (for -once mode)
+// processExistingFiles processes all existing intent files in the directory (for -once mode).
 func (w *Watcher) processExistingFiles() error {
 	entries, err := os.ReadDir(w.dir)
 	if err != nil {
@@ -1057,14 +1064,14 @@ func (w *Watcher) processExistingFiles() error {
 	return nil
 }
 
-// startPolling starts the polling-based file monitoring
+// startPolling starts the polling-based file monitoring.
 func (w *Watcher) startPolling() error {
 	ticker := time.NewTicker(w.config.Period)
 	defer ticker.Stop()
 
 	log.Printf("LOOP:SCAN - Starting polling mode with period: %v", w.config.Period)
 
-	// Track processed files to avoid duplicates
+	// Track processed files to avoid duplicates.
 	processedFiles := make(map[string]string) // filename -> SHA256
 
 	for {
@@ -1099,20 +1106,20 @@ func (w *Watcher) startPolling() error {
 				filesFound++
 				filePath := filepath.Join(w.dir, filename)
 
-				// Check if file is already being processed
+				// Check if file is already being processed.
 				sha256Hash, err := w.stateManager.CalculateFileSHA256(filePath)
 				if err != nil {
 					log.Printf("LOOP:ERROR - Failed to calculate SHA256 for %s: %v", filePath, err)
 					continue
 				}
 
-				// Check if this exact file (by SHA) was already processed
+				// Check if this exact file (by SHA) was already processed.
 				if prevSHA, exists := processedFiles[filename]; exists && prevSHA == sha256Hash {
 					log.Printf("LOOP:SKIP_DUP - File %s unchanged (SHA: %s), skipping", filename, sha256Hash[:8])
 					continue
 				}
 
-				// Check state manager for historical processing
+				// Check state manager for historical processing.
 				processed, err := w.stateManager.IsProcessedBySHA(sha256Hash)
 				if err != nil {
 					log.Printf("LOOP:ERROR - Failed to check state for %s: %v", filePath, err)
@@ -1122,7 +1129,7 @@ func (w *Watcher) startPolling() error {
 					continue
 				}
 
-				// Queue for processing
+				// Queue for processing.
 				func() {
 					workCtx, cancel := context.WithTimeout(w.ctx, 60*time.Second)
 					defer cancel() // Ensure cancel is always called
@@ -1150,7 +1157,7 @@ func (w *Watcher) startPolling() error {
 	}
 }
 
-// startWorkerPool starts the enhanced worker pool
+// startWorkerPool starts the enhanced worker pool.
 func (w *Watcher) startWorkerPool() {
 	for i := 0; i < w.workerPool.maxWorkers; i++ {
 		w.workerPool.workers.Add(1)
@@ -1159,7 +1166,7 @@ func (w *Watcher) startWorkerPool() {
 	log.Printf("Started %d enhanced workers", w.workerPool.maxWorkers)
 }
 
-// enhancedWorker processes work items from the enhanced work queue
+// enhancedWorker processes work items from the enhanced work queue.
 func (w *Watcher) enhancedWorker(workerID int) {
 	defer w.workerPool.workers.Done()
 	atomic.AddInt64(&w.workerPool.activeWorkers, 1)
@@ -1183,7 +1190,7 @@ func (w *Watcher) enhancedWorker(workerID int) {
 	}
 }
 
-// processWorkItemWithLocking processes a work item with file-level locking
+// processWorkItemWithLocking processes a work item with file-level locking.
 func (w *Watcher) processWorkItemWithLocking(workerID int, workItem WorkItem) {
 	defer func() {
 		if workItem.Ctx != nil {
@@ -1191,7 +1198,7 @@ func (w *Watcher) processWorkItemWithLocking(workerID int, workItem WorkItem) {
 		}
 	}()
 
-	// Get or create file-level mutex
+	// Get or create file-level mutex.
 	fileLock := w.getOrCreateFileLock(workItem.FilePath)
 	fileLock.Lock()
 	defer fileLock.Unlock()
@@ -1199,22 +1206,22 @@ func (w *Watcher) processWorkItemWithLocking(workerID int, workItem WorkItem) {
 	w.processIntentFileWithContext(workerID, workItem)
 }
 
-// processIntentFileWithContext processes a single intent file with context and timeout
+// processIntentFileWithContext processes a single intent file with context and timeout.
 func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) {
 	startTime := time.Now()
 	filePath := workItem.FilePath
 	log.Printf("LOOP:PROCESS - Worker %d processing file: %s (attempt %d)",
 		workerID, filepath.Base(filePath), workItem.Attempt)
 
-	// Validate JSON file before processing
+	// Validate JSON file before processing.
 	if err := w.validateJSONFile(filePath); err != nil {
 		log.Printf("LOOP:ERROR - Worker %d: JSON validation failed for %s: %v",
 			workerID, filepath.Base(filePath), err)
 
-		// Record validation error
+		// Record validation error.
 		w.recordValidationError(err.Error())
 
-		// Mark as failed and move to failed directory
+		// Mark as failed and move to failed directory.
 		if err := w.stateManager.MarkFailed(filePath); err != nil {
 			log.Printf("LOOP:WARNING - Worker %d: Failed to mark file as failed %s: %v", workerID, filepath.Base(filePath), err)
 		}
@@ -1227,7 +1234,7 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 		return
 	}
 
-	// Check if already processed using state manager
+	// Check if already processed using state manager.
 	processed, err := w.stateManager.IsProcessed(filePath)
 	if err != nil {
 		log.Printf("LOOP:ERROR - Worker %d: Error checking file state for %s: %v",
@@ -1238,45 +1245,45 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 		return
 	}
 
-	// Execute porch command with context timeout
+	// Execute porch command with context timeout.
 	result, _ := w.executor.Execute(workItem.Ctx, filePath)
 
-	// Record processing latency
+	// Record processing latency.
 	processingDuration := time.Since(startTime)
 	w.recordProcessingLatency(processingDuration)
 
 	if result.Success {
-		// Mark as processed in state manager
+		// Mark as processed in state manager.
 		if err := w.stateManager.MarkProcessed(filePath); err != nil {
 			log.Printf("LOOP:WARNING - Worker %d: Failed to mark file as processed: %v", workerID, err)
 		}
 
-		// Move to processed directory
+		// Move to processed directory.
 		if err := w.fileManager.MoveToProcessed(filePath); err != nil {
 			log.Printf("LOOP:WARNING - Worker %d: Failed to move file to processed: %v", workerID, err)
 		}
 
-		// Write success status
+		// Write success status.
 		if statusErr := w.writeStatusFileAtomic(filePath, "success", fmt.Sprintf("Processed by worker %d in %v", workerID, result.Duration)); statusErr != nil {
 			log.Printf("LOOP:WARNING - Worker %d: Failed to write status file for %s: %v", workerID, filepath.Base(filePath), statusErr)
 		}
 
-		// Record successful processing
+		// Record successful processing.
 		atomic.AddInt64(&w.metrics.FilesProcessedTotal, 1)
 
 		log.Printf("LOOP:DONE - Worker %d: Successfully processed %s", workerID, filepath.Base(filePath))
 	} else {
-		// Mark as failed in state manager
+		// Mark as failed in state manager.
 		if err := w.stateManager.MarkFailed(filePath); err != nil {
 			log.Printf("LOOP:WARNING - Worker %d: Failed to mark file as failed: %v", workerID, err)
 		}
 
-		// Create error message
+		// Create error message.
 		errorMsg := "Unknown error"
 		if result.Error != nil {
 			errorMsg = result.Error.Error()
 
-			// Check for timeout
+			// Check for timeout.
 			if strings.Contains(errorMsg, "timed out") {
 				atomic.AddInt64(&w.metrics.TimeoutCount, 1)
 			}
@@ -1285,15 +1292,15 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 			errorMsg += " (stderr: " + result.Stderr + ")"
 		}
 
-		// Record processing error
+		// Record processing error.
 		w.recordProcessingError(errorMsg)
 
-		// Move to failed directory
+		// Move to failed directory.
 		if err := w.fileManager.MoveToFailed(filePath, errorMsg); err != nil {
 			log.Printf("LOOP:WARNING - Worker %d: Failed to move file to failed: %v", workerID, err)
 		}
 
-		// Write failure status
+		// Write failure status.
 		if statusErr := w.writeStatusFileAtomic(filePath, "failed", errorMsg); statusErr != nil {
 			log.Printf("LOOP:WARNING - Worker %d: Failed to write status file for %s: %v", workerID, filepath.Base(filePath), statusErr)
 		}
@@ -1302,7 +1309,7 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 	}
 }
 
-// cleanupRoutine periodically cleans up old processed and failed files
+// cleanupRoutine periodically cleans up old processed and failed files.
 func (w *Watcher) cleanupRoutine() {
 	ticker := time.NewTicker(24 * time.Hour) // Run cleanup daily
 	defer ticker.Stop()
@@ -1314,17 +1321,17 @@ func (w *Watcher) cleanupRoutine() {
 		case <-ticker.C:
 			log.Printf("Running periodic cleanup...")
 
-			// Cleanup old state entries
+			// Cleanup old state entries.
 			if err := w.stateManager.CleanupOldEntries(w.config.CleanupAfter); err != nil {
 				log.Printf("Warning: cleanup state entries failed: %v", err)
 			}
 
-			// Cleanup old processed/failed files
+			// Cleanup old processed/failed files.
 			if err := w.fileManager.CleanupOldFiles(w.config.CleanupAfter); err != nil {
 				log.Printf("Warning: cleanup old files failed: %v", err)
 			}
 
-			// Log statistics
+			// Log statistics.
 			stats := w.executor.GetStats()
 			log.Printf("Executor stats: total=%d, success=%d, failed=%d, avg_time=%v",
 				stats.TotalExecutions, stats.SuccessfulExecs, stats.FailedExecs, stats.AverageExecTime)
@@ -1332,11 +1339,11 @@ func (w *Watcher) cleanupRoutine() {
 	}
 }
 
-// waitForWorkersToFinish waits for all workers to complete and cleans up
+// waitForWorkersToFinish waits for all workers to complete and cleans up.
 func (w *Watcher) waitForWorkersToFinish() {
 	log.Printf("Signaling enhanced workers to stop...")
 
-	// Wait for queue to drain first
+	// Wait for queue to drain first.
 	for {
 		queueSize := len(w.workerPool.workQueue)
 		if queueSize == 0 {
@@ -1346,10 +1353,10 @@ func (w *Watcher) waitForWorkersToFinish() {
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	// Give workers time to finish current processing
+	// Give workers time to finish current processing.
 	time.Sleep(200 * time.Millisecond)
 
-	// Close work queue to signal workers to finish processing and exit (if not already closed)
+	// Close work queue to signal workers to finish processing and exit (if not already closed).
 	if atomic.CompareAndSwapInt32(&w.workerPool.closed, 0, 1) {
 		close(w.workerPool.workQueue)
 	}
@@ -1361,9 +1368,9 @@ func (w *Watcher) waitForWorkersToFinish() {
 	close(w.shutdownComplete)
 }
 
-// Close stops the watcher and releases resources using staged graceful shutdown
+// Close stops the watcher and releases resources using staged graceful shutdown.
 func (w *Watcher) Close() error {
-	// Defensive nil check to prevent panic
+	// Defensive nil check to prevent panic.
 	if w == nil {
 		log.Printf("Close() called on nil Watcher - ignoring")
 		return nil
@@ -1371,7 +1378,7 @@ func (w *Watcher) Close() error {
 
 	log.Printf("Starting graceful shutdown...")
 
-	// Stage 1: Stop accepting new work - close work queue if using legacy approach
+	// Stage 1: Stop accepting new work - close work queue if using legacy approach.
 	if w.processor == nil && w.workerPool != nil {
 		log.Printf("Stage 1: Stopping new work acceptance...")
 		if atomic.CompareAndSwapInt32(&w.workerPool.closed, 0, 1) {
@@ -1379,11 +1386,11 @@ func (w *Watcher) Close() error {
 		}
 	}
 
-	// Stage 2: Wait for in-flight tasks to complete with timeout
+	// Stage 2: Wait for in-flight tasks to complete with timeout.
 	if w.processor == nil && w.workerPool != nil {
 		log.Printf("Stage 2: Waiting for in-flight tasks to complete (grace period: %v)...", w.config.GracePeriod)
 
-		// Wait for workers to finish with timeout
+		// Wait for workers to finish with timeout.
 		done := make(chan struct{})
 		go func() {
 			defer close(done)
@@ -1398,37 +1405,37 @@ func (w *Watcher) Close() error {
 		}
 	}
 
-	// Stage 3: Cancel context to terminate remaining operations
+	// Stage 3: Cancel context to terminate remaining operations.
 	log.Printf("Stage 3: Canceling context for remaining operations...")
 	if w.cancel != nil {
 		w.cancel()
 	}
 
-	// Close the file system watcher
+	// Close the file system watcher.
 	if w.watcher != nil {
 		w.watcher.Close()
 	}
 
-	// Stop processor if using IntentProcessor pattern
+	// Stop processor if using IntentProcessor pattern.
 	if w.processor != nil {
 		w.processor.Stop()
 	}
 
-	// Close the metrics server with its own timeout
+	// Close the metrics server with its own timeout.
 	if w.metricsServer != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		w.metricsServer.Shutdown(ctx)
 	}
 
-	// Save state (only if using legacy approach)
+	// Save state (only if using legacy approach).
 	if w.stateManager != nil {
 		if err := w.stateManager.Close(); err != nil {
 			log.Printf("Warning: failed to save state: %v", err)
 		}
 	}
 
-	// Clear file state tracking
+	// Clear file state tracking.
 	if w.fileState != nil {
 		w.fileState.mu.Lock()
 		w.fileState.recentEvents = make(map[string]time.Time)
@@ -1440,7 +1447,7 @@ func (w *Watcher) Close() error {
 	return nil
 }
 
-// validateJSONDepth checks if JSON has excessive nesting to prevent JSON bomb attacks
+// validateJSONDepth checks if JSON has excessive nesting to prevent JSON bomb attacks.
 func (w *Watcher) validateJSONDepth(reader io.Reader, maxDepth int) error {
 	decoder := json.NewDecoder(reader)
 	depth := 0
@@ -1469,9 +1476,9 @@ func (w *Watcher) validateJSONDepth(reader io.Reader, maxDepth int) error {
 	return nil
 }
 
-// validateJSONFile validates that a JSON file is safe to parse and meets requirements
+// validateJSONFile validates that a JSON file is safe to parse and meets requirements.
 func (w *Watcher) validateJSONFile(filePath string) error {
-	// Check file size
+	// Check file size.
 	stat, err := os.Stat(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to stat file: %w", err)
@@ -1485,37 +1492,37 @@ func (w *Watcher) validateJSONFile(filePath string) error {
 		return fmt.Errorf("file is empty")
 	}
 
-	// Validate path safety (prevent traversal)
+	// Validate path safety (prevent traversal).
 	if err := w.validatePath(filePath); err != nil {
 		return fmt.Errorf("path validation failed: %w", err)
 	}
 
-	// Read and validate JSON structure
+	// Read and validate JSON structure.
 	file, err := os.Open(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
 
-	// Use limited reader to prevent memory exhaustion
+	// Use limited reader to prevent memory exhaustion.
 	limitedReader := io.LimitReader(file, MaxJSONSize)
 
-	// Check for JSON bomb (excessive nesting) before full parsing
+	// Check for JSON bomb (excessive nesting) before full parsing.
 	if err := w.validateJSONDepth(limitedReader, MaxJSONDepth); err != nil {
 		return fmt.Errorf("JSON bomb detected: %w", err)
 	}
 
-	// Reset reader position
+	// Reset reader position.
 	file.Seek(0, 0)
 	limitedReader = io.LimitReader(file, MaxJSONSize)
 
-	// Parse JSON with decoder (more memory efficient than ReadAll)
+	// Parse JSON with decoder (more memory efficient than ReadAll).
 	decoder := json.NewDecoder(limitedReader)
 	decoder.DisallowUnknownFields() // Strict validation
 
 	var intent IntentSchema
 	if err := decoder.Decode(&intent); err != nil {
-		// Try as generic map if schema validation fails
+		// Try as generic map if schema validation fails.
 		file.Seek(0, 0)
 		limitedReader = io.LimitReader(file, MaxJSONSize)
 		decoder = json.NewDecoder(limitedReader)
@@ -1525,12 +1532,12 @@ func (w *Watcher) validateJSONFile(filePath string) error {
 			return fmt.Errorf("invalid JSON format: %w", err)
 		}
 
-		// Validate required fields exist
+		// Validate required fields exist.
 		if err := w.validateIntentFields(genericIntent); err != nil {
 			return fmt.Errorf("intent validation failed: %w", err)
 		}
 	} else {
-		// Convert struct back to map for validation
+		// Convert struct back to map for validation.
 		intentMap := map[string]interface{}{
 			"apiVersion": intent.APIVersion,
 			"kind":       intent.Kind,
@@ -1538,7 +1545,7 @@ func (w *Watcher) validateJSONFile(filePath string) error {
 			"spec":       intent.Spec,
 		}
 
-		// Validate the structured intent fields
+		// Validate the structured intent fields.
 		if err := w.validateIntentFields(intentMap); err != nil {
 			return fmt.Errorf("intent validation failed: %w", err)
 		}
@@ -1547,29 +1554,29 @@ func (w *Watcher) validateJSONFile(filePath string) error {
 	return nil
 }
 
-// validatePath ensures the file path is safe and within expected boundaries
+// validatePath ensures the file path is safe and within expected boundaries.
 func (w *Watcher) validatePath(filePath string) error {
-	// Clean the path to remove any ../ or ./ sequences
+	// Clean the path to remove any ../ or ./ sequences.
 	cleanPath := filepath.Clean(filePath)
 
-	// Ensure the path is absolute
+	// Ensure the path is absolute.
 	absPath, err := filepath.Abs(cleanPath)
 	if err != nil {
 		return fmt.Errorf("failed to get absolute path: %w", err)
 	}
 
-	// Check if path is within the watched directory
+	// Check if path is within the watched directory.
 	watchedDir, err := filepath.Abs(w.dir)
 	if err != nil {
 		return fmt.Errorf("failed to get watched directory absolute path: %w", err)
 	}
 
-	// Ensure the file is within the watched directory
+	// Ensure the file is within the watched directory.
 	if !strings.HasPrefix(absPath, watchedDir) {
 		return fmt.Errorf("file path %s is outside watched directory %s", absPath, watchedDir)
 	}
 
-	// Check path depth to prevent deep traversal attacks
+	// Check path depth to prevent deep traversal attacks.
 	relPath, err := filepath.Rel(watchedDir, absPath)
 	if err != nil {
 		return fmt.Errorf("failed to get relative path: %w", err)
@@ -1580,13 +1587,13 @@ func (w *Watcher) validatePath(filePath string) error {
 		return fmt.Errorf("path depth %d exceeds maximum %d", depth, MaxPathDepth)
 	}
 
-	// Check filename length
+	// Check filename length.
 	filename := filepath.Base(absPath)
 	if len(filename) > MaxFileNameLength {
 		return fmt.Errorf("filename length %d exceeds maximum %d", len(filename), MaxFileNameLength)
 	}
 
-	// Check for suspicious patterns in filename
+	// Check for suspicious patterns in filename.
 	suspiciousPatterns := []string{
 		"..",
 		"~",
@@ -1612,28 +1619,28 @@ func (w *Watcher) validatePath(filePath string) error {
 	return nil
 }
 
-// validateIntentFields checks that required fields exist in the intent
+// validateIntentFields checks that required fields exist in the intent.
 func (w *Watcher) validateIntentFields(intent map[string]interface{}) error {
-	// Determine intent format and validate accordingly
+	// Determine intent format and validate accordingly.
 	if w.isKubernetesStyleIntent(intent) {
 		return w.validateKubernetesStyleIntent(intent)
 	}
 
-	// Fallback to simple scaling intent validation
+	// Fallback to simple scaling intent validation.
 	return w.validateScalingIntent(intent)
 }
 
-// isKubernetesStyleIntent determines if the intent follows Kubernetes resource format
+// isKubernetesStyleIntent determines if the intent follows Kubernetes resource format.
 func (w *Watcher) isKubernetesStyleIntent(intent map[string]interface{}) bool {
 	_, hasAPIVersion := intent["apiVersion"]
 	_, hasKind := intent["kind"]
-	// Check if it has apiVersion and kind (metadata is optional)
+	// Check if it has apiVersion and kind (metadata is optional).
 	return hasAPIVersion && hasKind
 }
 
-// validateKubernetesStyleIntent validates Kubernetes-style intent structure
+// validateKubernetesStyleIntent validates Kubernetes-style intent structure.
 func (w *Watcher) validateKubernetesStyleIntent(intent map[string]interface{}) error {
-	// Validate required top-level fields
+	// Validate required top-level fields.
 	requiredFields := []string{"apiVersion", "kind"}
 	for _, field := range requiredFields {
 		if _, exists := intent[field]; !exists {
@@ -1641,24 +1648,24 @@ func (w *Watcher) validateKubernetesStyleIntent(intent map[string]interface{}) e
 		}
 	}
 
-	// Validate apiVersion format
+	// Validate apiVersion format.
 	if err := w.validateAPIVersion(intent["apiVersion"]); err != nil {
 		return fmt.Errorf("apiVersion validation failed: %w", err)
 	}
 
-	// Validate kind
+	// Validate kind.
 	if err := w.validateKind(intent["kind"]); err != nil {
 		return fmt.Errorf("kind validation failed: %w", err)
 	}
 
-	// Validate metadata if present
+	// Validate metadata if present.
 	if metadata, exists := intent["metadata"]; exists {
 		if err := w.validateMetadata(metadata); err != nil {
 			return fmt.Errorf("metadata validation failed: %w", err)
 		}
 	}
 
-	// Validate spec based on kind
+	// Validate spec based on kind.
 	if spec, exists := intent["spec"]; exists {
 		kind, _ := intent["kind"].(string)
 		if err := w.validateSpecByKind(kind, spec); err != nil {
@@ -1669,9 +1676,9 @@ func (w *Watcher) validateKubernetesStyleIntent(intent map[string]interface{}) e
 	return nil
 }
 
-// validateScalingIntent validates simple scaling intent structure (legacy format)
+// validateScalingIntent validates simple scaling intent structure (legacy format).
 func (w *Watcher) validateScalingIntent(intent map[string]interface{}) error {
-	// Required fields for scaling intent
+	// Required fields for scaling intent.
 	requiredFields := []string{"intent_type", "target", "namespace", "replicas"}
 	for _, field := range requiredFields {
 		value, exists := intent[field]
@@ -1680,7 +1687,7 @@ func (w *Watcher) validateScalingIntent(intent map[string]interface{}) error {
 		}
 	}
 
-	// Validate intent_type
+	// Validate intent_type.
 	if intentType, ok := intent["intent_type"].(string); !ok {
 		return fmt.Errorf("intent_type must be a string")
 	} else {
@@ -1690,28 +1697,28 @@ func (w *Watcher) validateScalingIntent(intent map[string]interface{}) error {
 		}
 	}
 
-	// Validate target
+	// Validate target.
 	if targetVal := intent["target"]; targetVal == nil {
 		return fmt.Errorf("target cannot be null")
 	} else if target, ok := targetVal.(string); !ok || target == "" {
 		return fmt.Errorf("target must be a non-empty string")
 	}
 
-	// Validate namespace
+	// Validate namespace.
 	if namespaceVal := intent["namespace"]; namespaceVal == nil {
 		return fmt.Errorf("namespace cannot be null")
 	} else if namespace, ok := namespaceVal.(string); !ok || namespace == "" {
 		return fmt.Errorf("namespace must be a non-empty string")
 	}
 
-	// Validate replicas - handle both int and float64 from JSON
+	// Validate replicas - handle both int and float64 from JSON.
 	if replicasVal, exists := intent["replicas"]; exists {
 		if err := validateScalingReplicas(replicasVal); err != nil {
 			return err
 		}
 	}
 
-	// Validate optional fields
+	// Validate optional fields.
 	if source, exists := intent["source"]; exists {
 		if sourceStr, ok := source.(string); !ok {
 			return fmt.Errorf("source must be a string")
@@ -1726,14 +1733,14 @@ func (w *Watcher) validateScalingIntent(intent map[string]interface{}) error {
 	return nil
 }
 
-// validateAPIVersion validates the apiVersion field format
+// validateAPIVersion validates the apiVersion field format.
 func (w *Watcher) validateAPIVersion(apiVersion interface{}) error {
 	apiVersionStr, ok := apiVersion.(string)
 	if !ok || apiVersionStr == "" {
 		return fmt.Errorf("apiVersion must be a non-empty string")
 	}
 
-	// Expected formats: "group/version" or "version" for core resources
+	// Expected formats: "group/version" or "version" for core resources.
 	validPatterns := []*regexp.Regexp{
 		regexp.MustCompile(`^[a-z0-9.-]+/v[0-9]+([a-z]+[0-9]*)?$`),   // group/version format (e.g., "intent.nephio.org/v1alpha1")
 		regexp.MustCompile(`^v[0-9]+([a-z]+[0-9]*)?$`),               // version only format (e.g., "v1")
@@ -1746,7 +1753,7 @@ func (w *Watcher) validateAPIVersion(apiVersion interface{}) error {
 		}
 	}
 
-	// Simple check for basic format requirements
+	// Simple check for basic format requirements.
 	if len(apiVersionStr) < 2 || (!strings.Contains(apiVersionStr, "/") && !strings.HasPrefix(apiVersionStr, "v")) {
 		return fmt.Errorf("apiVersion format invalid: expected 'group/version' or 'version' format")
 	}
@@ -1754,14 +1761,14 @@ func (w *Watcher) validateAPIVersion(apiVersion interface{}) error {
 	return nil
 }
 
-// validateKind validates the kind field
+// validateKind validates the kind field.
 func (w *Watcher) validateKind(kind interface{}) error {
 	kindStr, ok := kind.(string)
 	if !ok || kindStr == "" {
 		return fmt.Errorf("kind must be a non-empty string")
 	}
 
-	// Validate known intent kinds
+	// Validate known intent kinds.
 	validKinds := map[string]bool{
 		"NetworkIntent":    true,
 		"ResourceIntent":   true,
@@ -1777,22 +1784,22 @@ func (w *Watcher) validateKind(kind interface{}) error {
 	return nil
 }
 
-// validateMetadata validates the metadata field structure
+// validateMetadata validates the metadata field structure.
 func (w *Watcher) validateMetadata(metadata interface{}) error {
 	metaMap, ok := metadata.(map[string]interface{})
 	if !ok {
 		return fmt.Errorf("metadata must be an object")
 	}
 
-	// Note: metadata.name is not strictly required for all intent types
-	// but if present, it must be valid
+	// Note: metadata.name is not strictly required for all intent types.
+	// but if present, it must be valid.
 
-	// Validate name if present
+	// Validate name if present.
 	if name, exists := metaMap["name"]; exists {
 		if nameStr, ok := name.(string); !ok || nameStr == "" {
 			return fmt.Errorf("metadata.name must be a non-empty string")
 		} else {
-			// Validate name format (Kubernetes naming conventions)
+			// Validate name format (Kubernetes naming conventions).
 			if len(nameStr) > 253 {
 				return fmt.Errorf("metadata.name too long (max 253 characters)")
 			}
@@ -1802,7 +1809,7 @@ func (w *Watcher) validateMetadata(metadata interface{}) error {
 		}
 	}
 
-	// Validate namespace if present
+	// Validate namespace if present.
 	if namespace, exists := metaMap["namespace"]; exists {
 		if namespaceStr, ok := namespace.(string); !ok || namespaceStr == "" {
 			return fmt.Errorf("metadata.namespace must be a non-empty string")
@@ -1811,7 +1818,7 @@ func (w *Watcher) validateMetadata(metadata interface{}) error {
 		}
 	}
 
-	// Validate labels if present
+	// Validate labels if present.
 	if labels, exists := metaMap["labels"]; exists {
 		if err := w.validateLabels(labels); err != nil {
 			return fmt.Errorf("metadata.labels validation failed: %w", err)
@@ -1821,7 +1828,7 @@ func (w *Watcher) validateMetadata(metadata interface{}) error {
 	return nil
 }
 
-// validateSpecByKind validates the spec field based on the intent kind
+// validateSpecByKind validates the spec field based on the intent kind.
 func (w *Watcher) validateSpecByKind(kind string, spec interface{}) error {
 	specMap, ok := spec.(map[string]interface{})
 	if !ok {
@@ -1840,14 +1847,14 @@ func (w *Watcher) validateSpecByKind(kind string, spec interface{}) error {
 	case "ServiceIntent":
 		return w.validateServiceIntentSpec(specMap)
 	default:
-		// For unknown kinds, perform basic validation
+		// For unknown kinds, perform basic validation.
 		return w.validateGenericSpec(specMap)
 	}
 }
 
-// validateNetworkIntentSpec validates NetworkIntent spec fields
+// validateNetworkIntentSpec validates NetworkIntent spec fields.
 func (w *Watcher) validateNetworkIntentSpec(spec map[string]interface{}) error {
-	// Validate action field
+	// Validate action field.
 	if action, exists := spec["action"]; exists {
 		if actionStr, ok := action.(string); !ok {
 			return fmt.Errorf("spec.action must be a string")
@@ -1859,21 +1866,21 @@ func (w *Watcher) validateNetworkIntentSpec(spec map[string]interface{}) error {
 		}
 	}
 
-	// Validate target configuration
+	// Validate target configuration.
 	if target, exists := spec["target"]; exists {
 		if err := w.validateTargetSpec(target); err != nil {
 			return fmt.Errorf("spec.target validation failed: %w", err)
 		}
 	}
 
-	// Validate parameters
+	// Validate parameters.
 	if parameters, exists := spec["parameters"]; exists {
 		if err := w.validateNetworkParameters(parameters); err != nil {
 			return fmt.Errorf("spec.parameters validation failed: %w", err)
 		}
 	}
 
-	// Validate constraints
+	// Validate constraints.
 	if constraints, exists := spec["constraints"]; exists {
 		if err := w.validateConstraints(constraints); err != nil {
 			return fmt.Errorf("spec.constraints validation failed: %w", err)
@@ -1883,14 +1890,14 @@ func (w *Watcher) validateNetworkIntentSpec(spec map[string]interface{}) error {
 	return nil
 }
 
-// validateTargetSpec validates target configuration
+// validateTargetSpec validates target configuration.
 func (w *Watcher) validateTargetSpec(target interface{}) error {
 	targetMap, ok := target.(map[string]interface{})
 	if !ok {
 		return fmt.Errorf("target must be an object")
 	}
 
-	// Validate required target fields
+	// Validate required target fields.
 	if targetType, exists := targetMap["type"]; exists {
 		if typeStr, ok := targetType.(string); !ok || typeStr == "" {
 			return fmt.Errorf("target.type must be a non-empty string")
@@ -1906,14 +1913,14 @@ func (w *Watcher) validateTargetSpec(target interface{}) error {
 	return nil
 }
 
-// validateNetworkParameters validates network function parameters
+// validateNetworkParameters validates network function parameters.
 func (w *Watcher) validateNetworkParameters(parameters interface{}) error {
 	paramMap, ok := parameters.(map[string]interface{})
 	if !ok {
 		return fmt.Errorf("parameters must be an object")
 	}
 
-	// Validate network functions if present
+	// Validate network functions if present.
 	if nfs, exists := paramMap["networkFunctions"]; exists {
 		if nfList, ok := nfs.([]interface{}); ok {
 			for i, nf := range nfList {
@@ -1926,14 +1933,14 @@ func (w *Watcher) validateNetworkParameters(parameters interface{}) error {
 		}
 	}
 
-	// Validate connectivity if present
+	// Validate connectivity if present.
 	if connectivity, exists := paramMap["connectivity"]; exists {
 		if err := w.validateConnectivity(connectivity); err != nil {
 			return fmt.Errorf("connectivity validation failed: %w", err)
 		}
 	}
 
-	// Validate SLA if present
+	// Validate SLA if present.
 	if sla, exists := paramMap["sla"]; exists {
 		if err := w.validateSLA(sla); err != nil {
 			return fmt.Errorf("sla validation failed: %w", err)
@@ -1943,14 +1950,14 @@ func (w *Watcher) validateNetworkParameters(parameters interface{}) error {
 	return nil
 }
 
-// validateNetworkFunction validates individual network function configuration
+// validateNetworkFunction validates individual network function configuration.
 func (w *Watcher) validateNetworkFunction(nf interface{}) error {
 	nfMap, ok := nf.(map[string]interface{})
 	if !ok {
 		return fmt.Errorf("network function must be an object")
 	}
 
-	// Validate required fields
+	// Validate required fields.
 	requiredFields := []string{"name", "type"}
 	for _, field := range requiredFields {
 		if value, exists := nfMap[field]; !exists {
@@ -1960,7 +1967,7 @@ func (w *Watcher) validateNetworkFunction(nf interface{}) error {
 		}
 	}
 
-	// Validate resources if present
+	// Validate resources if present.
 	if resources, exists := nfMap["resources"]; exists {
 		if err := w.validateResourceRequirements(resources); err != nil {
 			return fmt.Errorf("resources validation failed: %w", err)
@@ -1970,38 +1977,38 @@ func (w *Watcher) validateNetworkFunction(nf interface{}) error {
 	return nil
 }
 
-// validateResourceRequirements validates resource requirements
+// validateResourceRequirements validates resource requirements.
 func (w *Watcher) validateResourceRequirements(resources interface{}) error {
 	resMap, ok := resources.(map[string]interface{})
 	if !ok {
 		return fmt.Errorf("resources must be an object")
 	}
 
-	// Validate resource fields format
+	// Validate resource fields format.
 	resourceFields := []string{"cpu", "memory", "storage"}
 	for _, field := range resourceFields {
 		if value, exists := resMap[field]; exists {
 			if str, ok := value.(string); !ok || str == "" {
 				return fmt.Errorf("%s must be a non-empty string", field)
 			}
-			// Could add more specific validation for Kubernetes resource format here
+			// Could add more specific validation for Kubernetes resource format here.
 		}
 	}
 
 	return nil
 }
 
-// validateConnectivity validates connectivity configuration
+// validateConnectivity validates connectivity configuration.
 func (w *Watcher) validateConnectivity(connectivity interface{}) error {
 	connMap, ok := connectivity.(map[string]interface{})
 	if !ok {
 		return fmt.Errorf("connectivity must be an object")
 	}
 
-	// Validate connectivity sections
+	// Validate connectivity sections.
 	for section, config := range connMap {
 		if configMap, ok := config.(map[string]interface{}); ok {
-			// Validate interface field
+			// Validate interface field.
 			if iface, exists := configMap["interface"]; exists {
 				if ifaceStr, ok := iface.(string); !ok || ifaceStr == "" {
 					return fmt.Errorf("%s.interface must be a non-empty string", section)
@@ -2015,14 +2022,14 @@ func (w *Watcher) validateConnectivity(connectivity interface{}) error {
 	return nil
 }
 
-// validateSLA validates SLA configuration
+// validateSLA validates SLA configuration.
 func (w *Watcher) validateSLA(sla interface{}) error {
 	slaMap, ok := sla.(map[string]interface{})
 	if !ok {
 		return fmt.Errorf("sla must be an object")
 	}
 
-	// Validate SLA fields are strings (could be more specific)
+	// Validate SLA fields are strings (could be more specific).
 	slaFields := []string{"availability", "throughput", "latency", "jitter"}
 	for _, field := range slaFields {
 		if value, exists := slaMap[field]; exists {
@@ -2035,21 +2042,21 @@ func (w *Watcher) validateSLA(sla interface{}) error {
 	return nil
 }
 
-// validateConstraints validates constraints configuration
+// validateConstraints validates constraints configuration.
 func (w *Watcher) validateConstraints(constraints interface{}) error {
 	constMap, ok := constraints.(map[string]interface{})
 	if !ok {
 		return fmt.Errorf("constraints must be an object")
 	}
 
-	// Validate placement constraints
+	// Validate placement constraints.
 	if placement, exists := constMap["placement"]; exists {
 		if _, ok := placement.(map[string]interface{}); !ok {
 			return fmt.Errorf("constraints.placement must be an object")
 		}
 	}
 
-	// Validate security constraints
+	// Validate security constraints.
 	if security, exists := constMap["security"]; exists {
 		if _, ok := security.(map[string]interface{}); !ok {
 			return fmt.Errorf("constraints.security must be an object")
@@ -2059,7 +2066,7 @@ func (w *Watcher) validateConstraints(constraints interface{}) error {
 	return nil
 }
 
-// validateLabels validates Kubernetes labels
+// validateLabels validates Kubernetes labels.
 func (w *Watcher) validateLabels(labels interface{}) error {
 	labelMap, ok := labels.(map[string]interface{})
 	if !ok {
@@ -2067,12 +2074,12 @@ func (w *Watcher) validateLabels(labels interface{}) error {
 	}
 
 	for key, value := range labelMap {
-		// Validate label key
+		// Validate label key.
 		if !isValidLabelKey(key) {
 			return fmt.Errorf("invalid label key: %s", key)
 		}
 
-		// Validate label value
+		// Validate label value.
 		if valueStr, ok := value.(string); !ok {
 			return fmt.Errorf("label value must be a string")
 		} else if !isValidLabelValue(valueStr) {
@@ -2083,9 +2090,9 @@ func (w *Watcher) validateLabels(labels interface{}) error {
 	return nil
 }
 
-// validateResourceIntentSpec validates ResourceIntent spec (placeholder)
+// validateResourceIntentSpec validates ResourceIntent spec (placeholder).
 func (w *Watcher) validateResourceIntentSpec(spec map[string]interface{}) error {
-	// Basic validation for ResourceIntent
+	// Basic validation for ResourceIntent.
 	if action, exists := spec["action"]; exists {
 		if actionStr, ok := action.(string); !ok || actionStr == "" {
 			return fmt.Errorf("spec.action must be a non-empty string")
@@ -2094,9 +2101,9 @@ func (w *Watcher) validateResourceIntentSpec(spec map[string]interface{}) error 
 	return nil
 }
 
-// validateScalingReplicas safely validates replicas field with defensive checks
+// validateScalingReplicas safely validates replicas field with defensive checks.
 func validateScalingReplicas(replicasVal interface{}) error {
-	// Handle null/nil replicas
+	// Handle null/nil replicas.
 	if replicasVal == nil {
 		return fmt.Errorf("replicas cannot be null")
 	}
@@ -2104,7 +2111,7 @@ func validateScalingReplicas(replicasVal interface{}) error {
 	var replicas float64
 	var ok bool
 
-	// JSON unmarshaling can produce either int or float64
+	// JSON unmarshaling can produce either int or float64.
 	switch v := replicasVal.(type) {
 	case float64:
 		replicas = v
@@ -2119,12 +2126,12 @@ func validateScalingReplicas(replicasVal interface{}) error {
 		ok = false
 	}
 
-	// Check type conversion success and bounds
+	// Check type conversion success and bounds.
 	if !ok {
 		return fmt.Errorf("replicas must be a numeric value")
 	}
 
-	// Apply bounds check (1-100 to match test expectations)
+	// Apply bounds check (1-100 to match test expectations).
 	if replicas < 1 || replicas > 100 {
 		return fmt.Errorf("replicas must be an integer between 1 and 100")
 	}
@@ -2132,20 +2139,20 @@ func validateScalingReplicas(replicasVal interface{}) error {
 	return nil
 }
 
-// validateScalingIntentSpec validates ScalingIntent spec (placeholder)
+// validateScalingIntentSpec validates ScalingIntent spec (placeholder).
 func (w *Watcher) validateScalingIntentSpec(spec map[string]interface{}) error {
-	// Basic validation for ScalingIntent
+	// Basic validation for ScalingIntent.
 	if replicas, exists := spec["replicas"]; exists {
 		if err := validateScalingReplicas(replicas); err != nil {
-			return fmt.Errorf("spec.%w", err)
+			return fmt.Errorf("spec error: %w", err)
 		}
 	}
 	return nil
 }
 
-// validateDeploymentIntentSpec validates DeploymentIntent spec (placeholder)
+// validateDeploymentIntentSpec validates DeploymentIntent spec (placeholder).
 func (w *Watcher) validateDeploymentIntentSpec(spec map[string]interface{}) error {
-	// Basic validation for DeploymentIntent
+	// Basic validation for DeploymentIntent.
 	if target, exists := spec["target"]; exists {
 		if targetStr, ok := target.(string); !ok || targetStr == "" {
 			return fmt.Errorf("spec.target must be a non-empty string")
@@ -2154,9 +2161,9 @@ func (w *Watcher) validateDeploymentIntentSpec(spec map[string]interface{}) erro
 	return nil
 }
 
-// validateServiceIntentSpec validates ServiceIntent spec (placeholder)
+// validateServiceIntentSpec validates ServiceIntent spec (placeholder).
 func (w *Watcher) validateServiceIntentSpec(spec map[string]interface{}) error {
-	// Basic validation for ServiceIntent
+	// Basic validation for ServiceIntent.
 	if ports, exists := spec["ports"]; exists {
 		if _, ok := ports.([]interface{}); !ok {
 			return fmt.Errorf("spec.ports must be an array")
@@ -2165,45 +2172,45 @@ func (w *Watcher) validateServiceIntentSpec(spec map[string]interface{}) error {
 	return nil
 }
 
-// validateGenericSpec performs basic validation for unknown spec types
+// validateGenericSpec performs basic validation for unknown spec types.
 func (w *Watcher) validateGenericSpec(spec map[string]interface{}) error {
-	// Perform basic validation that can apply to any spec
+	// Perform basic validation that can apply to any spec.
 	if len(spec) == 0 {
 		return fmt.Errorf("spec cannot be empty")
 	}
 	return nil
 }
 
-// isValidKubernetesName validates Kubernetes resource names
+// isValidKubernetesName validates Kubernetes resource names.
 func isValidKubernetesName(name string) bool {
 	if len(name) == 0 || len(name) > 253 {
 		return false
 	}
 
-	// Kubernetes names must be lowercase alphanumeric, hyphens, and dots
+	// Kubernetes names must be lowercase alphanumeric, hyphens, and dots.
 	for _, char := range name {
 		if !((char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') || char == '-' || char == '.') {
 			return false
 		}
 	}
 
-	// Cannot start or end with hyphen or dot
+	// Cannot start or end with hyphen or dot.
 	return name[0] != '-' && name[0] != '.' && name[len(name)-1] != '-' && name[len(name)-1] != '.'
 }
 
-// isValidLabelKey validates Kubernetes label keys
+// isValidLabelKey validates Kubernetes label keys.
 func isValidLabelKey(key string) bool {
 	if len(key) == 0 || len(key) > 253 {
 		return false
 	}
 
-	// Split on '/' to check prefix and name separately
+	// Split on '/' to check prefix and name separately.
 	parts := strings.Split(key, "/")
 	if len(parts) > 2 {
 		return false
 	}
 
-	// Validate each part
+	// Validate each part.
 	for _, part := range parts {
 		if !isValidKubernetesName(part) {
 			return false
@@ -2213,18 +2220,18 @@ func isValidLabelKey(key string) bool {
 	return true
 }
 
-// isValidLabelValue validates Kubernetes label values
+// isValidLabelValue validates Kubernetes label values.
 func isValidLabelValue(value string) bool {
 	if len(value) > 63 {
 		return false
 	}
 
-	// Empty values are allowed
+	// Empty values are allowed.
 	if len(value) == 0 {
 		return true
 	}
 
-	// Must be alphanumeric, hyphens, underscores, dots
+	// Must be alphanumeric, hyphens, underscores, dots.
 	for _, char := range value {
 		if !((char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') ||
 			(char >= '0' && char <= '9') || char == '-' || char == '_' || char == '.') {
@@ -2232,16 +2239,16 @@ func isValidLabelValue(value string) bool {
 		}
 	}
 
-	// Cannot start or end with non-alphanumeric characters
+	// Cannot start or end with non-alphanumeric characters.
 	first := value[0]
 	last := value[len(value)-1]
 	return ((first >= 'a' && first <= 'z') || (first >= 'A' && first <= 'Z') || (first >= '0' && first <= '9')) &&
 		((last >= 'a' && last <= 'z') || (last >= 'A' && last <= 'Z') || (last >= '0' && last <= '9'))
 }
 
-// safeMarshalJSON marshals JSON with size limits
+// safeMarshalJSON marshals JSON with size limits.
 func (w *Watcher) safeMarshalJSON(v interface{}, maxSize int) ([]byte, error) {
-	// Use a buffer with size limit
+	// Use a buffer with size limit.
 	var buf bytes.Buffer
 	buf.Grow(4096) // Pre-allocate reasonable size
 
@@ -2257,7 +2264,7 @@ func (w *Watcher) safeMarshalJSON(v interface{}, maxSize int) ([]byte, error) {
 		return nil, fmt.Errorf("data too large: %d bytes > %d limit", len(data), maxSize)
 	}
 
-	// Remove trailing newline added by encoder
+	// Remove trailing newline added by encoder.
 	if len(data) > 0 && data[len(data)-1] == '\n' {
 		data = data[:len(data)-1]
 	}
@@ -2265,7 +2272,7 @@ func (w *Watcher) safeMarshalJSON(v interface{}, maxSize int) ([]byte, error) {
 	return data, nil
 }
 
-// GetStats returns processing statistics (only if using legacy approach)
+// GetStats returns processing statistics (only if using legacy approach).
 func (w *Watcher) GetStats() (ProcessingStats, error) {
 	if w.fileManager != nil {
 		return w.fileManager.GetStats()
@@ -2273,7 +2280,7 @@ func (w *Watcher) GetStats() (ProcessingStats, error) {
 	return ProcessingStats{}, fmt.Errorf("stats not available when using IntentProcessor approach")
 }
 
-// GetMetrics returns a copy of the current metrics
+// GetMetrics returns a copy of the current metrics.
 func (w *Watcher) GetMetrics() *WatcherMetrics {
 	if w == nil {
 		return nil
@@ -2285,7 +2292,7 @@ func (w *Watcher) GetMetrics() *WatcherMetrics {
 	w.metrics.mu.RLock()
 	defer w.metrics.mu.RUnlock()
 
-	// Create a copy to avoid race conditions
+	// Create a copy to avoid race conditions.
 	return &WatcherMetrics{
 		FilesProcessedTotal:      atomic.LoadInt64(&w.metrics.FilesProcessedTotal),
 		FilesFailedTotal:         atomic.LoadInt64(&w.metrics.FilesFailedTotal),
@@ -2306,7 +2313,7 @@ func (w *Watcher) GetMetrics() *WatcherMetrics {
 	}
 }
 
-// getOrCreateFileLock gets or creates a file-level mutex for the given path
+// getOrCreateFileLock gets or creates a file-level mutex for the given path.
 func (w *Watcher) getOrCreateFileLock(filePath string) *sync.Mutex {
 	w.fileState.mu.Lock()
 	defer w.fileState.mu.Unlock()
@@ -2315,19 +2322,19 @@ func (w *Watcher) getOrCreateFileLock(filePath string) *sync.Mutex {
 		return lock
 	}
 
-	// Create new mutex for this file
+	// Create new mutex for this file.
 	lock := &sync.Mutex{}
 	w.fileState.processing[filePath] = lock
 	return lock
 }
 
-// retryWithBackoff implements exponential backoff for work item retry
+// retryWithBackoff implements exponential backoff for work item retry.
 func (w *Watcher) retryWithBackoff(workItem WorkItem, cancelFunc context.CancelFunc) {
 	maxRetries := 3
 	baseDelay := 100 * time.Millisecond
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		// Record retry attempt
+		// Record retry attempt.
 		atomic.AddInt64(&w.metrics.RetryAttemptsTotal, 1)
 
 		delay := time.Duration(attempt*attempt) * baseDelay
@@ -2339,7 +2346,7 @@ func (w *Watcher) retryWithBackoff(workItem WorkItem, cancelFunc context.CancelF
 			cancelFunc()
 			return
 		case <-timer.C:
-			// Try to queue again
+			// Try to queue again.
 			select {
 			case w.workerPool.workQueue <- workItem:
 				log.Printf("LOOP:RETRY_SUCCESS - Queued %s after %d attempts",
@@ -2355,13 +2362,13 @@ func (w *Watcher) retryWithBackoff(workItem WorkItem, cancelFunc context.CancelF
 					cancelFunc()
 					return
 				}
-				// Continue to next retry
+				// Continue to next retry.
 			}
 		}
 	}
 }
 
-// cleanupOldFileState performs a single cleanup of old file state entries (for testing)
+// cleanupOldFileState performs a single cleanup of old file state entries (for testing).
 func (w *Watcher) cleanupOldFileState() {
 	w.fileState.mu.Lock()
 	defer w.fileState.mu.Unlock()
@@ -2370,7 +2377,7 @@ func (w *Watcher) cleanupOldFileState() {
 	cleanedEvents := 0
 	cleanedLocks := 0
 
-	// Clean up old events (older than 1 minute)
+	// Clean up old events (older than 1 minute).
 	for filePath, timestamp := range w.fileState.recentEvents {
 		if now.Sub(timestamp) > time.Minute {
 			delete(w.fileState.recentEvents, filePath)
@@ -2378,16 +2385,16 @@ func (w *Watcher) cleanupOldFileState() {
 		}
 	}
 
-	// Clean up old processing locks (older than 30 seconds)
+	// Clean up old processing locks (older than 30 seconds).
 	for filePath := range w.fileState.processing {
-		// For simplicity, we remove locks that exist but we don't track their creation time
-		// In a real scenario, you might want to add timestamps to track lock age
+		// For simplicity, we remove locks that exist but we don't track their creation time.
+		// In a real scenario, you might want to add timestamps to track lock age.
 		delete(w.fileState.processing, filePath)
 		cleanedLocks++
 	}
 }
 
-// fileStateCleanupRoutine periodically cleans up old file state entries
+// fileStateCleanupRoutine periodically cleans up old file state entries.
 func (w *Watcher) fileStateCleanupRoutine() {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
@@ -2402,9 +2409,9 @@ func (w *Watcher) fileStateCleanupRoutine() {
 	}
 }
 
-// writeStatusFileAtomic atomically writes a status file with directory creation
+// writeStatusFileAtomic atomically writes a status file with directory creation.
 func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) error {
-	// Truncate message if too large
+	// Truncate message if too large.
 	if len(message) > MaxMessageSize {
 		message = message[:MaxMessageSize-3] + "..."
 		log.Printf("Warning: Status message truncated for %s", filepath.Base(intentFile))
@@ -2421,33 +2428,33 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) erro
 		"worker_id":    fmt.Sprintf("worker-%d", atomic.LoadInt64(&w.workerPool.activeWorkers)),
 	}
 
-	// Use safe JSON marshaling with size limits
+	// Use safe JSON marshaling with size limits.
 	data, err := w.safeMarshalJSON(statusData, MaxStatusSize)
 	if err != nil {
 		log.Printf("Failed to marshal status data: %v", err)
 		return fmt.Errorf("failed to marshal status data: %w", err)
 	}
 
-	// Create versioned status filename based on intent filename
+	// Create versioned status filename based on intent filename.
 	baseName := filepath.Base(intentFile)
 	timestamp := time.Now().Format("20060102-150405")
 	statusFile := filepath.Join(w.dir, "status", fmt.Sprintf("%s-%s.status", baseName, timestamp))
 
-	// Ensure status directory exists using enhanced directory manager
+	// Ensure status directory exists using enhanced directory manager.
 	statusDir := filepath.Dir(statusFile)
 	if err := w.ensureDirectoryExists(statusDir); err != nil {
 		log.Printf("Failed to create status directory %s: %v", statusDir, err)
 		return fmt.Errorf("failed to create status directory: %w", err)
 	}
 
-	// Write atomically using temp file + rename
+	// Write atomically using temp file + rename.
 	tempFile := statusFile + ".tmp"
-	if err := os.WriteFile(tempFile, data, 0644); err != nil {
+	if err := os.WriteFile(tempFile, data, 0o640); err != nil {
 		log.Printf("Failed to write temporary status file: %v", err)
 		return fmt.Errorf("failed to write temporary status file: %w", err)
 	}
 
-	// Atomic rename
+	// Atomic rename.
 	if err := os.Rename(tempFile, statusFile); err != nil {
 		os.Remove(tempFile) // Clean up on failure
 		log.Printf("Failed to rename temporary status file: %v", err)
@@ -2458,7 +2465,7 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) erro
 	return nil
 }
 
-// ensureDirectoryExists ensures a directory exists using sync.Once pattern
+// ensureDirectoryExists ensures a directory exists using sync.Once pattern.
 func (w *Watcher) ensureDirectoryExists(dir string) error {
 	w.dirManager.mu.RLock()
 	onceFunc, exists := w.dirManager.dirOnce[dir]
@@ -2466,7 +2473,7 @@ func (w *Watcher) ensureDirectoryExists(dir string) error {
 
 	if !exists {
 		w.dirManager.mu.Lock()
-		// Double-check locking pattern
+		// Double-check locking pattern.
 		if onceFunc, exists = w.dirManager.dirOnce[dir]; !exists {
 			onceFunc = &sync.Once{}
 			w.dirManager.dirOnce[dir] = onceFunc
@@ -2474,10 +2481,10 @@ func (w *Watcher) ensureDirectoryExists(dir string) error {
 		w.dirManager.mu.Unlock()
 	}
 
-	// Use sync.Once to ensure directory is created only once
+	// Use sync.Once to ensure directory is created only once.
 	var creationError error
 	onceFunc.Do(func() {
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
 			creationError = err
 			log.Printf("Failed to create directory %s: %v", dir, err)
 		} else {
@@ -2485,29 +2492,29 @@ func (w *Watcher) ensureDirectoryExists(dir string) error {
 		}
 	})
 
-	// If directory creation failed in sync.Once, check if it exists now
+	// If directory creation failed in sync.Once, check if it exists now.
 	if creationError != nil {
 		if _, err := os.Stat(dir); err != nil {
 			return fmt.Errorf("directory creation failed and directory does not exist: %w", creationError)
 		}
-		// Directory exists now, so ignore the creation error
+		// Directory exists now, so ignore the creation error.
 		creationError = nil
 	}
 
 	return creationError
 }
 
-// Note: IsIntentFile function is defined in filter.go
+// Note: IsIntentFile function is defined in filter.go.
 
-// isFileStable checks if a file exists and is stable (not being written to)
+// isFileStable checks if a file exists and is stable (not being written to).
 func (w *Watcher) isFileStable(filePath string) bool {
-	// Check if file exists
+	// Check if file exists.
 	stat1, err := os.Stat(filePath)
 	if err != nil {
 		return false
 	}
 
-	// Wait a small amount of time and check again
+	// Wait a small amount of time and check again.
 	time.Sleep(50 * time.Millisecond)
 
 	stat2, err := os.Stat(filePath)
@@ -2515,6 +2522,6 @@ func (w *Watcher) isFileStable(filePath string) bool {
 		return false
 	}
 
-	// File is stable if size and modification time haven't changed
+	// File is stable if size and modification time haven't changed.
 	return stat1.Size() == stat2.Size() && stat1.ModTime().Equal(stat2.ModTime())
 }

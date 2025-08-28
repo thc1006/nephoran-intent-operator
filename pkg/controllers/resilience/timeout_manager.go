@@ -25,7 +25,7 @@ import (
 	"github.com/go-logr/logr"
 )
 
-// NewTimeoutManager creates a new timeout manager
+// NewTimeoutManager creates a new timeout manager.
 func NewTimeoutManager(configs map[string]*TimeoutConfig, logger logr.Logger) *TimeoutManager {
 	tm := &TimeoutManager{
 		configs: make(map[string]*TimeoutConfig),
@@ -35,12 +35,12 @@ func NewTimeoutManager(configs map[string]*TimeoutConfig, logger logr.Logger) *T
 		logger: logger.WithName("timeout-manager"),
 	}
 
-	// Copy configurations
+	// Copy configurations.
 	for name, config := range configs {
 		tm.configs[name] = config
 	}
 
-	// Add default configuration if none exists
+	// Add default configuration if none exists.
 	if len(tm.configs) == 0 {
 		tm.configs["default"] = &TimeoutConfig{
 			Name:           "default",
@@ -53,22 +53,22 @@ func NewTimeoutManager(configs map[string]*TimeoutConfig, logger logr.Logger) *T
 	return tm
 }
 
-// Start starts the timeout manager
+// Start starts the timeout manager.
 func (tm *TimeoutManager) Start(ctx context.Context) {
 	tm.logger.Info("Starting timeout manager")
 
-	// Start cleanup routine
+	// Start cleanup routine.
 	go tm.cleanupRoutine(ctx)
 
-	// Start adaptive adjustment routine
+	// Start adaptive adjustment routine.
 	go tm.adaptiveAdjustmentRoutine(ctx)
 }
 
-// Stop stops the timeout manager
+// Stop stops the timeout manager.
 func (tm *TimeoutManager) Stop() {
 	tm.logger.Info("Stopping timeout manager")
 
-	// Cancel all active operations
+	// Cancel all active operations.
 	tm.operations.Range(func(key, value interface{}) bool {
 		operation := value.(*TimeoutOperation)
 		operation.CancelFunc()
@@ -76,14 +76,14 @@ func (tm *TimeoutManager) Stop() {
 	})
 }
 
-// ApplyTimeout applies timeout to a context
+// ApplyTimeout applies timeout to a context.
 func (tm *TimeoutManager) ApplyTimeout(ctx context.Context, operationName string) context.Context {
 	config := tm.getConfigForOperation(operationName)
 	timeout := tm.calculateTimeout(operationName, config)
 
 	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
 
-	// Create timeout operation tracker
+	// Create timeout operation tracker.
 	operation := &TimeoutOperation{
 		ID:            fmt.Sprintf("%s_%d", operationName, time.Now().UnixNano()),
 		StartTime:     time.Now(),
@@ -94,20 +94,20 @@ func (tm *TimeoutManager) ApplyTimeout(ctx context.Context, operationName string
 		TimeoutChan:   make(chan struct{}),
 	}
 
-	// Store operation
+	// Store operation.
 	tm.operations.Store(operation.ID, operation)
 
-	// Monitor timeout
+	// Monitor timeout.
 	go tm.monitorTimeout(operation)
 
-	// Update metrics
+	// Update metrics.
 	atomic.AddInt64(&tm.metrics.TotalOperations, 1)
 	tm.updateTimeoutMetrics(timeout)
 
 	return timeoutCtx
 }
 
-// ExecuteWithTimeout executes a function with timeout
+// ExecuteWithTimeout executes a function with timeout.
 func (tm *TimeoutManager) ExecuteWithTimeout(ctx context.Context, operationName string, fn func(context.Context) (interface{}, error)) (interface{}, error) {
 	timeoutCtx := tm.ApplyTimeout(ctx, operationName)
 
@@ -116,7 +116,7 @@ func (tm *TimeoutManager) ExecuteWithTimeout(ctx context.Context, operationName 
 		err    error
 	}, 1)
 
-	// Execute function in goroutine
+	// Execute function in goroutine.
 	go func() {
 		result, err := fn(timeoutCtx)
 		resultChan <- struct {
@@ -125,7 +125,7 @@ func (tm *TimeoutManager) ExecuteWithTimeout(ctx context.Context, operationName 
 		}{result, err}
 	}()
 
-	// Wait for result or timeout
+	// Wait for result or timeout.
 	select {
 	case result := <-resultChan:
 		return result.result, result.err
@@ -139,11 +139,11 @@ func (tm *TimeoutManager) ExecuteWithTimeout(ctx context.Context, operationName 
 	}
 }
 
-// calculateTimeout calculates the appropriate timeout for an operation
+// calculateTimeout calculates the appropriate timeout for an operation.
 func (tm *TimeoutManager) calculateTimeout(operationName string, config *TimeoutConfig) time.Duration {
 	timeout := config.DefaultTimeout
 
-	// Apply gradient based on system load if enabled
+	// Apply gradient based on system load if enabled.
 	if config.TimeoutGradient {
 		loadFactor := tm.getCurrentLoadFactor()
 		adjustedTimeout := time.Duration(float64(timeout) * (1.0 + loadFactor))
@@ -157,16 +157,16 @@ func (tm *TimeoutManager) calculateTimeout(operationName string, config *Timeout
 		}
 	}
 
-	// Apply adaptive adjustment if enabled
+	// Apply adaptive adjustment if enabled.
 	if config.AdaptiveTimeout {
 		adaptiveTimeout := tm.getAdaptiveTimeout(operationName)
 		if adaptiveTimeout > 0 {
-			// Use weighted average of configured and adaptive timeout
+			// Use weighted average of configured and adaptive timeout.
 			timeout = time.Duration((float64(timeout) + float64(adaptiveTimeout)) / 2)
 		}
 	}
 
-	// Ensure within bounds
+	// Ensure within bounds.
 	if timeout > config.MaxTimeout {
 		timeout = config.MaxTimeout
 	}
@@ -177,44 +177,44 @@ func (tm *TimeoutManager) calculateTimeout(operationName string, config *Timeout
 	return timeout
 }
 
-// getCurrentLoadFactor returns current system load factor (0.0 to 1.0+)
+// getCurrentLoadFactor returns current system load factor (0.0 to 1.0+).
 func (tm *TimeoutManager) getCurrentLoadFactor() float64 {
-	// This would implement actual load detection
-	// For now, return a simulated value
+	// This would implement actual load detection.
+	// For now, return a simulated value.
 	return 0.2 // 20% additional load
 }
 
-// getAdaptiveTimeout returns the learned optimal timeout for an operation
+// getAdaptiveTimeout returns the learned optimal timeout for an operation.
 func (tm *TimeoutManager) getAdaptiveTimeout(operationName string) time.Duration {
-	// This would implement machine learning-based timeout prediction
-	// For now, return 0 to use configured timeout
+	// This would implement machine learning-based timeout prediction.
+	// For now, return 0 to use configured timeout.
 	return 0
 }
 
-// getConfigForOperation returns the configuration for a specific operation
+// getConfigForOperation returns the configuration for a specific operation.
 func (tm *TimeoutManager) getConfigForOperation(operationName string) *TimeoutConfig {
 	tm.mutex.RLock()
 	defer tm.mutex.RUnlock()
 
-	// Try exact match first
+	// Try exact match first.
 	if config, exists := tm.configs[operationName]; exists {
 		return config
 	}
 
-	// Try pattern matching (e.g., "llm_*" for any LLM operation)
+	// Try pattern matching (e.g., "llm_*" for any LLM operation).
 	for name, config := range tm.configs {
 		if tm.matchesPattern(operationName, name) {
 			return config
 		}
 	}
 
-	// Return default configuration
+	// Return default configuration.
 	return tm.configs["default"]
 }
 
-// matchesPattern checks if an operation name matches a configuration pattern
+// matchesPattern checks if an operation name matches a configuration pattern.
 func (tm *TimeoutManager) matchesPattern(operationName, pattern string) bool {
-	// Simple wildcard matching
+	// Simple wildcard matching.
 	if pattern == "*" {
 		return true
 	}
@@ -227,7 +227,7 @@ func (tm *TimeoutManager) matchesPattern(operationName, pattern string) bool {
 	return operationName == pattern
 }
 
-// monitorTimeout monitors a timeout operation
+// monitorTimeout monitors a timeout operation.
 func (tm *TimeoutManager) monitorTimeout(operation *TimeoutOperation) {
 	defer func() {
 		tm.operations.Delete(operation.ID)
@@ -236,21 +236,21 @@ func (tm *TimeoutManager) monitorTimeout(operation *TimeoutOperation) {
 	select {
 	case <-operation.Context.Done():
 		if operation.Context.Err() == context.DeadlineExceeded {
-			// Operation timed out
+			// Operation timed out.
 			close(operation.TimeoutChan)
 			tm.handleTimeout(operation)
 		} else {
-			// Operation completed or cancelled
+			// Operation completed or cancelled.
 			close(operation.CompletedChan)
 		}
 
 	case <-operation.CompletedChan:
-		// Operation completed successfully
+		// Operation completed successfully.
 		tm.handleCompletion(operation)
 	}
 }
 
-// handleTimeout handles a timeout event
+// handleTimeout handles a timeout event.
 func (tm *TimeoutManager) handleTimeout(operation *TimeoutOperation) {
 	duration := time.Since(operation.StartTime)
 
@@ -259,14 +259,14 @@ func (tm *TimeoutManager) handleTimeout(operation *TimeoutOperation) {
 		"timeout", operation.Timeout,
 		"actualDuration", duration)
 
-	// Update metrics
+	// Update metrics.
 	atomic.AddInt64(&tm.metrics.TimeoutOperations, 1)
 
-	// Record for adaptive learning
+	// Record for adaptive learning.
 	tm.recordTimeoutEvent(operation, duration)
 }
 
-// handleCompletion handles successful operation completion
+// handleCompletion handles successful operation completion.
 func (tm *TimeoutManager) handleCompletion(operation *TimeoutOperation) {
 	duration := time.Since(operation.StartTime)
 
@@ -275,45 +275,45 @@ func (tm *TimeoutManager) handleCompletion(operation *TimeoutOperation) {
 		"timeout", operation.Timeout,
 		"actualDuration", duration)
 
-	// Record for adaptive learning
+	// Record for adaptive learning.
 	tm.recordCompletionEvent(operation, duration)
 }
 
-// recordTimeoutEvent records a timeout event for learning
+// recordTimeoutEvent records a timeout event for learning.
 func (tm *TimeoutManager) recordTimeoutEvent(operation *TimeoutOperation, duration time.Duration) {
-	// This would implement learning from timeout events
-	// to adjust future timeout values
+	// This would implement learning from timeout events.
+	// to adjust future timeout values.
 }
 
-// recordCompletionEvent records a completion event for learning
+// recordCompletionEvent records a completion event for learning.
 func (tm *TimeoutManager) recordCompletionEvent(operation *TimeoutOperation, duration time.Duration) {
-	// This would implement learning from completion events
-	// to optimize timeout values
+	// This would implement learning from completion events.
+	// to optimize timeout values.
 }
 
-// updateTimeoutMetrics updates timeout-related metrics
+// updateTimeoutMetrics updates timeout-related metrics.
 func (tm *TimeoutManager) updateTimeoutMetrics(timeout time.Duration) {
 	tm.metrics.mutex.Lock()
 	defer tm.metrics.mutex.Unlock()
 
-	// Update average timeout
+	// Update average timeout.
 	totalOps := atomic.LoadInt64(&tm.metrics.TotalOperations)
 	if totalOps > 0 {
 		prevTotal := time.Duration(totalOps-1) * tm.metrics.AverageTimeout
 		tm.metrics.AverageTimeout = (prevTotal + timeout) / time.Duration(totalOps)
 	}
 
-	// Update timeout distribution
+	// Update timeout distribution.
 	tm.metrics.OperationsByTimeout[timeout]++
 
-	// Update timeout rate
+	// Update timeout rate.
 	timeoutOps := atomic.LoadInt64(&tm.metrics.TimeoutOperations)
 	if totalOps > 0 {
 		tm.metrics.TimeoutRate = float64(timeoutOps) / float64(totalOps)
 	}
 }
 
-// cleanupRoutine periodically cleans up completed operations
+// cleanupRoutine periodically cleans up completed operations.
 func (tm *TimeoutManager) cleanupRoutine(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
@@ -329,7 +329,7 @@ func (tm *TimeoutManager) cleanupRoutine(ctx context.Context) {
 	}
 }
 
-// cleanupCompletedOperations removes completed operations from memory
+// cleanupCompletedOperations removes completed operations from memory.
 func (tm *TimeoutManager) cleanupCompletedOperations() {
 	cutoff := time.Now().Add(-5 * time.Minute) // Keep 5 minutes of history
 
@@ -352,7 +352,7 @@ func (tm *TimeoutManager) cleanupCompletedOperations() {
 	}
 }
 
-// adaptiveAdjustmentRoutine periodically adjusts timeout configurations
+// adaptiveAdjustmentRoutine periodically adjusts timeout configurations.
 func (tm *TimeoutManager) adaptiveAdjustmentRoutine(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Minute) // Adjust every 5 minutes
 	defer ticker.Stop()
@@ -368,7 +368,7 @@ func (tm *TimeoutManager) adaptiveAdjustmentRoutine(ctx context.Context) {
 	}
 }
 
-// performAdaptiveAdjustments performs adaptive timeout adjustments
+// performAdaptiveAdjustments performs adaptive timeout adjustments.
 func (tm *TimeoutManager) performAdaptiveAdjustments() {
 	tm.mutex.Lock()
 	defer tm.mutex.Unlock()
@@ -378,7 +378,7 @@ func (tm *TimeoutManager) performAdaptiveAdjustments() {
 			continue
 		}
 
-		// Analyze recent performance for this configuration
+		// Analyze recent performance for this configuration.
 		adjustmentNeeded := tm.analyzePerformanceForConfig(name, config)
 
 		if adjustmentNeeded != 0 {
@@ -386,7 +386,7 @@ func (tm *TimeoutManager) performAdaptiveAdjustments() {
 			adjustment := time.Duration(float64(oldTimeout) * adjustmentNeeded)
 			newTimeout := oldTimeout + adjustment
 
-			// Ensure within bounds
+			// Ensure within bounds.
 			if newTimeout > config.MaxTimeout {
 				newTimeout = config.MaxTimeout
 			}
@@ -408,19 +408,19 @@ func (tm *TimeoutManager) performAdaptiveAdjustments() {
 	}
 }
 
-// analyzePerformanceForConfig analyzes performance and returns adjustment factor
+// analyzePerformanceForConfig analyzes performance and returns adjustment factor.
 func (tm *TimeoutManager) analyzePerformanceForConfig(name string, config *TimeoutConfig) float64 {
-	// This would implement sophisticated performance analysis
-	// For now, return no adjustment
+	// This would implement sophisticated performance analysis.
+	// For now, return no adjustment.
 	return 0.0
 }
 
-// GetMetrics returns timeout manager metrics
+// GetMetrics returns timeout manager metrics.
 func (tm *TimeoutManager) GetMetrics() *TimeoutMetrics {
 	tm.metrics.mutex.RLock()
 	defer tm.metrics.mutex.RUnlock()
 
-	// Create a copy to prevent concurrent access
+	// Create a copy to prevent concurrent access.
 	operationsByTimeout := make(map[time.Duration]int64)
 	for k, v := range tm.metrics.OperationsByTimeout {
 		operationsByTimeout[k] = v
@@ -438,7 +438,7 @@ func (tm *TimeoutManager) GetMetrics() *TimeoutMetrics {
 	return metricsCopy
 }
 
-// GetActiveOperations returns the count of currently active operations
+// GetActiveOperations returns the count of currently active operations.
 func (tm *TimeoutManager) GetActiveOperations() int {
 	count := 0
 	tm.operations.Range(func(key, value interface{}) bool {
@@ -448,7 +448,7 @@ func (tm *TimeoutManager) GetActiveOperations() int {
 	return count
 }
 
-// GetOperationStatus returns the status of a specific operation
+// GetOperationStatus returns the status of a specific operation.
 func (tm *TimeoutManager) GetOperationStatus(operationID string) (*TimeoutOperation, bool) {
 	if op, exists := tm.operations.Load(operationID); exists {
 		operation := op.(*TimeoutOperation)
@@ -456,7 +456,7 @@ func (tm *TimeoutManager) GetOperationStatus(operationID string) (*TimeoutOperat
 		operation.mutex.RLock()
 		defer operation.mutex.RUnlock()
 
-		// Return a copy to prevent concurrent access issues
+		// Return a copy to prevent concurrent access issues.
 		operationCopy := &TimeoutOperation{
 			ID:            operation.ID,
 			StartTime:     operation.StartTime,
@@ -472,7 +472,7 @@ func (tm *TimeoutManager) GetOperationStatus(operationID string) (*TimeoutOperat
 	return nil, false
 }
 
-// UpdateConfiguration updates timeout configuration for an operation type
+// UpdateConfiguration updates timeout configuration for an operation type.
 func (tm *TimeoutManager) UpdateConfiguration(name string, config *TimeoutConfig) {
 	tm.mutex.Lock()
 	defer tm.mutex.Unlock()
@@ -486,13 +486,13 @@ func (tm *TimeoutManager) UpdateConfiguration(name string, config *TimeoutConfig
 		"minTimeout", config.MinTimeout)
 }
 
-// GetConfiguration returns the current configuration for an operation type
+// GetConfiguration returns the current configuration for an operation type.
 func (tm *TimeoutManager) GetConfiguration(name string) (*TimeoutConfig, bool) {
 	tm.mutex.RLock()
 	defer tm.mutex.RUnlock()
 
 	if config, exists := tm.configs[name]; exists {
-		// Return a copy to prevent concurrent modification
+		// Return a copy to prevent concurrent modification.
 		configCopy := *config
 		return &configCopy, true
 	}
@@ -500,14 +500,14 @@ func (tm *TimeoutManager) GetConfiguration(name string) (*TimeoutConfig, bool) {
 	return nil, false
 }
 
-// ListConfigurations returns all current timeout configurations
+// ListConfigurations returns all current timeout configurations.
 func (tm *TimeoutManager) ListConfigurations() map[string]*TimeoutConfig {
 	tm.mutex.RLock()
 	defer tm.mutex.RUnlock()
 
 	configs := make(map[string]*TimeoutConfig)
 	for name, config := range tm.configs {
-		// Return copies to prevent concurrent modification
+		// Return copies to prevent concurrent modification.
 		configCopy := *config
 		configs[name] = &configCopy
 	}
@@ -515,7 +515,7 @@ func (tm *TimeoutManager) ListConfigurations() map[string]*TimeoutConfig {
 	return configs
 }
 
-// SetGlobalTimeout sets a global timeout that applies to all operations
+// SetGlobalTimeout sets a global timeout that applies to all operations.
 func (tm *TimeoutManager) SetGlobalTimeout(timeout time.Duration) {
 	tm.mutex.Lock()
 	defer tm.mutex.Unlock()
@@ -530,16 +530,16 @@ func (tm *TimeoutManager) SetGlobalTimeout(timeout time.Duration) {
 	}
 }
 
-// IsHealthy returns whether the timeout manager is healthy
+// IsHealthy returns whether the timeout manager is healthy.
 func (tm *TimeoutManager) IsHealthy() bool {
-	// Check if timeout rate is within acceptable bounds
+	// Check if timeout rate is within acceptable bounds.
 	timeoutRate := tm.metrics.TimeoutRate
 
-	// Consider unhealthy if more than 10% of operations are timing out
+	// Consider unhealthy if more than 10% of operations are timing out.
 	return timeoutRate <= 0.1
 }
 
-// GetHealthReport returns a detailed health report
+// GetHealthReport returns a detailed health report.
 func (tm *TimeoutManager) GetHealthReport() map[string]interface{} {
 	activeOps := tm.GetActiveOperations()
 	metrics := tm.GetMetrics()

@@ -585,7 +585,7 @@ func (t Triple[T, U, V]) String() string {
 	return fmt.Sprintf("(%v, %v, %v)", t.First, t.Second, t.Third)
 }
 
-// Utility functions for batch operations
+// Utility functions for batch operations.
 
 // ZipSlices combines two slices into tuples.
 func ZipSlices[T, U any](slice1 *Slice[T], slice2 *Slice[U]) *Slice[Tuple[T, U]] {

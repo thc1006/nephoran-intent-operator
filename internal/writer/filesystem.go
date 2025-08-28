@@ -9,13 +9,13 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/internal/generator"
 )
 
-// FilesystemWriter handles idempotent writing of KRM packages to the filesystem
+// FilesystemWriter handles idempotent writing of KRM packages to the filesystem.
 type FilesystemWriter struct {
 	baseDir string
 	dryRun  bool
 }
 
-// WriteResult contains the result of a write operation
+// WriteResult contains the result of a write operation.
 type WriteResult struct {
 	PackagePath   string
 	FilesWritten  []string
@@ -25,7 +25,7 @@ type WriteResult struct {
 	WasIdempotent bool
 }
 
-// NewFilesystemWriter creates a new filesystem writer
+// NewFilesystemWriter creates a new filesystem writer.
 func NewFilesystemWriter(baseDir string, dryRun bool) *FilesystemWriter {
 	return &FilesystemWriter{
 		baseDir: baseDir,
@@ -33,7 +33,7 @@ func NewFilesystemWriter(baseDir string, dryRun bool) *FilesystemWriter {
 	}
 }
 
-// WritePackage writes a KRM package to the filesystem idempotently
+// WritePackage writes a KRM package to the filesystem idempotently.
 func (w *FilesystemWriter) WritePackage(pkg *generator.Package) (*WriteResult, error) {
 	result := &WriteResult{
 		PackagePath:   pkg.Directory,
@@ -44,14 +44,14 @@ func (w *FilesystemWriter) WritePackage(pkg *generator.Package) (*WriteResult, e
 		WasIdempotent: true,
 	}
 
-	// Ensure package directory exists
+	// Ensure package directory exists.
 	if !w.dryRun {
-		if err := os.MkdirAll(pkg.Directory, 0755); err != nil {
+		if err := os.MkdirAll(pkg.Directory, 0o755); err != nil {
 			return result, fmt.Errorf("failed to create package directory %s: %w", pkg.Directory, err)
 		}
 	}
 
-	// Process each file
+	// Process each file.
 	for _, file := range pkg.GetPackageFiles() {
 		filePath := filepath.Join(pkg.Directory, file.Path)
 
@@ -75,27 +75,27 @@ func (w *FilesystemWriter) WritePackage(pkg *generator.Package) (*WriteResult, e
 	return result, nil
 }
 
-// writeFile writes a single file idempotently
+// writeFile writes a single file idempotently.
 func (w *FilesystemWriter) writeFile(filePath string, content []byte) (string, error) {
-	// Calculate content hash for comparison
+	// Calculate content hash for comparison.
 	newHash := sha256.Sum256(content)
 
-	// Check if file exists
+	// Check if file exists.
 	existingContent, err := os.ReadFile(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			// File doesn't exist, write it
+			// File doesn't exist, write it.
 			if w.dryRun {
 				return "written", nil
 			}
 
-			// Ensure directory exists
+			// Ensure directory exists.
 			dir := filepath.Dir(filePath)
-			if err := os.MkdirAll(dir, 0755); err != nil {
+			if err := os.MkdirAll(dir, 0o755); err != nil {
 				return "", fmt.Errorf("failed to create directory %s: %w", dir, err)
 			}
 
-			if err := os.WriteFile(filePath, content, 0644); err != nil {
+			if err := os.WriteFile(filePath, content, 0o640); err != nil {
 				return "", fmt.Errorf("failed to write file: %w", err)
 			}
 			return "written", nil
@@ -103,25 +103,25 @@ func (w *FilesystemWriter) writeFile(filePath string, content []byte) (string, e
 		return "", fmt.Errorf("failed to read existing file: %w", err)
 	}
 
-	// Compare content hashes
+	// Compare content hashes.
 	existingHash := sha256.Sum256(existingContent)
 	if newHash == existingHash {
-		// Content is identical, skip writing
+		// Content is identical, skip writing.
 		return "skipped", nil
 	}
 
-	// Content differs, update the file
+	// Content differs, update the file.
 	if w.dryRun {
 		return "updated", nil
 	}
 
-	if err := os.WriteFile(filePath, content, 0644); err != nil {
+	if err := os.WriteFile(filePath, content, 0o640); err != nil {
 		return "", fmt.Errorf("failed to update file: %w", err)
 	}
 	return "updated", nil
 }
 
-// CleanupPackage removes a package directory if it exists
+// CleanupPackage removes a package directory if it exists.
 func (w *FilesystemWriter) CleanupPackage(packageDir string) error {
 	if w.dryRun {
 		return nil
@@ -134,7 +134,7 @@ func (w *FilesystemWriter) CleanupPackage(packageDir string) error {
 	return os.RemoveAll(packageDir)
 }
 
-// ListPackages returns all package directories in the base directory
+// ListPackages returns all package directories in the base directory.
 func (w *FilesystemWriter) ListPackages() ([]string, error) {
 	entries, err := os.ReadDir(w.baseDir)
 	if err != nil {
@@ -147,7 +147,7 @@ func (w *FilesystemWriter) ListPackages() ([]string, error) {
 	var packages []string
 	for _, entry := range entries {
 		if entry.IsDir() {
-			// Check if it contains a Kptfile
+			// Check if it contains a Kptfile.
 			kptfilePath := filepath.Join(w.baseDir, entry.Name(), "Kptfile")
 			if _, err := os.Stat(kptfilePath); err == nil {
 				packages = append(packages, entry.Name())
@@ -158,15 +158,15 @@ func (w *FilesystemWriter) ListPackages() ([]string, error) {
 	return packages, nil
 }
 
-// ValidatePackage checks if a package directory contains valid KRM files
+// ValidatePackage checks if a package directory contains valid KRM files.
 func (w *FilesystemWriter) ValidatePackage(packageDir string) error {
-	// Check if Kptfile exists
+	// Check if Kptfile exists.
 	kptfilePath := filepath.Join(packageDir, "Kptfile")
 	if _, err := os.Stat(kptfilePath); os.IsNotExist(err) {
 		return fmt.Errorf("package is missing Kptfile")
 	}
 
-	// Check if at least one YAML file exists
+	// Check if at least one YAML file exists.
 	entries, err := os.ReadDir(packageDir)
 	if err != nil {
 		return fmt.Errorf("failed to read package directory: %w", err)
@@ -190,17 +190,17 @@ func (w *FilesystemWriter) ValidatePackage(packageDir string) error {
 	return nil
 }
 
-// GetBaseDir returns the base directory for package output
+// GetBaseDir returns the base directory for package output.
 func (w *FilesystemWriter) GetBaseDir() string {
 	return w.baseDir
 }
 
-// IsDryRun returns whether this writer is in dry-run mode
+// IsDryRun returns whether this writer is in dry-run mode.
 func (w *FilesystemWriter) IsDryRun() bool {
 	return w.dryRun
 }
 
-// SetDryRun enables or disables dry-run mode
+// SetDryRun enables or disables dry-run mode.
 func (w *FilesystemWriter) SetDryRun(dryRun bool) {
 	w.dryRun = dryRun
 }

@@ -19,49 +19,67 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// AvailabilityDimension represents different dimensions of availability tracking
+// AvailabilityDimension represents different dimensions of availability tracking.
 type AvailabilityDimension string
 
 const (
-	DimensionService     AvailabilityDimension = "service"
-	DimensionComponent   AvailabilityDimension = "component"
+	// DimensionService holds dimensionservice value.
+	DimensionService AvailabilityDimension = "service"
+	// DimensionComponent holds dimensioncomponent value.
+	DimensionComponent AvailabilityDimension = "component"
+	// DimensionUserJourney holds dimensionuserjourney value.
 	DimensionUserJourney AvailabilityDimension = "user_journey"
-	DimensionBusiness    AvailabilityDimension = "business"
+	// DimensionBusiness holds dimensionbusiness value.
+	DimensionBusiness AvailabilityDimension = "business"
 )
 
-// HealthStatus represents the health state of a tracked entity
+// HealthStatus represents the health state of a tracked entity.
 type HealthStatus string
 
 const (
-	HealthHealthy   HealthStatus = "healthy"
-	HealthDegraded  HealthStatus = "degraded"
+	// HealthHealthy holds healthhealthy value.
+	HealthHealthy HealthStatus = "healthy"
+	// HealthDegraded holds healthdegraded value.
+	HealthDegraded HealthStatus = "degraded"
+	// HealthUnhealthy holds healthunhealthy value.
 	HealthUnhealthy HealthStatus = "unhealthy"
-	HealthUnknown   HealthStatus = "unknown"
+	// HealthUnknown holds healthunknown value.
+	HealthUnknown HealthStatus = "unknown"
 )
 
-// ServiceLayer represents different service layers in the architecture
+// ServiceLayer represents different service layers in the architecture.
 type ServiceLayer string
 
 const (
-	LayerAPI        ServiceLayer = "api"
+	// LayerAPI holds layerapi value.
+	LayerAPI ServiceLayer = "api"
+	// LayerController holds layercontroller value.
 	LayerController ServiceLayer = "controller"
-	LayerProcessor  ServiceLayer = "processor"
-	LayerStorage    ServiceLayer = "storage"
-	LayerExternal   ServiceLayer = "external"
+	// LayerProcessor holds layerprocessor value.
+	LayerProcessor ServiceLayer = "processor"
+	// LayerStorage holds layerstorage value.
+	LayerStorage ServiceLayer = "storage"
+	// LayerExternal holds layerexternal value.
+	LayerExternal ServiceLayer = "external"
 )
 
-// BusinessImpact represents the criticality of a service or component
+// BusinessImpact represents the criticality of a service or component.
 type BusinessImpact int
 
 const (
+	// ImpactCritical holds impactcritical value.
 	ImpactCritical BusinessImpact = 5 // Complete service unavailable
-	ImpactHigh     BusinessImpact = 4 // Major functionality affected
-	ImpactMedium   BusinessImpact = 3 // Some functionality affected
-	ImpactLow      BusinessImpact = 2 // Minor functionality affected
-	ImpactMinimal  BusinessImpact = 1 // No user-facing impact
+	// ImpactHigh holds impacthigh value.
+	ImpactHigh BusinessImpact = 4 // Major functionality affected
+	// ImpactMedium holds impactmedium value.
+	ImpactMedium BusinessImpact = 3 // Some functionality affected
+	// ImpactLow holds impactlow value.
+	ImpactLow BusinessImpact = 2 // Minor functionality affected
+	// ImpactMinimal holds impactminimal value.
+	ImpactMinimal BusinessImpact = 1 // No user-facing impact
 )
 
-// AvailabilityMetric represents a single availability measurement
+// AvailabilityMetric represents a single availability measurement.
 type AvailabilityMetric struct {
 	Timestamp      time.Time              `json:"timestamp"`
 	Dimension      AvailabilityDimension  `json:"dimension"`
@@ -75,7 +93,7 @@ type AvailabilityMetric struct {
 	Metadata       map[string]interface{} `json:"metadata"`
 }
 
-// ServiceEndpointConfig defines configuration for service endpoint monitoring
+// ServiceEndpointConfig defines configuration for service endpoint monitoring.
 type ServiceEndpointConfig struct {
 	Name           string         `json:"name"`
 	URL            string         `json:"url"`
@@ -87,7 +105,7 @@ type ServiceEndpointConfig struct {
 	SLAThreshold   time.Duration  `json:"sla_threshold"`
 }
 
-// ComponentConfig defines configuration for component health monitoring
+// ComponentConfig defines configuration for component health monitoring.
 type ComponentConfig struct {
 	Name           string            `json:"name"`
 	Namespace      string            `json:"namespace"`
@@ -97,7 +115,7 @@ type ComponentConfig struct {
 	Layer          ServiceLayer      `json:"layer"`
 }
 
-// UserJourneyConfig defines configuration for user journey monitoring
+// UserJourneyConfig defines configuration for user journey monitoring.
 type UserJourneyConfig struct {
 	Name           string                 `json:"name"`
 	Steps          []UserJourneyStep      `json:"steps"`
@@ -106,7 +124,7 @@ type UserJourneyConfig struct {
 	Metadata       map[string]interface{} `json:"metadata"`
 }
 
-// UserJourneyStep represents a single step in a user journey
+// UserJourneyStep represents a single step in a user journey.
 type UserJourneyStep struct {
 	Name     string        `json:"name"`
 	Type     string        `json:"type"` // api_call, database_query, external_service
@@ -116,27 +134,27 @@ type UserJourneyStep struct {
 	Weight   float64       `json:"weight"` // Weight for calculating journey health
 }
 
-// TrackerConfig holds configuration for the availability tracker
+// TrackerConfig holds configuration for the availability tracker.
 type TrackerConfig struct {
 	ServiceEndpoints []ServiceEndpointConfig `json:"service_endpoints"`
 	Components       []ComponentConfig       `json:"components"`
 	UserJourneys     []UserJourneyConfig     `json:"user_journeys"`
 
-	// Thresholds and settings
+	// Thresholds and settings.
 	DegradedThreshold  time.Duration `json:"degraded_threshold"`   // Response time threshold for degraded state
 	UnhealthyThreshold time.Duration `json:"unhealthy_threshold"`  // Response time threshold for unhealthy state
 	ErrorRateThreshold float64       `json:"error_rate_threshold"` // Error rate threshold for degraded state
 	CollectionInterval time.Duration `json:"collection_interval"`  // How often to collect metrics
 	RetentionPeriod    time.Duration `json:"retention_period"`     // How long to retain metrics
 
-	// Kubernetes configuration
+	// Kubernetes configuration.
 	KubernetesNamespace string `json:"kubernetes_namespace"`
 
-	// Prometheus configuration
+	// Prometheus configuration.
 	PrometheusURL string `json:"prometheus_url"`
 }
 
-// AvailabilityState represents the current state of availability tracking
+// AvailabilityState represents the current state of availability tracking.
 type AvailabilityState struct {
 	CurrentMetrics      map[string]*AvailabilityMetric `json:"current_metrics"`
 	AggregatedStatus    HealthStatus                   `json:"aggregated_status"`
@@ -144,40 +162,40 @@ type AvailabilityState struct {
 	BusinessImpactScore float64                        `json:"business_impact_score"`
 }
 
-// MultiDimensionalTracker tracks availability across multiple dimensions
+// MultiDimensionalTracker tracks availability across multiple dimensions.
 type MultiDimensionalTracker struct {
 	config *TrackerConfig
 
-	// Clients
+	// Clients.
 	kubeClient    client.Client
 	kubeClientset kubernetes.Interface
 	promClient    v1.API
 	cache         cache.Cache
 
-	// State management
+	// State management.
 	state          *AvailabilityState
 	stateMutex     sync.RWMutex
 	metricsHistory []AvailabilityMetric
 	historyMutex   sync.RWMutex
 
-	// Control
+	// Control.
 	ctx        context.Context
 	cancel     context.CancelFunc
 	stopCh     chan struct{}
 	collectors []MetricCollector
 
-	// Observability
+	// Observability.
 	tracer trace.Tracer
 }
 
-// MetricCollector defines interface for metric collection
+// MetricCollector defines interface for metric collection.
 type MetricCollector interface {
 	Collect(ctx context.Context) ([]*AvailabilityMetric, error)
 	Name() string
 	Dimension() AvailabilityDimension
 }
 
-// NewMultiDimensionalTracker creates a new availability tracker
+// NewMultiDimensionalTracker creates a new availability tracker.
 func NewMultiDimensionalTracker(
 	config *TrackerConfig,
 	kubeClient client.Client,
@@ -215,7 +233,7 @@ func NewMultiDimensionalTracker(
 		tracer:         otel.Tracer("availability-tracker"),
 	}
 
-	// Initialize collectors
+	// Initialize collectors.
 	if err := tracker.initializeCollectors(); err != nil {
 		return nil, fmt.Errorf("failed to initialize collectors: %w", err)
 	}
@@ -223,25 +241,25 @@ func NewMultiDimensionalTracker(
 	return tracker, nil
 }
 
-// initializeCollectors initializes all metric collectors
+// initializeCollectors initializes all metric collectors.
 func (t *MultiDimensionalTracker) initializeCollectors() error {
 	t.collectors = make([]MetricCollector, 0)
 
-	// Service layer collector
+	// Service layer collector.
 	serviceCollector, err := NewServiceLayerCollector(t.config.ServiceEndpoints, t.promClient)
 	if err != nil {
 		return fmt.Errorf("failed to create service collector: %w", err)
 	}
 	t.collectors = append(t.collectors, serviceCollector)
 
-	// Component health collector
+	// Component health collector.
 	componentCollector, err := NewComponentHealthCollector(t.config.Components, t.kubeClient, t.kubeClientset)
 	if err != nil {
 		return fmt.Errorf("failed to create component collector: %w", err)
 	}
 	t.collectors = append(t.collectors, componentCollector)
 
-	// User journey collector
+	// User journey collector.
 	journeyCollector, err := NewUserJourneyCollector(t.config.UserJourneys, t.promClient)
 	if err != nil {
 		return fmt.Errorf("failed to create journey collector: %w", err)
@@ -251,35 +269,35 @@ func (t *MultiDimensionalTracker) initializeCollectors() error {
 	return nil
 }
 
-// Start begins availability tracking
+// Start begins availability tracking.
 func (t *MultiDimensionalTracker) Start() error {
 	ctx, span := t.tracer.Start(t.ctx, "availability-tracker-start")
 	defer span.End()
 
 	span.AddEvent("Starting availability tracker")
 
-	// Start collection goroutines
+	// Start collection goroutines.
 	for _, collector := range t.collectors {
 		go t.runCollector(ctx, collector)
 	}
 
-	// Start aggregation routine
+	// Start aggregation routine.
 	go t.runAggregation(ctx)
 
-	// Start cleanup routine
+	// Start cleanup routine.
 	go t.runCleanup(ctx)
 
 	return nil
 }
 
-// Stop stops availability tracking
+// Stop stops availability tracking.
 func (t *MultiDimensionalTracker) Stop() error {
 	t.cancel()
 	close(t.stopCh)
 	return nil
 }
 
-// runCollector runs a metric collector continuously
+// runCollector runs a metric collector continuously.
 func (t *MultiDimensionalTracker) runCollector(ctx context.Context, collector MetricCollector) {
 	ticker := time.NewTicker(t.config.CollectionInterval)
 	defer ticker.Stop()
@@ -294,7 +312,7 @@ func (t *MultiDimensionalTracker) runCollector(ctx context.Context, collector Me
 	}
 }
 
-// collectMetrics collects metrics from a specific collector
+// collectMetrics collects metrics from a specific collector.
 func (t *MultiDimensionalTracker) collectMetrics(ctx context.Context, collector MetricCollector) {
 	ctx, span := t.tracer.Start(ctx, "collect-metrics",
 		trace.WithAttributes(
@@ -307,40 +325,40 @@ func (t *MultiDimensionalTracker) collectMetrics(ctx context.Context, collector 
 	metrics, err := collector.Collect(ctx)
 	if err != nil {
 		span.RecordError(err)
-		// Log error but continue operation
+		// Log error but continue operation.
 		return
 	}
 
-	// Store metrics
+	// Store metrics.
 	t.historyMutex.Lock()
 	t.metricsHistory = append(t.metricsHistory, convertMetricsSlice(metrics)...)
 	t.historyMutex.Unlock()
 
-	// Update current state
+	// Update current state.
 	t.updateCurrentState(metrics)
 
 	span.AddEvent("Metrics collected",
 		trace.WithAttributes(attribute.Int("count", len(metrics))))
 }
 
-// updateCurrentState updates the current availability state
+// updateCurrentState updates the current availability state.
 func (t *MultiDimensionalTracker) updateCurrentState(metrics []*AvailabilityMetric) {
 	t.stateMutex.Lock()
 	defer t.stateMutex.Unlock()
 
-	// Update current metrics
+	// Update current metrics.
 	for _, metric := range metrics {
 		key := fmt.Sprintf("%s:%s:%s", metric.Dimension, metric.EntityType, metric.EntityID)
 		t.state.CurrentMetrics[key] = metric
 	}
 
-	// Recalculate aggregated status
+	// Recalculate aggregated status.
 	t.state.AggregatedStatus = t.calculateAggregatedStatus()
 	t.state.BusinessImpactScore = t.calculateBusinessImpactScore()
 	t.state.LastUpdate = time.Now()
 }
 
-// calculateAggregatedStatus calculates overall system availability status
+// calculateAggregatedStatus calculates overall system availability status.
 func (t *MultiDimensionalTracker) calculateAggregatedStatus() HealthStatus {
 	if len(t.state.CurrentMetrics) == 0 {
 		return HealthUnknown
@@ -383,7 +401,7 @@ func (t *MultiDimensionalTracker) calculateAggregatedStatus() HealthStatus {
 	}
 }
 
-// calculateBusinessImpactScore calculates current business impact score
+// calculateBusinessImpactScore calculates current business impact score.
 func (t *MultiDimensionalTracker) calculateBusinessImpactScore() float64 {
 	if len(t.state.CurrentMetrics) == 0 {
 		return 0
@@ -410,7 +428,7 @@ func (t *MultiDimensionalTracker) calculateBusinessImpactScore() float64 {
 	return (unhealthyImpact / totalImpact) * 100
 }
 
-// runAggregation runs the aggregation process
+// runAggregation runs the aggregation process.
 func (t *MultiDimensionalTracker) runAggregation(ctx context.Context) {
 	ticker := time.NewTicker(time.Minute) // Aggregate every minute
 	defer ticker.Stop()
@@ -425,7 +443,7 @@ func (t *MultiDimensionalTracker) runAggregation(ctx context.Context) {
 	}
 }
 
-// performAggregation performs metric aggregation
+// performAggregation performs metric aggregation.
 func (t *MultiDimensionalTracker) performAggregation(ctx context.Context) {
 	ctx, span := t.tracer.Start(ctx, "perform-aggregation")
 	defer span.End()
@@ -434,7 +452,7 @@ func (t *MultiDimensionalTracker) performAggregation(ctx context.Context) {
 	currentState := *t.state
 	t.stateMutex.RUnlock()
 
-	// Perform any additional aggregation logic here
+	// Perform any additional aggregation logic here.
 	// This could include calculating rolling averages, trend analysis, etc.
 
 	span.AddEvent("Aggregation completed",
@@ -445,7 +463,7 @@ func (t *MultiDimensionalTracker) performAggregation(ctx context.Context) {
 	)
 }
 
-// runCleanup runs the cleanup process for old metrics
+// runCleanup runs the cleanup process for old metrics.
 func (t *MultiDimensionalTracker) runCleanup(ctx context.Context) {
 	ticker := time.NewTicker(time.Hour) // Cleanup every hour
 	defer ticker.Stop()
@@ -460,7 +478,7 @@ func (t *MultiDimensionalTracker) runCleanup(ctx context.Context) {
 	}
 }
 
-// performCleanup removes old metrics based on retention policy
+// performCleanup removes old metrics based on retention policy.
 func (t *MultiDimensionalTracker) performCleanup(ctx context.Context) {
 	ctx, span := t.tracer.Start(ctx, "perform-cleanup")
 	defer span.End()
@@ -471,7 +489,7 @@ func (t *MultiDimensionalTracker) performCleanup(ctx context.Context) {
 	cutoff := time.Now().Add(-t.config.RetentionPeriod)
 	originalCount := len(t.metricsHistory)
 
-	// Remove metrics older than retention period
+	// Remove metrics older than retention period.
 	validMetrics := make([]AvailabilityMetric, 0, len(t.metricsHistory))
 	for _, metric := range t.metricsHistory {
 		if metric.Timestamp.After(cutoff) {
@@ -489,12 +507,12 @@ func (t *MultiDimensionalTracker) performCleanup(ctx context.Context) {
 	)
 }
 
-// GetCurrentState returns the current availability state
+// GetCurrentState returns the current availability state.
 func (t *MultiDimensionalTracker) GetCurrentState() *AvailabilityState {
 	t.stateMutex.RLock()
 	defer t.stateMutex.RUnlock()
 
-	// Return a copy to prevent external modifications
+	// Return a copy to prevent external modifications.
 	state := *t.state
 	currentMetrics := make(map[string]*AvailabilityMetric)
 	for k, v := range t.state.CurrentMetrics {
@@ -506,7 +524,7 @@ func (t *MultiDimensionalTracker) GetCurrentState() *AvailabilityState {
 	return &state
 }
 
-// GetMetricsHistory returns historical metrics within a time window
+// GetMetricsHistory returns historical metrics within a time window.
 func (t *MultiDimensionalTracker) GetMetricsHistory(since time.Time, until time.Time) []AvailabilityMetric {
 	t.historyMutex.RLock()
 	defer t.historyMutex.RUnlock()
@@ -521,7 +539,7 @@ func (t *MultiDimensionalTracker) GetMetricsHistory(since time.Time, until time.
 	return result
 }
 
-// GetMetricsByDimension returns current metrics filtered by dimension
+// GetMetricsByDimension returns current metrics filtered by dimension.
 func (t *MultiDimensionalTracker) GetMetricsByDimension(dimension AvailabilityDimension) []*AvailabilityMetric {
 	t.stateMutex.RLock()
 	defer t.stateMutex.RUnlock()
@@ -536,7 +554,7 @@ func (t *MultiDimensionalTracker) GetMetricsByDimension(dimension AvailabilityDi
 	return result
 }
 
-// GetMetricsByBusinessImpact returns current metrics filtered by business impact level
+// GetMetricsByBusinessImpact returns current metrics filtered by business impact level.
 func (t *MultiDimensionalTracker) GetMetricsByBusinessImpact(impact BusinessImpact) []*AvailabilityMetric {
 	t.stateMutex.RLock()
 	defer t.stateMutex.RUnlock()
@@ -551,7 +569,7 @@ func (t *MultiDimensionalTracker) GetMetricsByBusinessImpact(impact BusinessImpa
 	return result
 }
 
-// convertMetricsSlice converts slice of metric pointers to slice of metrics
+// convertMetricsSlice converts slice of metric pointers to slice of metrics.
 func convertMetricsSlice(metrics []*AvailabilityMetric) []AvailabilityMetric {
 	result := make([]AvailabilityMetric, len(metrics))
 	for i, m := range metrics {
@@ -560,7 +578,7 @@ func convertMetricsSlice(metrics []*AvailabilityMetric) []AvailabilityMetric {
 	return result
 }
 
-// ServiceLayerCollector collects metrics from service endpoints
+// ServiceLayerCollector collects metrics from service endpoints.
 type ServiceLayerCollector struct {
 	endpoints  []ServiceEndpointConfig
 	promClient v1.API
@@ -568,7 +586,7 @@ type ServiceLayerCollector struct {
 	tracer     trace.Tracer
 }
 
-// NewServiceLayerCollector creates a new service layer collector
+// NewServiceLayerCollector creates a new service layer collector.
 func NewServiceLayerCollector(endpoints []ServiceEndpointConfig, promClient v1.API) (*ServiceLayerCollector, error) {
 	return &ServiceLayerCollector{
 		endpoints:  endpoints,
@@ -585,17 +603,17 @@ func NewServiceLayerCollector(endpoints []ServiceEndpointConfig, promClient v1.A
 	}, nil
 }
 
-// Name returns the collector name
+// Name returns the collector name.
 func (slc *ServiceLayerCollector) Name() string {
 	return "service-layer-collector"
 }
 
-// Dimension returns the dimension this collector tracks
+// Dimension returns the dimension this collector tracks.
 func (slc *ServiceLayerCollector) Dimension() AvailabilityDimension {
 	return DimensionService
 }
 
-// Collect collects service layer metrics
+// Collect collects service layer metrics.
 func (slc *ServiceLayerCollector) Collect(ctx context.Context) ([]*AvailabilityMetric, error) {
 	ctx, span := slc.tracer.Start(ctx, "collect-service-metrics")
 	defer span.End()
@@ -614,11 +632,11 @@ func (slc *ServiceLayerCollector) Collect(ctx context.Context) ([]*AvailabilityM
 	return metrics, nil
 }
 
-// collectEndpointMetric collects metric for a single endpoint
+// collectEndpointMetric collects metric for a single endpoint.
 func (slc *ServiceLayerCollector) collectEndpointMetric(ctx context.Context, endpoint ServiceEndpointConfig) (*AvailabilityMetric, error) {
 	start := time.Now()
 
-	// Create request with timeout
+	// Create request with timeout.
 	reqCtx, cancel := context.WithTimeout(ctx, endpoint.Timeout)
 	defer cancel()
 
@@ -627,7 +645,7 @@ func (slc *ServiceLayerCollector) collectEndpointMetric(ctx context.Context, end
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// Execute request
+	// Execute request.
 	resp, err := slc.httpClient.Do(req)
 	responseTime := time.Since(start)
 
@@ -640,7 +658,7 @@ func (slc *ServiceLayerCollector) collectEndpointMetric(ctx context.Context, end
 	} else {
 		defer resp.Body.Close()
 
-		// Check status code
+		// Check status code.
 		if resp.StatusCode == endpoint.ExpectedStatus {
 			if responseTime <= endpoint.SLAThreshold {
 				status = HealthHealthy
@@ -677,7 +695,7 @@ func (slc *ServiceLayerCollector) collectEndpointMetric(ctx context.Context, end
 	}, nil
 }
 
-// ComponentHealthCollector collects metrics from Kubernetes components
+// ComponentHealthCollector collects metrics from Kubernetes components.
 type ComponentHealthCollector struct {
 	components    []ComponentConfig
 	kubeClient    client.Client
@@ -685,7 +703,7 @@ type ComponentHealthCollector struct {
 	tracer        trace.Tracer
 }
 
-// NewComponentHealthCollector creates a new component health collector
+// NewComponentHealthCollector creates a new component health collector.
 func NewComponentHealthCollector(components []ComponentConfig, kubeClient client.Client, kubeClientset kubernetes.Interface) (*ComponentHealthCollector, error) {
 	return &ComponentHealthCollector{
 		components:    components,
@@ -695,17 +713,17 @@ func NewComponentHealthCollector(components []ComponentConfig, kubeClient client
 	}, nil
 }
 
-// Name returns the collector name
+// Name returns the collector name.
 func (chc *ComponentHealthCollector) Name() string {
 	return "component-health-collector"
 }
 
-// Dimension returns the dimension this collector tracks
+// Dimension returns the dimension this collector tracks.
 func (chc *ComponentHealthCollector) Dimension() AvailabilityDimension {
 	return DimensionComponent
 }
 
-// Collect collects component health metrics
+// Collect collects component health metrics.
 func (chc *ComponentHealthCollector) Collect(ctx context.Context) ([]*AvailabilityMetric, error) {
 	ctx, span := chc.tracer.Start(ctx, "collect-component-metrics")
 	defer span.End()
@@ -724,10 +742,10 @@ func (chc *ComponentHealthCollector) Collect(ctx context.Context) ([]*Availabili
 	return metrics, nil
 }
 
-// collectComponentMetric collects metric for a single component
+// collectComponentMetric collects metric for a single component.
 func (chc *ComponentHealthCollector) collectComponentMetric(ctx context.Context, component ComponentConfig) (*AvailabilityMetric, error) {
 	var status HealthStatus = HealthUnknown
-	var metadata = make(map[string]interface{})
+	metadata := make(map[string]interface{})
 
 	switch component.ResourceType {
 	case "pod":
@@ -769,20 +787,20 @@ func (chc *ComponentHealthCollector) collectComponentMetric(ctx context.Context,
 	}, nil
 }
 
-// ComponentStatus represents component status information
+// ComponentStatus represents component status information.
 type ComponentStatus struct {
 	Status   HealthStatus
 	Metadata map[string]interface{}
 }
 
-// collectPodMetrics collects metrics for pods
+// collectPodMetrics collects metrics for pods.
 func (chc *ComponentHealthCollector) collectPodMetrics(ctx context.Context, component ComponentConfig) (*ComponentStatus, error) {
 	pods := &corev1.PodList{}
 	listOpts := []client.ListOption{
 		client.InNamespace(component.Namespace),
 	}
 
-	// Add label selectors if provided
+	// Add label selectors if provided.
 	if len(component.Selector) > 0 {
 		labels := client.MatchingLabels(component.Selector)
 		listOpts = append(listOpts, labels)
@@ -807,9 +825,9 @@ func (chc *ComponentHealthCollector) collectPodMetrics(ctx context.Context, comp
 	restartCount := 0
 
 	for _, pod := range pods.Items {
-		// Check pod phase
+		// Check pod phase.
 		if pod.Status.Phase == corev1.PodRunning {
-			// Check container statuses
+			// Check container statuses.
 			allReady := true
 			for _, containerStatus := range pod.Status.ContainerStatuses {
 				restartCount += int(containerStatus.RestartCount)
@@ -844,7 +862,7 @@ func (chc *ComponentHealthCollector) collectPodMetrics(ctx context.Context, comp
 	}, nil
 }
 
-// collectDeploymentMetrics collects metrics for deployments
+// collectDeploymentMetrics collects metrics for deployments.
 func (chc *ComponentHealthCollector) collectDeploymentMetrics(ctx context.Context, component ComponentConfig) (*ComponentStatus, error) {
 	deployments := &appsv1.DeploymentList{}
 	listOpts := []client.ListOption{
@@ -869,7 +887,7 @@ func (chc *ComponentHealthCollector) collectDeploymentMetrics(ctx context.Contex
 		}, nil
 	}
 
-	// For simplicity, take the first deployment (could be enhanced to handle multiple)
+	// For simplicity, take the first deployment (could be enhanced to handle multiple).
 	deployment := deployments.Items[0]
 
 	var status HealthStatus
@@ -895,7 +913,7 @@ func (chc *ComponentHealthCollector) collectDeploymentMetrics(ctx context.Contex
 	}, nil
 }
 
-// collectServiceMetrics collects metrics for services
+// collectServiceMetrics collects metrics for services.
 func (chc *ComponentHealthCollector) collectServiceMetrics(ctx context.Context, component ComponentConfig) (*ComponentStatus, error) {
 	services := &corev1.ServiceList{}
 	listOpts := []client.ListOption{
@@ -920,8 +938,8 @@ func (chc *ComponentHealthCollector) collectServiceMetrics(ctx context.Context, 
 		}, nil
 	}
 
-	// For services, we assume they're healthy if they exist
-	// More sophisticated checks could verify endpoints
+	// For services, we assume they're healthy if they exist.
+	// More sophisticated checks could verify endpoints.
 	service := services.Items[0]
 
 	return &ComponentStatus{
@@ -933,14 +951,14 @@ func (chc *ComponentHealthCollector) collectServiceMetrics(ctx context.Context, 
 	}, nil
 }
 
-// UserJourneyCollector collects user journey metrics
+// UserJourneyCollector collects user journey metrics.
 type UserJourneyCollector struct {
 	journeys   []UserJourneyConfig
 	promClient v1.API
 	tracer     trace.Tracer
 }
 
-// NewUserJourneyCollector creates a new user journey collector
+// NewUserJourneyCollector creates a new user journey collector.
 func NewUserJourneyCollector(journeys []UserJourneyConfig, promClient v1.API) (*UserJourneyCollector, error) {
 	return &UserJourneyCollector{
 		journeys:   journeys,
@@ -949,17 +967,17 @@ func NewUserJourneyCollector(journeys []UserJourneyConfig, promClient v1.API) (*
 	}, nil
 }
 
-// Name returns the collector name
+// Name returns the collector name.
 func (ujc *UserJourneyCollector) Name() string {
 	return "user-journey-collector"
 }
 
-// Dimension returns the dimension this collector tracks
+// Dimension returns the dimension this collector tracks.
 func (ujc *UserJourneyCollector) Dimension() AvailabilityDimension {
 	return DimensionUserJourney
 }
 
-// Collect collects user journey metrics
+// Collect collects user journey metrics.
 func (ujc *UserJourneyCollector) Collect(ctx context.Context) ([]*AvailabilityMetric, error) {
 	ctx, span := ujc.tracer.Start(ctx, "collect-user-journey-metrics")
 	defer span.End()
@@ -978,27 +996,27 @@ func (ujc *UserJourneyCollector) Collect(ctx context.Context) ([]*AvailabilityMe
 	return metrics, nil
 }
 
-// collectJourneyMetric collects metric for a single user journey
+// collectJourneyMetric collects metric for a single user journey.
 func (ujc *UserJourneyCollector) collectJourneyMetric(ctx context.Context, journey UserJourneyConfig) (*AvailabilityMetric, error) {
-	// This is a simplified implementation
-	// In a real implementation, you would:
-	// 1. Execute the journey steps
-	// 2. Measure success/failure rates
-	// 3. Calculate response times
-	// 4. Determine overall health
+	// This is a simplified implementation.
+	// In a real implementation, you would:.
+	// 1. Execute the journey steps.
+	// 2. Measure success/failure rates.
+	// 3. Calculate response times.
+	// 4. Determine overall health.
 
-	// For now, we'll simulate success rate based on prometheus metrics
+	// For now, we'll simulate success rate based on prometheus metrics.
 	var successRate float64 = 0.95 // Default assumption
 	var avgResponseTime time.Duration = time.Millisecond * 200
 
-	// Query Prometheus for journey-specific metrics if available
+	// Query Prometheus for journey-specific metrics if available.
 	if ujc.promClient != nil {
-		// Example query for journey success rate
+		// Example query for journey success rate.
 		query := fmt.Sprintf(`rate(user_journey_success_total{journey="%s"}[5m]) / rate(user_journey_total{journey="%s"}[5m])`, journey.Name, journey.Name)
 		result, _, err := ujc.promClient.Query(ctx, query, time.Now())
 		if err == nil && result != nil {
-			// Parse result and update success rate
-			// This is a simplified version
+			// Parse result and update success rate.
+			// This is a simplified version.
 		}
 	}
 

@@ -17,7 +17,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// StreamingDocumentLoader provides memory-efficient document processing
+// StreamingDocumentLoader provides memory-efficient document processing.
 type StreamingDocumentLoader struct {
 	logger          *zap.Logger
 	chunkingService *ChunkingService
@@ -28,7 +28,7 @@ type StreamingDocumentLoader struct {
 	metrics         *streamingMetrics
 }
 
-// StreamingConfig holds configuration for streaming operations
+// StreamingConfig holds configuration for streaming operations.
 type StreamingConfig struct {
 	MemoryThresholdMB int64
 	BufferSizeKB      int
@@ -36,9 +36,9 @@ type StreamingConfig struct {
 	BackpressureLimit int
 }
 
-// ProcessingPool definition moved to document_loader.go to avoid duplicates
+// ProcessingPool definition moved to document_loader.go to avoid duplicates.
 
-// streamingMetrics tracks performance metrics
+// streamingMetrics tracks performance metrics.
 type streamingMetrics struct {
 	documentsProcessed    prometheus.Counter
 	chunksProcessed       prometheus.Counter
@@ -49,11 +49,11 @@ type streamingMetrics struct {
 	streamingThresholdHit prometheus.Counter
 }
 
-// Document definition moved to embedding_support.go to avoid duplicates
+// Document definition moved to embedding_support.go to avoid duplicates.
 
-// ProcessedChunk definition moved to pipeline.go to avoid duplicates
+// ProcessedChunk definition moved to pipeline.go to avoid duplicates.
 
-// NewStreamingDocumentLoader creates a new streaming document loader
+// NewStreamingDocumentLoader creates a new streaming document loader.
 func NewStreamingDocumentLoader(
 	logger *zap.Logger,
 	chunkingService *ChunkingService,
@@ -101,7 +101,7 @@ func NewStreamingDocumentLoader(
 		}),
 	}
 
-	// Register metrics
+	// Register metrics.
 	prometheus.MustRegister(
 		metrics.documentsProcessed,
 		metrics.chunksProcessed,
@@ -118,7 +118,7 @@ func NewStreamingDocumentLoader(
 		embeddingWorkers: make(chan func(), config.MaxConcurrency),
 	}
 
-	// Start worker pools
+	// Start worker pools.
 	for i := 0; i < config.MaxConcurrency; i++ {
 		go pool.worker(pool.documentWorkers)
 		go pool.worker(pool.chunkWorkers)
@@ -135,13 +135,13 @@ func NewStreamingDocumentLoader(
 		metrics:         metrics,
 	}
 
-	// Start memory monitor
+	// Start memory monitor.
 	go loader.monitorMemory()
 
 	return loader
 }
 
-// ProcessDocument processes a single document with streaming support
+// ProcessDocument processes a single document with streaming support.
 func (l *StreamingDocumentLoader) ProcessDocument(
 	ctx context.Context,
 	doc Document,
@@ -153,17 +153,17 @@ func (l *StreamingDocumentLoader) ProcessDocument(
 		l.metrics.documentsProcessed.Inc()
 	}()
 
-	// Check if streaming is needed
+	// Check if streaming is needed.
 	if doc.Size > 0 && doc.Size > l.memoryThreshold {
 		l.metrics.streamingThresholdHit.Inc()
 		return l.processStreamingDocument(ctx, doc, chunkProcessor)
 	}
 
-	// For smaller documents, use regular processing
+	// For smaller documents, use regular processing.
 	return l.processRegularDocument(ctx, doc, chunkProcessor)
 }
 
-// processStreamingDocument handles large documents with streaming
+// processStreamingDocument handles large documents with streaming.
 func (l *StreamingDocumentLoader) processStreamingDocument(
 	ctx context.Context,
 	doc Document,
@@ -185,10 +185,10 @@ func (l *StreamingDocumentLoader) processStreamingDocument(
 		default:
 		}
 
-		// Read chunk with backpressure handling
+		// Read chunk with backpressure handling.
 		chunk, err := l.readChunkWithBackpressure(reader, &bytesRead)
 		if err == io.EOF {
-			// Process final chunk if buffer has content
+			// Process final chunk if buffer has content.
 			if len(buffer) > 0 {
 				if err := l.processChunk(ctx, doc, string(buffer), chunkIndex, chunkProcessor); err != nil {
 					return fmt.Errorf("failed to process final chunk: %w", err)
@@ -202,7 +202,7 @@ func (l *StreamingDocumentLoader) processStreamingDocument(
 
 		buffer = append(buffer, chunk...)
 
-		// Check if we have enough content for a chunk
+		// Check if we have enough content for a chunk.
 		if len(buffer) >= l.chunkingService.config.ChunkSize {
 			content := string(buffer[:l.chunkingService.config.ChunkSize])
 			buffer = buffer[l.chunkingService.config.ChunkSize:]
@@ -218,13 +218,13 @@ func (l *StreamingDocumentLoader) processStreamingDocument(
 	return nil
 }
 
-// processRegularDocument handles smaller documents in memory
+// processRegularDocument handles smaller documents in memory.
 func (l *StreamingDocumentLoader) processRegularDocument(
 	ctx context.Context,
 	doc Document,
 	chunkProcessor func(ProcessedChunk) error,
 ) error {
-	// Read entire document
+	// Read entire document.
 	content, err := io.ReadAll(strings.NewReader(doc.Content))
 	if err != nil {
 		return fmt.Errorf("failed to read document: %w", err)
@@ -232,7 +232,7 @@ func (l *StreamingDocumentLoader) processRegularDocument(
 
 	l.metrics.bytesProcessed.Add(float64(len(content)))
 
-	// Convert to LoadedDocument for chunking
+	// Convert to LoadedDocument for chunking.
 	loadedDoc := &LoadedDocument{
 		ID:       doc.ID,
 		Content:  string(content),
@@ -240,23 +240,23 @@ func (l *StreamingDocumentLoader) processRegularDocument(
 		LoadedAt: time.Now(),
 	}
 
-	// Chunk the document
+	// Chunk the document.
 	chunks, err := l.chunkingService.ChunkDocument(ctx, loadedDoc)
 	if err != nil {
 		return fmt.Errorf("failed to chunk document: %w", err)
 	}
 
-	// Convert DocumentChunk objects to strings for parallel processing
+	// Convert DocumentChunk objects to strings for parallel processing.
 	chunkStrings := make([]string, len(chunks))
 	for i, chunk := range chunks {
 		chunkStrings[i] = chunk.CleanContent
 	}
 
-	// Process chunks in parallel
+	// Process chunks in parallel.
 	return l.processChunksParallel(ctx, doc, chunkStrings, chunkProcessor)
 }
 
-// processChunk processes a single chunk
+// processChunk processes a single chunk.
 func (l *StreamingDocumentLoader) processChunk(
 	ctx context.Context,
 	doc Document,
@@ -274,7 +274,7 @@ func (l *StreamingDocumentLoader) processChunk(
 	return processor(chunk)
 }
 
-// processChunksParallel processes multiple chunks concurrently
+// processChunksParallel processes multiple chunks concurrently.
 func (l *StreamingDocumentLoader) processChunksParallel(
 	ctx context.Context,
 	doc Document,
@@ -300,7 +300,7 @@ func (l *StreamingDocumentLoader) processChunksParallel(
 	wg.Wait()
 	close(errChan)
 
-	// Check for errors
+	// Check for errors.
 	for err := range errChan {
 		if err != nil {
 			return err
@@ -310,23 +310,23 @@ func (l *StreamingDocumentLoader) processChunksParallel(
 	return nil
 }
 
-// readChunkWithBackpressure reads data with backpressure handling
+// readChunkWithBackpressure reads data with backpressure handling.
 func (l *StreamingDocumentLoader) readChunkWithBackpressure(
 	reader *bufio.Reader,
 	bytesRead *int64,
 ) ([]byte, error) {
-	// Check memory pressure
+	// Check memory pressure.
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
 	if memStats.Alloc > uint64(l.memoryThreshold) {
 		l.metrics.backpressureEvents.Inc()
-		// Apply backpressure - wait for memory to be freed
+		// Apply backpressure - wait for memory to be freed.
 		time.Sleep(100 * time.Millisecond)
 		runtime.GC()
 	}
 
-	// Read chunk
+	// Read chunk.
 	chunk := make([]byte, l.bufferSize)
 	n, err := reader.Read(chunk)
 	if n > 0 {
@@ -336,7 +336,7 @@ func (l *StreamingDocumentLoader) readChunkWithBackpressure(
 	return nil, err
 }
 
-// ProcessBatch processes multiple documents concurrently
+// ProcessBatch processes multiple documents concurrently.
 func (l *StreamingDocumentLoader) ProcessBatch(
 	ctx context.Context,
 	documents []Document,
@@ -360,7 +360,7 @@ func (l *StreamingDocumentLoader) ProcessBatch(
 	wg.Wait()
 	close(errChan)
 
-	// Collect errors
+	// Collect errors.
 	var errs []error
 	for err := range errChan {
 		if err != nil {
@@ -375,7 +375,7 @@ func (l *StreamingDocumentLoader) ProcessBatch(
 	return nil
 }
 
-// monitorMemory tracks memory usage
+// monitorMemory tracks memory usage.
 func (l *StreamingDocumentLoader) monitorMemory() {
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
@@ -387,14 +387,14 @@ func (l *StreamingDocumentLoader) monitorMemory() {
 	}
 }
 
-// worker processes tasks from a channel
+// worker processes tasks from a channel.
 func (p *ProcessingPool) worker(tasks chan func()) {
 	for task := range tasks {
 		task()
 	}
 }
 
-// Shutdown gracefully shuts down the processing pool
+// Shutdown gracefully shuts down the processing pool.
 func (l *StreamingDocumentLoader) Shutdown() {
 	close(l.processPool.documentWorkers)
 	close(l.processPool.chunkWorkers)

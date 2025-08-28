@@ -8,21 +8,21 @@ import (
 	"time"
 )
 
-// Enhanced Service Model Support with Plugin Architecture
+// Enhanced Service Model Support with Plugin Architecture.
 
-// ServiceModelRegistry methods for E2ServiceModelRegistry
+// ServiceModelRegistry methods for E2ServiceModelRegistry.
 
-// registerServiceModel registers a service model with optional plugin
+// registerServiceModel registers a service model with optional plugin.
 func (r *E2ServiceModelRegistry) registerServiceModel(serviceModel *E2ServiceModel, plugin ServiceModelPlugin) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	// Validate service model
+	// Validate service model.
 	if err := r.validateServiceModelInternal(serviceModel); err != nil {
 		return fmt.Errorf("service model validation failed: %w", err)
 	}
 
-	// Create registered service model
+	// Create registered service model.
 	registered := &RegisteredServiceModel{
 		E2ServiceModel:   *serviceModel,
 		RegistrationTime: time.Now(),
@@ -34,7 +34,7 @@ func (r *E2ServiceModelRegistry) registerServiceModel(serviceModel *E2ServiceMod
 
 	r.serviceModels[serviceModel.ServiceModelID] = registered
 
-	// Register plugin if provided
+	// Register plugin if provided.
 	if plugin != nil {
 		r.plugins[serviceModel.ServiceModelID] = plugin
 	}
@@ -42,14 +42,14 @@ func (r *E2ServiceModelRegistry) registerServiceModel(serviceModel *E2ServiceMod
 	return nil
 }
 
-// validateServiceModel validates a service model configuration
+// validateServiceModel validates a service model configuration.
 func (r *E2ServiceModelRegistry) validateServiceModel(serviceModel *E2ServiceModel) error {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 	return r.validateServiceModelInternal(serviceModel)
 }
 
-// validateServiceModelInternal performs internal validation (assumes lock held)
+// validateServiceModelInternal performs internal validation (assumes lock held).
 func (r *E2ServiceModelRegistry) validateServiceModelInternal(serviceModel *E2ServiceModel) error {
 	if serviceModel.ServiceModelID == "" {
 		return fmt.Errorf("service model ID is required")
@@ -67,7 +67,7 @@ func (r *E2ServiceModelRegistry) validateServiceModelInternal(serviceModel *E2Se
 		return fmt.Errorf("at least one supported procedure is required")
 	}
 
-	// Validate procedures
+	// Validate procedures.
 	validProcedures := map[string]bool{
 		"RIC_SUBSCRIPTION":        true,
 		"RIC_SUBSCRIPTION_DELETE": true,
@@ -87,7 +87,7 @@ func (r *E2ServiceModelRegistry) validateServiceModelInternal(serviceModel *E2Se
 	return nil
 }
 
-// getValidationRules returns validation rules for a service model
+// getValidationRules returns validation rules for a service model.
 func (r *E2ServiceModelRegistry) getValidationRules(modelName string) []ValidationRule {
 	switch modelName {
 	case "KPM":
@@ -121,7 +121,7 @@ func (r *E2ServiceModelRegistry) getValidationRules(modelName string) []Validati
 	}
 }
 
-// getCompatibilityList returns compatibility information for a service model
+// getCompatibilityList returns compatibility information for a service model.
 func (r *E2ServiceModelRegistry) getCompatibilityList(modelName string) []string {
 	switch modelName {
 	case "KPM":
@@ -133,7 +133,7 @@ func (r *E2ServiceModelRegistry) getCompatibilityList(modelName string) []string
 	}
 }
 
-// Service model validation functions
+// Service model validation functions.
 
 func (r *E2ServiceModelRegistry) validateKPMMeasurementTypes(serviceModel *E2ServiceModel) error {
 	config := serviceModel.Configuration
@@ -148,7 +148,7 @@ func (r *E2ServiceModelRegistry) validateKPMMeasurementTypes(serviceModel *E2Ser
 
 	types, ok := measurementTypes.([]string)
 	if !ok {
-		// Try to convert from []interface{}
+		// Try to convert from []interface{}.
 		if interfaceSlice, ok := measurementTypes.([]interface{}); ok {
 			types = make([]string, len(interfaceSlice))
 			for i, v := range interfaceSlice {
@@ -163,7 +163,7 @@ func (r *E2ServiceModelRegistry) validateKPMMeasurementTypes(serviceModel *E2Ser
 		}
 	}
 
-	// Validate known measurement types
+	// Validate known measurement types.
 	validTypes := map[string]bool{
 		"DRB.RlcSduDelayDl":      true,
 		"DRB.RlcSduDelayUl":      true,
@@ -210,7 +210,7 @@ func (r *E2ServiceModelRegistry) validateKPMGranularityPeriod(serviceModel *E2Se
 		return fmt.Errorf("granularity_period must be a string")
 	}
 
-	// Validate period format (e.g., "1000ms", "1s", "5s")
+	// Validate period format (e.g., "1000ms", "1s", "5s").
 	validPeriods := []string{"100ms", "200ms", "500ms", "1000ms", "1s", "2s", "5s", "10s"}
 	for _, validPeriod := range validPeriods {
 		if periodStr == validPeriod {
@@ -234,7 +234,7 @@ func (r *E2ServiceModelRegistry) validateRCControlActions(serviceModel *E2Servic
 
 	actions, ok := controlActions.([]string)
 	if !ok {
-		// Try to convert from []interface{}
+		// Try to convert from []interface{}.
 		if interfaceSlice, ok := controlActions.([]interface{}); ok {
 			actions = make([]string, len(interfaceSlice))
 			for i, v := range interfaceSlice {
@@ -249,7 +249,7 @@ func (r *E2ServiceModelRegistry) validateRCControlActions(serviceModel *E2Servic
 		}
 	}
 
-	// Validate known control actions
+	// Validate known control actions.
 	validActions := map[string]bool{
 		"QoS_flow_mapping":    true,
 		"Traffic_steering":    true,
@@ -282,7 +282,7 @@ func (r *E2ServiceModelRegistry) validateRCControlOutcomes(serviceModel *E2Servi
 
 	outcomes, ok := controlOutcomes.([]string)
 	if !ok {
-		// Try to convert from []interface{}
+		// Try to convert from []interface{}.
 		if interfaceSlice, ok := controlOutcomes.([]interface{}); ok {
 			outcomes = make([]string, len(interfaceSlice))
 			for i, v := range interfaceSlice {
@@ -297,7 +297,7 @@ func (r *E2ServiceModelRegistry) validateRCControlOutcomes(serviceModel *E2Servi
 		}
 	}
 
-	// Validate known control outcomes
+	// Validate known control outcomes.
 	validOutcomes := map[string]bool{
 		"successful": true,
 		"rejected":   true,
@@ -315,9 +315,9 @@ func (r *E2ServiceModelRegistry) validateRCControlOutcomes(serviceModel *E2Servi
 	return nil
 }
 
-// Enhanced service model creation functions
+// Enhanced service model creation functions.
 
-// CreateEnhancedKPMServiceModel creates an enhanced KPM service model with full configuration
+// CreateEnhancedKPMServiceModel creates an enhanced KPM service model with full configuration.
 func CreateEnhancedKPMServiceModel() *E2ServiceModel {
 	return &E2ServiceModel{
 		ServiceModelID:      "1.3.6.1.4.1.53148.1.1.2.2",
@@ -331,27 +331,27 @@ func CreateEnhancedKPMServiceModel() *E2ServiceModel {
 		},
 		Configuration: map[string]interface{}{
 			"measurement_types": []string{
-				// DRB-level measurements
+				// DRB-level measurements.
 				"DRB.RlcSduDelayDl",
 				"DRB.RlcSduDelayUl",
 				"DRB.RlcSduVolumeDl",
 				"DRB.RlcSduVolumeUl",
 				"DRB.UEThpDl",
 				"DRB.UEThpUl",
-				// RRU-level measurements
+				// RRU-level measurements.
 				"RRU.PrbTotDl",
 				"RRU.PrbTotUl",
 				"RRU.PrbUsedDl",
 				"RRU.PrbUsedUl",
-				// Transport Block measurements
+				// Transport Block measurements.
 				"TB.TotNbrDl",
 				"TB.TotNbrUl",
 				"TB.ErrTotNbrDl",
 				"TB.ErrTotNbrUl",
-				// MAC-layer measurements
+				// MAC-layer measurements.
 				"MAC.UESchedDlInitialTx",
 				"MAC.UESchedUlInitialTx",
-				// Carrier measurements
+				// Carrier measurements.
 				"CARR.PDSCHMCSDist",
 				"CARR.PUSCHMCSDist",
 			},
@@ -371,7 +371,7 @@ func CreateEnhancedKPMServiceModel() *E2ServiceModel {
 	}
 }
 
-// CreateEnhancedRCServiceModel creates an enhanced RC service model with full configuration
+// CreateEnhancedRCServiceModel creates an enhanced RC service model with full configuration.
 func CreateEnhancedRCServiceModel() *E2ServiceModel {
 	return &E2ServiceModel{
 		ServiceModelID:      "1.3.6.1.4.1.53148.1.1.2.3",
@@ -412,7 +412,7 @@ func CreateEnhancedRCServiceModel() *E2ServiceModel {
 	}
 }
 
-// CreateReportServiceModel creates a generic Report service model for custom data structures
+// CreateReportServiceModel creates a generic Report service model for custom data structures.
 func CreateReportServiceModel() *E2ServiceModel {
 	return &E2ServiceModel{
 		ServiceModelID:      "1.3.6.1.4.1.53148.1.1.2.4",
@@ -445,9 +445,9 @@ func CreateReportServiceModel() *E2ServiceModel {
 	}
 }
 
-// Service model plugin interface implementations
+// Service model plugin interface implementations.
 
-// KMPServiceModelPlugin implements KMP-specific processing
+// KMPServiceModelPlugin implements KMP-specific processing.
 type KMPServiceModelPlugin struct {
 	name       string
 	version    string
@@ -455,7 +455,7 @@ type KMPServiceModelPlugin struct {
 	mutex      sync.RWMutex
 }
 
-// NewKMPServiceModelPlugin creates a new KMP service model plugin
+// NewKMPServiceModelPlugin creates a new KMP service model plugin.
 func NewKMPServiceModelPlugin() *KMPServiceModelPlugin {
 	plugin := &KMPServiceModelPlugin{
 		name:       "KMP",
@@ -463,34 +463,38 @@ func NewKMPServiceModelPlugin() *KMPServiceModelPlugin {
 		processors: make(map[string]func(context.Context, interface{}) (interface{}, error)),
 	}
 
-	// Register processors
+	// Register processors.
 	plugin.processors["RIC_SUBSCRIPTION"] = plugin.processSubscription
 	plugin.processors["RIC_INDICATION"] = plugin.processIndication
 
 	return plugin
 }
 
+// GetName performs getname operation.
 func (p *KMPServiceModelPlugin) GetName() string {
 	return p.name
 }
 
+// GetVersion performs getversion operation.
 func (p *KMPServiceModelPlugin) GetVersion() string {
 	return p.version
 }
 
+// Validate performs validate operation.
 func (p *KMPServiceModelPlugin) Validate(serviceModel *E2ServiceModel) error {
-	// KMP-specific validation logic
+	// KMP-specific validation logic.
 	if serviceModel.ServiceModelName != "KPM" {
 		return fmt.Errorf("invalid service model for KMP plugin")
 	}
 	return nil
 }
 
+// Process performs process operation.
 func (p *KMPServiceModelPlugin) Process(ctx context.Context, request interface{}) (interface{}, error) {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 
-	// Determine request type and route to appropriate processor
+	// Determine request type and route to appropriate processor.
 	switch req := request.(type) {
 	case *RICSubscriptionRequest:
 		if processor, exists := p.processors["RIC_SUBSCRIPTION"]; exists {
@@ -507,6 +511,7 @@ func (p *KMPServiceModelPlugin) Process(ctx context.Context, request interface{}
 	return nil, fmt.Errorf("no processor found for request")
 }
 
+// GetSupportedProcedures performs getsupportedprocedures operation.
 func (p *KMPServiceModelPlugin) GetSupportedProcedures() []string {
 	return []string{"RIC_SUBSCRIPTION", "RIC_SUBSCRIPTION_DELETE", "RIC_INDICATION"}
 }
@@ -517,20 +522,20 @@ func (p *KMPServiceModelPlugin) processSubscription(ctx context.Context, request
 		return nil, fmt.Errorf("invalid request type for subscription processor")
 	}
 
-	// KMP-specific subscription processing
-	// Parse event trigger definition for KMP measurements
+	// KMP-specific subscription processing.
+	// Parse event trigger definition for KMP measurements.
 	var eventTrigger map[string]interface{}
 	if err := json.Unmarshal(req.RICSubscriptionDetails.RICEventTriggerDefinition, &eventTrigger); err != nil {
 		return nil, fmt.Errorf("failed to parse event trigger: %w", err)
 	}
 
-	// Validate KMP measurement configuration
+	// Validate KMP measurement configuration.
 	measurementTypes, ok := eventTrigger["measurement_types"].([]interface{})
 	if !ok {
 		return nil, fmt.Errorf("invalid measurement_types in event trigger")
 	}
 
-	// Process measurement types
+	// Process measurement types.
 	processedMeasurements := make([]string, 0, len(measurementTypes))
 	for _, mt := range measurementTypes {
 		if measurementType, ok := mt.(string); ok {
@@ -538,7 +543,7 @@ func (p *KMPServiceModelPlugin) processSubscription(ctx context.Context, request
 		}
 	}
 
-	// Return processed subscription response
+	// Return processed subscription response.
 	return &RICSubscriptionResponse{
 		RICRequestID:          req.RICRequestID,
 		RANFunctionID:         req.RANFunctionID,
@@ -552,14 +557,14 @@ func (p *KMPServiceModelPlugin) processIndication(ctx context.Context, request i
 		return nil, fmt.Errorf("invalid request type for indication processor")
 	}
 
-	// KMP-specific indication processing
-	// Parse indication message for KMP measurements
+	// KMP-specific indication processing.
+	// Parse indication message for KMP measurements.
 	var indicationData map[string]interface{}
 	if err := json.Unmarshal(ind.RICIndicationMessage, &indicationData); err != nil {
 		return nil, fmt.Errorf("failed to parse indication message: %w", err)
 	}
 
-	// Process measurement data
+	// Process measurement data.
 	processedData := map[string]interface{}{
 		"timestamp":    time.Now(),
 		"measurements": indicationData,
@@ -569,7 +574,7 @@ func (p *KMPServiceModelPlugin) processIndication(ctx context.Context, request i
 	return processedData, nil
 }
 
-// RCServiceModelPlugin implements RC-specific processing
+// RCServiceModelPlugin implements RC-specific processing.
 type RCServiceModelPlugin struct {
 	name       string
 	version    string
@@ -577,7 +582,7 @@ type RCServiceModelPlugin struct {
 	mutex      sync.RWMutex
 }
 
-// NewRCServiceModelPlugin creates a new RC service model plugin
+// NewRCServiceModelPlugin creates a new RC service model plugin.
 func NewRCServiceModelPlugin() *RCServiceModelPlugin {
 	plugin := &RCServiceModelPlugin{
 		name:       "RC",
@@ -585,20 +590,23 @@ func NewRCServiceModelPlugin() *RCServiceModelPlugin {
 		processors: make(map[string]func(context.Context, interface{}) (interface{}, error)),
 	}
 
-	// Register processors
+	// Register processors.
 	plugin.processors["RIC_CONTROL_REQUEST"] = plugin.processControlRequest
 
 	return plugin
 }
 
+// GetName performs getname operation.
 func (p *RCServiceModelPlugin) GetName() string {
 	return p.name
 }
 
+// GetVersion performs getversion operation.
 func (p *RCServiceModelPlugin) GetVersion() string {
 	return p.version
 }
 
+// Validate performs validate operation.
 func (p *RCServiceModelPlugin) Validate(serviceModel *E2ServiceModel) error {
 	if serviceModel.ServiceModelName != "RC" {
 		return fmt.Errorf("invalid service model for RC plugin")
@@ -606,6 +614,7 @@ func (p *RCServiceModelPlugin) Validate(serviceModel *E2ServiceModel) error {
 	return nil
 }
 
+// Process performs process operation.
 func (p *RCServiceModelPlugin) Process(ctx context.Context, request interface{}) (interface{}, error) {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
@@ -622,6 +631,7 @@ func (p *RCServiceModelPlugin) Process(ctx context.Context, request interface{})
 	return nil, fmt.Errorf("no processor found for request")
 }
 
+// GetSupportedProcedures performs getsupportedprocedures operation.
 func (p *RCServiceModelPlugin) GetSupportedProcedures() []string {
 	return []string{"RIC_CONTROL_REQUEST", "RIC_CONTROL_ACKNOWLEDGE", "RIC_CONTROL_FAILURE"}
 }
@@ -632,8 +642,8 @@ func (p *RCServiceModelPlugin) processControlRequest(ctx context.Context, reques
 		return nil, fmt.Errorf("invalid request type for control processor")
 	}
 
-	// RC-specific control processing
-	// Parse control header and message
+	// RC-specific control processing.
+	// Parse control header and message.
 	var controlHeader map[string]interface{}
 	if err := json.Unmarshal(req.RICControlHeader, &controlHeader); err != nil {
 		return nil, fmt.Errorf("failed to parse control header: %w", err)
@@ -644,13 +654,13 @@ func (p *RCServiceModelPlugin) processControlRequest(ctx context.Context, reques
 		return nil, fmt.Errorf("failed to parse control message: %w", err)
 	}
 
-	// Process control action
+	// Process control action.
 	controlAction, ok := controlMessage["action"].(string)
 	if !ok {
 		return nil, fmt.Errorf("missing or invalid control action")
 	}
 
-	// Simulate control execution
+	// Simulate control execution.
 	var outcome string
 	switch controlAction {
 	case "QoS_flow_mapping", "Traffic_steering":
@@ -661,7 +671,7 @@ func (p *RCServiceModelPlugin) processControlRequest(ctx context.Context, reques
 		outcome = "rejected"
 	}
 
-	// Return control acknowledge
+	// Return control acknowledge.
 	outcomeData, _ := json.Marshal(map[string]interface{}{
 		"outcome":      outcome,
 		"processed_by": "RC Plugin v" + p.version,

@@ -20,7 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// Resource returns a resource for the given resource name
+// Resource returns a resource for the given resource name.
 func Resource(resource string) schema.GroupResource {
 	return schema.GroupResource{
 		Group:    "porch.nephoran.com",

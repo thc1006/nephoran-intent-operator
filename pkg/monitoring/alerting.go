@@ -14,27 +14,34 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring/health"
 )
 
-// Type alias for backward compatibility
+// Type alias for backward compatibility.
 type AlertSeverity = health.AlertSeverity
 
-// Use constants from health package
+// Use constants from health package.
 const (
-	AlertSeverityInfo     = health.SeverityInfo
-	AlertSeverityWarning  = health.SeverityWarning
-	AlertSeverityError    = health.SeverityError
+	// AlertSeverityInfo holds alertseverityinfo value.
+	AlertSeverityInfo = health.SeverityInfo
+	// AlertSeverityWarning holds alertseveritywarning value.
+	AlertSeverityWarning = health.SeverityWarning
+	// AlertSeverityError holds alertseverityerror value.
+	AlertSeverityError = health.SeverityError
+	// AlertSeverityCritical holds alertseveritycritical value.
 	AlertSeverityCritical = health.SeverityCritical
 )
 
-// AlertState represents the state of an alert
+// AlertState represents the state of an alert.
 type AlertState string
 
 const (
-	AlertStateFiring   AlertState = "firing"
+	// AlertStateFiring holds alertstatefiring value.
+	AlertStateFiring AlertState = "firing"
+	// AlertStateResolved holds alertstateresolved value.
 	AlertStateResolved AlertState = "resolved"
+	// AlertStateSilenced holds alertstatesilenced value.
 	AlertStateSilenced AlertState = "silenced"
 )
 
-// Alert represents an alert instance
+// Alert represents an alert instance.
 type Alert struct {
 	ID           string                 `json:"id"`
 	Name         string                 `json:"name"`
@@ -51,7 +58,7 @@ type Alert struct {
 	Details      map[string]interface{} `json:"details,omitempty"`
 }
 
-// AlertRule defines conditions for triggering alerts
+// AlertRule defines conditions for triggering alerts.
 type AlertRule struct {
 	Name            string             `json:"name"`
 	Description     string             `json:"description"`
@@ -66,10 +73,10 @@ type AlertRule struct {
 	AlertCount      int64              `json:"alert_count"`
 }
 
-// AlertConditionFunc evaluates whether an alert should fire
+// AlertConditionFunc evaluates whether an alert should fire.
 type AlertConditionFunc func(ctx context.Context) (bool, interface{}, error)
 
-// NotificationChannel represents a notification destination
+// NotificationChannel represents a notification destination.
 type NotificationChannel struct {
 	Name    string            `json:"name"`
 	Type    string            `json:"type"` // slack, email, webhook, pagerduty
@@ -78,14 +85,14 @@ type NotificationChannel struct {
 	Filters []AlertFilter     `json:"filters"`
 }
 
-// AlertFilter filters alerts for notification channels
+// AlertFilter filters alerts for notification channels.
 type AlertFilter struct {
 	Field    string `json:"field"`    // severity, component, etc.
 	Operator string `json:"operator"` // equals, contains, matches
 	Value    string `json:"value"`
 }
 
-// AlertManager manages alerts and notifications
+// AlertManager manages alerts and notifications.
 type AlertManager struct {
 	mu                   sync.RWMutex
 	rules                map[string]*AlertRule
@@ -99,7 +106,7 @@ type AlertManager struct {
 	httpClient           *http.Client
 }
 
-// AlertManagerConfig holds configuration for the alert manager
+// AlertManagerConfig holds configuration for the alert manager.
 type AlertManagerConfig struct {
 	EvaluationInterval   time.Duration         `json:"evaluation_interval"`
 	NotificationChannels []NotificationChannel `json:"notification_channels"`
@@ -107,7 +114,7 @@ type AlertManagerConfig struct {
 	ExternalURL          string                `json:"external_url"`
 }
 
-// NewAlertManager creates a new alert manager
+// NewAlertManager creates a new alert manager.
 func NewAlertManager(config *AlertManagerConfig, logger *StructuredLogger, metricsRecorder *MetricsRecorder) *AlertManager {
 	if config == nil {
 		config = &AlertManagerConfig{
@@ -128,7 +135,7 @@ func NewAlertManager(config *AlertManagerConfig, logger *StructuredLogger, metri
 		},
 	}
 
-	// Register notification channels
+	// Register notification channels.
 	for _, channel := range config.NotificationChannels {
 		am.RegisterNotificationChannel(&channel)
 	}
@@ -136,7 +143,7 @@ func NewAlertManager(config *AlertManagerConfig, logger *StructuredLogger, metri
 	return am
 }
 
-// RegisterAlertRule registers a new alert rule
+// RegisterAlertRule registers a new alert rule.
 func (am *AlertManager) RegisterAlertRule(rule *AlertRule) {
 	am.mu.Lock()
 	defer am.mu.Unlock()
@@ -152,7 +159,7 @@ func (am *AlertManager) RegisterAlertRule(rule *AlertRule) {
 	}
 }
 
-// RegisterNotificationChannel registers a notification channel
+// RegisterNotificationChannel registers a notification channel.
 func (am *AlertManager) RegisterNotificationChannel(channel *NotificationChannel) {
 	am.mu.Lock()
 	defer am.mu.Unlock()
@@ -168,7 +175,7 @@ func (am *AlertManager) RegisterNotificationChannel(channel *NotificationChannel
 	}
 }
 
-// Start starts the alert manager
+// Start starts the alert manager.
 func (am *AlertManager) Start(ctx context.Context) error {
 	am.mu.Lock()
 	if am.running {
@@ -178,10 +185,10 @@ func (am *AlertManager) Start(ctx context.Context) error {
 	am.running = true
 	am.mu.Unlock()
 
-	// Register default alert rules
+	// Register default alert rules.
 	am.registerDefaultAlertRules()
 
-	// Start evaluation loop
+	// Start evaluation loop.
 	go am.evaluationLoop(ctx)
 
 	if am.logger != nil {
@@ -195,7 +202,7 @@ func (am *AlertManager) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the alert manager
+// Stop stops the alert manager.
 func (am *AlertManager) Stop() {
 	am.mu.Lock()
 	defer am.mu.Unlock()
@@ -212,7 +219,7 @@ func (am *AlertManager) Stop() {
 	}
 }
 
-// evaluationLoop runs the alert evaluation loop
+// evaluationLoop runs the alert evaluation loop.
 func (am *AlertManager) evaluationLoop(ctx context.Context) {
 	ticker := time.NewTicker(am.evaluationInterval)
 	defer ticker.Stop()
@@ -229,7 +236,7 @@ func (am *AlertManager) evaluationLoop(ctx context.Context) {
 	}
 }
 
-// evaluateRules evaluates all alert rules
+// evaluateRules evaluates all alert rules.
 func (am *AlertManager) evaluateRules(ctx context.Context) {
 	am.mu.RLock()
 	rules := make([]*AlertRule, 0, len(am.rules))
@@ -245,14 +252,14 @@ func (am *AlertManager) evaluateRules(ctx context.Context) {
 	}
 }
 
-// evaluateRule evaluates a single alert rule
+// evaluateRule evaluates a single alert rule.
 func (am *AlertManager) evaluateRule(ctx context.Context, rule *AlertRule) {
 	defer func() {
 		rule.LastEvaluated = time.Now()
 		rule.EvaluationCount++
 	}()
 
-	// Evaluate condition
+	// Evaluate condition.
 	shouldFire, value, err := rule.Condition(ctx)
 	if err != nil {
 		if am.logger != nil {
@@ -271,7 +278,7 @@ func (am *AlertManager) evaluateRule(ctx context.Context, rule *AlertRule) {
 
 	if shouldFire {
 		if !exists {
-			// Create new alert
+			// Create new alert.
 			alert := &Alert{
 				ID:          alertID,
 				Name:        rule.Name,
@@ -291,7 +298,7 @@ func (am *AlertManager) evaluateRule(ctx context.Context, rule *AlertRule) {
 
 			rule.AlertCount++
 
-			// Send notifications
+			// Send notifications.
 			am.sendNotifications(ctx, alert)
 
 			if am.logger != nil {
@@ -303,18 +310,18 @@ func (am *AlertManager) evaluateRule(ctx context.Context, rule *AlertRule) {
 				)
 			}
 
-			// Record metrics
+			// Record metrics.
 			if am.metricsRecorder != nil {
 				am.metricsRecorder.RecordControllerHealth("alerting", rule.Name, false)
 			}
 		}
 	} else if exists && existingAlert.State == AlertStateFiring {
-		// Resolve existing alert
+		// Resolve existing alert.
 		now := time.Now()
 		existingAlert.State = AlertStateResolved
 		existingAlert.EndsAt = &now
 
-		// Send resolution notifications
+		// Send resolution notifications.
 		am.sendNotifications(ctx, existingAlert)
 
 		if am.logger != nil {
@@ -325,7 +332,7 @@ func (am *AlertManager) evaluateRule(ctx context.Context, rule *AlertRule) {
 			)
 		}
 
-		// Remove from active alerts after a delay
+		// Remove from active alerts after a delay.
 		go func() {
 			time.Sleep(5 * time.Minute)
 			am.mu.Lock()
@@ -333,14 +340,14 @@ func (am *AlertManager) evaluateRule(ctx context.Context, rule *AlertRule) {
 			am.mu.Unlock()
 		}()
 
-		// Record metrics
+		// Record metrics.
 		if am.metricsRecorder != nil {
 			am.metricsRecorder.RecordControllerHealth("alerting", rule.Name, true)
 		}
 	}
 }
 
-// sendNotifications sends alert notifications to configured channels
+// sendNotifications sends alert notifications to configured channels.
 func (am *AlertManager) sendNotifications(ctx context.Context, alert *Alert) {
 	am.mu.RLock()
 	channels := make([]*NotificationChannel, 0, len(am.notificationChannels))
@@ -356,7 +363,7 @@ func (am *AlertManager) sendNotifications(ctx context.Context, alert *Alert) {
 	}
 }
 
-// shouldNotify determines if an alert should be sent to a channel based on filters
+// shouldNotify determines if an alert should be sent to a channel based on filters.
 func (am *AlertManager) shouldNotify(alert *Alert, channel *NotificationChannel) bool {
 	for _, filter := range channel.Filters {
 		if !am.matchFilter(alert, filter) {
@@ -366,7 +373,7 @@ func (am *AlertManager) shouldNotify(alert *Alert, channel *NotificationChannel)
 	return true
 }
 
-// matchFilter checks if an alert matches a filter
+// matchFilter checks if an alert matches a filter.
 func (am *AlertManager) matchFilter(alert *Alert, filter AlertFilter) bool {
 	var value string
 
@@ -391,14 +398,14 @@ func (am *AlertManager) matchFilter(alert *Alert, filter AlertFilter) bool {
 	case "contains":
 		return strings.Contains(value, filter.Value)
 	case "matches":
-		// Simple wildcard matching
+		// Simple wildcard matching.
 		return strings.Contains(value, strings.Replace(filter.Value, "*", "", -1))
 	default:
 		return false
 	}
 }
 
-// sendNotification sends a notification to a specific channel
+// sendNotification sends a notification to a specific channel.
 func (am *AlertManager) sendNotification(ctx context.Context, alert *Alert, channel *NotificationChannel) {
 	switch channel.Type {
 	case "slack":
@@ -419,7 +426,7 @@ func (am *AlertManager) sendNotification(ctx context.Context, alert *Alert, chan
 	}
 }
 
-// sendSlackNotification sends a Slack notification
+// sendSlackNotification sends a Slack notification.
 func (am *AlertManager) sendSlackNotification(ctx context.Context, alert *Alert, channel *NotificationChannel) {
 	webhookURL, exists := channel.Config["webhook_url"]
 	if !exists {
@@ -499,7 +506,7 @@ func (am *AlertManager) sendSlackNotification(ctx context.Context, alert *Alert,
 	}
 }
 
-// sendWebhookNotification sends a generic webhook notification
+// sendWebhookNotification sends a generic webhook notification.
 func (am *AlertManager) sendWebhookNotification(ctx context.Context, alert *Alert, channel *NotificationChannel) {
 	webhookURL, exists := channel.Config["url"]
 	if !exists {
@@ -535,9 +542,9 @@ func (am *AlertManager) sendWebhookNotification(ctx context.Context, alert *Aler
 	}
 }
 
-// sendEmailNotification sends an email notification (placeholder implementation)
+// sendEmailNotification sends an email notification (placeholder implementation).
 func (am *AlertManager) sendEmailNotification(ctx context.Context, alert *Alert, channel *NotificationChannel) {
-	// Implementation would integrate with SMTP server
+	// Implementation would integrate with SMTP server.
 	if am.logger != nil {
 		am.logger.Info(ctx, "Email notification would be sent",
 			slog.String("channel_name", channel.Name),
@@ -546,9 +553,9 @@ func (am *AlertManager) sendEmailNotification(ctx context.Context, alert *Alert,
 	}
 }
 
-// sendPagerDutyNotification sends a PagerDuty notification (placeholder implementation)
+// sendPagerDutyNotification sends a PagerDuty notification (placeholder implementation).
 func (am *AlertManager) sendPagerDutyNotification(ctx context.Context, alert *Alert, channel *NotificationChannel) {
-	// Implementation would integrate with PagerDuty API
+	// Implementation would integrate with PagerDuty API.
 	if am.logger != nil {
 		am.logger.Info(ctx, "PagerDuty notification would be sent",
 			slog.String("channel_name", channel.Name),
@@ -557,7 +564,7 @@ func (am *AlertManager) sendPagerDutyNotification(ctx context.Context, alert *Al
 	}
 }
 
-// GetActiveAlerts returns all active alerts
+// GetActiveAlerts returns all active alerts.
 func (am *AlertManager) GetActiveAlerts() []*Alert {
 	am.mu.RLock()
 	defer am.mu.RUnlock()
@@ -572,7 +579,7 @@ func (am *AlertManager) GetActiveAlerts() []*Alert {
 	return alerts
 }
 
-// GetAlertRules returns all registered alert rules
+// GetAlertRules returns all registered alert rules.
 func (am *AlertManager) GetAlertRules() []*AlertRule {
 	am.mu.RLock()
 	defer am.mu.RUnlock()
@@ -585,9 +592,9 @@ func (am *AlertManager) GetAlertRules() []*AlertRule {
 	return rules
 }
 
-// registerDefaultAlertRules registers default alert rules for the Nephoran system
+// registerDefaultAlertRules registers default alert rules for the Nephoran system.
 func (am *AlertManager) registerDefaultAlertRules() {
-	// NetworkIntent processing failure rate
+	// NetworkIntent processing failure rate.
 	am.RegisterAlertRule(&AlertRule{
 		Name:        "NetworkIntentHighFailureRate",
 		Description: "NetworkIntent processing failure rate is high",
@@ -604,13 +611,13 @@ func (am *AlertManager) registerDefaultAlertRules() {
 		},
 		Enabled: true,
 		Condition: func(ctx context.Context) (bool, interface{}, error) {
-			// This would typically query Prometheus metrics
-			// For now, return false as a placeholder
+			// This would typically query Prometheus metrics.
+			// For now, return false as a placeholder.
 			return false, nil, nil
 		},
 	})
 
-	// LLM service down
+	// LLM service down.
 	am.RegisterAlertRule(&AlertRule{
 		Name:        "LLMServiceDown",
 		Description: "LLM service is not responding",
@@ -627,12 +634,12 @@ func (am *AlertManager) registerDefaultAlertRules() {
 		},
 		Enabled: true,
 		Condition: func(ctx context.Context) (bool, interface{}, error) {
-			// This would check LLM service health
+			// This would check LLM service health.
 			return false, nil, nil
 		},
 	})
 
-	// High memory usage
+	// High memory usage.
 	am.RegisterAlertRule(&AlertRule{
 		Name:        "HighMemoryUsage",
 		Description: "System memory usage is critically high",
@@ -649,12 +656,12 @@ func (am *AlertManager) registerDefaultAlertRules() {
 		},
 		Enabled: true,
 		Condition: func(ctx context.Context) (bool, interface{}, error) {
-			// This would check memory metrics
+			// This would check memory metrics.
 			return false, nil, nil
 		},
 	})
 
-	// O-RAN interface connection issues
+	// O-RAN interface connection issues.
 	am.RegisterAlertRule(&AlertRule{
 		Name:        "ORANInterfaceDown",
 		Description: "O-RAN interface connection is down",
@@ -671,25 +678,25 @@ func (am *AlertManager) registerDefaultAlertRules() {
 		},
 		Enabled: true,
 		Condition: func(ctx context.Context) (bool, interface{}, error) {
-			// This would check O-RAN interface connectivity
+			// This would check O-RAN interface connectivity.
 			return false, nil, nil
 		},
 	})
 }
 
-// Utility functions
+// Utility functions.
 
-// generateAlertID generates a unique alert ID
+// generateAlertID generates a unique alert ID.
 func (am *AlertManager) generateAlertID(rule *AlertRule) string {
 	return fmt.Sprintf("%s-%d", rule.Name, time.Now().Unix())
 }
 
-// generateFingerprint generates a fingerprint for an alert
+// generateFingerprint generates a fingerprint for an alert.
 func (am *AlertManager) generateFingerprint(rule *AlertRule) string {
 	return fmt.Sprintf("%s-%s", rule.Name, rule.Description)
 }
 
-// copyLabels creates a copy of labels map
+// copyLabels creates a copy of labels map.
 func (am *AlertManager) copyLabels(labels map[string]string) map[string]string {
 	if labels == nil {
 		return make(map[string]string)
@@ -702,7 +709,7 @@ func (am *AlertManager) copyLabels(labels map[string]string) map[string]string {
 	return copy
 }
 
-// getAlertColor returns color for Slack notifications based on severity
+// getAlertColor returns color for Slack notifications based on severity.
 func (am *AlertManager) getAlertColor(severity AlertSeverity) string {
 	switch severity {
 	case AlertSeverityInfo:
@@ -718,7 +725,7 @@ func (am *AlertManager) getAlertColor(severity AlertSeverity) string {
 	}
 }
 
-// getStateEmoji returns emoji for alert state
+// getStateEmoji returns emoji for alert state.
 func (am *AlertManager) getStateEmoji(state AlertState) string {
 	switch state {
 	case AlertStateFiring:

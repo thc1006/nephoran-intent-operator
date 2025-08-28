@@ -24,10 +24,15 @@ type Configurable[T any] interface {
 type ConfigSource int
 
 const (
+	// ConfigSourceEnv holds configsourceenv value.
 	ConfigSourceEnv ConfigSource = iota
+	// ConfigSourceFile holds configsourcefile value.
 	ConfigSourceFile
+	// ConfigSourceKubernetes holds configsourcekubernetes value.
 	ConfigSourceKubernetes
+	// ConfigSourceVault holds configsourcevault value.
 	ConfigSourceVault
+	// ConfigSourceConsul holds configsourceconsul value.
 	ConfigSourceConsul
 )
 
@@ -92,16 +97,16 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 		sources = []ConfigSource{ConfigSourceEnv, ConfigSourceFile, ConfigSourceKubernetes}
 	}
 
-	// Check cache first
+	// Check cache first.
 	if entry := cm.cache.Get(key); entry.IsSome() {
 		cacheEntry := entry.Value()
-		// Consider cache valid for 5 minutes
+		// Consider cache valid for 5 minutes.
 		if time.Since(cacheEntry.Timestamp) < 5*time.Minute {
 			return Ok[T, error](cacheEntry.Value)
 		}
 	}
 
-	// Try each source in priority order
+	// Try each source in priority order.
 	var lastErr error
 	for _, source := range sources {
 		if provider, exists := cm.providers[source]; exists {
@@ -109,7 +114,7 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 			if result.IsOk() {
 				config := result.Value()
 
-				// Apply transforms
+				// Apply transforms.
 				for _, transform := range cm.transforms {
 					transformResult := transform(config)
 					if transformResult.IsErr() {
@@ -119,7 +124,7 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 					config = transformResult.Value()
 				}
 
-				// Validate configuration
+				// Validate configuration.
 				for _, validator := range cm.validators {
 					validationResult := validator(config)
 					if validationResult.IsErr() {
@@ -132,7 +137,7 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 					}
 				}
 
-				// Cache the result
+				// Cache the result.
 				entry := ConfigEntry[T]{
 					Value:     config,
 					Source:    source,
@@ -147,7 +152,7 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 		}
 	}
 
-	// Return defaults if all sources fail
+	// Return defaults if all sources fail.
 	if !isZero(cm.defaults) {
 		return Ok[T, error](cm.defaults)
 	}
@@ -162,7 +167,7 @@ func (cm *ConfigManager[T]) Store(ctx context.Context, key string, value T, sour
 		return Err[bool, error](fmt.Errorf("no provider registered for source: %d", source))
 	}
 
-	// Validate before storing
+	// Validate before storing.
 	for _, validator := range cm.validators {
 		result := validator(value)
 		if result.IsErr() {
@@ -173,10 +178,10 @@ func (cm *ConfigManager[T]) Store(ctx context.Context, key string, value T, sour
 		}
 	}
 
-	// Store the configuration
+	// Store the configuration.
 	result := provider.Store(ctx, key, value)
 	if result.IsOk() {
-		// Update cache
+		// Update cache.
 		entry := ConfigEntry[T]{
 			Value:     value,
 			Source:    source,
@@ -263,7 +268,7 @@ func NewEnvironmentProvider[T any](prefix string, parser EnvParser[T]) *Environm
 func (ep *EnvironmentProvider[T]) Load(ctx context.Context, key string) Result[T, error] {
 	envVars := make(map[string]string)
 
-	// Collect all environment variables with the prefix
+	// Collect all environment variables with the prefix.
 	for _, env := range os.Environ() {
 		parts := strings.SplitN(env, "=", 2)
 		if len(parts) != 2 {
@@ -316,7 +321,7 @@ func (rep ReflectiveEnvParser[T]) Parse(env map[string]string) Result[T, error] 
 			continue
 		}
 
-		// Get environment variable name from tag or field name
+		// Get environment variable name from tag or field name.
 		envName := field.Tag.Get("env")
 		if envName == "" {
 			envName = strings.ToUpper(field.Name)
@@ -324,7 +329,7 @@ func (rep ReflectiveEnvParser[T]) Parse(env map[string]string) Result[T, error] 
 
 		envValue, exists := env[envName]
 		if !exists {
-			// Check for default value
+			// Check for default value.
 			if defaultValue := field.Tag.Get("default"); defaultValue != "" {
 				envValue = defaultValue
 			} else {
@@ -332,7 +337,7 @@ func (rep ReflectiveEnvParser[T]) Parse(env map[string]string) Result[T, error] 
 			}
 		}
 
-		// Parse the value based on field type
+		// Parse the value based on field type.
 		if err := setFieldValue(fieldValue, envValue); err != nil {
 			return Err[T, error](fmt.Errorf("failed to set field %s: %w", field.Name, err))
 		}
@@ -379,7 +384,7 @@ func setFieldValue(fieldValue reflect.Value, value string) error {
 		}
 		fieldValue.SetBool(boolValue)
 	case reflect.Slice:
-		// Handle string slices
+		// Handle string slices.
 		if fieldValue.Type().Elem().Kind() == reflect.String {
 			values := strings.Split(value, ",")
 			slice := reflect.MakeSlice(fieldValue.Type(), len(values), len(values))
@@ -405,9 +410,13 @@ type FileProvider[T any] struct {
 type FileFormat int
 
 const (
+	// FormatJSON holds formatjson value.
 	FormatJSON FileFormat = iota
+	// FormatYAML holds formatyaml value.
 	FormatYAML
+	// FormatTOML holds formattoml value.
 	FormatTOML
+	// FormatProperties holds formatproperties value.
 	FormatProperties
 )
 
@@ -459,7 +468,7 @@ func (fp *FileProvider[T]) Store(ctx context.Context, key string, value T) Resul
 		return Err[bool, error](fmt.Errorf("unsupported file format: %d", fp.format))
 	}
 
-	if err := os.WriteFile(filename, data, 0644); err != nil {
+	if err := os.WriteFile(filename, data, 0o640); err != nil {
 		return Err[bool, error](fmt.Errorf("failed to write config file %s: %w", filename, err))
 	}
 
@@ -552,7 +561,7 @@ func (cm *ConfigMerger[T]) Merge(configs ...T) Result[T, error] {
 	return Ok[T, error](result)
 }
 
-// Utility functions
+// Utility functions.
 
 // isZero checks if a value is the zero value of its type.
 func isZero[T any](v T) bool {

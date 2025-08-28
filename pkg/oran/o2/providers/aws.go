@@ -22,9 +22,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ProviderTypeAWS is defined in interface.go
+// ProviderTypeAWS is defined in interface.go.
 
-// AWSProvider implements CloudProvider for Amazon Web Services
+// AWSProvider implements CloudProvider for Amazon Web Services.
 type AWSProvider struct {
 	name             string
 	config           *ProviderConfiguration
@@ -47,7 +47,7 @@ type AWSProvider struct {
 	region           string
 }
 
-// NewAWSProvider creates a new AWS provider instance
+// NewAWSProvider creates a new AWS provider instance.
 func NewAWSProvider(config *ProviderConfiguration) (CloudProvider, error) {
 	if config == nil {
 		return nil, fmt.Errorf("configuration is required for AWS provider")
@@ -67,7 +67,7 @@ func NewAWSProvider(config *ProviderConfiguration) (CloudProvider, error) {
 	return provider, nil
 }
 
-// GetProviderInfo returns information about this AWS provider
+// GetProviderInfo returns information about this AWS provider.
 func (a *AWSProvider) GetProviderInfo() *ProviderInfo {
 	a.mutex.RLock()
 	defer a.mutex.RUnlock()
@@ -88,7 +88,7 @@ func (a *AWSProvider) GetProviderInfo() *ProviderInfo {
 	}
 }
 
-// GetSupportedResourceTypes returns the resource types supported by AWS
+// GetSupportedResourceTypes returns the resource types supported by AWS.
 func (a *AWSProvider) GetSupportedResourceTypes() []string {
 	return []string{
 		"ec2_instance",
@@ -114,7 +114,7 @@ func (a *AWSProvider) GetSupportedResourceTypes() []string {
 	}
 }
 
-// GetCapabilities returns the capabilities of this AWS provider
+// GetCapabilities returns the capabilities of this AWS provider.
 func (a *AWSProvider) GetCapabilities() *ProviderCapabilities {
 	return &ProviderCapabilities{
 		ComputeTypes:     []string{"ec2_instance", "lambda_function", "ecs_task", "eks_node"},
@@ -155,12 +155,12 @@ func (a *AWSProvider) GetCapabilities() *ProviderCapabilities {
 	}
 }
 
-// Connect establishes connection to AWS
+// Connect establishes connection to AWS.
 func (a *AWSProvider) Connect(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	logger.Info("connecting to AWS", "region", a.region)
 
-	// Load AWS configuration
+	// Load AWS configuration.
 	cfg, err := a.loadAWSConfig(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to load AWS configuration: %w", err)
@@ -168,10 +168,10 @@ func (a *AWSProvider) Connect(ctx context.Context) error {
 
 	a.awsConfig = cfg
 
-	// Initialize service clients
+	// Initialize service clients.
 	a.initializeClients()
 
-	// Get account ID
+	// Get account ID.
 	stsOutput, err := a.stsClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
 	if err != nil {
 		return fmt.Errorf("failed to get AWS account identity: %w", err)
@@ -186,16 +186,16 @@ func (a *AWSProvider) Connect(ctx context.Context) error {
 	return nil
 }
 
-// loadAWSConfig loads AWS configuration based on provider config
+// loadAWSConfig loads AWS configuration based on provider config.
 func (a *AWSProvider) loadAWSConfig(ctx context.Context) (aws.Config, error) {
 	var optFns []func(*config.LoadOptions) error
 
-	// Set region
+	// Set region.
 	if a.region != "" {
 		optFns = append(optFns, config.WithRegion(a.region))
 	}
 
-	// Set credentials if provided
+	// Set credentials if provided.
 	if accessKey, exists := a.config.Credentials["access_key_id"]; exists {
 		secretKey := a.config.Credentials["secret_access_key"]
 		sessionToken := a.config.Credentials["session_token"]
@@ -205,21 +205,21 @@ func (a *AWSProvider) loadAWSConfig(ctx context.Context) (aws.Config, error) {
 		))
 	}
 
-	// Use profile if specified
+	// Use profile if specified.
 	if profile, exists := a.config.Credentials["profile"]; exists {
 		optFns = append(optFns, config.WithSharedConfigProfile(profile))
 	}
 
-	// Use role ARN if specified
+	// Use role ARN if specified.
 	if roleARN, exists := a.config.Credentials["role_arn"]; exists {
-		// Role assumption would be configured here
+		// Role assumption would be configured here.
 		_ = roleARN // Placeholder
 	}
 
 	return config.LoadDefaultConfig(ctx, optFns...)
 }
 
-// initializeClients initializes AWS service clients
+// initializeClients initializes AWS service clients.
 func (a *AWSProvider) initializeClients() {
 	a.ec2Client = ec2.NewFromConfig(a.awsConfig)
 	a.eksClient = eks.NewFromConfig(a.awsConfig)
@@ -233,7 +233,7 @@ func (a *AWSProvider) initializeClients() {
 	a.stsClient = sts.NewFromConfig(a.awsConfig)
 }
 
-// Disconnect closes the connection to AWS
+// Disconnect closes the connection to AWS.
 func (a *AWSProvider) Disconnect(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	logger.Info("disconnecting from AWS")
@@ -242,7 +242,7 @@ func (a *AWSProvider) Disconnect(ctx context.Context) error {
 	a.connected = false
 	a.mutex.Unlock()
 
-	// Stop event watching if running
+	// Stop event watching if running.
 	select {
 	case a.stopChannel <- struct{}{}:
 	default:
@@ -252,25 +252,25 @@ func (a *AWSProvider) Disconnect(ctx context.Context) error {
 	return nil
 }
 
-// HealthCheck performs a health check on AWS services
+// HealthCheck performs a health check on AWS services.
 func (a *AWSProvider) HealthCheck(ctx context.Context) error {
-	// Check EC2 service
+	// Check EC2 service.
 	_, err := a.ec2Client.DescribeRegions(ctx, &ec2.DescribeRegionsInput{})
 	if err != nil {
 		return fmt.Errorf("health check failed: unable to access EC2 service: %w", err)
 	}
 
-	// Check S3 service
+	// Check S3 service.
 	_, err = a.s3Client.ListBuckets(ctx, &s3.ListBucketsInput{})
 	if err != nil {
 		return fmt.Errorf("health check failed: unable to access S3 service: %w", err)
 	}
 
-	// Check IAM service
+	// Check IAM service.
 	_, err = a.iamClient.GetUser(ctx, &iam.GetUserInput{})
 	if err != nil {
-		// It's okay if we can't get user info (might be using role)
-		// Just check if we can make IAM calls
+		// It's okay if we can't get user info (might be using role).
+		// Just check if we can make IAM calls.
 		_, err = a.iamClient.ListRoles(ctx, &iam.ListRolesInput{
 			MaxItems: aws.Int32(1),
 		})
@@ -282,12 +282,12 @@ func (a *AWSProvider) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
-// Close closes any resources held by the provider
+// Close closes any resources held by the provider.
 func (a *AWSProvider) Close() error {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
 
-	// Stop event watching
+	// Stop event watching.
 	select {
 	case a.stopChannel <- struct{}{}:
 	default:
@@ -297,7 +297,7 @@ func (a *AWSProvider) Close() error {
 	return nil
 }
 
-// CreateResource creates a new AWS resource
+// CreateResource creates a new AWS resource.
 func (a *AWSProvider) CreateResource(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("creating AWS resource", "type", req.Type, "name", req.Name)
@@ -318,12 +318,12 @@ func (a *AWSProvider) CreateResource(ctx context.Context, req *CreateResourceReq
 	}
 }
 
-// GetResource retrieves an AWS resource
+// GetResource retrieves an AWS resource.
 func (a *AWSProvider) GetResource(ctx context.Context, resourceID string) (*ResourceResponse, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("getting AWS resource", "resourceID", resourceID)
 
-	// Parse resourceID format: type/id
+	// Parse resourceID format: type/id.
 	parts := splitResourceID(resourceID)
 	if len(parts) < 2 {
 		return nil, fmt.Errorf("invalid resourceID format: %s", resourceID)
@@ -343,7 +343,7 @@ func (a *AWSProvider) GetResource(ctx context.Context, resourceID string) (*Reso
 	}
 }
 
-// UpdateResource updates an AWS resource
+// UpdateResource updates an AWS resource.
 func (a *AWSProvider) UpdateResource(ctx context.Context, resourceID string, req *UpdateResourceRequest) (*ResourceResponse, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("updating AWS resource", "resourceID", resourceID)
@@ -365,7 +365,7 @@ func (a *AWSProvider) UpdateResource(ctx context.Context, resourceID string, req
 	}
 }
 
-// DeleteResource deletes an AWS resource
+// DeleteResource deletes an AWS resource.
 func (a *AWSProvider) DeleteResource(ctx context.Context, resourceID string) error {
 	logger := log.FromContext(ctx)
 	logger.Info("deleting AWS resource", "resourceID", resourceID)
@@ -391,7 +391,7 @@ func (a *AWSProvider) DeleteResource(ctx context.Context, resourceID string) err
 	}
 }
 
-// ListResources lists AWS resources with optional filtering
+// ListResources lists AWS resources with optional filtering.
 func (a *AWSProvider) ListResources(ctx context.Context, filter *ResourceFilter) ([]*ResourceResponse, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("listing AWS resources", "filter", filter)
@@ -400,7 +400,7 @@ func (a *AWSProvider) ListResources(ctx context.Context, filter *ResourceFilter)
 
 	resourceTypes := filter.Types
 	if len(resourceTypes) == 0 {
-		// Default to common resource types
+		// Default to common resource types.
 		resourceTypes = []string{"ec2_instance", "s3_bucket", "vpc"}
 	}
 
@@ -416,7 +416,7 @@ func (a *AWSProvider) ListResources(ctx context.Context, filter *ResourceFilter)
 	return resources, nil
 }
 
-// Deploy creates a deployment using CloudFormation or other orchestration
+// Deploy creates a deployment using CloudFormation or other orchestration.
 func (a *AWSProvider) Deploy(ctx context.Context, req *DeploymentRequest) (*DeploymentResponse, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("deploying template", "name", req.Name, "type", req.TemplateType)
@@ -433,27 +433,27 @@ func (a *AWSProvider) Deploy(ctx context.Context, req *DeploymentRequest) (*Depl
 	}
 }
 
-// GetDeployment retrieves a deployment (CloudFormation stack)
+// GetDeployment retrieves a deployment (CloudFormation stack).
 func (a *AWSProvider) GetDeployment(ctx context.Context, deploymentID string) (*DeploymentResponse, error) {
 	return a.getCloudFormationStack(ctx, deploymentID)
 }
 
-// UpdateDeployment updates a deployment
+// UpdateDeployment updates a deployment.
 func (a *AWSProvider) UpdateDeployment(ctx context.Context, deploymentID string, req *UpdateDeploymentRequest) (*DeploymentResponse, error) {
 	return a.updateCloudFormationStack(ctx, deploymentID, req)
 }
 
-// DeleteDeployment deletes a deployment
+// DeleteDeployment deletes a deployment.
 func (a *AWSProvider) DeleteDeployment(ctx context.Context, deploymentID string) error {
 	return a.deleteCloudFormationStack(ctx, deploymentID)
 }
 
-// ListDeployments lists deployments (CloudFormation stacks)
+// ListDeployments lists deployments (CloudFormation stacks).
 func (a *AWSProvider) ListDeployments(ctx context.Context, filter *DeploymentFilter) ([]*DeploymentResponse, error) {
 	return a.listCloudFormationStacks(ctx, filter)
 }
 
-// ScaleResource scales an AWS resource
+// ScaleResource scales an AWS resource.
 func (a *AWSProvider) ScaleResource(ctx context.Context, resourceID string, req *ScaleRequest) error {
 	logger := log.FromContext(ctx)
 	logger.Info("scaling AWS resource", "resourceID", resourceID, "direction", req.Direction)
@@ -477,7 +477,7 @@ func (a *AWSProvider) ScaleResource(ctx context.Context, resourceID string, req 
 	}
 }
 
-// GetScalingCapabilities returns scaling capabilities for a resource
+// GetScalingCapabilities returns scaling capabilities for a resource.
 func (a *AWSProvider) GetScalingCapabilities(ctx context.Context, resourceID string) (*ScalingCapabilities, error) {
 	parts := splitResourceID(resourceID)
 	if len(parts) < 2 {
@@ -515,11 +515,11 @@ func (a *AWSProvider) GetScalingCapabilities(ctx context.Context, resourceID str
 	}
 }
 
-// GetMetrics returns cloud-level metrics
+// GetMetrics returns cloud-level metrics.
 func (a *AWSProvider) GetMetrics(ctx context.Context) (map[string]interface{}, error) {
 	metrics := make(map[string]interface{})
 
-	// Get EC2 instance count
+	// Get EC2 instance count.
 	ec2Result, err := a.ec2Client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{})
 	if err == nil {
 		totalInstances := 0
@@ -536,19 +536,19 @@ func (a *AWSProvider) GetMetrics(ctx context.Context) (map[string]interface{}, e
 		metrics["ec2_instances_running"] = runningInstances
 	}
 
-	// Get VPC count
+	// Get VPC count.
 	vpcResult, err := a.ec2Client.DescribeVpcs(ctx, &ec2.DescribeVpcsInput{})
 	if err == nil {
 		metrics["vpcs_total"] = len(vpcResult.Vpcs)
 	}
 
-	// Get S3 bucket count
+	// Get S3 bucket count.
 	s3Result, err := a.s3Client.ListBuckets(ctx, &s3.ListBucketsInput{})
 	if err == nil {
 		metrics["s3_buckets_total"] = len(s3Result.Buckets)
 	}
 
-	// Get EBS volume count
+	// Get EBS volume count.
 	volumeResult, err := a.ec2Client.DescribeVolumes(ctx, &ec2.DescribeVolumesInput{})
 	if err == nil {
 		totalVolumes := len(volumeResult.Volumes)
@@ -562,7 +562,7 @@ func (a *AWSProvider) GetMetrics(ctx context.Context) (map[string]interface{}, e
 		metrics["ebs_volume_gb_total"] = totalVolumeGB
 	}
 
-	// Get RDS instance count
+	// Get RDS instance count.
 	rdsResult, err := a.rdsClient.DescribeDBInstances(ctx, &rds.DescribeDBInstancesInput{})
 	if err == nil {
 		metrics["rds_instances_total"] = len(rdsResult.DBInstances)
@@ -575,7 +575,7 @@ func (a *AWSProvider) GetMetrics(ctx context.Context) (map[string]interface{}, e
 	return metrics, nil
 }
 
-// GetResourceMetrics returns metrics for a specific resource
+// GetResourceMetrics returns metrics for a specific resource.
 func (a *AWSProvider) GetResourceMetrics(ctx context.Context, resourceID string) (map[string]interface{}, error) {
 	parts := splitResourceID(resourceID)
 	if len(parts) < 2 {
@@ -587,7 +587,7 @@ func (a *AWSProvider) GetResourceMetrics(ctx context.Context, resourceID string)
 
 	switch resourceType {
 	case "ec2_instance":
-		// Get instance details
+		// Get instance details.
 		result, err := a.ec2Client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
 			InstanceIds: []string{id},
 		})
@@ -605,15 +605,15 @@ func (a *AWSProvider) GetResourceMetrics(ctx context.Context, resourceID string)
 			metrics["launch_time"] = instance.LaunchTime
 		}
 
-		// Get CloudWatch metrics for the instance
-		// This would involve querying CloudWatch for CPU, network, disk metrics
+		// Get CloudWatch metrics for the instance.
+		// This would involve querying CloudWatch for CPU, network, disk metrics.
 
 	case "s3_bucket":
-		// Get bucket metrics
+		// Get bucket metrics.
 		// This would involve CloudWatch metrics for bucket size, requests, etc.
 
 	case "rds_instance":
-		// Get RDS instance metrics
+		// Get RDS instance metrics.
 		result, err := a.rdsClient.DescribeDBInstances(ctx, &rds.DescribeDBInstancesInput{
 			DBInstanceIdentifier: aws.String(id),
 		})
@@ -634,7 +634,7 @@ func (a *AWSProvider) GetResourceMetrics(ctx context.Context, resourceID string)
 	return metrics, nil
 }
 
-// GetResourceHealth returns the health status of a resource
+// GetResourceHealth returns the health status of a resource.
 func (a *AWSProvider) GetResourceHealth(ctx context.Context, resourceID string) (*HealthStatus, error) {
 	parts := splitResourceID(resourceID)
 	if len(parts) < 2 {
@@ -659,7 +659,7 @@ func (a *AWSProvider) GetResourceHealth(ctx context.Context, resourceID string) 
 	}
 }
 
-// Network operations
+// Network operations.
 func (a *AWSProvider) CreateNetworkService(ctx context.Context, req *NetworkServiceRequest) (*NetworkServiceResponse, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("creating network service", "type", req.Type, "name", req.Name)
@@ -678,6 +678,7 @@ func (a *AWSProvider) CreateNetworkService(ctx context.Context, req *NetworkServ
 	}
 }
 
+// GetNetworkService performs getnetworkservice operation.
 func (a *AWSProvider) GetNetworkService(ctx context.Context, serviceID string) (*NetworkServiceResponse, error) {
 	parts := splitResourceID(serviceID)
 	if len(parts) < 2 {
@@ -700,6 +701,7 @@ func (a *AWSProvider) GetNetworkService(ctx context.Context, serviceID string) (
 	}
 }
 
+// DeleteNetworkService performs deletenetworkservice operation.
 func (a *AWSProvider) DeleteNetworkService(ctx context.Context, serviceID string) error {
 	parts := splitResourceID(serviceID)
 	if len(parts) < 2 {
@@ -722,6 +724,7 @@ func (a *AWSProvider) DeleteNetworkService(ctx context.Context, serviceID string
 	}
 }
 
+// ListNetworkServices performs listnetworkservices operation.
 func (a *AWSProvider) ListNetworkServices(ctx context.Context, filter *NetworkServiceFilter) ([]*NetworkServiceResponse, error) {
 	var services []*NetworkServiceResponse
 
@@ -741,7 +744,7 @@ func (a *AWSProvider) ListNetworkServices(ctx context.Context, filter *NetworkSe
 	return services, nil
 }
 
-// Storage operations
+// Storage operations.
 func (a *AWSProvider) CreateStorageResource(ctx context.Context, req *StorageResourceRequest) (*StorageResourceResponse, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("creating storage resource", "type", req.Type, "name", req.Name)
@@ -758,6 +761,7 @@ func (a *AWSProvider) CreateStorageResource(ctx context.Context, req *StorageRes
 	}
 }
 
+// GetStorageResource performs getstorageresource operation.
 func (a *AWSProvider) GetStorageResource(ctx context.Context, resourceID string) (*StorageResourceResponse, error) {
 	parts := splitResourceID(resourceID)
 	if len(parts) < 2 {
@@ -778,6 +782,7 @@ func (a *AWSProvider) GetStorageResource(ctx context.Context, resourceID string)
 	}
 }
 
+// DeleteStorageResource performs deletestorageresource operation.
 func (a *AWSProvider) DeleteStorageResource(ctx context.Context, resourceID string) error {
 	parts := splitResourceID(resourceID)
 	if len(parts) < 2 {
@@ -798,6 +803,7 @@ func (a *AWSProvider) DeleteStorageResource(ctx context.Context, resourceID stri
 	}
 }
 
+// ListStorageResources performs liststorageresources operation.
 func (a *AWSProvider) ListStorageResources(ctx context.Context, filter *StorageResourceFilter) ([]*StorageResourceResponse, error) {
 	var resources []*StorageResourceResponse
 
@@ -817,7 +823,7 @@ func (a *AWSProvider) ListStorageResources(ctx context.Context, filter *StorageR
 	return resources, nil
 }
 
-// Event handling
+// Event handling.
 func (a *AWSProvider) SubscribeToEvents(ctx context.Context, callback EventCallback) error {
 	logger := log.FromContext(ctx)
 	logger.Info("subscribing to AWS events")
@@ -826,12 +832,13 @@ func (a *AWSProvider) SubscribeToEvents(ctx context.Context, callback EventCallb
 	a.eventCallback = callback
 	a.mutex.Unlock()
 
-	// Start watching CloudWatch Events/EventBridge
+	// Start watching CloudWatch Events/EventBridge.
 	go a.watchEvents(ctx)
 
 	return nil
 }
 
+// UnsubscribeFromEvents performs unsubscribefromevents operation.
 func (a *AWSProvider) UnsubscribeFromEvents(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	logger.Info("unsubscribing from AWS events")
@@ -848,7 +855,7 @@ func (a *AWSProvider) UnsubscribeFromEvents(ctx context.Context) error {
 	return nil
 }
 
-// Configuration management
+// Configuration management.
 func (a *AWSProvider) ApplyConfiguration(ctx context.Context, config *ProviderConfiguration) error {
 	logger := log.FromContext(ctx)
 	logger.Info("applying provider configuration", "name", config.Name)
@@ -859,7 +866,7 @@ func (a *AWSProvider) ApplyConfiguration(ctx context.Context, config *ProviderCo
 	a.config = config
 	a.region = config.Region
 
-	// Reconnect if configuration changed
+	// Reconnect if configuration changed.
 	if a.connected {
 		if err := a.Connect(ctx); err != nil {
 			return fmt.Errorf("failed to reconnect with new configuration: %w", err)
@@ -869,6 +876,7 @@ func (a *AWSProvider) ApplyConfiguration(ctx context.Context, config *ProviderCo
 	return nil
 }
 
+// GetConfiguration performs getconfiguration operation.
 func (a *AWSProvider) GetConfiguration(ctx context.Context) (*ProviderConfiguration, error) {
 	a.mutex.RLock()
 	defer a.mutex.RUnlock()
@@ -876,12 +884,13 @@ func (a *AWSProvider) GetConfiguration(ctx context.Context) (*ProviderConfigurat
 	return a.config, nil
 }
 
+// ValidateConfiguration performs validateconfiguration operation.
 func (a *AWSProvider) ValidateConfiguration(ctx context.Context, config *ProviderConfiguration) error {
 	if config.Type != ProviderTypeAWS {
 		return fmt.Errorf("invalid provider type: expected %s, got %s", ProviderTypeAWS, config.Type)
 	}
 
-	// Check for required credentials or authentication method
+	// Check for required credentials or authentication method.
 	hasAccessKey := false
 	hasProfile := false
 	hasRole := false
@@ -901,10 +910,10 @@ func (a *AWSProvider) ValidateConfiguration(ctx context.Context, config *Provide
 		hasRole = true
 	}
 
-	// At least one authentication method should be present
-	// If none, SDK will use default credential chain (IAM role, env vars, etc.)
+	// At least one authentication method should be present.
+	// If none, SDK will use default credential chain (IAM role, env vars, etc.).
 	if !hasAccessKey && !hasProfile && !hasRole {
-		// This is okay - will use default credential chain
+		// This is okay - will use default credential chain.
 		logger := log.FromContext(ctx)
 		logger.Info("No explicit credentials provided, will use AWS default credential chain")
 	}
@@ -916,8 +925,8 @@ func (a *AWSProvider) ValidateConfiguration(ctx context.Context, config *Provide
 	return nil
 }
 
-// Placeholder implementations for helper methods
-// These would be fully implemented in a production environment
+// Placeholder implementations for helper methods.
+// These would be fully implemented in a production environment.
 
 func (a *AWSProvider) createEC2Instance(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
 	return nil, fmt.Errorf("EC2 instance creation not yet implemented")
@@ -1108,5 +1117,5 @@ func (a *AWSProvider) listStorageResourcesByType(ctx context.Context, resourceTy
 }
 
 func (a *AWSProvider) watchEvents(ctx context.Context) {
-	// Implementation would use CloudWatch Events/EventBridge to watch for events
+	// Implementation would use CloudWatch Events/EventBridge to watch for events.
 }

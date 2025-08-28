@@ -18,35 +18,35 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
 
-// JWTManager manages JWT token creation, validation, and rotation
+// JWTManager manages JWT token creation, validation, and rotation.
 type JWTManager struct {
-	// Signing keys
+	// Signing keys.
 	signingKey        *rsa.PrivateKey
 	verifyingKey      *rsa.PublicKey
 	keyID             string
 	keyRotationPeriod time.Duration
 
-	// Token settings
+	// Token settings.
 	issuer     string
 	defaultTTL time.Duration
 	refreshTTL time.Duration
 
-	// Token storage and blacklist
+	// Token storage and blacklist.
 	tokenStore TokenStore
 	blacklist  TokenBlacklist
 
-	// Security settings
+	// Security settings.
 	requireSecureCookies bool
 	cookieDomain         string
 	cookiePath           string
 
-	// Monitoring
+	// Monitoring.
 	logger  *slog.Logger
 	metrics *JWTMetrics
 	mutex   sync.RWMutex
 }
 
-// JWTConfig represents JWT configuration
+// JWTConfig represents JWT configuration.
 type JWTConfig struct {
 	Issuer               string        `json:"issuer"`
 	SigningKeyPath       string        `json:"signing_key_path,omitempty"`
@@ -60,75 +60,75 @@ type JWTConfig struct {
 	Algorithm            string        `json:"algorithm"`
 }
 
-// NephoranJWTClaims extends standard JWT claims with Nephoran-specific fields
+// NephoranJWTClaims extends standard JWT claims with Nephoran-specific fields.
 type NephoranJWTClaims struct {
 	jwt.RegisteredClaims
 
-	// User information
+	// User information.
 	Email         string `json:"email"`
 	EmailVerified bool   `json:"email_verified"`
 	Name          string `json:"name"`
 	PreferredName string `json:"preferred_username"`
 	Picture       string `json:"picture"`
 
-	// Authorization
+	// Authorization.
 	Groups        []string `json:"groups"`
 	Roles         []string `json:"roles"`
 	Permissions   []string `json:"permissions"`
 	Organizations []string `json:"organizations"`
 
-	// Provider information
+	// Provider information.
 	Provider   string `json:"provider"`
 	ProviderID string `json:"provider_id"`
 
-	// Nephoran-specific
+	// Nephoran-specific.
 	TenantID  string `json:"tenant_id,omitempty"`
 	SessionID string `json:"session_id"`
 	TokenType string `json:"token_type"` // "access" or "refresh"
 	Scope     string `json:"scope,omitempty"`
 
-	// Security
+	// Security.
 	IPAddress string `json:"ip_address,omitempty"`
 	UserAgent string `json:"user_agent,omitempty"`
 
-	// Custom attributes
+	// Custom attributes.
 	Attributes map[string]interface{} `json:"attributes,omitempty"`
 }
 
-// TokenStore interface for storing and retrieving tokens
+// TokenStore interface for storing and retrieving tokens.
 type TokenStore interface {
-	// Store a token with expiration
+	// Store a token with expiration.
 	StoreToken(ctx context.Context, tokenID string, token *TokenInfo) error
 
-	// Get token info
+	// Get token info.
 	GetToken(ctx context.Context, tokenID string) (*TokenInfo, error)
 
-	// Update token info
+	// Update token info.
 	UpdateToken(ctx context.Context, tokenID string, token *TokenInfo) error
 
-	// Delete token
+	// Delete token.
 	DeleteToken(ctx context.Context, tokenID string) error
 
-	// List tokens for a user
+	// List tokens for a user.
 	ListUserTokens(ctx context.Context, userID string) ([]*TokenInfo, error)
 
-	// Cleanup expired tokens
+	// Cleanup expired tokens.
 	CleanupExpired(ctx context.Context) error
 }
 
-// TokenBlacklist interface for managing revoked tokens
+// TokenBlacklist interface for managing revoked tokens.
 type TokenBlacklist interface {
-	// Add token to blacklist
+	// Add token to blacklist.
 	BlacklistToken(ctx context.Context, tokenID string, expiresAt time.Time) error
 
-	// Check if token is blacklisted
+	// Check if token is blacklisted.
 	IsTokenBlacklisted(ctx context.Context, tokenID string) (bool, error)
 
-	// Remove expired entries
+	// Remove expired entries.
 	CleanupExpired(ctx context.Context) error
 }
 
-// TokenInfo represents stored token information
+// TokenInfo represents stored token information.
 type TokenInfo struct {
 	TokenID    string                 `json:"token_id"`
 	UserID     string                 `json:"user_id"`
@@ -145,7 +145,7 @@ type TokenInfo struct {
 	UseCount   int64                  `json:"use_count"`
 }
 
-// JWTMetrics contains JWT-related metrics
+// JWTMetrics contains JWT-related metrics.
 type JWTMetrics struct {
 	TokensIssued       int64 `json:"tokens_issued"`
 	TokensValidated    int64 `json:"tokens_validated"`
@@ -155,7 +155,7 @@ type JWTMetrics struct {
 	KeyRotations       int64 `json:"key_rotations"`
 }
 
-// NewJWTManager creates a new JWT manager
+// NewJWTManager creates a new JWT manager.
 func NewJWTManager(config *JWTConfig, tokenStore TokenStore, blacklist TokenBlacklist, logger *slog.Logger) (*JWTManager, error) {
 	manager := &JWTManager{
 		issuer:               config.Issuer,
@@ -171,19 +171,19 @@ func NewJWTManager(config *JWTConfig, tokenStore TokenStore, blacklist TokenBlac
 		metrics:              &JWTMetrics{},
 	}
 
-	// Initialize signing key
+	// Initialize signing key.
 	if err := manager.initializeSigningKey(config); err != nil {
 		return nil, fmt.Errorf("failed to initialize signing key: %w", err)
 	}
 
-	// Start background tasks
+	// Start background tasks.
 	go manager.keyRotationLoop()
 	go manager.cleanupLoop()
 
 	return manager, nil
 }
 
-// GenerateAccessToken generates an access token for a user
+// GenerateAccessToken generates an access token for a user.
 func (jm *JWTManager) GenerateAccessToken(ctx context.Context, userInfo *providers.UserInfo, sessionID string, options ...TokenOption) (string, *TokenInfo, error) {
 	if userInfo == nil {
 		return "", nil, fmt.Errorf("user info cannot be nil")
@@ -226,12 +226,12 @@ func (jm *JWTManager) GenerateAccessToken(ctx context.Context, userInfo *provide
 		Attributes:    userInfo.Attributes,
 	}
 
-	// Apply custom TTL if specified
+	// Apply custom TTL if specified.
 	if opts.TTL > 0 {
 		claims.ExpiresAt = jwt.NewNumericDate(now.Add(opts.TTL))
 	}
 
-	// Sign token
+	// Sign token.
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	token.Header["kid"] = jm.keyID
 
@@ -240,7 +240,7 @@ func (jm *JWTManager) GenerateAccessToken(ctx context.Context, userInfo *provide
 		return "", nil, fmt.Errorf("failed to sign access token: %w", err)
 	}
 
-	// Store token info
+	// Store token info.
 	tokenInfo := &TokenInfo{
 		TokenID:    tokenID,
 		UserID:     userInfo.Subject,
@@ -266,7 +266,7 @@ func (jm *JWTManager) GenerateAccessToken(ctx context.Context, userInfo *provide
 	return tokenString, tokenInfo, nil
 }
 
-// GenerateRefreshToken generates a refresh token
+// GenerateRefreshToken generates a refresh token.
 func (jm *JWTManager) GenerateRefreshToken(ctx context.Context, userInfo *providers.UserInfo, sessionID string, options ...TokenOption) (string, *TokenInfo, error) {
 	if userInfo == nil {
 		return "", nil, fmt.Errorf("user info cannot be nil")
@@ -300,12 +300,12 @@ func (jm *JWTManager) GenerateRefreshToken(ctx context.Context, userInfo *provid
 		UserAgent:  opts.UserAgent,
 	}
 
-	// Apply custom TTL if specified
+	// Apply custom TTL if specified.
 	if opts.TTL > 0 {
 		claims.ExpiresAt = jwt.NewNumericDate(now.Add(opts.TTL))
 	}
 
-	// Sign token
+	// Sign token.
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	token.Header["kid"] = jm.keyID
 
@@ -314,7 +314,7 @@ func (jm *JWTManager) GenerateRefreshToken(ctx context.Context, userInfo *provid
 		return "", nil, fmt.Errorf("failed to sign refresh token: %w", err)
 	}
 
-	// Store token info
+	// Store token info.
 	tokenInfo := &TokenInfo{
 		TokenID:   tokenID,
 		UserID:    userInfo.Subject,
@@ -338,30 +338,29 @@ func (jm *JWTManager) GenerateRefreshToken(ctx context.Context, userInfo *provid
 	return tokenString, tokenInfo, nil
 }
 
-// ValidateToken validates a JWT token and returns claims
+// ValidateToken validates a JWT token and returns claims.
 func (jm *JWTManager) ValidateToken(ctx context.Context, tokenString string) (*NephoranJWTClaims, error) {
 	jm.mutex.RLock()
 	defer jm.mutex.RUnlock()
 
-	// Parse and validate token
+	// Parse and validate token.
 	token, err := jwt.ParseWithClaims(tokenString, &NephoranJWTClaims{}, func(token *jwt.Token) (interface{}, error) {
-		// Verify signing method
+		// Verify signing method.
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
-		// Verify key ID
+		// Verify key ID.
 		if kidInterface, exists := token.Header["kid"]; exists {
 			if kid, ok := kidInterface.(string); ok && kid != jm.keyID {
-				// Check if this is from a previous key rotation
-				// In production, you'd maintain multiple keys for rotation
+				// Check if this is from a previous key rotation.
+				// In production, you'd maintain multiple keys for rotation.
 				jm.logger.Warn("Token signed with different key ID", "token_kid", kid, "current_kid", jm.keyID)
 			}
 		}
 
 		return jm.verifyingKey, nil
 	})
-
 	if err != nil {
 		jm.metrics.ValidationFailures++
 		return nil, fmt.Errorf("failed to parse token: %w", err)
@@ -378,7 +377,7 @@ func (jm *JWTManager) ValidateToken(ctx context.Context, tokenString string) (*N
 		return nil, fmt.Errorf("invalid token claims")
 	}
 
-	// Check if token is blacklisted
+	// Check if token is blacklisted.
 	if blacklisted, err := jm.blacklist.IsTokenBlacklisted(ctx, claims.ID); err != nil {
 		jm.logger.Warn("Failed to check token blacklist", "error", err)
 	} else if blacklisted {
@@ -386,7 +385,7 @@ func (jm *JWTManager) ValidateToken(ctx context.Context, tokenString string) (*N
 		return nil, fmt.Errorf("token is blacklisted")
 	}
 
-	// Update token usage
+	// Update token usage.
 	if tokenInfo, err := jm.tokenStore.GetToken(ctx, claims.ID); err == nil && tokenInfo != nil {
 		tokenInfo.LastUsed = time.Now()
 		tokenInfo.UseCount++
@@ -400,9 +399,9 @@ func (jm *JWTManager) ValidateToken(ctx context.Context, tokenString string) (*N
 	return claims, nil
 }
 
-// RefreshAccessToken generates a new access token using a refresh token
+// RefreshAccessToken generates a new access token using a refresh token.
 func (jm *JWTManager) RefreshAccessToken(ctx context.Context, refreshTokenString string, options ...TokenOption) (string, *TokenInfo, error) {
-	// Validate refresh token
+	// Validate refresh token.
 	claims, err := jm.ValidateToken(ctx, refreshTokenString)
 	if err != nil {
 		return "", nil, fmt.Errorf("invalid refresh token: %w", err)
@@ -412,7 +411,7 @@ func (jm *JWTManager) RefreshAccessToken(ctx context.Context, refreshTokenString
 		return "", nil, fmt.Errorf("token is not a refresh token")
 	}
 
-	// Create user info from refresh token claims
+	// Create user info from refresh token claims.
 	userInfo := &providers.UserInfo{
 		Subject:       claims.Subject,
 		Email:         claims.Email,
@@ -428,13 +427,13 @@ func (jm *JWTManager) RefreshAccessToken(ctx context.Context, refreshTokenString
 		Attributes:    claims.Attributes,
 	}
 
-	// Generate new access token
+	// Generate new access token.
 	return jm.GenerateAccessToken(ctx, userInfo, claims.SessionID, options...)
 }
 
-// RevokeToken revokes a token by adding it to the blacklist
+// RevokeToken revokes a token by adding it to the blacklist.
 func (jm *JWTManager) RevokeToken(ctx context.Context, tokenString string) error {
-	// Parse token to get claims without signature validation
+	// Parse token to get claims without signature validation.
 	parser := jwt.NewParser(jwt.WithoutClaimsValidation())
 	token, _, err := parser.ParseUnverified(tokenString, &NephoranJWTClaims{})
 	if err != nil {
@@ -446,12 +445,12 @@ func (jm *JWTManager) RevokeToken(ctx context.Context, tokenString string) error
 		return fmt.Errorf("invalid token claims")
 	}
 
-	// Add to blacklist
+	// Add to blacklist.
 	if err := jm.blacklist.BlacklistToken(ctx, claims.ID, claims.ExpiresAt.Time); err != nil {
 		return fmt.Errorf("failed to blacklist token: %w", err)
 	}
 
-	// Remove from token store
+	// Remove from token store.
 	if err := jm.tokenStore.DeleteToken(ctx, claims.ID); err != nil {
 		jm.logger.Warn("Failed to delete token from store", "error", err)
 	}
@@ -461,7 +460,7 @@ func (jm *JWTManager) RevokeToken(ctx context.Context, tokenString string) error
 	return nil
 }
 
-// RevokeUserTokens revokes all tokens for a specific user
+// RevokeUserTokens revokes all tokens for a specific user.
 func (jm *JWTManager) RevokeUserTokens(ctx context.Context, userID string) error {
 	tokens, err := jm.tokenStore.ListUserTokens(ctx, userID)
 	if err != nil {
@@ -484,22 +483,21 @@ func (jm *JWTManager) RevokeUserTokens(ctx context.Context, userID string) error
 	return nil
 }
 
-// GetTokenInfo retrieves token information
+// GetTokenInfo retrieves token information.
 func (jm *JWTManager) GetTokenInfo(ctx context.Context, tokenID string) (*TokenInfo, error) {
 	return jm.tokenStore.GetToken(ctx, tokenID)
 }
 
-// ListUserTokens lists all active tokens for a user
+// ListUserTokens lists all active tokens for a user.
 func (jm *JWTManager) ListUserTokens(ctx context.Context, userID string) ([]*TokenInfo, error) {
 	return jm.tokenStore.ListUserTokens(ctx, userID)
 }
 
-// IsTokenBlacklisted checks if a token is blacklisted
+// IsTokenBlacklisted checks if a token is blacklisted.
 func (jm *JWTManager) IsTokenBlacklisted(ctx context.Context, tokenString string) (bool, error) {
-	// Parse token to get token ID without signature validation
+	// Parse token to get token ID without signature validation.
 	parser := jwt.NewParser(jwt.WithoutClaimsValidation())
 	token, _, err := parser.ParseUnverified(tokenString, &NephoranJWTClaims{})
-
 	if err != nil {
 		return false, fmt.Errorf("failed to parse token: %w", err)
 	}
@@ -512,7 +510,7 @@ func (jm *JWTManager) IsTokenBlacklisted(ctx context.Context, tokenString string
 	return jm.blacklist.IsTokenBlacklisted(ctx, claims.ID)
 }
 
-// GenerateTokenPair generates both access and refresh tokens
+// GenerateTokenPair generates both access and refresh tokens.
 func (jm *JWTManager) GenerateTokenPair(ctx context.Context, userInfo *providers.UserInfo, sessionID string, options ...TokenOption) (string, string, error) {
 	accessToken, _, err := jm.GenerateAccessToken(ctx, userInfo, sessionID, options...)
 	if err != nil {
@@ -527,24 +525,24 @@ func (jm *JWTManager) GenerateTokenPair(ctx context.Context, userInfo *providers
 	return accessToken, refreshToken, nil
 }
 
-// Deprecated methods for backward compatibility with tests
+// Deprecated methods for backward compatibility with tests.
 
-// GenerateToken generates an access token (deprecated: use GenerateAccessToken)
+// GenerateToken generates an access token (deprecated: use GenerateAccessToken).
 func (jm *JWTManager) GenerateToken(userInfo *providers.UserInfo, customClaims map[string]interface{}) (string, error) {
 	return jm.generateLegacyToken(userInfo, customClaims, 0)
 }
 
-// GenerateTokenWithTTL generates an access token with custom TTL (deprecated: use GenerateAccessToken with options)
+// GenerateTokenWithTTL generates an access token with custom TTL (deprecated: use GenerateAccessToken with options).
 func (jm *JWTManager) GenerateTokenWithTTL(userInfo *providers.UserInfo, customClaims map[string]interface{}, ttl time.Duration) (string, error) {
 	return jm.generateLegacyToken(userInfo, customClaims, ttl)
 }
 
-// GenerateTokenPair with old signature (deprecated)
+// GenerateTokenPair with old signature (deprecated).
 func (jm *JWTManager) GenerateTokenPairLegacy(userInfo *providers.UserInfo, customClaims map[string]interface{}) (string, string, error) {
 	return jm.GenerateTokenPair(context.Background(), userInfo, "legacy-session")
 }
 
-// RefreshToken with old signature (deprecated)
+// RefreshToken with old signature (deprecated).
 func (jm *JWTManager) RefreshToken(refreshTokenString string) (string, string, error) {
 	newAccessToken, _, err := jm.RefreshAccessToken(context.Background(), refreshTokenString)
 	if err != nil {
@@ -553,22 +551,22 @@ func (jm *JWTManager) RefreshToken(refreshTokenString string) (string, string, e
 	return newAccessToken, refreshTokenString, nil
 }
 
-// BlacklistToken alias for RevokeToken (deprecated)
+// BlacklistToken alias for RevokeToken (deprecated).
 func (jm *JWTManager) BlacklistToken(tokenString string) error {
 	return jm.RevokeToken(context.Background(), tokenString)
 }
 
-// CleanupBlacklist cleans up expired blacklist entries
+// CleanupBlacklist cleans up expired blacklist entries.
 func (jm *JWTManager) CleanupBlacklist() error {
 	return jm.blacklist.CleanupExpired(context.Background())
 }
 
-// ValidateTokenWithContext validates a token with a specific context (alias for ValidateToken)
+// ValidateTokenWithContext validates a token with a specific context (alias for ValidateToken).
 func (jm *JWTManager) ValidateTokenWithContext(ctx context.Context, tokenString string) (*NephoranJWTClaims, error) {
 	return jm.ValidateToken(ctx, tokenString)
 }
 
-// generateLegacyToken generates a token with custom claims as top-level fields for backward compatibility
+// generateLegacyToken generates a token with custom claims as top-level fields for backward compatibility.
 func (jm *JWTManager) generateLegacyToken(userInfo *providers.UserInfo, customClaims map[string]interface{}, ttl time.Duration) (string, error) {
 	if userInfo == nil {
 		return "", fmt.Errorf("user info cannot be nil")
@@ -580,7 +578,7 @@ func (jm *JWTManager) generateLegacyToken(userInfo *providers.UserInfo, customCl
 	now := time.Now()
 	tokenID := generateTokenID()
 
-	// Create base claims using MapClaims for flexibility with custom claims
+	// Create base claims using MapClaims for flexibility with custom claims.
 	claims := jwt.MapClaims{
 		"jti": tokenID,
 		"sub": userInfo.Subject,
@@ -589,43 +587,43 @@ func (jm *JWTManager) generateLegacyToken(userInfo *providers.UserInfo, customCl
 		"iat": now.Unix(),
 		"nbf": now.Unix(),
 
-		// User information
+		// User information.
 		"email":              userInfo.Email,
 		"email_verified":     userInfo.EmailVerified,
 		"name":               userInfo.Name,
 		"preferred_username": userInfo.Username,
 		"picture":            userInfo.Picture,
 
-		// Authorization
+		// Authorization.
 		"groups":        userInfo.Groups,
 		"roles":         userInfo.Roles,
 		"permissions":   userInfo.Permissions,
 		"organizations": extractOrganizationNames(userInfo.Organizations),
 
-		// Provider information
+		// Provider information.
 		"provider":    userInfo.Provider,
 		"provider_id": userInfo.ProviderID,
 
-		// Nephoran-specific
+		// Nephoran-specific.
 		"session_id": "legacy-session",
 		"token_type": "access",
 	}
 
-	// Set expiration
+	// Set expiration.
 	if ttl > 0 {
 		claims["exp"] = now.Add(ttl).Unix()
 	} else {
 		claims["exp"] = now.Add(jm.defaultTTL).Unix()
 	}
 
-	// Add custom claims as top-level fields
+	// Add custom claims as top-level fields.
 	if customClaims != nil {
 		for key, value := range customClaims {
 			claims[key] = value
 		}
 	}
 
-	// Create and sign token
+	// Create and sign token.
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	token.Header["kid"] = jm.keyID
 
@@ -639,36 +637,36 @@ func (jm *JWTManager) generateLegacyToken(userInfo *providers.UserInfo, customCl
 	return tokenString, nil
 }
 
-// GetMetrics returns JWT metrics
+// GetMetrics returns JWT metrics.
 func (jm *JWTManager) GetMetrics() *JWTMetrics {
 	jm.mutex.RLock()
 	defer jm.mutex.RUnlock()
 
-	// Return a copy to avoid race conditions
+	// Return a copy to avoid race conditions.
 	metrics := *jm.metrics
 	return &metrics
 }
 
-// Private methods
+// Private methods.
 
 func (jm *JWTManager) initializeSigningKey(config *JWTConfig) error {
 	var privateKey *rsa.PrivateKey
 	var err error
 
 	if config.SigningKeyPath != "" {
-		// Load key from file
+		// Load key from file.
 		privateKey, err = loadRSAPrivateKeyFromFile(config.SigningKeyPath)
 		if err != nil {
 			return fmt.Errorf("failed to load signing key from file: %w", err)
 		}
 	} else if config.SigningKey != "" {
-		// Parse key from string
+		// Parse key from string.
 		privateKey, err = parseRSAPrivateKey(config.SigningKey)
 		if err != nil {
 			return fmt.Errorf("failed to parse signing key: %w", err)
 		}
 	} else {
-		// Generate new key
+		// Generate new key.
 		privateKey, err = rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
 			return fmt.Errorf("failed to generate signing key: %w", err)
@@ -703,14 +701,14 @@ func (jm *JWTManager) rotateSigningKey() error {
 	jm.mutex.Lock()
 	defer jm.mutex.Unlock()
 
-	// Generate new key
+	// Generate new key.
 	newKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return fmt.Errorf("failed to generate new signing key: %w", err)
 	}
 
-	// Update keys
-	// In production, you'd want to maintain the old key for some time to validate existing tokens
+	// Update keys.
+	// In production, you'd want to maintain the old key for some time to validate existing tokens.
 	jm.signingKey = newKey
 	jm.verifyingKey = &newKey.PublicKey
 	jm.keyID = generateKeyID()
@@ -728,12 +726,12 @@ func (jm *JWTManager) cleanupLoop() {
 	for range ticker.C {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 
-		// Cleanup expired tokens
+		// Cleanup expired tokens.
 		if err := jm.tokenStore.CleanupExpired(ctx); err != nil {
 			jm.logger.Error("Failed to cleanup expired tokens", "error", err)
 		}
 
-		// Cleanup expired blacklist entries
+		// Cleanup expired blacklist entries.
 		if err := jm.blacklist.CleanupExpired(ctx); err != nil {
 			jm.logger.Error("Failed to cleanup expired blacklist entries", "error", err)
 		}
@@ -742,10 +740,12 @@ func (jm *JWTManager) cleanupLoop() {
 	}
 }
 
-// Token options
+// Token options.
 
+// TokenOption represents a tokenoption.
 type TokenOption func(*TokenOptions)
 
+// TokenOptions represents a tokenoptions.
 type TokenOptions struct {
 	TTL       time.Duration
 	Scope     string
@@ -753,24 +753,28 @@ type TokenOptions struct {
 	UserAgent string
 }
 
+// WithTTL performs withttl operation.
 func WithTTL(ttl time.Duration) TokenOption {
 	return func(opts *TokenOptions) {
 		opts.TTL = ttl
 	}
 }
 
+// WithScope performs withscope operation.
 func WithScope(scope string) TokenOption {
 	return func(opts *TokenOptions) {
 		opts.Scope = scope
 	}
 }
 
+// WithIPAddress performs withipaddress operation.
 func WithIPAddress(ip string) TokenOption {
 	return func(opts *TokenOptions) {
 		opts.IPAddress = ip
 	}
 }
 
+// WithUserAgent performs withuseragent operation.
 func WithUserAgent(ua string) TokenOption {
 	return func(opts *TokenOptions) {
 		opts.UserAgent = ua
@@ -785,30 +789,30 @@ func applyTokenOptions(options ...TokenOption) *TokenOptions {
 	return opts
 }
 
-// Helper functions
+// Helper functions.
 
 func generateTokenID() string {
-	// Generate a random token ID
+	// Generate a random token ID.
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
-		// Fallback to time-based ID if random generation fails
+		// Fallback to time-based ID if random generation fails.
 		return fmt.Sprintf("%x", time.Now().UnixNano())
 	}
 	return fmt.Sprintf("%x", b)
 }
 
 func generateKeyID() string {
-	// Generate a random key ID
+	// Generate a random key ID.
 	b := make([]byte, 8)
 	if _, err := rand.Read(b); err != nil {
-		// Fallback to time-based ID if random generation fails
+		// Fallback to time-based ID if random generation fails.
 		return fmt.Sprintf("key-%x", time.Now().UnixNano())
 	}
 	return fmt.Sprintf("%x", b)
 }
 
 func loadRSAPrivateKeyFromFile(filename string) (*rsa.PrivateKey, error) {
-	// Implementation would read PEM file and parse RSA key
+	// Implementation would read PEM file and parse RSA key.
 	return nil, fmt.Errorf("key loading from file not implemented")
 }
 
@@ -820,7 +824,7 @@ func parseRSAPrivateKey(keyData string) (*rsa.PrivateKey, error) {
 
 	key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {
-		// Try PKCS8
+		// Try PKCS8.
 		pkcs8Key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse RSA private key: %w", err)
@@ -845,44 +849,44 @@ func extractOrganizationNames(orgs []providers.Organization) []string {
 	return names
 }
 
-// Getter methods for testing
+// Getter methods for testing.
 
-// GetIssuer returns the issuer for testing purposes
+// GetIssuer returns the issuer for testing purposes.
 func (jm *JWTManager) GetIssuer() string {
 	jm.mutex.RLock()
 	defer jm.mutex.RUnlock()
 	return jm.issuer
 }
 
-// GetDefaultTTL returns the default TTL for testing purposes
+// GetDefaultTTL returns the default TTL for testing purposes.
 func (jm *JWTManager) GetDefaultTTL() time.Duration {
 	jm.mutex.RLock()
 	defer jm.mutex.RUnlock()
 	return jm.defaultTTL
 }
 
-// GetRefreshTTL returns the refresh TTL for testing purposes
+// GetRefreshTTL returns the refresh TTL for testing purposes.
 func (jm *JWTManager) GetRefreshTTL() time.Duration {
 	jm.mutex.RLock()
 	defer jm.mutex.RUnlock()
 	return jm.refreshTTL
 }
 
-// GetRequireSecureCookies returns the secure cookies requirement for testing purposes
+// GetRequireSecureCookies returns the secure cookies requirement for testing purposes.
 func (jm *JWTManager) GetRequireSecureCookies() bool {
 	jm.mutex.RLock()
 	defer jm.mutex.RUnlock()
 	return jm.requireSecureCookies
 }
 
-// GetKeyID returns the current key ID for testing purposes
+// GetKeyID returns the current key ID for testing purposes.
 func (jm *JWTManager) GetKeyID() string {
 	jm.mutex.RLock()
 	defer jm.mutex.RUnlock()
 	return jm.keyID
 }
 
-// SetSigningKey sets the signing key for the JWT manager
+// SetSigningKey sets the signing key for the JWT manager.
 func (jm *JWTManager) SetSigningKey(privateKey *rsa.PrivateKey, keyID string) error {
 	jm.mutex.Lock()
 	defer jm.mutex.Unlock()
@@ -901,7 +905,7 @@ func (jm *JWTManager) SetSigningKey(privateKey *rsa.PrivateKey, keyID string) er
 	return nil
 }
 
-// GetPublicKey returns the public key for a given key ID
+// GetPublicKey returns the public key for a given key ID.
 func (jm *JWTManager) GetPublicKey(keyID string) (*rsa.PublicKey, error) {
 	jm.mutex.RLock()
 	defer jm.mutex.RUnlock()
@@ -916,16 +920,15 @@ func (jm *JWTManager) GetPublicKey(keyID string) (*rsa.PublicKey, error) {
 	return jm.verifyingKey, nil
 }
 
-// RotateKeys generates new signing keys
+// RotateKeys generates new signing keys.
 func (jm *JWTManager) RotateKeys() error {
 	return jm.rotateSigningKey()
 }
 
-// ExtractClaims extracts claims from a token without full validation
+// ExtractClaims extracts claims from a token without full validation.
 func (jm *JWTManager) ExtractClaims(tokenString string) (jwt.MapClaims, error) {
 	parser := jwt.NewParser(jwt.WithoutClaimsValidation())
 	token, _, err := parser.ParseUnverified(tokenString, jwt.MapClaims{})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse token: %w", err)
 	}
@@ -938,7 +941,7 @@ func (jm *JWTManager) ExtractClaims(tokenString string) (jwt.MapClaims, error) {
 	return claims, nil
 }
 
-// GetJWKS returns the JSON Web Key Set for public key verification
+// GetJWKS returns the JSON Web Key Set for public key verification.
 func (jm *JWTManager) GetJWKS() (map[string]interface{}, error) {
 	jm.mutex.RLock()
 	defer jm.mutex.RUnlock()
@@ -947,7 +950,7 @@ func (jm *JWTManager) GetJWKS() (map[string]interface{}, error) {
 		return nil, fmt.Errorf("verifying key not initialized")
 	}
 
-	// Create JWKS response
+	// Create JWKS response.
 	return map[string]interface{}{
 		"keys": []interface{}{
 			map[string]interface{}{
@@ -962,7 +965,7 @@ func (jm *JWTManager) GetJWKS() (map[string]interface{}, error) {
 	}, nil
 }
 
-// encodeBase64URL encodes bytes to base64 URL encoding without padding
+// encodeBase64URL encodes bytes to base64 URL encoding without padding.
 func encodeBase64URL(data []byte) string {
 	return strings.TrimRight(base64.URLEncoding.EncodeToString(data), "=")
 }

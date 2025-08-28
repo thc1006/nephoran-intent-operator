@@ -16,53 +16,60 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
-// ExternalBackend implements integration with external PKI systems
+// ExternalBackend implements integration with external PKI systems.
 type ExternalBackend struct {
 	logger *logging.StructuredLogger
 	client *http.Client
 	config *ExternalBackendConfig
 }
 
-// ExternalBackendConfig holds external backend configuration
+// ExternalBackendConfig holds external backend configuration.
 type ExternalBackendConfig struct {
-	// Connection settings
+	// Connection settings.
 	BaseURL       string        `yaml:"base_url"`
 	APIVersion    string        `yaml:"api_version"`
 	Timeout       time.Duration `yaml:"timeout"`
 	RetryAttempts int           `yaml:"retry_attempts"`
 	RetryDelay    time.Duration `yaml:"retry_delay"`
 
-	// Authentication
+	// Authentication.
 	AuthType   AuthenticationType `yaml:"auth_type"`
 	AuthConfig interface{}        `yaml:"auth_config"`
 
-	// TLS settings
+	// TLS settings.
 	TLSConfig *ExternalTLSConfig `yaml:"tls_config"`
 
-	// API endpoints
+	// API endpoints.
 	Endpoints *APIEndpoints `yaml:"endpoints"`
 
-	// Certificate profiles
+	// Certificate profiles.
 	Profiles map[string]*CertificateProfile `yaml:"profiles"`
 
-	// Feature flags
+	// Feature flags.
 	Features *FeatureConfig `yaml:"features"`
 }
 
-// AuthenticationType represents different authentication types
+// AuthenticationType represents different authentication types.
 type AuthenticationType string
 
 const (
-	AuthTypeNone   AuthenticationType = "none"
+	// AuthTypeNone holds authtypenone value.
+	AuthTypeNone AuthenticationType = "none"
+	// AuthTypeAPIKey holds authtypeapikey value.
 	AuthTypeAPIKey AuthenticationType = "api_key"
+	// AuthTypeBearer holds authtypebearer value.
 	AuthTypeBearer AuthenticationType = "bearer"
-	AuthTypeBasic  AuthenticationType = "basic"
-	AuthTypeMTLS   AuthenticationType = "mtls"
+	// AuthTypeBasic holds authtypebasic value.
+	AuthTypeBasic AuthenticationType = "basic"
+	// AuthTypeMTLS holds authtypemtls value.
+	AuthTypeMTLS AuthenticationType = "mtls"
+	// AuthTypeOAuth2 holds authtypeoauth2 value.
 	AuthTypeOAuth2 AuthenticationType = "oauth2"
+	// AuthTypeCustom holds authtypecustom value.
 	AuthTypeCustom AuthenticationType = "custom"
 )
 
-// ExternalTLSConfig holds TLS configuration for external connections
+// ExternalTLSConfig holds TLS configuration for external connections.
 type ExternalTLSConfig struct {
 	InsecureSkipVerify bool     `yaml:"insecure_skip_verify"`
 	CACertificates     []string `yaml:"ca_certificates"`
@@ -73,7 +80,7 @@ type ExternalTLSConfig struct {
 	CipherSuites       []string `yaml:"cipher_suites"`
 }
 
-// APIEndpoints defines external API endpoints
+// APIEndpoints defines external API endpoints.
 type APIEndpoints struct {
 	Issue          string `yaml:"issue"`
 	Revoke         string `yaml:"revoke"`
@@ -85,7 +92,7 @@ type APIEndpoints struct {
 	Profiles       string `yaml:"profiles"`
 }
 
-// CertificateProfile defines certificate issuance profiles
+// CertificateProfile defines certificate issuance profiles.
 type CertificateProfile struct {
 	Name            string                 `yaml:"name"`
 	Template        string                 `yaml:"template"`
@@ -97,7 +104,7 @@ type CertificateProfile struct {
 	CustomFields    map[string]interface{} `yaml:"custom_fields"`
 }
 
-// FeatureConfig defines supported features
+// FeatureConfig defines supported features.
 type FeatureConfig struct {
 	SupportsRevocation bool `yaml:"supports_revocation"`
 	SupportsRenewal    bool `yaml:"supports_renewal"`
@@ -108,22 +115,25 @@ type FeatureConfig struct {
 	SupportsStreaming  bool `yaml:"supports_streaming"`
 }
 
-// Authentication configurations
+// Authentication configurations.
 type APIKeyAuth struct {
 	Key      string `yaml:"key"`
 	Value    string `yaml:"value"`
 	Location string `yaml:"location"` // header, query
 }
 
+// BearerAuth represents a bearerauth.
 type BearerAuth struct {
 	Token string `yaml:"token"`
 }
 
+// BasicAuth represents a basicauth.
 type BasicAuth struct {
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
 }
 
+// OAuth2Auth represents a oauth2auth.
 type OAuth2Auth struct {
 	ClientID     string   `yaml:"client_id"`
 	ClientSecret string   `yaml:"client_secret"`
@@ -132,13 +142,14 @@ type OAuth2Auth struct {
 	TokenCache   bool     `yaml:"token_cache"`
 }
 
+// CustomAuth represents a customauth.
 type CustomAuth struct {
 	Headers map[string]string `yaml:"headers"`
 	Query   map[string]string `yaml:"query"`
 	Body    interface{}       `yaml:"body"`
 }
 
-// External API request/response structures
+// External API request/response structures.
 type ExternalIssueRequest struct {
 	Profile      string                 `json:"profile,omitempty"`
 	Template     string                 `json:"template,omitempty"`
@@ -154,6 +165,7 @@ type ExternalIssueRequest struct {
 	Metadata     map[string]string      `json:"metadata,omitempty"`
 }
 
+// SubjectAlternateNames represents a subjectalternatenames.
 type SubjectAlternateNames struct {
 	DNS   []string `json:"dns,omitempty"`
 	IP    []string `json:"ip,omitempty"`
@@ -161,6 +173,7 @@ type SubjectAlternateNames struct {
 	URI   []string `json:"uri,omitempty"`
 }
 
+// ExternalIssueResponse represents a externalissueresponse.
 type ExternalIssueResponse struct {
 	RequestID        string            `json:"request_id"`
 	Certificate      string            `json:"certificate"`
@@ -174,6 +187,7 @@ type ExternalIssueResponse struct {
 	Metadata         map[string]string `json:"metadata,omitempty"`
 }
 
+// ExternalRevokeRequest represents a externalrevokerequest.
 type ExternalRevokeRequest struct {
 	SerialNumber string `json:"serial_number,omitempty"`
 	Certificate  string `json:"certificate,omitempty"`
@@ -181,6 +195,7 @@ type ExternalRevokeRequest struct {
 	ReasonText   string `json:"reason_text,omitempty"`
 }
 
+// ExternalRevokeResponse represents a externalrevokeresponse.
 type ExternalRevokeResponse struct {
 	SerialNumber string            `json:"serial_number"`
 	RevokedAt    string            `json:"revoked_at"`
@@ -189,6 +204,7 @@ type ExternalRevokeResponse struct {
 	Metadata     map[string]string `json:"metadata,omitempty"`
 }
 
+// ExternalHealthResponse represents a externalhealthresponse.
 type ExternalHealthResponse struct {
 	Status     string                 `json:"status"`
 	Version    string                 `json:"version"`
@@ -198,14 +214,14 @@ type ExternalHealthResponse struct {
 	Metrics    map[string]interface{} `json:"metrics,omitempty"`
 }
 
-// NewExternalBackend creates a new external PKI backend
+// NewExternalBackend creates a new external PKI backend.
 func NewExternalBackend(logger *logging.StructuredLogger) (Backend, error) {
 	return &ExternalBackend{
 		logger: logger,
 	}, nil
 }
 
-// Initialize initializes the external backend
+// Initialize initializes the external backend.
 func (b *ExternalBackend) Initialize(ctx context.Context, config interface{}) error {
 	extConfig, ok := config.(*ExternalBackendConfig)
 	if !ok {
@@ -214,17 +230,17 @@ func (b *ExternalBackend) Initialize(ctx context.Context, config interface{}) er
 
 	b.config = extConfig
 
-	// Validate configuration
+	// Validate configuration.
 	if err := b.validateConfig(); err != nil {
 		return fmt.Errorf("external backend config validation failed: %w", err)
 	}
 
-	// Initialize HTTP client
+	// Initialize HTTP client.
 	if err := b.initializeClient(); err != nil {
 		return fmt.Errorf("HTTP client initialization failed: %w", err)
 	}
 
-	// Test connectivity
+	// Test connectivity.
 	if err := b.testConnectivity(ctx); err != nil {
 		return fmt.Errorf("connectivity test failed: %w", err)
 	}
@@ -237,10 +253,10 @@ func (b *ExternalBackend) Initialize(ctx context.Context, config interface{}) er
 	return nil
 }
 
-// HealthCheck performs health check on the external backend
+// HealthCheck performs health check on the external backend.
 func (b *ExternalBackend) HealthCheck(ctx context.Context) error {
 	if b.config.Endpoints.Health == "" {
-		// Fallback to basic connectivity test
+		// Fallback to basic connectivity test.
 		return b.testConnectivity(ctx)
 	}
 
@@ -261,14 +277,14 @@ func (b *ExternalBackend) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
-// IssueCertificate issues a certificate using the external PKI system
+// IssueCertificate issues a certificate using the external PKI system.
 func (b *ExternalBackend) IssueCertificate(ctx context.Context, req *CertificateRequest) (*CertificateResponse, error) {
 	b.logger.Info("issuing certificate via external PKI",
 		"request_id", req.ID,
 		"common_name", req.CommonName,
 		"base_url", b.config.BaseURL)
 
-	// Build external request
+	// Build external request.
 	extReq := &ExternalIssueRequest{
 		RequestID: req.ID,
 		Subject: map[string]string{
@@ -284,7 +300,7 @@ func (b *ExternalBackend) IssueCertificate(ctx context.Context, req *Certificate
 		},
 	}
 
-	// Add SANs
+	// Add SANs.
 	if len(req.DNSNames) > 0 || len(req.IPAddresses) > 0 || len(req.EmailAddresses) > 0 {
 		extReq.SANs = &SubjectAlternateNames{
 			DNS:   req.DNSNames,
@@ -292,7 +308,7 @@ func (b *ExternalBackend) IssueCertificate(ctx context.Context, req *Certificate
 			Email: req.EmailAddresses,
 		}
 
-		// Convert URIs to strings
+		// Convert URIs to strings.
 		if len(req.URIs) > 0 {
 			uris := make([]string, len(req.URIs))
 			for i, uri := range req.URIs {
@@ -302,7 +318,7 @@ func (b *ExternalBackend) IssueCertificate(ctx context.Context, req *Certificate
 		}
 	}
 
-	// Set profile or template if specified
+	// Set profile or template if specified.
 	if req.PolicyTemplate != "" {
 		if b.config.Features.SupportsProfiles {
 			extReq.Profile = req.PolicyTemplate
@@ -311,19 +327,19 @@ func (b *ExternalBackend) IssueCertificate(ctx context.Context, req *Certificate
 		}
 	}
 
-	// Make request
+	// Make request.
 	respData, err := b.makeRequest(ctx, "POST", b.config.Endpoints.Issue, extReq)
 	if err != nil {
 		return nil, fmt.Errorf("certificate issuance request failed: %w", err)
 	}
 
-	// Parse response
+	// Parse response.
 	var extResp ExternalIssueResponse
 	if err := json.Unmarshal(respData, &extResp); err != nil {
 		return nil, fmt.Errorf("failed to parse issuance response: %w", err)
 	}
 
-	// Handle async responses
+	// Handle async responses.
 	if extResp.Status == "pending" || extResp.Status == "processing" {
 		return b.waitForCertificate(ctx, extResp.RequestID, req)
 	}
@@ -332,13 +348,13 @@ func (b *ExternalBackend) IssueCertificate(ctx context.Context, req *Certificate
 		return nil, fmt.Errorf("certificate issuance failed: %s - %s", extResp.Status, extResp.Message)
 	}
 
-	// Parse certificate
+	// Parse certificate.
 	cert, err := b.parseCertificate(extResp.Certificate)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse issued certificate: %w", err)
 	}
 
-	// Build response
+	// Build response.
 	response := &CertificateResponse{
 		RequestID:      req.ID,
 		Certificate:    cert,
@@ -355,14 +371,14 @@ func (b *ExternalBackend) IssueCertificate(ctx context.Context, req *Certificate
 		CreatedAt: time.Now(),
 	}
 
-	// Parse expiration
+	// Parse expiration.
 	if expiry, err := time.Parse(time.RFC3339, extResp.ExpiresAt); err == nil {
 		response.ExpiresAt = expiry
 	} else {
 		response.ExpiresAt = cert.NotAfter
 	}
 
-	// Add certificate chain
+	// Add certificate chain.
 	if len(extResp.CertificateChain) > 0 {
 		response.TrustChainPEM = extResp.CertificateChain
 		if len(extResp.CertificateChain) > 0 {
@@ -370,7 +386,7 @@ func (b *ExternalBackend) IssueCertificate(ctx context.Context, req *Certificate
 		}
 	}
 
-	// Merge metadata
+	// Merge metadata.
 	for k, v := range extResp.Metadata {
 		response.Metadata[k] = v
 	}
@@ -383,7 +399,7 @@ func (b *ExternalBackend) IssueCertificate(ctx context.Context, req *Certificate
 	return response, nil
 }
 
-// RevokeCertificate revokes a certificate using the external PKI system
+// RevokeCertificate revokes a certificate using the external PKI system.
 func (b *ExternalBackend) RevokeCertificate(ctx context.Context, serialNumber string, reason int) error {
 	if !b.config.Features.SupportsRevocation {
 		return fmt.Errorf("external backend does not support certificate revocation")
@@ -393,20 +409,20 @@ func (b *ExternalBackend) RevokeCertificate(ctx context.Context, serialNumber st
 		"serial_number", serialNumber,
 		"reason", reason)
 
-	// Build revoke request
+	// Build revoke request.
 	revokeReq := &ExternalRevokeRequest{
 		SerialNumber: serialNumber,
 		Reason:       reason,
 		ReasonText:   b.getRevocationReasonText(reason),
 	}
 
-	// Make request
+	// Make request.
 	respData, err := b.makeRequest(ctx, "POST", b.config.Endpoints.Revoke, revokeReq)
 	if err != nil {
 		return fmt.Errorf("certificate revocation request failed: %w", err)
 	}
 
-	// Parse response
+	// Parse response.
 	var revokeResp ExternalRevokeResponse
 	if err := json.Unmarshal(respData, &revokeResp); err != nil {
 		return fmt.Errorf("failed to parse revocation response: %w", err)
@@ -422,14 +438,14 @@ func (b *ExternalBackend) RevokeCertificate(ctx context.Context, serialNumber st
 	return nil
 }
 
-// RenewCertificate renews a certificate using the external PKI system
+// RenewCertificate renews a certificate using the external PKI system.
 func (b *ExternalBackend) RenewCertificate(ctx context.Context, req *CertificateRequest) (*CertificateResponse, error) {
 	if !b.config.Features.SupportsRenewal && b.config.Endpoints.Renew != "" {
-		// Use dedicated renewal endpoint
+		// Use dedicated renewal endpoint.
 		return b.renewViaDedicatedEndpoint(ctx, req)
 	}
 
-	// Fallback to issuing a new certificate
+	// Fallback to issuing a new certificate.
 	response, err := b.IssueCertificate(ctx, req)
 	if err != nil {
 		return nil, err
@@ -439,7 +455,7 @@ func (b *ExternalBackend) RenewCertificate(ctx context.Context, req *Certificate
 	return response, nil
 }
 
-// GetCAChain retrieves the CA certificate chain
+// GetCAChain retrieves the CA certificate chain.
 func (b *ExternalBackend) GetCAChain(ctx context.Context) ([]*x509.Certificate, error) {
 	if b.config.Endpoints.GetCAChain == "" {
 		return nil, fmt.Errorf("CA chain endpoint not configured")
@@ -450,19 +466,19 @@ func (b *ExternalBackend) GetCAChain(ctx context.Context) ([]*x509.Certificate, 
 		return nil, fmt.Errorf("CA chain request failed: %w", err)
 	}
 
-	// Parse response - could be PEM or JSON
+	// Parse response - could be PEM or JSON.
 	if strings.HasPrefix(string(respData), "-----BEGIN CERTIFICATE-----") {
-		// PEM format
+		// PEM format.
 		return b.parseMultipleCertificates(string(respData))
 	}
 
-	// JSON format
+	// JSON format.
 	var jsonResp map[string]interface{}
 	if err := json.Unmarshal(respData, &jsonResp); err != nil {
 		return nil, fmt.Errorf("failed to parse CA chain response: %w", err)
 	}
 
-	// Extract certificates from various possible JSON formats
+	// Extract certificates from various possible JSON formats.
 	var pemData string
 	if chain, ok := jsonResp["ca_chain"].(string); ok {
 		pemData = chain
@@ -485,7 +501,7 @@ func (b *ExternalBackend) GetCAChain(ctx context.Context) ([]*x509.Certificate, 
 	return b.parseMultipleCertificates(pemData)
 }
 
-// GetCRL retrieves the Certificate Revocation List
+// GetCRL retrieves the Certificate Revocation List.
 func (b *ExternalBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, error) {
 	if !b.config.Features.SupportsCRL {
 		return nil, fmt.Errorf("external backend does not support CRL")
@@ -500,11 +516,11 @@ func (b *ExternalBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, er
 		return nil, fmt.Errorf("CRL request failed: %w", err)
 	}
 
-	// Parse CRL - could be PEM or DER
+	// Parse CRL - could be PEM or DER.
 	return b.parseCRL(string(respData))
 }
 
-// GetBackendInfo returns backend information
+// GetBackendInfo returns backend information.
 func (b *ExternalBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, error) {
 	info := &BackendInfo{
 		Type:     BackendExternal,
@@ -513,7 +529,7 @@ func (b *ExternalBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, err
 		Features: b.GetSupportedFeatures(),
 	}
 
-	// Try to get additional info from health endpoint
+	// Try to get additional info from health endpoint.
 	if err := b.HealthCheck(ctx); err == nil {
 		if b.config.Endpoints.Health != "" {
 			respData, err := b.makeRequest(ctx, "GET", b.config.Endpoints.Health, nil)
@@ -533,7 +549,7 @@ func (b *ExternalBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, err
 	return info, nil
 }
 
-// GetSupportedFeatures returns supported features
+// GetSupportedFeatures returns supported features.
 func (b *ExternalBackend) GetSupportedFeatures() []string {
 	features := []string{
 		"certificate_issuance",
@@ -563,7 +579,7 @@ func (b *ExternalBackend) GetSupportedFeatures() []string {
 	return features
 }
 
-// Helper methods
+// Helper methods.
 
 func (b *ExternalBackend) validateConfig() error {
 	if b.config.BaseURL == "" {
@@ -594,16 +610,16 @@ func (b *ExternalBackend) validateConfig() error {
 }
 
 func (b *ExternalBackend) initializeClient() error {
-	// Create HTTP client with custom transport
+	// Create HTTP client with custom transport.
 	transport := &http.Transport{}
 
-	// Configure TLS if specified
+	// Configure TLS if specified.
 	if b.config.TLSConfig != nil {
 		tlsConfig := &tls.Config{
 			InsecureSkipVerify: b.config.TLSConfig.InsecureSkipVerify,
 		}
 
-		// Load CA certificates
+		// Load CA certificates.
 		if len(b.config.TLSConfig.CACertificates) > 0 {
 			caCertPool := x509.NewCertPool()
 			for _, caCert := range b.config.TLSConfig.CACertificates {
@@ -612,7 +628,7 @@ func (b *ExternalBackend) initializeClient() error {
 			tlsConfig.RootCAs = caCertPool
 		}
 
-		// Load client certificate
+		// Load client certificate.
 		if b.config.TLSConfig.ClientCertificate != "" && b.config.TLSConfig.ClientKey != "" {
 			cert, err := tls.LoadX509KeyPair(
 				b.config.TLSConfig.ClientCertificate,
@@ -623,12 +639,12 @@ func (b *ExternalBackend) initializeClient() error {
 			tlsConfig.Certificates = []tls.Certificate{cert}
 		}
 
-		// Set server name
+		// Set server name.
 		if b.config.TLSConfig.ServerName != "" {
 			tlsConfig.ServerName = b.config.TLSConfig.ServerName
 		}
 
-		// Set minimum TLS version
+		// Set minimum TLS version.
 		if b.config.TLSConfig.MinTLSVersion != "" {
 			switch b.config.TLSConfig.MinTLSVersion {
 			case "1.2":
@@ -650,7 +666,7 @@ func (b *ExternalBackend) initializeClient() error {
 }
 
 func (b *ExternalBackend) testConnectivity(ctx context.Context) error {
-	// Make a simple request to test connectivity
+	// Make a simple request to test connectivity.
 	url := b.config.BaseURL
 	if b.config.Endpoints.Health != "" {
 		url = b.buildURL(b.config.Endpoints.Health)
@@ -698,7 +714,7 @@ func (b *ExternalBackend) makeRequest(ctx context.Context, method, endpoint stri
 
 	b.addAuthentication(req)
 
-	// Retry logic
+	// Retry logic.
 	var resp *http.Response
 	var lastErr error
 
@@ -802,7 +818,7 @@ func (b *ExternalBackend) waitForCertificate(ctx context.Context, requestID stri
 		case <-timeout.C:
 			return nil, fmt.Errorf("timeout waiting for certificate issuance")
 		case <-ticker.C:
-			// Poll for certificate status
+			// Poll for certificate status.
 			status, err := b.getCertificateStatus(ctx, requestID)
 			if err != nil {
 				b.logger.Warn("failed to check certificate status", "request_id", requestID, "error", err)
@@ -815,7 +831,7 @@ func (b *ExternalBackend) waitForCertificate(ctx context.Context, requestID stri
 			case "failed", "error":
 				return nil, fmt.Errorf("certificate issuance failed: %s", status.Message)
 			case "pending", "processing":
-				// Continue waiting
+				// Continue waiting.
 				continue
 			default:
 				return nil, fmt.Errorf("unknown certificate status: %s", status.Status)
@@ -879,8 +895,8 @@ func (b *ExternalBackend) buildCertificateResponse(extResp *ExternalIssueRespons
 }
 
 func (b *ExternalBackend) renewViaDedicatedEndpoint(ctx context.Context, req *CertificateRequest) (*CertificateResponse, error) {
-	// Implementation for dedicated renewal endpoint
-	// This would be similar to IssueCertificate but using the renewal endpoint
+	// Implementation for dedicated renewal endpoint.
+	// This would be similar to IssueCertificate but using the renewal endpoint.
 	return b.IssueCertificate(ctx, req)
 }
 
@@ -916,7 +932,7 @@ func (b *ExternalBackend) parseMultipleCertificates(certsPEM string) ([]*x509.Ce
 }
 
 func (b *ExternalBackend) parseCRL(crlData string) (*pkix.CertificateList, error) {
-	// Try PEM first
+	// Try PEM first.
 	if strings.Contains(crlData, "-----BEGIN") {
 		block, _ := pem.Decode([]byte(crlData))
 		if block != nil {
@@ -924,7 +940,7 @@ func (b *ExternalBackend) parseCRL(crlData string) (*pkix.CertificateList, error
 		}
 	}
 
-	// Try DER format
+	// Try DER format.
 	return x509.ParseCRL([]byte(crlData))
 }
 

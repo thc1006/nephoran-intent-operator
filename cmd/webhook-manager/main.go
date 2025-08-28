@@ -49,10 +49,10 @@ func main() {
 
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme,
-		// New-style metrics server options (replaces MetricsBindAddress)
+		// New-style metrics server options (replaces MetricsBindAddress).
 		Metrics:                metricsserver.Options{BindAddress: metricsAddr},
 		HealthProbeBindAddress: probeAddr,
-		// LeaderElection 可視需要開啟
+		// LeaderElection 可視需要開啟.
 		LeaderElection: false,
 	})
 	if err != nil {
@@ -60,7 +60,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// 建立並註冊 webhook server（新 API；Port/CertDir 透過這裡設定）
+	// 建立並註冊 webhook server（新 API；Port/CertDir 透過這裡設定）.
 	hookServer := webhook.NewServer(webhook.Options{
 		Port:    webhookPort,
 		CertDir: certDir, // 若留空，controller-runtime 會用預設位置
@@ -70,13 +70,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	// 將你的 CRD webhook 掛進 manager（會自動註冊到 mgr.GetWebhookServer()）
+	// 將你的 CRD webhook 掛進 manager（會自動註冊到 mgr.GetWebhookServer()）.
 	if err := (&intentv1alpha1.NetworkIntent{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "NetworkIntent")
 		os.Exit(1)
 	}
 
-	// 健康檢查/就緒檢查
+	// 健康檢查/就緒檢查.
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
 		os.Exit(1)

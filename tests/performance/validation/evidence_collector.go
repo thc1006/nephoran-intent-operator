@@ -11,15 +11,15 @@ import (
 	"time"
 )
 
-// EvidenceCollector collects and organizes quantifiable evidence for performance claims
+// EvidenceCollector collects and organizes quantifiable evidence for performance claims.
 type EvidenceCollector struct {
 	config    *EvidenceRequirements
 	outputDir string
 	baselines *BaselineRepository
-	// prometheusClient v1.API // TODO: Re-enable when Prometheus integration is needed
+	// prometheusClient v1.API // TODO: Re-enable when Prometheus integration is needed.
 }
 
-// EvidenceReport contains comprehensive evidence for all performance claims
+// EvidenceReport contains comprehensive evidence for all performance claims.
 type EvidenceReport struct {
 	GeneratedAt          time.Time                     `json:"generated_at"`
 	TestConfiguration    *TestConfiguration            `json:"test_configuration"`
@@ -31,7 +31,7 @@ type EvidenceReport struct {
 	QualityAssessment    *EvidenceQualityAssessment    `json:"quality_assessment"`
 }
 
-// DetailedEvidence contains comprehensive evidence for a single performance claim
+// DetailedEvidence contains comprehensive evidence for a single performance claim.
 type DetailedEvidence struct {
 	ClaimName            string                    `json:"claim_name"`
 	TestMethodology      *TestMethodology          `json:"test_methodology"`
@@ -44,7 +44,7 @@ type DetailedEvidence struct {
 	SupportingMetrics    *SupportingMetrics        `json:"supporting_metrics"`
 }
 
-// TestMethodology documents the testing methodology used
+// TestMethodology documents the testing methodology used.
 type TestMethodology struct {
 	TestType        string                 `json:"test_type"`
 	Duration        time.Duration          `json:"duration"`
@@ -56,7 +56,7 @@ type TestMethodology struct {
 	DataCollection  *DataCollectionMethod  `json:"data_collection"`
 }
 
-// DataCollectionMethod describes how data was collected
+// DataCollectionMethod describes how data was collected.
 type DataCollectionMethod struct {
 	Method          string        `json:"method"`
 	Frequency       time.Duration `json:"frequency"`
@@ -65,7 +65,7 @@ type DataCollectionMethod struct {
 	ValidationSteps []string      `json:"validation_steps"`
 }
 
-// MeasurementData contains the raw measurement data
+// MeasurementData contains the raw measurement data.
 type MeasurementData struct {
 	DataPoints       []DataPoint            `json:"data_points"`
 	TotalSamples     int                    `json:"total_samples"`
@@ -76,7 +76,7 @@ type MeasurementData struct {
 	Metadata         map[string]interface{} `json:"metadata"`
 }
 
-// DataPoint represents a single measurement
+// DataPoint represents a single measurement.
 type DataPoint struct {
 	Timestamp time.Time              `json:"timestamp"`
 	Value     float64                `json:"value"`
@@ -86,14 +86,14 @@ type DataPoint struct {
 	Context   map[string]interface{} `json:"context"`
 }
 
-// TimePeriod represents a time period
+// TimePeriod represents a time period.
 type TimePeriod struct {
 	Start    time.Time     `json:"start"`
 	End      time.Time     `json:"end"`
 	Duration time.Duration `json:"duration"`
 }
 
-// StatisticalAnalysis contains comprehensive statistical analysis
+// StatisticalAnalysis contains comprehensive statistical analysis.
 type StatisticalAnalysis struct {
 	DescriptiveStats    *DescriptiveStats    `json:"descriptive_stats"`
 	InferentialStats    *InferentialStats    `json:"inferential_stats"`
@@ -103,7 +103,7 @@ type StatisticalAnalysis struct {
 	PowerAnalysis       *PowerAnalysis       `json:"power_analysis"`
 }
 
-// InferentialStats contains inferential statistical analysis
+// InferentialStats contains inferential statistical analysis.
 type InferentialStats struct {
 	PValue            float64                `json:"p_value"`
 	TestStatistic     float64                `json:"test_statistic"`
@@ -114,7 +114,7 @@ type InferentialStats struct {
 	Assumptions       []AssumptionValidation `json:"assumptions"`
 }
 
-// AssumptionValidation validates statistical test assumptions
+// AssumptionValidation validates statistical test assumptions.
 type AssumptionValidation struct {
 	Assumption    string  `json:"assumption"`
 	Valid         bool    `json:"valid"`
@@ -124,7 +124,7 @@ type AssumptionValidation struct {
 	Conclusion    string  `json:"conclusion"`
 }
 
-// ConfidenceIntervals contains confidence intervals for various parameters
+// ConfidenceIntervals contains confidence intervals for various parameters.
 type ConfidenceIntervals struct {
 	Mean        *ConfidenceInterval            `json:"mean"`
 	Variance    *ConfidenceInterval            `json:"variance"`
@@ -132,7 +132,7 @@ type ConfidenceIntervals struct {
 	Percentiles map[string]*ConfidenceInterval `json:"percentiles"`
 }
 
-// EffectSizeAnalysis contains effect size measurements
+// EffectSizeAnalysis contains effect size measurements.
 type EffectSizeAnalysis struct {
 	CohensD        float64 `json:"cohens_d"`
 	HedgesG        float64 `json:"hedges_g"`
@@ -142,7 +142,7 @@ type EffectSizeAnalysis struct {
 	Interpretation string  `json:"interpretation"`
 }
 
-// PowerAnalysis contains statistical power analysis
+// PowerAnalysis contains statistical power analysis.
 type PowerAnalysis struct {
 	ObservedPower      float64      `json:"observed_power"`
 	RequiredSampleSize int          `json:"required_sample_size"`
@@ -152,13 +152,13 @@ type PowerAnalysis struct {
 	PowerCurveData     []PowerPoint `json:"power_curve_data"`
 }
 
-// PowerPoint represents a point on the power curve
+// PowerPoint represents a point on the power curve.
 type PowerPoint struct {
 	SampleSize int     `json:"sample_size"`
 	Power      float64 `json:"power"`
 }
 
-// TimeSeriesAnalysis contains time series analysis results
+// TimeSeriesAnalysis contains time series analysis results.
 type TimeSeriesAnalysis struct {
 	TrendAnalysis           *TrendAnalysis           `json:"trend_analysis"`
 	SeasonalityAnalysis     *SeasonalityAnalysis     `json:"seasonality_analysis"`
@@ -166,7 +166,7 @@ type TimeSeriesAnalysis struct {
 	AutocorrelationAnalysis *AutocorrelationAnalysis `json:"autocorrelation_analysis"`
 }
 
-// TrendAnalysis analyzes trends in the time series
+// TrendAnalysis analyzes trends in the time series.
 type TrendAnalysis struct {
 	HasTrend     bool    `json:"has_trend"`
 	TrendType    string  `json:"trend_type"` // "increasing", "decreasing", "stable"
@@ -175,35 +175,35 @@ type TrendAnalysis struct {
 	Significance float64 `json:"significance"`
 }
 
-// SeasonalityAnalysis detects seasonal patterns
+// SeasonalityAnalysis detects seasonal patterns.
 type SeasonalityAnalysis struct {
 	HasSeasonality bool                   `json:"has_seasonality"`
 	Periods        []SeasonalPeriod       `json:"periods"`
 	Decomposition  *SeasonalDecomposition `json:"decomposition"`
 }
 
-// SeasonalPeriod represents a detected seasonal period
+// SeasonalPeriod represents a detected seasonal period.
 type SeasonalPeriod struct {
 	Length   time.Duration `json:"length"`
 	Strength float64       `json:"strength"`
 	Phase    time.Duration `json:"phase"`
 }
 
-// SeasonalDecomposition contains seasonal decomposition results
+// SeasonalDecomposition contains seasonal decomposition results.
 type SeasonalDecomposition struct {
 	Trend    []float64 `json:"trend"`
 	Seasonal []float64 `json:"seasonal"`
 	Residual []float64 `json:"residual"`
 }
 
-// ChangePointDetection identifies significant changes in the time series
+// ChangePointDetection identifies significant changes in the time series.
 type ChangePointDetection struct {
 	ChangePoints []ChangePoint `json:"change_points"`
 	Method       string        `json:"method"`
 	Confidence   float64       `json:"confidence"`
 }
 
-// ChangePoint represents a detected change point
+// ChangePoint represents a detected change point.
 type ChangePoint struct {
 	Timestamp  time.Time `json:"timestamp"`
 	ChangeType string    `json:"change_type"` // "mean", "variance", "trend"
@@ -212,14 +212,14 @@ type ChangePoint struct {
 	Context    string    `json:"context"`
 }
 
-// AutocorrelationAnalysis analyzes autocorrelation in the data
+// AutocorrelationAnalysis analyzes autocorrelation in the data.
 type AutocorrelationAnalysis struct {
 	ACF          []float64     `json:"acf"`  // Autocorrelation function
 	PACF         []float64     `json:"pacf"` // Partial autocorrelation function
 	LjungBoxTest *LjungBoxTest `json:"ljung_box_test"`
 }
 
-// LjungBoxTest results for testing autocorrelation
+// LjungBoxTest results for testing autocorrelation.
 type LjungBoxTest struct {
 	TestStatistic    float64 `json:"test_statistic"`
 	PValue           float64 `json:"p_value"`
@@ -227,7 +227,7 @@ type LjungBoxTest struct {
 	Conclusion       string  `json:"conclusion"`
 }
 
-// OutlierAnalysis identifies and analyzes outliers
+// OutlierAnalysis identifies and analyzes outliers.
 type OutlierAnalysis struct {
 	OutlierCount     int            `json:"outlier_count"`
 	OutlierRate      float64        `json:"outlier_rate"`
@@ -236,7 +236,7 @@ type OutlierAnalysis struct {
 	ImpactAssessment *OutlierImpact `json:"impact_assessment"`
 }
 
-// OutlierData contains information about detected outliers
+// OutlierData contains information about detected outliers.
 type OutlierData struct {
 	Index         int       `json:"index"`
 	Timestamp     time.Time `json:"timestamp"`
@@ -247,7 +247,7 @@ type OutlierData struct {
 	PossibleCause string    `json:"possible_cause"`
 }
 
-// OutlierImpact assesses the impact of outliers on analysis
+// OutlierImpact assesses the impact of outliers on analysis.
 type OutlierImpact struct {
 	OriginalMean    float64 `json:"original_mean"`
 	RobustMean      float64 `json:"robust_mean"`
@@ -257,7 +257,7 @@ type OutlierImpact struct {
 	Recommendation  string  `json:"recommendation"`
 }
 
-// EvidenceValidationResult contains the final validation results
+// EvidenceValidationResult contains the final validation results.
 type EvidenceValidationResult struct {
 	ClaimValidated     bool                  `json:"claim_validated"`
 	ConfidenceLevel    float64               `json:"confidence_level"`
@@ -267,7 +267,7 @@ type EvidenceValidationResult struct {
 	Assumptions        []string              `json:"assumptions"`
 }
 
-// ValidationCriterion represents a single validation criterion
+// ValidationCriterion represents a single validation criterion.
 type ValidationCriterion struct {
 	Criterion  string  `json:"criterion"`
 	Target     float64 `json:"target"`
@@ -277,7 +277,7 @@ type ValidationCriterion struct {
 	Importance float64 `json:"importance"`
 }
 
-// SupportingMetrics contains additional supporting metrics
+// SupportingMetrics contains additional supporting metrics.
 type SupportingMetrics struct {
 	SystemMetrics        map[string][]MetricPoint `json:"system_metrics"`
 	EnvironmentalFactors []EnvironmentalFactor    `json:"environmental_factors"`
@@ -285,14 +285,14 @@ type SupportingMetrics struct {
 	CorrelationAnalysis  *CorrelationAnalysis     `json:"correlation_analysis"`
 }
 
-// MetricPoint represents a metric measurement
+// MetricPoint represents a metric measurement.
 type MetricPoint struct {
 	Timestamp time.Time         `json:"timestamp"`
 	Value     float64           `json:"value"`
 	Labels    map[string]string `json:"labels"`
 }
 
-// EnvironmentalFactor represents environmental conditions during testing
+// EnvironmentalFactor represents environmental conditions during testing.
 type EnvironmentalFactor struct {
 	Factor    string    `json:"factor"`
 	Value     float64   `json:"value"`
@@ -301,7 +301,7 @@ type EnvironmentalFactor struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-// ExternalFactor represents external factors that might affect results
+// ExternalFactor represents external factors that might affect results.
 type ExternalFactor struct {
 	Factor      string    `json:"factor"`
 	Description string    `json:"description"`
@@ -310,14 +310,14 @@ type ExternalFactor struct {
 	Timestamp   time.Time `json:"timestamp"`
 }
 
-// CorrelationAnalysis analyzes correlations between different metrics
+// CorrelationAnalysis analyzes correlations between different metrics.
 type CorrelationAnalysis struct {
 	Correlations []Correlation `json:"correlations"`
 	HeatMapData  [][]float64   `json:"heatmap_data"`
 	MetricNames  []string      `json:"metric_names"`
 }
 
-// Correlation represents correlation between two metrics
+// Correlation represents correlation between two metrics.
 type Correlation struct {
 	Metric1      string  `json:"metric1"`
 	Metric2      string  `json:"metric2"`
@@ -326,7 +326,7 @@ type Correlation struct {
 	Significance string  `json:"significance"`
 }
 
-// StatisticalSummary provides an overall statistical summary
+// StatisticalSummary provides an overall statistical summary.
 type StatisticalSummary struct {
 	TotalClaims            int            `json:"total_claims"`
 	ValidatedClaims        int            `json:"validated_claims"`
@@ -336,7 +336,7 @@ type StatisticalSummary struct {
 	EffectSizeDistribution map[string]int `json:"effect_size_distribution"`
 }
 
-// HistoricalComparison compares current results with historical data
+// HistoricalComparison compares current results with historical data.
 type HistoricalComparison struct {
 	BaselineDate        time.Time            `json:"baseline_date"`
 	ComparisonResults   []ComparisonResult   `json:"comparison_results"`
@@ -344,7 +344,7 @@ type HistoricalComparison struct {
 	RegressionDetection *RegressionDetection `json:"regression_detection"`
 }
 
-// ComparisonResult represents comparison with historical data
+// ComparisonResult represents comparison with historical data.
 type ComparisonResult struct {
 	Claim                    string  `json:"claim"`
 	CurrentValue             float64 `json:"current_value"`
@@ -354,7 +354,7 @@ type ComparisonResult struct {
 	Interpretation           string  `json:"interpretation"`
 }
 
-// HistoricalTrend analyzes trends over historical data
+// HistoricalTrend analyzes trends over historical data.
 type HistoricalTrend struct {
 	TrendDirection string          `json:"trend_direction"`
 	RateOfChange   float64         `json:"rate_of_change"`
@@ -362,21 +362,21 @@ type HistoricalTrend struct {
 	Forecast       []ForecastPoint `json:"forecast"`
 }
 
-// ForecastPoint represents a forecasted value
+// ForecastPoint represents a forecasted value.
 type ForecastPoint struct {
 	Date               time.Time           `json:"date"`
 	PredictedValue     float64             `json:"predicted_value"`
 	ConfidenceInterval *ConfidenceInterval `json:"confidence_interval"`
 }
 
-// RegressionDetection identifies performance regressions
+// RegressionDetection identifies performance regressions.
 type RegressionDetection struct {
 	RegressionsDetected  []PerformanceRegression  `json:"regressions_detected"`
 	ImprovementsDetected []PerformanceImprovement `json:"improvements_detected"`
 	StabilityAssessment  *StabilityAssessment     `json:"stability_assessment"`
 }
 
-// PerformanceRegression represents a detected performance regression
+// PerformanceRegression represents a detected performance regression.
 type PerformanceRegression struct {
 	Claim          string    `json:"claim"`
 	Severity       string    `json:"severity"`
@@ -386,7 +386,7 @@ type PerformanceRegression struct {
 	Recommendation string    `json:"recommendation"`
 }
 
-// PerformanceImprovement represents a detected performance improvement
+// PerformanceImprovement represents a detected performance improvement.
 type PerformanceImprovement struct {
 	Claim         string    `json:"claim"`
 	Magnitude     float64   `json:"magnitude"`
@@ -395,7 +395,7 @@ type PerformanceImprovement struct {
 	PossibleCause string    `json:"possible_cause"`
 }
 
-// StabilityAssessment assesses performance stability over time
+// StabilityAssessment assesses performance stability over time.
 type StabilityAssessment struct {
 	StabilityScore      float64 `json:"stability_score"`
 	Volatility          float64 `json:"volatility"`
@@ -403,7 +403,7 @@ type StabilityAssessment struct {
 	PredictabilityScore float64 `json:"predictability_score"`
 }
 
-// EvidenceBasedRecommendation provides recommendations based on evidence
+// EvidenceBasedRecommendation provides recommendations based on evidence.
 type EvidenceBasedRecommendation struct {
 	Type           string   `json:"type"`     // "optimization", "investigation", "monitoring"
 	Priority       string   `json:"priority"` // "high", "medium", "low"
@@ -415,7 +415,7 @@ type EvidenceBasedRecommendation struct {
 	SuccessMetrics []string `json:"success_metrics"`
 }
 
-// EvidenceQualityAssessment assesses the quality of collected evidence
+// EvidenceQualityAssessment assesses the quality of collected evidence.
 type EvidenceQualityAssessment struct {
 	OverallScore        float64               `json:"overall_score"`
 	DataQuality         *DataQualityScore     `json:"data_quality"`
@@ -425,7 +425,7 @@ type EvidenceQualityAssessment struct {
 	Limitations         []QualityLimitation   `json:"limitations"`
 }
 
-// DataQualityScore assesses data quality
+// DataQualityScore assesses data quality.
 type DataQualityScore struct {
 	Completeness float64 `json:"completeness"`
 	Accuracy     float64 `json:"accuracy"`
@@ -435,7 +435,7 @@ type DataQualityScore struct {
 	OverallScore float64 `json:"overall_score"`
 }
 
-// MethodologyScore assesses methodological rigor
+// MethodologyScore assesses methodological rigor.
 type MethodologyScore struct {
 	ControlledConditions float64 `json:"controlled_conditions"`
 	SampleSizeAdequacy   float64 `json:"sample_size_adequacy"`
@@ -444,7 +444,7 @@ type MethodologyScore struct {
 	OverallScore         float64 `json:"overall_score"`
 }
 
-// StatisticalScore assesses statistical validity
+// StatisticalScore assesses statistical validity.
 type StatisticalScore struct {
 	AssumptionsMet      float64 `json:"assumptions_met"`
 	AppropriateTests    float64 `json:"appropriate_tests"`
@@ -454,7 +454,7 @@ type StatisticalScore struct {
 	OverallScore        float64 `json:"overall_score"`
 }
 
-// ReproducibilityScore assesses reproducibility
+// ReproducibilityScore assesses reproducibility.
 type ReproducibilityScore struct {
 	Documentation   float64 `json:"documentation"`
 	Standardization float64 `json:"standardization"`
@@ -463,7 +463,7 @@ type ReproducibilityScore struct {
 	OverallScore    float64 `json:"overall_score"`
 }
 
-// QualityLimitation represents a limitation in evidence quality
+// QualityLimitation represents a limitation in evidence quality.
 type QualityLimitation struct {
 	Type        string `json:"type"`
 	Description string `json:"description"`
@@ -471,13 +471,13 @@ type QualityLimitation struct {
 	Mitigation  string `json:"mitigation"`
 }
 
-// BaselineRepository manages historical baseline data
+// BaselineRepository manages historical baseline data.
 type BaselineRepository struct {
 	storePath string
 	baselines map[string]*BaselineData
 }
 
-// BaselineData contains historical baseline measurements
+// BaselineData contains historical baseline measurements.
 type BaselineData struct {
 	Claim        string                 `json:"claim"`
 	Date         time.Time              `json:"date"`
@@ -489,7 +489,7 @@ type BaselineData struct {
 	Metadata     map[string]interface{} `json:"metadata"`
 }
 
-// EnvironmentInfo contains environment information
+// EnvironmentInfo contains environment information.
 type EnvironmentInfo struct {
 	Platform          string            `json:"platform"`
 	Architecture      string            `json:"architecture"`
@@ -500,7 +500,7 @@ type EnvironmentInfo struct {
 	StorageConfig     map[string]string `json:"storage_config"`
 }
 
-// ValidationMetadata contains metadata about the validation process
+// ValidationMetadata contains metadata about the validation process.
 type ValidationMetadata struct {
 	StartTime    time.Time         `json:"start_time"`
 	EndTime      time.Time         `json:"end_time"`
@@ -510,7 +510,7 @@ type ValidationMetadata struct {
 	ToolVersions map[string]string `json:"tool_versions"`
 }
 
-// NewEvidenceCollector creates a new evidence collector
+// NewEvidenceCollector creates a new evidence collector.
 func NewEvidenceCollector(config *EvidenceRequirements) *EvidenceCollector {
 	outputDir := "test-evidence"
 	if dir := os.Getenv("EVIDENCE_OUTPUT_DIR"); dir != "" {
@@ -524,7 +524,7 @@ func NewEvidenceCollector(config *EvidenceRequirements) *EvidenceCollector {
 	}
 }
 
-// NewBaselineRepository creates a new baseline repository
+// NewBaselineRepository creates a new baseline repository.
 func NewBaselineRepository(storePath string) *BaselineRepository {
 	return &BaselineRepository{
 		storePath: storePath,
@@ -532,7 +532,7 @@ func NewBaselineRepository(storePath string) *BaselineRepository {
 	}
 }
 
-// GenerateEvidenceReport generates a comprehensive evidence report
+// GenerateEvidenceReport generates a comprehensive evidence report.
 func (ec *EvidenceCollector) GenerateEvidenceReport(results *ValidationResults) *EvidenceReport {
 	log.Printf("Generating comprehensive evidence report...")
 
@@ -543,38 +543,38 @@ func (ec *EvidenceCollector) GenerateEvidenceReport(results *ValidationResults) 
 		Environment:       ec.gatherEnvironmentInfo(),
 	}
 
-	// Generate detailed evidence for each claim
+	// Generate detailed evidence for each claim.
 	for claimName, result := range results.ClaimResults {
 		evidence := ec.generateDetailedEvidence(claimName, result)
 		report.ClaimEvidence[claimName] = evidence
 	}
 
-	// Generate statistical summary
+	// Generate statistical summary.
 	report.StatisticalSummary = ec.generateStatisticalSummary(results)
 
-	// Generate historical comparison if baselines exist
+	// Generate historical comparison if baselines exist.
 	report.HistoricalComparison = ec.generateHistoricalComparison(results)
 
-	// Generate recommendations
+	// Generate recommendations.
 	report.Recommendations = ec.generateEvidenceBasedRecommendations(results)
 
-	// Assess evidence quality
+	// Assess evidence quality.
 	report.QualityAssessment = ec.assessEvidenceQuality(report)
 
-	// Save evidence report
+	// Save evidence report.
 	ec.saveEvidenceReport(report)
 
 	log.Printf("Evidence report generated successfully")
 	return report
 }
 
-// generateDetailedEvidence creates detailed evidence for a single claim
+// generateDetailedEvidence creates detailed evidence for a single claim.
 func (ec *EvidenceCollector) generateDetailedEvidence(claimName string, result *ClaimResult) *DetailedEvidence {
 	evidence := &DetailedEvidence{
 		ClaimName: claimName,
 	}
 
-	// Generate test methodology documentation
+	// Generate test methodology documentation.
 	evidence.TestMethodology = &TestMethodology{
 		TestType:   "Performance Validation",
 		SampleSize: result.Evidence.SampleSize,
@@ -585,24 +585,24 @@ func (ec *EvidenceCollector) generateDetailedEvidence(claimName string, result *
 		},
 	}
 
-	// Process raw measurements
+	// Process raw measurements.
 	evidence.RawMeasurements = ec.processRawMeasurements(result.Evidence)
 
-	// Generate comprehensive statistical analysis
+	// Generate comprehensive statistical analysis.
 	evidence.StatisticalAnalysis = ec.generateStatisticalAnalysis(result)
 
-	// Analyze distribution
+	// Analyze distribution.
 	evidence.DistributionAnalysis = result.Evidence.Distribution
 
-	// Generate time series analysis if time series data is available
+	// Generate time series analysis if time series data is available.
 	if len(result.Evidence.TimeSeriesData) > 0 {
 		evidence.TimeSeriesAnalysis = ec.generateTimeSeriesAnalysis(result.Evidence.TimeSeriesData)
 	}
 
-	// Analyze outliers
+	// Analyze outliers.
 	evidence.OutlierAnalysis = ec.analyzeOutliers(result.Evidence.RawData)
 
-	// Create validation results
+	// Create validation results.
 	evidence.ValidationResults = &EvidenceValidationResult{
 		ClaimValidated:  result.Status == "validated",
 		ConfidenceLevel: result.Confidence,
@@ -612,7 +612,7 @@ func (ec *EvidenceCollector) generateDetailedEvidence(claimName string, result *
 	return evidence
 }
 
-// processRawMeasurements processes and organizes raw measurement data
+// processRawMeasurements processes and organizes raw measurement data.
 func (ec *EvidenceCollector) processRawMeasurements(evidence *ClaimEvidence) *MeasurementData {
 	dataPoints := make([]DataPoint, len(evidence.RawData))
 
@@ -645,13 +645,13 @@ func (ec *EvidenceCollector) processRawMeasurements(evidence *ClaimEvidence) *Me
 	}
 }
 
-// generateStatisticalAnalysis creates comprehensive statistical analysis
+// generateStatisticalAnalysis creates comprehensive statistical analysis.
 func (ec *EvidenceCollector) generateStatisticalAnalysis(result *ClaimResult) *StatisticalAnalysis {
 	analysis := &StatisticalAnalysis{
 		DescriptiveStats: result.Statistics,
 	}
 
-	// Add inferential statistics
+	// Add inferential statistics.
 	if result.HypothesisTest != nil {
 		analysis.InferentialStats = &InferentialStats{
 			PValue:            result.HypothesisTest.PValue,
@@ -664,20 +664,20 @@ func (ec *EvidenceCollector) generateStatisticalAnalysis(result *ClaimResult) *S
 		analysis.HypothesisTests = []*HypothesisTest{result.HypothesisTest}
 	}
 
-	// Add confidence intervals
+	// Add confidence intervals.
 	if result.HypothesisTest != nil && result.HypothesisTest.ConfidenceInterval != nil {
 		analysis.ConfidenceIntervals = &ConfidenceIntervals{
 			Mean: result.HypothesisTest.ConfidenceInterval,
 		}
 	}
 
-	// Add effect size analysis
+	// Add effect size analysis.
 	analysis.EffectSizeAnalysis = &EffectSizeAnalysis{
 		CohensD:        result.HypothesisTest.EffectSize,
 		Interpretation: ec.interpretEffectSize(result.HypothesisTest.EffectSize),
 	}
 
-	// Add power analysis
+	// Add power analysis.
 	analysis.PowerAnalysis = &PowerAnalysis{
 		ObservedPower:    result.HypothesisTest.Power,
 		ActualSampleSize: result.HypothesisTest.SampleSize,
@@ -688,9 +688,9 @@ func (ec *EvidenceCollector) generateStatisticalAnalysis(result *ClaimResult) *S
 	return analysis
 }
 
-// generateTimeSeriesAnalysis analyzes time series data
+// generateTimeSeriesAnalysis analyzes time series data.
 func (ec *EvidenceCollector) generateTimeSeriesAnalysis(timeSeriesData []TimeSeriesPoint) *TimeSeriesAnalysis {
-	// Extract values for analysis
+	// Extract values for analysis.
 	values := make([]float64, len(timeSeriesData))
 	for i, point := range timeSeriesData {
 		values[i] = point.Value
@@ -698,17 +698,17 @@ func (ec *EvidenceCollector) generateTimeSeriesAnalysis(timeSeriesData []TimeSer
 
 	return &TimeSeriesAnalysis{
 		TrendAnalysis: ec.analyzeTrend(values),
-		// Additional time series analysis would be implemented here
+		// Additional time series analysis would be implemented here.
 	}
 }
 
-// analyzeTrend performs basic trend analysis
+// analyzeTrend performs basic trend analysis.
 func (ec *EvidenceCollector) analyzeTrend(values []float64) *TrendAnalysis {
 	if len(values) < 2 {
 		return &TrendAnalysis{HasTrend: false}
 	}
 
-	// Simple linear regression for trend
+	// Simple linear regression for trend.
 	n := float64(len(values))
 	var sumX, sumY, sumXY, sumX2 float64
 
@@ -720,10 +720,10 @@ func (ec *EvidenceCollector) analyzeTrend(values []float64) *TrendAnalysis {
 		sumX2 += x * x
 	}
 
-	// Calculate slope
+	// Calculate slope.
 	slope := (n*sumXY - sumX*sumY) / (n*sumX2 - sumX*sumX)
 
-	// Determine trend type
+	// Determine trend type.
 	var trendType string
 	if math.Abs(slope) < 0.001 {
 		trendType = "stable"
@@ -740,7 +740,7 @@ func (ec *EvidenceCollector) analyzeTrend(values []float64) *TrendAnalysis {
 	}
 }
 
-// analyzeOutliers identifies and analyzes outliers in the data
+// analyzeOutliers identifies and analyzes outliers in the data.
 func (ec *EvidenceCollector) analyzeOutliers(data []float64) *OutlierAnalysis {
 	if len(data) < 4 {
 		return &OutlierAnalysis{
@@ -750,7 +750,7 @@ func (ec *EvidenceCollector) analyzeOutliers(data []float64) *OutlierAnalysis {
 		}
 	}
 
-	// Calculate IQR method outliers
+	// Calculate IQR method outliers.
 	sorted := make([]float64, len(data))
 	copy(sorted, data)
 	sort.Float64s(sorted)
@@ -767,7 +767,7 @@ func (ec *EvidenceCollector) analyzeOutliers(data []float64) *OutlierAnalysis {
 	var outliers []OutlierData
 	for i, value := range data {
 		if value < lowerBound || value > upperBound {
-			// Calculate z-score for additional information
+			// Calculate z-score for additional information.
 			mean := ec.calculateMean(data)
 			stdDev := ec.calculateStdDev(data, mean)
 			zScore := (value - mean) / stdDev
@@ -797,7 +797,7 @@ func (ec *EvidenceCollector) analyzeOutliers(data []float64) *OutlierAnalysis {
 	}
 }
 
-// Helper methods for calculations
+// Helper methods for calculations.
 
 func (ec *EvidenceCollector) calculateMean(data []float64) float64 {
 	if len(data) == 0 {
@@ -841,7 +841,7 @@ func (ec *EvidenceCollector) interpretEffectSize(effectSize float64) string {
 }
 
 func (ec *EvidenceCollector) assessDataPointQuality(value float64, allData []float64) string {
-	// Simple quality assessment based on whether the value is an outlier
+	// Simple quality assessment based on whether the value is an outlier.
 	mean := ec.calculateMean(allData)
 	stdDev := ec.calculateStdDev(allData, mean)
 	zScore := math.Abs((value - mean) / stdDev)
@@ -855,10 +855,10 @@ func (ec *EvidenceCollector) assessDataPointQuality(value float64, allData []flo
 }
 
 // Additional methods for generating other components of the evidence report would be implemented here...
-// (generateStatisticalSummary, generateHistoricalComparison, generateEvidenceBasedRecommendations, etc.)
+// (generateStatisticalSummary, generateHistoricalComparison, generateEvidenceBasedRecommendations, etc.).
 
 func (ec *EvidenceCollector) generateStatisticalSummary(results *ValidationResults) *StatisticalSummary {
-	// This would implement comprehensive statistical summary generation
+	// This would implement comprehensive statistical summary generation.
 	return &StatisticalSummary{
 		TotalClaims:         results.Summary.TotalClaims,
 		ValidatedClaims:     results.Summary.ValidatedClaims,
@@ -868,7 +868,7 @@ func (ec *EvidenceCollector) generateStatisticalSummary(results *ValidationResul
 }
 
 func (ec *EvidenceCollector) generateHistoricalComparison(results *ValidationResults) *HistoricalComparison {
-	// This would implement historical comparison logic
+	// This would implement historical comparison logic.
 	return &HistoricalComparison{
 		BaselineDate:      time.Now().AddDate(0, -1, 0), // 1 month ago
 		ComparisonResults: []ComparisonResult{},
@@ -876,12 +876,12 @@ func (ec *EvidenceCollector) generateHistoricalComparison(results *ValidationRes
 }
 
 func (ec *EvidenceCollector) generateEvidenceBasedRecommendations(results *ValidationResults) []EvidenceBasedRecommendation {
-	// This would implement recommendation generation logic
+	// This would implement recommendation generation logic.
 	return []EvidenceBasedRecommendation{}
 }
 
 func (ec *EvidenceCollector) assessEvidenceQuality(report *EvidenceReport) *EvidenceQualityAssessment {
-	// This would implement comprehensive quality assessment
+	// This would implement comprehensive quality assessment.
 	return &EvidenceQualityAssessment{
 		OverallScore: 85.0,
 		DataQuality: &DataQualityScore{
@@ -896,12 +896,12 @@ func (ec *EvidenceCollector) assessEvidenceQuality(report *EvidenceReport) *Evid
 }
 
 func (ec *EvidenceCollector) calculateQualityScore(result *ClaimResult) float64 {
-	// This would implement quality score calculation
+	// This would implement quality score calculation.
 	return 85.0 // Placeholder
 }
 
 func (ec *EvidenceCollector) gatherEnvironmentInfo() *EnvironmentInfo {
-	// This would gather actual environment information
+	// This would gather actual environment information.
 	return &EnvironmentInfo{
 		Platform:          "kubernetes",
 		Architecture:      "amd64",
@@ -911,24 +911,24 @@ func (ec *EvidenceCollector) gatherEnvironmentInfo() *EnvironmentInfo {
 }
 
 func (ec *EvidenceCollector) saveEvidenceReport(report *EvidenceReport) error {
-	// Ensure output directory exists
-	if err := os.MkdirAll(ec.outputDir, 0755); err != nil {
+	// Ensure output directory exists.
+	if err := os.MkdirAll(ec.outputDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
-	// Generate filename with timestamp
+	// Generate filename with timestamp.
 	filename := fmt.Sprintf("evidence-report-%s.json",
 		time.Now().Format("2006-01-02-15-04-05"))
 	filepath := filepath.Join(ec.outputDir, filename)
 
-	// Marshal report to JSON
+	// Marshal report to JSON.
 	data, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal evidence report: %w", err)
 	}
 
-	// Write to file
-	if err := os.WriteFile(filepath, data, 0644); err != nil {
+	// Write to file.
+	if err := os.WriteFile(filepath, data, 0o640); err != nil {
 		return fmt.Errorf("failed to write evidence report: %w", err)
 	}
 

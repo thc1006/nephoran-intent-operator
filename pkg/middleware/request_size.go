@@ -7,13 +7,13 @@ import (
 	"strings"
 )
 
-// RequestSizeLimiter creates middleware to enforce request body size limits
+// RequestSizeLimiter creates middleware to enforce request body size limits.
 type RequestSizeLimiter struct {
 	maxSize int64
 	logger  *slog.Logger
 }
 
-// NewRequestSizeLimiter creates a new request size limiter middleware
+// NewRequestSizeLimiter creates a new request size limiter middleware.
 func NewRequestSizeLimiter(maxSize int64, logger *slog.Logger) *RequestSizeLimiter {
 	return &RequestSizeLimiter{
 		maxSize: maxSize,
@@ -21,41 +21,41 @@ func NewRequestSizeLimiter(maxSize int64, logger *slog.Logger) *RequestSizeLimit
 	}
 }
 
-// Middleware returns the HTTP middleware function
+// Middleware returns the HTTP middleware function.
 func (rsl *RequestSizeLimiter) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Only apply size limits to requests with bodies (POST, PUT, PATCH)
+		// Only apply size limits to requests with bodies (POST, PUT, PATCH).
 		if r.Method == "POST" || r.Method == "PUT" || r.Method == "PATCH" {
-			// Wrap the request body with MaxBytesReader
+			// Wrap the request body with MaxBytesReader.
 			r.Body = http.MaxBytesReader(w, r.Body, rsl.maxSize)
 		}
 
-		// Continue to the next handler
+		// Continue to the next handler.
 		next.ServeHTTP(w, r)
 	})
 }
 
-// Handler wraps individual handler functions with request size limits
+// Handler wraps individual handler functions with request size limits.
 func (rsl *RequestSizeLimiter) Handler(handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Only apply size limits to requests with bodies (POST, PUT, PATCH)
+		// Only apply size limits to requests with bodies (POST, PUT, PATCH).
 		if r.Method == "POST" || r.Method == "PUT" || r.Method == "PATCH" {
-			// Wrap the request body with MaxBytesReader
+			// Wrap the request body with MaxBytesReader.
 			originalBody := r.Body
 			r.Body = http.MaxBytesReader(w, r.Body, rsl.maxSize)
 
-			// Log size limit enforcement
+			// Log size limit enforcement.
 			rsl.logger.Debug("Request size limit enforced",
 				slog.String("method", r.Method),
 				slog.String("path", r.URL.Path),
 				slog.Int64("max_size_bytes", rsl.maxSize),
 			)
 
-			// Defer cleanup (though MaxBytesReader handles this)
+			// Defer cleanup (though MaxBytesReader handles this).
 			defer func() {
 				if originalBody != nil {
 					if err := originalBody.Close(); err != nil {
-						// Log error but don't fail the request
+						// Log error but don't fail the request.
 						slog.Warn("Failed to close original request body",
 							slog.String("error", err.Error()))
 					}
@@ -63,12 +63,12 @@ func (rsl *RequestSizeLimiter) Handler(handler http.HandlerFunc) http.HandlerFun
 			}()
 		}
 
-		// Call the wrapped handler
+		// Call the wrapped handler.
 		handler(w, r)
 	}
 }
 
-// writePayloadTooLargeResponse writes an HTTP 413 response
+// writePayloadTooLargeResponse writes an HTTP 413 response.
 func writePayloadTooLargeResponse(w http.ResponseWriter, logger *slog.Logger, maxSize int64) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusRequestEntityTooLarge)
@@ -90,12 +90,12 @@ func writePayloadTooLargeResponse(w http.ResponseWriter, logger *slog.Logger, ma
 	)
 }
 
-// MaxBytesHandler creates a handler that enforces size limits and returns proper 413 responses
+// MaxBytesHandler creates a handler that enforces size limits and returns proper 413 responses.
 func MaxBytesHandler(maxSize int64, logger *slog.Logger, handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Only apply size limits to requests with bodies
+		// Only apply size limits to requests with bodies.
 		if r.Method == "POST" || r.Method == "PUT" || r.Method == "PATCH" {
-			// Check if content-length header indicates oversized request
+			// Check if content-length header indicates oversized request.
 			if r.ContentLength > maxSize {
 				logger.Warn("Request rejected due to Content-Length header",
 					slog.Int64("content_length", r.ContentLength),
@@ -105,7 +105,7 @@ func MaxBytesHandler(maxSize int64, logger *slog.Logger, handler http.HandlerFun
 				return
 			}
 
-			// Wrap the request body with MaxBytesReader
+			// Wrap the request body with MaxBytesReader.
 			r.Body = http.MaxBytesReader(w, r.Body, maxSize)
 
 			logger.Debug("Request size limit applied",
@@ -116,10 +116,10 @@ func MaxBytesHandler(maxSize int64, logger *slog.Logger, handler http.HandlerFun
 			)
 		}
 
-		// Call the handler and catch MaxBytesReader errors
+		// Call the handler and catch MaxBytesReader errors.
 		defer func() {
 			if err := recover(); err != nil {
-				// Check if this is a MaxBytesReader error or a known panic string
+				// Check if this is a MaxBytesReader error or a known panic string.
 				if httpErr, ok := err.(*http.MaxBytesError); ok {
 					logger.Warn("Request body size limit exceeded",
 						slog.Int64("limit", httpErr.Limit),
@@ -129,24 +129,24 @@ func MaxBytesHandler(maxSize int64, logger *slog.Logger, handler http.HandlerFun
 					return
 				}
 
-				// Check for string-based panic from http.MaxBytesReader
-				// Using multiple detection patterns to be resilient to standard library changes
+				// Check for string-based panic from http.MaxBytesReader.
+				// Using multiple detection patterns to be resilient to standard library changes.
 				if errStr, ok := err.(string); ok {
-					// Check for various patterns that indicate body size exceeded
+					// Check for various patterns that indicate body size exceeded.
 					lowerErr := strings.ToLower(errStr)
 					isSizeError := false
 
-					// Current known pattern
+					// Current known pattern.
 					if errStr == "http: request body too large" {
 						isSizeError = true
 					} else if strings.Contains(lowerErr, "request body too large") {
-						// More flexible pattern matching
+						// More flexible pattern matching.
 						isSizeError = true
 					} else if strings.Contains(lowerErr, "body too large") {
-						// Even more flexible
+						// Even more flexible.
 						isSizeError = true
 					} else if strings.Contains(lowerErr, "maxbytesreader") && strings.Contains(lowerErr, "limit") {
-						// Pattern that might appear in future versions
+						// Pattern that might appear in future versions.
 						isSizeError = true
 					}
 
@@ -161,13 +161,13 @@ func MaxBytesHandler(maxSize int64, logger *slog.Logger, handler http.HandlerFun
 					}
 				}
 
-				// Log unexpected panic before re-panicking
+				// Log unexpected panic before re-panicking.
 				logger.Error("Unexpected panic in request size handler",
 					slog.Any("error", err),
 					slog.String("path", r.URL.Path),
 				)
 
-				// Re-panic if it's not a known MaxBytesReader error
+				// Re-panic if it's not a known MaxBytesReader error.
 				panic(err)
 			}
 		}()

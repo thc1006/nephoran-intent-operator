@@ -32,64 +32,64 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
-// ORANInterfaceConfigFunction implements O-RAN interface configuration
-// Supports A1, O1, O2, and E2 interfaces according to O-RAN Alliance specifications
+// ORANInterfaceConfigFunction implements O-RAN interface configuration.
+// Supports A1, O1, O2, and E2 interfaces according to O-RAN Alliance specifications.
 type ORANInterfaceConfigFunction struct {
 	tracer trace.Tracer
 }
 
-// ORANInterfaceConfig defines the configuration structure for O-RAN interfaces
+// ORANInterfaceConfig defines the configuration structure for O-RAN interfaces.
 type ORANInterfaceConfig struct {
-	// Interface specifications
+	// Interface specifications.
 	Interfaces []*ORANInterface `json:"interfaces" yaml:"interfaces"`
 
-	// Global settings
+	// Global settings.
 	Compliance *ComplianceConfig          `json:"compliance,omitempty" yaml:"compliance,omitempty"`
 	Security   *InterfaceSecurityConfig   `json:"security,omitempty" yaml:"security,omitempty"`
 	Monitoring *InterfaceMonitoringConfig `json:"monitoring,omitempty" yaml:"monitoring,omitempty"`
 
-	// RIC configuration
+	// RIC configuration.
 	RICConfig *RICConfiguration `json:"ricConfig,omitempty" yaml:"ricConfig,omitempty"`
 
-	// Service Model Registry
+	// Service Model Registry.
 	ServiceModels []*ServiceModelConfig `json:"serviceModels,omitempty" yaml:"serviceModels,omitempty"`
 
-	// xApp configurations
+	// xApp configurations.
 	XAppConfigs []*XAppConfiguration `json:"xappConfigs,omitempty" yaml:"xappConfigs,omitempty"`
 }
 
-// ORANInterface defines a single O-RAN interface configuration
+// ORANInterface defines a single O-RAN interface configuration.
 type ORANInterface struct {
-	// Basic properties
+	// Basic properties.
 	Name        string `json:"name" yaml:"name"`
 	Type        string `json:"type" yaml:"type"` // A1, O1, O2, E2
 	Version     string `json:"version" yaml:"version"`
 	Enabled     bool   `json:"enabled" yaml:"enabled"`
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 
-	// Endpoint configuration
+	// Endpoint configuration.
 	Endpoint *EndpointConfig `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
 
-	// Protocol configuration
+	// Protocol configuration.
 	Protocol *ProtocolConfig `json:"protocol,omitempty" yaml:"protocol,omitempty"`
 
-	// Security configuration
+	// Security configuration.
 	Security *InterfaceSecurity `json:"security,omitempty" yaml:"security,omitempty"`
 
-	// Interface-specific configuration
+	// Interface-specific configuration.
 	A1Config *A1InterfaceConfig `json:"a1Config,omitempty" yaml:"a1Config,omitempty"`
 	O1Config *O1InterfaceConfig `json:"o1Config,omitempty" yaml:"o1Config,omitempty"`
 	O2Config *O2InterfaceConfig `json:"o2Config,omitempty" yaml:"o2Config,omitempty"`
 	E2Config *E2InterfaceConfig `json:"e2Config,omitempty" yaml:"e2Config,omitempty"`
 
-	// Quality of Service
+	// Quality of Service.
 	QoS *InterfaceQoSConfig `json:"qos,omitempty" yaml:"qos,omitempty"`
 
-	// Monitoring and observability
+	// Monitoring and observability.
 	Observability *InterfaceObservability `json:"observability,omitempty" yaml:"observability,omitempty"`
 }
 
-// EndpointConfig defines endpoint configuration
+// EndpointConfig defines endpoint configuration.
 type EndpointConfig struct {
 	URL          string              `json:"url" yaml:"url"`
 	Port         int32               `json:"port,omitempty" yaml:"port,omitempty"`
@@ -99,7 +99,7 @@ type EndpointConfig struct {
 	HealthCheck  *HealthCheckConfig  `json:"healthCheck,omitempty" yaml:"healthCheck,omitempty"`
 }
 
-// LoadBalancerConfig defines load balancer configuration
+// LoadBalancerConfig defines load balancer configuration.
 type LoadBalancerConfig struct {
 	Enabled       bool            `json:"enabled" yaml:"enabled"`
 	Algorithm     string          `json:"algorithm,omitempty" yaml:"algorithm,omitempty"` // round-robin, least-connections, ip-hash
@@ -108,7 +108,7 @@ type LoadBalancerConfig struct {
 	Backends      []BackendConfig `json:"backends,omitempty" yaml:"backends,omitempty"`
 }
 
-// BackendConfig defines backend server configuration
+// BackendConfig defines backend server configuration.
 type BackendConfig struct {
 	Host    string `json:"host" yaml:"host"`
 	Port    int32  `json:"port" yaml:"port"`
@@ -116,7 +116,7 @@ type BackendConfig struct {
 	Enabled bool   `json:"enabled" yaml:"enabled"`
 }
 
-// HealthCheckConfig defines health check configuration
+// HealthCheckConfig defines health check configuration.
 type HealthCheckConfig struct {
 	Enabled          bool   `json:"enabled" yaml:"enabled"`
 	Path             string `json:"path,omitempty" yaml:"path,omitempty"`
@@ -127,7 +127,7 @@ type HealthCheckConfig struct {
 	FailureThreshold int32  `json:"failureThreshold,omitempty" yaml:"failureThreshold,omitempty"`
 }
 
-// ProtocolConfig defines protocol configuration
+// ProtocolConfig defines protocol configuration.
 type ProtocolConfig struct {
 	Type        string             `json:"type" yaml:"type"` // HTTP, HTTPS, gRPC, SCTP
 	Version     string             `json:"version,omitempty" yaml:"version,omitempty"`
@@ -136,7 +136,7 @@ type ProtocolConfig struct {
 	Timeout     *TimeoutConfig     `json:"timeout,omitempty" yaml:"timeout,omitempty"`
 }
 
-// CompressionConfig defines compression settings
+// CompressionConfig defines compression settings.
 type CompressionConfig struct {
 	Enabled   bool   `json:"enabled" yaml:"enabled"`
 	Algorithm string `json:"algorithm,omitempty" yaml:"algorithm,omitempty"` // gzip, deflate, lz4
@@ -144,7 +144,7 @@ type CompressionConfig struct {
 	MinSize   int32  `json:"minSize,omitempty" yaml:"minSize,omitempty"`
 }
 
-// TimeoutConfig defines timeout settings
+// TimeoutConfig defines timeout settings.
 type TimeoutConfig struct {
 	Connect string `json:"connect,omitempty" yaml:"connect,omitempty"`
 	Read    string `json:"read,omitempty" yaml:"read,omitempty"`
@@ -152,7 +152,7 @@ type TimeoutConfig struct {
 	Idle    string `json:"idle,omitempty" yaml:"idle,omitempty"`
 }
 
-// InterfaceSecurity defines security configuration for an interface
+// InterfaceSecurity defines security configuration for an interface.
 type InterfaceSecurity struct {
 	TLS            *TLSConfig            `json:"tls,omitempty" yaml:"tls,omitempty"`
 	Authentication *AuthenticationConfig `json:"authentication,omitempty" yaml:"authentication,omitempty"`
@@ -160,7 +160,7 @@ type InterfaceSecurity struct {
 	Encryption     *EncryptionConfig     `json:"encryption,omitempty" yaml:"encryption,omitempty"`
 }
 
-// TLSConfig defines TLS configuration
+// TLSConfig defines TLS configuration.
 type TLSConfig struct {
 	Enabled        bool     `json:"enabled" yaml:"enabled"`
 	Version        string   `json:"version,omitempty" yaml:"version,omitempty"`
@@ -171,7 +171,7 @@ type TLSConfig struct {
 	ClientAuth     bool     `json:"clientAuth,omitempty" yaml:"clientAuth,omitempty"`
 }
 
-// AuthenticationConfig defines authentication configuration
+// AuthenticationConfig defines authentication configuration.
 type AuthenticationConfig struct {
 	Method        string            `json:"method" yaml:"method"` // oauth2, jwt, basic, certificate
 	Parameters    map[string]string `json:"parameters,omitempty" yaml:"parameters,omitempty"`
@@ -179,21 +179,21 @@ type AuthenticationConfig struct {
 	Scopes        []string          `json:"scopes,omitempty" yaml:"scopes,omitempty"`
 }
 
-// AuthorizationConfig defines authorization configuration
+// AuthorizationConfig defines authorization configuration.
 type AuthorizationConfig struct {
 	Enabled       bool         `json:"enabled" yaml:"enabled"`
 	Policies      []AuthPolicy `json:"policies,omitempty" yaml:"policies,omitempty"`
 	DefaultAction string       `json:"defaultAction,omitempty" yaml:"defaultAction,omitempty"` // allow, deny
 }
 
-// AuthPolicy defines an authorization policy
+// AuthPolicy defines an authorization policy.
 type AuthPolicy struct {
 	Name   string     `json:"name" yaml:"name"`
 	Rules  []AuthRule `json:"rules,omitempty" yaml:"rules,omitempty"`
 	Effect string     `json:"effect" yaml:"effect"` // allow, deny
 }
 
-// AuthRule defines an authorization rule
+// AuthRule defines an authorization rule.
 type AuthRule struct {
 	Resource  string `json:"resource,omitempty" yaml:"resource,omitempty"`
 	Action    string `json:"action,omitempty" yaml:"action,omitempty"`
@@ -201,7 +201,7 @@ type AuthRule struct {
 	Condition string `json:"condition,omitempty" yaml:"condition,omitempty"`
 }
 
-// EncryptionConfig defines encryption configuration
+// EncryptionConfig defines encryption configuration.
 type EncryptionConfig struct {
 	AtRest    bool   `json:"atRest,omitempty" yaml:"atRest,omitempty"`
 	InTransit bool   `json:"inTransit,omitempty" yaml:"inTransit,omitempty"`
@@ -209,25 +209,25 @@ type EncryptionConfig struct {
 	KeySize   int32  `json:"keySize,omitempty" yaml:"keySize,omitempty"`
 }
 
-// A1InterfaceConfig defines A1 interface specific configuration
+// A1InterfaceConfig defines A1 interface specific configuration.
 type A1InterfaceConfig struct {
-	// Policy Type Management
+	// Policy Type Management.
 	PolicyTypes []*PolicyTypeConfig `json:"policyTypes,omitempty" yaml:"policyTypes,omitempty"`
 
-	// Policy Instance Management
+	// Policy Instance Management.
 	PolicyInstances []*PolicyInstanceConfig `json:"policyInstances,omitempty" yaml:"policyInstances,omitempty"`
 
-	// Enrichment Information
+	// Enrichment Information.
 	EITypes []*EITypeConfig `json:"eiTypes,omitempty" yaml:"eiTypes,omitempty"`
 
-	// Near-RT RIC configuration
+	// Near-RT RIC configuration.
 	NearRTRIC *NearRTRICConfig `json:"nearRtRic,omitempty" yaml:"nearRtRic,omitempty"`
 
-	// Consumer configuration
+	// Consumer configuration.
 	Consumers []*A1ConsumerConfig `json:"consumers,omitempty" yaml:"consumers,omitempty"`
 }
 
-// PolicyTypeConfig defines policy type configuration
+// PolicyTypeConfig defines policy type configuration.
 type PolicyTypeConfig struct {
 	PolicyTypeID   int32                  `json:"policyTypeId" yaml:"policyTypeId"`
 	PolicyTypeName string                 `json:"policyTypeName" yaml:"policyTypeName"`
@@ -236,7 +236,7 @@ type PolicyTypeConfig struct {
 	PolicySchema   map[string]interface{} `json:"policySchema,omitempty" yaml:"policySchema,omitempty"`
 }
 
-// PolicyInstanceConfig defines policy instance configuration
+// PolicyInstanceConfig defines policy instance configuration.
 type PolicyInstanceConfig struct {
 	PolicyID              string                 `json:"policyId" yaml:"policyId"`
 	PolicyTypeID          int32                  `json:"policyTypeId" yaml:"policyTypeId"`
@@ -245,7 +245,7 @@ type PolicyInstanceConfig struct {
 	StatusNotificationURI string                 `json:"statusNotificationUri,omitempty" yaml:"statusNotificationUri,omitempty"`
 }
 
-// EITypeConfig defines Enrichment Information type configuration
+// EITypeConfig defines Enrichment Information type configuration.
 type EITypeConfig struct {
 	EITypeID        string                 `json:"eiTypeId" yaml:"eiTypeId"`
 	EITypeName      string                 `json:"eiTypeName" yaml:"eiTypeName"`
@@ -253,7 +253,7 @@ type EITypeConfig struct {
 	EIJobDataSchema map[string]interface{} `json:"eiJobDataSchema" yaml:"eiJobDataSchema"`
 }
 
-// NearRTRICConfig defines Near-RT RIC configuration
+// NearRTRICConfig defines Near-RT RIC configuration.
 type NearRTRICConfig struct {
 	RICID             string   `json:"ricId" yaml:"ricId"`
 	ManagedElementIDs []string `json:"managedElementIds,omitempty" yaml:"managedElementIds,omitempty"`
@@ -261,13 +261,13 @@ type NearRTRICConfig struct {
 	PLMNs             []PLMN   `json:"plmns,omitempty" yaml:"plmns,omitempty"`
 }
 
-// PLMN defines Public Land Mobile Network
+// PLMN defines Public Land Mobile Network.
 type PLMN struct {
 	MCC string `json:"mcc" yaml:"mcc"`
 	MNC string `json:"mnc" yaml:"mnc"`
 }
 
-// A1ConsumerConfig defines A1 consumer configuration
+// A1ConsumerConfig defines A1 consumer configuration.
 type A1ConsumerConfig struct {
 	ConsumerID         string   `json:"consumerId" yaml:"consumerId"`
 	ConsumerName       string   `json:"consumerName" yaml:"consumerName"`
@@ -275,21 +275,21 @@ type A1ConsumerConfig struct {
 	SubscribedServices []string `json:"subscribedServices,omitempty" yaml:"subscribedServices,omitempty"`
 }
 
-// O1InterfaceConfig defines O1 interface specific configuration
+// O1InterfaceConfig defines O1 interface specific configuration.
 type O1InterfaceConfig struct {
-	// FCAPS Management
+	// FCAPS Management.
 	FaultManagement       *FaultManagementConfig       `json:"faultManagement,omitempty" yaml:"faultManagement,omitempty"`
 	ConfigManagement      *ConfigManagementConfig      `json:"configManagement,omitempty" yaml:"configManagement,omitempty"`
 	AccountingManagement  *AccountingManagementConfig  `json:"accountingManagement,omitempty" yaml:"accountingManagement,omitempty"`
 	PerformanceManagement *PerformanceManagementConfig `json:"performanceManagement,omitempty" yaml:"performanceManagement,omitempty"`
 	SecurityManagement    *SecurityManagementConfig    `json:"securityManagement,omitempty" yaml:"securityManagement,omitempty"`
 
-	// NETCONF/YANG configuration
+	// NETCONF/YANG configuration.
 	NETCONF    *NETCONFConfig     `json:"netconf,omitempty" yaml:"netconf,omitempty"`
 	YANGModels []*YANGModelConfig `json:"yangModels,omitempty" yaml:"yangModels,omitempty"`
 }
 
-// FaultManagementConfig defines fault management configuration
+// FaultManagementConfig defines fault management configuration.
 type FaultManagementConfig struct {
 	Enabled          bool              `json:"enabled" yaml:"enabled"`
 	AlarmList        []AlarmConfig     `json:"alarmList,omitempty" yaml:"alarmList,omitempty"`
@@ -297,7 +297,7 @@ type FaultManagementConfig struct {
 	CorrelationRules []CorrelationRule `json:"correlationRules,omitempty" yaml:"correlationRules,omitempty"`
 }
 
-// AlarmConfig defines alarm configuration
+// AlarmConfig defines alarm configuration.
 type AlarmConfig struct {
 	AlarmID              string `json:"alarmId" yaml:"alarmId"`
 	AlarmText            string `json:"alarmText" yaml:"alarmText"`
@@ -306,7 +306,7 @@ type AlarmConfig struct {
 	ProposedRepairAction string `json:"proposedRepairAction,omitempty" yaml:"proposedRepairAction,omitempty"`
 }
 
-// CorrelationRule defines alarm correlation rule
+// CorrelationRule defines alarm correlation rule.
 type CorrelationRule struct {
 	RuleID     string `json:"ruleId" yaml:"ruleId"`
 	Condition  string `json:"condition" yaml:"condition"`
@@ -314,7 +314,7 @@ type CorrelationRule struct {
 	TimeWindow string `json:"timeWindow,omitempty" yaml:"timeWindow,omitempty"`
 }
 
-// ConfigManagementConfig defines configuration management
+// ConfigManagementConfig defines configuration management.
 type ConfigManagementConfig struct {
 	Enabled           bool              `json:"enabled" yaml:"enabled"`
 	ConfigDatastores  []ConfigDatastore `json:"configDatastores,omitempty" yaml:"configDatastores,omitempty"`
@@ -322,7 +322,7 @@ type ConfigManagementConfig struct {
 	ValidationEnabled bool              `json:"validationEnabled,omitempty" yaml:"validationEnabled,omitempty"`
 }
 
-// ConfigDatastore defines configuration datastore
+// ConfigDatastore defines configuration datastore.
 type ConfigDatastore struct {
 	Name         string   `json:"name" yaml:"name"`
 	Type         string   `json:"type" yaml:"type"` // running, candidate, startup
@@ -330,28 +330,28 @@ type ConfigDatastore struct {
 	Capabilities []string `json:"capabilities,omitempty" yaml:"capabilities,omitempty"`
 }
 
-// AccountingManagementConfig defines accounting management
+// AccountingManagementConfig defines accounting management.
 type AccountingManagementConfig struct {
 	Enabled            bool                      `json:"enabled" yaml:"enabled"`
 	UsageReporting     *UsageReportingConfig     `json:"usageReporting,omitempty" yaml:"usageReporting,omitempty"`
 	BillingIntegration *BillingIntegrationConfig `json:"billingIntegration,omitempty" yaml:"billingIntegration,omitempty"`
 }
 
-// UsageReportingConfig defines usage reporting configuration
+// UsageReportingConfig defines usage reporting configuration.
 type UsageReportingConfig struct {
 	ReportingInterval string   `json:"reportingInterval" yaml:"reportingInterval"`
 	Metrics           []string `json:"metrics,omitempty" yaml:"metrics,omitempty"`
 	DestinationURL    string   `json:"destinationUrl" yaml:"destinationUrl"`
 }
 
-// BillingIntegrationConfig defines billing system integration
+// BillingIntegrationConfig defines billing system integration.
 type BillingIntegrationConfig struct {
 	Provider    string            `json:"provider" yaml:"provider"`
 	APIEndpoint string            `json:"apiEndpoint" yaml:"apiEndpoint"`
 	Credentials map[string]string `json:"credentials,omitempty" yaml:"credentials,omitempty"`
 }
 
-// PerformanceManagementConfig defines performance management
+// PerformanceManagementConfig defines performance management.
 type PerformanceManagementConfig struct {
 	Enabled             bool                       `json:"enabled" yaml:"enabled"`
 	KPIs                []KPIDefinition            `json:"kpis,omitempty" yaml:"kpis,omitempty"`
@@ -359,7 +359,7 @@ type PerformanceManagementConfig struct {
 	ThresholdMonitoring *ThresholdMonitoringConfig `json:"thresholdMonitoring,omitempty" yaml:"thresholdMonitoring,omitempty"`
 }
 
-// KPIDefinition defines KPI configuration
+// KPIDefinition defines KPI configuration.
 type KPIDefinition struct {
 	Name            string `json:"name" yaml:"name"`
 	Description     string `json:"description,omitempty" yaml:"description,omitempty"`
@@ -368,14 +368,14 @@ type KPIDefinition struct {
 	Formula         string `json:"formula,omitempty" yaml:"formula,omitempty"`
 }
 
-// ThresholdMonitoringConfig defines threshold monitoring
+// ThresholdMonitoringConfig defines threshold monitoring.
 type ThresholdMonitoringConfig struct {
 	Enabled       bool              `json:"enabled" yaml:"enabled"`
 	Thresholds    []ThresholdConfig `json:"thresholds,omitempty" yaml:"thresholds,omitempty"`
 	CrossingAlert bool              `json:"crossingAlert,omitempty" yaml:"crossingAlert,omitempty"`
 }
 
-// ThresholdConfig defines threshold configuration
+// ThresholdConfig defines threshold configuration.
 type ThresholdConfig struct {
 	KPIName           string  `json:"kpiName" yaml:"kpiName"`
 	WarningThreshold  float64 `json:"warningThreshold,omitempty" yaml:"warningThreshold,omitempty"`
@@ -383,7 +383,7 @@ type ThresholdConfig struct {
 	Direction         string  `json:"direction,omitempty" yaml:"direction,omitempty"` // up, down
 }
 
-// SecurityManagementConfig defines security management
+// SecurityManagementConfig defines security management.
 type SecurityManagementConfig struct {
 	Enabled       bool                `json:"enabled" yaml:"enabled"`
 	Certificates  []CertificateConfig `json:"certificates,omitempty" yaml:"certificates,omitempty"`
@@ -391,7 +391,7 @@ type SecurityManagementConfig struct {
 	AuditLogging  *AuditLoggingConfig `json:"auditLogging,omitempty" yaml:"auditLogging,omitempty"`
 }
 
-// CertificateConfig defines certificate configuration
+// CertificateConfig defines certificate configuration.
 type CertificateConfig struct {
 	Name       string     `json:"name" yaml:"name"`
 	Type       string     `json:"type" yaml:"type"`
@@ -400,7 +400,7 @@ type CertificateConfig struct {
 	ExpiryDate *time.Time `json:"expiryDate,omitempty" yaml:"expiryDate,omitempty"`
 }
 
-// AccessControlRule defines access control rule
+// AccessControlRule defines access control rule.
 type AccessControlRule struct {
 	RuleID     string `json:"ruleId" yaml:"ruleId"`
 	Subject    string `json:"subject" yaml:"subject"`
@@ -409,7 +409,7 @@ type AccessControlRule struct {
 	Permission string `json:"permission" yaml:"permission"` // allow, deny
 }
 
-// AuditLoggingConfig defines audit logging configuration
+// AuditLoggingConfig defines audit logging configuration.
 type AuditLoggingConfig struct {
 	Enabled         bool   `json:"enabled" yaml:"enabled"`
 	LogLevel        string `json:"logLevel,omitempty" yaml:"logLevel,omitempty"`
@@ -417,7 +417,7 @@ type AuditLoggingConfig struct {
 	DestinationURL  string `json:"destinationUrl,omitempty" yaml:"destinationUrl,omitempty"`
 }
 
-// NETCONFConfig defines NETCONF configuration
+// NETCONFConfig defines NETCONF configuration.
 type NETCONFConfig struct {
 	Port           int32    `json:"port" yaml:"port"`
 	CallHome       bool     `json:"callHome,omitempty" yaml:"callHome,omitempty"`
@@ -425,7 +425,7 @@ type NETCONFConfig struct {
 	SessionTimeout string   `json:"sessionTimeout,omitempty" yaml:"sessionTimeout,omitempty"`
 }
 
-// YANGModelConfig defines YANG model configuration
+// YANGModelConfig defines YANG model configuration.
 type YANGModelConfig struct {
 	Name      string `json:"name" yaml:"name"`
 	Version   string `json:"version" yaml:"version"`
@@ -434,22 +434,22 @@ type YANGModelConfig struct {
 	ModelData string `json:"modelData,omitempty" yaml:"modelData,omitempty"`
 }
 
-// O2InterfaceConfig defines O2 interface specific configuration
+// O2InterfaceConfig defines O2 interface specific configuration.
 type O2InterfaceConfig struct {
-	// Infrastructure Management Service
+	// Infrastructure Management Service.
 	IMS *IMSConfig `json:"ims,omitempty" yaml:"ims,omitempty"`
 
-	// Deployment Management Service
+	// Deployment Management Service.
 	DMS *DMSConfig `json:"dms,omitempty" yaml:"dms,omitempty"`
 
-	// Resource lifecycle management
+	// Resource lifecycle management.
 	ResourceTypes []*ResourceTypeConfig `json:"resourceTypes,omitempty" yaml:"resourceTypes,omitempty"`
 
-	// Cloud providers
+	// Cloud providers.
 	CloudProviders []*CloudProviderConfig `json:"cloudProviders,omitempty" yaml:"cloudProviders,omitempty"`
 }
 
-// IMSConfig defines Infrastructure Management Service configuration
+// IMSConfig defines Infrastructure Management Service configuration.
 type IMSConfig struct {
 	Enabled         bool                  `json:"enabled" yaml:"enabled"`
 	InventoryURL    string                `json:"inventoryUrl" yaml:"inventoryUrl"`
@@ -457,7 +457,7 @@ type IMSConfig struct {
 	SubscriptionURL string                `json:"subscriptionUrl,omitempty" yaml:"subscriptionUrl,omitempty"`
 }
 
-// ResourcePoolConfig defines resource pool configuration
+// ResourcePoolConfig defines resource pool configuration.
 type ResourcePoolConfig struct {
 	PoolID         string   `json:"poolId" yaml:"poolId"`
 	PoolName       string   `json:"poolName" yaml:"poolName"`
@@ -466,7 +466,7 @@ type ResourcePoolConfig struct {
 	Capabilities   []string `json:"capabilities,omitempty" yaml:"capabilities,omitempty"`
 }
 
-// DMSConfig defines Deployment Management Service configuration
+// DMSConfig defines Deployment Management Service configuration.
 type DMSConfig struct {
 	Enabled        bool             `json:"enabled" yaml:"enabled"`
 	DeploymentURL  string           `json:"deploymentUrl" yaml:"deploymentUrl"`
@@ -474,14 +474,14 @@ type DMSConfig struct {
 	LifecycleHooks []*LifecycleHook `json:"lifecycleHooks,omitempty" yaml:"lifecycleHooks,omitempty"`
 }
 
-// LifecycleHook defines deployment lifecycle hook
+// LifecycleHook defines deployment lifecycle hook.
 type LifecycleHook struct {
 	Phase          string `json:"phase" yaml:"phase"` // pre-install, post-install, pre-delete, post-delete
 	Script         string `json:"script" yaml:"script"`
 	TimeoutSeconds int32  `json:"timeoutSeconds,omitempty" yaml:"timeoutSeconds,omitempty"`
 }
 
-// ResourceTypeConfig defines resource type configuration
+// ResourceTypeConfig defines resource type configuration.
 type ResourceTypeConfig struct {
 	ResourceTypeID string                 `json:"resourceTypeId" yaml:"resourceTypeId"`
 	Name           string                 `json:"name" yaml:"name"`
@@ -490,7 +490,7 @@ type ResourceTypeConfig struct {
 	Extensions     map[string]interface{} `json:"extensions,omitempty" yaml:"extensions,omitempty"`
 }
 
-// CloudProviderConfig defines cloud provider configuration
+// CloudProviderConfig defines cloud provider configuration.
 type CloudProviderConfig struct {
 	ProviderID      string            `json:"providerId" yaml:"providerId"`
 	ProviderType    string            `json:"providerType" yaml:"providerType"` // aws, azure, gcp, openstack
@@ -499,25 +499,25 @@ type CloudProviderConfig struct {
 	ResourceMapping map[string]string `json:"resourceMapping,omitempty" yaml:"resourceMapping,omitempty"`
 }
 
-// E2InterfaceConfig defines E2 interface specific configuration
+// E2InterfaceConfig defines E2 interface specific configuration.
 type E2InterfaceConfig struct {
-	// E2 Node configuration
+	// E2 Node configuration.
 	E2Nodes []*E2NodeConfig `json:"e2Nodes,omitempty" yaml:"e2Nodes,omitempty"`
 
-	// Service Model configuration
+	// Service Model configuration.
 	ServiceModels []*E2ServiceModelConfig `json:"serviceModels,omitempty" yaml:"serviceModels,omitempty"`
 
-	// Subscription management
+	// Subscription management.
 	Subscriptions []*E2SubscriptionConfig `json:"subscriptions,omitempty" yaml:"subscriptions,omitempty"`
 
-	// Control message configuration
+	// Control message configuration.
 	ControlMessages []*ControlMessageConfig `json:"controlMessages,omitempty" yaml:"controlMessages,omitempty"`
 
-	// SCTP configuration
+	// SCTP configuration.
 	SCTP *SCTPConfig `json:"sctp,omitempty" yaml:"sctp,omitempty"`
 }
 
-// E2NodeConfig defines E2 node configuration
+// E2NodeConfig defines E2 node configuration.
 type E2NodeConfig struct {
 	NodeID           string               `json:"nodeId" yaml:"nodeId"`
 	GlobalE2NodeID   *GlobalE2NodeID      `json:"globalE2NodeId" yaml:"globalE2NodeId"`
@@ -525,7 +525,7 @@ type E2NodeConfig struct {
 	ConnectionStatus string               `json:"connectionStatus,omitempty" yaml:"connectionStatus,omitempty"`
 }
 
-// GlobalE2NodeID defines global E2 node identifier
+// GlobalE2NodeID defines global E2 node identifier.
 type GlobalE2NodeID struct {
 	PLMNIdentity  string         `json:"plmnIdentity" yaml:"plmnIdentity"`
 	GNBIdentity   *GNBIdentity   `json:"gnbIdentity,omitempty" yaml:"gnbIdentity,omitempty"`
@@ -533,13 +533,13 @@ type GlobalE2NodeID struct {
 	NgENBIdentity *NgENBIdentity `json:"ngenBIdentity,omitempty" yaml:"ngenBIdentity,omitempty"`
 }
 
-// GNBIdentity defines gNB identity
+// GNBIdentity defines gNB identity.
 type GNBIdentity struct {
 	GNBID       string `json:"gnbId" yaml:"gnbId"`
 	GNBIDLength int32  `json:"gnbIdLength,omitempty" yaml:"gnbIdLength,omitempty"`
 }
 
-// ENBIdentity defines eNB identity
+// ENBIdentity defines eNB identity.
 type ENBIdentity struct {
 	MacroENBID      string `json:"macroEnbId,omitempty" yaml:"macroEnbId,omitempty"`
 	HomeENBID       string `json:"homeEnbId,omitempty" yaml:"homeEnbId,omitempty"`
@@ -547,14 +547,14 @@ type ENBIdentity struct {
 	LongMacroENBID  string `json:"longMacroEnbId,omitempty" yaml:"longMacroEnbId,omitempty"`
 }
 
-// NgENBIdentity defines ng-eNB identity
+// NgENBIdentity defines ng-eNB identity.
 type NgENBIdentity struct {
 	MacroNgENBID      string `json:"macroNgenBId,omitempty" yaml:"macroNgenBId,omitempty"`
 	ShortMacroNgENBID string `json:"shortMacroNgenBId,omitempty" yaml:"shortMacroNgenBId,omitempty"`
 	LongMacroNgENBID  string `json:"longMacroNgenBId,omitempty" yaml:"longMacroNgenBId,omitempty"`
 }
 
-// RANFunctionConfig defines RAN function configuration
+// RANFunctionConfig defines RAN function configuration.
 type RANFunctionConfig struct {
 	RANFunctionID         int32  `json:"ranFunctionId" yaml:"ranFunctionId"`
 	RANFunctionDefinition string `json:"ranFunctionDefinition" yaml:"ranFunctionDefinition"`
@@ -562,7 +562,7 @@ type RANFunctionConfig struct {
 	RANFunctionOID        string `json:"ranFunctionOid,omitempty" yaml:"ranFunctionOid,omitempty"`
 }
 
-// E2ServiceModelConfig defines E2 service model configuration
+// E2ServiceModelConfig defines E2 service model configuration.
 type E2ServiceModelConfig struct {
 	ServiceModelID   string   `json:"serviceModelId" yaml:"serviceModelId"`
 	ServiceModelName string   `json:"serviceModelName" yaml:"serviceModelName"`
@@ -571,7 +571,7 @@ type E2ServiceModelConfig struct {
 	Functions        []string `json:"functions,omitempty" yaml:"functions,omitempty"`
 }
 
-// E2SubscriptionConfig defines E2 subscription configuration
+// E2SubscriptionConfig defines E2 subscription configuration.
 type E2SubscriptionConfig struct {
 	SubscriptionID  string          `json:"subscriptionId" yaml:"subscriptionId"`
 	RANFunctionID   int32           `json:"ranFunctionId" yaml:"ranFunctionId"`
@@ -580,14 +580,14 @@ type E2SubscriptionConfig struct {
 	ReportingPeriod string          `json:"reportingPeriod,omitempty" yaml:"reportingPeriod,omitempty"`
 }
 
-// EventTrigger defines event trigger configuration
+// EventTrigger defines event trigger configuration.
 type EventTrigger struct {
 	TriggerType      string                 `json:"triggerType" yaml:"triggerType"`
 	TriggerCondition string                 `json:"triggerCondition,omitempty" yaml:"triggerCondition,omitempty"`
 	Parameters       map[string]interface{} `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 }
 
-// E2Action defines E2 action configuration
+// E2Action defines E2 action configuration.
 type E2Action struct {
 	ActionID         int32                  `json:"actionId" yaml:"actionId"`
 	ActionType       string                 `json:"actionType" yaml:"actionType"` // report, insert, policy
@@ -595,7 +595,7 @@ type E2Action struct {
 	SubsequentAction string                 `json:"subsequentAction,omitempty" yaml:"subsequentAction,omitempty"`
 }
 
-// ControlMessageConfig defines control message configuration
+// ControlMessageConfig defines control message configuration.
 type ControlMessageConfig struct {
 	MessageType    string                 `json:"messageType" yaml:"messageType"`
 	RANFunctionID  int32                  `json:"ranFunctionId" yaml:"ranFunctionId"`
@@ -604,7 +604,7 @@ type ControlMessageConfig struct {
 	CallProcessID  string                 `json:"callProcessId,omitempty" yaml:"callProcessId,omitempty"`
 }
 
-// SCTPConfig defines SCTP configuration
+// SCTPConfig defines SCTP configuration.
 type SCTPConfig struct {
 	Port              int32  `json:"port" yaml:"port"`
 	Streams           int32  `json:"streams,omitempty" yaml:"streams,omitempty"`
@@ -613,7 +613,7 @@ type SCTPConfig struct {
 	HeartbeatInterval string `json:"heartbeatInterval,omitempty" yaml:"heartbeatInterval,omitempty"`
 }
 
-// InterfaceQoSConfig defines QoS configuration for interfaces
+// InterfaceQoSConfig defines QoS configuration for interfaces.
 type InterfaceQoSConfig struct {
 	Priority   int32   `json:"priority,omitempty" yaml:"priority,omitempty"`
 	Bandwidth  string  `json:"bandwidth,omitempty" yaml:"bandwidth,omitempty"`
@@ -622,7 +622,7 @@ type InterfaceQoSConfig struct {
 	Jitter     string  `json:"jitter,omitempty" yaml:"jitter,omitempty"`
 }
 
-// InterfaceObservability defines observability configuration
+// InterfaceObservability defines observability configuration.
 type InterfaceObservability struct {
 	Logging      *LoggingConfig `json:"logging,omitempty" yaml:"logging,omitempty"`
 	Metrics      *MetricsConfig `json:"metrics,omitempty" yaml:"metrics,omitempty"`
@@ -630,7 +630,7 @@ type InterfaceObservability struct {
 	HealthChecks []string       `json:"healthChecks,omitempty" yaml:"healthChecks,omitempty"`
 }
 
-// LoggingConfig defines logging configuration
+// LoggingConfig defines logging configuration.
 type LoggingConfig struct {
 	Level     string `json:"level,omitempty" yaml:"level,omitempty"`
 	Format    string `json:"format,omitempty" yaml:"format,omitempty"`
@@ -638,7 +638,7 @@ type LoggingConfig struct {
 	Retention string `json:"retention,omitempty" yaml:"retention,omitempty"`
 }
 
-// MetricsConfig defines metrics configuration
+// MetricsConfig defines metrics configuration.
 type MetricsConfig struct {
 	Enabled       bool     `json:"enabled" yaml:"enabled"`
 	Port          int32    `json:"port,omitempty" yaml:"port,omitempty"`
@@ -647,7 +647,7 @@ type MetricsConfig struct {
 	CustomMetrics []string `json:"customMetrics,omitempty" yaml:"customMetrics,omitempty"`
 }
 
-// TracingConfig defines tracing configuration
+// TracingConfig defines tracing configuration.
 type TracingConfig struct {
 	Enabled      bool              `json:"enabled" yaml:"enabled"`
 	SamplingRate float64           `json:"samplingRate,omitempty" yaml:"samplingRate,omitempty"`
@@ -655,9 +655,9 @@ type TracingConfig struct {
 	Headers      map[string]string `json:"headers,omitempty" yaml:"headers,omitempty"`
 }
 
-// Supporting configuration types
+// Supporting configuration types.
 
-// ComplianceConfig defines overall compliance configuration
+// ComplianceConfig defines overall compliance configuration.
 type ComplianceConfig struct {
 	Standard      string                 `json:"standard" yaml:"standard"` // O-RAN.WG3.O-RAN-ARCH-v03.00
 	Version       string                 `json:"version" yaml:"version"`
@@ -665,7 +665,7 @@ type ComplianceConfig struct {
 	Certification bool                   `json:"certification,omitempty" yaml:"certification,omitempty"`
 }
 
-// ComplianceValidation defines compliance validation
+// ComplianceValidation defines compliance validation.
 type ComplianceValidation struct {
 	RuleID      string `json:"ruleId" yaml:"ruleId"`
 	Description string `json:"description" yaml:"description"`
@@ -673,14 +673,14 @@ type ComplianceValidation struct {
 	Enabled     bool   `json:"enabled" yaml:"enabled"`
 }
 
-// InterfaceSecurityConfig defines security configuration
+// InterfaceSecurityConfig defines security configuration.
 type InterfaceSecurityConfig struct {
 	GlobalPolicies   []SecurityPolicy  `json:"globalPolicies,omitempty" yaml:"globalPolicies,omitempty"`
 	ThreatDetection  *ThreatDetection  `json:"threatDetection,omitempty" yaml:"threatDetection,omitempty"`
 	IncidentResponse *IncidentResponse `json:"incidentResponse,omitempty" yaml:"incidentResponse,omitempty"`
 }
 
-// SecurityPolicy defines security policy
+// SecurityPolicy defines security policy.
 type SecurityPolicy struct {
 	PolicyID   string         `json:"policyId" yaml:"policyId"`
 	PolicyName string         `json:"policyName" yaml:"policyName"`
@@ -688,7 +688,7 @@ type SecurityPolicy struct {
 	Rules      []SecurityRule `json:"rules,omitempty" yaml:"rules,omitempty"`
 }
 
-// SecurityRule defines security rule
+// SecurityRule defines security rule.
 type SecurityRule struct {
 	RuleID    string `json:"ruleId" yaml:"ruleId"`
 	Condition string `json:"condition" yaml:"condition"`
@@ -696,14 +696,14 @@ type SecurityRule struct {
 	Priority  int32  `json:"priority,omitempty" yaml:"priority,omitempty"`
 }
 
-// ThreatDetection defines threat detection configuration
+// ThreatDetection defines threat detection configuration.
 type ThreatDetection struct {
 	Enabled          bool               `json:"enabled" yaml:"enabled"`
 	DetectionMethods []string           `json:"detectionMethods,omitempty" yaml:"detectionMethods,omitempty"`
 	AlertThresholds  map[string]float64 `json:"alertThresholds,omitempty" yaml:"alertThresholds,omitempty"`
 }
 
-// IncidentResponse defines incident response configuration
+// IncidentResponse defines incident response configuration.
 type IncidentResponse struct {
 	Enabled             bool           `json:"enabled" yaml:"enabled"`
 	ResponseTeam        []string       `json:"responseTeam,omitempty" yaml:"responseTeam,omitempty"`
@@ -711,14 +711,14 @@ type IncidentResponse struct {
 	AutoResponse        []AutoResponse `json:"autoResponse,omitempty" yaml:"autoResponse,omitempty"`
 }
 
-// AutoResponse defines automatic response configuration
+// AutoResponse defines automatic response configuration.
 type AutoResponse struct {
 	TriggerCondition string            `json:"triggerCondition" yaml:"triggerCondition"`
 	Action           string            `json:"action" yaml:"action"`
 	Parameters       map[string]string `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 }
 
-// InterfaceMonitoringConfig defines monitoring configuration
+// InterfaceMonitoringConfig defines monitoring configuration.
 type InterfaceMonitoringConfig struct {
 	Enabled    bool               `json:"enabled" yaml:"enabled"`
 	KPIs       []InterfaceKPI     `json:"kpis,omitempty" yaml:"kpis,omitempty"`
@@ -726,7 +726,7 @@ type InterfaceMonitoringConfig struct {
 	Alerting   *InterfaceAlerting `json:"alerting,omitempty" yaml:"alerting,omitempty"`
 }
 
-// InterfaceKPI defines interface KPI
+// InterfaceKPI defines interface KPI.
 type InterfaceKPI struct {
 	Name               string  `json:"name" yaml:"name"`
 	Description        string  `json:"description,omitempty" yaml:"description,omitempty"`
@@ -735,7 +735,7 @@ type InterfaceKPI struct {
 	Target             float64 `json:"target,omitempty" yaml:"target,omitempty"`
 }
 
-// DashboardConfig defines dashboard configuration
+// DashboardConfig defines dashboard configuration.
 type DashboardConfig struct {
 	Name   string                 `json:"name" yaml:"name"`
 	Type   string                 `json:"type" yaml:"type"`
@@ -743,14 +743,14 @@ type DashboardConfig struct {
 	Config map[string]interface{} `json:"config,omitempty" yaml:"config,omitempty"`
 }
 
-// InterfaceAlerting defines interface alerting
+// InterfaceAlerting defines interface alerting.
 type InterfaceAlerting struct {
 	Enabled  bool              `json:"enabled" yaml:"enabled"`
 	Rules    []AlertingRule    `json:"rules,omitempty" yaml:"rules,omitempty"`
 	Channels []AlertingChannel `json:"channels,omitempty" yaml:"channels,omitempty"`
 }
 
-// AlertingRule defines alerting rule
+// AlertingRule defines alerting rule.
 type AlertingRule struct {
 	RuleID    string  `json:"ruleId" yaml:"ruleId"`
 	Metric    string  `json:"metric" yaml:"metric"`
@@ -760,7 +760,7 @@ type AlertingRule struct {
 	Severity  string  `json:"severity,omitempty" yaml:"severity,omitempty"`
 }
 
-// AlertingChannel defines alerting channel
+// AlertingChannel defines alerting channel.
 type AlertingChannel struct {
 	ChannelID string            `json:"channelId" yaml:"channelId"`
 	Type      string            `json:"type" yaml:"type"`
@@ -768,27 +768,27 @@ type AlertingChannel struct {
 	Enabled   bool              `json:"enabled" yaml:"enabled"`
 }
 
-// RICConfiguration defines RIC configuration
+// RICConfiguration defines RIC configuration.
 type RICConfiguration struct {
 	NonRTRIC    *NonRTRICConfig    `json:"nonRtRic,omitempty" yaml:"nonRtRic,omitempty"`
 	NearRTRIC   *NearRTRICConfig   `json:"nearRtRic,omitempty" yaml:"nearRtRic,omitempty"`
 	RICPlatform *RICPlatformConfig `json:"ricPlatform,omitempty" yaml:"ricPlatform,omitempty"`
 }
 
-// NonRTRICConfig defines Non-RT RIC configuration
+// NonRTRICConfig defines Non-RT RIC configuration.
 type NonRTRICConfig struct {
 	PolicyManagement *PolicyManagementConfig `json:"policyManagement,omitempty" yaml:"policyManagement,omitempty"`
 	EnrichmentInfo   *EnrichmentInfoConfig   `json:"enrichmentInfo,omitempty" yaml:"enrichmentInfo,omitempty"`
 	APPCatalog       *APPCatalogConfig       `json:"appCatalog,omitempty" yaml:"appCatalog,omitempty"`
 }
 
-// PolicyManagementConfig defines policy management configuration
+// PolicyManagementConfig defines policy management configuration.
 type PolicyManagementConfig struct {
 	ServiceURL string         `json:"serviceUrl" yaml:"serviceUrl"`
 	Policies   []PolicyConfig `json:"policies,omitempty" yaml:"policies,omitempty"`
 }
 
-// PolicyConfig defines policy configuration
+// PolicyConfig defines policy configuration.
 type PolicyConfig struct {
 	PolicyID   string                 `json:"policyId" yaml:"policyId"`
 	PolicyType string                 `json:"policyType" yaml:"policyType"`
@@ -796,26 +796,26 @@ type PolicyConfig struct {
 	PolicyData map[string]interface{} `json:"policyData" yaml:"policyData"`
 }
 
-// EnrichmentInfoConfig defines enrichment information configuration
+// EnrichmentInfoConfig defines enrichment information configuration.
 type EnrichmentInfoConfig struct {
 	ServiceURL string           `json:"serviceUrl" yaml:"serviceUrl"`
 	DataTypes  []DataTypeConfig `json:"dataTypes,omitempty" yaml:"dataTypes,omitempty"`
 }
 
-// DataTypeConfig defines data type configuration
+// DataTypeConfig defines data type configuration.
 type DataTypeConfig struct {
 	InfoTypeID   string                 `json:"infoTypeId" yaml:"infoTypeId"`
 	InfoTypeName string                 `json:"infoTypeName" yaml:"infoTypeName"`
 	Schema       map[string]interface{} `json:"schema" yaml:"schema"`
 }
 
-// APPCatalogConfig defines APP catalog configuration
+// APPCatalogConfig defines APP catalog configuration.
 type APPCatalogConfig struct {
 	ServiceURL   string              `json:"serviceUrl" yaml:"serviceUrl"`
 	Applications []ApplicationConfig `json:"applications,omitempty" yaml:"applications,omitempty"`
 }
 
-// ApplicationConfig defines application configuration
+// ApplicationConfig defines application configuration.
 type ApplicationConfig struct {
 	ApplicationID   string           `json:"applicationId" yaml:"applicationId"`
 	ApplicationName string           `json:"applicationName" yaml:"applicationName"`
@@ -823,7 +823,7 @@ type ApplicationConfig struct {
 	Artifacts       []ArtifactConfig `json:"artifacts,omitempty" yaml:"artifacts,omitempty"`
 }
 
-// ArtifactConfig defines artifact configuration
+// ArtifactConfig defines artifact configuration.
 type ArtifactConfig struct {
 	ArtifactID string `json:"artifactId" yaml:"artifactId"`
 	Type       string `json:"type" yaml:"type"`
@@ -831,14 +831,14 @@ type ArtifactConfig struct {
 	Checksum   string `json:"checksum,omitempty" yaml:"checksum,omitempty"`
 }
 
-// RICPlatformConfig defines RIC platform configuration
+// RICPlatformConfig defines RIC platform configuration.
 type RICPlatformConfig struct {
 	Components []ComponentConfig `json:"components,omitempty" yaml:"components,omitempty"`
 	Messaging  *MessagingConfig  `json:"messaging,omitempty" yaml:"messaging,omitempty"`
 	Database   *DatabaseConfig   `json:"database,omitempty" yaml:"database,omitempty"`
 }
 
-// ComponentConfig defines platform component configuration
+// ComponentConfig defines platform component configuration.
 type ComponentConfig struct {
 	ComponentID   string            `json:"componentId" yaml:"componentId"`
 	ComponentName string            `json:"componentName" yaml:"componentName"`
@@ -847,14 +847,14 @@ type ComponentConfig struct {
 	Environment   map[string]string `json:"environment,omitempty" yaml:"environment,omitempty"`
 }
 
-// MessagingConfig defines messaging configuration
+// MessagingConfig defines messaging configuration.
 type MessagingConfig struct {
 	Type       string            `json:"type" yaml:"type"` // rmr, kafka, rabbitmq
 	Endpoints  []string          `json:"endpoints" yaml:"endpoints"`
 	Parameters map[string]string `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 }
 
-// DatabaseConfig defines database configuration
+// DatabaseConfig defines database configuration.
 type DatabaseConfig struct {
 	Type        string            `json:"type" yaml:"type"` // redis, etcd, postgresql
 	Endpoints   []string          `json:"endpoints" yaml:"endpoints"`
@@ -862,7 +862,7 @@ type DatabaseConfig struct {
 	Parameters  map[string]string `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 }
 
-// ServiceModelConfig defines service model configuration
+// ServiceModelConfig defines service model configuration.
 type ServiceModelConfig struct {
 	ServiceModelID   string                 `json:"serviceModelId" yaml:"serviceModelId"`
 	ServiceModelName string                 `json:"serviceModelName" yaml:"serviceModelName"`
@@ -871,7 +871,7 @@ type ServiceModelConfig struct {
 	Schema           map[string]interface{} `json:"schema,omitempty" yaml:"schema,omitempty"`
 }
 
-// ServiceModelFunction defines service model function
+// ServiceModelFunction defines service model function.
 type ServiceModelFunction struct {
 	FunctionID   int32  `json:"functionId" yaml:"functionId"`
 	FunctionName string `json:"functionName" yaml:"functionName"`
@@ -879,7 +879,7 @@ type ServiceModelFunction struct {
 	Description  string `json:"description,omitempty" yaml:"description,omitempty"`
 }
 
-// XAppConfiguration defines xApp configuration
+// XAppConfiguration defines xApp configuration.
 type XAppConfiguration struct {
 	XAppName      string                 `json:"xappName" yaml:"xappName"`
 	XAppVersion   string                 `json:"xappVersion" yaml:"xappVersion"`
@@ -889,7 +889,7 @@ type XAppConfiguration struct {
 	Resources     *XAppResources         `json:"resources,omitempty" yaml:"resources,omitempty"`
 }
 
-// HelmChartConfig defines Helm chart configuration
+// HelmChartConfig defines Helm chart configuration.
 type HelmChartConfig struct {
 	ChartName    string                 `json:"chartName" yaml:"chartName"`
 	ChartVersion string                 `json:"chartVersion" yaml:"chartVersion"`
@@ -897,7 +897,7 @@ type HelmChartConfig struct {
 	Values       map[string]interface{} `json:"values,omitempty" yaml:"values,omitempty"`
 }
 
-// XAppResources defines xApp resource requirements
+// XAppResources defines xApp resource requirements.
 type XAppResources struct {
 	CPU      string `json:"cpu,omitempty" yaml:"cpu,omitempty"`
 	Memory   string `json:"memory,omitempty" yaml:"memory,omitempty"`
@@ -905,14 +905,14 @@ type XAppResources struct {
 	Replicas int32  `json:"replicas,omitempty" yaml:"replicas,omitempty"`
 }
 
-// NewORANInterfaceConfigFunction creates a new O-RAN interface configuration function
+// NewORANInterfaceConfigFunction creates a new O-RAN interface configuration function.
 func NewORANInterfaceConfigFunction() *ORANInterfaceConfigFunction {
 	return &ORANInterfaceConfigFunction{
 		tracer: otel.Tracer("oran-interface-config-function"),
 	}
 }
 
-// Execute implements the KRM function for O-RAN interface configuration
+// Execute implements the KRM function for O-RAN interface configuration.
 func (f *ORANInterfaceConfigFunction) Execute(ctx context.Context, resources []porch.KRMResource, config map[string]interface{}) ([]porch.KRMResource, []*porch.FunctionResult, error) {
 	ctx, span := f.tracer.Start(ctx, "oran-interface-config-execute")
 	defer span.End()
@@ -923,7 +923,7 @@ func (f *ORANInterfaceConfigFunction) Execute(ctx context.Context, resources []p
 		attribute.Int("input.resources", len(resources)),
 	)
 
-	// Parse configuration
+	// Parse configuration.
 	oranConfig, err := f.parseConfig(config)
 	if err != nil {
 		span.RecordError(err)
@@ -940,7 +940,7 @@ func (f *ORANInterfaceConfigFunction) Execute(ctx context.Context, resources []p
 		"resources", len(resources),
 	)
 
-	// Process existing resources
+	// Process existing resources.
 	processedResources, results, err := f.processResources(ctx, resources, oranConfig)
 	if err != nil {
 		span.RecordError(err)
@@ -948,13 +948,13 @@ func (f *ORANInterfaceConfigFunction) Execute(ctx context.Context, resources []p
 		return nil, results, fmt.Errorf("failed to process O-RAN interface resources: %w", err)
 	}
 
-	// Generate additional resources for O-RAN interfaces
+	// Generate additional resources for O-RAN interfaces.
 	additionalResources, additionalResults, err := f.generateInterfaceResources(ctx, oranConfig)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "interface resource generation failed")
 		logger.Error(err, "Failed to generate O-RAN interface resources")
-		// Continue with what we have
+		// Continue with what we have.
 	} else {
 		processedResources = append(processedResources, additionalResources...)
 		results = append(results, additionalResults...)
@@ -973,13 +973,13 @@ func (f *ORANInterfaceConfigFunction) Execute(ctx context.Context, resources []p
 	return processedResources, results, nil
 }
 
-// parseConfig parses the function configuration into ORANInterfaceConfig
+// parseConfig parses the function configuration into ORANInterfaceConfig.
 func (f *ORANInterfaceConfigFunction) parseConfig(config map[string]interface{}) (*ORANInterfaceConfig, error) {
 	if config == nil {
 		return nil, fmt.Errorf("configuration is required")
 	}
 
-	// Convert to JSON and back to struct for type safety
+	// Convert to JSON and back to struct for type safety.
 	configJSON, err := json.Marshal(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal config: %v", err)
@@ -990,7 +990,7 @@ func (f *ORANInterfaceConfigFunction) parseConfig(config map[string]interface{})
 		return nil, fmt.Errorf("failed to unmarshal config: %v", err)
 	}
 
-	// Validate configuration
+	// Validate configuration.
 	if err := f.validateConfig(&oranConfig); err != nil {
 		return nil, fmt.Errorf("config validation failed: %v", err)
 	}
@@ -998,13 +998,13 @@ func (f *ORANInterfaceConfigFunction) parseConfig(config map[string]interface{})
 	return &oranConfig, nil
 }
 
-// validateConfig validates the O-RAN interface configuration
+// validateConfig validates the O-RAN interface configuration.
 func (f *ORANInterfaceConfigFunction) validateConfig(config *ORANInterfaceConfig) error {
 	if len(config.Interfaces) == 0 {
 		return fmt.Errorf("at least one interface configuration is required")
 	}
 
-	// Validate each interface
+	// Validate each interface.
 	for i, iface := range config.Interfaces {
 		if iface.Name == "" {
 			return fmt.Errorf("interface %d: name is required", i)
@@ -1013,7 +1013,7 @@ func (f *ORANInterfaceConfigFunction) validateConfig(config *ORANInterfaceConfig
 			return fmt.Errorf("interface %d: type is required", i)
 		}
 
-		// Validate interface type
+		// Validate interface type.
 		validTypes := []string{"A1", "O1", "O2", "E2"}
 		validType := false
 		for _, validIfaceType := range validTypes {
@@ -1026,7 +1026,7 @@ func (f *ORANInterfaceConfigFunction) validateConfig(config *ORANInterfaceConfig
 			return fmt.Errorf("interface %d: invalid type %s, must be one of: %v", i, iface.Type, validTypes)
 		}
 
-		// Validate type-specific configuration
+		// Validate type-specific configuration.
 		switch iface.Type {
 		case "A1":
 			if iface.A1Config == nil {
@@ -1050,13 +1050,13 @@ func (f *ORANInterfaceConfigFunction) validateConfig(config *ORANInterfaceConfig
 	return nil
 }
 
-// processResources processes existing resources based on O-RAN interface configuration
+// processResources processes existing resources based on O-RAN interface configuration.
 func (f *ORANInterfaceConfigFunction) processResources(ctx context.Context, resources []porch.KRMResource, config *ORANInterfaceConfig) ([]porch.KRMResource, []*porch.FunctionResult, error) {
 	var processedResources []porch.KRMResource
 	var results []*porch.FunctionResult
 
 	for i, resource := range resources {
-		// Process based on resource type
+		// Process based on resource type.
 		switch {
 		case resource.Kind == "Deployment":
 			processed, result := f.processDeployment(resource, config)
@@ -1087,7 +1087,7 @@ func (f *ORANInterfaceConfigFunction) processResources(ctx context.Context, reso
 			}
 
 		default:
-			// Pass through unmodified
+			// Pass through unmodified.
 			processedResources = append(processedResources, resource)
 			results = append(results, &porch.FunctionResult{
 				Message:  fmt.Sprintf("Resource %d passed through unchanged", i),
@@ -1099,15 +1099,15 @@ func (f *ORANInterfaceConfigFunction) processResources(ctx context.Context, reso
 	return processedResources, results, nil
 }
 
-// processDeployment configures Deployment resources for O-RAN interfaces
+// processDeployment configures Deployment resources for O-RAN interfaces.
 func (f *ORANInterfaceConfigFunction) processDeployment(resource porch.KRMResource, config *ORANInterfaceConfig) (porch.KRMResource, *porch.FunctionResult) {
-	// Add O-RAN interface labels and annotations
+	// Add O-RAN interface labels and annotations.
 	f.addORANLabelsAndAnnotations(&resource, config)
 
-	// Configure environment variables for O-RAN interfaces
+	// Configure environment variables for O-RAN interfaces.
 	f.configureORANEnvironment(&resource, config)
 
-	// Configure ports for O-RAN interfaces
+	// Configure ports for O-RAN interfaces.
 	f.configureORANPorts(&resource, config)
 
 	return resource, &porch.FunctionResult{
@@ -1116,12 +1116,12 @@ func (f *ORANInterfaceConfigFunction) processDeployment(resource porch.KRMResour
 	}
 }
 
-// processService configures Service resources for O-RAN interfaces
+// processService configures Service resources for O-RAN interfaces.
 func (f *ORANInterfaceConfigFunction) processService(resource porch.KRMResource, config *ORANInterfaceConfig) (porch.KRMResource, *porch.FunctionResult) {
-	// Add O-RAN interface labels and annotations
+	// Add O-RAN interface labels and annotations.
 	f.addORANLabelsAndAnnotations(&resource, config)
 
-	// Configure service ports for O-RAN interfaces
+	// Configure service ports for O-RAN interfaces.
 	f.configureServicePorts(&resource, config)
 
 	return resource, &porch.FunctionResult{
@@ -1130,26 +1130,26 @@ func (f *ORANInterfaceConfigFunction) processService(resource porch.KRMResource,
 	}
 }
 
-// processConfigMap configures ConfigMap resources for O-RAN interfaces
+// processConfigMap configures ConfigMap resources for O-RAN interfaces.
 func (f *ORANInterfaceConfigFunction) processConfigMap(resource porch.KRMResource, config *ORANInterfaceConfig) (porch.KRMResource, *porch.FunctionResult) {
-	// Add O-RAN interface configuration to ConfigMap
+	// Add O-RAN interface configuration to ConfigMap.
 	if resource.Data == nil {
 		resource.Data = make(map[string]interface{})
 	}
 
-	// Add interface configurations
+	// Add interface configurations.
 	for _, iface := range config.Interfaces {
 		configData, _ := json.Marshal(iface)
 		resource.Data[fmt.Sprintf("%s-interface-config.json", strings.ToLower(iface.Type))] = string(configData)
 	}
 
-	// Add service model configurations
+	// Add service model configurations.
 	if len(config.ServiceModels) > 0 {
 		serviceModelsData, _ := json.Marshal(config.ServiceModels)
 		resource.Data["service-models.json"] = string(serviceModelsData)
 	}
 
-	// Add RIC configuration if present
+	// Add RIC configuration if present.
 	if config.RICConfig != nil {
 		ricConfigData, _ := json.Marshal(config.RICConfig)
 		resource.Data["ric-config.json"] = string(ricConfigData)
@@ -1161,17 +1161,17 @@ func (f *ORANInterfaceConfigFunction) processConfigMap(resource porch.KRMResourc
 	}
 }
 
-// processSecret configures Secret resources for O-RAN interface security
+// processSecret configures Secret resources for O-RAN interface security.
 func (f *ORANInterfaceConfigFunction) processSecret(resource porch.KRMResource, config *ORANInterfaceConfig) (porch.KRMResource, *porch.FunctionResult) {
-	// Add O-RAN interface security configurations
+	// Add O-RAN interface security configurations.
 	if resource.Data == nil {
 		resource.Data = make(map[string]interface{})
 	}
 
-	// Add security configurations for interfaces that require them
+	// Add security configurations for interfaces that require them.
 	for _, iface := range config.Interfaces {
 		if iface.Security != nil && iface.Security.TLS != nil && iface.Security.TLS.Enabled {
-			// Add TLS certificate references
+			// Add TLS certificate references.
 			if iface.Security.TLS.CertificateRef != "" {
 				resource.Data[fmt.Sprintf("%s-tls-cert", iface.Name)] = iface.Security.TLS.CertificateRef
 			}
@@ -1187,12 +1187,12 @@ func (f *ORANInterfaceConfigFunction) processSecret(resource porch.KRMResource, 
 	}
 }
 
-// generateInterfaceResources generates additional resources for O-RAN interfaces
+// generateInterfaceResources generates additional resources for O-RAN interfaces.
 func (f *ORANInterfaceConfigFunction) generateInterfaceResources(ctx context.Context, config *ORANInterfaceConfig) ([]porch.KRMResource, []*porch.FunctionResult, error) {
 	var resources []porch.KRMResource
 	var results []*porch.FunctionResult
 
-	// Generate resources for each interface
+	// Generate resources for each interface.
 	for _, iface := range config.Interfaces {
 		switch iface.Type {
 		case "A1":
@@ -1214,7 +1214,7 @@ func (f *ORANInterfaceConfigFunction) generateInterfaceResources(ctx context.Con
 		}
 	}
 
-	// Generate ServiceMonitor for monitoring
+	// Generate ServiceMonitor for monitoring.
 	if config.Monitoring != nil && config.Monitoring.Enabled {
 		monitor := f.generateServiceMonitor(config)
 		resources = append(resources, monitor)
@@ -1227,10 +1227,10 @@ func (f *ORANInterfaceConfigFunction) generateInterfaceResources(ctx context.Con
 	return resources, results, nil
 }
 
-// Helper methods for resource configuration
+// Helper methods for resource configuration.
 
 func (f *ORANInterfaceConfigFunction) addORANLabelsAndAnnotations(resource *porch.KRMResource, config *ORANInterfaceConfig) {
-	// Add labels
+	// Add labels.
 	if resource.Metadata == nil {
 		resource.Metadata = make(map[string]interface{})
 	}
@@ -1242,14 +1242,14 @@ func (f *ORANInterfaceConfigFunction) addORANLabelsAndAnnotations(resource *porc
 	labels["nephoran.com/oran-enabled"] = "true"
 	labels["nephoran.com/managed-by"] = "oran-interface-config"
 
-	// Add interface types as labels
+	// Add interface types as labels.
 	var interfaceTypes []string
 	for _, iface := range config.Interfaces {
 		interfaceTypes = append(interfaceTypes, iface.Type)
 	}
 	labels["nephoran.com/oran-interfaces"] = strings.Join(interfaceTypes, ",")
 
-	// Add annotations
+	// Add annotations.
 	if resource.Metadata["annotations"] == nil {
 		resource.Metadata["annotations"] = make(map[string]interface{})
 	}
@@ -1257,7 +1257,7 @@ func (f *ORANInterfaceConfigFunction) addORANLabelsAndAnnotations(resource *porc
 	annotations := resource.Metadata["annotations"].(map[string]interface{})
 	annotations["nephoran.com/oran-config-timestamp"] = time.Now().UTC().Format(time.RFC3339)
 
-	// Add compliance annotations
+	// Add compliance annotations.
 	if config.Compliance != nil {
 		annotations["nephoran.com/oran-standard"] = config.Compliance.Standard
 		annotations["nephoran.com/oran-version"] = config.Compliance.Version
@@ -1265,7 +1265,7 @@ func (f *ORANInterfaceConfigFunction) addORANLabelsAndAnnotations(resource *porc
 }
 
 func (f *ORANInterfaceConfigFunction) configureORANEnvironment(resource *porch.KRMResource, config *ORANInterfaceConfig) {
-	// Configure environment variables in deployment containers
+	// Configure environment variables in deployment containers.
 	if resource.Spec == nil {
 		return
 	}
@@ -1281,7 +1281,7 @@ func (f *ORANInterfaceConfigFunction) configureORANEnvironment(resource *porch.K
 
 						envVars := containerMap["env"].([]interface{})
 
-						// Add environment variables for each interface
+						// Add environment variables for each interface.
 						for _, iface := range config.Interfaces {
 							envVar := map[string]interface{}{
 								"name":  fmt.Sprintf("ORAN_%s_ENABLED", iface.Type),
@@ -1307,7 +1307,7 @@ func (f *ORANInterfaceConfigFunction) configureORANEnvironment(resource *porch.K
 }
 
 func (f *ORANInterfaceConfigFunction) configureORANPorts(resource *porch.KRMResource, config *ORANInterfaceConfig) {
-	// Configure container ports in deployment
+	// Configure container ports in deployment.
 	if resource.Spec == nil {
 		return
 	}
@@ -1323,7 +1323,7 @@ func (f *ORANInterfaceConfigFunction) configureORANPorts(resource *porch.KRMReso
 
 						ports := containerMap["ports"].([]interface{})
 
-						// Add ports for each interface
+						// Add ports for each interface.
 						for _, iface := range config.Interfaces {
 							if iface.Endpoint != nil && iface.Endpoint.Port != 0 {
 								port := map[string]interface{}{
@@ -1347,7 +1347,7 @@ func (f *ORANInterfaceConfigFunction) configureORANPorts(resource *porch.KRMReso
 }
 
 func (f *ORANInterfaceConfigFunction) configureServicePorts(resource *porch.KRMResource, config *ORANInterfaceConfig) {
-	// Configure service ports
+	// Configure service ports.
 	if resource.Spec == nil {
 		resource.Spec = make(map[string]interface{})
 	}
@@ -1358,7 +1358,7 @@ func (f *ORANInterfaceConfigFunction) configureServicePorts(resource *porch.KRMR
 
 	ports := resource.Spec["ports"].([]interface{})
 
-	// Add ports for each interface
+	// Add ports for each interface.
 	for _, iface := range config.Interfaces {
 		if iface.Endpoint != nil && iface.Endpoint.Port != 0 {
 			port := map[string]interface{}{
@@ -1377,14 +1377,14 @@ func (f *ORANInterfaceConfigFunction) configureServicePorts(resource *porch.KRMR
 	resource.Spec["ports"] = ports
 }
 
-// Interface-specific resource generation methods
+// Interface-specific resource generation methods.
 
 func (f *ORANInterfaceConfigFunction) generateA1Resources(iface *ORANInterface) ([]porch.KRMResource, []*porch.FunctionResult) {
 	var resources []porch.KRMResource
 	var results []*porch.FunctionResult
 
 	if iface.A1Config != nil {
-		// Generate A1 policy ConfigMap
+		// Generate A1 policy ConfigMap.
 		if len(iface.A1Config.PolicyTypes) > 0 {
 			configMap := porch.KRMResource{
 				APIVersion: "v1",
@@ -1421,7 +1421,7 @@ func (f *ORANInterfaceConfigFunction) generateO1Resources(iface *ORANInterface) 
 	var results []*porch.FunctionResult
 
 	if iface.O1Config != nil {
-		// Generate O1 NETCONF ConfigMap
+		// Generate O1 NETCONF ConfigMap.
 		if iface.O1Config.NETCONF != nil {
 			configMap := porch.KRMResource{
 				APIVersion: "v1",
@@ -1452,7 +1452,7 @@ func (f *ORANInterfaceConfigFunction) generateO1Resources(iface *ORANInterface) 
 			})
 		}
 
-		// Generate YANG models ConfigMap
+		// Generate YANG models ConfigMap.
 		if len(iface.O1Config.YANGModels) > 0 {
 			configMap := porch.KRMResource{
 				APIVersion: "v1",
@@ -1489,7 +1489,7 @@ func (f *ORANInterfaceConfigFunction) generateO2Resources(iface *ORANInterface) 
 	var results []*porch.FunctionResult
 
 	if iface.O2Config != nil {
-		// Generate O2 IMS ConfigMap
+		// Generate O2 IMS ConfigMap.
 		if iface.O2Config.IMS != nil && iface.O2Config.IMS.Enabled {
 			configMap := porch.KRMResource{
 				APIVersion: "v1",
@@ -1520,7 +1520,7 @@ func (f *ORANInterfaceConfigFunction) generateO2Resources(iface *ORANInterface) 
 			})
 		}
 
-		// Generate O2 cloud providers Secret if credentials are present
+		// Generate O2 cloud providers Secret if credentials are present.
 		if len(iface.O2Config.CloudProviders) > 0 {
 			secret := porch.KRMResource{
 				APIVersion: "v1",
@@ -1559,7 +1559,7 @@ func (f *ORANInterfaceConfigFunction) generateE2Resources(iface *ORANInterface) 
 	var results []*porch.FunctionResult
 
 	if iface.E2Config != nil {
-		// Generate E2 nodes ConfigMap
+		// Generate E2 nodes ConfigMap.
 		if len(iface.E2Config.E2Nodes) > 0 {
 			configMap := porch.KRMResource{
 				APIVersion: "v1",
@@ -1587,7 +1587,7 @@ func (f *ORANInterfaceConfigFunction) generateE2Resources(iface *ORANInterface) 
 			})
 		}
 
-		// Generate E2 service models ConfigMap
+		// Generate E2 service models ConfigMap.
 		if len(iface.E2Config.ServiceModels) > 0 {
 			configMap := porch.KRMResource{
 				APIVersion: "v1",
@@ -1615,7 +1615,7 @@ func (f *ORANInterfaceConfigFunction) generateE2Resources(iface *ORANInterface) 
 			})
 		}
 
-		// Generate SCTP configuration if present
+		// Generate SCTP configuration if present.
 		if iface.E2Config.SCTP != nil {
 			configMap := porch.KRMResource{
 				APIVersion: "v1",

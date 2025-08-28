@@ -12,7 +12,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// LoadBalancer manages provider selection and load distribution
+// LoadBalancer manages provider selection and load distribution.
 type LoadBalancer struct {
 	strategy   string
 	providers  []string
@@ -21,6 +21,7 @@ type LoadBalancer struct {
 	mutex      sync.Mutex
 }
 
+// NewLoadBalancer performs newloadbalancer operation.
 func NewLoadBalancer(strategy string, providers []string) *LoadBalancer {
 	return &LoadBalancer{
 		strategy:  strategy,
@@ -29,7 +30,7 @@ func NewLoadBalancer(strategy string, providers []string) *LoadBalancer {
 	}
 }
 
-// SelectProvider selects the best provider based on strategy
+// SelectProvider selects the best provider based on strategy.
 func (lb *LoadBalancer) SelectProvider(availableProviders []string, request *EmbeddingRequest) string {
 	lb.mutex.Lock()
 	defer lb.mutex.Unlock()
@@ -66,24 +67,24 @@ func (lb *LoadBalancer) roundRobin(providers []string) string {
 }
 
 func (lb *LoadBalancer) leastCost(providers []string) string {
-	// For now, return the first provider
-	// In a real implementation, you would calculate costs
+	// For now, return the first provider.
+	// In a real implementation, you would calculate costs.
 	return providers[0]
 }
 
 func (lb *LoadBalancer) fastest(providers []string) string {
-	// For now, return the first provider
-	// In a real implementation, you would check latency metrics
+	// For now, return the first provider.
+	// In a real implementation, you would check latency metrics.
 	return providers[0]
 }
 
 func (lb *LoadBalancer) bestQuality(providers []string) string {
-	// For now, return the first provider
-	// In a real implementation, you would check quality scores
+	// For now, return the first provider.
+	// In a real implementation, you would check quality scores.
 	return providers[0]
 }
 
-// CostManager tracks and manages embedding costs
+// CostManager tracks and manages embedding costs.
 type CostManager struct {
 	dailySpend   map[string]float64
 	monthlySpend map[string]float64
@@ -92,7 +93,7 @@ type CostManager struct {
 	mutex        sync.RWMutex
 }
 
-// QualityManager assesses and ensures embedding quality
+// QualityManager assesses and ensures embedding quality.
 type QualityManager struct {
 	minScore     float64
 	sampleSize   int
@@ -101,7 +102,7 @@ type QualityManager struct {
 	mutex        sync.RWMutex
 }
 
-// QualityResult represents quality assessment result
+// QualityResult represents quality assessment result.
 type QualityResult struct {
 	Timestamp  time.Time          `json:"timestamp"`
 	Provider   string             `json:"provider"`
@@ -111,7 +112,7 @@ type QualityResult struct {
 	SampleSize int                `json:"sample_size"`
 }
 
-// QualityTest represents a quality test function
+// QualityTest represents a quality test function.
 type QualityTest struct {
 	Name      string
 	TestFunc  func([]float32) float64
@@ -119,7 +120,7 @@ type QualityTest struct {
 	Threshold float64
 }
 
-// EmbeddingCacheManager manages multi-level caching
+// EmbeddingCacheManager manages multi-level caching.
 type EmbeddingCacheManager struct {
 	l1Enabled bool
 	l2Enabled bool
@@ -129,16 +130,16 @@ type EmbeddingCacheManager struct {
 	mutex     sync.RWMutex
 }
 
-// CacheMetrics tracks cache performance
+// CacheMetrics tracks cache performance.
 type CacheMetrics struct {
-	// Basic cache metrics
+	// Basic cache metrics.
 	Hits       int64        `json:"hits"`
 	Misses     int64        `json:"misses"`
 	TotalItems int64        `json:"total_items"`
 	Evictions  int64        `json:"evictions"`
 	mutex      sync.RWMutex `json:"-"`
 
-	// L1/L2 cache specific metrics
+	// L1/L2 cache specific metrics.
 	L1Hits       int64   `json:"l1_hits"`
 	L1Misses     int64   `json:"l1_misses"`
 	L2Hits       int64   `json:"l2_hits"`
@@ -148,7 +149,7 @@ type CacheMetrics struct {
 	TotalHitRate float64 `json:"total_hit_rate"`
 }
 
-// LRUCache implements an LRU cache for embeddings
+// LRUCache implements an LRU cache for embeddings.
 type LRUCache struct {
 	capacity int64
 	size     int64
@@ -158,7 +159,7 @@ type LRUCache struct {
 	mutex    sync.Mutex
 }
 
-// CacheNode represents a node in the LRU cache
+// CacheNode represents a node in the LRU cache.
 type CacheNode struct {
 	key    string
 	value  []float32
@@ -168,7 +169,7 @@ type CacheNode struct {
 	next   *CacheNode
 }
 
-// ProviderHealthMonitor monitors provider health
+// ProviderHealthMonitor monitors provider health.
 type ProviderHealthMonitor struct {
 	healthChecks  map[string]*HealthStatus
 	checkInterval time.Duration
@@ -176,7 +177,7 @@ type ProviderHealthMonitor struct {
 	mutex         sync.RWMutex
 }
 
-// Document represents a document for processing
+// Document represents a document for processing.
 type Document struct {
 	ID       string                 `json:"id"`
 	Content  string                 `json:"content"`
@@ -184,6 +185,7 @@ type Document struct {
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
+// NewCostManager performs newcostmanager operation.
 func NewCostManager(limits CostLimits) *CostManager {
 	return &CostManager{
 		dailySpend:   make(map[string]float64),
@@ -193,7 +195,7 @@ func NewCostManager(limits CostLimits) *CostManager {
 	}
 }
 
-// CanAfford checks if the request can be afforded within limits
+// CanAfford checks if the request can be afforded within limits.
 func (cm *CostManager) CanAfford(estimatedCost float64) bool {
 	cm.mutex.RLock()
 	defer cm.mutex.RUnlock()
@@ -215,7 +217,7 @@ func (cm *CostManager) CanAfford(estimatedCost float64) bool {
 	return true
 }
 
-// RecordSpending records actual spending
+// RecordSpending records actual spending.
 func (cm *CostManager) RecordSpending(cost float64) {
 	cm.mutex.Lock()
 	defer cm.mutex.Unlock()
@@ -226,7 +228,7 @@ func (cm *CostManager) RecordSpending(cost float64) {
 	cm.dailySpend[today] += cost
 	cm.monthlySpend[thisMonth] += cost
 
-	// Check for alerts
+	// Check for alerts.
 	cm.checkAlerts(today, thisMonth)
 }
 
@@ -234,7 +236,7 @@ func (cm *CostManager) checkAlerts(today, thisMonth string) {
 	dailySpent := cm.dailySpend[today]
 	monthlySpent := cm.monthlySpend[thisMonth]
 
-	// Daily alerts
+	// Daily alerts.
 	if cm.limits.DailyLimit > 0 {
 		dailyPercent := dailySpent / cm.limits.DailyLimit
 		if dailyPercent >= cm.limits.AlertThreshold {
@@ -252,7 +254,7 @@ func (cm *CostManager) checkAlerts(today, thisMonth string) {
 		}
 	}
 
-	// Monthly alerts
+	// Monthly alerts.
 	if cm.limits.MonthlyLimit > 0 {
 		monthlyPercent := monthlySpent / cm.limits.MonthlyLimit
 		if monthlyPercent >= cm.limits.AlertThreshold {
@@ -271,7 +273,7 @@ func (cm *CostManager) checkAlerts(today, thisMonth string) {
 	}
 }
 
-// CostSummary holds cost tracking summary
+// CostSummary holds cost tracking summary.
 type CostSummary struct {
 	DailySpending   float64     `json:"daily_spending"`
 	MonthlySpending float64     `json:"monthly_spending"`
@@ -280,7 +282,7 @@ type CostSummary struct {
 	Alerts          []CostAlert `json:"alerts"`
 }
 
-// GetSummary returns cost summary
+// GetSummary returns cost summary.
 func (cm *CostManager) GetSummary() *CostSummary {
 	cm.mutex.RLock()
 	defer cm.mutex.RUnlock()
@@ -297,7 +299,7 @@ func (cm *CostManager) GetSummary() *CostSummary {
 	}
 }
 
-// QualityManager assesses and ensures embedding quality
+// QualityManager assesses and ensures embedding quality.
 func NewQualityManager(minScore float64, sampleSize int) *QualityManager {
 	qm := &QualityManager{
 		minScore:    minScore,
@@ -305,7 +307,7 @@ func NewQualityManager(minScore float64, sampleSize int) *QualityManager {
 		testHistory: []QualityResult{},
 	}
 
-	// Initialize quality tests
+	// Initialize quality tests.
 	qm.qualityTests = []QualityTest{
 		{
 			Name:      "magnitude_check",
@@ -336,7 +338,7 @@ func NewQualityManager(minScore float64, sampleSize int) *QualityManager {
 	return qm
 }
 
-// AssessQuality assesses the quality of embeddings
+// AssessQuality assesses the quality of embeddings.
 func (qm *QualityManager) AssessQuality(embedding []float32, provider, model string) float64 {
 	qm.mutex.Lock()
 	defer qm.mutex.Unlock()
@@ -354,7 +356,7 @@ func (qm *QualityManager) AssessQuality(embedding []float32, provider, model str
 
 	finalScore := totalScore / totalWeight
 
-	// Record result
+	// Record result.
 	result := QualityResult{
 		Timestamp:  time.Now(),
 		Provider:   provider,
@@ -366,7 +368,7 @@ func (qm *QualityManager) AssessQuality(embedding []float32, provider, model str
 
 	qm.testHistory = append(qm.testHistory, result)
 
-	// Keep only recent history
+	// Keep only recent history.
 	if len(qm.testHistory) > 1000 {
 		qm.testHistory = qm.testHistory[len(qm.testHistory)-1000:]
 	}
@@ -374,16 +376,16 @@ func (qm *QualityManager) AssessQuality(embedding []float32, provider, model str
 	return finalScore
 }
 
-// Quality test functions
+// Quality test functions.
 func (qm *QualityManager) magnitudeTest(embedding []float32) float64 {
-	// Check if embedding has reasonable magnitude
+	// Check if embedding has reasonable magnitude.
 	var magnitude float64
 	for _, val := range embedding {
 		magnitude += float64(val * val)
 	}
 	magnitude = math.Sqrt(magnitude)
 
-	// Good embeddings typically have magnitude between 0.1 and 10
+	// Good embeddings typically have magnitude between 0.1 and 10.
 	if magnitude >= 0.1 && magnitude <= 10.0 {
 		return 1.0
 	} else if magnitude >= 0.01 && magnitude <= 100.0 {
@@ -394,7 +396,7 @@ func (qm *QualityManager) magnitudeTest(embedding []float32) float64 {
 }
 
 func (qm *QualityManager) dimensionalityTest(embedding []float32) float64 {
-	// Check if embedding has expected dimensionality (non-zero values)
+	// Check if embedding has expected dimensionality (non-zero values).
 	nonZeroCount := 0
 	for _, val := range embedding {
 		if val != 0 {
@@ -413,16 +415,16 @@ func (qm *QualityManager) dimensionalityTest(embedding []float32) float64 {
 }
 
 func (qm *QualityManager) distributionTest(embedding []float32) float64 {
-	// Check if embedding values have good distribution
+	// Check if embedding values have good distribution.
 	var mean, variance float64
 
-	// Calculate mean
+	// Calculate mean.
 	for _, val := range embedding {
 		mean += float64(val)
 	}
 	mean /= float64(len(embedding))
 
-	// Calculate variance
+	// Calculate variance.
 	for _, val := range embedding {
 		diff := float64(val) - mean
 		variance += diff * diff
@@ -431,7 +433,7 @@ func (qm *QualityManager) distributionTest(embedding []float32) float64 {
 
 	stddev := math.Sqrt(variance)
 
-	// Good embeddings have moderate standard deviation
+	// Good embeddings have moderate standard deviation.
 	if stddev >= 0.1 && stddev <= 2.0 {
 		return 1.0
 	} else if stddev >= 0.01 && stddev <= 5.0 {
@@ -442,7 +444,7 @@ func (qm *QualityManager) distributionTest(embedding []float32) float64 {
 }
 
 func (qm *QualityManager) consistencyTest(embedding []float32) float64 {
-	// Check for NaN or infinite values
+	// Check for NaN or infinite values.
 	for _, val := range embedding {
 		if math.IsNaN(float64(val)) || math.IsInf(float64(val), 0) {
 			return 0.0
@@ -451,7 +453,7 @@ func (qm *QualityManager) consistencyTest(embedding []float32) float64 {
 	return 1.0
 }
 
-// EmbeddingCacheManager manages multi-level caching
+// EmbeddingCacheManager manages multi-level caching.
 func NewEmbeddingCacheManager(config *EmbeddingConfig) (*EmbeddingCacheManager, error) {
 	manager := &EmbeddingCacheManager{
 		l1Enabled: config.EnableCaching,
@@ -459,12 +461,12 @@ func NewEmbeddingCacheManager(config *EmbeddingConfig) (*EmbeddingCacheManager, 
 		metrics:   &CacheMetrics{},
 	}
 
-	// Initialize L1 cache (in-memory)
+	// Initialize L1 cache (in-memory).
 	if manager.l1Enabled {
 		manager.l1Cache = NewLRUCache(config.L1CacheSize)
 	}
 
-	// Initialize L2 cache (Redis)
+	// Initialize L2 cache (Redis).
 	if manager.l2Enabled && config.EnableRedisCache {
 		redisClient := redis.NewClient(&redis.Options{
 			Addr:     config.RedisAddr,
@@ -474,7 +476,7 @@ func NewEmbeddingCacheManager(config *EmbeddingConfig) (*EmbeddingCacheManager, 
 
 		manager.l2Cache = NewRedisEmbeddingCache(config.RedisAddr, config.RedisPassword, config.RedisDB)
 
-		// Test Redis connection
+		// Test Redis connection.
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := redisClient.Ping(ctx).Err(); err != nil {
@@ -485,12 +487,12 @@ func NewEmbeddingCacheManager(config *EmbeddingConfig) (*EmbeddingCacheManager, 
 	return manager, nil
 }
 
-// Get retrieves embedding from cache
+// Get retrieves embedding from cache.
 func (ecm *EmbeddingCacheManager) Get(key string) ([]float32, bool) {
 	ecm.mutex.RLock()
 	defer ecm.mutex.RUnlock()
 
-	// Try L1 cache first
+	// Try L1 cache first.
 	if ecm.l1Enabled && ecm.l1Cache != nil {
 		if embedding, found := ecm.l1Cache.Get(key); found {
 			ecm.metrics.L1Hits++
@@ -500,11 +502,11 @@ func (ecm *EmbeddingCacheManager) Get(key string) ([]float32, bool) {
 		ecm.metrics.L1Misses++
 	}
 
-	// Try L2 cache
+	// Try L2 cache.
 	if ecm.l2Enabled && ecm.l2Cache != nil {
 		if embedding, found, err := ecm.l2Cache.Get(key); err == nil && found {
 			ecm.metrics.L2Hits++
-			// Promote to L1 cache
+			// Promote to L1 cache.
 			if ecm.l1Enabled && ecm.l1Cache != nil {
 				ecm.l1Cache.Set(key, embedding, time.Hour) // Use shorter TTL for L1
 			}
@@ -518,17 +520,17 @@ func (ecm *EmbeddingCacheManager) Get(key string) ([]float32, bool) {
 	return nil, false
 }
 
-// Set stores embedding in cache
+// Set stores embedding in cache.
 func (ecm *EmbeddingCacheManager) Set(key string, embedding []float32, ttl time.Duration) {
 	ecm.mutex.Lock()
 	defer ecm.mutex.Unlock()
 
-	// Store in L1 cache
+	// Store in L1 cache.
 	if ecm.l1Enabled && ecm.l1Cache != nil {
 		ecm.l1Cache.Set(key, embedding, ttl)
 	}
 
-	// Store in L2 cache
+	// Store in L2 cache.
 	if ecm.l2Enabled && ecm.l2Cache != nil {
 		ecm.l2Cache.Set(key, embedding, ttl)
 	}
@@ -552,20 +554,20 @@ func (ecm *EmbeddingCacheManager) updateHitRates() {
 	}
 }
 
-// Close closes the cache manager
+// Close closes the cache manager.
 func (ecm *EmbeddingCacheManager) Close() error {
-	// For now, just return nil - interface does not expose client directly
+	// For now, just return nil - interface does not expose client directly.
 	return nil
 }
 
-// LRUCache implements an LRU cache for embeddings
+// LRUCache implements an LRU cache for embeddings.
 func NewLRUCache(capacity int64) *LRUCache {
 	cache := &LRUCache{
 		capacity: capacity,
 		items:    make(map[string]*CacheNode),
 	}
 
-	// Initialize dummy head and tail nodes
+	// Initialize dummy head and tail nodes.
 	cache.head = &CacheNode{}
 	cache.tail = &CacheNode{}
 	cache.head.next = cache.tail
@@ -574,7 +576,7 @@ func NewLRUCache(capacity int64) *LRUCache {
 	return cache
 }
 
-// Get retrieves an embedding from the LRU cache
+// Get retrieves an embedding from the LRU cache.
 func (cache *LRUCache) Get(key string) ([]float32, bool) {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
@@ -584,28 +586,28 @@ func (cache *LRUCache) Get(key string) ([]float32, bool) {
 		return nil, false
 	}
 
-	// Check if expired
+	// Check if expired.
 	if time.Now().After(node.expiry) {
 		cache.removeNode(node)
 		delete(cache.items, key)
 		return nil, false
 	}
 
-	// Move to front (most recently used)
+	// Move to front (most recently used).
 	cache.moveToFront(node)
 	return node.value, true
 }
 
-// Set stores an embedding in the LRU cache
+// Set stores an embedding in the LRU cache.
 func (cache *LRUCache) Set(key string, value []float32, ttl time.Duration) {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 
-	// Calculate size (rough estimate)
+	// Calculate size (rough estimate).
 	nodeSize := int64(len(value)*4 + len(key) + 64) // 4 bytes per float32 + key + overhead
 
 	if existingNode, exists := cache.items[key]; exists {
-		// Update existing node
+		// Update existing node.
 		cache.size -= existingNode.size
 		existingNode.value = value
 		existingNode.size = nodeSize
@@ -613,7 +615,7 @@ func (cache *LRUCache) Set(key string, value []float32, ttl time.Duration) {
 		cache.size += nodeSize
 		cache.moveToFront(existingNode)
 	} else {
-		// Create new node
+		// Create new node.
 		newNode := &CacheNode{
 			key:    key,
 			value:  value,
@@ -626,7 +628,7 @@ func (cache *LRUCache) Set(key string, value []float32, ttl time.Duration) {
 		cache.size += nodeSize
 	}
 
-	// Evict if over capacity
+	// Evict if over capacity.
 	for cache.size > cache.capacity {
 		cache.evictLRU()
 	}
@@ -658,7 +660,7 @@ func (cache *LRUCache) evictLRU() {
 	}
 }
 
-// ProviderHealthMonitor monitors provider health
+// ProviderHealthMonitor monitors provider health.
 func NewProviderHealthMonitor(checkInterval time.Duration) *ProviderHealthMonitor {
 	return &ProviderHealthMonitor{
 		healthChecks:  make(map[string]*HealthStatus),
@@ -667,7 +669,7 @@ func NewProviderHealthMonitor(checkInterval time.Duration) *ProviderHealthMonito
 	}
 }
 
-// StartMonitoring starts health monitoring for providers
+// StartMonitoring starts health monitoring for providers.
 func (phm *ProviderHealthMonitor) StartMonitoring(providers map[string]EmbeddingProvider) {
 	ticker := time.NewTicker(phm.checkInterval)
 	defer ticker.Stop()
@@ -693,12 +695,12 @@ func (phm *ProviderHealthMonitor) checkProviderHealth(providers map[string]Embed
 			phm.healthChecks[name] = status
 		}
 
-		// Update health status
+		// Update health status.
 		status.IsHealthy = provider.IsHealthy()
 		status.LastCheck = time.Now()
 		status.AverageLatency = provider.GetLatency()
 
-		// Simple health check - you could implement more sophisticated checks
+		// Simple health check - you could implement more sophisticated checks.
 		if status.IsHealthy {
 			status.ConsecutiveFailures = 0
 		} else {
@@ -707,12 +709,12 @@ func (phm *ProviderHealthMonitor) checkProviderHealth(providers map[string]Embed
 	}
 }
 
-// GetStatus returns health status for all providers
+// GetStatus returns health status for all providers.
 func (phm *ProviderHealthMonitor) GetStatus() map[string]*HealthStatus {
 	phm.mutex.RLock()
 	defer phm.mutex.RUnlock()
 
-	// Return a copy
+	// Return a copy.
 	status := make(map[string]*HealthStatus)
 	for k, v := range phm.healthChecks {
 		statusCopy := *v
@@ -722,7 +724,7 @@ func (phm *ProviderHealthMonitor) GetStatus() map[string]*HealthStatus {
 	return status
 }
 
-// Stop stops health monitoring
+// Stop stops health monitoring.
 func (phm *ProviderHealthMonitor) Stop() {
 	close(phm.stopChan)
 }

@@ -15,7 +15,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 )
 
-// StreamingService provides real-time streaming capabilities for O1 interface
+// StreamingService provides real-time streaming capabilities for O1 interface.
 type StreamingService struct {
 	logger             *zap.Logger
 	upgrader           websocket.Upgrader
@@ -30,7 +30,7 @@ type StreamingService struct {
 	rateLimiter        *StreamingRateLimiter
 }
 
-// StreamingConfig holds configuration for streaming service
+// StreamingConfig holds configuration for streaming service.
 type StreamingConfig struct {
 	MaxConnections          int           `yaml:"max_connections" json:"max_connections"`
 	ConnectionTimeout       time.Duration `yaml:"connection_timeout" json:"connection_timeout"`
@@ -42,7 +42,7 @@ type StreamingConfig struct {
 	RateLimitPerSecond      int           `yaml:"rate_limit_per_second" json:"rate_limit_per_second"`
 }
 
-// StreamConnection represents a WebSocket connection
+// StreamConnection represents a WebSocket connection.
 type StreamConnection struct {
 	ID               string
 	Conn             *websocket.Conn
@@ -57,7 +57,7 @@ type StreamConnection struct {
 	closed           bool
 }
 
-// StreamSubscription represents a subscription to data streams
+// StreamSubscription represents a subscription to data streams.
 type StreamSubscription struct {
 	ID                   string
 	Type                 StreamType
@@ -72,38 +72,51 @@ type StreamSubscription struct {
 	BackpressureStrategy BackpressureStrategy
 }
 
-// StreamType defines types of data streams
+// StreamType defines types of data streams.
 type StreamType string
 
 const (
-	StreamTypeAlarms        StreamType = "alarms"
-	StreamTypePerformance   StreamType = "performance"
+	// StreamTypeAlarms holds streamtypealarms value.
+	StreamTypeAlarms StreamType = "alarms"
+	// StreamTypePerformance holds streamtypeperformance value.
+	StreamTypePerformance StreamType = "performance"
+	// StreamTypeConfiguration holds streamtypeconfiguration value.
 	StreamTypeConfiguration StreamType = "configuration"
-	StreamTypeEvents        StreamType = "events"
-	StreamTypeLogs          StreamType = "logs"
-	StreamTypeTopology      StreamType = "topology"
-	StreamTypeStatus        StreamType = "status"
+	// StreamTypeEvents holds streamtypeevents value.
+	StreamTypeEvents StreamType = "events"
+	// StreamTypeLogs holds streamtypelogs value.
+	StreamTypeLogs StreamType = "logs"
+	// StreamTypeTopology holds streamtypetopology value.
+	StreamTypeTopology StreamType = "topology"
+	// StreamTypeStatus holds streamtypestatus value.
+	StreamTypeStatus StreamType = "status"
 )
 
-// QoSLevel defines quality of service levels
+// QoSLevel defines quality of service levels.
 type QoSLevel int
 
 const (
+	// QoSBestEffort holds qosbesteffort value.
 	QoSBestEffort QoSLevel = iota
+	// QoSReliable holds qosreliable value.
 	QoSReliable
+	// QoSGuaranteed holds qosguaranteed value.
 	QoSGuaranteed
 )
 
-// BackpressureStrategy defines how to handle backpressure
+// BackpressureStrategy defines how to handle backpressure.
 type BackpressureStrategy int
 
 const (
+	// BackpressureDrop holds backpressuredrop value.
 	BackpressureDrop BackpressureStrategy = iota
+	// BackpressureBuffer holds backpressurebuffer value.
 	BackpressureBuffer
+	// BackpressureThrottle holds backpressurethrottle value.
 	BackpressureThrottle
 )
 
-// GeneralStreamFilter defines filtering criteria for general streams
+// GeneralStreamFilter defines filtering criteria for general streams.
 type GeneralStreamFilter struct {
 	SourceFilter     []string          `json:"source_filter,omitempty"`
 	SeverityFilter   []string          `json:"severity_filter,omitempty"`
@@ -114,13 +127,13 @@ type GeneralStreamFilter struct {
 	RegexFilter      string            `json:"regex_filter,omitempty"`
 }
 
-// TimeWindow defines time-based filtering
+// TimeWindow defines time-based filtering.
 type TimeWindow struct {
 	Start time.Time `json:"start"`
 	End   time.Time `json:"end"`
 }
 
-// ClientInfo holds client information
+// ClientInfo holds client information.
 type ClientInfo struct {
 	UserAgent    string
 	RemoteAddr   string
@@ -129,7 +142,7 @@ type ClientInfo struct {
 	Capabilities []string
 }
 
-// AuthContext holds authentication context
+// AuthContext holds authentication context.
 type AuthContext struct {
 	UserID      string
 	Roles       []string
@@ -138,7 +151,7 @@ type AuthContext struct {
 	ExpiresAt   time.Time
 }
 
-// StreamingMetrics holds Prometheus metrics for streaming
+// StreamingMetrics holds Prometheus metrics for streaming.
 type StreamingMetrics struct {
 	ActiveConnections  prometheus.Gauge
 	TotalConnections   prometheus.Counter
@@ -150,27 +163,27 @@ type StreamingMetrics struct {
 	BackpressureEvents prometheus.CounterVec
 }
 
-// EventBus handles event distribution
+// EventBus handles event distribution.
 type EventBus struct {
 	subscribers map[StreamType][]chan interface{}
 	mutex       sync.RWMutex
 	logger      *zap.Logger
 }
 
-// StreamingAuthManager handles authentication for streaming
+// StreamingAuthManager handles authentication for streaming.
 type StreamingAuthManager struct {
 	tokenValidator *TokenValidator
 	permissionMgr  *PermissionManager
 	logger         *zap.Logger
 }
 
-// StreamingRateLimiter handles rate limiting
+// StreamingRateLimiter handles rate limiting.
 type StreamingRateLimiter struct {
 	globalLimiter map[string]*RateLimit
 	mutex         sync.RWMutex
 }
 
-// ConnectionRateLimiter handles per-connection rate limiting
+// ConnectionRateLimiter handles per-connection rate limiting.
 type ConnectionRateLimiter struct {
 	tokens     int
 	maxTokens  int
@@ -179,7 +192,7 @@ type ConnectionRateLimiter struct {
 	mutex      sync.Mutex
 }
 
-// NewStreamingService creates a new streaming service
+// NewStreamingService creates a new streaming service.
 func NewStreamingService(config *StreamingConfig, logger *zap.Logger) *StreamingService {
 	metrics := &StreamingMetrics{
 		ActiveConnections: prometheus.NewGauge(prometheus.GaugeOpts{
@@ -216,7 +229,7 @@ func NewStreamingService(config *StreamingConfig, logger *zap.Logger) *Streaming
 		}, []string{"strategy", "stream_type"}),
 	}
 
-	// Register metrics
+	// Register metrics.
 	prometheus.MustRegister(
 		metrics.ActiveConnections,
 		metrics.TotalConnections,
@@ -265,9 +278,9 @@ func NewStreamingService(config *StreamingConfig, logger *zap.Logger) *Streaming
 	}
 }
 
-// HandleWebSocketConnection handles new WebSocket connections
+// HandleWebSocketConnection handles new WebSocket connections.
 func (s *StreamingService) HandleWebSocketConnection(w http.ResponseWriter, r *http.Request) {
-	// Check connection limit
+	// Check connection limit.
 	s.connectionsMutex.RLock()
 	if len(s.connections) >= s.config.MaxConnections {
 		s.connectionsMutex.RUnlock()
@@ -276,7 +289,7 @@ func (s *StreamingService) HandleWebSocketConnection(w http.ResponseWriter, r *h
 	}
 	s.connectionsMutex.RUnlock()
 
-	// Authenticate if enabled
+	// Authenticate if enabled.
 	var authContext *AuthContext
 	if s.config.EnableAuth {
 		var err error
@@ -288,14 +301,14 @@ func (s *StreamingService) HandleWebSocketConnection(w http.ResponseWriter, r *h
 		}
 	}
 
-	// Upgrade connection
+	// Upgrade connection.
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		s.logger.Error("Failed to upgrade connection", zap.Error(err))
 		return
 	}
 
-	// Create stream connection
+	// Create stream connection.
 	streamConn := &StreamConnection{
 		ID:            generateConnectionID(),
 		Conn:          conn,
@@ -311,7 +324,7 @@ func (s *StreamingService) HandleWebSocketConnection(w http.ResponseWriter, r *h
 		RateLimiter: NewConnectionRateLimiter(s.config.RateLimitPerSecond),
 	}
 
-	// Register connection
+	// Register connection.
 	s.connectionsMutex.Lock()
 	s.connections[streamConn.ID] = streamConn
 	s.connectionsMutex.Unlock()
@@ -323,13 +336,13 @@ func (s *StreamingService) HandleWebSocketConnection(w http.ResponseWriter, r *h
 		zap.String("connection_id", streamConn.ID),
 		zap.String("remote_addr", streamConn.ClientInfo.RemoteAddr))
 
-	// Start connection handlers
+	// Start connection handlers.
 	go s.handleConnectionRead(streamConn)
 	go s.handleConnectionWrite(streamConn)
 	go s.handleConnectionHeartbeat(streamConn)
 }
 
-// handleConnectionRead handles reading messages from WebSocket
+// handleConnectionRead handles reading messages from WebSocket.
 func (s *StreamingService) handleConnectionRead(conn *StreamConnection) {
 	defer s.closeConnection(conn)
 
@@ -357,7 +370,7 @@ func (s *StreamingService) handleConnectionRead(conn *StreamConnection) {
 	}
 }
 
-// handleConnectionWrite handles writing messages to WebSocket
+// handleConnectionWrite handles writing messages to WebSocket.
 func (s *StreamingService) handleConnectionWrite(conn *StreamConnection) {
 	defer conn.Conn.Close()
 
@@ -387,7 +400,7 @@ func (s *StreamingService) handleConnectionWrite(conn *StreamConnection) {
 	}
 }
 
-// handleConnectionHeartbeat manages connection heartbeat
+// handleConnectionHeartbeat manages connection heartbeat.
 func (s *StreamingService) handleConnectionHeartbeat(conn *StreamConnection) {
 	ticker := time.NewTicker(s.config.HeartbeatInterval)
 	defer ticker.Stop()
@@ -404,7 +417,7 @@ func (s *StreamingService) handleConnectionHeartbeat(conn *StreamConnection) {
 	}
 }
 
-// handleStreamingMessage processes streaming messages
+// handleStreamingMessage processes streaming messages.
 func (s *StreamingService) handleStreamingMessage(conn *StreamConnection, message []byte) {
 	var request StreamingRequest
 	if err := json.Unmarshal(message, &request); err != nil {
@@ -426,7 +439,7 @@ func (s *StreamingService) handleStreamingMessage(conn *StreamConnection, messag
 	}
 }
 
-// StreamingRequest represents a client request
+// StreamingRequest represents a client request.
 type StreamingRequest struct {
 	Action         string             `json:"action"`
 	StreamType     StreamType         `json:"stream_type,omitempty"`
@@ -436,15 +449,15 @@ type StreamingRequest struct {
 	BufferSize     int                `json:"buffer_size,omitempty"`
 }
 
-// handleSubscribe handles subscription requests
+// handleSubscribe handles subscription requests.
 func (s *StreamingService) handleSubscribe(conn *StreamConnection, request *StreamingRequest) {
-	// Check subscription limit
+	// Check subscription limit.
 	if len(conn.Subscriptions) >= s.config.MaxSubscriptionsPerConn {
 		s.sendError(conn, "Subscription limit exceeded", nil)
 		return
 	}
 
-	// Check permissions
+	// Check permissions.
 	if conn.AuthContext != nil {
 		if !s.authManager.hasPermission(conn.AuthContext, string(request.StreamType), "subscribe") {
 			s.sendError(conn, "Permission denied", nil)
@@ -452,7 +465,7 @@ func (s *StreamingService) handleSubscribe(conn *StreamConnection, request *Stre
 		}
 	}
 
-	// Create subscription
+	// Create subscription.
 	subscription := &StreamSubscription{
 		ID:                   generateSubscriptionID(),
 		Type:                 request.StreamType,
@@ -465,7 +478,7 @@ func (s *StreamingService) handleSubscribe(conn *StreamConnection, request *Stre
 		BackpressureStrategy: BackpressureBuffer, // Default
 	}
 
-	// Register subscription
+	// Register subscription.
 	conn.mutex.Lock()
 	conn.Subscriptions[subscription.ID] = subscription
 	conn.mutex.Unlock()
@@ -474,12 +487,12 @@ func (s *StreamingService) handleSubscribe(conn *StreamConnection, request *Stre
 	s.subscriptions[subscription.ID] = subscription
 	s.subscriptionsMutex.Unlock()
 
-	// Subscribe to event bus
+	// Subscribe to event bus.
 	s.eventBus.subscribe(subscription)
 
 	s.metrics.SubscriptionCount.WithLabelValues(string(request.StreamType)).Inc()
 
-	// Send confirmation
+	// Send confirmation.
 	response := map[string]interface{}{
 		"type":            "subscription_created",
 		"subscription_id": subscription.ID,
@@ -494,7 +507,7 @@ func (s *StreamingService) handleSubscribe(conn *StreamConnection, request *Stre
 		zap.String("stream_type", string(request.StreamType)))
 }
 
-// handleUnsubscribe handles unsubscription requests
+// handleUnsubscribe handles unsubscription requests.
 func (s *StreamingService) handleUnsubscribe(conn *StreamConnection, request *StreamingRequest) {
 	conn.mutex.Lock()
 	subscription, exists := conn.Subscriptions[request.SubscriptionID]
@@ -512,12 +525,12 @@ func (s *StreamingService) handleUnsubscribe(conn *StreamConnection, request *St
 	delete(s.subscriptions, request.SubscriptionID)
 	s.subscriptionsMutex.Unlock()
 
-	// Unsubscribe from event bus
+	// Unsubscribe from event bus.
 	s.eventBus.unsubscribe(subscription)
 
 	s.metrics.SubscriptionCount.WithLabelValues(string(subscription.Type)).Dec()
 
-	// Send confirmation
+	// Send confirmation.
 	response := map[string]interface{}{
 		"type":            "subscription_removed",
 		"subscription_id": request.SubscriptionID,
@@ -530,27 +543,27 @@ func (s *StreamingService) handleUnsubscribe(conn *StreamConnection, request *St
 		zap.String("subscription_id", request.SubscriptionID))
 }
 
-// StreamData publishes data to subscribers
+// StreamData publishes data to subscribers.
 func (s *StreamingService) StreamData(streamType StreamType, data interface{}) {
 	s.eventBus.publish(streamType, data)
 }
 
-// StreamAlarm publishes alarm data
+// StreamAlarm publishes alarm data.
 func (s *StreamingService) StreamAlarm(alarm *AlarmData) {
 	s.StreamData(StreamTypeAlarms, alarm)
 }
 
-// StreamPerformanceData publishes performance data
+// StreamPerformanceData publishes performance data.
 func (s *StreamingService) StreamPerformanceData(data *PerformanceData) {
 	s.StreamData(StreamTypePerformance, data)
 }
 
-// StreamConfigurationChange publishes configuration changes
+// StreamConfigurationChange publishes configuration changes.
 func (s *StreamingService) StreamConfigurationChange(change *ConfigurationChange) {
 	s.StreamData(StreamTypeConfiguration, change)
 }
 
-// AlarmData represents alarm data for streaming
+// AlarmData represents alarm data for streaming.
 type AlarmData struct {
 	ID          string                 `json:"id"`
 	Source      string                 `json:"source"`
@@ -561,7 +574,7 @@ type AlarmData struct {
 	Attributes  map[string]interface{} `json:"attributes"`
 }
 
-// PerformanceData represents performance data for streaming
+// PerformanceData represents performance data for streaming.
 type PerformanceData struct {
 	Source     string                 `json:"source"`
 	MetricName string                 `json:"metric_name"`
@@ -572,7 +585,7 @@ type PerformanceData struct {
 	Attributes map[string]interface{} `json:"attributes"`
 }
 
-// ConfigurationChange represents configuration changes
+// ConfigurationChange represents configuration changes.
 type ConfigurationChange struct {
 	Source     string                 `json:"source"`
 	ChangeType string                 `json:"change_type"`
@@ -584,7 +597,7 @@ type ConfigurationChange struct {
 	Attributes map[string]interface{} `json:"attributes"`
 }
 
-// closeConnection closes a streaming connection
+// closeConnection closes a streaming connection.
 func (s *StreamingService) closeConnection(conn *StreamConnection) {
 	conn.mutex.Lock()
 	if conn.closed {
@@ -594,12 +607,12 @@ func (s *StreamingService) closeConnection(conn *StreamConnection) {
 	conn.closed = true
 	conn.mutex.Unlock()
 
-	// Remove from connections
+	// Remove from connections.
 	s.connectionsMutex.Lock()
 	delete(s.connections, conn.ID)
 	s.connectionsMutex.Unlock()
 
-	// Remove all subscriptions
+	// Remove all subscriptions.
 	for _, subscription := range conn.Subscriptions {
 		s.subscriptionsMutex.Lock()
 		delete(s.subscriptions, subscription.ID)
@@ -618,7 +631,7 @@ func (s *StreamingService) closeConnection(conn *StreamConnection) {
 		zap.String("connection_id", conn.ID))
 }
 
-// sendMessage sends a message to a connection
+// sendMessage sends a message to a connection.
 func (s *StreamingService) sendMessage(conn *StreamConnection, message interface{}) {
 	data, err := json.Marshal(message)
 	if err != nil {
@@ -635,7 +648,7 @@ func (s *StreamingService) sendMessage(conn *StreamConnection, message interface
 	}
 }
 
-// sendError sends an error message to a connection
+// sendError sends an error message to a connection.
 func (s *StreamingService) sendError(conn *StreamConnection, message string, err error) {
 	errorMsg := map[string]interface{}{
 		"type":    "error",
@@ -647,21 +660,21 @@ func (s *StreamingService) sendError(conn *StreamConnection, message string, err
 	s.sendMessage(conn, errorMsg)
 }
 
-// Start starts the streaming service
+// Start starts the streaming service.
 func (s *StreamingService) Start(ctx context.Context) error {
 	s.logger.Info("Starting O1 streaming service")
 
-	// Start cleanup routine
+	// Start cleanup routine.
 	go s.cleanup(ctx)
 
 	return nil
 }
 
-// Stop stops the streaming service
+// Stop stops the streaming service.
 func (s *StreamingService) Stop() error {
 	s.logger.Info("Stopping O1 streaming service")
 
-	// Close all connections
+	// Close all connections.
 	s.connectionsMutex.Lock()
 	for _, conn := range s.connections {
 		s.closeConnection(conn)
@@ -671,7 +684,7 @@ func (s *StreamingService) Stop() error {
 	return nil
 }
 
-// cleanup performs periodic cleanup
+// cleanup performs periodic cleanup.
 func (s *StreamingService) cleanup(ctx context.Context) {
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
@@ -686,7 +699,7 @@ func (s *StreamingService) cleanup(ctx context.Context) {
 	}
 }
 
-// cleanupExpiredConnections removes expired connections
+// cleanupExpiredConnections removes expired connections.
 func (s *StreamingService) cleanupExpiredConnections() {
 	s.connectionsMutex.Lock()
 	defer s.connectionsMutex.Unlock()
@@ -699,7 +712,7 @@ func (s *StreamingService) cleanupExpiredConnections() {
 	}
 }
 
-// Helper functions
+// Helper functions.
 func generateConnectionID() string {
 	return fmt.Sprintf("conn_%d", time.Now().UnixNano())
 }
@@ -708,7 +721,7 @@ func generateSubscriptionID() string {
 	return fmt.Sprintf("sub_%d", time.Now().UnixNano())
 }
 
-// Event bus implementation
+// Event bus implementation.
 func (eb *EventBus) subscribe(subscription *StreamSubscription) {
 	eb.mutex.Lock()
 	defer eb.mutex.Unlock()
@@ -717,11 +730,11 @@ func (eb *EventBus) subscribe(subscription *StreamSubscription) {
 		eb.subscribers[subscription.Type] = make([]chan interface{}, 0)
 	}
 
-	// Create channel for subscription
+	// Create channel for subscription.
 	ch := make(chan interface{}, subscription.BufferSize)
 	eb.subscribers[subscription.Type] = append(eb.subscribers[subscription.Type], ch)
 
-	// Start subscription handler
+	// Start subscription handler.
 	go eb.handleSubscription(subscription, ch)
 }
 
@@ -730,7 +743,7 @@ func (eb *EventBus) unsubscribe(subscription *StreamSubscription) {
 	defer eb.mutex.Unlock()
 
 	if channels, exists := eb.subscribers[subscription.Type]; exists {
-		// Remove channel (simplified implementation)
+		// Remove channel (simplified implementation).
 		for i, ch := range channels {
 			close(ch)
 			eb.subscribers[subscription.Type] = append(channels[:i], channels[i+1:]...)
@@ -748,7 +761,7 @@ func (eb *EventBus) publish(streamType StreamType, data interface{}) {
 			select {
 			case ch <- data:
 			default:
-				// Channel full, skip
+				// Channel full, skip.
 			}
 		}
 	}
@@ -760,12 +773,12 @@ func (eb *EventBus) handleSubscription(subscription *StreamSubscription, ch chan
 			break
 		}
 
-		// Apply filters
+		// Apply filters.
 		if subscription.Filter != nil && !eb.matchesFilter(data, subscription.Filter) {
 			continue
 		}
 
-		// Send to connection
+		// Send to connection.
 		message := map[string]interface{}{
 			"type":            "data",
 			"stream_type":     subscription.Type,
@@ -774,7 +787,7 @@ func (eb *EventBus) handleSubscription(subscription *StreamSubscription, ch chan
 			"timestamp":       time.Now(),
 		}
 
-		// Handle backpressure
+		// Handle backpressure.
 		subscription.Connection.RateLimiter.WaitIfNeeded()
 
 		subscription.Connection.Send <- func() []byte {
@@ -788,12 +801,12 @@ func (eb *EventBus) handleSubscription(subscription *StreamSubscription, ch chan
 }
 
 func (eb *EventBus) matchesFilter(data interface{}, filter *oran.StreamFilter) bool {
-	// Simplified filter implementation
-	// In production, implement comprehensive filtering based on all filter criteria
+	// Simplified filter implementation.
+	// In production, implement comprehensive filtering based on all filter criteria.
 	return true
 }
 
-// Rate limiter implementations for streaming
+// Rate limiter implementations for streaming.
 type StreamingRateLimit struct {
 	tokens     int
 	maxTokens  int
@@ -802,6 +815,7 @@ type StreamingRateLimit struct {
 	mutex      sync.Mutex
 }
 
+// NewConnectionRateLimiter performs newconnectionratelimiter operation.
 func NewConnectionRateLimiter(ratePerSecond int) *ConnectionRateLimiter {
 	return &ConnectionRateLimiter{
 		tokens:     ratePerSecond,
@@ -811,6 +825,7 @@ func NewConnectionRateLimiter(ratePerSecond int) *ConnectionRateLimiter {
 	}
 }
 
+// WaitIfNeeded performs waitifneeded operation.
 func (crl *ConnectionRateLimiter) WaitIfNeeded() {
 	crl.mutex.Lock()
 	defer crl.mutex.Unlock()
@@ -818,14 +833,14 @@ func (crl *ConnectionRateLimiter) WaitIfNeeded() {
 	now := time.Now()
 	elapsed := now.Sub(crl.lastRefill)
 
-	// Refill tokens
+	// Refill tokens.
 	if elapsed > time.Second {
 		tokensToAdd := int(elapsed.Seconds()) * crl.refillRate
 		crl.tokens = min(crl.maxTokens, crl.tokens+tokensToAdd)
 		crl.lastRefill = now
 	}
 
-	// Wait if no tokens available
+	// Wait if no tokens available.
 	if crl.tokens <= 0 {
 		time.Sleep(time.Second / time.Duration(crl.refillRate))
 		crl.tokens = 1
@@ -834,28 +849,33 @@ func (crl *ConnectionRateLimiter) WaitIfNeeded() {
 	}
 }
 
-// min function is available in o1_helpers.go
+// min function is available in o1_helpers.go.
 
-// Auth manager implementations (simplified)
-type TokenValidator struct{}
-type PermissionManager struct{}
+// Auth manager implementations (simplified).
+type (
+	TokenValidator struct{}
+	// PermissionManager represents a permissionmanager.
+	PermissionManager struct{}
+)
 
+// NewTokenValidator performs newtokenvalidator operation.
 func NewTokenValidator() *TokenValidator {
 	return &TokenValidator{}
 }
 
+// NewPermissionManager performs newpermissionmanager operation.
 func NewPermissionManager() *PermissionManager {
 	return &PermissionManager{}
 }
 
 func (sam *StreamingAuthManager) authenticateRequest(r *http.Request) (*AuthContext, error) {
-	// Implement OAuth2/JWT authentication
+	// Implement OAuth2/JWT authentication.
 	token := r.Header.Get("Authorization")
 	if token == "" {
 		return nil, fmt.Errorf("missing authorization header")
 	}
 
-	// Validate token and return auth context
+	// Validate token and return auth context.
 	return &AuthContext{
 		UserID:      "user123",
 		Roles:       []string{"operator"},
@@ -875,7 +895,7 @@ func (sam *StreamingAuthManager) hasPermission(authCtx *AuthContext, resource, a
 	return false
 }
 
-// Additional helper methods
+// Additional helper methods.
 func (s *StreamingService) handleListSubscriptions(conn *StreamConnection) {
 	conn.mutex.RLock()
 	subscriptions := make([]map[string]interface{}, 0, len(conn.Subscriptions))

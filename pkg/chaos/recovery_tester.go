@@ -17,7 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// RecoveryResult represents the result of recovery testing
+// RecoveryResult represents the result of recovery testing.
 type RecoveryResult struct {
 	Success               bool
 	AutoRecoveryTriggered bool
@@ -30,7 +30,7 @@ type RecoveryResult struct {
 	Recommendations       []string
 }
 
-// RecoveryStep represents a single recovery step
+// RecoveryStep represents a single recovery step.
 type RecoveryStep struct {
 	Name        string
 	Description string
@@ -41,7 +41,7 @@ type RecoveryStep struct {
 	Output      string
 }
 
-// StateValidationResult represents state validation after recovery
+// StateValidationResult represents state validation after recovery.
 type StateValidationResult struct {
 	ConfigurationValid  bool
 	DataConsistent      bool
@@ -50,7 +50,7 @@ type StateValidationResult struct {
 	Issues              []string
 }
 
-// RecoveryStrategy defines how to recover from failures
+// RecoveryStrategy defines how to recover from failures.
 type RecoveryStrategy struct {
 	Type              RecoveryType
 	AutomaticTriggers []AutomaticTrigger
@@ -59,16 +59,19 @@ type RecoveryStrategy struct {
 	Timeout           time.Duration
 }
 
-// RecoveryType defines the type of recovery strategy
+// RecoveryType defines the type of recovery strategy.
 type RecoveryType string
 
 const (
+	// RecoveryTypeAutomatic holds recoverytypeautomatic value.
 	RecoveryTypeAutomatic RecoveryType = "automatic"
-	RecoveryTypeManual    RecoveryType = "manual"
-	RecoveryTypeHybrid    RecoveryType = "hybrid"
+	// RecoveryTypeManual holds recoverytypemanual value.
+	RecoveryTypeManual RecoveryType = "manual"
+	// RecoveryTypeHybrid holds recoverytypehybrid value.
+	RecoveryTypeHybrid RecoveryType = "hybrid"
 )
 
-// AutomaticTrigger defines conditions that trigger automatic recovery
+// AutomaticTrigger defines conditions that trigger automatic recovery.
 type AutomaticTrigger struct {
 	Name      string
 	Condition string
@@ -76,21 +79,29 @@ type AutomaticTrigger struct {
 	Delay     time.Duration
 }
 
-// RecoveryAction defines an action to take during recovery
+// RecoveryAction defines an action to take during recovery.
 type RecoveryAction string
 
 const (
-	RecoveryActionRestartPod          RecoveryAction = "restart-pod"
-	RecoveryActionScaleUp             RecoveryAction = "scale-up"
-	RecoveryActionScaleDown           RecoveryAction = "scale-down"
-	RecoveryActionRollback            RecoveryAction = "rollback"
+	// RecoveryActionRestartPod holds recoveryactionrestartpod value.
+	RecoveryActionRestartPod RecoveryAction = "restart-pod"
+	// RecoveryActionScaleUp holds recoveryactionscaleup value.
+	RecoveryActionScaleUp RecoveryAction = "scale-up"
+	// RecoveryActionScaleDown holds recoveryactionscaledown value.
+	RecoveryActionScaleDown RecoveryAction = "scale-down"
+	// RecoveryActionRollback holds recoveryactionrollback value.
+	RecoveryActionRollback RecoveryAction = "rollback"
+	// RecoveryActionResetCircuitBreaker holds recoveryactionresetcircuitbreaker value.
 	RecoveryActionResetCircuitBreaker RecoveryAction = "reset-circuit-breaker"
-	RecoveryActionClearCache          RecoveryAction = "clear-cache"
-	RecoveryActionReconnectDatabase   RecoveryAction = "reconnect-database"
-	RecoveryActionRestoreBackup       RecoveryAction = "restore-backup"
+	// RecoveryActionClearCache holds recoveryactionclearcache value.
+	RecoveryActionClearCache RecoveryAction = "clear-cache"
+	// RecoveryActionReconnectDatabase holds recoveryactionreconnectdatabase value.
+	RecoveryActionReconnectDatabase RecoveryAction = "reconnect-database"
+	// RecoveryActionRestoreBackup holds recoveryactionrestorebackup value.
+	RecoveryActionRestoreBackup RecoveryAction = "restore-backup"
 )
 
-// ManualStep defines a manual recovery step
+// ManualStep defines a manual recovery step.
 type ManualStep struct {
 	Name         string
 	Description  string
@@ -98,7 +109,7 @@ type ManualStep struct {
 	Verification string
 }
 
-// RecoveryTester tests recovery mechanisms
+// RecoveryTester tests recovery mechanisms.
 type RecoveryTester struct {
 	client          client.Client
 	kubeClient      kubernetes.Interface
@@ -108,7 +119,7 @@ type RecoveryTester struct {
 	mu              sync.RWMutex
 }
 
-// NewRecoveryTester creates a new recovery tester
+// NewRecoveryTester creates a new recovery tester.
 func NewRecoveryTester(client client.Client, kubeClient kubernetes.Interface, logger *zap.Logger) *RecoveryTester {
 	rt := &RecoveryTester{
 		client:          client,
@@ -118,14 +129,14 @@ func NewRecoveryTester(client client.Client, kubeClient kubernetes.Interface, lo
 		recoveryHistory: []RecoveryResult{},
 	}
 
-	// Initialize default recovery strategies
+	// Initialize default recovery strategies.
 	rt.initializeStrategies()
 	return rt
 }
 
-// initializeStrategies initializes default recovery strategies for each experiment type
+// initializeStrategies initializes default recovery strategies for each experiment type.
 func (r *RecoveryTester) initializeStrategies() {
-	// Pod failure recovery strategy
+	// Pod failure recovery strategy.
 	r.strategies[ExperimentTypePod] = &RecoveryStrategy{
 		Type: RecoveryTypeAutomatic,
 		AutomaticTriggers: []AutomaticTrigger{
@@ -155,7 +166,7 @@ func (r *RecoveryTester) initializeStrategies() {
 		Timeout: 5 * time.Minute,
 	}
 
-	// Network failure recovery strategy
+	// Network failure recovery strategy.
 	r.strategies[ExperimentTypeNetwork] = &RecoveryStrategy{
 		Type: RecoveryTypeAutomatic,
 		AutomaticTriggers: []AutomaticTrigger{
@@ -185,7 +196,7 @@ func (r *RecoveryTester) initializeStrategies() {
 		Timeout: 3 * time.Minute,
 	}
 
-	// Database failure recovery strategy
+	// Database failure recovery strategy.
 	r.strategies[ExperimentTypeDatabase] = &RecoveryStrategy{
 		Type: RecoveryTypeHybrid,
 		AutomaticTriggers: []AutomaticTrigger{
@@ -227,7 +238,7 @@ func (r *RecoveryTester) initializeStrategies() {
 		Timeout: 10 * time.Minute,
 	}
 
-	// Resource exhaustion recovery strategy
+	// Resource exhaustion recovery strategy.
 	r.strategies[ExperimentTypeResource] = &RecoveryStrategy{
 		Type: RecoveryTypeAutomatic,
 		AutomaticTriggers: []AutomaticTrigger{
@@ -257,7 +268,7 @@ func (r *RecoveryTester) initializeStrategies() {
 		Timeout: 5 * time.Minute,
 	}
 
-	// External service failure recovery strategy
+	// External service failure recovery strategy.
 	r.strategies[ExperimentTypeExternal] = &RecoveryStrategy{
 		Type: RecoveryTypeAutomatic,
 		AutomaticTriggers: []AutomaticTrigger{
@@ -288,7 +299,7 @@ func (r *RecoveryTester) initializeStrategies() {
 	}
 }
 
-// TestRecovery tests recovery from injected failures
+// TestRecovery tests recovery from injected failures.
 func (r *RecoveryTester) TestRecovery(ctx context.Context, experiment *Experiment, injection *InjectionResult) *RecoveryResult {
 	r.logger.Info("Testing recovery mechanisms",
 		zap.String("experiment", experiment.ID),
@@ -301,7 +312,7 @@ func (r *RecoveryTester) TestRecovery(ctx context.Context, experiment *Experimen
 
 	startTime := time.Now()
 
-	// Get recovery strategy for experiment type
+	// Get recovery strategy for experiment type.
 	strategy, exists := r.strategies[experiment.Type]
 	if !exists {
 		r.logger.Warn("No recovery strategy defined for experiment type",
@@ -309,12 +320,12 @@ func (r *RecoveryTester) TestRecovery(ctx context.Context, experiment *Experimen
 		strategy = r.getDefaultStrategy()
 	}
 
-	// Wait for automatic recovery triggers
+	// Wait for automatic recovery triggers.
 	autoRecoveryResult := r.waitForAutomaticRecovery(ctx, experiment, strategy)
 	result.AutoRecoveryTriggered = autoRecoveryResult.triggered
 	result.RecoverySteps = append(result.RecoverySteps, autoRecoveryResult.steps...)
 
-	// If automatic recovery didn't complete, try manual recovery
+	// If automatic recovery didn't complete, try manual recovery.
 	if !autoRecoveryResult.complete {
 		r.logger.Info("Automatic recovery incomplete, testing manual recovery")
 		manualResult := r.testManualRecovery(ctx, experiment, strategy)
@@ -325,23 +336,23 @@ func (r *RecoveryTester) TestRecovery(ctx context.Context, experiment *Experimen
 		result.Success = true
 	}
 
-	// Validate system state after recovery
+	// Validate system state after recovery.
 	stateValidation := r.validateStateAfterRecovery(ctx, experiment)
 	result.StateValidation = stateValidation
 
-	// Check for data loss
+	// Check for data loss.
 	result.DataLoss = r.checkDataLoss(ctx, experiment)
 
-	// Identify degraded services
+	// Identify degraded services.
 	result.DegradedServices = r.identifyDegradedServices(ctx, experiment)
 
-	// Calculate total recovery time
+	// Calculate total recovery time.
 	result.RecoveryTime = time.Since(startTime)
 
-	// Generate recommendations
+	// Generate recommendations.
 	result.Recommendations = r.generateRecoveryRecommendations(result, experiment)
 
-	// Store recovery result in history
+	// Store recovery result in history.
 	r.mu.Lock()
 	r.recoveryHistory = append(r.recoveryHistory, *result)
 	r.mu.Unlock()
@@ -354,14 +365,14 @@ func (r *RecoveryTester) TestRecovery(ctx context.Context, experiment *Experimen
 	return result
 }
 
-// AutoRecoveryResult represents automatic recovery test result
+// AutoRecoveryResult represents automatic recovery test result.
 type AutoRecoveryResult struct {
 	triggered bool
 	complete  bool
 	steps     []RecoveryStep
 }
 
-// waitForAutomaticRecovery waits for automatic recovery mechanisms to trigger
+// waitForAutomaticRecovery waits for automatic recovery mechanisms to trigger.
 func (r *RecoveryTester) waitForAutomaticRecovery(ctx context.Context, experiment *Experiment, strategy *RecoveryStrategy) *AutoRecoveryResult {
 	result := &AutoRecoveryResult{
 		triggered: false,
@@ -375,11 +386,11 @@ func (r *RecoveryTester) waitForAutomaticRecovery(ctx context.Context, experimen
 
 	r.logger.Info("Waiting for automatic recovery triggers")
 
-	// Create a timeout context
+	// Create a timeout context.
 	timeoutCtx, cancel := context.WithTimeout(ctx, strategy.Timeout)
 	defer cancel()
 
-	// Monitor each automatic trigger
+	// Monitor each automatic trigger.
 	var wg sync.WaitGroup
 	triggerResults := make(chan RecoveryStep, len(strategy.AutomaticTriggers))
 
@@ -394,7 +405,7 @@ func (r *RecoveryTester) waitForAutomaticRecovery(ctx context.Context, experimen
 				StartTime:   time.Now(),
 			}
 
-			// Wait for trigger delay
+			// Wait for trigger delay.
 			select {
 			case <-time.After(t.Delay):
 			case <-timeoutCtx.Done():
@@ -403,12 +414,12 @@ func (r *RecoveryTester) waitForAutomaticRecovery(ctx context.Context, experimen
 				return
 			}
 
-			// Check if condition is met
+			// Check if condition is met.
 			if r.checkTriggerCondition(timeoutCtx, experiment, t.Condition) {
 				r.logger.Info("Automatic recovery trigger activated",
 					zap.String("trigger", t.Name))
 
-				// Execute recovery action
+				// Execute recovery action.
 				if err := r.executeRecoveryAction(timeoutCtx, experiment, t.Action); err != nil {
 					step.Error = err
 					step.Success = false
@@ -426,13 +437,13 @@ func (r *RecoveryTester) waitForAutomaticRecovery(ctx context.Context, experimen
 		}(trigger)
 	}
 
-	// Wait for all triggers to complete or timeout
+	// Wait for all triggers to complete or timeout.
 	go func() {
 		wg.Wait()
 		close(triggerResults)
 	}()
 
-	// Collect results
+	// Collect results.
 	for step := range triggerResults {
 		result.steps = append(result.steps, step)
 		if step.Success {
@@ -440,7 +451,7 @@ func (r *RecoveryTester) waitForAutomaticRecovery(ctx context.Context, experimen
 		}
 	}
 
-	// Check if recovery is complete
+	// Check if recovery is complete.
 	if result.triggered {
 		result.complete = r.verifyRecoveryComplete(ctx, experiment)
 	}
@@ -448,7 +459,7 @@ func (r *RecoveryTester) waitForAutomaticRecovery(ctx context.Context, experimen
 	return result
 }
 
-// checkTriggerCondition checks if a trigger condition is met
+// checkTriggerCondition checks if a trigger condition is met.
 func (r *RecoveryTester) checkTriggerCondition(ctx context.Context, experiment *Experiment, condition string) bool {
 	switch condition {
 	case "pod_crashed":
@@ -471,7 +482,7 @@ func (r *RecoveryTester) checkTriggerCondition(ctx context.Context, experiment *
 	}
 }
 
-// executeRecoveryAction executes a recovery action
+// executeRecoveryAction executes a recovery action.
 func (r *RecoveryTester) executeRecoveryAction(ctx context.Context, experiment *Experiment, action RecoveryAction) error {
 	r.logger.Info("Executing recovery action", zap.String("action", string(action)))
 
@@ -497,7 +508,7 @@ func (r *RecoveryTester) executeRecoveryAction(ctx context.Context, experiment *
 	}
 }
 
-// Condition checking methods
+// Condition checking methods.
 
 func (r *RecoveryTester) checkPodsCrashed(ctx context.Context, namespace string) bool {
 	podList := &corev1.PodList{}
@@ -534,36 +545,36 @@ func (r *RecoveryTester) checkInsufficientReplicas(ctx context.Context, namespac
 }
 
 func (r *RecoveryTester) checkNetworkPartition(ctx context.Context, namespace string) bool {
-	// Check for network policies that might indicate partition
-	// This is simplified - real implementation would check actual connectivity
+	// Check for network policies that might indicate partition.
+	// This is simplified - real implementation would check actual connectivity.
 	return false
 }
 
 func (r *RecoveryTester) checkCircuitBreakerOpen(ctx context.Context, namespace string) bool {
-	// Check circuit breaker state through metrics or API
-	// This would integrate with actual circuit breaker implementation
+	// Check circuit breaker state through metrics or API.
+	// This would integrate with actual circuit breaker implementation.
 	return false
 }
 
 func (r *RecoveryTester) checkDatabaseConnectionLost(ctx context.Context, namespace string) bool {
-	// Check database connectivity
-	// This would integrate with actual database monitoring
+	// Check database connectivity.
+	// This would integrate with actual database monitoring.
 	return false
 }
 
 func (r *RecoveryTester) checkHighResourceUsage(ctx context.Context, namespace string) bool {
-	// Check resource metrics
-	// This would integrate with metrics server
+	// Check resource metrics.
+	// This would integrate with metrics server.
 	return false
 }
 
 func (r *RecoveryTester) checkServiceUnavailable(ctx context.Context, namespace string) bool {
-	// Check external service availability
-	// This would integrate with health check endpoints
+	// Check external service availability.
+	// This would integrate with health check endpoints.
 	return false
 }
 
-// Recovery action implementations
+// Recovery action implementations.
 
 func (r *RecoveryTester) restartPods(ctx context.Context, namespace string, labelSelector map[string]string) error {
 	podList := &corev1.PodList{}
@@ -581,7 +592,7 @@ func (r *RecoveryTester) restartPods(ctx context.Context, namespace string, labe
 		}
 	}
 
-	// Wait for pods to be recreated
+	// Wait for pods to be recreated.
 	return wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
 		newPodList := &corev1.PodList{}
 		if err := r.client.List(ctx, newPodList,
@@ -626,40 +637,40 @@ func (r *RecoveryTester) scaleDeployment(ctx context.Context, namespace string, 
 }
 
 func (r *RecoveryTester) rollbackDeployment(ctx context.Context, namespace string) error {
-	// Implement deployment rollback
-	// This would use the Kubernetes rollback API
+	// Implement deployment rollback.
+	// This would use the Kubernetes rollback API.
 	return nil
 }
 
 func (r *RecoveryTester) resetCircuitBreaker(ctx context.Context, namespace string) error {
-	// Reset circuit breaker state
-	// This would integrate with circuit breaker implementation
+	// Reset circuit breaker state.
+	// This would integrate with circuit breaker implementation.
 	r.logger.Info("Resetting circuit breaker", zap.String("namespace", namespace))
 	return nil
 }
 
 func (r *RecoveryTester) clearCache(ctx context.Context, namespace string) error {
-	// Clear application caches
-	// This would call cache clearing endpoints
+	// Clear application caches.
+	// This would call cache clearing endpoints.
 	r.logger.Info("Clearing cache", zap.String("namespace", namespace))
 	return nil
 }
 
 func (r *RecoveryTester) reconnectDatabase(ctx context.Context, namespace string) error {
-	// Force database reconnection
-	// This would restart pods or call reconnection endpoints
+	// Force database reconnection.
+	// This would restart pods or call reconnection endpoints.
 	r.logger.Info("Reconnecting database", zap.String("namespace", namespace))
 	return r.restartPods(ctx, namespace, map[string]string{"component": "database-client"})
 }
 
 func (r *RecoveryTester) restoreFromBackup(ctx context.Context, namespace string) error {
-	// Restore from backup
-	// This would integrate with backup system
+	// Restore from backup.
+	// This would integrate with backup system.
 	r.logger.Info("Restoring from backup", zap.String("namespace", namespace))
 	return nil
 }
 
-// testManualRecovery tests manual recovery procedures
+// testManualRecovery tests manual recovery procedures.
 func (r *RecoveryTester) testManualRecovery(ctx context.Context, experiment *Experiment, strategy *RecoveryStrategy) *ManualRecoveryResult {
 	result := &ManualRecoveryResult{
 		success: false,
@@ -678,16 +689,16 @@ func (r *RecoveryTester) testManualRecovery(ctx context.Context, experiment *Exp
 			StartTime:   time.Now(),
 		}
 
-		// Simulate manual step execution
+		// Simulate manual step execution.
 		r.logger.Info("Manual recovery step required",
 			zap.String("step", manualStep.Name),
 			zap.Strings("instructions", manualStep.Instructions))
 
-		// In a real scenario, this would wait for operator confirmation
-		// For testing, we simulate the step was completed
+		// In a real scenario, this would wait for operator confirmation.
+		// For testing, we simulate the step was completed.
 		time.Sleep(5 * time.Second)
 
-		// Verify the manual step was successful
+		// Verify the manual step was successful.
 		if r.verifyManualStep(ctx, experiment, manualStep) {
 			step.Success = true
 			step.Output = fmt.Sprintf("Manual step completed: %s", manualStep.Verification)
@@ -704,7 +715,7 @@ func (r *RecoveryTester) testManualRecovery(ctx context.Context, experiment *Exp
 		}
 	}
 
-	// Check if all manual steps succeeded
+	// Check if all manual steps succeeded.
 	result.success = true
 	for _, step := range result.steps {
 		if !step.Success {
@@ -716,22 +727,22 @@ func (r *RecoveryTester) testManualRecovery(ctx context.Context, experiment *Exp
 	return result
 }
 
-// ManualRecoveryResult represents manual recovery test result
+// ManualRecoveryResult represents manual recovery test result.
 type ManualRecoveryResult struct {
 	success bool
 	steps   []RecoveryStep
 }
 
-// verifyManualStep verifies a manual recovery step was completed
+// verifyManualStep verifies a manual recovery step was completed.
 func (r *RecoveryTester) verifyManualStep(ctx context.Context, experiment *Experiment, step ManualStep) bool {
-	// This would implement actual verification logic
-	// For now, we assume manual steps are successful
+	// This would implement actual verification logic.
+	// For now, we assume manual steps are successful.
 	return true
 }
 
-// verifyRecoveryComplete verifies that recovery is complete
+// verifyRecoveryComplete verifies that recovery is complete.
 func (r *RecoveryTester) verifyRecoveryComplete(ctx context.Context, experiment *Experiment) bool {
-	// Check if all pods are running
+	// Check if all pods are running.
 	podList := &corev1.PodList{}
 	if err := r.client.List(ctx, podList, client.InNamespace(experiment.Target.Namespace)); err != nil {
 		return false
@@ -748,7 +759,7 @@ func (r *RecoveryTester) verifyRecoveryComplete(ctx context.Context, experiment 
 		}
 	}
 
-	// Check if services are available
+	// Check if services are available.
 	svcList := &corev1.ServiceList{}
 	if err := r.client.List(ctx, svcList, client.InNamespace(experiment.Target.Namespace)); err != nil {
 		return false
@@ -771,7 +782,7 @@ func (r *RecoveryTester) verifyRecoveryComplete(ctx context.Context, experiment 
 	return true
 }
 
-// validateStateAfterRecovery validates system state after recovery
+// validateStateAfterRecovery validates system state after recovery.
 func (r *RecoveryTester) validateStateAfterRecovery(ctx context.Context, experiment *Experiment) StateValidationResult {
 	result := StateValidationResult{
 		ConfigurationValid:  true,
@@ -781,25 +792,25 @@ func (r *RecoveryTester) validateStateAfterRecovery(ctx context.Context, experim
 		Issues:              []string{},
 	}
 
-	// Validate configuration
+	// Validate configuration.
 	if !r.validateConfiguration(ctx, experiment) {
 		result.ConfigurationValid = false
 		result.Issues = append(result.Issues, "Configuration validation failed")
 	}
 
-	// Validate data consistency
+	// Validate data consistency.
 	if !r.validateDataConsistency(ctx, experiment) {
 		result.DataConsistent = false
 		result.Issues = append(result.Issues, "Data consistency check failed")
 	}
 
-	// Validate service health
+	// Validate service health.
 	if !r.validateServiceHealth(ctx, experiment) {
 		result.ServicesHealthy = false
 		result.Issues = append(result.Issues, "Service health check failed")
 	}
 
-	// Validate network connectivity
+	// Validate network connectivity.
 	if !r.validateNetworkConnectivity(ctx, experiment) {
 		result.NetworkConnectivity = false
 		result.Issues = append(result.Issues, "Network connectivity check failed")
@@ -808,42 +819,42 @@ func (r *RecoveryTester) validateStateAfterRecovery(ctx context.Context, experim
 	return result
 }
 
-// validateConfiguration validates configuration after recovery
+// validateConfiguration validates configuration after recovery.
 func (r *RecoveryTester) validateConfiguration(ctx context.Context, experiment *Experiment) bool {
-	// Check ConfigMaps
+	// Check ConfigMaps.
 	configMapList := &corev1.ConfigMapList{}
 	if err := r.client.List(ctx, configMapList, client.InNamespace(experiment.Target.Namespace)); err != nil {
 		return false
 	}
 
-	// Check Secrets
+	// Check Secrets.
 	secretList := &corev1.SecretList{}
 	if err := r.client.List(ctx, secretList, client.InNamespace(experiment.Target.Namespace)); err != nil {
 		return false
 	}
 
-	// Verify critical configurations exist
-	// This would check for specific required configurations
+	// Verify critical configurations exist.
+	// This would check for specific required configurations.
 	return true
 }
 
-// validateDataConsistency validates data consistency after recovery
+// validateDataConsistency validates data consistency after recovery.
 func (r *RecoveryTester) validateDataConsistency(ctx context.Context, experiment *Experiment) bool {
-	// This would implement actual data consistency checks
+	// This would implement actual data consistency checks.
 	// For example, checking database integrity, file system consistency, etc.
 	return true
 }
 
-// validateServiceHealth validates service health after recovery
+// validateServiceHealth validates service health after recovery.
 func (r *RecoveryTester) validateServiceHealth(ctx context.Context, experiment *Experiment) bool {
-	// Check service endpoints
+	// Check service endpoints.
 	svcList := &corev1.ServiceList{}
 	if err := r.client.List(ctx, svcList, client.InNamespace(experiment.Target.Namespace)); err != nil {
 		return false
 	}
 
 	for _, svc := range svcList.Items {
-		// Check if service has ready endpoints
+		// Check if service has ready endpoints.
 		endpoints := &corev1.Endpoints{}
 		if err := r.client.Get(ctx, types.NamespacedName{
 			Namespace: svc.Namespace,
@@ -870,25 +881,25 @@ func (r *RecoveryTester) validateServiceHealth(ctx context.Context, experiment *
 	return true
 }
 
-// validateNetworkConnectivity validates network connectivity after recovery
+// validateNetworkConnectivity validates network connectivity after recovery.
 func (r *RecoveryTester) validateNetworkConnectivity(ctx context.Context, experiment *Experiment) bool {
-	// This would implement actual network connectivity tests
-	// For example, ping tests, DNS resolution, service-to-service communication
+	// This would implement actual network connectivity tests.
+	// For example, ping tests, DNS resolution, service-to-service communication.
 	return true
 }
 
-// checkDataLoss checks for data loss during the experiment
+// checkDataLoss checks for data loss during the experiment.
 func (r *RecoveryTester) checkDataLoss(ctx context.Context, experiment *Experiment) bool {
-	// This would implement actual data loss detection
+	// This would implement actual data loss detection.
 	// For example, checking for missing records, corrupted files, etc.
 	return false
 }
 
-// identifyDegradedServices identifies services that are degraded
+// identifyDegradedServices identifies services that are degraded.
 func (r *RecoveryTester) identifyDegradedServices(ctx context.Context, experiment *Experiment) []string {
 	degradedServices := []string{}
 
-	// Check deployment status
+	// Check deployment status.
 	deployList := &appsv1.DeploymentList{}
 	if err := r.client.List(ctx, deployList, client.InNamespace(experiment.Target.Namespace)); err == nil {
 		for _, deploy := range deployList.Items {
@@ -898,7 +909,7 @@ func (r *RecoveryTester) identifyDegradedServices(ctx context.Context, experimen
 		}
 	}
 
-	// Check StatefulSet status
+	// Check StatefulSet status.
 	statefulSetList := &appsv1.StatefulSetList{}
 	if err := r.client.List(ctx, statefulSetList, client.InNamespace(experiment.Target.Namespace)); err == nil {
 		for _, sts := range statefulSetList.Items {
@@ -911,41 +922,41 @@ func (r *RecoveryTester) identifyDegradedServices(ctx context.Context, experimen
 	return degradedServices
 }
 
-// generateRecoveryRecommendations generates recommendations based on recovery results
+// generateRecoveryRecommendations generates recommendations based on recovery results.
 func (r *RecoveryTester) generateRecoveryRecommendations(result *RecoveryResult, experiment *Experiment) []string {
 	recommendations := []string{}
 
-	// Recommendation based on recovery time
+	// Recommendation based on recovery time.
 	if result.RecoveryTime > 5*time.Minute {
 		recommendations = append(recommendations,
 			fmt.Sprintf("Recovery time of %v exceeds target. Consider optimizing recovery procedures.", result.RecoveryTime))
 	}
 
-	// Recommendation based on manual intervention
+	// Recommendation based on manual intervention.
 	if result.ManualRequired {
 		recommendations = append(recommendations,
 			"Manual intervention was required. Consider automating recovery steps.")
 	}
 
-	// Recommendation based on data loss
+	// Recommendation based on data loss.
 	if result.DataLoss {
 		recommendations = append(recommendations,
 			"Data loss detected. Implement better data protection mechanisms.")
 	}
 
-	// Recommendation based on degraded services
+	// Recommendation based on degraded services.
 	if len(result.DegradedServices) > 0 {
 		recommendations = append(recommendations,
 			fmt.Sprintf("Services remained degraded: %v. Review service resilience.", result.DegradedServices))
 	}
 
-	// Recommendation based on state validation
+	// Recommendation based on state validation.
 	if len(result.StateValidation.Issues) > 0 {
 		recommendations = append(recommendations,
 			fmt.Sprintf("State validation issues: %v. Address these issues.", result.StateValidation.Issues))
 	}
 
-	// Experiment-specific recommendations
+	// Experiment-specific recommendations.
 	switch experiment.Type {
 	case ExperimentTypePod:
 		if !result.AutoRecoveryTriggered {
@@ -966,7 +977,7 @@ func (r *RecoveryTester) generateRecoveryRecommendations(result *RecoveryResult,
 	return recommendations
 }
 
-// TriggerRecovery manually triggers recovery procedures
+// TriggerRecovery manually triggers recovery procedures.
 func (r *RecoveryTester) TriggerRecovery(ctx context.Context, experiment *Experiment) error {
 	r.logger.Info("Manually triggering recovery",
 		zap.String("experiment", experiment.ID))
@@ -976,23 +987,23 @@ func (r *RecoveryTester) TriggerRecovery(ctx context.Context, experiment *Experi
 		strategy = r.getDefaultStrategy()
 	}
 
-	// Execute all automatic recovery actions
+	// Execute all automatic recovery actions.
 	for _, trigger := range strategy.AutomaticTriggers {
 		if err := r.executeRecoveryAction(ctx, experiment, trigger.Action); err != nil {
 			r.logger.Error("Failed to execute recovery action",
 				zap.String("action", string(trigger.Action)),
 				zap.Error(err))
-			// Continue with other actions
+			// Continue with other actions.
 		}
 	}
 
-	// Wait for recovery to complete
+	// Wait for recovery to complete.
 	return wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
 		return r.verifyRecoveryComplete(ctx, experiment), nil
 	})
 }
 
-// getDefaultStrategy returns a default recovery strategy
+// getDefaultStrategy returns a default recovery strategy.
 func (r *RecoveryTester) getDefaultStrategy() *RecoveryStrategy {
 	return &RecoveryStrategy{
 		Type: RecoveryTypeAutomatic,
@@ -1014,7 +1025,7 @@ func (r *RecoveryTester) getDefaultStrategy() *RecoveryStrategy {
 	}
 }
 
-// GetRecoveryHistory returns the recovery test history
+// GetRecoveryHistory returns the recovery test history.
 func (r *RecoveryTester) GetRecoveryHistory() []RecoveryResult {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -1024,7 +1035,7 @@ func (r *RecoveryTester) GetRecoveryHistory() []RecoveryResult {
 	return history
 }
 
-// AnalyzeRecoveryTrends analyzes recovery trends over time
+// AnalyzeRecoveryTrends analyzes recovery trends over time.
 func (r *RecoveryTester) AnalyzeRecoveryTrends() *RecoveryTrendAnalysis {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -1069,7 +1080,7 @@ func (r *RecoveryTester) AnalyzeRecoveryTrends() *RecoveryTrendAnalysis {
 			analysis.MinRecoveryTime = result.RecoveryTime
 		}
 
-		// Track failure patterns
+		// Track failure patterns.
 		for _, service := range result.DegradedServices {
 			analysis.CommonFailurePatterns[service]++
 		}
@@ -1084,7 +1095,7 @@ func (r *RecoveryTester) AnalyzeRecoveryTrends() *RecoveryTrendAnalysis {
 	return analysis
 }
 
-// RecoveryTrendAnalysis represents analysis of recovery trends
+// RecoveryTrendAnalysis represents analysis of recovery trends.
 type RecoveryTrendAnalysis struct {
 	TotalTests            int
 	SuccessfulRecoveries  int

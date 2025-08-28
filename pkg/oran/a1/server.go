@@ -1,10 +1,11 @@
-// Package a1 implements the main O-RAN A1 Policy Management Service HTTP server
-// This module provides a production-ready HTTP/2 server with all three A1 interfaces (A1-P, A1-C, A1-EI)
+// Package a1 implements the main O-RAN A1 Policy Management Service HTTP server.
+// This module provides a production-ready HTTP/2 server with all three A1 interfaces (A1-P, A1-C, A1-EI).
 package a1
 
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -19,7 +20,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
-// A1Server represents the main A1 Policy Management Service server
+// A1Server represents the main A1 Policy Management Service server.
 type A1Server struct {
 	config    *A1ServerConfig
 	logger    *logging.StructuredLogger
@@ -29,28 +30,28 @@ type A1Server struct {
 	storage   A1Storage
 	metrics   A1Metrics
 
-	// HTTP server components
+	// HTTP server components.
 	httpServer *http.Server
 	router     *mux.Router
 	middleware []Middleware
 
-	// Lifecycle management
+	// Lifecycle management.
 	shutdownTimeout time.Duration
 	startTime       time.Time
 	isReady         bool
 	mutex           sync.RWMutex
 
-	// Circuit breaker for outbound calls
+	// Circuit breaker for outbound calls.
 	circuitBreaker map[string]*CircuitBreaker
 
-	// TLS configuration
+	// TLS configuration.
 	tlsConfig *tls.Config
 }
 
-// Middleware represents a middleware function
+// Middleware represents a middleware function.
 type Middleware func(http.Handler) http.Handler
 
-// CircuitBreaker implements the circuit breaker pattern for fault tolerance
+// CircuitBreaker implements the circuit breaker pattern for fault tolerance.
 type CircuitBreaker struct {
 	name          string
 	maxRequests   uint32
@@ -65,7 +66,7 @@ type CircuitBreaker struct {
 	expiry time.Time
 }
 
-// A1MetricsCollector implements A1Metrics interface with Prometheus
+// A1MetricsCollector implements A1Metrics interface with Prometheus.
 type A1MetricsCollector struct {
 	requestCount        *prometheus.CounterVec
 	requestDuration     *prometheus.HistogramVec
@@ -76,7 +77,7 @@ type A1MetricsCollector struct {
 	validationErrors    *prometheus.CounterVec
 }
 
-// NewA1Server creates a new A1 server instance
+// NewA1Server creates a new A1 server instance.
 func NewA1Server(config *A1ServerConfig, service A1Service, validator A1Validator, storage A1Storage) (*A1Server, error) {
 	if config == nil {
 		config = DefaultA1ServerConfig()
@@ -88,13 +89,13 @@ func NewA1Server(config *A1ServerConfig, service A1Service, validator A1Validato
 
 	logger := config.Logger.WithComponent("a1-server")
 
-	// Create metrics collector
+	// Create metrics collector.
 	metrics := NewA1MetricsCollector(config.MetricsConfig)
 
-	// Create handlers
+	// Create handlers.
 	handlers := NewA1Handlers(service, validator, storage, metrics, logger, config)
 
-	// Create router with middleware
+	// Create router with middleware.
 	router := mux.NewRouter()
 
 	server := &A1Server{
@@ -111,20 +112,20 @@ func NewA1Server(config *A1ServerConfig, service A1Service, validator A1Validato
 		circuitBreaker:  make(map[string]*CircuitBreaker),
 	}
 
-	// Setup TLS if enabled
+	// Setup TLS if enabled.
 	if config.TLSEnabled {
 		if err := server.setupTLS(); err != nil {
 			return nil, fmt.Errorf("failed to setup TLS: %w", err)
 		}
 	}
 
-	// Setup middleware
+	// Setup middleware.
 	server.setupMiddleware()
 
-	// Setup routes
+	// Setup routes.
 	server.setupRoutes()
 
-	// Create HTTP server
+	// Create HTTP server.
 	server.httpServer = &http.Server{
 		Addr:           fmt.Sprintf("%s:%d", config.Host, config.Port),
 		Handler:        server.router,
@@ -136,12 +137,12 @@ func NewA1Server(config *A1ServerConfig, service A1Service, validator A1Validato
 		ErrorLog:       nil, // We'll handle errors through structured logging
 	}
 
-	// Enable HTTP/2 is automatically enabled in Go 1.6+ for HTTPS servers
+	// Enable HTTP/2 is automatically enabled in Go 1.6+ for HTTPS servers.
 
 	return server, nil
 }
 
-// Start starts the A1 server
+// Start starts the A1 server.
 func (s *A1Server) Start(ctx context.Context) error {
 	s.mutex.Lock()
 	s.startTime = time.Now()
@@ -155,16 +156,16 @@ func (s *A1Server) Start(ctx context.Context) error {
 		"a1ei_enabled", s.config.EnableA1EI,
 	)
 
-	// Create listener
+	// Create listener.
 	listener, err := net.Listen("tcp", s.httpServer.Addr)
 	if err != nil {
 		return fmt.Errorf("failed to create listener: %w", err)
 	}
 
-	// Use error group for graceful shutdown
+	// Use error group for graceful shutdown.
 	g, gCtx := errgroup.WithContext(ctx)
 
-	// Start HTTP server
+	// Start HTTP server.
 	g.Go(func() error {
 		s.mutex.Lock()
 		s.isReady = true
@@ -180,7 +181,7 @@ func (s *A1Server) Start(ctx context.Context) error {
 		return s.httpServer.Serve(listener)
 	})
 
-	// Handle graceful shutdown
+	// Handle graceful shutdown.
 	g.Go(func() error {
 		<-gCtx.Done()
 		s.logger.InfoWithContext("Shutting down A1 server gracefully")
@@ -191,7 +192,7 @@ func (s *A1Server) Start(ctx context.Context) error {
 		return s.httpServer.Shutdown(shutdownCtx)
 	})
 
-	if err := g.Wait(); err != nil && err != http.ErrServerClosed {
+	if err := g.Wait(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("server error: %w", err)
 	}
 
@@ -199,7 +200,7 @@ func (s *A1Server) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the A1 server
+// Stop stops the A1 server.
 func (s *A1Server) Stop(ctx context.Context) error {
 	s.mutex.Lock()
 	s.isReady = false
@@ -213,33 +214,33 @@ func (s *A1Server) Stop(ctx context.Context) error {
 	return s.httpServer.Shutdown(shutdownCtx)
 }
 
-// IsReady returns whether the server is ready to accept requests
+// IsReady returns whether the server is ready to accept requests.
 func (s *A1Server) IsReady() bool {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	return s.isReady
 }
 
-// GetUptime returns the server uptime
+// GetUptime returns the server uptime.
 func (s *A1Server) GetUptime() time.Duration {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	return time.Since(s.startTime)
 }
 
-// setupTLS configures TLS for the server
+// setupTLS configures TLS for the server.
 func (s *A1Server) setupTLS() error {
 	if s.config.CertFile == "" || s.config.KeyFile == "" {
 		return fmt.Errorf("TLS enabled but cert_file or key_file not configured")
 	}
 
-	// Load certificate
+	// Load certificate.
 	cert, err := tls.LoadX509KeyPair(s.config.CertFile, s.config.KeyFile)
 	if err != nil {
 		return fmt.Errorf("failed to load TLS certificate: %w", err)
 	}
 
-	// Configure TLS
+	// Configure TLS.
 	s.tlsConfig = &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		MinVersion:   tls.VersionTLS12,
@@ -255,40 +256,40 @@ func (s *A1Server) setupTLS() error {
 	return nil
 }
 
-// setupMiddleware configures middleware chain
+// setupMiddleware configures middleware chain.
 func (s *A1Server) setupMiddleware() {
-	// Request logging middleware
+	// Request logging middleware.
 	s.middleware = append(s.middleware, s.requestLoggingMiddleware)
 
-	// Request ID middleware
+	// Request ID middleware.
 	s.middleware = append(s.middleware, s.requestIDMiddleware)
 
-	// CORS middleware
+	// CORS middleware.
 	s.middleware = append(s.middleware, s.corsMiddleware)
 
-	// Authentication middleware (if enabled)
+	// Authentication middleware (if enabled).
 	if s.config.AuthenticationConfig.Enabled {
 		s.middleware = append(s.middleware, s.authenticationMiddleware)
 	}
 
-	// Rate limiting middleware (if enabled)
+	// Rate limiting middleware (if enabled).
 	if s.config.RateLimitConfig.Enabled {
 		s.middleware = append(s.middleware, s.rateLimitMiddleware)
 	}
 
-	// Request size limiting middleware
+	// Request size limiting middleware.
 	s.middleware = append(s.middleware, s.requestSizeLimitMiddleware)
 
-	// Circuit breaker middleware
+	// Circuit breaker middleware.
 	s.middleware = append(s.middleware, s.circuitBreakerMiddleware)
 
-	// Panic recovery middleware
+	// Panic recovery middleware.
 	s.middleware = append(s.middleware, s.panicRecoveryMiddleware)
 
-	// Error handling middleware
+	// Error handling middleware.
 	s.middleware = append(s.middleware, ErrorMiddleware(DefaultErrorHandler))
 
-	// Apply middleware to router
+	// Apply middleware to router.
 	handler := http.Handler(s.router)
 	for i := len(s.middleware) - 1; i >= 0; i-- {
 		handler = s.middleware[i](handler)
@@ -296,60 +297,60 @@ func (s *A1Server) setupMiddleware() {
 	s.router.PathPrefix("/").Handler(handler)
 }
 
-// setupRoutes configures all A1 interface routes
+// setupRoutes configures all A1 interface routes.
 func (s *A1Server) setupRoutes() {
-	// Health and readiness endpoints
+	// Health and readiness endpoints.
 	s.router.HandleFunc("/health", s.handlers.HealthCheckHandler).Methods("GET")
 	s.router.HandleFunc("/ready", s.handlers.ReadinessCheckHandler).Methods("GET")
 
-	// Metrics endpoint (if enabled)
+	// Metrics endpoint (if enabled).
 	if s.config.MetricsConfig.Enabled {
 		s.router.Handle(s.config.MetricsConfig.Endpoint, promhttp.Handler()).Methods("GET")
 	}
 
-	// A1-P Policy Interface routes (v2)
+	// A1-P Policy Interface routes (v2).
 	if s.config.EnableA1P {
 		s.setupA1PolicyRoutes()
 	}
 
-	// A1-C Consumer Interface routes (v1)
+	// A1-C Consumer Interface routes (v1).
 	if s.config.EnableA1C {
 		s.setupA1ConsumerRoutes()
 	}
 
-	// A1-EI Enrichment Information Interface routes (v1)
+	// A1-EI Enrichment Information Interface routes (v1).
 	if s.config.EnableA1EI {
 		s.setupA1EnrichmentRoutes()
 	}
 }
 
-// setupA1PolicyRoutes configures A1-P interface routes
+// setupA1PolicyRoutes configures A1-P interface routes.
 func (s *A1Server) setupA1PolicyRoutes() {
 	a1pRouter := s.router.PathPrefix("/A1-P/v2").Subrouter()
 
-	// Policy types
+	// Policy types.
 	a1pRouter.HandleFunc("/policytypes", s.handlers.HandleGetPolicyTypes).Methods("GET")
 	a1pRouter.HandleFunc("/policytypes/{policy_type_id:[0-9]+}", s.handlers.HandleGetPolicyType).Methods("GET")
 	a1pRouter.HandleFunc("/policytypes/{policy_type_id:[0-9]+}", s.handlers.HandleCreatePolicyType).Methods("PUT")
 	a1pRouter.HandleFunc("/policytypes/{policy_type_id:[0-9]+}", s.handlers.HandleDeletePolicyType).Methods("DELETE")
 
-	// Policy instances
+	// Policy instances.
 	a1pRouter.HandleFunc("/policytypes/{policy_type_id:[0-9]+}/policies", s.handlers.HandleGetPolicyInstances).Methods("GET")
 	a1pRouter.HandleFunc("/policytypes/{policy_type_id:[0-9]+}/policies/{policy_id}", s.handlers.HandleGetPolicyInstance).Methods("GET")
 	a1pRouter.HandleFunc("/policytypes/{policy_type_id:[0-9]+}/policies/{policy_id}", s.handlers.HandleCreatePolicyInstance).Methods("PUT")
 	a1pRouter.HandleFunc("/policytypes/{policy_type_id:[0-9]+}/policies/{policy_id}", s.handlers.HandleDeletePolicyInstance).Methods("DELETE")
 
-	// Policy status
+	// Policy status.
 	a1pRouter.HandleFunc("/policytypes/{policy_type_id:[0-9]+}/policies/{policy_id}/status", s.handlers.HandleGetPolicyStatus).Methods("GET")
 
 	s.logger.InfoWithContext("A1-P Policy interface routes configured")
 }
 
-// setupA1ConsumerRoutes configures A1-C interface routes
+// setupA1ConsumerRoutes configures A1-C interface routes.
 func (s *A1Server) setupA1ConsumerRoutes() {
 	a1cRouter := s.router.PathPrefix("/A1-C/v1").Subrouter()
 
-	// Consumers
+	// Consumers.
 	a1cRouter.HandleFunc("/consumers", s.handlers.HandleListConsumers).Methods("GET")
 	a1cRouter.HandleFunc("/consumers/{consumer_id}", s.handlers.HandleGetConsumer).Methods("GET")
 	a1cRouter.HandleFunc("/consumers/{consumer_id}", s.handlers.HandleRegisterConsumer).Methods("POST")
@@ -358,17 +359,17 @@ func (s *A1Server) setupA1ConsumerRoutes() {
 	s.logger.InfoWithContext("A1-C Consumer interface routes configured")
 }
 
-// setupA1EnrichmentRoutes configures A1-EI interface routes
+// setupA1EnrichmentRoutes configures A1-EI interface routes.
 func (s *A1Server) setupA1EnrichmentRoutes() {
 	a1eiRouter := s.router.PathPrefix("/A1-EI/v1").Subrouter()
 
-	// EI types
+	// EI types.
 	a1eiRouter.HandleFunc("/eitypes", s.handlers.HandleGetEITypes).Methods("GET")
 	a1eiRouter.HandleFunc("/eitypes/{ei_type_id}", s.handlers.HandleGetEIType).Methods("GET")
 	a1eiRouter.HandleFunc("/eitypes/{ei_type_id}", s.handlers.HandleCreateEIType).Methods("PUT")
 	a1eiRouter.HandleFunc("/eitypes/{ei_type_id}", s.handlers.HandleDeleteEIType).Methods("DELETE")
 
-	// EI jobs
+	// EI jobs.
 	a1eiRouter.HandleFunc("/eijobs", s.handlers.HandleGetEIJobs).Methods("GET")
 	a1eiRouter.HandleFunc("/eijobs/{ei_job_id}", s.handlers.HandleGetEIJob).Methods("GET")
 	a1eiRouter.HandleFunc("/eijobs/{ei_job_id}", s.handlers.HandleCreateEIJob).Methods("PUT")
@@ -378,23 +379,23 @@ func (s *A1Server) setupA1EnrichmentRoutes() {
 	s.logger.InfoWithContext("A1-EI Enrichment Information interface routes configured")
 }
 
-// Middleware implementations
+// Middleware implementations.
 
-// requestLoggingMiddleware logs HTTP requests and responses
+// requestLoggingMiddleware logs HTTP requests and responses.
 func (s *A1Server) requestLoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
-		// Create a response writer wrapper to capture status code and size
+		// Create a response writer wrapper to capture status code and size.
 		wrapper := &responseWriterWrapper{
 			ResponseWriter: w,
 			statusCode:     http.StatusOK,
 		}
 
-		// Process request
+		// Process request.
 		next.ServeHTTP(wrapper, r)
 
-		// Log request
+		// Log request.
 		duration := time.Since(start)
 		s.logger.LogHTTPRequest(
 			r.Method,
@@ -406,7 +407,7 @@ func (s *A1Server) requestLoggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// requestIDMiddleware adds request ID to context
+// requestIDMiddleware adds request ID to context.
 func (s *A1Server) requestIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestID := r.Header.Get("X-Request-ID")
@@ -415,13 +416,13 @@ func (s *A1Server) requestIDMiddleware(next http.Handler) http.Handler {
 			w.Header().Set("X-Request-ID", requestID)
 		}
 
-		// Add to context
+		// Add to context.
 		ctx := context.WithValue(r.Context(), "request_id", requestID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-// corsMiddleware handles CORS headers
+// corsMiddleware handles CORS headers.
 func (s *A1Server) corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -430,7 +431,7 @@ func (s *A1Server) corsMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID, Location")
 		w.Header().Set("Access-Control-Max-Age", "3600")
 
-		// Handle preflight requests
+		// Handle preflight requests.
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -440,39 +441,39 @@ func (s *A1Server) corsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// authenticationMiddleware handles authentication (placeholder)
+// authenticationMiddleware handles authentication (placeholder).
 func (s *A1Server) authenticationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Skip authentication for health and metrics endpoints
+		// Skip authentication for health and metrics endpoints.
 		if r.URL.Path == "/health" || r.URL.Path == "/ready" || r.URL.Path == s.config.MetricsConfig.Endpoint {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		// Extract authorization header
+		// Extract authorization header.
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
 			WriteA1Error(w, NewAuthenticationRequiredError())
 			return
 		}
 
-		// TODO: Implement actual authentication logic based on config
-		// For now, just check that header is present
+		// TODO: Implement actual authentication logic based on config.
+		// For now, just check that header is present.
 
 		next.ServeHTTP(w, r)
 	})
 }
 
-// rateLimitMiddleware implements rate limiting (placeholder)
+// rateLimitMiddleware implements rate limiting (placeholder).
 func (s *A1Server) rateLimitMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// TODO: Implement actual rate limiting logic
-		// For now, just pass through
+		// TODO: Implement actual rate limiting logic.
+		// For now, just pass through.
 		next.ServeHTTP(w, r)
 	})
 }
 
-// requestSizeLimitMiddleware limits request body size
+// requestSizeLimitMiddleware limits request body size.
 func (s *A1Server) requestSizeLimitMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.ContentLength > int64(s.config.MaxHeaderBytes) {
@@ -484,15 +485,15 @@ func (s *A1Server) requestSizeLimitMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// circuitBreakerMiddleware implements circuit breaker pattern (placeholder)
+// circuitBreakerMiddleware implements circuit breaker pattern (placeholder).
 func (s *A1Server) circuitBreakerMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// TODO: Implement circuit breaker logic
+		// TODO: Implement circuit breaker logic.
 		next.ServeHTTP(w, r)
 	})
 }
 
-// panicRecoveryMiddleware recovers from panics
+// panicRecoveryMiddleware recovers from panics.
 func (s *A1Server) panicRecoveryMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -512,25 +513,27 @@ func (s *A1Server) panicRecoveryMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// responseWriterWrapper wraps http.ResponseWriter to capture response metrics
+// responseWriterWrapper wraps http.ResponseWriter to capture response metrics.
 type responseWriterWrapper struct {
 	http.ResponseWriter
 	statusCode   int
 	bytesWritten int64
 }
 
+// WriteHeader performs writeheader operation.
 func (w *responseWriterWrapper) WriteHeader(code int) {
 	w.statusCode = code
 	w.ResponseWriter.WriteHeader(code)
 }
 
+// Write performs write operation.
 func (w *responseWriterWrapper) Write(data []byte) (int, error) {
 	n, err := w.ResponseWriter.Write(data)
 	w.bytesWritten += int64(n)
 	return n, err
 }
 
-// NewA1MetricsCollector creates a new metrics collector
+// NewA1MetricsCollector creates a new metrics collector.
 func NewA1MetricsCollector(config *MetricsConfig) A1Metrics {
 	if config == nil || !config.Enabled {
 		return &noopMetrics{}
@@ -605,7 +608,7 @@ func NewA1MetricsCollector(config *MetricsConfig) A1Metrics {
 		),
 	}
 
-	// Register metrics
+	// Register metrics.
 	prometheus.MustRegister(
 		collector.requestCount,
 		collector.requestDuration,
@@ -619,50 +622,70 @@ func NewA1MetricsCollector(config *MetricsConfig) A1Metrics {
 	return collector
 }
 
-// A1MetricsCollector method implementations
+// A1MetricsCollector method implementations.
 
+// IncrementRequestCount performs incrementrequestcount operation.
 func (m *A1MetricsCollector) IncrementRequestCount(interface_ A1Interface, method string, statusCode int) {
 	m.requestCount.WithLabelValues(string(interface_), method, fmt.Sprintf("%d", statusCode)).Inc()
 }
 
+// RecordRequestDuration performs recordrequestduration operation.
 func (m *A1MetricsCollector) RecordRequestDuration(interface_ A1Interface, method string, duration time.Duration) {
 	m.requestDuration.WithLabelValues(string(interface_), method).Observe(duration.Seconds())
 }
 
+// RecordPolicyCount performs recordpolicycount operation.
 func (m *A1MetricsCollector) RecordPolicyCount(policyTypeID int, instanceCount int) {
 	m.policyCount.WithLabelValues(fmt.Sprintf("%d", policyTypeID)).Set(float64(instanceCount))
 }
 
+// RecordConsumerCount performs recordconsumercount operation.
 func (m *A1MetricsCollector) RecordConsumerCount(consumerCount int) {
 	m.consumerCount.Set(float64(consumerCount))
 }
 
+// RecordEIJobCount performs recordeijobcount operation.
 func (m *A1MetricsCollector) RecordEIJobCount(eiTypeID string, jobCount int) {
 	m.eiJobCount.WithLabelValues(eiTypeID).Set(float64(jobCount))
 }
 
+// RecordCircuitBreakerState performs recordcircuitbreakerstate operation.
 func (m *A1MetricsCollector) RecordCircuitBreakerState(name string, state State) {
 	m.circuitBreakerState.WithLabelValues(name).Set(float64(state))
 }
 
+// RecordValidationErrors performs recordvalidationerrors operation.
 func (m *A1MetricsCollector) RecordValidationErrors(interface_ A1Interface, errorType string) {
 	m.validationErrors.WithLabelValues(string(interface_), errorType).Inc()
 }
 
-// noopMetrics provides a no-op implementation of A1Metrics
+// noopMetrics provides a no-op implementation of A1Metrics.
 type noopMetrics struct{}
 
-func (m *noopMetrics) IncrementRequestCount(A1Interface, string, int)           {}
+// IncrementRequestCount performs incrementrequestcount operation.
+func (m *noopMetrics) IncrementRequestCount(A1Interface, string, int) {}
+
+// RecordRequestDuration performs recordrequestduration operation.
 func (m *noopMetrics) RecordRequestDuration(A1Interface, string, time.Duration) {}
-func (m *noopMetrics) RecordPolicyCount(int, int)                               {}
-func (m *noopMetrics) RecordConsumerCount(int)                                  {}
-func (m *noopMetrics) RecordEIJobCount(string, int)                             {}
-func (m *noopMetrics) RecordCircuitBreakerState(string, State)                  {}
-func (m *noopMetrics) RecordValidationErrors(A1Interface, string)               {}
 
-// Circuit Breaker implementation
+// RecordPolicyCount performs recordpolicycount operation.
+func (m *noopMetrics) RecordPolicyCount(int, int) {}
 
-// NewCircuitBreaker creates a new circuit breaker
+// RecordConsumerCount performs recordconsumercount operation.
+func (m *noopMetrics) RecordConsumerCount(int) {}
+
+// RecordEIJobCount performs recordeijobcount operation.
+func (m *noopMetrics) RecordEIJobCount(string, int) {}
+
+// RecordCircuitBreakerState performs recordcircuitbreakerstate operation.
+func (m *noopMetrics) RecordCircuitBreakerState(string, State) {}
+
+// RecordValidationErrors performs recordvalidationerrors operation.
+func (m *noopMetrics) RecordValidationErrors(A1Interface, string) {}
+
+// Circuit Breaker implementation.
+
+// NewCircuitBreaker creates a new circuit breaker.
 func NewCircuitBreaker(name string, config *CircuitBreakerConfig) *CircuitBreaker {
 	if config.ReadyToTrip == nil {
 		config.ReadyToTrip = func(counts Counts) bool {
@@ -682,7 +705,7 @@ func NewCircuitBreaker(name string, config *CircuitBreakerConfig) *CircuitBreake
 	}
 }
 
-// Execute executes a function with circuit breaker protection
+// Execute executes a function with circuit breaker protection.
 func (cb *CircuitBreaker) Execute(ctx context.Context, req func(context.Context) (interface{}, error)) (interface{}, error) {
 	generation, err := cb.beforeRequest()
 	if err != nil {
@@ -702,7 +725,7 @@ func (cb *CircuitBreaker) Execute(ctx context.Context, req func(context.Context)
 	return result, err
 }
 
-// beforeRequest checks if request should be allowed
+// beforeRequest checks if request should be allowed.
 func (cb *CircuitBreaker) beforeRequest() (uint64, error) {
 	cb.mutex.Lock()
 	defer cb.mutex.Unlock()
@@ -720,7 +743,7 @@ func (cb *CircuitBreaker) beforeRequest() (uint64, error) {
 	return generation, nil
 }
 
-// afterRequest updates circuit breaker state after request completion
+// afterRequest updates circuit breaker state after request completion.
 func (cb *CircuitBreaker) afterRequest(before uint64, success bool) {
 	cb.mutex.Lock()
 	defer cb.mutex.Unlock()
@@ -738,7 +761,7 @@ func (cb *CircuitBreaker) afterRequest(before uint64, success bool) {
 	}
 }
 
-// currentState returns the current state and generation
+// currentState returns the current state and generation.
 func (cb *CircuitBreaker) currentState(now time.Time) (State, uint64) {
 	switch cb.state {
 	case StateClosed:
@@ -753,7 +776,7 @@ func (cb *CircuitBreaker) currentState(now time.Time) (State, uint64) {
 	return cb.state, uint64(cb.counts.Requests)
 }
 
-// onSuccess handles successful request
+// onSuccess handles successful request.
 func (cb *CircuitBreaker) onSuccess(state State, now time.Time) {
 	switch state {
 	case StateClosed:
@@ -766,7 +789,7 @@ func (cb *CircuitBreaker) onSuccess(state State, now time.Time) {
 	}
 }
 
-// onFailure handles failed request
+// onFailure handles failed request.
 func (cb *CircuitBreaker) onFailure(state State, now time.Time) {
 	switch state {
 	case StateClosed:
@@ -779,7 +802,7 @@ func (cb *CircuitBreaker) onFailure(state State, now time.Time) {
 	}
 }
 
-// setState changes the circuit breaker state
+// setState changes the circuit breaker state.
 func (cb *CircuitBreaker) setState(state State, now time.Time) {
 	if cb.state == state {
 		return
@@ -795,7 +818,7 @@ func (cb *CircuitBreaker) setState(state State, now time.Time) {
 	}
 }
 
-// toNewGeneration resets counters for new generation
+// toNewGeneration resets counters for new generation.
 func (cb *CircuitBreaker) toNewGeneration(now time.Time) {
 	cb.counts = Counts{}
 
@@ -814,7 +837,7 @@ func (cb *CircuitBreaker) toNewGeneration(now time.Time) {
 	}
 }
 
-// Counts method implementations
+// Counts method implementations.
 
 func (c *Counts) onRequest() {
 	c.Requests++
@@ -832,7 +855,7 @@ func (c *Counts) onFailure() {
 	c.ConsecutiveSuccesses = 0
 }
 
-// GetStats returns circuit breaker statistics
+// GetStats returns circuit breaker statistics.
 func (cb *CircuitBreaker) GetStats() map[string]interface{} {
 	cb.mutex.Lock()
 	defer cb.mutex.Unlock()
@@ -848,7 +871,7 @@ func (cb *CircuitBreaker) GetStats() map[string]interface{} {
 	}
 }
 
-// Reset manually resets the circuit breaker
+// Reset manually resets the circuit breaker.
 func (cb *CircuitBreaker) Reset() {
 	cb.mutex.Lock()
 	defer cb.mutex.Unlock()

@@ -13,8 +13,8 @@ import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-// SMOIntegrationLayer provides Service Management and Orchestration integration
-// following O-RAN.WG1.SMO-O1-Interface.0-v05.00 specification
+// SMOIntegrationLayer provides Service Management and Orchestration integration.
+// following O-RAN.WG1.SMO-O1-Interface.0-v05.00 specification.
 type SMOIntegrationLayer struct {
 	config                 *SMOIntegrationConfig
 	o1AdapterRegistry      *O1AdapterRegistry
@@ -34,7 +34,7 @@ type SMOIntegrationLayer struct {
 	mutex                  sync.RWMutex
 }
 
-// SMOIntegrationConfig holds SMO integration configuration
+// SMOIntegrationConfig holds SMO integration configuration.
 type SMOIntegrationConfig struct {
 	SMOEndpoint            string
 	O1InterfaceVersion     string
@@ -51,7 +51,7 @@ type SMOIntegrationConfig struct {
 	EventBufferSize        int
 }
 
-// O1AdapterRegistry manages O1 interface adapters
+// O1AdapterRegistry manages O1 interface adapters.
 type O1AdapterRegistry struct {
 	adapters      map[string]*O1AdapterInstance
 	adapterTypes  map[string]*O1AdapterType
@@ -62,7 +62,7 @@ type O1AdapterRegistry struct {
 	mutex         sync.RWMutex
 }
 
-// O1AdapterInstance represents an O1 adapter instance
+// O1AdapterInstance represents an O1 adapter instance.
 type O1AdapterInstance struct {
 	ID                string                 `json:"id"`
 	Type              string                 `json:"type"`
@@ -79,7 +79,7 @@ type O1AdapterInstance struct {
 	UpdatedAt         time.Time              `json:"updated_at"`
 }
 
-// O1AdapterType defines adapter type specifications
+// O1AdapterType defines adapter type specifications.
 type O1AdapterType struct {
 	TypeID               string                 `json:"type_id"`
 	Name                 string                 `json:"name"`
@@ -93,7 +93,7 @@ type O1AdapterType struct {
 	LoadBalancing        *LoadBalancingConfig   `json:"load_balancing"`
 }
 
-// AdapterCapabilities defines adapter capabilities
+// AdapterCapabilities defines adapter capabilities.
 type AdapterCapabilities struct {
 	SupportedOperations   []string `json:"supported_operations"`
 	MaxConcurrentSessions int      `json:"max_concurrent_sessions"`
@@ -104,7 +104,7 @@ type AdapterCapabilities struct {
 	FaultTolerance        []string `json:"fault_tolerance"`
 }
 
-// AdapterMetrics holds adapter performance metrics
+// AdapterMetrics holds adapter performance metrics.
 type AdapterMetrics struct {
 	RequestCount        int64     `json:"request_count"`
 	ErrorCount          int64     `json:"error_count"`
@@ -116,7 +116,7 @@ type AdapterMetrics struct {
 	LastUpdate          time.Time `json:"last_update"`
 }
 
-// AdapterRegistration represents adapter registration information
+// AdapterRegistration represents adapter registration information.
 type AdapterRegistration struct {
 	AdapterID        string                 `json:"adapter_id"`
 	RegistrationID   string                 `json:"registration_id"`
@@ -126,7 +126,7 @@ type AdapterRegistration struct {
 	Status           string                 `json:"status"`
 }
 
-// AdapterHealthMonitor monitors adapter health
+// AdapterHealthMonitor monitors adapter health.
 type AdapterHealthMonitor struct {
 	healthChecks   map[string]*AdapterHealthCheck
 	checkScheduler *HealthCheckScheduler
@@ -136,7 +136,7 @@ type AdapterHealthMonitor struct {
 	mutex          sync.RWMutex
 }
 
-// AdapterHealthCheck represents a health check
+// AdapterHealthCheck represents a health check.
 type AdapterHealthCheck struct {
 	AdapterID        string                 `json:"adapter_id"`
 	CheckType        string                 `json:"check_type"` // PING, HTTP, CUSTOM
@@ -148,7 +148,7 @@ type AdapterHealthCheck struct {
 	ErrorMessage     string                 `json:"error_message,omitempty"`
 }
 
-// HealthCheckConfig defines health check configuration
+// HealthCheckConfig defines health check configuration.
 type HealthCheckConfig struct {
 	Type          string                 `json:"type"`
 	Interval      time.Duration          `json:"interval"`
@@ -158,7 +158,7 @@ type HealthCheckConfig struct {
 	Enabled       bool                   `json:"enabled"`
 }
 
-// AdapterLoadBalancer manages load balancing across adapters
+// AdapterLoadBalancer manages load balancing across adapters.
 type AdapterLoadBalancer struct {
 	algorithms  map[string]LoadBalancingAlgorithm
 	pools       map[string]*AdapterPool
@@ -166,13 +166,13 @@ type AdapterLoadBalancer struct {
 	config      *LoadBalancingConfig
 }
 
-// LoadBalancingAlgorithm defines load balancing algorithms
+// LoadBalancingAlgorithm defines load balancing algorithms.
 type LoadBalancingAlgorithm interface {
 	SelectAdapter(pool *AdapterPool, request interface{}) (*O1AdapterInstance, error)
 	GetAlgorithmName() string
 }
 
-// AdapterPool represents a pool of adapters
+// AdapterPool represents a pool of adapters.
 type AdapterPool struct {
 	ID             string
 	Name           string
@@ -184,7 +184,7 @@ type AdapterPool struct {
 	CreatedAt      time.Time
 }
 
-// LoadBalancingConfig holds load balancing configuration
+// LoadBalancingConfig holds load balancing configuration.
 type LoadBalancingConfig struct {
 	Algorithm    string                 `json:"algorithm"` // ROUND_ROBIN, WEIGHTED, LEAST_CONNECTIONS, HEALTH_AWARE
 	HealthChecks bool                   `json:"health_checks"`
@@ -193,7 +193,7 @@ type LoadBalancingConfig struct {
 	Parameters   map[string]interface{} `json:"parameters"`
 }
 
-// AdapterFailoverManager handles adapter failover
+// AdapterFailoverManager handles adapter failover.
 type AdapterFailoverManager struct {
 	failoverPolicies map[string]*FailoverPolicy
 	activeFailovers  map[string]*ActiveFailover
@@ -202,7 +202,7 @@ type AdapterFailoverManager struct {
 	mutex            sync.RWMutex
 }
 
-// FailoverPolicy defines failover policies
+// FailoverPolicy defines failover policies.
 type FailoverPolicy struct {
 	ID                   string        `json:"id"`
 	TriggerConditions    []string      `json:"trigger_conditions"`
@@ -214,7 +214,7 @@ type FailoverPolicy struct {
 	Enabled              bool          `json:"enabled"`
 }
 
-// ActiveFailover represents an active failover operation
+// ActiveFailover represents an active failover operation.
 type ActiveFailover struct {
 	ID               string    `json:"id"`
 	PrimaryAdapter   string    `json:"primary_adapter"`
@@ -226,7 +226,7 @@ type ActiveFailover struct {
 	ImpactedElements []string  `json:"impacted_elements"`
 }
 
-// NetworkFunctionManager manages O-RAN network functions
+// NetworkFunctionManager manages O-RAN network functions.
 type NetworkFunctionManager struct {
 	networkFunctions    map[string]*NetworkFunction
 	functionTypes       map[string]*FunctionType
@@ -237,7 +237,7 @@ type NetworkFunctionManager struct {
 	mutex               sync.RWMutex
 }
 
-// NetworkFunction represents an O-RAN network function
+// NetworkFunction represents an O-RAN network function.
 type NetworkFunction struct {
 	ID              string                  `json:"id"`
 	Name            string                  `json:"name"`
@@ -256,7 +256,7 @@ type NetworkFunction struct {
 	UpdatedAt       time.Time               `json:"updated_at"`
 }
 
-// FunctionType defines network function types
+// FunctionType defines network function types.
 type FunctionType struct {
 	TypeID               string                 `json:"type_id"`
 	Name                 string                 `json:"name"`
@@ -269,7 +269,7 @@ type FunctionType struct {
 	HealthCheckConfig    *HealthCheckConfig     `json:"health_check_config"`
 }
 
-// O1Interface represents an O1 interface
+// O1Interface represents an O1 interface.
 type O1Interface struct {
 	InterfaceID    string                 `json:"interface_id"`
 	Type           string                 `json:"type"` // NETCONF, RESTCONF, HTTP
@@ -283,7 +283,7 @@ type O1Interface struct {
 	LastActivity   time.Time              `json:"last_activity"`
 }
 
-// FunctionMetrics holds network function metrics
+// FunctionMetrics holds network function metrics.
 type FunctionMetrics struct {
 	CPUUsage       float64   `json:"cpu_usage"`
 	MemoryUsage    float64   `json:"memory_usage"`
@@ -296,7 +296,7 @@ type FunctionMetrics struct {
 	LastUpdate     time.Time `json:"last_update"`
 }
 
-// DeploymentTemplate defines deployment templates
+// DeploymentTemplate defines deployment templates.
 type DeploymentTemplate struct {
 	ID           string                  `json:"id"`
 	Name         string                  `json:"name"`
@@ -309,7 +309,7 @@ type DeploymentTemplate struct {
 	CreatedAt    time.Time               `json:"created_at"`
 }
 
-// TemplateParameter defines template parameters
+// TemplateParameter defines template parameters.
 type TemplateParameter struct {
 	Name         string                 `json:"name"`
 	Type         string                 `json:"type"`
@@ -319,7 +319,7 @@ type TemplateParameter struct {
 	Constraints  map[string]interface{} `json:"constraints"`
 }
 
-// DeploymentRequirements defines deployment requirements
+// DeploymentRequirements defines deployment requirements.
 type DeploymentRequirements struct {
 	MinCPU           string            `json:"min_cpu"`
 	MinMemory        string            `json:"min_memory"`
@@ -330,7 +330,7 @@ type DeploymentRequirements struct {
 	Tolerations      []string          `json:"tolerations"`
 }
 
-// DeploymentConstraint defines deployment constraints
+// DeploymentConstraint defines deployment constraints.
 type DeploymentConstraint struct {
 	Type        string                 `json:"type"` // AFFINITY, ANTI_AFFINITY, RESOURCE, LOCATION
 	Constraint  string                 `json:"constraint"`
@@ -338,7 +338,7 @@ type DeploymentConstraint struct {
 	Enforcement string                 `json:"enforcement"` // REQUIRED, PREFERRED
 }
 
-// DeploymentInfo holds deployment information
+// DeploymentInfo holds deployment information.
 type DeploymentInfo struct {
 	Environment   string                 `json:"environment"`
 	Cluster       string                 `json:"cluster"`
@@ -350,7 +350,7 @@ type DeploymentInfo struct {
 	DeployedAt    time.Time              `json:"deployed_at"`
 }
 
-// DeploymentEvent represents deployment events
+// DeploymentEvent represents deployment events.
 type DeploymentEvent struct {
 	Type      string    `json:"type"`
 	Reason    string    `json:"reason"`
@@ -359,7 +359,7 @@ type DeploymentEvent struct {
 	Component string    `json:"component"`
 }
 
-// ServiceDiscoveryManager manages service discovery
+// ServiceDiscoveryManager manages service discovery.
 type ServiceDiscoveryManager struct {
 	discoveryServices map[string]*DiscoveryService
 	serviceRegistry   *ServiceRegistry
@@ -368,7 +368,7 @@ type ServiceDiscoveryManager struct {
 	mutex             sync.RWMutex
 }
 
-// DiscoveryService represents a service discovery mechanism
+// DiscoveryService represents a service discovery mechanism.
 type DiscoveryService interface {
 	DiscoverServices(ctx context.Context, query *ServiceQuery) ([]*DiscoveredService, error)
 	RegisterService(ctx context.Context, service *ServiceRegistration) error
@@ -377,7 +377,7 @@ type DiscoveryService interface {
 	GetServiceType() string
 }
 
-// ServiceQuery defines service discovery queries
+// ServiceQuery defines service discovery queries.
 type ServiceQuery struct {
 	ServiceType  string                 `json:"service_type,omitempty"`
 	Tags         []string               `json:"tags,omitempty"`
@@ -387,7 +387,7 @@ type ServiceQuery struct {
 	Filters      map[string]interface{} `json:"filters,omitempty"`
 }
 
-// DiscoveredService represents a discovered service
+// DiscoveredService represents a discovered service.
 type DiscoveredService struct {
 	ID           string                 `json:"id"`
 	Name         string                 `json:"name"`
@@ -400,7 +400,7 @@ type DiscoveredService struct {
 	LastSeen     time.Time              `json:"last_seen"`
 }
 
-// ServiceRegistration represents service registration
+// ServiceRegistration represents service registration.
 type ServiceRegistration struct {
 	ID          string                 `json:"id"`
 	Name        string                 `json:"name"`
@@ -413,14 +413,14 @@ type ServiceRegistration struct {
 	TTL         time.Duration          `json:"ttl,omitempty"`
 }
 
-// ServiceEvent represents service discovery events
+// ServiceEvent represents service discovery events.
 type ServiceEvent struct {
 	Type      string             `json:"type"` // ADDED, REMOVED, UPDATED
 	Service   *DiscoveredService `json:"service"`
 	Timestamp time.Time          `json:"timestamp"`
 }
 
-// ServiceRegistry maintains service registry
+// ServiceRegistry maintains service registry.
 type ServiceRegistry struct {
 	services map[string]*RegisteredService
 	indexes  map[string]map[string][]string
@@ -428,7 +428,7 @@ type ServiceRegistry struct {
 	mutex    sync.RWMutex
 }
 
-// RegisteredService represents a registered service
+// RegisteredService represents a registered service.
 type RegisteredService struct {
 	Registration *ServiceRegistration `json:"registration"`
 	RegisteredAt time.Time            `json:"registered_at"`
@@ -436,7 +436,7 @@ type RegisteredService struct {
 	Status       string               `json:"status"`
 }
 
-// ServiceWatcher watches for service changes
+// ServiceWatcher watches for service changes.
 type ServiceWatcher struct {
 	ID       string
 	Query    *ServiceQuery
@@ -445,7 +445,7 @@ type ServiceWatcher struct {
 	LastPing time.Time
 }
 
-// HierarchicalManagementService manages hierarchical O1 relationships
+// HierarchicalManagementService manages hierarchical O1 relationships.
 type HierarchicalManagementService struct {
 	hierarchy      *ManagementHierarchy
 	relationships  map[string]*ManagementRelationship
@@ -457,7 +457,7 @@ type HierarchicalManagementService struct {
 	mutex          sync.RWMutex
 }
 
-// ManagementHierarchy represents the management hierarchy
+// ManagementHierarchy represents the management hierarchy.
 type ManagementHierarchy struct {
 	RootNodes []*HierarchyNode
 	NodeIndex map[string]*HierarchyNode
@@ -466,7 +466,7 @@ type ManagementHierarchy struct {
 	UpdatedAt time.Time
 }
 
-// HierarchyNode represents a node in the management hierarchy
+// HierarchyNode represents a node in the management hierarchy.
 type HierarchyNode struct {
 	ID         string                 `json:"id"`
 	Type       string                 `json:"type"` // SMO, DOMAIN, CLUSTER, ELEMENT
@@ -479,7 +479,7 @@ type HierarchyNode struct {
 	CreatedAt  time.Time              `json:"created_at"`
 }
 
-// ManagementRelationship defines management relationships
+// ManagementRelationship defines management relationships.
 type ManagementRelationship struct {
 	ID                 string                 `json:"id"`
 	ParentID           string                 `json:"parent_id"`
@@ -492,7 +492,7 @@ type ManagementRelationship struct {
 	CreatedAt          time.Time              `json:"created_at"`
 }
 
-// MultiVendorSupportEngine provides multi-vendor support
+// MultiVendorSupportEngine provides multi-vendor support.
 type MultiVendorSupportEngine struct {
 	vendorAdapters    map[string]*VendorAdapter
 	translationEngine *VendorTranslationEngine
@@ -502,7 +502,7 @@ type MultiVendorSupportEngine struct {
 	mutex             sync.RWMutex
 }
 
-// VendorAdapter provides vendor-specific adaptations
+// VendorAdapter provides vendor-specific adaptations.
 type VendorAdapter struct {
 	VendorID        string                 `json:"vendor_id"`
 	VendorName      string                 `json:"vendor_name"`
@@ -514,7 +514,7 @@ type VendorAdapter struct {
 	CreatedAt       time.Time              `json:"created_at"`
 }
 
-// VendorAdaptations defines vendor-specific adaptations
+// VendorAdaptations defines vendor-specific adaptations.
 type VendorAdaptations struct {
 	YANGModelMappings   map[string]string      `json:"yang_model_mappings"`
 	OperationMappings   map[string]string      `json:"operation_mappings"`
@@ -523,7 +523,7 @@ type VendorAdaptations struct {
 	CustomExtensions    map[string]interface{} `json:"custom_extensions"`
 }
 
-// AttributeTransform defines attribute transformations
+// AttributeTransform defines attribute transformations.
 type AttributeTransform struct {
 	SourceAttribute string                 `json:"source_attribute"`
 	TargetAttribute string                 `json:"target_attribute"`
@@ -532,7 +532,7 @@ type AttributeTransform struct {
 	Enabled         bool                   `json:"enabled"`
 }
 
-// O1EventBroker manages O1 event streaming
+// O1EventBroker manages O1 event streaming.
 type O1EventBroker struct {
 	eventStreams    map[string]*EventStream
 	subscribers     map[string]*EventSubscriber
@@ -544,7 +544,7 @@ type O1EventBroker struct {
 	mutex           sync.RWMutex
 }
 
-// EventStream represents an event stream
+// EventStream represents an event stream.
 type EventStream struct {
 	ID          string            `json:"id"`
 	Name        string            `json:"name"`
@@ -559,7 +559,7 @@ type EventStream struct {
 	CreatedAt   time.Time         `json:"created_at"`
 }
 
-// EventSubscriber represents an event subscriber
+// EventSubscriber represents an event subscriber.
 type EventSubscriber struct {
 	ID           string                `json:"id"`
 	Name         string                `json:"name"`
@@ -575,7 +575,7 @@ type EventSubscriber struct {
 	CreatedAt    time.Time             `json:"created_at"`
 }
 
-// O1Event represents an O1 event
+// O1Event represents an O1 event.
 type O1Event struct {
 	ID          string                 `json:"id"`
 	Type        string                 `json:"type"`
@@ -590,7 +590,7 @@ type O1Event struct {
 	TTL         time.Duration          `json:"ttl,omitempty"`
 }
 
-// SMOMetrics holds Prometheus metrics for SMO integration
+// SMOMetrics holds Prometheus metrics for SMO integration.
 type SMOMetrics struct {
 	RegisteredAdapters prometheus.Gauge
 	ActiveAdapters     prometheus.Gauge
@@ -602,7 +602,7 @@ type SMOMetrics struct {
 	HierarchyNodes     prometheus.Gauge
 }
 
-// NewSMOIntegrationLayer creates a new SMO integration layer
+// NewSMOIntegrationLayer creates a new SMO integration layer.
 func NewSMOIntegrationLayer(config *SMOIntegrationConfig) *SMOIntegrationLayer {
 	if config == nil {
 		config = &SMOIntegrationConfig{
@@ -627,7 +627,7 @@ func NewSMOIntegrationLayer(config *SMOIntegrationConfig) *SMOIntegrationLayer {
 		stopChan: make(chan struct{}),
 	}
 
-	// Initialize components
+	// Initialize components.
 	sil.o1AdapterRegistry = NewO1AdapterRegistry()
 	sil.networkFunctionManager = NewNetworkFunctionManager()
 	sil.serviceDiscovery = NewServiceDiscoveryManager(config.ServiceDiscoveryMethod)
@@ -658,7 +658,7 @@ func NewSMOIntegrationLayer(config *SMOIntegrationConfig) *SMOIntegrationLayer {
 	return sil
 }
 
-// Start starts the SMO integration layer
+// Start starts the SMO integration layer.
 func (sil *SMOIntegrationLayer) Start(ctx context.Context) error {
 	sil.mutex.Lock()
 	defer sil.mutex.Unlock()
@@ -670,7 +670,7 @@ func (sil *SMOIntegrationLayer) Start(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	logger.Info("starting SMO integration layer")
 
-	// Start all components
+	// Start all components.
 	if err := sil.o1AdapterRegistry.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start O1 adapter registry: %w", err)
 	}
@@ -700,7 +700,7 @@ func (sil *SMOIntegrationLayer) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the SMO integration layer
+// Stop stops the SMO integration layer.
 func (sil *SMOIntegrationLayer) Stop(ctx context.Context) error {
 	sil.mutex.Lock()
 	defer sil.mutex.Unlock()
@@ -714,7 +714,7 @@ func (sil *SMOIntegrationLayer) Stop(ctx context.Context) error {
 
 	close(sil.stopChan)
 
-	// Stop all components
+	// Stop all components.
 	if sil.o1AdapterRegistry != nil {
 		sil.o1AdapterRegistry.Stop(ctx)
 	}
@@ -740,9 +740,9 @@ func (sil *SMOIntegrationLayer) Stop(ctx context.Context) error {
 	return nil
 }
 
-// Core SMO operations
+// Core SMO operations.
 
-// RegisterO1Adapter registers an O1 adapter
+// RegisterO1Adapter registers an O1 adapter.
 func (sil *SMOIntegrationLayer) RegisterO1Adapter(ctx context.Context, adapter *O1AdapterInstance) error {
 	logger := log.FromContext(ctx)
 	logger.Info("registering O1 adapter", "adapterID", adapter.ID, "type", adapter.Type)
@@ -755,18 +755,18 @@ func (sil *SMOIntegrationLayer) RegisterO1Adapter(ctx context.Context, adapter *
 	return nil
 }
 
-// DiscoverNetworkFunctions discovers network functions
+// DiscoverNetworkFunctions discovers network functions.
 func (sil *SMOIntegrationLayer) DiscoverNetworkFunctions(ctx context.Context, query *ServiceQuery) ([]*NetworkFunction, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("discovering network functions", "type", query.ServiceType)
 
-	// Discover services
+	// Discover services.
 	services, err := sil.serviceDiscovery.DiscoverServices(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to discover services: %w", err)
 	}
 
-	// Convert to network functions
+	// Convert to network functions.
 	var functions []*NetworkFunction
 	for _, service := range services {
 		function := sil.convertServiceToNetworkFunction(service)
@@ -780,7 +780,7 @@ func (sil *SMOIntegrationLayer) DiscoverNetworkFunctions(ctx context.Context, qu
 	return functions, nil
 }
 
-// PublishO1Event publishes an O1 event
+// PublishO1Event publishes an O1 event.
 func (sil *SMOIntegrationLayer) PublishO1Event(ctx context.Context, event *O1Event) error {
 	if sil.eventBroker == nil {
 		return fmt.Errorf("event broker not enabled")
@@ -794,14 +794,14 @@ func (sil *SMOIntegrationLayer) PublishO1Event(ctx context.Context, event *O1Eve
 	return nil
 }
 
-// GetManagedElements returns all managed elements
+// GetManagedElements returns all managed elements.
 func (sil *SMOIntegrationLayer) GetManagedElements(ctx context.Context) ([]*nephoranv1.ManagedElement, error) {
-	// This would integrate with the main operator's managed element registry
-	// For now, return placeholder data
+	// This would integrate with the main operator's managed element registry.
+	// For now, return placeholder data.
 	return []*nephoranv1.ManagedElement{}, nil
 }
 
-// GetSMOStatistics returns SMO integration statistics
+// GetSMOStatistics returns SMO integration statistics.
 func (sil *SMOIntegrationLayer) GetSMOStatistics(ctx context.Context) (*SMOStatistics, error) {
 	stats := &SMOStatistics{
 		RegisteredAdapters: sil.o1AdapterRegistry.GetAdapterCount(),
@@ -816,11 +816,11 @@ func (sil *SMOIntegrationLayer) GetSMOStatistics(ctx context.Context) (*SMOStati
 	return stats, nil
 }
 
-// Helper methods
+// Helper methods.
 
 func (sil *SMOIntegrationLayer) convertServiceToNetworkFunction(service *DiscoveredService) *NetworkFunction {
-	// Convert discovered service to network function
-	// This would contain logic to map service metadata to network function attributes
+	// Convert discovered service to network function.
+	// This would contain logic to map service metadata to network function attributes.
 	return &NetworkFunction{
 		ID:           service.ID,
 		Name:         service.Name,
@@ -846,7 +846,7 @@ func (sil *SMOIntegrationLayer) getHierarchyNodeCount() int {
 }
 
 func (sil *SMOIntegrationLayer) assessSystemHealth() string {
-	// Assess overall SMO integration health
+	// Assess overall SMO integration health.
 	return "HEALTHY"
 }
 
@@ -887,7 +887,7 @@ func initializeSMOMetrics() *SMOMetrics {
 	}
 }
 
-// SMOStatistics provides SMO integration statistics
+// SMOStatistics provides SMO integration statistics.
 type SMOStatistics struct {
 	RegisteredAdapters int       `json:"registered_adapters"`
 	ActiveAdapters     int       `json:"active_adapters"`
@@ -898,9 +898,10 @@ type SMOStatistics struct {
 	Timestamp          time.Time `json:"timestamp"`
 }
 
-// Placeholder implementations for subsidiary components
-// In production, each would be fully implemented
+// Placeholder implementations for subsidiary components.
+// In production, each would be fully implemented.
 
+// NewO1AdapterRegistry performs newo1adapterregistry operation.
 func NewO1AdapterRegistry() *O1AdapterRegistry {
 	return &O1AdapterRegistry{
 		adapters:     make(map[string]*O1AdapterInstance),
@@ -909,15 +910,24 @@ func NewO1AdapterRegistry() *O1AdapterRegistry {
 	}
 }
 
+// Start performs start operation.
 func (oar *O1AdapterRegistry) Start(ctx context.Context) error { return nil }
-func (oar *O1AdapterRegistry) Stop(ctx context.Context) error  { return nil }
+
+// Stop performs stop operation.
+func (oar *O1AdapterRegistry) Stop(ctx context.Context) error { return nil }
+
+// RegisterAdapter performs registeradapter operation.
 func (oar *O1AdapterRegistry) RegisterAdapter(ctx context.Context, adapter *O1AdapterInstance) error {
 	oar.mutex.Lock()
 	defer oar.mutex.Unlock()
 	oar.adapters[adapter.ID] = adapter
 	return nil
 }
+
+// GetAdapterCount performs getadaptercount operation.
 func (oar *O1AdapterRegistry) GetAdapterCount() int { return len(oar.adapters) }
+
+// GetActiveAdapterCount performs getactiveadaptercount operation.
 func (oar *O1AdapterRegistry) GetActiveAdapterCount() int {
 	count := 0
 	for _, adapter := range oar.adapters {
@@ -928,6 +938,7 @@ func (oar *O1AdapterRegistry) GetActiveAdapterCount() int {
 	return count
 }
 
+// NewNetworkFunctionManager performs newnetworkfunctionmanager operation.
 func NewNetworkFunctionManager() *NetworkFunctionManager {
 	return &NetworkFunctionManager{
 		networkFunctions:    make(map[string]*NetworkFunction),
@@ -936,10 +947,16 @@ func NewNetworkFunctionManager() *NetworkFunctionManager {
 	}
 }
 
+// Start performs start operation.
 func (nfm *NetworkFunctionManager) Start(ctx context.Context) error { return nil }
-func (nfm *NetworkFunctionManager) Stop(ctx context.Context) error  { return nil }
-func (nfm *NetworkFunctionManager) GetFunctionCount() int           { return len(nfm.networkFunctions) }
 
+// Stop performs stop operation.
+func (nfm *NetworkFunctionManager) Stop(ctx context.Context) error { return nil }
+
+// GetFunctionCount performs getfunctioncount operation.
+func (nfm *NetworkFunctionManager) GetFunctionCount() int { return len(nfm.networkFunctions) }
+
+// NewServiceDiscoveryManager performs newservicediscoverymanager operation.
 func NewServiceDiscoveryManager(method string) *ServiceDiscoveryManager {
 	return &ServiceDiscoveryManager{
 		discoveryServices: make(map[string]*DiscoveryService),
@@ -947,12 +964,18 @@ func NewServiceDiscoveryManager(method string) *ServiceDiscoveryManager {
 	}
 }
 
+// Start performs start operation.
 func (sdm *ServiceDiscoveryManager) Start(ctx context.Context) error { return nil }
-func (sdm *ServiceDiscoveryManager) Stop(ctx context.Context) error  { return nil }
+
+// Stop performs stop operation.
+func (sdm *ServiceDiscoveryManager) Stop(ctx context.Context) error { return nil }
+
+// DiscoverServices performs discoverservices operation.
 func (sdm *ServiceDiscoveryManager) DiscoverServices(ctx context.Context, query *ServiceQuery) ([]*DiscoveredService, error) {
 	return []*DiscoveredService{}, nil
 }
 
+// NewHierarchicalManagementService performs newhierarchicalmanagementservice operation.
 func NewHierarchicalManagementService(config *HierarchicalConfig) *HierarchicalManagementService {
 	return &HierarchicalManagementService{
 		hierarchy:     &ManagementHierarchy{NodeIndex: make(map[string]*HierarchyNode)},
@@ -961,10 +984,16 @@ func NewHierarchicalManagementService(config *HierarchicalConfig) *HierarchicalM
 	}
 }
 
+// Start performs start operation.
 func (hms *HierarchicalManagementService) Start(ctx context.Context) error { return nil }
-func (hms *HierarchicalManagementService) Stop(ctx context.Context) error  { return nil }
-func (hms *HierarchicalManagementService) GetNodeCount() int               { return len(hms.hierarchy.NodeIndex) }
 
+// Stop performs stop operation.
+func (hms *HierarchicalManagementService) Stop(ctx context.Context) error { return nil }
+
+// GetNodeCount performs getnodecount operation.
+func (hms *HierarchicalManagementService) GetNodeCount() int { return len(hms.hierarchy.NodeIndex) }
+
+// NewMultiVendorSupportEngine performs newmultivendorsupportengine operation.
 func NewMultiVendorSupportEngine(config *MultiVendorConfig) *MultiVendorSupportEngine {
 	return &MultiVendorSupportEngine{
 		vendorAdapters: make(map[string]*VendorAdapter),
@@ -972,10 +1001,12 @@ func NewMultiVendorSupportEngine(config *MultiVendorConfig) *MultiVendorSupportE
 	}
 }
 
+// NewOAMInterfaceManager performs newoaminterfacemanager operation.
 func NewOAMInterfaceManager() *OAMInterfaceManager {
 	return &OAMInterfaceManager{}
 }
 
+// NewO1EventBroker performs newo1eventbroker operation.
 func NewO1EventBroker(config *EventBrokerConfig) *O1EventBroker {
 	return &O1EventBroker{
 		eventStreams: make(map[string]*EventStream),
@@ -984,29 +1015,41 @@ func NewO1EventBroker(config *EventBrokerConfig) *O1EventBroker {
 	}
 }
 
-func (oeb *O1EventBroker) Start(ctx context.Context) error                        { oeb.running = true; return nil }
-func (oeb *O1EventBroker) Stop(ctx context.Context) error                         { oeb.running = false; return nil }
-func (oeb *O1EventBroker) PublishEvent(ctx context.Context, event *O1Event) error { return nil }
-func (oeb *O1EventBroker) GetStreamCount() int                                    { return len(oeb.eventStreams) }
+// Start performs start operation.
+func (oeb *O1EventBroker) Start(ctx context.Context) error { oeb.running = true; return nil }
 
+// Stop performs stop operation.
+func (oeb *O1EventBroker) Stop(ctx context.Context) error { oeb.running = false; return nil }
+
+// PublishEvent performs publishevent operation.
+func (oeb *O1EventBroker) PublishEvent(ctx context.Context, event *O1Event) error { return nil }
+
+// GetStreamCount performs getstreamcount operation.
+func (oeb *O1EventBroker) GetStreamCount() int { return len(oeb.eventStreams) }
+
+// NewPolicyManagementService performs newpolicymanagementservice operation.
 func NewPolicyManagementService() *PolicyManagementService {
 	return &PolicyManagementService{}
 }
 
+// NewTopologyManager performs newtopologymanager operation.
 func NewTopologyManager() *TopologyManager {
 	return &TopologyManager{}
 }
 
+// NewConfigurationSynchronizer performs newconfigurationsynchronizer operation.
 func NewConfigurationSynchronizer() *ConfigurationSynchronizer {
 	return &ConfigurationSynchronizer{}
 }
 
+// NewServiceOrchestrator performs newserviceorchestrator operation.
 func NewServiceOrchestrator() *ServiceOrchestrator {
 	return &ServiceOrchestrator{}
 }
 
-// Configuration types and additional structures
+// Configuration types and additional structures.
 
+// HierarchicalConfig represents a hierarchicalconfig.
 type HierarchicalConfig struct {
 	MaxDepth          int
 	NodeTypes         []string
@@ -1015,6 +1058,7 @@ type HierarchicalConfig struct {
 	EnableAggregation bool
 }
 
+// MultiVendorConfig represents a multivendorconfig.
 type MultiVendorConfig struct {
 	EnableTranslation     bool
 	CertificationRequired bool
@@ -1022,6 +1066,7 @@ type MultiVendorConfig struct {
 	SupportedVendors      []string
 }
 
+// EventBrokerConfig represents a eventbrokerconfig.
 type EventBrokerConfig struct {
 	BufferSize        int
 	MaxStreams        int
@@ -1031,6 +1076,7 @@ type EventBrokerConfig struct {
 	EnablePersistence bool
 }
 
+// ServiceDiscoveryConfig represents a servicediscoveryconfig.
 type ServiceDiscoveryConfig struct {
 	Method              string
 	RefreshInterval     time.Duration
@@ -1040,6 +1086,7 @@ type ServiceDiscoveryConfig struct {
 	CacheTTL            time.Duration
 }
 
+// HealthMonitorConfig represents a healthmonitorconfig.
 type HealthMonitorConfig struct {
 	CheckInterval      time.Duration
 	Timeout            time.Duration
@@ -1048,6 +1095,7 @@ type HealthMonitorConfig struct {
 	EnableAutoRecovery bool
 }
 
+// FailoverConfig represents a failoverconfig.
 type FailoverConfig struct {
 	EnableAutoFailover  bool
 	FailoverTimeout     time.Duration
@@ -1056,32 +1104,61 @@ type FailoverConfig struct {
 	RollbackConditions  []string
 }
 
-// Placeholder types for components not fully implemented
-type ParentManager struct{}
-type ChildManager struct{}
-type DelegationManager struct{}
-type AggregationManager struct{}
-type VendorTranslationEngine struct{}
-type VendorCertificationManager struct{}
-type InteroperabilityTester struct{}
-type VendorCertification struct{}
-type InteropResult struct{}
-type FunctionLifecycleManager struct{}
-type DependencyManager struct{}
-type ScalingManager struct{}
-type MetricDefinition struct{}
-type EventProcessor struct{}
-type EventFilter struct{}
-type EventStore struct{}
-type StreamStatistics struct{}
-type SubscriberStatistics struct{}
-type RetryPolicy struct{}
-type ServiceHealthCheck struct{}
-type ServiceHealthMonitor struct{}
-type PolicyManagementService struct{}
-type TopologyManager struct{}
-type ConfigurationSynchronizer struct{}
-type ServiceOrchestrator struct{}
-type OAMInterfaceManager struct{}
-type HealthCheckScheduler struct{}
-type HealthAlertManager struct{}
+// Placeholder types for components not fully implemented.
+type (
+	ParentManager struct{}
+	// ChildManager represents a childmanager.
+	ChildManager struct{}
+	// DelegationManager represents a delegationmanager.
+	DelegationManager struct{}
+	// AggregationManager represents a aggregationmanager.
+	AggregationManager struct{}
+	// VendorTranslationEngine represents a vendortranslationengine.
+	VendorTranslationEngine struct{}
+	// VendorCertificationManager represents a vendorcertificationmanager.
+	VendorCertificationManager struct{}
+	// InteroperabilityTester represents a interoperabilitytester.
+	InteroperabilityTester struct{}
+	// VendorCertification represents a vendorcertification.
+	VendorCertification struct{}
+	// InteropResult represents a interopresult.
+	InteropResult struct{}
+	// FunctionLifecycleManager represents a functionlifecyclemanager.
+	FunctionLifecycleManager struct{}
+	// DependencyManager represents a dependencymanager.
+	DependencyManager struct{}
+	// ScalingManager represents a scalingmanager.
+	ScalingManager struct{}
+	// MetricDefinition represents a metricdefinition.
+	MetricDefinition struct{}
+	// EventProcessor represents a eventprocessor.
+	EventProcessor struct{}
+	// EventFilter represents a eventfilter.
+	EventFilter struct{}
+	// EventStore represents a eventstore.
+	EventStore struct{}
+	// StreamStatistics represents a streamstatistics.
+	StreamStatistics struct{}
+	// SubscriberStatistics represents a subscriberstatistics.
+	SubscriberStatistics struct{}
+	// RetryPolicy represents a retrypolicy.
+	RetryPolicy struct{}
+	// ServiceHealthCheck represents a servicehealthcheck.
+	ServiceHealthCheck struct{}
+	// ServiceHealthMonitor represents a servicehealthmonitor.
+	ServiceHealthMonitor struct{}
+	// PolicyManagementService represents a policymanagementservice.
+	PolicyManagementService struct{}
+	// TopologyManager represents a topologymanager.
+	TopologyManager struct{}
+	// ConfigurationSynchronizer represents a configurationsynchronizer.
+	ConfigurationSynchronizer struct{}
+	// ServiceOrchestrator represents a serviceorchestrator.
+	ServiceOrchestrator struct{}
+	// OAMInterfaceManager represents a oaminterfacemanager.
+	OAMInterfaceManager struct{}
+	// HealthCheckScheduler represents a healthcheckscheduler.
+	HealthCheckScheduler struct{}
+	// HealthAlertManager represents a healthalertmanager.
+	HealthAlertManager struct{}
+)

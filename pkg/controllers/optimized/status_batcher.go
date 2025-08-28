@@ -15,7 +15,7 @@ import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-// StatusUpdate represents a pending status update
+// StatusUpdate represents a pending status update.
 type StatusUpdate struct {
 	NamespacedName types.NamespacedName
 	UpdateFunc     func(obj client.Object) error
@@ -24,17 +24,21 @@ type StatusUpdate struct {
 	RetryCount     int
 }
 
-// UpdatePriority defines the priority of status updates
+// UpdatePriority defines the priority of status updates.
 type UpdatePriority int
 
 const (
+	// LowPriority holds lowpriority value.
 	LowPriority UpdatePriority = iota
+	// MediumPriority holds mediumpriority value.
 	MediumPriority
+	// HighPriority holds highpriority value.
 	HighPriority
+	// CriticalPriority holds criticalpriority value.
 	CriticalPriority
 )
 
-// BatchConfig configures the status batcher behavior
+// BatchConfig configures the status batcher behavior.
 type BatchConfig struct {
 	MaxBatchSize   int           // Maximum number of updates per batch
 	BatchTimeout   time.Duration // Maximum time to wait for a batch
@@ -45,7 +49,7 @@ type BatchConfig struct {
 	MaxQueueSize   int           // Maximum queue size before dropping updates
 }
 
-// DefaultBatchConfig provides sensible defaults
+// DefaultBatchConfig provides sensible defaults.
 var DefaultBatchConfig = BatchConfig{
 	MaxBatchSize:   10,
 	BatchTimeout:   2 * time.Second,
@@ -56,7 +60,7 @@ var DefaultBatchConfig = BatchConfig{
 	MaxQueueSize:   1000,
 }
 
-// StatusBatcher batches status updates to reduce API server load
+// StatusBatcher batches status updates to reduce API server load.
 type StatusBatcher struct {
 	client     client.Client
 	config     BatchConfig
@@ -68,7 +72,7 @@ type StatusBatcher struct {
 	cancel     context.CancelFunc
 	wg         sync.WaitGroup
 
-	// Metrics
+	// Metrics.
 	batchesProcessed int64
 	updatesProcessed int64
 	updatesDropped   int64
@@ -76,7 +80,7 @@ type StatusBatcher struct {
 	averageBatchSize float64
 }
 
-// NewStatusBatcher creates a new status batcher
+// NewStatusBatcher creates a new status batcher.
 func NewStatusBatcher(client client.Client, config BatchConfig) *StatusBatcher {
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -89,19 +93,19 @@ func NewStatusBatcher(client client.Client, config BatchConfig) *StatusBatcher {
 		cancel:  cancel,
 	}
 
-	// Start background processor
+	// Start background processor.
 	batcher.wg.Add(1)
 	go batcher.processUpdates()
 
 	return batcher
 }
 
-// QueueUpdate queues a status update for batching
+// QueueUpdate queues a status update for batching.
 func (sb *StatusBatcher) QueueUpdate(namespacedName types.NamespacedName, updateFunc func(obj client.Object) error, priority UpdatePriority) error {
 	sb.mu.Lock()
 	defer sb.mu.Unlock()
 
-	// Check queue size limit
+	// Check queue size limit.
 	if len(sb.updates)+len(sb.queue) >= sb.config.MaxQueueSize {
 		sb.updatesDropped++
 		return fmt.Errorf("status update queue is full, dropping update for %s", namespacedName)
@@ -115,9 +119,9 @@ func (sb *StatusBatcher) QueueUpdate(namespacedName types.NamespacedName, update
 		RetryCount:     0,
 	}
 
-	// Replace existing update for the same resource (latest wins)
+	// Replace existing update for the same resource (latest wins).
 	if existing, exists := sb.updates[namespacedName]; exists {
-		// Update priority to higher value if needed
+		// Update priority to higher value if needed.
 		if priority > existing.Priority {
 			existing.Priority = priority
 		}
@@ -128,7 +132,7 @@ func (sb *StatusBatcher) QueueUpdate(namespacedName types.NamespacedName, update
 		sb.queue = append(sb.queue, update)
 	}
 
-	// Trigger immediate flush for critical updates
+	// Trigger immediate flush for critical updates.
 	if priority == CriticalPriority {
 		sb.triggerFlush()
 	} else if len(sb.queue) >= sb.config.MaxBatchSize {
@@ -140,7 +144,7 @@ func (sb *StatusBatcher) QueueUpdate(namespacedName types.NamespacedName, update
 	return nil
 }
 
-// QueueNetworkIntentUpdate queues a NetworkIntent status update
+// QueueNetworkIntentUpdate queues a NetworkIntent status update.
 func (sb *StatusBatcher) QueueNetworkIntentUpdate(namespacedName types.NamespacedName, conditionUpdates []metav1.Condition, phase string, priority UpdatePriority) error {
 	updateFunc := func(obj client.Object) error {
 		networkIntent, ok := obj.(*nephoranv1.NetworkIntent)
@@ -148,12 +152,12 @@ func (sb *StatusBatcher) QueueNetworkIntentUpdate(namespacedName types.Namespace
 			return fmt.Errorf("object is not a NetworkIntent")
 		}
 
-		// Apply condition updates
+		// Apply condition updates.
 		for _, condition := range conditionUpdates {
 			updateCondition(&networkIntent.Status.Conditions, condition)
 		}
 
-		// Update phase if provided
+		// Update phase if provided.
 		if phase != "" {
 			networkIntent.Status.Phase = nephoranv1.NetworkIntentPhase(phase)
 		}
@@ -164,7 +168,7 @@ func (sb *StatusBatcher) QueueNetworkIntentUpdate(namespacedName types.Namespace
 	return sb.QueueUpdate(namespacedName, updateFunc, priority)
 }
 
-// QueueE2NodeSetUpdate queues an E2NodeSet status update
+// QueueE2NodeSetUpdate queues an E2NodeSet status update.
 func (sb *StatusBatcher) QueueE2NodeSetUpdate(namespacedName types.NamespacedName, readyReplicas, totalReplicas int32, conditions []metav1.Condition, priority UpdatePriority) error {
 	updateFunc := func(obj client.Object) error {
 		e2nodeSet, ok := obj.(*nephoranv1.E2NodeSet)
@@ -172,11 +176,11 @@ func (sb *StatusBatcher) QueueE2NodeSetUpdate(namespacedName types.NamespacedNam
 			return fmt.Errorf("object is not an E2NodeSet")
 		}
 
-		// Update replica status
+		// Update replica status.
 		e2nodeSet.Status.ReadyReplicas = readyReplicas
 		e2nodeSet.Status.CurrentReplicas = totalReplicas
 
-		// Apply condition updates
+		// Apply condition updates.
 		for _, condition := range conditions {
 			updateE2NodeSetCondition(&e2nodeSet.Status.Conditions, condition)
 		}
@@ -187,7 +191,7 @@ func (sb *StatusBatcher) QueueE2NodeSetUpdate(namespacedName types.NamespacedNam
 	return sb.QueueUpdate(namespacedName, updateFunc, priority)
 }
 
-// Flush immediately processes all queued updates
+// Flush immediately processes all queued updates.
 func (sb *StatusBatcher) Flush() error {
 	sb.mu.Lock()
 	if sb.flushTimer != nil {
@@ -199,23 +203,23 @@ func (sb *StatusBatcher) Flush() error {
 	return sb.processBatch()
 }
 
-// Stop gracefully shuts down the status batcher
+// Stop gracefully shuts down the status batcher.
 func (sb *StatusBatcher) Stop() error {
-	// Cancel background processing
+	// Cancel background processing.
 	sb.cancel()
 
-	// Process any remaining updates
+	// Process any remaining updates.
 	if err := sb.Flush(); err != nil {
 		log.Log.Error(err, "Failed to flush final batch during shutdown")
 	}
 
-	// Wait for background goroutine to finish
+	// Wait for background goroutine to finish.
 	sb.wg.Wait()
 
 	return nil
 }
 
-// GetStats returns statistics about the batcher
+// GetStats returns statistics about the batcher.
 func (sb *StatusBatcher) GetStats() StatusBatcherStats {
 	sb.mu.RLock()
 	defer sb.mu.RUnlock()
@@ -230,7 +234,7 @@ func (sb *StatusBatcher) GetStats() StatusBatcherStats {
 	}
 }
 
-// StatusBatcherStats contains statistics about the batcher
+// StatusBatcherStats contains statistics about the batcher.
 type StatusBatcherStats struct {
 	QueueSize        int     `json:"queue_size"`
 	BatchesProcessed int64   `json:"batches_processed"`
@@ -240,7 +244,7 @@ type StatusBatcherStats struct {
 	AverageBatchSize float64 `json:"average_batch_size"`
 }
 
-// processUpdates runs in a background goroutine to periodically flush updates
+// processUpdates runs in a background goroutine to periodically flush updates.
 func (sb *StatusBatcher) processUpdates() {
 	defer sb.wg.Done()
 
@@ -259,7 +263,7 @@ func (sb *StatusBatcher) processUpdates() {
 	}
 }
 
-// triggerFlush triggers an immediate flush
+// triggerFlush triggers an immediate flush.
 func (sb *StatusBatcher) triggerFlush() {
 	go func() {
 		if err := sb.processBatch(); err != nil {
@@ -268,7 +272,7 @@ func (sb *StatusBatcher) triggerFlush() {
 	}()
 }
 
-// processBatch processes a batch of status updates
+// processBatch processes a batch of status updates.
 func (sb *StatusBatcher) processBatch() error {
 	sb.mu.Lock()
 
@@ -277,7 +281,7 @@ func (sb *StatusBatcher) processBatch() error {
 		return nil
 	}
 
-	// Extract batch for processing
+	// Extract batch for processing.
 	batchSize := len(sb.queue)
 	if batchSize > sb.config.MaxBatchSize {
 		batchSize = sb.config.MaxBatchSize
@@ -286,12 +290,12 @@ func (sb *StatusBatcher) processBatch() error {
 	batch := make([]*StatusUpdate, batchSize)
 	copy(batch, sb.queue[:batchSize])
 
-	// Sort by priority if enabled
+	// Sort by priority if enabled.
 	if sb.config.EnablePriority {
 		sb.sortByPriority(batch)
 	}
 
-	// Clear processed items from queue and map
+	// Clear processed items from queue and map.
 	remaining := sb.queue[batchSize:]
 	sb.queue = make([]*StatusUpdate, 0, cap(sb.queue))
 	sb.queue = append(sb.queue, remaining...)
@@ -300,7 +304,7 @@ func (sb *StatusBatcher) processBatch() error {
 		delete(sb.updates, update.NamespacedName)
 	}
 
-	// Reset flush timer
+	// Reset flush timer.
 	if sb.flushTimer != nil {
 		sb.flushTimer.Stop()
 		sb.flushTimer = nil
@@ -308,17 +312,17 @@ func (sb *StatusBatcher) processBatch() error {
 
 	sb.mu.Unlock()
 
-	// Process batch outside of lock
+	// Process batch outside of lock.
 	successCount := 0
 	for _, update := range batch {
 		if err := sb.processUpdate(update); err != nil {
 			log.Log.Error(err, "Failed to process status update", "resource", update.NamespacedName)
 
-			// Retry logic for failed updates
+			// Retry logic for failed updates.
 			if update.RetryCount < sb.config.MaxRetries {
 				update.RetryCount++
 
-				// Requeue with delay
+				// Requeue with delay.
 				go func(u *StatusUpdate) {
 					time.Sleep(time.Duration(u.RetryCount) * sb.config.RetryDelay)
 					sb.QueueUpdate(u.NamespacedName, u.UpdateFunc, u.Priority)
@@ -331,11 +335,11 @@ func (sb *StatusBatcher) processBatch() error {
 		}
 	}
 
-	// Update metrics
+	// Update metrics.
 	sb.batchesProcessed++
 	sb.updatesProcessed += int64(successCount)
 
-	// Update average batch size (exponential moving average)
+	// Update average batch size (exponential moving average).
 	if sb.averageBatchSize == 0 {
 		sb.averageBatchSize = float64(batchSize)
 	} else {
@@ -346,18 +350,18 @@ func (sb *StatusBatcher) processBatch() error {
 	return nil
 }
 
-// processUpdate processes a single status update
+// processUpdate processes a single status update.
 func (sb *StatusBatcher) processUpdate(update *StatusUpdate) error {
-	// Determine object type based on the resource
+	// Determine object type based on the resource.
 	var obj client.Object
 
-	// Create appropriate object type - this is a simplified approach
-	// In practice, you might want to maintain a registry of types
+	// Create appropriate object type - this is a simplified approach.
+	// In practice, you might want to maintain a registry of types.
 	if update.NamespacedName.Namespace != "" {
-		// Try NetworkIntent first
+		// Try NetworkIntent first.
 		obj = &nephoranv1.NetworkIntent{}
 		if err := sb.client.Get(sb.ctx, update.NamespacedName, obj); err != nil {
-			// Try E2NodeSet
+			// Try E2NodeSet.
 			obj = &nephoranv1.E2NodeSet{}
 			if err := sb.client.Get(sb.ctx, update.NamespacedName, obj); err != nil {
 				return fmt.Errorf("failed to get object %s: %w", update.NamespacedName, err)
@@ -367,12 +371,12 @@ func (sb *StatusBatcher) processUpdate(update *StatusUpdate) error {
 		return fmt.Errorf("invalid namespaced name: %s", update.NamespacedName)
 	}
 
-	// Apply the update function
+	// Apply the update function.
 	if err := update.UpdateFunc(obj); err != nil {
 		return fmt.Errorf("failed to apply update function: %w", err)
 	}
 
-	// Update the object status
+	// Update the object status.
 	if err := sb.client.Status().Update(sb.ctx, obj); err != nil {
 		return fmt.Errorf("failed to update object status: %w", err)
 	}
@@ -380,40 +384,40 @@ func (sb *StatusBatcher) processUpdate(update *StatusUpdate) error {
 	return nil
 }
 
-// sortByPriority sorts updates by priority (highest first)
+// sortByPriority sorts updates by priority (highest first).
 func (sb *StatusBatcher) sortByPriority(updates []*StatusUpdate) {
 	sort.Slice(updates, func(i, j int) bool {
 		return updates[i].Priority > updates[j].Priority
 	})
 }
 
-// updateCondition updates a condition in a condition slice
+// updateCondition updates a condition in a condition slice.
 func updateCondition(conditions *[]metav1.Condition, newCondition metav1.Condition) {
 	if conditions == nil {
 		*conditions = make([]metav1.Condition, 0, 1) // Preallocate for typical single condition
 	}
 
-	// Find existing condition
+	// Find existing condition.
 	for i, condition := range *conditions {
 		if condition.Type == newCondition.Type {
-			// Update existing condition
+			// Update existing condition.
 			(*conditions)[i] = newCondition
 			return
 		}
 	}
 
-	// Add new condition
+	// Add new condition.
 	*conditions = append(*conditions, newCondition)
 }
 
-// updateE2NodeSetCondition updates a condition in an E2NodeSet condition slice
-// This converts metav1.Condition to E2NodeSetCondition
+// updateE2NodeSetCondition updates a condition in an E2NodeSet condition slice.
+// This converts metav1.Condition to E2NodeSetCondition.
 func updateE2NodeSetCondition(conditions *[]nephoranv1.E2NodeSetCondition, newCondition metav1.Condition) {
 	if conditions == nil {
 		*conditions = make([]nephoranv1.E2NodeSetCondition, 0, 1) // Preallocate for typical single condition
 	}
 
-	// Convert metav1.Condition to E2NodeSetCondition
+	// Convert metav1.Condition to E2NodeSetCondition.
 	e2Condition := nephoranv1.E2NodeSetCondition{
 		Type:               nephoranv1.E2NodeSetConditionType(newCondition.Type),
 		Status:             newCondition.Status,
@@ -422,15 +426,15 @@ func updateE2NodeSetCondition(conditions *[]nephoranv1.E2NodeSetCondition, newCo
 		Message:            newCondition.Message,
 	}
 
-	// Find existing condition
+	// Find existing condition.
 	for i, condition := range *conditions {
 		if condition.Type == e2Condition.Type {
-			// Update existing condition
+			// Update existing condition.
 			(*conditions)[i] = e2Condition
 			return
 		}
 	}
 
-	// Add new condition
+	// Add new condition.
 	*conditions = append(*conditions, e2Condition)
 }

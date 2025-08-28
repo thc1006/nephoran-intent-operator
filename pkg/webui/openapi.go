@@ -20,7 +20,7 @@ import (
 	"net/http"
 )
 
-// OpenAPISpec represents the OpenAPI 3.0 specification
+// OpenAPISpec represents the OpenAPI 3.0 specification.
 type OpenAPISpec struct {
 	OpenAPI    string                  `json:"openapi"`
 	Info       *OpenAPIInfo            `json:"info"`
@@ -31,7 +31,7 @@ type OpenAPISpec struct {
 	Tags       []*OpenAPITag           `json:"tags,omitempty"`
 }
 
-// OpenAPIInfo represents the API information
+// OpenAPIInfo represents the API information.
 type OpenAPIInfo struct {
 	Title          string          `json:"title"`
 	Description    string          `json:"description"`
@@ -41,34 +41,34 @@ type OpenAPIInfo struct {
 	TermsOfService string          `json:"termsOfService,omitempty"`
 }
 
-// OpenAPIContact represents contact information
+// OpenAPIContact represents contact information.
 type OpenAPIContact struct {
 	Name  string `json:"name,omitempty"`
 	URL   string `json:"url,omitempty"`
 	Email string `json:"email,omitempty"`
 }
 
-// OpenAPILicense represents license information
+// OpenAPILicense represents license information.
 type OpenAPILicense struct {
 	Name string `json:"name"`
 	URL  string `json:"url,omitempty"`
 }
 
-// OpenAPIServer represents a server
+// OpenAPIServer represents a server.
 type OpenAPIServer struct {
 	URL         string                            `json:"url"`
 	Description string                            `json:"description,omitempty"`
 	Variables   map[string]*OpenAPIServerVariable `json:"variables,omitempty"`
 }
 
-// OpenAPIServerVariable represents a server variable
+// OpenAPIServerVariable represents a server variable.
 type OpenAPIServerVariable struct {
 	Enum        []string `json:"enum,omitempty"`
 	Default     string   `json:"default"`
 	Description string   `json:"description,omitempty"`
 }
 
-// OpenAPIPath represents a path item
+// OpenAPIPath represents a path item.
 type OpenAPIPath struct {
 	Get    *OpenAPIOperation `json:"get,omitempty"`
 	Post   *OpenAPIOperation `json:"post,omitempty"`
@@ -77,7 +77,7 @@ type OpenAPIPath struct {
 	Patch  *OpenAPIOperation `json:"patch,omitempty"`
 }
 
-// OpenAPIOperation represents an operation
+// OpenAPIOperation represents an operation.
 type OpenAPIOperation struct {
 	Tags        []string                    `json:"tags,omitempty"`
 	Summary     string                      `json:"summary,omitempty"`
@@ -90,7 +90,7 @@ type OpenAPIOperation struct {
 	Deprecated  bool                        `json:"deprecated,omitempty"`
 }
 
-// OpenAPIParameter represents a parameter
+// OpenAPIParameter represents a parameter.
 type OpenAPIParameter struct {
 	Name        string         `json:"name"`
 	In          string         `json:"in"` // query, header, path, cookie
@@ -100,42 +100,42 @@ type OpenAPIParameter struct {
 	Example     interface{}    `json:"example,omitempty"`
 }
 
-// OpenAPIRequestBody represents a request body
+// OpenAPIRequestBody represents a request body.
 type OpenAPIRequestBody struct {
 	Description string                     `json:"description,omitempty"`
 	Content     map[string]*OpenAPIContent `json:"content"`
 	Required    bool                       `json:"required,omitempty"`
 }
 
-// OpenAPIResponse represents a response
+// OpenAPIResponse represents a response.
 type OpenAPIResponse struct {
 	Description string                     `json:"description"`
 	Headers     map[string]*OpenAPIHeader  `json:"headers,omitempty"`
 	Content     map[string]*OpenAPIContent `json:"content,omitempty"`
 }
 
-// OpenAPIContent represents content
+// OpenAPIContent represents content.
 type OpenAPIContent struct {
 	Schema   *OpenAPISchema             `json:"schema,omitempty"`
 	Example  interface{}                `json:"example,omitempty"`
 	Examples map[string]*OpenAPIExample `json:"examples,omitempty"`
 }
 
-// OpenAPIExample represents an example
+// OpenAPIExample represents an example.
 type OpenAPIExample struct {
 	Summary     string      `json:"summary,omitempty"`
 	Description string      `json:"description,omitempty"`
 	Value       interface{} `json:"value,omitempty"`
 }
 
-// OpenAPIHeader represents a header
+// OpenAPIHeader represents a header.
 type OpenAPIHeader struct {
 	Description string         `json:"description,omitempty"`
 	Required    bool           `json:"required,omitempty"`
 	Schema      *OpenAPISchema `json:"schema,omitempty"`
 }
 
-// OpenAPISchema represents a schema
+// OpenAPISchema represents a schema.
 type OpenAPISchema struct {
 	Type                 string                    `json:"type,omitempty"`
 	Format               string                    `json:"format,omitempty"`
@@ -160,7 +160,7 @@ type OpenAPISchema struct {
 	Pattern              string                    `json:"pattern,omitempty"`
 }
 
-// OpenAPIComponents represents components
+// OpenAPIComponents represents components.
 type OpenAPIComponents struct {
 	Schemas         map[string]*OpenAPISchema         `json:"schemas,omitempty"`
 	Responses       map[string]*OpenAPIResponse       `json:"responses,omitempty"`
@@ -170,7 +170,7 @@ type OpenAPIComponents struct {
 	SecuritySchemes map[string]*OpenAPISecurityScheme `json:"securitySchemes,omitempty"`
 }
 
-// OpenAPISecurityScheme represents a security scheme
+// OpenAPISecurityScheme represents a security scheme.
 type OpenAPISecurityScheme struct {
 	Type             string             `json:"type"`
 	Description      string             `json:"description,omitempty"`
@@ -182,7 +182,7 @@ type OpenAPISecurityScheme struct {
 	OpenIDConnectURL string             `json:"openIdConnectUrl,omitempty"`
 }
 
-// OpenAPIOAuthFlows represents OAuth flows
+// OpenAPIOAuthFlows represents OAuth flows.
 type OpenAPIOAuthFlows struct {
 	Implicit          *OpenAPIOAuthFlow `json:"implicit,omitempty"`
 	Password          *OpenAPIOAuthFlow `json:"password,omitempty"`
@@ -190,7 +190,7 @@ type OpenAPIOAuthFlows struct {
 	AuthorizationCode *OpenAPIOAuthFlow `json:"authorizationCode,omitempty"`
 }
 
-// OpenAPIOAuthFlow represents an OAuth flow
+// OpenAPIOAuthFlow represents an OAuth flow.
 type OpenAPIOAuthFlow struct {
 	AuthorizationURL string            `json:"authorizationUrl,omitempty"`
 	TokenURL         string            `json:"tokenUrl,omitempty"`
@@ -198,28 +198,28 @@ type OpenAPIOAuthFlow struct {
 	Scopes           map[string]string `json:"scopes,omitempty"`
 }
 
-// OpenAPITag represents a tag
+// OpenAPITag represents a tag.
 type OpenAPITag struct {
 	Name         string               `json:"name"`
 	Description  string               `json:"description,omitempty"`
 	ExternalDocs *OpenAPIExternalDocs `json:"externalDocs,omitempty"`
 }
 
-// OpenAPIExternalDocs represents external documentation
+// OpenAPIExternalDocs represents external documentation.
 type OpenAPIExternalDocs struct {
 	Description string `json:"description,omitempty"`
 	URL         string `json:"url"`
 }
 
-// getOpenAPISpec handles GET /openapi.json
+// getOpenAPISpec handles GET /openapi.json.
 func (s *NephoranAPIServer) getOpenAPISpec(w http.ResponseWriter, r *http.Request) {
 	spec := s.generateOpenAPISpec()
 	s.writeJSONResponse(w, http.StatusOK, spec)
 }
 
-// getAPIDocs handles GET /docs
+// getAPIDocs handles GET /docs.
 func (s *NephoranAPIServer) getAPIDocs(w http.ResponseWriter, r *http.Request) {
-	// Serve Swagger UI HTML
+	// Serve Swagger UI HTML.
 	html := `<!DOCTYPE html>
 <html>
 <head>
@@ -269,7 +269,7 @@ func (s *NephoranAPIServer) getAPIDocs(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(html))
 }
 
-// generateOpenAPISpec generates the complete OpenAPI 3.0 specification
+// generateOpenAPISpec generates the complete OpenAPI 3.0 specification.
 func (s *NephoranAPIServer) generateOpenAPISpec() *OpenAPISpec {
 	return &OpenAPISpec{
 		OpenAPI: "3.0.3",
@@ -335,11 +335,11 @@ func (s *NephoranAPIServer) generateOpenAPISpec() *OpenAPISpec {
 	}
 }
 
-// generatePaths generates all API paths
+// generatePaths generates all API paths.
 func (s *NephoranAPIServer) generatePaths() map[string]*OpenAPIPath {
 	paths := make(map[string]*OpenAPIPath)
 
-	// Intent endpoints
+	// Intent endpoints.
 	paths["/intents"] = &OpenAPIPath{
 		Get: &OpenAPIOperation{
 			Tags:        []string{"Intents"},
@@ -513,12 +513,12 @@ func (s *NephoranAPIServer) generatePaths() map[string]*OpenAPIPath {
 	}
 
 	// Add more paths for packages, clusters, realtime, dashboard, etc.
-	// This is a condensed example showing the pattern
+	// This is a condensed example showing the pattern.
 
 	return paths
 }
 
-// generateComponents generates the OpenAPI components
+// generateComponents generates the OpenAPI components.
 func (s *NephoranAPIServer) generateComponents() *OpenAPIComponents {
 	return &OpenAPIComponents{
 		Schemas: map[string]*OpenAPISchema{
@@ -762,7 +762,7 @@ func (s *NephoranAPIServer) generateComponents() *OpenAPIComponents {
 	}
 }
 
-// Helper function to generate parameter references
+// Helper function to generate parameter references.
 func queryParam(name, description string, schema *OpenAPISchema) *OpenAPIParameter {
 	return &OpenAPIParameter{
 		Name:        name,

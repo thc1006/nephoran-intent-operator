@@ -7,7 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// newAPIMetrics creates and registers Prometheus metrics for the O2 API server
+// newAPIMetrics creates and registers Prometheus metrics for the O2 API server.
 func newAPIMetrics(registry *prometheus.Registry) *APIMetrics {
 	metrics := &APIMetrics{
 		requestsTotal: prometheus.NewCounterVec(
@@ -67,7 +67,7 @@ func newAPIMetrics(registry *prometheus.Registry) *APIMetrics {
 		),
 	}
 
-	// Register metrics with the registry
+	// Register metrics with the registry.
 	registry.MustRegister(
 		metrics.requestsTotal,
 		metrics.requestDuration,
@@ -80,7 +80,7 @@ func newAPIMetrics(registry *prometheus.Registry) *APIMetrics {
 	return metrics
 }
 
-// RecordRequest records metrics for an HTTP request
+// RecordRequest records metrics for an HTTP request.
 func (m *APIMetrics) RecordRequest(method, endpoint string, statusCode int, duration time.Duration, responseSize int64) {
 	statusStr := strconv.Itoa(statusCode)
 	m.requestsTotal.WithLabelValues(method, endpoint, statusStr).Inc()
@@ -88,17 +88,17 @@ func (m *APIMetrics) RecordRequest(method, endpoint string, statusCode int, dura
 	m.responseSize.WithLabelValues(method, endpoint).Observe(float64(responseSize))
 }
 
-// RecordResourceOperation records metrics for resource operations
+// RecordResourceOperation records metrics for resource operations.
 func (m *APIMetrics) RecordResourceOperation(operation, resourceType, provider, status string) {
 	m.resourceOperations.WithLabelValues(operation, resourceType, provider, status).Inc()
 }
 
-// RecordError records error metrics
+// RecordError records error metrics.
 func (m *APIMetrics) RecordError(errorType, endpoint string) {
 	m.errorRate.WithLabelValues(errorType, endpoint).Inc()
 }
 
-// SetActiveConnections updates the active connections gauge
+// SetActiveConnections updates the active connections gauge.
 func (m *APIMetrics) SetActiveConnections(count float64) {
 	m.activeConnections.Set(count)
 }

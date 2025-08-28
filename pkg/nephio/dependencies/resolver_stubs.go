@@ -24,9 +24,9 @@ import (
 	"time"
 )
 
-// Stub implementations to resolve compilation errors
+// Stub implementations to resolve compilation errors.
 
-// ResolutionContext provides context for dependency resolution
+// ResolutionContext provides context for dependency resolution.
 type ResolutionContext struct {
 	Spec             *ResolutionSpec
 	Resolver         *dependencyResolver
@@ -37,69 +37,69 @@ type ResolutionContext struct {
 	Statistics       *ResolutionStatistics
 }
 
-// Missing methods for dependencyResolver to implement DependencyResolver interface
+// Missing methods for dependencyResolver to implement DependencyResolver interface.
 
-// ClearCache clears the resolver cache
+// ClearCache clears the resolver cache.
 func (r *dependencyResolver) ClearCache(ctx context.Context, patterns []string) error {
-	// Stub implementation
+	// Stub implementation.
 	return nil
 }
 
-// ResolveTransitive resolves transitive dependencies
+// ResolveTransitive resolves transitive dependencies.
 func (r *dependencyResolver) ResolveTransitive(ctx context.Context, packages []*PackageReference, opts *TransitiveOptions) (*TransitiveResult, error) {
-	// Stub implementation
+	// Stub implementation.
 	return &TransitiveResult{}, nil
 }
 
-// ValidateConstraints validates dependency constraints
+// ValidateConstraints validates dependency constraints.
 func (r *dependencyResolver) ValidateConstraints(ctx context.Context, constraints []*DependencyConstraint) (*ConstraintValidation, error) {
-	// Stub implementation
+	// Stub implementation.
 	return &ConstraintValidation{}, nil
 }
 
-// FindCompatibleVersions finds compatible versions for a package
+// FindCompatibleVersions finds compatible versions for a package.
 func (r *dependencyResolver) FindCompatibleVersions(ctx context.Context, pkg *PackageReference, constraints []*VersionConstraint) ([]*VersionCandidate, error) {
-	// Stub implementation
+	// Stub implementation.
 	return []*VersionCandidate{}, nil
 }
 
-// ResolveConflicts resolves dependency conflicts
+// ResolveConflicts resolves dependency conflicts.
 func (r *dependencyResolver) ResolveConflicts(ctx context.Context, conflicts *ConflictReport, strategy ConflictStrategy) (*ConflictResolution, error) {
-	// Stub implementation
+	// Stub implementation.
 	return &ConflictResolution{}, nil
 }
 
-// CreateRollbackPlan creates a rollback plan
+// CreateRollbackPlan creates a rollback plan.
 func (r *dependencyResolver) CreateRollbackPlan(ctx context.Context, currentState, targetState []*PackageReference) (*RollbackPlan, error) {
-	// Stub implementation
+	// Stub implementation.
 	return &RollbackPlan{}, nil
 }
 
-// ExecuteRollback executes a rollback plan
+// ExecuteRollback executes a rollback plan.
 func (r *dependencyResolver) ExecuteRollback(ctx context.Context, plan *RollbackPlan) (*RollbackResult, error) {
-	// Stub implementation
+	// Stub implementation.
 	return &RollbackResult{}, nil
 }
 
-// WarmCache warms the resolver cache
+// WarmCache warms the resolver cache.
 func (r *dependencyResolver) WarmCache(ctx context.Context, packages []*PackageReference) error {
-	// Stub implementation
+	// Stub implementation.
 	return nil
 }
 
-// GetCacheStats returns cache statistics
+// GetCacheStats returns cache statistics.
 func (r *dependencyResolver) GetCacheStats(ctx context.Context) (*CacheStats, error) {
-	// Stub implementation
+	// Stub implementation.
 	return &CacheStats{}, nil
 }
 
-// SetStrategy sets the resolution strategy
+// SetStrategy sets the resolution strategy.
 func (r *dependencyResolver) SetStrategy(strategy ResolutionStrategy) error {
 	r.strategy = strategy
 	return nil
 }
 
-// GetAvailableStrategies returns available resolution strategies
+// GetAvailableStrategies returns available resolution strategies.
 func (r *dependencyResolver) GetAvailableStrategies() []ResolutionStrategy {
 	return []ResolutionStrategy{
 		StrategyLatest,
@@ -110,41 +110,41 @@ func (r *dependencyResolver) GetAvailableStrategies() []ResolutionStrategy {
 	}
 }
 
-// GetHealth returns resolver health status
+// GetHealth returns resolver health status.
 func (r *dependencyResolver) GetHealth(ctx context.Context) (*ResolverHealth, error) {
-	// Stub implementation
+	// Stub implementation.
 	return &ResolverHealth{}, nil
 }
 
-// GetMetrics returns resolver metrics
+// GetMetrics returns resolver metrics.
 func (r *dependencyResolver) GetMetrics(ctx context.Context) (*ResolverMetrics, error) {
 	return r.metrics, nil
 }
 
-// Private helper methods that are referenced in resolver.go but missing
+// Private helper methods that are referenced in resolver.go but missing.
 
 func (r *dependencyResolver) buildDependencyTree(ctx context.Context, resCtx *ResolutionContext) (*DependencyTree, error) {
-	// Stub implementation
+	// Stub implementation.
 	return &DependencyTree{}, nil
 }
 
 func (r *dependencyResolver) solveConstraints(ctx context.Context, resCtx *ResolutionContext) (*ConstraintSolution, error) {
-	// Stub implementation
+	// Stub implementation.
 	return &ConstraintSolution{}, nil
 }
 
 func (r *dependencyResolver) resolveVersions(ctx context.Context, resCtx *ResolutionContext, solution *ConstraintSolution) (*VersionResolution, error) {
-	// Stub implementation
+	// Stub implementation.
 	return &VersionResolution{}, nil
 }
 
 func (r *dependencyResolver) detectAndResolveConflicts(ctx context.Context, resCtx *ResolutionContext, versionResolution *VersionResolution) ([]*DependencyConflict, error) {
-	// Stub implementation
+	// Stub implementation.
 	return []*DependencyConflict{}, nil
 }
 
 func (r *dependencyResolver) extractResolvedPackages(resCtx *ResolutionContext) []*ResolvedPackage {
-	// Stub implementation
+	// Stub implementation.
 	resolved := make([]*ResolvedPackage, 0)
 	for _, pkg := range resCtx.ResolvedPackages {
 		resolved = append(resolved, pkg)
@@ -153,12 +153,12 @@ func (r *dependencyResolver) extractResolvedPackages(resCtx *ResolutionContext) 
 }
 
 func (r *dependencyResolver) buildResultMetadata(resCtx *ResolutionContext) map[string]interface{} {
-	// Stub implementation
+	// Stub implementation.
 	return make(map[string]interface{})
 }
 
 func (r *dependencyResolver) updateResolutionMetrics(result *ResolutionResult) {
-	// Stub implementation - update prometheus counters
+	// Stub implementation - update prometheus counters.
 	if result.Success {
 		r.metrics.ResolutionsSuccessful++
 	} else {
@@ -169,77 +169,80 @@ func (r *dependencyResolver) updateResolutionMetrics(result *ResolutionResult) {
 }
 
 func (r *dependencyResolver) validateConstraints(constraints []*DependencyConstraint) error {
-	// Stub implementation
+	// Stub implementation.
 	return nil
 }
 
 func (r *dependencyResolver) generateConstraintCacheKey(constraints []*DependencyConstraint) string {
-	// Stub implementation
+	// Stub implementation.
 	return "constraint-cache-key"
 }
 
 func (r *dependencyResolver) groupVersionRequirements(requirements []*VersionRequirement) map[string][]*VersionRequirement {
-	// Stub implementation
+	// Stub implementation.
 	return make(map[string][]*VersionRequirement)
 }
 
 func (r *dependencyResolver) resolveVersionsConcurrently(ctx context.Context, packageRequirements map[string][]*VersionRequirement, resolution *VersionResolutionResult) error {
-	// Stub implementation
+	// Stub implementation.
 	return nil
 }
 
 func (r *dependencyResolver) resolveVersionsSequentially(ctx context.Context, packageRequirements map[string][]*VersionRequirement, resolution *VersionResolutionResult) error {
-	// Stub implementation
+	// Stub implementation.
 	return nil
 }
 
 func (r *dependencyResolver) detectVersionConflicts(resolutions map[string]*VersionResolution) []*VersionConflict {
-	// Stub implementation
+	// Stub implementation.
 	return []*VersionConflict{}
 }
 
 func (r *dependencyResolver) collectConflicts(ctx context.Context, conflictChannels []<-chan *DependencyConflict, report *ConflictReport) error {
-	// Stub implementation
+	// Stub implementation.
 	return nil
 }
 
 func (r *dependencyResolver) deduplicateConflicts(report *ConflictReport) {
-	// Stub implementation
+	// Stub implementation.
 }
 
 func (r *dependencyResolver) classifyConflicts(report *ConflictReport) {
-	// Stub implementation
+	// Stub implementation.
 }
 
 func (r *dependencyResolver) calculateConflictStatistics(report *ConflictReport) {
-	// Stub implementation
+	// Stub implementation.
 }
 
 func (r *dependencyResolver) cleanupCaches() {
-	// Stub implementation
+	// Stub implementation.
 }
 
 func (r *dependencyResolver) collectAndReportMetrics() {
-	// Stub implementation
+	// Stub implementation.
 }
 
 func (r *dependencyResolver) performHealthCheck() {
-	// Stub implementation
+	// Stub implementation.
 }
 
-// Stub provider implementations
+// Stub provider implementations.
 func NewGitDependencyProvider(config *GitConfig) DependencyProvider {
 	return &stubProvider{name: "git"}
 }
 
+// NewOCIDependencyProvider performs newocidependencyprovider operation.
 func NewOCIDependencyProvider(config *OCIConfig) DependencyProvider {
 	return &stubProvider{name: "oci"}
 }
 
+// NewHelmDependencyProvider performs newhelmdependencyprovider operation.
 func NewHelmDependencyProvider(config *HelmConfig) DependencyProvider {
 	return &stubProvider{name: "helm"}
 }
 
+// NewLocalDependencyProvider performs newlocaldependencyprovider operation.
 func NewLocalDependencyProvider(config *LocalConfig) DependencyProvider {
 	return &stubProvider{name: "local"}
 }
@@ -248,60 +251,70 @@ type stubProvider struct {
 	name string
 }
 
+// GetDependency performs getdependency operation.
 func (p *stubProvider) GetDependency(ctx context.Context, ref *PackageReference) (*PackageReference, error) {
 	return ref, nil
 }
 
+// ListVersions performs listversions operation.
 func (p *stubProvider) ListVersions(ctx context.Context, name string) ([]string, error) {
 	return []string{"1.0.0"}, nil
 }
 
+// GetMetadata performs getmetadata operation.
 func (p *stubProvider) GetMetadata(ctx context.Context, ref *PackageReference) (map[string]interface{}, error) {
 	return make(map[string]interface{}), nil
 }
 
+// Close performs close operation.
 func (p *stubProvider) Close() error {
 	return nil
 }
 
-// Missing data types not defined elsewhere - removed duplicates as they exist in types.go
-type ConstraintConflict struct{}
-type ResolvedVersion struct{}
+// Missing data types not defined elsewhere - removed duplicates as they exist in types.go.
+type (
+	// ResolvedVersion represents a resolvedversion.
+	ResolvedVersion struct{}
+)
 
-// Additional methods for ConstraintSolver to make resolver.go compile
+// Additional methods for ConstraintSolver to make resolver.go compile.
 func (c *ConstraintSolver) ConvertToSAT(constraints []*DependencyConstraint) (interface{}, interface{}, error) {
-	// Stub implementation
+	// Stub implementation.
 	return nil, nil, nil
 }
 
+// SolveSAT performs solvesat operation.
 func (c *ConstraintSolver) SolveSAT(ctx context.Context, clauses, variables interface{}) (*SATSolution, error) {
-	// Stub implementation
+	// Stub implementation.
 	return &SATSolution{Satisfiable: true}, nil
 }
 
+// ConvertSATAssignments performs convertsatassignments operation.
 func (c *ConstraintSolver) ConvertSATAssignments(assignments, variables interface{}) map[string]interface{} {
-	// Stub implementation
+	// Stub implementation.
 	return make(map[string]interface{})
 }
 
+// ExtractUnsatisfiableCore performs extractunsatisfiablecore operation.
 func (c *ConstraintSolver) ExtractUnsatisfiableCore(clauses, variables interface{}) (interface{}, error) {
-	// Stub implementation
+	// Stub implementation.
 	return nil, nil
 }
 
+// ConvertCoreToConflicts performs convertcoretoconflicts operation.
 func (c *ConstraintSolver) ConvertCoreToConflicts(core interface{}, constraints []*DependencyConstraint) []*ConstraintConflict {
-	// Stub implementation
+	// Stub implementation.
 	return []*ConstraintConflict{}
 }
 
-// SATSolution represents a SAT solver solution
+// SATSolution represents a SAT solver solution.
 type SATSolution struct {
 	Satisfiable bool
 	Assignments interface{}
 	Statistics  interface{}
 }
 
-// Helper functions to handle pointer-to-interface access in resolver.go
+// Helper functions to handle pointer-to-interface access in resolver.go.
 func GetFromResolutionCache(cache *ResolutionCache, ctx context.Context, key string) (*ResolutionResult, error) {
 	val, ok := (*cache).Get(key)
 	if !ok {
@@ -313,11 +326,13 @@ func GetFromResolutionCache(cache *ResolutionCache, ctx context.Context, key str
 	return nil, fmt.Errorf("invalid type in cache")
 }
 
+// SetInResolutionCache performs setinresolutioncache operation.
 func SetInResolutionCache(cache *ResolutionCache, ctx context.Context, key string, result *ResolutionResult) error {
 	(*cache).Set(key, result, 1*time.Hour)
 	return nil
 }
 
+// GetFromConstraintCache performs getfromconstraintcache operation.
 func GetFromConstraintCache(cache *ConstraintCache, ctx context.Context, key string) (*ConstraintSolution, error) {
 	val, ok := (*cache).Get(key)
 	if !ok {
@@ -329,6 +344,7 @@ func GetFromConstraintCache(cache *ConstraintCache, ctx context.Context, key str
 	return nil, fmt.Errorf("invalid type in cache")
 }
 
+// SetInConstraintCache performs setinconstraintcache operation.
 func SetInConstraintCache(cache *ConstraintCache, ctx context.Context, key string, solution *ConstraintSolution) error {
 	(*cache).Set(key, solution)
 	return nil

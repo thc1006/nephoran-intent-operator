@@ -5,14 +5,14 @@ import (
 	"strings"
 )
 
-// KRMPackage represents a KRM package structure
+// KRMPackage represents a KRM package structure.
 type KRMPackage struct {
 	Name      string
 	Namespace string
 	Content   map[string]string // filename -> content
 }
 
-// BuildKRMPackage creates a KRM package from a scaling intent
+// BuildKRMPackage creates a KRM package from a scaling intent.
 func BuildKRMPackage(intent *ScalingIntent, packageName string) (*KRMPackage, error) {
 	pkg := &KRMPackage{
 		Name:      packageName,
@@ -20,7 +20,7 @@ func BuildKRMPackage(intent *ScalingIntent, packageName string) (*KRMPackage, er
 		Content:   make(map[string]string),
 	}
 
-	// Create Kptfile
+	// Create Kptfile.
 	kptfile := fmt.Sprintf(`apiVersion: kpt.dev/v1
 kind: Kptfile
 metadata:
@@ -35,7 +35,7 @@ info:
 `, packageName, intent.Target, intent.Namespace)
 	pkg.Content["Kptfile"] = kptfile
 
-	// Create deployment patch for scaling
+	// Create deployment patch for scaling.
 	deploymentPatch := fmt.Sprintf(`apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -65,7 +65,7 @@ metadata:
 
 	pkg.Content["deployment-patch.yaml"] = deploymentPatch
 
-	// Create kustomization.yaml for the package
+	// Create kustomization.yaml for the package.
 	kustomization := fmt.Sprintf(`apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -81,7 +81,7 @@ commonAnnotations:
 
 	pkg.Content["kustomization.yaml"] = kustomization
 
-	// Create README for the package
+	// Create README for the package.
 	readme := fmt.Sprintf(`# Scaling Package: %s
 
 ## Intent Details
@@ -104,12 +104,12 @@ This package is managed by Porch and applies scaling operations to the specified
 	return pkg, nil
 }
 
-// GeneratePackagePath creates the package directory path
+// GeneratePackagePath creates the package directory path.
 func GeneratePackagePath(repoName, packageName, revision string) string {
 	if revision == "" {
 		revision = "draft"
 	}
-	// Clean revision to be filesystem-safe
+	// Clean revision to be filesystem-safe.
 	revision = strings.ReplaceAll(revision, "/", "-")
 	return fmt.Sprintf("examples/packages/%s/%s/%s", repoName, packageName, revision)
 }

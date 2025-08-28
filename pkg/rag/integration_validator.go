@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// IntegrationValidator validates the complete RAG pipeline integration
+// IntegrationValidator validates the complete RAG pipeline integration.
 type IntegrationValidator struct {
 	logger    *slog.Logger
 	testSuite *ValidationTestSuite
@@ -18,7 +18,7 @@ type IntegrationValidator struct {
 	mutex     sync.RWMutex
 }
 
-// ValidationTestSuite contains all validation tests
+// ValidationTestSuite contains all validation tests.
 type ValidationTestSuite struct {
 	ComponentTests   []ComponentTest   `json:"component_tests"`
 	IntegrationTests []IntegrationTest `json:"integration_tests"`
@@ -27,7 +27,7 @@ type ValidationTestSuite struct {
 	ResilienceTests  []ResilienceTest  `json:"resilience_tests"`
 }
 
-// ComponentTest validates individual components
+// ComponentTest validates individual components.
 type ComponentTest struct {
 	ID          string        `json:"id"`
 	Name        string        `json:"name"`
@@ -38,7 +38,7 @@ type ComponentTest struct {
 	Critical    bool          `json:"critical"`
 }
 
-// IntegrationTest validates component interactions
+// IntegrationTest validates component interactions.
 type IntegrationTest struct {
 	ID          string        `json:"id"`
 	Name        string        `json:"name"`
@@ -49,7 +49,7 @@ type IntegrationTest struct {
 	Critical    bool          `json:"critical"`
 }
 
-// PerformanceTest validates performance requirements
+// PerformanceTest validates performance requirements.
 type PerformanceTest struct {
 	ID             string        `json:"id"`
 	Name           string        `json:"name"`
@@ -62,7 +62,7 @@ type PerformanceTest struct {
 	MaxErrorRate   float64       `json:"max_error_rate"`
 }
 
-// ScalabilityTest validates system scalability
+// ScalabilityTest validates system scalability.
 type ScalabilityTest struct {
 	ID             string        `json:"id"`
 	Name           string        `json:"name"`
@@ -74,7 +74,7 @@ type ScalabilityTest struct {
 	MaxDegradation float64       `json:"max_degradation"`
 }
 
-// ResilienceTest validates system resilience and error handling
+// ResilienceTest validates system resilience and error handling.
 type ResilienceTest struct {
 	ID           string        `json:"id"`
 	Name         string        `json:"name"`
@@ -85,7 +85,7 @@ type ResilienceTest struct {
 	RecoveryTime time.Duration `json:"recovery_time"`
 }
 
-// ValidationResults holds all validation results
+// ValidationResults holds all validation results.
 type ValidationResults struct {
 	StartTime          time.Time               `json:"start_time"`
 	EndTime            time.Time               `json:"end_time"`
@@ -105,7 +105,7 @@ type ValidationResults struct {
 	Recommendations    []string                `json:"recommendations"`
 }
 
-// TestResult represents the result of a single test
+// TestResult represents the result of a single test.
 type TestResult struct {
 	TestID   string        `json:"test_id"`
 	TestName string        `json:"test_name"`
@@ -119,7 +119,7 @@ type TestResult struct {
 	Score    float64       `json:"score"`  // For compatibility with performance_benchmarks.go
 }
 
-// PerformanceTestResult extends TestResult with performance metrics
+// PerformanceTestResult extends TestResult with performance metrics.
 type PerformanceTestResult struct {
 	TestResult
 	ActualLatency    time.Duration          `json:"actual_latency"`
@@ -129,7 +129,7 @@ type PerformanceTestResult struct {
 	MetricsDetails   map[string]interface{} `json:"metrics_details"`
 }
 
-// ScalabilityTestResult extends TestResult with scalability metrics
+// ScalabilityTestResult extends TestResult with scalability metrics.
 type ScalabilityTestResult struct {
 	TestResult
 	LoadResults   map[int]LoadResult `json:"load_results"`
@@ -137,7 +137,7 @@ type ScalabilityTestResult struct {
 	BreakingPoint int                `json:"breaking_point,omitempty"`
 }
 
-// LoadResult represents results at a specific load level
+// LoadResult represents results at a specific load level.
 type LoadResult struct {
 	LoadLevel   int           `json:"load_level"`
 	Latency     time.Duration `json:"latency"`
@@ -147,7 +147,7 @@ type LoadResult struct {
 	CPUUsage    float64       `json:"cpu_usage"`
 }
 
-// ResilienceTestResult extends TestResult with resilience metrics
+// ResilienceTestResult extends TestResult with resilience metrics.
 type ResilienceTestResult struct {
 	TestResult
 	FailureInjected bool          `json:"failure_injected"`
@@ -157,7 +157,7 @@ type ResilienceTestResult struct {
 	AutoRecovery    bool          `json:"auto_recovery"`
 }
 
-// NewIntegrationValidator creates a new integration validator
+// NewIntegrationValidator creates a new integration validator.
 func NewIntegrationValidator() *IntegrationValidator {
 	validator := &IntegrationValidator{
 		logger:    slog.Default().With("component", "integration-validator"),
@@ -168,7 +168,7 @@ func NewIntegrationValidator() *IntegrationValidator {
 	return validator
 }
 
-// ValidateCompleteIntegration validates the complete RAG pipeline integration
+// ValidateCompleteIntegration validates the complete RAG pipeline integration.
 func (iv *IntegrationValidator) ValidateCompleteIntegration(ctx context.Context, pipeline *RAGPipeline) (*ValidationResults, error) {
 	iv.logger.Info("Starting complete RAG pipeline integration validation")
 
@@ -176,7 +176,7 @@ func (iv *IntegrationValidator) ValidateCompleteIntegration(ctx context.Context,
 		StartTime: time.Now(),
 	}
 
-	// Run all validation tests
+	// Run all validation tests.
 	if err := iv.runComponentTests(ctx, pipeline); err != nil {
 		iv.logger.Error("Component tests failed", "error", err)
 	}
@@ -197,7 +197,7 @@ func (iv *IntegrationValidator) ValidateCompleteIntegration(ctx context.Context,
 		iv.logger.Error("Resilience tests failed", "error", err)
 	}
 
-	// Finalize results
+	// Finalize results.
 	iv.results.EndTime = time.Now()
 	iv.results.Duration = iv.results.EndTime.Sub(iv.results.StartTime)
 	iv.calculateOverallStatus()
@@ -214,7 +214,7 @@ func (iv *IntegrationValidator) ValidateCompleteIntegration(ctx context.Context,
 	return iv.results, nil
 }
 
-// runComponentTests runs all component validation tests
+// runComponentTests runs all component validation tests.
 func (iv *IntegrationValidator) runComponentTests(ctx context.Context, pipeline *RAGPipeline) error {
 	iv.logger.Info("Running component tests", "count", len(iv.testSuite.ComponentTests))
 
@@ -227,7 +227,7 @@ func (iv *IntegrationValidator) runComponentTests(ctx context.Context, pipeline 
 	return nil
 }
 
-// runSingleComponentTest runs a single component test
+// runSingleComponentTest runs a single component test.
 func (iv *IntegrationValidator) runSingleComponentTest(ctx context.Context, test ComponentTest, pipeline *RAGPipeline) TestResult {
 	result := TestResult{
 		TestID:   test.ID,
@@ -240,11 +240,11 @@ func (iv *IntegrationValidator) runSingleComponentTest(ctx context.Context, test
 		result.Duration = time.Since(startTime)
 	}()
 
-	// Create test context with timeout
+	// Create test context with timeout.
 	testCtx, cancel := context.WithTimeout(ctx, test.Timeout)
 	defer cancel()
 
-	// Run the test
+	// Run the test.
 	testErr := iv.executeComponentTest(testCtx, test, pipeline)
 
 	if testErr != nil {
@@ -261,7 +261,7 @@ func (iv *IntegrationValidator) runSingleComponentTest(ctx context.Context, test
 	return result
 }
 
-// executeComponentTest executes a specific component test
+// executeComponentTest executes a specific component test.
 func (iv *IntegrationValidator) executeComponentTest(ctx context.Context, test ComponentTest, pipeline *RAGPipeline) error {
 	switch test.ID {
 	case "document_loader_test":
@@ -284,19 +284,19 @@ func (iv *IntegrationValidator) executeComponentTest(ctx context.Context, test C
 	}
 }
 
-// Component test implementations
+// Component test implementations.
 func (iv *IntegrationValidator) testDocumentLoader(ctx context.Context, loader *DocumentLoader) error {
 	if loader == nil {
 		return fmt.Errorf("document loader is nil")
 	}
 
-	// Test basic functionality
+	// Test basic functionality.
 	metrics := loader.GetMetrics()
 	if metrics == nil {
 		return fmt.Errorf("document loader metrics unavailable")
 	}
 
-	// Test configuration validation
+	// Test configuration validation.
 	if loader.config == nil {
 		return fmt.Errorf("document loader configuration missing")
 	}
@@ -310,7 +310,7 @@ func (iv *IntegrationValidator) testChunkingService(ctx context.Context, chunker
 		return fmt.Errorf("chunking service is nil")
 	}
 
-	// Test with sample document
+	// Test with sample document.
 	sampleDoc := &LoadedDocument{
 		ID:      "test_doc",
 		Content: "This is a test document for chunking validation. It contains multiple sentences to test the chunking logic.",
@@ -337,7 +337,7 @@ func (iv *IntegrationValidator) testEmbeddingService(ctx context.Context, embedd
 		return fmt.Errorf("embedding service is nil")
 	}
 
-	// Test with sample texts
+	// Test with sample texts.
 	sampleTexts := []string{"test embedding generation", "validation text"}
 	request := &EmbeddingRequest{
 		Texts:     sampleTexts,
@@ -354,7 +354,7 @@ func (iv *IntegrationValidator) testEmbeddingService(ctx context.Context, embedd
 		return fmt.Errorf("embedding count mismatch: expected %d, got %d", len(sampleTexts), len(response.Embeddings))
 	}
 
-	// Validate embedding dimensions
+	// Validate embedding dimensions.
 	for i, embedding := range response.Embeddings {
 		if len(embedding) == 0 {
 			return fmt.Errorf("empty embedding at index %d", i)
@@ -370,7 +370,7 @@ func (iv *IntegrationValidator) testWeaviateClient(ctx context.Context, client *
 		return fmt.Errorf("Weaviate client is nil")
 	}
 
-	// Test health status
+	// Test health status.
 	health := client.GetHealthStatus()
 	if !health.IsHealthy {
 		return fmt.Errorf("Weaviate client unhealthy: %s", health.Details)
@@ -386,9 +386,9 @@ func (iv *IntegrationValidator) testRedisCache(ctx context.Context, cache *Redis
 		return nil // Redis cache is optional
 	}
 
-	// Test basic cache operations
+	// Test basic cache operations.
 
-	// Simple test (implementation would depend on cache interface)
+	// Simple test (implementation would depend on cache interface).
 	iv.logger.Debug("Redis cache test passed")
 	return nil
 }
@@ -398,7 +398,7 @@ func (iv *IntegrationValidator) testRetrievalService(ctx context.Context, retrie
 		return fmt.Errorf("retrieval service is nil")
 	}
 
-	// Test search functionality
+	// Test search functionality.
 	searchRequest := &EnhancedSearchRequest{
 		Query: "test query for validation",
 		Limit: 5,
@@ -413,7 +413,7 @@ func (iv *IntegrationValidator) testRetrievalService(ctx context.Context, retrie
 	return nil
 }
 
-// runIntegrationTests runs integration tests between components
+// runIntegrationTests runs integration tests between components.
 func (iv *IntegrationValidator) runIntegrationTests(ctx context.Context, pipeline *RAGPipeline) error {
 	iv.logger.Info("Running integration tests", "count", len(iv.testSuite.IntegrationTests))
 
@@ -426,7 +426,7 @@ func (iv *IntegrationValidator) runIntegrationTests(ctx context.Context, pipelin
 	return nil
 }
 
-// runSingleIntegrationTest runs a single integration test
+// runSingleIntegrationTest runs a single integration test.
 func (iv *IntegrationValidator) runSingleIntegrationTest(ctx context.Context, test IntegrationTest, pipeline *RAGPipeline) TestResult {
 	result := TestResult{
 		TestID:   test.ID,
@@ -442,7 +442,7 @@ func (iv *IntegrationValidator) runSingleIntegrationTest(ctx context.Context, te
 	testCtx, cancel := context.WithTimeout(ctx, test.Timeout)
 	defer cancel()
 
-	// Execute integration test
+	// Execute integration test.
 	switch test.ID {
 	case "end_to_end_document_processing":
 		err := iv.testEndToEndDocumentProcessing(testCtx, pipeline)
@@ -478,27 +478,27 @@ func (iv *IntegrationValidator) runSingleIntegrationTest(ctx context.Context, te
 	return result
 }
 
-// Integration test implementations
+// Integration test implementations.
 func (iv *IntegrationValidator) testEndToEndDocumentProcessing(ctx context.Context, pipeline *RAGPipeline) error {
-	// Create a test document content
-	// testDoc := "Sample 3GPP specification content for testing the complete pipeline processing."
+	// Create a test document content.
+	// testDoc := "Sample 3GPP specification content for testing the complete pipeline processing.".
 
-	// This would test the complete flow from document to query
-	// Implementation would depend on pipeline methods being available
+	// This would test the complete flow from document to query.
+	// Implementation would depend on pipeline methods being available.
 
 	iv.logger.Debug("End-to-end document processing test passed")
 	return nil
 }
 
 func (iv *IntegrationValidator) testEmbeddingCacheIntegration(ctx context.Context, pipeline *RAGPipeline) error {
-	// Test embedding generation with caching enabled
-	// Implementation would test cache hit/miss scenarios
+	// Test embedding generation with caching enabled.
+	// Implementation would test cache hit/miss scenarios.
 
 	iv.logger.Debug("Embedding cache integration test passed")
 	return nil
 }
 
-// Performance, scalability, and resilience test implementations would follow similar patterns
+// Performance, scalability, and resilience test implementations would follow similar patterns.
 func (iv *IntegrationValidator) runPerformanceTests(ctx context.Context, pipeline *RAGPipeline) error {
 	iv.logger.Info("Running performance tests", "count", len(iv.testSuite.PerformanceTests))
 	// Implementation would measure latency, throughput, memory usage, etc.
@@ -507,17 +507,17 @@ func (iv *IntegrationValidator) runPerformanceTests(ctx context.Context, pipelin
 
 func (iv *IntegrationValidator) runScalabilityTests(ctx context.Context, pipeline *RAGPipeline) error {
 	iv.logger.Info("Running scalability tests", "count", len(iv.testSuite.ScalabilityTests))
-	// Implementation would test system behavior under increasing load
+	// Implementation would test system behavior under increasing load.
 	return nil
 }
 
 func (iv *IntegrationValidator) runResilienceTests(ctx context.Context, pipeline *RAGPipeline) error {
 	iv.logger.Info("Running resilience tests", "count", len(iv.testSuite.ResilienceTests))
-	// Implementation would test error handling, recovery, failover scenarios
+	// Implementation would test error handling, recovery, failover scenarios.
 	return nil
 }
 
-// Helper methods
+// Helper methods.
 func (iv *IntegrationValidator) updateTestCounts(result TestResult) {
 	iv.results.TotalTests++
 	switch result.Status {
@@ -542,7 +542,7 @@ func (iv *IntegrationValidator) calculateOverallStatus() {
 		iv.results.OverallStatus = "PASS"
 	}
 
-	// Generate summary
+	// Generate summary.
 	iv.results.Summary = fmt.Sprintf("Validation completed: %d/%d tests passed, %d failed (%d critical), %d skipped",
 		iv.results.PassedTests,
 		iv.results.TotalTests,
@@ -570,7 +570,7 @@ func (iv *IntegrationValidator) generateRecommendations() {
 	iv.results.Recommendations = recommendations
 }
 
-// createDefaultTestSuite creates the default validation test suite
+// createDefaultTestSuite creates the default validation test suite.
 func createDefaultTestSuite() *ValidationTestSuite {
 	return &ValidationTestSuite{
 		ComponentTests: []ComponentTest{

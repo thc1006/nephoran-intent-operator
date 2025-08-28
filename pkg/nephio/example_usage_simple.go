@@ -28,13 +28,13 @@ import (
 	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-// SimpleExampleUsage demonstrates basic usage with correct API structure
+// SimpleExampleUsage demonstrates basic usage with correct API structure.
 type SimpleExampleUsage struct {
 	client      client.Client
 	integration *NephioIntegration
 }
 
-// NewSimpleExampleUsage creates a new simple example usage instance
+// NewSimpleExampleUsage creates a new simple example usage instance.
 func NewSimpleExampleUsage(client client.Client, integration *NephioIntegration) *SimpleExampleUsage {
 	return &SimpleExampleUsage{
 		client:      client,
@@ -42,12 +42,12 @@ func NewSimpleExampleUsage(client client.Client, integration *NephioIntegration)
 	}
 }
 
-// BasicDeployment demonstrates basic 5G Core deployment
+// BasicDeployment demonstrates basic 5G Core deployment.
 func (seu *SimpleExampleUsage) BasicDeployment(ctx context.Context) error {
 	logger := log.FromContext(ctx).WithName("simple-deployment")
 	logger.Info("Starting basic deployment scenario")
 
-	// Create a NetworkIntent with correct API structure
+	// Create a NetworkIntent with correct API structure.
 	intent := &v1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "deploy-5g-amf-production",
@@ -68,7 +68,7 @@ func (seu *SimpleExampleUsage) BasicDeployment(ctx context.Context) error {
 
 	logger.Info("Created NetworkIntent for 5G AMF deployment", "intent", intent.Name)
 
-	// Process the intent with Nephio workflow
+	// Process the intent with Nephio workflow.
 	execution, err := seu.integration.ProcessNetworkIntent(ctx, intent)
 	if err != nil {
 		return fmt.Errorf("failed to process NetworkIntent: %w", err)
@@ -83,7 +83,7 @@ func (seu *SimpleExampleUsage) BasicDeployment(ctx context.Context) error {
 	return seu.monitorWorkflowExecution(ctx, execution.ID, 30*time.Minute)
 }
 
-// ORANRICDeployment demonstrates O-RAN RIC deployment
+// ORANRICDeployment demonstrates O-RAN RIC deployment.
 func (seu *SimpleExampleUsage) ORANRICDeployment(ctx context.Context) error {
 	logger := log.FromContext(ctx).WithName("oran-ric-deployment")
 	logger.Info("Starting O-RAN RIC deployment scenario")
@@ -121,7 +121,7 @@ func (seu *SimpleExampleUsage) ORANRICDeployment(ctx context.Context) error {
 	return seu.monitorWorkflowExecution(ctx, execution.ID, 45*time.Minute)
 }
 
-// NetworkSliceConfiguration demonstrates network slice configuration
+// NetworkSliceConfiguration demonstrates network slice configuration.
 func (seu *SimpleExampleUsage) NetworkSliceConfiguration(ctx context.Context) error {
 	logger := log.FromContext(ctx).WithName("network-slice-config")
 	logger.Info("Starting network slice configuration scenario")
@@ -159,7 +159,7 @@ func (seu *SimpleExampleUsage) NetworkSliceConfiguration(ctx context.Context) er
 	return seu.monitorWorkflowExecution(ctx, execution.ID, 20*time.Minute)
 }
 
-// AutoScalingConfiguration demonstrates auto-scaling configuration
+// AutoScalingConfiguration demonstrates auto-scaling configuration.
 func (seu *SimpleExampleUsage) AutoScalingConfiguration(ctx context.Context) error {
 	logger := log.FromContext(ctx).WithName("auto-scaling-config")
 	logger.Info("Starting auto-scaling configuration scenario")
@@ -197,7 +197,7 @@ func (seu *SimpleExampleUsage) AutoScalingConfiguration(ctx context.Context) err
 	return seu.monitorWorkflowExecution(ctx, execution.ID, 15*time.Minute)
 }
 
-// monitorWorkflowExecution monitors a workflow execution until completion
+// monitorWorkflowExecution monitors a workflow execution until completion.
 func (seu *SimpleExampleUsage) monitorWorkflowExecution(ctx context.Context, executionID string, timeout time.Duration) error {
 	logger := log.FromContext(ctx).WithName("workflow-monitor").WithValues("executionId", executionID)
 
@@ -225,7 +225,7 @@ func (seu *SimpleExampleUsage) monitorWorkflowExecution(ctx context.Context, exe
 				"totalPhases", len(execution.Phases),
 			)
 
-			// Check if execution is complete
+			// Check if execution is complete.
 			switch execution.Status {
 			case WorkflowExecutionStatusCompleted:
 				logger.Info("Workflow execution completed successfully",
@@ -248,7 +248,7 @@ func (seu *SimpleExampleUsage) monitorWorkflowExecution(ctx context.Context, exe
 	}
 }
 
-// countCompletedPhases counts completed workflow phases
+// countCompletedPhases counts completed workflow phases.
 func (seu *SimpleExampleUsage) countCompletedPhases(phases []WorkflowPhaseExecution) int {
 	count := 0
 	for _, phase := range phases {
@@ -259,7 +259,7 @@ func (seu *SimpleExampleUsage) countCompletedPhases(phases []WorkflowPhaseExecut
 	return count
 }
 
-// RunAllScenarios runs all simple example scenarios
+// RunAllScenarios runs all simple example scenarios.
 func (seu *SimpleExampleUsage) RunAllScenarios(ctx context.Context) error {
 	logger := log.FromContext(ctx).WithName("simple-scenarios")
 	logger.Info("Starting all simple example scenarios")
@@ -288,7 +288,7 @@ func (seu *SimpleExampleUsage) RunAllScenarios(ctx context.Context) error {
 		cancel()
 		logger.Info("Scenario completed successfully", "scenario", scenario.name)
 
-		// Brief pause between scenarios
+		// Brief pause between scenarios.
 		time.Sleep(5 * time.Second)
 	}
 

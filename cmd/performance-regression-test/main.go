@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// PerformanceTestSuite represents a comprehensive performance testing framework
+// PerformanceTestSuite represents a comprehensive performance testing framework.
 type PerformanceTestSuite struct {
 	ProjectPath     string                     `json:"project_path"`
 	TestResults     []BenchmarkResult          `json:"test_results"`
@@ -80,7 +80,7 @@ func main() {
 	fmt.Println("🚀 Nephoran Performance Regression Test Suite")
 	fmt.Println("================================================")
 
-	// Initialize test suite
+	// Initialize test suite.
 	suite := &PerformanceTestSuite{
 		ProjectPath: ".",
 		Timestamp:   time.Now(),
@@ -93,16 +93,16 @@ func main() {
 		},
 	}
 
-	// Run performance tests
+	// Run performance tests.
 	ctx := context.Background()
 	if err := suite.runPerformanceTests(ctx); err != nil {
 		log.Fatalf("Performance tests failed: %v", err)
 	}
 
-	// Analyze results
+	// Analyze results.
 	suite.analyzeResults()
 
-	// Generate reports
+	// Generate reports.
 	suite.generateReports()
 
 	fmt.Println("✅ Performance regression testing completed!")
@@ -111,7 +111,7 @@ func main() {
 func (pts *PerformanceTestSuite) runPerformanceTests(ctx context.Context) error {
 	fmt.Println("📊 Running comprehensive performance tests...")
 
-	// Run benchmark tests
+	// Run benchmark tests.
 	results, err := pts.runBenchmarkTests(ctx)
 	if err != nil {
 		return fmt.Errorf("benchmark tests failed: %w", err)
@@ -122,7 +122,7 @@ func (pts *PerformanceTestSuite) runPerformanceTests(ctx context.Context) error 
 }
 
 func (pts *PerformanceTestSuite) runBenchmarkTests(ctx context.Context) ([]BenchmarkResult, error) {
-	// Simulate benchmark results
+	// Simulate benchmark results.
 	results := []BenchmarkResult{
 		{
 			Name:        "BenchmarkHTTPHandler",
@@ -155,7 +155,7 @@ func (pts *PerformanceTestSuite) analyzeResults() {
 	regressionTests := 0
 
 	for _, result := range pts.TestResults {
-		// Simple pass/fail logic
+		// Simple pass/fail logic.
 		if result.NsPerOp < 5000 { // 5µs threshold
 			passedTests++
 		} else {
@@ -179,10 +179,10 @@ func (pts *PerformanceTestSuite) analyzeResults() {
 func (pts *PerformanceTestSuite) generateReports() {
 	fmt.Println("📄 Generating performance reports...")
 
-	// Generate JSON report
+	// Generate JSON report.
 	pts.generateJSONReport()
 
-	// Generate markdown report
+	// Generate markdown report.
 	pts.generateMarkdownReport()
 }
 

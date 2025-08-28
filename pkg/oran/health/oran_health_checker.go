@@ -14,7 +14,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2"
 )
 
-// ORANHealthChecker provides comprehensive health checking for O-RAN interfaces
+// ORANHealthChecker provides comprehensive health checking for O-RAN interfaces.
 type ORANHealthChecker struct {
 	healthChecker   *health.HealthChecker
 	a1Adaptor       *a1.A1Adaptor
@@ -23,17 +23,17 @@ type ORANHealthChecker struct {
 	o2Adaptor       *o2.O2Adaptor
 	circuitBreakers map[string]*llm.CircuitBreaker
 
-	// Configuration
+	// Configuration.
 	checkInterval    time.Duration
 	dependencyChecks map[string]DependencyCheck
 
-	// State tracking
+	// State tracking.
 	lastHealthCheck time.Time
 	healthHistory   []HealthSnapshot
 	mutex           sync.RWMutex
 }
 
-// DependencyCheck represents a dependency health check configuration
+// DependencyCheck represents a dependency health check configuration.
 type DependencyCheck struct {
 	Name               string        `json:"name"`
 	URL                string        `json:"url"`
@@ -47,7 +47,7 @@ type DependencyCheck struct {
 	LastError          string        `json:"last_error,omitempty"`
 }
 
-// HealthSnapshot represents a point-in-time health status
+// HealthSnapshot represents a point-in-time health status.
 type HealthSnapshot struct {
 	Timestamp           time.Time                `json:"timestamp"`
 	OverallStatus       health.Status            `json:"overall_status"`
@@ -57,7 +57,7 @@ type HealthSnapshot struct {
 	Metrics             HealthMetrics            `json:"metrics"`
 }
 
-// HealthMetrics contains quantitative health metrics
+// HealthMetrics contains quantitative health metrics.
 type HealthMetrics struct {
 	TotalChecks         int64         `json:"total_checks"`
 	HealthyChecks       int64         `json:"healthy_checks"`
@@ -69,7 +69,7 @@ type HealthMetrics struct {
 	DependencyFailures  int64         `json:"dependency_failures"`
 }
 
-// ORANHealthConfig holds configuration for O-RAN health checker
+// ORANHealthConfig holds configuration for O-RAN health checker.
 type ORANHealthConfig struct {
 	CheckInterval      time.Duration              `json:"check_interval"`
 	HistorySize        int                        `json:"history_size"`
@@ -77,7 +77,7 @@ type ORANHealthConfig struct {
 	AlertingThresholds AlertingThresholds         `json:"alerting_thresholds"`
 }
 
-// AlertingThresholds defines when to trigger alerts
+// AlertingThresholds defines when to trigger alerts.
 type AlertingThresholds struct {
 	ConsecutiveFailures    int           `json:"consecutive_failures"`
 	DependencyFailureRate  float64       `json:"dependency_failure_rate"`
@@ -85,7 +85,7 @@ type AlertingThresholds struct {
 	ResponseTimeThreshold  time.Duration `json:"response_time_threshold"`
 }
 
-// NewORANHealthChecker creates a new O-RAN health checker
+// NewORANHealthChecker creates a new O-RAN health checker.
 func NewORANHealthChecker(
 	healthChecker *health.HealthChecker,
 	a1Adaptor *a1.A1Adaptor,
@@ -120,18 +120,18 @@ func NewORANHealthChecker(
 		healthHistory:    make([]HealthSnapshot, 0, config.HistorySize),
 	}
 
-	// Register O-RAN specific health checks
+	// Register O-RAN specific health checks.
 	checker.registerORANHealthChecks()
 
-	// Start periodic health checking
+	// Start periodic health checking.
 	go checker.startPeriodicHealthCheck()
 
 	return checker
 }
 
-// registerORANHealthChecks registers health checks for all O-RAN interfaces
+// registerORANHealthChecks registers health checks for all O-RAN interfaces.
 func (ohc *ORANHealthChecker) registerORANHealthChecks() {
-	// A1 Interface Health Check
+	// A1 Interface Health Check.
 	ohc.healthChecker.RegisterCheck("a1-interface", func(ctx context.Context) *health.Check {
 		start := time.Now()
 		var status health.Status = health.StatusHealthy
@@ -139,7 +139,7 @@ func (ohc *ORANHealthChecker) registerORANHealthChecks() {
 		var err error
 
 		if ohc.a1Adaptor != nil {
-			// Check circuit breaker status
+			// Check circuit breaker status.
 			stats := ohc.a1Adaptor.GetCircuitBreakerStats()
 			if state, ok := stats["state"].(string); ok && state == "open" {
 				status = health.StatusUnhealthy
@@ -166,7 +166,7 @@ func (ohc *ORANHealthChecker) registerORANHealthChecks() {
 		}
 	})
 
-	// E2 Interface Health Check
+	// E2 Interface Health Check.
 	ohc.healthChecker.RegisterCheck("e2-interface", func(ctx context.Context) *health.Check {
 		start := time.Now()
 		var status health.Status = health.StatusHealthy
@@ -200,7 +200,7 @@ func (ohc *ORANHealthChecker) registerORANHealthChecks() {
 		}
 	})
 
-	// O1 Interface Health Check
+	// O1 Interface Health Check.
 	ohc.healthChecker.RegisterCheck("o1-interface", func(ctx context.Context) *health.Check {
 		start := time.Now()
 		var status health.Status = health.StatusHealthy
@@ -208,7 +208,7 @@ func (ohc *ORANHealthChecker) registerORANHealthChecks() {
 		var err error
 
 		if ohc.o1Adaptor != nil {
-			// Check O1 interface connectivity
+			// Check O1 interface connectivity.
 			message = "O1 interface operational"
 		} else {
 			status = health.StatusUnhealthy
@@ -229,7 +229,7 @@ func (ohc *ORANHealthChecker) registerORANHealthChecks() {
 		}
 	})
 
-	// O2 Interface Health Check
+	// O2 Interface Health Check.
 	ohc.healthChecker.RegisterCheck("o2-interface", func(ctx context.Context) *health.Check {
 		start := time.Now()
 		var status health.Status = health.StatusHealthy
@@ -257,20 +257,20 @@ func (ohc *ORANHealthChecker) registerORANHealthChecks() {
 		}
 	})
 
-	// Register dependency checks
+	// Register dependency checks.
 	for name, depCheck := range ohc.dependencyChecks {
 		ohc.registerDependencyCheck(name, depCheck)
 	}
 }
 
-// registerDependencyCheck registers a dependency health check
+// registerDependencyCheck registers a dependency health check.
 func (ohc *ORANHealthChecker) registerDependencyCheck(name string, depCheck DependencyCheck) {
 	ohc.healthChecker.RegisterDependency(name, func(ctx context.Context) *health.Check {
 		return health.HTTPCheck(name, depCheck.URL)(ctx)
 	})
 }
 
-// startPeriodicHealthCheck starts the periodic health checking routine
+// startPeriodicHealthCheck starts the periodic health checking routine.
 func (ohc *ORANHealthChecker) startPeriodicHealthCheck() {
 	ticker := time.NewTicker(ohc.checkInterval)
 	defer ticker.Stop()
@@ -280,7 +280,7 @@ func (ohc *ORANHealthChecker) startPeriodicHealthCheck() {
 	}
 }
 
-// performHealthCheck performs a comprehensive health check
+// performHealthCheck performs a comprehensive health check.
 func (ohc *ORANHealthChecker) performHealthCheck() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -292,21 +292,21 @@ func (ohc *ORANHealthChecker) performHealthCheck() {
 		CircuitBreakerStats: make(map[string]interface{}),
 	}
 
-	// Perform health check
+	// Perform health check.
 	healthResponse := ohc.healthChecker.Check(ctx)
 	snapshot.OverallStatus = healthResponse.Status
 
-	// Collect interface status
+	// Collect interface status.
 	for _, check := range healthResponse.Checks {
 		snapshot.InterfaceStatus[check.Name] = check.Status
 	}
 
-	// Collect dependency status
+	// Collect dependency status.
 	for _, dep := range healthResponse.Dependencies {
 		snapshot.DependencyStatus[dep.Name] = dep.Status
 	}
 
-	// Collect circuit breaker stats
+	// Collect circuit breaker stats.
 	if ohc.a1Adaptor != nil {
 		snapshot.CircuitBreakerStats["a1"] = ohc.a1Adaptor.GetCircuitBreakerStats()
 	}
@@ -314,10 +314,10 @@ func (ohc *ORANHealthChecker) performHealthCheck() {
 		snapshot.CircuitBreakerStats["e2"] = ohc.e2Adaptor.GetCircuitBreakerStats()
 	}
 
-	// Calculate metrics
+	// Calculate metrics.
 	snapshot.Metrics = ohc.calculateMetrics()
 
-	// Store snapshot
+	// Store snapshot.
 	ohc.mutex.Lock()
 	ohc.healthHistory = append(ohc.healthHistory, snapshot)
 	if len(ohc.healthHistory) > 100 { // Keep last 100 snapshots
@@ -326,11 +326,11 @@ func (ohc *ORANHealthChecker) performHealthCheck() {
 	ohc.lastHealthCheck = time.Now()
 	ohc.mutex.Unlock()
 
-	// Check for alerting conditions
+	// Check for alerting conditions.
 	ohc.checkAlertingConditions(snapshot)
 }
 
-// calculateMetrics calculates health metrics
+// calculateMetrics calculates health metrics.
 func (ohc *ORANHealthChecker) calculateMetrics() HealthMetrics {
 	ohc.mutex.RLock()
 	defer ohc.mutex.RUnlock()
@@ -343,7 +343,7 @@ func (ohc *ORANHealthChecker) calculateMetrics() HealthMetrics {
 		return metrics
 	}
 
-	// Calculate aggregate metrics from history
+	// Calculate aggregate metrics from history.
 	var healthyCount int64
 
 	for _, snapshot := range ohc.healthHistory {
@@ -355,7 +355,7 @@ func (ohc *ORANHealthChecker) calculateMetrics() HealthMetrics {
 	metrics.HealthyChecks = healthyCount
 	metrics.UnhealthyChecks = metrics.TotalChecks - healthyCount
 
-	// Calculate uptime (simplified)
+	// Calculate uptime (simplified).
 	if len(ohc.healthHistory) > 0 {
 		firstCheck := ohc.healthHistory[0].Timestamp
 		metrics.UpTime = time.Since(firstCheck)
@@ -364,15 +364,15 @@ func (ohc *ORANHealthChecker) calculateMetrics() HealthMetrics {
 	return metrics
 }
 
-// checkAlertingConditions checks if any alerting conditions are met
+// checkAlertingConditions checks if any alerting conditions are met.
 func (ohc *ORANHealthChecker) checkAlertingConditions(snapshot HealthSnapshot) {
-	// Check for consecutive failures
+	// Check for consecutive failures.
 	consecutiveFailures := ohc.getConsecutiveFailures()
 	if consecutiveFailures >= ohc.getAlertingThresholds().ConsecutiveFailures {
 		ohc.triggerAlert("consecutive_failures", fmt.Sprintf("Detected %d consecutive health check failures", consecutiveFailures))
 	}
 
-	// Check circuit breaker status
+	// Check circuit breaker status.
 	for interfaceName, stats := range snapshot.CircuitBreakerStats {
 		if statsMap, ok := stats.(map[string]interface{}); ok {
 			if state, ok := statsMap["state"].(string); ok && state == "open" {
@@ -382,7 +382,7 @@ func (ohc *ORANHealthChecker) checkAlertingConditions(snapshot HealthSnapshot) {
 	}
 }
 
-// getConsecutiveFailures returns the number of consecutive failures
+// getConsecutiveFailures returns the number of consecutive failures.
 func (ohc *ORANHealthChecker) getConsecutiveFailures() int {
 	ohc.mutex.RLock()
 	defer ohc.mutex.RUnlock()
@@ -403,7 +403,7 @@ func (ohc *ORANHealthChecker) getConsecutiveFailures() int {
 	return failures
 }
 
-// getAlertingThresholds returns the alerting thresholds
+// getAlertingThresholds returns the alerting thresholds.
 func (ohc *ORANHealthChecker) getAlertingThresholds() AlertingThresholds {
 	return AlertingThresholds{
 		ConsecutiveFailures:    3,
@@ -413,14 +413,14 @@ func (ohc *ORANHealthChecker) getAlertingThresholds() AlertingThresholds {
 	}
 }
 
-// triggerAlert triggers an alert for the given condition
+// triggerAlert triggers an alert for the given condition.
 func (ohc *ORANHealthChecker) triggerAlert(alertType, message string) {
-	// In a production system, this would integrate with alerting systems
-	// For now, we'll log the alert
+	// In a production system, this would integrate with alerting systems.
+	// For now, we'll log the alert.
 	fmt.Printf("ALERT [%s]: %s at %s\n", alertType, message, time.Now().Format(time.RFC3339))
 }
 
-// GetHealthSnapshot returns the latest health snapshot
+// GetHealthSnapshot returns the latest health snapshot.
 func (ohc *ORANHealthChecker) GetHealthSnapshot() *HealthSnapshot {
 	ohc.mutex.RLock()
 	defer ohc.mutex.RUnlock()
@@ -433,7 +433,7 @@ func (ohc *ORANHealthChecker) GetHealthSnapshot() *HealthSnapshot {
 	return &latest
 }
 
-// GetHealthHistory returns the health history
+// GetHealthHistory returns the health history.
 func (ohc *ORANHealthChecker) GetHealthHistory() []HealthSnapshot {
 	ohc.mutex.RLock()
 	defer ohc.mutex.RUnlock()
@@ -443,7 +443,7 @@ func (ohc *ORANHealthChecker) GetHealthHistory() []HealthSnapshot {
 	return history
 }
 
-// GetCircuitBreakerStats returns circuit breaker statistics for all interfaces
+// GetCircuitBreakerStats returns circuit breaker statistics for all interfaces.
 func (ohc *ORANHealthChecker) GetCircuitBreakerStats() map[string]interface{} {
 	stats := make(map[string]interface{})
 
@@ -457,7 +457,7 @@ func (ohc *ORANHealthChecker) GetCircuitBreakerStats() map[string]interface{} {
 	return stats
 }
 
-// ResetCircuitBreakers resets all circuit breakers
+// ResetCircuitBreakers resets all circuit breakers.
 func (ohc *ORANHealthChecker) ResetCircuitBreakers() {
 	if ohc.a1Adaptor != nil {
 		ohc.a1Adaptor.ResetCircuitBreaker()
@@ -467,7 +467,7 @@ func (ohc *ORANHealthChecker) ResetCircuitBreakers() {
 	}
 }
 
-// IsHealthy returns true if all O-RAN interfaces are healthy
+// IsHealthy returns true if all O-RAN interfaces are healthy.
 func (ohc *ORANHealthChecker) IsHealthy() bool {
 	snapshot := ohc.GetHealthSnapshot()
 	if snapshot == nil {
@@ -477,7 +477,7 @@ func (ohc *ORANHealthChecker) IsHealthy() bool {
 	return snapshot.OverallStatus == health.StatusHealthy
 }
 
-// errorString converts an error to string, handling nil case
+// errorString converts an error to string, handling nil case.
 func errorString(err error) string {
 	if err == nil {
 		return ""

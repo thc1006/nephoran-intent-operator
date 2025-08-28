@@ -12,27 +12,27 @@ import (
 	"time"
 )
 
-// AsyncIOManager handles asynchronous I/O operations with batching and buffering
+// AsyncIOManager handles asynchronous I/O operations with batching and buffering.
 type AsyncIOManager struct {
-	// Write buffering
+	// Write buffering.
 	writeBuffer  *BatchBuffer
 	writeWorkers int
 	writeChan    chan *WriteRequest
 
-	// Read caching
+	// Read caching.
 	readCache     *LRUCache
 	readAheadSize int
 
-	// Metrics
+	// Metrics.
 	metrics *IOMetrics
 
-	// Lifecycle
+	// Lifecycle.
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 }
 
-// WriteRequest represents an async write operation
+// WriteRequest represents an async write operation.
 type WriteRequest struct {
 	Path      string
 	Data      []byte
@@ -41,7 +41,7 @@ type WriteRequest struct {
 	Timestamp time.Time
 }
 
-// BatchBuffer accumulates writes for batch processing
+// BatchBuffer accumulates writes for batch processing.
 type BatchBuffer struct {
 	mu            sync.Mutex
 	buffer        []*WriteRequest
@@ -51,7 +51,7 @@ type BatchBuffer struct {
 	flushCallback func([]*WriteRequest)
 }
 
-// IOMetrics tracks I/O performance
+// IOMetrics tracks I/O performance.
 type IOMetrics struct {
 	mu            sync.RWMutex
 	TotalReads    atomic.Int64
@@ -66,7 +66,7 @@ type IOMetrics struct {
 	FailedWrites  atomic.Int64
 }
 
-// AsyncIOConfig configures the async I/O manager
+// AsyncIOConfig configures the async I/O manager.
 type AsyncIOConfig struct {
 	WriteWorkers   int           // Number of concurrent write workers
 	WriteBatchSize int           // Maximum writes to batch
@@ -76,7 +76,7 @@ type AsyncIOConfig struct {
 	BufferSize     int           // I/O buffer size
 }
 
-// DefaultAsyncIOConfig returns optimized default configuration
+// DefaultAsyncIOConfig returns optimized default configuration.
 func DefaultAsyncIOConfig() *AsyncIOConfig {
 	return &AsyncIOConfig{
 		WriteWorkers:   4,
@@ -88,7 +88,7 @@ func DefaultAsyncIOConfig() *AsyncIOConfig {
 	}
 }
 
-// NewAsyncIOManager creates a new async I/O manager
+// NewAsyncIOManager creates a new async I/O manager.
 func NewAsyncIOManager(config *AsyncIOConfig) *AsyncIOManager {
 	if config == nil {
 		config = DefaultAsyncIOConfig()
@@ -109,7 +109,7 @@ func NewAsyncIOManager(config *AsyncIOConfig) *AsyncIOManager {
 		},
 	}
 
-	// Initialize write buffer
+	// Initialize write buffer.
 	manager.writeBuffer = &BatchBuffer{
 		buffer:  make([]*WriteRequest, 0, config.WriteBatchSize),
 		maxSize: config.WriteBatchSize,
@@ -119,20 +119,20 @@ func NewAsyncIOManager(config *AsyncIOConfig) *AsyncIOManager {
 		},
 	}
 
-	// Start write workers
+	// Start write workers.
 	for i := 0; i < config.WriteWorkers; i++ {
 		manager.wg.Add(1)
 		go manager.writeWorker(i)
 	}
 
-	// Start batch processor
+	// Start batch processor.
 	manager.wg.Add(1)
 	go manager.batchProcessor()
 
 	return manager
 }
 
-// ReadFileAsync reads a file asynchronously with caching
+// ReadFileAsync reads a file asynchronously with caching.
 func (m *AsyncIOManager) ReadFileAsync(ctx context.Context, path string) ([]byte, error) {
 	startTime := time.Now()
 	defer func() {
@@ -140,7 +140,7 @@ func (m *AsyncIOManager) ReadFileAsync(ctx context.Context, path string) ([]byte
 		m.metrics.ReadLatency.Add(float64(latency.Microseconds()))
 	}()
 
-	// Check cache first
+	// Check cache first.
 	if cached, ok := m.readCache.Get(path); ok {
 		m.metrics.CacheHits.Add(1)
 		return cached.([]byte), nil
@@ -148,13 +148,13 @@ func (m *AsyncIOManager) ReadFileAsync(ctx context.Context, path string) ([]byte
 
 	m.metrics.CacheMisses.Add(1)
 
-	// Perform async read with buffering
+	// Perform async read with buffering.
 	data, err := m.readWithBuffer(ctx, path)
 	if err != nil {
 		return nil, err
 	}
 
-	// Update cache
+	// Update cache.
 	m.readCache.Put(path, data)
 
 	m.metrics.TotalReads.Add(1)
@@ -163,7 +163,7 @@ func (m *AsyncIOManager) ReadFileAsync(ctx context.Context, path string) ([]byte
 	return data, nil
 }
 
-// readWithBuffer reads a file with optimized buffering
+// readWithBuffer reads a file with optimized buffering.
 func (m *AsyncIOManager) readWithBuffer(ctx context.Context, path string) ([]byte, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -171,13 +171,13 @@ func (m *AsyncIOManager) readWithBuffer(ctx context.Context, path string) ([]byt
 	}
 	defer file.Close()
 
-	// Get file size for pre-allocation
+	// Get file size for pre-allocation.
 	stat, err := file.Stat()
 	if err != nil {
 		return nil, err
 	}
 
-	// Pre-allocate buffer
+	// Pre-allocate buffer.
 	size := stat.Size()
 	if size > int64(m.readAheadSize) {
 		size = int64(m.readAheadSize)
@@ -186,7 +186,7 @@ func (m *AsyncIOManager) readWithBuffer(ctx context.Context, path string) ([]byt
 	buffer := make([]byte, 0, size)
 	reader := bufio.NewReaderSize(file, 32*1024)
 
-	// Read with context cancellation support
+	// Read with context cancellation support.
 	done := make(chan struct{})
 	var readErr error
 
@@ -203,7 +203,7 @@ func (m *AsyncIOManager) readWithBuffer(ctx context.Context, path string) ([]byt
 	}
 }
 
-// WriteFileAsync writes a file asynchronously with batching
+// WriteFileAsync writes a file asynchronously with batching.
 func (m *AsyncIOManager) WriteFileAsync(path string, data []byte, mode os.FileMode, callback func(error)) {
 	req := &WriteRequest{
 		Path:      path,
@@ -213,9 +213,9 @@ func (m *AsyncIOManager) WriteFileAsync(path string, data []byte, mode os.FileMo
 		Timestamp: time.Now(),
 	}
 
-	// Try to add to batch
+	// Try to add to batch.
 	if !m.writeBuffer.Add(req) {
-		// Buffer full, send directly to worker
+		// Buffer full, send directly to worker.
 		select {
 		case m.writeChan <- req:
 		case <-m.ctx.Done():
@@ -226,19 +226,19 @@ func (m *AsyncIOManager) WriteFileAsync(path string, data []byte, mode os.FileMo
 	}
 }
 
-// Add adds a write request to the batch buffer
+// Add adds a write request to the batch buffer.
 func (b *BatchBuffer) Add(req *WriteRequest) bool {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	// Check if buffer is full
+	// Check if buffer is full.
 	if len(b.buffer) >= b.maxSize {
 		b.flushLocked()
 	}
 
 	b.buffer = append(b.buffer, req)
 
-	// Start flush timer if this is the first item
+	// Start flush timer if this is the first item.
 	if len(b.buffer) == 1 {
 		b.flushTimer = time.AfterFunc(b.maxAge, func() {
 			b.mu.Lock()
@@ -247,7 +247,7 @@ func (b *BatchBuffer) Add(req *WriteRequest) bool {
 		})
 	}
 
-	// Flush if buffer is now full
+	// Flush if buffer is now full.
 	if len(b.buffer) >= b.maxSize {
 		b.flushLocked()
 	}
@@ -255,40 +255,40 @@ func (b *BatchBuffer) Add(req *WriteRequest) bool {
 	return true
 }
 
-// flushLocked flushes the buffer (must be called with lock held)
+// flushLocked flushes the buffer (must be called with lock held).
 func (b *BatchBuffer) flushLocked() {
 	if len(b.buffer) == 0 {
 		return
 	}
 
-	// Stop timer if running
+	// Stop timer if running.
 	if b.flushTimer != nil {
 		b.flushTimer.Stop()
 		b.flushTimer = nil
 	}
 
-	// Get batch and reset buffer
+	// Get batch and reset buffer.
 	batch := b.buffer
 	b.buffer = make([]*WriteRequest, 0, b.maxSize)
 
-	// Process batch
+	// Process batch.
 	if b.flushCallback != nil {
 		go b.flushCallback(batch)
 	}
 }
 
-// processBatch processes a batch of write requests
+// processBatch processes a batch of write requests.
 func (m *AsyncIOManager) processBatch(batch []*WriteRequest) {
 	m.metrics.BatchedWrites.Add(int64(len(batch)))
 
-	// Group writes by directory for better file system performance
+	// Group writes by directory for better file system performance.
 	byDir := make(map[string][]*WriteRequest)
 	for _, req := range batch {
 		dir := getDir(req.Path)
 		byDir[dir] = append(byDir[dir], req)
 	}
 
-	// Process each directory group
+	// Process each directory group.
 	for _, dirBatch := range byDir {
 		for _, req := range dirBatch {
 			select {
@@ -302,8 +302,8 @@ func (m *AsyncIOManager) processBatch(batch []*WriteRequest) {
 	}
 }
 
-// writeWorker processes write requests
-func (m *AsyncIOManager) writeWorker(id int) {
+// writeWorker processes write requests.
+func (m *AsyncIOManager) writeWorker(_ int) {
 	defer m.wg.Done()
 
 	for {
@@ -312,7 +312,7 @@ func (m *AsyncIOManager) writeWorker(id int) {
 			m.processWrite(req)
 
 		case <-m.ctx.Done():
-			// Drain remaining writes
+			// Drain remaining writes.
 			for {
 				select {
 				case req := <-m.writeChan:
@@ -325,7 +325,7 @@ func (m *AsyncIOManager) writeWorker(id int) {
 	}
 }
 
-// processWrite performs the actual write operation
+// processWrite performs the actual write operation.
 func (m *AsyncIOManager) processWrite(req *WriteRequest) {
 	startTime := time.Now()
 
@@ -347,9 +347,9 @@ func (m *AsyncIOManager) processWrite(req *WriteRequest) {
 	}
 }
 
-// writeWithBuffer writes data with optimized buffering
+// writeWithBuffer writes data with optimized buffering.
 func (m *AsyncIOManager) writeWithBuffer(path string, data []byte, mode os.FileMode) error {
-	// Create temp file for atomic write
+	// Create temp file for atomic write.
 	tmpPath := path + ".tmp"
 
 	file, err := os.OpenFile(tmpPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, mode)
@@ -357,7 +357,7 @@ func (m *AsyncIOManager) writeWithBuffer(path string, data []byte, mode os.FileM
 		return err
 	}
 
-	// Use buffered writer
+	// Use buffered writer.
 	writer := bufio.NewWriterSize(file, 32*1024)
 
 	_, err = writer.Write(data)
@@ -367,14 +367,14 @@ func (m *AsyncIOManager) writeWithBuffer(path string, data []byte, mode os.FileM
 		return err
 	}
 
-	// Flush buffer
+	// Flush buffer.
 	if err := writer.Flush(); err != nil {
 		file.Close()
 		os.Remove(tmpPath)
 		return err
 	}
 
-	// Sync to disk
+	// Sync to disk.
 	if err := file.Sync(); err != nil {
 		file.Close()
 		os.Remove(tmpPath)
@@ -383,11 +383,11 @@ func (m *AsyncIOManager) writeWithBuffer(path string, data []byte, mode os.FileM
 
 	file.Close()
 
-	// Atomic rename
+	// Atomic rename.
 	return os.Rename(tmpPath, path)
 }
 
-// batchProcessor periodically processes batched writes
+// batchProcessor periodically processes batched writes.
 func (m *AsyncIOManager) batchProcessor() {
 	defer m.wg.Done()
 
@@ -404,7 +404,7 @@ func (m *AsyncIOManager) batchProcessor() {
 			m.writeBuffer.mu.Unlock()
 
 		case <-m.ctx.Done():
-			// Final flush
+			// Final flush.
 			m.writeBuffer.mu.Lock()
 			m.writeBuffer.flushLocked()
 			m.writeBuffer.mu.Unlock()
@@ -413,7 +413,7 @@ func (m *AsyncIOManager) batchProcessor() {
 	}
 }
 
-// GetMetrics returns current I/O metrics
+// GetMetrics returns current I/O metrics.
 func (m *AsyncIOManager) GetMetrics() *IOMetrics {
 	metrics := &IOMetrics{
 		TotalReads:    atomic.Int64{},
@@ -443,17 +443,17 @@ func (m *AsyncIOManager) GetMetrics() *IOMetrics {
 	return metrics
 }
 
-// Shutdown gracefully shuts down the I/O manager
+// Shutdown gracefully shuts down the I/O manager.
 func (m *AsyncIOManager) Shutdown(timeout time.Duration) error {
-	// Cancel context
+	// Cancel context.
 	m.cancel()
 
-	// Final flush
+	// Final flush.
 	m.writeBuffer.mu.Lock()
 	m.writeBuffer.flushLocked()
 	m.writeBuffer.mu.Unlock()
 
-	// Wait for workers with timeout
+	// Wait for workers with timeout.
 	done := make(chan struct{})
 	go func() {
 		m.wg.Wait()
@@ -468,7 +468,7 @@ func (m *AsyncIOManager) Shutdown(timeout time.Duration) error {
 	}
 }
 
-// getDir extracts directory from path
+// getDir extracts directory from path.
 func getDir(path string) string {
 	for i := len(path) - 1; i >= 0; i-- {
 		if path[i] == '/' || path[i] == '\\' {

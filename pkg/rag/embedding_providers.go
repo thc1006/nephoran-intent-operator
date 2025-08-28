@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// OpenAIProvider implements the OpenAI embedding provider
+// OpenAIProvider implements the OpenAI embedding provider.
 type OpenAIProvider struct {
 	config     ProviderConfig
 	httpClient *http.Client
@@ -21,7 +21,7 @@ type OpenAIProvider struct {
 	mutex      sync.RWMutex
 }
 
-// NewBasicOpenAIProvider creates a new basic OpenAI provider
+// NewBasicOpenAIProvider creates a new basic OpenAI provider.
 func NewBasicOpenAIProvider(config ProviderConfig, httpClient *http.Client) *OpenAIProvider {
 	return &OpenAIProvider{
 		config:     config,
@@ -30,7 +30,7 @@ func NewBasicOpenAIProvider(config ProviderConfig, httpClient *http.Client) *Ope
 	}
 }
 
-// GenerateEmbeddings implements EmbeddingProvider
+// GenerateEmbeddings implements EmbeddingProvider.
 func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, TokenUsage, error) {
 	requestBody := OpenAIEmbeddingRequest{
 		Input: texts,
@@ -47,12 +47,12 @@ func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 		return nil, TokenUsage{}, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// Set headers
+	// Set headers.
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+p.config.APIKey)
 	req.Header.Set("User-Agent", "Nephoran-Intent-Operator/1.0")
 
-	// Execute request with retries
+	// Execute request with retries.
 	var resp *http.Response
 	var lastErr error
 	maxRetries := 3
@@ -79,7 +79,7 @@ func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 				}(),
 			)
 
-			// Exponential backoff
+			// Exponential backoff.
 			backoffDelay := time.Duration(attempt+1) * 2 * time.Second
 			select {
 			case <-ctx.Done():
@@ -104,13 +104,13 @@ func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 		return nil, TokenUsage{}, fmt.Errorf("failed to decode OpenAI response: %w", err)
 	}
 
-	// Extract embeddings
+	// Extract embeddings.
 	embeddings := make([][]float32, len(apiResponse.Data))
 	for i, data := range apiResponse.Data {
 		embeddings[i] = data.Embedding
 	}
 
-	// Calculate estimated cost
+	// Calculate estimated cost.
 	estimatedCost := float64(apiResponse.Usage.TotalTokens) * p.config.CostPerToken / 1000
 
 	usage := TokenUsage{
@@ -122,16 +122,16 @@ func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 	return embeddings, usage, nil
 }
 
-// GetConfig implements EmbeddingProvider
+// GetConfig implements EmbeddingProvider.
 func (p *OpenAIProvider) GetConfig() ProviderConfig {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 	return p.config
 }
 
-// HealthCheck implements EmbeddingProvider
+// HealthCheck implements EmbeddingProvider.
 func (p *OpenAIProvider) HealthCheck(ctx context.Context) error {
-	// Simple health check with a minimal embedding request
+	// Simple health check with a minimal embedding request.
 	testTexts := []string{"health check"}
 	_, _, err := p.GenerateEmbeddings(ctx, testTexts)
 
@@ -143,28 +143,30 @@ func (p *OpenAIProvider) HealthCheck(ctx context.Context) error {
 	return err
 }
 
-// GetCostEstimate implements EmbeddingProvider
+// GetCostEstimate implements EmbeddingProvider.
 func (p *OpenAIProvider) GetCostEstimate(tokenCount int) float64 {
 	return float64(tokenCount) * p.config.CostPerToken / 1000
 }
 
-// GetName implements EmbeddingProvider
+// GetName implements EmbeddingProvider.
 func (p *OpenAIProvider) GetName() string {
 	return p.config.Name
 }
 
+// IsHealthy performs ishealthy operation.
 func (p *OpenAIProvider) IsHealthy() bool {
-	// Simple health check - could be enhanced with actual API call
+	// Simple health check - could be enhanced with actual API call.
 	return p.httpClient != nil && p.config.APIKey != ""
 }
 
+// GetLatency performs getlatency operation.
 func (p *OpenAIProvider) GetLatency() time.Duration {
-	// Return estimated latency for OpenAI API
-	// This could be measured dynamically in a real implementation
+	// Return estimated latency for OpenAI API.
+	// This could be measured dynamically in a real implementation.
 	return 200 * time.Millisecond
 }
 
-// AzureOpenAIProvider implements the Azure OpenAI embedding provider
+// AzureOpenAIProvider implements the Azure OpenAI embedding provider.
 type AzureOpenAIProvider struct {
 	config     ProviderConfig
 	httpClient *http.Client
@@ -172,7 +174,7 @@ type AzureOpenAIProvider struct {
 	mutex      sync.RWMutex
 }
 
-// NewBasicAzureOpenAIProvider creates a new basic Azure OpenAI provider
+// NewBasicAzureOpenAIProvider creates a new basic Azure OpenAI provider.
 func NewBasicAzureOpenAIProvider(config ProviderConfig, httpClient *http.Client) *AzureOpenAIProvider {
 	return &AzureOpenAIProvider{
 		config:     config,
@@ -181,9 +183,9 @@ func NewBasicAzureOpenAIProvider(config ProviderConfig, httpClient *http.Client)
 	}
 }
 
-// GenerateEmbeddings implements EmbeddingProvider for Azure OpenAI
+// GenerateEmbeddings implements EmbeddingProvider for Azure OpenAI.
 func (p *AzureOpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, TokenUsage, error) {
-	// Azure OpenAI uses a slightly different API format
+	// Azure OpenAI uses a slightly different API format.
 	requestBody := map[string]interface{}{
 		"input": texts,
 	}
@@ -198,12 +200,12 @@ func (p *AzureOpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []st
 		return nil, TokenUsage{}, fmt.Errorf("failed to create Azure request: %w", err)
 	}
 
-	// Set Azure-specific headers
+	// Set Azure-specific headers.
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("api-key", p.config.APIKey)
 	req.Header.Set("User-Agent", "Nephoran-Intent-Operator/1.0")
 
-	// Execute request with retries
+	// Execute request with retries.
 	var resp *http.Response
 	var lastErr error
 	maxRetries := 3
@@ -230,7 +232,7 @@ func (p *AzureOpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []st
 				}(),
 			)
 
-			// Exponential backoff
+			// Exponential backoff.
 			backoffDelay := time.Duration(attempt+1) * 2 * time.Second
 			select {
 			case <-ctx.Done():
@@ -255,13 +257,13 @@ func (p *AzureOpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []st
 		return nil, TokenUsage{}, fmt.Errorf("failed to decode Azure response: %w", err)
 	}
 
-	// Extract embeddings
+	// Extract embeddings.
 	embeddings := make([][]float32, len(apiResponse.Data))
 	for i, data := range apiResponse.Data {
 		embeddings[i] = data.Embedding
 	}
 
-	// Calculate estimated cost
+	// Calculate estimated cost.
 	estimatedCost := float64(apiResponse.Usage.TotalTokens) * p.config.CostPerToken / 1000
 
 	usage := TokenUsage{
@@ -273,14 +275,14 @@ func (p *AzureOpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []st
 	return embeddings, usage, nil
 }
 
-// GetConfig implements EmbeddingProvider
+// GetConfig implements EmbeddingProvider.
 func (p *AzureOpenAIProvider) GetConfig() ProviderConfig {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 	return p.config
 }
 
-// HealthCheck implements EmbeddingProvider
+// HealthCheck implements EmbeddingProvider.
 func (p *AzureOpenAIProvider) HealthCheck(ctx context.Context) error {
 	testTexts := []string{"health check"}
 	_, _, err := p.GenerateEmbeddings(ctx, testTexts)
@@ -293,34 +295,36 @@ func (p *AzureOpenAIProvider) HealthCheck(ctx context.Context) error {
 	return err
 }
 
-// GetCostEstimate implements EmbeddingProvider
+// GetCostEstimate implements EmbeddingProvider.
 func (p *AzureOpenAIProvider) GetCostEstimate(tokenCount int) float64 {
 	return float64(tokenCount) * p.config.CostPerToken / 1000
 }
 
-// GetName implements EmbeddingProvider
+// GetName implements EmbeddingProvider.
 func (p *AzureOpenAIProvider) GetName() string {
 	return p.config.Name
 }
 
+// IsHealthy performs ishealthy operation.
 func (p *AzureOpenAIProvider) IsHealthy() bool {
-	// Simple health check - could be enhanced with actual API call
+	// Simple health check - could be enhanced with actual API call.
 	return p.httpClient != nil && p.config.APIKey != ""
 }
 
+// GetLatency performs getlatency operation.
 func (p *AzureOpenAIProvider) GetLatency() time.Duration {
-	// Return estimated latency for Azure OpenAI API
+	// Return estimated latency for Azure OpenAI API.
 	return 250 * time.Millisecond
 }
 
-// LocalProvider implements a local embedding provider (placeholder for future implementation)
+// LocalProvider implements a local embedding provider (placeholder for future implementation).
 type LocalProvider struct {
 	config ProviderConfig
 	logger *slog.Logger
 	mutex  sync.RWMutex
 }
 
-// NewLocalProvider creates a new local provider
+// NewLocalProvider creates a new local provider.
 func NewLocalProvider(config ProviderConfig) *LocalProvider {
 	return &LocalProvider{
 		config: config,
@@ -328,60 +332,62 @@ func NewLocalProvider(config ProviderConfig) *LocalProvider {
 	}
 }
 
-// GenerateEmbeddings implements EmbeddingProvider for local models
+// GenerateEmbeddings implements EmbeddingProvider for local models.
 func (p *LocalProvider) GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, TokenUsage, error) {
-	// This is a placeholder for local embedding generation
-	// In a real implementation, this would interface with local models like:
-	// - sentence-transformers via Python subprocess
-	// - ONNX Runtime with embedding models
-	// - TensorFlow Lite models
-	// - Ollama for local LLM embeddings
+	// This is a placeholder for local embedding generation.
+	// In a real implementation, this would interface with local models like:.
+	// - sentence-transformers via Python subprocess.
+	// - ONNX Runtime with embedding models.
+	// - TensorFlow Lite models.
+	// - Ollama for local LLM embeddings.
 
 	p.logger.Warn("Local provider called but not implemented - would generate embeddings locally")
 
-	// For now, return an error indicating this is not yet implemented
+	// For now, return an error indicating this is not yet implemented.
 	return nil, TokenUsage{}, fmt.Errorf("local embedding provider not implemented yet - requires integration with local models")
 }
 
-// GetConfig implements EmbeddingProvider
+// GetConfig implements EmbeddingProvider.
 func (p *LocalProvider) GetConfig() ProviderConfig {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 	return p.config
 }
 
-// HealthCheck implements EmbeddingProvider
+// HealthCheck implements EmbeddingProvider.
 func (p *LocalProvider) HealthCheck(ctx context.Context) error {
 	p.mutex.Lock()
 	p.config.Healthy = true // Always healthy for local provider (when implemented)
 	p.config.LastCheck = time.Now()
 	p.mutex.Unlock()
 
-	// For now, return healthy status
+	// For now, return healthy status.
 	return nil
 }
 
-// GetCostEstimate implements EmbeddingProvider (local is free)
+// GetCostEstimate implements EmbeddingProvider (local is free).
 func (p *LocalProvider) GetCostEstimate(tokenCount int) float64 {
 	return 0.0 // Local processing is free
 }
 
-// GetName implements EmbeddingProvider
+// GetName implements EmbeddingProvider.
 func (p *LocalProvider) GetName() string {
 	return p.config.Name
 }
 
+// IsHealthy performs ishealthy operation.
 func (p *LocalProvider) IsHealthy() bool {
-	// Local provider is always healthy if properly configured
+	// Local provider is always healthy if properly configured.
 	return true
 }
 
+// GetLatency performs getlatency operation.
 func (p *LocalProvider) GetLatency() time.Duration {
-	// Local provider should have very low latency
+	// Local provider should have very low latency.
 	return 10 * time.Millisecond
 }
 
-// HuggingFaceProvider implements Hugging Face Inference API provider
+// HuggingFaceProvider implements Hugging Face Inference API provider.
 type HuggingFaceProvider struct {
 	config     ProviderConfig
 	httpClient *http.Client
@@ -389,7 +395,7 @@ type HuggingFaceProvider struct {
 	mutex      sync.RWMutex
 }
 
-// NewBasicHuggingFaceProvider creates a new basic Hugging Face provider
+// NewBasicHuggingFaceProvider creates a new basic Hugging Face provider.
 func NewBasicHuggingFaceProvider(config ProviderConfig, httpClient *http.Client) *HuggingFaceProvider {
 	return &HuggingFaceProvider{
 		config:     config,
@@ -398,9 +404,9 @@ func NewBasicHuggingFaceProvider(config ProviderConfig, httpClient *http.Client)
 	}
 }
 
-// GenerateEmbeddings implements EmbeddingProvider for Hugging Face
+// GenerateEmbeddings implements EmbeddingProvider for Hugging Face.
 func (p *HuggingFaceProvider) GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, TokenUsage, error) {
-	// Hugging Face Inference API format
+	// Hugging Face Inference API format.
 	requestBody := map[string]interface{}{
 		"inputs": texts,
 		"options": map[string]interface{}{
@@ -418,12 +424,12 @@ func (p *HuggingFaceProvider) GenerateEmbeddings(ctx context.Context, texts []st
 		return nil, TokenUsage{}, fmt.Errorf("failed to create HuggingFace request: %w", err)
 	}
 
-	// Set Hugging Face headers
+	// Set Hugging Face headers.
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+p.config.APIKey)
 	req.Header.Set("User-Agent", "Nephoran-Intent-Operator/1.0")
 
-	// Execute request
+	// Execute request.
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
 		return nil, TokenUsage{}, fmt.Errorf("HuggingFace API request failed: %w", err)
@@ -434,13 +440,13 @@ func (p *HuggingFaceProvider) GenerateEmbeddings(ctx context.Context, texts []st
 		return nil, TokenUsage{}, fmt.Errorf("HuggingFace API returned status %d", resp.StatusCode)
 	}
 
-	// HuggingFace returns embeddings directly as arrays
+	// HuggingFace returns embeddings directly as arrays.
 	var embeddings [][]float32
 	if err := json.NewDecoder(resp.Body).Decode(&embeddings); err != nil {
 		return nil, TokenUsage{}, fmt.Errorf("failed to decode HuggingFace response: %w", err)
 	}
 
-	// Estimate token usage (HuggingFace doesn't provide this)
+	// Estimate token usage (HuggingFace doesn't provide this).
 	totalTokens := 0
 	for _, text := range texts {
 		totalTokens += len(text) / 4 // Rough estimation
@@ -455,14 +461,14 @@ func (p *HuggingFaceProvider) GenerateEmbeddings(ctx context.Context, texts []st
 	return embeddings, usage, nil
 }
 
-// GetConfig implements EmbeddingProvider
+// GetConfig implements EmbeddingProvider.
 func (p *HuggingFaceProvider) GetConfig() ProviderConfig {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 	return p.config
 }
 
-// HealthCheck implements EmbeddingProvider
+// HealthCheck implements EmbeddingProvider.
 func (p *HuggingFaceProvider) HealthCheck(ctx context.Context) error {
 	testTexts := []string{"health check"}
 	_, _, err := p.GenerateEmbeddings(ctx, testTexts)
@@ -475,27 +481,29 @@ func (p *HuggingFaceProvider) HealthCheck(ctx context.Context) error {
 	return err
 }
 
-// GetCostEstimate implements EmbeddingProvider
+// GetCostEstimate implements EmbeddingProvider.
 func (p *HuggingFaceProvider) GetCostEstimate(tokenCount int) float64 {
 	return float64(tokenCount) * p.config.CostPerToken / 1000
 }
 
-// GetName implements EmbeddingProvider
+// GetName implements EmbeddingProvider.
 func (p *HuggingFaceProvider) GetName() string {
 	return p.config.Name
 }
 
+// IsHealthy performs ishealthy operation.
 func (p *HuggingFaceProvider) IsHealthy() bool {
-	// Simple health check
+	// Simple health check.
 	return p.httpClient != nil && p.config.APIKey != ""
 }
 
+// GetLatency performs getlatency operation.
 func (p *HuggingFaceProvider) GetLatency() time.Duration {
-	// Return estimated latency for Hugging Face API
+	// Return estimated latency for Hugging Face API.
 	return 500 * time.Millisecond
 }
 
-// CohereProvider implements Cohere embedding provider
+// CohereProvider implements Cohere embedding provider.
 type CohereProvider struct {
 	config     ProviderConfig
 	httpClient *http.Client
@@ -503,7 +511,7 @@ type CohereProvider struct {
 	mutex      sync.RWMutex
 }
 
-// NewCohereProvider creates a new Cohere provider
+// NewCohereProvider creates a new Cohere provider.
 func NewCohereProvider(config ProviderConfig, httpClient *http.Client) *CohereProvider {
 	return &CohereProvider{
 		config:     config,
@@ -512,7 +520,7 @@ func NewCohereProvider(config ProviderConfig, httpClient *http.Client) *CoherePr
 	}
 }
 
-// GenerateEmbeddings implements EmbeddingProvider for Cohere
+// GenerateEmbeddings implements EmbeddingProvider for Cohere.
 func (p *CohereProvider) GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, TokenUsage, error) {
 	requestBody := map[string]interface{}{
 		"texts":      texts,
@@ -530,7 +538,7 @@ func (p *CohereProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 		return nil, TokenUsage{}, fmt.Errorf("failed to create Cohere request: %w", err)
 	}
 
-	// Set Cohere headers
+	// Set Cohere headers.
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+p.config.APIKey)
 	req.Header.Set("User-Agent", "Nephoran-Intent-Operator/1.0")
@@ -567,14 +575,14 @@ func (p *CohereProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 	return apiResponse.Embeddings, usage, nil
 }
 
-// GetConfig implements EmbeddingProvider
+// GetConfig implements EmbeddingProvider.
 func (p *CohereProvider) GetConfig() ProviderConfig {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 	return p.config
 }
 
-// HealthCheck implements EmbeddingProvider
+// HealthCheck implements EmbeddingProvider.
 func (p *CohereProvider) HealthCheck(ctx context.Context) error {
 	testTexts := []string{"health check"}
 	_, _, err := p.GenerateEmbeddings(ctx, testTexts)
@@ -587,22 +595,24 @@ func (p *CohereProvider) HealthCheck(ctx context.Context) error {
 	return err
 }
 
-// GetCostEstimate implements EmbeddingProvider
+// GetCostEstimate implements EmbeddingProvider.
 func (p *CohereProvider) GetCostEstimate(tokenCount int) float64 {
 	return float64(tokenCount) * p.config.CostPerToken / 1000
 }
 
-// GetName implements EmbeddingProvider
+// GetName implements EmbeddingProvider.
 func (p *CohereProvider) GetName() string {
 	return p.config.Name
 }
 
+// IsHealthy performs ishealthy operation.
 func (p *CohereProvider) IsHealthy() bool {
-	// Simple health check
+	// Simple health check.
 	return p.httpClient != nil && p.config.APIKey != ""
 }
 
+// GetLatency performs getlatency operation.
 func (p *CohereProvider) GetLatency() time.Duration {
-	// Return estimated latency for Cohere API
+	// Return estimated latency for Cohere API.
 	return 300 * time.Millisecond
 }

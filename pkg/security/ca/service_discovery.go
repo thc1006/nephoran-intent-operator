@@ -14,25 +14,25 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-// ServiceDiscovery handles automatic discovery and certificate provisioning for new services
+// ServiceDiscovery handles automatic discovery and certificate provisioning for new services.
 type ServiceDiscovery struct {
 	logger           *logging.StructuredLogger
 	kubeClient       kubernetes.Interface
 	config           *ServiceDiscoveryConfig
 	automationEngine *AutomationEngine
 
-	// Discovery state
+	// Discovery state.
 	discoveredServices map[string]*DiscoveredService
 	certTemplates      map[string]*CertificateTemplate
 	mu                 sync.RWMutex
 
-	// Control channels
+	// Control channels.
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 }
 
-// ServiceDiscoveryConfig configures the service discovery
+// ServiceDiscoveryConfig configures the service discovery.
 type ServiceDiscoveryConfig struct {
 	Enabled                 bool                          `yaml:"enabled"`
 	WatchNamespaces         []string                      `yaml:"watch_namespaces"`
@@ -43,7 +43,7 @@ type ServiceDiscoveryConfig struct {
 	ServiceMeshIntegration  *ServiceMeshIntegrationConfig `yaml:"service_mesh_integration"`
 }
 
-// TemplateMatchingConfig configures certificate template matching
+// TemplateMatchingConfig configures certificate template matching.
 type TemplateMatchingConfig struct {
 	Enabled          bool                    `yaml:"enabled"`
 	DefaultTemplate  string                  `yaml:"default_template"`
@@ -51,7 +51,7 @@ type TemplateMatchingConfig struct {
 	FallbackBehavior string                  `yaml:"fallback_behavior"`
 }
 
-// TemplateMatchingRule defines rules for matching services to certificate templates
+// TemplateMatchingRule defines rules for matching services to certificate templates.
 type TemplateMatchingRule struct {
 	Name                string            `yaml:"name"`
 	Priority            int               `yaml:"priority"`
@@ -62,7 +62,7 @@ type TemplateMatchingRule struct {
 	Template            string            `yaml:"template"`
 }
 
-// ServiceMeshIntegrationConfig configures service mesh integration
+// ServiceMeshIntegrationConfig configures service mesh integration.
 type ServiceMeshIntegrationConfig struct {
 	Enabled          bool   `yaml:"enabled"`
 	MeshType         string `yaml:"mesh_type"` // "istio", "linkerd", "consul"
@@ -70,7 +70,7 @@ type ServiceMeshIntegrationConfig struct {
 	SidecarInjection bool   `yaml:"sidecar_injection"`
 }
 
-// DiscoveredService represents a discovered service
+// DiscoveredService represents a discovered service.
 type DiscoveredService struct {
 	Name            string                 `json:"name"`
 	Namespace       string                 `json:"namespace"`
@@ -84,7 +84,7 @@ type DiscoveredService struct {
 	Status          DiscoveryStatus        `json:"status"`
 }
 
-// ServicePort represents a service port
+// ServicePort represents a service port.
 type DiscoveryServicePort struct {
 	Name       string `json:"name"`
 	Port       int32  `json:"port"`
@@ -92,18 +92,23 @@ type DiscoveryServicePort struct {
 	TLSEnabled bool   `json:"tls_enabled"`
 }
 
-// DiscoveryStatus represents the status of service discovery
+// DiscoveryStatus represents the status of service discovery.
 type DiscoveryStatus string
 
 const (
-	StatusDiscovered      DiscoveryStatus = "discovered"
-	StatusProvisioning    DiscoveryStatus = "provisioning"
-	StatusProvisioned     DiscoveryStatus = "provisioned"
+	// StatusDiscovered holds statusdiscovered value.
+	StatusDiscovered DiscoveryStatus = "discovered"
+	// StatusProvisioning holds statusprovisioning value.
+	StatusProvisioning DiscoveryStatus = "provisioning"
+	// StatusProvisioned holds statusprovisioned value.
+	StatusProvisioned DiscoveryStatus = "provisioned"
+	// StatusProvisionFailed holds statusprovisionfailed value.
 	StatusProvisionFailed DiscoveryStatus = "provision_failed"
-	StatusSkipped         DiscoveryStatus = "skipped"
+	// StatusSkipped holds statusskipped value.
+	StatusSkipped DiscoveryStatus = "skipped"
 )
 
-// CertificateTemplate defines a certificate template for services
+// CertificateTemplate defines a certificate template for services.
 type CertificateTemplate struct {
 	Name              string            `yaml:"name"`
 	Description       string            `yaml:"description"`
@@ -118,7 +123,7 @@ type CertificateTemplate struct {
 	RenewalThreshold  time.Duration     `yaml:"renewal_threshold"`
 }
 
-// NewServiceDiscovery creates a new service discovery instance
+// NewServiceDiscovery creates a new service discovery instance.
 func NewServiceDiscovery(
 	logger *logging.StructuredLogger,
 	kubeClient kubernetes.Interface,
@@ -139,7 +144,7 @@ func NewServiceDiscovery(
 	}
 }
 
-// Start starts the service discovery
+// Start starts the service discovery.
 func (sd *ServiceDiscovery) Start(ctx context.Context) error {
 	if !sd.config.Enabled {
 		sd.logger.Info("service discovery is disabled")
@@ -150,28 +155,28 @@ func (sd *ServiceDiscovery) Start(ctx context.Context) error {
 		"watch_namespaces", sd.config.WatchNamespaces,
 		"auto_provision", sd.config.AutoProvisionEnabled)
 
-	// Load certificate templates
+	// Load certificate templates.
 	if err := sd.loadCertificateTemplates(); err != nil {
 		return fmt.Errorf("failed to load certificate templates: %w", err)
 	}
 
-	// Start service watchers
+	// Start service watchers.
 	for _, namespace := range sd.config.WatchNamespaces {
 		sd.wg.Add(1)
 		go sd.watchServices(namespace)
 	}
 
-	// Start pre-provisioning if enabled
+	// Start pre-provisioning if enabled.
 	if sd.config.PreProvisioningEnabled {
 		sd.wg.Add(1)
 		go sd.runPreProvisioning()
 	}
 
-	// Start discovery cleanup
+	// Start discovery cleanup.
 	sd.wg.Add(1)
 	go sd.runDiscoveryCleanup()
 
-	// Wait for context cancellation
+	// Wait for context cancellation.
 	<-ctx.Done()
 	sd.cancel()
 	sd.wg.Wait()
@@ -179,20 +184,20 @@ func (sd *ServiceDiscovery) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the service discovery
+// Stop stops the service discovery.
 func (sd *ServiceDiscovery) Stop() {
 	sd.logger.Info("stopping service discovery")
 	sd.cancel()
 	sd.wg.Wait()
 }
 
-// watchServices watches services in a specific namespace
+// watchServices watches services in a specific namespace.
 func (sd *ServiceDiscovery) watchServices(namespace string) {
 	defer sd.wg.Done()
 
 	sd.logger.Info("starting service watcher", "namespace", namespace)
 
-	// Create list watcher for services
+	// Create list watcher for services.
 	watchlist := cache.NewListWatchFromClient(
 		sd.kubeClient.CoreV1().RESTClient(),
 		"services",
@@ -200,7 +205,7 @@ func (sd *ServiceDiscovery) watchServices(namespace string) {
 		fields.Everything(),
 	)
 
-	// Create informer
+	// Create informer.
 	_, controller := cache.NewInformer(
 		watchlist,
 		&v1.Service{},
@@ -224,28 +229,28 @@ func (sd *ServiceDiscovery) watchServices(namespace string) {
 		},
 	)
 
-	// Run controller
+	// Run controller.
 	go controller.Run(sd.ctx.Done())
 }
 
-// handleServiceAdded handles new service discovery
+// handleServiceAdded handles new service discovery.
 func (sd *ServiceDiscovery) handleServiceAdded(service *v1.Service) {
 	sd.logger.Debug("service added",
 		"service", service.Name,
 		"namespace", service.Namespace)
 
-	// Check if service should be managed
+	// Check if service should be managed.
 	if !sd.shouldManageService(service) {
 		return
 	}
 
-	// Discover service
+	// Discover service.
 	discovered := sd.discoverService(service)
 	if discovered == nil {
 		return
 	}
 
-	// Store discovered service
+	// Store discovered service.
 	serviceKey := fmt.Sprintf("%s/%s", service.Namespace, service.Name)
 	sd.mu.Lock()
 	sd.discoveredServices[serviceKey] = discovered
@@ -257,13 +262,13 @@ func (sd *ServiceDiscovery) handleServiceAdded(service *v1.Service) {
 		"template", discovered.Template,
 		"tls_ports", sd.countTLSPorts(discovered.Ports))
 
-	// Auto-provision if enabled
+	// Auto-provision if enabled.
 	if sd.config.AutoProvisionEnabled {
 		go sd.provisionCertificateForService(discovered)
 	}
 }
 
-// handleServiceUpdated handles service updates
+// handleServiceUpdated handles service updates.
 func (sd *ServiceDiscovery) handleServiceUpdated(service *v1.Service) {
 	serviceKey := fmt.Sprintf("%s/%s", service.Namespace, service.Name)
 
@@ -272,23 +277,23 @@ func (sd *ServiceDiscovery) handleServiceUpdated(service *v1.Service) {
 	sd.mu.Unlock()
 
 	if !exists {
-		// Treat as new service
+		// Treat as new service.
 		sd.handleServiceAdded(service)
 		return
 	}
 
-	// Check if service configuration changed
+	// Check if service configuration changed.
 	discovered := sd.discoverService(service)
 	if discovered == nil {
 		return
 	}
 
-	// Update discovered service
+	// Update discovered service.
 	sd.mu.Lock()
 	sd.discoveredServices[serviceKey] = discovered
 	sd.mu.Unlock()
 
-	// Check if certificate needs to be reprovisioned
+	// Check if certificate needs to be reprovisioned.
 	if sd.shouldReprovisionCertificate(existing, discovered) {
 		sd.logger.Info("service configuration changed, reprovisioning certificate",
 			"service", service.Name,
@@ -298,7 +303,7 @@ func (sd *ServiceDiscovery) handleServiceUpdated(service *v1.Service) {
 	}
 }
 
-// handleServiceDeleted handles service deletion
+// handleServiceDeleted handles service deletion.
 func (sd *ServiceDiscovery) handleServiceDeleted(service *v1.Service) {
 	serviceKey := fmt.Sprintf("%s/%s", service.Namespace, service.Name)
 
@@ -313,29 +318,29 @@ func (sd *ServiceDiscovery) handleServiceDeleted(service *v1.Service) {
 			"namespace", service.Namespace,
 			"was_provisioned", discovered.CertProvisioned)
 
-		// Optionally revoke certificate
+		// Optionally revoke certificate.
 		if discovered.CertProvisioned {
 			go sd.revokeCertificateForService(discovered)
 		}
 	}
 }
 
-// shouldManageService determines if a service should be managed
+// shouldManageService determines if a service should be managed.
 func (sd *ServiceDiscovery) shouldManageService(service *v1.Service) bool {
-	// Skip system services
+	// Skip system services.
 	if service.Namespace == "kube-system" ||
 		service.Namespace == "kube-public" ||
 		strings.HasPrefix(service.Name, "kubernetes") {
 		return false
 	}
 
-	// Check for explicit opt-out annotation
+	// Check for explicit opt-out annotation.
 	optOutKey := fmt.Sprintf("%s/manage", sd.config.ServiceAnnotationPrefix)
 	if value, exists := service.Annotations[optOutKey]; exists && value == "false" {
 		return false
 	}
 
-	// Check for TLS ports or explicit opt-in
+	// Check for TLS ports or explicit opt-in.
 	hasTLSPorts := sd.servicePorts(service).HasTLSPorts()
 	optInKey := fmt.Sprintf("%s/auto-certificate", sd.config.ServiceAnnotationPrefix)
 	hasOptIn := false
@@ -346,7 +351,7 @@ func (sd *ServiceDiscovery) shouldManageService(service *v1.Service) bool {
 	return hasTLSPorts || hasOptIn
 }
 
-// discoverService creates a discovered service from a Kubernetes service
+// discoverService creates a discovered service from a Kubernetes service.
 func (sd *ServiceDiscovery) discoverService(service *v1.Service) *DiscoveredService {
 	ports := sd.servicePorts(service)
 	template := sd.selectCertificateTemplate(service)
@@ -370,13 +375,13 @@ func (sd *ServiceDiscovery) discoverService(service *v1.Service) *DiscoveredServ
 	}
 }
 
-// selectCertificateTemplate selects the appropriate certificate template
+// selectCertificateTemplate selects the appropriate certificate template.
 func (sd *ServiceDiscovery) selectCertificateTemplate(service *v1.Service) string {
 	if !sd.config.TemplateMatching.Enabled {
 		return sd.config.TemplateMatching.DefaultTemplate
 	}
 
-	// Check for explicit template annotation
+	// Check for explicit template annotation.
 	templateKey := fmt.Sprintf("%s/certificate-template", sd.config.ServiceAnnotationPrefix)
 	if template, exists := service.Annotations[templateKey]; exists {
 		if _, templateExists := sd.certTemplates[template]; templateExists {
@@ -384,7 +389,7 @@ func (sd *ServiceDiscovery) selectCertificateTemplate(service *v1.Service) strin
 		}
 	}
 
-	// Apply matching rules
+	// Apply matching rules.
 	var bestMatch *TemplateMatchingRule
 	var bestPriority int = -1
 
@@ -399,7 +404,7 @@ func (sd *ServiceDiscovery) selectCertificateTemplate(service *v1.Service) strin
 		return bestMatch.Template
 	}
 
-	// Fallback behavior
+	// Fallback behavior.
 	switch sd.config.TemplateMatching.FallbackBehavior {
 	case "default":
 		return sd.config.TemplateMatching.DefaultTemplate
@@ -410,26 +415,26 @@ func (sd *ServiceDiscovery) selectCertificateTemplate(service *v1.Service) strin
 	}
 }
 
-// matchesRule checks if a service matches a template matching rule
+// matchesRule checks if a service matches a template matching rule.
 func (sd *ServiceDiscovery) matchesRule(service *v1.Service, rule *TemplateMatchingRule) bool {
-	// Check namespace pattern
+	// Check namespace pattern.
 	if rule.NamespacePattern != "" && !sd.matchesPattern(service.Namespace, rule.NamespacePattern) {
 		return false
 	}
 
-	// Check service pattern
+	// Check service pattern.
 	if rule.ServicePattern != "" && !sd.matchesPattern(service.Name, rule.ServicePattern) {
 		return false
 	}
 
-	// Check label selectors
+	// Check label selectors.
 	for labelKey, labelValue := range rule.LabelSelectors {
 		if serviceValue, exists := service.Labels[labelKey]; !exists || serviceValue != labelValue {
 			return false
 		}
 	}
 
-	// Check annotation selectors
+	// Check annotation selectors.
 	for annotationKey, annotationValue := range rule.AnnotationSelectors {
 		if serviceValue, exists := service.Annotations[annotationKey]; !exists || serviceValue != annotationValue {
 			return false
@@ -439,9 +444,9 @@ func (sd *ServiceDiscovery) matchesRule(service *v1.Service, rule *TemplateMatch
 	return true
 }
 
-// matchesPattern checks if a string matches a pattern (basic glob support)
+// matchesPattern checks if a string matches a pattern (basic glob support).
 func (sd *ServiceDiscovery) matchesPattern(value, pattern string) bool {
-	// Simple pattern matching - could be enhanced with regex or glob library
+	// Simple pattern matching - could be enhanced with regex or glob library.
 	if pattern == "*" {
 		return true
 	}
@@ -456,17 +461,17 @@ func (sd *ServiceDiscovery) matchesPattern(value, pattern string) bool {
 	return value == pattern
 }
 
-// provisionCertificateForService provisions certificate for a discovered service
+// provisionCertificateForService provisions certificate for a discovered service.
 func (sd *ServiceDiscovery) provisionCertificateForService(discovered *DiscoveredService) {
 	sd.logger.Info("provisioning certificate for service",
 		"service", discovered.Name,
 		"namespace", discovered.Namespace,
 		"template", discovered.Template)
 
-	// Update status
+	// Update status.
 	discovered.Status = StatusProvisioning
 
-	// Get certificate template
+	// Get certificate template.
 	template, exists := sd.certTemplates[discovered.Template]
 	if !exists {
 		sd.logger.Error("certificate template not found",
@@ -476,10 +481,10 @@ func (sd *ServiceDiscovery) provisionCertificateForService(discovered *Discovere
 		return
 	}
 
-	// Generate DNS names
+	// Generate DNS names.
 	dnsNames := sd.generateDNSNames(discovered, template)
 
-	// Create provisioning request
+	// Create provisioning request.
 	req := &AutomationRequest{
 		Type:             RequestTypeProvisioning,
 		ServiceName:      discovered.Name,
@@ -494,7 +499,7 @@ func (sd *ServiceDiscovery) provisionCertificateForService(discovered *Discovere
 		},
 	}
 
-	// Submit provisioning request
+	// Submit provisioning request.
 	response := sd.automationEngine.ProcessManualRequest(req)
 	if response.Status != StatusCompleted {
 		sd.logger.Error("failed to request certificate provisioning",
@@ -505,7 +510,7 @@ func (sd *ServiceDiscovery) provisionCertificateForService(discovered *Discovere
 		return
 	}
 
-	// Update service state
+	// Update service state.
 	discovered.CertProvisioned = true
 	discovered.LastProvisioned = time.Now()
 	discovered.Status = StatusProvisioned
@@ -516,11 +521,11 @@ func (sd *ServiceDiscovery) provisionCertificateForService(discovered *Discovere
 		"request_id", req.Metadata["request_id"])
 }
 
-// generateDNSNames generates DNS names for the certificate
+// generateDNSNames generates DNS names for the certificate.
 func (sd *ServiceDiscovery) generateDNSNames(discovered *DiscoveredService, template *CertificateTemplate) []string {
 	var dnsNames []string
 
-	// Add standard Kubernetes DNS names
+	// Add standard Kubernetes DNS names.
 	dnsNames = append(dnsNames,
 		fmt.Sprintf("%s.%s.svc.cluster.local", discovered.Name, discovered.Namespace),
 		fmt.Sprintf("%s.%s.svc", discovered.Name, discovered.Namespace),
@@ -528,14 +533,14 @@ func (sd *ServiceDiscovery) generateDNSNames(discovered *DiscoveredService, temp
 		discovered.Name,
 	)
 
-	// Add template-specific DNS patterns
+	// Add template-specific DNS patterns.
 	for _, pattern := range template.DNSNamePatterns {
 		dnsName := strings.ReplaceAll(pattern, "{service}", discovered.Name)
 		dnsName = strings.ReplaceAll(dnsName, "{namespace}", discovered.Namespace)
 		dnsNames = append(dnsNames, dnsName)
 	}
 
-	// Add DNS names from service annotations
+	// Add DNS names from service annotations.
 	dnsAnnotationKey := fmt.Sprintf("%s/additional-dns", sd.config.ServiceAnnotationPrefix)
 	if additionalDNS, exists := discovered.Annotations[dnsAnnotationKey]; exists {
 		for _, dns := range strings.Split(additionalDNS, ",") {
@@ -546,26 +551,26 @@ func (sd *ServiceDiscovery) generateDNSNames(discovered *DiscoveredService, temp
 	return dnsNames
 }
 
-// shouldReprovisionCertificate determines if certificate should be reprovisioned
+// shouldReprovisionCertificate determines if certificate should be reprovisioned.
 func (sd *ServiceDiscovery) shouldReprovisionCertificate(existing, updated *DiscoveredService) bool {
-	// Check if template changed
+	// Check if template changed.
 	if existing.Template != updated.Template {
 		return true
 	}
 
-	// Check if ports changed
+	// Check if ports changed.
 	if len(existing.Ports) != len(updated.Ports) {
 		return true
 	}
 
-	// Check if TLS configuration changed
+	// Check if TLS configuration changed.
 	existingTLSPorts := sd.countTLSPorts(existing.Ports)
 	updatedTLSPorts := sd.countTLSPorts(updated.Ports)
 	if existingTLSPorts != updatedTLSPorts {
 		return true
 	}
 
-	// Check if DNS annotations changed
+	// Check if DNS annotations changed.
 	dnsKey := fmt.Sprintf("%s/additional-dns", sd.config.ServiceAnnotationPrefix)
 	existingDNS := existing.Annotations[dnsKey]
 	updatedDNS := updated.Annotations[dnsKey]
@@ -576,17 +581,17 @@ func (sd *ServiceDiscovery) shouldReprovisionCertificate(existing, updated *Disc
 	return false
 }
 
-// revokeCertificateForService revokes certificate for a deleted service
+// revokeCertificateForService revokes certificate for a deleted service.
 func (sd *ServiceDiscovery) revokeCertificateForService(discovered *DiscoveredService) {
 	sd.logger.Info("revoking certificate for deleted service",
 		"service", discovered.Name,
 		"namespace", discovered.Namespace)
 
-	// This would integrate with the CA manager to revoke certificates
-	// Implementation depends on the specific CA backend
+	// This would integrate with the CA manager to revoke certificates.
+	// Implementation depends on the specific CA backend.
 }
 
-// runPreProvisioning handles pre-provisioning of certificates
+// runPreProvisioning handles pre-provisioning of certificates.
 func (sd *ServiceDiscovery) runPreProvisioning() {
 	defer sd.wg.Done()
 
@@ -605,7 +610,7 @@ func (sd *ServiceDiscovery) runPreProvisioning() {
 	}
 }
 
-// performPreProvisioning performs pre-provisioning check
+// performPreProvisioning performs pre-provisioning check.
 func (sd *ServiceDiscovery) performPreProvisioning() {
 	sd.logger.Debug("performing pre-provisioning check")
 
@@ -618,7 +623,7 @@ func (sd *ServiceDiscovery) performPreProvisioning() {
 
 	for _, service := range services {
 		if !service.CertProvisioned && service.Status == StatusDiscovered {
-			// Check if service is stable (discovered more than 5 minutes ago)
+			// Check if service is stable (discovered more than 5 minutes ago).
 			if time.Since(service.DiscoveredAt) > 5*time.Minute {
 				go sd.provisionCertificateForService(service)
 			}
@@ -626,7 +631,7 @@ func (sd *ServiceDiscovery) performPreProvisioning() {
 	}
 }
 
-// runDiscoveryCleanup handles cleanup of old discovery data
+// runDiscoveryCleanup handles cleanup of old discovery data.
 func (sd *ServiceDiscovery) runDiscoveryCleanup() {
 	defer sd.wg.Done()
 
@@ -643,7 +648,7 @@ func (sd *ServiceDiscovery) runDiscoveryCleanup() {
 	}
 }
 
-// performDiscoveryCleanup cleans up old discovery data
+// performDiscoveryCleanup cleans up old discovery data.
 func (sd *ServiceDiscovery) performDiscoveryCleanup() {
 	sd.logger.Debug("performing discovery cleanup")
 
@@ -662,9 +667,9 @@ func (sd *ServiceDiscovery) performDiscoveryCleanup() {
 	}
 }
 
-// loadCertificateTemplates loads certificate templates from configuration
+// loadCertificateTemplates loads certificate templates from configuration.
 func (sd *ServiceDiscovery) loadCertificateTemplates() error {
-	// Load default templates
+	// Load default templates.
 	sd.certTemplates["default"] = &CertificateTemplate{
 		Name:             "default",
 		Description:      "Default certificate template for services",
@@ -706,12 +711,12 @@ func (sd *ServiceDiscovery) loadCertificateTemplates() error {
 	return nil
 }
 
-// GetDiscoveredServices returns all discovered services
+// GetDiscoveredServices returns all discovered services.
 func (sd *ServiceDiscovery) GetDiscoveredServices() map[string]*DiscoveredService {
 	sd.mu.RLock()
 	defer sd.mu.RUnlock()
 
-	// Return a copy to avoid concurrent access issues
+	// Return a copy to avoid concurrent access issues.
 	result := make(map[string]*DiscoveredService)
 	for k, v := range sd.discoveredServices {
 		result[k] = v
@@ -720,7 +725,7 @@ func (sd *ServiceDiscovery) GetDiscoveredServices() map[string]*DiscoveredServic
 	return result
 }
 
-// Helper types and methods
+// Helper types and methods.
 
 type servicePorts []v1.ServicePort
 
@@ -728,6 +733,7 @@ func (sd *ServiceDiscovery) servicePorts(service *v1.Service) servicePorts {
 	return servicePorts(service.Spec.Ports)
 }
 
+// HasTLSPorts performs hastlsports operation.
 func (sp servicePorts) HasTLSPorts() bool {
 	for _, port := range sp {
 		if sp.isTLSPort(port) {
@@ -746,6 +752,7 @@ func (sp servicePorts) isTLSPort(port v1.ServicePort) bool {
 		strings.Contains(port.Name, "ssl")
 }
 
+// ToServicePorts performs toserviceports operation.
 func (sp servicePorts) ToServicePorts() []DiscoveryServicePort {
 	var result []DiscoveryServicePort
 	for _, port := range sp {

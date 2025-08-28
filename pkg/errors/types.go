@@ -5,67 +5,95 @@ import (
 	"time"
 )
 
-// ErrorSeverity represents the severity level of an error
+// ErrorSeverity represents the severity level of an error.
 type ErrorSeverity string
 
 const (
-	SeverityLow      ErrorSeverity = "low"
-	SeverityMedium   ErrorSeverity = "medium"
-	SeverityHigh     ErrorSeverity = "high"
+	// SeverityLow holds severitylow value.
+	SeverityLow ErrorSeverity = "low"
+	// SeverityMedium holds severitymedium value.
+	SeverityMedium ErrorSeverity = "medium"
+	// SeverityHigh holds severityhigh value.
+	SeverityHigh ErrorSeverity = "high"
+	// SeverityCritical holds severitycritical value.
 	SeverityCritical ErrorSeverity = "critical"
 )
 
-// String returns the string representation of ErrorSeverity
+// String returns the string representation of ErrorSeverity.
 func (es ErrorSeverity) String() string {
 	return string(es)
 }
 
-// ErrorCategory represents the category of an error
+// ErrorCategory represents the category of an error.
 type ErrorCategory string
 
 const (
-	CategoryBusiness       ErrorCategory = "business"
-	CategorySystem         ErrorCategory = "system"
-	CategorySecurity       ErrorCategory = "security"
-	CategoryNetwork        ErrorCategory = "network"
-	CategoryData           ErrorCategory = "data"
-	CategoryValidation     ErrorCategory = "validation"
-	CategoryPermission     ErrorCategory = "permission"
-	CategoryResource       ErrorCategory = "resource"
-	CategoryConfig         ErrorCategory = "config"
-	CategoryInternal       ErrorCategory = "internal"
-	CategoryCapacity       ErrorCategory = "capacity"
-	CategoryRateLimit      ErrorCategory = "rate_limit"
+	// CategoryBusiness holds categorybusiness value.
+	CategoryBusiness ErrorCategory = "business"
+	// CategorySystem holds categorysystem value.
+	CategorySystem ErrorCategory = "system"
+	// CategorySecurity holds categorysecurity value.
+	CategorySecurity ErrorCategory = "security"
+	// CategoryNetwork holds categorynetwork value.
+	CategoryNetwork ErrorCategory = "network"
+	// CategoryData holds categorydata value.
+	CategoryData ErrorCategory = "data"
+	// CategoryValidation holds categoryvalidation value.
+	CategoryValidation ErrorCategory = "validation"
+	// CategoryPermission holds categorypermission value.
+	CategoryPermission ErrorCategory = "permission"
+	// CategoryResource holds categoryresource value.
+	CategoryResource ErrorCategory = "resource"
+	// CategoryConfig holds categoryconfig value.
+	CategoryConfig ErrorCategory = "config"
+	// CategoryInternal holds categoryinternal value.
+	CategoryInternal ErrorCategory = "internal"
+	// CategoryCapacity holds categorycapacity value.
+	CategoryCapacity ErrorCategory = "capacity"
+	// CategoryRateLimit holds categoryratelimit value.
+	CategoryRateLimit ErrorCategory = "rate_limit"
+	// CategoryCircuitBreaker holds categorycircuitbreaker value.
 	CategoryCircuitBreaker ErrorCategory = "circuit_breaker"
 )
 
-// RecoveryStrategy represents different error recovery strategies
+// RecoveryStrategy represents different error recovery strategies.
 type RecoveryStrategy string
 
 const (
-	StrategyRetry          RecoveryStrategy = "retry"
-	StrategyBackoff        RecoveryStrategy = "backoff"
-	StrategyExponential    RecoveryStrategy = "exponential"
-	StrategyJittered       RecoveryStrategy = "jittered"
+	// StrategyRetry holds strategyretry value.
+	StrategyRetry RecoveryStrategy = "retry"
+	// StrategyBackoff holds strategybackoff value.
+	StrategyBackoff RecoveryStrategy = "backoff"
+	// StrategyExponential holds strategyexponential value.
+	StrategyExponential RecoveryStrategy = "exponential"
+	// StrategyJittered holds strategyjittered value.
+	StrategyJittered RecoveryStrategy = "jittered"
+	// StrategyCircuitBreaker holds strategycircuitbreaker value.
 	StrategyCircuitBreaker RecoveryStrategy = "circuit_breaker"
-	StrategyFallback       RecoveryStrategy = "fallback"
-	StrategyBulkhead       RecoveryStrategy = "bulkhead"
-	StrategyTimeout        RecoveryStrategy = "timeout"
-	StrategyRateLimit      RecoveryStrategy = "rate_limit"
-	StrategyDegradation    RecoveryStrategy = "degradation"
-	StrategyComposite      RecoveryStrategy = "composite"
+	// StrategyFallback holds strategyfallback value.
+	StrategyFallback RecoveryStrategy = "fallback"
+	// StrategyBulkhead holds strategybulkhead value.
+	StrategyBulkhead RecoveryStrategy = "bulkhead"
+	// StrategyTimeout holds strategytimeout value.
+	StrategyTimeout RecoveryStrategy = "timeout"
+	// StrategyRateLimit holds strategyratelimit value.
+	StrategyRateLimit RecoveryStrategy = "rate_limit"
+	// StrategyDegradation holds strategydegradation value.
+	StrategyDegradation RecoveryStrategy = "degradation"
+	// StrategyComposite holds strategycomposite value.
+	StrategyComposite RecoveryStrategy = "composite"
 )
 
-// ProcessingError represents an error that occurred during processing
+// ProcessingError represents an error that occurred during processing.
 type ProcessingError struct {
-	// Basic error information
+	// Basic error information.
 	ID        string    `json:"id"`
 	Code      string    `json:"code"`
 	Message   string    `json:"message"`
 	Details   string    `json:"details,omitempty"`
 	Timestamp time.Time `json:"timestamp"`
 
-	// Classification
+	// Classification.
 	Type      ErrorType     `json:"type"`
 	Category  ErrorCategory `json:"category"`
 	Severity  ErrorSeverity `json:"severity"`
@@ -73,18 +101,18 @@ type ProcessingError struct {
 	Operation string        `json:"operation,omitempty"`
 	Phase     string        `json:"phase,omitempty"`
 
-	// Context and tracing
+	// Context and tracing.
 	CorrelationID string                 `json:"correlation_id,omitempty"`
 	TraceID       string                 `json:"trace_id,omitempty"`
 	SpanID        string                 `json:"span_id,omitempty"`
 	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 
-	// Error chain
+	// Error chain.
 	Cause      error              `json:"-"`
 	CauseChain []*ProcessingError `json:"cause_chain,omitempty"`
 	StackTrace []StackFrame       `json:"stack_trace,omitempty"`
 
-	// Recovery information
+	// Recovery information.
 	Recoverable      bool             `json:"recoverable"`
 	RetryCount       int              `json:"retry_count"`
 	MaxRetries       int              `json:"max_retries"`
@@ -93,7 +121,7 @@ type ProcessingError struct {
 	RecoveryStrategy RecoveryStrategy `json:"recovery_strategy,omitempty"`
 }
 
-// Error implements the error interface
+// Error implements the error interface.
 func (pe *ProcessingError) Error() string {
 	if pe.Details != "" {
 		return fmt.Sprintf("[%s:%s:%s] %s: %s", pe.Component, pe.Operation, pe.Phase, pe.Message, pe.Details)
@@ -101,30 +129,35 @@ func (pe *ProcessingError) Error() string {
 	return fmt.Sprintf("[%s:%s:%s] %s", pe.Component, pe.Operation, pe.Phase, pe.Message)
 }
 
-// Unwrap implements the error unwrapping interface
+// Unwrap implements the error unwrapping interface.
 func (pe *ProcessingError) Unwrap() error {
 	return pe.Cause
 }
 
-// This file contains type aliases and imports for backward compatibility
+// This file contains type aliases and imports for backward compatibility.
 
-// ErrorType represents different types of errors for classification - using types from errors.go
-// Additional constants for extended error types not in errors.go
+// ErrorType represents different types of errors for classification - using types from errors.go.
+// Additional constants for extended error types not in errors.go.
 
-// Note: Basic ErrorType constants are defined in errors.go to avoid conflicts
+// Note: Basic ErrorType constants are defined in errors.go to avoid conflicts.
 
-// ErrorImpact represents the impact level of an error
+// ErrorImpact represents the impact level of an error.
 type ErrorImpact string
 
 const (
-	ImpactNone     ErrorImpact = "none"
-	ImpactMinimal  ErrorImpact = "minimal"
+	// ImpactNone holds impactnone value.
+	ImpactNone ErrorImpact = "none"
+	// ImpactMinimal holds impactminimal value.
+	ImpactMinimal ErrorImpact = "minimal"
+	// ImpactModerate holds impactmoderate value.
 	ImpactModerate ErrorImpact = "moderate"
-	ImpactSevere   ErrorImpact = "severe"
+	// ImpactSevere holds impactsevere value.
+	ImpactSevere ErrorImpact = "severe"
+	// ImpactCritical holds impactcritical value.
 	ImpactCritical ErrorImpact = "critical"
 )
 
-// StackFrame represents a single frame in the stack trace
+// StackFrame represents a single frame in the stack trace.
 type StackFrame struct {
 	File     string `json:"file"`
 	Line     int    `json:"line"`
@@ -133,24 +166,24 @@ type StackFrame struct {
 	Package  string `json:"package"`
 }
 
-// String returns a formatted string representation of the stack frame
+// String returns a formatted string representation of the stack frame.
 func (sf StackFrame) String() string {
 	return fmt.Sprintf("%s:%d %s", sf.File, sf.Line, sf.Function)
 }
 
-// ErrorContextFunc is a function that can add context to an error
+// ErrorContextFunc is a function that can add context to an error.
 type ErrorContextFunc func(*ServiceError)
 
-// ErrorPredicate is a function that tests an error condition
+// ErrorPredicate is a function that tests an error condition.
 type ErrorPredicate func(*ServiceError) bool
 
-// ErrorTransformer is a function that transforms one error into another
+// ErrorTransformer is a function that transforms one error into another.
 type ErrorTransformer func(*ServiceError) *ServiceError
 
-// ErrorHandler is a function that handles an error
+// ErrorHandler is a function that handles an error.
 type ErrorHandler func(*ServiceError) error
 
-// ErrorMetrics holds metrics about errors
+// ErrorMetrics holds metrics about errors.
 type ErrorMetrics struct {
 	TotalCount     int64            `json:"total_count"`
 	CountByType    map[string]int64 `json:"count_by_type"`
@@ -162,7 +195,7 @@ type ErrorMetrics struct {
 	RatePerSecond  float64          `json:"rate_per_second"`
 }
 
-// ErrorConfiguration holds configuration for error handling
+// ErrorConfiguration holds configuration for error handling.
 type ErrorConfiguration struct {
 	StackTraceEnabled     bool          `json:"stack_trace_enabled"`
 	StackTraceDepth       int           `json:"stack_trace_depth"`
@@ -176,7 +209,7 @@ type ErrorConfiguration struct {
 	MetricsEnabled        bool          `json:"metrics_enabled"`
 }
 
-// DefaultErrorConfiguration returns sensible defaults
+// DefaultErrorConfiguration returns sensible defaults.
 func DefaultErrorConfiguration() *ErrorConfiguration {
 	return &ErrorConfiguration{
 		StackTraceEnabled:     true,

@@ -10,19 +10,19 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/internal/platform"
 )
 
-// CrossPlatformMockOptions configures the behavior of the cross-platform mock script
+// CrossPlatformMockOptions configures the behavior of the cross-platform mock script.
 type CrossPlatformMockOptions struct {
-	// ExitCode is the exit code the mock script should return
+	// ExitCode is the exit code the mock script should return.
 	ExitCode int
-	// Stdout is the output the mock should write to stdout
+	// Stdout is the output the mock should write to stdout.
 	Stdout string
-	// Stderr is the output the mock should write to stderr
+	// Stderr is the output the mock should write to stderr.
 	Stderr string
-	// Sleep is the duration the mock should sleep before executing
+	// Sleep is the duration the mock should sleep before executing.
 	Sleep time.Duration
-	// FailOnPattern will cause the mock to exit with code 1 if the input contains this pattern
+	// FailOnPattern will cause the mock to exit with code 1 if the input contains this pattern.
 	FailOnPattern string
-	// CustomScript allows providing completely custom script content (overrides other options)
+	// CustomScript allows providing completely custom script content (overrides other options).
 	CustomScript struct {
 		Windows string // Windows batch content
 		Unix    string // Unix shell content
@@ -36,10 +36,10 @@ func CreateCrossPlatformMock(tempDir string, opts CrossPlatformMockOptions) (str
 	var script string
 
 	if runtime.GOOS == "windows" {
-		// Create Windows batch file
+		// Create Windows batch file.
 		mockPath = filepath.Join(tempDir, "mock-porch.bat")
 
-		// Use custom script if provided
+		// Use custom script if provided.
 		if opts.CustomScript.Windows != "" {
 			script = opts.CustomScript.Windows
 		} else {
@@ -50,7 +50,7 @@ func CreateCrossPlatformMock(tempDir string, opts CrossPlatformMockOptions) (str
 
 			sleepCmd := ""
 			if sleepSeconds > 0 {
-				// Use powershell Start-Sleep for more precise timing on Windows
+				// Use powershell Start-Sleep for more precise timing on Windows.
 				sleepCmd = fmt.Sprintf("powershell -command \"Start-Sleep -Milliseconds %d\"", int(opts.Sleep.Milliseconds()))
 			}
 
@@ -85,10 +85,10 @@ if "%%1"=="--help" (
 exit /b %d`, failOnPatternCmd, sleepCmd, stdoutCmd, stderrCmd, opts.ExitCode)
 		}
 	} else {
-		// Create Unix shell script
+		// Create Unix shell script.
 		mockPath = filepath.Join(tempDir, "mock-porch.sh")
 
-		// Use custom script if provided
+		// Use custom script if provided.
 		if opts.CustomScript.Unix != "" {
 			script = opts.CustomScript.Unix
 		} else {
@@ -128,15 +128,15 @@ exit %d`, failOnPatternCmd, sleepCmd, stdoutCmd, stderrCmd, opts.ExitCode)
 		}
 	}
 
-	// Write the script file
-	if err := os.WriteFile(mockPath, []byte(script), 0755); err != nil {
+	// Write the script file.
+	if err := os.WriteFile(mockPath, []byte(script), 0o755); err != nil {
 		return "", fmt.Errorf("failed to write mock script: %w", err)
 	}
 
 	return mockPath, nil
 }
 
-// CreateSimpleMock creates a basic mock script that echoes arguments and exits with code 0
+// CreateSimpleMock creates a basic mock script that echoes arguments and exits with code 0.
 func CreateSimpleMock(tempDir string) (string, error) {
 	return CreateCrossPlatformMock(tempDir, CrossPlatformMockOptions{
 		ExitCode: 0,
@@ -144,9 +144,9 @@ func CreateSimpleMock(tempDir string) (string, error) {
 	})
 }
 
-// CreateAdvancedMock creates a mock script using the new platform utilities
+// CreateAdvancedMock creates a mock script using the new platform utilities.
 func CreateAdvancedMock(tempDir string, opts CrossPlatformMockOptions) (string, error) {
-	// Convert to platform.ScriptOptions
+	// Convert to platform.ScriptOptions.
 	scriptOpts := platform.ScriptOptions{
 		ExitCode:      opts.ExitCode,
 		Stdout:        opts.Stdout,
@@ -155,7 +155,7 @@ func CreateAdvancedMock(tempDir string, opts CrossPlatformMockOptions) (string, 
 		FailOnPattern: opts.FailOnPattern,
 	}
 
-	// Set custom commands if provided
+	// Set custom commands if provided.
 	if opts.CustomScript.Windows != "" || opts.CustomScript.Unix != "" {
 		if opts.CustomScript.Windows != "" {
 			scriptOpts.CustomCommands.Windows = []string{opts.CustomScript.Windows}
@@ -165,7 +165,7 @@ func CreateAdvancedMock(tempDir string, opts CrossPlatformMockOptions) (string, 
 		}
 	}
 
-	// Create the script using platform utilities
+	// Create the script using platform utilities.
 	mockPath := platform.GetScriptPath(tempDir, "mock-porch")
 	err := platform.CreateCrossPlatformScript(mockPath, platform.MockPorchScript, scriptOpts)
 	if err != nil {
@@ -175,12 +175,12 @@ func CreateAdvancedMock(tempDir string, opts CrossPlatformMockOptions) (string, 
 	return mockPath, nil
 }
 
-// GetMockPorchPath returns the correct mock porch path for the current platform
+// GetMockPorchPath returns the correct mock porch path for the current platform.
 func GetMockPorchPath(tempDir string) string {
 	return platform.GetScriptPath(tempDir, "mock-porch")
 }
 
-// ValidateMockExecutable ensures the mock script is executable on the current platform
+// ValidateMockExecutable ensures the mock script is executable on the current platform.
 func ValidateMockExecutable(mockPath string) error {
 	if !platform.IsExecutable(mockPath) {
 		if err := platform.MakeExecutable(mockPath); err != nil {
@@ -190,7 +190,7 @@ func ValidateMockExecutable(mockPath string) error {
 	return nil
 }
 
-// CreateFailingMock creates a mock that simulates porch failures
+// CreateFailingMock creates a mock that simulates porch failures.
 func CreateFailingMock(tempDir string, exitCode int, errorMessage string) (string, error) {
 	return CreateCrossPlatformMock(tempDir, CrossPlatformMockOptions{
 		ExitCode: exitCode,
@@ -198,7 +198,7 @@ func CreateFailingMock(tempDir string, exitCode int, errorMessage string) (strin
 	})
 }
 
-// CreateSlowMock creates a mock that simulates slow porch execution
+// CreateSlowMock creates a mock that simulates slow porch execution.
 func CreateSlowMock(tempDir string, delay time.Duration) (string, error) {
 	return CreateCrossPlatformMock(tempDir, CrossPlatformMockOptions{
 		ExitCode: 0,
@@ -207,7 +207,7 @@ func CreateSlowMock(tempDir string, delay time.Duration) (string, error) {
 	})
 }
 
-// CreatePatternFailingMock creates a mock that fails when specific patterns are found
+// CreatePatternFailingMock creates a mock that fails when specific patterns are found.
 func CreatePatternFailingMock(tempDir, failPattern string) (string, error) {
 	return CreateCrossPlatformMock(tempDir, CrossPlatformMockOptions{
 		ExitCode:      1,

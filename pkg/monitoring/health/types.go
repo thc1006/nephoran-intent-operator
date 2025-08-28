@@ -8,17 +8,21 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 )
 
-// HealthTier represents different tiers of health monitoring
+// HealthTier represents different tiers of health monitoring.
 type HealthTier int
 
 const (
+	// TierSystem holds tiersystem value.
 	TierSystem HealthTier = iota
+	// TierService holds tierservice value.
 	TierService
+	// TierComponent holds tiercomponent value.
 	TierComponent
+	// TierDependency holds tierdependency value.
 	TierDependency
 )
 
-// String returns the string representation of HealthTier
+// String returns the string representation of HealthTier.
 func (ht HealthTier) String() string {
 	switch ht {
 	case TierSystem:
@@ -34,18 +38,23 @@ func (ht HealthTier) String() string {
 	}
 }
 
-// HealthContext represents different operational contexts for health checks
+// HealthContext represents different operational contexts for health checks.
 type HealthContext int
 
 const (
+	// ContextStartup holds contextstartup value.
 	ContextStartup HealthContext = iota
+	// ContextSteadyState holds contextsteadystate value.
 	ContextSteadyState
+	// ContextShutdown holds contextshutdown value.
 	ContextShutdown
+	// ContextHighLoad holds contexthighload value.
 	ContextHighLoad
+	// ContextMaintenance holds contextmaintenance value.
 	ContextMaintenance
 )
 
-// String returns the string representation of HealthContext
+// String returns the string representation of HealthContext.
 func (hc HealthContext) String() string {
 	switch hc {
 	case ContextStartup:
@@ -63,36 +72,47 @@ func (hc HealthContext) String() string {
 	}
 }
 
-// HealthWeight represents the business criticality weight of a component
+// HealthWeight represents the business criticality weight of a component.
 type HealthWeight float64
 
 const (
-	WeightLow      HealthWeight = 0.2
-	WeightNormal   HealthWeight = 0.5
-	WeightHigh     HealthWeight = 0.8
+	// WeightLow holds weightlow value.
+	WeightLow HealthWeight = 0.2
+	// WeightNormal holds weightnormal value.
+	WeightNormal HealthWeight = 0.5
+	// WeightHigh holds weighthigh value.
+	WeightHigh HealthWeight = 0.8
+	// WeightCritical holds weightcritical value.
 	WeightCritical HealthWeight = 1.0
 )
 
-// AlertSeverity represents the severity level of alerts (unified definition)
+// AlertSeverity represents the severity level of alerts (unified definition).
 type AlertSeverity string
 
 const (
-	SeverityInfo     AlertSeverity = "info"
-	SeverityWarning  AlertSeverity = "warning"
-	SeverityError    AlertSeverity = "error"
+	// SeverityInfo holds severityinfo value.
+	SeverityInfo AlertSeverity = "info"
+	// SeverityWarning holds severitywarning value.
+	SeverityWarning AlertSeverity = "warning"
+	// SeverityError holds severityerror value.
+	SeverityError AlertSeverity = "error"
+	// SeverityCritical holds severitycritical value.
 	SeverityCritical AlertSeverity = "critical"
 )
 
-// AlertStatus represents the status of alerts (unified definition)
+// AlertStatus represents the status of alerts (unified definition).
 type AlertStatus string
 
 const (
-	AlertStatusActive     AlertStatus = "active"
-	AlertStatusResolved   AlertStatus = "resolved"
+	// AlertStatusActive holds alertstatusactive value.
+	AlertStatusActive AlertStatus = "active"
+	// AlertStatusResolved holds alertstatusresolved value.
+	AlertStatusResolved AlertStatus = "resolved"
+	// AlertStatusSuppressed holds alertstatussuppressed value.
 	AlertStatusSuppressed AlertStatus = "suppressed"
 )
 
-// AlertThresholds provides common alert threshold configuration
+// AlertThresholds provides common alert threshold configuration.
 type AlertThresholds struct {
 	LatencyThreshold time.Duration `json:"latency_threshold"`
 	ErrorRatePercent float64       `json:"error_rate_percent"`
@@ -101,7 +121,7 @@ type AlertThresholds struct {
 	ResponseTimeMax  time.Duration `json:"response_time_max"`
 }
 
-// StateTransition tracks health state changes over time
+// StateTransition tracks health state changes over time.
 type StateTransition struct {
 	From      health.Status `json:"from"`
 	To        health.Status `json:"to"`
@@ -109,9 +129,9 @@ type StateTransition struct {
 	Reason    string        `json:"reason,omitempty"`
 }
 
-// EnhancedCheck represents an enhanced health check with additional metadata
+// EnhancedCheck represents an enhanced health check with additional metadata.
 type EnhancedCheck struct {
-	// Basic health check information
+	// Basic health check information.
 	Name      string        `json:"name"`
 	Status    health.Status `json:"status"`
 	Message   string        `json:"message,omitempty"`
@@ -120,29 +140,29 @@ type EnhancedCheck struct {
 	Timestamp time.Time     `json:"timestamp"`
 	Component string        `json:"component"`
 
-	// Enhanced metadata
+	// Enhanced metadata.
 	Tier        HealthTier    `json:"tier"`
 	Weight      HealthWeight  `json:"weight"`
 	Context     HealthContext `json:"context"`
 	Score       float64       `json:"score"`
 	Criticality string        `json:"criticality"`
 
-	// State tracking
+	// State tracking.
 	StateTransitions []StateTransition `json:"state_transitions,omitempty"`
 	ConsecutiveFails int               `json:"consecutive_fails"`
 	LastHealthy      time.Time         `json:"last_healthy,omitempty"`
 
-	// Performance metrics
+	// Performance metrics.
 	AverageLatency time.Duration `json:"average_latency"`
 	MaxLatency     time.Duration `json:"max_latency"`
 	SuccessRate    float64       `json:"success_rate"`
 
-	// Additional context
+	// Additional context.
 	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 	Dependencies []string               `json:"dependencies,omitempty"`
 }
 
-// EnhancedHealthResponse represents a comprehensive health check response
+// EnhancedHealthResponse represents a comprehensive health check response.
 type EnhancedHealthResponse struct {
 	Service       string        `json:"service"`
 	Version       string        `json:"version"`
@@ -151,18 +171,18 @@ type EnhancedHealthResponse struct {
 	OverallStatus health.Status `json:"overall_status"`
 	WeightedScore float64       `json:"weighted_score"`
 
-	// Check results
+	// Check results.
 	Checks        []EnhancedCheck            `json:"checks"`
 	TierSummaries map[HealthTier]TierSummary `json:"tier_summaries"`
 
-	// Execution information
+	// Execution information.
 	ExecutionMetrics ExecutionMetrics `json:"execution_metrics"`
 
-	// Additional metadata
+	// Additional metadata.
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// TierSummary provides aggregated information for a health tier
+// TierSummary provides aggregated information for a health tier.
 type TierSummary struct {
 	Tier            HealthTier `json:"tier"`
 	TotalChecks     int        `json:"total_checks"`
@@ -175,7 +195,7 @@ type TierSummary struct {
 	AverageScore    float64    `json:"average_score"`
 }
 
-// ExecutionMetrics contains metrics about the health check execution
+// ExecutionMetrics contains metrics about the health check execution.
 type ExecutionMetrics struct {
 	StartTime         time.Time     `json:"start_time"`
 	Duration          time.Duration `json:"duration"`
@@ -184,7 +204,7 @@ type ExecutionMetrics struct {
 	CacheHitRate      float64       `json:"cache_hit_rate,omitempty"`
 }
 
-// HealthTrend represents historical health trend data
+// HealthTrend represents historical health trend data.
 type HealthTrend struct {
 	CheckName   string             `json:"check_name"`
 	TimeWindow  time.Duration      `json:"time_window"`
@@ -194,7 +214,7 @@ type HealthTrend struct {
 	Predictions []HealthPrediction `json:"predictions,omitempty"`
 }
 
-// HealthDataPoint represents a single data point in health history
+// HealthDataPoint represents a single data point in health history.
 type HealthDataPoint struct {
 	Timestamp time.Time     `json:"timestamp"`
 	Status    health.Status `json:"status"`
@@ -202,28 +222,37 @@ type HealthDataPoint struct {
 	Duration  time.Duration `json:"duration"`
 }
 
-// TrendDirection indicates the direction of health trend
+// TrendDirection indicates the direction of health trend.
 type TrendDirection string
 
 const (
+	// TrendImproving holds trendimproving value.
 	TrendImproving TrendDirection = "improving"
+	// TrendDegrading holds trenddegrading value.
 	TrendDegrading TrendDirection = "degrading"
-	TrendStable    TrendDirection = "stable"
-	TrendUnknown   TrendDirection = "unknown"
-	TrendVolatile  TrendDirection = "volatile"
+	// TrendStable holds trendstable value.
+	TrendStable TrendDirection = "stable"
+	// TrendUnknown holds trendunknown value.
+	TrendUnknown TrendDirection = "unknown"
+	// TrendVolatile holds trendvolatile value.
+	TrendVolatile TrendDirection = "volatile"
 )
 
-// StabilityLevel indicates the stability of health metrics
+// StabilityLevel indicates the stability of health metrics.
 type StabilityLevel string
 
 const (
-	StabilityHigh    StabilityLevel = "high"
-	StabilityMedium  StabilityLevel = "medium"
-	StabilityLow     StabilityLevel = "low"
+	// StabilityHigh holds stabilityhigh value.
+	StabilityHigh StabilityLevel = "high"
+	// StabilityMedium holds stabilitymedium value.
+	StabilityMedium StabilityLevel = "medium"
+	// StabilityLow holds stabilitylow value.
+	StabilityLow StabilityLevel = "low"
+	// StabilityUnknown holds stabilityunknown value.
 	StabilityUnknown StabilityLevel = "unknown"
 )
 
-// HealthPrediction represents a predicted future health state
+// HealthPrediction represents a predicted future health state.
 type HealthPrediction struct {
 	PredictedTime   time.Time     `json:"predicted_time"`
 	PredictedStatus health.Status `json:"predicted_status"`
@@ -232,7 +261,7 @@ type HealthPrediction struct {
 	Reasoning       string        `json:"reasoning,omitempty"`
 }
 
-// HealthAlert represents a health-based alert
+// HealthAlert represents a health-based alert.
 type HealthAlert struct {
 	ID          string          `json:"id"`
 	CheckName   string          `json:"check_name"`
@@ -243,35 +272,40 @@ type HealthAlert struct {
 	Description string          `json:"description"`
 	Timestamp   time.Time       `json:"timestamp"`
 
-	// Trigger conditions
+	// Trigger conditions.
 	Threshold   float64 `json:"threshold,omitempty"`
 	ActualValue float64 `json:"actual_value,omitempty"`
 
-	// Context
+	// Context.
 	CurrentHealth *EnhancedCheck         `json:"current_health,omitempty"`
 	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// HealthAlertType represents different types of health alerts
+// HealthAlertType represents different types of health alerts.
 type HealthAlertType string
 
 const (
-	AlertTypeStatusChange        HealthAlertType = "status_change"
-	AlertTypeScoreThreshold      HealthAlertType = "score_threshold"
-	AlertTypeLatencyThreshold    HealthAlertType = "latency_threshold"
+	// AlertTypeStatusChange holds alerttypestatuschange value.
+	AlertTypeStatusChange HealthAlertType = "status_change"
+	// AlertTypeScoreThreshold holds alerttypescorethreshold value.
+	AlertTypeScoreThreshold HealthAlertType = "score_threshold"
+	// AlertTypeLatencyThreshold holds alerttypelatencythreshold value.
+	AlertTypeLatencyThreshold HealthAlertType = "latency_threshold"
+	// AlertTypeConsecutiveFailures holds alerttypeconsecutivefailures value.
 	AlertTypeConsecutiveFailures HealthAlertType = "consecutive_failures"
-	AlertTypePredictiveFailure   HealthAlertType = "predictive_failure"
+	// AlertTypePredictiveFailure holds alerttypepredictivefailure value.
+	AlertTypePredictiveFailure HealthAlertType = "predictive_failure"
 )
 
-// Note: AlertSeverity and AlertStatus are already defined above
+// Note: AlertSeverity and AlertStatus are already defined above.
 
-// DependencyGraph represents health dependencies between components
+// DependencyGraph represents health dependencies between components.
 type DependencyGraph struct {
 	Nodes []DependencyNode `json:"nodes"`
 	Edges []DependencyEdge `json:"edges"`
 }
 
-// DependencyNode represents a component in the dependency graph
+// DependencyNode represents a component in the dependency graph.
 type DependencyNode struct {
 	ID       string                 `json:"id"`
 	Name     string                 `json:"name"`
@@ -283,7 +317,7 @@ type DependencyNode struct {
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// DependencyEdge represents a dependency relationship
+// DependencyEdge represents a dependency relationship.
 type DependencyEdge struct {
 	Source   string                 `json:"source"`
 	Target   string                 `json:"target"`
@@ -293,7 +327,7 @@ type DependencyEdge struct {
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// HealthImpactAnalysis provides analysis of health issues and their impact
+// HealthImpactAnalysis provides analysis of health issues and their impact.
 type HealthImpactAnalysis struct {
 	CheckName          string               `json:"check_name"`
 	CurrentStatus      health.Status        `json:"current_status"`
@@ -305,18 +339,23 @@ type HealthImpactAnalysis struct {
 	BusinessImpact     HealthBusinessImpact `json:"business_impact"`
 }
 
-// ImpactLevel represents the level of impact from a health issue
+// ImpactLevel represents the level of impact from a health issue.
 type ImpactLevel string
 
 const (
-	ImpactNone     ImpactLevel = "none"
-	ImpactLow      ImpactLevel = "low"
-	ImpactMedium   ImpactLevel = "medium"
-	ImpactHigh     ImpactLevel = "high"
+	// ImpactNone holds impactnone value.
+	ImpactNone ImpactLevel = "none"
+	// ImpactLow holds impactlow value.
+	ImpactLow ImpactLevel = "low"
+	// ImpactMedium holds impactmedium value.
+	ImpactMedium ImpactLevel = "medium"
+	// ImpactHigh holds impacthigh value.
+	ImpactHigh ImpactLevel = "high"
+	// ImpactCritical holds impactcritical value.
 	ImpactCritical ImpactLevel = "critical"
 )
 
-// RootCause represents a potential root cause of health issues
+// RootCause represents a potential root cause of health issues.
 type RootCause struct {
 	Category    string   `json:"category"`
 	Description string   `json:"description"`
@@ -324,7 +363,7 @@ type RootCause struct {
 	Evidence    []string `json:"evidence"`
 }
 
-// RecommendedAction represents a recommended action to address health issues
+// RecommendedAction represents a recommended action to address health issues.
 type RecommendedAction struct {
 	Action      string         `json:"action"`
 	Priority    ActionPriority `json:"priority"`
@@ -333,17 +372,21 @@ type RecommendedAction struct {
 	ETA         time.Duration  `json:"eta,omitempty"`
 }
 
-// ActionPriority represents the priority of recommended actions
+// ActionPriority represents the priority of recommended actions.
 type ActionPriority string
 
 const (
+	// ActionPriorityImmediate holds actionpriorityimmediate value.
 	ActionPriorityImmediate ActionPriority = "immediate"
-	ActionPriorityUrgent    ActionPriority = "urgent"
-	ActionPriorityNormal    ActionPriority = "normal"
-	ActionPriorityLow       ActionPriority = "low"
+	// ActionPriorityUrgent holds actionpriorityurgent value.
+	ActionPriorityUrgent ActionPriority = "urgent"
+	// ActionPriorityNormal holds actionprioritynormal value.
+	ActionPriorityNormal ActionPriority = "normal"
+	// ActionPriorityLow holds actionprioritylow value.
+	ActionPriorityLow ActionPriority = "low"
 )
 
-// HealthBusinessImpact represents the business impact of health issues
+// HealthBusinessImpact represents the business impact of health issues.
 type HealthBusinessImpact struct {
 	Level             ImpactLevel   `json:"level"`
 	Description       string        `json:"description"`
@@ -353,7 +396,7 @@ type HealthBusinessImpact struct {
 	UserImpact        string        `json:"user_impact,omitempty"`
 }
 
-// HealthMetricsSnapshot represents a snapshot of health metrics at a point in time
+// HealthMetricsSnapshot represents a snapshot of health metrics at a point in time.
 type HealthMetricsSnapshot struct {
 	Timestamp       time.Time              `json:"timestamp"`
 	OverallScore    float64                `json:"overall_score"`
@@ -366,41 +409,41 @@ type HealthMetricsSnapshot struct {
 	CriticalIssues  int                    `json:"critical_issues"`
 }
 
-// HealthConfiguration represents the configuration for the enhanced health system
+// HealthConfiguration represents the configuration for the enhanced health system.
 type HealthConfiguration struct {
-	// Global settings
+	// Global settings.
 	DefaultTimeout  time.Duration `json:"default_timeout"`
 	DefaultInterval time.Duration `json:"default_interval"`
 	WorkerCount     int           `json:"worker_count"`
 
-	// Caching
+	// Caching.
 	CacheEnabled bool          `json:"cache_enabled"`
 	CacheExpiry  time.Duration `json:"cache_expiry"`
 
-	// Scoring
+	// Scoring.
 	LatencyPenaltyEnabled bool               `json:"latency_penalty_enabled"`
 	LatencyThresholds     []LatencyThreshold `json:"latency_thresholds"`
 
-	// History and trends
+	// History and trends.
 	HistoryRetention     time.Duration `json:"history_retention"`
 	HistoryMaxPoints     int           `json:"history_max_points"`
 	TrendAnalysisEnabled bool          `json:"trend_analysis_enabled"`
 
-	// Alerting
+	// Alerting.
 	AlertingEnabled bool             `json:"alerting_enabled"`
 	AlertThresholds []AlertThreshold `json:"alert_thresholds"`
 
-	// Context-specific overrides
+	// Context-specific overrides.
 	ContextOverrides map[HealthContext]ContextOverride `json:"context_overrides"`
 }
 
-// LatencyThreshold represents a latency threshold configuration
+// LatencyThreshold represents a latency threshold configuration.
 type LatencyThreshold struct {
 	Threshold time.Duration `json:"threshold"`
 	Penalty   float64       `json:"penalty"`
 }
 
-// AlertThreshold represents an alert threshold configuration
+// AlertThreshold represents an alert threshold configuration.
 type AlertThreshold struct {
 	CheckName string        `json:"check_name"`
 	Tier      HealthTier    `json:"tier"`
@@ -410,7 +453,7 @@ type AlertThreshold struct {
 	Severity  AlertSeverity `json:"severity"`
 }
 
-// ContextOverride represents context-specific configuration overrides
+// ContextOverride represents context-specific configuration overrides.
 type ContextOverride struct {
 	Timeout          time.Duration      `json:"timeout"`
 	Interval         time.Duration      `json:"interval"`

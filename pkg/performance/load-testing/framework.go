@@ -1,4 +1,4 @@
-// Package loadtesting provides distributed load testing infrastructure for Nephoran Intent Operator
+// Package loadtesting provides distributed load testing infrastructure for Nephoran Intent Operator.
 package loadtesting
 
 import (
@@ -13,7 +13,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// LoadTestFramework orchestrates distributed load testing
+// LoadTestFramework orchestrates distributed load testing.
 type LoadTestFramework struct {
 	logger           *zap.Logger
 	generators       []LoadGenerator
@@ -29,62 +29,69 @@ type LoadTestFramework struct {
 	state            LoadTestState
 }
 
-// LoadTestConfig defines test configuration
+// LoadTestConfig defines test configuration.
 type LoadTestConfig struct {
-	// Test identification
+	// Test identification.
 	TestID      string            `json:"testId"`
 	Description string            `json:"description"`
 	Tags        map[string]string `json:"tags"`
 
-	// Load pattern configuration
+	// Load pattern configuration.
 	LoadPattern      LoadPattern   `json:"loadPattern"`
 	Duration         time.Duration `json:"duration"`
 	WarmupDuration   time.Duration `json:"warmupDuration"`
 	CooldownDuration time.Duration `json:"cooldownDuration"`
 
-	// Workload configuration
+	// Workload configuration.
 	WorkloadMix      WorkloadMix       `json:"workloadMix"`
 	IntentComplexity ComplexityProfile `json:"intentComplexity"`
 
-	// Distribution configuration
+	// Distribution configuration.
 	Regions        []string       `json:"regions"`
 	Concurrency    int            `json:"concurrency"`
 	RampUpStrategy RampUpStrategy `json:"rampUpStrategy"`
 
-	// Performance targets
+	// Performance targets.
 	TargetThroughput   float64       `json:"targetThroughput"` // intents per minute
 	TargetLatencyP95   time.Duration `json:"targetLatencyP95"`
 	TargetAvailability float64       `json:"targetAvailability"`
 
-	// Resource limits
+	// Resource limits.
 	MaxCPU         float64 `json:"maxCpu"`
 	MaxMemoryGB    float64 `json:"maxMemoryGb"`
 	MaxNetworkMbps float64 `json:"maxNetworkMbps"`
 
-	// Validation configuration
+	// Validation configuration.
 	ValidationMode   ValidationMode    `json:"validationMode"`
 	StatisticalTests []StatisticalTest `json:"statisticalTests"`
 
-	// Monitoring configuration
+	// Monitoring configuration.
 	MetricsInterval time.Duration `json:"metricsInterval"`
 	SamplingRate    float64       `json:"samplingRate"`
 	DetailedTracing bool          `json:"detailedTracing"`
 }
 
-// LoadPattern defines the load generation pattern
+// LoadPattern defines the load generation pattern.
 type LoadPattern string
 
 const (
-	LoadPatternConstant  LoadPattern = "constant"
-	LoadPatternRamp      LoadPattern = "ramp"
-	LoadPatternStep      LoadPattern = "step"
-	LoadPatternBurst     LoadPattern = "burst"
-	LoadPatternWave      LoadPattern = "wave"
+	// LoadPatternConstant holds loadpatternconstant value.
+	LoadPatternConstant LoadPattern = "constant"
+	// LoadPatternRamp holds loadpatternramp value.
+	LoadPatternRamp LoadPattern = "ramp"
+	// LoadPatternStep holds loadpatternstep value.
+	LoadPatternStep LoadPattern = "step"
+	// LoadPatternBurst holds loadpatternburst value.
+	LoadPatternBurst LoadPattern = "burst"
+	// LoadPatternWave holds loadpatternwave value.
+	LoadPatternWave LoadPattern = "wave"
+	// LoadPatternRealistic holds loadpatternrealistic value.
 	LoadPatternRealistic LoadPattern = "realistic"
-	LoadPatternChaos     LoadPattern = "chaos"
+	// LoadPatternChaos holds loadpatternchaos value.
+	LoadPatternChaos LoadPattern = "chaos"
 )
 
-// WorkloadMix defines the distribution of different workload types
+// WorkloadMix defines the distribution of different workload types.
 type WorkloadMix struct {
 	CoreNetworkDeployments   float64 `json:"coreNetworkDeployments"`   // 5G Core
 	ORANConfigurations       float64 `json:"oranConfigurations"`       // O-RAN RIC
@@ -96,31 +103,35 @@ type WorkloadMix struct {
 	ScalingOperations        float64 `json:"scalingOperations"`        // Auto-scaling
 }
 
-// ComplexityProfile defines the distribution of intent complexity
+// ComplexityProfile defines the distribution of intent complexity.
 type ComplexityProfile struct {
 	Simple   float64 `json:"simple"`   // Basic single-action intents
 	Moderate float64 `json:"moderate"` // Multi-step with dependencies
 	Complex  float64 `json:"complex"`  // Cross-domain orchestration
 }
 
-// RampUpStrategy defines how load is increased
+// RampUpStrategy defines how load is increased.
 type RampUpStrategy struct {
 	Type     string        `json:"type"` // linear, exponential, stepped
 	Duration time.Duration `json:"duration"`
 	Steps    int           `json:"steps"`
 }
 
-// ValidationMode defines how results are validated
+// ValidationMode defines how results are validated.
 type ValidationMode string
 
 const (
-	ValidationModeStrict      ValidationMode = "strict"      // All metrics must pass
+	// ValidationModeStrict holds validationmodestrict value.
+	ValidationModeStrict ValidationMode = "strict" // All metrics must pass
+	// ValidationModeStatistical holds validationmodestatistical value.
 	ValidationModeStatistical ValidationMode = "statistical" // Statistical significance
-	ValidationModeTrending    ValidationMode = "trending"    // Trend analysis
+	// ValidationModeTrending holds validationmodetrending value.
+	ValidationModeTrending ValidationMode = "trending" // Trend analysis
+	// ValidationModeComparative holds validationmodecomparative value.
 	ValidationModeComparative ValidationMode = "comparative" // Compare with baseline
 )
 
-// StatisticalTest defines statistical validation tests
+// StatisticalTest defines statistical validation tests.
 type StatisticalTest struct {
 	Name          string  `json:"name"`
 	Type          string  `json:"type"` // t-test, mann-whitney, ks-test
@@ -128,21 +139,29 @@ type StatisticalTest struct {
 	MinSampleSize int     `json:"minSampleSize"`
 }
 
-// LoadTestState represents the current state of load testing
+// LoadTestState represents the current state of load testing.
 type LoadTestState string
 
 const (
-	LoadTestStateIdle         LoadTestState = "idle"
+	// LoadTestStateIdle holds loadteststateidle value.
+	LoadTestStateIdle LoadTestState = "idle"
+	// LoadTestStateInitializing holds loadteststateinitializing value.
 	LoadTestStateInitializing LoadTestState = "initializing"
-	LoadTestStateWarmingUp    LoadTestState = "warming_up"
-	LoadTestStateRunning      LoadTestState = "running"
-	LoadTestStateCoolingDown  LoadTestState = "cooling_down"
-	LoadTestStateAnalyzing    LoadTestState = "analyzing"
-	LoadTestStateCompleted    LoadTestState = "completed"
-	LoadTestStateFailed       LoadTestState = "failed"
+	// LoadTestStateWarmingUp holds loadteststatewarmingup value.
+	LoadTestStateWarmingUp LoadTestState = "warming_up"
+	// LoadTestStateRunning holds loadteststaterunning value.
+	LoadTestStateRunning LoadTestState = "running"
+	// LoadTestStateCoolingDown holds loadteststatecoolingdown value.
+	LoadTestStateCoolingDown LoadTestState = "cooling_down"
+	// LoadTestStateAnalyzing holds loadteststateanalyzing value.
+	LoadTestStateAnalyzing LoadTestState = "analyzing"
+	// LoadTestStateCompleted holds loadteststatecompleted value.
+	LoadTestStateCompleted LoadTestState = "completed"
+	// LoadTestStateFailed holds loadteststatefailed value.
+	LoadTestStateFailed LoadTestState = "failed"
 )
 
-// CoordinationMessage for distributed coordination
+// CoordinationMessage for distributed coordination.
 type CoordinationMessage struct {
 	Type      string                 `json:"type"`
 	Timestamp time.Time              `json:"timestamp"`
@@ -150,48 +169,48 @@ type CoordinationMessage struct {
 	Data      map[string]interface{} `json:"data"`
 }
 
-// LoadTestMetrics tracks test metrics
+// LoadTestMetrics tracks test metrics.
 type LoadTestMetrics struct {
-	// Counters
+	// Counters.
 	totalRequests      *atomic.Int64
 	successfulRequests *atomic.Int64
 	failedRequests     *atomic.Int64
 
-	// Latency tracking
+	// Latency tracking.
 	latencyHistogram *prometheus.HistogramVec
 
-	// Throughput tracking
+	// Throughput tracking.
 	throughputGauge *prometheus.GaugeVec
 
-	// Resource tracking
+	// Resource tracking.
 	cpuUsageGauge     *prometheus.GaugeVec
 	memoryUsageGauge  *prometheus.GaugeVec
 	networkUsageGauge *prometheus.GaugeVec
 
-	// Custom metrics
+	// Custom metrics.
 	customMetrics map[string]prometheus.Collector
 	mu            sync.RWMutex
 }
 
-// LoadGenerator interface for different load generation strategies
+// LoadGenerator interface for different load generation strategies.
 type LoadGenerator interface {
-	// Initialize prepares the generator
+	// Initialize prepares the generator.
 	Initialize(config *LoadTestConfig) error
 
-	// Generate starts generating load
+	// Generate starts generating load.
 	Generate(ctx context.Context) error
 
-	// GetMetrics returns current metrics
+	// GetMetrics returns current metrics.
 	GetMetrics() GeneratorMetrics
 
-	// Adjust modifies generation parameters
+	// Adjust modifies generation parameters.
 	Adjust(params map[string]interface{}) error
 
-	// Stop gracefully stops generation
+	// Stop gracefully stops generation.
 	Stop() error
 }
 
-// GeneratorMetrics contains generator-specific metrics
+// GeneratorMetrics contains generator-specific metrics.
 type GeneratorMetrics struct {
 	RequestsSent      int64         `json:"requestsSent"`
 	RequestsSucceeded int64         `json:"requestsSucceeded"`
@@ -201,25 +220,25 @@ type GeneratorMetrics struct {
 	ErrorRate         float64       `json:"errorRate"`
 }
 
-// PerformanceMonitor interface for monitoring during tests
+// PerformanceMonitor interface for monitoring during tests.
 type PerformanceMonitor interface {
-	// Start begins monitoring
+	// Start begins monitoring.
 	Start(ctx context.Context) error
 
-	// Collect gathers current metrics
+	// Collect gathers current metrics.
 	Collect() (MonitoringData, error)
 
-	// Analyze performs real-time analysis
+	// Analyze performs real-time analysis.
 	Analyze(data MonitoringData) AnalysisResult
 
-	// Alert triggers alerts for anomalies
+	// Alert triggers alerts for anomalies.
 	Alert(result AnalysisResult) error
 
-	// Stop stops monitoring
+	// Stop stops monitoring.
 	Stop() error
 }
 
-// MonitoringData contains collected monitoring data
+// MonitoringData contains collected monitoring data.
 type MonitoringData struct {
 	Timestamp          time.Time              `json:"timestamp"`
 	ApplicationMetrics map[string]float64     `json:"applicationMetrics"`
@@ -228,7 +247,7 @@ type MonitoringData struct {
 	CustomMetrics      map[string]interface{} `json:"customMetrics"`
 }
 
-// AnalysisResult contains analysis findings
+// AnalysisResult contains analysis findings.
 type AnalysisResult struct {
 	Timestamp       time.Time             `json:"timestamp"`
 	Anomalies       []Anomaly             `json:"anomalies"`
@@ -237,7 +256,7 @@ type AnalysisResult struct {
 	Recommendations []string              `json:"recommendations"`
 }
 
-// Anomaly represents detected anomalies
+// Anomaly represents detected anomalies.
 type Anomaly struct {
 	Type        string    `json:"type"`
 	Severity    string    `json:"severity"`
@@ -249,7 +268,7 @@ type Anomaly struct {
 	Timestamp   time.Time `json:"timestamp"`
 }
 
-// Trend represents metric trends
+// Trend represents metric trends.
 type Trend struct {
 	Direction  string  `json:"direction"` // increasing, decreasing, stable
 	Rate       float64 `json:"rate"`      // rate of change
@@ -257,7 +276,7 @@ type Trend struct {
 	Prediction float64 `json:"prediction"` // predicted value
 }
 
-// Prediction contains predictive analysis
+// Prediction contains predictive analysis.
 type Prediction struct {
 	Metric      string        `json:"metric"`
 	Value       float64       `json:"value"`
@@ -265,19 +284,19 @@ type Prediction struct {
 	TimeHorizon time.Duration `json:"timeHorizon"`
 }
 
-// PerformanceValidator validates performance claims
+// PerformanceValidator validates performance claims.
 type PerformanceValidator interface {
-	// Validate checks if performance meets requirements
+	// Validate checks if performance meets requirements.
 	Validate(results *LoadTestResults) ValidationReport
 
-	// ValidateRealtime performs real-time validation
+	// ValidateRealtime performs real-time validation.
 	ValidateRealtime(metrics GeneratorMetrics) bool
 
-	// GetThresholds returns validation thresholds
+	// GetThresholds returns validation thresholds.
 	GetThresholds() ValidationThresholds
 }
 
-// ValidationThresholds defines validation criteria
+// ValidationThresholds defines validation criteria.
 type ValidationThresholds struct {
 	MinThroughput    float64        `json:"minThroughput"`
 	MaxLatencyP50    time.Duration  `json:"maxLatencyP50"`
@@ -288,7 +307,7 @@ type ValidationThresholds struct {
 	MaxResourceUsage ResourceLimits `json:"maxResourceUsage"`
 }
 
-// ResourceLimits defines resource usage limits
+// ResourceLimits defines resource usage limits.
 type ResourceLimits struct {
 	CPUPercent  float64 `json:"cpuPercent"`
 	MemoryGB    float64 `json:"memoryGb"`
@@ -296,7 +315,7 @@ type ResourceLimits struct {
 	DiskIOPS    float64 `json:"diskIops"`
 }
 
-// ValidationReport contains validation results
+// ValidationReport contains validation results.
 type ValidationReport struct {
 	Passed          bool                   `json:"passed"`
 	Score           float64                `json:"score"`
@@ -307,7 +326,7 @@ type ValidationReport struct {
 	Evidence        []Evidence             `json:"evidence"`
 }
 
-// Evidence provides proof for validation results
+// Evidence provides proof for validation results.
 type Evidence struct {
 	Type        string                 `json:"type"`
 	Description string                 `json:"description"`
@@ -315,7 +334,7 @@ type Evidence struct {
 	Timestamp   time.Time              `json:"timestamp"`
 }
 
-// ResultCollector aggregates test results
+// ResultCollector aggregates test results.
 type ResultCollector struct {
 	results       *LoadTestResults
 	buffer        []DataPoint
@@ -326,7 +345,7 @@ type ResultCollector struct {
 	mu            sync.Mutex
 }
 
-// LoadTestResults contains complete test results
+// LoadTestResults contains complete test results.
 type LoadTestResults struct {
 	TestID    string          `json:"testId"`
 	StartTime time.Time       `json:"startTime"`
@@ -334,12 +353,12 @@ type LoadTestResults struct {
 	Duration  time.Duration   `json:"duration"`
 	Config    *LoadTestConfig `json:"config"`
 
-	// Performance metrics
+	// Performance metrics.
 	TotalRequests      int64 `json:"totalRequests"`
 	SuccessfulRequests int64 `json:"successfulRequests"`
 	FailedRequests     int64 `json:"failedRequests"`
 
-	// Latency metrics
+	// Latency metrics.
 	LatencyP50    time.Duration `json:"latencyP50"`
 	LatencyP95    time.Duration `json:"latencyP95"`
 	LatencyP99    time.Duration `json:"latencyP99"`
@@ -348,38 +367,38 @@ type LoadTestResults struct {
 	LatencyMean   time.Duration `json:"latencyMean"`
 	LatencyStdDev time.Duration `json:"latencyStdDev"`
 
-	// Throughput metrics
+	// Throughput metrics.
 	AverageThroughput float64 `json:"averageThroughput"`
 	PeakThroughput    float64 `json:"peakThroughput"`
 	MinThroughput     float64 `json:"minThroughput"`
 
-	// Availability metrics
+	// Availability metrics.
 	Availability float64       `json:"availability"`
 	Downtime     time.Duration `json:"downtime"`
 	MTBF         time.Duration `json:"mtbf"` // Mean Time Between Failures
 	MTTR         time.Duration `json:"mttr"` // Mean Time To Recovery
 
-	// Resource metrics
+	// Resource metrics.
 	PeakCPU         float64 `json:"peakCpu"`
 	AverageCPU      float64 `json:"averageCpu"`
 	PeakMemoryGB    float64 `json:"peakMemoryGb"`
 	AverageMemoryGB float64 `json:"averageMemoryGb"`
 	PeakNetworkMbps float64 `json:"peakNetworkMbps"`
 
-	// Breaking point analysis
+	// Breaking point analysis.
 	BreakingPoint *BreakingPointAnalysis `json:"breakingPoint"`
 
-	// Statistical analysis
+	// Statistical analysis.
 	StatisticalAnalysis *StatisticalAnalysis `json:"statisticalAnalysis"`
 
-	// Validation results
+	// Validation results.
 	ValidationReport *ValidationReport `json:"validationReport"`
 
-	// Raw data samples
+	// Raw data samples.
 	DataPoints []DataPoint `json:"dataPoints,omitempty"`
 }
 
-// DataPoint represents a single measurement
+// DataPoint represents a single measurement.
 type DataPoint struct {
 	Timestamp     time.Time              `json:"timestamp"`
 	Latency       time.Duration          `json:"latency"`
@@ -391,7 +410,7 @@ type DataPoint struct {
 	CustomMetrics map[string]interface{} `json:"customMetrics,omitempty"`
 }
 
-// ResourceSnapshot captures resource usage at a point in time
+// ResourceSnapshot captures resource usage at a point in time.
 type ResourceSnapshot struct {
 	CPUPercent      float64 `json:"cpuPercent"`
 	MemoryBytes     int64   `json:"memoryBytes"`
@@ -401,7 +420,7 @@ type ResourceSnapshot struct {
 	DiskWriteBytes  int64   `json:"diskWriteBytes"`
 }
 
-// BreakingPointAnalysis identifies system limits
+// BreakingPointAnalysis identifies system limits.
 type BreakingPointAnalysis struct {
 	MaxConcurrentIntents int           `json:"maxConcurrentIntents"`
 	MaxThroughput        float64       `json:"maxThroughput"`
@@ -411,7 +430,7 @@ type BreakingPointAnalysis struct {
 	RecoveryBehavior     string        `json:"recoveryBehavior"`
 }
 
-// Degradation tracks performance degradation
+// Degradation tracks performance degradation.
 type Degradation struct {
 	Load       float64       `json:"load"`
 	Latency    time.Duration `json:"latency"`
@@ -419,7 +438,7 @@ type Degradation struct {
 	Throughput float64       `json:"throughput"`
 }
 
-// StatisticalAnalysis provides statistical insights
+// StatisticalAnalysis provides statistical insights.
 type StatisticalAnalysis struct {
 	ConfidenceIntervals map[string]ConfidenceInterval `json:"confidenceIntervals"`
 	Correlations        map[string]float64            `json:"correlations"`
@@ -427,7 +446,7 @@ type StatisticalAnalysis struct {
 	TestResults         map[string]TestResult         `json:"testResults"`
 }
 
-// ConfidenceInterval represents statistical confidence interval
+// ConfidenceInterval represents statistical confidence interval.
 type ConfidenceInterval struct {
 	Mean       float64 `json:"mean"`
 	Lower      float64 `json:"lower"`
@@ -435,14 +454,14 @@ type ConfidenceInterval struct {
 	Confidence float64 `json:"confidence"`
 }
 
-// Distribution describes data distribution
+// Distribution describes data distribution.
 type Distribution struct {
 	Type          string             `json:"type"`
 	Parameters    map[string]float64 `json:"parameters"`
 	GoodnessOfFit float64            `json:"goodnessOfFit"`
 }
 
-// TestResult contains statistical test results
+// TestResult contains statistical test results.
 type TestResult struct {
 	TestName    string  `json:"testName"`
 	Statistic   float64 `json:"statistic"`
@@ -451,14 +470,14 @@ type TestResult struct {
 	Conclusion  string  `json:"conclusion"`
 }
 
-// Aggregator interface for data aggregation strategies
+// Aggregator interface for data aggregation strategies.
 type Aggregator interface {
 	Add(value float64)
 	Reset()
 	Result() AggregationResult
 }
 
-// AggregationResult contains aggregated metrics
+// AggregationResult contains aggregated metrics.
 type AggregationResult struct {
 	Count       int64               `json:"count"`
 	Sum         float64             `json:"sum"`
@@ -469,7 +488,7 @@ type AggregationResult struct {
 	Percentiles map[float64]float64 `json:"percentiles"`
 }
 
-// ResultStorage interface for persisting results
+// ResultStorage interface for persisting results.
 type ResultStorage interface {
 	Save(results *LoadTestResults) error
 	Load(testID string) (*LoadTestResults, error)
@@ -477,7 +496,7 @@ type ResultStorage interface {
 	Delete(testID string) error
 }
 
-// NewLoadTestFramework creates a new load testing framework
+// NewLoadTestFramework creates a new load testing framework.
 func NewLoadTestFramework(config *LoadTestConfig, logger *zap.Logger) (*LoadTestFramework, error) {
 	if config == nil {
 		return nil, fmt.Errorf("config is required")
@@ -487,7 +506,7 @@ func NewLoadTestFramework(config *LoadTestConfig, logger *zap.Logger) (*LoadTest
 		logger = zap.NewNop()
 	}
 
-	// Validate configuration
+	// Validate configuration.
 	if err := validateConfig(config); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
@@ -505,7 +524,7 @@ func NewLoadTestFramework(config *LoadTestConfig, logger *zap.Logger) (*LoadTest
 		validators:       make([]PerformanceValidator, 0),
 	}
 
-	// Initialize components based on configuration
+	// Initialize components based on configuration.
 	if err := framework.initializeComponents(); err != nil {
 		return nil, fmt.Errorf("failed to initialize components: %w", err)
 	}
@@ -513,7 +532,7 @@ func NewLoadTestFramework(config *LoadTestConfig, logger *zap.Logger) (*LoadTest
 	return framework, nil
 }
 
-// Run executes the load test
+// Run executes the load test.
 func (f *LoadTestFramework) Run(ctx context.Context) (*LoadTestResults, error) {
 	f.mu.Lock()
 	if f.state != LoadTestStateIdle {
@@ -528,14 +547,14 @@ func (f *LoadTestFramework) Run(ctx context.Context) (*LoadTestResults, error) {
 		zap.String("pattern", string(f.config.LoadPattern)),
 		zap.Duration("duration", f.config.Duration))
 
-	// Create cancellable context
+	// Create cancellable context.
 	ctx, cancel := context.WithTimeout(ctx, f.config.Duration+f.config.WarmupDuration+f.config.CooldownDuration)
 	defer cancel()
 
-	// Start result collection
+	// Start result collection.
 	f.resultCollector.Start(ctx)
 
-	// Execute test phases
+	// Execute test phases.
 	if err := f.executeWarmup(ctx); err != nil {
 		f.setState(LoadTestStateFailed)
 		return nil, fmt.Errorf("warmup failed: %w", err)
@@ -551,11 +570,11 @@ func (f *LoadTestFramework) Run(ctx context.Context) (*LoadTestResults, error) {
 		return nil, fmt.Errorf("cooldown failed: %w", err)
 	}
 
-	// Analyze results
+	// Analyze results.
 	f.setState(LoadTestStateAnalyzing)
 	results := f.analyzeResults()
 
-	// Validate performance claims
+	// Validate performance claims.
 	if f.config.ValidationMode != "" {
 		results.ValidationReport = f.validateResults(results)
 	}
@@ -571,7 +590,7 @@ func (f *LoadTestFramework) Run(ctx context.Context) (*LoadTestResults, error) {
 	return results, nil
 }
 
-// Stop gracefully stops the load test
+// Stop gracefully stops the load test.
 func (f *LoadTestFramework) Stop() error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -582,24 +601,24 @@ func (f *LoadTestFramework) Stop() error {
 
 	f.logger.Info("Stopping load test", zap.String("testId", f.config.TestID))
 
-	// Signal stop to all components
+	// Signal stop to all components.
 	close(f.stopChan)
 
-	// Stop generators
+	// Stop generators.
 	for _, gen := range f.generators {
 		if err := gen.Stop(); err != nil {
 			f.logger.Error("Failed to stop generator", zap.Error(err))
 		}
 	}
 
-	// Stop monitors
+	// Stop monitors.
 	for _, mon := range f.monitors {
 		if err := mon.Stop(); err != nil {
 			f.logger.Error("Failed to stop monitor", zap.Error(err))
 		}
 	}
 
-	// Wait for graceful shutdown
+	// Wait for graceful shutdown.
 	done := make(chan struct{})
 	go func() {
 		f.wg.Wait()
@@ -617,14 +636,14 @@ func (f *LoadTestFramework) Stop() error {
 	return nil
 }
 
-// GetState returns the current test state
+// GetState returns the current test state.
 func (f *LoadTestFramework) GetState() LoadTestState {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 	return f.state
 }
 
-// GetMetrics returns current test metrics
+// GetMetrics returns current test metrics.
 func (f *LoadTestFramework) GetMetrics() GeneratorMetrics {
 	metrics := GeneratorMetrics{
 		RequestsSent:      f.metrics.totalRequests.Load(),
@@ -639,11 +658,11 @@ func (f *LoadTestFramework) GetMetrics() GeneratorMetrics {
 	return metrics
 }
 
-// Private methods
+// Private methods.
 
 func (f *LoadTestFramework) initializeComponents() error {
-	// Initialize generators based on configuration
-	for i := 0; i < f.config.Concurrency; i++ {
+	// Initialize generators based on configuration.
+	for i := range f.config.Concurrency {
 		gen, err := f.createGenerator(i)
 		if err != nil {
 			return fmt.Errorf("failed to create generator %d: %w", i, err)
@@ -651,14 +670,14 @@ func (f *LoadTestFramework) initializeComponents() error {
 		f.generators = append(f.generators, gen)
 	}
 
-	// Initialize monitors
+	// Initialize monitors.
 	monitor, err := f.createMonitor()
 	if err != nil {
 		return fmt.Errorf("failed to create monitor: %w", err)
 	}
 	f.monitors = append(f.monitors, monitor)
 
-	// Initialize validators
+	// Initialize validators.
 	validator := f.createValidator()
 	f.validators = append(f.validators, validator)
 
@@ -666,7 +685,7 @@ func (f *LoadTestFramework) initializeComponents() error {
 }
 
 func (f *LoadTestFramework) createGenerator(id int) (LoadGenerator, error) {
-	// Create appropriate generator based on workload type
+	// Create appropriate generator based on workload type.
 	switch f.config.LoadPattern {
 	case LoadPatternRealistic:
 		return NewRealisticTelecomGenerator(id, f.config, f.logger)
@@ -707,13 +726,13 @@ func (f *LoadTestFramework) executeWarmup(ctx context.Context) error {
 	warmupCtx, cancel := context.WithTimeout(ctx, f.config.WarmupDuration)
 	defer cancel()
 
-	// Start generators with reduced load
+	// Start generators with reduced load.
 	g, ctx := errgroup.WithContext(warmupCtx)
 
 	for _, gen := range f.generators {
 		generator := gen
 		g.Go(func() error {
-			// Reduce load during warmup
+			// Reduce load during warmup.
 			params := map[string]interface{}{
 				"rate_multiplier": 0.5,
 			}
@@ -724,7 +743,7 @@ func (f *LoadTestFramework) executeWarmup(ctx context.Context) error {
 		})
 	}
 
-	// Start monitors
+	// Start monitors.
 	for _, mon := range f.monitors {
 		monitor := mon
 		g.Go(func() error {
@@ -742,18 +761,18 @@ func (f *LoadTestFramework) executeMainTest(ctx context.Context) error {
 	testCtx, cancel := context.WithTimeout(ctx, f.config.Duration)
 	defer cancel()
 
-	// Apply ramp-up strategy
+	// Apply ramp-up strategy.
 	if err := f.applyRampUpStrategy(testCtx); err != nil {
 		return fmt.Errorf("failed to apply ramp-up strategy: %w", err)
 	}
 
 	g, ctx := errgroup.WithContext(testCtx)
 
-	// Run generators at full load
+	// Run generators at full load.
 	for _, gen := range f.generators {
 		generator := gen
 		g.Go(func() error {
-			// Reset to full load
+			// Reset to full load.
 			params := map[string]interface{}{
 				"rate_multiplier": 1.0,
 			}
@@ -764,7 +783,7 @@ func (f *LoadTestFramework) executeMainTest(ctx context.Context) error {
 		})
 	}
 
-	// Continuous monitoring and validation
+	// Continuous monitoring and validation.
 	g.Go(func() error {
 		return f.continuousValidation(ctx)
 	})
@@ -783,7 +802,7 @@ func (f *LoadTestFramework) executeCooldown(ctx context.Context) error {
 	cooldownCtx, cancel := context.WithTimeout(ctx, f.config.CooldownDuration)
 	defer cancel()
 
-	// Gradually reduce load
+	// Gradually reduce load.
 	ticker := time.NewTicker(f.config.CooldownDuration / 10)
 	defer ticker.Stop()
 
@@ -853,10 +872,10 @@ func (f *LoadTestFramework) continuousValidation(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-ticker.C:
-			// Collect current metrics
+			// Collect current metrics.
 			metrics := f.GetMetrics()
 
-			// Real-time validation
+			// Real-time validation.
 			for _, validator := range f.validators {
 				if !validator.ValidateRealtime(metrics) {
 					f.logger.Warn("Real-time validation failed",
@@ -865,7 +884,7 @@ func (f *LoadTestFramework) continuousValidation(ctx context.Context) error {
 				}
 			}
 
-			// Collect monitoring data
+			// Collect monitoring data.
 			for _, monitor := range f.monitors {
 				data, err := monitor.Collect()
 				if err != nil {
@@ -873,14 +892,14 @@ func (f *LoadTestFramework) continuousValidation(ctx context.Context) error {
 					continue
 				}
 
-				// Analyze for anomalies
+				// Analyze for anomalies.
 				result := monitor.Analyze(data)
 				if len(result.Anomalies) > 0 {
 					f.logger.Warn("Anomalies detected",
 						zap.Int("count", len(result.Anomalies)),
 						zap.Any("anomalies", result.Anomalies))
 
-					// Alert on critical anomalies
+					// Alert on critical anomalies.
 					for _, anomaly := range result.Anomalies {
 						if anomaly.Severity == "critical" {
 							if err := monitor.Alert(result); err != nil {
@@ -907,7 +926,7 @@ func (f *LoadTestFramework) validateResults(results *LoadTestResults) *Validatio
 		reports = append(reports, &report)
 	}
 
-	// Combine validation reports
+	// Combine validation reports.
 	combined := &ValidationReport{
 		Passed:          true,
 		Score:           100.0,
@@ -945,7 +964,7 @@ func validateConfig(config *LoadTestConfig) error {
 		return fmt.Errorf("concurrency must be positive")
 	}
 
-	// Validate workload mix
+	// Validate workload mix.
 	total := config.WorkloadMix.CoreNetworkDeployments +
 		config.WorkloadMix.ORANConfigurations +
 		config.WorkloadMix.NetworkSlicing +
@@ -956,7 +975,7 @@ func validateConfig(config *LoadTestConfig) error {
 		config.WorkloadMix.ScalingOperations
 
 	if total > 0 && total != 1.0 {
-		// Normalize
+		// Normalize.
 		config.WorkloadMix.CoreNetworkDeployments /= total
 		config.WorkloadMix.ORANConfigurations /= total
 		config.WorkloadMix.NetworkSlicing /= total
@@ -967,19 +986,19 @@ func validateConfig(config *LoadTestConfig) error {
 		config.WorkloadMix.ScalingOperations /= total
 	}
 
-	// Validate complexity profile
+	// Validate complexity profile.
 	complexityTotal := config.IntentComplexity.Simple +
 		config.IntentComplexity.Moderate +
 		config.IntentComplexity.Complex
 
 	if complexityTotal > 0 && complexityTotal != 1.0 {
-		// Normalize
+		// Normalize.
 		config.IntentComplexity.Simple /= complexityTotal
 		config.IntentComplexity.Moderate /= complexityTotal
 		config.IntentComplexity.Complex /= complexityTotal
 	}
 
-	// Set defaults if not specified
+	// Set defaults if not specified.
 	if config.MetricsInterval == 0 {
 		config.MetricsInterval = 10 * time.Second
 	}
@@ -1050,7 +1069,7 @@ func newResultCollector(config *LoadTestConfig) *ResultCollector {
 	}
 }
 
-// Start begins result collection
+// Start begins result collection.
 func (rc *ResultCollector) Start(ctx context.Context) {
 	go rc.collectLoop(ctx)
 }
@@ -1078,14 +1097,14 @@ func (rc *ResultCollector) flush() {
 		return
 	}
 
-	// Process buffered data points
+	// Process buffered data points.
 	for _, dp := range rc.buffer {
-		// Update aggregators
+		// Update aggregators.
 		if agg, ok := rc.aggregators["latency"]; ok {
 			agg.Add(float64(dp.Latency))
 		}
 
-		// Update counters
+		// Update counters.
 		rc.results.TotalRequests++
 		if dp.Success {
 			rc.results.SuccessfulRequests++
@@ -1094,11 +1113,11 @@ func (rc *ResultCollector) flush() {
 		}
 	}
 
-	// Clear buffer
+	// Clear buffer.
 	rc.buffer = rc.buffer[:0]
 }
 
-// Finalize completes result collection and returns final results
+// Finalize completes result collection and returns final results.
 func (rc *ResultCollector) Finalize() *LoadTestResults {
 	rc.flush()
 
@@ -1108,13 +1127,13 @@ func (rc *ResultCollector) Finalize() *LoadTestResults {
 	rc.results.EndTime = time.Now()
 	rc.results.Duration = rc.results.EndTime.Sub(rc.results.StartTime)
 
-	// Calculate final metrics
+	// Calculate final metrics.
 	if rc.results.TotalRequests > 0 {
 		rc.results.Availability = float64(rc.results.SuccessfulRequests) / float64(rc.results.TotalRequests)
 		rc.results.AverageThroughput = float64(rc.results.TotalRequests) / rc.results.Duration.Minutes()
 	}
 
-	// Calculate latency percentiles from aggregators
+	// Calculate latency percentiles from aggregators.
 	if agg, ok := rc.aggregators["latency"]; ok {
 		result := agg.Result()
 		if p50, ok := result.Percentiles[0.5]; ok {

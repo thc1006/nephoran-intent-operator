@@ -1,4 +1,4 @@
-// Package loop provides file management, processing, and concurrency utilities
+// Package loop provides file management, processing, and concurrency utilities.
 // for handling file-based operations with robust error handling and state tracking.
 package loop
 
@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// FileManager manages the organization and movement of processed files
+// FileManager manages the organization and movement of processed files.
 type FileManager struct {
 	baseDir      string
 	processedDir string
@@ -20,7 +20,7 @@ type FileManager struct {
 	mu           sync.Mutex
 }
 
-// NewFileManager creates a new file manager
+// NewFileManager creates a new file manager.
 func NewFileManager(baseDir string) (*FileManager, error) {
 	processedDir := filepath.Join(baseDir, "processed")
 	failedDir := filepath.Join(baseDir, "failed")
@@ -31,7 +31,7 @@ func NewFileManager(baseDir string) (*FileManager, error) {
 		failedDir:    failedDir,
 	}
 
-	// Create required directories
+	// Create required directories.
 	if err := fm.ensureDirectories(); err != nil {
 		return nil, fmt.Errorf("failed to create directories: %w", err)
 	}
@@ -39,7 +39,7 @@ func NewFileManager(baseDir string) (*FileManager, error) {
 	return fm, nil
 }
 
-// ensureDirectories creates the processed and failed directories if they don't exist
+// ensureDirectories creates the processed and failed directories if they don't exist.
 func (fm *FileManager) ensureDirectories() error {
 	dirs := []string{fm.processedDir, fm.failedDir}
 
@@ -52,7 +52,7 @@ func (fm *FileManager) ensureDirectories() error {
 	return nil
 }
 
-// MoveToProcessed moves a file to the processed directory
+// MoveToProcessed moves a file to the processed directory.
 func (fm *FileManager) MoveToProcessed(filePath string) error {
 	fm.mu.Lock()
 	defer fm.mu.Unlock()
@@ -60,27 +60,27 @@ func (fm *FileManager) MoveToProcessed(filePath string) error {
 	return fm.moveFileToDirectory(filePath, fm.processedDir)
 }
 
-// MoveToFailed moves a file to the failed directory and creates an error log
-func (fm *FileManager) MoveToFailed(filePath string, errorMsg string) error {
+// MoveToFailed moves a file to the failed directory and creates an error log.
+func (fm *FileManager) MoveToFailed(filePath, errorMsg string) error {
 	fm.mu.Lock()
 	defer fm.mu.Unlock()
 
-	// Move the file to failed directory
+	// Move the file to failed directory.
 	if err := fm.moveFileToDirectory(filePath, fm.failedDir); err != nil {
 		return err
 	}
 
-	// Create error log file
+	// Create error log file.
 	return fm.createErrorLog(filePath, errorMsg)
 }
 
-// moveFileToDirectory atomically moves a file to a target directory
+// moveFileToDirectory atomically moves a file to a target directory.
 func (fm *FileManager) moveFileToDirectory(filePath, targetDir string) error {
-	// Get the base filename
+	// Get the base filename.
 	fileName := filepath.Base(filePath)
 	targetPath := filepath.Join(targetDir, fileName)
 
-	// Handle filename conflicts by adding timestamp
+	// Handle filename conflicts by adding timestamp.
 	if _, err := os.Stat(targetPath); err == nil {
 		timestamp := time.Now().Format("20060102T150405")
 		ext := filepath.Ext(fileName)
@@ -89,7 +89,7 @@ func (fm *FileManager) moveFileToDirectory(filePath, targetDir string) error {
 		targetPath = filepath.Join(targetDir, fileName)
 	}
 
-	// Perform atomic move - on Windows, we need to handle this carefully
+	// Perform atomic move - on Windows, we need to handle this carefully.
 	if err := fm.atomicMove(filePath, targetPath); err != nil {
 		return fmt.Errorf("failed to move file %s to %s: %w", filePath, targetPath, err)
 	}
@@ -98,32 +98,32 @@ func (fm *FileManager) moveFileToDirectory(filePath, targetDir string) error {
 	return nil
 }
 
-// atomicMove performs an atomic file move operation
+// atomicMove performs an atomic file move operation.
 func (fm *FileManager) atomicMove(src, dst string) error {
-	// On Windows, os.Rename is not truly atomic across different volumes,
+	// On Windows, os.Rename is not truly atomic across different volumes,.
 	// but it's the best we can do within the same volume.
 	// For cross-volume moves, we would need copy+delete, but that's not atomic.
 
-	// First, try direct rename (works if on same volume)
+	// First, try direct rename (works if on same volume).
 	if err := os.Rename(src, dst); err == nil {
 		return nil
 	}
 
-	// If rename fails, fall back to copy+delete (not atomic but safer than partial state)
+	// If rename fails, fall back to copy+delete (not atomic but safer than partial state).
 	log.Printf("Direct rename failed, falling back to copy+delete for %s -> %s", src, dst)
 	return fm.copyAndDelete(src, dst)
 }
 
-// copyAndDelete copies a file and then deletes the original (fallback for cross-volume moves)
+// copyAndDelete copies a file and then deletes the original (fallback for cross-volume moves).
 func (fm *FileManager) copyAndDelete(src, dst string) error {
-	// Copy the file
+	// Copy the file.
 	if err := copyFile(src, dst); err != nil {
 		return fmt.Errorf("failed to copy file: %w", err)
 	}
 
-	// Delete the original
+	// Delete the original.
 	if err := os.Remove(src); err != nil {
-		// If delete fails, try to remove the copy to avoid duplicates
+		// If delete fails, try to remove the copy to avoid duplicates.
 		os.Remove(dst)
 		return fmt.Errorf("failed to delete original file: %w", err)
 	}
@@ -131,7 +131,7 @@ func (fm *FileManager) copyAndDelete(src, dst string) error {
 	return nil
 }
 
-// createErrorLog creates an error log file for a failed processing attempt
+// createErrorLog creates an error log file for a failed processing attempt.
 func (fm *FileManager) createErrorLog(originalPath, errorMsg string) error {
 	fileName := filepath.Base(originalPath)
 	logFileName := fileName + ".error.log"
@@ -140,8 +140,8 @@ func (fm *FileManager) createErrorLog(originalPath, errorMsg string) error {
 	logEntry := fmt.Sprintf("File: %s\nFailed at: %s\nError: %s\n\n",
 		originalPath, time.Now().Format(time.RFC3339), errorMsg)
 
-	// Append to existing log file or create new one
-	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+	// Append to existing log file or create new one.
+	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o640)
 	if err != nil {
 		return fmt.Errorf("failed to create error log file: %w", err)
 	}
@@ -155,20 +155,20 @@ func (fm *FileManager) createErrorLog(originalPath, errorMsg string) error {
 	return nil
 }
 
-// CleanupOldFiles removes files from processed and failed directories that are older than the specified duration
+// CleanupOldFiles removes files from processed and failed directories that are older than the specified duration.
 func (fm *FileManager) CleanupOldFiles(olderThan time.Duration) error {
 	fm.mu.Lock()
 	defer fm.mu.Unlock()
 
 	cutoff := time.Now().Add(-olderThan)
 
-	// Cleanup processed files
+	// Cleanup processed files.
 	processedRemoved, err := fm.cleanupDirectory(fm.processedDir, cutoff)
 	if err != nil {
 		log.Printf("Warning: failed to cleanup processed directory: %v", err)
 	}
 
-	// Cleanup failed files
+	// Cleanup failed files.
 	failedRemoved, err := fm.cleanupDirectory(fm.failedDir, cutoff)
 	if err != nil {
 		log.Printf("Warning: failed to cleanup failed directory: %v", err)
@@ -183,7 +183,7 @@ func (fm *FileManager) CleanupOldFiles(olderThan time.Duration) error {
 	return nil
 }
 
-// cleanupDirectory removes files older than cutoff time from the specified directory
+// cleanupDirectory removes files older than cutoff time from the specified directory.
 func (fm *FileManager) cleanupDirectory(dir string, cutoff time.Time) (int, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -215,19 +215,19 @@ func (fm *FileManager) cleanupDirectory(dir string, cutoff time.Time) (int, erro
 	return removed, nil
 }
 
-// GetProcessedFiles returns a list of files in the processed directory
+// GetProcessedFiles returns a list of files in the processed directory.
 func (fm *FileManager) GetProcessedFiles() ([]string, error) {
 	return fm.getFilesInDirectory(fm.processedDir)
 }
 
-// GetFailedFiles returns a list of files in the failed directory (excluding .error.log files)
+// GetFailedFiles returns a list of files in the failed directory (excluding .error.log files).
 func (fm *FileManager) GetFailedFiles() ([]string, error) {
 	files, err := fm.getFilesInDirectory(fm.failedDir)
 	if err != nil {
 		return nil, err
 	}
 
-	// Filter out .error.log files
+	// Filter out .error.log files.
 	var failedFiles []string
 	for _, file := range files {
 		if !strings.HasSuffix(file, ".error.log") {
@@ -237,7 +237,7 @@ func (fm *FileManager) GetFailedFiles() ([]string, error) {
 	return failedFiles, nil
 }
 
-// getFilesInDirectory returns a list of regular files in the specified directory
+// getFilesInDirectory returns a list of regular files in the specified directory.
 func (fm *FileManager) getFilesInDirectory(dir string) ([]string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -254,7 +254,7 @@ func (fm *FileManager) getFilesInDirectory(dir string) ([]string, error) {
 	return files, nil
 }
 
-// GetStats returns statistics about processed and failed files
+// GetStats returns statistics about processed and failed files.
 func (fm *FileManager) GetStats() (ProcessingStats, error) {
 	processedFiles, err := fm.GetProcessedFiles()
 	if err != nil {
@@ -274,7 +274,7 @@ func (fm *FileManager) GetStats() (ProcessingStats, error) {
 	}, nil
 }
 
-// ProcessingStats holds statistics about file processing
+// ProcessingStats holds statistics about file processing.
 type ProcessingStats struct {
 	ProcessedCount      int      `json:"processed_count"`
 	FailedCount         int      `json:"failed_count"`
@@ -286,7 +286,7 @@ type ProcessingStats struct {
 	RealFailedFiles     []string `json:"real_failed_files,omitempty"`
 }
 
-// IsEmpty checks if both processed and failed directories are empty
+// IsEmpty checks if both processed and failed directories are empty.
 func (fm *FileManager) IsEmpty() (bool, error) {
 	stats, err := fm.GetStats()
 	if err != nil {

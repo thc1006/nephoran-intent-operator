@@ -1,4 +1,4 @@
-// Package framework provides comprehensive mocking infrastructure for testing
+// Package framework provides comprehensive mocking infrastructure for testing.
 package framework
 
 import (
@@ -17,37 +17,37 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// MockManager manages all mock services and dependencies
+// MockManager manages all mock services and dependencies.
 type MockManager struct {
-	// HTTP mock servers
+	// HTTP mock servers.
 	weaviateServer   *httptest.Server
 	llmServer        *httptest.Server
 	oranServer       *httptest.Server
 	prometheusServer *httptest.Server
 
-	// Service mocks
+	// Service mocks.
 	weaviateMock *MockWeaviateClient
 	llmMock      *MockLLMClient
 	redisMock    *MockRedisClient
 	k8sMock      *MockK8sClient
 
-	// Chaos injection
+	// Chaos injection.
 	chaosEnabled     bool
 	failureRate      float64
 	latencyInjection time.Duration
 
-	// Request tracking
+	// Request tracking.
 	requestCounts   map[string]int
 	responseLatency map[string][]time.Duration
 
-	// Synchronization
+	// Synchronization.
 	mu sync.RWMutex
 
-	// Configuration
+	// Configuration.
 	config *TestConfig
 }
 
-// NewMockManager creates a new mock manager
+// NewMockManager creates a new mock manager.
 func NewMockManager() *MockManager {
 	return &MockManager{
 		requestCounts:   make(map[string]int),
@@ -55,7 +55,7 @@ func NewMockManager() *MockManager {
 	}
 }
 
-// Initialize sets up all mock services
+// Initialize sets up all mock services.
 func (mm *MockManager) Initialize(config *TestConfig) {
 	mm.config = config
 
@@ -69,16 +69,16 @@ func (mm *MockManager) Initialize(config *TestConfig) {
 	mm.setupServiceMocks()
 }
 
-// Reset resets all mocks to their initial state
+// Reset resets all mocks to their initial state.
 func (mm *MockManager) Reset() {
 	mm.mu.Lock()
 	defer mm.mu.Unlock()
 
-	// Reset request tracking
+	// Reset request tracking.
 	mm.requestCounts = make(map[string]int)
 	mm.responseLatency = make(map[string][]time.Duration)
 
-	// Reset service mocks
+	// Reset service mocks.
 	if mm.weaviateMock != nil {
 		mm.weaviateMock.Reset()
 	}
@@ -93,7 +93,7 @@ func (mm *MockManager) Reset() {
 	}
 }
 
-// Cleanup stops all mock servers and cleans up resources
+// Cleanup stops all mock servers and cleans up resources.
 func (mm *MockManager) Cleanup() {
 	if mm.weaviateServer != nil {
 		mm.weaviateServer.Close()
@@ -109,18 +109,18 @@ func (mm *MockManager) Cleanup() {
 	}
 }
 
-// setupWeaviateMock creates a mock Weaviate server
+// setupWeaviateMock creates a mock Weaviate server.
 func (mm *MockManager) setupWeaviateMock() {
 	router := mux.NewRouter()
 
-	// Health check endpoint
+	// Health check endpoint.
 	router.HandleFunc("/v1/.well-known/ready", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("weaviate_health")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]bool{"ready": true})
 	}).Methods("GET")
 
-	// GraphQL endpoint for queries
+	// GraphQL endpoint for queries.
 	router.HandleFunc("/v1/graphql", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("weaviate_query")
 
@@ -129,7 +129,7 @@ func (mm *MockManager) setupWeaviateMock() {
 			return
 		}
 
-		// Mock response for semantic search
+		// Mock response for semantic search.
 		response := map[string]interface{}{
 			"data": map[string]interface{}{
 				"Get": map[string]interface{}{
@@ -157,7 +157,7 @@ func (mm *MockManager) setupWeaviateMock() {
 		json.NewEncoder(w).Encode(response)
 	}).Methods("POST")
 
-	// Object creation endpoint
+	// Object creation endpoint.
 	router.HandleFunc("/v1/objects", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("weaviate_create")
 
@@ -176,11 +176,11 @@ func (mm *MockManager) setupWeaviateMock() {
 	mm.weaviateMock = &MockWeaviateClient{}
 }
 
-// setupLLMMock creates a mock LLM provider server
+// setupLLMMock creates a mock LLM provider server.
 func (mm *MockManager) setupLLMMock() {
 	router := mux.NewRouter()
 
-	// Chat completions endpoint (OpenAI-compatible)
+	// Chat completions endpoint (OpenAI-compatible).
 	router.HandleFunc("/v1/chat/completions", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("llm_completion")
 
@@ -192,7 +192,7 @@ func (mm *MockManager) setupLLMMock() {
 			return
 		}
 
-		// Mock structured response for network intent processing
+		// Mock structured response for network intent processing.
 		response := map[string]interface{}{
 			"id":      "mock-completion-id",
 			"object":  "chat.completion",
@@ -235,7 +235,7 @@ func (mm *MockManager) setupLLMMock() {
 		json.NewEncoder(w).Encode(response)
 	}).Methods("POST")
 
-	// Embeddings endpoint
+	// Embeddings endpoint.
 	router.HandleFunc("/v1/embeddings", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("llm_embedding")
 
@@ -244,7 +244,7 @@ func (mm *MockManager) setupLLMMock() {
 			return
 		}
 
-		// Mock embedding response
+		// Mock embedding response.
 		response := map[string]interface{}{
 			"object": "list",
 			"data": []map[string]interface{}{
@@ -269,11 +269,11 @@ func (mm *MockManager) setupLLMMock() {
 	mm.llmMock = &MockLLMClient{}
 }
 
-// setupORANMock creates mock O-RAN interface servers
+// setupORANMock creates mock O-RAN interface servers.
 func (mm *MockManager) setupORANMock() {
 	router := mux.NewRouter()
 
-	// A1 Policy Management Interface
+	// A1 Policy Management Interface.
 	router.HandleFunc("/a1-p/v2/policytypes", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("oran_a1_policy_types")
 
@@ -294,7 +294,7 @@ func (mm *MockManager) setupORANMock() {
 		json.NewEncoder(w).Encode(response)
 	}).Methods("GET")
 
-	// O1 Interface (NETCONF/RESTCONF)
+	// O1 Interface (NETCONF/RESTCONF).
 	router.HandleFunc("/restconf/data/ietf-interfaces:interfaces", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("oran_o1_interfaces")
 
@@ -314,7 +314,7 @@ func (mm *MockManager) setupORANMock() {
 		json.NewEncoder(w).Encode(response)
 	}).Methods("GET")
 
-	// O2 Interface (Cloud Infrastructure)
+	// O2 Interface (Cloud Infrastructure).
 	router.HandleFunc("/o2/v1/deployments", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("oran_o2_deployments")
 
@@ -341,11 +341,11 @@ func (mm *MockManager) setupORANMock() {
 	mm.oranServer = httptest.NewServer(router)
 }
 
-// setupPrometheusMock creates a mock Prometheus server
+// setupPrometheusMock creates a mock Prometheus server.
 func (mm *MockManager) setupPrometheusMock() {
 	router := mux.NewRouter()
 
-	// Query endpoint
+	// Query endpoint.
 	router.HandleFunc("/api/v1/query", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("prometheus_query")
 
@@ -375,7 +375,7 @@ func (mm *MockManager) setupPrometheusMock() {
 	mm.prometheusServer = httptest.NewServer(router)
 }
 
-// setupServiceMocks initializes service-level mocks
+// setupServiceMocks initializes service-level mocks.
 func (mm *MockManager) setupServiceMocks() {
 	mm.weaviateMock = &MockWeaviateClient{}
 	mm.llmMock = &MockLLMClient{}
@@ -383,91 +383,103 @@ func (mm *MockManager) setupServiceMocks() {
 	mm.k8sMock = &MockK8sClient{}
 }
 
-// Mock service implementations
+// Mock service implementations.
 
-// MockWeaviateClient mocks the Weaviate client
+// MockWeaviateClient mocks the Weaviate client.
 type MockWeaviateClient struct {
 	mock.Mock
 }
 
+// Query performs query operation.
 func (m *MockWeaviateClient) Query() interface{} {
 	args := m.Called()
 	return args.Get(0)
 }
 
+// Reset performs reset operation.
 func (m *MockWeaviateClient) Reset() {
 	m.ExpectedCalls = nil
 	m.Calls = nil
 }
 
-// MockLLMClient mocks LLM service calls
+// MockLLMClient mocks LLM service calls.
 type MockLLMClient struct {
 	mock.Mock
 }
 
+// ProcessIntent performs processintent operation.
 func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (map[string]interface{}, error) {
 	args := m.Called(ctx, intent)
 	return args.Get(0).(map[string]interface{}), args.Error(1)
 }
 
+// Reset performs reset operation.
 func (m *MockLLMClient) Reset() {
 	m.ExpectedCalls = nil
 	m.Calls = nil
 }
 
-// MockRedisClient mocks Redis operations
+// MockRedisClient mocks Redis operations.
 type MockRedisClient struct {
 	mock.Mock
 }
 
+// Get performs get operation.
 func (m *MockRedisClient) Get(ctx context.Context, key string) *redis.StringCmd {
 	args := m.Called(ctx, key)
 	return args.Get(0).(*redis.StringCmd)
 }
 
+// Set performs set operation.
 func (m *MockRedisClient) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd {
 	args := m.Called(ctx, key, value, expiration)
 	return args.Get(0).(*redis.StatusCmd)
 }
 
+// Reset performs reset operation.
 func (m *MockRedisClient) Reset() {
 	m.ExpectedCalls = nil
 	m.Calls = nil
 }
 
-// MockK8sClient mocks Kubernetes client operations
+// MockK8sClient mocks Kubernetes client operations.
 type MockK8sClient struct {
 	mock.Mock
 }
 
+// Get performs get operation.
 func (m *MockK8sClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 	args := m.Called(ctx, key, obj, opts)
 	return args.Error(0)
 }
 
+// Create performs create operation.
 func (m *MockK8sClient) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
 	args := m.Called(ctx, obj, opts)
 	return args.Error(0)
 }
 
+// Update performs update operation.
 func (m *MockK8sClient) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
 	args := m.Called(ctx, obj, opts)
 	return args.Error(0)
 }
 
+// Delete performs delete operation.
 func (m *MockK8sClient) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
 	args := m.Called(ctx, obj, opts)
 	return args.Error(0)
 }
 
+// Reset performs reset operation.
 func (m *MockK8sClient) Reset() {
 	m.ExpectedCalls = nil
 	m.Calls = nil
 }
 
-// Chaos engineering methods
+// Chaos engineering methods.
 
-// InjectChaos enables chaos injection with specified failure rate
+// InjectChaos enables chaos injection with specified failure rate.
 func (mm *MockManager) InjectChaos(failureRate float64, testFunc func() error) error {
 	mm.mu.Lock()
 	mm.chaosEnabled = true
@@ -486,7 +498,7 @@ func (mm *MockManager) InjectChaos(failureRate float64, testFunc func() error) e
 	return testFunc()
 }
 
-// shouldInjectFailure determines if a failure should be injected
+// shouldInjectFailure determines if a failure should be injected.
 func (mm *MockManager) shouldInjectFailure() bool {
 	mm.mu.RLock()
 	defer mm.mu.RUnlock()
@@ -495,28 +507,28 @@ func (mm *MockManager) shouldInjectFailure() bool {
 		return false
 	}
 
-	// Inject latency
+	// Inject latency.
 	if mm.latencyInjection > 0 {
 		time.Sleep(mm.latencyInjection)
 	}
 
-	// Inject failure based on rate
+	// Inject failure based on rate.
 	return rand.Float64() < mm.failureRate
 }
 
-// trackRequest tracks mock service requests for analysis
+// trackRequest tracks mock service requests for analysis.
 func (mm *MockManager) trackRequest(service string) {
 	mm.mu.Lock()
 	defer mm.mu.Unlock()
 
 	mm.requestCounts[service]++
 
-	// Track latency (simulated)
+	// Track latency (simulated).
 	latency := time.Duration(rand.Intn(100)) * time.Millisecond
 	mm.responseLatency[service] = append(mm.responseLatency[service], latency)
 }
 
-// generateMockEmbedding creates a mock embedding vector
+// generateMockEmbedding creates a mock embedding vector.
 func (mm *MockManager) generateMockEmbedding(dimensions int) []float64 {
 	embedding := make([]float64, dimensions)
 	for i := range embedding {
@@ -525,7 +537,7 @@ func (mm *MockManager) generateMockEmbedding(dimensions int) []float64 {
 	return embedding
 }
 
-// GetMockServerURLs returns URLs for mock servers
+// GetMockServerURLs returns URLs for mock servers.
 func (mm *MockManager) GetMockServerURLs() map[string]string {
 	urls := make(map[string]string)
 
@@ -545,7 +557,7 @@ func (mm *MockManager) GetMockServerURLs() map[string]string {
 	return urls
 }
 
-// GenerateReport creates a comprehensive mock interaction report
+// GenerateReport creates a comprehensive mock interaction report.
 func (mm *MockManager) GenerateReport() {
 	mm.mu.RLock()
 	defer mm.mu.RUnlock()
@@ -566,22 +578,22 @@ func (mm *MockManager) GenerateReport() {
 	}
 }
 
-// GetWeaviateMock returns the Weaviate mock client
+// GetWeaviateMock returns the Weaviate mock client.
 func (mm *MockManager) GetWeaviateMock() *MockWeaviateClient {
 	return mm.weaviateMock
 }
 
-// GetLLMMock returns the LLM mock client
+// GetLLMMock returns the LLM mock client.
 func (mm *MockManager) GetLLMMock() *MockLLMClient {
 	return mm.llmMock
 }
 
-// GetRedisMock returns the Redis mock client
+// GetRedisMock returns the Redis mock client.
 func (mm *MockManager) GetRedisMock() *MockRedisClient {
 	return mm.redisMock
 }
 
-// GetK8sMock returns the Kubernetes mock client
+// GetK8sMock returns the Kubernetes mock client.
 func (mm *MockManager) GetK8sMock() *MockK8sClient {
 	return mm.k8sMock
 }

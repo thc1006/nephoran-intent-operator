@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// FIXME: Adding package comment per revive linter
-// Package templates provides Helm chart templates for CNF deployment generation
+// FIXME: Adding package comment per revive linter.
+// Package templates provides Helm chart templates for CNF deployment generation.
 package templates
 
 import (
@@ -24,12 +24,12 @@ import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-// HelmTemplateManager manages Helm chart templates for CNF deployments
+// HelmTemplateManager manages Helm chart templates for CNF deployments.
 type HelmTemplateManager struct {
 	Templates map[nephoranv1.CNFFunction]*HelmTemplate
 }
 
-// HelmTemplate defines a Helm chart template for a CNF function
+// HelmTemplate defines a Helm chart template for a CNF function.
 type HelmTemplate struct {
 	Function     nephoranv1.CNFFunction
 	ChartName    string
@@ -44,7 +44,7 @@ type HelmTemplate struct {
 	CustomValues map[string]interface{}
 }
 
-// HelmDependency defines a Helm chart dependency
+// HelmDependency defines a Helm chart dependency.
 type HelmDependency struct {
 	Name       string `yaml:"name"`
 	Version    string `yaml:"version"`
@@ -52,7 +52,7 @@ type HelmDependency struct {
 	Condition  string `yaml:"condition,omitempty"`
 }
 
-// InterfaceTemplate defines network interface templates
+// InterfaceTemplate defines network interface templates.
 type InterfaceTemplate struct {
 	Name        string
 	Type        string
@@ -62,20 +62,20 @@ type InterfaceTemplate struct {
 	Annotations map[string]string
 }
 
-// ConfigMapTemplate defines ConfigMap templates
+// ConfigMapTemplate defines ConfigMap templates.
 type ConfigMapTemplate struct {
 	Name string
 	Data map[string]string
 }
 
-// SecretTemplate defines Secret templates
+// SecretTemplate defines Secret templates.
 type SecretTemplate struct {
 	Name string
 	Type string
 	Data map[string][]byte
 }
 
-// ServiceTemplate defines Service templates
+// ServiceTemplate defines Service templates.
 type ServiceTemplate struct {
 	Name        string
 	Type        string
@@ -84,7 +84,7 @@ type ServiceTemplate struct {
 	Annotations map[string]string
 }
 
-// ServicePortTemplate defines service port templates
+// ServicePortTemplate defines service port templates.
 type ServicePortTemplate struct {
 	Name       string
 	Port       int32
@@ -92,25 +92,25 @@ type ServicePortTemplate struct {
 	Protocol   string
 }
 
-// NewHelmTemplateManager creates a new Helm template manager
+// NewHelmTemplateManager creates a new Helm template manager.
 func NewHelmTemplateManager() *HelmTemplateManager {
 	manager := &HelmTemplateManager{
 		Templates: make(map[nephoranv1.CNFFunction]*HelmTemplate),
 	}
 
-	// Initialize 5G Core templates
+	// Initialize 5G Core templates.
 	manager.init5GCoreTemplates()
 
-	// Initialize O-RAN templates
+	// Initialize O-RAN templates.
 	manager.initORANTemplates()
 
-	// Initialize edge templates
+	// Initialize edge templates.
 	manager.initEdgeTemplates()
 
 	return manager
 }
 
-// GetTemplate retrieves a Helm template for a CNF function
+// GetTemplate retrieves a Helm template for a CNF function.
 func (m *HelmTemplateManager) GetTemplate(function nephoranv1.CNFFunction) (*HelmTemplate, error) {
 	template, exists := m.Templates[function]
 	if !exists {
@@ -120,7 +120,7 @@ func (m *HelmTemplateManager) GetTemplate(function nephoranv1.CNFFunction) (*Hel
 	return template, nil
 }
 
-// GenerateValues generates Helm values for a CNF deployment
+// GenerateValues generates Helm values for a CNF deployment.
 func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map[string]interface{}, error) {
 	template, err := m.GetTemplate(cnf.Spec.Function)
 	if err != nil {
@@ -129,15 +129,15 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 
 	values := make(map[string]interface{})
 
-	// Start with template default values
+	// Start with template default values.
 	for k, v := range template.Values {
 		values[k] = v
 	}
 
-	// Override with CNF-specific values
+	// Override with CNF-specific values.
 	values["replicaCount"] = cnf.Spec.Replicas
 
-	// Resource requirements
+	// Resource requirements.
 	values["resources"] = map[string]interface{}{
 		"requests": map[string]interface{}{
 			"cpu":    cnf.Spec.Resources.CPU.String(),
@@ -149,7 +149,7 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 		},
 	}
 
-	// Override limits if specified
+	// Override limits if specified.
 	if cnf.Spec.Resources.MaxCPU != nil {
 		limits := values["resources"].(map[string]interface{})["limits"].(map[string]interface{})
 		limits["cpu"] = cnf.Spec.Resources.MaxCPU.String()
@@ -160,7 +160,7 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 		limits["memory"] = cnf.Spec.Resources.MaxMemory.String()
 	}
 
-	// Storage configuration
+	// Storage configuration.
 	if cnf.Spec.Resources.Storage != nil {
 		values["persistence"] = map[string]interface{}{
 			"enabled": true,
@@ -168,7 +168,7 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 		}
 	}
 
-	// DPDK configuration
+	// DPDK configuration.
 	if cnf.Spec.Resources.DPDK != nil && cnf.Spec.Resources.DPDK.Enabled {
 		values["dpdk"] = map[string]interface{}{
 			"enabled": true,
@@ -178,7 +178,7 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 		}
 	}
 
-	// Service mesh configuration
+	// Service mesh configuration.
 	if cnf.Spec.ServiceMesh != nil && cnf.Spec.ServiceMesh.Enabled {
 		values["serviceMesh"] = map[string]interface{}{
 			"enabled": true,
@@ -193,7 +193,7 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 		}
 	}
 
-	// Monitoring configuration
+	// Monitoring configuration.
 	if cnf.Spec.Monitoring != nil && cnf.Spec.Monitoring.Enabled {
 		values["monitoring"] = map[string]interface{}{
 			"enabled": true,
@@ -209,7 +209,7 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 		}
 	}
 
-	// Auto-scaling configuration
+	// Auto-scaling configuration.
 	if cnf.Spec.AutoScaling != nil && cnf.Spec.AutoScaling.Enabled {
 		values["autoscaling"] = map[string]interface{}{
 			"enabled":     true,
@@ -226,7 +226,7 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 		}
 	}
 
-	// Security configuration
+	// Security configuration.
 	if len(cnf.Spec.SecurityPolicies) > 0 {
 		values["security"] = map[string]interface{}{
 			"policies": cnf.Spec.SecurityPolicies,
@@ -236,9 +236,9 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 	return values, nil
 }
 
-// init5GCoreTemplates initializes Helm templates for 5G Core functions
+// init5GCoreTemplates initializes Helm templates for 5G Core functions.
 func (m *HelmTemplateManager) init5GCoreTemplates() {
-	// AMF Template
+	// AMF Template.
 	m.Templates[nephoranv1.CNFFunctionAMF] = &HelmTemplate{
 		Function:     nephoranv1.CNFFunctionAMF,
 		ChartName:    "amf",
@@ -319,7 +319,7 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 		},
 	}
 
-	// SMF Template
+	// SMF Template.
 	m.Templates[nephoranv1.CNFFunctionSMF] = &HelmTemplate{
 		Function:     nephoranv1.CNFFunctionSMF,
 		ChartName:    "smf",
@@ -377,7 +377,7 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 		},
 	}
 
-	// UPF Template
+	// UPF Template.
 	m.Templates[nephoranv1.CNFFunctionUPF] = &HelmTemplate{
 		Function:     nephoranv1.CNFFunctionUPF,
 		ChartName:    "upf",
@@ -457,7 +457,7 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 		},
 	}
 
-	// NRF Template
+	// NRF Template.
 	m.Templates[nephoranv1.CNFFunctionNRF] = &HelmTemplate{
 		Function:     nephoranv1.CNFFunctionNRF,
 		ChartName:    "nrf",
@@ -503,9 +503,9 @@ func (m *HelmTemplateManager) init5GCoreTemplates() {
 	}
 }
 
-// initORANTemplates initializes Helm templates for O-RAN functions
+// initORANTemplates initializes Helm templates for O-RAN functions.
 func (m *HelmTemplateManager) initORANTemplates() {
-	// Near-RT RIC Template
+	// Near-RT RIC Template.
 	m.Templates[nephoranv1.CNFFunctionNearRTRIC] = &HelmTemplate{
 		Function:     nephoranv1.CNFFunctionNearRTRIC,
 		ChartName:    "near-rt-ric",
@@ -566,7 +566,7 @@ func (m *HelmTemplateManager) initORANTemplates() {
 		},
 	}
 
-	// O-DU Template
+	// O-DU Template.
 	m.Templates[nephoranv1.CNFFunctionODU] = &HelmTemplate{
 		Function:     nephoranv1.CNFFunctionODU,
 		ChartName:    "o-du",
@@ -632,7 +632,7 @@ func (m *HelmTemplateManager) initORANTemplates() {
 		},
 	}
 
-	// O-CU-CP Template
+	// O-CU-CP Template.
 	m.Templates[nephoranv1.CNFFunctionOCUCP] = &HelmTemplate{
 		Function:     nephoranv1.CNFFunctionOCUCP,
 		ChartName:    "o-cu-cp",
@@ -685,9 +685,9 @@ func (m *HelmTemplateManager) initORANTemplates() {
 	}
 }
 
-// initEdgeTemplates initializes Helm templates for edge functions
+// initEdgeTemplates initializes Helm templates for edge functions.
 func (m *HelmTemplateManager) initEdgeTemplates() {
-	// UE Simulator Template
+	// UE Simulator Template.
 	m.Templates[nephoranv1.CNFFunctionUESimulator] = &HelmTemplate{
 		Function:     nephoranv1.CNFFunctionUESimulator,
 		ChartName:    "ue-simulator",
@@ -717,7 +717,7 @@ func (m *HelmTemplateManager) initEdgeTemplates() {
 	}
 }
 
-// Configuration generators
+// Configuration generators.
 func generateAMFConfig() string {
 	return `
 info:
@@ -997,7 +997,7 @@ logger:
 `
 }
 
-// GetHelmChart returns the Helm chart reference for a CNF function
+// GetHelmChart returns the Helm chart reference for a CNF function.
 func (m *HelmTemplateManager) GetHelmChart(function nephoranv1.CNFFunction) (*nephoranv1.HelmConfig, error) {
 	template, err := m.GetTemplate(function)
 	if err != nil {
@@ -1011,7 +1011,7 @@ func (m *HelmTemplateManager) GetHelmChart(function nephoranv1.CNFFunction) (*ne
 	}, nil
 }
 
-// ValidateTemplate validates a Helm template configuration
+// ValidateTemplate validates a Helm template configuration.
 func (m *HelmTemplateManager) ValidateTemplate(template *HelmTemplate) error {
 	if template == nil {
 		return fmt.Errorf("template is nil")
@@ -1032,7 +1032,7 @@ func (m *HelmTemplateManager) ValidateTemplate(template *HelmTemplate) error {
 	return nil
 }
 
-// GetSupportedFunctions returns a list of supported CNF functions
+// GetSupportedFunctions returns a list of supported CNF functions.
 func (m *HelmTemplateManager) GetSupportedFunctions() []nephoranv1.CNFFunction {
 	functions := make([]nephoranv1.CNFFunction, 0, len(m.Templates))
 	for function := range m.Templates {
@@ -1041,7 +1041,7 @@ func (m *HelmTemplateManager) GetSupportedFunctions() []nephoranv1.CNFFunction {
 	return functions
 }
 
-// GetFunctionInfo returns information about a CNF function
+// GetFunctionInfo returns information about a CNF function.
 func (m *HelmTemplateManager) GetFunctionInfo(function nephoranv1.CNFFunction) (map[string]interface{}, error) {
 	template, err := m.GetTemplate(function)
 	if err != nil {

@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// DependencyChain represents a chain of service dependencies
+// DependencyChain represents a chain of service dependencies.
 type DependencyChain struct {
 	ID           string                 `json:"id"`
 	Name         string                 `json:"name"`
@@ -18,7 +18,7 @@ type DependencyChain struct {
 	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// ServiceDependency represents a service in the dependency chain
+// ServiceDependency represents a service in the dependency chain.
 type ServiceDependency struct {
 	Name         string                 `json:"name"`
 	Type         string                 `json:"type"`
@@ -27,7 +27,7 @@ type ServiceDependency struct {
 	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// DependencyServiceStatus represents the status of a service dependency
+// DependencyServiceStatus represents the status of a service dependency.
 type DependencyServiceStatus struct {
 	ServiceName      string                 `json:"service_name"`
 	Status           DependencyStatus       `json:"status"`
@@ -38,7 +38,7 @@ type DependencyServiceStatus struct {
 	Metadata         map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// DependencyChainTracker tracks service dependency chains and their health (stub implementation)
+// DependencyChainTracker tracks service dependency chains and their health (stub implementation).
 type DependencyChainTracker struct {
 	chains   map[string]*DependencyChain
 	statuses map[string]*DependencyServiceStatus
@@ -47,7 +47,7 @@ type DependencyChainTracker struct {
 	cancel   context.CancelFunc
 }
 
-// NewDependencyChainTracker creates a new dependency chain tracker
+// NewDependencyChainTracker creates a new dependency chain tracker.
 func NewDependencyChainTracker() *DependencyChainTracker {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &DependencyChainTracker{
@@ -58,7 +58,7 @@ func NewDependencyChainTracker() *DependencyChainTracker {
 	}
 }
 
-// AddChain adds a dependency chain to track
+// AddChain adds a dependency chain to track.
 func (dct *DependencyChainTracker) AddChain(chain *DependencyChain) error {
 	if chain == nil {
 		return fmt.Errorf("chain cannot be nil")
@@ -69,7 +69,7 @@ func (dct *DependencyChainTracker) AddChain(chain *DependencyChain) error {
 
 	dct.chains[chain.ID] = chain
 
-	// Initialize status for all services in the chain
+	// Initialize status for all services in the chain.
 	for _, service := range chain.Services {
 		dct.statuses[service.Name] = &DependencyServiceStatus{
 			ServiceName:      service.Name,
@@ -83,7 +83,7 @@ func (dct *DependencyChainTracker) AddChain(chain *DependencyChain) error {
 	return nil
 }
 
-// RemoveChain removes a dependency chain from tracking
+// RemoveChain removes a dependency chain from tracking.
 func (dct *DependencyChainTracker) RemoveChain(chainID string) error {
 	dct.mu.Lock()
 	defer dct.mu.Unlock()
@@ -93,7 +93,7 @@ func (dct *DependencyChainTracker) RemoveChain(chainID string) error {
 		return fmt.Errorf("chain with ID %s not found", chainID)
 	}
 
-	// Remove statuses for all services in the chain
+	// Remove statuses for all services in the chain.
 	for _, service := range chain.Services {
 		delete(dct.statuses, service.Name)
 	}
@@ -102,21 +102,21 @@ func (dct *DependencyChainTracker) RemoveChain(chainID string) error {
 	return nil
 }
 
-// UpdateStatus updates the status of a service in the dependency chain (stub implementation)
+// UpdateStatus updates the status of a service in the dependency chain (stub implementation).
 func (dct *DependencyChainTracker) UpdateStatus(serviceName, status string, responseTime time.Duration, failureReason string) error {
 	dct.mu.Lock()
 	defer dct.mu.Unlock()
 
 	serviceStatus, exists := dct.statuses[serviceName]
 	if !exists {
-		// Create a new status entry for unknown services
+		// Create a new status entry for unknown services.
 		serviceStatus = &DependencyServiceStatus{
 			ServiceName: serviceName,
 		}
 		dct.statuses[serviceName] = serviceStatus
 	}
 
-	// Update the status (stub always marks as healthy)
+	// Update the status (stub always marks as healthy).
 	serviceStatus.Status = DepStatusHealthy
 	serviceStatus.ResponseTime = responseTime
 	serviceStatus.LastChecked = time.Now()
@@ -126,7 +126,7 @@ func (dct *DependencyChainTracker) UpdateStatus(serviceName, status string, resp
 	return nil
 }
 
-// GetChainStatus returns the overall status of a dependency chain (stub implementation)
+// GetChainStatus returns the overall status of a dependency chain (stub implementation).
 func (dct *DependencyChainTracker) GetChainStatus(chainID string) (string, error) {
 	dct.mu.RLock()
 	defer dct.mu.RUnlock()
@@ -136,12 +136,12 @@ func (dct *DependencyChainTracker) GetChainStatus(chainID string) (string, error
 		return "", fmt.Errorf("chain with ID %s not found", chainID)
 	}
 
-	// Stub implementation always returns healthy
+	// Stub implementation always returns healthy.
 	_ = chain
 	return "healthy", nil
 }
 
-// GetServiceStatus returns the status of a specific service
+// GetServiceStatus returns the status of a specific service.
 func (dct *DependencyChainTracker) GetServiceStatus(serviceName string) (*DependencyServiceStatus, error) {
 	dct.mu.RLock()
 	defer dct.mu.RUnlock()
@@ -151,19 +151,19 @@ func (dct *DependencyChainTracker) GetServiceStatus(serviceName string) (*Depend
 		return nil, fmt.Errorf("service %s not found", serviceName)
 	}
 
-	// Return a copy to avoid concurrent modifications
+	// Return a copy to avoid concurrent modifications.
 	statusCopy := *status
 	return &statusCopy, nil
 }
 
-// GetAllChains returns all tracked dependency chains
+// GetAllChains returns all tracked dependency chains.
 func (dct *DependencyChainTracker) GetAllChains() []*DependencyChain {
 	dct.mu.RLock()
 	defer dct.mu.RUnlock()
 
 	chains := make([]*DependencyChain, 0, len(dct.chains))
 	for _, chain := range dct.chains {
-		// Return a copy to avoid concurrent modifications
+		// Return a copy to avoid concurrent modifications.
 		chainCopy := *chain
 		chains = append(chains, &chainCopy)
 	}
@@ -171,32 +171,32 @@ func (dct *DependencyChainTracker) GetAllChains() []*DependencyChain {
 	return chains
 }
 
-// Start begins dependency tracking (stub implementation)
+// Start begins dependency tracking (stub implementation).
 func (dct *DependencyChainTracker) Start() error {
-	// Stub implementation does nothing
+	// Stub implementation does nothing.
 	return nil
 }
 
-// Stop stops dependency tracking
+// Stop stops dependency tracking.
 func (dct *DependencyChainTracker) Stop() error {
 	dct.cancel()
 	return nil
 }
 
-// AnalyzeImpact analyzes the impact of a service failure on dependency chains (stub implementation)
+// AnalyzeImpact analyzes the impact of a service failure on dependency chains (stub implementation).
 func (dct *DependencyChainTracker) AnalyzeImpact(serviceName string) ([]string, error) {
 	dct.mu.RLock()
 	defer dct.mu.RUnlock()
 
-	// Stub implementation returns empty impact
+	// Stub implementation returns empty impact.
 	return []string{}, nil
 }
 
-// GetCriticalPath returns services on the critical path (stub implementation)
+// GetCriticalPath returns services on the critical path (stub implementation).
 func (dct *DependencyChainTracker) GetCriticalPath() ([]string, error) {
 	dct.mu.RLock()
 	defer dct.mu.RUnlock()
 
-	// Stub implementation returns empty critical path
+	// Stub implementation returns empty critical path.
 	return []string{}, nil
 }

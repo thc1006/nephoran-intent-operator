@@ -14,7 +14,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// WebSocketServer manages WebSocket connections and event distribution
+// WebSocketServer manages WebSocket connections and event distribution.
 type WebSocketServer struct {
 	logger          *zap.Logger
 	upgrader        websocket.Upgrader
@@ -26,7 +26,7 @@ type WebSocketServer struct {
 	informerFactory informers.SharedInformerFactory
 }
 
-// NewWebSocketServer creates a new WebSocket server
+// NewWebSocketServer creates a new WebSocket server.
 func NewWebSocketServer(
 	logger *zap.Logger,
 	kubeClient kubernetes.Interface,
@@ -35,7 +35,7 @@ func NewWebSocketServer(
 		logger: logger,
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
-				// TODO: Implement proper origin checking
+				// TODO: Implement proper origin checking.
 				return true
 			},
 			ReadBufferSize:  1024,
@@ -50,7 +50,7 @@ func NewWebSocketServer(
 	return ws
 }
 
-// HandleWebSocket manages WebSocket connection lifecycle
+// HandleWebSocket manages WebSocket connection lifecycle.
 func (ws *WebSocketServer) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := ws.upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -65,7 +65,7 @@ func (ws *WebSocketServer) HandleWebSocket(w http.ResponseWriter, r *http.Reques
 	go ws.handleClient(conn)
 }
 
-// handleClient manages individual WebSocket client interactions
+// handleClient manages individual WebSocket client interactions.
 func (ws *WebSocketServer) handleClient(conn *websocket.Conn) {
 	defer func() {
 		ws.clientsMutex.Lock()
@@ -83,7 +83,7 @@ func (ws *WebSocketServer) handleClient(conn *websocket.Conn) {
 			break
 		}
 
-		// Process client messages
+		// Process client messages.
 		var wsMessage WebSocketMessage
 		if err := json.Unmarshal(message, &wsMessage); err != nil {
 			ws.logger.Error("Invalid WebSocket message", zap.Error(err))
@@ -94,13 +94,13 @@ func (ws *WebSocketServer) handleClient(conn *websocket.Conn) {
 	}
 }
 
-// processClientMessage handles incoming WebSocket messages
+// processClientMessage handles incoming WebSocket messages.
 func (ws *WebSocketServer) processClientMessage(conn *websocket.Conn, message WebSocketMessage) {
 	switch message.Type {
 	case "subscribe":
-		// Handle subscription requests
+		// Handle subscription requests.
 	case "ping":
-		// Respond to client ping
+		// Respond to client ping.
 		ws.sendMessage(conn, WebSocketMessage{
 			Type:    "pong",
 			Payload: "pong",
@@ -110,7 +110,7 @@ func (ws *WebSocketServer) processClientMessage(conn *websocket.Conn, message We
 	}
 }
 
-// sendMessage sends a message to a specific WebSocket client
+// sendMessage sends a message to a specific WebSocket client.
 func (ws *WebSocketServer) sendMessage(conn *websocket.Conn, message WebSocketMessage) error {
 	ws.clientsMutex.RLock()
 	defer ws.clientsMutex.RUnlock()
@@ -122,15 +122,15 @@ func (ws *WebSocketServer) sendMessage(conn *websocket.Conn, message WebSocketMe
 	return conn.WriteJSON(message)
 }
 
-// Start initializes WebSocket server and Kubernetes event watchers
+// Start initializes WebSocket server and Kubernetes event watchers.
 func (ws *WebSocketServer) Start(ctx context.Context) error {
-	// Start Kubernetes informers
+	// Start Kubernetes informers.
 	ws.startInformers(ctx)
 
-	// Start broadcaster
+	// Start broadcaster.
 	go ws.startBroadcaster(ctx)
 
-	// Start event watchers
+	// Start event watchers.
 	go ws.watchPackageEvents(ctx)
 	go ws.watchClusterEvents(ctx)
 	go ws.watchIntentEvents(ctx)
@@ -138,7 +138,7 @@ func (ws *WebSocketServer) Start(ctx context.Context) error {
 	return nil
 }
 
-// startBroadcaster distributes messages to all connected clients
+// startBroadcaster distributes messages to all connected clients.
 func (ws *WebSocketServer) startBroadcaster(ctx context.Context) {
 	for {
 		select {
@@ -150,7 +150,7 @@ func (ws *WebSocketServer) startBroadcaster(ctx context.Context) {
 	}
 }
 
-// broadcastMessage sends a message to all connected clients
+// broadcastMessage sends a message to all connected clients.
 func (ws *WebSocketServer) broadcastMessage(message WebSocketMessage) {
 	ws.clientsMutex.RLock()
 	defer ws.clientsMutex.RUnlock()
@@ -162,32 +162,32 @@ func (ws *WebSocketServer) broadcastMessage(message WebSocketMessage) {
 	}
 }
 
-// startInformers initializes Kubernetes resource informers
+// startInformers initializes Kubernetes resource informers.
 func (ws *WebSocketServer) startInformers(ctx context.Context) {
-	// Add informers for different Kubernetes resources
+	// Add informers for different Kubernetes resources.
 	ws.informerFactory.Start(ctx.Done())
 	ws.informerFactory.WaitForCacheSync(ctx.Done())
 }
 
-// watchPackageEvents monitors PackageRevision events
+// watchPackageEvents monitors PackageRevision events.
 func (ws *WebSocketServer) watchPackageEvents(ctx context.Context) {
-	// TODO: Implement specific package event watching
-	// Use Kubernetes informers or custom watcher to track package changes
+	// TODO: Implement specific package event watching.
+	// Use Kubernetes informers or custom watcher to track package changes.
 }
 
-// watchClusterEvents monitors Workload Cluster events
+// watchClusterEvents monitors Workload Cluster events.
 func (ws *WebSocketServer) watchClusterEvents(ctx context.Context) {
-	// TODO: Implement cluster event watching
-	// Track cluster status, readiness, and configuration changes
+	// TODO: Implement cluster event watching.
+	// Track cluster status, readiness, and configuration changes.
 }
 
-// watchIntentEvents monitors NetworkIntent processing events
+// watchIntentEvents monitors NetworkIntent processing events.
 func (ws *WebSocketServer) watchIntentEvents(ctx context.Context) {
-	// TODO: Implement intent processing event tracking
-	// Monitor intent status, processing stages, and completion
+	// TODO: Implement intent processing event tracking.
+	// Monitor intent status, processing stages, and completion.
 }
 
-// Stop gracefully shuts down the WebSocket server
+// Stop gracefully shuts down the WebSocket server.
 func (ws *WebSocketServer) Stop() {
 	close(ws.stopChan)
 

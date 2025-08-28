@@ -11,13 +11,13 @@ import (
 	"go.opentelemetry.io/otel/metric"
 )
 
-// MetricsRecorder provides a unified interface for recording metrics
+// MetricsRecorder provides a unified interface for recording metrics.
 type MetricsRecorder struct {
 	mu            sync.RWMutex
 	registry      prometheus.Registerer
 	meterProvider metric.MeterProvider
 
-	// Prometheus metrics - Basic Infrastructure
+	// Prometheus metrics - Basic Infrastructure.
 	controllerHealth *prometheus.GaugeVec
 	intentProcessing *prometheus.HistogramVec
 	llmRequests      *prometheus.CounterVec
@@ -29,43 +29,43 @@ type MetricsRecorder struct {
 	errorCounts      *prometheus.CounterVec
 	alertCounts      *prometheus.CounterVec
 
-	// Business KPI Metrics
+	// Business KPI Metrics.
 	automationRate   *prometheus.GaugeVec
 	costPerIntent    *prometheus.GaugeVec
 	userSatisfaction *prometheus.GaugeVec
 	timeToDeployment *prometheus.HistogramVec
 	complianceScore  *prometheus.GaugeVec
 
-	// SLI/SLO Metrics
+	// SLI/SLO Metrics.
 	serviceAvailability *prometheus.GaugeVec
 	errorBudgetBurn     *prometheus.GaugeVec
 	sliLatencyP95       *prometheus.GaugeVec
 	sliLatencyP99       *prometheus.GaugeVec
 	sloCompliance       *prometheus.GaugeVec
 
-	// Advanced Performance Metrics
+	// Advanced Performance Metrics.
 	throughputMetrics   *prometheus.GaugeVec
 	capacityUtilization *prometheus.GaugeVec
 	predictionAccuracy  *prometheus.GaugeVec
 	anomalyDetection    *prometheus.CounterVec
 
-	// O-RAN Compliance Metrics
+	// O-RAN Compliance Metrics.
 	oranCompliance   *prometheus.GaugeVec
 	interfaceHealth  *prometheus.GaugeVec
 	policyViolations *prometheus.CounterVec
 
-	// Cost and Resource Optimization Metrics
+	// Cost and Resource Optimization Metrics.
 	resourceEfficiency *prometheus.GaugeVec
 	costOptimization   *prometheus.GaugeVec
 	energyEfficiency   *prometheus.GaugeVec
 
-	// Security and Audit Metrics
+	// Security and Audit Metrics.
 	securityIncidents *prometheus.CounterVec
 	auditCompliance   *prometheus.GaugeVec
 	accessViolations  *prometheus.CounterVec
 }
 
-// MetricsConfig holds configuration for metrics recording
+// MetricsConfig holds configuration for metrics recording.
 type MetricsConfig struct {
 	Namespace     string
 	Subsystem     string
@@ -73,7 +73,7 @@ type MetricsConfig struct {
 	MeterProvider metric.MeterProvider
 }
 
-// NewMetricsRecorder creates a new metrics recorder
+// NewMetricsRecorder creates a new metrics recorder.
 func NewMetricsRecorder(config *MetricsConfig) *MetricsRecorder {
 	if config == nil {
 		config = &MetricsConfig{
@@ -92,15 +92,15 @@ func NewMetricsRecorder(config *MetricsConfig) *MetricsRecorder {
 		meterProvider: config.MeterProvider,
 	}
 
-	// Initialize Prometheus metrics
+	// Initialize Prometheus metrics.
 	mr.initPrometheusMetrics(config.Namespace, config.Subsystem)
 
 	return mr
 }
 
-// initPrometheusMetrics initializes all Prometheus metrics
+// initPrometheusMetrics initializes all Prometheus metrics.
 func (mr *MetricsRecorder) initPrometheusMetrics(namespace, subsystem string) {
-	// Controller health metrics
+	// Controller health metrics.
 	mr.controllerHealth = promauto.With(mr.registry).NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -111,7 +111,7 @@ func (mr *MetricsRecorder) initPrometheusMetrics(namespace, subsystem string) {
 		[]string{"controller", "component"},
 	)
 
-	// Intent processing metrics
+	// Intent processing metrics.
 	mr.intentProcessing = promauto.With(mr.registry).NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: namespace,
@@ -123,7 +123,7 @@ func (mr *MetricsRecorder) initPrometheusMetrics(namespace, subsystem string) {
 		[]string{"intent_type", "status"},
 	)
 
-	// LLM request metrics
+	// LLM request metrics.
 	mr.llmRequests = promauto.With(mr.registry).NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: namespace,
@@ -145,7 +145,7 @@ func (mr *MetricsRecorder) initPrometheusMetrics(namespace, subsystem string) {
 		[]string{"model", "operation"},
 	)
 
-	// RAG query metrics
+	// RAG query metrics.
 	mr.ragQueries = promauto.With(mr.registry).NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: namespace,
@@ -167,7 +167,7 @@ func (mr *MetricsRecorder) initPrometheusMetrics(namespace, subsystem string) {
 		[]string{"operation"},
 	)
 
-	// O-RAN connection metrics
+	// O-RAN connection metrics.
 	mr.oranConnections = promauto.With(mr.registry).NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -178,7 +178,7 @@ func (mr *MetricsRecorder) initPrometheusMetrics(namespace, subsystem string) {
 		[]string{"interface", "endpoint"},
 	)
 
-	// System resource metrics
+	// System resource metrics.
 	mr.systemResources = promauto.With(mr.registry).NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -189,7 +189,7 @@ func (mr *MetricsRecorder) initPrometheusMetrics(namespace, subsystem string) {
 		[]string{"resource", "component"},
 	)
 
-	// Error count metrics
+	// Error count metrics.
 	mr.errorCounts = promauto.With(mr.registry).NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: namespace,
@@ -200,7 +200,7 @@ func (mr *MetricsRecorder) initPrometheusMetrics(namespace, subsystem string) {
 		[]string{"component", "error_type"},
 	)
 
-	// Alert count metrics
+	// Alert count metrics.
 	mr.alertCounts = promauto.With(mr.registry).NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: namespace,
@@ -211,28 +211,28 @@ func (mr *MetricsRecorder) initPrometheusMetrics(namespace, subsystem string) {
 		[]string{"severity", "component"},
 	)
 
-	// Initialize Business KPI Metrics
+	// Initialize Business KPI Metrics.
 	mr.initBusinessKPIMetrics(namespace, subsystem)
 
-	// Initialize SLI/SLO Metrics
+	// Initialize SLI/SLO Metrics.
 	mr.initSLIMetrics(namespace, subsystem)
 
-	// Initialize Advanced Performance Metrics
+	// Initialize Advanced Performance Metrics.
 	mr.initAdvancedPerformanceMetrics(namespace, subsystem)
 
-	// Initialize O-RAN Compliance Metrics
+	// Initialize O-RAN Compliance Metrics.
 	mr.initORANComplianceMetrics(namespace, subsystem)
 
-	// Initialize Cost and Resource Optimization Metrics
+	// Initialize Cost and Resource Optimization Metrics.
 	mr.initCostOptimizationMetrics(namespace, subsystem)
 
-	// Initialize Security and Audit Metrics
+	// Initialize Security and Audit Metrics.
 	mr.initSecurityMetrics(namespace, subsystem)
 }
 
-// initBusinessKPIMetrics initializes business Key Performance Indicator metrics
+// initBusinessKPIMetrics initializes business Key Performance Indicator metrics.
 func (mr *MetricsRecorder) initBusinessKPIMetrics(namespace, subsystem string) {
-	// Automation Rate - percentage of operations automated vs manual
+	// Automation Rate - percentage of operations automated vs manual.
 	mr.automationRate = promauto.With(mr.registry).NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -243,7 +243,7 @@ func (mr *MetricsRecorder) initBusinessKPIMetrics(namespace, subsystem string) {
 		[]string{"operation_type", "time_window"},
 	)
 
-	// Cost Per Intent - financial cost per processed intent
+	// Cost Per Intent - financial cost per processed intent.
 	mr.costPerIntent = promauto.With(mr.registry).NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -254,7 +254,7 @@ func (mr *MetricsRecorder) initBusinessKPIMetrics(namespace, subsystem string) {
 		[]string{"intent_type", "processing_complexity"},
 	)
 
-	// User Satisfaction Score - based on feedback and success metrics
+	// User Satisfaction Score - based on feedback and success metrics.
 	mr.userSatisfaction = promauto.With(mr.registry).NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -265,7 +265,7 @@ func (mr *MetricsRecorder) initBusinessKPIMetrics(namespace, subsystem string) {
 		[]string{"user_group", "time_period"},
 	)
 
-	// Time to Deployment - complete deployment lifecycle time
+	// Time to Deployment - complete deployment lifecycle time.
 	mr.timeToDeployment = promauto.With(mr.registry).NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: namespace,
@@ -277,7 +277,7 @@ func (mr *MetricsRecorder) initBusinessKPIMetrics(namespace, subsystem string) {
 		[]string{"deployment_type", "complexity", "target_environment"},
 	)
 
-	// Compliance Score - regulatory and policy compliance metrics
+	// Compliance Score - regulatory and policy compliance metrics.
 	mr.complianceScore = promauto.With(mr.registry).NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -289,9 +289,9 @@ func (mr *MetricsRecorder) initBusinessKPIMetrics(namespace, subsystem string) {
 	)
 }
 
-// initSLIMetrics initializes Service Level Indicator metrics for SLO tracking
+// initSLIMetrics initializes Service Level Indicator metrics for SLO tracking.
 func (mr *MetricsRecorder) initSLIMetrics(namespace, subsystem string) {
-	// Service Availability - uptime percentage
+	// Service Availability - uptime percentage.
 	mr.serviceAvailability = promauto.With(mr.registry).NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -302,7 +302,7 @@ func (mr *MetricsRecorder) initSLIMetrics(namespace, subsystem string) {
 		[]string{"service", "time_window", "region"},
 	)
 
-	// Error Budget Burn Rate - how fast we're consuming error budget
+	// Error Budget Burn Rate - how fast we're consuming error budget.
 	mr.errorBudgetBurn = promauto.With(mr.registry).NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -313,7 +313,7 @@ func (mr *MetricsRecorder) initSLIMetrics(namespace, subsystem string) {
 		[]string{"service", "time_window", "budget_type"},
 	)
 
-	// SLI Latency P95 - 95th percentile latency for SLO tracking
+	// SLI Latency P95 - 95th percentile latency for SLO tracking.
 	mr.sliLatencyP95 = promauto.With(mr.registry).NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -324,7 +324,7 @@ func (mr *MetricsRecorder) initSLIMetrics(namespace, subsystem string) {
 		[]string{"service", "operation", "region"},
 	)
 
-	// SLI Latency P99 - 99th percentile latency for SLO tracking
+	// SLI Latency P99 - 99th percentile latency for SLO tracking.
 	mr.sliLatencyP99 = promauto.With(mr.registry).NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -335,7 +335,7 @@ func (mr *MetricsRecorder) initSLIMetrics(namespace, subsystem string) {
 		[]string{"service", "operation", "region"},
 	)
 
-	// SLO Compliance - whether services are meeting SLO targets
+	// SLO Compliance - whether services are meeting SLO targets.
 	mr.sloCompliance = promauto.With(mr.registry).NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -347,9 +347,9 @@ func (mr *MetricsRecorder) initSLIMetrics(namespace, subsystem string) {
 	)
 }
 
-// initAdvancedPerformanceMetrics initializes advanced performance and capacity metrics
+// initAdvancedPerformanceMetrics initializes advanced performance and capacity metrics.
 func (mr *MetricsRecorder) initAdvancedPerformanceMetrics(namespace, subsystem string) {
-	// Throughput Metrics - requests/operations per second
+	// Throughput Metrics - requests/operations per second.
 	mr.throughputMetrics = promauto.With(mr.registry).NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -360,7 +360,7 @@ func (mr *MetricsRecorder) initAdvancedPerformanceMetrics(namespace, subsystem s
 		[]string{"component", "operation_type", "time_window"},
 	)
 
-	// Capacity Utilization - how much of available capacity is being used
+	// Capacity Utilization - how much of available capacity is being used.
 	mr.capacityUtilization = promauto.With(mr.registry).NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -371,7 +371,7 @@ func (mr *MetricsRecorder) initAdvancedPerformanceMetrics(namespace, subsystem s
 		[]string{"resource_type", "component", "measurement_type"},
 	)
 
-	// Prediction Accuracy - ML/AI prediction accuracy metrics
+	// Prediction Accuracy - ML/AI prediction accuracy metrics.
 	mr.predictionAccuracy = promauto.With(mr.registry).NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -382,7 +382,7 @@ func (mr *MetricsRecorder) initAdvancedPerformanceMetrics(namespace, subsystem s
 		[]string{"model_type", "prediction_category", "time_horizon"},
 	)
 
-	// Anomaly Detection - count of detected anomalies
+	// Anomaly Detection - count of detected anomalies.
 	mr.anomalyDetection = promauto.With(mr.registry).NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: namespace,
@@ -394,9 +394,9 @@ func (mr *MetricsRecorder) initAdvancedPerformanceMetrics(namespace, subsystem s
 	)
 }
 
-// initORANComplianceMetrics initializes O-RAN specific compliance and health metrics
+// initORANComplianceMetrics initializes O-RAN specific compliance and health metrics.
 func (mr *MetricsRecorder) initORANComplianceMetrics(namespace, subsystem string) {
-	// O-RAN Compliance Score - adherence to O-RAN standards
+	// O-RAN Compliance Score - adherence to O-RAN standards.
 	mr.oranCompliance = promauto.With(mr.registry).NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -407,7 +407,7 @@ func (mr *MetricsRecorder) initORANComplianceMetrics(namespace, subsystem string
 		[]string{"interface", "standard_version", "compliance_category"},
 	)
 
-	// Interface Health - health status of O-RAN interfaces
+	// Interface Health - health status of O-RAN interfaces.
 	mr.interfaceHealth = promauto.With(mr.registry).NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -418,7 +418,7 @@ func (mr *MetricsRecorder) initORANComplianceMetrics(namespace, subsystem string
 		[]string{"interface_type", "endpoint", "function"},
 	)
 
-	// Policy Violations - count of policy violations
+	// Policy Violations - count of policy violations.
 	mr.policyViolations = promauto.With(mr.registry).NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: namespace,
@@ -430,9 +430,9 @@ func (mr *MetricsRecorder) initORANComplianceMetrics(namespace, subsystem string
 	)
 }
 
-// initCostOptimizationMetrics initializes cost and resource optimization metrics
+// initCostOptimizationMetrics initializes cost and resource optimization metrics.
 func (mr *MetricsRecorder) initCostOptimizationMetrics(namespace, subsystem string) {
-	// Resource Efficiency - how efficiently resources are being used
+	// Resource Efficiency - how efficiently resources are being used.
 	mr.resourceEfficiency = promauto.With(mr.registry).NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -443,7 +443,7 @@ func (mr *MetricsRecorder) initCostOptimizationMetrics(namespace, subsystem stri
 		[]string{"resource_type", "optimization_category", "measurement_period"},
 	)
 
-	// Cost Optimization - cost savings and optimization metrics
+	// Cost Optimization - cost savings and optimization metrics.
 	mr.costOptimization = promauto.With(mr.registry).NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -454,7 +454,7 @@ func (mr *MetricsRecorder) initCostOptimizationMetrics(namespace, subsystem stri
 		[]string{"optimization_type", "time_period", "category"},
 	)
 
-	// Energy Efficiency - power consumption and efficiency metrics
+	// Energy Efficiency - power consumption and efficiency metrics.
 	mr.energyEfficiency = promauto.With(mr.registry).NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -466,9 +466,9 @@ func (mr *MetricsRecorder) initCostOptimizationMetrics(namespace, subsystem stri
 	)
 }
 
-// initSecurityMetrics initializes security and audit metrics
+// initSecurityMetrics initializes security and audit metrics.
 func (mr *MetricsRecorder) initSecurityMetrics(namespace, subsystem string) {
-	// Security Incidents - count of security-related incidents
+	// Security Incidents - count of security-related incidents.
 	mr.securityIncidents = promauto.With(mr.registry).NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: namespace,
@@ -479,7 +479,7 @@ func (mr *MetricsRecorder) initSecurityMetrics(namespace, subsystem string) {
 		[]string{"incident_type", "severity", "component", "detection_method"},
 	)
 
-	// Audit Compliance - compliance with audit requirements
+	// Audit Compliance - compliance with audit requirements.
 	mr.auditCompliance = promauto.With(mr.registry).NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -490,7 +490,7 @@ func (mr *MetricsRecorder) initSecurityMetrics(namespace, subsystem string) {
 		[]string{"audit_type", "compliance_framework", "scope"},
 	)
 
-	// Access Violations - count of unauthorized access attempts
+	// Access Violations - count of unauthorized access attempts.
 	mr.accessViolations = promauto.With(mr.registry).NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: namespace,
@@ -502,7 +502,7 @@ func (mr *MetricsRecorder) initSecurityMetrics(namespace, subsystem string) {
 	)
 }
 
-// RecordControllerHealth records controller health status
+// RecordControllerHealth records controller health status.
 func (mr *MetricsRecorder) RecordControllerHealth(controller, component string, healthy bool) {
 	value := 0.0
 	if healthy {
@@ -511,12 +511,12 @@ func (mr *MetricsRecorder) RecordControllerHealth(controller, component string, 
 	mr.controllerHealth.WithLabelValues(controller, component).Set(value)
 }
 
-// RecordIntentProcessing records intent processing metrics
+// RecordIntentProcessing records intent processing metrics.
 func (mr *MetricsRecorder) RecordIntentProcessing(intentType, status string, duration time.Duration) {
 	mr.intentProcessing.WithLabelValues(intentType, status).Observe(duration.Seconds())
 }
 
-// RecordLLMRequest records LLM request metrics
+// RecordLLMRequest records LLM request metrics.
 func (mr *MetricsRecorder) RecordLLMRequest(model, status string, cacheHit bool, duration time.Duration) {
 	cacheHitStr := "false"
 	if cacheHit {
@@ -527,13 +527,13 @@ func (mr *MetricsRecorder) RecordLLMRequest(model, status string, cacheHit bool,
 	mr.llmLatency.WithLabelValues(model, "request").Observe(duration.Seconds())
 }
 
-// RecordRAGQuery records RAG query metrics
+// RecordRAGQuery records RAG query metrics.
 func (mr *MetricsRecorder) RecordRAGQuery(queryType, status string, duration time.Duration) {
 	mr.ragQueries.WithLabelValues(queryType, status).Inc()
 	mr.ragLatency.WithLabelValues("query").Observe(duration.Seconds())
 }
 
-// RecordORANConnection records O-RAN connection status
+// RecordORANConnection records O-RAN connection status.
 func (mr *MetricsRecorder) RecordORANConnection(interfaceType, endpoint string, connected bool) {
 	value := 0.0
 	if connected {
@@ -542,67 +542,67 @@ func (mr *MetricsRecorder) RecordORANConnection(interfaceType, endpoint string, 
 	mr.oranConnections.WithLabelValues(interfaceType, endpoint).Set(value)
 }
 
-// RecordSystemResource records system resource usage
+// RecordSystemResource records system resource usage.
 func (mr *MetricsRecorder) RecordSystemResource(resource, component string, value float64) {
 	mr.systemResources.WithLabelValues(resource, component).Set(value)
 }
 
-// RecordError records error occurrences
+// RecordError records error occurrences.
 func (mr *MetricsRecorder) RecordError(component, errorType string) {
 	mr.errorCounts.WithLabelValues(component, errorType).Inc()
 }
 
-// RecordAlert records alert firing
+// RecordAlert records alert firing.
 func (mr *MetricsRecorder) RecordAlert(severity, component string) {
 	mr.alertCounts.WithLabelValues(severity, component).Inc()
 }
 
-// Business KPI Recording Methods
+// Business KPI Recording Methods.
 
-// RecordAutomationRate records the automation rate for operations
+// RecordAutomationRate records the automation rate for operations.
 func (mr *MetricsRecorder) RecordAutomationRate(operationType, timeWindow string, rate float64) {
 	mr.automationRate.WithLabelValues(operationType, timeWindow).Set(rate)
 }
 
-// RecordCostPerIntent records the cost per processed intent
+// RecordCostPerIntent records the cost per processed intent.
 func (mr *MetricsRecorder) RecordCostPerIntent(intentType, complexity string, cost float64) {
 	mr.costPerIntent.WithLabelValues(intentType, complexity).Set(cost)
 }
 
-// RecordUserSatisfaction records user satisfaction scores
+// RecordUserSatisfaction records user satisfaction scores.
 func (mr *MetricsRecorder) RecordUserSatisfaction(userGroup, timePeriod string, score float64) {
 	mr.userSatisfaction.WithLabelValues(userGroup, timePeriod).Set(score)
 }
 
-// RecordTimeToDeployment records deployment completion time
+// RecordTimeToDeployment records deployment completion time.
 func (mr *MetricsRecorder) RecordTimeToDeployment(deploymentType, complexity, environment string, duration time.Duration) {
 	mr.timeToDeployment.WithLabelValues(deploymentType, complexity, environment).Observe(duration.Seconds())
 }
 
-// RecordComplianceScore records compliance scores
+// RecordComplianceScore records compliance scores.
 func (mr *MetricsRecorder) RecordComplianceScore(complianceType, standard, scope string, score float64) {
 	mr.complianceScore.WithLabelValues(complianceType, standard, scope).Set(score)
 }
 
-// SLI/SLO Recording Methods
+// SLI/SLO Recording Methods.
 
-// RecordServiceAvailability records service availability metrics
+// RecordServiceAvailability records service availability metrics.
 func (mr *MetricsRecorder) RecordServiceAvailability(service, timeWindow, region string, availability float64) {
 	mr.serviceAvailability.WithLabelValues(service, timeWindow, region).Set(availability)
 }
 
-// RecordErrorBudgetBurn records error budget burn rate
+// RecordErrorBudgetBurn records error budget burn rate.
 func (mr *MetricsRecorder) RecordErrorBudgetBurn(service, timeWindow, budgetType string, burnRate float64) {
 	mr.errorBudgetBurn.WithLabelValues(service, timeWindow, budgetType).Set(burnRate)
 }
 
-// RecordSLILatency records SLI latency metrics
+// RecordSLILatency records SLI latency metrics.
 func (mr *MetricsRecorder) RecordSLILatency(service, operation, region string, p95Latency, p99Latency float64) {
 	mr.sliLatencyP95.WithLabelValues(service, operation, region).Set(p95Latency)
 	mr.sliLatencyP99.WithLabelValues(service, operation, region).Set(p99Latency)
 }
 
-// RecordSLOCompliance records SLO compliance status
+// RecordSLOCompliance records SLO compliance status.
 func (mr *MetricsRecorder) RecordSLOCompliance(service, sloType, severity string, compliant bool) {
 	value := 0.0
 	if compliant {
@@ -611,87 +611,87 @@ func (mr *MetricsRecorder) RecordSLOCompliance(service, sloType, severity string
 	mr.sloCompliance.WithLabelValues(service, sloType, severity).Set(value)
 }
 
-// Advanced Performance Recording Methods
+// Advanced Performance Recording Methods.
 
-// RecordThroughput records throughput metrics
+// RecordThroughput records throughput metrics.
 func (mr *MetricsRecorder) RecordThroughput(component, operationType, timeWindow string, opsPerSecond float64) {
 	mr.throughputMetrics.WithLabelValues(component, operationType, timeWindow).Set(opsPerSecond)
 }
 
-// RecordCapacityUtilization records capacity utilization metrics
+// RecordCapacityUtilization records capacity utilization metrics.
 func (mr *MetricsRecorder) RecordCapacityUtilization(resourceType, component, measurementType string, utilization float64) {
 	mr.capacityUtilization.WithLabelValues(resourceType, component, measurementType).Set(utilization)
 }
 
-// RecordPredictionAccuracy records ML/AI prediction accuracy
+// RecordPredictionAccuracy records ML/AI prediction accuracy.
 func (mr *MetricsRecorder) RecordPredictionAccuracy(modelType, category, timeHorizon string, accuracy float64) {
 	mr.predictionAccuracy.WithLabelValues(modelType, category, timeHorizon).Set(accuracy)
 }
 
-// RecordAnomalyDetection records detected anomalies
+// RecordAnomalyDetection records detected anomalies.
 func (mr *MetricsRecorder) RecordAnomalyDetection(anomalyType, severity, component, detectionMethod string) {
 	mr.anomalyDetection.WithLabelValues(anomalyType, severity, component, detectionMethod).Inc()
 }
 
-// O-RAN Compliance Recording Methods
+// O-RAN Compliance Recording Methods.
 
-// RecordORANCompliance records O-RAN compliance scores
+// RecordORANCompliance records O-RAN compliance scores.
 func (mr *MetricsRecorder) RecordORANCompliance(interface_, standardVersion, category string, score float64) {
 	mr.oranCompliance.WithLabelValues(interface_, standardVersion, category).Set(score)
 }
 
-// RecordInterfaceHealth records O-RAN interface health
+// RecordInterfaceHealth records O-RAN interface health.
 func (mr *MetricsRecorder) RecordInterfaceHealth(interfaceType, endpoint, function string, healthScore float64) {
 	mr.interfaceHealth.WithLabelValues(interfaceType, endpoint, function).Set(healthScore)
 }
 
-// RecordPolicyViolation records O-RAN policy violations
+// RecordPolicyViolation records O-RAN policy violations.
 func (mr *MetricsRecorder) RecordPolicyViolation(policyType, category, severity, interface_ string) {
 	mr.policyViolations.WithLabelValues(policyType, category, severity, interface_).Inc()
 }
 
-// Cost and Resource Optimization Recording Methods
+// Cost and Resource Optimization Recording Methods.
 
-// RecordResourceEfficiency records resource efficiency scores
+// RecordResourceEfficiency records resource efficiency scores.
 func (mr *MetricsRecorder) RecordResourceEfficiency(resourceType, category, period string, efficiency float64) {
 	mr.resourceEfficiency.WithLabelValues(resourceType, category, period).Set(efficiency)
 }
 
-// RecordCostOptimization records cost optimization savings
+// RecordCostOptimization records cost optimization savings.
 func (mr *MetricsRecorder) RecordCostOptimization(optimizationType, timePeriod, category string, savings float64) {
 	mr.costOptimization.WithLabelValues(optimizationType, timePeriod, category).Set(savings)
 }
 
-// RecordEnergyEfficiency records energy efficiency metrics
+// RecordEnergyEfficiency records energy efficiency metrics.
 func (mr *MetricsRecorder) RecordEnergyEfficiency(component, measurementType, optimizationLevel string, efficiency float64) {
 	mr.energyEfficiency.WithLabelValues(component, measurementType, optimizationLevel).Set(efficiency)
 }
 
-// Security and Audit Recording Methods
+// Security and Audit Recording Methods.
 
-// RecordSecurityIncident records security incidents
+// RecordSecurityIncident records security incidents.
 func (mr *MetricsRecorder) RecordSecurityIncident(incidentType, severity, component, detectionMethod string) {
 	mr.securityIncidents.WithLabelValues(incidentType, severity, component, detectionMethod).Inc()
 }
 
-// RecordAuditCompliance records audit compliance scores
+// RecordAuditCompliance records audit compliance scores.
 func (mr *MetricsRecorder) RecordAuditCompliance(auditType, framework, scope string, score float64) {
 	mr.auditCompliance.WithLabelValues(auditType, framework, scope).Set(score)
 }
 
-// RecordAccessViolation records access violations
+// RecordAccessViolation records access violations.
 func (mr *MetricsRecorder) RecordAccessViolation(violationType, severity, source, targetResource string) {
 	mr.accessViolations.WithLabelValues(violationType, severity, source, targetResource).Inc()
 }
 
-// GetRegistry returns the Prometheus registry
+// GetRegistry returns the Prometheus registry.
 func (mr *MetricsRecorder) GetRegistry() prometheus.Registerer {
 	return mr.registry
 }
 
-// MetricsSummary provides a comprehensive summary of current metrics
+// MetricsSummary provides a comprehensive summary of current metrics.
 type MetricsSummary struct {
-	// Basic Infrastructure Metrics
+	// Basic Infrastructure Metrics.
 	ControllerHealth map[string]bool    `json:"controller_health"`
 	IntentProcessing ProcessingStats    `json:"intent_processing"`
 	LLMRequests      LLMStats           `json:"llm_requests"`
@@ -700,27 +700,28 @@ type MetricsSummary struct {
 	SystemResources  map[string]float64 `json:"system_resources"`
 	ErrorCounts      map[string]int     `json:"error_counts"`
 
-	// Business KPI Metrics
+	// Business KPI Metrics.
 	BusinessKPIs BusinessKPIStats `json:"business_kpis"`
 
-	// SLI/SLO Metrics
+	// SLI/SLO Metrics.
 	ServiceLevels ServiceLevelStats `json:"service_levels"`
 
-	// Advanced Performance Metrics
+	// Advanced Performance Metrics.
 	PerformanceMetrics PerformanceStats `json:"performance_metrics"`
 
-	// O-RAN Compliance Metrics
+	// O-RAN Compliance Metrics.
 	ORANCompliance ORANComplianceStats `json:"oran_compliance"`
 
-	// Cost and Resource Optimization
+	// Cost and Resource Optimization.
 	Optimization OptimizationStats `json:"optimization"`
 
-	// Security and Audit
+	// Security and Audit.
 	Security SecurityStats `json:"security"`
 
 	Timestamp time.Time `json:"timestamp"`
 }
 
+// ProcessingStats represents a processingstats.
 type ProcessingStats struct {
 	TotalProcessed int64         `json:"total_processed"`
 	SuccessRate    float64       `json:"success_rate"`
@@ -730,6 +731,7 @@ type ProcessingStats struct {
 	ThroughputOPS  float64       `json:"throughput_ops"`
 }
 
+// LLMStats represents a llmstats.
 type LLMStats struct {
 	TotalRequests  int64         `json:"total_requests"`
 	CacheHitRate   float64       `json:"cache_hit_rate"`
@@ -739,6 +741,7 @@ type LLMStats struct {
 	TokensUsed     int64         `json:"tokens_used"`
 }
 
+// RAGStats represents a ragstats.
 type RAGStats struct {
 	TotalQueries   int64         `json:"total_queries"`
 	AverageLatency time.Duration `json:"average_latency"`
@@ -747,6 +750,7 @@ type RAGStats struct {
 	QueryAccuracy  float64       `json:"query_accuracy"`
 }
 
+// BusinessKPIStats represents a businesskpistats.
 type BusinessKPIStats struct {
 	AutomationRate          float64       `json:"automation_rate"`
 	AverageCostPerIntent    float64       `json:"average_cost_per_intent"`
@@ -756,6 +760,7 @@ type BusinessKPIStats struct {
 	BusinessValue           float64       `json:"business_value"`
 }
 
+// ServiceLevelStats represents a servicelevelstats.
 type ServiceLevelStats struct {
 	Availability         float64 `json:"availability"`
 	ErrorBudgetRemaining float64 `json:"error_budget_remaining"`
@@ -765,6 +770,7 @@ type ServiceLevelStats struct {
 	IncidentCount        int     `json:"incident_count"`
 }
 
+// PerformanceStats represents a performancestats.
 type PerformanceStats struct {
 	CurrentThroughput    float64 `json:"current_throughput"`
 	CapacityUtilization  float64 `json:"capacity_utilization"`
@@ -774,6 +780,7 @@ type PerformanceStats struct {
 	QueueDepth           int     `json:"queue_depth"`
 }
 
+// ORANComplianceStats represents a orancompliancestats.
 type ORANComplianceStats struct {
 	OverallComplianceScore float64 `json:"overall_compliance_score"`
 	InterfaceHealthScore   float64 `json:"interface_health_score"`
@@ -782,6 +789,7 @@ type ORANComplianceStats struct {
 	InteroperabilityScore  float64 `json:"interoperability_score"`
 }
 
+// OptimizationStats represents a optimizationstats.
 type OptimizationStats struct {
 	ResourceEfficiency float64 `json:"resource_efficiency"`
 	CostSavings        float64 `json:"cost_savings"`
@@ -790,6 +798,7 @@ type OptimizationStats struct {
 	OptimizationScore  float64 `json:"optimization_score"`
 }
 
+// SecurityStats represents a securitystats.
 type SecurityStats struct {
 	SecurityIncidents int     `json:"security_incidents"`
 	AuditCompliance   float64 `json:"audit_compliance"`
@@ -798,7 +807,7 @@ type SecurityStats struct {
 	SecurityPosture   float64 `json:"security_posture"`
 }
 
-// GetMetricsSummary returns a summary of current metrics
+// GetMetricsSummary returns a summary of current metrics.
 func (mr *MetricsRecorder) GetMetricsSummary(ctx context.Context) (*MetricsSummary, error) {
 	mr.mu.RLock()
 	defer mr.mu.RUnlock()
@@ -811,36 +820,36 @@ func (mr *MetricsRecorder) GetMetricsSummary(ctx context.Context) (*MetricsSumma
 		Timestamp:        time.Now(),
 	}
 
-	// In a real implementation, these would query actual Prometheus metrics
-	// For now, we'll populate with sample data structure
+	// In a real implementation, these would query actual Prometheus metrics.
+	// For now, we'll populate with sample data structure.
 
-	// Business KPIs calculation
+	// Business KPIs calculation.
 	summary.BusinessKPIs = mr.calculateBusinessKPIs(ctx)
 
-	// Service Level metrics calculation
+	// Service Level metrics calculation.
 	summary.ServiceLevels = mr.calculateServiceLevelStats(ctx)
 
-	// Performance metrics calculation
+	// Performance metrics calculation.
 	summary.PerformanceMetrics = mr.calculatePerformanceStats(ctx)
 
-	// O-RAN compliance calculation
+	// O-RAN compliance calculation.
 	summary.ORANCompliance = mr.calculateORANComplianceStats(ctx)
 
-	// Optimization metrics calculation
+	// Optimization metrics calculation.
 	summary.Optimization = mr.calculateOptimizationStats(ctx)
 
-	// Security metrics calculation
+	// Security metrics calculation.
 	summary.Security = mr.calculateSecurityStats(ctx)
 
 	return summary, nil
 }
 
-// Business KPI Analytics Methods
+// Business KPI Analytics Methods.
 
-// calculateBusinessKPIs calculates current business KPI metrics
+// calculateBusinessKPIs calculates current business KPI metrics.
 func (mr *MetricsRecorder) calculateBusinessKPIs(ctx context.Context) BusinessKPIStats {
-	// In production, these would query actual Prometheus metrics using promql
-	// For demonstration, returning structured calculation framework
+	// In production, these would query actual Prometheus metrics using promql.
+	// For demonstration, returning structured calculation framework.
 
 	return BusinessKPIStats{
 		AutomationRate:          mr.getMetricValue("automation_rate", 85.0),                                // 85% automation
@@ -852,7 +861,7 @@ func (mr *MetricsRecorder) calculateBusinessKPIs(ctx context.Context) BusinessKP
 	}
 }
 
-// calculateServiceLevelStats calculates SLI/SLO metrics
+// calculateServiceLevelStats calculates SLI/SLO metrics.
 func (mr *MetricsRecorder) calculateServiceLevelStats(ctx context.Context) ServiceLevelStats {
 	return ServiceLevelStats{
 		Availability:         mr.getMetricValue("availability", 99.95),  // 99.95% availability
@@ -864,7 +873,7 @@ func (mr *MetricsRecorder) calculateServiceLevelStats(ctx context.Context) Servi
 	}
 }
 
-// calculatePerformanceStats calculates advanced performance metrics
+// calculatePerformanceStats calculates advanced performance metrics.
 func (mr *MetricsRecorder) calculatePerformanceStats(ctx context.Context) PerformanceStats {
 	return PerformanceStats{
 		CurrentThroughput:    mr.getMetricValue("throughput", 45.7),          // 45.7 intents/min
@@ -876,7 +885,7 @@ func (mr *MetricsRecorder) calculatePerformanceStats(ctx context.Context) Perfor
 	}
 }
 
-// calculateORANComplianceStats calculates O-RAN compliance metrics
+// calculateORANComplianceStats calculates O-RAN compliance metrics.
 func (mr *MetricsRecorder) calculateORANComplianceStats(ctx context.Context) ORANComplianceStats {
 	return ORANComplianceStats{
 		OverallComplianceScore: mr.getMetricValue("oran_compliance", 92.7),     // 92.7% O-RAN compliance
@@ -887,7 +896,7 @@ func (mr *MetricsRecorder) calculateORANComplianceStats(ctx context.Context) ORA
 	}
 }
 
-// calculateOptimizationStats calculates cost and resource optimization metrics
+// calculateOptimizationStats calculates cost and resource optimization metrics.
 func (mr *MetricsRecorder) calculateOptimizationStats(ctx context.Context) OptimizationStats {
 	return OptimizationStats{
 		ResourceEfficiency: mr.getMetricValue("resource_efficiency", 82.4), // 82.4% resource efficiency
@@ -898,7 +907,7 @@ func (mr *MetricsRecorder) calculateOptimizationStats(ctx context.Context) Optim
 	}
 }
 
-// calculateSecurityStats calculates security and audit metrics
+// calculateSecurityStats calculates security and audit metrics.
 func (mr *MetricsRecorder) calculateSecurityStats(ctx context.Context) SecurityStats {
 	return SecurityStats{
 		SecurityIncidents: int(mr.getMetricValue("security_incidents", 0)), // 0 security incidents
@@ -909,22 +918,22 @@ func (mr *MetricsRecorder) calculateSecurityStats(ctx context.Context) SecurityS
 	}
 }
 
-// Advanced Analytics Helper Methods
+// Advanced Analytics Helper Methods.
 
-// getMetricValue retrieves a metric value with fallback to default
+// getMetricValue retrieves a metric value with fallback to default.
 func (mr *MetricsRecorder) getMetricValue(metricName string, defaultValue float64) float64 {
-	// In production, this would query Prometheus using PromQL
-	// Example: query := fmt.Sprintf("nephoran_intent_operator_%s", metricName)
-	// result := mr.prometheusClient.Query(context.Background(), query, time.Now())
-	// For now, return default value with some variance for demonstration
+	// In production, this would query Prometheus using PromQL.
+	// Example: query := fmt.Sprintf("nephoran_intent_operator_%s", metricName).
+	// result := mr.prometheusClient.Query(context.Background(), query, time.Now()).
+	// For now, return default value with some variance for demonstration.
 
 	variance := 0.1 * defaultValue * (math.Sin(float64(time.Now().Unix()%3600)) * 0.1)
 	return defaultValue + variance
 }
 
-// calculateBusinessValue calculates overall business value ROI
+// calculateBusinessValue calculates overall business value ROI.
 func (mr *MetricsRecorder) calculateBusinessValue() float64 {
-	// Complex business value calculation based on multiple factors
+	// Complex business value calculation based on multiple factors.
 	automationSavings := mr.getMetricValue("automation_rate", 85.0) * 100.0  // Automation savings
 	efficiencyGains := mr.getMetricValue("resource_efficiency", 82.4) * 50.0 // Efficiency gains
 	complianceBenefit := mr.getMetricValue("compliance_score", 94.2) * 25.0  // Compliance benefits
@@ -933,17 +942,17 @@ func (mr *MetricsRecorder) calculateBusinessValue() float64 {
 	return totalValue / 100.0 // Normalize to percentage
 }
 
-// calculateOptimizationScore calculates overall optimization effectiveness
+// calculateOptimizationScore calculates overall optimization effectiveness.
 func (mr *MetricsRecorder) calculateOptimizationScore() float64 {
 	resourceScore := mr.getMetricValue("resource_efficiency", 82.4)
 	energyScore := mr.getMetricValue("energy_efficiency", 76.8)
 	costScore := 100.0 - (mr.getMetricValue("cost_per_intent", 0.023) * 1000.0) // Inverse of cost
 
-	// Weighted average: 40% resource, 30% energy, 30% cost
+	// Weighted average: 40% resource, 30% energy, 30% cost.
 	return (resourceScore*0.4 + energyScore*0.3 + costScore*0.3)
 }
 
-// getThreatLevel determines current security threat level
+// getThreatLevel determines current security threat level.
 func (mr *MetricsRecorder) getThreatLevel() string {
 	incidents := int(mr.getMetricValue("security_incidents", 0))
 	violations := int(mr.getMetricValue("access_violations", 2))
@@ -964,11 +973,11 @@ func (mr *MetricsRecorder) getThreatLevel() string {
 	}
 }
 
-// Predictive Analytics Methods
+// Predictive Analytics Methods.
 
-// CalculateTrendAnalysis calculates metric trends over time
+// CalculateTrendAnalysis calculates metric trends over time.
 func (mr *MetricsRecorder) CalculateTrendAnalysis(ctx context.Context, metricName string, timeWindow time.Duration) (*TrendAnalysis, error) {
-	// This would implement time-series analysis in production
+	// This would implement time-series analysis in production.
 	return &TrendAnalysis{
 		MetricName:     metricName,
 		TimeWindow:     timeWindow,
@@ -980,12 +989,12 @@ func (mr *MetricsRecorder) CalculateTrendAnalysis(ctx context.Context, metricNam
 	}, nil
 }
 
-// PredictCapacityRequirements predicts future capacity needs
+// PredictCapacityRequirements predicts future capacity needs.
 func (mr *MetricsRecorder) PredictCapacityRequirements(ctx context.Context, timeHorizon time.Duration) (*CapacityPrediction, error) {
 	currentThroughput := mr.getMetricValue("throughput", 45.7)
 	currentUtilization := mr.getMetricValue("capacity_util", 67.3)
 
-	// Simple growth model - in production would use ML models
+	// Simple growth model - in production would use ML models.
 	growthRate := 0.15 // 15% growth per month
 	months := float64(timeHorizon.Hours()) / (24 * 30)
 
@@ -1004,7 +1013,7 @@ func (mr *MetricsRecorder) PredictCapacityRequirements(ctx context.Context, time
 	}, nil
 }
 
-// getCapacityRecommendation provides capacity planning recommendations
+// getCapacityRecommendation provides capacity planning recommendations.
 func (mr *MetricsRecorder) getCapacityRecommendation(predictedUtilization float64) string {
 	switch {
 	case predictedUtilization > 90:
@@ -1020,15 +1029,15 @@ func (mr *MetricsRecorder) getCapacityRecommendation(predictedUtilization float6
 	}
 }
 
-// Anomaly Detection Methods
+// Anomaly Detection Methods.
 
-// DetectAnomalies identifies anomalous metric patterns
+// DetectAnomalies identifies anomalous metric patterns.
 func (mr *MetricsRecorder) DetectAnomalies(ctx context.Context, metricName string, sensitivityLevel float64) (*AnomalyDetectionResult, error) {
 	currentValue := mr.getMetricValue(metricName, 100.0)
 	historicalMean := mr.getMetricValue(metricName+"_mean", 95.0)
 	standardDeviation := mr.getMetricValue(metricName+"_stddev", 5.0)
 
-	// Z-score anomaly detection
+	// Z-score anomaly detection.
 	zScore := math.Abs(currentValue-historicalMean) / standardDeviation
 	threshold := 2.0 / sensitivityLevel // Higher sensitivity = lower threshold
 
@@ -1061,7 +1070,7 @@ func (mr *MetricsRecorder) DetectAnomalies(ctx context.Context, metricName strin
 	}, nil
 }
 
-// getAnomalyRecommendation provides recommendations for anomaly handling
+// getAnomalyRecommendation provides recommendations for anomaly handling.
 func (mr *MetricsRecorder) getAnomalyRecommendation(isAnomaly bool, severity string) string {
 	if !isAnomaly {
 		return "no_action_required"
@@ -1081,9 +1090,9 @@ func (mr *MetricsRecorder) getAnomalyRecommendation(isAnomaly bool, severity str
 	}
 }
 
-// Supporting Types for Advanced Analytics
+// Supporting Types for Advanced Analytics.
 
-// TrendAnalysis represents trend analysis results
+// TrendAnalysis represents trend analysis results.
 type TrendAnalysis struct {
 	MetricName     string        `json:"metric_name"`
 	TimeWindow     time.Duration `json:"time_window"`
@@ -1094,7 +1103,7 @@ type TrendAnalysis struct {
 	AnalysisTime   time.Time     `json:"analysis_time"`
 }
 
-// CapacityPrediction represents capacity planning predictions
+// CapacityPrediction represents capacity planning predictions.
 type CapacityPrediction struct {
 	TimeHorizon          time.Duration `json:"time_horizon"`
 	CurrentThroughput    float64       `json:"current_throughput"`
@@ -1106,7 +1115,7 @@ type CapacityPrediction struct {
 	PredictionTime       time.Time     `json:"prediction_time"`
 }
 
-// AnomalyDetectionResult represents anomaly detection results
+// AnomalyDetectionResult represents anomaly detection results.
 type AnomalyDetectionResult struct {
 	MetricName        string    `json:"metric_name"`
 	CurrentValue      float64   `json:"current_value"`

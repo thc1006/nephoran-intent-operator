@@ -13,19 +13,19 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/security/ca"
 )
 
-// ClientConfig holds mTLS client configuration
+// ClientConfig holds mTLS client configuration.
 type ClientConfig struct {
-	// Service identity
+	// Service identity.
 	ServiceName string
 	TenantID    string
 
-	// Certificate configuration
+	// Certificate configuration.
 	ClientCertPath       string
 	ClientKeyPath        string
 	CACertPath           string
 	CertValidityDuration time.Duration
 
-	// Connection settings
+	// Connection settings.
 	ServerName         string
 	InsecureSkipVerify bool
 	DialTimeout        time.Duration
@@ -34,18 +34,18 @@ type ClientConfig struct {
 	MaxConnsPerHost    int
 	IdleConnTimeout    time.Duration
 
-	// Certificate rotation
+	// Certificate rotation.
 	RotationEnabled  bool
 	RotationInterval time.Duration
 	RenewalThreshold time.Duration
 
-	// CA integration
+	// CA integration.
 	CAManager      *ca.CAManager
 	AutoProvision  bool
 	PolicyTemplate string
 }
 
-// Client provides mTLS-enabled HTTP client functionality
+// Client provides mTLS-enabled HTTP client functionality.
 type Client struct {
 	config      *ClientConfig
 	httpClient  *http.Client
@@ -54,7 +54,7 @@ type Client struct {
 	caCertPool  *x509.CertPool
 	logger      *logging.StructuredLogger
 
-	// Certificate management
+	// Certificate management.
 	certMu          sync.RWMutex
 	lastRotation    time.Time
 	rotationTicker  *time.Ticker
@@ -62,7 +62,7 @@ type Client struct {
 	rotationCancel  context.CancelFunc
 }
 
-// NewClient creates a new mTLS-enabled HTTP client
+// NewClient creates a new mTLS-enabled HTTP client.
 func NewClient(config *ClientConfig, logger *logging.StructuredLogger) (*Client, error) {
 	if config == nil {
 		return nil, fmt.Errorf("client config is required")
@@ -77,15 +77,15 @@ func NewClient(config *ClientConfig, logger *logging.StructuredLogger) (*Client,
 		logger: logger,
 	}
 
-	// Initialize certificate and TLS configuration
+	// Initialize certificate and TLS configuration.
 	if err := client.initializeCertificates(); err != nil {
 		return nil, fmt.Errorf("failed to initialize certificates: %w", err)
 	}
 
-	// Configure HTTP client with mTLS
+	// Configure HTTP client with mTLS.
 	client.configureHTTPClient()
 
-	// Start certificate rotation if enabled
+	// Start certificate rotation if enabled.
 	if config.RotationEnabled {
 		client.startCertificateRotation()
 	}
@@ -99,41 +99,41 @@ func NewClient(config *ClientConfig, logger *logging.StructuredLogger) (*Client,
 	return client, nil
 }
 
-// initializeCertificates loads or provisions certificates
+// initializeCertificates loads or provisions certificates.
 func (c *Client) initializeCertificates() error {
 	c.certMu.Lock()
 	defer c.certMu.Unlock()
 
-	// Auto-provision certificates if enabled and CA manager is available
+	// Auto-provision certificates if enabled and CA manager is available.
 	if c.config.AutoProvision && c.config.CAManager != nil {
 		if err := c.provisionCertificate(); err != nil {
 			return fmt.Errorf("failed to auto-provision certificate: %w", err)
 		}
 	}
 
-	// Load client certificate
+	// Load client certificate.
 	if err := c.loadClientCertificate(); err != nil {
 		return fmt.Errorf("failed to load client certificate: %w", err)
 	}
 
-	// Load CA certificate pool
+	// Load CA certificate pool.
 	if err := c.loadCACertificatePool(); err != nil {
 		return fmt.Errorf("failed to load CA certificate pool: %w", err)
 	}
 
-	// Create TLS configuration
+	// Create TLS configuration.
 	c.createTLSConfig()
 
 	return nil
 }
 
-// provisionCertificate requests a new certificate from the CA manager
+// provisionCertificate requests a new certificate from the CA manager.
 func (c *Client) provisionCertificate() error {
 	if c.config.CAManager == nil {
 		return fmt.Errorf("CA manager not available for auto-provisioning")
 	}
 
-	// Create certificate request
+	// Create certificate request.
 	req := &ca.CertificateRequest{
 		ID:               generateRequestID(),
 		TenantID:         c.config.TenantID,
@@ -155,13 +155,13 @@ func (c *Client) provisionCertificate() error {
 		req.ValidityDuration = 24 * time.Hour // Default to 24 hours
 	}
 
-	// Issue certificate
+	// Issue certificate.
 	resp, err := c.config.CAManager.IssueCertificate(context.Background(), req)
 	if err != nil {
 		return fmt.Errorf("failed to issue certificate: %w", err)
 	}
 
-	// Store certificates for file-based loading
+	// Store certificates for file-based loading.
 	if err := c.storeCertificateFiles(resp); err != nil {
 		c.logger.Warn("failed to store certificate files", "error", err)
 	}
@@ -174,7 +174,7 @@ func (c *Client) provisionCertificate() error {
 	return nil
 }
 
-// loadClientCertificate loads the client certificate and private key
+// loadClientCertificate loads the client certificate and private key.
 func (c *Client) loadClientCertificate() error {
 	if c.config.ClientCertPath == "" || c.config.ClientKeyPath == "" {
 		return fmt.Errorf("client certificate and key paths are required")
@@ -188,7 +188,7 @@ func (c *Client) loadClientCertificate() error {
 	c.certificate = &cert
 	c.lastRotation = time.Now()
 
-	// Log certificate info
+	// Log certificate info.
 	if len(cert.Certificate) > 0 {
 		if x509Cert, err := x509.ParseCertificate(cert.Certificate[0]); err == nil {
 			c.logger.Info("loaded client certificate",
@@ -202,10 +202,10 @@ func (c *Client) loadClientCertificate() error {
 	return nil
 }
 
-// loadCACertificatePool loads the CA certificate pool
+// loadCACertificatePool loads the CA certificate pool.
 func (c *Client) loadCACertificatePool() error {
 	if c.config.CACertPath == "" {
-		// Use system CA pool if no custom CA specified
+		// Use system CA pool if no custom CA specified.
 		var err error
 		c.caCertPool, err = x509.SystemCertPool()
 		if err != nil {
@@ -214,7 +214,7 @@ func (c *Client) loadCACertificatePool() error {
 		return nil
 	}
 
-	// Load custom CA certificate
+	// Load custom CA certificate.
 	caCert, err := loadCertificateFile(c.config.CACertPath)
 	if err != nil {
 		return fmt.Errorf("failed to load CA certificate: %w", err)
@@ -228,7 +228,7 @@ func (c *Client) loadCACertificatePool() error {
 	return nil
 }
 
-// createTLSConfig creates the TLS configuration for mTLS
+// createTLSConfig creates the TLS configuration for mTLS.
 func (c *Client) createTLSConfig() {
 	c.tlsConfig = &tls.Config{
 		Certificates: []tls.Certificate{*c.certificate},
@@ -247,31 +247,31 @@ func (c *Client) createTLSConfig() {
 		InsecureSkipVerify: c.config.InsecureSkipVerify,
 		ClientAuth:         tls.RequireAndVerifyClientCert,
 
-		// Enable session resumption
+		// Enable session resumption.
 		ClientSessionCache: tls.NewLRUClientSessionCache(64),
 
-		// Certificate verification callback
+		// Certificate verification callback.
 		VerifyConnection: c.verifyConnection,
 	}
 }
 
-// configureHTTPClient creates and configures the HTTP client
+// configureHTTPClient creates and configures the HTTP client.
 func (c *Client) configureHTTPClient() {
 	transport := &http.Transport{
 		TLSClientConfig: c.tlsConfig,
 
-		// Connection pooling
+		// Connection pooling.
 		MaxIdleConns:        c.config.MaxIdleConns,
 		MaxConnsPerHost:     c.config.MaxConnsPerHost,
 		IdleConnTimeout:     c.config.IdleConnTimeout,
 		TLSHandshakeTimeout: 10 * time.Second,
 
-		// Timeouts
+		// Timeouts.
 		ResponseHeaderTimeout: 30 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	}
 
-	// Set defaults if not specified
+	// Set defaults if not specified.
 	if c.config.DialTimeout == 0 {
 		c.config.DialTimeout = 10 * time.Second
 	}
@@ -291,7 +291,7 @@ func (c *Client) configureHTTPClient() {
 	}
 }
 
-// startCertificateRotation starts the certificate rotation process
+// startCertificateRotation starts the certificate rotation process.
 func (c *Client) startCertificateRotation() {
 	if c.config.RotationInterval == 0 {
 		c.config.RotationInterval = 1 * time.Hour // Default rotation check interval
@@ -307,7 +307,7 @@ func (c *Client) startCertificateRotation() {
 		"renewal_threshold", c.config.RenewalThreshold)
 }
 
-// certificateRotationLoop handles automatic certificate rotation
+// certificateRotationLoop handles automatic certificate rotation.
 func (c *Client) certificateRotationLoop() {
 	defer c.rotationTicker.Stop()
 
@@ -323,7 +323,7 @@ func (c *Client) certificateRotationLoop() {
 	}
 }
 
-// checkAndRotateCertificate checks if certificate rotation is needed and performs it
+// checkAndRotateCertificate checks if certificate rotation is needed and performs it.
 func (c *Client) checkAndRotateCertificate() error {
 	c.certMu.RLock()
 	cert := c.certificate
@@ -333,20 +333,20 @@ func (c *Client) checkAndRotateCertificate() error {
 		return fmt.Errorf("no certificate available for rotation check")
 	}
 
-	// Parse certificate to check expiration
+	// Parse certificate to check expiration.
 	x509Cert, err := x509.ParseCertificate(cert.Certificate[0])
 	if err != nil {
 		return fmt.Errorf("failed to parse certificate: %w", err)
 	}
 
-	// Check if rotation is needed
+	// Check if rotation is needed.
 	renewalThreshold := c.config.RenewalThreshold
 	if renewalThreshold == 0 {
 		renewalThreshold = 24 * time.Hour // Default to 24 hours before expiry
 	}
 
 	if time.Until(x509Cert.NotAfter) > renewalThreshold {
-		// Certificate is still valid for sufficient time
+		// Certificate is still valid for sufficient time.
 		return nil
 	}
 
@@ -354,31 +354,31 @@ func (c *Client) checkAndRotateCertificate() error {
 		"expires_at", x509Cert.NotAfter,
 		"renewal_threshold", renewalThreshold)
 
-	// Perform certificate rotation
+	// Perform certificate rotation.
 	return c.rotateCertificate()
 }
 
-// rotateCertificate performs certificate rotation
+// rotateCertificate performs certificate rotation.
 func (c *Client) rotateCertificate() error {
 	c.logger.Info("starting certificate rotation")
 
-	// Provision new certificate if auto-provisioning is enabled
+	// Provision new certificate if auto-provisioning is enabled.
 	if c.config.AutoProvision && c.config.CAManager != nil {
 		if err := c.provisionCertificate(); err != nil {
 			return fmt.Errorf("failed to provision new certificate: %w", err)
 		}
 	}
 
-	// Reinitialize certificates and TLS config
+	// Reinitialize certificates and TLS config.
 	if err := c.initializeCertificates(); err != nil {
 		return fmt.Errorf("failed to reinitialize certificates: %w", err)
 	}
 
-	// Update HTTP client with new TLS configuration
+	// Update HTTP client with new TLS configuration.
 	if transport, ok := c.httpClient.Transport.(*http.Transport); ok {
 		transport.TLSClientConfig = c.tlsConfig
 
-		// Close idle connections to force new TLS handshakes
+		// Close idle connections to force new TLS handshakes.
 		transport.CloseIdleConnections()
 	}
 
@@ -387,10 +387,10 @@ func (c *Client) rotateCertificate() error {
 	return nil
 }
 
-// verifyConnection provides custom certificate verification
+// verifyConnection provides custom certificate verification.
 func (c *Client) verifyConnection(cs tls.ConnectionState) error {
-	// Additional verification logic can be added here
-	// For now, we rely on the standard TLS verification
+	// Additional verification logic can be added here.
+	// For now, we rely on the standard TLS verification.
 
 	c.logger.Debug("TLS connection verified",
 		"peer_certificates", len(cs.PeerCertificates),
@@ -400,12 +400,12 @@ func (c *Client) verifyConnection(cs tls.ConnectionState) error {
 	return nil
 }
 
-// GetHTTPClient returns the configured HTTP client
+// GetHTTPClient returns the configured HTTP client.
 func (c *Client) GetHTTPClient() *http.Client {
 	return c.httpClient
 }
 
-// Close gracefully shuts down the mTLS client
+// Close gracefully shuts down the mTLS client.
 func (c *Client) Close() error {
 	c.logger.Info("shutting down mTLS client")
 
@@ -417,7 +417,7 @@ func (c *Client) Close() error {
 		c.rotationTicker.Stop()
 	}
 
-	// Close idle connections
+	// Close idle connections.
 	if transport, ok := c.httpClient.Transport.(*http.Transport); ok {
 		transport.CloseIdleConnections()
 	}
@@ -425,7 +425,7 @@ func (c *Client) Close() error {
 	return nil
 }
 
-// GetCertificateInfo returns information about the current certificate
+// GetCertificateInfo returns information about the current certificate.
 func (c *Client) GetCertificateInfo() (*CertificateInfo, error) {
 	c.certMu.RLock()
 	defer c.certMu.RUnlock()
@@ -451,7 +451,7 @@ func (c *Client) GetCertificateInfo() (*CertificateInfo, error) {
 	}, nil
 }
 
-// CertificateInfo holds certificate information
+// CertificateInfo holds certificate information.
 type CertificateInfo struct {
 	Subject      string        `json:"subject"`
 	Issuer       string        `json:"issuer"`

@@ -9,8 +9,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ExtendedYANGModelRegistry provides comprehensive O-RAN YANG model support
-// following O-RAN.WG10.O1-Interface.0-v07.00 specification
+// ExtendedYANGModelRegistry provides comprehensive O-RAN YANG model support.
+// following O-RAN.WG10.O1-Interface.0-v07.00 specification.
 type ExtendedYANGModelRegistry struct {
 	*YANGModelRegistry
 	oranModels       map[string]*ORANYANGModel
@@ -19,7 +19,7 @@ type ExtendedYANGModelRegistry struct {
 	conversionEngine *YANGConversionEngine
 }
 
-// ORANYANGModel extends YANGModel with O-RAN specific features
+// ORANYANGModel extends YANGModel with O-RAN specific features.
 type ORANYANGModel struct {
 	*YANGModel
 	ORANVersion    string                 `json:"oran_version"`
@@ -31,7 +31,7 @@ type ORANYANGModel struct {
 	Extensions     map[string]interface{} `json:"extensions"`
 }
 
-// YANGDeviation represents YANG model deviations
+// YANGDeviation represents YANG model deviations.
 type YANGDeviation struct {
 	TargetNode  string `json:"target_node"`
 	Type        string `json:"type"` // not-supported, add, replace, delete
@@ -39,14 +39,14 @@ type YANGDeviation struct {
 	Reference   string `json:"reference,omitempty"`
 }
 
-// YANGAugmentation represents YANG model augmentations
+// YANGAugmentation represents YANG model augmentations.
 type YANGAugmentation struct {
 	TargetNode string                 `json:"target_node"`
 	Nodes      map[string]*YANGNode   `json:"nodes"`
 	Conditions map[string]interface{} `json:"conditions,omitempty"`
 }
 
-// ORANModelValidator provides O-RAN specific validation
+// ORANModelValidator provides O-RAN specific validation.
 type ORANModelValidator struct {
 	registry     *ExtendedYANGModelRegistry
 	constraints  map[string][]ValidationConstraint
@@ -54,7 +54,7 @@ type ORANModelValidator struct {
 	mutex        sync.RWMutex
 }
 
-// ValidationConstraint defines validation rules
+// ValidationConstraint defines validation rules.
 type ValidationConstraint struct {
 	Type       string                 `json:"type"`
 	Parameters map[string]interface{} `json:"parameters"`
@@ -62,20 +62,20 @@ type ValidationConstraint struct {
 	Severity   string                 `json:"severity"` // ERROR, WARNING
 }
 
-// TypeChecker interface for custom type validation
+// TypeChecker interface for custom type validation.
 type TypeChecker interface {
 	CheckType(value interface{}, constraints map[string]interface{}) error
 	GetTypeName() string
 }
 
-// YANGSchemaCompiler compiles YANG schemas to runtime structures
+// YANGSchemaCompiler compiles YANG schemas to runtime structures.
 type YANGSchemaCompiler struct {
 	registry        *ExtendedYANGModelRegistry
 	compiledSchemas map[string]*CompiledSchema
 	mutex           sync.RWMutex
 }
 
-// CompiledSchema represents a compiled YANG schema
+// CompiledSchema represents a compiled YANG schema.
 type CompiledSchema struct {
 	ModelName    string                 `json:"model_name"`
 	RootNodes    map[string]*SchemaNode `json:"root_nodes"`
@@ -85,7 +85,7 @@ type CompiledSchema struct {
 	CompileTime  time.Time              `json:"compile_time"`
 }
 
-// SchemaNode represents a compiled schema node
+// SchemaNode represents a compiled schema node.
 type SchemaNode struct {
 	*YANGNode
 	CompiledConstraints []CompiledConstraint `json:"compiled_constraints"`
@@ -93,21 +93,21 @@ type SchemaNode struct {
 	OptimizedQueries    map[string]string    `json:"optimized_queries"`
 }
 
-// CompiledConstraint represents a pre-compiled validation constraint
+// CompiledConstraint represents a pre-compiled validation constraint.
 type CompiledConstraint struct {
 	Type       string      `json:"type"`
 	Checker    interface{} `json:"checker"`
 	Parameters interface{} `json:"parameters"`
 }
 
-// RuntimeCheck represents a runtime validation check
+// RuntimeCheck represents a runtime validation check.
 type RuntimeCheck struct {
 	CheckFunc   func(interface{}) error `json:"-"`
 	Description string                  `json:"description"`
 	Cost        int                     `json:"cost"` // Performance cost estimate
 }
 
-// Identity represents a YANG identity
+// Identity represents a YANG identity.
 type Identity struct {
 	Name        string `json:"name"`
 	Base        string `json:"base,omitempty"`
@@ -116,7 +116,7 @@ type Identity struct {
 	Status      string `json:"status"` // current, deprecated, obsolete
 }
 
-// Grouping represents a YANG grouping
+// Grouping represents a YANG grouping.
 type Grouping struct {
 	Name        string               `json:"name"`
 	Description string               `json:"description,omitempty"`
@@ -124,7 +124,7 @@ type Grouping struct {
 	Status      string               `json:"status"`
 }
 
-// TypeDef represents a YANG typedef
+// TypeDef represents a YANG typedef.
 type TypeDef struct {
 	Name        string                 `json:"name"`
 	Type        string                 `json:"type"`
@@ -134,14 +134,14 @@ type TypeDef struct {
 	Description string                 `json:"description,omitempty"`
 }
 
-// YANGConversionEngine handles format conversions
+// YANGConversionEngine handles format conversions.
 type YANGConversionEngine struct {
 	registry   *ExtendedYANGModelRegistry
 	converters map[string]FormatConverter
 	mutex      sync.RWMutex
 }
 
-// FormatConverter interface for different data format conversions
+// FormatConverter interface for different data format conversions.
 type FormatConverter interface {
 	XMLToJSON(xmlData string, modelName string) (string, error)
 	JSONToXML(jsonData string, modelName string) (string, error)
@@ -149,7 +149,7 @@ type FormatConverter interface {
 	GetSupportedFormats() []string
 }
 
-// NewExtendedYANGModelRegistry creates a new extended YANG model registry
+// NewExtendedYANGModelRegistry creates a new extended YANG model registry.
 func NewExtendedYANGModelRegistry() *ExtendedYANGModelRegistry {
 	baseRegistry := NewYANGModelRegistry()
 
@@ -162,36 +162,36 @@ func NewExtendedYANGModelRegistry() *ExtendedYANGModelRegistry {
 	extended.schemaCompiler = NewYANGSchemaCompiler(extended)
 	extended.conversionEngine = NewYANGConversionEngine(extended)
 
-	// Load all O-RAN WG10 models
+	// Load all O-RAN WG10 models.
 	extended.loadAllORANModels()
 
 	return extended
 }
 
-// loadAllORANModels loads all O-RAN WG10 specified YANG models
+// loadAllORANModels loads all O-RAN WG10 specified YANG models.
 func (eyr *ExtendedYANGModelRegistry) loadAllORANModels() {
 	logger := log.Log.WithName("extended-yang-registry")
 
 	models := []*ORANYANGModel{
-		// O-RAN Fault Management
+		// O-RAN Fault Management.
 		eyr.createORANFaultManagementModel(),
-		// O-RAN Performance Management
+		// O-RAN Performance Management.
 		eyr.createORANPerformanceManagementModel(),
-		// O-RAN Configuration Management
+		// O-RAN Configuration Management.
 		eyr.createORANConfigurationManagementModel(),
-		// O-RAN Security Management
+		// O-RAN Security Management.
 		eyr.createORANSecurityManagementModel(),
-		// O-RAN File Management
+		// O-RAN File Management.
 		eyr.createORANFileManagementModel(),
-		// O-RAN Troubleshooting
+		// O-RAN Troubleshooting.
 		eyr.createORANTroubleshootingModel(),
-		// O-RAN Hardware Management (extended)
+		// O-RAN Hardware Management (extended).
 		eyr.createExtendedORANHardwareModel(),
-		// O-RAN Software Management (extended)
+		// O-RAN Software Management (extended).
 		eyr.createExtendedORANSoftwareModel(),
-		// O-RAN Interface Management
+		// O-RAN Interface Management.
 		eyr.createORANInterfaceManagementModel(),
-		// O-RAN Processing Elements
+		// O-RAN Processing Elements.
 		eyr.createORANProcessingElementsModel(),
 	}
 
@@ -204,7 +204,7 @@ func (eyr *ExtendedYANGModelRegistry) loadAllORANModels() {
 	}
 }
 
-// createORANFaultManagementModel creates the o-ran-fm.yang model
+// createORANFaultManagementModel creates the o-ran-fm.yang model.
 func (eyr *ExtendedYANGModelRegistry) createORANFaultManagementModel() *ORANYANGModel {
 	return &ORANYANGModel{
 		YANGModel: &YANGModel{
@@ -284,8 +284,10 @@ func (eyr *ExtendedYANGModelRegistry) createORANFaultManagementModel() *ORANYANG
 									Description: "Category of the fault",
 									Config:      false,
 									Constraints: map[string]interface{}{
-										"enum": []string{"communications", "quality-of-service", "processing-error",
-											"equipment", "environmental"},
+										"enum": []string{
+											"communications", "quality-of-service", "processing-error",
+											"equipment", "environmental",
+										},
 									},
 								},
 								"vendor-specific-data": {
@@ -352,7 +354,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANFaultManagementModel() *ORANYANG
 	}
 }
 
-// createORANPerformanceManagementModel creates the o-ran-pm.yang model
+// createORANPerformanceManagementModel creates the o-ran-pm.yang model.
 func (eyr *ExtendedYANGModelRegistry) createORANPerformanceManagementModel() *ORANYANGModel {
 	return &ORANYANGModel{
 		YANGModel: &YANGModel{
@@ -483,7 +485,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANPerformanceManagementModel() *OR
 	}
 }
 
-// createORANConfigurationManagementModel creates the o-ran-cm.yang model
+// createORANConfigurationManagementModel creates the o-ran-cm.yang model.
 func (eyr *ExtendedYANGModelRegistry) createORANConfigurationManagementModel() *ORANYANGModel {
 	return &ORANYANGModel{
 		YANGModel: &YANGModel{
@@ -602,7 +604,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANConfigurationManagementModel() *
 	}
 }
 
-// createORANSecurityManagementModel creates the o-ran-security.yang model
+// createORANSecurityManagementModel creates the o-ran-security.yang model.
 func (eyr *ExtendedYANGModelRegistry) createORANSecurityManagementModel() *ORANYANGModel {
 	return &ORANYANGModel{
 		YANGModel: &YANGModel{
@@ -768,7 +770,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANSecurityManagementModel() *ORANY
 	}
 }
 
-// createORANFileManagementModel creates the o-ran-file-management.yang model
+// createORANFileManagementModel creates the o-ran-file-management.yang model.
 func (eyr *ExtendedYANGModelRegistry) createORANFileManagementModel() *ORANYANGModel {
 	return &ORANYANGModel{
 		YANGModel: &YANGModel{
@@ -918,7 +920,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANFileManagementModel() *ORANYANGM
 	}
 }
 
-// createORANTroubleshootingModel creates the o-ran-troubleshooting.yang model
+// createORANTroubleshootingModel creates the o-ran-troubleshooting.yang model.
 func (eyr *ExtendedYANGModelRegistry) createORANTroubleshootingModel() *ORANYANGModel {
 	return &ORANYANGModel{
 		YANGModel: &YANGModel{
@@ -1023,27 +1025,27 @@ func (eyr *ExtendedYANGModelRegistry) createORANTroubleshootingModel() *ORANYANG
 }
 
 // Additional model creation methods would continue here...
-// For brevity, I'll include placeholders for the remaining models
+// For brevity, I'll include placeholders for the remaining models.
 
-// createExtendedORANHardwareModel creates extended hardware management model
+// createExtendedORANHardwareModel creates extended hardware management model.
 func (eyr *ExtendedYANGModelRegistry) createExtendedORANHardwareModel() *ORANYANGModel {
-	// Extended version of existing hardware model with additional O-RAN specific features
+	// Extended version of existing hardware model with additional O-RAN specific features.
 	baseModel := eyr.createORANHardwareBaseModel()
 	baseModel.Features = append(baseModel.Features, "power-management", "thermal-management", "component-health")
 	return baseModel
 }
 
-// createExtendedORANSoftwareModel creates extended software management model
+// createExtendedORANSoftwareModel creates extended software management model.
 func (eyr *ExtendedYANGModelRegistry) createExtendedORANSoftwareModel() *ORANYANGModel {
-	// Extended version with container orchestration support
+	// Extended version with container orchestration support.
 	baseModel := eyr.createORANSoftwareBaseModel()
 	baseModel.Features = append(baseModel.Features, "container-management", "image-registry", "rollback-support")
 	return baseModel
 }
 
-// createORANInterfaceManagementModel creates interface management model
+// createORANInterfaceManagementModel creates interface management model.
 func (eyr *ExtendedYANGModelRegistry) createORANInterfaceManagementModel() *ORANYANGModel {
-	// Placeholder - would contain full O-RAN interface definitions
+	// Placeholder - would contain full O-RAN interface definitions.
 	return &ORANYANGModel{
 		YANGModel: &YANGModel{
 			Name:         "o-ran-interfaces",
@@ -1053,7 +1055,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANInterfaceManagementModel() *ORAN
 			Description:  "O-RAN Interface Management YANG module",
 			Organization: "O-RAN Alliance",
 			Schema:       map[string]interface{}{
-				// Full schema would be implemented here
+				// Full schema would be implemented here.
 			},
 		},
 		ORANVersion:    "7.0.0",
@@ -1062,9 +1064,9 @@ func (eyr *ExtendedYANGModelRegistry) createORANInterfaceManagementModel() *ORAN
 	}
 }
 
-// createORANProcessingElementsModel creates processing elements model
+// createORANProcessingElementsModel creates processing elements model.
 func (eyr *ExtendedYANGModelRegistry) createORANProcessingElementsModel() *ORANYANGModel {
-	// Placeholder for processing elements management
+	// Placeholder for processing elements management.
 	return &ORANYANGModel{
 		YANGModel: &YANGModel{
 			Name:         "o-ran-processing-element",
@@ -1074,7 +1076,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANProcessingElementsModel() *ORANY
 			Description:  "O-RAN Processing Element YANG module",
 			Organization: "O-RAN Alliance",
 			Schema:       map[string]interface{}{
-				// Full schema would be implemented here
+				// Full schema would be implemented here.
 			},
 		},
 		ORANVersion:    "7.0.0",
@@ -1083,7 +1085,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANProcessingElementsModel() *ORANY
 	}
 }
 
-// Helper methods for base models
+// Helper methods for base models.
 func (eyr *ExtendedYANGModelRegistry) createORANHardwareBaseModel() *ORANYANGModel {
 	return &ORANYANGModel{
 		YANGModel: &YANGModel{
@@ -1114,7 +1116,7 @@ func (eyr *ExtendedYANGModelRegistry) createORANSoftwareBaseModel() *ORANYANGMod
 	}
 }
 
-// RegisterORANModel registers an O-RAN YANG model
+// RegisterORANModel registers an O-RAN YANG model.
 func (eyr *ExtendedYANGModelRegistry) RegisterORANModel(model *ORANYANGModel) error {
 	if err := eyr.RegisterModel(model.YANGModel); err != nil {
 		return err
@@ -1122,11 +1124,11 @@ func (eyr *ExtendedYANGModelRegistry) RegisterORANModel(model *ORANYANGModel) er
 
 	eyr.oranModels[model.Name] = model
 
-	// Compile schema for runtime optimization
+	// Compile schema for runtime optimization.
 	return eyr.schemaCompiler.CompileSchema(model)
 }
 
-// GetORANModel retrieves an O-RAN YANG model by name
+// GetORANModel retrieves an O-RAN YANG model by name.
 func (eyr *ExtendedYANGModelRegistry) GetORANModel(name string) (*ORANYANGModel, error) {
 	model, exists := eyr.oranModels[name]
 	if !exists {
@@ -1135,14 +1137,14 @@ func (eyr *ExtendedYANGModelRegistry) GetORANModel(name string) (*ORANYANGModel,
 	return model, nil
 }
 
-// ValidateORANConfig validates configuration against O-RAN models
+// ValidateORANConfig validates configuration against O-RAN models.
 func (eyr *ExtendedYANGModelRegistry) ValidateORANConfig(ctx context.Context, data interface{}, modelName string) error {
 	return eyr.modelValidator.ValidateORANData(data, modelName)
 }
 
 // Additional initialization methods would be implemented here...
 
-// NewORANModelValidator creates a new O-RAN model validator
+// NewORANModelValidator creates a new O-RAN model validator.
 func NewORANModelValidator(registry *ExtendedYANGModelRegistry) *ORANModelValidator {
 	return &ORANModelValidator{
 		registry:     registry,
@@ -1151,13 +1153,13 @@ func NewORANModelValidator(registry *ExtendedYANGModelRegistry) *ORANModelValida
 	}
 }
 
-// ValidateORANData validates data against O-RAN specific rules
+// ValidateORANData validates data against O-RAN specific rules.
 func (omv *ORANModelValidator) ValidateORANData(data interface{}, modelName string) error {
-	// Implementation would include O-RAN specific validation rules
+	// Implementation would include O-RAN specific validation rules.
 	return fmt.Errorf("O-RAN validation not implemented for model: %s", modelName)
 }
 
-// NewYANGSchemaCompiler creates a new schema compiler
+// NewYANGSchemaCompiler creates a new schema compiler.
 func NewYANGSchemaCompiler(registry *ExtendedYANGModelRegistry) *YANGSchemaCompiler {
 	return &YANGSchemaCompiler{
 		registry:        registry,
@@ -1165,13 +1167,13 @@ func NewYANGSchemaCompiler(registry *ExtendedYANGModelRegistry) *YANGSchemaCompi
 	}
 }
 
-// CompileSchema compiles a YANG schema for runtime optimization
+// CompileSchema compiles a YANG schema for runtime optimization.
 func (ysc *YANGSchemaCompiler) CompileSchema(model *ORANYANGModel) error {
-	// Implementation would compile schema to optimized runtime structures
+	// Implementation would compile schema to optimized runtime structures.
 	return nil
 }
 
-// NewYANGConversionEngine creates a new conversion engine
+// NewYANGConversionEngine creates a new conversion engine.
 func NewYANGConversionEngine(registry *ExtendedYANGModelRegistry) *YANGConversionEngine {
 	return &YANGConversionEngine{
 		registry:   registry,

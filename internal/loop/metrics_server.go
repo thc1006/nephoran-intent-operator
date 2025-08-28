@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// MetricsServer provides HTTP endpoints for metrics
+// MetricsServer provides HTTP endpoints for metrics.
 type MetricsServer struct {
 	watcher *OptimizedWatcher
 	server  *http.Server
@@ -17,7 +17,7 @@ type MetricsServer struct {
 	port    int
 }
 
-// NewMetricsServer creates a new metrics server
+// NewMetricsServer creates a new metrics server.
 func NewMetricsServer(watcher *OptimizedWatcher, addr string, port int) *MetricsServer {
 	if addr == "" {
 		addr = "127.0.0.1"
@@ -33,11 +33,11 @@ func NewMetricsServer(watcher *OptimizedWatcher, addr string, port int) *Metrics
 	}
 }
 
-// Start starts the metrics server
+// Start starts the metrics server.
 func (s *MetricsServer) Start() error {
 	mux := http.NewServeMux()
 
-	// Register endpoints
+	// Register endpoints.
 	mux.HandleFunc("/metrics", s.handleMetrics)
 	mux.HandleFunc("/health", s.handleHealth)
 	mux.HandleFunc("/stats", s.handleStats)
@@ -59,7 +59,7 @@ func (s *MetricsServer) Start() error {
 	return nil
 }
 
-// Stop stops the metrics server
+// Stop stops the metrics server.
 func (s *MetricsServer) Stop() error {
 	if s.server == nil {
 		return nil
@@ -71,7 +71,7 @@ func (s *MetricsServer) Stop() error {
 	return s.server.Shutdown(ctx)
 }
 
-// handleMetrics handles the /metrics endpoint
+// handleMetrics handles the /metrics endpoint.
 func (s *MetricsServer) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -80,7 +80,7 @@ func (s *MetricsServer) handleMetrics(w http.ResponseWriter, r *http.Request) {
 
 	metrics := s.watcher.GetMetrics()
 
-	// Convert to Prometheus format
+	// Convert to Prometheus format.
 	fmt.Fprintf(w, "# HELP conductor_processed_total Total number of files processed\n")
 	fmt.Fprintf(w, "# TYPE conductor_processed_total counter\n")
 	fmt.Fprintf(w, "conductor_processed_total %d\n\n", metrics.FilesProcessedTotal)
@@ -130,7 +130,7 @@ func (s *MetricsServer) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "conductor_directory_size_bytes %d\n\n", metrics.DirectorySizeBytes)
 }
 
-// handleHealth handles the /health endpoint
+// handleHealth handles the /health endpoint.
 func (s *MetricsServer) handleHealth(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -166,7 +166,7 @@ func (s *MetricsServer) handleHealth(w http.ResponseWriter, r *http.Request) {
 		Timestamp: time.Now(),
 	}
 
-	// Check worker pool health from current queue depth
+	// Check worker pool health from current queue depth.
 	health.Checks.WorkerPool.QueueDepth = int(metrics.QueueDepthCurrent)
 	health.Checks.WorkerPool.Backpressured = metrics.BackpressureEventsTotal > 0
 
@@ -177,7 +177,7 @@ func (s *MetricsServer) handleHealth(w http.ResponseWriter, r *http.Request) {
 		health.Checks.WorkerPool.Status = "healthy"
 	}
 
-	// Check resource health
+	// Check resource health.
 	health.Checks.Resources.MemoryMB = float64(metrics.MemoryUsageBytes) / (1024 * 1024)
 	health.Checks.Resources.Goroutines = int(metrics.GoroutineCount)
 
@@ -190,7 +190,7 @@ func (s *MetricsServer) handleHealth(w http.ResponseWriter, r *http.Request) {
 		health.Checks.Resources.Status = "healthy"
 	}
 
-	// Check processing health
+	// Check processing health.
 	total := metrics.FilesProcessedTotal + metrics.FilesFailedTotal
 	successRate := float64(1.0)
 	if total > 0 {
@@ -206,7 +206,7 @@ func (s *MetricsServer) handleHealth(w http.ResponseWriter, r *http.Request) {
 		health.Checks.Processing.Status = "healthy"
 	}
 
-	// Set appropriate HTTP status code
+	// Set appropriate HTTP status code.
 	statusCode := http.StatusOK
 	if health.Status == "degraded" {
 		statusCode = http.StatusServiceUnavailable
@@ -217,7 +217,7 @@ func (s *MetricsServer) handleHealth(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(health)
 }
 
-// handleStats handles the /stats endpoint with detailed statistics
+// handleStats handles the /stats endpoint with detailed statistics.
 func (s *MetricsServer) handleStats(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

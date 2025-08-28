@@ -1,6 +1,6 @@
 package patchgen
 
-// Intent represents the structure of an intent for scaling
+// Intent represents the structure of an intent for scaling.
 type Intent struct {
 	IntentType    string `json:"intent_type"`
 	Target        string `json:"target"`
@@ -11,7 +11,7 @@ type Intent struct {
 	CorrelationID string `json:"correlation_id,omitempty"`
 }
 
-// PatchPackage represents a KRM patch package structure
+// PatchPackage represents a KRM patch package structure.
 type PatchPackage struct {
 	Kptfile   *Kptfile   `yaml:"-"`
 	PatchFile *PatchFile `yaml:"-"`
@@ -19,7 +19,7 @@ type PatchPackage struct {
 	Intent    *Intent    `yaml:"-"`
 }
 
-// Kptfile represents the kpt package metadata
+// Kptfile represents the kpt package metadata.
 type Kptfile struct {
 	APIVersion string      `yaml:"apiVersion"`
 	Kind       string      `yaml:"kind"`
@@ -28,28 +28,28 @@ type Kptfile struct {
 	Pipeline   KptPipeline `yaml:"pipeline"`
 }
 
-// KptMetadata contains package metadata
+// KptMetadata contains package metadata.
 type KptMetadata struct {
 	Name string `yaml:"name"`
 }
 
-// KptInfo contains package information
+// KptInfo contains package information.
 type KptInfo struct {
 	Description string `yaml:"description"`
 }
 
-// KptPipeline defines the kpt pipeline configuration
+// KptPipeline defines the kpt pipeline configuration.
 type KptPipeline struct {
 	Mutators []KptMutator `yaml:"mutators"`
 }
 
-// KptMutator defines a kpt mutator function
+// KptMutator defines a kpt mutator function.
 type KptMutator struct {
 	Image     string            `yaml:"image"`
 	ConfigMap map[string]string `yaml:"configMap"`
 }
 
-// PatchFile represents a strategic merge patch
+// PatchFile represents a strategic merge patch.
 type PatchFile struct {
 	APIVersion string        `yaml:"apiVersion"`
 	Kind       string        `yaml:"kind"`
@@ -57,14 +57,14 @@ type PatchFile struct {
 	Spec       PatchSpec     `yaml:"spec"`
 }
 
-// PatchMetadata contains patch metadata
+// PatchMetadata contains patch metadata.
 type PatchMetadata struct {
 	Name        string            `yaml:"name"`
 	Namespace   string            `yaml:"namespace"`
 	Annotations map[string]string `yaml:"annotations"`
 }
 
-// PatchSpec contains the patch specification
+// PatchSpec contains the patch specification.
 type PatchSpec struct {
 	Replicas int `yaml:"replicas"`
 }

@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-// IncidentResponse manages security incident detection and response
+// IncidentResponse manages security incident detection and response.
 type IncidentResponse struct {
 	config     *IncidentConfig
 	logger     *slog.Logger
@@ -29,7 +29,7 @@ type IncidentResponse struct {
 	stopChan   chan struct{}
 }
 
-// IncidentConfig holds incident response configuration
+// IncidentConfig holds incident response configuration.
 type IncidentConfig struct {
 	EnableAutoResponse    bool                 `json:"enable_auto_response"`
 	AutoResponseThreshold string               `json:"auto_response_threshold"` // Critical, High, Medium
@@ -42,7 +42,7 @@ type IncidentConfig struct {
 	WebhookSecret         string               `json:"webhook_secret"`
 }
 
-// NotificationConfig holds notification settings
+// NotificationConfig holds notification settings.
 type NotificationConfig struct {
 	EnableEmail     bool     `json:"enable_email"`
 	EnableSlack     bool     `json:"enable_slack"`
@@ -52,14 +52,14 @@ type NotificationConfig struct {
 	EscalationList  []string `json:"escalation_list"`
 }
 
-// IRIntegrationConfig holds integration settings for incident response
+// IRIntegrationConfig holds integration settings for incident response.
 type IRIntegrationConfig struct {
 	SIEM      *SIEMConfig      `json:"siem,omitempty"`
 	SOAR      *SOARConfig      `json:"soar,omitempty"`
 	Ticketing *TicketingConfig `json:"ticketing,omitempty"`
 }
 
-// SIEMConfig holds SIEM integration configuration
+// SIEMConfig holds SIEM integration configuration.
 type SIEMConfig struct {
 	Type     string `json:"type"` // splunk, elk, sentinel
 	Endpoint string `json:"endpoint"`
@@ -67,14 +67,14 @@ type SIEMConfig struct {
 	Index    string `json:"index"`
 }
 
-// SOARConfig holds SOAR platform integration
+// SOARConfig holds SOAR platform integration.
 type SOARConfig struct {
 	Platform string `json:"platform"` // phantom, demisto, etc.
 	Endpoint string `json:"endpoint"`
 	APIKey   string `json:"api_key"`
 }
 
-// TicketingConfig holds ticketing system integration
+// TicketingConfig holds ticketing system integration.
 type TicketingConfig struct {
 	System   string `json:"system"` // jira, servicenow, etc.
 	Endpoint string `json:"endpoint"`
@@ -82,7 +82,7 @@ type TicketingConfig struct {
 	Project  string `json:"project"`
 }
 
-// SecurityIncident represents a security incident
+// SecurityIncident represents a security incident.
 type SecurityIncident struct {
 	ID             string                 `json:"id"`
 	Title          string                 `json:"title"`
@@ -105,7 +105,7 @@ type SecurityIncident struct {
 	Remediation    *RemediationPlan       `json:"remediation"`
 }
 
-// Evidence represents incident evidence
+// Evidence represents incident evidence.
 type Evidence struct {
 	ID          string                 `json:"id"`
 	Type        string                 `json:"type"` // log, file, network, memory
@@ -117,7 +117,7 @@ type Evidence struct {
 	Collected   bool                   `json:"collected"`
 }
 
-// TimelineEvent represents an event in the incident timeline
+// TimelineEvent represents an event in the incident timeline.
 type TimelineEvent struct {
 	Timestamp   time.Time `json:"timestamp"`
 	Type        string    `json:"type"`
@@ -126,7 +126,7 @@ type TimelineEvent struct {
 	Automated   bool      `json:"automated"`
 }
 
-// ResponseAction represents an automated response action
+// ResponseAction represents an automated response action.
 type ResponseAction struct {
 	ID          string                 `json:"id"`
 	Type        string                 `json:"type"`
@@ -139,7 +139,7 @@ type ResponseAction struct {
 	Automated   bool                   `json:"automated"`
 }
 
-// MITREMapping represents MITRE ATT&CK framework mapping
+// MITREMapping represents MITRE ATT&CK framework mapping.
 type MITREMapping struct {
 	Tactics       []string `json:"tactics"`
 	Techniques    []string `json:"techniques"`
@@ -147,7 +147,7 @@ type MITREMapping struct {
 	Confidence    float64  `json:"confidence"`
 }
 
-// ImpactAssessment represents the impact assessment of an incident
+// ImpactAssessment represents the impact assessment of an incident.
 type ImpactAssessment struct {
 	Confidentiality string   `json:"confidentiality"` // None, Low, Medium, High
 	Integrity       string   `json:"integrity"`
@@ -158,7 +158,7 @@ type ImpactAssessment struct {
 	EstimatedCost   float64  `json:"estimated_cost"`
 }
 
-// RemediationPlan represents the remediation plan
+// RemediationPlan represents the remediation plan.
 type RemediationPlan struct {
 	ShortTermActions  []string      `json:"short_term_actions"`
 	LongTermActions   []string      `json:"long_term_actions"`
@@ -168,7 +168,7 @@ type RemediationPlan struct {
 	Status            string        `json:"status"`
 }
 
-// ResponsePlaybook represents an automated response playbook
+// ResponsePlaybook represents an automated response playbook.
 type ResponsePlaybook struct {
 	ID           string             `json:"id"`
 	Name         string             `json:"name"`
@@ -180,13 +180,13 @@ type ResponsePlaybook struct {
 	LastExecuted *time.Time         `json:"last_executed,omitempty"`
 }
 
-// PlaybookTrigger represents a playbook trigger condition
+// PlaybookTrigger represents a playbook trigger condition.
 type PlaybookTrigger struct {
 	Type       string                 `json:"type"`
 	Conditions map[string]interface{} `json:"conditions"`
 }
 
-// PlaybookAction represents a playbook action
+// PlaybookAction represents a playbook action.
 type PlaybookAction struct {
 	ID          string                 `json:"id"`
 	Type        string                 `json:"type"`
@@ -197,7 +197,7 @@ type PlaybookAction struct {
 	OnFailure   string                 `json:"on_failure"` // continue, abort, escalate
 }
 
-// EscalationEngine handles incident escalation
+// EscalationEngine handles incident escalation.
 type EscalationEngine struct {
 	config *IncidentConfig
 	logger *slog.Logger
@@ -205,7 +205,7 @@ type EscalationEngine struct {
 	mutex  sync.RWMutex
 }
 
-// EscalationRule represents an escalation rule
+// EscalationRule represents an escalation rule.
 type EscalationRule struct {
 	ID         string        `json:"id"`
 	Conditions []*Condition  `json:"conditions"`
@@ -214,33 +214,33 @@ type EscalationRule struct {
 	Enabled    bool          `json:"enabled"`
 }
 
-// Condition represents an escalation condition
+// Condition represents an escalation condition.
 type Condition struct {
 	Field    string      `json:"field"`
 	Operator string      `json:"operator"`
 	Value    interface{} `json:"value"`
 }
 
-// Action represents an escalation action
+// Action represents an escalation action.
 type Action struct {
 	Type       string                 `json:"type"`
 	Parameters map[string]interface{} `json:"parameters"`
 }
 
-// ForensicsCollector handles evidence collection
+// ForensicsCollector handles evidence collection.
 type ForensicsCollector struct {
 	config  *IncidentConfig
 	logger  *slog.Logger
 	storage *EvidenceStorage
 }
 
-// EvidenceStorage manages evidence storage
+// EvidenceStorage manages evidence storage.
 type EvidenceStorage struct {
 	artifacts map[string]*Evidence
 	mutex     sync.RWMutex
 }
 
-// IncidentMetrics tracks incident response metrics
+// IncidentMetrics tracks incident response metrics.
 type IncidentMetrics struct {
 	TotalIncidents      int64            `json:"total_incidents"`
 	OpenIncidents       int64            `json:"open_incidents"`
@@ -255,7 +255,7 @@ type IncidentMetrics struct {
 	mutex               sync.RWMutex
 }
 
-// NewIncidentResponse creates a new incident response system
+// NewIncidentResponse creates a new incident response system.
 func NewIncidentResponse(config *IncidentConfig) (*IncidentResponse, error) {
 	if config == nil {
 		config = getDefaultIncidentConfig()
@@ -273,21 +273,21 @@ func NewIncidentResponse(config *IncidentConfig) (*IncidentResponse, error) {
 		stopChan: make(chan struct{}),
 	}
 
-	// Initialize components
+	// Initialize components.
 	ir.escalation = NewEscalationEngine(config)
 	ir.forensics = NewForensicsCollector(config)
 
-	// Load default playbooks
+	// Load default playbooks.
 	ir.loadDefaultPlaybooks()
 
-	// Start background processes
+	// Start background processes.
 	go ir.startIncidentMonitoring()
 	go ir.startEscalationMonitoring()
 
 	return ir, nil
 }
 
-// getDefaultIncidentConfig returns default incident response configuration
+// getDefaultIncidentConfig returns default incident response configuration.
 func getDefaultIncidentConfig() *IncidentConfig {
 	return &IncidentConfig{
 		EnableAutoResponse:    true,
@@ -304,7 +304,7 @@ func getDefaultIncidentConfig() *IncidentConfig {
 	}
 }
 
-// CreateIncident creates a new security incident
+// CreateIncident creates a new security incident.
 func (ir *IncidentResponse) CreateIncident(ctx context.Context, request *CreateIncidentRequest) (*SecurityIncident, error) {
 	incident := &SecurityIncident{
 		ID:          generateIncidentID(),
@@ -323,7 +323,7 @@ func (ir *IncidentResponse) CreateIncident(ctx context.Context, request *CreateI
 		Impact:      request.Impact,
 	}
 
-	// Add initial timeline event
+	// Add initial timeline event.
 	incident.Timeline = append(incident.Timeline, &TimelineEvent{
 		Timestamp:   time.Now(),
 		Type:        "created",
@@ -332,23 +332,23 @@ func (ir *IncidentResponse) CreateIncident(ctx context.Context, request *CreateI
 		Automated:   true,
 	})
 
-	// Store incident
+	// Store incident.
 	ir.mutex.Lock()
 	ir.incidents[incident.ID] = incident
 	ir.mutex.Unlock()
 
-	// Update metrics
+	// Update metrics.
 	ir.updateMetrics(incident, "created")
 
-	// Trigger automated response if enabled
+	// Trigger automated response if enabled.
 	if ir.config.EnableAutoResponse {
 		go ir.triggerAutomatedResponse(ctx, incident)
 	}
 
-	// Send notifications
+	// Send notifications.
 	go ir.sendIncidentNotification(ctx, incident, "created")
 
-	// Start evidence collection
+	// Start evidence collection.
 	if ir.config.ForensicsEnabled {
 		go ir.forensics.CollectEvidence(ctx, incident)
 	}
@@ -361,7 +361,7 @@ func (ir *IncidentResponse) CreateIncident(ctx context.Context, request *CreateI
 	return incident, nil
 }
 
-// CreateIncidentRequest represents an incident creation request
+// CreateIncidentRequest represents an incident creation request.
 type CreateIncidentRequest struct {
 	Title       string            `json:"title"`
 	Description string            `json:"description"`
@@ -373,7 +373,7 @@ type CreateIncidentRequest struct {
 	Evidence    []*Evidence       `json:"evidence,omitempty"`
 }
 
-// UpdateIncident updates an existing incident
+// UpdateIncident updates an existing incident.
 func (ir *IncidentResponse) UpdateIncident(ctx context.Context, incidentID string, updates *IncidentUpdate) error {
 	ir.mutex.Lock()
 	incident, exists := ir.incidents[incidentID]
@@ -382,7 +382,7 @@ func (ir *IncidentResponse) UpdateIncident(ctx context.Context, incidentID strin
 		return fmt.Errorf("incident not found: %s", incidentID)
 	}
 
-	// Apply updates
+	// Apply updates.
 	if updates.Status != "" && updates.Status != incident.Status {
 		incident.Status = updates.Status
 		incident.Timeline = append(incident.Timeline, &TimelineEvent{
@@ -431,10 +431,10 @@ func (ir *IncidentResponse) UpdateIncident(ctx context.Context, incidentID strin
 
 	ir.mutex.Unlock()
 
-	// Update metrics
+	// Update metrics.
 	ir.updateMetrics(incident, "updated")
 
-	// Send notification if significant change
+	// Send notification if significant change.
 	if updates.Status != "" || updates.Severity != "" {
 		go ir.sendIncidentNotification(ctx, incident, "updated")
 	}
@@ -442,7 +442,7 @@ func (ir *IncidentResponse) UpdateIncident(ctx context.Context, incidentID strin
 	return nil
 }
 
-// IncidentUpdate represents incident update information
+// IncidentUpdate represents incident update information.
 type IncidentUpdate struct {
 	Status    string   `json:"status,omitempty"`
 	Assignee  string   `json:"assignee,omitempty"`
@@ -451,7 +451,7 @@ type IncidentUpdate struct {
 	UpdatedBy string   `json:"updated_by"`
 }
 
-// GetIncident retrieves an incident by ID
+// GetIncident retrieves an incident by ID.
 func (ir *IncidentResponse) GetIncident(incidentID string) (*SecurityIncident, error) {
 	ir.mutex.RLock()
 	defer ir.mutex.RUnlock()
@@ -464,7 +464,7 @@ func (ir *IncidentResponse) GetIncident(incidentID string) (*SecurityIncident, e
 	return incident, nil
 }
 
-// ListIncidents lists incidents with optional filtering
+// ListIncidents lists incidents with optional filtering.
 func (ir *IncidentResponse) ListIncidents(filter *IncidentFilter) ([]*SecurityIncident, error) {
 	ir.mutex.RLock()
 	defer ir.mutex.RUnlock()
@@ -476,12 +476,12 @@ func (ir *IncidentResponse) ListIncidents(filter *IncidentFilter) ([]*SecurityIn
 		}
 	}
 
-	// Sort by detection time (newest first)
+	// Sort by detection time (newest first).
 	sort.Slice(incidents, func(i, j int) bool {
 		return incidents[i].DetectedAt.After(incidents[j].DetectedAt)
 	})
 
-	// Apply limit if specified
+	// Apply limit if specified.
 	if filter != nil && filter.Limit > 0 && len(incidents) > filter.Limit {
 		incidents = incidents[:filter.Limit]
 	}
@@ -489,7 +489,7 @@ func (ir *IncidentResponse) ListIncidents(filter *IncidentFilter) ([]*SecurityIn
 	return incidents, nil
 }
 
-// IncidentFilter represents incident filtering criteria
+// IncidentFilter represents incident filtering criteria.
 type IncidentFilter struct {
 	Severity string    `json:"severity,omitempty"`
 	Status   string    `json:"status,omitempty"`
@@ -502,7 +502,7 @@ type IncidentFilter struct {
 	Limit    int       `json:"limit,omitempty"`
 }
 
-// AddEvidence adds evidence to an incident
+// AddEvidence adds evidence to an incident.
 func (ir *IncidentResponse) AddEvidence(incidentID string, evidence *Evidence) error {
 	ir.mutex.Lock()
 	defer ir.mutex.Unlock()
@@ -527,7 +527,7 @@ func (ir *IncidentResponse) AddEvidence(incidentID string, evidence *Evidence) e
 	return nil
 }
 
-// ExecutePlaybook executes a response playbook
+// ExecutePlaybook executes a response playbook.
 func (ir *IncidentResponse) ExecutePlaybook(ctx context.Context, incidentID, playbookID string) error {
 	incident, err := ir.GetIncident(incidentID)
 	if err != nil {
@@ -544,7 +544,7 @@ func (ir *IncidentResponse) ExecutePlaybook(ctx context.Context, incidentID, pla
 		"playbook_id", playbookID,
 		"playbook_name", playbook.Name)
 
-	// Execute playbook actions
+	// Execute playbook actions.
 	for _, action := range playbook.Actions {
 		responseAction := &ResponseAction{
 			ID:          generateActionID(),
@@ -558,12 +558,12 @@ func (ir *IncidentResponse) ExecutePlaybook(ctx context.Context, incidentID, pla
 		now := time.Now()
 		responseAction.ExecutedAt = &now
 
-		// Add to incident
+		// Add to incident.
 		ir.mutex.Lock()
 		incident.Actions = append(incident.Actions, responseAction)
 		ir.mutex.Unlock()
 
-		// Execute the action
+		// Execute the action.
 		err := ir.executeAction(ctx, action, incident)
 		if err != nil {
 			responseAction.Status = "failed"
@@ -582,14 +582,14 @@ func (ir *IncidentResponse) ExecutePlaybook(ctx context.Context, incidentID, pla
 		responseAction.CompletedAt = &now
 	}
 
-	// Update playbook last executed time
+	// Update playbook last executed time.
 	now := time.Now()
 	playbook.LastExecuted = &now
 
 	return nil
 }
 
-// triggerAutomatedResponse triggers automated response based on incident
+// triggerAutomatedResponse triggers automated response based on incident.
 func (ir *IncidentResponse) triggerAutomatedResponse(ctx context.Context, incident *SecurityIncident) {
 	if !ir.shouldAutoRespond(incident) {
 		return
@@ -597,7 +597,7 @@ func (ir *IncidentResponse) triggerAutomatedResponse(ctx context.Context, incide
 
 	ir.logger.Info("Triggering automated response", "incident_id", incident.ID)
 
-	// Find matching playbooks
+	// Find matching playbooks.
 	for _, playbook := range ir.playbooks {
 		if !playbook.Enabled {
 			continue
@@ -611,7 +611,7 @@ func (ir *IncidentResponse) triggerAutomatedResponse(ctx context.Context, incide
 	}
 }
 
-// Helper methods
+// Helper methods.
 
 func (ir *IncidentResponse) shouldAutoRespond(incident *SecurityIncident) bool {
 	if !ir.config.EnableAutoResponse {
@@ -676,31 +676,31 @@ func (ir *IncidentResponse) executeAction(ctx context.Context, action *PlaybookA
 }
 
 func (ir *IncidentResponse) isolateSystem(ctx context.Context, params map[string]interface{}, incident *SecurityIncident) error {
-	// Implementation would isolate affected systems
+	// Implementation would isolate affected systems.
 	ir.logger.Info("Isolating system", "incident_id", incident.ID)
 	return nil
 }
 
 func (ir *IncidentResponse) blockIP(ctx context.Context, params map[string]interface{}, incident *SecurityIncident) error {
-	// Implementation would block malicious IPs
+	// Implementation would block malicious IPs.
 	ir.logger.Info("Blocking IP", "incident_id", incident.ID)
 	return nil
 }
 
 func (ir *IncidentResponse) disableUser(ctx context.Context, params map[string]interface{}, incident *SecurityIncident) error {
-	// Implementation would disable compromised user accounts
+	// Implementation would disable compromised user accounts.
 	ir.logger.Info("Disabling user", "incident_id", incident.ID)
 	return nil
 }
 
 func (ir *IncidentResponse) createTicket(ctx context.Context, params map[string]interface{}, incident *SecurityIncident) error {
-	// Implementation would create support ticket
+	// Implementation would create support ticket.
 	ir.logger.Info("Creating ticket", "incident_id", incident.ID)
 	return nil
 }
 
 func (ir *IncidentResponse) sendNotification(ctx context.Context, params map[string]interface{}, incident *SecurityIncident) error {
-	// Implementation would send notifications
+	// Implementation would send notifications.
 	ir.logger.Info("Sending notification", "incident_id", incident.ID)
 	return nil
 }
@@ -756,13 +756,13 @@ func (ir *IncidentResponse) updateMetrics(incident *SecurityIncident, action str
 		ir.metrics.OpenIncidents--
 		ir.metrics.ResolvedIncidents++
 
-		// Calculate MTTR
+		// Calculate MTTR.
 		if incident.ResolvedAt != nil {
 			resolution_time := incident.ResolvedAt.Sub(incident.DetectedAt)
 			ir.metrics.MTTR = (ir.metrics.MTTR*time.Duration(ir.metrics.ResolvedIncidents-1) + resolution_time) / time.Duration(ir.metrics.ResolvedIncidents)
 		}
 
-		// Calculate MTTA
+		// Calculate MTTA.
 		if incident.AcknowledgedAt != nil {
 			ack_time := incident.AcknowledgedAt.Sub(incident.DetectedAt)
 			ir.metrics.MTTA = (ir.metrics.MTTA*time.Duration(ir.metrics.ResolvedIncidents-1) + ack_time) / time.Duration(ir.metrics.ResolvedIncidents)
@@ -778,49 +778,49 @@ func (ir *IncidentResponse) sendIncidentNotification(ctx context.Context, incide
 	message := fmt.Sprintf("Security Incident %s: %s\nSeverity: %s\nCategory: %s\nStatus: %s",
 		action, incident.Title, incident.Severity, incident.Category, incident.Status)
 
-	// Send email notification
+	// Send email notification.
 	if ir.config.NotificationConfig.EnableEmail {
 		ir.sendEmailNotification(ctx, incident, message)
 	}
 
-	// Send Slack notification
+	// Send Slack notification.
 	if ir.config.NotificationConfig.EnableSlack {
 		ir.sendSlackNotification(ctx, incident, message)
 	}
 
-	// Send SMS notification (for critical incidents)
+	// Send SMS notification (for critical incidents).
 	if ir.config.NotificationConfig.EnableSMS && incident.Severity == "Critical" {
 		ir.sendSMSNotification(ctx, incident, message)
 	}
 
-	// Send PagerDuty alert
+	// Send PagerDuty alert.
 	if ir.config.NotificationConfig.EnablePagerDuty && (incident.Severity == "Critical" || incident.Severity == "High") {
 		ir.sendPagerDutyAlert(ctx, incident, message)
 	}
 }
 
 func (ir *IncidentResponse) sendEmailNotification(ctx context.Context, incident *SecurityIncident, message string) {
-	// Implementation would send email
+	// Implementation would send email.
 	ir.logger.Info("Email notification sent", "incident_id", incident.ID)
 }
 
 func (ir *IncidentResponse) sendSlackNotification(ctx context.Context, incident *SecurityIncident, message string) {
-	// Implementation would send Slack message
+	// Implementation would send Slack message.
 	ir.logger.Info("Slack notification sent", "incident_id", incident.ID)
 }
 
 func (ir *IncidentResponse) sendSMSNotification(ctx context.Context, incident *SecurityIncident, message string) {
-	// Implementation would send SMS
+	// Implementation would send SMS.
 	ir.logger.Info("SMS notification sent", "incident_id", incident.ID)
 }
 
 func (ir *IncidentResponse) sendPagerDutyAlert(ctx context.Context, incident *SecurityIncident, message string) {
-	// Implementation would send PagerDuty alert
+	// Implementation would send PagerDuty alert.
 	ir.logger.Info("PagerDuty alert sent", "incident_id", incident.ID)
 }
 
 func (ir *IncidentResponse) loadDefaultPlaybooks() {
-	// Load default response playbooks
+	// Load default response playbooks.
 	playbooks := []*ResponsePlaybook{
 		{
 			ID:          "malware_detected",
@@ -897,7 +897,7 @@ func (ir *IncidentResponse) monitorIncidents() {
 }
 
 func (ir *IncidentResponse) checkEscalations() {
-	// Check for incidents that need escalation
+	// Check for incidents that need escalation.
 }
 
 func (ir *IncidentResponse) calculateEvidenceHash(evidence *Evidence) string {
@@ -906,7 +906,7 @@ func (ir *IncidentResponse) calculateEvidenceHash(evidence *Evidence) string {
 	return hex.EncodeToString(hash[:])
 }
 
-// Utility functions
+// Utility functions.
 
 func generateIncidentID() string {
 	return fmt.Sprintf("INC-%d", time.Now().UnixNano())
@@ -920,7 +920,7 @@ func generateActionID() string {
 	return fmt.Sprintf("ACT-%d", time.Now().UnixNano())
 }
 
-// GetMetrics returns current incident response metrics
+// GetMetrics returns current incident response metrics.
 func (ir *IncidentResponse) GetMetrics() *IncidentMetrics {
 	ir.metrics.mutex.RLock()
 	defer ir.metrics.mutex.RUnlock()
@@ -939,13 +939,13 @@ func (ir *IncidentResponse) GetMetrics() *IncidentMetrics {
 	}
 }
 
-// Close shuts down the incident response system
+// Close shuts down the incident response system.
 func (ir *IncidentResponse) Close() error {
 	close(ir.stopChan)
 	return nil
 }
 
-// NewEscalationEngine creates a new escalation engine
+// NewEscalationEngine creates a new escalation engine.
 func NewEscalationEngine(config *IncidentConfig) *EscalationEngine {
 	return &EscalationEngine{
 		config: config,
@@ -954,7 +954,7 @@ func NewEscalationEngine(config *IncidentConfig) *EscalationEngine {
 	}
 }
 
-// NewForensicsCollector creates a new forensics collector
+// NewForensicsCollector creates a new forensics collector.
 func NewForensicsCollector(config *IncidentConfig) *ForensicsCollector {
 	return &ForensicsCollector{
 		config: config,
@@ -965,11 +965,11 @@ func NewForensicsCollector(config *IncidentConfig) *ForensicsCollector {
 	}
 }
 
-// CollectEvidence collects evidence for an incident
+// CollectEvidence collects evidence for an incident.
 func (fc *ForensicsCollector) CollectEvidence(ctx context.Context, incident *SecurityIncident) error {
 	fc.logger.Info("Starting evidence collection", "incident_id", incident.ID)
 
-	// Collect different types of evidence
+	// Collect different types of evidence.
 	evidenceTypes := []string{"logs", "network", "system", "memory"}
 
 	for _, evidenceType := range evidenceTypes {
@@ -1002,25 +1002,25 @@ func (fc *ForensicsCollector) collectEvidenceType(ctx context.Context, incident 
 
 	switch evidenceType {
 	case "logs":
-		// Collect relevant logs
+		// Collect relevant logs.
 		evidence.Data["log_entries"] = []string{"Sample log entry 1", "Sample log entry 2"}
 	case "network":
-		// Collect network data
+		// Collect network data.
 		evidence.Data["connections"] = []string{"192.168.1.100:443", "10.0.0.50:80"}
 	case "system":
-		// Collect system information
+		// Collect system information.
 		evidence.Data["processes"] = []string{"process1", "process2"}
 	case "memory":
-		// Collect memory dumps (simulated)
+		// Collect memory dumps (simulated).
 		evidence.Data["memory_regions"] = []string{"region1", "region2"}
 	}
 
 	return evidence, nil
 }
 
-// HandleWebhook handles incoming webhook events with HMAC signature verification
+// HandleWebhook handles incoming webhook events with HMAC signature verification.
 func (ir *IncidentResponse) HandleWebhook(w http.ResponseWriter, r *http.Request) {
-	// Read the request body
+	// Read the request body.
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		ir.logger.Error("Failed to read webhook body", "error", err)
@@ -1029,7 +1029,7 @@ func (ir *IncidentResponse) HandleWebhook(w http.ResponseWriter, r *http.Request
 	}
 	defer r.Body.Close()
 
-	// Get the signature from headers
+	// Get the signature from headers.
 	signatureHeader := r.Header.Get("X-Hub-Signature-256")
 	if signatureHeader == "" {
 		ir.logger.Warn("Missing X-Hub-Signature-256 header")
@@ -1037,35 +1037,35 @@ func (ir *IncidentResponse) HandleWebhook(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Verify the signature
+	// Verify the signature.
 	if !ir.verifyWebhookSignature(body, signatureHeader) {
 		ir.logger.Warn("Invalid webhook signature", "signature", signatureHeader)
 		http.Error(w, "Invalid signature", http.StatusUnauthorized)
 		return
 	}
 
-	// Process the webhook payload
+	// Process the webhook payload.
 	if err := ir.processWebhookPayload(r.Context(), body); err != nil {
 		ir.logger.Error("Failed to process webhook payload", "error", err)
 		http.Error(w, "Failed to process webhook", http.StatusInternalServerError)
 		return
 	}
 
-	// Return success response
+	// Return success response.
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Webhook processed successfully"))
 
 	ir.logger.Info("Webhook processed successfully")
 }
 
-// verifyWebhookSignature verifies the HMAC signature of the webhook payload
+// verifyWebhookSignature verifies the HMAC signature of the webhook payload.
 func (ir *IncidentResponse) verifyWebhookSignature(payload []byte, signatureHeader string) bool {
 	if ir.config.WebhookSecret == "" {
 		ir.logger.Warn("Webhook secret not configured")
 		return false
 	}
 
-	// Parse the signature header (format: "sha256=<hex_encoded_signature>")
+	// Parse the signature header (format: "sha256=<hex_encoded_signature>").
 	if !strings.HasPrefix(signatureHeader, "sha256=") {
 		ir.logger.Warn("Invalid signature header format", "header", signatureHeader)
 		return false
@@ -1073,30 +1073,30 @@ func (ir *IncidentResponse) verifyWebhookSignature(payload []byte, signatureHead
 
 	receivedSignature := signatureHeader[7:] // Remove "sha256=" prefix
 
-	// Compute HMAC-SHA256 of the payload
+	// Compute HMAC-SHA256 of the payload.
 	mac := hmac.New(sha256.New, []byte(ir.config.WebhookSecret))
 	mac.Write(payload)
 	expectedSignature := hex.EncodeToString(mac.Sum(nil))
 
-	// Use constant time comparison to prevent timing attacks
+	// Use constant time comparison to prevent timing attacks.
 	return hmac.Equal([]byte(receivedSignature), []byte(expectedSignature))
 }
 
-// processWebhookPayload processes the validated webhook payload
+// processWebhookPayload processes the validated webhook payload.
 func (ir *IncidentResponse) processWebhookPayload(ctx context.Context, payload []byte) error {
-	// Parse the JSON payload
+	// Parse the JSON payload.
 	var webhookData map[string]interface{}
 	if err := json.Unmarshal(payload, &webhookData); err != nil {
 		ir.logger.Error("Failed to parse webhook JSON", "error", err)
 		return fmt.Errorf("invalid JSON payload: %w", err)
 	}
 
-	// Log webhook receipt
+	// Log webhook receipt.
 	ir.logger.Info("Processing webhook payload",
 		"content_length", len(payload),
 		"webhook_type", webhookData["type"])
 
-	// Process based on webhook type
+	// Process based on webhook type.
 	webhookType, ok := webhookData["type"].(string)
 	if !ok {
 		ir.logger.Warn("Missing or invalid webhook type")
@@ -1116,14 +1116,14 @@ func (ir *IncidentResponse) processWebhookPayload(ctx context.Context, payload [
 	}
 }
 
-// processSecurityAlert processes security alert webhooks
+// processSecurityAlert processes security alert webhooks.
 func (ir *IncidentResponse) processSecurityAlert(ctx context.Context, data map[string]interface{}) error {
 	alert, ok := data["alert"].(map[string]interface{})
 	if !ok {
 		return fmt.Errorf("invalid security alert format")
 	}
 
-	// Create incident from security alert
+	// Create incident from security alert.
 	request := &CreateIncidentRequest{
 		Title:       getString(alert, "title", "Security Alert"),
 		Description: getString(alert, "description", "Security alert received via webhook"),
@@ -1142,7 +1142,7 @@ func (ir *IncidentResponse) processSecurityAlert(ctx context.Context, data map[s
 	return nil
 }
 
-// processIncidentUpdate processes incident update webhooks
+// processIncidentUpdate processes incident update webhooks.
 func (ir *IncidentResponse) processIncidentUpdate(ctx context.Context, data map[string]interface{}) error {
 	incidentID := getString(data, "incident_id", "")
 	if incidentID == "" {
@@ -1165,7 +1165,7 @@ func (ir *IncidentResponse) processIncidentUpdate(ctx context.Context, data map[
 	return nil
 }
 
-// processThreatIntelligence processes threat intelligence webhooks
+// processThreatIntelligence processes threat intelligence webhooks.
 func (ir *IncidentResponse) processThreatIntelligence(ctx context.Context, data map[string]interface{}) error {
 	threatType := getString(data, "threat_type", "unknown")
 	indicators := getStringSlice(data, "indicators")
@@ -1174,22 +1174,22 @@ func (ir *IncidentResponse) processThreatIntelligence(ctx context.Context, data 
 		"threat_type", threatType,
 		"indicator_count", len(indicators))
 
-	// Here you would typically:
-	// 1. Update threat intelligence database
-	// 2. Check for matches against current incidents
-	// 3. Create new incidents if critical threats detected
+	// Here you would typically:.
+	// 1. Update threat intelligence database.
+	// 2. Check for matches against current incidents.
+	// 3. Create new incidents if critical threats detected.
 
 	return nil
 }
 
-// processGenericWebhook processes unknown webhook types
+// processGenericWebhook processes unknown webhook types.
 func (ir *IncidentResponse) processGenericWebhook(ctx context.Context, data map[string]interface{}) error {
 	ir.logger.Info("Processing generic webhook", "keys", getMapKeys(data))
-	// Store the webhook data for later analysis or create a low-priority incident
+	// Store the webhook data for later analysis or create a low-priority incident.
 	return nil
 }
 
-// Helper functions for webhook processing
+// Helper functions for webhook processing.
 
 func getString(data map[string]interface{}, key, defaultValue string) string {
 	if val, ok := data[key].(string); ok {
@@ -1219,7 +1219,7 @@ func getMapKeys(data map[string]interface{}) []string {
 	return keys
 }
 
-// copyStringInt64Map creates a deep copy of a map[string]int64
+// copyStringInt64Map creates a deep copy of a map[string]int64.
 func copyStringInt64Map(original map[string]int64) map[string]int64 {
 	if original == nil {
 		return nil

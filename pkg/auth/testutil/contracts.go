@@ -6,7 +6,7 @@ import "time"
 // These are minimal types used only for test data generation.
 // Tests should cast these to the actual auth package types when needed.
 
-// TestRole represents a minimal role structure for test data generation
+// TestRole represents a minimal role structure for test data generation.
 type TestRole struct {
 	ID          string            `json:"id"`
 	Name        string            `json:"name"`
@@ -19,7 +19,7 @@ type TestRole struct {
 	UpdatedAt   time.Time         `json:"updated_at"`
 }
 
-// TestPermission represents a minimal permission structure for test data generation
+// TestPermission represents a minimal permission structure for test data generation.
 type TestPermission struct {
 	ID          string            `json:"id"`
 	Name        string            `json:"name"`
@@ -32,7 +32,7 @@ type TestPermission struct {
 	UpdatedAt   time.Time         `json:"updated_at"`
 }
 
-// TestSession represents a minimal session structure for test data generation
+// TestSession represents a minimal session structure for test data generation.
 type TestSession struct {
 	ID        string                 `json:"id"`
 	UserID    string                 `json:"user_id"`
@@ -43,7 +43,7 @@ type TestSession struct {
 	Metadata  map[string]interface{} `json:"metadata"`
 }
 
-// Configuration types for testing
+// Configuration types for testing.
 type TestJWTConfig struct {
 	Issuer               string        `json:"issuer"`
 	DefaultTTL           time.Duration `json:"default_ttl"`
@@ -55,6 +55,7 @@ type TestJWTConfig struct {
 	Algorithm            string        `json:"algorithm"`
 }
 
+// TestRBACConfig represents a testrbacconfig.
 type TestRBACConfig struct {
 	CacheTTL           time.Duration `json:"cache_ttl"`
 	EnableHierarchical bool          `json:"enable_hierarchical"`
@@ -62,6 +63,7 @@ type TestRBACConfig struct {
 	SuperAdminRole     string        `json:"super_admin_role"`
 }
 
+// TestSessionConfig represents a testsessionconfig.
 type TestSessionConfig struct {
 	SessionTTL    time.Duration `json:"session_ttl"`
 	CleanupPeriod time.Duration `json:"cleanup_period"`

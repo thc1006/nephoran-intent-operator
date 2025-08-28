@@ -1,5 +1,5 @@
 //go:build !disable_rag
-// +build !disable_rag
+// +build !disable_rag.
 
 package rag
 
@@ -12,9 +12,9 @@ import (
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
 )
 
-// ExampleWeaviateV4Query demonstrates the updated v4 API patterns
+// ExampleWeaviateV4Query demonstrates the updated v4 API patterns.
 func ExampleWeaviateV4Query() {
-	// Initialize Weaviate client
+	// Initialize Weaviate client.
 	cfg := weaviate.Config{
 		Host:   "localhost:8080",
 		Scheme: "http",
@@ -24,7 +24,7 @@ func ExampleWeaviateV4Query() {
 		log.Fatal(err)
 	}
 
-	// Example 1: Hybrid Search with Named Vectors
+	// Example 1: Hybrid Search with Named Vectors.
 	hybridQuery := &SearchQuery{
 		Query:         "O-RAN network slicing configuration",
 		HybridSearch:  true,
@@ -34,13 +34,13 @@ func ExampleWeaviateV4Query() {
 		IncludeVector: true,
 	}
 
-	// Build hybrid search with v4 API
+	// Build hybrid search with v4 API.
 	hybridArg := (&graphql.HybridArgumentBuilder{}).
 		WithQuery(hybridQuery.Query).
 		WithAlpha(hybridQuery.HybridAlpha).
 		WithTargetVectors(hybridQuery.TargetVectors...)
 
-	// Example 2: Near Text Search with Certainty
+	// Example 2: Near Text Search with Certainty.
 	nearTextQuery := &SearchQuery{
 		Query:         "5G RAN optimization techniques",
 		MinConfidence: 0.8,
@@ -48,13 +48,13 @@ func ExampleWeaviateV4Query() {
 		TargetVectors: []string{"content_vector"},
 	}
 
-	// Build near text search with v4 API
+	// Build near text search with v4 API.
 	nearTextArg := (&graphql.NearTextArgumentBuilder{}).
 		WithConcepts([]string{nearTextQuery.Query}).
 		WithCertainty(float32(nearTextQuery.MinConfidence)).
 		WithTargetVectors(nearTextQuery.TargetVectors...)
 
-	// Example 3: Multi-Target Vector Search with Manual Weights
+	// Example 3: Multi-Target Vector Search with Manual Weights.
 	multiTargetArg := (&graphql.MultiTargetArgumentBuilder{}).
 		ManualWeights(map[string]float32{
 			"title_vector":   0.3,
@@ -65,10 +65,10 @@ func ExampleWeaviateV4Query() {
 		WithQuery("network function virtualization").
 		WithTargets(multiTargetArg)
 
-	// Execute queries
+	// Execute queries.
 	ctx := context.Background()
 
-	// Query 1: Hybrid search
+	// Query 1: Hybrid search.
 	result1, err := client.GraphQL().Get().
 		WithClassName("TelecomKnowledge").
 		WithHybrid(hybridArg).
@@ -91,7 +91,7 @@ func ExampleWeaviateV4Query() {
 		fmt.Printf("Hybrid search returned %d results\n", len(result1.Data))
 	}
 
-	// Query 2: Near text search
+	// Query 2: Near text search.
 	result2, err := client.GraphQL().Get().
 		WithClassName("TelecomKnowledge").
 		WithNearText(nearTextArg).
@@ -108,7 +108,7 @@ func ExampleWeaviateV4Query() {
 		fmt.Printf("Near text search returned %d results\n", len(result2.Data))
 	}
 
-	// Query 3: Multi-target hybrid search
+	// Query 3: Multi-target hybrid search.
 	result3, err := client.GraphQL().Get().
 		WithClassName("TelecomKnowledge").
 		WithHybrid(hybridWithMultiTarget).
@@ -126,11 +126,11 @@ func ExampleWeaviateV4Query() {
 	}
 }
 
-// Key v4 API Changes:
-// 1. GraphQL builders are instantiated directly: graphql.HybridArgumentBuilder{}
-//    instead of client.GraphQL().HybridArgumentBuilder()
-// 2. WithTargetVectors() for named vector support
-// 3. WithTargets() for multi-target vector queries with weights
-// 4. SearchResult.Vector field removed - vectors stored in metadata
-// 5. WithCertainty() instead of MinConfidence in where filters
-// 6. Simplified filter building - complex WHERE filters need proper v4 construction
+// Key v4 API Changes:.
+// 1. GraphQL builders are instantiated directly: graphql.HybridArgumentBuilder{}.
+//    instead of client.GraphQL().HybridArgumentBuilder().
+// 2. WithTargetVectors() for named vector support.
+// 3. WithTargets() for multi-target vector queries with weights.
+// 4. SearchResult.Vector field removed - vectors stored in metadata.
+// 5. WithCertainty() instead of MinConfidence in where filters.
+// 6. Simplified filter building - complex WHERE filters need proper v4 construction.

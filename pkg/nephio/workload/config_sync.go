@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// ConfigSyncManager manages GitOps-based configuration synchronization
+// ConfigSyncManager manages GitOps-based configuration synchronization.
 type ConfigSyncManager struct {
 	client            client.Client
 	registry          *ClusterRegistry
@@ -40,7 +40,7 @@ type ConfigSyncManager struct {
 	stopCh            chan struct{}
 }
 
-// GitRepository represents a Git repository configuration
+// GitRepository represents a Git repository configuration.
 type GitRepository struct {
 	ID         string            `json:"id"`
 	Name       string            `json:"name"`
@@ -56,7 +56,7 @@ type GitRepository struct {
 	Metadata   map[string]string `json:"metadata"`
 }
 
-// GitAuth contains Git authentication information
+// GitAuth contains Git authentication information.
 type GitAuth struct {
 	Type       string `json:"type"`
 	Username   string `json:"username"`
@@ -66,7 +66,7 @@ type GitAuth struct {
 	SecretRef  string `json:"secret_ref,omitempty"`
 }
 
-// SyncPolicy defines how repositories are synchronized
+// SyncPolicy defines how repositories are synchronized.
 type SyncPolicy struct {
 	AutoSync          bool          `json:"auto_sync"`
 	SyncInterval      time.Duration `json:"sync_interval"`
@@ -78,18 +78,23 @@ type SyncPolicy struct {
 	Timeout           time.Duration `json:"timeout"`
 }
 
-// RepoStatus represents the status of a repository
+// RepoStatus represents the status of a repository.
 type RepoStatus string
 
 const (
-	RepoStatusHealthy   RepoStatus = "healthy"
-	RepoStatusSyncing   RepoStatus = "syncing"
-	RepoStatusFailed    RepoStatus = "failed"
+	// RepoStatusHealthy holds repostatushealthy value.
+	RepoStatusHealthy RepoStatus = "healthy"
+	// RepoStatusSyncing holds repostatussyncing value.
+	RepoStatusSyncing RepoStatus = "syncing"
+	// RepoStatusFailed holds repostatusfailed value.
+	RepoStatusFailed RepoStatus = "failed"
+	// RepoStatusOutOfSync holds repostatusoutofsync value.
 	RepoStatusOutOfSync RepoStatus = "out-of-sync"
-	RepoStatusUnknown   RepoStatus = "unknown"
+	// RepoStatusUnknown holds repostatusunknown value.
+	RepoStatusUnknown RepoStatus = "unknown"
 )
 
-// SyncStatus tracks the sync status for a cluster-repository pair
+// SyncStatus tracks the sync status for a cluster-repository pair.
 type SyncStatus struct {
 	ClusterID       string           `json:"cluster_id"`
 	RepositoryID    string           `json:"repository_id"`
@@ -102,18 +107,23 @@ type SyncStatus struct {
 	Metrics         SyncMetrics      `json:"metrics"`
 }
 
-// SyncState represents the state of synchronization
+// SyncState represents the state of synchronization.
 type SyncState string
 
 const (
-	SyncStateInSync    SyncState = "in-sync"
+	// SyncStateInSync holds syncstateinsync value.
+	SyncStateInSync SyncState = "in-sync"
+	// SyncStateOutOfSync holds syncstateoutofsync value.
 	SyncStateOutOfSync SyncState = "out-of-sync"
-	SyncStateSyncing   SyncState = "syncing"
-	SyncStateFailed    SyncState = "failed"
-	SyncStateUnknown   SyncState = "unknown"
+	// SyncStateSyncing holds syncstatesyncing value.
+	SyncStateSyncing SyncState = "syncing"
+	// SyncStateFailed holds syncstatefailed value.
+	SyncStateFailed SyncState = "failed"
+	// SyncStateUnknown holds syncstateunknown value.
+	SyncStateUnknown SyncState = "unknown"
 )
 
-// SyncedResource represents a resource that has been synced
+// SyncedResource represents a resource that has been synced.
 type SyncedResource struct {
 	Group       string    `json:"group"`
 	Version     string    `json:"version"`
@@ -125,7 +135,7 @@ type SyncedResource struct {
 	Hash        string    `json:"hash"`
 }
 
-// SyncError represents an error during synchronization
+// SyncError represents an error during synchronization.
 type SyncError struct {
 	Timestamp time.Time `json:"timestamp"`
 	Message   string    `json:"message"`
@@ -133,7 +143,7 @@ type SyncError struct {
 	Type      string    `json:"type"`
 }
 
-// SyncMetrics contains sync operation metrics
+// SyncMetrics contains sync operation metrics.
 type SyncMetrics struct {
 	Duration         time.Duration `json:"duration"`
 	ResourcesTotal   int           `json:"resources_total"`
@@ -142,7 +152,7 @@ type SyncMetrics struct {
 	RetryCount       int           `json:"retry_count"`
 }
 
-// PolicyManager manages policies as code
+// PolicyManager manages policies as code.
 type PolicyManager struct {
 	policies   map[string]*Policy
 	violations map[string][]*PolicyViolation
@@ -151,7 +161,7 @@ type PolicyManager struct {
 	mu         sync.RWMutex
 }
 
-// Policy represents a policy configuration
+// Policy represents a policy configuration.
 type Policy struct {
 	ID          string            `json:"id"`
 	Name        string            `json:"name"`
@@ -165,7 +175,7 @@ type Policy struct {
 	UpdatedAt   time.Time         `json:"updated_at"`
 }
 
-// PolicyRule represents a single policy rule
+// PolicyRule represents a single policy rule.
 type PolicyRule struct {
 	Name       string      `json:"name"`
 	Condition  string      `json:"condition"`
@@ -174,7 +184,7 @@ type PolicyRule struct {
 	Severity   string      `json:"severity"`
 }
 
-// PolicyViolation represents a policy violation
+// PolicyViolation represents a policy violation.
 type PolicyViolation struct {
 	PolicyID   string    `json:"policy_id"`
 	ClusterID  string    `json:"cluster_id"`
@@ -186,7 +196,7 @@ type PolicyViolation struct {
 	Status     string    `json:"status"`
 }
 
-// PolicyTemplate represents a policy template
+// PolicyTemplate represents a policy template.
 type PolicyTemplate struct {
 	Name        string            `json:"name"`
 	Description string            `json:"description"`
@@ -195,7 +205,7 @@ type PolicyTemplate struct {
 	Parameters  map[string]string `json:"parameters"`
 }
 
-// DriftDetector detects configuration drift
+// DriftDetector detects configuration drift.
 type DriftDetector struct {
 	detectionRules map[string]*DriftRule
 	drift          map[string][]*DriftDetection
@@ -203,7 +213,7 @@ type DriftDetector struct {
 	mu             sync.RWMutex
 }
 
-// DriftRule defines a rule for drift detection
+// DriftRule defines a rule for drift detection.
 type DriftRule struct {
 	Name      string        `json:"name"`
 	Resource  string        `json:"resource"`
@@ -213,7 +223,7 @@ type DriftRule struct {
 	Action    string        `json:"action"`
 }
 
-// DriftDetection represents detected configuration drift
+// DriftDetection represents detected configuration drift.
 type DriftDetection struct {
 	ClusterID     string      `json:"cluster_id"`
 	Resource      string      `json:"resource"`
@@ -225,7 +235,7 @@ type DriftDetection struct {
 	Status        string      `json:"status"`
 }
 
-// ComplianceTracker tracks compliance status
+// ComplianceTracker tracks compliance status.
 type ComplianceTracker struct {
 	standards   map[string]*ComplianceStandard
 	assessments map[string]*ComplianceAssessment
@@ -234,7 +244,7 @@ type ComplianceTracker struct {
 	mu          sync.RWMutex
 }
 
-// ComplianceStandard represents a compliance standard
+// ComplianceStandard represents a compliance standard.
 type ComplianceStandard struct {
 	Name         string              `json:"name"`
 	Version      string              `json:"version"`
@@ -243,7 +253,7 @@ type ComplianceStandard struct {
 	Requirements []string            `json:"requirements"`
 }
 
-// ComplianceControl represents a compliance control
+// ComplianceControl represents a compliance control.
 type ComplianceControl struct {
 	ID          string   `json:"id"`
 	Name        string   `json:"name"`
@@ -252,7 +262,7 @@ type ComplianceControl struct {
 	Severity    string   `json:"severity"`
 }
 
-// ComplianceAssessment represents a compliance assessment
+// ComplianceAssessment represents a compliance assessment.
 type ComplianceAssessment struct {
 	ID        string             `json:"id"`
 	ClusterID string             `json:"cluster_id"`
@@ -263,7 +273,7 @@ type ComplianceAssessment struct {
 	CreatedAt time.Time          `json:"created_at"`
 }
 
-// ComplianceResult represents a compliance check result
+// ComplianceResult represents a compliance check result.
 type ComplianceResult struct {
 	ControlID string    `json:"control_id"`
 	Status    string    `json:"status"`
@@ -272,7 +282,7 @@ type ComplianceResult struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-// ComplianceReport represents a compliance report
+// ComplianceReport represents a compliance report.
 type ComplianceReport struct {
 	ID          string                 `json:"id"`
 	Title       string                 `json:"title"`
@@ -284,7 +294,7 @@ type ComplianceReport struct {
 	GeneratedAt time.Time              `json:"generated_at"`
 }
 
-// ComplianceSummary provides a summary of compliance status
+// ComplianceSummary provides a summary of compliance status.
 type ComplianceSummary struct {
 	TotalClusters     int     `json:"total_clusters"`
 	CompliantClusters int     `json:"compliant_clusters"`
@@ -295,7 +305,7 @@ type ComplianceSummary struct {
 	LowFindings       int     `json:"low_findings"`
 }
 
-// configSyncMetrics contains Prometheus metrics
+// configSyncMetrics contains Prometheus metrics.
 type configSyncMetrics struct {
 	syncOperations   *prometheus.CounterVec
 	syncDuration     *prometheus.HistogramVec
@@ -306,7 +316,7 @@ type configSyncMetrics struct {
 	complianceScore  *prometheus.GaugeVec
 }
 
-// NewConfigSyncManager creates a new ConfigSync manager
+// NewConfigSyncManager creates a new ConfigSync manager.
 func NewConfigSyncManager(client client.Client, registry *ClusterRegistry, logger logr.Logger) *ConfigSyncManager {
 	metrics := &configSyncMetrics{
 		syncOperations: prometheus.NewCounterVec(
@@ -361,7 +371,7 @@ func NewConfigSyncManager(client client.Client, registry *ClusterRegistry, logge
 		),
 	}
 
-	// Register metrics
+	// Register metrics.
 	prometheus.MustRegister(
 		metrics.syncOperations,
 		metrics.syncDuration,
@@ -400,11 +410,11 @@ func NewConfigSyncManager(client client.Client, registry *ClusterRegistry, logge
 	}
 }
 
-// Start starts the ConfigSync manager
+// Start starts the ConfigSync manager.
 func (csm *ConfigSyncManager) Start(ctx context.Context) error {
 	csm.logger.Info("Starting ConfigSync manager")
 
-	// Start sync loops
+	// Start sync loops.
 	go csm.runSyncLoop(ctx)
 	go csm.runDriftDetection(ctx)
 	go csm.runPolicyValidation(ctx)
@@ -413,13 +423,13 @@ func (csm *ConfigSyncManager) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the ConfigSync manager
+// Stop stops the ConfigSync manager.
 func (csm *ConfigSyncManager) Stop() {
 	csm.logger.Info("Stopping ConfigSync manager")
 	close(csm.stopCh)
 }
 
-// AddRepository adds a Git repository for synchronization
+// AddRepository adds a Git repository for synchronization.
 func (csm *ConfigSyncManager) AddRepository(ctx context.Context, repo *GitRepository) error {
 	csm.mu.Lock()
 	defer csm.mu.Unlock()
@@ -430,12 +440,12 @@ func (csm *ConfigSyncManager) AddRepository(ctx context.Context, repo *GitReposi
 
 	csm.logger.Info("Adding repository", "id", repo.ID, "url", repo.URL)
 
-	// Validate repository
+	// Validate repository.
 	if err := csm.validateRepository(ctx, repo); err != nil {
 		return fmt.Errorf("repository validation failed: %w", err)
 	}
 
-	// Clone repository to check accessibility
+	// Clone repository to check accessibility.
 	if err := csm.testRepositoryAccess(ctx, repo); err != nil {
 		return fmt.Errorf("repository access test failed: %w", err)
 	}
@@ -448,7 +458,7 @@ func (csm *ConfigSyncManager) AddRepository(ctx context.Context, repo *GitReposi
 	return nil
 }
 
-// RemoveRepository removes a Git repository
+// RemoveRepository removes a Git repository.
 func (csm *ConfigSyncManager) RemoveRepository(ctx context.Context, repoID string) error {
 	csm.mu.Lock()
 	defer csm.mu.Unlock()
@@ -460,7 +470,7 @@ func (csm *ConfigSyncManager) RemoveRepository(ctx context.Context, repoID strin
 
 	csm.logger.Info("Removing repository", "id", repoID)
 
-	// Clean up sync status for this repository
+	// Clean up sync status for this repository.
 	for key := range csm.syncStatus {
 		if strings.Contains(key, repoID) {
 			delete(csm.syncStatus, key)
@@ -473,7 +483,7 @@ func (csm *ConfigSyncManager) RemoveRepository(ctx context.Context, repoID strin
 	return nil
 }
 
-// SyncRepository manually triggers synchronization for a repository
+// SyncRepository manually triggers synchronization for a repository.
 func (csm *ConfigSyncManager) SyncRepository(ctx context.Context, repoID string, clusterIDs []string) error {
 	csm.mu.RLock()
 	repo, exists := csm.repositories[repoID]
@@ -485,7 +495,7 @@ func (csm *ConfigSyncManager) SyncRepository(ctx context.Context, repoID string,
 
 	csm.logger.Info("Manually syncing repository", "repo", repoID, "clusters", len(clusterIDs))
 
-	// If no clusters specified, sync to all configured clusters
+	// If no clusters specified, sync to all configured clusters.
 	if len(clusterIDs) == 0 {
 		clusterIDs = repo.Clusters
 	}
@@ -499,7 +509,7 @@ func (csm *ConfigSyncManager) SyncRepository(ctx context.Context, repoID string,
 	return nil
 }
 
-// GetSyncStatus retrieves sync status for a cluster-repository pair
+// GetSyncStatus retrieves sync status for a cluster-repository pair.
 func (csm *ConfigSyncManager) GetSyncStatus(clusterID, repoID string) (*SyncStatus, error) {
 	csm.mu.RLock()
 	defer csm.mu.RUnlock()
@@ -513,7 +523,7 @@ func (csm *ConfigSyncManager) GetSyncStatus(clusterID, repoID string) (*SyncStat
 	return status, nil
 }
 
-// ListRepositories lists all configured repositories
+// ListRepositories lists all configured repositories.
 func (csm *ConfigSyncManager) ListRepositories() []*GitRepository {
 	csm.mu.RLock()
 	defer csm.mu.RUnlock()
@@ -526,39 +536,39 @@ func (csm *ConfigSyncManager) ListRepositories() []*GitRepository {
 	return repos
 }
 
-// RollbackCluster rolls back a cluster to a previous commit
+// RollbackCluster rolls back a cluster to a previous commit.
 func (csm *ConfigSyncManager) RollbackCluster(ctx context.Context, clusterID, repoID, commitHash string) error {
 	csm.logger.Info("Rolling back cluster", "cluster", clusterID, "repo", repoID, "commit", commitHash)
 
-	// Implementation would:
-	// 1. Checkout the specified commit
-	// 2. Apply the configurations from that commit
-	// 3. Update sync status
+	// Implementation would:.
+	// 1. Checkout the specified commit.
+	// 2. Apply the configurations from that commit.
+	// 3. Update sync status.
 
 	return nil
 }
 
-// CreatePolicy creates a new policy
+// CreatePolicy creates a new policy.
 func (csm *ConfigSyncManager) CreatePolicy(ctx context.Context, policy *Policy) error {
 	return csm.policyManager.CreatePolicy(policy)
 }
 
-// ValidatePolicy validates a policy against a cluster
+// ValidatePolicy validates a policy against a cluster.
 func (csm *ConfigSyncManager) ValidatePolicy(ctx context.Context, policyID, clusterID string) ([]*PolicyViolation, error) {
 	return csm.policyManager.ValidatePolicy(ctx, policyID, clusterID)
 }
 
-// DetectDrift detects configuration drift for a cluster
+// DetectDrift detects configuration drift for a cluster.
 func (csm *ConfigSyncManager) DetectDrift(ctx context.Context, clusterID string) ([]*DriftDetection, error) {
 	return csm.driftDetector.DetectDrift(ctx, clusterID)
 }
 
-// AssessCompliance assesses compliance for a cluster
+// AssessCompliance assesses compliance for a cluster.
 func (csm *ConfigSyncManager) AssessCompliance(ctx context.Context, clusterID, standard string) (*ComplianceAssessment, error) {
 	return csm.complianceTracker.AssessCompliance(ctx, clusterID, standard)
 }
 
-// Private methods
+// Private methods.
 
 func (csm *ConfigSyncManager) runSyncLoop(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
@@ -587,7 +597,7 @@ func (csm *ConfigSyncManager) performScheduledSync(ctx context.Context) {
 	csm.mu.RUnlock()
 
 	for _, repo := range repos {
-		// Check if sync is due
+		// Check if sync is due.
 		if time.Since(repo.LastSync) >= repo.SyncPolicy.SyncInterval {
 			for _, clusterID := range repo.Clusters {
 				go csm.syncToCluster(ctx, repo, clusterID)
@@ -602,7 +612,7 @@ func (csm *ConfigSyncManager) syncToCluster(ctx context.Context, repo *GitReposi
 
 	csm.logger.Info("Syncing repository to cluster", "repo", repo.ID, "cluster", clusterID)
 
-	// Get cluster
+	// Get cluster.
 	cluster, err := csm.registry.GetCluster(clusterID)
 	if err != nil {
 		csm.metrics.syncOperations.WithLabelValues(clusterID, repo.ID, "failed").Inc()
@@ -610,7 +620,7 @@ func (csm *ConfigSyncManager) syncToCluster(ctx context.Context, repo *GitReposi
 		return fmt.Errorf("failed to get cluster: %w", err)
 	}
 
-	// Create sync status
+	// Create sync status.
 	key := fmt.Sprintf("%s:%s", clusterID, repo.ID)
 	status := &SyncStatus{
 		ClusterID:    clusterID,
@@ -623,7 +633,7 @@ func (csm *ConfigSyncManager) syncToCluster(ctx context.Context, repo *GitReposi
 	csm.syncStatus[key] = status
 	csm.mu.Unlock()
 
-	// Clone repository
+	// Clone repository.
 	repoDir, err := csm.cloneRepository(ctx, repo)
 	if err != nil {
 		status.Status = SyncStateFailed
@@ -638,7 +648,7 @@ func (csm *ConfigSyncManager) syncToCluster(ctx context.Context, repo *GitReposi
 	}
 	defer os.RemoveAll(repoDir)
 
-	// Read manifests
+	// Read manifests.
 	manifests, err := csm.readManifests(repoDir, repo.Path)
 	if err != nil {
 		status.Status = SyncStateFailed
@@ -652,7 +662,7 @@ func (csm *ConfigSyncManager) syncToCluster(ctx context.Context, repo *GitReposi
 		return err
 	}
 
-	// Apply manifests
+	// Apply manifests.
 	syncedResources, appliedCount, failedCount, err := csm.applyManifests(ctx, cluster.Client, manifests, repo.SyncPolicy)
 	if err != nil {
 		status.Status = SyncStateFailed
@@ -666,7 +676,7 @@ func (csm *ConfigSyncManager) syncToCluster(ctx context.Context, repo *GitReposi
 		return err
 	}
 
-	// Update status
+	// Update status.
 	status.Status = SyncStateInSync
 	status.LastSuccessTime = time.Now()
 	status.SyncedResources = syncedResources
@@ -677,13 +687,13 @@ func (csm *ConfigSyncManager) syncToCluster(ctx context.Context, repo *GitReposi
 		ResourcesFailed:  failedCount,
 	}
 
-	// Update metrics
+	// Update metrics.
 	csm.metrics.syncOperations.WithLabelValues(clusterID, repo.ID, "success").Inc()
 	csm.metrics.syncStatus.WithLabelValues(clusterID, repo.ID).Set(1)
 	csm.metrics.resourcesTotal.WithLabelValues(clusterID, repo.ID, "applied").Set(float64(appliedCount))
 	csm.metrics.resourcesTotal.WithLabelValues(clusterID, repo.ID, "failed").Set(float64(failedCount))
 
-	// Update repository last sync
+	// Update repository last sync.
 	csm.mu.Lock()
 	repo.LastSync = time.Now()
 	csm.mu.Unlock()
@@ -698,17 +708,17 @@ func (csm *ConfigSyncManager) syncToCluster(ctx context.Context, repo *GitReposi
 }
 
 func (csm *ConfigSyncManager) validateRepository(ctx context.Context, repo *GitRepository) error {
-	// Validate URL
+	// Validate URL.
 	if _, err := url.Parse(repo.URL); err != nil {
 		return fmt.Errorf("invalid repository URL: %w", err)
 	}
 
-	// Validate branch
+	// Validate branch.
 	if repo.Branch == "" {
 		repo.Branch = "main"
 	}
 
-	// Validate sync policy
+	// Validate sync policy.
 	if repo.SyncPolicy.SyncInterval <= 0 {
 		repo.SyncPolicy.SyncInterval = 5 * time.Minute
 	}
@@ -725,14 +735,14 @@ func (csm *ConfigSyncManager) validateRepository(ctx context.Context, repo *GitR
 }
 
 func (csm *ConfigSyncManager) testRepositoryAccess(ctx context.Context, repo *GitRepository) error {
-	// Create temporary directory
+	// Create temporary directory.
 	tempDir, err := os.MkdirTemp("", "repo-test-")
 	if err != nil {
 		return fmt.Errorf("failed to create temp directory: %w", err)
 	}
 	defer os.RemoveAll(tempDir)
 
-	// Clone repository
+	// Clone repository.
 	auth, err := csm.getGitAuth(ctx, repo.Auth)
 	if err != nil {
 		return fmt.Errorf("failed to get git auth: %w", err)
@@ -745,7 +755,6 @@ func (csm *ConfigSyncManager) testRepositoryAccess(ctx context.Context, repo *Gi
 		Depth:         1,
 		Auth:          auth,
 	})
-
 	if err != nil {
 		return fmt.Errorf("failed to clone repository: %w", err)
 	}
@@ -754,32 +763,31 @@ func (csm *ConfigSyncManager) testRepositoryAccess(ctx context.Context, repo *Gi
 }
 
 func (csm *ConfigSyncManager) cloneRepository(ctx context.Context, repo *GitRepository) (string, error) {
-	// Create temporary directory
+	// Create temporary directory.
 	tempDir, err := os.MkdirTemp("", fmt.Sprintf("repo-%s-", repo.ID))
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp directory: %w", err)
 	}
 
-	// Get authentication
+	// Get authentication.
 	auth, err := csm.getGitAuth(ctx, repo.Auth)
 	if err != nil {
 		return "", fmt.Errorf("failed to get git auth: %w", err)
 	}
 
-	// Clone repository
+	// Clone repository.
 	r, err := git.PlainClone(tempDir, false, &git.CloneOptions{
 		URL:           repo.URL,
 		ReferenceName: plumbing.NewBranchReferenceName(repo.Branch),
 		SingleBranch:  true,
 		Auth:          auth,
 	})
-
 	if err != nil {
 		os.RemoveAll(tempDir)
 		return "", fmt.Errorf("failed to clone repository: %w", err)
 	}
 
-	// Get latest commit hash
+	// Get latest commit hash.
 	ref, err := r.Head()
 	if err != nil {
 		os.RemoveAll(tempDir)
@@ -804,7 +812,7 @@ func (csm *ConfigSyncManager) getGitAuth(ctx context.Context, auth GitAuth) (tra
 			Password: auth.Password,
 		}, nil
 	case "secret":
-		// Get auth from Kubernetes secret
+		// Get auth from Kubernetes secret.
 		secret := &corev1.Secret{}
 		if err := csm.client.Get(ctx, client.ObjectKey{
 			Namespace: "nephio-system",
@@ -855,7 +863,7 @@ func (csm *ConfigSyncManager) readManifests(repoDir, path string) ([]*unstructur
 			return fmt.Errorf("failed to read file %s: %w", filePath, err)
 		}
 
-		// Split multi-document YAML
+		// Split multi-document YAML.
 		docs := strings.Split(string(data), "---")
 		for _, doc := range docs {
 			doc = strings.TrimSpace(doc)
@@ -886,7 +894,7 @@ func (csm *ConfigSyncManager) applyManifests(ctx context.Context, clusterClient 
 	failedCount := 0
 
 	for _, manifest := range manifests {
-		// Validate manifest if enabled
+		// Validate manifest if enabled.
 		if policy.ValidateManifests {
 			if err := csm.validateManifest(manifest); err != nil {
 				csm.logger.Error(err, "Manifest validation failed", "kind", manifest.GetKind(), "name", manifest.GetName())
@@ -895,17 +903,17 @@ func (csm *ConfigSyncManager) applyManifests(ctx context.Context, clusterClient 
 			}
 		}
 
-		// Calculate resource hash
+		// Calculate resource hash.
 		hash := csm.calculateResourceHash(manifest)
 
 		if policy.DryRun {
-			// Dry run - just log what would be applied
+			// Dry run - just log what would be applied.
 			csm.logger.Info("DRY RUN: Would apply resource",
 				"kind", manifest.GetKind(),
 				"name", manifest.GetName(),
 				"namespace", manifest.GetNamespace())
 		} else {
-			// Apply manifest
+			// Apply manifest.
 			if err := clusterClient.Patch(ctx, manifest, client.Apply, client.ForceOwnership, client.FieldOwner("nephio-config-sync")); err != nil {
 				csm.logger.Error(err, "Failed to apply manifest", "kind", manifest.GetKind(), "name", manifest.GetName())
 				failedCount++
@@ -932,7 +940,7 @@ func (csm *ConfigSyncManager) applyManifests(ctx context.Context, clusterClient 
 }
 
 func (csm *ConfigSyncManager) validateManifest(manifest *unstructured.Unstructured) error {
-	// Basic validation
+	// Basic validation.
 	if manifest.GetKind() == "" {
 		return fmt.Errorf("manifest missing kind")
 	}
@@ -940,7 +948,7 @@ func (csm *ConfigSyncManager) validateManifest(manifest *unstructured.Unstructur
 		return fmt.Errorf("manifest missing name")
 	}
 
-	// Additional validations can be added here
+	// Additional validations can be added here.
 	return nil
 }
 
@@ -1061,9 +1069,9 @@ func (csm *ConfigSyncManager) performComplianceAssessment(ctx context.Context) {
 	}
 }
 
-// PolicyManager methods
+// PolicyManager methods.
 
-// CreatePolicy creates a new policy
+// CreatePolicy creates a new policy.
 func (pm *PolicyManager) CreatePolicy(policy *Policy) error {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
@@ -1081,7 +1089,7 @@ func (pm *PolicyManager) CreatePolicy(policy *Policy) error {
 	return nil
 }
 
-// ValidatePolicy validates a policy against a cluster
+// ValidatePolicy validates a policy against a cluster.
 func (pm *PolicyManager) ValidatePolicy(ctx context.Context, policyID, clusterID string) ([]*PolicyViolation, error) {
 	pm.mu.RLock()
 	policy, exists := pm.policies[policyID]
@@ -1093,10 +1101,10 @@ func (pm *PolicyManager) ValidatePolicy(ctx context.Context, policyID, clusterID
 
 	violations := []*PolicyViolation{}
 
-	// Implementation would evaluate policy rules against cluster resources
-	// This is a placeholder
+	// Implementation would evaluate policy rules against cluster resources.
+	// This is a placeholder.
 	for _, rule := range policy.Rules {
-		// Evaluate rule condition
+		// Evaluate rule condition.
 		violated := pm.evaluateRule(ctx, rule, clusterID)
 		if violated {
 			violation := &PolicyViolation{
@@ -1118,7 +1126,7 @@ func (pm *PolicyManager) ValidatePolicy(ctx context.Context, policyID, clusterID
 	return violations, nil
 }
 
-// ListPolicies lists all policies
+// ListPolicies lists all policies.
 func (pm *PolicyManager) ListPolicies() []*Policy {
 	pm.mu.RLock()
 	defer pm.mu.RUnlock()
@@ -1132,14 +1140,14 @@ func (pm *PolicyManager) ListPolicies() []*Policy {
 }
 
 func (pm *PolicyManager) evaluateRule(ctx context.Context, rule PolicyRule, clusterID string) bool {
-	// Implementation would evaluate the rule condition
-	// This is a placeholder that randomly returns violations for demonstration
+	// Implementation would evaluate the rule condition.
+	// This is a placeholder that randomly returns violations for demonstration.
 	return false
 }
 
-// DriftDetector methods
+// DriftDetector methods.
 
-// DetectDrift detects configuration drift for a cluster
+// DetectDrift detects configuration drift for a cluster.
 func (dd *DriftDetector) DetectDrift(ctx context.Context, clusterID string) ([]*DriftDetection, error) {
 	dd.mu.RLock()
 	rules := make([]*DriftRule, 0, len(dd.detectionRules))
@@ -1150,8 +1158,8 @@ func (dd *DriftDetector) DetectDrift(ctx context.Context, clusterID string) ([]*
 
 	detections := []*DriftDetection{}
 
-	// Implementation would compare expected vs actual configuration
-	// This is a placeholder
+	// Implementation would compare expected vs actual configuration.
+	// This is a placeholder.
 
 	dd.mu.Lock()
 	dd.drift[clusterID] = detections
@@ -1160,9 +1168,9 @@ func (dd *DriftDetector) DetectDrift(ctx context.Context, clusterID string) ([]*
 	return detections, nil
 }
 
-// ComplianceTracker methods
+// ComplianceTracker methods.
 
-// AssessCompliance assesses compliance for a cluster
+// AssessCompliance assesses compliance for a cluster.
 func (ct *ComplianceTracker) AssessCompliance(ctx context.Context, clusterID, standard string) (*ComplianceAssessment, error) {
 	ct.mu.RLock()
 	std, exists := ct.standards[standard]
@@ -1180,7 +1188,7 @@ func (ct *ComplianceTracker) AssessCompliance(ctx context.Context, clusterID, st
 		CreatedAt: time.Now(),
 	}
 
-	// Evaluate each control
+	// Evaluate each control.
 	passedControls := 0
 	for _, control := range std.Controls {
 		result := ComplianceResult{
@@ -1188,8 +1196,8 @@ func (ct *ComplianceTracker) AssessCompliance(ctx context.Context, clusterID, st
 			Timestamp: time.Now(),
 		}
 
-		// Implementation would evaluate the control
-		// This is a placeholder
+		// Implementation would evaluate the control.
+		// This is a placeholder.
 		if ct.evaluateControl(ctx, control, clusterID) {
 			result.Status = "pass"
 			result.Message = "Control satisfied"
@@ -1202,7 +1210,7 @@ func (ct *ComplianceTracker) AssessCompliance(ctx context.Context, clusterID, st
 		assessment.Results = append(assessment.Results, result)
 	}
 
-	// Calculate score
+	// Calculate score.
 	assessment.Score = float64(passedControls) / float64(len(std.Controls)) * 100
 
 	if assessment.Score >= 90 {
@@ -1220,7 +1228,7 @@ func (ct *ComplianceTracker) AssessCompliance(ctx context.Context, clusterID, st
 	return assessment, nil
 }
 
-// ListStandards lists all compliance standards
+// ListStandards lists all compliance standards.
 func (ct *ComplianceTracker) ListStandards() []*ComplianceStandard {
 	ct.mu.RLock()
 	defer ct.mu.RUnlock()
@@ -1234,7 +1242,7 @@ func (ct *ComplianceTracker) ListStandards() []*ComplianceStandard {
 }
 
 func (ct *ComplianceTracker) evaluateControl(ctx context.Context, control ComplianceControl, clusterID string) bool {
-	// Implementation would evaluate the control checks
-	// This is a placeholder that randomly returns compliance status
+	// Implementation would evaluate the control checks.
+	// This is a placeholder that randomly returns compliance status.
 	return true
 }

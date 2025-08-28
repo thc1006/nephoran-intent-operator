@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-// EmbeddingService provides embedding generation for telecom documents
+// EmbeddingService provides embedding generation for telecom documents.
 type EmbeddingService struct {
 	config        *EmbeddingConfig
 	logger        *slog.Logger
@@ -32,36 +32,36 @@ type EmbeddingService struct {
 	mutex         sync.RWMutex
 }
 
-// EmbeddingConfig holds configuration for the embedding service
+// EmbeddingConfig holds configuration for the embedding service.
 type EmbeddingConfig struct {
-	// Provider configuration
+	// Provider configuration.
 	Provider    string `json:"provider"` // "openai", "azure", "local", etc.
 	APIKey      string `json:"api_key"`
 	APIEndpoint string `json:"api_endpoint"`
 	ModelName   string `json:"model_name"`
 
-	// Model-specific settings
+	// Model-specific settings.
 	Dimensions     int `json:"dimensions"`      // Embedding dimensions
 	MaxTokens      int `json:"max_tokens"`      // Max tokens per request
 	BatchSize      int `json:"batch_size"`      // Documents per batch
 	MaxConcurrency int `json:"max_concurrency"` // Concurrent requests
 
-	// Request configuration
+	// Request configuration.
 	RequestTimeout time.Duration `json:"request_timeout"`
 	RetryAttempts  int           `json:"retry_attempts"`
 	RetryDelay     time.Duration `json:"retry_delay"`
 
-	// Rate limiting
+	// Rate limiting.
 	RateLimit      int `json:"rate_limit"`       // Requests per minute
 	TokenRateLimit int `json:"token_rate_limit"` // Tokens per minute
 
-	// Quality control
+	// Quality control.
 	MinTextLength   int  `json:"min_text_length"`   // Minimum text length for embedding
 	MaxTextLength   int  `json:"max_text_length"`   // Maximum text length for embedding
 	NormalizeText   bool `json:"normalize_text"`    // Normalize text before embedding
 	RemoveStopWords bool `json:"remove_stop_words"` // Remove common stop words
 
-	// Caching
+	// Caching.
 	EnableCaching    bool          `json:"enable_caching"`
 	CacheTTL         time.Duration `json:"cache_ttl"`
 	CacheDirectory   string        `json:"cache_directory"`
@@ -72,35 +72,35 @@ type EmbeddingConfig struct {
 	L1CacheSize      int64         `json:"l1_cache_size"`    // L1 in-memory cache size
 	L2CacheEnabled   bool          `json:"l2_cache_enabled"` // L2 Redis cache
 
-	// Multi-provider configuration
+	// Multi-provider configuration.
 	Providers           []ProviderConfig `json:"providers"`             // Multiple provider configurations
 	FallbackEnabled     bool             `json:"fallback_enabled"`      // Enable fallback to other providers
 	FallbackOrder       []string         `json:"fallback_order"`        // Order of fallback providers
 	LoadBalancing       string           `json:"load_balancing"`        // "round_robin", "least_cost", "fastest"
 	HealthCheckInterval time.Duration    `json:"health_check_interval"` // Provider health check interval
 
-	// Cost management
+	// Cost management.
 	EnableCostTracking bool    `json:"enable_cost_tracking"`
 	DailyCostLimit     float64 `json:"daily_cost_limit"`     // Daily cost limit in USD
 	MonthlyCostLimit   float64 `json:"monthly_cost_limit"`   // Monthly cost limit in USD
 	CostAlertThreshold float64 `json:"cost_alert_threshold"` // Alert when cost reaches % of limit
 
-	// Quality control
+	// Quality control.
 	EnableQualityCheck bool    `json:"enable_quality_check"`
 	MinQualityScore    float64 `json:"min_quality_score"`    // Minimum embedding quality score
 	QualityCheckSample int     `json:"quality_check_sample"` // Sample size for quality checks
 
-	// Telecom-specific preprocessing
+	// Telecom-specific preprocessing.
 	TelecomPreprocessing   bool    `json:"telecom_preprocessing"` // Apply telecom-specific preprocessing
 	PreserveTechnicalTerms bool    `json:"preserve_technical_terms"`
 	TechnicalTermWeighting float64 `json:"technical_term_weighting"` // Weight boost for technical terms
 
-	// Performance monitoring
+	// Performance monitoring.
 	EnableMetrics   bool          `json:"enable_metrics"`
 	MetricsInterval time.Duration `json:"metrics_interval"`
 }
 
-// EmbeddingRequest represents a request for generating embeddings
+// EmbeddingRequest represents a request for generating embeddings.
 type EmbeddingRequest struct {
 	Texts     []string               `json:"texts"`
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
@@ -113,7 +113,7 @@ type EmbeddingRequest struct {
 	Timeout   time.Duration          `json:"timeout,omitempty"`
 }
 
-// EmbeddingResponse represents the response from embedding generation
+// EmbeddingResponse represents the response from embedding generation.
 type EmbeddingResponse struct {
 	Embeddings     [][]float32            `json:"embeddings"`
 	TokenUsage     TokenUsage             `json:"token_usage"`
@@ -130,14 +130,14 @@ type EmbeddingResponse struct {
 	Metadata       map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// TokenUsage tracks token consumption
+// TokenUsage tracks token consumption.
 type TokenUsage struct {
 	PromptTokens  int     `json:"prompt_tokens"`
 	TotalTokens   int     `json:"total_tokens"`
 	EstimatedCost float64 `json:"estimated_cost"`
 }
 
-// EmbeddingMetrics tracks embedding service performance
+// EmbeddingMetrics tracks embedding service performance.
 type EmbeddingMetrics struct {
 	TotalRequests      int64   `json:"total_requests"`
 	SuccessfulRequests int64   `json:"successful_requests"`
@@ -168,7 +168,7 @@ type EmbeddingMetrics struct {
 	mutex       sync.RWMutex
 }
 
-// ModelUsageStats tracks usage per model
+// ModelUsageStats tracks usage per model.
 type ModelUsageStats struct {
 	RequestCount int64   `json:"request_count"`
 	TokenCount   int64   `json:"token_count"`
@@ -176,7 +176,7 @@ type ModelUsageStats struct {
 	SuccessRate  float64 `json:"success_rate"`
 }
 
-// RateLimiter manages API rate limiting
+// RateLimiter manages API rate limiting.
 type RateLimiter struct {
 	requestTokens chan struct{}
 	tokenBucket   chan int
@@ -184,7 +184,7 @@ type RateLimiter struct {
 	mutex         sync.Mutex
 }
 
-// EmbeddingCache interface for caching embeddings
+// EmbeddingCache interface for caching embeddings.
 type EmbeddingCache interface {
 	Get(key string) ([]float32, bool)
 	Set(key string, embedding []float32, ttl time.Duration) error
@@ -193,7 +193,7 @@ type EmbeddingCache interface {
 	Stats() CacheStats
 }
 
-// CacheStats represents cache statistics
+// CacheStats represents cache statistics.
 type CacheStats struct {
 	Size    int64   `json:"size"`
 	Hits    int64   `json:"hits"`
@@ -201,7 +201,7 @@ type CacheStats struct {
 	HitRate float64 `json:"hit_rate"`
 }
 
-// InMemoryCache is a simple in-memory cache implementation
+// InMemoryCache is a simple in-memory cache implementation.
 type InMemoryCache struct {
 	data    map[string]cacheEntry
 	stats   CacheStats
@@ -214,13 +214,13 @@ type cacheEntry struct {
 	expiresAt time.Time
 }
 
-// OpenAIEmbeddingRequest represents the request format for OpenAI API
+// OpenAIEmbeddingRequest represents the request format for OpenAI API.
 type OpenAIEmbeddingRequest struct {
 	Input []string `json:"input"`
 	Model string   `json:"model"`
 }
 
-// ProviderConfig holds configuration for a specific embedding provider
+// ProviderConfig holds configuration for a specific embedding provider.
 type ProviderConfig struct {
 	Name         string    `json:"name"` // Provider name (openai, azure, local)
 	APIKey       string    `json:"api_key"`
@@ -236,7 +236,7 @@ type ProviderConfig struct {
 	LastCheck    time.Time `json:"last_check"`
 }
 
-// BasicEmbeddingProvider interface for different embedding providers
+// BasicEmbeddingProvider interface for different embedding providers.
 type BasicEmbeddingProvider interface {
 	GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, TokenUsage, error)
 	GetConfig() ProviderConfig
@@ -247,7 +247,7 @@ type BasicEmbeddingProvider interface {
 	GetLatency() time.Duration
 }
 
-// RedisEmbeddingCache interface for Redis-based caching
+// RedisEmbeddingCache interface for Redis-based caching.
 type RedisEmbeddingCache interface {
 	Get(key string) ([]float32, bool, error)
 	Set(key string, embedding []float32, ttl time.Duration) error
@@ -257,7 +257,7 @@ type RedisEmbeddingCache interface {
 	Close() error
 }
 
-// CostTracker manages embedding cost tracking and limits
+// CostTracker manages embedding cost tracking and limits.
 type CostTracker struct {
 	dailyCosts   map[string]float64 // date -> cost
 	monthlyCosts map[string]float64 // month -> cost
@@ -266,14 +266,14 @@ type CostTracker struct {
 	alerts       []CostAlert
 }
 
-// CostLimits defines cost limits and thresholds
+// CostLimits defines cost limits and thresholds.
 type CostLimits struct {
 	DailyLimit     float64
 	MonthlyLimit   float64
 	AlertThreshold float64
 }
 
-// CostAlert represents a cost alert
+// CostAlert represents a cost alert.
 type CostAlert struct {
 	Timestamp time.Time
 	Type      string // "daily", "monthly", "threshold"
@@ -282,7 +282,7 @@ type CostAlert struct {
 	Message   string
 }
 
-// QualityAssessment manages embedding quality assessment
+// QualityAssessment manages embedding quality assessment.
 type QualityAssessment struct {
 	config        QualityConfig
 	metrics       QualityMetrics
@@ -290,7 +290,7 @@ type QualityAssessment struct {
 	mutex         sync.RWMutex
 }
 
-// QualityConfig holds quality assessment configuration
+// QualityConfig holds quality assessment configuration.
 type QualityConfig struct {
 	Enabled             bool
 	MinScore            float64
@@ -299,7 +299,7 @@ type QualityConfig struct {
 	SimilarityThreshold float64
 }
 
-// QualityMetrics tracks embedding quality metrics
+// QualityMetrics tracks embedding quality metrics.
 type QualityMetrics struct {
 	AverageScore float64
 	MinScore     float64
@@ -309,7 +309,7 @@ type QualityMetrics struct {
 	LastCheck    time.Time
 }
 
-// OpenAIEmbeddingResponse represents the response format from OpenAI API
+// OpenAIEmbeddingResponse represents the response format from OpenAI API.
 type OpenAIEmbeddingResponse struct {
 	Object string `json:"object"`
 	Data   []struct {
@@ -324,13 +324,13 @@ type OpenAIEmbeddingResponse struct {
 	} `json:"usage"`
 }
 
-// NewEmbeddingService creates a new embedding service
+// NewEmbeddingService creates a new embedding service.
 func NewEmbeddingService(config *EmbeddingConfig) *EmbeddingService {
 	if config == nil {
 		config = getDefaultEmbeddingConfig()
 	}
 
-	// Create HTTP client with appropriate settings
+	// Create HTTP client with appropriate settings.
 	httpClient := &http.Client{
 		Timeout: config.RequestTimeout,
 		Transport: &http.Transport{
@@ -341,10 +341,10 @@ func NewEmbeddingService(config *EmbeddingConfig) *EmbeddingService {
 		},
 	}
 
-	// Create rate limiter
+	// Create rate limiter.
 	rateLimiter := NewRateLimiter(config.RateLimit, config.TokenRateLimit)
 
-	// Create L1 cache (in-memory)
+	// Create L1 cache (in-memory).
 	var cache EmbeddingCache
 	if config.EnableCaching {
 		cache = NewInMemoryCache(config.L1CacheSize)
@@ -352,7 +352,7 @@ func NewEmbeddingService(config *EmbeddingConfig) *EmbeddingService {
 		cache = &NoOpCache{}
 	}
 
-	// Create L2 cache (Redis) if enabled
+	// Create L2 cache (Redis) if enabled.
 	var redisCache RedisEmbeddingCache
 	if config.EnableRedisCache {
 		redisCache = NewRedisEmbeddingCache(config.RedisAddr, config.RedisPassword, config.RedisDB)
@@ -360,7 +360,7 @@ func NewEmbeddingService(config *EmbeddingConfig) *EmbeddingService {
 		redisCache = &NoOpRedisCache{}
 	}
 
-	// Initialize providers
+	// Initialize providers.
 	providers := make(map[string]BasicEmbeddingProvider)
 	for _, providerConfig := range config.Providers {
 		if providerConfig.Enabled {
@@ -369,7 +369,7 @@ func NewEmbeddingService(config *EmbeddingConfig) *EmbeddingService {
 		}
 	}
 
-	// If no providers configured, create default OpenAI provider
+	// If no providers configured, create default OpenAI provider.
 	if len(providers) == 0 && config.Provider != "" {
 		defaultConfig := ProviderConfig{
 			Name:         config.Provider,
@@ -387,14 +387,14 @@ func NewEmbeddingService(config *EmbeddingConfig) *EmbeddingService {
 		providers[config.Provider] = createProvider(defaultConfig, httpClient)
 	}
 
-	// Create cost tracker
+	// Create cost tracker.
 	costTracker := NewCostTracker(CostLimits{
 		DailyLimit:     config.DailyCostLimit,
 		MonthlyLimit:   config.MonthlyCostLimit,
 		AlertThreshold: config.CostAlertThreshold,
 	})
 
-	// Create quality assessment
+	// Create quality assessment.
 	qualityAssess := NewQualityAssessment(QualityConfig{
 		Enabled:             config.EnableQualityCheck,
 		MinScore:            config.MinQualityScore,
@@ -419,7 +419,7 @@ func NewEmbeddingService(config *EmbeddingConfig) *EmbeddingService {
 		qualityAssess: qualityAssess,
 	}
 
-	// Start background services
+	// Start background services.
 	if config.EnableMetrics {
 		go service.startMetricsCollection()
 	}
@@ -433,7 +433,7 @@ func NewEmbeddingService(config *EmbeddingConfig) *EmbeddingService {
 	return service
 }
 
-// GenerateEmbeddings generates embeddings for the provided texts using multi-provider approach
+// GenerateEmbeddings generates embeddings for the provided texts using multi-provider approach.
 func (es *EmbeddingService) GenerateEmbeddings(ctx context.Context, request *EmbeddingRequest) (*EmbeddingResponse, error) {
 	startTime := time.Now()
 
@@ -445,7 +445,7 @@ func (es *EmbeddingService) GenerateEmbeddings(ctx context.Context, request *Emb
 		return nil, fmt.Errorf("no texts provided for embedding")
 	}
 
-	// Check cost limits before processing
+	// Check cost limits before processing.
 	if es.config.EnableCostTracking {
 		estimatedCost := es.estimateCost(request.Texts)
 		if !es.costTracker.CanAfford(estimatedCost) {
@@ -459,10 +459,10 @@ func (es *EmbeddingService) GenerateEmbeddings(ctx context.Context, request *Emb
 		"use_cache", request.UseCache,
 	)
 
-	// Preprocess texts
+	// Preprocess texts.
 	processedTexts := es.preprocessTexts(request.Texts)
 
-	// Check L1 (memory) and L2 (Redis) cache for existing embeddings
+	// Check L1 (memory) and L2 (Redis) cache for existing embeddings.
 	var embeddings [][]float32
 	var cacheHits, cacheMisses int
 	var textsToEmbed []string
@@ -476,19 +476,19 @@ func (es *EmbeddingService) GenerateEmbeddings(ctx context.Context, request *Emb
 			var cached []float32
 			var found bool
 
-			// Try L1 cache first (in-memory)
+			// Try L1 cache first (in-memory).
 			if es.config.EnableCaching {
 				cached, found = es.cache.Get(cacheKey)
 			}
 
-			// Try L2 cache (Redis) if L1 miss
+			// Try L2 cache (Redis) if L1 miss.
 			if !found && es.config.EnableRedisCache {
 				var err error
 				cached, found, err = es.redisCache.Get(cacheKey)
 				if err != nil {
 					es.logger.Warn("Redis cache error", "error", err)
 				}
-				// If found in L2, promote to L1
+				// If found in L2, promote to L1.
 				if found && es.config.EnableCaching {
 					es.cache.Set(cacheKey, cached, es.config.CacheTTL)
 				}
@@ -512,7 +512,7 @@ func (es *EmbeddingService) GenerateEmbeddings(ctx context.Context, request *Emb
 		embeddings = make([][]float32, len(processedTexts))
 	}
 
-	// Generate embeddings for texts not in cache using selected provider
+	// Generate embeddings for texts not in cache using selected provider.
 	var tokenUsage TokenUsage
 	var usedProvider string
 	if len(textsToEmbed) > 0 {
@@ -527,7 +527,7 @@ func (es *EmbeddingService) GenerateEmbeddings(ctx context.Context, request *Emb
 		tokenUsage = usage
 		usedProvider = provider
 
-		// Quality assessment if enabled
+		// Quality assessment if enabled.
 		if es.config.EnableQualityCheck {
 			qualityScore := es.qualityAssess.AssessQuality(newEmbeddings, textsToEmbed)
 			if qualityScore < es.config.MinQualityScore {
@@ -535,23 +535,23 @@ func (es *EmbeddingService) GenerateEmbeddings(ctx context.Context, request *Emb
 			}
 		}
 
-		// Place new embeddings in the correct positions and cache them
+		// Place new embeddings in the correct positions and cache them.
 		for i, newEmbedding := range newEmbeddings {
 			originalIndex := textIndices[i]
 			embeddings[originalIndex] = newEmbedding
 
-			// Cache in both L1 and L2 if enabled
+			// Cache in both L1 and L2 if enabled.
 			if request.UseCache {
 				cacheKey := es.generateCacheKey(textsToEmbed[i])
 
-				// Cache in L1 (memory)
+				// Cache in L1 (memory).
 				if es.config.EnableCaching {
 					if err := es.cache.Set(cacheKey, newEmbedding, es.config.CacheTTL); err != nil {
 						es.logger.Warn("Failed to cache embedding in L1", "error", err)
 					}
 				}
 
-				// Cache in L2 (Redis)
+				// Cache in L2 (Redis).
 				if es.config.EnableRedisCache {
 					if err := es.redisCache.Set(cacheKey, newEmbedding, es.config.CacheTTL); err != nil {
 						es.logger.Warn("Failed to cache embedding in L2", "error", err)
@@ -560,7 +560,7 @@ func (es *EmbeddingService) GenerateEmbeddings(ctx context.Context, request *Emb
 			}
 		}
 
-		// Track cost
+		// Track cost.
 		if es.config.EnableCostTracking {
 			es.costTracker.RecordCost(tokenUsage.EstimatedCost, usedProvider)
 		}
@@ -568,7 +568,7 @@ func (es *EmbeddingService) GenerateEmbeddings(ctx context.Context, request *Emb
 
 	processingTime := time.Since(startTime)
 
-	// Update metrics
+	// Update metrics.
 	es.updateMetrics(func(m *EmbeddingMetrics) {
 		m.TotalRequests++
 		m.SuccessfulRequests++
@@ -589,7 +589,7 @@ func (es *EmbeddingService) GenerateEmbeddings(ctx context.Context, request *Emb
 			m.CacheStats.HitRate = float64(m.CacheStats.CacheHits) / float64(m.CacheStats.TotalLookups)
 		}
 
-		// Update model stats for the used provider
+		// Update model stats for the used provider.
 		modelName := usedProvider
 		if modelName == "" {
 			modelName = es.config.ModelName
@@ -629,15 +629,15 @@ func (es *EmbeddingService) GenerateEmbeddings(ctx context.Context, request *Emb
 	return response, nil
 }
 
-// generateEmbeddingsWithProvider generates embeddings using the best available provider
+// generateEmbeddingsWithProvider generates embeddings using the best available provider.
 func (es *EmbeddingService) generateEmbeddingsWithProvider(ctx context.Context, texts []string) ([][]float32, TokenUsage, string, error) {
-	// Select best provider based on load balancing strategy
+	// Select best provider based on load balancing strategy.
 	provider, err := es.selectBestProvider(ctx, texts)
 	if err != nil {
 		return nil, TokenUsage{}, "", fmt.Errorf("no available providers: %w", err)
 	}
 
-	// Try primary provider
+	// Try primary provider.
 	embeddings, usage, err := es.generateEmbeddingsWithSpecificProvider(ctx, texts, provider)
 	if err == nil {
 		return embeddings, usage, provider.GetName(), nil
@@ -645,7 +645,7 @@ func (es *EmbeddingService) generateEmbeddingsWithProvider(ctx context.Context, 
 
 	es.logger.Warn("Primary provider failed, trying fallback", "provider", provider.GetName(), "error", err)
 
-	// Try fallback providers if enabled
+	// Try fallback providers if enabled.
 	if es.config.FallbackEnabled {
 		for _, fallbackName := range es.fallbackChain {
 			if fallbackName == provider.GetName() {
@@ -657,7 +657,7 @@ func (es *EmbeddingService) generateEmbeddingsWithProvider(ctx context.Context, 
 				continue
 			}
 
-			// Check provider health
+			// Check provider health.
 			if healthErr := fallbackProvider.HealthCheck(ctx); healthErr != nil {
 				es.logger.Warn("Fallback provider unhealthy, skipping", "provider", fallbackName, "error", healthErr)
 				continue
@@ -676,14 +676,14 @@ func (es *EmbeddingService) generateEmbeddingsWithProvider(ctx context.Context, 
 	return nil, TokenUsage{}, "", fmt.Errorf("all providers failed, last error: %w", err)
 }
 
-// generateEmbeddingsWithSpecificProvider generates embeddings using a specific provider
+// generateEmbeddingsWithSpecificProvider generates embeddings using a specific provider.
 func (es *EmbeddingService) generateEmbeddingsWithSpecificProvider(ctx context.Context, texts []string, provider BasicEmbeddingProvider) ([][]float32, TokenUsage, error) {
-	// Process in smaller batches to respect API limits
+	// Process in smaller batches to respect API limits.
 	var allEmbeddings [][]float32
 	var totalUsage TokenUsage
 	batchSize := es.config.BatchSize
 
-	// Adjust batch size based on provider configuration
+	// Adjust batch size based on provider configuration.
 	providerConfig := provider.GetConfig()
 	if providerConfig.MaxTokens > 0 && batchSize > providerConfig.MaxTokens/100 { // Rough estimation
 		batchSize = providerConfig.MaxTokens / 100
@@ -697,12 +697,12 @@ func (es *EmbeddingService) generateEmbeddingsWithSpecificProvider(ctx context.C
 
 		batch := texts[i:end]
 
-		// Wait for rate limiting
+		// Wait for rate limiting.
 		if err := es.rateLimiter.Wait(ctx, len(batch)); err != nil {
 			return nil, totalUsage, fmt.Errorf("rate limiting error: %w", err)
 		}
 
-		// Generate embeddings for this batch
+		// Generate embeddings for this batch.
 		embeddings, usage, err := provider.GenerateEmbeddings(ctx, batch)
 		if err != nil {
 			return nil, totalUsage, fmt.Errorf("provider API call failed for batch %d-%d: %w", i, end, err)
@@ -717,18 +717,18 @@ func (es *EmbeddingService) generateEmbeddingsWithSpecificProvider(ctx context.C
 	return allEmbeddings, totalUsage, nil
 }
 
-// selectBestProvider selects the best provider based on load balancing strategy
+// selectBestProvider selects the best provider based on load balancing strategy.
 func (es *EmbeddingService) selectBestProvider(ctx context.Context, texts []string) (BasicEmbeddingProvider, error) {
 	var availableProviders []BasicEmbeddingProvider
 
-	// Filter healthy and enabled providers
+	// Filter healthy and enabled providers.
 	for _, provider := range es.providers {
 		config := provider.GetConfig()
 		if !config.Enabled || !config.Healthy {
 			continue
 		}
 
-		// Quick health check if needed
+		// Quick health check if needed.
 		if time.Since(config.LastCheck) > es.config.HealthCheckInterval {
 			if err := provider.HealthCheck(ctx); err != nil {
 				es.logger.Warn("Provider health check failed", "provider", provider.GetName(), "error", err)
@@ -743,7 +743,7 @@ func (es *EmbeddingService) selectBestProvider(ctx context.Context, texts []stri
 		return nil, fmt.Errorf("no healthy providers available")
 	}
 
-	// Select based on load balancing strategy
+	// Select based on load balancing strategy.
 	switch es.config.LoadBalancing {
 	case "least_cost":
 		return es.selectLeastCostProvider(availableProviders, texts)
@@ -752,12 +752,12 @@ func (es *EmbeddingService) selectBestProvider(ctx context.Context, texts []stri
 	case "round_robin":
 		return es.selectRoundRobinProvider(availableProviders)
 	default:
-		// Default to highest priority
+		// Default to highest priority.
 		return es.selectHighestPriorityProvider(availableProviders)
 	}
 }
 
-// selectLeastCostProvider selects the provider with lowest estimated cost
+// selectLeastCostProvider selects the provider with lowest estimated cost.
 func (es *EmbeddingService) selectLeastCostProvider(providers []BasicEmbeddingProvider, texts []string) (BasicEmbeddingProvider, error) {
 	if len(providers) == 0 {
 		return nil, fmt.Errorf("no providers available")
@@ -778,23 +778,23 @@ func (es *EmbeddingService) selectLeastCostProvider(providers []BasicEmbeddingPr
 	return bestProvider, nil
 }
 
-// selectFastestProvider selects the provider with best performance metrics
+// selectFastestProvider selects the provider with best performance metrics.
 func (es *EmbeddingService) selectFastestProvider(providers []BasicEmbeddingProvider) (BasicEmbeddingProvider, error) {
 	if len(providers) == 0 {
 		return nil, fmt.Errorf("no providers available")
 	}
 
-	// For now, select based on priority (in real implementation, use historical latency)
+	// For now, select based on priority (in real implementation, use historical latency).
 	return es.selectHighestPriorityProvider(providers)
 }
 
-// selectRoundRobinProvider selects providers in round-robin fashion
+// selectRoundRobinProvider selects providers in round-robin fashion.
 func (es *EmbeddingService) selectRoundRobinProvider(providers []BasicEmbeddingProvider) (BasicEmbeddingProvider, error) {
 	if len(providers) == 0 {
 		return nil, fmt.Errorf("no providers available")
 	}
 
-	// Simple round-robin based on request count
+	// Simple round-robin based on request count.
 	minRequests := int64(-1)
 	var selectedProvider BasicEmbeddingProvider
 
@@ -817,7 +817,7 @@ func (es *EmbeddingService) selectRoundRobinProvider(providers []BasicEmbeddingP
 	return selectedProvider, nil
 }
 
-// selectHighestPriorityProvider selects the provider with highest priority
+// selectHighestPriorityProvider selects the provider with highest priority.
 func (es *EmbeddingService) selectHighestPriorityProvider(providers []BasicEmbeddingProvider) (BasicEmbeddingProvider, error) {
 	if len(providers) == 0 {
 		return nil, fmt.Errorf("no providers available")
@@ -837,23 +837,23 @@ func (es *EmbeddingService) selectHighestPriorityProvider(providers []BasicEmbed
 	return bestProvider, nil
 }
 
-// estimateTokenCount estimates the number of tokens for texts
+// estimateTokenCount estimates the number of tokens for texts.
 func (es *EmbeddingService) estimateTokenCount(texts []string) int {
 	totalChars := 0
 	for _, text := range texts {
 		totalChars += len(text)
 	}
-	// Rough estimation: 4 characters per token
+	// Rough estimation: 4 characters per token.
 	return totalChars / 4
 }
 
-// estimateCost estimates the cost for processing texts
+// estimateCost estimates the cost for processing texts.
 func (es *EmbeddingService) estimateCost(texts []string) float64 {
 	if len(es.providers) == 0 {
 		return 0.0
 	}
 
-	// Use the default or first available provider for estimation
+	// Use the default or first available provider for estimation.
 	var provider BasicEmbeddingProvider
 	for _, p := range es.providers {
 		if p.GetConfig().Enabled {
@@ -870,13 +870,13 @@ func (es *EmbeddingService) estimateCost(texts []string) float64 {
 	return provider.GetCostEstimate(estimatedTokens)
 }
 
-// Legacy method for backward compatibility
+// Legacy method for backward compatibility.
 func (es *EmbeddingService) callEmbeddingAPI(ctx context.Context, texts []string) ([][]float32, TokenUsage, error) {
 	embeddings, usage, _, err := es.generateEmbeddingsWithProvider(ctx, texts)
 	return embeddings, usage, err
 }
 
-// callOpenAIAPI calls the OpenAI embeddings API
+// callOpenAIAPI calls the OpenAI embeddings API.
 func (es *EmbeddingService) callOpenAIAPI(ctx context.Context, texts []string) ([][]float32, TokenUsage, error) {
 	requestBody := OpenAIEmbeddingRequest{
 		Input: texts,
@@ -893,12 +893,12 @@ func (es *EmbeddingService) callOpenAIAPI(ctx context.Context, texts []string) (
 		return nil, TokenUsage{}, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// Set headers
+	// Set headers.
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+es.config.APIKey)
 	req.Header.Set("User-Agent", "Nephoran-Intent-Operator/1.0")
 
-	// Execute request with retries
+	// Execute request with retries.
 	var resp *http.Response
 	var lastErr error
 
@@ -924,7 +924,7 @@ func (es *EmbeddingService) callOpenAIAPI(ctx context.Context, texts []string) (
 				}(),
 			)
 
-			// Wait before retrying
+			// Wait before retrying.
 			select {
 			case <-ctx.Done():
 				return nil, TokenUsage{}, ctx.Err()
@@ -948,13 +948,13 @@ func (es *EmbeddingService) callOpenAIAPI(ctx context.Context, texts []string) (
 		return nil, TokenUsage{}, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	// Extract embeddings
+	// Extract embeddings.
 	embeddings := make([][]float32, len(apiResponse.Data))
 	for i, data := range apiResponse.Data {
 		embeddings[i] = data.Embedding
 	}
 
-	// Calculate estimated cost (approximate based on OpenAI pricing)
+	// Calculate estimated cost (approximate based on OpenAI pricing).
 	costPerToken := 0.00013 / 1000 // Approximate cost for text-embedding-3-large
 	estimatedCost := float64(apiResponse.Usage.TotalTokens) * costPerToken
 
@@ -967,7 +967,7 @@ func (es *EmbeddingService) callOpenAIAPI(ctx context.Context, texts []string) (
 	return embeddings, usage, nil
 }
 
-// preprocessTexts applies preprocessing to input texts
+// preprocessTexts applies preprocessing to input texts.
 func (es *EmbeddingService) preprocessTexts(texts []string) []string {
 	processed := make([]string, len(texts))
 
@@ -978,16 +978,16 @@ func (es *EmbeddingService) preprocessTexts(texts []string) []string {
 	return processed
 }
 
-// preprocessText applies preprocessing to a single text
+// preprocessText applies preprocessing to a single text.
 func (es *EmbeddingService) preprocessText(text string) string {
-	// Basic normalization
+	// Basic normalization.
 	if es.config.NormalizeText {
 		text = strings.TrimSpace(text)
-		// Normalize whitespace
+		// Normalize whitespace.
 		text = strings.Join(strings.Fields(text), " ")
 	}
 
-	// Length validation and truncation
+	// Length validation and truncation.
 	if len(text) < es.config.MinTextLength {
 		return text // Return as-is if too short
 	}
@@ -997,7 +997,7 @@ func (es *EmbeddingService) preprocessText(text string) string {
 		es.logger.Debug("Text truncated to max length", "original_length", len(text), "max_length", es.config.MaxTextLength)
 	}
 
-	// Telecom-specific preprocessing
+	// Telecom-specific preprocessing.
 	if es.config.TelecomPreprocessing {
 		text = es.applyTelecomPreprocessing(text)
 	}
@@ -1005,11 +1005,11 @@ func (es *EmbeddingService) preprocessText(text string) string {
 	return text
 }
 
-// applyTelecomPreprocessing applies telecom-specific text preprocessing
+// applyTelecomPreprocessing applies telecom-specific text preprocessing.
 func (es *EmbeddingService) applyTelecomPreprocessing(text string) string {
-	// Preserve technical terms by adding emphasis (this is a simple approach)
+	// Preserve technical terms by adding emphasis (this is a simple approach).
 	if es.config.PreserveTechnicalTerms {
-		// Define telecom technical term patterns
+		// Define telecom technical term patterns.
 		technicalPatterns := []string{
 			`\b[A-Z]{2,}(?:-[A-Z]{2,})*\b`, // Acronyms like RAN, AMF, SMF
 			`\b\d+G\b`,                     // Technology generations
@@ -1019,11 +1019,11 @@ func (es *EmbeddingService) applyTelecomPreprocessing(text string) string {
 			`\b[A-Z]+\d+\b`,                // Standards like TS38.300
 		}
 
-		// Apply weighting by duplicating technical terms (simple approach)
+		// Apply weighting by duplicating technical terms (simple approach).
 		if es.config.TechnicalTermWeighting > 1.0 {
 			for _, pattern := range technicalPatterns {
-				// This is a simplified implementation
-				// In production, you might use more sophisticated methods
+				// This is a simplified implementation.
+				// In production, you might use more sophisticated methods.
 				text = strings.ReplaceAll(text, pattern, pattern+" "+pattern)
 			}
 		}
@@ -1032,9 +1032,9 @@ func (es *EmbeddingService) applyTelecomPreprocessing(text string) string {
 	return text
 }
 
-// generateCacheKey generates a cache key for the given text using fast FNV hash
+// generateCacheKey generates a cache key for the given text using fast FNV hash.
 func (es *EmbeddingService) generateCacheKey(text string) string {
-	// Create a fast hash of the text and configuration that affects embeddings
+	// Create a fast hash of the text and configuration that affects embeddings.
 	h := fnv.New64a()
 	h.Write([]byte(text))
 	h.Write([]byte(es.config.ModelName))
@@ -1042,7 +1042,7 @@ func (es *EmbeddingService) generateCacheKey(text string) string {
 	return fmt.Sprintf("%016x", h.Sum64())
 }
 
-// GenerateEmbeddingsForChunks generates embeddings for document chunks
+// GenerateEmbeddingsForChunks generates embeddings for document chunks.
 func (es *EmbeddingService) GenerateEmbeddingsForChunks(ctx context.Context, chunks []*DocumentChunk) error {
 	if len(chunks) == 0 {
 		return nil
@@ -1050,20 +1050,20 @@ func (es *EmbeddingService) GenerateEmbeddingsForChunks(ctx context.Context, chu
 
 	es.logger.Info("Generating embeddings for chunks", "chunk_count", len(chunks))
 
-	// Extract texts from chunks
+	// Extract texts from chunks.
 	texts := make([]string, len(chunks))
 	chunkIDs := make([]string, len(chunks))
 
 	for i, chunk := range chunks {
-		// Use clean content for embedding
+		// Use clean content for embedding.
 		content := chunk.CleanContent
 
-		// Add section context if available
+		// Add section context if available.
 		if chunk.SectionTitle != "" && es.config.TelecomPreprocessing {
 			content = fmt.Sprintf("Section: %s\n\n%s", chunk.SectionTitle, content)
 		}
 
-		// Add parent context if available
+		// Add parent context if available.
 		if chunk.ParentContext != "" {
 			content = fmt.Sprintf("Context: %s\n\n%s", chunk.ParentContext, content)
 		}
@@ -1072,7 +1072,7 @@ func (es *EmbeddingService) GenerateEmbeddingsForChunks(ctx context.Context, chu
 		chunkIDs[i] = chunk.ID
 	}
 
-	// Create embedding request
+	// Create embedding request.
 	request := &EmbeddingRequest{
 		Texts:     texts,
 		ChunkIDs:  chunkIDs,
@@ -1084,14 +1084,14 @@ func (es *EmbeddingService) GenerateEmbeddingsForChunks(ctx context.Context, chu
 		},
 	}
 
-	// Generate embeddings
+	// Generate embeddings.
 	response, err := es.GenerateEmbeddings(ctx, request)
 	if err != nil {
 		return fmt.Errorf("failed to generate embeddings for chunks: %w", err)
 	}
 
-	// Store embeddings in chunks (if we extended DocumentChunk to include embeddings)
-	// For now, we just log the successful generation
+	// Store embeddings in chunks (if we extended DocumentChunk to include embeddings).
+	// For now, we just log the successful generation.
 	es.logger.Info("Embeddings generated for chunks",
 		"chunk_count", len(chunks),
 		"processing_time", response.ProcessingTime,
@@ -1101,19 +1101,19 @@ func (es *EmbeddingService) GenerateEmbeddingsForChunks(ctx context.Context, chu
 	return nil
 }
 
-// updateMetrics safely updates the embedding metrics
+// updateMetrics safely updates the embedding metrics.
 func (es *EmbeddingService) updateMetrics(updater func(*EmbeddingMetrics)) {
 	es.metrics.mutex.Lock()
 	defer es.metrics.mutex.Unlock()
 	updater(es.metrics)
 }
 
-// GetMetrics returns the current embedding metrics
+// GetMetrics returns the current embedding metrics.
 func (es *EmbeddingService) GetMetrics() *EmbeddingMetrics {
 	es.metrics.mutex.RLock()
 	defer es.metrics.mutex.RUnlock()
 
-	// Return a copy without the mutex
+	// Return a copy without the mutex.
 	metrics := &EmbeddingMetrics{
 		TotalRequests:      es.metrics.TotalRequests,
 		SuccessfulRequests: es.metrics.SuccessfulRequests,
@@ -1149,7 +1149,7 @@ func (es *EmbeddingService) GetMetrics() *EmbeddingMetrics {
 	return metrics
 }
 
-// startMetricsCollection starts background metrics collection
+// startMetricsCollection starts background metrics collection.
 func (es *EmbeddingService) startMetricsCollection() {
 	ticker := time.NewTicker(es.config.MetricsInterval)
 	defer ticker.Stop()
@@ -1159,7 +1159,7 @@ func (es *EmbeddingService) startMetricsCollection() {
 	}
 }
 
-// collectMetrics collects and logs periodic metrics
+// collectMetrics collects and logs periodic metrics.
 func (es *EmbeddingService) collectMetrics() {
 	metrics := es.GetMetrics()
 	cacheStats := es.cache.Stats()
@@ -1173,9 +1173,9 @@ func (es *EmbeddingService) collectMetrics() {
 	)
 }
 
-// Rate limiter implementation
+// Rate limiter implementation.
 
-// NewRateLimiter creates a new rate limiter
+// NewRateLimiter creates a new rate limiter.
 func NewRateLimiter(requestsPerMinute, tokensPerMinute int) *RateLimiter {
 	rl := &RateLimiter{
 		requestTokens: make(chan struct{}, requestsPerMinute),
@@ -1183,7 +1183,7 @@ func NewRateLimiter(requestsPerMinute, tokensPerMinute int) *RateLimiter {
 		lastRefill:    time.Now(),
 	}
 
-	// Initialize tokens
+	// Initialize tokens.
 	for i := 0; i < requestsPerMinute; i++ {
 		rl.requestTokens <- struct{}{}
 	}
@@ -1191,22 +1191,22 @@ func NewRateLimiter(requestsPerMinute, tokensPerMinute int) *RateLimiter {
 		rl.tokenBucket <- 1
 	}
 
-	// Start refill goroutine
+	// Start refill goroutine.
 	go rl.refillTokens(requestsPerMinute, tokensPerMinute)
 
 	return rl
 }
 
-// Wait waits for rate limiting tokens
+// Wait waits for rate limiting tokens.
 func (rl *RateLimiter) Wait(ctx context.Context, estimatedTokens int) error {
-	// Wait for request token
+	// Wait for request token.
 	select {
 	case <-rl.requestTokens:
 	case <-ctx.Done():
 		return ctx.Err()
 	}
 
-	// Wait for enough token bucket capacity
+	// Wait for enough token bucket capacity.
 	tokensNeeded := estimatedTokens
 	for tokensNeeded > 0 {
 		select {
@@ -1220,7 +1220,7 @@ func (rl *RateLimiter) Wait(ctx context.Context, estimatedTokens int) error {
 	return nil
 }
 
-// refillTokens periodically refills the rate limiting tokens
+// refillTokens periodically refills the rate limiting tokens.
 func (rl *RateLimiter) refillTokens(requestsPerMinute, tokensPerMinute int) {
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
@@ -1228,7 +1228,7 @@ func (rl *RateLimiter) refillTokens(requestsPerMinute, tokensPerMinute int) {
 	for range ticker.C {
 		rl.mutex.Lock()
 
-		// Refill request tokens
+		// Refill request tokens.
 		for len(rl.requestTokens) < requestsPerMinute {
 			select {
 			case rl.requestTokens <- struct{}{}:
@@ -1238,7 +1238,7 @@ func (rl *RateLimiter) refillTokens(requestsPerMinute, tokensPerMinute int) {
 		}
 
 	refillTokenBucket:
-		// Refill token bucket
+		// Refill token bucket.
 		for len(rl.tokenBucket) < tokensPerMinute {
 			select {
 			case rl.tokenBucket <- 1:
@@ -1252,9 +1252,9 @@ func (rl *RateLimiter) refillTokens(requestsPerMinute, tokensPerMinute int) {
 	}
 }
 
-// Cache implementations
+// Cache implementations.
 
-// NewInMemoryCache creates a new in-memory cache
+// NewInMemoryCache creates a new in-memory cache.
 func NewInMemoryCache(maxSize int64) *InMemoryCache {
 	return &InMemoryCache{
 		data:    make(map[string]cacheEntry),
@@ -1262,7 +1262,7 @@ func NewInMemoryCache(maxSize int64) *InMemoryCache {
 	}
 }
 
-// Get retrieves an embedding from the cache
+// Get retrieves an embedding from the cache.
 func (c *InMemoryCache) Get(key string) ([]float32, bool) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
@@ -1277,12 +1277,12 @@ func (c *InMemoryCache) Get(key string) ([]float32, bool) {
 	return entry.embedding, true
 }
 
-// Set stores an embedding in the cache
+// Set stores an embedding in the cache.
 func (c *InMemoryCache) Set(key string, embedding []float32, ttl time.Duration) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	// Check if we need to evict entries
+	// Check if we need to evict entries.
 	if int64(len(c.data)) >= c.maxSize {
 		c.evictOldest()
 	}
@@ -1296,7 +1296,7 @@ func (c *InMemoryCache) Set(key string, embedding []float32, ttl time.Duration) 
 	return nil
 }
 
-// Delete removes an embedding from the cache
+// Delete removes an embedding from the cache.
 func (c *InMemoryCache) Delete(key string) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -1306,7 +1306,7 @@ func (c *InMemoryCache) Delete(key string) error {
 	return nil
 }
 
-// Clear removes all embeddings from the cache
+// Clear removes all embeddings from the cache.
 func (c *InMemoryCache) Clear() error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -1316,7 +1316,7 @@ func (c *InMemoryCache) Clear() error {
 	return nil
 }
 
-// Stats returns cache statistics
+// Stats returns cache statistics.
 func (c *InMemoryCache) Stats() CacheStats {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
@@ -1328,7 +1328,7 @@ func (c *InMemoryCache) Stats() CacheStats {
 	return stats
 }
 
-// evictOldest evicts the oldest cache entry
+// evictOldest evicts the oldest cache entry.
 func (c *InMemoryCache) evictOldest() {
 	var oldestKey string
 	var oldestTime time.Time
@@ -1345,16 +1345,25 @@ func (c *InMemoryCache) evictOldest() {
 	}
 }
 
-// NoOpCache is a cache implementation that doesn't cache anything
+// NoOpCache is a cache implementation that doesn't cache anything.
 type NoOpCache struct{}
 
-func (c *NoOpCache) Get(key string) ([]float32, bool)                             { return nil, false }
-func (c *NoOpCache) Set(key string, embedding []float32, ttl time.Duration) error { return nil }
-func (c *NoOpCache) Delete(key string) error                                      { return nil }
-func (c *NoOpCache) Clear() error                                                 { return nil }
-func (c *NoOpCache) Stats() CacheStats                                            { return CacheStats{} }
+// Get performs get operation.
+func (c *NoOpCache) Get(_ string) ([]float32, bool) { return nil, false }
 
-// createProvider creates a provider instance based on configuration
+// Set performs set operation.
+func (c *NoOpCache) Set(_ string, _ []float32, _ time.Duration) error { return nil }
+
+// Delete performs delete operation.
+func (c *NoOpCache) Delete(_ string) error { return nil }
+
+// Clear performs clear operation.
+func (c *NoOpCache) Clear() error { return nil }
+
+// Stats performs stats operation.
+func (c *NoOpCache) Stats() CacheStats { return CacheStats{} }
+
+// createProvider creates a provider instance based on configuration.
 func createProvider(config ProviderConfig, httpClient *http.Client) BasicEmbeddingProvider {
 	switch config.Name {
 	case "openai":
@@ -1372,9 +1381,9 @@ func createProvider(config ProviderConfig, httpClient *http.Client) BasicEmbeddi
 	}
 }
 
-// Cost tracking implementations
+// Cost tracking implementations.
 
-// NewCostTracker creates a new cost tracker
+// NewCostTracker creates a new cost tracker.
 func NewCostTracker(limits CostLimits) *CostTracker {
 	return &CostTracker{
 		dailyCosts:   make(map[string]float64),
@@ -1384,7 +1393,7 @@ func NewCostTracker(limits CostLimits) *CostTracker {
 	}
 }
 
-// CanAfford checks if the estimated cost can be afforded within limits
+// CanAfford checks if the estimated cost can be afforded within limits.
 func (ct *CostTracker) CanAfford(estimatedCost float64) bool {
 	ct.mutex.RLock()
 	defer ct.mutex.RUnlock()
@@ -1399,7 +1408,7 @@ func (ct *CostTracker) CanAfford(estimatedCost float64) bool {
 		(monthlyCost+estimatedCost <= ct.limits.MonthlyLimit)
 }
 
-// RecordCost records the actual cost incurred
+// RecordCost records the actual cost incurred.
 func (ct *CostTracker) RecordCost(cost float64, provider string) {
 	ct.mutex.Lock()
 	defer ct.mutex.Unlock()
@@ -1410,16 +1419,16 @@ func (ct *CostTracker) RecordCost(cost float64, provider string) {
 	ct.dailyCosts[today] += cost
 	ct.monthlyCosts[thisMonth] += cost
 
-	// Check for alerts
+	// Check for alerts.
 	ct.checkAlerts(today, thisMonth)
 }
 
-// checkAlerts checks if cost thresholds have been exceeded
+// checkAlerts checks if cost thresholds have been exceeded.
 func (ct *CostTracker) checkAlerts(today, thisMonth string) {
 	dailyCost := ct.dailyCosts[today]
 	monthlyCost := ct.monthlyCosts[thisMonth]
 
-	// Daily threshold alert
+	// Daily threshold alert.
 	if dailyCost >= ct.limits.DailyLimit*ct.limits.AlertThreshold {
 		alert := CostAlert{
 			Timestamp: time.Now(),
@@ -1431,7 +1440,7 @@ func (ct *CostTracker) checkAlerts(today, thisMonth string) {
 		ct.alerts = append(ct.alerts, alert)
 	}
 
-	// Monthly threshold alert
+	// Monthly threshold alert.
 	if monthlyCost >= ct.limits.MonthlyLimit*ct.limits.AlertThreshold {
 		alert := CostAlert{
 			Timestamp: time.Now(),
@@ -1444,16 +1453,16 @@ func (ct *CostTracker) checkAlerts(today, thisMonth string) {
 	}
 }
 
-// GetAlerts returns recent cost alerts
+// GetAlerts returns recent cost alerts.
 func (ct *CostTracker) GetAlerts() []CostAlert {
 	ct.mutex.RLock()
 	defer ct.mutex.RUnlock()
 	return append([]CostAlert{}, ct.alerts...)
 }
 
-// Quality assessment implementations
+// Quality assessment implementations.
 
-// NewQualityAssessment creates a new quality assessment service
+// NewQualityAssessment creates a new quality assessment service.
 func NewQualityAssessment(config QualityConfig) *QualityAssessment {
 	return &QualityAssessment{
 		config:        config,
@@ -1462,7 +1471,7 @@ func NewQualityAssessment(config QualityConfig) *QualityAssessment {
 	}
 }
 
-// AssessQuality assesses the quality of generated embeddings
+// AssessQuality assesses the quality of generated embeddings.
 func (qa *QualityAssessment) AssessQuality(embeddings [][]float32, texts []string) float64 {
 	if !qa.config.Enabled || len(embeddings) == 0 {
 		return 1.0 // Default high quality if assessment is disabled
@@ -1479,12 +1488,12 @@ func (qa *QualityAssessment) AssessQuality(embeddings [][]float32, texts []strin
 			break
 		}
 
-		// Check embedding dimensions
+		// Check embedding dimensions.
 		if len(embedding) == 0 {
 			continue
 		}
 
-		// Calculate quality score based on various factors
+		// Calculate quality score based on various factors.
 		score := qa.calculateEmbeddingScore(embedding, texts[i])
 		totalScore += score
 		validAssessments++
@@ -1496,7 +1505,7 @@ func (qa *QualityAssessment) AssessQuality(embeddings [][]float32, texts []strin
 
 	averageScore := totalScore / float64(validAssessments)
 
-	// Update metrics
+	// Update metrics.
 	qa.metrics.TotalChecks++
 	if averageScore < qa.config.MinScore {
 		qa.metrics.FailedChecks++
@@ -1514,11 +1523,11 @@ func (qa *QualityAssessment) AssessQuality(embeddings [][]float32, texts []strin
 	return averageScore
 }
 
-// calculateEmbeddingScore calculates a quality score for a single embedding
+// calculateEmbeddingScore calculates a quality score for a single embedding.
 func (qa *QualityAssessment) calculateEmbeddingScore(embedding []float32, text string) float64 {
 	score := 1.0
 
-	// Check for zero embeddings
+	// Check for zero embeddings.
 	zeroCount := 0
 	for _, val := range embedding {
 		if val == 0.0 {
@@ -1530,7 +1539,7 @@ func (qa *QualityAssessment) calculateEmbeddingScore(embedding []float32, text s
 		score *= 0.5
 	}
 
-	// Check magnitude (embeddings should have reasonable magnitude)
+	// Check magnitude (embeddings should have reasonable magnitude).
 	var magnitude float64
 	for _, val := range embedding {
 		magnitude += float64(val * val)
@@ -1541,7 +1550,7 @@ func (qa *QualityAssessment) calculateEmbeddingScore(embedding []float32, text s
 		score *= 0.7
 	}
 
-	// Check text length correlation (longer texts should have more informative embeddings)
+	// Check text length correlation (longer texts should have more informative embeddings).
 	if len(text) > 100 && magnitude < 1.0 {
 		score *= 0.8
 	}
@@ -1549,9 +1558,9 @@ func (qa *QualityAssessment) calculateEmbeddingScore(embedding []float32, text s
 	return score
 }
 
-// Background services
+// Background services.
 
-// startHealthChecks starts periodic health checks for providers
+// startHealthChecks starts periodic health checks for providers.
 func (es *EmbeddingService) startHealthChecks() {
 	ticker := time.NewTicker(es.config.HealthCheckInterval)
 	defer ticker.Stop()
@@ -1561,7 +1570,7 @@ func (es *EmbeddingService) startHealthChecks() {
 	}
 }
 
-// performHealthChecks checks the health of all providers
+// performHealthChecks checks the health of all providers.
 func (es *EmbeddingService) performHealthChecks() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -1577,7 +1586,7 @@ func (es *EmbeddingService) performHealthChecks() {
 	}
 }
 
-// startCostMonitoring starts cost monitoring and alerting
+// startCostMonitoring starts cost monitoring and alerting.
 func (es *EmbeddingService) startCostMonitoring() {
 	ticker := time.NewTicker(1 * time.Hour) // Check costs hourly
 	defer ticker.Stop()
@@ -1590,7 +1599,7 @@ func (es *EmbeddingService) startCostMonitoring() {
 	}
 }
 
-// CheckStatus checks the health status of the embedding service
+// CheckStatus checks the health status of the embedding service.
 func (es *EmbeddingService) CheckStatus(ctx context.Context) (*ComponentStatus, error) {
 	if es == nil {
 		return &ComponentStatus{
@@ -1600,7 +1609,7 @@ func (es *EmbeddingService) CheckStatus(ctx context.Context) (*ComponentStatus, 
 		}, nil
 	}
 
-	// Check if we have any providers
+	// Check if we have any providers.
 	if len(es.providers) == 0 {
 		return &ComponentStatus{
 			Status:    "unhealthy",
@@ -1609,7 +1618,7 @@ func (es *EmbeddingService) CheckStatus(ctx context.Context) (*ComponentStatus, 
 		}, nil
 	}
 
-	// Check each provider's health
+	// Check each provider's health.
 	healthyProviders := 0
 	totalProviders := len(es.providers)
 	details := make(map[string]interface{})
@@ -1618,7 +1627,7 @@ func (es *EmbeddingService) CheckStatus(ctx context.Context) (*ComponentStatus, 
 		providerHealthy := true
 		var providerError error
 
-		// Perform a quick test embedding to verify provider functionality
+		// Perform a quick test embedding to verify provider functionality.
 		if provider != nil {
 			testCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 			_, _, err := provider.GenerateEmbeddings(testCtx, []string{"test"})
@@ -1643,7 +1652,7 @@ func (es *EmbeddingService) CheckStatus(ctx context.Context) (*ComponentStatus, 
 		}
 	}
 
-	// Determine overall status
+	// Determine overall status.
 	var status, message string
 	if healthyProviders == 0 {
 		status = "unhealthy"
@@ -1664,7 +1673,7 @@ func (es *EmbeddingService) CheckStatus(ctx context.Context) (*ComponentStatus, 
 	}, nil
 }
 
-// copyModelStats creates a deep copy of ModelUsageStats map
+// copyModelStats creates a deep copy of ModelUsageStats map.
 func copyModelStats(original map[string]ModelUsageStats) map[string]ModelUsageStats {
 	if original == nil {
 		return nil

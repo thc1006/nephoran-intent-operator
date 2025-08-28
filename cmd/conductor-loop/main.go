@@ -15,7 +15,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/internal/loop"
 )
 
-// isExpectedShutdownError identifies expected errors during shutdown that don't indicate infrastructure issues
+// isExpectedShutdownError identifies expected errors during shutdown that don't indicate infrastructure issues.
 func isExpectedShutdownError(err error) bool {
 	if err == nil {
 		return false
@@ -23,7 +23,7 @@ func isExpectedShutdownError(err error) bool {
 
 	errorMsg := strings.ToLower(err.Error())
 
-	// Expected shutdown patterns - these indicate graceful cleanup is in progress
+	// Expected shutdown patterns - these indicate graceful cleanup is in progress.
 	expectedPatterns := []string{
 		"stats not available - no file manager configured",
 		"failed to read directory",  // Directory may be temporarily inaccessible during cleanup
@@ -51,49 +51,49 @@ func validateHandoffDir(path string) error {
 		return fmt.Errorf("path cannot be empty")
 	}
 
-	// Clean the path to handle various path formats consistently across platforms
+	// Clean the path to handle various path formats consistently across platforms.
 	cleanPath := filepath.Clean(path)
 
-	// Check if the path exists
+	// Check if the path exists.
 	info, err := os.Stat(cleanPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			// Path doesn't exist - check if parent directory exists and is accessible
+			// Path doesn't exist - check if parent directory exists and is accessible.
 			parent := filepath.Dir(cleanPath)
 
-			// Special case: if parent is the same as path, we've reached the root
+			// Special case: if parent is the same as path, we've reached the root.
 			if parent == cleanPath {
 				return fmt.Errorf("invalid path: %s (cannot validate root directory)", cleanPath)
 			}
 
-			// Recursively check if parent is valid for directory creation
+			// Recursively check if parent is valid for directory creation.
 			if err := validateHandoffDir(parent); err != nil {
 				return fmt.Errorf("invalid parent directory for %s: %w", cleanPath, err)
 			}
 
-			// Parent exists and is valid, so we can create the directory
+			// Parent exists and is valid, so we can create the directory.
 			return nil
 		}
 
-		// Other error (e.g., permission denied, invalid path format)
-		return fmt.Errorf("cannot access path %s: %v", cleanPath, err)
+		// Other error (e.g., permission denied, invalid path format).
+		return fmt.Errorf("cannot access path %s: %w", cleanPath, err)
 	}
 
-	// Path exists - verify it's a directory
+	// Path exists - verify it's a directory.
 	if !info.IsDir() {
 		return fmt.Errorf("path %s exists but is not a directory", cleanPath)
 	}
 
-	// Test read permission by attempting to read the directory
+	// Test read permission by attempting to read the directory.
 	_, err = os.ReadDir(cleanPath)
 	if err != nil {
-		return fmt.Errorf("directory %s exists but is not readable: %v", cleanPath, err)
+		return fmt.Errorf("directory %s exists but is not readable: %w", cleanPath, err)
 	}
 
 	return nil
 }
 
-// Config holds all command-line configuration
+// Config holds all command-line configuration.
 type Config struct {
 	HandoffDir  string
 	PorchPath   string
@@ -109,10 +109,10 @@ func main() {
 	log.SetPrefix("[conductor-loop] ")
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
 
-	// Parse command-line flags - support both legacy and new approach
+	// Parse command-line flags - support both legacy and new approach.
 	useProcessor := flag.Bool("use-processor", false, "Use IntentProcessor pattern (new approach) instead of Config-based (legacy)")
 
-	// New IntentProcessor approach flags
+	// New IntentProcessor approach flags.
 	handoffDir := flag.String("handoff-dir", "./handoff", "Directory to watch for intent files")
 	errorDir := flag.String("error-dir", "./handoff/errors", "Directory for error files")
 	porchMode := flag.String("porch-mode", "structured", "Porch submission mode: 'direct' or 'structured'")
@@ -120,51 +120,51 @@ func main() {
 	batchInterval := flag.Duration("batch-interval", 5*time.Second, "Interval for batch processing")
 	schemaPath := flag.String("schema", "", "Path to intent schema file (defaults to docs/contracts/intent.schema.json)")
 
-	// Legacy Config approach flags (parsed within parseFlags)
+	// Legacy Config approach flags (parsed within parseFlags).
 	config := parseFlags()
 
 	var absHandoffDir string
 	var err error
 
 	if *useProcessor {
-		// New IntentProcessor approach
+		// New IntentProcessor approach.
 		log.Printf("Using IntentProcessor pattern (new approach)")
 
-		// Validate porch mode
+		// Validate porch mode.
 		if *porchMode != "direct" && *porchMode != "structured" {
 			log.Fatalf("Invalid porch-mode: %s. Must be 'direct' or 'structured'", *porchMode)
 		}
 
-		// Validate directories before creating
+		// Validate directories before creating.
 		if err := validateHandoffDir(*handoffDir); err != nil {
 			log.Fatalf("Invalid handoff directory path %s: %v", *handoffDir, err)
 		}
 
-		// Ensure directories exist
+		// Ensure directories exist.
 		for _, dir := range []string{*handoffDir, *errorDir} {
-			if err := os.MkdirAll(dir, 0755); err != nil {
+			if err := os.MkdirAll(dir, 0o755); err != nil {
 				log.Fatalf("Failed to create directory %s: %v", dir, err)
 			}
 		}
 
-		// Convert to absolute paths for consistency
+		// Convert to absolute paths for consistency.
 		absHandoffDir, err = filepath.Abs(*handoffDir)
 		if err != nil {
 			log.Fatalf("Failed to get absolute path for handoff dir: %v", err)
 		}
 	} else {
-		// Legacy Config-based approach
+		// Legacy Config-based approach.
 		log.Printf("Using Config-based pattern (legacy approach)")
 
-		// Validate and create handoff directory
+		// Validate and create handoff directory.
 		if err := validateHandoffDir(config.HandoffDir); err != nil {
 			log.Fatalf("Invalid handoff directory path %s: %v", config.HandoffDir, err)
 		}
-		if err := os.MkdirAll(config.HandoffDir, 0755); err != nil {
+		if err := os.MkdirAll(config.HandoffDir, 0o755); err != nil {
 			log.Fatalf("Failed to create handoff directory: %v", err)
 		}
 
-		// Convert to absolute path for consistency
+		// Convert to absolute path for consistency.
 		absHandoffDir, err = filepath.Abs(config.HandoffDir)
 		if err != nil {
 			log.Fatalf("Failed to get absolute path for handoff dir: %v", err)
@@ -175,25 +175,25 @@ func main() {
 	var watcher *loop.Watcher
 
 	if *useProcessor {
-		// New IntentProcessor approach setup
+		// New IntentProcessor approach setup.
 		absErrorDir, err := filepath.Abs(*errorDir)
 		if err != nil {
 			log.Fatalf("Failed to get absolute path for error dir: %v", err)
 		}
 
-		// Determine schema path
+		// Determine schema path.
 		if *schemaPath == "" {
-			// Default to standard location
+			// Default to standard location.
 			*schemaPath = filepath.Join(".", "docs", "contracts", "intent.schema.json")
 		}
 
-		// Create validator (using ingest package)
+		// Create validator (using ingest package).
 		validator, err := ingest.NewValidator(*schemaPath)
 		if err != nil {
 			log.Fatalf("Failed to create validator: %v", err)
 		}
 
-		// Create processor configuration
+		// Create processor configuration.
 		processorConfig := &loop.ProcessorConfig{
 			HandoffDir:    absHandoffDir,
 			ErrorDir:      absErrorDir,
@@ -203,13 +203,13 @@ func main() {
 			MaxRetries:    3,
 		}
 
-		// Create processor
+		// Create processor.
 		processor, err := loop.NewProcessor(processorConfig, validator, loop.DefaultPorchSubmit)
 		if err != nil {
 			log.Fatalf("Failed to create processor: %v", err)
 		}
 
-		// Start batch processor
+		// Start batch processor.
 		processor.StartBatchProcessor()
 		defer processor.Stop()
 
@@ -219,23 +219,23 @@ func main() {
 		log.Printf("  Mode: %s", *porchMode)
 		log.Printf("  Batch: size=%d, interval=%v", *batchSize, *batchInterval)
 
-		// Create and start the watcher with processor
+		// Create and start the watcher with processor.
 		watcher, err = loop.NewWatcherWithProcessor(absHandoffDir, processor)
 		if err != nil {
 			log.Printf("Failed to create watcher: %v", err)
 			os.Exit(1)
 		}
 	} else {
-		// Legacy Config-based approach setup
-		// Validate and create output directory
+		// Legacy Config-based approach setup.
+		// Validate and create output directory.
 		if err := validateHandoffDir(config.OutDir); err != nil {
 			log.Fatalf("Invalid output directory path %s: %v", config.OutDir, err)
 		}
-		if err := os.MkdirAll(config.OutDir, 0755); err != nil {
+		if err := os.MkdirAll(config.OutDir, 0o755); err != nil {
 			log.Fatalf("Failed to create output directory: %v", err)
 		}
 
-		// Convert output directory to absolute path
+		// Convert output directory to absolute path.
 		absOutDir, err := filepath.Abs(config.OutDir)
 		if err != nil {
 			log.Fatalf("Failed to get absolute output path: %v", err)
@@ -252,7 +252,7 @@ func main() {
 		log.Printf("  Debounce duration: %v", config.DebounceDur)
 		log.Printf("  Period: %v", config.Period)
 
-		// Create and start the watcher
+		// Create and start the watcher.
 		watcher, err = loop.NewWatcher(config.HandoffDir, loop.Config{
 			PorchPath:   config.PorchPath,
 			PorchURL:    config.PorchURL,
@@ -267,7 +267,7 @@ func main() {
 		}
 	}
 
-	// Safe defer func() { _ = pattern - only register Close() after successful creation
+	// Safe defer func() { _ = pattern - only register Close() after successful creation.
 	defer func() {
 		if watcher != nil {
 			if err := watcher.Close(); err != nil {
@@ -276,18 +276,18 @@ func main() {
 		}
 	}()
 
-	// Process existing files on startup (for idempotency) - only for new processor approach
+	// Process existing files on startup (for idempotency) - only for new processor approach.
 	if *useProcessor && watcher != nil {
 		if err := watcher.ProcessExistingFiles(); err != nil {
 			log.Printf("Warning: Failed to process existing files: %v", err)
 		}
 	}
 
-	// Setup signal handling for graceful shutdown
+	// Setup signal handling for graceful shutdown.
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
-	// Start watching
+	// Start watching.
 	done := make(chan error, 1)
 	go func() {
 		if watcher != nil {
@@ -297,7 +297,7 @@ func main() {
 		}
 	}()
 
-	// Wait for either error or interrupt signal
+	// Wait for either error or interrupt signal.
 	var exitCode int
 	select {
 	case err := <-done:
@@ -305,7 +305,7 @@ func main() {
 			log.Printf("Watcher error: %v", err)
 			exitCode = 1
 		} else if !*useProcessor && config.Once {
-			// In once mode, check if any files failed (only for legacy approach)
+			// In once mode, check if any files failed (only for legacy approach).
 			stats, statsErr := watcher.GetStats()
 			if statsErr != nil {
 				if isExpectedShutdownError(statsErr) {
@@ -318,12 +318,12 @@ func main() {
 					exitCode = 2 // Unexpected stats error (infrastructure issues)
 				}
 			} else if stats.RealFailedCount > 0 {
-				// Only real failures should affect exit code, not shutdown failures
+				// Only real failures should affect exit code, not shutdown failures.
 				log.Printf("Completed with %d real failures and %d shutdown failures (total: %d failed files)",
 					stats.RealFailedCount, stats.ShutdownFailedCount, stats.FailedCount)
 				exitCode = 8
 			} else if stats.ShutdownFailedCount > 0 {
-				// Only shutdown failures - this is acceptable during graceful shutdown
+				// Only shutdown failures - this is acceptable during graceful shutdown.
 				log.Printf("Completed with %d shutdown failures (no real failures)", stats.ShutdownFailedCount)
 				exitCode = 0
 			} else {
@@ -337,9 +337,9 @@ func main() {
 			log.Printf("Error closing watcher: %v", err)
 		}
 
-		// Check stats after graceful shutdown to distinguish shutdown vs real failures
+		// Check stats after graceful shutdown to distinguish shutdown vs real failures.
 		if !*useProcessor {
-			// Only check stats for legacy approach
+			// Only check stats for legacy approach.
 			stats, statsErr := watcher.GetStats()
 			if statsErr != nil {
 				if isExpectedShutdownError(statsErr) {
@@ -352,12 +352,12 @@ func main() {
 					exitCode = 2 // Unexpected stats error (infrastructure issues)
 				}
 			} else if stats.RealFailedCount > 0 {
-				// Only real failures should affect exit code, not shutdown failures
+				// Only real failures should affect exit code, not shutdown failures.
 				log.Printf("Graceful shutdown completed with %d real failures and %d shutdown failures (total: %d failed files)",
 					stats.RealFailedCount, stats.ShutdownFailedCount, stats.FailedCount)
 				exitCode = 8
 			} else if stats.ShutdownFailedCount > 0 {
-				// Only shutdown failures - this is acceptable during graceful shutdown
+				// Only shutdown failures - this is acceptable during graceful shutdown.
 				log.Printf("Graceful shutdown completed with %d shutdown failures (no real failures)", stats.ShutdownFailedCount)
 				exitCode = 0
 			} else {
@@ -365,7 +365,7 @@ func main() {
 				exitCode = 0
 			}
 		} else {
-			// For new processor approach, graceful shutdown is always successful
+			// For new processor approach, graceful shutdown is always successful.
 			exitCode = 0
 			log.Printf("Graceful shutdown completed")
 		}
@@ -375,18 +375,18 @@ func main() {
 	os.Exit(exitCode)
 }
 
-// parseFlags parses and validates command-line flags
+// parseFlags parses and validates command-line flags.
 func parseFlags() Config {
 	config, err := parseFlagsWithFlagSet(flag.CommandLine, os.Args[1:])
 	if err != nil {
 		log.Fatalf("Error parsing flags: %v", err)
 	}
 
-	// Note: directory creation is done in main() after validation
+	// Note: directory creation is done in main() after validation.
 	return config
 }
 
-// parseFlagsWithFlagSet parses flags using a specific FlagSet (for testing)
+// parseFlagsWithFlagSet parses flags using a specific FlagSet (for testing).
 func parseFlagsWithFlagSet(fs *flag.FlagSet, args []string) (Config, error) {
 	var config Config
 
@@ -407,20 +407,20 @@ func parseFlagsWithFlagSet(fs *flag.FlagSet, args []string) (Config, error) {
 		return config, err
 	}
 
-	// Parse debounce duration
+	// Parse debounce duration.
 	var err error
 	config.DebounceDur, err = time.ParseDuration(debounceDurStr)
 	if err != nil {
-		return config, fmt.Errorf("invalid debounce duration %q: %v", debounceDurStr, err)
+		return config, fmt.Errorf("invalid debounce duration %q: %w", debounceDurStr, err)
 	}
 
-	// Parse period duration
+	// Parse period duration.
 	config.Period, err = time.ParseDuration(periodStr)
 	if err != nil {
-		return config, fmt.Errorf("invalid period duration %q: %v", periodStr, err)
+		return config, fmt.Errorf("invalid period duration %q: %w", periodStr, err)
 	}
 
-	// Validate mode
+	// Validate mode.
 	if config.Mode != "direct" && config.Mode != "structured" {
 		return config, fmt.Errorf("invalid mode %q: must be 'direct' or 'structured'", config.Mode)
 	}

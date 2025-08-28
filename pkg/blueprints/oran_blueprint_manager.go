@@ -32,44 +32,60 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
-// TargetComponent is an alias for ORAN components used in blueprints
+// TargetComponent is an alias for ORAN components used in blueprints.
 type TargetComponent = v1.ORANComponent
 
 const (
-	// O-RAN Blueprint Categories
+	// O-RAN Blueprint Categories.
 	BlueprintCategoryNearRTRIC = "near-rt-ric"
-	BlueprintCategoryNonRTRIC  = "non-rt-ric"
-	BlueprintCategoryORANDU    = "oran-du"
-	BlueprintCategoryORANCU    = "oran-cu"
-	BlueprintCategoryXApp      = "xapp"
-	BlueprintCategoryRApp      = "rapp"
-	BlueprintCategorySMO       = "smo"
-	BlueprintCategory5GCore    = "5g-core"
+	// BlueprintCategoryNonRTRIC holds blueprintcategorynonrtric value.
+	BlueprintCategoryNonRTRIC = "non-rt-ric"
+	// BlueprintCategoryORANDU holds blueprintcategoryorandu value.
+	BlueprintCategoryORANDU = "oran-du"
+	// BlueprintCategoryORANCU holds blueprintcategoryorancu value.
+	BlueprintCategoryORANCU = "oran-cu"
+	// BlueprintCategoryXApp holds blueprintcategoryxapp value.
+	BlueprintCategoryXApp = "xapp"
+	// BlueprintCategoryRApp holds blueprintcategoryrapp value.
+	BlueprintCategoryRApp = "rapp"
+	// BlueprintCategorySMO holds blueprintcategorysmo value.
+	BlueprintCategorySMO = "smo"
+	// BlueprintCategory5GCore holds blueprintcategory5gcore value.
+	BlueprintCategory5GCore = "5g-core"
 
-	// Blueprint lifecycle states
-	BlueprintStatePending    = "Pending"
+	// Blueprint lifecycle states.
+	BlueprintStatePending = "Pending"
+	// BlueprintStateGenerating holds blueprintstategenerating value.
 	BlueprintStateGenerating = "Generating"
-	BlueprintStateReady      = "Ready"
-	BlueprintStateFailed     = "Failed"
-	BlueprintStateDeploying  = "Deploying"
-	BlueprintStateDeployed   = "Deployed"
+	// BlueprintStateReady holds blueprintstateready value.
+	BlueprintStateReady = "Ready"
+	// BlueprintStateFailed holds blueprintstatefailed value.
+	BlueprintStateFailed = "Failed"
+	// BlueprintStateDeploying holds blueprintstatedeploying value.
+	BlueprintStateDeploying = "Deploying"
+	// BlueprintStateDeployed holds blueprintstatedeployed value.
+	BlueprintStateDeployed = "Deployed"
 
-	// O-RAN Interface Types
-	InterfaceA1            = "a1"
-	InterfaceO1            = "o1"
-	InterfaceO2            = "o2"
-	InterfaceE2            = "e2"
+	// O-RAN Interface Types.
+	InterfaceA1 = "a1"
+	// InterfaceO1 holds interfaceo1 value.
+	InterfaceO1 = "o1"
+	// InterfaceO2 holds interfaceo2 value.
+	InterfaceO2 = "o2"
+	// InterfaceE2 holds interfacee2 value.
+	InterfaceE2 = "e2"
+	// InterfaceOpenFronthaul holds interfaceopenfronthaul value.
 	InterfaceOpenFronthaul = "open-fronthaul"
 )
 
-// ORANBlueprintManager manages O-RAN compliant blueprint packages
+// ORANBlueprintManager manages O-RAN compliant blueprint packages.
 type ORANBlueprintManager struct {
 	client      client.Client
 	porchClient porch.PorchClient
 	logger      *zap.Logger
 	metrics     *BlueprintMetrics
 
-	// Component managers
+	// Component managers.
 	oranCatalog    *ORANBlueprintCatalog
 	fiveGCatalog   *FiveGCoreCatalog
 	renderEngine   *BlueprintRenderingEngine
@@ -77,17 +93,17 @@ type ORANBlueprintManager struct {
 	validator      *ORANValidator
 	templateEngine *TemplateEngine
 
-	// Operation management
+	// Operation management.
 	operationQueue chan *BlueprintOperation
 	workerpool     *sync.WaitGroup
 	ctx            context.Context
 	cancel         context.CancelFunc
 
-	// Configuration
+	// Configuration.
 	config *BlueprintConfig
 }
 
-// ORANBlueprintCatalog manages O-RAN specific blueprint templates
+// ORANBlueprintCatalog manages O-RAN specific blueprint templates.
 type ORANBlueprintCatalog struct {
 	NearRTRIC  map[string]*BlueprintTemplate
 	NonRTRIC   map[string]*BlueprintTemplate
@@ -100,7 +116,7 @@ type ORANBlueprintCatalog struct {
 	mutex      sync.RWMutex
 }
 
-// FiveGCoreCatalog manages 5G Core network function blueprints
+// FiveGCoreCatalog manages 5G Core network function blueprints.
 type FiveGCoreCatalog struct {
 	AMF   *AmfBlueprintTemplate
 	SMF   *SmfBlueprintTemplate
@@ -115,7 +131,7 @@ type FiveGCoreCatalog struct {
 	mutex sync.RWMutex
 }
 
-// BlueprintTemplate represents a complete blueprint template
+// BlueprintTemplate represents a complete blueprint template.
 type BlueprintTemplate struct {
 	ID            string          `json:"id" yaml:"id"`
 	Name          string          `json:"name" yaml:"name"`
@@ -125,34 +141,34 @@ type BlueprintTemplate struct {
 	ComponentType TargetComponent `json:"componentType" yaml:"componentType"`
 	IntentTypes   []v1.IntentType `json:"intentTypes" yaml:"intentTypes"`
 
-	// O-RAN Compliance
+	// O-RAN Compliance.
 	ORANCompliant bool     `json:"oranCompliant" yaml:"oranCompliant"`
 	Interfaces    []string `json:"interfaces" yaml:"interfaces"`
 	ServiceModels []string `json:"serviceModels,omitempty" yaml:"serviceModels,omitempty"`
 
-	// Templates and configurations
+	// Templates and configurations.
 	HelmChart    *HelmChartTemplate    `json:"helmChart,omitempty" yaml:"helmChart,omitempty"`
 	KRMResources []KRMResourceTemplate `json:"krmResources" yaml:"krmResources"`
 	ConfigMaps   []ConfigMapTemplate   `json:"configMaps,omitempty" yaml:"configMaps,omitempty"`
 	Secrets      []SecretTemplate      `json:"secrets,omitempty" yaml:"secrets,omitempty"`
 
-	// Network Function specific
+	// Network Function specific.
 	NetworkConfig *NetworkFunctionConfig `json:"networkConfig,omitempty" yaml:"networkConfig,omitempty"`
 	QoSProfile    *QoSProfileConfig      `json:"qosProfile,omitempty" yaml:"qosProfile,omitempty"`
 	ScalingPolicy *ScalingPolicyConfig   `json:"scalingPolicy,omitempty" yaml:"scalingPolicy,omitempty"`
 
-	// Dependencies and constraints
+	// Dependencies and constraints.
 	Dependencies []BlueprintDependency `json:"dependencies,omitempty" yaml:"dependencies,omitempty"`
 	Constraints  []BlueprintConstraint `json:"constraints,omitempty" yaml:"constraints,omitempty"`
 
-	// Metadata
+	// Metadata.
 	CreatedAt time.Time `json:"createdAt" yaml:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt" yaml:"updatedAt"`
 	Author    string    `json:"author" yaml:"author"`
 	License   string    `json:"license" yaml:"license"`
 }
 
-// InterfaceTemplate represents O-RAN interface configuration templates
+// InterfaceTemplate represents O-RAN interface configuration templates.
 type InterfaceTemplate struct {
 	InterfaceType string            `json:"interfaceType" yaml:"interfaceType"`
 	Version       string            `json:"version" yaml:"version"`
@@ -163,9 +179,9 @@ type InterfaceTemplate struct {
 	Monitoring    *MonitoringConfig `json:"monitoring,omitempty" yaml:"monitoring,omitempty"`
 }
 
-// Network Function Blueprint Templates
+// Network Function Blueprint Templates.
 
-// AmfBlueprintTemplate represents AMF-specific blueprint template
+// AmfBlueprintTemplate represents AMF-specific blueprint template.
 type AmfBlueprintTemplate struct {
 	*BlueprintTemplate
 	SessionManagement    *SessionManagementConfig  `json:"sessionManagement" yaml:"sessionManagement"`
@@ -174,7 +190,7 @@ type AmfBlueprintTemplate struct {
 	PLMNConfiguration    []PLMNConfig              `json:"plmnConfig" yaml:"plmnConfig"`
 }
 
-// SmfBlueprintTemplate represents SMF-specific blueprint template
+// SmfBlueprintTemplate represents SMF-specific blueprint template.
 type SmfBlueprintTemplate struct {
 	*BlueprintTemplate
 	PDUSessionManagement *PDUSessionConfig `json:"pduSessionManagement" yaml:"pduSessionManagement"`
@@ -183,7 +199,7 @@ type SmfBlueprintTemplate struct {
 	PolicyEnforcement    *PolicyConfig     `json:"policyEnforcement" yaml:"policyEnforcement"`
 }
 
-// UpfBlueprintTemplate represents UPF-specific blueprint template
+// UpfBlueprintTemplate represents UPF-specific blueprint template.
 type UpfBlueprintTemplate struct {
 	*BlueprintTemplate
 	DataPlaneConfig         *DataPlaneConfig      `json:"dataPlaneConfig" yaml:"dataPlaneConfig"`
@@ -199,50 +215,58 @@ type NssfBlueprintTemplate struct {
 	NSIManagement  *NSIManagementConfig  `json:"nsiManagement" yaml:"nsiManagement"`
 }
 
+// UdmBlueprintTemplate represents a udmblueprinttemplate.
 type UdmBlueprintTemplate struct {
 	*BlueprintTemplate
 	SubscriberData     *SubscriberDataConfig     `json:"subscriberData" yaml:"subscriberData"`
 	IdentityManagement *IdentityManagementConfig `json:"identityManagement" yaml:"identityManagement"`
 }
 
+// AusfBlueprintTemplate represents a ausfblueprinttemplate.
 type AusfBlueprintTemplate struct {
 	*BlueprintTemplate
 	AuthenticationServer *AuthenticationServerConfig `json:"authenticationServer" yaml:"authenticationServer"`
 	KeyManagement        *KeyManagementConfig        `json:"keyManagement" yaml:"keyManagement"`
 }
 
+// PcfBlueprintTemplate represents a pcfblueprinttemplate.
 type PcfBlueprintTemplate struct {
 	*BlueprintTemplate
 	PolicyControl *PolicyControlConfig `json:"policyControl" yaml:"policyControl"`
 	ChargingRules *ChargingRulesConfig `json:"chargingRules" yaml:"chargingRules"`
 }
 
+// NrfBlueprintTemplate represents a nrfblueprinttemplate.
 type NrfBlueprintTemplate struct {
 	*BlueprintTemplate
 	ServiceRegistry  *ServiceRegistryConfig  `json:"serviceRegistry" yaml:"serviceRegistry"`
 	ServiceDiscovery *ServiceDiscoveryConfig `json:"serviceDiscovery" yaml:"serviceDiscovery"`
 }
 
+// UdrBlueprintTemplate represents a udrblueprinttemplate.
 type UdrBlueprintTemplate struct {
 	*BlueprintTemplate
 	DataRepository  *DataRepositoryConfig  `json:"dataRepository" yaml:"dataRepository"`
 	DataConsistency *DataConsistencyConfig `json:"dataConsistency" yaml:"dataConsistency"`
 }
 
+// NwdafBlueprintTemplate represents a nwdafblueprinttemplate.
 type NwdafBlueprintTemplate struct {
 	*BlueprintTemplate
 	AnalyticsEngine *AnalyticsEngineConfig `json:"analyticsEngine" yaml:"analyticsEngine"`
 	MLPipeline      *MLPipelineConfig      `json:"mlPipeline" yaml:"mlPipeline"`
 }
 
-// Configuration structures for network functions
+// Configuration structures for network functions.
 
+// NetworkFunctionConfig represents a networkfunctionconfig.
 type NetworkFunctionConfig struct {
 	Interfaces           []InterfaceConfig    `json:"interfaces" yaml:"interfaces"`
 	ServiceBindings      []ServiceBinding     `json:"serviceBindings" yaml:"serviceBindings"`
 	ResourceRequirements ResourceRequirements `json:"resourceRequirements" yaml:"resourceRequirements"`
 }
 
+// QoSProfileConfig represents a qosprofileconfig.
 type QoSProfileConfig struct {
 	QCI               int     `json:"qci" yaml:"qci"`
 	Priority          int     `json:"priority" yaml:"priority"`
@@ -252,6 +276,7 @@ type QoSProfileConfig struct {
 	GuaranteedBitRate string  `json:"guaranteedBitRate" yaml:"guaranteedBitRate"`
 }
 
+// ScalingPolicyConfig represents a scalingpolicyconfig.
 type ScalingPolicyConfig struct {
 	MinReplicas     int32        `json:"minReplicas" yaml:"minReplicas"`
 	MaxReplicas     int32        `json:"maxReplicas" yaml:"maxReplicas"`
@@ -261,14 +286,16 @@ type ScalingPolicyConfig struct {
 	ScaleDownPolicy *ScalePolicy `json:"scaleDownPolicy" yaml:"scaleDownPolicy"`
 }
 
+// ScalePolicy represents a scalepolicy.
 type ScalePolicy struct {
 	StabilizationWindow int32 `json:"stabilizationWindow" yaml:"stabilizationWindow"`
 	PercentagePods      int32 `json:"percentagePods" yaml:"percentagePods"`
 	Pods                int32 `json:"pods" yaml:"pods"`
 }
 
-// Template structures
+// Template structures.
 
+// HelmChartTemplate represents a helmcharttemplate.
 type HelmChartTemplate struct {
 	Name         string                 `json:"name" yaml:"name"`
 	Version      string                 `json:"version" yaml:"version"`
@@ -277,6 +304,7 @@ type HelmChartTemplate struct {
 	Dependencies []HelmDependency       `json:"dependencies,omitempty" yaml:"dependencies,omitempty"`
 }
 
+// KRMResourceTemplate represents a krmresourcetemplate.
 type KRMResourceTemplate struct {
 	APIVersion string                 `json:"apiVersion" yaml:"apiVersion"`
 	Kind       string                 `json:"kind" yaml:"kind"`
@@ -285,6 +313,7 @@ type KRMResourceTemplate struct {
 	Template   string                 `json:"template,omitempty" yaml:"template,omitempty"`
 }
 
+// ConfigMapTemplate represents a configmaptemplate.
 type ConfigMapTemplate struct {
 	Name      string            `json:"name" yaml:"name"`
 	Namespace string            `json:"namespace" yaml:"namespace"`
@@ -292,6 +321,7 @@ type ConfigMapTemplate struct {
 	Template  string            `json:"template,omitempty" yaml:"template,omitempty"`
 }
 
+// SecretTemplate represents a secrettemplate.
 type SecretTemplate struct {
 	Name      string            `json:"name" yaml:"name"`
 	Namespace string            `json:"namespace" yaml:"namespace"`
@@ -300,6 +330,7 @@ type SecretTemplate struct {
 	Template  string            `json:"template,omitempty" yaml:"template,omitempty"`
 }
 
+// BlueprintDependency represents a blueprintdependency.
 type BlueprintDependency struct {
 	ComponentType TargetComponent `json:"componentType" yaml:"componentType"`
 	Version       string          `json:"version" yaml:"version"`
@@ -307,6 +338,7 @@ type BlueprintDependency struct {
 	Interface     string          `json:"interface,omitempty" yaml:"interface,omitempty"`
 }
 
+// BlueprintConstraint represents a blueprintconstraint.
 type BlueprintConstraint struct {
 	Type        string      `json:"type" yaml:"type"`
 	Condition   string      `json:"condition" yaml:"condition"`
@@ -314,8 +346,9 @@ type BlueprintConstraint struct {
 	Description string      `json:"description" yaml:"description"`
 }
 
-// Configuration specific to network functions
+// Configuration specific to network functions.
 
+// SessionManagementConfig represents a sessionmanagementconfig.
 type SessionManagementConfig struct {
 	MaxSessions      int  `json:"maxSessions" yaml:"maxSessions"`
 	SessionTimeout   int  `json:"sessionTimeout" yaml:"sessionTimeout"`
@@ -323,18 +356,21 @@ type SessionManagementConfig struct {
 	EmergencyService bool `json:"emergencyService" yaml:"emergencyService"`
 }
 
+// MobilityManagementConfig represents a mobilitymanagementconfig.
 type MobilityManagementConfig struct {
 	TrackingAreaList   []int  `json:"trackingAreaList" yaml:"trackingAreaList"`
 	ReregistrationTime int    `json:"reregistrationTime" yaml:"reregistrationTime"`
 	PagingPolicy       string `json:"pagingPolicy" yaml:"pagingPolicy"`
 }
 
+// AuthenticationConfig represents a authenticationconfig.
 type AuthenticationConfig struct {
 	SupportedAlgorithms []string `json:"supportedAlgorithms" yaml:"supportedAlgorithms"`
 	AKAVersion          string   `json:"akaVersion" yaml:"akaVersion"`
 	PrivacySupport      bool     `json:"privacySupport" yaml:"privacySupport"`
 }
 
+// PLMNConfig represents a plmnconfig.
 type PLMNConfig struct {
 	MCC          string      `json:"mcc" yaml:"mcc"`
 	MNC          string      `json:"mnc" yaml:"mnc"`
@@ -342,11 +378,13 @@ type PLMNConfig struct {
 	SliceSupport []SliceInfo `json:"sliceSupport" yaml:"sliceSupport"`
 }
 
+// SliceInfo represents a sliceinfo.
 type SliceInfo struct {
 	SST int    `json:"sst" yaml:"sst"`
 	SD  string `json:"sd,omitempty" yaml:"sd,omitempty"`
 }
 
+// PDUSessionConfig represents a pdusessionconfig.
 type PDUSessionConfig struct {
 	MaxPDUSessions      int      `json:"maxPDUSessions" yaml:"maxPDUSessions"`
 	DefaultQoS          QoSInfo  `json:"defaultQoS" yaml:"defaultQoS"`
@@ -354,12 +392,14 @@ type PDUSessionConfig struct {
 	AllowedSessionTypes []string `json:"allowedSessionTypes" yaml:"allowedSessionTypes"`
 }
 
+// QoSFlowConfig represents a qosflowconfig.
 type QoSFlowConfig struct {
 	MaxQoSFlows        int       `json:"maxQoSFlows" yaml:"maxQoSFlows"`
 	SupportedQoS       []QoSInfo `json:"supportedQoS" yaml:"supportedQoS"`
 	FlowControlEnabled bool      `json:"flowControlEnabled" yaml:"flowControlEnabled"`
 }
 
+// QoSInfo represents a qosinfo.
 type QoSInfo struct {
 	QFI               int     `json:"qfi" yaml:"qfi"`
 	FiveQI            int     `json:"fiveQI" yaml:"fiveQI"`
@@ -368,6 +408,7 @@ type QoSInfo struct {
 	PacketErrorRate   float64 `json:"packetErrorRate" yaml:"packetErrorRate"`
 }
 
+// ChargingConfig represents a chargingconfig.
 type ChargingConfig struct {
 	ChargingMode      string `json:"chargingMode" yaml:"chargingMode"`
 	RatingGroups      []int  `json:"ratingGroups" yaml:"ratingGroups"`
@@ -375,12 +416,14 @@ type ChargingConfig struct {
 	ReportingInterval int    `json:"reportingInterval" yaml:"reportingInterval"`
 }
 
+// PolicyConfig represents a policyconfig.
 type PolicyConfig struct {
 	PolicyDecisionPoint string             `json:"policyDecisionPoint" yaml:"policyDecisionPoint"`
 	PolicyRules         []PolicyRule       `json:"policyRules" yaml:"policyRules"`
 	EnforcementPoints   []EnforcementPoint `json:"enforcementPoints" yaml:"enforcementPoints"`
 }
 
+// PolicyRule represents a policyrule.
 type PolicyRule struct {
 	ID         string                 `json:"id" yaml:"id"`
 	Condition  string                 `json:"condition" yaml:"condition"`
@@ -389,12 +432,14 @@ type PolicyRule struct {
 	Parameters map[string]interface{} `json:"parameters" yaml:"parameters"`
 }
 
+// EnforcementPoint represents a enforcementpoint.
 type EnforcementPoint struct {
 	ComponentType TargetComponent `json:"componentType" yaml:"componentType"`
 	Interface     string          `json:"interface" yaml:"interface"`
 	Method        string          `json:"method" yaml:"method"`
 }
 
+// DataPlaneConfig represents a dataplaneconfig.
 type DataPlaneConfig struct {
 	InterfaceType       string       `json:"interfaceType" yaml:"interfaceType"`
 	EncapsulationMode   string       `json:"encapsulationMode" yaml:"encapsulationMode"`
@@ -402,24 +447,28 @@ type DataPlaneConfig struct {
 	BufferConfiguration BufferConfig `json:"bufferConfiguration" yaml:"bufferConfiguration"`
 }
 
+// BufferConfig represents a bufferconfig.
 type BufferConfig struct {
 	Size         string         `json:"size" yaml:"size"`
 	Thresholds   map[string]int `json:"thresholds" yaml:"thresholds"`
 	DropPolicies []DropPolicy   `json:"dropPolicies" yaml:"dropPolicies"`
 }
 
+// DropPolicy represents a droppolicy.
 type DropPolicy struct {
 	Priority  int    `json:"priority" yaml:"priority"`
 	Threshold int    `json:"threshold" yaml:"threshold"`
 	Action    string `json:"action" yaml:"action"`
 }
 
+// TrafficRoutingConfig represents a trafficroutingconfig.
 type TrafficRoutingConfig struct {
 	RoutingRules    []RoutingRule         `json:"routingRules" yaml:"routingRules"`
 	LoadBalancing   LoadBalancingConfig   `json:"loadBalancing" yaml:"loadBalancing"`
 	TrafficSteering TrafficSteeringConfig `json:"trafficSteering" yaml:"trafficSteering"`
 }
 
+// RoutingRule represents a routingrule.
 type RoutingRule struct {
 	ID          string `json:"id" yaml:"id"`
 	Source      string `json:"source" yaml:"source"`
@@ -429,6 +478,7 @@ type RoutingRule struct {
 	Priority    int    `json:"priority" yaml:"priority"`
 }
 
+// LoadBalancingConfig represents a loadbalancingconfig.
 type LoadBalancingConfig struct {
 	Algorithm       string            `json:"algorithm" yaml:"algorithm"`
 	HealthCheck     HealthCheckConfig `json:"healthCheck" yaml:"healthCheck"`
@@ -436,6 +486,7 @@ type LoadBalancingConfig struct {
 	Weights         map[string]int    `json:"weights" yaml:"weights"`
 }
 
+// HealthCheckConfig represents a healthcheckconfig.
 type HealthCheckConfig struct {
 	Enabled  bool   `json:"enabled" yaml:"enabled"`
 	Interval int    `json:"interval" yaml:"interval"`
@@ -443,24 +494,28 @@ type HealthCheckConfig struct {
 	Path     string `json:"path" yaml:"path"`
 }
 
+// TrafficSteeringConfig represents a trafficsteeringconfig.
 type TrafficSteeringConfig struct {
 	Enabled  bool           `json:"enabled" yaml:"enabled"`
 	Rules    []SteeringRule `json:"rules" yaml:"rules"`
 	Fallback string         `json:"fallback" yaml:"fallback"`
 }
 
+// SteeringRule represents a steeringrule.
 type SteeringRule struct {
 	Criteria    string `json:"criteria" yaml:"criteria"`
 	Destination string `json:"destination" yaml:"destination"`
 	Weight      int    `json:"weight" yaml:"weight"`
 }
 
+// EdgeDeploymentConfig represents a edgedeploymentconfig.
 type EdgeDeploymentConfig struct {
 	Enabled       bool               `json:"enabled" yaml:"enabled"`
 	EdgeLocations []EdgeLocation     `json:"edgeLocations" yaml:"edgeLocations"`
 	Optimization  OptimizationConfig `json:"optimization" yaml:"optimization"`
 }
 
+// EdgeLocation represents a edgelocation.
 type EdgeLocation struct {
 	Name      string         `json:"name" yaml:"name"`
 	Region    string         `json:"region" yaml:"region"`
@@ -468,6 +523,7 @@ type EdgeLocation struct {
 	Latency   LatencyConfig  `json:"latency" yaml:"latency"`
 }
 
+// OptimizationConfig represents a optimizationconfig.
 type OptimizationConfig struct {
 	CPU     bool `json:"cpu" yaml:"cpu"`
 	Memory  bool `json:"memory" yaml:"memory"`
@@ -475,24 +531,28 @@ type OptimizationConfig struct {
 	Storage bool `json:"storage" yaml:"storage"`
 }
 
+// LatencyConfig represents a latencyconfig.
 type LatencyConfig struct {
 	Target int `json:"target" yaml:"target"`
 	Max    int `json:"max" yaml:"max"`
 	Jitter int `json:"jitter" yaml:"jitter"`
 }
 
+// PerformanceConfig represents a performanceconfig.
 type PerformanceConfig struct {
 	Throughput    ThroughputConfig     `json:"throughput" yaml:"throughput"`
 	Latency       LatencyOptimization  `json:"latency" yaml:"latency"`
 	ResourceUsage ResourceOptimization `json:"resourceUsage" yaml:"resourceUsage"`
 }
 
+// ThroughputConfig represents a throughputconfig.
 type ThroughputConfig struct {
 	Target    string `json:"target" yaml:"target"`
 	Burst     string `json:"burst" yaml:"burst"`
 	Sustained string `json:"sustained" yaml:"sustained"`
 }
 
+// LatencyOptimization represents a latencyoptimization.
 type LatencyOptimization struct {
 	Processing   int  `json:"processing" yaml:"processing"`
 	Queuing      int  `json:"queuing" yaml:"queuing"`
@@ -500,6 +560,7 @@ type LatencyOptimization struct {
 	Optimization bool `json:"optimization" yaml:"optimization"`
 }
 
+// ResourceOptimization represents a resourceoptimization.
 type ResourceOptimization struct {
 	CPUAffinity      bool  `json:"cpuAffinity" yaml:"cpuAffinity"`
 	NUMATopology     bool  `json:"numaTopology" yaml:"numaTopology"`
@@ -507,37 +568,42 @@ type ResourceOptimization struct {
 	IsolatedCores    []int `json:"isolatedCores" yaml:"isolatedCores"`
 }
 
-// Additional configuration types for other network functions
+// Additional configuration types for other network functions.
 type SliceSelectionConfig struct {
 	SelectionRules []SliceSelectionRule `json:"selectionRules" yaml:"selectionRules"`
 	DefaultSlice   SliceInfo            `json:"defaultSlice" yaml:"defaultSlice"`
 	LoadBalancing  bool                 `json:"loadBalancing" yaml:"loadBalancing"`
 }
 
+// SliceSelectionRule represents a sliceselectionrule.
 type SliceSelectionRule struct {
 	Criteria    string    `json:"criteria" yaml:"criteria"`
 	TargetSlice SliceInfo `json:"targetSlice" yaml:"targetSlice"`
 	Priority    int       `json:"priority" yaml:"priority"`
 }
 
+// NSIManagementConfig represents a nsimanagementconfig.
 type NSIManagementConfig struct {
 	MaxNSI          int             `json:"maxNSI" yaml:"maxNSI"`
 	LifecyclePolicy LifecyclePolicy `json:"lifecyclePolicy" yaml:"lifecyclePolicy"`
 	ResourceSharing bool            `json:"resourceSharing" yaml:"resourceSharing"`
 }
 
+// LifecyclePolicy represents a lifecyclepolicy.
 type LifecyclePolicy struct {
 	InstantiationTimeout int `json:"instantiationTimeout" yaml:"instantiationTimeout"`
 	TerminationTimeout   int `json:"terminationTimeout" yaml:"terminationTimeout"`
 	ModificationTimeout  int `json:"modificationTimeout" yaml:"modificationTimeout"`
 }
 
+// SubscriberDataConfig represents a subscriberdataconfig.
 type SubscriberDataConfig struct {
 	DataConsistency   string         `json:"dataConsistency" yaml:"dataConsistency"`
 	ReplicationFactor int            `json:"replicationFactor" yaml:"replicationFactor"`
 	BackupStrategy    BackupStrategy `json:"backupStrategy" yaml:"backupStrategy"`
 }
 
+// BackupStrategy represents a backupstrategy.
 type BackupStrategy struct {
 	Enabled   bool   `json:"enabled" yaml:"enabled"`
 	Frequency string `json:"frequency" yaml:"frequency"`
@@ -545,12 +611,14 @@ type BackupStrategy struct {
 	Storage   string `json:"storage" yaml:"storage"`
 }
 
+// IdentityManagementConfig represents a identitymanagementconfig.
 type IdentityManagementConfig struct {
 	IdentityTypes     []string         `json:"identityTypes" yaml:"identityTypes"`
 	PrivacyProtection bool             `json:"privacyProtection" yaml:"privacyProtection"`
 	Encryption        EncryptionConfig `json:"encryption" yaml:"encryption"`
 }
 
+// EncryptionConfig represents a encryptionconfig.
 type EncryptionConfig struct {
 	Algorithm      string `json:"algorithm" yaml:"algorithm"`
 	KeyLength      int    `json:"keyLength" yaml:"keyLength"`
@@ -558,48 +626,56 @@ type EncryptionConfig struct {
 	RotationPeriod int    `json:"rotationPeriod" yaml:"rotationPeriod"`
 }
 
+// AuthenticationServerConfig represents a authenticationserverconfig.
 type AuthenticationServerConfig struct {
 	SupportedMethods  []string              `json:"supportedMethods" yaml:"supportedMethods"`
 	CertificateConfig CertificateConfig     `json:"certificateConfig" yaml:"certificateConfig"`
 	TokenManagement   TokenManagementConfig `json:"tokenManagement" yaml:"tokenManagement"`
 }
 
+// CertificateConfig represents a certificateconfig.
 type CertificateConfig struct {
 	CertificateAuthority string `json:"certificateAuthority" yaml:"certificateAuthority"`
 	ValidityPeriod       int    `json:"validityPeriod" yaml:"validityPeriod"`
 	RevocationMethod     string `json:"revocationMethod" yaml:"revocationMethod"`
 }
 
+// TokenManagementConfig represents a tokenmanagementconfig.
 type TokenManagementConfig struct {
 	TokenLifetime   int  `json:"tokenLifetime" yaml:"tokenLifetime"`
 	RefreshEnabled  bool `json:"refreshEnabled" yaml:"refreshEnabled"`
 	RefreshLifetime int  `json:"refreshLifetime" yaml:"refreshLifetime"`
 }
 
+// KeyManagementConfig represents a keymanagementconfig.
 type KeyManagementConfig struct {
 	KeyDerivationFunction string            `json:"keyDerivationFunction" yaml:"keyDerivationFunction"`
 	KeyStorage            KeyStorageConfig  `json:"keyStorage" yaml:"keyStorage"`
 	KeyRotationPolicy     KeyRotationPolicy `json:"keyRotationPolicy" yaml:"keyRotationPolicy"`
 }
 
+// KeyStorageConfig represents a keystorageconfig.
 type KeyStorageConfig struct {
 	StorageType   string `json:"storageType" yaml:"storageType"`
 	EncryptionKey string `json:"encryptionKey" yaml:"encryptionKey"`
 	AccessControl string `json:"accessControl" yaml:"accessControl"`
 }
 
+// KeyRotationPolicy represents a keyrotationpolicy.
 type KeyRotationPolicy struct {
 	AutoRotation   bool `json:"autoRotation" yaml:"autoRotation"`
 	RotationPeriod int  `json:"rotationPeriod" yaml:"rotationPeriod"`
 	BackupKeys     int  `json:"backupKeys" yaml:"backupKeys"`
 }
 
+// PolicyControlConfig represents a policycontrolconfig.
 type PolicyControlConfig struct {
 	PolicyStore     PolicyStoreConfig    `json:"policyStore" yaml:"policyStore"`
 	DecisionEngine  DecisionEngineConfig `json:"decisionEngine" yaml:"decisionEngine"`
 	EnforcementMode string               `json:"enforcementMode" yaml:"enforcementMode"`
 }
 
+// PolicyStoreConfig represents a policystoreconfig.
 type PolicyStoreConfig struct {
 	StorageType  string `json:"storageType" yaml:"storageType"`
 	Consistency  string `json:"consistency" yaml:"consistency"`
@@ -607,24 +683,28 @@ type PolicyStoreConfig struct {
 	CacheTTL     int    `json:"cacheTTL" yaml:"cacheTTL"`
 }
 
+// DecisionEngineConfig represents a decisionengineconfig.
 type DecisionEngineConfig struct {
 	Algorithm          string `json:"algorithm" yaml:"algorithm"`
 	ConcurrentRequests int    `json:"concurrentRequests" yaml:"concurrentRequests"`
 	TimeoutMs          int    `json:"timeoutMs" yaml:"timeoutMs"`
 }
 
+// ChargingRulesConfig represents a chargingrulesconfig.
 type ChargingRulesConfig struct {
 	RuleEngine        RuleEngineConfig `json:"ruleEngine" yaml:"ruleEngine"`
 	MeteringEnabled   bool             `json:"meteringEnabled" yaml:"meteringEnabled"`
 	ReportingInterval int              `json:"reportingInterval" yaml:"reportingInterval"`
 }
 
+// RuleEngineConfig represents a ruleengineconfig.
 type RuleEngineConfig struct {
 	MaxRules       int    `json:"maxRules" yaml:"maxRules"`
 	EvaluationMode string `json:"evaluationMode" yaml:"evaluationMode"`
 	CacheSize      int    `json:"cacheSize" yaml:"cacheSize"`
 }
 
+// ServiceRegistryConfig represents a serviceregistryconfig.
 type ServiceRegistryConfig struct {
 	MaxServices       int                  `json:"maxServices" yaml:"maxServices"`
 	HeartbeatInterval int                  `json:"heartbeatInterval" yaml:"heartbeatInterval"`
@@ -632,18 +712,21 @@ type ServiceRegistryConfig struct {
 	LoadBalancing     ServiceLoadBalancing `json:"loadBalancing" yaml:"loadBalancing"`
 }
 
+// ServiceLoadBalancing represents a serviceloadbalancing.
 type ServiceLoadBalancing struct {
 	Enabled     bool   `json:"enabled" yaml:"enabled"`
 	Algorithm   string `json:"algorithm" yaml:"algorithm"`
 	HealthCheck bool   `json:"healthCheck" yaml:"healthCheck"`
 }
 
+// ServiceDiscoveryConfig represents a servicediscoveryconfig.
 type ServiceDiscoveryConfig struct {
 	DiscoveryMethods []string           `json:"discoveryMethods" yaml:"discoveryMethods"`
 	CacheConfig      ServiceCacheConfig `json:"cacheConfig" yaml:"cacheConfig"`
 	FilterEnabled    bool               `json:"filterEnabled" yaml:"filterEnabled"`
 }
 
+// ServiceCacheConfig represents a servicecacheconfig.
 type ServiceCacheConfig struct {
 	Enabled bool `json:"enabled" yaml:"enabled"`
 	TTL     int  `json:"ttl" yaml:"ttl"`
@@ -651,12 +734,14 @@ type ServiceCacheConfig struct {
 	Preload bool `json:"preload" yaml:"preload"`
 }
 
+// DataRepositoryConfig represents a datarepositoryconfig.
 type DataRepositoryConfig struct {
 	StorageEngine     StorageEngineConfig `json:"storageEngine" yaml:"storageEngine"`
 	ReplicationConfig ReplicationConfig   `json:"replicationConfig" yaml:"replicationConfig"`
 	IndexingStrategy  IndexingConfig      `json:"indexingStrategy" yaml:"indexingStrategy"`
 }
 
+// StorageEngineConfig represents a storageengineconfig.
 type StorageEngineConfig struct {
 	EngineType      string `json:"engineType" yaml:"engineType"`
 	ConnectionPool  int    `json:"connectionPool" yaml:"connectionPool"`
@@ -664,6 +749,7 @@ type StorageEngineConfig struct {
 	TransactionMode string `json:"transactionMode" yaml:"transactionMode"`
 }
 
+// ReplicationConfig represents a replicationconfig.
 type ReplicationConfig struct {
 	Enabled      bool   `json:"enabled" yaml:"enabled"`
 	ReplicaCount int    `json:"replicaCount" yaml:"replicaCount"`
@@ -671,18 +757,21 @@ type ReplicationConfig struct {
 	FailoverTime int    `json:"failoverTime" yaml:"failoverTime"`
 }
 
+// IndexingConfig represents a indexingconfig.
 type IndexingConfig struct {
 	PrimaryIndex     bool     `json:"primaryIndex" yaml:"primaryIndex"`
 	SecondaryIndexes []string `json:"secondaryIndexes" yaml:"secondaryIndexes"`
 	FullTextSearch   bool     `json:"fullTextSearch" yaml:"fullTextSearch"`
 }
 
+// DataConsistencyConfig represents a dataconsistencyconfig.
 type DataConsistencyConfig struct {
 	ConsistencyLevel   string           `json:"consistencyLevel" yaml:"consistencyLevel"`
 	ConflictResolution string           `json:"conflictResolution" yaml:"conflictResolution"`
 	ValidationRules    []ValidationRule `json:"validationRules" yaml:"validationRules"`
 }
 
+// ValidationRule represents a validationrule.
 type ValidationRule struct {
 	Field       string   `json:"field" yaml:"field"`
 	Type        string   `json:"type" yaml:"type"`
@@ -690,6 +779,7 @@ type ValidationRule struct {
 	Constraints []string `json:"constraints" yaml:"constraints"`
 }
 
+// AnalyticsEngineConfig represents a analyticsengineconfig.
 type AnalyticsEngineConfig struct {
 	ProcessingMode      string                 `json:"processingMode" yaml:"processingMode"`
 	DataSources         []DataSourceConfig     `json:"dataSources" yaml:"dataSources"`
@@ -697,6 +787,7 @@ type AnalyticsEngineConfig struct {
 	OutputConfiguration OutputConfig           `json:"outputConfiguration" yaml:"outputConfiguration"`
 }
 
+// DataSourceConfig represents a datasourceconfig.
 type DataSourceConfig struct {
 	Name           string            `json:"name" yaml:"name"`
 	Type           string            `json:"type" yaml:"type"`
@@ -704,6 +795,7 @@ type DataSourceConfig struct {
 	SamplingRate   float64           `json:"samplingRate" yaml:"samplingRate"`
 }
 
+// AnalyticsModelConfig represents a analyticsmodelconfig.
 type AnalyticsModelConfig struct {
 	ModelID        string                 `json:"modelId" yaml:"modelId"`
 	ModelType      string                 `json:"modelType" yaml:"modelType"`
@@ -712,12 +804,14 @@ type AnalyticsModelConfig struct {
 	UpdateInterval int                    `json:"updateInterval" yaml:"updateInterval"`
 }
 
+// OutputConfig represents a outputconfig.
 type OutputConfig struct {
 	Destinations []OutputDestination `json:"destinations" yaml:"destinations"`
 	Format       string              `json:"format" yaml:"format"`
 	Aggregation  AggregationConfig   `json:"aggregation" yaml:"aggregation"`
 }
 
+// OutputDestination represents a outputdestination.
 type OutputDestination struct {
 	Name        string            `json:"name" yaml:"name"`
 	Type        string            `json:"type" yaml:"type"`
@@ -725,6 +819,7 @@ type OutputDestination struct {
 	Credentials map[string]string `json:"credentials" yaml:"credentials"`
 }
 
+// AggregationConfig represents a aggregationconfig.
 type AggregationConfig struct {
 	Enabled   bool     `json:"enabled" yaml:"enabled"`
 	Window    int      `json:"window" yaml:"window"`
@@ -732,12 +827,14 @@ type AggregationConfig struct {
 	Grouping  []string `json:"grouping" yaml:"grouping"`
 }
 
+// MLPipelineConfig represents a mlpipelineconfig.
 type MLPipelineConfig struct {
 	PipelineStages   []PipelineStage  `json:"pipelineStages" yaml:"pipelineStages"`
 	ModelManagement  ModelManagement  `json:"modelManagement" yaml:"modelManagement"`
 	TrainingSchedule TrainingSchedule `json:"trainingSchedule" yaml:"trainingSchedule"`
 }
 
+// PipelineStage represents a pipelinestage.
 type PipelineStage struct {
 	Name          string                 `json:"name" yaml:"name"`
 	Type          string                 `json:"type" yaml:"type"`
@@ -745,6 +842,7 @@ type PipelineStage struct {
 	Dependencies  []string               `json:"dependencies" yaml:"dependencies"`
 }
 
+// ModelManagement represents a modelmanagement.
 type ModelManagement struct {
 	Versioning        bool   `json:"versioning" yaml:"versioning"`
 	ModelRegistry     string `json:"modelRegistry" yaml:"modelRegistry"`
@@ -752,6 +850,7 @@ type ModelManagement struct {
 	RollbackEnabled   bool   `json:"rollbackEnabled" yaml:"rollbackEnabled"`
 }
 
+// TrainingSchedule represents a trainingschedule.
 type TrainingSchedule struct {
 	Enabled    bool   `json:"enabled" yaml:"enabled"`
 	Frequency  string `json:"frequency" yaml:"frequency"`
@@ -759,8 +858,9 @@ type TrainingSchedule struct {
 	AutoDeploy bool   `json:"autoDeploy" yaml:"autoDeploy"`
 }
 
-// Common configuration types used across network functions
+// Common configuration types used across network functions.
 
+// InterfaceConfig represents a interfaceconfig.
 type InterfaceConfig struct {
 	Name       string            `json:"name" yaml:"name"`
 	Type       string            `json:"type" yaml:"type"`
@@ -771,6 +871,7 @@ type InterfaceConfig struct {
 	Parameters map[string]string `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 }
 
+// TLSConfig represents a tlsconfig.
 type TLSConfig struct {
 	Enabled    bool   `json:"enabled" yaml:"enabled"`
 	CertFile   string `json:"certFile" yaml:"certFile"`
@@ -779,6 +880,7 @@ type TLSConfig struct {
 	SkipVerify bool   `json:"skipVerify" yaml:"skipVerify"`
 }
 
+// ServiceBinding represents a servicebinding.
 type ServiceBinding struct {
 	Service      string              `json:"service" yaml:"service"`
 	Interface    string              `json:"interface" yaml:"interface"`
@@ -786,12 +888,14 @@ type ServiceBinding struct {
 	LoadBalancer *LoadBalancerConfig `json:"loadBalancer,omitempty" yaml:"loadBalancer,omitempty"`
 }
 
+// LoadBalancerConfig represents a loadbalancerconfig.
 type LoadBalancerConfig struct {
 	Type        string             `json:"type" yaml:"type"`
 	Algorithm   string             `json:"algorithm" yaml:"algorithm"`
 	HealthCheck *HealthCheckConfig `json:"healthCheck,omitempty" yaml:"healthCheck,omitempty"`
 }
 
+// ResourceRequirements represents a resourcerequirements.
 type ResourceRequirements struct {
 	CPU              string           `json:"cpu" yaml:"cpu"`
 	Memory           string           `json:"memory" yaml:"memory"`
@@ -801,18 +905,21 @@ type ResourceRequirements struct {
 	Requests         ResourceRequests `json:"requests" yaml:"requests"`
 }
 
+// ResourceLimits represents a resourcelimits.
 type ResourceLimits struct {
 	CPU     string `json:"cpu" yaml:"cpu"`
 	Memory  string `json:"memory" yaml:"memory"`
 	Storage string `json:"storage" yaml:"storage"`
 }
 
+// ResourceRequests represents a resourcerequests.
 type ResourceRequests struct {
 	CPU     string `json:"cpu" yaml:"cpu"`
 	Memory  string `json:"memory" yaml:"memory"`
 	Storage string `json:"storage" yaml:"storage"`
 }
 
+// EndpointConfig represents a endpointconfig.
 type EndpointConfig struct {
 	Name     string            `json:"name" yaml:"name"`
 	Address  string            `json:"address" yaml:"address"`
@@ -822,29 +929,34 @@ type EndpointConfig struct {
 	Headers  map[string]string `json:"headers,omitempty" yaml:"headers,omitempty"`
 }
 
+// SecurityConfig represents a securityconfig.
 type SecurityConfig struct {
 	Authentication *AuthConfig       `json:"authentication,omitempty" yaml:"authentication,omitempty"`
 	Authorization  *AuthzConfig      `json:"authorization,omitempty" yaml:"authorization,omitempty"`
 	Encryption     *EncryptionConfig `json:"encryption,omitempty" yaml:"encryption,omitempty"`
 }
 
+// AuthConfig represents a authconfig.
 type AuthConfig struct {
 	Type       string            `json:"type" yaml:"type"`
 	Parameters map[string]string `json:"parameters" yaml:"parameters"`
 }
 
+// AuthzConfig represents a authzconfig.
 type AuthzConfig struct {
 	Type     string   `json:"type" yaml:"type"`
 	Policies []string `json:"policies" yaml:"policies"`
 	Roles    []string `json:"roles" yaml:"roles"`
 }
 
+// QoSConfig represents a qosconfig.
 type QoSConfig struct {
 	Enabled    bool              `json:"enabled" yaml:"enabled"`
 	Profile    string            `json:"profile" yaml:"profile"`
 	Parameters map[string]string `json:"parameters" yaml:"parameters"`
 }
 
+// MonitoringConfig represents a monitoringconfig.
 type MonitoringConfig struct {
 	Enabled  bool           `json:"enabled" yaml:"enabled"`
 	Metrics  MetricsConfig  `json:"metrics" yaml:"metrics"`
@@ -853,6 +965,7 @@ type MonitoringConfig struct {
 	Alerting AlertingConfig `json:"alerting" yaml:"alerting"`
 }
 
+// MetricsConfig represents a metricsconfig.
 type MetricsConfig struct {
 	Enabled  bool     `json:"enabled" yaml:"enabled"`
 	Endpoint string   `json:"endpoint" yaml:"endpoint"`
@@ -860,6 +973,7 @@ type MetricsConfig struct {
 	Metrics  []string `json:"metrics" yaml:"metrics"`
 }
 
+// LoggingConfig represents a loggingconfig.
 type LoggingConfig struct {
 	Enabled bool   `json:"enabled" yaml:"enabled"`
 	Level   string `json:"level" yaml:"level"`
@@ -867,18 +981,21 @@ type LoggingConfig struct {
 	Output  string `json:"output" yaml:"output"`
 }
 
+// TracingConfig represents a tracingconfig.
 type TracingConfig struct {
 	Enabled    bool    `json:"enabled" yaml:"enabled"`
 	Endpoint   string  `json:"endpoint" yaml:"endpoint"`
 	SampleRate float64 `json:"sampleRate" yaml:"sampleRate"`
 }
 
+// AlertingConfig represents a alertingconfig.
 type AlertingConfig struct {
 	Enabled  bool           `json:"enabled" yaml:"enabled"`
 	Rules    []AlertRule    `json:"rules" yaml:"rules"`
 	Channels []AlertChannel `json:"channels" yaml:"channels"`
 }
 
+// AlertRule represents a alertrule.
 type AlertRule struct {
 	Name      string            `json:"name" yaml:"name"`
 	Condition string            `json:"condition" yaml:"condition"`
@@ -888,12 +1005,14 @@ type AlertRule struct {
 	Labels    map[string]string `json:"labels" yaml:"labels"`
 }
 
+// AlertChannel represents a alertchannel.
 type AlertChannel struct {
 	Name   string            `json:"name" yaml:"name"`
 	Type   string            `json:"type" yaml:"type"`
 	Config map[string]string `json:"config" yaml:"config"`
 }
 
+// HelmDependency represents a helmdependency.
 type HelmDependency struct {
 	Name       string `json:"name" yaml:"name"`
 	Version    string `json:"version" yaml:"version"`
@@ -901,7 +1020,7 @@ type HelmDependency struct {
 	Optional   bool   `json:"optional,omitempty" yaml:"optional,omitempty"`
 }
 
-// BlueprintMetrics contains Prometheus metrics for blueprint operations
+// BlueprintMetrics contains Prometheus metrics for blueprint operations.
 type BlueprintMetrics struct {
 	BlueprintGenerations    prometheus.Counter
 	BlueprintErrors         prometheus.Counter
@@ -913,7 +1032,7 @@ type BlueprintMetrics struct {
 	ORANCompliantBlueprints prometheus.Counter
 }
 
-// NewBlueprintMetrics creates new blueprint metrics
+// NewBlueprintMetrics creates new blueprint metrics.
 func NewBlueprintMetrics() *BlueprintMetrics {
 	return &BlueprintMetrics{
 		BlueprintGenerations: promauto.NewCounter(prometheus.CounterOpts{
@@ -954,7 +1073,7 @@ func NewBlueprintMetrics() *BlueprintMetrics {
 	}
 }
 
-// BlueprintConfig contains configuration for the blueprint manager
+// BlueprintConfig contains configuration for the blueprint manager.
 type BlueprintConfig struct {
 	PorchEndpoint        string
 	TemplateRepository   string
@@ -965,7 +1084,7 @@ type BlueprintConfig struct {
 	DefaultNamespace     string
 }
 
-// NewORANBlueprintManager creates a new O-RAN blueprint manager
+// NewORANBlueprintManager creates a new O-RAN blueprint manager.
 func NewORANBlueprintManager(
 	client client.Client,
 	porchClient porch.PorchClient,
@@ -1002,13 +1121,13 @@ func NewORANBlueprintManager(
 		operationQueue: make(chan *BlueprintOperation, config.MaxConcurrentOps*2),
 	}
 
-	// Initialize component managers
+	// Initialize component managers.
 	if err := manager.initializeComponents(); err != nil {
 		cancel()
 		return nil, fmt.Errorf("failed to initialize components: %w", err)
 	}
 
-	// Start workers
+	// Start workers.
 	manager.startWorkers()
 
 	logger.Info("O-RAN Blueprint Manager initialized successfully",
@@ -1019,7 +1138,7 @@ func NewORANBlueprintManager(
 	return manager, nil
 }
 
-// NewORANBlueprintCatalog creates a new O-RAN blueprint catalog
+// NewORANBlueprintCatalog creates a new O-RAN blueprint catalog.
 func NewORANBlueprintCatalog(config *BlueprintConfig, logger *zap.Logger) (*ORANBlueprintCatalog, error) {
 	catalog := &ORANBlueprintCatalog{
 		NearRTRIC:  make(map[string]*BlueprintTemplate),
@@ -1032,27 +1151,27 @@ func NewORANBlueprintCatalog(config *BlueprintConfig, logger *zap.Logger) (*ORAN
 		interfaces: make(map[string]*InterfaceTemplate),
 	}
 
-	// Initialize with default templates (would typically load from repository)
+	// Initialize with default templates (would typically load from repository).
 	catalog.loadDefaultTemplates()
 
 	logger.Info("O-RAN blueprint catalog initialized")
 	return catalog, nil
 }
 
-// NewFiveGCoreCatalog creates a new 5G Core catalog
+// NewFiveGCoreCatalog creates a new 5G Core catalog.
 func NewFiveGCoreCatalog(config *BlueprintConfig, logger *zap.Logger) (*FiveGCoreCatalog, error) {
 	catalog := &FiveGCoreCatalog{}
 
-	// Initialize with default templates (would typically load from repository)
+	// Initialize with default templates (would typically load from repository).
 	catalog.loadDefaultTemplates()
 
 	logger.Info("5G Core catalog initialized")
 	return catalog, nil
 }
 
-// loadDefaultTemplates loads default O-RAN templates
+// loadDefaultTemplates loads default O-RAN templates.
 func (catalog *ORANBlueprintCatalog) loadDefaultTemplates() {
-	// Add a basic Near-RT RIC template
+	// Add a basic Near-RT RIC template.
 	catalog.NearRTRIC["default"] = &BlueprintTemplate{
 		ID:            "near-rt-ric-default",
 		Name:          "Default Near-RT RIC",
@@ -1078,7 +1197,7 @@ func (catalog *ORANBlueprintCatalog) loadDefaultTemplates() {
 		CreatedAt: time.Now(),
 	}
 
-	// Add a basic xApp template
+	// Add a basic xApp template.
 	catalog.xApps["default"] = &BlueprintTemplate{
 		ID:            "xapp-default",
 		Name:          "Default xApp",
@@ -1105,9 +1224,9 @@ func (catalog *ORANBlueprintCatalog) loadDefaultTemplates() {
 	}
 }
 
-// loadDefaultTemplates loads default 5G Core templates
+// loadDefaultTemplates loads default 5G Core templates.
 func (catalog *FiveGCoreCatalog) loadDefaultTemplates() {
-	// Initialize with basic AMF template
+	// Initialize with basic AMF template.
 	catalog.AMF = &AmfBlueprintTemplate{
 		BlueprintTemplate: &BlueprintTemplate{
 			ID:            "amf-default",
@@ -1141,7 +1260,7 @@ func (catalog *FiveGCoreCatalog) loadDefaultTemplates() {
 		},
 	}
 
-	// Initialize other network functions with minimal templates
+	// Initialize other network functions with minimal templates.
 	catalog.SMF = &SmfBlueprintTemplate{
 		BlueprintTemplate: &BlueprintTemplate{
 			ID:            "smf-default",
@@ -1173,35 +1292,35 @@ func (catalog *FiveGCoreCatalog) loadDefaultTemplates() {
 	}
 }
 
-// initializeComponents initializes all component managers
+// initializeComponents initializes all component managers.
 func (obm *ORANBlueprintManager) initializeComponents() error {
 	var err error
 
-	// Initialize O-RAN catalog
+	// Initialize O-RAN catalog.
 	obm.oranCatalog, err = NewORANBlueprintCatalog(obm.config, obm.logger.Named("oran-catalog"))
 	if err != nil {
 		return fmt.Errorf("failed to initialize O-RAN catalog: %w", err)
 	}
 
-	// Initialize 5G Core catalog
+	// Initialize 5G Core catalog.
 	obm.fiveGCatalog, err = NewFiveGCoreCatalog(obm.config, obm.logger.Named("5g-catalog"))
 	if err != nil {
 		return fmt.Errorf("failed to initialize 5G Core catalog: %w", err)
 	}
 
-	// Initialize rendering engine
+	// Initialize rendering engine.
 	obm.renderEngine, err = NewBlueprintRenderingEngine(obm.config, obm.logger.Named("renderer"))
 	if err != nil {
 		return fmt.Errorf("failed to initialize rendering engine: %w", err)
 	}
 
-	// Initialize network function config generator
+	// Initialize network function config generator.
 	obm.configGen, err = NewNetworkFunctionConfigGenerator(obm.config, obm.logger.Named("config-gen"))
 	if err != nil {
 		return fmt.Errorf("failed to initialize config generator: %w", err)
 	}
 
-	// Initialize O-RAN validator if enabled
+	// Initialize O-RAN validator if enabled.
 	if obm.config.EnableORANCompliance {
 		obm.validator, err = NewORANValidator(obm.config, obm.logger.Named("validator"))
 		if err != nil {
@@ -1209,7 +1328,7 @@ func (obm *ORANBlueprintManager) initializeComponents() error {
 		}
 	}
 
-	// Initialize template engine
+	// Initialize template engine.
 	obm.templateEngine, err = NewTemplateEngine(obm.config, obm.logger.Named("template-engine"))
 	if err != nil {
 		return fmt.Errorf("failed to initialize template engine: %w", err)
@@ -1218,16 +1337,16 @@ func (obm *ORANBlueprintManager) initializeComponents() error {
 	return nil
 }
 
-// startWorkers starts background worker goroutines
+// startWorkers starts background worker goroutines.
 func (obm *ORANBlueprintManager) startWorkers() {
-	// Start blueprint processing workers
+	// Start blueprint processing workers.
 	for i := 0; i < obm.config.MaxConcurrentOps; i++ {
 		obm.workerpool.Add(1)
 		go obm.blueprintWorker()
 	}
 }
 
-// CreateORANBlueprint creates an O-RAN compliant blueprint from NetworkIntent
+// CreateORANBlueprint creates an O-RAN compliant blueprint from NetworkIntent.
 func (obm *ORANBlueprintManager) CreateORANBlueprint(ctx context.Context, intent *v1.NetworkIntent) (*porch.PackageRevision, error) {
 	startTime := time.Now()
 	obm.metrics.BlueprintGenerations.Inc()
@@ -1242,14 +1361,14 @@ func (obm *ORANBlueprintManager) CreateORANBlueprint(ctx context.Context, intent
 		zap.String("intent_type", string(intent.Spec.IntentType)),
 		zap.Any("target_components", intent.Spec.TargetComponents))
 
-	// Step 1: Select appropriate blueprint templates
+	// Step 1: Select appropriate blueprint templates.
 	templates, err := obm.selectBlueprintTemplates(ctx, intent)
 	if err != nil {
 		obm.metrics.BlueprintErrors.Inc()
 		return nil, fmt.Errorf("failed to select blueprint templates: %w", err)
 	}
 
-	// Step 2: Render blueprint with NetworkIntent parameters
+	// Step 2: Render blueprint with NetworkIntent parameters.
 	renderedBlueprint, err := obm.renderEngine.RenderORANBlueprint(ctx, &BlueprintRequest{
 		Intent:    intent,
 		Templates: templates,
@@ -1260,14 +1379,14 @@ func (obm *ORANBlueprintManager) CreateORANBlueprint(ctx context.Context, intent
 		return nil, fmt.Errorf("failed to render blueprint: %w", err)
 	}
 
-	// Step 3: Generate network function configurations
+	// Step 3: Generate network function configurations.
 	nfConfigs, err := obm.configGen.GenerateConfigurations(ctx, intent, templates)
 	if err != nil {
 		obm.metrics.BlueprintErrors.Inc()
 		return nil, fmt.Errorf("failed to generate network function configurations: %w", err)
 	}
 
-	// Step 4: Validate O-RAN compliance if enabled
+	// Step 4: Validate O-RAN compliance if enabled.
 	if obm.validator != nil {
 		if err := obm.validator.ValidateORANCompliance(ctx, renderedBlueprint, nfConfigs); err != nil {
 			obm.metrics.BlueprintErrors.Inc()
@@ -1275,7 +1394,7 @@ func (obm *ORANBlueprintManager) CreateORANBlueprint(ctx context.Context, intent
 		}
 	}
 
-	// Step 5: Create PackageRevision through Porch
+	// Step 5: Create PackageRevision through Porch.
 	packageRevision, err := obm.createPackageRevision(ctx, intent, renderedBlueprint, nfConfigs)
 	if err != nil {
 		obm.metrics.BlueprintErrors.Inc()
@@ -1295,7 +1414,7 @@ func (obm *ORANBlueprintManager) CreateORANBlueprint(ctx context.Context, intent
 	return packageRevision, nil
 }
 
-// blueprintWorker processes blueprint operations from the queue
+// blueprintWorker processes blueprint operations from the queue.
 func (obm *ORANBlueprintManager) blueprintWorker() {
 	defer obm.workerpool.Done()
 
@@ -1312,7 +1431,7 @@ func (obm *ORANBlueprintManager) blueprintWorker() {
 	}
 }
 
-// processOperation processes a single blueprint operation
+// processOperation processes a single blueprint operation.
 func (obm *ORANBlueprintManager) processOperation(operation *BlueprintOperation) {
 	obm.logger.Info("Processing blueprint operation",
 		zap.String("operation_id", operation.ID),
@@ -1351,9 +1470,9 @@ func (obm *ORANBlueprintManager) processOperation(operation *BlueprintOperation)
 	}
 }
 
-// processRenderOperation processes a render operation
+// processRenderOperation processes a render operation.
 func (obm *ORANBlueprintManager) processRenderOperation(operation *BlueprintOperation) error {
-	// Create a blueprint request
+	// Create a blueprint request.
 	request := &BlueprintRequest{
 		Intent:     operation.Intent,
 		Templates:  operation.Templates,
@@ -1361,13 +1480,13 @@ func (obm *ORANBlueprintManager) processRenderOperation(operation *BlueprintOper
 		Parameters: operation.Parameters,
 	}
 
-	// Render the blueprint
+	// Render the blueprint.
 	rendered, err := obm.renderEngine.RenderORANBlueprint(obm.ctx, request)
 	if err != nil {
 		return err
 	}
 
-	// Store the result
+	// Store the result.
 	if operation.Result == nil {
 		operation.Result = &OperationResult{}
 	}
@@ -1376,24 +1495,24 @@ func (obm *ORANBlueprintManager) processRenderOperation(operation *BlueprintOper
 	return nil
 }
 
-// processValidateOperation processes a validate operation
+// processValidateOperation processes a validate operation.
 func (obm *ORANBlueprintManager) processValidateOperation(operation *BlueprintOperation) error {
 	if operation.Result == nil || operation.Result.RenderedBlueprint == nil {
 		return fmt.Errorf("no rendered blueprint to validate")
 	}
 
-	// Generate network function configs
+	// Generate network function configs.
 	nfConfigs, err := obm.configGen.GenerateConfigurations(obm.ctx, operation.Intent, operation.Templates)
 	if err != nil {
 		return err
 	}
 
-	// Validate O-RAN compliance
+	// Validate O-RAN compliance.
 	if obm.validator != nil {
 		err = obm.validator.ValidateORANCompliance(obm.ctx, operation.Result.RenderedBlueprint, nfConfigs)
 	}
 
-	// Create validation result
+	// Create validation result.
 	validationResult := &ValidationResult{
 		Valid:       err == nil,
 		Duration:    time.Since(*operation.StartedAt),
@@ -1410,13 +1529,13 @@ func (obm *ORANBlueprintManager) processValidateOperation(operation *BlueprintOp
 	return nil
 }
 
-// processDeployOperation processes a deploy operation
+// processDeployOperation processes a deploy operation.
 func (obm *ORANBlueprintManager) processDeployOperation(operation *BlueprintOperation) error {
 	if operation.Result == nil || operation.Result.RenderedBlueprint == nil {
 		return fmt.Errorf("no rendered blueprint to deploy")
 	}
 
-	// Create deployment result
+	// Create deployment result.
 	deploymentResult := &DeploymentResult{
 		Success:          true,
 		ResourcesCreated: []string{},
@@ -1424,7 +1543,7 @@ func (obm *ORANBlueprintManager) processDeployOperation(operation *BlueprintOper
 		DeployedAt:       time.Now(),
 	}
 
-	// In a real implementation, this would deploy resources through Porch
+	// In a real implementation, this would deploy resources through Porch.
 	deploymentResult.ResourcesCreated = append(deploymentResult.ResourcesCreated,
 		"deployment/"+operation.Intent.Name,
 		"service/"+operation.Intent.Name,
@@ -1435,7 +1554,7 @@ func (obm *ORANBlueprintManager) processDeployOperation(operation *BlueprintOper
 	return nil
 }
 
-// selectBlueprintTemplates selects appropriate templates for the intent
+// selectBlueprintTemplates selects appropriate templates for the intent.
 func (obm *ORANBlueprintManager) selectBlueprintTemplates(ctx context.Context, intent *v1.NetworkIntent) ([]*BlueprintTemplate, error) {
 	obm.logger.Debug("Selecting blueprint templates",
 		zap.String("intent_name", intent.Name),
@@ -1443,7 +1562,7 @@ func (obm *ORANBlueprintManager) selectBlueprintTemplates(ctx context.Context, i
 
 	var templates []*BlueprintTemplate
 
-	// Select templates based on target components
+	// Select templates based on target components.
 	for _, component := range intent.Spec.TargetComponents {
 		switch component {
 		case v1.ORANComponentNearRTRIC:
@@ -1480,7 +1599,7 @@ func (obm *ORANBlueprintManager) selectBlueprintTemplates(ctx context.Context, i
 	return templates, nil
 }
 
-// buildBlueprintMetadata builds metadata for the blueprint
+// buildBlueprintMetadata builds metadata for the blueprint.
 func (obm *ORANBlueprintManager) buildBlueprintMetadata(intent *v1.NetworkIntent) *BlueprintMetadata {
 	return &BlueprintMetadata{
 		Name:           fmt.Sprintf("blueprint-%s", intent.Name),
@@ -1496,7 +1615,7 @@ func (obm *ORANBlueprintManager) buildBlueprintMetadata(intent *v1.NetworkIntent
 	}
 }
 
-// createPackageRevision creates a Porch package revision
+// createPackageRevision creates a Porch package revision.
 func (obm *ORANBlueprintManager) createPackageRevision(
 	ctx context.Context,
 	intent *v1.NetworkIntent,
@@ -1507,8 +1626,8 @@ func (obm *ORANBlueprintManager) createPackageRevision(
 		zap.String("intent_name", intent.Name),
 		zap.String("blueprint_name", blueprint.Name))
 
-	// Create package revision through Porch client
-	// This would be the actual implementation that calls Porch
+	// Create package revision through Porch client.
+	// This would be the actual implementation that calls Porch.
 	packageRevision := &porch.PackageRevision{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-v1", intent.Name),

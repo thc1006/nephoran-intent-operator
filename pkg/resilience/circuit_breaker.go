@@ -10,31 +10,31 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 )
 
-// CircuitBreakerConfig holds configuration for circuit breaker behavior
+// CircuitBreakerConfig holds configuration for circuit breaker behavior.
 type CircuitBreakerConfig struct {
-	// Failure threshold - number of failures to trigger open state
+	// Failure threshold - number of failures to trigger open state.
 	FailureThreshold int `json:"failure_threshold" yaml:"failure_threshold"`
 
-	// Recovery timeout - how long to wait before transitioning from open to half-open
+	// Recovery timeout - how long to wait before transitioning from open to half-open.
 	RecoveryTimeout time.Duration `json:"recovery_timeout" yaml:"recovery_timeout"`
 
-	// Success threshold - number of successes needed to close circuit from half-open
+	// Success threshold - number of successes needed to close circuit from half-open.
 	SuccessThreshold int `json:"success_threshold" yaml:"success_threshold"`
 
-	// Request timeout for individual operations
+	// Request timeout for individual operations.
 	RequestTimeout time.Duration `json:"request_timeout" yaml:"request_timeout"`
 
-	// Maximum requests allowed in half-open state
+	// Maximum requests allowed in half-open state.
 	HalfOpenMaxRequests int `json:"half_open_max_requests" yaml:"half_open_max_requests"`
 
-	// Minimum requests before failure rate calculation
+	// Minimum requests before failure rate calculation.
 	MinimumRequests int `json:"minimum_requests" yaml:"minimum_requests"`
 
-	// Failure rate threshold (0.0 to 1.0)
+	// Failure rate threshold (0.0 to 1.0).
 	FailureRate float64 `json:"failure_rate" yaml:"failure_rate"`
 }
 
-// DefaultCircuitBreakerConfig returns the default configuration for circuit breaker
+// DefaultCircuitBreakerConfig returns the default configuration for circuit breaker.
 func DefaultCircuitBreakerConfig() *CircuitBreakerConfig {
 	return &CircuitBreakerConfig{
 		FailureThreshold:    5,
@@ -47,16 +47,19 @@ func DefaultCircuitBreakerConfig() *CircuitBreakerConfig {
 	}
 }
 
-// CircuitBreakerState represents the state of the circuit breaker
+// CircuitBreakerState represents the state of the circuit breaker.
 type CircuitBreakerState string
 
 const (
-	StateClosed   CircuitBreakerState = "closed"
-	StateOpen     CircuitBreakerState = "open"
+	// StateClosed holds stateclosed value.
+	StateClosed CircuitBreakerState = "closed"
+	// StateOpen holds stateopen value.
+	StateOpen CircuitBreakerState = "open"
+	// StateHalfOpen holds statehalfopen value.
 	StateHalfOpen CircuitBreakerState = "half-open"
 )
 
-// CircuitBreakerMetrics holds metrics for circuit breaker monitoring
+// CircuitBreakerMetrics holds metrics for circuit breaker monitoring.
 type CircuitBreakerMetrics struct {
 	ServiceName        string              `json:"service_name"`
 	State              CircuitBreakerState `json:"state"`
@@ -69,7 +72,7 @@ type CircuitBreakerMetrics struct {
 	AverageLatency     time.Duration       `json:"average_latency"`
 }
 
-// LLMCircuitBreaker wraps the existing LLM circuit breaker with a streamlined interface
+// LLMCircuitBreaker wraps the existing LLM circuit breaker with a streamlined interface.
 type LLMCircuitBreaker struct {
 	name             string
 	circuitBreaker   *llm.CircuitBreaker
@@ -78,13 +81,13 @@ type LLMCircuitBreaker struct {
 	mutex            sync.RWMutex
 }
 
-// NewLLMCircuitBreaker creates a new circuit breaker for LLM operations
+// NewLLMCircuitBreaker creates a new circuit breaker for LLM operations.
 func NewLLMCircuitBreaker(name string, config *CircuitBreakerConfig, metricsCollector *monitoring.MetricsCollector) *LLMCircuitBreaker {
 	if config == nil {
 		config = DefaultCircuitBreakerConfig()
 	}
 
-	// Convert to LLM circuit breaker config
+	// Convert to LLM circuit breaker config.
 	llmConfig := &llm.CircuitBreakerConfig{
 		FailureThreshold:    int64(config.FailureThreshold),
 		FailureRate:         config.FailureRate,
@@ -110,27 +113,27 @@ func NewLLMCircuitBreaker(name string, config *CircuitBreakerConfig, metricsColl
 	}
 }
 
-// Execute executes an operation through the circuit breaker with timeout and fallback
+// Execute executes an operation through the circuit breaker with timeout and fallback.
 func (cb *LLMCircuitBreaker) Execute(ctx context.Context, operation func(context.Context) (interface{}, error)) (interface{}, error) {
-	// Create a timeout context
+	// Create a timeout context.
 	timeoutCtx, cancel := context.WithTimeout(ctx, cb.config.RequestTimeout)
 	defer cancel()
 
-	// Wrap the operation to match the circuit breaker interface
+	// Wrap the operation to match the circuit breaker interface.
 	circuitOperation := func(ctx context.Context) (interface{}, error) {
 		return operation(ctx)
 	}
 
-	// Execute through circuit breaker
+	// Execute through circuit breaker.
 	result, err := cb.circuitBreaker.Execute(timeoutCtx, circuitOperation)
 
-	// Update metrics
+	// Update metrics.
 	cb.updateMetrics(err != nil, time.Since(time.Now()))
 
 	return result, err
 }
 
-// ExecuteWithFallback executes an operation with a fallback function when circuit is open
+// ExecuteWithFallback executes an operation with a fallback function when circuit is open.
 func (cb *LLMCircuitBreaker) ExecuteWithFallback(
 	ctx context.Context,
 	operation func(context.Context) (interface{}, error),
@@ -138,7 +141,7 @@ func (cb *LLMCircuitBreaker) ExecuteWithFallback(
 ) (interface{}, error) {
 	result, err := cb.Execute(ctx, operation)
 
-	// If circuit breaker rejected the request, use fallback
+	// If circuit breaker rejected the request, use fallback.
 	if err != nil && cb.IsOpen() {
 		if fallback != nil {
 			return fallback(ctx, err)
@@ -149,22 +152,22 @@ func (cb *LLMCircuitBreaker) ExecuteWithFallback(
 	return result, err
 }
 
-// IsOpen returns true if the circuit breaker is in open state
+// IsOpen returns true if the circuit breaker is in open state.
 func (cb *LLMCircuitBreaker) IsOpen() bool {
 	return cb.circuitBreaker.IsOpen()
 }
 
-// IsClosed returns true if the circuit breaker is in closed state
+// IsClosed returns true if the circuit breaker is in closed state.
 func (cb *LLMCircuitBreaker) IsClosed() bool {
 	return cb.circuitBreaker.IsClosed()
 }
 
-// IsHalfOpen returns true if the circuit breaker is in half-open state
+// IsHalfOpen returns true if the circuit breaker is in half-open state.
 func (cb *LLMCircuitBreaker) IsHalfOpen() bool {
 	return cb.circuitBreaker.IsHalfOpen()
 }
 
-// GetState returns the current state of the circuit breaker
+// GetState returns the current state of the circuit breaker.
 func (cb *LLMCircuitBreaker) GetState() CircuitBreakerState {
 	if cb.circuitBreaker.IsOpen() {
 		return StateOpen
@@ -174,7 +177,7 @@ func (cb *LLMCircuitBreaker) GetState() CircuitBreakerState {
 	return StateClosed
 }
 
-// GetMetrics returns current circuit breaker metrics
+// GetMetrics returns current circuit breaker metrics.
 func (cb *LLMCircuitBreaker) GetMetrics() CircuitBreakerMetrics {
 	cb.mutex.RLock()
 	defer cb.mutex.RUnlock()
@@ -194,23 +197,23 @@ func (cb *LLMCircuitBreaker) GetMetrics() CircuitBreakerMetrics {
 	}
 }
 
-// Reset manually resets the circuit breaker to closed state
+// Reset manually resets the circuit breaker to closed state.
 func (cb *LLMCircuitBreaker) Reset() {
 	cb.circuitBreaker.Reset()
 }
 
-// ForceOpen manually forces the circuit breaker to open state
+// ForceOpen manually forces the circuit breaker to open state.
 func (cb *LLMCircuitBreaker) ForceOpen() {
 	cb.circuitBreaker.ForceOpen()
 }
 
-// updateMetrics updates internal metrics and publishes to metrics collector
+// updateMetrics updates internal metrics and publishes to metrics collector.
 func (cb *LLMCircuitBreaker) updateMetrics(failed bool, latency time.Duration) {
 	if cb.metricsCollector == nil {
 		return
 	}
 
-	// Update Prometheus metrics
+	// Update Prometheus metrics.
 	_ = cb.name // avoid unused variable
 
 	if failed {
@@ -219,7 +222,7 @@ func (cb *LLMCircuitBreaker) updateMetrics(failed bool, latency time.Duration) {
 		cb.metricsCollector.RecordLLMRequest(cb.name, "success", latency, 0)
 	}
 
-	// Record circuit breaker state
+	// Record circuit breaker state.
 	stateValue := 0.0
 	switch cb.GetState() {
 	case StateClosed:
@@ -230,13 +233,13 @@ func (cb *LLMCircuitBreaker) updateMetrics(failed bool, latency time.Duration) {
 		stateValue = 1.0
 	}
 
-	// Use a gauge metric for circuit breaker state
+	// Use a gauge metric for circuit breaker state.
 	if gauge := cb.metricsCollector.GetGauge("circuit_breaker_state"); gauge != nil {
 		gauge.Set(stateValue)
 	}
 }
 
-// CircuitBreakerManager manages multiple circuit breakers for different services
+// CircuitBreakerManager manages multiple circuit breakers for different services.
 type CircuitBreakerManager struct {
 	circuitBreakers  map[string]*LLMCircuitBreaker
 	defaultConfig    *CircuitBreakerConfig
@@ -244,7 +247,7 @@ type CircuitBreakerManager struct {
 	mutex            sync.RWMutex
 }
 
-// NewCircuitBreakerManager creates a new circuit breaker manager
+// NewCircuitBreakerManager creates a new circuit breaker manager.
 func NewCircuitBreakerManager(defaultConfig *CircuitBreakerConfig, metricsCollector *monitoring.MetricsCollector) *CircuitBreakerManager {
 	if defaultConfig == nil {
 		defaultConfig = DefaultCircuitBreakerConfig()
@@ -257,7 +260,7 @@ func NewCircuitBreakerManager(defaultConfig *CircuitBreakerConfig, metricsCollec
 	}
 }
 
-// GetOrCreateCircuitBreaker gets an existing circuit breaker or creates a new one
+// GetOrCreateCircuitBreaker gets an existing circuit breaker or creates a new one.
 func (cbm *CircuitBreakerManager) GetOrCreateCircuitBreaker(serviceName string, config *CircuitBreakerConfig) *LLMCircuitBreaker {
 	cbm.mutex.Lock()
 	defer cbm.mutex.Unlock()
@@ -276,7 +279,7 @@ func (cbm *CircuitBreakerManager) GetOrCreateCircuitBreaker(serviceName string, 
 	return cb
 }
 
-// GetCircuitBreaker gets an existing circuit breaker by name
+// GetCircuitBreaker gets an existing circuit breaker by name.
 func (cbm *CircuitBreakerManager) GetCircuitBreaker(serviceName string) (*LLMCircuitBreaker, bool) {
 	cbm.mutex.RLock()
 	defer cbm.mutex.RUnlock()
@@ -285,7 +288,7 @@ func (cbm *CircuitBreakerManager) GetCircuitBreaker(serviceName string) (*LLMCir
 	return cb, exists
 }
 
-// GetAllMetrics returns metrics for all circuit breakers
+// GetAllMetrics returns metrics for all circuit breakers.
 func (cbm *CircuitBreakerManager) GetAllMetrics() map[string]CircuitBreakerMetrics {
 	cbm.mutex.RLock()
 	defer cbm.mutex.RUnlock()
@@ -298,7 +301,7 @@ func (cbm *CircuitBreakerManager) GetAllMetrics() map[string]CircuitBreakerMetri
 	return metrics
 }
 
-// GetStats returns statistics for all circuit breakers (interface-compatible method)
+// GetStats returns statistics for all circuit breakers (interface-compatible method).
 func (cbm *CircuitBreakerManager) GetStats() (map[string]interface{}, error) {
 	metrics := cbm.GetAllMetrics()
 	stats := make(map[string]interface{})
@@ -308,7 +311,7 @@ func (cbm *CircuitBreakerManager) GetStats() (map[string]interface{}, error) {
 	return stats, nil
 }
 
-// ResetAll resets all circuit breakers
+// ResetAll resets all circuit breakers.
 func (cbm *CircuitBreakerManager) ResetAll() {
 	cbm.mutex.RLock()
 	defer cbm.mutex.RUnlock()
@@ -318,7 +321,7 @@ func (cbm *CircuitBreakerManager) ResetAll() {
 	}
 }
 
-// ListCircuitBreakers returns the names of all circuit breakers
+// ListCircuitBreakers returns the names of all circuit breakers.
 func (cbm *CircuitBreakerManager) ListCircuitBreakers() []string {
 	cbm.mutex.RLock()
 	defer cbm.mutex.RUnlock()

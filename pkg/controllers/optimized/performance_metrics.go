@@ -8,20 +8,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
-// ControllerMetrics provides performance metrics for optimized controllers
+// ControllerMetrics provides performance metrics for optimized controllers.
 type ControllerMetrics struct {
-	// Reconcile metrics
+	// Reconcile metrics.
 	ReconcileDuration *prometheus.HistogramVec
 	ReconcileTotal    *prometheus.CounterVec
 	ReconcileErrors   *prometheus.CounterVec
 	ReconcileRequeue  *prometheus.CounterVec
 
-	// Backoff metrics
+	// Backoff metrics.
 	BackoffDelay   *prometheus.HistogramVec
 	BackoffRetries *prometheus.HistogramVec
 	BackoffResets  *prometheus.CounterVec
 
-	// Status batcher metrics
+	// Status batcher metrics.
 	StatusBatchSize      *prometheus.HistogramVec
 	StatusBatchDuration  *prometheus.HistogramVec
 	StatusUpdatesQueued  *prometheus.CounterVec
@@ -29,18 +29,18 @@ type ControllerMetrics struct {
 	StatusUpdatesFailed  *prometheus.CounterVec
 	StatusQueueSize      *prometheus.GaugeVec
 
-	// API client metrics
+	// API client metrics.
 	APICallDuration *prometheus.HistogramVec
 	APICallTotal    *prometheus.CounterVec
 	APICallErrors   *prometheus.CounterVec
 
-	// Resource metrics
+	// Resource metrics.
 	ActiveReconcilers *prometheus.GaugeVec
 	MemoryUsage       *prometheus.GaugeVec
 	GoroutineCount    *prometheus.GaugeVec
 }
 
-// NewControllerMetrics creates a new ControllerMetrics instance
+// NewControllerMetrics creates a new ControllerMetrics instance.
 func NewControllerMetrics() *ControllerMetrics {
 	cm := &ControllerMetrics{
 		ReconcileDuration: prometheus.NewHistogramVec(
@@ -202,7 +202,7 @@ func NewControllerMetrics() *ControllerMetrics {
 		),
 	}
 
-	// Register all metrics
+	// Register all metrics.
 	metrics.Registry.MustRegister(
 		cm.ReconcileDuration,
 		cm.ReconcileTotal,
@@ -228,7 +228,7 @@ func NewControllerMetrics() *ControllerMetrics {
 	return cm
 }
 
-// ReconcileTimer provides timing functionality for reconcile operations
+// ReconcileTimer provides timing functionality for reconcile operations.
 type ReconcileTimer struct {
 	metrics    *ControllerMetrics
 	controller string
@@ -238,7 +238,7 @@ type ReconcileTimer struct {
 	startTime  time.Time
 }
 
-// NewReconcileTimer creates a new reconcile timer
+// NewReconcileTimer creates a new reconcile timer.
 func (cm *ControllerMetrics) NewReconcileTimer(controller, namespace, name, phase string) *ReconcileTimer {
 	return &ReconcileTimer{
 		metrics:    cm,
@@ -250,7 +250,7 @@ func (cm *ControllerMetrics) NewReconcileTimer(controller, namespace, name, phas
 	}
 }
 
-// Finish completes the timing and records the duration
+// Finish completes the timing and records the duration.
 func (rt *ReconcileTimer) Finish() {
 	duration := time.Since(rt.startTime).Seconds()
 	rt.metrics.ReconcileDuration.WithLabelValues(
@@ -258,7 +258,7 @@ func (rt *ReconcileTimer) Finish() {
 	).Observe(duration)
 }
 
-// APICallTimer provides timing functionality for API calls
+// APICallTimer provides timing functionality for API calls.
 type APICallTimer struct {
 	metrics    *ControllerMetrics
 	controller string
@@ -269,7 +269,7 @@ type APICallTimer struct {
 	finished   bool
 }
 
-// NewAPICallTimer creates a new API call timer
+// NewAPICallTimer creates a new API call timer.
 func (cm *ControllerMetrics) NewAPICallTimer(controller, operation, resource string) *APICallTimer {
 	return &APICallTimer{
 		metrics:    cm,
@@ -280,7 +280,7 @@ func (cm *ControllerMetrics) NewAPICallTimer(controller, operation, resource str
 	}
 }
 
-// FinishWithResult completes the timing and records the result
+// FinishWithResult completes the timing and records the result.
 func (act *APICallTimer) FinishWithResult(success bool, errorType string) {
 	act.mu.Lock()
 	defer act.mu.Unlock()
@@ -308,14 +308,14 @@ func (act *APICallTimer) FinishWithResult(success bool, errorType string) {
 	).Inc()
 }
 
-// RecordBackoffDelay records a backoff delay
+// RecordBackoffDelay records a backoff delay.
 func (cm *ControllerMetrics) RecordBackoffDelay(controller string, errorType ErrorType, strategy BackoffStrategy, delay time.Duration) {
 	cm.BackoffDelay.WithLabelValues(
 		controller, string(errorType), string(strategy),
 	).Observe(delay.Seconds())
 }
 
-// RecordBackoffRetries records backoff retry attempts
+// RecordBackoffRetries records backoff retry attempts.
 func (cm *ControllerMetrics) RecordBackoffRetries(controller string, errorType ErrorType, retries int, success bool) {
 	outcome := "success"
 	if !success {
@@ -327,18 +327,18 @@ func (cm *ControllerMetrics) RecordBackoffRetries(controller string, errorType E
 	).Observe(float64(retries))
 }
 
-// RecordBackoffReset records a successful backoff reset
+// RecordBackoffReset records a successful backoff reset.
 func (cm *ControllerMetrics) RecordBackoffReset(controller, resourceType string) {
 	cm.BackoffResets.WithLabelValues(controller, resourceType).Inc()
 }
 
-// RecordStatusBatch records status batch metrics
+// RecordStatusBatch records status batch metrics.
 func (cm *ControllerMetrics) RecordStatusBatch(controller string, size int, duration time.Duration, priority string) {
 	cm.StatusBatchSize.WithLabelValues(controller, priority).Observe(float64(size))
 	cm.StatusBatchDuration.WithLabelValues(controller).Observe(duration.Seconds())
 }
 
-// RecordStatusUpdate records status update queue operations
+// RecordStatusUpdate records status update queue operations.
 func (cm *ControllerMetrics) RecordStatusUpdate(controller, priority, resourceType, outcome string) {
 	switch outcome {
 	case "queued":
@@ -350,37 +350,37 @@ func (cm *ControllerMetrics) RecordStatusUpdate(controller, priority, resourceTy
 	}
 }
 
-// UpdateStatusQueueSize updates the current queue size gauge
+// UpdateStatusQueueSize updates the current queue size gauge.
 func (cm *ControllerMetrics) UpdateStatusQueueSize(controller string, size int) {
 	cm.StatusQueueSize.WithLabelValues(controller).Set(float64(size))
 }
 
-// RecordReconcileResult records the result of a reconcile operation
+// RecordReconcileResult records the result of a reconcile operation.
 func (cm *ControllerMetrics) RecordReconcileResult(controller, result string) {
 	cm.ReconcileTotal.WithLabelValues(controller, result).Inc()
 }
 
-// RecordReconcileError records a reconcile error
+// RecordReconcileError records a reconcile error.
 func (cm *ControllerMetrics) RecordReconcileError(controller string, errorType ErrorType, category string) {
 	cm.ReconcileErrors.WithLabelValues(controller, string(errorType), category).Inc()
 }
 
-// RecordRequeue records a requeue operation
+// RecordRequeue records a requeue operation.
 func (cm *ControllerMetrics) RecordRequeue(controller, requeueType string, strategy BackoffStrategy) {
 	cm.ReconcileRequeue.WithLabelValues(controller, requeueType, string(strategy)).Inc()
 }
 
-// UpdateActiveReconcilers updates the active reconcilers gauge
+// UpdateActiveReconcilers updates the active reconcilers gauge.
 func (cm *ControllerMetrics) UpdateActiveReconcilers(controller string, count int) {
 	cm.ActiveReconcilers.WithLabelValues(controller).Set(float64(count))
 }
 
-// UpdateMemoryUsage updates memory usage metrics
+// UpdateMemoryUsage updates memory usage metrics.
 func (cm *ControllerMetrics) UpdateMemoryUsage(controller, memType string, bytes int64) {
 	cm.MemoryUsage.WithLabelValues(controller, memType).Set(float64(bytes))
 }
 
-// UpdateGoroutineCount updates the goroutine count gauge
+// UpdateGoroutineCount updates the goroutine count gauge.
 func (cm *ControllerMetrics) UpdateGoroutineCount(controller string, count int) {
 	cm.GoroutineCount.WithLabelValues(controller).Set(float64(count))
 }

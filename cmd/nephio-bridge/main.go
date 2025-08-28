@@ -32,17 +32,19 @@ var (
 	setupLog = ctrl.Log.WithName("setup")
 )
 
-// llmClientAdapter adapts llm.Client to shared.ClientInterface
+// llmClientAdapter adapts llm.Client to shared.ClientInterface.
 type llmClientAdapter struct {
 	client *llm.Client
 }
 
+// ProcessIntent performs processintent operation.
 func (a *llmClientAdapter) ProcessIntent(ctx context.Context, prompt string) (string, error) {
 	return a.client.ProcessIntent(ctx, prompt)
 }
 
+// ProcessIntentStream performs processintentstream operation.
 func (a *llmClientAdapter) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *shared.StreamingChunk) error {
-	// For now, fall back to non-streaming
+	// For now, fall back to non-streaming.
 	result, err := a.client.ProcessIntent(ctx, prompt)
 	if err != nil {
 		return err
@@ -58,10 +60,12 @@ func (a *llmClientAdapter) ProcessIntentStream(ctx context.Context, prompt strin
 	return nil
 }
 
+// GetSupportedModels performs getsupportedmodels operation.
 func (a *llmClientAdapter) GetSupportedModels() []string {
 	return []string{"gpt-4o-mini", "gpt-4", "gpt-3.5-turbo"}
 }
 
+// GetModelCapabilities performs getmodelcapabilities operation.
 func (a *llmClientAdapter) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
 	return &shared.ModelCapabilities{
 		MaxTokens:         8192,
@@ -73,26 +77,30 @@ func (a *llmClientAdapter) GetModelCapabilities(modelName string) (*shared.Model
 	}, nil
 }
 
+// ValidateModel performs validatemodel operation.
 func (a *llmClientAdapter) ValidateModel(modelName string) error {
-	// Basic validation
+	// Basic validation.
 	return nil
 }
 
+// EstimateTokens performs estimatetokens operation.
 func (a *llmClientAdapter) EstimateTokens(text string) int {
-	// Simple estimation: roughly 4 characters per token
+	// Simple estimation: roughly 4 characters per token.
 	return len(text) / 4
 }
 
+// GetMaxTokens performs getmaxtokens operation.
 func (a *llmClientAdapter) GetMaxTokens(modelName string) int {
 	return 8192
 }
 
+// Close performs close operation.
 func (a *llmClientAdapter) Close() error {
 	a.client.Shutdown()
 	return nil
 }
 
-// dependencyImpl implements the Dependencies interface
+// dependencyImpl implements the Dependencies interface.
 type dependencyImpl struct {
 	gitClient     git.ClientInterface
 	llmClient     shared.ClientInterface
@@ -101,32 +109,37 @@ type dependencyImpl struct {
 	eventRecorder record.EventRecorder
 }
 
+// GetGitClient performs getgitclient operation.
 func (d *dependencyImpl) GetGitClient() git.ClientInterface {
 	return d.gitClient
 }
 
+// GetLLMClient performs getllmclient operation.
 func (d *dependencyImpl) GetLLMClient() shared.ClientInterface {
 	return d.llmClient
 }
 
+// GetPackageGenerator performs getpackagegenerator operation.
 func (d *dependencyImpl) GetPackageGenerator() *nephio.PackageGenerator {
 	return d.packageGen
 }
 
+// GetHTTPClient performs gethttpclient operation.
 func (d *dependencyImpl) GetHTTPClient() *http.Client {
 	return d.httpClient
 }
 
+// GetEventRecorder performs geteventrecorder operation.
 func (d *dependencyImpl) GetEventRecorder() record.EventRecorder {
 	return d.eventRecorder
 }
 
-// GetMetricsCollector returns the metrics collector (placeholder implementation)
+// GetMetricsCollector returns the metrics collector (placeholder implementation).
 func (d *dependencyImpl) GetMetricsCollector() *monitoring.MetricsCollector {
 	return nil // TODO: Implement metrics collector
 }
 
-// GetTelecomKnowledgeBase returns the telecom knowledge base (placeholder implementation)
+// GetTelecomKnowledgeBase returns the telecom knowledge base (placeholder implementation).
 func (d *dependencyImpl) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase {
 	return nil // TODO: Implement telecom knowledge base
 }
@@ -137,14 +150,14 @@ func init() {
 }
 
 func main() {
-	// Load configuration from environment variables
+	// Load configuration from environment variables.
 	cfg, err := config.LoadFromEnv()
 	if err != nil {
 		setupLog.Error(err, "failed to load configuration")
 		os.Exit(1)
 	}
 
-	// Set up flags with configuration defaults
+	// Set up flags with configuration defaults.
 	flag.StringVar(&cfg.MetricsAddr, "metrics-bind-address", cfg.MetricsAddr, "The address the metric endpoint binds to.")
 	flag.StringVar(&cfg.ProbeAddr, "health-probe-bind-address", cfg.ProbeAddr, "The address the probe endpoint binds to.")
 	flag.BoolVar(&cfg.EnableLeaderElection, "leader-elect", cfg.EnableLeaderElection,
@@ -179,10 +192,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Initialize clients with configuration
+	// Initialize clients with configuration.
 	llmClient := llm.NewClient(cfg.LLMProcessorURL)
 
-	// Create Git client with token file support
+	// Create Git client with token file support.
 	var gitClient *git.Client
 	if cfg.GitTokenPath != "" || cfg.GitToken != "" {
 		gitConfig, err := git.NewGitClientConfig(cfg.GitRepoURL, cfg.GitBranch, cfg.GitToken, cfg.GitTokenPath)
@@ -190,17 +203,17 @@ func main() {
 			setupLog.Error(err, "unable to create git client config")
 			os.Exit(1)
 		}
-		// Apply concurrent push limit from config if set
+		// Apply concurrent push limit from config if set.
 		if cfg.GitConcurrentPushLimit > 0 {
 			gitConfig.ConcurrentPushLimit = cfg.GitConcurrentPushLimit
 		}
 		gitClient = git.NewClientFromConfig(gitConfig)
 	} else {
-		// Fallback to default constructor for backward compatibility
+		// Fallback to default constructor for backward compatibility.
 		gitClient = git.NewClient(cfg.GitRepoURL, cfg.GitBranch, cfg.GitToken)
 	}
 
-	// Initialize Nephio package generator if enabled
+	// Initialize Nephio package generator if enabled.
 	var packageGen *nephio.PackageGenerator
 	useNephioPorch := os.Getenv("USE_NEPHIO_PORCH") == "true"
 	if useNephioPorch {
@@ -213,7 +226,7 @@ func main() {
 		setupLog.Info("Nephio Porch integration enabled")
 	}
 
-	// Create dependencies struct that implements Dependencies interface
+	// Create dependencies struct that implements Dependencies interface.
 	deps := &dependencyImpl{
 		gitClient:     gitClient,
 		llmClient:     &llmClientAdapter{client: llmClient},
@@ -222,7 +235,7 @@ func main() {
 		eventRecorder: mgr.GetEventRecorderFor("network-intent-controller"),
 	}
 
-	// Create controller configuration
+	// Create controller configuration.
 	controllerConfig := &controllers.Config{
 		MaxRetries:      3,
 		RetryDelay:      time.Minute * 2,
@@ -234,7 +247,7 @@ func main() {
 		UseNephioPorch:  useNephioPorch,
 	}
 
-	// Setup NetworkIntent controller
+	// Setup NetworkIntent controller.
 	networkIntentController, err := controllers.NewNetworkIntentReconciler(
 		mgr.GetClient(),
 		mgr.GetScheme(),
@@ -251,7 +264,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Setup E2NodeSet controller
+	// Setup E2NodeSet controller.
 	if err = (&controllers.E2NodeSetReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),

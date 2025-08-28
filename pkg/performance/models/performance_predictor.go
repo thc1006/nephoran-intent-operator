@@ -1,5 +1,5 @@
-// FIXME: Adding package comment per revive linter
-// Package models provides machine learning models for performance prediction and optimization
+// FIXME: Adding package comment per revive linter.
+// Package models provides machine learning models for performance prediction and optimization.
 package models
 
 import (
@@ -7,20 +7,20 @@ import (
 	"gonum.org/v1/gonum/optimize"
 )
 
-// PerformancePredictor uses machine learning techniques for performance forecasting
+// PerformancePredictor uses machine learning techniques for performance forecasting.
 type PerformancePredictor struct {
 	trainingData    *mat.Dense
 	performanceData *mat.Dense
 	regressionModel *LinearRegressionModel
 }
 
-// LinearRegressionModel represents a simple linear regression model
+// LinearRegressionModel represents a simple linear regression model.
 type LinearRegressionModel struct {
 	Coefficients []float64
 	Intercept    float64
 }
 
-// NewPerformancePredictor initializes a new performance prediction model
+// NewPerformancePredictor initializes a new performance prediction model.
 func NewPerformancePredictor(features, performance [][]float64) *PerformancePredictor {
 	trainingData := mat.NewDense(len(features), len(features[0]), flattenMatrix(features))
 	performanceData := mat.NewDense(len(performance), len(performance[0]), flattenMatrix(performance))
@@ -31,16 +31,16 @@ func NewPerformancePredictor(features, performance [][]float64) *PerformancePred
 	}
 }
 
-// Train performs machine learning model training
+// Train performs machine learning model training.
 func (pp *PerformancePredictor) Train() error {
-	// Multivariate linear regression
+	// Multivariate linear regression.
 	nFeatures := pp.trainingData.RawMatrix().Cols
 	nSamples := pp.trainingData.RawMatrix().Rows
 
-	// Prepare problem for optimization
+	// Prepare problem for optimization.
 	problem := optimize.Problem{
 		Func: func(x []float64) float64 {
-			// Mean Squared Error loss function
+			// Mean Squared Error loss function.
 			var mse float64
 			for i := 0; i < nSamples; i++ {
 				predicted := pp.predictSingle(x, pp.trainingData.RawRowView(i))
@@ -51,8 +51,8 @@ func (pp *PerformancePredictor) Train() error {
 			return mse / float64(nSamples)
 		},
 		Grad: func(grad, x []float64) {
-			// Gradient calculation for optimization
-			// Simplified gradient descent implementation
+			// Gradient calculation for optimization.
+			// Simplified gradient descent implementation.
 			h := 1e-8
 			for j := range x {
 				xPlus := make([]float64, len(x))
@@ -70,13 +70,13 @@ func (pp *PerformancePredictor) Train() error {
 		},
 	}
 
-	// Perform optimization
+	// Perform optimization.
 	result, err := optimize.Minimize(problem, make([]float64, nFeatures+1), nil, nil)
 	if err != nil {
 		return err
 	}
 
-	// Store model parameters
+	// Store model parameters.
 	pp.regressionModel = &LinearRegressionModel{
 		Coefficients: result.X[:nFeatures],
 		Intercept:    result.X[nFeatures],
@@ -85,7 +85,7 @@ func (pp *PerformancePredictor) Train() error {
 	return nil
 }
 
-// Predict generates performance predictions
+// Predict generates performance predictions.
 func (pp *PerformancePredictor) Predict(features []float64) float64 {
 	if pp.regressionModel == nil {
 		panic("Model not trained")
@@ -93,7 +93,7 @@ func (pp *PerformancePredictor) Predict(features []float64) float64 {
 	return pp.predictSingle(pp.regressionModel.Coefficients, features) + pp.regressionModel.Intercept
 }
 
-// predictSingle is a helper for single prediction
+// predictSingle is a helper for single prediction.
 func (pp *PerformancePredictor) predictSingle(coeffs, features []float64) float64 {
 	prediction := 0.0
 	for i, coeff := range coeffs {
@@ -102,7 +102,7 @@ func (pp *PerformancePredictor) predictSingle(coeffs, features []float64) float6
 	return prediction
 }
 
-// evaluateLoss calculates model loss
+// evaluateLoss calculates model loss.
 func (pp *PerformancePredictor) evaluateLoss(params []float64) float64 {
 	nFeatures := pp.trainingData.RawMatrix().Cols
 	nSamples := pp.trainingData.RawMatrix().Rows
@@ -117,7 +117,7 @@ func (pp *PerformancePredictor) evaluateLoss(params []float64) float64 {
 	return mse / float64(nSamples)
 }
 
-// Utility function to flatten 2D slice to 1D
+// Utility function to flatten 2D slice to 1D.
 func flattenMatrix(matrix [][]float64) []float64 {
 	var flattened []float64
 	for _, row := range matrix {
@@ -126,7 +126,7 @@ func flattenMatrix(matrix [][]float64) []float64 {
 	return flattened
 }
 
-// PerformanceForecast represents a prediction result
+// PerformanceForecast represents a prediction result.
 type PerformanceForecast struct {
 	PredictedValue     float64
 	ConfidenceInterval struct {

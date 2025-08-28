@@ -37,7 +37,7 @@ func (mc *MiddlewareChain[TRequest, TResponse]) Add(middleware Middleware[TReque
 
 // Build builds the final handler with all middlewares applied.
 func (mc *MiddlewareChain[TRequest, TResponse]) Build(finalHandler Handler[TRequest, TResponse]) Handler[TRequest, TResponse] {
-	// Apply middlewares in reverse order (last middleware wraps first)
+	// Apply middlewares in reverse order (last middleware wraps first).
 	handler := finalHandler
 	for i := len(mc.middlewares) - 1; i >= 0; i-- {
 		handler = mc.middlewares[i](handler)
@@ -51,7 +51,7 @@ func (mc *MiddlewareChain[TRequest, TResponse]) Execute(ctx context.Context, req
 	return handler(ctx, request)
 }
 
-// HTTP Middleware implementations
+// HTTP Middleware implementations.
 
 // HTTPRequest represents a generic HTTP request.
 type HTTPRequest[T any] struct {
@@ -72,7 +72,7 @@ type HTTPResponse[T any] struct {
 func CORSMiddleware[TRequest, TResponse any](config CORSConfig) Middleware[TRequest, TResponse] {
 	return func(next Handler[TRequest, TResponse]) Handler[TRequest, TResponse] {
 		return func(ctx context.Context, request TRequest) Result[TResponse, error] {
-			// Add CORS headers to context for later use
+			// Add CORS headers to context for later use.
 			ctx = context.WithValue(ctx, "cors_headers", config.Headers())
 			return next(ctx, request)
 		}
@@ -124,13 +124,13 @@ func (c CORSConfig) Headers() map[string]string {
 func AuthenticationMiddleware[TRequest, TResponse any](authenticator Authenticator[TRequest]) Middleware[TRequest, TResponse] {
 	return func(next Handler[TRequest, TResponse]) Handler[TRequest, TResponse] {
 		return func(ctx context.Context, request TRequest) Result[TResponse, error] {
-			// Authenticate the request
+			// Authenticate the request.
 			authResult := authenticator.Authenticate(ctx, request)
 			if authResult.IsErr() {
 				return Err[TResponse, error](fmt.Errorf("authentication failed: %w", authResult.Error()))
 			}
 
-			// Add user info to context
+			// Add user info to context.
 			user := authResult.Value()
 			ctx = context.WithValue(ctx, "authenticated_user", user)
 
@@ -191,7 +191,7 @@ func (ja *JWTAuthenticator[TRequest]) Authenticate(ctx context.Context, request 
 func AuthorizationMiddleware[TRequest, TResponse any](authorizer Authorizer[TRequest]) Middleware[TRequest, TResponse] {
 	return func(next Handler[TRequest, TResponse]) Handler[TRequest, TResponse] {
 		return func(ctx context.Context, request TRequest) Result[TResponse, error] {
-			// Get user from context
+			// Get user from context.
 			userVal := ctx.Value("authenticated_user")
 			if userVal == nil {
 				return Err[TResponse, error](fmt.Errorf("no authenticated user found"))
@@ -202,7 +202,7 @@ func AuthorizationMiddleware[TRequest, TResponse any](authorizer Authorizer[TReq
 				return Err[TResponse, error](fmt.Errorf("invalid user type in context"))
 			}
 
-			// Check authorization
+			// Check authorization.
 			authResult := authorizer.Authorize(ctx, user, request)
 			if authResult.IsErr() {
 				return Err[TResponse, error](fmt.Errorf("authorization failed: %w", authResult.Error()))
@@ -241,13 +241,13 @@ func NewRoleBasedAuthorizer[TRequest any](
 
 // Authorize checks if user has required roles.
 func (rba *RoleBasedAuthorizer[TRequest]) Authorize(ctx context.Context, user User, request TRequest) Result[bool, error] {
-	// Get required roles from request if extractor is provided
+	// Get required roles from request if extractor is provided.
 	requiredRoles := rba.requiredRoles
 	if rba.roleExtractor != nil {
 		requiredRoles = rba.roleExtractor(request)
 	}
 
-	// Check if user has any of the required roles
+	// Check if user has any of the required roles.
 	userRoleSet := NewSet(user.Roles...)
 	for _, role := range requiredRoles {
 		if userRoleSet.Contains(role) {
@@ -262,7 +262,7 @@ func (rba *RoleBasedAuthorizer[TRequest]) Authorize(ctx context.Context, user Us
 func RateLimitingMiddleware[TRequest, TResponse any](limiter RateLimiter[TRequest]) Middleware[TRequest, TResponse] {
 	return func(next Handler[TRequest, TResponse]) Handler[TRequest, TResponse] {
 		return func(ctx context.Context, request TRequest) Result[TResponse, error] {
-			// Check rate limit
+			// Check rate limit.
 			limitResult := limiter.Allow(ctx, request)
 			if limitResult.IsErr() {
 				return Err[TResponse, error](limitResult.Error())
@@ -317,7 +317,7 @@ func NewTokenBucketRateLimiter[TRequest any](
 func (tbrl *TokenBucketRateLimiter[TRequest]) Allow(ctx context.Context, request TRequest) Result[bool, error] {
 	key := tbrl.keyExtractor(request)
 
-	// Get or create token bucket
+	// Get or create token bucket.
 	bucketOpt := tbrl.buckets.Get(key)
 	var bucket *TokenBucket
 
@@ -344,7 +344,7 @@ func (tb *TokenBucket) takeToken() bool {
 	now := time.Now()
 	elapsed := now.Sub(tb.lastRefill)
 
-	// Refill tokens based on elapsed time
+	// Refill tokens based on elapsed time.
 	tokensToAdd := int(elapsed / tb.refillRate)
 	tb.tokens += tokensToAdd
 	if tb.tokens > tb.capacity {
@@ -352,7 +352,7 @@ func (tb *TokenBucket) takeToken() bool {
 	}
 	tb.lastRefill = now
 
-	// Check if token is available
+	// Check if token is available.
 	if tb.tokens > 0 {
 		tb.tokens--
 		return true
@@ -397,13 +397,13 @@ func LoggingMiddleware[TRequest, TResponse any](logger Logger[TRequest, TRespons
 		return func(ctx context.Context, request TRequest) Result[TResponse, error] {
 			start := time.Now()
 
-			// Log request
+			// Log request.
 			logger.LogRequest(ctx, request)
 
-			// Process request
+			// Process request.
 			result := next(ctx, request)
 
-			// Log response
+			// Log response.
 			duration := time.Since(start)
 			if result.IsOk() {
 				logger.LogResponse(ctx, request, result.Value(), duration, nil)
@@ -472,13 +472,13 @@ func MetricsMiddleware[TRequest, TResponse any](collector MetricsCollector[TRequ
 		return func(ctx context.Context, request TRequest) Result[TResponse, error] {
 			start := time.Now()
 
-			// Increment request counter
+			// Increment request counter.
 			collector.IncRequestCounter(ctx, request)
 
-			// Process request
+			// Process request.
 			result := next(ctx, request)
 
-			// Record metrics
+			// Record metrics.
 			duration := time.Since(start)
 			collector.RecordLatency(ctx, request, duration)
 
@@ -502,15 +502,15 @@ type MetricsCollector[TRequest, TResponse any] interface {
 func CircuitBreakerMiddleware[TRequest, TResponse any](breaker CircuitBreaker[TRequest]) Middleware[TRequest, TResponse] {
 	return func(next Handler[TRequest, TResponse]) Handler[TRequest, TResponse] {
 		return func(ctx context.Context, request TRequest) Result[TResponse, error] {
-			// Check if circuit breaker allows the request
+			// Check if circuit breaker allows the request.
 			if !breaker.Allow(ctx, request) {
 				return Err[TResponse, error](fmt.Errorf("circuit breaker is open"))
 			}
 
-			// Process request
+			// Process request.
 			result := next(ctx, request)
 
-			// Record success or failure
+			// Record success or failure.
 			if result.IsOk() {
 				breaker.RecordSuccess(ctx, request)
 			} else {
@@ -533,20 +533,20 @@ type CircuitBreaker[TRequest any] interface {
 func TimeoutMiddleware[TRequest, TResponse any](timeout time.Duration) Middleware[TRequest, TResponse] {
 	return func(next Handler[TRequest, TResponse]) Handler[TRequest, TResponse] {
 		return func(ctx context.Context, request TRequest) Result[TResponse, error] {
-			// Create context with timeout
+			// Create context with timeout.
 			timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
 			defer cancel()
 
-			// Channel to receive result
+			// Channel to receive result.
 			resultChan := make(chan Result[TResponse, error], 1)
 
-			// Process request in goroutine
+			// Process request in goroutine.
 			go func() {
 				result := next(timeoutCtx, request)
 				resultChan <- result
 			}()
 
-			// Wait for result or timeout
+			// Wait for result or timeout.
 			select {
 			case result := <-resultChan:
 				return result
@@ -561,16 +561,16 @@ func TimeoutMiddleware[TRequest, TResponse any](timeout time.Duration) Middlewar
 func CompressionMiddleware[TRequest, TResponse any](compressor Compressor[TResponse]) Middleware[TRequest, TResponse] {
 	return func(next Handler[TRequest, TResponse]) Handler[TRequest, TResponse] {
 		return func(ctx context.Context, request TRequest) Result[TResponse, error] {
-			// Process request
+			// Process request.
 			result := next(ctx, request)
 
 			if result.IsOk() {
-				// Compress response
+				// Compress response.
 				compressedResult := compressor.Compress(ctx, result.Value())
 				if compressedResult.IsOk() {
 					return compressedResult
 				}
-				// Fall back to original response if compression fails
+				// Fall back to original response if compression fails.
 			}
 
 			return result
@@ -587,8 +587,8 @@ type Compressor[TResponse any] interface {
 func HTTPSRedirectMiddleware[TRequest, TResponse any](port int) Middleware[TRequest, TResponse] {
 	return func(next Handler[TRequest, TResponse]) Handler[TRequest, TResponse] {
 		return func(ctx context.Context, request TRequest) Result[TResponse, error] {
-			// This would typically check if the request is HTTP and redirect
-			// For now, just proceed with the request
+			// This would typically check if the request is HTTP and redirect.
+			// For now, just proceed with the request.
 			return next(ctx, request)
 		}
 	}
@@ -603,14 +603,14 @@ func SecurityHeadersMiddleware[TRequest, TResponse any](headers map[string]strin
 		"Strict-Transport-Security": "max-age=31536000; includeSubDomains",
 	}
 
-	// Merge with provided headers
+	// Merge with provided headers.
 	for k, v := range headers {
 		defaultHeaders[k] = v
 	}
 
 	return func(next Handler[TRequest, TResponse]) Handler[TRequest, TResponse] {
 		return func(ctx context.Context, request TRequest) Result[TResponse, error] {
-			// Add security headers to context for later use
+			// Add security headers to context for later use.
 			ctx = context.WithValue(ctx, "security_headers", defaultHeaders)
 			return next(ctx, request)
 		}
@@ -663,13 +663,13 @@ func (mg *MiddlewareGroup[TRequest, TResponse]) Build() *MiddlewareChain[TReques
 	return chain
 }
 
-// CommonMiddlewareGroups provides common middleware combinations
+// CommonMiddlewareGroups provides common middleware combinations.
 
 // WebAPIGroup provides common middleware for web APIs.
 func WebAPIGroup[TRequest, TResponse any]() *MiddlewareGroup[TRequest, TResponse] {
 	return NewMiddlewareGroup[TRequest, TResponse]("web-api").
 		Add(LoggingMiddleware[TRequest, TResponse](NewJSONLogger[TRequest, TResponse](func(s string) {
-			// Default logger implementation
+			// Default logger implementation.
 		}))).
 		Add(CORSMiddleware[TRequest, TResponse](CORSConfig{
 			AllowedOrigins: []string{"*"},
@@ -687,7 +687,7 @@ func SecureAPIGroup[TRequest, TResponse any](
 ) *MiddlewareGroup[TRequest, TResponse] {
 	return NewMiddlewareGroup[TRequest, TResponse]("secure-api").
 		Add(LoggingMiddleware[TRequest, TResponse](NewJSONLogger[TRequest, TResponse](func(s string) {
-			// Default logger implementation
+			// Default logger implementation.
 		}))).
 		Add(SecurityHeadersMiddleware[TRequest, TResponse](nil)).
 		Add(AuthenticationMiddleware[TRequest, TResponse](authenticator)).

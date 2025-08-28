@@ -20,7 +20,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// DistributedTracer manages OpenTelemetry tracing for the entire system
+// DistributedTracer manages OpenTelemetry tracing for the entire system.
 type DistributedTracer struct {
 	tracer          trace.Tracer
 	provider        *sdktrace.TracerProvider
@@ -33,7 +33,7 @@ type DistributedTracer struct {
 	activeSpans     map[string]*ActiveSpan
 }
 
-// TracingConfig holds configuration for distributed tracing
+// TracingConfig holds configuration for distributed tracing.
 type TracingConfig struct {
 	ServiceName    string        `json:"service_name"`
 	ServiceVersion string        `json:"service_version"`
@@ -44,14 +44,14 @@ type TracingConfig struct {
 	MaxBatchSize   int           `json:"max_batch_size"`
 	MaxQueueSize   int           `json:"max_queue_size"`
 
-	// Trace-based alerting configuration
+	// Trace-based alerting configuration.
 	AlertingEnabled    bool                  `json:"alerting_enabled"`
 	AlertThresholds    *TraceAlertThresholds `json:"alert_thresholds"`
 	AnomalyDetection   *TraceAnomalyConfig   `json:"anomaly_detection"`
 	PerformanceTargets *PerformanceTargets   `json:"performance_targets"`
 }
 
-// TraceAlertThresholds defines thresholds for trace-based alerts
+// TraceAlertThresholds defines thresholds for trace-based alerts.
 type TraceAlertThresholds struct {
 	HighLatencyThreshold     time.Duration `json:"high_latency_threshold"`
 	CriticalLatencyThreshold time.Duration `json:"critical_latency_threshold"`
@@ -61,7 +61,7 @@ type TraceAlertThresholds struct {
 	SlowOperationThreshold   time.Duration `json:"slow_operation_threshold"`
 }
 
-// TraceAnomalyConfig defines anomaly detection parameters
+// TraceAnomalyConfig defines anomaly detection parameters.
 type TraceAnomalyConfig struct {
 	Enabled                  bool          `json:"enabled"`
 	WindowSize               time.Duration `json:"window_size"`
@@ -71,7 +71,7 @@ type TraceAnomalyConfig struct {
 	ThroughputAnomalyEnabled bool          `json:"throughput_anomaly_enabled"`
 }
 
-// PerformanceTargets defines SLO targets for trace analysis
+// PerformanceTargets defines SLO targets for trace analysis.
 type PerformanceTargets struct {
 	P50LatencyTarget   time.Duration `json:"p50_latency_target"`
 	P95LatencyTarget   time.Duration `json:"p95_latency_target"`
@@ -80,7 +80,7 @@ type PerformanceTargets struct {
 	AvailabilityTarget float64       `json:"availability_target"`
 }
 
-// ActiveSpan represents an active span with metadata
+// ActiveSpan represents an active span with metadata.
 type ActiveSpan struct {
 	SpanID        string            `json:"span_id"`
 	TraceID       string            `json:"trace_id"`
@@ -92,7 +92,7 @@ type ActiveSpan struct {
 	Status        codes.Code        `json:"status"`
 }
 
-// TraceAlert represents a trace-based alert
+// TraceAlert represents a trace-based alert.
 type TraceAlert struct {
 	ID         string                 `json:"id"`
 	AlertType  TraceAlertType         `json:"alert_type"`
@@ -110,30 +110,42 @@ type TraceAlert struct {
 	ResolvedAt *time.Time             `json:"resolved_at,omitempty"`
 }
 
-// TraceAlertType defines types of trace-based alerts
+// TraceAlertType defines types of trace-based alerts.
 type TraceAlertType string
 
 const (
-	AlertTypeHighLatency       TraceAlertType = "high_latency"
-	AlertTypeCriticalLatency   TraceAlertType = "critical_latency"
-	AlertTypeHighErrorRate     TraceAlertType = "high_error_rate"
-	AlertTypeDeepTrace         TraceAlertType = "deep_trace"
-	AlertTypeSlowOperation     TraceAlertType = "slow_operation"
-	AlertTypeLatencyAnomaly    TraceAlertType = "latency_anomaly"
+	// AlertTypeHighLatency holds alerttypehighlatency value.
+	AlertTypeHighLatency TraceAlertType = "high_latency"
+	// AlertTypeCriticalLatency holds alerttypecriticallatency value.
+	AlertTypeCriticalLatency TraceAlertType = "critical_latency"
+	// AlertTypeHighErrorRate holds alerttypehigherrorrate value.
+	AlertTypeHighErrorRate TraceAlertType = "high_error_rate"
+	// AlertTypeDeepTrace holds alerttypedeeptrace value.
+	AlertTypeDeepTrace TraceAlertType = "deep_trace"
+	// AlertTypeSlowOperation holds alerttypeslowoperation value.
+	AlertTypeSlowOperation TraceAlertType = "slow_operation"
+	// AlertTypeLatencyAnomaly holds alerttypelatencyanomaly value.
+	AlertTypeLatencyAnomaly TraceAlertType = "latency_anomaly"
+	// AlertTypeThroughputAnomaly holds alerttypethroughputanomaly value.
 	AlertTypeThroughputAnomaly TraceAlertType = "throughput_anomaly"
-	AlertTypeSpanFailure       TraceAlertType = "span_failure"
-	AlertTypeCircuitBreaker    TraceAlertType = "circuit_breaker"
+	// AlertTypeSpanFailure holds alerttypespanfailure value.
+	AlertTypeSpanFailure TraceAlertType = "span_failure"
+	// AlertTypeCircuitBreaker holds alerttypecircuitbreaker value.
+	AlertTypeCircuitBreaker TraceAlertType = "circuit_breaker"
 )
 
-// AlertSeverity constants are imported from alerting.go
-// Using constants from alerting.go
+// AlertSeverity constants are imported from alerting.go.
+// Using constants from alerting.go.
 const (
-	SeverityHigh     = AlertSeverityError
+	// SeverityHigh holds severityhigh value.
+	SeverityHigh = AlertSeverityError
+	// SeverityCritical holds severitycritical value.
 	SeverityCritical = AlertSeverityCritical
-	SeverityMedium   = AlertSeverityWarning
+	// SeverityMedium holds severitymedium value.
+	SeverityMedium = AlertSeverityWarning
 )
 
-// TraceAlertManager manages trace-based alerting
+// TraceAlertManager manages trace-based alerting.
 type TraceAlertManager struct {
 	alerts          map[string]*TraceAlert
 	alertHandlers   []TraceAlertHandler
@@ -143,12 +155,12 @@ type TraceAlertManager struct {
 	mu              sync.RWMutex
 }
 
-// TraceAlertHandler interface for handling trace alerts
+// TraceAlertHandler interface for handling trace alerts.
 type TraceAlertHandler interface {
 	HandleAlert(ctx context.Context, alert *TraceAlert) error
 }
 
-// SpanAnalyzer provides advanced span analysis capabilities
+// SpanAnalyzer provides advanced span analysis capabilities.
 type SpanAnalyzer struct {
 	config          *TracingConfig
 	logger          *StructuredLogger
@@ -158,7 +170,7 @@ type SpanAnalyzer struct {
 	latencyHistory  map[string][]time.Duration
 }
 
-// SpanMetrics holds metrics for span analysis
+// SpanMetrics holds metrics for span analysis.
 type SpanMetrics struct {
 	SpanID        string            `json:"span_id"`
 	TraceID       string            `json:"trace_id"`
@@ -172,7 +184,7 @@ type SpanMetrics struct {
 	ErrorMessage  string            `json:"error_message,omitempty"`
 }
 
-// getEnv gets environment variable with default value
+// getEnv gets environment variable with default value.
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
@@ -180,7 +192,7 @@ func getEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
-// DefaultTracingConfig returns default tracing configuration
+// DefaultTracingConfig returns default tracing configuration.
 func DefaultTracingConfig() *TracingConfig {
 	return &TracingConfig{
 		ServiceName:     "nephoran-intent-operator",
@@ -218,19 +230,19 @@ func DefaultTracingConfig() *TracingConfig {
 	}
 }
 
-// NewDistributedTracer creates a new distributed tracer
+// NewDistributedTracer creates a new distributed tracer.
 func NewDistributedTracer(config *TracingConfig, logger *StructuredLogger, metricsRecorder *MetricsRecorder) (*DistributedTracer, error) {
 	if config == nil {
 		config = DefaultTracingConfig()
 	}
 
-	// Create Jaeger exporter
+	// Create Jaeger exporter.
 	exporter, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(config.JaegerEndpoint)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Jaeger exporter: %w", err)
 	}
 
-	// Create resource with service information
+	// Create resource with service information.
 	res, err := resource.Merge(
 		resource.Default(),
 		resource.NewWithAttributes(
@@ -244,7 +256,7 @@ func NewDistributedTracer(config *TracingConfig, logger *StructuredLogger, metri
 		return nil, fmt.Errorf("failed to create resource: %w", err)
 	}
 
-	// Create trace provider
+	// Create trace provider.
 	provider := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter,
 			sdktrace.WithBatchTimeout(config.BatchTimeout),
@@ -255,17 +267,17 @@ func NewDistributedTracer(config *TracingConfig, logger *StructuredLogger, metri
 		sdktrace.WithSampler(sdktrace.TraceIDRatioBased(config.SamplingRatio)),
 	)
 
-	// Set global tracer provider
+	// Set global tracer provider.
 	otel.SetTracerProvider(provider)
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{},
 		propagation.Baggage{},
 	))
 
-	// Create tracer
+	// Create tracer.
 	tracer := provider.Tracer(config.ServiceName)
 
-	// Create alert manager
+	// Create alert manager.
 	alertManager := &TraceAlertManager{
 		alerts:          make(map[string]*TraceAlert),
 		alertHandlers:   make([]TraceAlertHandler, 0),
@@ -274,7 +286,7 @@ func NewDistributedTracer(config *TracingConfig, logger *StructuredLogger, metri
 		metricsRecorder: metricsRecorder,
 	}
 
-	// Create span analyzer
+	// Create span analyzer.
 	spanAnalyzer := &SpanAnalyzer{
 		config:          config,
 		logger:          logger,
@@ -297,9 +309,9 @@ func NewDistributedTracer(config *TracingConfig, logger *StructuredLogger, metri
 	return dt, nil
 }
 
-// StartSpan starts a new trace span with comprehensive metadata
+// StartSpan starts a new trace span with comprehensive metadata.
 func (dt *DistributedTracer) StartSpan(ctx context.Context, operationName string, component string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
-	// Add component and operation name as attributes
+	// Add component and operation name as attributes.
 	attributes := []attribute.KeyValue{
 		attribute.String("component", component),
 		attribute.String("operation", operationName),
@@ -307,17 +319,17 @@ func (dt *DistributedTracer) StartSpan(ctx context.Context, operationName string
 		attribute.String("environment", dt.config.Environment),
 	}
 
-	// Add correlation ID if available
+	// Add correlation ID if available.
 	if correlationID := GetCorrelationID(ctx); correlationID != "" {
 		attributes = append(attributes, attribute.String("correlation_id", correlationID))
 	}
 
-	// Create span start options
+	// Create span start options.
 	spanOpts := append(opts, trace.WithAttributes(attributes...))
 
 	spanCtx, span := dt.tracer.Start(ctx, operationName, spanOpts...)
 
-	// Record active span
+	// Record active span.
 	spanContext := span.SpanContext()
 	activeSpan := &ActiveSpan{
 		SpanID:        spanContext.SpanID().String(),
@@ -333,7 +345,7 @@ func (dt *DistributedTracer) StartSpan(ctx context.Context, operationName string
 	dt.activeSpans[spanContext.SpanID().String()] = activeSpan
 	dt.mu.Unlock()
 
-	// Log span start
+	// Log span start.
 	if dt.logger != nil {
 		dt.logger.Debug(spanCtx, "Trace span started",
 			slog.String("trace_id", activeSpan.TraceID),
@@ -346,12 +358,12 @@ func (dt *DistributedTracer) StartSpan(ctx context.Context, operationName string
 	return spanCtx, span
 }
 
-// FinishSpan finishes a span and performs analysis
+// FinishSpan finishes a span and performs analysis.
 func (dt *DistributedTracer) FinishSpan(span trace.Span, status codes.Code, err error) {
 	spanContext := span.SpanContext()
 	spanID := spanContext.SpanID().String()
 
-	// Get active span
+	// Get active span.
 	dt.mu.Lock()
 	activeSpan, exists := dt.activeSpans[spanID]
 	if exists {
@@ -361,7 +373,7 @@ func (dt *DistributedTracer) FinishSpan(span trace.Span, status codes.Code, err 
 	}
 	dt.mu.Unlock()
 
-	// Set span status
+	// Set span status.
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		span.RecordError(err)
@@ -369,15 +381,15 @@ func (dt *DistributedTracer) FinishSpan(span trace.Span, status codes.Code, err 
 		span.SetStatus(status, "")
 	}
 
-	// End the span
+	// End the span.
 	span.End()
 
-	// Perform span analysis if span exists
+	// Perform span analysis if span exists.
 	if exists {
 		dt.analyzeSpan(activeSpan, err)
 	}
 
-	// Log span completion
+	// Log span completion.
 	if dt.logger != nil && activeSpan != nil {
 		level := slog.LevelInfo
 		if status == codes.Error {
@@ -401,7 +413,7 @@ func (dt *DistributedTracer) FinishSpan(span trace.Span, status codes.Code, err 
 	}
 }
 
-// analyzeSpan performs comprehensive span analysis for alerting
+// analyzeSpan performs comprehensive span analysis for alerting.
 func (dt *DistributedTracer) analyzeSpan(activeSpan *ActiveSpan, err error) {
 	if !dt.config.AlertingEnabled {
 		return
@@ -423,15 +435,15 @@ func (dt *DistributedTracer) analyzeSpan(activeSpan *ActiveSpan, err error) {
 		spanMetrics.ErrorMessage = err.Error()
 	}
 
-	// Store span metrics for analysis
+	// Store span metrics for analysis.
 	dt.spanAnalyzer.RecordSpan(spanMetrics)
 
-	// Check for immediate alerts
+	// Check for immediate alerts.
 	dt.checkSpanAlerts(spanMetrics)
 
-	// Record metrics
+	// Record metrics.
 	if dt.metricsRecorder != nil {
-		// Record span duration via SLI latency metrics
+		// Record span duration via SLI latency metrics.
 		dt.metricsRecorder.RecordSLILatency(spanMetrics.Component, spanMetrics.OperationName, "default",
 			spanMetrics.Duration.Seconds(), spanMetrics.Duration.Seconds())
 		if spanMetrics.Status == codes.Error {
@@ -440,11 +452,11 @@ func (dt *DistributedTracer) analyzeSpan(activeSpan *ActiveSpan, err error) {
 	}
 }
 
-// checkSpanAlerts checks for various alert conditions
+// checkSpanAlerts checks for various alert conditions.
 func (dt *DistributedTracer) checkSpanAlerts(spanMetrics *SpanMetrics) {
 	thresholds := dt.config.AlertThresholds
 
-	// High latency alert
+	// High latency alert.
 	if spanMetrics.Duration > thresholds.HighLatencyThreshold {
 		severity := SeverityHigh
 		if spanMetrics.Duration > thresholds.CriticalLatencyThreshold {
@@ -473,7 +485,7 @@ func (dt *DistributedTracer) checkSpanAlerts(spanMetrics *SpanMetrics) {
 		dt.alertManager.FireAlert(context.Background(), alert)
 	}
 
-	// Slow operation alert
+	// Slow operation alert.
 	if spanMetrics.Duration > thresholds.SlowOperationThreshold {
 		alert := &TraceAlert{
 			ID:        fmt.Sprintf("slow-op-%s-%d", spanMetrics.SpanID, time.Now().Unix()),
@@ -496,7 +508,7 @@ func (dt *DistributedTracer) checkSpanAlerts(spanMetrics *SpanMetrics) {
 		dt.alertManager.FireAlert(context.Background(), alert)
 	}
 
-	// Span failure alert
+	// Span failure alert.
 	if spanMetrics.Status == codes.Error {
 		alert := &TraceAlert{
 			ID:        fmt.Sprintf("span-error-%s-%d", spanMetrics.SpanID, time.Now().Unix()),
@@ -519,26 +531,26 @@ func (dt *DistributedTracer) checkSpanAlerts(spanMetrics *SpanMetrics) {
 	}
 }
 
-// RecordSpan records span metrics for analysis
+// RecordSpan records span metrics for analysis.
 func (sa *SpanAnalyzer) RecordSpan(spanMetrics *SpanMetrics) {
 	sa.mu.Lock()
 	defer sa.mu.Unlock()
 
 	operationKey := fmt.Sprintf("%s.%s", spanMetrics.Component, spanMetrics.OperationName)
 
-	// Store span history
+	// Store span history.
 	if sa.spanHistory[operationKey] == nil {
 		sa.spanHistory[operationKey] = make([]*SpanMetrics, 0)
 	}
 	sa.spanHistory[operationKey] = append(sa.spanHistory[operationKey], spanMetrics)
 
-	// Store latency history
+	// Store latency history.
 	if sa.latencyHistory[operationKey] == nil {
 		sa.latencyHistory[operationKey] = make([]time.Duration, 0)
 	}
 	sa.latencyHistory[operationKey] = append(sa.latencyHistory[operationKey], spanMetrics.Duration)
 
-	// Limit history size (keep last 1000 entries)
+	// Limit history size (keep last 1000 entries).
 	if len(sa.spanHistory[operationKey]) > 1000 {
 		sa.spanHistory[operationKey] = sa.spanHistory[operationKey][len(sa.spanHistory[operationKey])-1000:]
 	}
@@ -546,29 +558,29 @@ func (sa *SpanAnalyzer) RecordSpan(spanMetrics *SpanMetrics) {
 		sa.latencyHistory[operationKey] = sa.latencyHistory[operationKey][len(sa.latencyHistory[operationKey])-1000:]
 	}
 
-	// Check for anomalies if enabled
+	// Check for anomalies if enabled.
 	if sa.config.AnomalyDetection.Enabled {
 		sa.checkAnomalies(operationKey, spanMetrics)
 	}
 }
 
-// checkAnomalies performs anomaly detection on span metrics
+// checkAnomalies performs anomaly detection on span metrics.
 func (sa *SpanAnalyzer) checkAnomalies(operationKey string, spanMetrics *SpanMetrics) {
 	config := sa.config.AnomalyDetection
 
-	// Only check if we have minimum samples
+	// Only check if we have minimum samples.
 	latencies := sa.latencyHistory[operationKey]
 	if len(latencies) < config.MinimumSamples {
 		return
 	}
 
-	// Calculate statistics for latency anomaly detection
+	// Calculate statistics for latency anomaly detection.
 	if config.LatencyAnomalyEnabled {
 		mean, stdDev := calculateStatistics(latencies)
 		threshold := mean + time.Duration(float64(stdDev)*config.StandardDeviations)
 
 		if spanMetrics.Duration > threshold {
-			// This is a latency anomaly
+			// This is a latency anomaly.
 			if sa.logger != nil {
 				sa.logger.Warn(context.Background(), "Latency anomaly detected",
 					slog.String("operation", operationKey),
@@ -579,7 +591,7 @@ func (sa *SpanAnalyzer) checkAnomalies(operationKey string, spanMetrics *SpanMet
 				)
 			}
 
-			// Record anomaly metric
+			// Record anomaly metric.
 			if sa.metricsRecorder != nil {
 				sa.metricsRecorder.RecordAnomalyDetection("latency", "high", operationKey, "statistical")
 			}
@@ -587,15 +599,15 @@ func (sa *SpanAnalyzer) checkAnomalies(operationKey string, spanMetrics *SpanMet
 	}
 }
 
-// FireAlert fires a trace-based alert
+// FireAlert fires a trace-based alert.
 func (tam *TraceAlertManager) FireAlert(ctx context.Context, alert *TraceAlert) {
 	tam.mu.Lock()
 	defer tam.mu.Unlock()
 
-	// Store alert
+	// Store alert.
 	tam.alerts[alert.ID] = alert
 
-	// Log alert
+	// Log alert.
 	if tam.logger != nil {
 		tam.logger.Warn(ctx, "Trace alert fired",
 			slog.String("alert_id", alert.ID),
@@ -607,13 +619,13 @@ func (tam *TraceAlertManager) FireAlert(ctx context.Context, alert *TraceAlert) 
 		)
 	}
 
-	// Record alert metric
+	// Record alert metric.
 	if tam.metricsRecorder != nil {
-		// Record as an alert occurrence
+		// Record as an alert occurrence.
 		tam.metricsRecorder.RecordAlert(string(alert.Severity), alert.Component)
 	}
 
-	// Call alert handlers
+	// Call alert handlers.
 	for _, handler := range tam.alertHandlers {
 		go func(h TraceAlertHandler) {
 			if err := h.HandleAlert(ctx, alert); err != nil && tam.logger != nil {
@@ -626,14 +638,14 @@ func (tam *TraceAlertManager) FireAlert(ctx context.Context, alert *TraceAlert) 
 	}
 }
 
-// AddAlertHandler adds a trace alert handler
+// AddAlertHandler adds a trace alert handler.
 func (tam *TraceAlertManager) AddAlertHandler(handler TraceAlertHandler) {
 	tam.mu.Lock()
 	defer tam.mu.Unlock()
 	tam.alertHandlers = append(tam.alertHandlers, handler)
 }
 
-// GetActiveAlerts returns all active (unresolved) alerts
+// GetActiveAlerts returns all active (unresolved) alerts.
 func (tam *TraceAlertManager) GetActiveAlerts() []*TraceAlert {
 	tam.mu.RLock()
 	defer tam.mu.RUnlock()
@@ -648,7 +660,7 @@ func (tam *TraceAlertManager) GetActiveAlerts() []*TraceAlert {
 	return activeAlerts
 }
 
-// ResolveAlert resolves an alert by ID
+// ResolveAlert resolves an alert by ID.
 func (tam *TraceAlertManager) ResolveAlert(ctx context.Context, alertID string) error {
 	tam.mu.Lock()
 	defer tam.mu.Unlock()
@@ -673,7 +685,7 @@ func (tam *TraceAlertManager) ResolveAlert(ctx context.Context, alertID string) 
 	return nil
 }
 
-// Shutdown gracefully shuts down the distributed tracer
+// Shutdown gracefully shuts down the distributed tracer.
 func (dt *DistributedTracer) Shutdown(ctx context.Context) error {
 	if dt.provider != nil {
 		return dt.provider.Shutdown(ctx)
@@ -681,22 +693,22 @@ func (dt *DistributedTracer) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// Helper functions
+// Helper functions.
 
-// calculateStatistics calculates mean and standard deviation
+// calculateStatistics calculates mean and standard deviation.
 func calculateStatistics(durations []time.Duration) (mean time.Duration, stdDev time.Duration) {
 	if len(durations) == 0 {
 		return 0, 0
 	}
 
-	// Calculate mean
+	// Calculate mean.
 	var sum time.Duration
 	for _, d := range durations {
 		sum += d
 	}
 	mean = sum / time.Duration(len(durations))
 
-	// Calculate standard deviation
+	// Calculate standard deviation.
 	var variance float64
 	for _, d := range durations {
 		diff := float64(d - mean)
@@ -708,16 +720,16 @@ func calculateStatistics(durations []time.Duration) (mean time.Duration, stdDev 
 	return mean, stdDev
 }
 
-// TraceMiddleware provides HTTP middleware for tracing
+// TraceMiddleware provides HTTP middleware for tracing.
 func (dt *DistributedTracer) TraceMiddleware(component string) func(next interface{}) interface{} {
 	return func(next interface{}) interface{} {
-		// This would be implemented based on your HTTP framework
-		// For now, returning a placeholder
+		// This would be implemented based on your HTTP framework.
+		// For now, returning a placeholder.
 		return next
 	}
 }
 
-// GetActiveSpans returns currently active spans
+// GetActiveSpans returns currently active spans.
 func (dt *DistributedTracer) GetActiveSpans() map[string]*ActiveSpan {
 	dt.mu.RLock()
 	defer dt.mu.RUnlock()
@@ -729,7 +741,7 @@ func (dt *DistributedTracer) GetActiveSpans() map[string]*ActiveSpan {
 	return spans
 }
 
-// GetSpanAnalytics returns analytics for a specific operation
+// GetSpanAnalytics returns analytics for a specific operation.
 func (sa *SpanAnalyzer) GetSpanAnalytics(component, operation string) (*SpanAnalytics, error) {
 	sa.mu.RLock()
 	defer sa.mu.RUnlock()
@@ -743,10 +755,10 @@ func (sa *SpanAnalyzer) GetSpanAnalytics(component, operation string) (*SpanAnal
 	latencies := sa.latencyHistory[operationKey]
 	mean, stdDev := calculateStatistics(latencies)
 
-	// Calculate percentiles
+	// Calculate percentiles.
 	p50, p95, p99 := calculatePercentiles(latencies)
 
-	// Calculate error rate
+	// Calculate error rate.
 	errorCount := 0
 	for _, span := range spans {
 		if span.Status == codes.Error {
@@ -772,7 +784,7 @@ func (sa *SpanAnalyzer) GetSpanAnalytics(component, operation string) (*SpanAnal
 	return analytics, nil
 }
 
-// SpanAnalytics holds analytics data for spans
+// SpanAnalytics holds analytics data for spans.
 type SpanAnalytics struct {
 	Component     string        `json:"component"`
 	Operation     string        `json:"operation"`
@@ -787,17 +799,17 @@ type SpanAnalytics struct {
 	LastUpdated   time.Time     `json:"last_updated"`
 }
 
-// calculatePercentiles calculates P50, P95, and P99 percentiles
+// calculatePercentiles calculates P50, P95, and P99 percentiles.
 func calculatePercentiles(durations []time.Duration) (p50, p95, p99 time.Duration) {
 	if len(durations) == 0 {
 		return 0, 0, 0
 	}
 
-	// Sort durations
+	// Sort durations.
 	sorted := make([]time.Duration, len(durations))
 	copy(sorted, durations)
 
-	// Simple sort implementation
+	// Simple sort implementation.
 	for i := 0; i < len(sorted); i++ {
 		for j := i + 1; j < len(sorted); j++ {
 			if sorted[i] > sorted[j] {
@@ -806,7 +818,7 @@ func calculatePercentiles(durations []time.Duration) (p50, p95, p99 time.Duratio
 		}
 	}
 
-	// Calculate percentiles
+	// Calculate percentiles.
 	p50Index := int(float64(len(sorted)) * 0.50)
 	p95Index := int(float64(len(sorted)) * 0.95)
 	p99Index := int(float64(len(sorted)) * 0.99)
@@ -824,14 +836,14 @@ func calculatePercentiles(durations []time.Duration) (p50, p95, p99 time.Duratio
 	return sorted[p50Index], sorted[p95Index], sorted[p99Index]
 }
 
-// DefaultSlackAlertHandler provides Slack integration for trace alerts
+// DefaultSlackAlertHandler provides Slack integration for trace alerts.
 type DefaultSlackAlertHandler struct {
 	WebhookURL string
 	Channel    string
 	logger     *StructuredLogger
 }
 
-// NewDefaultSlackAlertHandler creates a new Slack alert handler
+// NewDefaultSlackAlertHandler creates a new Slack alert handler.
 func NewDefaultSlackAlertHandler(webhookURL, channel string, logger *StructuredLogger) *DefaultSlackAlertHandler {
 	return &DefaultSlackAlertHandler{
 		WebhookURL: webhookURL,
@@ -840,9 +852,9 @@ func NewDefaultSlackAlertHandler(webhookURL, channel string, logger *StructuredL
 	}
 }
 
-// HandleAlert handles trace alerts by sending to Slack
+// HandleAlert handles trace alerts by sending to Slack.
 func (h *DefaultSlackAlertHandler) HandleAlert(ctx context.Context, alert *TraceAlert) error {
-	// Create Slack message
+	// Create Slack message.
 	message := fmt.Sprintf("🚨 *Trace Alert: %s*\n", alert.AlertType)
 	message += fmt.Sprintf("*Severity:* %s\n", alert.Severity)
 	message += fmt.Sprintf("*Component:* %s\n", alert.Component)
@@ -856,7 +868,7 @@ func (h *DefaultSlackAlertHandler) HandleAlert(ctx context.Context, alert *Trace
 
 	message += fmt.Sprintf("*Time:* %s", alert.Timestamp.Format(time.RFC3339))
 
-	// This would integrate with your Slack webhook implementation
+	// This would integrate with your Slack webhook implementation.
 	if h.logger != nil {
 		h.logger.Info(ctx, "Sending trace alert to Slack",
 			slog.String("alert_id", alert.ID),

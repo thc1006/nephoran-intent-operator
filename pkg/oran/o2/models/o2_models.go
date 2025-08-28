@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-// SystemInfo represents O2 IMS system information
+// SystemInfo represents O2 IMS system information.
 type SystemInfo struct {
 	Name                   string                 `json:"name"`
 	Description            string                 `json:"description"`
@@ -31,7 +31,7 @@ type SystemInfo struct {
 	Timestamp              time.Time              `json:"timestamp"`
 }
 
-// CreateSubscriptionRequest represents a subscription creation request
+// CreateSubscriptionRequest represents a subscription creation request.
 type CreateSubscriptionRequest struct {
 	ConsumerSubscriptionID string                 `json:"consumerSubscriptionId"`
 	Filter                 string                 `json:"filter,omitempty"`
@@ -41,14 +41,14 @@ type CreateSubscriptionRequest struct {
 	Metadata               map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// ConsumerInfo represents subscription consumer information
+// ConsumerInfo represents subscription consumer information.
 type ConsumerInfo struct {
 	ConsumerID   string `json:"consumerId"`
 	ConsumerName string `json:"consumerName"`
 	Description  string `json:"description,omitempty"`
 }
 
-// UpdateSubscriptionRequest represents a subscription update request
+// UpdateSubscriptionRequest represents a subscription update request.
 type UpdateSubscriptionRequest struct {
 	Filter     string                 `json:"filter,omitempty"`
 	Callback   string                 `json:"callback,omitempty"`
@@ -57,7 +57,7 @@ type UpdateSubscriptionRequest struct {
 	Metadata   map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// NotificationEventType represents supported notification event types
+// NotificationEventType represents supported notification event types.
 type NotificationEventType struct {
 	EventType   string `json:"eventType"`
 	Description string `json:"description"`
@@ -65,7 +65,7 @@ type NotificationEventType struct {
 	Version     string `json:"version"`
 }
 
-// Alarm represents an O2 alarm
+// Alarm represents an O2 alarm.
 type Alarm struct {
 	AlarmID            string                 `json:"alarmId"`
 	ResourceID         string                 `json:"resourceId"`
@@ -88,7 +88,7 @@ type Alarm struct {
 	Extensions         map[string]interface{} `json:"extensions,omitempty"`
 }
 
-// AlarmFilter represents filter criteria for alarms
+// AlarmFilter represents filter criteria for alarms.
 type AlarmFilter struct {
 	AlarmID           string     `json:"alarmId,omitempty"`
 	ResourceID        string     `json:"resourceId,omitempty"`
@@ -103,7 +103,7 @@ type AlarmFilter struct {
 	RaisedBefore      *time.Time `json:"raisedBefore,omitempty"`
 }
 
-// AlarmAcknowledgementRequest represents an alarm acknowledgement request
+// AlarmAcknowledgementRequest represents an alarm acknowledgement request.
 type AlarmAcknowledgementRequest struct {
 	AckUser     string                 `json:"ackUser"`
 	AckSystemId string                 `json:"ackSystemId,omitempty"`
@@ -111,7 +111,7 @@ type AlarmAcknowledgementRequest struct {
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// AlarmClearRequest represents an alarm clear request
+// AlarmClearRequest represents an alarm clear request.
 type AlarmClearRequest struct {
 	ClearUser     string                 `json:"clearUser"`
 	ClearSystemId string                 `json:"clearSystemId,omitempty"`
@@ -119,7 +119,7 @@ type AlarmClearRequest struct {
 	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// PoolLocation represents geographical location of a resource pool
+// PoolLocation represents geographical location of a resource pool.
 type PoolLocation struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
@@ -129,7 +129,7 @@ type PoolLocation struct {
 	Region    string  `json:"region,omitempty"`
 }
 
-// TemplateRequirements represents template resource requirements
+// TemplateRequirements represents template resource requirements.
 type TemplateRequirements struct {
 	MinCPU              *float64          `json:"minCpu,omitempty"`
 	MinMemory           *int64            `json:"minMemory,omitempty"`
@@ -139,7 +139,7 @@ type TemplateRequirements struct {
 	NetworkRequirements *NetworkReqs      `json:"networkRequirements,omitempty"`
 }
 
-// NetworkReqs represents network requirements
+// NetworkReqs represents network requirements.
 type NetworkReqs struct {
 	MinBandwidth    *int64   `json:"minBandwidth,omitempty"`
 	MaxLatency      *int     `json:"maxLatency,omitempty"`

@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-// ClientInterface defines the interface for LLM clients
-// This interface is shared between packages to avoid circular dependencies
+// ClientInterface defines the interface for LLM clients.
+// This interface is shared between packages to avoid circular dependencies.
 type ClientInterface interface {
 	ProcessIntent(ctx context.Context, prompt string) (string, error)
 	ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *StreamingChunk) error
@@ -18,7 +18,7 @@ type ClientInterface interface {
 	Close() error
 }
 
-// StreamingChunk represents a chunk of streamed response
+// StreamingChunk represents a chunk of streamed response.
 type StreamingChunk struct {
 	Content   string
 	IsLast    bool
@@ -26,7 +26,7 @@ type StreamingChunk struct {
 	Timestamp time.Time
 }
 
-// ModelCapabilities describes what a model can do
+// ModelCapabilities describes what a model can do.
 type ModelCapabilities struct {
 	MaxTokens         int                    `json:"max_tokens"`
 	SupportsChat      bool                   `json:"supports_chat"`
@@ -36,7 +36,7 @@ type ModelCapabilities struct {
 	Features          map[string]interface{} `json:"features"`
 }
 
-// TelecomDocument represents a document in the telecom knowledge base
+// TelecomDocument represents a document in the telecom knowledge base.
 type TelecomDocument struct {
 	ID              string                 `json:"id"`
 	Title           string                 `json:"title"`
@@ -57,7 +57,7 @@ type TelecomDocument struct {
 	UpdatedAt       time.Time              `json:"updated_at"`
 }
 
-// SearchResult represents a search result from the vector database
+// SearchResult represents a search result from the vector database.
 type SearchResult struct {
 	Document *TelecomDocument       `json:"document"`
 	Score    float32                `json:"score"`
@@ -65,7 +65,7 @@ type SearchResult struct {
 	Metadata map[string]interface{} `json:"metadata"`
 }
 
-// SearchQuery represents a search query to the vector database
+// SearchQuery represents a search query to the vector database.
 type SearchQuery struct {
 	Query         string                 `json:"query"`
 	Limit         int                    `json:"limit"`
@@ -80,35 +80,45 @@ type SearchQuery struct {
 	TargetVectors []string               `json:"target_vectors,omitempty"` // For named vectors support
 }
 
-// SearchResponse represents the response from a search operation
+// SearchResponse represents the response from a search operation.
 type SearchResponse struct {
 	Results []*SearchResult `json:"results"`
 	Took    int64           `json:"took"`
 	Total   int64           `json:"total"`
 }
 
-// ComponentType represents different types of components in the system
+// ComponentType represents different types of components in the system.
 type ComponentType string
 
 const (
-	// Core processing components
-	ComponentTypeLLMProcessor       ComponentType = "llm-processor"
-	ComponentTypeResourcePlanner    ComponentType = "resource-planner"
-	ComponentTypeManifestGenerator  ComponentType = "manifest-generator"
-	ComponentTypeGitOpsController   ComponentType = "gitops-controller"
+	// Core processing components.
+	ComponentTypeLLMProcessor ComponentType = "llm-processor"
+	// ComponentTypeResourcePlanner holds componenttyperesourceplanner value.
+	ComponentTypeResourcePlanner ComponentType = "resource-planner"
+	// ComponentTypeManifestGenerator holds componenttypemanifestgenerator value.
+	ComponentTypeManifestGenerator ComponentType = "manifest-generator"
+	// ComponentTypeGitOpsController holds componenttypegitopscontroller value.
+	ComponentTypeGitOpsController ComponentType = "gitops-controller"
+	// ComponentTypeDeploymentVerifier holds componenttypedeploymentverifier value.
 	ComponentTypeDeploymentVerifier ComponentType = "deployment-verifier"
 
-	// Optimization and analysis components
-	ComponentTypeRAGSystem         ComponentType = "rag-system"
+	// Optimization and analysis components.
+	ComponentTypeRAGSystem ComponentType = "rag-system"
+	// ComponentTypeNephioIntegration holds componenttypenephiointegration value.
 	ComponentTypeNephioIntegration ComponentType = "nephio-integration"
-	ComponentTypeAuthentication    ComponentType = "authentication"
-	ComponentTypeDatabase          ComponentType = "database"
-	ComponentTypeCache             ComponentType = "cache"
-	ComponentTypeKubernetes        ComponentType = "kubernetes"
-	ComponentTypeNetworking        ComponentType = "networking"
+	// ComponentTypeAuthentication holds componenttypeauthentication value.
+	ComponentTypeAuthentication ComponentType = "authentication"
+	// ComponentTypeDatabase holds componenttypedatabase value.
+	ComponentTypeDatabase ComponentType = "database"
+	// ComponentTypeCache holds componenttypecache value.
+	ComponentTypeCache ComponentType = "cache"
+	// ComponentTypeKubernetes holds componenttypekubernetes value.
+	ComponentTypeKubernetes ComponentType = "kubernetes"
+	// ComponentTypeNetworking holds componenttypenetworking value.
+	ComponentTypeNetworking ComponentType = "networking"
 )
 
-// ComponentStatus represents the status of a component
+// ComponentStatus represents the status of a component.
 type ComponentStatus struct {
 	Type       ComponentType          `json:"type"`
 	Name       string                 `json:"name"`
@@ -121,7 +131,7 @@ type ComponentStatus struct {
 	Errors     []string               `json:"errors,omitempty"`
 }
 
-// SystemHealth represents the overall health of the system
+// SystemHealth represents the overall health of the system.
 type SystemHealth struct {
 	OverallStatus  string                      `json:"overallStatus"`
 	Healthy        bool                        `json:"healthy"`
@@ -133,7 +143,7 @@ type SystemHealth struct {
 	ResourceUsage  ResourceUsage               `json:"resourceUsage"`
 }
 
-// ResourceUsage represents resource utilization
+// ResourceUsage represents resource utilization.
 type ResourceUsage struct {
 	CPUPercent        float64 `json:"cpuPercent"`
 	MemoryPercent     float64 `json:"memoryPercent"`

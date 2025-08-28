@@ -19,12 +19,14 @@ import (
 )
 
 const (
-	typeReadyManagedElement  = "Ready"
-	O1ConfiguredCondition    = "O1Configured"
+	typeReadyManagedElement = "Ready"
+	// O1ConfiguredCondition holds o1configuredcondition value.
+	O1ConfiguredCondition = "O1Configured"
+	// A1PolicyAppliedCondition holds a1policyappliedcondition value.
 	A1PolicyAppliedCondition = "A1PolicyApplied"
 )
 
-// OranAdaptorReconciler reconciles a ManagedElement object
+// OranAdaptorReconciler reconciles a ManagedElement object.
 type OranAdaptorReconciler struct {
 	client.Client
 	Scheme    *runtime.Scheme
@@ -36,6 +38,7 @@ type OranAdaptorReconciler struct {
 //+kubebuilder:rbac:groups=nephoran.com,resources=managedelements/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch
 
+// Reconcile performs reconcile operation.
 func (r *OranAdaptorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
@@ -46,7 +49,7 @@ func (r *OranAdaptorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	logger.Info("Reconciling ManagedElement", "name", me.Name)
 
-	// O2 Logic: Check the status of the associated Deployment
+	// O2 Logic: Check the status of the associated Deployment.
 	deployment := &appsv1.Deployment{}
 	err := r.Get(ctx, types.NamespacedName{Name: me.Spec.DeploymentName, Namespace: me.Namespace}, deployment)
 	if err != nil {
@@ -62,7 +65,7 @@ func (r *OranAdaptorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 	meta.SetStatusCondition(&me.Status.Conditions, metav1.Condition{Type: typeReadyManagedElement, Status: metav1.ConditionTrue, Reason: "Ready", Message: "Deployment is fully available."})
 
-	// O1 Logic: If ready, apply intent-driven O1 configuration
+	// O1 Logic: If ready, apply intent-driven O1 configuration.
 	if me.Spec.O1Config != "" {
 		if err := r.O1Adaptor.ApplyConfiguration(ctx, me); err != nil {
 			logger.Error(err, "O1 configuration failed")
@@ -73,7 +76,7 @@ func (r *OranAdaptorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 	}
 
-	// A1 Logic: If ready, apply intent-driven A1 policy
+	// A1 Logic: If ready, apply intent-driven A1 policy.
 	if me.Spec.A1Policy.Raw != nil {
 		if err := r.A1Adaptor.ApplyPolicy(ctx, me); err != nil {
 			logger.Error(err, "A1 policy application failed")
@@ -95,6 +98,7 @@ func (r *OranAdaptorReconciler) updateStatus(ctx context.Context, me *nephoranv1
 	return ctrl.Result{}, nil
 }
 
+// SetupWithManager performs setupwithmanager operation.
 func (r *OranAdaptorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.O1Adaptor = o1.NewO1Adaptor(nil, mgr.GetClient()) // Use default config with Kubernetes client
 	var err error

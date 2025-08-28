@@ -25,13 +25,13 @@ import (
 	"go.uber.org/zap"
 )
 
-// NetworkFunctionConfigGenerator generates network function configurations
+// NetworkFunctionConfigGenerator generates network function configurations.
 type NetworkFunctionConfigGenerator struct {
 	config *BlueprintConfig
 	logger *zap.Logger
 }
 
-// NewNetworkFunctionConfigGenerator creates a new network function config generator
+// NewNetworkFunctionConfigGenerator creates a new network function config generator.
 func NewNetworkFunctionConfigGenerator(config *BlueprintConfig, logger *zap.Logger) (*NetworkFunctionConfigGenerator, error) {
 	if config == nil {
 		return nil, fmt.Errorf("config is required")
@@ -46,7 +46,7 @@ func NewNetworkFunctionConfigGenerator(config *BlueprintConfig, logger *zap.Logg
 	}, nil
 }
 
-// GenerateConfigurations generates network function configurations from intent and templates
+// GenerateConfigurations generates network function configurations from intent and templates.
 func (nfcg *NetworkFunctionConfigGenerator) GenerateConfigurations(
 	ctx context.Context,
 	intent *v1.NetworkIntent,
@@ -76,13 +76,13 @@ func (nfcg *NetworkFunctionConfigGenerator) GenerateConfigurations(
 	return configs, nil
 }
 
-// ORANValidator validates O-RAN compliance
+// ORANValidator validates O-RAN compliance.
 type ORANValidator struct {
 	config *BlueprintConfig
 	logger *zap.Logger
 }
 
-// NewORANValidator creates a new O-RAN validator
+// NewORANValidator creates a new O-RAN validator.
 func NewORANValidator(config *BlueprintConfig, logger *zap.Logger) (*ORANValidator, error) {
 	if config == nil {
 		return nil, fmt.Errorf("config is required")
@@ -97,7 +97,7 @@ func NewORANValidator(config *BlueprintConfig, logger *zap.Logger) (*ORANValidat
 	}, nil
 }
 
-// ValidateORANCompliance validates O-RAN compliance for rendered blueprint and network function configs
+// ValidateORANCompliance validates O-RAN compliance for rendered blueprint and network function configs.
 func (ov *ORANValidator) ValidateORANCompliance(
 	ctx context.Context,
 	blueprint *RenderedBlueprint,
@@ -107,12 +107,12 @@ func (ov *ORANValidator) ValidateORANCompliance(
 		zap.String("blueprint_name", blueprint.Name),
 		zap.Int("nf_config_count", len(nfConfigs)))
 
-	// Basic O-RAN compliance validation
+	// Basic O-RAN compliance validation.
 	if !blueprint.ORANCompliant {
 		return fmt.Errorf("blueprint is not marked as O-RAN compliant")
 	}
 
-	// Validate required O-RAN interfaces
+	// Validate required O-RAN interfaces.
 	requiredInterfaces := []string{"a1", "o1", "o2", "e2"}
 	for _, iface := range requiredInterfaces {
 		if !ov.hasInterface(blueprint, iface) {
@@ -120,7 +120,7 @@ func (ov *ORANValidator) ValidateORANCompliance(
 		}
 	}
 
-	// Validate network function configurations
+	// Validate network function configurations.
 	for _, nfConfig := range nfConfigs {
 		if err := ov.validateNetworkFunctionConfig(nfConfig); err != nil {
 			return fmt.Errorf("network function validation failed: %w", err)
@@ -133,7 +133,7 @@ func (ov *ORANValidator) ValidateORANCompliance(
 	return nil
 }
 
-// hasInterface checks if blueprint has a specific interface
+// hasInterface checks if blueprint has a specific interface.
 func (ov *ORANValidator) hasInterface(blueprint *RenderedBlueprint, interfaceType string) bool {
 	if blueprint.Metadata == nil {
 		return false
@@ -148,19 +148,19 @@ func (ov *ORANValidator) hasInterface(blueprint *RenderedBlueprint, interfaceTyp
 	return false
 }
 
-// validateNetworkFunctionConfig validates a network function configuration
+// validateNetworkFunctionConfig validates a network function configuration.
 func (ov *ORANValidator) validateNetworkFunctionConfig(nfConfig NetworkFunctionConfig) error {
-	// Validate interfaces are present
+	// Validate interfaces are present.
 	if len(nfConfig.Interfaces) == 0 {
 		return fmt.Errorf("network function must have at least one interface")
 	}
 
-	// Validate service bindings
+	// Validate service bindings.
 	if len(nfConfig.ServiceBindings) == 0 {
 		return fmt.Errorf("network function must have at least one service binding")
 	}
 
-	// Validate resource requirements
+	// Validate resource requirements.
 	if nfConfig.ResourceRequirements.CPU == "" {
 		return fmt.Errorf("CPU resource requirement is required")
 	}
@@ -171,13 +171,13 @@ func (ov *ORANValidator) validateNetworkFunctionConfig(nfConfig NetworkFunctionC
 	return nil
 }
 
-// TemplateEngine processes blueprint templates
+// TemplateEngine processes blueprint templates.
 type TemplateEngine struct {
 	config *BlueprintConfig
 	logger *zap.Logger
 }
 
-// NewTemplateEngine creates a new template engine
+// NewTemplateEngine creates a new template engine.
 func NewTemplateEngine(config *BlueprintConfig, logger *zap.Logger) (*TemplateEngine, error) {
 	if config == nil {
 		return nil, fmt.Errorf("config is required")
@@ -192,7 +192,7 @@ func NewTemplateEngine(config *BlueprintConfig, logger *zap.Logger) (*TemplateEn
 	}, nil
 }
 
-// ProcessTemplate processes a blueprint template
+// ProcessTemplate processes a blueprint template.
 func (te *TemplateEngine) ProcessTemplate(
 	ctx context.Context,
 	template *BlueprintTemplate,
@@ -202,7 +202,7 @@ func (te *TemplateEngine) ProcessTemplate(
 		zap.String("template_name", template.Name),
 		zap.String("template_version", template.Version))
 
-	// Create processed template
+	// Create processed template.
 	processed := &ProcessedTemplate{
 		ID:             template.ID,
 		Name:           template.Name,
@@ -212,9 +212,9 @@ func (te *TemplateEngine) ProcessTemplate(
 		GeneratedFiles: make(map[string]string),
 	}
 
-	// Process template components
+	// Process template components.
 	for _, krmTemplate := range template.KRMResources {
-		// Simple template processing - in real implementation this would use template engines
+		// Simple template processing - in real implementation this would use template engines.
 		processed.GeneratedFiles[krmTemplate.Kind+".yaml"] = "# Generated from template: " + template.Name
 	}
 
@@ -225,7 +225,7 @@ func (te *TemplateEngine) ProcessTemplate(
 	return processed, nil
 }
 
-// ProcessedTemplate represents a processed blueprint template
+// ProcessedTemplate represents a processed blueprint template.
 type ProcessedTemplate struct {
 	ID             string                 `json:"id"`
 	Name           string                 `json:"name"`
@@ -235,7 +235,7 @@ type ProcessedTemplate struct {
 	GeneratedFiles map[string]string      `json:"generatedFiles"`
 }
 
-// BlueprintOperation represents a blueprint operation
+// BlueprintOperation represents a blueprint operation.
 type BlueprintOperation struct {
 	ID          string                 `json:"id"`
 	Type        BlueprintOperationType `json:"type"`
@@ -250,33 +250,33 @@ type BlueprintOperation struct {
 	Result      *OperationResult       `json:"result,omitempty"`
 }
 
-// BlueprintOperationType represents the type of blueprint operation
+// BlueprintOperationType represents the type of blueprint operation.
 type BlueprintOperationType string
 
 const (
-	// BlueprintOperationTypeRender renders a blueprint
+	// BlueprintOperationTypeRender renders a blueprint.
 	BlueprintOperationTypeRender BlueprintOperationType = "render"
-	// BlueprintOperationTypeValidate validates a blueprint
+	// BlueprintOperationTypeValidate validates a blueprint.
 	BlueprintOperationTypeValidate BlueprintOperationType = "validate"
-	// BlueprintOperationTypeDeploy deploys a blueprint
+	// BlueprintOperationTypeDeploy deploys a blueprint.
 	BlueprintOperationTypeDeploy BlueprintOperationType = "deploy"
 )
 
-// OperationStatus represents the status of a blueprint operation
+// OperationStatus represents the status of a blueprint operation.
 type OperationStatus string
 
 const (
-	// OperationStatusPending indicates operation is pending
+	// OperationStatusPending indicates operation is pending.
 	OperationStatusPending OperationStatus = "pending"
-	// OperationStatusRunning indicates operation is running
+	// OperationStatusRunning indicates operation is running.
 	OperationStatusRunning OperationStatus = "running"
-	// OperationStatusCompleted indicates operation completed successfully
+	// OperationStatusCompleted indicates operation completed successfully.
 	OperationStatusCompleted OperationStatus = "completed"
-	// OperationStatusFailed indicates operation failed
+	// OperationStatusFailed indicates operation failed.
 	OperationStatusFailed OperationStatus = "failed"
 )
 
-// OperationResult represents the result of a blueprint operation
+// OperationResult represents the result of a blueprint operation.
 type OperationResult struct {
 	RenderedBlueprint  *RenderedBlueprint      `json:"renderedBlueprint,omitempty"`
 	ValidationResult   *ValidationResult       `json:"validationResult,omitempty"`
@@ -286,7 +286,7 @@ type OperationResult struct {
 	NfConfigs          []NetworkFunctionConfig `json:"nfConfigs,omitempty"`
 }
 
-// ValidationResult represents the result of blueprint validation
+// ValidationResult represents the result of blueprint validation.
 type ValidationResult struct {
 	Valid       bool          `json:"valid"`
 	Errors      []string      `json:"errors,omitempty"`
@@ -295,7 +295,7 @@ type ValidationResult struct {
 	ValidatedAt time.Time     `json:"validatedAt"`
 }
 
-// DeploymentResult represents the result of blueprint deployment
+// DeploymentResult represents the result of blueprint deployment.
 type DeploymentResult struct {
 	Success          bool          `json:"success"`
 	ResourcesCreated []string      `json:"resourcesCreated,omitempty"`

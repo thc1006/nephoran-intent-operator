@@ -9,28 +9,28 @@ import (
 	"time"
 )
 
-// A1-EI (Enrichment Information) Interface Implementation
-// This implements the O-RAN A1-EI specification for enrichment information service
+// A1-EI (Enrichment Information) Interface Implementation.
+// This implements the O-RAN A1-EI specification for enrichment information service.
 
-// A1EIInterface defines the A1-EI interface operations
+// A1EIInterface defines the A1-EI interface operations.
 type A1EIInterface interface {
-	// EI Type Management
+	// EI Type Management.
 	CreateEIType(ctx context.Context, eiType *EnrichmentInfoType) error
 	GetEIType(ctx context.Context, eiTypeID string) (*EnrichmentInfoType, error)
 	ListEITypes(ctx context.Context) ([]*EnrichmentInfoType, error)
 	DeleteEIType(ctx context.Context, eiTypeID string) error
 
-	// EI Job Management
+	// EI Job Management.
 	CreateEIJob(ctx context.Context, eiTypeID string, eiJob *EnrichmentInfoJob) error
 	GetEIJob(ctx context.Context, eiTypeID, eiJobID string) (*EnrichmentInfoJob, error)
 	ListEIJobs(ctx context.Context, eiTypeID string) ([]*EnrichmentInfoJob, error)
 	DeleteEIJob(ctx context.Context, eiTypeID, eiJobID string) error
 
-	// EI Job Status
+	// EI Job Status.
 	GetEIJobStatus(ctx context.Context, eiTypeID, eiJobID string) (*EIJobStatus, error)
 }
 
-// EIJobStatus represents the status of an enrichment information job
+// EIJobStatus represents the status of an enrichment information job.
 type EIJobStatus struct {
 	OperationalState  string    `json:"operational_state"`   // ENABLED, DISABLED
 	DataDeliveryState string    `json:"data_delivery_state"` // OK, SUSPENDED
@@ -38,7 +38,7 @@ type EIJobStatus struct {
 	AdditionalInfo    string    `json:"additional_info,omitempty"`
 }
 
-// EIProducerInfo represents information about an EI data producer
+// EIProducerInfo represents information about an EI data producer.
 type EIProducerInfo struct {
 	ProducerID             string   `json:"producer_id"`
 	ProducerName           string   `json:"producer_name"`
@@ -47,14 +47,14 @@ type EIProducerInfo struct {
 	ProducerSupervisionURL string   `json:"producer_supervision_url"`
 }
 
-// A1EIAdaptor implements the A1-EI interface
+// A1EIAdaptor implements the A1-EI interface.
 type A1EIAdaptor struct {
 	httpClient *http.Client
 	ricURL     string
 	apiVersion string
 }
 
-// NewA1EIAdaptor creates a new A1-EI adaptor
+// NewA1EIAdaptor creates a new A1-EI adaptor.
 func NewA1EIAdaptor(ricURL, apiVersion string) *A1EIAdaptor {
 	return &A1EIAdaptor{
 		httpClient: &http.Client{Timeout: 30 * time.Second},
@@ -63,7 +63,7 @@ func NewA1EIAdaptor(ricURL, apiVersion string) *A1EIAdaptor {
 	}
 }
 
-// CreateEIType creates a new enrichment information type
+// CreateEIType creates a new enrichment information type.
 func (ei *A1EIAdaptor) CreateEIType(ctx context.Context, eiType *EnrichmentInfoType) error {
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s", ei.ricURL, eiType.EiTypeID)
 
@@ -100,7 +100,7 @@ func (ei *A1EIAdaptor) CreateEIType(ctx context.Context, eiType *EnrichmentInfoT
 	}
 }
 
-// GetEIType retrieves an enrichment information type
+// GetEIType retrieves an enrichment information type.
 func (ei *A1EIAdaptor) GetEIType(ctx context.Context, eiTypeID string) (*EnrichmentInfoType, error) {
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s", ei.ricURL, eiTypeID)
 
@@ -131,7 +131,7 @@ func (ei *A1EIAdaptor) GetEIType(ctx context.Context, eiTypeID string) (*Enrichm
 	}
 }
 
-// ListEITypes lists all enrichment information types
+// ListEITypes lists all enrichment information types.
 func (ei *A1EIAdaptor) ListEITypes(ctx context.Context) ([]*EnrichmentInfoType, error) {
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes", ei.ricURL)
 
@@ -157,7 +157,7 @@ func (ei *A1EIAdaptor) ListEITypes(ctx context.Context) ([]*EnrichmentInfoType, 
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	// Fetch details for each EI type
+	// Fetch details for each EI type.
 	var eiTypes []*EnrichmentInfoType
 	for _, id := range eiTypeIDs {
 		eiType, err := ei.GetEIType(ctx, id)
@@ -170,7 +170,7 @@ func (ei *A1EIAdaptor) ListEITypes(ctx context.Context) ([]*EnrichmentInfoType, 
 	return eiTypes, nil
 }
 
-// DeleteEIType deletes an enrichment information type
+// DeleteEIType deletes an enrichment information type.
 func (ei *A1EIAdaptor) DeleteEIType(ctx context.Context, eiTypeID string) error {
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s", ei.ricURL, eiTypeID)
 
@@ -199,7 +199,7 @@ func (ei *A1EIAdaptor) DeleteEIType(ctx context.Context, eiTypeID string) error 
 	}
 }
 
-// CreateEIJob creates a new enrichment information job
+// CreateEIJob creates a new enrichment information job.
 func (ei *A1EIAdaptor) CreateEIJob(ctx context.Context, eiTypeID string, eiJob *EnrichmentInfoJob) error {
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s/eijobs/%s", ei.ricURL, eiTypeID, eiJob.EiJobID)
 
@@ -238,7 +238,7 @@ func (ei *A1EIAdaptor) CreateEIJob(ctx context.Context, eiTypeID string, eiJob *
 	}
 }
 
-// GetEIJob retrieves an enrichment information job
+// GetEIJob retrieves an enrichment information job.
 func (ei *A1EIAdaptor) GetEIJob(ctx context.Context, eiTypeID, eiJobID string) (*EnrichmentInfoJob, error) {
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s/eijobs/%s", ei.ricURL, eiTypeID, eiJobID)
 
@@ -269,7 +269,7 @@ func (ei *A1EIAdaptor) GetEIJob(ctx context.Context, eiTypeID, eiJobID string) (
 	}
 }
 
-// ListEIJobs lists all enrichment information jobs for a given type
+// ListEIJobs lists all enrichment information jobs for a given type.
 func (ei *A1EIAdaptor) ListEIJobs(ctx context.Context, eiTypeID string) ([]*EnrichmentInfoJob, error) {
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s/eijobs", ei.ricURL, eiTypeID)
 
@@ -295,7 +295,7 @@ func (ei *A1EIAdaptor) ListEIJobs(ctx context.Context, eiTypeID string) ([]*Enri
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	// Fetch details for each EI job
+	// Fetch details for each EI job.
 	var eiJobs []*EnrichmentInfoJob
 	for _, id := range eiJobIDs {
 		eiJob, err := ei.GetEIJob(ctx, eiTypeID, id)
@@ -308,7 +308,7 @@ func (ei *A1EIAdaptor) ListEIJobs(ctx context.Context, eiTypeID string) ([]*Enri
 	return eiJobs, nil
 }
 
-// DeleteEIJob deletes an enrichment information job
+// DeleteEIJob deletes an enrichment information job.
 func (ei *A1EIAdaptor) DeleteEIJob(ctx context.Context, eiTypeID, eiJobID string) error {
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s/eijobs/%s", ei.ricURL, eiTypeID, eiJobID)
 
@@ -335,7 +335,7 @@ func (ei *A1EIAdaptor) DeleteEIJob(ctx context.Context, eiTypeID, eiJobID string
 	}
 }
 
-// GetEIJobStatus retrieves the status of an enrichment information job
+// GetEIJobStatus retrieves the status of an enrichment information job.
 func (ei *A1EIAdaptor) GetEIJobStatus(ctx context.Context, eiTypeID, eiJobID string) (*EIJobStatus, error) {
 	url := fmt.Sprintf("%s/A1-EI/v1/eitypes/%s/eijobs/%s/status", ei.ricURL, eiTypeID, eiJobID)
 
@@ -366,7 +366,7 @@ func (ei *A1EIAdaptor) GetEIJobStatus(ctx context.Context, eiTypeID, eiJobID str
 	}
 }
 
-// RegisterEIProducer registers an enrichment information data producer
+// RegisterEIProducer registers an enrichment information data producer.
 func (ei *A1EIAdaptor) RegisterEIProducer(ctx context.Context, producer *EIProducerInfo) error {
 	url := fmt.Sprintf("%s/A1-EI/v1/eiproducers/%s", ei.ricURL, producer.ProducerID)
 

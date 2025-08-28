@@ -1,4 +1,4 @@
-// Package security provides cryptographic utility functions
+// Package security provides cryptographic utility functions.
 package security
 
 import (
@@ -28,37 +28,37 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-// CryptoUtils provides cryptographic utility functions
+// CryptoUtils provides cryptographic utility functions.
 type CryptoUtils struct {
-	// Secure memory management
+	// Secure memory management.
 	secureAllocator *SecureAllocator
 
-	// Hash function pool
+	// Hash function pool.
 	hashPool map[string]*sync.Pool
 
-	// Constant-time operations
+	// Constant-time operations.
 	constantTime *ConstantTimeOps
 
-	// Random number generator
+	// Random number generator.
 	rng io.Reader
 
-	// Digital signature chains
+	// Digital signature chains.
 	signatureChains map[string]*SignatureChain
 
-	// Encrypted storage
+	// Encrypted storage.
 	storage *EncryptedStorage
 
 	mu sync.RWMutex
 }
 
-// SecureAllocator manages secure memory allocation
+// SecureAllocator manages secure memory allocation.
 type SecureAllocator struct {
 	buffers  map[uintptr]*SecureBuffer
 	pageSize int
 	mu       sync.Mutex
 }
 
-// SecureBuffer represents a secure memory buffer
+// SecureBuffer represents a secure memory buffer.
 type SecureBuffer struct {
 	data    []byte
 	size    int
@@ -66,10 +66,10 @@ type SecureBuffer struct {
 	cleared bool
 }
 
-// ConstantTimeOps provides constant-time operations
+// ConstantTimeOps provides constant-time operations.
 type ConstantTimeOps struct{}
 
-// SignatureChain represents a chain of digital signatures
+// SignatureChain represents a chain of digital signatures.
 type SignatureChain struct {
 	ChainID    string
 	Signatures []*ChainedSignature
@@ -77,7 +77,7 @@ type SignatureChain struct {
 	Created    time.Time
 }
 
-// ChainedSignature represents a signature in a chain
+// ChainedSignature represents a signature in a chain.
 type ChainedSignature struct {
 	SignerID     string
 	Signature    []byte
@@ -86,14 +86,14 @@ type ChainedSignature struct {
 	Algorithm    string
 }
 
-// EncryptedStorage provides encrypted data storage
+// EncryptedStorage provides encrypted data storage.
 type EncryptedStorage struct {
 	masterKey []byte
 	data      map[string]*EncryptedItem
 	mu        sync.RWMutex
 }
 
-// EncryptedItem represents an encrypted storage item
+// EncryptedItem represents an encrypted storage item.
 type EncryptedItem struct {
 	ID         string
 	Ciphertext []byte
@@ -104,18 +104,23 @@ type EncryptedItem struct {
 	Accessed   time.Time
 }
 
-// HashFunction represents supported hash functions
+// HashFunction represents supported hash functions.
 type HashFunction string
 
 const (
-	HashSHA256   HashFunction = "SHA256"
-	HashSHA512   HashFunction = "SHA512"
+	// HashSHA256 holds hashsha256 value.
+	HashSHA256 HashFunction = "SHA256"
+	// HashSHA512 holds hashsha512 value.
+	HashSHA512 HashFunction = "SHA512"
+	// HashSHA3_256 holds hashsha3_256 value.
 	HashSHA3_256 HashFunction = "SHA3-256"
+	// HashSHA3_512 holds hashsha3_512 value.
 	HashSHA3_512 HashFunction = "SHA3-512"
-	HashBLAKE2b  HashFunction = "BLAKE2b"
+	// HashBLAKE2b holds hashblake2b value.
+	HashBLAKE2b HashFunction = "BLAKE2b"
 )
 
-// NewCryptoUtils creates a new crypto utils instance
+// NewCryptoUtils creates a new crypto utils instance.
 func NewCryptoUtils() *CryptoUtils {
 	cu := &CryptoUtils{
 		secureAllocator: NewSecureAllocator(),
@@ -126,13 +131,13 @@ func NewCryptoUtils() *CryptoUtils {
 		storage:         NewEncryptedStorage(),
 	}
 
-	// Initialize hash pools
+	// Initialize hash pools.
 	cu.initHashPools()
 
 	return cu
 }
 
-// NewSecureAllocator creates a new secure allocator
+// NewSecureAllocator creates a new secure allocator.
 func NewSecureAllocator() *SecureAllocator {
 	return &SecureAllocator{
 		buffers:  make(map[uintptr]*SecureBuffer),
@@ -140,9 +145,9 @@ func NewSecureAllocator() *SecureAllocator {
 	}
 }
 
-// NewEncryptedStorage creates a new encrypted storage
+// NewEncryptedStorage creates a new encrypted storage.
 func NewEncryptedStorage() *EncryptedStorage {
-	// Generate master key
+	// Generate master key.
 	masterKey := make([]byte, 32)
 	if _, err := rand.Read(masterKey); err != nil {
 		panic(fmt.Sprintf("failed to generate encryption master key: %v", err))
@@ -154,37 +159,37 @@ func NewEncryptedStorage() *EncryptedStorage {
 	}
 }
 
-// initHashPools initializes hash function pools
+// initHashPools initializes hash function pools.
 func (cu *CryptoUtils) initHashPools() {
-	// SHA256 pool
+	// SHA256 pool.
 	cu.hashPool["SHA256"] = &sync.Pool{
 		New: func() interface{} {
 			return sha256.New()
 		},
 	}
 
-	// SHA512 pool
+	// SHA512 pool.
 	cu.hashPool["SHA512"] = &sync.Pool{
 		New: func() interface{} {
 			return sha512.New()
 		},
 	}
 
-	// SHA3-256 pool
+	// SHA3-256 pool.
 	cu.hashPool["SHA3-256"] = &sync.Pool{
 		New: func() interface{} {
 			return sha3.New256()
 		},
 	}
 
-	// SHA3-512 pool
+	// SHA3-512 pool.
 	cu.hashPool["SHA3-512"] = &sync.Pool{
 		New: func() interface{} {
 			return sha3.New512()
 		},
 	}
 
-	// BLAKE2b pool
+	// BLAKE2b pool.
 	cu.hashPool["BLAKE2b"] = &sync.Pool{
 		New: func() interface{} {
 			h, _ := blake2b.New512(nil)
@@ -193,16 +198,16 @@ func (cu *CryptoUtils) initHashPools() {
 	}
 }
 
-// GetHash gets a hash function from pool
+// GetHash gets a hash function from pool.
 func (cu *CryptoUtils) GetHash(function HashFunction) hash.Hash {
 	if pool, ok := cu.hashPool[string(function)]; ok {
 		return pool.Get().(hash.Hash)
 	}
-	// Default to SHA256
+	// Default to SHA256.
 	return sha256.New()
 }
 
-// PutHash returns a hash function to pool
+// PutHash returns a hash function to pool.
 func (cu *CryptoUtils) PutHash(function HashFunction, h hash.Hash) {
 	h.Reset()
 	if pool, ok := cu.hashPool[string(function)]; ok {
@@ -210,7 +215,7 @@ func (cu *CryptoUtils) PutHash(function HashFunction, h hash.Hash) {
 	}
 }
 
-// ComputeHash computes a hash using specified algorithm
+// ComputeHash computes a hash using specified algorithm.
 func (cu *CryptoUtils) ComputeHash(data []byte, function HashFunction) []byte {
 	h := cu.GetHash(function)
 	defer cu.PutHash(function, h)
@@ -219,12 +224,12 @@ func (cu *CryptoUtils) ComputeHash(data []byte, function HashFunction) []byte {
 	return h.Sum(nil)
 }
 
-// ConstantTimeCompare performs constant-time byte comparison
+// ConstantTimeCompare performs constant-time byte comparison.
 func (ct *ConstantTimeOps) Compare(a, b []byte) bool {
 	return subtle.ConstantTimeCompare(a, b) == 1
 }
 
-// ConstantTimeSelect performs constant-time selection
+// ConstantTimeSelect performs constant-time selection.
 func (ct *ConstantTimeOps) Select(v int, a, b []byte) []byte {
 	result := make([]byte, len(a))
 	subtle.ConstantTimeCopy(v, result, a)
@@ -232,12 +237,12 @@ func (ct *ConstantTimeOps) Select(v int, a, b []byte) []byte {
 	return result
 }
 
-// ConstantTimeLessOrEq performs constant-time less-or-equal comparison
+// ConstantTimeLessOrEq performs constant-time less-or-equal comparison.
 func (ct *ConstantTimeOps) LessOrEq(x, y int32) int {
 	return subtle.ConstantTimeLessOrEq(int(x), int(y))
 }
 
-// SecureRandom generates cryptographically secure random bytes
+// SecureRandom generates cryptographically secure random bytes.
 func (cu *CryptoUtils) SecureRandom(length int) ([]byte, error) {
 	buf := make([]byte, length)
 	if _, err := io.ReadFull(cu.rng, buf); err != nil {
@@ -246,13 +251,13 @@ func (cu *CryptoUtils) SecureRandom(length int) ([]byte, error) {
 	return buf, nil
 }
 
-// SecureRandomInt generates a secure random integer
+// SecureRandomInt generates a secure random integer.
 func (cu *CryptoUtils) SecureRandomInt(max int) (int, error) {
 	if max <= 0 {
 		return 0, errors.New("max must be positive")
 	}
 
-	// Calculate required bytes
+	// Calculate required bytes.
 	bytesNeeded := (bitLen(max) + 7) / 8
 
 	for {
@@ -261,25 +266,25 @@ func (cu *CryptoUtils) SecureRandomInt(max int) (int, error) {
 			return 0, err
 		}
 
-		// Convert to integer
+		// Convert to integer.
 		n := 0
 		for _, b := range bytes {
 			n = (n << 8) | int(b)
 		}
 
-		// Ensure uniform distribution
+		// Ensure uniform distribution.
 		if n < max {
 			return n, nil
 		}
 	}
 }
 
-// AllocateSecure allocates secure memory
+// AllocateSecure allocates secure memory.
 func (sa *SecureAllocator) Allocate(size int) *SecureBuffer {
 	sa.mu.Lock()
 	defer sa.mu.Unlock()
 
-	// Align to page size
+	// Align to page size.
 	alignedSize := ((size + sa.pageSize - 1) / sa.pageSize) * sa.pageSize
 
 	buffer := &SecureBuffer{
@@ -289,51 +294,51 @@ func (sa *SecureAllocator) Allocate(size int) *SecureBuffer {
 		cleared: false,
 	}
 
-	// Store buffer reference
+	// Store buffer reference.
 	ptr := uintptr(unsafe.Pointer(&buffer.data[0]))
 	sa.buffers[ptr] = buffer
 
-	// Try to lock memory (platform-specific)
+	// Try to lock memory (platform-specific).
 	buffer.lock()
 
 	return buffer
 }
 
-// lock attempts to lock memory pages (platform-specific)
+// lock attempts to lock memory pages (platform-specific).
 func (sb *SecureBuffer) lock() {
-	// Platform-specific implementation would go here
-	// For example, using mlock on Unix systems
+	// Platform-specific implementation would go here.
+	// For example, using mlock on Unix systems.
 	sb.locked = true
 }
 
-// Clear securely clears the buffer
+// Clear securely clears the buffer.
 func (sb *SecureBuffer) Clear() {
 	if sb.cleared {
 		return
 	}
 
-	// Overwrite with random data multiple times
+	// Overwrite with random data multiple times.
 	for i := 0; i < 3; i++ {
 		if _, err := rand.Read(sb.data); err != nil {
-			// Fallback to zero fill if random data fails
+			// Fallback to zero fill if random data fails.
 			for j := range sb.data {
 				sb.data[j] = 0
 			}
 		}
 	}
 
-	// Final overwrite with zeros
+	// Final overwrite with zeros.
 	for i := range sb.data {
 		sb.data[i] = 0
 	}
 
 	sb.cleared = true
 
-	// Force garbage collection hint
+	// Force garbage collection hint.
 	runtime.GC()
 }
 
-// CreateSignatureChain creates a new signature chain
+// CreateSignatureChain creates a new signature chain.
 func (cu *CryptoUtils) CreateSignatureChain(chainID string) *SignatureChain {
 	cu.mu.Lock()
 	defer cu.mu.Unlock()
@@ -349,9 +354,9 @@ func (cu *CryptoUtils) CreateSignatureChain(chainID string) *SignatureChain {
 	return chain
 }
 
-// AddSignature adds a signature to the chain
+// AddSignature adds a signature to the chain.
 func (sc *SignatureChain) AddSignature(signerID string, signature []byte, algorithm string) {
-	// Calculate previous hash
+	// Calculate previous hash.
 	var previousHash []byte
 	if len(sc.Signatures) > 0 {
 		lastSig := sc.Signatures[len(sc.Signatures)-1]
@@ -373,10 +378,10 @@ func (sc *SignatureChain) AddSignature(signerID string, signature []byte, algori
 	sc.Signatures = append(sc.Signatures, chainedSig)
 }
 
-// VerifyChain verifies the integrity of the signature chain
+// VerifyChain verifies the integrity of the signature chain.
 func (sc *SignatureChain) VerifyChain() bool {
 	for i, sig := range sc.Signatures {
-		// Verify previous hash
+		// Verify previous hash.
 		if i > 0 {
 			prevSig := sc.Signatures[i-1]
 			h := sha256.New()
@@ -390,27 +395,28 @@ func (sc *SignatureChain) VerifyChain() bool {
 			}
 		}
 
-		// Verify signature if verifier available
+		// Verify signature if verifier available.
 		if i < len(sc.Verifiers) {
-			// Signature verification would go here
+			// Signature verification would go here.
+			// TODO: Implement signature verification using sc.Verifiers[i].
 		}
 	}
 
 	return true
 }
 
-// Store stores encrypted data
+// Store stores encrypted data.
 func (es *EncryptedStorage) Store(id string, data []byte) error {
 	es.mu.Lock()
 	defer es.mu.Unlock()
 
-	// Generate nonce
+	// Generate nonce.
 	nonce := make([]byte, 12)
 	if _, err := rand.Read(nonce); err != nil {
 		return fmt.Errorf("failed to generate nonce: %w", err)
 	}
 
-	// Create cipher
+	// Create cipher.
 	block, err := aes.NewCipher(es.masterKey)
 	if err != nil {
 		return fmt.Errorf("failed to create cipher: %w", err)
@@ -421,10 +427,10 @@ func (es *EncryptedStorage) Store(id string, data []byte) error {
 		return fmt.Errorf("failed to create GCM: %w", err)
 	}
 
-	// Encrypt data
+	// Encrypt data.
 	ciphertext := gcm.Seal(nil, nonce, data, []byte(id))
 
-	// Store encrypted item
+	// Store encrypted item.
 	es.data[id] = &EncryptedItem{
 		ID:         id,
 		Ciphertext: ciphertext,
@@ -437,7 +443,7 @@ func (es *EncryptedStorage) Store(id string, data []byte) error {
 	return nil
 }
 
-// Retrieve retrieves and decrypts data
+// Retrieve retrieves and decrypts data.
 func (es *EncryptedStorage) Retrieve(id string) ([]byte, error) {
 	es.mu.RLock()
 	defer es.mu.RUnlock()
@@ -447,7 +453,7 @@ func (es *EncryptedStorage) Retrieve(id string) ([]byte, error) {
 		return nil, fmt.Errorf("item not found: %s", id)
 	}
 
-	// Create cipher
+	// Create cipher.
 	block, err := aes.NewCipher(es.masterKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create cipher: %w", err)
@@ -458,19 +464,19 @@ func (es *EncryptedStorage) Retrieve(id string) ([]byte, error) {
 		return nil, fmt.Errorf("failed to create GCM: %w", err)
 	}
 
-	// Decrypt data
+	// Decrypt data.
 	plaintext, err := gcm.Open(nil, item.Nonce, item.Ciphertext, []byte(id))
 	if err != nil {
 		return nil, fmt.Errorf("decryption failed: %w", err)
 	}
 
-	// Update access time
+	// Update access time.
 	item.Accessed = time.Now()
 
 	return plaintext, nil
 }
 
-// TimingSafeEqual performs timing-safe comparison
+// TimingSafeEqual performs timing-safe comparison.
 func TimingSafeEqual(a, b []byte) bool {
 	if len(a) != len(b) {
 		return false
@@ -478,16 +484,16 @@ func TimingSafeEqual(a, b []byte) bool {
 	return subtle.ConstantTimeCompare(a, b) == 1
 }
 
-// ZeroBytes securely zeros a byte slice
+// ZeroBytes securely zeros a byte slice.
 func ZeroBytes(b []byte) {
 	for i := range b {
 		b[i] = 0
 	}
-	// Prevent compiler optimization
+	// Prevent compiler optimization.
 	runtime.KeepAlive(b)
 }
 
-// XORBytes performs XOR operation on two byte slices
+// XORBytes performs XOR operation on two byte slices.
 func XORBytes(a, b []byte) []byte {
 	if len(a) != len(b) {
 		panic("XORBytes: length mismatch")
@@ -498,14 +504,14 @@ func XORBytes(a, b []byte) []byte {
 	return result
 }
 
-// PadPKCS7 applies PKCS7 padding
+// PadPKCS7 applies PKCS7 padding.
 func PadPKCS7(data []byte, blockSize int) []byte {
 	padding := blockSize - (len(data) % blockSize)
 	padText := bytes.Repeat([]byte{byte(padding)}, padding)
 	return append(data, padText...)
 }
 
-// UnpadPKCS7 removes PKCS7 padding
+// UnpadPKCS7 removes PKCS7 padding.
 func UnpadPKCS7(data []byte) ([]byte, error) {
 	length := len(data)
 	if length == 0 {
@@ -526,27 +532,27 @@ func UnpadPKCS7(data []byte) ([]byte, error) {
 	return data[:length-padding], nil
 }
 
-// EncodeBase64 encodes data to base64
+// EncodeBase64 encodes data to base64.
 func EncodeBase64(data []byte) string {
 	return base64.StdEncoding.EncodeToString(data)
 }
 
-// DecodeBase64 decodes base64 data
+// DecodeBase64 decodes base64 data.
 func DecodeBase64(encoded string) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(encoded)
 }
 
-// EncodeHex encodes data to hexadecimal
+// EncodeHex encodes data to hexadecimal.
 func EncodeHex(data []byte) string {
 	return hex.EncodeToString(data)
 }
 
-// DecodeHex decodes hexadecimal data
+// DecodeHex decodes hexadecimal data.
 func DecodeHex(encoded string) ([]byte, error) {
 	return hex.DecodeString(encoded)
 }
 
-// GenerateKeyPair generates an RSA key pair
+// GenerateKeyPair generates an RSA key pair.
 func GenerateKeyPair(bits int) (*rsa.PrivateKey, *rsa.PublicKey, error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, bits)
 	if err != nil {
@@ -556,7 +562,7 @@ func GenerateKeyPair(bits int) (*rsa.PrivateKey, *rsa.PublicKey, error) {
 	return privateKey, &privateKey.PublicKey, nil
 }
 
-// SerializePublicKey serializes a public key to PEM format
+// SerializePublicKey serializes a public key to PEM format.
 func SerializePublicKey(pub *rsa.PublicKey) ([]byte, error) {
 	pubASN1, err := x509.MarshalPKIXPublicKey(pub)
 	if err != nil {
@@ -566,7 +572,7 @@ func SerializePublicKey(pub *rsa.PublicKey) ([]byte, error) {
 	return pubASN1, nil
 }
 
-// DeserializePublicKey deserializes a public key from PEM format
+// DeserializePublicKey deserializes a public key from PEM format.
 func DeserializePublicKey(data []byte) (*rsa.PublicKey, error) {
 	pub, err := x509.ParsePKIXPublicKey(data)
 	if err != nil {
@@ -581,9 +587,9 @@ func DeserializePublicKey(data []byte) (*rsa.PublicKey, error) {
 	return rsaPub, nil
 }
 
-// Helper functions
+// Helper functions.
 
-// bitLen returns the bit length of an integer
+// bitLen returns the bit length of an integer.
 func bitLen(n int) int {
 	bits := 0
 	for n > 0 {
@@ -593,5 +599,5 @@ func bitLen(n int) int {
 	return bits
 }
 
-// constant is imported to ensure constant-time operations
+// constant is imported to ensure constant-time operations.
 var _ = constant.MakeFromLiteral

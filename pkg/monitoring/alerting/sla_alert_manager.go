@@ -1,5 +1,5 @@
 // Package alerting provides comprehensive SLA violation alerting for the Nephoran Intent Operator.
-// This system provides intelligent early warning, reduces alert fatigue, and enables rapid incident response
+// This system provides intelligent early warning, reduces alert fatigue, and enables rapid incident response.
 // through multi-window burn rate alerting, predictive violation detection, and intelligent escalation.
 package alerting
 
@@ -18,39 +18,53 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
-// SLAType represents different SLA metrics we monitor
+// SLAType represents different SLA metrics we monitor.
 type SLAType string
 
 const (
+	// SLATypeAvailability holds slatypeavailability value.
 	SLATypeAvailability SLAType = "availability"
-	SLATypeLatency      SLAType = "latency"
-	SLAThroughput       SLAType = "throughput"
-	SLAErrorRate        SLAType = "error_rate"
+	// SLATypeLatency holds slatypelatency value.
+	SLATypeLatency SLAType = "latency"
+	// SLAThroughput holds slathroughput value.
+	SLAThroughput SLAType = "throughput"
+	// SLAErrorRate holds slaerrorrate value.
+	SLAErrorRate SLAType = "error_rate"
 )
 
-// AlertSeverity represents alert severity levels aligned with SRE practices
+// AlertSeverity represents alert severity levels aligned with SRE practices.
 type AlertSeverity string
 
 const (
-	AlertSeverityInfo     AlertSeverity = "info"
-	AlertSeverityWarning  AlertSeverity = "warning"
-	AlertSeverityMajor    AlertSeverity = "major"
+	// AlertSeverityInfo holds alertseverityinfo value.
+	AlertSeverityInfo AlertSeverity = "info"
+	// AlertSeverityWarning holds alertseveritywarning value.
+	AlertSeverityWarning AlertSeverity = "warning"
+	// AlertSeverityMajor holds alertseveritymajor value.
+	AlertSeverityMajor AlertSeverity = "major"
+	// AlertSeverityCritical holds alertseveritycritical value.
 	AlertSeverityCritical AlertSeverity = "critical"
-	AlertSeverityUrgent   AlertSeverity = "urgent"
+	// AlertSeverityUrgent holds alertseverityurgent value.
+	AlertSeverityUrgent AlertSeverity = "urgent"
 )
 
-// AlertState represents the lifecycle state of an alert
+// AlertState represents the lifecycle state of an alert.
 type AlertState string
 
 const (
-	AlertStateFiring       AlertState = "firing"
-	AlertStatePending      AlertState = "pending"
-	AlertStateResolved     AlertState = "resolved"
-	AlertStateSuppressed   AlertState = "suppressed"
+	// AlertStateFiring holds alertstatefiring value.
+	AlertStateFiring AlertState = "firing"
+	// AlertStatePending holds alertstatepending value.
+	AlertStatePending AlertState = "pending"
+	// AlertStateResolved holds alertstateresolved value.
+	AlertStateResolved AlertState = "resolved"
+	// AlertStateSuppressed holds alertstatesuppressed value.
+	AlertStateSuppressed AlertState = "suppressed"
+	// AlertStateAcknowledged holds alertstateacknowledged value.
 	AlertStateAcknowledged AlertState = "acknowledged"
 )
 
-// SLAAlert represents an SLA violation alert with enriched context
+// SLAAlert represents an SLA violation alert with enriched context.
 type SLAAlert struct {
 	ID          string        `json:"id"`
 	SLAType     SLAType       `json:"sla_type"`
@@ -59,37 +73,37 @@ type SLAAlert struct {
 	Severity    AlertSeverity `json:"severity"`
 	State       AlertState    `json:"state"`
 
-	// SLA-specific fields
+	// SLA-specific fields.
 	SLATarget    float64         `json:"sla_target"`
 	CurrentValue float64         `json:"current_value"`
 	Threshold    float64         `json:"threshold"`
 	ErrorBudget  ErrorBudgetInfo `json:"error_budget"`
 	BurnRate     BurnRateInfo    `json:"burn_rate"`
 
-	// Metadata
+	// Metadata.
 	Labels      map[string]string `json:"labels"`
 	Annotations map[string]string `json:"annotations"`
 	Context     AlertContext      `json:"context"`
 
-	// Timing
+	// Timing.
 	StartsAt       time.Time  `json:"starts_at"`
 	UpdatedAt      time.Time  `json:"updated_at"`
 	EndsAt         *time.Time `json:"ends_at,omitempty"`
 	AcknowledgedAt *time.Time `json:"acknowledged_at,omitempty"`
 
-	// Processing
+	// Processing.
 	Fingerprint string `json:"fingerprint"`
 	Hash        string `json:"hash"`
 
-	// Business impact
+	// Business impact.
 	BusinessImpact BusinessImpactInfo `json:"business_impact"`
 
-	// Runbook information
+	// Runbook information.
 	RunbookURL   string   `json:"runbook_url,omitempty"`
 	RunbookSteps []string `json:"runbook_steps,omitempty"`
 }
 
-// ErrorBudgetInfo contains error budget consumption details
+// ErrorBudgetInfo contains error budget consumption details.
 type ErrorBudgetInfo struct {
 	Total            float64        `json:"total"`
 	Remaining        float64        `json:"remaining"`
@@ -98,7 +112,7 @@ type ErrorBudgetInfo struct {
 	TimeToExhaustion *time.Duration `json:"time_to_exhaustion,omitempty"`
 }
 
-// BurnRateInfo contains burn rate analysis
+// BurnRateInfo contains burn rate analysis.
 type BurnRateInfo struct {
 	ShortWindow   BurnRateWindow `json:"short_window"`
 	MediumWindow  BurnRateWindow `json:"medium_window"`
@@ -107,7 +121,7 @@ type BurnRateInfo struct {
 	PredictedRate float64        `json:"predicted_rate"`
 }
 
-// BurnRateWindow represents a specific burn rate measurement window
+// BurnRateWindow represents a specific burn rate measurement window.
 type BurnRateWindow struct {
 	Duration    time.Duration `json:"duration"`
 	BurnRate    float64       `json:"burn_rate"`
@@ -115,7 +129,7 @@ type BurnRateWindow struct {
 	IsViolating bool          `json:"is_violating"`
 }
 
-// AlertContext provides enriched context for the alert
+// AlertContext provides enriched context for the alert.
 type AlertContext struct {
 	Component       string            `json:"component"`
 	Service         string            `json:"service"`
@@ -127,7 +141,7 @@ type AlertContext struct {
 	LogQueries      []LogQuery        `json:"log_queries"`
 }
 
-// MetricSnapshot provides related metric context
+// MetricSnapshot provides related metric context.
 type MetricSnapshot struct {
 	Name      string    `json:"name"`
 	Value     float64   `json:"value"`
@@ -135,7 +149,7 @@ type MetricSnapshot struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-// IncidentSummary provides context about related incidents
+// IncidentSummary provides context about related incidents.
 type IncidentSummary struct {
 	ID         string     `json:"id"`
 	Title      string     `json:"title"`
@@ -144,14 +158,14 @@ type IncidentSummary struct {
 	ResolvedAt *time.Time `json:"resolved_at,omitempty"`
 }
 
-// LogQuery provides relevant log query context
+// LogQuery provides relevant log query context.
 type LogQuery struct {
 	Description string `json:"description"`
 	Query       string `json:"query"`
 	Source      string `json:"source"`
 }
 
-// BusinessImpactInfo provides business context for the alert
+// BusinessImpactInfo provides business context for the alert.
 type BusinessImpactInfo struct {
 	Severity       string  `json:"severity"`
 	AffectedUsers  int64   `json:"affected_users"`
@@ -161,72 +175,72 @@ type BusinessImpactInfo struct {
 	ServiceTier    string  `json:"service_tier"`
 }
 
-// SLAAlertManager provides comprehensive SLA violation alerting with intelligent
-// early warning, noise reduction, and rapid incident response capabilities
+// SLAAlertManager provides comprehensive SLA violation alerting with intelligent.
+// early warning, noise reduction, and rapid incident response capabilities.
 type SLAAlertManager struct {
-	// Core components
+	// Core components.
 	logger             *logging.StructuredLogger
 	burnRateCalculator *BurnRateCalculator
 	predictiveAlerting *PredictiveAlerting
 	alertRouter        *AlertRouter
 	escalationEngine   *EscalationEngine
 
-	// Configuration
+	// Configuration.
 	config     *SLAAlertConfig
 	slaTargets map[SLAType]SLATarget
 
-	// State management
+	// State management.
 	activeAlerts       map[string]*SLAAlert
 	suppressedAlerts   map[string]*SLAAlert
 	alertHistory       []*SLAAlert
 	maintenanceWindows []*MaintenanceWindow
 
-	// External integrations
+	// External integrations.
 	prometheusClient v1.API
 	circuitBreaker   *gobreaker.CircuitBreaker
 
-	// Metrics
+	// Metrics.
 	metrics *SLAAlertMetrics
 
-	// Synchronization
+	// Synchronization.
 	mu      sync.RWMutex
 	started bool
 	stopCh  chan struct{}
 }
 
-// SLAAlertConfig holds configuration for the SLA alert manager
+// SLAAlertConfig holds configuration for the SLA alert manager.
 type SLAAlertConfig struct {
-	// Evaluation intervals
+	// Evaluation intervals.
 	EvaluationInterval time.Duration `yaml:"evaluation_interval"`
 	BurnRateInterval   time.Duration `yaml:"burn_rate_interval"`
 	PredictiveInterval time.Duration `yaml:"predictive_interval"`
 
-	// Alert management
+	// Alert management.
 	MaxActiveAlerts     int           `yaml:"max_active_alerts"`
 	AlertRetention      time.Duration `yaml:"alert_retention"`
 	DeduplicationWindow time.Duration `yaml:"deduplication_window"`
 	CorrelationWindow   time.Duration `yaml:"correlation_window"`
 
-	// Notification settings
+	// Notification settings.
 	NotificationTimeout time.Duration `yaml:"notification_timeout"`
 	MaxNotificationRate int           `yaml:"max_notification_rate"`
 	SuppressionEnabled  bool          `yaml:"suppression_enabled"`
 
-	// Business context
+	// Business context.
 	EnableBusinessImpact bool    `yaml:"enable_business_impact"`
 	RevenuePerUser       float64 `yaml:"revenue_per_user"`
 
-	// Integration settings
+	// Integration settings.
 	PrometheusURL  string `yaml:"prometheus_url"`
 	GrafanaURL     string `yaml:"grafana_url"`
 	RunbookBaseURL string `yaml:"runbook_base_url"`
 
-	// Performance settings
+	// Performance settings.
 	MetricCacheSize int           `yaml:"metric_cache_size"`
 	QueryTimeout    time.Duration `yaml:"query_timeout"`
 }
 
-// SLATarget defines target values and thresholds for an SLA
+// SLATarget defines target values and thresholds for an SLA.
 type SLATarget struct {
 	Target         float64       `yaml:"target"`          // SLA target (e.g., 99.95%)
 	ErrorBudget    float64       `yaml:"error_budget"`    // Error budget period
@@ -235,7 +249,7 @@ type SLATarget struct {
 	CustomerFacing bool          `yaml:"customer_facing"` // Customer impact
 }
 
-// AlertWindow defines a specific alerting window with thresholds
+// AlertWindow defines a specific alerting window with thresholds.
 type AlertWindow struct {
 	ShortWindow time.Duration `yaml:"short_window"`
 	LongWindow  time.Duration `yaml:"long_window"`
@@ -243,7 +257,7 @@ type AlertWindow struct {
 	Severity    AlertSeverity `yaml:"severity"`
 }
 
-// MaintenanceWindow defines a period during which alerts should be suppressed
+// MaintenanceWindow defines a period during which alerts should be suppressed.
 type MaintenanceWindow struct {
 	ID         string            `json:"id"`
 	Name       string            `json:"name"`
@@ -255,67 +269,67 @@ type MaintenanceWindow struct {
 	CreatedBy  string            `json:"created_by"`
 }
 
-// SLAAlertMetrics contains Prometheus metrics for the SLA alert manager
+// SLAAlertMetrics contains Prometheus metrics for the SLA alert manager.
 type SLAAlertMetrics struct {
-	// Alert generation metrics
+	// Alert generation metrics.
 	AlertsGenerated     *prometheus.CounterVec
 	AlertsResolved      *prometheus.CounterVec
 	AlertsFalsePositive *prometheus.CounterVec
 	AlertsAcknowledged  *prometheus.CounterVec
 
-	// Alert quality metrics
+	// Alert quality metrics.
 	AlertPrecision  *prometheus.GaugeVec
 	AlertRecall     *prometheus.GaugeVec
 	MeanTimeToAlert *prometheus.HistogramVec
 	MeanTimeToAck   *prometheus.HistogramVec
 
-	// SLA compliance metrics
+	// SLA compliance metrics.
 	SLACompliance      *prometheus.GaugeVec
 	ErrorBudgetBurn    *prometheus.GaugeVec
 	BurnRateViolations *prometheus.CounterVec
 
-	// System metrics
+	// System metrics.
 	ActiveAlerts        *prometheus.GaugeVec
 	AlertProcessingTime *prometheus.HistogramVec
 	NotificationsSent   *prometheus.CounterVec
 	NotificationsFailed *prometheus.CounterVec
 
-	// Business metrics
+	// Business metrics.
 	BusinessImpactScore *prometheus.GaugeVec
 	CustomerImpact      *prometheus.GaugeVec
 	RevenueAtRisk       prometheus.Gauge
 }
 
-// DefaultSLAAlertConfig returns production-ready configuration
+// DefaultSLAAlertConfig returns production-ready configuration.
 func DefaultSLAAlertConfig() *SLAAlertConfig {
 	return &SLAAlertConfig{
-		// Evaluation intervals optimized for rapid detection
+		// Evaluation intervals optimized for rapid detection.
 		EvaluationInterval: 30 * time.Second,
 		BurnRateInterval:   10 * time.Second,
 		PredictiveInterval: 60 * time.Second,
 
-		// Alert management settings
+		// Alert management settings.
 		MaxActiveAlerts:     1000,
 		AlertRetention:      7 * 24 * time.Hour,
 		DeduplicationWindow: 5 * time.Minute,
 		CorrelationWindow:   10 * time.Minute,
 
-		// Notification settings
+		// Notification settings.
 		NotificationTimeout: 30 * time.Second,
 		MaxNotificationRate: 100,
 		SuppressionEnabled:  true,
 
-		// Business context
+		// Business context.
 		EnableBusinessImpact: true,
 		RevenuePerUser:       10.0,
 
-		// Performance settings
+		// Performance settings.
 		MetricCacheSize: 1000,
 		QueryTimeout:    10 * time.Second,
 	}
 }
 
-// DefaultSLATargets returns production SLA targets for Nephoran Intent Operator
+// DefaultSLATargets returns production SLA targets for Nephoran Intent Operator.
 func DefaultSLATargets() map[SLAType]SLATarget {
 	return map[SLAType]SLATarget{
 		SLATypeAvailability: {
@@ -407,7 +421,7 @@ func DefaultSLATargets() map[SLAType]SLATarget {
 	}
 }
 
-// NewSLAAlertManager creates a new SLA alert manager with comprehensive monitoring capabilities
+// NewSLAAlertManager creates a new SLA alert manager with comprehensive monitoring capabilities.
 func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger) (*SLAAlertManager, error) {
 	if config == nil {
 		config = DefaultSLAAlertConfig()
@@ -417,7 +431,7 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 		return nil, fmt.Errorf("logger is required")
 	}
 
-	// Initialize Prometheus client
+	// Initialize Prometheus client.
 	var prometheusClient v1.API
 	if config.PrometheusURL != "" {
 		client, err := api.NewClient(api.Config{
@@ -429,7 +443,7 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 		prometheusClient = v1.NewAPI(client)
 	}
 
-	// Initialize circuit breaker for external dependencies
+	// Initialize circuit breaker for external dependencies.
 	cb := gobreaker.NewCircuitBreaker(gobreaker.Settings{
 		Name:        "sla-alert-manager",
 		MaxRequests: 10,
@@ -441,7 +455,7 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 		},
 	})
 
-	// Initialize metrics
+	// Initialize metrics.
 	metrics := &SLAAlertMetrics{
 		AlertsGenerated: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "sla_alerts_generated_total",
@@ -484,7 +498,7 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 		}),
 	}
 
-	// Register metrics with duplicate handling
+	// Register metrics with duplicate handling.
 	metricsToRegister := []prometheus.Collector{
 		metrics.AlertsGenerated,
 		metrics.AlertsResolved,
@@ -496,11 +510,11 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 		metrics.RevenueAtRisk,
 	}
 
-	// Register each metric, ignoring duplicate registration errors
+	// Register each metric, ignoring duplicate registration errors.
 	for _, metric := range metricsToRegister {
 		if err := prometheus.Register(metric); err != nil {
 			if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
-				// Only propagate non-duplicate errors
+				// Only propagate non-duplicate errors.
 				logger.Error("Failed to register metric", "error", err)
 			}
 		}
@@ -520,7 +534,7 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 		stopCh:             make(chan struct{}),
 	}
 
-	// Initialize sub-components
+	// Initialize sub-components.
 	var err error
 
 	sam.burnRateCalculator, err = NewBurnRateCalculator(
@@ -570,7 +584,7 @@ func NewSLAAlertManager(config *SLAAlertConfig, logger *logging.StructuredLogger
 	return sam, nil
 }
 
-// Start begins the SLA alert manager with all monitoring capabilities
+// Start begins the SLA alert manager with all monitoring capabilities.
 func (sam *SLAAlertManager) Start(ctx context.Context) error {
 	sam.mu.Lock()
 	defer sam.mu.Unlock()
@@ -585,7 +599,7 @@ func (sam *SLAAlertManager) Start(ctx context.Context) error {
 		"sla_targets", len(sam.slaTargets),
 	)
 
-	// Start sub-components
+	// Start sub-components.
 	if err := sam.burnRateCalculator.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start burn rate calculator: %w", err)
 	}
@@ -602,7 +616,7 @@ func (sam *SLAAlertManager) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start escalation engine: %w", err)
 	}
 
-	// Start monitoring loops
+	// Start monitoring loops.
 	go sam.evaluationLoop(ctx)
 	go sam.maintenanceWindowCheck(ctx)
 	go sam.metricsUpdateLoop(ctx)
@@ -614,7 +628,7 @@ func (sam *SLAAlertManager) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop gracefully shuts down the SLA alert manager
+// Stop gracefully shuts down the SLA alert manager.
 func (sam *SLAAlertManager) Stop(ctx context.Context) error {
 	sam.mu.Lock()
 	defer sam.mu.Unlock()
@@ -625,10 +639,10 @@ func (sam *SLAAlertManager) Stop(ctx context.Context) error {
 
 	sam.logger.InfoWithContext("Stopping SLA alert manager")
 
-	// Stop monitoring loops
+	// Stop monitoring loops.
 	close(sam.stopCh)
 
-	// Stop sub-components
+	// Stop sub-components.
 	if err := sam.escalationEngine.Stop(ctx); err != nil {
 		sam.logger.ErrorWithContext("Failed to stop escalation engine", err)
 	}
@@ -651,7 +665,7 @@ func (sam *SLAAlertManager) Stop(ctx context.Context) error {
 	return nil
 }
 
-// evaluationLoop runs the main alert evaluation loop
+// evaluationLoop runs the main alert evaluation loop.
 func (sam *SLAAlertManager) evaluationLoop(ctx context.Context) {
 	ticker := time.NewTicker(sam.config.EvaluationInterval)
 	defer ticker.Stop()
@@ -668,16 +682,16 @@ func (sam *SLAAlertManager) evaluationLoop(ctx context.Context) {
 	}
 }
 
-// evaluateAllSLAs evaluates all configured SLAs for violations
+// evaluateAllSLAs evaluates all configured SLAs for violations.
 func (sam *SLAAlertManager) evaluateAllSLAs(ctx context.Context) {
 	for slaType, target := range sam.slaTargets {
 		sam.evaluateSLA(ctx, slaType, target)
 	}
 }
 
-// evaluateSLA evaluates a specific SLA for violations
+// evaluateSLA evaluates a specific SLA for violations.
 func (sam *SLAAlertManager) evaluateSLA(ctx context.Context, slaType SLAType, target SLATarget) {
-	// Get current SLA metrics
+	// Get current SLA metrics.
 	currentValue, err := sam.getCurrentSLAValue(ctx, slaType)
 	if err != nil {
 		sam.logger.ErrorWithContext("Failed to get current SLA value", err,
@@ -686,7 +700,7 @@ func (sam *SLAAlertManager) evaluateSLA(ctx context.Context, slaType SLAType, ta
 		return
 	}
 
-	// Calculate burn rates for all windows
+	// Calculate burn rates for all windows.
 	burnRates, err := sam.burnRateCalculator.Calculate(ctx, slaType)
 	if err != nil {
 		sam.logger.ErrorWithContext("Failed to calculate burn rates", err,
@@ -695,7 +709,7 @@ func (sam *SLAAlertManager) evaluateSLA(ctx context.Context, slaType SLAType, ta
 		return
 	}
 
-	// Check each alerting window
+	// Check each alerting window.
 	for _, window := range target.Windows {
 		isViolating := sam.isWindowViolating(burnRates, window)
 
@@ -705,25 +719,25 @@ func (sam *SLAAlertManager) evaluateSLA(ctx context.Context, slaType SLAType, ta
 		}
 	}
 
-	// Update compliance metrics
+	// Update compliance metrics.
 	compliance := sam.calculateCompliance(currentValue, target)
 	sam.metrics.SLACompliance.WithLabelValues(string(slaType), "overall").Set(compliance)
 }
 
-// createAlert creates a new SLA alert with full context
+// createAlert creates a new SLA alert with full context.
 func (sam *SLAAlertManager) createAlert(ctx context.Context, slaType SLAType, target SLATarget,
-	window AlertWindow, currentValue float64, burnRates BurnRateInfo) *SLAAlert {
-
+	window AlertWindow, currentValue float64, burnRates BurnRateInfo,
+) *SLAAlert {
 	now := time.Now()
 	alertID := sam.generateAlertID(slaType, window, now)
 
-	// Calculate error budget information
+	// Calculate error budget information.
 	errorBudget := sam.calculateErrorBudget(currentValue, target, burnRates)
 
-	// Enrich context
+	// Enrich context.
 	context := sam.enrichAlertContext(ctx, slaType, currentValue)
 
-	// Calculate business impact
+	// Calculate business impact.
 	businessImpact := sam.calculateBusinessImpact(slaType, target, currentValue, errorBudget)
 
 	alert := &SLAAlert{
@@ -753,14 +767,14 @@ func (sam *SLAAlertManager) createAlert(ctx context.Context, slaType SLAType, ta
 	return alert
 }
 
-// processAlert processes a new alert through the routing and escalation pipeline
+// processAlert processes a new alert through the routing and escalation pipeline.
 func (sam *SLAAlertManager) processAlert(ctx context.Context, alert *SLAAlert) {
 	sam.mu.Lock()
 
-	// Check for existing alert
+	// Check for existing alert.
 	existingAlert, exists := sam.activeAlerts[alert.Fingerprint]
 	if exists {
-		// Update existing alert
+		// Update existing alert.
 		existingAlert.CurrentValue = alert.CurrentValue
 		existingAlert.BurnRate = alert.BurnRate
 		existingAlert.ErrorBudget = alert.ErrorBudget
@@ -770,7 +784,7 @@ func (sam *SLAAlertManager) processAlert(ctx context.Context, alert *SLAAlert) {
 		return
 	}
 
-	// Check if alert should be suppressed
+	// Check if alert should be suppressed.
 	if sam.shouldSuppressAlert(alert) {
 		sam.suppressedAlerts[alert.ID] = alert
 		sam.mu.Unlock()
@@ -782,11 +796,11 @@ func (sam *SLAAlertManager) processAlert(ctx context.Context, alert *SLAAlert) {
 		return
 	}
 
-	// Add to active alerts
+	// Add to active alerts.
 	sam.activeAlerts[alert.Fingerprint] = alert
 	sam.mu.Unlock()
 
-	// Record metrics
+	// Record metrics.
 	sam.metrics.AlertsGenerated.WithLabelValues(
 		string(alert.SLAType),
 		string(alert.Severity),
@@ -799,14 +813,14 @@ func (sam *SLAAlertManager) processAlert(ctx context.Context, alert *SLAAlert) {
 		string(alert.State),
 	).Inc()
 
-	// Route alert for notifications
+	// Route alert for notifications.
 	if err := sam.alertRouter.Route(ctx, alert); err != nil {
 		sam.logger.ErrorWithContext("Failed to route alert", err,
 			slog.String("alert_id", alert.ID),
 		)
 	}
 
-	// Start escalation process
+	// Start escalation process.
 	if err := sam.escalationEngine.StartEscalation(ctx, alert); err != nil {
 		sam.logger.ErrorWithContext("Failed to start escalation", err,
 			slog.String("alert_id", alert.ID),
@@ -823,7 +837,7 @@ func (sam *SLAAlertManager) processAlert(ctx context.Context, alert *SLAAlert) {
 	)
 }
 
-// generateAlertID creates a unique identifier for the alert
+// generateAlertID creates a unique identifier for the alert.
 func (sam *SLAAlertManager) generateAlertID(slaType SLAType, window AlertWindow, timestamp time.Time) string {
 	return fmt.Sprintf("sla-%s-%s-%d",
 		string(slaType),
@@ -831,7 +845,7 @@ func (sam *SLAAlertManager) generateAlertID(slaType SLAType, window AlertWindow,
 		timestamp.Unix())
 }
 
-// generateFingerprint creates a fingerprint for alert deduplication
+// generateFingerprint creates a fingerprint for alert deduplication.
 func (sam *SLAAlertManager) generateFingerprint(slaType SLAType, window AlertWindow) string {
 	data := fmt.Sprintf("%s-%s-%s",
 		string(slaType),
@@ -840,17 +854,17 @@ func (sam *SLAAlertManager) generateFingerprint(slaType SLAType, window AlertWin
 	return fmt.Sprintf("%x", md5.Sum([]byte(data)))
 }
 
-// generateHash creates a unique hash for the alert
+// generateHash creates a unique hash for the alert.
 func (sam *SLAAlertManager) generateHash(alertID string, timestamp time.Time) string {
 	data := fmt.Sprintf("%s-%d", alertID, timestamp.UnixNano())
 	return fmt.Sprintf("%x", md5.Sum([]byte(data)))[:8]
 }
 
 // Helper functions for alert generation and management continue in the next section...
-// Additional methods would include alert lifecycle management, metric calculations,
+// Additional methods would include alert lifecycle management, metric calculations,.
 // context enrichment, business impact assessment, and maintenance window handling.
 
-// maintenanceWindowCheck checks for active maintenance windows
+// maintenanceWindowCheck checks for active maintenance windows.
 func (sam *SLAAlertManager) maintenanceWindowCheck(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
@@ -867,7 +881,7 @@ func (sam *SLAAlertManager) maintenanceWindowCheck(ctx context.Context) {
 	}
 }
 
-// metricsUpdateLoop periodically updates metrics
+// metricsUpdateLoop periodically updates metrics.
 func (sam *SLAAlertManager) metricsUpdateLoop(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
@@ -884,7 +898,7 @@ func (sam *SLAAlertManager) metricsUpdateLoop(ctx context.Context) {
 	}
 }
 
-// alertCleanupLoop cleans up old resolved alerts
+// alertCleanupLoop cleans up old resolved alerts.
 func (sam *SLAAlertManager) alertCleanupLoop(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Hour)
 	defer ticker.Stop()
@@ -901,10 +915,10 @@ func (sam *SLAAlertManager) alertCleanupLoop(ctx context.Context) {
 	}
 }
 
-// getCurrentSLAValue retrieves the current value for the specified SLA type
+// getCurrentSLAValue retrieves the current value for the specified SLA type.
 func (sam *SLAAlertManager) getCurrentSLAValue(ctx context.Context, slaType SLAType) (float64, error) {
 	if sam.prometheusClient == nil {
-		// Return mock values for testing
+		// Return mock values for testing.
 		switch slaType {
 		case SLATypeAvailability:
 			return 99.90, nil // 99.90% availability
@@ -919,7 +933,7 @@ func (sam *SLAAlertManager) getCurrentSLAValue(ctx context.Context, slaType SLAT
 		}
 	}
 
-	// Get metric name for SLA type
+	// Get metric name for SLA type.
 	metricName := sam.getMetricNameForSLAType(slaType)
 
 	_, _, err := sam.prometheusClient.Query(ctx, metricName, time.Now())
@@ -927,13 +941,13 @@ func (sam *SLAAlertManager) getCurrentSLAValue(ctx context.Context, slaType SLAT
 		return 0, fmt.Errorf("failed to query Prometheus for %s: %w", slaType, err)
 	}
 
-	// Parse result and return value
-	// Implementation would depend on Prometheus result format
-	// For now, return mock value
+	// Parse result and return value.
+	// Implementation would depend on Prometheus result format.
+	// For now, return mock value.
 	return sam.getMockValueForSLAType(slaType), nil
 }
 
-// getMockValueForSLAType returns mock values for testing
+// getMockValueForSLAType returns mock values for testing.
 func (sam *SLAAlertManager) getMockValueForSLAType(slaType SLAType) float64 {
 	switch slaType {
 	case SLATypeAvailability:
@@ -949,18 +963,18 @@ func (sam *SLAAlertManager) getMockValueForSLAType(slaType SLAType) float64 {
 	}
 }
 
-// isWindowViolating checks if burn rates violate the specified window thresholds
+// isWindowViolating checks if burn rates violate the specified window thresholds.
 func (sam *SLAAlertManager) isWindowViolating(burnRates BurnRateInfo, window AlertWindow) bool {
-	// Check if any window burn rate exceeds threshold
+	// Check if any window burn rate exceeds threshold.
 	shortWindowViolating := burnRates.ShortWindow.BurnRate > window.BurnRate
 	mediumWindowViolating := burnRates.MediumWindow.BurnRate > window.BurnRate
 	longWindowViolating := burnRates.LongWindow.BurnRate > window.BurnRate
 
-	// Return true if any window is violating
+	// Return true if any window is violating.
 	return shortWindowViolating || mediumWindowViolating || longWindowViolating
 }
 
-// calculateCompliance calculates SLA compliance percentage
+// calculateCompliance calculates SLA compliance percentage.
 func (sam *SLAAlertManager) calculateCompliance(currentValue float64, target SLATarget) float64 {
 	switch {
 	case target.Target >= 90: // Availability or similar metrics
@@ -977,12 +991,12 @@ func (sam *SLAAlertManager) calculateCompliance(currentValue float64, target SLA
 	}
 }
 
-// calculateErrorBudget calculates error budget information
+// calculateErrorBudget calculates error budget information.
 func (sam *SLAAlertManager) calculateErrorBudget(currentValue float64, target SLATarget, burnRates BurnRateInfo) ErrorBudgetInfo {
-	// Calculate total error budget for the period (monthly)
+	// Calculate total error budget for the period (monthly).
 	totalBudget := target.ErrorBudget
 
-	// Calculate consumed budget based on current burn rate
+	// Calculate consumed budget based on current burn rate.
 	consumed := burnRates.CurrentRate * totalBudget / 100
 	remaining := totalBudget - consumed
 	consumedPercent := (consumed / totalBudget) * 100
@@ -994,7 +1008,7 @@ func (sam *SLAAlertManager) calculateErrorBudget(currentValue float64, target SL
 		ConsumedPercent: consumedPercent,
 	}
 
-	// Calculate time to exhaustion if current burn rate continues
+	// Calculate time to exhaustion if current burn rate continues.
 	if burnRates.CurrentRate > 0 && remaining > 0 {
 		hoursToExhaustion := remaining / burnRates.CurrentRate
 		timeToExhaustion := time.Duration(hoursToExhaustion * float64(time.Hour))
@@ -1004,7 +1018,7 @@ func (sam *SLAAlertManager) calculateErrorBudget(currentValue float64, target SL
 	return errorBudget
 }
 
-// enrichAlertContext enriches alert with additional context information
+// enrichAlertContext enriches alert with additional context information.
 func (sam *SLAAlertManager) enrichAlertContext(ctx context.Context, slaType SLAType, currentValue float64) AlertContext {
 	context := AlertContext{
 		Component:       "nephoran-intent-operator",
@@ -1017,7 +1031,7 @@ func (sam *SLAAlertManager) enrichAlertContext(ctx context.Context, slaType SLAT
 		LogQueries:      make([]LogQuery, 0),
 	}
 
-	// Add related metrics
+	// Add related metrics.
 	context.RelatedMetrics = append(context.RelatedMetrics, MetricSnapshot{
 		Name:      string(slaType) + "_current_value",
 		Value:     currentValue,
@@ -1025,11 +1039,11 @@ func (sam *SLAAlertManager) enrichAlertContext(ctx context.Context, slaType SLAT
 		Timestamp: time.Now(),
 	})
 
-	// Add dashboard links
+	// Add dashboard links.
 	context.DashboardLinks = append(context.DashboardLinks,
 		fmt.Sprintf("%s/d/nephoran-sla/nephoran-sla-dashboard", sam.config.GrafanaURL))
 
-	// Add log queries
+	// Add log queries.
 	context.LogQueries = append(context.LogQueries, LogQuery{
 		Description: fmt.Sprintf("Recent %s errors", slaType),
 		Query:       fmt.Sprintf("level=error component=%s", context.Component),
@@ -1039,7 +1053,7 @@ func (sam *SLAAlertManager) enrichAlertContext(ctx context.Context, slaType SLAT
 	return context
 }
 
-// calculateBusinessImpact calculates business impact for the alert
+// calculateBusinessImpact calculates business impact for the alert.
 func (sam *SLAAlertManager) calculateBusinessImpact(slaType SLAType, target SLATarget, currentValue float64, errorBudget ErrorBudgetInfo) BusinessImpactInfo {
 	businessImpact := BusinessImpactInfo{
 		ServiceTier:    target.BusinessTier,
@@ -1047,7 +1061,7 @@ func (sam *SLAAlertManager) calculateBusinessImpact(slaType SLAType, target SLAT
 		SLABreach:      errorBudget.ConsumedPercent > 100,
 	}
 
-	// Calculate severity based on error budget consumption
+	// Calculate severity based on error budget consumption.
 	switch {
 	case errorBudget.ConsumedPercent > 90:
 		businessImpact.Severity = "critical"
@@ -1059,7 +1073,7 @@ func (sam *SLAAlertManager) calculateBusinessImpact(slaType SLAType, target SLAT
 		businessImpact.Severity = "low"
 	}
 
-	// Estimate affected users (simplified calculation)
+	// Estimate affected users (simplified calculation).
 	if target.CustomerFacing {
 		businessImpact.AffectedUsers = 1000 // Base user count
 		if errorBudget.ConsumedPercent > 75 {
@@ -1067,7 +1081,7 @@ func (sam *SLAAlertManager) calculateBusinessImpact(slaType SLAType, target SLAT
 		}
 	}
 
-	// Calculate revenue impact if business impact tracking is enabled
+	// Calculate revenue impact if business impact tracking is enabled.
 	if sam.config.EnableBusinessImpact && businessImpact.AffectedUsers > 0 {
 		businessImpact.RevenueImpact = float64(businessImpact.AffectedUsers) * sam.config.RevenuePerUser
 	}
@@ -1075,20 +1089,20 @@ func (sam *SLAAlertManager) calculateBusinessImpact(slaType SLAType, target SLAT
 	return businessImpact
 }
 
-// generateAlertName generates a descriptive name for the alert
+// generateAlertName generates a descriptive name for the alert.
 func (sam *SLAAlertManager) generateAlertName(slaType SLAType, severity AlertSeverity) string {
 	return fmt.Sprintf("%s SLA %s Alert",
 		sam.capitalizeFirst(string(slaType)),
 		sam.capitalizeFirst(string(severity)))
 }
 
-// generateAlertDescription generates a detailed description for the alert
+// generateAlertDescription generates a detailed description for the alert.
 func (sam *SLAAlertManager) generateAlertDescription(slaType SLAType, currentValue float64, target SLATarget, window AlertWindow) string {
 	return fmt.Sprintf("SLA violation detected for %s. Current value: %.2f, Target: %.2f, Burn rate threshold: %.2f exceeded over %v window.",
 		slaType, currentValue, target.Target, window.BurnRate, window.ShortWindow)
 }
 
-// generateAlertLabels generates labels for the alert
+// generateAlertLabels generates labels for the alert.
 func (sam *SLAAlertManager) generateAlertLabels(slaType SLAType, target SLATarget, window AlertWindow) map[string]string {
 	return map[string]string{
 		"sla_type":        string(slaType),
@@ -1100,7 +1114,7 @@ func (sam *SLAAlertManager) generateAlertLabels(slaType SLAType, target SLATarge
 	}
 }
 
-// generateAlertAnnotations generates annotations for the alert
+// generateAlertAnnotations generates annotations for the alert.
 func (sam *SLAAlertManager) generateAlertAnnotations(slaType SLAType, target SLATarget, window AlertWindow) map[string]string {
 	annotations := map[string]string{
 		"summary":     fmt.Sprintf("SLA violation for %s", slaType),
@@ -1118,9 +1132,9 @@ func (sam *SLAAlertManager) generateAlertAnnotations(slaType SLAType, target SLA
 	return annotations
 }
 
-// Helper methods
+// Helper methods.
 
-// getMetricNameForSLAType returns the Prometheus metric name for an SLA type
+// getMetricNameForSLAType returns the Prometheus metric name for an SLA type.
 func (sam *SLAAlertManager) getMetricNameForSLAType(slaType SLAType) string {
 	switch slaType {
 	case SLATypeAvailability:
@@ -1136,7 +1150,7 @@ func (sam *SLAAlertManager) getMetricNameForSLAType(slaType SLAType) string {
 	}
 }
 
-// getUnitForSLAType returns the unit for an SLA type
+// getUnitForSLAType returns the unit for an SLA type.
 func (sam *SLAAlertManager) getUnitForSLAType(slaType SLAType) string {
 	switch slaType {
 	case SLATypeAvailability:
@@ -1152,7 +1166,7 @@ func (sam *SLAAlertManager) getUnitForSLAType(slaType SLAType) string {
 	}
 }
 
-// capitalizeFirst capitalizes the first letter of a string
+// capitalizeFirst capitalizes the first letter of a string.
 func (sam *SLAAlertManager) capitalizeFirst(s string) string {
 	if len(s) == 0 {
 		return s
@@ -1160,7 +1174,7 @@ func (sam *SLAAlertManager) capitalizeFirst(s string) string {
 	return fmt.Sprintf("%c%s", s[0]-32, s[1:])
 }
 
-// generateRunbookURL generates runbook URL for the alert
+// generateRunbookURL generates runbook URL for the alert.
 func (sam *SLAAlertManager) generateRunbookURL(slaType SLAType, severity AlertSeverity) string {
 	if sam.config.RunbookBaseURL == "" {
 		return ""
@@ -1168,7 +1182,7 @@ func (sam *SLAAlertManager) generateRunbookURL(slaType SLAType, severity AlertSe
 	return fmt.Sprintf("%s/sla-%s-%s", sam.config.RunbookBaseURL, slaType, severity)
 }
 
-// generateRunbookSteps generates runbook steps for the alert
+// generateRunbookSteps generates runbook steps for the alert.
 func (sam *SLAAlertManager) generateRunbookSteps(slaType SLAType, severity AlertSeverity) []string {
 	steps := []string{
 		"1. Check system health dashboard",
@@ -1194,45 +1208,45 @@ func (sam *SLAAlertManager) generateRunbookSteps(slaType SLAType, severity Alert
 	return steps
 }
 
-// shouldSuppressAlert checks if an alert should be suppressed
+// shouldSuppressAlert checks if an alert should be suppressed.
 func (sam *SLAAlertManager) shouldSuppressAlert(alert *SLAAlert) bool {
-	// Check for active maintenance windows
+	// Check for active maintenance windows.
 	now := time.Now()
 	for _, window := range sam.maintenanceWindows {
 		if now.After(window.StartTime) && now.Before(window.EndTime) {
-			// Check if alert matches maintenance window criteria
+			// Check if alert matches maintenance window criteria.
 			if sam.alertMatchesMaintenanceWindow(alert, window) {
 				return true
 			}
 		}
 	}
 
-	// Check suppression rules based on alert characteristics
+	// Check suppression rules based on alert characteristics.
 	if alert.ErrorBudget.ConsumedPercent < 10.0 {
-		// Suppress minor alerts when error budget consumption is low
+		// Suppress minor alerts when error budget consumption is low.
 		return true
 	}
 
 	return false
 }
 
-// alertMatchesMaintenanceWindow checks if an alert matches maintenance window criteria
+// alertMatchesMaintenanceWindow checks if an alert matches maintenance window criteria.
 func (sam *SLAAlertManager) alertMatchesMaintenanceWindow(alert *SLAAlert, window *MaintenanceWindow) bool {
-	// Check if alert's component is in maintenance
+	// Check if alert's component is in maintenance.
 	for _, component := range window.Components {
 		if alert.Context.Component == component {
 			return true
 		}
 	}
 
-	// Check if alert's service is in maintenance
+	// Check if alert's service is in maintenance.
 	for _, service := range window.Services {
 		if alert.Context.Service == service {
 			return true
 		}
 	}
 
-	// Check labels matching
+	// Check labels matching.
 	for key, value := range window.Labels {
 		if alertValue, exists := alert.Labels[key]; exists && alertValue == value {
 			return true
@@ -1242,7 +1256,7 @@ func (sam *SLAAlertManager) alertMatchesMaintenanceWindow(alert *SLAAlert, windo
 	return false
 }
 
-// updateMaintenanceWindows updates active maintenance windows
+// updateMaintenanceWindows updates active maintenance windows.
 func (sam *SLAAlertManager) updateMaintenanceWindows() {
 	sam.mu.Lock()
 	defer sam.mu.Unlock()
@@ -1250,7 +1264,7 @@ func (sam *SLAAlertManager) updateMaintenanceWindows() {
 	now := time.Now()
 	activeWindows := make([]*MaintenanceWindow, 0)
 
-	// Filter out expired maintenance windows
+	// Filter out expired maintenance windows.
 	for _, window := range sam.maintenanceWindows {
 		if now.Before(window.EndTime) {
 			activeWindows = append(activeWindows, window)
@@ -1269,12 +1283,12 @@ func (sam *SLAAlertManager) updateMaintenanceWindows() {
 	)
 }
 
-// updateMetrics updates internal metrics
+// updateMetrics updates internal metrics.
 func (sam *SLAAlertManager) updateMetrics() {
 	sam.mu.RLock()
 	defer sam.mu.RUnlock()
 
-	// Update active alerts count
+	// Update active alerts count.
 	for slaType, severity := range map[SLAType]AlertSeverity{
 		SLATypeAvailability: AlertSeverityCritical,
 		SLATypeLatency:      AlertSeverityMajor,
@@ -1294,7 +1308,7 @@ func (sam *SLAAlertManager) updateMetrics() {
 		).Set(float64(count))
 	}
 
-	// Update business impact metrics
+	// Update business impact metrics.
 	var totalRevenue float64
 	for _, alert := range sam.activeAlerts {
 		if alert.BusinessImpact.RevenueImpact > 0 {
@@ -1322,7 +1336,7 @@ func (sam *SLAAlertManager) updateMetrics() {
 	)
 }
 
-// cleanupOldAlerts removes old resolved alerts from history
+// cleanupOldAlerts removes old resolved alerts from history.
 func (sam *SLAAlertManager) cleanupOldAlerts() {
 	sam.mu.Lock()
 	defer sam.mu.Unlock()
@@ -1330,7 +1344,7 @@ func (sam *SLAAlertManager) cleanupOldAlerts() {
 	now := time.Now()
 	cutoff := now.Add(-sam.config.AlertRetention)
 
-	// Clean up alert history
+	// Clean up alert history.
 	var recentHistory []*SLAAlert
 	for _, alert := range sam.alertHistory {
 		if alert.UpdatedAt.After(cutoff) {
@@ -1341,8 +1355,8 @@ func (sam *SLAAlertManager) cleanupOldAlerts() {
 	removedCount := len(sam.alertHistory) - len(recentHistory)
 	sam.alertHistory = recentHistory
 
-	// Clean up suppressed alerts
-	var activeSuppressed = make(map[string]*SLAAlert)
+	// Clean up suppressed alerts.
+	activeSuppressed := make(map[string]*SLAAlert)
 	for id, alert := range sam.suppressedAlerts {
 		if alert.UpdatedAt.After(cutoff) {
 			activeSuppressed[id] = alert

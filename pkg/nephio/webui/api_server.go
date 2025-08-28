@@ -19,7 +19,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// APIServer represents the Nephio Web UI API server
+// APIServer represents the Nephio Web UI API server.
 type APIServer struct {
 	logger       *zap.Logger
 	router       *mux.Router
@@ -36,7 +36,7 @@ type APIServer struct {
 	shutdownWait time.Duration
 }
 
-// APIServerConfig provides configuration options for the API server
+// APIServerConfig provides configuration options for the API server.
 type APIServerConfig struct {
 	Logger       *zap.Logger
 	KubeClient   kubernetes.Interface
@@ -47,7 +47,7 @@ type APIServerConfig struct {
 	ShutdownWait time.Duration
 }
 
-// NewAPIServer creates a new Nephio Web UI API server
+// NewAPIServer creates a new Nephio Web UI API server.
 func NewAPIServer(config APIServerConfig) *APIServer {
 	router := mux.NewRouter()
 	wsServer := NewWebSocketServer(config.Logger, config.KubeClient)
@@ -70,15 +70,15 @@ func NewAPIServer(config APIServerConfig) *APIServer {
 	return server
 }
 
-// setupRoutes configures API routes and middleware
+// setupRoutes configures API routes and middleware.
 func (s *APIServer) setupRoutes() {
-	// Package handlers
+	// Package handlers.
 	packageHandlers := NewPackageHandlers(s.logger, s.kubeClient)
 	clusterHandlers := NewClusterHandlers(s.logger, s.kubeClient)
 	intentHandlers := NewNetworkIntentHandlers(s.logger, s.kubeClient)
 	systemHandlers := NewSystemHandlers(s.logger, s.kubeClient)
 
-	// Base router with common middleware
+	// Base router with common middleware.
 	baseRouter := s.router.PathPrefix("/api/v1").Subrouter()
 	baseRouter.Use(
 		LoggingMiddleware(s.logger),
@@ -86,36 +86,36 @@ func (s *APIServer) setupRoutes() {
 		SecurityHeadersMiddleware,
 	)
 
-	// CORS configuration
+	// CORS configuration.
 	baseRouter.Use(CORSMiddleware([]string{"*"}))
 
-	// WebSocket endpoint
+	// WebSocket endpoint.
 	s.router.HandleFunc("/api/v1/events", s.wsServer.HandleWebSocket)
 
-	// Metrics endpoint
+	// Metrics endpoint.
 	s.router.Handle("/metrics", promhttp.Handler())
 
-	// Package routes
+	// Package routes.
 	baseRouter.HandleFunc("/packages", packageHandlers.ListPackages).Methods("GET")
 	baseRouter.HandleFunc("/packages", packageHandlers.CreatePackage).Methods("POST")
 	baseRouter.HandleFunc("/packages/{id}", packageHandlers.GetPackage).Methods("GET")
 	baseRouter.HandleFunc("/packages/{id}", packageHandlers.UpdatePackage).Methods("PUT")
 	baseRouter.HandleFunc("/packages/{id}", packageHandlers.DeletePackage).Methods("DELETE")
 
-	// Cluster routes
+	// Cluster routes.
 	baseRouter.HandleFunc("/clusters", clusterHandlers.ListClusters).Methods("GET")
 
-	// Network Intent routes
+	// Network Intent routes.
 	baseRouter.HandleFunc("/intents", intentHandlers.ListIntents).Methods("GET")
 	baseRouter.HandleFunc("/intents", intentHandlers.SubmitIntent).Methods("POST")
 
-	// System routes
+	// System routes.
 	baseRouter.HandleFunc("/health", systemHandlers.GetHealthStatus).Methods("GET")
 }
 
-// Start launches the API server
+// Start launches the API server.
 func (s *APIServer) Start(ctx context.Context) error {
-	// Create HTTP server
+	// Create HTTP server.
 	httpListener, err := net.Listen("tcp", fmt.Sprintf(":%d", s.httpPort))
 	if err != nil {
 		return fmt.Errorf("failed to listen on HTTP port: %w", err)
@@ -128,7 +128,7 @@ func (s *APIServer) Start(ctx context.Context) error {
 		IdleTimeout:       120 * time.Second,
 	}
 
-	// Create HTTPS server if TLS config is provided
+	// Create HTTPS server if TLS config is provided.
 	var httpsListener net.Listener
 	if s.tlsCertPath != "" && s.tlsKeyPath != "" {
 		tlsConfig := &tls.Config{
@@ -154,15 +154,15 @@ func (s *APIServer) Start(ctx context.Context) error {
 		}
 	}
 
-	// Start WebSocket server
+	// Start WebSocket server.
 	if err := s.wsServer.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start WebSocket server: %w", err)
 	}
 
-	// Use errgroup for managing server goroutines
+	// Use errgroup for managing server goroutines.
 	eg, serverCtx := errgroup.WithContext(ctx)
 
-	// HTTP server goroutine
+	// HTTP server goroutine.
 	eg.Go(func() error {
 		s.logger.Info("Starting HTTP server", zap.Int("port", s.httpPort))
 		if err := s.httpServer.Serve(httpListener); err != http.ErrServerClosed {
@@ -171,7 +171,7 @@ func (s *APIServer) Start(ctx context.Context) error {
 		return nil
 	})
 
-	// HTTPS server goroutine (if configured)
+	// HTTPS server goroutine (if configured).
 	if s.httpsServer != nil {
 		eg.Go(func() error {
 			s.logger.Info("Starting HTTPS server", zap.Int("port", s.httpsPort))
@@ -182,7 +182,7 @@ func (s *APIServer) Start(ctx context.Context) error {
 		})
 	}
 
-	// Signal handling and graceful shutdown
+	// Signal handling and graceful shutdown.
 	eg.Go(func() error {
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -196,13 +196,13 @@ func (s *APIServer) Start(ctx context.Context) error {
 		}
 	})
 
-	// Signal server is ready
+	// Signal server is ready.
 	close(s.readyChan)
 
 	return eg.Wait()
 }
 
-// Shutdown gracefully stops the API server
+// Shutdown gracefully stops the API server.
 func (s *APIServer) Shutdown() error {
 	s.logger.Info("Initiating graceful shutdown")
 	ctx, cancel := context.WithTimeout(context.Background(), s.shutdownWait)
@@ -229,7 +229,7 @@ func (s *APIServer) Shutdown() error {
 		}
 	}()
 
-	// Stop WebSocket server
+	// Stop WebSocket server.
 	s.wsServer.Stop()
 
 	wg.Wait()
@@ -239,12 +239,12 @@ func (s *APIServer) Shutdown() error {
 	return nil
 }
 
-// Ready provides a channel that is closed when the server is ready
+// Ready provides a channel that is closed when the server is ready.
 func (s *APIServer) Ready() <-chan struct{} {
 	return s.readyChan
 }
 
-// Stop provides a channel that is closed when the server is stopped
+// Stop provides a channel that is closed when the server is stopped.
 func (s *APIServer) Stop() <-chan struct{} {
 	return s.stopChan
 }

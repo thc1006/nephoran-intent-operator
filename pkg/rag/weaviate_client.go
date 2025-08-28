@@ -13,16 +13,16 @@ import (
 	"time"
 )
 
-// weaviateRAGClient is a Weaviate-based implementation of RAGClient
+// weaviateRAGClient is a Weaviate-based implementation of RAGClient.
 type weaviateRAGClient struct {
 	config     *RAGClientConfig
 	httpClient *http.Client
 	logger     *slog.Logger
 }
 
-// newRAGClientImpl creates a Weaviate-based RAG client
+// newRAGClientImpl creates a Weaviate-based RAG client.
 func newRAGClientImpl(config *RAGClientConfig) RAGClient {
-	// Handle nil config gracefully
+	// Handle nil config gracefully.
 	if config == nil {
 		config = &RAGClientConfig{
 			Enabled:          false,
@@ -40,19 +40,19 @@ func newRAGClientImpl(config *RAGClientConfig) RAGClient {
 	}
 }
 
-// Retrieve performs a semantic search using Weaviate and returns documents
+// Retrieve performs a semantic search using Weaviate and returns documents.
 func (c *weaviateRAGClient) Retrieve(ctx context.Context, query string) ([]Doc, error) {
 	if c.config.WeaviateURL == "" {
 		return nil, fmt.Errorf("Weaviate URL not configured")
 	}
 
-	// Use configured max results or default to 5
+	// Use configured max results or default to 5.
 	limit := c.config.MaxSearchResults
 	if limit <= 0 {
 		limit = 5
 	}
 
-	// Build GraphQL query for Weaviate
+	// Build GraphQL query for Weaviate.
 	graphqlQuery := fmt.Sprintf(`{
 		Get {
 			Document(
@@ -70,7 +70,7 @@ func (c *weaviateRAGClient) Retrieve(ctx context.Context, query string) ([]Doc, 
 		}
 	}`, query, limit)
 
-	// Make request to Weaviate
+	// Make request to Weaviate.
 	reqBody := map[string]string{"query": graphqlQuery}
 	jsonBody, err := json.Marshal(reqBody)
 	if err != nil {
@@ -100,7 +100,7 @@ func (c *weaviateRAGClient) Retrieve(ctx context.Context, query string) ([]Doc, 
 		return nil, fmt.Errorf("Weaviate returned status %d: %s", resp.StatusCode, string(body))
 	}
 
-	// Parse response
+	// Parse response.
 	var graphqlResp struct {
 		Data struct {
 			Get struct {
@@ -131,7 +131,7 @@ func (c *weaviateRAGClient) Retrieve(ctx context.Context, query string) ([]Doc, 
 		return nil, fmt.Errorf("GraphQL errors: %s", graphqlResp.Errors[0].Message)
 	}
 
-	// Convert to Doc structs and apply confidence filter
+	// Convert to Doc structs and apply confidence filter.
 	results := make([]Doc, 0, len(graphqlResp.Data.Get.Document))
 	minConfidence := c.config.MinConfidence
 	if minConfidence <= 0 {
@@ -157,13 +157,13 @@ func (c *weaviateRAGClient) Retrieve(ctx context.Context, query string) ([]Doc, 
 	return results, nil
 }
 
-// Initialize initializes the Weaviate RAG client and validates connectivity
+// Initialize initializes the Weaviate RAG client and validates connectivity.
 func (c *weaviateRAGClient) Initialize(ctx context.Context) error {
 	if c.config.WeaviateURL == "" {
 		return fmt.Errorf("Weaviate URL not configured")
 	}
 
-	// Test connectivity by making a simple health check request
+	// Test connectivity by making a simple health check request.
 	req, err := http.NewRequestWithContext(ctx, "GET",
 		c.config.WeaviateURL+"/v1/.well-known/ready", nil)
 	if err != nil {
@@ -196,9 +196,9 @@ func (c *weaviateRAGClient) Initialize(ctx context.Context) error {
 	return nil
 }
 
-// Shutdown gracefully shuts down the Weaviate RAG client
+// Shutdown gracefully shuts down the Weaviate RAG client.
 func (c *weaviateRAGClient) Shutdown(ctx context.Context) error {
-	// Close HTTP client idle connections
+	// Close HTTP client idle connections.
 	if transport, ok := c.httpClient.Transport.(*http.Transport); ok {
 		transport.CloseIdleConnections()
 	}

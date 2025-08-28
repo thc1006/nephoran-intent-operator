@@ -2,20 +2,20 @@ package loop
 
 import "sync"
 
-// SafeSet provides a thread-safe set implementation
+// SafeSet provides a thread-safe set implementation.
 type SafeSet struct {
 	mu    sync.RWMutex
 	items map[string]struct{}
 }
 
-// NewSafeSet creates a new thread-safe set
+// NewSafeSet creates a new thread-safe set.
 func NewSafeSet() *SafeSet {
 	return &SafeSet{
 		items: make(map[string]struct{}),
 	}
 }
 
-// Add adds an item to the set
+// Add adds an item to the set.
 func (s *SafeSet) Add(key string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -25,7 +25,7 @@ func (s *SafeSet) Add(key string) {
 	s.items[key] = struct{}{}
 }
 
-// Has checks if an item exists in the set
+// Has checks if an item exists in the set.
 func (s *SafeSet) Has(key string) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -36,7 +36,7 @@ func (s *SafeSet) Has(key string) bool {
 	return exists
 }
 
-// Delete removes an item from the set
+// Delete removes an item from the set.
 func (s *SafeSet) Delete(key string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -46,7 +46,7 @@ func (s *SafeSet) Delete(key string) {
 	delete(s.items, key)
 }
 
-// LoadFromSlice loads items from a slice
+// LoadFromSlice loads items from a slice.
 func (s *SafeSet) LoadFromSlice(items []string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -58,7 +58,7 @@ func (s *SafeSet) LoadFromSlice(items []string) {
 	}
 }
 
-// ToSlice returns all items as a slice
+// ToSlice returns all items as a slice.
 func (s *SafeSet) ToSlice() []string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -72,7 +72,7 @@ func (s *SafeSet) ToSlice() []string {
 	return result
 }
 
-// Size returns the number of items in the set
+// Size returns the number of items in the set.
 func (s *SafeSet) Size() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

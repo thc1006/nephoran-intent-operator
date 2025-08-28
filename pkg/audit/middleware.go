@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -23,25 +24,37 @@ import (
 )
 
 const (
-	// HTTP header names for audit context
-	HeaderRequestID     = "X-Request-ID"
+	// HTTP header names for audit context.
+	HeaderRequestID = "X-Request-ID"
+	// HeaderCorrelationID holds headercorrelationid value.
 	HeaderCorrelationID = "X-Correlation-ID"
-	HeaderUserID        = "X-User-ID"
-	HeaderUserAgent     = "User-Agent"
-	HeaderForwardedFor  = "X-Forwarded-For"
-	HeaderRealIP        = "X-Real-IP"
+	// HeaderUserID holds headeruserid value.
+	HeaderUserID = "X-User-ID"
+	// HeaderUserAgent holds headeruseragent value.
+	HeaderUserAgent = "User-Agent"
+	// HeaderForwardedFor holds headerforwardedfor value.
+	HeaderForwardedFor = "X-Forwarded-For"
+	// HeaderRealIP holds headerrealip value.
+	HeaderRealIP = "X-Real-IP"
+	// HeaderAuthorization holds headerauthorization value.
 	HeaderAuthorization = "Authorization"
-	HeaderContentType   = "Content-Type"
+	// HeaderContentType holds headercontenttype value.
+	HeaderContentType = "Content-Type"
+	// HeaderContentLength holds headercontentlength value.
 	HeaderContentLength = "Content-Length"
-	HeaderAccept        = "Accept"
+	// HeaderAccept holds headeraccept value.
+	HeaderAccept = "Accept"
 
-	// Context keys
-	ContextKeyRequestID  = "audit.request_id"
-	ContextKeyUserID     = "audit.user_id"
-	ContextKeyStartTime  = "audit.start_time"
+	// Context keys.
+	ContextKeyRequestID = "audit.request_id"
+	// ContextKeyUserID holds contextkeyuserid value.
+	ContextKeyUserID = "audit.user_id"
+	// ContextKeyStartTime holds contextkeystarttime value.
+	ContextKeyStartTime = "audit.start_time"
+	// ContextKeyAuditEvent holds contextkeyauditevent value.
 	ContextKeyAuditEvent = "audit.event"
 
-	// Maximum request/response body size to capture (10MB)
+	// Maximum request/response body size to capture (10MB).
 	MaxBodySize = 10 * 1024 * 1024
 )
 
@@ -70,60 +83,60 @@ var (
 	}, []string{"method", "path", "status"})
 )
 
-// HTTPAuditMiddleware provides HTTP request/response auditing
+// HTTPAuditMiddleware provides HTTP request/response auditing.
 type HTTPAuditMiddleware struct {
 	auditSystem *AuditSystem
 	config      *HTTPAuditConfig
 	logger      logr.Logger
 
-	// Request correlation
+	// Request correlation.
 	requestPool  sync.Pool
 	responsePool sync.Pool
 }
 
-// HTTPAuditConfig configures the HTTP audit middleware
+// HTTPAuditConfig configures the HTTP audit middleware.
 type HTTPAuditConfig struct {
-	// Enabled controls whether HTTP auditing is active
+	// Enabled controls whether HTTP auditing is active.
 	Enabled bool `json:"enabled" yaml:"enabled"`
 
-	// CaptureRequestBody controls whether to capture request bodies
+	// CaptureRequestBody controls whether to capture request bodies.
 	CaptureRequestBody bool `json:"capture_request_body" yaml:"capture_request_body"`
 
-	// CaptureResponseBody controls whether to capture response bodies
+	// CaptureResponseBody controls whether to capture response bodies.
 	CaptureResponseBody bool `json:"capture_response_body" yaml:"capture_response_body"`
 
-	// CaptureHeaders controls whether to capture HTTP headers
+	// CaptureHeaders controls whether to capture HTTP headers.
 	CaptureHeaders bool `json:"capture_headers" yaml:"capture_headers"`
 
-	// MaxBodySize limits the size of request/response bodies to capture
+	// MaxBodySize limits the size of request/response bodies to capture.
 	MaxBodySize int64 `json:"max_body_size" yaml:"max_body_size"`
 
-	// SensitiveHeaders defines headers that should be redacted
+	// SensitiveHeaders defines headers that should be redacted.
 	SensitiveHeaders []string `json:"sensitive_headers" yaml:"sensitive_headers"`
 
-	// SensitivePaths defines URL paths that should have bodies redacted
+	// SensitivePaths defines URL paths that should have bodies redacted.
 	SensitivePaths []string `json:"sensitive_paths" yaml:"sensitive_paths"`
 
-	// ExcludePaths defines URL paths to exclude from auditing
+	// ExcludePaths defines URL paths to exclude from auditing.
 	ExcludePaths []string `json:"exclude_paths" yaml:"exclude_paths"`
 
-	// HealthCheckPaths defines health check paths to exclude from auditing
+	// HealthCheckPaths defines health check paths to exclude from auditing.
 	HealthCheckPaths []string `json:"health_check_paths" yaml:"health_check_paths"`
 
-	// UserExtractor defines how to extract user information from requests
+	// UserExtractor defines how to extract user information from requests.
 	UserExtractor UserExtractorFunc `json:"-" yaml:"-"`
 
-	// PathSanitizer defines how to sanitize URL paths for metrics/logging
+	// PathSanitizer defines how to sanitize URL paths for metrics/logging.
 	PathSanitizer PathSanitizerFunc `json:"-" yaml:"-"`
 }
 
-// UserExtractorFunc extracts user information from HTTP requests
+// UserExtractorFunc extracts user information from HTTP requests.
 type UserExtractorFunc func(*http.Request) *UserContext
 
-// PathSanitizerFunc sanitizes URL paths to remove sensitive information
+// PathSanitizerFunc sanitizes URL paths to remove sensitive information.
 type PathSanitizerFunc func(string) string
 
-// HTTPRequestInfo captures information about an HTTP request
+// HTTPRequestInfo captures information about an HTTP request.
 type HTTPRequestInfo struct {
 	RequestID     string              `json:"request_id"`
 	Method        string              `json:"method"`
@@ -140,7 +153,7 @@ type HTTPRequestInfo struct {
 	StartTime     time.Time           `json:"start_time"`
 }
 
-// HTTPResponseInfo captures information about an HTTP response
+// HTTPResponseInfo captures information about an HTTP response.
 type HTTPResponseInfo struct {
 	StatusCode  int               `json:"status_code"`
 	StatusText  string            `json:"status_text"`
@@ -152,7 +165,7 @@ type HTTPResponseInfo struct {
 	EndTime     time.Time         `json:"end_time"`
 }
 
-// auditResponseWriter wraps http.ResponseWriter to capture response information
+// auditResponseWriter wraps http.ResponseWriter to capture response information.
 type auditResponseWriter struct {
 	http.ResponseWriter
 	statusCode  int
@@ -162,7 +175,7 @@ type auditResponseWriter struct {
 	captureBody bool
 }
 
-// NewHTTPAuditMiddleware creates a new HTTP audit middleware
+// NewHTTPAuditMiddleware creates a new HTTP audit middleware.
 func NewHTTPAuditMiddleware(auditSystem *AuditSystem, config *HTTPAuditConfig) *HTTPAuditMiddleware {
 	if config == nil {
 		config = DefaultHTTPAuditConfig()
@@ -174,7 +187,7 @@ func NewHTTPAuditMiddleware(auditSystem *AuditSystem, config *HTTPAuditConfig) *
 		logger:      log.Log.WithName("http-audit-middleware"),
 	}
 
-	// Initialize pools for request/response capture
+	// Initialize pools for request/response capture.
 	middleware.requestPool = sync.Pool{
 		New: func() interface{} {
 			return &bytes.Buffer{}
@@ -190,7 +203,7 @@ func NewHTTPAuditMiddleware(auditSystem *AuditSystem, config *HTTPAuditConfig) *
 	return middleware
 }
 
-// Handler returns an HTTP middleware handler
+// Handler returns an HTTP middleware handler.
 func (m *HTTPAuditMiddleware) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !m.config.Enabled {
@@ -198,33 +211,33 @@ func (m *HTTPAuditMiddleware) Handler(next http.Handler) http.Handler {
 			return
 		}
 
-		// Check if this path should be excluded
+		// Check if this path should be excluded.
 		if m.shouldExcludePath(r.URL.Path) {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		// Generate request ID if not present
+		// Generate request ID if not present.
 		requestID := r.Header.Get(HeaderRequestID)
 		if requestID == "" {
 			requestID = uuid.New().String()
 		}
 
-		// Add request ID to response header
+		// Add request ID to response header.
 		w.Header().Set(HeaderRequestID, requestID)
 
-		// Capture request information
+		// Capture request information.
 		requestInfo, err := m.captureRequestInfo(r, requestID)
 		if err != nil {
 			m.logger.Error(err, "Failed to capture request info", "request_id", requestID)
 		}
 
-		// Add context information to request
+		// Add context information to request.
 		ctx := context.WithValue(r.Context(), ContextKeyRequestID, requestID)
 		ctx = context.WithValue(ctx, ContextKeyStartTime, time.Now())
 		r = r.WithContext(ctx)
 
-		// Wrap response writer
+		// Wrap response writer.
 		shouldCaptureResponseBody := m.config.CaptureResponseBody && !m.isSensitivePath(r.URL.Path)
 		wrappedWriter := &auditResponseWriter{
 			ResponseWriter: w,
@@ -234,23 +247,23 @@ func (m *HTTPAuditMiddleware) Handler(next http.Handler) http.Handler {
 			captureBody:    shouldCaptureResponseBody,
 		}
 
-		// Execute the request
+		// Execute the request.
 		startTime := time.Now()
 		next.ServeHTTP(wrappedWriter, r)
 		duration := time.Since(startTime)
 
-		// Capture response information
+		// Capture response information.
 		responseInfo := m.captureResponseInfo(wrappedWriter, duration)
 
-		// Create audit event
+		// Create audit event.
 		m.createHTTPAuditEvent(r, requestInfo, responseInfo, duration)
 
-		// Update metrics
+		// Update metrics.
 		m.updateMetrics(r, requestInfo, responseInfo, duration)
 	})
 }
 
-// captureRequestInfo captures information about the HTTP request
+// captureRequestInfo captures information about the HTTP request.
 func (m *HTTPAuditMiddleware) captureRequestInfo(r *http.Request, requestID string) (*HTTPRequestInfo, error) {
 	info := &HTTPRequestInfo{
 		RequestID:   requestID,
@@ -265,12 +278,12 @@ func (m *HTTPAuditMiddleware) captureRequestInfo(r *http.Request, requestID stri
 		StartTime:   time.Now().UTC(),
 	}
 
-	// Capture headers if enabled
+	// Capture headers if enabled.
 	if m.config.CaptureHeaders {
 		info.Headers = m.sanitizeHeaders(r.Header)
 	}
 
-	// Parse accepted content types
+	// Parse accepted content types.
 	if acceptHeader := r.Header.Get(HeaderAccept); acceptHeader != "" {
 		info.AcceptedTypes = strings.Split(acceptHeader, ",")
 		for i, t := range info.AcceptedTypes {
@@ -278,7 +291,7 @@ func (m *HTTPAuditMiddleware) captureRequestInfo(r *http.Request, requestID stri
 		}
 	}
 
-	// Capture request body if enabled and not sensitive
+	// Capture request body if enabled and not sensitive.
 	if m.config.CaptureRequestBody && !m.isSensitivePath(r.URL.Path) && r.Body != nil {
 		body, err := m.captureRequestBody(r)
 		if err != nil {
@@ -290,22 +303,22 @@ func (m *HTTPAuditMiddleware) captureRequestInfo(r *http.Request, requestID stri
 	return info, nil
 }
 
-// captureRequestBody reads and captures the request body
+// captureRequestBody reads and captures the request body.
 func (m *HTTPAuditMiddleware) captureRequestBody(r *http.Request) (string, error) {
 	if r.ContentLength > m.config.MaxBodySize {
 		return fmt.Sprintf("[TRUNCATED: Body size %d exceeds limit %d]", r.ContentLength, m.config.MaxBodySize), nil
 	}
 
-	// Get buffer from pool
+	// Get buffer from pool.
 	buf := m.requestPool.Get().(*bytes.Buffer)
 	defer func() {
 		buf.Reset()
 		m.requestPool.Put(buf)
 	}()
 
-	// Read body
+	// Read body.
 	_, err := io.CopyN(buf, r.Body, m.config.MaxBodySize+1)
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return "", err
 	}
 
@@ -314,15 +327,15 @@ func (m *HTTPAuditMiddleware) captureRequestBody(r *http.Request) (string, error
 		bodyBytes = bodyBytes[:m.config.MaxBodySize]
 		bodyString := string(bodyBytes) + "[TRUNCATED]"
 
-		// Replace body so subsequent handlers can read it
+		// Replace body so subsequent handlers can read it.
 		r.Body = io.NopCloser(strings.NewReader(string(bodyBytes[:m.config.MaxBodySize-int64(len("[TRUNCATED]"))])))
 		return bodyString, nil
 	}
 
-	// Replace body so subsequent handlers can read it
+	// Replace body so subsequent handlers can read it.
 	r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 
-	// Try to format JSON for better readability
+	// Try to format JSON for better readability.
 	if strings.Contains(r.Header.Get(HeaderContentType), "application/json") {
 		var jsonData interface{}
 		if err := json.Unmarshal(bodyBytes, &jsonData); err == nil {
@@ -335,7 +348,7 @@ func (m *HTTPAuditMiddleware) captureRequestBody(r *http.Request) (string, error
 	return string(bodyBytes), nil
 }
 
-// captureResponseInfo captures information about the HTTP response
+// captureResponseInfo captures information about the HTTP response.
 func (m *HTTPAuditMiddleware) captureResponseInfo(w *auditResponseWriter, duration time.Duration) *HTTPResponseInfo {
 	info := &HTTPResponseInfo{
 		StatusCode:  w.statusCode,
@@ -346,16 +359,16 @@ func (m *HTTPAuditMiddleware) captureResponseInfo(w *auditResponseWriter, durati
 		ContentType: w.Header().Get(HeaderContentType),
 	}
 
-	// Capture headers if enabled
+	// Capture headers if enabled.
 	if m.config.CaptureHeaders {
 		info.Headers = m.sanitizeHeaders(http.Header(w.Header()))
 	}
 
-	// Capture response body if enabled and captured
+	// Capture response body if enabled and captured.
 	if w.captureBody && w.body.Len() > 0 {
 		bodyString := w.body.String()
 
-		// Try to format JSON for better readability
+		// Try to format JSON for better readability.
 		if strings.Contains(info.ContentType, "application/json") {
 			var jsonData interface{}
 			if err := json.Unmarshal([]byte(bodyString), &jsonData); err == nil {
@@ -371,9 +384,9 @@ func (m *HTTPAuditMiddleware) captureResponseInfo(w *auditResponseWriter, durati
 	return info
 }
 
-// createHTTPAuditEvent creates an audit event for the HTTP request/response
+// createHTTPAuditEvent creates an audit event for the HTTP request/response.
 func (m *HTTPAuditMiddleware) createHTTPAuditEvent(r *http.Request, requestInfo *HTTPRequestInfo, responseInfo *HTTPResponseInfo, duration time.Duration) {
-	// Extract user context
+	// Extract user context.
 	var userContext *UserContext
 	if m.config.UserExtractor != nil {
 		userContext = m.config.UserExtractor(r)
@@ -381,7 +394,7 @@ func (m *HTTPAuditMiddleware) createHTTPAuditEvent(r *http.Request, requestInfo 
 		userContext = m.defaultUserExtractor(r)
 	}
 
-	// Determine event result
+	// Determine event result.
 	var result EventResult
 	if responseInfo.StatusCode >= 200 && responseInfo.StatusCode < 400 {
 		result = ResultSuccess
@@ -391,7 +404,7 @@ func (m *HTTPAuditMiddleware) createHTTPAuditEvent(r *http.Request, requestInfo 
 		result = ResultError
 	}
 
-	// Determine severity based on status code and method
+	// Determine severity based on status code and method.
 	severity := SeverityInfo
 	if responseInfo.StatusCode >= 400 {
 		severity = SeverityWarning
@@ -403,13 +416,13 @@ func (m *HTTPAuditMiddleware) createHTTPAuditEvent(r *http.Request, requestInfo 
 		severity = SeverityNotice
 	}
 
-	// Get sanitized path for consistent logging
+	// Get sanitized path for consistent logging.
 	sanitizedPath := requestInfo.Path
 	if m.config.PathSanitizer != nil {
 		sanitizedPath = m.config.PathSanitizer(requestInfo.Path)
 	}
 
-	// Create audit event
+	// Create audit event.
 	event := NewEventBuilder().
 		WithEventType(EventTypeAPICall).
 		WithSeverity(severity).
@@ -424,19 +437,19 @@ func (m *HTTPAuditMiddleware) createHTTPAuditEvent(r *http.Request, requestInfo 
 		WithData("duration_ms", duration.Milliseconds()).
 		Build()
 
-	// Add user context if available
+	// Add user context if available.
 	if userContext != nil {
 		event.UserContext = userContext
 	}
 
-	// Add tracing information if available
+	// Add tracing information if available.
 	if span := trace.SpanFromContext(r.Context()); span != nil && span.SpanContext().HasTraceID() {
 		spanContext := span.SpanContext()
 		event.TraceID = spanContext.TraceID().String()
 		event.SpanID = spanContext.SpanID().String()
 	}
 
-	// Log the event
+	// Log the event.
 	if err := m.auditSystem.LogEvent(event); err != nil {
 		m.logger.Error(err, "Failed to log HTTP audit event",
 			"request_id", requestInfo.RequestID,
@@ -445,9 +458,9 @@ func (m *HTTPAuditMiddleware) createHTTPAuditEvent(r *http.Request, requestInfo 
 	}
 }
 
-// updateMetrics updates Prometheus metrics
+// updateMetrics updates Prometheus metrics.
 func (m *HTTPAuditMiddleware) updateMetrics(r *http.Request, requestInfo *HTTPRequestInfo, responseInfo *HTTPResponseInfo, duration time.Duration) {
-	// Sanitize path for metrics
+	// Sanitize path for metrics.
 	path := requestInfo.Path
 	if m.config.PathSanitizer != nil {
 		path = m.config.PathSanitizer(path)
@@ -458,7 +471,7 @@ func (m *HTTPAuditMiddleware) updateMetrics(r *http.Request, requestInfo *HTTPRe
 		userID = userContext.UserID
 	}
 
-	// Update metrics
+	// Update metrics.
 	httpRequestsTotal.WithLabelValues(
 		requestInfo.Method,
 		path,
@@ -487,23 +500,23 @@ func (m *HTTPAuditMiddleware) updateMetrics(r *http.Request, requestInfo *HTTPRe
 	}
 }
 
-// Helper methods
+// Helper methods.
 
 func (m *HTTPAuditMiddleware) getClientIP(r *http.Request) string {
-	// Check X-Forwarded-For header
+	// Check X-Forwarded-For header.
 	if xff := r.Header.Get(HeaderForwardedFor); xff != "" {
-		// Take the first IP if multiple are present
+		// Take the first IP if multiple are present.
 		if ips := strings.Split(xff, ","); len(ips) > 0 {
 			return strings.TrimSpace(ips[0])
 		}
 	}
 
-	// Check X-Real-IP header
+	// Check X-Real-IP header.
 	if realIP := r.Header.Get(HeaderRealIP); realIP != "" {
 		return realIP
 	}
 
-	// Fall back to RemoteAddr
+	// Fall back to RemoteAddr.
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return r.RemoteAddr
@@ -531,7 +544,7 @@ func (m *HTTPAuditMiddleware) isSensitiveHeader(header string) bool {
 		}
 	}
 
-	// Default sensitive headers
+	// Default sensitive headers.
 	defaultSensitive := []string{
 		"authorization", "x-api-key", "x-auth-token",
 		"cookie", "set-cookie", "x-csrf-token",
@@ -555,14 +568,14 @@ func (m *HTTPAuditMiddleware) isSensitivePath(path string) bool {
 }
 
 func (m *HTTPAuditMiddleware) shouldExcludePath(path string) bool {
-	// Check health check paths
+	// Check health check paths.
 	for _, healthPath := range m.config.HealthCheckPaths {
 		if path == healthPath {
 			return true
 		}
 	}
 
-	// Check excluded paths
+	// Check excluded paths.
 	for _, excludePath := range m.config.ExcludePaths {
 		if strings.HasPrefix(path, excludePath) {
 			return true
@@ -575,9 +588,9 @@ func (m *HTTPAuditMiddleware) shouldExcludePath(path string) bool {
 func (m *HTTPAuditMiddleware) defaultUserExtractor(r *http.Request) *UserContext {
 	userID := r.Header.Get(HeaderUserID)
 	if userID == "" {
-		// Try to extract from Authorization header
+		// Try to extract from Authorization header.
 		if auth := r.Header.Get(HeaderAuthorization); auth != "" {
-			// This is a simplified extraction - in practice, you'd decode JWT tokens
+			// This is a simplified extraction - in practice, you'd decode JWT tokens.
 			if strings.HasPrefix(auth, "Bearer ") {
 				userID = "bearer-token-user" // Placeholder
 			} else if strings.HasPrefix(auth, "Basic ") {
@@ -595,14 +608,15 @@ func (m *HTTPAuditMiddleware) defaultUserExtractor(r *http.Request) *UserContext
 	}
 }
 
-// auditResponseWriter methods
+// auditResponseWriter methods.
 
+// Write performs write operation.
 func (w *auditResponseWriter) Write(data []byte) (int, error) {
-	// Write to original response writer
+	// Write to original response writer.
 	n, err := w.ResponseWriter.Write(data)
 	w.size += int64(n)
 
-	// Capture body if enabled and within limits
+	// Capture body if enabled and within limits.
 	if w.captureBody && w.body.Len()+n <= int(w.config.MaxBodySize) {
 		w.body.Write(data[:n])
 	}
@@ -610,16 +624,18 @@ func (w *auditResponseWriter) Write(data []byte) (int, error) {
 	return n, err
 }
 
+// WriteHeader performs writeheader operation.
 func (w *auditResponseWriter) WriteHeader(statusCode int) {
 	w.statusCode = statusCode
 	w.ResponseWriter.WriteHeader(statusCode)
 }
 
+// Header performs header operation.
 func (w *auditResponseWriter) Header() http.Header {
 	return w.ResponseWriter.Header()
 }
 
-// Implement http.Hijacker if the underlying ResponseWriter supports it
+// Implement http.Hijacker if the underlying ResponseWriter supports it.
 func (w *auditResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	hijacker, ok := w.ResponseWriter.(http.Hijacker)
 	if !ok {
@@ -628,7 +644,7 @@ func (w *auditResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return hijacker.Hijack()
 }
 
-// Implement http.Flusher if the underlying ResponseWriter supports it
+// Implement http.Flusher if the underlying ResponseWriter supports it.
 func (w *auditResponseWriter) Flush() {
 	flusher, ok := w.ResponseWriter.(http.Flusher)
 	if ok {
@@ -636,7 +652,7 @@ func (w *auditResponseWriter) Flush() {
 	}
 }
 
-// DefaultHTTPAuditConfig returns a default HTTP audit configuration
+// DefaultHTTPAuditConfig returns a default HTTP audit configuration.
 func DefaultHTTPAuditConfig() *HTTPAuditConfig {
 	return &HTTPAuditConfig{
 		Enabled:             true,
@@ -662,17 +678,17 @@ func DefaultHTTPAuditConfig() *HTTPAuditConfig {
 	}
 }
 
-// DefaultPathSanitizer provides a default path sanitization function
+// DefaultPathSanitizer provides a default path sanitization function.
 func DefaultPathSanitizer(path string) string {
-	// Replace UUIDs, numbers, and other variable path components
-	// This is a simplified example - in practice, you'd use regex
+	// Replace UUIDs, numbers, and other variable path components.
+	// This is a simplified example - in practice, you'd use regex.
 	parts := strings.Split(path, "/")
 	for i, part := range parts {
 		if len(part) == 36 && strings.Count(part, "-") == 4 {
-			// Likely a UUID
+			// Likely a UUID.
 			parts[i] = "{uuid}"
 		} else if _, err := strconv.Atoi(part); err == nil && len(part) > 0 {
-			// Numeric ID
+			// Numeric ID.
 			parts[i] = "{id}"
 		}
 	}

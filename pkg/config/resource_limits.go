@@ -2,14 +2,14 @@ package config
 
 import "time"
 
-// ResourceLimits defines constraints for resource allocation
+// ResourceLimits defines constraints for resource allocation.
 type ResourceLimits struct {
 	MaxCPU    int           // Max CPU cores
 	MaxMemory int           // Max memory in MB
 	Timeout   time.Duration // Maximum execution time
 }
 
-// DefaultResourceLimits provides standard resource constraints
+// DefaultResourceLimits provides standard resource constraints.
 func DefaultResourceLimits() ResourceLimits {
 	return ResourceLimits{
 		MaxCPU:    4,    // 4 cores

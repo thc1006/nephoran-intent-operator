@@ -1,4 +1,4 @@
-// Package loadtesting provides test execution and orchestration
+// Package loadtesting provides test execution and orchestration.
 package loadtesting
 
 import (
@@ -13,7 +13,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// TestRunner orchestrates load test execution
+// TestRunner orchestrates load test execution.
 type TestRunner struct {
 	logger    *zap.Logger
 	framework *LoadTestFramework
@@ -21,7 +21,7 @@ type TestRunner struct {
 	results   map[string]*LoadTestResults
 }
 
-// TestScenario defines a specific test scenario
+// TestScenario defines a specific test scenario.
 type TestScenario struct {
 	Name        string         `yaml:"name" json:"name"`
 	Description string         `yaml:"description" json:"description"`
@@ -30,7 +30,7 @@ type TestScenario struct {
 	Priority    int            `yaml:"priority" json:"priority"`
 }
 
-// NewTestRunner creates a new test runner
+// NewTestRunner creates a new test runner.
 func NewTestRunner(logger *zap.Logger) *TestRunner {
 	if logger == nil {
 		logger = zap.NewNop()
@@ -42,7 +42,7 @@ func NewTestRunner(logger *zap.Logger) *TestRunner {
 	}
 }
 
-// LoadScenarios loads test scenarios from file
+// LoadScenarios loads test scenarios from file.
 func (r *TestRunner) LoadScenarios(path string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -69,7 +69,7 @@ func (r *TestRunner) LoadScenarios(path string) error {
 	return nil
 }
 
-// RunAll executes all enabled test scenarios
+// RunAll executes all enabled test scenarios.
 func (r *TestRunner) RunAll(ctx context.Context) error {
 	r.logger.Info("Starting comprehensive load testing suite")
 
@@ -99,7 +99,7 @@ func (r *TestRunner) RunAll(ctx context.Context) error {
 
 		r.results[scenario.Name] = result
 
-		// Check if scenario passed validation
+		// Check if scenario passed validation.
 		if result.ValidationReport != nil && result.ValidationReport.Passed {
 			successCount++
 			r.logger.Info("Scenario passed validation",
@@ -122,15 +122,15 @@ func (r *TestRunner) RunAll(ctx context.Context) error {
 	return nil
 }
 
-// RunScenario executes a single test scenario
+// RunScenario executes a single test scenario.
 func (r *TestRunner) RunScenario(ctx context.Context, scenario TestScenario) (*LoadTestResults, error) {
-	// Create framework for this scenario
+	// Create framework for this scenario.
 	framework, err := NewLoadTestFramework(&scenario.Config, r.logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create framework: %w", err)
 	}
 
-	// Run the test
+	// Run the test.
 	results, err := framework.Run(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("test execution failed: %w", err)
@@ -139,7 +139,7 @@ func (r *TestRunner) RunScenario(ctx context.Context, scenario TestScenario) (*L
 	return results, nil
 }
 
-// GenerateReport generates a comprehensive test report
+// GenerateReport generates a comprehensive test report.
 func (r *TestRunner) GenerateReport(outputPath string) error {
 	report := ComprehensiveReport{
 		GeneratedAt: time.Now(),
@@ -147,7 +147,7 @@ func (r *TestRunner) GenerateReport(outputPath string) error {
 		Summary:     ReportSummary{},
 	}
 
-	// Process each scenario result
+	// Process each scenario result.
 	for name, result := range r.results {
 		scenarioReport := ScenarioReport{
 			Name:      name,
@@ -176,7 +176,7 @@ func (r *TestRunner) GenerateReport(outputPath string) error {
 
 		report.Scenarios = append(report.Scenarios, scenarioReport)
 
-		// Update summary
+		// Update summary.
 		if scenarioReport.ValidationPassed {
 			report.Summary.PassedScenarios++
 		} else {
@@ -186,17 +186,17 @@ func (r *TestRunner) GenerateReport(outputPath string) error {
 
 	report.Summary.TotalScenarios = len(report.Scenarios)
 
-	// Check performance claims
+	// Check performance claims.
 	report.Summary.PerformanceClaims = r.validatePerformanceClaims()
 
-	// Marshal report
+	// Marshal report.
 	data, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal report: %w", err)
 	}
 
-	// Write to file
-	if err := os.WriteFile(outputPath, data, 0644); err != nil {
+	// Write to file.
+	if err := os.WriteFile(outputPath, data, 0o640); err != nil {
 		return fmt.Errorf("failed to write report: %w", err)
 	}
 
@@ -206,7 +206,7 @@ func (r *TestRunner) GenerateReport(outputPath string) error {
 	return nil
 }
 
-// validatePerformanceClaims checks if all performance claims are met
+// validatePerformanceClaims checks if all performance claims are met.
 func (r *TestRunner) validatePerformanceClaims() PerformanceClaimsValidation {
 	validation := PerformanceClaimsValidation{
 		ConcurrentIntents200Plus: false,
@@ -216,9 +216,9 @@ func (r *TestRunner) validatePerformanceClaims() PerformanceClaimsValidation {
 		AllClaimsMet:             false,
 	}
 
-	// Check each claim across all scenarios
+	// Check each claim across all scenarios.
 	for _, result := range r.results {
-		// Use calculations from validator
+		// Use calculations from validator.
 		if result.ValidationReport != nil {
 			details := result.ValidationReport.DetailedResults
 
@@ -252,27 +252,27 @@ func (r *TestRunner) validatePerformanceClaims() PerformanceClaimsValidation {
 	return validation
 }
 
-// GetResults returns test results for a specific scenario
+// GetResults returns test results for a specific scenario.
 func (r *TestRunner) GetResults(scenarioName string) (*LoadTestResults, bool) {
 	result, ok := r.results[scenarioName]
 	return result, ok
 }
 
-// GetAllResults returns all test results
+// GetAllResults returns all test results.
 func (r *TestRunner) GetAllResults() map[string]*LoadTestResults {
 	return r.results
 }
 
-// Report structures
+// Report structures.
 
-// ComprehensiveReport contains the complete test report
+// ComprehensiveReport contains the complete test report.
 type ComprehensiveReport struct {
 	GeneratedAt time.Time        `json:"generatedAt"`
 	Scenarios   []ScenarioReport `json:"scenarios"`
 	Summary     ReportSummary    `json:"summary"`
 }
 
-// ScenarioReport contains results for a single scenario
+// ScenarioReport contains results for a single scenario.
 type ScenarioReport struct {
 	Name             string             `json:"name"`
 	StartTime        time.Time          `json:"startTime"`
@@ -285,7 +285,7 @@ type ScenarioReport struct {
 	Warnings         []string           `json:"warnings,omitempty"`
 }
 
-// PerformanceMetrics contains key performance metrics
+// PerformanceMetrics contains key performance metrics.
 type PerformanceMetrics struct {
 	TotalRequests      int64         `json:"totalRequests"`
 	SuccessfulRequests int64         `json:"successfulRequests"`
@@ -298,7 +298,7 @@ type PerformanceMetrics struct {
 	LatencyP99         time.Duration `json:"latencyP99"`
 }
 
-// ReportSummary contains summary statistics
+// ReportSummary contains summary statistics.
 type ReportSummary struct {
 	TotalScenarios    int                         `json:"totalScenarios"`
 	PassedScenarios   int                         `json:"passedScenarios"`
@@ -306,7 +306,7 @@ type ReportSummary struct {
 	PerformanceClaims PerformanceClaimsValidation `json:"performanceClaims"`
 }
 
-// PerformanceClaimsValidation tracks validation of performance claims
+// PerformanceClaimsValidation tracks validation of performance claims.
 type PerformanceClaimsValidation struct {
 	ConcurrentIntents200Plus bool `json:"concurrentIntents200Plus"`
 	Throughput45PerMinute    bool `json:"throughput45PerMinute"`
@@ -315,7 +315,7 @@ type PerformanceClaimsValidation struct {
 	AllClaimsMet             bool `json:"allClaimsMet"`
 }
 
-// PredefinedScenarios returns a set of predefined test scenarios
+// PredefinedScenarios returns a set of predefined test scenarios.
 func PredefinedScenarios() []TestScenario {
 	return []TestScenario{
 		{

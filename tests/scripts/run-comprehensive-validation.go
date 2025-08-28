@@ -1,4 +1,4 @@
-// Main test execution script for comprehensive validation suite
+// Main test execution script for comprehensive validation suite.
 package main
 
 import (
@@ -34,12 +34,12 @@ func main() {
 		log.Println("Starting Nephoran Intent Operator Comprehensive Validation")
 	}
 
-	// Create output directory
-	if err := os.MkdirAll(*outputDir, 0755); err != nil {
+	// Create output directory.
+	if err := os.MkdirAll(*outputDir, 0o755); err != nil {
 		log.Fatalf("Failed to create output directory: %v", err)
 	}
 
-	// Create validation configuration
+	// Create validation configuration.
 	config := &validation.ValidationConfig{
 		FunctionalTarget:  45,
 		PerformanceTarget: 23,
@@ -62,7 +62,7 @@ func main() {
 		EnableSecurityTesting: true,
 	}
 
-	// Adjust configuration based on test scope
+	// Adjust configuration based on test scope.
 	switch *testScope {
 	case "functional":
 		config.EnableLoadTesting = false
@@ -84,7 +84,7 @@ func main() {
 		config.TotalTarget = config.ProductionTarget
 
 	case "all":
-		// Use default configuration
+		// Use default configuration.
 
 	default:
 		log.Fatalf("Invalid test scope: %s", *testScope)
@@ -95,21 +95,21 @@ func main() {
 			config.TotalTarget, *testScope, config.ConcurrencyLevel, config.EnableLoadTesting, config.EnableChaosTesting)
 	}
 
-	// Create validation suite
+	// Create validation suite.
 	suite := validation.NewValidationSuite(config)
 
-	// Create execution context with timeout
+	// Create execution context with timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
 
-	// Setup test suite
+	// Setup test suite.
 	if *verbose {
 		log.Println("Setting up test environment...")
 	}
 	suite.SetupSuite()
 	defer suite.TearDownSuite()
 
-	// Execute validation based on scope
+	// Execute validation based on scope.
 	var results *validation.ValidationResults
 	var err error
 
@@ -133,7 +133,7 @@ func main() {
 		log.Fatalf("Invalid test scope: %s", *testScope)
 	}
 
-	// Handle execution results
+	// Handle execution results.
 	if err != nil {
 		log.Printf("Validation execution failed: %v", err)
 		if results != nil {
@@ -147,10 +147,10 @@ func main() {
 			results.TotalScore, results.MaxPossibleScore)
 	}
 
-	// Generate reports
+	// Generate reports.
 	generateReports(results, *outputDir, *reportFormat, *verbose)
 
-	// Check if target score was achieved
+	// Check if target score was achieved.
 	if results.TotalScore < config.TotalTarget {
 		log.Printf("❌ Validation FAILED: Achieved %d points, target %d points",
 			results.TotalScore, config.TotalTarget)
@@ -161,17 +161,17 @@ func main() {
 		results.TotalScore, config.TotalTarget)
 }
 
-// runFunctionalValidation executes only functional tests
+// runFunctionalValidation executes only functional tests.
 func runFunctionalValidation(ctx context.Context, suite *validation.ValidationSuite) (*validation.ValidationResults, error) {
 	log.Println("Running Functional Completeness Validation...")
 
-	// Execute functional tests only
+	// Execute functional tests only.
 	funcScore, err := suite.GetFunctionalValidator().ExecuteFunctionalTests(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("functional tests failed: %w", err)
 	}
 
-	// Create results structure
+	// Create results structure.
 	results := &validation.ValidationResults{
 		TotalScore:       funcScore,
 		MaxPossibleScore: 50,
@@ -185,11 +185,11 @@ func runFunctionalValidation(ctx context.Context, suite *validation.ValidationSu
 	return results, nil
 }
 
-// runPerformanceValidation executes only performance tests
+// runPerformanceValidation executes only performance tests.
 func runPerformanceValidation(ctx context.Context, suite *validation.ValidationSuite) (*validation.ValidationResults, error) {
 	log.Println("Running Performance Benchmarking...")
 
-	// Execute performance tests only
+	// Execute performance tests only.
 	perfScore, err := suite.GetPerformanceBenchmarker().ExecutePerformanceTests(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("performance tests failed: %w", err)
@@ -208,11 +208,11 @@ func runPerformanceValidation(ctx context.Context, suite *validation.ValidationS
 	return results, nil
 }
 
-// runSecurityValidation executes only security tests
+// runSecurityValidation executes only security tests.
 func runSecurityValidation(ctx context.Context, suite *validation.ValidationSuite) (*validation.ValidationResults, error) {
 	log.Println("Running Security Compliance Validation...")
 
-	// Execute security tests only
+	// Execute security tests only.
 	secScore, err := suite.GetSecurityValidator().ExecuteSecurityTests(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("security tests failed: %w", err)
@@ -231,11 +231,11 @@ func runSecurityValidation(ctx context.Context, suite *validation.ValidationSuit
 	return results, nil
 }
 
-// runProductionValidation executes only production readiness tests
+// runProductionValidation executes only production readiness tests.
 func runProductionValidation(ctx context.Context, suite *validation.ValidationSuite) (*validation.ValidationResults, error) {
 	log.Println("Running Production Readiness Validation...")
 
-	// Execute production tests only
+	// Execute production tests only.
 	prodScore, err := suite.GetReliabilityValidator().ExecuteProductionTests(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("production tests failed: %w", err)
@@ -255,7 +255,7 @@ func runProductionValidation(ctx context.Context, suite *validation.ValidationSu
 	return results, nil
 }
 
-// generateReports creates validation reports in requested formats
+// generateReports creates validation reports in requested formats.
 func generateReports(results *validation.ValidationResults, outputDir, format string, verbose bool) {
 	if verbose {
 		log.Println("Generating validation reports...")
@@ -278,7 +278,7 @@ func generateReports(results *validation.ValidationResults, outputDir, format st
 	}
 }
 
-// generateJSONReport creates a JSON validation report
+// generateJSONReport creates a JSON validation report.
 func generateJSONReport(results *validation.ValidationResults, outputDir string, verbose bool) {
 	filename := filepath.Join(outputDir, "validation-report.json")
 	file, err := os.Create(filename)
@@ -300,7 +300,7 @@ func generateJSONReport(results *validation.ValidationResults, outputDir string,
 	}
 }
 
-// generateHTMLReport creates an HTML validation report
+// generateHTMLReport creates an HTML validation report.
 func generateHTMLReport(results *validation.ValidationResults, outputDir string, verbose bool) {
 	const htmlTemplate = `
 <!DOCTYPE html>

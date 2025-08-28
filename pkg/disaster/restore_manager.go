@@ -44,7 +44,7 @@ import (
 )
 
 var (
-	// Restore metrics
+	// Restore metrics.
 	restoreOperations = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "restore_operations_total",
 		Help: "Total number of restore operations",
@@ -67,7 +67,7 @@ var (
 	}, []string{"backup_id"})
 )
 
-// RestoreManager manages point-in-time recovery and restore operations
+// RestoreManager manages point-in-time recovery and restore operations.
 type RestoreManager struct {
 	mu               sync.RWMutex
 	logger           *slog.Logger
@@ -79,34 +79,34 @@ type RestoreManager struct {
 	validationEngine *RestoreValidationEngine
 }
 
-// RestoreConfig holds restore configuration
+// RestoreConfig holds restore configuration.
 type RestoreConfig struct {
-	// General settings
+	// General settings.
 	Enabled               bool          `json:"enabled"`
 	DefaultRestoreTimeout time.Duration `json:"default_restore_timeout"`
 	ParallelRestores      int           `json:"parallel_restores"`
 	ValidationEnabled     bool          `json:"validation_enabled"`
 
-	// Storage settings
+	// Storage settings.
 	StorageProvider string          `json:"storage_provider"`
 	S3Config        S3RestoreConfig `json:"s3_config"`
 
-	// Point-in-time recovery settings
+	// Point-in-time recovery settings.
 	PITREnabled     bool          `json:"pitr_enabled"`
 	PITRGranularity time.Duration `json:"pitr_granularity"` // Minimum time between recoverable points
 	PITRRetention   time.Duration `json:"pitr_retention"`   // How long to keep PITR data
 
-	// Component restore settings
+	// Component restore settings.
 	ComponentRestoreConfig ComponentRestoreConfig `json:"component_restore_config"`
 
-	// Validation settings
+	// Validation settings.
 	ValidationConfig ValidationConfig `json:"validation_config"`
 
-	// Recovery verification settings
+	// Recovery verification settings.
 	VerificationConfig VerificationConfig `json:"verification_config"`
 }
 
-// S3RestoreConfig holds S3-specific restore configuration
+// S3RestoreConfig holds S3-specific restore configuration.
 type S3RestoreConfig struct {
 	Bucket          string        `json:"bucket"`
 	Region          string        `json:"region"`
@@ -115,7 +115,7 @@ type S3RestoreConfig struct {
 	VerifyChecksums bool          `json:"verify_checksums"`
 }
 
-// ComponentRestoreConfig holds component-specific restore settings
+// ComponentRestoreConfig holds component-specific restore settings.
 type ComponentRestoreConfig struct {
 	RestoreOrder        []string                 `json:"restore_order"`
 	ComponentTimeout    map[string]time.Duration `json:"component_timeout"`
@@ -123,7 +123,7 @@ type ComponentRestoreConfig struct {
 	SkipOnFailure       []string                 `json:"skip_on_failure"` // Non-critical components
 }
 
-// ValidationConfig holds validation configuration
+// ValidationConfig holds validation configuration.
 type ValidationConfig struct {
 	Enabled                   bool          `json:"enabled"`
 	ChecksumValidation        bool          `json:"checksum_validation"`
@@ -135,7 +135,7 @@ type ValidationConfig struct {
 	ContinueOnValidationError bool          `json:"continue_on_validation_error"`
 }
 
-// VerificationConfig holds post-restore verification settings
+// VerificationConfig holds post-restore verification settings.
 type VerificationConfig struct {
 	Enabled              bool             `json:"enabled"`
 	HealthCheckTimeout   time.Duration    `json:"health_check_timeout"`
@@ -144,7 +144,7 @@ type VerificationConfig struct {
 	VerificationInterval time.Duration    `json:"verification_interval"`
 }
 
-// FunctionalTest represents a functional test to run after restore
+// FunctionalTest represents a functional test to run after restore.
 type FunctionalTest struct {
 	Name         string            `json:"name"`
 	Type         string            `json:"type"` // http, grpc, custom
@@ -156,7 +156,7 @@ type FunctionalTest struct {
 	Body         string            `json:"body"`
 }
 
-// RestoreRecord represents a restore operation record
+// RestoreRecord represents a restore operation record.
 type RestoreRecord struct {
 	ID                  string                      `json:"id"`
 	Type                string                      `json:"type"` // full, incremental, pitr
@@ -174,7 +174,7 @@ type RestoreRecord struct {
 	RestoreParameters   RestoreParameters           `json:"restore_parameters"`
 }
 
-// ComponentRestore represents the restore status of a component
+// ComponentRestore represents the restore status of a component.
 type ComponentRestore struct {
 	Name       string                 `json:"name"`
 	Status     string                 `json:"status"`
@@ -189,7 +189,7 @@ type ComponentRestore struct {
 	Metadata   map[string]interface{} `json:"metadata"`
 }
 
-// ValidationResults holds validation results
+// ValidationResults holds validation results.
 type ValidationResults struct {
 	OverallStatus        string                `json:"overall_status"`
 	ChecksumValidation   *ChecksumValidation   `json:"checksum_validation,omitempty"`
@@ -199,28 +199,28 @@ type ValidationResults struct {
 	ValidationWarnings   []string              `json:"validation_warnings"`
 }
 
-// ChecksumValidation holds checksum validation results
+// ChecksumValidation holds checksum validation results.
 type ChecksumValidation struct {
 	Status           string          `json:"status"`
 	ComponentResults map[string]bool `json:"component_results"`
 	FailedComponents []string        `json:"failed_components"`
 }
 
-// SchemaValidation holds schema validation results
+// SchemaValidation holds schema validation results.
 type SchemaValidation struct {
 	Status           string   `json:"status"`
 	ValidatedSchemas []string `json:"validated_schemas"`
 	SchemaErrors     []string `json:"schema_errors"`
 }
 
-// DependencyValidation holds dependency validation results
+// DependencyValidation holds dependency validation results.
 type DependencyValidation struct {
 	Status              string   `json:"status"`
 	MissingDependencies []string `json:"missing_dependencies"`
 	ConflictingVersions []string `json:"conflicting_versions"`
 }
 
-// VerificationResults holds post-restore verification results
+// VerificationResults holds post-restore verification results.
 type VerificationResults struct {
 	OverallStatus         string                          `json:"overall_status"`
 	HealthCheckResults    map[string]bool                 `json:"health_check_results"`
@@ -229,7 +229,7 @@ type VerificationResults struct {
 	VerificationTime      time.Duration                   `json:"verification_time"`
 }
 
-// FunctionalTestResult holds the result of a functional test
+// FunctionalTestResult holds the result of a functional test.
 type FunctionalTestResult struct {
 	Name         string        `json:"name"`
 	Status       string        `json:"status"`
@@ -238,7 +238,7 @@ type FunctionalTestResult struct {
 	Error        string        `json:"error,omitempty"`
 }
 
-// RestoreParameters holds parameters for a restore operation
+// RestoreParameters holds parameters for a restore operation.
 type RestoreParameters struct {
 	TargetNamespaces  []string          `json:"target_namespaces"`
 	ComponentFilter   []string          `json:"component_filter"`   // Only restore these components
@@ -250,16 +250,16 @@ type RestoreParameters struct {
 	CustomOptions     map[string]string `json:"custom_options"`
 }
 
-// RestoreValidationEngine handles restore validation
+// RestoreValidationEngine handles restore validation.
 type RestoreValidationEngine struct {
 	logger    *slog.Logger
 	k8sClient kubernetes.Interface
 	config    *ValidationConfig
 }
 
-// NewRestoreManager creates a new restore manager
+// NewRestoreManager creates a new restore manager.
 func NewRestoreManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.Interface, logger *slog.Logger) (*RestoreManager, error) {
-	// Create default restore config
+	// Create default restore config.
 	config := &RestoreConfig{
 		Enabled:               true,
 		DefaultRestoreTimeout: 30 * time.Minute,
@@ -336,10 +336,10 @@ func NewRestoreManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.In
 		},
 	}
 
-	// Create dynamic client for CRD operations
+	// Create dynamic client for CRD operations.
 	var dynamicClient dynamic.Interface
-	// In a real implementation, you would create the dynamic client here
-	// dynamicClient, err = dynamic.NewForConfig(restConfig)
+	// In a real implementation, you would create the dynamic client here.
+	// dynamicClient, err = dynamic.NewForConfig(restConfig).
 
 	rm := &RestoreManager{
 		logger:         logger,
@@ -354,7 +354,7 @@ func NewRestoreManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.In
 		},
 	}
 
-	// Initialize S3 client for downloads
+	// Initialize S3 client for downloads.
 	if config.StorageProvider == "s3" {
 		if err := rm.initializeS3Client(); err != nil {
 			logger.Error("Failed to initialize S3 client", "error", err)
@@ -365,7 +365,7 @@ func NewRestoreManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.In
 	return rm, nil
 }
 
-// initializeS3Client initializes the S3 client for downloads
+// initializeS3Client initializes the S3 client for downloads.
 func (rm *RestoreManager) initializeS3Client() error {
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 		config.WithRegion(rm.config.S3Config.Region),
@@ -378,14 +378,14 @@ func (rm *RestoreManager) initializeS3Client() error {
 	return nil
 }
 
-// RestoreFromBackup performs a full restore from a backup
+// RestoreFromBackup performs a full restore from a backup.
 func (rm *RestoreManager) RestoreFromBackup(ctx context.Context, backupID string, params RestoreParameters) (*RestoreRecord, error) {
 	return rm.performRestore(ctx, "full", backupID, nil, params)
 }
 
-// RestoreFromPointInTime performs a point-in-time restore
+// RestoreFromPointInTime performs a point-in-time restore.
 func (rm *RestoreManager) RestoreFromPointInTime(ctx context.Context, targetTime time.Time, params RestoreParameters) (*RestoreRecord, error) {
-	// Find the closest backup to the target time
+	// Find the closest backup to the target time.
 	backupID, err := rm.findClosestBackup(ctx, targetTime)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find suitable backup for PITR: %w", err)
@@ -394,7 +394,7 @@ func (rm *RestoreManager) RestoreFromPointInTime(ctx context.Context, targetTime
 	return rm.performRestore(ctx, "pitr", backupID, &targetTime, params)
 }
 
-// performRestore performs the actual restore operation
+// performRestore performs the actual restore operation.
 func (rm *RestoreManager) performRestore(ctx context.Context, restoreType, backupID string, pointInTime *time.Time, params RestoreParameters) (*RestoreRecord, error) {
 	start := time.Now()
 	restoreID := fmt.Sprintf("%s-restore-%d", restoreType, start.Unix())
@@ -409,7 +409,7 @@ func (rm *RestoreManager) performRestore(ctx context.Context, restoreType, backu
 		restoreDuration.WithLabelValues(restoreType).Observe(time.Since(start).Seconds())
 	}()
 
-	// Create restore record
+	// Create restore record.
 	record := &RestoreRecord{
 		ID:                restoreID,
 		Type:              restoreType,
@@ -422,13 +422,13 @@ func (rm *RestoreManager) performRestore(ctx context.Context, restoreType, backu
 		RestoreParameters: params,
 	}
 
-	// Set PITR age metric if applicable
+	// Set PITR age metric if applicable.
 	if pointInTime != nil {
 		age := time.Since(*pointInTime)
 		pointInTimeRecoveryAge.WithLabelValues(backupID).Set(age.Seconds())
 	}
 
-	// Download backup metadata
+	// Download backup metadata.
 	backupMetadata, err := rm.downloadBackupMetadata(ctx, backupID)
 	if err != nil {
 		record.Status = "failed"
@@ -439,7 +439,7 @@ func (rm *RestoreManager) performRestore(ctx context.Context, restoreType, backu
 
 	record.Metadata["backup_metadata"] = backupMetadata
 
-	// Pre-restore validation
+	// Pre-restore validation.
 	if rm.config.ValidationConfig.PreRestoreValidation {
 		rm.logger.Info("Performing pre-restore validation", "restore_id", restoreID)
 		validationResults, err := rm.validationEngine.ValidateBackup(ctx, backupMetadata, params)
@@ -453,7 +453,7 @@ func (rm *RestoreManager) performRestore(ctx context.Context, restoreType, backu
 		record.ValidationResults = validationResults
 	}
 
-	// Execute restore plan
+	// Execute restore plan.
 	err = rm.executeRestorePlan(ctx, record, backupMetadata)
 
 	endTime := time.Now()
@@ -471,7 +471,7 @@ func (rm *RestoreManager) performRestore(ctx context.Context, restoreType, backu
 		rm.logger.Info("Restore operation completed", "id", restoreID, "duration", record.Duration)
 	}
 
-	// Post-restore validation
+	// Post-restore validation.
 	if rm.config.ValidationConfig.PostRestoreValidation && record.Status == "completed" {
 		rm.logger.Info("Performing post-restore validation", "restore_id", restoreID)
 		err := rm.performPostRestoreValidation(ctx, record)
@@ -480,7 +480,7 @@ func (rm *RestoreManager) performRestore(ctx context.Context, restoreType, backu
 		}
 	}
 
-	// Post-restore verification
+	// Post-restore verification.
 	if rm.config.VerificationConfig.Enabled && record.Status == "completed" {
 		rm.logger.Info("Performing post-restore verification", "restore_id", restoreID)
 		err := rm.performPostRestoreVerification(ctx, record)
@@ -489,7 +489,7 @@ func (rm *RestoreManager) performRestore(ctx context.Context, restoreType, backu
 		}
 	}
 
-	// Store restore record
+	// Store restore record.
 	rm.mu.Lock()
 	rm.restoreHistory = append(rm.restoreHistory, record)
 	rm.mu.Unlock()
@@ -497,7 +497,7 @@ func (rm *RestoreManager) performRestore(ctx context.Context, restoreType, backu
 	return record, err
 }
 
-// downloadBackupMetadata downloads backup metadata from storage
+// downloadBackupMetadata downloads backup metadata from storage.
 func (rm *RestoreManager) downloadBackupMetadata(ctx context.Context, backupID string) (*BackupRecord, error) {
 	if rm.s3Client == nil {
 		return nil, fmt.Errorf("S3 client not initialized")
@@ -529,14 +529,14 @@ func (rm *RestoreManager) downloadBackupMetadata(ctx context.Context, backupID s
 	return &backup, nil
 }
 
-// executeRestorePlan executes the restore plan
+// executeRestorePlan executes the restore plan.
 func (rm *RestoreManager) executeRestorePlan(ctx context.Context, record *RestoreRecord, backup *BackupRecord) error {
 	rm.logger.Info("Executing restore plan", "components", len(rm.config.ComponentRestoreConfig.RestoreOrder))
 
-	// Filter components based on restore parameters
+	// Filter components based on restore parameters.
 	componentsToRestore := rm.filterComponents(backup.Components, record.RestoreParameters)
 
-	// Execute restore in specified order
+	// Execute restore in specified order.
 	for _, componentName := range rm.config.ComponentRestoreConfig.RestoreOrder {
 		if _, exists := componentsToRestore[componentName]; !exists {
 			rm.logger.Debug("Skipping component not in backup or filtered out", "component", componentName)
@@ -545,9 +545,8 @@ func (rm *RestoreManager) executeRestorePlan(ctx context.Context, record *Restor
 
 		backupComponent := componentsToRestore[componentName]
 		err := rm.restoreComponent(ctx, record, componentName, backupComponent)
-
 		if err != nil {
-			// Check if this component can be skipped on failure
+			// Check if this component can be skipped on failure.
 			if rm.isSkippableComponent(componentName) {
 				rm.logger.Warn("Skipping failed component", "component", componentName, "error", err)
 				continue
@@ -559,7 +558,7 @@ func (rm *RestoreManager) executeRestorePlan(ctx context.Context, record *Restor
 	return nil
 }
 
-// restoreComponent restores a specific component
+// restoreComponent restores a specific component.
 func (rm *RestoreManager) restoreComponent(ctx context.Context, record *RestoreRecord, componentName string, backupComponent ComponentBackup) error {
 	start := time.Now()
 	rm.logger.Info("Restoring component", "component", componentName, "source_path", backupComponent.Path)
@@ -574,7 +573,7 @@ func (rm *RestoreManager) restoreComponent(ctx context.Context, record *RestoreR
 		Metadata:   make(map[string]interface{}),
 	}
 
-	// Set component timeout
+	// Set component timeout.
 	timeout := rm.config.DefaultRestoreTimeout
 	if componentTimeout, exists := rm.config.ComponentRestoreConfig.ComponentTimeout[componentName]; exists {
 		timeout = componentTimeout
@@ -618,21 +617,21 @@ func (rm *RestoreManager) restoreComponent(ctx context.Context, record *RestoreR
 	return err
 }
 
-// restorePersistentVolumes restores persistent volumes
+// restorePersistentVolumes restores persistent volumes.
 func (rm *RestoreManager) restorePersistentVolumes(ctx context.Context, componentRestore *ComponentRestore, params RestoreParameters) error {
 	if !params.RestorePVCs {
 		rm.logger.Info("PVC restore skipped per parameters")
 		return nil
 	}
 
-	// Download PV metadata
+	// Download PV metadata.
 	tmpFile, err := rm.downloadComponentFile(ctx, componentRestore.SourcePath)
 	if err != nil {
 		return fmt.Errorf("failed to download PV metadata: %w", err)
 	}
 	defer os.Remove(tmpFile)
 
-	// Read PV metadata
+	// Read PV metadata.
 	data, err := os.ReadFile(tmpFile)
 	if err != nil {
 		return fmt.Errorf("failed to read PV metadata: %w", err)
@@ -650,16 +649,16 @@ func (rm *RestoreManager) restorePersistentVolumes(ctx context.Context, componen
 	return nil
 }
 
-// restoreSystemState restores system state
+// restoreSystemState restores system state.
 func (rm *RestoreManager) restoreSystemState(ctx context.Context, componentRestore *ComponentRestore, params RestoreParameters) error {
-	// Download system state file
+	// Download system state file.
 	tmpFile, err := rm.downloadComponentFile(ctx, componentRestore.SourcePath)
 	if err != nil {
 		return fmt.Errorf("failed to download system state: %w", err)
 	}
 	defer os.Remove(tmpFile)
 
-	// Read system state
+	// Read system state.
 	data, err := os.ReadFile(tmpFile)
 	if err != nil {
 		return fmt.Errorf("failed to read system state: %w", err)
@@ -677,30 +676,30 @@ func (rm *RestoreManager) restoreSystemState(ctx context.Context, componentResto
 	return nil
 }
 
-// restoreKubernetesConfig restores Kubernetes configurations
+// restoreKubernetesConfig restores Kubernetes configurations.
 func (rm *RestoreManager) restoreKubernetesConfig(ctx context.Context, componentRestore *ComponentRestore, params RestoreParameters) error {
-	// Download config archive
+	// Download config archive.
 	tmpFile, err := rm.downloadComponentFile(ctx, componentRestore.SourcePath)
 	if err != nil {
 		return fmt.Errorf("failed to download k8s config: %w", err)
 	}
 	defer os.Remove(tmpFile)
 
-	// Extract archive
+	// Extract archive.
 	extractDir := fmt.Sprintf("/tmp/k8s-restore-%d", time.Now().Unix())
 	if err := rm.extractTarGz(tmpFile, extractDir); err != nil {
 		return fmt.Errorf("failed to extract k8s config: %w", err)
 	}
 	defer os.RemoveAll(extractDir)
 
-	// Restore configurations
+	// Restore configurations.
 	restoredCount := 0
 	err = filepath.Walk(extractDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return err
 		}
 
-		// Skip if not in target namespaces
+		// Skip if not in target namespaces.
 		relPath, _ := filepath.Rel(extractDir, path)
 		namespace := filepath.Dir(relPath)
 
@@ -717,7 +716,7 @@ func (rm *RestoreManager) restoreKubernetesConfig(ctx context.Context, component
 			}
 		}
 
-		// Restore resource
+		// Restore resource.
 		if strings.HasSuffix(path, ".json") {
 			err := rm.restoreKubernetesResource(ctx, path, params)
 			if err != nil {
@@ -732,7 +731,6 @@ func (rm *RestoreManager) restoreKubernetesConfig(ctx context.Context, component
 
 		return nil
 	})
-
 	if err != nil {
 		return fmt.Errorf("failed to restore k8s configs: %w", err)
 	}
@@ -744,14 +742,14 @@ func (rm *RestoreManager) restoreKubernetesConfig(ctx context.Context, component
 	return nil
 }
 
-// restoreKubernetesResource restores a single Kubernetes resource
+// restoreKubernetesResource restores a single Kubernetes resource.
 func (rm *RestoreManager) restoreKubernetesResource(ctx context.Context, filePath string, params RestoreParameters) error {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to read resource file: %w", err)
 	}
 
-	// Determine resource type based on file path
+	// Determine resource type based on file path.
 	filename := filepath.Base(filePath)
 
 	if strings.Contains(filename, "configmap") {
@@ -763,14 +761,14 @@ func (rm *RestoreManager) restoreKubernetesResource(ctx context.Context, filePat
 	return nil
 }
 
-// restoreConfigMap restores a ConfigMap
+// restoreConfigMap restores a ConfigMap.
 func (rm *RestoreManager) restoreConfigMap(ctx context.Context, data []byte, params RestoreParameters) error {
 	var configMap corev1.ConfigMap
 	if err := json.Unmarshal(data, &configMap); err != nil {
 		return fmt.Errorf("failed to unmarshal ConfigMap: %w", err)
 	}
 
-	// Check if ConfigMap already exists
+	// Check if ConfigMap already exists.
 	existing, err := rm.k8sClient.CoreV1().ConfigMaps(configMap.Namespace).Get(ctx, configMap.Name, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("failed to check existing ConfigMap: %w", err)
@@ -781,7 +779,7 @@ func (rm *RestoreManager) restoreConfigMap(ctx context.Context, data []byte, par
 		return nil
 	}
 
-	// Clear resource metadata
+	// Clear resource metadata.
 	configMap.ResourceVersion = ""
 	configMap.UID = ""
 	configMap.CreationTimestamp = metav1.Time{}
@@ -805,14 +803,14 @@ func (rm *RestoreManager) restoreConfigMap(ctx context.Context, data []byte, par
 	return nil
 }
 
-// restoreSecret restores a Secret
+// restoreSecret restores a Secret.
 func (rm *RestoreManager) restoreSecret(ctx context.Context, data []byte, params RestoreParameters) error {
 	var secret corev1.Secret
 	if err := json.Unmarshal(data, &secret); err != nil {
 		return fmt.Errorf("failed to unmarshal Secret: %w", err)
 	}
 
-	// Check if Secret already exists
+	// Check if Secret already exists.
 	existing, err := rm.k8sClient.CoreV1().Secrets(secret.Namespace).Get(ctx, secret.Name, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("failed to check existing Secret: %w", err)
@@ -823,7 +821,7 @@ func (rm *RestoreManager) restoreSecret(ctx context.Context, data []byte, params
 		return nil
 	}
 
-	// Clear resource metadata
+	// Clear resource metadata.
 	secret.ResourceVersion = ""
 	secret.UID = ""
 	secret.CreationTimestamp = metav1.Time{}
@@ -847,20 +845,20 @@ func (rm *RestoreManager) restoreSecret(ctx context.Context, data []byte, params
 	return nil
 }
 
-// restoreWeaviate restores Weaviate vector database
+// restoreWeaviate restores Weaviate vector database.
 func (rm *RestoreManager) restoreWeaviate(ctx context.Context, componentRestore *ComponentRestore, params RestoreParameters) error {
-	// Download Weaviate backup
+	// Download Weaviate backup.
 	tmpFile, err := rm.downloadComponentFile(ctx, componentRestore.SourcePath)
 	if err != nil {
 		return fmt.Errorf("failed to download Weaviate backup: %w", err)
 	}
 	defer os.Remove(tmpFile)
 
-	// In a real implementation, this would:
-	// 1. Stop Weaviate temporarily
-	// 2. Extract and restore the backup data
-	// 3. Restart Weaviate
-	// 4. Verify data integrity
+	// In a real implementation, this would:.
+	// 1. Stop Weaviate temporarily.
+	// 2. Extract and restore the backup data.
+	// 3. Restart Weaviate.
+	// 4. Verify data integrity.
 
 	componentRestore.TargetPath = "/var/lib/weaviate/restored"
 	componentRestore.Metadata["weaviate_restore"] = "simulated"
@@ -869,16 +867,16 @@ func (rm *RestoreManager) restoreWeaviate(ctx context.Context, componentRestore 
 	return nil
 }
 
-// restoreGitRepositories restores Git repositories
+// restoreGitRepositories restores Git repositories.
 func (rm *RestoreManager) restoreGitRepositories(ctx context.Context, componentRestore *ComponentRestore, params RestoreParameters) error {
-	// Download git repositories archive
+	// Download git repositories archive.
 	tmpFile, err := rm.downloadComponentFile(ctx, componentRestore.SourcePath)
 	if err != nil {
 		return fmt.Errorf("failed to download git repositories: %w", err)
 	}
 	defer os.Remove(tmpFile)
 
-	// Extract to temporary directory
+	// Extract to temporary directory.
 	extractDir := fmt.Sprintf("/tmp/git-restore-%d", time.Now().Unix())
 	if err := rm.extractTarGz(tmpFile, extractDir); err != nil {
 		return fmt.Errorf("failed to extract git repositories: %w", err)
@@ -892,15 +890,15 @@ func (rm *RestoreManager) restoreGitRepositories(ctx context.Context, componentR
 	return nil
 }
 
-// Helper methods
+// Helper methods.
 
-// downloadComponentFile downloads a component file from storage
+// downloadComponentFile downloads a component file from storage.
 func (rm *RestoreManager) downloadComponentFile(ctx context.Context, s3Path string) (string, error) {
 	if rm.s3Client == nil {
 		return "", fmt.Errorf("S3 client not initialized")
 	}
 
-	// Parse S3 path
+	// Parse S3 path.
 	if !strings.HasPrefix(s3Path, "s3://") {
 		return "", fmt.Errorf("invalid S3 path: %s", s3Path)
 	}
@@ -914,14 +912,14 @@ func (rm *RestoreManager) downloadComponentFile(ctx context.Context, s3Path stri
 	bucket := parts[0]
 	key := parts[1]
 
-	// Create temporary file
+	// Create temporary file.
 	tmpFile, err := os.CreateTemp("", "restore-*")
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp file: %w", err)
 	}
 	defer tmpFile.Close()
 
-	// Download file
+	// Download file.
 	result, err := rm.s3Client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
@@ -941,7 +939,7 @@ func (rm *RestoreManager) downloadComponentFile(ctx context.Context, s3Path stri
 	return tmpFile.Name(), nil
 }
 
-// extractTarGz extracts a tar.gz file
+// extractTarGz extracts a tar.gz file.
 func (rm *RestoreManager) extractTarGz(archivePath, targetDir string) error {
 	file, err := os.Open(archivePath)
 	if err != nil {
@@ -974,7 +972,7 @@ func (rm *RestoreManager) extractTarGz(archivePath, targetDir string) error {
 				return err
 			}
 		case tar.TypeReg:
-			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+			if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 				return err
 			}
 
@@ -994,17 +992,17 @@ func (rm *RestoreManager) extractTarGz(archivePath, targetDir string) error {
 	return nil
 }
 
-// filterComponents filters components based on restore parameters
+// filterComponents filters components based on restore parameters.
 func (rm *RestoreManager) filterComponents(components map[string]ComponentBackup, params RestoreParameters) map[string]ComponentBackup {
 	filtered := make(map[string]ComponentBackup)
 
 	for name, component := range components {
-		// Skip excluded components
+		// Skip excluded components.
 		if rm.isExcluded(name, params.ExcludeComponents) {
 			continue
 		}
 
-		// Include only specified components if filter is provided
+		// Include only specified components if filter is provided.
 		if len(params.ComponentFilter) > 0 && !rm.isIncluded(name, params.ComponentFilter) {
 			continue
 		}
@@ -1042,25 +1040,25 @@ func (rm *RestoreManager) isSkippableComponent(component string) bool {
 	return false
 }
 
-// findClosestBackup finds the closest backup to a target time for PITR
+// findClosestBackup finds the closest backup to a target time for PITR.
 func (rm *RestoreManager) findClosestBackup(ctx context.Context, targetTime time.Time) (string, error) {
-	// In a real implementation, this would:
-	// 1. List all available backups
-	// 2. Find the backup closest to (but before) the target time
-	// 3. Return the backup ID
+	// In a real implementation, this would:.
+	// 1. List all available backups.
+	// 2. Find the backup closest to (but before) the target time.
+	// 3. Return the backup ID.
 
-	// For simulation, return a dummy backup ID
+	// For simulation, return a dummy backup ID.
 	return fmt.Sprintf("pitr-backup-%d", targetTime.Unix()), nil
 }
 
-// performPostRestoreValidation performs post-restore validation
+// performPostRestoreValidation performs post-restore validation.
 func (rm *RestoreManager) performPostRestoreValidation(ctx context.Context, record *RestoreRecord) error {
-	// Implementation would validate restored data
+	// Implementation would validate restored data.
 	rm.logger.Info("Post-restore validation completed")
 	return nil
 }
 
-// performPostRestoreVerification performs post-restore verification
+// performPostRestoreVerification performs post-restore verification.
 func (rm *RestoreManager) performPostRestoreVerification(ctx context.Context, record *RestoreRecord) error {
 	verificationResults := &VerificationResults{
 		HealthCheckResults:    make(map[string]bool),
@@ -1070,7 +1068,7 @@ func (rm *RestoreManager) performPostRestoreVerification(ctx context.Context, re
 
 	start := time.Now()
 
-	// Run functional tests
+	// Run functional tests.
 	for _, test := range rm.config.VerificationConfig.FunctionalTests {
 		result := rm.runFunctionalTest(ctx, test)
 		verificationResults.FunctionalTestResults[test.Name] = result
@@ -1078,7 +1076,7 @@ func (rm *RestoreManager) performPostRestoreVerification(ctx context.Context, re
 
 	verificationResults.VerificationTime = time.Since(start)
 
-	// Determine overall status
+	// Determine overall status.
 	allPassed := true
 	for _, result := range verificationResults.FunctionalTestResults {
 		if result.Status != "passed" {
@@ -1102,7 +1100,7 @@ func (rm *RestoreManager) performPostRestoreVerification(ctx context.Context, re
 	return nil
 }
 
-// runFunctionalTest runs a functional test
+// runFunctionalTest runs a functional test.
 func (rm *RestoreManager) runFunctionalTest(ctx context.Context, test FunctionalTest) FunctionalTestResult {
 	start := time.Now()
 	result := FunctionalTestResult{
@@ -1134,34 +1132,34 @@ func (rm *RestoreManager) runFunctionalTest(ctx context.Context, test Functional
 	return result
 }
 
-// RestoreValidationEngine methods
+// RestoreValidationEngine methods.
 
-// ValidateBackup validates a backup before restore
+// ValidateBackup validates a backup before restore.
 func (rve *RestoreValidationEngine) ValidateBackup(ctx context.Context, backup *BackupRecord, params RestoreParameters) (*ValidationResults, error) {
 	results := &ValidationResults{
 		ValidationErrors:   make([]string, 0),
 		ValidationWarnings: make([]string, 0),
 	}
 
-	// Checksum validation
+	// Checksum validation.
 	if rve.config.ChecksumValidation {
 		checksumResults := rve.validateChecksums(backup)
 		results.ChecksumValidation = checksumResults
 	}
 
-	// Schema validation
+	// Schema validation.
 	if rve.config.SchemaValidation {
 		schemaResults := rve.validateSchemas(backup)
 		results.SchemaValidation = schemaResults
 	}
 
-	// Dependency validation
+	// Dependency validation.
 	if rve.config.DependencyValidation {
 		depResults := rve.validateDependencies(ctx, backup, params)
 		results.DependencyValidation = depResults
 	}
 
-	// Determine overall status
+	// Determine overall status.
 	if len(results.ValidationErrors) == 0 {
 		results.OverallStatus = "passed"
 	} else {
@@ -1177,10 +1175,10 @@ func (rve *RestoreValidationEngine) validateChecksums(backup *BackupRecord) *Che
 		FailedComponents: make([]string, 0),
 	}
 
-	// Validate component checksums
+	// Validate component checksums.
 	allValid := true
 	for name, component := range backup.Components {
-		// In real implementation, would verify actual checksums
+		// In real implementation, would verify actual checksums.
 		valid := component.Checksum != ""
 		results.ComponentResults[name] = valid
 

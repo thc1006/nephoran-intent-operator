@@ -15,7 +15,7 @@ import (
 	"golang.org/x/oauth2/clientcredentials"
 )
 
-// OAuth2Provider represents an enterprise OAuth2 identity provider
+// OAuth2Provider represents an enterprise OAuth2 identity provider.
 type OAuth2Provider struct {
 	Name         string
 	ClientID     string
@@ -28,7 +28,7 @@ type OAuth2Provider struct {
 	httpClient   *http.Client
 }
 
-// OAuth2Config holds OAuth2 configuration for multiple providers
+// OAuth2Config holds OAuth2 configuration for multiple providers.
 type OAuth2Config struct {
 	Providers     map[string]*OAuth2Provider `json:"providers"`
 	DefaultScopes []string                   `json:"default_scopes"`
@@ -36,7 +36,7 @@ type OAuth2Config struct {
 	RefreshTTL    time.Duration              `json:"refresh_ttl"`
 }
 
-// TokenResponse represents an OAuth2 token response
+// TokenResponse represents an OAuth2 token response.
 type TokenResponse struct {
 	AccessToken  string    `json:"access_token"`
 	RefreshToken string    `json:"refresh_token,omitempty"`
@@ -46,7 +46,7 @@ type TokenResponse struct {
 	IssuedAt     time.Time `json:"issued_at"`
 }
 
-// UserInfo represents user information from the identity provider
+// UserInfo represents user information from the identity provider.
 type UserInfo struct {
 	Subject       string   `json:"sub"`
 	Email         string   `json:"email"`
@@ -57,14 +57,14 @@ type UserInfo struct {
 	Roles         []string `json:"roles"`
 }
 
-// AuthenticationResult contains the result of OAuth2 authentication
+// AuthenticationResult contains the result of OAuth2 authentication.
 type AuthenticationResult struct {
 	Token    *TokenResponse `json:"token"`
 	UserInfo *UserInfo      `json:"user_info"`
 	Provider string         `json:"provider"`
 }
 
-// NewOAuth2Provider creates a new OAuth2 provider instance
+// NewOAuth2Provider creates a new OAuth2 provider instance.
 func NewOAuth2Provider(name, clientID, clientSecret, authURL, tokenURL, userInfoURL string, scopes []string) *OAuth2Provider {
 	return &OAuth2Provider{
 		Name:         name,
@@ -88,13 +88,13 @@ func NewOAuth2Provider(name, clientID, clientSecret, authURL, tokenURL, userInfo
 	}
 }
 
-// GetAuthorizationURL generates the OAuth2 authorization URL
+// GetAuthorizationURL generates the OAuth2 authorization URL.
 func (p *OAuth2Provider) GetAuthorizationURL(state, redirectURI string) string {
 	config := p.getOAuth2Config(redirectURI)
 	return config.AuthCodeURL(state, oauth2.AccessTypeOffline)
 }
 
-// ExchangeCodeForToken exchanges authorization code for access token
+// ExchangeCodeForToken exchanges authorization code for access token.
 func (p *OAuth2Provider) ExchangeCodeForToken(ctx context.Context, code, redirectURI string) (*TokenResponse, error) {
 	config := p.getOAuth2Config(redirectURI)
 
@@ -112,7 +112,7 @@ func (p *OAuth2Provider) ExchangeCodeForToken(ctx context.Context, code, redirec
 	}, nil
 }
 
-// ValidateToken validates an OAuth2 access token
+// ValidateToken validates an OAuth2 access token.
 func (p *OAuth2Provider) ValidateToken(ctx context.Context, accessToken string) (*UserInfo, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", p.UserInfoURL, nil)
 	if err != nil {
@@ -140,7 +140,7 @@ func (p *OAuth2Provider) ValidateToken(ctx context.Context, accessToken string) 
 	return &userInfo, nil
 }
 
-// RefreshToken refreshes an OAuth2 access token using refresh token
+// RefreshToken refreshes an OAuth2 access token using refresh token.
 func (p *OAuth2Provider) RefreshToken(ctx context.Context, refreshToken string) (*TokenResponse, error) {
 	data := url.Values{}
 	data.Set("grant_type", "refresh_token")
@@ -175,7 +175,7 @@ func (p *OAuth2Provider) RefreshToken(ctx context.Context, refreshToken string) 
 	return &tokenResp, nil
 }
 
-// GetClientCredentialsToken gets a token using client credentials flow
+// GetClientCredentialsToken gets a token using client credentials flow.
 func (p *OAuth2Provider) GetClientCredentialsToken(ctx context.Context) (*TokenResponse, error) {
 	config := clientcredentials.Config{
 		ClientID:     p.ClientID,
@@ -197,7 +197,7 @@ func (p *OAuth2Provider) GetClientCredentialsToken(ctx context.Context) (*TokenR
 	}, nil
 }
 
-// getOAuth2Config creates OAuth2 config for this provider
+// getOAuth2Config creates OAuth2 config for this provider.
 func (p *OAuth2Provider) getOAuth2Config(redirectURI string) *oauth2.Config {
 	return &oauth2.Config{
 		ClientID:     p.ClientID,
@@ -211,9 +211,9 @@ func (p *OAuth2Provider) getOAuth2Config(redirectURI string) *oauth2.Config {
 	}
 }
 
-// Enterprise Identity Provider Configurations
+// Enterprise Identity Provider Configurations.
 
-// NewAzureADProvider creates an Azure AD OAuth2 provider
+// NewAzureADProvider creates an Azure AD OAuth2 provider.
 func NewAzureADProvider(tenantID, clientID, clientSecret string) *OAuth2Provider {
 	return NewOAuth2Provider(
 		"azure-ad",
@@ -226,7 +226,7 @@ func NewAzureADProvider(tenantID, clientID, clientSecret string) *OAuth2Provider
 	)
 }
 
-// NewOktaProvider creates an Okta OAuth2 provider
+// NewOktaProvider creates an Okta OAuth2 provider.
 func NewOktaProvider(domain, clientID, clientSecret string) *OAuth2Provider {
 	return NewOAuth2Provider(
 		"okta",
@@ -239,7 +239,7 @@ func NewOktaProvider(domain, clientID, clientSecret string) *OAuth2Provider {
 	)
 }
 
-// NewKeycloakProvider creates a Keycloak OAuth2 provider
+// NewKeycloakProvider creates a Keycloak OAuth2 provider.
 func NewKeycloakProvider(baseURL, realm, clientID, clientSecret string) *OAuth2Provider {
 	return NewOAuth2Provider(
 		"keycloak",
@@ -252,7 +252,7 @@ func NewKeycloakProvider(baseURL, realm, clientID, clientSecret string) *OAuth2P
 	)
 }
 
-// NewGoogleProvider creates a Google OAuth2 provider
+// NewGoogleProvider creates a Google OAuth2 provider.
 func NewGoogleProvider(clientID, clientSecret string) *OAuth2Provider {
 	return NewOAuth2Provider(
 		"google",
@@ -265,9 +265,9 @@ func NewGoogleProvider(clientID, clientSecret string) *OAuth2Provider {
 	)
 }
 
-// JWT Token Management
+// JWT Token Management.
 
-// JWTClaims represents custom JWT claims
+// JWTClaims represents custom JWT claims.
 type JWTClaims struct {
 	jwt.RegisteredClaims
 	Email    string   `json:"email"`
@@ -277,7 +277,7 @@ type JWTClaims struct {
 	Provider string   `json:"provider"`
 }
 
-// GenerateJWT generates a JWT token for authenticated user
+// GenerateJWT generates a JWT token for authenticated user.
 func GenerateJWT(userInfo *UserInfo, provider string, secretKey []byte, ttl time.Duration) (string, error) {
 	now := time.Now()
 	claims := JWTClaims{
@@ -299,7 +299,7 @@ func GenerateJWT(userInfo *UserInfo, provider string, secretKey []byte, ttl time
 	return token.SignedString(secretKey)
 }
 
-// ValidateJWT validates and parses a JWT token
+// ValidateJWT validates and parses a JWT token.
 func ValidateJWT(tokenString string, secretKey []byte) (*JWTClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -307,7 +307,6 @@ func ValidateJWT(tokenString string, secretKey []byte) (*JWTClaims, error) {
 		}
 		return secretKey, nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse JWT token: %w", err)
 	}

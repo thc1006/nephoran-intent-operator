@@ -19,12 +19,12 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// Intent represents the intent JSON structure for extracting correlation_id
+// Intent represents the intent JSON structure for extracting correlation_id.
 type Intent struct {
 	CorrelationID string `json:"correlation_id,omitempty"`
 }
 
-// initLogger initializes structured logging with proper configuration
+// initLogger initializes structured logging with proper configuration.
 func initLogger() logr.Logger {
 	config := zap.Config{
 		Level:    zap.NewAtomicLevelAt(zap.InfoLevel),
@@ -46,7 +46,7 @@ func initLogger() logr.Logger {
 		ErrorOutputPaths: []string{"stderr"},
 	}
 
-	// Use console encoding for development if not in production
+	// Use console encoding for development if not in production.
 	if os.Getenv("ENVIRONMENT") != "production" {
 		config.Encoding = "console"
 		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
@@ -54,10 +54,10 @@ func initLogger() logr.Logger {
 
 	zapLogger, err := config.Build()
 	if err != nil {
-		// Fallback to basic logger if configuration fails
+		// Fallback to basic logger if configuration fails.
 		zapLogger, _ = zap.NewDevelopment()
 	}
-	
+
 	return zapr.NewLogger(zapLogger).WithName("conductor")
 }
 
@@ -71,10 +71,10 @@ func main() {
 	flag.StringVar(&outDir, "out", "", "Output directory for scaling patches (defaults to examples/packages/scaling)")
 	flag.Parse()
 
-	// Initialize structured logger
+	// Initialize structured logger.
 	logger := initLogger()
 
-	// Set default output directory if not specified
+	// Set default output directory if not specified.
 	if outDir == "" {
 		outDir = os.Getenv("CONDUCTOR_OUT_DIR")
 		if outDir == "" {
@@ -84,33 +84,33 @@ func main() {
 
 	logger.Info("Starting conductor file watcher", "watchDir", handoffDir, "outDir", outDir)
 
-	// Create context for graceful shutdown
+	// Create context for graceful shutdown.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Setup signal handling for graceful shutdown
+	// Setup signal handling for graceful shutdown.
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	// Create file watcher
+	// Create file watcher.
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		logger.Error(err, "Failed to create file system watcher")
 		os.Exit(1)
 	}
-	defer func() { 
+	defer func() {
 		if err := watcher.Close(); err != nil {
 			logger.Error(err, "Failed to close file system watcher")
 		}
 	}()
 
-	// Add handoff directory to watcher
+	// Add handoff directory to watcher.
 	if err := watcher.Add(handoffDir); err != nil {
 		logger.Error(err, "Failed to add directory to watcher", "directory", handoffDir)
 		os.Exit(1)
 	}
 
-	// Start event processing
+	// Start event processing.
 	go func() {
 		for {
 			select {
@@ -125,7 +125,7 @@ func main() {
 				if event.Op&fsnotify.Create == fsnotify.Create {
 					if isIntentFile(event.Name) {
 						logger.Info("New intent file detected", "file", event.Name)
-						// Add small delay to ensure file is fully written
+						// Add small delay to ensure file is fully written.
 						time.Sleep(100 * time.Millisecond)
 						processIntentFile(logger, event.Name, outDir)
 					}
@@ -142,38 +142,38 @@ func main() {
 
 	logger.Info("Conductor is running. Press Ctrl+C to stop.")
 
-	// Wait for shutdown signal
+	// Wait for shutdown signal.
 	<-sigChan
 	logger.Info("Shutdown signal received, stopping conductor...")
 	cancel()
 
-	// Give goroutines time to finish
+	// Give goroutines time to finish.
 	time.Sleep(500 * time.Millisecond)
 	logger.Info("Conductor stopped successfully")
 }
 
-// isIntentFile checks if the file matches the pattern intent-*.json
+// isIntentFile checks if the file matches the pattern intent-*.json.
 func isIntentFile(path string) bool {
 	filename := filepath.Base(path)
 	return strings.HasPrefix(filename, "intent-") && strings.HasSuffix(filename, ".json")
 }
 
-// processIntentFile triggers porch-publisher for the given intent file
+// processIntentFile triggers porch-publisher for the given intent file.
 func processIntentFile(logger logr.Logger, intentPath, outDir string) {
-	// Try to extract correlation_id from the intent file
+	// Try to extract correlation_id from the intent file.
 	correlationID := extractCorrelationID(logger, intentPath)
 	contextLogger := logger.WithValues("intentFile", intentPath, "correlationID", correlationID)
-	
+
 	if correlationID != "" {
 		contextLogger.Info("Processing intent with correlation ID")
 	} else {
 		contextLogger.Info("Processing intent without correlation ID")
 	}
 
-	// Build the command to run porch-publisher
+	// Build the command to run porch-publisher.
 	cmd := exec.Command("go", "run", "./cmd/porch-publisher", "-intent", intentPath, "-out", outDir)
 
-	// Capture output
+	// Capture output.
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		contextLogger.Error(err, "Failed to run porch-publisher", "output", string(output))
@@ -183,7 +183,7 @@ func processIntentFile(logger logr.Logger, intentPath, outDir string) {
 	contextLogger.Info("Successfully processed intent file", "output", strings.TrimSpace(string(output)))
 }
 
-// extractCorrelationID reads the intent file and extracts correlation_id if present
+// extractCorrelationID reads the intent file and extracts correlation_id if present.
 func extractCorrelationID(logger logr.Logger, path string) string {
 	data, err := os.ReadFile(path)
 	if err != nil {

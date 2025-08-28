@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// SMOManager manages Service Management and Orchestration integration
+// SMOManager manages Service Management and Orchestration integration.
 type SMOManager struct {
 	mu              sync.RWMutex
 	config          *SMOConfig
@@ -23,7 +23,7 @@ type SMOManager struct {
 	connected       bool
 }
 
-// SMOConfig holds SMO configuration
+// SMOConfig holds SMO configuration.
 type SMOConfig struct {
 	Endpoint        string            `json:"endpoint"`
 	Username        string            `json:"username"`
@@ -37,7 +37,7 @@ type SMOConfig struct {
 	HealthCheckPath string            `json:"health_check_path"`
 }
 
-// PolicyManager manages A1 policy orchestration with SMO
+// PolicyManager manages A1 policy orchestration with SMO.
 type PolicyManager struct {
 	mu             sync.RWMutex
 	smoClient      *SMOClient
@@ -47,7 +47,7 @@ type PolicyManager struct {
 	eventCallbacks map[string]func(*PolicyEvent)
 }
 
-// ServiceRegistry manages service discovery and registration with SMO
+// ServiceRegistry manages service discovery and registration with SMO.
 type ServiceRegistry struct {
 	mu                 sync.RWMutex
 	smoClient          *SMOClient
@@ -56,7 +56,7 @@ type ServiceRegistry struct {
 	healthCheckers     map[string]*ServiceHealthChecker
 }
 
-// ServiceOrchestrator manages Non-RT RIC service orchestration
+// ServiceOrchestrator manages Non-RT RIC service orchestration.
 type ServiceOrchestrator struct {
 	mu             sync.RWMutex
 	smoClient      *SMOClient
@@ -65,7 +65,7 @@ type ServiceOrchestrator struct {
 	lifecycleHooks map[string][]LifecycleHook
 }
 
-// SMOClient handles HTTP communication with SMO
+// SMOClient handles HTTP communication with SMO.
 type SMOClient struct {
 	baseURL    string
 	httpClient *http.Client
@@ -73,7 +73,7 @@ type SMOClient struct {
 	headers    map[string]string
 }
 
-// Policy management types
+// Policy management types.
 type A1Policy struct {
 	ID          string                 `json:"id"`
 	TypeID      string                 `json:"type_id"`
@@ -88,6 +88,7 @@ type A1Policy struct {
 	Metadata    map[string]string      `json:"metadata"`
 }
 
+// A1PolicyType represents a a1policytype.
 type A1PolicyType struct {
 	ID            string                 `json:"id"`
 	Name          string                 `json:"name"`
@@ -98,6 +99,7 @@ type A1PolicyType struct {
 	CreatedAt     time.Time              `json:"created_at"`
 }
 
+// PolicySubscription represents a policysubscription.
 type PolicySubscription struct {
 	ID         string             `json:"id"`
 	PolicyID   string             `json:"policy_id"`
@@ -107,6 +109,7 @@ type PolicySubscription struct {
 	CreatedAt  time.Time          `json:"created_at"`
 }
 
+// PolicyEvent represents a policyevent.
 type PolicyEvent struct {
 	ID        string                 `json:"id"`
 	Type      string                 `json:"type"` // CREATED, UPDATED, DELETED, VIOLATED
@@ -117,7 +120,7 @@ type PolicyEvent struct {
 	Severity  string                 `json:"severity"`
 }
 
-// Service management types
+// Service management types.
 type ServiceInstance struct {
 	ID            string             `json:"id"`
 	Name          string             `json:"name"`
@@ -132,6 +135,7 @@ type ServiceInstance struct {
 	LastHeartbeat time.Time          `json:"last_heartbeat"`
 }
 
+// ServiceHealthChecker represents a servicehealthchecker.
 type ServiceHealthChecker struct {
 	serviceID string
 	config    *HealthCheckConfig
@@ -141,6 +145,7 @@ type ServiceHealthChecker struct {
 	stopCh    chan struct{}
 }
 
+// HealthCheckConfig represents a healthcheckconfig.
 type HealthCheckConfig struct {
 	Enabled          bool          `json:"enabled"`
 	Path             string        `json:"path"`
@@ -150,7 +155,7 @@ type HealthCheckConfig struct {
 	SuccessThreshold int           `json:"success_threshold"`
 }
 
-// rApp orchestration types
+// rApp orchestration types.
 type RAppInstance struct {
 	ID            string                 `json:"id"`
 	Name          string                 `json:"name"`
@@ -166,6 +171,7 @@ type RAppInstance struct {
 	StartedAt     *time.Time             `json:"started_at,omitempty"`
 }
 
+// OrchestrationWorkflow represents a orchestrationworkflow.
 type OrchestrationWorkflow struct {
 	ID          string                 `json:"id"`
 	Name        string                 `json:"name"`
@@ -178,6 +184,7 @@ type OrchestrationWorkflow struct {
 	CompletedAt *time.Time             `json:"completed_at,omitempty"`
 }
 
+// WorkflowStep represents a workflowstep.
 type WorkflowStep struct {
 	ID           string                 `json:"id"`
 	Name         string                 `json:"name"`
@@ -190,12 +197,14 @@ type WorkflowStep struct {
 	Error        string                 `json:"error,omitempty"`
 }
 
+// ResourceRequirements represents a resourcerequirements.
 type ResourceRequirements struct {
 	CPU     string `json:"cpu"`
 	Memory  string `json:"memory"`
 	Storage string `json:"storage"`
 }
 
+// LifecycleConfig represents a lifecycleconfig.
 type LifecycleConfig struct {
 	PreStart  []LifecycleHook `json:"pre_start"`
 	PostStart []LifecycleHook `json:"post_start"`
@@ -203,6 +212,7 @@ type LifecycleConfig struct {
 	PostStop  []LifecycleHook `json:"post_stop"`
 }
 
+// LifecycleHook represents a lifecyclehook.
 type LifecycleHook struct {
 	Name    string                 `json:"name"`
 	Type    string                 `json:"type"` // COMMAND, HTTP, SCRIPT
@@ -211,13 +221,13 @@ type LifecycleHook struct {
 	Timeout time.Duration          `json:"timeout"`
 }
 
-// NewSMOManager creates a new SMO manager
+// NewSMOManager creates a new SMO manager.
 func NewSMOManager(config *SMOConfig) (*SMOManager, error) {
 	if config == nil {
 		return nil, fmt.Errorf("SMO configuration is required")
 	}
 
-	// Set defaults
+	// Set defaults.
 	if config.APIVersion == "" {
 		config.APIVersion = "v1"
 	}
@@ -238,9 +248,9 @@ func NewSMOManager(config *SMOConfig) (*SMOManager, error) {
 		Timeout: config.Timeout,
 	}
 
-	// Configure TLS if provided
+	// Configure TLS if provided.
 	if config.TLSConfig != nil {
-		// TLS configuration would be applied here
+		// TLS configuration would be applied here.
 	}
 
 	smoClient := &SMOClient{
@@ -281,12 +291,12 @@ func NewSMOManager(config *SMOConfig) (*SMOManager, error) {
 	return manager, nil
 }
 
-// Start starts the SMO manager
+// Start starts the SMO manager.
 func (sm *SMOManager) Start(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	logger.Info("starting SMO manager", "endpoint", sm.config.Endpoint)
 
-	// Test connection to SMO
+	// Test connection to SMO.
 	if err := sm.testConnection(ctx); err != nil {
 		return fmt.Errorf("failed to connect to SMO: %w", err)
 	}
@@ -295,30 +305,30 @@ func (sm *SMOManager) Start(ctx context.Context) error {
 	sm.connected = true
 	sm.mu.Unlock()
 
-	// Start service health checking
+	// Start service health checking.
 	go sm.serviceRegistry.startHealthChecking(ctx)
 
-	// Start policy event monitoring
+	// Start policy event monitoring.
 	go sm.policyManager.startEventMonitoring(ctx)
 
 	logger.Info("SMO manager started successfully")
 	return nil
 }
 
-// Stop stops the SMO manager
+// Stop stops the SMO manager.
 func (sm *SMOManager) Stop() {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
 	sm.connected = false
 
-	// Stop health checkers
+	// Stop health checkers.
 	for _, checker := range sm.serviceRegistry.healthCheckers {
 		close(checker.stopCh)
 	}
 }
 
-// testConnection tests connection to SMO
+// testConnection tests connection to SMO.
 func (sm *SMOManager) testConnection(ctx context.Context) error {
 	url := fmt.Sprintf("%s%s", sm.config.Endpoint, sm.config.HealthCheckPath)
 
@@ -327,12 +337,12 @@ func (sm *SMOManager) testConnection(ctx context.Context) error {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// Add authentication
+	// Add authentication.
 	if sm.config.Username != "" && sm.config.Password != "" {
 		req.SetBasicAuth(sm.config.Username, sm.config.Password)
 	}
 
-	// Add extra headers
+	// Add extra headers.
 	for key, value := range sm.config.ExtraHeaders {
 		req.Header.Set(key, value)
 	}
@@ -350,31 +360,31 @@ func (sm *SMOManager) testConnection(ctx context.Context) error {
 	return nil
 }
 
-// IsConnected returns true if connected to SMO
+// IsConnected returns true if connected to SMO.
 func (sm *SMOManager) IsConnected() bool {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
 	return sm.connected
 }
 
-// Policy Management Methods
+// Policy Management Methods.
 
-// CreatePolicy creates a new A1 policy
+// CreatePolicy creates a new A1 policy.
 func (pm *PolicyManager) CreatePolicy(ctx context.Context, policy *A1Policy) error {
 	logger := log.FromContext(ctx)
 	logger.Info("creating A1 policy", "policyID", policy.ID, "typeID", policy.TypeID)
 
-	// Validate policy type exists
+	// Validate policy type exists.
 	if _, exists := pm.policyTypes[policy.TypeID]; !exists {
 		return fmt.Errorf("policy type %s not found", policy.TypeID)
 	}
 
-	// Set timestamps
+	// Set timestamps.
 	policy.CreatedAt = time.Now()
 	policy.UpdatedAt = time.Now()
 	policy.Status = "ACTIVE"
 
-	// Call SMO API to create policy
+	// Call SMO API to create policy.
 	url := fmt.Sprintf("%s/api/%s/policies", pm.smoClient.baseURL, "v1")
 	if err := pm.smoClient.post(ctx, url, policy, nil); err != nil {
 		return fmt.Errorf("failed to create policy via SMO: %w", err)
@@ -388,7 +398,7 @@ func (pm *PolicyManager) CreatePolicy(ctx context.Context, policy *A1Policy) err
 	return nil
 }
 
-// UpdatePolicy updates an existing A1 policy
+// UpdatePolicy updates an existing A1 policy.
 func (pm *PolicyManager) UpdatePolicy(ctx context.Context, policyID string, updates map[string]interface{}) error {
 	logger := log.FromContext(ctx)
 	logger.Info("updating A1 policy", "policyID", policyID)
@@ -400,7 +410,7 @@ func (pm *PolicyManager) UpdatePolicy(ctx context.Context, policyID string, upda
 		return fmt.Errorf("policy %s not found", policyID)
 	}
 
-	// Apply updates
+	// Apply updates.
 	for key, value := range updates {
 		switch key {
 		case "data":
@@ -420,7 +430,7 @@ func (pm *PolicyManager) UpdatePolicy(ctx context.Context, policyID string, upda
 	policy.UpdatedAt = time.Now()
 	pm.mu.Unlock()
 
-	// Call SMO API to update policy
+	// Call SMO API to update policy.
 	url := fmt.Sprintf("%s/api/%s/policies/%s", pm.smoClient.baseURL, "v1", policyID)
 	if err := pm.smoClient.put(ctx, url, policy, nil); err != nil {
 		return fmt.Errorf("failed to update policy via SMO: %w", err)
@@ -430,7 +440,7 @@ func (pm *PolicyManager) UpdatePolicy(ctx context.Context, policyID string, upda
 	return nil
 }
 
-// DeletePolicy deletes an A1 policy
+// DeletePolicy deletes an A1 policy.
 func (pm *PolicyManager) DeletePolicy(ctx context.Context, policyID string) error {
 	logger := log.FromContext(ctx)
 	logger.Info("deleting A1 policy", "policyID", policyID)
@@ -443,7 +453,7 @@ func (pm *PolicyManager) DeletePolicy(ctx context.Context, policyID string) erro
 	delete(pm.policies, policyID)
 	pm.mu.Unlock()
 
-	// Call SMO API to delete policy
+	// Call SMO API to delete policy.
 	url := fmt.Sprintf("%s/api/%s/policies/%s", pm.smoClient.baseURL, "v1", policyID)
 	if err := pm.smoClient.delete(ctx, url); err != nil {
 		return fmt.Errorf("failed to delete policy via SMO: %w", err)
@@ -453,7 +463,7 @@ func (pm *PolicyManager) DeletePolicy(ctx context.Context, policyID string) erro
 	return nil
 }
 
-// GetPolicy retrieves an A1 policy
+// GetPolicy retrieves an A1 policy.
 func (pm *PolicyManager) GetPolicy(policyID string) (*A1Policy, error) {
 	pm.mu.RLock()
 	defer pm.mu.RUnlock()
@@ -466,7 +476,7 @@ func (pm *PolicyManager) GetPolicy(policyID string) (*A1Policy, error) {
 	return policy, nil
 }
 
-// ListPolicies lists all A1 policies
+// ListPolicies lists all A1 policies.
 func (pm *PolicyManager) ListPolicies() []*A1Policy {
 	pm.mu.RLock()
 	defer pm.mu.RUnlock()
@@ -479,7 +489,7 @@ func (pm *PolicyManager) ListPolicies() []*A1Policy {
 	return policies
 }
 
-// SubscribeToPolicyEvents subscribes to policy events
+// SubscribeToPolicyEvents subscribes to policy events.
 func (pm *PolicyManager) SubscribeToPolicyEvents(ctx context.Context, policyID string, events []string, callback func(*PolicyEvent)) (*PolicySubscription, error) {
 	subscription := &PolicySubscription{
 		ID:         fmt.Sprintf("sub-%s-%d", policyID, time.Now().Unix()),
@@ -498,7 +508,7 @@ func (pm *PolicyManager) SubscribeToPolicyEvents(ctx context.Context, policyID s
 	return subscription, nil
 }
 
-// startEventMonitoring starts policy event monitoring
+// startEventMonitoring starts policy event monitoring.
 func (pm *PolicyManager) startEventMonitoring(ctx context.Context) {
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
@@ -508,16 +518,16 @@ func (pm *PolicyManager) startEventMonitoring(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			// Poll for policy events (in a real implementation, this would use WebSocket or SSE)
+			// Poll for policy events (in a real implementation, this would use WebSocket or SSE).
 			pm.pollPolicyEvents(ctx)
 		}
 	}
 }
 
-// pollPolicyEvents polls for policy events
+// pollPolicyEvents polls for policy events.
 func (pm *PolicyManager) pollPolicyEvents(ctx context.Context) {
-	// This is a simplified implementation
-	// In a real SMO integration, this would subscribe to actual events
+	// This is a simplified implementation.
+	// In a real SMO integration, this would subscribe to actual events.
 	url := fmt.Sprintf("%s/api/%s/events", pm.smoClient.baseURL, "v1")
 
 	var events []*PolicyEvent
@@ -543,9 +553,9 @@ func (pm *PolicyManager) pollPolicyEvents(ctx context.Context) {
 	}
 }
 
-// Service Registry Methods
+// Service Registry Methods.
 
-// RegisterService registers a service with SMO
+// RegisterService registers a service with SMO.
 func (sr *ServiceRegistry) RegisterService(ctx context.Context, service *ServiceInstance) error {
 	logger := log.FromContext(ctx)
 	logger.Info("registering service with SMO", "serviceID", service.ID, "name", service.Name)
@@ -554,7 +564,7 @@ func (sr *ServiceRegistry) RegisterService(ctx context.Context, service *Service
 	service.LastHeartbeat = time.Now()
 	service.Status = "REGISTERED"
 
-	// Call SMO API to register service
+	// Call SMO API to register service.
 	url := fmt.Sprintf("%s/api/%s/services", sr.smoClient.baseURL, "v1")
 	if err := sr.smoClient.post(ctx, url, service, nil); err != nil {
 		return fmt.Errorf("failed to register service with SMO: %w", err)
@@ -564,7 +574,7 @@ func (sr *ServiceRegistry) RegisterService(ctx context.Context, service *Service
 	sr.registeredServices[service.ID] = service
 	sr.mu.Unlock()
 
-	// Start health checking if enabled
+	// Start health checking if enabled.
 	if service.HealthCheck != nil && service.HealthCheck.Enabled {
 		sr.startServiceHealthCheck(service)
 	}
@@ -573,7 +583,7 @@ func (sr *ServiceRegistry) RegisterService(ctx context.Context, service *Service
 	return nil
 }
 
-// DiscoverServices discovers services from SMO
+// DiscoverServices discovers services from SMO.
 func (sr *ServiceRegistry) DiscoverServices(ctx context.Context, serviceType string) ([]*ServiceInstance, error) {
 	url := fmt.Sprintf("%s/api/%s/services", sr.smoClient.baseURL, "v1")
 	if serviceType != "" {
@@ -594,7 +604,7 @@ func (sr *ServiceRegistry) DiscoverServices(ctx context.Context, serviceType str
 	return services, nil
 }
 
-// startServiceHealthCheck starts health checking for a service
+// startServiceHealthCheck starts health checking for a service.
 func (sr *ServiceRegistry) startServiceHealthCheck(service *ServiceInstance) {
 	checker := &ServiceHealthChecker{
 		serviceID: service.ID,
@@ -611,7 +621,7 @@ func (sr *ServiceRegistry) startServiceHealthCheck(service *ServiceInstance) {
 	go checker.start()
 }
 
-// startHealthChecking starts the health checking routine
+// startHealthChecking starts the health checking routine.
 func (sr *ServiceRegistry) startHealthChecking(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
@@ -621,19 +631,19 @@ func (sr *ServiceRegistry) startHealthChecking(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			// Update heartbeats for registered services
+			// Update heartbeats for registered services.
 			sr.updateServiceHeartbeats(ctx)
 		}
 	}
 }
 
-// updateServiceHeartbeats updates service heartbeats
+// updateServiceHeartbeats updates service heartbeats.
 func (sr *ServiceRegistry) updateServiceHeartbeats(ctx context.Context) {
 	sr.mu.Lock()
 	defer sr.mu.Unlock()
 
 	for serviceID, service := range sr.registeredServices {
-		// Send heartbeat to SMO
+		// Send heartbeat to SMO.
 		url := fmt.Sprintf("%s/api/%s/services/%s/heartbeat", sr.smoClient.baseURL, "v1", serviceID)
 		if err := sr.smoClient.post(ctx, url, map[string]interface{}{"timestamp": time.Now()}, nil); err == nil {
 			service.LastHeartbeat = time.Now()
@@ -644,7 +654,7 @@ func (sr *ServiceRegistry) updateServiceHeartbeats(ctx context.Context) {
 	}
 }
 
-// start starts the health checker
+// start starts the health checker.
 func (hc *ServiceHealthChecker) start() {
 	ticker := time.NewTicker(hc.config.Interval)
 	defer ticker.Stop()
@@ -659,17 +669,17 @@ func (hc *ServiceHealthChecker) start() {
 	}
 }
 
-// performHealthCheck performs a health check
+// performHealthCheck performs a health check.
 func (hc *ServiceHealthChecker) performHealthCheck() {
-	// This would implement actual health checking logic
-	// For now, we'll simulate a successful check
+	// This would implement actual health checking logic.
+	// For now, we'll simulate a successful check.
 	hc.lastCheck = time.Now()
 	hc.status = "HEALTHY"
 }
 
-// Service Orchestrator Methods
+// Service Orchestrator Methods.
 
-// DeployRApp deploys an rApp
+// DeployRApp deploys an rApp.
 func (so *ServiceOrchestrator) DeployRApp(ctx context.Context, rApp *RAppInstance) error {
 	logger := log.FromContext(ctx)
 	logger.Info("deploying rApp", "rAppID", rApp.ID, "name", rApp.Name)
@@ -677,7 +687,7 @@ func (so *ServiceOrchestrator) DeployRApp(ctx context.Context, rApp *RAppInstanc
 	rApp.CreatedAt = time.Now()
 	rApp.Status = "DEPLOYING"
 
-	// Execute pre-start lifecycle hooks
+	// Execute pre-start lifecycle hooks.
 	if rApp.Lifecycle != nil {
 		for _, hook := range rApp.Lifecycle.PreStart {
 			if err := so.executeLifecycleHook(ctx, &hook, rApp); err != nil {
@@ -688,7 +698,7 @@ func (so *ServiceOrchestrator) DeployRApp(ctx context.Context, rApp *RAppInstanc
 		}
 	}
 
-	// Call SMO API to deploy rApp
+	// Call SMO API to deploy rApp.
 	url := fmt.Sprintf("%s/api/%s/rapps", so.smoClient.baseURL, "v1")
 	if err := so.smoClient.post(ctx, url, rApp, nil); err != nil {
 		rApp.Status = "FAILED"
@@ -703,7 +713,7 @@ func (so *ServiceOrchestrator) DeployRApp(ctx context.Context, rApp *RAppInstanc
 	now := time.Now()
 	rApp.StartedAt = &now
 
-	// Execute post-start lifecycle hooks
+	// Execute post-start lifecycle hooks.
 	if rApp.Lifecycle != nil {
 		for _, hook := range rApp.Lifecycle.PostStart {
 			if err := so.executeLifecycleHook(ctx, &hook, rApp); err != nil {
@@ -716,17 +726,17 @@ func (so *ServiceOrchestrator) DeployRApp(ctx context.Context, rApp *RAppInstanc
 	return nil
 }
 
-// executeLifecycleHook executes a lifecycle hook
+// executeLifecycleHook executes a lifecycle hook.
 func (so *ServiceOrchestrator) executeLifecycleHook(ctx context.Context, hook *LifecycleHook, rApp *RAppInstance) error {
 	logger := log.FromContext(ctx)
 	logger.Info("executing lifecycle hook", "hook", hook.Name, "type", hook.Type)
 
 	switch hook.Type {
 	case "COMMAND":
-		// Execute command (simplified implementation)
+		// Execute command (simplified implementation).
 		return nil
 	case "HTTP":
-		// Make HTTP call
+		// Make HTTP call.
 		if endpoint, ok := hook.Params["endpoint"].(string); ok {
 			req, err := http.NewRequestWithContext(ctx, "POST", endpoint, nil)
 			if err != nil {
@@ -746,14 +756,14 @@ func (so *ServiceOrchestrator) executeLifecycleHook(ctx context.Context, hook *L
 		}
 		return nil
 	case "SCRIPT":
-		// Execute script (not implemented for security reasons)
+		// Execute script (not implemented for security reasons).
 		return fmt.Errorf("script hooks not supported")
 	default:
 		return fmt.Errorf("unsupported hook type: %s", hook.Type)
 	}
 }
 
-// SMOClient HTTP methods
+// SMOClient HTTP methods.
 
 func (c *SMOClient) get(ctx context.Context, url string, result interface{}) error {
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
@@ -809,7 +819,7 @@ func (c *SMOClient) delete(ctx context.Context, url string) error {
 }
 
 func (c *SMOClient) doRequest(req *http.Request, result interface{}) error {
-	// Add authentication
+	// Add authentication.
 	if c.auth != nil {
 		switch c.auth.Type {
 		case "basic":
@@ -819,7 +829,7 @@ func (c *SMOClient) doRequest(req *http.Request, result interface{}) error {
 		}
 	}
 
-	// Add custom headers
+	// Add custom headers.
 	for key, value := range c.headers {
 		req.Header.Set(key, value)
 	}

@@ -16,7 +16,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
-// HNSWOptimizer provides dynamic HNSW parameter optimization
+// HNSWOptimizer provides dynamic HNSW parameter optimization.
 type HNSWOptimizer struct {
 	client            *weaviate.Client
 	config            *HNSWOptimizerConfig
@@ -27,7 +27,7 @@ type HNSWOptimizer struct {
 	mutex             sync.RWMutex
 }
 
-// HNSWOptimizerConfig holds configuration for HNSW optimization
+// HNSWOptimizerConfig holds configuration for HNSW optimization.
 type HNSWOptimizerConfig struct {
 	OptimizationInterval  time.Duration `json:"optimization_interval"`
 	EnableAdaptiveTuning  bool          `json:"enable_adaptive_tuning"`
@@ -36,7 +36,7 @@ type HNSWOptimizerConfig struct {
 	MinSampleSize         int           `json:"min_sample_size"`
 	MaxOptimizationRounds int           `json:"max_optimization_rounds"`
 
-	// HNSW parameter ranges for tuning
+	// HNSW parameter ranges for tuning.
 	EfMin             int `json:"ef_min"`
 	EfMax             int `json:"ef_max"`
 	EfConstructionMin int `json:"ef_construction_min"`
@@ -44,13 +44,13 @@ type HNSWOptimizerConfig struct {
 	MMin              int `json:"m_min"`
 	MMax              int `json:"m_max"`
 
-	// Performance targets
+	// Performance targets.
 	TargetQueryLatencyP95 time.Duration `json:"target_query_latency_p95"`
 	TargetRecallScore     float32       `json:"target_recall_score"`
 	TargetIndexSize       int64         `json:"target_index_size"`
 }
 
-// HNSWParameters represents HNSW algorithm parameters
+// HNSWParameters represents HNSW algorithm parameters.
 type HNSWParameters struct {
 	Ef               int     `json:"ef"`                 // Search width parameter
 	EfConstruction   int     `json:"ef_construction"`    // Construction-time search width
@@ -58,7 +58,7 @@ type HNSWParameters struct {
 	MMax             int     `json:"m_max"`              // Maximum number of connections
 	MLevelMultiplier float64 `json:"m_level_multiplier"` // Level multiplier
 
-	// Advanced parameters
+	// Advanced parameters.
 	Seed                   int64   `json:"seed"`
 	CleanupIntervalSeconds int     `json:"cleanup_interval_seconds"`
 	MaxConnections         int     `json:"max_connections"`
@@ -66,13 +66,13 @@ type HNSWParameters struct {
 	DynamicEfMin           int     `json:"dynamic_ef_min"`
 	DynamicEfMax           int     `json:"dynamic_ef_max"`
 
-	// Performance tracking
+	// Performance tracking.
 	LastOptimized     time.Time               `json:"last_optimized"`
 	OptimizationRound int                     `json:"optimization_round"`
 	Performance       *HNSWPerformanceMetrics `json:"performance"`
 }
 
-// HNSWPerformanceMetrics tracks HNSW performance
+// HNSWPerformanceMetrics tracks HNSW performance.
 type HNSWPerformanceMetrics struct {
 	QueryLatencyP50  time.Duration `json:"query_latency_p50"`
 	QueryLatencyP95  time.Duration `json:"query_latency_p95"`
@@ -84,7 +84,7 @@ type HNSWPerformanceMetrics struct {
 	MemoryUsage      int64         `json:"memory_usage"`
 }
 
-// HNSWMetrics tracks overall HNSW optimization metrics
+// HNSWMetrics tracks overall HNSW optimization metrics.
 type HNSWMetrics struct {
 	TotalOptimizations      int64                     `json:"total_optimizations"`
 	SuccessfulOptimizations int64                     `json:"successful_optimizations"`
@@ -95,7 +95,7 @@ type HNSWMetrics struct {
 	mutex                   sync.RWMutex
 }
 
-// OptimizationRequest represents a request for parameter optimization
+// OptimizationRequest represents a request for parameter optimization.
 type OptimizationRequest struct {
 	ClassName     string                   `json:"class_name"`
 	QueryPatterns []*QueryPattern          `json:"query_patterns"`
@@ -103,7 +103,7 @@ type OptimizationRequest struct {
 	ResponseChan  chan *OptimizationResult `json:"-"`
 }
 
-// QueryPattern represents a typical query pattern for optimization
+// QueryPattern represents a typical query pattern for optimization.
 type QueryPattern struct {
 	Query           string                 `json:"query"`
 	Frequency       int                    `json:"frequency"`
@@ -112,7 +112,7 @@ type QueryPattern struct {
 	Metadata        map[string]interface{} `json:"metadata"`
 }
 
-// OptimizationConstraints defines constraints for optimization
+// OptimizationConstraints defines constraints for optimization.
 type OptimizationConstraints struct {
 	MaxLatency      time.Duration `json:"max_latency"`
 	MinRecall       float32       `json:"min_recall"`
@@ -122,7 +122,7 @@ type OptimizationConstraints struct {
 	PreferSpeed     bool          `json:"prefer_speed"`
 }
 
-// OptimizationResult represents the result of parameter optimization
+// OptimizationResult represents the result of parameter optimization.
 type OptimizationResult struct {
 	Success             bool                   `json:"success"`
 	OptimizedParams     *HNSWParameters        `json:"optimized_params"`
@@ -134,7 +134,7 @@ type OptimizationResult struct {
 	Error               error                  `json:"error,omitempty"`
 }
 
-// NewHNSWOptimizer creates a new HNSW parameter optimizer
+// NewHNSWOptimizer creates a new HNSW parameter optimizer.
 func NewHNSWOptimizer(client *weaviate.Client, config *HNSWOptimizerConfig) *HNSWOptimizer {
 	if config == nil {
 		config = getDefaultHNSWOptimizerConfig()
@@ -151,7 +151,7 @@ func NewHNSWOptimizer(client *weaviate.Client, config *HNSWOptimizerConfig) *HNS
 		optimizationQueue: make(chan *OptimizationRequest, 100),
 	}
 
-	// Start background optimization
+	// Start background optimization.
 	if config.EnableAdaptiveTuning {
 		go optimizer.startAdaptiveOptimization()
 	}
@@ -159,7 +159,7 @@ func NewHNSWOptimizer(client *weaviate.Client, config *HNSWOptimizerConfig) *HNS
 	return optimizer
 }
 
-// getDefaultHNSWOptimizerConfig returns default optimizer configuration
+// getDefaultHNSWOptimizerConfig returns default optimizer configuration.
 func getDefaultHNSWOptimizerConfig() *HNSWOptimizerConfig {
 	return &HNSWOptimizerConfig{
 		OptimizationInterval:  time.Hour,
@@ -182,7 +182,7 @@ func getDefaultHNSWOptimizerConfig() *HNSWOptimizerConfig {
 	}
 }
 
-// getDefaultHNSWParameters returns default HNSW parameters
+// getDefaultHNSWParameters returns default HNSW parameters.
 func getDefaultHNSWParameters() *HNSWParameters {
 	return &HNSWParameters{
 		Ef:                     128,
@@ -202,7 +202,7 @@ func getDefaultHNSWParameters() *HNSWParameters {
 	}
 }
 
-// OptimizeForWorkload optimizes HNSW parameters for a specific workload
+// OptimizeForWorkload optimizes HNSW parameters for a specific workload.
 func (h *HNSWOptimizer) OptimizeForWorkload(ctx context.Context, className string, queryPatterns []*QueryPattern, constraints *OptimizationConstraints) (*OptimizationResult, error) {
 	h.logger.Info("Starting HNSW optimization for workload",
 		"class_name", className,
@@ -218,29 +218,29 @@ func (h *HNSWOptimizer) OptimizeForWorkload(ctx context.Context, className strin
 		}
 	}
 
-	// Get current performance baseline
+	// Get current performance baseline.
 	baseline, err := h.measureCurrentPerformance(ctx, className, queryPatterns)
 	if err != nil {
 		return nil, fmt.Errorf("failed to measure baseline performance: %w", err)
 	}
 
-	// Try different parameter combinations
+	// Try different parameter combinations.
 	bestParams := h.currentParams
 	bestPerformance := baseline
 	improvementFound := false
 
-	for round := 0; round < h.config.MaxOptimizationRounds; round++ {
+	for round := range h.config.MaxOptimizationRounds {
 		candidates := h.generateParameterCandidates(bestParams, constraints)
 
 		for _, candidate := range candidates {
-			// Test candidate parameters
+			// Test candidate parameters.
 			performance, err := h.testParameterSet(ctx, className, candidate, queryPatterns)
 			if err != nil {
 				h.logger.Warn("Failed to test parameter set", "error", err)
 				continue
 			}
 
-			// Check if this is better than current best
+			// Check if this is better than current best.
 			if h.isImprovement(performance, bestPerformance, constraints) {
 				bestParams = candidate
 				bestPerformance = performance
@@ -257,14 +257,14 @@ func (h *HNSWOptimizer) OptimizeForWorkload(ctx context.Context, className strin
 			}
 		}
 
-		// Early termination if we've hit the target
+		// Early termination if we've hit the target.
 		if h.meetsTargets(bestPerformance, constraints) {
 			h.logger.Info("Target performance achieved, stopping optimization early")
 			break
 		}
 	}
 
-	// Apply the best parameters found
+	// Apply the best parameters found.
 	var latencyImprovement time.Duration
 	var accuracyImprovement float32
 
@@ -302,9 +302,9 @@ func (h *HNSWOptimizer) OptimizeForWorkload(ctx context.Context, className strin
 	return result, nil
 }
 
-// AdaptiveOptimize continuously optimizes based on query patterns
+// AdaptiveOptimize continuously optimizes based on query patterns.
 func (h *HNSWOptimizer) AdaptiveOptimize(ctx context.Context, className string) error {
-	// Collect query patterns from recent activity
+	// Collect query patterns from recent activity.
 	queryPatterns, err := h.collectQueryPatterns(ctx, className)
 	if err != nil {
 		return fmt.Errorf("failed to collect query patterns: %w", err)
@@ -315,7 +315,7 @@ func (h *HNSWOptimizer) AdaptiveOptimize(ctx context.Context, className string) 
 		return nil
 	}
 
-	// Check if current performance meets thresholds
+	// Check if current performance meets thresholds.
 	currentPerf, err := h.measureCurrentPerformance(ctx, className, queryPatterns)
 	if err != nil {
 		return fmt.Errorf("failed to measure current performance: %w", err)
@@ -332,16 +332,16 @@ func (h *HNSWOptimizer) AdaptiveOptimize(ctx context.Context, className string) 
 		return nil
 	}
 
-	// Perform optimization
+	// Perform optimization.
 	_, err = h.OptimizeForWorkload(ctx, className, queryPatterns, nil)
 	return err
 }
 
-// generateParameterCandidates generates candidate parameter sets for testing
+// generateParameterCandidates generates candidate parameter sets for testing.
 func (h *HNSWOptimizer) generateParameterCandidates(current *HNSWParameters, constraints *OptimizationConstraints) []*HNSWParameters {
 	var candidates []*HNSWParameters
 
-	// Create variations around current parameters
+	// Create variations around current parameters.
 	variations := []struct {
 		name     string
 		efDelta  int
@@ -375,7 +375,7 @@ func (h *HNSWOptimizer) generateParameterCandidates(current *HNSWParameters, con
 			DynamicEfMax:           current.DynamicEfMax,
 		}
 
-		// Adjust based on constraints
+		// Adjust based on constraints.
 		if constraints.PreferSpeed {
 			candidate.Ef = h.clampEf(candidate.Ef - 16)
 			candidate.EfConstruction = h.clampEfConstruction(candidate.EfConstruction - 16)
@@ -392,7 +392,7 @@ func (h *HNSWOptimizer) generateParameterCandidates(current *HNSWParameters, con
 	return candidates
 }
 
-// Clamping functions to ensure parameters stay within valid ranges
+// Clamping functions to ensure parameters stay within valid ranges.
 func (h *HNSWOptimizer) clampEf(ef int) int {
 	if ef < h.config.EfMin {
 		return h.config.EfMin
@@ -423,7 +423,7 @@ func (h *HNSWOptimizer) clampM(m int) int {
 	return m
 }
 
-// measureCurrentPerformance measures the current HNSW performance
+// measureCurrentPerformance measures the current HNSW performance.
 func (h *HNSWOptimizer) measureCurrentPerformance(ctx context.Context, className string, queryPatterns []*QueryPattern) (*HNSWPerformanceMetrics, error) {
 	metrics := &HNSWPerformanceMetrics{}
 
@@ -431,10 +431,10 @@ func (h *HNSWOptimizer) measureCurrentPerformance(ctx context.Context, className
 	var recallScores []float32
 
 	for _, pattern := range queryPatterns {
-		for i := 0; i < pattern.Frequency && i < 10; i++ { // Limit samples per pattern
+		for range min(pattern.Frequency, 10) { // Limit samples per pattern
 			start := time.Now()
 
-			// Execute query
+			// Execute query.
 			result, err := h.executeTestQuery(ctx, className, pattern)
 			if err != nil {
 				h.logger.Warn("Test query failed", "error", err, "query", pattern.Query)
@@ -444,7 +444,7 @@ func (h *HNSWOptimizer) measureCurrentPerformance(ctx context.Context, className
 			latency := time.Since(start)
 			latencies = append(latencies, latency)
 
-			// Calculate recall if we have expected results
+			// Calculate recall if we have expected results.
 			if pattern.ExpectedResults > 0 {
 				recall := float32(len(result.Results)) / float32(pattern.ExpectedResults)
 				if recall > 1.0 {
@@ -455,7 +455,7 @@ func (h *HNSWOptimizer) measureCurrentPerformance(ctx context.Context, className
 		}
 	}
 
-	// Calculate percentiles
+	// Calculate percentiles.
 	if len(latencies) > 0 {
 		metrics.QueryLatencyP50 = h.calculatePercentile(latencies, 0.50)
 		metrics.QueryLatencyP95 = h.calculatePercentile(latencies, 0.95)
@@ -463,7 +463,7 @@ func (h *HNSWOptimizer) measureCurrentPerformance(ctx context.Context, className
 		metrics.QueriesPerSecond = float64(len(latencies)) / (float64(metrics.QueryLatencyP95.Nanoseconds()) / 1e9)
 	}
 
-	// Calculate average recall
+	// Calculate average recall.
 	if len(recallScores) > 0 {
 		var sum float32
 		for _, recall := range recallScores {
@@ -474,7 +474,7 @@ func (h *HNSWOptimizer) measureCurrentPerformance(ctx context.Context, className
 		metrics.RecallScore = 1.0 // Assume perfect recall if we can't measure
 	}
 
-	// Get index statistics
+	// Get index statistics.
 	indexStats, err := h.getIndexStatistics(ctx, className)
 	if err == nil {
 		metrics.IndexSize = indexStats.IndexSize
@@ -484,11 +484,11 @@ func (h *HNSWOptimizer) measureCurrentPerformance(ctx context.Context, className
 	return metrics, nil
 }
 
-// executeTestQuery executes a test query for performance measurement
+// executeTestQuery executes a test query for performance measurement.
 func (h *HNSWOptimizer) executeTestQuery(ctx context.Context, className string, pattern *QueryPattern) (*SearchResponse, error) {
 	query := h.client.GraphQL().Get().
 		WithClassName(className).
-		// TODO: Fix NearText implementation based on Weaviate client version
+		// TODO: Fix NearText implementation based on Weaviate client version.
 		// WithNearText(...).
 		WithFields(graphql.Field{Name: "_additional", Fields: []graphql.Field{
 			{Name: "id"},
@@ -501,7 +501,7 @@ func (h *HNSWOptimizer) executeTestQuery(ctx context.Context, className string, 
 		return nil, err
 	}
 
-	// Convert to SearchResponse format
+	// Convert to SearchResponse format.
 	searchResponse := &SearchResponse{
 		Results: make([]*SearchResult, 0),
 		Query:   pattern.Query,
@@ -536,19 +536,19 @@ func (h *HNSWOptimizer) executeTestQuery(ctx context.Context, className string, 
 
 // Additional helper methods would continue here...
 
-// calculatePercentile calculates the specified percentile of latencies
+// calculatePercentile calculates the specified percentile of latencies.
 func (h *HNSWOptimizer) calculatePercentile(latencies []time.Duration, percentile float64) time.Duration {
 	if len(latencies) == 0 {
 		return 0
 	}
 
-	// Simple percentile calculation - could use a more sophisticated algorithm
+	// Simple percentile calculation - could use a more sophisticated algorithm.
 	sortedLatencies := make([]time.Duration, len(latencies))
 	copy(sortedLatencies, latencies)
 
-	// Sort latencies (simple bubble sort for demonstration)
-	for i := 0; i < len(sortedLatencies); i++ {
-		for j := 0; j < len(sortedLatencies)-1-i; j++ {
+	// Sort latencies (simple bubble sort for demonstration).
+	for i := range len(sortedLatencies) {
+		for j := range len(sortedLatencies) - 1 - i {
 			if sortedLatencies[j] > sortedLatencies[j+1] {
 				sortedLatencies[j], sortedLatencies[j+1] = sortedLatencies[j+1], sortedLatencies[j]
 			}
@@ -563,9 +563,9 @@ func (h *HNSWOptimizer) calculatePercentile(latencies []time.Duration, percentil
 	return sortedLatencies[index]
 }
 
-// isImprovement determines if new performance is better than baseline
+// isImprovement determines if new performance is better than baseline.
 func (h *HNSWOptimizer) isImprovement(new, baseline *HNSWPerformanceMetrics, constraints *OptimizationConstraints) bool {
-	// Weight latency and recall based on constraints
+	// Weight latency and recall based on constraints.
 	latencyWeight := 0.6
 	recallWeight := 0.4
 
@@ -577,7 +577,7 @@ func (h *HNSWOptimizer) isImprovement(new, baseline *HNSWPerformanceMetrics, con
 		recallWeight = 0.7
 	}
 
-	// Calculate improvement scores
+	// Calculate improvement scores.
 	latencyImprovement := float64(baseline.QueryLatencyP95-new.QueryLatencyP95) / float64(baseline.QueryLatencyP95)
 	recallImprovement := float64(new.RecallScore-baseline.RecallScore) / float64(baseline.RecallScore)
 
@@ -589,8 +589,8 @@ func (h *HNSWOptimizer) isImprovement(new, baseline *HNSWPerformanceMetrics, con
 // Continue with more helper methods...
 
 func (h *HNSWOptimizer) testParameterSet(ctx context.Context, className string, params *HNSWParameters, patterns []*QueryPattern) (*HNSWPerformanceMetrics, error) {
-	// This would temporarily apply parameters and test performance
-	// For now, return a simulated performance metric
+	// This would temporarily apply parameters and test performance.
+	// For now, return a simulated performance metric.
 	return &HNSWPerformanceMetrics{
 		QueryLatencyP95: time.Duration(100+params.Ef) * time.Millisecond,
 		RecallScore:     0.95 + float32(params.M)/1000,
@@ -598,7 +598,7 @@ func (h *HNSWOptimizer) testParameterSet(ctx context.Context, className string, 
 }
 
 func (h *HNSWOptimizer) applyParameters(ctx context.Context, className string, params *HNSWParameters) error {
-	// Apply parameters to the Weaviate index
+	// Apply parameters to the Weaviate index.
 	h.logger.Info("Applying optimized HNSW parameters",
 		"class_name", className,
 		"ef", params.Ef,
@@ -609,8 +609,8 @@ func (h *HNSWOptimizer) applyParameters(ctx context.Context, className string, p
 }
 
 func (h *HNSWOptimizer) collectQueryPatterns(ctx context.Context, className string) ([]*QueryPattern, error) {
-	// This would collect actual query patterns from logs/metrics
-	// For now, return some sample patterns
+	// This would collect actual query patterns from logs/metrics.
+	// For now, return some sample patterns.
 	return []*QueryPattern{
 		{Query: "5G AMF configuration", Frequency: 10, ExpectedResults: 20},
 		{Query: "network slicing parameters", Frequency: 8, ExpectedResults: 15},
@@ -656,7 +656,7 @@ func (h *HNSWOptimizer) updateMetrics(result *OptimizationResult) {
 	}
 	h.metrics.LastOptimization = time.Now()
 
-	// Update average improvement
+	// Update average improvement.
 	if h.metrics.TotalOptimizations == 1 {
 		h.metrics.AverageImprovement = result.PerformanceGain
 	} else {
@@ -693,13 +693,13 @@ func (h *HNSWOptimizer) startAdaptiveOptimization() {
 	}
 }
 
-// IndexStatistics represents index statistics
+// IndexStatistics represents index statistics.
 type IndexStatistics struct {
 	IndexSize   int64 `json:"index_size"`
 	MemoryUsage int64 `json:"memory_usage"`
 }
 
-// GetCurrentParameters returns the current HNSW parameters
+// GetCurrentParameters returns the current HNSW parameters.
 func (h *HNSWOptimizer) GetCurrentParameters() *HNSWParameters {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
@@ -708,12 +708,12 @@ func (h *HNSWOptimizer) GetCurrentParameters() *HNSWParameters {
 	return &params
 }
 
-// GetMetrics returns current optimization metrics
+// GetMetrics returns current optimization metrics.
 func (h *HNSWOptimizer) GetMetrics() *HNSWMetrics {
 	h.metrics.mutex.RLock()
 	defer h.metrics.mutex.RUnlock()
 
-	// Return a copy without the mutex
+	// Return a copy without the mutex.
 	metrics := &HNSWMetrics{
 		TotalOptimizations:      h.metrics.TotalOptimizations,
 		SuccessfulOptimizations: h.metrics.SuccessfulOptimizations,
@@ -725,7 +725,7 @@ func (h *HNSWOptimizer) GetMetrics() *HNSWMetrics {
 	return metrics
 }
 
-// copyHNSWPerformanceHistory creates a deep copy of performance history slice
+// copyHNSWPerformanceHistory creates a deep copy of performance history slice.
 func copyHNSWPerformanceHistory(original []*HNSWPerformanceMetrics) []*HNSWPerformanceMetrics {
 	if original == nil {
 		return nil

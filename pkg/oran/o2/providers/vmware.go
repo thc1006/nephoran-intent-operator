@@ -17,9 +17,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ProviderTypeVMware is defined in interface.go
+// ProviderTypeVMware is defined in interface.go.
 
-// VMwareProvider implements CloudProvider for VMware vSphere environments
+// VMwareProvider implements CloudProvider for VMware vSphere environments.
 type VMwareProvider struct {
 	name          string
 	config        *ProviderConfiguration
@@ -31,19 +31,19 @@ type VMwareProvider struct {
 	stopChannel   chan struct{}
 	mutex         sync.RWMutex
 
-	// Resource pools and folders
+	// Resource pools and folders.
 	resourcePool *object.ResourcePool
 	vmFolder     *object.Folder
 	datastore    *object.Datastore
 
-	// Cache for performance
+	// Cache for performance.
 	templateCache map[string]*object.VirtualMachine
 	networkCache  map[string]object.NetworkReference
 	cacheMutex    sync.RWMutex
 	cacheExpiry   time.Time
 }
 
-// NewVMwareProvider creates a new VMware vSphere provider instance
+// NewVMwareProvider creates a new VMware vSphere provider instance.
 func NewVMwareProvider(config *ProviderConfiguration) (CloudProvider, error) {
 	if config == nil {
 		return nil, fmt.Errorf("configuration is required for VMware provider")
@@ -64,7 +64,7 @@ func NewVMwareProvider(config *ProviderConfiguration) (CloudProvider, error) {
 	return provider, nil
 }
 
-// GetProviderInfo returns information about this VMware provider
+// GetProviderInfo returns information about this VMware provider.
 func (v *VMwareProvider) GetProviderInfo() *ProviderInfo {
 	v.mutex.RLock()
 	defer v.mutex.RUnlock()
@@ -86,7 +86,7 @@ func (v *VMwareProvider) GetProviderInfo() *ProviderInfo {
 	}
 }
 
-// GetSupportedResourceTypes returns the resource types supported by VMware
+// GetSupportedResourceTypes returns the resource types supported by VMware.
 func (v *VMwareProvider) GetSupportedResourceTypes() []string {
 	return []string{
 		"virtualmachine", // Virtual machines
@@ -105,7 +105,7 @@ func (v *VMwareProvider) GetSupportedResourceTypes() []string {
 	}
 }
 
-// GetCapabilities returns the capabilities of this VMware provider
+// GetCapabilities returns the capabilities of this VMware provider.
 func (v *VMwareProvider) GetCapabilities() *ProviderCapabilities {
 	return &ProviderCapabilities{
 		ComputeTypes:     []string{"virtualmachine", "template", "vapp"},
@@ -146,24 +146,24 @@ func (v *VMwareProvider) GetCapabilities() *ProviderCapabilities {
 	}
 }
 
-// Connect establishes connection to the vSphere environment
+// Connect establishes connection to the vSphere environment.
 func (v *VMwareProvider) Connect(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	logger.Info("connecting to VMware vSphere", "endpoint", v.config.Endpoint)
 
-	// Parse URL
+	// Parse URL.
 	u, err := soap.ParseURL(v.config.Endpoint)
 	if err != nil {
 		return fmt.Errorf("failed to parse vCenter URL: %w", err)
 	}
 
-	// Set credentials
+	// Set credentials.
 	u.User = url.UserPassword(
 		v.config.Credentials["username"],
 		v.config.Credentials["password"],
 	)
 
-	// Create client
+	// Create client.
 	client, err := govmomi.NewClient(ctx, u, true)
 	if err != nil {
 		return fmt.Errorf("failed to connect to vCenter: %w", err)
@@ -171,10 +171,10 @@ func (v *VMwareProvider) Connect(ctx context.Context) error {
 
 	v.client = client
 
-	// Create finder
+	// Create finder.
 	v.finder = find.NewFinder(client.Client, true)
 
-	// Set datacenter if specified
+	// Set datacenter if specified.
 	if dcName, ok := v.config.Parameters["datacenter"].(string); ok && dcName != "" {
 		dc, err := v.finder.Datacenter(ctx, dcName)
 		if err != nil {
@@ -184,7 +184,7 @@ func (v *VMwareProvider) Connect(ctx context.Context) error {
 		v.finder.SetDatacenter(dc)
 	}
 
-	// Initialize resource pool if specified
+	// Initialize resource pool if specified.
 	if poolPath, ok := v.config.Parameters["resource_pool"].(string); ok && poolPath != "" {
 		pool, err := v.finder.ResourcePool(ctx, poolPath)
 		if err != nil {
@@ -194,7 +194,7 @@ func (v *VMwareProvider) Connect(ctx context.Context) error {
 		}
 	}
 
-	// Initialize VM folder if specified
+	// Initialize VM folder if specified.
 	if folderPath, ok := v.config.Parameters["vm_folder"].(string); ok && folderPath != "" {
 		folder, err := v.finder.Folder(ctx, folderPath)
 		if err != nil {
@@ -204,7 +204,7 @@ func (v *VMwareProvider) Connect(ctx context.Context) error {
 		}
 	}
 
-	// Initialize datastore if specified
+	// Initialize datastore if specified.
 	if dsName, ok := v.config.Parameters["datastore"].(string); ok && dsName != "" {
 		ds, err := v.finder.Datastore(ctx, dsName)
 		if err != nil {
@@ -222,7 +222,7 @@ func (v *VMwareProvider) Connect(ctx context.Context) error {
 	return nil
 }
 
-// Disconnect closes the connection to vSphere
+// Disconnect closes the connection to vSphere.
 func (v *VMwareProvider) Disconnect(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	logger.Info("disconnecting from VMware vSphere")
@@ -237,13 +237,13 @@ func (v *VMwareProvider) Disconnect(ctx context.Context) error {
 		}
 	}
 
-	// Stop event watching if running
+	// Stop event watching if running.
 	select {
 	case v.stopChannel <- struct{}{}:
 	default:
 	}
 
-	// Clear caches
+	// Clear caches.
 	v.cacheMutex.Lock()
 	v.templateCache = make(map[string]*object.VirtualMachine)
 	v.networkCache = make(map[string]object.NetworkReference)
@@ -253,13 +253,13 @@ func (v *VMwareProvider) Disconnect(ctx context.Context) error {
 	return nil
 }
 
-// HealthCheck performs a health check on the vSphere environment
+// HealthCheck performs a health check on the vSphere environment.
 func (v *VMwareProvider) HealthCheck(ctx context.Context) error {
 	if v.client == nil {
 		return fmt.Errorf("not connected to vSphere")
 	}
 
-	// Check session is still valid
+	// Check session is still valid.
 	sessionMgr := session.NewManager(v.client.Client)
 	userSession, err := sessionMgr.UserSession(ctx)
 	if err != nil {
@@ -270,7 +270,7 @@ func (v *VMwareProvider) HealthCheck(ctx context.Context) error {
 		return fmt.Errorf("health check failed: session expired")
 	}
 
-	// Check datacenter accessibility
+	// Check datacenter accessibility.
 	if v.datacenter != nil {
 		var dc mo.Datacenter
 		err := v.datacenter.Properties(ctx, v.datacenter.Reference(), []string{"name"}, &dc)
@@ -279,7 +279,7 @@ func (v *VMwareProvider) HealthCheck(ctx context.Context) error {
 		}
 	}
 
-	// Check host connectivity
+	// Check host connectivity.
 	if v.datacenter != nil {
 		hosts, err := v.finder.HostSystemList(ctx, "*")
 		if err != nil {
@@ -303,12 +303,12 @@ func (v *VMwareProvider) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
-// Close closes any resources held by the provider
+// Close closes any resources held by the provider.
 func (v *VMwareProvider) Close() error {
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
 
-	// Stop event watching
+	// Stop event watching.
 	select {
 	case v.stopChannel <- struct{}{}:
 	default:
@@ -318,7 +318,7 @@ func (v *VMwareProvider) Close() error {
 	return nil
 }
 
-// CreateResource creates a new VMware resource
+// CreateResource creates a new VMware resource.
 func (v *VMwareProvider) CreateResource(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("creating VMware resource", "type", req.Type, "name", req.Name)
@@ -337,12 +337,12 @@ func (v *VMwareProvider) CreateResource(ctx context.Context, req *CreateResource
 	}
 }
 
-// GetResource retrieves a VMware resource
+// GetResource retrieves a VMware resource.
 func (v *VMwareProvider) GetResource(ctx context.Context, resourceID string) (*ResourceResponse, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("getting VMware resource", "resourceID", resourceID)
 
-	// Parse resourceID format: type/path or type/name
+	// Parse resourceID format: type/path or type/name.
 	parts := splitResourceID(resourceID)
 	if len(parts) < 2 {
 		return nil, fmt.Errorf("invalid resourceID format: %s", resourceID)
@@ -362,7 +362,7 @@ func (v *VMwareProvider) GetResource(ctx context.Context, resourceID string) (*R
 	}
 }
 
-// UpdateResource updates a VMware resource
+// UpdateResource updates a VMware resource.
 func (v *VMwareProvider) UpdateResource(ctx context.Context, resourceID string, req *UpdateResourceRequest) (*ResourceResponse, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("updating VMware resource", "resourceID", resourceID)
@@ -382,7 +382,7 @@ func (v *VMwareProvider) UpdateResource(ctx context.Context, resourceID string, 
 	}
 }
 
-// DeleteResource deletes a VMware resource
+// DeleteResource deletes a VMware resource.
 func (v *VMwareProvider) DeleteResource(ctx context.Context, resourceID string) error {
 	logger := log.FromContext(ctx)
 	logger.Info("deleting VMware resource", "resourceID", resourceID)
@@ -406,7 +406,7 @@ func (v *VMwareProvider) DeleteResource(ctx context.Context, resourceID string) 
 	}
 }
 
-// ListResources lists VMware resources with optional filtering
+// ListResources lists VMware resources with optional filtering.
 func (v *VMwareProvider) ListResources(ctx context.Context, filter *ResourceFilter) ([]*ResourceResponse, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("listing VMware resources", "filter", filter)
@@ -415,7 +415,7 @@ func (v *VMwareProvider) ListResources(ctx context.Context, filter *ResourceFilt
 
 	resourceTypes := filter.Types
 	if len(resourceTypes) == 0 {
-		// Default to common resource types
+		// Default to common resource types.
 		resourceTypes = []string{"virtualmachine", "datastore", "network"}
 	}
 
@@ -431,7 +431,7 @@ func (v *VMwareProvider) ListResources(ctx context.Context, filter *ResourceFilt
 	return resources, nil
 }
 
-// Deploy creates a deployment using vApp or OVF templates
+// Deploy creates a deployment using vApp or OVF templates.
 func (v *VMwareProvider) Deploy(ctx context.Context, req *DeploymentRequest) (*DeploymentResponse, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("deploying template", "name", req.Name, "type", req.TemplateType)
@@ -448,32 +448,32 @@ func (v *VMwareProvider) Deploy(ctx context.Context, req *DeploymentRequest) (*D
 	}
 }
 
-// GetDeployment retrieves a deployment (vApp or VM group)
+// GetDeployment retrieves a deployment (vApp or VM group).
 func (v *VMwareProvider) GetDeployment(ctx context.Context, deploymentID string) (*DeploymentResponse, error) {
-	// For VMware, deployments could be vApps or VM folders
-	// Implementation would depend on the deployment strategy
+	// For VMware, deployments could be vApps or VM folders.
+	// Implementation would depend on the deployment strategy.
 	return nil, fmt.Errorf("deployment retrieval not yet implemented")
 }
 
-// UpdateDeployment updates a deployment
+// UpdateDeployment updates a deployment.
 func (v *VMwareProvider) UpdateDeployment(ctx context.Context, deploymentID string, req *UpdateDeploymentRequest) (*DeploymentResponse, error) {
-	// Update vApp or VM group configuration
+	// Update vApp or VM group configuration.
 	return nil, fmt.Errorf("deployment update not yet implemented")
 }
 
-// DeleteDeployment deletes a deployment
+// DeleteDeployment deletes a deployment.
 func (v *VMwareProvider) DeleteDeployment(ctx context.Context, deploymentID string) error {
-	// Delete vApp or VM group
+	// Delete vApp or VM group.
 	return fmt.Errorf("deployment deletion not yet implemented")
 }
 
-// ListDeployments lists deployments
+// ListDeployments lists deployments.
 func (v *VMwareProvider) ListDeployments(ctx context.Context, filter *DeploymentFilter) ([]*DeploymentResponse, error) {
-	// List vApps or VM groups
+	// List vApps or VM groups.
 	return nil, fmt.Errorf("deployment listing not yet implemented")
 }
 
-// ScaleResource scales a VMware resource (typically VMs in a resource pool)
+// ScaleResource scales a VMware resource (typically VMs in a resource pool).
 func (v *VMwareProvider) ScaleResource(ctx context.Context, resourceID string, req *ScaleRequest) error {
 	logger := log.FromContext(ctx)
 	logger.Info("scaling VMware resource", "resourceID", resourceID, "direction", req.Direction)
@@ -489,7 +489,7 @@ func (v *VMwareProvider) ScaleResource(ctx context.Context, resourceID string, r
 		return fmt.Errorf("scaling not supported for resource type: %s", resourceType)
 	}
 
-	// For VMs, scaling typically means changing CPU/memory allocation
+	// For VMs, scaling typically means changing CPU/memory allocation.
 	if req.Type == ScaleTypeVertical {
 		return v.scaleVirtualMachine(ctx, name, req)
 	}
@@ -497,7 +497,7 @@ func (v *VMwareProvider) ScaleResource(ctx context.Context, resourceID string, r
 	return fmt.Errorf("horizontal scaling requires vApp or resource pool management")
 }
 
-// GetScalingCapabilities returns scaling capabilities for a resource
+// GetScalingCapabilities returns scaling capabilities for a resource.
 func (v *VMwareProvider) GetScalingCapabilities(ctx context.Context, resourceID string) (*ScalingCapabilities, error) {
 	parts := splitResourceID(resourceID)
 	if len(parts) < 2 {
@@ -535,7 +535,7 @@ func (v *VMwareProvider) GetScalingCapabilities(ctx context.Context, resourceID 
 	}
 }
 
-// GetMetrics returns cluster-level metrics
+// GetMetrics returns cluster-level metrics.
 func (v *VMwareProvider) GetMetrics(ctx context.Context) (map[string]interface{}, error) {
 	metrics := make(map[string]interface{})
 
@@ -543,7 +543,7 @@ func (v *VMwareProvider) GetMetrics(ctx context.Context) (map[string]interface{}
 		return metrics, fmt.Errorf("datacenter not initialized")
 	}
 
-	// Get host metrics
+	// Get host metrics.
 	hosts, err := v.finder.HostSystemList(ctx, "*")
 	if err == nil {
 		totalCPU := int16(0)
@@ -565,7 +565,7 @@ func (v *VMwareProvider) GetMetrics(ctx context.Context) (map[string]interface{}
 					totalCPU += h.Summary.Hardware.NumCpuCores
 					totalMemory += h.Summary.Hardware.MemorySize
 				}
-				// QuickStats is not a pointer, check if it has valid data
+				// QuickStats is not a pointer, check if it has valid data.
 				if h.Summary.QuickStats.OverallCpuUsage >= 0 {
 					usedCPU += h.Summary.QuickStats.OverallCpuUsage
 					usedMemory += int64(h.Summary.QuickStats.OverallMemoryUsage) * 1024 * 1024
@@ -581,7 +581,7 @@ func (v *VMwareProvider) GetMetrics(ctx context.Context) (map[string]interface{}
 		metrics["memory_bytes_used"] = usedMemory
 	}
 
-	// Get VM metrics
+	// Get VM metrics.
 	vms, err := v.finder.VirtualMachineList(ctx, "*")
 	if err == nil {
 		poweredOnVMs := 0
@@ -610,7 +610,7 @@ func (v *VMwareProvider) GetMetrics(ctx context.Context) (map[string]interface{}
 		metrics["vm_memory_mb_total"] = totalVMMemory
 	}
 
-	// Get datastore metrics
+	// Get datastore metrics.
 	datastores, err := v.finder.DatastoreList(ctx, "*")
 	if err == nil {
 		totalCapacity := int64(0)
@@ -623,7 +623,7 @@ func (v *VMwareProvider) GetMetrics(ctx context.Context) (map[string]interface{}
 				continue
 			}
 
-			// Summary is not a pointer, check if it has valid data
+			// Summary is not a pointer, check if it has valid data.
 			if dsObj.Summary.Capacity > 0 {
 				totalCapacity += dsObj.Summary.Capacity
 				freeSpace += dsObj.Summary.FreeSpace
@@ -639,7 +639,7 @@ func (v *VMwareProvider) GetMetrics(ctx context.Context) (map[string]interface{}
 	return metrics, nil
 }
 
-// GetResourceMetrics returns metrics for a specific resource
+// GetResourceMetrics returns metrics for a specific resource.
 func (v *VMwareProvider) GetResourceMetrics(ctx context.Context, resourceID string) (map[string]interface{}, error) {
 	parts := splitResourceID(resourceID)
 	if len(parts) < 2 {
@@ -664,24 +664,24 @@ func (v *VMwareProvider) GetResourceMetrics(ctx context.Context, resourceID stri
 
 		metrics["power_state"] = string(vmObj.Runtime.PowerState)
 		metrics["connection_state"] = string(vmObj.Runtime.ConnectionState)
-		// Summary is not a pointer, check if it has valid data
+		// Summary is not a pointer, check if it has valid data.
 		if vmObj.Summary.Config.NumCpu > 0 {
-			// QuickStats is not a pointer, check if it has valid data
+			// QuickStats is not a pointer, check if it has valid data.
 			if vmObj.Summary.QuickStats.OverallCpuUsage >= 0 {
 				metrics["cpu_mhz_used"] = vmObj.Summary.QuickStats.OverallCpuUsage
 				metrics["memory_mb_used"] = vmObj.Summary.QuickStats.GuestMemoryUsage
-				// CommittedStorage and UncommittedStorage may not be available in this version
-				// Use Storage summary if available
+				// CommittedStorage and UncommittedStorage may not be available in this version.
+				// Use Storage summary if available.
 				if vmObj.Summary.Storage != nil {
 					metrics["storage_bytes_committed"] = vmObj.Summary.Storage.Committed
 					metrics["storage_bytes_uncommitted"] = vmObj.Summary.Storage.Uncommitted
 				} else {
-					// Fallback to QuickStats fields if they exist
+					// Fallback to QuickStats fields if they exist.
 					metrics["storage_bytes_committed"] = 0
 					metrics["storage_bytes_uncommitted"] = 0
 				}
 			}
-			// Config is not a pointer, check if it has valid data
+			// Config is not a pointer, check if it has valid data.
 			if vmObj.Summary.Config.NumCpu > 0 {
 				metrics["vcpus"] = vmObj.Summary.Config.NumCpu
 				metrics["memory_mb"] = vmObj.Summary.Config.MemorySizeMB
@@ -700,7 +700,7 @@ func (v *VMwareProvider) GetResourceMetrics(ctx context.Context, resourceID stri
 			return nil, fmt.Errorf("failed to get datastore properties: %w", err)
 		}
 
-		// Summary is not a pointer, check if it has valid data
+		// Summary is not a pointer, check if it has valid data.
 		if dsObj.Summary.Capacity > 0 {
 			metrics["capacity_bytes"] = dsObj.Summary.Capacity
 			metrics["free_bytes"] = dsObj.Summary.FreeSpace
@@ -714,7 +714,7 @@ func (v *VMwareProvider) GetResourceMetrics(ctx context.Context, resourceID stri
 	return metrics, nil
 }
 
-// GetResourceHealth returns the health status of a resource
+// GetResourceHealth returns the health status of a resource.
 func (v *VMwareProvider) GetResourceHealth(ctx context.Context, resourceID string) (*HealthStatus, error) {
 	parts := splitResourceID(resourceID)
 	if len(parts) < 2 {
@@ -739,7 +739,7 @@ func (v *VMwareProvider) GetResourceHealth(ctx context.Context, resourceID strin
 	}
 }
 
-// Network operations
+// Network operations.
 func (v *VMwareProvider) CreateNetworkService(ctx context.Context, req *NetworkServiceRequest) (*NetworkServiceResponse, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("creating network service", "type", req.Type, "name", req.Name)
@@ -754,6 +754,7 @@ func (v *VMwareProvider) CreateNetworkService(ctx context.Context, req *NetworkS
 	}
 }
 
+// GetNetworkService performs getnetworkservice operation.
 func (v *VMwareProvider) GetNetworkService(ctx context.Context, serviceID string) (*NetworkServiceResponse, error) {
 	parts := splitResourceID(serviceID)
 	if len(parts) < 2 {
@@ -772,6 +773,7 @@ func (v *VMwareProvider) GetNetworkService(ctx context.Context, serviceID string
 	}
 }
 
+// DeleteNetworkService performs deletenetworkservice operation.
 func (v *VMwareProvider) DeleteNetworkService(ctx context.Context, serviceID string) error {
 	parts := splitResourceID(serviceID)
 	if len(parts) < 2 {
@@ -790,6 +792,7 @@ func (v *VMwareProvider) DeleteNetworkService(ctx context.Context, serviceID str
 	}
 }
 
+// ListNetworkServices performs listnetworkservices operation.
 func (v *VMwareProvider) ListNetworkServices(ctx context.Context, filter *NetworkServiceFilter) ([]*NetworkServiceResponse, error) {
 	var services []*NetworkServiceResponse
 
@@ -809,7 +812,7 @@ func (v *VMwareProvider) ListNetworkServices(ctx context.Context, filter *Networ
 	return services, nil
 }
 
-// Storage operations
+// Storage operations.
 func (v *VMwareProvider) CreateStorageResource(ctx context.Context, req *StorageResourceRequest) (*StorageResourceResponse, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("creating storage resource", "type", req.Type, "name", req.Name)
@@ -824,6 +827,7 @@ func (v *VMwareProvider) CreateStorageResource(ctx context.Context, req *Storage
 	}
 }
 
+// GetStorageResource performs getstorageresource operation.
 func (v *VMwareProvider) GetStorageResource(ctx context.Context, resourceID string) (*StorageResourceResponse, error) {
 	parts := splitResourceID(resourceID)
 	if len(parts) < 2 {
@@ -842,6 +846,7 @@ func (v *VMwareProvider) GetStorageResource(ctx context.Context, resourceID stri
 	}
 }
 
+// DeleteStorageResource performs deletestorageresource operation.
 func (v *VMwareProvider) DeleteStorageResource(ctx context.Context, resourceID string) error {
 	parts := splitResourceID(resourceID)
 	if len(parts) < 2 {
@@ -858,6 +863,7 @@ func (v *VMwareProvider) DeleteStorageResource(ctx context.Context, resourceID s
 	}
 }
 
+// ListStorageResources performs liststorageresources operation.
 func (v *VMwareProvider) ListStorageResources(ctx context.Context, filter *StorageResourceFilter) ([]*StorageResourceResponse, error) {
 	var resources []*StorageResourceResponse
 
@@ -877,7 +883,7 @@ func (v *VMwareProvider) ListStorageResources(ctx context.Context, filter *Stora
 	return resources, nil
 }
 
-// Event handling
+// Event handling.
 func (v *VMwareProvider) SubscribeToEvents(ctx context.Context, callback EventCallback) error {
 	logger := log.FromContext(ctx)
 	logger.Info("subscribing to VMware events")
@@ -886,12 +892,13 @@ func (v *VMwareProvider) SubscribeToEvents(ctx context.Context, callback EventCa
 	v.eventCallback = callback
 	v.mutex.Unlock()
 
-	// Start watching vSphere events
+	// Start watching vSphere events.
 	go v.watchEvents(ctx)
 
 	return nil
 }
 
+// UnsubscribeFromEvents performs unsubscribefromevents operation.
 func (v *VMwareProvider) UnsubscribeFromEvents(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	logger.Info("unsubscribing from VMware events")
@@ -908,7 +915,7 @@ func (v *VMwareProvider) UnsubscribeFromEvents(ctx context.Context) error {
 	return nil
 }
 
-// Configuration management
+// Configuration management.
 func (v *VMwareProvider) ApplyConfiguration(ctx context.Context, config *ProviderConfiguration) error {
 	logger := log.FromContext(ctx)
 	logger.Info("applying provider configuration", "name", config.Name)
@@ -918,7 +925,7 @@ func (v *VMwareProvider) ApplyConfiguration(ctx context.Context, config *Provide
 
 	v.config = config
 
-	// Reconnect if configuration changed
+	// Reconnect if configuration changed.
 	if v.connected {
 		if err := v.Connect(ctx); err != nil {
 			return fmt.Errorf("failed to reconnect with new configuration: %w", err)
@@ -928,6 +935,7 @@ func (v *VMwareProvider) ApplyConfiguration(ctx context.Context, config *Provide
 	return nil
 }
 
+// GetConfiguration performs getconfiguration operation.
 func (v *VMwareProvider) GetConfiguration(ctx context.Context) (*ProviderConfiguration, error) {
 	v.mutex.RLock()
 	defer v.mutex.RUnlock()
@@ -935,12 +943,13 @@ func (v *VMwareProvider) GetConfiguration(ctx context.Context) (*ProviderConfigu
 	return v.config, nil
 }
 
+// ValidateConfiguration performs validateconfiguration operation.
 func (v *VMwareProvider) ValidateConfiguration(ctx context.Context, config *ProviderConfiguration) error {
 	if config.Type != ProviderTypeVMware {
 		return fmt.Errorf("invalid provider type: expected %s, got %s", ProviderTypeVMware, config.Type)
 	}
 
-	// Check required credentials
+	// Check required credentials.
 	if _, exists := config.Credentials["username"]; !exists {
 		return fmt.Errorf("missing required credential: username")
 	}
@@ -952,7 +961,7 @@ func (v *VMwareProvider) ValidateConfiguration(ctx context.Context, config *Prov
 		return fmt.Errorf("endpoint (vCenter URL) is required")
 	}
 
-	// Check required parameters
+	// Check required parameters.
 	if _, exists := config.Parameters["datacenter"]; !exists {
 		return fmt.Errorf("datacenter parameter is required")
 	}
@@ -960,8 +969,8 @@ func (v *VMwareProvider) ValidateConfiguration(ctx context.Context, config *Prov
 	return nil
 }
 
-// Placeholder implementations for helper methods
-// These would be fully implemented in a production environment
+// Placeholder implementations for helper methods.
+// These would be fully implemented in a production environment.
 
 func (v *VMwareProvider) createVirtualMachine(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
 	return nil, fmt.Errorf("virtual machine creation not yet implemented")
@@ -1088,6 +1097,6 @@ func (v *VMwareProvider) listStorageResourcesByType(ctx context.Context, resourc
 }
 
 func (v *VMwareProvider) watchEvents(ctx context.Context) {
-	// Implementation would use vSphere event manager to watch for events
-	// and call the registered callback
+	// Implementation would use vSphere event manager to watch for events.
+	// and call the registered callback.
 }

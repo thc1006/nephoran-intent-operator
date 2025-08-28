@@ -26,7 +26,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-// Lock represents a distributed lock
+// Lock represents a distributed lock.
 type Lock struct {
 	Key        string            `json:"key"`
 	Owner      string            `json:"owner"`
@@ -36,41 +36,41 @@ type Lock struct {
 	Renewable  bool              `json:"renewable"`
 	Metadata   map[string]string `json:"metadata,omitempty"`
 
-	// Internal fields
+	// Internal fields.
 	renewalCancel context.CancelFunc
 	renewalDone   chan bool
 }
 
-// LockManager provides distributed locking capabilities
+// LockManager provides distributed locking capabilities.
 type LockManager struct {
 	logger logr.Logger
 	mutex  sync.RWMutex
 
-	// Active locks
+	// Active locks.
 	locks map[string]*Lock
 
-	// Lock queues for waiting requests
+	// Lock queues for waiting requests.
 	waitQueues map[string][]chan bool
 
-	// Configuration
+	// Configuration.
 	defaultTimeout  time.Duration
 	renewalInterval time.Duration
 	maxRetries      int
 	retryBackoff    time.Duration
 
-	// Statistics
+	// Statistics.
 	locksAcquired int64
 	locksReleased int64
 	lockTimeouts  int64
 	lockConflicts int64
 
-	// Background processes
+	// Background processes.
 	cleanupInterval time.Duration
 	stopCleanup     chan bool
 	cleanupRunning  bool
 }
 
-// LockOptions provides options for acquiring locks
+// LockOptions provides options for acquiring locks.
 type LockOptions struct {
 	Timeout      time.Duration     `json:"timeout,omitempty"`
 	LockType     string            `json:"lockType,omitempty"` // "exclusive", "shared"
@@ -81,7 +81,7 @@ type LockOptions struct {
 	RetryBackoff time.Duration     `json:"retryBackoff,omitempty"`
 }
 
-// DefaultLockOptions returns default lock options
+// DefaultLockOptions returns default lock options.
 func DefaultLockOptions() *LockOptions {
 	return &LockOptions{
 		Timeout:      30 * time.Second,
@@ -92,7 +92,7 @@ func DefaultLockOptions() *LockOptions {
 	}
 }
 
-// NewLockManager creates a new lock manager
+// NewLockManager creates a new lock manager.
 func NewLockManager(defaultTimeout, retryInterval time.Duration, maxRetries int) *LockManager {
 	lm := &LockManager{
 		logger:          ctrl.Log.WithName("lock-manager"),
@@ -106,20 +106,20 @@ func NewLockManager(defaultTimeout, retryInterval time.Duration, maxRetries int)
 		stopCleanup:     make(chan bool),
 	}
 
-	// Start background cleanup
+	// Start background cleanup.
 	go lm.runCleanup()
 
 	return lm
 }
 
-// AcquireLock acquires a lock with default options
+// AcquireLock acquires a lock with default options.
 func (lm *LockManager) AcquireLock(ctx context.Context, key string) error {
 	opts := DefaultLockOptions()
 	opts.Owner = "default"
 	return lm.AcquireLockWithOptions(ctx, key, opts)
 }
 
-// AcquireLockWithOptions acquires a lock with specified options
+// AcquireLockWithOptions acquires a lock with specified options.
 func (lm *LockManager) AcquireLockWithOptions(ctx context.Context, key string, opts *LockOptions) error {
 	if opts == nil {
 		opts = DefaultLockOptions()
@@ -130,14 +130,14 @@ func (lm *LockManager) AcquireLockWithOptions(ctx context.Context, key string, o
 		timeout = lm.defaultTimeout
 	}
 
-	// Create context with timeout
+	// Create context with timeout.
 	lockCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	// Try to acquire lock with retries
+	// Try to acquire lock with retries.
 	for attempt := 0; attempt <= opts.RetryCount; attempt++ {
 		if attempt > 0 {
-			// Wait before retry
+			// Wait before retry.
 			select {
 			case <-time.After(opts.RetryBackoff):
 			case <-lockCtx.Done():
@@ -159,7 +159,7 @@ func (lm *LockManager) AcquireLockWithOptions(ctx context.Context, key string, o
 			return nil
 		}
 
-		// Lock is held by someone else, wait or retry
+		// Lock is held by someone else, wait or retry.
 		if attempt < opts.RetryCount {
 			if !lm.waitForLockRelease(lockCtx, key) {
 				lm.lockTimeouts++
@@ -172,7 +172,7 @@ func (lm *LockManager) AcquireLockWithOptions(ctx context.Context, key string, o
 	return fmt.Errorf("failed to acquire lock %s after %d attempts", key, opts.RetryCount+1)
 }
 
-// ReleaseLock releases a lock
+// ReleaseLock releases a lock.
 func (lm *LockManager) ReleaseLock(key string) error {
 	lm.mutex.Lock()
 	defer lm.mutex.Unlock()
@@ -182,16 +182,16 @@ func (lm *LockManager) ReleaseLock(key string) error {
 		return fmt.Errorf("lock not found: %s", key)
 	}
 
-	// Cancel renewal if active
+	// Cancel renewal if active.
 	if lock.renewalCancel != nil {
 		lock.renewalCancel()
 	}
 
-	// Remove lock
+	// Remove lock.
 	delete(lm.locks, key)
 	lm.locksReleased++
 
-	// Notify waiting goroutines
+	// Notify waiting goroutines.
 	lm.notifyWaiters(key)
 
 	lm.logger.V(1).Info("Lock released", "key", key, "owner", lock.Owner)
@@ -199,7 +199,7 @@ func (lm *LockManager) ReleaseLock(key string) error {
 	return nil
 }
 
-// IsLocked checks if a key is locked
+// IsLocked checks if a key is locked.
 func (lm *LockManager) IsLocked(key string) bool {
 	lm.mutex.RLock()
 	defer lm.mutex.RUnlock()
@@ -209,7 +209,7 @@ func (lm *LockManager) IsLocked(key string) bool {
 		return false
 	}
 
-	// Check if lock has expired
+	// Check if lock has expired.
 	if time.Now().After(lock.ExpiresAt) {
 		return false
 	}
@@ -217,7 +217,7 @@ func (lm *LockManager) IsLocked(key string) bool {
 	return true
 }
 
-// GetLock retrieves lock information
+// GetLock retrieves lock information.
 func (lm *LockManager) GetLock(key string) (*Lock, bool) {
 	lm.mutex.RLock()
 	defer lm.mutex.RUnlock()
@@ -227,7 +227,7 @@ func (lm *LockManager) GetLock(key string) (*Lock, bool) {
 		return nil, false
 	}
 
-	// Check if lock has expired
+	// Check if lock has expired.
 	if time.Now().After(lock.ExpiresAt) {
 		return nil, false
 	}
@@ -235,7 +235,7 @@ func (lm *LockManager) GetLock(key string) (*Lock, bool) {
 	return lock, true
 }
 
-// ActiveLocks returns the number of active locks
+// ActiveLocks returns the number of active locks.
 func (lm *LockManager) ActiveLocks() int {
 	lm.mutex.RLock()
 	defer lm.mutex.RUnlock()
@@ -243,7 +243,7 @@ func (lm *LockManager) ActiveLocks() int {
 	return len(lm.locks)
 }
 
-// ListLocks returns all active locks
+// ListLocks returns all active locks.
 func (lm *LockManager) ListLocks() []*Lock {
 	lm.mutex.RLock()
 	defer lm.mutex.RUnlock()
@@ -260,7 +260,7 @@ func (lm *LockManager) ListLocks() []*Lock {
 	return locks
 }
 
-// RenewLock renews a lock's expiration time
+// RenewLock renews a lock's expiration time.
 func (lm *LockManager) RenewLock(key string, duration time.Duration) error {
 	lm.mutex.Lock()
 	defer lm.mutex.Unlock()
@@ -274,12 +274,12 @@ func (lm *LockManager) RenewLock(key string, duration time.Duration) error {
 		return fmt.Errorf("lock is not renewable: %s", key)
 	}
 
-	// Check if lock has expired
+	// Check if lock has expired.
 	if time.Now().After(lock.ExpiresAt) {
 		return fmt.Errorf("lock has expired: %s", key)
 	}
 
-	// Renew the lock
+	// Renew the lock.
 	lock.ExpiresAt = time.Now().Add(duration)
 
 	lm.logger.V(1).Info("Lock renewed", "key", key, "owner", lock.Owner, "expiresAt", lock.ExpiresAt)
@@ -287,7 +287,7 @@ func (lm *LockManager) RenewLock(key string, duration time.Duration) error {
 	return nil
 }
 
-// GetStats returns lock manager statistics
+// GetStats returns lock manager statistics.
 func (lm *LockManager) GetStats() *LockStats {
 	lm.mutex.RLock()
 	defer lm.mutex.RUnlock()
@@ -301,14 +301,14 @@ func (lm *LockManager) GetStats() *LockStats {
 	}
 }
 
-// Stop stops the lock manager
+// Stop stops the lock manager.
 func (lm *LockManager) Stop() {
 	if lm.cleanupRunning {
 		lm.stopCleanup <- true
 		lm.cleanupRunning = false
 	}
 
-	// Release all locks
+	// Release all locks.
 	lm.mutex.Lock()
 	for key := range lm.locks {
 		lm.ReleaseLock(key)
@@ -316,7 +316,7 @@ func (lm *LockManager) Stop() {
 	lm.mutex.Unlock()
 }
 
-// Internal methods
+// Internal methods.
 
 func (lm *LockManager) tryAcquireLock(ctx context.Context, key string, opts *LockOptions) (bool, error) {
 	lm.mutex.Lock()
@@ -324,23 +324,23 @@ func (lm *LockManager) tryAcquireLock(ctx context.Context, key string, opts *Loc
 
 	existingLock, exists := lm.locks[key]
 
-	// Check if lock exists and is still valid
+	// Check if lock exists and is still valid.
 	if exists {
 		if time.Now().Before(existingLock.ExpiresAt) {
-			// Lock is still active
+			// Lock is still active.
 			if opts.LockType == LockTypeShared && existingLock.LockType == LockTypeShared {
-				// Both are shared locks, allow
+				// Both are shared locks, allow.
 				return true, nil
 			}
-			// Exclusive lock conflict
+			// Exclusive lock conflict.
 			lm.lockConflicts++
 			return false, nil
 		}
-		// Lock has expired, remove it
+		// Lock has expired, remove it.
 		delete(lm.locks, key)
 	}
 
-	// Create new lock
+	// Create new lock.
 	lock := &Lock{
 		Key:        key,
 		Owner:      opts.Owner,
@@ -351,7 +351,7 @@ func (lm *LockManager) tryAcquireLock(ctx context.Context, key string, opts *Loc
 		Metadata:   opts.Metadata,
 	}
 
-	// Start auto-renewal if enabled
+	// Start auto-renewal if enabled.
 	if lock.Renewable {
 		renewalCtx, cancel := context.WithCancel(ctx)
 		lock.renewalCancel = cancel
@@ -370,18 +370,18 @@ func (lm *LockManager) tryAcquireLock(ctx context.Context, key string, opts *Loc
 func (lm *LockManager) waitForLockRelease(ctx context.Context, key string) bool {
 	lm.mutex.Lock()
 
-	// Add to wait queue
+	// Add to wait queue.
 	waitChan := make(chan bool, 1)
 	lm.waitQueues[key] = append(lm.waitQueues[key], waitChan)
 
 	lm.mutex.Unlock()
 
-	// Wait for notification or timeout
+	// Wait for notification or timeout.
 	select {
 	case <-waitChan:
 		return true
 	case <-ctx.Done():
-		// Remove from wait queue
+		// Remove from wait queue.
 		lm.mutex.Lock()
 		lm.removeFromWaitQueue(key, waitChan)
 		lm.mutex.Unlock()
@@ -395,16 +395,16 @@ func (lm *LockManager) notifyWaiters(key string) {
 		return
 	}
 
-	// Notify all waiters
+	// Notify all waiters.
 	for _, waitChan := range waiters {
 		select {
 		case waitChan <- true:
 		default:
-			// Channel is full or closed
+			// Channel is full or closed.
 		}
 	}
 
-	// Clear the wait queue
+	// Clear the wait queue.
 	delete(lm.waitQueues, key)
 }
 
@@ -414,7 +414,7 @@ func (lm *LockManager) removeFromWaitQueue(key string, targetChan chan bool) {
 		return
 	}
 
-	// Remove the specific channel from the wait queue
+	// Remove the specific channel from the wait queue.
 	for i, waitChan := range waiters {
 		if waitChan == targetChan {
 			lm.waitQueues[key] = append(waiters[:i], waiters[i+1:]...)
@@ -422,7 +422,7 @@ func (lm *LockManager) removeFromWaitQueue(key string, targetChan chan bool) {
 		}
 	}
 
-	// Clean up empty wait queue
+	// Clean up empty wait queue.
 	if len(lm.waitQueues[key]) == 0 {
 		delete(lm.waitQueues, key)
 	}
@@ -435,7 +435,7 @@ func (lm *LockManager) autoRenewLock(ctx context.Context, lock *Lock) {
 	for {
 		select {
 		case <-ticker.C:
-			// Check if lock still exists
+			// Check if lock still exists.
 			lm.mutex.RLock()
 			_, exists := lm.locks[lock.Key]
 			lm.mutex.RUnlock()
@@ -444,7 +444,7 @@ func (lm *LockManager) autoRenewLock(ctx context.Context, lock *Lock) {
 				return
 			}
 
-			// Renew the lock
+			// Renew the lock.
 			renewalDuration := lm.renewalInterval * 3 // Give some buffer
 			if err := lm.RenewLock(lock.Key, renewalDuration); err != nil {
 				lm.logger.Error(err, "Failed to renew lock", "key", lock.Key)
@@ -488,7 +488,7 @@ func (lm *LockManager) cleanupExpiredLocks() {
 	for _, key := range expired {
 		lock := lm.locks[key]
 
-		// Cancel renewal if active
+		// Cancel renewal if active.
 		if lock.renewalCancel != nil {
 			lock.renewalCancel()
 		}
@@ -500,7 +500,7 @@ func (lm *LockManager) cleanupExpiredLocks() {
 	}
 }
 
-// LockStats provides statistics about the lock manager
+// LockStats provides statistics about the lock manager.
 type LockStats struct {
 	ActiveLocks   int64 `json:"activeLocks"`
 	LocksAcquired int64 `json:"locksAcquired"`
@@ -509,7 +509,7 @@ type LockStats struct {
 	LockConflicts int64 `json:"lockConflicts"`
 }
 
-// LockWithContext provides a context-aware lock implementation
+// LockWithContext provides a context-aware lock implementation.
 func (lm *LockManager) LockWithContext(ctx context.Context, key string, fn func() error) error {
 	if err := lm.AcquireLock(ctx, key); err != nil {
 		return fmt.Errorf("failed to acquire lock: %w", err)
@@ -524,7 +524,7 @@ func (lm *LockManager) LockWithContext(ctx context.Context, key string, fn func(
 	return fn()
 }
 
-// TryLockWithTimeout attempts to acquire a lock with a timeout
+// TryLockWithTimeout attempts to acquire a lock with a timeout.
 func (lm *LockManager) TryLockWithTimeout(ctx context.Context, key string, timeout time.Duration) error {
 	opts := DefaultLockOptions()
 	opts.Timeout = timeout

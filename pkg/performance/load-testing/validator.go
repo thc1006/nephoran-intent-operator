@@ -1,4 +1,4 @@
-// Package loadtesting provides performance validation for load tests
+// Package loadtesting provides performance validation for load tests.
 package loadtesting
 
 import (
@@ -12,7 +12,7 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// PerformanceValidatorImpl validates performance claims against test results
+// PerformanceValidatorImpl validates performance claims against test results.
 type PerformanceValidatorImpl struct {
 	config     *LoadTestConfig
 	logger     *zap.Logger
@@ -20,13 +20,13 @@ type PerformanceValidatorImpl struct {
 	tests      []StatisticalValidator
 }
 
-// StatisticalValidator interface for statistical validation methods
+// StatisticalValidator interface for statistical validation methods.
 type StatisticalValidator interface {
 	Validate(data []float64, threshold float64) (bool, float64, string)
 	GetName() string
 }
 
-// NewPerformanceValidator creates a new performance validator
+// NewPerformanceValidator creates a new performance validator.
 func NewPerformanceValidator(config *LoadTestConfig, logger *zap.Logger) *PerformanceValidatorImpl {
 	if logger == nil {
 		logger = zap.NewNop()
@@ -52,13 +52,13 @@ func NewPerformanceValidator(config *LoadTestConfig, logger *zap.Logger) *Perfor
 		tests: make([]StatisticalValidator, 0),
 	}
 
-	// Initialize statistical tests
+	// Initialize statistical tests.
 	validator.initializeTests()
 
 	return validator
 }
 
-// Validate checks if performance meets requirements
+// Validate checks if performance meets requirements.
 func (v *PerformanceValidatorImpl) Validate(results *LoadTestResults) ValidationReport {
 	report := ValidationReport{
 		Passed:          true,
@@ -70,7 +70,7 @@ func (v *PerformanceValidatorImpl) Validate(results *LoadTestResults) Validation
 		Evidence:        make([]Evidence, 0),
 	}
 
-	// Validate each performance claim
+	// Validate each performance claim.
 	v.validateConcurrentIntents(results, &report)
 	v.validateThroughput(results, &report)
 	v.validateLatency(results, &report)
@@ -78,18 +78,18 @@ func (v *PerformanceValidatorImpl) Validate(results *LoadTestResults) Validation
 	v.validateResourceUsage(results, &report)
 	v.validateStatisticalSignificance(results, &report)
 
-	// Calculate final score
+	// Calculate final score.
 	report.Score = v.calculateScore(&report)
 
-	// Generate recommendations
+	// Generate recommendations.
 	v.generateRecommendations(results, &report)
 
 	return report
 }
 
-// ValidateRealtime performs real-time validation during test execution
+// ValidateRealtime performs real-time validation during test execution.
 func (v *PerformanceValidatorImpl) ValidateRealtime(metrics GeneratorMetrics) bool {
-	// Check error rate
+	// Check error rate.
 	if metrics.ErrorRate > v.thresholds.MaxErrorRate {
 		v.logger.Warn("Real-time validation failed: high error rate",
 			zap.Float64("errorRate", metrics.ErrorRate),
@@ -97,7 +97,7 @@ func (v *PerformanceValidatorImpl) ValidateRealtime(metrics GeneratorMetrics) bo
 		return false
 	}
 
-	// Check latency
+	// Check latency.
 	if metrics.AverageLatency > v.thresholds.MaxLatencyP95 {
 		v.logger.Warn("Real-time validation failed: high latency",
 			zap.Duration("latency", metrics.AverageLatency),
@@ -105,7 +105,7 @@ func (v *PerformanceValidatorImpl) ValidateRealtime(metrics GeneratorMetrics) bo
 		return false
 	}
 
-	// Check throughput
+	// Check throughput.
 	currentThroughput := metrics.CurrentRate * 60           // Convert to per minute
 	if currentThroughput < v.thresholds.MinThroughput*0.8 { // Allow 20% tolerance during ramp-up
 		v.logger.Warn("Real-time validation failed: low throughput",
@@ -117,15 +117,15 @@ func (v *PerformanceValidatorImpl) ValidateRealtime(metrics GeneratorMetrics) bo
 	return true
 }
 
-// GetThresholds returns validation thresholds
+// GetThresholds returns validation thresholds.
 func (v *PerformanceValidatorImpl) GetThresholds() ValidationThresholds {
 	return v.thresholds
 }
 
-// Private validation methods
+// Private validation methods.
 
 func (v *PerformanceValidatorImpl) validateConcurrentIntents(results *LoadTestResults, report *ValidationReport) {
-	// Check if system handled 200+ concurrent intents
+	// Check if system handled 200+ concurrent intents.
 	maxConcurrent := v.calculateMaxConcurrent(results)
 
 	evidence := Evidence{
@@ -155,7 +155,7 @@ func (v *PerformanceValidatorImpl) validateConcurrentIntents(results *LoadTestRe
 }
 
 func (v *PerformanceValidatorImpl) validateThroughput(results *LoadTestResults, report *ValidationReport) {
-	// Check if system achieved 45 intents per minute
+	// Check if system achieved 45 intents per minute.
 	targetThroughput := 45.0
 
 	evidence := Evidence{
@@ -181,7 +181,7 @@ func (v *PerformanceValidatorImpl) validateThroughput(results *LoadTestResults, 
 		evidence.Data["result"] = "FAIL"
 	}
 
-	// Check consistency
+	// Check consistency.
 	if results.MinThroughput < targetThroughput*0.8 {
 		report.Warnings = append(report.Warnings,
 			fmt.Sprintf("Throughput inconsistent - minimum was %.2f intents/min", results.MinThroughput))
@@ -196,7 +196,7 @@ func (v *PerformanceValidatorImpl) validateThroughput(results *LoadTestResults, 
 }
 
 func (v *PerformanceValidatorImpl) validateLatency(results *LoadTestResults, report *ValidationReport) {
-	// Check if P95 latency is under 2 seconds
+	// Check if P95 latency is under 2 seconds.
 	targetP95 := 2000 * time.Millisecond
 
 	evidence := Evidence{
@@ -223,7 +223,7 @@ func (v *PerformanceValidatorImpl) validateLatency(results *LoadTestResults, rep
 		evidence.Data["result"] = "FAIL"
 	}
 
-	// Additional latency checks
+	// Additional latency checks.
 	if results.LatencyP99 > 5*time.Second {
 		report.Warnings = append(report.Warnings,
 			fmt.Sprintf("P99 latency is high: %v", results.LatencyP99))
@@ -241,7 +241,7 @@ func (v *PerformanceValidatorImpl) validateLatency(results *LoadTestResults, rep
 }
 
 func (v *PerformanceValidatorImpl) validateAvailability(results *LoadTestResults, report *ValidationReport) {
-	// Check if system achieved 99.95% availability
+	// Check if system achieved 99.95% availability.
 	targetAvailability := 0.9995
 
 	evidence := Evidence{
@@ -269,7 +269,7 @@ func (v *PerformanceValidatorImpl) validateAvailability(results *LoadTestResults
 		evidence.Data["result"] = "FAIL"
 	}
 
-	// Calculate allowed downtime
+	// Calculate allowed downtime.
 	allowedDowntime := results.Duration * time.Duration(1-targetAvailability)
 	if results.Downtime > allowedDowntime {
 		report.Warnings = append(report.Warnings,
@@ -294,7 +294,7 @@ func (v *PerformanceValidatorImpl) validateResourceUsage(results *LoadTestResult
 		Timestamp: time.Now(),
 	}
 
-	// Check CPU usage
+	// Check CPU usage.
 	if results.PeakCPU > v.thresholds.MaxResourceUsage.CPUPercent {
 		report.Warnings = append(report.Warnings,
 			fmt.Sprintf("Peak CPU usage exceeded limit: %.2f%% > %.2f%%",
@@ -302,7 +302,7 @@ func (v *PerformanceValidatorImpl) validateResourceUsage(results *LoadTestResult
 		evidence.Data["cpu_exceeded"] = true
 	}
 
-	// Check memory usage
+	// Check memory usage.
 	if results.PeakMemoryGB > v.thresholds.MaxResourceUsage.MemoryGB {
 		report.Warnings = append(report.Warnings,
 			fmt.Sprintf("Peak memory usage exceeded limit: %.2fGB > %.2fGB",
@@ -310,7 +310,7 @@ func (v *PerformanceValidatorImpl) validateResourceUsage(results *LoadTestResult
 		evidence.Data["memory_exceeded"] = true
 	}
 
-	// Check network usage
+	// Check network usage.
 	if results.PeakNetworkMbps > v.thresholds.MaxResourceUsage.NetworkMbps {
 		report.Warnings = append(report.Warnings,
 			fmt.Sprintf("Peak network usage exceeded limit: %.2fMbps > %.2fMbps",
@@ -332,7 +332,7 @@ func (v *PerformanceValidatorImpl) validateStatisticalSignificance(results *Load
 		return
 	}
 
-	// Validate statistical tests
+	// Validate statistical tests.
 	for testName, testResult := range results.StatisticalAnalysis.TestResults {
 		if !testResult.Significant {
 			continue
@@ -353,14 +353,14 @@ func (v *PerformanceValidatorImpl) validateStatisticalSignificance(results *Load
 
 		report.Evidence = append(report.Evidence, evidence)
 
-		// Check if test indicates performance issue
+		// Check if test indicates performance issue.
 		if testResult.PValue < 0.05 && testName == "performance_degradation" {
 			report.Warnings = append(report.Warnings,
 				fmt.Sprintf("Statistical test indicates performance degradation: %s", testResult.Conclusion))
 		}
 	}
 
-	// Validate confidence intervals
+	// Validate confidence intervals.
 	for metric, ci := range results.StatisticalAnalysis.ConfidenceIntervals {
 		if metric == "latency_p95" {
 			if ci.Upper > float64(v.thresholds.MaxLatencyP95.Milliseconds()) {
@@ -379,7 +379,7 @@ func (v *PerformanceValidatorImpl) validateStatisticalSignificance(results *Load
 }
 
 func (v *PerformanceValidatorImpl) initializeTests() {
-	// Add statistical test validators
+	// Add statistical test validators.
 	v.tests = append(v.tests, &TTestValidator{logger: v.logger})
 	v.tests = append(v.tests, &MannWhitneyValidator{logger: v.logger})
 	v.tests = append(v.tests, &ChiSquareValidator{logger: v.logger})
@@ -387,10 +387,10 @@ func (v *PerformanceValidatorImpl) initializeTests() {
 }
 
 func (v *PerformanceValidatorImpl) calculateMaxConcurrent(results *LoadTestResults) int {
-	// Calculate based on Little's Law: L = λW
-	// L = average number in system
-	// λ = arrival rate (throughput)
-	// W = average time in system (latency)
+	// Calculate based on Little's Law: L = λW.
+	// L = average number in system.
+	// λ = arrival rate (throughput).
+	// W = average time in system (latency).
 
 	if results.AverageThroughput == 0 || results.LatencyMean == 0 {
 		return 0
@@ -401,7 +401,7 @@ func (v *PerformanceValidatorImpl) calculateMaxConcurrent(results *LoadTestResul
 
 	maxConcurrent := int(math.Ceil(arrivalRate * avgTimeInSystem))
 
-	// Adjust based on concurrency setting
+	// Adjust based on concurrency setting.
 	if v.config.Concurrency > 0 {
 		maxConcurrent = v.config.Concurrency
 	}
@@ -412,15 +412,15 @@ func (v *PerformanceValidatorImpl) calculateMaxConcurrent(results *LoadTestResul
 func (v *PerformanceValidatorImpl) calculateScore(report *ValidationReport) float64 {
 	score := 100.0
 
-	// Deduct points for failed criteria
+	// Deduct points for failed criteria.
 	deductionPerFailure := 20.0
 	score -= float64(len(report.FailedCriteria)) * deductionPerFailure
 
-	// Deduct points for warnings
+	// Deduct points for warnings.
 	deductionPerWarning := 5.0
 	score -= float64(len(report.Warnings)) * deductionPerWarning
 
-	// Ensure score doesn't go below 0
+	// Ensure score doesn't go below 0.
 	if score < 0 {
 		score = 0
 	}
@@ -429,7 +429,7 @@ func (v *PerformanceValidatorImpl) calculateScore(report *ValidationReport) floa
 }
 
 func (v *PerformanceValidatorImpl) generateRecommendations(results *LoadTestResults, report *ValidationReport) {
-	// Based on validation results, generate recommendations
+	// Based on validation results, generate recommendations.
 
 	if results.Availability < v.thresholds.MinAvailability {
 		report.Recommendations = append(report.Recommendations,
@@ -462,7 +462,7 @@ func (v *PerformanceValidatorImpl) generateRecommendations(results *LoadTestResu
 			"Memory usage approaching limit - check for memory leaks")
 	}
 
-	// Recommendations based on breaking point analysis
+	// Recommendations based on breaking point analysis.
 	if results.BreakingPoint != nil {
 		if results.BreakingPoint.MaxConcurrentIntents < 200 {
 			report.Recommendations = append(report.Recommendations,
@@ -478,13 +478,14 @@ func (v *PerformanceValidatorImpl) generateRecommendations(results *LoadTestResu
 	}
 }
 
-// Statistical Test Validators
+// Statistical Test Validators.
 
-// TTestValidator performs Student's t-test validation
+// TTestValidator performs Student's t-test validation.
 type TTestValidator struct {
 	logger *zap.Logger
 }
 
+// Validate performs validate operation.
 func (t *TTestValidator) Validate(data []float64, threshold float64) (bool, float64, string) {
 	if len(data) < 30 {
 		return false, 0, "Insufficient data for t-test (need at least 30 samples)"
@@ -494,10 +495,10 @@ func (t *TTestValidator) Validate(data []float64, threshold float64) (bool, floa
 	stdDev := stat.StdDev(data, nil)
 	n := float64(len(data))
 
-	// Calculate t-statistic
+	// Calculate t-statistic.
 	tStatistic := (mean - threshold) / (stdDev / math.Sqrt(n))
 
-	// Calculate p-value (simplified - in production use proper t-distribution)
+	// Calculate p-value (simplified - in production use proper t-distribution).
 	pValue := 2 * (1 - cumulativeNormal(math.Abs(tStatistic)))
 
 	significant := pValue < 0.05
@@ -507,27 +508,29 @@ func (t *TTestValidator) Validate(data []float64, threshold float64) (bool, floa
 	return significant, pValue, conclusion
 }
 
+// GetName performs getname operation.
 func (t *TTestValidator) GetName() string {
 	return "t_test"
 }
 
-// MannWhitneyValidator performs Mann-Whitney U test
+// MannWhitneyValidator performs Mann-Whitney U test.
 type MannWhitneyValidator struct {
 	logger *zap.Logger
 }
 
+// Validate performs validate operation.
 func (m *MannWhitneyValidator) Validate(data []float64, threshold float64) (bool, float64, string) {
 	if len(data) < 20 {
 		return false, 0, "Insufficient data for Mann-Whitney test"
 	}
 
-	// Create comparison sample around threshold
+	// Create comparison sample around threshold.
 	comparisonData := make([]float64, len(data))
 	for i := range comparisonData {
 		comparisonData[i] = threshold + (distuv.Normal{Mu: 0, Sigma: threshold * 0.1}.Rand())
 	}
 
-	// Perform Mann-Whitney U test
+	// Perform Mann-Whitney U test.
 	u, pValue := mannWhitneyU(data, comparisonData)
 
 	significant := pValue < 0.05
@@ -536,27 +539,29 @@ func (m *MannWhitneyValidator) Validate(data []float64, threshold float64) (bool
 	return significant, pValue, conclusion
 }
 
+// GetName performs getname operation.
 func (m *MannWhitneyValidator) GetName() string {
 	return "mann_whitney"
 }
 
-// ChiSquareValidator performs Chi-square goodness of fit test
+// ChiSquareValidator performs Chi-square goodness of fit test.
 type ChiSquareValidator struct {
 	logger *zap.Logger
 }
 
+// Validate performs validate operation.
 func (c *ChiSquareValidator) Validate(data []float64, threshold float64) (bool, float64, string) {
 	if len(data) < 50 {
 		return false, 0, "Insufficient data for Chi-square test"
 	}
 
-	// Create bins
+	// Create bins.
 	numBins := 10
 	bins := make([]int, numBins)
 	min, max := minMax(data)
 	binWidth := (max - min) / float64(numBins)
 
-	// Count observations in each bin
+	// Count observations in each bin.
 	for _, value := range data {
 		binIndex := int((value - min) / binWidth)
 		if binIndex >= numBins {
@@ -565,7 +570,7 @@ func (c *ChiSquareValidator) Validate(data []float64, threshold float64) (bool, 
 		bins[binIndex]++
 	}
 
-	// Calculate expected frequencies (assuming normal distribution)
+	// Calculate expected frequencies (assuming normal distribution).
 	n := float64(len(data))
 	mean := stat.Mean(data, nil)
 	stdDev := stat.StdDev(data, nil)
@@ -579,7 +584,7 @@ func (c *ChiSquareValidator) Validate(data []float64, threshold float64) (bool, 
 		}
 	}
 
-	// Calculate p-value (simplified)
+	// Calculate p-value (simplified).
 	df := float64(numBins - 1)
 	pValue := 1 - chiSquareCDF(chiSquare, df)
 
@@ -589,21 +594,23 @@ func (c *ChiSquareValidator) Validate(data []float64, threshold float64) (bool, 
 	return significant, pValue, conclusion
 }
 
+// GetName performs getname operation.
 func (c *ChiSquareValidator) GetName() string {
 	return "chi_square"
 }
 
-// AndersonDarlingValidator performs Anderson-Darling test for normality
+// AndersonDarlingValidator performs Anderson-Darling test for normality.
 type AndersonDarlingValidator struct {
 	logger *zap.Logger
 }
 
+// Validate performs validate operation.
 func (a *AndersonDarlingValidator) Validate(data []float64, threshold float64) (bool, float64, string) {
 	if len(data) < 8 {
 		return false, 0, "Insufficient data for Anderson-Darling test"
 	}
 
-	// Sort data
+	// Sort data.
 	sorted := make([]float64, len(data))
 	copy(sorted, data)
 	sort.Float64s(sorted)
@@ -612,7 +619,7 @@ func (a *AndersonDarlingValidator) Validate(data []float64, threshold float64) (
 	mean := stat.Mean(sorted, nil)
 	stdDev := stat.StdDev(sorted, nil)
 
-	// Calculate A² statistic
+	// Calculate A² statistic.
 	aSquared := -n
 	for i, x := range sorted {
 		z := (x - mean) / stdDev
@@ -623,10 +630,10 @@ func (a *AndersonDarlingValidator) Validate(data []float64, threshold float64) (
 		aSquared -= (2*float64(i+1) - 1) / n * (math.Log(Fi) + math.Log(1-cumulativeNormal((sorted[len(sorted)-1-i]-mean)/stdDev)))
 	}
 
-	// Adjust for sample size
+	// Adjust for sample size.
 	aSquaredAdjusted := aSquared * (1 + 0.75/n + 2.25/(n*n))
 
-	// Critical value at 0.05 significance level
+	// Critical value at 0.05 significance level.
 	criticalValue := 0.752
 
 	significant := aSquaredAdjusted > criticalValue
@@ -637,11 +644,12 @@ func (a *AndersonDarlingValidator) Validate(data []float64, threshold float64) (
 	return significant, pValue, conclusion
 }
 
+// GetName performs getname operation.
 func (a *AndersonDarlingValidator) GetName() string {
 	return "anderson_darling"
 }
 
-// Helper functions for statistical calculations
+// Helper functions for statistical calculations.
 
 func cumulativeNormal(z float64) float64 {
 	return 0.5 * (1 + math.Erf(z/math.Sqrt(2)))
@@ -652,23 +660,23 @@ func normalPDF(x, mu, sigma float64) float64 {
 }
 
 func chiSquareCDF(x float64, df float64) float64 {
-	// Simplified chi-square CDF calculation using gamma distribution
-	// Chi-square(df) is equivalent to Gamma(df/2, 2)
-	// Using approximation for simplicity
+	// Simplified chi-square CDF calculation using gamma distribution.
+	// Chi-square(df) is equivalent to Gamma(df/2, 2).
+	// Using approximation for simplicity.
 	if x <= 0 {
 		return 0
 	}
 
-	// Using Wilson-Hilferty approximation for chi-square CDF
+	// Using Wilson-Hilferty approximation for chi-square CDF.
 	z := math.Pow(x/df, 1.0/3.0) - (1.0 - 2.0/(9.0*df))
 	z = z / math.Sqrt(2.0/(9.0*df))
 
-	// Standard normal CDF approximation
+	// Standard normal CDF approximation.
 	return 0.5 * (1.0 + math.Erf(z/math.Sqrt(2.0)))
 }
 
 func andersonDarlingPValue(aSquared float64) float64 {
-	// Simplified p-value calculation for Anderson-Darling test
+	// Simplified p-value calculation for Anderson-Darling test.
 	if aSquared < 0.2 {
 		return 1 - math.Exp(-13.436+101.14*aSquared-223.73*aSquared*aSquared)
 	} else if aSquared < 0.34 {
@@ -681,10 +689,10 @@ func andersonDarlingPValue(aSquared float64) float64 {
 }
 
 func mannWhitneyU(x, y []float64) (float64, float64) {
-	// Simplified Mann-Whitney U test
-	// In production, use proper implementation
+	// Simplified Mann-Whitney U test.
+	// In production, use proper implementation.
 
-	// Combine and rank
+	// Combine and rank.
 	combined := append(x, y...)
 	ranks := make(map[float64]float64)
 	sort.Float64s(combined)
@@ -693,7 +701,7 @@ func mannWhitneyU(x, y []float64) (float64, float64) {
 		ranks[val] = float64(i + 1)
 	}
 
-	// Calculate U statistic
+	// Calculate U statistic.
 	var sumRanksX float64
 	for _, val := range x {
 		sumRanksX += ranks[val]
@@ -704,12 +712,12 @@ func mannWhitneyU(x, y []float64) (float64, float64) {
 
 	u := sumRanksX - nx*(nx+1)/2
 
-	// Calculate z-score for large samples
+	// Calculate z-score for large samples.
 	mu := nx * ny / 2
 	sigma := math.Sqrt(nx * ny * (nx + ny + 1) / 12)
 	z := (u - mu) / sigma
 
-	// Calculate p-value
+	// Calculate p-value.
 	pValue := 2 * (1 - cumulativeNormal(math.Abs(z)))
 
 	return u, pValue

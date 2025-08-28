@@ -16,6 +16,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/internal/ingest"
 )
 
+// Config represents a config.
 type Config struct {
 	ListenAddr     string
 	HandoffDir     string
@@ -24,6 +25,7 @@ type Config struct {
 	Verbose        bool
 }
 
+// EventTracker represents a eventtracker.
 type EventTracker struct {
 	mu             sync.Mutex
 	events         []fcaps.FCAPSEvent
@@ -38,8 +40,8 @@ func main() {
 		log.Printf("FCAPS Reducer starting with config: %+v", config)
 	}
 
-	// Ensure handoff directory exists
-	if err := os.MkdirAll(config.HandoffDir, 0755); err != nil {
+	// Ensure handoff directory exists.
+	if err := os.MkdirAll(config.HandoffDir, 0o755); err != nil {
 		log.Fatalf("Failed to create handoff directory: %v", err)
 	}
 
@@ -48,10 +50,10 @@ func main() {
 		intentCooldown: time.Duration(config.WindowSeconds) * time.Second,
 	}
 
-	// Start periodic burst detection
+	// Start periodic burst detection.
 	go tracker.detectBursts(config)
 
-	// Start HTTP server to receive VES events
+	// Start HTTP server to receive VES events.
 	http.HandleFunc("/eventListener/v7", tracker.handleVESEvent(config))
 	http.HandleFunc("/health", handleHealth)
 
@@ -59,7 +61,7 @@ func main() {
 	log.Printf("Burst detection: %d events in %d seconds triggers scaling intent",
 		config.BurstThreshold, config.WindowSeconds)
 
-	// Use http.Server with timeouts to fix G114 security warning
+	// Use http.Server with timeouts to fix G114 security warning.
 	server := &http.Server{
 		Addr:         config.ListenAddr,
 		Handler:      nil,
@@ -105,10 +107,10 @@ func (t *EventTracker) handleVESEvent(config Config) http.HandlerFunc {
 			return
 		}
 
-		// Track the event
+		// Track the event.
 		t.mu.Lock()
 		t.events = append(t.events, event)
-		// Keep only recent events (sliding window)
+		// Keep only recent events (sliding window).
 		if len(t.events) > 100 {
 			t.events = t.events[len(t.events)-100:]
 		}
@@ -123,7 +125,7 @@ func (t *EventTracker) handleVESEvent(config Config) http.HandlerFunc {
 				eventCount)
 		}
 
-		// Return VES standard response
+		// Return VES standard response.
 		w.WriteHeader(http.StatusAccepted)
 		if _, err := w.Write([]byte(`{"commandList": []}`)); err != nil {
 			log.Printf("Failed to write VES response: %v", err)
@@ -138,15 +140,15 @@ func (t *EventTracker) detectBursts(config Config) {
 	for range ticker.C {
 		t.mu.Lock()
 
-		// Clean old events outside the window
+		// Clean old events outside the window.
 		cutoff := time.Now().Add(-time.Duration(config.WindowSeconds) * time.Second)
 		filtered := make([]fcaps.FCAPSEvent, 0)
 		criticalCount := 0
 
 		for _, event := range t.events {
-			// Use current time if timestamp is old (for testing)
+			// Use current time if timestamp is old (for testing).
 			eventTime := time.Unix(0, event.Event.CommonEventHeader.LastEpochMicrosec*1000)
-			// If event time is more than 1 day old, consider it as recent (for testing with static examples)
+			// If event time is more than 1 day old, consider it as recent (for testing with static examples).
 			if time.Since(eventTime) > 24*time.Hour {
 				eventTime = time.Now()
 			}
@@ -169,7 +171,7 @@ func (t *EventTracker) detectBursts(config Config) {
 				criticalCount, config.BurstThreshold)
 		}
 
-		// Check if we should generate an intent
+		// Check if we should generate an intent.
 		if shouldTrigger && canTrigger {
 			t.generateScalingIntent(config, criticalCount)
 
@@ -181,7 +183,7 @@ func (t *EventTracker) detectBursts(config Config) {
 }
 
 func (t *EventTracker) generateScalingIntent(config Config, eventCount int) {
-	// Calculate scaling factor based on burst size
+	// Calculate scaling factor based on burst size.
 	scaleFactor := 1 + (eventCount / config.BurstThreshold)
 	if scaleFactor > 3 {
 		scaleFactor = 3 // Cap at 3x scaling
@@ -197,7 +199,7 @@ func (t *EventTracker) generateScalingIntent(config Config, eventCount int) {
 		CorrelationID: fmt.Sprintf("burst-%d", time.Now().Unix()),
 	}
 
-	// Write intent to handoff directory
+	// Write intent to handoff directory.
 	intentJSON, err := json.MarshalIndent(intent, "", "  ")
 	if err != nil {
 		log.Printf("Failed to marshal intent: %v", err)
@@ -207,7 +209,7 @@ func (t *EventTracker) generateScalingIntent(config Config, eventCount int) {
 	timestamp := time.Now().UTC().Format("20060102T150405Z")
 	filename := filepath.Join(config.HandoffDir, fmt.Sprintf("intent-%s.json", timestamp))
 
-	if err := os.WriteFile(filename, intentJSON, 0644); err != nil {
+	if err := os.WriteFile(filename, intentJSON, 0o640); err != nil {
 		log.Printf("Failed to write intent file: %v", err)
 		return
 	}
@@ -218,7 +220,7 @@ func (t *EventTracker) generateScalingIntent(config Config, eventCount int) {
 }
 
 func isCriticalEvent(event fcaps.FCAPSEvent) bool {
-	// Check fault events
+	// Check fault events.
 	if event.Event.FaultFields != nil {
 		severity := event.Event.FaultFields.EventSeverity
 		if severity == "CRITICAL" || severity == "MAJOR" {
@@ -226,19 +228,19 @@ func isCriticalEvent(event fcaps.FCAPSEvent) bool {
 		}
 	}
 
-	// Check performance thresholds
+	// Check performance thresholds.
 	if event.Event.MeasurementsForVfScalingFields != nil {
 		fields := event.Event.MeasurementsForVfScalingFields.AdditionalFields
 		if fields != nil {
-			// PRB utilization > 0.8
+			// PRB utilization > 0.8.
 			if prbUtil, ok := fields["kpm.prb_utilization"].(float64); ok && prbUtil > 0.8 {
 				return true
 			}
-			// P95 latency > 100ms
+			// P95 latency > 100ms.
 			if latency, ok := fields["kpm.p95_latency_ms"].(float64); ok && latency > 100 {
 				return true
 			}
-			// CPU utilization > 0.85
+			// CPU utilization > 0.85.
 			if cpuUtil, ok := fields["kpm.cpu_utilization"].(float64); ok && cpuUtil > 0.85 {
 				return true
 			}

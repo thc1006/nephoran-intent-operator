@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// SecurityManager manages security configurations and operations
+// SecurityManager manages security configurations and operations.
 type SecurityManager struct {
 	tlsManager   *TLSManager
 	oauthManager *OAuthManager
@@ -24,7 +24,7 @@ type SecurityManager struct {
 	certManager  *CertificateManager
 }
 
-// TLSManager manages mutual TLS configurations
+// TLSManager manages mutual TLS configurations.
 type TLSManager struct {
 	mu           sync.RWMutex
 	tlsConfigs   map[string]*tls.Config
@@ -33,7 +33,7 @@ type TLSManager struct {
 	reloadTicker *time.Ticker
 }
 
-// OAuthManager manages OAuth2/OIDC authentication
+// OAuthManager manages OAuth2/OIDC authentication.
 type OAuthManager struct {
 	mu         sync.RWMutex
 	providers  map[string]*OIDCProvider
@@ -41,7 +41,7 @@ type OAuthManager struct {
 	httpClient *http.Client
 }
 
-// RBACManager manages role-based access control
+// RBACManager manages role-based access control.
 type RBACManager struct {
 	mu       sync.RWMutex
 	policies map[string]*RBACPolicy
@@ -49,7 +49,7 @@ type RBACManager struct {
 	users    map[string]*User
 }
 
-// CertificateManager manages certificate lifecycle
+// CertificateManager manages certificate lifecycle.
 type CertificateManager struct {
 	mu               sync.RWMutex
 	certificates     map[string]*CertificateInfo
@@ -58,14 +58,14 @@ type CertificateManager struct {
 	rotationInterval time.Duration
 }
 
-// CertificatePaths holds paths to certificate files
+// CertificatePaths holds paths to certificate files.
 type CertificatePaths struct {
 	CertFile string
 	KeyFile  string
 	CAFile   string
 }
 
-// CertificateInfo holds certificate information
+// CertificateInfo holds certificate information.
 type CertificateInfo struct {
 	Certificate  *x509.Certificate
 	PrivateKey   interface{}
@@ -76,7 +76,7 @@ type CertificateInfo struct {
 	SerialNumber string
 }
 
-// OIDCProvider represents an OIDC provider configuration
+// OIDCProvider represents an OIDC provider configuration.
 type OIDCProvider struct {
 	Name         string            `json:"name"`
 	IssuerURL    string            `json:"issuer_url"`
@@ -88,7 +88,7 @@ type OIDCProvider struct {
 	JWKSCache    *JWKSCache        `json:"-"`
 }
 
-// JWKSCache caches JWKS for token validation
+// JWKSCache caches JWKS for token validation.
 type JWKSCache struct {
 	mu          sync.RWMutex
 	keys        interface{}
@@ -96,7 +96,7 @@ type JWKSCache struct {
 	ttl         time.Duration
 }
 
-// TokenInfo holds token information
+// TokenInfo holds token information.
 type TokenInfo struct {
 	AccessToken  string                 `json:"access_token"`
 	RefreshToken string                 `json:"refresh_token"`
@@ -109,7 +109,7 @@ type TokenInfo struct {
 	Audience     []string               `json:"audience"`
 }
 
-// RBACPolicy represents an RBAC policy
+// RBACPolicy represents an RBAC policy.
 type RBACPolicy struct {
 	ID          string                 `json:"id"`
 	Name        string                 `json:"name"`
@@ -123,7 +123,7 @@ type RBACPolicy struct {
 	UpdatedAt   time.Time              `json:"updated_at"`
 }
 
-// PolicyRule defines a policy rule
+// PolicyRule defines a policy rule.
 type PolicyRule struct {
 	ID         string      `json:"id"`
 	Effect     string      `json:"effect"` // ALLOW, DENY
@@ -133,7 +133,7 @@ type PolicyRule struct {
 	Priority   int         `json:"priority"`
 }
 
-// Subject represents a policy subject (user, group, service)
+// Subject represents a policy subject (user, group, service).
 type Subject struct {
 	Type       string            `json:"type"` // user, group, service
 	ID         string            `json:"id"`
@@ -141,7 +141,7 @@ type Subject struct {
 	Attributes map[string]string `json:"attributes"`
 }
 
-// Resource represents a protected resource
+// Resource represents a protected resource.
 type Resource struct {
 	Type       string            `json:"type"` // api, vnf, policy
 	ID         string            `json:"id"`
@@ -149,14 +149,14 @@ type Resource struct {
 	Attributes map[string]string `json:"attributes"`
 }
 
-// Condition represents a policy condition
+// Condition represents a policy condition.
 type Condition struct {
 	Field    string      `json:"field"`
 	Operator string      `json:"operator"` // eq, ne, in, not_in, regex
 	Value    interface{} `json:"value"`
 }
 
-// Role represents an RBAC role
+// Role represents an RBAC role.
 type Role struct {
 	ID          string            `json:"id"`
 	Name        string            `json:"name"`
@@ -166,7 +166,7 @@ type Role struct {
 	CreatedAt   time.Time         `json:"created_at"`
 }
 
-// User represents a user
+// User represents a user.
 type User struct {
 	ID         string            `json:"id"`
 	Username   string            `json:"username"`
@@ -178,14 +178,14 @@ type User struct {
 	CreatedAt  time.Time         `json:"created_at"`
 }
 
-// SecurityConfig holds security configuration
+// SecurityConfig holds security configuration.
 type SecurityConfig struct {
 	TLS   *TLSConfig   `json:"tls"`
 	OAuth *OAuthConfig `json:"oauth"`
 	RBAC  *RBACConfig  `json:"rbac"`
 }
 
-// TLSConfig holds TLS configuration
+// TLSConfig holds TLS configuration.
 type TLSConfig struct {
 	Enabled        bool                         `json:"enabled"`
 	MutualTLS      bool                         `json:"mutual_tls"`
@@ -197,7 +197,7 @@ type TLSConfig struct {
 	ReloadInterval string                       `json:"reload_interval"`
 }
 
-// OAuthConfig holds OAuth configuration
+// OAuthConfig holds OAuth configuration.
 type OAuthConfig struct {
 	Enabled        bool                     `json:"enabled"`
 	Providers      map[string]*OIDCProvider `json:"providers"`
@@ -208,7 +208,7 @@ type OAuthConfig struct {
 	CacheTTL       string                   `json:"cache_ttl"`
 }
 
-// RBACConfig holds RBAC configuration
+// RBACConfig holds RBAC configuration.
 type RBACConfig struct {
 	Enabled       bool     `json:"enabled"`
 	PolicyPath    string   `json:"policy_path"`
@@ -217,7 +217,7 @@ type RBACConfig struct {
 	AdminRoles    []string `json:"admin_roles"`
 }
 
-// NewSecurityManager creates a new security manager
+// NewSecurityManager creates a new security manager.
 func NewSecurityManager(config *SecurityConfig) (*SecurityManager, error) {
 	tlsManager, err := NewTLSManager(config.TLS)
 	if err != nil {
@@ -244,7 +244,7 @@ func NewSecurityManager(config *SecurityConfig) (*SecurityManager, error) {
 	}, nil
 }
 
-// NewTLSManager creates a new TLS manager
+// NewTLSManager creates a new TLS manager.
 func NewTLSManager(config *TLSConfig) (*TLSManager, error) {
 	if config == nil || !config.Enabled {
 		return &TLSManager{
@@ -259,7 +259,7 @@ func NewTLSManager(config *TLSConfig) (*TLSManager, error) {
 		autoReload: config.AutoReload,
 	}
 
-	// Load certificates
+	// Load certificates.
 	for name, certPath := range config.Certificates {
 		tlsConfig, err := manager.loadTLSConfig(certPath, config)
 		if err != nil {
@@ -269,7 +269,7 @@ func NewTLSManager(config *TLSConfig) (*TLSManager, error) {
 		manager.certPaths[name] = certPath
 	}
 
-	// Start auto-reload if enabled
+	// Start auto-reload if enabled.
 	if config.AutoReload {
 		interval := 5 * time.Minute
 		if config.ReloadInterval != "" {
@@ -283,7 +283,7 @@ func NewTLSManager(config *TLSConfig) (*TLSManager, error) {
 	return manager, nil
 }
 
-// loadTLSConfig loads TLS configuration from certificate files
+// loadTLSConfig loads TLS configuration from certificate files.
 func (m *TLSManager) loadTLSConfig(certPath *CertificatePaths, config *TLSConfig) (*tls.Config, error) {
 	cert, err := tls.LoadX509KeyPair(certPath.CertFile, certPath.KeyFile)
 	if err != nil {
@@ -295,7 +295,7 @@ func (m *TLSManager) loadTLSConfig(certPath *CertificatePaths, config *TLSConfig
 		MinVersion:   tls.VersionTLS12,
 	}
 
-	// Set minimum TLS version
+	// Set minimum TLS version.
 	if config.MinVersion != "" {
 		switch config.MinVersion {
 		case "1.0":
@@ -309,11 +309,11 @@ func (m *TLSManager) loadTLSConfig(certPath *CertificatePaths, config *TLSConfig
 		}
 	}
 
-	// Configure mutual TLS
+	// Configure mutual TLS.
 	if config.MutualTLS {
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 
-		// Load CA bundle for client certificate verification
+		// Load CA bundle for client certificate verification.
 		if certPath.CAFile != "" {
 			caCert, err := os.ReadFile(certPath.CAFile)
 			if err != nil {
@@ -332,7 +332,7 @@ func (m *TLSManager) loadTLSConfig(certPath *CertificatePaths, config *TLSConfig
 	return tlsConfig, nil
 }
 
-// startAutoReload starts automatic certificate reloading
+// startAutoReload starts automatic certificate reloading.
 func (m *TLSManager) startAutoReload(interval time.Duration) {
 	m.reloadTicker = time.NewTicker(interval)
 	go func() {
@@ -342,13 +342,13 @@ func (m *TLSManager) startAutoReload(interval time.Duration) {
 	}()
 }
 
-// reloadCertificates reloads all certificates
+// reloadCertificates reloads all certificates.
 func (m *TLSManager) reloadCertificates() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	for name, certPath := range m.certPaths {
-		// Check if certificate files have been modified
+		// Check if certificate files have been modified.
 		certInfo, err := os.Stat(certPath.CertFile)
 		if err != nil {
 			continue
@@ -359,10 +359,10 @@ func (m *TLSManager) reloadCertificates() {
 			continue
 		}
 
-		// Check if either file was modified recently
+		// Check if either file was modified recently.
 		now := time.Now()
 		if now.Sub(certInfo.ModTime()) < time.Minute || now.Sub(keyInfo.ModTime()) < time.Minute {
-			// Reload certificate
+			// Reload certificate.
 			cert, err := tls.LoadX509KeyPair(certPath.CertFile, certPath.KeyFile)
 			if err != nil {
 				log.Log.Error(err, "failed to reload certificate", "name", name)
@@ -377,7 +377,7 @@ func (m *TLSManager) reloadCertificates() {
 	}
 }
 
-// GetTLSConfig returns TLS configuration for a given name
+// GetTLSConfig returns TLS configuration for a given name.
 func (m *TLSManager) GetTLSConfig(name string) (*tls.Config, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -390,7 +390,7 @@ func (m *TLSManager) GetTLSConfig(name string) (*tls.Config, error) {
 	return config.Clone(), nil
 }
 
-// NewOAuthManager creates a new OAuth manager
+// NewOAuthManager creates a new OAuth manager.
 func NewOAuthManager(config *OAuthConfig) (*OAuthManager, error) {
 	if config == nil || !config.Enabled {
 		return &OAuthManager{
@@ -407,7 +407,7 @@ func NewOAuthManager(config *OAuthConfig) (*OAuthManager, error) {
 		},
 	}
 
-	// Initialize providers
+	// Initialize providers.
 	for name, provider := range config.Providers {
 		provider.Name = name
 		if err := manager.initializeProvider(provider); err != nil {
@@ -416,24 +416,24 @@ func NewOAuthManager(config *OAuthConfig) (*OAuthManager, error) {
 		manager.providers[name] = provider
 	}
 
-	// Start token cleanup routine
+	// Start token cleanup routine.
 	go manager.startTokenCleanup()
 
 	return manager, nil
 }
 
-// initializeProvider initializes an OIDC provider
+// initializeProvider initializes an OIDC provider.
 func (m *OAuthManager) initializeProvider(provider *OIDCProvider) error {
-	// Initialize JWKS cache
+	// Initialize JWKS cache.
 	provider.JWKSCache = &JWKSCache{
 		ttl: 24 * time.Hour,
 	}
 
-	// Fetch and cache JWKS
+	// Fetch and cache JWKS.
 	return m.refreshJWKS(provider)
 }
 
-// refreshJWKS refreshes JWKS from the provider
+// refreshJWKS refreshes JWKS from the provider.
 func (m *OAuthManager) refreshJWKS(provider *OIDCProvider) error {
 	jwksURL := provider.IssuerURL + "/.well-known/jwks.json"
 
@@ -460,16 +460,16 @@ func (m *OAuthManager) refreshJWKS(provider *OIDCProvider) error {
 	return nil
 }
 
-// ValidateToken validates a JWT token
+// ValidateToken validates a JWT token.
 func (m *OAuthManager) ValidateToken(ctx context.Context, tokenString, providerName string) (*TokenInfo, error) {
 	logger := log.FromContext(ctx)
 
-	// Check cache first
+	// Check cache first.
 	if tokenInfo, ok := m.getTokenFromCache(tokenString); ok {
 		if time.Now().Before(tokenInfo.ExpiresAt) {
 			return tokenInfo, nil
 		}
-		// Remove expired token from cache
+		// Remove expired token from cache.
 		m.removeTokenFromCache(tokenString)
 	}
 
@@ -478,11 +478,10 @@ func (m *OAuthManager) ValidateToken(ctx context.Context, tokenString, providerN
 		return nil, fmt.Errorf("OAuth provider not found: %s", providerName)
 	}
 
-	// Parse and validate token
+	// Parse and validate token.
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return m.getSigningKey(provider, token)
 	})
-
 	if err != nil {
 		logger.Error(err, "failed to parse JWT token")
 		return nil, fmt.Errorf("invalid token: %w", err)
@@ -497,14 +496,14 @@ func (m *OAuthManager) ValidateToken(ctx context.Context, tokenString, providerN
 		return nil, fmt.Errorf("invalid token claims")
 	}
 
-	// Extract token information
+	// Extract token information.
 	tokenInfo := &TokenInfo{
 		AccessToken: tokenString,
 		TokenType:   "Bearer",
 		Claims:      claims,
 	}
 
-	// Extract standard claims
+	// Extract standard claims.
 	if sub, ok := claims["sub"].(string); ok {
 		tokenInfo.Subject = sub
 	}
@@ -525,35 +524,35 @@ func (m *OAuthManager) ValidateToken(ctx context.Context, tokenString, providerN
 		tokenInfo.ExpiresAt = time.Unix(int64(exp), 0)
 	}
 
-	// Cache token
+	// Cache token.
 	m.cacheToken(tokenString, tokenInfo)
 
 	logger.Info("token validated successfully", "subject", tokenInfo.Subject)
 	return tokenInfo, nil
 }
 
-// getSigningKey gets the signing key for token validation
+// getSigningKey gets the signing key for token validation.
 func (m *OAuthManager) getSigningKey(provider *OIDCProvider, token *jwt.Token) (interface{}, error) {
-	// For simplicity, this implementation returns a dummy key
-	// In a real implementation, this would extract the correct key from JWKS
-	// based on the token's "kid" (key ID) header
+	// For simplicity, this implementation returns a dummy key.
+	// In a real implementation, this would extract the correct key from JWKS.
+	// based on the token's "kid" (key ID) header.
 
 	provider.JWKSCache.mu.RLock()
 	defer provider.JWKSCache.mu.RUnlock()
 
-	// Check if JWKS needs refresh
+	// Check if JWKS needs refresh.
 	if time.Since(provider.JWKSCache.lastUpdated) > provider.JWKSCache.ttl {
 		go func() {
 			m.refreshJWKS(provider)
 		}()
 	}
 
-	// This is a simplified implementation
-	// In reality, you would parse the JWKS and return the appropriate key
+	// This is a simplified implementation.
+	// In reality, you would parse the JWKS and return the appropriate key.
 	return []byte("your-secret-key"), nil
 }
 
-// getTokenFromCache retrieves token from cache
+// getTokenFromCache retrieves token from cache.
 func (m *OAuthManager) getTokenFromCache(tokenString string) (*TokenInfo, bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -562,7 +561,7 @@ func (m *OAuthManager) getTokenFromCache(tokenString string) (*TokenInfo, bool) 
 	return tokenInfo, ok
 }
 
-// cacheToken caches a token
+// cacheToken caches a token.
 func (m *OAuthManager) cacheToken(tokenString string, tokenInfo *TokenInfo) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -570,7 +569,7 @@ func (m *OAuthManager) cacheToken(tokenString string, tokenInfo *TokenInfo) {
 	m.tokenCache[tokenString] = tokenInfo
 }
 
-// removeTokenFromCache removes token from cache
+// removeTokenFromCache removes token from cache.
 func (m *OAuthManager) removeTokenFromCache(tokenString string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -578,7 +577,7 @@ func (m *OAuthManager) removeTokenFromCache(tokenString string) {
 	delete(m.tokenCache, tokenString)
 }
 
-// startTokenCleanup starts token cleanup routine
+// startTokenCleanup starts token cleanup routine.
 func (m *OAuthManager) startTokenCleanup() {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
@@ -588,7 +587,7 @@ func (m *OAuthManager) startTokenCleanup() {
 	}
 }
 
-// cleanupExpiredTokens removes expired tokens from cache
+// cleanupExpiredTokens removes expired tokens from cache.
 func (m *OAuthManager) cleanupExpiredTokens() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -601,7 +600,7 @@ func (m *OAuthManager) cleanupExpiredTokens() {
 	}
 }
 
-// NewRBACManager creates a new RBAC manager
+// NewRBACManager creates a new RBAC manager.
 func NewRBACManager(config *RBACConfig) (*RBACManager, error) {
 	manager := &RBACManager{
 		policies: make(map[string]*RBACPolicy),
@@ -610,21 +609,21 @@ func NewRBACManager(config *RBACConfig) (*RBACManager, error) {
 	}
 
 	if config != nil && config.Enabled {
-		// Load policies from file
+		// Load policies from file.
 		if config.PolicyPath != "" {
 			if err := manager.loadPoliciesFromFile(config.PolicyPath); err != nil {
 				return nil, fmt.Errorf("failed to load RBAC policies: %w", err)
 			}
 		}
 
-		// Create admin users and roles
+		// Create admin users and roles.
 		manager.initializeAdminAccess(config)
 	}
 
 	return manager, nil
 }
 
-// loadPoliciesFromFile loads RBAC policies from a file
+// loadPoliciesFromFile loads RBAC policies from a file.
 func (m *RBACManager) loadPoliciesFromFile(policyPath string) error {
 	data, err := os.ReadFile(policyPath)
 	if err != nil {
@@ -646,9 +645,9 @@ func (m *RBACManager) loadPoliciesFromFile(policyPath string) error {
 	return nil
 }
 
-// initializeAdminAccess initializes admin users and roles
+// initializeAdminAccess initializes admin users and roles.
 func (m *RBACManager) initializeAdminAccess(config *RBACConfig) {
-	// Create admin role
+	// Create admin role.
 	adminRole := &Role{
 		ID:          "admin",
 		Name:        "Administrator",
@@ -658,7 +657,7 @@ func (m *RBACManager) initializeAdminAccess(config *RBACConfig) {
 	}
 	m.roles[adminRole.ID] = adminRole
 
-	// Create admin users
+	// Create admin users.
 	for _, username := range config.AdminUsers {
 		user := &User{
 			ID:        username,
@@ -671,14 +670,14 @@ func (m *RBACManager) initializeAdminAccess(config *RBACConfig) {
 	}
 }
 
-// CheckPermission checks if a subject has permission for a resource
+// CheckPermission checks if a subject has permission for a resource.
 func (m *RBACManager) CheckPermission(ctx context.Context, subject, action, resource string) (bool, error) {
 	logger := log.FromContext(ctx)
 
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	// Get user information
+	// Get user information.
 	user, ok := m.users[subject]
 	if !ok {
 		logger.Info("user not found", "subject", subject)
@@ -690,14 +689,14 @@ func (m *RBACManager) CheckPermission(ctx context.Context, subject, action, reso
 		return false, nil
 	}
 
-	// Check user roles
+	// Check user roles.
 	for _, roleID := range user.Roles {
 		role, ok := m.roles[roleID]
 		if !ok {
 			continue
 		}
 
-		// Check if role has required permission
+		// Check if role has required permission.
 		for _, permission := range role.Permissions {
 			if permission == "*" || permission == action || m.matchesPattern(permission, action) {
 				logger.Info("permission granted", "subject", subject, "action", action, "resource", resource, "via_role", roleID)
@@ -706,7 +705,7 @@ func (m *RBACManager) CheckPermission(ctx context.Context, subject, action, reso
 		}
 	}
 
-	// Check policies
+	// Check policies.
 	for _, policy := range m.policies {
 		if m.evaluatePolicy(policy, subject, action, resource) {
 			logger.Info("permission granted via policy", "subject", subject, "action", action, "resource", resource, "policy", policy.ID)
@@ -718,9 +717,9 @@ func (m *RBACManager) CheckPermission(ctx context.Context, subject, action, reso
 	return false, nil
 }
 
-// evaluatePolicy evaluates an RBAC policy
+// evaluatePolicy evaluates an RBAC policy.
 func (m *RBACManager) evaluatePolicy(policy *RBACPolicy, subject, action, resource string) bool {
-	// Check if subject matches policy subjects
+	// Check if subject matches policy subjects.
 	subjectMatches := false
 	for _, policySubject := range policy.Subjects {
 		if policySubject.ID == subject || policySubject.Name == subject {
@@ -733,7 +732,7 @@ func (m *RBACManager) evaluatePolicy(policy *RBACPolicy, subject, action, resour
 		return false
 	}
 
-	// Check policy rules
+	// Check policy rules.
 	for _, rule := range policy.Rules {
 		if m.evaluateRule(rule, action, resource) {
 			return rule.Effect == "ALLOW"
@@ -743,9 +742,9 @@ func (m *RBACManager) evaluatePolicy(policy *RBACPolicy, subject, action, resour
 	return false
 }
 
-// evaluateRule evaluates a policy rule
+// evaluateRule evaluates a policy rule.
 func (m *RBACManager) evaluateRule(rule *PolicyRule, action, resource string) bool {
-	// Check actions
+	// Check actions.
 	actionMatches := false
 	for _, ruleAction := range rule.Actions {
 		if ruleAction == "*" || ruleAction == action || m.matchesPattern(ruleAction, action) {
@@ -758,7 +757,7 @@ func (m *RBACManager) evaluateRule(rule *PolicyRule, action, resource string) bo
 		return false
 	}
 
-	// Check resources
+	// Check resources.
 	resourceMatches := false
 	for _, ruleResource := range rule.Resources {
 		if ruleResource == "*" || ruleResource == resource || m.matchesPattern(ruleResource, resource) {
@@ -770,9 +769,9 @@ func (m *RBACManager) evaluateRule(rule *PolicyRule, action, resource string) bo
 	return resourceMatches
 }
 
-// matchesPattern checks if a string matches a pattern (supports wildcards)
+// matchesPattern checks if a string matches a pattern (supports wildcards).
 func (m *RBACManager) matchesPattern(pattern, value string) bool {
-	// Simple wildcard matching
+	// Simple wildcard matching.
 	if strings.Contains(pattern, "*") {
 		prefix := strings.Split(pattern, "*")[0]
 		return strings.HasPrefix(value, prefix)
@@ -780,7 +779,7 @@ func (m *RBACManager) matchesPattern(pattern, value string) bool {
 	return pattern == value
 }
 
-// NewCertificateManager creates a new certificate manager
+// NewCertificateManager creates a new certificate manager.
 func NewCertificateManager() *CertificateManager {
 	return &CertificateManager{
 		certificates:     make(map[string]*CertificateInfo),
@@ -790,7 +789,7 @@ func NewCertificateManager() *CertificateManager {
 	}
 }
 
-// LoadCertificate loads a certificate from file
+// LoadCertificate loads a certificate from file.
 func (m *CertificateManager) LoadCertificate(name, certFile string) error {
 	data, err := os.ReadFile(certFile)
 	if err != nil {
@@ -818,7 +817,7 @@ func (m *CertificateManager) LoadCertificate(name, certFile string) error {
 	return nil
 }
 
-// GetCertificateInfo returns certificate information
+// GetCertificateInfo returns certificate information.
 func (m *CertificateManager) GetCertificateInfo(name string) (*CertificateInfo, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -831,7 +830,7 @@ func (m *CertificateManager) GetCertificateInfo(name string) (*CertificateInfo, 
 	return info, nil
 }
 
-// CheckCertificateExpiry checks if certificates are expiring
+// CheckCertificateExpiry checks if certificates are expiring.
 func (m *CertificateManager) CheckCertificateExpiry(ctx context.Context) {
 	logger := log.FromContext(ctx)
 
@@ -852,7 +851,7 @@ func (m *CertificateManager) CheckCertificateExpiry(ctx context.Context) {
 	}
 }
 
-// StartCertificateMonitoring starts certificate monitoring
+// StartCertificateMonitoring starts certificate monitoring.
 func (m *CertificateManager) StartCertificateMonitoring(ctx context.Context) {
 	ticker := time.NewTicker(24 * time.Hour) // Check daily
 	defer ticker.Stop()
@@ -867,20 +866,20 @@ func (m *CertificateManager) StartCertificateMonitoring(ctx context.Context) {
 	}
 }
 
-// CreateMiddleware creates HTTP middleware for security
+// CreateMiddleware creates HTTP middleware for security.
 func (sm *SecurityManager) CreateMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 
-			// Extract token from Authorization header
+			// Extract token from Authorization header.
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
 				http.Error(w, "Authorization header required", http.StatusUnauthorized)
 				return
 			}
 
-			// Validate Bearer token format
+			// Validate Bearer token format.
 			parts := strings.SplitN(authHeader, " ", 2)
 			if len(parts) != 2 || parts[0] != "Bearer" {
 				http.Error(w, "Invalid authorization format", http.StatusUnauthorized)
@@ -889,14 +888,14 @@ func (sm *SecurityManager) CreateMiddleware() func(http.Handler) http.Handler {
 
 			tokenString := parts[1]
 
-			// Validate token (assuming default provider)
+			// Validate token (assuming default provider).
 			tokenInfo, err := sm.oauthManager.ValidateToken(ctx, tokenString, "default")
 			if err != nil {
 				http.Error(w, "Invalid token", http.StatusUnauthorized)
 				return
 			}
 
-			// Check RBAC permissions
+			// Check RBAC permissions.
 			action := r.Method
 			resource := r.URL.Path
 
@@ -911,7 +910,7 @@ func (sm *SecurityManager) CreateMiddleware() func(http.Handler) http.Handler {
 				return
 			}
 
-			// Add user context
+			// Add user context.
 			ctx = context.WithValue(ctx, "user", tokenInfo)
 			r = r.WithContext(ctx)
 
@@ -920,15 +919,15 @@ func (sm *SecurityManager) CreateMiddleware() func(http.Handler) http.Handler {
 	}
 }
 
-// Start starts the security manager
+// Start starts the security manager.
 func (sm *SecurityManager) Start(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	logger.Info("starting security manager")
 
-	// Start certificate monitoring
+	// Start certificate monitoring.
 	go sm.certManager.StartCertificateMonitoring(ctx)
 
-	// Start JWKS refresh for OAuth providers
+	// Start JWKS refresh for OAuth providers.
 	go func() {
 		ticker := time.NewTicker(1 * time.Hour)
 		defer ticker.Stop()
@@ -950,7 +949,7 @@ func (sm *SecurityManager) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the security manager
+// Stop stops the security manager.
 func (sm *SecurityManager) Stop() {
 	if sm.tlsManager.reloadTicker != nil {
 		sm.tlsManager.reloadTicker.Stop()

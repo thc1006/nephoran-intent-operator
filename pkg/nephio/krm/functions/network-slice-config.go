@@ -35,66 +35,66 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
-// NetworkSliceConfigFunction implements network slice configuration for 5G networks
+// NetworkSliceConfigFunction implements network slice configuration for 5G networks.
 type NetworkSliceConfigFunction struct {
 	tracer trace.Tracer
 }
 
-// NetworkSliceConfig defines the configuration structure for network slicing
+// NetworkSliceConfig defines the configuration structure for network slicing.
 type NetworkSliceConfig struct {
-	// Slice identification
+	// Slice identification.
 	SliceID     string `json:"sliceId" yaml:"sliceId"`
 	SliceName   string `json:"sliceName" yaml:"sliceName"`
 	SliceType   string `json:"sliceType" yaml:"sliceType"` // eMBB, URLLC, mMTC
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 
-	// Service Level Agreement (SLA) parameters
+	// Service Level Agreement (SLA) parameters.
 	SLA *SLAConfiguration `json:"sla" yaml:"sla"`
 
-	// Quality of Service (QoS) parameters
+	// Quality of Service (QoS) parameters.
 	QoS *QoSConfiguration `json:"qos,omitempty" yaml:"qos,omitempty"`
 
-	// Resource allocation
+	// Resource allocation.
 	Resources *SliceResourceAllocation `json:"resources,omitempty" yaml:"resources,omitempty"`
 
-	// Isolation requirements
+	// Isolation requirements.
 	Isolation *SliceIsolationConfig `json:"isolation,omitempty" yaml:"isolation,omitempty"`
 
-	// Geographic and coverage requirements
+	// Geographic and coverage requirements.
 	Coverage *SliceCoverageConfig `json:"coverage,omitempty" yaml:"coverage,omitempty"`
 
-	// Security requirements
+	// Security requirements.
 	Security *SliceSecurityConfig `json:"security,omitempty" yaml:"security,omitempty"`
 
-	// Lifecycle management
+	// Lifecycle management.
 	Lifecycle *SliceLifecycleConfig `json:"lifecycle,omitempty" yaml:"lifecycle,omitempty"`
 
-	// Monitoring and observability
+	// Monitoring and observability.
 	Monitoring *SliceMonitoringConfig `json:"monitoring,omitempty" yaml:"monitoring,omitempty"`
 
-	// Network function configurations
+	// Network function configurations.
 	NetworkFunctions []*NetworkFunctionConfig `json:"networkFunctions,omitempty" yaml:"networkFunctions,omitempty"`
 }
 
-// SLAConfiguration defines service level agreement parameters
+// SLAConfiguration defines service level agreement parameters.
 type SLAConfiguration struct {
-	// Latency requirements
+	// Latency requirements.
 	Latency *LatencyRequirements `json:"latency,omitempty" yaml:"latency,omitempty"`
 
-	// Throughput requirements
+	// Throughput requirements.
 	Throughput *ThroughputRequirements `json:"throughput,omitempty" yaml:"throughput,omitempty"`
 
-	// Availability requirements
+	// Availability requirements.
 	Availability *AvailabilityRequirements `json:"availability,omitempty" yaml:"availability,omitempty"`
 
-	// Reliability requirements
+	// Reliability requirements.
 	Reliability *ReliabilityRequirements `json:"reliability,omitempty" yaml:"reliability,omitempty"`
 
-	// Scalability requirements
+	// Scalability requirements.
 	Scalability *ScalabilityRequirements `json:"scalability,omitempty" yaml:"scalability,omitempty"`
 }
 
-// LatencyRequirements defines latency SLA parameters
+// LatencyRequirements defines latency SLA parameters.
 type LatencyRequirements struct {
 	MaxLatency      string  `json:"maxLatency" yaml:"maxLatency"` // e.g., "1ms", "10ms"
 	TypicalLatency  string  `json:"typicalLatency,omitempty" yaml:"typicalLatency,omitempty"`
@@ -102,7 +102,7 @@ type LatencyRequirements struct {
 	Percentile      float64 `json:"percentile,omitempty" yaml:"percentile,omitempty"`
 }
 
-// ThroughputRequirements defines throughput SLA parameters
+// ThroughputRequirements defines throughput SLA parameters.
 type ThroughputRequirements struct {
 	MinDownlink   string `json:"minDownlink,omitempty" yaml:"minDownlink,omitempty"` // e.g., "100Mbps", "1Gbps"
 	MinUplink     string `json:"minUplink,omitempty" yaml:"minUplink,omitempty"`
@@ -112,7 +112,7 @@ type ThroughputRequirements struct {
 	DeviceDensity int32  `json:"deviceDensity,omitempty" yaml:"deviceDensity,omitempty"` // devices per km²
 }
 
-// AvailabilityRequirements defines availability SLA parameters
+// AvailabilityRequirements defines availability SLA parameters.
 type AvailabilityRequirements struct {
 	Target       float64 `json:"target" yaml:"target"` // e.g., 0.999, 0.9999
 	ServiceLevel string  `json:"serviceLevel,omitempty" yaml:"serviceLevel,omitempty"`
@@ -121,7 +121,7 @@ type AvailabilityRequirements struct {
 	MTTR         string  `json:"mttr,omitempty" yaml:"mttr,omitempty"`         // Mean Time To Repair
 }
 
-// ReliabilityRequirements defines reliability SLA parameters
+// ReliabilityRequirements defines reliability SLA parameters.
 type ReliabilityRequirements struct {
 	SuccessRate float64 `json:"successRate" yaml:"successRate"` // e.g., 0.999
 	ErrorRate   float64 `json:"errorRate,omitempty" yaml:"errorRate,omitempty"`
@@ -129,7 +129,7 @@ type ReliabilityRequirements struct {
 	Redundancy  string  `json:"redundancy,omitempty" yaml:"redundancy,omitempty"` // redundancy level
 }
 
-// ScalabilityRequirements defines scalability SLA parameters
+// ScalabilityRequirements defines scalability SLA parameters.
 type ScalabilityRequirements struct {
 	MinUsers      int32  `json:"minUsers,omitempty" yaml:"minUsers,omitempty"`
 	MaxUsers      int32  `json:"maxUsers,omitempty" yaml:"maxUsers,omitempty"`
@@ -138,7 +138,7 @@ type ScalabilityRequirements struct {
 	ScaleDownTime string `json:"scaleDownTime,omitempty" yaml:"scaleDownTime,omitempty"` // time to scale down
 }
 
-// QoSConfiguration defines quality of service parameters
+// QoSConfiguration defines quality of service parameters.
 type QoSConfiguration struct {
 	FiveQI            int32  `json:"5qi,omitempty" yaml:"5qi,omitempty"`
 	PriorityLevel     int32  `json:"priorityLevel,omitempty" yaml:"priorityLevel,omitempty"`
@@ -150,29 +150,29 @@ type QoSConfiguration struct {
 	QoSClass          string `json:"qosClass,omitempty" yaml:"qosClass,omitempty"`
 }
 
-// SliceResourceAllocation defines resource allocation for the slice
+// SliceResourceAllocation defines resource allocation for the slice.
 type SliceResourceAllocation struct {
-	// Compute resources
+	// Compute resources.
 	CPU     string `json:"cpu,omitempty" yaml:"cpu,omitempty"`         // e.g., "2000m", "4"
 	Memory  string `json:"memory,omitempty" yaml:"memory,omitempty"`   // e.g., "4Gi", "8Gi"
 	Storage string `json:"storage,omitempty" yaml:"storage,omitempty"` // e.g., "10Gi", "100Gi"
 
-	// Network resources
+	// Network resources.
 	Bandwidth   string `json:"bandwidth,omitempty" yaml:"bandwidth,omitempty"` // e.g., "1Gbps", "10Gbps"
 	Connections int32  `json:"connections,omitempty" yaml:"connections,omitempty"`
 
-	// Radio resources
+	// Radio resources.
 	SpectrumAllocation *SpectrumAllocation `json:"spectrumAllocation,omitempty" yaml:"spectrumAllocation,omitempty"`
 
-	// Edge resources
+	// Edge resources.
 	EdgeNodes []string `json:"edgeNodes,omitempty" yaml:"edgeNodes,omitempty"`
 	EdgeZones []string `json:"edgeZones,omitempty" yaml:"edgeZones,omitempty"`
 
-	// Resource pools
+	// Resource pools.
 	ResourcePools []ResourcePoolAllocation `json:"resourcePools,omitempty" yaml:"resourcePools,omitempty"`
 }
 
-// SpectrumAllocation defines radio spectrum allocation
+// SpectrumAllocation defines radio spectrum allocation.
 type SpectrumAllocation struct {
 	FrequencyBands []FrequencyBand `json:"frequencyBands,omitempty" yaml:"frequencyBands,omitempty"`
 	Bandwidth      string          `json:"bandwidth,omitempty" yaml:"bandwidth,omitempty"`
@@ -180,7 +180,7 @@ type SpectrumAllocation struct {
 	AntennaConfig  string          `json:"antennaConfig,omitempty" yaml:"antennaConfig,omitempty"`
 }
 
-// FrequencyBand defines frequency band allocation
+// FrequencyBand defines frequency band allocation.
 type FrequencyBand struct {
 	Band       string `json:"band" yaml:"band"` // e.g., "n78", "n1"
 	StartFreq  string `json:"startFreq,omitempty" yaml:"startFreq,omitempty"`
@@ -189,7 +189,7 @@ type FrequencyBand struct {
 	Technology string `json:"technology,omitempty" yaml:"technology,omitempty"` // 4G, 5G
 }
 
-// ResourcePoolAllocation defines allocation from resource pools
+// ResourcePoolAllocation defines allocation from resource pools.
 type ResourcePoolAllocation struct {
 	PoolName    string            `json:"poolName" yaml:"poolName"`
 	PoolType    string            `json:"poolType" yaml:"poolType"`     // compute, network, storage
@@ -198,7 +198,7 @@ type ResourcePoolAllocation struct {
 	Constraints map[string]string `json:"constraints,omitempty" yaml:"constraints,omitempty"`
 }
 
-// SliceIsolationConfig defines isolation requirements
+// SliceIsolationConfig defines isolation requirements.
 type SliceIsolationConfig struct {
 	Level           string   `json:"level" yaml:"level"` // physical, logical, none
 	Mechanisms      []string `json:"mechanisms,omitempty" yaml:"mechanisms,omitempty"`
@@ -209,7 +209,7 @@ type SliceIsolationConfig struct {
 	ResourceQuotas  []string `json:"resourceQuotas,omitempty" yaml:"resourceQuotas,omitempty"`
 }
 
-// SliceCoverageConfig defines coverage requirements
+// SliceCoverageConfig defines coverage requirements.
 type SliceCoverageConfig struct {
 	GeographicAreas []GeographicArea `json:"geographicAreas,omitempty" yaml:"geographicAreas,omitempty"`
 	CoverageType    string           `json:"coverageType,omitempty" yaml:"coverageType,omitempty"` // indoor, outdoor, both
@@ -217,7 +217,7 @@ type SliceCoverageConfig struct {
 	Handover        *HandoverConfig  `json:"handover,omitempty" yaml:"handover,omitempty"`
 }
 
-// GeographicArea defines a geographic coverage area
+// GeographicArea defines a geographic coverage area.
 type GeographicArea struct {
 	Name        string       `json:"name" yaml:"name"`
 	Type        string       `json:"type" yaml:"type"` // country, region, city, custom
@@ -226,14 +226,14 @@ type GeographicArea struct {
 	Priority    int32        `json:"priority,omitempty" yaml:"priority,omitempty"`
 }
 
-// Coordinate defines a geographic coordinate
+// Coordinate defines a geographic coordinate.
 type Coordinate struct {
 	Latitude  float64 `json:"latitude" yaml:"latitude"`
 	Longitude float64 `json:"longitude" yaml:"longitude"`
 	Altitude  float64 `json:"altitude,omitempty" yaml:"altitude,omitempty"`
 }
 
-// MobilityConfig defines mobility requirements
+// MobilityConfig defines mobility requirements.
 type MobilityConfig struct {
 	MobilityLevel     string   `json:"mobilityLevel" yaml:"mobilityLevel"` // stationary, pedestrian, vehicular, high-speed
 	MaxSpeed          string   `json:"maxSpeed,omitempty" yaml:"maxSpeed,omitempty"`
@@ -241,7 +241,7 @@ type MobilityConfig struct {
 	SupportedMobility []string `json:"supportedMobility,omitempty" yaml:"supportedMobility,omitempty"`
 }
 
-// HandoverConfig defines handover requirements
+// HandoverConfig defines handover requirements.
 type HandoverConfig struct {
 	HandoverType     string   `json:"handoverType,omitempty" yaml:"handoverType,omitempty"` // intra-cell, inter-cell, inter-system
 	MaxHandoverTime  string   `json:"maxHandoverTime,omitempty" yaml:"maxHandoverTime,omitempty"`
@@ -249,7 +249,7 @@ type HandoverConfig struct {
 	HandoverTriggers []string `json:"handoverTriggers,omitempty" yaml:"handoverTriggers,omitempty"`
 }
 
-// SliceSecurityConfig defines security requirements
+// SliceSecurityConfig defines security requirements.
 type SliceSecurityConfig struct {
 	EncryptionLevel string                 `json:"encryptionLevel,omitempty" yaml:"encryptionLevel,omitempty"`
 	AuthMechanisms  []string               `json:"authMechanisms,omitempty" yaml:"authMechanisms,omitempty"`
@@ -259,7 +259,7 @@ type SliceSecurityConfig struct {
 	ThreatDetection *ThreatDetectionConfig `json:"threatDetection,omitempty" yaml:"threatDetection,omitempty"`
 }
 
-// AccessControlConfig defines access control requirements
+// AccessControlConfig defines access control requirements.
 type AccessControlConfig struct {
 	Model     string   `json:"model,omitempty" yaml:"model,omitempty"` // RBAC, ABAC, MAC
 	Policies  []string `json:"policies,omitempty" yaml:"policies,omitempty"`
@@ -268,7 +268,7 @@ type AccessControlConfig struct {
 	MFA       bool     `json:"mfa,omitempty" yaml:"mfa,omitempty"`
 }
 
-// KeyManagementConfig defines key management requirements
+// KeyManagementConfig defines key management requirements.
 type KeyManagementConfig struct {
 	Provider       string `json:"provider,omitempty" yaml:"provider,omitempty"`
 	RotationPeriod string `json:"rotationPeriod,omitempty" yaml:"rotationPeriod,omitempty"`
@@ -276,7 +276,7 @@ type KeyManagementConfig struct {
 	Algorithm      string `json:"algorithm,omitempty" yaml:"algorithm,omitempty"`
 }
 
-// ThreatDetectionConfig defines threat detection requirements
+// ThreatDetectionConfig defines threat detection requirements.
 type ThreatDetectionConfig struct {
 	Enabled         bool     `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 	DetectionTypes  []string `json:"detectionTypes,omitempty" yaml:"detectionTypes,omitempty"`
@@ -284,7 +284,7 @@ type ThreatDetectionConfig struct {
 	AlertingLevel   string   `json:"alertingLevel,omitempty" yaml:"alertingLevel,omitempty"`
 }
 
-// SliceLifecycleConfig defines lifecycle management
+// SliceLifecycleConfig defines lifecycle management.
 type SliceLifecycleConfig struct {
 	AutoProvisioning bool            `json:"autoProvisioning,omitempty" yaml:"autoProvisioning,omitempty"`
 	ProvisioningTime string          `json:"provisioningTime,omitempty" yaml:"provisioningTime,omitempty"`
@@ -293,7 +293,7 @@ type SliceLifecycleConfig struct {
 	UpdateStrategy   *UpdateStrategy `json:"updateStrategy,omitempty" yaml:"updateStrategy,omitempty"`
 }
 
-// BackupStrategy defines backup requirements
+// BackupStrategy defines backup requirements.
 type BackupStrategy struct {
 	Enabled         bool   `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 	BackupInterval  string `json:"backupInterval,omitempty" yaml:"backupInterval,omitempty"`
@@ -301,7 +301,7 @@ type BackupStrategy struct {
 	BackupLocation  string `json:"backupLocation,omitempty" yaml:"backupLocation,omitempty"`
 }
 
-// UpdateStrategy defines update strategy
+// UpdateStrategy defines update strategy.
 type UpdateStrategy struct {
 	Strategy        string `json:"strategy,omitempty" yaml:"strategy,omitempty"` // rolling, blue-green, canary
 	MaxUnavailable  string `json:"maxUnavailable,omitempty" yaml:"maxUnavailable,omitempty"`
@@ -309,7 +309,7 @@ type UpdateStrategy struct {
 	RollbackTimeout string `json:"rollbackTimeout,omitempty" yaml:"rollbackTimeout,omitempty"`
 }
 
-// SliceMonitoringConfig defines monitoring requirements
+// SliceMonitoringConfig defines monitoring requirements.
 type SliceMonitoringConfig struct {
 	KPIs           []KPIConfig     `json:"kpis,omitempty" yaml:"kpis,omitempty"`
 	Metrics        []MetricConfig  `json:"metrics,omitempty" yaml:"metrics,omitempty"`
@@ -319,7 +319,7 @@ type SliceMonitoringConfig struct {
 	TracingEnabled bool            `json:"tracingEnabled,omitempty" yaml:"tracingEnabled,omitempty"`
 }
 
-// KPIConfig defines KPI monitoring
+// KPIConfig defines KPI monitoring.
 type KPIConfig struct {
 	Name        string  `json:"name" yaml:"name"`
 	Threshold   float64 `json:"threshold,omitempty" yaml:"threshold,omitempty"`
@@ -327,7 +327,7 @@ type KPIConfig struct {
 	Aggregation string  `json:"aggregation,omitempty" yaml:"aggregation,omitempty"`
 }
 
-// MetricConfig defines custom metrics
+// MetricConfig defines custom metrics.
 type MetricConfig struct {
 	Name     string            `json:"name" yaml:"name"`
 	Type     string            `json:"type" yaml:"type"`
@@ -335,14 +335,14 @@ type MetricConfig struct {
 	Interval string            `json:"interval,omitempty" yaml:"interval,omitempty"`
 }
 
-// AlertingConfig defines alerting configuration
+// AlertingConfig defines alerting configuration.
 type AlertingConfig struct {
 	Enabled              bool                  `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 	AlertRules           []AlertRule           `json:"alertRules,omitempty" yaml:"alertRules,omitempty"`
 	NotificationChannels []NotificationChannel `json:"notificationChannels,omitempty" yaml:"notificationChannels,omitempty"`
 }
 
-// AlertRule defines an alerting rule
+// AlertRule defines an alerting rule.
 type AlertRule struct {
 	Name      string `json:"name" yaml:"name"`
 	Condition string `json:"condition" yaml:"condition"`
@@ -351,7 +351,7 @@ type AlertRule struct {
 	Action    string `json:"action,omitempty" yaml:"action,omitempty"`
 }
 
-// NotificationChannel defines notification channel
+// NotificationChannel defines notification channel.
 type NotificationChannel struct {
 	Type    string            `json:"type" yaml:"type"`
 	Target  string            `json:"target" yaml:"target"`
@@ -359,7 +359,7 @@ type NotificationChannel struct {
 	Enabled bool              `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 }
 
-// NetworkFunctionConfig defines network function configuration
+// NetworkFunctionConfig defines network function configuration.
 type NetworkFunctionConfig struct {
 	Name      string                 `json:"name" yaml:"name"`
 	Type      string                 `json:"type" yaml:"type"` // AMF, SMF, UPF, PCF, UDM, etc.
@@ -369,77 +369,77 @@ type NetworkFunctionConfig struct {
 	Affinity  *AffinityConfig        `json:"affinity,omitempty" yaml:"affinity,omitempty"`
 }
 
-// ResourceRequirements defines resource requirements for network functions
+// ResourceRequirements defines resource requirements for network functions.
 type ResourceRequirements struct {
 	Requests map[string]string `json:"requests,omitempty" yaml:"requests,omitempty"`
 	Limits   map[string]string `json:"limits,omitempty" yaml:"limits,omitempty"`
 }
 
-// AffinityConfig defines affinity configuration
+// AffinityConfig defines affinity configuration.
 type AffinityConfig struct {
 	NodeAffinity    *NodeAffinityConfig    `json:"nodeAffinity,omitempty" yaml:"nodeAffinity,omitempty"`
 	PodAffinity     *PodAffinityConfig     `json:"podAffinity,omitempty" yaml:"podAffinity,omitempty"`
 	PodAntiAffinity *PodAntiAffinityConfig `json:"podAntiAffinity,omitempty" yaml:"podAntiAffinity,omitempty"`
 }
 
-// NodeAffinityConfig defines node affinity
+// NodeAffinityConfig defines node affinity.
 type NodeAffinityConfig struct {
 	RequiredDuringSchedulingIgnoredDuringExecution  []NodeSelectorTerm        `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty" yaml:"requiredDuringSchedulingIgnoredDuringExecution,omitempty"`
 	PreferredDuringSchedulingIgnoredDuringExecution []PreferredSchedulingTerm `json:"preferredDuringSchedulingIgnoredDuringExecution,omitempty" yaml:"preferredDuringSchedulingIgnoredDuringExecution,omitempty"`
 }
 
-// NodeSelectorTerm defines node selector terms
+// NodeSelectorTerm defines node selector terms.
 type NodeSelectorTerm struct {
 	MatchExpressions []NodeSelectorRequirement `json:"matchExpressions,omitempty" yaml:"matchExpressions,omitempty"`
 	MatchFields      []NodeSelectorRequirement `json:"matchFields,omitempty" yaml:"matchFields,omitempty"`
 }
 
-// NodeSelectorRequirement defines node selector requirements
+// NodeSelectorRequirement defines node selector requirements.
 type NodeSelectorRequirement struct {
 	Key      string   `json:"key" yaml:"key"`
 	Operator string   `json:"operator" yaml:"operator"`
 	Values   []string `json:"values,omitempty" yaml:"values,omitempty"`
 }
 
-// PreferredSchedulingTerm defines preferred scheduling terms
+// PreferredSchedulingTerm defines preferred scheduling terms.
 type PreferredSchedulingTerm struct {
 	Weight     int32            `json:"weight" yaml:"weight"`
 	Preference NodeSelectorTerm `json:"preference" yaml:"preference"`
 }
 
-// PodAffinityConfig defines pod affinity
+// PodAffinityConfig defines pod affinity.
 type PodAffinityConfig struct {
 	RequiredDuringSchedulingIgnoredDuringExecution  []PodAffinityTerm         `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty" yaml:"requiredDuringSchedulingIgnoredDuringExecution,omitempty"`
 	PreferredDuringSchedulingIgnoredDuringExecution []WeightedPodAffinityTerm `json:"preferredDuringSchedulingIgnoredDuringExecution,omitempty" yaml:"preferredDuringSchedulingIgnoredDuringExecution,omitempty"`
 }
 
-// PodAntiAffinityConfig defines pod anti-affinity
+// PodAntiAffinityConfig defines pod anti-affinity.
 type PodAntiAffinityConfig struct {
 	RequiredDuringSchedulingIgnoredDuringExecution  []PodAffinityTerm         `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty" yaml:"requiredDuringSchedulingIgnoredDuringExecution,omitempty"`
 	PreferredDuringSchedulingIgnoredDuringExecution []WeightedPodAffinityTerm `json:"preferredDuringSchedulingIgnoredDuringExecution,omitempty" yaml:"preferredDuringSchedulingIgnoredDuringExecution,omitempty"`
 }
 
-// PodAffinityTerm defines pod affinity terms
+// PodAffinityTerm defines pod affinity terms.
 type PodAffinityTerm struct {
 	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty" yaml:"labelSelector,omitempty"`
 	Namespaces    []string              `json:"namespaces,omitempty" yaml:"namespaces,omitempty"`
 	TopologyKey   string                `json:"topologyKey" yaml:"topologyKey"`
 }
 
-// WeightedPodAffinityTerm defines weighted pod affinity terms
+// WeightedPodAffinityTerm defines weighted pod affinity terms.
 type WeightedPodAffinityTerm struct {
 	Weight          int32           `json:"weight" yaml:"weight"`
 	PodAffinityTerm PodAffinityTerm `json:"podAffinityTerm" yaml:"podAffinityTerm"`
 }
 
-// NewNetworkSliceConfigFunction creates a new network slice configuration function
+// NewNetworkSliceConfigFunction creates a new network slice configuration function.
 func NewNetworkSliceConfigFunction() *NetworkSliceConfigFunction {
 	return &NetworkSliceConfigFunction{
 		tracer: otel.Tracer("network-slice-config-function"),
 	}
 }
 
-// Execute implements the KRM function for network slice configuration
+// Execute implements the KRM function for network slice configuration.
 func (f *NetworkSliceConfigFunction) Execute(ctx context.Context, resources []porch.KRMResource, config map[string]interface{}) ([]porch.KRMResource, []*porch.FunctionResult, error) {
 	ctx, span := f.tracer.Start(ctx, "network-slice-config-execute")
 	defer span.End()
@@ -450,7 +450,7 @@ func (f *NetworkSliceConfigFunction) Execute(ctx context.Context, resources []po
 		attribute.Int("input.resources", len(resources)),
 	)
 
-	// Parse configuration
+	// Parse configuration.
 	sliceConfig, err := f.parseConfig(config)
 	if err != nil {
 		span.RecordError(err)
@@ -469,7 +469,7 @@ func (f *NetworkSliceConfigFunction) Execute(ctx context.Context, resources []po
 		"resources", len(resources),
 	)
 
-	// Process resources
+	// Process resources.
 	processedResources, results, err := f.processResources(ctx, resources, sliceConfig)
 	if err != nil {
 		span.RecordError(err)
@@ -477,13 +477,13 @@ func (f *NetworkSliceConfigFunction) Execute(ctx context.Context, resources []po
 		return nil, results, fmt.Errorf("failed to process network slice resources: %w", err)
 	}
 
-	// Generate additional resources if needed
+	// Generate additional resources if needed.
 	additionalResources, additionalResults, err := f.generateAdditionalResources(ctx, sliceConfig)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "additional resource generation failed")
 		logger.Error(err, "Failed to generate additional resources")
-		// Continue with what we have
+		// Continue with what we have.
 	} else {
 		processedResources = append(processedResources, additionalResources...)
 		results = append(results, additionalResults...)
@@ -503,13 +503,13 @@ func (f *NetworkSliceConfigFunction) Execute(ctx context.Context, resources []po
 	return processedResources, results, nil
 }
 
-// parseConfig parses the function configuration into NetworkSliceConfig
+// parseConfig parses the function configuration into NetworkSliceConfig.
 func (f *NetworkSliceConfigFunction) parseConfig(config map[string]interface{}) (*NetworkSliceConfig, error) {
 	if config == nil {
 		return nil, fmt.Errorf("configuration is required")
 	}
 
-	// Convert to JSON and back to struct for type safety
+	// Convert to JSON and back to struct for type safety.
 	configJSON, err := json.Marshal(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal config: %v", err)
@@ -520,7 +520,7 @@ func (f *NetworkSliceConfigFunction) parseConfig(config map[string]interface{}) 
 		return nil, fmt.Errorf("failed to unmarshal config: %v", err)
 	}
 
-	// Validate required fields
+	// Validate required fields.
 	if sliceConfig.SliceID == "" {
 		return nil, fmt.Errorf("sliceId is required")
 	}
@@ -528,7 +528,7 @@ func (f *NetworkSliceConfigFunction) parseConfig(config map[string]interface{}) 
 		return nil, fmt.Errorf("sliceType is required")
 	}
 
-	// Validate slice type
+	// Validate slice type.
 	validSliceTypes := []string{"eMBB", "URLLC", "mMTC", "V2X", "IoT"}
 	validType := false
 	for _, validSliceType := range validSliceTypes {
@@ -544,13 +544,13 @@ func (f *NetworkSliceConfigFunction) parseConfig(config map[string]interface{}) 
 	return &sliceConfig, nil
 }
 
-// processResources processes existing resources based on slice configuration
+// processResources processes existing resources based on slice configuration.
 func (f *NetworkSliceConfigFunction) processResources(ctx context.Context, resources []porch.KRMResource, config *NetworkSliceConfig) ([]porch.KRMResource, []*porch.FunctionResult, error) {
 	var processedResources []porch.KRMResource
 	var results []*porch.FunctionResult
 
 	for i, resource := range resources {
-		// Process based on resource type
+		// Process based on resource type.
 		switch {
 		case resource.Kind == "NetworkIntent":
 			processed, result := f.processNetworkIntent(resource, config)
@@ -581,7 +581,7 @@ func (f *NetworkSliceConfigFunction) processResources(ctx context.Context, resou
 			}
 
 		default:
-			// Pass through unmodified
+			// Pass through unmodified.
 			processedResources = append(processedResources, resource)
 			results = append(results, &porch.FunctionResult{
 				Message:  fmt.Sprintf("Resource %d passed through unchanged", i),
@@ -593,14 +593,14 @@ func (f *NetworkSliceConfigFunction) processResources(ctx context.Context, resou
 	return processedResources, results, nil
 }
 
-// processNetworkIntent configures NetworkIntent resources for network slicing
+// processNetworkIntent configures NetworkIntent resources for network slicing.
 func (f *NetworkSliceConfigFunction) processNetworkIntent(resource porch.KRMResource, config *NetworkSliceConfig) (porch.KRMResource, *porch.FunctionResult) {
-	// Add network slice configuration to NetworkIntent
+	// Add network slice configuration to NetworkIntent.
 	if resource.Spec == nil {
 		resource.Spec = make(map[string]interface{})
 	}
 
-	// Add network slice specification
+	// Add network slice specification.
 	resource.Spec["networkSlice"] = map[string]interface{}{
 		"sliceId":   config.SliceID,
 		"sliceType": config.SliceType,
@@ -608,7 +608,7 @@ func (f *NetworkSliceConfigFunction) processNetworkIntent(resource porch.KRMReso
 		"qos":       config.QoS,
 	}
 
-	// Add labels for slice identification
+	// Add labels for slice identification.
 	if resource.Metadata == nil {
 		resource.Metadata = make(map[string]interface{})
 	}
@@ -626,17 +626,17 @@ func (f *NetworkSliceConfigFunction) processNetworkIntent(resource porch.KRMReso
 	}
 }
 
-// processDeployment configures Deployment resources for network slicing
+// processDeployment configures Deployment resources for network slicing.
 func (f *NetworkSliceConfigFunction) processDeployment(resource porch.KRMResource, config *NetworkSliceConfig) (porch.KRMResource, *porch.FunctionResult) {
-	// Add resource requirements based on slice configuration
+	// Add resource requirements based on slice configuration.
 	if config.Resources != nil {
 		f.applyResourceRequirements(&resource, config.Resources)
 	}
 
-	// Add slice-specific labels and annotations
+	// Add slice-specific labels and annotations.
 	f.addSliceLabelsAndAnnotations(&resource, config)
 
-	// Configure network functions if specified
+	// Configure network functions if specified.
 	if len(config.NetworkFunctions) > 0 {
 		f.configureNetworkFunctions(&resource, config.NetworkFunctions)
 	}
@@ -647,12 +647,12 @@ func (f *NetworkSliceConfigFunction) processDeployment(resource porch.KRMResourc
 	}
 }
 
-// processService configures Service resources for network slicing
+// processService configures Service resources for network slicing.
 func (f *NetworkSliceConfigFunction) processService(resource porch.KRMResource, config *NetworkSliceConfig) (porch.KRMResource, *porch.FunctionResult) {
-	// Add slice-specific labels and annotations
+	// Add slice-specific labels and annotations.
 	f.addSliceLabelsAndAnnotations(&resource, config)
 
-	// Configure QoS annotations if specified
+	// Configure QoS annotations if specified.
 	if config.QoS != nil {
 		f.addQoSAnnotations(&resource, config.QoS)
 	}
@@ -663,18 +663,18 @@ func (f *NetworkSliceConfigFunction) processService(resource porch.KRMResource, 
 	}
 }
 
-// processConfigMap configures ConfigMap resources for network slicing
+// processConfigMap configures ConfigMap resources for network slicing.
 func (f *NetworkSliceConfigFunction) processConfigMap(resource porch.KRMResource, config *NetworkSliceConfig) (porch.KRMResource, *porch.FunctionResult) {
-	// Add slice configuration to ConfigMap data
+	// Add slice configuration to ConfigMap data.
 	if resource.Data == nil {
 		resource.Data = make(map[string]interface{})
 	}
 
-	// Add slice configuration
+	// Add slice configuration.
 	sliceConfigData, _ := json.Marshal(config)
 	resource.Data["slice-config.json"] = string(sliceConfigData)
 
-	// Add specific configuration based on slice type
+	// Add specific configuration based on slice type.
 	switch config.SliceType {
 	case "eMBB":
 		resource.Data["slice-type"] = "enhanced-mobile-broadband"
@@ -687,7 +687,7 @@ func (f *NetworkSliceConfigFunction) processConfigMap(resource porch.KRMResource
 		resource.Data["density-optimization"] = "high"
 	}
 
-	// Add SLA configuration if present
+	// Add SLA configuration if present.
 	if config.SLA != nil {
 		slaData, _ := json.Marshal(config.SLA)
 		resource.Data["sla-config.json"] = string(slaData)
@@ -699,12 +699,12 @@ func (f *NetworkSliceConfigFunction) processConfigMap(resource porch.KRMResource
 	}
 }
 
-// generateAdditionalResources generates additional resources needed for network slicing
+// generateAdditionalResources generates additional resources needed for network slicing.
 func (f *NetworkSliceConfigFunction) generateAdditionalResources(ctx context.Context, config *NetworkSliceConfig) ([]porch.KRMResource, []*porch.FunctionResult, error) {
 	var resources []porch.KRMResource
 	var results []*porch.FunctionResult
 
-	// Generate ResourceQuota for isolation
+	// Generate ResourceQuota for isolation.
 	if config.Isolation != nil && config.Resources != nil {
 		quota := f.generateResourceQuota(config)
 		resources = append(resources, quota)
@@ -714,7 +714,7 @@ func (f *NetworkSliceConfigFunction) generateAdditionalResources(ctx context.Con
 		})
 	}
 
-	// Generate NetworkPolicy for network isolation
+	// Generate NetworkPolicy for network isolation.
 	if config.Isolation != nil && len(config.Isolation.NetworkPolicies) > 0 {
 		netPol := f.generateNetworkPolicy(config)
 		resources = append(resources, netPol)
@@ -724,7 +724,7 @@ func (f *NetworkSliceConfigFunction) generateAdditionalResources(ctx context.Con
 		})
 	}
 
-	// Generate ServiceMonitor for monitoring
+	// Generate ServiceMonitor for monitoring.
 	if config.Monitoring != nil && len(config.Monitoring.KPIs) > 0 {
 		monitor := f.generateServiceMonitor(config)
 		resources = append(resources, monitor)
@@ -734,7 +734,7 @@ func (f *NetworkSliceConfigFunction) generateAdditionalResources(ctx context.Con
 		})
 	}
 
-	// Generate PodDisruptionBudget for availability
+	// Generate PodDisruptionBudget for availability.
 	if config.SLA != nil && config.SLA.Availability != nil {
 		pdb := f.generatePodDisruptionBudget(config)
 		resources = append(resources, pdb)
@@ -747,14 +747,14 @@ func (f *NetworkSliceConfigFunction) generateAdditionalResources(ctx context.Con
 	return resources, results, nil
 }
 
-// Helper methods for resource configuration
+// Helper methods for resource configuration.
 
 func (f *NetworkSliceConfigFunction) applyResourceRequirements(resource *porch.KRMResource, resourceConfig *SliceResourceAllocation) {
 	if resource.Spec == nil {
 		resource.Spec = make(map[string]interface{})
 	}
 
-	// Apply to container resources in deployment
+	// Apply to container resources in deployment.
 	if template, ok := resource.Spec["template"].(map[string]interface{}); ok {
 		if spec, ok := template["spec"].(map[string]interface{}); ok {
 			if containers, ok := spec["containers"].([]interface{}); ok {
@@ -766,7 +766,7 @@ func (f *NetworkSliceConfigFunction) applyResourceRequirements(resource *porch.K
 
 						resourcesMap := containerMap["resources"].(map[string]interface{})
 
-						// Set requests
+						// Set requests.
 						if requests, ok := resourcesMap["requests"].(map[string]interface{}); ok || resourceConfig.CPU != "" || resourceConfig.Memory != "" {
 							if requests == nil {
 								requests = make(map[string]interface{})
@@ -780,14 +780,14 @@ func (f *NetworkSliceConfigFunction) applyResourceRequirements(resource *porch.K
 							}
 						}
 
-						// Set limits (typically higher than requests)
+						// Set limits (typically higher than requests).
 						if limits, ok := resourcesMap["limits"].(map[string]interface{}); ok || resourceConfig.CPU != "" || resourceConfig.Memory != "" {
 							if limits == nil {
 								limits = make(map[string]interface{})
 								resourcesMap["limits"] = limits
 							}
 							if resourceConfig.CPU != "" {
-								// Set limits to 2x requests for CPU
+								// Set limits to 2x requests for CPU.
 								if cpu, err := k8sresource.ParseQuantity(resourceConfig.CPU); err == nil {
 									cpuDouble := cpu.DeepCopy()
 									cpuDouble.Add(cpu) // Double it
@@ -797,7 +797,7 @@ func (f *NetworkSliceConfigFunction) applyResourceRequirements(resource *porch.K
 								}
 							}
 							if resourceConfig.Memory != "" {
-								// Set limits to 1.5x requests for memory
+								// Set limits to 1.5x requests for memory.
 								if mem, err := k8sresource.ParseQuantity(resourceConfig.Memory); err == nil {
 									memCopy := mem.DeepCopy()
 									half := *k8sresource.NewQuantity(mem.Value()/2, k8sresource.DecimalSI)
@@ -816,7 +816,7 @@ func (f *NetworkSliceConfigFunction) applyResourceRequirements(resource *porch.K
 }
 
 func (f *NetworkSliceConfigFunction) addSliceLabelsAndAnnotations(resource *porch.KRMResource, config *NetworkSliceConfig) {
-	// Add labels
+	// Add labels.
 	if resource.Metadata == nil {
 		resource.Metadata = make(map[string]interface{})
 	}
@@ -829,7 +829,7 @@ func (f *NetworkSliceConfigFunction) addSliceLabelsAndAnnotations(resource *porc
 	labels["nephoran.com/network-slice-type"] = config.SliceType
 	labels["nephoran.com/managed-by"] = "network-slice-config"
 
-	// Add annotations
+	// Add annotations.
 	if resource.Metadata["annotations"] == nil {
 		resource.Metadata["annotations"] = make(map[string]interface{})
 	}
@@ -841,7 +841,7 @@ func (f *NetworkSliceConfigFunction) addSliceLabelsAndAnnotations(resource *porc
 		annotations["nephoran.com/slice-description"] = config.Description
 	}
 
-	// Add SLA annotations
+	// Add SLA annotations.
 	if config.SLA != nil {
 		if config.SLA.Latency != nil {
 			annotations["nephoran.com/max-latency"] = config.SLA.Latency.MaxLatency
@@ -877,8 +877,8 @@ func (f *NetworkSliceConfigFunction) addQoSAnnotations(resource *porch.KRMResour
 }
 
 func (f *NetworkSliceConfigFunction) configureNetworkFunctions(resource *porch.KRMResource, nfConfigs []*NetworkFunctionConfig) {
-	// This would configure specific network functions based on the slice requirements
-	// For now, add metadata to indicate which NFs should be deployed
+	// This would configure specific network functions based on the slice requirements.
+	// For now, add metadata to indicate which NFs should be deployed.
 	if resource.Metadata == nil {
 		resource.Metadata = make(map[string]interface{})
 	}
@@ -896,7 +896,7 @@ func (f *NetworkSliceConfigFunction) configureNetworkFunctions(resource *porch.K
 	annotations["nephoran.com/required-network-functions"] = strings.Join(nfTypes, ",")
 }
 
-// Resource generation methods
+// Resource generation methods.
 
 func (f *NetworkSliceConfigFunction) generateResourceQuota(config *NetworkSliceConfig) porch.KRMResource {
 	return porch.KRMResource{
@@ -997,7 +997,7 @@ func (f *NetworkSliceConfigFunction) generateServiceMonitor(config *NetworkSlice
 }
 
 func (f *NetworkSliceConfigFunction) generatePodDisruptionBudget(config *NetworkSliceConfig) porch.KRMResource {
-	// Calculate minimum available based on availability target
+	// Calculate minimum available based on availability target.
 	minAvailable := "50%"
 	if config.SLA.Availability.Target > 0.999 {
 		minAvailable = "80%"

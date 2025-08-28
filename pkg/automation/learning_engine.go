@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// LearningEngine learns from remediation outcomes and improves strategies
+// LearningEngine learns from remediation outcomes and improves strategies.
 type LearningEngine struct {
 	mu              sync.RWMutex
 	logger          *slog.Logger
@@ -17,7 +17,7 @@ type LearningEngine struct {
 	modelUpdates    chan *ModelUpdate
 }
 
-// RemediationOutcome represents the outcome of a remediation action
+// RemediationOutcome represents the outcome of a remediation action.
 type RemediationOutcome struct {
 	SessionID    string                 `json:"session_id"`
 	Component    string                 `json:"component"`
@@ -30,7 +30,7 @@ type RemediationOutcome struct {
 	ErrorDetails string                 `json:"error_details,omitempty"`
 }
 
-// AccuracyMetric tracks the accuracy of prediction models
+// AccuracyMetric tracks the accuracy of prediction models.
 type AccuracyMetric struct {
 	Component          string    `json:"component"`
 	ModelType          string    `json:"model_type"`
@@ -40,7 +40,7 @@ type AccuracyMetric struct {
 	LastUpdated        time.Time `json:"last_updated"`
 }
 
-// ModelUpdate represents an update to a prediction model
+// ModelUpdate represents an update to a prediction model.
 type ModelUpdate struct {
 	Component  string                 `json:"component"`
 	ModelType  string                 `json:"model_type"`
@@ -49,14 +49,14 @@ type ModelUpdate struct {
 	Timestamp  time.Time              `json:"timestamp"`
 }
 
-// RollbackManager manages rollback operations
+// RollbackManager manages rollback operations.
 type RollbackManager struct {
 	mu        sync.RWMutex
 	logger    *slog.Logger
 	rollbacks map[string]*RollbackPlan
 }
 
-// RollbackPlan defines steps to rollback a failed remediation
+// RollbackPlan defines steps to rollback a failed remediation.
 type RollbackPlan struct {
 	ID          string                 `json:"id"`
 	SessionID   string                 `json:"session_id"`
@@ -69,7 +69,7 @@ type RollbackPlan struct {
 	Metadata    map[string]interface{} `json:"metadata"`
 }
 
-// RollbackStep represents a single step in a rollback plan
+// RollbackStep represents a single step in a rollback plan.
 type RollbackStep struct {
 	ID          string                 `json:"id"`
 	Type        string                 `json:"type"` // RESTORE, SCALE, RESTART, etc.
@@ -81,7 +81,7 @@ type RollbackStep struct {
 	Error       string                 `json:"error,omitempty"`
 }
 
-// NewLearningEngine creates a new learning engine
+// NewLearningEngine creates a new learning engine.
 func NewLearningEngine(logger *slog.Logger) *LearningEngine {
 	return &LearningEngine{
 		logger:          logger,
@@ -92,7 +92,7 @@ func NewLearningEngine(logger *slog.Logger) *LearningEngine {
 	}
 }
 
-// RecordRemediation records the outcome of a remediation action
+// RecordRemediation records the outcome of a remediation action.
 func (le *LearningEngine) RecordRemediation(session *RemediationSession, strategy *RemediationStrategy, success bool) {
 	le.mu.Lock()
 	defer le.mu.Unlock()
@@ -109,7 +109,7 @@ func (le *LearningEngine) RecordRemediation(session *RemediationSession, strateg
 	}
 
 	if !success && len(session.Actions) > 0 {
-		// Find the first failed action for error details
+		// Find the first failed action for error details.
 		for _, action := range session.Actions {
 			if action.Status == "FAILED" && action.Error != "" {
 				outcome.ErrorDetails = action.Error
@@ -120,7 +120,7 @@ func (le *LearningEngine) RecordRemediation(session *RemediationSession, strateg
 
 	le.outcomes = append(le.outcomes, outcome)
 
-	// Update strategy success rate
+	// Update strategy success rate.
 	if strategy != nil {
 		strategy.Total++
 		if success {
@@ -138,7 +138,7 @@ func (le *LearningEngine) RecordRemediation(session *RemediationSession, strateg
 		"duration", outcome.Duration)
 }
 
-// UpdateModelAccuracy updates the accuracy metrics for a prediction model
+// UpdateModelAccuracy updates the accuracy metrics for a prediction model.
 func (le *LearningEngine) UpdateModelAccuracy(component, modelType string, correct bool) {
 	le.mu.Lock()
 	defer le.mu.Unlock()
@@ -161,7 +161,7 @@ func (le *LearningEngine) UpdateModelAccuracy(component, modelType string, corre
 	metric.LastUpdated = time.Now()
 }
 
-// GetStrategySuccessRate returns the success rate for a strategy
+// GetStrategySuccessRate returns the success rate for a strategy.
 func (le *LearningEngine) GetStrategySuccessRate(strategyName string) float64 {
 	le.mu.RLock()
 	defer le.mu.RUnlock()
@@ -172,7 +172,7 @@ func (le *LearningEngine) GetStrategySuccessRate(strategyName string) float64 {
 	return 0.0
 }
 
-// GetModelAccuracy returns the accuracy for a prediction model
+// GetModelAccuracy returns the accuracy for a prediction model.
 func (le *LearningEngine) GetModelAccuracy(component, modelType string) float64 {
 	le.mu.RLock()
 	defer le.mu.RUnlock()
@@ -184,7 +184,7 @@ func (le *LearningEngine) GetModelAccuracy(component, modelType string) float64 
 	return 0.0
 }
 
-// NewRollbackManager creates a new rollback manager
+// NewRollbackManager creates a new rollback manager.
 func NewRollbackManager(logger *slog.Logger) *RollbackManager {
 	return &RollbackManager{
 		logger:    logger,
@@ -192,7 +192,7 @@ func NewRollbackManager(logger *slog.Logger) *RollbackManager {
 	}
 }
 
-// CreateRollbackPlan creates a rollback plan for a failed remediation
+// CreateRollbackPlan creates a rollback plan for a failed remediation.
 func (rm *RollbackManager) CreateRollbackPlan(session *RemediationSession) *RollbackPlan {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
@@ -207,7 +207,7 @@ func (rm *RollbackManager) CreateRollbackPlan(session *RemediationSession) *Roll
 		Metadata:  make(map[string]interface{}),
 	}
 
-	// Generate rollback steps based on the failed actions
+	// Generate rollback steps based on the failed actions.
 	for i := len(session.Actions) - 1; i >= 0; i-- {
 		action := session.Actions[i]
 		if action.Status == "COMPLETED" {
@@ -220,7 +220,7 @@ func (rm *RollbackManager) CreateRollbackPlan(session *RemediationSession) *Roll
 	return plan
 }
 
-// createRollbackStep creates a rollback step for a completed action
+// createRollbackStep creates a rollback step for a completed action.
 func (rm *RollbackManager) createRollbackStep(action *RemediationAction) RollbackStep {
 	step := RollbackStep{
 		ID:         "step-" + action.Type + "-rollback",
@@ -249,7 +249,7 @@ func (rm *RollbackManager) createRollbackStep(action *RemediationAction) Rollbac
 	return step
 }
 
-// ExecuteRollback executes a rollback plan
+// ExecuteRollback executes a rollback plan.
 func (rm *RollbackManager) ExecuteRollback(planID string) error {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
@@ -269,7 +269,7 @@ func (rm *RollbackManager) ExecuteRollback(planID string) error {
 
 	rm.logger.Info("Executing rollback plan", "plan_id", planID, "component", plan.Component)
 
-	// Execute each step
+	// Execute each step.
 	for i := range plan.Steps {
 		step := &plan.Steps[i]
 		rm.executeRollbackStep(step)
@@ -282,7 +282,7 @@ func (rm *RollbackManager) ExecuteRollback(planID string) error {
 	return nil
 }
 
-// executeRollbackStep executes a single rollback step
+// executeRollbackStep executes a single rollback step.
 func (rm *RollbackManager) executeRollbackStep(step *RollbackStep) {
 	step.Status = "RUNNING"
 	now := time.Now()
@@ -290,8 +290,8 @@ func (rm *RollbackManager) executeRollbackStep(step *RollbackStep) {
 
 	rm.logger.Info("Executing rollback step", "step_id", step.ID, "type", step.Type)
 
-	// In a real implementation, this would perform the actual rollback operation
-	// For now, simulate the execution
+	// In a real implementation, this would perform the actual rollback operation.
+	// For now, simulate the execution.
 	time.Sleep(100 * time.Millisecond)
 
 	step.Status = "COMPLETED"

@@ -25,85 +25,85 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-// PerformanceOptimizer manages system performance optimization
+// PerformanceOptimizer manages system performance optimization.
 type PerformanceOptimizer struct {
 	logger logr.Logger
 
-	// Connection pooling
+	// Connection pooling.
 	connectionPools map[string]*ConnectionPool
 	poolMutex       sync.RWMutex
 
-	// Batch processing
+	// Batch processing.
 	batchProcessors map[string]*BatchProcessor
 	batchMutex      sync.RWMutex
 
-	// Memory optimization
+	// Memory optimization.
 	memoryManager *MemoryManager
 
-	// CPU optimization
+	// CPU optimization.
 	cpuManager *CPUManager
 
-	// I/O optimization
+	// I/O optimization.
 	ioOptimizer *IOOptimizer
 
-	// Caching optimization
+	// Caching optimization.
 	cacheOptimizer *CacheOptimizer
 
-	// Performance monitoring
+	// Performance monitoring.
 	performanceMonitor *PerformanceMonitor
 
-	// Configuration
+	// Configuration.
 	config *PerformanceConfig
 
-	// Runtime state
+	// Runtime state.
 	mutex    sync.RWMutex
 	started  bool
 	stopChan chan bool
 	workerWG sync.WaitGroup
 }
 
-// PerformanceConfig provides configuration for performance optimization
+// PerformanceConfig provides configuration for performance optimization.
 type PerformanceConfig struct {
-	// Connection pooling
+	// Connection pooling.
 	DefaultPoolSize         int           `json:"defaultPoolSize"`
 	MaxPoolSize             int           `json:"maxPoolSize"`
 	PoolIdleTimeout         time.Duration `json:"poolIdleTimeout"`
 	PoolHealthCheckInterval time.Duration `json:"poolHealthCheckInterval"`
 
-	// Batch processing
+	// Batch processing.
 	DefaultBatchSize       int           `json:"defaultBatchSize"`
 	MaxBatchSize           int           `json:"maxBatchSize"`
 	BatchTimeout           time.Duration `json:"batchTimeout"`
 	EnableAdaptiveBatching bool          `json:"enableAdaptiveBatching"`
 
-	// Memory management
+	// Memory management.
 	MaxMemoryUsage      int64         `json:"maxMemoryUsage"` // in bytes
 	GCThreshold         float64       `json:"gcThreshold"`    // memory usage percentage
 	MemoryCheckInterval time.Duration `json:"memoryCheckInterval"`
 
-	// CPU management
+	// CPU management.
 	MaxCPUUsage          float64       `json:"maxCPUUsage"` // percentage
 	CPUThrottleThreshold float64       `json:"cpuThrottleThreshold"`
 	CPUCheckInterval     time.Duration `json:"cpuCheckInterval"`
 
-	// I/O optimization
+	// I/O optimization.
 	MaxConcurrentIO   int           `json:"maxConcurrentIO"`
 	IOTimeoutDefault  time.Duration `json:"ioTimeoutDefault"`
 	EnableIOBuffering bool          `json:"enableIOBuffering"`
 	IOBufferSize      int           `json:"ioBufferSize"`
 
-	// Cache optimization
+	// Cache optimization.
 	CacheHitRateThreshold float64 `json:"cacheHitRateThreshold"`
 	CacheEvictionStrategy string  `json:"cacheEvictionStrategy"`
 	CacheSizeThreshold    int64   `json:"cacheSizeThreshold"`
 
-	// Monitoring
+	// Monitoring.
 	MonitoringInterval   time.Duration `json:"monitoringInterval"`
 	MetricsRetentionDays int           `json:"metricsRetentionDays"`
 	EnableProfiling      bool          `json:"enableProfiling"`
 }
 
-// DefaultPerformanceConfig returns default performance configuration
+// DefaultPerformanceConfig returns default performance configuration.
 func DefaultPerformanceConfig() *PerformanceConfig {
 	return &PerformanceConfig{
 		DefaultPoolSize:         10,
@@ -133,7 +133,7 @@ func DefaultPerformanceConfig() *PerformanceConfig {
 	}
 }
 
-// ConnectionPool manages a pool of connections
+// ConnectionPool manages a pool of connections.
 type ConnectionPool struct {
 	name          string
 	connections   []Connection
@@ -146,14 +146,14 @@ type ConnectionPool struct {
 	healthChecker func(Connection) bool
 	factory       func() (Connection, error)
 
-	// Statistics
+	// Statistics.
 	totalCreated   int64
 	totalDestroyed int64
 	totalUsed      int64
 	totalReturned  int64
 }
 
-// Connection represents a generic connection interface
+// Connection represents a generic connection interface.
 type Connection interface {
 	ID() string
 	IsHealthy() bool
@@ -161,7 +161,7 @@ type Connection interface {
 	Close() error
 }
 
-// BatchProcessor handles batch processing of items
+// BatchProcessor handles batch processing of items.
 type BatchProcessor struct {
 	name        string
 	batchSize   int
@@ -172,29 +172,29 @@ type BatchProcessor struct {
 	ticker      *time.Ticker
 	stopChan    chan bool
 
-	// Adaptive batching
+	// Adaptive batching.
 	adaptiveBatching  bool
 	avgProcessTime    time.Duration
 	throughputHistory []float64
 }
 
-// MemoryManager manages memory usage and optimization
+// MemoryManager manages memory usage and optimization.
 type MemoryManager struct {
 	maxMemory     int64
 	gcThreshold   float64
 	currentMemory int64
 	mutex         sync.RWMutex
 
-	// Memory pools
+	// Memory pools.
 	pools map[string]*sync.Pool
 
-	// Statistics
+	// Statistics.
 	allocations   int64
 	deallocations int64
 	gcRuns        int64
 }
 
-// CPUManager manages CPU usage and throttling
+// CPUManager manages CPU usage and throttling.
 type CPUManager struct {
 	maxCPUUsage       float64
 	throttleThreshold float64
@@ -202,12 +202,12 @@ type CPUManager struct {
 	throttleActive    bool
 	mutex             sync.RWMutex
 
-	// Throttling control
+	// Throttling control.
 	throttleRequests  chan bool
 	throttleResponses chan bool
 }
 
-// IOOptimizer optimizes I/O operations
+// IOOptimizer optimizes I/O operations.
 type IOOptimizer struct {
 	maxConcurrent    int
 	semaphore        chan struct{}
@@ -215,20 +215,20 @@ type IOOptimizer struct {
 	bufferingEnabled bool
 	bufferSize       int
 
-	// I/O statistics
+	// I/O statistics.
 	totalOperations int64
 	averageLatency  time.Duration
 	concurrentOps   int64
 	mutex           sync.RWMutex
 }
 
-// CacheOptimizer optimizes cache performance
+// CacheOptimizer optimizes cache performance.
 type CacheOptimizer struct {
 	hitRateThreshold float64
 	evictionStrategy string
 	sizeThreshold    int64
 
-	// Cache statistics
+	// Cache statistics.
 	totalHits      int64
 	totalMisses    int64
 	totalEvictions int64
@@ -236,18 +236,18 @@ type CacheOptimizer struct {
 	mutex          sync.RWMutex
 }
 
-// PerformanceMonitor monitors system performance
+// PerformanceMonitor monitors system performance.
 type PerformanceMonitor struct {
 	metrics map[string]*PerformanceMetric
 	mutex   sync.RWMutex
 
-	// Monitoring configuration
+	// Monitoring configuration.
 	interval      time.Duration
 	retentionDays int
 	profiling     bool
 }
 
-// PerformanceMetric represents a performance metric
+// PerformanceMetric represents a performance metric.
 type PerformanceMetric struct {
 	Name      string            `json:"name"`
 	Value     float64           `json:"value"`
@@ -257,7 +257,7 @@ type PerformanceMetric struct {
 	History   []float64         `json:"history"`
 }
 
-// NewPerformanceOptimizer creates a new performance optimizer
+// NewPerformanceOptimizer creates a new performance optimizer.
 func NewPerformanceOptimizer(config *PerformanceConfig) *PerformanceOptimizer {
 	if config == nil {
 		config = DefaultPerformanceConfig()
@@ -271,7 +271,7 @@ func NewPerformanceOptimizer(config *PerformanceConfig) *PerformanceOptimizer {
 		stopChan:        make(chan bool),
 	}
 
-	// Initialize components
+	// Initialize components.
 	po.memoryManager = NewMemoryManager(config.MaxMemoryUsage, config.GCThreshold)
 	po.cpuManager = NewCPUManager(config.MaxCPUUsage, config.CPUThrottleThreshold)
 	po.ioOptimizer = NewIOOptimizer(config.MaxConcurrentIO, config.IOTimeoutDefault,
@@ -284,7 +284,7 @@ func NewPerformanceOptimizer(config *PerformanceConfig) *PerformanceOptimizer {
 	return po
 }
 
-// Start starts the performance optimizer
+// Start starts the performance optimizer.
 func (po *PerformanceOptimizer) Start(ctx context.Context) error {
 	po.mutex.Lock()
 	defer po.mutex.Unlock()
@@ -293,15 +293,15 @@ func (po *PerformanceOptimizer) Start(ctx context.Context) error {
 		return nil
 	}
 
-	// Start memory manager
+	// Start memory manager.
 	po.workerWG.Add(1)
 	go po.memoryManagerWorker(ctx)
 
-	// Start CPU manager
+	// Start CPU manager.
 	po.workerWG.Add(1)
 	go po.cpuManagerWorker(ctx)
 
-	// Start performance monitor
+	// Start performance monitor.
 	po.workerWG.Add(1)
 	go po.performanceMonitorWorker(ctx)
 
@@ -311,7 +311,7 @@ func (po *PerformanceOptimizer) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the performance optimizer
+// Stop stops the performance optimizer.
 func (po *PerformanceOptimizer) Stop(ctx context.Context) error {
 	po.mutex.Lock()
 	defer po.mutex.Unlock()
@@ -320,24 +320,24 @@ func (po *PerformanceOptimizer) Stop(ctx context.Context) error {
 		return nil
 	}
 
-	// Signal stop
+	// Signal stop.
 	close(po.stopChan)
 
-	// Stop all connection pools
+	// Stop all connection pools.
 	po.poolMutex.Lock()
 	for _, pool := range po.connectionPools {
 		pool.Close()
 	}
 	po.poolMutex.Unlock()
 
-	// Stop all batch processors
+	// Stop all batch processors.
 	po.batchMutex.Lock()
 	for _, processor := range po.batchProcessors {
 		processor.Stop()
 	}
 	po.batchMutex.Unlock()
 
-	// Wait for workers
+	// Wait for workers.
 	po.workerWG.Wait()
 
 	po.started = false
@@ -346,8 +346,9 @@ func (po *PerformanceOptimizer) Stop(ctx context.Context) error {
 	return nil
 }
 
-// Connection pool management
+// Connection pool management.
 
+// CreateConnectionPool performs createconnectionpool operation.
 func (po *PerformanceOptimizer) CreateConnectionPool(name string, factory func() (Connection, error), maxSize int) *ConnectionPool {
 	po.poolMutex.Lock()
 	defer po.poolMutex.Unlock()
@@ -368,7 +369,7 @@ func (po *PerformanceOptimizer) CreateConnectionPool(name string, factory func()
 
 	po.connectionPools[name] = pool
 
-	// Start pool maintenance
+	// Start pool maintenance.
 	go pool.maintenanceWorker()
 
 	po.logger.Info("Created connection pool", "name", name, "maxSize", maxSize)
@@ -376,6 +377,7 @@ func (po *PerformanceOptimizer) CreateConnectionPool(name string, factory func()
 	return pool
 }
 
+// GetConnectionPool performs getconnectionpool operation.
 func (po *PerformanceOptimizer) GetConnectionPool(name string) *ConnectionPool {
 	po.poolMutex.RLock()
 	defer po.poolMutex.RUnlock()
@@ -383,11 +385,12 @@ func (po *PerformanceOptimizer) GetConnectionPool(name string) *ConnectionPool {
 	return po.connectionPools[name]
 }
 
-// Batch processing management
+// Batch processing management.
 
+// CreateBatchProcessor performs createbatchprocessor operation.
 func (po *PerformanceOptimizer) CreateBatchProcessor(name string, batchSize int,
-	processor func([]interface{}) error) *BatchProcessor {
-
+	processor func([]interface{}) error,
+) *BatchProcessor {
 	po.batchMutex.Lock()
 	defer po.batchMutex.Unlock()
 
@@ -407,7 +410,7 @@ func (po *PerformanceOptimizer) CreateBatchProcessor(name string, batchSize int,
 		throughputHistory: make([]float64, 0, 10),
 	}
 
-	// Start batch processing
+	// Start batch processing.
 	go bp.processLoop()
 
 	po.batchProcessors[name] = bp
@@ -417,6 +420,7 @@ func (po *PerformanceOptimizer) CreateBatchProcessor(name string, batchSize int,
 	return bp
 }
 
+// GetBatchProcessor performs getbatchprocessor operation.
 func (po *PerformanceOptimizer) GetBatchProcessor(name string) *BatchProcessor {
 	po.batchMutex.RLock()
 	defer po.batchMutex.RUnlock()
@@ -424,25 +428,29 @@ func (po *PerformanceOptimizer) GetBatchProcessor(name string) *BatchProcessor {
 	return po.batchProcessors[name]
 }
 
-// Performance optimization methods
+// Performance optimization methods.
 
+// OptimizeMemoryUsage performs optimizememoryusage operation.
 func (po *PerformanceOptimizer) OptimizeMemoryUsage(ctx context.Context) error {
 	return po.memoryManager.Optimize(ctx)
 }
 
+// OptimizeCPUUsage performs optimizecpuusage operation.
 func (po *PerformanceOptimizer) OptimizeCPUUsage(ctx context.Context) error {
 	return po.cpuManager.Optimize(ctx)
 }
 
+// OptimizeIOPerformance performs optimizeioperformance operation.
 func (po *PerformanceOptimizer) OptimizeIOPerformance(ctx context.Context) error {
 	return po.ioOptimizer.Optimize(ctx)
 }
 
+// OptimizeCachePerformance performs optimizecacheperformance operation.
 func (po *PerformanceOptimizer) OptimizeCachePerformance(ctx context.Context) error {
 	return po.cacheOptimizer.Optimize(ctx)
 }
 
-// Worker methods
+// Worker methods.
 
 func (po *PerformanceOptimizer) memoryManagerWorker(ctx context.Context) {
 	defer po.workerWG.Done()
@@ -504,8 +512,9 @@ func (po *PerformanceOptimizer) performanceMonitorWorker(ctx context.Context) {
 	}
 }
 
-// Component implementations
+// Component implementations.
 
+// NewMemoryManager performs newmemorymanager operation.
 func NewMemoryManager(maxMemory int64, gcThreshold float64) *MemoryManager {
 	return &MemoryManager{
 		maxMemory:   maxMemory,
@@ -514,22 +523,24 @@ func NewMemoryManager(maxMemory int64, gcThreshold float64) *MemoryManager {
 	}
 }
 
+// Optimize performs optimize operation.
 func (mm *MemoryManager) Optimize(ctx context.Context) error {
 	mm.mutex.Lock()
 	defer mm.mutex.Unlock()
 
-	// Check memory usage
+	// Check memory usage.
 	memoryUsage := float64(mm.currentMemory) / float64(mm.maxMemory)
 
 	if memoryUsage > mm.gcThreshold {
-		// Trigger garbage collection
+		// Trigger garbage collection.
 		mm.gcRuns++
-		// In a real implementation, this would trigger actual GC
+		// In a real implementation, this would trigger actual GC.
 	}
 
 	return nil
 }
 
+// NewCPUManager performs newcpumanager operation.
 func NewCPUManager(maxCPU, throttleThreshold float64) *CPUManager {
 	return &CPUManager{
 		maxCPUUsage:       maxCPU,
@@ -539,25 +550,27 @@ func NewCPUManager(maxCPU, throttleThreshold float64) *CPUManager {
 	}
 }
 
+// Optimize performs optimize operation.
 func (cm *CPUManager) Optimize(ctx context.Context) error {
 	cm.mutex.Lock()
 	defer cm.mutex.Unlock()
 
-	// Check if throttling is needed
+	// Check if throttling is needed.
 	if cm.currentCPUUsage > cm.throttleThreshold && !cm.throttleActive {
 		cm.throttleActive = true
-		// Start throttling
+		// Start throttling.
 	} else if cm.currentCPUUsage < cm.maxCPUUsage && cm.throttleActive {
 		cm.throttleActive = false
-		// Stop throttling
+		// Stop throttling.
 	}
 
 	return nil
 }
 
+// NewIOOptimizer performs newiooptimizer operation.
 func NewIOOptimizer(maxConcurrent int, defaultTimeout time.Duration,
-	bufferingEnabled bool, bufferSize int) *IOOptimizer {
-
+	bufferingEnabled bool, bufferSize int,
+) *IOOptimizer {
 	return &IOOptimizer{
 		maxConcurrent:    maxConcurrent,
 		semaphore:        make(chan struct{}, maxConcurrent),
@@ -567,14 +580,16 @@ func NewIOOptimizer(maxConcurrent int, defaultTimeout time.Duration,
 	}
 }
 
+// Optimize performs optimize operation.
 func (io *IOOptimizer) Optimize(ctx context.Context) error {
-	// Placeholder for I/O optimization logic
+	// Placeholder for I/O optimization logic.
 	return nil
 }
 
+// NewCacheOptimizer performs newcacheoptimizer operation.
 func NewCacheOptimizer(hitRateThreshold float64, evictionStrategy string,
-	sizeThreshold int64) *CacheOptimizer {
-
+	sizeThreshold int64,
+) *CacheOptimizer {
 	return &CacheOptimizer{
 		hitRateThreshold: hitRateThreshold,
 		evictionStrategy: evictionStrategy,
@@ -582,11 +597,12 @@ func NewCacheOptimizer(hitRateThreshold float64, evictionStrategy string,
 	}
 }
 
+// Optimize performs optimize operation.
 func (co *CacheOptimizer) Optimize(ctx context.Context) error {
 	co.mutex.Lock()
 	defer co.mutex.Unlock()
 
-	// Calculate hit rate
+	// Calculate hit rate.
 	total := co.totalHits + co.totalMisses
 	if total == 0 {
 		return nil
@@ -594,17 +610,18 @@ func (co *CacheOptimizer) Optimize(ctx context.Context) error {
 
 	hitRate := float64(co.totalHits) / float64(total)
 
-	// Optimize cache if hit rate is below threshold
+	// Optimize cache if hit rate is below threshold.
 	if hitRate < co.hitRateThreshold {
-		// Implement cache optimization strategies
+		// Implement cache optimization strategies.
 	}
 
 	return nil
 }
 
+// NewPerformanceMonitor performs newperformancemonitor operation.
 func NewPerformanceMonitor(interval time.Duration, retentionDays int,
-	profiling bool) *PerformanceMonitor {
-
+	profiling bool,
+) *PerformanceMonitor {
 	return &PerformanceMonitor{
 		metrics:       make(map[string]*PerformanceMetric),
 		interval:      interval,
@@ -613,14 +630,15 @@ func NewPerformanceMonitor(interval time.Duration, retentionDays int,
 	}
 }
 
+// CollectMetrics performs collectmetrics operation.
 func (pm *PerformanceMonitor) CollectMetrics(ctx context.Context) {
 	pm.mutex.Lock()
 	defer pm.mutex.Unlock()
 
-	// Collect various performance metrics
+	// Collect various performance metrics.
 	now := time.Now()
 
-	// Example metrics collection
+	// Example metrics collection.
 	pm.recordMetric("memory.usage", 0.0, "percentage", now, nil)
 	pm.recordMetric("cpu.usage", 0.0, "percentage", now, nil)
 	pm.recordMetric("io.operations", 0.0, "ops/sec", now, nil)
@@ -628,8 +646,8 @@ func (pm *PerformanceMonitor) CollectMetrics(ctx context.Context) {
 }
 
 func (pm *PerformanceMonitor) recordMetric(name string, value float64, unit string,
-	timestamp time.Time, tags map[string]string) {
-
+	timestamp time.Time, tags map[string]string,
+) {
 	if _, exists := pm.metrics[name]; !exists {
 		pm.metrics[name] = &PerformanceMetric{
 			Name:    name,
@@ -644,16 +662,17 @@ func (pm *PerformanceMonitor) recordMetric(name string, value float64, unit stri
 	metric.Timestamp = timestamp
 	metric.History = append(metric.History, value)
 
-	// Keep only recent history
+	// Keep only recent history.
 	if len(metric.History) > 1000 {
 		metric.History = metric.History[100:]
 	}
 }
 
-// Connection pool methods
+// Connection pool methods.
 
+// Get performs get operation.
 func (cp *ConnectionPool) Get(ctx context.Context) (Connection, error) {
-	// Try to get from available connections
+	// Try to get from available connections.
 	select {
 	case conn := <-cp.available:
 		cp.mutex.Lock()
@@ -662,7 +681,7 @@ func (cp *ConnectionPool) Get(ctx context.Context) (Connection, error) {
 		cp.mutex.Unlock()
 		return conn, nil
 	default:
-		// Create new connection if under limit
+		// Create new connection if under limit.
 		if cp.currentSize < cp.maxSize {
 			conn, err := cp.factory()
 			if err != nil {
@@ -680,7 +699,7 @@ func (cp *ConnectionPool) Get(ctx context.Context) (Connection, error) {
 			return conn, nil
 		}
 
-		// Wait for available connection
+		// Wait for available connection.
 		select {
 		case conn := <-cp.available:
 			cp.mutex.Lock()
@@ -694,6 +713,7 @@ func (cp *ConnectionPool) Get(ctx context.Context) (Connection, error) {
 	}
 }
 
+// Return performs return operation.
 func (cp *ConnectionPool) Return(conn Connection) {
 	cp.mutex.Lock()
 	defer cp.mutex.Unlock()
@@ -704,31 +724,32 @@ func (cp *ConnectionPool) Return(conn Connection) {
 	if conn.IsHealthy() {
 		select {
 		case cp.available <- conn:
-			// Connection returned to pool
+			// Connection returned to pool.
 		default:
-			// Pool is full, close connection
+			// Pool is full, close connection.
 			conn.Close()
 			cp.currentSize--
 			cp.totalDestroyed++
 		}
 	} else {
-		// Connection is unhealthy, close it
+		// Connection is unhealthy, close it.
 		conn.Close()
 		cp.currentSize--
 		cp.totalDestroyed++
 	}
 }
 
+// Close performs close operation.
 func (cp *ConnectionPool) Close() {
 	cp.mutex.Lock()
 	defer cp.mutex.Unlock()
 
-	// Close all connections
+	// Close all connections.
 	for _, conn := range cp.connections {
 		conn.Close()
 	}
 
-	// Close all in-use connections
+	// Close all in-use connections.
 	for _, conn := range cp.inUse {
 		conn.Close()
 	}
@@ -751,7 +772,7 @@ func (cp *ConnectionPool) performMaintenance() {
 	cp.mutex.Lock()
 	defer cp.mutex.Unlock()
 
-	// Remove idle connections that have exceeded idle timeout
+	// Remove idle connections that have exceeded idle timeout.
 	now := time.Now()
 	for i := len(cp.connections) - 1; i >= 0; i-- {
 		conn := cp.connections[i]
@@ -764,8 +785,9 @@ func (cp *ConnectionPool) performMaintenance() {
 	}
 }
 
-// Batch processor methods
+// Batch processor methods.
 
+// Add performs add operation.
 func (bp *BatchProcessor) Add(item interface{}) {
 	bp.bufferMutex.Lock()
 	defer bp.bufferMutex.Unlock()
@@ -804,7 +826,7 @@ func (bp *BatchProcessor) processLoop() {
 			bp.bufferMutex.Unlock()
 
 		case <-bp.stopChan:
-			// Process remaining items
+			// Process remaining items.
 			bp.bufferMutex.Lock()
 			bp.processBatch()
 			bp.bufferMutex.Unlock()
@@ -814,48 +836,49 @@ func (bp *BatchProcessor) processLoop() {
 }
 
 func (bp *BatchProcessor) updatePerformanceMetrics(batchSize int, duration time.Duration, success bool) {
-	// Update average processing time
+	// Update average processing time.
 	if bp.avgProcessTime == 0 {
 		bp.avgProcessTime = duration
 	} else {
 		bp.avgProcessTime = (bp.avgProcessTime + duration) / 2
 	}
 
-	// Calculate throughput (items per second)
+	// Calculate throughput (items per second).
 	throughput := float64(batchSize) / duration.Seconds()
 	bp.throughputHistory = append(bp.throughputHistory, throughput)
 
-	// Keep only recent history
+	// Keep only recent history.
 	if len(bp.throughputHistory) > 10 {
 		bp.throughputHistory = bp.throughputHistory[1:]
 	}
 
-	// Adapt batch size based on performance
+	// Adapt batch size based on performance.
 	if len(bp.throughputHistory) >= 3 {
 		bp.adaptBatchSize()
 	}
 }
 
 func (bp *BatchProcessor) adaptBatchSize() {
-	// Calculate average throughput
+	// Calculate average throughput.
 	var totalThroughput float64
 	for _, t := range bp.throughputHistory {
 		totalThroughput += t
 	}
 	avgThroughput := totalThroughput / float64(len(bp.throughputHistory))
 
-	// Adjust batch size based on throughput trend
+	// Adjust batch size based on throughput trend.
 	recentThroughput := bp.throughputHistory[len(bp.throughputHistory)-1]
 
 	if recentThroughput > avgThroughput*1.1 && bp.batchSize < 1000 {
-		// Throughput is improving, increase batch size
+		// Throughput is improving, increase batch size.
 		bp.batchSize = int(float64(bp.batchSize) * 1.1)
 	} else if recentThroughput < avgThroughput*0.9 && bp.batchSize > 10 {
-		// Throughput is declining, decrease batch size
+		// Throughput is declining, decrease batch size.
 		bp.batchSize = int(float64(bp.batchSize) * 0.9)
 	}
 }
 
+// Stop performs stop operation.
 func (bp *BatchProcessor) Stop() {
 	bp.ticker.Stop()
 	bp.stopChan <- true

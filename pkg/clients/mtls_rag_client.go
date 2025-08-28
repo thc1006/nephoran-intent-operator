@@ -13,14 +13,14 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
-// MTLSRAGClient provides mTLS-enabled RAG service client functionality
+// MTLSRAGClient provides mTLS-enabled RAG service client functionality.
 type MTLSRAGClient struct {
 	baseURL    string
 	httpClient *http.Client
 	logger     *logging.StructuredLogger
 }
 
-// RAGSearchRequest represents a request to the RAG service
+// RAGSearchRequest represents a request to the RAG service.
 type RAGSearchRequest struct {
 	Query         string                 `json:"query"`
 	Limit         int                    `json:"limit,omitempty"`
@@ -33,7 +33,7 @@ type RAGSearchRequest struct {
 	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// RAGSearchResponse represents a response from the RAG service
+// RAGSearchResponse represents a response from the RAG service.
 type RAGSearchResponse struct {
 	Results []*shared.SearchResult `json:"results"`
 	Took    int64                  `json:"took"`
@@ -42,13 +42,13 @@ type RAGSearchResponse struct {
 	Filters map[string]interface{} `json:"filters,omitempty"`
 }
 
-// RAGDocumentRequest represents a document ingestion request
+// RAGDocumentRequest represents a document ingestion request.
 type RAGDocumentRequest struct {
 	Documents []*shared.TelecomDocument `json:"documents"`
 	Options   *IngestionOptions         `json:"options,omitempty"`
 }
 
-// IngestionOptions represents options for document ingestion
+// IngestionOptions represents options for document ingestion.
 type IngestionOptions struct {
 	ChunkSize      int                    `json:"chunk_size,omitempty"`
 	ChunkOverlap   int                    `json:"chunk_overlap,omitempty"`
@@ -58,7 +58,7 @@ type IngestionOptions struct {
 	Metadata       map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// RAGDocumentResponse represents a response from document ingestion
+// RAGDocumentResponse represents a response from document ingestion.
 type RAGDocumentResponse struct {
 	DocumentsProcessed int                    `json:"documents_processed"`
 	DocumentsUpdated   int                    `json:"documents_updated"`
@@ -69,7 +69,7 @@ type RAGDocumentResponse struct {
 	Metadata           map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// RAGStatsResponse represents statistics from the RAG service
+// RAGStatsResponse represents statistics from the RAG service.
 type RAGStatsResponse struct {
 	TotalDocuments   int64                  `json:"total_documents"`
 	TotalChunks      int64                  `json:"total_chunks"`
@@ -81,7 +81,7 @@ type RAGStatsResponse struct {
 	PerformanceStats map[string]interface{} `json:"performance_stats"`
 }
 
-// SearchDocuments searches for documents using the RAG service with mTLS
+// SearchDocuments searches for documents using the RAG service with mTLS.
 func (c *MTLSRAGClient) SearchDocuments(ctx context.Context, query *shared.SearchQuery) (*shared.SearchResponse, error) {
 	if query == nil || query.Query == "" {
 		return nil, fmt.Errorf("search query cannot be empty")
@@ -93,7 +93,7 @@ func (c *MTLSRAGClient) SearchDocuments(ctx context.Context, query *shared.Searc
 		"hybrid_search", query.HybridSearch,
 		"base_url", c.baseURL)
 
-	// Convert shared.SearchQuery to internal request format
+	// Convert shared.SearchQuery to internal request format.
 	req := &RAGSearchRequest{
 		Query:         query.Query,
 		Limit:         query.Limit,
@@ -109,7 +109,7 @@ func (c *MTLSRAGClient) SearchDocuments(ctx context.Context, query *shared.Searc
 		},
 	}
 
-	// Set defaults
+	// Set defaults.
 	if req.Limit <= 0 {
 		req.Limit = 10
 	}
@@ -120,7 +120,7 @@ func (c *MTLSRAGClient) SearchDocuments(ctx context.Context, query *shared.Searc
 		req.MinConfidence = 0.1
 	}
 
-	// Make request to RAG service
+	// Make request to RAG service.
 	response, err := c.makeSearchRequest(ctx, "/api/v1/search", req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search documents: %w", err)
@@ -131,7 +131,7 @@ func (c *MTLSRAGClient) SearchDocuments(ctx context.Context, query *shared.Searc
 		"total_results", response.Total,
 		"processing_time", response.Took)
 
-	// Convert to shared.SearchResponse
+	// Convert to shared.SearchResponse.
 	return &shared.SearchResponse{
 		Results: response.Results,
 		Took:    response.Took,
@@ -139,7 +139,7 @@ func (c *MTLSRAGClient) SearchDocuments(ctx context.Context, query *shared.Searc
 	}, nil
 }
 
-// IngestDocuments ingests documents into the RAG service
+// IngestDocuments ingests documents into the RAG service.
 func (c *MTLSRAGClient) IngestDocuments(ctx context.Context, documents []*shared.TelecomDocument, options *IngestionOptions) (*RAGDocumentResponse, error) {
 	if len(documents) == 0 {
 		return nil, fmt.Errorf("no documents provided for ingestion")
@@ -149,7 +149,7 @@ func (c *MTLSRAGClient) IngestDocuments(ctx context.Context, documents []*shared
 		"document_count", len(documents),
 		"base_url", c.baseURL)
 
-	// Create request
+	// Create request.
 	req := &RAGDocumentRequest{
 		Documents: documents,
 		Options:   options,
@@ -164,7 +164,7 @@ func (c *MTLSRAGClient) IngestDocuments(ctx context.Context, documents []*shared
 		}
 	}
 
-	// Make request to RAG service
+	// Make request to RAG service.
 	response, err := c.makeDocumentRequest(ctx, "/api/v1/documents", req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to ingest documents: %w", err)
@@ -179,7 +179,7 @@ func (c *MTLSRAGClient) IngestDocuments(ctx context.Context, documents []*shared
 	return response, nil
 }
 
-// GetDocumentByID retrieves a specific document by ID
+// GetDocumentByID retrieves a specific document by ID.
 func (c *MTLSRAGClient) GetDocumentByID(ctx context.Context, documentID string) (*shared.TelecomDocument, error) {
 	if documentID == "" {
 		return nil, fmt.Errorf("document ID cannot be empty")
@@ -221,7 +221,7 @@ func (c *MTLSRAGClient) GetDocumentByID(ctx context.Context, documentID string) 
 	return &document, nil
 }
 
-// DeleteDocument deletes a document by ID
+// DeleteDocument deletes a document by ID.
 func (c *MTLSRAGClient) DeleteDocument(ctx context.Context, documentID string) error {
 	if documentID == "" {
 		return fmt.Errorf("document ID cannot be empty")
@@ -258,7 +258,7 @@ func (c *MTLSRAGClient) DeleteDocument(ctx context.Context, documentID string) e
 	return nil
 }
 
-// GetStats retrieves statistics from the RAG service
+// GetStats retrieves statistics from the RAG service.
 func (c *MTLSRAGClient) GetStats(ctx context.Context) (*RAGStatsResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/stats", c.baseURL)
 
@@ -288,7 +288,7 @@ func (c *MTLSRAGClient) GetStats(ctx context.Context) (*RAGStatsResponse, error)
 	return &stats, nil
 }
 
-// GetHealth returns the health status of the RAG service
+// GetHealth returns the health status of the RAG service.
 func (c *MTLSRAGClient) GetHealth() (*HealthStatus, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -327,7 +327,7 @@ func (c *MTLSRAGClient) GetHealth() (*HealthStatus, error) {
 	return &health, nil
 }
 
-// makeSearchRequest makes an HTTP search request to the RAG service
+// makeSearchRequest makes an HTTP search request to the RAG service.
 func (c *MTLSRAGClient) makeSearchRequest(ctx context.Context, endpoint string, request *RAGSearchRequest) (*RAGSearchResponse, error) {
 	url := fmt.Sprintf("%s%s", c.baseURL, endpoint)
 
@@ -372,7 +372,7 @@ func (c *MTLSRAGClient) makeSearchRequest(ctx context.Context, endpoint string, 
 	return &response, nil
 }
 
-// makeDocumentRequest makes an HTTP document request to the RAG service
+// makeDocumentRequest makes an HTTP document request to the RAG service.
 func (c *MTLSRAGClient) makeDocumentRequest(ctx context.Context, endpoint string, request *RAGDocumentRequest) (*RAGDocumentResponse, error) {
 	url := fmt.Sprintf("%s%s", c.baseURL, endpoint)
 
@@ -417,11 +417,11 @@ func (c *MTLSRAGClient) makeDocumentRequest(ctx context.Context, endpoint string
 	return &response, nil
 }
 
-// Close closes the RAG client and cleans up resources
+// Close closes the RAG client and cleans up resources.
 func (c *MTLSRAGClient) Close() error {
 	c.logger.Debug("closing mTLS RAG client")
 
-	// Close idle connections in HTTP client
+	// Close idle connections in HTTP client.
 	if transport, ok := c.httpClient.Transport.(*http.Transport); ok {
 		transport.CloseIdleConnections()
 	}

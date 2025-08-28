@@ -1,6 +1,6 @@
-// Package validation provides comprehensive O-RAN interface validation capabilities
-// This module implements comprehensive testing for all O-RAN Alliance specified interfaces (A1, O1, O2, E2)
-// and integrates with the existing validation framework for the 7-point O-RAN compliance scoring
+// Package validation provides comprehensive O-RAN interface validation capabilities.
+// This module implements comprehensive testing for all O-RAN Alliance specified interfaces (A1, O1, O2, E2).
+// and integrates with the existing validation framework for the 7-point O-RAN compliance scoring.
 package validation
 
 import (
@@ -16,21 +16,21 @@ import (
 	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-// ORANInterfaceValidator provides comprehensive O-RAN interface validation
+// ORANInterfaceValidator provides comprehensive O-RAN interface validation.
 type ORANInterfaceValidator struct {
 	config    *ValidationConfig
 	k8sClient client.Client
 
-	// Mock services for O-RAN components
+	// Mock services for O-RAN components.
 	ricMockService *RICMockService
 	smoMockService *SMOMockService
 	e2MockService  *E2MockService
 
-	// Performance metrics
+	// Performance metrics.
 	interfaceMetrics map[string]*InterfaceMetrics
 }
 
-// InterfaceMetrics contains performance metrics for each O-RAN interface
+// InterfaceMetrics contains performance metrics for each O-RAN interface.
 type InterfaceMetrics struct {
 	RequestCount   int64
 	SuccessCount   int64
@@ -42,7 +42,7 @@ type InterfaceMetrics struct {
 	LastTestTime   time.Time
 }
 
-// RICMockService provides mock Near-RT RIC functionality for testing
+// RICMockService provides mock Near-RT RIC functionality for testing.
 type RICMockService struct {
 	endpoint      string
 	policies      map[string]*A1Policy
@@ -52,7 +52,7 @@ type RICMockService struct {
 	latencySimMs  int
 }
 
-// SMOMockService provides mock Service Management & Orchestration functionality
+// SMOMockService provides mock Service Management & Orchestration functionality.
 type SMOMockService struct {
 	endpoint        string
 	managedElements map[string]*ManagedElement
@@ -61,7 +61,7 @@ type SMOMockService struct {
 	latencySimMs    int
 }
 
-// E2MockService provides mock E2 interface functionality
+// E2MockService provides mock E2 interface functionality.
 type E2MockService struct {
 	endpoint       string
 	connectedNodes map[string]*E2Node
@@ -71,7 +71,7 @@ type E2MockService struct {
 	latencySimMs   int
 }
 
-// A1Policy represents an A1 interface policy
+// A1Policy represents an A1 interface policy.
 type A1Policy struct {
 	PolicyID     string                 `json:"policyId"`
 	PolicyTypeID string                 `json:"policyTypeId"`
@@ -81,7 +81,7 @@ type A1Policy struct {
 	UpdatedAt    time.Time              `json:"updatedAt"`
 }
 
-// E2Subscription represents an E2 interface subscription
+// E2Subscription represents an E2 interface subscription.
 type E2Subscription struct {
 	SubscriptionID string                 `json:"subscriptionId"`
 	NodeID         string                 `json:"nodeId"`
@@ -92,7 +92,7 @@ type E2Subscription struct {
 	CreatedAt      time.Time              `json:"createdAt"`
 }
 
-// E2Action represents an action in E2 subscription
+// E2Action represents an action in E2 subscription.
 type E2Action struct {
 	ActionID          int                    `json:"actionId"`
 	ActionType        string                 `json:"actionType"` // REPORT, INSERT, POLICY
@@ -100,7 +100,7 @@ type E2Action struct {
 	SubsequentActions []int                  `json:"subsequentActions,omitempty"`
 }
 
-// XAppConfig represents xApp configuration
+// XAppConfig represents xApp configuration.
 type XAppConfig struct {
 	Name       string                 `json:"name"`
 	Version    string                 `json:"version"`
@@ -109,7 +109,7 @@ type XAppConfig struct {
 	DeployedAt time.Time              `json:"deployedAt"`
 }
 
-// ManagedElement represents an O1 managed element
+// ManagedElement represents an O1 managed element.
 type ManagedElement struct {
 	ElementID     string                 `json:"elementId"`
 	ElementType   string                 `json:"elementType"` // AMF, SMF, UPF, gNodeB, etc.
@@ -118,7 +118,7 @@ type ManagedElement struct {
 	LastSync      time.Time              `json:"lastSync"`
 }
 
-// O1Configuration represents O1 configuration data
+// O1Configuration represents O1 configuration data.
 type O1Configuration struct {
 	ConfigID   string                 `json:"configId"`
 	ElementID  string                 `json:"elementId"`
@@ -128,7 +128,7 @@ type O1Configuration struct {
 	AppliedAt  time.Time              `json:"appliedAt"`
 }
 
-// E2Node represents an E2 interface node
+// E2Node represents an E2 interface node.
 type E2Node struct {
 	NodeID          string                 `json:"nodeId"`
 	NodeType        string                 `json:"nodeType"` // gNodeB, ng-eNB, en-gNB
@@ -139,13 +139,13 @@ type E2Node struct {
 	Capabilities    map[string]interface{} `json:"capabilities"`
 }
 
-// PLMNID represents a Public Land Mobile Network identifier
+// PLMNID represents a Public Land Mobile Network identifier.
 type PLMNID struct {
 	MCC string `json:"mcc"` // Mobile Country Code
 	MNC string `json:"mnc"` // Mobile Network Code
 }
 
-// ServiceModel represents an E2 service model
+// ServiceModel represents an E2 service model.
 type ServiceModel struct {
 	ModelName    string                 `json:"modelName"`
 	Version      string                 `json:"version"`
@@ -154,7 +154,7 @@ type ServiceModel struct {
 	Capabilities map[string]interface{} `json:"capabilities"`
 }
 
-// NewORANInterfaceValidator creates a new O-RAN interface validator
+// NewORANInterfaceValidator creates a new O-RAN interface validator.
 func NewORANInterfaceValidator(config *ValidationConfig) *ORANInterfaceValidator {
 	return &ORANInterfaceValidator{
 		config:           config,
@@ -165,33 +165,33 @@ func NewORANInterfaceValidator(config *ValidationConfig) *ORANInterfaceValidator
 	}
 }
 
-// SetK8sClient sets the Kubernetes client for validation
+// SetK8sClient sets the Kubernetes client for validation.
 func (oiv *ORANInterfaceValidator) SetK8sClient(client client.Client) {
 	oiv.k8sClient = client
 }
 
-// ValidateAllORANInterfaces validates all O-RAN interfaces and returns total score (0-7)
+// ValidateAllORANInterfaces validates all O-RAN interfaces and returns total score (0-7).
 func (oiv *ORANInterfaceValidator) ValidateAllORANInterfaces(ctx context.Context) int {
 	ginkgo.By("Validating All O-RAN Interface Compliance")
 
 	totalScore := 0
 
-	// A1 Interface Testing (2 points)
+	// A1 Interface Testing (2 points).
 	a1Score := oiv.validateA1InterfaceComprehensive(ctx)
 	totalScore += a1Score
 	ginkgo.By(fmt.Sprintf("A1 Interface Score: %d/2 points", a1Score))
 
-	// E2 Interface Testing (2 points)
+	// E2 Interface Testing (2 points).
 	e2Score := oiv.validateE2InterfaceComprehensive(ctx)
 	totalScore += e2Score
 	ginkgo.By(fmt.Sprintf("E2 Interface Score: %d/2 points", e2Score))
 
-	// O1 Interface Testing (2 points)
+	// O1 Interface Testing (2 points).
 	o1Score := oiv.validateO1InterfaceComprehensive(ctx)
 	totalScore += o1Score
 	ginkgo.By(fmt.Sprintf("O1 Interface Score: %d/2 points", o1Score))
 
-	// O2 Interface Testing (1 point)
+	// O2 Interface Testing (1 point).
 	o2Score := oiv.validateO2InterfaceComprehensive(ctx)
 	totalScore += o2Score
 	ginkgo.By(fmt.Sprintf("O2 Interface Score: %d/1 points", o2Score))
@@ -201,13 +201,13 @@ func (oiv *ORANInterfaceValidator) ValidateAllORANInterfaces(ctx context.Context
 	return totalScore
 }
 
-// validateA1InterfaceComprehensive provides comprehensive A1 interface testing (2 points)
+// validateA1InterfaceComprehensive provides comprehensive A1 interface testing (2 points).
 func (oiv *ORANInterfaceValidator) validateA1InterfaceComprehensive(ctx context.Context) int {
 	ginkgo.By("Comprehensive A1 Interface Validation")
 
 	score := 0
 
-	// Test 1: Policy Management CRUD Operations (0.5 points)
+	// Test 1: Policy Management CRUD Operations (0.5 points).
 	if oiv.testA1PolicyManagement(ctx) {
 		score++
 		ginkgo.By("✓ A1 Policy Management: 1/1 points")
@@ -215,7 +215,7 @@ func (oiv *ORANInterfaceValidator) validateA1InterfaceComprehensive(ctx context.
 		ginkgo.By("✗ A1 Policy Management: 0/1 points")
 	}
 
-	// Test 2: Near-RT RIC Integration (0.5 points)
+	// Test 2: Near-RT RIC Integration (0.5 points).
 	if oiv.testA1RICIntegration(ctx) {
 		score++
 		ginkgo.By("✓ A1 RIC Integration: 1/1 points")
@@ -226,13 +226,13 @@ func (oiv *ORANInterfaceValidator) validateA1InterfaceComprehensive(ctx context.
 	return score
 }
 
-// validateE2InterfaceComprehensive provides comprehensive E2 interface testing (2 points)
+// validateE2InterfaceComprehensive provides comprehensive E2 interface testing (2 points).
 func (oiv *ORANInterfaceValidator) validateE2InterfaceComprehensive(ctx context.Context) int {
 	ginkgo.By("Comprehensive E2 Interface Validation")
 
 	score := 0
 
-	// Test 1: E2 Node Management (1 point)
+	// Test 1: E2 Node Management (1 point).
 	if oiv.testE2NodeManagement(ctx) {
 		score++
 		ginkgo.By("✓ E2 Node Management: 1/1 points")
@@ -240,7 +240,7 @@ func (oiv *ORANInterfaceValidator) validateE2InterfaceComprehensive(ctx context.
 		ginkgo.By("✗ E2 Node Management: 0/1 points")
 	}
 
-	// Test 2: Service Model Compliance (1 point)
+	// Test 2: Service Model Compliance (1 point).
 	if oiv.testE2ServiceModelCompliance(ctx) {
 		score++
 		ginkgo.By("✓ E2 Service Model Compliance: 1/1 points")
@@ -251,13 +251,13 @@ func (oiv *ORANInterfaceValidator) validateE2InterfaceComprehensive(ctx context.
 	return score
 }
 
-// validateO1InterfaceComprehensive provides comprehensive O1 interface testing (2 points)
+// validateO1InterfaceComprehensive provides comprehensive O1 interface testing (2 points).
 func (oiv *ORANInterfaceValidator) validateO1InterfaceComprehensive(ctx context.Context) int {
 	ginkgo.By("Comprehensive O1 Interface Validation")
 
 	score := 0
 
-	// Test 1: FCAPS Operations (1 point)
+	// Test 1: FCAPS Operations (1 point).
 	if oiv.testO1FCAPSOperations(ctx) {
 		score++
 		ginkgo.By("✓ O1 FCAPS Operations: 1/1 points")
@@ -265,7 +265,7 @@ func (oiv *ORANInterfaceValidator) validateO1InterfaceComprehensive(ctx context.
 		ginkgo.By("✗ O1 FCAPS Operations: 0/1 points")
 	}
 
-	// Test 2: NETCONF/YANG Compliance (1 point)
+	// Test 2: NETCONF/YANG Compliance (1 point).
 	if oiv.testO1NETCONFCompliance(ctx) {
 		score++
 		ginkgo.By("✓ O1 NETCONF/YANG Compliance: 1/1 points")
@@ -276,13 +276,13 @@ func (oiv *ORANInterfaceValidator) validateO1InterfaceComprehensive(ctx context.
 	return score
 }
 
-// validateO2InterfaceComprehensive provides comprehensive O2 interface testing (1 point)
+// validateO2InterfaceComprehensive provides comprehensive O2 interface testing (1 point).
 func (oiv *ORANInterfaceValidator) validateO2InterfaceComprehensive(ctx context.Context) int {
 	ginkgo.By("Comprehensive O2 Interface Validation")
 
 	score := 0
 
-	// Test: Cloud Infrastructure Management (1 point)
+	// Test: Cloud Infrastructure Management (1 point).
 	if oiv.testO2CloudInfraManagement(ctx) {
 		score++
 		ginkgo.By("✓ O2 Cloud Infrastructure Management: 1/1 points")
@@ -293,11 +293,11 @@ func (oiv *ORANInterfaceValidator) validateO2InterfaceComprehensive(ctx context.
 	return score
 }
 
-// testA1PolicyManagement tests A1 interface policy management operations
+// testA1PolicyManagement tests A1 interface policy management operations.
 func (oiv *ORANInterfaceValidator) testA1PolicyManagement(ctx context.Context) bool {
 	ginkgo.By("Testing A1 Policy Management CRUD Operations")
 
-	// Create test intent for policy-related operations
+	// Create test intent for policy-related operations.
 	testIntent := &nephranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-a1-policy-management",
@@ -312,7 +312,7 @@ func (oiv *ORANInterfaceValidator) testA1PolicyManagement(ctx context.Context) b
 		},
 	}
 
-	// Test policy creation through intent
+	// Test policy creation through intent.
 	err := oiv.k8sClient.Create(ctx, testIntent)
 	if err != nil {
 		ginkgo.By(fmt.Sprintf("Failed to create A1 policy intent: %v", err))
@@ -323,7 +323,7 @@ func (oiv *ORANInterfaceValidator) testA1PolicyManagement(ctx context.Context) b
 		oiv.k8sClient.Delete(ctx, testIntent)
 	}()
 
-	// Wait for policy processing
+	// Wait for policy processing.
 	success := false
 	gomega.Eventually(func() bool {
 		err := oiv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
@@ -331,9 +331,9 @@ func (oiv *ORANInterfaceValidator) testA1PolicyManagement(ctx context.Context) b
 			return false
 		}
 
-		// Check if intent was processed for policy operations
+		// Check if intent was processed for policy operations.
 		if testIntent.Status.Phase != "" && testIntent.Status.Phase != "Pending" {
-			// Verify policy-specific processing results
+			// Verify policy-specific processing results.
 			if testIntent.Status.ProcessingResults != nil &&
 				len(testIntent.Status.ProcessingResults.NetworkFunctionType) > 0 {
 				success = true
@@ -343,9 +343,9 @@ func (oiv *ORANInterfaceValidator) testA1PolicyManagement(ctx context.Context) b
 		return false
 	}, 2*time.Minute, 5*time.Second).Should(gomega.BeTrue())
 
-	// Test A1 policy CRUD operations through mock RIC
+	// Test A1 policy CRUD operations through mock RIC.
 	if success {
-		// Test policy creation
+		// Test policy creation.
 		policy := &A1Policy{
 			PolicyID:     "policy-001",
 			PolicyTypeID: "traffic-steering",
@@ -359,20 +359,20 @@ func (oiv *ORANInterfaceValidator) testA1PolicyManagement(ctx context.Context) b
 			UpdatedAt: time.Now(),
 		}
 
-		// Simulate policy creation in RIC
+		// Simulate policy creation in RIC.
 		if err := oiv.ricMockService.CreatePolicy(policy); err != nil {
 			ginkgo.By(fmt.Sprintf("Failed to create policy in RIC: %v", err))
 			return false
 		}
 
-		// Test policy retrieval
+		// Test policy retrieval.
 		retrievedPolicy, err := oiv.ricMockService.GetPolicy(policy.PolicyID)
 		if err != nil || retrievedPolicy.PolicyID != policy.PolicyID {
 			ginkgo.By("Failed to retrieve policy from RIC")
 			return false
 		}
 
-		// Test policy update
+		// Test policy update.
 		retrievedPolicy.PolicyData["primaryPathWeight"] = 0.7
 		retrievedPolicy.PolicyData["secondaryPathWeight"] = 0.3
 		if err := oiv.ricMockService.UpdatePolicy(retrievedPolicy); err != nil {
@@ -380,7 +380,7 @@ func (oiv *ORANInterfaceValidator) testA1PolicyManagement(ctx context.Context) b
 			return false
 		}
 
-		// Test policy deletion
+		// Test policy deletion.
 		if err := oiv.ricMockService.DeletePolicy(policy.PolicyID); err != nil {
 			ginkgo.By("Failed to delete policy from RIC")
 			return false
@@ -393,11 +393,11 @@ func (oiv *ORANInterfaceValidator) testA1PolicyManagement(ctx context.Context) b
 	return false
 }
 
-// testA1RICIntegration tests A1 interface integration with Near-RT RIC
+// testA1RICIntegration tests A1 interface integration with Near-RT RIC.
 func (oiv *ORANInterfaceValidator) testA1RICIntegration(ctx context.Context) bool {
 	ginkgo.By("Testing A1 Near-RT RIC Integration")
 
-	// Create test intent for RIC integration
+	// Create test intent for RIC integration.
 	testIntent := &nephranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-a1-ric-integration",
@@ -422,7 +422,7 @@ func (oiv *ORANInterfaceValidator) testA1RICIntegration(ctx context.Context) boo
 		oiv.k8sClient.Delete(ctx, testIntent)
 	}()
 
-	// Test xApp deployment and configuration through RIC
+	// Test xApp deployment and configuration through RIC.
 	xappConfig := &XAppConfig{
 		Name:    "qoe-optimizer",
 		Version: "1.0.0",
@@ -435,13 +435,13 @@ func (oiv *ORANInterfaceValidator) testA1RICIntegration(ctx context.Context) boo
 		DeployedAt: time.Now(),
 	}
 
-	// Simulate xApp deployment
+	// Simulate xApp deployment.
 	if err := oiv.ricMockService.DeployXApp(xappConfig); err != nil {
 		ginkgo.By(fmt.Sprintf("Failed to deploy xApp: %v", err))
 		return false
 	}
 
-	// Test policy creation for xApp
+	// Test policy creation for xApp.
 	policy := &A1Policy{
 		PolicyID:     "qoe-policy-001",
 		PolicyTypeID: "qoe-optimization",
@@ -460,13 +460,13 @@ func (oiv *ORANInterfaceValidator) testA1RICIntegration(ctx context.Context) boo
 		return false
 	}
 
-	// Verify xApp is receiving policy updates
+	// Verify xApp is receiving policy updates.
 	gomega.Eventually(func() bool {
 		xapp, err := oiv.ricMockService.GetXApp(xappConfig.Name)
 		return err == nil && xapp.Status == "RUNNING"
 	}, 30*time.Second, 2*time.Second).Should(gomega.BeTrue())
 
-	// Cleanup
+	// Cleanup.
 	oiv.ricMockService.DeletePolicy(policy.PolicyID)
 	oiv.ricMockService.UndeployXApp(xappConfig.Name)
 
@@ -474,11 +474,11 @@ func (oiv *ORANInterfaceValidator) testA1RICIntegration(ctx context.Context) boo
 	return true
 }
 
-// testE2NodeManagement tests E2 interface node registration and management
+// testE2NodeManagement tests E2 interface node registration and management.
 func (oiv *ORANInterfaceValidator) testE2NodeManagement(ctx context.Context) bool {
 	ginkgo.By("Testing E2 Node Registration and Management")
 
-	// Create E2NodeSet for testing
+	// Create E2NodeSet for testing.
 	testE2NodeSet := &nephranv1.E2NodeSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-e2-node-management",
@@ -534,7 +534,7 @@ func (oiv *ORANInterfaceValidator) testE2NodeManagement(ctx context.Context) boo
 		oiv.k8sClient.Delete(ctx, testE2NodeSet)
 	}()
 
-	// Wait for E2 nodes to become ready
+	// Wait for E2 nodes to become ready.
 	nodeRegistrationSuccess := false
 	gomega.Eventually(func() bool {
 		err := oiv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testE2NodeSet), testE2NodeSet)
@@ -542,7 +542,7 @@ func (oiv *ORANInterfaceValidator) testE2NodeManagement(ctx context.Context) boo
 			return false
 		}
 
-		// Check if nodes are ready and connected
+		// Check if nodes are ready and connected.
 		if testE2NodeSet.Status.ReadyReplicas >= 2 { // At least 2 out of 3 nodes
 			nodeRegistrationSuccess = true
 			return true
@@ -550,9 +550,9 @@ func (oiv *ORANInterfaceValidator) testE2NodeManagement(ctx context.Context) boo
 		return false
 	}, 3*time.Minute, 10*time.Second).Should(gomega.BeTrue())
 
-	// Test E2 subscription management
+	// Test E2 subscription management.
 	if nodeRegistrationSuccess {
-		// Create test subscription
+		// Create test subscription.
 		subscription := &E2Subscription{
 			SubscriptionID: "sub-001",
 			NodeID:         "test-gnb-001",
@@ -575,27 +575,27 @@ func (oiv *ORANInterfaceValidator) testE2NodeManagement(ctx context.Context) boo
 			CreatedAt: time.Now(),
 		}
 
-		// Simulate subscription creation
+		// Simulate subscription creation.
 		if err := oiv.e2MockService.CreateSubscription(subscription); err != nil {
 			ginkgo.By(fmt.Sprintf("Failed to create E2 subscription: %v", err))
 			return false
 		}
 
-		// Verify subscription is active
+		// Verify subscription is active.
 		activeSubscription, err := oiv.e2MockService.GetSubscription(subscription.SubscriptionID)
 		if err != nil || activeSubscription.Status != "ACTIVE" {
 			ginkgo.By("E2 subscription not active")
 			return false
 		}
 
-		// Test subscription modification
+		// Test subscription modification.
 		activeSubscription.EventTrigger["reportingPeriod"] = 2000 // 2 seconds
 		if err := oiv.e2MockService.UpdateSubscription(activeSubscription); err != nil {
 			ginkgo.By("Failed to update E2 subscription")
 			return false
 		}
 
-		// Cleanup subscription
+		// Cleanup subscription.
 		oiv.e2MockService.DeleteSubscription(subscription.SubscriptionID)
 
 		ginkgo.By("✓ E2 Node Management completed successfully")
@@ -605,11 +605,11 @@ func (oiv *ORANInterfaceValidator) testE2NodeManagement(ctx context.Context) boo
 	return false
 }
 
-// testE2ServiceModelCompliance tests E2 service model compliance (KPM, RC, NI, CCC)
+// testE2ServiceModelCompliance tests E2 service model compliance (KPM, RC, NI, CCC).
 func (oiv *ORANInterfaceValidator) testE2ServiceModelCompliance(ctx context.Context) bool {
 	ginkgo.By("Testing E2 Service Model Compliance")
 
-	// Test service models: KPM, RC, NI, CCC
+	// Test service models: KPM, RC, NI, CCC.
 	serviceModels := []ServiceModel{
 		{
 			ModelName: "KPM",
@@ -642,7 +642,7 @@ func (oiv *ORANInterfaceValidator) testE2ServiceModelCompliance(ctx context.Cont
 		},
 	}
 
-	// Register service models with E2 mock service
+	// Register service models with E2 mock service.
 	for _, model := range serviceModels {
 		if err := oiv.e2MockService.RegisterServiceModel(&model); err != nil {
 			ginkgo.By(fmt.Sprintf("Failed to register service model %s: %v", model.ModelName, err))
@@ -650,19 +650,19 @@ func (oiv *ORANInterfaceValidator) testE2ServiceModelCompliance(ctx context.Cont
 		}
 	}
 
-	// Test KPM service model functionality
+	// Test KPM service model functionality.
 	if !oiv.testKPMServiceModel(ctx) {
 		ginkgo.By("KPM service model test failed")
 		return false
 	}
 
-	// Test RC service model functionality
+	// Test RC service model functionality.
 	if !oiv.testRCServiceModel(ctx) {
 		ginkgo.By("RC service model test failed")
 		return false
 	}
 
-	// Test NI service model functionality
+	// Test NI service model functionality.
 	if !oiv.testNIServiceModel(ctx) {
 		ginkgo.By("NI service model test failed")
 		return false
@@ -672,9 +672,9 @@ func (oiv *ORANInterfaceValidator) testE2ServiceModelCompliance(ctx context.Cont
 	return true
 }
 
-// testKPMServiceModel tests Key Performance Measurement service model
+// testKPMServiceModel tests Key Performance Measurement service model.
 func (oiv *ORANInterfaceValidator) testKPMServiceModel(ctx context.Context) bool {
-	// Create KPM subscription for throughput measurement
+	// Create KPM subscription for throughput measurement.
 	subscription := &E2Subscription{
 		SubscriptionID: "kmp-sub-001",
 		NodeID:         "test-gnb-001",
@@ -705,16 +705,16 @@ func (oiv *ORANInterfaceValidator) testKPMServiceModel(ctx context.Context) bool
 		return false
 	}
 
-	// Simulate KPM reports
+	// Simulate KPM reports.
 	time.Sleep(100 * time.Millisecond) // Simulate processing time
 
 	oiv.e2MockService.DeleteSubscription(subscription.SubscriptionID)
 	return true
 }
 
-// testRCServiceModel tests RAN Control service model
+// testRCServiceModel tests RAN Control service model.
 func (oiv *ORANInterfaceValidator) testRCServiceModel(ctx context.Context) bool {
-	// Create RC subscription for QoS control
+	// Create RC subscription for QoS control.
 	subscription := &E2Subscription{
 		SubscriptionID: "rc-sub-001",
 		NodeID:         "test-gnb-001",
@@ -744,16 +744,16 @@ func (oiv *ORANInterfaceValidator) testRCServiceModel(ctx context.Context) bool 
 		return false
 	}
 
-	// Simulate control actions
+	// Simulate control actions.
 	time.Sleep(100 * time.Millisecond)
 
 	oiv.e2MockService.DeleteSubscription(subscription.SubscriptionID)
 	return true
 }
 
-// testNIServiceModel tests Network Information service model
+// testNIServiceModel tests Network Information service model.
 func (oiv *ORANInterfaceValidator) testNIServiceModel(ctx context.Context) bool {
-	// Create NI subscription for network information
+	// Create NI subscription for network information.
 	subscription := &E2Subscription{
 		SubscriptionID: "ni-sub-001",
 		NodeID:         "test-gnb-001",
@@ -779,18 +779,18 @@ func (oiv *ORANInterfaceValidator) testNIServiceModel(ctx context.Context) bool 
 		return false
 	}
 
-	// Simulate network information reports
+	// Simulate network information reports.
 	time.Sleep(100 * time.Millisecond)
 
 	oiv.e2MockService.DeleteSubscription(subscription.SubscriptionID)
 	return true
 }
 
-// testO1FCAPSOperations tests O1 FCAPS (Fault, Configuration, Accounting, Performance, Security) operations
+// testO1FCAPSOperations tests O1 FCAPS (Fault, Configuration, Accounting, Performance, Security) operations.
 func (oiv *ORANInterfaceValidator) testO1FCAPSOperations(ctx context.Context) bool {
 	ginkgo.By("Testing O1 FCAPS Operations")
 
-	// Create test intent for O1 FCAPS operations
+	// Create test intent for O1 FCAPS operations.
 	testIntent := &nephranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-o1-fcaps",
@@ -815,25 +815,25 @@ func (oiv *ORANInterfaceValidator) testO1FCAPSOperations(ctx context.Context) bo
 		oiv.k8sClient.Delete(ctx, testIntent)
 	}()
 
-	// Test Fault Management
+	// Test Fault Management.
 	if !oiv.testO1FaultManagement(ctx) {
 		ginkgo.By("O1 Fault Management test failed")
 		return false
 	}
 
-	// Test Configuration Management
+	// Test Configuration Management.
 	if !oiv.testO1ConfigurationManagement(ctx) {
 		ginkgo.By("O1 Configuration Management test failed")
 		return false
 	}
 
-	// Test Performance Management
+	// Test Performance Management.
 	if !oiv.testO1PerformanceManagement(ctx) {
 		ginkgo.By("O1 Performance Management test failed")
 		return false
 	}
 
-	// Test Security Management
+	// Test Security Management.
 	if !oiv.testO1SecurityManagement(ctx) {
 		ginkgo.By("O1 Security Management test failed")
 		return false
@@ -843,9 +843,9 @@ func (oiv *ORANInterfaceValidator) testO1FCAPSOperations(ctx context.Context) bo
 	return true
 }
 
-// testO1FaultManagement tests fault management capabilities
+// testO1FaultManagement tests fault management capabilities.
 func (oiv *ORANInterfaceValidator) testO1FaultManagement(ctx context.Context) bool {
-	// Create managed element for testing
+	// Create managed element for testing.
 	managedElement := &ManagedElement{
 		ElementID:   "amf-001",
 		ElementType: "AMF",
@@ -864,10 +864,10 @@ func (oiv *ORANInterfaceValidator) testO1FaultManagement(ctx context.Context) bo
 		return false
 	}
 
-	// Simulate fault detection and reporting
+	// Simulate fault detection and reporting.
 	time.Sleep(50 * time.Millisecond)
 
-	// Verify fault management configuration
+	// Verify fault management configuration.
 	element, err := oiv.smoMockService.GetManagedElement(managedElement.ElementID)
 	if err != nil || element.Status != "ACTIVE" {
 		return false
@@ -876,9 +876,9 @@ func (oiv *ORANInterfaceValidator) testO1FaultManagement(ctx context.Context) bo
 	return true
 }
 
-// testO1ConfigurationManagement tests configuration management capabilities
+// testO1ConfigurationManagement tests configuration management capabilities.
 func (oiv *ORANInterfaceValidator) testO1ConfigurationManagement(ctx context.Context) bool {
-	// Create configuration for managed element
+	// Create configuration for managed element.
 	config := &O1Configuration{
 		ConfigID:   "config-001",
 		ElementID:  "amf-001",
@@ -901,7 +901,7 @@ func (oiv *ORANInterfaceValidator) testO1ConfigurationManagement(ctx context.Con
 		return false
 	}
 
-	// Test configuration update
+	// Test configuration update.
 	config.ConfigData["performanceCounters"].(map[string]interface{})["collection_interval"] = "10m"
 	config.Version = 2
 
@@ -912,18 +912,18 @@ func (oiv *ORANInterfaceValidator) testO1ConfigurationManagement(ctx context.Con
 	return true
 }
 
-// testO1PerformanceManagement tests performance management capabilities
+// testO1PerformanceManagement tests performance management capabilities.
 func (oiv *ORANInterfaceValidator) testO1PerformanceManagement(ctx context.Context) bool {
-	// Simulate performance data collection
+	// Simulate performance data collection.
 	time.Sleep(50 * time.Millisecond)
 
-	// Verify performance monitoring is active
+	// Verify performance monitoring is active.
 	element, err := oiv.smoMockService.GetManagedElement("amf-001")
 	if err != nil {
 		return false
 	}
 
-	// Check if performance monitoring configuration exists
+	// Check if performance monitoring configuration exists.
 	if perfConfig, exists := element.Configuration["performanceMonitoring"]; exists {
 		if perfMap, ok := perfConfig.(map[string]interface{}); ok {
 			if enabled, exists := perfMap["enabled"]; exists && enabled == true {
@@ -935,9 +935,9 @@ func (oiv *ORANInterfaceValidator) testO1PerformanceManagement(ctx context.Conte
 	return true
 }
 
-// testO1SecurityManagement tests security management capabilities
+// testO1SecurityManagement tests security management capabilities.
 func (oiv *ORANInterfaceValidator) testO1SecurityManagement(ctx context.Context) bool {
-	// Test security configuration
+	// Test security configuration.
 	securityConfig := map[string]interface{}{
 		"authentication": map[string]interface{}{
 			"enabled": true,
@@ -953,7 +953,7 @@ func (oiv *ORANInterfaceValidator) testO1SecurityManagement(ctx context.Context)
 		},
 	}
 
-	// Apply security configuration through SMO
+	// Apply security configuration through SMO.
 	config := &O1Configuration{
 		ConfigID:   "security-config-001",
 		ElementID:  "amf-001",
@@ -970,11 +970,11 @@ func (oiv *ORANInterfaceValidator) testO1SecurityManagement(ctx context.Context)
 	return true
 }
 
-// testO1NETCONFCompliance tests NETCONF/YANG model compliance
+// testO1NETCONFCompliance tests NETCONF/YANG model compliance.
 func (oiv *ORANInterfaceValidator) testO1NETCONFCompliance(ctx context.Context) bool {
 	ginkgo.By("Testing O1 NETCONF/YANG Compliance")
 
-	// Create test intent for NETCONF operations
+	// Create test intent for NETCONF operations.
 	testIntent := &nephranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-o1-netconf",
@@ -999,7 +999,7 @@ func (oiv *ORANInterfaceValidator) testO1NETCONFCompliance(ctx context.Context) 
 		oiv.k8sClient.Delete(ctx, testIntent)
 	}()
 
-	// Test YANG model validation
+	// Test YANG model validation.
 	yangModel := map[string]interface{}{
 		"module":       "o-ran-sc-ric-1.0",
 		"namespace":    "urn:o-ran:sc:yang:o-ran-sc-ric",
@@ -1025,13 +1025,13 @@ func (oiv *ORANInterfaceValidator) testO1NETCONFCompliance(ctx context.Context) 
 		},
 	}
 
-	// Validate YANG model structure
+	// Validate YANG model structure.
 	if !oiv.validateYANGModel(yangModel) {
 		ginkgo.By("YANG model validation failed")
 		return false
 	}
 
-	// Test NETCONF operations (get, edit-config, commit)
+	// Test NETCONF operations (get, edit-config, commit).
 	if !oiv.testNETCONFOperations(ctx) {
 		ginkgo.By("NETCONF operations test failed")
 		return false
@@ -1041,9 +1041,9 @@ func (oiv *ORANInterfaceValidator) testO1NETCONFCompliance(ctx context.Context) 
 	return true
 }
 
-// validateYANGModel validates YANG model structure
+// validateYANGModel validates YANG model structure.
 func (oiv *ORANInterfaceValidator) validateYANGModel(model map[string]interface{}) bool {
-	// Check required fields
+	// Check required fields.
 	requiredFields := []string{"module", "namespace", "prefix", "description"}
 	for _, field := range requiredFields {
 		if _, exists := model[field]; !exists {
@@ -1051,7 +1051,7 @@ func (oiv *ORANInterfaceValidator) validateYANGModel(model map[string]interface{
 		}
 	}
 
-	// Validate schema structure
+	// Validate schema structure.
 	if schema, exists := model["schema"]; exists {
 		if schemaMap, ok := schema.(map[string]interface{}); ok {
 			if container, exists := schemaMap["container"]; exists {
@@ -1067,9 +1067,9 @@ func (oiv *ORANInterfaceValidator) validateYANGModel(model map[string]interface{
 	return true
 }
 
-// testNETCONFOperations tests NETCONF protocol operations
+// testNETCONFOperations tests NETCONF protocol operations.
 func (oiv *ORANInterfaceValidator) testNETCONFOperations(ctx context.Context) bool {
-	// Simulate NETCONF session establishment
+	// Simulate NETCONF session establishment.
 	session := map[string]interface{}{
 		"sessionId": "netconf-session-001",
 		"capabilities": []string{
@@ -1080,12 +1080,12 @@ func (oiv *ORANInterfaceValidator) testNETCONFOperations(ctx context.Context) bo
 		"transport": "SSH",
 		"status":    "active",
 	}
-	// Validate session establishment
+	// Validate session establishment.
 	if session["status"] != "active" {
 		return false
 	}
 
-	// Test get operation
+	// Test get operation.
 	getConfig := map[string]interface{}{
 		"operation": "get-config",
 		"source":    "running",
@@ -1095,7 +1095,7 @@ func (oiv *ORANInterfaceValidator) testNETCONFOperations(ctx context.Context) bo
 		},
 	}
 
-	// Test edit-config operation
+	// Test edit-config operation.
 	editConfig := map[string]interface{}{
 		"operation": "edit-config",
 		"target":    "candidate",
@@ -1107,16 +1107,16 @@ func (oiv *ORANInterfaceValidator) testNETCONFOperations(ctx context.Context) bo
 		},
 	}
 
-	// Test commit operation
+	// Test commit operation.
 	commit := map[string]interface{}{
 		"operation": "commit",
 	}
 
-	// Simulate NETCONF operations execution
+	// Simulate NETCONF operations execution.
 	operations := []map[string]interface{}{getConfig, editConfig, commit}
 	for _, op := range operations {
 		if operation, exists := op["operation"]; exists {
-			// Simulate processing time based on operation type
+			// Simulate processing time based on operation type.
 			switch operation {
 			case "get-config":
 				time.Sleep(10 * time.Millisecond)
@@ -1131,11 +1131,11 @@ func (oiv *ORANInterfaceValidator) testNETCONFOperations(ctx context.Context) bo
 	return true
 }
 
-// testO2CloudInfraManagement tests O2 interface cloud infrastructure management
+// testO2CloudInfraManagement tests O2 interface cloud infrastructure management.
 func (oiv *ORANInterfaceValidator) testO2CloudInfraManagement(ctx context.Context) bool {
 	ginkgo.By("Testing O2 Cloud Infrastructure Management")
 
-	// Create test intent for cloud infrastructure
+	// Create test intent for cloud infrastructure.
 	testIntent := &nephranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-o2-cloud-infra",
@@ -1160,19 +1160,19 @@ func (oiv *ORANInterfaceValidator) testO2CloudInfraManagement(ctx context.Contex
 		oiv.k8sClient.Delete(ctx, testIntent)
 	}()
 
-	// Test Infrastructure as Code template generation
+	// Test Infrastructure as Code template generation.
 	if !oiv.testInfrastructureAsCode(ctx) {
 		ginkgo.By("Infrastructure as Code test failed")
 		return false
 	}
 
-	// Test multi-cloud resource management
+	// Test multi-cloud resource management.
 	if !oiv.testMultiCloudManagement(ctx) {
 		ginkgo.By("Multi-cloud management test failed")
 		return false
 	}
 
-	// Test resource lifecycle management
+	// Test resource lifecycle management.
 	if !oiv.testResourceLifecycleManagement(ctx) {
 		ginkgo.By("Resource lifecycle management test failed")
 		return false
@@ -1182,9 +1182,9 @@ func (oiv *ORANInterfaceValidator) testO2CloudInfraManagement(ctx context.Contex
 	return true
 }
 
-// testInfrastructureAsCode tests IaC template generation
+// testInfrastructureAsCode tests IaC template generation.
 func (oiv *ORANInterfaceValidator) testInfrastructureAsCode(ctx context.Context) bool {
-	// Test Terraform template generation
+	// Test Terraform template generation.
 	terraformTemplate := map[string]interface{}{
 		"terraform": map[string]interface{}{
 			"required_providers": map[string]interface{}{
@@ -1225,7 +1225,7 @@ func (oiv *ORANInterfaceValidator) testInfrastructureAsCode(ctx context.Context)
 		},
 	}
 
-	// Validate template structure
+	// Validate template structure.
 	if !oiv.validateTerraformTemplate(terraformTemplate) {
 		return false
 	}
@@ -1233,9 +1233,9 @@ func (oiv *ORANInterfaceValidator) testInfrastructureAsCode(ctx context.Context)
 	return true
 }
 
-// validateTerraformTemplate validates Terraform template structure
+// validateTerraformTemplate validates Terraform template structure.
 func (oiv *ORANInterfaceValidator) validateTerraformTemplate(template map[string]interface{}) bool {
-	// Check for required sections
+	// Check for required sections.
 	requiredSections := []string{"terraform", "resource"}
 	for _, section := range requiredSections {
 		if _, exists := template[section]; !exists {
@@ -1243,7 +1243,7 @@ func (oiv *ORANInterfaceValidator) validateTerraformTemplate(template map[string
 		}
 	}
 
-	// Validate terraform section
+	// Validate terraform section.
 	if terraform, exists := template["terraform"]; exists {
 		if tfMap, ok := terraform.(map[string]interface{}); ok {
 			if _, exists := tfMap["required_providers"]; !exists {
@@ -1255,9 +1255,9 @@ func (oiv *ORANInterfaceValidator) validateTerraformTemplate(template map[string
 	return true
 }
 
-// testMultiCloudManagement tests multi-cloud resource management
+// testMultiCloudManagement tests multi-cloud resource management.
 func (oiv *ORANInterfaceValidator) testMultiCloudManagement(ctx context.Context) bool {
-	// Test cloud provider configurations
+	// Test cloud provider configurations.
 	cloudProviders := []map[string]interface{}{
 		{
 			"provider": "aws",
@@ -1288,7 +1288,7 @@ func (oiv *ORANInterfaceValidator) testMultiCloudManagement(ctx context.Context)
 		},
 	}
 
-	// Validate each cloud provider configuration
+	// Validate each cloud provider configuration.
 	for _, provider := range cloudProviders {
 		if !oiv.validateCloudProviderConfig(provider) {
 			return false
@@ -1298,7 +1298,7 @@ func (oiv *ORANInterfaceValidator) testMultiCloudManagement(ctx context.Context)
 	return true
 }
 
-// validateCloudProviderConfig validates cloud provider configuration
+// validateCloudProviderConfig validates cloud provider configuration.
 func (oiv *ORANInterfaceValidator) validateCloudProviderConfig(config map[string]interface{}) bool {
 	requiredFields := []string{"provider", "region", "resources"}
 	for _, field := range requiredFields {
@@ -1307,7 +1307,7 @@ func (oiv *ORANInterfaceValidator) validateCloudProviderConfig(config map[string
 		}
 	}
 
-	// Validate resources section
+	// Validate resources section.
 	if resources, exists := config["resources"]; exists {
 		if resourceMap, ok := resources.(map[string]interface{}); ok {
 			if len(resourceMap) == 0 {
@@ -1319,11 +1319,11 @@ func (oiv *ORANInterfaceValidator) validateCloudProviderConfig(config map[string
 	return true
 }
 
-// testResourceLifecycleManagement tests resource lifecycle operations
+// testResourceLifecycleManagement tests resource lifecycle operations.
 func (oiv *ORANInterfaceValidator) testResourceLifecycleManagement(ctx context.Context) bool {
-	// Test resource creation, scaling, updating, and deletion lifecycle
+	// Test resource creation, scaling, updating, and deletion lifecycle.
 
-	// Create resource
+	// Create resource.
 	resource := map[string]interface{}{
 		"id":        "upf-cluster-001",
 		"type":      "kubernetes-cluster",
@@ -1335,27 +1335,27 @@ func (oiv *ORANInterfaceValidator) testResourceLifecycleManagement(ctx context.C
 		"createdAt": time.Now().Format(time.RFC3339),
 	}
 
-	// Simulate provisioning time
+	// Simulate provisioning time.
 	time.Sleep(100 * time.Millisecond)
 	resource["status"] = "running"
 
-	// Test scaling operation
+	// Test scaling operation.
 	resource["nodeCount"] = 5
 	resource["status"] = "scaling"
 	time.Sleep(50 * time.Millisecond)
 	resource["status"] = "running"
 
-	// Test updating operation
+	// Test updating operation.
 	resource["nodeType"] = "m5.xlarge"
 	resource["status"] = "updating"
 	time.Sleep(50 * time.Millisecond)
 	resource["status"] = "running"
 
-	// Test deletion operation
+	// Test deletion operation.
 	resource["status"] = "terminating"
 	time.Sleep(50 * time.Millisecond)
 
-	// Verify lifecycle completed successfully
+	// Verify lifecycle completed successfully.
 	if resource["status"] != "terminating" {
 		return false
 	}
@@ -1363,12 +1363,12 @@ func (oiv *ORANInterfaceValidator) testResourceLifecycleManagement(ctx context.C
 	return true
 }
 
-// GetInterfaceMetrics returns performance metrics for O-RAN interfaces
+// GetInterfaceMetrics returns performance metrics for O-RAN interfaces.
 func (oiv *ORANInterfaceValidator) GetInterfaceMetrics() map[string]*InterfaceMetrics {
 	return oiv.interfaceMetrics
 }
 
-// RecordInterfaceMetric records performance metrics for an interface
+// RecordInterfaceMetric records performance metrics for an interface.
 func (oiv *ORANInterfaceValidator) RecordInterfaceMetric(interfaceName string, success bool, latency time.Duration) {
 	if oiv.interfaceMetrics[interfaceName] == nil {
 		oiv.interfaceMetrics[interfaceName] = &InterfaceMetrics{}
@@ -1384,22 +1384,22 @@ func (oiv *ORANInterfaceValidator) RecordInterfaceMetric(interfaceName string, s
 		metric.FailureCount++
 	}
 
-	// Update latency metrics (simplified)
+	// Update latency metrics (simplified).
 	metric.AverageLatency = (metric.AverageLatency + latency) / 2
 	if latency > metric.P95Latency {
 		metric.P95Latency = latency
 	}
 
-	// Calculate error rate
+	// Calculate error rate.
 	metric.ErrorRate = float64(metric.FailureCount) / float64(metric.RequestCount) * 100
 
-	// Calculate throughput (simplified)
+	// Calculate throughput (simplified).
 	if metric.LastTestTime.Sub(time.Time{}) > 0 {
 		metric.ThroughputRPS = float64(metric.RequestCount) / time.Since(time.Time{}).Seconds()
 	}
 }
 
-// Cleanup performs cleanup of test resources and mock services
+// Cleanup performs cleanup of test resources and mock services.
 func (oiv *ORANInterfaceValidator) Cleanup() {
 	if oiv.ricMockService != nil {
 		oiv.ricMockService.Cleanup()

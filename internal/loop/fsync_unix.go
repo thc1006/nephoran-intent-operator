@@ -1,5 +1,5 @@
 //go:build !windows
-// +build !windows
+// +build !windows.
 
 package loop
 
@@ -14,42 +14,42 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/internal/pathutil"
 )
 
-// Unix-specific file sync operations (simpler than Windows)
+// Unix-specific file sync operations (simpler than Windows).
 
 const (
-	// Retry parameters for Unix file operations (less aggressive than Windows)
+	// Retry parameters for Unix file operations (less aggressive than Windows).
 	maxFileRetries  = 3
 	baseRetryDelay  = 10 * time.Millisecond
 	maxRetryDelay   = 100 * time.Millisecond
 	fileSyncTimeout = 1 * time.Second
 )
 
-// atomicWriteFile writes data to a file atomically on Unix with proper syncing
+// atomicWriteFile writes data to a file atomically on Unix with proper syncing.
 func atomicWriteFile(filename string, data []byte, perm os.FileMode) error {
 	if filename == "" {
 		return fmt.Errorf("empty filename")
 	}
 
-	// On Unix, use normal path cleaning (NormalizeWindowsPath handles non-Windows gracefully)
+	// On Unix, use normal path cleaning (NormalizeWindowsPath handles non-Windows gracefully).
 	normalizedPath, err := pathutil.NormalizeWindowsPath(filename)
 	if err != nil {
 		return fmt.Errorf("failed to normalize path %q: %w", filename, err)
 	}
 
-	// Ensure parent directory exists
+	// Ensure parent directory exists.
 	if err := pathutil.EnsureParentDirectory(normalizedPath); err != nil {
 		return fmt.Errorf("failed to create parent directory for %q: %w", normalizedPath, err)
 	}
 
-	// Write to temporary file first
+	// Write to temporary file first.
 	tempFile := normalizedPath + ".tmp"
 
-	// Write with sync
+	// Write with sync.
 	if err := writeFileWithSync(tempFile, data, perm); err != nil {
 		return fmt.Errorf("failed to write temp file: %w", err)
 	}
 
-	// Atomic rename (truly atomic on Unix)
+	// Atomic rename (truly atomic on Unix).
 	if err := os.Rename(tempFile, normalizedPath); err != nil {
 		os.Remove(tempFile) // Clean up on failure
 		return fmt.Errorf("failed to rename file: %w", err)
@@ -58,7 +58,7 @@ func atomicWriteFile(filename string, data []byte, perm os.FileMode) error {
 	return nil
 }
 
-// writeFileWithSync writes data to a file and ensures it's synced to disk
+// writeFileWithSync writes data to a file and ensures it's synced to disk.
 func writeFileWithSync(filename string, data []byte, perm os.FileMode) error {
 	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
 	if err != nil {
@@ -70,12 +70,12 @@ func writeFileWithSync(filename string, data []byte, perm os.FileMode) error {
 		return err
 	}
 
-	// Sync file contents to disk
+	// Sync file contents to disk.
 	if err := f.Sync(); err != nil {
 		return fmt.Errorf("failed to sync file: %w", err)
 	}
 
-	// Also sync the directory to ensure the file entry is persisted
+	// Also sync the directory to ensure the file entry is persisted.
 	dirFd, err := os.Open(filepath.Dir(filename))
 	if err == nil {
 		if err := dirFd.Sync(); err != nil {
@@ -87,15 +87,15 @@ func writeFileWithSync(filename string, data []byte, perm os.FileMode) error {
 	return nil
 }
 
-// renameFileWithRetry attempts to rename a file with limited retry on Unix
+// renameFileWithRetry attempts to rename a file with limited retry on Unix.
 func renameFileWithRetry(oldpath, newpath string) error {
-	// On Unix, rename is atomic, so we don't need aggressive retry
+	// On Unix, rename is atomic, so we don't need aggressive retry.
 	err := os.Rename(oldpath, newpath)
 	if err == nil {
 		return nil
 	}
 
-	// Only retry for transient errors
+	// Only retry for transient errors.
 	if !os.IsNotExist(err) && !os.IsPermission(err) {
 		time.Sleep(baseRetryDelay)
 		if err := os.Rename(oldpath, newpath); err == nil {
@@ -106,14 +106,14 @@ func renameFileWithRetry(oldpath, newpath string) error {
 	return err
 }
 
-// readFileWithRetry reads a file with minimal retry logic for Unix
+// readFileWithRetry reads a file with minimal retry logic for Unix.
 func readFileWithRetry(filename string) ([]byte, error) {
 	data, err := os.ReadFile(filename)
 	if err == nil {
 		return data, nil
 	}
 
-	// On Unix, file operations are more reliable, so minimal retry
+	// On Unix, file operations are more reliable, so minimal retry.
 	if !os.IsNotExist(err) {
 		time.Sleep(baseRetryDelay)
 		data, err = os.ReadFile(filename)
@@ -129,14 +129,14 @@ func readFileWithRetry(filename string) ([]byte, error) {
 	return nil, err
 }
 
-// openFileWithRetry opens a file with minimal retry logic for Unix
+// openFileWithRetry opens a file with minimal retry logic for Unix.
 func openFileWithRetry(filename string) (*os.File, error) {
 	file, err := os.Open(filename)
 	if err == nil {
 		return file, nil
 	}
 
-	// Minimal retry on Unix
+	// Minimal retry on Unix.
 	if !os.IsNotExist(err) {
 		time.Sleep(baseRetryDelay)
 		file, err = os.Open(filename)
@@ -152,7 +152,7 @@ func openFileWithRetry(filename string) (*os.File, error) {
 	return nil, err
 }
 
-// copyFileWithSync copies a file with proper syncing on Unix
+// copyFileWithSync copies a file with proper syncing on Unix.
 func copyFileWithSync(src, dst string) error {
 	srcFile, err := os.Open(src)
 	if err != nil {
@@ -170,7 +170,7 @@ func copyFileWithSync(src, dst string) error {
 		return fmt.Errorf("failed to copy: %w", err)
 	}
 
-	// Sync destination to disk
+	// Sync destination to disk.
 	if err := dstFile.Sync(); err != nil {
 		return fmt.Errorf("failed to sync destination: %w", err)
 	}
@@ -178,17 +178,17 @@ func copyFileWithSync(src, dst string) error {
 	return nil
 }
 
-// moveFileAtomic performs an atomic file move on Unix
+// moveFileAtomic performs an atomic file move on Unix.
 func moveFileAtomic(src, dst string) error {
-	// Ensure destination directory exists
+	// Ensure destination directory exists.
 	dstDir := filepath.Dir(dst)
 	if err := os.MkdirAll(dstDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create destination directory: %w", err)
 	}
 
-	// Rename is atomic on Unix within same filesystem
+	// Rename is atomic on Unix within same filesystem.
 	if err := os.Rename(src, dst); err != nil {
-		// Fall back to copy+delete for cross-filesystem moves
+		// Fall back to copy+delete for cross-filesystem moves.
 		if err := copyFileWithSync(src, dst); err != nil {
 			return fmt.Errorf("failed to copy file: %w", err)
 		}
@@ -198,14 +198,14 @@ func moveFileAtomic(src, dst string) error {
 	return nil
 }
 
-// removeFileWithRetry removes a file with minimal retry logic
+// removeFileWithRetry removes a file with minimal retry logic.
 func removeFileWithRetry(filename string) error {
 	err := os.Remove(filename)
 	if err == nil || os.IsNotExist(err) {
 		return nil
 	}
 
-	// Single retry on Unix
+	// Single retry on Unix.
 	time.Sleep(baseRetryDelay)
 	err = os.Remove(filename)
 	if err == nil || os.IsNotExist(err) {
@@ -215,20 +215,20 @@ func removeFileWithRetry(filename string) error {
 	return err
 }
 
-// isRetryableError checks if an error is retryable on Unix
+// isRetryableError checks if an error is retryable on Unix.
 func isRetryableError(err error) bool {
-	// On Unix, most errors are not retryable
-	// Only retry for EINTR or EAGAIN
+	// On Unix, most errors are not retryable.
+	// Only retry for EINTR or EAGAIN.
 	return false
 }
 
-// isUnsupportedError checks if an error is due to unsupported operation
+// isUnsupportedError checks if an error is due to unsupported operation.
 func isUnsupportedError(err error) bool {
-	// Unix systems generally support sync operations
+	// Unix systems generally support sync operations.
 	return false
 }
 
-// waitForFileStable waits for a file to become stable (not being written)
+// waitForFileStable waits for a file to become stable (not being written).
 func waitForFileStable(filename string, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	var lastSize int64
@@ -247,7 +247,7 @@ func waitForFileStable(filename string, timeout time.Duration) error {
 		size := stat.Size()
 		mod := stat.ModTime()
 
-		// Check if file is stable
+		// Check if file is stable.
 		if size == lastSize && mod.Equal(lastMod) {
 			return nil
 		}

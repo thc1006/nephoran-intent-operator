@@ -7,7 +7,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
 )
 
-// SOC2Tracker tracks SOC 2 compliance requirements
+// SOC2Tracker tracks SOC 2 compliance requirements.
 type SOC2Tracker struct {
 	mutex                sync.RWMutex
 	authenticationEvents int64
@@ -17,7 +17,7 @@ type SOC2Tracker struct {
 	securityViolations   int64
 	lastActivity         time.Time
 
-	// Trust Service Categories tracking
+	// Trust Service Categories tracking.
 	securityControls            map[string]ControlStatus
 	availabilityControls        map[string]ControlStatus
 	processingIntegrityControls map[string]ControlStatus
@@ -25,7 +25,7 @@ type SOC2Tracker struct {
 	privacyControls             map[string]ControlStatus
 }
 
-// ISO27001Tracker tracks ISO 27001 compliance requirements
+// ISO27001Tracker tracks ISO 27001 compliance requirements.
 type ISO27001Tracker struct {
 	mutex               sync.RWMutex
 	informationSecurity int64
@@ -34,11 +34,11 @@ type ISO27001Tracker struct {
 	businessContinuity  int64
 	lastActivity        time.Time
 
-	// Annex A controls tracking
+	// Annex A controls tracking.
 	annexAControls map[string]ControlStatus
 }
 
-// PCIDSSTracker tracks PCI DSS compliance requirements
+// PCIDSSTracker tracks PCI DSS compliance requirements.
 type PCIDSSTracker struct {
 	mutex                  sync.RWMutex
 	cardholderDataAccess   int64
@@ -47,11 +47,11 @@ type PCIDSSTracker struct {
 	vulnerabilityEvents    int64
 	lastActivity           time.Time
 
-	// PCI DSS requirements tracking
+	// PCI DSS requirements tracking.
 	requirements map[string]ControlStatus
 }
 
-// ControlStatus represents the status of a compliance control
+// ControlStatus represents the status of a compliance control.
 type ControlStatus struct {
 	ControlID      string                 `json:"control_id"`
 	Status         string                 `json:"status"` // compliant, non-compliant, not-applicable
@@ -64,7 +64,7 @@ type ControlStatus struct {
 	Metadata       map[string]interface{} `json:"metadata"`
 }
 
-// RemediationAction represents an action to remediate compliance issues
+// RemediationAction represents an action to remediate compliance issues.
 type RemediationAction struct {
 	ActionID    string    `json:"action_id"`
 	Description string    `json:"description"`
@@ -74,7 +74,7 @@ type RemediationAction struct {
 	Priority    string    `json:"priority"`
 }
 
-// NewSOC2Tracker creates a new SOC 2 tracker
+// NewSOC2Tracker creates a new SOC 2 tracker.
 func NewSOC2Tracker() *SOC2Tracker {
 	tracker := &SOC2Tracker{
 		securityControls:            make(map[string]ControlStatus),
@@ -84,35 +84,36 @@ func NewSOC2Tracker() *SOC2Tracker {
 		privacyControls:             make(map[string]ControlStatus),
 	}
 
-	// Initialize SOC 2 controls
+	// Initialize SOC 2 controls.
 	tracker.initializeSOC2Controls()
 	return tracker
 }
 
-// NewISO27001Tracker creates a new ISO 27001 tracker
+// NewISO27001Tracker creates a new ISO 27001 tracker.
 func NewISO27001Tracker() *ISO27001Tracker {
 	tracker := &ISO27001Tracker{
 		annexAControls: make(map[string]ControlStatus),
 	}
 
-	// Initialize ISO 27001 Annex A controls
+	// Initialize ISO 27001 Annex A controls.
 	tracker.initializeISO27001Controls()
 	return tracker
 }
 
-// NewPCIDSSTracker creates a new PCI DSS tracker
+// NewPCIDSSTracker creates a new PCI DSS tracker.
 func NewPCIDSSTracker() *PCIDSSTracker {
 	tracker := &PCIDSSTracker{
 		requirements: make(map[string]ControlStatus),
 	}
 
-	// Initialize PCI DSS requirements
+	// Initialize PCI DSS requirements.
 	tracker.initializePCIDSSRequirements()
 	return tracker
 }
 
-// SOC2Tracker methods
+// SOC2Tracker methods.
 
+// ProcessEvent performs processevent operation.
 func (st *SOC2Tracker) ProcessEvent(event *types.AuditEvent) {
 	st.mutex.Lock()
 	defer st.mutex.Unlock()
@@ -143,6 +144,7 @@ func (st *SOC2Tracker) ProcessEvent(event *types.AuditEvent) {
 	}
 }
 
+// GetStatus performs getstatus operation.
 func (st *SOC2Tracker) GetStatus() map[string]interface{} {
 	st.mutex.RLock()
 	defer st.mutex.RUnlock()
@@ -164,7 +166,7 @@ func (st *SOC2Tracker) GetStatus() map[string]interface{} {
 }
 
 func (st *SOC2Tracker) initializeSOC2Controls() {
-	// Common Criteria (CC) - Security
+	// Common Criteria (CC) - Security.
 	st.securityControls["CC6.1"] = ControlStatus{
 		ControlID:      "CC6.1",
 		Status:         "compliant",
@@ -200,7 +202,7 @@ func (st *SOC2Tracker) initializeSOC2Controls() {
 }
 
 func (st *SOC2Tracker) updateControlStatus(controlID string, event *types.AuditEvent) {
-	// Update control status based on event
+	// Update control status based on event.
 	if control, exists := st.securityControls[controlID]; exists {
 		control.EvidenceCount++
 		if event.Result == types.ResultFailure {
@@ -215,8 +217,9 @@ func (st *SOC2Tracker) updateControlStatus(controlID string, event *types.AuditE
 	}
 }
 
-// ISO27001Tracker methods
+// ISO27001Tracker methods.
 
+// ProcessEvent performs processevent operation.
 func (it *ISO27001Tracker) ProcessEvent(event *types.AuditEvent) {
 	it.mutex.Lock()
 	defer it.mutex.Unlock()
@@ -246,6 +249,7 @@ func (it *ISO27001Tracker) ProcessEvent(event *types.AuditEvent) {
 	}
 }
 
+// GetStatus performs getstatus operation.
 func (it *ISO27001Tracker) GetStatus() map[string]interface{} {
 	it.mutex.RLock()
 	defer it.mutex.RUnlock()
@@ -262,7 +266,7 @@ func (it *ISO27001Tracker) GetStatus() map[string]interface{} {
 }
 
 func (it *ISO27001Tracker) initializeISO27001Controls() {
-	// A.9 - Access Control
+	// A.9 - Access Control.
 	it.annexAControls["A.9.2.1"] = ControlStatus{
 		ControlID:      "A.9.2.1",
 		Status:         "compliant",
@@ -279,7 +283,7 @@ func (it *ISO27001Tracker) initializeISO27001Controls() {
 		NextReview:     time.Now().AddDate(1, 0, 0),
 	}
 
-	// A.12 - Operations Security
+	// A.12 - Operations Security.
 	it.annexAControls["A.12.4.1"] = ControlStatus{
 		ControlID:      "A.12.4.1",
 		Status:         "compliant",
@@ -288,7 +292,7 @@ func (it *ISO27001Tracker) initializeISO27001Controls() {
 		NextReview:     time.Now().AddDate(1, 0, 0),
 	}
 
-	// A.16 - Information Security Incident Management
+	// A.16 - Information Security Incident Management.
 	it.annexAControls["A.16.1.1"] = ControlStatus{
 		ControlID:      "A.16.1.1",
 		Status:         "compliant",
@@ -313,8 +317,9 @@ func (it *ISO27001Tracker) updateControlStatus(controlID string, event *types.Au
 	}
 }
 
-// PCIDSSTracker methods
+// PCIDSSTracker methods.
 
+// ProcessEvent performs processevent operation.
 func (pt *PCIDSSTracker) ProcessEvent(event *types.AuditEvent) {
 	pt.mutex.Lock()
 	defer pt.mutex.Unlock()
@@ -341,6 +346,7 @@ func (pt *PCIDSSTracker) ProcessEvent(event *types.AuditEvent) {
 	}
 }
 
+// GetStatus performs getstatus operation.
 func (pt *PCIDSSTracker) GetStatus() map[string]interface{} {
 	pt.mutex.RLock()
 	defer pt.mutex.RUnlock()
@@ -357,7 +363,7 @@ func (pt *PCIDSSTracker) GetStatus() map[string]interface{} {
 }
 
 func (pt *PCIDSSTracker) initializePCIDSSRequirements() {
-	// Requirement 1: Install and maintain a firewall configuration
+	// Requirement 1: Install and maintain a firewall configuration.
 	pt.requirements["1.1.1"] = ControlStatus{
 		ControlID:      "1.1.1",
 		Status:         "compliant",
@@ -366,7 +372,7 @@ func (pt *PCIDSSTracker) initializePCIDSSRequirements() {
 		NextReview:     time.Now().AddDate(0, 3, 0), // Quarterly review
 	}
 
-	// Requirement 6: Develop and maintain secure systems and applications
+	// Requirement 6: Develop and maintain secure systems and applications.
 	pt.requirements["6.1.1"] = ControlStatus{
 		ControlID:      "6.1.1",
 		Status:         "compliant",
@@ -375,7 +381,7 @@ func (pt *PCIDSSTracker) initializePCIDSSRequirements() {
 		NextReview:     time.Now().AddDate(0, 1, 0), // Monthly review
 	}
 
-	// Requirement 7: Restrict access to cardholder data by business need-to-know
+	// Requirement 7: Restrict access to cardholder data by business need-to-know.
 	pt.requirements["7.1.1"] = ControlStatus{
 		ControlID:      "7.1.1",
 		Status:         "compliant",
@@ -384,7 +390,7 @@ func (pt *PCIDSSTracker) initializePCIDSSRequirements() {
 		NextReview:     time.Now().AddDate(0, 3, 0),
 	}
 
-	// Requirement 8: Identify and authenticate access to system components
+	// Requirement 8: Identify and authenticate access to system components.
 	pt.requirements["8.1.1"] = ControlStatus{
 		ControlID:      "8.1.1",
 		Status:         "compliant",
@@ -393,7 +399,7 @@ func (pt *PCIDSSTracker) initializePCIDSSRequirements() {
 		NextReview:     time.Now().AddDate(0, 3, 0),
 	}
 
-	// Requirement 10: Track and monitor all access to network resources and cardholder data
+	// Requirement 10: Track and monitor all access to network resources and cardholder data.
 	pt.requirements["10.2.1"] = ControlStatus{
 		ControlID:      "10.2.1",
 		Status:         "compliant",
@@ -407,7 +413,7 @@ func (pt *PCIDSSTracker) updateControlStatus(controlID string, event *types.Audi
 	if control, exists := pt.requirements[controlID]; exists {
 		control.EvidenceCount++
 
-		// PCI DSS has stricter violation thresholds
+		// PCI DSS has stricter violation thresholds.
 		if event.Result == types.ResultFailure {
 			control.ViolationCount++
 			if control.ViolationCount > 1 { // Even single failures are significant for PCI DSS
@@ -421,8 +427,9 @@ func (pt *PCIDSSTracker) updateControlStatus(controlID string, event *types.Audi
 	}
 }
 
-// Utility functions for all trackers
+// Utility functions for all trackers.
 
+// AddRemediation performs addremediation operation.
 func (cs *ControlStatus) AddRemediation(action RemediationAction) {
 	if cs.Remediation == nil {
 		cs.Remediation = make([]RemediationAction, 0)
@@ -430,6 +437,7 @@ func (cs *ControlStatus) AddRemediation(action RemediationAction) {
 	cs.Remediation = append(cs.Remediation, action)
 }
 
+// UpdateRiskLevel performs updaterisklevel operation.
 func (cs *ControlStatus) UpdateRiskLevel() {
 	if cs.ViolationCount == 0 {
 		cs.RiskLevel = "low"
@@ -442,10 +450,12 @@ func (cs *ControlStatus) UpdateRiskLevel() {
 	}
 }
 
+// IsCompliant performs iscompliant operation.
 func (cs *ControlStatus) IsCompliant() bool {
 	return cs.Status == "compliant"
 }
 
+// NeedsReview performs needsreview operation.
 func (cs *ControlStatus) NeedsReview() bool {
 	return time.Now().After(cs.NextReview)
 }

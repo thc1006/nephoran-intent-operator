@@ -30,7 +30,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/multicluster"
 )
 
-// ClusterRequest represents a request to register or update a cluster
+// ClusterRequest represents a request to register or update a cluster.
 type ClusterRequest struct {
 	Name         string                         `json:"name"`
 	Region       string                         `json:"region,omitempty"`
@@ -43,7 +43,7 @@ type ClusterRequest struct {
 	Annotations  map[string]string              `json:"annotations,omitempty"`
 }
 
-// ClusterResponse represents a comprehensive cluster response
+// ClusterResponse represents a comprehensive cluster response.
 type ClusterResponse struct {
 	*multicluster.WorkloadCluster
 	HealthStatus      *ClusterHealthStatus     `json:"health_status,omitempty"`
@@ -52,7 +52,7 @@ type ClusterResponse struct {
 	NetworkInfo       *NetworkInformation      `json:"network_info,omitempty"`
 }
 
-// ClusterHealthStatus represents detailed cluster health information
+// ClusterHealthStatus represents detailed cluster health information.
 type ClusterHealthStatus struct {
 	Overall         string                  `json:"overall"`
 	Components      map[string]string       `json:"components"`
@@ -63,7 +63,7 @@ type ClusterHealthStatus struct {
 	Recommendations []*HealthRecommendation `json:"recommendations,omitempty"`
 }
 
-// HealthAlert represents a cluster health alert
+// HealthAlert represents a cluster health alert.
 type HealthAlert struct {
 	Level     string    `json:"level"` // info, warning, error, critical
 	Component string    `json:"component"`
@@ -72,7 +72,7 @@ type HealthAlert struct {
 	ActionURL string    `json:"action_url,omitempty"`
 }
 
-// HealthRecommendation represents a health improvement recommendation
+// HealthRecommendation represents a health improvement recommendation.
 type HealthRecommendation struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
@@ -81,7 +81,7 @@ type HealthRecommendation struct {
 	ActionURL   string `json:"action_url,omitempty"`
 }
 
-// DeploymentHistoryItem represents a deployment history entry
+// DeploymentHistoryItem represents a deployment history entry.
 type DeploymentHistoryItem struct {
 	PackageName  string           `json:"package_name"`
 	Version      string           `json:"version"`
@@ -92,7 +92,7 @@ type DeploymentHistoryItem struct {
 	ErrorMessage string           `json:"error_message,omitempty"`
 }
 
-// ResourceUsageMetrics represents current resource usage
+// ResourceUsageMetrics represents current resource usage.
 type ResourceUsageMetrics struct {
 	CPUUsage     float64      `json:"cpu_usage_percent"`
 	MemoryUsage  float64      `json:"memory_usage_percent"`
@@ -103,7 +103,7 @@ type ResourceUsageMetrics struct {
 	LastUpdated  *metav1.Time `json:"last_updated"`
 }
 
-// NetworkIO represents network I/O metrics
+// NetworkIO represents network I/O metrics.
 type NetworkIO struct {
 	BytesIn    int64 `json:"bytes_in"`
 	BytesOut   int64 `json:"bytes_out"`
@@ -111,7 +111,7 @@ type NetworkIO struct {
 	PacketsOut int64 `json:"packets_out"`
 }
 
-// NetworkInformation represents cluster network information
+// NetworkInformation represents cluster network information.
 type NetworkInformation struct {
 	ClusterCIDR        string                   `json:"cluster_cidr,omitempty"`
 	ServiceCIDR        string                   `json:"service_cidr,omitempty"`
@@ -121,7 +121,7 @@ type NetworkInformation struct {
 	IngressControllers []*IngressControllerInfo `json:"ingress_controllers,omitempty"`
 }
 
-// LoadBalancerInfo represents load balancer information
+// LoadBalancerInfo represents load balancer information.
 type LoadBalancerInfo struct {
 	Name       string `json:"name"`
 	Type       string `json:"type"`
@@ -129,7 +129,7 @@ type LoadBalancerInfo struct {
 	Status     string `json:"status"`
 }
 
-// IngressControllerInfo represents ingress controller information
+// IngressControllerInfo represents ingress controller information.
 type IngressControllerInfo struct {
 	Name         string `json:"name"`
 	Class        string `json:"class"`
@@ -137,7 +137,7 @@ type IngressControllerInfo struct {
 	LoadBalancer string `json:"load_balancer,omitempty"`
 }
 
-// DeploymentRequest represents a deployment request to clusters
+// DeploymentRequest represents a deployment request to clusters.
 type DeploymentRequest struct {
 	PackageName    string                             `json:"package_name"`
 	TargetClusters []string                           `json:"target_clusters,omitempty"`
@@ -147,7 +147,7 @@ type DeploymentRequest struct {
 	DryRun         bool                               `json:"dry_run,omitempty"`
 }
 
-// ClusterStatusUpdate represents a cluster status update for streaming
+// ClusterStatusUpdate represents a cluster status update for streaming.
 type ClusterStatusUpdate struct {
 	ClusterName    string                     `json:"cluster_name"`
 	Status         multicluster.ClusterStatus `json:"status"`
@@ -159,59 +159,59 @@ type ClusterStatusUpdate struct {
 	Alerts         []*HealthAlert             `json:"alerts,omitempty"`
 }
 
-// setupClusterRoutes sets up multi-cluster management API routes
+// setupClusterRoutes sets up multi-cluster management API routes.
 func (s *NephoranAPIServer) setupClusterRoutes(router *mux.Router) {
 	clusters := router.PathPrefix("/clusters").Subrouter()
 
-	// Apply cluster-specific middleware
+	// Apply cluster-specific middleware.
 	if s.authMiddleware != nil {
-		// Most cluster operations require system management permissions
+		// Most cluster operations require system management permissions.
 		clusters.Use(s.authMiddleware.RequirePermissionMiddleware(auth.PermissionViewMetrics))
 	}
 
-	// Cluster CRUD operations
+	// Cluster CRUD operations.
 	clusters.HandleFunc("", s.listClusters).Methods("GET")
 	clusters.HandleFunc("", s.registerCluster).Methods("POST")
 	clusters.HandleFunc("/{id}", s.getCluster).Methods("GET")
 	clusters.HandleFunc("/{id}", s.updateCluster).Methods("PUT")
 	clusters.HandleFunc("/{id}", s.unregisterCluster).Methods("DELETE")
 
-	// Cluster status and health
+	// Cluster status and health.
 	clusters.HandleFunc("/{id}/status", s.getClusterStatus).Methods("GET")
 	clusters.HandleFunc("/{id}/health", s.getClusterHealth).Methods("GET")
 	clusters.HandleFunc("/{id}/resources", s.getClusterResources).Methods("GET")
 	clusters.HandleFunc("/{id}/nodes", s.getClusterNodes).Methods("GET")
 	clusters.HandleFunc("/{id}/namespaces", s.getClusterNamespaces).Methods("GET")
 
-	// Deployment operations
+	// Deployment operations.
 	clusters.HandleFunc("/{id}/deploy", s.deployToCluster).Methods("POST")
 	clusters.HandleFunc("/{id}/deployments", s.getClusterDeployments).Methods("GET")
 	clusters.HandleFunc("/{id}/deployments/{deployment}", s.getClusterDeployment).Methods("GET")
 	clusters.HandleFunc("/{id}/deployments/{deployment}", s.deleteClusterDeployment).Methods("DELETE")
 
-	// Network and connectivity
+	// Network and connectivity.
 	clusters.HandleFunc("/{id}/network", s.getClusterNetwork).Methods("GET")
 	clusters.HandleFunc("/{id}/connectivity", s.testClusterConnectivity).Methods("POST")
 	clusters.HandleFunc("/{id}/latency", s.getClusterLatency).Methods("GET")
 
-	// Multi-cluster operations
+	// Multi-cluster operations.
 	clusters.HandleFunc("/topology", s.getNetworkTopology).Methods("GET")
 	clusters.HandleFunc("/bulk/deploy", s.bulkDeployToClusters).Methods("POST")
 	clusters.HandleFunc("/bulk/health", s.getBulkClusterHealth).Methods("GET")
 	clusters.HandleFunc("/placement", s.getOptimalPlacement).Methods("POST")
 
-	// Cluster discovery and auto-registration
+	// Cluster discovery and auto-registration.
 	clusters.HandleFunc("/discover", s.discoverClusters).Methods("GET")
 	clusters.HandleFunc("/auto-register", s.autoRegisterClusters).Methods("POST")
 }
 
-// listClusters handles GET /api/v1/clusters
+// listClusters handles GET /api/v1/clusters.
 func (s *NephoranAPIServer) listClusters(w http.ResponseWriter, r *http.Request) {
 	_ = r.Context() // Context available if needed for cancellation
 	pagination := s.parsePaginationParams(r)
 	filters := s.parseFilterParams(r)
 
-	// Check cache first
+	// Check cache first.
 	cacheKey := fmt.Sprintf("clusters:%v:%v", pagination, filters)
 	if s.cache != nil {
 		if cached, found := s.cache.Get(cacheKey); found {
@@ -228,10 +228,10 @@ func (s *NephoranAPIServer) listClusters(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// For now, return a mock implementation until clusterManager interface is fully available
+	// For now, return a mock implementation until clusterManager interface is fully available.
 	clusters := make([]ClusterResponse, 0)
 
-	// Apply filtering and pagination
+	// Apply filtering and pagination.
 	filteredClusters := s.filterClusters(clusters, filters)
 	totalItems := len(filteredClusters)
 
@@ -246,7 +246,7 @@ func (s *NephoranAPIServer) listClusters(w http.ResponseWriter, r *http.Request)
 
 	paginatedItems := filteredClusters[startIndex:endIndex]
 
-	// Build response with metadata
+	// Build response with metadata.
 	meta := &Meta{
 		Page:       pagination.Page,
 		PageSize:   pagination.PageSize,
@@ -254,7 +254,7 @@ func (s *NephoranAPIServer) listClusters(w http.ResponseWriter, r *http.Request)
 		TotalItems: totalItems,
 	}
 
-	// Build HATEOAS links
+	// Build HATEOAS links.
 	baseURL := fmt.Sprintf("/api/v1/clusters?page_size=%d", pagination.PageSize)
 	links := &Links{
 		Self: fmt.Sprintf("%s&page=%d", baseURL, pagination.Page),
@@ -274,7 +274,7 @@ func (s *NephoranAPIServer) listClusters(w http.ResponseWriter, r *http.Request)
 		"links": links,
 	}
 
-	// Cache the result
+	// Cache the result.
 	if s.cache != nil {
 		s.cache.Set(cacheKey, result)
 	}
@@ -282,13 +282,13 @@ func (s *NephoranAPIServer) listClusters(w http.ResponseWriter, r *http.Request)
 	s.writeJSONResponse(w, http.StatusOK, result)
 }
 
-// getCluster handles GET /api/v1/clusters/{id}
+// getCluster handles GET /api/v1/clusters/{id}.
 func (s *NephoranAPIServer) getCluster(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	vars := mux.Vars(r)
 	clusterID := vars["id"]
 
-	// Check cache first
+	// Check cache first.
 	cacheKey := fmt.Sprintf("cluster:%s", clusterID)
 	if s.cache != nil {
 		if cached, found := s.cache.Get(cacheKey); found {
@@ -305,7 +305,7 @@ func (s *NephoranAPIServer) getCluster(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build comprehensive cluster response
+	// Build comprehensive cluster response.
 	response := s.buildClusterResponse(ctx, clusterID)
 	if response == nil {
 		s.writeErrorResponse(w, http.StatusNotFound, "cluster_not_found",
@@ -313,7 +313,7 @@ func (s *NephoranAPIServer) getCluster(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Cache the result
+	// Cache the result.
 	if s.cache != nil {
 		s.cache.SetWithTTL(cacheKey, response, 1*time.Minute) // Shorter cache for detailed cluster info
 	}
@@ -321,13 +321,13 @@ func (s *NephoranAPIServer) getCluster(w http.ResponseWriter, r *http.Request) {
 	s.writeJSONResponse(w, http.StatusOK, response)
 }
 
-// getClusterStatus handles GET /api/v1/clusters/{id}/status
+// getClusterStatus handles GET /api/v1/clusters/{id}/status.
 func (s *NephoranAPIServer) getClusterStatus(w http.ResponseWriter, r *http.Request) {
 	_ = r.Context() // Context available if needed for cancellation
 	vars := mux.Vars(r)
 	clusterID := vars["id"]
 
-	// Check cache first with very short TTL for status
+	// Check cache first with very short TTL for status.
 	cacheKey := fmt.Sprintf("cluster-status:%s", clusterID)
 	if s.cache != nil {
 		if cached, found := s.cache.Get(cacheKey); found {
@@ -344,7 +344,7 @@ func (s *NephoranAPIServer) getClusterStatus(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Get cluster status - mock implementation
+	// Get cluster status - mock implementation.
 	status := map[string]interface{}{
 		"cluster_id":   clusterID,
 		"status":       "Healthy",
@@ -359,7 +359,7 @@ func (s *NephoranAPIServer) getClusterStatus(w http.ResponseWriter, r *http.Requ
 		"region":       "us-west-2",
 	}
 
-	// Cache with very short TTL for real-time status
+	// Cache with very short TTL for real-time status.
 	if s.cache != nil {
 		s.cache.SetWithTTL(cacheKey, status, 10*time.Second)
 	}
@@ -367,11 +367,11 @@ func (s *NephoranAPIServer) getClusterStatus(w http.ResponseWriter, r *http.Requ
 	s.writeJSONResponse(w, http.StatusOK, status)
 }
 
-// deployToCluster handles POST /api/v1/clusters/{id}/deploy
+// deployToCluster handles POST /api/v1/clusters/{id}/deploy.
 func (s *NephoranAPIServer) deployToCluster(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// Check deployment permissions
+	// Check deployment permissions.
 	if s.authMiddleware != nil && !auth.HasPermission(ctx, auth.PermissionManageSystem) {
 		s.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions",
 			"System management permission required for cluster deployments")
@@ -388,7 +388,7 @@ func (s *NephoranAPIServer) deployToCluster(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Validate request
+	// Validate request.
 	if req.PackageName == "" {
 		s.writeErrorResponse(w, http.StatusBadRequest, "validation_failed",
 			"package_name is required")
@@ -401,7 +401,7 @@ func (s *NephoranAPIServer) deployToCluster(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Create propagation options
+	// Create propagation options.
 	options := &multicluster.PropagationOptions{
 		Strategy:     req.Strategy,
 		Constraints:  req.Constraints,
@@ -409,12 +409,12 @@ func (s *NephoranAPIServer) deployToCluster(w http.ResponseWriter, r *http.Reque
 		DryRun:       req.DryRun,
 	}
 
-	// Set target clusters - if not specified, use the current cluster
+	// Set target clusters - if not specified, use the current cluster.
 	if len(req.TargetClusters) == 0 {
 		req.TargetClusters = []string{clusterID}
 	}
 
-	// Perform deployment
+	// Perform deployment.
 	result, err := s.clusterManager.PropagatePackage(ctx, req.PackageName, options)
 	if err != nil {
 		s.logger.Error(err, "Failed to deploy to cluster",
@@ -424,7 +424,7 @@ func (s *NephoranAPIServer) deployToCluster(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Broadcast deployment status update
+	// Broadcast deployment status update.
 	s.broadcastClusterUpdate(&ClusterStatusUpdate{
 		ClusterName: clusterID,
 		Message:     fmt.Sprintf("Package %s deployed successfully", req.PackageName),
@@ -435,11 +435,11 @@ func (s *NephoranAPIServer) deployToCluster(w http.ResponseWriter, r *http.Reque
 	s.writeJSONResponse(w, http.StatusOK, result)
 }
 
-// getNetworkTopology handles GET /api/v1/clusters/topology
+// getNetworkTopology handles GET /api/v1/clusters/topology.
 func (s *NephoranAPIServer) getNetworkTopology(w http.ResponseWriter, r *http.Request) {
 	_ = r.Context() // Context available if needed for cancellation
 
-	// Check cache first
+	// Check cache first.
 	cacheKey := "network-topology"
 	if s.cache != nil {
 		if cached, found := s.cache.Get(cacheKey); found {
@@ -456,7 +456,7 @@ func (s *NephoranAPIServer) getNetworkTopology(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	// Mock network topology response
+	// Mock network topology response.
 	topology := map[string]interface{}{
 		"clusters": []map[string]interface{}{
 			{
@@ -495,7 +495,7 @@ func (s *NephoranAPIServer) getNetworkTopology(w http.ResponseWriter, r *http.Re
 		},
 	}
 
-	// Cache the result
+	// Cache the result.
 	if s.cache != nil {
 		s.cache.SetWithTTL(cacheKey, topology, 2*time.Minute)
 	}
@@ -503,11 +503,11 @@ func (s *NephoranAPIServer) getNetworkTopology(w http.ResponseWriter, r *http.Re
 	s.writeJSONResponse(w, http.StatusOK, topology)
 }
 
-// registerCluster handles POST /api/v1/clusters
+// registerCluster handles POST /api/v1/clusters.
 func (s *NephoranAPIServer) registerCluster(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// Check admin permissions for cluster registration
+	// Check admin permissions for cluster registration.
 	if s.authMiddleware != nil && !auth.HasPermission(ctx, auth.PermissionManageSystem) {
 		s.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions",
 			"System management permission required for cluster registration")
@@ -521,7 +521,7 @@ func (s *NephoranAPIServer) registerCluster(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Validate request
+	// Validate request.
 	if req.Name == "" {
 		s.writeErrorResponse(w, http.StatusBadRequest, "validation_failed",
 			"name is required")
@@ -534,7 +534,7 @@ func (s *NephoranAPIServer) registerCluster(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Create workload cluster object
+	// Create workload cluster object.
 	cluster := &multicluster.WorkloadCluster{
 		ID:            generateClusterID(),
 		Name:          req.Name,
@@ -549,7 +549,7 @@ func (s *NephoranAPIServer) registerCluster(w http.ResponseWriter, r *http.Reque
 		Annotations:   req.Annotations,
 	}
 
-	// Register with cluster manager
+	// Register with cluster manager.
 	options := &multicluster.ClusterRegistrationOptions{
 		ConnectionTimeout:        30 * time.Second,
 		ConnectionRetries:        3,
@@ -565,13 +565,13 @@ func (s *NephoranAPIServer) registerCluster(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Invalidate cache
+	// Invalidate cache.
 	if s.cache != nil {
 		s.cache.Invalidate("clusters:")
 		s.cache.Invalidate("network-topology")
 	}
 
-	// Broadcast cluster registration event
+	// Broadcast cluster registration event.
 	s.broadcastClusterUpdate(&ClusterStatusUpdate{
 		ClusterName: cluster.Name,
 		Status:      cluster.Status,
@@ -584,7 +584,7 @@ func (s *NephoranAPIServer) registerCluster(w http.ResponseWriter, r *http.Reque
 	s.writeJSONResponse(w, http.StatusCreated, response)
 }
 
-// Helper functions
+// Helper functions.
 
 func (s *NephoranAPIServer) filterClusters(clusters []ClusterResponse, filters FilterParams) []ClusterResponse {
 	var filtered []ClusterResponse
@@ -600,7 +600,7 @@ func (s *NephoranAPIServer) filterClusters(clusters []ClusterResponse, filters F
 			include = false
 		}
 
-		// Filter by labels
+		// Filter by labels.
 		for labelKey, labelValue := range filters.Labels {
 			if cluster.Labels == nil {
 				include = false
@@ -621,7 +621,7 @@ func (s *NephoranAPIServer) filterClusters(clusters []ClusterResponse, filters F
 }
 
 func (s *NephoranAPIServer) buildClusterResponse(ctx context.Context, clusterID string) *ClusterResponse {
-	// Mock implementation - would integrate with actual cluster manager
+	// Mock implementation - would integrate with actual cluster manager.
 	cluster := &multicluster.WorkloadCluster{
 		ID:            clusterID,
 		Name:          fmt.Sprintf("cluster-%s", clusterID),
@@ -675,7 +675,7 @@ func (s *NephoranAPIServer) buildClusterResponse(ctx context.Context, clusterID 
 }
 
 func (s *NephoranAPIServer) broadcastClusterUpdate(update *ClusterStatusUpdate) {
-	// Broadcast to WebSocket connections
+	// Broadcast to WebSocket connections.
 	s.connectionsMutex.RLock()
 	for _, conn := range s.wsConnections {
 		select {
@@ -686,7 +686,7 @@ func (s *NephoranAPIServer) broadcastClusterUpdate(update *ClusterStatusUpdate) 
 	}
 	s.connectionsMutex.RUnlock()
 
-	// Broadcast to SSE connections
+	// Broadcast to SSE connections.
 	s.connectionsMutex.RLock()
 	for _, conn := range s.sseConnections {
 		if conn.Flusher != nil {
@@ -698,11 +698,11 @@ func (s *NephoranAPIServer) broadcastClusterUpdate(update *ClusterStatusUpdate) 
 }
 
 func generateClusterID() string {
-	// Simple cluster ID generation - would use UUID in production
+	// Simple cluster ID generation - would use UUID in production.
 	return fmt.Sprintf("cluster-%d", time.Now().UnixNano())
 }
 
-// updateCluster handles PUT /api/v1/clusters/{id}
+// updateCluster handles PUT /api/v1/clusters/{id}.
 func (s *NephoranAPIServer) updateCluster(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	clusterID := vars["id"]
@@ -714,7 +714,7 @@ func (s *NephoranAPIServer) updateCluster(w http.ResponseWriter, r *http.Request
 	})
 }
 
-// unregisterCluster handles DELETE /api/v1/clusters/{id}
+// unregisterCluster handles DELETE /api/v1/clusters/{id}.
 func (s *NephoranAPIServer) unregisterCluster(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	clusterID := vars["id"]
@@ -726,7 +726,7 @@ func (s *NephoranAPIServer) unregisterCluster(w http.ResponseWriter, r *http.Req
 	})
 }
 
-// getClusterHealth handles GET /api/v1/clusters/{id}/health
+// getClusterHealth handles GET /api/v1/clusters/{id}/health.
 func (s *NephoranAPIServer) getClusterHealth(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	clusterID := vars["id"]
@@ -739,7 +739,7 @@ func (s *NephoranAPIServer) getClusterHealth(w http.ResponseWriter, r *http.Requ
 	})
 }
 
-// getClusterResources handles GET /api/v1/clusters/{id}/resources
+// getClusterResources handles GET /api/v1/clusters/{id}/resources.
 func (s *NephoranAPIServer) getClusterResources(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	clusterID := vars["id"]
@@ -761,7 +761,7 @@ func (s *NephoranAPIServer) getClusterResources(w http.ResponseWriter, r *http.R
 	})
 }
 
-// getClusterNodes handles GET /api/v1/clusters/{id}/nodes
+// getClusterNodes handles GET /api/v1/clusters/{id}/nodes.
 func (s *NephoranAPIServer) getClusterNodes(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	clusterID := vars["id"]
@@ -783,7 +783,7 @@ func (s *NephoranAPIServer) getClusterNodes(w http.ResponseWriter, r *http.Reque
 	})
 }
 
-// getClusterNamespaces handles GET /api/v1/clusters/{id}/namespaces
+// getClusterNamespaces handles GET /api/v1/clusters/{id}/namespaces.
 func (s *NephoranAPIServer) getClusterNamespaces(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	clusterID := vars["id"]
@@ -798,7 +798,7 @@ func (s *NephoranAPIServer) getClusterNamespaces(w http.ResponseWriter, r *http.
 	})
 }
 
-// getClusterDeployment handles GET /api/v1/clusters/{id}/deployments/{deployment}
+// getClusterDeployment handles GET /api/v1/clusters/{id}/deployments/{deployment}.
 func (s *NephoranAPIServer) getClusterDeployment(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	clusterID := vars["id"]
@@ -815,7 +815,7 @@ func (s *NephoranAPIServer) getClusterDeployment(w http.ResponseWriter, r *http.
 	})
 }
 
-// deleteClusterDeployment handles DELETE /api/v1/clusters/{id}/deployments/{deployment}
+// deleteClusterDeployment handles DELETE /api/v1/clusters/{id}/deployments/{deployment}.
 func (s *NephoranAPIServer) deleteClusterDeployment(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	clusterID := vars["id"]
@@ -829,7 +829,7 @@ func (s *NephoranAPIServer) deleteClusterDeployment(w http.ResponseWriter, r *ht
 	})
 }
 
-// getClusterNetwork handles GET /api/v1/clusters/{id}/network
+// getClusterNetwork handles GET /api/v1/clusters/{id}/network.
 func (s *NephoranAPIServer) getClusterNetwork(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	clusterID := vars["id"]
@@ -844,7 +844,7 @@ func (s *NephoranAPIServer) getClusterNetwork(w http.ResponseWriter, r *http.Req
 	})
 }
 
-// testClusterConnectivity handles POST /api/v1/clusters/{id}/connectivity
+// testClusterConnectivity handles POST /api/v1/clusters/{id}/connectivity.
 func (s *NephoranAPIServer) testClusterConnectivity(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	clusterID := vars["id"]
@@ -859,7 +859,7 @@ func (s *NephoranAPIServer) testClusterConnectivity(w http.ResponseWriter, r *ht
 	})
 }
 
-// getClusterLatency handles GET /api/v1/clusters/{id}/latency
+// getClusterLatency handles GET /api/v1/clusters/{id}/latency.
 func (s *NephoranAPIServer) getClusterLatency(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	clusterID := vars["id"]
@@ -874,7 +874,7 @@ func (s *NephoranAPIServer) getClusterLatency(w http.ResponseWriter, r *http.Req
 	})
 }
 
-// bulkDeployToClusters handles POST /api/v1/clusters/bulk/deploy
+// bulkDeployToClusters handles POST /api/v1/clusters/bulk/deploy.
 func (s *NephoranAPIServer) bulkDeployToClusters(w http.ResponseWriter, r *http.Request) {
 	s.writeJSONResponse(w, http.StatusAccepted, map[string]interface{}{
 		"message":  "Bulk deployment initiated",
@@ -882,7 +882,7 @@ func (s *NephoranAPIServer) bulkDeployToClusters(w http.ResponseWriter, r *http.
 	})
 }
 
-// getBulkClusterHealth handles GET /api/v1/clusters/bulk/health
+// getBulkClusterHealth handles GET /api/v1/clusters/bulk/health.
 func (s *NephoranAPIServer) getBulkClusterHealth(w http.ResponseWriter, r *http.Request) {
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
 		"clusters": []map[string]interface{}{
@@ -892,7 +892,7 @@ func (s *NephoranAPIServer) getBulkClusterHealth(w http.ResponseWriter, r *http.
 	})
 }
 
-// getOptimalPlacement handles POST /api/v1/clusters/placement
+// getOptimalPlacement handles POST /api/v1/clusters/placement.
 func (s *NephoranAPIServer) getOptimalPlacement(w http.ResponseWriter, r *http.Request) {
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
 		"placement": map[string]interface{}{
@@ -903,7 +903,7 @@ func (s *NephoranAPIServer) getOptimalPlacement(w http.ResponseWriter, r *http.R
 	})
 }
 
-// discoverClusters handles GET /api/v1/clusters/discover
+// discoverClusters handles GET /api/v1/clusters/discover.
 func (s *NephoranAPIServer) discoverClusters(w http.ResponseWriter, r *http.Request) {
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
 		"discovered": []map[string]interface{}{
@@ -912,7 +912,7 @@ func (s *NephoranAPIServer) discoverClusters(w http.ResponseWriter, r *http.Requ
 	})
 }
 
-// autoRegisterClusters handles POST /api/v1/clusters/auto-register
+// autoRegisterClusters handles POST /api/v1/clusters/auto-register.
 func (s *NephoranAPIServer) autoRegisterClusters(w http.ResponseWriter, r *http.Request) {
 	s.writeJSONResponse(w, http.StatusAccepted, map[string]interface{}{
 		"message":    "Auto-registration initiated",
@@ -920,7 +920,7 @@ func (s *NephoranAPIServer) autoRegisterClusters(w http.ResponseWriter, r *http.
 	})
 }
 
-// getClusterDeployments handles GET /api/v1/clusters/{id}/deployments
+// getClusterDeployments handles GET /api/v1/clusters/{id}/deployments.
 func (s *NephoranAPIServer) getClusterDeployments(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	clusterID := vars["id"]

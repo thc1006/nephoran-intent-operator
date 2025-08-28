@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// SATSolver implements a SAT solver for complex constraint satisfaction in dependency resolution
+// SATSolver implements a SAT solver for complex constraint satisfaction in dependency resolution.
 type SATSolver struct {
 	logger           logr.Logger
 	variables        map[string]*SATVariable
@@ -43,7 +43,7 @@ type SATSolver struct {
 	mu               sync.RWMutex
 }
 
-// SATVariable represents a variable in the SAT problem
+// SATVariable represents a variable in the SAT problem.
 type SATVariable struct {
 	ID            string
 	PackageRef    *PackageReference
@@ -55,7 +55,7 @@ type SATVariable struct {
 	Watched       []*SATClause
 }
 
-// SATClause represents a clause in the SAT problem
+// SATClause represents a clause in the SAT problem.
 type SATClause struct {
 	ID        string
 	Literals  []*SATLiteral
@@ -65,14 +65,14 @@ type SATClause struct {
 	Activity  float64
 }
 
-// SATLiteral represents a literal in a SAT clause
+// SATLiteral represents a literal in a SAT clause.
 type SATLiteral struct {
 	Variable *SATVariable
 	Positive bool
 	Version  string
 }
 
-// SATStatistics tracks solver performance
+// SATStatistics tracks solver performance.
 type SATStatistics struct {
 	Variables      int
 	Clauses        int
@@ -86,7 +86,7 @@ type SATStatistics struct {
 	MemoryUsage    int64
 }
 
-// SATSolverConfig configures the SAT solver
+// SATSolverConfig configures the SAT solver.
 type SATSolverConfig struct {
 	MaxDecisions     int
 	MaxConflicts     int
@@ -99,7 +99,7 @@ type SATSolverConfig struct {
 	EnableVSIDS      bool // Variable State Independent Decaying Sum
 }
 
-// NewSATSolver creates a new SAT solver instance
+// NewSATSolver creates a new SAT solver instance.
 func NewSATSolver(config *SATSolverConfig) *SATSolver {
 	if config == nil {
 		config = &SATSolverConfig{
@@ -124,21 +124,21 @@ func NewSATSolver(config *SATSolverConfig) *SATSolver {
 	}
 }
 
-// Solve attempts to find a satisfying assignment for the given requirements
+// Solve attempts to find a satisfying assignment for the given requirements.
 func (s *SATSolver) Solve(ctx context.Context, requirements []*VersionRequirement) (*VersionSolution, error) {
 	s.logger.Info("Starting SAT solver", "requirements", len(requirements))
 	startTime := time.Now()
 
-	// Initialize the problem
+	// Initialize the problem.
 	if err := s.initialize(requirements); err != nil {
 		return nil, fmt.Errorf("failed to initialize SAT problem: %w", err)
 	}
 
-	// Create timeout context
+	// Create timeout context.
 	ctx, cancel := context.WithTimeout(ctx, s.config.Timeout)
 	defer cancel()
 
-	// Main DPLL loop with CDCL (Conflict-Driven Clause Learning)
+	// Main DPLL loop with CDCL (Conflict-Driven Clause Learning).
 	solution, err := s.dpllWithCDCL(ctx)
 	if err != nil {
 		return nil, err
@@ -146,7 +146,7 @@ func (s *SATSolver) Solve(ctx context.Context, requirements []*VersionRequiremen
 
 	s.statistics.SolveTime = time.Since(startTime)
 
-	// Convert SAT solution to version solution
+	// Convert SAT solution to version solution.
 	versionSolution := s.convertToVersionSolution(solution)
 	versionSolution.Statistics = &SolutionStatistics{
 		Variables:      s.statistics.Variables,
@@ -168,31 +168,31 @@ func (s *SATSolver) Solve(ctx context.Context, requirements []*VersionRequiremen
 	return versionSolution, nil
 }
 
-// initialize sets up the SAT problem from version requirements
+// initialize sets up the SAT problem from version requirements.
 func (s *SATSolver) initialize(requirements []*VersionRequirement) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// Create variables for each package version
+	// Create variables for each package version.
 	for _, req := range requirements {
 		if err := s.createVariables(req); err != nil {
 			return err
 		}
 	}
 
-	// Create clauses from constraints
+	// Create clauses from constraints.
 	for _, req := range requirements {
 		if err := s.createClauses(req); err != nil {
 			return err
 		}
 	}
 
-	// Add conflict clauses for incompatible versions
+	// Add conflict clauses for incompatible versions.
 	if err := s.addConflictClauses(); err != nil {
 		return err
 	}
 
-	// Initialize watched literals
+	// Initialize watched literals.
 	s.initializeWatchedLiterals()
 
 	s.statistics.Variables = len(s.variables)
@@ -201,24 +201,24 @@ func (s *SATSolver) initialize(requirements []*VersionRequirement) error {
 	return nil
 }
 
-// createVariables creates SAT variables for package versions
+// createVariables creates SAT variables for package versions.
 func (s *SATSolver) createVariables(req *VersionRequirement) error {
 	packageKey := req.PackageRef.GetPackageKey()
 
-	// Get available versions for the package
+	// Get available versions for the package.
 	availableVersions, err := s.getAvailableVersions(req.PackageRef)
 	if err != nil {
 		return fmt.Errorf("failed to get available versions for %s: %w", packageKey, err)
 	}
 
-	// Filter versions based on constraints
+	// Filter versions based on constraints.
 	validVersions := s.filterVersionsByConstraints(availableVersions, req.Constraints)
 
 	if len(validVersions) == 0 {
 		return fmt.Errorf("no valid versions found for %s with constraints", packageKey)
 	}
 
-	// Create a variable for each valid version
+	// Create a variable for each valid version.
 	for _, version := range validVersions {
 		varID := fmt.Sprintf("%s@%s", packageKey, version)
 		s.variables[varID] = &SATVariable{
@@ -234,11 +234,11 @@ func (s *SATSolver) createVariables(req *VersionRequirement) error {
 	return nil
 }
 
-// createClauses creates SAT clauses from version constraints
+// createClauses creates SAT clauses from version constraints.
 func (s *SATSolver) createClauses(req *VersionRequirement) error {
 	packageKey := req.PackageRef.GetPackageKey()
 
-	// At least one version must be selected (positive clause)
+	// At least one version must be selected (positive clause).
 	var literals []*SATLiteral
 	for varID, variable := range s.variables {
 		if strings.HasPrefix(varID, packageKey+"@") {
@@ -260,7 +260,7 @@ func (s *SATSolver) createClauses(req *VersionRequirement) error {
 		s.clauses = append(s.clauses, clause)
 	}
 
-	// At most one version can be selected (negative clauses)
+	// At most one version can be selected (negative clauses).
 	for i := 0; i < len(literals); i++ {
 		for j := i + 1; j < len(literals); j++ {
 			clause := &SATClause{
@@ -279,30 +279,30 @@ func (s *SATSolver) createClauses(req *VersionRequirement) error {
 	return nil
 }
 
-// dpllWithCDCL implements DPLL with Conflict-Driven Clause Learning
+// dpllWithCDCL implements DPLL with Conflict-Driven Clause Learning.
 func (s *SATSolver) dpllWithCDCL(ctx context.Context) (map[string]bool, error) {
 	decisionLevel := 0
 	restartCount := 0
 
 	for {
-		// Check context cancellation
+		// Check context cancellation.
 		select {
 		case <-ctx.Done():
 			return nil, fmt.Errorf("SAT solver timeout: %w", ctx.Err())
 		default:
 		}
 
-		// Unit propagation
+		// Unit propagation.
 		conflict := s.unitPropagate(decisionLevel)
 		if conflict != nil {
 			s.statistics.Conflicts++
 
 			if decisionLevel == 0 {
-				// Conflict at root level - UNSAT
+				// Conflict at root level - UNSAT.
 				return nil, fmt.Errorf("unsatisfiable constraints")
 			}
 
-			// Analyze conflict and learn clause
+			// Analyze conflict and learn clause.
 			if s.config.EnableLearning {
 				learnedClause, backtrackLevel := s.analyzeConflict(conflict, decisionLevel)
 				if learnedClause != nil {
@@ -312,12 +312,12 @@ func (s *SATSolver) dpllWithCDCL(ctx context.Context) (map[string]bool, error) {
 				decisionLevel = s.backtrack(backtrackLevel)
 				s.statistics.Backtracks++
 			} else {
-				// Simple backtrack
+				// Simple backtrack.
 				decisionLevel = s.backtrack(decisionLevel - 1)
 				s.statistics.Backtracks++
 			}
 
-			// Check for restart
+			// Check for restart.
 			if s.statistics.Conflicts > 0 && s.statistics.Conflicts%s.config.RestartThreshold == 0 {
 				restartCount++
 				s.statistics.Restarts++
@@ -327,13 +327,13 @@ func (s *SATSolver) dpllWithCDCL(ctx context.Context) (map[string]bool, error) {
 			continue
 		}
 
-		// Check if all variables are assigned
+		// Check if all variables are assigned.
 		if s.allVariablesAssigned() {
-			// Found satisfying assignment
+			// Found satisfying assignment.
 			return s.assignments, nil
 		}
 
-		// Make a decision
+		// Make a decision.
 		variable := s.selectVariable()
 		if variable == nil {
 			return nil, fmt.Errorf("no unassigned variables found")
@@ -343,7 +343,7 @@ func (s *SATSolver) dpllWithCDCL(ctx context.Context) (map[string]bool, error) {
 		s.statistics.Decisions++
 		s.assign(variable, true, decisionLevel, nil)
 
-		// Check decision limits
+		// Check decision limits.
 		if s.statistics.Decisions > s.config.MaxDecisions {
 			return nil, fmt.Errorf("exceeded maximum decisions limit")
 		}
@@ -353,7 +353,7 @@ func (s *SATSolver) dpllWithCDCL(ctx context.Context) (map[string]bool, error) {
 	}
 }
 
-// unitPropagate performs unit propagation
+// unitPropagate performs unit propagation.
 func (s *SATSolver) unitPropagate(decisionLevel int) *SATClause {
 	changed := true
 	for changed {
@@ -382,12 +382,12 @@ func (s *SATSolver) unitPropagate(decisionLevel int) *SATClause {
 			}
 
 			if len(unassigned) == 0 {
-				// Conflict detected
+				// Conflict detected.
 				return clause
 			}
 
 			if len(unassigned) == 1 {
-				// Unit clause - must assign this literal
+				// Unit clause - must assign this literal.
 				literal := unassigned[0]
 				s.assign(literal.Variable, literal.Positive, decisionLevel, clause)
 				s.statistics.Propagations++
@@ -398,10 +398,10 @@ func (s *SATSolver) unitPropagate(decisionLevel int) *SATClause {
 	return nil
 }
 
-// selectVariable selects the next variable to assign using VSIDS heuristic
+// selectVariable selects the next variable to assign using VSIDS heuristic.
 func (s *SATSolver) selectVariable() *SATVariable {
 	if !s.config.EnableVSIDS {
-		// Simple selection: first unassigned variable
+		// Simple selection: first unassigned variable.
 		for _, variable := range s.variables {
 			if _, assigned := s.assignments[variable.ID]; !assigned {
 				return variable
@@ -410,7 +410,7 @@ func (s *SATSolver) selectVariable() *SATVariable {
 		return nil
 	}
 
-	// VSIDS: Variable State Independent Decaying Sum
+	// VSIDS: Variable State Independent Decaying Sum.
 	var bestVariable *SATVariable
 	bestActivity := 0.0
 
@@ -427,14 +427,14 @@ func (s *SATSolver) selectVariable() *SATVariable {
 	return bestVariable
 }
 
-// analyzeConflict performs conflict analysis and learns a new clause
+// analyzeConflict performs conflict analysis and learns a new clause.
 func (s *SATSolver) analyzeConflict(conflict *SATClause, decisionLevel int) (*SATClause, int) {
-	// Implement 1-UIP (First Unique Implication Point) learning
+	// Implement 1-UIP (First Unique Implication Point) learning.
 	seen := make(map[string]bool)
 	learned := []*SATLiteral{}
 	backtrackLevel := 0
 
-	// Start with the conflict clause
+	// Start with the conflict clause.
 	for _, literal := range conflict.Literals {
 		if literal.Variable.DecisionLevel == decisionLevel {
 			seen[literal.Variable.ID] = true
@@ -450,7 +450,7 @@ func (s *SATSolver) analyzeConflict(conflict *SATClause, decisionLevel int) (*SA
 		}
 	}
 
-	// Build learned clause
+	// Build learned clause.
 	if len(learned) > 0 {
 		learnedClause := &SATClause{
 			ID:       fmt.Sprintf("learned-%d", s.statistics.LearnedClauses),
@@ -464,11 +464,11 @@ func (s *SATSolver) analyzeConflict(conflict *SATClause, decisionLevel int) (*SA
 	return nil, decisionLevel - 1
 }
 
-// Helper methods
+// Helper methods.
 
 func (s *SATSolver) getAvailableVersions(ref *PackageReference) ([]string, error) {
-	// In a real implementation, this would query the package repository
-	// For now, return mock versions
+	// In a real implementation, this would query the package repository.
+	// For now, return mock versions.
 	return []string{"1.0.0", "1.1.0", "1.2.0", "2.0.0", "2.1.0"}, nil
 }
 
@@ -501,7 +501,7 @@ func (s *SATSolver) satisfiesConstraints(version string, constraints []*VersionC
 }
 
 func (s *SATSolver) constraintToSemver(constraint *VersionConstraint) string {
-	// Convert our constraint format to semver constraint string
+	// Convert our constraint format to semver constraint string.
 	switch constraint.Operator {
 	case ConstraintOperatorEquals:
 		return "= " + constraint.Version
@@ -523,13 +523,13 @@ func (s *SATSolver) constraintToSemver(constraint *VersionConstraint) string {
 }
 
 func (s *SATSolver) addConflictClauses() error {
-	// Add clauses for known incompatible versions
-	// This would be based on compatibility matrix in production
+	// Add clauses for known incompatible versions.
+	// This would be based on compatibility matrix in production.
 	return nil
 }
 
 func (s *SATSolver) initializeWatchedLiterals() {
-	// Initialize two-watched literals for each clause
+	// Initialize two-watched literals for each clause.
 	for _, clause := range s.clauses {
 		if len(clause.Literals) >= 2 {
 			clause.Watched[0] = 0
@@ -554,7 +554,7 @@ func (s *SATSolver) allVariablesAssigned() bool {
 }
 
 func (s *SATSolver) backtrack(level int) int {
-	// Remove assignments made after the given level
+	// Remove assignments made after the given level.
 	for _, variable := range s.variables {
 		if variable.DecisionLevel > level {
 			delete(s.assignments, variable.ID)
@@ -563,7 +563,7 @@ func (s *SATSolver) backtrack(level int) int {
 		}
 	}
 
-	// Reset clause satisfaction status
+	// Reset clause satisfaction status.
 	for _, clause := range s.clauses {
 		clause.Satisfied = false
 	}
@@ -572,7 +572,7 @@ func (s *SATSolver) backtrack(level int) int {
 }
 
 func (s *SATSolver) restart() int {
-	// Complete restart - unassign all variables
+	// Complete restart - unassign all variables.
 	s.assignments = make(map[string]bool)
 	for _, variable := range s.variables {
 		variable.DecisionLevel = -1
@@ -603,7 +603,7 @@ func (s *SATSolver) convertToVersionSolution(assignments map[string]bool) *Versi
 		return solution
 	}
 
-	// Group assignments by package
+	// Group assignments by package.
 	packageVersions := make(map[string][]string)
 	for varID, assigned := range assignments {
 		if assigned {
@@ -616,10 +616,10 @@ func (s *SATSolver) convertToVersionSolution(assignments map[string]bool) *Versi
 		}
 	}
 
-	// Create version selections
+	// Create version selections.
 	for packageKey, versions := range packageVersions {
 		if len(versions) > 0 {
-			// Sort versions and select the latest
+			// Sort versions and select the latest.
 			sort.Strings(versions)
 			selectedVersion := versions[len(versions)-1]
 
@@ -635,8 +635,8 @@ func (s *SATSolver) convertToVersionSolution(assignments map[string]bool) *Versi
 	return solution
 }
 
-// Close cleans up the SAT solver
+// Close cleans up the SAT solver.
 func (s *SATSolver) Close() {
 	s.logger.Info("Closing SAT solver")
-	// Cleanup resources if needed
+	// Cleanup resources if needed.
 }

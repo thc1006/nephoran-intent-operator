@@ -1,5 +1,5 @@
-// FIXME: Adding package comment per revive linter
-// Package main implements the A1 interface simulator for O-RAN network policy management
+// FIXME: Adding package comment per revive linter.
+// Package main implements the A1 interface simulator for O-RAN network policy management.
 package main
 
 import (
@@ -16,7 +16,7 @@ func main() {
 
 	addr := ":8081"
 	log.Println("A1 policy sim listening on", addr)
-	// Use http.Server with timeouts to fix G114 security warning
+	// Use http.Server with timeouts to fix G114 security warning.
 	server := &http.Server{
 		Addr:         addr,
 		Handler:      mux,

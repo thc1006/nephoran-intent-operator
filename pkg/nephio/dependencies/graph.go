@@ -29,49 +29,49 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// DependencyGraphManager provides comprehensive dependency graph management and analysis
-// for telecommunications packages with advanced graph algorithms, cycle detection,
-// topological sorting, and visualization capabilities
+// DependencyGraphManager provides comprehensive dependency graph management and analysis.
+// for telecommunications packages with advanced graph algorithms, cycle detection,.
+// topological sorting, and visualization capabilities.
 type DependencyGraphManager interface {
-	// Graph construction and manipulation
+	// Graph construction and manipulation.
 	BuildGraph(ctx context.Context, spec *GraphBuildSpec) (*DependencyGraph, error)
 	UpdateGraph(ctx context.Context, graph *DependencyGraph, updates []*GraphUpdate) error
 	MergeGraphs(ctx context.Context, graphs ...*DependencyGraph) (*DependencyGraph, error)
 
-	// Graph analysis and algorithms
+	// Graph analysis and algorithms.
 	FindCycles(ctx context.Context, graph *DependencyGraph) ([]*DependencyCycle, error)
 	TopologicalSort(ctx context.Context, graph *DependencyGraph) ([]*GraphNode, error)
 	FindCriticalPath(ctx context.Context, graph *DependencyGraph, from, to string) (*CriticalPath, error)
 
-	// Graph traversal and exploration
+	// Graph traversal and exploration.
 	TraverseDepthFirst(ctx context.Context, graph *DependencyGraph, visitor GraphVisitor) error
 	TraverseBreadthFirst(ctx context.Context, graph *DependencyGraph, visitor GraphVisitor) error
 	FindShortestPath(ctx context.Context, graph *DependencyGraph, from, to string) (*GraphPath, error)
 
-	// Graph analytics and metrics
+	// Graph analytics and metrics.
 	CalculateMetrics(ctx context.Context, graph *DependencyGraph) (*GraphMetrics, error)
 	AnalyzeComplexity(ctx context.Context, graph *DependencyGraph) (*ComplexityAnalysis, error)
 	DetectPatterns(ctx context.Context, graph *DependencyGraph) ([]*GraphPattern, error)
 
-	// Graph visualization and export
+	// Graph visualization and export.
 	GenerateVisualization(ctx context.Context, graph *DependencyGraph, format VisualizationFormat) ([]byte, error)
 	ExportGraph(ctx context.Context, graph *DependencyGraph, format ExportFormat) ([]byte, error)
 
-	// Graph persistence and storage
+	// Graph persistence and storage.
 	SaveGraph(ctx context.Context, graph *DependencyGraph) error
 	LoadGraph(ctx context.Context, id string) (*DependencyGraph, error)
 	ListGraphs(ctx context.Context, filter *GraphFilter) ([]*GraphMetadata, error)
 
-	// Graph optimization and transformation
+	// Graph optimization and transformation.
 	OptimizeGraph(ctx context.Context, graph *DependencyGraph, opts *OptimizationOptions) (*DependencyGraph, error)
 	TransformGraph(ctx context.Context, graph *DependencyGraph, transformer GraphTransformer) (*DependencyGraph, error)
 
-	// Health and monitoring
+	// Health and monitoring.
 	ValidateGraph(ctx context.Context, graph *DependencyGraph) (*GraphValidation, error)
 	GetHealth(ctx context.Context) (*GraphManagerHealth, error)
 }
 
-// dependencyGraphManager implements comprehensive graph management
+// dependencyGraphManager implements comprehensive graph management.
 type dependencyGraphManager struct {
 	logger     logr.Logger
 	metrics    *GraphManagerMetrics
@@ -80,56 +80,56 @@ type dependencyGraphManager struct {
 	visualizer *GraphVisualizer
 	optimizer  *GraphOptimizer
 
-	// Graph algorithms
+	// Graph algorithms.
 	algorithms map[string]GraphAlgorithm
 
-	// Concurrent processing
+	// Concurrent processing.
 	workerPool *GraphWorkerPool
 
-	// Configuration
+	// Configuration.
 	config *GraphManagerConfig
 
-	// Thread safety
+	// Thread safety.
 	mu sync.RWMutex
 
-	// Lifecycle
+	// Lifecycle.
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 }
 
-// Core graph data structures
+// Core graph data structures.
 
-// DependencyGraph represents a complete dependency graph with nodes and edges
+// DependencyGraph represents a complete dependency graph with nodes and edges.
 type DependencyGraph struct {
 	ID      string `json:"id"`
 	Name    string `json:"name,omitempty"`
 	Version string `json:"version,omitempty"`
 
-	// Graph structure
+	// Graph structure.
 	Nodes     map[string]*GraphNode `json:"nodes"`
 	Edges     map[string]*GraphEdge `json:"edges"`
 	RootNodes []string              `json:"rootNodes"`
 	LeafNodes []string              `json:"leafNodes"`
 
-	// Graph properties
+	// Graph properties.
 	IsDAG     bool `json:"isDAG"`
 	HasCycles bool `json:"hasCycles"`
 	MaxDepth  int  `json:"maxDepth"`
 	NodeCount int  `json:"nodeCount"`
 	EdgeCount int  `json:"edgeCount"`
 
-	// Graph layers (topological levels)
+	// Graph layers (topological levels).
 	Layers     [][]*GraphNode `json:"layers,omitempty"`
 	LayerCount int            `json:"layerCount"`
 
-	// Analysis results
+	// Analysis results.
 	Metrics       *GraphMetrics      `json:"metrics,omitempty"`
 	Cycles        []*DependencyCycle `json:"cycles,omitempty"`
 	CriticalPaths []*CriticalPath    `json:"criticalPaths,omitempty"`
 	Patterns      []*GraphPattern    `json:"patterns,omitempty"`
 
-	// Metadata
+	// Metadata.
 	CreatedAt   time.Time              `json:"createdAt"`
 	UpdatedAt   time.Time              `json:"updatedAt"`
 	BuildTime   time.Duration          `json:"buildTime"`
@@ -138,74 +138,74 @@ type DependencyGraph struct {
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// GraphNode represents a node in the dependency graph (a package)
+// GraphNode represents a node in the dependency graph (a package).
 type GraphNode struct {
 	ID         string            `json:"id"`
 	PackageRef *PackageReference `json:"packageRef"`
 
-	// Node position in graph
+	// Node position in graph.
 	Level int `json:"level"`
 	Layer int `json:"layer"`
 	Depth int `json:"depth"`
 
-	// Relationships
+	// Relationships.
 	Dependencies []string `json:"dependencies"` // Outgoing edges
 	Dependents   []string `json:"dependents"`   // Incoming edges
 
-	// Node properties
+	// Node properties.
 	Type     NodeType   `json:"type"`
 	Status   NodeStatus `json:"status"`
 	Weight   float64    `json:"weight"`
 	Priority int        `json:"priority"`
 
-	// Analysis data
+	// Analysis data.
 	CentralityScores *CentralityScores `json:"centralityScores,omitempty"`
 	ClusterID        string            `json:"clusterID,omitempty"`
 	Community        string            `json:"community,omitempty"`
 
-	// Metrics and health
+	// Metrics and health.
 	HealthScore      float64 `json:"healthScore,omitempty"`
 	SecurityScore    float64 `json:"securityScore,omitempty"`
 	PerformanceScore float64 `json:"performanceScore,omitempty"`
 
-	// Temporal data
+	// Temporal data.
 	FirstSeen   time.Time `json:"firstSeen"`
 	LastUpdated time.Time `json:"lastUpdated"`
 	UpdateCount int       `json:"updateCount"`
 
-	// Metadata
+	// Metadata.
 	Labels      map[string]string      `json:"labels,omitempty"`
 	Annotations map[string]string      `json:"annotations,omitempty"`
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// GraphEdge represents an edge in the dependency graph (a dependency relationship)
+// GraphEdge represents an edge in the dependency graph (a dependency relationship).
 type GraphEdge struct {
 	ID   string `json:"id"`
 	From string `json:"from"` // Source node ID
 	To   string `json:"to"`   // Target node ID
 
-	// Edge properties
+	// Edge properties.
 	Type   EdgeType        `json:"type"`
 	Scope  DependencyScope `json:"scope"`
 	Weight float64         `json:"weight"`
 
-	// Constraint information
+	// Constraint information.
 	VersionConstraint *VersionConstraint `json:"versionConstraint,omitempty"`
 	Optional          bool               `json:"optional"`
 	Transitive        bool               `json:"transitive"`
 
-	// Analysis data
+	// Analysis data.
 	IsCritical bool   `json:"isCritical"`
 	IsBackEdge bool   `json:"isBackEdge"`
 	InCycle    bool   `json:"inCycle"`
 	CycleID    string `json:"cycleID,omitempty"`
 
-	// Edge metrics
+	// Edge metrics.
 	Strength    float64 `json:"strength,omitempty"`
 	Reliability float64 `json:"reliability,omitempty"`
 
-	// Metadata
+	// Metadata.
 	Reason      string                 `json:"reason,omitempty"`
 	Source      string                 `json:"source,omitempty"`
 	CreatedAt   time.Time              `json:"createdAt"`
@@ -214,73 +214,73 @@ type GraphEdge struct {
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// DependencyCycle represents a circular dependency cycle
+// DependencyCycle represents a circular dependency cycle.
 type DependencyCycle struct {
 	ID     string   `json:"id"`
 	Nodes  []string `json:"nodes"`
 	Edges  []string `json:"edges"`
 	Length int      `json:"length"`
 
-	// Cycle analysis
+	// Cycle analysis.
 	Type     CycleType     `json:"type"`
 	Severity CycleSeverity `json:"severity"`
 	Impact   *CycleImpact  `json:"impact"`
 
-	// Breaking strategies
+	// Breaking strategies.
 	BreakingOptions []*CycleBreakingOption `json:"breakingOptions,omitempty"`
 	RecommendedFix  *CycleBreakingOption   `json:"recommendedFix,omitempty"`
 
-	// Metrics
+	// Metrics.
 	ComplexityScore float64 `json:"complexityScore"`
 	BreakingCost    float64 `json:"breakingCost,omitempty"`
 
-	// Detection metadata
+	// Detection metadata.
 	DetectedAt      time.Time `json:"detectedAt"`
 	DetectionMethod string    `json:"detectionMethod"`
 }
 
-// GraphMetrics contains comprehensive graph metrics and analysis
+// GraphMetrics contains comprehensive graph metrics and analysis.
 type GraphMetrics struct {
-	// Basic metrics
+	// Basic metrics.
 	NodeCount int     `json:"nodeCount"`
 	EdgeCount int     `json:"edgeCount"`
 	Density   float64 `json:"density"`
 
-	// Structural metrics
+	// Structural metrics.
 	Diameter          int     `json:"diameter"`
 	Radius            int     `json:"radius"`
 	AveragePathLength float64 `json:"averagePathLength"`
 	ClusteringCoeff   float64 `json:"clusteringCoefficient"`
 
-	// Connectivity metrics
+	// Connectivity metrics.
 	ComponentCount      int  `json:"componentCount"`
 	LargestComponent    int  `json:"largestComponent"`
 	IsConnected         bool `json:"isConnected"`
 	IsStronglyConnected bool `json:"isStronglyConnected"`
 
-	// Centrality metrics
+	// Centrality metrics.
 	NodeCentralities map[string]*CentralityScores `json:"nodeCentralities,omitempty"`
 	MostCentral      []string                     `json:"mostCentral,omitempty"`
 
-	// Cycle metrics
+	// Cycle metrics.
 	CycleCount           int `json:"cycleCount"`
 	CyclomaticComplexity int `json:"cyclomaticComplexity"`
 
-	// Distribution metrics
+	// Distribution metrics.
 	DegreeDistribution *DistributionStats `json:"degreeDistribution"`
 	DepthDistribution  *DistributionStats `json:"depthDistribution"`
 
-	// Quality metrics
+	// Quality metrics.
 	Modularity    float64 `json:"modularity,omitempty"`
 	Assortativity float64 `json:"assortativity,omitempty"`
 
-	// Performance metrics
+	// Performance metrics.
 	BuildTime    time.Duration `json:"buildTime"`
 	AnalysisTime time.Duration `json:"analysisTime"`
 	MemoryUsage  int64         `json:"memoryUsage,omitempty"`
 }
 
-// CentralityScores contains various centrality measures for a node
+// CentralityScores contains various centrality measures for a node.
 type CentralityScores struct {
 	Degree         float64 `json:"degree"`
 	Closeness      float64 `json:"closeness"`
@@ -290,9 +290,9 @@ type CentralityScores struct {
 	KatzCentrality float64 `json:"katzCentrality"`
 }
 
-// Graph construction and manipulation
+// Graph construction and manipulation.
 
-// GraphBuildSpec defines parameters for graph construction
+// GraphBuildSpec defines parameters for graph construction.
 type GraphBuildSpec struct {
 	RootPackages      []*PackageReference `json:"rootPackages"`
 	MaxDepth          int                 `json:"maxDepth,omitempty"`
@@ -300,115 +300,148 @@ type GraphBuildSpec struct {
 	IncludeTest       bool                `json:"includeTest,omitempty"`
 	IncludeTransitive bool                `json:"includeTransitive,omitempty"`
 
-	// Filtering and constraints
+	// Filtering and constraints.
 	VersionStrategy VersionStrategy   `json:"versionStrategy,omitempty"`
 	ScopeFilter     []DependencyScope `json:"scopeFilter,omitempty"`
 	PackageFilter   *PackageFilter    `json:"packageFilter,omitempty"`
 
-	// Analysis options
+	// Analysis options.
 	ComputeMetrics    bool `json:"computeMetrics,omitempty"`
 	DetectCycles      bool `json:"detectCycles,omitempty"`
 	ComputeCentrality bool `json:"computeCentrality,omitempty"`
 
-	// Performance options
+	// Performance options.
 	UseParallel  bool `json:"useParallel,omitempty"`
 	CacheResults bool `json:"cacheResults,omitempty"`
 
-	// Metadata
+	// Metadata.
 	Name     string                 `json:"name,omitempty"`
 	Tags     map[string]string      `json:"tags,omitempty"`
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// Enums and constants
+// Enums and constants.
 
-// NodeType defines the type of node in the graph
+// NodeType defines the type of node in the graph.
 type NodeType string
 
 const (
-	NodeTypeRoot         NodeType = "root"
-	NodeTypeLeaf         NodeType = "leaf"
+	// NodeTypeRoot holds nodetyperoot value.
+	NodeTypeRoot NodeType = "root"
+	// NodeTypeLeaf holds nodetypeleaf value.
+	NodeTypeLeaf NodeType = "leaf"
+	// NodeTypeIntermediate holds nodetypeintermediate value.
 	NodeTypeIntermediate NodeType = "intermediate"
-	NodeTypeOrphan       NodeType = "orphan"
+	// NodeTypeOrphan holds nodetypeorphan value.
+	NodeTypeOrphan NodeType = "orphan"
 )
 
-// NodeStatus defines the status of a node
+// NodeStatus defines the status of a node.
 type NodeStatus string
 
 const (
-	NodeStatusResolved   NodeStatus = "resolved"
+	// NodeStatusResolved holds nodestatusresolved value.
+	NodeStatusResolved NodeStatus = "resolved"
+	// NodeStatusUnresolved holds nodestatusunresolved value.
 	NodeStatusUnresolved NodeStatus = "unresolved"
+	// NodeStatusConflicted holds nodestatusconflicted value.
 	NodeStatusConflicted NodeStatus = "conflicted"
-	NodeStatusMissing    NodeStatus = "missing"
+	// NodeStatusMissing holds nodestatusmissing value.
+	NodeStatusMissing NodeStatus = "missing"
+	// NodeStatusDeprecated holds nodestatusdeprecated value.
 	NodeStatusDeprecated NodeStatus = "deprecated"
 )
 
-// EdgeType defines the type of dependency edge
+// EdgeType defines the type of dependency edge.
 type EdgeType string
 
 const (
-	EdgeTypeDirect      EdgeType = "direct"
-	EdgeTypeTransitive  EdgeType = "transitive"
-	EdgeTypeOptional    EdgeType = "optional"
-	EdgeTypeConflict    EdgeType = "conflict"
+	// EdgeTypeDirect holds edgetypedirect value.
+	EdgeTypeDirect EdgeType = "direct"
+	// EdgeTypeTransitive holds edgetypetransitive value.
+	EdgeTypeTransitive EdgeType = "transitive"
+	// EdgeTypeOptional holds edgetypeoptional value.
+	EdgeTypeOptional EdgeType = "optional"
+	// EdgeTypeConflict holds edgetypeconflict value.
+	EdgeTypeConflict EdgeType = "conflict"
+	// EdgeTypeReplacement holds edgetypereplacement value.
 	EdgeTypeReplacement EdgeType = "replacement"
 )
 
-// CycleType defines the type of dependency cycle
+// CycleType defines the type of dependency cycle.
 type CycleType string
 
 const (
-	CycleTypeSimple   CycleType = "simple"
-	CycleTypeComplex  CycleType = "complex"
+	// CycleTypeSimple holds cycletypesimple value.
+	CycleTypeSimple CycleType = "simple"
+	// CycleTypeComplex holds cycletypecomplex value.
+	CycleTypeComplex CycleType = "complex"
+	// CycleTypeSelfLoop holds cycletypeselfloop value.
 	CycleTypeSelfLoop CycleType = "self_loop"
-	CycleTypeMutual   CycleType = "mutual"
+	// CycleTypeMutual holds cycletypemutual value.
+	CycleTypeMutual CycleType = "mutual"
 )
 
-// CycleSeverity defines the severity of a dependency cycle
+// CycleSeverity defines the severity of a dependency cycle.
 type CycleSeverity string
 
 const (
-	CycleSeverityLow      CycleSeverity = "low"
-	CycleSeverityMedium   CycleSeverity = "medium"
-	CycleSeverityHigh     CycleSeverity = "high"
+	// CycleSeverityLow holds cycleseveritylow value.
+	CycleSeverityLow CycleSeverity = "low"
+	// CycleSeverityMedium holds cycleseveritymedium value.
+	CycleSeverityMedium CycleSeverity = "medium"
+	// CycleSeverityHigh holds cycleseverityhigh value.
+	CycleSeverityHigh CycleSeverity = "high"
+	// CycleSeverityCritical holds cycleseveritycritical value.
 	CycleSeverityCritical CycleSeverity = "critical"
 )
 
-// VisualizationFormat defines supported visualization formats
+// VisualizationFormat defines supported visualization formats.
 type VisualizationFormat string
 
 const (
-	VisualizationFormatDOT       VisualizationFormat = "dot"
-	VisualizationFormatSVG       VisualizationFormat = "svg"
-	VisualizationFormatPNG       VisualizationFormat = "png"
-	VisualizationFormatJSON      VisualizationFormat = "json"
-	VisualizationFormatD3        VisualizationFormat = "d3"
+	// VisualizationFormatDOT holds visualizationformatdot value.
+	VisualizationFormatDOT VisualizationFormat = "dot"
+	// VisualizationFormatSVG holds visualizationformatsvg value.
+	VisualizationFormatSVG VisualizationFormat = "svg"
+	// VisualizationFormatPNG holds visualizationformatpng value.
+	VisualizationFormatPNG VisualizationFormat = "png"
+	// VisualizationFormatJSON holds visualizationformatjson value.
+	VisualizationFormatJSON VisualizationFormat = "json"
+	// VisualizationFormatD3 holds visualizationformatd3 value.
+	VisualizationFormatD3 VisualizationFormat = "d3"
+	// VisualizationFormatCytoscape holds visualizationformatcytoscape value.
 	VisualizationFormatCytoscape VisualizationFormat = "cytoscape"
 )
 
-// ExportFormat defines supported export formats
+// ExportFormat defines supported export formats.
 type ExportFormat string
 
 const (
-	ExportFormatJSON    ExportFormat = "json"
-	ExportFormatYAML    ExportFormat = "yaml"
+	// ExportFormatJSON holds exportformatjson value.
+	ExportFormatJSON ExportFormat = "json"
+	// ExportFormatYAML holds exportformatyaml value.
+	ExportFormatYAML ExportFormat = "yaml"
+	// ExportFormatGraphML holds exportformatgraphml value.
 	ExportFormatGraphML ExportFormat = "graphml"
-	ExportFormatGEXF    ExportFormat = "gexf"
-	ExportFormatCSV     ExportFormat = "csv"
+	// ExportFormatGEXF holds exportformatgexf value.
+	ExportFormatGEXF ExportFormat = "gexf"
+	// ExportFormatCSV holds exportformatcsv value.
+	ExportFormatCSV ExportFormat = "csv"
 )
 
-// Constructor
+// Constructor.
 
-// NewDependencyGraphManager creates a new dependency graph manager
+// NewDependencyGraphManager creates a new dependency graph manager.
 func NewDependencyGraphManager(config *GraphManagerConfig) (DependencyGraphManager, error) {
 	if config == nil {
-		// config = DefaultGraphManagerConfig() // Function not implemented
+		// config = DefaultGraphManagerConfig() // Function not implemented.
 		config = &GraphManagerConfig{} // Use empty config
 	}
 
-	// if err := config.Validate(); err != nil {
+	// if err := config.Validate(); err != nil {.
 	//	return nil, fmt.Errorf("invalid graph manager config: %w", err)
-	// } // Validate method not implemented
+	// } // Validate method not implemented.
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -420,7 +453,7 @@ func NewDependencyGraphManager(config *GraphManagerConfig) (DependencyGraphManag
 		algorithms: make(map[string]GraphAlgorithm),
 	}
 
-	// Initialize metrics with stub implementations
+	// Initialize metrics with stub implementations.
 	manager.metrics = &GraphManagerMetrics{
 		CycleDetectionTime:     &stubMetricObserver{},
 		CyclesDetected:         &stubMetricCounter{},
@@ -428,61 +461,61 @@ func NewDependencyGraphManager(config *GraphManagerConfig) (DependencyGraphManag
 		MetricsCalculationTime: &stubMetricObserver{},
 	}
 
-	// Initialize storage
-	// var err error
-	// manager.storage, err = NewGraphStorage(config.StorageConfig)
-	// if err != nil {
+	// Initialize storage.
+	// var err error.
+	// manager.storage, err = NewGraphStorage(config.StorageConfig).
+	// if err != nil {.
 	//	return nil, fmt.Errorf("failed to initialize graph storage: %w", err)
-	// } // NewGraphStorage function not implemented
+	// } // NewGraphStorage function not implemented.
 
-	// Initialize components
-	// manager.analyzer = NewGraphAnalyzer(config.AnalyzerConfig) // Function not implemented
-	// manager.visualizer = NewGraphVisualizer(config.VisualizerConfig) // Function not implemented
-	// manager.optimizer = NewGraphOptimizer(config.OptimizerConfig) // Function not implemented
+	// Initialize components.
+	// manager.analyzer = NewGraphAnalyzer(config.AnalyzerConfig) // Function not implemented.
+	// manager.visualizer = NewGraphVisualizer(config.VisualizerConfig) // Function not implemented.
+	// manager.optimizer = NewGraphOptimizer(config.OptimizerConfig) // Function not implemented.
 
-	// Initialize worker pool for concurrent processing
-	// if config.EnableConcurrency {
+	// Initialize worker pool for concurrent processing.
+	// if config.EnableConcurrency {.
 	//	manager.workerPool = NewGraphWorkerPool(config.WorkerCount, config.QueueSize)
-	// } // EnableConcurrency field doesn't exist
+	// } // EnableConcurrency field doesn't exist.
 
-	// Register graph algorithms
-	// manager.registerGraphAlgorithms() // Method not implemented
+	// Register graph algorithms.
+	// manager.registerGraphAlgorithms() // Method not implemented.
 
 	manager.logger.Info("Dependency graph manager initialized successfully")
-	// "storage", config.StorageConfig.Type,
-	// "concurrency", config.EnableConcurrency,
-	// "algorithms", len(manager.algorithms))
+	// "storage", config.StorageConfig.Type,.
+	// "concurrency", config.EnableConcurrency,.
+	// "algorithms", len(manager.algorithms)).
 
 	return manager, nil
 }
 
-// Core graph operations
+// Core graph operations.
 
-// BuildGraph constructs a dependency graph from the given specification
+// BuildGraph constructs a dependency graph from the given specification.
 func (m *dependencyGraphManager) BuildGraph(ctx context.Context, spec *GraphBuildSpec) (*DependencyGraph, error) {
-	// Simple stub implementation to fix compilation
+	// Simple stub implementation to fix compilation.
 	return &DependencyGraph{}, nil
 	/*
-		// Original BuildGraph implementation commented out due to missing dependencies
+		// Original BuildGraph implementation commented out due to missing dependencies.
 		startTime := time.Now()
 
-		// Validate specification
+		// Validate specification.
 		if err := m.validateGraphBuildSpec(spec); err != nil {
 			return nil, fmt.Errorf("invalid graph build spec: %w", err)
 		}
 
-		// ... (rest of implementation commented out)
+		// ... (rest of implementation commented out).
 		return graph, nil
 	*/
 
-	// All implementation commented out due to missing dependencies and methods
+	// All implementation commented out due to missing dependencies and methods.
 }
 
-// FindCycles detects circular dependencies using Tarjan's strongly connected components algorithm
+// FindCycles detects circular dependencies using Tarjan's strongly connected components algorithm.
 func (m *dependencyGraphManager) FindCycles(ctx context.Context, graph *DependencyGraph) ([]*DependencyCycle, error) {
 	startTime := time.Now()
 
-	// Use Tarjan's algorithm for SCC detection
+	// Use Tarjan's algorithm for SCC detection.
 	tarjan := &TarjanSCCAlgorithm{
 		graph:    graph,
 		index:    0,
@@ -493,14 +526,14 @@ func (m *dependencyGraphManager) FindCycles(ctx context.Context, graph *Dependen
 		sccs:     make([][]*GraphNode, 0),
 	}
 
-	// Find strongly connected components
+	// Find strongly connected components.
 	for nodeID := range graph.Nodes {
 		if _, visited := tarjan.indices[nodeID]; !visited {
 			tarjan.strongConnect(nodeID)
 		}
 	}
 
-	// Convert SCCs to cycles
+	// Convert SCCs to cycles.
 	cycles := make([]*DependencyCycle, 0)
 	for i, scc := range tarjan.sccs {
 		if len(scc) > 1 || m.hasSelfLoop(scc[0]) {
@@ -509,19 +542,19 @@ func (m *dependencyGraphManager) FindCycles(ctx context.Context, graph *Dependen
 		}
 	}
 
-	// Analyze cycles
+	// Analyze cycles.
 	for _, cycle := range cycles {
 		m.analyzeCycle(ctx, graph, cycle)
 	}
 
-	// Sort cycles by severity
+	// Sort cycles by severity.
 	sort.Slice(cycles, func(i, j int) bool {
 		return m.compareCycleSeverity(cycles[i].Severity, cycles[j].Severity) > 0
 	})
 
 	detectionTime := time.Since(startTime)
 
-	// Update metrics (if metrics is not nil)
+	// Update metrics (if metrics is not nil).
 	if m.metrics != nil {
 		m.metrics.CycleDetectionTime.Observe(detectionTime.Seconds())
 		m.metrics.CyclesDetected.Add(float64(len(cycles)))
@@ -534,7 +567,7 @@ func (m *dependencyGraphManager) FindCycles(ctx context.Context, graph *Dependen
 	return cycles, nil
 }
 
-// TopologicalSort performs topological sorting of the dependency graph
+// TopologicalSort performs topological sorting of the dependency graph.
 func (m *dependencyGraphManager) TopologicalSort(ctx context.Context, graph *DependencyGraph) ([]*GraphNode, error) {
 	startTime := time.Now()
 
@@ -544,18 +577,18 @@ func (m *dependencyGraphManager) TopologicalSort(ctx context.Context, graph *Dep
 
 	m.logger.V(1).Info("Performing topological sort", "nodes", len(graph.Nodes))
 
-	// Use Kahn's algorithm for topological sorting
+	// Use Kahn's algorithm for topological sorting.
 	inDegree := make(map[string]int)
 	for nodeID := range graph.Nodes {
 		inDegree[nodeID] = 0
 	}
 
-	// Calculate in-degrees
+	// Calculate in-degrees.
 	for _, edge := range graph.Edges {
 		inDegree[edge.To]++
 	}
 
-	// Find nodes with no incoming edges
+	// Find nodes with no incoming edges.
 	queue := make([]string, 0)
 	for nodeID, degree := range inDegree {
 		if degree == 0 {
@@ -563,13 +596,13 @@ func (m *dependencyGraphManager) TopologicalSort(ctx context.Context, graph *Dep
 		}
 	}
 
-	// Perform topological sort
+	// Perform topological sort.
 	sorted := make([]*GraphNode, 0, len(graph.Nodes))
 	layers := make([][]*GraphNode, 0)
 	currentLayer := make([]*GraphNode, 0)
 
 	for len(queue) > 0 {
-		// Process current level
+		// Process current level.
 		nextQueue := make([]string, 0)
 		currentLayer = make([]*GraphNode, 0)
 
@@ -578,7 +611,7 @@ func (m *dependencyGraphManager) TopologicalSort(ctx context.Context, graph *Dep
 			sorted = append(sorted, node)
 			currentLayer = append(currentLayer, node)
 
-			// Update in-degrees of dependent nodes
+			// Update in-degrees of dependent nodes.
 			for _, depID := range node.Dependencies {
 				inDegree[depID]--
 				if inDegree[depID] == 0 {
@@ -594,12 +627,12 @@ func (m *dependencyGraphManager) TopologicalSort(ctx context.Context, graph *Dep
 		queue = nextQueue
 	}
 
-	// Check if all nodes were processed (graph is a DAG)
+	// Check if all nodes were processed (graph is a DAG).
 	if len(sorted) != len(graph.Nodes) {
 		return nil, fmt.Errorf("graph contains cycles, cannot perform complete topological sort")
 	}
 
-	// Update graph with layer information
+	// Update graph with layer information.
 	graph.Layers = layers
 	graph.LayerCount = len(layers)
 
@@ -611,7 +644,7 @@ func (m *dependencyGraphManager) TopologicalSort(ctx context.Context, graph *Dep
 
 	sortTime := time.Since(startTime)
 
-	// Update metrics (if metrics is not nil)
+	// Update metrics (if metrics is not nil).
 	if m.metrics != nil {
 		m.metrics.TopologicalSortTime.Observe(sortTime.Seconds())
 	}
@@ -624,7 +657,7 @@ func (m *dependencyGraphManager) TopologicalSort(ctx context.Context, graph *Dep
 	return sorted, nil
 }
 
-// CalculateMetrics computes comprehensive metrics for the dependency graph
+// CalculateMetrics computes comprehensive metrics for the dependency graph.
 func (m *dependencyGraphManager) CalculateMetrics(ctx context.Context, graph *DependencyGraph) (*GraphMetrics, error) {
 	startTime := time.Now()
 
@@ -637,33 +670,33 @@ func (m *dependencyGraphManager) CalculateMetrics(ctx context.Context, graph *De
 		BuildTime:        graph.BuildTime,
 	}
 
-	// Calculate basic metrics
+	// Calculate basic metrics.
 	m.calculateBasicMetrics(graph, metrics)
 
-	// Calculate structural metrics
+	// Calculate structural metrics.
 	if err := m.calculateStructuralMetrics(ctx, graph, metrics); err != nil {
 		return nil, fmt.Errorf("failed to calculate structural metrics: %w", err)
 	}
 
-	// Calculate centrality metrics
+	// Calculate centrality metrics.
 	if err := m.calculateCentralityMetrics(ctx, graph, metrics); err != nil {
 		m.logger.Error(err, "Failed to calculate centrality metrics")
 	}
 
-	// Calculate distribution metrics
+	// Calculate distribution metrics.
 	m.calculateDistributionMetrics(graph, metrics)
 
-	// Calculate cycle metrics
+	// Calculate cycle metrics.
 	m.calculateCycleMetrics(graph, metrics)
 
-	// Calculate quality metrics
+	// Calculate quality metrics.
 	if err := m.calculateQualityMetrics(ctx, graph, metrics); err != nil {
 		m.logger.Error(err, "Failed to calculate quality metrics")
 	}
 
 	metrics.AnalysisTime = time.Since(startTime)
 
-	// Update metrics (if metrics is not nil)
+	// Update metrics (if metrics is not nil).
 	if m.metrics != nil {
 		m.metrics.MetricsCalculationTime.Observe(metrics.AnalysisTime.Seconds())
 	}
@@ -677,9 +710,9 @@ func (m *dependencyGraphManager) CalculateMetrics(ctx context.Context, graph *De
 	return metrics, nil
 }
 
-// Helper methods and algorithms
+// Helper methods and algorithms.
 
-// GraphBuilder handles concurrent graph construction
+// GraphBuilder handles concurrent graph construction.
 type GraphBuilder struct {
 	manager    *dependencyGraphManager
 	graph      *DependencyGraph
@@ -689,12 +722,12 @@ type GraphBuilder struct {
 	mutex      sync.RWMutex
 }
 
-// buildConcurrently builds the graph using concurrent workers
+// buildConcurrently builds the graph using concurrent workers.
 func (b *GraphBuilder) buildConcurrently(ctx context.Context) error {
 	g, gCtx := errgroup.WithContext(ctx)
 	g.SetLimit(b.manager.config.MaxConcurrency)
 
-	// Start with root packages
+	// Start with root packages.
 	for _, rootPkg := range b.spec.RootPackages {
 		rootPkg := rootPkg
 		g.Go(func() error {
@@ -705,7 +738,7 @@ func (b *GraphBuilder) buildConcurrently(ctx context.Context) error {
 	return g.Wait()
 }
 
-// buildSequentially builds the graph sequentially
+// buildSequentially builds the graph sequentially.
 func (b *GraphBuilder) buildSequentially(ctx context.Context) error {
 	for _, rootPkg := range b.spec.RootPackages {
 		if err := b.buildNodeRecursively(ctx, rootPkg, 0); err != nil {
@@ -715,7 +748,7 @@ func (b *GraphBuilder) buildSequentially(ctx context.Context) error {
 	return nil
 }
 
-// buildNodeRecursively recursively builds nodes and edges
+// buildNodeRecursively recursively builds nodes and edges.
 func (b *GraphBuilder) buildNodeRecursively(ctx context.Context, pkg *PackageReference, depth int) error {
 	if depth > b.spec.MaxDepth {
 		return nil
@@ -723,7 +756,7 @@ func (b *GraphBuilder) buildNodeRecursively(ctx context.Context, pkg *PackageRef
 
 	nodeID := generateNodeID(pkg)
 
-	// Check if already processed
+	// Check if already processed.
 	b.mutex.RLock()
 	if b.visited[nodeID] {
 		b.mutex.RUnlock()
@@ -731,12 +764,12 @@ func (b *GraphBuilder) buildNodeRecursively(ctx context.Context, pkg *PackageRef
 	}
 	if b.processing[nodeID] {
 		b.mutex.RUnlock()
-		// Wait for processing to complete
+		// Wait for processing to complete.
 		return b.waitForProcessing(nodeID)
 	}
 	b.mutex.RUnlock()
 
-	// Mark as processing
+	// Mark as processing.
 	b.mutex.Lock()
 	b.processing[nodeID] = true
 	b.mutex.Unlock()
@@ -748,36 +781,36 @@ func (b *GraphBuilder) buildNodeRecursively(ctx context.Context, pkg *PackageRef
 		b.mutex.Unlock()
 	}()
 
-	// Create or update node
+	// Create or update node.
 	node := b.createOrUpdateNode(pkg, depth)
 	b.graph.Nodes[nodeID] = node
 
-	// Get dependencies
+	// Get dependencies.
 	dependencies, err := b.manager.getDependencies(ctx, pkg)
 	if err != nil {
 		return fmt.Errorf("failed to get dependencies for %s: %w", nodeID, err)
 	}
 
-	// Process dependencies
+	// Process dependencies.
 	g, gCtx := errgroup.WithContext(ctx)
 	g.SetLimit(b.manager.config.MaxConcurrency)
 
 	for _, dep := range dependencies {
 		dep := dep
 
-		// Apply filters
+		// Apply filters.
 		if !b.shouldIncludeDependency(dep) {
 			continue
 		}
 
-		// Create edge
+		// Create edge.
 		edge := b.createEdge(nodeID, generateNodeID(dep.Package), dep)
 		b.graph.Edges[edge.ID] = edge
 
-		// Add to node's dependencies
+		// Add to node's dependencies.
 		node.Dependencies = append(node.Dependencies, edge.To)
 
-		// Recursively process dependency
+		// Recursively process dependency.
 		if b.spec.IncludeTransitive && depth < b.spec.MaxDepth {
 			g.Go(func() error {
 				return b.buildNodeRecursively(gCtx, dep.Package, depth+1)
@@ -788,11 +821,11 @@ func (b *GraphBuilder) buildNodeRecursively(ctx context.Context, pkg *PackageRef
 	return g.Wait()
 }
 
-// Missing GraphBuilder methods
+// Missing GraphBuilder methods.
 
-// waitForProcessing waits for a node to finish being processed
+// waitForProcessing waits for a node to finish being processed.
 func (b *GraphBuilder) waitForProcessing(nodeID string) error {
-	// Simple polling mechanism - in real implementation would use sync primitives
+	// Simple polling mechanism - in real implementation would use sync primitives.
 	for i := 0; i < 1000; i++ {
 		b.mutex.RLock()
 		processing := b.processing[nodeID]
@@ -803,22 +836,22 @@ func (b *GraphBuilder) waitForProcessing(nodeID string) error {
 			return nil
 		}
 
-		// Small delay to prevent busy waiting
-		// In real implementation would use channels or condition variables
+		// Small delay to prevent busy waiting.
+		// In real implementation would use channels or condition variables.
 	}
 	return fmt.Errorf("timeout waiting for node %s to be processed", nodeID)
 }
 
-// createOrUpdateNode creates or updates a graph node
+// createOrUpdateNode creates or updates a graph node.
 func (b *GraphBuilder) createOrUpdateNode(pkg *PackageReference, depth int) *GraphNode {
 	nodeID := generateNodeID(pkg)
 
-	// Check if node already exists
+	// Check if node already exists.
 	if existingNode, exists := b.graph.Nodes[nodeID]; exists {
 		return existingNode
 	}
 
-	// Create new node
+	// Create new node.
 	node := &GraphNode{
 		ID:         nodeID,
 		PackageRef: pkg,
@@ -843,7 +876,7 @@ func (b *GraphBuilder) createOrUpdateNode(pkg *PackageReference, depth int) *Gra
 		Metadata:    make(map[string]interface{}),
 	}
 
-	// Determine node type based on depth and context
+	// Determine node type based on depth and context.
 	if depth == 0 {
 		node.Type = NodeTypeRoot
 	}
@@ -851,13 +884,13 @@ func (b *GraphBuilder) createOrUpdateNode(pkg *PackageReference, depth int) *Gra
 	return node
 }
 
-// shouldIncludeDependency determines if a dependency should be included
+// shouldIncludeDependency determines if a dependency should be included.
 func (b *GraphBuilder) shouldIncludeDependency(dep *DependencyInfo) bool {
 	if dep == nil || dep.Package == nil {
 		return false
 	}
 
-	// Apply scope filter
+	// Apply scope filter.
 	if len(b.spec.ScopeFilter) > 0 {
 		found := false
 		for _, allowedScope := range b.spec.ScopeFilter {
@@ -871,17 +904,17 @@ func (b *GraphBuilder) shouldIncludeDependency(dep *DependencyInfo) bool {
 		}
 	}
 
-	// Check optional dependencies
+	// Check optional dependencies.
 	if dep.Optional && !b.spec.IncludeOptional {
 		return false
 	}
 
-	// Check test dependencies
+	// Check test dependencies.
 	if dep.Scope == ScopeTest && !b.spec.IncludeTest {
 		return false
 	}
 
-	// Check transitive dependencies
+	// Check transitive dependencies.
 	if dep.Transitive && !b.spec.IncludeTransitive {
 		return false
 	}
@@ -889,7 +922,7 @@ func (b *GraphBuilder) shouldIncludeDependency(dep *DependencyInfo) bool {
 	return true
 }
 
-// createEdge creates a dependency edge between two nodes
+// createEdge creates a dependency edge between two nodes.
 func (b *GraphBuilder) createEdge(fromID, toID string, dep *DependencyInfo) *GraphEdge {
 	edgeID := fmt.Sprintf("%s->%s", fromID, toID)
 
@@ -918,14 +951,14 @@ func (b *GraphBuilder) createEdge(fromID, toID string, dep *DependencyInfo) *Gra
 		Metadata:    make(map[string]interface{}),
 	}
 
-	// Set edge type based on dependency characteristics
+	// Set edge type based on dependency characteristics.
 	if dep.Transitive {
 		edge.Type = EdgeTypeTransitive
 	} else if dep.Optional {
 		edge.Type = EdgeTypeOptional
 	}
 
-	// Add version constraint if available
+	// Add version constraint if available.
 	if dep.Version != "" {
 		edge.VersionConstraint = &VersionConstraint{
 			Version:  dep.Version,
@@ -936,7 +969,7 @@ func (b *GraphBuilder) createEdge(fromID, toID string, dep *DependencyInfo) *Gra
 	return edge
 }
 
-// TarjanSCCAlgorithm implements Tarjan's strongly connected components algorithm
+// TarjanSCCAlgorithm implements Tarjan's strongly connected components algorithm.
 type TarjanSCCAlgorithm struct {
 	graph    *DependencyGraph
 	index    int
@@ -947,32 +980,32 @@ type TarjanSCCAlgorithm struct {
 	sccs     [][]*GraphNode
 }
 
-// strongConnect performs the recursive strong connect operation
+// strongConnect performs the recursive strong connect operation.
 func (t *TarjanSCCAlgorithm) strongConnect(nodeID string) {
 	node := t.graph.Nodes[nodeID]
 
-	// Set index and lowlink
+	// Set index and lowlink.
 	t.indices[nodeID] = t.index
 	t.lowlinks[nodeID] = t.index
 	t.index++
 
-	// Push to stack
+	// Push to stack.
 	t.stack = append(t.stack, node)
 	t.onStack[nodeID] = true
 
-	// Process dependencies (successors)
+	// Process dependencies (successors).
 	for _, depID := range node.Dependencies {
 		if _, visited := t.indices[depID]; !visited {
-			// Successor not yet visited, recurse
+			// Successor not yet visited, recurse.
 			t.strongConnect(depID)
 			t.lowlinks[nodeID] = min(t.lowlinks[nodeID], t.lowlinks[depID])
 		} else if t.onStack[depID] {
-			// Successor is in stack and hence in current SCC
+			// Successor is in stack and hence in current SCC.
 			t.lowlinks[nodeID] = min(t.lowlinks[nodeID], t.indices[depID])
 		}
 	}
 
-	// If this is a root node, pop the stack and create SCC
+	// If this is a root node, pop the stack and create SCC.
 	if t.lowlinks[nodeID] == t.indices[nodeID] {
 		scc := make([]*GraphNode, 0)
 
@@ -991,7 +1024,7 @@ func (t *TarjanSCCAlgorithm) strongConnect(nodeID string) {
 	}
 }
 
-// Utility functions
+// Utility functions.
 
 func min(a, b int) int {
 	if a < b {
@@ -1008,9 +1041,9 @@ func generateNodeID(pkg *PackageReference) string {
 	return fmt.Sprintf("%s/%s", pkg.Repository, pkg.Name)
 }
 
-// Missing methods for dependencyGraphManager
+// Missing methods for dependencyGraphManager.
 
-// hasSelfLoop checks if a node has a self-referencing dependency
+// hasSelfLoop checks if a node has a self-referencing dependency.
 func (m *dependencyGraphManager) hasSelfLoop(node *GraphNode) bool {
 	if node == nil {
 		return false
@@ -1024,7 +1057,7 @@ func (m *dependencyGraphManager) hasSelfLoop(node *GraphNode) bool {
 	return false
 }
 
-// createCycleFromSCC creates a dependency cycle from a strongly connected component
+// createCycleFromSCC creates a dependency cycle from a strongly connected component.
 func (m *dependencyGraphManager) createCycleFromSCC(scc []*GraphNode, index int) *DependencyCycle {
 	if len(scc) == 0 {
 		return nil
@@ -1046,7 +1079,7 @@ func (m *dependencyGraphManager) createCycleFromSCC(scc []*GraphNode, index int)
 		ComplexityScore: float64(len(scc)),
 	}
 
-	// Determine cycle type
+	// Determine cycle type.
 	if len(scc) == 1 {
 		cycle.Type = CycleTypeSelfLoop
 		cycle.Severity = CycleSeverityLow
@@ -1061,28 +1094,28 @@ func (m *dependencyGraphManager) createCycleFromSCC(scc []*GraphNode, index int)
 	return cycle
 }
 
-// analyzeCycle analyzes the impact and characteristics of a dependency cycle
+// analyzeCycle analyzes the impact and characteristics of a dependency cycle.
 func (m *dependencyGraphManager) analyzeCycle(ctx context.Context, graph *DependencyGraph, cycle *DependencyCycle) {
 	if cycle == nil {
 		return
 	}
 
-	// Basic analysis - calculate complexity score
+	// Basic analysis - calculate complexity score.
 	cycle.ComplexityScore = float64(cycle.Length) * 1.5
 
-	// Adjust severity based on length and node types
+	// Adjust severity based on length and node types.
 	if cycle.Length > 5 {
 		cycle.Severity = CycleSeverityCritical
 	} else if cycle.Length > 3 {
 		cycle.Severity = CycleSeverityHigh
 	}
 
-	// Find edges that are part of this cycle
+	// Find edges that are part of this cycle.
 	edges := make([]string, 0)
 	for i, nodeID := range cycle.Nodes {
 		nextNodeID := cycle.Nodes[(i+1)%len(cycle.Nodes)]
 
-		// Find edge between current and next node
+		// Find edge between current and next node.
 		for _, edge := range graph.Edges {
 			if edge.From == nodeID && edge.To == nextNodeID {
 				edges = append(edges, edge.ID)
@@ -1095,7 +1128,7 @@ func (m *dependencyGraphManager) analyzeCycle(ctx context.Context, graph *Depend
 	cycle.Edges = edges
 }
 
-// compareCycleSeverity compares two cycle severities and returns a comparison value
+// compareCycleSeverity compares two cycle severities and returns a comparison value.
 func (m *dependencyGraphManager) compareCycleSeverity(sev1, sev2 CycleSeverity) int {
 	severityOrder := map[CycleSeverity]int{
 		CycleSeverityLow:      1,
@@ -1114,24 +1147,24 @@ func (m *dependencyGraphManager) compareCycleSeverity(sev1, sev2 CycleSeverity) 
 	return order1 - order2
 }
 
-// calculateBasicMetrics calculates basic graph metrics
+// calculateBasicMetrics calculates basic graph metrics.
 func (m *dependencyGraphManager) calculateBasicMetrics(graph *DependencyGraph, metrics *GraphMetrics) {
 	if graph == nil || metrics == nil {
 		return
 	}
 
-	// Calculate density
+	// Calculate density.
 	if metrics.NodeCount > 1 {
 		maxEdges := metrics.NodeCount * (metrics.NodeCount - 1)
 		metrics.Density = float64(metrics.EdgeCount) / float64(maxEdges)
 	}
 
-	// Calculate basic connectivity metrics
+	// Calculate basic connectivity metrics.
 	metrics.ComponentCount = 1 // Simplified assumption
 	metrics.LargestComponent = metrics.NodeCount
 	metrics.IsConnected = true // Simplified assumption
 
-	// Calculate degree distribution
+	// Calculate degree distribution.
 	inDegrees := make([]int, 0, metrics.NodeCount)
 	outDegrees := make([]int, 0, metrics.NodeCount)
 
@@ -1143,33 +1176,33 @@ func (m *dependencyGraphManager) calculateBasicMetrics(graph *DependencyGraph, m
 	metrics.DegreeDistribution = calculateDistributionStats(append(inDegrees, outDegrees...))
 }
 
-// calculateStructuralMetrics calculates structural graph metrics
+// calculateStructuralMetrics calculates structural graph metrics.
 func (m *dependencyGraphManager) calculateStructuralMetrics(ctx context.Context, graph *DependencyGraph, metrics *GraphMetrics) error {
-	// Stub implementation - calculate basic structural metrics
+	// Stub implementation - calculate basic structural metrics.
 
-	// Calculate diameter (simplified)
+	// Calculate diameter (simplified).
 	metrics.Diameter = 0
 	if len(graph.Nodes) > 0 {
 		metrics.Diameter = int(math.Ceil(math.Log(float64(len(graph.Nodes)))))
 	}
 
-	// Calculate radius (simplified)
+	// Calculate radius (simplified).
 	metrics.Radius = metrics.Diameter / 2
 
-	// Calculate average path length (simplified estimation)
+	// Calculate average path length (simplified estimation).
 	if metrics.NodeCount > 1 {
 		metrics.AveragePathLength = float64(metrics.Diameter) * 0.7
 	}
 
-	// Calculate clustering coefficient (simplified)
+	// Calculate clustering coefficient (simplified).
 	metrics.ClusteringCoeff = 0.3 // Placeholder value
 
 	return nil
 }
 
-// calculateCentralityMetrics calculates centrality metrics for nodes
+// calculateCentralityMetrics calculates centrality metrics for nodes.
 func (m *dependencyGraphManager) calculateCentralityMetrics(ctx context.Context, graph *DependencyGraph, metrics *GraphMetrics) error {
-	// Stub implementation - basic centrality calculation
+	// Stub implementation - basic centrality calculation.
 
 	for nodeID, node := range graph.Nodes {
 		centralityScores := &CentralityScores{
@@ -1187,9 +1220,9 @@ func (m *dependencyGraphManager) calculateCentralityMetrics(ctx context.Context,
 	return nil
 }
 
-// calculateDistributionMetrics calculates distribution-related metrics
+// calculateDistributionMetrics calculates distribution-related metrics.
 func (m *dependencyGraphManager) calculateDistributionMetrics(graph *DependencyGraph, metrics *GraphMetrics) {
-	// Already calculated in calculateBasicMetrics, this is for additional distributions
+	// Already calculated in calculateBasicMetrics, this is for additional distributions.
 
 	depths := make([]int, 0, len(graph.Nodes))
 	for _, node := range graph.Nodes {
@@ -1199,12 +1232,12 @@ func (m *dependencyGraphManager) calculateDistributionMetrics(graph *DependencyG
 	metrics.DepthDistribution = calculateDistributionStats(depths)
 }
 
-// calculateCycleMetrics calculates cycle-related metrics
+// calculateCycleMetrics calculates cycle-related metrics.
 func (m *dependencyGraphManager) calculateCycleMetrics(graph *DependencyGraph, metrics *GraphMetrics) {
 	metrics.CycleCount = len(graph.Cycles)
 
-	// Calculate cyclomatic complexity (simplified)
-	// V(G) = E - N + 2P (where E=edges, N=nodes, P=connected components)
+	// Calculate cyclomatic complexity (simplified).
+	// V(G) = E - N + 2P (where E=edges, N=nodes, P=connected components).
 	if metrics.ComponentCount > 0 {
 		complexity := metrics.EdgeCount - metrics.NodeCount + (2 * metrics.ComponentCount)
 		if complexity < 0 {
@@ -1214,32 +1247,32 @@ func (m *dependencyGraphManager) calculateCycleMetrics(graph *DependencyGraph, m
 	}
 }
 
-// calculateQualityMetrics calculates quality-related metrics
+// calculateQualityMetrics calculates quality-related metrics.
 func (m *dependencyGraphManager) calculateQualityMetrics(ctx context.Context, graph *DependencyGraph, metrics *GraphMetrics) error {
-	// Stub implementation for quality metrics
+	// Stub implementation for quality metrics.
 
-	// Calculate modularity (simplified estimation)
+	// Calculate modularity (simplified estimation).
 	metrics.Modularity = 0.4 // Placeholder value between -1 and 1
 
-	// Calculate assortativity (simplified estimation)
+	// Calculate assortativity (simplified estimation).
 	metrics.Assortativity = 0.0 // Placeholder value between -1 and 1
 
 	return nil
 }
 
-// calculateDistributionStats calculates distribution statistics for a set of values
+// calculateDistributionStats calculates distribution statistics for a set of values.
 func calculateDistributionStats(values []int) *DistributionStats {
 	if len(values) == 0 {
 		return &DistributionStats{}
 	}
 
-	// Convert to float64 for calculations
+	// Convert to float64 for calculations.
 	floatValues := make([]float64, len(values))
 	for i, v := range values {
 		floatValues[i] = float64(v)
 	}
 
-	// Calculate basic statistics
+	// Calculate basic statistics.
 	var sum, sumSq float64
 	min, max := floatValues[0], floatValues[0]
 
@@ -1266,113 +1299,113 @@ func calculateDistributionStats(values []int) *DistributionStats {
 	}
 }
 
-// AnalyzeComplexity analyzes the complexity of the dependency graph
+// AnalyzeComplexity analyzes the complexity of the dependency graph.
 func (m *dependencyGraphManager) AnalyzeComplexity(ctx context.Context, graph *DependencyGraph) (*ComplexityAnalysis, error) {
-	// Stub implementation to satisfy interface
+	// Stub implementation to satisfy interface.
 	return &ComplexityAnalysis{}, nil
 }
 
-// DetectPatterns detects patterns in the dependency graph
+// DetectPatterns detects patterns in the dependency graph.
 func (m *dependencyGraphManager) DetectPatterns(ctx context.Context, graph *DependencyGraph) ([]*GraphPattern, error) {
-	// Stub implementation to satisfy interface
+	// Stub implementation to satisfy interface.
 	return make([]*GraphPattern, 0), nil
 }
 
-// Additional interface methods - stub implementations
+// Additional interface methods - stub implementations.
 
-// UpdateGraph updates an existing dependency graph with new changes
+// UpdateGraph updates an existing dependency graph with new changes.
 func (m *dependencyGraphManager) UpdateGraph(ctx context.Context, graph *DependencyGraph, updates []*GraphUpdate) error {
 	return fmt.Errorf("UpdateGraph not implemented")
 }
 
-// MergeGraphs merges multiple dependency graphs into one
+// MergeGraphs merges multiple dependency graphs into one.
 func (m *dependencyGraphManager) MergeGraphs(ctx context.Context, graphs ...*DependencyGraph) (*DependencyGraph, error) {
 	return nil, fmt.Errorf("MergeGraphs not implemented")
 }
 
-// FindCriticalPath finds the critical path between two nodes
+// FindCriticalPath finds the critical path between two nodes.
 func (m *dependencyGraphManager) FindCriticalPath(ctx context.Context, graph *DependencyGraph, from, to string) (*CriticalPath, error) {
 	return nil, fmt.Errorf("FindCriticalPath not implemented")
 }
 
-// TraverseDepthFirst performs depth-first traversal of the graph
+// TraverseDepthFirst performs depth-first traversal of the graph.
 func (m *dependencyGraphManager) TraverseDepthFirst(ctx context.Context, graph *DependencyGraph, visitor GraphVisitor) error {
 	return fmt.Errorf("TraverseDepthFirst not implemented")
 }
 
-// TraverseBreadthFirst performs breadth-first traversal of the graph
+// TraverseBreadthFirst performs breadth-first traversal of the graph.
 func (m *dependencyGraphManager) TraverseBreadthFirst(ctx context.Context, graph *DependencyGraph, visitor GraphVisitor) error {
 	return fmt.Errorf("TraverseBreadthFirst not implemented")
 }
 
-// FindShortestPath finds the shortest path between two nodes
+// FindShortestPath finds the shortest path between two nodes.
 func (m *dependencyGraphManager) FindShortestPath(ctx context.Context, graph *DependencyGraph, from, to string) (*GraphPath, error) {
 	return nil, fmt.Errorf("FindShortestPath not implemented")
 }
 
-// GenerateVisualization generates visualization data for the graph
+// GenerateVisualization generates visualization data for the graph.
 func (m *dependencyGraphManager) GenerateVisualization(ctx context.Context, graph *DependencyGraph, format VisualizationFormat) ([]byte, error) {
 	return nil, fmt.Errorf("GenerateVisualization not implemented")
 }
 
-// ExportGraph exports the graph to different formats
+// ExportGraph exports the graph to different formats.
 func (m *dependencyGraphManager) ExportGraph(ctx context.Context, graph *DependencyGraph, format ExportFormat) ([]byte, error) {
 	return nil, fmt.Errorf("ExportGraph not implemented")
 }
 
-// SaveGraph saves the graph to persistent storage
+// SaveGraph saves the graph to persistent storage.
 func (m *dependencyGraphManager) SaveGraph(ctx context.Context, graph *DependencyGraph) error {
 	return fmt.Errorf("SaveGraph not implemented")
 }
 
-// LoadGraph loads a graph from persistent storage
+// LoadGraph loads a graph from persistent storage.
 func (m *dependencyGraphManager) LoadGraph(ctx context.Context, id string) (*DependencyGraph, error) {
 	return nil, fmt.Errorf("LoadGraph not implemented")
 }
 
-// ListGraphs lists available graphs with optional filtering
+// ListGraphs lists available graphs with optional filtering.
 func (m *dependencyGraphManager) ListGraphs(ctx context.Context, filter *GraphFilter) ([]*GraphMetadata, error) {
 	return nil, fmt.Errorf("ListGraphs not implemented")
 }
 
-// OptimizeGraph optimizes the graph structure
+// OptimizeGraph optimizes the graph structure.
 func (m *dependencyGraphManager) OptimizeGraph(ctx context.Context, graph *DependencyGraph, opts *OptimizationOptions) (*DependencyGraph, error) {
 	return nil, fmt.Errorf("OptimizeGraph not implemented")
 }
 
-// TransformGraph transforms the graph using a provided transformer
+// TransformGraph transforms the graph using a provided transformer.
 func (m *dependencyGraphManager) TransformGraph(ctx context.Context, graph *DependencyGraph, transformer GraphTransformer) (*DependencyGraph, error) {
 	return nil, fmt.Errorf("TransformGraph not implemented")
 }
 
-// ValidateGraph validates the graph structure and data
+// ValidateGraph validates the graph structure and data.
 func (m *dependencyGraphManager) ValidateGraph(ctx context.Context, graph *DependencyGraph) (*GraphValidation, error) {
 	return nil, fmt.Errorf("ValidateGraph not implemented")
 }
 
-// GetHealth returns the health status of the graph manager
+// GetHealth returns the health status of the graph manager.
 func (m *dependencyGraphManager) GetHealth(ctx context.Context) (*GraphManagerHealth, error) {
 	return nil, fmt.Errorf("GetHealth not implemented")
 }
 
-// getDependencies gets the dependencies for a given package
+// getDependencies gets the dependencies for a given package.
 func (m *dependencyGraphManager) getDependencies(ctx context.Context, pkg *PackageReference) ([]*DependencyInfo, error) {
-	// Stub implementation - in real implementation would query package repositories
-	// For now return empty dependencies to allow compilation
+	// Stub implementation - in real implementation would query package repositories.
+	// For now return empty dependencies to allow compilation.
 	return make([]*DependencyInfo, 0), nil
 }
 
 // Additional implementation methods would continue here...
-// This includes graph analysis algorithms, centrality calculations,
-// visualization generation, pattern detection, optimization algorithms,
+// This includes graph analysis algorithms, centrality calculations,.
+// visualization generation, pattern detection, optimization algorithms,.
 // and comprehensive error handling and validation.
 
-// The implementation demonstrates:
-// 1. Advanced graph algorithms (Tarjan's SCC, topological sorting)
-// 2. Comprehensive metrics calculation (centrality, clustering, etc.)
-// 3. Concurrent graph construction and analysis
-// 4. Cycle detection and analysis
-// 5. Graph visualization and export capabilities
-// 6. Pattern detection and graph optimization
-// 7. Production-ready error handling and validation
-// 8. Integration with telecommunications package management
+// The implementation demonstrates:.
+// 1. Advanced graph algorithms (Tarjan's SCC, topological sorting).
+// 2. Comprehensive metrics calculation (centrality, clustering, etc.).
+// 3. Concurrent graph construction and analysis.
+// 4. Cycle detection and analysis.
+// 5. Graph visualization and export capabilities.
+// 6. Pattern detection and graph optimization.
+// 7. Production-ready error handling and validation.
+// 8. Integration with telecommunications package management.

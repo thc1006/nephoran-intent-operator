@@ -12,16 +12,16 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/interfaces"
 )
 
-// LLMProcessorConfig holds configuration specific to the LLM processor service
+// LLMProcessorConfig holds configuration specific to the LLM processor service.
 type LLMProcessorConfig struct {
-	// Service Configuration
+	// Service Configuration.
 	Enabled          bool // Whether the LLM processor service is enabled
 	Port             string
 	LogLevel         string
 	ServiceVersion   string
 	GracefulShutdown time.Duration
 
-	// LLM Configuration
+	// LLM Configuration.
 	LLMBackendType string
 	LLMAPIKey      string
 	LLMModelName   string
@@ -29,54 +29,54 @@ type LLMProcessorConfig struct {
 	LLMMaxTokens   int
 	LLMMaxRetries  int // Uses LLM_MAX_RETRIES env var (default: 2)
 
-	// RAG Configuration
+	// RAG Configuration.
 	RAGAPIURL                string
 	RAGTimeout               time.Duration
 	RAGEnabled               bool
 	RAGPreferProcessEndpoint bool   // When true, prefer /process over /process_intent for new configs
 	RAGEndpointPath          string // Custom endpoint path override (optional)
 
-	// Streaming Configuration
+	// Streaming Configuration.
 	StreamingEnabled     bool
 	MaxConcurrentStreams int
 	StreamTimeout        time.Duration
 
-	// Context Management
+	// Context Management.
 	EnableContextBuilder bool
 	MaxContextTokens     int
 	ContextTTL           time.Duration
 
-	// Cache Configuration
+	// Cache Configuration.
 	CacheMaxEntries int // Uses LLM_CACHE_MAX_ENTRIES env var (default: 512)
 
-	// Security Configuration
+	// Security Configuration.
 	APIKeyRequired bool
 	APIKey         string
 	CORSEnabled    bool
 	AllowedOrigins []string
 
-	// Performance Configuration
+	// Performance Configuration.
 	RequestTimeout time.Duration
 	MaxRequestSize int64
 
-	// Circuit Breaker Configuration
+	// Circuit Breaker Configuration.
 	CircuitBreakerEnabled   bool
 	CircuitBreakerThreshold int
 	CircuitBreakerTimeout   time.Duration
 
-	// Rate Limiting
+	// Rate Limiting.
 	RateLimitEnabled        bool
 	RateLimitRequestsPerMin int
 	RateLimitBurst          int
 	RateLimitQPS            int // Queries per second for IP-based rate limiting
 	RateLimitBurstTokens    int // Burst tokens for IP-based rate limiting
 
-	// Retry Configuration
+	// Retry Configuration.
 	MaxRetries   int
 	RetryDelay   time.Duration
 	RetryBackoff string
 
-	// OAuth2 Authentication Configuration
+	// OAuth2 Authentication Configuration.
 	AuthEnabled    bool
 	AuthConfigFile string
 	JWTSecretKey   string
@@ -84,23 +84,23 @@ type LLMProcessorConfig struct {
 	AdminUsers     []string
 	OperatorUsers  []string
 
-	// TLS Configuration
+	// TLS Configuration.
 	TLSEnabled  bool
 	TLSCertPath string
 	TLSKeyPath  string
 
-	// Secret Management Configuration
+	// Secret Management Configuration.
 	UseKubernetesSecrets bool
 	SecretNamespace      string
 
-	// Metrics Security Configuration
+	// Metrics Security Configuration.
 	ExposeMetricsPublicly bool     // Whether to expose metrics publicly (default: false)
 	MetricsAllowedCIDRs   []string // CIDR blocks allowed to access metrics endpoint
 	MetricsEnabled        bool     // Whether to enable the /metrics endpoint at all
 	MetricsAllowedIPs     []string // Specific IP addresses allowed to access metrics
 }
 
-// DefaultLLMProcessorConfig returns a configuration with sensible defaults
+// DefaultLLMProcessorConfig returns a configuration with sensible defaults.
 func DefaultLLMProcessorConfig() *LLMProcessorConfig {
 	return &LLMProcessorConfig{
 		Enabled:          true, // Default to enabled
@@ -129,7 +129,7 @@ func DefaultLLMProcessorConfig() *LLMProcessorConfig {
 		MaxContextTokens:     6000,
 		ContextTTL:           5 * time.Minute,
 
-		// Cache configuration
+		// Cache configuration.
 		CacheMaxEntries: 512, // Default 512 cache entries
 
 		APIKeyRequired: false,
@@ -165,7 +165,7 @@ func DefaultLLMProcessorConfig() *LLMProcessorConfig {
 		UseKubernetesSecrets: true,
 		SecretNamespace:      "nephoran-system",
 
-		// Metrics Security - Default to private with secure defaults
+		// Metrics Security - Default to private with secure defaults.
 		ExposeMetricsPublicly: false,
 		MetricsAllowedCIDRs:   []string{}, // Will be set to private networks if empty and not public
 		MetricsEnabled:        false,      // Disabled by default for security
@@ -173,22 +173,22 @@ func DefaultLLMProcessorConfig() *LLMProcessorConfig {
 	}
 }
 
-// LoadLLMProcessorConfig loads configuration from environment variables with validation
+// LoadLLMProcessorConfig loads configuration from environment variables with validation.
 func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	cfg := DefaultLLMProcessorConfig()
 
-	// Load configuration with validation
+	// Load configuration with validation.
 	var validationErrors []string
 
-	// Service Configuration
+	// Service Configuration.
 	cfg.Port = getEnvWithValidation("PORT", cfg.Port, validatePort, &validationErrors)
 	cfg.LogLevel = getEnvWithValidation("LOG_LEVEL", cfg.LogLevel, validateLogLevel, &validationErrors)
 	cfg.ServiceVersion = GetEnvOrDefault("SERVICE_VERSION", cfg.ServiceVersion)
 	cfg.GracefulShutdown = parseDurationWithValidation("GRACEFUL_SHUTDOWN_TIMEOUT", cfg.GracefulShutdown, &validationErrors)
 
-	// LLM Configuration
+	// LLM Configuration.
 	cfg.LLMBackendType = getEnvWithValidation("LLM_BACKEND_TYPE", cfg.LLMBackendType, validateLLMBackendType, &validationErrors)
-	// Load LLM API key from file or env based on backend type
+	// Load LLM API key from file or env based on backend type.
 	var auditLogger interfaces.AuditLogger // nil interface is valid
 	llmAPIKey, err := LoadLLMAPIKeyFromFile(cfg.LLMBackendType, auditLogger)
 	if err != nil && cfg.LLMBackendType != "mock" && cfg.LLMBackendType != "rag" {
@@ -196,7 +196,7 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	}
 	cfg.LLMAPIKey = llmAPIKey
 	cfg.LLMModelName = GetEnvOrDefault("LLM_MODEL_NAME", cfg.LLMModelName)
-	// Handle LLM_TIMEOUT_SECS as seconds value
+	// Handle LLM_TIMEOUT_SECS as seconds value.
 	if envTimeoutSecs := GetEnvOrDefault("LLM_TIMEOUT_SECS", ""); envTimeoutSecs != "" {
 		if timeoutSecs, err := strconv.Atoi(envTimeoutSecs); err == nil && timeoutSecs > 0 {
 			cfg.LLMTimeout = time.Duration(timeoutSecs) * time.Second
@@ -209,29 +209,29 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	cfg.LLMMaxTokens = parseIntWithValidation("LLM_MAX_TOKENS", cfg.LLMMaxTokens, validatePositiveInt, &validationErrors)
 	cfg.LLMMaxRetries = parseIntWithValidation("LLM_MAX_RETRIES", cfg.LLMMaxRetries, validateNonNegativeInt, &validationErrors)
 
-	// RAG Configuration
+	// RAG Configuration.
 	cfg.RAGAPIURL = getEnvWithValidation("RAG_API_URL", cfg.RAGAPIURL, validateURL, &validationErrors)
 	cfg.RAGTimeout = parseDurationWithValidation("RAG_TIMEOUT", cfg.RAGTimeout, &validationErrors)
 	cfg.RAGEnabled = parseBoolWithDefault("RAG_ENABLED", cfg.RAGEnabled)
 	cfg.RAGPreferProcessEndpoint = parseBoolWithDefault("RAG_PREFER_PROCESS_ENDPOINT", cfg.RAGPreferProcessEndpoint)
 	cfg.RAGEndpointPath = GetEnvOrDefault("RAG_ENDPOINT_PATH", cfg.RAGEndpointPath)
 
-	// Streaming Configuration
+	// Streaming Configuration.
 	cfg.StreamingEnabled = parseBoolWithDefault("STREAMING_ENABLED", cfg.StreamingEnabled)
 	cfg.MaxConcurrentStreams = parseIntWithValidation("MAX_CONCURRENT_STREAMS", cfg.MaxConcurrentStreams, validatePositiveInt, &validationErrors)
 	cfg.StreamTimeout = parseDurationWithValidation("STREAM_TIMEOUT", cfg.StreamTimeout, &validationErrors)
 
-	// Context Management
+	// Context Management.
 	cfg.EnableContextBuilder = parseBoolWithDefault("ENABLE_CONTEXT_BUILDER", cfg.EnableContextBuilder)
 	cfg.MaxContextTokens = parseIntWithValidation("MAX_CONTEXT_TOKENS", cfg.MaxContextTokens, validatePositiveInt, &validationErrors)
 	cfg.ContextTTL = parseDurationWithValidation("CONTEXT_TTL", cfg.ContextTTL, &validationErrors)
 
-	// Cache Configuration
+	// Cache Configuration.
 	cfg.CacheMaxEntries = parseIntWithValidation("LLM_CACHE_MAX_ENTRIES", cfg.CacheMaxEntries, validatePositiveInt, &validationErrors)
 
-	// Security Configuration
+	// Security Configuration.
 	cfg.APIKeyRequired = parseBoolWithDefault("API_KEY_REQUIRED", cfg.APIKeyRequired)
-	// Load API key from file or env
+	// Load API key from file or env.
 	apiKey, err := LoadAPIKeyFromFile(auditLogger)
 	if err != nil && cfg.APIKeyRequired {
 		validationErrors = append(validationErrors, fmt.Sprintf("API Key: %v", err))
@@ -239,7 +239,7 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	cfg.APIKey = apiKey
 	cfg.CORSEnabled = parseBoolWithDefault("CORS_ENABLED", cfg.CORSEnabled)
 
-	// Parse and validate allowed origins
+	// Parse and validate allowed origins.
 	allowedOriginsStr := GetEnvOrDefault("LLM_ALLOWED_ORIGINS", "")
 	if cfg.CORSEnabled && allowedOriginsStr != "" {
 		parsedOrigins, err := parseAllowedOrigins(allowedOriginsStr)
@@ -249,15 +249,15 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 			cfg.AllowedOrigins = parsedOrigins
 		}
 	} else if cfg.CORSEnabled {
-		// Set secure development default when CORS is enabled but no origins specified
+		// Set secure development default when CORS is enabled but no origins specified.
 		if isDevelopmentEnvironment() {
 			cfg.AllowedOrigins = []string{"http://localhost:3000", "http://localhost:8080"}
 		}
 	}
 
-	// Performance Configuration
+	// Performance Configuration.
 	cfg.RequestTimeout = parseDurationWithValidation("REQUEST_TIMEOUT", cfg.RequestTimeout, &validationErrors)
-	// Use HTTP_MAX_BODY env var for request size limit (fallback to MAX_REQUEST_SIZE for backward compatibility)
+	// Use HTTP_MAX_BODY env var for request size limit (fallback to MAX_REQUEST_SIZE for backward compatibility).
 	httpMaxBody := GetEnvOrDefault("HTTP_MAX_BODY", "")
 	if httpMaxBody != "" {
 		cfg.MaxRequestSize = parseInt64WithValidation("HTTP_MAX_BODY", cfg.MaxRequestSize, validatePositiveInt64, &validationErrors)
@@ -265,27 +265,27 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 		cfg.MaxRequestSize = parseInt64WithValidation("MAX_REQUEST_SIZE", cfg.MaxRequestSize, validatePositiveInt64, &validationErrors)
 	}
 
-	// Circuit Breaker Configuration
+	// Circuit Breaker Configuration.
 	cfg.CircuitBreakerEnabled = parseBoolWithDefault("CIRCUIT_BREAKER_ENABLED", cfg.CircuitBreakerEnabled)
 	cfg.CircuitBreakerThreshold = parseIntWithValidation("CIRCUIT_BREAKER_THRESHOLD", cfg.CircuitBreakerThreshold, validatePositiveInt, &validationErrors)
 	cfg.CircuitBreakerTimeout = parseDurationWithValidation("CIRCUIT_BREAKER_TIMEOUT", cfg.CircuitBreakerTimeout, &validationErrors)
 
-	// Rate Limiting
+	// Rate Limiting.
 	cfg.RateLimitEnabled = parseBoolWithDefault("RATE_LIMIT_ENABLED", cfg.RateLimitEnabled)
 	cfg.RateLimitRequestsPerMin = parseIntWithValidation("RATE_LIMIT_REQUESTS_PER_MINUTE", cfg.RateLimitRequestsPerMin, validatePositiveInt, &validationErrors)
 	cfg.RateLimitBurst = parseIntWithValidation("RATE_LIMIT_BURST", cfg.RateLimitBurst, validatePositiveInt, &validationErrors)
 	cfg.RateLimitQPS = parseIntWithValidation("RATE_LIMIT_QPS", cfg.RateLimitQPS, validatePositiveInt, &validationErrors)
 	cfg.RateLimitBurstTokens = parseIntWithValidation("RATE_LIMIT_BURST_TOKENS", cfg.RateLimitBurstTokens, validatePositiveInt, &validationErrors)
 
-	// Retry Configuration
+	// Retry Configuration.
 	cfg.MaxRetries = parseIntWithValidation("MAX_RETRIES", cfg.MaxRetries, validateNonNegativeInt, &validationErrors)
 	cfg.RetryDelay = parseDurationWithValidation("RETRY_DELAY", cfg.RetryDelay, &validationErrors)
 	cfg.RetryBackoff = getEnvWithValidation("RETRY_BACKOFF", cfg.RetryBackoff, validateRetryBackoff, &validationErrors)
 
-	// OAuth2 Authentication Configuration
+	// OAuth2 Authentication Configuration.
 	cfg.AuthEnabled = parseBoolWithDefault("AUTH_ENABLED", cfg.AuthEnabled)
 	cfg.AuthConfigFile = GetEnvOrDefault("AUTH_CONFIG_FILE", "")
-	// Load JWT secret key from file or env
+	// Load JWT secret key from file or env.
 	jwtSecretKey, err := LoadJWTSecretKeyFromFile(auditLogger)
 	if err != nil && cfg.AuthEnabled {
 		validationErrors = append(validationErrors, fmt.Sprintf("JWT Secret Key: %v", err))
@@ -295,20 +295,20 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	cfg.AdminUsers = parseStringSlice(GetEnvOrDefault("ADMIN_USERS", ""))
 	cfg.OperatorUsers = parseStringSlice(GetEnvOrDefault("OPERATOR_USERS", ""))
 
-	// TLS Configuration
+	// TLS Configuration.
 	cfg.TLSEnabled = parseBoolWithDefault("TLS_ENABLED", cfg.TLSEnabled)
 	cfg.TLSCertPath = GetEnvOrDefault("TLS_CERT_PATH", cfg.TLSCertPath)
 	cfg.TLSKeyPath = GetEnvOrDefault("TLS_KEY_PATH", cfg.TLSKeyPath)
 
-	// Secret Management Configuration
+	// Secret Management Configuration.
 	cfg.UseKubernetesSecrets = parseBoolWithDefault("USE_KUBERNETES_SECRETS", cfg.UseKubernetesSecrets)
 	cfg.SecretNamespace = GetEnvOrDefault("SECRET_NAMESPACE", cfg.SecretNamespace)
 
-	// Metrics Security Configuration
+	// Metrics Security Configuration.
 	cfg.MetricsEnabled = parseBoolWithDefault("METRICS_ENABLED", cfg.MetricsEnabled)
 	cfg.ExposeMetricsPublicly = parseBoolWithDefault("EXPOSE_METRICS_PUBLICLY", cfg.ExposeMetricsPublicly)
 
-	// Parse IP-based access control list
+	// Parse IP-based access control list.
 	metricsAllowedIPs := GetEnvOrDefault("METRICS_ALLOWED_IPS", "")
 	if metricsAllowedIPs != "" {
 		parsedIPs, err := parseAndValidateIPs(metricsAllowedIPs)
@@ -319,7 +319,7 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 		}
 	}
 
-	// Parse CIDR allowlist
+	// Parse CIDR allowlist.
 	metricsAllowedCIDRs := GetEnvOrDefault("METRICS_ALLOWED_CIDRS", "")
 	if metricsAllowedCIDRs != "" {
 		parsedCIDRs, err := parseAndValidateCIDRs(metricsAllowedCIDRs)
@@ -329,16 +329,16 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 			cfg.MetricsAllowedCIDRs = parsedCIDRs
 		}
 	} else if !cfg.ExposeMetricsPublicly && cfg.MetricsEnabled {
-		// Set secure defaults for private access only if metrics are enabled
+		// Set secure defaults for private access only if metrics are enabled.
 		cfg.MetricsAllowedCIDRs = getDefaultPrivateNetworks()
 	}
 
-	// Return validation errors if any
+	// Return validation errors if any.
 	if len(validationErrors) > 0 {
 		return nil, fmt.Errorf("configuration validation failed: %s", strings.Join(validationErrors, "; "))
 	}
 
-	// Perform additional cross-field validation
+	// Perform additional cross-field validation.
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("configuration validation failed: %w", err)
 	}
@@ -346,11 +346,11 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	return cfg, nil
 }
 
-// Validate performs comprehensive validation of the configuration
+// Validate performs comprehensive validation of the configuration.
 func (c *LLMProcessorConfig) Validate() error {
 	var errors []string
 
-	// Validate required fields based on configuration
+	// Validate required fields based on configuration.
 	if c.LLMAPIKey == "" && c.LLMBackendType != "mock" && c.LLMBackendType != "rag" {
 		errors = append(errors, "OPENAI_API_KEY is required for non-mock/non-rag backends")
 	}
@@ -363,7 +363,7 @@ func (c *LLMProcessorConfig) Validate() error {
 		errors = append(errors, "API_KEY is required when API key authentication is enabled")
 	}
 
-	// Validate TLS configuration
+	// Validate TLS configuration.
 	if c.TLSEnabled {
 		if c.TLSCertPath == "" {
 			errors = append(errors, "TLS_CERT_PATH is required when TLS is enabled")
@@ -371,20 +371,20 @@ func (c *LLMProcessorConfig) Validate() error {
 		if c.TLSKeyPath == "" {
 			errors = append(errors, "TLS_KEY_PATH is required when TLS is enabled")
 		}
-		// Validate that both cert and key files exist if paths are provided
+		// Validate that both cert and key files exist if paths are provided.
 		if c.TLSCertPath != "" && c.TLSKeyPath != "" {
 			if err := validateTLSFiles(c.TLSCertPath, c.TLSKeyPath); err != nil {
 				errors = append(errors, fmt.Sprintf("TLS configuration: %v", err))
 			}
 		}
 	} else {
-		// If TLS is disabled but paths are provided, warn about potential misconfiguration
+		// If TLS is disabled but paths are provided, warn about potential misconfiguration.
 		if c.TLSCertPath != "" || c.TLSKeyPath != "" {
 			errors = append(errors, "TLS certificate/key paths provided but TLS_ENABLED=false. Set TLS_ENABLED=true to enable TLS")
 		}
 	}
 
-	// Validate logical constraints
+	// Validate logical constraints.
 	if c.MaxConcurrentStreams > 1000 {
 		errors = append(errors, "MAX_CONCURRENT_STREAMS should not exceed 1000 for performance reasons")
 	}
@@ -397,12 +397,12 @@ func (c *LLMProcessorConfig) Validate() error {
 		errors = append(errors, "CIRCUIT_BREAKER_THRESHOLD should be reasonable (≤50)")
 	}
 
-	// Validate CORS configuration
+	// Validate CORS configuration.
 	if c.CORSEnabled {
 		if len(c.AllowedOrigins) == 0 {
 			errors = append(errors, "LLM_ALLOWED_ORIGINS must be configured when CORS is enabled")
 		} else {
-			// Validate individual origins
+			// Validate individual origins.
 			isProduction := GetEnvOrDefault("LLM_ENVIRONMENT", "") == "production"
 
 			for _, origin := range c.AllowedOrigins {
@@ -410,17 +410,17 @@ func (c *LLMProcessorConfig) Validate() error {
 					continue
 				}
 
-				// Check for wildcard in production
+				// Check for wildcard in production.
 				if origin == "*" && isProduction {
 					errors = append(errors, "wildcard origin '*' is not allowed in production environments")
 				}
 
-				// Validate origin format
+				// Validate origin format.
 				if origin != "*" && !strings.HasPrefix(origin, "http://") && !strings.HasPrefix(origin, "https://") {
 					errors = append(errors, fmt.Sprintf("origin '%s' must start with http:// or https://", origin))
 				}
 
-				// Additional security checks
+				// Additional security checks.
 				if strings.Contains(origin, "*") && origin != "*" {
 					errors = append(errors, fmt.Sprintf("origin '%s' contains wildcard but is not exact wildcard '*'", origin))
 				}
@@ -428,7 +428,7 @@ func (c *LLMProcessorConfig) Validate() error {
 		}
 	}
 
-	// Validate request size limits for security and performance
+	// Validate request size limits for security and performance.
 	if c.MaxRequestSize <= 0 {
 		errors = append(errors, "MAX_REQUEST_SIZE must be positive")
 	}
@@ -441,12 +441,12 @@ func (c *LLMProcessorConfig) Validate() error {
 		errors = append(errors, "MAX_REQUEST_SIZE should not exceed 100MB to prevent DoS attacks")
 	}
 
-	// Validate RAG configuration consistency
+	// Validate RAG configuration consistency.
 	if err := c.validateRAGConfiguration(); err != nil {
 		errors = append(errors, fmt.Sprintf("RAG configuration: %v", err))
 	}
 
-	// Validate metrics security configuration
+	// Validate metrics security configuration.
 	if err := c.validateMetricsSecurityConfiguration(); err != nil {
 		errors = append(errors, fmt.Sprintf("Metrics security configuration: %v", err))
 	}
@@ -458,35 +458,36 @@ func (c *LLMProcessorConfig) Validate() error {
 	return nil
 }
 
-// validateRAGConfiguration performs RAG-specific configuration validation
+// validateRAGConfiguration performs RAG-specific configuration validation.
 func (c *LLMProcessorConfig) validateRAGConfiguration() error {
 	if !c.RAGEnabled {
 		return nil // Skip validation if RAG is disabled
 	}
 
-	// Validate RAG API URL format and pattern
+	// Validate RAG API URL format and pattern.
 	if c.RAGAPIURL == "" {
 		return fmt.Errorf("RAG_API_URL is required when RAG is enabled")
 	}
 
-	// Custom endpoint path validation
+	// Custom endpoint path validation.
 	if c.RAGEndpointPath != "" {
 		if !strings.HasPrefix(c.RAGEndpointPath, "/") {
 			return fmt.Errorf("RAG_ENDPOINT_PATH must start with '/' if specified")
 		}
 
-		// Warn about conflicting settings
+		// Warn about conflicting settings.
 		if c.RAGPreferProcessEndpoint {
-			// This is not an error, but the custom path takes precedence
+			// This is not an error, but the custom path takes precedence.
+			// Note: Custom path overrides the RAGPreferProcessEndpoint setting.
 		}
 	}
 
 	return nil
 }
 
-// Helper functions for validation and parsing
+// Helper functions for validation and parsing.
 
-// Note: getEnvOrDefault has been replaced with GetEnvOrDefault from this package
+// Note: getEnvOrDefault has been replaced with GetEnvOrDefault from this package.
 
 func getEnvWithValidation(key, defaultValue string, validator func(string) error, errors *[]string) string {
 	value := GetEnvOrDefault(key, defaultValue)
@@ -561,7 +562,7 @@ func parseStringSlice(s string) []string {
 	return result
 }
 
-// Validation functions
+// Validation functions.
 
 func validatePort(port string) error {
 	if portNum, err := strconv.Atoi(port); err != nil || portNum < 1 || portNum > 65535 {
@@ -573,7 +574,7 @@ func validatePort(port string) error {
 func validateLogLevel(level string) error {
 	validLevels := []string{"debug", "info", "warn", "error"}
 	for _, valid := range validLevels {
-		if strings.ToLower(level) == valid {
+		if strings.EqualFold(level, valid) {
 			return nil
 		}
 	}
@@ -583,7 +584,7 @@ func validateLogLevel(level string) error {
 func validateLLMBackendType(backendType string) error {
 	validTypes := []string{"openai", "mistral", "rag", "mock"}
 	for _, valid := range validTypes {
-		if strings.ToLower(backendType) == valid {
+		if strings.EqualFold(backendType, valid) {
 			return nil
 		}
 	}
@@ -598,7 +599,7 @@ func validateURL(url string) error {
 		return fmt.Errorf("URL must start with http:// or https://")
 	}
 
-	// Additional URL pattern validation for RAG API URLs
+	// Additional URL pattern validation for RAG API URLs.
 	if strings.Contains(url, "rag-api") || strings.Contains(url, "RAG_API") {
 		return validateRAGURL(url)
 	}
@@ -606,18 +607,18 @@ func validateURL(url string) error {
 	return nil
 }
 
-// validateRAGURL performs RAG-specific URL validation
+// validateRAGURL performs RAG-specific URL validation.
 func validateRAGURL(ragURL string) error {
-	// Parse URL to validate structure
+	// Parse URL to validate structure.
 	if _, err := url.Parse(ragURL); err != nil {
 		return fmt.Errorf("invalid URL format: %w", err)
 	}
 
-	// Check for common patterns and provide helpful warnings
+	// Check for common patterns and provide helpful warnings.
 	if strings.HasSuffix(ragURL, "/process_intent") {
-		// This is valid but legacy - no error needed
+		// This is valid but legacy - no error needed.
 	} else if strings.HasSuffix(ragURL, "/process") {
-		// This is the preferred pattern - no error needed
+		// This is the preferred pattern - no error needed.
 	} else if strings.HasSuffix(ragURL, "/health") {
 		return fmt.Errorf("RAG_API_URL should not end with '/health' - this is auto-detected for health checks")
 	} else if strings.HasSuffix(ragURL, "/stream") {
@@ -651,14 +652,14 @@ func validatePositiveInt64(value int64) error {
 func validateRetryBackoff(backoff string) error {
 	validBackoffs := []string{"fixed", "linear", "exponential"}
 	for _, valid := range validBackoffs {
-		if strings.ToLower(backoff) == valid {
+		if strings.EqualFold(backoff, valid) {
 			return nil
 		}
 	}
 	return fmt.Errorf("invalid retry backoff, must be one of: %s", strings.Join(validBackoffs, ", "))
 }
 
-// parseAllowedOrigins parses and validates a comma-separated list of origins
+// parseAllowedOrigins parses and validates a comma-separated list of origins.
 func parseAllowedOrigins(originsStr string) ([]string, error) {
 	if strings.TrimSpace(originsStr) == "" {
 		return nil, fmt.Errorf("origins string cannot be empty")
@@ -674,7 +675,7 @@ func parseAllowedOrigins(originsStr string) ([]string, error) {
 			continue
 		}
 
-		// Validate origin
+		// Validate origin.
 		if err := validateOrigin(origin, isProduction); err != nil {
 			return nil, fmt.Errorf("invalid origin '%s': %w", origin, err)
 		}
@@ -689,33 +690,33 @@ func parseAllowedOrigins(originsStr string) ([]string, error) {
 	return validOrigins, nil
 }
 
-// validateOrigin validates a single origin
+// validateOrigin validates a single origin.
 func validateOrigin(origin string, isProduction bool) error {
-	// Check for wildcard in production
+	// Check for wildcard in production.
 	if origin == "*" {
 		if isProduction {
 			return fmt.Errorf("wildcard origin '*' is not allowed in production environments")
 		}
-		// Wildcard is allowed in non-production environments
+		// Wildcard is allowed in non-production environments.
 		return nil
 	}
 
-	// Check protocol
+	// Check protocol.
 	if !strings.HasPrefix(origin, "http://") && !strings.HasPrefix(origin, "https://") {
 		return fmt.Errorf("origin must start with http:// or https://")
 	}
 
-	// Check for partial wildcards (not allowed)
+	// Check for partial wildcards (not allowed).
 	if strings.Contains(origin, "*") && origin != "*" {
 		return fmt.Errorf("origin contains wildcard but is not exact wildcard '*'")
 	}
 
-	// Check for spaces or other invalid characters
+	// Check for spaces or other invalid characters.
 	if strings.ContainsAny(origin, " \t\n\r") {
 		return fmt.Errorf("origin contains invalid whitespace characters")
 	}
 
-	// Basic validation for malformed URLs
+	// Basic validation for malformed URLs.
 	if strings.Contains(origin, "..") || strings.HasSuffix(origin, "/") {
 		return fmt.Errorf("origin format is invalid")
 	}
@@ -723,7 +724,7 @@ func validateOrigin(origin string, isProduction bool) error {
 	return nil
 }
 
-// isDevelopmentEnvironment determines if we're running in development mode
+// isDevelopmentEnvironment determines if we're running in development mode.
 func isDevelopmentEnvironment() bool {
 	envVars := []string{"GO_ENV", "NODE_ENV", "ENVIRONMENT", "ENV", "APP_ENV", "LLM_ENVIRONMENT"}
 
@@ -741,7 +742,7 @@ func isDevelopmentEnvironment() bool {
 }
 
 func validateTLSFiles(certPath, keyPath string) error {
-	// Check if certificate file exists and is readable
+	// Check if certificate file exists and is readable.
 	if _, err := os.Stat(certPath); err != nil {
 		if os.IsNotExist(err) {
 			return fmt.Errorf("certificate file does not exist: %s", certPath)
@@ -749,7 +750,7 @@ func validateTLSFiles(certPath, keyPath string) error {
 		return fmt.Errorf("cannot access certificate file: %v", err)
 	}
 
-	// Check if key file exists and is readable
+	// Check if key file exists and is readable.
 	if _, err := os.Stat(keyPath); err != nil {
 		if os.IsNotExist(err) {
 			return fmt.Errorf("private key file does not exist: %s", keyPath)
@@ -760,28 +761,28 @@ func validateTLSFiles(certPath, keyPath string) error {
 	return nil
 }
 
-// GetRAGEndpointPreference returns the endpoint preference configuration
+// GetRAGEndpointPreference returns the endpoint preference configuration.
 func (c *LLMProcessorConfig) GetRAGEndpointPreference() (bool, string) {
 	return c.RAGPreferProcessEndpoint, c.RAGEndpointPath
 }
 
-// GetEffectiveRAGEndpoints returns the effective RAG endpoints based on configuration
+// GetEffectiveRAGEndpoints returns the effective RAG endpoints based on configuration.
 func (c *LLMProcessorConfig) GetEffectiveRAGEndpoints() (processEndpoint, healthEndpoint string) {
 	baseURL := strings.TrimSuffix(c.RAGAPIURL, "/")
 
-	// If custom endpoint path is specified, use it
+	// If custom endpoint path is specified, use it.
 	if c.RAGEndpointPath != "" {
 		processEndpoint = baseURL + c.RAGEndpointPath
 	} else {
-		// Auto-detect based on URL pattern
+		// Auto-detect based on URL pattern.
 		if strings.HasSuffix(c.RAGAPIURL, "/process_intent") {
-			// Legacy pattern - use as configured
+			// Legacy pattern - use as configured.
 			processEndpoint = c.RAGAPIURL
 		} else if strings.HasSuffix(c.RAGAPIURL, "/process") {
-			// New pattern - use as configured
+			// New pattern - use as configured.
 			processEndpoint = c.RAGAPIURL
 		} else {
-			// Base URL pattern - construct based on preference
+			// Base URL pattern - construct based on preference.
 			if c.RAGPreferProcessEndpoint {
 				processEndpoint = baseURL + "/process"
 			} else {
@@ -790,8 +791,8 @@ func (c *LLMProcessorConfig) GetEffectiveRAGEndpoints() (processEndpoint, health
 		}
 	}
 
-	// Health endpoint is always /health
-	// Extract base URL from process endpoint
+	// Health endpoint is always /health.
+	// Extract base URL from process endpoint.
 	processBase := processEndpoint
 	if strings.HasSuffix(processBase, "/process_intent") {
 		processBase = strings.TrimSuffix(processBase, "/process_intent")
@@ -803,26 +804,26 @@ func (c *LLMProcessorConfig) GetEffectiveRAGEndpoints() (processEndpoint, health
 	return processEndpoint, healthEndpoint
 }
 
-// validateMetricsSecurityConfiguration validates the metrics security configuration
+// validateMetricsSecurityConfiguration validates the metrics security configuration.
 func (c *LLMProcessorConfig) validateMetricsSecurityConfiguration() error {
-	// Skip validation if metrics are disabled
+	// Skip validation if metrics are disabled.
 	if !c.MetricsEnabled {
 		return nil
 	}
 
-	// If metrics are exposed publicly, warn about security implications
+	// If metrics are exposed publicly, warn about security implications.
 	if c.ExposeMetricsPublicly && len(c.MetricsAllowedCIDRs) == 0 && len(c.MetricsAllowedIPs) == 0 {
 		return fmt.Errorf("when exposing metrics publicly, consider setting METRICS_ALLOWED_CIDRS or METRICS_ALLOWED_IPS for additional security")
 	}
 
-	// Validate each CIDR block
+	// Validate each CIDR block.
 	for i, cidr := range c.MetricsAllowedCIDRs {
 		if err := validateCIDR(cidr); err != nil {
 			return fmt.Errorf("invalid CIDR at position %d: %w", i, err)
 		}
 	}
 
-	// Validate each IP address
+	// Validate each IP address.
 	for i, ip := range c.MetricsAllowedIPs {
 		if err := validateIP(ip); err != nil {
 			return fmt.Errorf("invalid IP at position %d: %w", i, err)
@@ -832,7 +833,7 @@ func (c *LLMProcessorConfig) validateMetricsSecurityConfiguration() error {
 	return nil
 }
 
-// parseAndValidateCIDRs parses a comma-separated list of CIDR blocks and validates them
+// parseAndValidateCIDRs parses a comma-separated list of CIDR blocks and validates them.
 func parseAndValidateCIDRs(cidrsStr string) ([]string, error) {
 	if strings.TrimSpace(cidrsStr) == "" {
 		return nil, fmt.Errorf("CIDR string cannot be empty")
@@ -847,7 +848,7 @@ func parseAndValidateCIDRs(cidrsStr string) ([]string, error) {
 			continue
 		}
 
-		// Validate CIDR format
+		// Validate CIDR format.
 		if err := validateCIDR(cidr); err != nil {
 			return nil, fmt.Errorf("invalid CIDR '%s': %w", cidr, err)
 		}
@@ -862,28 +863,28 @@ func parseAndValidateCIDRs(cidrsStr string) ([]string, error) {
 	return validCIDRs, nil
 }
 
-// validateCIDR validates a single CIDR block
+// validateCIDR validates a single CIDR block.
 func validateCIDR(cidr string) error {
 	if cidr == "" {
 		return fmt.Errorf("CIDR cannot be empty")
 	}
 
-	// Parse CIDR using net.ParseCIDR
+	// Parse CIDR using net.ParseCIDR.
 	_, ipNet, err := net.ParseCIDR(cidr)
 	if err != nil {
 		return fmt.Errorf("invalid CIDR format: %w", err)
 	}
 
-	// Additional validation for security
+	// Additional validation for security.
 	if ipNet == nil {
 		return fmt.Errorf("parsed CIDR is nil")
 	}
 
-	// Check for overly broad networks in production
+	// Check for overly broad networks in production.
 	if isProductionEnvironment() {
 		ones, bits := ipNet.Mask.Size()
 
-		// Warn about very broad networks
+		// Warn about very broad networks.
 		if bits == 32 && ones < 8 { // IPv4 networks broader than /8
 			return fmt.Errorf("CIDR '%s' is too broad for production use (/%d)", cidr, ones)
 		}
@@ -895,7 +896,7 @@ func validateCIDR(cidr string) error {
 	return nil
 }
 
-// getDefaultPrivateNetworks returns the standard private network CIDR blocks
+// getDefaultPrivateNetworks returns the standard private network CIDR blocks.
 func getDefaultPrivateNetworks() []string {
 	return []string{
 		"10.0.0.0/8",     // Private Class A
@@ -907,7 +908,7 @@ func getDefaultPrivateNetworks() []string {
 	}
 }
 
-// isProductionEnvironment determines if we're running in a production environment
+// isProductionEnvironment determines if we're running in a production environment.
 func isProductionEnvironment() bool {
 	envVars := []string{"GO_ENV", "NODE_ENV", "ENVIRONMENT", "ENV", "APP_ENV", "LLM_ENVIRONMENT"}
 
@@ -924,42 +925,42 @@ func isProductionEnvironment() bool {
 	return false // Default to false for this specific validation
 }
 
-// GetMetricsAccessConfig returns the effective metrics access configuration
+// GetMetricsAccessConfig returns the effective metrics access configuration.
 func (c *LLMProcessorConfig) GetMetricsAccessConfig() (isPublic bool, allowedCIDRs []string) {
 	return c.ExposeMetricsPublicly, c.MetricsAllowedCIDRs
 }
 
-// IsMetricsAccessAllowed checks if the given IP address is allowed to access metrics
+// IsMetricsAccessAllowed checks if the given IP address is allowed to access metrics.
 func (c *LLMProcessorConfig) IsMetricsAccessAllowed(clientIP string) bool {
-	// If metrics are disabled, deny all access
+	// If metrics are disabled, deny all access.
 	if !c.MetricsEnabled {
 		return false
 	}
 
-	// If metrics are public, allow all access
+	// If metrics are public, allow all access.
 	if c.ExposeMetricsPublicly {
 		return true
 	}
 
-	// Check specific IP allowlist first
+	// Check specific IP allowlist first.
 	for _, allowedIP := range c.MetricsAllowedIPs {
 		if clientIP == allowedIP {
 			return true
 		}
 	}
 
-	// If no CIDRs are configured and no IPs matched, deny access
+	// If no CIDRs are configured and no IPs matched, deny access.
 	if len(c.MetricsAllowedCIDRs) == 0 {
 		return false
 	}
 
-	// Parse the client IP
+	// Parse the client IP.
 	ip := net.ParseIP(clientIP)
 	if ip == nil {
 		return false
 	}
 
-	// Check if the IP is in any of the allowed CIDR blocks
+	// Check if the IP is in any of the allowed CIDR blocks.
 	for _, cidrStr := range c.MetricsAllowedCIDRs {
 		_, cidr, err := net.ParseCIDR(cidrStr)
 		if err != nil {
@@ -973,7 +974,7 @@ func (c *LLMProcessorConfig) IsMetricsAccessAllowed(clientIP string) bool {
 	return false
 }
 
-// parseAndValidateIPs parses a comma-separated list of IP addresses and validates them
+// parseAndValidateIPs parses a comma-separated list of IP addresses and validates them.
 func parseAndValidateIPs(ipsStr string) ([]string, error) {
 	if strings.TrimSpace(ipsStr) == "" {
 		return nil, fmt.Errorf("IP string cannot be empty")
@@ -988,7 +989,7 @@ func parseAndValidateIPs(ipsStr string) ([]string, error) {
 			continue
 		}
 
-		// Validate IP format
+		// Validate IP format.
 		if err := validateIP(ip); err != nil {
 			return nil, fmt.Errorf("invalid IP '%s': %w", ip, err)
 		}
@@ -1003,13 +1004,13 @@ func parseAndValidateIPs(ipsStr string) ([]string, error) {
 	return validIPs, nil
 }
 
-// validateIP validates a single IP address
+// validateIP validates a single IP address.
 func validateIP(ip string) error {
 	if ip == "" {
 		return fmt.Errorf("IP cannot be empty")
 	}
 
-	// Parse IP using net.ParseIP
+	// Parse IP using net.ParseIP.
 	parsedIP := net.ParseIP(ip)
 	if parsedIP == nil {
 		return fmt.Errorf("invalid IP address format")

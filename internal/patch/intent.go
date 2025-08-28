@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-// Intent represents the scaling intent structure
+// Intent represents the scaling intent structure.
 type Intent struct {
 	IntentType    string `json:"intent_type"`
 	Target        string `json:"target"`
@@ -17,7 +17,7 @@ type Intent struct {
 	CorrelationID string `json:"correlation_id,omitempty"`
 }
 
-// LoadIntent reads and parses an intent JSON file
+// LoadIntent reads and parses an intent JSON file.
 func LoadIntent(path string) (*Intent, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -29,7 +29,7 @@ func LoadIntent(path string) (*Intent, error) {
 		return nil, fmt.Errorf("failed to parse intent JSON: %w", err)
 	}
 
-	// Validate required fields
+	// Validate required fields.
 	if intent.IntentType != "scaling" {
 		return nil, fmt.Errorf("unsupported intent_type: %s (expected 'scaling')", intent.IntentType)
 	}

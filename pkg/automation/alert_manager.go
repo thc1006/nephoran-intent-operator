@@ -7,13 +7,13 @@ import (
 	"time"
 )
 
-// AlertManager handles system alerts and notifications
+// AlertManager handles system alerts and notifications.
 type AlertManager struct {
 	config *NotificationConfig
 	logger *slog.Logger
 }
 
-// Alert represents a system alert
+// Alert represents a system alert.
 type Alert struct {
 	ID         string                 `json:"id"`
 	Component  string                 `json:"component"`
@@ -26,7 +26,7 @@ type Alert struct {
 	ResolvedAt *time.Time             `json:"resolved_at,omitempty"`
 }
 
-// NotificationConfig defines notification settings
+// NotificationConfig defines notification settings.
 type NotificationConfig struct {
 	Enabled    bool              `json:"enabled"`
 	Webhooks   []string          `json:"webhooks"`
@@ -36,26 +36,26 @@ type NotificationConfig struct {
 	RateLimit  *RateLimitConfig  `json:"rate_limit,omitempty"`
 }
 
-// EscalationConfig defines alert escalation rules
+// EscalationConfig defines alert escalation rules.
 type EscalationConfig struct {
 	Levels []EscalationLevel `json:"levels"`
 }
 
-// EscalationLevel defines escalation thresholds and contacts
+// EscalationLevel defines escalation thresholds and contacts.
 type EscalationLevel struct {
 	Threshold time.Duration `json:"threshold"`
 	Contacts  []string      `json:"contacts"`
 	Actions   []string      `json:"actions"`
 }
 
-// RateLimitConfig defines rate limiting for notifications
+// RateLimitConfig defines rate limiting for notifications.
 type RateLimitConfig struct {
 	MaxAlertsPerMinute int           `json:"max_alerts_per_minute"`
 	BurstSize          int           `json:"burst_size"`
 	CooldownPeriod     time.Duration `json:"cooldown_period"`
 }
 
-// NewAlertManager creates a new alert manager
+// NewAlertManager creates a new alert manager.
 func NewAlertManager(config *NotificationConfig, logger *slog.Logger) (*AlertManager, error) {
 	if config == nil {
 		return nil, fmt.Errorf("notification configuration is required")
@@ -67,7 +67,7 @@ func NewAlertManager(config *NotificationConfig, logger *slog.Logger) (*AlertMan
 	}, nil
 }
 
-// SendAlert sends an alert through configured channels
+// SendAlert sends an alert through configured channels.
 func (am *AlertManager) SendAlert(alert *Alert) error {
 	if !am.config.Enabled {
 		am.logger.Debug("Alert manager disabled, skipping alert", "alert", alert.ID)
@@ -80,18 +80,18 @@ func (am *AlertManager) SendAlert(alert *Alert) error {
 		"severity", alert.Severity,
 		"message", alert.Message)
 
-	// In a real implementation, this would send to actual notification channels
-	// For now, just log the alert
+	// In a real implementation, this would send to actual notification channels.
+	// For now, just log the alert.
 	return nil
 }
 
-// Start starts the alert manager
+// Start starts the alert manager.
 func (am *AlertManager) Start(ctx context.Context) error {
 	am.logger.Info("Starting alert manager")
 	return nil
 }
 
-// Stop stops the alert manager
+// Stop stops the alert manager.
 func (am *AlertManager) Stop() {
 	am.logger.Info("Stopping alert manager")
 }

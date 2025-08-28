@@ -38,7 +38,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
-// ConfigSyncConfig defines Config Sync configuration (unified type)
+// ConfigSyncConfig defines Config Sync configuration (unified type).
 type ConfigSyncConfig struct {
 	Repository string        `json:"repository" yaml:"repository"`
 	Branch     string        `json:"branch" yaml:"branch"`
@@ -51,7 +51,7 @@ type ConfigSyncConfig struct {
 	Namespaces []string      `json:"namespaces" yaml:"namespaces"`
 }
 
-// GitConfig contains Git configuration for Config Sync
+// GitConfig contains Git configuration for Config Sync.
 type GitConfig struct {
 	URL       string
 	Branch    string
@@ -60,7 +60,7 @@ type GitConfig struct {
 	Email     string
 }
 
-// ConfigSyncMetrics provides Config Sync metrics
+// ConfigSyncMetrics provides Config Sync metrics.
 type ConfigSyncMetrics struct {
 	SyncOperations     *prometheus.CounterVec
 	SyncDuration       *prometheus.HistogramVec
@@ -70,7 +70,7 @@ type ConfigSyncMetrics struct {
 	PackageDeployments *prometheus.CounterVec
 }
 
-// NewConfigSyncMetrics creates new Config Sync metrics
+// NewConfigSyncMetrics creates new Config Sync metrics.
 func NewConfigSyncMetrics() *ConfigSyncMetrics {
 	return &ConfigSyncMetrics{
 		SyncOperations: promauto.NewCounterVec(
@@ -119,7 +119,7 @@ func NewConfigSyncMetrics() *ConfigSyncMetrics {
 	}
 }
 
-// ConfigSyncClient manages Config Sync operations
+// ConfigSyncClient manages Config Sync operations.
 type ConfigSyncClient struct {
 	client    client.Client
 	logger    logr.Logger
@@ -129,7 +129,7 @@ type ConfigSyncClient struct {
 	gitConfig GitConfig
 }
 
-// SyncResult represents the result of a Config Sync operation
+// SyncResult represents the result of a Config Sync operation.
 type SyncResult struct {
 	Status    string
 	Resources []string
@@ -137,7 +137,7 @@ type SyncResult struct {
 	Error     error
 }
 
-// NewConfigSyncClient creates a new Config Sync client
+// NewConfigSyncClient creates a new Config Sync client.
 func NewConfigSyncClient(client client.Client, config *ConfigSyncConfig) (*ConfigSyncClient, error) {
 	if config == nil {
 		return nil, fmt.Errorf("config cannot be nil")
@@ -161,7 +161,7 @@ func NewConfigSyncClient(client client.Client, config *ConfigSyncConfig) (*Confi
 	}, nil
 }
 
-// DeployPackage deploys a package using Config Sync
+// DeployPackage deploys a package using Config Sync.
 func (csc *ConfigSyncClient) DeployPackage(ctx context.Context, pkg *porch.PackageRevision, cluster *WorkloadCluster) (*SyncResult, error) {
 	ctx, span := csc.tracer.Start(ctx, "deploy-package")
 	defer span.End()
@@ -175,7 +175,7 @@ func (csc *ConfigSyncClient) DeployPackage(ctx context.Context, pkg *porch.Packa
 
 	logger.Info("Starting package deployment via Config Sync")
 
-	// Prepare package content for Git repository
+	// Prepare package content for Git repository.
 	content, err := csc.preparePackageContent(ctx, pkg, cluster)
 	if err != nil {
 		csc.metrics.SyncErrors.WithLabelValues(csc.gitConfig.URL, "prepare_content").Inc()
@@ -183,16 +183,16 @@ func (csc *ConfigSyncClient) DeployPackage(ctx context.Context, pkg *porch.Packa
 		return nil, fmt.Errorf("failed to prepare package content: %w", err)
 	}
 
-	// Clone or update Git repository
+	// Clone or update Git repository.
 	if err := csc.setupRepository(ctx); err != nil {
 		csc.metrics.SyncErrors.WithLabelValues(csc.gitConfig.URL, "setup_repo").Inc()
 		span.RecordError(err)
 		return nil, fmt.Errorf("failed to setup repository: %w", err)
 	}
 
-	// Write package files to repository
+	// Write package files to repository.
 	packagePath := filepath.Join(csc.repoPath, "clusters", cluster.Name, pkg.Spec.PackageName)
-	if err := os.MkdirAll(packagePath, 0755); err != nil {
+	if err := os.MkdirAll(packagePath, 0o755); err != nil {
 		span.RecordError(err)
 		return nil, fmt.Errorf("failed to create package directory: %w", err)
 	}
@@ -200,14 +200,14 @@ func (csc *ConfigSyncClient) DeployPackage(ctx context.Context, pkg *porch.Packa
 	var resources []string
 	for filename, data := range content {
 		filePath := filepath.Join(packagePath, filename)
-		if err := os.WriteFile(filePath, data, 0644); err != nil {
+		if err := os.WriteFile(filePath, data, 0o640); err != nil {
 			span.RecordError(err)
 			return nil, fmt.Errorf("failed to write file %s: %w", filename, err)
 		}
 		resources = append(resources, filename)
 	}
 
-	// Commit and push changes
+	// Commit and push changes.
 	if err := csc.commitAndPush(ctx, pkg, cluster); err != nil {
 		csc.metrics.GitOperations.WithLabelValues("push", csc.gitConfig.URL, "failed").Inc()
 		span.RecordError(err)
@@ -240,7 +240,7 @@ func (csc *ConfigSyncClient) DeployPackage(ctx context.Context, pkg *porch.Packa
 	return syncResult, nil
 }
 
-// KrmResource represents a KRM resource structure
+// KrmResource represents a KRM resource structure.
 type KrmResource struct {
 	APIVersion string                 `json:"apiVersion,omitempty" yaml:"apiVersion,omitempty"`
 	Kind       string                 `json:"kind,omitempty" yaml:"kind,omitempty"`
@@ -250,19 +250,19 @@ type KrmResource struct {
 	Data       interface{}            `json:"data,omitempty" yaml:"data,omitempty"`
 }
 
-// preparePackageContent prepares package content for Config Sync deployment
+// preparePackageContent prepares package content for Config Sync deployment.
 func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *porch.PackageRevision, cluster *WorkloadCluster) (map[string][]byte, error) {
 	ctx, span := csc.tracer.Start(ctx, "prepare-package-content")
 	defer span.End()
 
 	content := make(map[string][]byte)
 
-	// Convert KRM resources to YAML files
+	// Convert KRM resources to YAML files.
 	for i, resourceInterface := range pkg.Spec.Resources {
-		// Try to handle resource as a map first
+		// Try to handle resource as a map first.
 		resourceMap, ok := resourceInterface.(map[string]interface{})
 		if !ok {
-			// Try to marshal and unmarshal to get a map
+			// Try to marshal and unmarshal to get a map.
 			resourceData, err := yaml.Marshal(resourceInterface)
 			if err != nil {
 				span.RecordError(err)
@@ -275,7 +275,7 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 			}
 		}
 
-		// Extract kind and name from the resource map
+		// Extract kind and name from the resource map.
 		kind, _ := resourceMap["kind"].(string)
 		if kind == "" {
 			kind = "Resource"
@@ -289,10 +289,10 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 			name = fmt.Sprintf("resource-%d", i)
 		}
 
-		// Generate filename
+		// Generate filename.
 		filename := fmt.Sprintf("%s-%s.yaml", strings.ToLower(kind), name)
 
-		// Convert resource content to YAML
+		// Convert resource content to YAML.
 		yamlContent, err := yaml.Marshal(resourceMap)
 		if err != nil {
 			span.RecordError(err)
@@ -302,7 +302,7 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 		content[filename] = yamlContent
 	}
 
-	// Generate Kustomization file
+	// Generate Kustomization file.
 	kustomization := map[string]interface{}{
 		"apiVersion": "kustomize.config.k8s.io/v1beta1",
 		"kind":       "Kustomization",
@@ -334,7 +334,7 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 	}
 	content["kustomization.yaml"] = kustomizationYAML
 
-	// Generate namespace if not present
+	// Generate namespace if not present.
 	if !csc.hasNamespaceResource(content) {
 		namespace := map[string]interface{}{
 			"apiVersion": "v1",
@@ -365,7 +365,7 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 	return content, nil
 }
 
-// getResourceFileNames extracts resource file names from content map
+// getResourceFileNames extracts resource file names from content map.
 func (csc *ConfigSyncClient) getResourceFileNames(content map[string][]byte) []string {
 	var files []string
 	for filename := range content {
@@ -376,7 +376,7 @@ func (csc *ConfigSyncClient) getResourceFileNames(content map[string][]byte) []s
 	return files
 }
 
-// hasNamespaceResource checks if the content contains a namespace resource
+// hasNamespaceResource checks if the content contains a namespace resource.
 func (csc *ConfigSyncClient) hasNamespaceResource(content map[string][]byte) bool {
 	for filename := range content {
 		if strings.Contains(strings.ToLower(filename), "namespace") {
@@ -386,21 +386,21 @@ func (csc *ConfigSyncClient) hasNamespaceResource(content map[string][]byte) boo
 	return false
 }
 
-// setupRepository clones or updates the Git repository
+// setupRepository clones or updates the Git repository.
 func (csc *ConfigSyncClient) setupRepository(ctx context.Context) error {
 	ctx, span := csc.tracer.Start(ctx, "setup-repository")
 	defer span.End()
 
-	// Check if repository already exists
+	// Check if repository already exists.
 	if _, err := os.Stat(csc.repoPath); os.IsNotExist(err) {
-		// Clone repository
+		// Clone repository.
 		cmd := exec.CommandContext(ctx, "git", "clone", csc.gitConfig.URL, csc.repoPath)
 		if output, err := cmd.CombinedOutput(); err != nil {
 			span.RecordError(err)
 			return fmt.Errorf("failed to clone repository: %w, output: %s", err, output)
 		}
 	} else {
-		// Pull latest changes
+		// Pull latest changes.
 		cmd := exec.CommandContext(ctx, "git", "-C", csc.repoPath, "pull", "origin", csc.gitConfig.Branch)
 		if output, err := cmd.CombinedOutput(); err != nil {
 			span.RecordError(err)
@@ -408,7 +408,7 @@ func (csc *ConfigSyncClient) setupRepository(ctx context.Context) error {
 		}
 	}
 
-	// Configure Git user if needed
+	// Configure Git user if needed.
 	if csc.gitConfig.Username != "" && csc.gitConfig.Email != "" {
 		userCmd := exec.CommandContext(ctx, "git", "-C", csc.repoPath, "config", "user.name", csc.gitConfig.Username)
 		if err := userCmd.Run(); err != nil {
@@ -426,19 +426,19 @@ func (csc *ConfigSyncClient) setupRepository(ctx context.Context) error {
 	return nil
 }
 
-// commitAndPush commits and pushes changes to the Git repository
+// commitAndPush commits and pushes changes to the Git repository.
 func (csc *ConfigSyncClient) commitAndPush(ctx context.Context, pkg *porch.PackageRevision, cluster *WorkloadCluster) error {
 	ctx, span := csc.tracer.Start(ctx, "commit-and-push")
 	defer span.End()
 
-	// Add all changes
+	// Add all changes.
 	addCmd := exec.CommandContext(ctx, "git", "-C", csc.repoPath, "add", ".")
 	if output, err := addCmd.CombinedOutput(); err != nil {
 		span.RecordError(err)
 		return fmt.Errorf("failed to add changes: %w, output: %s", err, output)
 	}
 
-	// Check if there are changes to commit
+	// Check if there are changes to commit.
 	statusCmd := exec.CommandContext(ctx, "git", "-C", csc.repoPath, "status", "--porcelain")
 	output, err := statusCmd.CombinedOutput()
 	if err != nil {
@@ -451,7 +451,7 @@ func (csc *ConfigSyncClient) commitAndPush(ctx context.Context, pkg *porch.Packa
 		return nil
 	}
 
-	// Commit changes
+	// Commit changes.
 	commitMsg := fmt.Sprintf("Deploy package %s revision %s to cluster %s", pkg.Spec.PackageName, pkg.Spec.Revision, cluster.Name)
 	commitCmd := exec.CommandContext(ctx, "git", "-C", csc.repoPath, "commit", "-m", commitMsg)
 	if output, err := commitCmd.CombinedOutput(); err != nil {
@@ -459,7 +459,7 @@ func (csc *ConfigSyncClient) commitAndPush(ctx context.Context, pkg *porch.Packa
 		return fmt.Errorf("failed to commit changes: %w, output: %s", err, output)
 	}
 
-	// Push changes
+	// Push changes.
 	pushCmd := exec.CommandContext(ctx, "git", "-C", csc.repoPath, "push", "origin", csc.gitConfig.Branch)
 	if output, err := pushCmd.CombinedOutput(); err != nil {
 		span.RecordError(err)
@@ -474,12 +474,12 @@ func (csc *ConfigSyncClient) commitAndPush(ctx context.Context, pkg *porch.Packa
 	return nil
 }
 
-// ValidateRepository validates the Git repository configuration
+// ValidateRepository validates the Git repository configuration.
 func (csc *ConfigSyncClient) ValidateRepository(ctx context.Context) error {
 	ctx, span := csc.tracer.Start(ctx, "validate-repository")
 	defer span.End()
 
-	// Test repository connectivity
+	// Test repository connectivity.
 	cmd := exec.CommandContext(ctx, "git", "ls-remote", csc.gitConfig.URL)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		csc.metrics.RepositoryHealth.WithLabelValues(csc.gitConfig.URL, csc.gitConfig.Branch).Set(0)
@@ -491,13 +491,13 @@ func (csc *ConfigSyncClient) ValidateRepository(ctx context.Context) error {
 	return nil
 }
 
-// GetSyncStatus returns the current sync status for a package
+// GetSyncStatus returns the current sync status for a package.
 func (csc *ConfigSyncClient) GetSyncStatus(ctx context.Context, packageName, clusterName string) (*SyncResult, error) {
 	ctx, span := csc.tracer.Start(ctx, "get-sync-status")
 	defer span.End()
 
-	// This is a simplified implementation
-	// In a real scenario, you would query the Config Sync API or Git repository
+	// This is a simplified implementation.
+	// In a real scenario, you would query the Config Sync API or Git repository.
 	return &SyncResult{
 		Status:    "Unknown",
 		Resources: []string{},
@@ -505,7 +505,7 @@ func (csc *ConfigSyncClient) GetSyncStatus(ctx context.Context, packageName, clu
 	}, nil
 }
 
-// CleanupPackage removes a package from the Config Sync repository
+// CleanupPackage removes a package from the Config Sync repository.
 func (csc *ConfigSyncClient) CleanupPackage(ctx context.Context, packageName, clusterName string) error {
 	ctx, span := csc.tracer.Start(ctx, "cleanup-package")
 	defer span.End()
@@ -513,20 +513,20 @@ func (csc *ConfigSyncClient) CleanupPackage(ctx context.Context, packageName, cl
 	logger := csc.logger.WithValues("package", packageName, "cluster", clusterName)
 	logger.Info("Cleaning up package from Config Sync repository")
 
-	// Setup repository
+	// Setup repository.
 	if err := csc.setupRepository(ctx); err != nil {
 		span.RecordError(err)
 		return fmt.Errorf("failed to setup repository for cleanup: %w", err)
 	}
 
-	// Remove package directory
+	// Remove package directory.
 	packagePath := filepath.Join(csc.repoPath, "clusters", clusterName, packageName)
 	if err := os.RemoveAll(packagePath); err != nil {
 		span.RecordError(err)
 		return fmt.Errorf("failed to remove package directory: %w", err)
 	}
 
-	// Commit and push removal
+	// Commit and push removal.
 	addCmd := exec.CommandContext(ctx, "git", "-C", csc.repoPath, "add", ".")
 	if output, err := addCmd.CombinedOutput(); err != nil {
 		span.RecordError(err)
@@ -536,7 +536,7 @@ func (csc *ConfigSyncClient) CleanupPackage(ctx context.Context, packageName, cl
 	commitMsg := fmt.Sprintf("Remove package %s from cluster %s", packageName, clusterName)
 	commitCmd := exec.CommandContext(ctx, "git", "-C", csc.repoPath, "commit", "-m", commitMsg)
 	if output, err := commitCmd.CombinedOutput(); err != nil {
-		// Check if there were no changes to commit
+		// Check if there were no changes to commit.
 		if strings.Contains(string(output), "nothing to commit") {
 			logger.Info("Package directory was already removed")
 			return nil

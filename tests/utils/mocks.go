@@ -17,7 +17,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
 )
 
-// MockDependencies implements the Dependencies interface for testing
+// MockDependencies implements the Dependencies interface for testing.
 type MockDependencies struct {
 	gitClient            *MockGitClient
 	llmClient            *MockLLMClient
@@ -27,14 +27,14 @@ type MockDependencies struct {
 	telecomKnowledgeBase *telecom.TelecomKnowledgeBase
 	metricsCollector     *MockMetricsCollector
 
-	// Control behavior
+	// Control behavior.
 	simulateErrors  map[string]error
 	operationDelays map[string]time.Duration
 	callCounts      map[string]int
 	mu              sync.RWMutex
 }
 
-// NewMockDependencies creates a new mock dependencies instance
+// NewMockDependencies creates a new mock dependencies instance.
 func NewMockDependencies() *MockDependencies {
 	return &MockDependencies{
 		gitClient:        NewMockGitClient(),
@@ -67,16 +67,19 @@ func (m *MockDependencies) GetPackageGenerator() *nephio.PackageGenerator {
 	return &nephio.PackageGenerator{} // Return a real instance for simplicity
 }
 
+// GetHTTPClient performs gethttpclient operation.
 func (m *MockDependencies) GetHTTPClient() *http.Client {
 	m.incrementCallCount("GetHTTPClient")
 	return m.httpClient
 }
 
+// GetEventRecorder performs geteventrecorder operation.
 func (m *MockDependencies) GetEventRecorder() record.EventRecorder {
 	m.incrementCallCount("GetEventRecorder")
 	return m.eventRecorder
 }
 
+// GetTelecomKnowledgeBase performs gettelecomknowledgebase operation.
 func (m *MockDependencies) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase {
 	m.incrementCallCount("GetTelecomKnowledgeBase")
 	if m.telecomKnowledgeBase == nil {
@@ -85,24 +88,27 @@ func (m *MockDependencies) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBa
 	return m.telecomKnowledgeBase
 }
 
+// GetMetricsCollector performs getmetricscollector operation.
 func (m *MockDependencies) GetMetricsCollector() *monitoring.MetricsCollector {
 	m.incrementCallCount("GetMetricsCollector")
 	return &monitoring.MetricsCollector{} // Return a real instance for simplicity
 }
 
-// Control methods
+// Control methods.
 func (m *MockDependencies) SetError(operation string, err error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.simulateErrors[operation] = err
 }
 
+// SetDelay performs setdelay operation.
 func (m *MockDependencies) SetDelay(operation string, delay time.Duration) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.operationDelays[operation] = delay
 }
 
+// GetCallCount performs getcallcount operation.
 func (m *MockDependencies) GetCallCount(operation string) int {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -131,7 +137,7 @@ func (m *MockDependencies) checkError(operation string) error {
 	return m.simulateErrors[operation]
 }
 
-// MockGitClient implements git.ClientInterface for testing
+// MockGitClient implements git.ClientInterface for testing.
 type MockGitClient struct {
 	commits     []string
 	pushResults map[string]error
@@ -140,6 +146,7 @@ type MockGitClient struct {
 	mu          sync.RWMutex
 }
 
+// NewMockGitClient performs newmockgitclient operation.
 func NewMockGitClient() *MockGitClient {
 	return &MockGitClient{
 		commits:     make([]string, 0),
@@ -149,12 +156,14 @@ func NewMockGitClient() *MockGitClient {
 	}
 }
 
+// Clone performs clone operation.
 func (m *MockGitClient) Clone(ctx context.Context, url, branch, path string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.pushResults["Clone"]
 }
 
+// CommitAndPush performs commitandpush operation.
 func (m *MockGitClient) CommitAndPush(files map[string]string, message string) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -172,12 +181,14 @@ func (m *MockGitClient) CommitAndPush(files map[string]string, message string) (
 	return commitHash, nil
 }
 
+// Pull performs pull operation.
 func (m *MockGitClient) Pull(ctx context.Context, repoPath string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.pullResults["Pull"]
 }
 
+// CommitAndPushChanges performs commitandpushchanges operation.
 func (m *MockGitClient) CommitAndPushChanges(message string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -191,18 +202,21 @@ func (m *MockGitClient) CommitAndPushChanges(message string) error {
 	return nil
 }
 
+// InitRepo performs initrepo operation.
 func (m *MockGitClient) InitRepo() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.pushResults["InitRepo"]
 }
 
+// RemoveDirectory performs removedirectory operation.
 func (m *MockGitClient) RemoveDirectory(path string, commitMessage string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.pushResults["RemoveDirectory"]
 }
 
+// CommitFiles performs commitfiles operation.
 func (m *MockGitClient) CommitFiles(files []string, msg string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -216,18 +230,21 @@ func (m *MockGitClient) CommitFiles(files []string, msg string) error {
 	return nil
 }
 
+// CreateBranch performs createbranch operation.
 func (m *MockGitClient) CreateBranch(name string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.pushResults["CreateBranch"]
 }
 
+// SwitchBranch performs switchbranch operation.
 func (m *MockGitClient) SwitchBranch(name string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.pushResults["SwitchBranch"]
 }
 
+// GetCurrentBranch performs getcurrentbranch operation.
 func (m *MockGitClient) GetCurrentBranch() (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -237,6 +254,7 @@ func (m *MockGitClient) GetCurrentBranch() (string, error) {
 	return "main", nil
 }
 
+// ListBranches performs listbranches operation.
 func (m *MockGitClient) ListBranches() ([]string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -246,6 +264,7 @@ func (m *MockGitClient) ListBranches() ([]string, error) {
 	return []string{"main", "dev"}, nil
 }
 
+// GetFileContent performs getfilecontent operation.
 func (m *MockGitClient) GetFileContent(path string) ([]byte, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -258,7 +277,7 @@ func (m *MockGitClient) GetFileContent(path string) ([]byte, error) {
 	return []byte("mock content"), nil
 }
 
-// LLMResponse represents a response from the LLM processor
+// LLMResponse represents a response from the LLM processor.
 type LLMResponse struct {
 	IntentType     string                 `json:"intent_type"`
 	Confidence     float64                `json:"confidence"`
@@ -269,13 +288,14 @@ type LLMResponse struct {
 	Model          string                 `json:"model"`
 }
 
-// MockLLMClient implements shared.ClientInterface for testing
+// MockLLMClient implements shared.ClientInterface for testing.
 type MockLLMClient struct {
 	responses map[string]*LLMResponse
 	errors    map[string]error
 	mu        sync.RWMutex
 }
 
+// NewMockLLMClient performs newmockllmclient operation.
 func NewMockLLMClient() *MockLLMClient {
 	return &MockLLMClient{
 		responses: make(map[string]*LLMResponse),
@@ -283,6 +303,7 @@ func NewMockLLMClient() *MockLLMClient {
 	}
 }
 
+// ProcessIntent performs processintent operation.
 func (m *MockLLMClient) ProcessIntent(ctx context.Context, prompt string) (string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -295,10 +316,11 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, prompt string) (strin
 		return fmt.Sprintf("Intent: %s, Confidence: %.2f", response.IntentType, response.Confidence), nil
 	}
 
-	// Default response for successful processing
+	// Default response for successful processing.
 	return "Intent processed successfully: 5G-Core-AMF with 95% confidence", nil
 }
 
+// ProcessIntentStream performs processintentstream operation.
 func (m *MockLLMClient) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *shared.StreamingChunk) error {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -307,7 +329,7 @@ func (m *MockLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 		return err
 	}
 
-	// Send mock streaming chunks
+	// Send mock streaming chunks.
 	go func() {
 		defer close(chunks)
 		chunks <- &shared.StreamingChunk{Content: "Processing intent...", IsLast: false}
@@ -317,10 +339,12 @@ func (m *MockLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 	return nil
 }
 
+// GetSupportedModels performs getsupportedmodels operation.
 func (m *MockLLMClient) GetSupportedModels() []string {
 	return []string{"gpt-4o-mini", "gpt-4o", "claude-3-haiku"}
 }
 
+// GetModelCapabilities performs getmodelcapabilities operation.
 func (m *MockLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
 	return &shared.ModelCapabilities{
 		MaxTokens:         4096,
@@ -332,6 +356,7 @@ func (m *MockLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCap
 	}, nil
 }
 
+// ValidateModel performs validatemodel operation.
 func (m *MockLLMClient) ValidateModel(modelName string) error {
 	supportedModels := m.GetSupportedModels()
 	for _, model := range supportedModels {
@@ -342,11 +367,13 @@ func (m *MockLLMClient) ValidateModel(modelName string) error {
 	return fmt.Errorf("unsupported model: %s", modelName)
 }
 
+// EstimateTokens performs estimatetokens operation.
 func (m *MockLLMClient) EstimateTokens(text string) int {
-	// Simple estimation: roughly 4 characters per token
+	// Simple estimation: roughly 4 characters per token.
 	return len(text) / 4
 }
 
+// GetMaxTokens performs getmaxtokens operation.
 func (m *MockLLMClient) GetMaxTokens(modelName string) int {
 	switch modelName {
 	case "gpt-4o-mini":
@@ -360,34 +387,38 @@ func (m *MockLLMClient) GetMaxTokens(modelName string) int {
 	}
 }
 
+// Close performs close operation.
 func (m *MockLLMClient) Close() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	// Clean up resources
+	// Clean up resources.
 	m.responses = make(map[string]*LLMResponse)
 	m.errors = make(map[string]error)
 	return nil
 }
 
+// SetResponse performs setresponse operation.
 func (m *MockLLMClient) SetResponse(operation string, response *LLMResponse) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.responses[operation] = response
 }
 
+// SetError performs seterror operation.
 func (m *MockLLMClient) SetError(operation string, err error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.errors[operation] = err
 }
 
-// MockPackageGenerator implements basic package generation for testing
+// MockPackageGenerator implements basic package generation for testing.
 type MockPackageGenerator struct {
 	packages map[string]string
 	errors   map[string]error
 	mu       sync.RWMutex
 }
 
+// NewMockPackageGenerator performs newmockpackagegenerator operation.
 func NewMockPackageGenerator() *MockPackageGenerator {
 	return &MockPackageGenerator{
 		packages: make(map[string]string),
@@ -395,6 +426,7 @@ func NewMockPackageGenerator() *MockPackageGenerator {
 	}
 }
 
+// GeneratePackage performs generatepackage operation.
 func (m *MockPackageGenerator) GeneratePackage(intentType string, parameters map[string]interface{}) (map[string]string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -403,7 +435,7 @@ func (m *MockPackageGenerator) GeneratePackage(intentType string, parameters map
 		return nil, err
 	}
 
-	// Generate mock package files
+	// Generate mock package files.
 	files := map[string]string{
 		"Kptfile": `apiVersion: kpt.dev/v1
 kind: Kptfile
@@ -434,19 +466,21 @@ spec:
 	return files, nil
 }
 
+// SetError performs seterror operation.
 func (m *MockPackageGenerator) SetError(operation string, err error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.errors[operation] = err
 }
 
-// MockMetricsCollector implements metrics collection for testing
+// MockMetricsCollector implements metrics collection for testing.
 type MockMetricsCollector struct {
 	metrics map[string]float64
 	labels  map[string]map[string]string
 	mu      sync.RWMutex
 }
 
+// NewMockMetricsCollector performs newmockmetricscollector operation.
 func NewMockMetricsCollector() *MockMetricsCollector {
 	return &MockMetricsCollector{
 		metrics: make(map[string]float64),
@@ -454,6 +488,7 @@ func NewMockMetricsCollector() *MockMetricsCollector {
 	}
 }
 
+// RecordMetric performs recordmetric operation.
 func (m *MockMetricsCollector) RecordMetric(name string, value float64, labels map[string]string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -461,25 +496,28 @@ func (m *MockMetricsCollector) RecordMetric(name string, value float64, labels m
 	m.labels[name] = labels
 }
 
+// GetMetric performs getmetric operation.
 func (m *MockMetricsCollector) GetMetric(name string) float64 {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.metrics[name]
 }
 
+// GetLabels performs getlabels operation.
 func (m *MockMetricsCollector) GetLabels(name string) map[string]string {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.labels[name]
 }
 
-// MockHTTPClient provides HTTP client mocking utilities
+// MockHTTPClient provides HTTP client mocking utilities.
 type MockHTTPClient struct {
 	responses map[string]*http.Response
 	errors    map[string]error
 	mu        sync.RWMutex
 }
 
+// NewMockHTTPClient performs newmockhttpclient operation.
 func NewMockHTTPClient() *MockHTTPClient {
 	return &MockHTTPClient{
 		responses: make(map[string]*http.Response),
@@ -487,7 +525,7 @@ func NewMockHTTPClient() *MockHTTPClient {
 	}
 }
 
-// Helper functions for creating mock responses
+// Helper functions for creating mock responses.
 func CreateMockLLMResponse(intentType string, confidence float64) *LLMResponse {
 	return &LLMResponse{
 		IntentType: intentType,
@@ -513,13 +551,14 @@ func CreateMockLLMResponse(intentType string, confidence float64) *LLMResponse {
 	}
 }
 
-// Performance testing utilities
+// Performance testing utilities.
 type PerformanceTracker struct {
 	startTimes map[string]time.Time
 	durations  map[string]time.Duration
 	mu         sync.RWMutex
 }
 
+// NewPerformanceTracker performs newperformancetracker operation.
 func NewPerformanceTracker() *PerformanceTracker {
 	return &PerformanceTracker{
 		startTimes: make(map[string]time.Time),
@@ -527,12 +566,14 @@ func NewPerformanceTracker() *PerformanceTracker {
 	}
 }
 
+// Start performs start operation.
 func (p *PerformanceTracker) Start(operation string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.startTimes[operation] = time.Now()
 }
 
+// Stop performs stop operation.
 func (p *PerformanceTracker) Stop(operation string) time.Duration {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -546,12 +587,14 @@ func (p *PerformanceTracker) Stop(operation string) time.Duration {
 	return 0
 }
 
+// GetDuration performs getduration operation.
 func (p *PerformanceTracker) GetDuration(operation string) time.Duration {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 	return p.durations[operation]
 }
 
+// GetAllDurations performs getalldurations operation.
 func (p *PerformanceTracker) GetAllDurations() map[string]time.Duration {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -563,7 +606,7 @@ func (p *PerformanceTracker) GetAllDurations() map[string]time.Duration {
 	return result
 }
 
-// Concurrent testing utilities
+// Concurrent testing utilities.
 type ConcurrentTestRunner struct {
 	workers    int
 	operations []func() error
@@ -572,6 +615,7 @@ type ConcurrentTestRunner struct {
 	wg         sync.WaitGroup
 }
 
+// NewConcurrentTestRunner performs newconcurrenttestrunner operation.
 func NewConcurrentTestRunner(workers int) *ConcurrentTestRunner {
 	return &ConcurrentTestRunner{
 		workers:    workers,
@@ -580,26 +624,28 @@ func NewConcurrentTestRunner(workers int) *ConcurrentTestRunner {
 	}
 }
 
+// AddOperation performs addoperation operation.
 func (c *ConcurrentTestRunner) AddOperation(op func() error) {
 	c.operations = append(c.operations, op)
 }
 
+// Run performs run operation.
 func (c *ConcurrentTestRunner) Run() []error {
 	jobs := make(chan func() error, len(c.operations))
 
-	// Start workers
+	// Start workers.
 	for i := 0; i < c.workers; i++ {
 		c.wg.Add(1)
 		go c.worker(jobs)
 	}
 
-	// Send jobs
+	// Send jobs.
 	for _, op := range c.operations {
 		jobs <- op
 	}
 	close(jobs)
 
-	// Wait for completion
+	// Wait for completion.
 	c.wg.Wait()
 
 	return c.results
@@ -616,24 +662,27 @@ func (c *ConcurrentTestRunner) worker(jobs <-chan func() error) {
 	}
 }
 
-// Memory testing utilities
+// Memory testing utilities.
 type MemoryTracker struct {
 	initialMem uint64
 	peakMem    uint64
 	mu         sync.RWMutex
 }
 
+// NewMemoryTracker performs newmemorytracker operation.
 func NewMemoryTracker() *MemoryTracker {
 	return &MemoryTracker{}
 }
 
+// Start performs start operation.
 func (m *MemoryTracker) Start() {
-	// Memory tracking would be implemented using runtime package
-	// This is a simplified version for the test framework
+	// Memory tracking would be implemented using runtime package.
+	// This is a simplified version for the test framework.
 }
 
+// Stop performs stop operation.
 func (m *MemoryTracker) Stop() uint64 {
-	// Return peak memory usage
+	// Return peak memory usage.
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.peakMem

@@ -9,9 +9,9 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/interfaces"
 )
 
-// LoadLLMAPIKeyFromFile loads the LLM API key from file or environment variable
+// LoadLLMAPIKeyFromFile loads the LLM API key from file or environment variable.
 func LoadLLMAPIKeyFromFile(backendType string, logger interfaces.AuditLogger) (string, error) {
-	// First try environment variable
+	// First try environment variable.
 	envVar := fmt.Sprintf("%s_API_KEY", strings.ToUpper(backendType))
 	if apiKey := os.Getenv(envVar); apiKey != "" {
 		if logger != nil {
@@ -20,7 +20,7 @@ func LoadLLMAPIKeyFromFile(backendType string, logger interfaces.AuditLogger) (s
 		return apiKey, nil
 	}
 
-	// Try loading from file
+	// Try loading from file.
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get home directory: %w", err)
@@ -37,7 +37,7 @@ func LoadLLMAPIKeyFromFile(backendType string, logger interfaces.AuditLogger) (s
 		}
 	}
 
-	// Try generic LLM_API_KEY as fallback
+	// Try generic LLM_API_KEY as fallback.
 	if apiKey := os.Getenv("LLM_API_KEY"); apiKey != "" {
 		if logger != nil {
 			logger.LogSecretAccess("api_key", "env:LLM_API_KEY", "system", "", true, nil)
@@ -52,9 +52,9 @@ func LoadLLMAPIKeyFromFile(backendType string, logger interfaces.AuditLogger) (s
 	return "", err
 }
 
-// LoadAPIKeyFromFile loads the application API key from file or environment variable
+// LoadAPIKeyFromFile loads the application API key from file or environment variable.
 func LoadAPIKeyFromFile(logger interfaces.AuditLogger) (string, error) {
-	// First try environment variable
+	// First try environment variable.
 	if apiKey := os.Getenv("API_KEY"); apiKey != "" {
 		if logger != nil {
 			logger.LogAPIKeyValidation("application", "environment", true, nil)
@@ -62,7 +62,7 @@ func LoadAPIKeyFromFile(logger interfaces.AuditLogger) (string, error) {
 		return apiKey, nil
 	}
 
-	// Try loading from file
+	// Try loading from file.
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get home directory: %w", err)
@@ -86,9 +86,9 @@ func LoadAPIKeyFromFile(logger interfaces.AuditLogger) (string, error) {
 	return "", err
 }
 
-// LoadJWTSecretKeyFromFile loads the JWT secret key from file or environment variable
+// LoadJWTSecretKeyFromFile loads the JWT secret key from file or environment variable.
 func LoadJWTSecretKeyFromFile(logger interfaces.AuditLogger) (string, error) {
-	// First try environment variable
+	// First try environment variable.
 	if secretKey := os.Getenv("JWT_SECRET_KEY"); secretKey != "" {
 		if logger != nil {
 			logger.LogSecretAccess("jwt_secret", "env:JWT_SECRET_KEY", "system", "", true, nil)
@@ -96,7 +96,7 @@ func LoadJWTSecretKeyFromFile(logger interfaces.AuditLogger) (string, error) {
 		return secretKey, nil
 	}
 
-	// Try loading from file
+	// Try loading from file.
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get home directory: %w", err)
@@ -113,7 +113,7 @@ func LoadJWTSecretKeyFromFile(logger interfaces.AuditLogger) (string, error) {
 		}
 	}
 
-	// Generate a default secret key for development (not recommended for production)
+	// Generate a default secret key for development (not recommended for production).
 	defaultSecret := "default-development-secret-key-change-in-production"
 	if logger != nil {
 		logger.LogSecretAccess("jwt_secret", "default_generated", "system", "", true, nil)

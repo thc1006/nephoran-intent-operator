@@ -29,51 +29,51 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
-// RecoveryManager handles error recovery and state restoration
+// RecoveryManager handles error recovery and state restoration.
 type RecoveryManager struct {
 	logger       logr.Logger
 	stateManager *StateManager
 	eventBus     EventBus
 
-	// Recovery strategies
+	// Recovery strategies.
 	strategies map[interfaces.ProcessingPhase]*RecoveryStrategy
 
-	// Recovery tracking
+	// Recovery tracking.
 	recoveryAttempts map[string]*RecoveryAttempt
 
-	// Configuration
+	// Configuration.
 	config *RecoveryConfig
 
-	// Background processing
+	// Background processing.
 	mutex    sync.RWMutex
 	started  bool
 	stopChan chan bool
 	workerWG sync.WaitGroup
 }
 
-// RecoveryConfig provides configuration for recovery operations
+// RecoveryConfig provides configuration for recovery operations.
 type RecoveryConfig struct {
-	// Recovery intervals
+	// Recovery intervals.
 	RecoveryInterval   time.Duration `json:"recoveryInterval"`
 	StateCheckInterval time.Duration `json:"stateCheckInterval"`
 
-	// Recovery limits
+	// Recovery limits.
 	MaxRecoveryAttempts     int           `json:"maxRecoveryAttempts"`
 	RecoveryTimeout         time.Duration `json:"recoveryTimeout"`
 	MaxConcurrentRecoveries int           `json:"maxConcurrentRecoveries"`
 
-	// Recovery strategies
+	// Recovery strategies.
 	DefaultStrategy          string `json:"defaultStrategy"` // "restart", "rollback", "skip", "manual"
 	EnableAutoRecovery       bool   `json:"enableAutoRecovery"`
 	EnablePreemptiveRecovery bool   `json:"enablePreemptiveRecovery"`
 
-	// State corruption handling
+	// State corruption handling.
 	EnableStateValidation bool   `json:"enableStateValidation"`
 	StateCorruptionAction string `json:"stateCorruptionAction"` // "restore", "recreate", "alert"
 	BackupRetentionDays   int    `json:"backupRetentionDays"`
 }
 
-// DefaultRecoveryConfig returns default recovery configuration
+// DefaultRecoveryConfig returns default recovery configuration.
 func DefaultRecoveryConfig() *RecoveryConfig {
 	return &RecoveryConfig{
 		RecoveryInterval:         1 * time.Minute,
@@ -90,7 +90,7 @@ func DefaultRecoveryConfig() *RecoveryConfig {
 	}
 }
 
-// RecoveryStrategy defines how to recover from failures in a specific phase
+// RecoveryStrategy defines how to recover from failures in a specific phase.
 type RecoveryStrategy struct {
 	Type                string              `json:"type"` // "restart", "rollback", "skip", "manual", "custom"
 	MaxAttempts         int                 `json:"maxAttempts"`
@@ -103,7 +103,7 @@ type RecoveryStrategy struct {
 	NotificationTargets []string            `json:"notificationTargets,omitempty"`
 }
 
-// RecoveryCondition represents a condition that must be met for recovery
+// RecoveryCondition represents a condition that must be met for recovery.
 type RecoveryCondition struct {
 	Type        string      `json:"type"` // "state_field", "resource_exists", "time_threshold", "custom"
 	Field       string      `json:"field,omitempty"`
@@ -112,10 +112,10 @@ type RecoveryCondition struct {
 	Description string      `json:"description,omitempty"`
 }
 
-// RecoveryHandler is a function type for custom recovery handlers
+// RecoveryHandler is a function type for custom recovery handlers.
 type RecoveryHandler func(ctx context.Context, attempt *RecoveryAttempt) error
 
-// RecoveryAttempt tracks a recovery attempt
+// RecoveryAttempt tracks a recovery attempt.
 type RecoveryAttempt struct {
 	ID                  string                     `json:"id"`
 	IntentName          types.NamespacedName       `json:"intentName"`
@@ -132,7 +132,7 @@ type RecoveryAttempt struct {
 	Metadata            map[string]interface{}     `json:"metadata,omitempty"`
 }
 
-// RecoveryAction represents an action taken during recovery
+// RecoveryAction represents an action taken during recovery.
 type RecoveryAction struct {
 	Type        string                 `json:"type"`
 	Description string                 `json:"description"`
@@ -142,7 +142,7 @@ type RecoveryAction struct {
 	Data        map[string]interface{} `json:"data,omitempty"`
 }
 
-// NewRecoveryManager creates a new recovery manager
+// NewRecoveryManager creates a new recovery manager.
 func NewRecoveryManager(stateManager *StateManager, eventBus EventBus) *RecoveryManager {
 	config := DefaultRecoveryConfig()
 
@@ -156,13 +156,13 @@ func NewRecoveryManager(stateManager *StateManager, eventBus EventBus) *Recovery
 		stopChan:         make(chan bool),
 	}
 
-	// Initialize default recovery strategies
+	// Initialize default recovery strategies.
 	rm.initializeDefaultStrategies()
 
 	return rm
 }
 
-// Start starts the recovery manager
+// Start starts the recovery manager.
 func (rm *RecoveryManager) Start(ctx context.Context) error {
 	rm.mutex.Lock()
 	defer rm.mutex.Unlock()
@@ -171,18 +171,18 @@ func (rm *RecoveryManager) Start(ctx context.Context) error {
 		return fmt.Errorf("recovery manager already started")
 	}
 
-	// Subscribe to error events
+	// Subscribe to error events.
 	if err := rm.subscribeToEvents(); err != nil {
 		return fmt.Errorf("failed to subscribe to events: %w", err)
 	}
 
-	// Start background recovery process
+	// Start background recovery process.
 	if rm.config.EnableAutoRecovery {
 		rm.workerWG.Add(1)
 		go rm.recoveryWorker(ctx)
 	}
 
-	// Start state validation process
+	// Start state validation process.
 	if rm.config.EnableStateValidation {
 		rm.workerWG.Add(1)
 		go rm.stateValidator(ctx)
@@ -194,7 +194,7 @@ func (rm *RecoveryManager) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the recovery manager
+// Stop stops the recovery manager.
 func (rm *RecoveryManager) Stop(ctx context.Context) error {
 	rm.mutex.Lock()
 	defer rm.mutex.Unlock()
@@ -205,10 +205,10 @@ func (rm *RecoveryManager) Stop(ctx context.Context) error {
 
 	rm.logger.Info("Stopping recovery manager")
 
-	// Signal stop
+	// Signal stop.
 	close(rm.stopChan)
 
-	// Wait for workers
+	// Wait for workers.
 	done := make(chan bool)
 	go func() {
 		rm.workerWG.Wait()
@@ -227,19 +227,19 @@ func (rm *RecoveryManager) Stop(ctx context.Context) error {
 	return nil
 }
 
-// RecoverIntent attempts to recover a failed intent
+// RecoverIntent attempts to recover a failed intent.
 func (rm *RecoveryManager) RecoverIntent(ctx context.Context, intentName types.NamespacedName, phase interfaces.ProcessingPhase, reason string) error {
 	rm.logger.Info("Attempting intent recovery", "intent", intentName, "phase", phase, "reason", reason)
 
-	// Get recovery strategy for the phase
+	// Get recovery strategy for the phase.
 	strategy := rm.getRecoveryStrategy(phase)
 
-	// Check if recovery should be attempted
+	// Check if recovery should be attempted.
 	if !rm.shouldAttemptRecovery(intentName, phase, strategy) {
 		return fmt.Errorf("recovery not allowed for intent %s at phase %s", intentName, phase)
 	}
 
-	// Create recovery attempt
+	// Create recovery attempt.
 	attempt := &RecoveryAttempt{
 		ID:              fmt.Sprintf("%s-%s-%d", intentName.String(), phase, time.Now().UnixNano()),
 		IntentName:      intentName,
@@ -254,21 +254,21 @@ func (rm *RecoveryManager) RecoverIntent(ctx context.Context, intentName types.N
 		},
 	}
 
-	// Store attempt
+	// Store attempt.
 	rm.mutex.Lock()
 	rm.recoveryAttempts[attempt.ID] = attempt
 	rm.mutex.Unlock()
 
-	// Capture state before recovery
+	// Capture state before recovery.
 	if state, err := rm.stateManager.GetIntentState(ctx, intentName); err == nil {
 		attempt.StateBeforeRecovery = state
 	}
 
-	// Execute recovery
+	// Execute recovery.
 	return rm.executeRecovery(ctx, attempt)
 }
 
-// RegisterRecoveryStrategy registers a custom recovery strategy for a phase
+// RegisterRecoveryStrategy registers a custom recovery strategy for a phase.
 func (rm *RecoveryManager) RegisterRecoveryStrategy(phase interfaces.ProcessingPhase, strategy *RecoveryStrategy) {
 	rm.mutex.Lock()
 	defer rm.mutex.Unlock()
@@ -277,7 +277,7 @@ func (rm *RecoveryManager) RegisterRecoveryStrategy(phase interfaces.ProcessingP
 	rm.logger.Info("Registered recovery strategy", "phase", phase, "type", strategy.Type)
 }
 
-// GetRecoveryHistory returns recovery history for an intent
+// GetRecoveryHistory returns recovery history for an intent.
 func (rm *RecoveryManager) GetRecoveryHistory(intentName types.NamespacedName) []*RecoveryAttempt {
 	rm.mutex.RLock()
 	defer rm.mutex.RUnlock()
@@ -292,7 +292,7 @@ func (rm *RecoveryManager) GetRecoveryHistory(intentName types.NamespacedName) [
 	return history
 }
 
-// GetRecoveryStats returns recovery statistics
+// GetRecoveryStats returns recovery statistics.
 func (rm *RecoveryManager) GetRecoveryStats() *RecoveryStats {
 	rm.mutex.RLock()
 	defer rm.mutex.RUnlock()
@@ -325,10 +325,10 @@ func (rm *RecoveryManager) GetRecoveryStats() *RecoveryStats {
 	return stats
 }
 
-// Internal methods
+// Internal methods.
 
 func (rm *RecoveryManager) initializeDefaultStrategies() {
-	// Default restart strategy
+	// Default restart strategy.
 	restartStrategy := &RecoveryStrategy{
 		Type:              "restart",
 		MaxAttempts:       3,
@@ -337,7 +337,7 @@ func (rm *RecoveryManager) initializeDefaultStrategies() {
 		MaxBackoff:        30 * time.Second,
 	}
 
-	// Apply to all phases
+	// Apply to all phases.
 	phases := []interfaces.ProcessingPhase{
 		interfaces.PhaseLLMProcessing,
 		interfaces.PhaseResourcePlanning,
@@ -350,7 +350,7 @@ func (rm *RecoveryManager) initializeDefaultStrategies() {
 		rm.strategies[phase] = restartStrategy
 	}
 
-	// Custom strategy for deployment verification (allows rollback)
+	// Custom strategy for deployment verification (allows rollback).
 	deploymentStrategy := &RecoveryStrategy{
 		Type:              "rollback",
 		MaxAttempts:       2,
@@ -362,7 +362,7 @@ func (rm *RecoveryManager) initializeDefaultStrategies() {
 }
 
 func (rm *RecoveryManager) subscribeToEvents() error {
-	// Subscribe to phase failure events
+	// Subscribe to phase failure events.
 	failureEvents := []string{
 		"llm.processing.failed",
 		"resource.planning.failed",
@@ -377,7 +377,7 @@ func (rm *RecoveryManager) subscribeToEvents() error {
 		}
 	}
 
-	// Subscribe to state corruption events
+	// Subscribe to state corruption events.
 	if err := rm.eventBus.Subscribe("state.corruption.detected", rm.handleStateCorruptionEvent); err != nil {
 		return err
 	}
@@ -390,16 +390,16 @@ func (rm *RecoveryManager) handleFailureEvent(ctx context.Context, event Process
 		return nil
 	}
 
-	// Parse intent name
+	// Parse intent name.
 	intentName, err := rm.parseIntentName(event.IntentID)
 	if err != nil {
 		return err
 	}
 
-	// Extract phase from event
+	// Extract phase from event.
 	phase := interfaces.ProcessingPhase(event.Phase)
 
-	// Attempt recovery
+	// Attempt recovery.
 	return rm.RecoverIntent(ctx, intentName, phase, "automatic_recovery_on_failure")
 }
 
@@ -432,7 +432,7 @@ func (rm *RecoveryManager) getRecoveryStrategy(phase interfaces.ProcessingPhase)
 		return strategy
 	}
 
-	// Return default strategy
+	// Return default strategy.
 	return &RecoveryStrategy{
 		Type:              rm.config.DefaultStrategy,
 		MaxAttempts:       rm.config.MaxRecoveryAttempts,
@@ -443,19 +443,19 @@ func (rm *RecoveryManager) getRecoveryStrategy(phase interfaces.ProcessingPhase)
 }
 
 func (rm *RecoveryManager) shouldAttemptRecovery(intentName types.NamespacedName, phase interfaces.ProcessingPhase, strategy *RecoveryStrategy) bool {
-	// Check current attempt count
+	// Check current attempt count.
 	attemptNumber := rm.getAttemptNumber(intentName, phase)
 	if attemptNumber >= strategy.MaxAttempts {
 		return false
 	}
 
-	// Check if too many concurrent recoveries
+	// Check if too many concurrent recoveries.
 	runningCount := rm.getRunningRecoveryCount()
 	if runningCount >= rm.config.MaxConcurrentRecoveries {
 		return false
 	}
 
-	// Check pre-conditions
+	// Check pre-conditions.
 	if !rm.checkRecoveryConditions(strategy.PreConditions, intentName, phase) {
 		return false
 	}
@@ -492,12 +492,12 @@ func (rm *RecoveryManager) getRunningRecoveryCount() int {
 }
 
 func (rm *RecoveryManager) checkRecoveryConditions(conditions []RecoveryCondition, intentName types.NamespacedName, phase interfaces.ProcessingPhase) bool {
-	// If no conditions, allow recovery
+	// If no conditions, allow recovery.
 	if len(conditions) == 0 {
 		return true
 	}
 
-	// Check each condition
+	// Check each condition.
 	for _, condition := range conditions {
 		if !rm.evaluateCondition(condition, intentName, phase) {
 			return false
@@ -508,24 +508,24 @@ func (rm *RecoveryManager) checkRecoveryConditions(conditions []RecoveryConditio
 }
 
 func (rm *RecoveryManager) evaluateCondition(condition RecoveryCondition, intentName types.NamespacedName, phase interfaces.ProcessingPhase) bool {
-	// Simplified condition evaluation
-	// In a real implementation, this would be more comprehensive
+	// Simplified condition evaluation.
+	// In a real implementation, this would be more comprehensive.
 	switch condition.Type {
 	case "time_threshold":
-		// Check if enough time has passed since last failure
+		// Check if enough time has passed since last failure.
 		if threshold, ok := condition.Value.(time.Duration); ok {
-			// Get last failure time and compare
+			// Get last failure time and compare.
 			return time.Since(time.Now()) > threshold
 		}
 	case "state_field":
-		// Check a specific field in the intent state
-		// This would require getting the state and checking the field
+		// Check a specific field in the intent state.
+		// This would require getting the state and checking the field.
 		return true
 	case "resource_exists":
-		// Check if a specific resource exists
+		// Check if a specific resource exists.
 		return true
 	case "custom":
-		// Custom condition evaluation would be implemented here
+		// Custom condition evaluation would be implemented here.
 		return true
 	}
 
@@ -533,11 +533,11 @@ func (rm *RecoveryManager) evaluateCondition(condition RecoveryCondition, intent
 }
 
 func (rm *RecoveryManager) executeRecovery(ctx context.Context, attempt *RecoveryAttempt) error {
-	// Create timeout context
+	// Create timeout context.
 	recoveryCtx, cancel := context.WithTimeout(ctx, rm.config.RecoveryTimeout)
 	defer cancel()
 
-	// Execute recovery based on strategy type
+	// Execute recovery based on strategy type.
 	var err error
 	switch attempt.Strategy.Type {
 	case "restart":
@@ -556,7 +556,7 @@ func (rm *RecoveryManager) executeRecovery(ctx context.Context, attempt *Recover
 		err = fmt.Errorf("unknown recovery strategy: %s", attempt.Strategy.Type)
 	}
 
-	// Update attempt status
+	// Update attempt status.
 	rm.mutex.Lock()
 	attempt.EndTime = time.Now()
 	if err != nil {
@@ -565,12 +565,12 @@ func (rm *RecoveryManager) executeRecovery(ctx context.Context, attempt *Recover
 	} else {
 		attempt.Status = "success"
 
-		// Capture state after recovery
+		// Capture state after recovery.
 		if state, stateErr := rm.stateManager.GetIntentState(ctx, attempt.IntentName); stateErr == nil {
 			attempt.StateAfterRecovery = state
 		}
 
-		// Check post-conditions
+		// Check post-conditions.
 		if !rm.checkRecoveryConditions(attempt.Strategy.PostConditions, attempt.IntentName, attempt.Phase) {
 			attempt.Status = "failed"
 			attempt.Error = "post-conditions not met"
@@ -579,7 +579,7 @@ func (rm *RecoveryManager) executeRecovery(ctx context.Context, attempt *Recover
 	}
 	rm.mutex.Unlock()
 
-	// Log result
+	// Log result.
 	if err != nil {
 		rm.logger.Error(err, "Recovery attempt failed",
 			"intent", attempt.IntentName, "phase", attempt.Phase, "attempt", attempt.AttemptNumber)
@@ -594,13 +594,13 @@ func (rm *RecoveryManager) executeRecovery(ctx context.Context, attempt *Recover
 func (rm *RecoveryManager) executeRestartRecovery(ctx context.Context, attempt *RecoveryAttempt) error {
 	rm.addRecoveryAction(attempt, "restart", "Restarting phase execution", true, nil)
 
-	// Reset phase state
+	// Reset phase state.
 	if err := rm.stateManager.SetPhaseData(ctx, attempt.IntentName, attempt.Phase, nil); err != nil {
 		rm.addRecoveryAction(attempt, "reset_phase_data", "Failed to reset phase data", false, err)
 		return err
 	}
 
-	// Transition back to the current phase to restart
+	// Transition back to the current phase to restart.
 	metadata := map[string]interface{}{
 		"recovery_type":  "restart",
 		"attempt_number": attempt.AttemptNumber,
@@ -619,7 +619,7 @@ func (rm *RecoveryManager) executeRestartRecovery(ctx context.Context, attempt *
 func (rm *RecoveryManager) executeRollbackRecovery(ctx context.Context, attempt *RecoveryAttempt) error {
 	rm.addRecoveryAction(attempt, "rollback", "Rolling back to previous phase", true, nil)
 
-	// Determine previous phase
+	// Determine previous phase.
 	previousPhase := rm.getPreviousPhase(attempt.Phase)
 	if previousPhase == "" {
 		err := fmt.Errorf("no previous phase to rollback to")
@@ -627,7 +627,7 @@ func (rm *RecoveryManager) executeRollbackRecovery(ctx context.Context, attempt 
 		return err
 	}
 
-	// Transition to previous phase
+	// Transition to previous phase.
 	metadata := map[string]interface{}{
 		"recovery_type":  "rollback",
 		"attempt_number": attempt.AttemptNumber,
@@ -647,14 +647,14 @@ func (rm *RecoveryManager) executeRollbackRecovery(ctx context.Context, attempt 
 func (rm *RecoveryManager) executeSkipRecovery(ctx context.Context, attempt *RecoveryAttempt) error {
 	rm.addRecoveryAction(attempt, "skip", "Skipping failed phase", true, nil)
 
-	// Determine next phase
+	// Determine next phase.
 	nextPhase := rm.getNextPhase(attempt.Phase)
 	if nextPhase == "" {
-		// Mark as completed if no next phase
+		// Mark as completed if no next phase.
 		nextPhase = interfaces.PhaseCompleted
 	}
 
-	// Transition to next phase
+	// Transition to next phase.
 	metadata := map[string]interface{}{
 		"recovery_type":  "skip",
 		"attempt_number": attempt.AttemptNumber,
@@ -688,7 +688,7 @@ func (rm *RecoveryManager) addRecoveryAction(attempt *RecoveryAttempt, actionTyp
 }
 
 func (rm *RecoveryManager) getPreviousPhase(currentPhase interfaces.ProcessingPhase) interfaces.ProcessingPhase {
-	// Simplified previous phase mapping
+	// Simplified previous phase mapping.
 	switch currentPhase {
 	case interfaces.PhaseResourcePlanning:
 		return interfaces.PhaseLLMProcessing
@@ -704,7 +704,7 @@ func (rm *RecoveryManager) getPreviousPhase(currentPhase interfaces.ProcessingPh
 }
 
 func (rm *RecoveryManager) getNextPhase(currentPhase interfaces.ProcessingPhase) interfaces.ProcessingPhase {
-	// Simplified next phase mapping
+	// Simplified next phase mapping.
 	switch currentPhase {
 	case interfaces.PhaseLLMProcessing:
 		return interfaces.PhaseResourcePlanning
@@ -722,7 +722,7 @@ func (rm *RecoveryManager) getNextPhase(currentPhase interfaces.ProcessingPhase)
 }
 
 func (rm *RecoveryManager) parseIntentName(intentID string) (types.NamespacedName, error) {
-	// Simple parser - in practice, this would be more robust
+	// Simple parser - in practice, this would be more robust.
 	return types.NamespacedName{
 		Namespace: "default",
 		Name:      intentID,
@@ -730,19 +730,19 @@ func (rm *RecoveryManager) parseIntentName(intentID string) (types.NamespacedNam
 }
 
 func (rm *RecoveryManager) restoreStateFromBackup(ctx context.Context, intentName types.NamespacedName) error {
-	// Placeholder for state restoration from backup
+	// Placeholder for state restoration from backup.
 	rm.logger.Info("Restoring state from backup", "intent", intentName)
 	return nil
 }
 
 func (rm *RecoveryManager) recreateIntentState(ctx context.Context, intentName types.NamespacedName) error {
-	// Placeholder for state recreation
+	// Placeholder for state recreation.
 	rm.logger.Info("Recreating intent state", "intent", intentName)
 	return nil
 }
 
 func (rm *RecoveryManager) sendCorruptionAlert(ctx context.Context, intentName types.NamespacedName) error {
-	// Placeholder for sending corruption alert
+	// Placeholder for sending corruption alert.
 	rm.logger.Info("Sending state corruption alert", "intent", intentName)
 	return nil
 }
@@ -788,16 +788,16 @@ func (rm *RecoveryManager) stateValidator(ctx context.Context) {
 }
 
 func (rm *RecoveryManager) performPeriodicRecoveryCheck(ctx context.Context) {
-	// Placeholder for periodic recovery check
-	// This would scan for stuck intents and initiate recovery
+	// Placeholder for periodic recovery check.
+	// This would scan for stuck intents and initiate recovery.
 }
 
 func (rm *RecoveryManager) performStateValidation(ctx context.Context) {
-	// Placeholder for state validation
-	// This would check for state corruption and inconsistencies
+	// Placeholder for state validation.
+	// This would check for state corruption and inconsistencies.
 }
 
-// RecoveryStats provides statistics about recovery operations
+// RecoveryStats provides statistics about recovery operations.
 type RecoveryStats struct {
 	TotalAttempts      int            `json:"totalAttempts"`
 	SuccessfulAttempts int            `json:"successfulAttempts"`

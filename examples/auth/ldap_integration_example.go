@@ -17,37 +17,37 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
 
-// Example: Complete LDAP Integration with Nephoran Intent Operator
-// This example demonstrates how to integrate LDAP authentication with the Nephoran Intent Operator
+// Example: Complete LDAP Integration with Nephoran Intent Operator.
+// This example demonstrates how to integrate LDAP authentication with the Nephoran Intent Operator.
 // including OAuth2, session management, RBAC, and security features.
 
 func main() {
-	// Initialize structured logging
+	// Initialize structured logging.
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))
 	slog.SetDefault(logger)
 
-	// Load authentication configuration
+	// Load authentication configuration.
 	authConfig, err := auth.LoadAuthConfig("")
 	if err != nil {
 		log.Fatalf("Failed to load auth config: %v", err)
 	}
 
-	// Create authentication manager
+	// Create authentication manager.
 	authManager, err := auth.NewAuthManager(authConfig, logger)
 	if err != nil {
 		log.Fatalf("Failed to create auth manager: %v", err)
 	}
 
-	// Create HTTP router
+	// Create HTTP router.
 	router := mux.NewRouter()
 
-	// Setup authentication routes and middleware
+	// Setup authentication routes and middleware.
 	setupAuthRoutes(router, authManager)
 	setupProtectedRoutes(router, authManager)
 
-	// Create HTTP server
+	// Create HTTP server.
 	server := &http.Server{
 		Addr:         ":8080",
 		Handler:      router,
@@ -56,7 +56,7 @@ func main() {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	// Start server in goroutine
+	// Start server in goroutine.
 	go func() {
 		logger.Info("Starting server", "addr", server.Addr)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -64,14 +64,14 @@ func main() {
 		}
 	}()
 
-	// Wait for interrupt signal to gracefully shutdown
+	// Wait for interrupt signal to gracefully shutdown.
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
 	logger.Info("Shutting down server...")
 
-	// Graceful shutdown
+	// Graceful shutdown.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -79,7 +79,7 @@ func main() {
 		log.Fatalf("Server forced to shutdown: %v", err)
 	}
 
-	// Shutdown auth manager
+	// Shutdown auth manager.
 	if err := authManager.Shutdown(ctx); err != nil {
 		logger.Error("Error shutting down auth manager", "error", err)
 	}
@@ -87,64 +87,64 @@ func main() {
 	logger.Info("Server exited")
 }
 
-// setupAuthRoutes configures authentication-related routes
+// setupAuthRoutes configures authentication-related routes.
 func setupAuthRoutes(router *mux.Router, authManager *auth.AuthManager) {
-	// Health check endpoint
+	// Health check endpoint.
 	router.HandleFunc("/health", authManager.HandleHealthCheck).Methods("GET")
 
-	// Authentication information endpoint
+	// Authentication information endpoint.
 	router.HandleFunc("/auth/info", handleAuthInfo(authManager)).Methods("GET")
 
-	// LDAP authentication endpoints
+	// LDAP authentication endpoints.
 	if ldapMiddleware := authManager.GetLDAPMiddleware(); ldapMiddleware != nil {
 		router.HandleFunc("/auth/ldap/login", ldapMiddleware.HandleLDAPLogin).Methods("POST")
 		router.HandleFunc("/auth/ldap/logout", ldapMiddleware.HandleLDAPLogout).Methods("POST")
 
-		// LDAP user info endpoint (for admin purposes)
+		// LDAP user info endpoint (for admin purposes).
 		protectedUserInfo := authManager.GetMiddleware().RequirePermissionMiddleware("users:manage")(
 			http.HandlerFunc(handleLDAPUserInfo(ldapMiddleware)))
 		router.Handle("/auth/ldap/user/{username}", protectedUserInfo).Methods("GET")
 
-		// LDAP test connection endpoint
+		// LDAP test connection endpoint.
 		protectedLDAPTest := authManager.GetMiddleware().RequireAdminMiddleware(
 			http.HandlerFunc(handleLDAPTest(ldapMiddleware)))
 		router.Handle("/auth/ldap/test", protectedLDAPTest).Methods("GET")
 	}
 
-	// OAuth2 endpoints (if OAuth2 is configured)
+	// OAuth2 endpoints (if OAuth2 is configured).
 	if oauth2Manager := authManager.GetOAuth2Manager(); oauth2Manager != nil {
 		setupOAuth2Routes(router, oauth2Manager)
 	}
 
-	// JWT token refresh endpoint
+	// JWT token refresh endpoint.
 	router.HandleFunc("/auth/refresh", handleTokenRefresh(authManager)).Methods("POST")
 
-	// Session management endpoints
+	// Session management endpoints.
 	router.HandleFunc("/auth/session", handleSessionInfo(authManager)).Methods("GET")
 	router.HandleFunc("/auth/session", handleSessionInvalidate(authManager)).Methods("DELETE")
 }
 
-// setupOAuth2Routes configures OAuth2-related routes
+// setupOAuth2Routes configures OAuth2-related routes.
 func setupOAuth2Routes(router *mux.Router, oauth2Manager *auth.OAuth2Manager) {
 	router.HandleFunc("/auth/oauth2/providers", handleOAuth2Providers(oauth2Manager)).Methods("GET")
 	router.HandleFunc("/auth/oauth2/authorize/{provider}", handleOAuth2Authorize(oauth2Manager)).Methods("GET")
 	router.HandleFunc("/auth/oauth2/callback/{provider}", handleOAuth2Callback(oauth2Manager)).Methods("GET")
 }
 
-// setupProtectedRoutes configures routes that require authentication
+// setupProtectedRoutes configures routes that require authentication.
 func setupProtectedRoutes(router *mux.Router, authManager *auth.AuthManager) {
-	// Apply authentication middleware to protected routes
+	// Apply authentication middleware to protected routes.
 	protected := router.PathPrefix("/api").Subrouter()
 
-	// LDAP authentication middleware for direct LDAP auth
+	// LDAP authentication middleware for direct LDAP auth.
 	if ldapMiddleware := authManager.GetLDAPMiddleware(); ldapMiddleware != nil {
 		protected.Use(ldapMiddleware.LDAPAuthenticateMiddleware)
 	} else {
-		// Fallback to standard auth middleware
+		// Fallback to standard auth middleware.
 		protected.Use(authManager.GetMiddleware().AuthenticateMiddleware)
 	}
 
-	// Example protected endpoints
+	// Example protected endpoints.
 	protected.HandleFunc("/profile", handleUserProfile).Methods("GET")
 	protectedIntentsList := authManager.GetMiddleware().RequirePermissionMiddleware("intent:read")(
 		http.HandlerFunc(handleIntentsList))
@@ -154,13 +154,13 @@ func setupProtectedRoutes(router *mux.Router, authManager *auth.AuthManager) {
 		http.HandlerFunc(handleIntentCreate))
 	protected.Handle("/intents", protectedIntentsCreate).Methods("POST")
 
-	// Admin-only endpoints
+	// Admin-only endpoints.
 	protectedAdminUsers := authManager.GetMiddleware().RequireAdminMiddleware(
 		http.HandlerFunc(handleAdminUsers))
 	protected.Handle("/admin/users", protectedAdminUsers).Methods("GET")
 }
 
-// HTTP Handlers
+// HTTP Handlers.
 
 func handleAuthInfo(authManager *auth.AuthManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -197,7 +197,7 @@ func handleLDAPUserInfo(ldapMiddleware *auth.LDAPAuthMiddleware) http.HandlerFun
 			return
 		}
 
-		// Remove sensitive information
+		// Remove sensitive information.
 		response := map[string]interface{}{
 			"username":     userInfo.Username,
 			"email":        userInfo.Email,
@@ -250,7 +250,7 @@ func handleLDAPTest(ldapMiddleware *auth.LDAPAuthMiddleware) http.HandlerFunc {
 
 func handleOAuth2Providers(oauth2Manager *auth.OAuth2Manager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// This would be implemented to list available OAuth2 providers
+		// This would be implemented to list available OAuth2 providers.
 		providers := map[string]interface{}{
 			"providers": []string{},
 			"message":   "OAuth2 providers endpoint - implementation depends on OAuth2Manager interface",
@@ -263,7 +263,7 @@ func handleOAuth2Providers(oauth2Manager *auth.OAuth2Manager) http.HandlerFunc {
 
 func handleOAuth2Authorize(oauth2Manager *auth.OAuth2Manager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// This would be implemented to handle OAuth2 authorization
+		// This would be implemented to handle OAuth2 authorization.
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
 			"message": "OAuth2 authorization endpoint - implementation depends on OAuth2Manager interface",
@@ -273,7 +273,7 @@ func handleOAuth2Authorize(oauth2Manager *auth.OAuth2Manager) http.HandlerFunc {
 
 func handleOAuth2Callback(oauth2Manager *auth.OAuth2Manager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// This would be implemented to handle OAuth2 callbacks
+		// This would be implemented to handle OAuth2 callbacks.
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
 			"message": "OAuth2 callback endpoint - implementation depends on OAuth2Manager interface",
@@ -312,7 +312,7 @@ func handleTokenRefresh(authManager *auth.AuthManager) http.HandlerFunc {
 
 func handleSessionInfo(authManager *auth.AuthManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Get session ID from cookie or header
+		// Get session ID from cookie or header.
 		sessionID := getSessionID(r)
 		if sessionID == "" {
 			http.Error(w, "No session found", http.StatusUnauthorized)
@@ -357,7 +357,7 @@ func handleSessionInvalidate(authManager *auth.AuthManager) http.HandlerFunc {
 			return
 		}
 
-		// Clear session cookie
+		// Clear session cookie.
 		http.SetCookie(w, &http.Cookie{
 			Name:     "nephoran_session",
 			Value:    "",
@@ -397,7 +397,7 @@ func handleUserProfile(w http.ResponseWriter, r *http.Request) {
 func handleIntentsList(w http.ResponseWriter, r *http.Request) {
 	authContext := auth.GetAuthContext(r.Context())
 
-	// Example intents list - in real implementation, this would query the database
+	// Example intents list - in real implementation, this would query the database.
 	intents := []map[string]interface{}{
 		{
 			"id":          "intent-001",
@@ -438,7 +438,7 @@ func handleIntentCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Example intent creation - in real implementation, this would create the intent
+	// Example intent creation - in real implementation, this would create the intent.
 	intent := map[string]interface{}{
 		"id":          fmt.Sprintf("intent-%d", time.Now().Unix()),
 		"description": request.Description,
@@ -455,7 +455,7 @@ func handleIntentCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleAdminUsers(w http.ResponseWriter, r *http.Request) {
-	// Example admin endpoint - in real implementation, this would query user data
+	// Example admin endpoint - in real implementation, this would query user data.
 	users := []map[string]interface{}{
 		{
 			"user_id":      "admin1",
@@ -486,29 +486,29 @@ func handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// Helper functions
+// Helper functions.
 
 func getSessionID(r *http.Request) string {
-	// Try cookie first
+	// Try cookie first.
 	cookie, err := r.Cookie("nephoran_session")
 	if err == nil && cookie.Value != "" {
 		return cookie.Value
 	}
 
-	// Try header
+	// Try header.
 	return r.Header.Get("X-Session-ID")
 }
 
-// ExampleLDAPIntegrationTest demonstrates how to test LDAP integration
+// ExampleLDAPIntegrationTest demonstrates how to test LDAP integration.
 func ExampleLDAPIntegrationTest() {
 	fmt.Println("Example LDAP Integration Test")
 
-	// Create logger
+	// Create logger.
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	}))
 
-	// Create LDAP configuration
+	// Create LDAP configuration.
 	ldapConfig := &providers.LDAPConfig{
 		Host:              "localhost",
 		Port:              389,
@@ -527,10 +527,10 @@ func ExampleLDAPIntegrationTest() {
 		DefaultRoles: []string{"user"},
 	}
 
-	// Create LDAP provider
+	// Create LDAP provider.
 	ldapProvider := providers.NewLDAPProvider(ldapConfig, logger)
 
-	// Test connection
+	// Test connection.
 	ctx := context.Background()
 	if err := ldapProvider.TestConnection(ctx); err != nil {
 		fmt.Printf("LDAP connection failed: %v\n", err)
@@ -539,7 +539,7 @@ func ExampleLDAPIntegrationTest() {
 
 	fmt.Println("LDAP connection successful")
 
-	// Test authentication
+	// Test authentication.
 	userInfo, err := ldapProvider.Authenticate(ctx, "testuser", "testpass")
 	if err != nil {
 		fmt.Printf("LDAP authentication failed: %v\n", err)
@@ -550,6 +550,6 @@ func ExampleLDAPIntegrationTest() {
 	fmt.Printf("Groups: %v\n", userInfo.Groups)
 	fmt.Printf("Roles: %v\n", userInfo.Roles)
 
-	// Clean up
+	// Clean up.
 	ldapProvider.Close()
 }

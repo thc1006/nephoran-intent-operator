@@ -1,4 +1,4 @@
-// Package validation provides validator interfaces for comprehensive testing
+// Package validation provides validator interfaces for comprehensive testing.
 package validation
 
 import (
@@ -6,28 +6,28 @@ import (
 	"time"
 )
 
-// AvailabilityValidator provides availability validation functionality
+// AvailabilityValidator provides availability validation functionality.
 type AvailabilityValidator interface {
 	ValidateAvailability(ctx context.Context, target float64, duration time.Duration) (*AvailabilityValidationResult, error)
 	GetAvailabilityMetrics(ctx context.Context) (*AvailabilityMetrics, error)
 	SetThresholds(uptime, downtime time.Duration) error
 }
 
-// LatencyValidator provides latency validation functionality
+// LatencyValidator provides latency validation functionality.
 type LatencyValidator interface {
 	ValidateLatency(ctx context.Context, p95Threshold time.Duration, duration time.Duration) (*LatencyValidationResult, error)
 	GetLatencyMetrics(ctx context.Context) (*LatencyMetrics, error)
 	SetPercentileThresholds(p50, p95, p99 time.Duration) error
 }
 
-// ThroughputValidator provides throughput validation functionality
+// ThroughputValidator provides throughput validation functionality.
 type ThroughputValidator interface {
 	ValidateThroughput(ctx context.Context, minThroughput float64, duration time.Duration) (*ThroughputValidationResult, error)
 	GetThroughputMetrics(ctx context.Context) (*ThroughputMetrics, error)
 	SetThroughputThresholds(min, max float64) error
 }
 
-// ValidationResult represents the base validation result
+// ValidationResult represents the base validation result.
 type ValidationResult struct {
 	TestName      string                 `json:"test_name"`
 	Passed        bool                   `json:"passed"`
@@ -38,7 +38,7 @@ type ValidationResult struct {
 	ErrorMessage  string                 `json:"error_message,omitempty"`
 }
 
-// AvailabilityValidationResult contains availability validation results
+// AvailabilityValidationResult contains availability validation results.
 type AvailabilityValidationResult struct {
 	*ValidationResult
 	TargetAvailability float64       `json:"target_availability"`
@@ -50,7 +50,7 @@ type AvailabilityValidationResult struct {
 	MTTR               time.Duration `json:"mttr"` // Mean Time To Recovery
 }
 
-// LatencyValidationResult contains latency validation results
+// LatencyValidationResult contains latency validation results.
 type LatencyValidationResult struct {
 	*ValidationResult
 	P50Latency      time.Duration `json:"p50_latency"`
@@ -63,7 +63,7 @@ type LatencyValidationResult struct {
 	P95ThresholdMet bool          `json:"p95_threshold_met"`
 }
 
-// ThroughputValidationResult contains throughput validation results
+// ThroughputValidationResult contains throughput validation results.
 type ThroughputValidationResult struct {
 	*ValidationResult
 	TargetThroughput  float64 `json:"target_throughput"`
@@ -73,7 +73,7 @@ type ThroughputValidationResult struct {
 	ThroughputUnit    string  `json:"throughput_unit"`
 }
 
-// AvailabilityMetrics contains detailed availability metrics
+// AvailabilityMetrics contains detailed availability metrics.
 type AvailabilityMetrics struct {
 	TotalOperations      int64         `json:"total_operations"`
 	SuccessfulOperations int64         `json:"successful_operations"`
@@ -86,7 +86,7 @@ type AvailabilityMetrics struct {
 	MTTR                 time.Duration `json:"mttr"`
 }
 
-// LatencyMetrics contains detailed latency metrics
+// LatencyMetrics contains detailed latency metrics.
 type LatencyMetrics struct {
 	SampleCount         int64                    `json:"sample_count"`
 	AverageLatency      time.Duration            `json:"average_latency"`
@@ -96,7 +96,7 @@ type LatencyMetrics struct {
 	LatencyDistribution []time.Duration          `json:"latency_distribution"`
 }
 
-// ThroughputMetrics contains detailed throughput metrics
+// ThroughputMetrics contains detailed throughput metrics.
 type ThroughputMetrics struct {
 	RequestCount      int64         `json:"request_count"`
 	TotalDuration     time.Duration `json:"total_duration"`
@@ -106,15 +106,15 @@ type ThroughputMetrics struct {
 	ThroughputUnit    string        `json:"throughput_unit"`
 }
 
-// Basic validator implementations
+// Basic validator implementations.
 
-// BasicAvailabilityValidator provides a basic implementation of AvailabilityValidator
+// BasicAvailabilityValidator provides a basic implementation of AvailabilityValidator.
 type BasicAvailabilityValidator struct {
 	uptimeThreshold   time.Duration
 	downtimeThreshold time.Duration
 }
 
-// NewBasicAvailabilityValidator creates a new basic availability validator
+// NewBasicAvailabilityValidator creates a new basic availability validator.
 func NewBasicAvailabilityValidator() AvailabilityValidator {
 	return &BasicAvailabilityValidator{
 		uptimeThreshold:   time.Second,
@@ -122,8 +122,9 @@ func NewBasicAvailabilityValidator() AvailabilityValidator {
 	}
 }
 
+// ValidateAvailability performs validateavailability operation.
 func (v *BasicAvailabilityValidator) ValidateAvailability(ctx context.Context, target float64, duration time.Duration) (*AvailabilityValidationResult, error) {
-	// Basic implementation - in real scenario this would measure actual availability
+	// Basic implementation - in real scenario this would measure actual availability.
 	result := &AvailabilityValidationResult{
 		ValidationResult: &ValidationResult{
 			TestName:      "availability_validation",
@@ -144,6 +145,7 @@ func (v *BasicAvailabilityValidator) ValidateAvailability(ctx context.Context, t
 	return result, nil
 }
 
+// GetAvailabilityMetrics performs getavailabilitymetrics operation.
 func (v *BasicAvailabilityValidator) GetAvailabilityMetrics(ctx context.Context) (*AvailabilityMetrics, error) {
 	return &AvailabilityMetrics{
 		TotalOperations:      1000,
@@ -158,20 +160,21 @@ func (v *BasicAvailabilityValidator) GetAvailabilityMetrics(ctx context.Context)
 	}, nil
 }
 
+// SetThresholds performs setthresholds operation.
 func (v *BasicAvailabilityValidator) SetThresholds(uptime, downtime time.Duration) error {
 	v.uptimeThreshold = uptime
 	v.downtimeThreshold = downtime
 	return nil
 }
 
-// BasicLatencyValidator provides a basic implementation of LatencyValidator
+// BasicLatencyValidator provides a basic implementation of LatencyValidator.
 type BasicLatencyValidator struct {
 	p50Threshold time.Duration
 	p95Threshold time.Duration
 	p99Threshold time.Duration
 }
 
-// NewBasicLatencyValidator creates a new basic latency validator
+// NewBasicLatencyValidator creates a new basic latency validator.
 func NewBasicLatencyValidator() LatencyValidator {
 	return &BasicLatencyValidator{
 		p50Threshold: 500 * time.Millisecond,
@@ -180,6 +183,7 @@ func NewBasicLatencyValidator() LatencyValidator {
 	}
 }
 
+// ValidateLatency performs validatelatency operation.
 func (v *BasicLatencyValidator) ValidateLatency(ctx context.Context, p95Threshold time.Duration, duration time.Duration) (*LatencyValidationResult, error) {
 	actualP95 := p95Threshold - 100*time.Millisecond // Simulate better than threshold
 	result := &LatencyValidationResult{
@@ -203,6 +207,7 @@ func (v *BasicLatencyValidator) ValidateLatency(ctx context.Context, p95Threshol
 	return result, nil
 }
 
+// GetLatencyMetrics performs getlatencymetrics operation.
 func (v *BasicLatencyValidator) GetLatencyMetrics(ctx context.Context) (*LatencyMetrics, error) {
 	return &LatencyMetrics{
 		SampleCount:    10000,
@@ -218,6 +223,7 @@ func (v *BasicLatencyValidator) GetLatencyMetrics(ctx context.Context) (*Latency
 	}, nil
 }
 
+// SetPercentileThresholds performs setpercentilethresholds operation.
 func (v *BasicLatencyValidator) SetPercentileThresholds(p50, p95, p99 time.Duration) error {
 	v.p50Threshold = p50
 	v.p95Threshold = p95
@@ -225,13 +231,13 @@ func (v *BasicLatencyValidator) SetPercentileThresholds(p50, p95, p99 time.Durat
 	return nil
 }
 
-// BasicThroughputValidator provides a basic implementation of ThroughputValidator
+// BasicThroughputValidator provides a basic implementation of ThroughputValidator.
 type BasicThroughputValidator struct {
 	minThroughput float64
 	maxThroughput float64
 }
 
-// NewBasicThroughputValidator creates a new basic throughput validator
+// NewBasicThroughputValidator creates a new basic throughput validator.
 func NewBasicThroughputValidator() ThroughputValidator {
 	return &BasicThroughputValidator{
 		minThroughput: 30.0,
@@ -239,6 +245,7 @@ func NewBasicThroughputValidator() ThroughputValidator {
 	}
 }
 
+// ValidateThroughput performs validatethroughput operation.
 func (v *BasicThroughputValidator) ValidateThroughput(ctx context.Context, minThroughput float64, duration time.Duration) (*ThroughputValidationResult, error) {
 	actualThroughput := minThroughput + 5.0 // Simulate better than minimum
 	result := &ThroughputValidationResult{
@@ -259,6 +266,7 @@ func (v *BasicThroughputValidator) ValidateThroughput(ctx context.Context, minTh
 	return result, nil
 }
 
+// GetThroughputMetrics performs getthroughputmetrics operation.
 func (v *BasicThroughputValidator) GetThroughputMetrics(ctx context.Context) (*ThroughputMetrics, error) {
 	return &ThroughputMetrics{
 		RequestCount:      5000,
@@ -270,6 +278,7 @@ func (v *BasicThroughputValidator) GetThroughputMetrics(ctx context.Context) (*T
 	}, nil
 }
 
+// SetThroughputThresholds performs setthroughputthresholds operation.
 func (v *BasicThroughputValidator) SetThroughputThresholds(min, max float64) error {
 	v.minThroughput = min
 	v.maxThroughput = max

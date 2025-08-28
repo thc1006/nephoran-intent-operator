@@ -1,4 +1,4 @@
-// Package validation provides automated scoring system for comprehensive validation
+// Package validation provides automated scoring system for comprehensive validation.
 package validation
 
 import (
@@ -9,14 +9,14 @@ import (
 	"github.com/onsi/ginkgo/v2"
 )
 
-// ValidationScorer provides automated scoring for validation results
+// ValidationScorer provides automated scoring for validation results.
 type ValidationScorer struct {
 	config  *ValidationConfig
 	metrics map[string]*ScoreMetric
 	mu      sync.RWMutex
 }
 
-// ScoreMetric represents a specific scoring criterion
+// ScoreMetric represents a specific scoring criterion.
 type ScoreMetric struct {
 	Name        string
 	Category    string
@@ -28,7 +28,7 @@ type ScoreMetric struct {
 	Achieved    bool
 }
 
-// NewValidationScorer creates a new validation scorer
+// NewValidationScorer creates a new validation scorer.
 func NewValidationScorer(config *ValidationConfig) *ValidationScorer {
 	scorer := &ValidationScorer{
 		config:  config,
@@ -38,9 +38,9 @@ func NewValidationScorer(config *ValidationConfig) *ValidationScorer {
 	return scorer
 }
 
-// initializeMetrics sets up all scoring metrics and thresholds
+// initializeMetrics sets up all scoring metrics and thresholds.
 func (vs *ValidationScorer) initializeMetrics() {
-	// Functional Completeness Metrics (50 points total)
+	// Functional Completeness Metrics (50 points total).
 	vs.metrics["intent_processing"] = &ScoreMetric{
 		Name: "Intent Processing Pipeline", Category: "functional", MaxPoints: 15,
 		Threshold: 100.0, Unit: "% completion", Weight: 1.0,
@@ -62,7 +62,7 @@ func (vs *ValidationScorer) initializeMetrics() {
 		Threshold: 85.0, Unit: "% compliance", Weight: 1.0,
 	}
 
-	// Performance Benchmarks (25 points total)
+	// Performance Benchmarks (25 points total).
 	vs.metrics["latency_p95"] = &ScoreMetric{
 		Name: "P95 Latency Performance", Category: "performance", MaxPoints: 8,
 		Threshold: 2000.0, Unit: "milliseconds", Weight: -1.0, // Lower is better
@@ -80,7 +80,7 @@ func (vs *ValidationScorer) initializeMetrics() {
 		Threshold: 80.0, Unit: "% efficiency", Weight: 1.0,
 	}
 
-	// Security Compliance (15 points total)
+	// Security Compliance (15 points total).
 	vs.metrics["authentication"] = &ScoreMetric{
 		Name: "Authentication & Authorization", Category: "security", MaxPoints: 5,
 		Threshold: 100.0, Unit: "% compliance", Weight: 1.0,
@@ -98,7 +98,7 @@ func (vs *ValidationScorer) initializeMetrics() {
 		Threshold: 100.0, Unit: "% clean", Weight: 1.0,
 	}
 
-	// Production Readiness (10 points total)
+	// Production Readiness (10 points total).
 	vs.metrics["high_availability"] = &ScoreMetric{
 		Name: "High Availability", Category: "production", MaxPoints: 3,
 		Threshold: 99.95, Unit: "% uptime", Weight: 1.0,
@@ -117,7 +117,7 @@ func (vs *ValidationScorer) initializeMetrics() {
 	}
 }
 
-// ScoreMetric updates a metric with actual value and calculates score
+// ScoreMetric updates a metric with actual value and calculates score.
 func (vs *ValidationScorer) ScoreMetric(metricName string, actualValue float64) int {
 	vs.mu.Lock()
 	defer vs.mu.Unlock()
@@ -130,15 +130,15 @@ func (vs *ValidationScorer) ScoreMetric(metricName string, actualValue float64) 
 
 	metric.ActualValue = actualValue
 
-	// Calculate score based on threshold and weight
+	// Calculate score based on threshold and weight.
 	var score int
 	if metric.Weight > 0 {
-		// Higher values are better
+		// Higher values are better.
 		if actualValue >= metric.Threshold {
 			score = metric.MaxPoints
 			metric.Achieved = true
 		} else {
-			// Partial scoring based on how close to threshold
+			// Partial scoring based on how close to threshold.
 			ratio := actualValue / metric.Threshold
 			score = int(float64(metric.MaxPoints) * ratio)
 			if score < 0 {
@@ -146,12 +146,12 @@ func (vs *ValidationScorer) ScoreMetric(metricName string, actualValue float64) 
 			}
 		}
 	} else {
-		// Lower values are better (e.g., latency)
+		// Lower values are better (e.g., latency).
 		if actualValue <= metric.Threshold {
 			score = metric.MaxPoints
 			metric.Achieved = true
 		} else {
-			// Partial scoring - worse performance = lower score
+			// Partial scoring - worse performance = lower score.
 			ratio := metric.Threshold / actualValue
 			score = int(float64(metric.MaxPoints) * ratio)
 			if score < 0 {
@@ -166,7 +166,7 @@ func (vs *ValidationScorer) ScoreMetric(metricName string, actualValue float64) 
 	return score
 }
 
-// ScoreBinary provides binary pass/fail scoring
+// ScoreBinary provides binary pass/fail scoring.
 func (vs *ValidationScorer) ScoreBinary(metricName string, passed bool) int {
 	vs.mu.Lock()
 	defer vs.mu.Unlock()
@@ -193,7 +193,7 @@ func (vs *ValidationScorer) ScoreBinary(metricName string, passed bool) int {
 	return score
 }
 
-// GetCategoryScore calculates total score for a category
+// GetCategoryScore calculates total score for a category.
 func (vs *ValidationScorer) GetCategoryScore(category string) (int, int) {
 	vs.mu.RLock()
 	defer vs.mu.RUnlock()
@@ -207,7 +207,7 @@ func (vs *ValidationScorer) GetCategoryScore(category string) (int, int) {
 			if metric.Achieved {
 				totalScore += metric.MaxPoints
 			} else {
-				// Calculate partial score
+				// Calculate partial score.
 				ratio := metric.ActualValue / metric.Threshold
 				if metric.Weight < 0 {
 					ratio = metric.Threshold / metric.ActualValue
@@ -224,7 +224,7 @@ func (vs *ValidationScorer) GetCategoryScore(category string) (int, int) {
 	return totalScore, maxScore
 }
 
-// GetDetailedScoreReport provides detailed scoring breakdown
+// GetDetailedScoreReport provides detailed scoring breakdown.
 func (vs *ValidationScorer) GetDetailedScoreReport() string {
 	vs.mu.RLock()
 	defer vs.mu.RUnlock()
@@ -293,7 +293,7 @@ func (vs *ValidationScorer) GetDetailedScoreReport() string {
 	return report
 }
 
-// ValidateScoreThresholds checks if scores meet minimum requirements
+// ValidateScoreThresholds checks if scores meet minimum requirements.
 func (vs *ValidationScorer) ValidateScoreThresholds() error {
 	funcScore, _ := vs.GetCategoryScore("functional")
 	perfScore, _ := vs.GetCategoryScore("performance")
@@ -321,12 +321,12 @@ func (vs *ValidationScorer) ValidateScoreThresholds() error {
 	return nil
 }
 
-// GetScoreMetrics returns all metrics for external analysis
+// GetScoreMetrics returns all metrics for external analysis.
 func (vs *ValidationScorer) GetScoreMetrics() map[string]*ScoreMetric {
 	vs.mu.RLock()
 	defer vs.mu.RUnlock()
 
-	// Return copy to prevent external modification
+	// Return copy to prevent external modification.
 	metrics := make(map[string]*ScoreMetric)
 	for k, v := range vs.metrics {
 		metricCopy := *v
@@ -336,7 +336,7 @@ func (vs *ValidationScorer) GetScoreMetrics() map[string]*ScoreMetric {
 	return metrics
 }
 
-// ResetMetrics resets all metrics for a new validation run
+// ResetMetrics resets all metrics for a new validation run.
 func (vs *ValidationScorer) ResetMetrics() {
 	vs.mu.Lock()
 	defer vs.mu.Unlock()

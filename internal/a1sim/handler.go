@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// A1Policy matches the a1.policy.schema.json contract
+// A1Policy matches the a1.policy.schema.json contract.
 type A1Policy struct {
 	PolicyTypeID string      `json:"policyTypeId"` // "oran.sim.scaling.v1"
 	Scope        PolicyScope `json:"scope"`
@@ -56,14 +56,14 @@ func SavePolicyHandler(dir string) http.HandlerFunc {
 			http.Error(w, "failed to marshal policy: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
-		if err := os.WriteFile(path, b, 0o644); err != nil {
+		if err := os.WriteFile(path, b, 0o640); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusAccepted)
 		if _, err := w.Write([]byte(`{"status":"accepted","saved":"` + path + `"}`)); err != nil {
-			// Log error but can't change status code at this point
+			// Log error but can't change status code at this point.
 			http.Error(w, "Failed to write response", http.StatusInternalServerError)
 			return
 		}

@@ -17,61 +17,61 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
-// Enhanced RAG Integration with Multiple Providers
-// This file provides a comprehensive RAG implementation with support for multiple vector stores,
+// Enhanced RAG Integration with Multiple Providers.
+// This file provides a comprehensive RAG implementation with support for multiple vector stores,.
 // embedding providers, and optimization strategies.
 
-// RAGProvider defines the interface for RAG providers
+// RAGProvider defines the interface for RAG providers.
 type RAGProvider interface {
-	// Search performs semantic search
+	// Search performs semantic search.
 	Search(ctx context.Context, query string, options *QueryOptions) (*QueryResponse, error)
 
-	// Index stores documents for retrieval
+	// Index stores documents for retrieval.
 	Index(ctx context.Context, documents []*shared.TelecomDocument) error
 
-	// GetHealth returns provider health status
+	// GetHealth returns provider health status.
 	GetHealth() ProviderHealth
 
-	// GetMetrics returns provider performance metrics
+	// GetMetrics returns provider performance metrics.
 	GetMetrics() ProviderMetrics
 }
 
-// EmbeddingProvider defines the interface for embedding generation
+// EmbeddingProvider defines the interface for embedding generation.
 type EmbeddingProvider interface {
-	// GenerateEmbedding creates embeddings for text
+	// GenerateEmbedding creates embeddings for text.
 	GenerateEmbedding(ctx context.Context, text string) ([]float32, error)
 
-	// GenerateBatchEmbeddings creates embeddings for multiple texts
+	// GenerateBatchEmbeddings creates embeddings for multiple texts.
 	GenerateBatchEmbeddings(ctx context.Context, texts []string) ([][]float32, error)
 
-	// GetDimensions returns the embedding dimension size
+	// GetDimensions returns the embedding dimension size.
 	GetDimensions() int
 
-	// IsHealthy returns the health status of the provider (for health monitoring compatibility)
+	// IsHealthy returns the health status of the provider (for health monitoring compatibility).
 	IsHealthy() bool
 
-	// GetLatency returns the average latency of the provider (for health monitoring compatibility)
+	// GetLatency returns the average latency of the provider (for health monitoring compatibility).
 	GetLatency() time.Duration
 }
 
-// VectorStore defines the interface for vector storage
+// VectorStore defines the interface for vector storage.
 type VectorStore interface {
-	// Store saves vectors with metadata
+	// Store saves vectors with metadata.
 	Store(ctx context.Context, vectors []Vector) error
 
-	// Search finds similar vectors
+	// Search finds similar vectors.
 	Search(ctx context.Context, query []float32, limit int) ([]VectorSearchResult, error)
 
-	// Delete removes vectors by ID
+	// Delete removes vectors by ID.
 	Delete(ctx context.Context, ids []string) error
 
-	// GetStats returns storage statistics
+	// GetStats returns storage statistics.
 	GetStats() VectorStoreStats
 }
 
-// Core Types
+// Core Types.
 
-// Vector represents a document with its embedding
+// Vector represents a document with its embedding.
 type Vector struct {
 	ID        string                  `json:"id"`
 	Embedding []float32               `json:"embedding"`
@@ -79,22 +79,22 @@ type Vector struct {
 	Document  *shared.TelecomDocument `json:"document,omitempty"`
 }
 
-// VectorSearchResult represents a search result with similarity score
+// VectorSearchResult represents a search result with similarity score.
 type VectorSearchResult struct {
 	Vector *Vector `json:"vector"`
 	Score  float32 `json:"score"`
 }
 
-// VectorStoreStats provides storage statistics
+// VectorStoreStats provides storage statistics.
 type VectorStoreStats struct {
 	TotalVectors int64                  `json:"total_vectors"`
 	IndexSize    int64                  `json:"index_size"`
 	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// Provider Health and Metrics
+// Provider Health and Metrics.
 
-// ProviderHealth represents the health status of a provider
+// ProviderHealth represents the health status of a provider.
 type ProviderHealth struct {
 	IsHealthy bool          `json:"is_healthy"`
 	LastCheck time.Time     `json:"last_check"`
@@ -103,7 +103,7 @@ type ProviderHealth struct {
 	Details   string        `json:"details,omitempty"`
 }
 
-// ProviderMetrics contains performance metrics for a provider
+// ProviderMetrics contains performance metrics for a provider.
 type ProviderMetrics struct {
 	RequestCount    int64         `json:"request_count"`
 	AverageLatency  time.Duration `json:"average_latency"`
@@ -112,9 +112,9 @@ type ProviderMetrics struct {
 	LastRequestTime time.Time     `json:"last_request_time"`
 }
 
-// Enhanced RAG Manager
+// Enhanced RAG Manager.
 
-// EnhancedRAGManager manages multiple RAG providers with intelligent routing
+// EnhancedRAGManager manages multiple RAG providers with intelligent routing.
 type EnhancedRAGManager struct {
 	providers          map[string]RAGProvider
 	embeddingProviders map[string]EmbeddingProvider
@@ -127,30 +127,30 @@ type EnhancedRAGManager struct {
 	logger             *slog.Logger
 }
 
-// EnhancedRAGConfig holds configuration for the RAG manager
+// EnhancedRAGConfig holds configuration for the RAG manager.
 type EnhancedRAGConfig struct {
-	// Provider Selection Strategy
+	// Provider Selection Strategy.
 	ProviderStrategy string `json:"provider_strategy"` // "round_robin", "failover", "performance_based"
 	DefaultProvider  string `json:"default_provider"`
 
-	// Caching Configuration
+	// Caching Configuration.
 	CacheEnabled bool          `json:"cache_enabled"`
 	CacheTTL     time.Duration `json:"cache_ttl"`
 	CacheMaxSize int           `json:"cache_max_size"`
 
-	// Performance Settings
+	// Performance Settings.
 	MaxConcurrentQueries int           `json:"max_concurrent_queries"`
 	QueryTimeout         time.Duration `json:"query_timeout"`
 
-	// Retry Configuration
+	// Retry Configuration.
 	MaxRetries int           `json:"max_retries"`
 	RetryDelay time.Duration `json:"retry_delay"`
 
-	// Health Check Settings
+	// Health Check Settings.
 	HealthCheckInterval time.Duration `json:"health_check_interval"`
 }
 
-// NewEnhancedRAGManager creates a new enhanced RAG manager
+// NewEnhancedRAGManager creates a new enhanced RAG manager.
 func NewEnhancedRAGManager(config *EnhancedRAGConfig) *EnhancedRAGManager {
 	if config == nil {
 		config = &EnhancedRAGConfig{
@@ -174,18 +174,18 @@ func NewEnhancedRAGManager(config *EnhancedRAGConfig) *EnhancedRAGManager {
 		logger:             slog.Default().With("component", "enhanced-rag-manager"),
 	}
 
-	// Initialize components
+	// Initialize components.
 	manager.router = NewProviderRouter(config)
 	manager.cache = NewRAGCache(config.CacheMaxSize, config.CacheTTL)
 	manager.metrics = NewRAGMetrics()
 
-	// Start health checking
+	// Start health checking.
 	go manager.startHealthChecking()
 
 	return manager
 }
 
-// RegisterProvider registers a new RAG provider
+// RegisterProvider registers a new RAG provider.
 func (erm *EnhancedRAGManager) RegisterProvider(name string, provider RAGProvider) {
 	erm.mu.Lock()
 	defer erm.mu.Unlock()
@@ -196,7 +196,7 @@ func (erm *EnhancedRAGManager) RegisterProvider(name string, provider RAGProvide
 	erm.logger.Info("Registered RAG provider", "provider", name)
 }
 
-// RegisterEmbeddingProvider registers a new embedding provider
+// RegisterEmbeddingProvider registers a new embedding provider.
 func (erm *EnhancedRAGManager) RegisterEmbeddingProvider(name string, provider EmbeddingProvider) {
 	erm.mu.Lock()
 	defer erm.mu.Unlock()
@@ -205,7 +205,7 @@ func (erm *EnhancedRAGManager) RegisterEmbeddingProvider(name string, provider E
 	erm.logger.Info("Registered embedding provider", "provider", name)
 }
 
-// RegisterVectorStore registers a new vector store
+// RegisterVectorStore registers a new vector store.
 func (erm *EnhancedRAGManager) RegisterVectorStore(name string, store VectorStore) {
 	erm.mu.Lock()
 	defer erm.mu.Unlock()
@@ -214,11 +214,11 @@ func (erm *EnhancedRAGManager) RegisterVectorStore(name string, store VectorStor
 	erm.logger.Info("Registered vector store", "store", name)
 }
 
-// Query performs an enhanced RAG query with provider selection and caching
+// Query performs an enhanced RAG query with provider selection and caching.
 func (erm *EnhancedRAGManager) Query(ctx context.Context, query string, options *QueryOptions) (*QueryResponse, error) {
 	startTime := time.Now()
 
-	// Check cache first
+	// Check cache first.
 	if erm.config.CacheEnabled {
 		if cached := erm.cache.Get(query); cached != nil {
 			erm.metrics.RecordCacheHit()
@@ -226,13 +226,13 @@ func (erm *EnhancedRAGManager) Query(ctx context.Context, query string, options 
 		}
 	}
 
-	// Select optimal provider
+	// Select optimal provider.
 	provider := erm.router.SelectProvider(ctx, query)
 	if provider == nil {
 		return nil, fmt.Errorf("no healthy providers available")
 	}
 
-	// Execute query with retries
+	// Execute query with retries.
 	var response *QueryResponse
 	var err error
 
@@ -255,7 +255,7 @@ func (erm *EnhancedRAGManager) Query(ctx context.Context, query string, options 
 			case <-ctx.Done():
 				return nil, ctx.Err()
 			case <-time.After(erm.config.RetryDelay):
-				// Continue to next attempt
+				// Continue to next attempt.
 			}
 		}
 	}
@@ -265,11 +265,11 @@ func (erm *EnhancedRAGManager) Query(ctx context.Context, query string, options 
 		return nil, fmt.Errorf("query failed after %d attempts: %w", erm.config.MaxRetries+1, err)
 	}
 
-	// Update metrics
+	// Update metrics.
 	duration := time.Since(startTime)
 	erm.metrics.RecordQuery(duration)
 
-	// Cache successful response
+	// Cache successful response.
 	if erm.config.CacheEnabled && response != nil {
 		erm.cache.Set(query, response)
 	}
@@ -278,7 +278,7 @@ func (erm *EnhancedRAGManager) Query(ctx context.Context, query string, options 
 	return response, nil
 }
 
-// IndexDocuments indexes documents across all registered vector stores
+// IndexDocuments indexes documents across all registered vector stores.
 func (erm *EnhancedRAGManager) IndexDocuments(ctx context.Context, documents []*shared.TelecomDocument) error {
 	if len(documents) == 0 {
 		return nil
@@ -291,7 +291,7 @@ func (erm *EnhancedRAGManager) IndexDocuments(ctx context.Context, documents []*
 	}
 	erm.mu.RUnlock()
 
-	// Index in parallel across all providers
+	// Index in parallel across all providers.
 	errCh := make(chan error, len(providers))
 
 	for _, provider := range providers {
@@ -316,7 +316,7 @@ func (erm *EnhancedRAGManager) IndexDocuments(ctx context.Context, documents []*
 	return nil
 }
 
-// GetHealth returns the health status of all providers
+// GetHealth returns the health status of all providers.
 func (erm *EnhancedRAGManager) GetHealth() map[string]ProviderHealth {
 	erm.mu.RLock()
 	defer erm.mu.RUnlock()
@@ -329,7 +329,7 @@ func (erm *EnhancedRAGManager) GetHealth() map[string]ProviderHealth {
 	return health
 }
 
-// GetMetrics returns aggregated metrics for all providers
+// GetMetrics returns aggregated metrics for all providers.
 func (erm *EnhancedRAGManager) GetMetrics() map[string]ProviderMetrics {
 	erm.mu.RLock()
 	defer erm.mu.RUnlock()
@@ -342,7 +342,7 @@ func (erm *EnhancedRAGManager) GetMetrics() map[string]ProviderMetrics {
 	return metrics
 }
 
-// startHealthChecking runs periodic health checks
+// startHealthChecking runs periodic health checks.
 func (erm *EnhancedRAGManager) startHealthChecking() {
 	ticker := time.NewTicker(erm.config.HealthCheckInterval)
 	defer ticker.Stop()
@@ -355,7 +355,7 @@ func (erm *EnhancedRAGManager) startHealthChecking() {
 	}
 }
 
-// checkProviderHealth checks the health of all providers
+// checkProviderHealth checks the health of all providers.
 func (erm *EnhancedRAGManager) checkProviderHealth() {
 	erm.mu.RLock()
 	providers := make(map[string]RAGProvider)
@@ -374,9 +374,9 @@ func (erm *EnhancedRAGManager) checkProviderHealth() {
 	}
 }
 
-// Provider Router for intelligent provider selection
+// Provider Router for intelligent provider selection.
 
-// ProviderRouter handles intelligent routing to optimal providers
+// ProviderRouter handles intelligent routing to optimal providers.
 type ProviderRouter struct {
 	providers  map[string]RAGProvider
 	strategy   string
@@ -384,7 +384,7 @@ type ProviderRouter struct {
 	mu         sync.RWMutex
 }
 
-// NewProviderRouter creates a new provider router
+// NewProviderRouter creates a new provider router.
 func NewProviderRouter(config *EnhancedRAGConfig) *ProviderRouter {
 	return &ProviderRouter{
 		providers: make(map[string]RAGProvider),
@@ -392,14 +392,14 @@ func NewProviderRouter(config *EnhancedRAGConfig) *ProviderRouter {
 	}
 }
 
-// AddProvider adds a provider to the router
+// AddProvider adds a provider to the router.
 func (pr *ProviderRouter) AddProvider(name string, provider RAGProvider) {
 	pr.mu.Lock()
 	defer pr.mu.Unlock()
 	pr.providers[name] = provider
 }
 
-// SelectProvider selects the optimal provider based on strategy
+// SelectProvider selects the optimal provider based on strategy.
 func (pr *ProviderRouter) SelectProvider(ctx context.Context, query string) RAGProvider {
 	pr.mu.RLock()
 	defer pr.mu.RUnlock()
@@ -450,7 +450,7 @@ func (pr *ProviderRouter) selectByPerformance() RAGProvider {
 			continue
 		}
 
-		// Score based on latency and error rate
+		// Score based on latency and error rate.
 		score := 1.0 / (1.0 + float64(health.Latency.Milliseconds()))
 		score *= (1.0 - health.ErrorRate)
 		score *= metrics.CacheHitRate
@@ -462,7 +462,7 @@ func (pr *ProviderRouter) selectByPerformance() RAGProvider {
 		return nil
 	}
 
-	// Sort by score (descending)
+	// Sort by score (descending).
 	sort.Slice(scores, func(i, j int) bool {
 		return scores[i].score > scores[j].score
 	})
@@ -480,9 +480,9 @@ func (pr *ProviderRouter) selectFailover() RAGProvider {
 	return nil
 }
 
-// RAG Cache for query result caching
+// RAG Cache for query result caching.
 
-// RAGCache provides caching for query results
+// RAGCache provides caching for query results.
 type RAGCache struct {
 	cache   map[string]*enhancedCacheEntry
 	maxSize int
@@ -495,7 +495,7 @@ type enhancedCacheEntry struct {
 	timestamp time.Time
 }
 
-// NewRAGCache creates a new RAG cache
+// NewRAGCache creates a new RAG cache.
 func NewRAGCache(maxSize int, ttl time.Duration) *RAGCache {
 	cache := &RAGCache{
 		cache:   make(map[string]*enhancedCacheEntry),
@@ -503,13 +503,13 @@ func NewRAGCache(maxSize int, ttl time.Duration) *RAGCache {
 		ttl:     ttl,
 	}
 
-	// Start cleanup routine
+	// Start cleanup routine.
 	go cache.startCleanup()
 
 	return cache
 }
 
-// Get retrieves a cached response
+// Get retrieves a cached response.
 func (rc *RAGCache) Get(query string) *QueryResponse {
 	rc.mu.RLock()
 	defer rc.mu.RUnlock()
@@ -526,12 +526,12 @@ func (rc *RAGCache) Get(query string) *QueryResponse {
 	return entry.response
 }
 
-// Set stores a response in cache
+// Set stores a response in cache.
 func (rc *RAGCache) Set(query string, response *QueryResponse) {
 	rc.mu.Lock()
 	defer rc.mu.Unlock()
 
-	// Evict if at capacity
+	// Evict if at capacity.
 	if len(rc.cache) >= rc.maxSize {
 		rc.evictOldest()
 	}
@@ -584,9 +584,9 @@ func (rc *RAGCache) cleanup() {
 	}
 }
 
-// RAG Metrics for performance tracking
+// RAG Metrics for performance tracking.
 
-// RAGMetrics tracks performance metrics
+// RAGMetrics tracks performance metrics.
 type RAGMetrics struct {
 	queryCount   int64
 	errorCount   int64
@@ -595,12 +595,12 @@ type RAGMetrics struct {
 	mu           sync.RWMutex
 }
 
-// NewRAGMetrics creates a new metrics tracker
+// NewRAGMetrics creates a new metrics tracker.
 func NewRAGMetrics() *RAGMetrics {
 	return &RAGMetrics{}
 }
 
-// RecordQuery records a successful query
+// RecordQuery records a successful query.
 func (rm *RAGMetrics) RecordQuery(duration time.Duration) {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
@@ -609,7 +609,7 @@ func (rm *RAGMetrics) RecordQuery(duration time.Duration) {
 	rm.totalLatency += duration
 }
 
-// RecordError records a query error
+// RecordError records a query error.
 func (rm *RAGMetrics) RecordError() {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
@@ -617,7 +617,7 @@ func (rm *RAGMetrics) RecordError() {
 	rm.errorCount++
 }
 
-// RecordCacheHit records a cache hit
+// RecordCacheHit records a cache hit.
 func (rm *RAGMetrics) RecordCacheHit() {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
@@ -625,7 +625,7 @@ func (rm *RAGMetrics) RecordCacheHit() {
 	rm.cacheHits++
 }
 
-// GetStats returns current metrics
+// GetStats returns current metrics.
 func (rm *RAGMetrics) GetStats() RAGStats {
 	rm.mu.RLock()
 	defer rm.mu.RUnlock()
@@ -656,7 +656,7 @@ func (rm *RAGMetrics) GetStats() RAGStats {
 	}
 }
 
-// RAGStats contains aggregated statistics
+// RAGStats contains aggregated statistics.
 type RAGStats struct {
 	QueryCount     int64         `json:"query_count"`
 	ErrorCount     int64         `json:"error_count"`
@@ -666,10 +666,10 @@ type RAGStats struct {
 	CacheHitRate   float64       `json:"cache_hit_rate"`
 }
 
-// Type aliases for shared types
+// Type aliases for shared types.
 type SearchResult = shared.SearchResult
 
-// QueryOptions holds options for RAG queries
+// QueryOptions holds options for RAG queries.
 type QueryOptions struct {
 	TopK            int                    `json:"top_k"`
 	ScoreThreshold  float32                `json:"score_threshold"`
@@ -677,7 +677,7 @@ type QueryOptions struct {
 	IncludeMetadata bool                   `json:"include_metadata"`
 }
 
-// QueryResponse represents a RAG query response
+// QueryResponse represents a RAG query response.
 type QueryResponse struct {
 	Query          string          `json:"query"`
 	Results        []*SearchResult `json:"results"`
@@ -686,7 +686,7 @@ type QueryResponse struct {
 	ProviderUsed   string          `json:"provider_used"`
 }
 
-// MockVectorStore is a simple in-memory vector store for testing
+// MockVectorStore is a simple in-memory vector store for testing.
 type MockVectorStore struct {
 	data map[string]*vectorEntry
 	mu   sync.RWMutex
@@ -697,14 +697,14 @@ type vectorEntry struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-// NewMockVectorStore creates a new mock vector store
+// NewMockVectorStore creates a new mock vector store.
 func NewMockVectorStore() *MockVectorStore {
 	return &MockVectorStore{
 		data: make(map[string]*vectorEntry),
 	}
 }
 
-// Store implements VectorStore interface
+// Store implements VectorStore interface.
 func (mvs *MockVectorStore) Store(ctx context.Context, vectors []Vector) error {
 	mvs.mu.Lock()
 	defer mvs.mu.Unlock()
@@ -719,7 +719,7 @@ func (mvs *MockVectorStore) Store(ctx context.Context, vectors []Vector) error {
 	return nil
 }
 
-// Search implements VectorStore interface
+// Search implements VectorStore interface.
 func (mvs *MockVectorStore) Search(ctx context.Context, query []float32, limit int) ([]VectorSearchResult, error) {
 	mvs.mu.RLock()
 	defer mvs.mu.RUnlock()
@@ -727,7 +727,7 @@ func (mvs *MockVectorStore) Search(ctx context.Context, query []float32, limit i
 	var results []VectorSearchResult
 
 	for _, entry := range mvs.data {
-		// Simple cosine similarity calculation
+		// Simple cosine similarity calculation.
 		score := cosineSimilarity(query, entry.Vector.Embedding)
 
 		results = append(results, VectorSearchResult{
@@ -736,12 +736,12 @@ func (mvs *MockVectorStore) Search(ctx context.Context, query []float32, limit i
 		})
 	}
 
-	// Sort by score (descending)
+	// Sort by score (descending).
 	sort.Slice(results, func(i, j int) bool {
 		return results[i].Score > results[j].Score
 	})
 
-	// Limit results
+	// Limit results.
 	if limit > 0 && len(results) > limit {
 		results = results[:limit]
 	}
@@ -749,7 +749,7 @@ func (mvs *MockVectorStore) Search(ctx context.Context, query []float32, limit i
 	return results, nil
 }
 
-// Delete implements VectorStore interface
+// Delete implements VectorStore interface.
 func (mvs *MockVectorStore) Delete(ctx context.Context, ids []string) error {
 	mvs.mu.Lock()
 	defer mvs.mu.Unlock()
@@ -761,7 +761,7 @@ func (mvs *MockVectorStore) Delete(ctx context.Context, ids []string) error {
 	return nil
 }
 
-// GetStats implements VectorStore interface
+// GetStats implements VectorStore interface.
 func (mvs *MockVectorStore) GetStats() VectorStoreStats {
 	mvs.mu.RLock()
 	defer mvs.mu.RUnlock()
@@ -772,7 +772,7 @@ func (mvs *MockVectorStore) GetStats() VectorStoreStats {
 	}
 }
 
-// cosineSimilarity calculates cosine similarity between two vectors
+// cosineSimilarity calculates cosine similarity between two vectors.
 func cosineSimilarity(a, b []float32) float32 {
 	if len(a) != len(b) {
 		return 0
@@ -793,9 +793,9 @@ func cosineSimilarity(a, b []float32) float32 {
 	return dotProduct / (float32(normA) * float32(normB))
 }
 
-// Mock RAG Provider for testing
+// Mock RAG Provider for testing.
 
-// MockRAGProvider is a simple mock implementation of RAGProvider
+// MockRAGProvider is a simple mock implementation of RAGProvider.
 type MockRAGProvider struct {
 	name        string
 	isHealthy   bool
@@ -805,7 +805,7 @@ type MockRAGProvider struct {
 	lastRequest time.Time
 }
 
-// NewMockRAGProvider creates a new mock RAG provider
+// NewMockRAGProvider creates a new mock RAG provider.
 func NewMockRAGProvider(name string) *MockRAGProvider {
 	return &MockRAGProvider{
 		name:      name,
@@ -817,7 +817,7 @@ func NewMockRAGProvider(name string) *MockRAGProvider {
 	}
 }
 
-// Search implements RAGProvider interface
+// Search implements RAGProvider interface.
 func (mrp *MockRAGProvider) Search(ctx context.Context, query string, options *QueryOptions) (*QueryResponse, error) {
 	mrp.mu.Lock()
 	defer mrp.mu.Unlock()
@@ -825,13 +825,13 @@ func (mrp *MockRAGProvider) Search(ctx context.Context, query string, options *Q
 	mrp.lastRequest = time.Now()
 	mrp.metrics.RequestCount++
 
-	// Simple mock search logic
+	// Simple mock search logic.
 	var results []*SearchResult
 
 	for _, doc := range mrp.documents {
-		// Simple keyword matching for mock
+		// Simple keyword matching for mock.
 		if contains(doc.Content, query) {
-			// Create SearchResult using the correct shared.SearchResult struct
+			// Create SearchResult using the correct shared.SearchResult struct.
 			results = append(results, &SearchResult{
 				Document: doc,
 				Score:    rand.Float32(),
@@ -853,7 +853,7 @@ func (mrp *MockRAGProvider) Search(ctx context.Context, query string, options *Q
 	}, nil
 }
 
-// Index implements RAGProvider interface
+// Index implements RAGProvider interface.
 func (mrp *MockRAGProvider) Index(ctx context.Context, documents []*shared.TelecomDocument) error {
 	mrp.mu.Lock()
 	defer mrp.mu.Unlock()
@@ -862,7 +862,7 @@ func (mrp *MockRAGProvider) Index(ctx context.Context, documents []*shared.Telec
 	return nil
 }
 
-// GetHealth implements RAGProvider interface
+// GetHealth implements RAGProvider interface.
 func (mrp *MockRAGProvider) GetHealth() ProviderHealth {
 	mrp.mu.RLock()
 	defer mrp.mu.RUnlock()
@@ -876,7 +876,7 @@ func (mrp *MockRAGProvider) GetHealth() ProviderHealth {
 	}
 }
 
-// GetMetrics implements RAGProvider interface
+// GetMetrics implements RAGProvider interface.
 func (mrp *MockRAGProvider) GetMetrics() ProviderMetrics {
 	mrp.mu.RLock()
 	defer mrp.mu.RUnlock()
@@ -888,14 +888,14 @@ func (mrp *MockRAGProvider) GetMetrics() ProviderMetrics {
 	return metrics
 }
 
-// SetHealthy sets the health status for testing
+// SetHealthy sets the health status for testing.
 func (mrp *MockRAGProvider) SetHealthy(healthy bool) {
 	mrp.mu.Lock()
 	defer mrp.mu.Unlock()
 	mrp.isHealthy = healthy
 }
 
-// contains is a simple helper function for string matching
+// contains is a simple helper function for string matching.
 func contains(text, substring string) bool {
 	return len(substring) == 0 || len(text) >= len(substring) &&
 		(text == substring || text[:len(substring)] == substring ||
@@ -912,15 +912,15 @@ func findSubstring(text, substring string) bool {
 	return false
 }
 
-// HTTP Handlers for RAG API
+// HTTP Handlers for RAG API.
 
-// RAGHandler provides HTTP endpoints for RAG operations
+// RAGHandler provides HTTP endpoints for RAG operations.
 type RAGHandler struct {
 	manager *EnhancedRAGManager
 	logger  *slog.Logger
 }
 
-// NewRAGHandler creates a new RAG HTTP handler
+// NewRAGHandler creates a new RAG HTTP handler.
 func NewRAGHandler(manager *EnhancedRAGManager) *RAGHandler {
 	return &RAGHandler{
 		manager: manager,
@@ -928,7 +928,7 @@ func NewRAGHandler(manager *EnhancedRAGManager) *RAGHandler {
 	}
 }
 
-// HandleQuery handles RAG query requests
+// HandleQuery handles RAG query requests.
 func (rh *RAGHandler) HandleQuery(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -961,7 +961,7 @@ func (rh *RAGHandler) HandleQuery(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// HandleHealth handles health check requests
+// HandleHealth handles health check requests.
 func (rh *RAGHandler) HandleHealth(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -974,7 +974,7 @@ func (rh *RAGHandler) HandleHealth(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(health)
 }
 
-// HandleMetrics handles metrics requests
+// HandleMetrics handles metrics requests.
 func (rh *RAGHandler) HandleMetrics(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -987,11 +987,11 @@ func (rh *RAGHandler) HandleMetrics(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(metrics)
 }
 
-// Example Usage and Integration
+// Example Usage and Integration.
 
-// RAGIntegrationExample demonstrates how to use the enhanced RAG system
+// RAGIntegrationExample demonstrates how to use the enhanced RAG system.
 func RAGIntegrationExample() {
-	// Create configuration
+	// Create configuration.
 	config := &EnhancedRAGConfig{
 		ProviderStrategy:     "performance_based",
 		DefaultProvider:      "weaviate",
@@ -1004,17 +1004,17 @@ func RAGIntegrationExample() {
 		HealthCheckInterval:  time.Minute,
 	}
 
-	// Create RAG manager
+	// Create RAG manager.
 	manager := NewEnhancedRAGManager(config)
 
-	// Register providers
+	// Register providers.
 	weaviateProvider := NewMockRAGProvider("weaviate")
 	chromaProvider := NewMockRAGProvider("chroma")
 
 	manager.RegisterProvider("weaviate", weaviateProvider)
 	manager.RegisterProvider("chroma", chromaProvider)
 
-	// Index some documents
+	// Index some documents.
 	documents := []*shared.TelecomDocument{
 		{
 			ID:      "doc1",
@@ -1034,7 +1034,7 @@ func RAGIntegrationExample() {
 		return
 	}
 
-	// Perform queries
+	// Perform queries.
 	queryOptions := &QueryOptions{
 		TopK:            5,
 		ScoreThreshold:  0.7,
@@ -1050,13 +1050,13 @@ func RAGIntegrationExample() {
 	log.Printf("Query successful: found %d results in %v",
 		len(response.Results), response.ProcessingTime)
 
-	// Check health
+	// Check health.
 	health := manager.GetHealth()
 	for provider, status := range health {
 		log.Printf("Provider %s health: %v", provider, status.IsHealthy)
 	}
 
-	// Get metrics
+	// Get metrics.
 	metrics := manager.GetMetrics()
 	for provider, metric := range metrics {
 		log.Printf("Provider %s metrics: %+v", provider, metric)

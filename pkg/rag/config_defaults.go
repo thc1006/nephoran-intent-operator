@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// getDefaultLoaderConfig returns default configuration for document loader
+// getDefaultLoaderConfig returns default configuration for document loader.
 func getDefaultLoaderConfig() *DocumentLoaderConfig {
 	return &DocumentLoaderConfig{
 		LocalPaths:             []string{"./knowledge_base"},
@@ -42,7 +42,7 @@ func getDefaultLoaderConfig() *DocumentLoaderConfig {
 	}
 }
 
-// getDefaultChunkingConfig returns default configuration for chunking service
+// getDefaultChunkingConfig returns default configuration for chunking service.
 func getDefaultChunkingConfig() *ChunkingConfig {
 	return &ChunkingConfig{
 		ChunkSize:               2000,
@@ -77,7 +77,7 @@ func getDefaultChunkingConfig() *ChunkingConfig {
 	}
 }
 
-// getDefaultEmbeddingConfig returns default configuration for embedding service
+// getDefaultEmbeddingConfig returns default configuration for embedding service.
 func getDefaultEmbeddingConfig() *EmbeddingConfig {
 	return &EmbeddingConfig{
 		Provider:         "openai",
@@ -173,7 +173,7 @@ func getDefaultEmbeddingConfig() *EmbeddingConfig {
 	}
 }
 
-// getDefaultRetrievalConfig returns default configuration for retrieval service
+// getDefaultRetrievalConfig returns default configuration for retrieval service.
 func getDefaultRetrievalConfig() *RetrievalConfig {
 	return &RetrievalConfig{
 		DefaultLimit:             20,
@@ -223,7 +223,7 @@ func getDefaultRetrievalConfig() *RetrievalConfig {
 	}
 }
 
-// getDefaultRedisCacheConfig returns default configuration for Redis cache
+// getDefaultRedisCacheConfig returns default configuration for Redis cache.
 func getDefaultRedisCacheConfig() *RedisCacheConfig {
 	return &RedisCacheConfig{
 		Address:            "localhost:6379",
@@ -253,7 +253,7 @@ func getDefaultRedisCacheConfig() *RedisCacheConfig {
 	}
 }
 
-// getDefaultMonitoringConfig returns default configuration for monitoring
+// getDefaultMonitoringConfig returns default configuration for monitoring.
 func getDefaultMonitoringConfig() *MonitoringConfig {
 	return &MonitoringConfig{
 		MetricsPort:                8080,
@@ -273,7 +273,7 @@ func getDefaultMonitoringConfig() *MonitoringConfig {
 	}
 }
 
-// DefaultPipelineConfiguration returns a complete default pipeline configuration
+// DefaultPipelineConfiguration returns a complete default pipeline configuration.
 func DefaultPipelineConfiguration() *PipelineConfig {
 	return &PipelineConfig{
 		DocumentLoaderConfig: getDefaultLoaderConfig(),
@@ -299,61 +299,61 @@ func DefaultPipelineConfiguration() *PipelineConfig {
 	}
 }
 
-// ProductionPipelineConfiguration returns a production-optimized configuration
+// ProductionPipelineConfiguration returns a production-optimized configuration.
 func ProductionPipelineConfiguration() *PipelineConfig {
 	config := DefaultPipelineConfiguration()
 
-	// Production optimizations
+	// Production optimizations.
 	config.EnableMonitoring = true
 	config.MonitoringConfig.LogLevel = "warn"
 
-	// Higher performance settings
+	// Higher performance settings.
 	config.MaxConcurrentProcessing = 20
 	config.DocumentLoaderConfig.MaxConcurrency = 10
 	config.ChunkingConfig.MaxConcurrency = 10
 	config.EmbeddingConfig.MaxConcurrency = 10
 	config.RetrievalConfig.MaxConcurrentQueries = 20
 
-	// Longer cache TTLs for production
+	// Longer cache TTLs for production.
 	config.RedisCacheConfig.EmbeddingTTL = 3 * 24 * time.Hour // 3 days
 	config.RedisCacheConfig.DocumentTTL = 7 * 24 * time.Hour  // 7 days
 	config.RedisCacheConfig.QueryResultTTL = 2 * time.Hour    // 2 hours
 	config.RedisCacheConfig.ContextTTL = 1 * time.Hour        // 1 hour
 
-	// More conservative quality thresholds
+	// More conservative quality thresholds.
 	config.MinQualityThreshold = 0.8
 	config.EmbeddingConfig.MinQualityScore = 0.8
 
-	// Production-level limits
+	// Production-level limits.
 	config.EmbeddingConfig.DailyCostLimit = 200.0
 	config.EmbeddingConfig.MonthlyCostLimit = 5000.0
 
 	return config
 }
 
-// DevelopmentPipelineConfiguration returns a development-optimized configuration
+// DevelopmentPipelineConfiguration returns a development-optimized configuration.
 func DevelopmentPipelineConfiguration() *PipelineConfig {
 	config := DefaultPipelineConfiguration()
 
-	// Development optimizations
+	// Development optimizations.
 	config.MonitoringConfig.LogLevel = "debug"
 
-	// Smaller limits for development
+	// Smaller limits for development.
 	config.DocumentLoaderConfig.MaxFileSize = 50 * 1024 * 1024 // 50MB
 	config.EmbeddingConfig.DailyCostLimit = 10.0               // $10 daily limit
 	config.EmbeddingConfig.MonthlyCostLimit = 100.0            // $100 monthly limit
 
-	// More frequent health checks
+	// More frequent health checks.
 	config.MonitoringConfig.HealthCheckInterval = 10 * time.Second
 	config.EmbeddingConfig.HealthCheckInterval = 1 * time.Minute
 
-	// Shorter cache TTLs for faster iteration
+	// Shorter cache TTLs for faster iteration.
 	config.RedisCacheConfig.EmbeddingTTL = 1 * time.Hour
 	config.RedisCacheConfig.DocumentTTL = 4 * time.Hour
 	config.RedisCacheConfig.QueryResultTTL = 15 * time.Minute
 	config.RedisCacheConfig.ContextTTL = 5 * time.Minute
 
-	// Enable local provider for testing
+	// Enable local provider for testing.
 	for i, provider := range config.EmbeddingConfig.Providers {
 		if provider.Name == "local" {
 			config.EmbeddingConfig.Providers[i].Enabled = true
@@ -364,38 +364,38 @@ func DevelopmentPipelineConfiguration() *PipelineConfig {
 	return config
 }
 
-// TestPipelineConfiguration returns a test-optimized configuration
+// TestPipelineConfiguration returns a test-optimized configuration.
 func TestPipelineConfiguration() *PipelineConfig {
 	config := DefaultPipelineConfiguration()
 
-	// Test optimizations
+	// Test optimizations.
 	config.EnableCaching = false       // Disable caching for consistent tests
 	config.EnableMonitoring = false    // Disable monitoring for simpler tests
 	config.AutoIndexing = false        // No background tasks
 	config.EnableQualityChecks = false // Skip quality checks for speed
 
-	// Minimal processing for tests
+	// Minimal processing for tests.
 	config.MaxConcurrentProcessing = 2
 	config.DocumentLoaderConfig.MaxConcurrency = 2
 	config.ChunkingConfig.MaxConcurrency = 2
 	config.EmbeddingConfig.MaxConcurrency = 2
 	config.RetrievalConfig.MaxConcurrentQueries = 2
 
-	// Short timeouts for fast test execution
+	// Short timeouts for fast test execution.
 	config.ProcessingTimeout = 10 * time.Second
 	config.DocumentLoaderConfig.ProcessingTimeout = 5 * time.Second
 	config.EmbeddingConfig.RequestTimeout = 5 * time.Second
 	config.RetrievalConfig.QueryTimeout = 5 * time.Second
 
-	// Smaller batch sizes
+	// Smaller batch sizes.
 	config.DocumentLoaderConfig.BatchSize = 2
 	config.EmbeddingConfig.BatchSize = 2
 	config.ChunkingConfig.BatchSize = 5
 
-	// No cost limits for tests
+	// No cost limits for tests.
 	config.EmbeddingConfig.EnableCostTracking = false
 
-	// Use mock providers where possible
+	// Use mock providers where possible.
 	for i, provider := range config.EmbeddingConfig.Providers {
 		config.EmbeddingConfig.Providers[i].Enabled = false
 		if provider.Name == "local" {

@@ -30,255 +30,255 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// Config defines the configuration for Porch integration
+// Config defines the configuration for Porch integration.
 type Config struct {
-	// Kubernetes configuration
+	// Kubernetes configuration.
 	KubernetesConfig *KubernetesConfig `json:"kubernetesConfig,omitempty"`
 
-	// Porch service configuration
+	// Porch service configuration.
 	PorchConfig *PorchServiceConfig `json:"porchConfig,omitempty"`
 
-	// Repository configurations
+	// Repository configurations.
 	Repositories map[string]*RepositoryConfig `json:"repositories,omitempty"`
 
-	// Function configurations
+	// Function configurations.
 	Functions *FunctionRegistryConfig `json:"functions,omitempty"`
 
-	// Cluster configurations
+	// Cluster configurations.
 	Clusters map[string]*ClusterConfig `json:"clusters,omitempty"`
 
-	// Policy configurations
+	// Policy configurations.
 	Policies *PolicyConfig `json:"policies,omitempty"`
 
-	// Observability configuration
+	// Observability configuration.
 	Observability *ObservabilityConfig `json:"observability,omitempty"`
 
-	// Security configuration
+	// Security configuration.
 	Security *SecurityConfig `json:"security,omitempty"`
 
-	// Performance configuration
+	// Performance configuration.
 	Performance *PerformanceConfig `json:"performance,omitempty"`
 }
 
-// KubernetesConfig defines Kubernetes client configuration
+// KubernetesConfig defines Kubernetes client configuration.
 type KubernetesConfig struct {
-	// Kubeconfig file path
+	// Kubeconfig file path.
 	KubeconfigPath string `json:"kubeconfigPath,omitempty"`
 
-	// Context to use from kubeconfig
+	// Context to use from kubeconfig.
 	Context string `json:"context,omitempty"`
 
-	// Master URL override
+	// Master URL override.
 	MasterURL string `json:"masterUrl,omitempty"`
 
-	// Namespace to operate in
+	// Namespace to operate in.
 	Namespace string `json:"namespace,omitempty"`
 
-	// QPS for the Kubernetes client
+	// QPS for the Kubernetes client.
 	QPS float32 `json:"qps,omitempty"`
 
-	// Burst for the Kubernetes client
+	// Burst for the Kubernetes client.
 	Burst int `json:"burst,omitempty"`
 
-	// Timeout for requests
+	// Timeout for requests.
 	Timeout time.Duration `json:"timeout,omitempty"`
 
-	// User agent
+	// User agent.
 	UserAgent string `json:"userAgent,omitempty"`
 
-	// Additional headers
+	// Additional headers.
 	Headers map[string]string `json:"headers,omitempty"`
 }
 
-// PorchServiceConfig defines Porch service specific configuration
+// PorchServiceConfig defines Porch service specific configuration.
 type PorchServiceConfig struct {
-	// Porch API server endpoint
+	// Porch API server endpoint.
 	Endpoint string `json:"endpoint"`
 
-	// API version
+	// API version.
 	APIVersion string `json:"apiVersion,omitempty"`
 
-	// Timeout for operations
+	// Timeout for operations.
 	Timeout time.Duration `json:"timeout,omitempty"`
 
-	// Retry configuration
+	// Retry configuration.
 	Retry *RetryConfig `json:"retry,omitempty"`
 
-	// Circuit breaker configuration
+	// Circuit breaker configuration.
 	CircuitBreaker *CircuitBreakerConfig `json:"circuitBreaker,omitempty"`
 
-	// TLS configuration
+	// TLS configuration.
 	TLS *TLSConfig `json:"tls,omitempty"`
 
-	// Authentication configuration
+	// Authentication configuration.
 	Auth *AuthenticationConfig `json:"auth,omitempty"`
 
-	// Rate limiting
+	// Rate limiting.
 	RateLimit *RateLimitConfig `json:"rateLimit,omitempty"`
 
-	// Connection pooling
+	// Connection pooling.
 	ConnectionPool *ConnectionPoolConfig `json:"connectionPool,omitempty"`
 
-	// Enable experimental features
+	// Enable experimental features.
 	ExperimentalFeatures []string `json:"experimentalFeatures,omitempty"`
 }
 
-// FunctionRegistryConfig defines KRM function registry configuration
+// FunctionRegistryConfig defines KRM function registry configuration.
 type FunctionRegistryConfig struct {
-	// Default registry for functions
+	// Default registry for functions.
 	DefaultRegistry string `json:"defaultRegistry,omitempty"`
 
-	// Function registries
+	// Function registries.
 	Registries map[string]*FunctionRegistrySpec `json:"registries,omitempty"`
 
-	// Function execution configuration
+	// Function execution configuration.
 	Execution *FunctionExecutionConfig `json:"execution,omitempty"`
 
-	// Cache configuration for function images
+	// Cache configuration for function images.
 	Cache *FunctionCacheConfig `json:"cache,omitempty"`
 
-	// Security settings for function execution
+	// Security settings for function execution.
 	Security *FunctionSecurityConfig `json:"security,omitempty"`
 
-	// Resource limits for function execution
+	// Resource limits for function execution.
 	ResourceLimits *FunctionResourceLimits `json:"resourceLimits,omitempty"`
 }
 
-// ClusterConfig defines target cluster configuration
+// ClusterConfig defines target cluster configuration.
 type ClusterConfig struct {
-	// Display name for the cluster
+	// Display name for the cluster.
 	Name string `json:"name"`
 
-	// Cluster endpoint
+	// Cluster endpoint.
 	Endpoint string `json:"endpoint"`
 
-	// Kubeconfig for the cluster
+	// Kubeconfig for the cluster.
 	KubeconfigPath string `json:"kubeconfigPath,omitempty"`
 
-	// Context name in kubeconfig
+	// Context name in kubeconfig.
 	Context string `json:"context,omitempty"`
 
-	// Namespace to deploy to
+	// Namespace to deploy to.
 	Namespace string `json:"namespace,omitempty"`
 
-	// Labels for cluster identification
+	// Labels for cluster identification.
 	Labels map[string]string `json:"labels,omitempty"`
 
-	// Annotations for cluster metadata
+	// Annotations for cluster metadata.
 	Annotations map[string]string `json:"annotations,omitempty"`
 
-	// Cluster capabilities
+	// Cluster capabilities.
 	Capabilities []string `json:"capabilities,omitempty"`
 
-	// Cluster region/zone information
+	// Cluster region/zone information.
 	Location *ClusterLocation `json:"location,omitempty"`
 
-	// Network configuration
+	// Network configuration.
 	Network *ClusterNetworkConfig `json:"network,omitempty"`
 
-	// Security policies
+	// Security policies.
 	SecurityPolicies []string `json:"securityPolicies,omitempty"`
 
-	// Resource quotas
+	// Resource quotas.
 	ResourceQuotas map[string]string `json:"resourceQuotas,omitempty"`
 
-	// Health check configuration
+	// Health check configuration.
 	HealthCheck *ClusterHealthConfig `json:"healthCheck,omitempty"`
 }
 
-// PolicyConfig defines policy and workflow configurations
+// PolicyConfig defines policy and workflow configurations.
 type PolicyConfig struct {
-	// Default approval workflow
+	// Default approval workflow.
 	DefaultWorkflow string `json:"defaultWorkflow,omitempty"`
 
-	// Approval workflows by package type
+	// Approval workflows by package type.
 	Workflows map[string]*WorkflowConfig `json:"workflows,omitempty"`
 
-	// Validation policies
+	// Validation policies.
 	Validation *ValidationPolicyConfig `json:"validation,omitempty"`
 
-	// Security policies
+	// Security policies.
 	Security *SecurityPolicyConfig `json:"security,omitempty"`
 
-	// Compliance policies
+	// Compliance policies.
 	Compliance *CompliancePolicyConfig `json:"compliance,omitempty"`
 
-	// RBAC policies
+	// RBAC policies.
 	RBAC *RBACPolicyConfig `json:"rbac,omitempty"`
 
-	// Audit policies
+	// Audit policies.
 	Audit *AuditPolicyConfig `json:"audit,omitempty"`
 }
 
-// ObservabilityConfig defines observability configuration
+// ObservabilityConfig defines observability configuration.
 type ObservabilityConfig struct {
-	// Metrics configuration
+	// Metrics configuration.
 	Metrics *MetricsConfig `json:"metrics,omitempty"`
 
-	// Logging configuration
+	// Logging configuration.
 	Logging *LoggingConfig `json:"logging,omitempty"`
 
-	// Tracing configuration
+	// Tracing configuration.
 	Tracing *TracingConfig `json:"tracing,omitempty"`
 
-	// Health check configuration
+	// Health check configuration.
 	HealthCheck *HealthCheckConfig `json:"healthCheck,omitempty"`
 
-	// Alerting configuration
+	// Alerting configuration.
 	Alerting *AlertingConfig `json:"alerting,omitempty"`
 }
 
-// SecurityConfig defines security configuration
+// SecurityConfig defines security configuration.
 type SecurityConfig struct {
-	// Authentication configuration
+	// Authentication configuration.
 	Authentication *SecurityAuthConfig `json:"authentication,omitempty"`
 
-	// Authorization configuration
+	// Authorization configuration.
 	Authorization *AuthorizationConfig `json:"authorization,omitempty"`
 
-	// Encryption configuration
+	// Encryption configuration.
 	Encryption *EncryptionConfig `json:"encryption,omitempty"`
 
-	// Network security configuration
+	// Network security configuration.
 	NetworkSecurity *NetworkSecurityConfig `json:"networkSecurity,omitempty"`
 
-	// Certificate management
+	// Certificate management.
 	Certificates *CertificateConfig `json:"certificates,omitempty"`
 
-	// Secret management
+	// Secret management.
 	Secrets *SecretManagementConfig `json:"secrets,omitempty"`
 
-	// Vulnerability scanning
+	// Vulnerability scanning.
 	Scanning *ScanningConfig `json:"scanning,omitempty"`
 
-	// Compliance scanning
+	// Compliance scanning.
 	Compliance *ComplianceScanConfig `json:"compliance,omitempty"`
 }
 
-// PerformanceConfig defines performance configuration
+// PerformanceConfig defines performance configuration.
 type PerformanceConfig struct {
-	// Client configuration
+	// Client configuration.
 	Client *ClientPerformanceConfig `json:"client,omitempty"`
 
-	// Server configuration
+	// Server configuration.
 	Server *ServerPerformanceConfig `json:"server,omitempty"`
 
-	// Caching configuration
+	// Caching configuration.
 	Caching *CachingConfig `json:"caching,omitempty"`
 
-	// Connection pooling
+	// Connection pooling.
 	ConnectionPooling *ConnectionPoolingConfig `json:"connectionPooling,omitempty"`
 
-	// Resource optimization
+	// Resource optimization.
 	ResourceOptimization *ResourceOptimizationConfig `json:"resourceOptimization,omitempty"`
 
-	// Performance monitoring
+	// Performance monitoring.
 	Monitoring *PerformanceMonitoringConfig `json:"monitoring,omitempty"`
 }
 
-// Supporting configuration types
+// Supporting configuration types.
 
-// RetryConfig defines retry behavior
+// RetryConfig defines retry behavior.
 type RetryConfig struct {
 	MaxRetries      int           `json:"maxRetries,omitempty"`
 	InitialDelay    time.Duration `json:"initialDelay,omitempty"`
@@ -288,7 +288,7 @@ type RetryConfig struct {
 	RetriableErrors []string      `json:"retriableErrors,omitempty"`
 }
 
-// CircuitBreakerConfig defines circuit breaker behavior
+// CircuitBreakerConfig defines circuit breaker behavior.
 type CircuitBreakerConfig struct {
 	Enabled          bool          `json:"enabled,omitempty"`
 	FailureThreshold int           `json:"failureThreshold,omitempty"`
@@ -298,7 +298,7 @@ type CircuitBreakerConfig struct {
 	OpenStateTimeout time.Duration `json:"openStateTimeout,omitempty"`
 }
 
-// TLSConfig defines TLS configuration
+// TLSConfig defines TLS configuration.
 type TLSConfig struct {
 	Enabled            bool     `json:"enabled,omitempty"`
 	CertFile           string   `json:"certFile,omitempty"`
@@ -311,7 +311,7 @@ type TLSConfig struct {
 	MaxVersion         string   `json:"maxVersion,omitempty"`
 }
 
-// AuthenticationConfig defines authentication configuration
+// AuthenticationConfig defines authentication configuration.
 type AuthenticationConfig struct {
 	Type         string            `json:"type"` // bearer, basic, oauth2, oidc
 	Token        string            `json:"token,omitempty"`
@@ -326,7 +326,7 @@ type AuthenticationConfig struct {
 	SecretRef    *SecretReference  `json:"secretRef,omitempty"`
 }
 
-// RateLimitConfig defines rate limiting configuration
+// RateLimitConfig defines rate limiting configuration.
 type RateLimitConfig struct {
 	Enabled           bool          `json:"enabled,omitempty"`
 	RequestsPerSecond float64       `json:"requestsPerSecond,omitempty"`
@@ -335,7 +335,7 @@ type RateLimitConfig struct {
 	Strategy          string        `json:"strategy,omitempty"` // token_bucket, sliding_window
 }
 
-// ConnectionPoolConfig defines connection pool configuration
+// ConnectionPoolConfig defines connection pool configuration.
 type ConnectionPoolConfig struct {
 	MaxIdleConns        int           `json:"maxIdleConns,omitempty"`
 	MaxOpenConns        int           `json:"maxOpenConns,omitempty"`
@@ -344,9 +344,9 @@ type ConnectionPoolConfig struct {
 	HealthCheckInterval time.Duration `json:"healthCheckInterval,omitempty"`
 }
 
-// Function configuration types
+// Function configuration types.
 
-// FunctionRegistrySpec defines a function registry specification
+// FunctionRegistrySpec defines a function registry specification.
 type FunctionRegistrySpec struct {
 	Name     string            `json:"name"`
 	URL      string            `json:"url"`
@@ -356,7 +356,7 @@ type FunctionRegistrySpec struct {
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
-// FunctionExecutionConfig defines function execution configuration
+// FunctionExecutionConfig defines function execution configuration.
 type FunctionExecutionConfig struct {
 	Runtime          string                   `json:"runtime,omitempty"` // docker, containerd, cri-o
 	DefaultTimeout   time.Duration            `json:"defaultTimeout,omitempty"`
@@ -369,7 +369,7 @@ type FunctionExecutionConfig struct {
 	ResourceLimits   *FunctionResourceLimits  `json:"resourceLimits,omitempty"`
 }
 
-// FunctionCacheConfig defines function cache configuration
+// FunctionCacheConfig defines function cache configuration.
 type FunctionCacheConfig struct {
 	Enabled         bool          `json:"enabled,omitempty"`
 	Size            string        `json:"size,omitempty"`
@@ -378,7 +378,7 @@ type FunctionCacheConfig struct {
 	Strategy        string        `json:"strategy,omitempty"` // LRU, LFU, FIFO
 }
 
-// FunctionSecurityConfig defines function security configuration
+// FunctionSecurityConfig defines function security configuration.
 type FunctionSecurityConfig struct {
 	RunAsNonRoot           bool            `json:"runAsNonRoot,omitempty"`
 	ReadOnlyRootFilesystem bool            `json:"readOnlyRootFilesystem,omitempty"`
@@ -390,7 +390,7 @@ type FunctionSecurityConfig struct {
 	SeccompProfile         string          `json:"seccompProfile,omitempty"`
 }
 
-// FunctionResourceLimits defines resource limits for functions
+// FunctionResourceLimits defines resource limits for functions.
 type FunctionResourceLimits struct {
 	CPU       string        `json:"cpu,omitempty"`
 	Memory    string        `json:"memory,omitempty"`
@@ -401,7 +401,7 @@ type FunctionResourceLimits struct {
 	OpenFiles int64         `json:"openFiles,omitempty"`
 }
 
-// FunctionSecurityContext defines security context for functions
+// FunctionSecurityContext defines security context for functions.
 type FunctionSecurityContext struct {
 	RunAsUser          *int64          `json:"runAsUser,omitempty"`
 	RunAsGroup         *int64          `json:"runAsGroup,omitempty"`
@@ -412,9 +412,9 @@ type FunctionSecurityContext struct {
 	WindowsOptions     *WindowsOptions `json:"windowsOptions,omitempty"`
 }
 
-// Cluster configuration types
+// Cluster configuration types.
 
-// ClusterLocation defines cluster location information
+// ClusterLocation defines cluster location information.
 type ClusterLocation struct {
 	Region     string  `json:"region,omitempty"`
 	Zone       string  `json:"zone,omitempty"`
@@ -425,7 +425,7 @@ type ClusterLocation struct {
 	Longitude  float64 `json:"longitude,omitempty"`
 }
 
-// ClusterNetworkConfig defines cluster network configuration
+// ClusterNetworkConfig defines cluster network configuration.
 type ClusterNetworkConfig struct {
 	ServiceCIDR       string   `json:"serviceCIDR,omitempty"`
 	PodCIDR           string   `json:"podCIDR,omitempty"`
@@ -437,7 +437,7 @@ type ClusterNetworkConfig struct {
 	IngressController string   `json:"ingressController,omitempty"`
 }
 
-// ClusterHealthConfig defines cluster health check configuration
+// ClusterHealthConfig defines cluster health check configuration.
 type ClusterHealthConfig struct {
 	Enabled          bool          `json:"enabled,omitempty"`
 	Interval         time.Duration `json:"interval,omitempty"`
@@ -447,9 +447,9 @@ type ClusterHealthConfig struct {
 	Endpoints        []string      `json:"endpoints,omitempty"`
 }
 
-// Policy configuration types
+// Policy configuration types.
 
-// WorkflowConfig defines workflow configuration
+// WorkflowConfig defines workflow configuration.
 type WorkflowConfig struct {
 	Name          string                  `json:"name"`
 	Description   string                  `json:"description,omitempty"`
@@ -461,7 +461,7 @@ type WorkflowConfig struct {
 	Notifications []NotificationConfig    `json:"notifications,omitempty"`
 }
 
-// WorkflowStageConfig defines workflow stage configuration
+// WorkflowStageConfig defines workflow stage configuration.
 type WorkflowStageConfig struct {
 	Name       string                    `json:"name"`
 	Type       WorkflowStageType         `json:"type"`
@@ -473,7 +473,7 @@ type WorkflowStageConfig struct {
 	OnFailure  []WorkflowActionConfig    `json:"onFailure,omitempty"`
 }
 
-// WorkflowTriggerConfig defines workflow trigger configuration
+// WorkflowTriggerConfig defines workflow trigger configuration.
 type WorkflowTriggerConfig struct {
 	Type      string                 `json:"type"`
 	Condition map[string]interface{} `json:"condition"`
@@ -481,7 +481,7 @@ type WorkflowTriggerConfig struct {
 	Events    []string               `json:"events,omitempty"`
 }
 
-// WorkflowConditionConfig defines workflow condition configuration
+// WorkflowConditionConfig defines workflow condition configuration.
 type WorkflowConditionConfig struct {
 	Type      string                 `json:"type"`
 	Condition map[string]interface{} `json:"condition"`
@@ -489,7 +489,7 @@ type WorkflowConditionConfig struct {
 	Values    []interface{}          `json:"values,omitempty"`
 }
 
-// WorkflowActionConfig defines workflow action configuration
+// WorkflowActionConfig defines workflow action configuration.
 type WorkflowActionConfig struct {
 	Type        string                 `json:"type"`
 	Config      map[string]interface{} `json:"config"`
@@ -497,7 +497,7 @@ type WorkflowActionConfig struct {
 	RetryPolicy *RetryPolicy           `json:"retryPolicy,omitempty"`
 }
 
-// ApproverConfig defines approver configuration
+// ApproverConfig defines approver configuration.
 type ApproverConfig struct {
 	Type        string                 `json:"type"` // user, group, service
 	Name        string                 `json:"name"`
@@ -507,7 +507,7 @@ type ApproverConfig struct {
 	Constraints map[string]interface{} `json:"constraints,omitempty"`
 }
 
-// NotificationConfig defines notification configuration
+// NotificationConfig defines notification configuration.
 type NotificationConfig struct {
 	Type     string                 `json:"type"` // email, slack, webhook
 	Target   string                 `json:"target"`
@@ -516,7 +516,7 @@ type NotificationConfig struct {
 	Config   map[string]interface{} `json:"config,omitempty"`
 }
 
-// ValidationPolicyConfig defines validation policy configuration
+// ValidationPolicyConfig defines validation policy configuration.
 type ValidationPolicyConfig struct {
 	Enabled           bool                       `json:"enabled,omitempty"`
 	DefaultValidators []string                   `json:"defaultValidators,omitempty"`
@@ -525,7 +525,7 @@ type ValidationPolicyConfig struct {
 	FailOnWarning     bool                       `json:"failOnWarning,omitempty"`
 }
 
-// ValidatorConfig defines validator configuration
+// ValidatorConfig defines validator configuration.
 type ValidatorConfig struct {
 	Image      string                  `json:"image"`
 	Config     map[string]interface{}  `json:"config,omitempty"`
@@ -535,7 +535,7 @@ type ValidatorConfig struct {
 	Categories []string                `json:"categories,omitempty"`
 }
 
-// SecurityPolicyConfig defines security policy configuration
+// SecurityPolicyConfig defines security policy configuration.
 type SecurityPolicyConfig struct {
 	Enabled                     bool     `json:"enabled,omitempty"`
 	RequiredSecurityScanning    bool     `json:"requiredSecurityScanning,omitempty"`
@@ -547,7 +547,7 @@ type SecurityPolicyConfig struct {
 	NetworkPolicyRequired       bool     `json:"networkPolicyRequired,omitempty"`
 }
 
-// CompliancePolicyConfig defines compliance policy configuration
+// CompliancePolicyConfig defines compliance policy configuration.
 type CompliancePolicyConfig struct {
 	Enabled     bool                         `json:"enabled,omitempty"`
 	Frameworks  []string                     `json:"frameworks,omitempty"` // CIS, NIST, SOC2, etc.
@@ -556,7 +556,7 @@ type CompliancePolicyConfig struct {
 	Remediation *ComplianceRemediationConfig `json:"remediation,omitempty"`
 }
 
-// ComplianceStandardConfig defines compliance standard configuration
+// ComplianceStandardConfig defines compliance standard configuration.
 type ComplianceStandardConfig struct {
 	Name       string   `json:"name"`
 	Version    string   `json:"version"`
@@ -566,7 +566,7 @@ type ComplianceStandardConfig struct {
 	Exemptions []string `json:"exemptions,omitempty"`
 }
 
-// ComplianceReportingConfig defines compliance reporting configuration
+// ComplianceReportingConfig defines compliance reporting configuration.
 type ComplianceReportingConfig struct {
 	Enabled    bool           `json:"enabled,omitempty"`
 	Format     []string       `json:"format,omitempty"` // json, xml, pdf
@@ -575,7 +575,7 @@ type ComplianceReportingConfig struct {
 	Storage    *StorageConfig `json:"storage,omitempty"`
 }
 
-// ComplianceRemediationConfig defines compliance remediation configuration
+// ComplianceRemediationConfig defines compliance remediation configuration.
 type ComplianceRemediationConfig struct {
 	Enabled         bool          `json:"enabled,omitempty"`
 	AutoRemediate   bool          `json:"autoRemediate,omitempty"`
@@ -584,7 +584,7 @@ type ComplianceRemediationConfig struct {
 	NotifyOnFailure bool          `json:"notifyOnFailure,omitempty"`
 }
 
-// RBACPolicyConfig defines RBAC policy configuration
+// RBACPolicyConfig defines RBAC policy configuration.
 type RBACPolicyConfig struct {
 	Enabled         bool                   `json:"enabled,omitempty"`
 	DefaultRole     string                 `json:"defaultRole,omitempty"`
@@ -593,7 +593,7 @@ type RBACPolicyConfig struct {
 	ServiceAccounts []ServiceAccountConfig `json:"serviceAccounts,omitempty"`
 }
 
-// RoleConfig defines role configuration
+// RoleConfig defines role configuration.
 type RoleConfig struct {
 	Name        string             `json:"name"`
 	Rules       []PolicyRuleConfig `json:"rules"`
@@ -601,7 +601,7 @@ type RoleConfig struct {
 	Annotations map[string]string  `json:"annotations,omitempty"`
 }
 
-// PolicyRuleConfig defines policy rule configuration
+// PolicyRuleConfig defines policy rule configuration.
 type PolicyRuleConfig struct {
 	APIGroups       []string `json:"apiGroups,omitempty"`
 	Resources       []string `json:"resources,omitempty"`
@@ -610,7 +610,7 @@ type PolicyRuleConfig struct {
 	NonResourceURLs []string `json:"nonResourceURLs,omitempty"`
 }
 
-// RoleBindingConfig defines role binding configuration
+// RoleBindingConfig defines role binding configuration.
 type RoleBindingConfig struct {
 	Name        string            `json:"name"`
 	RoleRef     RoleRefConfig     `json:"roleRef"`
@@ -619,14 +619,14 @@ type RoleBindingConfig struct {
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
-// RoleRefConfig defines role reference configuration
+// RoleRefConfig defines role reference configuration.
 type RoleRefConfig struct {
 	APIGroup string `json:"apiGroup"`
 	Kind     string `json:"kind"`
 	Name     string `json:"name"`
 }
 
-// SubjectConfig defines subject configuration
+// SubjectConfig defines subject configuration.
 type SubjectConfig struct {
 	Kind      string `json:"kind"`
 	Name      string `json:"name"`
@@ -634,7 +634,7 @@ type SubjectConfig struct {
 	APIGroup  string `json:"apiGroup,omitempty"`
 }
 
-// ServiceAccountConfig defines service account configuration
+// ServiceAccountConfig defines service account configuration.
 type ServiceAccountConfig struct {
 	Name             string            `json:"name"`
 	Namespace        string            `json:"namespace,omitempty"`
@@ -644,7 +644,7 @@ type ServiceAccountConfig struct {
 	ImagePullSecrets []string          `json:"imagePullSecrets,omitempty"`
 }
 
-// AuditPolicyConfig defines audit policy configuration
+// AuditPolicyConfig defines audit policy configuration.
 type AuditPolicyConfig struct {
 	Enabled     bool                    `json:"enabled,omitempty"`
 	Level       string                  `json:"level,omitempty"`   // Metadata, Request, RequestResponse
@@ -654,7 +654,7 @@ type AuditPolicyConfig struct {
 	Destination *AuditDestinationConfig `json:"destination,omitempty"`
 }
 
-// AuditRuleConfig defines audit rule configuration
+// AuditRuleConfig defines audit rule configuration.
 type AuditRuleConfig struct {
 	Level           string   `json:"level"`
 	Namespaces      []string `json:"namespaces,omitempty"`
@@ -665,7 +665,7 @@ type AuditRuleConfig struct {
 	ServiceAccounts []string `json:"serviceAccounts,omitempty"`
 }
 
-// AuditRetentionConfig defines audit retention configuration
+// AuditRetentionConfig defines audit retention configuration.
 type AuditRetentionConfig struct {
 	Days     int    `json:"days,omitempty"`
 	MaxSize  string `json:"maxSize,omitempty"`
@@ -673,7 +673,7 @@ type AuditRetentionConfig struct {
 	Compress bool   `json:"compress,omitempty"`
 }
 
-// AuditDestinationConfig defines audit destination configuration
+// AuditDestinationConfig defines audit destination configuration.
 type AuditDestinationConfig struct {
 	Type      string                 `json:"type"` // file, webhook, s3, elasticsearch
 	Config    map[string]interface{} `json:"config"`
@@ -682,9 +682,9 @@ type AuditDestinationConfig struct {
 	Timeout   time.Duration          `json:"timeout,omitempty"`
 }
 
-// Observability configuration types
+// Observability configuration types.
 
-// MetricsConfig defines metrics configuration
+// MetricsConfig defines metrics configuration.
 type MetricsConfig struct {
 	Enabled    bool                     `json:"enabled,omitempty"`
 	Provider   string                   `json:"provider,omitempty"` // prometheus, datadog, newrelic
@@ -695,7 +695,7 @@ type MetricsConfig struct {
 	Exporters  []MetricsExporterConfig  `json:"exporters,omitempty"`
 }
 
-// MetricsCollectorConfig defines metrics collector configuration
+// MetricsCollectorConfig defines metrics collector configuration.
 type MetricsCollectorConfig struct {
 	Name     string                 `json:"name"`
 	Type     string                 `json:"type"`
@@ -704,7 +704,7 @@ type MetricsCollectorConfig struct {
 	Enabled  bool                   `json:"enabled,omitempty"`
 }
 
-// MetricsExporterConfig defines metrics exporter configuration
+// MetricsExporterConfig defines metrics exporter configuration.
 type MetricsExporterConfig struct {
 	Name     string                 `json:"name"`
 	Type     string                 `json:"type"`
@@ -714,7 +714,7 @@ type MetricsExporterConfig struct {
 	Enabled  bool                   `json:"enabled,omitempty"`
 }
 
-// LoggingConfig defines logging configuration
+// LoggingConfig defines logging configuration.
 type LoggingConfig struct {
 	Level      string                 `json:"level,omitempty"`
 	Format     string                 `json:"format,omitempty"` // json, text
@@ -725,7 +725,7 @@ type LoggingConfig struct {
 	Processors []LogProcessorConfig   `json:"processors,omitempty"`
 }
 
-// LogFileConfig defines log file configuration
+// LogFileConfig defines log file configuration.
 type LogFileConfig struct {
 	Path       string `json:"path"`
 	MaxSize    string `json:"maxSize,omitempty"`
@@ -734,19 +734,19 @@ type LogFileConfig struct {
 	Compress   bool   `json:"compress,omitempty"`
 }
 
-// LogFilterConfig defines log filter configuration
+// LogFilterConfig defines log filter configuration.
 type LogFilterConfig struct {
 	Type   string                 `json:"type"`
 	Config map[string]interface{} `json:"config"`
 }
 
-// LogProcessorConfig defines log processor configuration
+// LogProcessorConfig defines log processor configuration.
 type LogProcessorConfig struct {
 	Type   string                 `json:"type"`
 	Config map[string]interface{} `json:"config"`
 }
 
-// TracingConfig defines tracing configuration
+// TracingConfig defines tracing configuration.
 type TracingConfig struct {
 	Enabled      bool                    `json:"enabled,omitempty"`
 	Provider     string                  `json:"provider,omitempty"` // jaeger, zipkin, otlp
@@ -757,7 +757,7 @@ type TracingConfig struct {
 	Exporters    []TracingExporterConfig `json:"exporters,omitempty"`
 }
 
-// TracingExporterConfig defines tracing exporter configuration
+// TracingExporterConfig defines tracing exporter configuration.
 type TracingExporterConfig struct {
 	Name     string                 `json:"name"`
 	Type     string                 `json:"type"`
@@ -767,7 +767,7 @@ type TracingExporterConfig struct {
 	Enabled  bool                   `json:"enabled,omitempty"`
 }
 
-// HealthCheckConfig defines health check configuration
+// HealthCheckConfig defines health check configuration.
 type HealthCheckConfig struct {
 	Enabled            bool                    `json:"enabled,omitempty"`
 	Port               int                     `json:"port,omitempty"`
@@ -779,7 +779,7 @@ type HealthCheckConfig struct {
 	Checks             []HealthCheckDefinition `json:"checks,omitempty"`
 }
 
-// HealthCheckDefinition defines individual health check
+// HealthCheckDefinition defines individual health check.
 type HealthCheckDefinition struct {
 	Name     string                 `json:"name"`
 	Type     string                 `json:"type"`
@@ -788,7 +788,7 @@ type HealthCheckDefinition struct {
 	Critical bool                   `json:"critical,omitempty"`
 }
 
-// AlertingConfig defines alerting configuration
+// AlertingConfig defines alerting configuration.
 type AlertingConfig struct {
 	Enabled   bool                  `json:"enabled,omitempty"`
 	Provider  string                `json:"provider,omitempty"` // alertmanager, pagerduty
@@ -798,7 +798,7 @@ type AlertingConfig struct {
 	Templates map[string]string     `json:"templates,omitempty"`
 }
 
-// AlertReceiverConfig defines alert receiver configuration
+// AlertReceiverConfig defines alert receiver configuration.
 type AlertReceiverConfig struct {
 	Name    string                 `json:"name"`
 	Type    string                 `json:"type"` // email, slack, webhook, pagerduty
@@ -806,7 +806,7 @@ type AlertReceiverConfig struct {
 	Enabled bool                   `json:"enabled,omitempty"`
 }
 
-// AlertRouteConfig defines alert routing configuration
+// AlertRouteConfig defines alert routing configuration.
 type AlertRouteConfig struct {
 	Match          map[string]string `json:"match,omitempty"`
 	MatchRE        map[string]string `json:"matchRE,omitempty"`
@@ -817,7 +817,7 @@ type AlertRouteConfig struct {
 	RepeatInterval time.Duration     `json:"repeatInterval,omitempty"`
 }
 
-// AlertRuleConfig defines alert rule configuration
+// AlertRuleConfig defines alert rule configuration.
 type AlertRuleConfig struct {
 	Name        string            `json:"name"`
 	Query       string            `json:"query"`
@@ -827,9 +827,9 @@ type AlertRuleConfig struct {
 	Severity    string            `json:"severity,omitempty"`
 }
 
-// Security configuration types
+// Security configuration types.
 
-// SecurityAuthConfig defines security authentication configuration
+// SecurityAuthConfig defines security authentication configuration.
 type SecurityAuthConfig struct {
 	Methods     []string         `json:"methods,omitempty"` // cert, token, oidc
 	OIDC        *OIDCConfig      `json:"oidc,omitempty"`
@@ -838,7 +838,7 @@ type SecurityAuthConfig struct {
 	LDAP        *LDAPAuthConfig  `json:"ldap,omitempty"`
 }
 
-// OIDCConfig defines OIDC configuration
+// OIDCConfig defines OIDC configuration.
 type OIDCConfig struct {
 	IssuerURL     string            `json:"issuerUrl"`
 	ClientID      string            `json:"clientId"`
@@ -848,7 +848,7 @@ type OIDCConfig struct {
 	ClaimsMapping map[string]string `json:"claimsMapping,omitempty"`
 }
 
-// CertAuthConfig defines certificate authentication configuration
+// CertAuthConfig defines certificate authentication configuration.
 type CertAuthConfig struct {
 	CAFile      string   `json:"caFile"`
 	AllowedCNs  []string `json:"allowedCNs,omitempty"`
@@ -857,7 +857,7 @@ type CertAuthConfig struct {
 	VerifyChain bool     `json:"verifyChain,omitempty"`
 }
 
-// TokenAuthConfig defines token authentication configuration
+// TokenAuthConfig defines token authentication configuration.
 type TokenAuthConfig struct {
 	Type          string        `json:"type"` // jwt, opaque
 	SigningKey    string        `json:"signingKey,omitempty"`
@@ -867,7 +867,7 @@ type TokenAuthConfig struct {
 	TTL           time.Duration `json:"ttl,omitempty"`
 }
 
-// LDAPAuthConfig defines LDAP authentication configuration
+// LDAPAuthConfig defines LDAP authentication configuration.
 type LDAPAuthConfig struct {
 	Host         string `json:"host"`
 	Port         int    `json:"port,omitempty"`
@@ -879,7 +879,7 @@ type LDAPAuthConfig struct {
 	GroupFilter  string `json:"groupFilter,omitempty"`
 }
 
-// AuthorizationConfig defines authorization configuration
+// AuthorizationConfig defines authorization configuration.
 type AuthorizationConfig struct {
 	Enabled bool                `json:"enabled,omitempty"`
 	Mode    string              `json:"mode,omitempty"` // rbac, abac, webhook
@@ -888,32 +888,32 @@ type AuthorizationConfig struct {
 	Webhook *WebhookAuthzConfig `json:"webhook,omitempty"`
 }
 
-// RBACAuthzConfig defines RBAC authorization configuration
+// RBACAuthzConfig defines RBAC authorization configuration.
 type RBACAuthzConfig struct {
 	Enabled bool `json:"enabled,omitempty"`
-	// Additional RBAC specific configuration
+	// Additional RBAC specific configuration.
 }
 
-// ABACAuthzConfig defines ABAC authorization configuration
+// ABACAuthzConfig defines ABAC authorization configuration.
 type ABACAuthzConfig struct {
 	Enabled    bool   `json:"enabled,omitempty"`
 	PolicyFile string `json:"policyFile"`
 }
 
-// WebhookAuthzConfig defines webhook authorization configuration
+// WebhookAuthzConfig defines webhook authorization configuration.
 type WebhookAuthzConfig struct {
 	Enabled bool          `json:"enabled,omitempty"`
 	URL     string        `json:"url"`
 	Timeout time.Duration `json:"timeout,omitempty"`
 }
 
-// EncryptionConfig defines encryption configuration
+// EncryptionConfig defines encryption configuration.
 type EncryptionConfig struct {
 	AtRest    *EncryptionAtRestConfig    `json:"atRest,omitempty"`
 	InTransit *EncryptionInTransitConfig `json:"inTransit,omitempty"`
 }
 
-// EncryptionAtRestConfig defines encryption at rest configuration
+// EncryptionAtRestConfig defines encryption at rest configuration.
 type EncryptionAtRestConfig struct {
 	Enabled   bool                   `json:"enabled,omitempty"`
 	Provider  string                 `json:"provider,omitempty"` // kms, vault, local
@@ -922,7 +922,7 @@ type EncryptionAtRestConfig struct {
 	Config    map[string]interface{} `json:"config,omitempty"`
 }
 
-// EncryptionInTransitConfig defines encryption in transit configuration
+// EncryptionInTransitConfig defines encryption in transit configuration.
 type EncryptionInTransitConfig struct {
 	Enabled       bool               `json:"enabled,omitempty"`
 	MinTLSVersion string             `json:"minTlsVersion,omitempty"`
@@ -930,7 +930,7 @@ type EncryptionInTransitConfig struct {
 	Certificates  *CertificateConfig `json:"certificates,omitempty"`
 }
 
-// NetworkSecurityConfig defines network security configuration
+// NetworkSecurityConfig defines network security configuration.
 type NetworkSecurityConfig struct {
 	NetworkPolicies bool                       `json:"networkPolicies,omitempty"`
 	ServiceMesh     *ServiceMeshSecurityConfig `json:"serviceMesh,omitempty"`
@@ -938,7 +938,7 @@ type NetworkSecurityConfig struct {
 	DDoSProtection  *DDoSProtectionConfig      `json:"ddosProtection,omitempty"`
 }
 
-// ServiceMeshSecurityConfig defines service mesh security configuration
+// ServiceMeshSecurityConfig defines service mesh security configuration.
 type ServiceMeshSecurityConfig struct {
 	Enabled bool                   `json:"enabled,omitempty"`
 	Type    string                 `json:"type,omitempty"` // istio, linkerd, consul
@@ -946,20 +946,20 @@ type ServiceMeshSecurityConfig struct {
 	Config  map[string]interface{} `json:"config,omitempty"`
 }
 
-// mTLSConfig defines mutual TLS configuration
+// mTLSConfig defines mutual TLS configuration.
 type mTLSConfig struct {
 	Mode         string        `json:"mode,omitempty"` // strict, permissive
 	AutoRotation bool          `json:"autoRotation,omitempty"`
 	TTL          time.Duration `json:"ttl,omitempty"`
 }
 
-// FirewallConfig defines firewall configuration
+// FirewallConfig defines firewall configuration.
 type FirewallConfig struct {
 	Enabled bool           `json:"enabled,omitempty"`
 	Rules   []FirewallRule `json:"rules,omitempty"`
 }
 
-// FirewallRule defines a firewall rule
+// FirewallRule defines a firewall rule.
 type FirewallRule struct {
 	Name      string   `json:"name"`
 	Direction string   `json:"direction"` // ingress, egress
@@ -970,7 +970,7 @@ type FirewallRule struct {
 	Targets   []string `json:"targets,omitempty"`
 }
 
-// DDoSProtectionConfig defines DDoS protection configuration
+// DDoSProtectionConfig defines DDoS protection configuration.
 type DDoSProtectionConfig struct {
 	Enabled            bool          `json:"enabled,omitempty"`
 	Provider           string        `json:"provider,omitempty"`
@@ -981,7 +981,7 @@ type DDoSProtectionConfig struct {
 	MitigationTimeout  time.Duration `json:"mitigationTimeout,omitempty"`
 }
 
-// RateLimit defines rate limiting configuration
+// RateLimit defines rate limiting configuration.
 type RateLimit struct {
 	Path       string        `json:"path,omitempty"`
 	Method     string        `json:"method,omitempty"`
@@ -990,7 +990,7 @@ type RateLimit struct {
 	BurstLimit int           `json:"burstLimit,omitempty"`
 }
 
-// CertificateConfig defines certificate configuration
+// CertificateConfig defines certificate configuration.
 type CertificateConfig struct {
 	CA           *CertificateAuthority `json:"ca,omitempty"`
 	AutoRotation bool                  `json:"autoRotation,omitempty"`
@@ -999,7 +999,7 @@ type CertificateConfig struct {
 	KeySizes     []int                 `json:"keySizes,omitempty"`
 }
 
-// CertificateAuthority defines CA configuration
+// CertificateAuthority defines CA configuration.
 type CertificateAuthority struct {
 	Type     string                 `json:"type"` // internal, external, vault
 	Config   map[string]interface{} `json:"config,omitempty"`
@@ -1008,7 +1008,7 @@ type CertificateAuthority struct {
 	Issuer   string                 `json:"issuer,omitempty"`
 }
 
-// SecretManagementConfig defines secret management configuration
+// SecretManagementConfig defines secret management configuration.
 type SecretManagementConfig struct {
 	Provider   string                  `json:"provider"` // kubernetes, vault, aws-secrets-manager
 	Config     map[string]interface{}  `json:"config,omitempty"`
@@ -1017,21 +1017,21 @@ type SecretManagementConfig struct {
 	Access     *SecretAccessConfig     `json:"access,omitempty"`
 }
 
-// SecretEncryptionConfig defines secret encryption configuration
+// SecretEncryptionConfig defines secret encryption configuration.
 type SecretEncryptionConfig struct {
 	Enabled   bool   `json:"enabled,omitempty"`
 	Algorithm string `json:"algorithm,omitempty"`
 	KeyID     string `json:"keyId,omitempty"`
 }
 
-// SecretRotationConfig defines secret rotation configuration
+// SecretRotationConfig defines secret rotation configuration.
 type SecretRotationConfig struct {
 	Enabled   bool          `json:"enabled,omitempty"`
 	Interval  time.Duration `json:"interval,omitempty"`
 	Automatic bool          `json:"automatic,omitempty"`
 }
 
-// SecretAccessConfig defines secret access configuration
+// SecretAccessConfig defines secret access configuration.
 type SecretAccessConfig struct {
 	Audit      bool          `json:"audit,omitempty"`
 	TTL        time.Duration `json:"ttl,omitempty"`
@@ -1039,7 +1039,7 @@ type SecretAccessConfig struct {
 	IPRestrict []string      `json:"ipRestrict,omitempty"`
 }
 
-// ScanningConfig defines vulnerability scanning configuration
+// ScanningConfig defines vulnerability scanning configuration.
 type ScanningConfig struct {
 	Enabled        bool                   `json:"enabled,omitempty"`
 	Provider       string                 `json:"provider,omitempty"` // trivy, clair, snyk
@@ -1050,7 +1050,7 @@ type ScanningConfig struct {
 	Config         map[string]interface{} `json:"config,omitempty"`
 }
 
-// ComplianceScanConfig defines compliance scanning configuration
+// ComplianceScanConfig defines compliance scanning configuration.
 type ComplianceScanConfig struct {
 	Enabled    bool                  `json:"enabled,omitempty"`
 	Frameworks []string              `json:"frameworks,omitempty"`
@@ -1058,7 +1058,7 @@ type ComplianceScanConfig struct {
 	Benchmarks []ComplianceBenchmark `json:"benchmarks,omitempty"`
 }
 
-// ComplianceBenchmark defines compliance benchmark
+// ComplianceBenchmark defines compliance benchmark.
 type ComplianceBenchmark struct {
 	Name     string   `json:"name"`
 	Version  string   `json:"version"`
@@ -1066,9 +1066,9 @@ type ComplianceBenchmark struct {
 	Enabled  bool     `json:"enabled,omitempty"`
 }
 
-// Performance configuration types
+// Performance configuration types.
 
-// ClientPerformanceConfig defines client performance configuration
+// ClientPerformanceConfig defines client performance configuration.
 type ClientPerformanceConfig struct {
 	MaxConnections      int           `json:"maxConnections,omitempty"`
 	ConnectionTimeout   time.Duration `json:"connectionTimeout,omitempty"`
@@ -1080,7 +1080,7 @@ type ClientPerformanceConfig struct {
 	DisableCompression  bool          `json:"disableCompression,omitempty"`
 }
 
-// ServerPerformanceConfig defines server performance configuration
+// ServerPerformanceConfig defines server performance configuration.
 type ServerPerformanceConfig struct {
 	ReadTimeout       time.Duration `json:"readTimeout,omitempty"`
 	ReadHeaderTimeout time.Duration `json:"readHeaderTimeout,omitempty"`
@@ -1091,7 +1091,7 @@ type ServerPerformanceConfig struct {
 	WorkerPoolSize    int           `json:"workerPoolSize,omitempty"`
 }
 
-// CachingConfig defines caching configuration
+// CachingConfig defines caching configuration.
 type CachingConfig struct {
 	Enabled      bool                     `json:"enabled,omitempty"`
 	Layers       []CacheLayerConfig       `json:"layers,omitempty"`
@@ -1099,7 +1099,7 @@ type CachingConfig struct {
 	Invalidation *CacheInvalidationConfig `json:"invalidation,omitempty"`
 }
 
-// CacheLayerConfig defines cache layer configuration
+// CacheLayerConfig defines cache layer configuration.
 type CacheLayerConfig struct {
 	Name    string                 `json:"name"`
 	Type    string                 `json:"type"` // memory, redis, memcached
@@ -1109,7 +1109,7 @@ type CacheLayerConfig struct {
 	Enabled bool                   `json:"enabled,omitempty"`
 }
 
-// CacheStrategyConfig defines cache strategy configuration
+// CacheStrategyConfig defines cache strategy configuration.
 type CacheStrategyConfig struct {
 	Name      string                 `json:"name"`
 	Type      string                 `json:"type"` // lru, lfu, ttl
@@ -1117,7 +1117,7 @@ type CacheStrategyConfig struct {
 	Config    map[string]interface{} `json:"config,omitempty"`
 }
 
-// CacheInvalidationConfig defines cache invalidation configuration
+// CacheInvalidationConfig defines cache invalidation configuration.
 type CacheInvalidationConfig struct {
 	Strategy string                 `json:"strategy"` // manual, automatic, time-based
 	Events   []string               `json:"events,omitempty"`
@@ -1125,14 +1125,14 @@ type CacheInvalidationConfig struct {
 	Config   map[string]interface{} `json:"config,omitempty"`
 }
 
-// ConnectionPoolingConfig defines connection pooling configuration
+// ConnectionPoolingConfig defines connection pooling configuration.
 type ConnectionPoolingConfig struct {
 	Database *DatabasePoolConfig `json:"database,omitempty"`
 	HTTP     *HTTPPoolConfig     `json:"http,omitempty"`
 	GRPC     *GRPCPoolConfig     `json:"grpc,omitempty"`
 }
 
-// DatabasePoolConfig defines database connection pool configuration
+// DatabasePoolConfig defines database connection pool configuration.
 type DatabasePoolConfig struct {
 	MaxOpenConns    int           `json:"maxOpenConns,omitempty"`
 	MaxIdleConns    int           `json:"maxIdleConns,omitempty"`
@@ -1140,7 +1140,7 @@ type DatabasePoolConfig struct {
 	ConnMaxIdleTime time.Duration `json:"connMaxIdleTime,omitempty"`
 }
 
-// HTTPPoolConfig defines HTTP connection pool configuration
+// HTTPPoolConfig defines HTTP connection pool configuration.
 type HTTPPoolConfig struct {
 	MaxConnsPerHost int           `json:"maxConnsPerHost,omitempty"`
 	MaxIdleConns    int           `json:"maxIdleConns,omitempty"`
@@ -1149,7 +1149,7 @@ type HTTPPoolConfig struct {
 	KeepAlive       time.Duration `json:"keepAlive,omitempty"`
 }
 
-// GRPCPoolConfig defines gRPC connection pool configuration
+// GRPCPoolConfig defines gRPC connection pool configuration.
 type GRPCPoolConfig struct {
 	MaxConnections   int           `json:"maxConnections,omitempty"`
 	IdleTimeout      time.Duration `json:"idleTimeout,omitempty"`
@@ -1158,7 +1158,7 @@ type GRPCPoolConfig struct {
 	KeepAliveTimeout time.Duration `json:"keepAliveTimeout,omitempty"`
 }
 
-// ResourceOptimizationConfig defines resource optimization configuration
+// ResourceOptimizationConfig defines resource optimization configuration.
 type ResourceOptimizationConfig struct {
 	CPU     *CPUOptimizationConfig     `json:"cpu,omitempty"`
 	Memory  *MemoryOptimizationConfig  `json:"memory,omitempty"`
@@ -1166,7 +1166,7 @@ type ResourceOptimizationConfig struct {
 	Network *NetworkOptimizationConfig `json:"network,omitempty"`
 }
 
-// CPUOptimizationConfig defines CPU optimization configuration
+// CPUOptimizationConfig defines CPU optimization configuration.
 type CPUOptimizationConfig struct {
 	MaxWorkers int                `json:"maxWorkers,omitempty"`
 	GCPercent  int                `json:"gcPercent,omitempty"`
@@ -1175,7 +1175,7 @@ type CPUOptimizationConfig struct {
 	Scaling    *AutoScalingConfig `json:"scaling,omitempty"`
 }
 
-// MemoryOptimizationConfig defines memory optimization configuration
+// MemoryOptimizationConfig defines memory optimization configuration.
 type MemoryOptimizationConfig struct {
 	MaxHeapSize   string `json:"maxHeapSize,omitempty"`
 	GCPolicy      string `json:"gcPolicy,omitempty"`
@@ -1183,7 +1183,7 @@ type MemoryOptimizationConfig struct {
 	MemoryMapping bool   `json:"memoryMapping,omitempty"`
 }
 
-// DiskOptimizationConfig defines disk optimization configuration
+// DiskOptimizationConfig defines disk optimization configuration.
 type DiskOptimizationConfig struct {
 	BufferSize    int  `json:"bufferSize,omitempty"`
 	SyncWrites    bool `json:"syncWrites,omitempty"`
@@ -1192,7 +1192,7 @@ type DiskOptimizationConfig struct {
 	WriteCoalesce bool `json:"writeCoalesce,omitempty"`
 }
 
-// NetworkOptimizationConfig defines network optimization configuration
+// NetworkOptimizationConfig defines network optimization configuration.
 type NetworkOptimizationConfig struct {
 	BufferSizes  *NetworkBufferConfig `json:"bufferSizes,omitempty"`
 	Compression  bool                 `json:"compression,omitempty"`
@@ -1201,13 +1201,13 @@ type NetworkOptimizationConfig struct {
 	Multiplexing bool                 `json:"multiplexing,omitempty"`
 }
 
-// NetworkBufferConfig defines network buffer configuration
+// NetworkBufferConfig defines network buffer configuration.
 type NetworkBufferConfig struct {
 	Send    int `json:"send,omitempty"`
 	Receive int `json:"receive,omitempty"`
 }
 
-// AutoScalingConfig defines auto-scaling configuration
+// AutoScalingConfig defines auto-scaling configuration.
 type AutoScalingConfig struct {
 	Enabled      bool    `json:"enabled,omitempty"`
 	MinWorkers   int     `json:"minWorkers,omitempty"`
@@ -1216,7 +1216,7 @@ type AutoScalingConfig struct {
 	TargetMemory float64 `json:"targetMemory,omitempty"`
 }
 
-// PerformanceMonitoringConfig defines performance monitoring configuration
+// PerformanceMonitoringConfig defines performance monitoring configuration.
 type PerformanceMonitoringConfig struct {
 	Enabled    bool                     `json:"enabled,omitempty"`
 	Profiling  *ProfilingConfig         `json:"profiling,omitempty"`
@@ -1224,7 +1224,7 @@ type PerformanceMonitoringConfig struct {
 	Alerts     []PerformanceAlertConfig `json:"alerts,omitempty"`
 }
 
-// ProfilingConfig defines profiling configuration
+// ProfilingConfig defines profiling configuration.
 type ProfilingConfig struct {
 	Enabled   bool          `json:"enabled,omitempty"`
 	CPU       bool          `json:"cpu,omitempty"`
@@ -1235,7 +1235,7 @@ type ProfilingConfig struct {
 	Duration  time.Duration `json:"duration,omitempty"`
 }
 
-// BenchmarkConfig defines benchmark configuration
+// BenchmarkConfig defines benchmark configuration.
 type BenchmarkConfig struct {
 	Enabled   bool          `json:"enabled,omitempty"`
 	Schedule  string        `json:"schedule,omitempty"`
@@ -1243,7 +1243,7 @@ type BenchmarkConfig struct {
 	Scenarios []string      `json:"scenarios,omitempty"`
 }
 
-// PerformanceAlertConfig defines performance alert configuration
+// PerformanceAlertConfig defines performance alert configuration.
 type PerformanceAlertConfig struct {
 	Name      string            `json:"name"`
 	Metric    string            `json:"metric"`
@@ -1253,9 +1253,9 @@ type PerformanceAlertConfig struct {
 	Labels    map[string]string `json:"labels,omitempty"`
 }
 
-// Utility configuration types
+// Utility configuration types.
 
-// StorageConfig defines storage configuration
+// StorageConfig defines storage configuration.
 type StorageConfig struct {
 	Type       string                  `json:"type"` // file, s3, gcs, azure
 	Path       string                  `json:"path,omitempty"`
@@ -1265,7 +1265,7 @@ type StorageConfig struct {
 	Encryption *EncryptionAtRestConfig `json:"encryption,omitempty"`
 }
 
-// SELinuxOptions defines SELinux options
+// SELinuxOptions defines SELinux options.
 type SELinuxOptions struct {
 	User  string `json:"user,omitempty"`
 	Role  string `json:"role,omitempty"`
@@ -1273,7 +1273,7 @@ type SELinuxOptions struct {
 	Level string `json:"level,omitempty"`
 }
 
-// WindowsOptions defines Windows-specific options
+// WindowsOptions defines Windows-specific options.
 type WindowsOptions struct {
 	GMSACredentialSpecName string `json:"gmsaCredentialSpecName,omitempty"`
 	GMSACredentialSpec     string `json:"gmsaCredentialSpec,omitempty"`
@@ -1281,13 +1281,13 @@ type WindowsOptions struct {
 	HostProcess            *bool  `json:"hostProcess,omitempty"`
 }
 
-// ConfigBuilder provides fluent API for building configurations
+// ConfigBuilder provides fluent API for building configurations.
 type ConfigBuilder struct {
 	config *Config
 	logger logr.Logger
 }
 
-// NewConfigBuilder creates a new configuration builder
+// NewConfigBuilder creates a new configuration builder.
 func NewConfigBuilder() *ConfigBuilder {
 	return &ConfigBuilder{
 		config: &Config{
@@ -1298,66 +1298,66 @@ func NewConfigBuilder() *ConfigBuilder {
 	}
 }
 
-// WithKubernetesConfig sets Kubernetes configuration
+// WithKubernetesConfig sets Kubernetes configuration.
 func (cb *ConfigBuilder) WithKubernetesConfig(config *KubernetesConfig) *ConfigBuilder {
 	cb.config.KubernetesConfig = config
 	return cb
 }
 
-// WithPorchConfig sets Porch service configuration
+// WithPorchConfig sets Porch service configuration.
 func (cb *ConfigBuilder) WithPorchConfig(config *PorchServiceConfig) *ConfigBuilder {
 	cb.config.PorchConfig = config
 	return cb
 }
 
-// AddRepository adds a repository configuration
+// AddRepository adds a repository configuration.
 func (cb *ConfigBuilder) AddRepository(name string, config *RepositoryConfig) *ConfigBuilder {
 	cb.config.Repositories[name] = config
 	return cb
 }
 
-// AddCluster adds a cluster configuration
+// AddCluster adds a cluster configuration.
 func (cb *ConfigBuilder) AddCluster(name string, config *ClusterConfig) *ConfigBuilder {
 	cb.config.Clusters[name] = config
 	return cb
 }
 
-// WithFunctions sets function registry configuration
+// WithFunctions sets function registry configuration.
 func (cb *ConfigBuilder) WithFunctions(config *FunctionRegistryConfig) *ConfigBuilder {
 	cb.config.Functions = config
 	return cb
 }
 
-// WithPolicies sets policy configuration
+// WithPolicies sets policy configuration.
 func (cb *ConfigBuilder) WithPolicies(config *PolicyConfig) *ConfigBuilder {
 	cb.config.Policies = config
 	return cb
 }
 
-// WithObservability sets observability configuration
+// WithObservability sets observability configuration.
 func (cb *ConfigBuilder) WithObservability(config *ObservabilityConfig) *ConfigBuilder {
 	cb.config.Observability = config
 	return cb
 }
 
-// WithSecurity sets security configuration
+// WithSecurity sets security configuration.
 func (cb *ConfigBuilder) WithSecurity(config *SecurityConfig) *ConfigBuilder {
 	cb.config.Security = config
 	return cb
 }
 
-// WithPerformance sets performance configuration
+// WithPerformance sets performance configuration.
 func (cb *ConfigBuilder) WithPerformance(config *PerformanceConfig) *ConfigBuilder {
 	cb.config.Performance = config
 	return cb
 }
 
-// Build returns the built configuration
+// Build returns the built configuration.
 func (cb *ConfigBuilder) Build() *Config {
-	// Apply defaults
+	// Apply defaults.
 	cb.applyDefaults()
 
-	// Validate configuration
+	// Validate configuration.
 	if err := cb.validate(); err != nil {
 		cb.logger.Error(err, "Configuration validation failed")
 		return nil
@@ -1366,7 +1366,7 @@ func (cb *ConfigBuilder) Build() *Config {
 	return cb.config
 }
 
-// applyDefaults applies default values to the configuration
+// applyDefaults applies default values to the configuration.
 func (cb *ConfigBuilder) applyDefaults() {
 	if cb.config.KubernetesConfig == nil {
 		cb.config.KubernetesConfig = cb.getDefaultKubernetesConfig()
@@ -1393,7 +1393,7 @@ func (cb *ConfigBuilder) applyDefaults() {
 	}
 }
 
-// getDefaultKubernetesConfig returns default Kubernetes configuration
+// getDefaultKubernetesConfig returns default Kubernetes configuration.
 func (cb *ConfigBuilder) getDefaultKubernetesConfig() *KubernetesConfig {
 	var kubeconfig string
 	if home := homedir.HomeDir(); home != "" {
@@ -1409,7 +1409,7 @@ func (cb *ConfigBuilder) getDefaultKubernetesConfig() *KubernetesConfig {
 	}
 }
 
-// getDefaultPorchConfig returns default Porch configuration
+// getDefaultPorchConfig returns default Porch configuration.
 func (cb *ConfigBuilder) getDefaultPorchConfig() *PorchServiceConfig {
 	return &PorchServiceConfig{
 		APIVersion: "porch.kpt.dev/v1alpha1",
@@ -1445,7 +1445,7 @@ func (cb *ConfigBuilder) getDefaultPorchConfig() *PorchServiceConfig {
 	}
 }
 
-// getDefaultFunctionConfig returns default function configuration
+// getDefaultFunctionConfig returns default function configuration.
 func (cb *ConfigBuilder) getDefaultFunctionConfig() *FunctionRegistryConfig {
 	return &FunctionRegistryConfig{
 		DefaultRegistry: "gcr.io/kpt-fn",
@@ -1472,7 +1472,7 @@ func (cb *ConfigBuilder) getDefaultFunctionConfig() *FunctionRegistryConfig {
 	}
 }
 
-// getDefaultObservabilityConfig returns default observability configuration
+// getDefaultObservabilityConfig returns default observability configuration.
 func (cb *ConfigBuilder) getDefaultObservabilityConfig() *ObservabilityConfig {
 	return &ObservabilityConfig{
 		Metrics: &MetricsConfig{
@@ -1502,7 +1502,7 @@ func (cb *ConfigBuilder) getDefaultObservabilityConfig() *ObservabilityConfig {
 	}
 }
 
-// getDefaultSecurityConfig returns default security configuration
+// getDefaultSecurityConfig returns default security configuration.
 func (cb *ConfigBuilder) getDefaultSecurityConfig() *SecurityConfig {
 	return &SecurityConfig{
 		Authentication: &SecurityAuthConfig{
@@ -1525,7 +1525,7 @@ func (cb *ConfigBuilder) getDefaultSecurityConfig() *SecurityConfig {
 	}
 }
 
-// getDefaultPerformanceConfig returns default performance configuration
+// getDefaultPerformanceConfig returns default performance configuration.
 func (cb *ConfigBuilder) getDefaultPerformanceConfig() *PerformanceConfig {
 	return &PerformanceConfig{
 		Client: &ClientPerformanceConfig{
@@ -1549,7 +1549,7 @@ func (cb *ConfigBuilder) getDefaultPerformanceConfig() *PerformanceConfig {
 	}
 }
 
-// validate validates the configuration
+// validate validates the configuration.
 func (cb *ConfigBuilder) validate() error {
 	if cb.config.PorchConfig == nil {
 		return fmt.Errorf("porch configuration is required")
@@ -1559,7 +1559,7 @@ func (cb *ConfigBuilder) validate() error {
 		return fmt.Errorf("porch endpoint is required")
 	}
 
-	// Validate repositories
+	// Validate repositories.
 	for name, repo := range cb.config.Repositories {
 		if repo.URL == "" {
 			return fmt.Errorf("repository %s: URL is required", name)
@@ -1569,7 +1569,7 @@ func (cb *ConfigBuilder) validate() error {
 		}
 	}
 
-	// Validate clusters
+	// Validate clusters.
 	for name, cluster := range cb.config.Clusters {
 		if cluster.Endpoint == "" && cluster.KubeconfigPath == "" {
 			return fmt.Errorf("cluster %s: either endpoint or kubeconfig path is required", name)
@@ -1579,9 +1579,9 @@ func (cb *ConfigBuilder) validate() error {
 	return nil
 }
 
-// Configuration factory functions
+// Configuration factory functions.
 
-// NewConfig creates a new empty configuration
+// NewConfig creates a new empty configuration.
 func NewConfig() *Config {
 	return &Config{
 		Repositories: make(map[string]*RepositoryConfig),
@@ -1589,7 +1589,7 @@ func NewConfig() *Config {
 	}
 }
 
-// WithDefaults adds default values to the configuration
+// WithDefaults adds default values to the configuration.
 func (c *Config) WithDefaults() *Config {
 	builder := NewConfigBuilder()
 	builder.config = c
@@ -1597,30 +1597,30 @@ func (c *Config) WithDefaults() *Config {
 	return builder.config
 }
 
-// NewDefaultConfig creates a default configuration
+// NewDefaultConfig creates a default configuration.
 func NewDefaultConfig() *Config {
 	return NewConfigBuilder().Build()
 }
 
-// NewConfigFromEnvironment creates configuration from environment variables
+// NewConfigFromEnvironment creates configuration from environment variables.
 func NewConfigFromEnvironment() (*Config, error) {
 	builder := NewConfigBuilder()
 
-	// Set Porch endpoint from environment
+	// Set Porch endpoint from environment.
 	if endpoint := os.Getenv("PORCH_ENDPOINT"); endpoint != "" {
 		builder.WithPorchConfig(&PorchServiceConfig{
 			Endpoint: endpoint,
 		})
 	}
 
-	// Set Kubernetes context from environment
+	// Set Kubernetes context from environment.
 	if context := os.Getenv("KUBERNETES_CONTEXT"); context != "" {
 		builder.WithKubernetesConfig(&KubernetesConfig{
 			Context: context,
 		})
 	}
 
-	// Set namespace from environment
+	// Set namespace from environment.
 	if namespace := os.Getenv("PORCH_NAMESPACE"); namespace != "" {
 		if builder.config.KubernetesConfig == nil {
 			builder.config.KubernetesConfig = &KubernetesConfig{}
@@ -1636,14 +1636,14 @@ func NewConfigFromEnvironment() (*Config, error) {
 	return config, nil
 }
 
-// LoadConfigFromFile loads configuration from a file
+// LoadConfigFromFile loads configuration from a file.
 func LoadConfigFromFile(filepath string) (*Config, error) {
-	// Implementation would load from YAML/JSON file
-	// For now, return default config
+	// Implementation would load from YAML/JSON file.
+	// For now, return default config.
 	return NewDefaultConfig(), nil
 }
 
-// GetKubernetesConfig creates Kubernetes REST config from Porch config
+// GetKubernetesConfig creates Kubernetes REST config from Porch config.
 func (c *Config) GetKubernetesConfig() (*rest.Config, error) {
 	if c.KubernetesConfig == nil {
 		return nil, fmt.Errorf("kubernetes configuration not specified")
@@ -1653,13 +1653,13 @@ func (c *Config) GetKubernetesConfig() (*rest.Config, error) {
 	var err error
 
 	if c.KubernetesConfig.KubeconfigPath != "" {
-		// Load from kubeconfig file
+		// Load from kubeconfig file.
 		config, err = clientcmd.BuildConfigFromFlags(
 			c.KubernetesConfig.MasterURL,
 			c.KubernetesConfig.KubeconfigPath,
 		)
 	} else {
-		// Use in-cluster config
+		// Use in-cluster config.
 		config, err = rest.InClusterConfig()
 	}
 
@@ -1667,7 +1667,7 @@ func (c *Config) GetKubernetesConfig() (*rest.Config, error) {
 		return nil, fmt.Errorf("failed to create kubernetes config: %w", err)
 	}
 
-	// Apply configuration overrides
+	// Apply configuration overrides.
 	if c.KubernetesConfig.QPS > 0 {
 		config.QPS = c.KubernetesConfig.QPS
 	}
@@ -1684,7 +1684,7 @@ func (c *Config) GetKubernetesConfig() (*rest.Config, error) {
 		config.UserAgent = c.KubernetesConfig.UserAgent
 	}
 
-	// Set additional headers
+	// Set additional headers.
 	if len(c.KubernetesConfig.Headers) > 0 {
 		if config.WrapTransport == nil {
 			config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
@@ -1699,12 +1699,13 @@ func (c *Config) GetKubernetesConfig() (*rest.Config, error) {
 	return config, nil
 }
 
-// headerRoundTripper adds custom headers to requests
+// headerRoundTripper adds custom headers to requests.
 type headerRoundTripper struct {
 	headers map[string]string
 	rt      http.RoundTripper
 }
 
+// RoundTrip performs roundtrip operation.
 func (h *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	for key, value := range h.headers {
 		req.Header.Set(key, value)
@@ -1712,7 +1713,7 @@ func (h *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error
 	return h.rt.RoundTrip(req)
 }
 
-// GetRepository returns repository configuration by name
+// GetRepository returns repository configuration by name.
 func (c *Config) GetRepository(name string) (*RepositoryConfig, error) {
 	repo, exists := c.Repositories[name]
 	if !exists {
@@ -1721,7 +1722,7 @@ func (c *Config) GetRepository(name string) (*RepositoryConfig, error) {
 	return repo, nil
 }
 
-// GetCluster returns cluster configuration by name
+// GetCluster returns cluster configuration by name.
 func (c *Config) GetCluster(name string) (*ClusterConfig, error) {
 	cluster, exists := c.Clusters[name]
 	if !exists {
@@ -1730,7 +1731,7 @@ func (c *Config) GetCluster(name string) (*ClusterConfig, error) {
 	return cluster, nil
 }
 
-// IsFeatureEnabled checks if an experimental feature is enabled
+// IsFeatureEnabled checks if an experimental feature is enabled.
 func (c *Config) IsFeatureEnabled(feature string) bool {
 	if c.PorchConfig == nil {
 		return false
@@ -1745,7 +1746,7 @@ func (c *Config) IsFeatureEnabled(feature string) bool {
 	return false
 }
 
-// GetDefaultWorkflow returns the default workflow configuration
+// GetDefaultWorkflow returns the default workflow configuration.
 func (c *Config) GetDefaultWorkflow() (*WorkflowConfig, error) {
 	if c.Policies == nil || c.Policies.DefaultWorkflow == "" {
 		return nil, fmt.Errorf("no default workflow configured")
@@ -1759,7 +1760,7 @@ func (c *Config) GetDefaultWorkflow() (*WorkflowConfig, error) {
 	return workflow, nil
 }
 
-// GetWorkflowForPackage returns workflow configuration for a specific package type
+// GetWorkflowForPackage returns workflow configuration for a specific package type.
 func (c *Config) GetWorkflowForPackage(packageType string) (*WorkflowConfig, error) {
 	if c.Policies == nil {
 		return c.GetDefaultWorkflow()
@@ -1773,11 +1774,11 @@ func (c *Config) GetWorkflowForPackage(packageType string) (*WorkflowConfig, err
 	return workflow, nil
 }
 
-// ValidateConfiguration validates the entire configuration
+// ValidateConfiguration validates the entire configuration.
 func (c *Config) Validate() []error {
 	var errors []error
 
-	// Validate Kubernetes config
+	// Validate Kubernetes config.
 	if c.KubernetesConfig != nil {
 		if c.KubernetesConfig.QPS < 0 {
 			errors = append(errors, fmt.Errorf("kubernetes QPS cannot be negative"))
@@ -1787,7 +1788,7 @@ func (c *Config) Validate() []error {
 		}
 	}
 
-	// Validate Porch config
+	// Validate Porch config.
 	if c.PorchConfig == nil {
 		errors = append(errors, fmt.Errorf("porch configuration is required"))
 	} else {
@@ -1799,7 +1800,7 @@ func (c *Config) Validate() []error {
 		}
 	}
 
-	// Validate repository configurations
+	// Validate repository configurations.
 	for name, repo := range c.Repositories {
 		if repo.URL == "" {
 			errors = append(errors, fmt.Errorf("repository %s: URL is required", name))
@@ -1812,7 +1813,7 @@ func (c *Config) Validate() []error {
 		}
 	}
 
-	// Validate cluster configurations
+	// Validate cluster configurations.
 	for name, cluster := range c.Clusters {
 		if cluster.Endpoint == "" && cluster.KubeconfigPath == "" {
 			errors = append(errors, fmt.Errorf("cluster %s: either endpoint or kubeconfig path is required", name))
@@ -1822,10 +1823,10 @@ func (c *Config) Validate() []error {
 	return errors
 }
 
-// DeepCopy creates a deep copy of the configuration
+// DeepCopy creates a deep copy of the configuration.
 func (c *Config) DeepCopy() *Config {
-	// Implementation would perform deep copy of all fields
-	// For brevity, showing the pattern
+	// Implementation would perform deep copy of all fields.
+	// For brevity, showing the pattern.
 	copy := &Config{}
 
 	if c.KubernetesConfig != nil {

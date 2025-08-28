@@ -29,12 +29,12 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
-// ORANComplianceValidator validates O-RAN interface compliance
+// ORANComplianceValidator validates O-RAN interface compliance.
 type ORANComplianceValidator struct {
 	*BaseFunctionImpl
 }
 
-// NewORANComplianceValidator creates a new O-RAN compliance validator
+// NewORANComplianceValidator creates a new O-RAN compliance validator.
 func NewORANComplianceValidator() *ORANComplianceValidator {
 	metadata := &FunctionMetadata{
 		Name:        "oran-compliance-validator",
@@ -96,14 +96,14 @@ func NewORANComplianceValidator() *ORANComplianceValidator {
 	return &ORANComplianceValidator{BaseFunctionImpl: base}
 }
 
-// Execute validates O-RAN compliance for network functions
+// Execute validates O-RAN compliance for network functions.
 func (v *ORANComplianceValidator) Execute(ctx context.Context, input *ResourceList) (*ResourceList, error) {
 	LogInfo(ctx, "Starting O-RAN compliance validation", "resourceCount", len(input.Items))
 
-	// Parse configuration
+	// Parse configuration.
 	config := v.parseConfig(input.FunctionConfig)
 
-	// Create output resource list
+	// Create output resource list.
 	output := &ResourceList{
 		Items:          input.Items, // Pass through all resources
 		FunctionConfig: input.FunctionConfig,
@@ -111,12 +111,12 @@ func (v *ORANComplianceValidator) Execute(ctx context.Context, input *ResourceLi
 		Context:        input.Context,
 	}
 
-	// Validate each resource
+	// Validate each resource.
 	for i, resource := range input.Items {
 		results := v.validateResource(ctx, &resource, config)
 		output.Results = append(output.Results, results...)
 
-		// Add compliance annotations
+		// Add compliance annotations.
 		v.addComplianceAnnotations(&output.Items[i], results)
 	}
 
@@ -127,12 +127,12 @@ func (v *ORANComplianceValidator) Execute(ctx context.Context, input *ResourceLi
 	return output, nil
 }
 
-// A1PolicyValidator validates A1 interface policy configurations
+// A1PolicyValidator validates A1 interface policy configurations.
 type A1PolicyValidator struct {
 	*BaseFunctionImpl
 }
 
-// NewA1PolicyValidator creates a new A1 policy validator
+// NewA1PolicyValidator creates a new A1 policy validator.
 func NewA1PolicyValidator() *A1PolicyValidator {
 	metadata := &FunctionMetadata{
 		Name:        "a1-policy-validator",
@@ -180,7 +180,7 @@ func NewA1PolicyValidator() *A1PolicyValidator {
 	return &A1PolicyValidator{BaseFunctionImpl: base}
 }
 
-// Execute validates A1 policy configurations
+// Execute validates A1 policy configurations.
 func (v *A1PolicyValidator) Execute(ctx context.Context, input *ResourceList) (*ResourceList, error) {
 	LogInfo(ctx, "Starting A1 policy validation")
 
@@ -191,24 +191,24 @@ func (v *A1PolicyValidator) Execute(ctx context.Context, input *ResourceList) (*
 		Context:        input.Context,
 	}
 
-	// Find A1 policies
+	// Find A1 policies.
 	a1Policies := FindResourcesByGVK(input.Items, schema.GroupVersionKind{
 		Group:   "o-ran.org",
 		Version: "v1alpha1",
 		Kind:    "A1Policy",
 	})
 
-	// Find policy types
+	// Find policy types.
 	policyTypes := FindResourcesByGVK(input.Items, schema.GroupVersionKind{
 		Group:   "o-ran.org",
 		Version: "v1alpha1",
 		Kind:    "PolicyType",
 	})
 
-	// Build policy type registry
+	// Build policy type registry.
 	policyTypeRegistry := v.buildPolicyTypeRegistry(policyTypes)
 
-	// Validate each A1 policy
+	// Validate each A1 policy.
 	for _, policy := range a1Policies {
 		results := v.validateA1Policy(ctx, &policy, policyTypeRegistry)
 		output.Results = append(output.Results, results...)
@@ -222,12 +222,12 @@ func (v *A1PolicyValidator) Execute(ctx context.Context, input *ResourceList) (*
 	return output, nil
 }
 
-// FiveGCoreValidator validates 5G Core network function configurations
+// FiveGCoreValidator validates 5G Core network function configurations.
 type FiveGCoreValidator struct {
 	*BaseFunctionImpl
 }
 
-// NewFiveGCoreValidator creates a new 5G Core validator
+// NewFiveGCoreValidator creates a new 5G Core validator.
 func NewFiveGCoreValidator() *FiveGCoreValidator {
 	metadata := &FunctionMetadata{
 		Name:        "5g-core-validator",
@@ -283,7 +283,7 @@ func NewFiveGCoreValidator() *FiveGCoreValidator {
 	return &FiveGCoreValidator{BaseFunctionImpl: base}
 }
 
-// Execute validates 5G Core network function configurations
+// Execute validates 5G Core network function configurations.
 func (v *FiveGCoreValidator) Execute(ctx context.Context, input *ResourceList) (*ResourceList, error) {
 	LogInfo(ctx, "Starting 5G Core validation")
 
@@ -294,7 +294,7 @@ func (v *FiveGCoreValidator) Execute(ctx context.Context, input *ResourceList) (
 		Context:        input.Context,
 	}
 
-	// Validate each network function type
+	// Validate each network function type.
 	networkFunctions := []string{"AMF", "SMF", "UPF", "NSSF", "NRF"}
 
 	for _, nfType := range networkFunctions {
@@ -310,7 +310,7 @@ func (v *FiveGCoreValidator) Execute(ctx context.Context, input *ResourceList) (
 		}
 	}
 
-	// Cross-function validation
+	// Cross-function validation.
 	crossResults := v.validateNetworkFunctionInteractions(ctx, input.Items)
 	output.Results = append(output.Results, crossResults...)
 
@@ -318,7 +318,7 @@ func (v *FiveGCoreValidator) Execute(ctx context.Context, input *ResourceList) (
 	return output, nil
 }
 
-// Helper methods
+// Helper methods.
 
 func (v *ORANComplianceValidator) parseConfig(config map[string]interface{}) map[string]interface{} {
 	if config == nil {
@@ -336,12 +336,12 @@ func (v *ORANComplianceValidator) validateResource(ctx context.Context, resource
 
 	name, _ := GetResourceName(resource)
 
-	// Check if this is an O-RAN related resource
+	// Check if this is an O-RAN related resource.
 	if !v.isORANResource(resource) {
 		return results
 	}
 
-	// Validate interface compliance based on resource type
+	// Validate interface compliance based on resource type.
 	switch resource.Kind {
 	case "AMF":
 		results = append(results, v.validateAMFCompliance(ctx, resource)...)
@@ -369,14 +369,14 @@ func (v *ORANComplianceValidator) isORANResource(resource *porch.KRMResource) bo
 	oranGroups := []string{"o-ran.org", "workload.nephio.org"}
 	oranKinds := []string{"AMF", "SMF", "UPF", "NearRTRIC", "ODU", "OCU", "A1Policy", "PolicyType"}
 
-	// Check API group
+	// Check API group.
 	for _, group := range oranGroups {
 		if strings.Contains(resource.APIVersion, group) {
 			return true
 		}
 	}
 
-	// Check kind
+	// Check kind.
 	for _, kind := range oranKinds {
 		if resource.Kind == kind {
 			return true
@@ -390,7 +390,7 @@ func (v *ORANComplianceValidator) validateAMFCompliance(ctx context.Context, res
 	var results []*porch.FunctionResult
 	name, _ := GetResourceName(resource)
 
-	// Check required O1 interface configuration
+	// Check required O1 interface configuration.
 	o1Config, err := GetSpecField(resource, "interfaces.o1")
 	if err != nil || o1Config == nil {
 		results = append(results, CreateError(
@@ -399,7 +399,7 @@ func (v *ORANComplianceValidator) validateAMFCompliance(ctx context.Context, res
 		))
 	}
 
-	// Check SBI interface configuration
+	// Check SBI interface configuration.
 	sbiConfig, err := GetSpecField(resource, "interfaces.sbi")
 	if err != nil || sbiConfig == nil {
 		results = append(results, CreateError(
@@ -408,7 +408,7 @@ func (v *ORANComplianceValidator) validateAMFCompliance(ctx context.Context, res
 		))
 	}
 
-	// Check N1/N2 interface configuration
+	// Check N1/N2 interface configuration.
 	n1Config, err := GetSpecField(resource, "interfaces.n1")
 	if err == nil && n1Config != nil {
 		results = append(results, CreateInfo(
@@ -430,7 +430,7 @@ func (v *ORANComplianceValidator) validateSMFCompliance(ctx context.Context, res
 	var results []*porch.FunctionResult
 	name, _ := GetResourceName(resource)
 
-	// Check required interfaces
+	// Check required interfaces.
 	requiredInterfaces := []string{"sbi", "n4", "n7"}
 
 	for _, iface := range requiredInterfaces {
@@ -443,7 +443,7 @@ func (v *ORANComplianceValidator) validateSMFCompliance(ctx context.Context, res
 		}
 	}
 
-	// Check PDU session handling configuration
+	// Check PDU session handling configuration.
 	pduConfig, err := GetSpecField(resource, "pduSessions")
 	if err == nil && pduConfig != nil {
 		results = append(results, CreateInfo(
@@ -458,7 +458,7 @@ func (v *ORANComplianceValidator) validateUPFCompliance(ctx context.Context, res
 	var results []*porch.FunctionResult
 	name, _ := GetResourceName(resource)
 
-	// Check N3 interface (gNB connection)
+	// Check N3 interface (gNB connection).
 	n3Config, err := GetSpecField(resource, "interfaces.n3")
 	if err != nil || n3Config == nil {
 		results = append(results, CreateError(
@@ -467,7 +467,7 @@ func (v *ORANComplianceValidator) validateUPFCompliance(ctx context.Context, res
 		))
 	}
 
-	// Check N4 interface (SMF connection)
+	// Check N4 interface (SMF connection).
 	n4Config, err := GetSpecField(resource, "interfaces.n4")
 	if err != nil || n4Config == nil {
 		results = append(results, CreateError(
@@ -476,7 +476,7 @@ func (v *ORANComplianceValidator) validateUPFCompliance(ctx context.Context, res
 		))
 	}
 
-	// Check data plane configuration
+	// Check data plane configuration.
 	dataPlaneConfig, err := GetSpecField(resource, "dataPlane")
 	if err == nil && dataPlaneConfig != nil {
 		results = append(results, CreateInfo(
@@ -491,7 +491,7 @@ func (v *ORANComplianceValidator) validateNearRTRICCompliance(ctx context.Contex
 	var results []*porch.FunctionResult
 	name, _ := GetResourceName(resource)
 
-	// Check A1 interface
+	// Check A1 interface.
 	a1Config, err := GetSpecField(resource, "interfaces.a1")
 	if err != nil || a1Config == nil {
 		results = append(results, CreateError(
@@ -500,7 +500,7 @@ func (v *ORANComplianceValidator) validateNearRTRICCompliance(ctx context.Contex
 		))
 	}
 
-	// Check E2 interface
+	// Check E2 interface.
 	e2Config, err := GetSpecField(resource, "interfaces.e2")
 	if err != nil || e2Config == nil {
 		results = append(results, CreateError(
@@ -509,7 +509,7 @@ func (v *ORANComplianceValidator) validateNearRTRICCompliance(ctx context.Contex
 		))
 	}
 
-	// Check xApp platform configuration
+	// Check xApp platform configuration.
 	xAppConfig, err := GetSpecField(resource, "xAppPlatform")
 	if err == nil && xAppConfig != nil {
 		results = append(results, CreateInfo(
@@ -524,7 +524,7 @@ func (v *ORANComplianceValidator) validateODUCompliance(ctx context.Context, res
 	var results []*porch.FunctionResult
 	name, _ := GetResourceName(resource)
 
-	// Check Open Fronthaul interface
+	// Check Open Fronthaul interface.
 	fronthaulConfig, err := GetSpecField(resource, "interfaces.fronthaul")
 	if err != nil || fronthaulConfig == nil {
 		results = append(results, CreateWarning(
@@ -533,7 +533,7 @@ func (v *ORANComplianceValidator) validateODUCompliance(ctx context.Context, res
 		))
 	}
 
-	// Check F1 interface (to O-CU)
+	// Check F1 interface (to O-CU).
 	f1Config, err := GetSpecField(resource, "interfaces.f1")
 	if err != nil || f1Config == nil {
 		results = append(results, CreateError(
@@ -549,7 +549,7 @@ func (v *ORANComplianceValidator) validateOCUCompliance(ctx context.Context, res
 	var results []*porch.FunctionResult
 	name, _ := GetResourceName(resource)
 
-	// Check F1 interface (from O-DU)
+	// Check F1 interface (from O-DU).
 	f1Config, err := GetSpecField(resource, "interfaces.f1")
 	if err != nil || f1Config == nil {
 		results = append(results, CreateError(
@@ -558,7 +558,7 @@ func (v *ORANComplianceValidator) validateOCUCompliance(ctx context.Context, res
 		))
 	}
 
-	// Check NG interface (to 5G Core)
+	// Check NG interface (to 5G Core).
 	ngConfig, err := GetSpecField(resource, "interfaces.ng")
 	if err != nil || ngConfig == nil {
 		results = append(results, CreateError(
@@ -583,7 +583,7 @@ func (v *ORANComplianceValidator) addComplianceAnnotations(resource *porch.KRMRe
 		}
 	}
 
-	// Add compliance status annotation
+	// Add compliance status annotation.
 	complianceStatus := "compliant"
 	if errorCount > 0 {
 		complianceStatus = "non-compliant"
@@ -597,7 +597,7 @@ func (v *ORANComplianceValidator) addComplianceAnnotations(resource *porch.KRMRe
 	SetResourceAnnotation(resource, "o-ran.org/validated-at", fmt.Sprintf("%d", time.Now().Unix()))
 }
 
-// A1 Policy validation helpers
+// A1 Policy validation helpers.
 
 func (v *A1PolicyValidator) buildPolicyTypeRegistry(policyTypes []porch.KRMResource) map[string]*porch.KRMResource {
 	registry := make(map[string]*porch.KRMResource)
@@ -616,7 +616,7 @@ func (v *A1PolicyValidator) validateA1Policy(ctx context.Context, policy *porch.
 	var results []*porch.FunctionResult
 	name, _ := GetResourceName(policy)
 
-	// Check policy type reference
+	// Check policy type reference.
 	policyType, err := GetSpecField(policy, "policyType")
 	if err != nil || policyType == nil {
 		results = append(results, CreateError(
@@ -635,7 +635,7 @@ func (v *A1PolicyValidator) validateA1Policy(ctx context.Context, policy *porch.
 		return results
 	}
 
-	// Check if policy type exists
+	// Check if policy type exists.
 	if _, exists := registry[policyTypeName]; !exists {
 		results = append(results, CreateError(
 			fmt.Sprintf("A1 Policy %s references non-existent policy type %s", name, policyTypeName),
@@ -647,7 +647,7 @@ func (v *A1PolicyValidator) validateA1Policy(ctx context.Context, policy *porch.
 		))
 	}
 
-	// Validate policy syntax
+	// Validate policy syntax.
 	policyData, err := GetSpecField(policy, "policyData")
 	if err != nil || policyData == nil {
 		results = append(results, CreateError(
@@ -659,7 +659,7 @@ func (v *A1PolicyValidator) validateA1Policy(ctx context.Context, policy *porch.
 	return results
 }
 
-// 5G Core validation helpers
+// 5G Core validation helpers.
 
 func (v *FiveGCoreValidator) validateNetworkFunction(ctx context.Context, nf *porch.KRMResource, nfType string) []*porch.FunctionResult {
 	var results []*porch.FunctionResult
@@ -677,7 +677,7 @@ func (v *FiveGCoreValidator) validateNetworkFunction(ctx context.Context, nf *po
 		results = append(results, v.validateNRF(ctx, nf)...)
 	}
 
-	// Common validations for all NFs
+	// Common validations for all NFs.
 	results = append(results, v.validateCommonNF(ctx, nf, nfType)...)
 
 	return results
@@ -687,7 +687,7 @@ func (v *FiveGCoreValidator) validateAMF(ctx context.Context, amf *porch.KRMReso
 	var results []*porch.FunctionResult
 	name, _ := GetResourceName(amf)
 
-	// Check GUAMI configuration
+	// Check GUAMI configuration.
 	guami, err := GetSpecField(amf, "guami")
 	if err != nil || guami == nil {
 		results = append(results, CreateError(
@@ -696,7 +696,7 @@ func (v *FiveGCoreValidator) validateAMF(ctx context.Context, amf *porch.KRMReso
 		))
 	}
 
-	// Check served PLMN list
+	// Check served PLMN list.
 	plmnList, err := GetSpecField(amf, "servedGuamiList")
 	if err != nil || plmnList == nil {
 		results = append(results, CreateWarning(
@@ -712,7 +712,7 @@ func (v *FiveGCoreValidator) validateSMF(ctx context.Context, smf *porch.KRMReso
 	var results []*porch.FunctionResult
 	name, _ := GetResourceName(smf)
 
-	// Check UE subnet configuration
+	// Check UE subnet configuration.
 	ueSubnet, err := GetSpecField(smf, "ueSubnet")
 	if err != nil || ueSubnet == nil {
 		results = append(results, CreateWarning(
@@ -721,7 +721,7 @@ func (v *FiveGCoreValidator) validateSMF(ctx context.Context, smf *porch.KRMReso
 		))
 	}
 
-	// Check DNN configuration
+	// Check DNN configuration.
 	dnnConfig, err := GetSpecField(smf, "dnn")
 	if err != nil || dnnConfig == nil {
 		results = append(results, CreateError(
@@ -737,7 +737,7 @@ func (v *FiveGCoreValidator) validateUPF(ctx context.Context, upf *porch.KRMReso
 	var results []*porch.FunctionResult
 	name, _ := GetResourceName(upf)
 
-	// Check GTPU configuration
+	// Check GTPU configuration.
 	gtpuConfig, err := GetSpecField(upf, "gtpu")
 	if err != nil || gtpuConfig == nil {
 		results = append(results, CreateError(
@@ -746,7 +746,7 @@ func (v *FiveGCoreValidator) validateUPF(ctx context.Context, upf *porch.KRMReso
 		))
 	}
 
-	// Check PFCP configuration
+	// Check PFCP configuration.
 	pfcpConfig, err := GetSpecField(upf, "pfcp")
 	if err != nil || pfcpConfig == nil {
 		results = append(results, CreateError(
@@ -762,7 +762,7 @@ func (v *FiveGCoreValidator) validateNSSF(ctx context.Context, nssf *porch.KRMRe
 	var results []*porch.FunctionResult
 	name, _ := GetResourceName(nssf)
 
-	// Check NSI configuration
+	// Check NSI configuration.
 	nsiConfig, err := GetSpecField(nssf, "nsi")
 	if err != nil || nsiConfig == nil {
 		results = append(results, CreateWarning(
@@ -778,7 +778,7 @@ func (v *FiveGCoreValidator) validateNRF(ctx context.Context, nrf *porch.KRMReso
 	var results []*porch.FunctionResult
 	name, _ := GetResourceName(nrf)
 
-	// Check OAuth configuration
+	// Check OAuth configuration.
 	oauthConfig, err := GetSpecField(nrf, "oauth")
 	if err == nil && oauthConfig != nil {
 		results = append(results, CreateInfo(
@@ -793,7 +793,7 @@ func (v *FiveGCoreValidator) validateCommonNF(ctx context.Context, nf *porch.KRM
 	var results []*porch.FunctionResult
 	name, _ := GetResourceName(nf)
 
-	// Check NF instance ID
+	// Check NF instance ID.
 	instanceID, err := GetSpecField(nf, "nfInstanceId")
 	if err != nil || instanceID == nil {
 		results = append(results, CreateWarning(
@@ -801,7 +801,7 @@ func (v *FiveGCoreValidator) validateCommonNF(ctx context.Context, nf *porch.KRM
 			map[string]string{"resource": name, "field": "spec.nfInstanceId"},
 		))
 	} else {
-		// Validate UUID format
+		// Validate UUID format.
 		if instanceIDStr, ok := instanceID.(string); ok {
 			if !v.isValidUUID(instanceIDStr) {
 				results = append(results, CreateError(
@@ -812,7 +812,7 @@ func (v *FiveGCoreValidator) validateCommonNF(ctx context.Context, nf *porch.KRM
 		}
 	}
 
-	// Check heartbeat configuration
+	// Check heartbeat configuration.
 	heartbeat, err := GetSpecField(nf, "heartbeat")
 	if err == nil && heartbeat != nil {
 		results = append(results, CreateInfo(
@@ -826,12 +826,12 @@ func (v *FiveGCoreValidator) validateCommonNF(ctx context.Context, nf *porch.KRM
 func (v *FiveGCoreValidator) validateNetworkFunctionInteractions(ctx context.Context, resources []porch.KRMResource) []*porch.FunctionResult {
 	var results []*porch.FunctionResult
 
-	// Count network functions
+	// Count network functions.
 	amfCount := len(FindResourcesByGVK(resources, schema.GroupVersionKind{Group: "workload.nephio.org", Version: "v1alpha1", Kind: "AMF"}))
 	smfCount := len(FindResourcesByGVK(resources, schema.GroupVersionKind{Group: "workload.nephio.org", Version: "v1alpha1", Kind: "SMF"}))
 	upfCount := len(FindResourcesByGVK(resources, schema.GroupVersionKind{Group: "workload.nephio.org", Version: "v1alpha1", Kind: "UPF"}))
 
-	// Check minimum requirements
+	// Check minimum requirements.
 	if amfCount == 0 {
 		results = append(results, CreateWarning("No AMF instances found in package"))
 	}
@@ -844,7 +844,7 @@ func (v *FiveGCoreValidator) validateNetworkFunctionInteractions(ctx context.Con
 		results = append(results, CreateWarning("No UPF instances found in package"))
 	}
 
-	// Check ratios
+	// Check ratios.
 	if smfCount > 0 && upfCount > 0 {
 		if upfCount > smfCount*3 {
 			results = append(results, CreateWarning(

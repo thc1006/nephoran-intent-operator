@@ -15,14 +15,17 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/internal/security"
 )
 
-// Version information - will be set at build time
+// Version information - will be set at build time.
 var (
-	Version   = "dev"
+	// Version holds version value.
+	Version = "dev"
+	// GitCommit holds gitcommit value.
 	GitCommit = "unknown"
+	// BuildTime holds buildtime value.
 	BuildTime = "unknown"
 )
 
-// SecurityConfig holds security configuration
+// SecurityConfig holds security configuration.
 type SecurityConfig struct {
 	EnableCompliance      bool
 	EnableAuditLogging    bool
@@ -49,14 +52,14 @@ func main() {
 	flag.IntVar(&verbosity, "v", 0, "Verbosity level (0-3)")
 	flag.Parse()
 
-	// Initialize structured logging
+	// Initialize structured logging.
 	logger, err := initializeLogger(verbosity)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Print version information
+	// Print version information.
 	logger.Info("Starting Secure Porch Patch Generator",
 		"version", Version,
 		"git_commit", GitCommit,
@@ -64,7 +67,7 @@ func main() {
 		"security_enabled", enableSecurity,
 		"compliance_mode", complianceMode)
 
-	// Validate command line arguments
+	// Validate command line arguments.
 	if intentPath == "" {
 		fmt.Fprintf(os.Stderr, "Error: --intent flag is required\n")
 		flag.Usage()
@@ -75,7 +78,7 @@ func main() {
 		outputDir = "./examples/packages/scaling"
 	}
 
-	// Initialize security configuration
+	// Initialize security configuration.
 	secConfig := SecurityConfig{
 		EnableCompliance:      complianceMode,
 		EnableAuditLogging:    true,
@@ -89,7 +92,7 @@ func main() {
 		},
 	}
 
-	// Run with timeout and security context
+	// Run with timeout and security context.
 	ctx, cancel := context.WithTimeout(context.Background(), secConfig.MaxExecutionTime)
 	defer cancel()
 
@@ -100,20 +103,20 @@ func main() {
 	}
 }
 
-// runSecure executes the main logic with comprehensive security controls
+// runSecure executes the main logic with comprehensive security controls.
 func runSecure(ctx context.Context, intentPath, outputDir string, apply bool, config SecurityConfig, logger logr.Logger) error {
 	logger.Info("Starting secure patch generation workflow",
 		"intent_path", intentPath,
 		"output_dir", outputDir,
 		"apply", apply)
 
-	// 1. Initialize security components
+	// 1. Initialize security components.
 	owaspValidator, err := security.NewOWASPValidator()
 	if err != nil {
 		return fmt.Errorf("failed to initialize OWASP validator: %w", err)
 	}
 
-	// 2. Perform comprehensive security validation of intent file
+	// 2. Perform comprehensive security validation of intent file.
 	logger.V(1).Info("Performing security validation of intent file")
 	validationResult, err := owaspValidator.ValidateIntentFile(intentPath)
 	if err != nil {
@@ -125,7 +128,7 @@ func runSecure(ctx context.Context, intentPath, outputDir string, apply bool, co
 			"violations", len(validationResult.Violations),
 			"threat_level", validationResult.ThreatLevel)
 
-		// Log detailed violations
+		// Log detailed violations.
 		for _, violation := range validationResult.Violations {
 			logger.Error(fmt.Errorf("security violation"), "Security violation detected",
 				"field", violation.Field,
@@ -141,7 +144,7 @@ func runSecure(ctx context.Context, intentPath, outputDir string, apply bool, co
 
 	logger.Info("Intent file security validation passed", "threat_level", validationResult.ThreatLevel)
 
-	// 3. Load and validate intent using existing patchgen logic
+	// 3. Load and validate intent using existing patchgen logic.
 	intent, err := patchgen.LoadIntent(intentPath)
 	if err != nil {
 		return fmt.Errorf("failed to load intent: %w", err)
@@ -152,7 +155,7 @@ func runSecure(ctx context.Context, intentPath, outputDir string, apply bool, co
 		"namespace", intent.Namespace,
 		"replicas", intent.Replicas)
 
-	// 4. O-RAN WG11 Compliance Check (if enabled)
+	// 4. O-RAN WG11 Compliance Check (if enabled).
 	if config.EnableCompliance {
 		logger.V(1).Info("Performing O-RAN WG11 compliance assessment")
 
@@ -175,12 +178,12 @@ func runSecure(ctx context.Context, intentPath, outputDir string, apply bool, co
 				"critical_issues", complianceReport.CriticalIssues,
 				"recommendations", complianceReport.Recommendations)
 
-			// In production, you might want to fail here or require override
+			// In production, you might want to fail here or require override.
 			logger.Info("Continuing despite compliance issues (development mode)")
 		}
 	}
 
-	// 5. Generate secure patch using hardened generator
+	// 5. Generate secure patch using hardened generator.
 	logger.V(1).Info("Initializing secure patch generator")
 
 	secureGenerator, err := security.NewSecurePatchGenerator(intent, outputDir, logger)
@@ -200,7 +203,7 @@ func runSecure(ctx context.Context, intentPath, outputDir string, apply bool, co
 		"security_validated", securePatch.SecurityMetadata.ValidationPassed,
 		"compliance_level", securePatch.SecurityMetadata.ThreatModel)
 
-	// 6. Optionally apply using secure command execution
+	// 6. Optionally apply using secure command execution.
 	if apply {
 		logger.Info("Applying patch using secure command execution")
 
@@ -214,7 +217,7 @@ func runSecure(ctx context.Context, intentPath, outputDir string, apply bool, co
 		}
 	}
 
-	// 7. Final security summary
+	// 7. Final security summary.
 	logger.Info("Secure patch generation workflow completed successfully",
 		"package_name", securePatch.Kptfile.Metadata.Name,
 		"target_deployment", intent.Target,
@@ -233,7 +236,7 @@ func runSecure(ctx context.Context, intentPath, outputDir string, apply bool, co
 	return nil
 }
 
-// applyPatchSecurely applies the patch using secure command execution
+// applyPatchSecurely applies the patch using secure command execution.
 func applyPatchSecurely(_ context.Context, packagePath string, logger logr.Logger) error {
 	logger.V(1).Info("Initializing secure command executor")
 
@@ -244,7 +247,7 @@ func applyPatchSecurely(_ context.Context, packagePath string, logger logr.Logge
 
 	logger.Info("Executing porch-direct with security controls", "package_path", packagePath)
 
-	// Execute porch-direct with comprehensive security controls
+	// Execute porch-direct with comprehensive security controls.
 	result, err := secureExecutor.ExecuteSecure("porch-direct", []string{"--package", packagePath}, ".")
 	if err != nil {
 		return fmt.Errorf("secure command execution setup failed: %w", err)
@@ -258,7 +261,7 @@ func applyPatchSecurely(_ context.Context, packagePath string, logger logr.Logge
 		return fmt.Errorf("porch-direct failed with exit code %d", result.ExitCode)
 	}
 
-	// Log security execution details
+	// Log security execution details.
 	logger.Info("Secure command execution completed successfully",
 		"binary_verified", result.SecurityInfo.BinaryVerified,
 		"arguments_sanitized", result.SecurityInfo.ArgumentsSanitized,
@@ -270,7 +273,7 @@ func applyPatchSecurely(_ context.Context, packagePath string, logger logr.Logge
 	return nil
 }
 
-// initializeLogger sets up structured logging with appropriate verbosity
+// initializeLogger sets up structured logging with appropriate verbosity.
 func initializeLogger(verbosity int) (logr.Logger, error) {
 	var zapConfig zap.Config
 
@@ -290,7 +293,7 @@ func initializeLogger(verbosity int) (logr.Logger, error) {
 		zapConfig.Development = true
 	}
 
-	// Add security-relevant fields
+	// Add security-relevant fields.
 	zapConfig.InitialFields = map[string]interface{}{
 		"service":         "secure-porch-patch",
 		"version":         Version,

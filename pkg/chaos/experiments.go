@@ -8,14 +8,14 @@ import (
 	"go.uber.org/zap"
 )
 
-// PredefinedExperiments provides a catalog of pre-configured chaos experiments
-// specifically designed for telecommunications systems
+// PredefinedExperiments provides a catalog of pre-configured chaos experiments.
+// specifically designed for telecommunications systems.
 type PredefinedExperiments struct {
 	logger *zap.Logger
 	engine *ChaosEngine
 }
 
-// NewPredefinedExperiments creates a new catalog of predefined experiments
+// NewPredefinedExperiments creates a new catalog of predefined experiments.
 func NewPredefinedExperiments(logger *zap.Logger, engine *ChaosEngine) *PredefinedExperiments {
 	return &PredefinedExperiments{
 		logger: logger,
@@ -23,7 +23,7 @@ func NewPredefinedExperiments(logger *zap.Logger, engine *ChaosEngine) *Predefin
 	}
 }
 
-// GetNetworkLatencyExperiment creates a network latency injection experiment
+// GetNetworkLatencyExperiment creates a network latency injection experiment.
 func (p *PredefinedExperiments) GetNetworkLatencyExperiment(targetNamespace string, latencyMS int) *Experiment {
 	return &Experiment{
 		Name:        "network-latency-injection",
@@ -59,7 +59,7 @@ func (p *PredefinedExperiments) GetNetworkLatencyExperiment(targetNamespace stri
 	}
 }
 
-// GetPacketLossExperiment creates a packet loss experiment
+// GetPacketLossExperiment creates a packet loss experiment.
 func (p *PredefinedExperiments) GetPacketLossExperiment(targetNamespace string, lossPercent float64) *Experiment {
 	return &Experiment{
 		Name:        "packet-loss-injection",
@@ -94,7 +94,7 @@ func (p *PredefinedExperiments) GetPacketLossExperiment(targetNamespace string, 
 	}
 }
 
-// GetNetworkPartitionExperiment creates a network partition experiment
+// GetNetworkPartitionExperiment creates a network partition experiment.
 func (p *PredefinedExperiments) GetNetworkPartitionExperiment(sourceNamespace, targetNamespace string) *Experiment {
 	return &Experiment{
 		Name:        "network-partition",
@@ -130,7 +130,7 @@ func (p *PredefinedExperiments) GetNetworkPartitionExperiment(sourceNamespace, t
 	}
 }
 
-// GetPodChaosExperiment creates a pod failure experiment
+// GetPodChaosExperiment creates a pod failure experiment.
 func (p *PredefinedExperiments) GetPodChaosExperiment(targetNamespace string, killMode string) *Experiment {
 	return &Experiment{
 		Name:        "pod-chaos",
@@ -166,7 +166,7 @@ func (p *PredefinedExperiments) GetPodChaosExperiment(targetNamespace string, ki
 	}
 }
 
-// GetCPUStressExperiment creates a CPU stress experiment
+// GetCPUStressExperiment creates a CPU stress experiment.
 func (p *PredefinedExperiments) GetCPUStressExperiment(targetNamespace string, cpuPercent int) *Experiment {
 	return &Experiment{
 		Name:        "cpu-stress",
@@ -201,7 +201,7 @@ func (p *PredefinedExperiments) GetCPUStressExperiment(targetNamespace string, c
 	}
 }
 
-// GetMemoryStressExperiment creates a memory stress experiment
+// GetMemoryStressExperiment creates a memory stress experiment.
 func (p *PredefinedExperiments) GetMemoryStressExperiment(targetNamespace string, memoryMB int) *Experiment {
 	return &Experiment{
 		Name:        "memory-stress",
@@ -238,7 +238,7 @@ func (p *PredefinedExperiments) GetMemoryStressExperiment(targetNamespace string
 	}
 }
 
-// GetDiskIOStressExperiment creates a disk I/O stress experiment
+// GetDiskIOStressExperiment creates a disk I/O stress experiment.
 func (p *PredefinedExperiments) GetDiskIOStressExperiment(targetNamespace string, ioWorkers int) *Experiment {
 	return &Experiment{
 		Name:        "disk-io-stress",
@@ -275,7 +275,7 @@ func (p *PredefinedExperiments) GetDiskIOStressExperiment(targetNamespace string
 	}
 }
 
-// GetDatabaseConnectionFailureExperiment creates a database connection failure experiment
+// GetDatabaseConnectionFailureExperiment creates a database connection failure experiment.
 func (p *PredefinedExperiments) GetDatabaseConnectionFailureExperiment(targetNamespace string) *Experiment {
 	return &Experiment{
 		Name:        "database-connection-failure",
@@ -311,7 +311,7 @@ func (p *PredefinedExperiments) GetDatabaseConnectionFailureExperiment(targetNam
 	}
 }
 
-// GetDatabaseSlowQueryExperiment creates a slow database query experiment
+// GetDatabaseSlowQueryExperiment creates a slow database query experiment.
 func (p *PredefinedExperiments) GetDatabaseSlowQueryExperiment(targetNamespace string, delayMS int) *Experiment {
 	return &Experiment{
 		Name:        "database-slow-query",
@@ -347,7 +347,7 @@ func (p *PredefinedExperiments) GetDatabaseSlowQueryExperiment(targetNamespace s
 	}
 }
 
-// GetLLMAPITimeoutExperiment creates an LLM API timeout experiment
+// GetLLMAPITimeoutExperiment creates an LLM API timeout experiment.
 func (p *PredefinedExperiments) GetLLMAPITimeoutExperiment(targetNamespace string) *Experiment {
 	return &Experiment{
 		Name:        "llm-api-timeout",
@@ -383,7 +383,7 @@ func (p *PredefinedExperiments) GetLLMAPITimeoutExperiment(targetNamespace strin
 	}
 }
 
-// GetRAGSystemFailureExperiment creates a RAG system failure experiment
+// GetRAGSystemFailureExperiment creates a RAG system failure experiment.
 func (p *PredefinedExperiments) GetRAGSystemFailureExperiment(targetNamespace string) *Experiment {
 	return &Experiment{
 		Name:        "rag-system-failure",
@@ -419,7 +419,7 @@ func (p *PredefinedExperiments) GetRAGSystemFailureExperiment(targetNamespace st
 	}
 }
 
-// GetHighLoadExperiment creates a high load test experiment
+// GetHighLoadExperiment creates a high load test experiment.
 func (p *PredefinedExperiments) GetHighLoadExperiment(targetNamespace string, intentsPerMinute int) *Experiment {
 	return &Experiment{
 		Name:        "high-load-test",
@@ -451,7 +451,7 @@ func (p *PredefinedExperiments) GetHighLoadExperiment(targetNamespace string, in
 	}
 }
 
-// GetKubernetesAPIFailureExperiment creates a Kubernetes API failure experiment
+// GetKubernetesAPIFailureExperiment creates a Kubernetes API failure experiment.
 func (p *PredefinedExperiments) GetKubernetesAPIFailureExperiment(targetNamespace string) *Experiment {
 	return &Experiment{
 		Name:        "kubernetes-api-failure",
@@ -487,7 +487,7 @@ func (p *PredefinedExperiments) GetKubernetesAPIFailureExperiment(targetNamespac
 	}
 }
 
-// GetDNSFailureExperiment creates a DNS failure experiment
+// GetDNSFailureExperiment creates a DNS failure experiment.
 func (p *PredefinedExperiments) GetDNSFailureExperiment(targetNamespace string) *Experiment {
 	return &Experiment{
 		Name:        "dns-failure",
@@ -520,7 +520,7 @@ func (p *PredefinedExperiments) GetDNSFailureExperiment(targetNamespace string) 
 	}
 }
 
-// Get5GCoreAMFFailureExperiment creates an AMF failure experiment
+// Get5GCoreAMFFailureExperiment creates an AMF failure experiment.
 func (p *PredefinedExperiments) Get5GCoreAMFFailureExperiment(targetNamespace string) *Experiment {
 	return &Experiment{
 		Name:        "5g-core-amf-failure",
@@ -556,7 +556,7 @@ func (p *PredefinedExperiments) Get5GCoreAMFFailureExperiment(targetNamespace st
 	}
 }
 
-// GetORANRICFailureExperiment creates an O-RAN RIC failure experiment
+// GetORANRICFailureExperiment creates an O-RAN RIC failure experiment.
 func (p *PredefinedExperiments) GetORANRICFailureExperiment(targetNamespace string) *Experiment {
 	return &Experiment{
 		Name:        "oran-ric-failure",
@@ -592,7 +592,7 @@ func (p *PredefinedExperiments) GetORANRICFailureExperiment(targetNamespace stri
 	}
 }
 
-// GetCompositeFailureExperiment creates a composite failure experiment
+// GetCompositeFailureExperiment creates a composite failure experiment.
 func (p *PredefinedExperiments) GetCompositeFailureExperiment(targetNamespace string) *Experiment {
 	return &Experiment{
 		Name:        "composite-failure-scenario",
@@ -625,7 +625,7 @@ func (p *PredefinedExperiments) GetCompositeFailureExperiment(targetNamespace st
 	}
 }
 
-// ExperimentSuite represents a collection of related experiments
+// ExperimentSuite represents a collection of related experiments.
 type ExperimentSuite struct {
 	Name         string
 	Description  string
@@ -634,16 +634,19 @@ type ExperimentSuite struct {
 	Dependencies []string
 }
 
-// RunSequence defines how experiments in a suite should run
+// RunSequence defines how experiments in a suite should run.
 type RunSequence string
 
 const (
-	RunSequenceSerial    RunSequence = "serial"
-	RunSequenceParallel  RunSequence = "parallel"
+	// RunSequenceSerial holds runsequenceserial value.
+	RunSequenceSerial RunSequence = "serial"
+	// RunSequenceParallel holds runsequenceparallel value.
+	RunSequenceParallel RunSequence = "parallel"
+	// RunSequenceStaggered holds runsequencestaggered value.
 	RunSequenceStaggered RunSequence = "staggered"
 )
 
-// GetNetworkResilienceSuite returns a suite of network resilience experiments
+// GetNetworkResilienceSuite returns a suite of network resilience experiments.
 func (p *PredefinedExperiments) GetNetworkResilienceSuite(targetNamespace string) *ExperimentSuite {
 	return &ExperimentSuite{
 		Name:        "network-resilience-suite",
@@ -657,7 +660,7 @@ func (p *PredefinedExperiments) GetNetworkResilienceSuite(targetNamespace string
 	}
 }
 
-// GetResourceExhaustionSuite returns a suite of resource exhaustion experiments
+// GetResourceExhaustionSuite returns a suite of resource exhaustion experiments.
 func (p *PredefinedExperiments) GetResourceExhaustionSuite(targetNamespace string) *ExperimentSuite {
 	return &ExperimentSuite{
 		Name:        "resource-exhaustion-suite",
@@ -671,7 +674,7 @@ func (p *PredefinedExperiments) GetResourceExhaustionSuite(targetNamespace strin
 	}
 }
 
-// GetDependencyFailureSuite returns a suite of dependency failure experiments
+// GetDependencyFailureSuite returns a suite of dependency failure experiments.
 func (p *PredefinedExperiments) GetDependencyFailureSuite(targetNamespace string) *ExperimentSuite {
 	return &ExperimentSuite{
 		Name:        "dependency-failure-suite",
@@ -687,7 +690,7 @@ func (p *PredefinedExperiments) GetDependencyFailureSuite(targetNamespace string
 	}
 }
 
-// GetTelecomSpecificSuite returns a suite of telecom-specific experiments
+// GetTelecomSpecificSuite returns a suite of telecom-specific experiments.
 func (p *PredefinedExperiments) GetTelecomSpecificSuite(targetNamespace string) *ExperimentSuite {
 	return &ExperimentSuite{
 		Name:        "telecom-specific-suite",
@@ -700,26 +703,26 @@ func (p *PredefinedExperiments) GetTelecomSpecificSuite(targetNamespace string) 
 	}
 }
 
-// GetSLAValidationSuite returns experiments specifically for SLA validation
+// GetSLAValidationSuite returns experiments specifically for SLA validation.
 func (p *PredefinedExperiments) GetSLAValidationSuite(targetNamespace string) *ExperimentSuite {
 	return &ExperimentSuite{
 		Name:        "sla-validation-suite",
 		Description: "Validate system maintains SLA under various conditions",
 		Experiments: []*Experiment{
-			// Test 99.95% availability
+			// Test 99.95% availability.
 			p.GetPodChaosExperiment(targetNamespace, "random"),
-			// Test sub-2-second latency
+			// Test sub-2-second latency.
 			p.GetNetworkLatencyExperiment(targetNamespace, 500),
-			// Test 45 intents/minute throughput
+			// Test 45 intents/minute throughput.
 			p.GetHighLoadExperiment(targetNamespace, 60),
-			// Combined stress test
+			// Combined stress test.
 			p.GetCompositeFailureExperiment(targetNamespace),
 		},
 		RunSequence: RunSequenceSerial,
 	}
 }
 
-// RunExperimentSuite executes a suite of experiments
+// RunExperimentSuite executes a suite of experiments.
 func (p *PredefinedExperiments) RunExperimentSuite(ctx context.Context, suite *ExperimentSuite) ([]*ExperimentResult, error) {
 	p.logger.Info("Starting experiment suite",
 		zap.String("suite", suite.Name),
@@ -739,7 +742,7 @@ func (p *PredefinedExperiments) RunExperimentSuite(ctx context.Context, suite *E
 	}
 }
 
-// runSerialExperiments runs experiments one after another
+// runSerialExperiments runs experiments one after another.
 func (p *PredefinedExperiments) runSerialExperiments(ctx context.Context, experiments []*Experiment) ([]*ExperimentResult, error) {
 	results := make([]*ExperimentResult, 0, len(experiments))
 
@@ -749,23 +752,23 @@ func (p *PredefinedExperiments) runSerialExperiments(ctx context.Context, experi
 			p.logger.Error("Experiment failed",
 				zap.String("experiment", exp.Name),
 				zap.Error(err))
-			// Continue with other experiments even if one fails
+			// Continue with other experiments even if one fails.
 		}
 		results = append(results, result)
 
-		// Add delay between experiments
+		// Add delay between experiments.
 		select {
 		case <-ctx.Done():
 			return results, ctx.Err()
 		case <-time.After(30 * time.Second):
-			// Recovery time between experiments
+			// Recovery time between experiments.
 		}
 	}
 
 	return results, nil
 }
 
-// runParallelExperiments runs all experiments simultaneously
+// runParallelExperiments runs all experiments simultaneously.
 func (p *PredefinedExperiments) runParallelExperiments(ctx context.Context, experiments []*Experiment) ([]*ExperimentResult, error) {
 	results := make([]*ExperimentResult, len(experiments))
 	errChan := make(chan error, len(experiments))
@@ -782,7 +785,7 @@ func (p *PredefinedExperiments) runParallelExperiments(ctx context.Context, expe
 		}(i, exp)
 	}
 
-	// Wait for all experiments to complete
+	// Wait for all experiments to complete.
 	var errors []error
 	for i := 0; i < len(experiments); i++ {
 		if err := <-errChan; err != nil {
@@ -797,14 +800,14 @@ func (p *PredefinedExperiments) runParallelExperiments(ctx context.Context, expe
 	return results, nil
 }
 
-// runStaggeredExperiments runs experiments with a staggered start
+// runStaggeredExperiments runs experiments with a staggered start.
 func (p *PredefinedExperiments) runStaggeredExperiments(ctx context.Context, experiments []*Experiment) ([]*ExperimentResult, error) {
 	results := make([]*ExperimentResult, len(experiments))
 	staggerDelay := 30 * time.Second
 
 	for i, exp := range experiments {
 		go func(index int, experiment *Experiment, delay time.Duration) {
-			// Wait for stagger delay
+			// Wait for stagger delay.
 			select {
 			case <-ctx.Done():
 				return
@@ -821,7 +824,7 @@ func (p *PredefinedExperiments) runStaggeredExperiments(ctx context.Context, exp
 		}(i, exp, time.Duration(i)*staggerDelay)
 	}
 
-	// Wait for all experiments to complete
+	// Wait for all experiments to complete.
 	maxDuration := time.Duration(len(experiments))*staggerDelay + 10*time.Minute
 	select {
 	case <-ctx.Done():
@@ -831,7 +834,7 @@ func (p *PredefinedExperiments) runStaggeredExperiments(ctx context.Context, exp
 	}
 }
 
-// GameDayScenario represents a comprehensive failure simulation
+// GameDayScenario represents a comprehensive failure simulation.
 type GameDayScenario struct {
 	Name        string
 	Description string
@@ -841,7 +844,7 @@ type GameDayScenario struct {
 	Objectives  []string
 }
 
-// GetGameDayScenario returns a predefined game day scenario
+// GetGameDayScenario returns a predefined game day scenario.
 func (p *PredefinedExperiments) GetGameDayScenario(scenarioType string, targetNamespace string) *GameDayScenario {
 	switch scenarioType {
 	case "datacenter-failure":

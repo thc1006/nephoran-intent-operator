@@ -1,4 +1,4 @@
-// Package monitoring provides predictive SLA violation detection using ML algorithms
+// Package monitoring provides predictive SLA violation detection using ML algorithms.
 package monitoring
 
 import (
@@ -14,28 +14,28 @@ import (
 	"go.uber.org/zap"
 )
 
-// PredictiveSLAAnalyzer provides ML-based SLA violation prediction
+// PredictiveSLAAnalyzer provides ML-based SLA violation prediction.
 type PredictiveSLAAnalyzer struct {
-	// ML Models
+	// ML Models.
 	availabilityPredictor *AvailabilityPredictor
 	latencyPredictor      *LatencyPredictor
 	throughputPredictor   *ThroughputPredictor
 
-	// Time series analysis
+	// Time series analysis.
 	trendAnalyzer       *TrendAnalyzer
 	seasonalityDetector *SeasonalityDetector
 	anomalyDetector     *AnomalyDetector
 
-	// Prediction accuracy tracking
+	// Prediction accuracy tracking.
 	predictionAccuracy *prometheus.GaugeVec
 	falsePositiveRate  prometheus.Gauge
 	falseNegativeRate  prometheus.Gauge
 
-	// Configuration
+	// Configuration.
 	predictionHorizon   time.Duration
 	confidenceThreshold float64
 
-	// State management
+	// State management.
 	models            map[string]MLModel
 	trainingData      map[string]*TrainingDataSet
 	predictionHistory map[string]*PredictionHistory
@@ -44,7 +44,7 @@ type PredictiveSLAAnalyzer struct {
 	logger *zap.Logger
 }
 
-// MLModel represents a machine learning model interface
+// MLModel represents a machine learning model interface.
 type MLModel interface {
 	Train(ctx context.Context, data *TrainingDataSet) error
 	Predict(ctx context.Context, features []float64) (*Prediction, error)
@@ -52,7 +52,7 @@ type MLModel interface {
 	GetAccuracy() float64
 }
 
-// Prediction represents a model prediction
+// Prediction represents a model prediction.
 type Prediction struct {
 	Value          float64
 	Confidence     float64
@@ -62,7 +62,7 @@ type Prediction struct {
 	ModelVersion   string
 }
 
-// TrainingDataSet represents training data for ML models
+// TrainingDataSet represents training data for ML models.
 type TrainingDataSet struct {
 	Features   [][]float64
 	Targets    []float64
@@ -70,14 +70,14 @@ type TrainingDataSet struct {
 	Weights    []float64
 }
 
-// PredictionHistory tracks prediction accuracy over time
+// PredictionHistory tracks prediction accuracy over time.
 type PredictionHistory struct {
 	predictions  []HistoricalPrediction
 	actualValues []float64
 	accuracy     *AccuracyTracker
 }
 
-// HistoricalPrediction represents a past prediction for accuracy tracking
+// HistoricalPrediction represents a past prediction for accuracy tracking.
 type HistoricalPrediction struct {
 	Prediction  *Prediction
 	ActualValue float64
@@ -86,20 +86,20 @@ type HistoricalPrediction struct {
 	Error       float64
 }
 
-// AccuracyTracker tracks prediction accuracy metrics
+// AccuracyTracker tracks prediction accuracy metrics.
 type AccuracyTracker struct {
 	totalPredictions    int
 	correctPredictions  int
 	meanAbsoluteError   float64
 	rootMeanSquareError float64
 
-	// Accuracy over time windows
+	// Accuracy over time windows.
 	dailyAccuracy   *CircularBuffer
 	weeklyAccuracy  *CircularBuffer
 	monthlyAccuracy *CircularBuffer
 }
 
-// NewPredictiveSLAAnalyzer creates a new predictive SLA analyzer
+// NewPredictiveSLAAnalyzer creates a new predictive SLA analyzer.
 func NewPredictiveSLAAnalyzer(config *SLAMonitoringConfig, logger *zap.Logger) *PredictiveSLAAnalyzer {
 	analyzer := &PredictiveSLAAnalyzer{
 		predictionHorizon:   config.PredictionHorizon,
@@ -125,12 +125,12 @@ func NewPredictiveSLAAnalyzer(config *SLAMonitoringConfig, logger *zap.Logger) *
 		}),
 	}
 
-	// Initialize predictors
+	// Initialize predictors.
 	analyzer.availabilityPredictor = NewAvailabilityPredictor(config)
 	analyzer.latencyPredictor = NewLatencyPredictor(config)
 	analyzer.throughputPredictor = NewThroughputPredictor(config)
 
-	// Initialize analyzers
+	// Initialize analyzers.
 	analyzer.trendAnalyzer = NewTrendAnalyzer(config)
 	analyzer.seasonalityDetector = NewSeasonalityDetector(config)
 	analyzer.anomalyDetector = NewAnomalyDetector(config)
@@ -138,14 +138,14 @@ func NewPredictiveSLAAnalyzer(config *SLAMonitoringConfig, logger *zap.Logger) *
 	return analyzer
 }
 
-// Start initializes and starts the predictive analyzer
+// Start initializes and starts the predictive analyzer.
 func (psa *PredictiveSLAAnalyzer) Start(ctx context.Context) error {
-	// Start background training and prediction loops
+	// Start background training and prediction loops.
 	go psa.continuousTraining(ctx)
 	go psa.continuousPrediction(ctx)
 	go psa.accuracyTracking(ctx)
 
-	// Initialize models with historical data
+	// Initialize models with historical data.
 	if err := psa.initializeModels(ctx); err != nil {
 		return fmt.Errorf("failed to initialize models: %w", err)
 	}
@@ -153,12 +153,12 @@ func (psa *PredictiveSLAAnalyzer) Start(ctx context.Context) error {
 	return nil
 }
 
-// initializeModels initializes ML models with historical data
+// initializeModels initializes ML models with historical data.
 func (psa *PredictiveSLAAnalyzer) initializeModels(ctx context.Context) error {
 	psa.mu.Lock()
 	defer psa.mu.Unlock()
 
-	// Initialize prediction history for each model type
+	// Initialize prediction history for each model type.
 	psa.predictionHistory["availability"] = &PredictionHistory{
 		predictions:  make([]HistoricalPrediction, 0),
 		actualValues: make([]float64, 0),
@@ -189,12 +189,12 @@ func (psa *PredictiveSLAAnalyzer) initializeModels(ctx context.Context) error {
 		},
 	}
 
-	// Register models in the models map
+	// Register models in the models map.
 	psa.models["availability"] = psa.availabilityPredictor.model
 	psa.models["latency"] = psa.latencyPredictor.model
 	psa.models["throughput"] = psa.throughputPredictor.model
 
-	// Initialize with dummy training data if no historical data exists
+	// Initialize with dummy training data if no historical data exists.
 	dummyFeatures := [][]float64{{0.95, 0.8, 120.0}, {0.98, 0.9, 90.0}, {0.99, 0.85, 100.0}}
 	dummyTargets := []float64{0.96, 0.97, 0.98}
 	dummyTimestamps := []time.Time{
@@ -210,7 +210,7 @@ func (psa *PredictiveSLAAnalyzer) initializeModels(ctx context.Context) error {
 		Weights:    []float64{1.0, 1.0, 1.0},
 	}
 
-	// Train each model with dummy data
+	// Train each model with dummy data.
 	for modelName, model := range psa.models {
 		if err := model.Train(ctx, dummyData); err != nil {
 			psa.logger.Error("Failed to initialize model", zap.String("model", modelName), zap.Error(err))
@@ -222,11 +222,11 @@ func (psa *PredictiveSLAAnalyzer) initializeModels(ctx context.Context) error {
 	return nil
 }
 
-// PredictSLAViolations predicts potential SLA violations
+// PredictSLAViolations predicts potential SLA violations.
 func (psa *PredictiveSLAAnalyzer) PredictSLAViolations(ctx context.Context) ([]*PredictedViolation, error) {
 	var violations []*PredictedViolation
 
-	// Predict availability violations
+	// Predict availability violations.
 	availabilityViolations, err := psa.predictAvailabilityViolations(ctx)
 	if err != nil {
 		psa.logger.Error("Failed to predict availability violations", zap.Error(err))
@@ -234,7 +234,7 @@ func (psa *PredictiveSLAAnalyzer) PredictSLAViolations(ctx context.Context) ([]*
 		violations = append(violations, availabilityViolations...)
 	}
 
-	// Predict latency violations
+	// Predict latency violations.
 	latencyViolations, err := psa.predictLatencyViolations(ctx)
 	if err != nil {
 		psa.logger.Error("Failed to predict latency violations", zap.Error(err))
@@ -242,7 +242,7 @@ func (psa *PredictiveSLAAnalyzer) PredictSLAViolations(ctx context.Context) ([]*
 		violations = append(violations, latencyViolations...)
 	}
 
-	// Predict throughput violations
+	// Predict throughput violations.
 	throughputViolations, err := psa.predictThroughputViolations(ctx)
 	if err != nil {
 		psa.logger.Error("Failed to predict throughput violations", zap.Error(err))
@@ -250,7 +250,7 @@ func (psa *PredictiveSLAAnalyzer) PredictSLAViolations(ctx context.Context) ([]*
 		violations = append(violations, throughputViolations...)
 	}
 
-	// Sort by predicted time and confidence
+	// Sort by predicted time and confidence.
 	sort.Slice(violations, func(i, j int) bool {
 		if violations[i].PredictedTime.Equal(violations[j].PredictedTime) {
 			return violations[i].Confidence > violations[j].Confidence
@@ -261,24 +261,24 @@ func (psa *PredictiveSLAAnalyzer) PredictSLAViolations(ctx context.Context) ([]*
 	return violations, nil
 }
 
-// predictAvailabilityViolations predicts availability SLA violations
+// predictAvailabilityViolations predicts availability SLA violations.
 func (psa *PredictiveSLAAnalyzer) predictAvailabilityViolations(ctx context.Context) ([]*PredictedViolation, error) {
 	var violations []*PredictedViolation
 
-	// Get current availability trend
+	// Get current availability trend.
 	trend, err := psa.trendAnalyzer.AnalyzeAvailabilityTrend(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Predict using availability predictor
+	// Predict using availability predictor.
 	features := psa.extractAvailabilityFeatures(trend)
 	prediction, err := psa.availabilityPredictor.Predict(ctx, features)
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if prediction indicates SLA violation
+	// Check if prediction indicates SLA violation.
 	if prediction.Value < 99.95 && prediction.Confidence >= psa.confidenceThreshold {
 		violation := &PredictedViolation{
 			ViolationType:   "availability",
@@ -293,24 +293,24 @@ func (psa *PredictiveSLAAnalyzer) predictAvailabilityViolations(ctx context.Cont
 	return violations, nil
 }
 
-// predictLatencyViolations predicts latency SLA violations
+// predictLatencyViolations predicts latency SLA violations.
 func (psa *PredictiveSLAAnalyzer) predictLatencyViolations(ctx context.Context) ([]*PredictedViolation, error) {
 	var violations []*PredictedViolation
 
-	// Get current latency trend
+	// Get current latency trend.
 	trend, err := psa.trendAnalyzer.AnalyzeLatencyTrend(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Predict using latency predictor
+	// Predict using latency predictor.
 	features := psa.extractLatencyFeatures(trend)
 	prediction, err := psa.latencyPredictor.Predict(ctx, features)
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if prediction indicates P95 latency SLA violation (> 2 seconds)
+	// Check if prediction indicates P95 latency SLA violation (> 2 seconds).
 	if prediction.Value > 2000 && prediction.Confidence >= psa.confidenceThreshold { // milliseconds
 		violation := &PredictedViolation{
 			ViolationType:   "latency",
@@ -325,24 +325,24 @@ func (psa *PredictiveSLAAnalyzer) predictLatencyViolations(ctx context.Context) 
 	return violations, nil
 }
 
-// predictThroughputViolations predicts throughput capacity violations
+// predictThroughputViolations predicts throughput capacity violations.
 func (psa *PredictiveSLAAnalyzer) predictThroughputViolations(ctx context.Context) ([]*PredictedViolation, error) {
 	var violations []*PredictedViolation
 
-	// Get current throughput trend
+	// Get current throughput trend.
 	trend, err := psa.trendAnalyzer.AnalyzeThroughputTrend(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Predict using throughput predictor
+	// Predict using throughput predictor.
 	features := psa.extractThroughputFeatures(trend)
 	prediction, err := psa.throughputPredictor.Predict(ctx, features)
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if prediction indicates throughput capacity violation (< 45 intents/min)
+	// Check if prediction indicates throughput capacity violation (< 45 intents/min).
 	if prediction.Value < 45 && prediction.Confidence >= psa.confidenceThreshold {
 		violation := &PredictedViolation{
 			ViolationType:   "throughput",
@@ -357,18 +357,18 @@ func (psa *PredictiveSLAAnalyzer) predictThroughputViolations(ctx context.Contex
 	return violations, nil
 }
 
-// AvailabilityPredictor predicts availability trends using ML
+// AvailabilityPredictor predicts availability trends using ML.
 type AvailabilityPredictor struct {
 	model         *LinearRegressionModel
 	featureScaler *FeatureScaler
 	config        *SLAMonitoringConfig
 
-	// Feature extraction
+	// Feature extraction.
 	historicalWindow time.Duration
 	featureCount     int
 }
 
-// NewAvailabilityPredictor creates a new availability predictor
+// NewAvailabilityPredictor creates a new availability predictor.
 func NewAvailabilityPredictor(config *SLAMonitoringConfig) *AvailabilityPredictor {
 	return &AvailabilityPredictor{
 		model:            NewLinearRegressionModel(),
@@ -379,24 +379,24 @@ func NewAvailabilityPredictor(config *SLAMonitoringConfig) *AvailabilityPredicto
 	}
 }
 
-// Predict predicts availability for the given features
+// Predict predicts availability for the given features.
 func (ap *AvailabilityPredictor) Predict(ctx context.Context, features []float64) (*Prediction, error) {
-	// Scale features
+	// Scale features.
 	scaledFeatures := ap.featureScaler.Transform(features)
 
-	// Make prediction using the model
+	// Make prediction using the model.
 	prediction, err := ap.model.Predict(ctx, scaledFeatures)
 	if err != nil {
 		return nil, err
 	}
 
-	// Override time horizon with config value
+	// Override time horizon with config value.
 	prediction.TimeHorizon = ap.config.PredictionHorizon
 
 	return prediction, nil
 }
 
-// LinearRegressionModel implements a linear regression ML model
+// LinearRegressionModel implements a linear regression ML model.
 type LinearRegressionModel struct {
 	weights       []float64
 	bias          float64
@@ -407,7 +407,7 @@ type LinearRegressionModel struct {
 	mu sync.RWMutex
 }
 
-// NewLinearRegressionModel creates a new linear regression model
+// NewLinearRegressionModel creates a new linear regression model.
 func NewLinearRegressionModel() *LinearRegressionModel {
 	return &LinearRegressionModel{
 		version:  "1.0.0",
@@ -415,7 +415,7 @@ func NewLinearRegressionModel() *LinearRegressionModel {
 	}
 }
 
-// Train trains the linear regression model
+// Train trains the linear regression model.
 func (lrm *LinearRegressionModel) Train(ctx context.Context, data *TrainingDataSet) error {
 	lrm.mu.Lock()
 	defer lrm.mu.Unlock()
@@ -424,7 +424,7 @@ func (lrm *LinearRegressionModel) Train(ctx context.Context, data *TrainingDataS
 		return fmt.Errorf("empty training data")
 	}
 
-	// Implement gradient descent training
+	// Implement gradient descent training.
 	err := lrm.gradientDescentTraining(data)
 	if err != nil {
 		return err
@@ -436,15 +436,15 @@ func (lrm *LinearRegressionModel) Train(ctx context.Context, data *TrainingDataS
 	return nil
 }
 
-// gradientDescentTraining implements gradient descent for linear regression
+// gradientDescentTraining implements gradient descent for linear regression.
 func (lrm *LinearRegressionModel) gradientDescentTraining(data *TrainingDataSet) error {
 	m := len(data.Features)    // number of samples
 	n := len(data.Features[0]) // number of features
 
-	// Initialize weights if not already done
+	// Initialize weights if not already done.
 	if len(lrm.weights) != n {
 		lrm.weights = make([]float64, n)
-		// Initialize with small random values
+		// Initialize with small random values.
 		for i := range lrm.weights {
 			lrm.weights[i] = (rand.Float64())*0.01 - 0.005
 		}
@@ -455,13 +455,13 @@ func (lrm *LinearRegressionModel) gradientDescentTraining(data *TrainingDataSet)
 	convergenceThreshold := 1e-6
 
 	for iteration := 0; iteration < maxIterations; iteration++ {
-		// Calculate predictions and errors
+		// Calculate predictions and errors.
 		totalError := 0.0
 		weightGradients := make([]float64, n)
 		biasGradient := 0.0
 
 		for i := 0; i < m; i++ {
-			// Prediction
+			// Prediction.
 			prediction := lrm.bias
 			for j := 0; j < n; j++ {
 				prediction += lrm.weights[j] * data.Features[i][j]
@@ -470,33 +470,33 @@ func (lrm *LinearRegressionModel) gradientDescentTraining(data *TrainingDataSet)
 			error := prediction - data.Targets[i]
 			totalError += error * error
 
-			// Calculate gradients
+			// Calculate gradients.
 			biasGradient += error
 			for j := 0; j < n; j++ {
 				weightGradients[j] += error * data.Features[i][j]
 			}
 		}
 
-		// Update weights and bias
+		// Update weights and bias.
 		lrm.bias -= learningRate * biasGradient / float64(m)
 		for j := 0; j < n; j++ {
 			lrm.weights[j] -= learningRate * weightGradients[j] / float64(m)
 		}
 
-		// Check for convergence
+		// Check for convergence.
 		meanSquaredError := totalError / float64(m)
 		if meanSquaredError < convergenceThreshold {
 			break
 		}
 	}
 
-	// Calculate accuracy
+	// Calculate accuracy.
 	lrm.accuracy = lrm.calculateAccuracy(data)
 
 	return nil
 }
 
-// Predict makes a prediction using the trained model (legacy method)
+// Predict makes a prediction using the trained model (legacy method).
 func (lrm *LinearRegressionModel) predict(features []float64) (float64, float64, error) {
 	lrm.mu.RLock()
 	defer lrm.mu.RUnlock()
@@ -505,23 +505,23 @@ func (lrm *LinearRegressionModel) predict(features []float64) (float64, float64,
 		return 0, 0, fmt.Errorf("feature dimension mismatch")
 	}
 
-	// Calculate prediction
+	// Calculate prediction.
 	prediction := lrm.bias
 	for i, feature := range features {
 		prediction += lrm.weights[i] * feature
 	}
 
-	// Confidence is based on model accuracy and feature values
+	// Confidence is based on model accuracy and feature values.
 	confidence := lrm.accuracy
 
-	// Adjust confidence based on feature values (simplified)
+	// Adjust confidence based on feature values (simplified).
 	featureVariance := lrm.calculateFeatureVariance(features)
 	confidence *= math.Exp(-featureVariance * 0.1)
 
 	return prediction, confidence, nil
 }
 
-// Predict makes a prediction using the trained model (MLModel interface implementation)
+// Predict makes a prediction using the trained model (MLModel interface implementation).
 func (lrm *LinearRegressionModel) Predict(ctx context.Context, features []float64) (*Prediction, error) {
 	value, confidence, err := lrm.predict(features)
 	if err != nil {
@@ -538,27 +538,27 @@ func (lrm *LinearRegressionModel) Predict(ctx context.Context, features []float6
 	}, nil
 }
 
-// UpdateModel updates the model with new training data
+// UpdateModel updates the model with new training data.
 func (lrm *LinearRegressionModel) UpdateModel(ctx context.Context, newData *TrainingDataSet) error {
-	// For linear regression, we can use online learning or retrain
+	// For linear regression, we can use online learning or retrain.
 	return lrm.Train(ctx, newData)
 }
 
-// GetAccuracy returns the current model accuracy
+// GetAccuracy returns the current model accuracy.
 func (lrm *LinearRegressionModel) GetAccuracy() float64 {
 	lrm.mu.RLock()
 	defer lrm.mu.RUnlock()
 	return lrm.accuracy
 }
 
-// GetVersion returns the current model version
+// GetVersion returns the current model version.
 func (lrm *LinearRegressionModel) GetVersion() string {
 	lrm.mu.RLock()
 	defer lrm.mu.RUnlock()
 	return lrm.version
 }
 
-// calculateAccuracy calculates model accuracy on training data
+// calculateAccuracy calculates model accuracy on training data.
 func (lrm *LinearRegressionModel) calculateAccuracy(data *TrainingDataSet) float64 {
 	if len(data.Features) == 0 {
 		return 0
@@ -577,12 +577,12 @@ func (lrm *LinearRegressionModel) calculateAccuracy(data *TrainingDataSet) float
 
 	meanSquaredError := totalError / float64(len(data.Features))
 
-	// Convert MSE to accuracy (simplified)
+	// Convert MSE to accuracy (simplified).
 	accuracy := 1.0 / (1.0 + meanSquaredError)
 	return math.Min(accuracy, 1.0)
 }
 
-// calculateFeatureVariance calculates variance of feature values
+// calculateFeatureVariance calculates variance of feature values.
 func (lrm *LinearRegressionModel) calculateFeatureVariance(features []float64) float64 {
 	if len(features) == 0 {
 		return 0
@@ -603,12 +603,12 @@ func (lrm *LinearRegressionModel) calculateFeatureVariance(features []float64) f
 	return variance / float64(len(features))
 }
 
-// updateVersion updates the model version
+// updateVersion updates the model version.
 func (lrm *LinearRegressionModel) updateVersion() {
 	lrm.version = fmt.Sprintf("1.0.%d", lrm.trainingCount)
 }
 
-// FeatureScaler normalizes features for ML models
+// FeatureScaler normalizes features for ML models.
 type FeatureScaler struct {
 	means  []float64
 	stds   []float64
@@ -616,14 +616,14 @@ type FeatureScaler struct {
 	mu     sync.RWMutex
 }
 
-// NewFeatureScaler creates a new feature scaler
+// NewFeatureScaler creates a new feature scaler.
 func NewFeatureScaler() *FeatureScaler {
 	return &FeatureScaler{
 		fitted: false,
 	}
 }
 
-// Fit fits the scaler to the training data
+// Fit fits the scaler to the training data.
 func (fs *FeatureScaler) Fit(features [][]float64) error {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
@@ -638,7 +638,7 @@ func (fs *FeatureScaler) Fit(features [][]float64) error {
 	fs.means = make([]float64, n)
 	fs.stds = make([]float64, n)
 
-	// Calculate means
+	// Calculate means.
 	for i := 0; i < m; i++ {
 		for j := 0; j < n; j++ {
 			fs.means[j] += features[i][j]
@@ -648,7 +648,7 @@ func (fs *FeatureScaler) Fit(features [][]float64) error {
 		fs.means[j] /= float64(m)
 	}
 
-	// Calculate standard deviations
+	// Calculate standard deviations.
 	for i := 0; i < m; i++ {
 		for j := 0; j < n; j++ {
 			diff := features[i][j] - fs.means[j]
@@ -666,7 +666,7 @@ func (fs *FeatureScaler) Fit(features [][]float64) error {
 	return nil
 }
 
-// Transform normalizes features using fitted parameters
+// Transform normalizes features using fitted parameters.
 func (fs *FeatureScaler) Transform(features []float64) []float64 {
 	fs.mu.RLock()
 	defer fs.mu.RUnlock()
@@ -687,14 +687,14 @@ func (fs *FeatureScaler) Transform(features []float64) []float64 {
 	return scaled
 }
 
-// TrendAnalyzer analyzes trends in SLA metrics
+// TrendAnalyzer analyzes trends in SLA metrics.
 type TrendAnalyzer struct {
 	config    *SLAMonitoringConfig
 	window    time.Duration
 	dataStore *TrendDataStore
 }
 
-// TrendDataStore stores historical data for trend analysis
+// TrendDataStore stores historical data for trend analysis.
 type TrendDataStore struct {
 	availabilityData *TimeSeries
 	latencyData      *TimeSeries
@@ -702,7 +702,7 @@ type TrendDataStore struct {
 	errorRateData    *TimeSeries
 }
 
-// TrendResult represents the result of trend analysis
+// TrendResult represents the result of trend analysis.
 type TrendResult struct {
 	Direction  string  // "increasing", "decreasing", "stable"
 	Magnitude  float64 // Rate of change
@@ -712,7 +712,7 @@ type TrendResult struct {
 	Forecast   []float64 // Future projections
 }
 
-// NewTrendAnalyzer creates a new trend analyzer
+// NewTrendAnalyzer creates a new trend analyzer.
 func NewTrendAnalyzer(config *SLAMonitoringConfig) *TrendAnalyzer {
 	return &TrendAnalyzer{
 		config: config,
@@ -726,9 +726,9 @@ func NewTrendAnalyzer(config *SLAMonitoringConfig) *TrendAnalyzer {
 	}
 }
 
-// AnalyzeAvailabilityTrend analyzes availability trend
+// AnalyzeAvailabilityTrend analyzes availability trend.
 func (ta *TrendAnalyzer) AnalyzeAvailabilityTrend(ctx context.Context) (*TrendResult, error) {
-	// Get recent availability data
+	// Get recent availability data.
 	times, values := ta.dataStore.availabilityData.GetRecent(240) // 4 hours of data
 
 	if len(values) < 10 {
@@ -738,7 +738,7 @@ func (ta *TrendAnalyzer) AnalyzeAvailabilityTrend(ctx context.Context) (*TrendRe
 	return ta.analyzeTrend(times, values)
 }
 
-// AnalyzeLatencyTrend analyzes latency trend
+// AnalyzeLatencyTrend analyzes latency trend.
 func (ta *TrendAnalyzer) AnalyzeLatencyTrend(ctx context.Context) (*TrendResult, error) {
 	times, values := ta.dataStore.latencyData.GetRecent(240)
 
@@ -749,7 +749,7 @@ func (ta *TrendAnalyzer) AnalyzeLatencyTrend(ctx context.Context) (*TrendResult,
 	return ta.analyzeTrend(times, values)
 }
 
-// AnalyzeThroughputTrend analyzes throughput trend
+// AnalyzeThroughputTrend analyzes throughput trend.
 func (ta *TrendAnalyzer) AnalyzeThroughputTrend(ctx context.Context) (*TrendResult, error) {
 	times, values := ta.dataStore.throughputData.GetRecent(240)
 
@@ -760,16 +760,16 @@ func (ta *TrendAnalyzer) AnalyzeThroughputTrend(ctx context.Context) (*TrendResu
 	return ta.analyzeTrend(times, values)
 }
 
-// analyzeTrend performs trend analysis on time series data
+// analyzeTrend performs trend analysis on time series data.
 func (ta *TrendAnalyzer) analyzeTrend(times []time.Time, values []float64) (*TrendResult, error) {
 	if len(times) != len(values) || len(values) < 2 {
 		return nil, fmt.Errorf("invalid data for trend analysis")
 	}
 
-	// Calculate linear regression slope
+	// Calculate linear regression slope.
 	slope := ta.calculateSlope(times, values)
 
-	// Determine trend direction
+	// Determine trend direction.
 	direction := "stable"
 	confidence := 0.5
 
@@ -781,7 +781,7 @@ func (ta *TrendAnalyzer) analyzeTrend(times []time.Time, values []float64) (*Tre
 		confidence = math.Min(0.95, 0.5+math.Abs(slope)*10)
 	}
 
-	// Generate forecast
+	// Generate forecast.
 	forecast := ta.generateForecast(times, values, slope, 12) // 12 future points
 
 	return &TrendResult{
@@ -794,21 +794,21 @@ func (ta *TrendAnalyzer) analyzeTrend(times []time.Time, values []float64) (*Tre
 	}, nil
 }
 
-// calculateSlope calculates the slope using least squares regression
+// calculateSlope calculates the slope using least squares regression.
 func (ta *TrendAnalyzer) calculateSlope(times []time.Time, values []float64) float64 {
 	n := len(values)
 	if n < 2 {
 		return 0
 	}
 
-	// Convert times to numeric values (seconds since first timestamp)
+	// Convert times to numeric values (seconds since first timestamp).
 	baseTime := times[0].Unix()
 	x := make([]float64, n)
 	for i, t := range times {
 		x[i] = float64(t.Unix() - baseTime)
 	}
 
-	// Calculate means
+	// Calculate means.
 	var sumX, sumY float64
 	for i := 0; i < n; i++ {
 		sumX += x[i]
@@ -817,7 +817,7 @@ func (ta *TrendAnalyzer) calculateSlope(times []time.Time, values []float64) flo
 	meanX := sumX / float64(n)
 	meanY := sumY / float64(n)
 
-	// Calculate slope
+	// Calculate slope.
 	var numerator, denominator float64
 	for i := 0; i < n; i++ {
 		numerator += (x[i] - meanX) * (values[i] - meanY)
@@ -831,7 +831,7 @@ func (ta *TrendAnalyzer) calculateSlope(times []time.Time, values []float64) flo
 	return numerator / denominator
 }
 
-// generateForecast generates future value predictions
+// generateForecast generates future value predictions.
 func (ta *TrendAnalyzer) generateForecast(times []time.Time, values []float64, slope float64, numPoints int) []float64 {
 	if len(values) == 0 {
 		return nil
@@ -842,7 +842,7 @@ func (ta *TrendAnalyzer) generateForecast(times []time.Time, values []float64, s
 
 	forecast := make([]float64, numPoints)
 	for i := 0; i < numPoints; i++ {
-		// Project into the future (assuming 1-minute intervals)
+		// Project into the future (assuming 1-minute intervals).
 		futureTime := lastTime + int64((i+1)*60)
 		timeDiff := float64(futureTime - lastTime)
 
@@ -852,14 +852,14 @@ func (ta *TrendAnalyzer) generateForecast(times []time.Time, values []float64, s
 	return forecast
 }
 
-// trainModels trains all ML models with current training data
+// trainModels trains all ML models with current training data.
 func (psa *PredictiveSLAAnalyzer) trainModels(ctx context.Context) error {
 	psa.mu.Lock()
 	defer psa.mu.Unlock()
 
 	var errs []error
 
-	// Train each model with its respective training data
+	// Train each model with its respective training data.
 	for modelName, model := range psa.models {
 		if trainingData, exists := psa.trainingData[modelName]; exists {
 			if err := model.Train(ctx, trainingData); err != nil {
@@ -877,7 +877,7 @@ func (psa *PredictiveSLAAnalyzer) trainModels(ctx context.Context) error {
 		}
 	}
 
-	// Return combined error if any training failed
+	// Return combined error if any training failed.
 	if len(errs) > 0 {
 		return fmt.Errorf("training errors: %v", errs)
 	}
@@ -886,7 +886,7 @@ func (psa *PredictiveSLAAnalyzer) trainModels(ctx context.Context) error {
 	return nil
 }
 
-// continuousTraining runs continuous model training
+// continuousTraining runs continuous model training.
 func (psa *PredictiveSLAAnalyzer) continuousTraining(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Hour) // Retrain every hour
 	defer ticker.Stop()
@@ -903,7 +903,7 @@ func (psa *PredictiveSLAAnalyzer) continuousTraining(ctx context.Context) {
 	}
 }
 
-// continuousPrediction runs continuous prediction
+// continuousPrediction runs continuous prediction.
 func (psa *PredictiveSLAAnalyzer) continuousPrediction(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Minute) // Predict every 5 minutes
 	defer ticker.Stop()
@@ -920,7 +920,7 @@ func (psa *PredictiveSLAAnalyzer) continuousPrediction(ctx context.Context) {
 	}
 }
 
-// accuracyTracking tracks prediction accuracy over time
+// accuracyTracking tracks prediction accuracy over time.
 func (psa *PredictiveSLAAnalyzer) accuracyTracking(ctx context.Context) {
 	ticker := time.NewTicker(15 * time.Minute) // Check accuracy every 15 minutes
 	defer ticker.Stop()
@@ -935,25 +935,25 @@ func (psa *PredictiveSLAAnalyzer) accuracyTracking(ctx context.Context) {
 	}
 }
 
-// updateAccuracyMetrics updates prediction accuracy metrics
+// updateAccuracyMetrics updates prediction accuracy metrics.
 func (psa *PredictiveSLAAnalyzer) updateAccuracyMetrics() {
 	psa.mu.RLock()
 	defer psa.mu.RUnlock()
 
-	// Update accuracy metrics for each model
+	// Update accuracy metrics for each model.
 	for modelName, history := range psa.predictionHistory {
 		if history.accuracy != nil {
-			// Calculate current accuracy
+			// Calculate current accuracy.
 			accuracy := psa.calculateModelAccuracy(history)
 
-			// Update Prometheus metrics
+			// Update Prometheus metrics.
 			psa.predictionAccuracy.WithLabelValues(modelName, "current").Set(accuracy)
 
-			// Update accuracy history buffers
+			// Update accuracy history buffers.
 			now := time.Now()
 			history.accuracy.dailyAccuracy.Add(now, accuracy)
 
-			// Weekly and monthly updates (simplified - would be more sophisticated in production)
+			// Weekly and monthly updates (simplified - would be more sophisticated in production).
 			if now.Hour() == 0 && now.Minute() < 15 { // Once per day around midnight
 				history.accuracy.weeklyAccuracy.Add(now, accuracy)
 			}
@@ -968,13 +968,13 @@ func (psa *PredictiveSLAAnalyzer) updateAccuracyMetrics() {
 		}
 	}
 
-	// Calculate false positive and false negative rates
+	// Calculate false positive and false negative rates.
 	falsePositiveRate, falseNegativeRate := psa.calculateErrorRates()
 	psa.falsePositiveRate.Set(falsePositiveRate)
 	psa.falseNegativeRate.Set(falseNegativeRate)
 }
 
-// calculateModelAccuracy calculates accuracy for a specific model
+// calculateModelAccuracy calculates accuracy for a specific model.
 func (psa *PredictiveSLAAnalyzer) calculateModelAccuracy(history *PredictionHistory) float64 {
 	if len(history.predictions) == 0 {
 		return 0.0
@@ -992,7 +992,7 @@ func (psa *PredictiveSLAAnalyzer) calculateModelAccuracy(history *PredictionHist
 	return float64(correctCount) / float64(totalCount)
 }
 
-// calculateErrorRates calculates false positive and false negative rates
+// calculateErrorRates calculates false positive and false negative rates.
 func (psa *PredictiveSLAAnalyzer) calculateErrorRates() (float64, float64) {
 	var totalPredictions, falsePositives, falseNegatives int
 
@@ -1000,7 +1000,7 @@ func (psa *PredictiveSLAAnalyzer) calculateErrorRates() (float64, float64) {
 		for _, pred := range history.predictions {
 			totalPredictions++
 
-			// Simplified logic - in practice would be more sophisticated
+			// Simplified logic - in practice would be more sophisticated.
 			if pred.Prediction.Confidence > psa.confidenceThreshold && !pred.WasCorrect {
 				falsePositives++
 			} else if pred.Prediction.Confidence <= psa.confidenceThreshold && pred.WasCorrect {
@@ -1019,14 +1019,14 @@ func (psa *PredictiveSLAAnalyzer) calculateErrorRates() (float64, float64) {
 	return fpRate, fnRate
 }
 
-// Helper functions for feature extraction and recommendation generation
+// Helper functions for feature extraction and recommendation generation.
 func (psa *PredictiveSLAAnalyzer) extractAvailabilityFeatures(trend *TrendResult) []float64 {
-	// Extract features for availability prediction
+	// Extract features for availability prediction.
 	features := make([]float64, 12)
 	features[0] = trend.Magnitude
 	features[1] = trend.Confidence
 	features[2] = float64(time.Since(trend.StartTime).Minutes())
-	// Add more sophisticated feature extraction
+	// Add more sophisticated feature extraction.
 	return features
 }
 
@@ -1073,43 +1073,53 @@ func (psa *PredictiveSLAAnalyzer) generateThroughputRecommendations(prediction *
 	}
 }
 
-// Placeholder implementations for other predictors
+// Placeholder implementations for other predictors.
 type LatencyPredictor struct {
 	model *LinearRegressionModel
 }
 
+// NewLatencyPredictor performs newlatencypredictor operation.
 func NewLatencyPredictor(config *SLAMonitoringConfig) *LatencyPredictor {
 	return &LatencyPredictor{
 		model: NewLinearRegressionModel(),
 	}
 }
 
+// Predict performs predict operation.
 func (lp *LatencyPredictor) Predict(ctx context.Context, features []float64) (*Prediction, error) {
 	return lp.model.Predict(ctx, features)
 }
 
+// ThroughputPredictor represents a throughputpredictor.
 type ThroughputPredictor struct {
 	model *LinearRegressionModel
 }
 
+// NewThroughputPredictor performs newthroughputpredictor operation.
 func NewThroughputPredictor(config *SLAMonitoringConfig) *ThroughputPredictor {
 	return &ThroughputPredictor{
 		model: NewLinearRegressionModel(),
 	}
 }
 
+// Predict performs predict operation.
 func (tp *ThroughputPredictor) Predict(ctx context.Context, features []float64) (*Prediction, error) {
 	return tp.model.Predict(ctx, features)
 }
 
-// Placeholder for additional analyzer components
-type SeasonalityDetector struct{}
-type AnomalyDetector struct{}
+// Placeholder for additional analyzer components.
+type (
+	SeasonalityDetector struct{}
+	// AnomalyDetector represents a anomalydetector.
+	AnomalyDetector struct{}
+)
 
+// NewSeasonalityDetector performs newseasonalitydetector operation.
 func NewSeasonalityDetector(config *SLAMonitoringConfig) *SeasonalityDetector {
 	return &SeasonalityDetector{}
 }
 
+// NewAnomalyDetector performs newanomalydetector operation.
 func NewAnomalyDetector(config *SLAMonitoringConfig) *AnomalyDetector {
 	return &AnomalyDetector{}
 }

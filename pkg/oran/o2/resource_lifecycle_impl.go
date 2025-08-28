@@ -1,4 +1,4 @@
-// Package o2 implements helper methods and background services for resource lifecycle management
+// Package o2 implements helper methods and background services for resource lifecycle management.
 package o2
 
 import (
@@ -16,12 +16,12 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
-// ResourceLifecycleConfig configures the resource lifecycle manager
+// ResourceLifecycleConfig configures the resource lifecycle manager.
 type ResourceLifecycleConfig struct {
-	// Stub configuration
+	// Stub configuration.
 }
 
-// ResourceLifecycleManagerImpl implements ResourceLifecycleManager
+// ResourceLifecycleManagerImpl implements ResourceLifecycleManager.
 type ResourceLifecycleManagerImpl struct {
 	config         *ResourceLifecycleConfig
 	logger         *logging.StructuredLogger
@@ -34,7 +34,7 @@ type ResourceLifecycleManagerImpl struct {
 	stopCh         chan struct{}
 }
 
-// NewResourceLifecycleManager creates a new resource lifecycle manager
+// NewResourceLifecycleManager creates a new resource lifecycle manager.
 func NewResourceLifecycleManager(config *ResourceLifecycleConfig, logger *logging.StructuredLogger) *ResourceLifecycleManagerImpl {
 	return &ResourceLifecycleManagerImpl{
 		config:         config,
@@ -43,35 +43,35 @@ func NewResourceLifecycleManager(config *ResourceLifecycleConfig, logger *loggin
 	}
 }
 
-// Helper methods for resource lifecycle operations
+// Helper methods for resource lifecycle operations.
 
-// generateResourceID generates a unique resource ID
+// generateResourceID generates a unique resource ID.
 func (rlm *ResourceLifecycleManagerImpl) generateResourceID(provider, resourceType, name string) string {
-	// Generate a resource ID in the format: provider-resourcetype-name-uuid
+	// Generate a resource ID in the format: provider-resourcetype-name-uuid.
 	shortUUID := uuid.New().String()[:8]
 	return fmt.Sprintf("%s-%s-%s-%s", provider, resourceType, name, shortUUID)
 }
 
-// generateOperationID generates a unique operation ID
+// generateOperationID generates a unique operation ID.
 func (rlm *ResourceLifecycleManagerImpl) generateOperationID() string {
 	return fmt.Sprintf("op-%s", uuid.New().String())
 }
 
-// generateEventID generates a unique event ID
+// generateEventID generates a unique event ID.
 func (rlm *ResourceLifecycleManagerImpl) generateEventID() string {
 	return fmt.Sprintf("evt-%s", uuid.New().String())
 }
 
-// generateBackupID generates a unique backup ID
+// generateBackupID generates a unique backup ID.
 func (rlm *ResourceLifecycleManagerImpl) generateBackupID(resourceID string) string {
 	timestamp := time.Now().Format("20060102-150405")
 	shortUUID := uuid.New().String()[:8]
 	return fmt.Sprintf("backup-%s-%s-%s", resourceID, timestamp, shortUUID)
 }
 
-// State management methods
+// State management methods.
 
-// updateResourceState updates the resource state in memory
+// updateResourceState updates the resource state in memory.
 func (rlm *ResourceLifecycleManagerImpl) updateResourceState(state *ResourceState) {
 	rlm.stateMutex.Lock()
 	defer rlm.stateMutex.Unlock()
@@ -80,7 +80,7 @@ func (rlm *ResourceLifecycleManagerImpl) updateResourceState(state *ResourceStat
 	rlm.updateMetricsForResourceState(state)
 }
 
-// getResourceState retrieves the current state of a resource
+// getResourceState retrieves the current state of a resource.
 func (rlm *ResourceLifecycleManagerImpl) getResourceState(resourceID string) (*ResourceState, error) {
 	rlm.stateMutex.RLock()
 	defer rlm.stateMutex.RUnlock()
@@ -93,22 +93,22 @@ func (rlm *ResourceLifecycleManagerImpl) getResourceState(resourceID string) (*R
 	return state, nil
 }
 
-// updateMetricsForResourceState updates metrics for a resource state change
+// updateMetricsForResourceState updates metrics for a resource state change.
 func (rlm *ResourceLifecycleManagerImpl) updateMetricsForResourceState(state *ResourceState) {
-	// Stub implementation
+	// Stub implementation.
 }
 
-// Background processing methods
+// Background processing methods.
 
-// startBackgroundProcessors starts background processing routines
+// startBackgroundProcessors starts background processing routines.
 func (rlm *ResourceLifecycleManagerImpl) startBackgroundProcessors() {
-	// Start operation processor workers
+	// Start operation processor workers.
 	for i := 0; i < rlm.workers; i++ {
 		go rlm.processOperations()
 	}
 }
 
-// processOperations processes operations from the queue
+// processOperations processes operations from the queue.
 func (rlm *ResourceLifecycleManagerImpl) processOperations() {
 	for {
 		select {
@@ -120,14 +120,14 @@ func (rlm *ResourceLifecycleManagerImpl) processOperations() {
 	}
 }
 
-// processOperation processes a single operation
+// processOperation processes a single operation.
 func (rlm *ResourceLifecycleManagerImpl) processOperation(ctx context.Context, operation *ResourceOperation) {
-	// Stub implementation for compilation
+	// Stub implementation for compilation.
 	operation.Status = &OperationStatus{State: "RUNNING", Progress: 0.0}
 	operation.StartedAt = time.Now()
 }
 
-// Stub helper methods to satisfy interface requirements
+// Stub helper methods to satisfy interface requirements.
 func (rlm *ResourceLifecycleManagerImpl) getProviderAdapter(providerType string) (interface{}, error) {
 	return nil, fmt.Errorf("provider adapter not implemented")
 }
@@ -144,7 +144,7 @@ func (rlm *ResourceLifecycleManagerImpl) getResourceDependents(resourceID string
 	return []string{}
 }
 
-// Sorting and filtering utilities
+// Sorting and filtering utilities.
 func sortStrings(items []string) {
 	sort.Strings(items)
 }

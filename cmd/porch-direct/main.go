@@ -23,7 +23,7 @@ func main() {
 	flag.BoolVar(&dryRun, "dry-run", false, "show what would be generated without writing files")
 	flag.BoolVar(&minimal, "minimal", false, "generate minimal package (Deployment + Kptfile only)")
 
-	// Porch-specific flags
+	// Porch-specific flags.
 	flag.StringVar(&repo, "repo", "", "Target Porch repository name")
 	flag.StringVar(&packageName, "package", "", "Target package name")
 	flag.StringVar(&workspace, "workspace", "default", "Workspace identifier")
@@ -58,6 +58,7 @@ func main() {
 	}
 }
 
+// Config represents a config.
 type Config struct {
 	IntentPath  string
 	OutDir      string
@@ -72,7 +73,7 @@ type Config struct {
 }
 
 func run(cfg *Config) error {
-	// Determine project root by looking for go.mod
+	// Determine project root by looking for go.mod.
 	projectRoot, err := findProjectRoot()
 	if err != nil {
 		return fmt.Errorf("failed to find project root: %w", err)
@@ -91,13 +92,13 @@ func run(cfg *Config) error {
 		fmt.Printf("[porch-direct] Porch API: %s\n", cfg.PorchURL)
 	}
 
-	// Create loader
+	// Create loader.
 	loader, err := intent.NewLoader(projectRoot)
 	if err != nil {
 		return fmt.Errorf("failed to create intent loader: %w", err)
 	}
 
-	// Load and validate intent
+	// Load and validate intent.
 	result, err := loader.LoadFromFile(cfg.IntentPath)
 	if err != nil {
 		return fmt.Errorf("failed to load intent file: %w", err)
@@ -113,7 +114,7 @@ func run(cfg *Config) error {
 
 	fmt.Printf("[porch-direct] Intent validated successfully: %s\n", result.Intent.String())
 
-	// Resolve repository and package names if not provided
+	// Resolve repository and package names if not provided.
 	if cfg.Repo == "" {
 		cfg.Repo = resolveRepo(result.Intent)
 	}
@@ -121,10 +122,10 @@ func run(cfg *Config) error {
 		cfg.Package = resolvePackage(result.Intent)
 	}
 
-	// Create generator
+	// Create generator.
 	packageGen := generator.NewPackageGenerator()
 
-	// Generate package
+	// Generate package.
 	var pkg *generator.Package
 	if cfg.Minimal {
 		pkg, err = packageGen.GenerateMinimalPackage(result.Intent, cfg.OutDir)
@@ -137,21 +138,21 @@ func run(cfg *Config) error {
 
 	fmt.Printf("[porch-direct] Generated package: %s (%d files)\n", pkg.Name, pkg.GetFileCount())
 
-	// If Porch URL is provided, use Porch API (handles both dry-run and live modes)
+	// If Porch URL is provided, use Porch API (handles both dry-run and live modes).
 	if cfg.PorchURL != "" {
 		return submitToPorch(cfg, result.Intent, pkg)
 	}
 
-	// Otherwise, write to filesystem
+	// Otherwise, write to filesystem.
 	fsWriter := writer.NewFilesystemWriter(cfg.OutDir, cfg.DryRun)
 
-	// Write package
+	// Write package.
 	writeResult, err := fsWriter.WritePackage(pkg)
 	if err != nil {
 		return fmt.Errorf("failed to write package: %w", err)
 	}
 
-	// Report results
+	// Report results.
 	fmt.Printf("[porch-direct] Package written to: %s\n", writeResult.PackagePath)
 
 	if len(writeResult.FilesWritten) > 0 {
@@ -174,11 +175,11 @@ func run(cfg *Config) error {
 	return nil
 }
 
-// submitToPorch submits the generated package to Porch API
+// submitToPorch submits the generated package to Porch API.
 func submitToPorch(cfg *Config, intent *intent.NetworkIntent, pkg *generator.Package) error {
 	client := porch.NewClient(cfg.PorchURL, cfg.DryRun)
 
-	// Create package request
+	// Create package request.
 	packageReq := &porch.PackageRequest{
 		Repository: cfg.Repo,
 		Package:    cfg.Package,
@@ -188,7 +189,7 @@ func submitToPorch(cfg *Config, intent *intent.NetworkIntent, pkg *generator.Pac
 		Files:      pkg.GetFiles(),
 	}
 
-	// Create or update package revision
+	// Create or update package revision.
 	revision, err := client.CreateOrUpdatePackage(packageReq)
 	if err != nil {
 		return fmt.Errorf("failed to create/update package: %w", err)
@@ -196,7 +197,7 @@ func submitToPorch(cfg *Config, intent *intent.NetworkIntent, pkg *generator.Pac
 
 	fmt.Printf("[porch-direct] Package revision created: %s\n", revision.Name)
 
-	// Submit proposal or auto-approve
+	// Submit proposal or auto-approve.
 	if cfg.AutoApprove {
 		if err := client.ApprovePackage(revision); err != nil {
 			return fmt.Errorf("failed to approve package: %w", err)
@@ -214,9 +215,9 @@ func submitToPorch(cfg *Config, intent *intent.NetworkIntent, pkg *generator.Pac
 	return nil
 }
 
-// resolveRepo determines the repository name based on intent
+// resolveRepo determines the repository name based on intent.
 func resolveRepo(intent *intent.NetworkIntent) string {
-	// Default mapping logic based on intent type
+	// Default mapping logic based on intent type.
 	if intent.Target == "ran" || intent.Target == "gnb" || intent.Target == "du" || intent.Target == "cu" {
 		return "ran-packages"
 	}
@@ -226,12 +227,12 @@ func resolveRepo(intent *intent.NetworkIntent) string {
 	return "nephio-packages"
 }
 
-// resolvePackage generates a package name from intent
+// resolvePackage generates a package name from intent.
 func resolvePackage(intent *intent.NetworkIntent) string {
 	return fmt.Sprintf("%s-scaling-%d", intent.Target, intent.Replicas)
 }
 
-// findProjectRoot walks up the directory tree to find the project root (containing go.mod)
+// findProjectRoot walks up the directory tree to find the project root (containing go.mod).
 func findProjectRoot() (string, error) {
 	dir, err := os.Getwd()
 	if err != nil {

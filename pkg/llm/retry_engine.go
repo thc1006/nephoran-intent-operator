@@ -1,5 +1,5 @@
 //go:build !disable_rag
-// +build !disable_rag
+// +build !disable_rag.
 
 package llm
 
@@ -18,24 +18,24 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// RetryEngine provides advanced retry capabilities with multiple strategies
+// RetryEngine provides advanced retry capabilities with multiple strategies.
 type RetryEngine struct {
 	config  RetryEngineConfig
 	logger  *slog.Logger
 	tracer  trace.Tracer
 	metrics *RetryMetrics
 
-	// Retry strategies
+	// Retry strategies.
 	strategies map[string]RetryStrategy
 
-	// Adaptive retry parameters
+	// Adaptive retry parameters.
 	adaptiveConfig AdaptiveRetryConfig
 
-	// Circuit breaker integration
+	// Circuit breaker integration.
 	circuitBreaker *AdvancedCircuitBreaker
 }
 
-// RetryEngineConfig holds configuration for the retry engine
+// RetryEngineConfig holds configuration for the retry engine.
 type RetryEngineConfig struct {
 	DefaultStrategy      string        `json:"default_strategy"`
 	MaxRetries           int           `json:"max_retries"`
@@ -48,7 +48,7 @@ type RetryEngineConfig struct {
 	EnableClassification bool          `json:"enable_classification"`
 }
 
-// AdaptiveRetryConfig holds configuration for adaptive retry behavior
+// AdaptiveRetryConfig holds configuration for adaptive retry behavior.
 type AdaptiveRetryConfig struct {
 	LearningRate     float64 `json:"learning_rate"`
 	SuccessThreshold float64 `json:"success_threshold"`
@@ -58,14 +58,14 @@ type AdaptiveRetryConfig struct {
 	MaxRetries       int     `json:"max_retries"`
 }
 
-// RetryStrategy defines a retry strategy interface
+// RetryStrategy defines a retry strategy interface.
 type RetryStrategy interface {
 	GetDelay(attempt int, lastError error) time.Duration
 	ShouldRetry(attempt int, err error) bool
 	GetName() string
 }
 
-// RetryMetrics tracks retry-related metrics
+// RetryMetrics tracks retry-related metrics.
 type RetryMetrics struct {
 	totalRetries        int64
 	successfulRetries   int64
@@ -76,7 +76,7 @@ type RetryMetrics struct {
 	mutex               sync.RWMutex
 }
 
-// RetryContext holds context for a retry operation
+// RetryContext holds context for a retry operation.
 type RetryContext struct {
 	OperationID     string
 	StartTime       time.Time
@@ -87,7 +87,7 @@ type RetryContext struct {
 	Metadata        map[string]interface{}
 }
 
-// RetryResult holds the result of a retry operation
+// RetryResult holds the result of a retry operation.
 type RetryResult struct {
 	Success             bool
 	FinalError          error
@@ -97,21 +97,29 @@ type RetryResult struct {
 	AdaptiveAdjustments int
 }
 
-// Error classification types
+// Error classification types.
 type ErrorClass string
 
 const (
-	ErrorClassTransient      ErrorClass = "transient"
-	ErrorClassPermanent      ErrorClass = "permanent"
-	ErrorClassThrottling     ErrorClass = "throttling"
-	ErrorClassTimeout        ErrorClass = "timeout"
-	ErrorClassNetworking     ErrorClass = "networking"
+	// ErrorClassTransient holds errorclasstransient value.
+	ErrorClassTransient ErrorClass = "transient"
+	// ErrorClassPermanent holds errorclasspermanent value.
+	ErrorClassPermanent ErrorClass = "permanent"
+	// ErrorClassThrottling holds errorclassthrottling value.
+	ErrorClassThrottling ErrorClass = "throttling"
+	// ErrorClassTimeout holds errorclasstimeout value.
+	ErrorClassTimeout ErrorClass = "timeout"
+	// ErrorClassNetworking holds errorclassnetworking value.
+	ErrorClassNetworking ErrorClass = "networking"
+	// ErrorClassAuthentication holds errorclassauthentication value.
 	ErrorClassAuthentication ErrorClass = "authentication"
-	ErrorClassRateLimit      ErrorClass = "rate_limit"
-	ErrorClassUnknown        ErrorClass = "unknown"
+	// ErrorClassRateLimit holds errorclassratelimit value.
+	ErrorClassRateLimit ErrorClass = "rate_limit"
+	// ErrorClassUnknown holds errorclassunknown value.
+	ErrorClassUnknown ErrorClass = "unknown"
 )
 
-// Retry strategies
+// Retry strategies.
 type ExponentialBackoffStrategy struct {
 	baseDelay     time.Duration
 	maxDelay      time.Duration
@@ -120,6 +128,7 @@ type ExponentialBackoffStrategy struct {
 	jitterEnabled bool
 }
 
+// LinearBackoffStrategy represents a linearbackoffstrategy.
 type LinearBackoffStrategy struct {
 	baseDelay  time.Duration
 	maxDelay   time.Duration
@@ -127,11 +136,13 @@ type LinearBackoffStrategy struct {
 	maxRetries int
 }
 
+// FixedDelayStrategy represents a fixeddelaystrategy.
 type FixedDelayStrategy struct {
 	delay      time.Duration
 	maxRetries int
 }
 
+// AdaptiveStrategy represents a adaptivestrategy.
 type AdaptiveStrategy struct {
 	engine         *RetryEngine
 	baseDelay      time.Duration
@@ -141,7 +152,7 @@ type AdaptiveStrategy struct {
 	mutex          sync.RWMutex
 }
 
-// NewRetryEngine creates a new retry engine
+// NewRetryEngine creates a new retry engine.
 func NewRetryEngine(config RetryEngineConfig, circuitBreaker *AdvancedCircuitBreaker) *RetryEngine {
 	if config.DefaultStrategy == "" {
 		config.DefaultStrategy = "exponential"
@@ -167,15 +178,15 @@ func NewRetryEngine(config RetryEngineConfig, circuitBreaker *AdvancedCircuitBre
 		},
 	}
 
-	// Initialize retry strategies
+	// Initialize retry strategies.
 	engine.initializeStrategies()
 
 	return engine
 }
 
-// initializeStrategies sets up the available retry strategies
+// initializeStrategies sets up the available retry strategies.
 func (re *RetryEngine) initializeStrategies() {
-	// Exponential backoff strategy
+	// Exponential backoff strategy.
 	re.strategies["exponential"] = &ExponentialBackoffStrategy{
 		baseDelay:     re.config.BaseDelay,
 		maxDelay:      re.config.MaxDelay,
@@ -184,7 +195,7 @@ func (re *RetryEngine) initializeStrategies() {
 		jitterEnabled: re.config.JitterEnabled,
 	}
 
-	// Linear backoff strategy
+	// Linear backoff strategy.
 	re.strategies["linear"] = &LinearBackoffStrategy{
 		baseDelay:  re.config.BaseDelay,
 		maxDelay:   re.config.MaxDelay,
@@ -192,13 +203,13 @@ func (re *RetryEngine) initializeStrategies() {
 		maxRetries: re.config.MaxRetries,
 	}
 
-	// Fixed delay strategy
+	// Fixed delay strategy.
 	re.strategies["fixed"] = &FixedDelayStrategy{
 		delay:      re.config.BaseDelay,
 		maxRetries: re.config.MaxRetries,
 	}
 
-	// Adaptive strategy
+	// Adaptive strategy.
 	if re.config.EnableAdaptive {
 		re.strategies["adaptive"] = &AdaptiveStrategy{
 			engine:         re,
@@ -210,12 +221,12 @@ func (re *RetryEngine) initializeStrategies() {
 	}
 }
 
-// ExecuteWithRetry executes an operation with retry logic
+// ExecuteWithRetry executes an operation with retry logic.
 func (re *RetryEngine) ExecuteWithRetry(ctx context.Context, operation func() error) (*RetryResult, error) {
 	return re.ExecuteWithRetryAndStrategy(ctx, operation, re.config.DefaultStrategy)
 }
 
-// ExecuteWithRetryAndStrategy executes an operation with a specific retry strategy
+// ExecuteWithRetryAndStrategy executes an operation with a specific retry strategy.
 func (re *RetryEngine) ExecuteWithRetryAndStrategy(ctx context.Context, operation func() error, strategyName string) (*RetryResult, error) {
 	ctx, span := re.tracer.Start(ctx, "retry_engine.execute")
 	defer span.End()
@@ -249,7 +260,7 @@ func (re *RetryEngine) ExecuteWithRetryAndStrategy(ctx context.Context, operatio
 		retryCtx.Attempts = attempt + 1
 		retryCtx.LastAttemptTime = time.Now()
 
-		// Check if circuit breaker allows the request
+		// Check if circuit breaker allows the request.
 		if re.circuitBreaker != nil && !re.circuitBreaker.IsRequestAllowed() {
 			lastError = &CircuitBreakerError{
 				State:   re.circuitBreaker.GetState(),
@@ -258,12 +269,12 @@ func (re *RetryEngine) ExecuteWithRetryAndStrategy(ctx context.Context, operatio
 			break
 		}
 
-		// Execute the operation
+		// Execute the operation.
 		err := operation()
 		retryCtx.Errors = append(retryCtx.Errors, err)
 
 		if err == nil {
-			// Success
+			// Success.
 			re.updateMetrics(strategyName, true, attempt, adaptiveAdjustments)
 
 			result := &RetryResult{
@@ -290,7 +301,7 @@ func (re *RetryEngine) ExecuteWithRetryAndStrategy(ctx context.Context, operatio
 
 		lastError = err
 
-		// Classify the error
+		// Classify the error.
 		errorClass := re.classifyError(err)
 		re.updateErrorClassification(errorClass)
 
@@ -299,7 +310,7 @@ func (re *RetryEngine) ExecuteWithRetryAndStrategy(ctx context.Context, operatio
 			attribute.String("retry.last_error", err.Error()),
 		)
 
-		// Check if we should retry
+		// Check if we should retry.
 		if !strategy.ShouldRetry(attempt, err) {
 			re.logger.Debug("Strategy determined no retry should be attempted",
 				"operation_id", retryCtx.OperationID,
@@ -309,15 +320,15 @@ func (re *RetryEngine) ExecuteWithRetryAndStrategy(ctx context.Context, operatio
 			break
 		}
 
-		// Don't wait after the last attempt
+		// Don't wait after the last attempt.
 		if attempt >= re.config.MaxRetries {
 			break
 		}
 
-		// Calculate delay
+		// Calculate delay.
 		delay := strategy.GetDelay(attempt, err)
 
-		// Apply adaptive adjustments
+		// Apply adaptive adjustments.
 		if re.config.EnableAdaptive && strategyName == "adaptive" {
 			originalDelay := delay
 			delay = re.applyAdaptiveAdjustment(delay, errorClass, retryCtx)
@@ -333,7 +344,7 @@ func (re *RetryEngine) ExecuteWithRetryAndStrategy(ctx context.Context, operatio
 			"error", err.Error(),
 		)
 
-		// Wait for the delay
+		// Wait for the delay.
 		select {
 		case <-ctx.Done():
 			return &RetryResult{
@@ -344,11 +355,11 @@ func (re *RetryEngine) ExecuteWithRetryAndStrategy(ctx context.Context, operatio
 				Strategy:      strategyName,
 			}, ctx.Err()
 		case <-time.After(delay):
-			// Continue to next attempt
+			// Continue to next attempt.
 		}
 	}
 
-	// All retries exhausted
+	// All retries exhausted.
 	re.updateMetrics(strategyName, false, retryCtx.Attempts, adaptiveAdjustments)
 
 	result := &RetryResult{
@@ -375,7 +386,7 @@ func (re *RetryEngine) ExecuteWithRetryAndStrategy(ctx context.Context, operatio
 	return result, lastError
 }
 
-// classifyError classifies an error for retry decision making
+// classifyError classifies an error for retry decision making.
 func (re *RetryEngine) classifyError(err error) ErrorClass {
 	if err == nil {
 		return ErrorClassUnknown
@@ -383,7 +394,7 @@ func (re *RetryEngine) classifyError(err error) ErrorClass {
 
 	errorStr := strings.ToLower(err.Error())
 
-	// Check for specific error patterns
+	// Check for specific error patterns.
 	switch {
 	case strings.Contains(errorStr, "timeout") || strings.Contains(errorStr, "deadline exceeded"):
 		return ErrorClassTimeout
@@ -404,9 +415,9 @@ func (re *RetryEngine) classifyError(err error) ErrorClass {
 	}
 }
 
-// applyAdaptiveAdjustment applies adaptive adjustment to the delay
+// applyAdaptiveAdjustment applies adaptive adjustment to the delay.
 func (re *RetryEngine) applyAdaptiveAdjustment(baseDelay time.Duration, errorClass ErrorClass, ctx *RetryContext) time.Duration {
-	// Adjust delay based on error class
+	// Adjust delay based on error class.
 	multiplier := 1.0
 
 	switch errorClass {
@@ -422,7 +433,7 @@ func (re *RetryEngine) applyAdaptiveAdjustment(baseDelay time.Duration, errorCla
 
 	adjustedDelay := time.Duration(float64(baseDelay) * multiplier)
 
-	// Ensure bounds
+	// Ensure bounds.
 	if adjustedDelay > re.config.MaxDelay {
 		adjustedDelay = re.config.MaxDelay
 	}
@@ -433,7 +444,7 @@ func (re *RetryEngine) applyAdaptiveAdjustment(baseDelay time.Duration, errorCla
 	return adjustedDelay
 }
 
-// updateMetrics updates retry metrics
+// updateMetrics updates retry metrics.
 func (re *RetryEngine) updateMetrics(strategy string, success bool, attempts, adaptiveAdjustments int) {
 	re.metrics.mutex.Lock()
 	defer re.metrics.mutex.Unlock()
@@ -449,7 +460,7 @@ func (re *RetryEngine) updateMetrics(strategy string, success bool, attempts, ad
 	}
 }
 
-// updateErrorClassification updates error classification metrics
+// updateErrorClassification updates error classification metrics.
 func (re *RetryEngine) updateErrorClassification(errorClass ErrorClass) {
 	re.metrics.mutex.Lock()
 	defer re.metrics.mutex.Unlock()
@@ -457,7 +468,7 @@ func (re *RetryEngine) updateErrorClassification(errorClass ErrorClass) {
 	re.metrics.errorClassification[string(errorClass)]++
 }
 
-// GetMetrics returns current retry metrics
+// GetMetrics returns current retry metrics.
 func (re *RetryEngine) GetMetrics() RetryEngineMetrics {
 	re.metrics.mutex.RLock()
 	defer re.metrics.mutex.RUnlock()
@@ -482,7 +493,7 @@ func (re *RetryEngine) GetMetrics() RetryEngineMetrics {
 	}
 }
 
-// RetryEngineMetrics holds retry engine metrics
+// RetryEngineMetrics holds retry engine metrics.
 type RetryEngineMetrics struct {
 	TotalRetries        int64            `json:"total_retries"`
 	SuccessfulRetries   int64            `json:"successful_retries"`
@@ -492,14 +503,14 @@ type RetryEngineMetrics struct {
 	ErrorClassification map[string]int64 `json:"error_classification"`
 }
 
-// Strategy implementations
+// Strategy implementations.
 
-// ExponentialBackoffStrategy implementation
+// ExponentialBackoffStrategy implementation.
 func (s *ExponentialBackoffStrategy) GetDelay(attempt int, lastError error) time.Duration {
 	delay := time.Duration(float64(s.baseDelay) * math.Pow(s.multiplier, float64(attempt)))
 
 	if s.jitterEnabled {
-		// Add jitter (±25% of delay)
+		// Add jitter (±25% of delay).
 		jitter := time.Duration(float64(delay) * 0.25 * (2.0*rand.Float64() - 1.0))
 		delay += jitter
 	}
@@ -511,15 +522,17 @@ func (s *ExponentialBackoffStrategy) GetDelay(attempt int, lastError error) time
 	return delay
 }
 
+// ShouldRetry performs shouldretry operation.
 func (s *ExponentialBackoffStrategy) ShouldRetry(attempt int, err error) bool {
 	return attempt < s.maxRetries
 }
 
+// GetName performs getname operation.
 func (s *ExponentialBackoffStrategy) GetName() string {
 	return "exponential"
 }
 
-// LinearBackoffStrategy implementation
+// LinearBackoffStrategy implementation.
 func (s *LinearBackoffStrategy) GetDelay(attempt int, lastError error) time.Duration {
 	delay := s.baseDelay + time.Duration(attempt)*s.increment
 	if delay > s.maxDelay {
@@ -528,42 +541,46 @@ func (s *LinearBackoffStrategy) GetDelay(attempt int, lastError error) time.Dura
 	return delay
 }
 
+// ShouldRetry performs shouldretry operation.
 func (s *LinearBackoffStrategy) ShouldRetry(attempt int, err error) bool {
 	return attempt < s.maxRetries
 }
 
+// GetName performs getname operation.
 func (s *LinearBackoffStrategy) GetName() string {
 	return "linear"
 }
 
-// FixedDelayStrategy implementation
+// FixedDelayStrategy implementation.
 func (s *FixedDelayStrategy) GetDelay(attempt int, lastError error) time.Duration {
 	return s.delay
 }
 
+// ShouldRetry performs shouldretry operation.
 func (s *FixedDelayStrategy) ShouldRetry(attempt int, err error) bool {
 	return attempt < s.maxRetries
 }
 
+// GetName performs getname operation.
 func (s *FixedDelayStrategy) GetName() string {
 	return "fixed"
 }
 
-// AdaptiveStrategy implementation
+// AdaptiveStrategy implementation.
 func (s *AdaptiveStrategy) GetDelay(attempt int, lastError error) time.Duration {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
-	// Calculate success rate from recent history
+	// Calculate success rate from recent history.
 	successRate := s.calculateSuccessRate()
 
-	// Adjust delay based on success rate
+	// Adjust delay based on success rate.
 	multiplier := 1.0
 	if successRate < s.engine.adaptiveConfig.FailureThreshold {
-		// High failure rate - increase delay
+		// High failure rate - increase delay.
 		multiplier = 2.0
 	} else if successRate > s.engine.adaptiveConfig.SuccessThreshold {
-		// High success rate - decrease delay
+		// High success rate - decrease delay.
 		multiplier = 0.5
 	}
 
@@ -575,10 +592,12 @@ func (s *AdaptiveStrategy) GetDelay(attempt int, lastError error) time.Duration 
 	return delay
 }
 
+// ShouldRetry performs shouldretry operation.
 func (s *AdaptiveStrategy) ShouldRetry(attempt int, err error) bool {
 	return attempt < s.maxRetries
 }
 
+// GetName performs getname operation.
 func (s *AdaptiveStrategy) GetName() string {
 	return "adaptive"
 }
@@ -604,13 +623,13 @@ func (s *AdaptiveStrategy) recordResult(success bool) {
 
 	s.successHistory = append(s.successHistory, success)
 
-	// Maintain window size
+	// Maintain window size.
 	if len(s.successHistory) > s.engine.adaptiveConfig.WindowSize {
 		s.successHistory = s.successHistory[1:]
 	}
 }
 
-// Helper functions
+// Helper functions.
 func generateOperationID() string {
 	return fmt.Sprintf("op_%d", time.Now().UnixNano())
 }

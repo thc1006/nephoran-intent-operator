@@ -13,7 +13,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// IntelligentAlertManager provides advanced alerting with correlation, suppression, and learning
+// IntelligentAlertManager provides advanced alerting with correlation, suppression, and learning.
 type IntelligentAlertManager struct {
 	config               *AlertManagerConfig
 	alertRules           []*AlertRule
@@ -25,94 +25,94 @@ type IntelligentAlertManager struct {
 	rateLimiter          *AlertRateLimiter
 	learningEngine       *AlertLearningEngine
 
-	// State management
+	// State management.
 	activeAlerts     map[string]*ActiveAlert
 	suppressedAlerts map[string]*SuppressedAlert
 	correlatedAlerts map[string]*CorrelatedAlert
 	alertMetrics     *AlertMetrics
 
-	// Concurrency control
+	// Concurrency control.
 	mutex           sync.RWMutex
 	processingQueue chan *AlertProcessingRequest
 	workers         []*AlertWorker
 }
 
-// AlertManagerConfig configures the intelligent alert manager
+// AlertManagerConfig configures the intelligent alert manager.
 type AlertManagerConfig struct {
-	// Processing configuration
+	// Processing configuration.
 	MaxConcurrentWorkers   int           `json:"maxConcurrentWorkers"`
 	AlertProcessingTimeout time.Duration `json:"alertProcessingTimeout"`
 	AlertRetentionPeriod   time.Duration `json:"alertRetentionPeriod"`
 
-	// Correlation settings
+	// Correlation settings.
 	CorrelationEnabled  bool          `json:"correlationEnabled"`
 	CorrelationWindow   time.Duration `json:"correlationWindow"`
 	MaxCorrelatedAlerts int           `json:"maxCorrelatedAlerts"`
 	MinCorrelationScore float64       `json:"minCorrelationScore"`
 
-	// Rate limiting
+	// Rate limiting.
 	RateLimitingEnabled bool `json:"rateLimitingEnabled"`
 	MaxAlertsPerMinute  int  `json:"maxAlertsPerMinute"`
 	MaxAlertsPerHour    int  `json:"maxAlertsPerHour"`
 	BurstAllowance      int  `json:"burstAllowance"`
 
-	// Suppression
+	// Suppression.
 	AutoSuppressionEnabled    bool          `json:"autoSuppressionEnabled"`
 	DuplicateSuppressionTime  time.Duration `json:"duplicateSuppressionTime"`
 	MaintenanceWindowsEnabled bool          `json:"maintenanceWindowsEnabled"`
 
-	// Learning and adaptation
+	// Learning and adaptation.
 	LearningEnabled           bool `json:"learningEnabled"`
 	FeedbackProcessingEnabled bool `json:"feedbackProcessingEnabled"`
 	AdaptiveThresholdsEnabled bool `json:"adaptiveThresholdsEnabled"`
 
-	// Notification configuration
+	// Notification configuration.
 	DefaultNotificationChannels []string      `json:"defaultNotificationChannels"`
 	EscalationEnabled           bool          `json:"escalationEnabled"`
 	AcknowledgmentRequired      bool          `json:"acknowledgmentRequired"`
 	AcknowledgmentTimeout       time.Duration `json:"acknowledgmentTimeout"`
 }
 
-// AlertCorrelationEngine performs intelligent alert correlation
+// AlertCorrelationEngine performs intelligent alert correlation.
 type AlertCorrelationEngine struct {
 	config             *CorrelationConfig
 	correlationRules   []*CorrelationRule
 	timeSeriesAnalyzer *TimeSeriesAnalyzer
 	patternMatcher     *PatternMatcher
 
-	// Correlation history for learning
+	// Correlation history for learning.
 	correlationHistory []*CorrelationEvent
 	falsePositives     []*CorrelationFeedback
 
-	// Performance metrics
+	// Performance metrics.
 	correlationMetrics *CorrelationMetrics
 }
 
-// CorrelationConfig configures alert correlation
+// CorrelationConfig configures alert correlation.
 type CorrelationConfig struct {
 	TemporalCorrelationEnabled bool `json:"temporalCorrelationEnabled"`
 	SpatialCorrelationEnabled  bool `json:"spatialCorrelationEnabled"`
 	SemanticCorrelationEnabled bool `json:"semanticCorrelationEnabled"`
 
-	// Temporal correlation settings
+	// Temporal correlation settings.
 	TimeWindowSize      time.Duration `json:"timeWindowSize"`
 	MaxTemporalDistance time.Duration `json:"maxTemporalDistance"`
 
-	// Spatial correlation settings
+	// Spatial correlation settings.
 	ComponentCorrelationEnabled bool `json:"componentCorrelationEnabled"`
 	ServiceCorrelationEnabled   bool `json:"serviceCorrelationEnabled"`
 
-	// Semantic correlation settings
+	// Semantic correlation settings.
 	MetricSimilarityThreshold float64 `json:"metricSimilarityThreshold"`
 	CauseCategoryCorrelation  bool    `json:"causeCategoryCorrelation"`
 
-	// Advanced features
+	// Advanced features.
 	MachineLearningEnabled    bool `json:"machineLearningEnabled"`
 	CrossServiceCorrelation   bool `json:"crossServiceCorrelation"`
 	HistoricalPatternMatching bool `json:"historicalPatternMatching"`
 }
 
-// ActiveAlert represents an alert currently being tracked
+// ActiveAlert represents an alert currently being tracked.
 type ActiveAlert struct {
 	Alert          *RegressionAlert `json:"alert"`
 	Status         string           `json:"status"` // "new", "acknowledged", "investigating", "resolved"
@@ -123,24 +123,24 @@ type ActiveAlert struct {
 	ResolvedAt     *time.Time       `json:"resolvedAt"`
 	ResolvedBy     string           `json:"resolvedBy"`
 
-	// Correlation information
+	// Correlation information.
 	CorrelationID    string   `json:"correlationId"`
 	CorrelatedAlerts []string `json:"correlatedAlerts"`
 
-	// Escalation tracking
+	// Escalation tracking.
 	EscalationLevel int        `json:"escalationLevel"`
 	LastEscalation  *time.Time `json:"lastEscalation"`
 
-	// Suppression information
+	// Suppression information.
 	IsSuppressed      bool   `json:"isSuppressed"`
 	SuppressionReason string `json:"suppressionReason"`
 
-	// Metrics
+	// Metrics.
 	NotificationsSent int            `json:"notificationsSent"`
 	ResponseTime      *time.Duration `json:"responseTime"`
 }
 
-// CorrelatedAlert represents a group of correlated alerts
+// CorrelatedAlert represents a group of correlated alerts.
 type CorrelatedAlert struct {
 	ID               string         `json:"id"`
 	PrimaryAlert     *ActiveAlert   `json:"primaryAlert"`
@@ -149,39 +149,39 @@ type CorrelatedAlert struct {
 	CorrelationType  string         `json:"correlationType"`
 	CreatedAt        time.Time      `json:"createdAt"`
 
-	// Correlation analysis
+	// Correlation analysis.
 	CommonCauses       []string            `json:"commonCauses"`
 	ImpactChain        []*ImpactChain      `json:"impactChain"`
 	RootCauseCandidate *RootCauseCandidate `json:"rootCauseCandidate"`
 
-	// Consolidated information
+	// Consolidated information.
 	ConsolidatedSummary string   `json:"consolidatedSummary"`
 	AggregatedSeverity  string   `json:"aggregatedSeverity"`
 	AffectedServices    []string `json:"affectedServices"`
 }
 
-// AlertLearningEngine implements machine learning for alert optimization
+// AlertLearningEngine implements machine learning for alert optimization.
 type AlertLearningEngine struct {
 	config             *LearningEngineConfig
 	feedbackProcessor  *FeedbackProcessor
 	patternRecognizer  *PatternRecognizer
 	thresholdOptimizer *ThresholdOptimizer
 
-	// Learning data
+	// Learning data.
 	historicalAlerts []*HistoricalAlertData
 	alertOutcomes    []*AlertOutcome
 	humanFeedback    []*HumanFeedback
 
-	// Models
+	// Models.
 	falsePositiveModel *MLModel
 	severityModel      *MLModel
 	escalationModel    *MLModel
 
-	// Performance tracking
+	// Performance tracking.
 	learningMetrics *LearningMetrics
 }
 
-// NotificationChannel interface for different notification methods
+// NotificationChannel interface for different notification methods.
 type NotificationChannel interface {
 	SendAlert(alert *EnrichedAlert) error
 	TestConnection() error
@@ -190,7 +190,7 @@ type NotificationChannel interface {
 	GetReliabilityScore() float64
 }
 
-// SlackNotificationChannel implements Slack notifications
+// SlackNotificationChannel implements Slack notifications.
 type SlackNotificationChannel struct {
 	name       string
 	webhookURL string
@@ -200,7 +200,7 @@ type SlackNotificationChannel struct {
 	config     map[string]interface{}
 }
 
-// EmailNotificationChannel implements email notifications
+// EmailNotificationChannel implements email notifications.
 type EmailNotificationChannel struct {
 	name        string
 	smtpServer  string
@@ -212,7 +212,7 @@ type EmailNotificationChannel struct {
 	config      map[string]interface{}
 }
 
-// WebhookNotificationChannel implements generic webhook notifications
+// WebhookNotificationChannel implements generic webhook notifications.
 type WebhookNotificationChannel struct {
 	name    string
 	url     string
@@ -222,7 +222,7 @@ type WebhookNotificationChannel struct {
 	config  map[string]interface{}
 }
 
-// PagerDutyNotificationChannel implements PagerDuty notifications
+// PagerDutyNotificationChannel implements PagerDuty notifications.
 type PagerDutyNotificationChannel struct {
 	name        string
 	routingKey  string
@@ -231,23 +231,23 @@ type PagerDutyNotificationChannel struct {
 	config      map[string]interface{}
 }
 
-// EnrichedAlert represents an alert with additional context and correlation information
+// EnrichedAlert represents an alert with additional context and correlation information.
 type EnrichedAlert struct {
 	*RegressionAlert // Embed base alert
 
-	// Enrichment information
+	// Enrichment information.
 	CorrelationInfo   *CorrelationInfo   `json:"correlationInfo"`
 	HistoricalContext *HistoricalContext `json:"historicalContext"`
 	BusinessImpact    *BusinessImpact    `json:"businessImpact"`
 	TechnicalDetails  *TechnicalDetails  `json:"technicalDetails"`
 
-	// Processing metadata
+	// Processing metadata.
 	ProcessingTime    time.Duration `json:"processingTime"`
 	EnrichmentSources []string      `json:"enrichmentSources"`
 	QualityScore      float64       `json:"qualityScore"`
 }
 
-// CorrelationInfo provides correlation details
+// CorrelationInfo provides correlation details.
 type CorrelationInfo struct {
 	IsCorrelated       bool     `json:"isCorrelated"`
 	CorrelationID      string   `json:"correlationId"`
@@ -257,7 +257,7 @@ type CorrelationInfo struct {
 	SuggestedRootCause string   `json:"suggestedRootCause"`
 }
 
-// AlertProcessingRequest represents a request to process an alert
+// AlertProcessingRequest represents a request to process an alert.
 type AlertProcessingRequest struct {
 	Analysis          *RegressionAnalysisResult `json:"analysis"`
 	ProcessingOptions *ProcessingOptions        `json:"processingOptions"`
@@ -265,7 +265,7 @@ type AlertProcessingRequest struct {
 	RequestedAt       time.Time                 `json:"requestedAt"`
 }
 
-// ProcessingResult contains the result of alert processing
+// ProcessingResult contains the result of alert processing.
 type ProcessingResult struct {
 	Success              bool             `json:"success"`
 	AlertsGenerated      []*EnrichedAlert `json:"alertsGenerated"`
@@ -275,7 +275,7 @@ type ProcessingResult struct {
 	Error                error            `json:"error,omitempty"`
 }
 
-// NewIntelligentAlertManager creates a new intelligent alert manager
+// NewIntelligentAlertManager creates a new intelligent alert manager.
 func NewIntelligentAlertManager(config *AlertManagerConfig) *IntelligentAlertManager {
 	if config == nil {
 		config = getDefaultAlertManagerConfig()
@@ -297,25 +297,25 @@ func NewIntelligentAlertManager(config *AlertManagerConfig) *IntelligentAlertMan
 		processingQueue:      make(chan *AlertProcessingRequest, 1000),
 	}
 
-	// Initialize learning engine if enabled
+	// Initialize learning engine if enabled.
 	if config.LearningEnabled {
 		manager.learningEngine = NewAlertLearningEngine(config)
 	}
 
-	// Start worker goroutines
+	// Start worker goroutines.
 	manager.startWorkers()
 
-	// Initialize default notification channels
+	// Initialize default notification channels.
 	manager.initializeNotificationChannels()
 
 	return manager
 }
 
-// ProcessRegressionAnalysis processes a regression analysis and generates appropriate alerts
+// ProcessRegressionAnalysis processes a regression analysis and generates appropriate alerts.
 func (iam *IntelligentAlertManager) ProcessRegressionAnalysis(analysis *RegressionAnalysisResult) error {
 	klog.V(2).Info("Processing regression analysis for alerts")
 
-	// Create processing request
+	// Create processing request.
 	request := &AlertProcessingRequest{
 		Analysis:          analysis,
 		ProcessingOptions: getDefaultProcessingOptions(),
@@ -323,10 +323,10 @@ func (iam *IntelligentAlertManager) ProcessRegressionAnalysis(analysis *Regressi
 		RequestedAt:       time.Now(),
 	}
 
-	// Submit to processing queue
+	// Submit to processing queue.
 	select {
 	case iam.processingQueue <- request:
-		// Wait for result
+		// Wait for result.
 		select {
 		case result := <-request.ResponseChannel:
 			if result.Error != nil {
@@ -347,7 +347,7 @@ func (iam *IntelligentAlertManager) ProcessRegressionAnalysis(analysis *Regressi
 	}
 }
 
-// startWorkers starts the alert processing workers
+// startWorkers starts the alert processing workers.
 func (iam *IntelligentAlertManager) startWorkers() {
 	iam.workers = make([]*AlertWorker, iam.config.MaxConcurrentWorkers)
 
@@ -360,7 +360,7 @@ func (iam *IntelligentAlertManager) startWorkers() {
 	klog.Infof("Started %d alert processing workers", len(iam.workers))
 }
 
-// processAlert processes a single alert processing request
+// processAlert processes a single alert processing request.
 func (iam *IntelligentAlertManager) processAlert(request *AlertProcessingRequest) *ProcessingResult {
 	startTime := time.Now()
 	result := &ProcessingResult{
@@ -371,29 +371,29 @@ func (iam *IntelligentAlertManager) processAlert(request *AlertProcessingRequest
 		ProcessingTime:       0,
 	}
 
-	// 1. Generate alerts from regression analysis
+	// 1. Generate alerts from regression analysis.
 	alerts := iam.generateAlertsFromAnalysis(request.Analysis)
 
-	// 2. Apply alert rules and filtering
+	// 2. Apply alert rules and filtering.
 	filteredAlerts := iam.applyAlertRules(alerts)
 
-	// 3. Check for suppressions
+	// 3. Check for suppressions.
 	activeAlerts := iam.applySuppressionRules(filteredAlerts)
 
-	// 4. Apply rate limiting
+	// 4. Apply rate limiting.
 	rateLimitedAlerts := iam.applyRateLimiting(activeAlerts)
 
-	// 5. Enrich alerts with context
+	// 5. Enrich alerts with context.
 	enrichedAlerts := iam.enrichAlerts(rateLimitedAlerts, request.Analysis)
 
-	// 6. Perform correlation if enabled
+	// 6. Perform correlation if enabled.
 	if iam.config.CorrelationEnabled && len(enrichedAlerts) > 0 {
 		correlatedAlerts := iam.correlationEngine.CorrelateAlerts(enrichedAlerts)
 		result.CorrelationPerformed = true
 		enrichedAlerts = correlatedAlerts
 	}
 
-	// 7. Send notifications
+	// 7. Send notifications.
 	notificationsSent := 0
 	for _, alert := range enrichedAlerts {
 		if err := iam.sendNotifications(alert); err != nil {
@@ -403,14 +403,14 @@ func (iam *IntelligentAlertManager) processAlert(request *AlertProcessingRequest
 		}
 	}
 
-	// 8. Store active alerts
+	// 8. Store active alerts.
 	iam.storeActiveAlerts(enrichedAlerts)
 
-	// 9. Update metrics
+	// 9. Update metrics.
 	iam.alertMetrics.RecordAlertsProcessed(len(enrichedAlerts))
 	iam.alertMetrics.RecordNotificationsSent(notificationsSent)
 
-	// 10. Process through learning engine if available
+	// 10. Process through learning engine if available.
 	if iam.learningEngine != nil {
 		iam.learningEngine.ProcessAlerts(enrichedAlerts, request.Analysis)
 	}
@@ -422,7 +422,7 @@ func (iam *IntelligentAlertManager) processAlert(request *AlertProcessingRequest
 	return result
 }
 
-// generateAlertsFromAnalysis creates alerts from regression analysis
+// generateAlertsFromAnalysis creates alerts from regression analysis.
 func (iam *IntelligentAlertManager) generateAlertsFromAnalysis(analysis *RegressionAnalysisResult) []*RegressionAlert {
 	alerts := make([]*RegressionAlert, 0)
 
@@ -430,7 +430,7 @@ func (iam *IntelligentAlertManager) generateAlertsFromAnalysis(analysis *Regress
 		return alerts
 	}
 
-	// Generate primary regression alert
+	// Generate primary regression alert.
 	primaryAlert := &RegressionAlert{
 		ID:              fmt.Sprintf("regression-alert-%s", analysis.AnalysisID),
 		Timestamp:       analysis.Timestamp,
@@ -445,7 +445,7 @@ func (iam *IntelligentAlertManager) generateAlertsFromAnalysis(analysis *Regress
 
 	alerts = append(alerts, primaryAlert)
 
-	// Generate individual metric alerts for critical regressions
+	// Generate individual metric alerts for critical regressions.
 	for _, regression := range analysis.MetricRegressions {
 		if regression.Severity == "Critical" {
 			metricAlert := &RegressionAlert{
@@ -466,7 +466,7 @@ func (iam *IntelligentAlertManager) generateAlertsFromAnalysis(analysis *Regress
 	return alerts
 }
 
-// enrichAlerts adds contextual information to alerts
+// enrichAlerts adds contextual information to alerts.
 func (iam *IntelligentAlertManager) enrichAlerts(alerts []*RegressionAlert, analysis *RegressionAnalysisResult) []*EnrichedAlert {
 	enriched := make([]*EnrichedAlert, len(alerts))
 
@@ -504,9 +504,9 @@ func (iam *IntelligentAlertManager) enrichAlerts(alerts []*RegressionAlert, anal
 	return enriched
 }
 
-// sendNotifications sends alerts through configured notification channels
+// sendNotifications sends alerts through configured notification channels.
 func (iam *IntelligentAlertManager) sendNotifications(alert *EnrichedAlert) error {
-	// Determine appropriate channels based on severity
+	// Determine appropriate channels based on severity.
 	channels := iam.selectNotificationChannels(alert)
 
 	var errors []error
@@ -526,7 +526,7 @@ func (iam *IntelligentAlertManager) sendNotifications(alert *EnrichedAlert) erro
 		}
 	}
 
-	// Consider successful if at least one channel succeeded
+	// Consider successful if at least one channel succeeded.
 	if successCount > 0 {
 		return nil
 	}
@@ -538,7 +538,7 @@ func (iam *IntelligentAlertManager) sendNotifications(alert *EnrichedAlert) erro
 	return fmt.Errorf("no notification channels available")
 }
 
-// Slack notification implementation
+// Slack notification implementation.
 func (snc *SlackNotificationChannel) SendAlert(alert *EnrichedAlert) error {
 	payload := snc.buildSlackPayload(alert)
 
@@ -561,6 +561,7 @@ func (snc *SlackNotificationChannel) SendAlert(alert *EnrichedAlert) error {
 	return nil
 }
 
+// TestConnection performs testconnection operation.
 func (snc *SlackNotificationChannel) TestConnection() error {
 	testPayload := map[string]interface{}{
 		"text": "Test message from Nephoran Intent Operator Alert Manager",
@@ -577,21 +578,24 @@ func (snc *SlackNotificationChannel) TestConnection() error {
 	return nil
 }
 
+// GetConfig performs getconfig operation.
 func (snc *SlackNotificationChannel) GetConfig() map[string]interface{} {
 	return snc.config
 }
 
+// GetName performs getname operation.
 func (snc *SlackNotificationChannel) GetName() string {
 	return snc.name
 }
 
+// GetReliabilityScore performs getreliabilityscore operation.
 func (snc *SlackNotificationChannel) GetReliabilityScore() float64 {
 	return 0.95 // Slack is generally reliable
 }
 
-// buildSlackPayload creates Slack payload for alert
+// buildSlackPayload creates Slack payload for alert.
 func (snc *SlackNotificationChannel) buildSlackPayload(alert *EnrichedAlert) map[string]interface{} {
-	// Build rich Slack message with attachments
+	// Build rich Slack message with attachments.
 	attachment := map[string]interface{}{
 		"color": snc.getSeverityColor(alert.Severity),
 		"title": alert.Title,
@@ -616,7 +620,7 @@ func (snc *SlackNotificationChannel) buildSlackPayload(alert *EnrichedAlert) map
 		"timestamp": alert.Timestamp.Unix(),
 	}
 
-	// Add business impact if available
+	// Add business impact if available.
 	if alert.BusinessImpact != nil {
 		attachment["fields"] = append(attachment["fields"].([]map[string]interface{}),
 			map[string]interface{}{
@@ -648,9 +652,9 @@ func (snc *SlackNotificationChannel) getSeverityColor(severity string) string {
 	return "#9e9e9e"
 }
 
-// Supporting helper methods
+// Supporting helper methods.
 func (iam *IntelligentAlertManager) buildSlackPayload(alert *EnrichedAlert) map[string]interface{} {
-	// Build rich Slack message with attachments
+	// Build rich Slack message with attachments.
 	attachment := map[string]interface{}{
 		"color": iam.getSeverityColor(alert.Severity),
 		"title": alert.Title,
@@ -675,7 +679,7 @@ func (iam *IntelligentAlertManager) buildSlackPayload(alert *EnrichedAlert) map[
 		"timestamp": alert.Timestamp.Unix(),
 	}
 
-	// Add business impact if available
+	// Add business impact if available.
 	if alert.BusinessImpact != nil {
 		attachment["fields"] = append(attachment["fields"].([]map[string]interface{}),
 			map[string]interface{}{
@@ -707,7 +711,7 @@ func (iam *IntelligentAlertManager) getSeverityColor(severity string) string {
 	return "#9e9e9e"
 }
 
-// Helper methods with placeholder implementations
+// Helper methods with placeholder implementations.
 func (iam *IntelligentAlertManager) generateAlertTitle(analysis *RegressionAnalysisResult) string {
 	return fmt.Sprintf("Performance Regression Detected - %s Severity", analysis.RegressionSeverity)
 }
@@ -745,7 +749,7 @@ func (iam *IntelligentAlertManager) generateAlertContext(analysis *RegressionAna
 	}
 }
 
-// Default configuration functions
+// Default configuration functions.
 func getDefaultAlertManagerConfig() *AlertManagerConfig {
 	return &AlertManagerConfig{
 		MaxConcurrentWorkers:        5,
@@ -772,7 +776,7 @@ func getDefaultAlertManagerConfig() *AlertManagerConfig {
 	}
 }
 
-// Placeholder implementations for supporting components
+// Placeholder implementations for supporting components.
 func NewAlertCorrelationEngine(config *AlertManagerConfig) *AlertCorrelationEngine {
 	return &AlertCorrelationEngine{
 		correlationRules:   make([]*CorrelationRule, 0),
@@ -781,18 +785,22 @@ func NewAlertCorrelationEngine(config *AlertManagerConfig) *AlertCorrelationEngi
 	}
 }
 
+// NewAlertHistory performs newalerthistory operation.
 func NewAlertHistory(retentionPeriod time.Duration) *AlertHistory {
 	return &AlertHistory{}
 }
 
+// NewAlertRateLimiter performs newalertratelimiter operation.
 func NewAlertRateLimiter(config *AlertManagerConfig) *AlertRateLimiter {
 	return &AlertRateLimiter{}
 }
 
+// NewAlertMetrics performs newalertmetrics operation.
 func NewAlertMetrics() *AlertMetrics {
 	return &AlertMetrics{}
 }
 
+// NewAlertLearningEngine performs newalertlearningengine operation.
 func NewAlertLearningEngine(config *AlertManagerConfig) *AlertLearningEngine {
 	return &AlertLearningEngine{}
 }
@@ -809,7 +817,7 @@ func getDefaultProcessingOptions() *ProcessingOptions {
 	return &ProcessingOptions{}
 }
 
-// Placeholder method implementations
+// Placeholder method implementations.
 func (iam *IntelligentAlertManager) applyAlertRules(alerts []*RegressionAlert) []*RegressionAlert {
 	return alerts
 }
@@ -905,22 +913,24 @@ func (iam *IntelligentAlertManager) storeActiveAlerts(alerts []*EnrichedAlert) {
 }
 
 func (iam *IntelligentAlertManager) initializeNotificationChannels() {
-	// Console notification channel (always available)
+	// Console notification channel (always available).
 	iam.notificationChannels["console"] = &ConsoleNotificationChannel{
 		name: "console",
 	}
 }
 
-// Additional supporting types
+// Additional supporting types.
 type AlertWorker struct {
 	id      int
 	manager *IntelligentAlertManager
 }
 
+// NewAlertWorker performs newalertworker operation.
 func NewAlertWorker(id int, manager *IntelligentAlertManager) *AlertWorker {
 	return &AlertWorker{id: id, manager: manager}
 }
 
+// Start performs start operation.
 func (aw *AlertWorker) Start() {
 	klog.V(3).Infof("Alert worker %d started", aw.id)
 	for request := range aw.manager.processingQueue {
@@ -929,57 +939,66 @@ func (aw *AlertWorker) Start() {
 	}
 }
 
-// Console notification channel for testing
+// Console notification channel for testing.
 type ConsoleNotificationChannel struct {
 	name string
 }
 
+// SendAlert performs sendalert operation.
 func (cnc *ConsoleNotificationChannel) SendAlert(alert *EnrichedAlert) error {
 	klog.Infof("ALERT: [%s] %s - %s", alert.Severity, alert.Title, alert.Description)
 	return nil
 }
 
+// TestConnection performs testconnection operation.
 func (cnc *ConsoleNotificationChannel) TestConnection() error {
 	return nil
 }
 
+// GetConfig performs getconfig operation.
 func (cnc *ConsoleNotificationChannel) GetConfig() map[string]interface{} {
 	return map[string]interface{}{"type": "console"}
 }
 
+// GetName performs getname operation.
 func (cnc *ConsoleNotificationChannel) GetName() string {
 	return cnc.name
 }
 
+// GetReliabilityScore performs getreliabilityscore operation.
 func (cnc *ConsoleNotificationChannel) GetReliabilityScore() float64 {
 	return 1.0
 }
 
-// Placeholder method implementations for correlation engine
+// Placeholder method implementations for correlation engine.
 func (ace *AlertCorrelationEngine) CorrelateAlerts(alerts []*EnrichedAlert) []*EnrichedAlert {
-	// Placeholder correlation logic
+	// Placeholder correlation logic.
 	return alerts
 }
 
+// RecordAlertsProcessed performs recordalertsprocessed operation.
 func (am *AlertMetrics) RecordAlertsProcessed(count int) {
-	// Placeholder metrics recording
+	// Placeholder metrics recording.
 }
 
+// RecordNotificationsSent performs recordnotificationssent operation.
 func (am *AlertMetrics) RecordNotificationsSent(count int) {
-	// Placeholder metrics recording
+	// Placeholder metrics recording.
 }
 
+// ProcessAlerts performs processalerts operation.
 func (ale *AlertLearningEngine) ProcessAlerts(alerts []*EnrichedAlert, analysis *RegressionAnalysisResult) {
-	// Placeholder learning processing
+	// Placeholder learning processing.
 }
 
-// Additional supporting types for compilation
+// Additional supporting types for compilation.
 type HistoricalContext struct {
 	SimilarEvents        []*HistoricalAlert `json:"similarEvents"`
 	FrequencyPattern     string             `json:"frequencyPattern"`
 	SeasonalityIndicator bool               `json:"seasonalityIndicator"`
 }
 
+// BusinessImpact represents a businessimpact.
 type BusinessImpact struct {
 	EstimatedUserImpact int     `json:"estimatedUserImpact"`
 	ServiceCriticality  string  `json:"serviceCriticality"`
@@ -987,6 +1006,7 @@ type BusinessImpact struct {
 	SLAViolationRisk    float64 `json:"slaViolationRisk"`
 }
 
+// TechnicalDetails represents a technicaldetails.
 type TechnicalDetails struct {
 	ComponentsAffected     []string `json:"componentsAffected"`
 	DependencyChain        []string `json:"dependencyChain"`
@@ -994,23 +1014,45 @@ type TechnicalDetails struct {
 	DiagnosticQueries      []string `json:"diagnosticQueries"`
 }
 
-type ProcessingOptions struct{}
-type HistoricalAlert struct{}
-type SuppressedAlert struct{}
-type RootCauseCandidate struct{}
-type LearningEngineConfig struct{}
-type PatternRecognizer struct{}
-type ThresholdOptimizer struct{}
-type HistoricalAlertData struct{}
-type HumanFeedback struct{}
-type MLModel struct{}
-type LearningMetrics struct{}
-type CorrelationRule struct{}
-type TimeSeriesAnalyzer struct{}
-type PatternMatcher struct{}
-type CorrelationEvent struct{}
-type CorrelationFeedback struct{}
-type CorrelationMetrics struct{}
-type AlertRateLimiter struct{}
-type AlertMetrics struct{}
-type AlertHistory struct{}
+// ProcessingOptions represents a processingoptions.
+type (
+	ProcessingOptions struct{}
+	// HistoricalAlert represents a historicalalert.
+	HistoricalAlert struct{}
+	// SuppressedAlert represents a suppressedalert.
+	SuppressedAlert struct{}
+	// RootCauseCandidate represents a rootcausecandidate.
+	RootCauseCandidate struct{}
+	// LearningEngineConfig represents a learningengineconfig.
+	LearningEngineConfig struct{}
+	// PatternRecognizer represents a patternrecognizer.
+	PatternRecognizer struct{}
+	// ThresholdOptimizer represents a thresholdoptimizer.
+	ThresholdOptimizer struct{}
+	// HistoricalAlertData represents a historicalalertdata.
+	HistoricalAlertData struct{}
+	// HumanFeedback represents a humanfeedback.
+	HumanFeedback struct{}
+	// MLModel represents a mlmodel.
+	MLModel struct{}
+	// LearningMetrics represents a learningmetrics.
+	LearningMetrics struct{}
+	// CorrelationRule represents a correlationrule.
+	CorrelationRule struct{}
+	// TimeSeriesAnalyzer represents a timeseriesanalyzer.
+	TimeSeriesAnalyzer struct{}
+	// PatternMatcher represents a patternmatcher.
+	PatternMatcher struct{}
+	// CorrelationEvent represents a correlationevent.
+	CorrelationEvent struct{}
+	// CorrelationFeedback represents a correlationfeedback.
+	CorrelationFeedback struct{}
+	// CorrelationMetrics represents a correlationmetrics.
+	CorrelationMetrics struct{}
+	// AlertRateLimiter represents a alertratelimiter.
+	AlertRateLimiter struct{}
+	// AlertMetrics represents a alertmetrics.
+	AlertMetrics struct{}
+	// AlertHistory represents a alerthistory.
+	AlertHistory struct{}
+)

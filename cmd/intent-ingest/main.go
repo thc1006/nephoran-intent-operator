@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	// Command-line flags
+	// Command-line flags.
 	var (
 		addr       = flag.String("addr", ":8080", "HTTP server address")
 		handoffDir = flag.String("handoff", filepath.Join(".", "handoff"), "Directory for handoff files")
@@ -24,7 +24,7 @@ func main() {
 	)
 	flag.Parse()
 
-	// Check environment variables (command-line flags take precedence)
+	// Check environment variables (command-line flags take precedence).
 	if *mode == "" {
 		*mode = os.Getenv("MODE")
 		if *mode == "" {
@@ -39,7 +39,7 @@ func main() {
 		}
 	}
 
-	// Determine schema path
+	// Determine schema path.
 	var schemaPath string
 	if *schemaFile != "" {
 		schemaPath = *schemaFile
@@ -51,33 +51,33 @@ func main() {
 		schemaPath = filepath.Join(repoRoot, "docs", "contracts", "intent.schema.json")
 	}
 
-	// Initialize validator
+	// Initialize validator.
 	v, err := ingest.NewValidator(schemaPath)
 	if err != nil {
 		log.Fatalf("Failed to load schema: %v", err)
 	}
 
-	// Create provider based on mode
+	// Create provider based on mode.
 	intentProvider, err := ingest.NewProvider(*mode, *provider)
 	if err != nil {
 		log.Fatalf("Failed to create provider: %v", err)
 	}
 
-	// Create handler with provider
+	// Create handler with provider.
 	h := ingest.NewHandler(v, *handoffDir, intentProvider)
 
-	// Setup HTTP routes
+	// Setup HTTP routes.
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		if _, err := w.Write([]byte("ok\n")); err != nil {
-			// Log error but continue since response may have already been sent
+			// Log error but continue since response may have already been sent.
 			log.Printf("Failed to write health check response: %v", err)
 		}
 	})
 	mux.HandleFunc("/intent", h.HandleIntent)
 
-	// Start server
+	// Start server.
 	log.Printf("intent-ingest starting...")
 	log.Printf("  Address: %s", *addr)
 	log.Printf("  Mode: %s", *mode)
@@ -88,7 +88,7 @@ func main() {
 	log.Printf("  Schema: %s", schemaPath)
 
 	fmt.Printf("\nReady to accept intents at http://localhost%s/intent\n", *addr)
-	// Use http.Server with timeouts to fix G114 security warning
+	// Use http.Server with timeouts to fix G114 security warning.
 	server := &http.Server{
 		Addr:         *addr,
 		Handler:      mux,

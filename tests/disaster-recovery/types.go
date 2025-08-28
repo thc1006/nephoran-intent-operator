@@ -9,34 +9,47 @@ import (
 	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-// DisasterType defines types of disasters
+// DisasterType defines types of disasters.
 type DisasterType string
 
 const (
-	DisasterTypeDataCorruption      DisasterType = "data_corruption"
-	DisasterTypeControllerFailure   DisasterType = "controller_failure"
-	DisasterTypeEtcdFailure         DisasterType = "etcd_failure"
-	DisasterTypeNodeFailure         DisasterType = "node_failure"
-	DisasterTypeNetworkPartition    DisasterType = "network_partition"
+	// DisasterTypeDataCorruption holds disastertypedatacorruption value.
+	DisasterTypeDataCorruption DisasterType = "data_corruption"
+	// DisasterTypeControllerFailure holds disastertypecontrollerfailure value.
+	DisasterTypeControllerFailure DisasterType = "controller_failure"
+	// DisasterTypeEtcdFailure holds disastertypeetcdfailure value.
+	DisasterTypeEtcdFailure DisasterType = "etcd_failure"
+	// DisasterTypeNodeFailure holds disastertypenodefailure value.
+	DisasterTypeNodeFailure DisasterType = "node_failure"
+	// DisasterTypeNetworkPartition holds disastertypenetworkpartition value.
+	DisasterTypeNetworkPartition DisasterType = "network_partition"
+	// DisasterTypeCompleteClusterLoss holds disastertypecompleteclusterloss value.
 	DisasterTypeCompleteClusterLoss DisasterType = "complete_cluster_loss"
-	DisasterTypeStorageFailure      DisasterType = "storage_failure"
-	DisasterTypeBackupCorruption    DisasterType = "backup_corruption"
+	// DisasterTypeStorageFailure holds disastertypestoragefailure value.
+	DisasterTypeStorageFailure DisasterType = "storage_failure"
+	// DisasterTypeBackupCorruption holds disastertypebackupcorruption value.
+	DisasterTypeBackupCorruption DisasterType = "backup_corruption"
 )
 
-// RecoveryStrategy defines recovery approaches
+// RecoveryStrategy defines recovery approaches.
 type RecoveryStrategy string
 
 const (
-	RecoveryStrategyBackupRestore      RecoveryStrategy = "backup_restore"
-	RecoveryStrategyFailover           RecoveryStrategy = "failover"
-	RecoveryStrategyReplication        RecoveryStrategy = "replication"
-	RecoveryStrategyReconciliation     RecoveryStrategy = "reconciliation"
+	// RecoveryStrategyBackupRestore holds recoverystrategybackuprestore value.
+	RecoveryStrategyBackupRestore RecoveryStrategy = "backup_restore"
+	// RecoveryStrategyFailover holds recoverystrategyfailover value.
+	RecoveryStrategyFailover RecoveryStrategy = "failover"
+	// RecoveryStrategyReplication holds recoverystrategyreplication value.
+	RecoveryStrategyReplication RecoveryStrategy = "replication"
+	// RecoveryStrategyReconciliation holds recoverystrategyreconciliation value.
+	RecoveryStrategyReconciliation RecoveryStrategy = "reconciliation"
+	// RecoveryStrategyManualIntervention holds recoverystrategymanualintervention value.
 	RecoveryStrategyManualIntervention RecoveryStrategy = "manual_intervention"
 )
 
-// DisasterScenario represents a disaster recovery test scenario
-// Note: Function fields are defined with interface{} to avoid circular dependency
-// The actual functions should match the signature func(*DisasterRecoveryTestSuite) error
+// DisasterScenario represents a disaster recovery test scenario.
+// Note: Function fields are defined with interface{} to avoid circular dependency.
+// The actual functions should match the signature func(*DisasterRecoveryTestSuite) error.
 type DisasterScenario struct {
 	Name                string
 	Description         string
@@ -53,7 +66,7 @@ type DisasterScenario struct {
 	PostRecoveryCleanup interface{}   // func(*DisasterRecoveryTestSuite) error
 }
 
-// TestDataSet contains test data for disaster recovery scenarios
+// TestDataSet contains test data for disaster recovery scenarios.
 type TestDataSet struct {
 	NetworkIntents []nephoran.NetworkIntent
 	E2NodeSets     []nephoran.E2NodeSet
@@ -63,7 +76,7 @@ type TestDataSet struct {
 	Secrets        []corev1.Secret
 }
 
-// BackupMetadata contains backup information
+// BackupMetadata contains backup information.
 type BackupMetadata struct {
 	Timestamp        time.Time
 	BackupID         string
@@ -74,7 +87,7 @@ type BackupMetadata struct {
 	BackupPath       string
 }
 
-// RecoveryMetrics tracks recovery performance
+// RecoveryMetrics tracks recovery performance.
 type RecoveryMetrics struct {
 	StartTime           time.Time
 	EndTime             time.Time

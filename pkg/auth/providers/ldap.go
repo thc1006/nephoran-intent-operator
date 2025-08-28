@@ -11,16 +11,16 @@ import (
 	"github.com/go-ldap/ldap/v3"
 )
 
-// LDAPClient implements LDAP/AD authentication
+// LDAPClient implements LDAP/AD authentication.
 type LDAPClient struct {
 	config *LDAPConfig
 	conn   *ldap.Conn
 	logger *slog.Logger
 }
 
-// LDAPConfig represents LDAP configuration
+// LDAPConfig represents LDAP configuration.
 type LDAPConfig struct {
-	// Connection settings
+	// Connection settings.
 	Host         string `json:"host"`
 	Port         int    `json:"port"`
 	UseSSL       bool   `json:"use_ssl"`
@@ -29,37 +29,37 @@ type LDAPConfig struct {
 	BindDN       string `json:"bind_dn"`
 	BindPassword string `json:"bind_password"`
 
-	// Search settings
+	// Search settings.
 	BaseDN          string `json:"base_dn"`
 	UserFilter      string `json:"user_filter"`
 	GroupFilter     string `json:"group_filter"`
 	UserSearchBase  string `json:"user_search_base"`
 	GroupSearchBase string `json:"group_search_base"`
 
-	// Attribute mappings
+	// Attribute mappings.
 	UserAttributes  LDAPAttributeMap `json:"user_attributes"`
 	GroupAttributes LDAPAttributeMap `json:"group_attributes"`
 
-	// Authentication settings
+	// Authentication settings.
 	AuthMethod        string        `json:"auth_method"` // "simple", "sasl"
 	Timeout           time.Duration `json:"timeout"`
 	ConnectionTimeout time.Duration `json:"connection_timeout"`
 	MaxConnections    int           `json:"max_connections"`
 
-	// Active Directory specific
+	// Active Directory specific.
 	IsActiveDirectory bool   `json:"is_active_directory"`
 	Domain            string `json:"domain"`
 
-	// Group membership
+	// Group membership.
 	GroupMemberAttribute string `json:"group_member_attribute"`
 	UserGroupAttribute   string `json:"user_group_attribute"`
 
-	// Role mapping
+	// Role mapping.
 	RoleMappings map[string][]string `json:"role_mappings"`
 	DefaultRoles []string            `json:"default_roles"`
 }
 
-// LDAPAttributeMap maps LDAP attributes to standard fields
+// LDAPAttributeMap maps LDAP attributes to standard fields.
 type LDAPAttributeMap struct {
 	Username    string `json:"username"`
 	Email       string `json:"email"`
@@ -73,7 +73,7 @@ type LDAPAttributeMap struct {
 	Manager     string `json:"manager"`
 }
 
-// LDAPUserInfo represents LDAP user information
+// LDAPUserInfo represents LDAP user information.
 type LDAPUserInfo struct {
 	DN          string            `json:"dn"`
 	Username    string            `json:"username"`
@@ -90,7 +90,7 @@ type LDAPUserInfo struct {
 	Active      bool              `json:"active"`
 }
 
-// LDAPGroupInfo represents LDAP group information
+// LDAPGroupInfo represents LDAP group information.
 type LDAPGroupInfo struct {
 	DN          string   `json:"dn"`
 	Name        string   `json:"name"`
@@ -100,14 +100,14 @@ type LDAPGroupInfo struct {
 	Type        string   `json:"type"`
 }
 
-// NewLDAPProvider creates a new LDAP provider (alias for NewLDAPClient)
+// NewLDAPProvider creates a new LDAP provider (alias for NewLDAPClient).
 func NewLDAPProvider(config *LDAPConfig, logger *slog.Logger) LDAPProvider {
 	return NewLDAPClient(config, logger)
 }
 
-// NewLDAPClient creates a new LDAP client
+// NewLDAPClient creates a new LDAP client.
 func NewLDAPClient(config *LDAPConfig, logger *slog.Logger) *LDAPClient {
-	// Set defaults
+	// Set defaults.
 	if config.Port == 0 {
 		if config.UseSSL {
 			config.Port = 636
@@ -128,7 +128,7 @@ func NewLDAPClient(config *LDAPConfig, logger *slog.Logger) *LDAPClient {
 		config.MaxConnections = 10
 	}
 
-	// Set default attribute mappings
+	// Set default attribute mappings.
 	if config.UserAttributes.Username == "" {
 		if config.IsActiveDirectory {
 			config.UserAttributes.Username = "sAMAccountName"
@@ -152,7 +152,7 @@ func NewLDAPClient(config *LDAPConfig, logger *slog.Logger) *LDAPClient {
 		}
 	}
 
-	// Set default filters
+	// Set default filters.
 	if config.UserFilter == "" {
 		if config.IsActiveDirectory {
 			config.UserFilter = "(&(objectClass=user)(objectCategory=person)(!userAccountControl:1.2.840.113556.1.4.803:=2))"
@@ -191,7 +191,7 @@ func NewLDAPClient(config *LDAPConfig, logger *slog.Logger) *LDAPClient {
 	}
 }
 
-// Connect establishes connection to LDAP server
+// Connect establishes connection to LDAP server.
 func (p *LDAPClient) Connect(ctx context.Context) error {
 	address := fmt.Sprintf("%s:%d", p.config.Host, p.config.Port)
 
@@ -199,17 +199,17 @@ func (p *LDAPClient) Connect(ctx context.Context) error {
 	var err error
 
 	if p.config.UseSSL {
-		// Direct SSL connection
+		// Direct SSL connection.
 		tlsConfig := &tls.Config{
 			ServerName:         p.config.Host,
 			InsecureSkipVerify: p.config.SkipVerify,
 		}
-		conn, err = ldap.DialTLS("tcp", address, tlsConfig)
+		conn, err = ldap.DialURL(fmt.Sprintf("ldaps://%s", address), ldap.DialWithTLSConfig(tlsConfig))
 	} else {
-		// Plain connection
-		conn, err = ldap.Dial("tcp", address)
+		// Plain connection.
+		conn, err = ldap.DialURL(fmt.Sprintf("ldap://%s", address))
 		if err == nil && p.config.UseTLS {
-			// Upgrade to TLS
+			// Upgrade to TLS.
 			tlsConfig := &tls.Config{
 				ServerName:         p.config.Host,
 				InsecureSkipVerify: p.config.SkipVerify,
@@ -222,12 +222,12 @@ func (p *LDAPClient) Connect(ctx context.Context) error {
 		return fmt.Errorf("failed to connect to LDAP server: %w", err)
 	}
 
-	// Set connection timeout
+	// Set connection timeout.
 	conn.SetTimeout(p.config.ConnectionTimeout)
 
 	p.conn = conn
 
-	// Bind with service account
+	// Bind with service account.
 	if p.config.BindDN != "" && p.config.BindPassword != "" {
 		err = p.conn.Bind(p.config.BindDN, p.config.BindPassword)
 		if err != nil {
@@ -245,7 +245,7 @@ func (p *LDAPClient) Connect(ctx context.Context) error {
 	return nil
 }
 
-// Authenticate authenticates user with LDAP
+// Authenticate authenticates user with LDAP.
 func (p *LDAPClient) Authenticate(ctx context.Context, username, password string) (*UserInfo, error) {
 	if p.conn == nil {
 		if err := p.Connect(ctx); err != nil {
@@ -253,13 +253,13 @@ func (p *LDAPClient) Authenticate(ctx context.Context, username, password string
 		}
 	}
 
-	// Search for user
+	// Search for user.
 	userDN, ldapUser, err := p.findUser(username)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
 	}
 
-	// Try to bind with user credentials
+	// Try to bind with user credentials.
 	err = p.conn.Bind(userDN, password)
 	if err != nil {
 		p.logger.Warn("Authentication failed",
@@ -268,7 +268,7 @@ func (p *LDAPClient) Authenticate(ctx context.Context, username, password string
 		return nil, fmt.Errorf("authentication failed: invalid credentials")
 	}
 
-	// Re-bind with service account for subsequent operations
+	// Re-bind with service account for subsequent operations.
 	if p.config.BindDN != "" {
 		err = p.conn.Bind(p.config.BindDN, p.config.BindPassword)
 		if err != nil {
@@ -276,17 +276,17 @@ func (p *LDAPClient) Authenticate(ctx context.Context, username, password string
 		}
 	}
 
-	// Get user groups
+	// Get user groups.
 	groups, err := p.GetUserGroups(ctx, username)
 	if err != nil {
 		p.logger.Warn("Failed to get user groups", "username", username, "error", err)
 		groups = []string{} // Continue without groups
 	}
 
-	// Get user roles from group mappings
+	// Get user roles from group mappings.
 	roles := p.mapGroupsToRoles(groups)
 
-	// Convert to standard UserInfo
+	// Convert to standard UserInfo.
 	userInfo := &UserInfo{
 		Subject:       ldapUser.Username,
 		Email:         ldapUser.Email,
@@ -317,7 +317,7 @@ func (p *LDAPClient) Authenticate(ctx context.Context, username, password string
 	return userInfo, nil
 }
 
-// SearchUser searches for user in LDAP directory
+// SearchUser searches for user in LDAP directory.
 func (p *LDAPClient) SearchUser(ctx context.Context, username string) (*UserInfo, error) {
 	if p.conn == nil {
 		if err := p.Connect(ctx); err != nil {
@@ -330,13 +330,13 @@ func (p *LDAPClient) SearchUser(ctx context.Context, username string) (*UserInfo
 		return nil, err
 	}
 
-	// Get user groups
+	// Get user groups.
 	groups, err := p.GetUserGroups(ctx, username)
 	if err != nil {
 		groups = []string{}
 	}
 
-	// Map groups to roles
+	// Map groups to roles.
 	roles := p.mapGroupsToRoles(groups)
 
 	userInfo := &UserInfo{
@@ -364,7 +364,7 @@ func (p *LDAPClient) SearchUser(ctx context.Context, username string) (*UserInfo
 	return userInfo, nil
 }
 
-// GetUserGroups retrieves groups for user
+// GetUserGroups retrieves groups for user.
 func (p *LDAPClient) GetUserGroups(ctx context.Context, username string) ([]string, error) {
 	if p.conn == nil {
 		if err := p.Connect(ctx); err != nil {
@@ -372,7 +372,7 @@ func (p *LDAPClient) GetUserGroups(ctx context.Context, username string) ([]stri
 		}
 	}
 
-	// First find the user to get their DN
+	// First find the user to get their DN.
 	userDN, _, err := p.findUser(username)
 	if err != nil {
 		return nil, err
@@ -380,7 +380,7 @@ func (p *LDAPClient) GetUserGroups(ctx context.Context, username string) ([]stri
 
 	var groups []string
 
-	// Method 1: Query groups that have this user as a member
+	// Method 1: Query groups that have this user as a member.
 	searchBase := p.config.GroupSearchBase
 	if searchBase == "" {
 		searchBase = p.config.BaseDN
@@ -408,7 +408,7 @@ func (p *LDAPClient) GetUserGroups(ctx context.Context, username string) ([]stri
 		}
 	}
 
-	// Method 2: Check user's memberOf attribute (if available)
+	// Method 2: Check user's memberOf attribute (if available).
 	userSearchRequest := ldap.NewSearchRequest(
 		userDN,
 		ldap.ScopeBaseObject,
@@ -423,7 +423,7 @@ func (p *LDAPClient) GetUserGroups(ctx context.Context, username string) ([]stri
 	if err == nil && len(userResult.Entries) > 0 {
 		memberOfValues := userResult.Entries[0].GetAttributeValues(p.config.UserGroupAttribute)
 		for _, memberOf := range memberOfValues {
-			// Extract group name from DN
+			// Extract group name from DN.
 			groupName := p.extractGroupNameFromDN(memberOf)
 			if groupName != "" && !p.containsString(groups, groupName) {
 				groups = append(groups, groupName)
@@ -434,7 +434,7 @@ func (p *LDAPClient) GetUserGroups(ctx context.Context, username string) ([]stri
 	return groups, nil
 }
 
-// GetUserRoles retrieves roles for user based on group mappings
+// GetUserRoles retrieves roles for user based on group mappings.
 func (p *LDAPClient) GetUserRoles(ctx context.Context, username string) ([]string, error) {
 	groups, err := p.GetUserGroups(ctx, username)
 	if err != nil {
@@ -445,7 +445,7 @@ func (p *LDAPClient) GetUserRoles(ctx context.Context, username string) ([]strin
 	return roles, nil
 }
 
-// ValidateUserAttributes validates user attributes
+// ValidateUserAttributes validates user attributes.
 func (p *LDAPClient) ValidateUserAttributes(ctx context.Context, username string, requiredAttrs map[string]string) error {
 	userInfo, err := p.SearchUser(ctx, username)
 	if err != nil {
@@ -463,7 +463,7 @@ func (p *LDAPClient) ValidateUserAttributes(ctx context.Context, username string
 	return nil
 }
 
-// Close closes LDAP connection
+// Close closes LDAP connection.
 func (p *LDAPClient) Close() error {
 	if p.conn != nil {
 		p.conn.Close()
@@ -473,7 +473,7 @@ func (p *LDAPClient) Close() error {
 	return nil
 }
 
-// Private helper methods
+// Private helper methods.
 
 func (p *LDAPClient) findUser(username string) (string, *LDAPUserInfo, error) {
 	searchBase := p.config.UserSearchBase
@@ -481,10 +481,10 @@ func (p *LDAPClient) findUser(username string) (string, *LDAPUserInfo, error) {
 		searchBase = p.config.BaseDN
 	}
 
-	// Build search filter
+	// Build search filter.
 	var filter string
 	if p.config.IsActiveDirectory && p.config.Domain != "" {
-		// For AD, try both sAMAccountName and userPrincipalName
+		// For AD, try both sAMAccountName and userPrincipalName.
 		filter = fmt.Sprintf("(&%s(|(%s=%s)(%s=%s@%s)))",
 			p.config.UserFilter,
 			p.config.UserAttributes.Username, username,
@@ -495,7 +495,7 @@ func (p *LDAPClient) findUser(username string) (string, *LDAPUserInfo, error) {
 			p.config.UserAttributes.Username, username)
 	}
 
-	// Define attributes to retrieve
+	// Define attributes to retrieve.
 	attributes := []string{
 		p.config.UserAttributes.Username,
 		p.config.UserAttributes.Email,
@@ -509,7 +509,7 @@ func (p *LDAPClient) findUser(username string) (string, *LDAPUserInfo, error) {
 		p.config.UserGroupAttribute,
 	}
 
-	// Add AD-specific attributes
+	// Add AD-specific attributes.
 	if p.config.IsActiveDirectory {
 		attributes = append(attributes, "userAccountControl", "objectSid")
 	}
@@ -537,13 +537,13 @@ func (p *LDAPClient) findUser(username string) (string, *LDAPUserInfo, error) {
 
 	entry := result.Entries[0]
 
-	// Check if user is active (for Active Directory)
+	// Check if user is active (for Active Directory).
 	active := true
 	if p.config.IsActiveDirectory {
 		uac := entry.GetAttributeValue("userAccountControl")
 		if uac != "" {
-			// Check if account is disabled (bit 2)
-			// This is a simplified check - full implementation would parse the UAC properly
+			// Check if account is disabled (bit 2).
+			// This is a simplified check - full implementation would parse the UAC properly.
 			active = !strings.Contains(uac, "2")
 		}
 	}
@@ -563,7 +563,7 @@ func (p *LDAPClient) findUser(username string) (string, *LDAPUserInfo, error) {
 		Attributes:  make(map[string]string),
 	}
 
-	// Store all attributes
+	// Store all attributes.
 	for _, attr := range entry.Attributes {
 		if len(attr.Values) > 0 {
 			ldapUser.Attributes[attr.Name] = attr.Values[0]
@@ -577,7 +577,7 @@ func (p *LDAPClient) mapGroupsToRoles(groups []string) []string {
 	var roles []string
 	roleSet := make(map[string]bool)
 
-	// Add default roles
+	// Add default roles.
 	for _, role := range p.config.DefaultRoles {
 		if !roleSet[role] {
 			roles = append(roles, role)
@@ -585,7 +585,7 @@ func (p *LDAPClient) mapGroupsToRoles(groups []string) []string {
 		}
 	}
 
-	// Map groups to roles
+	// Map groups to roles.
 	for _, group := range groups {
 		if mappedRoles, exists := p.config.RoleMappings[group]; exists {
 			for _, role := range mappedRoles {
@@ -601,7 +601,7 @@ func (p *LDAPClient) mapGroupsToRoles(groups []string) []string {
 }
 
 func (p *LDAPClient) extractGroupNameFromDN(dn string) string {
-	// Extract CN from DN
+	// Extract CN from DN.
 	parts := strings.Split(dn, ",")
 	for _, part := range parts {
 		part = strings.TrimSpace(part)
@@ -621,7 +621,7 @@ func (p *LDAPClient) containsString(slice []string, item string) bool {
 	return false
 }
 
-// GetGroupInfo retrieves detailed group information
+// GetGroupInfo retrieves detailed group information.
 func (p *LDAPClient) GetGroupInfo(ctx context.Context, groupName string) (*LDAPGroupInfo, error) {
 	if p.conn == nil {
 		if err := p.Connect(ctx); err != nil {
@@ -671,7 +671,7 @@ func (p *LDAPClient) GetGroupInfo(ctx context.Context, groupName string) (*LDAPG
 	return groupInfo, nil
 }
 
-// ListGroups lists all groups
+// ListGroups lists all groups.
 func (p *LDAPClient) ListGroups(ctx context.Context) ([]*LDAPGroupInfo, error) {
 	if p.conn == nil {
 		if err := p.Connect(ctx); err != nil {
@@ -716,13 +716,13 @@ func (p *LDAPClient) ListGroups(ctx context.Context) ([]*LDAPGroupInfo, error) {
 	return groups, nil
 }
 
-// TestConnection tests LDAP connection and authentication
+// TestConnection tests LDAP connection and authentication.
 func (p *LDAPClient) TestConnection(ctx context.Context) error {
 	if err := p.Connect(ctx); err != nil {
 		return fmt.Errorf("connection failed: %w", err)
 	}
 
-	// Test search capability
+	// Test search capability.
 	searchRequest := ldap.NewSearchRequest(
 		p.config.BaseDN,
 		ldap.ScopeBaseObject,
@@ -744,27 +744,27 @@ func (p *LDAPClient) TestConnection(ctx context.Context) error {
 	return nil
 }
 
-// GetConfig returns the LDAP configuration (for testing)
+// GetConfig returns the LDAP configuration (for testing).
 func (p *LDAPClient) GetConfig() *LDAPConfig {
 	return p.config
 }
 
-// GetLogger returns the logger (for testing)
+// GetLogger returns the logger (for testing).
 func (p *LDAPClient) GetLogger() *slog.Logger {
 	return p.logger
 }
 
-// MapGroupsToRoles maps LDAP groups to roles (exported for testing)
+// MapGroupsToRoles maps LDAP groups to roles (exported for testing).
 func (p *LDAPClient) MapGroupsToRoles(groups []string) []string {
 	return p.mapGroupsToRoles(groups)
 }
 
-// ExtractGroupNameFromDN extracts group name from DN (exported for testing)
+// ExtractGroupNameFromDN extracts group name from DN (exported for testing).
 func (p *LDAPClient) ExtractGroupNameFromDN(dn string) string {
 	return p.extractGroupNameFromDN(dn)
 }
 
-// ContainsString checks if slice contains string (exported for testing)
+// ContainsString checks if slice contains string (exported for testing).
 func (p *LDAPClient) ContainsString(slice []string, item string) bool {
 	return p.containsString(slice, item)
 }

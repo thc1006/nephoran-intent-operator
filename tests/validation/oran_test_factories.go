@@ -1,5 +1,5 @@
-// Package validation provides comprehensive test data factories for O-RAN interface testing
-// This module creates realistic test data for A1, E2, O1, and O2 interface testing scenarios
+// Package validation provides comprehensive test data factories for O-RAN interface testing.
+// This module creates realistic test data for A1, E2, O1, and O2 interface testing scenarios.
 package validation
 
 import (
@@ -10,13 +10,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ORANTestFactory provides factory methods for creating O-RAN test data
+// ORANTestFactory provides factory methods for creating O-RAN test data.
 type ORANTestFactory struct {
 	nameCounter int
 	timeBase    time.Time
 }
 
-// NewORANTestFactory creates a new O-RAN test factory
+// NewORANTestFactory creates a new O-RAN test factory.
 func NewORANTestFactory() *ORANTestFactory {
 	return &ORANTestFactory{
 		nameCounter: 1,
@@ -24,16 +24,16 @@ func NewORANTestFactory() *ORANTestFactory {
 	}
 }
 
-// GetNextName generates a unique test name
+// GetNextName generates a unique test name.
 func (otf *ORANTestFactory) GetNextName(prefix string) string {
 	name := fmt.Sprintf("%s-%03d", prefix, otf.nameCounter)
 	otf.nameCounter++
 	return name
 }
 
-// A1 Interface Test Factories
+// A1 Interface Test Factories.
 
-// CreateA1PolicyManagementIntent creates a NetworkIntent for A1 policy management testing
+// CreateA1PolicyManagementIntent creates a NetworkIntent for A1 policy management testing.
 func (otf *ORANTestFactory) CreateA1PolicyManagementIntent(scenario string) *nephranv1.NetworkIntent {
 	var intent string
 	var labels map[string]string
@@ -98,7 +98,7 @@ func (otf *ORANTestFactory) CreateA1PolicyManagementIntent(scenario string) *nep
 	}
 }
 
-// CreateA1Policy creates a test A1 policy
+// CreateA1Policy creates a test A1 policy.
 func (otf *ORANTestFactory) CreateA1Policy(policyType string) *A1Policy {
 	var policyData map[string]interface{}
 
@@ -152,7 +152,7 @@ func (otf *ORANTestFactory) CreateA1Policy(policyType string) *A1Policy {
 	}
 }
 
-// CreateXAppConfig creates a test xApp configuration
+// CreateXAppConfig creates a test xApp configuration.
 func (otf *ORANTestFactory) CreateXAppConfig(xappType string) *XAppConfig {
 	var configData map[string]interface{}
 
@@ -210,9 +210,9 @@ func (otf *ORANTestFactory) CreateXAppConfig(xappType string) *XAppConfig {
 	}
 }
 
-// E2 Interface Test Factories
+// E2 Interface Test Factories.
 
-// CreateE2NodeManagementIntent creates a NetworkIntent for E2 node management testing
+// CreateE2NodeManagementIntent creates a NetworkIntent for E2 node management testing.
 func (otf *ORANTestFactory) CreateE2NodeManagementIntent(scenario string) *nephranv1.NetworkIntent {
 	var intent string
 	var labels map[string]string
@@ -270,7 +270,7 @@ func (otf *ORANTestFactory) CreateE2NodeManagementIntent(scenario string) *nephr
 	}
 }
 
-// CreateE2NodeSet creates a test E2NodeSet with comprehensive configuration
+// CreateE2NodeSet creates a test E2NodeSet with comprehensive configuration.
 func (otf *ORANTestFactory) CreateE2NodeSet(scenario string, replicas int32) *nephranv1.E2NodeSet {
 	var ranFunctions []nephranv1.RANFunction
 	var simulationConfig *nephranv1.SimulationConfig
@@ -389,7 +389,7 @@ func (otf *ORANTestFactory) CreateE2NodeSet(scenario string, replicas int32) *ne
 	}
 }
 
-// CreateE2Subscription creates a test E2 subscription
+// CreateE2Subscription creates a test E2 subscription.
 func (otf *ORANTestFactory) CreateE2Subscription(serviceModel, nodeID string) *E2Subscription {
 	var eventTrigger map[string]interface{}
 	var actions []E2Action
@@ -480,7 +480,7 @@ func (otf *ORANTestFactory) CreateE2Subscription(serviceModel, nodeID string) *E
 	}
 }
 
-// CreateE2Node creates a test E2 node
+// CreateE2Node creates a test E2 node.
 func (otf *ORANTestFactory) CreateE2Node(nodeType string) *E2Node {
 	var supportedModels []string
 	var capabilities map[string]interface{}
@@ -533,9 +533,9 @@ func (otf *ORANTestFactory) CreateE2Node(nodeType string) *E2Node {
 	}
 }
 
-// O1 Interface Test Factories
+// O1 Interface Test Factories.
 
-// CreateO1FCAPSIntent creates a NetworkIntent for O1 FCAPS testing
+// CreateO1FCAPSIntent creates a NetworkIntent for O1 FCAPS testing.
 func (otf *ORANTestFactory) CreateO1FCAPSIntent(scenario string) *nephranv1.NetworkIntent {
 	var intent string
 	var labels map[string]string
@@ -602,7 +602,7 @@ func (otf *ORANTestFactory) CreateO1FCAPSIntent(scenario string) *nephranv1.Netw
 	}
 }
 
-// CreateManagedElement creates a test managed element for O1 testing
+// CreateManagedElement creates a test managed element for O1 testing.
 func (otf *ORANTestFactory) CreateManagedElement(elementType string) *ManagedElement {
 	var configuration map[string]interface{}
 
@@ -674,7 +674,7 @@ func (otf *ORANTestFactory) CreateManagedElement(elementType string) *ManagedEle
 	}
 }
 
-// CreateO1Configuration creates a test O1 configuration
+// CreateO1Configuration creates a test O1 configuration.
 func (otf *ORANTestFactory) CreateO1Configuration(configType, elementID string) *O1Configuration {
 	var configData map[string]interface{}
 
@@ -754,9 +754,9 @@ func (otf *ORANTestFactory) CreateO1Configuration(configType, elementID string) 
 	}
 }
 
-// O2 Interface Test Factories
+// O2 Interface Test Factories.
 
-// CreateO2CloudInfraIntent creates a NetworkIntent for O2 cloud infrastructure testing
+// CreateO2CloudInfraIntent creates a NetworkIntent for O2 cloud infrastructure testing.
 func (otf *ORANTestFactory) CreateO2CloudInfraIntent(scenario string) *nephranv1.NetworkIntent {
 	var intent string
 	var labels map[string]string
@@ -822,9 +822,9 @@ func (otf *ORANTestFactory) CreateO2CloudInfraIntent(scenario string) *nephranv1
 	}
 }
 
-// Performance Benchmark Factories
+// Performance Benchmark Factories.
 
-// CreatePerformanceBenchmarkData creates test data for performance benchmarking
+// CreatePerformanceBenchmarkData creates test data for performance benchmarking.
 func (otf *ORANTestFactory) CreatePerformanceBenchmarkData() map[string]*InterfaceMetrics {
 	return map[string]*InterfaceMetrics{
 		"A1": {
@@ -870,7 +870,7 @@ func (otf *ORANTestFactory) CreatePerformanceBenchmarkData() map[string]*Interfa
 	}
 }
 
-// CreateServiceModels creates test service models for E2 interface
+// CreateServiceModels creates test service models for E2 interface.
 func (otf *ORANTestFactory) CreateServiceModels() []*ServiceModel {
 	return []*ServiceModel{
 		{
@@ -928,7 +928,7 @@ func (otf *ORANTestFactory) CreateServiceModels() []*ServiceModel {
 	}
 }
 
-// Reset resets the factory counters
+// Reset resets the factory counters.
 func (otf *ORANTestFactory) Reset() {
 	otf.nameCounter = 1
 	otf.timeBase = time.Now()

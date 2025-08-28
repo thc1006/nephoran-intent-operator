@@ -16,9 +16,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// Test compatibility methods for O2Adaptor
+// Test compatibility methods for O2Adaptor.
 
-// DeployVNF with interface{} parameter to handle both VNFDeployRequest and VNFDescriptor
+// DeployVNF with interface{} parameter to handle both VNFDeployRequest and VNFDescriptor.
 func (o2 *O2Adaptor) DeployVNF(ctx context.Context, request interface{}) (interface{}, error) {
 	switch req := request.(type) {
 	case *VNFDeployRequest:
@@ -30,14 +30,14 @@ func (o2 *O2Adaptor) DeployVNF(ctx context.Context, request interface{}) (interf
 	}
 }
 
-// deployVNFFromRequest handles VNFDeployRequest
+// deployVNFFromRequest handles VNFDeployRequest.
 func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeployRequest) (*O2VNFInstance, error) {
 	namespace := request.Namespace
 	if namespace == "" {
 		namespace = o2.config.Namespace
 	}
 
-	// Create Kubernetes deployment
+	// Create Kubernetes deployment.
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      request.Name,
@@ -75,7 +75,7 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 		},
 	}
 
-	// Apply metadata labels
+	// Apply metadata labels.
 	if request.Metadata != nil {
 		for key, value := range request.Metadata {
 			deployment.Labels[key] = value
@@ -127,13 +127,13 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 		deployment.Spec.Template.Spec.Tolerations = request.Tolerations
 	}
 
-	// Create deployment
+	// Create deployment.
 	err := o2.kubeClient.Create(ctx, deployment)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create deployment: %w", err)
 	}
 
-	// Create service if network config is specified
+	// Create service if network config is specified.
 	if request.NetworkConfig != nil {
 		service := &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
@@ -153,7 +153,7 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 		}
 	}
 
-	// Return VNF instance
+	// Return VNF instance.
 	instance := &O2VNFInstance{
 		ID:           fmt.Sprintf("%s-%s", namespace, request.Name),
 		Name:         request.Name,
@@ -179,7 +179,7 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 		}
 	}
 
-	// Add network endpoints
+	// Add network endpoints.
 	if request.NetworkConfig != nil {
 		for _, port := range request.NetworkConfig.Ports {
 			instance.NetworkEndpoints = append(instance.NetworkEndpoints, NetworkEndpoint{
@@ -194,9 +194,9 @@ func (o2 *O2Adaptor) deployVNFFromRequest(ctx context.Context, request *VNFDeplo
 	return instance, nil
 }
 
-// deployVNFFromDescriptor handles VNFDescriptor
+// deployVNFFromDescriptor handles VNFDescriptor.
 func (o2 *O2Adaptor) deployVNFFromDescriptor(ctx context.Context, descriptor *VNFDescriptor) (*VNFDeploymentStatus, error) {
-	// Convert to VNFDeployRequest and deploy
+	// Convert to VNFDeployRequest and deploy.
 	request := &VNFDeployRequest{
 		Name:            descriptor.Name,
 		Namespace:       o2.config.Namespace,
@@ -229,7 +229,7 @@ func (o2 *O2Adaptor) deployVNFFromDescriptor(ctx context.Context, descriptor *VN
 	}, nil
 }
 
-// ScaleVNF scales a VNF instance
+// ScaleVNF scales a VNF instance.
 func (o2 *O2Adaptor) ScaleVNF(ctx context.Context, instanceID string, request *VNFScaleRequest) error {
 	parts := strings.SplitN(instanceID, "-", 2)
 	if len(parts) != 2 {
@@ -265,7 +265,7 @@ func (o2 *O2Adaptor) ScaleVNF(ctx context.Context, instanceID string, request *V
 	return o2.kubeClient.Update(ctx, deployment)
 }
 
-// GetVNFInstance gets a VNF instance by ID
+// GetVNFInstance gets a VNF instance by ID.
 func (o2 *O2Adaptor) GetVNFInstance(ctx context.Context, instanceID string) (*O2VNFInstance, error) {
 	parts := strings.SplitN(instanceID, "-", 2)
 	if len(parts) != 2 {
@@ -282,7 +282,7 @@ func (o2 *O2Adaptor) GetVNFInstance(ctx context.Context, instanceID string) (*O2
 		return nil, fmt.Errorf("failed to get deployment: %w", err)
 	}
 
-	// Get associated services
+	// Get associated services.
 	serviceList := &corev1.ServiceList{}
 	err = o2.kubeClient.List(ctx, serviceList, client.InNamespace(namespace), client.MatchingLabels{"app": name})
 	if err != nil {
@@ -301,7 +301,7 @@ func (o2 *O2Adaptor) GetVNFInstance(ctx context.Context, instanceID string) (*O2
 		UpdatedAt: time.Now(),
 	}
 
-	// Add network endpoints from services
+	// Add network endpoints from services.
 	for _, service := range serviceList.Items {
 		for _, port := range service.Spec.Ports {
 			instance.NetworkEndpoints = append(instance.NetworkEndpoints, NetworkEndpoint{
@@ -316,7 +316,7 @@ func (o2 *O2Adaptor) GetVNFInstance(ctx context.Context, instanceID string) (*O2
 	return instance, nil
 }
 
-// ScaleWorkload scales a workload by ID
+// ScaleWorkload scales a workload by ID.
 func (o2 *O2Adaptor) ScaleWorkload(ctx context.Context, workloadID string, replicas int32) error {
 	parts := strings.SplitN(workloadID, "/", 2)
 	if len(parts) != 2 {
@@ -337,7 +337,7 @@ func (o2 *O2Adaptor) ScaleWorkload(ctx context.Context, workloadID string, repli
 	return o2.kubeClient.Update(ctx, deployment)
 }
 
-// DiscoverResources discovers cluster resources
+// DiscoverResources discovers cluster resources.
 func (o2 *O2Adaptor) DiscoverResources(ctx context.Context) (*ResourceMap, error) {
 	resourceMap := &ResourceMap{
 		Nodes:      make(map[string]*NodeInfo),
@@ -349,7 +349,7 @@ func (o2 *O2Adaptor) DiscoverResources(ctx context.Context) (*ResourceMap, error
 		},
 	}
 
-	// Discover nodes
+	// Discover nodes.
 	nodeList := &corev1.NodeList{}
 	err := o2.kubeClient.List(ctx, nodeList)
 	if err != nil {
@@ -364,7 +364,7 @@ func (o2 *O2Adaptor) DiscoverResources(ctx context.Context) (*ResourceMap, error
 			Roles:  []string{},
 		}
 
-		// Determine roles
+		// Determine roles.
 		for label := range node.Labels {
 			if strings.HasPrefix(label, "node-role.kubernetes.io/") {
 				role := strings.TrimPrefix(label, "node-role.kubernetes.io/")
@@ -380,7 +380,7 @@ func (o2 *O2Adaptor) DiscoverResources(ctx context.Context) (*ResourceMap, error
 
 		resourceMap.Nodes[node.Name] = nodeInfo
 
-		// Count ready nodes
+		// Count ready nodes.
 		for _, condition := range node.Status.Conditions {
 			if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
 				resourceMap.Metrics.ReadyNodes++
@@ -388,7 +388,7 @@ func (o2 *O2Adaptor) DiscoverResources(ctx context.Context) (*ResourceMap, error
 			}
 		}
 
-		// Sum resources
+		// Sum resources.
 		if cpu := node.Status.Capacity.Cpu(); cpu != nil {
 			totalCPU.Add(*cpu)
 		}
@@ -400,7 +400,7 @@ func (o2 *O2Adaptor) DiscoverResources(ctx context.Context) (*ResourceMap, error
 	resourceMap.Metrics.TotalCPU = totalCPU.String()
 	resourceMap.Metrics.TotalMemory = totalMemory.String()
 
-	// Discover namespaces
+	// Discover namespaces.
 	namespaceList := &corev1.NamespaceList{}
 	err = o2.kubeClient.List(ctx, namespaceList)
 	if err != nil {
@@ -417,7 +417,7 @@ func (o2 *O2Adaptor) DiscoverResources(ctx context.Context) (*ResourceMap, error
 	return resourceMap, nil
 }
 
-// GetInfrastructureInfo gets infrastructure information
+// GetInfrastructureInfo gets infrastructure information.
 func (o2 *O2Adaptor) GetInfrastructureInfo(ctx context.Context) (*InfrastructureInfo, error) {
 	resourceMap, err := o2.DiscoverResources(ctx)
 	if err != nil {
@@ -440,7 +440,7 @@ func (o2 *O2Adaptor) GetInfrastructureInfo(ctx context.Context) (*Infrastructure
 	return info, nil
 }
 
-// GetRouter returns the HTTP router (test compatibility method)
+// GetRouter returns the HTTP router (test compatibility method).
 func (s *O2APIServer) GetRouter() http.Handler {
 	return s.router
 }

@@ -13,8 +13,8 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// NWDAFAnalyzer implements Network Data Analytics Function patterns for telecom-specific insights
-// This follows 3GPP TS 23.288 NWDAF specifications and O-RAN Alliance guidelines
+// NWDAFAnalyzer implements Network Data Analytics Function patterns for telecom-specific insights.
+// This follows 3GPP TS 23.288 NWDAF specifications and O-RAN Alliance guidelines.
 type NWDAFAnalyzer struct {
 	config               *NWDAFConfig
 	analyticsRepository  *AnalyticsRepository
@@ -25,23 +25,23 @@ type NWDAFAnalyzer struct {
 	capacityAnalytics    *CapacityAnalytics
 	anomalyAnalytics     *AnomalyAnalytics
 
-	// Analytics data storage
+	// Analytics data storage.
 	kpiDatabase       *KPIDatabase
 	predictiveModels  map[string]*PredictiveModel
 	correlationMatrix *CorrelationMatrix
 
-	// Real-time processing
+	// Real-time processing.
 	streamingProcessor *StreamingProcessor
 	eventCorrelator    *EventCorrelator
 
-	// Insights cache
+	// Insights cache.
 	insightsCache    map[string]*CachedInsights
 	lastAnalysisTime time.Time
 }
 
-// NWDAFConfig configures the NWDAF analytics engine
+// NWDAFConfig configures the NWDAF analytics engine.
 type NWDAFConfig struct {
-	// Analytics capabilities
+	// Analytics capabilities.
 	EnableLoadAnalytics        bool `json:"enableLoadAnalytics"`
 	EnablePerformanceAnalytics bool `json:"enablePerformanceAnalytics"`
 	EnableAnomalyAnalytics     bool `json:"enableAnomalyAnalytics"`
@@ -49,116 +49,116 @@ type NWDAFConfig struct {
 	EnableQoEAnalytics         bool `json:"enableQoEAnalytics"`
 	EnableSliceAnalytics       bool `json:"enableSliceAnalytics"`
 
-	// Processing parameters
+	// Processing parameters.
 	AnalyticsInterval        time.Duration `json:"analyticsInterval"`
 	PredictionHorizon        time.Duration `json:"predictionHorizon"`
 	HistoricalDataRetention  time.Duration `json:"historicalDataRetention"`
 	MinDataPointsForAnalysis int           `json:"minDataPointsForAnalysis"`
 
-	// KPI thresholds aligned with telecom standards
+	// KPI thresholds aligned with telecom standards.
 	KPIThresholds *TelecomKPIThresholds `json:"kpiThresholds"`
 
-	// Service level targets
+	// Service level targets.
 	ServiceLevelTargets *ServiceLevelTargets `json:"serviceLevelTargets"`
 
-	// Network slice configurations
+	// Network slice configurations.
 	NetworkSliceProfiles map[string]*SliceProfile `json:"networkSliceProfiles"`
 
-	// Event correlation
+	// Event correlation.
 	EventCorrelationEnabled bool          `json:"eventCorrelationEnabled"`
 	EventCorrelationWindow  time.Duration `json:"eventCorrelationWindow"`
 
-	// External integration
+	// External integration.
 	ExternalDataSources   []string `json:"externalDataSources"`
 	NorthboundIntegration bool     `json:"northboundIntegration"`
 }
 
-// TelecomKPIThresholds defines telecom-specific KPI thresholds
+// TelecomKPIThresholds defines telecom-specific KPI thresholds.
 type TelecomKPIThresholds struct {
-	// 5G Core Network KPIs
+	// 5G Core Network KPIs.
 	AMFRegistrationSuccessRate  float64 `json:"amfRegistrationSuccessRate"`  // >99%
 	SMFSessionEstablishmentRate float64 `json:"smfSessionEstablishmentRate"` // >99%
 	UPFThroughput               float64 `json:"upfThroughput"`               // Gbps
 
-	// RAN KPIs
+	// RAN KPIs.
 	RANAccessSuccessRate     float64 `json:"ranAccessSuccessRate"`     // >95%
 	HandoverSuccessRate      float64 `json:"handoverSuccessRate"`      // >95%
 	RadioResourceUtilization float64 `json:"radioResourceUtilization"` // <80%
 
-	// Service KPIs
+	// Service KPIs.
 	ServiceAvailability float64 `json:"serviceAvailability"` // >99.9%
 	ServiceLatency      float64 `json:"serviceLatency"`      // <10ms for URLLC
 	ServiceThroughput   float64 `json:"serviceThroughput"`   // Service-specific
 
-	// Network slice KPIs
+	// Network slice KPIs.
 	SliceIsolationEffectiveness float64 `json:"sliceIsolationEffectiveness"` // >95%
 	SliceResourceUtilization    float64 `json:"sliceResourceUtilization"`    // <90%
 	SliceSLAViolationRate       float64 `json:"sliceSLAViolationRate"`       // <1%
 
-	// Intent operator specific KPIs
+	// Intent operator specific KPIs.
 	IntentProcessingLatency float64 `json:"intentProcessingLatency"` // <2000ms P95
 	IntentSuccessRate       float64 `json:"intentSuccessRate"`       // >99%
 	LLMProcessingLatency    float64 `json:"llmProcessingLatency"`    // <1000ms P95
 	RAGRetrievalLatency     float64 `json:"ragRetrievalLatency"`     // <200ms P95
 }
 
-// ServiceLevelTargets defines service level expectations
+// ServiceLevelTargets defines service level expectations.
 type ServiceLevelTargets struct {
-	// eMBB (Enhanced Mobile Broadband)
+	// eMBB (Enhanced Mobile Broadband).
 	EMBBThroughputDL float64 `json:"embbThroughputDL"` // 100 Mbps
 	EMBBThroughputUL float64 `json:"embbThroughputUL"` // 50 Mbps
 	EMBBLatency      float64 `json:"embbLatency"`      // <50ms
 
-	// URLLC (Ultra-Reliable Low-Latency Communication)
+	// URLLC (Ultra-Reliable Low-Latency Communication).
 	URLLCLatency         float64 `json:"urllcLatency"`         // <1ms
 	URLLCReliability     float64 `json:"urllcReliability"`     // >99.999%
 	URLLCPacketErrorRate float64 `json:"urllcPacketErrorRate"` // <10^-6
 
-	// mMTC (Massive Machine-Type Communication)
+	// mMTC (Massive Machine-Type Communication).
 	MMTCConnections int     `json:"mmtcConnections"` // 1M devices/km²
 	MMTCBatteryLife float64 `json:"mmtcBatteryLife"` // >10 years
 	MMTCLatency     float64 `json:"mmtcLatency"`     // <10s
 }
 
-// NWDAFInsights represents comprehensive telecom analytics insights
+// NWDAFInsights represents comprehensive telecom analytics insights.
 type NWDAFInsights struct {
 	AnalysisTimestamp time.Time `json:"analysisTimestamp"`
 	AnalysisID        string    `json:"analysisId"`
 
-	// Load analytics insights
+	// Load analytics insights.
 	LoadInsights *LoadAnalyticsInsights `json:"loadInsights"`
 
-	// Performance analytics insights
+	// Performance analytics insights.
 	PerformanceInsights *PerformanceAnalyticsInsights `json:"performanceInsights"`
 
-	// Anomaly analytics insights
+	// Anomaly analytics insights.
 	AnomalyInsights *AnomalyAnalyticsInsights `json:"anomalyInsights"`
 
-	// Capacity analytics insights
+	// Capacity analytics insights.
 	CapacityInsights *CapacityAnalyticsInsights `json:"capacityInsights"`
 
-	// Network slice insights
+	// Network slice insights.
 	SliceInsights *NetworkSliceInsights `json:"sliceInsights"`
 
-	// Service quality insights
+	// Service quality insights.
 	ServiceQualityInsights *ServiceQualityInsights `json:"serviceQualityInsights"`
 
-	// Predictive insights
+	// Predictive insights.
 	PredictiveInsights *PredictiveAnalyticsInsights `json:"predictiveInsights"`
 
-	// Root cause analysis
+	// Root cause analysis.
 	RootCauseAnalysis *RootCauseAnalysis `json:"rootCauseAnalysis"`
 
-	// Recommendations
+	// Recommendations.
 	Recommendations []*NWDAFRecommendation `json:"recommendations"`
 
-	// Confidence and reliability
+	// Confidence and reliability.
 	OverallConfidence    float64 `json:"overallConfidence"`
 	DataQualityScore     float64 `json:"dataQualityScore"`
 	AnalyticsReliability float64 `json:"analyticsReliability"`
 }
 
-// LoadAnalyticsInsights provides insights about system load patterns
+// LoadAnalyticsInsights provides insights about system load patterns.
 type LoadAnalyticsInsights struct {
 	CurrentLoadLevel    string                `json:"currentLoadLevel"` // "low", "medium", "high", "critical"
 	LoadTrend           string                `json:"loadTrend"`        // "increasing", "decreasing", "stable"
@@ -168,7 +168,7 @@ type LoadAnalyticsInsights struct {
 	LoadCorrelations    map[string]float64    `json:"loadCorrelations"`
 }
 
-// PerformanceAnalyticsInsights provides performance analysis insights
+// PerformanceAnalyticsInsights provides performance analysis insights.
 type PerformanceAnalyticsInsights struct {
 	PerformanceTrend          string                     `json:"performanceTrend"` // "improving", "degrading", "stable"
 	KPIViolations             []*KPIViolation            `json:"kpiViolations"`
@@ -178,7 +178,7 @@ type PerformanceAnalyticsInsights struct {
 	OptimizationOpportunities []*OptimizationOpportunity `json:"optimizationOpportunities"`
 }
 
-// AnomalyAnalyticsInsights provides anomaly detection insights
+// AnomalyAnalyticsInsights provides anomaly detection insights.
 type AnomalyAnalyticsInsights struct {
 	DetectedAnomalies           []*TelecomAnomaly        `json:"detectedAnomalies"`
 	AnomalyTrends               map[string]float64       `json:"anomalyTrends"`
@@ -187,7 +187,7 @@ type AnomalyAnalyticsInsights struct {
 	AnomalyImpactAssessment     *AnomalyImpactAssessment `json:"anomalyImpactAssessment"`
 }
 
-// NetworkSliceInsights provides network slice specific insights
+// NetworkSliceInsights provides network slice specific insights.
 type NetworkSliceInsights struct {
 	SlicePerformanceSummary      map[string]*SlicePerformanceSummary  `json:"slicePerformanceSummary"`
 	SliceResourceUtilization     map[string]*SliceResourceUtilization `json:"sliceResourceUtilization"`
@@ -196,7 +196,7 @@ type NetworkSliceInsights struct {
 	SliceOptimizationSuggestions []*SliceOptimizationSuggestion       `json:"sliceOptimizationSuggestions"`
 }
 
-// ServiceQualityInsights provides service quality analysis
+// ServiceQualityInsights provides service quality analysis.
 type ServiceQualityInsights struct {
 	QoEScore                float64                   `json:"qoeScore"`            // 0-100
 	ServiceAvailability     float64                   `json:"serviceAvailability"` // Percentage
@@ -206,7 +206,7 @@ type ServiceQualityInsights struct {
 	ServiceImprovementAreas []*ServiceImprovementArea `json:"serviceImprovementAreas"`
 }
 
-// RootCauseAnalysis provides root cause analysis for performance issues
+// RootCauseAnalysis provides root cause analysis for performance issues.
 type RootCauseAnalysis struct {
 	ProbableCauses            []*ProbableCause              `json:"probableCauses"`
 	CauseCorrelationMatrix    map[string]map[string]float64 `json:"causeCorrelationMatrix"`
@@ -215,7 +215,7 @@ type RootCauseAnalysis struct {
 	HistoricalSimilarEvents   []*HistoricalEvent            `json:"historicalSimilarEvents"`
 }
 
-// NWDAFRecommendation represents an actionable recommendation
+// NWDAFRecommendation represents an actionable recommendation.
 type NWDAFRecommendation struct {
 	ID                          string           `json:"id"`
 	Category                    string           `json:"category"` // "optimization", "scaling", "configuration"
@@ -231,8 +231,9 @@ type NWDAFRecommendation struct {
 	AutomationPossible          bool             `json:"automationPossible"`
 }
 
-// Supporting types for detailed analysis
+// Supporting types for detailed analysis.
 
+// LoadForecast represents a loadforecast.
 type LoadForecast struct {
 	PredictedPeakTime       time.Time `json:"predictedPeakTime"`
 	PredictedPeakValue      float64   `json:"predictedPeakValue"`
@@ -240,6 +241,7 @@ type LoadForecast struct {
 	RecommendedPreparations []string  `json:"recommendedPreparations"`
 }
 
+// ResourceBottleneck represents a resourcebottleneck.
 type ResourceBottleneck struct {
 	ResourceType       string   `json:"resourceType"`
 	CurrentUtilization float64  `json:"currentUtilization"`
@@ -248,6 +250,7 @@ type ResourceBottleneck struct {
 	RecommendedActions []string `json:"recommendedActions"`
 }
 
+// KPIViolation represents a kpiviolation.
 type KPIViolation struct {
 	KPIName           string        `json:"kpiName"`
 	CurrentValue      float64       `json:"currentValue"`
@@ -257,6 +260,7 @@ type KPIViolation struct {
 	AffectedServices  []string      `json:"affectedServices"`
 }
 
+// TelecomAnomaly represents a telecomanomaly.
 type TelecomAnomaly struct {
 	ID                 string    `json:"id"`
 	Type               string    `json:"type"` // "performance", "traffic", "resource"
@@ -269,6 +273,7 @@ type TelecomAnomaly struct {
 	RecommendedActions []string  `json:"recommendedActions"`
 }
 
+// ExpectedBenefit represents a expectedbenefit.
 type ExpectedBenefit struct {
 	PerformanceImprovement    float64 `json:"performanceImprovement"`    // Percentage
 	CostSavings               float64 `json:"costSavings"`               // Estimated cost savings
@@ -276,7 +281,7 @@ type ExpectedBenefit struct {
 	ResourceEfficiencyGain    float64 `json:"resourceEfficiencyGain"`    // Percentage
 }
 
-// NewNWDAFAnalyzer creates a new NWDAF analytics engine
+// NewNWDAFAnalyzer creates a new NWDAF analytics engine.
 func NewNWDAFAnalyzer(config *NWDAFConfig) *NWDAFAnalyzer {
 	if config == nil {
 		config = getDefaultNWDAFConfig()
@@ -299,7 +304,7 @@ func NewNWDAFAnalyzer(config *NWDAFConfig) *NWDAFAnalyzer {
 	return analyzer
 }
 
-// GenerateInsights generates comprehensive NWDAF insights from metrics and regressions
+// GenerateInsights generates comprehensive NWDAF insights from metrics and regressions.
 func (nwdaf *NWDAFAnalyzer) GenerateInsights(ctx context.Context, metrics map[string]float64, regressions []*MetricRegression) (*NWDAFInsights, error) {
 	klog.V(2).Info("Generating NWDAF insights")
 
@@ -311,12 +316,12 @@ func (nwdaf *NWDAFAnalyzer) GenerateInsights(ctx context.Context, metrics map[st
 		Recommendations:   make([]*NWDAFRecommendation, 0),
 	}
 
-	// Store metrics in KPI database
+	// Store metrics in KPI database.
 	if err := nwdaf.kpiDatabase.StoreMetrics(metrics, time.Now()); err != nil {
 		klog.Warningf("Failed to store metrics in KPI database: %v", err)
 	}
 
-	// Generate load analytics insights
+	// Generate load analytics insights.
 	if nwdaf.config.EnableLoadAnalytics {
 		loadInsights, err := nwdaf.loadAnalytics.AnalyzeLoad(ctx, metrics, regressions)
 		if err != nil {
@@ -326,7 +331,7 @@ func (nwdaf *NWDAFAnalyzer) GenerateInsights(ctx context.Context, metrics map[st
 		}
 	}
 
-	// Generate performance analytics insights
+	// Generate performance analytics insights.
 	if nwdaf.config.EnablePerformanceAnalytics {
 		perfInsights, err := nwdaf.performanceAnalytics.AnalyzePerformance(ctx, metrics, regressions)
 		if err != nil {
@@ -336,7 +341,7 @@ func (nwdaf *NWDAFAnalyzer) GenerateInsights(ctx context.Context, metrics map[st
 		}
 	}
 
-	// Generate anomaly analytics insights
+	// Generate anomaly analytics insights.
 	if nwdaf.config.EnableAnomalyAnalytics {
 		anomalyInsights, err := nwdaf.anomalyAnalytics.AnalyzeAnomalies(ctx, metrics, regressions)
 		if err != nil {
@@ -346,7 +351,7 @@ func (nwdaf *NWDAFAnalyzer) GenerateInsights(ctx context.Context, metrics map[st
 		}
 	}
 
-	// Generate capacity analytics insights
+	// Generate capacity analytics insights.
 	if nwdaf.config.EnableCapacityAnalytics {
 		capacityInsights, err := nwdaf.capacityAnalytics.AnalyzeCapacity(ctx, metrics, regressions)
 		if err != nil {
@@ -356,7 +361,7 @@ func (nwdaf *NWDAFAnalyzer) GenerateInsights(ctx context.Context, metrics map[st
 		}
 	}
 
-	// Generate network slice insights
+	// Generate network slice insights.
 	if nwdaf.config.EnableSliceAnalytics {
 		sliceInsights, err := nwdaf.networkSliceAnalyzer.AnalyzeSlices(ctx, metrics, regressions)
 		if err != nil {
@@ -366,7 +371,7 @@ func (nwdaf *NWDAFAnalyzer) GenerateInsights(ctx context.Context, metrics map[st
 		}
 	}
 
-	// Generate service quality insights
+	// Generate service quality insights.
 	if nwdaf.config.EnableQoEAnalytics {
 		serviceInsights, err := nwdaf.serviceAnalyzer.AnalyzeServiceQuality(ctx, metrics, regressions)
 		if err != nil {
@@ -376,7 +381,7 @@ func (nwdaf *NWDAFAnalyzer) GenerateInsights(ctx context.Context, metrics map[st
 		}
 	}
 
-	// Generate root cause analysis
+	// Generate root cause analysis.
 	rootCauseAnalysis, err := nwdaf.performRootCauseAnalysis(ctx, regressions, insights)
 	if err != nil {
 		klog.Warningf("Root cause analysis failed: %v", err)
@@ -384,16 +389,16 @@ func (nwdaf *NWDAFAnalyzer) GenerateInsights(ctx context.Context, metrics map[st
 		insights.RootCauseAnalysis = rootCauseAnalysis
 	}
 
-	// Generate recommendations based on all insights
+	// Generate recommendations based on all insights.
 	recommendations := nwdaf.generateRecommendations(insights, regressions)
 	insights.Recommendations = recommendations
 
-	// Calculate overall confidence and reliability scores
+	// Calculate overall confidence and reliability scores.
 	insights.OverallConfidence = nwdaf.calculateOverallConfidence(insights)
 	insights.DataQualityScore = nwdaf.calculateDataQuality(metrics)
 	insights.AnalyticsReliability = nwdaf.calculateAnalyticsReliability(insights)
 
-	// Cache insights for future reference
+	// Cache insights for future reference.
 	nwdaf.cacheInsights(insights)
 
 	klog.V(2).Infof("NWDAF insights generated: recommendations=%d, confidence=%.2f",
@@ -402,7 +407,7 @@ func (nwdaf *NWDAFAnalyzer) GenerateInsights(ctx context.Context, metrics map[st
 	return insights, nil
 }
 
-// performRootCauseAnalysis performs comprehensive root cause analysis
+// performRootCauseAnalysis performs comprehensive root cause analysis.
 func (nwdaf *NWDAFAnalyzer) performRootCauseAnalysis(ctx context.Context, regressions []*MetricRegression, insights *NWDAFInsights) (*RootCauseAnalysis, error) {
 	rootCause := &RootCauseAnalysis{
 		ProbableCauses:            make([]*ProbableCause, 0),
@@ -412,33 +417,33 @@ func (nwdaf *NWDAFAnalyzer) performRootCauseAnalysis(ctx context.Context, regres
 		HistoricalSimilarEvents:   make([]*HistoricalEvent, 0),
 	}
 
-	// Analyze regression patterns for probable causes
+	// Analyze regression patterns for probable causes.
 	for _, regression := range regressions {
 		causes := nwdaf.identifyProbableCauses(regression, insights)
 		rootCause.ProbableCauses = append(rootCause.ProbableCauses, causes...)
 	}
 
-	// Sort probable causes by likelihood
+	// Sort probable causes by likelihood.
 	sort.Slice(rootCause.ProbableCauses, func(i, j int) bool {
 		return rootCause.ProbableCauses[i].Likelihood > rootCause.ProbableCauses[j].Likelihood
 	})
 
-	// Generate investigation recommendations
+	// Generate investigation recommendations.
 	rootCause.RecommendedInvestigations = nwdaf.generateInvestigationRecommendations(rootCause.ProbableCauses)
 
-	// Find historical similar events
+	// Find historical similar events.
 	rootCause.HistoricalSimilarEvents = nwdaf.findSimilarHistoricalEvents(regressions)
 
 	return rootCause, nil
 }
 
-// identifyProbableCauses identifies probable causes for a metric regression
+// identifyProbableCauses identifies probable causes for a metric regression.
 func (nwdaf *NWDAFAnalyzer) identifyProbableCauses(regression *MetricRegression, insights *NWDAFInsights) []*ProbableCause {
 	causes := make([]*ProbableCause, 0)
 
 	switch regression.MetricName {
 	case "intent_processing_latency_p95", "intent_processing_latency_p99":
-		// Latency regression causes
+		// Latency regression causes.
 		causes = append(causes, &ProbableCause{
 			Category:       "Infrastructure",
 			Description:    "Resource constraints or CPU bottlenecks",
@@ -456,7 +461,7 @@ func (nwdaf *NWDAFAnalyzer) identifyProbableCauses(regression *MetricRegression,
 		})
 
 	case "intent_throughput_per_minute":
-		// Throughput regression causes
+		// Throughput regression causes.
 		causes = append(causes, &ProbableCause{
 			Category:       "Load",
 			Description:    "Increased load or traffic patterns",
@@ -466,7 +471,7 @@ func (nwdaf *NWDAFAnalyzer) identifyProbableCauses(regression *MetricRegression,
 		})
 
 	case "error_rate":
-		// Error rate increase causes
+		// Error rate increase causes.
 		causes = append(causes, &ProbableCause{
 			Category:       "External",
 			Description:    "Downstream service failures or network issues",
@@ -479,11 +484,11 @@ func (nwdaf *NWDAFAnalyzer) identifyProbableCauses(regression *MetricRegression,
 	return causes
 }
 
-// generateRecommendations generates actionable recommendations based on insights
+// generateRecommendations generates actionable recommendations based on insights.
 func (nwdaf *NWDAFAnalyzer) generateRecommendations(insights *NWDAFInsights, regressions []*MetricRegression) []*NWDAFRecommendation {
 	recommendations := make([]*NWDAFRecommendation, 0)
 
-	// Performance-based recommendations
+	// Performance-based recommendations.
 	if insights.PerformanceInsights != nil {
 		for _, violation := range insights.PerformanceInsights.KPIViolations {
 			rec := nwdaf.generatePerformanceRecommendation(violation)
@@ -493,7 +498,7 @@ func (nwdaf *NWDAFAnalyzer) generateRecommendations(insights *NWDAFInsights, reg
 		}
 	}
 
-	// Load-based recommendations
+	// Load-based recommendations.
 	if insights.LoadInsights != nil {
 		for _, bottleneck := range insights.LoadInsights.ResourceBottlenecks {
 			rec := nwdaf.generateLoadRecommendation(bottleneck)
@@ -503,7 +508,7 @@ func (nwdaf *NWDAFAnalyzer) generateRecommendations(insights *NWDAFInsights, reg
 		}
 	}
 
-	// Anomaly-based recommendations
+	// Anomaly-based recommendations.
 	if insights.AnomalyInsights != nil {
 		for _, anomaly := range insights.AnomalyInsights.DetectedAnomalies {
 			rec := nwdaf.generateAnomalyRecommendation(anomaly)
@@ -513,13 +518,13 @@ func (nwdaf *NWDAFAnalyzer) generateRecommendations(insights *NWDAFInsights, reg
 		}
 	}
 
-	// Capacity-based recommendations
+	// Capacity-based recommendations.
 	if insights.CapacityInsights != nil {
 		rec := nwdaf.generateCapacityRecommendations(insights.CapacityInsights)
 		recommendations = append(recommendations, rec...)
 	}
 
-	// Sort recommendations by priority
+	// Sort recommendations by priority.
 	sort.Slice(recommendations, func(i, j int) bool {
 		priorityOrder := map[string]int{"critical": 4, "high": 3, "medium": 2, "low": 1}
 		return priorityOrder[recommendations[i].Priority] > priorityOrder[recommendations[j].Priority]
@@ -528,7 +533,7 @@ func (nwdaf *NWDAFAnalyzer) generateRecommendations(insights *NWDAFInsights, reg
 	return recommendations
 }
 
-// generatePerformanceRecommendation creates recommendations for KPI violations
+// generatePerformanceRecommendation creates recommendations for KPI violations.
 func (nwdaf *NWDAFAnalyzer) generatePerformanceRecommendation(violation *KPIViolation) *NWDAFRecommendation {
 	var priority string
 	var implementationTime time.Duration
@@ -570,7 +575,7 @@ func (nwdaf *NWDAFAnalyzer) generatePerformanceRecommendation(violation *KPIViol
 		},
 	}
 
-	// Add specific recommendations based on KPI type
+	// Add specific recommendations based on KPI type.
 	if strings.Contains(violation.KPIName, "latency") {
 		recommendation.Prerequisites = []string{"Resource availability check", "Traffic analysis"}
 		recommendation.Impact = "Reduced latency will improve user experience and system responsiveness"
@@ -582,7 +587,7 @@ func (nwdaf *NWDAFAnalyzer) generatePerformanceRecommendation(violation *KPIViol
 	return recommendation
 }
 
-// Supporting methods for component initialization (placeholder implementations)
+// Supporting methods for component initialization (placeholder implementations).
 
 func getDefaultNWDAFConfig() *NWDAFConfig {
 	return &NWDAFConfig{
@@ -632,11 +637,12 @@ func getDefaultNWDAFConfig() *NWDAFConfig {
 	}
 }
 
-// Placeholder implementations for supporting components
+// Placeholder implementations for supporting components.
 func NewAnalyticsRepository() *AnalyticsRepository {
 	return &AnalyticsRepository{}
 }
 
+// NewNetworkSliceAnalyzer performs newnetworksliceanalyzer operation.
 func NewNetworkSliceAnalyzer(config *NWDAFConfig) *NetworkSliceAnalyzer {
 	return &NetworkSliceAnalyzer{
 		sliceProfiles:      make(map[string]*SliceProfile),
@@ -645,31 +651,37 @@ func NewNetworkSliceAnalyzer(config *NWDAFConfig) *NetworkSliceAnalyzer {
 	}
 }
 
+// NewServiceAnalyzer performs newserviceanalyzer operation.
 func NewServiceAnalyzer(config *NWDAFConfig) *ServiceAnalyzer {
 	return &ServiceAnalyzer{}
 }
 
+// NewLoadAnalytics performs newloadanalytics operation.
 func NewLoadAnalytics(config *NWDAFConfig) *LoadAnalytics {
 	return &LoadAnalytics{}
 }
 
+// NewPerformanceAnalytics performs newperformanceanalytics operation.
 func NewPerformanceAnalytics(config *NWDAFConfig) *PerformanceAnalytics {
 	return &PerformanceAnalytics{}
 }
 
+// NewCapacityAnalytics performs newcapacityanalytics operation.
 func NewCapacityAnalytics(config *NWDAFConfig) *CapacityAnalytics {
 	return &CapacityAnalytics{}
 }
 
+// NewAnomalyAnalytics performs newanomalyanalytics operation.
 func NewAnomalyAnalytics(config *NWDAFConfig) *AnomalyAnalytics {
 	return &AnomalyAnalytics{}
 }
 
+// NewKPIDatabase performs newkpidatabase operation.
 func NewKPIDatabase() *KPIDatabase {
 	return &KPIDatabase{}
 }
 
-// Method implementations for analytics components (placeholder implementations)
+// Method implementations for analytics components (placeholder implementations).
 func (la *LoadAnalytics) AnalyzeLoad(ctx context.Context, metrics map[string]float64, regressions []*MetricRegression) (*LoadAnalyticsInsights, error) {
 	return &LoadAnalyticsInsights{
 		CurrentLoadLevel:    "medium",
@@ -680,6 +692,7 @@ func (la *LoadAnalytics) AnalyzeLoad(ctx context.Context, metrics map[string]flo
 	}, nil
 }
 
+// AnalyzePerformance performs analyzeperformance operation.
 func (pa *PerformanceAnalytics) AnalyzePerformance(ctx context.Context, metrics map[string]float64, regressions []*MetricRegression) (*PerformanceAnalyticsInsights, error) {
 	insights := &PerformanceAnalyticsInsights{
 		PerformanceTrend:          "stable",
@@ -689,7 +702,7 @@ func (pa *PerformanceAnalytics) AnalyzePerformance(ctx context.Context, metrics 
 		OptimizationOpportunities: make([]*OptimizationOpportunity, 0),
 	}
 
-	// Analyze regressions for KPI violations
+	// Analyze regressions for KPI violations.
 	for _, regression := range regressions {
 		if regression.Severity == "Critical" || regression.Severity == "High" {
 			violation := &KPIViolation{
@@ -706,6 +719,7 @@ func (pa *PerformanceAnalytics) AnalyzePerformance(ctx context.Context, metrics 
 	return insights, nil
 }
 
+// AnalyzeAnomalies performs analyzeanomalies operation.
 func (aa *AnomalyAnalytics) AnalyzeAnomalies(ctx context.Context, metrics map[string]float64, regressions []*MetricRegression) (*AnomalyAnalyticsInsights, error) {
 	return &AnomalyAnalyticsInsights{
 		DetectedAnomalies:           make([]*TelecomAnomaly, 0),
@@ -715,10 +729,12 @@ func (aa *AnomalyAnalytics) AnalyzeAnomalies(ctx context.Context, metrics map[st
 	}, nil
 }
 
+// AnalyzeCapacity performs analyzecapacity operation.
 func (ca *CapacityAnalytics) AnalyzeCapacity(ctx context.Context, metrics map[string]float64, regressions []*MetricRegression) (*CapacityAnalyticsInsights, error) {
 	return &CapacityAnalyticsInsights{}, nil
 }
 
+// AnalyzeSlices performs analyzeslices operation.
 func (nsa *NetworkSliceAnalyzer) AnalyzeSlices(ctx context.Context, metrics map[string]float64, regressions []*MetricRegression) (*NetworkSliceInsights, error) {
 	return &NetworkSliceInsights{
 		SlicePerformanceSummary:      make(map[string]*SlicePerformanceSummary),
@@ -729,6 +745,7 @@ func (nsa *NetworkSliceAnalyzer) AnalyzeSlices(ctx context.Context, metrics map[
 	}, nil
 }
 
+// AnalyzeServiceQuality performs analyzeservicequality operation.
 func (sa *ServiceAnalyzer) AnalyzeServiceQuality(ctx context.Context, metrics map[string]float64, regressions []*MetricRegression) (*ServiceQualityInsights, error) {
 	return &ServiceQualityInsights{
 		QoEScore:                85.0,
@@ -739,14 +756,15 @@ func (sa *ServiceAnalyzer) AnalyzeServiceQuality(ctx context.Context, metrics ma
 	}, nil
 }
 
+// StoreMetrics performs storemetrics operation.
 func (kpi *KPIDatabase) StoreMetrics(metrics map[string]float64, timestamp time.Time) error {
-	// Placeholder implementation
+	// Placeholder implementation.
 	return nil
 }
 
-// Helper methods for insight calculation
+// Helper methods for insight calculation.
 func (nwdaf *NWDAFAnalyzer) calculateOverallConfidence(insights *NWDAFInsights) float64 {
-	// Calculate overall confidence based on available insights
+	// Calculate overall confidence based on available insights.
 	totalConfidence := 0.0
 	componentCount := 0
 
@@ -770,7 +788,7 @@ func (nwdaf *NWDAFAnalyzer) calculateOverallConfidence(insights *NWDAFInsights) 
 }
 
 func (nwdaf *NWDAFAnalyzer) calculateDataQuality(metrics map[string]float64) float64 {
-	// Calculate data quality score based on metric completeness and validity
+	// Calculate data quality score based on metric completeness and validity.
 	expectedMetrics := []string{
 		"intent_processing_latency_p95",
 		"intent_throughput_per_minute",
@@ -788,7 +806,7 @@ func (nwdaf *NWDAFAnalyzer) calculateDataQuality(metrics map[string]float64) flo
 
 	completenessScore := float64(presentMetrics) / float64(len(expectedMetrics))
 
-	// Check for reasonable metric values (simplified validation)
+	// Check for reasonable metric values (simplified validation).
 	validityScore := 1.0
 	for metricName, value := range metrics {
 		if math.IsNaN(value) || math.IsInf(value, 0) {
@@ -803,10 +821,10 @@ func (nwdaf *NWDAFAnalyzer) calculateDataQuality(metrics map[string]float64) flo
 }
 
 func (nwdaf *NWDAFAnalyzer) calculateAnalyticsReliability(insights *NWDAFInsights) float64 {
-	// Calculate analytics reliability based on historical accuracy
+	// Calculate analytics reliability based on historical accuracy.
 	baseReliability := 0.85
 
-	// Adjust based on data quality
+	// Adjust based on data quality.
 	reliabilityAdjustment := (insights.DataQualityScore - 0.5) * 0.2
 
 	return math.Max(0.0, math.Min(1.0, baseReliability+reliabilityAdjustment))
@@ -822,7 +840,7 @@ func (nwdaf *NWDAFAnalyzer) cacheInsights(insights *NWDAFInsights) {
 	nwdaf.insightsCache[cacheKey] = cached
 }
 
-// Additional placeholder methods
+// Additional placeholder methods.
 func (nwdaf *NWDAFAnalyzer) generateLoadRecommendation(bottleneck *ResourceBottleneck) *NWDAFRecommendation {
 	return &NWDAFRecommendation{
 		ID:          fmt.Sprintf("load-rec-%s-%d", bottleneck.ResourceType, time.Now().Unix()),
@@ -864,17 +882,18 @@ func (nwdaf *NWDAFAnalyzer) generateInvestigationRecommendations(causes []*Proba
 }
 
 func (nwdaf *NWDAFAnalyzer) findSimilarHistoricalEvents(regressions []*MetricRegression) []*HistoricalEvent {
-	// Placeholder implementation
+	// Placeholder implementation.
 	return []*HistoricalEvent{}
 }
 
-// Additional supporting types
+// Additional supporting types.
 type CachedInsights struct {
 	Insights  *NWDAFInsights `json:"insights"`
 	CachedAt  time.Time      `json:"cachedAt"`
 	ExpiresAt time.Time      `json:"expiresAt"`
 }
 
+// ProbableCause represents a probablecause.
 type ProbableCause struct {
 	Category       string   `json:"category"`
 	Description    string   `json:"description"`
@@ -883,6 +902,7 @@ type ProbableCause struct {
 	Investigations []string `json:"investigations"`
 }
 
+// Investigation represents a investigation.
 type Investigation struct {
 	ID            string        `json:"id"`
 	Description   string        `json:"description"`
@@ -890,6 +910,7 @@ type Investigation struct {
 	EstimatedTime time.Duration `json:"estimatedTime"`
 }
 
+// HistoricalEvent represents a historicalevent.
 type HistoricalEvent struct {
 	ID          string    `json:"id"`
 	Timestamp   time.Time `json:"timestamp"`
@@ -897,38 +918,65 @@ type HistoricalEvent struct {
 	Similarity  float64   `json:"similarity"`
 }
 
+// ImpactChain represents a impactchain.
 type ImpactChain struct {
 	Source string  `json:"source"`
 	Target string  `json:"target"`
 	Impact float64 `json:"impact"`
 }
 
+// RiskAssessment represents a riskassessment.
 type RiskAssessment struct {
 	ImplementationRisk string `json:"implementationRisk"`
 	BusinessImpact     string `json:"businessImpact"`
 	Reversibility      string `json:"reversibility"`
 }
 
-type KPIDatabase struct{}
-type LoadAnalytics struct{}
-type PerformanceAnalytics struct{}
-type CapacityAnalytics struct{}
-type AnomalyAnalytics struct{}
-type PredictiveAnalyticsInsights struct{}
-type CapacityAnalyticsInsights struct{}
-type PerformanceHotspot struct{}
-type OptimizationOpportunity struct{}
-type AnomalyCorrelation struct{}
-type AnomalyImpactAssessment struct{}
-type SlicePerformanceSummary struct{}
-type SliceResourceUtilization struct{}
-type SliceSLACompliance struct{}
-type InterSliceInterference struct{}
-type SliceOptimizationSuggestion struct{}
-type UserExperienceMetrics struct{}
-type ServiceDegradationRisk struct{}
-type ServiceImprovementArea struct{}
-type PredictiveModel struct{}
-type CorrelationMatrix struct{}
-type StreamingProcessor struct{}
-type EventCorrelator struct{}
+// KPIDatabase represents a kpidatabase.
+type (
+	KPIDatabase struct{}
+	// LoadAnalytics represents a loadanalytics.
+	LoadAnalytics struct{}
+	// PerformanceAnalytics represents a performanceanalytics.
+	PerformanceAnalytics struct{}
+	// CapacityAnalytics represents a capacityanalytics.
+	CapacityAnalytics struct{}
+	// AnomalyAnalytics represents a anomalyanalytics.
+	AnomalyAnalytics struct{}
+	// PredictiveAnalyticsInsights represents a predictiveanalyticsinsights.
+	PredictiveAnalyticsInsights struct{}
+	// CapacityAnalyticsInsights represents a capacityanalyticsinsights.
+	CapacityAnalyticsInsights struct{}
+	// PerformanceHotspot represents a performancehotspot.
+	PerformanceHotspot struct{}
+	// OptimizationOpportunity represents a optimizationopportunity.
+	OptimizationOpportunity struct{}
+	// AnomalyCorrelation represents a anomalycorrelation.
+	AnomalyCorrelation struct{}
+	// AnomalyImpactAssessment represents a anomalyimpactassessment.
+	AnomalyImpactAssessment struct{}
+	// SlicePerformanceSummary represents a sliceperformancesummary.
+	SlicePerformanceSummary struct{}
+	// SliceResourceUtilization represents a sliceresourceutilization.
+	SliceResourceUtilization struct{}
+	// SliceSLACompliance represents a sliceslacompliance.
+	SliceSLACompliance struct{}
+	// InterSliceInterference represents a intersliceinterference.
+	InterSliceInterference struct{}
+	// SliceOptimizationSuggestion represents a sliceoptimizationsuggestion.
+	SliceOptimizationSuggestion struct{}
+	// UserExperienceMetrics represents a userexperiencemetrics.
+	UserExperienceMetrics struct{}
+	// ServiceDegradationRisk represents a servicedegradationrisk.
+	ServiceDegradationRisk struct{}
+	// ServiceImprovementArea represents a serviceimprovementarea.
+	ServiceImprovementArea struct{}
+	// PredictiveModel represents a predictivemodel.
+	PredictiveModel struct{}
+	// CorrelationMatrix represents a correlationmatrix.
+	CorrelationMatrix struct{}
+	// StreamingProcessor represents a streamingprocessor.
+	StreamingProcessor struct{}
+	// EventCorrelator represents a eventcorrelator.
+	EventCorrelator struct{}
+)

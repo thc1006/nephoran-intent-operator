@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ComplianceManager manages security compliance validation and reporting
+// ComplianceManager manages security compliance validation and reporting.
 type ComplianceManager struct {
 	client            client.Client
 	namespace         string
@@ -20,7 +20,7 @@ type ComplianceManager struct {
 	networkManager    *NetworkPolicyManager
 }
 
-// NewComplianceManager creates a new compliance manager
+// NewComplianceManager creates a new compliance manager.
 func NewComplianceManager(client client.Client, namespace string) *ComplianceManager {
 	return &ComplianceManager{
 		client:            client,
@@ -31,18 +31,23 @@ func NewComplianceManager(client client.Client, namespace string) *ComplianceMan
 	}
 }
 
-// ComplianceFramework represents a security compliance framework
+// ComplianceFramework represents a security compliance framework.
 type ComplianceFramework string
 
 const (
-	FrameworkORAN     ComplianceFramework = "O-RAN"
-	Framework3GPP     ComplianceFramework = "3GPP"
-	FrameworkETSI     ComplianceFramework = "ETSI-NFV"
-	FrameworkNIST     ComplianceFramework = "NIST"
+	// FrameworkORAN holds frameworkoran value.
+	FrameworkORAN ComplianceFramework = "O-RAN"
+	// Framework3GPP holds framework3gpp value.
+	Framework3GPP ComplianceFramework = "3GPP"
+	// FrameworkETSI holds frameworketsi value.
+	FrameworkETSI ComplianceFramework = "ETSI-NFV"
+	// FrameworkNIST holds frameworknist value.
+	FrameworkNIST ComplianceFramework = "NIST"
+	// FrameworkISO27001 holds frameworkiso27001 value.
 	FrameworkISO27001 ComplianceFramework = "ISO27001"
 )
 
-// ComplianceReport represents a comprehensive compliance assessment
+// ComplianceReport represents a comprehensive compliance assessment.
 type ComplianceReport struct {
 	Timestamp         metav1.Time
 	Namespace         string
@@ -56,7 +61,7 @@ type ComplianceReport struct {
 	NextAuditDate     time.Time
 }
 
-// ComplianceRequirement represents a specific compliance requirement
+// ComplianceRequirement represents a specific compliance requirement.
 type ComplianceRequirement struct {
 	ID          string
 	Category    string
@@ -67,17 +72,21 @@ type ComplianceRequirement struct {
 	Severity    string
 }
 
-// ComplianceStatus represents the status of a compliance requirement
+// ComplianceStatus represents the status of a compliance requirement.
 type ComplianceStatus string
 
 const (
-	StatusCompliant          ComplianceStatus = "Compliant"
-	StatusNonCompliant       ComplianceStatus = "Non-Compliant"
+	// StatusCompliant holds statuscompliant value.
+	StatusCompliant ComplianceStatus = "Compliant"
+	// StatusNonCompliant holds statusnoncompliant value.
+	StatusNonCompliant ComplianceStatus = "Non-Compliant"
+	// StatusPartiallyCompliant holds statuspartiallycompliant value.
 	StatusPartiallyCompliant ComplianceStatus = "Partially Compliant"
-	StatusNotApplicable      ComplianceStatus = "Not Applicable"
+	// StatusNotApplicable holds statusnotapplicable value.
+	StatusNotApplicable ComplianceStatus = "Not Applicable"
 )
 
-// VulnerabilityScanResult represents vulnerability scanning results
+// VulnerabilityScanResult represents vulnerability scanning results.
 type VulnerabilityScanResult struct {
 	ScanTime      time.Time
 	Critical      int
@@ -89,7 +98,7 @@ type VulnerabilityScanResult struct {
 	RiskScore     float64
 }
 
-// AuditEntry represents an audit log entry
+// AuditEntry represents an audit log entry.
 type AuditEntry struct {
 	Timestamp  time.Time
 	Level      string // Info, Warning, Error, Critical
@@ -99,7 +108,7 @@ type AuditEntry struct {
 	Result     string
 }
 
-// ValidateORANCompliance validates compliance with O-RAN Alliance security specifications
+// ValidateORANCompliance validates compliance with O-RAN Alliance security specifications.
 func (m *ComplianceManager) ValidateORANCompliance(ctx context.Context) (*ComplianceReport, error) {
 	logger := log.FromContext(ctx)
 
@@ -114,39 +123,39 @@ func (m *ComplianceManager) ValidateORANCompliance(ctx context.Context) (*Compli
 		NextAuditDate:   time.Now().Add(30 * 24 * time.Hour), // Monthly audit
 	}
 
-	// O-RAN WG11 Security Requirements
+	// O-RAN WG11 Security Requirements.
 
-	// SEC-001: Mutual Authentication
+	// SEC-001: Mutual Authentication.
 	report.Requirements = append(report.Requirements, m.checkMutualAuthentication(ctx))
 
-	// SEC-002: Interface Security
+	// SEC-002: Interface Security.
 	report.Requirements = append(report.Requirements, m.checkInterfaceSecurity(ctx))
 
-	// SEC-003: Data Protection
+	// SEC-003: Data Protection.
 	report.Requirements = append(report.Requirements, m.checkDataProtection(ctx))
 
-	// SEC-004: Access Control
+	// SEC-004: Access Control.
 	report.Requirements = append(report.Requirements, m.checkAccessControl(ctx))
 
-	// SEC-005: Security Monitoring
+	// SEC-005: Security Monitoring.
 	report.Requirements = append(report.Requirements, m.checkSecurityMonitoring(ctx))
 
-	// SEC-006: Vulnerability Management
+	// SEC-006: Vulnerability Management.
 	report.Requirements = append(report.Requirements, m.checkVulnerabilityManagement(ctx))
 
-	// SEC-007: Incident Response
+	// SEC-007: Incident Response.
 	report.Requirements = append(report.Requirements, m.checkIncidentResponse(ctx))
 
-	// SEC-008: Security Testing
+	// SEC-008: Security Testing.
 	report.Requirements = append(report.Requirements, m.checkSecurityTesting(ctx))
 
-	// SEC-009: Supply Chain Security
+	// SEC-009: Supply Chain Security.
 	report.Requirements = append(report.Requirements, m.checkSupplyChainSecurity(ctx))
 
-	// SEC-010: Cryptographic Controls
+	// SEC-010: Cryptographic Controls.
 	report.Requirements = append(report.Requirements, m.checkCryptographicControls(ctx))
 
-	// Calculate overall compliance
+	// Calculate overall compliance.
 	compliantCount := 0
 	for _, req := range report.Requirements {
 		if req.Status == StatusCompliant {
@@ -155,13 +164,13 @@ func (m *ComplianceManager) ValidateORANCompliance(ctx context.Context) (*Compli
 	}
 	report.OverallCompliance = (float64(compliantCount) / float64(len(report.Requirements))) * 100
 
-	// Add recommendations
+	// Add recommendations.
 	if report.OverallCompliance < 80 {
 		report.Recommendations = append(report.Recommendations,
 			"Immediate action required: Compliance below 80% threshold")
 	}
 
-	// Log audit entry
+	// Log audit entry.
 	report.AuditLog = append(report.AuditLog, AuditEntry{
 		Timestamp:  time.Now(),
 		Level:      "Info",
@@ -177,7 +186,7 @@ func (m *ComplianceManager) ValidateORANCompliance(ctx context.Context) (*Compli
 	return report, nil
 }
 
-// Validate3GPPCompliance validates compliance with 3GPP security requirements
+// Validate3GPPCompliance validates compliance with 3GPP security requirements.
 func (m *ComplianceManager) Validate3GPPCompliance(ctx context.Context) (*ComplianceReport, error) {
 	logger := log.FromContext(ctx)
 
@@ -192,9 +201,9 @@ func (m *ComplianceManager) Validate3GPPCompliance(ctx context.Context) (*Compli
 		NextAuditDate:   time.Now().Add(30 * 24 * time.Hour),
 	}
 
-	// 3GPP TS 33.501 Security Requirements
+	// 3GPP TS 33.501 Security Requirements.
 
-	// 5G-SEC-001: Network Domain Security
+	// 5G-SEC-001: Network Domain Security.
 	report.Requirements = append(report.Requirements, ComplianceRequirement{
 		ID:          "5G-SEC-001",
 		Category:    "Network Security",
@@ -205,7 +214,7 @@ func (m *ComplianceManager) Validate3GPPCompliance(ctx context.Context) (*Compli
 		Severity:    "Critical",
 	})
 
-	// 5G-SEC-002: User Domain Security
+	// 5G-SEC-002: User Domain Security.
 	report.Requirements = append(report.Requirements, ComplianceRequirement{
 		ID:          "5G-SEC-002",
 		Category:    "User Security",
@@ -216,7 +225,7 @@ func (m *ComplianceManager) Validate3GPPCompliance(ctx context.Context) (*Compli
 		Severity:    "Critical",
 	})
 
-	// 5G-SEC-003: Application Domain Security
+	// 5G-SEC-003: Application Domain Security.
 	report.Requirements = append(report.Requirements, ComplianceRequirement{
 		ID:          "5G-SEC-003",
 		Category:    "Application Security",
@@ -227,7 +236,7 @@ func (m *ComplianceManager) Validate3GPPCompliance(ctx context.Context) (*Compli
 		Severity:    "High",
 	})
 
-	// 5G-SEC-004: SBA Security
+	// 5G-SEC-004: SBA Security.
 	report.Requirements = append(report.Requirements, ComplianceRequirement{
 		ID:          "5G-SEC-004",
 		Category:    "Service Based Architecture",
@@ -238,7 +247,7 @@ func (m *ComplianceManager) Validate3GPPCompliance(ctx context.Context) (*Compli
 		Severity:    "Critical",
 	})
 
-	// 5G-SEC-005: Network Slicing Security
+	// 5G-SEC-005: Network Slicing Security.
 	report.Requirements = append(report.Requirements, ComplianceRequirement{
 		ID:          "5G-SEC-005",
 		Category:    "Network Slicing",
@@ -249,7 +258,7 @@ func (m *ComplianceManager) Validate3GPPCompliance(ctx context.Context) (*Compli
 		Severity:    "High",
 	})
 
-	// Calculate compliance
+	// Calculate compliance.
 	compliantCount := 0
 	for _, req := range report.Requirements {
 		if req.Status == StatusCompliant {
@@ -264,7 +273,7 @@ func (m *ComplianceManager) Validate3GPPCompliance(ctx context.Context) (*Compli
 	return report, nil
 }
 
-// ValidateETSICompliance validates compliance with ETSI NFV security requirements
+// ValidateETSICompliance validates compliance with ETSI NFV security requirements.
 func (m *ComplianceManager) ValidateETSICompliance(ctx context.Context) (*ComplianceReport, error) {
 	logger := log.FromContext(ctx)
 
@@ -279,9 +288,9 @@ func (m *ComplianceManager) ValidateETSICompliance(ctx context.Context) (*Compli
 		NextAuditDate:   time.Now().Add(30 * 24 * time.Hour),
 	}
 
-	// ETSI NFV Security Requirements
+	// ETSI NFV Security Requirements.
 
-	// NFV-SEC-001: Secure Boot
+	// NFV-SEC-001: Secure Boot.
 	report.Requirements = append(report.Requirements, ComplianceRequirement{
 		ID:          "NFV-SEC-001",
 		Category:    "Platform Security",
@@ -292,7 +301,7 @@ func (m *ComplianceManager) ValidateETSICompliance(ctx context.Context) (*Compli
 		Severity:    "High",
 	})
 
-	// NFV-SEC-002: Isolation
+	// NFV-SEC-002: Isolation.
 	report.Requirements = append(report.Requirements, ComplianceRequirement{
 		ID:          "NFV-SEC-002",
 		Category:    "Isolation",
@@ -303,7 +312,7 @@ func (m *ComplianceManager) ValidateETSICompliance(ctx context.Context) (*Compli
 		Severity:    "Critical",
 	})
 
-	// NFV-SEC-003: Security Monitoring
+	// NFV-SEC-003: Security Monitoring.
 	report.Requirements = append(report.Requirements, ComplianceRequirement{
 		ID:          "NFV-SEC-003",
 		Category:    "Monitoring",
@@ -314,7 +323,7 @@ func (m *ComplianceManager) ValidateETSICompliance(ctx context.Context) (*Compli
 		Severity:    "High",
 	})
 
-	// NFV-SEC-004: Lifecycle Security
+	// NFV-SEC-004: Lifecycle Security.
 	report.Requirements = append(report.Requirements, ComplianceRequirement{
 		ID:          "NFV-SEC-004",
 		Category:    "Lifecycle",
@@ -325,7 +334,7 @@ func (m *ComplianceManager) ValidateETSICompliance(ctx context.Context) (*Compli
 		Severity:    "Medium",
 	})
 
-	// Calculate compliance
+	// Calculate compliance.
 	compliantCount := 0
 	for _, req := range report.Requirements {
 		if req.Status == StatusCompliant {
@@ -340,14 +349,14 @@ func (m *ComplianceManager) ValidateETSICompliance(ctx context.Context) (*Compli
 	return report, nil
 }
 
-// O-RAN specific requirement checks
+// O-RAN specific requirement checks.
 
 func (m *ComplianceManager) checkMutualAuthentication(ctx context.Context) ComplianceRequirement {
-	// Check if mutual TLS is configured for all interfaces
+	// Check if mutual TLS is configured for all interfaces.
 	status := StatusCompliant
 	evidence := []string{}
 
-	// Validate TLS configuration
+	// Validate TLS configuration.
 	validationReport, _ := m.securityValidator.ValidateTLSConfiguration(ctx)
 	if len(validationReport) > 0 {
 		status = StatusPartiallyCompliant
@@ -371,10 +380,10 @@ func (m *ComplianceManager) checkInterfaceSecurity(ctx context.Context) Complian
 	status := StatusCompliant
 	evidence := []string{}
 
-	// Check network policies for O-RAN interfaces
+	// Check network policies for O-RAN interfaces.
 	interfaces := []string{"A1", "O1", "O2", "E2"}
 	for _, iface := range interfaces {
-		// In a real implementation, check if policies exist
+		// In a real implementation, check if policies exist.
 		evidence = append(evidence, fmt.Sprintf("%s interface secured", iface))
 	}
 
@@ -393,7 +402,7 @@ func (m *ComplianceManager) checkDataProtection(ctx context.Context) ComplianceR
 	status := StatusCompliant
 	evidence := []string{}
 
-	// Check encryption at rest and in transit
+	// Check encryption at rest and in transit.
 	secretIssues, _ := m.securityValidator.ValidateSecretManagement(ctx)
 	if len(secretIssues) > 0 {
 		status = StatusPartiallyCompliant
@@ -419,7 +428,7 @@ func (m *ComplianceManager) checkAccessControl(ctx context.Context) ComplianceRe
 	status := StatusCompliant
 	evidence := []string{}
 
-	// Check RBAC configuration
+	// Check RBAC configuration.
 	rbacAudit, _ := m.rbacManager.AuditRBACCompliance(ctx)
 	if rbacAudit != nil && !rbacAudit.Compliant {
 		status = StatusNonCompliant
@@ -465,7 +474,7 @@ func (m *ComplianceManager) checkVulnerabilityManagement(ctx context.Context) Co
 		"CVE tracking enabled",
 	}
 
-	// Simulate vulnerability scan
+	// Simulate vulnerability scan.
 	scanResult := m.performVulnerabilityScan(ctx)
 	if scanResult.Critical > 0 {
 		status = StatusNonCompliant
@@ -556,10 +565,10 @@ func (m *ComplianceManager) checkCryptographicControls(ctx context.Context) Comp
 	}
 }
 
-// 3GPP specific checks
+// 3GPP specific checks.
 
 func (m *ComplianceManager) check5GNetworkSecurity(ctx context.Context) ComplianceStatus {
-	// Check network domain security controls
+	// Check network domain security controls.
 	networkValidation, _ := m.networkManager.ValidateNetworkPolicies(ctx)
 	if networkValidation != nil && networkValidation.Compliant {
 		return StatusCompliant
@@ -568,34 +577,34 @@ func (m *ComplianceManager) check5GNetworkSecurity(ctx context.Context) Complian
 }
 
 func (m *ComplianceManager) check5GUserSecurity(ctx context.Context) ComplianceStatus {
-	// Check user authentication mechanisms
+	// Check user authentication mechanisms.
 	return StatusPartiallyCompliant
 }
 
 func (m *ComplianceManager) check5GApplicationSecurity(ctx context.Context) ComplianceStatus {
-	// Check application layer security
+	// Check application layer security.
 	return StatusCompliant
 }
 
 func (m *ComplianceManager) checkSBASecurity(ctx context.Context) ComplianceStatus {
-	// Check service-based architecture security
+	// Check service-based architecture security.
 	return StatusPartiallyCompliant
 }
 
 func (m *ComplianceManager) checkSlicingSecurity(ctx context.Context) ComplianceStatus {
-	// Check network slicing security
+	// Check network slicing security.
 	return StatusPartiallyCompliant
 }
 
-// ETSI NFV specific checks
+// ETSI NFV specific checks.
 
 func (m *ComplianceManager) checkSecureBoot(ctx context.Context) ComplianceStatus {
-	// Check secure boot configuration
+	// Check secure boot configuration.
 	return StatusPartiallyCompliant
 }
 
 func (m *ComplianceManager) checkIsolation(ctx context.Context) ComplianceStatus {
-	// Check isolation mechanisms
+	// Check isolation mechanisms.
 	containerIssues, _ := m.securityValidator.ValidateContainerSecurity(ctx)
 	if len(containerIssues) == 0 {
 		return StatusCompliant
@@ -604,18 +613,18 @@ func (m *ComplianceManager) checkIsolation(ctx context.Context) ComplianceStatus
 }
 
 func (m *ComplianceManager) checkNFVMonitoring(ctx context.Context) ComplianceStatus {
-	// Check NFV monitoring capabilities
+	// Check NFV monitoring capabilities.
 	return StatusPartiallyCompliant
 }
 
 func (m *ComplianceManager) checkLifecycleSecurity(ctx context.Context) ComplianceStatus {
-	// Check lifecycle security controls
+	// Check lifecycle security controls.
 	return StatusCompliant
 }
 
-// performVulnerabilityScan simulates a vulnerability scan
+// performVulnerabilityScan simulates a vulnerability scan.
 func (m *ComplianceManager) performVulnerabilityScan(ctx context.Context) VulnerabilityScanResult {
-	// In production, integrate with actual vulnerability scanner
+	// In production, integrate with actual vulnerability scanner.
 	return VulnerabilityScanResult{
 		ScanTime:      time.Now(),
 		Critical:      0,
@@ -628,7 +637,7 @@ func (m *ComplianceManager) performVulnerabilityScan(ctx context.Context) Vulner
 	}
 }
 
-// GenerateComplianceReport generates a comprehensive compliance report
+// GenerateComplianceReport generates a comprehensive compliance report.
 func (m *ComplianceManager) GenerateComplianceReport(ctx context.Context, framework ComplianceFramework) ([]byte, error) {
 	var report *ComplianceReport
 	var err error
@@ -648,7 +657,7 @@ func (m *ComplianceManager) GenerateComplianceReport(ctx context.Context, framew
 		return nil, fmt.Errorf("failed to validate compliance: %w", err)
 	}
 
-	// Generate JSON report
+	// Generate JSON report.
 	reportJSON, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal report: %w", err)
@@ -657,14 +666,14 @@ func (m *ComplianceManager) GenerateComplianceReport(ctx context.Context, framew
 	return reportJSON, nil
 }
 
-// ScheduleComplianceAudits schedules regular compliance audits
+// ScheduleComplianceAudits schedules regular compliance audits.
 func (m *ComplianceManager) ScheduleComplianceAudits(ctx context.Context, interval time.Duration) {
 	logger := log.FromContext(ctx)
 	ticker := time.NewTicker(interval)
 
 	go func() {
 		for range ticker.C {
-			// Run all compliance checks
+			// Run all compliance checks.
 			frameworks := []ComplianceFramework{
 				FrameworkORAN,
 				Framework3GPP,
@@ -678,7 +687,7 @@ func (m *ComplianceManager) ScheduleComplianceAudits(ctx context.Context, interv
 					continue
 				}
 
-				// Store or send report
+				// Store or send report.
 				logger.Info("Compliance audit completed",
 					"framework", framework,
 					"reportSize", len(report))
@@ -687,14 +696,14 @@ func (m *ComplianceManager) ScheduleComplianceAudits(ctx context.Context, interv
 	}()
 }
 
-// GetComplianceSummary provides a quick compliance summary
+// GetComplianceSummary provides a quick compliance summary.
 func (m *ComplianceManager) GetComplianceSummary(ctx context.Context) map[string]interface{} {
 	summary := map[string]interface{}{
 		"timestamp":  time.Now(),
 		"frameworks": map[string]float64{},
 	}
 
-	// Get compliance for each framework
+	// Get compliance for each framework.
 	if report, err := m.ValidateORANCompliance(ctx); err == nil {
 		summary["frameworks"].(map[string]float64)["O-RAN"] = report.OverallCompliance
 	}

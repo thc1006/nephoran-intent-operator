@@ -1,5 +1,5 @@
 //go:build !disable_rag
-// +build !disable_rag
+// +build !disable_rag.
 
 package llm
 
@@ -15,7 +15,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
-// RAGAwarePromptBuilder builds telecom-specific prompts with RAG context integration
+// RAGAwarePromptBuilder builds telecom-specific prompts with RAG context integration.
 type RAGAwarePromptBuilder struct {
 	tokenManager         *TokenManager
 	telecomQueryEnhancer *TelecomQueryEnhancer
@@ -26,39 +26,39 @@ type RAGAwarePromptBuilder struct {
 	mutex                sync.RWMutex
 }
 
-// PromptBuilderConfig holds configuration for prompt building
+// PromptBuilderConfig holds configuration for prompt building.
 type PromptBuilderConfig struct {
-	// Template settings
+	// Template settings.
 	DefaultTemplate           string `json:"default_template"`
 	EnableContextOptimization bool   `json:"enable_context_optimization"`
 	MaxPromptTokens           int    `json:"max_prompt_tokens"`
 	SystemPromptTokens        int    `json:"system_prompt_tokens"`
 
-	// RAG integration
+	// RAG integration.
 	ContextSeparator          string  `json:"context_separator"`
 	SourceAttributionFormat   string  `json:"source_attribution_format"`
 	ContextPreamble           string  `json:"context_preamble"`
 	MaxContextSources         int     `json:"max_context_sources"`
 	ContextRelevanceThreshold float32 `json:"context_relevance_threshold"`
 
-	// Telecom enhancement
+	// Telecom enhancement.
 	EnableAbbreviationExpansion bool     `json:"enable_abbreviation_expansion"`
 	EnableStandardsMapping      bool     `json:"enable_standards_mapping"`
 	TelecomDomains              []string `json:"telecom_domains"`
 	PreferredStandards          []string `json:"preferred_standards"`
 
-	// Few-shot examples
+	// Few-shot examples.
 	EnableFewShotExamples    bool   `json:"enable_few_shot_examples"`
 	MaxFewShotExamples       int    `json:"max_few_shot_examples"`
 	FewShotSelectionStrategy string `json:"few_shot_selection_strategy"`
 
-	// Performance settings
+	// Performance settings.
 	CachePrompts             bool          `json:"cache_prompts"`
 	PromptCacheTTL           time.Duration `json:"prompt_cache_ttl"`
 	EnableParallelProcessing bool          `json:"enable_parallel_processing"`
 }
 
-// PromptBuilderMetrics tracks prompt building performance
+// PromptBuilderMetrics tracks prompt building performance.
 type PromptBuilderMetrics struct {
 	TotalPrompts           int64         `json:"total_prompts"`
 	CachedPrompts          int64         `json:"cached_prompts"`
@@ -72,7 +72,7 @@ type PromptBuilderMetrics struct {
 	mutex                  sync.RWMutex
 }
 
-// TelecomQueryEnhancer enhances queries with telecom-specific knowledge
+// TelecomQueryEnhancer enhances queries with telecom-specific knowledge.
 type TelecomQueryEnhancer struct {
 	abbreviations    map[string]string
 	standardsMapping map[string]StandardInfo
@@ -81,7 +81,7 @@ type TelecomQueryEnhancer struct {
 	logger           *slog.Logger
 }
 
-// StandardInfo holds information about telecom standards
+// StandardInfo holds information about telecom standards.
 type StandardInfo struct {
 	FullName     string   `json:"full_name"`
 	Organization string   `json:"organization"`
@@ -91,7 +91,7 @@ type StandardInfo struct {
 	Keywords     []string `json:"keywords"`
 }
 
-// ProtocolInfo holds information about telecom protocols
+// ProtocolInfo holds information about telecom protocols.
 type ProtocolInfo struct {
 	FullName  string   `json:"full_name"`
 	Layer     string   `json:"layer"`
@@ -100,13 +100,13 @@ type ProtocolInfo struct {
 	Keywords  []string `json:"keywords"`
 }
 
-// DomainClassifier classifies queries into telecom domains
+// DomainClassifier classifies queries into telecom domains.
 type DomainClassifier struct {
 	domainKeywords map[string][]string
 	mutex          sync.RWMutex
 }
 
-// TelecomPromptTemplates holds various prompt templates
+// TelecomPromptTemplates holds various prompt templates.
 type TelecomPromptTemplates struct {
 	systemPrompts    map[string]string
 	contextTemplates map[string]string
@@ -114,7 +114,7 @@ type TelecomPromptTemplates struct {
 	mutex            sync.RWMutex
 }
 
-// FewShotExample represents a few-shot learning example
+// FewShotExample represents a few-shot learning example.
 type FewShotExample struct {
 	Query      string                 `json:"query"`
 	Context    string                 `json:"context"`
@@ -125,7 +125,7 @@ type FewShotExample struct {
 	Metadata   map[string]interface{} `json:"metadata"`
 }
 
-// PromptRequest represents a request for prompt building
+// PromptRequest represents a request for prompt building.
 type PromptRequest struct {
 	Query              string                 `json:"query"`
 	IntentType         string                 `json:"intent_type"`
@@ -140,7 +140,7 @@ type PromptRequest struct {
 	Metadata           map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// PromptResponse represents the response from prompt building
+// PromptResponse represents the response from prompt building.
 type PromptResponse struct {
 	SystemPrompt         string                 `json:"system_prompt"`
 	UserPrompt           string                 `json:"user_prompt"`
@@ -155,7 +155,7 @@ type PromptResponse struct {
 	CacheUsed            bool                   `json:"cache_used"`
 }
 
-// NewRAGAwarePromptBuilder creates a new RAG-aware prompt builder
+// NewRAGAwarePromptBuilder creates a new RAG-aware prompt builder.
 func NewRAGAwarePromptBuilder(tokenManager *TokenManager, config *PromptBuilderConfig) *RAGAwarePromptBuilder {
 	if config == nil {
 		config = getDefaultPromptBuilderConfig()
@@ -171,7 +171,7 @@ func NewRAGAwarePromptBuilder(tokenManager *TokenManager, config *PromptBuilderC
 	}
 }
 
-// getDefaultPromptBuilderConfig returns default configuration
+// getDefaultPromptBuilderConfig returns default configuration.
 func getDefaultPromptBuilderConfig() *PromptBuilderConfig {
 	return &PromptBuilderConfig{
 		DefaultTemplate:             "telecom_expert",
@@ -196,16 +196,16 @@ func getDefaultPromptBuilderConfig() *PromptBuilderConfig {
 	}
 }
 
-// BuildPrompt builds a RAG-enhanced prompt for telecom queries
+// BuildPrompt builds a RAG-enhanced prompt for telecom queries.
 func (pb *RAGAwarePromptBuilder) BuildPrompt(ctx context.Context, request *PromptRequest) (*PromptResponse, error) {
 	startTime := time.Now()
 
-	// Update metrics
+	// Update metrics.
 	pb.updateMetrics(func(m *PromptBuilderMetrics) {
 		m.TotalPrompts++
 	})
 
-	// Validate request
+	// Validate request.
 	if err := pb.validateRequest(request); err != nil {
 		return nil, fmt.Errorf("invalid prompt request: %w", err)
 	}
@@ -219,27 +219,27 @@ func (pb *RAGAwarePromptBuilder) BuildPrompt(ctx context.Context, request *Promp
 
 	var optimizations []string
 
-	// Step 1: Enhance the query with telecom-specific knowledge
+	// Step 1: Enhance the query with telecom-specific knowledge.
 	enhancedQuery, queryOptimizations := pb.enhanceQuery(request.Query, request.IntentType)
 	optimizations = append(optimizations, queryOptimizations...)
 
-	// Step 2: Classify domain if not provided
+	// Step 2: Classify domain if not provided.
 	domain := request.Domain
 	if domain == "" {
 		domain = pb.telecomQueryEnhancer.ClassifyDomain(enhancedQuery)
 	}
 
-	// Step 3: Build system prompt
+	// Step 3: Build system prompt.
 	systemPrompt, err := pb.buildSystemPrompt(request, domain)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build system prompt: %w", err)
 	}
 
-	// Step 4: Process RAG context
+	// Step 4: Process RAG context.
 	contextText, contextSources, contextOptimizations := pb.processRAGContext(request.RAGContext, request.ModelName)
 	optimizations = append(optimizations, contextOptimizations...)
 
-	// Step 5: Select few-shot examples if enabled
+	// Step 5: Select few-shot examples if enabled.
 	var fewShotExamples []FewShotExample
 	if request.IncludeFewShot && pb.config.EnableFewShotExamples {
 		fewShotExamples = pb.selectFewShotExamples(enhancedQuery, request.IntentType, domain)
@@ -251,13 +251,13 @@ func (pb *RAGAwarePromptBuilder) BuildPrompt(ctx context.Context, request *Promp
 		}
 	}
 
-	// Step 6: Build user prompt with context
+	// Step 6: Build user prompt with context.
 	userPrompt := pb.buildUserPrompt(enhancedQuery, contextText, fewShotExamples, request.CustomInstructions)
 
-	// Step 7: Combine into full prompt
+	// Step 7: Combine into full prompt.
 	fullPrompt := pb.combinePrompts(systemPrompt, userPrompt, request.ModelName)
 
-	// Step 8: Optimize for token budget
+	// Step 8: Optimize for token budget.
 	if pb.config.EnableContextOptimization {
 		maxTokens := request.MaxTokens
 		if maxTokens == 0 {
@@ -273,10 +273,10 @@ func (pb *RAGAwarePromptBuilder) BuildPrompt(ctx context.Context, request *Promp
 		}
 	}
 
-	// Calculate final token count
+	// Calculate final token count.
 	tokenCount := pb.tokenManager.EstimateTokensForModel(fullPrompt, request.ModelName)
 
-	// Create response
+	// Create response.
 	response := &PromptResponse{
 		SystemPrompt:         systemPrompt,
 		UserPrompt:           userPrompt,
@@ -296,7 +296,7 @@ func (pb *RAGAwarePromptBuilder) BuildPrompt(ctx context.Context, request *Promp
 		},
 	}
 
-	// Update metrics
+	// Update metrics.
 	pb.updateMetrics(func(m *PromptBuilderMetrics) {
 		m.AverageProcessingTime = (m.AverageProcessingTime*time.Duration(m.TotalPrompts-1) + response.ProcessingTime) / time.Duration(m.TotalPrompts)
 		m.AveragePromptTokens = int((float64(m.AveragePromptTokens)*float64(m.TotalPrompts-1) + float64(tokenCount)) / float64(m.TotalPrompts))
@@ -315,7 +315,7 @@ func (pb *RAGAwarePromptBuilder) BuildPrompt(ctx context.Context, request *Promp
 	return response, nil
 }
 
-// validateRequest validates the prompt building request
+// validateRequest validates the prompt building request.
 func (pb *RAGAwarePromptBuilder) validateRequest(request *PromptRequest) error {
 	if request == nil {
 		return fmt.Errorf("prompt request cannot be nil")
@@ -329,12 +329,12 @@ func (pb *RAGAwarePromptBuilder) validateRequest(request *PromptRequest) error {
 	return nil
 }
 
-// enhanceQuery enhances the query with telecom-specific knowledge
+// enhanceQuery enhances the query with telecom-specific knowledge.
 func (pb *RAGAwarePromptBuilder) enhanceQuery(query, intentType string) (string, []string) {
 	var optimizations []string
 	enhancedQuery := query
 
-	// Expand abbreviations
+	// Expand abbreviations.
 	if pb.config.EnableAbbreviationExpansion {
 		expanded, changed := pb.telecomQueryEnhancer.ExpandAbbreviations(enhancedQuery)
 		if changed {
@@ -346,7 +346,7 @@ func (pb *RAGAwarePromptBuilder) enhanceQuery(query, intentType string) (string,
 		}
 	}
 
-	// Map standards references
+	// Map standards references.
 	if pb.config.EnableStandardsMapping {
 		mapped, changed := pb.telecomQueryEnhancer.MapStandards(enhancedQuery)
 		if changed {
@@ -358,7 +358,7 @@ func (pb *RAGAwarePromptBuilder) enhanceQuery(query, intentType string) (string,
 		}
 	}
 
-	// Add domain-specific context clues
+	// Add domain-specific context clues.
 	if intentType != "" {
 		contextualEnhancement := pb.addContextualHints(enhancedQuery, intentType)
 		if contextualEnhancement != enhancedQuery {
@@ -370,7 +370,7 @@ func (pb *RAGAwarePromptBuilder) enhanceQuery(query, intentType string) (string,
 	return enhancedQuery, optimizations
 }
 
-// addContextualHints adds contextual hints based on intent type
+// addContextualHints adds contextual hints based on intent type.
 func (pb *RAGAwarePromptBuilder) addContextualHints(query, intentType string) string {
 	switch strings.ToLower(intentType) {
 	case "configuration":
@@ -393,7 +393,7 @@ func (pb *RAGAwarePromptBuilder) addContextualHints(query, intentType string) st
 	return query
 }
 
-// buildSystemPrompt builds the system prompt based on request parameters
+// buildSystemPrompt builds the system prompt based on request parameters.
 func (pb *RAGAwarePromptBuilder) buildSystemPrompt(request *PromptRequest, domain string) (string, error) {
 	templateType := pb.getTemplateType(request)
 	template, err := pb.promptTemplates.GetSystemPrompt(templateType)
@@ -401,27 +401,27 @@ func (pb *RAGAwarePromptBuilder) buildSystemPrompt(request *PromptRequest, domai
 		return "", fmt.Errorf("failed to get system prompt template: %w", err)
 	}
 
-	// Replace template variables
+	// Replace template variables.
 	systemPrompt := template
 	systemPrompt = strings.ReplaceAll(systemPrompt, "{domain}", domain)
 	systemPrompt = strings.ReplaceAll(systemPrompt, "{intent_type}", request.IntentType)
 
-	// Add model-specific optimizations
+	// Add model-specific optimizations.
 	if !pb.tokenManager.SupportsSystemPrompt(request.ModelName) {
-		// For models that don't support system prompts, we'll integrate it into user prompt
+		// For models that don't support system prompts, we'll integrate it into user prompt.
 		return "", nil
 	}
 
 	return systemPrompt, nil
 }
 
-// getTemplateType determines the appropriate template type
+// getTemplateType determines the appropriate template type.
 func (pb *RAGAwarePromptBuilder) getTemplateType(request *PromptRequest) string {
 	if request.TemplateType != "" {
 		return request.TemplateType
 	}
 
-	// Determine based on intent type and domain
+	// Determine based on intent type and domain.
 	if request.IntentType != "" {
 		switch strings.ToLower(request.IntentType) {
 		case "configuration":
@@ -438,7 +438,7 @@ func (pb *RAGAwarePromptBuilder) getTemplateType(request *PromptRequest) string 
 	return pb.config.DefaultTemplate
 }
 
-// processRAGContext processes RAG context and creates formatted context text
+// processRAGContext processes RAG context and creates formatted context text.
 func (pb *RAGAwarePromptBuilder) processRAGContext(ragContext []*shared.SearchResult, modelName string) (string, []string, []string) {
 	if len(ragContext) == 0 {
 		return "", nil, nil
@@ -448,7 +448,7 @@ func (pb *RAGAwarePromptBuilder) processRAGContext(ragContext []*shared.SearchRe
 	var contextParts []string
 	var sources []string
 
-	// Filter by relevance threshold
+	// Filter by relevance threshold.
 	filteredContext := make([]*shared.SearchResult, 0)
 	for _, result := range ragContext {
 		if result.Score >= pb.config.ContextRelevanceThreshold {
@@ -460,24 +460,24 @@ func (pb *RAGAwarePromptBuilder) processRAGContext(ragContext []*shared.SearchRe
 		optimizations = append(optimizations, "relevance_filtering")
 	}
 
-	// Limit to max sources
+	// Limit to max sources.
 	maxSources := pb.config.MaxContextSources
 	if len(filteredContext) > maxSources {
 		filteredContext = filteredContext[:maxSources]
 		optimizations = append(optimizations, "source_limiting")
 	}
 
-	// Build context text
+	// Build context text.
 	for i, result := range filteredContext {
 		if result.Document == nil {
 			continue
 		}
 
-		// Format document for context
+		// Format document for context.
 		docText := pb.formatDocumentForContext(result, i+1)
 		contextParts = append(contextParts, docText)
 
-		// Create source attribution - use simple string formatting
+		// Create source attribution - use simple string formatting.
 		source := fmt.Sprintf("[%d] %s - %s", i+1, result.Document.Source, result.Document.Title)
 		sources = append(sources, source)
 	}
@@ -491,7 +491,7 @@ func (pb *RAGAwarePromptBuilder) processRAGContext(ragContext []*shared.SearchRe
 	return contextText, sources, optimizations
 }
 
-// formatDocumentForContext formats a document for inclusion in context
+// formatDocumentForContext formats a document for inclusion in context.
 func (pb *RAGAwarePromptBuilder) formatDocumentForContext(result *shared.SearchResult, index int) string {
 	doc := result.Document
 
@@ -518,14 +518,14 @@ func (pb *RAGAwarePromptBuilder) formatDocumentForContext(result *shared.SearchR
 	return strings.Join(parts, "\n")
 }
 
-// selectFewShotExamples selects appropriate few-shot examples
+// selectFewShotExamples selects appropriate few-shot examples.
 func (pb *RAGAwarePromptBuilder) selectFewShotExamples(query, intentType, domain string) []FewShotExample {
 	examples := pb.promptTemplates.GetFewShotExamples(intentType, domain)
 	if len(examples) == 0 {
 		return nil
 	}
 
-	// Score examples by similarity to query
+	// Score examples by similarity to query.
 	type scoredExample struct {
 		example FewShotExample
 		score   float32
@@ -535,7 +535,7 @@ func (pb *RAGAwarePromptBuilder) selectFewShotExamples(query, intentType, domain
 	queryLower := strings.ToLower(query)
 
 	for _, example := range examples {
-		// Simple similarity scoring based on keyword overlap
+		// Simple similarity scoring based on keyword overlap.
 		score := pb.calculateExampleSimilarity(queryLower, strings.ToLower(example.Query))
 		scoredExamples = append(scoredExamples, scoredExample{
 			example: example,
@@ -543,7 +543,7 @@ func (pb *RAGAwarePromptBuilder) selectFewShotExamples(query, intentType, domain
 		})
 	}
 
-	// Sort by score (highest first)
+	// Sort by score (highest first).
 	for i := 0; i < len(scoredExamples)-1; i++ {
 		for j := i + 1; j < len(scoredExamples); j++ {
 			if scoredExamples[i].score < scoredExamples[j].score {
@@ -552,7 +552,7 @@ func (pb *RAGAwarePromptBuilder) selectFewShotExamples(query, intentType, domain
 		}
 	}
 
-	// Select top examples
+	// Select top examples.
 	maxExamples := pb.config.MaxFewShotExamples
 	if len(scoredExamples) < maxExamples {
 		maxExamples = len(scoredExamples)
@@ -566,7 +566,7 @@ func (pb *RAGAwarePromptBuilder) selectFewShotExamples(query, intentType, domain
 	return selectedExamples
 }
 
-// calculateExampleSimilarity calculates similarity between query and example
+// calculateExampleSimilarity calculates similarity between query and example.
 func (pb *RAGAwarePromptBuilder) calculateExampleSimilarity(query, exampleQuery string) float32 {
 	queryWords := strings.Fields(query)
 	exampleWords := strings.Fields(exampleQuery)
@@ -588,11 +588,11 @@ func (pb *RAGAwarePromptBuilder) calculateExampleSimilarity(query, exampleQuery 
 	return float32(matches) / float32(len(queryWords))
 }
 
-// buildUserPrompt builds the user prompt with context and examples
+// buildUserPrompt builds the user prompt with context and examples.
 func (pb *RAGAwarePromptBuilder) buildUserPrompt(query, context string, fewShotExamples []FewShotExample, customInstructions string) string {
 	var parts []string
 
-	// Add few-shot examples first
+	// Add few-shot examples first.
 	if len(fewShotExamples) > 0 {
 		parts = append(parts, "Here are some examples of similar queries:")
 		for i, example := range fewShotExamples {
@@ -603,42 +603,42 @@ func (pb *RAGAwarePromptBuilder) buildUserPrompt(query, context string, fewShotE
 		parts = append(parts, "")
 	}
 
-	// Add context if available
+	// Add context if available.
 	if context != "" {
 		parts = append(parts, context)
 		parts = append(parts, "")
 	}
 
-	// Add custom instructions if provided
+	// Add custom instructions if provided.
 	if customInstructions != "" {
 		parts = append(parts, "Additional Instructions:")
 		parts = append(parts, customInstructions)
 		parts = append(parts, "")
 	}
 
-	// Add the actual query
+	// Add the actual query.
 	parts = append(parts, "Question:")
 	parts = append(parts, query)
 
 	return strings.Join(parts, "\n")
 }
 
-// combinePrompts combines system and user prompts based on model capabilities
+// combinePrompts combines system and user prompts based on model capabilities.
 func (pb *RAGAwarePromptBuilder) combinePrompts(systemPrompt, userPrompt, modelName string) string {
 	if !pb.tokenManager.SupportsChatFormat(modelName) {
-		// For models that don't support chat format, combine into single prompt
+		// For models that don't support chat format, combine into single prompt.
 		if systemPrompt != "" {
 			return systemPrompt + "\n\n" + userPrompt
 		}
 		return userPrompt
 	}
 
-	// For chat models, we'll return the user prompt
-	// The system prompt should be handled separately by the client
+	// For chat models, we'll return the user prompt.
+	// The system prompt should be handled separately by the client.
 	return userPrompt
 }
 
-// optimizeForTokens optimizes the prompt to fit within token budget
+// optimizeForTokens optimizes the prompt to fit within token budget.
 func (pb *RAGAwarePromptBuilder) optimizeForTokens(fullPrompt, systemPrompt, userPrompt string, maxTokens int, modelName string) (string, []string, error) {
 	currentTokens := pb.tokenManager.EstimateTokensForModel(fullPrompt, modelName)
 	if currentTokens <= maxTokens {
@@ -648,10 +648,10 @@ func (pb *RAGAwarePromptBuilder) optimizeForTokens(fullPrompt, systemPrompt, use
 	var optimizations []string
 	optimizedPrompt := fullPrompt
 
-	// Reserve tokens for system prompt
+	// Reserve tokens for system prompt.
 	availableTokens := maxTokens - pb.tokenManager.EstimateTokensForModel(systemPrompt, modelName)
 
-	// Truncate user prompt if necessary
+	// Truncate user prompt if necessary.
 	if pb.tokenManager.EstimateTokensForModel(userPrompt, modelName) > availableTokens {
 		truncatedUserPrompt := pb.tokenManager.TruncateToFit(userPrompt, availableTokens, modelName)
 		optimizedPrompt = pb.combinePrompts(systemPrompt, truncatedUserPrompt, modelName)
@@ -661,19 +661,19 @@ func (pb *RAGAwarePromptBuilder) optimizeForTokens(fullPrompt, systemPrompt, use
 	return optimizedPrompt, optimizations, nil
 }
 
-// updateMetrics safely updates metrics
+// updateMetrics safely updates metrics.
 func (pb *RAGAwarePromptBuilder) updateMetrics(updater func(*PromptBuilderMetrics)) {
 	pb.metrics.mutex.Lock()
 	defer pb.metrics.mutex.Unlock()
 	updater(pb.metrics)
 }
 
-// GetMetrics returns current metrics
+// GetMetrics returns current metrics.
 func (pb *RAGAwarePromptBuilder) GetMetrics() *PromptBuilderMetrics {
 	pb.metrics.mutex.RLock()
 	defer pb.metrics.mutex.RUnlock()
 
-	// Create a copy without the mutex
+	// Create a copy without the mutex.
 	metrics := &PromptBuilderMetrics{
 		TotalPrompts:           pb.metrics.TotalPrompts,
 		CachedPrompts:          pb.metrics.CachedPrompts,
@@ -688,7 +688,7 @@ func (pb *RAGAwarePromptBuilder) GetMetrics() *PromptBuilderMetrics {
 	return metrics
 }
 
-// NewTelecomQueryEnhancer creates a new telecom query enhancer
+// NewTelecomQueryEnhancer creates a new telecom query enhancer.
 func NewTelecomQueryEnhancer() *TelecomQueryEnhancer {
 	return &TelecomQueryEnhancer{
 		abbreviations:    initializeAbbreviations(),
@@ -699,13 +699,13 @@ func NewTelecomQueryEnhancer() *TelecomQueryEnhancer {
 	}
 }
 
-// ExpandAbbreviations expands telecom abbreviations in the query
+// ExpandAbbreviations expands telecom abbreviations in the query.
 func (tqe *TelecomQueryEnhancer) ExpandAbbreviations(query string) (string, bool) {
 	expandedQuery := query
 	changed := false
 
 	for abbrev, expansion := range tqe.abbreviations {
-		// Use word boundaries to avoid partial matches
+		// Use word boundaries to avoid partial matches.
 		pattern := fmt.Sprintf(`\b%s\b`, regexp.QuoteMeta(abbrev))
 		re := regexp.MustCompile(pattern)
 
@@ -718,7 +718,7 @@ func (tqe *TelecomQueryEnhancer) ExpandAbbreviations(query string) (string, bool
 	return expandedQuery, changed
 }
 
-// MapStandards maps standards references to full information
+// MapStandards maps standards references to full information.
 func (tqe *TelecomQueryEnhancer) MapStandards(query string) (string, bool) {
 	mappedQuery := query
 	changed := false
@@ -735,12 +735,12 @@ func (tqe *TelecomQueryEnhancer) MapStandards(query string) (string, bool) {
 	return mappedQuery, changed
 }
 
-// ClassifyDomain classifies the query into telecom domains
+// ClassifyDomain classifies the query into telecom domains.
 func (tqe *TelecomQueryEnhancer) ClassifyDomain(query string) string {
 	return tqe.domainClassifier.Classify(query)
 }
 
-// Initialize abbreviations map
+// Initialize abbreviations map.
 func initializeAbbreviations() map[string]string {
 	return map[string]string{
 		"5G":   "Fifth Generation",
@@ -782,7 +782,7 @@ func initializeAbbreviations() map[string]string {
 	}
 }
 
-// Initialize standards mapping
+// Initialize standards mapping.
 func initializeStandardsMapping() map[string]StandardInfo {
 	return map[string]StandardInfo{
 		`TS\s*38\.\d+`: {
@@ -812,7 +812,7 @@ func initializeStandardsMapping() map[string]StandardInfo {
 	}
 }
 
-// Initialize protocol mappings
+// Initialize protocol mappings.
 func initializeProtocolMappings() map[string]ProtocolInfo {
 	return map[string]ProtocolInfo{
 		"NAS": {
@@ -836,7 +836,7 @@ func initializeProtocolMappings() map[string]ProtocolInfo {
 	}
 }
 
-// NewDomainClassifier creates a new domain classifier
+// NewDomainClassifier creates a new domain classifier.
 func NewDomainClassifier() *DomainClassifier {
 	return &DomainClassifier{
 		domainKeywords: map[string][]string{
@@ -849,7 +849,7 @@ func NewDomainClassifier() *DomainClassifier {
 	}
 }
 
-// Classify classifies a query into telecom domains
+// Classify classifies a query into telecom domains.
 func (dc *DomainClassifier) Classify(query string) string {
 	dc.mutex.RLock()
 	defer dc.mutex.RUnlock()
@@ -858,7 +858,7 @@ func (dc *DomainClassifier) Classify(query string) string {
 
 	domainScores := make(map[string]int)
 
-	// Score domains based on keyword matches
+	// Score domains based on keyword matches.
 	for domain, keywords := range dc.domainKeywords {
 		score := 0
 		for _, keyword := range keywords {
@@ -869,7 +869,7 @@ func (dc *DomainClassifier) Classify(query string) string {
 		domainScores[domain] = score
 	}
 
-	// Find domain with highest score
+	// Find domain with highest score.
 	maxScore := 0
 	bestDomain := "General"
 
@@ -883,7 +883,7 @@ func (dc *DomainClassifier) Classify(query string) string {
 	return bestDomain
 }
 
-// NewTelecomPromptTemplates creates new telecom prompt templates
+// NewTelecomPromptTemplates creates new telecom prompt templates.
 func NewTelecomPromptTemplates() *TelecomPromptTemplates {
 	return &TelecomPromptTemplates{
 		systemPrompts:    initializeSystemPrompts(),
@@ -892,14 +892,14 @@ func NewTelecomPromptTemplates() *TelecomPromptTemplates {
 	}
 }
 
-// GetSystemPrompt gets a system prompt by type
+// GetSystemPrompt gets a system prompt by type.
 func (tpt *TelecomPromptTemplates) GetSystemPrompt(templateType string) (string, error) {
 	tpt.mutex.RLock()
 	defer tpt.mutex.RUnlock()
 
 	template, exists := tpt.systemPrompts[templateType]
 	if !exists {
-		// Return default template
+		// Return default template.
 		if defaultTemplate, hasDefault := tpt.systemPrompts["telecom_expert"]; hasDefault {
 			return defaultTemplate, nil
 		}
@@ -909,7 +909,7 @@ func (tpt *TelecomPromptTemplates) GetSystemPrompt(templateType string) (string,
 	return template, nil
 }
 
-// GetFewShotExamples gets few-shot examples for intent type and domain
+// GetFewShotExamples gets few-shot examples for intent type and domain.
 func (tpt *TelecomPromptTemplates) GetFewShotExamples(intentType, domain string) []FewShotExample {
 	tpt.mutex.RLock()
 	defer tpt.mutex.RUnlock()
@@ -919,12 +919,12 @@ func (tpt *TelecomPromptTemplates) GetFewShotExamples(intentType, domain string)
 		return examples
 	}
 
-	// Try with just intent type
+	// Try with just intent type.
 	if examples, exists := tpt.fewShotExamples[intentType]; exists {
 		return examples
 	}
 
-	// Return general examples
+	// Return general examples.
 	if examples, exists := tpt.fewShotExamples["general"]; exists {
 		return examples
 	}
@@ -932,7 +932,7 @@ func (tpt *TelecomPromptTemplates) GetFewShotExamples(intentType, domain string)
 	return nil
 }
 
-// Initialize system prompts
+// Initialize system prompts.
 func initializeSystemPrompts() map[string]string {
 	return map[string]string{
 		"telecom_expert": `You are an expert telecommunications engineer and system administrator with deep knowledge of 5G, 4G, O-RAN, and network infrastructure. Your role is to provide accurate, actionable answers based on technical documentation and industry best practices.
@@ -966,7 +966,7 @@ Your responses should include:
 	}
 }
 
-// Initialize context templates
+// Initialize context templates.
 func initializeContextTemplates() map[string]string {
 	return map[string]string{
 		"default":         "Based on the following technical documentation:",
@@ -975,7 +975,7 @@ func initializeContextTemplates() map[string]string {
 	}
 }
 
-// Initialize few-shot examples
+// Initialize few-shot examples.
 func initializeFewShotExamples() map[string][]FewShotExample {
 	return map[string][]FewShotExample{
 		"configuration": {

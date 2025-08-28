@@ -10,7 +10,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
 
-// JWTManagerInterface defines the interface for JWT management
+// JWTManagerInterface defines the interface for JWT management.
 type JWTManagerInterface interface {
 	GenerateToken(user *providers.UserInfo, customClaims map[string]interface{}) (string, error)
 	ValidateToken(tokenString string) (jwt.MapClaims, error)
@@ -20,7 +20,7 @@ type JWTManagerInterface interface {
 	Close()
 }
 
-// RBACManagerInterface defines the interface for role-based access control
+// RBACManagerInterface defines the interface for role-based access control.
 type RBACManagerInterface interface {
 	CheckPermission(ctx context.Context, userID, resource, action string) (bool, error)
 	AssignRole(ctx context.Context, userID, role string) error
@@ -29,7 +29,7 @@ type RBACManagerInterface interface {
 	GetRolePermissions(ctx context.Context, role string) ([]string, error)
 }
 
-// SessionManagerInterface defines the interface for session management
+// SessionManagerInterface defines the interface for session management.
 type SessionManagerInterface interface {
 	CreateSession(ctx context.Context, userInfo *providers.UserInfo) (*UserSession, error)
 	GetSession(ctx context.Context, sessionID string) (*UserSession, error)
@@ -41,7 +41,7 @@ type SessionManagerInterface interface {
 	Close()
 }
 
-// AuthHandlersInterface defines the interface for authentication handlers
+// AuthHandlersInterface defines the interface for authentication handlers.
 type AuthHandlersInterface interface {
 	RegisterRoutes(router interface{})
 	GetProvidersHandler(w http.ResponseWriter, r *http.Request)
@@ -51,7 +51,7 @@ type AuthHandlersInterface interface {
 	GetUserInfoHandler(w http.ResponseWriter, r *http.Request)
 }
 
-// UserSession represents an active user session
+// UserSession represents an active user session.
 type UserSession struct {
 	ID           string                 `json:"id"`
 	UserID       string                 `json:"user_id"`
@@ -69,16 +69,16 @@ type UserSession struct {
 	Permissions  []string               `json:"permissions"`
 	Attributes   map[string]interface{} `json:"attributes,omitempty"`
 
-	// SSO state
+	// SSO state.
 	SSOEnabled     bool              `json:"sso_enabled"`
 	LinkedSessions map[string]string `json:"linked_sessions,omitempty"` // provider -> session_id
 
-	// Security
+	// Security.
 	CSRFToken     string `json:"csrf_token"`
 	SecureContext bool   `json:"secure_context"`
 }
 
-// AuthManagerInterface defines the interface for the main authentication manager
+// AuthManagerInterface defines the interface for the main authentication manager.
 type AuthManagerInterface interface {
 	GetMiddleware() interface{}
 	GetLDAPMiddleware() interface{}

@@ -1,5 +1,5 @@
-// Package o2 - Helper types for O2 IMS implementation
-// This file contains additional types referenced by the main O2 IMS components
+// Package o2 - Helper types for O2 IMS implementation.
+// This file contains additional types referenced by the main O2 IMS components.
 package o2
 
 import (
@@ -11,9 +11,9 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 )
 
-// Additional types referenced by ResourcePoolManager and other components
+// Additional types referenced by ResourcePoolManager and other components.
 
-// DeploymentTemplateFilter defines filters for deployment template queries
+// DeploymentTemplateFilter defines filters for deployment template queries.
 type DeploymentTemplateFilter struct {
 	Names         []string          `json:"names,omitempty"`
 	Categories    []string          `json:"categories,omitempty"`
@@ -30,7 +30,7 @@ type DeploymentTemplateFilter struct {
 	SortOrder     string            `json:"sortOrder,omitempty"`
 }
 
-// DeploymentTemplate represents a deployment template following O2 IMS specification
+// DeploymentTemplate represents a deployment template following O2 IMS specification.
 type DeploymentTemplate struct {
 	DeploymentTemplateID string `json:"deploymentTemplateId"`
 	Name                 string `json:"name"`
@@ -39,16 +39,16 @@ type DeploymentTemplate struct {
 	Provider             string `json:"provider,omitempty"`
 	Category             string `json:"category,omitempty"` // VNF, CNF, PNF, NS
 
-	// Template specifications
+	// Template specifications.
 	TemplateSpec        *TemplateSpecification `json:"templateSpec"`
 	RequiredResources   *ResourceRequirements  `json:"requiredResources"`
 	SupportedParameters []*TemplateParameter   `json:"supportedParameters,omitempty"`
 
-	// Validation and compatibility
+	// Validation and compatibility.
 	ValidationRules     []*ValidationRule    `json:"validationRules,omitempty"`
 	CompatibilityMatrix []*CompatibilityInfo `json:"compatibilityMatrix,omitempty"`
 
-	// Metadata and lifecycle
+	// Metadata and lifecycle.
 	Tags       map[string]string      `json:"tags,omitempty"`
 	Labels     map[string]string      `json:"labels,omitempty"`
 	Extensions map[string]interface{} `json:"extensions,omitempty"`
@@ -59,7 +59,7 @@ type DeploymentTemplate struct {
 	UpdatedBy  string                 `json:"updatedBy,omitempty"`
 }
 
-// TemplateSpecification defines the deployment template specification
+// TemplateSpecification defines the deployment template specification.
 type TemplateSpecification struct {
 	Type            string                           `json:"type"` // HEAT, HELM, KUBERNETES, TERRAFORM
 	Content         *runtime.RawExtension            `json:"content"`
@@ -67,21 +67,21 @@ type TemplateSpecification struct {
 	MainTemplate    string                           `json:"mainTemplate,omitempty"`
 	NestedTemplates map[string]*runtime.RawExtension `json:"nestedTemplates,omitempty"`
 
-	// Deployment configuration
+	// Deployment configuration.
 	DeploymentOptions *DeploymentOptions `json:"deploymentOptions,omitempty"`
 	Hooks             []*DeploymentHook  `json:"hooks,omitempty"`
 
-	// Resource mappings
+	// Resource mappings.
 	ResourceMappings []*ResourceMapping `json:"resourceMappings,omitempty"`
 	NetworkMappings  []*NetworkMapping  `json:"networkMappings,omitempty"`
 	StorageMappings  []*StorageMapping  `json:"storageMappings,omitempty"`
 
-	// Dependencies
+	// Dependencies.
 	Dependencies  []*TemplateDependency `json:"dependencies,omitempty"`
 	Prerequisites []*Prerequisite       `json:"prerequisites,omitempty"`
 }
 
-// DeploymentOptions defines options for template deployment
+// DeploymentOptions defines options for template deployment.
 type DeploymentOptions struct {
 	Timeout          time.Duration          `json:"timeout"`
 	RetryPolicy      *RetryPolicy           `json:"retryPolicy,omitempty"`
@@ -91,7 +91,7 @@ type DeploymentOptions struct {
 	SecurityConfig   *SecurityConfiguration `json:"securityConfig,omitempty"`
 }
 
-// ResourceRequirements defines resource requirements for deployment templates
+// ResourceRequirements defines resource requirements for deployment templates.
 type ResourceRequirements struct {
 	MinCPU              string                    `json:"minCpu,omitempty"`
 	MinMemory           string                    `json:"minMemory,omitempty"`
@@ -108,7 +108,7 @@ type ResourceRequirements struct {
 	AcceleratorReq      []*AcceleratorRequirement `json:"acceleratorRequirements,omitempty"`
 }
 
-// Deployment represents a deployment instance created from a template
+// Deployment represents a deployment instance created from a template.
 type Deployment struct {
 	DeploymentManagerID string                 `json:"deploymentManagerId"`
 	Name                string                 `json:"name"`
@@ -116,26 +116,26 @@ type Deployment struct {
 	ParentDeploymentID  string                 `json:"parentDeploymentId,omitempty"`
 	Extensions          map[string]interface{} `json:"extensions,omitempty"`
 
-	// Deployment specification
+	// Deployment specification.
 	TemplateID      string                `json:"templateId"`
 	TemplateVersion string                `json:"templateVersion,omitempty"`
 	InputParameters *runtime.RawExtension `json:"inputParameters,omitempty"`
 	OutputValues    *runtime.RawExtension `json:"outputValues,omitempty"`
 	ResourcePoolID  string                `json:"resourcePoolId"`
 
-	// Deployment status and lifecycle
+	// Deployment status and lifecycle.
 	Status    *DeploymentStatus   `json:"status"`
 	Resources []*DeployedResource `json:"resources,omitempty"`
 	Services  []*DeployedService  `json:"services,omitempty"`
 
-	// Lifecycle information
+	// Lifecycle information.
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 	CreatedBy string    `json:"createdBy,omitempty"`
 	UpdatedBy string    `json:"updatedBy,omitempty"`
 }
 
-// DeploymentFilter defines filters for deployment queries
+// DeploymentFilter defines filters for deployment queries.
 type DeploymentFilter struct {
 	Names               []string          `json:"names,omitempty"`
 	TemplateIDs         []string          `json:"templateIds,omitempty"`
@@ -154,7 +154,7 @@ type DeploymentFilter struct {
 	SortOrder           string            `json:"sortOrder,omitempty"`
 }
 
-// CreateDeploymentRequest represents a request to create a deployment
+// CreateDeploymentRequest represents a request to create a deployment.
 type CreateDeploymentRequest struct {
 	Name               string                 `json:"name"`
 	Description        string                 `json:"description,omitempty"`
@@ -166,30 +166,30 @@ type CreateDeploymentRequest struct {
 	Extensions         map[string]interface{} `json:"extensions,omitempty"`
 	Metadata           map[string]string      `json:"metadata,omitempty"`
 
-	// Deployment options
+	// Deployment options.
 	DryRun         bool            `json:"dryRun,omitempty"`
 	Timeout        time.Duration   `json:"timeout,omitempty"`
 	RetryPolicy    *RetryPolicy    `json:"retryPolicy,omitempty"`
 	RollbackPolicy *RollbackPolicy `json:"rollbackPolicy,omitempty"`
 }
 
-// UpdateDeploymentRequest represents a request to update a deployment
+// UpdateDeploymentRequest represents a request to update a deployment.
 type UpdateDeploymentRequest struct {
 	Description     *string                `json:"description,omitempty"`
 	InputParameters *runtime.RawExtension  `json:"inputParameters,omitempty"`
 	Extensions      map[string]interface{} `json:"extensions,omitempty"`
 	Metadata        map[string]string      `json:"metadata,omitempty"`
 
-	// Update options
+	// Update options.
 	UpdateStrategy *UpdateStrategy `json:"updateStrategy,omitempty"`
 	Timeout        time.Duration   `json:"timeout,omitempty"`
 	RetryPolicy    *RetryPolicy    `json:"retryPolicy,omitempty"`
 }
 
-// Subscription represents an event subscription in O2 IMS
+// Subscription represents an event subscription in O2 IMS.
 type Subscription = models.Subscription
 
-// SubscriptionFilter defines filters for subscription queries
+// SubscriptionFilter defines filters for subscription queries.
 type SubscriptionFilter struct {
 	Names           []string          `json:"names,omitempty"`
 	EventTypes      []string          `json:"eventTypes,omitempty"`
@@ -206,12 +206,12 @@ type SubscriptionFilter struct {
 	SortOrder       string            `json:"sortOrder,omitempty"`
 }
 
-// InfrastructureEvent represents an infrastructure event
+// InfrastructureEvent represents an infrastructure event.
 type InfrastructureEvent = models.InfrastructureEvent
 
-// Infrastructure monitoring and health types
+// Infrastructure monitoring and health types.
 
-// ResourceHealth represents the health status of a resource
+// ResourceHealth represents the health status of a resource.
 type ResourceHealth struct {
 	ResourceID   string                 `json:"resourceId"`
 	Status       string                 `json:"status"` // HEALTHY, DEGRADED, UNHEALTHY, UNKNOWN
@@ -222,7 +222,7 @@ type ResourceHealth struct {
 	OverallScore float64                `json:"overallScore,omitempty"`
 }
 
-// HealthCheckResult represents the result of a health check
+// HealthCheckResult represents the result of a health check.
 type HealthCheckResult struct {
 	CheckName string                 `json:"checkName"`
 	Status    string                 `json:"status"`
@@ -232,7 +232,7 @@ type HealthCheckResult struct {
 	Details   map[string]interface{} `json:"details,omitempty"`
 }
 
-// Alarm represents an alarm in the system
+// Alarm represents an alarm in the system.
 type Alarm struct {
 	AlarmID        string                 `json:"alarmId"`
 	ResourceID     string                 `json:"resourceId"`
@@ -249,7 +249,7 @@ type Alarm struct {
 	AdditionalInfo map[string]interface{} `json:"additionalInfo,omitempty"`
 }
 
-// AlarmFilter defines filters for alarm queries
+// AlarmFilter defines filters for alarm queries.
 type AlarmFilter struct {
 	ResourceIDs   []string   `json:"resourceIds,omitempty"`
 	AlarmTypes    []string   `json:"alarmTypes,omitempty"`
@@ -266,7 +266,7 @@ type AlarmFilter struct {
 	SortOrder     string     `json:"sortOrder,omitempty"`
 }
 
-// MetricsData represents collected metrics
+// MetricsData represents collected metrics.
 type MetricsData struct {
 	ResourceID  string                 `json:"resourceId"`
 	Timestamp   time.Time              `json:"timestamp"`
@@ -275,7 +275,7 @@ type MetricsData struct {
 	CollectorID string                 `json:"collectorId,omitempty"`
 }
 
-// MetricsFilter defines filters for metrics queries
+// MetricsFilter defines filters for metrics queries.
 type MetricsFilter struct {
 	MetricNames []string          `json:"metricNames,omitempty"`
 	StartTime   *time.Time        `json:"startTime,omitempty"`
@@ -286,9 +286,9 @@ type MetricsFilter struct {
 	Limit       int               `json:"limit,omitempty"`
 }
 
-// Infrastructure discovery and inventory types
+// Infrastructure discovery and inventory types.
 
-// InfrastructureDiscovery represents discovered infrastructure
+// InfrastructureDiscovery represents discovered infrastructure.
 type InfrastructureDiscovery struct {
 	Provider      providers.CloudProvider `json:"provider"`
 	Region        string                  `json:"region,omitempty"`
@@ -300,7 +300,7 @@ type InfrastructureDiscovery struct {
 	Metadata      map[string]interface{}  `json:"metadata,omitempty"`
 }
 
-// InventoryUpdate represents an update to the infrastructure inventory
+// InventoryUpdate represents an update to the infrastructure inventory.
 type InventoryUpdate struct {
 	UpdateID     string                 `json:"updateId"`
 	UpdateType   string                 `json:"updateType"` // ADD, UPDATE, DELETE
@@ -311,7 +311,7 @@ type InventoryUpdate struct {
 	Source       string                 `json:"source,omitempty"`
 }
 
-// CapacityPrediction represents predicted capacity requirements
+// CapacityPrediction represents predicted capacity requirements.
 type CapacityPrediction struct {
 	ResourcePoolID    string                   `json:"resourcePoolId"`
 	PredictionID      string                   `json:"predictionId"`
@@ -323,9 +323,9 @@ type CapacityPrediction struct {
 	Model             string                   `json:"model,omitempty"`
 }
 
-// Resource management operation types
+// Resource management operation types.
 
-// ProvisionResourceRequest represents a request to provision a resource
+// ProvisionResourceRequest represents a request to provision a resource.
 type ProvisionResourceRequest struct {
 	Name           string                 `json:"name"`
 	ResourceType   string                 `json:"resourceType"`
@@ -337,7 +337,7 @@ type ProvisionResourceRequest struct {
 	Metadata       map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// ScaleResourceRequest represents a request to scale a resource
+// ScaleResourceRequest represents a request to scale a resource.
 type ScaleResourceRequest struct {
 	ScaleType      string                 `json:"scaleType"` // UP, DOWN, OUT, IN
 	TargetSize     int                    `json:"targetSize,omitempty"`
@@ -347,7 +347,7 @@ type ScaleResourceRequest struct {
 	Options        map[string]interface{} `json:"options,omitempty"`
 }
 
-// MigrateResourceRequest represents a request to migrate a resource
+// MigrateResourceRequest represents a request to migrate a resource.
 type MigrateResourceRequest struct {
 	TargetPoolID        string                 `json:"targetPoolId"`
 	SourceProvider      string                 `json:"sourceProvider"`
@@ -357,7 +357,7 @@ type MigrateResourceRequest struct {
 	Options             map[string]interface{} `json:"options,omitempty"`
 }
 
-// BackupResourceRequest represents a request to backup a resource
+// BackupResourceRequest represents a request to backup a resource.
 type BackupResourceRequest struct {
 	BackupType      string                 `json:"backupType"` // FULL, INCREMENTAL, DIFFERENTIAL
 	StorageLocation string                 `json:"storageLocation,omitempty"`
@@ -366,7 +366,7 @@ type BackupResourceRequest struct {
 	Options         map[string]interface{} `json:"options,omitempty"`
 }
 
-// BackupInfo represents information about a backup
+// BackupInfo represents information about a backup.
 type BackupInfo struct {
 	BackupID    string                 `json:"backupId"`
 	ResourceID  string                 `json:"resourceId"`
@@ -380,7 +380,7 @@ type BackupInfo struct {
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// ResourceHistoryEntry represents a history entry for a resource
+// ResourceHistoryEntry represents a history entry for a resource.
 type ResourceHistoryEntry struct {
 	EntryID       string                 `json:"entryId"`
 	ResourceID    string                 `json:"resourceId"`
@@ -393,12 +393,12 @@ type ResourceHistoryEntry struct {
 	CurrentState  *runtime.RawExtension  `json:"currentState,omitempty"`
 }
 
-// Monitoring service types
+// Monitoring service types.
 
-// HealthCallback defines a callback function for health monitoring
+// HealthCallback defines a callback function for health monitoring.
 type HealthCallback func(resourceID string, health *ResourceHealth) error
 
-// MetricsCollectionConfig configures metrics collection
+// MetricsCollectionConfig configures metrics collection.
 type MetricsCollectionConfig struct {
 	MetricNames      []string          `json:"metricNames"`
 	Interval         time.Duration     `json:"interval"`
@@ -407,9 +407,9 @@ type MetricsCollectionConfig struct {
 	StorageRetention time.Duration     `json:"storageRetention,omitempty"`
 }
 
-// Supporting types for deployment templates and resources
+// Supporting types for deployment templates and resources.
 
-// TemplateParameter represents a parameter for a deployment template
+// TemplateParameter represents a parameter for a deployment template.
 type TemplateParameter struct {
 	Name         string                `json:"name"`
 	Type         string                `json:"type"` // string, integer, boolean, array, object
@@ -419,7 +419,7 @@ type TemplateParameter struct {
 	Constraints  *ParameterConstraints `json:"constraints,omitempty"`
 }
 
-// ParameterConstraints defines constraints for template parameters
+// ParameterConstraints defines constraints for template parameters.
 type ParameterConstraints struct {
 	MinValue      *float64               `json:"minValue,omitempty"`
 	MaxValue      *float64               `json:"maxValue,omitempty"`
@@ -430,7 +430,7 @@ type ParameterConstraints struct {
 	Validation    map[string]interface{} `json:"validation,omitempty"`
 }
 
-// ValidationRule defines validation rules for templates
+// ValidationRule defines validation rules for templates.
 type ValidationRule struct {
 	RuleID     string                 `json:"ruleId"`
 	Name       string                 `json:"name"`
@@ -441,7 +441,7 @@ type ValidationRule struct {
 	Context    map[string]interface{} `json:"context,omitempty"`
 }
 
-// CompatibilityInfo defines compatibility information
+// CompatibilityInfo defines compatibility information.
 type CompatibilityInfo struct {
 	Platform     string   `json:"platform"`
 	Versions     []string `json:"versions"`
@@ -449,7 +449,7 @@ type CompatibilityInfo struct {
 	Constraints  []string `json:"constraints,omitempty"`
 }
 
-// TemplateStatus represents the status of a deployment template
+// TemplateStatus represents the status of a deployment template.
 type TemplateStatus struct {
 	State            string              `json:"state"`            // DRAFT, ACTIVE, DEPRECATED, ARCHIVED
 	ValidationStatus string              `json:"validationStatus"` // PENDING, VALID, INVALID
@@ -459,7 +459,7 @@ type TemplateStatus struct {
 	Health           string              `json:"health,omitempty"`
 }
 
-// TemplateUsageStats provides usage statistics for templates
+// TemplateUsageStats provides usage statistics for templates.
 type TemplateUsageStats struct {
 	TotalDeployments  int           `json:"totalDeployments"`
 	ActiveDeployments int           `json:"activeDeployments"`
@@ -469,7 +469,7 @@ type TemplateUsageStats struct {
 	LastUsed          *time.Time    `json:"lastUsed,omitempty"`
 }
 
-// DeploymentStatus represents the status of a deployment
+// DeploymentStatus represents the status of a deployment.
 type DeploymentStatus struct {
 	State           string                 `json:"state"`  // PENDING, RUNNING, FAILED, SUCCEEDED, DELETING
 	Phase           string                 `json:"phase"`  // CREATING, UPDATING, SCALING, TERMINATING
@@ -483,7 +483,7 @@ type DeploymentStatus struct {
 	Metrics         map[string]interface{} `json:"metrics,omitempty"`
 }
 
-// DeploymentProgress represents the progress of a deployment operation
+// DeploymentProgress represents the progress of a deployment operation.
 type DeploymentProgress struct {
 	TotalSteps             int32         `json:"totalSteps"`
 	CompletedSteps         int32         `json:"completedSteps"`
@@ -492,7 +492,7 @@ type DeploymentProgress struct {
 	EstimatedTimeRemaining time.Duration `json:"estimatedTimeRemaining,omitempty"`
 }
 
-// DeploymentCondition represents a condition of the deployment
+// DeploymentCondition represents a condition of the deployment.
 type DeploymentCondition struct {
 	Type               string    `json:"type"`
 	Status             string    `json:"status"` // True, False, Unknown
@@ -502,7 +502,7 @@ type DeploymentCondition struct {
 	LastUpdateTime     time.Time `json:"lastUpdateTime,omitempty"`
 }
 
-// DeploymentEvent represents an event that occurred during deployment lifecycle
+// DeploymentEvent represents an event that occurred during deployment lifecycle.
 type DeploymentEvent struct {
 	ID             string                 `json:"id"`
 	Type           string                 `json:"type"` // NORMAL, WARNING, ERROR
@@ -516,7 +516,7 @@ type DeploymentEvent struct {
 	AdditionalData map[string]interface{} `json:"additionalData,omitempty"`
 }
 
-// DeployedResource represents a resource that has been deployed
+// DeployedResource represents a resource that has been deployed.
 type DeployedResource struct {
 	ResourceID    string                 `json:"resourceId"`
 	Name          string                 `json:"name"`
@@ -532,7 +532,7 @@ type DeployedResource struct {
 	UpdatedAt     time.Time              `json:"updatedAt"`
 }
 
-// ResourceStatus represents the status of a resource
+// ResourceStatus represents the status of a resource.
 type ResourceStatus struct {
 	State           string                 `json:"state"`  // PENDING, ACTIVE, INACTIVE, FAILED, TERMINATING
 	Health          string                 `json:"health"` // HEALTHY, DEGRADED, UNHEALTHY, UNKNOWN
@@ -544,7 +544,7 @@ type ResourceStatus struct {
 	Metrics         map[string]interface{} `json:"metrics,omitempty"`
 }
 
-// ResourceCondition represents a condition of the resource
+// ResourceCondition represents a condition of the resource.
 type ResourceCondition struct {
 	Type               string    `json:"type"`
 	Status             string    `json:"status"` // True, False, Unknown
@@ -554,7 +554,7 @@ type ResourceCondition struct {
 	LastUpdateTime     time.Time `json:"lastUpdateTime,omitempty"`
 }
 
-// ResourceEndpoint represents an endpoint exposed by a deployed resource
+// ResourceEndpoint represents an endpoint exposed by a deployed resource.
 type ResourceEndpoint struct {
 	Name     string `json:"name"`
 	Protocol string `json:"protocol"`
@@ -565,7 +565,7 @@ type ResourceEndpoint struct {
 	Type     string `json:"type"` // HTTP, HTTPS, TCP, UDP, GRPC
 }
 
-// DeployedService represents a service that has been deployed
+// DeployedService represents a service that has been deployed.
 type DeployedService struct {
 	ServiceID     string                `json:"serviceId"`
 	Name          string                `json:"name"`
@@ -579,7 +579,7 @@ type DeployedService struct {
 	UpdatedAt     time.Time             `json:"updatedAt"`
 }
 
-// ServicePort represents a port exposed by a service
+// ServicePort represents a port exposed by a service.
 type ServicePort struct {
 	Name       string `json:"name,omitempty"`
 	Protocol   string `json:"protocol"`
@@ -588,7 +588,7 @@ type ServicePort struct {
 	NodePort   int32  `json:"nodePort,omitempty"`
 }
 
-// ServiceEndpoint represents an endpoint of a service
+// ServiceEndpoint represents an endpoint of a service.
 type ServiceEndpoint struct {
 	Address    string            `json:"address"`
 	Port       int32             `json:"port"`
@@ -597,7 +597,7 @@ type ServiceEndpoint struct {
 	Conditions map[string]string `json:"conditions,omitempty"`
 }
 
-// ServiceStatus represents the status of a service
+// ServiceStatus represents the status of a service.
 type ServiceStatus struct {
 	Type                string             `json:"type"`
 	ClusterIP           string             `json:"clusterIP,omitempty"`
@@ -609,7 +609,7 @@ type ServiceStatus struct {
 	LastHealthCheck     time.Time          `json:"lastHealthCheck"`
 }
 
-// ServiceCondition represents a condition of the service
+// ServiceCondition represents a condition of the service.
 type ServiceCondition struct {
 	Type               string    `json:"type"`
 	Status             string    `json:"status"`
@@ -618,9 +618,9 @@ type ServiceCondition struct {
 	LastTransitionTime time.Time `json:"lastTransitionTime"`
 }
 
-// Supporting types for template specifications
+// Supporting types for template specifications.
 
-// DeploymentHook represents hooks for deployment lifecycle events
+// DeploymentHook represents hooks for deployment lifecycle events.
 type DeploymentHook struct {
 	Name        string                `json:"name"`
 	Phase       string                `json:"phase"` // PRE_DEPLOY, POST_DEPLOY, PRE_UPDATE, POST_UPDATE, PRE_DELETE, POST_DELETE
@@ -631,7 +631,7 @@ type DeploymentHook struct {
 	RetryPolicy *RetryPolicy          `json:"retryPolicy,omitempty"`
 }
 
-// ResourceMapping defines how template resources map to infrastructure
+// ResourceMapping defines how template resources map to infrastructure.
 type ResourceMapping struct {
 	TemplateResource   string                 `json:"templateResource"`
 	InfrastructureType string                 `json:"infrastructureType"`
@@ -639,7 +639,7 @@ type ResourceMapping struct {
 	Constraints        []string               `json:"constraints,omitempty"`
 }
 
-// NetworkMapping defines network resource mappings
+// NetworkMapping defines network resource mappings.
 type NetworkMapping struct {
 	NetworkName string                 `json:"networkName"`
 	NetworkType string                 `json:"networkType"` // INTERNAL, EXTERNAL, MANAGEMENT
@@ -648,7 +648,7 @@ type NetworkMapping struct {
 	Properties  map[string]interface{} `json:"properties,omitempty"`
 }
 
-// StorageMapping defines storage resource mappings
+// StorageMapping defines storage resource mappings.
 type StorageMapping struct {
 	StorageName string                 `json:"storageName"`
 	StorageType string                 `json:"storageType"` // BLOCK, OBJECT, FILE
@@ -657,7 +657,7 @@ type StorageMapping struct {
 	Properties  map[string]interface{} `json:"properties,omitempty"`
 }
 
-// TemplateDependency represents a dependency of a deployment template
+// TemplateDependency represents a dependency of a deployment template.
 type TemplateDependency struct {
 	Name        string `json:"name"`
 	Version     string `json:"version"`
@@ -666,7 +666,7 @@ type TemplateDependency struct {
 	Description string `json:"description,omitempty"`
 }
 
-// Prerequisite represents a prerequisite for template deployment
+// Prerequisite represents a prerequisite for template deployment.
 type Prerequisite struct {
 	Type        string                `json:"type"` // RESOURCE, SERVICE, CAPABILITY, POLICY
 	Name        string                `json:"name"`
@@ -676,7 +676,7 @@ type Prerequisite struct {
 	Required    bool                  `json:"required"`
 }
 
-// ScalingPolicy defines scaling behavior
+// ScalingPolicy defines scaling behavior.
 type ScalingPolicy struct {
 	Enabled         bool         `json:"enabled"`
 	MinInstances    int          `json:"minInstances"`
@@ -688,7 +688,7 @@ type ScalingPolicy struct {
 	Metrics         []string     `json:"metrics,omitempty"`
 }
 
-// ScalePolicy defines scaling policy parameters
+// ScalePolicy defines scaling policy parameters.
 type ScalePolicy struct {
 	Type                string `json:"type"` // PODS, PERCENT
 	Value               int    `json:"value"`
@@ -696,7 +696,7 @@ type ScalePolicy struct {
 	StabilizationWindow int    `json:"stabilizationWindow"`
 }
 
-// AlertRule defines an alert rule
+// AlertRule defines an alert rule.
 type AlertRule struct {
 	Name        string            `json:"name"`
 	Expression  string            `json:"expression"`
@@ -706,7 +706,7 @@ type AlertRule struct {
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
-// SecurityConfiguration defines security settings
+// SecurityConfiguration defines security settings.
 type SecurityConfiguration struct {
 	NetworkPolicies   []*NetworkPolicy      `json:"networkPolicies,omitempty"`
 	PodSecurityPolicy *PodSecurityPolicy    `json:"podSecurityPolicy,omitempty"`
@@ -715,7 +715,7 @@ type SecurityConfiguration struct {
 	SecretManagement  *SecretConfig         `json:"secretManagement,omitempty"`
 }
 
-// NetworkPolicy defines network security policies
+// NetworkPolicy defines network security policies.
 type NetworkPolicy struct {
 	Name        string               `json:"name"`
 	PodSelector map[string]string    `json:"podSelector"`
@@ -723,26 +723,26 @@ type NetworkPolicy struct {
 	Egress      []*NetworkPolicyRule `json:"egress,omitempty"`
 }
 
-// NetworkPolicyPeer defines network policy peer
+// NetworkPolicyPeer defines network policy peer.
 type NetworkPolicyPeer struct {
 	PodSelector       map[string]string `json:"podSelector,omitempty"`
 	NamespaceSelector map[string]string `json:"namespaceSelector,omitempty"`
 	IPBlock           *IPBlock          `json:"ipBlock,omitempty"`
 }
 
-// NetworkPolicyPort defines network policy port
+// NetworkPolicyPort defines network policy port.
 type NetworkPolicyPort struct {
 	Protocol string `json:"protocol,omitempty"`
 	Port     string `json:"port,omitempty"`
 }
 
-// IPBlock defines IP block for network policies
+// IPBlock defines IP block for network policies.
 type IPBlock struct {
 	CIDR   string   `json:"cidr"`
 	Except []string `json:"except,omitempty"`
 }
 
-// PodSecurityPolicy defines pod security policies
+// PodSecurityPolicy defines pod security policies.
 type PodSecurityPolicy struct {
 	RunAsUser                *int64   `json:"runAsUser,omitempty"`
 	RunAsGroup               *int64   `json:"runAsGroup,omitempty"`
@@ -752,67 +752,67 @@ type PodSecurityPolicy struct {
 	RequiredDropCapabilities []string `json:"requiredDropCapabilities,omitempty"`
 }
 
-// ServiceAccountConfig defines service account configuration
+// ServiceAccountConfig defines service account configuration.
 type ServiceAccountConfig struct {
 	Name        string            `json:"name"`
 	Annotations map[string]string `json:"annotations,omitempty"`
 	Labels      map[string]string `json:"labels,omitempty"`
 }
 
-// RBACConfig defines RBAC configuration
+// RBACConfig defines RBAC configuration.
 type RBACConfig struct {
 	Roles        []*Role        `json:"roles,omitempty"`
 	ClusterRoles []*ClusterRole `json:"clusterRoles,omitempty"`
 	RoleBindings []*RoleBinding `json:"roleBindings,omitempty"`
 }
 
-// Role defines a role
+// Role defines a role.
 type Role struct {
 	Name  string      `json:"name"`
 	Rules []*RoleRule `json:"rules"`
 }
 
-// ClusterRole defines a cluster role
+// ClusterRole defines a cluster role.
 type ClusterRole struct {
 	Name  string      `json:"name"`
 	Rules []*RoleRule `json:"rules"`
 }
 
-// RoleRule defines role rules
+// RoleRule defines role rules.
 type RoleRule struct {
 	APIGroups []string `json:"apiGroups"`
 	Resources []string `json:"resources"`
 	Verbs     []string `json:"verbs"`
 }
 
-// RoleBinding defines role bindings
+// RoleBinding defines role bindings.
 type RoleBinding struct {
 	Name     string     `json:"name"`
 	RoleRef  *RoleRef   `json:"roleRef"`
 	Subjects []*Subject `json:"subjects"`
 }
 
-// RoleRef defines role reference
+// RoleRef defines role reference.
 type RoleRef struct {
 	Kind     string `json:"kind"`
 	Name     string `json:"name"`
 	APIGroup string `json:"apiGroup"`
 }
 
-// Subject defines RBAC subject
+// Subject defines RBAC subject.
 type Subject struct {
 	Kind      string `json:"kind"`
 	Name      string `json:"name"`
 	Namespace string `json:"namespace,omitempty"`
 }
 
-// SecretConfig defines secret management configuration
+// SecretConfig defines secret management configuration.
 type SecretConfig struct {
 	Secrets  []*SecretSpec `json:"secrets,omitempty"`
 	Provider string        `json:"provider,omitempty"` // KUBERNETES, VAULT, AWS_SECRETS_MANAGER
 }
 
-// SecretSpec defines secret specification
+// SecretSpec defines secret specification.
 type SecretSpec struct {
 	Name       string            `json:"name"`
 	Type       string            `json:"type"`
@@ -820,7 +820,7 @@ type SecretSpec struct {
 	StringData map[string]string `json:"stringData,omitempty"`
 }
 
-// RetryPolicy defines retry behavior for operations
+// RetryPolicy defines retry behavior for operations.
 type RetryPolicy struct {
 	MaxRetries      int           `json:"maxRetries"`
 	RetryDelay      time.Duration `json:"retryDelay"`
@@ -829,7 +829,7 @@ type RetryPolicy struct {
 	RetryConditions []string      `json:"retryConditions,omitempty"`
 }
 
-// RollbackPolicy defines rollback behavior for failed operations
+// RollbackPolicy defines rollback behavior for failed operations.
 type RollbackPolicy struct {
 	Enabled            bool          `json:"enabled"`
 	AutoRollback       bool          `json:"autoRollback"`
@@ -838,7 +838,7 @@ type RollbackPolicy struct {
 	RollbackConditions []string      `json:"rollbackConditions,omitempty"`
 }
 
-// UpdateStrategy defines how updates should be performed
+// UpdateStrategy defines how updates should be performed.
 type UpdateStrategy struct {
 	Type            string        `json:"type"` // RECREATE, ROLLING_UPDATE, BLUE_GREEN, CANARY
 	MaxUnavailable  string        `json:"maxUnavailable,omitempty"`
@@ -847,9 +847,9 @@ type UpdateStrategy struct {
 	PauseConditions []string      `json:"pauseConditions,omitempty"`
 }
 
-// Resource requirement types
+// Resource requirement types.
 
-// NetworkRequirement defines network requirements
+// NetworkRequirement defines network requirements.
 type NetworkRequirement struct {
 	Name       string                 `json:"name"`
 	Type       string                 `json:"type"` // INTERNAL, EXTERNAL, MANAGEMENT
@@ -858,7 +858,7 @@ type NetworkRequirement struct {
 	Properties map[string]interface{} `json:"properties,omitempty"`
 }
 
-// StorageRequirement defines storage requirements
+// StorageRequirement defines storage requirements.
 type StorageRequirement struct {
 	Name         string                 `json:"name"`
 	Type         string                 `json:"type"` // BLOCK, OBJECT, FILE
@@ -870,7 +870,7 @@ type StorageRequirement struct {
 	Properties   map[string]interface{} `json:"properties,omitempty"`
 }
 
-// AcceleratorRequirement defines accelerator requirements (GPU, FPGA, etc.)
+// AcceleratorRequirement defines accelerator requirements (GPU, FPGA, etc.).
 type AcceleratorRequirement struct {
 	Type       string                 `json:"type"` // GPU, FPGA, TPU
 	Count      int                    `json:"count"`
@@ -879,7 +879,7 @@ type AcceleratorRequirement struct {
 	Properties map[string]interface{} `json:"properties,omitempty"`
 }
 
-// ResourceSpec defines resource specifications for provisioning
+// ResourceSpec defines resource specifications for provisioning.
 type ResourceSpec struct {
 	CPU     string `json:"cpu,omitempty"`
 	Memory  string `json:"memory,omitempty"`
@@ -887,17 +887,22 @@ type ResourceSpec struct {
 	GPU     string `json:"gpu,omitempty"`
 }
 
-// Constants for resource lifecycle operations
+// Constants for resource lifecycle operations.
 
-// Scale types
+// Scale types.
 const (
+	// ScaleTypeHorizontal holds scaletypehorizontal value.
 	ScaleTypeHorizontal = "horizontal"
-	ScaleTypeVertical   = "vertical"
+	// ScaleTypeVertical holds scaletypevertical value.
+	ScaleTypeVertical = "vertical"
 )
 
-// Backup types
+// Backup types.
 const (
-	BackupTypeFull         = "full"
-	BackupTypeIncremental  = "incremental"
+	// BackupTypeFull holds backuptypefull value.
+	BackupTypeFull = "full"
+	// BackupTypeIncremental holds backuptypeincremental value.
+	BackupTypeIncremental = "incremental"
+	// BackupTypeDifferential holds backuptypedifferential value.
 	BackupTypeDifferential = "differential"
 )

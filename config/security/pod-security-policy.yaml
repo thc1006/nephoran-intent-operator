@@ -1,0 +1,216 @@
+# Pod Security Standards enforcement for Nephoran Intent Operator
+# This implements the "restricted" Pod Security Standard with telecom-specific allowances
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephoran-system
+  labels:
+    # Enforce restricted Pod Security Standard
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+    # Version pinning for security standards
+    pod-security.kubernetes.io/enforce-version: v1.29
+    pod-security.kubernetes.io/audit-version: v1.29
+    pod-security.kubernetes.io/warn-version: v1.29
+    # Operator metadata
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/managed-by: kustomize
+    managed-by: nephoran-intent-operator
+
+---
+# Security context constraints for OpenShift compatibility
+apiVersion: security.openshift.io/v1
+kind: SecurityContextConstraints
+metadata:
+  name: nephoran-restricted-scc
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+allowHostDirVolumePlugin: false
+allowHostIPC: false
+allowHostNetwork: false
+allowHostPID: false
+allowHostPorts: false
+allowPrivilegedContainer: false
+allowedCapabilities: null
+defaultAddCapabilities: null
+fsGroup:
+  type: MustRunAs
+  ranges:
+  - min: 1000
+  - max: 65535
+readOnlyRootFilesystem: true
+requiredDropCapabilities:
+- ALL
+runAsUser:
+  type: MustRunAsNonRoot
+seLinuxContext:
+  type: MustRunAs
+  seLinuxOptions:
+    level: "s0:c123,c456"
+supplementalGroups:
+  type: MustRunAs
+  ranges:
+  - min: 1000
+  - max: 65535
+# Volume restrictions
+volumes:
+- configMap
+- downwardAPI
+- emptyDir
+- persistentVolumeClaim
+- projected
+- secret
+users:
+- system:serviceaccount:nephoran-system:nephoran-operator-controller-manager
+- system:serviceaccount:nephoran-system:nephoran-webhook-manager
+groups: []
+
+---
+# OPA Gatekeeper policy for additional security validation
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: nephoran-security-policy
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+spec:
+  crd:
+    spec:
+      names:
+        kind: NephoranSecurityPolicy
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            allowedRegistries:
+              type: array
+              items:
+                type: string
+            maxReplicas:
+              type: integer
+            requiredLabels:
+              type: array
+              items:
+                type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package nephoran.security
+        
+        violation[{"msg": msg}] {
+            # Check container image registries
+            allowed_registries := input.parameters.allowedRegistries
+            image := input.review.object.spec.containers[_].image
+            not startswith(image, allowed_registries[_])
+            msg := sprintf("Container image %v is not from allowed registry", [image])
+        }
+        
+        violation[{"msg": msg}] {
+            # Check replica limits for CNF deployments
+            input.review.object.kind == "CNFDeployment"
+            replicas := input.review.object.spec.replicas
+            max_replicas := input.parameters.maxReplicas
+            replicas > max_replicas
+            msg := sprintf("Replica count %v exceeds maximum allowed %v", [replicas, max_replicas])
+        }
+        
+        violation[{"msg": msg}] {
+            # Check required labels
+            required := input.parameters.requiredLabels[_]
+            not input.review.object.metadata.labels[required]
+            msg := sprintf("Required label %v is missing", [required])
+        }
+
+---
+apiVersion: config.gatekeeper.sh/v1alpha1
+kind: NephoranSecurityPolicy
+metadata:
+  name: nephoran-security-constraints
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+spec:
+  match:
+    - apiGroups: [""]
+      kinds: ["Pod"]
+    - apiGroups: ["apps"]
+      kinds: ["Deployment", "ReplicaSet"]
+    - apiGroups: ["nephoran.io"]
+      kinds: ["CNFDeployment", "NetworkIntent"]
+  parameters:
+    allowedRegistries:
+    - "gcr.io/kubebuilder/"
+    - "quay.io/nephoran/"
+    - "registry.k8s.io/"
+    - "docker.io/nephoran/"
+    maxReplicas: 100
+    requiredLabels:
+    - "app.kubernetes.io/name"
+    - "app.kubernetes.io/version"
+    - "app.kubernetes.io/component"
+
+---
+# Falco security monitoring rules for container runtime security
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: falco-nephoran-rules
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+data:
+  nephoran_rules.yaml: |
+    # Custom Falco rules for Nephoran Intent Operator security monitoring
+    
+    - rule: Nephoran Unauthorized File Access
+      desc: Detect unauthorized file access in Nephoran containers
+      condition: >
+        open_write and container and 
+        k8s.ns.name="nephoran-system" and 
+        not fd.filename in (/tmp, /dev/stdout, /dev/stderr, /var/log)
+      output: >
+        Unauthorized file write in Nephoran container 
+        (user=%user.name command=%proc.cmdline file=%fd.name 
+         container=%container.name pod=%k8s.pod.name)
+      priority: WARNING
+      
+    - rule: Nephoran Network Anomaly
+      desc: Detect unexpected network connections from Nephoran components
+      condition: >
+        outbound and container and 
+        k8s.ns.name="nephoran-system" and 
+        not fd.sip in (k8s_cluster_ips) and
+        not fd.sport in (443, 8080, 8081, 8443, 53)
+      output: >
+        Unexpected outbound connection from Nephoran component
+        (connection=%fd.name container=%container.name pod=%k8s.pod.name)
+      priority: WARNING
+      
+    - rule: Nephoran Privilege Escalation
+      desc: Detect privilege escalation attempts in Nephoran containers
+      condition: >
+        spawned_process and container and 
+        k8s.ns.name="nephoran-system" and
+        proc.name in (su, sudo, setuid, setgid)
+      output: >
+        Privilege escalation attempt in Nephoran container
+        (user=%user.name command=%proc.cmdline container=%container.name)
+      priority: ERROR
+      
+    - rule: Nephoran Secret Access
+      desc: Monitor secret access patterns
+      condition: >
+        open_read and container and
+        k8s.ns.name="nephoran-system" and
+        fd.filename contains "/var/run/secrets"
+      output: >
+        Secret access detected in Nephoran container
+        (file=%fd.name container=%container.name pod=%k8s.pod.name)
+      priority: INFO

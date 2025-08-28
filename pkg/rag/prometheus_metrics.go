@@ -8,16 +8,16 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// PrometheusMetrics provides comprehensive Prometheus metrics for RAG system
+// PrometheusMetrics provides comprehensive Prometheus metrics for RAG system.
 type PrometheusMetrics struct {
-	// Cache metrics - Redis
+	// Cache metrics - Redis.
 	redisCacheHits      *prometheus.CounterVec
 	redisCacheMisses    *prometheus.CounterVec
 	redisCacheLatency   *prometheus.HistogramVec
 	redisCacheSize      *prometheus.GaugeVec
 	redisCacheEvictions *prometheus.CounterVec
 
-	// Cache metrics - Memory
+	// Cache metrics - Memory.
 	memoryCacheHits        *prometheus.CounterVec
 	memoryCacheMisses      *prometheus.CounterVec
 	memoryCacheLatency     *prometheus.HistogramVec
@@ -25,44 +25,44 @@ type PrometheusMetrics struct {
 	memoryCacheEvictions   *prometheus.CounterVec
 	memoryCacheUtilization *prometheus.GaugeVec
 
-	// Connection pool metrics - Weaviate
+	// Connection pool metrics - Weaviate.
 	weaviatePoolConnections      *prometheus.GaugeVec
 	weaviatePoolConnectionsTotal *prometheus.CounterVec
 	weaviatePoolLatency          *prometheus.HistogramVec
 	weaviatePoolErrors           *prometheus.CounterVec
 
-	// Query performance metrics
+	// Query performance metrics.
 	queryLatency    *prometheus.HistogramVec
 	queryThroughput *prometheus.CounterVec
 	queryErrors     *prometheus.CounterVec
 	queryComplexity *prometheus.HistogramVec
 
-	// Embedding metrics
+	// Embedding metrics.
 	embeddingLatency    *prometheus.HistogramVec
 	embeddingThroughput *prometheus.CounterVec
 	embeddingCost       *prometheus.CounterVec
 	embeddingTokens     *prometheus.CounterVec
 
-	// Document processing metrics
+	// Document processing metrics.
 	documentProcessingLatency *prometheus.HistogramVec
 	documentProcessingSize    *prometheus.HistogramVec
 	chunkingLatency           *prometheus.HistogramVec
 	chunkingThroughput        *prometheus.CounterVec
 
-	// System resource metrics
+	// System resource metrics.
 	systemCPU        prometheus.Gauge
 	systemMemory     prometheus.Gauge
 	systemDisk       prometheus.Gauge
 	systemGoroutines prometheus.Gauge
 	systemHeapSize   prometheus.Gauge
 
-	// Business metrics
+	// Business metrics.
 	intentTypes     *prometheus.CounterVec
 	userSessions    *prometheus.GaugeVec
 	responseQuality *prometheus.HistogramVec
 }
 
-// NewPrometheusMetrics creates and registers all Prometheus metrics
+// NewPrometheusMetrics creates and registers all Prometheus metrics.
 func NewPrometheusMetrics() *PrometheusMetrics {
 	pm := &PrometheusMetrics{}
 	pm.initializeMetrics()
@@ -71,7 +71,7 @@ func NewPrometheusMetrics() *PrometheusMetrics {
 }
 
 func (pm *PrometheusMetrics) initializeMetrics() {
-	// Redis cache metrics
+	// Redis cache metrics.
 	pm.redisCacheHits = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "nephoran_redis_cache_hits_total",
@@ -113,7 +113,7 @@ func (pm *PrometheusMetrics) initializeMetrics() {
 		[]string{"category", "reason"},
 	)
 
-	// Memory cache metrics
+	// Memory cache metrics.
 	pm.memoryCacheHits = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "nephoran_memory_cache_hits_total",
@@ -163,7 +163,7 @@ func (pm *PrometheusMetrics) initializeMetrics() {
 		[]string{"type"}, // "items" or "size"
 	)
 
-	// Weaviate connection pool metrics
+	// Weaviate connection pool metrics.
 	pm.weaviatePoolConnections = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "nephoran_weaviate_pool_connections",
@@ -197,7 +197,7 @@ func (pm *PrometheusMetrics) initializeMetrics() {
 		[]string{"error_type"},
 	)
 
-	// Query performance metrics
+	// Query performance metrics.
 	pm.queryLatency = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "nephoran_query_latency_seconds",
@@ -232,7 +232,7 @@ func (pm *PrometheusMetrics) initializeMetrics() {
 		[]string{"intent_type"},
 	)
 
-	// Embedding metrics
+	// Embedding metrics.
 	pm.embeddingLatency = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "nephoran_embedding_latency_seconds",
@@ -266,7 +266,7 @@ func (pm *PrometheusMetrics) initializeMetrics() {
 		[]string{"provider", "model"},
 	)
 
-	// Document processing metrics
+	// Document processing metrics.
 	pm.documentProcessingLatency = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "nephoran_document_processing_latency_seconds",
@@ -302,7 +302,7 @@ func (pm *PrometheusMetrics) initializeMetrics() {
 		[]string{"strategy", "document_type"},
 	)
 
-	// System resource metrics
+	// System resource metrics.
 	pm.systemCPU = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Name: "nephoran_system_cpu_usage_percent",
@@ -338,7 +338,7 @@ func (pm *PrometheusMetrics) initializeMetrics() {
 		},
 	)
 
-	// Business metrics
+	// Business metrics.
 	pm.intentTypes = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "nephoran_intent_types_total",
@@ -366,7 +366,7 @@ func (pm *PrometheusMetrics) initializeMetrics() {
 }
 
 func (pm *PrometheusMetrics) registerMetrics() {
-	// Redis cache metrics
+	// Redis cache metrics.
 	prometheus.MustRegister(
 		pm.redisCacheHits,
 		pm.redisCacheMisses,
@@ -375,7 +375,7 @@ func (pm *PrometheusMetrics) registerMetrics() {
 		pm.redisCacheEvictions,
 	)
 
-	// Memory cache metrics
+	// Memory cache metrics.
 	prometheus.MustRegister(
 		pm.memoryCacheHits,
 		pm.memoryCacheMisses,
@@ -385,7 +385,7 @@ func (pm *PrometheusMetrics) registerMetrics() {
 		pm.memoryCacheUtilization,
 	)
 
-	// Weaviate pool metrics
+	// Weaviate pool metrics.
 	prometheus.MustRegister(
 		pm.weaviatePoolConnections,
 		pm.weaviatePoolConnectionsTotal,
@@ -393,7 +393,7 @@ func (pm *PrometheusMetrics) registerMetrics() {
 		pm.weaviatePoolErrors,
 	)
 
-	// Query metrics
+	// Query metrics.
 	prometheus.MustRegister(
 		pm.queryLatency,
 		pm.queryThroughput,
@@ -401,7 +401,7 @@ func (pm *PrometheusMetrics) registerMetrics() {
 		pm.queryComplexity,
 	)
 
-	// Embedding metrics
+	// Embedding metrics.
 	prometheus.MustRegister(
 		pm.embeddingLatency,
 		pm.embeddingThroughput,
@@ -409,7 +409,7 @@ func (pm *PrometheusMetrics) registerMetrics() {
 		pm.embeddingTokens,
 	)
 
-	// Document processing metrics
+	// Document processing metrics.
 	prometheus.MustRegister(
 		pm.documentProcessingLatency,
 		pm.documentProcessingSize,
@@ -417,7 +417,7 @@ func (pm *PrometheusMetrics) registerMetrics() {
 		pm.chunkingThroughput,
 	)
 
-	// System metrics
+	// System metrics.
 	prometheus.MustRegister(
 		pm.systemCPU,
 		pm.systemMemory,
@@ -426,7 +426,7 @@ func (pm *PrometheusMetrics) registerMetrics() {
 		pm.systemHeapSize,
 	)
 
-	// Business metrics
+	// Business metrics.
 	prometheus.MustRegister(
 		pm.intentTypes,
 		pm.userSessions,
@@ -434,196 +434,233 @@ func (pm *PrometheusMetrics) registerMetrics() {
 	)
 }
 
-// Redis Cache Metrics Methods
+// Redis Cache Metrics Methods.
 
+// RecordRedisCacheHit performs recordrediscachehit operation.
 func (pm *PrometheusMetrics) RecordRedisCacheHit(category string) {
 	pm.redisCacheHits.WithLabelValues(category).Inc()
 }
 
+// RecordRedisCacheMiss performs recordrediscachemiss operation.
 func (pm *PrometheusMetrics) RecordRedisCacheMiss(category string) {
 	pm.redisCacheMisses.WithLabelValues(category).Inc()
 }
 
+// RecordRedisCacheLatency performs recordrediscachelatency operation.
 func (pm *PrometheusMetrics) RecordRedisCacheLatency(operation, category string, duration time.Duration) {
 	pm.redisCacheLatency.WithLabelValues(operation, category).Observe(duration.Seconds())
 }
 
+// UpdateRedisCacheSize performs updaterediscachesize operation.
 func (pm *PrometheusMetrics) UpdateRedisCacheSize(category string, sizeBytes int64) {
 	pm.redisCacheSize.WithLabelValues(category).Set(float64(sizeBytes))
 }
 
+// RecordRedisCacheEviction performs recordrediscacheeviction operation.
 func (pm *PrometheusMetrics) RecordRedisCacheEviction(category, reason string) {
 	pm.redisCacheEvictions.WithLabelValues(category, reason).Inc()
 }
 
-// Memory Cache Metrics Methods
+// Memory Cache Metrics Methods.
 
+// RecordMemoryCacheHit performs recordmemorycachehit operation.
 func (pm *PrometheusMetrics) RecordMemoryCacheHit(category string) {
 	pm.memoryCacheHits.WithLabelValues(category).Inc()
 }
 
+// RecordMemoryCacheMiss performs recordmemorycachemiss operation.
 func (pm *PrometheusMetrics) RecordMemoryCacheMiss(category string) {
 	pm.memoryCacheMisses.WithLabelValues(category).Inc()
 }
 
+// RecordMemoryCacheLatency performs recordmemorycachelatency operation.
 func (pm *PrometheusMetrics) RecordMemoryCacheLatency(operation, category string, duration time.Duration) {
 	pm.memoryCacheLatency.WithLabelValues(operation, category).Observe(duration.Seconds())
 }
 
+// UpdateMemoryCacheSize performs updatememorycachesize operation.
 func (pm *PrometheusMetrics) UpdateMemoryCacheSize(category string, sizeBytes int64) {
 	pm.memoryCacheSize.WithLabelValues(category).Set(float64(sizeBytes))
 }
 
+// RecordMemoryCacheEviction performs recordmemorycacheeviction operation.
 func (pm *PrometheusMetrics) RecordMemoryCacheEviction(category, reason string) {
 	pm.memoryCacheEvictions.WithLabelValues(category, reason).Inc()
 }
 
+// UpdateMemoryCacheUtilization performs updatememorycacheutilization operation.
 func (pm *PrometheusMetrics) UpdateMemoryCacheUtilization(utilizationType string, ratio float64) {
 	pm.memoryCacheUtilization.WithLabelValues(utilizationType).Set(ratio)
 }
 
-// Weaviate Pool Metrics Methods
+// Weaviate Pool Metrics Methods.
 
+// UpdateWeaviatePoolConnections performs updateweaviatepoolconnections operation.
 func (pm *PrometheusMetrics) UpdateWeaviatePoolConnections(state string, count int) {
 	pm.weaviatePoolConnections.WithLabelValues(state).Set(float64(count))
 }
 
+// RecordWeaviatePoolConnectionEvent performs recordweaviatepoolconnectionevent operation.
 func (pm *PrometheusMetrics) RecordWeaviatePoolConnectionEvent(event string) {
 	pm.weaviatePoolConnectionsTotal.WithLabelValues(event).Inc()
 }
 
+// RecordWeaviatePoolLatency performs recordweaviatepoollatency operation.
 func (pm *PrometheusMetrics) RecordWeaviatePoolLatency(operation string, duration time.Duration) {
 	pm.weaviatePoolLatency.WithLabelValues(operation).Observe(duration.Seconds())
 }
 
+// RecordWeaviatePoolError performs recordweaviatepoolerror operation.
 func (pm *PrometheusMetrics) RecordWeaviatePoolError(errorType string) {
 	pm.weaviatePoolErrors.WithLabelValues(errorType).Inc()
 }
 
-// Query Metrics Methods
+// Query Metrics Methods.
 
+// RecordQueryLatency performs recordquerylatency operation.
 func (pm *PrometheusMetrics) RecordQueryLatency(intentType, enhancement, cacheUsed string, duration time.Duration) {
 	pm.queryLatency.WithLabelValues(intentType, enhancement, cacheUsed).Observe(duration.Seconds())
 }
 
+// RecordQueryProcessed performs recordqueryprocessed operation.
 func (pm *PrometheusMetrics) RecordQueryProcessed(intentType, status string) {
 	pm.queryThroughput.WithLabelValues(intentType, status).Inc()
 }
 
+// RecordQueryError performs recordqueryerror operation.
 func (pm *PrometheusMetrics) RecordQueryError(errorType, component string) {
 	pm.queryErrors.WithLabelValues(errorType, component).Inc()
 }
 
+// RecordQueryComplexity performs recordquerycomplexity operation.
 func (pm *PrometheusMetrics) RecordQueryComplexity(intentType string, complexity float64) {
 	pm.queryComplexity.WithLabelValues(intentType).Observe(complexity)
 }
 
-// Embedding Metrics Methods
+// Embedding Metrics Methods.
 
+// RecordEmbeddingLatency performs recordembeddinglatency operation.
 func (pm *PrometheusMetrics) RecordEmbeddingLatency(provider, model, batchSizeRange string, duration time.Duration) {
 	pm.embeddingLatency.WithLabelValues(provider, model, batchSizeRange).Observe(duration.Seconds())
 }
 
+// RecordEmbeddingGenerated performs recordembeddinggenerated operation.
 func (pm *PrometheusMetrics) RecordEmbeddingGenerated(provider, model, status string) {
 	pm.embeddingThroughput.WithLabelValues(provider, model, status).Inc()
 }
 
+// RecordEmbeddingCost performs recordembeddingcost operation.
 func (pm *PrometheusMetrics) RecordEmbeddingCost(provider, model string, costUSD float64) {
 	pm.embeddingCost.WithLabelValues(provider, model).Add(costUSD)
 }
 
+// RecordEmbeddingTokens performs recordembeddingtokens operation.
 func (pm *PrometheusMetrics) RecordEmbeddingTokens(provider, model string, tokens int64) {
 	pm.embeddingTokens.WithLabelValues(provider, model).Add(float64(tokens))
 }
 
-// Document Processing Metrics Methods
+// Document Processing Metrics Methods.
 
+// RecordDocumentProcessingLatency performs recorddocumentprocessinglatency operation.
 func (pm *PrometheusMetrics) RecordDocumentProcessingLatency(docType, stage string, duration time.Duration) {
 	pm.documentProcessingLatency.WithLabelValues(docType, stage).Observe(duration.Seconds())
 }
 
+// RecordDocumentSize performs recorddocumentsize operation.
 func (pm *PrometheusMetrics) RecordDocumentSize(docType string, sizeBytes int64) {
 	pm.documentProcessingSize.WithLabelValues(docType).Observe(float64(sizeBytes))
 }
 
+// RecordChunkingLatency performs recordchunkinglatency operation.
 func (pm *PrometheusMetrics) RecordChunkingLatency(strategy, docType string, duration time.Duration) {
 	pm.chunkingLatency.WithLabelValues(strategy, docType).Observe(duration.Seconds())
 }
 
+// RecordChunkCreated performs recordchunkcreated operation.
 func (pm *PrometheusMetrics) RecordChunkCreated(strategy, docType string) {
 	pm.chunkingThroughput.WithLabelValues(strategy, docType).Inc()
 }
 
-// System Metrics Methods
+// System Metrics Methods.
 
+// UpdateSystemCPU performs updatesystemcpu operation.
 func (pm *PrometheusMetrics) UpdateSystemCPU(percent float64) {
 	pm.systemCPU.Set(percent)
 }
 
+// UpdateSystemMemory performs updatesystemmemory operation.
 func (pm *PrometheusMetrics) UpdateSystemMemory(percent float64) {
 	pm.systemMemory.Set(percent)
 }
 
+// UpdateSystemDisk performs updatesystemdisk operation.
 func (pm *PrometheusMetrics) UpdateSystemDisk(percent float64) {
 	pm.systemDisk.Set(percent)
 }
 
+// UpdateSystemGoroutines performs updatesystemgoroutines operation.
 func (pm *PrometheusMetrics) UpdateSystemGoroutines(count int) {
 	pm.systemGoroutines.Set(float64(count))
 }
 
+// UpdateSystemHeapSize performs updatesystemheapsize operation.
 func (pm *PrometheusMetrics) UpdateSystemHeapSize(bytes int64) {
 	pm.systemHeapSize.Set(float64(bytes))
 }
 
-// Business Metrics Methods
+// Business Metrics Methods.
 
+// RecordIntentType performs recordintenttype operation.
 func (pm *PrometheusMetrics) RecordIntentType(intentType, domain string) {
 	pm.intentTypes.WithLabelValues(intentType, domain).Inc()
 }
 
+// UpdateActiveUserSessions performs updateactiveusersessions operation.
 func (pm *PrometheusMetrics) UpdateActiveUserSessions(sessionType string, count int) {
 	pm.userSessions.WithLabelValues(sessionType).Set(float64(count))
 }
 
+// RecordResponseQuality performs recordresponsequality operation.
 func (pm *PrometheusMetrics) RecordResponseQuality(intentType, enhancementUsed string, quality float64) {
 	pm.responseQuality.WithLabelValues(intentType, enhancementUsed).Observe(quality)
 }
 
-// Batch update methods for efficiency
+// Batch update methods for efficiency.
 
+// UpdateRedisCacheMetrics performs updaterediscachemetrics operation.
 func (pm *PrometheusMetrics) UpdateRedisCacheMetrics(metrics *RedisCacheMetrics) {
-	// Update embedding metrics
+	// Update embedding metrics.
 	if metrics.EmbeddingHits+metrics.EmbeddingMisses > 0 {
 		hitRate := float64(metrics.EmbeddingHits) / float64(metrics.EmbeddingHits+metrics.EmbeddingMisses)
 		pm.UpdateRedisCacheSize("embedding_hit_rate", int64(hitRate*100))
 	}
 
-	// Update document metrics
+	// Update document metrics.
 	if metrics.DocumentHits+metrics.DocumentMisses > 0 {
 		hitRate := float64(metrics.DocumentHits) / float64(metrics.DocumentHits+metrics.DocumentMisses)
 		pm.UpdateRedisCacheSize("document_hit_rate", int64(hitRate*100))
 	}
 
-	// Update query result metrics
+	// Update query result metrics.
 	if metrics.QueryResultHits+metrics.QueryResultMisses > 0 {
 		hitRate := float64(metrics.QueryResultHits) / float64(metrics.QueryResultHits+metrics.QueryResultMisses)
 		pm.UpdateRedisCacheSize("query_result_hit_rate", int64(hitRate*100))
 	}
 
-	// Update context metrics
+	// Update context metrics.
 	if metrics.ContextHits+metrics.ContextMisses > 0 {
 		hitRate := float64(metrics.ContextHits) / float64(metrics.ContextHits+metrics.ContextMisses)
 		pm.UpdateRedisCacheSize("context_hit_rate", int64(hitRate*100))
 	}
 
-	// Update overall metrics
+	// Update overall metrics.
 	pm.UpdateRedisCacheSize("memory_usage", metrics.MemoryUsage)
 	pm.UpdateRedisCacheSize("key_count", metrics.KeyCount)
 }
 
+// UpdateMemoryCacheMetrics performs updatememorycachemetrics operation.
 func (pm *PrometheusMetrics) UpdateMemoryCacheMetrics(metrics *MemoryCacheMetrics) {
-	// Update utilization metrics
+	// Update utilization metrics.
 	if metrics.MaxItems > 0 {
 		itemUtilization := float64(metrics.CurrentItems) / float64(metrics.MaxItems)
 		pm.UpdateMemoryCacheUtilization("items", itemUtilization)
@@ -634,19 +671,20 @@ func (pm *PrometheusMetrics) UpdateMemoryCacheMetrics(metrics *MemoryCacheMetric
 		pm.UpdateMemoryCacheUtilization("size", sizeUtilization)
 	}
 
-	// Update category-specific metrics
+	// Update category-specific metrics.
 	for category, stats := range metrics.CategoryStats {
 		pm.UpdateMemoryCacheSize(category, stats.SizeBytes)
 	}
 }
 
+// UpdateWeaviatePoolMetrics performs updateweaviatepoolmetrics operation.
 func (pm *PrometheusMetrics) UpdateWeaviatePoolMetrics(poolMetrics *PoolMetrics) {
 	pm.UpdateWeaviatePoolConnections("active", int(poolMetrics.ActiveConnections))
 	pm.UpdateWeaviatePoolConnections("idle", int(poolMetrics.IdleConnections))
 	pm.UpdateWeaviatePoolConnections("total", int(poolMetrics.TotalConnections))
 }
 
-// Helper functions
+// Helper functions.
 
 func (pm *PrometheusMetrics) getBatchSizeRange(batchSize int) string {
 	switch {
@@ -664,10 +702,10 @@ func (pm *PrometheusMetrics) getBatchSizeRange(batchSize int) string {
 }
 
 func (pm *PrometheusMetrics) calculateComplexity(query string, intentType string, filtersCount int) float64 {
-	// Simplified complexity calculation
+	// Simplified complexity calculation.
 	complexity := 0.0
 
-	// Base complexity by intent type
+	// Base complexity by intent type.
 	switch intentType {
 	case "configuration":
 		complexity += 0.3
@@ -681,7 +719,7 @@ func (pm *PrometheusMetrics) calculateComplexity(query string, intentType string
 		complexity += 0.2
 	}
 
-	// Add complexity based on query length
+	// Add complexity based on query length.
 	queryLength := len(query)
 	if queryLength > 500 {
 		complexity += 0.3
@@ -691,10 +729,10 @@ func (pm *PrometheusMetrics) calculateComplexity(query string, intentType string
 		complexity += 0.1
 	}
 
-	// Add complexity based on filters
+	// Add complexity based on filters.
 	complexity += float64(filtersCount) * 0.1
 
-	// Cap at 1.0
+	// Cap at 1.0.
 	if complexity > 1.0 {
 		complexity = 1.0
 	}
@@ -702,7 +740,7 @@ func (pm *PrometheusMetrics) calculateComplexity(query string, intentType string
 	return complexity
 }
 
-// MetricsCollector provides a centralized way to collect and update all metrics
+// MetricsCollector provides a centralized way to collect and update all metrics.
 type MetricsCollector struct {
 	prometheus         *PrometheusMetrics
 	memoryCache        *MemoryCache
@@ -712,7 +750,7 @@ type MetricsCollector struct {
 	stopChan           chan struct{}
 }
 
-// NewMetricsCollector creates a new metrics collector
+// NewMetricsCollector creates a new metrics collector.
 func NewMetricsCollector(memoryCache *MemoryCache, redisCache *RedisCache, weaviatePool *WeaviateConnectionPool) *MetricsCollector {
 	return &MetricsCollector{
 		prometheus:         NewPrometheusMetrics(),
@@ -724,12 +762,12 @@ func NewMetricsCollector(memoryCache *MemoryCache, redisCache *RedisCache, weavi
 	}
 }
 
-// Start begins collecting metrics in the background
+// Start begins collecting metrics in the background.
 func (mc *MetricsCollector) Start() {
 	go mc.collectMetricsLoop()
 }
 
-// Stop stops the metrics collection
+// Stop stops the metrics collection.
 func (mc *MetricsCollector) Stop() {
 	close(mc.stopChan)
 }
@@ -749,26 +787,26 @@ func (mc *MetricsCollector) collectMetricsLoop() {
 }
 
 func (mc *MetricsCollector) collectAllMetrics() {
-	// Collect memory cache metrics
+	// Collect memory cache metrics.
 	if mc.memoryCache != nil {
 		memoryStats := mc.memoryCache.GetStats()
 		mc.prometheus.UpdateMemoryCacheMetrics(memoryStats)
 	}
 
-	// Collect Redis cache metrics
+	// Collect Redis cache metrics.
 	if mc.redisCache != nil {
 		redisStats := mc.redisCache.GetMetrics()
 		mc.prometheus.UpdateRedisCacheMetrics(redisStats)
 	}
 
-	// Collect Weaviate pool metrics
+	// Collect Weaviate pool metrics.
 	if mc.weaviatePool != nil {
 		poolStats := mc.weaviatePool.GetMetrics()
 		mc.prometheus.UpdateWeaviatePoolMetrics(poolStats)
 	}
 }
 
-// GetPrometheusMetrics returns the Prometheus metrics instance
+// GetPrometheusMetrics returns the Prometheus metrics instance.
 func (mc *MetricsCollector) GetPrometheusMetrics() *PrometheusMetrics {
 	return mc.prometheus
 }

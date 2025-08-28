@@ -1,55 +1,79 @@
-// Package a1 implements RFC 7807 compliant error handling for O-RAN A1 interfaces
-// This module provides structured error responses that comply with Problem Details for HTTP APIs
+// Package a1 implements RFC 7807 compliant error handling for O-RAN A1 interfaces.
+// This module provides structured error responses that comply with Problem Details for HTTP APIs.
 package a1
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
 )
 
-// A1ErrorType represents the type URI for different A1 error categories
+// A1ErrorType represents the type URI for different A1 error categories.
 type A1ErrorType string
 
 const (
-	// A1-P Policy Interface Error Types
-	ErrorTypePolicyTypeNotFound      A1ErrorType = "urn:problem-type:a1:policy-type-not-found"
+	// A1-P Policy Interface Error Types.
+	ErrorTypePolicyTypeNotFound A1ErrorType = "urn:problem-type:a1:policy-type-not-found"
+	// ErrorTypePolicyTypeAlreadyExists holds errortypepolicytypealreadyexists value.
 	ErrorTypePolicyTypeAlreadyExists A1ErrorType = "urn:problem-type:a1:policy-type-already-exists"
+	// ErrorTypePolicyTypeInvalidSchema holds errortypepolicytypeinvalidschema value.
 	ErrorTypePolicyTypeInvalidSchema A1ErrorType = "urn:problem-type:a1:policy-type-invalid-schema"
-	ErrorTypePolicyInstanceNotFound  A1ErrorType = "urn:problem-type:a1:policy-instance-not-found"
-	ErrorTypePolicyInstanceConflict  A1ErrorType = "urn:problem-type:a1:policy-instance-conflict"
-	ErrorTypePolicyValidationFailed  A1ErrorType = "urn:problem-type:a1:policy-validation-failed"
+	// ErrorTypePolicyInstanceNotFound holds errortypepolicyinstancenotfound value.
+	ErrorTypePolicyInstanceNotFound A1ErrorType = "urn:problem-type:a1:policy-instance-not-found"
+	// ErrorTypePolicyInstanceConflict holds errortypepolicyinstanceconflict value.
+	ErrorTypePolicyInstanceConflict A1ErrorType = "urn:problem-type:a1:policy-instance-conflict"
+	// ErrorTypePolicyValidationFailed holds errortypepolicyvalidationfailed value.
+	ErrorTypePolicyValidationFailed A1ErrorType = "urn:problem-type:a1:policy-validation-failed"
+	// ErrorTypePolicyEnforcementFailed holds errortypepolicyenforcementfailed value.
 	ErrorTypePolicyEnforcementFailed A1ErrorType = "urn:problem-type:a1:policy-enforcement-failed"
 
-	// A1-C Consumer Interface Error Types
-	ErrorTypeConsumerNotFound           A1ErrorType = "urn:problem-type:a1:consumer-not-found"
-	ErrorTypeConsumerAlreadyExists      A1ErrorType = "urn:problem-type:a1:consumer-already-exists"
-	ErrorTypeConsumerInvalidCallback    A1ErrorType = "urn:problem-type:a1:consumer-invalid-callback"
+	// A1-C Consumer Interface Error Types.
+	ErrorTypeConsumerNotFound A1ErrorType = "urn:problem-type:a1:consumer-not-found"
+	// ErrorTypeConsumerAlreadyExists holds errortypeconsumeralreadyexists value.
+	ErrorTypeConsumerAlreadyExists A1ErrorType = "urn:problem-type:a1:consumer-already-exists"
+	// ErrorTypeConsumerInvalidCallback holds errortypeconsumerinvalidcallback value.
+	ErrorTypeConsumerInvalidCallback A1ErrorType = "urn:problem-type:a1:consumer-invalid-callback"
+	// ErrorTypeConsumerNotificationFailed holds errortypeconsumernotificationfailed value.
 	ErrorTypeConsumerNotificationFailed A1ErrorType = "urn:problem-type:a1:consumer-notification-failed"
 
-	// A1-EI Enrichment Interface Error Types
-	ErrorTypeEITypeNotFound       A1ErrorType = "urn:problem-type:a1:ei-type-not-found"
-	ErrorTypeEITypeAlreadyExists  A1ErrorType = "urn:problem-type:a1:ei-type-already-exists"
-	ErrorTypeEIJobNotFound        A1ErrorType = "urn:problem-type:a1:ei-job-not-found"
-	ErrorTypeEIJobAlreadyExists   A1ErrorType = "urn:problem-type:a1:ei-job-already-exists"
-	ErrorTypeEIJobInvalidConfig   A1ErrorType = "urn:problem-type:a1:ei-job-invalid-config"
+	// A1-EI Enrichment Interface Error Types.
+	ErrorTypeEITypeNotFound A1ErrorType = "urn:problem-type:a1:ei-type-not-found"
+	// ErrorTypeEITypeAlreadyExists holds errortypeeitypealreadyexists value.
+	ErrorTypeEITypeAlreadyExists A1ErrorType = "urn:problem-type:a1:ei-type-already-exists"
+	// ErrorTypeEIJobNotFound holds errortypeeijobnotfound value.
+	ErrorTypeEIJobNotFound A1ErrorType = "urn:problem-type:a1:ei-job-not-found"
+	// ErrorTypeEIJobAlreadyExists holds errortypeeijobalreadyexists value.
+	ErrorTypeEIJobAlreadyExists A1ErrorType = "urn:problem-type:a1:ei-job-already-exists"
+	// ErrorTypeEIJobInvalidConfig holds errortypeeijobinvalidconfig value.
+	ErrorTypeEIJobInvalidConfig A1ErrorType = "urn:problem-type:a1:ei-job-invalid-config"
+	// ErrorTypeEIJobExecutionFailed holds errortypeeijobexecutionfailed value.
 	ErrorTypeEIJobExecutionFailed A1ErrorType = "urn:problem-type:a1:ei-job-execution-failed"
 
-	// Generic Error Types
-	ErrorTypeInvalidRequest         A1ErrorType = "urn:problem-type:a1:invalid-request"
-	ErrorTypeInternalServerError    A1ErrorType = "urn:problem-type:a1:internal-server-error"
-	ErrorTypeServiceUnavailable     A1ErrorType = "urn:problem-type:a1:service-unavailable"
-	ErrorTypeMethodNotAllowed       A1ErrorType = "urn:problem-type:a1:method-not-allowed"
-	ErrorTypeUnsupportedMediaType   A1ErrorType = "urn:problem-type:a1:unsupported-media-type"
-	ErrorTypeRateLimitExceeded      A1ErrorType = "urn:problem-type:a1:rate-limit-exceeded"
+	// Generic Error Types.
+	ErrorTypeInvalidRequest A1ErrorType = "urn:problem-type:a1:invalid-request"
+	// ErrorTypeInternalServerError holds errortypeinternalservererror value.
+	ErrorTypeInternalServerError A1ErrorType = "urn:problem-type:a1:internal-server-error"
+	// ErrorTypeServiceUnavailable holds errortypeserviceunavailable value.
+	ErrorTypeServiceUnavailable A1ErrorType = "urn:problem-type:a1:service-unavailable"
+	// ErrorTypeMethodNotAllowed holds errortypemethodnotallowed value.
+	ErrorTypeMethodNotAllowed A1ErrorType = "urn:problem-type:a1:method-not-allowed"
+	// ErrorTypeUnsupportedMediaType holds errortypeunsupportedmediatype value.
+	ErrorTypeUnsupportedMediaType A1ErrorType = "urn:problem-type:a1:unsupported-media-type"
+	// ErrorTypeRateLimitExceeded holds errortyperatelimitexceeded value.
+	ErrorTypeRateLimitExceeded A1ErrorType = "urn:problem-type:a1:rate-limit-exceeded"
+	// ErrorTypeAuthenticationRequired holds errortypeauthenticationrequired value.
 	ErrorTypeAuthenticationRequired A1ErrorType = "urn:problem-type:a1:authentication-required"
-	ErrorTypeAuthorizationDenied    A1ErrorType = "urn:problem-type:a1:authorization-denied"
-	ErrorTypeCircuitBreakerOpen     A1ErrorType = "urn:problem-type:a1:circuit-breaker-open"
-	ErrorTypeTimeout                A1ErrorType = "urn:problem-type:a1:timeout"
+	// ErrorTypeAuthorizationDenied holds errortypeauthorizationdenied value.
+	ErrorTypeAuthorizationDenied A1ErrorType = "urn:problem-type:a1:authorization-denied"
+	// ErrorTypeCircuitBreakerOpen holds errortypecircuitbreakeropen value.
+	ErrorTypeCircuitBreakerOpen A1ErrorType = "urn:problem-type:a1:circuit-breaker-open"
+	// ErrorTypeTimeout holds errortypetimeout value.
+	ErrorTypeTimeout A1ErrorType = "urn:problem-type:a1:timeout"
 )
 
-// A1ProblemDetail represents RFC 7807 compliant problem details for A1 interfaces
+// A1ProblemDetail represents RFC 7807 compliant problem details for A1 interfaces.
 type A1ProblemDetail struct {
 	Type       string                 `json:"type" validate:"required,uri"`
 	Title      string                 `json:"title" validate:"required"`
@@ -61,7 +85,7 @@ type A1ProblemDetail struct {
 	Extensions map[string]interface{} `json:"-"`
 }
 
-// A1Error represents an A1-specific error with context information
+// A1Error represents an A1-specific error with context information.
 type A1Error struct {
 	Type          A1ErrorType            `json:"type"`
 	Title         string                 `json:"title"`
@@ -75,7 +99,7 @@ type A1Error struct {
 	CorrelationID string                 `json:"correlation_id,omitempty"`
 }
 
-// Error implements the error interface
+// Error implements the error interface.
 func (e *A1Error) Error() string {
 	if e.Detail != "" {
 		return fmt.Sprintf("A1 Error [%s]: %s - %s", e.Type, e.Title, e.Detail)
@@ -83,17 +107,17 @@ func (e *A1Error) Error() string {
 	return fmt.Sprintf("A1 Error [%s]: %s", e.Type, e.Title)
 }
 
-// Unwrap returns the underlying cause error
+// Unwrap returns the underlying cause error.
 func (e *A1Error) Unwrap() error {
 	return e.Cause
 }
 
-// IsRetryable returns true if the error indicates a retryable condition
+// IsRetryable returns true if the error indicates a retryable condition.
 func (e *A1Error) IsRetryable() bool {
 	return e.Retryable
 }
 
-// ToProblemDetail converts A1Error to RFC 7807 compliant ProblemDetail
+// ToProblemDetail converts A1Error to RFC 7807 compliant ProblemDetail.
 func (e *A1Error) ToProblemDetail() *A1ProblemDetail {
 	pd := &A1ProblemDetail{
 		Type:       string(e.Type),
@@ -106,7 +130,7 @@ func (e *A1Error) ToProblemDetail() *A1ProblemDetail {
 		Extensions: make(map[string]interface{}),
 	}
 
-	// Add context as extensions
+	// Add context as extensions.
 	for key, value := range e.Context {
 		pd.Extensions[key] = value
 	}
@@ -118,9 +142,9 @@ func (e *A1Error) ToProblemDetail() *A1ProblemDetail {
 	return pd
 }
 
-// MarshalJSON implements custom JSON marshaling to include extensions
+// MarshalJSON implements custom JSON marshaling to include extensions.
 func (pd *A1ProblemDetail) MarshalJSON() ([]byte, error) {
-	// Create a map to hold all fields including extensions
+	// Create a map to hold all fields including extensions.
 	result := make(map[string]interface{})
 
 	result["type"] = pd.Type
@@ -143,7 +167,7 @@ func (pd *A1ProblemDetail) MarshalJSON() ([]byte, error) {
 		result["request_id"] = pd.RequestID
 	}
 
-	// Add extensions
+	// Add extensions.
 	for key, value := range pd.Extensions {
 		result[key] = value
 	}
@@ -151,7 +175,7 @@ func (pd *A1ProblemDetail) MarshalJSON() ([]byte, error) {
 	return json.Marshal(result)
 }
 
-// NewA1Error creates a new A1Error with the specified type and details
+// NewA1Error creates a new A1Error with the specified type and details.
 func NewA1Error(errorType A1ErrorType, title string, status int, detail string) *A1Error {
 	return &A1Error{
 		Type:      errorType,
@@ -163,14 +187,14 @@ func NewA1Error(errorType A1ErrorType, title string, status int, detail string) 
 	}
 }
 
-// NewA1ErrorWithCause creates a new A1Error with an underlying cause
+// NewA1ErrorWithCause creates a new A1Error with an underlying cause.
 func NewA1ErrorWithCause(errorType A1ErrorType, title string, status int, detail string, cause error) *A1Error {
 	err := NewA1Error(errorType, title, status, detail)
 	err.Cause = cause
 	return err
 }
 
-// WithContext adds context information to the error
+// WithContext adds context information to the error.
 func (e *A1Error) WithContext(key string, value interface{}) *A1Error {
 	if e.Context == nil {
 		e.Context = make(map[string]interface{})
@@ -179,27 +203,27 @@ func (e *A1Error) WithContext(key string, value interface{}) *A1Error {
 	return e
 }
 
-// WithInstance sets the instance URI for the error
+// WithInstance sets the instance URI for the error.
 func (e *A1Error) WithInstance(instance string) *A1Error {
 	e.Instance = instance
 	return e
 }
 
-// WithCorrelationID sets the correlation ID for the error
+// WithCorrelationID sets the correlation ID for the error.
 func (e *A1Error) WithCorrelationID(correlationID string) *A1Error {
 	e.CorrelationID = correlationID
 	return e
 }
 
-// AsRetryable marks the error as retryable
+// AsRetryable marks the error as retryable.
 func (e *A1Error) AsRetryable() *A1Error {
 	e.Retryable = true
 	return e
 }
 
-// Predefined A1 Errors for common scenarios
+// Predefined A1 Errors for common scenarios.
 
-// Policy Type Errors
+// Policy Type Errors.
 func NewPolicyTypeNotFoundError(policyTypeID int) *A1Error {
 	return NewA1Error(
 		ErrorTypePolicyTypeNotFound,
@@ -209,6 +233,7 @@ func NewPolicyTypeNotFoundError(policyTypeID int) *A1Error {
 	).WithContext("policy_type_id", policyTypeID)
 }
 
+// NewPolicyTypeAlreadyExistsError performs newpolicytypealreadyexistserror operation.
 func NewPolicyTypeAlreadyExistsError(policyTypeID int) *A1Error {
 	return NewA1Error(
 		ErrorTypePolicyTypeAlreadyExists,
@@ -218,6 +243,7 @@ func NewPolicyTypeAlreadyExistsError(policyTypeID int) *A1Error {
 	).WithContext("policy_type_id", policyTypeID)
 }
 
+// NewPolicyTypeInvalidSchemaError performs newpolicytypeinvalidschemaerror operation.
 func NewPolicyTypeInvalidSchemaError(policyTypeID int, validationError error) *A1Error {
 	return NewA1ErrorWithCause(
 		ErrorTypePolicyTypeInvalidSchema,
@@ -228,7 +254,7 @@ func NewPolicyTypeInvalidSchemaError(policyTypeID int, validationError error) *A
 	).WithContext("policy_type_id", policyTypeID)
 }
 
-// Policy Instance Errors
+// Policy Instance Errors.
 func NewPolicyInstanceNotFoundError(policyTypeID int, policyID string) *A1Error {
 	return NewA1Error(
 		ErrorTypePolicyInstanceNotFound,
@@ -238,6 +264,7 @@ func NewPolicyInstanceNotFoundError(policyTypeID int, policyID string) *A1Error 
 	).WithContext("policy_type_id", policyTypeID).WithContext("policy_id", policyID)
 }
 
+// NewPolicyInstanceConflictError performs newpolicyinstanceconflicterror operation.
 func NewPolicyInstanceConflictError(policyTypeID int, policyID string) *A1Error {
 	return NewA1Error(
 		ErrorTypePolicyInstanceConflict,
@@ -247,6 +274,7 @@ func NewPolicyInstanceConflictError(policyTypeID int, policyID string) *A1Error 
 	).WithContext("policy_type_id", policyTypeID).WithContext("policy_id", policyID)
 }
 
+// NewPolicyValidationFailedError performs newpolicyvalidationfailederror operation.
 func NewPolicyValidationFailedError(policyTypeID int, policyID string, validationError error) *A1Error {
 	return NewA1ErrorWithCause(
 		ErrorTypePolicyValidationFailed,
@@ -257,6 +285,7 @@ func NewPolicyValidationFailedError(policyTypeID int, policyID string, validatio
 	).WithContext("policy_type_id", policyTypeID).WithContext("policy_id", policyID)
 }
 
+// NewPolicyEnforcementFailedError performs newpolicyenforcementfailederror operation.
 func NewPolicyEnforcementFailedError(policyTypeID int, policyID string, enforcementError error) *A1Error {
 	return NewA1ErrorWithCause(
 		ErrorTypePolicyEnforcementFailed,
@@ -267,7 +296,7 @@ func NewPolicyEnforcementFailedError(policyTypeID int, policyID string, enforcem
 	).WithContext("policy_type_id", policyTypeID).WithContext("policy_id", policyID).AsRetryable()
 }
 
-// Consumer Errors
+// Consumer Errors.
 func NewConsumerNotFoundError(consumerID string) *A1Error {
 	return NewA1Error(
 		ErrorTypeConsumerNotFound,
@@ -277,6 +306,7 @@ func NewConsumerNotFoundError(consumerID string) *A1Error {
 	).WithContext("consumer_id", consumerID)
 }
 
+// NewConsumerAlreadyExistsError performs newconsumeralreadyexistserror operation.
 func NewConsumerAlreadyExistsError(consumerID string) *A1Error {
 	return NewA1Error(
 		ErrorTypeConsumerAlreadyExists,
@@ -286,6 +316,7 @@ func NewConsumerAlreadyExistsError(consumerID string) *A1Error {
 	).WithContext("consumer_id", consumerID)
 }
 
+// NewConsumerInvalidCallbackError performs newconsumerinvalidcallbackerror operation.
 func NewConsumerInvalidCallbackError(consumerID string, callbackURL string, validationError error) *A1Error {
 	return NewA1ErrorWithCause(
 		ErrorTypeConsumerInvalidCallback,
@@ -296,6 +327,7 @@ func NewConsumerInvalidCallbackError(consumerID string, callbackURL string, vali
 	).WithContext("consumer_id", consumerID).WithContext("callback_url", callbackURL)
 }
 
+// NewConsumerNotificationFailedError performs newconsumernotificationfailederror operation.
 func NewConsumerNotificationFailedError(consumerID string, notificationError error) *A1Error {
 	return NewA1ErrorWithCause(
 		ErrorTypeConsumerNotificationFailed,
@@ -306,7 +338,7 @@ func NewConsumerNotificationFailedError(consumerID string, notificationError err
 	).WithContext("consumer_id", consumerID).AsRetryable()
 }
 
-// Enrichment Information Errors
+// Enrichment Information Errors.
 func NewEITypeNotFoundError(eiTypeID string) *A1Error {
 	return NewA1Error(
 		ErrorTypeEITypeNotFound,
@@ -316,6 +348,7 @@ func NewEITypeNotFoundError(eiTypeID string) *A1Error {
 	).WithContext("ei_type_id", eiTypeID)
 }
 
+// NewEITypeAlreadyExistsError performs neweitypealreadyexistserror operation.
 func NewEITypeAlreadyExistsError(eiTypeID string) *A1Error {
 	return NewA1Error(
 		ErrorTypeEITypeAlreadyExists,
@@ -325,6 +358,7 @@ func NewEITypeAlreadyExistsError(eiTypeID string) *A1Error {
 	).WithContext("ei_type_id", eiTypeID)
 }
 
+// NewEIJobNotFoundError performs neweijobnotfounderror operation.
 func NewEIJobNotFoundError(eiJobID string) *A1Error {
 	return NewA1Error(
 		ErrorTypeEIJobNotFound,
@@ -334,6 +368,7 @@ func NewEIJobNotFoundError(eiJobID string) *A1Error {
 	).WithContext("ei_job_id", eiJobID)
 }
 
+// NewEIJobAlreadyExistsError performs neweijobalreadyexistserror operation.
 func NewEIJobAlreadyExistsError(eiJobID string) *A1Error {
 	return NewA1Error(
 		ErrorTypeEIJobAlreadyExists,
@@ -343,6 +378,7 @@ func NewEIJobAlreadyExistsError(eiJobID string) *A1Error {
 	).WithContext("ei_job_id", eiJobID)
 }
 
+// NewEIJobInvalidConfigError performs neweijobinvalidconfigerror operation.
 func NewEIJobInvalidConfigError(eiJobID string, configError error) *A1Error {
 	return NewA1ErrorWithCause(
 		ErrorTypeEIJobInvalidConfig,
@@ -353,6 +389,7 @@ func NewEIJobInvalidConfigError(eiJobID string, configError error) *A1Error {
 	).WithContext("ei_job_id", eiJobID)
 }
 
+// NewEIJobExecutionFailedError performs neweijobexecutionfailederror operation.
 func NewEIJobExecutionFailedError(eiJobID string, executionError error) *A1Error {
 	return NewA1ErrorWithCause(
 		ErrorTypeEIJobExecutionFailed,
@@ -363,7 +400,7 @@ func NewEIJobExecutionFailedError(eiJobID string, executionError error) *A1Error
 	).WithContext("ei_job_id", eiJobID).AsRetryable()
 }
 
-// Generic Errors
+// Generic Errors.
 func NewInvalidRequestError(detail string) *A1Error {
 	return NewA1Error(
 		ErrorTypeInvalidRequest,
@@ -373,6 +410,7 @@ func NewInvalidRequestError(detail string) *A1Error {
 	)
 }
 
+// NewInternalServerError performs newinternalservererror operation.
 func NewInternalServerError(detail string, cause error) *A1Error {
 	return NewA1ErrorWithCause(
 		ErrorTypeInternalServerError,
@@ -383,6 +421,7 @@ func NewInternalServerError(detail string, cause error) *A1Error {
 	).AsRetryable()
 }
 
+// NewServiceUnavailableError performs newserviceunavailableerror operation.
 func NewServiceUnavailableError(detail string) *A1Error {
 	return NewA1Error(
 		ErrorTypeServiceUnavailable,
@@ -392,6 +431,7 @@ func NewServiceUnavailableError(detail string) *A1Error {
 	).AsRetryable()
 }
 
+// NewMethodNotAllowedError performs newmethodnotallowederror operation.
 func NewMethodNotAllowedError(method string, allowedMethods []string) *A1Error {
 	return NewA1Error(
 		ErrorTypeMethodNotAllowed,
@@ -401,6 +441,7 @@ func NewMethodNotAllowedError(method string, allowedMethods []string) *A1Error {
 	).WithContext("method", method).WithContext("allowed_methods", allowedMethods)
 }
 
+// NewUnsupportedMediaTypeError performs newunsupportedmediatypeerror operation.
 func NewUnsupportedMediaTypeError(contentType string, supportedTypes []string) *A1Error {
 	return NewA1Error(
 		ErrorTypeUnsupportedMediaType,
@@ -410,6 +451,7 @@ func NewUnsupportedMediaTypeError(contentType string, supportedTypes []string) *
 	).WithContext("content_type", contentType).WithContext("supported_types", supportedTypes)
 }
 
+// NewRateLimitExceededError performs newratelimitexceedederror operation.
 func NewRateLimitExceededError(limit int, windowSize time.Duration) *A1Error {
 	return NewA1Error(
 		ErrorTypeRateLimitExceeded,
@@ -419,6 +461,7 @@ func NewRateLimitExceededError(limit int, windowSize time.Duration) *A1Error {
 	).WithContext("rate_limit", limit).WithContext("window_size", windowSize.String()).AsRetryable()
 }
 
+// NewAuthenticationRequiredError performs newauthenticationrequirederror operation.
 func NewAuthenticationRequiredError() *A1Error {
 	return NewA1Error(
 		ErrorTypeAuthenticationRequired,
@@ -428,6 +471,7 @@ func NewAuthenticationRequiredError() *A1Error {
 	)
 }
 
+// NewAuthorizationDeniedError performs newauthorizationdeniederror operation.
 func NewAuthorizationDeniedError(resource string) *A1Error {
 	return NewA1Error(
 		ErrorTypeAuthorizationDenied,
@@ -437,6 +481,7 @@ func NewAuthorizationDeniedError(resource string) *A1Error {
 	).WithContext("resource", resource)
 }
 
+// NewCircuitBreakerOpenError performs newcircuitbreakeropenerror operation.
 func NewCircuitBreakerOpenError(circuitName string) *A1Error {
 	return NewA1Error(
 		ErrorTypeCircuitBreakerOpen,
@@ -446,6 +491,7 @@ func NewCircuitBreakerOpenError(circuitName string) *A1Error {
 	).WithContext("circuit_name", circuitName).AsRetryable()
 }
 
+// NewTimeoutError performs newtimeouterror operation.
 func NewTimeoutError(operation string, timeout time.Duration) *A1Error {
 	return NewA1Error(
 		ErrorTypeTimeout,
@@ -455,7 +501,7 @@ func NewTimeoutError(operation string, timeout time.Duration) *A1Error {
 	).WithContext("operation", operation).WithContext("timeout", timeout.String()).AsRetryable()
 }
 
-// WriteA1Error writes an A1Error as an RFC 7807 compliant response
+// WriteA1Error writes an A1Error as an RFC 7807 compliant response.
 func WriteA1Error(w http.ResponseWriter, err *A1Error) {
 	w.Header().Set("Content-Type", ContentTypeProblemJSON)
 	w.WriteHeader(err.Status)
@@ -464,12 +510,12 @@ func WriteA1Error(w http.ResponseWriter, err *A1Error) {
 	if jsonData, jsonErr := json.MarshalIndent(problemDetail, "", "  "); jsonErr == nil {
 		w.Write(jsonData)
 	} else {
-		// Fallback to simple error message if JSON marshaling fails
+		// Fallback to simple error message if JSON marshaling fails.
 		fmt.Fprintf(w, `{"type":"%s","title":"%s","status":%d}`, err.Type, err.Title, err.Status)
 	}
 }
 
-// ExtractA1ErrorFromHTTPResponse extracts A1Error from an HTTP response
+// ExtractA1ErrorFromHTTPResponse extracts A1Error from an HTTP response.
 func ExtractA1ErrorFromHTTPResponse(resp *http.Response) (*A1Error, error) {
 	if resp.StatusCode < 400 {
 		return nil, fmt.Errorf("response does not contain an error (status: %d)", resp.StatusCode)
@@ -477,7 +523,7 @@ func ExtractA1ErrorFromHTTPResponse(resp *http.Response) (*A1Error, error) {
 
 	var problemDetail A1ProblemDetail
 	if err := json.NewDecoder(resp.Body).Decode(&problemDetail); err != nil {
-		// Return generic error if response is not in problem+json format
+		// Return generic error if response is not in problem+json format.
 		return &A1Error{
 			Type:      ErrorTypeInternalServerError,
 			Title:     http.StatusText(resp.StatusCode),
@@ -497,7 +543,7 @@ func ExtractA1ErrorFromHTTPResponse(resp *http.Response) (*A1Error, error) {
 		Context:       problemDetail.Extensions,
 	}
 
-	// Check if error is marked as retryable
+	// Check if error is marked as retryable.
 	if retryable, ok := problemDetail.Extensions["retryable"].(bool); ok {
 		a1Error.Retryable = retryable
 	}
@@ -505,36 +551,37 @@ func ExtractA1ErrorFromHTTPResponse(resp *http.Response) (*A1Error, error) {
 	return a1Error, nil
 }
 
-// IsA1Error checks if an error is an A1Error
+// IsA1Error checks if an error is an A1Error.
 func IsA1Error(err error) bool {
-	_, ok := err.(*A1Error)
-	return ok
+	var a1Err *A1Error
+	return errors.As(err, &a1Err)
 }
 
-// GetA1Error extracts A1Error from an error, returning nil if not an A1Error
+// GetA1Error extracts A1Error from an error, returning nil if not an A1Error.
 func GetA1Error(err error) *A1Error {
-	if a1Err, ok := err.(*A1Error); ok {
+	var a1Err *A1Error
+	if errors.As(err, &a1Err) {
 		return a1Err
 	}
 	return nil
 }
 
-// WrapError wraps a generic error as an A1 internal server error
+// WrapError wraps a generic error as an A1 internal server error.
 func WrapError(err error, detail string) *A1Error {
 	return NewInternalServerError(detail, err)
 }
 
-// ErrorHandler is a middleware function type for handling A1 errors
+// ErrorHandler is a middleware function type for handling A1 errors.
 type ErrorHandler func(http.ResponseWriter, *http.Request, *A1Error)
 
-// DefaultErrorHandler provides default error handling for A1 errors
+// DefaultErrorHandler provides default error handling for A1 errors.
 func DefaultErrorHandler(w http.ResponseWriter, r *http.Request, err *A1Error) {
-	// Add request ID if available in context
+	// Add request ID if available in context.
 	if requestID := r.Header.Get("X-Request-ID"); requestID != "" {
 		err.CorrelationID = requestID
 	}
 
-	// Add instance URI based on request
+	// Add instance URI based on request.
 	if err.Instance == "" {
 		err.Instance = r.URL.Path
 	}
@@ -542,7 +589,7 @@ func DefaultErrorHandler(w http.ResponseWriter, r *http.Request, err *A1Error) {
 	WriteA1Error(w, err)
 }
 
-// ErrorMiddleware provides middleware for consistent error handling
+// ErrorMiddleware provides middleware for consistent error handling.
 func ErrorMiddleware(errorHandler ErrorHandler) func(http.Handler) http.Handler {
 	if errorHandler == nil {
 		errorHandler = DefaultErrorHandler

@@ -1,5 +1,5 @@
 //go:build ignore
-// +build ignore
+// +build ignore.
 
 package main
 
@@ -12,10 +12,10 @@ import (
 )
 
 func main() {
-	// Create a RAG-enhanced processor with default config
+	// Create a RAG-enhanced processor with default config.
 	processor := llm.NewRAGEnhancedProcessor()
 
-	// Test intent that should use RAG
+	// Test intent that should use RAG.
 	testIntents := []string{
 		"Deploy a 5G AMF with high availability",
 		"How to configure O-RAN E2 interface",

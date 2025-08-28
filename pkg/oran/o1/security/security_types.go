@@ -1,52 +1,52 @@
-// FIXME: Adding package comment per revive linter
-// Package security implements O1 interface security types and authentication for O-RAN networks
+// FIXME: Adding package comment per revive linter.
+// Package security implements O1 interface security types and authentication for O-RAN networks.
 package security
 
 import (
 	"time"
 )
 
-// StreamFilter defines filtering criteria for streaming data
+// StreamFilter defines filtering criteria for streaming data.
 type StreamFilter struct {
-	// Filter criteria
+	// Filter criteria.
 	AttributeFilters map[string]string `json:"attributeFilters,omitempty"`
 	ValueRanges      map[string]Range  `json:"valueRanges,omitempty"`
 	TimeRange        *TimeRange        `json:"timeRange,omitempty"`
 
-	// Stream configuration
+	// Stream configuration.
 	BufferSize    int           `json:"bufferSize,omitempty"`
 	FlushInterval time.Duration `json:"flushInterval,omitempty"`
 	MaxBatchSize  int           `json:"maxBatchSize,omitempty"`
 
-	// Security settings
+	// Security settings.
 	RequireAuth  bool       `json:"requireAuth"`
 	AllowedRoles []string   `json:"allowedRoles,omitempty"`
 	RateLimit    *RateLimit `json:"rateLimit,omitempty"`
 }
 
-// Range defines a numeric range filter
+// Range defines a numeric range filter.
 type Range struct {
 	Min *float64 `json:"min,omitempty"`
 	Max *float64 `json:"max,omitempty"`
 }
 
-// TimeRange defines a time range filter
+// TimeRange defines a time range filter.
 type TimeRange struct {
 	Start time.Time `json:"start"`
 	End   time.Time `json:"end"`
 }
 
-// PushProvider interface for push notification providers
+// PushProvider interface for push notification providers.
 type PushProvider interface {
-	// SendPush sends a push notification
+	// SendPush sends a push notification.
 	SendPush(token string, message *PushMessage) error
-	// GetProviderName returns the provider name
+	// GetProviderName returns the provider name.
 	GetProviderName() string
-	// ValidateToken validates a push token
+	// ValidateToken validates a push token.
 	ValidateToken(token string) error
 }
 
-// PushMessage represents a push notification message
+// PushMessage represents a push notification message.
 type PushMessage struct {
 	Title    string            `json:"title"`
 	Body     string            `json:"body"`
@@ -56,7 +56,7 @@ type PushMessage struct {
 	Priority string            `json:"priority,omitempty"`
 }
 
-// PushConfig defines push notification configuration
+// PushConfig defines push notification configuration.
 type PushConfig struct {
 	DefaultProvider string            `json:"defaultProvider"`
 	Providers       map[string]string `json:"providers"` // provider name -> config key
@@ -65,14 +65,14 @@ type PushConfig struct {
 	RateLimit       *RateLimit        `json:"rateLimit,omitempty"`
 }
 
-// RateLimit defines rate limiting configuration for push notifications
+// RateLimit defines rate limiting configuration for push notifications.
 type RateLimit struct {
 	RequestsPerSecond float64       `json:"requestsPerSecond"`
 	Burst             int           `json:"burst"`
 	TimeWindow        time.Duration `json:"timeWindow"`
 }
 
-// SAMLProvider defines SAML authentication provider configuration
+// SAMLProvider defines SAML authentication provider configuration.
 type SAMLProvider struct {
 	EntityID             string            `json:"entityID"`
 	MetadataURL          string            `json:"metadataURL"`
@@ -87,7 +87,7 @@ type SAMLProvider struct {
 	ClockSkewTolerance   time.Duration     `json:"clockSkewTolerance"`
 }
 
-// OIDCProvider defines OpenID Connect authentication provider configuration
+// OIDCProvider defines OpenID Connect authentication provider configuration.
 type OIDCProvider struct {
 	Issuer                 string            `json:"issuer"`
 	ClientID               string            `json:"clientID"`
@@ -106,7 +106,7 @@ type OIDCProvider struct {
 	SkipIssuerVerification bool              `json:"skipIssuerVerification"`
 }
 
-// OAuth2Config defines OAuth2 authentication configuration
+// OAuth2Config defines OAuth2 authentication configuration.
 type OAuth2Config struct {
 	ClientID          string            `json:"clientID"`
 	ClientSecret      string            `json:"clientSecret"`
@@ -124,7 +124,7 @@ type OAuth2Config struct {
 	ExtraParams       map[string]string `json:"extraParams,omitempty"`
 }
 
-// OAuth2Endpoint defines OAuth2 endpoint configuration
+// OAuth2Endpoint defines OAuth2 endpoint configuration.
 type OAuth2Endpoint struct {
 	AuthURL     string            `json:"authURL"`
 	TokenURL    string            `json:"tokenURL"`
@@ -132,7 +132,7 @@ type OAuth2Endpoint struct {
 	ExtraParams map[string]string `json:"extraParams,omitempty"`
 }
 
-// AccessControlRule defines an access control rule
+// AccessControlRule defines an access control rule.
 type AccessControlRule struct {
 	ID          string            `json:"id"`
 	Name        string            `json:"name"`
@@ -149,14 +149,14 @@ type AccessControlRule struct {
 	Metadata    map[string]string `json:"metadata,omitempty"`
 }
 
-// Subject represents the entity the rule applies to
+// Subject represents the entity the rule applies to.
 type Subject struct {
 	Type       string            `json:"type"` // user, group, role, service
 	ID         string            `json:"id"`
 	Attributes map[string]string `json:"attributes,omitempty"`
 }
 
-// Resource represents the resource being accessed
+// Resource represents the resource being accessed.
 type Resource struct {
 	Type       string            `json:"type"` // endpoint, service, data
 	ID         string            `json:"id"`
@@ -164,7 +164,7 @@ type Resource struct {
 	Attributes map[string]string `json:"attributes,omitempty"`
 }
 
-// Condition represents a rule condition
+// Condition represents a rule condition.
 type Condition struct {
 	Type     string      `json:"type"` // time, location, attribute
 	Field    string      `json:"field"`
@@ -173,7 +173,7 @@ type Condition struct {
 	Values   []string    `json:"values,omitempty"`
 }
 
-// RotationPolicy defines key or certificate rotation policy
+// RotationPolicy defines key or certificate rotation policy.
 type RotationPolicy struct {
 	ID                   string               `json:"id"`
 	Name                 string               `json:"name"`
@@ -195,7 +195,7 @@ type RotationPolicy struct {
 	Metadata             map[string]string    `json:"metadata,omitempty"`
 }
 
-// RotationCondition defines conditions that can trigger rotation
+// RotationCondition defines conditions that can trigger rotation.
 type RotationCondition struct {
 	Type        string            `json:"type"`                // expiry, compromise, policy_change, manual
 	Threshold   interface{}       `json:"threshold,omitempty"` // Threshold value for condition
@@ -204,28 +204,28 @@ type RotationCondition struct {
 	Metadata    map[string]string `json:"metadata,omitempty"`
 }
 
-// SecurityPolicyEngine defines the interface for security policy evaluation
+// SecurityPolicyEngine defines the interface for security policy evaluation.
 type SecurityPolicyEngine interface {
-	// EvaluatePolicy evaluates a security policy against a request
+	// EvaluatePolicy evaluates a security policy against a request.
 	EvaluatePolicy(request *PolicyRequest) (*PolicyDecision, error)
 
-	// AddPolicy adds a new security policy
+	// AddPolicy adds a new security policy.
 	AddPolicy(policy *SecurityPolicy) error
 
-	// RemovePolicy removes a security policy by ID
+	// RemovePolicy removes a security policy by ID.
 	RemovePolicy(policyID string) error
 
-	// UpdatePolicy updates an existing security policy
+	// UpdatePolicy updates an existing security policy.
 	UpdatePolicy(policy *SecurityPolicy) error
 
-	// GetPolicy retrieves a security policy by ID
+	// GetPolicy retrieves a security policy by ID.
 	GetPolicy(policyID string) (*SecurityPolicy, error)
 
-	// ListPolicies returns all security policies with optional filtering
+	// ListPolicies returns all security policies with optional filtering.
 	ListPolicies(filter *PolicyFilter) ([]*SecurityPolicy, error)
 }
 
-// SecurityPolicy represents a comprehensive security policy
+// SecurityPolicy represents a comprehensive security policy.
 type SecurityPolicy struct {
 	ID             string                 `json:"id"`
 	Name           string                 `json:"name"`
@@ -255,7 +255,7 @@ type SecurityPolicy struct {
 	Metadata       map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// PolicyException defines exceptions to a security policy
+// PolicyException defines exceptions to a security policy.
 type PolicyException struct {
 	ID            string            `json:"id"`
 	Description   string            `json:"description"`
@@ -269,7 +269,7 @@ type PolicyException struct {
 	Metadata      map[string]string `json:"metadata,omitempty"`
 }
 
-// ExceptionScope defines the scope of a policy exception
+// ExceptionScope defines the scope of a policy exception.
 type ExceptionScope struct {
 	Subjects  []*Subject  `json:"subjects,omitempty"`
 	Resources []*Resource `json:"resources,omitempty"`
@@ -277,9 +277,9 @@ type ExceptionScope struct {
 	TimeRange *TimeRange  `json:"timeRange,omitempty"`
 }
 
-// TimeRange is already defined above
+// TimeRange is already defined above.
 
-// AuditSettings defines audit settings for a policy
+// AuditSettings defines audit settings for a policy.
 type AuditSettings struct {
 	AuditLevel       string   `json:"auditLevel"`       // none, basic, detailed, full
 	LogActions       []string `json:"logActions"`       // Which actions to log
@@ -289,7 +289,7 @@ type AuditSettings struct {
 	AlertOnViolation bool     `json:"alertOnViolation"` // Send alerts on policy violations
 }
 
-// PolicyRequest represents a request for policy evaluation
+// PolicyRequest represents a request for policy evaluation.
 type PolicyRequest struct {
 	Subject     *Subject               `json:"subject"`
 	Resource    *Resource              `json:"resource"`
@@ -300,7 +300,7 @@ type PolicyRequest struct {
 	SessionInfo map[string]interface{} `json:"sessionInfo,omitempty"`
 }
 
-// RequestContext provides additional context for policy evaluation
+// RequestContext provides additional context for policy evaluation.
 type RequestContext struct {
 	IPAddress   string                 `json:"ipAddress,omitempty"`
 	UserAgent   string                 `json:"userAgent,omitempty"`
@@ -313,7 +313,7 @@ type RequestContext struct {
 	Attributes  map[string]interface{} `json:"attributes,omitempty"`
 }
 
-// Geolocation represents geographic location information
+// Geolocation represents geographic location information.
 type Geolocation struct {
 	Country   string  `json:"country,omitempty"`
 	Region    string  `json:"region,omitempty"`
@@ -323,7 +323,7 @@ type Geolocation struct {
 	Accuracy  int     `json:"accuracy,omitempty"`
 }
 
-// DeviceInfo represents device information
+// DeviceInfo represents device information.
 type DeviceInfo struct {
 	DeviceID   string            `json:"deviceId,omitempty"`
 	DeviceType string            `json:"deviceType,omitempty"`
@@ -334,7 +334,7 @@ type DeviceInfo struct {
 	Attributes map[string]string `json:"attributes,omitempty"`
 }
 
-// TLSInfo represents TLS connection information
+// TLSInfo represents TLS connection information.
 type TLSInfo struct {
 	Version          string   `json:"version,omitempty"`
 	CipherSuite      string   `json:"cipherSuite,omitempty"`
@@ -346,7 +346,7 @@ type TLSInfo struct {
 	ALPN             []string `json:"alpn,omitempty"`
 }
 
-// PolicyDecision represents the result of policy evaluation
+// PolicyDecision represents the result of policy evaluation.
 type PolicyDecision struct {
 	Decision       string            `json:"decision"` // PERMIT, DENY, NOT_APPLICABLE, INDETERMINATE
 	PolicyID       string            `json:"policyID,omitempty"`
@@ -361,7 +361,7 @@ type PolicyDecision struct {
 	Metadata       map[string]string `json:"metadata,omitempty"`
 }
 
-// Obligation represents an obligation that must be fulfilled
+// Obligation represents an obligation that must be fulfilled.
 type Obligation struct {
 	ID          string                 `json:"id"`
 	Type        string                 `json:"type"`
@@ -371,7 +371,7 @@ type Obligation struct {
 	Deadline    time.Time              `json:"deadline,omitempty"`
 }
 
-// Advice represents advisory information from policy evaluation
+// Advice represents advisory information from policy evaluation.
 type Advice struct {
 	ID          string                 `json:"id"`
 	Type        string                 `json:"type"`
@@ -380,7 +380,7 @@ type Advice struct {
 	Priority    string                 `json:"priority"` // low, medium, high
 }
 
-// PolicyFilter defines filtering criteria for listing policies
+// PolicyFilter defines filtering criteria for listing policies.
 type PolicyFilter struct {
 	Types          []string  `json:"types,omitempty"`
 	Categories     []string  `json:"categories,omitempty"`
@@ -394,19 +394,19 @@ type PolicyFilter struct {
 	Offset         int       `json:"offset,omitempty"`
 }
 
-// NotificationChannel interface for different notification channels
+// NotificationChannel interface for different notification channels.
 type NotificationChannel interface {
-	// Send sends a notification
+	// Send sends a notification.
 	Send(message *NotificationMessage) error
-	// GetChannelType returns the channel type
+	// GetChannelType returns the channel type.
 	GetChannelType() string
-	// IsEnabled checks if the channel is enabled
+	// IsEnabled checks if the channel is enabled.
 	IsEnabled() bool
-	// ValidateConfig validates the channel configuration
+	// ValidateConfig validates the channel configuration.
 	ValidateConfig() error
 }
 
-// NotificationMessage represents a notification message
+// NotificationMessage represents a notification message.
 type NotificationMessage struct {
 	ID         string                 `json:"id"`
 	Subject    string                 `json:"subject"`
@@ -418,7 +418,7 @@ type NotificationMessage struct {
 	Timestamp  time.Time              `json:"timestamp"`
 }
 
-// EscalationRule defines escalation rules for notifications
+// EscalationRule defines escalation rules for notifications.
 type EscalationRule struct {
 	ID               string        `json:"id"`
 	Name             string        `json:"name"`
@@ -433,7 +433,7 @@ type EscalationRule struct {
 	UpdatedAt        time.Time     `json:"updatedAt"`
 }
 
-// ValidationResult represents the result of security validation
+// ValidationResult represents the result of security validation.
 type ValidationResult struct {
 	Valid    bool              `json:"valid"`
 	Errors   []string          `json:"errors,omitempty"`
@@ -441,7 +441,7 @@ type ValidationResult struct {
 	Details  map[string]string `json:"details,omitempty"`
 }
 
-// SecurityStatus represents overall security status
+// SecurityStatus represents overall security status.
 type SecurityStatus struct {
 	ComplianceLevel   string                 `json:"complianceLevel"`
 	ActiveThreats     []string               `json:"activeThreats,omitempty"`
@@ -454,7 +454,7 @@ type SecurityStatus struct {
 	LastUpdated       time.Time              `json:"lastUpdated"`
 }
 
-// CertificateStatus represents certificate management status
+// CertificateStatus represents certificate management status.
 type CertificateStatus struct {
 	TotalCertificates    int       `json:"totalCertificates"`
 	ActiveCertificates   int       `json:"activeCertificates"`
@@ -465,7 +465,7 @@ type CertificateStatus struct {
 	HealthScore          float64   `json:"healthScore"`
 }
 
-// PolicyStatus represents security policy status
+// PolicyStatus represents security policy status.
 type PolicyStatus struct {
 	TotalPolicies   int       `json:"totalPolicies"`
 	ActivePolicies  int       `json:"activePolicies"`
@@ -476,7 +476,7 @@ type PolicyStatus struct {
 	NextReview      time.Time `json:"nextReview,omitempty"`
 }
 
-// SecurityAlert represents a security alert
+// SecurityAlert represents a security alert.
 type SecurityAlert struct {
 	ID          string                 `json:"id"`
 	Type        string                 `json:"type"`
@@ -495,7 +495,7 @@ type SecurityAlert struct {
 	Actions     []*AlertAction         `json:"actions,omitempty"`
 }
 
-// AlertAction represents an action taken on a security alert
+// AlertAction represents an action taken on a security alert.
 type AlertAction struct {
 	ID          string                 `json:"id"`
 	Type        string                 `json:"type"` // investigate, escalate, resolve, dismiss
@@ -506,7 +506,7 @@ type AlertAction struct {
 	Evidence    map[string]interface{} `json:"evidence,omitempty"`
 }
 
-// StatisticalSummary represents statistical summary data
+// StatisticalSummary represents statistical summary data.
 type StatisticalSummary struct {
 	Count       int64                  `json:"count"`
 	Mean        float64                `json:"mean"`
@@ -519,7 +519,7 @@ type StatisticalSummary struct {
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// AuditPolicy defines audit policy configuration
+// AuditPolicy defines audit policy configuration.
 type AuditPolicy struct {
 	ID          string            `json:"id"`
 	Name        string            `json:"name"`
@@ -537,7 +537,7 @@ type AuditPolicy struct {
 	Metadata    map[string]string `json:"metadata,omitempty"`
 }
 
-// ExpirationPolicy defines expiration policy for security objects
+// ExpirationPolicy defines expiration policy for security objects.
 type ExpirationPolicy struct {
 	ID                string            `json:"id"`
 	Name              string            `json:"name"`
@@ -559,7 +559,7 @@ type ExpirationPolicy struct {
 	Metadata          map[string]string `json:"metadata,omitempty"`
 }
 
-// EscrowPolicy defines key escrow policy
+// EscrowPolicy defines key escrow policy.
 type EscrowPolicy struct {
 	ID                    string            `json:"id"`
 	Name                  string            `json:"name"`
@@ -582,7 +582,7 @@ type EscrowPolicy struct {
 	Metadata              map[string]string `json:"metadata,omitempty"`
 }
 
-// EscrowAccessRule defines rules for accessing escrowed keys
+// EscrowAccessRule defines rules for accessing escrowed keys.
 type EscrowAccessRule struct {
 	ID                    string            `json:"id"`
 	Name                  string            `json:"name"`
@@ -599,7 +599,7 @@ type EscrowAccessRule struct {
 	Metadata              map[string]string `json:"metadata,omitempty"`
 }
 
-// TimeRestriction defines time-based access restrictions
+// TimeRestriction defines time-based access restrictions.
 type TimeRestriction struct {
 	AllowedDays     []string     `json:"allowedDays"`  // Monday, Tuesday, etc.
 	AllowedHours    []string     `json:"allowedHours"` // 09:00-17:00 format
@@ -607,7 +607,7 @@ type TimeRestriction struct {
 	BlackoutPeriods []*TimeRange `json:"blackoutPeriods,omitempty"`
 }
 
-// RetentionRule defines data retention rules
+// RetentionRule defines data retention rules.
 type RetentionRule struct {
 	ID              string            `json:"id"`
 	Name            string            `json:"name"`
@@ -628,7 +628,7 @@ type RetentionRule struct {
 	Metadata        map[string]string `json:"metadata,omitempty"`
 }
 
-// EscrowApprover represents an authorized escrow approver
+// EscrowApprover represents an authorized escrow approver.
 type EscrowApprover struct {
 	ID           string            `json:"id"`
 	Name         string            `json:"name"`
@@ -644,7 +644,7 @@ type EscrowApprover struct {
 	Metadata     map[string]string `json:"metadata,omitempty"`
 }
 
-// EscrowAccessRequest represents a request to access escrowed keys
+// EscrowAccessRequest represents a request to access escrowed keys.
 type EscrowAccessRequest struct {
 	ID              string            `json:"id"`
 	KeyID           string            `json:"keyID"`
@@ -660,7 +660,7 @@ type EscrowAccessRequest struct {
 	Metadata        map[string]string `json:"metadata,omitempty"`
 }
 
-// ApprovalStep represents a step in the approval chain
+// ApprovalStep represents a step in the approval chain.
 type ApprovalStep struct {
 	ID           string    `json:"id"`
 	ApproverID   string    `json:"approverID"`
@@ -672,7 +672,7 @@ type ApprovalStep struct {
 	Order        int       `json:"order"` // Order in approval chain
 }
 
-// AuditEntry represents an audit log entry (minimal definition for compilation)
+// AuditEntry represents an audit log entry (minimal definition for compilation).
 type AuditEntry struct {
 	ID        string                 `json:"id"`
 	Timestamp time.Time              `json:"timestamp"`
@@ -683,14 +683,14 @@ type AuditEntry struct {
 	Details   map[string]interface{} `json:"details,omitempty"`
 }
 
-// ComplianceReportGenerator interface for generating compliance reports
+// ComplianceReportGenerator interface for generating compliance reports.
 type ComplianceReportGenerator interface {
 	GenerateReport(assessment *ComplianceAssessment) (*ComplianceReport, error)
 	GetSupportedFormats() []string
 	ValidateAssessment(assessment *ComplianceAssessment) error
 }
 
-// ComplianceAssessment represents a compliance assessment (minimal definition)
+// ComplianceAssessment represents a compliance assessment (minimal definition).
 type ComplianceAssessment struct {
 	ID             string                 `json:"id"`
 	Framework      string                 `json:"framework"`
@@ -704,7 +704,7 @@ type ComplianceAssessment struct {
 	Metadata       map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// ComplianceFinding represents a compliance finding (minimal definition)
+// ComplianceFinding represents a compliance finding (minimal definition).
 type ComplianceFinding struct {
 	ID          string    `json:"id"`
 	Type        string    `json:"type"`
@@ -713,7 +713,7 @@ type ComplianceFinding struct {
 	CreatedAt   time.Time `json:"createdAt"`
 }
 
-// ComplianceEvidence represents compliance evidence (minimal definition)
+// ComplianceEvidence represents compliance evidence (minimal definition).
 type ComplianceEvidence struct {
 	ID          string    `json:"id"`
 	Type        string    `json:"type"`
@@ -722,7 +722,7 @@ type ComplianceEvidence struct {
 	CollectedAt time.Time `json:"collectedAt"`
 }
 
-// ComplianceReport represents a compliance report (minimal definition)
+// ComplianceReport represents a compliance report (minimal definition).
 type ComplianceReport struct {
 	ID               string                 `json:"id"`
 	Framework        string                 `json:"framework"`
@@ -734,7 +734,7 @@ type ComplianceReport struct {
 	Metadata         map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// VPNConfig defines VPN configuration
+// VPNConfig defines VPN configuration.
 type VPNConfig struct {
 	DefaultProfile    string            `json:"defaultProfile"`
 	MaxConnections    int               `json:"maxConnections"`
@@ -749,7 +749,7 @@ type VPNConfig struct {
 	Metadata          map[string]string `json:"metadata,omitempty"`
 }
 
-// TunnelConfig defines secure tunnel configuration
+// TunnelConfig defines secure tunnel configuration.
 type TunnelConfig struct {
 	MaxTunnels        int               `json:"maxTunnels"`
 	DefaultTimeout    time.Duration     `json:"defaultTimeout"`
@@ -762,7 +762,7 @@ type TunnelConfig struct {
 	Metadata          map[string]string `json:"metadata,omitempty"`
 }
 
-// TLSConfig defines TLS configuration (minimal definition to avoid conflicts)
+// TLSConfig defines TLS configuration (minimal definition to avoid conflicts).
 type TLSConfig struct {
 	MinVersion   uint16   `json:"minVersion"`
 	MaxVersion   uint16   `json:"maxVersion"`
@@ -773,7 +773,7 @@ type TLSConfig struct {
 	SkipVerify   bool     `json:"skipVerify"`
 }
 
-// ScanScheduler interface for scheduling scans
+// ScanScheduler interface for scheduling scans.
 type ScanScheduler interface {
 	ScheduleScan(scanID string, schedule *ScanSchedule) error
 	UnscheduleScan(scanID string) error
@@ -782,7 +782,7 @@ type ScanScheduler interface {
 	Stop() error
 }
 
-// ScanSchedule defines scan scheduling configuration
+// ScanSchedule defines scan scheduling configuration.
 type ScanSchedule struct {
 	ScannerID string    `json:"scannerID"`
 	Frequency string    `json:"frequency"` // DAILY, WEEKLY, MONTHLY, CRON
@@ -794,7 +794,7 @@ type ScanSchedule struct {
 	RunCount  int64     `json:"runCount"`
 }
 
-// ScheduledScan represents a scheduled scan
+// ScheduledScan represents a scheduled scan.
 type ScheduledScan struct {
 	ID       string            `json:"id"`
 	Schedule *ScanSchedule     `json:"schedule"`
@@ -802,7 +802,7 @@ type ScheduledScan struct {
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
-// VulnReportTemplate defines vulnerability report templates
+// VulnReportTemplate defines vulnerability report templates.
 type VulnReportTemplate struct {
 	ID            string            `json:"id"`
 	Name          string            `json:"name"`
@@ -819,7 +819,7 @@ type VulnReportTemplate struct {
 	Metadata      map[string]string `json:"metadata,omitempty"`
 }
 
-// ReportSection represents a section in a report template
+// ReportSection represents a section in a report template.
 type ReportSection struct {
 	ID       string `json:"id"`
 	Title    string `json:"title"`
@@ -829,14 +829,14 @@ type ReportSection struct {
 	Order    int    `json:"order"`
 }
 
-// VulnReportGenerator interface for generating vulnerability reports
+// VulnReportGenerator interface for generating vulnerability reports.
 type VulnReportGenerator interface {
 	GenerateReport(template *VulnReportTemplate, data interface{}) (*VulnReport, error)
 	GetSupportedFormats() []string
 	ValidateTemplate(template *VulnReportTemplate) error
 }
 
-// VulnReport represents a generated vulnerability report
+// VulnReport represents a generated vulnerability report.
 type VulnReport struct {
 	ID          string                 `json:"id"`
 	TemplateID  string                 `json:"templateID"`
@@ -848,7 +848,7 @@ type VulnReport struct {
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// VulnReportSummary provides summary information for vulnerability reports
+// VulnReportSummary provides summary information for vulnerability reports.
 type VulnReportSummary struct {
 	TotalVulnerabilities int                `json:"totalVulnerabilities"`
 	SeverityDistribution map[string]int     `json:"severityDistribution"`
@@ -859,14 +859,14 @@ type VulnReportSummary struct {
 	TrendData            map[string]float64 `json:"trendData,omitempty"`
 }
 
-// VulnReportDistributor interface for distributing vulnerability reports
+// VulnReportDistributor interface for distributing vulnerability reports.
 type VulnReportDistributor interface {
 	DistributeReport(report *VulnReport, recipients []string) error
 	GetSupportedChannels() []string
 	ValidateRecipients(recipients []string) error
 }
 
-// ResponseChecklist represents a checklist for incident response
+// ResponseChecklist represents a checklist for incident response.
 type ResponseChecklist struct {
 	ID            string            `json:"id"`
 	Name          string            `json:"name"`
@@ -883,7 +883,7 @@ type ResponseChecklist struct {
 	Metadata      map[string]string `json:"metadata,omitempty"`
 }
 
-// ChecklistItem represents a single item in a response checklist
+// ChecklistItem represents a single item in a response checklist.
 type ChecklistItem struct {
 	ID            string            `json:"id"`
 	Title         string            `json:"title"`
@@ -904,7 +904,7 @@ type ChecklistItem struct {
 	Metadata      map[string]string `json:"metadata,omitempty"`
 }
 
-// VerificationStep represents a verification step for a checklist item
+// VerificationStep represents a verification step for a checklist item.
 type VerificationStep struct {
 	ID         string    `json:"id"`
 	Type       string    `json:"type"` // automated, manual, approval

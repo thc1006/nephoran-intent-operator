@@ -5,489 +5,489 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// O1InterfaceSpec defines the desired state of O1Interface
+// O1InterfaceSpec defines the desired state of O1Interface.
 type O1InterfaceSpec struct {
-	// Host is the hostname or IP address of the managed element
+	// Host is the hostname or IP address of the managed element.
 	Host string `json:"host"`
 
-	// Port is the NETCONF port (default: 830)
-	// +optional
-	// +kubebuilder:default=830
+	// Port is the NETCONF port (default: 830).
+	// +optional.
+	// +kubebuilder:default=830.
 	Port int `json:"port,omitempty"`
 
-	// Protocol defines the transport protocol (ssh, tls)
-	// +optional
-	// +kubebuilder:default=ssh
-	// +kubebuilder:validation:Enum=ssh;tls
+	// Protocol defines the transport protocol (ssh, tls).
+	// +optional.
+	// +kubebuilder:default=ssh.
+	// +kubebuilder:validation:Enum=ssh;tls.
 	Protocol string `json:"protocol,omitempty"`
 
-	// Credentials for authentication
+	// Credentials for authentication.
 	Credentials O1Credentials `json:"credentials"`
 
-	// FCAPS configuration
+	// FCAPS configuration.
 	FCAPS FCAPSConfig `json:"fcaps"`
 
-	// SMO integration configuration
-	// +optional
+	// SMO integration configuration.
+	// +optional.
 	SMOConfig *SMOConfig `json:"smoConfig,omitempty"`
 
-	// Streaming configuration for real-time data
-	// +optional
+	// Streaming configuration for real-time data.
+	// +optional.
 	StreamingConfig *StreamingConfig `json:"streamingConfig,omitempty"`
 
-	// YANG models to load
-	// +optional
+	// YANG models to load.
+	// +optional.
 	YANGModels []YANGModelRef `json:"yangModels,omitempty"`
 
-	// HighAvailability configuration
-	// +optional
+	// HighAvailability configuration.
+	// +optional.
 	HighAvailability *HighAvailabilityConfig `json:"highAvailability,omitempty"`
 
-	// Security configuration
-	// +optional
+	// Security configuration.
+	// +optional.
 	SecurityConfig *O1SecurityConfig `json:"securityConfig,omitempty"`
 }
 
-// O1Credentials defines authentication credentials
+// O1Credentials defines authentication credentials.
 type O1Credentials struct {
-	// Username reference
-	// +optional
+	// Username reference.
+	// +optional.
 	UsernameRef *corev1.SecretKeySelector `json:"usernameRef,omitempty"`
 
-	// Password reference
-	// +optional
+	// Password reference.
+	// +optional.
 	PasswordRef *corev1.SecretKeySelector `json:"passwordRef,omitempty"`
 
-	// SSH private key reference
-	// +optional
+	// SSH private key reference.
+	// +optional.
 	PrivateKeyRef *corev1.SecretKeySelector `json:"privateKeyRef,omitempty"`
 
-	// Client certificate reference for mTLS
-	// +optional
+	// Client certificate reference for mTLS.
+	// +optional.
 	ClientCertificateRef *corev1.SecretKeySelector `json:"clientCertificateRef,omitempty"`
 
-	// Client key reference for mTLS
-	// +optional
+	// Client key reference for mTLS.
+	// +optional.
 	ClientKeyRef *corev1.SecretKeySelector `json:"clientKeyRef,omitempty"`
 
-	// CA certificate reference
-	// +optional
+	// CA certificate reference.
+	// +optional.
 	CACertificateRef *corev1.SecretKeySelector `json:"caCertificateRef,omitempty"`
 }
 
-// FCAPSConfig defines FCAPS management configuration
+// FCAPSConfig defines FCAPS management configuration.
 type FCAPSConfig struct {
-	// Fault management configuration
+	// Fault management configuration.
 	FaultManagement FaultManagementConfig `json:"faultManagement"`
 
-	// Configuration management
+	// Configuration management.
 	ConfigurationManagement ConfigManagementConfig `json:"configurationManagement"`
 
-	// Accounting management
+	// Accounting management.
 	AccountingManagement AccountingManagementConfig `json:"accountingManagement"`
 
-	// Performance management
+	// Performance management.
 	PerformanceManagement PerformanceManagementConfig `json:"performanceManagement"`
 
-	// Security management
+	// Security management.
 	SecurityManagement SecurityManagementConfig `json:"securityManagement"`
 }
 
-// FaultManagementConfig defines fault management settings
+// FaultManagementConfig defines fault management settings.
 type FaultManagementConfig struct {
-	// Enable fault management
-	// +kubebuilder:default=true
+	// Enable fault management.
+	// +kubebuilder:default=true.
 	Enabled bool `json:"enabled"`
 
-	// Alarm correlation enabled
-	// +optional
-	// +kubebuilder:default=true
+	// Alarm correlation enabled.
+	// +optional.
+	// +kubebuilder:default=true.
 	CorrelationEnabled bool `json:"correlationEnabled,omitempty"`
 
-	// Root cause analysis enabled
-	// +optional
-	// +kubebuilder:default=false
+	// Root cause analysis enabled.
+	// +optional.
+	// +kubebuilder:default=false.
 	RootCauseAnalysis bool `json:"rootCauseAnalysis,omitempty"`
 
-	// Alarm severity filter (CRITICAL, MAJOR, MINOR, WARNING)
-	// +optional
+	// Alarm severity filter (CRITICAL, MAJOR, MINOR, WARNING).
+	// +optional.
 	SeverityFilter []string `json:"severityFilter,omitempty"`
 
-	// AlertManager integration
-	// +optional
+	// AlertManager integration.
+	// +optional.
 	AlertManagerConfig *AlertManagerConfig `json:"alertManagerConfig,omitempty"`
 
-	// Alarm retention period in days
-	// +optional
-	// +kubebuilder:default=30
+	// Alarm retention period in days.
+	// +optional.
+	// +kubebuilder:default=30.
 	RetentionDays int `json:"retentionDays,omitempty"`
 }
 
-// ConfigManagementConfig defines configuration management settings
+// ConfigManagementConfig defines configuration management settings.
 type ConfigManagementConfig struct {
-	// Enable configuration management
-	// +kubebuilder:default=true
+	// Enable configuration management.
+	// +kubebuilder:default=true.
 	Enabled bool `json:"enabled"`
 
-	// GitOps integration enabled
-	// +optional
-	// +kubebuilder:default=true
+	// GitOps integration enabled.
+	// +optional.
+	// +kubebuilder:default=true.
 	GitOpsEnabled bool `json:"gitOpsEnabled,omitempty"`
 
-	// Configuration versioning enabled
-	// +optional
-	// +kubebuilder:default=true
+	// Configuration versioning enabled.
+	// +optional.
+	// +kubebuilder:default=true.
 	VersioningEnabled bool `json:"versioningEnabled,omitempty"`
 
-	// Maximum versions to retain
-	// +optional
-	// +kubebuilder:default=10
+	// Maximum versions to retain.
+	// +optional.
+	// +kubebuilder:default=10.
 	MaxVersions int `json:"maxVersions,omitempty"`
 
-	// Drift detection enabled
-	// +optional
-	// +kubebuilder:default=true
+	// Drift detection enabled.
+	// +optional.
+	// +kubebuilder:default=true.
 	DriftDetection bool `json:"driftDetection,omitempty"`
 
-	// Drift check interval in seconds
-	// +optional
-	// +kubebuilder:default=300
+	// Drift check interval in seconds.
+	// +optional.
+	// +kubebuilder:default=300.
 	DriftCheckInterval int `json:"driftCheckInterval,omitempty"`
 }
 
-// AccountingManagementConfig defines accounting management settings
+// AccountingManagementConfig defines accounting management settings.
 type AccountingManagementConfig struct {
-	// Enable accounting management
-	// +kubebuilder:default=true
+	// Enable accounting management.
+	// +kubebuilder:default=true.
 	Enabled bool `json:"enabled"`
 
-	// Usage collection interval in seconds
-	// +optional
-	// +kubebuilder:default=60
+	// Usage collection interval in seconds.
+	// +optional.
+	// +kubebuilder:default=60.
 	CollectionInterval int `json:"collectionInterval,omitempty"`
 
-	// Billing integration enabled
-	// +optional
+	// Billing integration enabled.
+	// +optional.
 	BillingEnabled bool `json:"billingEnabled,omitempty"`
 
-	// Fraud detection enabled
-	// +optional
+	// Fraud detection enabled.
+	// +optional.
 	FraudDetection bool `json:"fraudDetection,omitempty"`
 
-	// Data retention period in days
-	// +optional
-	// +kubebuilder:default=90
+	// Data retention period in days.
+	// +optional.
+	// +kubebuilder:default=90.
 	RetentionDays int `json:"retentionDays,omitempty"`
 }
 
-// PerformanceManagementConfig defines performance management settings
+// PerformanceManagementConfig defines performance management settings.
 type PerformanceManagementConfig struct {
-	// Enable performance management
-	// +kubebuilder:default=true
+	// Enable performance management.
+	// +kubebuilder:default=true.
 	Enabled bool `json:"enabled"`
 
-	// KPI collection interval in seconds
-	// +optional
-	// +kubebuilder:default=15
+	// KPI collection interval in seconds.
+	// +optional.
+	// +kubebuilder:default=15.
 	CollectionInterval int `json:"collectionInterval,omitempty"`
 
-	// Aggregation periods (5min, 15min, 1hour, 1day)
-	// +optional
+	// Aggregation periods (5min, 15min, 1hour, 1day).
+	// +optional.
 	AggregationPeriods []string `json:"aggregationPeriods,omitempty"`
 
-	// Anomaly detection enabled
-	// +optional
-	// +kubebuilder:default=false
+	// Anomaly detection enabled.
+	// +optional.
+	// +kubebuilder:default=false.
 	AnomalyDetection bool `json:"anomalyDetection,omitempty"`
 
-	// Prometheus integration
-	// +optional
+	// Prometheus integration.
+	// +optional.
 	PrometheusConfig *O1PrometheusConfig `json:"prometheusConfig,omitempty"`
 
-	// Grafana integration
-	// +optional
+	// Grafana integration.
+	// +optional.
 	GrafanaConfig *GrafanaConfig `json:"grafanaConfig,omitempty"`
 }
 
-// SecurityManagementConfig defines security management settings
+// SecurityManagementConfig defines security management settings.
 type SecurityManagementConfig struct {
-	// Enable security management
-	// +kubebuilder:default=true
+	// Enable security management.
+	// +kubebuilder:default=true.
 	Enabled bool `json:"enabled"`
 
-	// Certificate management enabled
-	// +optional
-	// +kubebuilder:default=true
+	// Certificate management enabled.
+	// +optional.
+	// +kubebuilder:default=true.
 	CertificateManagement bool `json:"certificateManagement,omitempty"`
 
-	// Intrusion detection enabled
-	// +optional
-	// +kubebuilder:default=false
+	// Intrusion detection enabled.
+	// +optional.
+	// +kubebuilder:default=false.
 	IntrusionDetection bool `json:"intrusionDetection,omitempty"`
 
-	// Compliance monitoring enabled
-	// +optional
-	// +kubebuilder:default=true
+	// Compliance monitoring enabled.
+	// +optional.
+	// +kubebuilder:default=true.
 	ComplianceMonitoring bool `json:"complianceMonitoring,omitempty"`
 
-	// Security audit interval in seconds
-	// +optional
-	// +kubebuilder:default=3600
+	// Security audit interval in seconds.
+	// +optional.
+	// +kubebuilder:default=3600.
 	AuditInterval int `json:"auditInterval,omitempty"`
 }
 
-// SMOConfig defines SMO integration settings
+// SMOConfig defines SMO integration settings.
 type SMOConfig struct {
-	// SMO endpoint URL
+	// SMO endpoint URL.
 	Endpoint string `json:"endpoint"`
 
-	// Registration enabled
-	// +optional
-	// +kubebuilder:default=true
+	// Registration enabled.
+	// +optional.
+	// +kubebuilder:default=true.
 	RegistrationEnabled bool `json:"registrationEnabled,omitempty"`
 
-	// Hierarchical management enabled
-	// +optional
+	// Hierarchical management enabled.
+	// +optional.
 	HierarchicalManagement bool `json:"hierarchicalManagement,omitempty"`
 
-	// Service discovery configuration
-	// +optional
+	// Service discovery configuration.
+	// +optional.
 	ServiceDiscovery *ServiceDiscoveryConfig `json:"serviceDiscovery,omitempty"`
 }
 
-// StreamingConfig defines real-time streaming settings
+// StreamingConfig defines real-time streaming settings.
 type StreamingConfig struct {
-	// Enable streaming
-	// +kubebuilder:default=true
+	// Enable streaming.
+	// +kubebuilder:default=true.
 	Enabled bool `json:"enabled"`
 
-	// WebSocket port
-	// +optional
-	// +kubebuilder:default=8080
+	// WebSocket port.
+	// +optional.
+	// +kubebuilder:default=8080.
 	WebSocketPort int `json:"webSocketPort,omitempty"`
 
-	// Stream types to enable
-	// +optional
+	// Stream types to enable.
+	// +optional.
 	StreamTypes []string `json:"streamTypes,omitempty"`
 
-	// Quality of Service level (BestEffort, Reliable, Guaranteed)
-	// +optional
-	// +kubebuilder:default=Reliable
+	// Quality of Service level (BestEffort, Reliable, Guaranteed).
+	// +optional.
+	// +kubebuilder:default=Reliable.
 	QoSLevel string `json:"qosLevel,omitempty"`
 
-	// Maximum connections
-	// +optional
-	// +kubebuilder:default=100
+	// Maximum connections.
+	// +optional.
+	// +kubebuilder:default=100.
 	MaxConnections int `json:"maxConnections,omitempty"`
 
-	// Rate limiting configuration
-	// +optional
+	// Rate limiting configuration.
+	// +optional.
 	RateLimiting *RateLimitConfig `json:"rateLimiting,omitempty"`
 }
 
-// YANGModelRef references a YANG model to load
+// YANGModelRef references a YANG model to load.
 type YANGModelRef struct {
-	// Model name
+	// Model name.
 	Name string `json:"name"`
 
-	// Model version
-	// +optional
+	// Model version.
+	// +optional.
 	Version string `json:"version,omitempty"`
 
-	// Model source (file, configmap, url)
-	// +optional
+	// Model source (file, configmap, url).
+	// +optional.
 	Source string `json:"source,omitempty"`
 
-	// ConfigMap reference for model data
-	// +optional
+	// ConfigMap reference for model data.
+	// +optional.
 	ConfigMapRef *corev1.ConfigMapKeySelector `json:"configMapRef,omitempty"`
 }
 
-// HighAvailabilityConfig defines HA settings
+// HighAvailabilityConfig defines HA settings.
 type HighAvailabilityConfig struct {
-	// Enable high availability
-	// +kubebuilder:default=true
+	// Enable high availability.
+	// +kubebuilder:default=true.
 	Enabled bool `json:"enabled"`
 
-	// Number of replicas
-	// +optional
-	// +kubebuilder:default=2
+	// Number of replicas.
+	// +optional.
+	// +kubebuilder:default=2.
 	Replicas int `json:"replicas,omitempty"`
 
-	// Failover timeout in seconds
-	// +optional
-	// +kubebuilder:default=30
+	// Failover timeout in seconds.
+	// +optional.
+	// +kubebuilder:default=30.
 	FailoverTimeout int `json:"failoverTimeout,omitempty"`
 }
 
-// O1SecurityConfig defines security settings
+// O1SecurityConfig defines security settings.
 type O1SecurityConfig struct {
-	// TLS configuration
-	// +optional
+	// TLS configuration.
+	// +optional.
 	TLSConfig *TLSConfig `json:"tlsConfig,omitempty"`
 
-	// OAuth2 configuration
-	// +optional
+	// OAuth2 configuration.
+	// +optional.
 	OAuth2Config *OAuth2Config `json:"oauth2Config,omitempty"`
 
-	// RBAC rules
-	// +optional
+	// RBAC rules.
+	// +optional.
 	RBACRules []RBACRule `json:"rbacRules,omitempty"`
 }
 
-// Helper configuration types
+// Helper configuration types.
 
-// AlertManagerConfig for Prometheus AlertManager integration
+// AlertManagerConfig for Prometheus AlertManager integration.
 type AlertManagerConfig struct {
 	URL string `json:"url"`
-	// +optional
+	// +optional.
 	AuthToken string `json:"authToken,omitempty"`
 }
 
-// PrometheusConfig for Prometheus integration
+// PrometheusConfig for Prometheus integration.
 type O1PrometheusConfig struct {
 	URL string `json:"url"`
-	// +optional
+	// +optional.
 	PushGatewayURL string `json:"pushGatewayURL,omitempty"`
 }
 
-// GrafanaConfig for Grafana integration
+// GrafanaConfig for Grafana integration.
 type GrafanaConfig struct {
 	URL string `json:"url"`
-	// +optional
+	// +optional.
 	DashboardID string `json:"dashboardID,omitempty"`
 }
 
-// ServiceDiscoveryConfig for service discovery
+// ServiceDiscoveryConfig for service discovery.
 type ServiceDiscoveryConfig struct {
-	// +kubebuilder:validation:Enum=kubernetes;consul;etcd
+	// +kubebuilder:validation:Enum=kubernetes;consul;etcd.
 	Type string `json:"type"`
-	// +optional
+	// +optional.
 	Config map[string]string `json:"config,omitempty"`
 }
 
-// RateLimitConfig for rate limiting
+// RateLimitConfig for rate limiting.
 type RateLimitConfig struct {
-	// Requests per second
+	// Requests per second.
 	RequestsPerSecond int `json:"requestsPerSecond"`
-	// Burst size
+	// Burst size.
 	BurstSize int `json:"burstSize"`
 }
 
-// TLSConfig for TLS settings
+// TLSConfig for TLS settings.
 type TLSConfig struct {
-	// +kubebuilder:default=true
+	// +kubebuilder:default=true.
 	Enabled bool `json:"enabled"`
-	// +optional
-	// +kubebuilder:validation:Enum=TLS1.2;TLS1.3
+	// +optional.
+	// +kubebuilder:validation:Enum=TLS1.2;TLS1.3.
 	MinVersion string `json:"minVersion,omitempty"`
-	// +optional
+	// +optional.
 	CipherSuites []string `json:"cipherSuites,omitempty"`
 }
 
-// OAuth2Config for OAuth2 settings
+// OAuth2Config for OAuth2 settings.
 type OAuth2Config struct {
-	// +kubebuilder:default=true
+	// +kubebuilder:default=true.
 	Enabled  bool   `json:"enabled"`
 	Provider string `json:"provider"`
 	ClientID string `json:"clientID"`
-	// +optional
+	// +optional.
 	ClientSecretRef *corev1.SecretKeySelector `json:"clientSecretRef,omitempty"`
 }
 
-// RBACRule defines an RBAC rule
+// RBACRule defines an RBAC rule.
 type RBACRule struct {
 	Role        string   `json:"role"`
 	Permissions []string `json:"permissions"`
 }
 
-// O1InterfaceStatus defines the observed state of O1Interface
+// O1InterfaceStatus defines the observed state of O1Interface.
 type O1InterfaceStatus struct {
-	// Phase represents the current phase of the O1 interface
-	// +kubebuilder:validation:Enum=Pending;Initializing;Connecting;Connected;Failed;Terminating
+	// Phase represents the current phase of the O1 interface.
+	// +kubebuilder:validation:Enum=Pending;Initializing;Connecting;Connected;Failed;Terminating.
 	Phase string `json:"phase,omitempty"`
 
-	// Connection status
+	// Connection status.
 	ConnectionStatus ConnectionStatus `json:"connectionStatus,omitempty"`
 
-	// FCAPS status
+	// FCAPS status.
 	FCAPSStatus FCAPSStatus `json:"fcapsStatus,omitempty"`
 
-	// SMO registration status
-	// +optional
+	// SMO registration status.
+	// +optional.
 	SMOStatus *SMOStatus `json:"smoStatus,omitempty"`
 
-	// Streaming service status
-	// +optional
+	// Streaming service status.
+	// +optional.
 	StreamingStatus *StreamingStatus `json:"streamingStatus,omitempty"`
 
-	// Last sync time
-	// +optional
+	// Last sync time.
+	// +optional.
 	LastSyncTime *metav1.Time `json:"lastSyncTime,omitempty"`
 
-	// Error message if any
-	// +optional
+	// Error message if any.
+	// +optional.
 	ErrorMessage string `json:"errorMessage,omitempty"`
 
-	// Conditions represent the latest available observations
-	// +optional
+	// Conditions represent the latest available observations.
+	// +optional.
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
-// ConnectionStatus represents NETCONF connection status
+// ConnectionStatus represents NETCONF connection status.
 type ConnectionStatus struct {
 	Connected bool `json:"connected"`
-	// +optional
+	// +optional.
 	SessionID string `json:"sessionID,omitempty"`
-	// +optional
+	// +optional.
 	ConnectedAt *metav1.Time `json:"connectedAt,omitempty"`
-	// +optional
+	// +optional.
 	Capabilities []string `json:"capabilities,omitempty"`
 }
 
-// FCAPSStatus represents FCAPS subsystems status
+// FCAPSStatus represents FCAPS subsystems status.
 type FCAPSStatus struct {
 	FaultManagementReady       bool `json:"faultManagementReady"`
 	ConfigManagementReady      bool `json:"configManagementReady"`
 	AccountingManagementReady  bool `json:"accountingManagementReady"`
 	PerformanceManagementReady bool `json:"performanceManagementReady"`
 	SecurityManagementReady    bool `json:"securityManagementReady"`
-	// +optional
+	// +optional.
 	ActiveAlarms int `json:"activeAlarms,omitempty"`
-	// +optional
+	// +optional.
 	ConfigVersion string `json:"configVersion,omitempty"`
-	// +optional
+	// +optional.
 	CollectedKPIs int `json:"collectedKPIs,omitempty"`
 }
 
-// SMOStatus represents SMO integration status
+// SMOStatus represents SMO integration status.
 type SMOStatus struct {
 	Registered bool `json:"registered"`
-	// +optional
+	// +optional.
 	RegistrationID string `json:"registrationID,omitempty"`
-	// +optional
+	// +optional.
 	LastHeartbeat *metav1.Time `json:"lastHeartbeat,omitempty"`
 }
 
-// StreamingStatus represents streaming service status
+// StreamingStatus represents streaming service status.
 type StreamingStatus struct {
 	Active bool `json:"active"`
-	// +optional
+	// +optional.
 	ActiveConnections int `json:"activeConnections,omitempty"`
-	// +optional
+	// +optional.
 	StreamedEvents int64 `json:"streamedEvents,omitempty"`
 }
 
-// +kubebuilder:object:root=true
-// +kubebuilder:subresource:status
-// +kubebuilder:resource:shortName=o1if
-// +kubebuilder:printcolumn:name="Host",type="string",JSONPath=".spec.host"
-// +kubebuilder:printcolumn:name="Port",type="integer",JSONPath=".spec.port"
-// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
-// +kubebuilder:printcolumn:name="Connected",type="boolean",JSONPath=".status.connectionStatus.connected"
-// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:object:root=true.
+// +kubebuilder:subresource:status.
+// +kubebuilder:resource:shortName=o1if.
+// +kubebuilder:printcolumn:name="Host",type="string",JSONPath=".spec.host".
+// +kubebuilder:printcolumn:name="Port",type="integer",JSONPath=".spec.port".
+// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase".
+// +kubebuilder:printcolumn:name="Connected",type="boolean",JSONPath=".status.connectionStatus.connected".
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp".
 
-// O1Interface is the Schema for the o1interfaces API
+// O1Interface is the Schema for the o1interfaces API.
 type O1Interface struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -496,9 +496,9 @@ type O1Interface struct {
 	Status O1InterfaceStatus `json:"status,omitempty"`
 }
 
-// +kubebuilder:object:root=true
+// +kubebuilder:object:root=true.
 
-// O1InterfaceList contains a list of O1Interface
+// O1InterfaceList contains a list of O1Interface.
 type O1InterfaceList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

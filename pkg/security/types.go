@@ -24,14 +24,15 @@ import (
 	"time"
 )
 
-// Common errors
+// Common errors.
 var (
+	// ErrKeyNotFound holds errkeynotfound value.
 	ErrKeyNotFound = errors.New("key not found")
 )
 
-// KeyManager interface removed - using AdvancedKeyManager instead
+// KeyManager interface removed - using AdvancedKeyManager instead.
 
-// StoredKey represents a stored cryptographic key
+// StoredKey represents a stored cryptographic key.
 type StoredKey struct {
 	ID         string            `json:"id"`
 	Type       string            `json:"type"`       // "rsa", "ecdsa", etc.
@@ -43,23 +44,23 @@ type StoredKey struct {
 	Metadata   map[string]string `json:"metadata,omitempty"`
 }
 
-// RSAKey returns the RSA private key if this is an RSA key
+// RSAKey returns the RSA private key if this is an RSA key.
 func (sk *StoredKey) RSAKey() (*rsa.PrivateKey, error) {
-	// Implementation needed based on your crypto requirements
-	// This is a placeholder implementation
+	// Implementation needed based on your crypto requirements.
+	// This is a placeholder implementation.
 	return nil, nil
 }
 
-// DefaultKeyManager provides a basic key manager implementation
+// DefaultKeyManager provides a basic key manager implementation.
 type DefaultKeyManager struct {
 	keys map[string]*StoredKey
 }
 
-// NewDefaultKeyManager removed - use NewKeyManager from key_manager.go instead
+// NewDefaultKeyManager removed - use NewKeyManager from key_manager.go instead.
 
-// GenerateKey generates a new key pair
+// GenerateKey generates a new key pair.
 func (dkm *DefaultKeyManager) GenerateKey(keyType string, bits int) (*StoredKey, error) {
-	// Placeholder implementation
+	// Placeholder implementation.
 	key := &StoredKey{
 		ID:        generateKeyID(),
 		Type:      keyType,
@@ -69,13 +70,13 @@ func (dkm *DefaultKeyManager) GenerateKey(keyType string, bits int) (*StoredKey,
 	return key, nil
 }
 
-// StoreKey stores a key securely
+// StoreKey stores a key securely.
 func (dkm *DefaultKeyManager) StoreKey(key *StoredKey) error {
 	dkm.keys[key.ID] = key
 	return nil
 }
 
-// RetrieveKey retrieves a key by ID
+// RetrieveKey retrieves a key by ID.
 func (dkm *DefaultKeyManager) RetrieveKey(keyID string) (*StoredKey, error) {
 	key, exists := dkm.keys[keyID]
 	if !exists {
@@ -84,20 +85,20 @@ func (dkm *DefaultKeyManager) RetrieveKey(keyID string) (*StoredKey, error) {
 	return key, nil
 }
 
-// RotateKey rotates an existing key
+// RotateKey rotates an existing key.
 func (dkm *DefaultKeyManager) RotateKey(keyID string) (*StoredKey, error) {
 	oldKey, err := dkm.RetrieveKey(keyID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Generate new key with same properties
+	// Generate new key with same properties.
 	newKey, err := dkm.GenerateKey(oldKey.Type, oldKey.Bits)
 	if err != nil {
 		return nil, err
 	}
 
-	// Store new key
+	// Store new key.
 	err = dkm.StoreKey(newKey)
 	if err != nil {
 		return nil, err
@@ -106,41 +107,41 @@ func (dkm *DefaultKeyManager) RotateKey(keyID string) (*StoredKey, error) {
 	return newKey, nil
 }
 
-// DeleteKey securely deletes a key
+// DeleteKey securely deletes a key.
 func (dkm *DefaultKeyManager) DeleteKey(keyID string) error {
 	delete(dkm.keys, keyID)
 	return nil
 }
 
-// generateKeyID generates a unique key ID
+// generateKeyID generates a unique key ID.
 func generateKeyID() string {
-	// Placeholder implementation - in production, use proper UUID generation
+	// Placeholder implementation - in production, use proper UUID generation.
 	return "key-" + time.Now().Format("20060102150405")
 }
 
-// AdvancedKeyManager interface defines advanced key management operations
+// AdvancedKeyManager interface defines advanced key management operations.
 type AdvancedKeyManager interface {
-	// Basic key operations
+	// Basic key operations.
 	GenerateKey(keyType string, bits int) (*StoredKey, error)
 	StoreKey(key *StoredKey) error
 	RetrieveKey(keyID string) (*StoredKey, error)
 	RotateKey(keyID string) (*StoredKey, error)
 	DeleteKey(keyID string) error
 
-	// Advanced operations
+	// Advanced operations.
 	GenerateMasterKey(keyType string, bits int) error
 	DeriveKey(purpose string, version int) ([]byte, error)
 	EscrowKey(keyID string, agents []EscrowAgent, threshold int) error
 	SetupThresholdCrypto(keyID string, threshold, total int) error
 }
 
-// EscrowAgent represents a key escrow agent
+// EscrowAgent represents a key escrow agent.
 type EscrowAgent struct {
 	ID     string `json:"id"`
 	Active bool   `json:"active"`
 }
 
-// DetailedStoredKey represents a stored key with additional metadata
+// DetailedStoredKey represents a stored key with additional metadata.
 type DetailedStoredKey struct {
 	ID       string            `json:"id"`
 	Version  int               `json:"version"`
@@ -150,7 +151,7 @@ type DetailedStoredKey struct {
 	Updated  time.Time         `json:"updated,omitempty"`
 }
 
-// KeyStore interface defines the storage backend for keys
+// KeyStore interface defines the storage backend for keys.
 type KeyStore interface {
 	Store(ctx context.Context, key *DetailedStoredKey) error
 	Retrieve(ctx context.Context, keyID string) (*DetailedStoredKey, error)
@@ -159,14 +160,14 @@ type KeyStore interface {
 	Rotate(ctx context.Context, keyID string, newKey *DetailedStoredKey) error
 }
 
-// DefaultAdvancedKeyManager implements AdvancedKeyManager
+// DefaultAdvancedKeyManager implements AdvancedKeyManager.
 type DefaultAdvancedKeyManager struct {
 	keys   map[string]*StoredKey
 	store  KeyStore
 	master []byte
 }
 
-// NewKeyManager creates a new key manager with the given store
+// NewKeyManager creates a new key manager with the given store.
 func NewKeyManager(store KeyStore) AdvancedKeyManager {
 	return &DefaultAdvancedKeyManager{
 		keys:  make(map[string]*StoredKey),
@@ -174,10 +175,10 @@ func NewKeyManager(store KeyStore) AdvancedKeyManager {
 	}
 }
 
-// GenerateMasterKey generates a master key
+// GenerateMasterKey generates a master key.
 func (dkm *DefaultAdvancedKeyManager) GenerateMasterKey(keyType string, bits int) error {
 	masterKey := make([]byte, bits)
-	// In production, use crypto/rand
+	// In production, use crypto/rand.
 	for i := range masterKey {
 		masterKey[i] = byte(i % 256)
 	}
@@ -185,12 +186,12 @@ func (dkm *DefaultAdvancedKeyManager) GenerateMasterKey(keyType string, bits int
 	return nil
 }
 
-// DeriveKey derives a key for a specific purpose
+// DeriveKey derives a key for a specific purpose.
 func (dkm *DefaultAdvancedKeyManager) DeriveKey(purpose string, version int) ([]byte, error) {
 	if dkm.master == nil {
 		return nil, fmt.Errorf("no master key available")
 	}
-	// Simple derivation for testing - in production use proper KDF
+	// Simple derivation for testing - in production use proper KDF.
 	derived := make([]byte, 32)
 	for i := range derived {
 		derived[i] = dkm.master[i%len(dkm.master)] ^ byte(version)
@@ -198,25 +199,25 @@ func (dkm *DefaultAdvancedKeyManager) DeriveKey(purpose string, version int) ([]
 	return derived, nil
 }
 
-// EscrowKey implements key escrow
+// EscrowKey implements key escrow.
 func (dkm *DefaultAdvancedKeyManager) EscrowKey(keyID string, agents []EscrowAgent, threshold int) error {
-	// Mock implementation for testing
+	// Mock implementation for testing.
 	if len(agents) < threshold {
 		return fmt.Errorf("insufficient escrow agents")
 	}
 	return nil
 }
 
-// SetupThresholdCrypto sets up threshold cryptography
+// SetupThresholdCrypto sets up threshold cryptography.
 func (dkm *DefaultAdvancedKeyManager) SetupThresholdCrypto(keyID string, threshold, total int) error {
-	// Mock implementation for testing
+	// Mock implementation for testing.
 	if threshold > total {
 		return fmt.Errorf("threshold cannot exceed total")
 	}
 	return nil
 }
 
-// Implement basic operations by delegating to DefaultKeyManager methods
+// Implement basic operations by delegating to DefaultKeyManager methods.
 func (dkm *DefaultAdvancedKeyManager) GenerateKey(keyType string, bits int) (*StoredKey, error) {
 	key := &StoredKey{
 		ID:        generateKeyID(),
@@ -227,11 +228,13 @@ func (dkm *DefaultAdvancedKeyManager) GenerateKey(keyType string, bits int) (*St
 	return key, nil
 }
 
+// StoreKey performs storekey operation.
 func (dkm *DefaultAdvancedKeyManager) StoreKey(key *StoredKey) error {
 	dkm.keys[key.ID] = key
 	return nil
 }
 
+// RetrieveKey performs retrievekey operation.
 func (dkm *DefaultAdvancedKeyManager) RetrieveKey(keyID string) (*StoredKey, error) {
 	key, exists := dkm.keys[keyID]
 	if !exists {
@@ -240,19 +243,20 @@ func (dkm *DefaultAdvancedKeyManager) RetrieveKey(keyID string) (*StoredKey, err
 	return key, nil
 }
 
+// RotateKey performs rotatekey operation.
 func (dkm *DefaultAdvancedKeyManager) RotateKey(keyID string) (*StoredKey, error) {
 	oldKey, err := dkm.RetrieveKey(keyID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Generate new key with same properties
+	// Generate new key with same properties.
 	newKey, err := dkm.GenerateKey(oldKey.Type, oldKey.Bits)
 	if err != nil {
 		return nil, err
 	}
 
-	// Store new key
+	// Store new key.
 	err = dkm.StoreKey(newKey)
 	if err != nil {
 		return nil, err
@@ -261,10 +265,11 @@ func (dkm *DefaultAdvancedKeyManager) RotateKey(keyID string) (*StoredKey, error
 	return newKey, nil
 }
 
+// DeleteKey performs deletekey operation.
 func (dkm *DefaultAdvancedKeyManager) DeleteKey(keyID string) error {
 	delete(dkm.keys, keyID)
 	return nil
 }
 
-// Simple type aliases for backward compatibility
+// Simple type aliases for backward compatibility.
 type KeyManager = AdvancedKeyManager

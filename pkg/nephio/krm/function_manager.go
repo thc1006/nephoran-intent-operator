@@ -36,7 +36,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
-// FunctionManager provides comprehensive KRM function management
+// FunctionManager provides comprehensive KRM function management.
 type FunctionManager struct {
 	config           *FunctionManagerConfig
 	runtime          *Runtime
@@ -49,74 +49,74 @@ type FunctionManager struct {
 	mu               sync.RWMutex
 }
 
-// FunctionManagerConfig defines configuration for function management
+// FunctionManagerConfig defines configuration for function management.
 type FunctionManagerConfig struct {
-	// Function execution settings
+	// Function execution settings.
 	ExecutionMode      string        `json:"executionMode" yaml:"executionMode"`           // native, container, hybrid
 	DefaultTimeout     time.Duration `json:"defaultTimeout" yaml:"defaultTimeout"`         // Default function timeout
 	MaxConcurrentExecs int           `json:"maxConcurrentExecs" yaml:"maxConcurrentExecs"` // Max concurrent executions
 
-	// Native function settings
+	// Native function settings.
 	EnableNativeFunctions bool     `json:"enableNativeFunctions" yaml:"enableNativeFunctions"` // Enable native functions
 	NativeFunctionPaths   []string `json:"nativeFunctionPaths" yaml:"nativeFunctionPaths"`     // Paths to native functions
 
-	// Container function settings
+	// Container function settings.
 	EnableContainerFunctions bool   `json:"enableContainerFunctions" yaml:"enableContainerFunctions"` // Enable container functions
 	DefaultRegistry          string `json:"defaultRegistry" yaml:"defaultRegistry"`                   // Default container registry
 	ImagePullSecret          string `json:"imagePullSecret" yaml:"imagePullSecret"`                   // Image pull secret
 
-	// Caching settings
+	// Caching settings.
 	EnableFunctionCache bool          `json:"enableFunctionCache" yaml:"enableFunctionCache"` // Enable function caching
 	CacheSize           int64         `json:"cacheSize" yaml:"cacheSize"`                     // Cache size in bytes
 	CacheTTL            time.Duration `json:"cacheTtl" yaml:"cacheTtl"`                       // Cache TTL
 
-	// Security settings
+	// Security settings.
 	EnableSandboxing  bool     `json:"enableSandboxing" yaml:"enableSandboxing"`   // Enable sandboxing
 	AllowedRegistries []string `json:"allowedRegistries" yaml:"allowedRegistries"` // Allowed registries
 	TrustedImages     []string `json:"trustedImages" yaml:"trustedImages"`         // Trusted images
 
-	// Observability settings
+	// Observability settings.
 	EnableMetrics   bool `json:"enableMetrics" yaml:"enableMetrics"`     // Enable metrics
 	EnableTracing   bool `json:"enableTracing" yaml:"enableTracing"`     // Enable tracing
 	EnableProfiling bool `json:"enableProfiling" yaml:"enableProfiling"` // Enable profiling
 	DetailedLogging bool `json:"detailedLogging" yaml:"detailedLogging"` // Enable detailed logging
 }
 
-// FunctionExecutionRequest represents a function execution request
+// FunctionExecutionRequest represents a function execution request.
 type FunctionExecutionRequest struct {
-	// Function identification
+	// Function identification.
 	FunctionName   string                 `json:"functionName"`
 	FunctionImage  string                 `json:"functionImage,omitempty"`
 	FunctionConfig map[string]interface{} `json:"functionConfig,omitempty"`
 
-	// Input resources
+	// Input resources.
 	Resources    []*porch.KRMResource    `json:"resources"`
 	ResourceList *functions.ResourceList `json:"resourceList,omitempty"`
 
-	// Execution context
+	// Execution context.
 	Context       *functions.ExecutionContext `json:"context,omitempty"`
 	Timeout       time.Duration               `json:"timeout,omitempty"`
 	ExecutionMode string                      `json:"executionMode,omitempty"`
 
-	// Options
+	// Options.
 	EnableCaching   bool `json:"enableCaching,omitempty"`
 	EnableProfiling bool `json:"enableProfiling,omitempty"`
 	EnableTracing   bool `json:"enableTracing,omitempty"`
 
-	// Metadata
+	// Metadata.
 	RequestID   string            `json:"requestId,omitempty"`
 	Labels      map[string]string `json:"labels,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
-// FunctionExecutionResponse represents a function execution response
+// FunctionExecutionResponse represents a function execution response.
 type FunctionExecutionResponse struct {
-	// Results
+	// Results.
 	Resources    []*porch.KRMResource    `json:"resources"`
 	ResourceList *functions.ResourceList `json:"resourceList,omitempty"`
 	Results      []*porch.FunctionResult `json:"results,omitempty"`
 
-	// Execution metadata
+	// Execution metadata.
 	ExecutionID   string        `json:"executionId"`
 	FunctionName  string        `json:"functionName"`
 	ExecutionMode string        `json:"executionMode"`
@@ -124,53 +124,53 @@ type FunctionExecutionResponse struct {
 	StartTime     time.Time     `json:"startTime"`
 	EndTime       time.Time     `json:"endTime"`
 
-	// Performance metrics
+	// Performance metrics.
 	CPUUsage    float64 `json:"cpuUsage,omitempty"`
 	MemoryUsage int64   `json:"memoryUsage,omitempty"`
 	CacheHit    bool    `json:"cacheHit,omitempty"`
 
-	// Error information
+	// Error information.
 	Error        error  `json:"error,omitempty"`
 	ErrorCode    string `json:"errorCode,omitempty"`
 	ErrorDetails string `json:"errorDetails,omitempty"`
 
-	// Audit information
+	// Audit information.
 	SecurityEvents []*SecurityEvent `json:"securityEvents,omitempty"`
 	AuditLogs      []string         `json:"auditLogs,omitempty"`
 }
 
-// FunctionRegistration represents a function registration
+// FunctionRegistration represents a function registration.
 type FunctionRegistration struct {
-	// Function metadata
+	// Function metadata.
 	Name        string                 `json:"name"`
 	Version     string                 `json:"version"`
 	Description string                 `json:"description"`
 	Type        functions.FunctionType `json:"type"`
 
-	// Function source
+	// Function source.
 	NativeFunction  functions.KRMFunction    `json:"-"`                         // Native Go function
 	ContainerImage  string                   `json:"containerImage,omitempty"`  // Container image
 	ContainerConfig *ContainerFunctionConfig `json:"containerConfig,omitempty"` // Container configuration
 
-	// Function metadata
+	// Function metadata.
 	Metadata *functions.FunctionMetadata  `json:"metadata,omitempty"`
 	Schema   *functions.FunctionSchema    `json:"schema,omitempty"`
 	Examples []*functions.FunctionExample `json:"examples,omitempty"`
 
-	// Registration metadata
+	// Registration metadata.
 	RegisteredAt time.Time `json:"registeredAt"`
 	RegisteredBy string    `json:"registeredBy,omitempty"`
 	Source       string    `json:"source,omitempty"`
 	Verified     bool      `json:"verified"`
 
-	// Statistics
+	// Statistics.
 	ExecutionCount int64         `json:"executionCount"`
 	LastExecuted   *time.Time    `json:"lastExecuted,omitempty"`
 	AverageLatency time.Duration `json:"averageLatency"`
 	ErrorRate      float64       `json:"errorRate"`
 }
 
-// ContainerFunctionConfig represents container function configuration
+// ContainerFunctionConfig represents container function configuration.
 type ContainerFunctionConfig struct {
 	Image           string            `json:"image"`
 	Tag             string            `json:"tag,omitempty"`
@@ -185,7 +185,7 @@ type ContainerFunctionConfig struct {
 	SecurityContext *SecurityConfig   `json:"securityContext,omitempty"`
 }
 
-// SecurityConfig represents security configuration for container functions
+// SecurityConfig represents security configuration for container functions.
 type SecurityConfig struct {
 	RunAsUser       *int64                `json:"runAsUser,omitempty"`
 	RunAsGroup      *int64                `json:"runAsGroup,omitempty"`
@@ -196,13 +196,13 @@ type SecurityConfig struct {
 	SeccompProfile  string                `json:"seccompProfile,omitempty"`
 }
 
-// SecurityCapabilities represents security capabilities
+// SecurityCapabilities represents security capabilities.
 type SecurityCapabilities struct {
 	Add  []string `json:"add,omitempty"`
 	Drop []string `json:"drop,omitempty"`
 }
 
-// FunctionCache provides caching for function execution results
+// FunctionCache provides caching for function execution results.
 type FunctionCache struct {
 	cache    map[string]*CacheEntry
 	size     int64
@@ -214,7 +214,7 @@ type FunctionCache struct {
 	items    map[string]*CacheItem
 }
 
-// CacheEntry represents a cache entry
+// CacheEntry represents a cache entry.
 type CacheEntry struct {
 	Key         string                     `json:"key"`
 	Response    *FunctionExecutionResponse `json:"response"`
@@ -225,7 +225,7 @@ type CacheEntry struct {
 	LastAccess  time.Time                  `json:"lastAccess"`
 }
 
-// CacheMetrics provides cache performance metrics
+// CacheMetrics provides cache performance metrics.
 type CacheMetrics struct {
 	Hits      prometheus.Counter
 	Misses    prometheus.Counter
@@ -235,7 +235,7 @@ type CacheMetrics struct {
 	ItemCount prometheus.Gauge
 }
 
-// FunctionManagerMetrics provides comprehensive metrics
+// FunctionManagerMetrics provides comprehensive metrics.
 type FunctionManagerMetrics struct {
 	FunctionExecutions    *prometheus.CounterVec
 	ExecutionDuration     *prometheus.HistogramVec
@@ -246,7 +246,7 @@ type FunctionManagerMetrics struct {
 	ResourceUtilization   *prometheus.GaugeVec
 }
 
-// Default configuration
+// Default configuration.
 var DefaultFunctionManagerConfig = &FunctionManagerConfig{
 	ExecutionMode:            "hybrid",
 	DefaultTimeout:           5 * time.Minute,
@@ -263,18 +263,18 @@ var DefaultFunctionManagerConfig = &FunctionManagerConfig{
 	DetailedLogging:          false,
 }
 
-// NewFunctionManager creates a new function manager
+// NewFunctionManager creates a new function manager.
 func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, containerRuntime *ContainerRuntime, registry *Registry) (*FunctionManager, error) {
 	if config == nil {
 		config = DefaultFunctionManagerConfig
 	}
 
-	// Validate configuration
+	// Validate configuration.
 	if err := validateFunctionManagerConfig(config); err != nil {
 		return nil, fmt.Errorf("invalid function manager configuration: %w", err)
 	}
 
-	// Initialize metrics
+	// Initialize metrics.
 	metrics := &FunctionManagerMetrics{
 		FunctionExecutions: promauto.NewCounterVec(
 			prometheus.CounterOpts{
@@ -328,7 +328,7 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 		),
 	}
 
-	// Initialize cache
+	// Initialize cache.
 	var functionCache *FunctionCache
 	if config.EnableFunctionCache {
 		cacheMetrics := &CacheMetrics{
@@ -373,7 +373,7 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 		nativeFunctions:  make(map[string]functions.KRMFunction),
 	}
 
-	// Register built-in native functions
+	// Register built-in native functions.
 	if err := manager.registerBuiltinFunctions(); err != nil {
 		return nil, fmt.Errorf("failed to register builtin functions: %w", err)
 	}
@@ -381,12 +381,12 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 	return manager, nil
 }
 
-// ExecuteFunction executes a KRM function
+// ExecuteFunction executes a KRM function.
 func (fm *FunctionManager) ExecuteFunction(ctx context.Context, req *FunctionExecutionRequest) (*FunctionExecutionResponse, error) {
 	ctx, span := fm.tracer.Start(ctx, "function-execution")
 	defer span.End()
 
-	// Generate execution ID
+	// Generate execution ID.
 	req.RequestID = generateExecutionID()
 
 	span.SetAttributes(
@@ -404,13 +404,13 @@ func (fm *FunctionManager) ExecuteFunction(ctx context.Context, req *FunctionExe
 	logger.Info("Starting function execution")
 	startTime := time.Now()
 
-	// Determine execution mode
+	// Determine execution mode.
 	executionMode := req.ExecutionMode
 	if executionMode == "" {
 		executionMode = fm.determineExecutionMode(req.FunctionName)
 	}
 
-	// Check cache if enabled
+	// Check cache if enabled.
 	if fm.config.EnableFunctionCache && req.EnableCaching {
 		if cached := fm.checkCache(ctx, req); cached != nil {
 			logger.Info("Function execution served from cache")
@@ -420,7 +420,7 @@ func (fm *FunctionManager) ExecuteFunction(ctx context.Context, req *FunctionExe
 		}
 	}
 
-	// Execute function
+	// Execute function.
 	var response *FunctionExecutionResponse
 	var err error
 
@@ -445,7 +445,7 @@ func (fm *FunctionManager) ExecuteFunction(ctx context.Context, req *FunctionExe
 		return nil, err
 	}
 
-	// Complete response
+	// Complete response.
 	response.ExecutionID = req.RequestID
 	response.FunctionName = req.FunctionName
 	response.ExecutionMode = executionMode
@@ -453,12 +453,12 @@ func (fm *FunctionManager) ExecuteFunction(ctx context.Context, req *FunctionExe
 	response.StartTime = startTime
 	response.EndTime = time.Now()
 
-	// Cache result if enabled
+	// Cache result if enabled.
 	if fm.config.EnableFunctionCache && req.EnableCaching && err == nil {
 		fm.cacheResult(ctx, req, response)
 	}
 
-	// Record metrics
+	// Record metrics.
 	fm.metrics.ExecutionDuration.WithLabelValues(req.FunctionName, executionMode).Observe(duration.Seconds())
 	fm.metrics.FunctionExecutions.WithLabelValues(req.FunctionName, executionMode, "success").Inc()
 
@@ -470,7 +470,7 @@ func (fm *FunctionManager) ExecuteFunction(ctx context.Context, req *FunctionExe
 	return response, nil
 }
 
-// RegisterNativeFunction registers a native Go function
+// RegisterNativeFunction registers a native Go function.
 func (fm *FunctionManager) RegisterNativeFunction(name string, function functions.KRMFunction) error {
 	fm.mu.Lock()
 	defer fm.mu.Unlock()
@@ -485,10 +485,10 @@ func (fm *FunctionManager) RegisterNativeFunction(name string, function function
 	return nil
 }
 
-// RegisterContainerFunction registers a container-based function
+// RegisterContainerFunction registers a container-based function.
 func (fm *FunctionManager) RegisterContainerFunction(name string, config *ContainerFunctionConfig) error {
-	// This would register a container function in the registry
-	// Implementation would store the container configuration and make it available for execution
+	// This would register a container function in the registry.
+	// Implementation would store the container configuration and make it available for execution.
 	registration := &FunctionRegistration{
 		Name:            name,
 		Version:         "latest",
@@ -499,18 +499,18 @@ func (fm *FunctionManager) RegisterContainerFunction(name string, config *Contai
 		Verified:        false,
 	}
 
-	// Store in registry (implementation would persist this)
+	// Store in registry (implementation would persist this).
 	_ = registration
 
 	fm.metrics.FunctionRegistrations.Inc()
 	return nil
 }
 
-// ListFunctions returns all registered functions
+// ListFunctions returns all registered functions.
 func (fm *FunctionManager) ListFunctions(ctx context.Context) ([]*FunctionRegistration, error) {
 	var functions []*FunctionRegistration
 
-	// Add native functions
+	// Add native functions.
 	fm.mu.RLock()
 	for name, function := range fm.nativeFunctions {
 		metadata := function.GetMetadata()
@@ -528,7 +528,7 @@ func (fm *FunctionManager) ListFunctions(ctx context.Context) ([]*FunctionRegist
 	}
 	fm.mu.RUnlock()
 
-	// Add container functions from registry
+	// Add container functions from registry.
 	if containerFunctions, err := fm.getContainerFunctions(ctx); err == nil {
 		functions = append(functions, containerFunctions...)
 	}
@@ -536,9 +536,9 @@ func (fm *FunctionManager) ListFunctions(ctx context.Context) ([]*FunctionRegist
 	return functions, nil
 }
 
-// GetFunction returns information about a specific function
+// GetFunction returns information about a specific function.
 func (fm *FunctionManager) GetFunction(ctx context.Context, name string) (*FunctionRegistration, error) {
-	// Check native functions
+	// Check native functions.
 	fm.mu.RLock()
 	if function, exists := fm.nativeFunctions[name]; exists {
 		fm.mu.RUnlock()
@@ -557,14 +557,14 @@ func (fm *FunctionManager) GetFunction(ctx context.Context, name string) (*Funct
 	}
 	fm.mu.RUnlock()
 
-	// Check container functions
+	// Check container functions.
 	return fm.getContainerFunction(ctx, name)
 }
 
-// Private methods
+// Private methods.
 
 func (fm *FunctionManager) registerBuiltinFunctions() error {
-	// Register O-RAN validation functions
+	// Register O-RAN validation functions.
 	oranValidator := functions.NewORANComplianceValidator()
 	if err := fm.RegisterNativeFunction("oran-compliance-validator", oranValidator); err != nil {
 		return err
@@ -580,7 +580,7 @@ func (fm *FunctionManager) registerBuiltinFunctions() error {
 		return err
 	}
 
-	// Register optimization functions
+	// Register optimization functions.
 	fiveGOptimizer := functions.NewFiveGCoreOptimizer()
 	if err := fm.RegisterNativeFunction("5g-core-optimizer", fiveGOptimizer); err != nil {
 		return err
@@ -600,7 +600,7 @@ func (fm *FunctionManager) registerBuiltinFunctions() error {
 }
 
 func (fm *FunctionManager) determineExecutionMode(functionName string) string {
-	// Check if it's a native function
+	// Check if it's a native function.
 	fm.mu.RLock()
 	_, isNative := fm.nativeFunctions[functionName]
 	fm.mu.RUnlock()
@@ -609,7 +609,7 @@ func (fm *FunctionManager) determineExecutionMode(functionName string) string {
 		return "native"
 	}
 
-	// Check if it's a container function
+	// Check if it's a container function.
 	if fm.isContainerFunction(functionName) {
 		return "container"
 	}
@@ -618,8 +618,8 @@ func (fm *FunctionManager) determineExecutionMode(functionName string) string {
 }
 
 func (fm *FunctionManager) isContainerFunction(functionName string) bool {
-	// This would check if the function is registered as a container function
-	// For now, assume functions with certain patterns are container functions
+	// This would check if the function is registered as a container function.
+	// For now, assume functions with certain patterns are container functions.
 	containerPatterns := []string{
 		"gcr.io/",
 		"docker.io/",
@@ -645,20 +645,20 @@ func (fm *FunctionManager) executeNativeFunction(ctx context.Context, req *Funct
 		return nil, fmt.Errorf("native function %s not found", req.FunctionName)
 	}
 
-	// Convert request to ResourceList
+	// Convert request to ResourceList.
 	resourceList := &functions.ResourceList{
 		Items:          convertToKRMResources(req.Resources),
 		FunctionConfig: req.FunctionConfig,
 		Context:        req.Context,
 	}
 
-	// Execute function
+	// Execute function.
 	result, err := function.Execute(ctx, resourceList)
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert result to response
+	// Convert result to response.
 	response := &FunctionExecutionResponse{
 		Resources:    convertFromKRMResources(result.Items),
 		ResourceList: result,
@@ -673,16 +673,16 @@ func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *Fu
 		return nil, fmt.Errorf("container runtime not available")
 	}
 
-	// Get container function configuration
+	// Get container function configuration.
 	config, err := fm.getContainerFunctionConfig(req.FunctionName)
 	if err != nil {
 		return nil, err
 	}
 
-	// Prepare input files
+	// Prepare input files.
 	inputFiles := make(map[string][]byte)
 
-	// Create resource list input
+	// Create resource list input.
 	resourceList := &functions.ResourceList{
 		Items:          convertToKRMResources(req.Resources),
 		FunctionConfig: req.FunctionConfig,
@@ -695,7 +695,7 @@ func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *Fu
 	}
 	inputFiles["input.json"] = inputData
 
-	// Create container request
+	// Create container request.
 	containerReq := &ContainerRequest{
 		Image:        config.Image,
 		Tag:          config.Tag,
@@ -712,7 +712,7 @@ func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *Fu
 		FunctionName: req.FunctionName,
 	}
 
-	// Configure security context
+	// Configure security context.
 	if config.SecurityContext != nil {
 		if config.SecurityContext.RunAsUser != nil {
 			containerReq.User = fmt.Sprintf("%d", *config.SecurityContext.RunAsUser)
@@ -728,26 +728,26 @@ func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *Fu
 		}
 	}
 
-	// Execute container
+	// Execute container.
 	containerResp, err := fm.containerRuntime.ExecuteContainer(ctx, containerReq)
 	if err != nil {
 		return nil, err
 	}
 
-	// Parse output
+	// Parse output.
 	if containerResp.ExitCode != 0 {
 		return nil, fmt.Errorf("container function failed with exit code %d: %s",
 			containerResp.ExitCode, string(containerResp.Stderr))
 	}
 
-	// Parse output files
+	// Parse output files.
 	var outputResourceList functions.ResourceList
 	if outputData, exists := containerResp.OutputFiles["output.json"]; exists {
 		if err := json.Unmarshal(outputData, &outputResourceList); err != nil {
 			return nil, fmt.Errorf("failed to parse function output: %w", err)
 		}
 	} else {
-		// Fallback to stdout
+		// Fallback to stdout.
 		if err := json.Unmarshal(containerResp.Stdout, &outputResourceList); err != nil {
 			return nil, fmt.Errorf("failed to parse function stdout: %w", err)
 		}
@@ -765,7 +765,7 @@ func (fm *FunctionManager) executeContainerFunction(ctx context.Context, req *Fu
 }
 
 func (fm *FunctionManager) executeHybridFunction(ctx context.Context, req *FunctionExecutionRequest) (*FunctionExecutionResponse, error) {
-	// Try native first, fall back to container
+	// Try native first, fall back to container.
 	if fm.isNativeFunction(req.FunctionName) {
 		return fm.executeNativeFunction(ctx, req)
 	}
@@ -780,8 +780,8 @@ func (fm *FunctionManager) isNativeFunction(functionName string) bool {
 }
 
 func (fm *FunctionManager) getContainerFunctionConfig(functionName string) (*ContainerFunctionConfig, error) {
-	// This would retrieve container function configuration from registry
-	// For now, provide a default configuration
+	// This would retrieve container function configuration from registry.
+	// For now, provide a default configuration.
 	return &ContainerFunctionConfig{
 		Image:       functionName,
 		CPULimit:    "500m",
@@ -797,16 +797,16 @@ func (fm *FunctionManager) getContainerFunctionConfig(functionName string) (*Con
 }
 
 func (fm *FunctionManager) getContainerFunctions(ctx context.Context) ([]*FunctionRegistration, error) {
-	// This would retrieve container functions from registry
+	// This would retrieve container functions from registry.
 	return []*FunctionRegistration{}, nil
 }
 
 func (fm *FunctionManager) getContainerFunction(ctx context.Context, name string) (*FunctionRegistration, error) {
-	// This would retrieve a specific container function from registry
+	// This would retrieve a specific container function from registry.
 	return nil, fmt.Errorf("container function %s not found", name)
 }
 
-// Cache methods
+// Cache methods.
 
 func (fm *FunctionManager) checkCache(ctx context.Context, req *FunctionExecutionRequest) *FunctionExecutionResponse {
 	if fm.functionCache == nil {
@@ -824,13 +824,13 @@ func (fm *FunctionManager) checkCache(ctx context.Context, req *FunctionExecutio
 		return nil
 	}
 
-	// Check expiration
+	// Check expiration.
 	if time.Now().After(entry.ExpiresAt) {
 		fm.functionCache.metrics.Misses.Inc()
 		return nil
 	}
 
-	// Update access statistics
+	// Update access statistics.
 	entry.AccessCount++
 	entry.LastAccess = time.Now()
 
@@ -845,7 +845,7 @@ func (fm *FunctionManager) cacheResult(ctx context.Context, req *FunctionExecuti
 
 	key := fm.generateCacheKey(req)
 
-	// Calculate entry size
+	// Calculate entry size.
 	data, _ := json.Marshal(response)
 	size := int64(len(data))
 
@@ -862,7 +862,7 @@ func (fm *FunctionManager) cacheResult(ctx context.Context, req *FunctionExecuti
 	fm.functionCache.mu.Lock()
 	defer fm.functionCache.mu.Unlock()
 
-	// Check if we need to evict entries
+	// Check if we need to evict entries.
 	if fm.functionCache.size+size > fm.functionCache.maxSize {
 		fm.evictCacheEntries(size)
 	}
@@ -875,7 +875,7 @@ func (fm *FunctionManager) cacheResult(ctx context.Context, req *FunctionExecuti
 }
 
 func (fm *FunctionManager) generateCacheKey(req *FunctionExecutionRequest) string {
-	// Generate a hash of the request for caching
+	// Generate a hash of the request for caching.
 	data, _ := json.Marshal(struct {
 		Function  string                 `json:"function"`
 		Config    map[string]interface{} `json:"config"`
@@ -890,7 +890,7 @@ func (fm *FunctionManager) generateCacheKey(req *FunctionExecutionRequest) strin
 }
 
 func (fm *FunctionManager) evictCacheEntries(neededSize int64) {
-	// Simple LRU eviction
+	// Simple LRU eviction.
 	for fm.functionCache.size+neededSize > fm.functionCache.maxSize && len(fm.functionCache.cache) > 0 {
 		var oldestKey string
 		var oldestTime time.Time
@@ -911,7 +911,7 @@ func (fm *FunctionManager) evictCacheEntries(neededSize int64) {
 	}
 }
 
-// Health returns function manager health status
+// Health returns function manager health status.
 func (fm *FunctionManager) Health() *FunctionManagerHealth {
 	fm.mu.RLock()
 	defer fm.mu.RUnlock()
@@ -932,7 +932,7 @@ func (fm *FunctionManager) Health() *FunctionManagerHealth {
 	return health
 }
 
-// FunctionManagerHealth represents health status
+// FunctionManagerHealth represents health status.
 type FunctionManagerHealth struct {
 	Status              string    `json:"status"`
 	RegisteredFunctions int       `json:"registeredFunctions"`
@@ -941,12 +941,12 @@ type FunctionManagerHealth struct {
 	LastHealthCheck     time.Time `json:"lastHealthCheck"`
 }
 
-// Shutdown gracefully shuts down the function manager
+// Shutdown gracefully shuts down the function manager.
 func (fm *FunctionManager) Shutdown(ctx context.Context) error {
 	logger := log.FromContext(ctx).WithName("function-manager")
 	logger.Info("Shutting down function manager")
 
-	// Clear function cache
+	// Clear function cache.
 	if fm.functionCache != nil {
 		fm.functionCache.mu.Lock()
 		fm.functionCache.cache = make(map[string]*CacheEntry)
@@ -958,7 +958,7 @@ func (fm *FunctionManager) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// Helper functions
+// Helper functions.
 
 func validateFunctionManagerConfig(config *FunctionManagerConfig) error {
 	if config.DefaultTimeout <= 0 {

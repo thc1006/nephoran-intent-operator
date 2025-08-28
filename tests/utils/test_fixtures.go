@@ -13,14 +13,14 @@ import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-// TestFixtures provides common test fixtures and utilities
+// TestFixtures provides common test fixtures and utilities.
 type TestFixtures struct {
 	Scheme    *runtime.Scheme
 	Client    client.Client
 	Namespace string
 }
 
-// NewTestFixtures creates a new test fixtures instance
+// NewTestFixtures creates a new test fixtures instance.
 func NewTestFixtures() *TestFixtures {
 	scheme := runtime.NewScheme()
 	_ = corev1.AddToScheme(scheme)
@@ -33,10 +33,10 @@ func NewTestFixtures() *TestFixtures {
 	}
 }
 
-// NetworkIntentFixtures provides NetworkIntent test fixtures
+// NetworkIntentFixtures provides NetworkIntent test fixtures.
 type NetworkIntentFixtures struct{}
 
-// CreateBasicNetworkIntent creates a basic NetworkIntent for testing
+// CreateBasicNetworkIntent creates a basic NetworkIntent for testing.
 func (nif *NetworkIntentFixtures) CreateBasicNetworkIntent(name, namespace string) *nephoranv1.NetworkIntent {
 	return &nephoranv1.NetworkIntent{
 		TypeMeta: metav1.TypeMeta{
@@ -67,7 +67,7 @@ func (nif *NetworkIntentFixtures) CreateBasicNetworkIntent(name, namespace strin
 	}
 }
 
-// CreateProcessingNetworkIntent creates a NetworkIntent in Processing phase
+// CreateProcessingNetworkIntent creates a NetworkIntent in Processing phase.
 func (nif *NetworkIntentFixtures) CreateProcessingNetworkIntent(name, namespace string) *nephoranv1.NetworkIntent {
 	intent := nif.CreateBasicNetworkIntent(name, namespace)
 	intent.Status.Phase = nephoranv1.NetworkIntentPhaseProcessing
@@ -75,7 +75,7 @@ func (nif *NetworkIntentFixtures) CreateProcessingNetworkIntent(name, namespace 
 	return intent
 }
 
-// CreateDeployedNetworkIntent creates a NetworkIntent in Deployed phase
+// CreateDeployedNetworkIntent creates a NetworkIntent in Deployed phase.
 func (nif *NetworkIntentFixtures) CreateDeployedNetworkIntent(name, namespace string) *nephoranv1.NetworkIntent {
 	intent := nif.CreateBasicNetworkIntent(name, namespace)
 	intent.Status.Phase = nephoranv1.NetworkIntentPhaseDeployed
@@ -90,10 +90,10 @@ func (nif *NetworkIntentFixtures) CreateDeployedNetworkIntent(name, namespace st
 	return intent
 }
 
-// E2NodeSetFixtures provides E2NodeSet test fixtures
+// E2NodeSetFixtures provides E2NodeSet test fixtures.
 type E2NodeSetFixtures struct{}
 
-// CreateBasicE2NodeSet creates a basic E2NodeSet for testing
+// CreateBasicE2NodeSet creates a basic E2NodeSet for testing.
 func (enf *E2NodeSetFixtures) CreateBasicE2NodeSet(name, namespace string, replicas int32) *nephoranv1.E2NodeSet {
 	return &nephoranv1.E2NodeSet{
 		TypeMeta: metav1.TypeMeta{
@@ -135,7 +135,7 @@ func (enf *E2NodeSetFixtures) CreateBasicE2NodeSet(name, namespace string, repli
 	}
 }
 
-// CreateReadyE2NodeSet creates an E2NodeSet in Ready phase
+// CreateReadyE2NodeSet creates an E2NodeSet in Ready phase.
 func (enf *E2NodeSetFixtures) CreateReadyE2NodeSet(name, namespace string, replicas int32) *nephoranv1.E2NodeSet {
 	nodeSet := enf.CreateBasicE2NodeSet(name, namespace, replicas)
 	nodeSet.Status.ReadyReplicas = replicas
@@ -150,7 +150,7 @@ func (enf *E2NodeSetFixtures) CreateReadyE2NodeSet(name, namespace string, repli
 	return nodeSet
 }
 
-// CreateScalingE2NodeSet creates an E2NodeSet in Scaling phase
+// CreateScalingE2NodeSet creates an E2NodeSet in Scaling phase.
 func (enf *E2NodeSetFixtures) CreateScalingE2NodeSet(name, namespace string, replicas int32, currentNodes int32) *nephoranv1.E2NodeSet {
 	nodeSet := enf.CreateBasicE2NodeSet(name, namespace, replicas)
 	nodeSet.Status.ReadyReplicas = currentNodes
@@ -165,10 +165,10 @@ func (enf *E2NodeSetFixtures) CreateScalingE2NodeSet(name, namespace string, rep
 	return nodeSet
 }
 
-// ConfigMapFixtures provides ConfigMap test fixtures
+// ConfigMapFixtures provides ConfigMap test fixtures.
 type ConfigMapFixtures struct{}
 
-// CreateE2NodeConfigMap creates a ConfigMap for E2 node configuration
+// CreateE2NodeConfigMap creates a ConfigMap for E2 node configuration.
 func (cmf *ConfigMapFixtures) CreateE2NodeConfigMap(name, namespace string, nodeIndex int) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
@@ -215,14 +215,17 @@ func (cmf *ConfigMapFixtures) CreateE2NodeConfigMap(name, namespace string, node
 	}
 }
 
-// Global fixture instances
+// Global fixture instances.
 var (
+	// NetworkIntentFixture holds networkintentfixture value.
 	NetworkIntentFixture = &NetworkIntentFixtures{}
-	E2NodeSetFixture     = &E2NodeSetFixtures{}
-	ConfigMapFixture     = &ConfigMapFixtures{}
+	// E2NodeSetFixture holds e2nodesetfixture value.
+	E2NodeSetFixture = &E2NodeSetFixtures{}
+	// ConfigMapFixture holds configmapfixture value.
+	ConfigMapFixture = &ConfigMapFixtures{}
 )
 
-// WaitForCondition is a helper function to wait for a condition
+// WaitForCondition is a helper function to wait for a condition.
 func WaitForCondition(ctx context.Context, condition func() bool, timeout time.Duration) bool {
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
@@ -244,7 +247,7 @@ func WaitForCondition(ctx context.Context, condition func() bool, timeout time.D
 	}
 }
 
-// CreateTestContext creates a context with timeout for tests
+// CreateTestContext creates a context with timeout for tests.
 func CreateTestContext(timeout time.Duration) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), timeout)
 }

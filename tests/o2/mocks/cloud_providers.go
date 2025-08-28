@@ -11,95 +11,111 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 )
 
-// MockAWSProvider provides mock AWS cloud provider functionality
+// MockAWSProvider provides mock AWS cloud provider functionality.
 type MockAWSProvider struct {
 	mock.Mock
 }
 
+// GetProviderType performs getprovidertype operation.
 func (m *MockAWSProvider) GetProviderType() string {
 	return "aws"
 }
 
+// Initialize performs initialize operation.
 func (m *MockAWSProvider) Initialize(ctx context.Context, config map[string]interface{}) error {
 	args := m.Called(ctx, config)
 	return args.Error(0)
 }
 
+// GetRegions performs getregions operation.
 func (m *MockAWSProvider) GetRegions(ctx context.Context) ([]providers.Region, error) {
 	args := m.Called(ctx)
 	return args.Get(0).([]providers.Region), args.Error(1)
 }
 
+// GetAvailabilityZones performs getavailabilityzones operation.
 func (m *MockAWSProvider) GetAvailabilityZones(ctx context.Context, region string) ([]providers.AvailabilityZone, error) {
 	args := m.Called(ctx, region)
 	return args.Get(0).([]providers.AvailabilityZone), args.Error(1)
 }
 
+// CreateResourcePool performs createresourcepool operation.
 func (m *MockAWSProvider) CreateResourcePool(ctx context.Context, req *providers.CreateResourcePoolRequest) (*models.ResourcePool, error) {
 	args := m.Called(ctx, req)
 	return args.Get(0).(*models.ResourcePool), args.Error(1)
 }
 
+// DeleteResourcePool performs deleteresourcepool operation.
 func (m *MockAWSProvider) DeleteResourcePool(ctx context.Context, poolID string) error {
 	args := m.Called(ctx, poolID)
 	return args.Error(0)
 }
 
+// UpdateResourcePool performs updateresourcepool operation.
 func (m *MockAWSProvider) UpdateResourcePool(ctx context.Context, poolID string, req *providers.UpdateResourcePoolRequest) (*models.ResourcePool, error) {
 	args := m.Called(ctx, poolID, req)
 	return args.Get(0).(*models.ResourcePool), args.Error(1)
 }
 
+// GetResourcePool performs getresourcepool operation.
 func (m *MockAWSProvider) GetResourcePool(ctx context.Context, poolID string) (*models.ResourcePool, error) {
 	args := m.Called(ctx, poolID)
 	return args.Get(0).(*models.ResourcePool), args.Error(1)
 }
 
+// ListResourcePools performs listresourcepools operation.
 func (m *MockAWSProvider) ListResourcePools(ctx context.Context, filter *providers.ResourcePoolFilter) ([]*models.ResourcePool, error) {
 	args := m.Called(ctx, filter)
 	return args.Get(0).([]*models.ResourcePool), args.Error(1)
 }
 
+// CreateComputeInstance performs createcomputeinstance operation.
 func (m *MockAWSProvider) CreateComputeInstance(ctx context.Context, req *providers.CreateComputeInstanceRequest) (*models.ResourceInstance, error) {
 	args := m.Called(ctx, req)
 	return args.Get(0).(*models.ResourceInstance), args.Error(1)
 }
 
+// DeleteComputeInstance performs deletecomputeinstance operation.
 func (m *MockAWSProvider) DeleteComputeInstance(ctx context.Context, instanceID string) error {
 	args := m.Called(ctx, instanceID)
 	return args.Error(0)
 }
 
+// GetComputeInstance performs getcomputeinstance operation.
 func (m *MockAWSProvider) GetComputeInstance(ctx context.Context, instanceID string) (*models.ResourceInstance, error) {
 	args := m.Called(ctx, instanceID)
 	return args.Get(0).(*models.ResourceInstance), args.Error(1)
 }
 
+// GetInstanceTypes performs getinstancetypes operation.
 func (m *MockAWSProvider) GetInstanceTypes(ctx context.Context, region string) ([]providers.InstanceType, error) {
 	args := m.Called(ctx, region)
 	return args.Get(0).([]providers.InstanceType), args.Error(1)
 }
 
+// GetResourceMetrics performs getresourcemetrics operation.
 func (m *MockAWSProvider) GetResourceMetrics(ctx context.Context, resourceID string) (*models.ResourceMetrics, error) {
 	args := m.Called(ctx, resourceID)
 	return args.Get(0).(*models.ResourceMetrics), args.Error(1)
 }
 
+// ValidateCredentials performs validatecredentials operation.
 func (m *MockAWSProvider) ValidateCredentials(ctx context.Context) error {
 	args := m.Called(ctx)
 	return args.Error(0)
 }
 
+// GetQuotas performs getquotas operation.
 func (m *MockAWSProvider) GetQuotas(ctx context.Context, region string) (*providers.QuotaInfo, error) {
 	args := m.Called(ctx, region)
 	return args.Get(0).(*providers.QuotaInfo), args.Error(1)
 }
 
-// NewMockAWSProvider creates a new mock AWS provider with default behaviors
+// NewMockAWSProvider creates a new mock AWS provider with default behaviors.
 func NewMockAWSProvider() *MockAWSProvider {
 	provider := &MockAWSProvider{}
 
-	// Setup default behaviors
+	// Setup default behaviors.
 	provider.On("GetRegions", mock.Anything).Return([]providers.Region{
 		{ID: "us-east-1", Name: "US East (N. Virginia)", Location: "Virginia, USA"},
 		{ID: "us-west-2", Name: "US West (Oregon)", Location: "Oregon, USA"},
@@ -148,95 +164,111 @@ func NewMockAWSProvider() *MockAWSProvider {
 	return provider
 }
 
-// MockAzureProvider provides mock Azure cloud provider functionality
+// MockAzureProvider provides mock Azure cloud provider functionality.
 type MockAzureProvider struct {
 	mock.Mock
 }
 
+// GetProviderType performs getprovidertype operation.
 func (m *MockAzureProvider) GetProviderType() string {
 	return "azure"
 }
 
+// Initialize performs initialize operation.
 func (m *MockAzureProvider) Initialize(ctx context.Context, config map[string]interface{}) error {
 	args := m.Called(ctx, config)
 	return args.Error(0)
 }
 
+// GetRegions performs getregions operation.
 func (m *MockAzureProvider) GetRegions(ctx context.Context) ([]providers.Region, error) {
 	args := m.Called(ctx)
 	return args.Get(0).([]providers.Region), args.Error(1)
 }
 
+// GetAvailabilityZones performs getavailabilityzones operation.
 func (m *MockAzureProvider) GetAvailabilityZones(ctx context.Context, region string) ([]providers.AvailabilityZone, error) {
 	args := m.Called(ctx, region)
 	return args.Get(0).([]providers.AvailabilityZone), args.Error(1)
 }
 
+// CreateResourcePool performs createresourcepool operation.
 func (m *MockAzureProvider) CreateResourcePool(ctx context.Context, req *providers.CreateResourcePoolRequest) (*models.ResourcePool, error) {
 	args := m.Called(ctx, req)
 	return args.Get(0).(*models.ResourcePool), args.Error(1)
 }
 
+// DeleteResourcePool performs deleteresourcepool operation.
 func (m *MockAzureProvider) DeleteResourcePool(ctx context.Context, poolID string) error {
 	args := m.Called(ctx, poolID)
 	return args.Error(0)
 }
 
+// UpdateResourcePool performs updateresourcepool operation.
 func (m *MockAzureProvider) UpdateResourcePool(ctx context.Context, poolID string, req *providers.UpdateResourcePoolRequest) (*models.ResourcePool, error) {
 	args := m.Called(ctx, poolID, req)
 	return args.Get(0).(*models.ResourcePool), args.Error(1)
 }
 
+// GetResourcePool performs getresourcepool operation.
 func (m *MockAzureProvider) GetResourcePool(ctx context.Context, poolID string) (*models.ResourcePool, error) {
 	args := m.Called(ctx, poolID)
 	return args.Get(0).(*models.ResourcePool), args.Error(1)
 }
 
+// ListResourcePools performs listresourcepools operation.
 func (m *MockAzureProvider) ListResourcePools(ctx context.Context, filter *providers.ResourcePoolFilter) ([]*models.ResourcePool, error) {
 	args := m.Called(ctx, filter)
 	return args.Get(0).([]*models.ResourcePool), args.Error(1)
 }
 
+// CreateComputeInstance performs createcomputeinstance operation.
 func (m *MockAzureProvider) CreateComputeInstance(ctx context.Context, req *providers.CreateComputeInstanceRequest) (*models.ResourceInstance, error) {
 	args := m.Called(ctx, req)
 	return args.Get(0).(*models.ResourceInstance), args.Error(1)
 }
 
+// DeleteComputeInstance performs deletecomputeinstance operation.
 func (m *MockAzureProvider) DeleteComputeInstance(ctx context.Context, instanceID string) error {
 	args := m.Called(ctx, instanceID)
 	return args.Error(0)
 }
 
+// GetComputeInstance performs getcomputeinstance operation.
 func (m *MockAzureProvider) GetComputeInstance(ctx context.Context, instanceID string) (*models.ResourceInstance, error) {
 	args := m.Called(ctx, instanceID)
 	return args.Get(0).(*models.ResourceInstance), args.Error(1)
 }
 
+// GetInstanceTypes performs getinstancetypes operation.
 func (m *MockAzureProvider) GetInstanceTypes(ctx context.Context, region string) ([]providers.InstanceType, error) {
 	args := m.Called(ctx, region)
 	return args.Get(0).([]providers.InstanceType), args.Error(1)
 }
 
+// GetResourceMetrics performs getresourcemetrics operation.
 func (m *MockAzureProvider) GetResourceMetrics(ctx context.Context, resourceID string) (*models.ResourceMetrics, error) {
 	args := m.Called(ctx, resourceID)
 	return args.Get(0).(*models.ResourceMetrics), args.Error(1)
 }
 
+// ValidateCredentials performs validatecredentials operation.
 func (m *MockAzureProvider) ValidateCredentials(ctx context.Context) error {
 	args := m.Called(ctx)
 	return args.Error(0)
 }
 
+// GetQuotas performs getquotas operation.
 func (m *MockAzureProvider) GetQuotas(ctx context.Context, region string) (*providers.QuotaInfo, error) {
 	args := m.Called(ctx, region)
 	return args.Get(0).(*providers.QuotaInfo), args.Error(1)
 }
 
-// NewMockAzureProvider creates a new mock Azure provider with default behaviors
+// NewMockAzureProvider creates a new mock Azure provider with default behaviors.
 func NewMockAzureProvider() *MockAzureProvider {
 	provider := &MockAzureProvider{}
 
-	// Setup default behaviors
+	// Setup default behaviors.
 	provider.On("GetRegions", mock.Anything).Return([]providers.Region{
 		{ID: "eastus", Name: "East US", Location: "Virginia, USA"},
 		{ID: "westus2", Name: "West US 2", Location: "Washington, USA"},
@@ -285,95 +317,111 @@ func NewMockAzureProvider() *MockAzureProvider {
 	return provider
 }
 
-// MockGCPProvider provides mock GCP cloud provider functionality
+// MockGCPProvider provides mock GCP cloud provider functionality.
 type MockGCPProvider struct {
 	mock.Mock
 }
 
+// GetProviderType performs getprovidertype operation.
 func (m *MockGCPProvider) GetProviderType() string {
 	return "gcp"
 }
 
+// Initialize performs initialize operation.
 func (m *MockGCPProvider) Initialize(ctx context.Context, config map[string]interface{}) error {
 	args := m.Called(ctx, config)
 	return args.Error(0)
 }
 
+// GetRegions performs getregions operation.
 func (m *MockGCPProvider) GetRegions(ctx context.Context) ([]providers.Region, error) {
 	args := m.Called(ctx)
 	return args.Get(0).([]providers.Region), args.Error(1)
 }
 
+// GetAvailabilityZones performs getavailabilityzones operation.
 func (m *MockGCPProvider) GetAvailabilityZones(ctx context.Context, region string) ([]providers.AvailabilityZone, error) {
 	args := m.Called(ctx, region)
 	return args.Get(0).([]providers.AvailabilityZone), args.Error(1)
 }
 
+// CreateResourcePool performs createresourcepool operation.
 func (m *MockGCPProvider) CreateResourcePool(ctx context.Context, req *providers.CreateResourcePoolRequest) (*models.ResourcePool, error) {
 	args := m.Called(ctx, req)
 	return args.Get(0).(*models.ResourcePool), args.Error(1)
 }
 
+// DeleteResourcePool performs deleteresourcepool operation.
 func (m *MockGCPProvider) DeleteResourcePool(ctx context.Context, poolID string) error {
 	args := m.Called(ctx, poolID)
 	return args.Error(0)
 }
 
+// UpdateResourcePool performs updateresourcepool operation.
 func (m *MockGCPProvider) UpdateResourcePool(ctx context.Context, poolID string, req *providers.UpdateResourcePoolRequest) (*models.ResourcePool, error) {
 	args := m.Called(ctx, poolID, req)
 	return args.Get(0).(*models.ResourcePool), args.Error(1)
 }
 
+// GetResourcePool performs getresourcepool operation.
 func (m *MockGCPProvider) GetResourcePool(ctx context.Context, poolID string) (*models.ResourcePool, error) {
 	args := m.Called(ctx, poolID)
 	return args.Get(0).(*models.ResourcePool), args.Error(1)
 }
 
+// ListResourcePools performs listresourcepools operation.
 func (m *MockGCPProvider) ListResourcePools(ctx context.Context, filter *providers.ResourcePoolFilter) ([]*models.ResourcePool, error) {
 	args := m.Called(ctx, filter)
 	return args.Get(0).([]*models.ResourcePool), args.Error(1)
 }
 
+// CreateComputeInstance performs createcomputeinstance operation.
 func (m *MockGCPProvider) CreateComputeInstance(ctx context.Context, req *providers.CreateComputeInstanceRequest) (*models.ResourceInstance, error) {
 	args := m.Called(ctx, req)
 	return args.Get(0).(*models.ResourceInstance), args.Error(1)
 }
 
+// DeleteComputeInstance performs deletecomputeinstance operation.
 func (m *MockGCPProvider) DeleteComputeInstance(ctx context.Context, instanceID string) error {
 	args := m.Called(ctx, instanceID)
 	return args.Error(0)
 }
 
+// GetComputeInstance performs getcomputeinstance operation.
 func (m *MockGCPProvider) GetComputeInstance(ctx context.Context, instanceID string) (*models.ResourceInstance, error) {
 	args := m.Called(ctx, instanceID)
 	return args.Get(0).(*models.ResourceInstance), args.Error(1)
 }
 
+// GetInstanceTypes performs getinstancetypes operation.
 func (m *MockGCPProvider) GetInstanceTypes(ctx context.Context, region string) ([]providers.InstanceType, error) {
 	args := m.Called(ctx, region)
 	return args.Get(0).([]providers.InstanceType), args.Error(1)
 }
 
+// GetResourceMetrics performs getresourcemetrics operation.
 func (m *MockGCPProvider) GetResourceMetrics(ctx context.Context, resourceID string) (*models.ResourceMetrics, error) {
 	args := m.Called(ctx, resourceID)
 	return args.Get(0).(*models.ResourceMetrics), args.Error(1)
 }
 
+// ValidateCredentials performs validatecredentials operation.
 func (m *MockGCPProvider) ValidateCredentials(ctx context.Context) error {
 	args := m.Called(ctx)
 	return args.Error(0)
 }
 
+// GetQuotas performs getquotas operation.
 func (m *MockGCPProvider) GetQuotas(ctx context.Context, region string) (*providers.QuotaInfo, error) {
 	args := m.Called(ctx, region)
 	return args.Get(0).(*providers.QuotaInfo), args.Error(1)
 }
 
-// NewMockGCPProvider creates a new mock GCP provider with default behaviors
+// NewMockGCPProvider creates a new mock GCP provider with default behaviors.
 func NewMockGCPProvider() *MockGCPProvider {
 	provider := &MockGCPProvider{}
 
-	// Setup default behaviors
+	// Setup default behaviors.
 	provider.On("GetRegions", mock.Anything).Return([]providers.Region{
 		{ID: "us-central1", Name: "us-central1", Location: "Iowa, USA"},
 		{ID: "us-east1", Name: "us-east1", Location: "South Carolina, USA"},
@@ -422,10 +470,10 @@ func NewMockGCPProvider() *MockGCPProvider {
 	return provider
 }
 
-// CloudProviderTestHelpers provides utility functions for testing cloud providers
+// CloudProviderTestHelpers provides utility functions for testing cloud providers.
 type CloudProviderTestHelpers struct{}
 
-// CreateTestResourcePool creates a test resource pool with realistic data
+// CreateTestResourcePool creates a test resource pool with realistic data.
 func (h *CloudProviderTestHelpers) CreateTestResourcePool(provider, region string) *models.ResourcePool {
 	poolID := fmt.Sprintf("test-pool-%s-%s-%d", provider, region, time.Now().UnixNano())
 
@@ -472,7 +520,7 @@ func (h *CloudProviderTestHelpers) CreateTestResourcePool(provider, region strin
 	}
 }
 
-// CreateTestComputeInstance creates a test compute instance
+// CreateTestComputeInstance creates a test compute instance.
 func (h *CloudProviderTestHelpers) CreateTestComputeInstance(provider, instanceType string) *models.ResourceInstance {
 	instanceID := fmt.Sprintf("test-instance-%s-%d", provider, time.Now().UnixNano())
 
@@ -497,7 +545,7 @@ func (h *CloudProviderTestHelpers) CreateTestComputeInstance(provider, instanceT
 	}
 }
 
-// SimulateProviderDelay simulates realistic cloud provider API delays
+// SimulateProviderDelay simulates realistic cloud provider API delays.
 func (h *CloudProviderTestHelpers) SimulateProviderDelay(operation string) {
 	delays := map[string]time.Duration{
 		"create_instance": 2 * time.Second,
@@ -515,7 +563,7 @@ func (h *CloudProviderTestHelpers) SimulateProviderDelay(operation string) {
 	}
 }
 
-// ValidateResourcePool validates that a resource pool has all required fields
+// ValidateResourcePool validates that a resource pool has all required fields.
 func (h *CloudProviderTestHelpers) ValidateResourcePool(pool *models.ResourcePool) error {
 	if pool == nil {
 		return fmt.Errorf("resource pool is nil")
@@ -544,7 +592,7 @@ func (h *CloudProviderTestHelpers) ValidateResourcePool(pool *models.ResourcePoo
 	return nil
 }
 
-// ValidateComputeInstance validates that a compute instance has all required fields
+// ValidateComputeInstance validates that a compute instance has all required fields.
 func (h *CloudProviderTestHelpers) ValidateComputeInstance(instance *models.ResourceInstance) error {
 	if instance == nil {
 		return fmt.Errorf("compute instance is nil")
@@ -564,7 +612,7 @@ func (h *CloudProviderTestHelpers) ValidateComputeInstance(instance *models.Reso
 	return nil
 }
 
-// NewCloudProviderTestHelpers creates a new instance of test helpers
+// NewCloudProviderTestHelpers creates a new instance of test helpers.
 func NewCloudProviderTestHelpers() *CloudProviderTestHelpers {
 	return &CloudProviderTestHelpers{}
 }

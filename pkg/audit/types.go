@@ -23,29 +23,32 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
 )
 
-// Re-export types from the types package for convenience
-type Backend = types.Backend
-type BackendConfig struct {
-	Type          string                 `json:"type"`   // "elasticsearch", "file", etc.
-	Config        map[string]interface{} `json:"config"` // Backend-specific config
-	Enabled       bool                   `json:"enabled"`
-	BufferSize    int                    `json:"bufferSize,omitempty"`
-	FlushInterval time.Duration          `json:"flushInterval,omitempty"`
-}
+// Re-export types from the types package for convenience.
+type (
+	Backend = types.Backend
+	// BackendConfig represents a backendconfig.
+	BackendConfig struct {
+		Type          string                 `json:"type"`   // "elasticsearch", "file", etc.
+		Config        map[string]interface{} `json:"config"` // Backend-specific config
+		Enabled       bool                   `json:"enabled"`
+		BufferSize    int                    `json:"bufferSize,omitempty"`
+		FlushInterval time.Duration          `json:"flushInterval,omitempty"`
+	}
+)
 
-// ComplianceLogger interface for compliance logging
+// ComplianceLogger interface for compliance logging.
 type ComplianceLogger interface {
-	// LogCompliance logs a compliance event
+	// LogCompliance logs a compliance event.
 	LogCompliance(ctx context.Context, event *ComplianceEvent) error
 
-	// LogViolation logs a compliance violation
+	// LogViolation logs a compliance violation.
 	LogViolation(ctx context.Context, violation *ComplianceViolation) error
 
-	// GetComplianceReport generates compliance report
+	// GetComplianceReport generates compliance report.
 	GetComplianceReport(ctx context.Context, criteria *ReportCriteria) (*ComplianceReport, error)
 }
 
-// ComplianceEvent represents a compliance event
+// ComplianceEvent represents a compliance event.
 type ComplianceEvent struct {
 	ID          string                 `json:"id"`
 	Timestamp   time.Time              `json:"timestamp"`
@@ -56,7 +59,7 @@ type ComplianceEvent struct {
 	Metadata    map[string]string      `json:"metadata,omitempty"`
 }
 
-// ComplianceViolation represents a compliance violation
+// ComplianceViolation represents a compliance violation.
 type ComplianceViolation struct {
 	ID          string            `json:"id"`
 	Timestamp   time.Time         `json:"timestamp"`
@@ -68,7 +71,7 @@ type ComplianceViolation struct {
 	Metadata    map[string]string `json:"metadata,omitempty"`
 }
 
-// ReportCriteria defines criteria for compliance reports
+// ReportCriteria defines criteria for compliance reports.
 type ReportCriteria struct {
 	StartTime   time.Time `json:"startTime"`
 	EndTime     time.Time `json:"endTime"`
@@ -78,7 +81,7 @@ type ReportCriteria struct {
 	IncludeFail bool      `json:"includeFail"`
 }
 
-// ComplianceReport represents a compliance report
+// ComplianceReport represents a compliance report.
 type ComplianceReport struct {
 	ID          string                      `json:"id"`
 	GeneratedAt time.Time                   `json:"generatedAt"`
@@ -89,7 +92,7 @@ type ComplianceReport struct {
 	Standards   map[string]*StandardSummary `json:"standards,omitempty"`
 }
 
-// ComplianceSummary provides high-level compliance statistics
+// ComplianceSummary provides high-level compliance statistics.
 type ComplianceSummary struct {
 	TotalEvents    int     `json:"totalEvents"`
 	PassedEvents   int     `json:"passedEvents"`
@@ -98,7 +101,7 @@ type ComplianceSummary struct {
 	ComplianceRate float64 `json:"complianceRate"`
 }
 
-// StandardSummary provides compliance summary for a specific standard
+// StandardSummary provides compliance summary for a specific standard.
 type StandardSummary struct {
 	Standard       string  `json:"standard"`
 	TotalEvents    int     `json:"totalEvents"`
@@ -107,7 +110,7 @@ type StandardSummary struct {
 	ComplianceRate float64 `json:"complianceRate"`
 }
 
-// ComplianceLoggerConfig configuration for compliance logger
+// ComplianceLoggerConfig configuration for compliance logger.
 type ComplianceLoggerConfig struct {
 	Backend       string                 `json:"backend"`
 	Config        map[string]interface{} `json:"config"`
@@ -116,7 +119,7 @@ type ComplianceLoggerConfig struct {
 	FlushInterval time.Duration          `json:"flushInterval,omitempty"`
 }
 
-// ActorContext represents the actor performing an action
+// ActorContext represents the actor performing an action.
 type ActorContext struct {
 	UserID    string            `json:"userId"`
 	Username  string            `json:"username"`
@@ -127,26 +130,29 @@ type ActorContext struct {
 	Metadata  map[string]string `json:"metadata,omitempty"`
 }
 
-// NewComplianceLogger creates a new compliance logger
+// NewComplianceLogger creates a new compliance logger.
 func NewComplianceLogger(config *ComplianceLoggerConfig) (ComplianceLogger, error) {
-	// Implementation needed
+	// Implementation needed.
 	return &DefaultComplianceLogger{}, nil
 }
 
-// DefaultComplianceLogger default implementation
+// DefaultComplianceLogger default implementation.
 type DefaultComplianceLogger struct{}
 
+// LogCompliance performs logcompliance operation.
 func (dcl *DefaultComplianceLogger) LogCompliance(ctx context.Context, event *ComplianceEvent) error {
-	// Implementation needed
+	// Implementation needed.
 	return nil
 }
 
+// LogViolation performs logviolation operation.
 func (dcl *DefaultComplianceLogger) LogViolation(ctx context.Context, violation *ComplianceViolation) error {
-	// Implementation needed
+	// Implementation needed.
 	return nil
 }
 
+// GetComplianceReport performs getcompliancereport operation.
 func (dcl *DefaultComplianceLogger) GetComplianceReport(ctx context.Context, criteria *ReportCriteria) (*ComplianceReport, error) {
-	// Implementation needed
+	// Implementation needed.
 	return &ComplianceReport{}, nil
 }

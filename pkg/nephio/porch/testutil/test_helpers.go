@@ -28,7 +28,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
-// TestConfig creates a test configuration for porch clients
+// TestConfig creates a test configuration for porch clients.
 func NewTestConfig() *porch.Config {
 	return &porch.Config{
 		PorchConfig: &porch.PorchServiceConfig{
@@ -52,7 +52,7 @@ func NewTestConfig() *porch.Config {
 	}
 }
 
-// GetTestKubeConfig returns a test Kubernetes configuration
+// GetTestKubeConfig returns a test Kubernetes configuration.
 func GetTestKubeConfig() *rest.Config {
 	return &rest.Config{
 		Host:    "http://localhost:8080",
@@ -62,7 +62,7 @@ func GetTestKubeConfig() *rest.Config {
 	}
 }
 
-// ClientOptions represents options for creating test clients
+// ClientOptions represents options for creating test clients.
 type ClientOptions struct {
 	Config     *porch.Config
 	KubeConfig *rest.Config
@@ -70,7 +70,7 @@ type ClientOptions struct {
 	Namespace  string
 }
 
-// NewTestEnvironment creates a test environment with envtest
+// NewTestEnvironment creates a test environment with envtest.
 func NewTestEnvironment(t *testing.T) (*envtest.Environment, *rest.Config) {
 	t.Helper()
 
@@ -86,14 +86,14 @@ func NewTestEnvironment(t *testing.T) (*envtest.Environment, *rest.Config) {
 	return testEnv, cfg
 }
 
-// MockPorchClient creates a mock porch client for testing
+// MockPorchClient creates a mock porch client for testing.
 type MockPorchClient struct {
 	*porch.Client
 	MockResponses map[string]interface{}
 	CallLog       []string
 }
 
-// NewMockPorchClient creates a new mock client
+// NewMockPorchClient creates a new mock client.
 func NewMockPorchClient() *MockPorchClient {
 	return &MockPorchClient{
 		MockResponses: make(map[string]interface{}),
@@ -101,27 +101,27 @@ func NewMockPorchClient() *MockPorchClient {
 	}
 }
 
-// RecordCall records a method call for verification
+// RecordCall records a method call for verification.
 func (m *MockPorchClient) RecordCall(method string) {
 	m.CallLog = append(m.CallLog, method)
 }
 
-// GetCallLog returns the recorded method calls
+// GetCallLog returns the recorded method calls.
 func (m *MockPorchClient) GetCallLog() []string {
 	return m.CallLog
 }
 
-// SetMockResponse sets a mock response for a given method
+// SetMockResponse sets a mock response for a given method.
 func (m *MockPorchClient) SetMockResponse(method string, response interface{}) {
 	m.MockResponses[method] = response
 }
 
-// GetMockResponse gets a mock response for a given method
+// GetMockResponse gets a mock response for a given method.
 func (m *MockPorchClient) GetMockResponse(method string) interface{} {
 	return m.MockResponses[method]
 }
 
-// TestRepository creates a test repository configuration
+// TestRepository creates a test repository configuration.
 func NewTestRepository(name string) *porch.Repository {
 	return &porch.Repository{
 		ObjectMeta: metav1.ObjectMeta{
@@ -138,7 +138,7 @@ func NewTestRepository(name string) *porch.Repository {
 	}
 }
 
-// TestPackageRevision creates a test package revision
+// TestPackageRevision creates a test package revision.
 func NewTestPackageRevision(name, repository string) *porch.PackageRevision {
 	return &porch.PackageRevision{
 		ObjectMeta: metav1.ObjectMeta{
@@ -155,7 +155,7 @@ func NewTestPackageRevision(name, repository string) *porch.PackageRevision {
 	}
 }
 
-// TestFunctionConfig creates a test function configuration
+// TestFunctionConfig creates a test function configuration.
 func NewTestFunctionConfig(name string) porch.FunctionConfig {
 	return porch.FunctionConfig{
 		Image: "gcr.io/kpt-fn/test-function:v1.0.0",
@@ -166,7 +166,7 @@ func NewTestFunctionConfig(name string) porch.FunctionConfig {
 	}
 }
 
-// AssertNoError is a test helper for asserting no error
+// AssertNoError is a test helper for asserting no error.
 func AssertNoError(t *testing.T, err error) {
 	t.Helper()
 	if err != nil {
@@ -174,7 +174,7 @@ func AssertNoError(t *testing.T, err error) {
 	}
 }
 
-// AssertError is a test helper for asserting an error occurred
+// AssertError is a test helper for asserting an error occurred.
 func AssertError(t *testing.T, err error) {
 	t.Helper()
 	if err == nil {
@@ -182,7 +182,7 @@ func AssertError(t *testing.T, err error) {
 	}
 }
 
-// AssertEqual is a test helper for asserting equality
+// AssertEqual is a test helper for asserting equality.
 func AssertEqual(t *testing.T, expected, actual interface{}) {
 	t.Helper()
 	if expected != actual {

@@ -39,7 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ContainerRuntime provides secure container-based KRM function execution
+// ContainerRuntime provides secure container-based KRM function execution.
 type ContainerRuntime struct {
 	config       *ContainerRuntimeConfig
 	containerMgr *ContainerManager
@@ -52,15 +52,15 @@ type ContainerRuntime struct {
 	mu           sync.RWMutex
 }
 
-// ContainerRuntimeConfig defines configuration for container runtime
+// ContainerRuntimeConfig defines configuration for container runtime.
 type ContainerRuntimeConfig struct {
-	// Container runtime settings
+	// Container runtime settings.
 	RuntimeType    string        `json:"runtimeType" yaml:"runtimeType"`       // docker, containerd, cri-o
 	RuntimeSocket  string        `json:"runtimeSocket" yaml:"runtimeSocket"`   // Runtime socket path
 	TimeoutDefault time.Duration `json:"timeoutDefault" yaml:"timeoutDefault"` // Default execution timeout
 	TimeoutMax     time.Duration `json:"timeoutMax" yaml:"timeoutMax"`         // Maximum allowed timeout
 
-	// Resource limits
+	// Resource limits.
 	DefaultCPULimit    string `json:"defaultCpuLimit" yaml:"defaultCpuLimit"`       // Default CPU limit
 	DefaultMemoryLimit string `json:"defaultMemoryLimit" yaml:"defaultMemoryLimit"` // Default memory limit
 	DefaultDiskLimit   string `json:"defaultDiskLimit" yaml:"defaultDiskLimit"`     // Default disk limit
@@ -68,7 +68,7 @@ type ContainerRuntimeConfig struct {
 	MaxMemoryLimit     string `json:"maxMemoryLimit" yaml:"maxMemoryLimit"`         // Maximum memory limit
 	MaxDiskLimit       string `json:"maxDiskLimit" yaml:"maxDiskLimit"`             // Maximum disk limit
 
-	// Security settings
+	// Security settings.
 	SandboxEnabled       bool     `json:"sandboxEnabled" yaml:"sandboxEnabled"`             // Enable sandboxing
 	AllowPrivileged      bool     `json:"allowPrivileged" yaml:"allowPrivileged"`           // Allow privileged containers
 	AllowedRegistries    []string `json:"allowedRegistries" yaml:"allowedRegistries"`       // Allowed container registries
@@ -78,24 +78,24 @@ type ContainerRuntimeConfig struct {
 	ReadOnlyRootFS       bool     `json:"readOnlyRootFS" yaml:"readOnlyRootFS"`             // Read-only root filesystem
 	NoNewPrivileges      bool     `json:"noNewPrivileges" yaml:"noNewPrivileges"`           // No new privileges
 
-	// Networking
+	// Networking.
 	NetworkMode     string   `json:"networkMode" yaml:"networkMode"`         // Network mode (none, bridge, host)
 	AllowedNetworks []string `json:"allowedNetworks" yaml:"allowedNetworks"` // Allowed networks
 	DNSServers      []string `json:"dnsServers" yaml:"dnsServers"`           // DNS servers
 
-	// Storage and filesystem
+	// Storage and filesystem.
 	WorkspaceDir      string   `json:"workspaceDir" yaml:"workspaceDir"`           // Base workspace directory
 	TempDir           string   `json:"tempDir" yaml:"tempDir"`                     // Temporary directory
 	AllowedMountPaths []string `json:"allowedMountPaths" yaml:"allowedMountPaths"` // Allowed mount paths
 	ReadOnlyMounts    []string `json:"readOnlyMounts" yaml:"readOnlyMounts"`       // Read-only mounts
 
-	// Monitoring and observability
+	// Monitoring and observability.
 	EnableMetrics      bool `json:"enableMetrics" yaml:"enableMetrics"`           // Enable metrics collection
 	EnableTracing      bool `json:"enableTracing" yaml:"enableTracing"`           // Enable tracing
 	EnableProfiling    bool `json:"enableProfiling" yaml:"enableProfiling"`       // Enable profiling
 	EnableAuditLogging bool `json:"enableAuditLogging" yaml:"enableAuditLogging"` // Enable audit logging
 
-	// Performance optimization
+	// Performance optimization.
 	CacheEnabled            bool          `json:"cacheEnabled" yaml:"cacheEnabled"`                       // Enable caching
 	CacheSize               int64         `json:"cacheSize" yaml:"cacheSize"`                             // Cache size in bytes
 	ImagePullPolicy         string        `json:"imagePullPolicy" yaml:"imagePullPolicy"`                 // Image pull policy
@@ -104,9 +104,9 @@ type ContainerRuntimeConfig struct {
 	CleanupInterval         time.Duration `json:"cleanupInterval" yaml:"cleanupInterval"`                 // Cleanup interval
 }
 
-// ContainerRequest represents a container execution request
+// ContainerRequest represents a container execution request.
 type ContainerRequest struct {
-	// Container specification
+	// Container specification.
 	Image       string            `json:"image"`
 	Tag         string            `json:"tag,omitempty"`
 	Command     []string          `json:"command,omitempty"`
@@ -114,72 +114,72 @@ type ContainerRequest struct {
 	Environment map[string]string `json:"environment,omitempty"`
 	WorkingDir  string            `json:"workingDir,omitempty"`
 
-	// Resource constraints
+	// Resource constraints.
 	CPULimit    string        `json:"cpuLimit,omitempty"`
 	MemoryLimit string        `json:"memoryLimit,omitempty"`
 	DiskLimit   string        `json:"diskLimit,omitempty"`
 	Timeout     time.Duration `json:"timeout,omitempty"`
 
-	// Security settings
+	// Security settings.
 	User           string   `json:"user,omitempty"`
 	Group          string   `json:"group,omitempty"`
 	Capabilities   []string `json:"capabilities,omitempty"`
 	Privileged     bool     `json:"privileged,omitempty"`
 	ReadOnlyRootFS bool     `json:"readOnlyRootFS,omitempty"`
 
-	// Networking
+	// Networking.
 	NetworkMode  string `json:"networkMode,omitempty"`
 	ExposedPorts []int  `json:"exposedPorts,omitempty"`
 
-	// Storage
+	// Storage.
 	Mounts []*VolumeMount `json:"mounts,omitempty"`
 	TempFS []string       `json:"tempfs,omitempty"`
 
-	// Input/Output
+	// Input/Output.
 	Stdin      []byte            `json:"stdin,omitempty"`
 	InputFiles map[string][]byte `json:"inputFiles,omitempty"`
 
-	// Metadata
+	// Metadata.
 	Labels      map[string]string `json:"labels,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
 
-	// Execution context
+	// Execution context.
 	Context      context.Context `json:"-"`
 	RequestID    string          `json:"requestId,omitempty"`
 	FunctionName string          `json:"functionName,omitempty"`
 }
 
-// ContainerResponse represents container execution response
+// ContainerResponse represents container execution response.
 type ContainerResponse struct {
-	// Execution results
+	// Execution results.
 	ExitCode    int               `json:"exitCode"`
 	Stdout      []byte            `json:"stdout,omitempty"`
 	Stderr      []byte            `json:"stderr,omitempty"`
 	OutputFiles map[string][]byte `json:"outputFiles,omitempty"`
 
-	// Execution metadata
+	// Execution metadata.
 	ContainerID string        `json:"containerId,omitempty"`
 	Duration    time.Duration `json:"duration"`
 	StartTime   time.Time     `json:"startTime"`
 	EndTime     time.Time     `json:"endTime"`
 
-	// Resource usage
+	// Resource usage.
 	CPUUsage    *resource.Quantity `json:"cpuUsage,omitempty"`
 	MemoryUsage *resource.Quantity `json:"memoryUsage,omitempty"`
 	DiskUsage   *resource.Quantity `json:"diskUsage,omitempty"`
 	NetworkIO   *NetworkIOStats    `json:"networkIO,omitempty"`
 
-	// Error information
+	// Error information.
 	Error        error  `json:"error,omitempty"`
 	ErrorCode    string `json:"errorCode,omitempty"`
 	ErrorDetails string `json:"errorDetails,omitempty"`
 
-	// Security and audit
+	// Security and audit.
 	SecurityEvents []*SecurityEvent `json:"securityEvents,omitempty"`
 	AuditLogs      []string         `json:"auditLogs,omitempty"`
 }
 
-// VolumeMount represents a volume mount
+// VolumeMount represents a volume mount.
 type VolumeMount struct {
 	Source      string `json:"source"`
 	Target      string `json:"target"`
@@ -188,7 +188,7 @@ type VolumeMount struct {
 	Propagation string `json:"propagation,omitempty"`
 }
 
-// NetworkIOStats represents network I/O statistics
+// NetworkIOStats represents network I/O statistics.
 type NetworkIOStats struct {
 	BytesReceived   int64 `json:"bytesReceived"`
 	BytesSent       int64 `json:"bytesSent"`
@@ -196,7 +196,7 @@ type NetworkIOStats struct {
 	PacketsSent     int64 `json:"packetsSent"`
 }
 
-// SecurityEvent represents a security-related event
+// SecurityEvent represents a security-related event.
 type SecurityEvent struct {
 	Type      string                 `json:"type"`
 	Severity  string                 `json:"severity"`
@@ -205,7 +205,7 @@ type SecurityEvent struct {
 	Timestamp time.Time              `json:"timestamp"`
 }
 
-// ContainerManager manages container lifecycle
+// ContainerManager manages container lifecycle.
 type ContainerManager struct {
 	runtimeType   string
 	runtimeSocket string
@@ -213,7 +213,7 @@ type ContainerManager struct {
 	mu            sync.RWMutex
 }
 
-// ContainerInstance represents a running container instance
+// ContainerInstance represents a running container instance.
 type ContainerInstance struct {
 	ID        string
 	Name      string
@@ -225,14 +225,14 @@ type ContainerInstance struct {
 	mu        sync.Mutex
 }
 
-// SandboxManager manages container sandboxing
+// SandboxManager manages container sandboxing.
 type SandboxManager struct {
 	enabled   bool
 	sandboxes map[string]*Sandbox
 	mu        sync.RWMutex
 }
 
-// Sandbox represents a container sandbox
+// Sandbox represents a container sandbox.
 type Sandbox struct {
 	ID              string
 	Name            string
@@ -247,7 +247,7 @@ type Sandbox struct {
 	CreatedAt       time.Time
 }
 
-// ResourceManager manages resource allocation and monitoring
+// ResourceManager manages resource allocation and monitoring.
 type ResourceManager struct {
 	cpuQuota    *resource.Quantity
 	memoryQuota *resource.Quantity
@@ -256,7 +256,7 @@ type ResourceManager struct {
 	mu          sync.RWMutex
 }
 
-// ResourceAllocation tracks resource allocation for a container
+// ResourceAllocation tracks resource allocation for a container.
 type ResourceAllocation struct {
 	ContainerID    string
 	CPULimit       *resource.Quantity
@@ -268,7 +268,7 @@ type ResourceAllocation struct {
 	AllocationTime time.Time
 }
 
-// SecurityManager enforces security policies
+// SecurityManager enforces security policies.
 type SecurityManager struct {
 	allowedRegistries map[string]bool
 	trustedImages     map[string]bool
@@ -277,7 +277,7 @@ type SecurityManager struct {
 	mu                sync.RWMutex
 }
 
-// SecurityPolicy defines security constraints
+// SecurityPolicy defines security constraints.
 type SecurityPolicy struct {
 	Name                string
 	AllowPrivileged     bool
@@ -294,7 +294,7 @@ type SecurityPolicy struct {
 	fileSystemPolicy    *FileSystemPolicy
 }
 
-// NetworkSecurityPolicy defines network security constraints
+// NetworkSecurityPolicy defines network security constraints.
 type NetworkSecurityPolicy struct {
 	Mode         string // none, bridge, host
 	AllowedPorts []int
@@ -304,7 +304,7 @@ type NetworkSecurityPolicy struct {
 	DNSPolicies  []string
 }
 
-// SecurityViolation records security violations
+// SecurityViolation records security violations.
 type SecurityViolation struct {
 	ContainerID   string
 	ViolationType string
@@ -314,14 +314,14 @@ type SecurityViolation struct {
 	Details       map[string]interface{}
 }
 
-// NetworkManager manages container networking
+// NetworkManager manages container networking.
 type NetworkManager struct {
 	networks   map[string]*Network
 	defaultDNS []string
 	mu         sync.RWMutex
 }
 
-// Network represents a container network
+// Network represents a container network.
 type Network struct {
 	Name      string
 	Driver    string
@@ -330,20 +330,20 @@ type Network struct {
 	CreatedAt time.Time
 }
 
-// IPAMConfig represents IP Address Management configuration
+// IPAMConfig represents IP Address Management configuration.
 type IPAMConfig struct {
 	Driver  string
 	Options map[string]string
 	Subnets []*IPAMSubnet
 }
 
-// IPAMSubnet represents an IPAM subnet
+// IPAMSubnet represents an IPAM subnet.
 type IPAMSubnet struct {
 	Subnet  string
 	Gateway string
 }
 
-// ContainerRuntimeMetrics provides comprehensive metrics
+// ContainerRuntimeMetrics provides comprehensive metrics.
 type ContainerRuntimeMetrics struct {
 	ContainersStarted   *prometheus.CounterVec
 	ContainerExecutions *prometheus.HistogramVec
@@ -355,7 +355,7 @@ type ContainerRuntimeMetrics struct {
 	ActiveContainers    prometheus.Gauge
 }
 
-// Default configuration
+// Default configuration.
 var DefaultContainerRuntimeConfig = &ContainerRuntimeConfig{
 	RuntimeType:             "docker",
 	RuntimeSocket:           "/var/run/docker.sock",
@@ -386,18 +386,18 @@ var DefaultContainerRuntimeConfig = &ContainerRuntimeConfig{
 	DroppedCapabilities:     []string{"ALL"},
 }
 
-// NewContainerRuntime creates a new container runtime
+// NewContainerRuntime creates a new container runtime.
 func NewContainerRuntime(config *ContainerRuntimeConfig) (*ContainerRuntime, error) {
 	if config == nil {
 		config = DefaultContainerRuntimeConfig
 	}
 
-	// Validate configuration
+	// Validate configuration.
 	if err := validateContainerRuntimeConfig(config); err != nil {
 		return nil, fmt.Errorf("invalid container runtime configuration: %w", err)
 	}
 
-	// Initialize metrics
+	// Initialize metrics.
 	metrics := &ContainerRuntimeMetrics{
 		ContainersStarted: promauto.NewCounterVec(
 			prometheus.CounterOpts{
@@ -456,7 +456,7 @@ func NewContainerRuntime(config *ContainerRuntimeConfig) (*ContainerRuntime, err
 		),
 	}
 
-	// Initialize managers
+	// Initialize managers.
 	containerMgr := &ContainerManager{
 		runtimeType:   config.RuntimeType,
 		runtimeSocket: config.RuntimeSocket,
@@ -472,7 +472,7 @@ func NewContainerRuntime(config *ContainerRuntimeConfig) (*ContainerRuntime, err
 		allocations: make(map[string]*ResourceAllocation),
 	}
 
-	// Parse resource limits
+	// Parse resource limits.
 	if config.MaxCPULimit != "" {
 		if cpuQuota, err := resource.ParseQuantity(config.MaxCPULimit); err == nil {
 			resourceMgr.cpuQuota = &cpuQuota
@@ -496,7 +496,7 @@ func NewContainerRuntime(config *ContainerRuntimeConfig) (*ContainerRuntime, err
 		violations:        []*SecurityViolation{},
 	}
 
-	// Populate security manager
+	// Populate security manager.
 	for _, registry := range config.AllowedRegistries {
 		securityMgr.allowedRegistries[registry] = true
 	}
@@ -520,23 +520,23 @@ func NewContainerRuntime(config *ContainerRuntimeConfig) (*ContainerRuntime, err
 		tracer:       otel.Tracer("krm-container-runtime"),
 	}
 
-	// Create workspace directory
-	if err := os.MkdirAll(config.WorkspaceDir, 0755); err != nil {
+	// Create workspace directory.
+	if err := os.MkdirAll(config.WorkspaceDir, 0o755); err != nil {
 		return nil, fmt.Errorf("failed to create workspace directory: %w", err)
 	}
 
-	// Start background cleanup
+	// Start background cleanup.
 	go runtime.backgroundCleanup()
 
 	return runtime, nil
 }
 
-// ExecuteContainer executes a container with the given request
+// ExecuteContainer executes a container with the given request.
 func (cr *ContainerRuntime) ExecuteContainer(ctx context.Context, req *ContainerRequest) (*ContainerResponse, error) {
 	ctx, span := cr.tracer.Start(ctx, "container-execution")
 	defer span.End()
 
-	// Generate container ID
+	// Generate container ID.
 	containerID := generateContainerID()
 	req.RequestID = containerID
 
@@ -556,7 +556,7 @@ func (cr *ContainerRuntime) ExecuteContainer(ctx context.Context, req *Container
 
 	startTime := time.Now()
 
-	// Security validation
+	// Security validation.
 	if err := cr.validateSecurity(ctx, req); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "security validation failed")
@@ -564,7 +564,7 @@ func (cr *ContainerRuntime) ExecuteContainer(ctx context.Context, req *Container
 		return nil, fmt.Errorf("security validation failed: %w", err)
 	}
 
-	// Resource allocation
+	// Resource allocation.
 	if err := cr.allocateResources(ctx, req); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "resource allocation failed")
@@ -572,7 +572,7 @@ func (cr *ContainerRuntime) ExecuteContainer(ctx context.Context, req *Container
 	}
 	defer cr.releaseResources(containerID)
 
-	// Create sandbox if enabled
+	// Create sandbox if enabled.
 	var sandbox *Sandbox
 	var err error
 	if cr.config.SandboxEnabled {
@@ -585,7 +585,7 @@ func (cr *ContainerRuntime) ExecuteContainer(ctx context.Context, req *Container
 		defer cr.destroySandbox(sandbox.ID)
 	}
 
-	// Execute container
+	// Execute container.
 	response, err := cr.executeContainerInternal(ctx, req, sandbox)
 	if err != nil {
 		span.RecordError(err)
@@ -594,7 +594,7 @@ func (cr *ContainerRuntime) ExecuteContainer(ctx context.Context, req *Container
 		return nil, err
 	}
 
-	// Record metrics
+	// Record metrics.
 	duration := time.Since(startTime)
 	cr.metrics.ContainerExecutions.WithLabelValues(req.Image, req.FunctionName).Observe(duration.Seconds())
 
@@ -604,7 +604,7 @@ func (cr *ContainerRuntime) ExecuteContainer(ctx context.Context, req *Container
 	}
 	cr.metrics.ContainersStarted.WithLabelValues(req.Image, req.FunctionName, status).Inc()
 
-	// Record resource usage
+	// Record resource usage.
 	if response.CPUUsage != nil {
 		cr.metrics.ResourceUtilization.WithLabelValues("cpu", containerID).Set(float64(response.CPUUsage.MilliValue()))
 	}
@@ -621,10 +621,10 @@ func (cr *ContainerRuntime) ExecuteContainer(ctx context.Context, req *Container
 	return response, nil
 }
 
-// Private methods
+// Private methods.
 
 func (cr *ContainerRuntime) validateSecurity(ctx context.Context, req *ContainerRequest) error {
-	// Validate image registry
+	// Validate image registry.
 	if len(cr.config.AllowedRegistries) > 0 {
 		allowed := false
 		for _, registry := range cr.config.AllowedRegistries {
@@ -638,12 +638,12 @@ func (cr *ContainerRuntime) validateSecurity(ctx context.Context, req *Container
 		}
 	}
 
-	// Validate privileged access
+	// Validate privileged access.
 	if req.Privileged && !cr.config.AllowPrivileged {
 		return fmt.Errorf("privileged containers are not allowed")
 	}
 
-	// Validate capabilities
+	// Validate capabilities.
 	for _, cap := range req.Capabilities {
 		if contains(cr.config.DroppedCapabilities, cap) {
 			return fmt.Errorf("capability %s is not allowed", cap)
@@ -657,7 +657,7 @@ func (cr *ContainerRuntime) allocateResources(ctx context.Context, req *Containe
 	cr.resourceMgr.mu.Lock()
 	defer cr.resourceMgr.mu.Unlock()
 
-	// Parse resource requirements
+	// Parse resource requirements.
 	var cpuLimit, memoryLimit, diskLimit *resource.Quantity
 
 	if req.CPULimit != "" {
@@ -702,7 +702,7 @@ func (cr *ContainerRuntime) allocateResources(ctx context.Context, req *Containe
 		diskLimit = &quantity
 	}
 
-	// Check against quotas
+	// Check against quotas.
 	if cr.resourceMgr.cpuQuota != nil && cpuLimit.Cmp(*cr.resourceMgr.cpuQuota) > 0 {
 		return fmt.Errorf("CPU limit exceeds quota")
 	}
@@ -713,7 +713,7 @@ func (cr *ContainerRuntime) allocateResources(ctx context.Context, req *Containe
 		return fmt.Errorf("disk limit exceeds quota")
 	}
 
-	// Record allocation
+	// Record allocation.
 	allocation := &ResourceAllocation{
 		ContainerID:    req.RequestID,
 		CPULimit:       cpuLimit,
@@ -758,35 +758,35 @@ func (cr *ContainerRuntime) destroySandbox(sandboxID string) {
 }
 
 func (cr *ContainerRuntime) executeContainerInternal(ctx context.Context, req *ContainerRequest, sandbox *Sandbox) (*ContainerResponse, error) {
-	// Create workspace directory
+	// Create workspace directory.
 	workspaceDir := filepath.Join(cr.config.WorkspaceDir, req.RequestID)
-	if err := os.MkdirAll(workspaceDir, 0755); err != nil {
+	if err := os.MkdirAll(workspaceDir, 0o755); err != nil {
 		return nil, fmt.Errorf("failed to create workspace: %w", err)
 	}
 	defer os.RemoveAll(workspaceDir)
 
-	// Write input files
+	// Write input files.
 	if err := cr.writeInputFiles(workspaceDir, req.InputFiles); err != nil {
 		return nil, fmt.Errorf("failed to write input files: %w", err)
 	}
 
-	// Create container command
+	// Create container command.
 	cmd, err := cr.createContainerCommand(ctx, req, workspaceDir, sandbox)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create container command: %w", err)
 	}
 
-	// Execute container
+	// Execute container.
 	return cr.runContainer(ctx, cmd, req, workspaceDir)
 }
 
 func (cr *ContainerRuntime) createContainerCommand(ctx context.Context, req *ContainerRequest, workspaceDir string, sandbox *Sandbox) (*exec.Cmd, error) {
 	args := []string{"run", "--rm"}
 
-	// Basic container settings
+	// Basic container settings.
 	args = append(args, "--name", fmt.Sprintf("krm-%s", req.RequestID))
 
-	// Resource limits
+	// Resource limits.
 	allocation := cr.resourceMgr.allocations[req.RequestID]
 	if allocation != nil {
 		if allocation.CPULimit != nil {
@@ -797,7 +797,7 @@ func (cr *ContainerRuntime) createContainerCommand(ctx context.Context, req *Con
 		}
 	}
 
-	// Security settings
+	// Security settings.
 	if cr.config.ReadOnlyRootFS {
 		args = append(args, "--read-only")
 	}
@@ -805,7 +805,7 @@ func (cr *ContainerRuntime) createContainerCommand(ctx context.Context, req *Con
 		args = append(args, "--security-opt", "no-new-privileges:true")
 	}
 
-	// User settings
+	// User settings.
 	if req.User != "" {
 		if req.Group != "" {
 			args = append(args, "--user", fmt.Sprintf("%s:%s", req.User, req.Group))
@@ -814,7 +814,7 @@ func (cr *ContainerRuntime) createContainerCommand(ctx context.Context, req *Con
 		}
 	}
 
-	// Capabilities
+	// Capabilities.
 	for _, cap := range cr.config.DroppedCapabilities {
 		args = append(args, "--cap-drop", cap)
 	}
@@ -822,14 +822,14 @@ func (cr *ContainerRuntime) createContainerCommand(ctx context.Context, req *Con
 		args = append(args, "--cap-add", cap)
 	}
 
-	// Network settings
+	// Network settings.
 	networkMode := req.NetworkMode
 	if networkMode == "" {
 		networkMode = cr.config.NetworkMode
 	}
 	args = append(args, "--network", networkMode)
 
-	// Volume mounts
+	// Volume mounts.
 	args = append(args, "--volume", fmt.Sprintf("%s:/workspace", workspaceDir))
 	args = append(args, "--workdir", "/workspace")
 
@@ -843,29 +843,29 @@ func (cr *ContainerRuntime) createContainerCommand(ctx context.Context, req *Con
 		}
 	}
 
-	// Environment variables
+	// Environment variables.
 	for key, value := range req.Environment {
 		args = append(args, "--env", fmt.Sprintf("%s=%s", key, value))
 	}
 
-	// Tmpfs mounts
+	// Tmpfs mounts.
 	for _, tmpfs := range req.TempFS {
 		args = append(args, "--tmpfs", tmpfs)
 	}
 
-	// Labels
+	// Labels.
 	for key, value := range req.Labels {
 		args = append(args, "--label", fmt.Sprintf("%s=%s", key, value))
 	}
 
-	// Container image
+	// Container image.
 	image := req.Image
 	if req.Tag != "" {
 		image = fmt.Sprintf("%s:%s", req.Image, req.Tag)
 	}
 	args = append(args, image)
 
-	// Command and arguments
+	// Command and arguments.
 	if len(req.Command) > 0 {
 		args = append(args, req.Command...)
 	}
@@ -873,7 +873,7 @@ func (cr *ContainerRuntime) createContainerCommand(ctx context.Context, req *Con
 		args = append(args, req.Args...)
 	}
 
-	// Create command
+	// Create command.
 	cmd := exec.CommandContext(ctx, cr.getRuntimeCommand(), args...)
 
 	return cmd, nil
@@ -882,7 +882,7 @@ func (cr *ContainerRuntime) createContainerCommand(ctx context.Context, req *Con
 func (cr *ContainerRuntime) runContainer(ctx context.Context, cmd *exec.Cmd, req *ContainerRequest, workspaceDir string) (*ContainerResponse, error) {
 	startTime := time.Now()
 
-	// Set up pipes
+	// Set up pipes.
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
@@ -892,7 +892,7 @@ func (cr *ContainerRuntime) runContainer(ctx context.Context, cmd *exec.Cmd, req
 		return nil, err
 	}
 
-	// Set up stdin if provided
+	// Set up stdin if provided.
 	if len(req.Stdin) > 0 {
 		stdin, err := cmd.StdinPipe()
 		if err != nil {
@@ -904,7 +904,7 @@ func (cr *ContainerRuntime) runContainer(ctx context.Context, cmd *exec.Cmd, req
 		}()
 	}
 
-	// Start container
+	// Start container.
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
@@ -912,7 +912,7 @@ func (cr *ContainerRuntime) runContainer(ctx context.Context, cmd *exec.Cmd, req
 	cr.metrics.ActiveContainers.Inc()
 	defer cr.metrics.ActiveContainers.Dec()
 
-	// Read output
+	// Read output.
 	var stdoutBuf, stderrBuf []byte
 	var wg sync.WaitGroup
 
@@ -930,7 +930,7 @@ func (cr *ContainerRuntime) runContainer(ctx context.Context, cmd *exec.Cmd, req
 		}
 	}()
 
-	// Wait for completion
+	// Wait for completion.
 	err = cmd.Wait()
 	wg.Wait()
 
@@ -945,13 +945,13 @@ func (cr *ContainerRuntime) runContainer(ctx context.Context, cmd *exec.Cmd, req
 		}
 	}
 
-	// Read output files
+	// Read output files.
 	outputFiles, err := cr.readOutputFiles(workspaceDir)
 	if err != nil {
 		log.FromContext(ctx).Error(err, "Failed to read output files")
 	}
 
-	// Get resource usage (simplified)
+	// Get resource usage (simplified).
 	cpuUsage, memoryUsage := cr.getResourceUsage(req.RequestID)
 
 	response := &ContainerResponse{
@@ -978,12 +978,12 @@ func (cr *ContainerRuntime) writeInputFiles(workspaceDir string, inputFiles map[
 	for filename, content := range inputFiles {
 		filePath := filepath.Join(workspaceDir, filename)
 
-		// Ensure directory exists
-		if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+		// Ensure directory exists.
+		if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
 			return err
 		}
 
-		if err := os.WriteFile(filePath, content, 0644); err != nil {
+		if err := os.WriteFile(filePath, content, 0o640); err != nil {
 			return err
 		}
 	}
@@ -1019,8 +1019,8 @@ func (cr *ContainerRuntime) readOutputFiles(workspaceDir string) (map[string][]b
 }
 
 func (cr *ContainerRuntime) getResourceUsage(containerID string) (*resource.Quantity, *resource.Quantity) {
-	// This would integrate with the container runtime to get actual resource usage
-	// For now, return placeholder values
+	// This would integrate with the container runtime to get actual resource usage.
+	// For now, return placeholder values.
 	cpu := resource.MustParse("100m")
 	memory := resource.MustParse("128Mi")
 	return &cpu, &memory
@@ -1056,7 +1056,7 @@ func (cr *ContainerRuntime) backgroundCleanup() {
 }
 
 func (cr *ContainerRuntime) performCleanup() {
-	// Cleanup old containers
+	// Cleanup old containers.
 	cr.containerMgr.mu.Lock()
 	for id, container := range cr.containerMgr.containers {
 		if time.Since(container.StartTime) > cr.config.CleanupInterval {
@@ -1065,7 +1065,7 @@ func (cr *ContainerRuntime) performCleanup() {
 	}
 	cr.containerMgr.mu.Unlock()
 
-	// Cleanup old sandboxes
+	// Cleanup old sandboxes.
 	cr.sandboxMgr.mu.Lock()
 	for id, sandbox := range cr.sandboxMgr.sandboxes {
 		if time.Since(sandbox.CreatedAt) > cr.config.CleanupInterval {
@@ -1075,7 +1075,7 @@ func (cr *ContainerRuntime) performCleanup() {
 	cr.sandboxMgr.mu.Unlock()
 }
 
-// Health returns runtime health status
+// Health returns runtime health status.
 func (cr *ContainerRuntime) Health() *ContainerRuntimeHealth {
 	cr.mu.RLock()
 	defer cr.mu.RUnlock()
@@ -1090,7 +1090,7 @@ func (cr *ContainerRuntime) Health() *ContainerRuntimeHealth {
 	}
 }
 
-// ContainerRuntimeHealth represents health status
+// ContainerRuntimeHealth represents health status.
 type ContainerRuntimeHealth struct {
 	Status              string    `json:"status"`
 	ActiveContainers    int       `json:"activeContainers"`
@@ -1100,12 +1100,12 @@ type ContainerRuntimeHealth struct {
 	LastHealthCheck     time.Time `json:"lastHealthCheck"`
 }
 
-// Shutdown gracefully shuts down the container runtime
+// Shutdown gracefully shuts down the container runtime.
 func (cr *ContainerRuntime) Shutdown(ctx context.Context) error {
 	logger := log.FromContext(ctx).WithName("container-runtime")
 	logger.Info("Shutting down container runtime")
 
-	// Stop all active containers
+	// Stop all active containers.
 	cr.containerMgr.mu.Lock()
 	for id, container := range cr.containerMgr.containers {
 		if container.Process != nil {
@@ -1115,7 +1115,7 @@ func (cr *ContainerRuntime) Shutdown(ctx context.Context) error {
 	}
 	cr.containerMgr.mu.Unlock()
 
-	// Cleanup sandboxes
+	// Cleanup sandboxes.
 	cr.sandboxMgr.mu.Lock()
 	for id := range cr.sandboxMgr.sandboxes {
 		delete(cr.sandboxMgr.sandboxes, id)
@@ -1126,7 +1126,7 @@ func (cr *ContainerRuntime) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// Helper functions
+// Helper functions.
 
 func validateContainerRuntimeConfig(config *ContainerRuntimeConfig) error {
 	if config.RuntimeType == "" {

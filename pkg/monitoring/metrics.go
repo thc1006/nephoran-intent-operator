@@ -12,34 +12,32 @@ import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-var (
-	// registrationOnce ensures metrics are only registered once
-	registrationOnce sync.Once
-)
+// registrationOnce ensures metrics are only registered once.
+var registrationOnce sync.Once
 
-// MetricsCollector handles all Prometheus metrics for the Nephoran Intent Operator
+// MetricsCollector handles all Prometheus metrics for the Nephoran Intent Operator.
 type MetricsCollector struct {
-	// NetworkIntent metrics
+	// NetworkIntent metrics.
 	NetworkIntentTotal       prometheus.Counter
 	NetworkIntentDuration    *prometheus.HistogramVec
 	NetworkIntentStatus      *prometheus.GaugeVec
 	NetworkIntentLLMDuration *prometheus.HistogramVec
 	NetworkIntentRetries     *prometheus.CounterVec
 
-	// E2NodeSet metrics
+	// E2NodeSet metrics.
 	E2NodeSetTotal             prometheus.Counter
 	E2NodeSetReplicas          *prometheus.GaugeVec
 	E2NodeSetReconcileDuration *prometheus.HistogramVec
 	E2NodeSetScalingEvents     *prometheus.CounterVec
 
-	// O-RAN Interface metrics
+	// O-RAN Interface metrics.
 	ORANInterfaceRequests *prometheus.CounterVec
 	ORANInterfaceDuration *prometheus.HistogramVec
 	ORANInterfaceErrors   *prometheus.CounterVec
 	ORANPolicyInstances   *prometheus.GaugeVec
 	ORANConnectionStatus  *prometheus.GaugeVec
 
-	// LLM and RAG metrics
+	// LLM and RAG metrics.
 	LLMRequestsTotal     prometheus.Counter
 	LLMRequestDuration   prometheus.Histogram
 	LLMTokensUsed        prometheus.Counter
@@ -48,25 +46,25 @@ type MetricsCollector struct {
 	RAGCacheMisses       prometheus.Counter
 	RAGDocumentsIndexed  prometheus.Gauge
 
-	// GitOps metrics
+	// GitOps metrics.
 	GitOpsPackagesGenerated prometheus.Counter
 	GitOpsCommitDuration    prometheus.Histogram
 	GitOpsErrors            *prometheus.CounterVec
 	GitOpsSyncStatus        *prometheus.GaugeVec
 	GitPushInFlight         prometheus.Gauge
 
-	// HTTP and SSE metrics
+	// HTTP and SSE metrics.
 	HTTPRequestDuration *prometheus.HistogramVec
 	SSEStreamDuration   *prometheus.HistogramVec
 
-	// System health metrics
+	// System health metrics.
 	ControllerHealthStatus *prometheus.GaugeVec
 	KubernetesAPILatency   prometheus.Histogram
 	ResourceUtilization    *prometheus.GaugeVec
 	WorkerQueueDepth       *prometheus.GaugeVec
 	WorkerQueueLatency     *prometheus.HistogramVec
 
-	// Weaviate Connection Pool metrics
+	// Weaviate Connection Pool metrics.
 	WeaviatePoolConnectionsCreated   prometheus.Counter
 	WeaviatePoolConnectionsDestroyed prometheus.Counter
 	WeaviatePoolActiveConnections    prometheus.Gauge
@@ -75,10 +73,10 @@ type MetricsCollector struct {
 	WeaviatePoolHealthChecksFailed   prometheus.Counter
 }
 
-// NewMetricsCollector creates a new metrics collector with all Prometheus metrics
+// NewMetricsCollector creates a new metrics collector with all Prometheus metrics.
 func NewMetricsCollector() *MetricsCollector {
 	mc := &MetricsCollector{
-		// NetworkIntent metrics
+		// NetworkIntent metrics.
 		NetworkIntentTotal: promauto.NewCounter(prometheus.CounterOpts{
 			Name: "nephoran_networkintent_total",
 			Help: "Total number of NetworkIntent resources processed",
@@ -106,7 +104,7 @@ func NewMetricsCollector() *MetricsCollector {
 			Help: "Total number of NetworkIntent processing retries",
 		}, []string{"name", "namespace", "reason"}),
 
-		// E2NodeSet metrics
+		// E2NodeSet metrics.
 		E2NodeSetTotal: promauto.NewCounter(prometheus.CounterOpts{
 			Name: "nephoran_e2nodeset_total",
 			Help: "Total number of E2NodeSet resources processed",
@@ -128,7 +126,7 @@ func NewMetricsCollector() *MetricsCollector {
 			Help: "Total number of E2NodeSet scaling events",
 		}, []string{"name", "namespace", "direction"}),
 
-		// O-RAN Interface metrics
+		// O-RAN Interface metrics.
 		ORANInterfaceRequests: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "nephoran_oran_interface_requests_total",
 			Help: "Total number of O-RAN interface requests",
@@ -155,7 +153,7 @@ func NewMetricsCollector() *MetricsCollector {
 			Help: "O-RAN interface connection status (0=disconnected, 1=connected)",
 		}, []string{"interface", "endpoint"}),
 
-		// LLM and RAG metrics
+		// LLM and RAG metrics.
 		LLMRequestsTotal: promauto.NewCounter(prometheus.CounterOpts{
 			Name: "nephoran_llm_requests_total",
 			Help: "Total number of LLM requests",
@@ -193,7 +191,7 @@ func NewMetricsCollector() *MetricsCollector {
 			Help: "Number of documents indexed in RAG knowledge base",
 		}),
 
-		// GitOps metrics
+		// GitOps metrics.
 		GitOpsPackagesGenerated: promauto.NewCounter(prometheus.CounterOpts{
 			Name: "nephoran_gitops_packages_generated_total",
 			Help: "Total number of GitOps packages generated",
@@ -220,7 +218,7 @@ func NewMetricsCollector() *MetricsCollector {
 			Help: "Number of git push operations currently in flight",
 		}),
 
-		// HTTP and SSE metrics
+		// HTTP and SSE metrics.
 		HTTPRequestDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
 			Name:    "nephoran_http_request_duration_seconds",
 			Help:    "Duration of HTTP requests",
@@ -233,7 +231,7 @@ func NewMetricsCollector() *MetricsCollector {
 			Buckets: []float64{0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10},
 		}, []string{"route"}),
 
-		// System health metrics
+		// System health metrics.
 		ControllerHealthStatus: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_controller_health_status",
 			Help: "Controller health status (0=unhealthy, 1=healthy)",
@@ -261,7 +259,7 @@ func NewMetricsCollector() *MetricsCollector {
 			Buckets: prometheus.DefBuckets,
 		}, []string{"queue_name"}),
 
-		// Weaviate Connection Pool metrics
+		// Weaviate Connection Pool metrics.
 		WeaviatePoolConnectionsCreated: promauto.NewCounter(prometheus.CounterOpts{
 			Name: "nephoran_weaviate_pool_connections_created_total",
 			Help: "Total number of Weaviate connections created in the pool",
@@ -293,8 +291,8 @@ func NewMetricsCollector() *MetricsCollector {
 		}),
 	}
 
-	// Register all metrics with controller-runtime metrics registry
-	// Use sync.Once to ensure metrics are only registered once
+	// Register all metrics with controller-runtime metrics registry.
+	// Use sync.Once to ensure metrics are only registered once.
 	registrationOnce.Do(func() {
 		metrics.Registry.MustRegister(
 			mc.NetworkIntentTotal,
@@ -342,15 +340,15 @@ func NewMetricsCollector() *MetricsCollector {
 	return mc
 }
 
-// Convenience methods for recording metrics
+// Convenience methods for recording metrics.
 
-// RecordNetworkIntentProcessed records a processed NetworkIntent
+// RecordNetworkIntentProcessed records a processed NetworkIntent.
 func (mc *MetricsCollector) RecordNetworkIntentProcessed(intentType, status string, duration time.Duration) {
 	mc.NetworkIntentTotal.Inc()
 	mc.NetworkIntentDuration.WithLabelValues(intentType, status).Observe(duration.Seconds())
 }
 
-// UpdateNetworkIntentStatus updates the status of a NetworkIntent
+// UpdateNetworkIntentStatus updates the status of a NetworkIntent.
 func (mc *MetricsCollector) UpdateNetworkIntentStatus(name, namespace, intentType, status string) {
 	var statusValue float64
 	switch status {
@@ -366,12 +364,12 @@ func (mc *MetricsCollector) UpdateNetworkIntentStatus(name, namespace, intentTyp
 	mc.NetworkIntentStatus.WithLabelValues(name, namespace, intentType).Set(statusValue)
 }
 
-// RecordNetworkIntentRetry records a NetworkIntent retry
+// RecordNetworkIntentRetry records a NetworkIntent retry.
 func (mc *MetricsCollector) RecordNetworkIntentRetry(name, namespace, reason string) {
 	mc.NetworkIntentRetries.WithLabelValues(name, namespace, reason).Inc()
 }
 
-// RecordLLMRequest records an LLM request
+// RecordLLMRequest records an LLM request.
 func (mc *MetricsCollector) RecordLLMRequest(model, status string, duration time.Duration, tokensUsed int) {
 	mc.LLMRequestsTotal.Inc()
 	mc.LLMRequestDuration.Observe(duration.Seconds())
@@ -379,34 +377,34 @@ func (mc *MetricsCollector) RecordLLMRequest(model, status string, duration time
 	mc.LLMTokensUsed.Add(float64(tokensUsed))
 }
 
-// RecordE2NodeSetOperation records an E2NodeSet operation
+// RecordE2NodeSetOperation records an E2NodeSet operation.
 func (mc *MetricsCollector) RecordE2NodeSetOperation(operation string, duration time.Duration) {
 	mc.E2NodeSetTotal.Inc()
 	mc.E2NodeSetReconcileDuration.WithLabelValues(operation).Observe(duration.Seconds())
 }
 
-// UpdateE2NodeSetReplicas updates E2NodeSet replica metrics
+// UpdateE2NodeSetReplicas updates E2NodeSet replica metrics.
 func (mc *MetricsCollector) UpdateE2NodeSetReplicas(name, namespace, replicaType string, count int) {
 	mc.E2NodeSetReplicas.WithLabelValues(name, namespace, replicaType).Set(float64(count))
 }
 
-// RecordE2NodeSetScaling records an E2NodeSet scaling event
+// RecordE2NodeSetScaling records an E2NodeSet scaling event.
 func (mc *MetricsCollector) RecordE2NodeSetScaling(name, namespace, direction string) {
 	mc.E2NodeSetScalingEvents.WithLabelValues(name, namespace, direction).Inc()
 }
 
-// RecordORANInterfaceRequest records an O-RAN interface request
+// RecordORANInterfaceRequest records an O-RAN interface request.
 func (mc *MetricsCollector) RecordORANInterfaceRequest(interfaceType, operation, status string, duration time.Duration) {
 	mc.ORANInterfaceRequests.WithLabelValues(interfaceType, operation, status).Inc()
 	mc.ORANInterfaceDuration.WithLabelValues(interfaceType, operation).Observe(duration.Seconds())
 }
 
-// RecordORANInterfaceError records an O-RAN interface error
+// RecordORANInterfaceError records an O-RAN interface error.
 func (mc *MetricsCollector) RecordORANInterfaceError(interfaceType, operation, errorType string) {
 	mc.ORANInterfaceErrors.WithLabelValues(interfaceType, operation, errorType).Inc()
 }
 
-// UpdateORANConnectionStatus updates O-RAN connection status
+// UpdateORANConnectionStatus updates O-RAN connection status.
 func (mc *MetricsCollector) UpdateORANConnectionStatus(interfaceType, endpoint string, connected bool) {
 	var status float64
 	if connected {
@@ -415,12 +413,12 @@ func (mc *MetricsCollector) UpdateORANConnectionStatus(interfaceType, endpoint s
 	mc.ORANConnectionStatus.WithLabelValues(interfaceType, endpoint).Set(status)
 }
 
-// UpdateORANPolicyInstances updates O-RAN policy instance count
+// UpdateORANPolicyInstances updates O-RAN policy instance count.
 func (mc *MetricsCollector) UpdateORANPolicyInstances(policyType, status string, count int) {
 	mc.ORANPolicyInstances.WithLabelValues(policyType, status).Set(float64(count))
 }
 
-// RecordRAGOperation records RAG operations
+// RecordRAGOperation records RAG operations.
 func (mc *MetricsCollector) RecordRAGOperation(duration time.Duration, cacheHit bool) {
 	mc.RAGRetrievalDuration.Observe(duration.Seconds())
 	if cacheHit {
@@ -430,12 +428,12 @@ func (mc *MetricsCollector) RecordRAGOperation(duration time.Duration, cacheHit 
 	}
 }
 
-// UpdateRAGDocumentsIndexed updates the count of indexed documents
+// UpdateRAGDocumentsIndexed updates the count of indexed documents.
 func (mc *MetricsCollector) UpdateRAGDocumentsIndexed(count int) {
 	mc.RAGDocumentsIndexed.Set(float64(count))
 }
 
-// RecordGitOpsOperation records GitOps operations
+// RecordGitOpsOperation records GitOps operations.
 func (mc *MetricsCollector) RecordGitOpsOperation(operation string, duration time.Duration, success bool) {
 	if operation == "package_generation" {
 		mc.GitOpsPackagesGenerated.Inc()
@@ -448,7 +446,7 @@ func (mc *MetricsCollector) RecordGitOpsOperation(operation string, duration tim
 	}
 }
 
-// UpdateGitOpsSyncStatus updates GitOps sync status
+// UpdateGitOpsSyncStatus updates GitOps sync status.
 func (mc *MetricsCollector) UpdateGitOpsSyncStatus(repository, branch string, inSync bool) {
 	var status float64
 	if inSync {
@@ -457,17 +455,17 @@ func (mc *MetricsCollector) UpdateGitOpsSyncStatus(repository, branch string, in
 	mc.GitOpsSyncStatus.WithLabelValues(repository, branch).Set(status)
 }
 
-// RecordHTTPRequest records HTTP request metrics
+// RecordHTTPRequest records HTTP request metrics.
 func (mc *MetricsCollector) RecordHTTPRequest(method, path, statusCode string, duration time.Duration) {
 	mc.HTTPRequestDuration.WithLabelValues(method, path, statusCode).Observe(duration.Seconds())
 }
 
-// RecordSSEStream records SSE stream connection metrics
+// RecordSSEStream records SSE stream connection metrics.
 func (mc *MetricsCollector) RecordSSEStream(route string, duration time.Duration) {
 	mc.SSEStreamDuration.WithLabelValues(route).Observe(duration.Seconds())
 }
 
-// UpdateControllerHealth updates controller health status
+// UpdateControllerHealth updates controller health status.
 func (mc *MetricsCollector) UpdateControllerHealth(controller, component string, healthy bool) {
 	var status float64
 	if healthy {
@@ -476,114 +474,114 @@ func (mc *MetricsCollector) UpdateControllerHealth(controller, component string,
 	mc.ControllerHealthStatus.WithLabelValues(controller, component).Set(status)
 }
 
-// RecordKubernetesAPILatency records Kubernetes API request latency
+// RecordKubernetesAPILatency records Kubernetes API request latency.
 func (mc *MetricsCollector) RecordKubernetesAPILatency(duration time.Duration) {
 	mc.KubernetesAPILatency.Observe(duration.Seconds())
 }
 
-// UpdateResourceUtilization updates resource utilization metrics
+// UpdateResourceUtilization updates resource utilization metrics.
 func (mc *MetricsCollector) UpdateResourceUtilization(resourceType, unit string, value float64) {
 	mc.ResourceUtilization.WithLabelValues(resourceType, unit).Set(value)
 }
 
-// UpdateWorkerQueueMetrics updates worker queue metrics
+// UpdateWorkerQueueMetrics updates worker queue metrics.
 func (mc *MetricsCollector) UpdateWorkerQueueMetrics(queueName string, depth int, latency time.Duration) {
 	mc.WorkerQueueDepth.WithLabelValues(queueName).Set(float64(depth))
 	mc.WorkerQueueLatency.WithLabelValues(queueName).Observe(latency.Seconds())
 }
 
-// Weaviate Connection Pool metrics methods
+// Weaviate Connection Pool metrics methods.
 
-// RecordWeaviatePoolConnectionCreated records a created connection
+// RecordWeaviatePoolConnectionCreated records a created connection.
 func (mc *MetricsCollector) RecordWeaviatePoolConnectionCreated() {
 	mc.WeaviatePoolConnectionsCreated.Inc()
 }
 
-// RecordWeaviatePoolConnectionDestroyed records a destroyed connection
+// RecordWeaviatePoolConnectionDestroyed records a destroyed connection.
 func (mc *MetricsCollector) RecordWeaviatePoolConnectionDestroyed() {
 	mc.WeaviatePoolConnectionsDestroyed.Inc()
 }
 
-// UpdateWeaviatePoolActiveConnections updates the active connections count
+// UpdateWeaviatePoolActiveConnections updates the active connections count.
 func (mc *MetricsCollector) UpdateWeaviatePoolActiveConnections(count int) {
 	mc.WeaviatePoolActiveConnections.Set(float64(count))
 }
 
-// UpdateWeaviatePoolSize updates the total pool size
+// UpdateWeaviatePoolSize updates the total pool size.
 func (mc *MetricsCollector) UpdateWeaviatePoolSize(size int) {
 	mc.WeaviatePoolSize.Set(float64(size))
 }
 
-// RecordWeaviatePoolHealthCheckPassed records a successful health check
+// RecordWeaviatePoolHealthCheckPassed records a successful health check.
 func (mc *MetricsCollector) RecordWeaviatePoolHealthCheckPassed() {
 	mc.WeaviatePoolHealthChecksPassed.Inc()
 }
 
-// RecordWeaviatePoolHealthCheckFailed records a failed health check
+// RecordWeaviatePoolHealthCheckFailed records a failed health check.
 func (mc *MetricsCollector) RecordWeaviatePoolHealthCheckFailed() {
 	mc.WeaviatePoolHealthChecksFailed.Inc()
 }
 
-// UpdateWeaviatePoolMetrics updates all pool metrics from pool metrics struct
+// UpdateWeaviatePoolMetrics updates all pool metrics from pool metrics struct.
 func (mc *MetricsCollector) UpdateWeaviatePoolMetrics(activeCount, totalCount int) {
 	mc.UpdateWeaviatePoolActiveConnections(activeCount)
 	mc.UpdateWeaviatePoolSize(totalCount)
 }
 
-// HealthChecker functionality moved to health_checks.go to avoid duplication
+// HealthChecker functionality moved to health_checks.go to avoid duplication.
 
-// RecordLLMRequestError records an LLM request error
+// RecordLLMRequestError records an LLM request error.
 func (mc *MetricsCollector) RecordLLMRequestError(serviceName, errorType string) {
-	// For backward compatibility, use existing counters
+	// For backward compatibility, use existing counters.
 	mc.LLMRequestsTotal.Inc()
 }
 
-// GetGauge returns a gauge metric for circuit breaker state
+// GetGauge returns a gauge metric for circuit breaker state.
 func (mc *MetricsCollector) GetGauge(name string) prometheus.Gauge {
-	// Return a dummy gauge for backward compatibility
+	// Return a dummy gauge for backward compatibility.
 	return prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: name,
 		Help: "Circuit breaker state gauge",
 	})
 }
 
-// GetHistogram returns a histogram metric
+// GetHistogram returns a histogram metric.
 func (mc *MetricsCollector) GetHistogram(name string) prometheus.Histogram {
-	// Return a dummy histogram for backward compatibility
+	// Return a dummy histogram for backward compatibility.
 	return prometheus.NewHistogram(prometheus.HistogramOpts{
 		Name: name,
 		Help: "Circuit breaker histogram",
 	})
 }
 
-// GetCounter returns a counter metric
+// GetCounter returns a counter metric.
 func (mc *MetricsCollector) GetCounter(name string) prometheus.Counter {
-	// Return a dummy counter for backward compatibility
+	// Return a dummy counter for backward compatibility.
 	return prometheus.NewCounter(prometheus.CounterOpts{
 		Name: name,
 		Help: "Circuit breaker counter",
 	})
 }
 
-// RecordCNFDeployment records a CNF deployment event
+// RecordCNFDeployment records a CNF deployment event.
 func (mc *MetricsCollector) RecordCNFDeployment(function nephoranv1.CNFFunction, duration time.Duration) {
-	// Create a counter if one doesn't exist
+	// Create a counter if one doesn't exist.
 	if mc.E2NodeSetTotal != nil {
 		mc.E2NodeSetTotal.Inc()
 	}
 }
 
-// RecordCNFDeletion records a CNF deletion event
+// RecordCNFDeletion records a CNF deletion event.
 func (mc *MetricsCollector) RecordCNFDeletion(function nephoranv1.CNFFunction, duration time.Duration) {
-	// Record deletion metrics - for now just increment the counter
+	// Record deletion metrics - for now just increment the counter.
 	if mc.E2NodeSetTotal != nil {
 		mc.E2NodeSetTotal.Inc()
 	}
 }
 
-// RecordCNFHealthCheck records a CNF health check result
+// RecordCNFHealthCheck records a CNF health check result.
 func (mc *MetricsCollector) RecordCNFHealthCheck(function nephoranv1.CNFFunction, status string) {
-	// Record health check metrics - for now use existing counter
+	// Record health check metrics - for now use existing counter.
 	if mc.E2NodeSetTotal != nil {
 		mc.E2NodeSetTotal.Inc()
 	}

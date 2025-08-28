@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	// Metrics for self-healing operations
+	// Metrics for self-healing operations.
 	healingOperations = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "nephoran_self_healing_operations_total",
 		Help: "Total number of self-healing operations performed",
@@ -37,7 +37,7 @@ var (
 	}, []string{"type", "severity", "component"})
 )
 
-// SelfHealingManager manages autonomous system recovery and optimization
+// SelfHealingManager manages autonomous system recovery and optimization.
 type SelfHealingManager struct {
 	mu                   sync.RWMutex
 	config               *SelfHealingConfig
@@ -53,7 +53,7 @@ type SelfHealingManager struct {
 	stopCh               chan struct{}
 }
 
-// SelfHealingConfig defines self-healing configuration
+// SelfHealingConfig defines self-healing configuration.
 type SelfHealingConfig struct {
 	Enabled                   bool                        `json:"enabled"`
 	MonitoringInterval        time.Duration               `json:"monitoring_interval"`
@@ -69,7 +69,7 @@ type SelfHealingConfig struct {
 	LearningEnabled           bool                        `json:"learning_enabled"`
 }
 
-// ComponentConfig defines component-specific healing configuration
+// ComponentConfig defines component-specific healing configuration.
 type ComponentConfig struct {
 	Name                  string                 `json:"name"`
 	HealthCheckEndpoint   string                 `json:"health_check_endpoint"`
@@ -86,7 +86,7 @@ type ComponentConfig struct {
 	PerformanceThresholds *PerformanceThresholds `json:"performance_thresholds"`
 }
 
-// CustomRemediation defines custom remediation actions
+// CustomRemediation defines custom remediation actions.
 type CustomRemediation struct {
 	Name        string                  `json:"name"`
 	Trigger     string                  `json:"trigger"` // HEALTH_CHECK_FAILURE, HIGH_ERROR_RATE, etc.
@@ -97,6 +97,7 @@ type CustomRemediation struct {
 	RetryPolicy *RetryPolicy            `json:"retry_policy"`
 }
 
+// RemediationCondition represents a remediationcondition.
 type RemediationCondition struct {
 	Metric    string        `json:"metric"`
 	Operator  string        `json:"operator"` // GT, LT, EQ, NE
@@ -104,6 +105,7 @@ type RemediationCondition struct {
 	Duration  time.Duration `json:"duration"`
 }
 
+// RetryPolicy represents a retrypolicy.
 type RetryPolicy struct {
 	MaxAttempts       int           `json:"max_attempts"`
 	InitialDelay      time.Duration `json:"initial_delay"`
@@ -111,12 +113,14 @@ type RetryPolicy struct {
 	BackoffMultiplier float64       `json:"backoff_multiplier"`
 }
 
+// ResourceLimits represents a resourcelimits.
 type ResourceLimits struct {
 	MaxCPU    string `json:"max_cpu"`
 	MaxMemory string `json:"max_memory"`
 	MaxDisk   string `json:"max_disk"`
 }
 
+// PerformanceThresholds represents a performancethresholds.
 type PerformanceThresholds struct {
 	MaxLatency    time.Duration `json:"max_latency"`
 	MaxErrorRate  float64       `json:"max_error_rate"`
@@ -124,7 +128,7 @@ type PerformanceThresholds struct {
 	MaxQueueDepth int64         `json:"max_queue_depth"`
 }
 
-// HealthMonitor continuously monitors system health
+// HealthMonitor continuously monitors system health.
 type HealthMonitor struct {
 	mu             sync.RWMutex
 	config         *SelfHealingConfig
@@ -135,7 +139,7 @@ type HealthMonitor struct {
 	alertManager   *AlertManager
 }
 
-// ComponentHealthChecker monitors individual component health
+// ComponentHealthChecker monitors individual component health.
 type ComponentHealthChecker struct {
 	component           *ComponentConfig
 	lastCheck           time.Time
@@ -145,16 +149,21 @@ type ComponentHealthChecker struct {
 	restartHistory      []*RestartEvent
 }
 
+// HealthStatus represents a healthstatus.
 type HealthStatus string
 
 const (
-	HealthStatusHealthy   HealthStatus = "HEALTHY"
-	HealthStatusDegraded  HealthStatus = "DEGRADED"
+	// HealthStatusHealthy holds healthstatushealthy value.
+	HealthStatusHealthy HealthStatus = "HEALTHY"
+	// HealthStatusDegraded holds healthstatusdegraded value.
+	HealthStatusDegraded HealthStatus = "DEGRADED"
+	// HealthStatusUnhealthy holds healthstatusunhealthy value.
 	HealthStatusUnhealthy HealthStatus = "UNHEALTHY"
-	HealthStatusCritical  HealthStatus = "CRITICAL"
+	// HealthStatusCritical holds healthstatuscritical value.
+	HealthStatusCritical HealthStatus = "CRITICAL"
 )
 
-// FailurePrediction uses ML models to predict system failures
+// FailurePrediction uses ML models to predict system failures.
 type FailurePrediction struct {
 	mu                   sync.RWMutex
 	config               *SelfHealingConfig
@@ -166,6 +175,7 @@ type FailurePrediction struct {
 	predictionAccuracy   map[string]float64
 }
 
+// PredictionModel represents a predictionmodel.
 type PredictionModel struct {
 	Name             string             `json:"name"`
 	Component        string             `json:"component"`
@@ -177,8 +187,9 @@ type PredictionModel struct {
 	Thresholds       map[string]float64 `json:"thresholds"`
 }
 
-// AutomatedRemediation is defined in automated_remediation.go
+// AutomatedRemediation is defined in automated_remediation.go.
 
+// RemediationSession represents a remediationsession.
 type RemediationSession struct {
 	ID           string                 `json:"id"`
 	Component    string                 `json:"component"`
@@ -192,6 +203,7 @@ type RemediationSession struct {
 	RollbackPlan *RollbackPlan          `json:"rollback_plan,omitempty"`
 }
 
+// RemediationAction represents a remediationaction.
 type RemediationAction struct {
 	Type       string                 `json:"type"`
 	Target     string                 `json:"target"`
@@ -203,6 +215,7 @@ type RemediationAction struct {
 	Error      string                 `json:"error,omitempty"`
 }
 
+// RemediationStrategy represents a remediationstrategy.
 type RemediationStrategy struct {
 	Name        string                       `json:"name"`
 	Conditions  []*RemediationCondition      `json:"conditions"`
@@ -213,6 +226,7 @@ type RemediationStrategy struct {
 	SuccessRate float64                      `json:"success_rate"`
 }
 
+// RemediationActionTemplate represents a remediationactiontemplate.
 type RemediationActionTemplate struct {
 	Type        string                 `json:"type"`
 	Template    string                 `json:"template"`
@@ -221,7 +235,7 @@ type RemediationActionTemplate struct {
 	RetryPolicy *RetryPolicy           `json:"retry_policy"`
 }
 
-// Supporting types
+// Supporting types.
 type SystemHealthMetrics struct {
 	OverallHealth       HealthStatus            `json:"overall_health"`
 	ComponentHealth     map[string]HealthStatus `json:"component_health"`
@@ -233,6 +247,7 @@ type SystemHealthMetrics struct {
 	PerformanceMetrics  map[string]float64      `json:"performance_metrics"`
 }
 
+// ComponentMetrics represents a componentmetrics.
 type ComponentMetrics struct {
 	ResponseTime time.Duration `json:"response_time"`
 	ErrorRate    float64       `json:"error_rate"`
@@ -243,6 +258,7 @@ type ComponentMetrics struct {
 	LastRestart  *time.Time    `json:"last_restart,omitempty"`
 }
 
+// RestartEvent represents a restartevent.
 type RestartEvent struct {
 	Timestamp time.Time     `json:"timestamp"`
 	Reason    string        `json:"reason"`
@@ -250,6 +266,7 @@ type RestartEvent struct {
 	Duration  time.Duration `json:"duration"`
 }
 
+// SelfHealingMetrics represents a selfhealingmetrics.
 type SelfHealingMetrics struct {
 	TotalHealingOperations      int64              `json:"total_healing_operations"`
 	SuccessfulHealingOperations int64              `json:"successful_healing_operations"`
@@ -260,13 +277,13 @@ type SelfHealingMetrics struct {
 	MTBF                        time.Duration      `json:"mtbf"` // Mean Time Between Failures
 }
 
-// NewSelfHealingManager creates a new self-healing manager
+// NewSelfHealingManager creates a new self-healing manager.
 func NewSelfHealingManager(config *SelfHealingConfig, k8sClient kubernetes.Interface, ctrlClient client.Client, logger *slog.Logger) (*SelfHealingManager, error) {
 	if config == nil {
 		return nil, fmt.Errorf("self-healing configuration is required")
 	}
 
-	// Set defaults
+	// Set defaults.
 	if config.MonitoringInterval == 0 {
 		config.MonitoringInterval = 30 * time.Second
 	}
@@ -289,14 +306,14 @@ func NewSelfHealingManager(config *SelfHealingConfig, k8sClient kubernetes.Inter
 		metrics:    &SelfHealingMetrics{},
 	}
 
-	// Initialize health monitor
+	// Initialize health monitor.
 	healthMonitor, err := NewHealthMonitor(config, k8sClient, logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create health monitor: %w", err)
 	}
 	manager.healthMonitor = healthMonitor
 
-	// Initialize failure prediction
+	// Initialize failure prediction.
 	if config.PredictiveAnalysisEnabled {
 		failurePrediction, err := NewFailurePrediction(config, logger)
 		if err != nil {
@@ -305,7 +322,7 @@ func NewSelfHealingManager(config *SelfHealingConfig, k8sClient kubernetes.Inter
 		manager.failurePrediction = failurePrediction
 	}
 
-	// Initialize automated remediation
+	// Initialize automated remediation.
 	if config.AutoRemediationEnabled {
 		automatedRemediation, err := NewAutomatedRemediation(config, k8sClient, ctrlClient, logger)
 		if err != nil {
@@ -314,7 +331,7 @@ func NewSelfHealingManager(config *SelfHealingConfig, k8sClient kubernetes.Inter
 		manager.automatedRemediation = automatedRemediation
 	}
 
-	// Initialize alert manager
+	// Initialize alert manager.
 	if config.NotificationConfig != nil {
 		alertManager, err := NewAlertManager(config.NotificationConfig, logger)
 		if err != nil {
@@ -327,7 +344,7 @@ func NewSelfHealingManager(config *SelfHealingConfig, k8sClient kubernetes.Inter
 	return manager, nil
 }
 
-// Start starts the self-healing manager
+// Start starts the self-healing manager.
 func (shm *SelfHealingManager) Start(ctx context.Context) error {
 	shm.mu.Lock()
 	defer shm.mu.Unlock()
@@ -343,20 +360,20 @@ func (shm *SelfHealingManager) Start(ctx context.Context) error {
 
 	shm.logger.Info("Starting self-healing manager")
 
-	// Start health monitoring
+	// Start health monitoring.
 	go shm.healthMonitor.Start(ctx)
 
-	// Start failure prediction if enabled
+	// Start failure prediction if enabled.
 	if shm.failurePrediction != nil {
 		go shm.failurePrediction.Start(ctx)
 	}
 
-	// Start automated remediation if enabled
+	// Start automated remediation if enabled.
 	if shm.automatedRemediation != nil {
 		go shm.automatedRemediation.Start(ctx)
 	}
 
-	// Start main self-healing loop
+	// Start main self-healing loop.
 	go shm.run(ctx)
 
 	shm.running = true
@@ -365,7 +382,7 @@ func (shm *SelfHealingManager) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the self-healing manager
+// Stop stops the self-healing manager.
 func (shm *SelfHealingManager) Stop() {
 	shm.mu.Lock()
 	defer shm.mu.Unlock()
@@ -379,7 +396,7 @@ func (shm *SelfHealingManager) Stop() {
 	shm.running = false
 }
 
-// run executes the main self-healing loop
+// run executes the main self-healing loop.
 func (shm *SelfHealingManager) run(ctx context.Context) {
 	ticker := time.NewTicker(shm.config.MonitoringInterval)
 	defer ticker.Stop()
@@ -396,7 +413,7 @@ func (shm *SelfHealingManager) run(ctx context.Context) {
 	}
 }
 
-// performHealthCheck performs comprehensive health check and initiates healing if needed
+// performHealthCheck performs comprehensive health check and initiates healing if needed.
 func (shm *SelfHealingManager) performHealthCheck(ctx context.Context) {
 	start := time.Now()
 	defer func() {
@@ -405,13 +422,13 @@ func (shm *SelfHealingManager) performHealthCheck(ctx context.Context) {
 
 	shm.logger.Debug("Performing system health check")
 
-	// Get current system health
+	// Get current system health.
 	systemHealth := shm.healthMonitor.GetSystemHealth()
 
-	// Update metrics
+	// Update metrics.
 	shm.updateHealthMetrics(systemHealth)
 
-	// Check for components requiring healing
+	// Check for components requiring healing.
 	for component, health := range systemHealth.ComponentHealth {
 		if health == HealthStatusUnhealthy || health == HealthStatusCritical {
 			shm.logger.Warn("Unhealthy component detected", "component", component, "status", health)
@@ -428,7 +445,7 @@ func (shm *SelfHealingManager) performHealthCheck(ctx context.Context) {
 		}
 	}
 
-	// Check predictive failures
+	// Check predictive failures.
 	if shm.failurePrediction != nil {
 		predictions := shm.failurePrediction.GetFailureProbabilities()
 		for component, probability := range predictions {
@@ -436,7 +453,7 @@ func (shm *SelfHealingManager) performHealthCheck(ctx context.Context) {
 				shm.logger.Warn("High failure probability detected",
 					"component", component, "probability", probability)
 
-				// Proactive remediation
+				// Proactive remediation.
 				if shm.automatedRemediation != nil {
 					err := shm.automatedRemediation.InitiatePreventiveRemediation(ctx, component, probability)
 					if err != nil {
@@ -449,7 +466,7 @@ func (shm *SelfHealingManager) performHealthCheck(ctx context.Context) {
 	}
 }
 
-// updateHealthMetrics updates system health metrics
+// updateHealthMetrics updates system health metrics.
 func (shm *SelfHealingManager) updateHealthMetrics(health *SystemHealthMetrics) {
 	for component, status := range health.ComponentHealth {
 		var healthValue float64
@@ -467,12 +484,12 @@ func (shm *SelfHealingManager) updateHealthMetrics(health *SystemHealthMetrics) 
 	}
 }
 
-// GetSystemHealth returns current system health status
+// GetSystemHealth returns current system health status.
 func (shm *SelfHealingManager) GetSystemHealth() *SystemHealthMetrics {
 	return shm.healthMonitor.GetSystemHealth()
 }
 
-// GetRemediationStatus returns status of active remediations
+// GetRemediationStatus returns status of active remediations.
 func (shm *SelfHealingManager) GetRemediationStatus() map[string]*RemediationSession {
 	if shm.automatedRemediation == nil {
 		return make(map[string]*RemediationSession)
@@ -480,7 +497,7 @@ func (shm *SelfHealingManager) GetRemediationStatus() map[string]*RemediationSes
 	return shm.automatedRemediation.GetActiveRemediations()
 }
 
-// GetMetrics returns self-healing metrics
+// GetMetrics returns self-healing metrics.
 func (shm *SelfHealingManager) GetMetrics() *SelfHealingMetrics {
 	shm.mu.RLock()
 	defer shm.mu.RUnlock()
@@ -489,7 +506,7 @@ func (shm *SelfHealingManager) GetMetrics() *SelfHealingMetrics {
 	return &metrics
 }
 
-// ForceHealing manually triggers healing for a specific component
+// ForceHealing manually triggers healing for a specific component.
 func (shm *SelfHealingManager) ForceHealing(ctx context.Context, component string, reason string) error {
 	shm.logger.Info("Forcing healing for component", "component", component, "reason", reason)
 

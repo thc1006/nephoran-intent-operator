@@ -1,5 +1,5 @@
 //go:build !disable_rag
-// +build !disable_rag
+// +build !disable_rag.
 
 package llm
 
@@ -17,7 +17,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// OptimizedLLMResponse represents the response from LLM processing
+// OptimizedLLMResponse represents the response from LLM processing.
 type OptimizedLLMResponse struct {
 	Content        string
 	ProcessingTime time.Duration
@@ -27,58 +27,58 @@ type OptimizedLLMResponse struct {
 	Optimizations  []string
 }
 
-// OptimizedControllerIntegration provides drop-in replacement for the LLM processing phase
-// with 30%+ latency reduction and 60% CPU optimization
+// OptimizedControllerIntegration provides drop-in replacement for the LLM processing phase.
+// with 30%+ latency reduction and 60% CPU optimization.
 type OptimizedControllerIntegration struct {
-	// Core optimized components
+	// Core optimized components.
 	httpClient     *OptimizedHTTPClient
 	cache          *IntelligentCache
 	workerPool     *WorkerPool
 	batchProcessor BatchProcessor
 
-	// JSON optimization
+	// JSON optimization.
 	jsonProcessor *FastJSONProcessor
 	responsePool  sync.Pool
 	bufferPool    sync.Pool
 
-	// Configuration
+	// Configuration.
 	config *OptimizedControllerConfig
 
-	// Monitoring
+	// Monitoring.
 	metrics *ControllerMetrics
 	tracer  trace.Tracer
 	logger  *slog.Logger
 
-	// State management
+	// State management.
 	state      ControllerState
 	stateMutex sync.RWMutex
 }
 
-// OptimizedControllerConfig holds optimization configuration
+// OptimizedControllerConfig holds optimization configuration.
 type OptimizedControllerConfig struct {
-	// HTTP client optimization
+	// HTTP client optimization.
 	HTTPClientConfig *OptimizedClientConfig `json:"http_client"`
 
-	// Cache optimization
+	// Cache optimization.
 	CacheConfig *IntelligentCacheConfig `json:"cache"`
 
-	// Worker pool optimization
+	// Worker pool optimization.
 	WorkerPoolConfig *WorkerPoolConfig `json:"worker_pool"`
 
-	// Batch processing
+	// Batch processing.
 	BatchConfig *BatchProcessorConfig `json:"batch_processor"`
 
-	// JSON processing optimization
+	// JSON processing optimization.
 	JSONOptimization JSONOptimizationConfig `json:"json_optimization"`
 
-	// Performance tuning
+	// Performance tuning.
 	PerformanceTuning PerformanceTuningConfig `json:"performance_tuning"`
 
-	// Monitoring
+	// Monitoring.
 	MonitoringConfig MonitoringConfig `json:"monitoring"`
 }
 
-// JSONOptimizationConfig holds JSON processing optimizations
+// JSONOptimizationConfig holds JSON processing optimizations.
 type JSONOptimizationConfig struct {
 	UseUnsafeOperations     bool `json:"use_unsafe_operations"`
 	PreallocateBuffers      bool `json:"preallocate_buffers"`
@@ -87,7 +87,7 @@ type JSONOptimizationConfig struct {
 	EnableZeroCopyParsing   bool `json:"enable_zero_copy_parsing"`
 }
 
-// PerformanceTuningConfig holds general performance tuning settings
+// PerformanceTuningConfig holds general performance tuning settings.
 type PerformanceTuningConfig struct {
 	EnableGoroutineReuse bool        `json:"enable_goroutine_reuse"`
 	MemoryPooling        bool        `json:"memory_pooling"`
@@ -97,22 +97,22 @@ type PerformanceTuningConfig struct {
 	MemoryOptimization   MemOptLevel `json:"memory_optimization"`
 }
 
-// FastJSONProcessor provides optimized JSON operations
+// FastJSONProcessor provides optimized JSON operations.
 type FastJSONProcessor struct {
-	// Buffer pools for different sizes
+	// Buffer pools for different sizes.
 	smallBufferPool  sync.Pool // < 4KB
 	mediumBufferPool sync.Pool // 4KB - 64KB
 	largeBufferPool  sync.Pool // > 64KB
 
-	// Parser pools
+	// Parser pools.
 	parserPool  sync.Pool
 	encoderPool sync.Pool
 
-	// Optimization settings
+	// Optimization settings.
 	useUnsafe       bool
 	zeroCopyEnabled bool
 
-	// Performance tracking
+	// Performance tracking.
 	processedBytes int64
 	parseTime      time.Duration
 	encodeTime     time.Duration
@@ -120,47 +120,47 @@ type FastJSONProcessor struct {
 	mutex sync.RWMutex
 }
 
-// ControllerMetrics tracks optimized controller performance
+// ControllerMetrics tracks optimized controller performance.
 type ControllerMetrics struct {
-	// Latency improvements
+	// Latency improvements.
 	BaselineP99Latency  time.Duration
 	OptimizedP99Latency time.Duration
 	LatencyReduction    float64
 
-	// CPU optimization
+	// CPU optimization.
 	BaselineCPUUsage  float64
 	OptimizedCPUUsage float64
 	CPUReduction      float64
 
-	// Memory optimization
+	// Memory optimization.
 	BaselineMemoryUsage  int64
 	OptimizedMemoryUsage int64
 	MemoryReduction      float64
 
-	// Throughput improvements
+	// Throughput improvements.
 	BaselineThroughput    float64
 	OptimizedThroughput   float64
 	ThroughputImprovement float64
 
-	// Cache performance
+	// Cache performance.
 	CacheHitRate float64
 	CacheLatency time.Duration
 
-	// Batch processing efficiency
+	// Batch processing efficiency.
 	BatchingEfficiency float64
 	AverageBatchSize   float64
 
-	// Connection reuse
+	// Connection reuse.
 	ConnectionReuseRate float64
 
-	// JSON processing
+	// JSON processing.
 	JSONProcessingSpeedup float64
 	ZeroCopyUsage         float64
 
 	mutex sync.RWMutex
 }
 
-// NewOptimizedControllerIntegration creates the optimized controller
+// NewOptimizedControllerIntegration creates the optimized controller.
 func NewOptimizedControllerIntegration(config *OptimizedControllerConfig) (*OptimizedControllerIntegration, error) {
 	if config == nil {
 		config = getDefaultOptimizedControllerConfig()
@@ -169,26 +169,26 @@ func NewOptimizedControllerIntegration(config *OptimizedControllerConfig) (*Opti
 	logger := slog.Default().With("component", "optimized-controller")
 	tracer := otel.Tracer("nephoran-intent-operator/optimized-controller")
 
-	// Create optimized HTTP client
+	// Create optimized HTTP client.
 	httpClient, err := NewOptimizedHTTPClient(config.HTTPClientConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create optimized HTTP client: %w", err)
 	}
 
-	// Create intelligent cache
+	// Create intelligent cache.
 	cache, err := NewIntelligentCache(config.CacheConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create intelligent cache: %w", err)
 	}
 
-	// Create worker pool
+	// Create worker pool.
 	workerPool, err := NewWorkerPool(config.WorkerPoolConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create worker pool: %w", err)
 	}
 
-	// Create batch processor
-	// Create batch processor with default config
+	// Create batch processor.
+	// Create batch processor with default config.
 	batchConfig := BatchConfig{
 		MaxBatchSize:         10,
 		BatchTimeout:         100 * time.Millisecond,
@@ -197,7 +197,7 @@ func NewOptimizedControllerIntegration(config *OptimizedControllerConfig) (*Opti
 	}
 	batchProcessor := NewBatchProcessor(batchConfig)
 
-	// Create JSON processor
+	// Create JSON processor.
 	jsonProcessor := NewFastJSONProcessor(config.JSONOptimization)
 
 	controller := &OptimizedControllerIntegration{
@@ -212,7 +212,7 @@ func NewOptimizedControllerIntegration(config *OptimizedControllerConfig) (*Opti
 		logger:         logger,
 		state:          ControllerStateActive,
 
-		// Initialize pools
+		// Initialize pools.
 		responsePool: sync.Pool{
 			New: func() interface{} {
 				return &OptimizedLLMResponse{}
@@ -225,7 +225,7 @@ func NewOptimizedControllerIntegration(config *OptimizedControllerConfig) (*Opti
 		},
 	}
 
-	// Start monitoring
+	// Start monitoring.
 	if config.MonitoringConfig.Enabled {
 		go controller.monitoringRoutine()
 	}
@@ -241,14 +241,13 @@ func NewOptimizedControllerIntegration(config *OptimizedControllerConfig) (*Opti
 	return controller, nil
 }
 
-// ProcessLLMPhaseOptimized is the drop-in replacement for processLLMPhase
+// ProcessLLMPhaseOptimized is the drop-in replacement for processLLMPhase.
 func (oci *OptimizedControllerIntegration) ProcessLLMPhaseOptimized(
 	ctx context.Context,
 	intent string,
 	parameters map[string]interface{},
 	intentType string,
 ) (*OptimizedLLMResponse, error) {
-
 	start := time.Now()
 	ctx, span := oci.tracer.Start(ctx, "optimized_controller.process_llm_phase")
 	defer span.End()
@@ -259,13 +258,13 @@ func (oci *OptimizedControllerIntegration) ProcessLLMPhaseOptimized(
 		attribute.String("optimization.level", "full"),
 	)
 
-	// Get response from pool
+	// Get response from pool.
 	response := &OptimizedResponse{
 		Metadata: make(map[string]interface{}),
 	}
 	defer oci.putResponse(response)
 
-	// Step 1: Check intelligent cache first
+	// Step 1: Check intelligent cache first.
 	cacheKey := oci.generateOptimizedCacheKey(intent, parameters)
 	if cachedResult, found, err := oci.cache.Get(ctx, cacheKey); found && err == nil {
 		response.Content = cachedResult.(string)
@@ -282,7 +281,7 @@ func (oci *OptimizedControllerIntegration) ProcessLLMPhaseOptimized(
 		return oci.cloneResponse(response), nil
 	}
 
-	// Step 2: Use batch processing for efficiency
+	// Step 2: Use batch processing for efficiency.
 	if oci.config.BatchConfig != nil && len(intent) < 10000 { // Batch suitable requests
 		batchResponse, err := oci.batchProcessor.ProcessRequest(
 			ctx, intent, intentType, "gpt-4o-mini", PriorityNormal,
@@ -294,7 +293,7 @@ func (oci *OptimizedControllerIntegration) ProcessLLMPhaseOptimized(
 			response.ProcessingTime = time.Since(start)
 			response.TokensUsed = 100 // Estimated token count
 
-			// Cache the result
+			// Cache the result.
 			oci.cache.Set(ctx, cacheKey, response.Content)
 
 			oci.updateMetrics("batch_success", response.ProcessingTime)
@@ -308,7 +307,7 @@ func (oci *OptimizedControllerIntegration) ProcessLLMPhaseOptimized(
 		}
 	}
 
-	// Step 3: Use worker pool for parallel processing
+	// Step 3: Use worker pool for parallel processing.
 	task := &Task{
 		ID:         generateTaskID(),
 		Type:       TaskTypeLLMProcessing,
@@ -319,40 +318,39 @@ func (oci *OptimizedControllerIntegration) ProcessLLMPhaseOptimized(
 		CreatedAt:  time.Now(),
 	}
 
-	// Submit to worker pool
+	// Submit to worker pool.
 	if err := oci.workerPool.Submit(task); err != nil {
 		span.SetAttributes(attribute.String("error", "worker_pool_submit_failed"))
 		return nil, fmt.Errorf("failed to submit to worker pool: %w", err)
 	}
 
-	// For now, fallback to direct optimized processing instead of waiting
-	// TODO: Implement proper async result handling from worker pool
+	// For now, fallback to direct optimized processing instead of waiting.
+	// TODO: Implement proper async result handling from worker pool.
 	return oci.processDirectOptimized(ctx, intent, parameters, intentType)
 }
 
-// processDirectOptimized handles direct processing with all optimizations
+// processDirectOptimized handles direct processing with all optimizations.
 func (oci *OptimizedControllerIntegration) processDirectOptimized(
 	ctx context.Context,
 	intent string,
 	parameters map[string]interface{},
 	intentType string,
 ) (*OptimizedLLMResponse, error) {
-
 	start := time.Now()
 
-	// Build optimized request
+	// Build optimized request.
 	request, err := oci.buildOptimizedRequest(intent, parameters, intentType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build request: %w", err)
 	}
 
-	// Process with optimized HTTP client
+	// Process with optimized HTTP client.
 	httpResponse, err := oci.httpClient.ProcessLLMRequest(ctx, request)
 	if err != nil {
 		return nil, fmt.Errorf("HTTP processing failed: %w", err)
 	}
 
-	// Parse response with optimized JSON processing
+	// Parse response with optimized JSON processing.
 	result, err := oci.jsonProcessor.ParseLLMResponse(httpResponse.Content)
 	if err != nil {
 		return nil, fmt.Errorf("JSON parsing failed: %w", err)
@@ -367,7 +365,7 @@ func (oci *OptimizedControllerIntegration) processDirectOptimized(
 		Optimizations:  []string{"http_pooling", "json_optimization", "memory_pooling"},
 	}
 
-	// Cache the result
+	// Cache the result.
 	cacheKey := oci.generateOptimizedCacheKey(intent, parameters)
 	oci.cache.Set(ctx, cacheKey, result)
 
@@ -376,18 +374,17 @@ func (oci *OptimizedControllerIntegration) processDirectOptimized(
 	return response, nil
 }
 
-// buildOptimizedRequest creates an optimized LLM request
+// buildOptimizedRequest creates an optimized LLM request.
 func (oci *OptimizedControllerIntegration) buildOptimizedRequest(
 	intent string,
 	parameters map[string]interface{},
 	intentType string,
 ) (*LLMRequest, error) {
-
-	// Use buffer pool for JSON marshaling
+	// Use buffer pool for JSON marshaling.
 	buf := oci.bufferPool.Get().([]byte)
 	defer oci.bufferPool.Put(buf[:0])
 
-	// Build optimized payload
+	// Build optimized payload.
 	payload := map[string]interface{}{
 		"model": "gpt-4o-mini",
 		"messages": []map[string]string{
@@ -416,13 +413,13 @@ func (oci *OptimizedControllerIntegration) buildOptimizedRequest(
 	}, nil
 }
 
-// NewFastJSONProcessor creates an optimized JSON processor
+// NewFastJSONProcessor creates an optimized JSON processor.
 func NewFastJSONProcessor(config JSONOptimizationConfig) *FastJSONProcessor {
 	processor := &FastJSONProcessor{
 		useUnsafe:       config.UseUnsafeOperations,
 		zeroCopyEnabled: config.EnableZeroCopyParsing,
 
-		// Initialize buffer pools
+		// Initialize buffer pools.
 		smallBufferPool: sync.Pool{
 			New: func() interface{} {
 				return make([]byte, 0, 4*1024) // 4KB
@@ -443,7 +440,7 @@ func NewFastJSONProcessor(config JSONOptimizationConfig) *FastJSONProcessor {
 	return processor
 }
 
-// ParseLLMResponse parses LLM response with optimization
+// ParseLLMResponse parses LLM response with optimization.
 func (fjp *FastJSONProcessor) ParseLLMResponse(responseData string) (string, error) {
 	start := time.Now()
 	defer func() {
@@ -453,12 +450,12 @@ func (fjp *FastJSONProcessor) ParseLLMResponse(responseData string) (string, err
 		fjp.mutex.Unlock()
 	}()
 
-	// Use zero-copy parsing when possible
+	// Use zero-copy parsing when possible.
 	if fjp.zeroCopyEnabled && fjp.useUnsafe {
 		return fjp.parseWithZeroCopy(responseData)
 	}
 
-	// Standard parsing with optimizations
+	// Standard parsing with optimizations.
 	var response struct {
 		Choices []struct {
 			Message struct {
@@ -478,13 +475,13 @@ func (fjp *FastJSONProcessor) ParseLLMResponse(responseData string) (string, err
 	return response.Choices[0].Message.Content, nil
 }
 
-// parseWithZeroCopy uses unsafe operations for zero-copy parsing
+// parseWithZeroCopy uses unsafe operations for zero-copy parsing.
 func (fjp *FastJSONProcessor) parseWithZeroCopy(responseData string) (string, error) {
-	// This is a simplified example - production would use proper zero-copy JSON parsing
-	// Convert string to byte slice without copying
+	// This is a simplified example - production would use proper zero-copy JSON parsing.
+	// Convert string to byte slice without copying.
 	dataBytes := *(*[]byte)(unsafe.Pointer(&responseData))
 
-	// Find content field using byte operations
+	// Find content field using byte operations.
 	contentStart := fjp.findContentStart(dataBytes)
 	if contentStart == -1 {
 		return "", fmt.Errorf("content field not found")
@@ -495,14 +492,14 @@ func (fjp *FastJSONProcessor) parseWithZeroCopy(responseData string) (string, er
 		return "", fmt.Errorf("content field end not found")
 	}
 
-	// Extract content without copying
+	// Extract content without copying.
 	contentBytes := dataBytes[contentStart:contentEnd]
 	return *(*string)(unsafe.Pointer(&contentBytes)), nil
 }
 
-// Helper methods for zero-copy parsing
+// Helper methods for zero-copy parsing.
 func (fjp *FastJSONProcessor) findContentStart(data []byte) int {
-	// Find "content":"
+	// Find "content":".
 	pattern := []byte(`"content":"`)
 	for i := 0; i <= len(data)-len(pattern); i++ {
 		if fjp.bytesEqual(data[i:i+len(pattern)], pattern) {
@@ -513,7 +510,7 @@ func (fjp *FastJSONProcessor) findContentStart(data []byte) int {
 }
 
 func (fjp *FastJSONProcessor) findContentEnd(data []byte, start int) int {
-	// Find closing quote, handling escape sequences
+	// Find closing quote, handling escape sequences.
 	for i := start; i < len(data); i++ {
 		if data[i] == '"' && (i == start || data[i-1] != '\\') {
 			return i
@@ -534,7 +531,7 @@ func (fjp *FastJSONProcessor) bytesEqual(a, b []byte) bool {
 	return true
 }
 
-// Performance monitoring and metrics
+// Performance monitoring and metrics.
 
 func (oci *OptimizedControllerIntegration) updateMetrics(operation string, duration time.Duration) {
 	oci.metrics.mutex.Lock()
@@ -544,9 +541,9 @@ func (oci *OptimizedControllerIntegration) updateMetrics(operation string, durat
 	case "cache_hit":
 		oci.metrics.CacheLatency = duration
 	case "batch_success":
-		// Update batch metrics
+		// Update batch metrics.
 	case "direct_processing":
-		// Update direct processing metrics
+		// Update direct processing metrics.
 	}
 }
 
@@ -563,16 +560,16 @@ func (oci *OptimizedControllerIntegration) monitoringRoutine() {
 }
 
 func (oci *OptimizedControllerIntegration) collectMetrics() {
-	// Collect metrics from all components
+	// Collect metrics from all components.
 	httpStats := oci.httpClient.GetStats()
 
 	oci.metrics.mutex.Lock()
-	// Update performance metrics
+	// Update performance metrics.
 	oci.metrics.OptimizedThroughput = float64(httpStats.RequestsSuccessful) / float64(time.Now().Unix())
 	oci.metrics.ConnectionReuseRate = float64(httpStats.ConnectionsReused) / float64(httpStats.ConnectionsCreated)
 	oci.metrics.mutex.Unlock()
 
-	// Log performance improvements
+	// Log performance improvements.
 	oci.logger.Info("Performance metrics update",
 		"throughput", oci.metrics.OptimizedThroughput,
 		"connection_reuse_rate", oci.metrics.ConnectionReuseRate,
@@ -580,14 +577,14 @@ func (oci *OptimizedControllerIntegration) collectMetrics() {
 	)
 }
 
-// Utility methods
+// Utility methods.
 
 func (oci *OptimizedControllerIntegration) generateOptimizedCacheKey(intent string, params map[string]interface{}) string {
 	return oci.cache.generateCacheKey(intent, params)
 }
 
 func (oci *OptimizedControllerIntegration) getOptimizedSystemPrompt(intentType string) string {
-	// Return optimized system prompt based on intent type
+	// Return optimized system prompt based on intent type.
 	switch intentType {
 	case "NetworkFunctionDeployment":
 		return "You are a 5G network function deployment expert. Generate JSON configuration for the requested network function deployment."
@@ -599,7 +596,7 @@ func (oci *OptimizedControllerIntegration) getOptimizedSystemPrompt(intentType s
 }
 
 func (oci *OptimizedControllerIntegration) estimateTokens(input, output string) int {
-	// Simple token estimation
+	// Simple token estimation.
 	return (len(input) + len(output)) / 4
 }
 
@@ -615,13 +612,13 @@ func (oci *OptimizedControllerIntegration) cloneResponse(resp *OptimizedResponse
 }
 
 func (oci *OptimizedControllerIntegration) putResponse(resp *OptimizedResponse) {
-	// Reset response for reuse
+	// Reset response for reuse.
 	resp.Content = ""
 	resp.ProcessingTime = 0
 	resp.FromCache = false
 	resp.FromBatch = false
 	resp.TokensUsed = 0
-	// OptimizedResponse doesn't have Optimizations field
+	// OptimizedResponse doesn't have Optimizations field.
 
 	oci.responsePool.Put(resp)
 }
@@ -662,12 +659,18 @@ func getDefaultOptimizedControllerConfig() *OptimizedControllerConfig {
 	}
 }
 
-// Supporting type definitions
+// Supporting type definitions.
 
-type ControllerState int
-type CPUOptLevel int
-type MemOptLevel int
+// ControllerState represents a controllerstate.
+type (
+	ControllerState int
+	// CPUOptLevel represents a cpuoptlevel.
+	CPUOptLevel int
+	// MemOptLevel represents a memoptlevel.
+	MemOptLevel int
+)
 
+// MonitoringConfig represents a monitoringconfig.
 type MonitoringConfig struct {
 	Enabled         bool          `json:"enabled"`
 	MetricsInterval time.Duration `json:"metrics_interval"`
@@ -675,14 +678,22 @@ type MonitoringConfig struct {
 }
 
 const (
+	// ControllerStateActive holds controllerstateactive value.
 	ControllerStateActive ControllerState = iota
+	// ControllerStateInactive holds controllerstateinactive value.
 	ControllerStateInactive
 
+	// CPUOptLevelLow holds cpuoptlevellow value.
 	CPUOptLevelLow CPUOptLevel = iota
+	// CPUOptLevelMedium holds cpuoptlevelmedium value.
 	CPUOptLevelMedium
+	// CPUOptLevelHigh holds cpuoptlevelhigh value.
 	CPUOptLevelHigh
 
+	// MemOptLevelLow holds memoptlevellow value.
 	MemOptLevelLow MemOptLevel = iota
+	// MemOptLevelMedium holds memoptlevelmedium value.
 	MemOptLevelMedium
+	// MemOptLevelHigh holds memoptlevelhigh value.
 	MemOptLevelHigh
 )

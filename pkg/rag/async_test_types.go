@@ -7,12 +7,15 @@ import (
 	"time"
 )
 
-// Type aliases for test compatibility
-// These aliases are only compiled during tests to avoid conflicts with production types
-type DocumentJob = TestDocumentJob
-type QueryJob = TestQueryJob
+// Type aliases for test compatibility.
+// These aliases are only compiled during tests to avoid conflicts with production types.
+type (
+	DocumentJob = TestDocumentJob
+	// QueryJob represents a queryjob.
+	QueryJob = TestQueryJob
+)
 
-// Missing types for test compilation
+// Missing types for test compilation.
 type DocumentMetadata struct {
 	Source   string                 `json:"source"`
 	Title    string                 `json:"title"`
@@ -21,6 +24,7 @@ type DocumentMetadata struct {
 	Custom   map[string]interface{} `json:"custom"`
 }
 
+// LoadedDocument represents a loadeddocument.
 type LoadedDocument struct {
 	ID       string                 `json:"id"`
 	Content  string                 `json:"content"`
@@ -29,11 +33,13 @@ type LoadedDocument struct {
 	Size     int64                  `json:"size"`
 }
 
+// RAGService represents a ragservice.
 type RAGService interface {
 	ProcessIntent(ctx context.Context, intent string) (string, error)
 	IsHealthy() bool
 }
 
+// ProcessedDocument represents a processeddocument.
 type ProcessedDocument struct {
 	ID       string                 `json:"id"`
 	Content  string                 `json:"content"`
@@ -41,11 +47,13 @@ type ProcessedDocument struct {
 	Chunks   []DocumentChunk        `json:"chunks"`
 }
 
+// QueryParameters represents a queryparameters.
 type QueryParameters struct {
 	Limit   int                    `json:"limit"`
 	Filters map[string]interface{} `json:"filters"`
 }
 
+// QueryResult represents a queryresult.
 type QueryResult struct {
 	Results   []RetrievedContext `json:"results"`
 	Query     string             `json:"query"`

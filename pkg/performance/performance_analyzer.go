@@ -13,7 +13,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// PerformanceAnalyzer provides comprehensive performance analysis and reporting
+// PerformanceAnalyzer provides comprehensive performance analysis and reporting.
 type PerformanceAnalyzer struct {
 	httpMetrics      *HTTPPerformanceReport
 	memoryMetrics    *MemoryPerformanceReport
@@ -28,7 +28,7 @@ type PerformanceAnalyzer struct {
 	lastReport       time.Time
 }
 
-// HTTPPerformanceReport contains HTTP layer performance metrics
+// HTTPPerformanceReport contains HTTP layer performance metrics.
 type HTTPPerformanceReport struct {
 	RequestsPerSecond     float64
 	AverageLatency        time.Duration
@@ -43,7 +43,7 @@ type HTTPPerformanceReport struct {
 	ImprovementRatio      float64
 }
 
-// MemoryPerformanceReport contains memory optimization metrics
+// MemoryPerformanceReport contains memory optimization metrics.
 type MemoryPerformanceReport struct {
 	HeapSize              int64
 	GCPauseTime           time.Duration
@@ -57,7 +57,7 @@ type MemoryPerformanceReport struct {
 	ImprovementRatio      float64
 }
 
-// JSONPerformanceReport contains JSON processing metrics
+// JSONPerformanceReport contains JSON processing metrics.
 type JSONPerformanceReport struct {
 	MarshalOpsPerSec   float64
 	UnmarshalOpsPerSec float64
@@ -71,7 +71,7 @@ type JSONPerformanceReport struct {
 	ImprovementRatio   float64
 }
 
-// GoroutinePerformanceReport contains goroutine pool metrics
+// GoroutinePerformanceReport contains goroutine pool metrics.
 type GoroutinePerformanceReport struct {
 	TasksPerSecond         float64
 	AverageWaitTime        time.Duration
@@ -85,7 +85,7 @@ type GoroutinePerformanceReport struct {
 	ImprovementRatio       float64
 }
 
-// CachePerformanceReport contains cache optimization metrics
+// CachePerformanceReport contains cache optimization metrics.
 type CachePerformanceReport struct {
 	HitRate               float64
 	AverageAccessTime     time.Duration
@@ -98,7 +98,7 @@ type CachePerformanceReport struct {
 	ImprovementRatio      float64
 }
 
-// DatabasePerformanceReport contains database optimization metrics
+// DatabasePerformanceReport contains database optimization metrics.
 type DatabasePerformanceReport struct {
 	QueriesPerSecond      float64
 	AverageQueryTime      time.Duration
@@ -112,7 +112,7 @@ type DatabasePerformanceReport struct {
 	ImprovementRatio      float64
 }
 
-// OverallPerformanceReport contains system-wide metrics
+// OverallPerformanceReport contains system-wide metrics.
 type OverallPerformanceReport struct {
 	TotalThroughput     float64
 	SystemLatency       time.Duration
@@ -125,7 +125,7 @@ type OverallPerformanceReport struct {
 	SLACompliance       float64
 }
 
-// BaselineMetrics stores baseline performance measurements
+// BaselineMetrics stores baseline performance measurements.
 type BaselineMetrics struct {
 	HTTPLatency       time.Duration
 	MemoryUsage       int64
@@ -136,7 +136,7 @@ type BaselineMetrics struct {
 	MeasuredAt        time.Time
 }
 
-// PerformanceTarget defines target performance improvements
+// PerformanceTarget defines target performance improvements.
 type PerformanceTarget struct {
 	HTTPLatencyReduction   float64 // 20-25%
 	MemoryAllocationReduce float64 // 30-35%
@@ -146,7 +146,7 @@ type PerformanceTarget struct {
 	OverallImprovement     float64 // 22-28%
 }
 
-// NewPerformanceAnalyzer creates a new performance analyzer
+// NewPerformanceAnalyzer creates a new performance analyzer.
 func NewPerformanceAnalyzer() *PerformanceAnalyzer {
 	return &PerformanceAnalyzer{
 		httpMetrics:      &HTTPPerformanceReport{},
@@ -162,52 +162,52 @@ func NewPerformanceAnalyzer() *PerformanceAnalyzer {
 	}
 }
 
-// EstablishBaseline measures baseline performance without optimizations
+// EstablishBaseline measures baseline performance without optimizations.
 func (pa *PerformanceAnalyzer) EstablishBaseline() error {
 	pa.mu.Lock()
 	defer pa.mu.Unlock()
 
 	klog.Info("Establishing performance baseline...")
 
-	// Measure HTTP baseline
+	// Measure HTTP baseline.
 	start := time.Now()
-	// Simulate standard HTTP operations
-	for i := 0; i < 1000; i++ {
-		// Standard HTTP client operations
+	// Simulate standard HTTP operations.
+	for range 1000 {
+		// Standard HTTP client operations.
 		time.Sleep(time.Microsecond * 50) // Simulate network delay
 	}
 	pa.baselineMetrics.HTTPLatency = time.Since(start) / 1000
 
-	// Measure memory baseline
+	// Measure memory baseline.
 	var m1, m2 runtime.MemStats
 	runtime.GC()
 	runtime.ReadMemStats(&m1)
-	// Simulate memory allocations
-	for i := 0; i < 10000; i++ {
+	// Simulate memory allocations.
+	for range 10000 {
 		_ = make([]byte, 1024)
 	}
 	runtime.ReadMemStats(&m2)
 	pa.baselineMetrics.MemoryUsage = int64(m2.TotalAlloc - m1.TotalAlloc)
 
-	// Measure JSON baseline
+	// Measure JSON baseline.
 	start = time.Now()
 	testData := map[string]interface{}{
 		"test":   "data",
 		"number": 123,
 		"array":  []string{"a", "b", "c"},
 	}
-	for i := 0; i < 1000; i++ {
-		// Standard JSON operations
+	for range 1000 {
+		// Standard JSON operations.
 		data, _ := json.Marshal(testData)
 		var result map[string]interface{}
 		json.Unmarshal(data, &result)
 	}
 	pa.baselineMetrics.JSONProcessTime = time.Since(start) / 1000
 
-	// Measure goroutine baseline
+	// Measure goroutine baseline.
 	start = time.Now()
 	var wg sync.WaitGroup
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -217,21 +217,21 @@ func (pa *PerformanceAnalyzer) EstablishBaseline() error {
 	wg.Wait()
 	pa.baselineMetrics.GoroutineOverhead = time.Since(start) / 100
 
-	// Measure cache baseline
+	// Measure cache baseline.
 	start = time.Now()
 	m := make(map[string]string)
-	for i := 0; i < 1000; i++ {
+	for i := range 1000 {
 		m[fmt.Sprintf("key_%d", i)] = fmt.Sprintf("value_%d", i)
 	}
-	for i := 0; i < 1000; i++ {
+	for i := range 1000 {
 		_ = m[fmt.Sprintf("key_%d", i)]
 	}
 	pa.baselineMetrics.CacheAccessTime = time.Since(start) / 2000
 
-	// Measure database baseline (simplified)
+	// Measure database baseline (simplified).
 	start = time.Now()
-	for i := 0; i < 100; i++ {
-		// Simulate database query overhead
+	for range 100 {
+		// Simulate database query overhead.
 		time.Sleep(time.Microsecond * 100)
 	}
 	pa.baselineMetrics.DatabaseQueryTime = time.Since(start) / 100
@@ -242,7 +242,7 @@ func (pa *PerformanceAnalyzer) EstablishBaseline() error {
 	return nil
 }
 
-// AnalyzeHTTPPerformance analyzes HTTP layer performance
+// AnalyzeHTTPPerformance analyzes HTTP layer performance.
 func (pa *PerformanceAnalyzer) AnalyzeHTTPPerformance(client *OptimizedHTTPClient) {
 	pa.mu.Lock()
 	defer pa.mu.Unlock()
@@ -258,14 +258,14 @@ func (pa *PerformanceAnalyzer) AnalyzeHTTPPerformance(client *OptimizedHTTPClien
 	pa.httpMetrics.ErrorRate = float64(metrics.ErrorCount) / float64(max(metrics.RequestCount, 1))
 	pa.httpMetrics.BufferPoolEfficiency = client.bufferPool.GetHitRate()
 
-	// Calculate improvement ratio
+	// Calculate improvement ratio.
 	if pa.baselineMetrics.HTTPLatency > 0 {
 		improvement := (pa.baselineMetrics.HTTPLatency - pa.httpMetrics.AverageLatency).Seconds() / pa.baselineMetrics.HTTPLatency.Seconds()
 		pa.httpMetrics.ImprovementRatio = improvement
 	}
 }
 
-// AnalyzeMemoryPerformance analyzes memory optimization performance
+// AnalyzeMemoryPerformance analyzes memory optimization performance.
 func (pa *PerformanceAnalyzer) AnalyzeMemoryPerformance(manager *MemoryPoolManager) {
 	pa.mu.Lock()
 	defer pa.mu.Unlock()
@@ -284,7 +284,7 @@ func (pa *PerformanceAnalyzer) AnalyzeMemoryPerformance(manager *MemoryPoolManag
 		pa.memoryMetrics.GCFrequency = float64(memStats.GCCount) / time.Since(pa.startTime).Hours()
 	}
 
-	// Calculate improvement ratio
+	// Calculate improvement ratio.
 	if pa.baselineMetrics.MemoryUsage > 0 {
 		currentUsage := memStats.TotalAllocated
 		improvement := float64(pa.baselineMetrics.MemoryUsage-currentUsage) / float64(pa.baselineMetrics.MemoryUsage)
@@ -293,7 +293,7 @@ func (pa *PerformanceAnalyzer) AnalyzeMemoryPerformance(manager *MemoryPoolManag
 	}
 }
 
-// AnalyzeJSONPerformance analyzes JSON processing performance
+// AnalyzeJSONPerformance analyzes JSON processing performance.
 func (pa *PerformanceAnalyzer) AnalyzeJSONPerformance(processor *OptimizedJSONProcessor) {
 	pa.mu.Lock()
 	defer pa.mu.Unlock()
@@ -313,14 +313,14 @@ func (pa *PerformanceAnalyzer) AnalyzeJSONPerformance(processor *OptimizedJSONPr
 	pa.jsonMetrics.SIMDUtilization = float64(metrics.SIMDOperations) / float64(max(marshalOps+unmarshalOps, 1))
 	pa.jsonMetrics.ErrorRate = float64(metrics.ErrorCount) / float64(max(marshalOps+unmarshalOps, 1))
 
-	// Calculate improvement ratio
+	// Calculate improvement ratio.
 	if pa.baselineMetrics.JSONProcessTime > 0 {
 		improvement := (pa.baselineMetrics.JSONProcessTime - pa.jsonMetrics.AverageProcessTime).Seconds() / pa.baselineMetrics.JSONProcessTime.Seconds()
 		pa.jsonMetrics.ImprovementRatio = improvement
 	}
 }
 
-// AnalyzeGoroutinePerformance analyzes goroutine pool performance
+// AnalyzeGoroutinePerformance analyzes goroutine pool performance.
 func (pa *PerformanceAnalyzer) AnalyzeGoroutinePerformance(pool *EnhancedGoroutinePool) {
 	pa.mu.Lock()
 	defer pa.mu.Unlock()
@@ -337,14 +337,14 @@ func (pa *PerformanceAnalyzer) AnalyzeGoroutinePerformance(pool *EnhancedGorouti
 		pa.goroutineMetrics.WorkerUtilization = float64(metrics.CompletedTasks) / float64(metrics.ActiveWorkers) / elapsed
 	}
 
-	// Calculate improvement ratio
+	// Calculate improvement ratio.
 	if pa.baselineMetrics.GoroutineOverhead > 0 {
 		improvement := (pa.baselineMetrics.GoroutineOverhead - pa.goroutineMetrics.AverageProcessTime).Seconds() / pa.baselineMetrics.GoroutineOverhead.Seconds()
 		pa.goroutineMetrics.ImprovementRatio = improvement
 	}
 }
 
-// AnalyzeCachePerformance analyzes cache optimization performance
+// AnalyzeCachePerformance analyzes cache optimization performance.
 func (pa *PerformanceAnalyzer) AnalyzeCachePerformance(cache *OptimizedCache[string, interface{}]) {
 	pa.mu.Lock()
 	defer pa.mu.Unlock()
@@ -357,7 +357,7 @@ func (pa *PerformanceAnalyzer) AnalyzeCachePerformance(cache *OptimizedCache[str
 	pa.cacheMetrics.EvictionEfficiency = float64(metrics.Evictions) / float64(max(metrics.Size, 1))
 	pa.cacheMetrics.MemoryEfficiency = stats.MemoryEfficiency / 100
 
-	// Calculate shard distribution variance (lower is better)
+	// Calculate shard distribution variance (lower is better).
 	if len(metrics.ShardDistribution) > 0 {
 		var total, variance float64
 		for _, count := range metrics.ShardDistribution {
@@ -372,14 +372,14 @@ func (pa *PerformanceAnalyzer) AnalyzeCachePerformance(cache *OptimizedCache[str
 		pa.cacheMetrics.ShardDistribution = 1.0 - (variance / (avg * avg)) // Normalize (1 = perfect distribution)
 	}
 
-	// Calculate improvement ratio
+	// Calculate improvement ratio.
 	if pa.baselineMetrics.CacheAccessTime > 0 {
 		improvement := (pa.baselineMetrics.CacheAccessTime - pa.cacheMetrics.AverageAccessTime).Seconds() / pa.baselineMetrics.CacheAccessTime.Seconds()
 		pa.cacheMetrics.ImprovementRatio = improvement
 	}
 }
 
-// AnalyzeDatabasePerformance analyzes database optimization performance
+// AnalyzeDatabasePerformance analyzes database optimization performance.
 func (pa *PerformanceAnalyzer) AnalyzeDatabasePerformance(manager *OptimizedDBManager) {
 	pa.mu.Lock()
 	defer pa.mu.Unlock()
@@ -395,19 +395,19 @@ func (pa *PerformanceAnalyzer) AnalyzeDatabasePerformance(manager *OptimizedDBMa
 	pa.dbMetrics.TransactionThroughput = float64(metrics.TransactionCount) / elapsed
 	pa.dbMetrics.ErrorRate = float64(metrics.ErrorCount) / float64(max(metrics.QueryCount, 1))
 
-	// Calculate improvement ratio
+	// Calculate improvement ratio.
 	if pa.baselineMetrics.DatabaseQueryTime > 0 {
 		improvement := (pa.baselineMetrics.DatabaseQueryTime - pa.dbMetrics.AverageQueryTime).Seconds() / pa.baselineMetrics.DatabaseQueryTime.Seconds()
 		pa.dbMetrics.ImprovementRatio = improvement
 	}
 }
 
-// CalculateOverallPerformance calculates system-wide performance metrics
+// CalculateOverallPerformance calculates system-wide performance metrics.
 func (pa *PerformanceAnalyzer) CalculateOverallPerformance() {
 	pa.mu.Lock()
 	defer pa.mu.Unlock()
 
-	// Weighted average of all improvement ratios
+	// Weighted average of all improvement ratios.
 	weights := map[string]float64{
 		"http":      0.20,
 		"memory":    0.25,
@@ -426,13 +426,13 @@ func (pa *PerformanceAnalyzer) CalculateOverallPerformance() {
 
 	pa.overallMetrics.PerformanceGain = overallImprovement
 
-	// Calculate composite metrics
+	// Calculate composite metrics.
 	pa.overallMetrics.TotalThroughput = pa.httpMetrics.RequestsPerSecond +
 		pa.jsonMetrics.MarshalOpsPerSec +
 		pa.goroutineMetrics.TasksPerSecond +
 		pa.dbMetrics.QueriesPerSecond
 
-	// System latency (weighted average)
+	// System latency (weighted average).
 	pa.overallMetrics.SystemLatency = time.Duration(
 		float64(pa.httpMetrics.AverageLatency)*0.4 +
 			float64(pa.jsonMetrics.AverageProcessTime)*0.3 +
@@ -440,7 +440,7 @@ func (pa *PerformanceAnalyzer) CalculateOverallPerformance() {
 			float64(pa.dbMetrics.AverageQueryTime)*0.1,
 	)
 
-	// Resource utilization (average of all efficiency metrics)
+	// Resource utilization (average of all efficiency metrics).
 	pa.overallMetrics.ResourceUtilization = (pa.httpMetrics.ConnectionPoolHitRate +
 		pa.memoryMetrics.ObjectPoolHitRate +
 		pa.jsonMetrics.PoolEfficiency +
@@ -448,13 +448,13 @@ func (pa *PerformanceAnalyzer) CalculateOverallPerformance() {
 		pa.cacheMetrics.MemoryEfficiency +
 		pa.dbMetrics.ConnectionUtilization) / 6.0
 
-	// Reliability score (inverse of error rates)
+	// Reliability score (inverse of error rates).
 	errorRate := (pa.httpMetrics.ErrorRate +
 		pa.jsonMetrics.ErrorRate +
 		pa.dbMetrics.ErrorRate) / 3.0
 	pa.overallMetrics.ReliabilityScore = max(0, 1.0-errorRate)
 
-	// SLA compliance (based on latency targets)
+	// SLA compliance (based on latency targets).
 	latencyCompliance := 1.0
 	if pa.overallMetrics.SystemLatency > time.Millisecond*100 {
 		latencyCompliance = 0.5
@@ -464,7 +464,7 @@ func (pa *PerformanceAnalyzer) CalculateOverallPerformance() {
 	pa.overallMetrics.SLACompliance = latencyCompliance
 }
 
-// GeneratePerformanceReport generates a comprehensive performance report
+// GeneratePerformanceReport generates a comprehensive performance report.
 func (pa *PerformanceAnalyzer) GeneratePerformanceReport() *PerformanceReport {
 	pa.mu.RLock()
 	defer pa.mu.RUnlock()
@@ -487,7 +487,7 @@ func (pa *PerformanceAnalyzer) GeneratePerformanceReport() *PerformanceReport {
 	}
 }
 
-// PerformanceReport contains the complete performance analysis
+// PerformanceReport contains the complete performance analysis.
 type PerformanceReport struct {
 	Timestamp        time.Time
 	AnalysisDuration time.Duration
@@ -503,7 +503,7 @@ type PerformanceReport struct {
 	AchievedTargets  map[string]bool
 }
 
-// GetPerformanceTargets returns the target performance improvements
+// GetPerformanceTargets returns the target performance improvements.
 func GetPerformanceTargets() PerformanceTarget {
 	return PerformanceTarget{
 		HTTPLatencyReduction:   0.225, // 22.5% (midpoint of 20-25%)
@@ -515,7 +515,7 @@ func GetPerformanceTargets() PerformanceTarget {
 	}
 }
 
-// checkTargetAchievement checks which performance targets have been achieved
+// checkTargetAchievement checks which performance targets have been achieved.
 func (pa *PerformanceAnalyzer) checkTargetAchievement() map[string]bool {
 	targets := GetPerformanceTargets()
 	results := make(map[string]bool)
@@ -530,7 +530,7 @@ func (pa *PerformanceAnalyzer) checkTargetAchievement() map[string]bool {
 	return results
 }
 
-// PrintPerformanceReport prints a detailed performance report
+// PrintPerformanceReport prints a detailed performance report.
 func (pr *PerformanceReport) PrintPerformanceReport() {
 	klog.Info("\n" + strings.Repeat("=", 80))
 	klog.Info("NEPHORAN INTENT OPERATOR - GO 1.24+ PERFORMANCE OPTIMIZATION REPORT")
@@ -539,7 +539,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 	klog.Infof("Analysis Duration: %v", pr.AnalysisDuration)
 	klog.Info("")
 
-	// Baseline metrics
+	// Baseline metrics.
 	klog.Info("BASELINE METRICS (Pre-optimization)")
 	klog.Info("----------------------------------------")
 	klog.Infof("HTTP Latency: %v", pr.Baseline.HTTPLatency)
@@ -550,7 +550,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 	klog.Infof("Database Query Time: %v", pr.Baseline.DatabaseQueryTime)
 	klog.Info("")
 
-	// HTTP Performance
+	// HTTP Performance.
 	klog.Info("HTTP LAYER PERFORMANCE")
 	klog.Info("----------------------------------------")
 	klog.Infof("Requests/sec: %.2f", pr.HTTP.RequestsPerSecond)
@@ -563,7 +563,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 	klog.Infof("IMPROVEMENT: %.2f%% ✓", pr.HTTP.ImprovementRatio*100)
 	klog.Info("")
 
-	// Memory Performance
+	// Memory Performance.
 	klog.Info("MEMORY OPTIMIZATION PERFORMANCE")
 	klog.Info("----------------------------------------")
 	klog.Infof("Heap Size: %d bytes", pr.Memory.HeapSize)
@@ -576,7 +576,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 	klog.Infof("IMPROVEMENT: %.2f%% ✓", pr.Memory.ImprovementRatio*100)
 	klog.Info("")
 
-	// JSON Performance
+	// JSON Performance.
 	klog.Info("JSON PROCESSING PERFORMANCE")
 	klog.Info("----------------------------------------")
 	klog.Infof("Marshal ops/sec: %.2f", pr.JSON.MarshalOpsPerSec)
@@ -590,7 +590,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 	klog.Infof("IMPROVEMENT: %.2f%% ✓", pr.JSON.ImprovementRatio*100)
 	klog.Info("")
 
-	// Goroutine Performance
+	// Goroutine Performance.
 	klog.Info("GOROUTINE POOL PERFORMANCE")
 	klog.Info("----------------------------------------")
 	klog.Infof("Tasks/sec: %.2f", pr.Goroutine.TasksPerSecond)
@@ -602,7 +602,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 	klog.Infof("IMPROVEMENT: %.2f%% ✓", pr.Goroutine.ImprovementRatio*100)
 	klog.Info("")
 
-	// Cache Performance
+	// Cache Performance.
 	klog.Info("CACHE OPTIMIZATION PERFORMANCE")
 	klog.Info("----------------------------------------")
 	klog.Infof("Hit Rate: %.2f%%", pr.Cache.HitRate*100)
@@ -613,7 +613,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 	klog.Infof("IMPROVEMENT: %.2f%% ✓", pr.Cache.ImprovementRatio*100)
 	klog.Info("")
 
-	// Database Performance
+	// Database Performance.
 	klog.Info("DATABASE OPTIMIZATION PERFORMANCE")
 	klog.Info("----------------------------------------")
 	klog.Infof("Queries/sec: %.2f", pr.Database.QueriesPerSecond)
@@ -626,7 +626,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 	klog.Infof("IMPROVEMENT: %.2f%% ✓", pr.Database.ImprovementRatio*100)
 	klog.Info("")
 
-	// Overall Performance
+	// Overall Performance.
 	klog.Info("OVERALL SYSTEM PERFORMANCE")
 	klog.Info("----------------------------------------")
 	klog.Infof("Total Throughput: %.2f ops/sec", pr.Overall.TotalThroughput)
@@ -638,7 +638,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 	klog.Infof("OVERALL IMPROVEMENT: %.2f%% ✓", pr.Overall.PerformanceGain*100)
 	klog.Info("")
 
-	// Target Achievement
+	// Target Achievement.
 	klog.Info("PERFORMANCE TARGET ACHIEVEMENT")
 	klog.Info("----------------------------------------")
 	for target, achieved := range pr.AchievedTargets {
@@ -650,7 +650,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 	}
 	klog.Info("")
 
-	// Summary
+	// Summary.
 	klog.Info("PERFORMANCE OPTIMIZATION SUMMARY")
 	klog.Info(strings.Repeat("=", 40))
 	achievedCount := 0
@@ -674,7 +674,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 	klog.Info("\n" + strings.Repeat("=", 80))
 }
 
-// max returns the maximum of two values
+// max returns the maximum of two values.
 func max[T ~int | ~int64 | ~float64](a, b T) T {
 	if a > b {
 		return a
@@ -682,7 +682,7 @@ func max[T ~int | ~int64 | ~float64](a, b T) T {
 	return b
 }
 
-// ValidatePerformanceTargets validates that all performance targets are met
+// ValidatePerformanceTargets validates that all performance targets are met.
 func (pr *PerformanceReport) ValidatePerformanceTargets() error {
 	var failures []string
 

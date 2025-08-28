@@ -25,7 +25,7 @@ func main() {
 							if field.Tag != nil {
 								tagCount++
 								tag := field.Tag.Value
-								// Check for proper backtick wrapping and json tag format
+								// Check for proper backtick wrapping and json tag format.
 								if !strings.HasPrefix(tag, "`") || !strings.HasSuffix(tag, "`") {
 									println("Invalid tag format:", tag)
 									return

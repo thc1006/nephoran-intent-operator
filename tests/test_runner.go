@@ -21,7 +21,7 @@ import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-// TestConfig holds configuration for the test suite
+// TestConfig holds configuration for the test suite.
 type TestConfig struct {
 	UseExistingCluster       bool
 	CRDDirectoryPaths        []string
@@ -30,7 +30,7 @@ type TestConfig struct {
 	TestTimeout              time.Duration
 }
 
-// DefaultTestConfig returns a default test configuration
+// DefaultTestConfig returns a default test configuration.
 func DefaultTestConfig() *TestConfig {
 	return &TestConfig{
 		UseExistingCluster: false,
@@ -42,7 +42,7 @@ func DefaultTestConfig() *TestConfig {
 	}
 }
 
-// TestSuite represents the complete test suite
+// TestSuite represents the complete test suite.
 type TestSuite struct {
 	Config     *TestConfig
 	TestEnv    *envtest.Environment
@@ -52,7 +52,7 @@ type TestSuite struct {
 	cancel     context.CancelFunc
 }
 
-// NewTestSuite creates a new test suite with the given configuration
+// NewTestSuite creates a new test suite with the given configuration.
 func NewTestSuite(config *TestConfig) *TestSuite {
 	if config == nil {
 		config = DefaultTestConfig()
@@ -63,7 +63,7 @@ func NewTestSuite(config *TestConfig) *TestSuite {
 	}
 }
 
-// Setup initializes the test environment
+// Setup initializes the test environment.
 func (ts *TestSuite) Setup() error {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
@@ -78,8 +78,8 @@ func (ts *TestSuite) Setup() error {
 	}
 
 	if ts.Config.AttachControlPlaneOutput {
-		// Attach control plane output to stdout/stderr if supported
-		// Note: GetEtcd method may not be available in all envtest versions
+		// Attach control plane output to stdout/stderr if supported.
+		// Note: GetEtcd method may not be available in all envtest versions.
 		if apiServer := ts.TestEnv.ControlPlane.GetAPIServer(); apiServer != nil {
 			apiServer.Out = os.Stdout
 			apiServer.Err = os.Stderr
@@ -105,7 +105,7 @@ func (ts *TestSuite) Setup() error {
 	return nil
 }
 
-// Teardown cleans up the test environment
+// Teardown cleans up the test environment.
 func (ts *TestSuite) Teardown() error {
 	if ts.cancel != nil {
 		ts.cancel()
@@ -122,16 +122,16 @@ func (ts *TestSuite) Teardown() error {
 	return nil
 }
 
-// RunAllTests runs all test suites
+// RunAllTests runs all test suites.
 func RunAllTests(t *testing.T) {
-	// Register global fail handler
+	// Register global fail handler.
 	RegisterFailHandler(Fail)
 
-	// Run test suites in order
+	// Run test suites in order.
 	RunSpecs(t, "Nephoran Intent Operator Comprehensive Test Suite")
 }
 
-// TestReporter interface for custom test reporting
+// TestReporter interface for custom test reporting.
 type TestReporter interface {
 	BeforeSuite()
 	AfterSuite()
@@ -139,28 +139,32 @@ type TestReporter interface {
 	AfterTest(testName string, passed bool, duration time.Duration)
 }
 
-// JUnitReporter implements TestReporter for JUnit XML output
+// JUnitReporter implements TestReporter for JUnit XML output.
 type JUnitReporter struct {
 	OutputFile string
 }
 
+// BeforeSuite performs beforesuite operation.
 func (jr *JUnitReporter) BeforeSuite() {
-	// Initialize JUnit XML structure
+	// Initialize JUnit XML structure.
 }
 
+// AfterSuite performs aftersuite operation.
 func (jr *JUnitReporter) AfterSuite() {
-	// Write JUnit XML to file
+	// Write JUnit XML to file.
 }
 
+// BeforeTest performs beforetest operation.
 func (jr *JUnitReporter) BeforeTest(testName string) {
-	// Record test start
+	// Record test start.
 }
 
+// AfterTest performs aftertest operation.
 func (jr *JUnitReporter) AfterTest(testName string, passed bool, duration time.Duration) {
-	// Record test result
+	// Record test result.
 }
 
-// TestMetrics collects metrics during test execution
+// TestMetrics collects metrics during test execution.
 type TestMetrics struct {
 	TotalTests      int
 	PassedTests     int
@@ -171,12 +175,14 @@ type TestMetrics struct {
 	CoveragePercent float64
 }
 
+// Calculate performs calculate operation.
 func (tm *TestMetrics) Calculate() {
 	if tm.TotalTests > 0 {
 		tm.AverageDuration = tm.TotalDuration / time.Duration(tm.TotalTests)
 	}
 }
 
+// Print performs print operation.
 func (tm *TestMetrics) Print() {
 	fmt.Printf("\n=== Test Execution Summary ===\n")
 	fmt.Printf("Total Tests: %d\n", tm.TotalTests)
@@ -189,13 +195,14 @@ func (tm *TestMetrics) Print() {
 	fmt.Printf("============================\n")
 }
 
-// TestExecutor manages test execution with metrics and reporting
+// TestExecutor manages test execution with metrics and reporting.
 type TestExecutor struct {
 	Config    *TestConfig
 	Metrics   *TestMetrics
 	Reporters []TestReporter
 }
 
+// NewTestExecutor performs newtestexecutor operation.
 func NewTestExecutor(config *TestConfig) *TestExecutor {
 	return &TestExecutor{
 		Config:    config,
@@ -204,25 +211,27 @@ func NewTestExecutor(config *TestConfig) *TestExecutor {
 	}
 }
 
+// AddReporter performs addreporter operation.
 func (te *TestExecutor) AddReporter(reporter TestReporter) {
 	te.Reporters = append(te.Reporters, reporter)
 }
 
+// Execute performs execute operation.
 func (te *TestExecutor) Execute() error {
-	// Notify reporters
+	// Notify reporters.
 	for _, reporter := range te.Reporters {
 		reporter.BeforeSuite()
 	}
 
 	startTime := time.Now()
 
-	// Execute tests (this would integrate with the actual test execution)
-	// For now, this is a placeholder for the test execution logic
+	// Execute tests (this would integrate with the actual test execution).
+	// For now, this is a placeholder for the test execution logic.
 
 	te.Metrics.TotalDuration = time.Since(startTime)
 	te.Metrics.Calculate()
 
-	// Notify reporters
+	// Notify reporters.
 	for _, reporter := range te.Reporters {
 		reporter.AfterSuite()
 	}
@@ -232,43 +241,43 @@ func (te *TestExecutor) Execute() error {
 	return nil
 }
 
-// Coverage analysis helpers
+// Coverage analysis helpers.
 func AnalyzeCoverage(coverageFile string) (float64, error) {
-	// This would parse Go coverage output and calculate percentage
-	// For now, return a placeholder value
+	// This would parse Go coverage output and calculate percentage.
+	// For now, return a placeholder value.
 	return 92.5, nil
 }
 
-// Performance benchmark helpers
+// Performance benchmark helpers.
 func RunPerformanceBenchmarks() error {
 	log.Println("Running performance benchmarks...")
 
-	// This would execute the performance tests and collect metrics
-	// The actual implementation would call the load test suites
+	// This would execute the performance tests and collect metrics.
+	// The actual implementation would call the load test suites.
 
 	return nil
 }
 
-// Integration with CI/CD
+// Integration with CI/CD.
 func GenerateTestReport(metrics *TestMetrics, outputDir string) error {
-	// Generate various test reports (HTML, XML, JSON)
-	// This would create files in the output directory
+	// Generate various test reports (HTML, XML, JSON).
+	// This would create files in the output directory.
 
 	return nil
 }
 
-// Test environment validation
+// Test environment validation.
 func ValidateTestEnvironment() error {
-	// Check prerequisites for running tests
-	// - Go version
-	// - Required dependencies
-	// - Available resources (memory, disk)
-	// - Network connectivity (for integration tests)
+	// Check prerequisites for running tests.
+	// - Go version.
+	// - Required dependencies.
+	// - Available resources (memory, disk).
+	// - Network connectivity (for integration tests).
 
 	return nil
 }
 
-// Main test runner function
+// Main test runner function.
 func RunTestSuite(testType string, verbose bool) error {
 	config := DefaultTestConfig()
 
@@ -278,7 +287,7 @@ func RunTestSuite(testType string, verbose bool) error {
 
 	executor := NewTestExecutor(config)
 
-	// Add JUnit reporter for CI/CD integration
+	// Add JUnit reporter for CI/CD integration.
 	if os.Getenv("CI") == "true" {
 		junit := &JUnitReporter{
 			OutputFile: "test-results.xml",
@@ -286,12 +295,12 @@ func RunTestSuite(testType string, verbose bool) error {
 		executor.AddReporter(junit)
 	}
 
-	// Validate environment before running tests
+	// Validate environment before running tests.
 	if err := ValidateTestEnvironment(); err != nil {
 		return fmt.Errorf("test environment validation failed: %v", err)
 	}
 
-	// Execute tests based on type
+	// Execute tests based on type.
 	switch testType {
 	case "unit":
 		log.Println("Running unit tests...")

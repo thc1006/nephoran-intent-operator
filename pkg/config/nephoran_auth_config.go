@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// NephoranAuthConfig holds authentication configuration for Nephoran
+// NephoranAuthConfig holds authentication configuration for Nephoran.
 type NephoranAuthConfig struct {
 	Enabled     bool
 	RequireAuth bool
@@ -20,7 +20,7 @@ type NephoranAuthConfig struct {
 	Endpoints   EndpointConfig
 }
 
-// OAuth2Config holds OAuth2 provider configuration
+// OAuth2Config holds OAuth2 provider configuration.
 type OAuth2Config struct {
 	Enabled         bool
 	Providers       []OAuth2Provider
@@ -28,7 +28,7 @@ type OAuth2Config struct {
 	RedirectURL     string
 }
 
-// OAuth2Provider represents an OAuth2 provider
+// OAuth2Provider represents an OAuth2 provider.
 type OAuth2Provider struct {
 	Name         string
 	Type         string
@@ -38,7 +38,7 @@ type OAuth2Provider struct {
 	Enabled      bool
 }
 
-// LDAPConfig holds LDAP configuration
+// LDAPConfig holds LDAP configuration.
 type LDAPConfig struct {
 	Enabled bool
 	Host    string
@@ -46,40 +46,40 @@ type LDAPConfig struct {
 	BaseDN  string
 }
 
-// JWTConfig holds JWT configuration
+// JWTConfig holds JWT configuration.
 type JWTConfig struct {
 	SecretKey  string
 	TokenTTL   time.Duration
 	RefreshTTL time.Duration
 }
 
-// RBACConfig holds RBAC configuration
+// RBACConfig holds RBAC configuration.
 type RBACConfig struct {
 	Enabled     bool
 	DefaultRole string
 }
 
-// SessionConfig holds session configuration
+// SessionConfig holds session configuration.
 type SessionConfig struct {
 	Enabled       bool
 	Timeout       time.Duration
 	MaxConcurrent int
 }
 
-// SecurityConfig holds security settings
+// SecurityConfig holds security settings.
 type SecurityConfig struct {
 	CSRFProtection bool
 	RequireHTTPS   bool
 }
 
-// AuditConfig holds audit configuration
+// AuditConfig holds audit configuration.
 type AuditConfig struct {
 	Enabled       bool
 	LogLevel      string
 	RetentionDays int
 }
 
-// ControllerAuthConfig configures controller authentication
+// ControllerAuthConfig configures controller authentication.
 type ControllerAuthConfig struct {
 	Enabled                bool
 	RequireUserContext     bool
@@ -87,12 +87,12 @@ type ControllerAuthConfig struct {
 	AuditControllerActions bool
 }
 
-// EndpointConfig configures endpoint authentication
+// EndpointConfig configures endpoint authentication.
 type EndpointConfig struct {
 	PublicEndpoints []string
 }
 
-// LoadNephoranAuthConfig loads auth configuration from environment
+// LoadNephoranAuthConfig loads auth configuration from environment.
 func LoadNephoranAuthConfig() (*NephoranAuthConfig, error) {
 	return &NephoranAuthConfig{
 		Enabled:     GetBoolEnv("NEPHORAN_AUTH_ENABLED", true),

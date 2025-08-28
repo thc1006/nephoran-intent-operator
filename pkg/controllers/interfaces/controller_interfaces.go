@@ -27,23 +27,31 @@ import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-// ProcessingPhase represents the current phase of intent processing
+// ProcessingPhase represents the current phase of intent processing.
 type ProcessingPhase string
 
 const (
 	// PhaseIntentReceived indicates that an intent has been received and is ready for processing.
-	PhaseIntentReceived         ProcessingPhase = "IntentReceived"
-	PhaseReceived               ProcessingPhase = "Received" // Alias for PhaseIntentReceived
-	PhaseLLMProcessing          ProcessingPhase = "LLMProcessing"
-	PhaseResourcePlanning       ProcessingPhase = "ResourcePlanning"
-	PhaseManifestGeneration     ProcessingPhase = "ManifestGeneration"
-	PhaseGitOpsCommit           ProcessingPhase = "GitOpsCommit"
+	PhaseIntentReceived ProcessingPhase = "IntentReceived"
+	// PhaseReceived holds phasereceived value.
+	PhaseReceived ProcessingPhase = "Received" // Alias for PhaseIntentReceived
+	// PhaseLLMProcessing holds phasellmprocessing value.
+	PhaseLLMProcessing ProcessingPhase = "LLMProcessing"
+	// PhaseResourcePlanning holds phaseresourceplanning value.
+	PhaseResourcePlanning ProcessingPhase = "ResourcePlanning"
+	// PhaseManifestGeneration holds phasemanifestgeneration value.
+	PhaseManifestGeneration ProcessingPhase = "ManifestGeneration"
+	// PhaseGitOpsCommit holds phasegitopscommit value.
+	PhaseGitOpsCommit ProcessingPhase = "GitOpsCommit"
+	// PhaseDeploymentVerification holds phasedeploymentverification value.
 	PhaseDeploymentVerification ProcessingPhase = "DeploymentVerification"
-	PhaseCompleted              ProcessingPhase = "Completed"
-	PhaseFailed                 ProcessingPhase = "Failed"
+	// PhaseCompleted holds phasecompleted value.
+	PhaseCompleted ProcessingPhase = "Completed"
+	// PhaseFailed holds phasefailed value.
+	PhaseFailed ProcessingPhase = "Failed"
 )
 
-// ProcessingResult contains the outcome of a phase
+// ProcessingResult contains the outcome of a phase.
 type ProcessingResult struct {
 	Success      bool                   `json:"success"`
 	NextPhase    ProcessingPhase        `json:"nextPhase,omitempty"`
@@ -55,7 +63,7 @@ type ProcessingResult struct {
 	ErrorCode    string                 `json:"errorCode,omitempty"`
 }
 
-// ProcessingEvent represents an event during processing
+// ProcessingEvent represents an event during processing.
 type ProcessingEvent struct {
 	Timestamp     time.Time              `json:"timestamp"`
 	EventType     string                 `json:"eventType"`
@@ -64,7 +72,7 @@ type ProcessingEvent struct {
 	CorrelationID string                 `json:"correlationId"`
 }
 
-// PhaseStatus tracks individual phase progress
+// PhaseStatus tracks individual phase progress.
 type PhaseStatus struct {
 	Phase            ProcessingPhase     `json:"phase"`
 	Status           string              `json:"status"` // Pending, InProgress, Completed, Failed
@@ -78,7 +86,7 @@ type PhaseStatus struct {
 	CreatedResources []ResourceReference `json:"createdResources,omitempty"`
 }
 
-// ResourceReference represents a reference to a created Kubernetes resource
+// ResourceReference represents a reference to a created Kubernetes resource.
 type ResourceReference struct {
 	APIVersion string `json:"apiVersion"`
 	Kind       string `json:"kind"`
@@ -87,32 +95,32 @@ type ResourceReference struct {
 	UID        string `json:"uid,omitempty"`
 }
 
-// ProcessingContext holds context information for multi-phase processing
+// ProcessingContext holds context information for multi-phase processing.
 type ProcessingContext struct {
 	IntentID      string          `json:"intentId"`
 	CorrelationID string          `json:"correlationId"`
 	StartTime     time.Time       `json:"startTime"`
 	CurrentPhase  ProcessingPhase `json:"currentPhase"`
 
-	// Intent data
+	// Intent data.
 	IntentType        string                 `json:"intentType"`
 	OriginalIntent    string                 `json:"originalIntent"`
 	ExtractedEntities map[string]interface{} `json:"extractedEntities,omitempty"`
 	TelecomContext    map[string]interface{} `json:"telecomContext,omitempty"`
 
-	// Phase-specific data
+	// Phase-specific data.
 	LLMResponse        map[string]interface{} `json:"llmResponse,omitempty"`
 	ResourcePlan       map[string]interface{} `json:"resourcePlan,omitempty"`
 	GeneratedManifests map[string]string      `json:"generatedManifests,omitempty"`
 	GitCommitHash      string                 `json:"gitCommitHash,omitempty"`
 	DeploymentStatus   map[string]interface{} `json:"deploymentStatus,omitempty"`
 
-	// Performance tracking
+	// Performance tracking.
 	PhaseMetrics map[ProcessingPhase]PhaseMetrics `json:"phaseMetrics,omitempty"`
 	TotalMetrics map[string]float64               `json:"totalMetrics,omitempty"`
 }
 
-// PhaseMetrics tracks performance metrics for a processing phase
+// PhaseMetrics tracks performance metrics for a processing phase.
 type PhaseMetrics struct {
 	Duration      time.Duration      `json:"duration"`
 	CPUUsage      float64            `json:"cpuUsage"`
@@ -122,28 +130,28 @@ type PhaseMetrics struct {
 	CustomMetrics map[string]float64 `json:"customMetrics,omitempty"`
 }
 
-// PhaseController interface for all specialized controllers
+// PhaseController interface for all specialized controllers.
 type PhaseController interface {
-	// Core processing methods
+	// Core processing methods.
 	ProcessPhase(ctx context.Context, intent *nephoranv1.NetworkIntent, phase ProcessingPhase) (ProcessingResult, error)
 	GetPhaseStatus(ctx context.Context, intentID string) (*PhaseStatus, error)
 	HandlePhaseError(ctx context.Context, intentID string, err error) error
 
-	// Dependency management
+	// Dependency management.
 	GetDependencies() []ProcessingPhase
 	GetBlockedPhases() []ProcessingPhase
 
-	// Lifecycle methods
+	// Lifecycle methods.
 	SetupWithManager(mgr ctrl.Manager) error
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
 
-	// Health and metrics
+	// Health and metrics.
 	GetHealthStatus(ctx context.Context) (HealthStatus, error)
 	GetMetrics(ctx context.Context) (map[string]float64, error)
 }
 
-// HealthStatus represents the health status of a controller
+// HealthStatus represents the health status of a controller.
 type HealthStatus struct {
 	Status      string                 `json:"status"` // Healthy, Degraded, Unhealthy
 	Message     string                 `json:"message"`
@@ -151,62 +159,62 @@ type HealthStatus struct {
 	Metrics     map[string]interface{} `json:"metrics,omitempty"`
 }
 
-// IntentProcessor handles LLM-based intent interpretation
+// IntentProcessor handles LLM-based intent interpretation.
 type IntentProcessor interface {
 	PhaseController
 
-	// Specialized methods for LLM processing
+	// Specialized methods for LLM processing.
 	ProcessIntent(ctx context.Context, intent *nephoranv1.NetworkIntent) (*ProcessingResult, error)
 	ValidateIntent(ctx context.Context, intent string) error
 	EnhanceWithRAG(ctx context.Context, intent string) (map[string]interface{}, error)
 	GetSupportedIntentTypes() []string
 }
 
-// ResourcePlanner handles resource planning and optimization
+// ResourcePlanner handles resource planning and optimization.
 type ResourcePlanner interface {
 	PhaseController
 
-	// Specialized methods for resource planning
+	// Specialized methods for resource planning.
 	PlanResources(ctx context.Context, llmResponse map[string]interface{}) (*ResourcePlan, error)
 	OptimizeResourceAllocation(ctx context.Context, requirements *ResourceRequirements) (*OptimizedPlan, error)
 	ValidateResourceConstraints(ctx context.Context, plan *ResourcePlan) error
 	EstimateResourceCosts(ctx context.Context, plan *ResourcePlan) (*CostEstimate, error)
 }
 
-// ManifestGenerator handles Kubernetes manifest creation
+// ManifestGenerator handles Kubernetes manifest creation.
 type ManifestGenerator interface {
 	PhaseController
 
-	// Specialized methods for manifest generation
+	// Specialized methods for manifest generation.
 	GenerateManifests(ctx context.Context, resourcePlan *ResourcePlan) (map[string]string, error)
 	ValidateManifests(ctx context.Context, manifests map[string]string) error
 	OptimizeManifests(ctx context.Context, manifests map[string]string) (map[string]string, error)
 	GetSupportedTemplates() []string
 }
 
-// GitOpsManager handles Git operations and deployment
+// GitOpsManager handles Git operations and deployment.
 type GitOpsManager interface {
 	PhaseController
 
-	// Specialized methods for GitOps operations
+	// Specialized methods for GitOps operations.
 	CommitManifests(ctx context.Context, manifests map[string]string, metadata map[string]interface{}) (*GitCommitResult, error)
 	CreateNephioPackage(ctx context.Context, manifests map[string]string) (*NephioPackage, error)
 	ResolveConflicts(ctx context.Context, conflicts []GitConflict) error
 	TrackDeployment(ctx context.Context, commitHash string) (*DeploymentProgress, error)
 }
 
-// DeploymentVerifier handles deployment validation and monitoring
+// DeploymentVerifier handles deployment validation and monitoring.
 type DeploymentVerifier interface {
 	PhaseController
 
-	// Specialized methods for deployment verification
+	// Specialized methods for deployment verification.
 	VerifyDeployment(ctx context.Context, deploymentRef *DeploymentReference) (*VerificationResult, error)
 	ValidateResourceHealth(ctx context.Context, resources []ResourceReference) error
 	CheckSLACompliance(ctx context.Context, slaRequirements *SLARequirements) (*ComplianceResult, error)
 	GenerateComplianceReport(ctx context.Context, deploymentID string) (*ComplianceReport, error)
 }
 
-// Supporting data structures
+// Supporting data structures.
 
 // ResourcePlan defines the comprehensive resource planning structure for network function deployment.
 type ResourcePlan struct {
@@ -341,7 +349,7 @@ type ComplianceReport struct {
 	NextReviewDate   time.Time         `json:"nextReviewDate"`
 }
 
-// Additional supporting types
+// Additional supporting types.
 
 // ResourceConstraint defines a constraint that must be satisfied during resource planning.
 type ResourceConstraint struct {

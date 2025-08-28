@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-// CacheEntry represents an entry in the state cache
+// CacheEntry represents an entry in the state cache.
 type CacheEntry struct {
 	Key         string
 	Value       interface{}
@@ -34,29 +34,29 @@ type CacheEntry struct {
 	element     *list.Element
 }
 
-// StateCache provides thread-safe caching for intent states
+// StateCache provides thread-safe caching for intent states.
 type StateCache struct {
 	mutex        sync.RWMutex
 	entries      map[string]*CacheEntry
 	evictionList *list.List
 
-	// Configuration
+	// Configuration.
 	maxSize    int
 	defaultTTL time.Duration
 
-	// Statistics
+	// Statistics.
 	hits        int64
 	misses      int64
 	evictions   int64
 	currentSize int64
 
-	// Cleanup
+	// Cleanup.
 	cleanupInterval time.Duration
 	stopCleanup     chan bool
 	cleanupRunning  bool
 }
 
-// NewStateCache creates a new state cache
+// NewStateCache creates a new state cache.
 func NewStateCache(maxSize int, defaultTTL time.Duration) *StateCache {
 	cache := &StateCache{
 		entries:         make(map[string]*CacheEntry),
@@ -67,13 +67,13 @@ func NewStateCache(maxSize int, defaultTTL time.Duration) *StateCache {
 		stopCleanup:     make(chan bool),
 	}
 
-	// Start background cleanup
+	// Start background cleanup.
 	go cache.runCleanup()
 
 	return cache
 }
 
-// Get retrieves a value from the cache
+// Get retrieves a value from the cache.
 func (c *StateCache) Get(key string) interface{} {
 	c.mutex.RLock()
 	entry, exists := c.entries[key]
@@ -86,7 +86,7 @@ func (c *StateCache) Get(key string) interface{} {
 		return nil
 	}
 
-	// Check if expired
+	// Check if expired.
 	if time.Now().After(entry.ExpiresAt) {
 		c.mutex.Lock()
 		c.removeEntry(key)
@@ -95,7 +95,7 @@ func (c *StateCache) Get(key string) interface{} {
 		return nil
 	}
 
-	// Update access information
+	// Update access information.
 	c.mutex.Lock()
 	entry.AccessCount++
 	entry.LastAccess = time.Now()
@@ -106,7 +106,7 @@ func (c *StateCache) Get(key string) interface{} {
 	return entry.Value
 }
 
-// Set stores a value in the cache
+// Set stores a value in the cache.
 func (c *StateCache) Set(key string, value interface{}, ttl time.Duration) {
 	if ttl == 0 {
 		ttl = c.defaultTTL
@@ -118,9 +118,9 @@ func (c *StateCache) Set(key string, value interface{}, ttl time.Duration) {
 	now := time.Now()
 	expiresAt := now.Add(ttl)
 
-	// Check if key already exists
+	// Check if key already exists.
 	if entry, exists := c.entries[key]; exists {
-		// Update existing entry
+		// Update existing entry.
 		entry.Value = value
 		entry.ExpiresAt = expiresAt
 		entry.LastAccess = now
@@ -129,7 +129,7 @@ func (c *StateCache) Set(key string, value interface{}, ttl time.Duration) {
 		return
 	}
 
-	// Create new entry
+	// Create new entry.
 	entry := &CacheEntry{
 		Key:         key,
 		Value:       value,
@@ -140,16 +140,16 @@ func (c *StateCache) Set(key string, value interface{}, ttl time.Duration) {
 		Size:        c.calculateSize(value),
 	}
 
-	// Add to front of eviction list
+	// Add to front of eviction list.
 	entry.element = c.evictionList.PushFront(entry)
 	c.entries[key] = entry
 	c.currentSize++
 
-	// Check if we need to evict entries
+	// Check if we need to evict entries.
 	c.evictIfNecessary()
 }
 
-// Delete removes a key from the cache
+// Delete removes a key from the cache.
 func (c *StateCache) Delete(key string) bool {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -163,7 +163,7 @@ func (c *StateCache) Delete(key string) bool {
 	return false
 }
 
-// Clear removes all entries from the cache
+// Clear removes all entries from the cache.
 func (c *StateCache) Clear() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -173,7 +173,7 @@ func (c *StateCache) Clear() {
 	c.currentSize = 0
 }
 
-// Size returns the current number of entries in the cache
+// Size returns the current number of entries in the cache.
 func (c *StateCache) Size() int {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
@@ -181,7 +181,7 @@ func (c *StateCache) Size() int {
 	return len(c.entries)
 }
 
-// Stats returns cache statistics
+// Stats returns cache statistics.
 func (c *StateCache) Stats() *CacheStats {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
@@ -203,7 +203,7 @@ func (c *StateCache) Stats() *CacheStats {
 	}
 }
 
-// Cleanup removes expired entries
+// Cleanup removes expired entries.
 func (c *StateCache) Cleanup() int {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -224,7 +224,7 @@ func (c *StateCache) Cleanup() int {
 	return len(expired)
 }
 
-// Keys returns all keys in the cache
+// Keys returns all keys in the cache.
 func (c *StateCache) Keys() []string {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
@@ -237,7 +237,7 @@ func (c *StateCache) Keys() []string {
 	return keys
 }
 
-// Contains checks if a key exists in the cache (without updating access time)
+// Contains checks if a key exists in the cache (without updating access time).
 func (c *StateCache) Contains(key string) bool {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
@@ -247,11 +247,11 @@ func (c *StateCache) Contains(key string) bool {
 		return false
 	}
 
-	// Check if expired
+	// Check if expired.
 	return time.Now().Before(entry.ExpiresAt)
 }
 
-// GetMultiple retrieves multiple values at once
+// GetMultiple retrieves multiple values at once.
 func (c *StateCache) GetMultiple(keys []string) map[string]interface{} {
 	result := make(map[string]interface{})
 
@@ -264,14 +264,14 @@ func (c *StateCache) GetMultiple(keys []string) map[string]interface{} {
 	return result
 }
 
-// SetMultiple stores multiple values at once
+// SetMultiple stores multiple values at once.
 func (c *StateCache) SetMultiple(entries map[string]interface{}, ttl time.Duration) {
 	for key, value := range entries {
 		c.Set(key, value, ttl)
 	}
 }
 
-// GetOldest returns the oldest entry in the cache
+// GetOldest returns the oldest entry in the cache.
 func (c *StateCache) GetOldest() (string, interface{}, bool) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
@@ -289,7 +289,7 @@ func (c *StateCache) GetOldest() (string, interface{}, bool) {
 	return entry.Key, entry.Value, true
 }
 
-// GetMostRecent returns the most recently accessed entry
+// GetMostRecent returns the most recently accessed entry.
 func (c *StateCache) GetMostRecent() (string, interface{}, bool) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
@@ -307,7 +307,7 @@ func (c *StateCache) GetMostRecent() (string, interface{}, bool) {
 	return entry.Key, entry.Value, true
 }
 
-// Stop stops the cache cleanup process
+// Stop stops the cache cleanup process.
 func (c *StateCache) Stop() {
 	if c.cleanupRunning {
 		c.stopCleanup <- true
@@ -315,7 +315,7 @@ func (c *StateCache) Stop() {
 	}
 }
 
-// Internal methods
+// Internal methods.
 
 func (c *StateCache) removeEntry(key string) {
 	if entry, exists := c.entries[key]; exists {
@@ -351,8 +351,8 @@ func (c *StateCache) evictOldest() {
 }
 
 func (c *StateCache) calculateSize(value interface{}) int64 {
-	// Simplified size calculation
-	// In a real implementation, you might want more accurate size calculation
+	// Simplified size calculation.
+	// In a real implementation, you might want more accurate size calculation.
 	return 1
 }
 
@@ -371,7 +371,7 @@ func (c *StateCache) runCleanup() {
 	}
 }
 
-// CacheStats represents cache statistics
+// CacheStats represents cache statistics.
 type CacheStats struct {
 	Hits        int64   `json:"hits"`
 	Misses      int64   `json:"misses"`
@@ -382,7 +382,7 @@ type CacheStats struct {
 	EntryCount  int64   `json:"entryCount"`
 }
 
-// CacheConfig provides configuration for the cache
+// CacheConfig provides configuration for the cache.
 type CacheConfig struct {
 	MaxSize          int           `json:"maxSize"`
 	DefaultTTL       time.Duration `json:"defaultTTL"`
@@ -393,7 +393,7 @@ type CacheConfig struct {
 	EnableMetrics    bool          `json:"enableMetrics"`
 }
 
-// DefaultCacheConfig returns default cache configuration
+// DefaultCacheConfig returns default cache configuration.
 func DefaultCacheConfig() *CacheConfig {
 	return &CacheConfig{
 		MaxSize:          10000,
@@ -406,9 +406,9 @@ func DefaultCacheConfig() *CacheConfig {
 	}
 }
 
-// Advanced cache operations
+// Advanced cache operations.
 
-// GetWithStats retrieves a value and returns access statistics
+// GetWithStats retrieves a value and returns access statistics.
 func (c *StateCache) GetWithStats(key string) (interface{}, *CacheEntryStats) {
 	c.mutex.RLock()
 	entry, exists := c.entries[key]
@@ -424,7 +424,7 @@ func (c *StateCache) GetWithStats(key string) (interface{}, *CacheEntryStats) {
 		return nil, nil
 	}
 
-	// Update access information
+	// Update access information.
 	c.mutex.Lock()
 	entry.AccessCount++
 	entry.LastAccess = time.Now()
@@ -443,11 +443,11 @@ func (c *StateCache) GetWithStats(key string) (interface{}, *CacheEntryStats) {
 	return entry.Value, stats
 }
 
-// SetWithCallback stores a value with an expiration callback
+// SetWithCallback stores a value with an expiration callback.
 func (c *StateCache) SetWithCallback(key string, value interface{}, ttl time.Duration, callback func(string, interface{})) {
 	c.Set(key, value, ttl)
 
-	// Schedule callback for expiration
+	// Schedule callback for expiration.
 	go func() {
 		time.Sleep(ttl)
 		if !c.Contains(key) && callback != nil {
@@ -456,7 +456,7 @@ func (c *StateCache) SetWithCallback(key string, value interface{}, ttl time.Dur
 	}()
 }
 
-// CacheEntryStats provides statistics for a cache entry
+// CacheEntryStats provides statistics for a cache entry.
 type CacheEntryStats struct {
 	AccessCount  int64         `json:"accessCount"`
 	LastAccess   time.Time     `json:"lastAccess"`

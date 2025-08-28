@@ -12,19 +12,19 @@ import (
 	"time"
 )
 
-// ValidationRule represents a single validation rule
+// ValidationRule represents a single validation rule.
 type ValidationRule struct {
 	Name        string
 	Description string
 	Validate    func(interface{}) error
 }
 
-// ValidationRules contains all validation rules for configuration values
+// ValidationRules contains all validation rules for configuration values.
 type ValidationRules struct {
 	rules map[string]*ValidationRule
 }
 
-// NewValidationRules creates a new validation rules instance
+// NewValidationRules creates a new validation rules instance.
 func NewValidationRules() *ValidationRules {
 	vr := &ValidationRules{
 		rules: make(map[string]*ValidationRule),
@@ -33,9 +33,9 @@ func NewValidationRules() *ValidationRules {
 	return vr
 }
 
-// initializeDefaultRules initializes all default validation rules
+// initializeDefaultRules initializes all default validation rules.
 func (vr *ValidationRules) initializeDefaultRules() {
-	// Network configuration validation rules
+	// Network configuration validation rules.
 	vr.AddRule("port", "Port number validation (1-65535)", validatePortNumber)
 	vr.AddRule("timeout", "Timeout duration validation (positive duration)", validateTimeout)
 	vr.AddRule("retry_count", "Retry count validation (0-100)", validateRetryCount)
@@ -56,7 +56,7 @@ func (vr *ValidationRules) initializeDefaultRules() {
 	vr.AddRule("failure_rate", "Failure rate validation (0.0-1.0)", validateFailureRate)
 }
 
-// AddRule adds a validation rule
+// AddRule adds a validation rule.
 func (vr *ValidationRules) AddRule(name, description string, validateFunc func(interface{}) error) {
 	vr.rules[name] = &ValidationRule{
 		Name:        name,
@@ -65,7 +65,7 @@ func (vr *ValidationRules) AddRule(name, description string, validateFunc func(i
 	}
 }
 
-// ValidateValue validates a value against a specific rule
+// ValidateValue validates a value against a specific rule.
 func (vr *ValidationRules) ValidateValue(ruleName string, value interface{}) error {
 	rule, exists := vr.rules[ruleName]
 	if !exists {
@@ -79,7 +79,7 @@ func (vr *ValidationRules) ValidateValue(ruleName string, value interface{}) err
 	return nil
 }
 
-// ValidateConfiguration validates a complete configuration against multiple rules
+// ValidateConfiguration validates a complete configuration against multiple rules.
 func (vr *ValidationRules) ValidateConfiguration(config map[string]interface{}, rules map[string]string) error {
 	var errors []string
 
@@ -101,7 +101,7 @@ func (vr *ValidationRules) ValidateConfiguration(config map[string]interface{}, 
 	return nil
 }
 
-// GetRuleDescription returns the description for a rule
+// GetRuleDescription returns the description for a rule.
 func (vr *ValidationRules) GetRuleDescription(ruleName string) string {
 	if rule, exists := vr.rules[ruleName]; exists {
 		return rule.Description
@@ -109,7 +109,7 @@ func (vr *ValidationRules) GetRuleDescription(ruleName string) string {
 	return "Rule not found"
 }
 
-// ListRules returns all available validation rules
+// ListRules returns all available validation rules.
 func (vr *ValidationRules) ListRules() []string {
 	var rules []string
 	for name := range vr.rules {
@@ -118,9 +118,9 @@ func (vr *ValidationRules) ListRules() []string {
 	return rules
 }
 
-// Validation functions for specific types
+// Validation functions for specific types.
 
-// validatePortNumber validates that a value is a valid port number (1-65535)
+// validatePortNumber validates that a value is a valid port number (1-65535).
 func validatePortNumber(value interface{}) error {
 	var port int
 
@@ -144,7 +144,7 @@ func validatePortNumber(value interface{}) error {
 	return nil
 }
 
-// validateTimeout validates that a value is a positive duration
+// validateTimeout validates that a value is a positive duration.
 func validateTimeout(value interface{}) error {
 	switch v := value.(type) {
 	case time.Duration:
@@ -166,7 +166,7 @@ func validateTimeout(value interface{}) error {
 	return nil
 }
 
-// validateRetryCount validates retry count (0-100)
+// validateRetryCount validates retry count (0-100).
 func validateRetryCount(value interface{}) error {
 	var count int
 
@@ -190,7 +190,7 @@ func validateRetryCount(value interface{}) error {
 	return nil
 }
 
-// validatePercentage validates a percentage value (0.0-1.0)
+// validatePercentage validates a percentage value (0.0-1.0).
 func validatePercentage(value interface{}) error {
 	var percentage float64
 
@@ -216,7 +216,7 @@ func validatePercentage(value interface{}) error {
 	return nil
 }
 
-// validatePositiveInteger validates that a value is a positive integer (> 0)
+// validatePositiveInteger validates that a value is a positive integer (> 0).
 func validatePositiveInteger(value interface{}) error {
 	var num int
 
@@ -240,7 +240,7 @@ func validatePositiveInteger(value interface{}) error {
 	return nil
 }
 
-// validateNonNegativeInteger validates that a value is a non-negative integer (>= 0)
+// validateNonNegativeInteger validates that a value is a non-negative integer (>= 0).
 func validateNonNegativeInteger(value interface{}) error {
 	var num int
 
@@ -264,7 +264,7 @@ func validateNonNegativeInteger(value interface{}) error {
 	return nil
 }
 
-// validateKubernetesResource validates Kubernetes resource quantity format (e.g., "100m", "1Gi")
+// validateKubernetesResource validates Kubernetes resource quantity format (e.g., "100m", "1Gi").
 func validateKubernetesResource(value interface{}) error {
 	var resource string
 
@@ -279,8 +279,8 @@ func validateKubernetesResource(value interface{}) error {
 		return fmt.Errorf("kubernetes resource cannot be empty")
 	}
 
-	// Basic validation for Kubernetes resource format
-	// This is a simplified check - in production, use k8s.io/apimachinery/pkg/api/resource.ParseQuantity
+	// Basic validation for Kubernetes resource format.
+	// This is a simplified check - in production, use k8s.io/apimachinery/pkg/api/resource.ParseQuantity.
 	resourcePattern := regexp.MustCompile(`^[0-9]+(\.[0-9]+)?([mM]?[i]?|[KMGTPE]i?)$`)
 	if !resourcePattern.MatchString(resource) {
 		return fmt.Errorf("invalid kubernetes resource format: %s (expected format like '100m', '1Gi', '2')", resource)
@@ -289,7 +289,7 @@ func validateKubernetesResource(value interface{}) error {
 	return nil
 }
 
-// validateDomain validates domain name format
+// validateDomain validates domain name format.
 func validateDomain(value interface{}) error {
 	var domain string
 
@@ -304,7 +304,7 @@ func validateDomain(value interface{}) error {
 		return fmt.Errorf("domain cannot be empty")
 	}
 
-	// Basic domain validation - simplified regex
+	// Basic domain validation - simplified regex.
 	domainPattern := regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*$`)
 	if !domainPattern.MatchString(domain) {
 		return fmt.Errorf("invalid domain format: %s", domain)
@@ -317,7 +317,7 @@ func validateDomain(value interface{}) error {
 	return nil
 }
 
-// validateURLFormat validates URL format
+// validateURLFormat validates URL format.
 func validateURLFormat(value interface{}) error {
 	var url string
 
@@ -332,7 +332,7 @@ func validateURLFormat(value interface{}) error {
 		return fmt.Errorf("URL cannot be empty")
 	}
 
-	// Basic URL validation
+	// Basic URL validation.
 	urlPattern := regexp.MustCompile(`^https?://[a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})(:[0-9]+)?(/.*)?$`)
 	if !urlPattern.MatchString(url) {
 		return fmt.Errorf("invalid URL format: %s", url)
@@ -341,7 +341,7 @@ func validateURLFormat(value interface{}) error {
 	return nil
 }
 
-// validateFilePath validates file path format
+// validateFilePath validates file path format.
 func validateFilePath(value interface{}) error {
 	var path string
 
@@ -356,7 +356,7 @@ func validateFilePath(value interface{}) error {
 		return fmt.Errorf("file path cannot be empty")
 	}
 
-	// Check for potentially dangerous path patterns
+	// Check for potentially dangerous path patterns.
 	dangerousPatterns := []string{
 		"..",
 		"//",
@@ -377,12 +377,12 @@ func validateFilePath(value interface{}) error {
 	return nil
 }
 
-// validateJitterFactor validates jitter factor (0.0-1.0)
+// validateJitterFactor validates jitter factor (0.0-1.0).
 func validateJitterFactor(value interface{}) error {
 	return validatePercentage(value)
 }
 
-// validateBackoffMultiplier validates backoff multiplier (> 1.0)
+// validateBackoffMultiplier validates backoff multiplier (> 1.0).
 func validateBackoffMultiplier(value interface{}) error {
 	var multiplier float64
 
@@ -408,7 +408,7 @@ func validateBackoffMultiplier(value interface{}) error {
 	return nil
 }
 
-// validateInputLength validates input length limits (1-1000000)
+// validateInputLength validates input length limits (1-1000000).
 func validateInputLength(value interface{}) error {
 	var length int
 
@@ -432,7 +432,7 @@ func validateInputLength(value interface{}) error {
 	return nil
 }
 
-// validateOutputLength validates output length limits (1-10000000)
+// validateOutputLength validates output length limits (1-10000000).
 func validateOutputLength(value interface{}) error {
 	var length int
 
@@ -456,7 +456,7 @@ func validateOutputLength(value interface{}) error {
 	return nil
 }
 
-// validateContextBoundary validates context boundary (non-empty string)
+// validateContextBoundary validates context boundary (non-empty string).
 func validateContextBoundary(value interface{}) error {
 	var boundary string
 
@@ -482,14 +482,14 @@ func validateContextBoundary(value interface{}) error {
 	return nil
 }
 
-// validateStringArray validates string array
+// validateStringArray validates string array.
 func validateStringArray(value interface{}) error {
 	switch v := value.(type) {
 	case []string:
-		// Valid string array
+		// Valid string array.
 		return nil
 	case []interface{}:
-		// Check if all elements are strings
+		// Check if all elements are strings.
 		for i, item := range v {
 			if _, ok := item.(string); !ok {
 				return fmt.Errorf("array element at index %d is not a string: %T", i, item)
@@ -501,7 +501,7 @@ func validateStringArray(value interface{}) error {
 	}
 }
 
-// validateCircuitBreakerThreshold validates circuit breaker threshold (1-1000)
+// validateCircuitBreakerThreshold validates circuit breaker threshold (1-1000).
 func validateCircuitBreakerThreshold(value interface{}) error {
 	var threshold int
 
@@ -525,12 +525,12 @@ func validateCircuitBreakerThreshold(value interface{}) error {
 	return nil
 }
 
-// validateFailureRate validates failure rate (0.0-1.0)
+// validateFailureRate validates failure rate (0.0-1.0).
 func validateFailureRate(value interface{}) error {
 	return validatePercentage(value)
 }
 
-// ValidateNetworkConfiguration validates network-specific configuration
+// ValidateNetworkConfiguration validates network-specific configuration.
 func ValidateNetworkConfiguration(config map[string]interface{}) error {
 	vr := NewValidationRules()
 
@@ -549,7 +549,7 @@ func ValidateNetworkConfiguration(config map[string]interface{}) error {
 	return vr.ValidateConfiguration(config, networkRules)
 }
 
-// ValidateSecurityConfiguration validates security-specific configuration
+// ValidateSecurityConfiguration validates security-specific configuration.
 func ValidateSecurityConfiguration(config map[string]interface{}) error {
 	vr := NewValidationRules()
 
@@ -564,7 +564,7 @@ func ValidateSecurityConfiguration(config map[string]interface{}) error {
 	return vr.ValidateConfiguration(config, securityRules)
 }
 
-// ValidateResilienceConfiguration validates resilience-specific configuration
+// ValidateResilienceConfiguration validates resilience-specific configuration.
 func ValidateResilienceConfiguration(config map[string]interface{}) error {
 	vr := NewValidationRules()
 
@@ -580,7 +580,7 @@ func ValidateResilienceConfiguration(config map[string]interface{}) error {
 	return vr.ValidateConfiguration(config, resilienceRules)
 }
 
-// ValidateIPAddress validates IP address format
+// ValidateIPAddress validates IP address format.
 func ValidateIPAddress(value interface{}) error {
 	var ipStr string
 
@@ -599,11 +599,11 @@ func ValidateIPAddress(value interface{}) error {
 	return nil
 }
 
-// ValidateCompleteConfiguration validates all configuration sections together
+// ValidateCompleteConfiguration validates all configuration sections together.
 func ValidateCompleteConfiguration(constants *Constants) error {
-	// Convert constants to map for validation
+	// Convert constants to map for validation.
 	config := map[string]interface{}{
-		// Network configuration
+		// Network configuration.
 		"metrics_port":       constants.MetricsPort,
 		"health_port":        constants.HealthProbePort,
 		"llm_timeout":        constants.LLMTimeout,
@@ -613,14 +613,14 @@ func ValidateCompleteConfiguration(constants *Constants) error {
 		"jitter_factor":      constants.JitterFactor,
 		"backoff_multiplier": constants.BackoffMultiplier,
 
-		// Security configuration
+		// Security configuration.
 		"max_input_length":  constants.MaxInputLength,
 		"max_output_length": constants.MaxOutputLength,
 		"context_boundary":  constants.ContextBoundary,
 		"allowed_domains":   constants.AllowedDomains,
 		"blocked_keywords":  constants.BlockedKeywords,
 
-		// Resilience configuration
+		// Resilience configuration.
 		"cb_failure_threshold": constants.CircuitBreakerFailureThreshold,
 		"cb_recovery_timeout":  constants.CircuitBreakerRecoveryTimeout,
 		"cb_request_timeout":   constants.CircuitBreakerRequestTimeout,
@@ -629,7 +629,7 @@ func ValidateCompleteConfiguration(constants *Constants) error {
 		"cb_failure_rate":      constants.CircuitBreakerFailureRate,
 	}
 
-	// Validate each section
+	// Validate each section.
 	if err := ValidateNetworkConfiguration(config); err != nil {
 		return fmt.Errorf("network configuration validation failed: %w", err)
 	}
@@ -645,25 +645,25 @@ func ValidateCompleteConfiguration(constants *Constants) error {
 	return nil
 }
 
-// SecretLoader represents a loader for sensitive configuration values
+// SecretLoader represents a loader for sensitive configuration values.
 type SecretLoader struct {
 	basePath string
 	// Additional fields can be added for encryption, etc.
 }
 
-// NewSecretLoader creates a new secret loader
+// NewSecretLoader creates a new secret loader.
 func NewSecretLoader(basePath string, options map[string]interface{}) (*SecretLoader, error) {
 	if basePath == "" {
 		return nil, fmt.Errorf("base path cannot be empty")
 	}
 
-	// Clean and validate the base path to prevent directory traversal
+	// Clean and validate the base path to prevent directory traversal.
 	cleanBase := filepath.Clean(basePath)
 	if strings.Contains(cleanBase, "..") {
 		return nil, fmt.Errorf("invalid base path: contains directory traversal")
 	}
 
-	// Convert to absolute path for security
+	// Convert to absolute path for security.
 	absPath, err := filepath.Abs(cleanBase)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get absolute path: %w", err)
@@ -674,14 +674,14 @@ func NewSecretLoader(basePath string, options map[string]interface{}) (*SecretLo
 	}, nil
 }
 
-// LoadSecret loads a secret from the configured source
+// LoadSecret loads a secret from the configured source.
 func (sl *SecretLoader) LoadSecret(secretName string) (string, error) {
-	// Validate secretName to prevent path traversal attacks
+	// Validate secretName to prevent path traversal attacks.
 	if strings.ContainsAny(secretName, "/\\") || strings.Contains(secretName, "..") {
 		return "", fmt.Errorf("invalid secret name: contains path separators or traversal")
 	}
 
-	// Validate secretName is not empty and reasonable length
+	// Validate secretName is not empty and reasonable length.
 	if secretName == "" || len(secretName) > 255 {
 		return "", fmt.Errorf("invalid secret name: must be non-empty and less than 256 characters")
 	}
@@ -689,12 +689,12 @@ func (sl *SecretLoader) LoadSecret(secretName string) (string, error) {
 	secretPath := filepath.Join(sl.basePath, secretName)
 	cleanPath := filepath.Clean(secretPath)
 
-	// Ensure the clean path is still within basePath (defense in depth)
+	// Ensure the clean path is still within basePath (defense in depth).
 	if !strings.HasPrefix(cleanPath, sl.basePath) {
 		return "", fmt.Errorf("path traversal attempt detected")
 	}
 
-	// Use os.ReadFile instead of deprecated os.ReadFile
+	// Use os.ReadFile instead of deprecated os.ReadFile.
 	content, err := os.ReadFile(cleanPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to read secret %s: %w", secretName, err)
@@ -703,13 +703,13 @@ func (sl *SecretLoader) LoadSecret(secretName string) (string, error) {
 	return strings.TrimSpace(string(content)), nil
 }
 
-// IsValidOpenAIKey validates if a string is a valid OpenAI API key format
+// IsValidOpenAIKey validates if a string is a valid OpenAI API key format.
 func IsValidOpenAIKey(key string) bool {
 	if key == "" {
 		return false
 	}
 
-	// OpenAI keys typically start with "sk-" and are 51 characters long
+	// OpenAI keys typically start with "sk-" and are 51 characters long.
 	if !strings.HasPrefix(key, "sk-") {
 		return false
 	}
@@ -718,37 +718,37 @@ func IsValidOpenAIKey(key string) bool {
 		return false
 	}
 
-	// Check if the rest contains only alphanumeric characters
+	// Check if the rest contains only alphanumeric characters.
 	keyPart := key[3:] // Remove "sk-" prefix
 	alphanumeric := regexp.MustCompile(`^[a-zA-Z0-9]+$`)
 
 	return alphanumeric.MatchString(keyPart)
 }
 
-// ClearString securely clears a string from memory
+// ClearString securely clears a string from memory.
 func ClearString(s *string) {
 	if s == nil || *s == "" {
 		return
 	}
 
-	// Convert string to byte slice for clearing
+	// Convert string to byte slice for clearing.
 	data := []byte(*s)
 
-	// Clear the underlying bytes
+	// Clear the underlying bytes.
 	for i := range data {
 		data[i] = 0
 	}
 
-	// Clear the string by setting it to empty
+	// Clear the string by setting it to empty.
 	*s = ""
 }
 
-// SecureCompare performs constant-time comparison of two strings
+// SecureCompare performs constant-time comparison of two strings.
 func SecureCompare(a, b string) bool {
-	// Convert to byte slices
+	// Convert to byte slices.
 	aBytes := []byte(a)
 	bBytes := []byte(b)
 
-	// Use crypto/subtle for constant-time comparison
+	// Use crypto/subtle for constant-time comparison.
 	return subtle.ConstantTimeCompare(aBytes, bBytes) == 1
 }

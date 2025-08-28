@@ -24,15 +24,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// DefaultAnalyzerConfig returns a default AnalyzerConfig configuration
+// DefaultAnalyzerConfig returns a default AnalyzerConfig configuration.
 func DefaultAnalyzerConfig() *AnalyzerConfig {
 	return &AnalyzerConfig{
 		EnableMLAnalysis:     false,
 		EnableMLOptimization: false,
 		EnableCaching:        true,
 		EnableConcurrency:    true,
-		// EnableBenchmarking:     false, // Field does not exist
-		// EnableResourceAnalysis: false, // Field does not exist
+		// EnableBenchmarking:     false, // Field does not exist.
+		// EnableResourceAnalysis: false, // Field does not exist.
 		EnableTrendAnalysis:       true,
 		WorkerCount:               4,
 		QueueSize:                 100,
@@ -44,16 +44,16 @@ func DefaultAnalyzerConfig() *AnalyzerConfig {
 	}
 }
 
-// AnalyzerMetrics with missing fields
+// AnalyzerMetrics with missing fields.
 type AnalyzerMetrics struct {
-	// Cache metrics
+	// Cache metrics.
 	AnalysisCacheHits   prometheus.Counter
 	AnalysisCacheMisses prometheus.Counter
 
-	// System metrics
+	// System metrics.
 	Uptime prometheus.Gauge
 
-	// Analysis metrics
+	// Analysis metrics.
 	UsageAnalysisTotal  prometheus.Counter
 	UsageAnalysisTime   prometheus.Histogram
 	CostAnalysisTotal   prometheus.Counter
@@ -61,12 +61,12 @@ type AnalyzerMetrics struct {
 	HealthAnalysisTotal prometheus.Counter
 	HealthAnalysisTime  prometheus.Histogram
 
-	// Optimization metrics
+	// Optimization metrics.
 	OptimizationRecommendationsGenerated prometheus.Counter
 	OptimizationRecommendationTime       prometheus.Histogram
 }
 
-// NewAnalyzerMetrics creates new analyzer metrics
+// NewAnalyzerMetrics creates new analyzer metrics.
 func NewAnalyzerMetrics() *AnalyzerMetrics {
 	return &AnalyzerMetrics{
 		AnalysisCacheHits: prometheus.NewCounter(prometheus.CounterOpts{
@@ -112,24 +112,24 @@ func NewAnalyzerMetrics() *AnalyzerMetrics {
 	}
 }
 
-// Add missing methods to dependencyAnalyzer struct
+// Add missing methods to dependencyAnalyzer struct.
 
-// Note: The following methods have been moved to analyzer.go to avoid duplicates:
-// - generateAnalysisCacheKey
-// - performMLAnalysis
-// - updateAnalysisMetrics
-// - usageDataCollectionProcess
-// - metricsCollectionProcess
-// - eventProcessingLoop
-// - mlModelUpdateProcess
+// Note: The following methods have been moved to analyzer.go to avoid duplicates:.
+// - generateAnalysisCacheKey.
+// - performMLAnalysis.
+// - updateAnalysisMetrics.
+// - usageDataCollectionProcess.
+// - metricsCollectionProcess.
+// - eventProcessingLoop.
+// - mlModelUpdateProcess.
 
-// Remaining helper methods for compliance analysis that are not duplicated
+// Remaining helper methods for compliance analysis that are not duplicated.
 
-// analyzePackageComplianceRisks analyzes compliance risks for a single package
+// analyzePackageComplianceRisks analyzes compliance risks for a single package.
 func (a *dependencyAnalyzer) analyzePackageComplianceRisks(ctx context.Context, pkg *PackageReference) []*ComplianceIssue {
 	issues := make([]*ComplianceIssue, 0)
 
-	// Check for known compliance issues (stub implementation)
+	// Check for known compliance issues (stub implementation).
 	issue := &ComplianceIssue{
 		ID:             fmt.Sprintf("compliance-issue-%s-%s", pkg.Name, pkg.Version),
 		Type:           "license",
@@ -144,7 +144,7 @@ func (a *dependencyAnalyzer) analyzePackageComplianceRisks(ctx context.Context, 
 	return issues
 }
 
-// determineOverallComplianceRiskLevel determines overall compliance risk level
+// determineOverallComplianceRiskLevel determines overall compliance risk level.
 func (a *dependencyAnalyzer) determineOverallComplianceRiskLevel(issues []*ComplianceIssue) RiskLevel {
 	if len(issues) == 0 {
 		return RiskLevelLow
@@ -166,20 +166,20 @@ func (a *dependencyAnalyzer) determineOverallComplianceRiskLevel(issues []*Compl
 	return RiskLevelLow
 }
 
-// generateComplianceActions generates compliance actions for issues
+// generateComplianceActions generates compliance actions for issues.
 func (a *dependencyAnalyzer) generateComplianceActions(issues []*ComplianceIssue) []*ComplianceAction {
 	actions := make([]*ComplianceAction, 0)
 
 	for _, issue := range issues {
-		// Since ComplianceIssue doesn't have Status field, check severity instead
+		// Since ComplianceIssue doesn't have Status field, check severity instead.
 		if issue.Severity == "high" || issue.Severity == "critical" {
 			action := &ComplianceAction{
 				ID:          fmt.Sprintf("action-%s", issue.ID),
 				Type:        "remediation",
 				Description: fmt.Sprintf("Address compliance issue: %s", issue.Description),
 				Priority:    issue.Severity,
-				// DueDate field doesn't exist in ComplianceAction
-				// DueDate:     time.Now().Add(30 * 24 * time.Hour), // 30 days
+				// DueDate field doesn't exist in ComplianceAction.
+				// DueDate:     time.Now().Add(30 * 24 * time.Hour), // 30 days.
 				Status: "pending",
 			}
 			actions = append(actions, action)
@@ -189,9 +189,9 @@ func (a *dependencyAnalyzer) generateComplianceActions(issues []*ComplianceIssue
 	return actions
 }
 
-// generateComplianceRiskAnalysisID generates unique ID for compliance risk analysis
+// generateComplianceRiskAnalysisID generates unique ID for compliance risk analysis.
 func generateComplianceRiskAnalysisID() string {
 	return fmt.Sprintf("compliance-risk-%d", time.Now().UnixNano())
 }
 
-// End of analyzer_fixes.go - all other methods have been moved to analyzer.go to avoid duplicates
+// End of analyzer_fixes.go - all other methods have been moved to analyzer.go to avoid duplicates.

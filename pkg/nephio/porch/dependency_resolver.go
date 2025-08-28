@@ -27,107 +27,107 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// DependencyResolver provides comprehensive package dependency resolution and management
-// Handles dependency graph building, circular dependency detection, version constraint solving,
-// transitive dependency resolution, update propagation, and conflict resolution with optimization
+// DependencyResolver provides comprehensive package dependency resolution and management.
+// Handles dependency graph building, circular dependency detection, version constraint solving,.
+// transitive dependency resolution, update propagation, and conflict resolution with optimization.
 type DependencyResolver interface {
-	// Dependency graph operations
+	// Dependency graph operations.
 	BuildDependencyGraph(ctx context.Context, rootPackages []*PackageReference, opts *GraphBuildOptions) (*DependencyGraph, error)
 	ResolveDependencies(ctx context.Context, ref *PackageReference, constraints *DependencyConstraints) (*ResolutionResult, error)
 	ValidateDependencyGraph(ctx context.Context, graph *DependencyGraph) (*ValidationResult, error)
 
-	// Circular dependency detection
+	// Circular dependency detection.
 	DetectCircularDependencies(ctx context.Context, graph *DependencyGraph) (*CircularDependencyResult, error)
 	BreakCircularDependencies(ctx context.Context, graph *DependencyGraph, strategy CircularResolutionStrategy) (*GraphModification, error)
 
-	// Version constraint solving
+	// Version constraint solving.
 	SolveVersionConstraints(ctx context.Context, requirements []*VersionRequirement) (*VersionSolution, error)
 	FindCompatibleVersions(ctx context.Context, ref *PackageReference, constraints []*VersionConstraint) ([]string, error)
 	GetVersionCompatibilityMatrix(ctx context.Context, packages []*PackageReference) (*CompatibilityMatrix, error)
 
-	// Transitive dependency resolution
+	// Transitive dependency resolution.
 	ResolveTransitiveDependencies(ctx context.Context, ref *PackageReference, maxDepth int) (*TransitiveDependencies, error)
 	ComputeTransitiveClosure(ctx context.Context, graph *DependencyGraph) (*DependencyGraph, error)
 	OptimizeDependencyTree(ctx context.Context, graph *DependencyGraph, opts *OptimizationOptions) (*OptimizedGraph, error)
 
-	// Update propagation
+	// Update propagation.
 	PropagateUpdates(ctx context.Context, updatedPackage *PackageReference, propagationStrategy PropagationStrategy) (*UpdatePropagationResult, error)
 	AnalyzeUpdateImpact(ctx context.Context, updates []*PackageUpdate) (*ImpactAnalysis, error)
 	CreateUpdatePlan(ctx context.Context, targetUpdates []*PackageUpdate, opts *UpdatePlanOptions) (*UpdatePlan, error)
 
-	// Conflict resolution
+	// Conflict resolution.
 	DetectDependencyConflicts(ctx context.Context, graph *DependencyGraph) (*ConflictAnalysis, error)
 	ResolveConflicts(ctx context.Context, conflicts *ConflictAnalysis, strategy ConflictResolutionStrategy) (*ConflictResolution, error)
 	SuggestConflictResolutions(ctx context.Context, conflicts *ConflictAnalysis) ([]*ConflictSuggestion, error)
 
-	// Dependency analysis and optimization
+	// Dependency analysis and optimization.
 	AnalyzeDependencyHealth(ctx context.Context, ref *PackageReference) (*DependencyHealthReport, error)
 	FindUnusedDependencies(ctx context.Context, ref *PackageReference) ([]*UnusedDependency, error)
 	SuggestOptimizations(ctx context.Context, graph *DependencyGraph) ([]*OptimizationSuggestion, error)
 
-	// Dependency querying and exploration
+	// Dependency querying and exploration.
 	GetDependencyPath(ctx context.Context, from, to *PackageReference) (*DependencyPath, error)
 	FindDependents(ctx context.Context, ref *PackageReference, opts *DependentSearchOptions) ([]*Dependent, error)
 	GetDependencyTree(ctx context.Context, ref *PackageReference, opts *TreeOptions) (*DependencyTree, error)
 
-	// Version and compatibility management
+	// Version and compatibility management.
 	CheckCompatibility(ctx context.Context, ref1, ref2 *PackageReference) (*CompatibilityResult, error)
 	GetVersionHistory(ctx context.Context, ref *PackageReference) (*VersionHistory, error)
 	ComputeVersionDistance(ctx context.Context, version1, version2 string) (*VersionDistance, error)
 
-	// Monitoring and metrics
+	// Monitoring and metrics.
 	GetDependencyMetrics(ctx context.Context) (*DependencyMetrics, error)
 	GetResolutionStatistics(ctx context.Context, timeRange *TimeRange) (*ResolutionStatistics, error)
 
-	// Health and maintenance
+	// Health and maintenance.
 	GetResolverHealth(ctx context.Context) (*ResolverHealth, error)
 	CleanupResolutionCache(ctx context.Context, olderThan time.Duration) (*CacheCleanupResult, error)
 	Close() error
 }
 
-// dependencyResolver implements comprehensive dependency resolution
+// dependencyResolver implements comprehensive dependency resolution.
 type dependencyResolver struct {
-	// Core dependencies
+	// Core dependencies.
 	client  *Client
 	logger  logr.Logger
 	metrics *DependencyResolverMetrics
 
-	// Resolution engines
+	// Resolution engines.
 	versionSolver    *VersionSolver
 	conflictResolver *DependencyConflictResolver
 	graphBuilder     *DependencyGraphBuilder
 
-	// Caching and optimization
+	// Caching and optimization.
 	resolutionCache ResolutionCache
 	graphCache      GraphCache
 	versionCache    VersionCache
 
-	// Configuration
+	// Configuration.
 	config *DependencyResolverConfig
 
-	// Concurrent processing
+	// Concurrent processing.
 	resolverPool *ResolverPool
 	workerCount  int
 
-	// Dependency providers
+	// Dependency providers.
 	providers     map[string]DependencyProvider
 	providerMutex sync.RWMutex
 
-	// Resolution strategies
+	// Resolution strategies.
 	strategies    map[string]ResolutionStrategy
 	strategyMutex sync.RWMutex
 
-	// Monitoring and health
+	// Monitoring and health.
 	healthChecker *DependencyHealthChecker
 
-	// Background processing
+	// Background processing.
 	shutdown chan struct{}
 	wg       sync.WaitGroup
 }
 
-// Core data structures
+// Core data structures.
 
-// DependencyGraph represents a complete dependency graph
+// DependencyGraph represents a complete dependency graph.
 type DependencyGraph struct {
 	ID           string
 	RootPackages []*PackageReference
@@ -138,19 +138,19 @@ type DependencyGraph struct {
 	BuildTime    time.Time
 	Metadata     map[string]interface{}
 
-	// Graph properties
+	// Graph properties.
 	IsAcyclic bool
 	MaxDepth  int
 	NodeCount int
 	EdgeCount int
 
-	// Resolution state
+	// Resolution state.
 	Resolved        bool
 	ConflictCount   int
 	UnresolvedNodes []*DependencyNode
 }
 
-// DependencyNode represents a package in the dependency graph
+// DependencyNode represents a package in the dependency graph.
 type DependencyNode struct {
 	ID           string
 	PackageRef   *PackageReference
@@ -163,23 +163,23 @@ type DependencyNode struct {
 	Conflicts    []*DependencyConflict
 	Metadata     map[string]interface{}
 
-	// Node properties
+	// Node properties.
 	IsRoot     bool
 	IsLeaf     bool
 	IsCritical bool
 
-	// Version information
+	// Version information.
 	AvailableVersions []string
 	RequestedVersions []string
 	ResolvedVersion   string
 
-	// Health and metrics
+	// Health and metrics.
 	HealthScore float64
 	LastUpdated time.Time
 	UsageCount  int64
 }
 
-// DependencyEdge represents a dependency relationship
+// DependencyEdge represents a dependency relationship.
 type DependencyEdge struct {
 	ID         string
 	From       *DependencyNode
@@ -191,24 +191,24 @@ type DependencyEdge struct {
 	Transitive bool
 	Weight     int
 
-	// Edge properties
+	// Edge properties.
 	IsConflicting bool
 	IsCircular    bool
 	IsCritical    bool
 
-	// Resolution information
+	// Resolution information.
 	ResolvedVersion  string
 	ResolutionReason string
 
-	// Metadata
+	// Metadata.
 	Source    string
 	CreatedAt time.Time
 	Metadata  map[string]interface{}
 }
 
-// Version constraint and requirement types
+// Version constraint and requirement types.
 
-// VersionRequirement represents a version requirement for a package
+// VersionRequirement represents a version requirement for a package.
 type VersionRequirement struct {
 	PackageRef  *PackageReference
 	Constraints []*VersionConstraint
@@ -220,7 +220,7 @@ type VersionRequirement struct {
 	Metadata    map[string]interface{}
 }
 
-// VersionConstraint represents a version constraint
+// VersionConstraint represents a version constraint.
 type VersionConstraint struct {
 	Operator      ConstraintOperator
 	Version       string
@@ -230,7 +230,7 @@ type VersionConstraint struct {
 	Description   string
 }
 
-// VersionSolution represents the solution to version constraints
+// VersionSolution represents the solution to version constraints.
 type VersionSolution struct {
 	Success     bool
 	Solutions   map[string]*VersionSelection
@@ -242,7 +242,7 @@ type VersionSolution struct {
 	Backtracks  int
 }
 
-// VersionSelection represents a selected version for a package
+// VersionSelection represents a selected version for a package.
 type VersionSelection struct {
 	PackageRef      *PackageReference
 	SelectedVersion string
@@ -252,9 +252,9 @@ type VersionSelection struct {
 	Confidence      float64
 }
 
-// Resolution and analysis results
+// Resolution and analysis results.
 
-// ResolutionResult contains comprehensive dependency resolution results
+// ResolutionResult contains comprehensive dependency resolution results.
 type ResolutionResult struct {
 	Success        bool
 	ResolvedGraph  *DependencyGraph
@@ -267,7 +267,7 @@ type ResolutionResult struct {
 	CacheHit       bool
 }
 
-// ResolutionPlan defines the steps to resolve dependencies
+// ResolutionPlan defines the steps to resolve dependencies.
 type ResolutionPlan struct {
 	ID              string
 	Steps           []*ResolutionStep
@@ -278,7 +278,7 @@ type ResolutionPlan struct {
 	RollbackPlan    *RollbackPlan
 }
 
-// ResolutionStep represents a single resolution step
+// ResolutionStep represents a single resolution step.
 type ResolutionStep struct {
 	ID              string
 	Type            StepType
@@ -290,9 +290,9 @@ type ResolutionStep struct {
 	ValidationRules []*ValidationRule
 }
 
-// Circular dependency detection results
+// Circular dependency detection results.
 
-// CircularDependencyResult contains circular dependency analysis
+// CircularDependencyResult contains circular dependency analysis.
 type CircularDependencyResult struct {
 	HasCircularDependencies bool
 	Cycles                  []*DependencyCycle
@@ -301,7 +301,7 @@ type CircularDependencyResult struct {
 	Impact                  *CircularImpactAnalysis
 }
 
-// DependencyCycle represents a circular dependency cycle
+// DependencyCycle represents a circular dependency cycle.
 type DependencyCycle struct {
 	ID               string
 	Nodes            []*DependencyNode
@@ -312,9 +312,9 @@ type DependencyCycle struct {
 	Impact           *CycleImpact
 }
 
-// Transitive dependency results
+// Transitive dependency results.
 
-// TransitiveDependencies contains transitive dependency information
+// TransitiveDependencies contains transitive dependency information.
 type TransitiveDependencies struct {
 	RootPackage            *PackageReference
 	DirectDependencies     []*DependencyNode
@@ -325,9 +325,9 @@ type TransitiveDependencies struct {
 	FlattenedList          []*PackageReference
 }
 
-// Update propagation types
+// Update propagation types.
 
-// UpdatePropagationResult contains update propagation results
+// UpdatePropagationResult contains update propagation results.
 type UpdatePropagationResult struct {
 	Success         bool
 	UpdatedPackages []*PackageUpdate
@@ -338,7 +338,7 @@ type UpdatePropagationResult struct {
 	PropagationTime time.Duration
 }
 
-// PackageUpdate represents an update to a package
+// PackageUpdate represents an update to a package.
 type PackageUpdate struct {
 	PackageRef     *PackageReference
 	CurrentVersion string
@@ -350,7 +350,7 @@ type PackageUpdate struct {
 	RollbackPlan   *UpdateRollback
 }
 
-// ImpactAnalysis analyzes the impact of updates
+// ImpactAnalysis analyzes the impact of updates.
 type ImpactAnalysis struct {
 	TotalAffectedPackages int
 	DirectlyAffected      []*PackageReference
@@ -361,9 +361,9 @@ type ImpactAnalysis struct {
 	ImpactScore           float64
 }
 
-// Conflict detection and resolution types
+// Conflict detection and resolution types.
 
-// ConflictAnalysis contains comprehensive conflict analysis
+// ConflictAnalysis contains comprehensive conflict analysis.
 type ConflictAnalysis struct {
 	HasConflicts        bool
 	Conflicts           []*DependencyConflict
@@ -373,7 +373,7 @@ type ConflictAnalysis struct {
 	Impact              *ConflictImpact
 }
 
-// DependencyConflict represents a dependency conflict
+// DependencyConflict represents a dependency conflict.
 type DependencyConflict struct {
 	ID                string
 	Type              ConflictType
@@ -386,9 +386,9 @@ type DependencyConflict struct {
 	AutoResolvable    bool
 }
 
-// Configuration and options types
+// Configuration and options types.
 
-// GraphBuildOptions configures dependency graph building
+// GraphBuildOptions configures dependency graph building.
 type GraphBuildOptions struct {
 	MaxDepth               int
 	IncludeOptional        bool
@@ -401,7 +401,7 @@ type GraphBuildOptions struct {
 	Timeout                time.Duration
 }
 
-// DependencyConstraints defines constraints for dependency resolution
+// DependencyConstraints defines constraints for dependency resolution.
 type DependencyConstraints struct {
 	VersionConstraints  []*VersionConstraint
 	ScopeConstraints    []*ScopeConstraint
@@ -411,9 +411,9 @@ type DependencyConstraints struct {
 	InclusionRules      []*InclusionRule
 }
 
-// Tree and query options
+// Tree and query options.
 
-// TreeOptions configures dependency tree generation
+// TreeOptions configures dependency tree generation.
 type TreeOptions struct {
 	MaxDepth        int
 	ShowVersions    bool
@@ -424,7 +424,7 @@ type TreeOptions struct {
 	SortBy          TreeSortOption
 }
 
-// DependentSearchOptions configures dependent searching
+// DependentSearchOptions configures dependent searching.
 type DependentSearchOptions struct {
 	SearchDepth       int
 	IncludeTransitive bool
@@ -435,9 +435,9 @@ type DependentSearchOptions struct {
 	Limit             int
 }
 
-// Health and metrics types
+// Health and metrics types.
 
-// DependencyHealthReport provides comprehensive health analysis
+// DependencyHealthReport provides comprehensive health analysis.
 type DependencyHealthReport struct {
 	PackageRef              *PackageReference
 	OverallHealth           float64
@@ -450,7 +450,7 @@ type DependencyHealthReport struct {
 	LastAnalyzed            time.Time
 }
 
-// DependencyMetrics provides resolution metrics
+// DependencyMetrics provides resolution metrics.
 type DependencyMetrics struct {
 	TotalResolutions       int64
 	SuccessfulResolutions  int64
@@ -462,81 +462,115 @@ type DependencyMetrics struct {
 	TopConflictedPackages  []*ConflictedPackage
 }
 
-// Enums and constants
+// Enums and constants.
 
-// NodeStatus defines dependency node status
+// NodeStatus defines dependency node status.
 type NodeStatus string
 
 const (
-	NodeStatusPending    NodeStatus = "pending"
-	NodeStatusResolving  NodeStatus = "resolving"
-	NodeStatusResolved   NodeStatus = "resolved"
+	// NodeStatusPending holds nodestatuspending value.
+	NodeStatusPending NodeStatus = "pending"
+	// NodeStatusResolving holds nodestatusresolving value.
+	NodeStatusResolving NodeStatus = "resolving"
+	// NodeStatusResolved holds nodestatusresolved value.
+	NodeStatusResolved NodeStatus = "resolved"
+	// NodeStatusConflicted holds nodestatusconflicted value.
 	NodeStatusConflicted NodeStatus = "conflicted"
-	NodeStatusFailed     NodeStatus = "failed"
+	// NodeStatusFailed holds nodestatusfailed value.
+	NodeStatusFailed NodeStatus = "failed"
 )
 
-// DependencyType defines types of dependencies
+// DependencyType defines types of dependencies.
 type DependencyType string
 
 const (
-	DependencyTypeRuntime  DependencyType = "runtime"
-	DependencyTypeDev      DependencyType = "dev"
-	DependencyTypeTest     DependencyType = "test"
-	DependencyTypeBuild    DependencyType = "build"
+	// DependencyTypeRuntime holds dependencytyperuntime value.
+	DependencyTypeRuntime DependencyType = "runtime"
+	// DependencyTypeDev holds dependencytypedev value.
+	DependencyTypeDev DependencyType = "dev"
+	// DependencyTypeTest holds dependencytypetest value.
+	DependencyTypeTest DependencyType = "test"
+	// DependencyTypeBuild holds dependencytypebuild value.
+	DependencyTypeBuild DependencyType = "build"
+	// DependencyTypeOptional holds dependencytypeoptional value.
 	DependencyTypeOptional DependencyType = "optional"
-	DependencyTypePeer     DependencyType = "peer"
+	// DependencyTypePeer holds dependencytypepeer value.
+	DependencyTypePeer DependencyType = "peer"
 )
 
-// DependencyScope defines dependency scope
+// DependencyScope defines dependency scope.
 type DependencyScope string
 
 const (
-	DependencyScopeCompile  DependencyScope = "compile"
-	DependencyScopeRuntime  DependencyScope = "runtime"
-	DependencyScopeTest     DependencyScope = "test"
+	// DependencyScopeCompile holds dependencyscopecompile value.
+	DependencyScopeCompile DependencyScope = "compile"
+	// DependencyScopeRuntime holds dependencyscoperuntime value.
+	DependencyScopeRuntime DependencyScope = "runtime"
+	// DependencyScopeTest holds dependencyscopetest value.
+	DependencyScopeTest DependencyScope = "test"
+	// DependencyScopeProvided holds dependencyscopeprovided value.
 	DependencyScopeProvided DependencyScope = "provided"
-	DependencyScopeSystem   DependencyScope = "system"
+	// DependencyScopeSystem holds dependencyscopesystem value.
+	DependencyScopeSystem DependencyScope = "system"
 )
 
-// ConstraintOperator defines version constraint operators
+// ConstraintOperator defines version constraint operators.
 type ConstraintOperator string
 
 const (
-	ConstraintOperatorEquals        ConstraintOperator = "="
-	ConstraintOperatorNotEquals     ConstraintOperator = "!="
-	ConstraintOperatorGreaterThan   ConstraintOperator = ">"
+	// ConstraintOperatorEquals holds constraintoperatorequals value.
+	ConstraintOperatorEquals ConstraintOperator = "="
+	// ConstraintOperatorNotEquals holds constraintoperatornotequals value.
+	ConstraintOperatorNotEquals ConstraintOperator = "!="
+	// ConstraintOperatorGreaterThan holds constraintoperatorgreaterthan value.
+	ConstraintOperatorGreaterThan ConstraintOperator = ">"
+	// ConstraintOperatorGreaterEquals holds constraintoperatorgreaterequals value.
 	ConstraintOperatorGreaterEquals ConstraintOperator = ">="
-	ConstraintOperatorLessThan      ConstraintOperator = "<"
-	ConstraintOperatorLessEquals    ConstraintOperator = "<="
-	ConstraintOperatorTilde         ConstraintOperator = "~"
-	ConstraintOperatorCaret         ConstraintOperator = "^"
+	// ConstraintOperatorLessThan holds constraintoperatorlessthan value.
+	ConstraintOperatorLessThan ConstraintOperator = "<"
+	// ConstraintOperatorLessEquals holds constraintoperatorlessequals value.
+	ConstraintOperatorLessEquals ConstraintOperator = "<="
+	// ConstraintOperatorTilde holds constraintoperatortilde value.
+	ConstraintOperatorTilde ConstraintOperator = "~"
+	// ConstraintOperatorCaret holds constraintoperatorcaret value.
+	ConstraintOperatorCaret ConstraintOperator = "^"
 )
 
-// DependencyConflictType defines types of dependency conflicts
+// DependencyConflictType defines types of dependency conflicts.
 type DependencyConflictType string
 
 const (
-	ConflictTypeVersionConflict      DependencyConflictType = "version_conflict"
-	ConflictTypeCircularDependency   DependencyConflictType = "circular_dependency"
-	ConflictTypeMissingDependency    DependencyConflictType = "missing_dependency"
+	// ConflictTypeVersionConflict holds conflicttypeversionconflict value.
+	ConflictTypeVersionConflict DependencyConflictType = "version_conflict"
+	// ConflictTypeCircularDependency holds conflicttypecirculardependency value.
+	ConflictTypeCircularDependency DependencyConflictType = "circular_dependency"
+	// ConflictTypeMissingDependency holds conflicttypemissingdependency value.
+	ConflictTypeMissingDependency DependencyConflictType = "missing_dependency"
+	// ConflictTypeIncompatibleVersions holds conflicttypeincompatibleversions value.
 	ConflictTypeIncompatibleVersions DependencyConflictType = "incompatible_versions"
-	ConflictTypeExcludedDependency   ConflictType           = "excluded_dependency"
-	ConflictTypeDuplicateDependency  ConflictType           = "duplicate_dependency"
+	// ConflictTypeExcludedDependency holds conflicttypeexcludeddependency value.
+	ConflictTypeExcludedDependency ConflictType = "excluded_dependency"
+	// ConflictTypeDuplicateDependency holds conflicttypeduplicatedependency value.
+	ConflictTypeDuplicateDependency ConflictType = "duplicate_dependency"
 )
 
-// DependencyConflictSeverity defines conflict severity levels
+// DependencyConflictSeverity defines conflict severity levels.
 type DependencyConflictSeverity string
 
 const (
-	DependencyConflictSeverityLow      DependencyConflictSeverity = "low"
-	DependencyConflictSeverityMedium   DependencyConflictSeverity = "medium"
-	DependencyConflictSeverityHigh     DependencyConflictSeverity = "high"
+	// DependencyConflictSeverityLow holds dependencyconflictseveritylow value.
+	DependencyConflictSeverityLow DependencyConflictSeverity = "low"
+	// DependencyConflictSeverityMedium holds dependencyconflictseveritymedium value.
+	DependencyConflictSeverityMedium DependencyConflictSeverity = "medium"
+	// DependencyConflictSeverityHigh holds dependencyconflictseverityhigh value.
+	DependencyConflictSeverityHigh DependencyConflictSeverity = "high"
+	// DependencyConflictSeverityCritical holds dependencyconflictseveritycritical value.
 	DependencyConflictSeverityCritical DependencyConflictSeverity = "critical"
 )
 
-// Implementation
+// Implementation.
 
-// NewDependencyResolver creates a new dependency resolver instance
+// NewDependencyResolver creates a new dependency resolver instance.
 func NewDependencyResolver(client *Client, config *DependencyResolverConfig) (DependencyResolver, error) {
 	if client == nil {
 		return nil, fmt.Errorf("client cannot be nil")
@@ -556,27 +590,27 @@ func NewDependencyResolver(client *Client, config *DependencyResolverConfig) (De
 		workerCount: config.WorkerCount,
 	}
 
-	// Initialize components
+	// Initialize components.
 	resolver.versionSolver = NewVersionSolver(config.VersionSolverConfig)
 	resolver.conflictResolver = NewDependencyConflictResolver(config.ConflictResolverConfig)
 	resolver.graphBuilder = NewDependencyGraphBuilder(config.GraphBuilderConfig)
 	resolver.healthChecker = NewDependencyHealthChecker(config.HealthCheckerConfig)
 
-	// Initialize caches
+	// Initialize caches.
 	if config.EnableCaching {
 		resolver.resolutionCache = NewResolutionCache(config.CacheConfig)
 		resolver.graphCache = NewGraphCache(config.CacheConfig)
 		resolver.versionCache = NewVersionCache(config.CacheConfig)
 	}
 
-	// Initialize worker pool
+	// Initialize worker pool.
 	resolver.resolverPool = NewResolverPool(resolver.workerCount, config.QueueSize)
 
-	// Register default providers and strategies
+	// Register default providers and strategies.
 	resolver.registerDefaultProviders()
 	resolver.registerDefaultStrategies()
 
-	// Start background processes
+	// Start background processes.
 	resolver.wg.Add(1)
 	go resolver.metricsCollectionLoop()
 
@@ -586,7 +620,7 @@ func NewDependencyResolver(client *Client, config *DependencyResolverConfig) (De
 	return resolver, nil
 }
 
-// BuildDependencyGraph builds a complete dependency graph for root packages
+// BuildDependencyGraph builds a complete dependency graph for root packages.
 func (dr *dependencyResolver) BuildDependencyGraph(ctx context.Context, rootPackages []*PackageReference, opts *GraphBuildOptions) (*DependencyGraph, error) {
 	dr.logger.Info("Building dependency graph", "rootPackages", len(rootPackages))
 
@@ -603,7 +637,7 @@ func (dr *dependencyResolver) BuildDependencyGraph(ctx context.Context, rootPack
 		}
 	}
 
-	// Check cache if enabled
+	// Check cache if enabled.
 	if opts.UseCache && dr.graphCache != nil {
 		cacheKey := dr.generateGraphCacheKey(rootPackages, opts)
 		if cached, err := dr.graphCache.Get(ctx, cacheKey); err == nil {
@@ -618,7 +652,7 @@ func (dr *dependencyResolver) BuildDependencyGraph(ctx context.Context, rootPack
 		}
 	}
 
-	// Create new graph
+	// Create new graph.
 	graph := &DependencyGraph{
 		ID:           fmt.Sprintf("graph-%d", time.Now().UnixNano()),
 		RootPackages: rootPackages,
@@ -628,20 +662,20 @@ func (dr *dependencyResolver) BuildDependencyGraph(ctx context.Context, rootPack
 		Metadata:     make(map[string]interface{}),
 	}
 
-	// Build graph using the graph builder
+	// Build graph using the graph builder.
 	if err := dr.graphBuilder.BuildGraph(ctx, graph, opts); err != nil {
 		return nil, fmt.Errorf("failed to build dependency graph: %w", err)
 	}
 
-	// Resolve versions if requested
+	// Resolve versions if requested.
 	if opts.VersionSelection != VersionSelectionStrategyNone {
 		if err := dr.resolveVersionsInGraph(ctx, graph, opts); err != nil {
 			dr.logger.Error(err, "Failed to resolve versions in graph")
-			// Continue with unresolved graph
+			// Continue with unresolved graph.
 		}
 	}
 
-	// Detect circular dependencies
+	// Detect circular dependencies.
 	circularResult, err := dr.DetectCircularDependencies(ctx, graph)
 	if err != nil {
 		dr.logger.Error(err, "Failed to detect circular dependencies")
@@ -649,12 +683,12 @@ func (dr *dependencyResolver) BuildDependencyGraph(ctx context.Context, rootPack
 		graph.IsAcyclic = !circularResult.HasCircularDependencies
 	}
 
-	// Calculate graph statistics
+	// Calculate graph statistics.
 	graph.Statistics = dr.calculateGraphStatistics(graph)
 	graph.NodeCount = len(graph.Nodes)
 	graph.EdgeCount = len(graph.Edges)
 
-	// Cache the result if caching is enabled
+	// Cache the result if caching is enabled.
 	if opts.UseCache && dr.graphCache != nil {
 		cacheKey := dr.generateGraphCacheKey(rootPackages, opts)
 		if err := dr.graphCache.Set(ctx, cacheKey, graph); err != nil {
@@ -664,7 +698,7 @@ func (dr *dependencyResolver) BuildDependencyGraph(ctx context.Context, rootPack
 
 	buildDuration := time.Since(startTime)
 
-	// Update metrics
+	// Update metrics.
 	if dr.metrics != nil {
 		dr.metrics.graphBuildTime.Observe(buildDuration.Seconds())
 		dr.metrics.graphsBuilt.Inc()
@@ -680,13 +714,13 @@ func (dr *dependencyResolver) BuildDependencyGraph(ctx context.Context, rootPack
 	return graph, nil
 }
 
-// ResolveDependencies resolves dependencies for a specific package
+// ResolveDependencies resolves dependencies for a specific package.
 func (dr *dependencyResolver) ResolveDependencies(ctx context.Context, ref *PackageReference, constraints *DependencyConstraints) (*ResolutionResult, error) {
 	dr.logger.Info("Resolving dependencies", "package", ref.GetPackageKey())
 
 	startTime := time.Now()
 
-	// Check cache
+	// Check cache.
 	if dr.resolutionCache != nil {
 		cacheKey := dr.generateResolutionCacheKey(ref, constraints)
 		if cached, err := dr.resolutionCache.Get(ctx, cacheKey); err == nil {
@@ -701,7 +735,7 @@ func (dr *dependencyResolver) ResolveDependencies(ctx context.Context, ref *Pack
 		}
 	}
 
-	// Build dependency graph for this package
+	// Build dependency graph for this package.
 	graph, err := dr.BuildDependencyGraph(ctx, []*PackageReference{ref}, &GraphBuildOptions{
 		MaxDepth:          10,
 		ResolveTransitive: true,
@@ -711,7 +745,7 @@ func (dr *dependencyResolver) ResolveDependencies(ctx context.Context, ref *Pack
 		return nil, fmt.Errorf("failed to build dependency graph: %w", err)
 	}
 
-	// Create resolution result
+	// Create resolution result.
 	result := &ResolutionResult{
 		Success:        graph.Resolved,
 		ResolvedGraph:  graph,
@@ -720,7 +754,7 @@ func (dr *dependencyResolver) ResolveDependencies(ctx context.Context, ref *Pack
 		CacheHit:       false,
 	}
 
-	// Detect and analyze conflicts
+	// Detect and analyze conflicts.
 	conflicts, err := dr.DetectDependencyConflicts(ctx, graph)
 	if err != nil {
 		dr.logger.Error(err, "Failed to detect dependency conflicts")
@@ -728,7 +762,7 @@ func (dr *dependencyResolver) ResolveDependencies(ctx context.Context, ref *Pack
 		result.Conflicts = conflicts.Conflicts
 	}
 
-	// Generate resolution plan
+	// Generate resolution plan.
 	if !result.Success {
 		plan, err := dr.generateResolutionPlan(ctx, graph, constraints)
 		if err != nil {
@@ -738,7 +772,7 @@ func (dr *dependencyResolver) ResolveDependencies(ctx context.Context, ref *Pack
 		}
 	}
 
-	// Cache the result
+	// Cache the result.
 	if dr.resolutionCache != nil {
 		cacheKey := dr.generateResolutionCacheKey(ref, constraints)
 		if err := dr.resolutionCache.Set(ctx, cacheKey, result); err != nil {
@@ -746,7 +780,7 @@ func (dr *dependencyResolver) ResolveDependencies(ctx context.Context, ref *Pack
 		}
 	}
 
-	// Update metrics
+	// Update metrics.
 	if dr.metrics != nil {
 		status := "success"
 		if !result.Success {
@@ -765,7 +799,7 @@ func (dr *dependencyResolver) ResolveDependencies(ctx context.Context, ref *Pack
 	return result, nil
 }
 
-// DetectCircularDependencies detects circular dependencies in a graph
+// DetectCircularDependencies detects circular dependencies in a graph.
 func (dr *dependencyResolver) DetectCircularDependencies(ctx context.Context, graph *DependencyGraph) (*CircularDependencyResult, error) {
 	dr.logger.V(1).Info("Detecting circular dependencies", "graphID", graph.ID)
 
@@ -775,7 +809,7 @@ func (dr *dependencyResolver) DetectCircularDependencies(ctx context.Context, gr
 		AffectedPackages:        []*PackageReference{},
 	}
 
-	// Use Tarjan's strongly connected components algorithm
+	// Use Tarjan's strongly connected components algorithm.
 	cycles := dr.findStronglyConnectedComponents(graph)
 
 	for _, cycle := range cycles {
@@ -783,19 +817,19 @@ func (dr *dependencyResolver) DetectCircularDependencies(ctx context.Context, gr
 			result.HasCircularDependencies = true
 			result.Cycles = append(result.Cycles, cycle)
 
-			// Add affected packages
+			// Add affected packages.
 			for _, node := range cycle.Nodes {
 				result.AffectedPackages = append(result.AffectedPackages, node.PackageRef)
 			}
 		}
 	}
 
-	// Generate breaking suggestions if cycles found
+	// Generate breaking suggestions if cycles found.
 	if result.HasCircularDependencies {
 		suggestions := dr.generateCircularBreakingSuggestions(result.Cycles)
 		result.BreakingSuggestions = suggestions
 
-		// Calculate impact
+		// Calculate impact.
 		impact := dr.calculateCircularImpactAnalysis(result.Cycles, graph)
 		result.Impact = impact
 	}
@@ -807,13 +841,13 @@ func (dr *dependencyResolver) DetectCircularDependencies(ctx context.Context, gr
 	return result, nil
 }
 
-// SolveVersionConstraints solves version constraints for multiple packages
+// SolveVersionConstraints solves version constraints for multiple packages.
 func (dr *dependencyResolver) SolveVersionConstraints(ctx context.Context, requirements []*VersionRequirement) (*VersionSolution, error) {
 	dr.logger.V(1).Info("Solving version constraints", "requirements", len(requirements))
 
 	startTime := time.Now()
 
-	// Use the version solver
+	// Use the version solver.
 	solution, err := dr.versionSolver.Solve(ctx, requirements)
 	if err != nil {
 		return nil, fmt.Errorf("version constraint solving failed: %w", err)
@@ -821,7 +855,7 @@ func (dr *dependencyResolver) SolveVersionConstraints(ctx context.Context, requi
 
 	solution.SolvingTime = time.Since(startTime)
 
-	// Update metrics
+	// Update metrics.
 	if dr.metrics != nil {
 		status := "success"
 		if !solution.Success {
@@ -834,13 +868,13 @@ func (dr *dependencyResolver) SolveVersionConstraints(ctx context.Context, requi
 	return solution, nil
 }
 
-// PropagateUpdates propagates package updates through dependency graph
+// PropagateUpdates propagates package updates through dependency graph.
 func (dr *dependencyResolver) PropagateUpdates(ctx context.Context, updatedPackage *PackageReference, strategy PropagationStrategy) (*UpdatePropagationResult, error) {
 	dr.logger.Info("Propagating updates", "package", updatedPackage.GetPackageKey(), "strategy", strategy)
 
 	startTime := time.Now()
 
-	// Find all dependents of the updated package
+	// Find all dependents of the updated package.
 	dependents, err := dr.FindDependents(ctx, updatedPackage, &DependentSearchOptions{
 		SearchDepth:       10,
 		IncludeTransitive: true,
@@ -855,11 +889,11 @@ func (dr *dependencyResolver) PropagateUpdates(ctx context.Context, updatedPacka
 		PropagationTime: time.Since(startTime),
 	}
 
-	// Create update propagation plan
+	// Create update propagation plan.
 	plan := dr.createPropagationPlan(updatedPackage, dependents, strategy)
 	result.PropagationPlan = plan
 
-	// Execute updates based on strategy
+	// Execute updates based on strategy.
 	for _, dependent := range dependents {
 		update, err := dr.createPackageUpdate(ctx, dependent.PackageRef, updatedPackage, strategy)
 		if err != nil {
@@ -873,11 +907,11 @@ func (dr *dependencyResolver) PropagateUpdates(ctx context.Context, updatedPacka
 		}
 	}
 
-	// Analyze impact
+	// Analyze impact.
 	impact := dr.analyzePropagationImpact(result.UpdatedPackages)
 	result.Impact = impact
 
-	// Update metrics
+	// Update metrics.
 	if dr.metrics != nil {
 		dr.metrics.updatePropagationsTotal.Inc()
 		dr.metrics.updatePropagationTime.Observe(result.PropagationTime.Seconds())
@@ -892,14 +926,14 @@ func (dr *dependencyResolver) PropagateUpdates(ctx context.Context, updatedPacka
 	return result, nil
 }
 
-// Close gracefully shuts down the dependency resolver
+// Close gracefully shuts down the dependency resolver.
 func (dr *dependencyResolver) Close() error {
 	dr.logger.Info("Shutting down dependency resolver")
 
 	close(dr.shutdown)
 	dr.wg.Wait()
 
-	// Close components
+	// Close components.
 	if dr.versionSolver != nil {
 		dr.versionSolver.Close()
 	}
@@ -910,7 +944,7 @@ func (dr *dependencyResolver) Close() error {
 		dr.resolverPool.Close()
 	}
 
-	// Close caches
+	// Close caches.
 	if dr.resolutionCache != nil {
 		dr.resolutionCache.Close()
 	}
@@ -925,9 +959,9 @@ func (dr *dependencyResolver) Close() error {
 	return nil
 }
 
-// Helper methods and supporting functionality
+// Helper methods and supporting functionality.
 
-// Background processes
+// Background processes.
 func (dr *dependencyResolver) metricsCollectionLoop() {
 	defer dr.wg.Done()
 	ticker := time.NewTicker(30 * time.Second)
@@ -938,7 +972,7 @@ func (dr *dependencyResolver) metricsCollectionLoop() {
 		case <-dr.shutdown:
 			return
 		case <-ticker.C:
-			// Collect and update metrics
+			// Collect and update metrics.
 			dr.collectMetrics()
 		}
 	}
@@ -954,13 +988,13 @@ func (dr *dependencyResolver) cacheCleanupLoop() {
 		case <-dr.shutdown:
 			return
 		case <-ticker.C:
-			// Cleanup expired cache entries
+			// Cleanup expired cache entries.
 			dr.cleanupCaches()
 		}
 	}
 }
 
-// Implementation helper methods (simplified for space)
+// Implementation helper methods (simplified for space).
 
 func getDefaultDependencyResolverConfig() *DependencyResolverConfig {
 	return &DependencyResolverConfig{
@@ -993,52 +1027,52 @@ func initDependencyResolverMetrics() *DependencyResolverMetrics {
 	}
 }
 
-// Placeholder implementations for complex algorithms and supporting methods
-// (These would be fully implemented in a production system)
+// Placeholder implementations for complex algorithms and supporting methods.
+// (These would be fully implemented in a production system).
 
 func (dr *dependencyResolver) generateGraphCacheKey(packages []*PackageReference, opts *GraphBuildOptions) string {
-	// Implementation would generate a unique cache key
+	// Implementation would generate a unique cache key.
 	return fmt.Sprintf("graph-%d", time.Now().UnixNano())
 }
 
 func (dr *dependencyResolver) generateResolutionCacheKey(ref *PackageReference, constraints *DependencyConstraints) string {
-	// Implementation would generate a unique cache key
+	// Implementation would generate a unique cache key.
 	return fmt.Sprintf("resolution-%s", ref.GetPackageKey())
 }
 
 func (dr *dependencyResolver) resolveVersionsInGraph(ctx context.Context, graph *DependencyGraph, opts *GraphBuildOptions) error {
-	// Implementation would resolve versions for all nodes in graph
+	// Implementation would resolve versions for all nodes in graph.
 	return nil
 }
 
 func (dr *dependencyResolver) calculateGraphStatistics(graph *DependencyGraph) *GraphStatistics {
-	// Implementation would calculate comprehensive graph statistics
+	// Implementation would calculate comprehensive graph statistics.
 	return &GraphStatistics{}
 }
 
 func (dr *dependencyResolver) findStronglyConnectedComponents(graph *DependencyGraph) []*DependencyCycle {
-	// Implementation would use Tarjan's algorithm to find SCCs
+	// Implementation would use Tarjan's algorithm to find SCCs.
 	return []*DependencyCycle{}
 }
 
 func (dr *dependencyResolver) generateCircularBreakingSuggestions(cycles []*DependencyCycle) []*CircularBreakingSuggestion {
-	// Implementation would generate suggestions for breaking circular dependencies
+	// Implementation would generate suggestions for breaking circular dependencies.
 	return []*CircularBreakingSuggestion{}
 }
 
 func (dr *dependencyResolver) collectMetrics() {
-	// Implementation would collect runtime metrics
+	// Implementation would collect runtime metrics.
 }
 
 func (dr *dependencyResolver) cleanupCaches() {
-	// Implementation would cleanup expired cache entries
+	// Implementation would cleanup expired cache entries.
 }
 
-// AnalyzeDependencyHealth analyzes the health of a package's dependencies
+// AnalyzeDependencyHealth analyzes the health of a package's dependencies.
 func (dr *dependencyResolver) AnalyzeDependencyHealth(ctx context.Context, ref *PackageReference) (*DependencyHealthReport, error) {
 	dr.logger.Info("Analyzing dependency health", "package", ref.GetPackageKey())
 
-	// Create a basic health report
+	// Create a basic health report.
 	report := &DependencyHealthReport{
 		PackageRef:              ref,
 		LastAnalyzed:            time.Now(),
@@ -1051,41 +1085,41 @@ func (dr *dependencyResolver) AnalyzeDependencyHealth(ctx context.Context, ref *
 		Recommendations:         make([]*HealthRecommendation, 0),
 	}
 
-	// TODO: Implement actual dependency health analysis
-	// This would include checking for:
-	// - Outdated dependencies
-	// - Security vulnerabilities
-	// - Breaking changes in newer versions
-	// - Dependency availability
+	// TODO: Implement actual dependency health analysis.
+	// This would include checking for:.
+	// - Outdated dependencies.
+	// - Security vulnerabilities.
+	// - Breaking changes in newer versions.
+	// - Dependency availability.
 
 	return report, nil
 }
 
-// registerDefaultProviders registers the default package providers
+// registerDefaultProviders registers the default package providers.
 func (dr *dependencyResolver) registerDefaultProviders() {
 	dr.logger.Info("Registering default package providers")
-	// TODO: Implement provider registration logic
-	// This would register providers like:
-	// - Nephio package repository
-	// - Git repositories
-	// - OCI registries
+	// TODO: Implement provider registration logic.
+	// This would register providers like:.
+	// - Nephio package repository.
+	// - Git repositories.
+	// - OCI registries.
 }
 
-// registerDefaultStrategies registers the default resolution strategies
+// registerDefaultStrategies registers the default resolution strategies.
 func (dr *dependencyResolver) registerDefaultStrategies() {
 	dr.logger.Info("Registering default resolution strategies")
-	// TODO: Implement strategy registration logic
-	// This would register strategies like:
-	// - Semantic versioning resolution
-	// - Conflict resolution policies
-	// - Update propagation strategies
+	// TODO: Implement strategy registration logic.
+	// This would register strategies like:.
+	// - Semantic versioning resolution.
+	// - Conflict resolution policies.
+	// - Update propagation strategies.
 }
 
-// AnalyzeUpdateImpact analyzes the impact of package updates
+// AnalyzeUpdateImpact analyzes the impact of package updates.
 func (dr *dependencyResolver) AnalyzeUpdateImpact(ctx context.Context, updates []*PackageUpdate) (*ImpactAnalysis, error) {
 	dr.logger.Info("Analyzing update impact", "updates", len(updates))
 
-	// Create basic impact analysis
+	// Create basic impact analysis.
 	impact := &ImpactAnalysis{
 		TotalAffectedPackages: len(updates),
 		DirectlyAffected:      make([]*PackageReference, 0),
@@ -1096,11 +1130,11 @@ func (dr *dependencyResolver) AnalyzeUpdateImpact(ctx context.Context, updates [
 		ImpactScore:           0.0,
 	}
 
-	// TODO: Implement actual impact analysis
+	// TODO: Implement actual impact analysis.
 	return impact, nil
 }
 
-// DetectDependencyConflicts detects conflicts in dependency graph
+// DetectDependencyConflicts detects conflicts in dependency graph.
 func (dr *dependencyResolver) DetectDependencyConflicts(ctx context.Context, graph *DependencyGraph) (*ConflictAnalysis, error) {
 	dr.logger.V(1).Info("Detecting dependency conflicts", "graphID", graph.ID)
 
@@ -1112,11 +1146,11 @@ func (dr *dependencyResolver) DetectDependencyConflicts(ctx context.Context, gra
 		ResolutionOptions:   make([]*ConflictResolutionOption, 0),
 	}
 
-	// TODO: Implement conflict detection logic
+	// TODO: Implement conflict detection logic.
 	return analysis, nil
 }
 
-// generateResolutionPlan generates a plan to resolve dependencies
+// generateResolutionPlan generates a plan to resolve dependencies.
 func (dr *dependencyResolver) generateResolutionPlan(ctx context.Context, graph *DependencyGraph, constraints *DependencyConstraints) (*ResolutionPlan, error) {
 	plan := &ResolutionPlan{
 		ID:              fmt.Sprintf("plan-%d", time.Now().UnixNano()),
@@ -1127,35 +1161,35 @@ func (dr *dependencyResolver) generateResolutionPlan(ctx context.Context, graph 
 		ValidationRules: make([]*ValidationRule, 0),
 	}
 
-	// TODO: Generate actual resolution steps
+	// TODO: Generate actual resolution steps.
 	return plan, nil
 }
 
-// calculateCircularImpactAnalysis calculates impact of circular dependencies
+// calculateCircularImpactAnalysis calculates impact of circular dependencies.
 func (dr *dependencyResolver) calculateCircularImpactAnalysis(cycles []*DependencyCycle, graph *DependencyGraph) *CircularImpactAnalysis {
-	// TODO: Implement circular impact analysis
+	// TODO: Implement circular impact analysis.
 	return &CircularImpactAnalysis{}
 }
 
-// FindDependents finds packages that depend on the given package
+// FindDependents finds packages that depend on the given package.
 func (dr *dependencyResolver) FindDependents(ctx context.Context, ref *PackageReference, opts *DependentSearchOptions) ([]*Dependent, error) {
 	dr.logger.V(1).Info("Finding dependents", "package", ref.GetPackageKey())
 
 	dependents := make([]*Dependent, 0)
-	// TODO: Implement dependent search logic
+	// TODO: Implement dependent search logic.
 
 	return dependents, nil
 }
 
-// createPropagationPlan creates a plan for update propagation
+// createPropagationPlan creates a plan for update propagation.
 func (dr *dependencyResolver) createPropagationPlan(updated *PackageReference, dependents []*Dependent, strategy PropagationStrategy) *PropagationPlan {
 	plan := &PropagationPlan{} // Fields set according to dependency_types.go definition
 
-	// TODO: Create propagation steps
+	// TODO: Create propagation steps.
 	return plan
 }
 
-// createPackageUpdate creates a package update for propagation
+// createPackageUpdate creates a package update for propagation.
 func (dr *dependencyResolver) createPackageUpdate(ctx context.Context, ref *PackageReference, updatedDep *PackageReference, strategy PropagationStrategy) (*PackageUpdate, error) {
 	update := &PackageUpdate{
 		PackageRef:     ref,
@@ -1165,113 +1199,133 @@ func (dr *dependencyResolver) createPackageUpdate(ctx context.Context, ref *Pack
 		Reason:         "dependency update",
 	}
 
-	// TODO: Implement update creation logic
+	// TODO: Implement update creation logic.
 	return update, nil
 }
 
-// analyzePropagationImpact analyzes the impact of update propagation
+// analyzePropagationImpact analyzes the impact of update propagation.
 func (dr *dependencyResolver) analyzePropagationImpact(updates []*PackageUpdate) *PropagationImpact {
 	impact := &PropagationImpact{}
-	// TODO: Implement impact analysis
+	// TODO: Implement impact analysis.
 	return impact
 }
 
-// BreakCircularDependencies breaks circular dependencies using the specified strategy
+// BreakCircularDependencies breaks circular dependencies using the specified strategy.
 func (dr *dependencyResolver) BreakCircularDependencies(ctx context.Context, graph *DependencyGraph, strategy CircularResolutionStrategy) (*GraphModification, error) {
 	dr.logger.Info("Breaking circular dependencies", "strategy", strategy)
 
 	modification := &GraphModification{}
-	// TODO: Implement circular dependency breaking logic
+	// TODO: Implement circular dependency breaking logic.
 
 	return modification, nil
 }
 
-// Additional interface methods to complete DependencyResolver implementation
+// Additional interface methods to complete DependencyResolver implementation.
 
+// ValidateDependencyGraph performs validatedependencygraph operation.
 func (dr *dependencyResolver) ValidateDependencyGraph(ctx context.Context, graph *DependencyGraph) (*ValidationResult, error) {
 	result := &ValidationResult{Valid: true}
 	return result, nil
 }
 
+// FindCompatibleVersions performs findcompatibleversions operation.
 func (dr *dependencyResolver) FindCompatibleVersions(ctx context.Context, ref *PackageReference, constraints []*VersionConstraint) ([]string, error) {
 	return []string{"1.0.0"}, nil
 }
 
+// GetVersionCompatibilityMatrix performs getversioncompatibilitymatrix operation.
 func (dr *dependencyResolver) GetVersionCompatibilityMatrix(ctx context.Context, packages []*PackageReference) (*CompatibilityMatrix, error) {
 	return &CompatibilityMatrix{}, nil
 }
 
+// ResolveTransitiveDependencies performs resolvetransitivedependencies operation.
 func (dr *dependencyResolver) ResolveTransitiveDependencies(ctx context.Context, ref *PackageReference, maxDepth int) (*TransitiveDependencies, error) {
 	return &TransitiveDependencies{}, nil
 }
 
+// ComputeTransitiveClosure performs computetransitiveclosure operation.
 func (dr *dependencyResolver) ComputeTransitiveClosure(ctx context.Context, graph *DependencyGraph) (*DependencyGraph, error) {
 	return graph, nil
 }
 
+// OptimizeDependencyTree performs optimizedependencytree operation.
 func (dr *dependencyResolver) OptimizeDependencyTree(ctx context.Context, graph *DependencyGraph, opts *OptimizationOptions) (*OptimizedGraph, error) {
 	return &OptimizedGraph{}, nil
 }
 
+// CreateUpdatePlan performs createupdateplan operation.
 func (dr *dependencyResolver) CreateUpdatePlan(ctx context.Context, targetUpdates []*PackageUpdate, opts *UpdatePlanOptions) (*UpdatePlan, error) {
 	return &UpdatePlan{}, nil
 }
 
+// ResolveConflicts performs resolveconflicts operation.
 func (dr *dependencyResolver) ResolveConflicts(ctx context.Context, conflicts *ConflictAnalysis, strategy ConflictResolutionStrategy) (*ConflictResolution, error) {
 	return &ConflictResolution{}, nil
 }
 
+// SuggestConflictResolutions performs suggestconflictresolutions operation.
 func (dr *dependencyResolver) SuggestConflictResolutions(ctx context.Context, conflicts *ConflictAnalysis) ([]*ConflictSuggestion, error) {
 	return []*ConflictSuggestion{}, nil
 }
 
+// FindUnusedDependencies performs findunuseddependencies operation.
 func (dr *dependencyResolver) FindUnusedDependencies(ctx context.Context, ref *PackageReference) ([]*UnusedDependency, error) {
 	return []*UnusedDependency{}, nil
 }
 
+// SuggestOptimizations performs suggestoptimizations operation.
 func (dr *dependencyResolver) SuggestOptimizations(ctx context.Context, graph *DependencyGraph) ([]*OptimizationSuggestion, error) {
 	return []*OptimizationSuggestion{}, nil
 }
 
+// GetDependencyPath performs getdependencypath operation.
 func (dr *dependencyResolver) GetDependencyPath(ctx context.Context, from, to *PackageReference) (*DependencyPath, error) {
 	return &DependencyPath{}, nil
 }
 
+// GetDependencyTree performs getdependencytree operation.
 func (dr *dependencyResolver) GetDependencyTree(ctx context.Context, ref *PackageReference, opts *TreeOptions) (*DependencyTree, error) {
 	return &DependencyTree{}, nil
 }
 
+// CheckCompatibility performs checkcompatibility operation.
 func (dr *dependencyResolver) CheckCompatibility(ctx context.Context, ref1, ref2 *PackageReference) (*CompatibilityResult, error) {
 	return &CompatibilityResult{Compatible: true}, nil
 }
 
+// GetVersionHistory performs getversionhistory operation.
 func (dr *dependencyResolver) GetVersionHistory(ctx context.Context, ref *PackageReference) (*VersionHistory, error) {
 	return &VersionHistory{}, nil
 }
 
+// ComputeVersionDistance performs computeversiondistance operation.
 func (dr *dependencyResolver) ComputeVersionDistance(ctx context.Context, version1, version2 string) (*VersionDistance, error) {
 	return &VersionDistance{}, nil
 }
 
+// GetDependencyMetrics performs getdependencymetrics operation.
 func (dr *dependencyResolver) GetDependencyMetrics(ctx context.Context) (*DependencyMetrics, error) {
 	return &DependencyMetrics{}, nil
 }
 
+// GetResolutionStatistics performs getresolutionstatistics operation.
 func (dr *dependencyResolver) GetResolutionStatistics(ctx context.Context, timeRange *TimeRange) (*ResolutionStatistics, error) {
 	return &ResolutionStatistics{}, nil
 }
 
+// GetResolverHealth performs getresolverhealth operation.
 func (dr *dependencyResolver) GetResolverHealth(ctx context.Context) (*ResolverHealth, error) {
 	return &ResolverHealth{Status: "healthy"}, nil
 }
 
+// CleanupResolutionCache performs cleanupresolutioncache operation.
 func (dr *dependencyResolver) CleanupResolutionCache(ctx context.Context, olderThan time.Duration) (*CacheCleanupResult, error) {
 	return &CacheCleanupResult{}, nil
 }
 
 // Additional helper methods would be implemented here...
 
-// DependencyHealthReportDetailed contains detailed health analysis (avoiding duplicate with existing type)
+// DependencyHealthReportDetailed contains detailed health analysis (avoiding duplicate with existing type).
 type DependencyHealthReportDetailed struct {
 	PackageRef    *PackageReference `json:"package_ref"`
 	AnalyzedAt    time.Time         `json:"analyzed_at"`
@@ -1280,18 +1334,18 @@ type DependencyHealthReportDetailed struct {
 	Suggestions   []string          `json:"suggestions"`
 }
 
-// Supporting type definitions and interfaces
+// Supporting type definitions and interfaces.
 
-// BreakingChange and RecommendedAction defined in dependency_types.go
+// BreakingChange and RecommendedAction defined in dependency_types.go.
 
-// ConflictResolutionOption, Prerequisite, ValidationRule, Dependent defined in dependency_types.go
+// ConflictResolutionOption, Prerequisite, ValidationRule, Dependent defined in dependency_types.go.
 
-// Types moved to dependency_types.go to avoid duplication
+// Types moved to dependency_types.go to avoid duplication.
 
-// Type aliases defined in dependency_types.go to avoid duplication
-// All supporting types, constants, and interfaces are centralized there
+// Type aliases defined in dependency_types.go to avoid duplication.
+// All supporting types, constants, and interfaces are centralized there.
 
-// Constants defined in dependency_types.go
+// Constants defined in dependency_types.go.
 
-// Configuration and other supporting types defined in dependency_types.go
-// to avoid duplication
+// Configuration and other supporting types defined in dependency_types.go.
+// to avoid duplication.

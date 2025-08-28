@@ -17,7 +17,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/push"
 )
 
-// BenchmarkRunner provides a unified interface for running all Nephoran Intent Operator benchmarks
+// BenchmarkRunner provides a unified interface for running all Nephoran Intent Operator benchmarks.
 type BenchmarkRunner struct {
 	config     *BenchmarkConfig
 	results    *BenchmarkResults
@@ -26,69 +26,69 @@ type BenchmarkRunner struct {
 	mu         sync.RWMutex
 }
 
-// BenchmarkConfig holds configuration for benchmark execution
+// BenchmarkConfig holds configuration for benchmark execution.
 type BenchmarkConfig struct {
-	// Execution settings
+	// Execution settings.
 	Iterations  int           `json:"iterations"`
 	Timeout     time.Duration `json:"timeout"`
 	Concurrency int           `json:"concurrency"`
 
-	// Component selection
+	// Component selection.
 	EnabledSuites []string `json:"enabled_suites"`
 
-	// Performance targets
+	// Performance targets.
 	Targets *PerformanceTargets `json:"targets"`
 
-	// Output settings
+	// Output settings.
 	OutputFormat  string         `json:"output_format"`
 	OutputFile    string         `json:"output_file"`
 	MetricsExport *MetricsConfig `json:"metrics_export"`
 
-	// Go 1.24+ specific settings
+	// Go 1.24+ specific settings.
 	EnablePprof bool   `json:"enable_pprof"`
 	PprofDir    string `json:"pprof_dir"`
 	EnableTrace bool   `json:"enable_trace"`
 	TraceFile   string `json:"trace_file"`
 
-	// Memory settings
+	// Memory settings.
 	GCPercent   int   `json:"gc_percent"`
 	MaxHeapSize int64 `json:"max_heap_size_mb"`
 
-	// Reporting
+	// Reporting.
 	BaselineFile   string `json:"baseline_file"`
 	CompareResults bool   `json:"compare_results"`
 }
 
-// PerformanceTargets defines expected performance characteristics
+// PerformanceTargets defines expected performance characteristics.
 type PerformanceTargets struct {
-	// Latency targets (in milliseconds)
+	// Latency targets (in milliseconds).
 	LLMProcessingLatency     float64 `json:"llm_processing_latency_ms"`
 	RAGRetrievalLatency      float64 `json:"rag_retrieval_latency_ms"`
 	NephioDeploymentLatency  float64 `json:"nephio_deployment_latency_ms"`
 	JWTValidationLatency     float64 `json:"jwt_validation_latency_us"`
 	DatabaseOperationLatency float64 `json:"database_operation_latency_ms"`
 
-	// Throughput targets
+	// Throughput targets.
 	IntentProcessingThroughput  float64 `json:"intent_processing_throughput_rps"`
 	DatabaseOperationThroughput float64 `json:"database_operation_throughput_ops"`
 	AuthenticationThroughput    float64 `json:"authentication_throughput_auths"`
 
-	// Resource targets
+	// Resource targets.
 	MaxMemoryUsage     float64 `json:"max_memory_usage_legacy,omitempty"` // For backwards compatibility
 	MaxMemoryUsageMB   float64 `json:"max_memory_usage_mb"`
 	MaxCPUUsage        float64 `json:"max_cpu_usage_legacy,omitempty"` // For backwards compatibility
 	MaxCPUUsagePercent float64 `json:"max_cpu_usage_percent"`
 	MaxGoroutineCount  int     `json:"max_goroutine_count"`
 
-	// Success rate targets
+	// Success rate targets.
 	MinSuccessRatePercent float64 `json:"min_success_rate_percent"`
 	MaxErrorRatePercent   float64 `json:"max_error_rate_percent"`
 
-	// Cache efficiency targets
+	// Cache efficiency targets.
 	MinCacheHitRatePercent float64 `json:"min_cache_hit_rate_percent"`
 }
 
-// MetricsConfig configures metrics export
+// MetricsConfig configures metrics export.
 type MetricsConfig struct {
 	PrometheusEnabled bool   `json:"prometheus_enabled"`
 	PrometheusURL     string `json:"prometheus_url"`
@@ -98,7 +98,7 @@ type MetricsConfig struct {
 	InfluxDBURL       string `json:"influxdb_url"`
 }
 
-// BenchmarkResults holds all benchmark execution results
+// BenchmarkResults holds all benchmark execution results.
 type BenchmarkResults struct {
 	ExecutionInfo  *ExecutionInfo          `json:"execution_info"`
 	SuiteResults   map[string]*SuiteResult `json:"suite_results"`
@@ -106,11 +106,11 @@ type BenchmarkResults struct {
 	TargetAnalysis *TargetAnalysis         `json:"target_analysis"`
 	Baseline       *BaselineComparison     `json:"baseline_comparison,omitempty"`
 
-	// Go 1.24+ runtime information
+	// Go 1.24+ runtime information.
 	RuntimeInfo *RuntimeInfo `json:"runtime_info"`
 }
 
-// ExecutionInfo contains metadata about benchmark execution
+// ExecutionInfo contains metadata about benchmark execution.
 type ExecutionInfo struct {
 	StartTime    time.Time     `json:"start_time"`
 	EndTime      time.Time     `json:"end_time"`
@@ -122,7 +122,7 @@ type ExecutionInfo struct {
 	ConfigHash   string        `json:"config_hash"`
 }
 
-// SuiteResult contains results for a specific benchmark suite
+// SuiteResult contains results for a specific benchmark suite.
 type SuiteResult struct {
 	Name           string                  `json:"name"`
 	StartTime      time.Time               `json:"start_time"`
@@ -135,7 +135,7 @@ type SuiteResult struct {
 	ResourceUsage  *ResourceUsage          `json:"resource_usage"`
 }
 
-// BenchResult contains individual benchmark results
+// BenchResult contains individual benchmark results.
 type BenchResult struct {
 	Name          string             `json:"name"`
 	Iterations    int                `json:"iterations"`
@@ -147,12 +147,12 @@ type BenchResult struct {
 	Success       bool               `json:"success"`
 	Error         string             `json:"error,omitempty"`
 
-	// Go 1.24+ enhanced metrics
+	// Go 1.24+ enhanced metrics.
 	MemoryProfile *MemoryProfile `json:"memory_profile,omitempty"`
 	CPUProfile    *CPUProfile    `json:"cpu_profile,omitempty"`
 }
 
-// MemoryProfile contains detailed memory usage information
+// MemoryProfile contains detailed memory usage information.
 type MemoryProfile struct {
 	HeapAlloc     uint64        `json:"heap_alloc"`
 	HeapSys       uint64        `json:"heap_sys"`
@@ -171,7 +171,7 @@ type MemoryProfile struct {
 	GCPauseTotal  time.Duration `json:"gc_pause_total"`
 }
 
-// CPUProfile contains CPU usage information
+// CPUProfile contains CPU usage information.
 type CPUProfile struct {
 	UserTime   time.Duration `json:"user_time"`
 	SystemTime time.Duration `json:"system_time"`
@@ -179,7 +179,7 @@ type CPUProfile struct {
 	CPUUsage   float64       `json:"cpu_usage_percent"`
 }
 
-// ResourceUsage tracks resource consumption during benchmark
+// ResourceUsage tracks resource consumption during benchmark.
 type ResourceUsage struct {
 	CPUUsage       float64       `json:"cpu_usage_percent"` // Current CPU usage
 	MemoryUsage    float64       `json:"memory_usage_mb"`   // Current memory usage
@@ -193,7 +193,7 @@ type ResourceUsage struct {
 	DiskBytesIO    int64         `json:"disk_bytes_io"`
 }
 
-// OverallSummary provides high-level summary of all benchmarks
+// OverallSummary provides high-level summary of all benchmarks.
 type OverallSummary struct {
 	TotalBenchmarks   int           `json:"total_benchmarks"`
 	TotalDuration     time.Duration `json:"total_duration"`
@@ -205,7 +205,7 @@ type OverallSummary struct {
 	PerformanceScore  float64       `json:"performance_score"`
 }
 
-// TargetAnalysis compares results against performance targets
+// TargetAnalysis compares results against performance targets.
 type TargetAnalysis struct {
 	MetTargets      int                      `json:"met_targets"`
 	TotalTargets    int                      `json:"total_targets"`
@@ -214,7 +214,7 @@ type TargetAnalysis struct {
 	Recommendations []string                 `json:"recommendations"`
 }
 
-// TargetResult contains analysis for a specific target
+// TargetResult contains analysis for a specific target.
 type TargetResult struct {
 	TargetName  string  `json:"target_name"`
 	TargetValue float64 `json:"target_value"`
@@ -224,7 +224,7 @@ type TargetResult struct {
 	Severity    string  `json:"severity"`
 }
 
-// BaselineComparison compares current results with baseline
+// BaselineComparison compares current results with baseline.
 type BaselineComparison struct {
 	BaselineFile       string                       `json:"baseline_file"`
 	ComparisonResults  map[string]*ComparisonResult `json:"comparison_results"`
@@ -233,7 +233,7 @@ type BaselineComparison struct {
 	Improvements       []string                     `json:"improvements"`
 }
 
-// ComparisonResult contains comparison data for a specific benchmark
+// ComparisonResult contains comparison data for a specific benchmark.
 type ComparisonResult struct {
 	BenchmarkName string  `json:"benchmark_name"`
 	BaselineValue float64 `json:"baseline_value"`
@@ -244,7 +244,7 @@ type ComparisonResult struct {
 	Significant   bool    `json:"significant"`
 }
 
-// RuntimeInfo contains Go runtime information
+// RuntimeInfo contains Go runtime information.
 type RuntimeInfo struct {
 	GoVersion    string `json:"go_version"`
 	GOMAXPROCS   int    `json:"gomaxprocs"`
@@ -256,7 +256,7 @@ type RuntimeInfo struct {
 	CGOEnabled   bool   `json:"cgo_enabled"`
 }
 
-// NewBenchmarkRunner creates a new benchmark runner with configuration
+// NewBenchmarkRunner creates a new benchmark runner with configuration.
 func NewBenchmarkRunner(config *BenchmarkConfig) *BenchmarkRunner {
 	runner := &BenchmarkRunner{
 		config: config,
@@ -266,7 +266,7 @@ func NewBenchmarkRunner(config *BenchmarkConfig) *BenchmarkRunner {
 		prometheus: prometheus.NewRegistry(),
 	}
 
-	// Configure Prometheus pusher if enabled
+	// Configure Prometheus pusher if enabled.
 	if config.MetricsExport != nil && config.MetricsExport.PushGatewayURL != "" {
 		runner.pusher = push.New(config.MetricsExport.PushGatewayURL, config.MetricsExport.JobName).
 			Gatherer(runner.prometheus)
@@ -275,14 +275,14 @@ func NewBenchmarkRunner(config *BenchmarkConfig) *BenchmarkRunner {
 	return runner
 }
 
-// RunAllBenchmarks executes all enabled benchmark suites
+// RunAllBenchmarks executes all enabled benchmark suites.
 func (br *BenchmarkRunner) RunAllBenchmarks(ctx context.Context) error {
 	startTime := time.Now()
 
-	// Configure Go runtime based on settings
+	// Configure Go runtime based on settings.
 	br.configureRuntime()
 
-	// Initialize results
+	// Initialize results.
 	br.results.ExecutionInfo = &ExecutionInfo{
 		StartTime:    startTime,
 		GoVersion:    runtime.Version(),
@@ -294,7 +294,7 @@ func (br *BenchmarkRunner) RunAllBenchmarks(ctx context.Context) error {
 
 	br.results.RuntimeInfo = br.captureRuntimeInfo()
 
-	// Load baseline if configured
+	// Load baseline if configured.
 	if br.config.BaselineFile != "" {
 		err := br.loadBaseline()
 		if err != nil {
@@ -302,7 +302,7 @@ func (br *BenchmarkRunner) RunAllBenchmarks(ctx context.Context) error {
 		}
 	}
 
-	// Run each enabled suite
+	// Run each enabled suite.
 	for _, suiteName := range br.config.EnabledSuites {
 		fmt.Printf("Running benchmark suite: %s\n", suiteName)
 
@@ -313,15 +313,15 @@ func (br *BenchmarkRunner) RunAllBenchmarks(ctx context.Context) error {
 		}
 	}
 
-	// Finalize results
+	// Finalize results.
 	br.results.ExecutionInfo.EndTime = time.Now()
 	br.results.ExecutionInfo.Duration = br.results.ExecutionInfo.EndTime.Sub(startTime)
 
-	// Generate summary and analysis
+	// Generate summary and analysis.
 	br.generateOverallSummary()
 	br.analyzePerformanceTargets()
 
-	// Export metrics if configured
+	// Export metrics if configured.
 	if br.config.MetricsExport != nil {
 		err := br.exportMetrics()
 		if err != nil {
@@ -329,11 +329,11 @@ func (br *BenchmarkRunner) RunAllBenchmarks(ctx context.Context) error {
 		}
 	}
 
-	// Save results
+	// Save results.
 	return br.saveResults()
 }
 
-// configureRuntime configures Go runtime settings for benchmarks
+// configureRuntime configures Go runtime settings for benchmarks.
 func (br *BenchmarkRunner) configureRuntime() {
 	if br.config.GCPercent > 0 {
 		debug.SetGCPercent(br.config.GCPercent)
@@ -344,7 +344,7 @@ func (br *BenchmarkRunner) configureRuntime() {
 	}
 }
 
-// runBenchmarkSuite executes a specific benchmark suite
+// runBenchmarkSuite executes a specific benchmark suite.
 func (br *BenchmarkRunner) runBenchmarkSuite(ctx context.Context, suiteName string) error {
 	suiteStart := time.Now()
 
@@ -355,18 +355,18 @@ func (br *BenchmarkRunner) runBenchmarkSuite(ctx context.Context, suiteName stri
 		ResourceUsage: &ResourceUsage{},
 	}
 
-	// Start resource monitoring
+	// Start resource monitoring.
 	resourceMonitor := br.startResourceMonitoring(ctx)
 	defer func() {
 		resourceUsage := resourceMonitor.Stop()
 		suiteResult.ResourceUsage = resourceUsage
 	}()
 
-	// Create testing environment
+	// Create testing environment.
 	testEnv := interface{}(nil) // setupComprehensiveTestEnvironment() // TODO: Fix undefined type
-	// defer testEnv.Cleanup() // TODO: Fix undefined type
+	// defer testEnv.Cleanup() // TODO: Fix undefined type.
 
-	// Run benchmarks based on suite name
+	// Run benchmarks based on suite name.
 	var err error
 	switch suiteName {
 	case "llm":
@@ -395,7 +395,7 @@ func (br *BenchmarkRunner) runBenchmarkSuite(ctx context.Context, suiteName stri
 	suiteResult.Duration = suiteResult.EndTime.Sub(suiteStart)
 	suiteResult.BenchmarkCount = len(suiteResult.Results)
 
-	// Count successes and failures
+	// Count successes and failures.
 	for _, result := range suiteResult.Results {
 		if result.Success {
 			suiteResult.SuccessCount++
@@ -411,10 +411,10 @@ func (br *BenchmarkRunner) runBenchmarkSuite(ctx context.Context, suiteName stri
 	return err
 }
 
-// runLLMBenchmarks executes LLM-related benchmarks
+// runLLMBenchmarks executes LLM-related benchmarks.
 func (br *BenchmarkRunner) runLLMBenchmarks(ctx context.Context, testEnv interface{}, suiteResult *SuiteResult) error {
-	// This would run the actual LLM benchmarks from the advanced_benchmarks_test.go
-	// For now, we'll simulate the execution
+	// This would run the actual LLM benchmarks from the advanced_benchmarks_test.go.
+	// For now, we'll simulate the execution.
 
 	llmBenchmarks := []string{
 		"SingleRequest", "ConcurrentRequests", "MemoryEfficiency",
@@ -429,7 +429,7 @@ func (br *BenchmarkRunner) runLLMBenchmarks(ctx context.Context, testEnv interfa
 	return nil
 }
 
-// runRAGBenchmarks executes RAG-related benchmarks
+// runRAGBenchmarks executes RAG-related benchmarks.
 func (br *BenchmarkRunner) runRAGBenchmarks(ctx context.Context, testEnv interface{}, suiteResult *SuiteResult) error {
 	ragBenchmarks := []string{
 		"VectorRetrieval", "DocumentIngestion", "SemanticSearch",
@@ -445,7 +445,7 @@ func (br *BenchmarkRunner) runRAGBenchmarks(ctx context.Context, testEnv interfa
 	return nil
 }
 
-// runNephioBenchmarks executes Nephio-related benchmarks
+// runNephioBenchmarks executes Nephio-related benchmarks.
 func (br *BenchmarkRunner) runNephioBenchmarks(ctx context.Context, testEnv interface{}, suiteResult *SuiteResult) error {
 	nephioBenchmarks := []string{
 		"PackageGeneration", "KRMFunctionExecution", "PorchIntegration",
@@ -461,7 +461,7 @@ func (br *BenchmarkRunner) runNephioBenchmarks(ctx context.Context, testEnv inte
 	return nil
 }
 
-// runAuthBenchmarks executes authentication-related benchmarks
+// runAuthBenchmarks executes authentication-related benchmarks.
 func (br *BenchmarkRunner) runAuthBenchmarks(ctx context.Context, testEnv interface{}, suiteResult *SuiteResult) error {
 	authBenchmarks := []string{
 		"JWTValidation", "RBACAuthorization", "LDAPAuthentication",
@@ -477,7 +477,7 @@ func (br *BenchmarkRunner) runAuthBenchmarks(ctx context.Context, testEnv interf
 	return nil
 }
 
-// runDatabaseBenchmarks executes database-related benchmarks
+// runDatabaseBenchmarks executes database-related benchmarks.
 func (br *BenchmarkRunner) runDatabaseBenchmarks(ctx context.Context, testEnv interface{}, suiteResult *SuiteResult) error {
 	dbBenchmarks := []string{
 		"SingleInsert", "BatchInsert", "ConcurrentInsert", "SingleRead",
@@ -492,7 +492,7 @@ func (br *BenchmarkRunner) runDatabaseBenchmarks(ctx context.Context, testEnv in
 	return nil
 }
 
-// runConcurrencyBenchmarks executes concurrency pattern benchmarks
+// runConcurrencyBenchmarks executes concurrency pattern benchmarks.
 func (br *BenchmarkRunner) runConcurrencyBenchmarks(ctx context.Context, testEnv interface{}, suiteResult *SuiteResult) error {
 	concurrencyBenchmarks := []string{
 		"WorkerPool", "Pipeline", "FanOutFanIn", "ProducerConsumer",
@@ -507,7 +507,7 @@ func (br *BenchmarkRunner) runConcurrencyBenchmarks(ctx context.Context, testEnv
 	return nil
 }
 
-// runMemoryBenchmarks executes memory allocation benchmarks
+// runMemoryBenchmarks executes memory allocation benchmarks.
 func (br *BenchmarkRunner) runMemoryBenchmarks(ctx context.Context, testEnv interface{}, suiteResult *SuiteResult) error {
 	memoryBenchmarks := []string{
 		"SmallAllocs", "MediumAllocs", "LargeAllocs", "PooledSmall",
@@ -529,7 +529,7 @@ func (br *BenchmarkRunner) runMemoryBenchmarks(ctx context.Context, testEnv inte
 	return nil
 }
 
-// runIntegrationBenchmarks executes integration workflow benchmarks
+// runIntegrationBenchmarks executes integration workflow benchmarks.
 func (br *BenchmarkRunner) runIntegrationBenchmarks(ctx context.Context, testEnv interface{}, suiteResult *SuiteResult) error {
 	integrationBenchmarks := []string{
 		"SimpleDeployment", "ComplexOrchestration", "MultiClusterDeployment",
@@ -544,7 +544,7 @@ func (br *BenchmarkRunner) runIntegrationBenchmarks(ctx context.Context, testEnv
 	return nil
 }
 
-// runComprehensiveBenchmarks executes comprehensive system benchmarks
+// runComprehensiveBenchmarks executes comprehensive system benchmarks.
 func (br *BenchmarkRunner) runComprehensiveBenchmarks(ctx context.Context, testEnv interface{}, suiteResult *SuiteResult) error {
 	comprehensiveBenchmarks := []string{
 		"DatabaseOperations", "ConcurrencyPatterns", "MemoryAllocations",
@@ -560,9 +560,9 @@ func (br *BenchmarkRunner) runComprehensiveBenchmarks(ctx context.Context, testE
 	return nil
 }
 
-// simulateBenchmarkExecution creates simulated benchmark results for demonstration
+// simulateBenchmarkExecution creates simulated benchmark results for demonstration.
 func (br *BenchmarkRunner) simulateBenchmarkExecution(benchName, suite string) *BenchResult {
-	// Simulate realistic benchmark results
+	// Simulate realistic benchmark results.
 	baseLatency := int64(1000000) // 1ms in nanoseconds
 
 	switch suite {
@@ -578,7 +578,7 @@ func (br *BenchmarkRunner) simulateBenchmarkExecution(benchName, suite string) *
 		baseLatency *= 5 // 5ms for database operations
 	}
 
-	// Add some variance
+	// Add some variance.
 	variance := int64(float64(baseLatency) * 0.2 * (float64(time.Now().UnixNano()%100)/100.0 - 0.5))
 	actualLatency := baseLatency + variance
 
@@ -600,7 +600,7 @@ func (br *BenchmarkRunner) simulateBenchmarkExecution(benchName, suite string) *
 	return result
 }
 
-// generateOverallSummary creates a high-level summary of all results
+// generateOverallSummary creates a high-level summary of all results.
 func (br *BenchmarkRunner) generateOverallSummary() {
 	summary := &OverallSummary{}
 
@@ -625,13 +625,13 @@ func (br *BenchmarkRunner) generateOverallSummary() {
 	summary.TotalAllocations = totalAllocations
 	summary.OverallThroughput = float64(totalBenchmarks) / totalDuration.Seconds()
 
-	// Calculate performance score (0-100)
+	// Calculate performance score (0-100).
 	summary.PerformanceScore = br.calculatePerformanceScore()
 
 	br.results.OverallSummary = summary
 }
 
-// analyzePerformanceTargets compares results against configured targets
+// analyzePerformanceTargets compares results against configured targets.
 func (br *BenchmarkRunner) analyzePerformanceTargets() {
 	if br.config.Targets == nil {
 		return
@@ -655,17 +655,17 @@ func (br *BenchmarkRunner) analyzePerformanceTargets() {
 	analysis.TotalTargets = len(targets)
 	analysis.ComplianceRate = float64(analysis.MetTargets) / float64(analysis.TotalTargets) * 100
 
-	// Generate recommendations
+	// Generate recommendations.
 	analysis.Recommendations = br.generateRecommendations(analysis.TargetResults)
 
 	br.results.TargetAnalysis = analysis
 }
 
-// getPerformanceTargetChecks returns a map of target check functions
+// getPerformanceTargetChecks returns a map of target check functions.
 func (br *BenchmarkRunner) getPerformanceTargetChecks() map[string]func() *TargetResult {
 	targets := make(map[string]func() *TargetResult)
 
-	// Add target checks for each performance metric
+	// Add target checks for each performance metric.
 	targets["llm_processing_latency"] = func() *TargetResult {
 		actual := br.getAverageLatency("llm")
 		target := br.config.Targets.LLMProcessingLatency
@@ -698,13 +698,13 @@ func (br *BenchmarkRunner) getPerformanceTargetChecks() map[string]func() *Targe
 	return targets
 }
 
-// exportMetrics exports benchmark results to configured monitoring systems
+// exportMetrics exports benchmark results to configured monitoring systems.
 func (br *BenchmarkRunner) exportMetrics() error {
 	if br.config.MetricsExport.PrometheusEnabled && br.pusher != nil {
-		// Create Prometheus metrics from results
+		// Create Prometheus metrics from results.
 		for suiteName, suite := range br.results.SuiteResults {
 			for benchName, result := range suite.Results {
-				// Create latency metric
+				// Create latency metric.
 				latencyGauge := prometheus.NewGaugeVec(
 					prometheus.GaugeOpts{
 						Name: "benchmark_latency_seconds",
@@ -716,7 +716,7 @@ func (br *BenchmarkRunner) exportMetrics() error {
 				latencyGauge.WithLabelValues(suiteName, benchName).Set(float64(result.NsPerOp) / 1e9)
 				br.prometheus.MustRegister(latencyGauge)
 
-				// Create throughput metric
+				// Create throughput metric.
 				throughputGauge := prometheus.NewGaugeVec(
 					prometheus.GaugeOpts{
 						Name: "benchmark_throughput_ops_per_sec",
@@ -729,7 +729,7 @@ func (br *BenchmarkRunner) exportMetrics() error {
 				throughputGauge.WithLabelValues(suiteName, benchName).Set(throughput)
 				br.prometheus.MustRegister(throughputGauge)
 
-				// Add custom metrics
+				// Add custom metrics.
 				for metricName, value := range result.CustomMetrics {
 					customGauge := prometheus.NewGaugeVec(
 						prometheus.GaugeOpts{
@@ -745,14 +745,14 @@ func (br *BenchmarkRunner) exportMetrics() error {
 			}
 		}
 
-		// Push metrics to gateway
+		// Push metrics to gateway.
 		return br.pusher.Push()
 	}
 
 	return nil
 }
 
-// saveResults saves benchmark results to the configured output format
+// saveResults saves benchmark results to the configured output format.
 func (br *BenchmarkRunner) saveResults() error {
 	var data []byte
 	var err error
@@ -761,7 +761,7 @@ func (br *BenchmarkRunner) saveResults() error {
 	case "json":
 		data, err = json.MarshalIndent(br.results, "", "  ")
 	case "yaml":
-		// Would use yaml package if available
+		// Would use yaml package if available.
 		data, err = json.MarshalIndent(br.results, "", "  ")
 	default:
 		data, err = json.MarshalIndent(br.results, "", "  ")
@@ -775,13 +775,13 @@ func (br *BenchmarkRunner) saveResults() error {
 		br.config.OutputFile = "benchmark_results.json"
 	}
 
-	return os.WriteFile(br.config.OutputFile, data, 0644)
+	return os.WriteFile(br.config.OutputFile, data, 0o640)
 }
 
-// Helper methods
+// Helper methods.
 
 func (br *BenchmarkRunner) calculateConfigHash() string {
-	// Would calculate hash of config for reproducibility
+	// Would calculate hash of config for reproducibility.
 	return fmt.Sprintf("config_%d", time.Now().UnixNano()%1000000)
 }
 
@@ -799,7 +799,7 @@ func (br *BenchmarkRunner) captureRuntimeInfo() *RuntimeInfo {
 }
 
 func (br *BenchmarkRunner) loadBaseline() error {
-	// Would load baseline results from file for comparison
+	// Would load baseline results from file for comparison.
 	return nil
 }
 
@@ -811,14 +811,14 @@ func (br *BenchmarkRunner) startResourceMonitoring(ctx context.Context) *Resourc
 		cancel:    cancel,
 	}
 
-	// Start monitoring in background
+	// Start monitoring in background.
 	go rm.monitor()
 
 	return rm
 }
 
 func (br *BenchmarkRunner) calculatePerformanceScore() float64 {
-	// Calculate overall performance score based on targets and results
+	// Calculate overall performance score based on targets and results.
 	if br.results.TargetAnalysis == nil {
 		return 50.0 // Neutral score if no targets
 	}
@@ -884,7 +884,7 @@ func (br *BenchmarkRunner) generateRecommendations(targetResults map[string]*Tar
 	return recommendations
 }
 
-// GetDefaultConfig returns a default benchmark configuration
+// GetDefaultConfig returns a default benchmark configuration.
 func GetDefaultConfig() *BenchmarkConfig {
 	return &BenchmarkConfig{
 		Iterations:  1000,
@@ -923,7 +923,7 @@ func GetDefaultConfig() *BenchmarkConfig {
 	}
 }
 
-// ResourceMonitor tracks resource usage during benchmarks
+// ResourceMonitor tracks resource usage during benchmarks.
 type ResourceMonitor struct {
 	cpuUsage    float64
 	memoryUsage float64
@@ -932,7 +932,7 @@ type ResourceMonitor struct {
 	cancel      context.CancelFunc
 }
 
-// Stop stops resource monitoring and returns usage data
+// Stop stops resource monitoring and returns usage data.
 func (rm *ResourceMonitor) Stop() *ResourceUsage {
 	if rm.cancel != nil {
 		rm.cancel()
@@ -944,7 +944,7 @@ func (rm *ResourceMonitor) Stop() *ResourceUsage {
 	}
 }
 
-// monitor runs resource monitoring in background
+// monitor runs resource monitoring in background.
 func (rm *ResourceMonitor) monitor() {
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
@@ -954,14 +954,14 @@ func (rm *ResourceMonitor) monitor() {
 		case <-rm.ctx.Done():
 			return
 		case <-ticker.C:
-			// Simple CPU and memory usage simulation
+			// Simple CPU and memory usage simulation.
 			rm.cpuUsage = 25.0 + float64(time.Since(rm.startTime).Milliseconds()%50)
 			rm.memoryUsage = 512.0 + float64(time.Since(rm.startTime).Seconds()*10)
 		}
 	}
 }
 
-// OptimizationKnowledgeBase stores learned optimization patterns and insights
+// OptimizationKnowledgeBase stores learned optimization patterns and insights.
 type OptimizationKnowledgeBase struct {
 	Patterns        map[string]OptimizationPattern `json:"patterns"`
 	Metrics         map[string]MetricHistory       `json:"metrics"`
@@ -969,7 +969,7 @@ type OptimizationKnowledgeBase struct {
 	LastUpdated     time.Time                      `json:"last_updated"`
 }
 
-// OptimizationPattern represents a learned performance optimization pattern
+// OptimizationPattern represents a learned performance optimization pattern.
 type OptimizationPattern struct {
 	Name          string             `json:"name"`
 	Description   string             `json:"description"`
@@ -979,14 +979,14 @@ type OptimizationPattern struct {
 	ImpactMetrics map[string]float64 `json:"impact_metrics"`
 }
 
-// MetricHistory stores historical metric data for trend analysis
+// MetricHistory stores historical metric data for trend analysis.
 type MetricHistory struct {
 	Values     []float64   `json:"values"`
 	Timestamps []time.Time `json:"timestamps"`
 	Statistics Statistics  `json:"statistics"`
 }
 
-// Statistics holds statistical analysis of metric data
+// Statistics holds statistical analysis of metric data.
 type Statistics struct {
 	Mean   float64 `json:"mean"`
 	StdDev float64 `json:"std_dev"`
@@ -995,7 +995,7 @@ type Statistics struct {
 	Trend  string  `json:"trend"` // "improving", "degrading", "stable"
 }
 
-// TrainingConfig defines configuration for ML model training
+// TrainingConfig defines configuration for ML model training.
 type TrainingConfig struct {
 	Epochs          int     `json:"epochs"`
 	BatchSize       int     `json:"batch_size"`
@@ -1005,17 +1005,21 @@ type TrainingConfig struct {
 	ModelPath       string  `json:"model_path"`
 }
 
-// MLBackend defines the machine learning backend type
+// MLBackend defines the machine learning backend type.
 type MLBackend string
 
 const (
+	// MLBackendTensorFlow holds mlbackendtensorflow value.
 	MLBackendTensorFlow MLBackend = "tensorflow"
-	MLBackendPyTorch    MLBackend = "pytorch"
-	MLBackendONNX       MLBackend = "onnx"
-	MLBackendBuiltIn    MLBackend = "builtin"
+	// MLBackendPyTorch holds mlbackendpytorch value.
+	MLBackendPyTorch MLBackend = "pytorch"
+	// MLBackendONNX holds mlbackendonnx value.
+	MLBackendONNX MLBackend = "onnx"
+	// MLBackendBuiltIn holds mlbackendbuiltin value.
+	MLBackendBuiltIn MLBackend = "builtin"
 )
 
-// MLModel represents a trained machine learning model for performance optimization
+// MLModel represents a trained machine learning model for performance optimization.
 type MLModel struct {
 	Backend   MLBackend      `json:"backend"`
 	ModelPath string         `json:"model_path"`
@@ -1025,18 +1029,18 @@ type MLModel struct {
 	Version   string         `json:"version"`
 }
 
-// trainModel trains a machine learning model for performance optimization
+// trainModel trains a machine learning model for performance optimization.
 func (br *BenchmarkRunner) trainModel(ctx context.Context, config TrainingConfig, knowledgeBase *OptimizationKnowledgeBase) (*MLModel, error) {
-	// For now, this is a simplified implementation
-	// In a real implementation, this would interface with actual ML libraries
+	// For now, this is a simplified implementation.
+	// In a real implementation, this would interface with actual ML libraries.
 
 	fmt.Printf("Training ML model with config: epochs=%d, batch_size=%d, learning_rate=%f\n",
 		config.Epochs, config.BatchSize, config.LearningRate)
 
-	// Simulate training duration based on epochs
+	// Simulate training duration based on epochs.
 	trainingDuration := time.Duration(config.Epochs) * time.Millisecond * 100
 
-	// Simulate training progress
+	// Simulate training progress.
 	for i := 0; i < config.Epochs; i++ {
 		select {
 		case <-ctx.Done():
@@ -1049,7 +1053,7 @@ func (br *BenchmarkRunner) trainModel(ctx context.Context, config TrainingConfig
 		}
 	}
 
-	// Create trained model
+	// Create trained model.
 	model := &MLModel{
 		Backend:   MLBackendBuiltIn,
 		ModelPath: config.ModelPath,
@@ -1059,14 +1063,14 @@ func (br *BenchmarkRunner) trainModel(ctx context.Context, config TrainingConfig
 		Version:   "1.0.0",
 	}
 
-	// Save model if path is provided
+	// Save model if path is provided.
 	if config.ModelPath != "" {
 		modelData, err := json.MarshalIndent(model, "", "  ")
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal model: %w", err)
 		}
 
-		err = os.WriteFile(config.ModelPath, modelData, 0644)
+		err = os.WriteFile(config.ModelPath, modelData, 0o640)
 		if err != nil {
 			return nil, fmt.Errorf("failed to save model: %w", err)
 		}
@@ -1076,7 +1080,7 @@ func (br *BenchmarkRunner) trainModel(ctx context.Context, config TrainingConfig
 	return model, nil
 }
 
-// predictOptimizations uses the trained model to predict performance optimizations
+// predictOptimizations uses the trained model to predict performance optimizations.
 func (br *BenchmarkRunner) predictOptimizations(ctx context.Context, model *MLModel, currentMetrics map[string]float64) ([]OptimizationPattern, error) {
 	if model == nil {
 		return nil, fmt.Errorf("model cannot be nil")
@@ -1086,7 +1090,7 @@ func (br *BenchmarkRunner) predictOptimizations(ctx context.Context, model *MLMo
 
 	var patterns []OptimizationPattern
 
-	// Analyze current metrics and suggest optimizations
+	// Analyze current metrics and suggest optimizations.
 	if latency, ok := currentMetrics["average_latency_ms"]; ok && latency > 100 {
 		patterns = append(patterns, OptimizationPattern{
 			Name:        "LatencyOptimization",
@@ -1141,7 +1145,7 @@ func (br *BenchmarkRunner) predictOptimizations(ctx context.Context, model *MLMo
 		})
 	}
 
-	// Add a general optimization pattern if no specific issues detected
+	// Add a general optimization pattern if no specific issues detected.
 	if len(patterns) == 0 {
 		patterns = append(patterns, OptimizationPattern{
 			Name:        "GeneralOptimization",
@@ -1163,7 +1167,7 @@ func (br *BenchmarkRunner) predictOptimizations(ctx context.Context, model *MLMo
 	return patterns, nil
 }
 
-// validatePredictions validates the effectiveness of applied optimizations
+// validatePredictions validates the effectiveness of applied optimizations.
 func (br *BenchmarkRunner) validatePredictions(ctx context.Context, patterns []OptimizationPattern, beforeMetrics, afterMetrics map[string]float64) (*ValidationResult, error) {
 	if len(patterns) == 0 {
 		return nil, fmt.Errorf("no patterns to validate")
@@ -1179,7 +1183,7 @@ func (br *BenchmarkRunner) validatePredictions(ctx context.Context, patterns []O
 
 	fmt.Printf("Validating %d optimization patterns\n", len(patterns))
 
-	// Compare before and after metrics
+	// Compare before and after metrics.
 	for metric, beforeValue := range beforeMetrics {
 		if afterValue, exists := afterMetrics[metric]; exists {
 			improvementPercent := ((beforeValue - afterValue) / beforeValue) * 100
@@ -1194,7 +1198,7 @@ func (br *BenchmarkRunner) validatePredictions(ctx context.Context, patterns []O
 		}
 	}
 
-	// Count patterns that showed measurable improvement
+	// Count patterns that showed measurable improvement.
 	for _, pattern := range patterns {
 		hasImprovement := false
 		for expectedMetric := range pattern.ImpactMetrics {
@@ -1217,7 +1221,7 @@ func (br *BenchmarkRunner) validatePredictions(ctx context.Context, patterns []O
 	return result, nil
 }
 
-// ValidationResult contains the results of optimization validation
+// ValidationResult contains the results of optimization validation.
 type ValidationResult struct {
 	Timestamp          time.Time          `json:"timestamp"`
 	PatternsCount      int                `json:"patterns_count"`
@@ -1228,20 +1232,20 @@ type ValidationResult struct {
 	OverallImprovement float64            `json:"overall_improvement_percent"`
 }
 
-// calculateOverallImprovement calculates the weighted overall improvement score
+// calculateOverallImprovement calculates the weighted overall improvement score.
 func calculateOverallImprovement(improvements, regressions map[string]float64) float64 {
 	var totalImprovement, totalRegression float64
 
-	// Weight improvements positively
+	// Weight improvements positively.
 	for _, improvement := range improvements {
 		totalImprovement += improvement
 	}
 
-	// Weight regressions negatively
+	// Weight regressions negatively.
 	for _, regression := range regressions {
 		totalRegression += regression
 	}
 
-	// Calculate net improvement (improvements - regressions)
+	// Calculate net improvement (improvements - regressions).
 	return totalImprovement - totalRegression
 }

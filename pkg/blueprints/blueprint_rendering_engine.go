@@ -17,14 +17,13 @@ limitations under the License.
 package blueprints
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
 	"sync"
-	"time"
-
-	"bytes"
 	"text/template"
+	"time"
 
 	"github.com/Masterminds/sprig/v3"
 	"go.uber.org/zap"
@@ -33,7 +32,7 @@ import (
 	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-// BlueprintRenderingEngine renders O-RAN compliant KRM resources from blueprint templates
+// BlueprintRenderingEngine renders O-RAN compliant KRM resources from blueprint templates.
 type BlueprintRenderingEngine struct {
 	config      *BlueprintConfig
 	logger      *zap.Logger
@@ -42,7 +41,7 @@ type BlueprintRenderingEngine struct {
 	mutex       sync.RWMutex
 }
 
-// BlueprintRequest represents a blueprint rendering request
+// BlueprintRequest represents a blueprint rendering request.
 type BlueprintRequest struct {
 	Intent     *v1.NetworkIntent
 	Templates  []*BlueprintTemplate
@@ -50,7 +49,7 @@ type BlueprintRequest struct {
 	Parameters map[string]interface{}
 }
 
-// RenderedBlueprint represents the result of blueprint rendering
+// RenderedBlueprint represents the result of blueprint rendering.
 type RenderedBlueprint struct {
 	Name           string
 	Version        string
@@ -65,7 +64,7 @@ type RenderedBlueprint struct {
 	GeneratedFiles map[string]string
 }
 
-// KRMResource represents a Kubernetes Resource Model resource
+// KRMResource represents a Kubernetes Resource Model resource.
 type KRMResource struct {
 	APIVersion string                 `json:"apiVersion" yaml:"apiVersion"`
 	Kind       string                 `json:"kind" yaml:"kind"`
@@ -75,7 +74,7 @@ type KRMResource struct {
 	StringData map[string]string      `json:"stringData,omitempty" yaml:"stringData,omitempty"`
 }
 
-// HelmChart represents a Helm chart configuration
+// HelmChart represents a Helm chart configuration.
 type HelmChart struct {
 	Name         string                 `json:"name" yaml:"name"`
 	Version      string                 `json:"version" yaml:"version"`
@@ -84,7 +83,7 @@ type HelmChart struct {
 	Dependencies []HelmDependency       `json:"dependencies,omitempty" yaml:"dependencies,omitempty"`
 }
 
-// ConfigMap represents a Kubernetes ConfigMap
+// ConfigMap represents a Kubernetes ConfigMap.
 type ConfigMap struct {
 	Name      string            `json:"name" yaml:"name"`
 	Namespace string            `json:"namespace" yaml:"namespace"`
@@ -92,7 +91,7 @@ type ConfigMap struct {
 	Labels    map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 }
 
-// Secret represents a Kubernetes Secret
+// Secret represents a Kubernetes Secret.
 type Secret struct {
 	Name      string            `json:"name" yaml:"name"`
 	Namespace string            `json:"namespace" yaml:"namespace"`
@@ -101,7 +100,7 @@ type Secret struct {
 	Labels    map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 }
 
-// BlueprintMetadata contains metadata about the blueprint
+// BlueprintMetadata contains metadata about the blueprint.
 type BlueprintMetadata struct {
 	Name           string            `json:"name" yaml:"name"`
 	Version        string            `json:"version" yaml:"version"`
@@ -118,7 +117,7 @@ type BlueprintMetadata struct {
 	GeneratedBy    string            `json:"generatedBy" yaml:"generatedBy"`
 }
 
-// NewBlueprintRenderingEngine creates a new blueprint rendering engine
+// NewBlueprintRenderingEngine creates a new blueprint rendering engine.
 func NewBlueprintRenderingEngine(config *BlueprintConfig, logger *zap.Logger) (*BlueprintRenderingEngine, error) {
 	if config == nil {
 		return nil, fmt.Errorf("config is required")
@@ -137,7 +136,7 @@ func NewBlueprintRenderingEngine(config *BlueprintConfig, logger *zap.Logger) (*
 	return engine, nil
 }
 
-// RenderORANBlueprint renders O-RAN compliant blueprint from request
+// RenderORANBlueprint renders O-RAN compliant blueprint from request.
 func (bre *BlueprintRenderingEngine) RenderORANBlueprint(ctx context.Context, req *BlueprintRequest) (*RenderedBlueprint, error) {
 	startTime := time.Now()
 	defer func() {
@@ -151,10 +150,10 @@ func (bre *BlueprintRenderingEngine) RenderORANBlueprint(ctx context.Context, re
 		zap.String("intent_name", req.Intent.Name),
 		zap.Int("template_count", len(req.Templates)))
 
-	// Prepare rendering context
+	// Prepare rendering context.
 	renderContext := bre.buildRenderingContext(req)
 
-	// Initialize rendered blueprint
+	// Initialize rendered blueprint.
 	rendered := &RenderedBlueprint{
 		Name:           req.Metadata.Name,
 		Version:        req.Metadata.Version,
@@ -164,19 +163,19 @@ func (bre *BlueprintRenderingEngine) RenderORANBlueprint(ctx context.Context, re
 		GeneratedFiles: make(map[string]string),
 	}
 
-	// Process each template
+	// Process each template.
 	for _, tmpl := range req.Templates {
 		if err := bre.renderTemplate(ctx, tmpl, renderContext, rendered); err != nil {
 			return nil, fmt.Errorf("failed to render template %s: %w", tmpl.Name, err)
 		}
 	}
 
-	// Post-process rendered blueprint
+	// Post-process rendered blueprint.
 	if err := bre.postProcessBlueprint(ctx, rendered, req); err != nil {
 		return nil, fmt.Errorf("failed to post-process blueprint: %w", err)
 	}
 
-	// Generate final files
+	// Generate final files.
 	if err := bre.generateFiles(ctx, rendered); err != nil {
 		return nil, fmt.Errorf("failed to generate files: %w", err)
 	}
@@ -192,7 +191,7 @@ func (bre *BlueprintRenderingEngine) RenderORANBlueprint(ctx context.Context, re
 	return rendered, nil
 }
 
-// buildRenderingContext creates the context for template rendering
+// buildRenderingContext creates the context for template rendering.
 func (bre *BlueprintRenderingEngine) buildRenderingContext(req *BlueprintRequest) map[string]interface{} {
 	context := map[string]interface{}{
 		"Intent":    req.Intent,
@@ -202,7 +201,7 @@ func (bre *BlueprintRenderingEngine) buildRenderingContext(req *BlueprintRequest
 		"Config":    bre.config,
 	}
 
-	// Add intent-specific values
+	// Add intent-specific values.
 	if req.Intent != nil {
 		context["IntentName"] = req.Intent.Name
 		context["IntentType"] = req.Intent.Spec.IntentType
@@ -213,18 +212,18 @@ func (bre *BlueprintRenderingEngine) buildRenderingContext(req *BlueprintRequest
 		context["NetworkSlice"] = req.Intent.Spec.NetworkSlice
 		context["Region"] = req.Intent.Spec.Region
 
-		// Add resource constraints if specified
+		// Add resource constraints if specified.
 		if req.Intent.Spec.ResourceConstraints != nil {
 			context["ResourceConstraints"] = req.Intent.Spec.ResourceConstraints
 		}
 
-		// Add processed parameters
+		// Add processed parameters.
 		if req.Intent.Spec.ProcessedParameters != nil {
 			context["ProcessedParameters"] = req.Intent.Spec.ProcessedParameters
 		}
 	}
 
-	// Add O-RAN specific context
+	// Add O-RAN specific context.
 	context["ORANInterfaces"] = map[string]interface{}{
 		"A1": map[string]interface{}{
 			"Version":  "v1.0.0",
@@ -248,7 +247,7 @@ func (bre *BlueprintRenderingEngine) buildRenderingContext(req *BlueprintRequest
 		},
 	}
 
-	// Add 5G Core specific context
+	// Add 5G Core specific context.
 	context["FiveGCore"] = map[string]interface{}{
 		"PLMN": map[string]interface{}{
 			"MCC": "001",
@@ -266,7 +265,7 @@ func (bre *BlueprintRenderingEngine) buildRenderingContext(req *BlueprintRequest
 	return context
 }
 
-// renderTemplate renders a single blueprint template
+// renderTemplate renders a single blueprint template.
 func (bre *BlueprintRenderingEngine) renderTemplate(
 	ctx context.Context,
 	tmpl *BlueprintTemplate,
@@ -277,7 +276,7 @@ func (bre *BlueprintRenderingEngine) renderTemplate(
 		zap.String("template_name", tmpl.Name),
 		zap.String("component_type", string(tmpl.ComponentType)))
 
-	// Render KRM resources
+	// Render KRM resources.
 	for _, krmTemplate := range tmpl.KRMResources {
 		resource, err := bre.renderKRMResource(krmTemplate, renderContext)
 		if err != nil {
@@ -286,7 +285,7 @@ func (bre *BlueprintRenderingEngine) renderTemplate(
 		rendered.KRMResources = append(rendered.KRMResources, *resource)
 	}
 
-	// Render Helm chart if present
+	// Render Helm chart if present.
 	if tmpl.HelmChart != nil {
 		chart, err := bre.renderHelmChart(tmpl.HelmChart, renderContext)
 		if err != nil {
@@ -295,7 +294,7 @@ func (bre *BlueprintRenderingEngine) renderTemplate(
 		rendered.HelmCharts = append(rendered.HelmCharts, *chart)
 	}
 
-	// Render ConfigMaps
+	// Render ConfigMaps.
 	for _, cmTemplate := range tmpl.ConfigMaps {
 		cm, err := bre.renderConfigMap(cmTemplate, renderContext)
 		if err != nil {
@@ -304,7 +303,7 @@ func (bre *BlueprintRenderingEngine) renderTemplate(
 		rendered.ConfigMaps = append(rendered.ConfigMaps, *cm)
 	}
 
-	// Render Secrets
+	// Render Secrets.
 	for _, secretTemplate := range tmpl.Secrets {
 		secret, err := bre.renderSecret(secretTemplate, renderContext)
 		if err != nil {
@@ -313,24 +312,24 @@ func (bre *BlueprintRenderingEngine) renderTemplate(
 		rendered.Secrets = append(rendered.Secrets, *secret)
 	}
 
-	// Collect dependencies
+	// Collect dependencies.
 	rendered.Dependencies = append(rendered.Dependencies, tmpl.Dependencies...)
 
 	return nil
 }
 
-// renderKRMResource renders a KRM resource template
+// renderKRMResource renders a KRM resource template.
 func (bre *BlueprintRenderingEngine) renderKRMResource(
 	tmpl KRMResourceTemplate,
 	context map[string]interface{},
 ) (*KRMResource, error) {
-	// Render metadata
+	// Render metadata.
 	metadata, err := bre.renderMap(tmpl.Metadata, context)
 	if err != nil {
 		return nil, fmt.Errorf("failed to render metadata: %w", err)
 	}
 
-	// Render spec
+	// Render spec.
 	spec, err := bre.renderMap(tmpl.Spec, context)
 	if err != nil {
 		return nil, fmt.Errorf("failed to render spec: %w", err)
@@ -346,12 +345,12 @@ func (bre *BlueprintRenderingEngine) renderKRMResource(
 	return resource, nil
 }
 
-// renderHelmChart renders a Helm chart template
+// renderHelmChart renders a Helm chart template.
 func (bre *BlueprintRenderingEngine) renderHelmChart(
 	tmpl *HelmChartTemplate,
 	context map[string]interface{},
 ) (*HelmChart, error) {
-	// Render values
+	// Render values.
 	values, err := bre.renderMap(tmpl.Values, context)
 	if err != nil {
 		return nil, fmt.Errorf("failed to render Helm values: %w", err)
@@ -368,12 +367,12 @@ func (bre *BlueprintRenderingEngine) renderHelmChart(
 	return chart, nil
 }
 
-// renderConfigMap renders a ConfigMap template
+// renderConfigMap renders a ConfigMap template.
 func (bre *BlueprintRenderingEngine) renderConfigMap(
 	tmpl ConfigMapTemplate,
 	context map[string]interface{},
 ) (*ConfigMap, error) {
-	// Render data
+	// Render data.
 	data := make(map[string]string)
 	for key, valueTemplate := range tmpl.Data {
 		rendered, err := bre.renderString(valueTemplate, context)
@@ -383,7 +382,7 @@ func (bre *BlueprintRenderingEngine) renderConfigMap(
 		data[key] = rendered
 	}
 
-	// Render name and namespace
+	// Render name and namespace.
 	name, err := bre.renderString(tmpl.Name, context)
 	if err != nil {
 		return nil, fmt.Errorf("failed to render ConfigMap name: %w", err)
@@ -404,12 +403,12 @@ func (bre *BlueprintRenderingEngine) renderConfigMap(
 	return cm, nil
 }
 
-// renderSecret renders a Secret template
+// renderSecret renders a Secret template.
 func (bre *BlueprintRenderingEngine) renderSecret(
 	tmpl SecretTemplate,
 	context map[string]interface{},
 ) (*Secret, error) {
-	// Render data
+	// Render data.
 	data := make(map[string]string)
 	for key, valueTemplate := range tmpl.Data {
 		rendered, err := bre.renderString(valueTemplate, context)
@@ -419,7 +418,7 @@ func (bre *BlueprintRenderingEngine) renderSecret(
 		data[key] = rendered
 	}
 
-	// Render name and namespace
+	// Render name and namespace.
 	name, err := bre.renderString(tmpl.Name, context)
 	if err != nil {
 		return nil, fmt.Errorf("failed to render Secret name: %w", err)
@@ -441,7 +440,7 @@ func (bre *BlueprintRenderingEngine) renderSecret(
 	return secret, nil
 }
 
-// renderString renders a string template
+// renderString renders a string template.
 func (bre *BlueprintRenderingEngine) renderString(templateStr string, context map[string]interface{}) (string, error) {
 	if templateStr == "" {
 		return "", nil
@@ -460,7 +459,7 @@ func (bre *BlueprintRenderingEngine) renderString(templateStr string, context ma
 	return buf.String(), nil
 }
 
-// renderMap renders a map template
+// renderMap renders a map template.
 func (bre *BlueprintRenderingEngine) renderMap(templateMap map[string]interface{}, context map[string]interface{}) (map[string]interface{}, error) {
 	if templateMap == nil {
 		return nil, nil
@@ -469,13 +468,13 @@ func (bre *BlueprintRenderingEngine) renderMap(templateMap map[string]interface{
 	result := make(map[string]interface{})
 
 	for key, value := range templateMap {
-		// Render the key
+		// Render the key.
 		renderedKey, err := bre.renderString(key, context)
 		if err != nil {
 			return nil, fmt.Errorf("failed to render map key %s: %w", key, err)
 		}
 
-		// Render the value based on its type
+		// Render the value based on its type.
 		renderedValue, err := bre.renderValue(value, context)
 		if err != nil {
 			return nil, fmt.Errorf("failed to render map value for key %s: %w", key, err)
@@ -487,7 +486,7 @@ func (bre *BlueprintRenderingEngine) renderMap(templateMap map[string]interface{
 	return result, nil
 }
 
-// renderValue renders a value of any type
+// renderValue renders a value of any type.
 func (bre *BlueprintRenderingEngine) renderValue(value interface{}, context map[string]interface{}) (interface{}, error) {
 	switch v := value.(type) {
 	case string:
@@ -501,7 +500,7 @@ func (bre *BlueprintRenderingEngine) renderValue(value interface{}, context map[
 	}
 }
 
-// renderSlice renders a slice template
+// renderSlice renders a slice template.
 func (bre *BlueprintRenderingEngine) renderSlice(templateSlice []interface{}, context map[string]interface{}) ([]interface{}, error) {
 	if templateSlice == nil {
 		return nil, nil
@@ -520,30 +519,30 @@ func (bre *BlueprintRenderingEngine) renderSlice(templateSlice []interface{}, co
 	return result, nil
 }
 
-// postProcessBlueprint performs post-processing on the rendered blueprint
+// postProcessBlueprint performs post-processing on the rendered blueprint.
 func (bre *BlueprintRenderingEngine) postProcessBlueprint(
 	ctx context.Context,
 	rendered *RenderedBlueprint,
 	req *BlueprintRequest,
 ) error {
-	// Add common labels and annotations to all resources
+	// Add common labels and annotations to all resources.
 	bre.addCommonLabelsAndAnnotations(rendered, req)
 
-	// Validate resource relationships
+	// Validate resource relationships.
 	if err := bre.validateResourceRelationships(rendered); err != nil {
 		return fmt.Errorf("resource relationship validation failed: %w", err)
 	}
 
-	// Apply naming conventions
+	// Apply naming conventions.
 	bre.applyNamingConventions(rendered, req)
 
-	// Optimize resource configurations
+	// Optimize resource configurations.
 	bre.optimizeResourceConfigurations(rendered, req)
 
 	return nil
 }
 
-// addCommonLabelsAndAnnotations adds common labels and annotations
+// addCommonLabelsAndAnnotations adds common labels and annotations.
 func (bre *BlueprintRenderingEngine) addCommonLabelsAndAnnotations(rendered *RenderedBlueprint, req *BlueprintRequest) {
 	commonLabels := map[string]string{
 		"nephoran.com/blueprint":  "true",
@@ -560,7 +559,7 @@ func (bre *BlueprintRenderingEngine) addCommonLabelsAndAnnotations(rendered *Ren
 		"nephoran.com/oran-compliant": fmt.Sprintf("%t", rendered.ORANCompliant),
 	}
 
-	// Add to KRM resources
+	// Add to KRM resources.
 	for i := range rendered.KRMResources {
 		if rendered.KRMResources[i].Metadata == nil {
 			rendered.KRMResources[i].Metadata = make(map[string]interface{})
@@ -568,7 +567,7 @@ func (bre *BlueprintRenderingEngine) addCommonLabelsAndAnnotations(rendered *Ren
 		bre.addLabelsAndAnnotationsToResource(&rendered.KRMResources[i].Metadata, commonLabels, commonAnnotations)
 	}
 
-	// Add to ConfigMaps
+	// Add to ConfigMaps.
 	for i := range rendered.ConfigMaps {
 		if rendered.ConfigMaps[i].Labels == nil {
 			rendered.ConfigMaps[i].Labels = make(map[string]string)
@@ -578,7 +577,7 @@ func (bre *BlueprintRenderingEngine) addCommonLabelsAndAnnotations(rendered *Ren
 		}
 	}
 
-	// Add to Secrets
+	// Add to Secrets.
 	for i := range rendered.Secrets {
 		if rendered.Secrets[i].Labels == nil {
 			rendered.Secrets[i].Labels = make(map[string]string)
@@ -589,13 +588,13 @@ func (bre *BlueprintRenderingEngine) addCommonLabelsAndAnnotations(rendered *Ren
 	}
 }
 
-// addLabelsAndAnnotationsToResource adds labels and annotations to a resource metadata
+// addLabelsAndAnnotationsToResource adds labels and annotations to a resource metadata.
 func (bre *BlueprintRenderingEngine) addLabelsAndAnnotationsToResource(
 	metadata *map[string]interface{},
 	labels map[string]string,
 	annotations map[string]string,
 ) {
-	// Add labels
+	// Add labels.
 	if labelsInterface, exists := (*metadata)["labels"]; exists {
 		if labelsMap, ok := labelsInterface.(map[string]interface{}); ok {
 			for k, v := range labels {
@@ -610,7 +609,7 @@ func (bre *BlueprintRenderingEngine) addLabelsAndAnnotationsToResource(
 		(*metadata)["labels"] = labelsMap
 	}
 
-	// Add annotations
+	// Add annotations.
 	if annotationsInterface, exists := (*metadata)["annotations"]; exists {
 		if annotationsMap, ok := annotationsInterface.(map[string]interface{}); ok {
 			for k, v := range annotations {
@@ -626,9 +625,9 @@ func (bre *BlueprintRenderingEngine) addLabelsAndAnnotationsToResource(
 	}
 }
 
-// validateResourceRelationships validates relationships between resources
+// validateResourceRelationships validates relationships between resources.
 func (bre *BlueprintRenderingEngine) validateResourceRelationships(rendered *RenderedBlueprint) error {
-	// Basic validation - can be extended with specific relationship checks
+	// Basic validation - can be extended with specific relationship checks.
 	if len(rendered.KRMResources) == 0 && len(rendered.HelmCharts) == 0 {
 		return fmt.Errorf("blueprint must contain at least one KRM resource or Helm chart")
 	}
@@ -636,11 +635,11 @@ func (bre *BlueprintRenderingEngine) validateResourceRelationships(rendered *Ren
 	return nil
 }
 
-// applyNamingConventions applies consistent naming conventions
+// applyNamingConventions applies consistent naming conventions.
 func (bre *BlueprintRenderingEngine) applyNamingConventions(rendered *RenderedBlueprint, req *BlueprintRequest) {
 	prefix := fmt.Sprintf("%s-%s", req.Intent.Name, strings.ToLower(string(req.Metadata.ComponentType)))
 
-	// Apply to KRM resources
+	// Apply to KRM resources.
 	for i := range rendered.KRMResources {
 		if metadata, ok := rendered.KRMResources[i].Metadata["name"].(string); ok {
 			if !strings.HasPrefix(metadata, prefix) {
@@ -649,14 +648,14 @@ func (bre *BlueprintRenderingEngine) applyNamingConventions(rendered *RenderedBl
 		}
 	}
 
-	// Apply to ConfigMaps
+	// Apply to ConfigMaps.
 	for i := range rendered.ConfigMaps {
 		if !strings.HasPrefix(rendered.ConfigMaps[i].Name, prefix) {
 			rendered.ConfigMaps[i].Name = fmt.Sprintf("%s-%s", prefix, rendered.ConfigMaps[i].Name)
 		}
 	}
 
-	// Apply to Secrets
+	// Apply to Secrets.
 	for i := range rendered.Secrets {
 		if !strings.HasPrefix(rendered.Secrets[i].Name, prefix) {
 			rendered.Secrets[i].Name = fmt.Sprintf("%s-%s", prefix, rendered.Secrets[i].Name)
@@ -664,31 +663,31 @@ func (bre *BlueprintRenderingEngine) applyNamingConventions(rendered *RenderedBl
 	}
 }
 
-// optimizeResourceConfigurations optimizes resource configurations
+// optimizeResourceConfigurations optimizes resource configurations.
 func (bre *BlueprintRenderingEngine) optimizeResourceConfigurations(rendered *RenderedBlueprint, req *BlueprintRequest) {
-	// Apply resource constraints from intent
+	// Apply resource constraints from intent.
 	if req.Intent.Spec.ResourceConstraints != nil {
 		constraints := req.Intent.Spec.ResourceConstraints
 
 		for i := range rendered.KRMResources {
 			resource := &rendered.KRMResources[i]
 
-			// Apply to Deployment and StatefulSet resources
+			// Apply to Deployment and StatefulSet resources.
 			if resource.Kind == "Deployment" || resource.Kind == "StatefulSet" {
 				bre.applyResourceConstraints(resource, constraints)
 			}
 		}
 	}
 
-	// Apply priority-based configurations
+	// Apply priority-based configurations.
 	if req.Intent.Spec.Priority == v1.PriorityCritical {
 		bre.applyCriticalPriorityOptimizations(rendered)
 	}
 }
 
-// applyResourceConstraints applies resource constraints to a resource
+// applyResourceConstraints applies resource constraints to a resource.
 func (bre *BlueprintRenderingEngine) applyResourceConstraints(resource *KRMResource, constraints *v1.ResourceConstraints) {
-	// Navigate to container spec and apply constraints
+	// Navigate to container spec and apply constraints.
 	if spec, ok := resource.Spec["template"].(map[string]interface{}); ok {
 		if podSpec, ok := spec["spec"].(map[string]interface{}); ok {
 			if containers, ok := podSpec["containers"].([]interface{}); ok {
@@ -702,11 +701,11 @@ func (bre *BlueprintRenderingEngine) applyResourceConstraints(resource *KRMResou
 	}
 }
 
-// setContainerResources sets container resource constraints
+// setContainerResources sets container resource constraints.
 func (bre *BlueprintRenderingEngine) setContainerResources(container map[string]interface{}, constraints *v1.ResourceConstraints) {
 	resourcesMap := make(map[string]interface{})
 
-	// Set requests
+	// Set requests.
 	if requests, exists := resourcesMap["requests"]; exists {
 		if requestsMap, ok := requests.(map[string]interface{}); ok {
 			if constraints.CPU != nil {
@@ -727,7 +726,7 @@ func (bre *BlueprintRenderingEngine) setContainerResources(container map[string]
 		resourcesMap["requests"] = requestsMap
 	}
 
-	// Set limits
+	// Set limits.
 	if limits, exists := resourcesMap["limits"]; exists {
 		if limitsMap, ok := limits.(map[string]interface{}); ok {
 			if constraints.MaxCPU != nil {
@@ -751,12 +750,12 @@ func (bre *BlueprintRenderingEngine) setContainerResources(container map[string]
 	container["resources"] = resourcesMap
 }
 
-// applyCriticalPriorityOptimizations applies optimizations for critical priority
+// applyCriticalPriorityOptimizations applies optimizations for critical priority.
 func (bre *BlueprintRenderingEngine) applyCriticalPriorityOptimizations(rendered *RenderedBlueprint) {
 	for i := range rendered.KRMResources {
 		resource := &rendered.KRMResources[i]
 
-		// Set priority class for critical workloads
+		// Set priority class for critical workloads.
 		if resource.Kind == "Deployment" || resource.Kind == "StatefulSet" {
 			if spec, ok := resource.Spec["template"].(map[string]interface{}); ok {
 				if podSpec, ok := spec["spec"].(map[string]interface{}); ok {
@@ -767,9 +766,9 @@ func (bre *BlueprintRenderingEngine) applyCriticalPriorityOptimizations(rendered
 	}
 }
 
-// generateFiles generates the final files for the blueprint
+// generateFiles generates the final files for the blueprint.
 func (bre *BlueprintRenderingEngine) generateFiles(ctx context.Context, rendered *RenderedBlueprint) error {
-	// Generate KRM resource files
+	// Generate KRM resource files.
 	for i, resource := range rendered.KRMResources {
 		filename := fmt.Sprintf("%s-%d.yaml", strings.ToLower(resource.Kind), i)
 		content, err := yaml.Marshal(resource)
@@ -779,7 +778,7 @@ func (bre *BlueprintRenderingEngine) generateFiles(ctx context.Context, rendered
 		rendered.GeneratedFiles[filename] = string(content)
 	}
 
-	// Generate Helm chart files
+	// Generate Helm chart files.
 	for i, chart := range rendered.HelmCharts {
 		filename := fmt.Sprintf("helm-chart-%s-%d.yaml", chart.Name, i)
 		content, err := yaml.Marshal(chart)
@@ -789,7 +788,7 @@ func (bre *BlueprintRenderingEngine) generateFiles(ctx context.Context, rendered
 		rendered.GeneratedFiles[filename] = string(content)
 	}
 
-	// Generate ConfigMap files
+	// Generate ConfigMap files.
 	for i, cm := range rendered.ConfigMaps {
 		configMap := map[string]interface{}{
 			"apiVersion": "v1",
@@ -810,7 +809,7 @@ func (bre *BlueprintRenderingEngine) generateFiles(ctx context.Context, rendered
 		rendered.GeneratedFiles[filename] = string(content)
 	}
 
-	// Generate Secret files
+	// Generate Secret files.
 	for i, secret := range rendered.Secrets {
 		secretResource := map[string]interface{}{
 			"apiVersion": "v1",
@@ -832,7 +831,7 @@ func (bre *BlueprintRenderingEngine) generateFiles(ctx context.Context, rendered
 		rendered.GeneratedFiles[filename] = string(content)
 	}
 
-	// Generate metadata file
+	// Generate metadata file.
 	metadataFile := map[string]interface{}{
 		"name":          rendered.Name,
 		"version":       rendered.Version,
@@ -851,7 +850,7 @@ func (bre *BlueprintRenderingEngine) generateFiles(ctx context.Context, rendered
 	return nil
 }
 
-// buildResourceLabels builds common resource labels
+// buildResourceLabels builds common resource labels.
 func (bre *BlueprintRenderingEngine) buildResourceLabels(context map[string]interface{}) map[string]string {
 	labels := make(map[string]string)
 
@@ -869,11 +868,11 @@ func (bre *BlueprintRenderingEngine) buildResourceLabels(context map[string]inte
 	return labels
 }
 
-// createTemplateFunctionMap creates the function map for templates
+// createTemplateFunctionMap creates the function map for templates.
 func createTemplateFunctionMap() template.FuncMap {
 	funcMap := sprig.TxtFuncMap()
 
-	// Add custom functions
+	// Add custom functions.
 	funcMap["toYAML"] = func(v interface{}) string {
 		data, _ := yaml.Marshal(v)
 		return strings.TrimSuffix(string(data), "\n")
@@ -886,7 +885,7 @@ func createTemplateFunctionMap() template.FuncMap {
 	}
 
 	funcMap["include"] = func(name string, data interface{}) string {
-		// Placeholder for template include functionality
+		// Placeholder for template include functionality.
 		return ""
 	}
 
@@ -898,14 +897,14 @@ func createTemplateFunctionMap() template.FuncMap {
 	}
 
 	funcMap["tpl"] = func(tpl string, data interface{}) string {
-		// Placeholder for template processing
+		// Placeholder for template processing.
 		return tpl
 	}
 
 	return funcMap
 }
 
-// getTargetNamespace gets the target namespace with fallback
+// getTargetNamespace gets the target namespace with fallback.
 func getTargetNamespace(intent *v1.NetworkIntent) string {
 	if intent.Spec.TargetNamespace != "" {
 		return intent.Spec.TargetNamespace

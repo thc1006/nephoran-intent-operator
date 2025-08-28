@@ -10,14 +10,14 @@ import (
 	"time"
 )
 
-// Enhanced type constructors using composition/embedding patterns
+// Enhanced type constructors using composition/embedding patterns.
 
-// NewEnhancedLoadBalancer creates a new enhanced load balancer that embeds LoadBalancer
+// NewEnhancedLoadBalancer creates a new enhanced load balancer that embeds LoadBalancer.
 func NewEnhancedLoadBalancer(strategy string, providers []string) *EnhancedLoadBalancer {
-	// Create base LoadBalancer
+	// Create base LoadBalancer.
 	baseLoadBalancer := NewLoadBalancer(strategy, providers)
 
-	// Create enhanced version by embedding the base type
+	// Create enhanced version by embedding the base type.
 	enhanced := &EnhancedLoadBalancer{
 		strategy:   baseLoadBalancer.strategy,
 		providers:  baseLoadBalancer.providers,
@@ -29,19 +29,19 @@ func NewEnhancedLoadBalancer(strategy string, providers []string) *EnhancedLoadB
 	return enhanced
 }
 
-// NewEnhancedCostManager creates a new enhanced cost manager that embeds CostManager
+// NewEnhancedCostManager creates a new enhanced cost manager that embeds CostManager.
 func NewEnhancedCostManager(limits EnhancedCostLimits) *EnhancedCostManager {
-	// Convert enhanced limits to base limits
+	// Convert enhanced limits to base limits.
 	baseLimits := CostLimits{
 		DailyLimit:     limits.DailyLimit,
 		MonthlyLimit:   limits.MonthlyLimit,
 		AlertThreshold: limits.AlertThreshold,
 	}
 
-	// Create base CostManager
+	// Create base CostManager.
 	baseCostManager := NewCostManager(baseLimits)
 
-	// Create enhanced version by embedding the base type data
+	// Create enhanced version by embedding the base type data.
 	enhanced := &EnhancedCostManager{
 		dailySpend:   baseCostManager.dailySpend,
 		monthlySpend: baseCostManager.monthlySpend,
@@ -53,7 +53,7 @@ func NewEnhancedCostManager(limits EnhancedCostLimits) *EnhancedCostManager {
 	return enhanced
 }
 
-// NewEnhancedProviderConfig creates a new enhanced provider config that embeds ProviderConfig
+// NewEnhancedProviderConfig creates a new enhanced provider config that embeds ProviderConfig.
 func NewEnhancedProviderConfig(baseConfig ProviderConfig) *EnhancedProviderConfig {
 	enhanced := &EnhancedProviderConfig{
 		Name:           baseConfig.Name,
@@ -73,7 +73,7 @@ func NewEnhancedProviderConfig(baseConfig ProviderConfig) *EnhancedProviderConfi
 	return enhanced
 }
 
-// CanAfford implements the cost checking interface for EnhancedCostManager
+// CanAfford implements the cost checking interface for EnhancedCostManager.
 func (ecm *EnhancedCostManager) CanAfford(estimatedCost float64) bool {
 	ecm.mutex.RLock()
 	defer ecm.mutex.RUnlock()
@@ -95,7 +95,7 @@ func (ecm *EnhancedCostManager) CanAfford(estimatedCost float64) bool {
 	return true
 }
 
-// RecordSpending implements the spending recording interface for EnhancedCostManager
+// RecordSpending implements the spending recording interface for EnhancedCostManager.
 func (ecm *EnhancedCostManager) RecordSpending(cost float64) {
 	ecm.mutex.Lock()
 	defer ecm.mutex.Unlock()
@@ -106,16 +106,16 @@ func (ecm *EnhancedCostManager) RecordSpending(cost float64) {
 	ecm.dailySpend[today] += cost
 	ecm.monthlySpend[thisMonth] += cost
 
-	// Check for enhanced alerts
+	// Check for enhanced alerts.
 	ecm.checkEnhancedAlerts(today, thisMonth)
 }
 
-// checkEnhancedAlerts checks and generates enhanced cost alerts
+// checkEnhancedAlerts checks and generates enhanced cost alerts.
 func (ecm *EnhancedCostManager) checkEnhancedAlerts(today, thisMonth string) {
 	dailySpent := ecm.dailySpend[today]
 	monthlySpent := ecm.monthlySpend[thisMonth]
 
-	// Daily alerts
+	// Daily alerts.
 	if ecm.limits.DailyLimit > 0 {
 		dailyPercent := dailySpent / ecm.limits.DailyLimit
 		if dailyPercent >= ecm.limits.AlertThreshold {
@@ -135,7 +135,7 @@ func (ecm *EnhancedCostManager) checkEnhancedAlerts(today, thisMonth string) {
 		}
 	}
 
-	// Monthly alerts
+	// Monthly alerts.
 	if ecm.limits.MonthlyLimit > 0 {
 		monthlyPercent := monthlySpent / ecm.limits.MonthlyLimit
 		if monthlyPercent >= ecm.limits.AlertThreshold {
@@ -156,7 +156,7 @@ func (ecm *EnhancedCostManager) checkEnhancedAlerts(today, thisMonth string) {
 	}
 }
 
-// GetSummary returns enhanced cost summary
+// GetSummary returns enhanced cost summary.
 func (ecm *EnhancedCostManager) GetSummary() *EnhancedCostSummary {
 	ecm.mutex.RLock()
 	defer ecm.mutex.RUnlock()
@@ -173,7 +173,7 @@ func (ecm *EnhancedCostManager) GetSummary() *EnhancedCostSummary {
 	}
 }
 
-// SelectProvider implements the provider selection interface for EnhancedLoadBalancer
+// SelectProvider implements the provider selection interface for EnhancedLoadBalancer.
 func (elb *EnhancedLoadBalancer) SelectProvider(availableProviders []string, request *EmbeddingRequest) string {
 	elb.mutex.Lock()
 	defer elb.mutex.Unlock()
@@ -200,7 +200,7 @@ func (elb *EnhancedLoadBalancer) SelectProvider(availableProviders []string, req
 	}
 }
 
-// Enhanced load balancer strategy methods
+// Enhanced load balancer strategy methods.
 func (elb *EnhancedLoadBalancer) roundRobin(providers []string) string {
 	if elb.currentIdx >= len(providers) {
 		elb.currentIdx = 0
@@ -211,7 +211,7 @@ func (elb *EnhancedLoadBalancer) roundRobin(providers []string) string {
 }
 
 func (elb *EnhancedLoadBalancer) leastCost(providers []string) string {
-	// Enhanced cost-based selection logic
+	// Enhanced cost-based selection logic.
 	bestProvider := providers[0]
 	bestCost := elb.weights[bestProvider]
 
@@ -227,20 +227,20 @@ func (elb *EnhancedLoadBalancer) leastCost(providers []string) string {
 }
 
 func (elb *EnhancedLoadBalancer) fastest(providers []string) string {
-	// Enhanced latency-based selection logic
+	// Enhanced latency-based selection logic.
 	return providers[0] // Simplified for now
 }
 
 func (elb *EnhancedLoadBalancer) bestQuality(providers []string) string {
-	// Enhanced quality-based selection logic
+	// Enhanced quality-based selection logic.
 	return providers[0] // Simplified for now
 }
 
-// Enhanced provider constructor adapters
+// Enhanced provider constructor adapters.
 
-// NewOpenAIProvider creates an enhanced OpenAI provider adapter
+// NewOpenAIProvider creates an enhanced OpenAI provider adapter.
 func NewOpenAIProvider(config EnhancedProviderConfig) (EnhancedEmbeddingProvider, error) {
-	// Convert enhanced config to base config
+	// Convert enhanced config to base config.
 	baseConfig := ProviderConfig{
 		Name:         config.Name,
 		APIKey:       config.APIKey,
@@ -256,24 +256,24 @@ func NewOpenAIProvider(config EnhancedProviderConfig) (EnhancedEmbeddingProvider
 		LastCheck:    time.Now(),
 	}
 
-	// Create HTTP client with timeout
+	// Create HTTP client with timeout.
 	httpClient := &http.Client{
 		Timeout: config.Timeout,
 	}
 
-	// Create base provider
+	// Create base provider.
 	baseProvider := NewBasicOpenAIProvider(baseConfig, httpClient)
 
-	// Return enhanced adapter
+	// Return enhanced adapter.
 	return &EnhancedProviderAdapter{
 		baseProvider: baseProvider,
 		config:       config,
 	}, nil
 }
 
-// NewAzureOpenAIProvider creates an enhanced Azure OpenAI provider adapter
+// NewAzureOpenAIProvider creates an enhanced Azure OpenAI provider adapter.
 func NewAzureOpenAIProvider(config EnhancedProviderConfig) (EnhancedEmbeddingProvider, error) {
-	// Convert enhanced config to base config
+	// Convert enhanced config to base config.
 	baseConfig := ProviderConfig{
 		Name:         config.Name,
 		APIKey:       config.APIKey,
@@ -289,24 +289,24 @@ func NewAzureOpenAIProvider(config EnhancedProviderConfig) (EnhancedEmbeddingPro
 		LastCheck:    time.Now(),
 	}
 
-	// Create HTTP client with timeout
+	// Create HTTP client with timeout.
 	httpClient := &http.Client{
 		Timeout: config.Timeout,
 	}
 
-	// Create base provider
+	// Create base provider.
 	baseProvider := NewBasicAzureOpenAIProvider(baseConfig, httpClient)
 
-	// Return enhanced adapter
+	// Return enhanced adapter.
 	return &EnhancedProviderAdapter{
 		baseProvider: baseProvider,
 		config:       config,
 	}, nil
 }
 
-// NewHuggingFaceProvider creates an enhanced Hugging Face provider adapter
+// NewHuggingFaceProvider creates an enhanced Hugging Face provider adapter.
 func NewHuggingFaceProvider(config EnhancedProviderConfig) (EnhancedEmbeddingProvider, error) {
-	// Convert enhanced config to base config
+	// Convert enhanced config to base config.
 	baseConfig := ProviderConfig{
 		Name:         config.Name,
 		APIKey:       config.APIKey,
@@ -322,44 +322,44 @@ func NewHuggingFaceProvider(config EnhancedProviderConfig) (EnhancedEmbeddingPro
 		LastCheck:    time.Now(),
 	}
 
-	// Create HTTP client with timeout
+	// Create HTTP client with timeout.
 	httpClient := &http.Client{
 		Timeout: config.Timeout,
 	}
 
-	// Create base provider
+	// Create base provider.
 	baseProvider := NewBasicHuggingFaceProvider(baseConfig, httpClient)
 
-	// Return enhanced adapter
+	// Return enhanced adapter.
 	return &EnhancedProviderAdapter{
 		baseProvider: baseProvider,
 		config:       config,
 	}, nil
 }
 
-// NewLocalEnhancedEmbeddingProvider creates an enhanced local provider
+// NewLocalEnhancedEmbeddingProvider creates an enhanced local provider.
 func NewLocalEnhancedEmbeddingProvider(config EnhancedProviderConfig) (EnhancedEmbeddingProvider, error) {
-	// For local provider, create a simple implementation
+	// For local provider, create a simple implementation.
 	return &LocalEnhancedProvider{
 		config: config,
 	}, nil
 }
 
-// EnhancedProviderAdapter adapts base providers to enhanced interface
+// EnhancedProviderAdapter adapts base providers to enhanced interface.
 type EnhancedProviderAdapter struct {
 	baseProvider BasicEmbeddingProvider
 	config       EnhancedProviderConfig
 }
 
-// GenerateEmbeddings implements EnhancedEmbeddingProvider
+// GenerateEmbeddings implements EnhancedEmbeddingProvider.
 func (epa *EnhancedProviderAdapter) GenerateEmbeddings(ctx context.Context, texts []string) (*EmbeddingResponse, error) {
-	// Call base provider
+	// Call base provider.
 	embeddings, tokenUsage, err := epa.baseProvider.GenerateEmbeddings(ctx, texts)
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert to enhanced response
+	// Convert to enhanced response.
 	response := &EmbeddingResponse{
 		Embeddings: embeddings,
 		TokenUsage: tokenUsage,
@@ -369,7 +369,7 @@ func (epa *EnhancedProviderAdapter) GenerateEmbeddings(ctx context.Context, text
 	return response, nil
 }
 
-// GetModelInfo implements EnhancedEmbeddingProvider
+// GetModelInfo implements EnhancedEmbeddingProvider.
 func (epa *EnhancedProviderAdapter) GetModelInfo() ModelInfo {
 	baseConfig := epa.baseProvider.GetConfig()
 	return ModelInfo{
@@ -383,9 +383,9 @@ func (epa *EnhancedProviderAdapter) GetModelInfo() ModelInfo {
 	}
 }
 
-// EstimateCost implements EnhancedEmbeddingProvider
+// EstimateCost implements EnhancedEmbeddingProvider.
 func (epa *EnhancedProviderAdapter) EstimateCost(texts []string) float64 {
-	// Estimate token count (rough approximation)
+	// Estimate token count (rough approximation).
 	totalTokens := 0
 	for _, text := range texts {
 		totalTokens += len(text) / 4 // Rough token estimate
@@ -394,7 +394,7 @@ func (epa *EnhancedProviderAdapter) EstimateCost(texts []string) float64 {
 	return epa.baseProvider.GetCostEstimate(totalTokens)
 }
 
-// IsHealthy implements EnhancedEmbeddingProvider
+// IsHealthy implements EnhancedEmbeddingProvider.
 func (epa *EnhancedProviderAdapter) IsHealthy() bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -402,9 +402,9 @@ func (epa *EnhancedProviderAdapter) IsHealthy() bool {
 	return epa.baseProvider.HealthCheck(ctx) == nil
 }
 
-// GetLatency implements EnhancedEmbeddingProvider
+// GetLatency implements EnhancedEmbeddingProvider.
 func (epa *EnhancedProviderAdapter) GetLatency() time.Duration {
-	// Simple latency check
+	// Simple latency check.
 	start := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -413,19 +413,19 @@ func (epa *EnhancedProviderAdapter) GetLatency() time.Duration {
 	return time.Since(start)
 }
 
-// GetName implements EnhancedEmbeddingProvider
+// GetName implements EnhancedEmbeddingProvider.
 func (epa *EnhancedProviderAdapter) GetName() string {
 	return epa.config.Name
 }
 
-// LocalEnhancedProvider implements a simple local provider
+// LocalEnhancedProvider implements a simple local provider.
 type LocalEnhancedProvider struct {
 	config EnhancedProviderConfig
 }
 
-// GenerateEmbeddings implements EnhancedEmbeddingProvider
+// GenerateEmbeddings implements EnhancedEmbeddingProvider.
 func (lep *LocalEnhancedProvider) GenerateEmbeddings(ctx context.Context, texts []string) (*EmbeddingResponse, error) {
-	// Simple stub implementation - generates random embeddings
+	// Simple stub implementation - generates random embeddings.
 	embeddings := make([][]float32, len(texts))
 	for i := range texts {
 		embedding := make([]float32, 768) // Standard embedding size
@@ -448,7 +448,7 @@ func (lep *LocalEnhancedProvider) GenerateEmbeddings(ctx context.Context, texts 
 	}, nil
 }
 
-// GetModelInfo implements EnhancedEmbeddingProvider
+// GetModelInfo implements EnhancedEmbeddingProvider.
 func (lep *LocalEnhancedProvider) GetModelInfo() ModelInfo {
 	return ModelInfo{
 		Name:         lep.config.ModelName,
@@ -461,39 +461,39 @@ func (lep *LocalEnhancedProvider) GetModelInfo() ModelInfo {
 	}
 }
 
-// EstimateCost implements EnhancedEmbeddingProvider
+// EstimateCost implements EnhancedEmbeddingProvider.
 func (lep *LocalEnhancedProvider) EstimateCost(texts []string) float64 {
 	return float64(len(texts)) * lep.config.CostPerToken
 }
 
-// IsHealthy implements EnhancedEmbeddingProvider
+// IsHealthy implements EnhancedEmbeddingProvider.
 func (lep *LocalEnhancedProvider) IsHealthy() bool {
 	return true // Local provider is always healthy
 }
 
-// GetLatency implements EnhancedEmbeddingProvider
+// GetLatency implements EnhancedEmbeddingProvider.
 func (lep *LocalEnhancedProvider) GetLatency() time.Duration {
 	return 1 * time.Millisecond // Very fast local provider
 }
 
-// GetName implements EnhancedEmbeddingProvider
+// GetName implements EnhancedEmbeddingProvider.
 func (lep *LocalEnhancedProvider) GetName() string {
 	return lep.config.Name
 }
 
-// ProviderHealthAdapter adapts EnhancedEmbeddingProvider to EmbeddingProvider for health monitoring
+// ProviderHealthAdapter adapts EnhancedEmbeddingProvider to EmbeddingProvider for health monitoring.
 type ProviderHealthAdapter struct {
 	provider EnhancedEmbeddingProvider
 }
 
-// GetEmbeddings implements EmbeddingProvider for health monitoring
+// GetEmbeddings implements EmbeddingProvider for health monitoring.
 func (pha *ProviderHealthAdapter) GetEmbeddings(ctx context.Context, texts []string) ([][]float64, error) {
 	response, err := pha.provider.GenerateEmbeddings(ctx, texts)
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert [][]float32 to [][]float64
+	// Convert [][]float32 to [][]float64.
 	embeddings := make([][]float64, len(response.Embeddings))
 	for i, embedding := range response.Embeddings {
 		embeddings[i] = make([]float64, len(embedding))
@@ -505,17 +505,17 @@ func (pha *ProviderHealthAdapter) GetEmbeddings(ctx context.Context, texts []str
 	return embeddings, nil
 }
 
-// IsHealthy implements EmbeddingProvider
+// IsHealthy implements EmbeddingProvider.
 func (pha *ProviderHealthAdapter) IsHealthy() bool {
 	return pha.provider.IsHealthy()
 }
 
-// GetLatency implements EmbeddingProvider
+// GetLatency implements EmbeddingProvider.
 func (pha *ProviderHealthAdapter) GetLatency() time.Duration {
 	return pha.provider.GetLatency()
 }
 
-// GenerateEmbedding implements EmbeddingProvider (from enhanced_rag_integration.go)
+// GenerateEmbedding implements EmbeddingProvider (from enhanced_rag_integration.go).
 func (pha *ProviderHealthAdapter) GenerateEmbedding(ctx context.Context, text string) ([]float32, error) {
 	response, err := pha.provider.GenerateEmbeddings(ctx, []string{text})
 	if err != nil {
@@ -529,7 +529,7 @@ func (pha *ProviderHealthAdapter) GenerateEmbedding(ctx context.Context, text st
 	return response.Embeddings[0], nil
 }
 
-// GenerateBatchEmbeddings implements EmbeddingProvider (from enhanced_rag_integration.go)
+// GenerateBatchEmbeddings implements EmbeddingProvider (from enhanced_rag_integration.go).
 func (pha *ProviderHealthAdapter) GenerateBatchEmbeddings(ctx context.Context, texts []string) ([][]float32, error) {
 	response, err := pha.provider.GenerateEmbeddings(ctx, texts)
 	if err != nil {
@@ -539,19 +539,19 @@ func (pha *ProviderHealthAdapter) GenerateBatchEmbeddings(ctx context.Context, t
 	return response.Embeddings, nil
 }
 
-// GetDimensions implements EmbeddingProvider (from enhanced_rag_integration.go)
+// GetDimensions implements EmbeddingProvider (from enhanced_rag_integration.go).
 func (pha *ProviderHealthAdapter) GetDimensions() int {
-	// Try to get dimensions from model info if available
+	// Try to get dimensions from model info if available.
 	modelInfo := pha.provider.GetModelInfo()
 	if modelInfo.Dimensions > 0 {
 		return modelInfo.Dimensions
 	}
 
-	// Default fallback - most common embedding dimensions
+	// Default fallback - most common embedding dimensions.
 	return 384
 }
 
-// Enhanced types that were referenced but not defined
+// Enhanced types that were referenced but not defined.
 type EnhancedCostSummary struct {
 	DailySpending   float64             `json:"daily_spending"`
 	MonthlySpending float64             `json:"monthly_spending"`

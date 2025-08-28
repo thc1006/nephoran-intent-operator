@@ -30,9 +30,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// Mock Porch v1alpha1 types
+// Mock Porch v1alpha1 types.
 
-// PackageRevision mocks the Nephio Porch PackageRevision type
+// PackageRevision mocks the Nephio Porch PackageRevision type.
 type PackageRevision struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -41,6 +41,7 @@ type PackageRevision struct {
 	Status PackageRevisionStatus `json:"status,omitempty"`
 }
 
+// PackageRevisionSpec represents a packagerevisionspec.
 type PackageRevisionSpec struct {
 	PackageName   string                   `json:"packageName,omitempty"`
 	Repository    string                   `json:"repository,omitempty"`
@@ -50,6 +51,7 @@ type PackageRevisionSpec struct {
 	Tasks         []Task                   `json:"tasks,omitempty"`
 }
 
+// PackageRevisionStatus represents a packagerevisionstatus.
 type PackageRevisionStatus struct {
 	Conditions       []metav1.Condition `json:"conditions,omitempty"`
 	PublishedBy      string             `json:"publishedBy,omitempty"`
@@ -58,23 +60,30 @@ type PackageRevisionStatus struct {
 	DeploymentStatus DeploymentStatus   `json:"deploymentStatus,omitempty"`
 }
 
+// PackageRevisionLifecycle represents a packagerevisionlifecycle.
 type PackageRevisionLifecycle string
 
 const (
-	PackageRevisionLifecycleDraft     PackageRevisionLifecycle = "Draft"
-	PackageRevisionLifecycleProposed  PackageRevisionLifecycle = "Proposed"
+	// PackageRevisionLifecycleDraft holds packagerevisionlifecycledraft value.
+	PackageRevisionLifecycleDraft PackageRevisionLifecycle = "Draft"
+	// PackageRevisionLifecycleProposed holds packagerevisionlifecycleproposed value.
+	PackageRevisionLifecycleProposed PackageRevisionLifecycle = "Proposed"
+	// PackageRevisionLifecyclePublished holds packagerevisionlifecyclepublished value.
 	PackageRevisionLifecyclePublished PackageRevisionLifecycle = "Published"
 )
 
+// Task represents a task.
 type Task struct {
 	Type string `json:"type,omitempty"`
 }
 
+// UpstreamLock represents a upstreamlock.
 type UpstreamLock struct {
 	Type string  `json:"type,omitempty"`
 	Git  GitLock `json:"git,omitempty"`
 }
 
+// GitLock represents a gitlock.
 type GitLock struct {
 	Repo      string `json:"repo,omitempty"`
 	Directory string `json:"directory,omitempty"`
@@ -82,11 +91,12 @@ type GitLock struct {
 	Commit    string `json:"commit,omitempty"`
 }
 
+// DeploymentStatus represents a deploymentstatus.
 type DeploymentStatus struct {
 	Status string `json:"status,omitempty"`
 }
 
-// PackageRevisionResources mocks the resources associated with a PackageRevision
+// PackageRevisionResources mocks the resources associated with a PackageRevision.
 type PackageRevisionResources struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -95,21 +105,25 @@ type PackageRevisionResources struct {
 	Status PackageRevisionResourcesStatus `json:"status,omitempty"`
 }
 
+// PackageRevisionResourcesSpec represents a packagerevisionresourcesspec.
 type PackageRevisionResourcesSpec struct {
 	PackageName string            `json:"packageName,omitempty"`
 	Revision    string            `json:"revision,omitempty"`
 	Resources   map[string]string `json:"resources,omitempty"`
 }
 
+// PackageRevisionResourcesStatus represents a packagerevisionresourcesstatus.
 type PackageRevisionResourcesStatus struct {
 	RenderStatus RenderStatus `json:"renderStatus,omitempty"`
 }
 
+// RenderStatus represents a renderstatus.
 type RenderStatus struct {
 	Result string        `json:"result,omitempty"`
 	Errors []RenderError `json:"errors,omitempty"`
 }
 
+// RenderError represents a rendererror.
 type RenderError struct {
 	File    string `json:"file,omitempty"`
 	Index   int    `json:"index,omitempty"`
@@ -117,7 +131,7 @@ type RenderError struct {
 	Message string `json:"message,omitempty"`
 }
 
-// Repository mocks the Porch Repository type
+// Repository mocks the Porch Repository type.
 type Repository struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -126,6 +140,7 @@ type Repository struct {
 	Status RepositoryStatus `json:"status,omitempty"`
 }
 
+// RepositorySpec represents a repositoryspec.
 type RepositorySpec struct {
 	Type        string   `json:"type,omitempty"`
 	Content     string   `json:"content,omitempty"`
@@ -135,6 +150,7 @@ type RepositorySpec struct {
 	Description string   `json:"description,omitempty"`
 }
 
+// GitSpec represents a gitspec.
 type GitSpec struct {
 	Repo      string           `json:"repo,omitempty"`
 	Branch    string           `json:"branch,omitempty"`
@@ -142,20 +158,23 @@ type GitSpec struct {
 	SecretRef *SecretReference `json:"secretRef,omitempty"`
 }
 
+// OciSpec represents a ocispec.
 type OciSpec struct {
 	Registry  string           `json:"registry,omitempty"`
 	SecretRef *SecretReference `json:"secretRef,omitempty"`
 }
 
+// SecretReference represents a secretreference.
 type SecretReference struct {
 	Name string `json:"name,omitempty"`
 }
 
+// RepositoryStatus represents a repositorystatus.
 type RepositoryStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
-// Function represents a Porch Function
+// Function represents a Porch Function.
 type Function struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -164,6 +183,7 @@ type Function struct {
 	Status FunctionStatus `json:"status,omitempty"`
 }
 
+// FunctionSpec represents a functionspec.
 type FunctionSpec struct {
 	Image         string        `json:"image,omitempty"`
 	Description   string        `json:"description,omitempty"`
@@ -171,15 +191,17 @@ type FunctionSpec struct {
 	Keywords      []string      `json:"keywords,omitempty"`
 }
 
+// RepositoryRef represents a repositoryref.
 type RepositoryRef struct {
 	Name string `json:"name,omitempty"`
 }
 
+// FunctionStatus represents a functionstatus.
 type FunctionStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
-// Mock REST Config
+// Mock REST Config.
 type MockRESTConfig struct {
 	HostURL    string
 	APIPathURL string
@@ -187,15 +209,17 @@ type MockRESTConfig struct {
 	Password   string
 }
 
+// Host performs host operation.
 func (m *MockRESTConfig) Host() string {
 	return m.HostURL
 }
 
+// APIPath performs apipath operation.
 func (m *MockRESTConfig) APIPath() string {
 	return m.APIPathURL
 }
 
-// Client interface to match controller-runtime client
+// Client interface to match controller-runtime client.
 type MockClient interface {
 	Get(ctx context.Context, key client.ObjectKey, obj client.Object) error
 	List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error
@@ -209,119 +233,142 @@ type MockClient interface {
 	RESTMapper() meta.RESTMapper
 }
 
-// Mock Nephio client that implements the Client interface
+// Mock Nephio client that implements the Client interface.
 type MockNephioClient struct {
 	client.Client
 	Objects map[string]client.Object
 }
 
+// NewMockNephioClient performs newmocknephioclient operation.
 func NewMockNephioClient() *MockNephioClient {
 	return &MockNephioClient{
 		Objects: make(map[string]client.Object),
 	}
 }
 
+// Get performs get operation.
 func (m *MockNephioClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
-	// Mock implementation
+	// Mock implementation.
 	return nil
 }
 
+// List performs list operation.
 func (m *MockNephioClient) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
-	// Mock implementation
+	// Mock implementation.
 	return nil
 }
 
+// Create performs create operation.
 func (m *MockNephioClient) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
-	// Mock implementation
+	// Mock implementation.
 	return nil
 }
 
+// Delete performs delete operation.
 func (m *MockNephioClient) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
-	// Mock implementation
+	// Mock implementation.
 	return nil
 }
 
+// Update performs update operation.
 func (m *MockNephioClient) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
-	// Mock implementation
+	// Mock implementation.
 	return nil
 }
 
+// Patch performs patch operation.
 func (m *MockNephioClient) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
-	// Mock implementation
+	// Mock implementation.
 	return nil
 }
 
+// DeleteAllOf performs deleteallof operation.
 func (m *MockNephioClient) DeleteAllOf(ctx context.Context, obj client.Object, opts ...client.DeleteAllOfOption) error {
-	// Mock implementation
+	// Mock implementation.
 	return nil
 }
 
+// Status performs status operation.
 func (m *MockNephioClient) Status() client.StatusWriter {
 	return &MockStatusWriter{}
 }
 
+// Scheme performs scheme operation.
 func (m *MockNephioClient) Scheme() *runtime.Scheme {
 	return runtime.NewScheme()
 }
 
+// RESTMapper performs restmapper operation.
 func (m *MockNephioClient) RESTMapper() meta.RESTMapper {
 	return &MockRESTMapper{}
 }
 
-// Mock StatusWriter
+// Mock StatusWriter.
 type MockStatusWriter struct{}
 
+// Update performs update operation.
 func (m *MockStatusWriter) Update(ctx context.Context, obj client.Object, opts ...client.SubResourceUpdateOption) error {
 	return nil
 }
 
+// Create performs create operation.
 func (m *MockStatusWriter) Create(ctx context.Context, obj client.Object, subResource client.Object, opts ...client.SubResourceCreateOption) error {
 	return nil
 }
 
+// Patch performs patch operation.
 func (m *MockStatusWriter) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.SubResourcePatchOption) error {
 	return nil
 }
 
-// Mock RESTMapper
+// Mock RESTMapper.
 type MockRESTMapper struct{}
 
+// KindFor performs kindfor operation.
 func (m *MockRESTMapper) KindFor(resource schema.GroupVersionResource) (schema.GroupVersionKind, error) {
 	return schema.GroupVersionKind{}, nil
 }
 
+// KindsFor performs kindsfor operation.
 func (m *MockRESTMapper) KindsFor(resource schema.GroupVersionResource) ([]schema.GroupVersionKind, error) {
 	return nil, nil
 }
 
+// ResourceFor performs resourcefor operation.
 func (m *MockRESTMapper) ResourceFor(input schema.GroupVersionResource) (schema.GroupVersionResource, error) {
 	return schema.GroupVersionResource{}, nil
 }
 
+// ResourcesFor performs resourcesfor operation.
 func (m *MockRESTMapper) ResourcesFor(input schema.GroupVersionResource) ([]schema.GroupVersionResource, error) {
 	return nil, nil
 }
 
+// RESTMapping performs restmapping operation.
 func (m *MockRESTMapper) RESTMapping(gk schema.GroupKind, versions ...string) (*meta.RESTMapping, error) {
 	return nil, nil
 }
 
+// RESTMappings performs restmappings operation.
 func (m *MockRESTMapper) RESTMappings(gk schema.GroupKind, versions ...string) ([]*meta.RESTMapping, error) {
 	return nil, nil
 }
 
+// ResourceSingularizer performs resourcesingularizer operation.
 func (m *MockRESTMapper) ResourceSingularizer(resource string) (singular string, err error) {
 	return "", nil
 }
 
-// Porch Service mocks
+// Porch Service mocks.
 
+// MockPorchService represents a mockporchservice.
 type MockPorchService struct {
 	Packages     []*PackageRevision
 	Repositories []*Repository
 	Functions    []*Function
 }
 
+// NewMockPorchService performs newmockporchservice operation.
 func NewMockPorchService() *MockPorchService {
 	return &MockPorchService{
 		Packages:     []*PackageRevision{},
@@ -330,8 +377,9 @@ func NewMockPorchService() *MockPorchService {
 	}
 }
 
+// CreatePackage performs createpackage operation.
 func (m *MockPorchService) CreatePackage(ctx context.Context, pkg *PackageRevision) (*PackageRevision, error) {
-	// Mock package creation
+	// Mock package creation.
 	pkg.Status.Conditions = []metav1.Condition{
 		{
 			Type:               "Ready",
@@ -345,6 +393,7 @@ func (m *MockPorchService) CreatePackage(ctx context.Context, pkg *PackageRevisi
 	return pkg, nil
 }
 
+// GetPackage performs getpackage operation.
 func (m *MockPorchService) GetPackage(ctx context.Context, name, namespace string) (*PackageRevision, error) {
 	for _, pkg := range m.Packages {
 		if pkg.Name == name && pkg.Namespace == namespace {
@@ -354,6 +403,7 @@ func (m *MockPorchService) GetPackage(ctx context.Context, name, namespace strin
 	return nil, nil
 }
 
+// UpdatePackage performs updatepackage operation.
 func (m *MockPorchService) UpdatePackage(ctx context.Context, pkg *PackageRevision) (*PackageRevision, error) {
 	for i, existingPkg := range m.Packages {
 		if existingPkg.Name == pkg.Name && existingPkg.Namespace == pkg.Namespace {
@@ -364,6 +414,7 @@ func (m *MockPorchService) UpdatePackage(ctx context.Context, pkg *PackageRevisi
 	return nil, nil
 }
 
+// DeletePackage performs deletepackage operation.
 func (m *MockPorchService) DeletePackage(ctx context.Context, name, namespace string) error {
 	for i, pkg := range m.Packages {
 		if pkg.Name == name && pkg.Namespace == namespace {
@@ -374,6 +425,7 @@ func (m *MockPorchService) DeletePackage(ctx context.Context, name, namespace st
 	return nil
 }
 
+// ListPackages performs listpackages operation.
 func (m *MockPorchService) ListPackages(ctx context.Context, namespace string) ([]*PackageRevision, error) {
 	var result []*PackageRevision
 	for _, pkg := range m.Packages {
@@ -384,6 +436,7 @@ func (m *MockPorchService) ListPackages(ctx context.Context, namespace string) (
 	return result, nil
 }
 
+// PublishPackage performs publishpackage operation.
 func (m *MockPorchService) PublishPackage(ctx context.Context, name, namespace string) (*PackageRevision, error) {
 	for _, pkg := range m.Packages {
 		if pkg.Name == name && pkg.Namespace == namespace {
@@ -397,8 +450,9 @@ func (m *MockPorchService) PublishPackage(ctx context.Context, name, namespace s
 	return nil, nil
 }
 
-// Additional helper functions for tests
+// Additional helper functions for tests.
 
+// CreateMockPackageRevision performs createmockpackagerevision operation.
 func CreateMockPackageRevision(name, namespace, packageName string) *PackageRevision {
 	return &PackageRevision{
 		TypeMeta: metav1.TypeMeta{
@@ -429,6 +483,7 @@ func CreateMockPackageRevision(name, namespace, packageName string) *PackageRevi
 	}
 }
 
+// CreateMockRepository performs createmockrepository operation.
 func CreateMockRepository(name, namespace, repoType string) *Repository {
 	return &Repository{
 		TypeMeta: metav1.TypeMeta{
@@ -462,6 +517,7 @@ func CreateMockRepository(name, namespace, repoType string) *Repository {
 	}
 }
 
+// CreateMockFunction performs createmockfunction operation.
 func CreateMockFunction(name, namespace, image string) *Function {
 	return &Function{
 		TypeMeta: metav1.TypeMeta{
@@ -491,7 +547,7 @@ func CreateMockFunction(name, namespace, image string) *Function {
 	}
 }
 
-// Mock REST Config factory
+// Mock REST Config factory.
 func NewMockRESTConfig() *rest.Config {
 	return &rest.Config{
 		Host:     "http://mock-api-server:8080",
@@ -501,42 +557,50 @@ func NewMockRESTConfig() *rest.Config {
 	}
 }
 
-// Mock client factory
+// Mock client factory.
 func NewMockRESTClient() rest.Interface {
 	return &MockRESTClient{}
 }
 
-// Mock REST Client implementation
+// Mock REST Client implementation.
 type MockRESTClient struct{}
 
+// GetRateLimiter performs getratelimiter operation.
 func (m *MockRESTClient) GetRateLimiter() flowcontrol.RateLimiter {
 	return nil
 }
 
+// Verb performs verb operation.
 func (m *MockRESTClient) Verb(verb string) *rest.Request {
 	return &rest.Request{}
 }
 
+// Post performs post operation.
 func (m *MockRESTClient) Post() *rest.Request {
 	return &rest.Request{}
 }
 
+// Put performs put operation.
 func (m *MockRESTClient) Put() *rest.Request {
 	return &rest.Request{}
 }
 
+// Patch performs patch operation.
 func (m *MockRESTClient) Patch(pt types.PatchType) *rest.Request {
 	return &rest.Request{}
 }
 
+// Get performs get operation.
 func (m *MockRESTClient) Get() *rest.Request {
 	return &rest.Request{}
 }
 
+// Delete performs delete operation.
 func (m *MockRESTClient) Delete() *rest.Request {
 	return &rest.Request{}
 }
 
+// APIVersion performs apiversion operation.
 func (m *MockRESTClient) APIVersion() schema.GroupVersion {
 	return schema.GroupVersion{Group: "", Version: "v1"}
 }

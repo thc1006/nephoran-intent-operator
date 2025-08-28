@@ -9,7 +9,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/internal/porch"
 )
 
-// Intent represents a network intent - kept for public API compatibility
+// Intent represents a network intent - kept for public API compatibility.
 type Intent struct {
 	IntentType string `json:"intent_type"`
 	Target     string `json:"target"`
@@ -43,7 +43,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Use the internal package to write the intent
+	// Use the internal package to write the intent.
 	if err := porch.WriteIntent(in, outDir, format); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)

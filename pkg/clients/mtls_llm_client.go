@@ -13,14 +13,14 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
-// MTLSLLMClient provides mTLS-enabled LLM processor client functionality
+// MTLSLLMClient provides mTLS-enabled LLM processor client functionality.
 type MTLSLLMClient struct {
 	baseURL    string
 	httpClient *http.Client
 	logger     *logging.StructuredLogger
 }
 
-// LLMRequest represents a request to the LLM processor
+// LLMRequest represents a request to the LLM processor.
 type LLMRequest struct {
 	Prompt      string                 `json:"prompt"`
 	Model       string                 `json:"model,omitempty"`
@@ -31,7 +31,7 @@ type LLMRequest struct {
 	RAGContext  []string               `json:"rag_context,omitempty"`
 }
 
-// LLMResponse represents a response from the LLM processor
+// LLMResponse represents a response from the LLM processor.
 type LLMResponse struct {
 	Content        string                 `json:"content"`
 	Model          string                 `json:"model"`
@@ -43,7 +43,7 @@ type LLMResponse struct {
 	RAGSources     []string               `json:"rag_sources,omitempty"`
 }
 
-// StreamingResponse represents a streaming response chunk
+// StreamingResponse represents a streaming response chunk.
 type StreamingResponse struct {
 	Content   string                 `json:"content"`
 	Delta     string                 `json:"delta"`
@@ -52,7 +52,7 @@ type StreamingResponse struct {
 	Timestamp time.Time              `json:"timestamp"`
 }
 
-// ProcessIntent processes an intent using the LLM processor with mTLS
+// ProcessIntent processes an intent using the LLM processor with mTLS.
 func (c *MTLSLLMClient) ProcessIntent(ctx context.Context, prompt string) (string, error) {
 	if prompt == "" {
 		return "", fmt.Errorf("prompt cannot be empty")
@@ -62,7 +62,7 @@ func (c *MTLSLLMClient) ProcessIntent(ctx context.Context, prompt string) (strin
 		"prompt_length", len(prompt),
 		"base_url", c.baseURL)
 
-	// Create request
+	// Create request.
 	req := &LLMRequest{
 		Prompt: prompt,
 		UseRAG: true, // Enable RAG by default for intent processing
@@ -72,7 +72,7 @@ func (c *MTLSLLMClient) ProcessIntent(ctx context.Context, prompt string) (strin
 		},
 	}
 
-	// Make request to LLM processor
+	// Make request to LLM processor.
 	response, err := c.makeRequest(ctx, "/api/v1/process", req)
 	if err != nil {
 		return "", fmt.Errorf("failed to process intent: %w", err)
@@ -87,7 +87,7 @@ func (c *MTLSLLMClient) ProcessIntent(ctx context.Context, prompt string) (strin
 	return response.Content, nil
 }
 
-// ProcessIntentStream processes an intent with streaming response
+// ProcessIntentStream processes an intent with streaming response.
 func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *shared.StreamingChunk) error {
 	if prompt == "" {
 		return fmt.Errorf("prompt cannot be empty")
@@ -99,7 +99,7 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 		"prompt_length", len(prompt),
 		"base_url", c.baseURL)
 
-	// Create request
+	// Create request.
 	req := &LLMRequest{
 		Prompt: prompt,
 		UseRAG: true,
@@ -109,7 +109,7 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 		},
 	}
 
-	// Create HTTP request
+	// Create HTTP request.
 	url := fmt.Sprintf("%s/api/v1/stream", c.baseURL)
 
 	reqBody, err := json.Marshal(req)
@@ -125,7 +125,7 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Accept", "text/event-stream")
 
-	// Make request
+	// Make request.
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
 		return fmt.Errorf("failed to make streaming request: %w", err)
@@ -137,7 +137,7 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 		return fmt.Errorf("streaming request failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
-	// Process streaming response
+	// Process streaming response.
 	decoder := json.NewDecoder(resp.Body)
 
 	for {
@@ -155,7 +155,7 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 			return fmt.Errorf("failed to decode streaming response: %w", err)
 		}
 
-		// Convert to shared.StreamingChunk
+		// Convert to shared.StreamingChunk.
 		chunk := &shared.StreamingChunk{
 			Content:   streamResp.Content,
 			IsLast:    streamResp.IsLast,
@@ -179,7 +179,7 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 	return nil
 }
 
-// GetSupportedModels returns the list of supported models
+// GetSupportedModels returns the list of supported models.
 func (c *MTLSLLMClient) GetSupportedModels() []string {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -213,7 +213,7 @@ func (c *MTLSLLMClient) GetSupportedModels() []string {
 	return models
 }
 
-// GetModelCapabilities returns capabilities for a specific model
+// GetModelCapabilities returns capabilities for a specific model.
 func (c *MTLSLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -244,7 +244,7 @@ func (c *MTLSLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCap
 	return &capabilities, nil
 }
 
-// ValidateModel validates if a model is supported
+// ValidateModel validates if a model is supported.
 func (c *MTLSLLMClient) ValidateModel(modelName string) error {
 	supportedModels := c.GetSupportedModels()
 
@@ -257,14 +257,14 @@ func (c *MTLSLLMClient) ValidateModel(modelName string) error {
 	return fmt.Errorf("model %s is not supported", modelName)
 }
 
-// EstimateTokens estimates the token count for given text
+// EstimateTokens estimates the token count for given text.
 func (c *MTLSLLMClient) EstimateTokens(text string) int {
-	// Simple token estimation (4 characters per token on average)
-	// This is a rough approximation and should ideally call the service
+	// Simple token estimation (4 characters per token on average).
+	// This is a rough approximation and should ideally call the service.
 	return len(text) / 4
 }
 
-// GetMaxTokens returns the maximum tokens for a model
+// GetMaxTokens returns the maximum tokens for a model.
 func (c *MTLSLLMClient) GetMaxTokens(modelName string) int {
 	capabilities, err := c.GetModelCapabilities(modelName)
 	if err != nil {
@@ -277,7 +277,7 @@ func (c *MTLSLLMClient) GetMaxTokens(modelName string) int {
 	return capabilities.MaxTokens
 }
 
-// makeRequest makes an HTTP request to the LLM processor
+// makeRequest makes an HTTP request to the LLM processor.
 func (c *MTLSLLMClient) makeRequest(ctx context.Context, endpoint string, request *LLMRequest) (*LLMResponse, error) {
 	url := fmt.Sprintf("%s%s", c.baseURL, endpoint)
 
@@ -322,11 +322,11 @@ func (c *MTLSLLMClient) makeRequest(ctx context.Context, endpoint string, reques
 	return &response, nil
 }
 
-// Close closes the LLM client and cleans up resources
+// Close closes the LLM client and cleans up resources.
 func (c *MTLSLLMClient) Close() error {
 	c.logger.Debug("closing mTLS LLM client")
 
-	// Close idle connections in HTTP client
+	// Close idle connections in HTTP client.
 	if transport, ok := c.httpClient.Transport.(*http.Transport); ok {
 		transport.CloseIdleConnections()
 	}
@@ -334,7 +334,7 @@ func (c *MTLSLLMClient) Close() error {
 	return nil
 }
 
-// GetHealth returns the health status of the LLM service
+// GetHealth returns the health status of the LLM service.
 func (c *MTLSLLMClient) GetHealth() (*HealthStatus, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -373,7 +373,7 @@ func (c *MTLSLLMClient) GetHealth() (*HealthStatus, error) {
 	return &health, nil
 }
 
-// HealthStatus represents the health status of a service
+// HealthStatus represents the health status of a service.
 type HealthStatus struct {
 	Status    string                 `json:"status"`
 	Message   string                 `json:"message,omitempty"`

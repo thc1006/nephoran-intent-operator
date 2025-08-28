@@ -16,7 +16,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
-// AuditConfig holds audit logging configuration
+// AuditConfig holds audit logging configuration.
 type AuditConfig struct {
 	Enabled             bool               `json:"enabled"`
 	Level               AuditLevel         `json:"level"`
@@ -35,18 +35,23 @@ type AuditConfig struct {
 	AlertThresholds     *AlertThresholds   `json:"alert_thresholds"`
 }
 
-// AuditLevel represents the audit logging level
+// AuditLevel represents the audit logging level.
 type AuditLevel string
 
 const (
-	AuditLevelNone     AuditLevel = "none"
-	AuditLevelMinimal  AuditLevel = "minimal"
+	// AuditLevelNone holds auditlevelnone value.
+	AuditLevelNone AuditLevel = "none"
+	// AuditLevelMinimal holds auditlevelminimal value.
+	AuditLevelMinimal AuditLevel = "minimal"
+	// AuditLevelStandard holds auditlevelstandard value.
 	AuditLevelStandard AuditLevel = "standard"
+	// AuditLevelDetailed holds auditleveldetailed value.
 	AuditLevelDetailed AuditLevel = "detailed"
-	AuditLevelVerbose  AuditLevel = "verbose"
+	// AuditLevelVerbose holds auditlevelverbose value.
+	AuditLevelVerbose AuditLevel = "verbose"
 )
 
-// AuditDestination represents where audit logs are sent
+// AuditDestination represents where audit logs are sent.
 type AuditDestination struct {
 	Type           DestinationType   `json:"type"`
 	Endpoint       string            `json:"endpoint"`
@@ -57,32 +62,43 @@ type AuditDestination struct {
 	Authentication map[string]string `json:"authentication"`
 }
 
-// DestinationType represents the type of audit destination
+// DestinationType represents the type of audit destination.
 type DestinationType string
 
 const (
-	DestinationFile       DestinationType = "file"
-	DestinationSyslog     DestinationType = "syslog"
-	DestinationHTTP       DestinationType = "http"
-	DestinationKafka      DestinationType = "kafka"
-	DestinationElastic    DestinationType = "elasticsearch"
-	DestinationSplunk     DestinationType = "splunk"
+	// DestinationFile holds destinationfile value.
+	DestinationFile DestinationType = "file"
+	// DestinationSyslog holds destinationsyslog value.
+	DestinationSyslog DestinationType = "syslog"
+	// DestinationHTTP holds destinationhttp value.
+	DestinationHTTP DestinationType = "http"
+	// DestinationKafka holds destinationkafka value.
+	DestinationKafka DestinationType = "kafka"
+	// DestinationElastic holds destinationelastic value.
+	DestinationElastic DestinationType = "elasticsearch"
+	// DestinationSplunk holds destinationsplunk value.
+	DestinationSplunk DestinationType = "splunk"
+	// DestinationCloudWatch holds destinationcloudwatch value.
 	DestinationCloudWatch DestinationType = "cloudwatch"
 )
 
-// AuditFormat represents the format of audit logs
+// AuditFormat represents the format of audit logs.
 type AuditFormat string
 
 const (
-	FormatJSON   AuditFormat = "json"
-	FormatCEF    AuditFormat = "cef"  // Common Event Format
-	FormatLEEF   AuditFormat = "leef" // Log Event Extended Format
+	// FormatJSON holds formatjson value.
+	FormatJSON AuditFormat = "json"
+	// FormatCEF holds formatcef value.
+	FormatCEF AuditFormat = "cef" // Common Event Format
+	// FormatLEEF holds formatleef value.
+	FormatLEEF AuditFormat = "leef" // Log Event Extended Format
+	// FormatSyslog holds formatsyslog value.
 	FormatSyslog AuditFormat = "syslog"
 )
 
-// ComplianceStandard, SecurityLevel, ThreatLevel, and ViolationType are defined in constants.go
+// ComplianceStandard, SecurityLevel, ThreatLevel, and ViolationType are defined in constants.go.
 
-// AlertThresholds defines thresholds for security alerts
+// AlertThresholds defines thresholds for security alerts.
 type AlertThresholds struct {
 	FailedAuthAttempts  int           `json:"failed_auth_attempts"`
 	TimeWindow          time.Duration `json:"time_window"`
@@ -91,7 +107,7 @@ type AlertThresholds struct {
 	UnauthorizedAccess  int           `json:"unauthorized_access"`
 }
 
-// AuditEvent represents a security audit event
+// AuditEvent represents a security audit event.
 type AuditEvent struct {
 	ID              string                 `json:"id"`
 	Timestamp       time.Time              `json:"timestamp"`
@@ -121,52 +137,79 @@ type AuditEvent struct {
 	Signature       string                 `json:"signature,omitempty"`
 }
 
-// EventType represents the type of audit event
+// EventType represents the type of audit event.
 type EventType string
 
 const (
-	EventTypeAuthentication    EventType = "authentication"
-	EventTypeAuthorization     EventType = "authorization"
-	EventTypePolicyCreate      EventType = "policy_create"
-	EventTypePolicyUpdate      EventType = "policy_update"
-	EventTypePolicyDelete      EventType = "policy_delete"
-	EventTypePolicyAccess      EventType = "policy_access"
-	EventTypeDataAccess        EventType = "data_access"
-	EventTypeDataModification  EventType = "data_modification"
-	EventTypeConfigChange      EventType = "config_change"
+	// EventTypeAuthentication holds eventtypeauthentication value.
+	EventTypeAuthentication EventType = "authentication"
+	// EventTypeAuthorization holds eventtypeauthorization value.
+	EventTypeAuthorization EventType = "authorization"
+	// EventTypePolicyCreate holds eventtypepolicycreate value.
+	EventTypePolicyCreate EventType = "policy_create"
+	// EventTypePolicyUpdate holds eventtypepolicyupdate value.
+	EventTypePolicyUpdate EventType = "policy_update"
+	// EventTypePolicyDelete holds eventtypepolicydelete value.
+	EventTypePolicyDelete EventType = "policy_delete"
+	// EventTypePolicyAccess holds eventtypepolicyaccess value.
+	EventTypePolicyAccess EventType = "policy_access"
+	// EventTypeDataAccess holds eventtypedataaccess value.
+	EventTypeDataAccess EventType = "data_access"
+	// EventTypeDataModification holds eventtypedatamodification value.
+	EventTypeDataModification EventType = "data_modification"
+	// EventTypeConfigChange holds eventtypeconfigchange value.
+	EventTypeConfigChange EventType = "config_change"
+	// EventTypeSecurityViolation holds eventtypesecurityviolation value.
 	EventTypeSecurityViolation EventType = "security_violation"
+	// EventTypeRateLimitExceeded holds eventtyperatelimitexceeded value.
 	EventTypeRateLimitExceeded EventType = "rate_limit_exceeded"
+	// EventTypeMaliciousActivity holds eventtypemaliciousactivity value.
 	EventTypeMaliciousActivity EventType = "malicious_activity"
-	EventTypeSystemError       EventType = "system_error"
-	EventTypeAdminAction       EventType = "admin_action"
+	// EventTypeSystemError holds eventtypesystemerror value.
+	EventTypeSystemError EventType = "system_error"
+	// EventTypeAdminAction holds eventtypeadminaction value.
+	EventTypeAdminAction EventType = "admin_action"
 )
 
-// EventSeverity represents the severity of an event
+// EventSeverity represents the severity of an event.
 type EventSeverity string
 
 const (
-	SeverityDebug     EventSeverity = "debug"
-	SeverityInfo      EventSeverity = "info"
-	SeverityNotice    EventSeverity = "notice"
-	SeverityWarning   EventSeverity = "warning"
-	SeverityError     EventSeverity = "error"
-	SeverityCritical  EventSeverity = "critical"
-	SeverityAlert     EventSeverity = "alert"
+	// SeverityDebug holds severitydebug value.
+	SeverityDebug EventSeverity = "debug"
+	// SeverityInfo holds severityinfo value.
+	SeverityInfo EventSeverity = "info"
+	// SeverityNotice holds severitynotice value.
+	SeverityNotice EventSeverity = "notice"
+	// SeverityWarning holds severitywarning value.
+	SeverityWarning EventSeverity = "warning"
+	// SeverityError holds severityerror value.
+	SeverityError EventSeverity = "error"
+	// SeverityCritical holds severitycritical value.
+	SeverityCritical EventSeverity = "critical"
+	// SeverityAlert holds severityalert value.
+	SeverityAlert EventSeverity = "alert"
+	// SeverityEmergency holds severityemergency value.
 	SeverityEmergency EventSeverity = "emergency"
 )
 
-// EventResult represents the result of an event
+// EventResult represents the result of an event.
 type EventResult string
 
 const (
+	// ResultSuccess holds resultsuccess value.
 	ResultSuccess EventResult = "success"
+	// ResultFailure holds resultfailure value.
 	ResultFailure EventResult = "failure"
+	// ResultPartial holds resultpartial value.
 	ResultPartial EventResult = "partial"
-	ResultDenied  EventResult = "denied"
-	ResultError   EventResult = "error"
+	// ResultDenied holds resultdenied value.
+	ResultDenied EventResult = "denied"
+	// ResultError holds resulterror value.
+	ResultError EventResult = "error"
 )
 
-// Actor represents who performed the action
+// Actor represents who performed the action.
 type Actor struct {
 	Type        ActorType         `json:"type"`
 	ID          string            `json:"id"`
@@ -177,24 +220,28 @@ type Actor struct {
 	Attributes  map[string]string `json:"attributes,omitempty"`
 }
 
-// ActorType represents the type of actor
+// ActorType represents the type of actor.
 type ActorType string
 
 const (
-	ActorTypeUser    ActorType = "user"
+	// ActorTypeUser holds actortypeuser value.
+	ActorTypeUser ActorType = "user"
+	// ActorTypeService holds actortypeservice value.
 	ActorTypeService ActorType = "service"
-	ActorTypeSystem  ActorType = "system"
+	// ActorTypeSystem holds actortypesystem value.
+	ActorTypeSystem ActorType = "system"
+	// ActorTypeUnknown holds actortypeunknown value.
 	ActorTypeUnknown ActorType = "unknown"
 )
 
-// Action represents what action was performed
+// Action represents what action was performed.
 type Action struct {
 	Type       string                 `json:"type"`
 	Method     string                 `json:"method"`
 	Parameters map[string]interface{} `json:"parameters,omitempty"`
 }
 
-// Resource represents what resource was affected
+// Resource represents what resource was affected.
 type Resource struct {
 	Type       string            `json:"type"`
 	ID         string            `json:"id"`
@@ -203,7 +250,7 @@ type Resource struct {
 	Attributes map[string]string `json:"attributes,omitempty"`
 }
 
-// SecurityContext contains security-related context
+// SecurityContext contains security-related context.
 type SecurityContext struct {
 	ThreatLevel      string          `json:"threat_level,omitempty"`
 	RiskScore        float64         `json:"risk_score,omitempty"`
@@ -212,7 +259,7 @@ type SecurityContext struct {
 	Indicators       []string        `json:"indicators,omitempty"`
 }
 
-// AuditLogger manages security audit logging
+// AuditLogger manages security audit logging.
 type AuditLogger struct {
 	config       *AuditConfig
 	logger       *logging.StructuredLogger
@@ -227,25 +274,25 @@ type AuditLogger struct {
 	wg           sync.WaitGroup
 }
 
-// AuditWriter interface for writing audit events
+// AuditWriter interface for writing audit events.
 type AuditWriter interface {
 	Write(ctx context.Context, events []*AuditEvent) error
 	Close() error
 }
 
-// EventEncryptor interface for encrypting audit events
+// EventEncryptor interface for encrypting audit events.
 type EventEncryptor interface {
 	Encrypt(event *AuditEvent) (*AuditEvent, error)
 	Decrypt(event *AuditEvent) (*AuditEvent, error)
 }
 
-// EventSigner interface for signing audit events
+// EventSigner interface for signing audit events.
 type EventSigner interface {
 	Sign(event *AuditEvent) (string, error)
 	Verify(event *AuditEvent, signature string) (bool, error)
 }
 
-// AuditStats tracks audit logging statistics
+// AuditStats tracks audit logging statistics.
 type AuditStats struct {
 	mu               sync.RWMutex
 	EventsLogged     int64
@@ -256,7 +303,7 @@ type AuditStats struct {
 	LastEventTime    time.Time
 }
 
-// AlertManager manages security alerts
+// AlertManager manages security alerts.
 type AlertManager struct {
 	config     *AlertThresholds
 	logger     *logging.StructuredLogger
@@ -264,7 +311,7 @@ type AlertManager struct {
 	mu         sync.RWMutex
 }
 
-// ViolationTracker tracks security violations
+// ViolationTracker tracks security violations.
 type ViolationTracker struct {
 	Count     int
 	FirstSeen time.Time
@@ -272,7 +319,7 @@ type ViolationTracker struct {
 	Alerted   bool
 }
 
-// NewAuditLogger creates a new audit logger
+// NewAuditLogger creates a new audit logger.
 func NewAuditLogger(config *AuditConfig, logger *logging.StructuredLogger) (*AuditLogger, error) {
 	if config == nil {
 		return nil, errors.New("audit config is required")
@@ -289,33 +336,33 @@ func NewAuditLogger(config *AuditConfig, logger *logging.StructuredLogger) (*Aud
 		},
 	}
 
-	// Initialize destinations
+	// Initialize destinations.
 	if err := al.initializeDestinations(); err != nil {
 		return nil, fmt.Errorf("failed to initialize audit destinations: %w", err)
 	}
 
-	// Initialize encryption if enabled
+	// Initialize encryption if enabled.
 	if config.EncryptEvents {
 		al.encryptor = NewEventEncryptor()
 	}
 
-	// Initialize signing if enabled
+	// Initialize signing if enabled.
 	if config.SignEvents {
 		al.signer = NewEventSigner()
 	}
 
-	// Initialize alert manager if enabled
+	// Initialize alert manager if enabled.
 	if config.AlertOnViolation && config.AlertThresholds != nil {
 		al.alertManager = NewAlertManager(config.AlertThresholds, logger)
 	}
 
-	// Start background workers
+	// Start background workers.
 	al.start()
 
 	return al, nil
 }
 
-// initializeDestinations initializes audit destinations
+// initializeDestinations initializes audit destinations.
 func (al *AuditLogger) initializeDestinations() error {
 	for _, dest := range al.config.Destinations {
 		writer, err := al.createWriter(dest)
@@ -327,7 +374,7 @@ func (al *AuditLogger) initializeDestinations() error {
 	return nil
 }
 
-// createWriter creates an audit writer based on destination type
+// createWriter creates an audit writer based on destination type.
 func (al *AuditLogger) createWriter(dest AuditDestination) (AuditWriter, error) {
 	switch dest.Type {
 	case DestinationFile:
@@ -341,47 +388,47 @@ func (al *AuditLogger) createWriter(dest AuditDestination) (AuditWriter, error) 
 	}
 }
 
-// start starts background workers
+// start starts background workers.
 func (al *AuditLogger) start() {
-	// Start event processor
+	// Start event processor.
 	al.wg.Add(1)
 	go al.processEvents()
 
-	// Start periodic flush
+	// Start periodic flush.
 	al.wg.Add(1)
 	go al.periodicFlush()
 }
 
-// LogEvent logs an audit event
+// LogEvent logs an audit event.
 func (al *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) {
 	if !al.config.Enabled {
 		return
 	}
 
-	// Check audit level
+	// Check audit level.
 	if !al.shouldLog(event) {
 		return
 	}
 
-	// Generate event ID if not set
+	// Generate event ID if not set.
 	if event.ID == "" {
 		event.ID = uuid.New().String()
 	}
 
-	// Set timestamp if not set
+	// Set timestamp if not set.
 	if event.Timestamp.IsZero() {
 		event.Timestamp = time.Now().UTC()
 	}
 
-	// Extract context information
+	// Extract context information.
 	al.enrichEventFromContext(ctx, event)
 
-	// Mask sensitive data if configured
+	// Mask sensitive data if configured.
 	if al.config.MaskSensitiveData {
 		al.maskSensitiveData(event)
 	}
 
-	// Sign event if configured
+	// Sign event if configured.
 	if al.config.SignEvents && al.signer != nil {
 		signature, err := al.signer.Sign(event)
 		if err != nil {
@@ -391,7 +438,7 @@ func (al *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) {
 		}
 	}
 
-	// Encrypt event if configured
+	// Encrypt event if configured.
 	if al.config.EncryptEvents && al.encryptor != nil {
 		encryptedEvent, err := al.encryptor.Encrypt(event)
 		if err != nil {
@@ -401,18 +448,18 @@ func (al *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) {
 		}
 	}
 
-	// Check for security violations
+	// Check for security violations.
 	if al.alertManager != nil {
 		al.alertManager.CheckEvent(event)
 	}
 
-	// Send to buffer
+	// Send to buffer.
 	select {
 	case al.buffer <- event:
-		// Update statistics
+		// Update statistics.
 		al.updateStats(event)
 	default:
-		// Buffer full, drop event
+		// Buffer full, drop event.
 		al.stats.mu.Lock()
 		al.stats.EventsDropped++
 		al.stats.mu.Unlock()
@@ -422,7 +469,7 @@ func (al *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) {
 	}
 }
 
-// LogAuthenticationEvent logs an authentication event
+// LogAuthenticationEvent logs an authentication event.
 func (al *AuditLogger) LogAuthenticationEvent(ctx context.Context, username string, success bool, reason string) {
 	result := ResultSuccess
 	severity := SeverityInfo
@@ -449,7 +496,7 @@ func (al *AuditLogger) LogAuthenticationEvent(ctx context.Context, username stri
 	al.LogEvent(ctx, event)
 }
 
-// LogAuthorizationEvent logs an authorization event
+// LogAuthorizationEvent logs an authorization event.
 func (al *AuditLogger) LogAuthorizationEvent(ctx context.Context, user *User, resource, action string, allowed bool) {
 	result := ResultSuccess
 	severity := SeverityInfo
@@ -481,7 +528,7 @@ func (al *AuditLogger) LogAuthorizationEvent(ctx context.Context, user *User, re
 	al.LogEvent(ctx, event)
 }
 
-// LogPolicyEvent logs a policy-related event
+// LogPolicyEvent logs a policy-related event.
 func (al *AuditLogger) LogPolicyEvent(ctx context.Context, eventType EventType, policyID string, actor *Actor, result EventResult) {
 	event := &AuditEvent{
 		EventType: eventType,
@@ -500,7 +547,7 @@ func (al *AuditLogger) LogPolicyEvent(ctx context.Context, eventType EventType, 
 	al.LogEvent(ctx, event)
 }
 
-// LogSecurityViolation logs a security violation
+// LogSecurityViolation logs a security violation.
 func (al *AuditLogger) LogSecurityViolation(ctx context.Context, violationType string, details map[string]interface{}) {
 	event := &AuditEvent{
 		EventType: EventTypeSecurityViolation,
@@ -519,7 +566,7 @@ func (al *AuditLogger) LogSecurityViolation(ctx context.Context, violationType s
 	al.LogEvent(ctx, event)
 }
 
-// processEvents processes buffered events
+// processEvents processes buffered events.
 func (al *AuditLogger) processEvents() {
 	defer al.wg.Done()
 
@@ -543,11 +590,11 @@ func (al *AuditLogger) processEvents() {
 			}
 
 		case <-al.shutdown:
-			// Flush remaining events
+			// Flush remaining events.
 			if len(batch) > 0 {
 				al.writeBatch(batch)
 			}
-			// Drain buffer
+			// Drain buffer.
 			for len(al.buffer) > 0 {
 				batch = append(batch, <-al.buffer)
 				if len(batch) >= 100 {
@@ -563,7 +610,7 @@ func (al *AuditLogger) processEvents() {
 	}
 }
 
-// writeBatch writes a batch of events to destinations
+// writeBatch writes a batch of events to destinations.
 func (al *AuditLogger) writeBatch(events []*AuditEvent) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -580,7 +627,7 @@ func (al *AuditLogger) writeBatch(events []*AuditEvent) {
 	}
 }
 
-// periodicFlush performs periodic flush of events
+// periodicFlush performs periodic flush of events.
 func (al *AuditLogger) periodicFlush() {
 	defer al.wg.Done()
 
@@ -590,14 +637,14 @@ func (al *AuditLogger) periodicFlush() {
 	for {
 		select {
 		case <-ticker.C:
-			// Force flush logic if needed
+			// Force flush logic if needed.
 		case <-al.shutdown:
 			return
 		}
 	}
 }
 
-// shouldLog determines if an event should be logged based on audit level
+// shouldLog determines if an event should be logged based on audit level.
 func (al *AuditLogger) shouldLog(event *AuditEvent) bool {
 	switch al.config.Level {
 	case AuditLevelNone:
@@ -615,24 +662,24 @@ func (al *AuditLogger) shouldLog(event *AuditEvent) bool {
 	}
 }
 
-// enrichEventFromContext enriches event with context information
+// enrichEventFromContext enriches event with context information.
 func (al *AuditLogger) enrichEventFromContext(ctx context.Context, event *AuditEvent) {
-	// Extract request ID from context
+	// Extract request ID from context.
 	if reqID := ctx.Value("request_id"); reqID != nil {
 		event.RequestID = fmt.Sprintf("%v", reqID)
 	}
 
-	// Extract session ID from context
+	// Extract session ID from context.
 	if sessionID := ctx.Value("session_id"); sessionID != nil {
 		event.SessionID = fmt.Sprintf("%v", sessionID)
 	}
 
-	// Extract correlation ID from context
+	// Extract correlation ID from context.
 	if corrID := ctx.Value("correlation_id"); corrID != nil {
 		event.CorrelationID = fmt.Sprintf("%v", corrID)
 	}
 
-	// Add runtime information
+	// Add runtime information.
 	if event.Metadata == nil {
 		event.Metadata = make(map[string]interface{})
 	}
@@ -640,14 +687,14 @@ func (al *AuditLogger) enrichEventFromContext(ctx context.Context, event *AuditE
 	event.Metadata["num_goroutines"] = runtime.NumGoroutine()
 }
 
-// maskSensitiveData masks sensitive data in the event
+// maskSensitiveData masks sensitive data in the event.
 func (al *AuditLogger) maskSensitiveData(event *AuditEvent) {
-	// Mask sensitive fields
+	// Mask sensitive fields.
 	for _, field := range al.config.SensitiveFields {
 		al.maskField(event, field)
 	}
 
-	// Mask common sensitive patterns
+	// Mask common sensitive patterns.
 	if event.RequestBody != nil {
 		masked := al.maskJSON(event.RequestBody)
 		event.RequestBody = masked
@@ -659,18 +706,18 @@ func (al *AuditLogger) maskSensitiveData(event *AuditEvent) {
 	}
 }
 
-// maskField masks a specific field in the event
+// maskField masks a specific field in the event.
 func (al *AuditLogger) maskField(event *AuditEvent, field string) {
-	// Implementation would mask specific fields
+	// Implementation would mask specific fields.
 }
 
-// maskJSON masks sensitive data in JSON
+// maskJSON masks sensitive data in JSON.
 func (al *AuditLogger) maskJSON(data json.RawMessage) json.RawMessage {
-	// Implementation would mask sensitive JSON fields
+	// Implementation would mask sensitive JSON fields.
 	return data
 }
 
-// updateStats updates audit statistics
+// updateStats updates audit statistics.
 func (al *AuditLogger) updateStats(event *AuditEvent) {
 	al.stats.mu.Lock()
 	defer al.stats.mu.Unlock()
@@ -681,12 +728,12 @@ func (al *AuditLogger) updateStats(event *AuditEvent) {
 	al.stats.LastEventTime = event.Timestamp
 }
 
-// Close gracefully shuts down the audit logger
+// Close gracefully shuts down the audit logger.
 func (al *AuditLogger) Close() error {
 	close(al.shutdown)
 	al.wg.Wait()
 
-	// Close all destinations
+	// Close all destinations.
 	for _, dest := range al.destinations {
 		if err := dest.Close(); err != nil {
 			al.logger.Error("failed to close audit destination", "error", err)
@@ -696,12 +743,12 @@ func (al *AuditLogger) Close() error {
 	return nil
 }
 
-// GetStats returns audit statistics
+// GetStats returns audit statistics.
 func (al *AuditLogger) GetStats() *AuditStats {
 	al.stats.mu.RLock()
 	defer al.stats.mu.RUnlock()
 
-	// Return a copy of stats
+	// Return a copy of stats.
 	return &AuditStats{
 		EventsLogged:     al.stats.EventsLogged,
 		EventsDropped:    al.stats.EventsDropped,
@@ -712,8 +759,9 @@ func (al *AuditLogger) GetStats() *AuditStats {
 	}
 }
 
-// Implementation stubs for interfaces and helpers
+// Implementation stubs for interfaces and helpers.
 
+// NewAlertManager performs newalertmanager operation.
 func NewAlertManager(thresholds *AlertThresholds, logger *logging.StructuredLogger) *AlertManager {
 	return &AlertManager{
 		config:     thresholds,
@@ -722,50 +770,58 @@ func NewAlertManager(thresholds *AlertThresholds, logger *logging.StructuredLogg
 	}
 }
 
+// CheckEvent performs checkevent operation.
 func (am *AlertManager) CheckEvent(event *AuditEvent) {
-	// Check for violations and raise alerts
+	// Check for violations and raise alerts.
 }
 
+// NewEventEncryptor performs neweventencryptor operation.
 func NewEventEncryptor() EventEncryptor {
-	// Return default encryptor implementation
+	// Return default encryptor implementation.
 	return &defaultEventEncryptor{}
 }
 
 type defaultEventEncryptor struct{}
 
+// Encrypt performs encrypt operation.
 func (e *defaultEventEncryptor) Encrypt(event *AuditEvent) (*AuditEvent, error) {
-	// Encryption implementation
+	// Encryption implementation.
 	return event, nil
 }
 
+// Decrypt performs decrypt operation.
 func (e *defaultEventEncryptor) Decrypt(event *AuditEvent) (*AuditEvent, error) {
-	// Decryption implementation
+	// Decryption implementation.
 	return event, nil
 }
 
+// NewEventSigner performs neweventsigner operation.
 func NewEventSigner() EventSigner {
-	// Return default signer implementation
+	// Return default signer implementation.
 	return &defaultEventSigner{}
 }
 
 type defaultEventSigner struct{}
 
+// Sign performs sign operation.
 func (s *defaultEventSigner) Sign(event *AuditEvent) (string, error) {
-	// Create signature
+	// Create signature.
 	data, _ := json.Marshal(event)
 	hash := sha256.Sum256(data)
 	return hex.EncodeToString(hash[:]), nil
 }
 
+// Verify performs verify operation.
 func (s *defaultEventSigner) Verify(event *AuditEvent, signature string) (bool, error) {
-	// Verify signature
+	// Verify signature.
 	return true, nil
 }
 
-// Audit writer implementations
+// Audit writer implementations.
 
+// NewFileWriter performs newfilewriter operation.
 func NewFileWriter(dest AuditDestination) (AuditWriter, error) {
-	// File writer implementation
+	// File writer implementation.
 	return &fileWriter{dest: dest}, nil
 }
 
@@ -773,17 +829,20 @@ type fileWriter struct {
 	dest AuditDestination
 }
 
+// Write performs write operation.
 func (fw *fileWriter) Write(ctx context.Context, events []*AuditEvent) error {
-	// Write to file
+	// Write to file.
 	return nil
 }
 
+// Close performs close operation.
 func (fw *fileWriter) Close() error {
 	return nil
 }
 
+// NewHTTPWriter performs newhttpwriter operation.
 func NewHTTPWriter(dest AuditDestination) (AuditWriter, error) {
-	// HTTP writer implementation
+	// HTTP writer implementation.
 	return &httpWriter{dest: dest}, nil
 }
 
@@ -791,17 +850,20 @@ type httpWriter struct {
 	dest AuditDestination
 }
 
+// Write performs write operation.
 func (hw *httpWriter) Write(ctx context.Context, events []*AuditEvent) error {
-	// Send via HTTP
+	// Send via HTTP.
 	return nil
 }
 
+// Close performs close operation.
 func (hw *httpWriter) Close() error {
 	return nil
 }
 
+// NewSyslogWriter performs newsyslogwriter operation.
 func NewSyslogWriter(dest AuditDestination) (AuditWriter, error) {
-	// Syslog writer implementation
+	// Syslog writer implementation.
 	return &syslogWriter{dest: dest}, nil
 }
 
@@ -809,11 +871,13 @@ type syslogWriter struct {
 	dest AuditDestination
 }
 
+// Write performs write operation.
 func (sw *syslogWriter) Write(ctx context.Context, events []*AuditEvent) error {
-	// Write to syslog
+	// Write to syslog.
 	return nil
 }
 
+// Close performs close operation.
 func (sw *syslogWriter) Close() error {
 	return nil
 }

@@ -1,4 +1,4 @@
-// Package ingest provides HTTP handlers and validation mechanisms
+// Package ingest provides HTTP handlers and validation mechanisms.
 // for processing network intent commands from various input sources.
 package ingest
 
@@ -15,17 +15,19 @@ import (
 	"time"
 )
 
-// ValidatorInterface defines the contract for validation
+// ValidatorInterface defines the contract for validation.
 type ValidatorInterface interface {
 	ValidateBytes([]byte) (*Intent, error)
 }
 
+// Handler represents a handler.
 type Handler struct {
 	v        ValidatorInterface
 	outDir   string
 	provider IntentProvider
 }
 
+// NewHandler performs newhandler operation.
 func NewHandler(v ValidatorInterface, outDir string, provider IntentProvider) *Handler {
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		log.Printf("Warning: Failed to create output directory %s: %v", outDir, err)
@@ -35,11 +37,11 @@ func NewHandler(v ValidatorInterface, outDir string, provider IntentProvider) *H
 
 var simple = regexp.MustCompile(`(?i)scale\s+([a-z0-9\-]+)\s+to\s+(\d+)\s+in\s+ns\s+([a-z0-9\-]+)`)
 
-// HandleIntent supports two input types:
-// 1) JSON (Content-Type: application/json) - direct validation
-// 2) Plain text (e.g., "scale nf-sim to 5 in ns ran-a") - parse → convert to JSON → validate
+// HandleIntent supports two input types:.
+// 1) JSON (Content-Type: application/json) - direct validation.
+// 2) Plain text (e.g., "scale nf-sim to 5 in ns ran-a") - parse → convert to JSON → validate.
 func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
-	// SECURITY: Set security headers to prevent various attacks
+	// SECURITY: Set security headers to prevent various attacks.
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("X-Frame-Options", "DENY")
 	w.Header().Set("X-XSS-Protection", "1; mode=block")
@@ -50,21 +52,21 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// SECURITY: Validate Content-Type header to prevent MIME confusion attacks
+	// SECURITY: Validate Content-Type header to prevent MIME confusion attacks.
 	ct := r.Header.Get("Content-Type")
 	if ct != "" && !strings.HasPrefix(ct, "application/json") && !strings.HasPrefix(ct, "text/json") && !strings.HasPrefix(ct, "text/plain") {
 		http.Error(w, "Unsupported content type. Only application/json and text/plain are allowed.", http.StatusUnsupportedMediaType)
 		return
 	}
 
-	// SECURITY: Limit request body size to prevent DoS attacks
+	// SECURITY: Limit request body size to prevent DoS attacks.
 	const maxRequestSize = 1 << 20 // 1MB
 	if r.ContentLength > maxRequestSize {
 		http.Error(w, "Request body too large", http.StatusRequestEntityTooLarge)
 		return
 	}
 
-	// Use LimitReader as an additional safeguard
+	// Use LimitReader as an additional safeguard.
 	limitedReader := io.LimitReader(r.Body, maxRequestSize)
 	body, err := io.ReadAll(limitedReader)
 	if err != nil {
@@ -77,12 +79,12 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(ct, "application/json") || strings.HasPrefix(ct, "text/json") {
 		payload = body
 	} else {
-		// Try provider first (LLM or other custom parser)
+		// Try provider first (LLM or other custom parser).
 		if h.provider != nil {
 			ctx := r.Context()
 			intent, err := h.provider.ParseIntent(ctx, string(body))
 			if err == nil {
-				// Convert intent map to JSON
+				// Convert intent map to JSON.
 				jsonData, err := json.Marshal(intent)
 				if err == nil {
 					payload = jsonData
@@ -90,7 +92,7 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// Fallback to regex parsing if provider failed or not available
+		// Fallback to regex parsing if provider failed or not available.
 		if payload == nil {
 			m := simple.FindStringSubmatch(string(body))
 			if len(m) != 4 {
@@ -108,7 +110,7 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	intent, err := h.v.ValidateBytes(payload)
 	if err != nil {
 		errMsg := fmt.Sprintf("Intent validation failed: %s", err.Error())
-		// Add hint for common errors
+		// Add hint for common errors.
 		errStr := err.Error()
 		switch {
 		case strings.Contains(errStr, "intent_type"):
@@ -125,12 +127,12 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	ts := time.Now().UTC().Format("20060102T150405Z")
 	fileName := fmt.Sprintf("intent-%s.json", ts)
 	outFile := filepath.Join(h.outDir, fileName)
-	if err := os.WriteFile(outFile, payload, 0o644); err != nil {
+	if err := os.WriteFile(outFile, payload, 0o640); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to save intent to handoff directory: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 
-	// Log with correlation ID if present
+	// Log with correlation ID if present.
 	logMsg := fmt.Sprintf("Intent accepted and saved to %s", outFile)
 	if intent.CorrelationID != "" {
 		logMsg = fmt.Sprintf("[correlation_id: %s] %s", intent.CorrelationID, logMsg)

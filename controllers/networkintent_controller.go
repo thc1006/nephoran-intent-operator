@@ -37,7 +37,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// NetworkIntentReconciler reconciles a NetworkIntent object
+// NetworkIntentReconciler reconciles a NetworkIntent object.
 type NetworkIntentReconciler struct {
 	client.Client
 	Scheme          *runtime.Scheme
@@ -46,12 +46,12 @@ type NetworkIntentReconciler struct {
 	LLMProcessorURL string
 }
 
-// LLMRequest represents the request to the LLM processor
+// LLMRequest represents the request to the LLM processor.
 type LLMRequest struct {
 	Intent string `json:"intent"`
 }
 
-// LLMResponse represents the response from the LLM processor
+// LLMResponse represents the response from the LLM processor.
 type LLMResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message,omitempty"`
@@ -62,12 +62,12 @@ type LLMResponse struct {
 //+kubebuilder:rbac:groups=nephoran.io,resources=networkintents/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=nephoran.io,resources=networkintents/finalizers,verbs=update
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// Reconcile is part of the main kubernetes reconciliation loop which aims to.
 // move the current state of the cluster closer to the desired state.
 func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	// Fetch the NetworkIntent instance
+	// Fetch the NetworkIntent instance.
 	networkIntent := &nephoranv1.NetworkIntent{}
 	err := r.Get(ctx, req.NamespacedName, networkIntent)
 	if err != nil {
@@ -82,27 +82,27 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
-	// Check if the object is being deleted
+	// Check if the object is being deleted.
 	if !networkIntent.ObjectMeta.DeletionTimestamp.IsZero() {
 		log.Info("NetworkIntent is being deleted", "name", networkIntent.Name)
 		return ctrl.Result{}, nil
 	}
 
-	// Validate the intent field
+	// Validate the intent field.
 	if networkIntent.Spec.Intent == "" {
 		return r.updateStatus(ctx, networkIntent, "Error", "Intent field cannot be empty", networkIntent.Generation)
 	}
 
-	// Initial validation passed
+	// Initial validation passed.
 	if _, err := r.updateStatus(ctx, networkIntent, "Validated", "Intent validated successfully", networkIntent.Generation); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	// If LLM intent processing is enabled, send to LLM processor
+	// If LLM intent processing is enabled, send to LLM processor.
 	if r.EnableLLMIntent {
 		log.Info("Processing intent with LLM", "intent", networkIntent.Spec.Intent)
 
-		// Prepare the request
+		// Prepare the request.
 		llmReq := LLMRequest{
 			Intent: networkIntent.Spec.Intent,
 		}
@@ -113,18 +113,18 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			return r.updateStatus(ctx, networkIntent, "Error", fmt.Sprintf("Failed to prepare LLM request: %v", err), networkIntent.Generation)
 		}
 
-		// Create HTTP client with timeout
+		// Create HTTP client with timeout.
 		client := &http.Client{
 			Timeout: 15 * time.Second,
 		}
 
-		// Determine LLM processor URL
+		// Determine LLM processor URL.
 		llmURL := r.LLMProcessorURL
 		if llmURL == "" {
 			llmURL = "http://llm-processor:8080/process"
 		}
 
-		// Create the request
+		// Create the request.
 		httpReq, err := http.NewRequestWithContext(ctx, "POST", llmURL, bytes.NewBuffer(jsonData))
 		if err != nil {
 			log.Error(err, "Failed to create HTTP request")
@@ -132,7 +132,7 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 		httpReq.Header.Set("Content-Type", "application/json")
 
-		// Send the request
+		// Send the request.
 		resp, err := client.Do(httpReq)
 		if err != nil {
 			log.Error(err, "Failed to send request to LLM processor")
@@ -144,14 +144,14 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			}
 		}()
 
-		// Parse the response
+		// Parse the response.
 		var llmResp LLMResponse
 		if err := json.NewDecoder(resp.Body).Decode(&llmResp); err != nil {
 			log.Error(err, "Failed to decode LLM response")
 			return r.updateStatus(ctx, networkIntent, "Error", fmt.Sprintf("Failed to parse LLM response: %v", err), networkIntent.Generation)
 		}
 
-		// Update status based on LLM response
+		// Update status based on LLM response.
 		if llmResp.Success {
 			log.Info("LLM processing successful", "message", llmResp.Message)
 			return r.updateStatus(ctx, networkIntent, "Processed", "Intent processed successfully by LLM", networkIntent.Generation)
@@ -166,17 +166,17 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	return ctrl.Result{}, nil
 }
 
-// updateStatus updates the status of the NetworkIntent
+// updateStatus updates the status of the NetworkIntent.
 func (r *NetworkIntentReconciler) updateStatus(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase, message string, generation int64) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	// Update the status fields
+	// Update the status fields.
 	networkIntent.Status.Phase = nephoranv1.NetworkIntentPhase(phase)
 	networkIntent.Status.LastMessage = message
 	networkIntent.Status.ObservedGeneration = generation
 	networkIntent.Status.LastUpdateTime = metav1.Now()
 
-	// Update the status subresource
+	// Update the status subresource.
 	if err := r.Status().Update(ctx, networkIntent); err != nil {
 		log.Error(err, "Failed to update NetworkIntent status")
 		return ctrl.Result{}, err
@@ -187,12 +187,12 @@ func (r *NetworkIntentReconciler) updateStatus(ctx context.Context, networkInten
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// Check if LLM intent is enabled via environment variable
+	// Check if LLM intent is enabled via environment variable.
 	if envVal := os.Getenv("ENABLE_LLM_INTENT"); envVal == "true" {
 		r.EnableLLMIntent = true
 	}
 
-	// Get LLM processor URL from environment if set
+	// Get LLM processor URL from environment if set.
 	if url := os.Getenv("LLM_PROCESSOR_URL"); url != "" {
 		r.LLMProcessorURL = url
 	}

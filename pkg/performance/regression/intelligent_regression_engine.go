@@ -15,7 +15,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// IntelligentRegressionEngine provides ML-enhanced regression detection with NWDAF patterns
+// IntelligentRegressionEngine provides ML-enhanced regression detection with NWDAF patterns.
 type IntelligentRegressionEngine struct {
 	config              *IntelligentRegressionConfig
 	prometheusClient    v1.API
@@ -29,7 +29,7 @@ type IntelligentRegressionEngine struct {
 	metricStore         *MetricStore
 	correlationEngine   *CorrelationEngine
 
-	// State management
+	// State management.
 	activeBenchmarks  map[string]*BenchmarkExecution
 	regressionHistory *RegressionHistory
 	alertSuppressions map[string]*AlertSuppression
@@ -37,44 +37,44 @@ type IntelligentRegressionEngine struct {
 	mutex sync.RWMutex
 }
 
-// IntelligentRegressionConfig configures the intelligent regression detection
+// IntelligentRegressionConfig configures the intelligent regression detection.
 type IntelligentRegressionConfig struct {
-	// Core detection parameters
+	// Core detection parameters.
 	DetectionInterval      time.Duration `json:"detectionInterval"`
 	BaselineUpdateInterval time.Duration `json:"baselineUpdateInterval"`
 	MinDataPoints          int           `json:"minDataPoints"`
 	ConfidenceThreshold    float64       `json:"confidenceThreshold"`
 
-	// ML parameters
+	// ML parameters.
 	AnomalyDetectionEnabled     bool `json:"anomalyDetectionEnabled"`
 	ChangePointDetectionEnabled bool `json:"changePointDetectionEnabled"`
 	SeasonalityDetectionEnabled bool `json:"seasonalityDetectionEnabled"`
 	ForecastingEnabled          bool `json:"forecastingEnabled"`
 	LearningEnabled             bool `json:"learningEnabled"`
 
-	// NWDAF integration
+	// NWDAF integration.
 	NWDAFPatternsEnabled      bool `json:"nwdafPatternsEnabled"`
 	TelecomKPIAnalysisEnabled bool `json:"telecomKPIAnalysisEnabled"`
 	NetworkSliceAwareAnalysis bool `json:"networkSliceAwareAnalysis"`
 
-	// Alert configuration
+	// Alert configuration.
 	AlertLevels            []string      `json:"alertLevels"`
 	AlertCooldownPeriod    time.Duration `json:"alertCooldownPeriod"`
 	AlertCorrelationWindow time.Duration `json:"alertCorrelationWindow"`
 	MaxConcurrentAlerts    int           `json:"maxConcurrentAlerts"`
 
-	// Performance targets (aligned with Nephoran claims)
+	// Performance targets (aligned with Nephoran claims).
 	PerformanceTargets   *PerformanceTargets   `json:"performanceTargets"`
 	RegressionThresholds *RegressionThresholds `json:"regressionThresholds"`
 
-	// Integration settings
+	// Integration settings.
 	PrometheusEndpoint     string   `json:"prometheusEndpoint"`
 	GrafanaIntegration     bool     `json:"grafanaIntegration"`
 	WebhookEndpoints       []string `json:"webhookEndpoints"`
 	ExternalSystemsEnabled bool     `json:"externalSystemsEnabled"`
 }
 
-// PerformanceTargets defines expected performance levels
+// PerformanceTargets defines expected performance levels.
 type PerformanceTargets struct {
 	LatencyP95Ms           float64 `json:"latencyP95Ms"`           // 2000ms target
 	LatencyP99Ms           float64 `json:"latencyP99Ms"`           // 5000ms target
@@ -86,7 +86,7 @@ type PerformanceTargets struct {
 	ConcurrentIntents      int     `json:"concurrentIntents"`      // 200
 }
 
-// RegressionThresholds defines when to trigger regression alerts
+// RegressionThresholds defines when to trigger regression alerts.
 type RegressionThresholds struct {
 	LatencyIncreasePct      float64 `json:"latencyIncreasePct"`      // 15% increase
 	ThroughputDecreasePct   float64 `json:"throughputDecreasePct"`   // 10% decrease
@@ -96,7 +96,7 @@ type RegressionThresholds struct {
 	ResourceIncreaseAbsPct  float64 `json:"resourceIncreaseAbsPct"`  // 10% absolute increase
 }
 
-// BaselineManager handles dynamic baseline management
+// BaselineManager handles dynamic baseline management.
 type BaselineManager struct {
 	currentBaselines     map[string]*DynamicBaseline
 	baselineHistory      []*BaselineSnapshot
@@ -107,7 +107,7 @@ type BaselineManager struct {
 	mutex                sync.RWMutex
 }
 
-// DynamicBaseline represents an adaptive performance baseline
+// DynamicBaseline represents an adaptive performance baseline.
 type DynamicBaseline struct {
 	ID         string    `json:"id"`
 	MetricName string    `json:"metricName"`
@@ -115,30 +115,30 @@ type DynamicBaseline struct {
 	UpdatedAt  time.Time `json:"updatedAt"`
 	ValidUntil time.Time `json:"validUntil"`
 
-	// Statistical properties
+	// Statistical properties.
 	Mean              float64            `json:"mean"`
 	StandardDeviation float64            `json:"standardDeviation"`
 	Percentiles       map[string]float64 `json:"percentiles"`
 	ConfidenceBounds  *ConfidenceBounds  `json:"confidenceBounds"`
 
-	// Adaptive features
+	// Adaptive features.
 	SeasonalPattern *SeasonalPattern `json:"seasonalPattern"`
 	TrendComponent  *TrendComponent  `json:"trendComponent"`
 	CyclicalPattern *CyclicalPattern `json:"cyclicalPattern"`
 
-	// Quality metrics
+	// Quality metrics.
 	DataQuality        float64 `json:"dataQuality"`
 	Stability          float64 `json:"stability"`
 	Representativeness float64 `json:"representativeness"`
 	SampleSize         int     `json:"sampleSize"`
 
-	// Metadata
+	// Metadata.
 	ContextTags     map[string]string `json:"contextTags"`
 	EnvironmentInfo *EnvironmentInfo  `json:"environmentInfo"`
 	SystemLoad      *SystemLoadInfo   `json:"systemLoad"`
 }
 
-// ConfidenceBounds represents statistical confidence intervals
+// ConfidenceBounds represents statistical confidence intervals.
 type ConfidenceBounds struct {
 	Lower95 float64 `json:"lower95"`
 	Upper95 float64 `json:"upper95"`
@@ -146,7 +146,7 @@ type ConfidenceBounds struct {
 	Upper99 float64 `json:"upper99"`
 }
 
-// AnomalyDetector implements multiple anomaly detection algorithms
+// AnomalyDetector implements multiple anomaly detection algorithms.
 type AnomalyDetector struct {
 	algorithms         []AnomalyAlgorithm
 	ensembleWeights    map[string]float64
@@ -155,7 +155,7 @@ type AnomalyDetector struct {
 	config             *AnomalyDetectionConfig
 }
 
-// AnomalyAlgorithm interface for different anomaly detection methods
+// AnomalyAlgorithm interface for different anomaly detection methods.
 type AnomalyAlgorithm interface {
 	DetectAnomalies(data []float64, timestamps []time.Time) ([]*AnomalyEvent, error)
 	GetName() string
@@ -163,27 +163,27 @@ type AnomalyAlgorithm interface {
 	UpdateParameters(params map[string]interface{}) error
 }
 
-// StatisticalAnomalyDetector uses statistical methods (IQR, Z-score, etc.)
+// StatisticalAnomalyDetector uses statistical methods (IQR, Z-score, etc.).
 type StatisticalAnomalyDetector struct {
 	name       string
 	parameters map[string]interface{}
 }
 
-// IsolationForestDetector implements Isolation Forest algorithm
+// IsolationForestDetector implements Isolation Forest algorithm.
 type IsolationForestDetector struct {
 	name       string
 	parameters map[string]interface{}
 	trees      []*IsolationTree
 }
 
-// LocalOutlierFactorDetector implements LOF algorithm
+// LocalOutlierFactorDetector implements LOF algorithm.
 type LocalOutlierFactorDetector struct {
 	name       string
 	parameters map[string]interface{}
 	neighbors  int
 }
 
-// ChangePointDetector detects structural breaks in time series
+// ChangePointDetector detects structural breaks in time series.
 type ChangePointDetector struct {
 	algorithms        []ChangePointAlgorithm
 	sensitivityLevel  float64
@@ -192,19 +192,19 @@ type ChangePointDetector struct {
 	config            *ChangePointConfig
 }
 
-// ChangePointAlgorithm interface for change point detection methods
+// ChangePointAlgorithm interface for change point detection methods.
 type ChangePointAlgorithm interface {
 	DetectChangePoints(data []float64, timestamps []time.Time) ([]*ChangePoint, error)
 	GetName() string
 }
 
-// BayesianChangePointDetector implements Bayesian change point detection
+// BayesianChangePointDetector implements Bayesian change point detection.
 type BayesianChangePointDetector struct {
 	priorProb  float64
 	hazardRate float64
 }
 
-// ForecastingEngine provides performance prediction capabilities
+// ForecastingEngine provides performance prediction capabilities.
 type ForecastingEngine struct {
 	models          map[string]ForecastModel
 	ensembleWeights map[string]float64
@@ -214,7 +214,7 @@ type ForecastingEngine struct {
 	predictionCache *PredictionCache
 }
 
-// ForecastModel interface for different forecasting methods
+// ForecastModel interface for different forecasting methods.
 type ForecastModel interface {
 	Fit(data *TimeSeriesData) error
 	Predict(horizon time.Duration) (*Forecast, error)
@@ -222,7 +222,7 @@ type ForecastModel interface {
 	GetName() string
 }
 
-// ARIMAModel implements ARIMA forecasting
+// ARIMAModel implements ARIMA forecasting.
 type ARIMAModel struct {
 	name       string
 	p, d, q    int
@@ -231,7 +231,7 @@ type ARIMAModel struct {
 	accuracy   *AccuracyMetrics
 }
 
-// ExponentialSmoothingModel implements exponential smoothing
+// ExponentialSmoothingModel implements exponential smoothing.
 type ExponentialSmoothingModel struct {
 	name     string
 	alpha    float64
@@ -241,7 +241,7 @@ type ExponentialSmoothingModel struct {
 	accuracy *AccuracyMetrics
 }
 
-// Forecast represents prediction results
+// Forecast represents prediction results.
 type Forecast struct {
 	Horizon        time.Duration        `json:"horizon"`
 	Predictions    []ForecastPoint      `json:"predictions"`
@@ -252,7 +252,7 @@ type Forecast struct {
 	CreatedAt      time.Time            `json:"createdAt"`
 }
 
-// ForecastPoint represents a single prediction
+// ForecastPoint represents a single prediction.
 type ForecastPoint struct {
 	Timestamp      time.Time `json:"timestamp"`
 	PredictedValue float64   `json:"predictedValue"`
@@ -260,7 +260,7 @@ type ForecastPoint struct {
 	UpperBound     float64   `json:"upperBound"`
 }
 
-// RiskIndicator identifies potential future performance risks
+// RiskIndicator identifies potential future performance risks.
 type RiskIndicator struct {
 	Type         string    `json:"type"`
 	Severity     string    `json:"severity"`
@@ -270,7 +270,7 @@ type RiskIndicator struct {
 	Mitigation   []string  `json:"mitigation"`
 }
 
-// AlertRule defines conditions for triggering alerts
+// AlertRule defines conditions for triggering alerts.
 type AlertRule struct {
 	ID               string            `json:"id"`
 	Name             string            `json:"name"`
@@ -284,7 +284,7 @@ type AlertRule struct {
 	Enabled          bool              `json:"enabled"`
 }
 
-// AlertCondition defines the condition for triggering an alert
+// AlertCondition defines the condition for triggering an alert.
 type AlertCondition struct {
 	Operator         string        `json:"operator"` // "gt", "lt", "eq", "ne", "increase", "decrease"
 	Threshold        float64       `json:"threshold"`
@@ -292,7 +292,7 @@ type AlertCondition struct {
 	ComparisonWindow time.Duration `json:"comparisonWindow"` // For trend-based conditions
 }
 
-// SuppressionRule defines when to suppress alerts
+// SuppressionRule defines when to suppress alerts.
 type SuppressionRule struct {
 	ID        string            `json:"id"`
 	Name      string            `json:"name"`
@@ -303,7 +303,7 @@ type SuppressionRule struct {
 	CreatedBy string            `json:"createdBy"`
 }
 
-// ContinuousLearningSystem implements self-improving detection algorithms
+// ContinuousLearningSystem implements self-improving detection algorithms.
 type ContinuousLearningSystem struct {
 	config             *LearningConfig
 	feedbackStore      *FeedbackStore
@@ -311,21 +311,21 @@ type ContinuousLearningSystem struct {
 	trainingScheduler  *TrainingScheduler
 	performanceTracker *LearningPerformanceTracker
 
-	// Learning components
+	// Learning components.
 	feedbackProcessor *FeedbackProcessor
 	featureExtractor  *FeatureExtractor
 	modelOptimizer    *ModelOptimizer
 	knowledgeBase     *KnowledgeBase
 }
 
-// FeedbackStore stores human feedback and system outcomes
+// FeedbackStore stores human feedback and system outcomes.
 type FeedbackStore struct {
 	feedbackEntries []*FeedbackEntry
 	outcomes        []*AlertOutcome
 	annotations     []*HumanAnnotation
 }
 
-// FeedbackEntry represents feedback on alert quality
+// FeedbackEntry represents feedback on alert quality.
 type FeedbackEntry struct {
 	AlertID      string    `json:"alertId"`
 	Timestamp    time.Time `json:"timestamp"`
@@ -336,7 +336,7 @@ type FeedbackEntry struct {
 	Resolution   string    `json:"resolution"`
 }
 
-// NetworkSliceAnalyzer provides slice-aware performance analysis
+// NetworkSliceAnalyzer provides slice-aware performance analysis.
 type NetworkSliceAnalyzer struct {
 	sliceProfiles      map[string]*SliceProfile
 	performanceKPIs    map[string]*SliceKPIs
@@ -344,7 +344,7 @@ type NetworkSliceAnalyzer struct {
 	resourceAllocation map[string]*ResourceAllocation
 }
 
-// SliceProfile defines performance characteristics of a network slice
+// SliceProfile defines performance characteristics of a network slice.
 type SliceProfile struct {
 	SliceID         string                `json:"sliceId"`
 	SliceType       string                `json:"sliceType"` // "eMBB", "URLLC", "mMTC"
@@ -355,7 +355,7 @@ type SliceProfile struct {
 	GeographicScope *GeographicScope      `json:"geographicScope"`
 }
 
-// SlicePerformanceReqs defines performance requirements for a slice
+// SlicePerformanceReqs defines performance requirements for a slice.
 type SlicePerformanceReqs struct {
 	MaxLatencyMs       float64 `json:"maxLatencyMs"`
 	MinThroughputMbps  float64 `json:"minThroughputMbps"`
@@ -365,7 +365,7 @@ type SlicePerformanceReqs struct {
 	SecurityLevel      string  `json:"securityLevel"`
 }
 
-// CorrelationEngine analyzes relationships between metrics and external factors
+// CorrelationEngine analyzes relationships between metrics and external factors.
 type CorrelationEngine struct {
 	metricStore         *MetricStore
 	externalDataSources []ExternalDataSource
@@ -374,7 +374,7 @@ type CorrelationEngine struct {
 	causalityAnalyzer   *CausalityAnalyzer
 }
 
-// CorrelationResult represents correlation analysis results
+// CorrelationResult represents correlation analysis results.
 type CorrelationResult struct {
 	MetricPair         [2]string           `json:"metricPair"`
 	CorrelationCoeff   float64             `json:"correlationCoeff"`
@@ -387,7 +387,7 @@ type CorrelationResult struct {
 	ConfidenceInterval *ConfidenceInterval `json:"confidenceInterval"`
 }
 
-// MetricStore provides efficient storage and retrieval of time series data
+// MetricStore provides efficient storage and retrieval of time series data.
 type MetricStore struct {
 	timeSeriesDB    TimeSeriesDatabase
 	aggregator      *MetricAggregator
@@ -395,19 +395,19 @@ type MetricStore struct {
 	indexer         *MetricIndexer
 	retentionPolicy *RetentionPolicy
 
-	// Caching layer
+	// Caching layer.
 	recentDataCache map[string]*CachedMetricData
 	aggregateCache  map[string]*CachedAggregateData
 	mutex           sync.RWMutex
 }
 
-// Advanced types for complex analysis
+// Advanced types for complex analysis.
 
-// RegressionAnalysisResult represents comprehensive regression analysis
+// RegressionAnalysisResult represents comprehensive regression analysis.
 type RegressionAnalysisResult struct {
 	*RegressionAnalysis // Embed base analysis
 
-	// Enhanced analysis
+	// Enhanced analysis.
 	AnomalyEvents       []*AnomalyEvent      `json:"anomalyEvents"`
 	ChangePoints        []*ChangePoint       `json:"changePoints"`
 	Forecast            *Forecast            `json:"forecast"`
@@ -415,18 +415,18 @@ type RegressionAnalysisResult struct {
 	NWDAFInsights       *NWDAFInsights       `json:"nwdafInsights"`
 	LearningFeedback    *LearningFeedback    `json:"learningFeedback"`
 
-	// Performance impact assessment
+	// Performance impact assessment.
 	ServiceImpact        *ServiceImpactAssessment  `json:"serviceImpact"`
 	UserExperienceImpact *UserExperienceImpact     `json:"userExperienceImpact"`
 	BusinessImpact       *BusinessImpactAssessment `json:"businessImpact"`
 
-	// Remediation suggestions
+	// Remediation suggestions.
 	AutomatedRemediation []AutomatedAction   `json:"automatedRemediation"`
 	ManualRemediation    []ManualAction      `json:"manualRemediation"`
 	PreventiveMeasures   []PreventiveMeasure `json:"preventiveMeasures"`
 }
 
-// ServiceImpactAssessment evaluates impact on service delivery
+// ServiceImpactAssessment evaluates impact on service delivery.
 type ServiceImpactAssessment struct {
 	AffectedServices         []string      `json:"affectedServices"`
 	ServiceDegradationPct    float64       `json:"serviceDegradationPct"`
@@ -436,7 +436,7 @@ type ServiceImpactAssessment struct {
 	BusinessCriticalityScore float64       `json:"businessCriticalityScore"`
 }
 
-// AutomatedAction represents actions that can be taken automatically
+// AutomatedAction represents actions that can be taken automatically.
 type AutomatedAction struct {
 	ActionType       string                 `json:"actionType"`
 	Description      string                 `json:"description"`
@@ -448,13 +448,13 @@ type AutomatedAction struct {
 	ApprovalRequired bool                   `json:"approvalRequired"`
 }
 
-// NewIntelligentRegressionEngine creates a new intelligent regression detection engine
+// NewIntelligentRegressionEngine creates a new intelligent regression detection engine.
 func NewIntelligentRegressionEngine(config *IntelligentRegressionConfig) (*IntelligentRegressionEngine, error) {
 	if config == nil {
 		config = getDefaultIntelligentRegressionConfig()
 	}
 
-	// Initialize Prometheus client
+	// Initialize Prometheus client.
 	promClient, err := api.NewClient(api.Config{
 		Address: config.PrometheusEndpoint,
 	})
@@ -483,22 +483,22 @@ func NewIntelligentRegressionEngine(config *IntelligentRegressionConfig) (*Intel
 	return engine, nil
 }
 
-// Start begins the continuous regression detection process
+// Start begins the continuous regression detection process.
 func (ire *IntelligentRegressionEngine) Start(ctx context.Context) error {
 	klog.Info("Starting Intelligent Regression Detection Engine")
 
-	// Start baseline management
+	// Start baseline management.
 	go ire.runBaselineManagement(ctx)
 
-	// Start continuous monitoring
+	// Start continuous monitoring.
 	go ire.runContinuousMonitoring(ctx)
 
-	// Start learning system
+	// Start learning system.
 	if ire.config.LearningEnabled {
 		go ire.runLearningSystem(ctx)
 	}
 
-	// Start NWDAF analytics
+	// Start NWDAF analytics.
 	if ire.config.NWDAFPatternsEnabled {
 		go ire.runNWDAFAnalytics(ctx)
 	}
@@ -506,7 +506,7 @@ func (ire *IntelligentRegressionEngine) Start(ctx context.Context) error {
 	return nil
 }
 
-// runContinuousMonitoring performs continuous regression detection
+// runContinuousMonitoring performs continuous regression detection.
 func (ire *IntelligentRegressionEngine) runContinuousMonitoring(ctx context.Context) {
 	ticker := time.NewTicker(ire.config.DetectionInterval)
 	defer ticker.Stop()
@@ -524,29 +524,29 @@ func (ire *IntelligentRegressionEngine) runContinuousMonitoring(ctx context.Cont
 	}
 }
 
-// performRegressionAnalysis executes comprehensive regression analysis
+// performRegressionAnalysis executes comprehensive regression analysis.
 func (ire *IntelligentRegressionEngine) performRegressionAnalysis(ctx context.Context) error {
 	klog.V(2).Info("Starting comprehensive regression analysis")
 
-	// 1. Collect current metrics from Prometheus
+	// 1. Collect current metrics from Prometheus.
 	metrics, err := ire.collectCurrentMetrics(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to collect metrics: %w", err)
 	}
 
-	// 2. Detect anomalies in current data
+	// 2. Detect anomalies in current data.
 	anomalies, err := ire.anomalyDetector.DetectAnomaliesInMetrics(metrics)
 	if err != nil {
 		klog.Warningf("Anomaly detection failed: %v", err)
 	}
 
-	// 3. Detect change points
+	// 3. Detect change points.
 	changePoints, err := ire.changePointDetector.DetectChangePointsInMetrics(metrics)
 	if err != nil {
 		klog.Warningf("Change point detection failed: %v", err)
 	}
 
-	// 4. Perform baseline comparison
+	// 4. Perform baseline comparison.
 	regressions := make([]MetricRegression, 0)
 	for metricName, currentValue := range metrics {
 		baseline := ire.baselineManager.GetBaseline(metricName)
@@ -565,7 +565,7 @@ func (ire *IntelligentRegressionEngine) performRegressionAnalysis(ctx context.Co
 		}
 	}
 
-	// 5. Generate forecast if significant regressions detected
+	// 5. Generate forecast if significant regressions detected.
 	var forecast *Forecast
 	if len(regressions) > 0 && ire.config.ForecastingEnabled {
 		forecast, err = ire.forecastingEngine.GenerateForecast(ctx, metrics)
@@ -574,16 +574,16 @@ func (ire *IntelligentRegressionEngine) performRegressionAnalysis(ctx context.Co
 		}
 	}
 
-	// 6. Perform correlation analysis
+	// 6. Perform correlation analysis.
 	correlations, err := ire.correlationEngine.AnalyzeCorrelations(metrics)
 	if err != nil {
 		klog.Warningf("Correlation analysis failed: %v", err)
 	}
 
-	// 7. Generate NWDAF insights if enabled
+	// 7. Generate NWDAF insights if enabled.
 	var nwdafInsights *NWDAFInsights
 	if ire.config.NWDAFPatternsEnabled {
-		// Convert to pointer slice for NWDAF analyzer
+		// Convert to pointer slice for NWDAF analyzer.
 		regressionPtrs := make([]*MetricRegression, len(regressions))
 		for i := range regressions {
 			regressionPtrs[i] = &regressions[i]
@@ -594,7 +594,7 @@ func (ire *IntelligentRegressionEngine) performRegressionAnalysis(ctx context.Co
 		}
 	}
 
-	// 8. Create comprehensive analysis result
+	// 8. Create comprehensive analysis result.
 	analysis := &RegressionAnalysisResult{
 		RegressionAnalysis: &RegressionAnalysis{
 			AnalysisID:        fmt.Sprintf("intelligent-regression-%d", time.Now().Unix()),
@@ -610,22 +610,22 @@ func (ire *IntelligentRegressionEngine) performRegressionAnalysis(ctx context.Co
 		NWDAFInsights:       nwdafInsights,
 	}
 
-	// 9. Assess impact and generate recommendations
+	// 9. Assess impact and generate recommendations.
 	ire.assessImpactAndGenerateRecommendations(analysis)
 
-	// 10. Process through learning system
+	// 10. Process through learning system.
 	if ire.config.LearningEnabled {
 		ire.learningSystem.ProcessAnalysis(analysis)
 	}
 
-	// 11. Generate and send alerts if necessary
+	// 11. Generate and send alerts if necessary.
 	if analysis.HasRegression {
 		if err := ire.alertManager.ProcessRegressionAnalysis(analysis); err != nil {
 			klog.Errorf("Failed to process alerts: %v", err)
 		}
 	}
 
-	// 12. Update regression history
+	// 12. Update regression history.
 	ire.regressionHistory.Add(analysis)
 
 	klog.V(2).Infof("Regression analysis completed: regressions=%d, anomalies=%d, changePoints=%d",
@@ -634,11 +634,11 @@ func (ire *IntelligentRegressionEngine) performRegressionAnalysis(ctx context.Co
 	return nil
 }
 
-// collectCurrentMetrics retrieves current performance metrics from Prometheus
+// collectCurrentMetrics retrieves current performance metrics from Prometheus.
 func (ire *IntelligentRegressionEngine) collectCurrentMetrics(ctx context.Context) (map[string]float64, error) {
 	metrics := make(map[string]float64)
 
-	// Define key metrics to collect based on Nephoran performance targets
+	// Define key metrics to collect based on Nephoran performance targets.
 	metricQueries := map[string]string{
 		"intent_processing_latency_p95": `histogram_quantile(0.95, nephoran_networkintent_duration_seconds)`,
 		"intent_processing_latency_p99": `histogram_quantile(0.99, nephoran_networkintent_duration_seconds)`,
@@ -674,33 +674,33 @@ func (ire *IntelligentRegressionEngine) collectCurrentMetrics(ctx context.Contex
 	return metrics, nil
 }
 
-// analyzeMetricRegression performs detailed regression analysis for a single metric
+// analyzeMetricRegression performs detailed regression analysis for a single metric.
 func (ire *IntelligentRegressionEngine) analyzeMetricRegression(metricName string, currentValue float64, baseline *DynamicBaseline) (*MetricRegression, error) {
-	// Calculate basic regression metrics
+	// Calculate basic regression metrics.
 	absoluteChange := currentValue - baseline.Mean
 	var relativeChange float64
 	if baseline.Mean != 0 {
 		relativeChange = (absoluteChange / baseline.Mean) * 100
 	}
 
-	// Determine if regression is significant using confidence bounds
+	// Determine if regression is significant using confidence bounds.
 	isSignificant := false
 	if currentValue < baseline.ConfidenceBounds.Lower95 || currentValue > baseline.ConfidenceBounds.Upper95 {
 		isSignificant = true
 	}
 
-	// Calculate effect size (Cohen's d)
+	// Calculate effect size (Cohen's d).
 	effectSize := 0.0
 	if baseline.StandardDeviation > 0 {
 		effectSize = absoluteChange / baseline.StandardDeviation
 	}
 
-	// Determine severity based on metric type and thresholds
+	// Determine severity based on metric type and thresholds.
 	severity := ire.determineSeverity(metricName, relativeChange, currentValue)
 
-	// Calculate p-value (simplified - would use proper statistical test in production)
+	// Calculate p-value (simplified - would use proper statistical test in production).
 	zScore := effectSize
-	// For now, use a simplified p-value calculation
+	// For now, use a simplified p-value calculation.
 	pValue := 2 * (1 - normalCDF(math.Abs(zScore)))
 
 	regression := &MetricRegression{
@@ -721,7 +721,7 @@ func (ire *IntelligentRegressionEngine) analyzeMetricRegression(metricName strin
 	return regression, nil
 }
 
-// determineSeverity determines the severity level of a regression
+// determineSeverity determines the severity level of a regression.
 func (ire *IntelligentRegressionEngine) determineSeverity(metricName string, relativeChange, currentValue float64) string {
 	thresholds := ire.config.RegressionThresholds
 	targets := ire.config.PerformanceTargets
@@ -785,13 +785,13 @@ func (ire *IntelligentRegressionEngine) determineSeverity(metricName string, rel
 	return "Low"
 }
 
-// calculateOverallConfidence calculates overall confidence in regression detection
+// calculateOverallConfidence calculates overall confidence in regression detection.
 func (ire *IntelligentRegressionEngine) calculateOverallConfidence(regressions []MetricRegression, anomalies []*AnomalyEvent, changePoints []*ChangePoint) float64 {
 	if len(regressions) == 0 {
 		return 0.0
 	}
 
-	// Base confidence from regression analysis
+	// Base confidence from regression analysis.
 	var totalConfidence float64
 	criticalCount, highCount := 0, 0
 
@@ -812,11 +812,11 @@ func (ire *IntelligentRegressionEngine) calculateOverallConfidence(regressions [
 
 	baseConfidence := totalConfidence / float64(len(regressions))
 
-	// Adjust confidence based on supporting evidence
+	// Adjust confidence based on supporting evidence.
 	anomalyWeight := math.Min(float64(len(anomalies))*0.05, 0.15)
 	changePointWeight := math.Min(float64(len(changePoints))*0.05, 0.15)
 
-	// Boost confidence if multiple critical or high severity regressions
+	// Boost confidence if multiple critical or high severity regressions.
 	severityBoost := 0.0
 	if criticalCount > 0 {
 		severityBoost += 0.1
@@ -827,11 +827,11 @@ func (ire *IntelligentRegressionEngine) calculateOverallConfidence(regressions [
 
 	finalConfidence := baseConfidence + anomalyWeight + changePointWeight + severityBoost
 
-	// Cap at 0.99 to avoid overconfidence
+	// Cap at 0.99 to avoid overconfidence.
 	return math.Min(finalConfidence, 0.99)
 }
 
-// Supporting methods and default configuration
+// Supporting methods and default configuration.
 
 func getDefaultIntelligentRegressionConfig() *IntelligentRegressionConfig {
 	return &IntelligentRegressionConfig{
@@ -877,7 +877,7 @@ func getDefaultIntelligentRegressionConfig() *IntelligentRegressionConfig {
 	}
 }
 
-// Placeholder implementations for complex components
+// Placeholder implementations for complex components.
 func NewBaselineManager() *BaselineManager {
 	return &BaselineManager{
 		currentBaselines:     make(map[string]*DynamicBaseline),
@@ -888,6 +888,7 @@ func NewBaselineManager() *BaselineManager {
 	}
 }
 
+// NewAnomalyDetector performs newanomalydetector operation.
 func NewAnomalyDetector(config *IntelligentRegressionConfig) *AnomalyDetector {
 	return &AnomalyDetector{
 		algorithms:         []AnomalyAlgorithm{},
@@ -896,6 +897,7 @@ func NewAnomalyDetector(config *IntelligentRegressionConfig) *AnomalyDetector {
 	}
 }
 
+// NewChangePointDetector performs newchangepointdetector operation.
 func NewChangePointDetector(config *IntelligentRegressionConfig) *ChangePointDetector {
 	return &ChangePointDetector{
 		algorithms:       []ChangePointAlgorithm{},
@@ -904,6 +906,7 @@ func NewChangePointDetector(config *IntelligentRegressionConfig) *ChangePointDet
 	}
 }
 
+// NewForecastingEngine performs newforecastingengine operation.
 func NewForecastingEngine(config *IntelligentRegressionConfig) *ForecastingEngine {
 	return &ForecastingEngine{
 		models:          make(map[string]ForecastModel),
@@ -913,16 +916,19 @@ func NewForecastingEngine(config *IntelligentRegressionConfig) *ForecastingEngin
 	}
 }
 
+// NewContinuousLearningSystem performs newcontinuouslearningsystem operation.
 func NewContinuousLearningSystem(config *IntelligentRegressionConfig) *ContinuousLearningSystem {
 	return &ContinuousLearningSystem{}
 }
 
+// NewCorrelationEngine performs newcorrelationengine operation.
 func NewCorrelationEngine(config *IntelligentRegressionConfig) *CorrelationEngine {
 	return &CorrelationEngine{
 		correlationCache: make(map[string]*CorrelationResult),
 	}
 }
 
+// NewMetricStore performs newmetricstore operation.
 func NewMetricStore(config *IntelligentRegressionConfig) *MetricStore {
 	return &MetricStore{
 		recentDataCache: make(map[string]*CachedMetricData),
@@ -930,13 +936,14 @@ func NewMetricStore(config *IntelligentRegressionConfig) *MetricStore {
 	}
 }
 
+// NewRegressionHistory performs newregressionhistory operation.
 func NewRegressionHistory() *RegressionHistory {
 	return &RegressionHistory{}
 }
 
 // Additional supporting methods would be implemented here...
 
-// calculateImpact calculates the business impact of a regression
+// calculateImpact calculates the business impact of a regression.
 func (ire *IntelligentRegressionEngine) calculateImpact(metricName string, relativeChange float64) string {
 	severity := ire.determineSeverity(metricName, relativeChange, 0)
 
@@ -952,9 +959,9 @@ func (ire *IntelligentRegressionEngine) calculateImpact(metricName string, relat
 	}
 }
 
-// determineTrendDirection determines if the metric trend is improving or degrading
+// determineTrendDirection determines if the metric trend is improving or degrading.
 func (ire *IntelligentRegressionEngine) determineTrendDirection(metricName string, relativeChange float64) string {
-	// For latency and error rate, increase is degrading
+	// For latency and error rate, increase is degrading.
 	degradingMetrics := []string{
 		"intent_processing_latency_p95", "intent_processing_latency_p99",
 		"llm_processing_latency_p95", "error_rate", "cpu_utilization", "memory_utilization",
@@ -971,7 +978,7 @@ func (ire *IntelligentRegressionEngine) determineTrendDirection(metricName strin
 		}
 	}
 
-	// For throughput, availability, cache hit rate, increase is improving
+	// For throughput, availability, cache hit rate, increase is improving.
 	if relativeChange > 5 {
 		return "Improving"
 	} else if relativeChange < -5 {
@@ -981,7 +988,7 @@ func (ire *IntelligentRegressionEngine) determineTrendDirection(metricName strin
 	return "Stable"
 }
 
-// determineRegressionType categorizes the type of regression
+// determineRegressionType categorizes the type of regression.
 func (ire *IntelligentRegressionEngine) determineRegressionType(metricName string) string {
 	performanceMetrics := []string{
 		"intent_processing_latency_p95", "intent_processing_latency_p99",
@@ -1005,28 +1012,28 @@ func (ire *IntelligentRegressionEngine) determineRegressionType(metricName strin
 	return "Other"
 }
 
-// assessImpactAndGenerateRecommendations evaluates impact and creates actionable recommendations
+// assessImpactAndGenerateRecommendations evaluates impact and creates actionable recommendations.
 func (ire *IntelligentRegressionEngine) assessImpactAndGenerateRecommendations(analysis *RegressionAnalysisResult) {
-	// Convert to pointer slice for functions that need pointers
+	// Convert to pointer slice for functions that need pointers.
 	regressionPtrs := make([]*MetricRegression, len(analysis.MetricRegressions))
 	for i := range analysis.MetricRegressions {
 		regressionPtrs[i] = &analysis.MetricRegressions[i]
 	}
 
-	// Assess service impact
+	// Assess service impact.
 	analysis.ServiceImpact = ire.assessServiceImpact(regressionPtrs)
 
-	// Generate automated remediation actions
+	// Generate automated remediation actions.
 	analysis.AutomatedRemediation = ire.generateAutomatedActions(regressionPtrs)
 
-	// Generate manual remediation steps
+	// Generate manual remediation steps.
 	analysis.ManualRemediation = ire.generateManualActions(regressionPtrs)
 
-	// Generate preventive measures
+	// Generate preventive measures.
 	analysis.PreventiveMeasures = ire.generatePreventiveMeasures(regressionPtrs)
 }
 
-// Placeholder methods for supporting functionality
+// Placeholder methods for supporting functionality.
 func (ire *IntelligentRegressionEngine) assessServiceImpact(regressions []*MetricRegression) *ServiceImpactAssessment {
 	criticalCount := 0
 	highCount := 0
@@ -1111,7 +1118,7 @@ func (ire *IntelligentRegressionEngine) generateAutomatedActions(regressions []*
 }
 
 func (ire *IntelligentRegressionEngine) generateManualActions(regressions []*MetricRegression) []ManualAction {
-	// Placeholder implementation
+	// Placeholder implementation.
 	return []ManualAction{
 		{
 			Description:    "Review recent code deployments and configuration changes",
@@ -1129,7 +1136,7 @@ func (ire *IntelligentRegressionEngine) generateManualActions(regressions []*Met
 }
 
 func (ire *IntelligentRegressionEngine) generatePreventiveMeasures(regressions []*MetricRegression) []PreventiveMeasure {
-	// Placeholder implementation
+	// Placeholder implementation.
 	return []PreventiveMeasure{
 		{
 			Description:     "Implement automated performance testing in CI/CD pipeline",
@@ -1146,7 +1153,7 @@ func (ire *IntelligentRegressionEngine) generatePreventiveMeasures(regressions [
 	}
 }
 
-// Additional types for method signatures
+// Additional types for method signatures.
 type ManualAction struct {
 	Description    string        `json:"description"`
 	Priority       int           `json:"priority"`
@@ -1154,6 +1161,7 @@ type ManualAction struct {
 	RequiredSkills []string      `json:"requiredSkills"`
 }
 
+// PreventiveMeasure represents a preventivemeasure.
 type PreventiveMeasure struct {
 	Description     string `json:"description"`
 	Implementation  string `json:"implementation"`
@@ -1161,30 +1169,34 @@ type PreventiveMeasure struct {
 	ResponsibleTeam string `json:"responsibleTeam"`
 }
 
+// BenchmarkExecution represents a benchmarkexecution.
 type BenchmarkExecution struct {
 	ID        string    `json:"id"`
 	StartedAt time.Time `json:"startedAt"`
 	Status    string    `json:"status"`
 }
 
+// RegressionHistory represents a regressionhistory.
 type RegressionHistory struct {
 	analyses []*RegressionAnalysisResult
 	mutex    sync.RWMutex
 }
 
+// Add performs add operation.
 func (rh *RegressionHistory) Add(analysis *RegressionAnalysisResult) {
 	rh.mutex.Lock()
 	defer rh.mutex.Unlock()
 	rh.analyses = append(rh.analyses, analysis)
 }
 
+// AlertSuppression represents a alertsuppression.
 type AlertSuppression struct {
 	ID        string    `json:"id"`
 	Reason    string    `json:"reason"`
 	ExpiresAt time.Time `json:"expiresAt"`
 }
 
-// convertToAlertManagerConfig converts IntelligentRegressionConfig to AlertManagerConfig
+// convertToAlertManagerConfig converts IntelligentRegressionConfig to AlertManagerConfig.
 func convertToAlertManagerConfig(config *IntelligentRegressionConfig) *AlertManagerConfig {
 	return &AlertManagerConfig{
 		MaxConcurrentWorkers:        5,
@@ -1211,7 +1223,7 @@ func convertToAlertManagerConfig(config *IntelligentRegressionConfig) *AlertMana
 	}
 }
 
-// convertToNWDAFConfig converts IntelligentRegressionConfig to NWDAFConfig
+// convertToNWDAFConfig converts IntelligentRegressionConfig to NWDAFConfig.
 func convertToNWDAFConfig(config *IntelligentRegressionConfig) *NWDAFConfig {
 	return &NWDAFConfig{
 		EnableLoadAnalytics:        true,
@@ -1231,80 +1243,133 @@ func convertToNWDAFConfig(config *IntelligentRegressionConfig) *NWDAFConfig {
 	}
 }
 
-// Additional placeholder types and interfaces for compilation
-type TimeSeriesData struct{}
-type PredictionCache struct{}
-type AccuracyMetrics struct{}
-type AnomalyDetectionConfig struct{}
-type ChangePointConfig struct{}
-type LearningConfig struct{}
-type EscalationPolicy struct{}
-type ModelRepository struct{}
-type TrainingScheduler struct{}
-type LearningPerformanceTracker struct{}
-type FeedbackProcessor struct{}
-type FeatureExtractor struct{}
-type ModelOptimizer struct{}
-type KnowledgeBase struct{}
-type AlertOutcome struct{}
-type HumanAnnotation struct{}
-type AnalyticsRepository struct{}
-type ServiceAnalyzer struct{}
-type MobilityAnalyzer struct{}
-type QoSAnalyzer struct{}
-type SliceKPIs struct{}
-type SLAViolation struct{}
-type ResourceAllocation struct{}
-type ResourceProfile struct{}
-type QoSProfile struct{}
-type GeographicScope struct{}
-type ExternalDataSource interface{}
-type LagAnalyzer struct{}
-type CausalityAnalyzer struct{}
-type TimeSeriesDatabase interface{}
-type MetricAggregator struct{}
-type DataCompressor struct{}
-type MetricIndexer struct{}
-type RetentionPolicy struct{}
-type CachedMetricData struct{}
-type CachedAggregateData struct{}
-type UserExperienceImpact struct{}
-type BusinessImpactAssessment struct{}
-type RollbackPlan struct{}
-type LearningFeedback struct{}
-type IsolationTree struct{}
-type TrendComponent struct{}
-type CyclicalPattern struct{}
-type EnvironmentInfo struct{}
-type SystemLoadInfo struct{}
-type BaselineSnapshot struct{}
+// Additional placeholder types and interfaces for compilation.
+type (
+	TimeSeriesData struct{}
+	// PredictionCache represents a predictioncache.
+	PredictionCache struct{}
+	// AccuracyMetrics represents a accuracymetrics.
+	AccuracyMetrics struct{}
+	// AnomalyDetectionConfig represents a anomalydetectionconfig.
+	AnomalyDetectionConfig struct{}
+	// ChangePointConfig represents a changepointconfig.
+	ChangePointConfig struct{}
+	// LearningConfig represents a learningconfig.
+	LearningConfig struct{}
+	// EscalationPolicy represents a escalationpolicy.
+	EscalationPolicy struct{}
+	// ModelRepository represents a modelrepository.
+	ModelRepository struct{}
+	// TrainingScheduler represents a trainingscheduler.
+	TrainingScheduler struct{}
+	// LearningPerformanceTracker represents a learningperformancetracker.
+	LearningPerformanceTracker struct{}
+	// FeedbackProcessor represents a feedbackprocessor.
+	FeedbackProcessor struct{}
+	// FeatureExtractor represents a featureextractor.
+	FeatureExtractor struct{}
+	// ModelOptimizer represents a modeloptimizer.
+	ModelOptimizer struct{}
+	// KnowledgeBase represents a knowledgebase.
+	KnowledgeBase struct{}
+	// AlertOutcome represents a alertoutcome.
+	AlertOutcome struct{}
+	// HumanAnnotation represents a humanannotation.
+	HumanAnnotation struct{}
+	// AnalyticsRepository represents a analyticsrepository.
+	AnalyticsRepository struct{}
+	// ServiceAnalyzer represents a serviceanalyzer.
+	ServiceAnalyzer struct{}
+	// MobilityAnalyzer represents a mobilityanalyzer.
+	MobilityAnalyzer struct{}
+	// QoSAnalyzer represents a qosanalyzer.
+	QoSAnalyzer struct{}
+	// SliceKPIs represents a slicekpis.
+	SliceKPIs struct{}
+	// SLAViolation represents a slaviolation.
+	SLAViolation struct{}
+	// ResourceAllocation represents a resourceallocation.
+	ResourceAllocation struct{}
+	// ResourceProfile represents a resourceprofile.
+	ResourceProfile struct{}
+	// QoSProfile represents a qosprofile.
+	QoSProfile struct{}
+	// GeographicScope represents a geographicscope.
+	GeographicScope struct{}
+	// ExternalDataSource represents a externaldatasource.
+	ExternalDataSource interface{}
+	// LagAnalyzer represents a laganalyzer.
+	LagAnalyzer struct{}
+	// CausalityAnalyzer represents a causalityanalyzer.
+	CausalityAnalyzer struct{}
+	// TimeSeriesDatabase represents a timeseriesdatabase.
+	TimeSeriesDatabase interface{}
+	// MetricAggregator represents a metricaggregator.
+	MetricAggregator struct{}
+	// DataCompressor represents a datacompressor.
+	DataCompressor struct{}
+	// MetricIndexer represents a metricindexer.
+	MetricIndexer struct{}
+	// RetentionPolicy represents a retentionpolicy.
+	RetentionPolicy struct{}
+	// CachedMetricData represents a cachedmetricdata.
+	CachedMetricData struct{}
+	// CachedAggregateData represents a cachedaggregatedata.
+	CachedAggregateData struct{}
+	// UserExperienceImpact represents a userexperienceimpact.
+	UserExperienceImpact struct{}
+	// BusinessImpactAssessment represents a businessimpactassessment.
+	BusinessImpactAssessment struct{}
+	// RollbackPlan represents a rollbackplan.
+	RollbackPlan struct{}
+	// LearningFeedback represents a learningfeedback.
+	LearningFeedback struct{}
+	// IsolationTree represents a isolationtree.
+	IsolationTree struct{}
+	// TrendComponent represents a trendcomponent.
+	TrendComponent struct{}
+	// CyclicalPattern represents a cyclicalpattern.
+	CyclicalPattern struct{}
+	// EnvironmentInfo represents a environmentinfo.
+	EnvironmentInfo struct{}
+	// SystemLoadInfo represents a systemloadinfo.
+	SystemLoadInfo struct{}
+	// BaselineSnapshot represents a baselinesnapshot.
+	BaselineSnapshot struct{}
+)
 
 // Method implementations for various components would go here...
 
+// DetectAnomaliesInMetrics performs detectanomaliesinmetrics operation.
 func (ad *AnomalyDetector) DetectAnomaliesInMetrics(metrics map[string]float64) ([]*AnomalyEvent, error) {
-	// Placeholder implementation
+	// Placeholder implementation.
 	return []*AnomalyEvent{}, nil
 }
 
+// DetectChangePointsInMetrics performs detectchangepointsinmetrics operation.
 func (cpd *ChangePointDetector) DetectChangePointsInMetrics(metrics map[string]float64) ([]*ChangePoint, error) {
-	// Placeholder implementation
+	// Placeholder implementation.
 	return []*ChangePoint{}, nil
 }
 
+// GenerateForecast performs generateforecast operation.
 func (fe *ForecastingEngine) GenerateForecast(ctx context.Context, metrics map[string]float64) (*Forecast, error) {
-	// Placeholder implementation
+	// Placeholder implementation.
 	return &Forecast{}, nil
 }
 
+// AnalyzeCorrelations performs analyzecorrelations operation.
 func (ce *CorrelationEngine) AnalyzeCorrelations(metrics map[string]float64) (*CorrelationAnalysis, error) {
-	// Placeholder implementation
+	// Placeholder implementation.
 	return &CorrelationAnalysis{}, nil
 }
 
+// ProcessAnalysis performs processanalysis operation.
 func (cls *ContinuousLearningSystem) ProcessAnalysis(analysis *RegressionAnalysisResult) {
-	// Placeholder implementation
+	// Placeholder implementation.
 }
 
+// GetBaseline performs getbaseline operation.
 func (bm *BaselineManager) GetBaseline(metricName string) *DynamicBaseline {
 	bm.mutex.RLock()
 	defer bm.mutex.RUnlock()
@@ -1312,15 +1377,15 @@ func (bm *BaselineManager) GetBaseline(metricName string) *DynamicBaseline {
 }
 
 func (ire *IntelligentRegressionEngine) runBaselineManagement(ctx context.Context) {
-	// Placeholder implementation for baseline management
+	// Placeholder implementation for baseline management.
 }
 
 func (ire *IntelligentRegressionEngine) runLearningSystem(ctx context.Context) {
-	// Placeholder implementation for learning system
+	// Placeholder implementation for learning system.
 }
 
 func (ire *IntelligentRegressionEngine) runNWDAFAnalytics(ctx context.Context) {
-	// Placeholder implementation for NWDAF analytics
+	// Placeholder implementation for NWDAF analytics.
 }
 
-// normalCDF is already defined in cusum_detector.go
+// normalCDF is already defined in cusum_detector.go.

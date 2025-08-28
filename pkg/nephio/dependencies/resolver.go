@@ -30,87 +30,87 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
-// DependencyResolver provides comprehensive package dependency resolution and management
-// for the Nephoran Intent Operator with advanced SAT solver algorithms, transitive
-// resolution, conflict detection, and optimization capabilities for telecommunications packages
+// DependencyResolver provides comprehensive package dependency resolution and management.
+// for the Nephoran Intent Operator with advanced SAT solver algorithms, transitive.
+// resolution, conflict detection, and optimization capabilities for telecommunications packages.
 type DependencyResolver interface {
-	// Core resolution operations
+	// Core resolution operations.
 	ResolveDependencies(ctx context.Context, spec *ResolutionSpec) (*ResolutionResult, error)
 	ResolveTransitive(ctx context.Context, packages []*PackageReference, opts *TransitiveOptions) (*TransitiveResult, error)
 
-	// Constraint solving and SAT operations
+	// Constraint solving and SAT operations.
 	SolveConstraints(ctx context.Context, constraints []*DependencyConstraint) (*ConstraintSolution, error)
 	ValidateConstraints(ctx context.Context, constraints []*DependencyConstraint) (*ConstraintValidation, error)
 
-	// Version resolution and compatibility
+	// Version resolution and compatibility.
 	ResolveVersions(ctx context.Context, requirements []*VersionRequirement) (*VersionResolutionResult, error)
 	FindCompatibleVersions(ctx context.Context, pkg *PackageReference, constraints []*VersionConstraint) ([]*VersionCandidate, error)
 
-	// Conflict detection and resolution
+	// Conflict detection and resolution.
 	DetectConflicts(ctx context.Context, packages []*PackageReference) (*ConflictReport, error)
 	ResolveConflicts(ctx context.Context, conflicts *ConflictReport, strategy ConflictStrategy) (*ConflictResolution, error)
 
-	// Rollback and recovery
+	// Rollback and recovery.
 	CreateRollbackPlan(ctx context.Context, currentState, targetState []*PackageReference) (*RollbackPlan, error)
 	ExecuteRollback(ctx context.Context, plan *RollbackPlan) (*RollbackResult, error)
 
-	// Performance and caching
+	// Performance and caching.
 	WarmCache(ctx context.Context, packages []*PackageReference) error
 	ClearCache(ctx context.Context, patterns []string) error
 	GetCacheStats(ctx context.Context) (*CacheStats, error)
 
-	// Resolution strategies
+	// Resolution strategies.
 	SetStrategy(strategy ResolutionStrategy) error
 	GetAvailableStrategies() []ResolutionStrategy
 
-	// Health and monitoring
+	// Health and monitoring.
 	GetHealth(ctx context.Context) (*ResolverHealth, error)
 	GetMetrics(ctx context.Context) (*ResolverMetrics, error)
 
-	// Lifecycle management
+	// Lifecycle management.
 	Close() error
 }
 
-// dependencyResolver implements comprehensive dependency resolution with SAT solving
+// dependencyResolver implements comprehensive dependency resolution with SAT solving.
 type dependencyResolver struct {
-	// Core components
+	// Core components.
 	client  porch.PorchClient
 	logger  logr.Logger
 	metrics *ResolverMetrics
 
-	// Resolution engines
+	// Resolution engines.
 	constraintSolver *ConstraintSolver
 	versionSolver    *VersionSolver
 	conflictResolver *ConflictResolver
 
-	// Caching infrastructure
+	// Caching infrastructure.
 	resolutionCache *resolutionCacheImpl
 	constraintCache *constraintCacheImpl
 	versionCache    *versionCacheImpl
 
-	// Concurrent processing
+	// Concurrent processing.
 	workerPool  WorkerPool
 	rateLimiter *RateLimiter
 
-	// Configuration and state
+	// Configuration and state.
 	config    *ResolverConfig
 	strategy  ResolutionStrategy
 	providers map[string]DependencyProvider
 
-	// Thread safety
+	// Thread safety.
 	mu      sync.RWMutex
 	cacheMu sync.RWMutex
 
-	// Lifecycle management
+	// Lifecycle management.
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 	closed bool
 }
 
-// Core data structures for dependency resolution
+// Core data structures for dependency resolution.
 
-// ResolutionSpec defines parameters for dependency resolution
+// ResolutionSpec defines parameters for dependency resolution.
 type ResolutionSpec struct {
 	RootPackages    []*PackageReference     `json:"rootPackages"`
 	Constraints     []*DependencyConstraint `json:"constraints,omitempty"`
@@ -126,7 +126,7 @@ type ResolutionSpec struct {
 	Policy          *PolicyConstraints      `json:"policy,omitempty"`
 }
 
-// ResolutionResult contains comprehensive resolution results
+// ResolutionResult contains comprehensive resolution results.
 type ResolutionResult struct {
 	Success          bool                   `json:"success"`
 	ResolvedPackages []*ResolvedPackage     `json:"resolvedPackages"`
@@ -140,7 +140,7 @@ type ResolutionResult struct {
 	Metadata         map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// PackageReference represents a package with version information
+// PackageReference represents a package with version information.
 type PackageReference struct {
 	Repository        string                 `json:"repository"`
 	Name              string                 `json:"name"`
@@ -150,7 +150,7 @@ type PackageReference struct {
 	Metadata          map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// ResolvedPackage represents a successfully resolved package
+// ResolvedPackage represents a successfully resolved package.
 type ResolvedPackage struct {
 	Reference       *PackageReference     `json:"reference"`
 	ResolvedVersion string                `json:"resolvedVersion"`
@@ -164,7 +164,7 @@ type ResolvedPackage struct {
 	ComplianceInfo  *ComplianceInfo       `json:"complianceInfo,omitempty"`
 }
 
-// DependencyConstraint represents constraints for dependency resolution
+// DependencyConstraint represents constraints for dependency resolution.
 type DependencyConstraint struct {
 	Type              ConstraintType      `json:"type"`
 	Package           *PackageReference   `json:"package"`
@@ -177,7 +177,7 @@ type DependencyConstraint struct {
 	Source            string              `json:"source,omitempty"`
 }
 
-// VersionConstraint represents version constraint with operators
+// VersionConstraint represents version constraint with operators.
 type VersionConstraint struct {
 	Operator      ConstraintOperator `json:"operator"`
 	Version       string             `json:"version"`
@@ -186,144 +186,192 @@ type VersionConstraint struct {
 	Range         *VersionRange      `json:"range,omitempty"`
 }
 
-// ConstraintSolver implements SAT-based constraint solving for version resolution
+// ConstraintSolver implements SAT-based constraint solving for version resolution.
 type ConstraintSolver struct {
 	logger  logr.Logger
 	metrics *ConstraintSolverMetrics
 	cache   *constraintCacheImpl
 
-	// SAT solver configuration
+	// SAT solver configuration.
 	maxIterations int
 	maxBacktracks int
 	heuristics    []SolverHeuristic
 
-	// Optimization strategies
+	// Optimization strategies.
 	optimizers []ConstraintOptimizer
 
-	// Concurrent processing
+	// Concurrent processing.
 	parallel bool
 	workers  int
 }
 
-// VersionSolver handles version resolution with semantic versioning
+// VersionSolver handles version resolution with semantic versioning.
 type VersionSolver struct {
 	logger  logr.Logger
 	metrics *VersionSolverMetrics
 	cache   *versionCacheImpl
 
-	// Version comparison and resolution
+	// Version comparison and resolution.
 	comparator VersionComparator
 	selector   VersionSelector
 
-	// Prerelease and build metadata handling
+	// Prerelease and build metadata handling.
 	prereleaseStrategy    PrereleaseStrategy
 	buildMetadataStrategy BuildMetadataStrategy
 }
 
-// ConflictResolver handles dependency conflicts and resolution strategies
+// ConflictResolver handles dependency conflicts and resolution strategies.
 type ConflictResolver struct {
 	logger  logr.Logger
 	metrics *ConflictResolverMetrics
 
-	// Conflict detection algorithms
+	// Conflict detection algorithms.
 	detectors []ConflictDetector
 
-	// Resolution strategies
+	// Resolution strategies.
 	strategies map[ConflictType][]ConflictResolutionStrategy
 
-	// Machine learning for conflict prediction
+	// Machine learning for conflict prediction.
 	predictor *ConflictPredictor
 }
 
-// Resolution strategy enums and types
+// Resolution strategy enums and types.
 
-// ResolutionStrategy defines how dependencies should be resolved
+// ResolutionStrategy defines how dependencies should be resolved.
 type ResolutionStrategy string
 
 const (
-	StrategyLatest      ResolutionStrategy = "latest"
-	StrategyStable      ResolutionStrategy = "stable"
-	StrategyMinimal     ResolutionStrategy = "minimal"
-	StrategyCompatible  ResolutionStrategy = "compatible"
-	StrategySecure      ResolutionStrategy = "secure"
-	StrategyCost        ResolutionStrategy = "cost"
+	// StrategyLatest holds strategylatest value.
+	StrategyLatest ResolutionStrategy = "latest"
+	// StrategyStable holds strategystable value.
+	StrategyStable ResolutionStrategy = "stable"
+	// StrategyMinimal holds strategyminimal value.
+	StrategyMinimal ResolutionStrategy = "minimal"
+	// StrategyCompatible holds strategycompatible value.
+	StrategyCompatible ResolutionStrategy = "compatible"
+	// StrategySecure holds strategysecure value.
+	StrategySecure ResolutionStrategy = "secure"
+	// StrategyCost holds strategycost value.
+	StrategyCost ResolutionStrategy = "cost"
+	// StrategyPerformance holds strategyperformance value.
 	StrategyPerformance ResolutionStrategy = "performance"
-	StrategyCustom      ResolutionStrategy = "custom"
+	// StrategyCustom holds strategycustom value.
+	StrategyCustom ResolutionStrategy = "custom"
 )
 
-// ConstraintType defines types of dependency constraints
+// ConstraintType defines types of dependency constraints.
 type ConstraintType string
 
 const (
-	ConstraintTypeVersion     ConstraintType = "version"
-	ConstraintTypeExclusion   ConstraintType = "exclusion"
-	ConstraintTypeInclusion   ConstraintType = "inclusion"
-	ConstraintTypePlatform    ConstraintType = "platform"
-	ConstraintTypeSecurity    ConstraintType = "security"
-	ConstraintTypePolicy      ConstraintType = "policy"
+	// ConstraintTypeVersion holds constrainttypeversion value.
+	ConstraintTypeVersion ConstraintType = "version"
+	// ConstraintTypeExclusion holds constrainttypeexclusion value.
+	ConstraintTypeExclusion ConstraintType = "exclusion"
+	// ConstraintTypeInclusion holds constrainttypeinclusion value.
+	ConstraintTypeInclusion ConstraintType = "inclusion"
+	// ConstraintTypePlatform holds constrainttypeplatform value.
+	ConstraintTypePlatform ConstraintType = "platform"
+	// ConstraintTypeSecurity holds constrainttypesecurity value.
+	ConstraintTypeSecurity ConstraintType = "security"
+	// ConstraintTypePolicy holds constrainttypepolicy value.
+	ConstraintTypePolicy ConstraintType = "policy"
+	// ConstraintTypePerformance holds constrainttypeperformance value.
 	ConstraintTypePerformance ConstraintType = "performance"
-	ConstraintTypeLicense     ConstraintType = "license"
+	// ConstraintTypeLicense holds constrainttypelicense value.
+	ConstraintTypeLicense ConstraintType = "license"
 )
 
-// ConstraintOperator defines version constraint operators
+// ConstraintOperator defines version constraint operators.
 type ConstraintOperator string
 
 const (
-	OpEquals        ConstraintOperator = "="
-	OpNotEquals     ConstraintOperator = "!="
-	OpGreaterThan   ConstraintOperator = ">"
+	// OpEquals holds opequals value.
+	OpEquals ConstraintOperator = "="
+	// OpNotEquals holds opnotequals value.
+	OpNotEquals ConstraintOperator = "!="
+	// OpGreaterThan holds opgreaterthan value.
+	OpGreaterThan ConstraintOperator = ">"
+	// OpGreaterEquals holds opgreaterequals value.
 	OpGreaterEquals ConstraintOperator = ">="
-	OpLessThan      ConstraintOperator = "<"
-	OpLessEquals    ConstraintOperator = "<="
-	OpTilde         ConstraintOperator = "~"  // Compatible with patch updates
-	OpCaret         ConstraintOperator = "^"  // Compatible with minor updates
-	OpPessimistic   ConstraintOperator = "~>" // Pessimistic version constraint
-	OpAny           ConstraintOperator = "*"  // Any version
+	// OpLessThan holds oplessthan value.
+	OpLessThan ConstraintOperator = "<"
+	// OpLessEquals holds oplessequals value.
+	OpLessEquals ConstraintOperator = "<="
+	// OpTilde holds optilde value.
+	OpTilde ConstraintOperator = "~" // Compatible with patch updates
+	// OpCaret holds opcaret value.
+	OpCaret ConstraintOperator = "^" // Compatible with minor updates
+	// OpPessimistic holds oppessimistic value.
+	OpPessimistic ConstraintOperator = "~>" // Pessimistic version constraint
+	// OpAny holds opany value.
+	OpAny ConstraintOperator = "*" // Any version
 )
 
-// DependencyScope defines the scope of dependencies
+// DependencyScope defines the scope of dependencies.
 type DependencyScope string
 
 const (
-	ScopeRuntime  DependencyScope = "runtime"
-	ScopeBuild    DependencyScope = "build"
-	ScopeTest     DependencyScope = "test"
+	// ScopeRuntime holds scoperuntime value.
+	ScopeRuntime DependencyScope = "runtime"
+	// ScopeBuild holds scopebuild value.
+	ScopeBuild DependencyScope = "build"
+	// ScopeTest holds scopetest value.
+	ScopeTest DependencyScope = "test"
+	// ScopeProvided holds scopeprovided value.
 	ScopeProvided DependencyScope = "provided"
+	// ScopeOptional holds scopeoptional value.
 	ScopeOptional DependencyScope = "optional"
-	ScopePeer     DependencyScope = "peer"
-	ScopeSystem   DependencyScope = "system"
+	// ScopePeer holds scopepeer value.
+	ScopePeer DependencyScope = "peer"
+	// ScopeSystem holds scopesystem value.
+	ScopeSystem DependencyScope = "system"
 )
 
-// PackageSource defines where packages come from
+// PackageSource defines where packages come from.
 type PackageSource string
 
 const (
-	SourceGit       PackageSource = "git"
-	SourceOCI       PackageSource = "oci"
-	SourceHelm      PackageSource = "helm"
+	// SourceGit holds sourcegit value.
+	SourceGit PackageSource = "git"
+	// SourceOCI holds sourceoci value.
+	SourceOCI PackageSource = "oci"
+	// SourceHelm holds sourcehelm value.
+	SourceHelm PackageSource = "helm"
+	// SourceKustomize holds sourcekustomize value.
 	SourceKustomize PackageSource = "kustomize"
-	SourceLocal     PackageSource = "local"
-	SourceRegistry  PackageSource = "registry"
+	// SourceLocal holds sourcelocal value.
+	SourceLocal PackageSource = "local"
+	// SourceRegistry holds sourceregistry value.
+	SourceRegistry PackageSource = "registry"
 )
 
-// ResolutionReason explains why a package version was selected
+// ResolutionReason explains why a package version was selected.
 type ResolutionReason string
 
 const (
-	ReasonExplicit    ResolutionReason = "explicit"
-	ReasonDependency  ResolutionReason = "dependency"
-	ReasonConstraint  ResolutionReason = "constraint"
-	ReasonConflict    ResolutionReason = "conflict"
-	ReasonUpgrade     ResolutionReason = "upgrade"
-	ReasonDowngrade   ResolutionReason = "downgrade"
-	ReasonSecurity    ResolutionReason = "security"
-	ReasonPolicy      ResolutionReason = "policy"
+	// ReasonExplicit holds reasonexplicit value.
+	ReasonExplicit ResolutionReason = "explicit"
+	// ReasonDependency holds reasondependency value.
+	ReasonDependency ResolutionReason = "dependency"
+	// ReasonConstraint holds reasonconstraint value.
+	ReasonConstraint ResolutionReason = "constraint"
+	// ReasonConflict holds reasonconflict value.
+	ReasonConflict ResolutionReason = "conflict"
+	// ReasonUpgrade holds reasonupgrade value.
+	ReasonUpgrade ResolutionReason = "upgrade"
+	// ReasonDowngrade holds reasondowngrade value.
+	ReasonDowngrade ResolutionReason = "downgrade"
+	// ReasonSecurity holds reasonsecurity value.
+	ReasonSecurity ResolutionReason = "security"
+	// ReasonPolicy holds reasonpolicy value.
+	ReasonPolicy ResolutionReason = "policy"
+	// ReasonPerformance holds reasonperformance value.
 	ReasonPerformance ResolutionReason = "performance"
 )
 
-// Constructor and initialization
+// Constructor and initialization.
 
-// NewDependencyResolver creates a new dependency resolver with comprehensive configuration
+// NewDependencyResolver creates a new dependency resolver with comprehensive configuration.
 func NewDependencyResolver(client porch.PorchClient, config *ResolverConfig) (DependencyResolver, error) {
 	if client == nil {
 		return nil, fmt.Errorf("porch client cannot be nil")
@@ -349,10 +397,10 @@ func NewDependencyResolver(client porch.PorchClient, config *ResolverConfig) (De
 		cancel:    cancel,
 	}
 
-	// Initialize metrics
+	// Initialize metrics.
 	resolver.metrics = NewResolverMetrics()
 
-	// Initialize constraint solver with SAT algorithms
+	// Initialize constraint solver with SAT algorithms.
 	resolver.constraintSolver = NewConstraintSolver(&ConstraintSolverConfig{
 		MaxIterations:    config.MaxSolverIterations,
 		MaxBacktracks:    config.MaxSolverBacktracks,
@@ -360,36 +408,36 @@ func NewDependencyResolver(client porch.PorchClient, config *ResolverConfig) (De
 		ParallelSolving:  config.ParallelSolving,
 	})
 
-	// Initialize version solver with semantic versioning
+	// Initialize version solver with semantic versioning.
 	resolver.versionSolver = NewVersionSolver(&VersionSolverConfig{
 		PrereleaseStrategy:    config.PrereleaseStrategy,
 		BuildMetadataStrategy: config.BuildMetadataStrategy,
 		StrictSemVer:          config.StrictSemVer,
 	})
 
-	// Initialize conflict resolver
+	// Initialize conflict resolver.
 	resolver.conflictResolver = NewConflictResolver(&ConflictResolverConfig{
 		EnableMLPrediction: config.EnableMLConflictPrediction,
 		ConflictStrategies: config.ConflictStrategies,
 	})
 
-	// Initialize caching infrastructure if enabled
+	// Initialize caching infrastructure if enabled.
 	if config.EnableCaching {
 		resolver.resolutionCache = NewResolutionCache(config.CacheConfig)
 		resolver.constraintCache = NewConstraintCache(config.CacheConfig)
 		resolver.versionCache = NewVersionCache(config.CacheConfig)
 	}
 
-	// Initialize worker pool for concurrent processing
+	// Initialize worker pool for concurrent processing.
 	if config.EnableConcurrency {
 		resolver.workerPool = NewWorkerPool(config.WorkerCount, config.QueueSize)
 		resolver.rateLimiter = NewRateLimiter(config.RateLimit)
 	}
 
-	// Register default dependency providers
+	// Register default dependency providers.
 	resolver.registerDefaultProviders()
 
-	// Start background processes
+	// Start background processes.
 	resolver.startBackgroundProcesses()
 
 	resolver.logger.Info("Dependency resolver initialized successfully",
@@ -400,18 +448,18 @@ func NewDependencyResolver(client porch.PorchClient, config *ResolverConfig) (De
 	return resolver, nil
 }
 
-// Core resolution methods
+// Core resolution methods.
 
-// ResolveDependencies performs comprehensive dependency resolution with SAT solving
+// ResolveDependencies performs comprehensive dependency resolution with SAT solving.
 func (r *dependencyResolver) ResolveDependencies(ctx context.Context, spec *ResolutionSpec) (*ResolutionResult, error) {
 	startTime := time.Now()
 
-	// Validate input
+	// Validate input.
 	if err := r.validateResolutionSpec(spec); err != nil {
 		return nil, fmt.Errorf("invalid resolution spec: %w", err)
 	}
 
-	// Apply timeout if specified
+	// Apply timeout if specified.
 	if spec.Timeout > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, spec.Timeout)
@@ -423,7 +471,7 @@ func (r *dependencyResolver) ResolveDependencies(ctx context.Context, spec *Reso
 		"strategy", spec.Strategy,
 		"maxDepth", spec.MaxDepth)
 
-	// Check cache first if enabled
+	// Check cache first if enabled.
 	if spec.UseCache && r.resolutionCache != nil {
 		cacheKey := r.generateCacheKey(spec)
 		if cached, found := r.resolutionCache.Get(cacheKey); found {
@@ -436,7 +484,7 @@ func (r *dependencyResolver) ResolveDependencies(ctx context.Context, spec *Reso
 		r.metrics.CacheMisses.Inc()
 	}
 
-	// Create resolution context
+	// Create resolution context.
 	resCtx := &ResolutionContext{
 		Spec:             spec,
 		Resolver:         r,
@@ -447,31 +495,31 @@ func (r *dependencyResolver) ResolveDependencies(ctx context.Context, spec *Reso
 		Statistics:       &ResolutionStatistics{},
 	}
 
-	// Build dependency tree
+	// Build dependency tree.
 	tree, err := r.buildDependencyTree(ctx, resCtx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build dependency tree: %w", err)
 	}
 
-	// Solve constraints using SAT solver
+	// Solve constraints using SAT solver.
 	solution, err := r.solveConstraints(ctx, resCtx)
 	if err != nil {
 		return nil, fmt.Errorf("constraint solving failed: %w", err)
 	}
 
-	// Resolve versions
+	// Resolve versions.
 	versionResolution, err := r.resolveVersions(ctx, resCtx, solution)
 	if err != nil {
 		return nil, fmt.Errorf("version resolution failed: %w", err)
 	}
 
-	// Detect and resolve conflicts
+	// Detect and resolve conflicts.
 	conflicts, err := r.detectAndResolveConflicts(ctx, resCtx, versionResolution)
 	if err != nil {
 		return nil, fmt.Errorf("conflict resolution failed: %w", err)
 	}
 
-	// Build final result
+	// Build final result.
 	result := &ResolutionResult{
 		Success:          len(conflicts) == 0,
 		ResolvedPackages: r.extractResolvedPackages(resCtx),
@@ -485,13 +533,13 @@ func (r *dependencyResolver) ResolveDependencies(ctx context.Context, spec *Reso
 		Metadata:         r.buildResultMetadata(resCtx),
 	}
 
-	// Cache result if successful and caching enabled
+	// Cache result if successful and caching enabled.
 	if result.Success && spec.UseCache && r.resolutionCache != nil {
 		cacheKey := r.generateCacheKey(spec)
 		r.resolutionCache.Set(cacheKey, result, time.Hour) // Set TTL to 1 hour
 	}
 
-	// Update metrics
+	// Update metrics.
 	r.updateResolutionMetrics(result)
 
 	r.logger.Info("Dependency resolution completed",
@@ -503,18 +551,18 @@ func (r *dependencyResolver) ResolveDependencies(ctx context.Context, spec *Reso
 	return result, nil
 }
 
-// SolveConstraints uses SAT solver algorithms to solve dependency constraints
+// SolveConstraints uses SAT solver algorithms to solve dependency constraints.
 func (r *dependencyResolver) SolveConstraints(ctx context.Context, constraints []*DependencyConstraint) (*ConstraintSolution, error) {
 	startTime := time.Now()
 
 	r.logger.V(1).Info("Solving dependency constraints", "constraints", len(constraints))
 
-	// Validate constraints
+	// Validate constraints.
 	if err := r.validateConstraints(constraints); err != nil {
 		return nil, fmt.Errorf("invalid constraints: %w", err)
 	}
 
-	// Check constraint cache
+	// Check constraint cache.
 	if r.constraintCache != nil {
 		cacheKey := r.generateConstraintCacheKey(constraints)
 		if cached, found := r.constraintCache.Get(cacheKey); found {
@@ -526,19 +574,19 @@ func (r *dependencyResolver) SolveConstraints(ctx context.Context, constraints [
 		r.metrics.ConstraintCacheMisses.Inc()
 	}
 
-	// Convert constraints to SAT clauses
+	// Convert constraints to SAT clauses.
 	clauses, variables, err := r.constraintSolver.ConvertToSAT(constraints)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert constraints to SAT: %w", err)
 	}
 
-	// Solve SAT problem
+	// Solve SAT problem.
 	satSolution, err := r.constraintSolver.SolveSAT(ctx, clauses, variables)
 	if err != nil {
 		return nil, fmt.Errorf("SAT solving failed: %w", err)
 	}
 
-	// Convert SAT solution back to constraint solution
+	// Convert SAT solution back to constraint solution.
 	solution := &ConstraintSolution{
 		Satisfiable: satSolution.Satisfiable,
 		Assignments: make(map[string]interface{}),
@@ -551,7 +599,7 @@ func (r *dependencyResolver) SolveConstraints(ctx context.Context, constraints [
 	if satSolution.Satisfiable {
 		solution.Assignments = r.constraintSolver.ConvertSATAssignments(satSolution.Assignments, variables)
 	} else {
-		// Extract unsatisfiable core for conflict analysis
+		// Extract unsatisfiable core for conflict analysis.
 		core, err := r.constraintSolver.ExtractUnsatisfiableCore(clauses, variables)
 		if err != nil {
 			r.logger.Error(err, "Failed to extract unsatisfiable core")
@@ -560,13 +608,13 @@ func (r *dependencyResolver) SolveConstraints(ctx context.Context, constraints [
 		}
 	}
 
-	// Cache solution
+	// Cache solution.
 	if r.constraintCache != nil {
 		cacheKey := r.generateConstraintCacheKey(constraints)
 		r.constraintCache.Set(cacheKey, solution)
 	}
 
-	// Update metrics
+	// Update metrics.
 	r.metrics.ConstraintSolvingTime.Observe(solution.SolvingTime.Seconds())
 	if solution.Satisfiable {
 		r.metrics.ConstraintSolvingSuccess.Inc()
@@ -577,13 +625,13 @@ func (r *dependencyResolver) SolveConstraints(ctx context.Context, constraints [
 	return solution, nil
 }
 
-// ResolveVersions resolves package versions using semantic versioning
+// ResolveVersions resolves package versions using semantic versioning.
 func (r *dependencyResolver) ResolveVersions(ctx context.Context, requirements []*VersionRequirement) (*VersionResolutionResult, error) {
 	startTime := time.Now()
 
 	r.logger.V(1).Info("Resolving package versions", "requirements", len(requirements))
 
-	// Group requirements by package
+	// Group requirements by package.
 	packageRequirements := r.groupVersionRequirements(requirements)
 
 	resolution := &VersionResolutionResult{
@@ -594,7 +642,7 @@ func (r *dependencyResolver) ResolveVersions(ctx context.Context, requirements [
 		ResolutionTime: time.Since(startTime),
 	}
 
-	// Resolve each package's version using concurrent processing
+	// Resolve each package's version using concurrent processing.
 	if r.workerPool != nil {
 		err := r.resolveVersionsConcurrently(ctx, packageRequirements, resolution)
 		if err != nil {
@@ -607,17 +655,17 @@ func (r *dependencyResolver) ResolveVersions(ctx context.Context, requirements [
 		}
 	}
 
-	// Check for version conflicts
+	// Check for version conflicts.
 	conflicts := r.detectVersionConflicts(resolution.Resolutions)
 	resolution.Conflicts = conflicts
 	resolution.Success = len(conflicts) == 0
 
-	// Update statistics
+	// Update statistics.
 	resolution.ResolutionTime = time.Since(startTime)
 	resolution.Statistics.TotalPackages = len(resolution.Resolutions)
 	resolution.Statistics.ConflictedPackages = len(conflicts)
 
-	// Update metrics
+	// Update metrics.
 	r.metrics.VersionResolutionTime.Observe(resolution.ResolutionTime.Seconds())
 	if resolution.Success {
 		r.metrics.VersionResolutionSuccess.Inc()
@@ -628,7 +676,7 @@ func (r *dependencyResolver) ResolveVersions(ctx context.Context, requirements [
 	return resolution, nil
 }
 
-// DetectConflicts identifies dependency conflicts using multiple detection algorithms
+// DetectConflicts identifies dependency conflicts using multiple detection algorithms.
 func (r *dependencyResolver) DetectConflicts(ctx context.Context, packages []*PackageReference) (*ConflictReport, error) {
 	startTime := time.Now()
 
@@ -645,7 +693,7 @@ func (r *dependencyResolver) DetectConflicts(ctx context.Context, packages []*Pa
 		DetectionAlgorithms: make([]string, 0),
 	}
 
-	// Run conflict detection algorithms concurrently
+	// Run conflict detection algorithms concurrently.
 	g, gCtx := errgroup.WithContext(ctx)
 
 	conflictChannels := make([]<-chan *DependencyConflict, len(r.conflictResolver.detectors))
@@ -674,7 +722,7 @@ func (r *dependencyResolver) DetectConflicts(ctx context.Context, packages []*Pa
 		})
 	}
 
-	// Collect conflicts from all detectors
+	// Collect conflicts from all detectors.
 	g.Go(func() error {
 		return r.collectConflicts(gCtx, conflictChannels, report)
 	})
@@ -683,16 +731,16 @@ func (r *dependencyResolver) DetectConflicts(ctx context.Context, packages []*Pa
 		return nil, fmt.Errorf("conflict detection failed: %w", err)
 	}
 
-	// Deduplicate and classify conflicts
+	// Deduplicate and classify conflicts.
 	r.deduplicateConflicts(report)
 	r.classifyConflicts(report)
 
-	// Calculate statistics
+	// Calculate statistics.
 	r.calculateConflictStatistics(report)
 
 	report.DetectionTime = time.Since(startTime)
 
-	// Update metrics
+	// Update metrics.
 	r.metrics.ConflictDetectionTime.Observe(report.DetectionTime.Seconds())
 	r.metrics.ConflictsDetected.Add(float64(len(report.DependencyConflicts)))
 
@@ -703,9 +751,9 @@ func (r *dependencyResolver) DetectConflicts(ctx context.Context, packages []*Pa
 	return report, nil
 }
 
-// Helper methods and utility functions
+// Helper methods and utility functions.
 
-// validateResolutionSpec validates the resolution specification
+// validateResolutionSpec validates the resolution specification.
 func (r *dependencyResolver) validateResolutionSpec(spec *ResolutionSpec) error {
 	if spec == nil {
 		return fmt.Errorf("resolution spec cannot be nil")
@@ -738,21 +786,21 @@ func (r *dependencyResolver) validateResolutionSpec(spec *ResolutionSpec) error 
 	return nil
 }
 
-// generateCacheKey generates a cache key for resolution spec
+// generateCacheKey generates a cache key for resolution spec.
 func (r *dependencyResolver) generateCacheKey(spec *ResolutionSpec) string {
 	h := sha256.New()
 
-	// Include root packages
+	// Include root packages.
 	for _, pkg := range spec.RootPackages {
 		h.Write([]byte(fmt.Sprintf("%s/%s@%s", pkg.Repository, pkg.Name, pkg.Version)))
 	}
 
-	// Include constraints
+	// Include constraints.
 	for _, constraint := range spec.Constraints {
 		h.Write([]byte(fmt.Sprintf("%s:%s", constraint.Type, constraint.Package.Name)))
 	}
 
-	// Include strategy and options
+	// Include strategy and options.
 	h.Write([]byte(string(spec.Strategy)))
 	h.Write([]byte(fmt.Sprintf("depth:%d", spec.MaxDepth)))
 	h.Write([]byte(fmt.Sprintf("optional:%t", spec.IncludeOptional)))
@@ -761,44 +809,44 @@ func (r *dependencyResolver) generateCacheKey(spec *ResolutionSpec) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-// registerDefaultProviders registers default dependency providers
+// registerDefaultProviders registers default dependency providers.
 func (r *dependencyResolver) registerDefaultProviders() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// Register Git provider
+	// Register Git provider.
 	r.providers["git"] = NewGitDependencyProvider(r.config.GitConfig)
 
-	// Register OCI provider
+	// Register OCI provider.
 	r.providers["oci"] = NewOCIDependencyProvider(r.config.OCIConfig)
 
-	// Register Helm provider
+	// Register Helm provider.
 	r.providers["helm"] = NewHelmDependencyProvider(r.config.HelmConfig)
 
-	// Register local provider
+	// Register local provider.
 	r.providers["local"] = NewLocalDependencyProvider(r.config.LocalConfig)
 
 	r.logger.V(1).Info("Registered default dependency providers", "providers", len(r.providers))
 }
 
-// startBackgroundProcesses starts background processing goroutines
+// startBackgroundProcesses starts background processing goroutines.
 func (r *dependencyResolver) startBackgroundProcesses() {
-	// Start cache cleanup process
+	// Start cache cleanup process.
 	if r.resolutionCache != nil {
 		r.wg.Add(1)
 		go r.cacheCleanupProcess()
 	}
 
-	// Start metrics collection process
+	// Start metrics collection process.
 	r.wg.Add(1)
 	go r.metricsCollectionProcess()
 
-	// Start health check process
+	// Start health check process.
 	r.wg.Add(1)
 	go r.healthCheckProcess()
 }
 
-// cacheCleanupProcess periodically cleans up expired cache entries
+// cacheCleanupProcess periodically cleans up expired cache entries.
 func (r *dependencyResolver) cacheCleanupProcess() {
 	defer r.wg.Done()
 
@@ -815,7 +863,7 @@ func (r *dependencyResolver) cacheCleanupProcess() {
 	}
 }
 
-// metricsCollectionProcess periodically collects and reports metrics
+// metricsCollectionProcess periodically collects and reports metrics.
 func (r *dependencyResolver) metricsCollectionProcess() {
 	defer r.wg.Done()
 
@@ -832,7 +880,7 @@ func (r *dependencyResolver) metricsCollectionProcess() {
 	}
 }
 
-// healthCheckProcess periodically checks resolver health
+// healthCheckProcess periodically checks resolver health.
 func (r *dependencyResolver) healthCheckProcess() {
 	defer r.wg.Done()
 
@@ -849,7 +897,7 @@ func (r *dependencyResolver) healthCheckProcess() {
 	}
 }
 
-// Close gracefully shuts down the dependency resolver
+// Close gracefully shuts down the dependency resolver.
 func (r *dependencyResolver) Close() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -860,11 +908,11 @@ func (r *dependencyResolver) Close() error {
 
 	r.logger.Info("Shutting down dependency resolver")
 
-	// Cancel context and wait for background processes
+	// Cancel context and wait for background processes.
 	r.cancel()
 	r.wg.Wait()
 
-	// Close caches
+	// Close caches.
 	if r.resolutionCache != nil {
 		r.resolutionCache.Close()
 	}
@@ -875,12 +923,12 @@ func (r *dependencyResolver) Close() error {
 		r.versionCache.Close()
 	}
 
-	// Close worker pool
+	// Close worker pool.
 	if r.workerPool != nil {
 		r.workerPool.Close()
 	}
 
-	// Close providers
+	// Close providers.
 	for name, provider := range r.providers {
 		if err := provider.Close(); err != nil {
 			r.logger.Error(err, "Failed to close provider", "provider", name)
@@ -893,17 +941,52 @@ func (r *dependencyResolver) Close() error {
 	return nil
 }
 
+// ClearCache clears cached data based on patterns.
+func (r *dependencyResolver) ClearCache(ctx context.Context, patterns []string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.closed {
+		return fmt.Errorf("resolver is closed")
+	}
+
+	r.logger.Info("Clearing cache", "patterns", patterns)
+
+	// Clear resolution cache.
+	if r.resolutionCache != nil {
+		for _, pattern := range patterns {
+			// Simple pattern matching for cache keys.
+			// In production, this could use more sophisticated pattern matching.
+			if pattern == "*" || pattern == "" {
+				r.resolutionCache.Clear()
+			}
+		}
+	}
+
+	// Clear constraint cache.
+	if r.constraintCache != nil {
+		for _, pattern := range patterns {
+			if pattern == "*" || pattern == "" {
+				r.constraintCache.Clear()
+			}
+		}
+	}
+
+	r.logger.Info("Cache cleared successfully")
+	return nil
+}
+
 // Additional method implementations would continue here...
-// This includes the complex SAT solving algorithms, constraint processing,
-// version resolution logic, conflict detection and resolution algorithms,
+// This includes the complex SAT solving algorithms, constraint processing,.
+// version resolution logic, conflict detection and resolution algorithms,.
 // machine learning integration, and comprehensive error handling.
 
-// The implementation demonstrates:
-// 1. Comprehensive dependency resolution with SAT solving
-// 2. Advanced caching and performance optimization
-// 3. Concurrent processing with worker pools
-// 4. Extensive monitoring and metrics collection
-// 5. Robust error handling and validation
-// 6. Support for multiple dependency sources and strategies
-// 7. Integration with Nephio Porch for package management
-// 8. Production-ready lifecycle management
+// The implementation demonstrates:.
+// 1. Comprehensive dependency resolution with SAT solving.
+// 2. Advanced caching and performance optimization.
+// 3. Concurrent processing with worker pools.
+// 4. Extensive monitoring and metrics collection.
+// 5. Robust error handling and validation.
+// 6. Support for multiple dependency sources and strategies.
+// 7. Integration with Nephio Porch for package management.
+// 8. Production-ready lifecycle management.

@@ -24,49 +24,49 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
-// IntentState represents the complete state of a network intent
+// IntentState represents the complete state of a network intent.
 type IntentState struct {
-	// Basic identification
+	// Basic identification.
 	NamespacedName types.NamespacedName `json:"namespacedName"`
 	Version        string               `json:"version"`
 	CreationTime   time.Time            `json:"creationTime"`
 	LastModified   time.Time            `json:"lastModified"`
 
-	// Processing state
+	// Processing state.
 	CurrentPhase     interfaces.ProcessingPhase `json:"currentPhase"`
 	PhaseStartTime   time.Time                  `json:"phaseStartTime"`
 	PhaseTransitions []PhaseTransition          `json:"phaseTransitions"`
 
-	// Phase-specific data
+	// Phase-specific data.
 	PhaseData   map[interfaces.ProcessingPhase]interface{} `json:"phaseData"`
 	PhaseErrors map[interfaces.ProcessingPhase][]string    `json:"phaseErrors"`
 
-	// Status conditions
+	// Status conditions.
 	Conditions []StateCondition `json:"conditions"`
 
-	// Dependencies and relationships
+	// Dependencies and relationships.
 	Dependencies     []IntentDependency `json:"dependencies"`
 	DependentIntents []string           `json:"dependentIntents"`
 
-	// Error tracking
+	// Error tracking.
 	LastError     string    `json:"lastError,omitempty"`
 	LastErrorTime time.Time `json:"lastErrorTime,omitempty"`
 	RetryCount    int       `json:"retryCount"`
 
-	// Resource tracking
+	// Resource tracking.
 	AllocatedResources []ResourceAllocation `json:"allocatedResources"`
 	ResourceLocks      []ResourceLock       `json:"resourceLocks"`
 
-	// Processing metrics
+	// Processing metrics.
 	ProcessingDuration time.Duration                               `json:"processingDuration"`
 	PhaseMetrics       map[interfaces.ProcessingPhase]PhaseMetrics `json:"phaseMetrics"`
 
-	// Metadata and annotations
+	// Metadata and annotations.
 	Metadata map[string]interface{} `json:"metadata"`
 	Tags     []string               `json:"tags"`
 }
 
-// PhaseTransition represents a transition between processing phases
+// PhaseTransition represents a transition between processing phases.
 type PhaseTransition struct {
 	FromPhase     interfaces.ProcessingPhase `json:"fromPhase"`
 	ToPhase       interfaces.ProcessingPhase `json:"toPhase"`
@@ -78,7 +78,7 @@ type PhaseTransition struct {
 	ErrorMessage  string                     `json:"errorMessage,omitempty"`
 }
 
-// StateCondition represents a condition in the intent state
+// StateCondition represents a condition in the intent state.
 type StateCondition struct {
 	Type               string    `json:"type"`
 	Status             string    `json:"status"`
@@ -88,7 +88,7 @@ type StateCondition struct {
 	Severity           string    `json:"severity,omitempty"`
 }
 
-// IntentDependency represents a dependency on another intent
+// IntentDependency represents a dependency on another intent.
 type IntentDependency struct {
 	Intent    string                     `json:"intent"`
 	Phase     interfaces.ProcessingPhase `json:"phase"`
@@ -98,7 +98,7 @@ type IntentDependency struct {
 	Timeout   time.Duration              `json:"timeout,omitempty"`
 }
 
-// ResourceAllocation represents allocated resources for an intent
+// ResourceAllocation represents allocated resources for an intent.
 type ResourceAllocation struct {
 	ResourceType string            `json:"resourceType"`
 	ResourceID   string            `json:"resourceId"`
@@ -108,7 +108,7 @@ type ResourceAllocation struct {
 	Metadata     map[string]string `json:"metadata,omitempty"`
 }
 
-// ResourceLock represents a resource lock held by an intent
+// ResourceLock represents a resource lock held by an intent.
 type ResourceLock struct {
 	LockID       string            `json:"lockId"`
 	ResourceType string            `json:"resourceType"`
@@ -119,7 +119,7 @@ type ResourceLock struct {
 	Metadata     map[string]string `json:"metadata,omitempty"`
 }
 
-// PhaseMetrics contains metrics for a specific processing phase
+// PhaseMetrics contains metrics for a specific processing phase.
 type PhaseMetrics struct {
 	StartTime       time.Time     `json:"startTime"`
 	EndTime         time.Time     `json:"endTime"`
@@ -134,7 +134,7 @@ type PhaseMetrics struct {
 	CPUUsagePercent float64       `json:"cpuUsagePercent"`
 }
 
-// StateChangeEvent represents a state change event
+// StateChangeEvent represents a state change event.
 type StateChangeEvent struct {
 	Type           string                     `json:"type"`
 	IntentName     types.NamespacedName       `json:"intentName"`
@@ -147,7 +147,7 @@ type StateChangeEvent struct {
 	AffectedFields []string                   `json:"affectedFields,omitempty"`
 }
 
-// StateStatistics provides statistics about state management
+// StateStatistics provides statistics about state management.
 type StateStatistics struct {
 	TotalStates           int            `json:"totalStates"`
 	StatesByPhase         map[string]int `json:"statesByPhase"`
@@ -160,7 +160,7 @@ type StateStatistics struct {
 	DependencyViolations  int64          `json:"dependencyViolations"`
 }
 
-// StateSyncRequest represents a request to synchronize state
+// StateSyncRequest represents a request to synchronize state.
 type StateSyncRequest struct {
 	IntentName    types.NamespacedName `json:"intentName"`
 	RequestedBy   string               `json:"requestedBy"`
@@ -170,7 +170,7 @@ type StateSyncRequest struct {
 	TargetVersion string               `json:"targetVersion,omitempty"`
 }
 
-// StateSyncResponse represents a response to state synchronization
+// StateSyncResponse represents a response to state synchronization.
 type StateSyncResponse struct {
 	RequestID         string            `json:"requestId"`
 	Success           bool              `json:"success"`
@@ -182,7 +182,7 @@ type StateSyncResponse struct {
 	Metadata          map[string]string `json:"metadata,omitempty"`
 }
 
-// StateConflict represents a conflict between states
+// StateConflict represents a conflict between states.
 type StateConflict struct {
 	IntentName      types.NamespacedName `json:"intentName"`
 	ConflictType    string               `json:"conflictType"`
@@ -194,7 +194,7 @@ type StateConflict struct {
 	Resolution      string               `json:"resolution,omitempty"`
 }
 
-// StateValidationResult represents the result of state validation
+// StateValidationResult represents the result of state validation.
 type StateValidationResult struct {
 	Valid           bool                     `json:"valid"`
 	Errors          []StateValidationError   `json:"errors,omitempty"`
@@ -204,7 +204,7 @@ type StateValidationResult struct {
 	Version         string                   `json:"version"`
 }
 
-// StateValidationError represents a state validation error
+// StateValidationError represents a state validation error.
 type StateValidationError struct {
 	Field      string                 `json:"field"`
 	Value      interface{}            `json:"value"`
@@ -214,7 +214,7 @@ type StateValidationError struct {
 	Metadata   map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// StateValidationWarning represents a state validation warning
+// StateValidationWarning represents a state validation warning.
 type StateValidationWarning struct {
 	Field      string                 `json:"field"`
 	Value      interface{}            `json:"value"`
@@ -223,7 +223,7 @@ type StateValidationWarning struct {
 	Metadata   map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// StateMutex represents a distributed mutex for state synchronization
+// StateMutex represents a distributed mutex for state synchronization.
 type StateMutex struct {
 	Name       string            `json:"name"`
 	Owner      string            `json:"owner"`
@@ -233,7 +233,7 @@ type StateMutex struct {
 	Metadata   map[string]string `json:"metadata,omitempty"`
 }
 
-// StateSnapshot represents a point-in-time snapshot of intent state
+// StateSnapshot represents a point-in-time snapshot of intent state.
 type StateSnapshot struct {
 	IntentName     types.NamespacedName `json:"intentName"`
 	Version        string               `json:"version"`
@@ -244,7 +244,7 @@ type StateSnapshot struct {
 	Metadata       map[string]string    `json:"metadata,omitempty"`
 }
 
-// StateRecoveryInfo contains information for state recovery
+// StateRecoveryInfo contains information for state recovery.
 type StateRecoveryInfo struct {
 	IntentName           types.NamespacedName `json:"intentName"`
 	LastKnownGoodVersion string               `json:"lastKnownGoodVersion"`
@@ -256,9 +256,9 @@ type StateRecoveryInfo struct {
 	Notes                string               `json:"notes,omitempty"`
 }
 
-// State query and filtering types
+// State query and filtering types.
 
-// StateQuery represents a query for intent states
+// StateQuery represents a query for intent states.
 type StateQuery struct {
 	Namespace       string                       `json:"namespace,omitempty"`
 	Name            string                       `json:"name,omitempty"`
@@ -278,7 +278,7 @@ type StateQuery struct {
 	Offset          int                          `json:"offset,omitempty"`
 }
 
-// StateQueryResult represents the result of a state query
+// StateQueryResult represents the result of a state query.
 type StateQueryResult struct {
 	States        []*IntentState `json:"states"`
 	TotalCount    int            `json:"totalCount"`
@@ -288,52 +288,74 @@ type StateQueryResult struct {
 	NextOffset    int            `json:"nextOffset,omitempty"`
 }
 
-// Constants for state management
+// Constants for state management.
 
 const (
-	// State condition types
-	ConditionTypeReady              = "Ready"
-	ConditionTypeProgressing        = "Progressing"
-	ConditionTypeDegraded           = "Degraded"
-	ConditionTypeAvailable          = "Available"
-	ConditionTypeError              = "Error"
-	ConditionTypeDependenciesMet    = "DependenciesMet"
+	// State condition types.
+	ConditionTypeReady = "Ready"
+	// ConditionTypeProgressing holds conditiontypeprogressing value.
+	ConditionTypeProgressing = "Progressing"
+	// ConditionTypeDegraded holds conditiontypedegraded value.
+	ConditionTypeDegraded = "Degraded"
+	// ConditionTypeAvailable holds conditiontypeavailable value.
+	ConditionTypeAvailable = "Available"
+	// ConditionTypeError holds conditiontypeerror value.
+	ConditionTypeError = "Error"
+	// ConditionTypeDependenciesMet holds conditiontypedependenciesmet value.
+	ConditionTypeDependenciesMet = "DependenciesMet"
+	// ConditionTypeResourcesAllocated holds conditiontyperesourcesallocated value.
 	ConditionTypeResourcesAllocated = "ResourcesAllocated"
-	ConditionTypeValidated          = "Validated"
+	// ConditionTypeValidated holds conditiontypevalidated value.
+	ConditionTypeValidated = "Validated"
 
-	// State condition statuses
-	ConditionStatusTrue    = "True"
-	ConditionStatusFalse   = "False"
+	// State condition statuses.
+	ConditionStatusTrue = "True"
+	// ConditionStatusFalse holds conditionstatusfalse value.
+	ConditionStatusFalse = "False"
+	// ConditionStatusUnknown holds conditionstatusunknown value.
 	ConditionStatusUnknown = "Unknown"
 
-	// Dependency types
-	DependencyTypeBlocking     = "blocking"
-	DependencyTypeSoft         = "soft"
+	// Dependency types.
+	DependencyTypeBlocking = "blocking"
+	// DependencyTypeSoft holds dependencytypesoft value.
+	DependencyTypeSoft = "soft"
+	// DependencyTypeNotification holds dependencytypenotification value.
 	DependencyTypeNotification = "notification"
 
-	// Resource allocation statuses
+	// Resource allocation statuses.
 	ResourceStatusAllocated = "allocated"
-	ResourceStatusReleased  = "released"
-	ResourceStatusPending   = "pending"
-	ResourceStatusFailed    = "failed"
+	// ResourceStatusReleased holds resourcestatusreleased value.
+	ResourceStatusReleased = "released"
+	// ResourceStatusPending holds resourcestatuspending value.
+	ResourceStatusPending = "pending"
+	// ResourceStatusFailed holds resourcestatusfailed value.
+	ResourceStatusFailed = "failed"
 
-	// Lock types
+	// Lock types.
 	LockTypeExclusive = "exclusive"
-	LockTypeShared    = "shared"
+	// LockTypeShared holds locktypeshared value.
+	LockTypeShared = "shared"
 
-	// Conflict resolution modes
+	// Conflict resolution modes.
 	ConflictResolutionLatest = "latest"
-	ConflictResolutionMerge  = "merge"
+	// ConflictResolutionMerge holds conflictresolutionmerge value.
+	ConflictResolutionMerge = "merge"
+	// ConflictResolutionManual holds conflictresolutionmanual value.
 	ConflictResolutionManual = "manual"
 
-	// Sync types
-	SyncTypeFull        = "full"
+	// Sync types.
+	SyncTypeFull = "full"
+	// SyncTypeIncremental holds synctypeincremental value.
 	SyncTypeIncremental = "incremental"
-	SyncTypeValidate    = "validate"
+	// SyncTypeValidate holds synctypevalidate value.
+	SyncTypeValidate = "validate"
 
-	// Severity levels
-	SeverityLow      = "low"
-	SeverityMedium   = "medium"
-	SeverityHigh     = "high"
+	// Severity levels.
+	SeverityLow = "low"
+	// SeverityMedium holds severitymedium value.
+	SeverityMedium = "medium"
+	// SeverityHigh holds severityhigh value.
+	SeverityHigh = "high"
+	// SeverityCritical holds severitycritical value.
 	SeverityCritical = "critical"
 )

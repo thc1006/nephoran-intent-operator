@@ -19,7 +19,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// FlameGraphGenerator generates flamegraphs from profiling data
+// FlameGraphGenerator generates flamegraphs from profiling data.
 type FlameGraphGenerator struct {
 	profileDir   string
 	outputDir    string
@@ -30,7 +30,7 @@ type FlameGraphGenerator struct {
 	svgGenerator SVGGenerator
 }
 
-// ProfileData represents collected profile data
+// ProfileData represents collected profile data.
 type ProfileData struct {
 	Type         string
 	Timestamp    time.Time
@@ -41,7 +41,7 @@ type ProfileData struct {
 	Metrics      ProfileMetrics
 }
 
-// ProfileMetrics contains profile-specific metrics
+// ProfileMetrics contains profile-specific metrics.
 type ProfileMetrics struct {
 	CPUCycles      int64
 	HeapAlloc      uint64
@@ -52,7 +52,7 @@ type ProfileMetrics struct {
 	SampleRate     int
 }
 
-// FlameGraphComparisonResult represents before/after comparison for flame graphs
+// FlameGraphComparisonResult represents before/after comparison for flame graphs.
 type FlameGraphComparisonResult struct {
 	Type           string
 	BeforeProfile  *ProfileData
@@ -63,7 +63,7 @@ type FlameGraphComparisonResult struct {
 	FlameGraphDiff string
 }
 
-// HotSpotChange represents changes in hot spots
+// HotSpotChange represents changes in hot spots.
 type HotSpotChange struct {
 	Function      string
 	BeforeSamples int64
@@ -74,7 +74,7 @@ type HotSpotChange struct {
 	Status        string // "eliminated", "reduced", "increased", "new"
 }
 
-// SVGGenerator generates SVG flamegraphs
+// SVGGenerator generates SVG flamegraphs.
 type SVGGenerator struct {
 	width      int
 	height     int
@@ -83,7 +83,7 @@ type SVGGenerator struct {
 	colors     map[string]string
 }
 
-// NewFlameGraphGenerator creates a new flamegraph generator
+// NewFlameGraphGenerator creates a new flamegraph generator.
 func NewFlameGraphGenerator(profileDir, outputDir string) *FlameGraphGenerator {
 	return &FlameGraphGenerator{
 		profileDir:  profileDir,
@@ -109,7 +109,7 @@ func NewFlameGraphGenerator(profileDir, outputDir string) *FlameGraphGenerator {
 	}
 }
 
-// CaptureBeforeProfile captures profile data before optimization
+// CaptureBeforeProfile captures profile data before optimization.
 func (fg *FlameGraphGenerator) CaptureBeforeProfile(ctx context.Context, profileType string, duration time.Duration) (*ProfileData, error) {
 	fg.mu.Lock()
 	defer fg.mu.Unlock()
@@ -161,12 +161,12 @@ func (fg *FlameGraphGenerator) CaptureBeforeProfile(ctx context.Context, profile
 		return nil, fmt.Errorf("unsupported profile type: %s", profileType)
 	}
 
-	// Analyze profile and extract hot spots
+	// Analyze profile and extract hot spots.
 	if err := fg.analyzeProfile(profileData); err != nil {
 		klog.Errorf("Failed to analyze profile: %v", err)
 	}
 
-	// Generate flamegraph
+	// Generate flamegraph.
 	flamegraph, err := fg.generateFlameGraph(profileData.ProfilePath, fmt.Sprintf("%s_before", profileType))
 	if err != nil {
 		klog.Errorf("Failed to generate flamegraph: %v", err)
@@ -178,7 +178,7 @@ func (fg *FlameGraphGenerator) CaptureBeforeProfile(ctx context.Context, profile
 	return profileData, nil
 }
 
-// CaptureAfterProfile captures profile data after optimization
+// CaptureAfterProfile captures profile data after optimization.
 func (fg *FlameGraphGenerator) CaptureAfterProfile(ctx context.Context, profileType string, duration time.Duration) (*ProfileData, error) {
 	fg.mu.Lock()
 	defer fg.mu.Unlock()
@@ -230,12 +230,12 @@ func (fg *FlameGraphGenerator) CaptureAfterProfile(ctx context.Context, profileT
 		return nil, fmt.Errorf("unsupported profile type: %s", profileType)
 	}
 
-	// Analyze profile and extract hot spots
+	// Analyze profile and extract hot spots.
 	if err := fg.analyzeProfile(profileData); err != nil {
 		klog.Errorf("Failed to analyze profile: %v", err)
 	}
 
-	// Generate flamegraph
+	// Generate flamegraph.
 	flamegraph, err := fg.generateFlameGraph(profileData.ProfilePath, fmt.Sprintf("%s_after", profileType))
 	if err != nil {
 		klog.Errorf("Failed to generate flamegraph: %v", err)
@@ -247,7 +247,7 @@ func (fg *FlameGraphGenerator) CaptureAfterProfile(ctx context.Context, profileT
 	return profileData, nil
 }
 
-// GenerateComparison generates before/after comparison
+// GenerateComparison generates before/after comparison.
 func (fg *FlameGraphGenerator) GenerateComparison(profileType string) (*FlameGraphComparisonResult, error) {
 	fg.mu.RLock()
 	defer fg.mu.RUnlock()
@@ -265,13 +265,13 @@ func (fg *FlameGraphGenerator) GenerateComparison(profileType string) (*FlameGra
 		AfterProfile:  after,
 	}
 
-	// Calculate improvement
+	// Calculate improvement.
 	comparison.Improvement = fg.calculateImprovement(before, after)
 
-	// Analyze hot spot changes
+	// Analyze hot spot changes.
 	comparison.HotSpotChanges = fg.analyzeHotSpotChanges(before, after)
 
-	// Generate comparison flamegraph
+	// Generate comparison flamegraph.
 	diffGraph, err := fg.generateDiffFlameGraph(before.ProfilePath, after.ProfilePath, profileType)
 	if err != nil {
 		klog.Errorf("Failed to generate diff flamegraph: %v", err)
@@ -279,14 +279,14 @@ func (fg *FlameGraphGenerator) GenerateComparison(profileType string) (*FlameGra
 		comparison.FlameGraphDiff = diffGraph
 	}
 
-	// Generate summary
+	// Generate summary.
 	comparison.Summary = fg.generateComparisonSummary(comparison)
 
 	fg.comparisons[profileType] = comparison
 	return comparison, nil
 }
 
-// captureCPUProfile captures CPU profile
+// captureCPUProfile captures CPU profile.
 func (fg *FlameGraphGenerator) captureCPUProfile(ctx context.Context, duration time.Duration, suffix string) (string, error) {
 	filename := filepath.Join(fg.profileDir, fmt.Sprintf("cpu_%s_%d.prof", suffix, time.Now().Unix()))
 	file, err := os.Create(filename)
@@ -295,12 +295,12 @@ func (fg *FlameGraphGenerator) captureCPUProfile(ctx context.Context, duration t
 	}
 	defer file.Close()
 
-	// Start CPU profiling
+	// Start CPU profiling.
 	if err := pprof.StartCPUProfile(file); err != nil {
 		return "", err
 	}
 
-	// Wait for duration or context cancellation
+	// Wait for duration or context cancellation.
 	select {
 	case <-time.After(duration):
 	case <-ctx.Done():
@@ -311,7 +311,7 @@ func (fg *FlameGraphGenerator) captureCPUProfile(ctx context.Context, duration t
 	return filename, nil
 }
 
-// captureMemoryProfile captures memory profile
+// captureMemoryProfile captures memory profile.
 func (fg *FlameGraphGenerator) captureMemoryProfile(suffix string) (string, error) {
 	runtime.GC() // Force GC for accurate profile
 
@@ -330,7 +330,7 @@ func (fg *FlameGraphGenerator) captureMemoryProfile(suffix string) (string, erro
 	return filename, nil
 }
 
-// captureGoroutineProfile captures goroutine profile
+// captureGoroutineProfile captures goroutine profile.
 func (fg *FlameGraphGenerator) captureGoroutineProfile(suffix string) (string, error) {
 	filename := filepath.Join(fg.profileDir, fmt.Sprintf("goroutine_%s_%d.prof", suffix, time.Now().Unix()))
 	file, err := os.Create(filename)
@@ -348,12 +348,12 @@ func (fg *FlameGraphGenerator) captureGoroutineProfile(suffix string) (string, e
 	return filename, nil
 }
 
-// captureBlockProfile captures block profile
+// captureBlockProfile captures block profile.
 func (fg *FlameGraphGenerator) captureBlockProfile(ctx context.Context, duration time.Duration, suffix string) (string, error) {
 	runtime.SetBlockProfileRate(1) // Profile everything
 	defer runtime.SetBlockProfileRate(0)
 
-	// Wait for duration to collect samples
+	// Wait for duration to collect samples.
 	select {
 	case <-time.After(duration):
 	case <-ctx.Done():
@@ -375,12 +375,12 @@ func (fg *FlameGraphGenerator) captureBlockProfile(ctx context.Context, duration
 	return filename, nil
 }
 
-// captureMutexProfile captures mutex profile
+// captureMutexProfile captures mutex profile.
 func (fg *FlameGraphGenerator) captureMutexProfile(ctx context.Context, duration time.Duration, suffix string) (string, error) {
 	runtime.SetMutexProfileFraction(1) // Profile everything
 	defer runtime.SetMutexProfileFraction(0)
 
-	// Wait for duration to collect samples
+	// Wait for duration to collect samples.
 	select {
 	case <-time.After(duration):
 	case <-ctx.Done():
@@ -402,21 +402,21 @@ func (fg *FlameGraphGenerator) captureMutexProfile(ctx context.Context, duration
 	return filename, nil
 }
 
-// analyzeProfile analyzes a profile and extracts hot spots
+// analyzeProfile analyzes a profile and extracts hot spots.
 func (fg *FlameGraphGenerator) analyzeProfile(profileData *ProfileData) error {
 	prof, err := profile.Parse(openFile(profileData.ProfilePath))
 	if err != nil {
 		return fmt.Errorf("failed to parse profile: %w", err)
 	}
 
-	// Calculate total samples
+	// Calculate total samples.
 	var totalSamples int64
 	for _, sample := range prof.Sample {
 		totalSamples += sample.Value[0]
 	}
 	profileData.TotalSamples = totalSamples
 
-	// Extract hot spots
+	// Extract hot spots.
 	hotSpots := make(map[string]int64)
 	for _, sample := range prof.Sample {
 		for _, location := range sample.Location {
@@ -427,7 +427,7 @@ func (fg *FlameGraphGenerator) analyzeProfile(profileData *ProfileData) error {
 		}
 	}
 
-	// Sort and convert to HotSpot slice
+	// Sort and convert to HotSpot slice.
 	var spots []HotSpot
 	for funcName, samples := range hotSpots {
 		percentage := float64(samples) / float64(totalSamples) * 100
@@ -440,12 +440,12 @@ func (fg *FlameGraphGenerator) analyzeProfile(profileData *ProfileData) error {
 		}
 	}
 
-	// Sort by percentage descending
+	// Sort by percentage descending.
 	sort.Slice(spots, func(i, j int) bool {
 		return spots[i].Percentage > spots[j].Percentage
 	})
 
-	// Keep top 20 hot spots
+	// Keep top 20 hot spots.
 	if len(spots) > 20 {
 		spots = spots[:20]
 	}
@@ -454,14 +454,14 @@ func (fg *FlameGraphGenerator) analyzeProfile(profileData *ProfileData) error {
 	return nil
 }
 
-// generateFlameGraph generates an SVG flamegraph
+// generateFlameGraph generates an SVG flamegraph.
 func (fg *FlameGraphGenerator) generateFlameGraph(profilePath, name string) (string, error) {
 	outputPath := filepath.Join(fg.outputDir, fmt.Sprintf("%s_flamegraph.svg", name))
 
-	// Try to use go tool pprof to generate flamegraph
+	// Try to use go tool pprof to generate flamegraph.
 	cmd := exec.Command("go", "tool", "pprof", "-svg", "-output", outputPath, profilePath)
 	if output, err := cmd.CombinedOutput(); err != nil {
-		// Fallback to custom SVG generation
+		// Fallback to custom SVG generation.
 		klog.Warningf("pprof SVG generation failed: %v, output: %s. Using custom generator.", err, output)
 		return fg.generateCustomFlameGraph(profilePath, outputPath, name)
 	}
@@ -470,28 +470,28 @@ func (fg *FlameGraphGenerator) generateFlameGraph(profilePath, name string) (str
 	return outputPath, nil
 }
 
-// generateCustomFlameGraph generates a custom SVG flamegraph
+// generateCustomFlameGraph generates a custom SVG flamegraph.
 func (fg *FlameGraphGenerator) generateCustomFlameGraph(profilePath, outputPath, name string) (string, error) {
 	prof, err := profile.Parse(openFile(profilePath))
 	if err != nil {
 		return "", fmt.Errorf("failed to parse profile: %w", err)
 	}
 
-	// Build call tree
+	// Build call tree.
 	tree := fg.buildCallTree(prof)
 
-	// Generate SVG
+	// Generate SVG.
 	svg := fg.svgGenerator.GenerateFlameGraph(tree, name)
 
-	// Write to file
-	if err := os.WriteFile(outputPath, []byte(svg), 0644); err != nil {
+	// Write to file.
+	if err := os.WriteFile(outputPath, []byte(svg), 0o640); err != nil {
 		return "", fmt.Errorf("failed to write SVG: %w", err)
 	}
 
 	return outputPath, nil
 }
 
-// buildCallTree builds a call tree from profile data
+// buildCallTree builds a call tree from profile data.
 func (fg *FlameGraphGenerator) buildCallTree(prof *profile.Profile) *CallNode {
 	root := &CallNode{
 		Name:     "root",
@@ -503,7 +503,7 @@ func (fg *FlameGraphGenerator) buildCallTree(prof *profile.Profile) *CallNode {
 		value := sample.Value[0]
 		current := root
 
-		// Build path from leaf to root (reverse order)
+		// Build path from leaf to root (reverse order).
 		path := make([]string, 0)
 		for i := len(sample.Location) - 1; i >= 0; i-- {
 			location := sample.Location[i]
@@ -512,7 +512,7 @@ func (fg *FlameGraphGenerator) buildCallTree(prof *profile.Profile) *CallNode {
 			}
 		}
 
-		// Add path to tree
+		// Add path to tree.
 		for _, funcName := range path {
 			if child, exists := current.Children[funcName]; exists {
 				child.Value += value
@@ -533,18 +533,18 @@ func (fg *FlameGraphGenerator) buildCallTree(prof *profile.Profile) *CallNode {
 	return root
 }
 
-// CallNode represents a node in the call tree
+// CallNode represents a node in the call tree.
 type CallNode struct {
 	Name     string
 	Value    int64
 	Children map[string]*CallNode
 }
 
-// generateDiffFlameGraph generates a differential flamegraph
+// generateDiffFlameGraph generates a differential flamegraph.
 func (fg *FlameGraphGenerator) generateDiffFlameGraph(beforePath, afterPath, profileType string) (string, error) {
 	outputPath := filepath.Join(fg.outputDir, fmt.Sprintf("%s_diff_flamegraph.svg", profileType))
 
-	// Parse both profiles
+	// Parse both profiles.
 	beforeProf, err := profile.Parse(openFile(beforePath))
 	if err != nil {
 		return "", fmt.Errorf("failed to parse before profile: %w", err)
@@ -555,16 +555,16 @@ func (fg *FlameGraphGenerator) generateDiffFlameGraph(beforePath, afterPath, pro
 		return "", fmt.Errorf("failed to parse after profile: %w", err)
 	}
 
-	// Build diff tree
+	// Build diff tree.
 	beforeTree := fg.buildCallTree(beforeProf)
 	afterTree := fg.buildCallTree(afterProf)
 	diffTree := fg.buildDiffTree(beforeTree, afterTree)
 
-	// Generate diff SVG
+	// Generate diff SVG.
 	svg := fg.svgGenerator.GenerateDiffFlameGraph(diffTree, profileType)
 
-	// Write to file
-	if err := os.WriteFile(outputPath, []byte(svg), 0644); err != nil {
+	// Write to file.
+	if err := os.WriteFile(outputPath, []byte(svg), 0o640); err != nil {
 		return "", fmt.Errorf("failed to write diff SVG: %w", err)
 	}
 
@@ -572,7 +572,7 @@ func (fg *FlameGraphGenerator) generateDiffFlameGraph(beforePath, afterPath, pro
 	return outputPath, nil
 }
 
-// buildDiffTree builds a differential call tree
+// buildDiffTree builds a differential call tree.
 func (fg *FlameGraphGenerator) buildDiffTree(before, after *CallNode) *DiffNode {
 	diff := &DiffNode{
 		Name:        after.Name,
@@ -581,7 +581,7 @@ func (fg *FlameGraphGenerator) buildDiffTree(before, after *CallNode) *DiffNode 
 		Children:    make(map[string]*DiffNode),
 	}
 
-	// Process all nodes that exist in after
+	// Process all nodes that exist in after.
 	for name, afterChild := range after.Children {
 		var beforeChild *CallNode
 		if before != nil {
@@ -593,7 +593,7 @@ func (fg *FlameGraphGenerator) buildDiffTree(before, after *CallNode) *DiffNode 
 		diff.Children[name] = fg.buildDiffTree(beforeChild, afterChild)
 	}
 
-	// Process nodes that only exist in before (eliminated hot spots)
+	// Process nodes that only exist in before (eliminated hot spots).
 	if before != nil {
 		for name, beforeChild := range before.Children {
 			if _, exists := after.Children[name]; !exists {
@@ -606,7 +606,7 @@ func (fg *FlameGraphGenerator) buildDiffTree(before, after *CallNode) *DiffNode 
 	return diff
 }
 
-// DiffNode represents a node in the differential call tree
+// DiffNode represents a node in the differential call tree.
 type DiffNode struct {
 	Name        string
 	BeforeValue int64
@@ -614,7 +614,7 @@ type DiffNode struct {
 	Children    map[string]*DiffNode
 }
 
-// calculateImprovement calculates the improvement percentage
+// calculateImprovement calculates the improvement percentage.
 func (fg *FlameGraphGenerator) calculateImprovement(before, after *ProfileData) float64 {
 	if before.TotalSamples == 0 {
 		return 0
@@ -624,11 +624,11 @@ func (fg *FlameGraphGenerator) calculateImprovement(before, after *ProfileData) 
 	return reduction
 }
 
-// analyzeHotSpotChanges analyzes changes in hot spots
+// analyzeHotSpotChanges analyzes changes in hot spots.
 func (fg *FlameGraphGenerator) analyzeHotSpotChanges(before, after *ProfileData) []HotSpotChange {
 	changes := make([]HotSpotChange, 0)
 
-	// Create maps for easy lookup
+	// Create maps for easy lookup.
 	beforeMap := make(map[string]HotSpot)
 	for _, spot := range before.HotSpots {
 		beforeMap[spot.Function] = spot
@@ -639,7 +639,7 @@ func (fg *FlameGraphGenerator) analyzeHotSpotChanges(before, after *ProfileData)
 		afterMap[spot.Function] = spot
 	}
 
-	// Check all functions that existed before
+	// Check all functions that existed before.
 	for funcName, beforeSpot := range beforeMap {
 		change := HotSpotChange{
 			Function:      funcName,
@@ -667,7 +667,7 @@ func (fg *FlameGraphGenerator) analyzeHotSpotChanges(before, after *ProfileData)
 		changes = append(changes, change)
 	}
 
-	// Check for new hot spots
+	// Check for new hot spots.
 	for funcName, afterSpot := range afterMap {
 		if _, exists := beforeMap[funcName]; !exists {
 			changes = append(changes, HotSpotChange{
@@ -680,7 +680,7 @@ func (fg *FlameGraphGenerator) analyzeHotSpotChanges(before, after *ProfileData)
 		}
 	}
 
-	// Sort by absolute change percentage
+	// Sort by absolute change percentage.
 	sort.Slice(changes, func(i, j int) bool {
 		return abs(changes[i].ChangePercent) > abs(changes[j].ChangePercent)
 	})
@@ -688,7 +688,7 @@ func (fg *FlameGraphGenerator) analyzeHotSpotChanges(before, after *ProfileData)
 	return changes
 }
 
-// generateComparisonSummary generates a comparison summary
+// generateComparisonSummary generates a comparison summary.
 func (fg *FlameGraphGenerator) generateComparisonSummary(comparison *FlameGraphComparisonResult) string {
 	var summary strings.Builder
 
@@ -721,7 +721,7 @@ func (fg *FlameGraphGenerator) generateComparisonSummary(comparison *FlameGraphC
 			change.BeforePercent, change.AfterPercent, change.ChangePercent))
 	}
 
-	// Count eliminated hot spots
+	// Count eliminated hot spots.
 	eliminated := 0
 	reduced := 0
 	for _, change := range comparison.HotSpotChanges {
@@ -738,11 +738,11 @@ func (fg *FlameGraphGenerator) generateComparisonSummary(comparison *FlameGraphC
 	return summary.String()
 }
 
-// GenerateFlameGraph generates an SVG flamegraph from a call tree
+// GenerateFlameGraph generates an SVG flamegraph from a call tree.
 func (sg *SVGGenerator) GenerateFlameGraph(root *CallNode, title string) string {
 	var svg strings.Builder
 
-	// SVG header
+	// SVG header.
 	svg.WriteString(fmt.Sprintf(`<?xml version="1.0" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg version="1.1" width="%d" height="%d" xmlns="http://www.w3.org/2000/svg">
@@ -750,18 +750,18 @@ func (sg *SVGGenerator) GenerateFlameGraph(root *CallNode, title string) string 
 <text x="%d" y="20" font-size="16" font-family="Verdana" text-anchor="middle">%s</text>
 `, sg.width, sg.height, sg.width, sg.height, sg.width/2, title))
 
-	// Draw flame graph
+	// Draw flame graph.
 	sg.drawNode(&svg, root, 0, 30, float64(sg.width), 0)
 
 	svg.WriteString("</svg>")
 	return svg.String()
 }
 
-// GenerateDiffFlameGraph generates a differential flamegraph
+// GenerateDiffFlameGraph generates a differential flamegraph.
 func (sg *SVGGenerator) GenerateDiffFlameGraph(root *DiffNode, title string) string {
 	var svg strings.Builder
 
-	// SVG header
+	// SVG header.
 	svg.WriteString(fmt.Sprintf(`<?xml version="1.0" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg version="1.1" width="%d" height="%d" xmlns="http://www.w3.org/2000/svg">
@@ -769,10 +769,10 @@ func (sg *SVGGenerator) GenerateDiffFlameGraph(root *DiffNode, title string) str
 <text x="%d" y="20" font-size="16" font-family="Verdana" text-anchor="middle">%s Differential FlameGraph</text>
 `, sg.width, sg.height, sg.width, sg.height, sg.width/2, title))
 
-	// Draw diff flame graph
+	// Draw diff flame graph.
 	sg.drawDiffNode(&svg, root, 0, 30, float64(sg.width), 0)
 
-	// Legend
+	// Legend.
 	svg.WriteString(fmt.Sprintf(`
 <text x="10" y="%d" font-size="12" font-family="Verdana">Legend:</text>
 <rect x="10" y="%d" width="20" height="10" fill="%s"/>
@@ -785,38 +785,38 @@ func (sg *SVGGenerator) GenerateDiffFlameGraph(root *DiffNode, title string) str
 	return svg.String()
 }
 
-// drawNode draws a node in the flame graph
+// drawNode draws a node in the flame graph.
 func (sg *SVGGenerator) drawNode(svg *strings.Builder, node *CallNode, x, y, width float64, depth int) {
 	if width < sg.minWidth || node == nil {
 		return
 	}
 
-	// Calculate color based on heat
+	// Calculate color based on heat.
 	color := sg.getHeatColor(node.Value, node.Value) // Simplified for now
 
-	// Draw rectangle
+	// Draw rectangle.
 	svg.WriteString(fmt.Sprintf(`<rect x="%.1f" y="%.1f" width="%.1f" height="%d" fill="%s" stroke="white"/>`,
 		x, y, width, sg.cellHeight, color))
 
-	// Draw text if wide enough
+	// Draw text if wide enough.
 	if width > 50 {
 		text := truncateString(node.Name, int(width/7))
 		svg.WriteString(fmt.Sprintf(`<text x="%.1f" y="%.1f" font-size="10" font-family="Verdana" text-anchor="middle">%s</text>`,
 			x+width/2, y+float64(sg.cellHeight)/2+3, text))
 	}
 
-	// Draw children
+	// Draw children.
 	if len(node.Children) > 0 {
 		childY := y + float64(sg.cellHeight)
 		childX := x
 
-		// Calculate total value for width distribution
+		// Calculate total value for width distribution.
 		var totalValue int64
 		for _, child := range node.Children {
 			totalValue += child.Value
 		}
 
-		// Draw each child
+		// Draw each child.
 		for _, child := range node.Children {
 			childWidth := (float64(child.Value) / float64(totalValue)) * width
 			sg.drawNode(svg, child, childX, childY, childWidth, depth+1)
@@ -825,13 +825,13 @@ func (sg *SVGGenerator) drawNode(svg *strings.Builder, node *CallNode, x, y, wid
 	}
 }
 
-// drawDiffNode draws a differential node
+// drawDiffNode draws a differential node.
 func (sg *SVGGenerator) drawDiffNode(svg *strings.Builder, node *DiffNode, x, y, width float64, depth int) {
 	if width < sg.minWidth || node == nil {
 		return
 	}
 
-	// Calculate color based on improvement/regression
+	// Calculate color based on improvement/regression.
 	var color string
 	if node.AfterValue < node.BeforeValue {
 		color = sg.colors["improved"]
@@ -841,11 +841,11 @@ func (sg *SVGGenerator) drawDiffNode(svg *strings.Builder, node *DiffNode, x, y,
 		color = sg.colors["normal"]
 	}
 
-	// Draw rectangle
+	// Draw rectangle.
 	svg.WriteString(fmt.Sprintf(`<rect x="%.1f" y="%.1f" width="%.1f" height="%d" fill="%s" stroke="white"/>`,
 		x, y, width, sg.cellHeight, color))
 
-	// Draw text if wide enough
+	// Draw text if wide enough.
 	if width > 50 {
 		text := truncateString(node.Name, int(width/7))
 		change := float64(node.AfterValue-node.BeforeValue) / float64(node.BeforeValue) * 100
@@ -856,12 +856,12 @@ func (sg *SVGGenerator) drawDiffNode(svg *strings.Builder, node *DiffNode, x, y,
 			x+width/2, y+float64(sg.cellHeight)/2+3, text, change))
 	}
 
-	// Draw children
+	// Draw children.
 	if len(node.Children) > 0 {
 		childY := y + float64(sg.cellHeight)
 		childX := x
 
-		// Use after values for width distribution
+		// Use after values for width distribution.
 		var totalValue int64
 		for _, child := range node.Children {
 			if child.AfterValue > 0 {
@@ -871,7 +871,7 @@ func (sg *SVGGenerator) drawDiffNode(svg *strings.Builder, node *DiffNode, x, y,
 			}
 		}
 
-		// Draw each child
+		// Draw each child.
 		for _, child := range node.Children {
 			var childValue int64
 			if child.AfterValue > 0 {
@@ -886,7 +886,7 @@ func (sg *SVGGenerator) drawDiffNode(svg *strings.Builder, node *DiffNode, x, y,
 	}
 }
 
-// getHeatColor returns a color based on heat value
+// getHeatColor returns a color based on heat value.
 func (sg *SVGGenerator) getHeatColor(value, maxValue int64) string {
 	ratio := float64(value) / float64(maxValue)
 	if ratio > 0.8 {
@@ -901,7 +901,7 @@ func (sg *SVGGenerator) getHeatColor(value, maxValue int64) string {
 	return sg.colors["cold"]
 }
 
-// Helper functions
+// Helper functions.
 
 func openFile(path string) io.Reader {
 	file, err := os.Open(path)
@@ -925,7 +925,7 @@ func abs(x float64) float64 {
 	return x
 }
 
-// GetComparisonReport generates a comprehensive comparison report
+// GetComparisonReport generates a comprehensive comparison report.
 func (fg *FlameGraphGenerator) GetComparisonReport() string {
 	fg.mu.RLock()
 	defer fg.mu.RUnlock()

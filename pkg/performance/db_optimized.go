@@ -16,7 +16,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// OptimizedDBManager provides high-performance database operations with Go 1.24+ optimizations
+// OptimizedDBManager provides high-performance database operations with Go 1.24+ optimizations.
 type OptimizedDBManager struct {
 	connectionPools map[string]*ConnectionPool
 	preparedStmts   *PreparedStatementCache
@@ -34,7 +34,7 @@ type OptimizedDBManager struct {
 	wg              sync.WaitGroup
 }
 
-// DBConfig contains database optimization configuration
+// DBConfig contains database optimization configuration.
 type DBConfig struct {
 	MaxOpenConns        int
 	MaxIdleConns        int
@@ -56,7 +56,7 @@ type DBConfig struct {
 	RetryDelay          time.Duration
 }
 
-// ConnectionPool manages database connections with advanced features
+// ConnectionPool manages database connections with advanced features.
 type ConnectionPool struct {
 	db              *sql.DB
 	dsn             string
@@ -71,7 +71,7 @@ type ConnectionPool struct {
 	mu              sync.RWMutex
 }
 
-// PreparedStatementCache caches prepared statements with LRU eviction
+// PreparedStatementCache caches prepared statements with LRU eviction.
 type PreparedStatementCache struct {
 	cache       map[string]*PreparedStmt
 	lruHead     *PreparedStmt
@@ -83,7 +83,7 @@ type PreparedStatementCache struct {
 	mu          sync.RWMutex
 }
 
-// PreparedStmt represents a cached prepared statement
+// PreparedStmt represents a cached prepared statement.
 type PreparedStmt struct {
 	stmt      *sql.Stmt
 	query     string
@@ -95,7 +95,7 @@ type PreparedStmt struct {
 	createdAt time.Time
 }
 
-// QueryOptimizer provides query optimization and caching
+// QueryOptimizer provides query optimization and caching.
 type QueryOptimizer struct {
 	queryCache     map[string]*CachedQuery
 	slowQueries    map[string]*SlowQuery
@@ -106,7 +106,7 @@ type QueryOptimizer struct {
 	mu             sync.RWMutex
 }
 
-// CachedQuery represents a cached query result
+// CachedQuery represents a cached query result.
 type CachedQuery struct {
 	result     interface{}
 	query      string
@@ -117,7 +117,7 @@ type CachedQuery struct {
 	size       int64
 }
 
-// SlowQuery tracks slow query information
+// SlowQuery tracks slow query information.
 type SlowQuery struct {
 	query          string
 	avgDuration    time.Duration
@@ -128,7 +128,7 @@ type SlowQuery struct {
 	suggestions    []string
 }
 
-// TransactionManager handles transaction optimization
+// TransactionManager handles transaction optimization.
 type TransactionManager struct {
 	activeTxns        map[string]*Transaction
 	txnPool           sync.Pool
@@ -140,7 +140,7 @@ type TransactionManager struct {
 	mu                sync.RWMutex
 }
 
-// Transaction represents an optimized database transaction
+// Transaction represents an optimized database transaction.
 type Transaction struct {
 	id         string
 	tx         *sql.Tx
@@ -153,7 +153,7 @@ type Transaction struct {
 	cancel     context.CancelFunc
 }
 
-// TxnOperation represents a transaction operation
+// TxnOperation represents a transaction operation.
 type TxnOperation struct {
 	type_        string
 	query        string
@@ -163,7 +163,7 @@ type TxnOperation struct {
 	rowsAffected int64
 }
 
-// BatchProcessor handles batch database operations
+// BatchProcessor handles batch database operations.
 type BatchProcessor struct {
 	batches      map[string]*Batch
 	batchTimeout time.Duration
@@ -173,7 +173,7 @@ type BatchProcessor struct {
 	mu           sync.RWMutex
 }
 
-// Batch represents a batch of database operations
+// Batch represents a batch of database operations.
 type Batch struct {
 	operations  []BatchOperation
 	createdAt   time.Time
@@ -182,7 +182,7 @@ type Batch struct {
 	results     []BatchResult
 }
 
-// BatchOperation represents a single operation in a batch
+// BatchOperation represents a single operation in a batch.
 type BatchOperation struct {
 	type_   string
 	query   string
@@ -191,7 +191,7 @@ type BatchOperation struct {
 	primary bool
 }
 
-// BatchResult contains the result of a batch operation
+// BatchResult contains the result of a batch operation.
 type BatchResult struct {
 	success      bool
 	rowsAffected int64
@@ -199,17 +199,21 @@ type BatchResult struct {
 	duration     time.Duration
 }
 
-// BatchStatus represents the status of a batch
+// BatchStatus represents the status of a batch.
 type BatchStatus int
 
 const (
+	// BatchPending holds batchpending value.
 	BatchPending BatchStatus = iota
+	// BatchProcessing holds batchprocessing value.
 	BatchProcessing
+	// BatchCompleted holds batchcompleted value.
 	BatchCompleted
+	// BatchFailed holds batchfailed value.
 	BatchFailed
 )
 
-// DBHealthChecker monitors database health
+// DBHealthChecker monitors database health.
 type DBHealthChecker struct {
 	checks        map[string]*HealthCheck
 	interval      time.Duration
@@ -218,7 +222,7 @@ type DBHealthChecker struct {
 	mu            sync.RWMutex
 }
 
-// HealthCheck represents a database health check
+// HealthCheck represents a database health check.
 type HealthCheck struct {
 	name         string
 	lastCheck    time.Time
@@ -229,7 +233,7 @@ type HealthCheck struct {
 	successCount int64
 }
 
-// ReadLoadBalancer balances read operations across replicas
+// ReadLoadBalancer balances read operations across replicas.
 type ReadLoadBalancer struct {
 	replicas        []*sql.DB
 	weights         []int
@@ -239,17 +243,21 @@ type ReadLoadBalancer struct {
 	mu              sync.RWMutex
 }
 
-// LoadBalanceStrategy defines load balancing strategies
+// LoadBalanceStrategy defines load balancing strategies.
 type LoadBalanceStrategy int
 
 const (
+	// LoadBalanceRoundRobin holds loadbalanceroundrobin value.
 	LoadBalanceRoundRobin LoadBalanceStrategy = iota
+	// LoadBalanceWeighted holds loadbalanceweighted value.
 	LoadBalanceWeighted
+	// LoadBalanceLeastConn holds loadbalanceleastconn value.
 	LoadBalanceLeastConn
+	// LoadBalanceRandom holds loadbalancerandom value.
 	LoadBalanceRandom
 )
 
-// DBMetrics tracks database performance metrics
+// DBMetrics tracks database performance metrics.
 type DBMetrics struct {
 	QueryCount         int64
 	SlowQueryCount     int64
@@ -272,7 +280,7 @@ type DBMetrics struct {
 	PreparedStmtMisses int64
 }
 
-// NewOptimizedDBManager creates a new optimized database manager
+// NewOptimizedDBManager creates a new optimized database manager.
 func NewOptimizedDBManager(config *DBConfig) (*OptimizedDBManager, error) {
 	if config == nil {
 		config = DefaultDBConfig()
@@ -293,13 +301,13 @@ func NewOptimizedDBManager(config *DBConfig) (*OptimizedDBManager, error) {
 		manager.healthChecker = NewDBHealthChecker(config.HealthCheckInterval)
 	}
 
-	// Start background tasks
+	// Start background tasks.
 	manager.startBackgroundTasks()
 
 	return manager, nil
 }
 
-// DefaultDBConfig returns default database configuration
+// DefaultDBConfig returns default database configuration.
 func DefaultDBConfig() *DBConfig {
 	return &DBConfig{
 		MaxOpenConns:        runtime.NumCPU() * 4,
@@ -323,7 +331,7 @@ func DefaultDBConfig() *DBConfig {
 	}
 }
 
-// AddConnectionPool adds a new connection pool
+// AddConnectionPool adds a new connection pool.
 func (dm *OptimizedDBManager) AddConnectionPool(name, dsn string) error {
 	dm.mu.Lock()
 	defer dm.mu.Unlock()
@@ -333,13 +341,13 @@ func (dm *OptimizedDBManager) AddConnectionPool(name, dsn string) error {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
 
-	// Configure connection pool
+	// Configure connection pool.
 	db.SetMaxOpenConns(dm.config.MaxOpenConns)
 	db.SetMaxIdleConns(dm.config.MaxIdleConns)
 	db.SetConnMaxLifetime(dm.config.ConnMaxLifetime)
 	db.SetConnMaxIdleTime(dm.config.ConnMaxIdleTime)
 
-	// Test connection
+	// Test connection.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -358,15 +366,15 @@ func (dm *OptimizedDBManager) AddConnectionPool(name, dsn string) error {
 
 	dm.connectionPools[name] = pool
 
-	// Set as primary if first connection
+	// Set as primary if first connection.
 	if dm.writePrimary == nil {
 		dm.writePrimary = db
 	} else {
-		// Add as read replica
+		// Add as read replica.
 		dm.readReplicas = append(dm.readReplicas, db)
 	}
 
-	// Update load balancer
+	// Update load balancer.
 	if len(dm.readReplicas) > 0 {
 		dm.loadBalancer = NewReadLoadBalancer(dm.readReplicas, LoadBalanceRoundRobin)
 	}
@@ -375,7 +383,7 @@ func (dm *OptimizedDBManager) AddConnectionPool(name, dsn string) error {
 	return nil
 }
 
-// QueryWithOptimization executes a query with optimization
+// QueryWithOptimization executes a query with optimization.
 func (dm *OptimizedDBManager) QueryWithOptimization(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
 	start := time.Now()
 	defer func() {
@@ -389,20 +397,20 @@ func (dm *OptimizedDBManager) QueryWithOptimization(ctx context.Context, query s
 		}
 	}()
 
-	// Check query cache first
+	// Check query cache first.
 	if dm.config.EnableQueryCache {
 		if cached := dm.queryOptimizer.GetCachedResult(query, args); cached != nil {
 			atomic.AddInt64(&dm.metrics.CacheHitCount, 1)
-			// Return cached result (simplified)
+			// Return cached result (simplified).
 			return nil, nil // Would return actual cached rows
 		}
 		atomic.AddInt64(&dm.metrics.CacheMissCount, 1)
 	}
 
-	// Get optimized query
+	// Get optimized query.
 	optimizedQuery := dm.queryOptimizer.OptimizeQuery(query)
 
-	// Use prepared statement if available
+	// Use prepared statement if available.
 	stmt := dm.preparedStmts.Get(optimizedQuery)
 	if stmt != nil {
 		atomic.AddInt64(&dm.metrics.PreparedStmtHits, 1)
@@ -411,18 +419,18 @@ func (dm *OptimizedDBManager) QueryWithOptimization(ctx context.Context, query s
 
 	atomic.AddInt64(&dm.metrics.PreparedStmtMisses, 1)
 
-	// Get appropriate database connection
+	// Get appropriate database connection.
 	db := dm.getReadConnection()
 	if db == nil {
 		atomic.AddInt64(&dm.metrics.ErrorCount, 1)
 		return nil, fmt.Errorf("no healthy database connections available")
 	}
 
-	// Execute query with retry logic
+	// Execute query with retry logic.
 	return dm.executeWithRetry(ctx, db, optimizedQuery, args...)
 }
 
-// ExecuteWithTransaction executes operations within a transaction
+// ExecuteWithTransaction executes operations within a transaction.
 func (dm *OptimizedDBManager) ExecuteWithTransaction(ctx context.Context, fn func(*sql.Tx) error) error {
 	txn, err := dm.txnManager.BeginTransaction(ctx, dm.writePrimary)
 	if err != nil {
@@ -459,7 +467,7 @@ func (dm *OptimizedDBManager) ExecuteWithTransaction(ctx context.Context, fn fun
 	return nil
 }
 
-// ExecuteBatch executes a batch of operations
+// ExecuteBatch executes a batch of operations.
 func (dm *OptimizedDBManager) ExecuteBatch(ctx context.Context, operations []BatchOperation) ([]BatchResult, error) {
 	start := time.Now()
 	defer func() {
@@ -471,7 +479,7 @@ func (dm *OptimizedDBManager) ExecuteBatch(ctx context.Context, operations []Bat
 	return dm.batchProcessor.ExecuteBatch(ctx, dm.writePrimary, operations)
 }
 
-// PrepareStatement prepares and caches a SQL statement
+// PrepareStatement prepares and caches a SQL statement.
 func (dm *OptimizedDBManager) PrepareStatement(query string) error {
 	db := dm.writePrimary
 	if db == nil {
@@ -487,7 +495,7 @@ func (dm *OptimizedDBManager) PrepareStatement(query string) error {
 	return nil
 }
 
-// StreamingQuery executes a query with streaming results
+// StreamingQuery executes a query with streaming results.
 func (dm *OptimizedDBManager) StreamingQuery(ctx context.Context, query string, callback func(*sql.Rows) error, args ...interface{}) error {
 	rows, err := dm.QueryWithOptimization(ctx, query, args...)
 	if err != nil {
@@ -510,7 +518,7 @@ func (dm *OptimizedDBManager) StreamingQuery(ctx context.Context, query string, 
 	return rows.Err()
 }
 
-// getReadConnection returns a healthy read connection
+// getReadConnection returns a healthy read connection.
 func (dm *OptimizedDBManager) getReadConnection() *sql.DB {
 	if dm.loadBalancer != nil && len(dm.readReplicas) > 0 {
 		return dm.loadBalancer.GetConnection()
@@ -518,12 +526,12 @@ func (dm *OptimizedDBManager) getReadConnection() *sql.DB {
 	return dm.writePrimary
 }
 
-// queryWithStatement executes a query using a prepared statement
+// queryWithStatement executes a query using a prepared statement.
 func (dm *OptimizedDBManager) queryWithStatement(ctx context.Context, stmt *sql.Stmt, args ...interface{}) (*sql.Rows, error) {
 	return stmt.QueryContext(ctx, args...)
 }
 
-// executeWithRetry executes a query with retry logic
+// executeWithRetry executes a query with retry logic.
 func (dm *OptimizedDBManager) executeWithRetry(ctx context.Context, db *sql.DB, query string, args ...interface{}) (*sql.Rows, error) {
 	var lastErr error
 	for attempt := 0; attempt < dm.config.RetryAttempts; attempt++ {
@@ -538,7 +546,7 @@ func (dm *OptimizedDBManager) executeWithRetry(ctx context.Context, db *sql.DB, 
 
 		lastErr = err
 
-		// Check if error is retryable
+		// Check if error is retryable.
 		if !dm.isRetryableError(err) {
 			break
 		}
@@ -548,11 +556,11 @@ func (dm *OptimizedDBManager) executeWithRetry(ctx context.Context, db *sql.DB, 
 	return nil, lastErr
 }
 
-// isRetryableError determines if an error is retryable
+// isRetryableError determines if an error is retryable.
 func (dm *OptimizedDBManager) isRetryableError(err error) bool {
 	// Check for network errors, temporary failures, etc.
 	if pqErr, ok := err.(*pq.Error); ok {
-		// PostgreSQL error codes for retryable errors
+		// PostgreSQL error codes for retryable errors.
 		return pqErr.Code == "40001" || // serialization_failure
 			pqErr.Code == "40P01" || // deadlock_detected
 			pqErr.Code == "53300" // too_many_connections
@@ -560,14 +568,14 @@ func (dm *OptimizedDBManager) isRetryableError(err error) bool {
 	return false
 }
 
-// updateAverageQueryTime updates the average query time metric
+// updateAverageQueryTime updates the average query time metric.
 func (dm *OptimizedDBManager) updateAverageQueryTime(duration time.Duration) {
 	currentAvg := atomic.LoadInt64(&dm.metrics.AverageQueryTime)
 	newAvg := (currentAvg + duration.Nanoseconds()) / 2
 	atomic.StoreInt64(&dm.metrics.AverageQueryTime, newAvg)
 }
 
-// NewPreparedStatementCache creates a new prepared statement cache
+// NewPreparedStatementCache creates a new prepared statement cache.
 func NewPreparedStatementCache(maxSize int) *PreparedStatementCache {
 	return &PreparedStatementCache{
 		cache:   make(map[string]*PreparedStmt),
@@ -575,7 +583,7 @@ func NewPreparedStatementCache(maxSize int) *PreparedStatementCache {
 	}
 }
 
-// Get retrieves a prepared statement from the cache
+// Get retrieves a prepared statement from the cache.
 func (psc *PreparedStatementCache) Get(query string) *sql.Stmt {
 	psc.mu.RLock()
 	defer psc.mu.RUnlock()
@@ -592,20 +600,20 @@ func (psc *PreparedStatementCache) Get(query string) *sql.Stmt {
 	return nil
 }
 
-// Set stores a prepared statement in the cache
+// Set stores a prepared statement in the cache.
 func (psc *PreparedStatementCache) Set(query string, stmt *sql.Stmt) {
 	psc.mu.Lock()
 	defer psc.mu.Unlock()
 
 	if existing, exists := psc.cache[query]; exists {
-		// Update existing
+		// Update existing.
 		existing.stmt = stmt
 		existing.lastUsed = time.Now()
 		psc.moveToFront(existing)
 		return
 	}
 
-	// Create new entry
+	// Create new entry.
 	preparedStmt := &PreparedStmt{
 		stmt:      stmt,
 		query:     query,
@@ -613,7 +621,7 @@ func (psc *PreparedStatementCache) Set(query string, stmt *sql.Stmt) {
 		createdAt: time.Now(),
 	}
 
-	// Evict if at capacity
+	// Evict if at capacity.
 	for psc.currentSize >= psc.maxSize && psc.lruTail != nil {
 		psc.evictLRU()
 	}
@@ -623,7 +631,7 @@ func (psc *PreparedStatementCache) Set(query string, stmt *sql.Stmt) {
 	psc.addToFront(preparedStmt)
 }
 
-// moveToFront moves a statement to the front of the LRU list
+// moveToFront moves a statement to the front of the LRU list.
 func (psc *PreparedStatementCache) moveToFront(stmt *PreparedStmt) {
 	if stmt == psc.lruHead {
 		return
@@ -633,7 +641,7 @@ func (psc *PreparedStatementCache) moveToFront(stmt *PreparedStmt) {
 	psc.addToFront(stmt)
 }
 
-// addToFront adds a statement to the front of the LRU list
+// addToFront adds a statement to the front of the LRU list.
 func (psc *PreparedStatementCache) addToFront(stmt *PreparedStmt) {
 	if psc.lruHead == nil {
 		psc.lruHead = stmt
@@ -645,7 +653,7 @@ func (psc *PreparedStatementCache) addToFront(stmt *PreparedStmt) {
 	}
 }
 
-// removeFromList removes a statement from the LRU list
+// removeFromList removes a statement from the LRU list.
 func (psc *PreparedStatementCache) removeFromList(stmt *PreparedStmt) {
 	if stmt.prev != nil {
 		stmt.prev.next = stmt.next
@@ -663,7 +671,7 @@ func (psc *PreparedStatementCache) removeFromList(stmt *PreparedStmt) {
 	stmt.next = nil
 }
 
-// evictLRU evicts the least recently used statement
+// evictLRU evicts the least recently used statement.
 func (psc *PreparedStatementCache) evictLRU() {
 	if psc.lruTail == nil {
 		return
@@ -676,7 +684,7 @@ func (psc *PreparedStatementCache) evictLRU() {
 	stmt.stmt.Close() // Close the prepared statement
 }
 
-// NewQueryOptimizer creates a new query optimizer
+// NewQueryOptimizer creates a new query optimizer.
 func NewQueryOptimizer() *QueryOptimizer {
 	return &QueryOptimizer{
 		queryCache:    make(map[string]*CachedQuery),
@@ -685,7 +693,7 @@ func NewQueryOptimizer() *QueryOptimizer {
 	}
 }
 
-// OptimizeQuery optimizes a SQL query
+// OptimizeQuery optimizes a SQL query.
 func (qo *QueryOptimizer) OptimizeQuery(query string) string {
 	qo.mu.RLock()
 	defer qo.mu.RUnlock()
@@ -695,19 +703,19 @@ func (qo *QueryOptimizer) OptimizeQuery(query string) string {
 		return optimized
 	}
 
-	// Simple optimization rules (in real implementation, use a proper query optimizer)
+	// Simple optimization rules (in real implementation, use a proper query optimizer).
 	optimized := query
 
-	// Add basic optimizations
-	// 1. Add LIMIT if not present for SELECT queries without explicit LIMIT
-	// 2. Suggest indexes for WHERE clauses
-	// 3. Rewrite subqueries as JOINs where appropriate
+	// Add basic optimizations.
+	// 1. Add LIMIT if not present for SELECT queries without explicit LIMIT.
+	// 2. Suggest indexes for WHERE clauses.
+	// 3. Rewrite subqueries as JOINs where appropriate.
 
 	qo.optimizations[query] = optimized
 	return optimized
 }
 
-// RecordSlowQuery records a slow query for analysis
+// RecordSlowQuery records a slow query for analysis.
 func (qo *QueryOptimizer) RecordSlowQuery(query string, duration time.Duration) {
 	qo.mu.Lock()
 	defer qo.mu.Unlock()
@@ -717,7 +725,7 @@ func (qo *QueryOptimizer) RecordSlowQuery(query string, duration time.Duration) 
 		if duration > slowQuery.maxDuration {
 			slowQuery.maxDuration = duration
 		}
-		// Update average duration
+		// Update average duration.
 		slowQuery.avgDuration = time.Duration((slowQuery.avgDuration.Nanoseconds() + duration.Nanoseconds()) / 2)
 		slowQuery.lastExecution = time.Now()
 	} else {
@@ -733,7 +741,7 @@ func (qo *QueryOptimizer) RecordSlowQuery(query string, duration time.Duration) 
 	}
 }
 
-// GetCachedResult retrieves a cached query result
+// GetCachedResult retrieves a cached query result.
 func (qo *QueryOptimizer) GetCachedResult(query string, params []interface{}) *CachedQuery {
 	qo.mu.RLock()
 	defer qo.mu.RUnlock()
@@ -745,7 +753,7 @@ func (qo *QueryOptimizer) GetCachedResult(query string, params []interface{}) *C
 			atomic.AddInt64(&qo.hitCount, 1)
 			return cached
 		}
-		// Expired, remove from cache
+		// Expired, remove from cache.
 		delete(qo.queryCache, cacheKey)
 	}
 
@@ -753,7 +761,7 @@ func (qo *QueryOptimizer) GetCachedResult(query string, params []interface{}) *C
 	return nil
 }
 
-// NewTransactionManager creates a new transaction manager
+// NewTransactionManager creates a new transaction manager.
 func NewTransactionManager() *TransactionManager {
 	return &TransactionManager{
 		activeTxns: make(map[string]*Transaction),
@@ -766,7 +774,7 @@ func NewTransactionManager() *TransactionManager {
 	}
 }
 
-// BeginTransaction begins a new optimized transaction
+// BeginTransaction begins a new optimized transaction.
 func (tm *TransactionManager) BeginTransaction(ctx context.Context, db *sql.DB) (*Transaction, error) {
 	if atomic.LoadInt64(&tm.currentTxns) >= tm.maxConcurrentTxns {
 		return nil, fmt.Errorf("maximum concurrent transactions exceeded")
@@ -794,7 +802,7 @@ func (tm *TransactionManager) BeginTransaction(ctx context.Context, db *sql.DB) 
 	return txn, nil
 }
 
-// CompleteTransaction marks a transaction as completed
+// CompleteTransaction marks a transaction as completed.
 func (tm *TransactionManager) CompleteTransaction(txnID string, duration time.Duration) {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
@@ -808,7 +816,7 @@ func (tm *TransactionManager) CompleteTransaction(txnID string, duration time.Du
 	}
 }
 
-// NewBatchProcessor creates a new batch processor
+// NewBatchProcessor creates a new batch processor.
 func NewBatchProcessor(maxBatchSize int, timeout time.Duration) *BatchProcessor {
 	return &BatchProcessor{
 		batches:      make(map[string]*Batch),
@@ -817,20 +825,20 @@ func NewBatchProcessor(maxBatchSize int, timeout time.Duration) *BatchProcessor 
 	}
 }
 
-// ExecuteBatch executes a batch of database operations
+// ExecuteBatch executes a batch of database operations.
 func (bp *BatchProcessor) ExecuteBatch(ctx context.Context, db *sql.DB, operations []BatchOperation) ([]BatchResult, error) {
 	start := time.Now()
 	results := make([]BatchResult, len(operations))
 
-	// Group operations by type for optimization
+	// Group operations by type for optimization.
 	grouped := bp.groupOperations(operations)
 
-	// Execute groups in order
+	// Execute groups in order.
 	resultIndex := 0
 	for _, group := range grouped {
 		groupResults, err := bp.executeGroup(ctx, db, group)
 		if err != nil {
-			// Mark remaining operations as failed
+			// Mark remaining operations as failed.
 			for i := resultIndex; i < len(results); i++ {
 				results[i] = BatchResult{
 					success: false,
@@ -841,7 +849,7 @@ func (bp *BatchProcessor) ExecuteBatch(ctx context.Context, db *sql.DB, operatio
 			return results, err
 		}
 
-		// Copy results
+		// Copy results.
 		for i, result := range groupResults {
 			results[resultIndex+i] = result
 		}
@@ -853,15 +861,15 @@ func (bp *BatchProcessor) ExecuteBatch(ctx context.Context, db *sql.DB, operatio
 	return results, nil
 }
 
-// groupOperations groups operations by type for batch optimization
+// groupOperations groups operations by type for batch optimization.
 func (bp *BatchProcessor) groupOperations(operations []BatchOperation) [][]BatchOperation {
-	// Simple grouping by operation type
+	// Simple grouping by operation type.
 	groups := make(map[string][]BatchOperation)
 	for _, op := range operations {
 		groups[op.type_] = append(groups[op.type_], op)
 	}
 
-	// Convert to slice
+	// Convert to slice.
 	var result [][]BatchOperation
 	for _, group := range groups {
 		result = append(result, group)
@@ -870,7 +878,7 @@ func (bp *BatchProcessor) groupOperations(operations []BatchOperation) [][]Batch
 	return result
 }
 
-// executeGroup executes a group of similar operations
+// executeGroup executes a group of similar operations.
 func (bp *BatchProcessor) executeGroup(ctx context.Context, db *sql.DB, operations []BatchOperation) ([]BatchResult, error) {
 	results := make([]BatchResult, len(operations))
 
@@ -898,7 +906,7 @@ func (bp *BatchProcessor) executeGroup(ctx context.Context, db *sql.DB, operatio
 	return results, nil
 }
 
-// NewDBHealthChecker creates a new database health checker
+// NewDBHealthChecker creates a new database health checker.
 func NewDBHealthChecker(interval time.Duration) *DBHealthChecker {
 	return &DBHealthChecker{
 		checks:   make(map[string]*HealthCheck),
@@ -907,7 +915,7 @@ func NewDBHealthChecker(interval time.Duration) *DBHealthChecker {
 	}
 }
 
-// NewReadLoadBalancer creates a new read load balancer
+// NewReadLoadBalancer creates a new read load balancer.
 func NewReadLoadBalancer(replicas []*sql.DB, strategy LoadBalanceStrategy) *ReadLoadBalancer {
 	return &ReadLoadBalancer{
 		replicas:        replicas,
@@ -917,7 +925,7 @@ func NewReadLoadBalancer(replicas []*sql.DB, strategy LoadBalanceStrategy) *Read
 	}
 }
 
-// GetConnection returns a connection based on load balancing strategy
+// GetConnection returns a connection based on load balancing strategy.
 func (rlb *ReadLoadBalancer) GetConnection() *sql.DB {
 	rlb.mu.RLock()
 	defer rlb.mu.RUnlock()
@@ -935,9 +943,9 @@ func (rlb *ReadLoadBalancer) GetConnection() *sql.DB {
 	}
 }
 
-// startBackgroundTasks starts background maintenance tasks
+// startBackgroundTasks starts background maintenance tasks.
 func (dm *OptimizedDBManager) startBackgroundTasks() {
-	// Health checking
+	// Health checking.
 	if dm.config.EnableHealthCheck && dm.healthChecker != nil {
 		dm.wg.Add(1)
 		go func() {
@@ -956,7 +964,7 @@ func (dm *OptimizedDBManager) startBackgroundTasks() {
 		}()
 	}
 
-	// Metrics collection
+	// Metrics collection.
 	if dm.config.EnableMetrics {
 		dm.wg.Add(1)
 		go func() {
@@ -976,7 +984,7 @@ func (dm *OptimizedDBManager) startBackgroundTasks() {
 	}
 }
 
-// performHealthChecks checks the health of all database connections
+// performHealthChecks checks the health of all database connections.
 func (dm *OptimizedDBManager) performHealthChecks() {
 	dm.mu.RLock()
 	defer dm.mu.RUnlock()
@@ -996,7 +1004,7 @@ func (dm *OptimizedDBManager) performHealthChecks() {
 		}
 		pool.mu.Unlock()
 
-		// Update health check metrics
+		// Update health check metrics.
 		if dm.healthChecker != nil {
 			dm.healthChecker.mu.Lock()
 			if check, exists := dm.healthChecker.checks[name]; exists {
@@ -1029,7 +1037,7 @@ func (dm *OptimizedDBManager) performHealthChecks() {
 	}
 }
 
-// updateConnectionMetrics updates connection-related metrics
+// updateConnectionMetrics updates connection-related metrics.
 func (dm *OptimizedDBManager) updateConnectionMetrics() {
 	var totalActive, totalIdle int64
 
@@ -1046,7 +1054,7 @@ func (dm *OptimizedDBManager) updateConnectionMetrics() {
 	atomic.StoreInt64(&dm.metrics.ConnectionCount, totalActive)
 }
 
-// GetMetrics returns current database performance metrics
+// GetMetrics returns current database performance metrics.
 func (dm *OptimizedDBManager) GetMetrics() DBMetrics {
 	dm.updateConnectionMetrics() // Ensure metrics are current
 
@@ -1073,13 +1081,13 @@ func (dm *OptimizedDBManager) GetMetrics() DBMetrics {
 	}
 }
 
-// GetAverageQueryTime returns the average query time in milliseconds
+// GetAverageQueryTime returns the average query time in milliseconds.
 func (dm *OptimizedDBManager) GetAverageQueryTime() float64 {
 	avgTime := atomic.LoadInt64(&dm.metrics.AverageQueryTime)
 	return float64(avgTime) / 1e6 // Convert to milliseconds
 }
 
-// GetConnectionUtilization returns the connection utilization percentage
+// GetConnectionUtilization returns the connection utilization percentage.
 func (dm *OptimizedDBManager) GetConnectionUtilization() float64 {
 	activeConns := atomic.LoadInt64(&dm.metrics.ActiveConnections)
 	maxConns := int64(dm.config.MaxOpenConns)
@@ -1089,12 +1097,12 @@ func (dm *OptimizedDBManager) GetConnectionUtilization() float64 {
 	return float64(activeConns) / float64(maxConns) * 100
 }
 
-// GetSlowQueries returns the current slow queries
+// GetSlowQueries returns the current slow queries.
 func (dm *OptimizedDBManager) GetSlowQueries() map[string]*SlowQuery {
 	dm.queryOptimizer.mu.RLock()
 	defer dm.queryOptimizer.mu.RUnlock()
 
-	// Return a copy to avoid concurrent access
+	// Return a copy to avoid concurrent access.
 	result := make(map[string]*SlowQuery)
 	for k, v := range dm.queryOptimizer.slowQueries {
 		result[k] = &SlowQuery{
@@ -1111,11 +1119,11 @@ func (dm *OptimizedDBManager) GetSlowQueries() map[string]*SlowQuery {
 	return result
 }
 
-// Shutdown gracefully shuts down the database manager
+// Shutdown gracefully shuts down the database manager.
 func (dm *OptimizedDBManager) Shutdown(ctx context.Context) error {
 	close(dm.shutdown)
 
-	// Wait for background tasks
+	// Wait for background tasks.
 	done := make(chan struct{})
 	go func() {
 		dm.wg.Wait()
@@ -1124,12 +1132,12 @@ func (dm *OptimizedDBManager) Shutdown(ctx context.Context) error {
 
 	select {
 	case <-done:
-		// All tasks finished
+		// All tasks finished.
 	case <-ctx.Done():
 		return ctx.Err()
 	}
 
-	// Close all database connections
+	// Close all database connections.
 	dm.mu.Lock()
 	for name, pool := range dm.connectionPools {
 		if err := pool.db.Close(); err != nil {
@@ -1138,7 +1146,7 @@ func (dm *OptimizedDBManager) Shutdown(ctx context.Context) error {
 	}
 	dm.mu.Unlock()
 
-	// Log final metrics
+	// Log final metrics.
 	metrics := dm.GetMetrics()
 	klog.Infof("Database manager shutdown - Queries: %d, Avg time: %.2fms, Error rate: %.2f%%",
 		metrics.QueryCount,
@@ -1149,7 +1157,7 @@ func (dm *OptimizedDBManager) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// ResetMetrics resets all database performance metrics
+// ResetMetrics resets all database performance metrics.
 func (dm *OptimizedDBManager) ResetMetrics() {
 	atomic.StoreInt64(&dm.metrics.QueryCount, 0)
 	atomic.StoreInt64(&dm.metrics.SlowQueryCount, 0)
@@ -1171,11 +1179,11 @@ func (dm *OptimizedDBManager) ResetMetrics() {
 	atomic.StoreInt64(&dm.metrics.PreparedStmtHits, 0)
 	atomic.StoreInt64(&dm.metrics.PreparedStmtMisses, 0)
 
-	// Reset prepared statement cache metrics
+	// Reset prepared statement cache metrics.
 	atomic.StoreInt64(&dm.preparedStmts.hitCount, 0)
 	atomic.StoreInt64(&dm.preparedStmts.missCount, 0)
 
-	// Reset query optimizer metrics
+	// Reset query optimizer metrics.
 	atomic.StoreInt64(&dm.queryOptimizer.hitCount, 0)
 	atomic.StoreInt64(&dm.queryOptimizer.missCount, 0)
 	atomic.StoreInt64(&dm.queryOptimizer.optimizedCount, 0)

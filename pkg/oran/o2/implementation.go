@@ -11,13 +11,13 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
-// O2 IMS Interface Implementation
-// This file contains the implementation of all O2AdaptorInterface methods
-// following the O-RAN.WG6.O2ims-Interface-v01.01 specification
+// O2 IMS Interface Implementation.
+// This file contains the implementation of all O2AdaptorInterface methods.
+// following the O-RAN.WG6.O2ims-Interface-v01.01 specification.
 
-// Resource Pool Management
+// Resource Pool Management.
 
-// GetResourcePools retrieves resource pools with optional filtering
+// GetResourcePools retrieves resource pools with optional filtering.
 func (a *O2Adaptor) GetResourcePools(ctx context.Context, filter *models.ResourcePoolFilter) ([]*models.ResourcePool, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("getting resource pools", "filter", filter)
@@ -29,20 +29,20 @@ func (a *O2Adaptor) GetResourcePools(ctx context.Context, filter *models.Resourc
 
 	for _, pool := range a.resourcePools {
 		if a.matchesResourcePoolFilter(pool, filter) {
-			// Return a copy to prevent modification
+			// Return a copy to prevent modification.
 			poolCopy := *pool
 			resourcePools = append(resourcePools, &poolCopy)
 		}
 	}
 
-	// Apply sorting and pagination
+	// Apply sorting and pagination.
 	resourcePools = a.sortAndPaginateResourcePools(resourcePools, filter)
 
 	logger.V(1).Info("retrieved resource pools", "count", len(resourcePools))
 	return resourcePools, nil
 }
 
-// GetResourcePool retrieves a specific resource pool by ID
+// GetResourcePool retrieves a specific resource pool by ID.
 func (a *O2Adaptor) GetResourcePool(ctx context.Context, poolID string) (*models.ResourcePool, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("getting resource pool", "poolID", poolID)
@@ -55,31 +55,31 @@ func (a *O2Adaptor) GetResourcePool(ctx context.Context, poolID string) (*models
 		return nil, fmt.Errorf("resource pool not found: %s", poolID)
 	}
 
-	// Return a copy to prevent modification
+	// Return a copy to prevent modification.
 	poolCopy := *pool
 	return &poolCopy, nil
 }
 
-// CreateResourcePool creates a new resource pool
+// CreateResourcePool creates a new resource pool.
 func (a *O2Adaptor) CreateResourcePool(ctx context.Context, req *models.CreateResourcePoolRequest) (*models.ResourcePool, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("creating resource pool", "name", req.Name, "provider", req.Provider)
 
-	// Validate request
+	// Validate request.
 	if err := a.validateCreateResourcePoolRequest(req); err != nil {
 		return nil, fmt.Errorf("invalid request: %w", err)
 	}
 
-	// Check if provider exists and is configured
+	// Check if provider exists and is configured.
 	provider, exists := a.providers[req.Provider]
 	if !exists {
 		return nil, fmt.Errorf("provider not found or not configured: %s", req.Provider)
 	}
 
-	// Generate resource pool ID
+	// Generate resource pool ID.
 	poolID := a.generateResourcePoolID(req.Name, req.Provider)
 
-	// Create resource pool
+	// Create resource pool.
 	resourcePool := &models.ResourcePool{
 		ResourcePoolID:   poolID,
 		Name:             req.Name,
@@ -101,11 +101,11 @@ func (a *O2Adaptor) CreateResourcePool(ctx context.Context, req *models.CreateRe
 		UpdatedAt: time.Now(),
 	}
 
-	// Initialize capacity by querying the provider
+	// Initialize capacity by querying the provider.
 	capacity, err := a.getProviderCapacity(ctx, provider)
 	if err != nil {
 		logger.Error(err, "failed to get provider capacity", "provider", req.Provider)
-		// Continue with default capacity
+		// Continue with default capacity.
 		capacity = &models.ResourceCapacity{
 			CPU:     &models.ResourceMetric{Total: "0", Available: "0", Used: "0", Unit: "cores"},
 			Memory:  &models.ResourceMetric{Total: "0", Available: "0", Used: "0", Unit: "bytes"},
@@ -114,7 +114,7 @@ func (a *O2Adaptor) CreateResourcePool(ctx context.Context, req *models.CreateRe
 	}
 	resourcePool.Capacity = capacity
 
-	// Store resource pool
+	// Store resource pool.
 	a.mutex.Lock()
 	a.resourcePools[poolID] = resourcePool
 	a.mutex.Unlock()
@@ -123,7 +123,7 @@ func (a *O2Adaptor) CreateResourcePool(ctx context.Context, req *models.CreateRe
 	return resourcePool, nil
 }
 
-// UpdateResourcePool updates an existing resource pool
+// UpdateResourcePool updates an existing resource pool.
 func (a *O2Adaptor) UpdateResourcePool(ctx context.Context, poolID string, req *models.UpdateResourcePoolRequest) error {
 	logger := log.FromContext(ctx)
 	logger.Info("updating resource pool", "poolID", poolID)
@@ -136,7 +136,7 @@ func (a *O2Adaptor) UpdateResourcePool(ctx context.Context, poolID string, req *
 		return fmt.Errorf("resource pool not found: %s", poolID)
 	}
 
-	// Apply updates
+	// Apply updates.
 	if req.Name != nil {
 		pool.Name = *req.Name
 	}
@@ -158,7 +158,7 @@ func (a *O2Adaptor) UpdateResourcePool(ctx context.Context, poolID string, req *
 		}
 	}
 	if req.Metadata != nil {
-		// Metadata would be stored in Extensions
+		// Metadata would be stored in Extensions.
 		if pool.Extensions == nil {
 			pool.Extensions = make(map[string]interface{})
 		}
@@ -171,7 +171,7 @@ func (a *O2Adaptor) UpdateResourcePool(ctx context.Context, poolID string, req *
 	return nil
 }
 
-// DeleteResourcePool deletes a resource pool
+// DeleteResourcePool deletes a resource pool.
 func (a *O2Adaptor) DeleteResourcePool(ctx context.Context, poolID string) error {
 	logger := log.FromContext(ctx)
 	logger.Info("deleting resource pool", "poolID", poolID)
@@ -183,8 +183,8 @@ func (a *O2Adaptor) DeleteResourcePool(ctx context.Context, poolID string) error
 		return fmt.Errorf("resource pool not found: %s", poolID)
 	}
 
-	// TODO: Check if pool is in use by any resources or deployments
-	// For now, allow deletion
+	// TODO: Check if pool is in use by any resources or deployments.
+	// For now, allow deletion.
 
 	delete(a.resourcePools, poolID)
 
@@ -192,9 +192,9 @@ func (a *O2Adaptor) DeleteResourcePool(ctx context.Context, poolID string) error
 	return nil
 }
 
-// Resource Type Management
+// Resource Type Management.
 
-// GetResourceTypes retrieves resource types with optional filtering
+// GetResourceTypes retrieves resource types with optional filtering.
 func (a *O2Adaptor) GetResourceTypes(ctx context.Context, filter *models.ResourceTypeFilter) ([]*models.ResourceType, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("getting resource types", "filter", filter)
@@ -202,7 +202,7 @@ func (a *O2Adaptor) GetResourceTypes(ctx context.Context, filter *models.Resourc
 	return a.catalogService.ListResourceTypes(ctx, filter)
 }
 
-// GetResourceType retrieves a specific resource type by ID
+// GetResourceType retrieves a specific resource type by ID.
 func (a *O2Adaptor) GetResourceType(ctx context.Context, typeID string) (*models.ResourceType, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("getting resource type", "typeID", typeID)
@@ -210,9 +210,9 @@ func (a *O2Adaptor) GetResourceType(ctx context.Context, typeID string) (*models
 	return a.catalogService.GetResourceType(ctx, typeID)
 }
 
-// Resource Management
+// Resource Management.
 
-// GetResources retrieves resources with optional filtering
+// GetResources retrieves resources with optional filtering.
 func (a *O2Adaptor) GetResources(ctx context.Context, filter *models.ResourceFilter) ([]*models.Resource, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("getting resources", "filter", filter)
@@ -220,7 +220,7 @@ func (a *O2Adaptor) GetResources(ctx context.Context, filter *models.ResourceFil
 	return a.inventoryService.ListResources(ctx, filter)
 }
 
-// GetResource retrieves a specific resource by ID
+// GetResource retrieves a specific resource by ID.
 func (a *O2Adaptor) GetResource(ctx context.Context, resourceID string) (*models.Resource, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("getting resource", "resourceID", resourceID)
@@ -228,33 +228,33 @@ func (a *O2Adaptor) GetResource(ctx context.Context, resourceID string) (*models
 	return a.inventoryService.GetResource(ctx, resourceID)
 }
 
-// CreateResource creates a new resource
+// CreateResource creates a new resource.
 func (a *O2Adaptor) CreateResource(ctx context.Context, req *models.CreateResourceRequest) (*models.Resource, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("creating resource", "name", req.Name, "type", req.ResourceTypeID, "pool", req.ResourcePoolID)
 
-	// Validate request
+	// Validate request.
 	if err := a.validateCreateResourceRequest(req); err != nil {
 		return nil, fmt.Errorf("invalid request: %w", err)
 	}
 
-	// Check if resource pool exists
+	// Check if resource pool exists.
 	pool, err := a.GetResourcePool(ctx, req.ResourcePoolID)
 	if err != nil {
 		return nil, fmt.Errorf("resource pool not found: %w", err)
 	}
 
-	// Check if resource type exists
+	// Check if resource type exists.
 	resourceType, err := a.GetResourceType(ctx, req.ResourceTypeID)
 	if err != nil {
 		return nil, fmt.Errorf("resource type not found: %w", err)
 	}
 
-	// Create resource through inventory service
+	// Create resource through inventory service.
 	return a.inventoryService.CreateResource(ctx, req, pool, resourceType)
 }
 
-// UpdateResource updates an existing resource
+// UpdateResource updates an existing resource.
 func (a *O2Adaptor) UpdateResource(ctx context.Context, resourceID string, req *models.UpdateResourceRequest) error {
 	logger := log.FromContext(ctx)
 	logger.Info("updating resource", "resourceID", resourceID)
@@ -262,7 +262,7 @@ func (a *O2Adaptor) UpdateResource(ctx context.Context, resourceID string, req *
 	return a.inventoryService.UpdateResource(ctx, resourceID, req)
 }
 
-// DeleteResource deletes a resource
+// DeleteResource deletes a resource.
 func (a *O2Adaptor) DeleteResource(ctx context.Context, resourceID string) error {
 	logger := log.FromContext(ctx)
 	logger.Info("deleting resource", "resourceID", resourceID)
@@ -270,9 +270,9 @@ func (a *O2Adaptor) DeleteResource(ctx context.Context, resourceID string) error
 	return a.inventoryService.DeleteResource(ctx, resourceID)
 }
 
-// Deployment Template Management
+// Deployment Template Management.
 
-// GetDeploymentTemplates retrieves deployment templates with optional filtering
+// GetDeploymentTemplates retrieves deployment templates with optional filtering.
 func (a *O2Adaptor) GetDeploymentTemplates(ctx context.Context, filter *models.DeploymentTemplateFilter) ([]*models.DeploymentTemplate, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("getting deployment templates", "filter", filter)
@@ -280,7 +280,7 @@ func (a *O2Adaptor) GetDeploymentTemplates(ctx context.Context, filter *models.D
 	return a.catalogService.ListDeploymentTemplates(ctx, filter)
 }
 
-// GetDeploymentTemplate retrieves a specific deployment template by ID
+// GetDeploymentTemplate retrieves a specific deployment template by ID.
 func (a *O2Adaptor) GetDeploymentTemplate(ctx context.Context, templateID string) (*models.DeploymentTemplate, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("getting deployment template", "templateID", templateID)
@@ -288,20 +288,20 @@ func (a *O2Adaptor) GetDeploymentTemplate(ctx context.Context, templateID string
 	return a.catalogService.GetDeploymentTemplate(ctx, templateID)
 }
 
-// CreateDeploymentTemplate creates a new deployment template
+// CreateDeploymentTemplate creates a new deployment template.
 func (a *O2Adaptor) CreateDeploymentTemplate(ctx context.Context, req *models.CreateDeploymentTemplateRequest) (*models.DeploymentTemplate, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("creating deployment template", "name", req.Name, "type", req.Type)
 
-	// Validate request
+	// Validate request.
 	if err := a.validateCreateDeploymentTemplateRequest(req); err != nil {
 		return nil, fmt.Errorf("invalid request: %w", err)
 	}
 
-	// Generate template ID
+	// Generate template ID.
 	templateID := a.generateDeploymentTemplateID(req.Name, req.Version)
 
-	// Create deployment template
+	// Create deployment template.
 	template := &models.DeploymentTemplate{
 		DeploymentTemplateID: templateID,
 		Name:                 req.Name,
@@ -318,7 +318,7 @@ func (a *O2Adaptor) CreateDeploymentTemplate(ctx context.Context, req *models.Cr
 		UpdatedAt:            time.Now(),
 	}
 
-	// Handle fields that may exist in request but not in current struct
+	// Handle fields that may exist in request but not in current struct.
 	if req.License != "" {
 		if template.Extensions == nil {
 			template.Extensions = make(map[string]interface{})
@@ -341,7 +341,7 @@ func (a *O2Adaptor) CreateDeploymentTemplate(ctx context.Context, req *models.Cr
 		template.RequiredResources = req.Requirements
 	}
 
-	// Register template with catalog service
+	// Register template with catalog service.
 	if err := a.catalogService.RegisterDeploymentTemplate(ctx, template); err != nil {
 		return nil, fmt.Errorf("failed to register template: %w", err)
 	}
@@ -350,12 +350,12 @@ func (a *O2Adaptor) CreateDeploymentTemplate(ctx context.Context, req *models.Cr
 	return template, nil
 }
 
-// UpdateDeploymentTemplate updates an existing deployment template
+// UpdateDeploymentTemplate updates an existing deployment template.
 func (a *O2Adaptor) UpdateDeploymentTemplate(ctx context.Context, templateID string, req *models.UpdateDeploymentTemplateRequest) error {
 	logger := log.FromContext(ctx)
 	logger.Info("updating deployment template", "templateID", templateID)
 
-	// Prepare updates map
+	// Prepare updates map.
 	updates := make(map[string]interface{})
 	if req.Name != nil {
 		updates["name"] = *req.Name
@@ -394,7 +394,7 @@ func (a *O2Adaptor) UpdateDeploymentTemplate(ctx context.Context, templateID str
 	return a.catalogService.UpdateDeploymentTemplate(ctx, templateID, updates)
 }
 
-// DeleteDeploymentTemplate deletes a deployment template
+// DeleteDeploymentTemplate deletes a deployment template.
 func (a *O2Adaptor) DeleteDeploymentTemplate(ctx context.Context, templateID string) error {
 	logger := log.FromContext(ctx)
 	logger.Info("deleting deployment template", "templateID", templateID)
@@ -402,35 +402,35 @@ func (a *O2Adaptor) DeleteDeploymentTemplate(ctx context.Context, templateID str
 	return a.catalogService.UnregisterDeploymentTemplate(ctx, templateID)
 }
 
-// Deployment Manager Interface
+// Deployment Manager Interface.
 
-// CreateDeployment creates a new deployment
+// CreateDeployment creates a new deployment.
 func (a *O2Adaptor) CreateDeployment(ctx context.Context, req *models.CreateDeploymentRequest) (*models.Deployment, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("creating deployment", "name", req.Name, "templateID", req.TemplateID)
 
-	// Validate request
+	// Validate request.
 	if err := a.validateCreateDeploymentRequest(req); err != nil {
 		return nil, fmt.Errorf("invalid request: %w", err)
 	}
 
-	// Check if template exists
+	// Check if template exists.
 	template, err := a.GetDeploymentTemplate(ctx, req.TemplateID)
 	if err != nil {
 		return nil, fmt.Errorf("deployment template not found: %w", err)
 	}
 
-	// Check if resource pool exists
+	// Check if resource pool exists.
 	pool, err := a.GetResourcePool(ctx, req.ResourcePoolID)
 	if err != nil {
 		return nil, fmt.Errorf("resource pool not found: %w", err)
 	}
 
-	// Create deployment through lifecycle service
+	// Create deployment through lifecycle service.
 	return a.lifecycleService.CreateDeployment(ctx, req, template, pool)
 }
 
-// GetDeployments retrieves deployments with optional filtering
+// GetDeployments retrieves deployments with optional filtering.
 func (a *O2Adaptor) GetDeployments(ctx context.Context, filter *models.DeploymentFilter) ([]*models.Deployment, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("getting deployments", "filter", filter)
@@ -438,7 +438,7 @@ func (a *O2Adaptor) GetDeployments(ctx context.Context, filter *models.Deploymen
 	return a.lifecycleService.ListDeployments(ctx, filter)
 }
 
-// GetDeployment retrieves a specific deployment by ID
+// GetDeployment retrieves a specific deployment by ID.
 func (a *O2Adaptor) GetDeployment(ctx context.Context, deploymentID string) (*models.Deployment, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("getting deployment", "deploymentID", deploymentID)
@@ -446,7 +446,7 @@ func (a *O2Adaptor) GetDeployment(ctx context.Context, deploymentID string) (*mo
 	return a.lifecycleService.GetDeployment(ctx, deploymentID)
 }
 
-// UpdateDeployment updates an existing deployment
+// UpdateDeployment updates an existing deployment.
 func (a *O2Adaptor) UpdateDeployment(ctx context.Context, deploymentID string, req *models.UpdateDeploymentRequest) error {
 	logger := log.FromContext(ctx)
 	logger.Info("updating deployment", "deploymentID", deploymentID)
@@ -454,7 +454,7 @@ func (a *O2Adaptor) UpdateDeployment(ctx context.Context, deploymentID string, r
 	return a.lifecycleService.UpdateDeployment(ctx, deploymentID, req)
 }
 
-// DeleteDeployment deletes a deployment
+// DeleteDeployment deletes a deployment.
 func (a *O2Adaptor) DeleteDeployment(ctx context.Context, deploymentID string) error {
 	logger := log.FromContext(ctx)
 	logger.Info("deleting deployment", "deploymentID", deploymentID)
@@ -462,9 +462,9 @@ func (a *O2Adaptor) DeleteDeployment(ctx context.Context, deploymentID string) e
 	return a.lifecycleService.DeleteDeployment(ctx, deploymentID)
 }
 
-// Subscription Management
+// Subscription Management.
 
-// CreateSubscription creates a new subscription
+// CreateSubscription creates a new subscription.
 func (a *O2Adaptor) CreateSubscription(ctx context.Context, req *models.CreateSubscriptionRequest) (*models.Subscription, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("creating subscription", "callback", req.Callback, "eventTypes", req.EventTypes)
@@ -472,7 +472,7 @@ func (a *O2Adaptor) CreateSubscription(ctx context.Context, req *models.CreateSu
 	return a.subscriptionService.CreateSubscription(ctx, req)
 }
 
-// GetSubscriptions retrieves subscriptions with optional filtering
+// GetSubscriptions retrieves subscriptions with optional filtering.
 func (a *O2Adaptor) GetSubscriptions(ctx context.Context, filter *models.SubscriptionQueryFilter) ([]*models.Subscription, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("getting subscriptions", "filter", filter)
@@ -480,7 +480,7 @@ func (a *O2Adaptor) GetSubscriptions(ctx context.Context, filter *models.Subscri
 	return a.subscriptionService.ListSubscriptions(ctx, filter)
 }
 
-// GetSubscription retrieves a specific subscription by ID
+// GetSubscription retrieves a specific subscription by ID.
 func (a *O2Adaptor) GetSubscription(ctx context.Context, subscriptionID string) (*models.Subscription, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("getting subscription", "subscriptionID", subscriptionID)
@@ -488,7 +488,7 @@ func (a *O2Adaptor) GetSubscription(ctx context.Context, subscriptionID string) 
 	return a.subscriptionService.GetSubscription(ctx, subscriptionID)
 }
 
-// UpdateSubscription updates an existing subscription
+// UpdateSubscription updates an existing subscription.
 func (a *O2Adaptor) UpdateSubscription(ctx context.Context, subscriptionID string, req *models.UpdateSubscriptionRequest) error {
 	logger := log.FromContext(ctx)
 	logger.Info("updating subscription", "subscriptionID", subscriptionID)
@@ -496,7 +496,7 @@ func (a *O2Adaptor) UpdateSubscription(ctx context.Context, subscriptionID strin
 	return a.subscriptionService.UpdateSubscription(ctx, subscriptionID, req)
 }
 
-// DeleteSubscription deletes a subscription
+// DeleteSubscription deletes a subscription.
 func (a *O2Adaptor) DeleteSubscription(ctx context.Context, subscriptionID string) error {
 	logger := log.FromContext(ctx)
 	logger.Info("deleting subscription", "subscriptionID", subscriptionID)
@@ -504,9 +504,9 @@ func (a *O2Adaptor) DeleteSubscription(ctx context.Context, subscriptionID strin
 	return a.subscriptionService.DeleteSubscription(ctx, subscriptionID)
 }
 
-// Notification Management
+// Notification Management.
 
-// GetNotificationEventTypes retrieves available notification event types
+// GetNotificationEventTypes retrieves available notification event types.
 func (a *O2Adaptor) GetNotificationEventTypes(ctx context.Context) ([]*models.NotificationEventType, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("getting notification event types")
@@ -514,9 +514,9 @@ func (a *O2Adaptor) GetNotificationEventTypes(ctx context.Context) ([]*models.No
 	return a.subscriptionService.GetEventTypes(ctx)
 }
 
-// Infrastructure Inventory Management
+// Infrastructure Inventory Management.
 
-// GetInventoryNodes retrieves nodes from the infrastructure inventory
+// GetInventoryNodes retrieves nodes from the infrastructure inventory.
 func (a *O2Adaptor) GetInventoryNodes(ctx context.Context, filter *models.NodeFilter) ([]*models.Node, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("getting inventory nodes", "filter", filter)
@@ -524,7 +524,7 @@ func (a *O2Adaptor) GetInventoryNodes(ctx context.Context, filter *models.NodeFi
 	return a.inventoryService.ListNodes(ctx, filter)
 }
 
-// GetInventoryNode retrieves a specific node by ID
+// GetInventoryNode retrieves a specific node by ID.
 func (a *O2Adaptor) GetInventoryNode(ctx context.Context, nodeID string) (*models.Node, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("getting inventory node", "nodeID", nodeID)
@@ -532,9 +532,9 @@ func (a *O2Adaptor) GetInventoryNode(ctx context.Context, nodeID string) (*model
 	return a.inventoryService.GetNode(ctx, nodeID)
 }
 
-// Alarm and Fault Management
+// Alarm and Fault Management.
 
-// GetAlarms retrieves alarms with optional filtering
+// GetAlarms retrieves alarms with optional filtering.
 func (a *O2Adaptor) GetAlarms(ctx context.Context, filter *models.AlarmFilter) ([]*models.Alarm, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("getting alarms", "filter", filter)
@@ -542,7 +542,7 @@ func (a *O2Adaptor) GetAlarms(ctx context.Context, filter *models.AlarmFilter) (
 	return a.subscriptionService.GetAlarms(ctx, filter)
 }
 
-// GetAlarm retrieves a specific alarm by ID
+// GetAlarm retrieves a specific alarm by ID.
 func (a *O2Adaptor) GetAlarm(ctx context.Context, alarmID string) (*models.Alarm, error) {
 	logger := log.FromContext(ctx)
 	logger.V(1).Info("getting alarm", "alarmID", alarmID)
@@ -550,7 +550,7 @@ func (a *O2Adaptor) GetAlarm(ctx context.Context, alarmID string) (*models.Alarm
 	return a.subscriptionService.GetAlarm(ctx, alarmID)
 }
 
-// AcknowledgeAlarm acknowledges an alarm
+// AcknowledgeAlarm acknowledges an alarm.
 func (a *O2Adaptor) AcknowledgeAlarm(ctx context.Context, alarmID string, req *models.AlarmAcknowledgementRequest) error {
 	logger := log.FromContext(ctx)
 	logger.Info("acknowledging alarm", "alarmID", alarmID, "acknowledgedBy", req.AckUser)
@@ -558,7 +558,7 @@ func (a *O2Adaptor) AcknowledgeAlarm(ctx context.Context, alarmID string, req *m
 	return a.subscriptionService.AcknowledgeAlarm(ctx, alarmID, req)
 }
 
-// ClearAlarm clears an alarm
+// ClearAlarm clears an alarm.
 func (a *O2Adaptor) ClearAlarm(ctx context.Context, alarmID string, req *models.AlarmClearRequest) error {
 	logger := log.FromContext(ctx)
 	logger.Info("clearing alarm", "alarmID", alarmID, "clearedBy", req.ClearUser)
@@ -566,7 +566,7 @@ func (a *O2Adaptor) ClearAlarm(ctx context.Context, alarmID string, req *models.
 	return a.subscriptionService.ClearAlarm(ctx, alarmID, req)
 }
 
-// Private helper methods for validation and processing
+// Private helper methods for validation and processing.
 
 func (a *O2Adaptor) validateCreateResourcePoolRequest(req *models.CreateResourcePoolRequest) error {
 	if req.Name == "" {
@@ -611,7 +611,7 @@ func (a *O2Adaptor) validateCreateDeploymentTemplateRequest(req *models.CreateDe
 		return fmt.Errorf("template content is required")
 	}
 
-	// Validate category
+	// Validate category.
 	validCategories := []string{
 		models.TemplateCategoryVNF,
 		models.TemplateCategoryCNF,
@@ -630,7 +630,7 @@ func (a *O2Adaptor) validateCreateDeploymentTemplateRequest(req *models.CreateDe
 		return fmt.Errorf("invalid template category: %s", req.Category)
 	}
 
-	// Validate type
+	// Validate type.
 	validTypes := []string{
 		models.TemplateTypeHelm,
 		models.TemplateTypeKubernetes,
@@ -666,7 +666,7 @@ func (a *O2Adaptor) validateCreateDeploymentRequest(req *models.CreateDeployment
 }
 
 func (a *O2Adaptor) generateResourcePoolID(name, provider string) string {
-	// Generate a unique resource pool ID
+	// Generate a unique resource pool ID.
 	timestamp := time.Now().UnixNano()
 	return fmt.Sprintf("pool-%s-%s-%d",
 		strings.ToLower(strings.ReplaceAll(name, " ", "-")),
@@ -675,7 +675,7 @@ func (a *O2Adaptor) generateResourcePoolID(name, provider string) string {
 }
 
 func (a *O2Adaptor) generateDeploymentTemplateID(name, version string) string {
-	// Generate a unique deployment template ID
+	// Generate a unique deployment template ID.
 	timestamp := time.Now().UnixNano()
 	return fmt.Sprintf("template-%s-%s-%d",
 		strings.ToLower(strings.ReplaceAll(name, " ", "-")),
@@ -688,7 +688,7 @@ func (a *O2Adaptor) matchesResourcePoolFilter(pool *models.ResourcePool, filter 
 		return true
 	}
 
-	// Check names filter
+	// Check names filter.
 	if len(filter.Names) > 0 {
 		found := false
 		for _, name := range filter.Names {
@@ -702,7 +702,7 @@ func (a *O2Adaptor) matchesResourcePoolFilter(pool *models.ResourcePool, filter 
 		}
 	}
 
-	// Check oCloudIds filter
+	// Check oCloudIds filter.
 	if len(filter.OCloudIDs) > 0 {
 		found := false
 		for _, oCloudID := range filter.OCloudIDs {
@@ -716,7 +716,7 @@ func (a *O2Adaptor) matchesResourcePoolFilter(pool *models.ResourcePool, filter 
 		}
 	}
 
-	// Check providers filter
+	// Check providers filter.
 	if len(filter.Providers) > 0 {
 		found := false
 		for _, provider := range filter.Providers {
@@ -730,7 +730,7 @@ func (a *O2Adaptor) matchesResourcePoolFilter(pool *models.ResourcePool, filter 
 		}
 	}
 
-	// Check regions filter
+	// Check regions filter.
 	if len(filter.Regions) > 0 {
 		found := false
 		for _, region := range filter.Regions {
@@ -744,7 +744,7 @@ func (a *O2Adaptor) matchesResourcePoolFilter(pool *models.ResourcePool, filter 
 		}
 	}
 
-	// Check states filter
+	// Check states filter.
 	if len(filter.States) > 0 && pool.Status != nil {
 		found := false
 		for _, state := range filter.States {
@@ -758,7 +758,7 @@ func (a *O2Adaptor) matchesResourcePoolFilter(pool *models.ResourcePool, filter 
 		}
 	}
 
-	// Check health states filter
+	// Check health states filter.
 	if len(filter.HealthStates) > 0 && pool.Status != nil {
 		found := false
 		for _, health := range filter.HealthStates {
@@ -772,12 +772,12 @@ func (a *O2Adaptor) matchesResourcePoolFilter(pool *models.ResourcePool, filter 
 		}
 	}
 
-	// Check created after filter
+	// Check created after filter.
 	if filter.CreatedAfter != nil && pool.CreatedAt.Before(*filter.CreatedAfter) {
 		return false
 	}
 
-	// Check created before filter
+	// Check created before filter.
 	if filter.CreatedBefore != nil && pool.CreatedAt.After(*filter.CreatedBefore) {
 		return false
 	}
@@ -786,13 +786,13 @@ func (a *O2Adaptor) matchesResourcePoolFilter(pool *models.ResourcePool, filter 
 }
 
 func (a *O2Adaptor) sortAndPaginateResourcePools(pools []*models.ResourcePool, filter *models.ResourcePoolFilter) []*models.ResourcePool {
-	// Apply sorting if specified
+	// Apply sorting if specified.
 	if filter != nil && filter.SortBy != "" {
-		// Implement sorting based on sortBy field
-		// For brevity, not implementing full sorting here
+		// Implement sorting based on sortBy field.
+		// For brevity, not implementing full sorting here.
 	}
 
-	// Apply pagination if specified
+	// Apply pagination if specified.
 	if filter != nil && filter.Limit > 0 {
 		start := filter.Offset
 		end := start + filter.Limit
@@ -809,8 +809,8 @@ func (a *O2Adaptor) sortAndPaginateResourcePools(pools []*models.ResourcePool, f
 }
 
 func (a *O2Adaptor) getProviderCapacity(ctx context.Context, provider interface{}) (*models.ResourceCapacity, error) {
-	// This would query the actual provider for capacity information
-	// For now, return default capacity
+	// This would query the actual provider for capacity information.
+	// For now, return default capacity.
 	return &models.ResourceCapacity{
 		CPU: &models.ResourceMetric{
 			Total:       "1000",

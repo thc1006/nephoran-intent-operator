@@ -29,7 +29,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
-// ProcessingJob represents a job to be processed by a worker
+// ProcessingJob represents a job to be processed by a worker.
 type ProcessingJob struct {
 	ID          string                        `json:"id"`
 	IntentID    string                        `json:"intentId"`
@@ -46,34 +46,34 @@ type ProcessingJob struct {
 	CompletedAt *time.Time                    `json:"completedAt,omitempty"`
 }
 
-// WorkQueueManager manages work queues for different processing phases
+// WorkQueueManager manages work queues for different processing phases.
 type WorkQueueManager struct {
 	logger logr.Logger
 	config *OrchestratorConfig
 
-	// Work queues per phase
+	// Work queues per phase.
 	queues map[interfaces.ProcessingPhase]workqueue.RateLimitingInterface
 
-	// Worker pools per phase
+	// Worker pools per phase.
 	workerPools map[interfaces.ProcessingPhase]*WorkerPool
 
-	// Priority queue for global job scheduling
+	// Priority queue for global job scheduling.
 	priorityQueue *PriorityQueue
 
-	// Job tracking
+	// Job tracking.
 	activeJobs    sync.Map // map[string]*ProcessingJob
 	completedJobs sync.Map // map[string]*JobResult
 
-	// Control channels
+	// Control channels.
 	stopChan chan bool
 	started  bool
 	mutex    sync.RWMutex
 
-	// Metrics
+	// Metrics.
 	metrics *WorkQueueMetrics
 }
 
-// NewWorkQueueManager creates a new work queue manager
+// NewWorkQueueManager creates a new work queue manager.
 func NewWorkQueueManager(config *OrchestratorConfig, logger logr.Logger) *WorkQueueManager {
 	return &WorkQueueManager{
 		logger:        logger.WithName("work-queue-manager"),
@@ -86,7 +86,7 @@ func NewWorkQueueManager(config *OrchestratorConfig, logger logr.Logger) *WorkQu
 	}
 }
 
-// Start starts the work queue manager
+// Start starts the work queue manager.
 func (wqm *WorkQueueManager) Start(ctx context.Context) error {
 	wqm.mutex.Lock()
 	defer wqm.mutex.Unlock()
@@ -95,7 +95,7 @@ func (wqm *WorkQueueManager) Start(ctx context.Context) error {
 		return fmt.Errorf("work queue manager already started")
 	}
 
-	// Initialize queues and worker pools for each phase
+	// Initialize queues and worker pools for each phase.
 	phases := []interfaces.ProcessingPhase{
 		interfaces.PhaseLLMProcessing,
 		interfaces.PhaseResourcePlanning,
@@ -105,17 +105,17 @@ func (wqm *WorkQueueManager) Start(ctx context.Context) error {
 	}
 
 	for _, phase := range phases {
-		// Create rate-limited work queue
+		// Create rate-limited work queue.
 		queue := workqueue.NewNamedRateLimitingQueue(
 			workqueue.DefaultControllerRateLimiter(),
 			string(phase),
 		)
 		wqm.queues[phase] = queue
 
-		// Get worker count for this phase
+		// Get worker count for this phase.
 		workerCount := wqm.getWorkerCount(phase)
 
-		// Create worker pool
+		// Create worker pool.
 		workerPool := NewWorkerPool(
 			string(phase),
 			workerCount,
@@ -125,16 +125,16 @@ func (wqm *WorkQueueManager) Start(ctx context.Context) error {
 		)
 		wqm.workerPools[phase] = workerPool
 
-		// Start worker pool
+		// Start worker pool.
 		if err := workerPool.Start(ctx); err != nil {
 			return fmt.Errorf("failed to start worker pool for phase %s: %w", phase, err)
 		}
 	}
 
-	// Start priority queue processor
+	// Start priority queue processor.
 	go wqm.processPriorityQueue(ctx)
 
-	// Start metrics collector
+	// Start metrics collector.
 	go wqm.collectMetrics(ctx)
 
 	wqm.started = true
@@ -143,7 +143,7 @@ func (wqm *WorkQueueManager) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the work queue manager
+// Stop stops the work queue manager.
 func (wqm *WorkQueueManager) Stop(ctx context.Context) error {
 	wqm.mutex.Lock()
 	defer wqm.mutex.Unlock()
@@ -154,7 +154,7 @@ func (wqm *WorkQueueManager) Stop(ctx context.Context) error {
 
 	wqm.logger.Info("Stopping work queue manager")
 
-	// Stop all worker pools
+	// Stop all worker pools.
 	for phase, workerPool := range wqm.workerPools {
 		wqm.logger.Info("Stopping worker pool", "phase", phase)
 		if err := workerPool.Stop(ctx); err != nil {
@@ -162,13 +162,13 @@ func (wqm *WorkQueueManager) Stop(ctx context.Context) error {
 		}
 	}
 
-	// Shutdown all queues
+	// Shutdown all queues.
 	for phase, queue := range wqm.queues {
 		wqm.logger.Info("Shutting down queue", "phase", phase)
 		queue.ShutDown()
 	}
 
-	// Signal stop to background goroutines
+	// Signal stop to background goroutines.
 	close(wqm.stopChan)
 
 	wqm.started = false
@@ -177,27 +177,27 @@ func (wqm *WorkQueueManager) Stop(ctx context.Context) error {
 	return nil
 }
 
-// EnqueueJob adds a job to the appropriate work queue
+// EnqueueJob adds a job to the appropriate work queue.
 func (wqm *WorkQueueManager) EnqueueJob(ctx context.Context, phase interfaces.ProcessingPhase, job ProcessingJob) error {
 	if !wqm.started {
 		return fmt.Errorf("work queue manager not started")
 	}
 
-	// Set creation time
+	// Set creation time.
 	job.CreatedAt = time.Now()
 
-	// Validate job
+	// Validate job.
 	if err := wqm.validateJob(job); err != nil {
 		return fmt.Errorf("job validation failed: %w", err)
 	}
 
-	// Store job for tracking
+	// Store job for tracking.
 	wqm.activeJobs.Store(job.ID, &job)
 
-	// Add to priority queue for global scheduling
+	// Add to priority queue for global scheduling.
 	wqm.priorityQueue.Push(job)
 
-	// Record metrics
+	// Record metrics.
 	wqm.metrics.RecordJobEnqueued(phase)
 
 	wqm.logger.Info("Job enqueued", "jobId", job.ID, "phase", phase, "priority", job.Priority)
@@ -205,7 +205,7 @@ func (wqm *WorkQueueManager) EnqueueJob(ctx context.Context, phase interfaces.Pr
 	return nil
 }
 
-// processPriorityQueue processes jobs from the priority queue
+// processPriorityQueue processes jobs from the priority queue.
 func (wqm *WorkQueueManager) processPriorityQueue(ctx context.Context) {
 	wqm.logger.Info("Started priority queue processing")
 
@@ -228,21 +228,21 @@ func (wqm *WorkQueueManager) processPriorityQueue(ctx context.Context) {
 	}
 }
 
-// processNextPriorityJob processes the next job from the priority queue
+// processNextPriorityJob processes the next job from the priority queue.
 func (wqm *WorkQueueManager) processNextPriorityJob(ctx context.Context) {
 	job := wqm.priorityQueue.Pop()
 	if job == nil {
 		return
 	}
 
-	// Check if we can schedule this job (respect concurrency limits)
+	// Check if we can schedule this job (respect concurrency limits).
 	if !wqm.canScheduleJob(*job) {
-		// Put it back in the queue for later
+		// Put it back in the queue for later.
 		wqm.priorityQueue.Push(*job)
 		return
 	}
 
-	// Get the appropriate queue for this phase
+	// Get the appropriate queue for this phase.
 	queue, exists := wqm.queues[job.Phase]
 	if !exists {
 		wqm.logger.Error(fmt.Errorf("no queue found"), "Unknown phase", "phase", job.Phase)
@@ -250,20 +250,20 @@ func (wqm *WorkQueueManager) processNextPriorityJob(ctx context.Context) {
 		return
 	}
 
-	// Mark job as scheduled
+	// Mark job as scheduled.
 	now := time.Now()
 	job.ScheduledAt = &now
 	wqm.activeJobs.Store(job.ID, job)
 
-	// Add to phase-specific queue
+	// Add to phase-specific queue.
 	queue.Add(job.ID)
 
 	wqm.logger.V(1).Info("Job scheduled to phase queue", "jobId", job.ID, "phase", job.Phase)
 }
 
-// canScheduleJob checks if a job can be scheduled based on concurrency limits
+// canScheduleJob checks if a job can be scheduled based on concurrency limits.
 func (wqm *WorkQueueManager) canScheduleJob(job ProcessingJob) bool {
-	// Check global concurrency limit
+	// Check global concurrency limit.
 	activeJobCount := 0
 	wqm.activeJobs.Range(func(key, value interface{}) bool {
 		if j, ok := value.(*ProcessingJob); ok && j.StartedAt != nil && j.CompletedAt == nil {
@@ -276,7 +276,7 @@ func (wqm *WorkQueueManager) canScheduleJob(job ProcessingJob) bool {
 		return false
 	}
 
-	// Check phase-specific concurrency limit
+	// Check phase-specific concurrency limit.
 	phaseConfig, exists := wqm.config.PhaseConfigs[job.Phase]
 	if exists && phaseConfig.MaxConcurrency > 0 {
 		phaseActiveCount := 0
@@ -295,9 +295,9 @@ func (wqm *WorkQueueManager) canScheduleJob(job ProcessingJob) bool {
 	return true
 }
 
-// processJob processes a single job (called by worker pools)
+// processJob processes a single job (called by worker pools).
 func (wqm *WorkQueueManager) processJob(ctx context.Context, jobID string) error {
-	// Retrieve job from active jobs
+	// Retrieve job from active jobs.
 	jobInterface, exists := wqm.activeJobs.Load(jobID)
 	if !exists {
 		return fmt.Errorf("job %s not found", jobID)
@@ -308,28 +308,28 @@ func (wqm *WorkQueueManager) processJob(ctx context.Context, jobID string) error
 		return fmt.Errorf("invalid job type for %s", jobID)
 	}
 
-	// Mark job as started
+	// Mark job as started.
 	now := time.Now()
 	job.StartedAt = &now
 	wqm.activeJobs.Store(jobID, job)
 
 	wqm.logger.Info("Processing job", "jobId", jobID, "phase", job.Phase, "attempt", job.RetryCount+1)
 
-	// Record metrics
+	// Record metrics.
 	wqm.metrics.RecordJobStarted(job.Phase)
 
-	// Create job-specific context with timeout
+	// Create job-specific context with timeout.
 	jobCtx, cancel := context.WithTimeout(ctx, job.Timeout)
 	defer cancel()
 
-	// Execute the job (this would call the appropriate controller)
+	// Execute the job (this would call the appropriate controller).
 	result, err := wqm.executeJob(jobCtx, job)
 
-	// Mark job as completed
+	// Mark job as completed.
 	completedAt := time.Now()
 	job.CompletedAt = &completedAt
 
-	// Handle result
+	// Handle result.
 	if err != nil {
 		return wqm.handleJobError(job, err)
 	}
@@ -337,14 +337,14 @@ func (wqm *WorkQueueManager) processJob(ctx context.Context, jobID string) error
 	return wqm.handleJobSuccess(job, result)
 }
 
-// executeJob executes a job by delegating to the appropriate controller
+// executeJob executes a job by delegating to the appropriate controller.
 func (wqm *WorkQueueManager) executeJob(ctx context.Context, job *ProcessingJob) (*JobResult, error) {
-	// This is a simplified implementation - in practice, this would
-	// delegate to the appropriate phase controller
+	// This is a simplified implementation - in practice, this would.
+	// delegate to the appropriate phase controller.
 
 	wqm.logger.Info("Executing job", "jobId", job.ID, "phase", job.Phase)
 
-	// Simulate job execution
+	// Simulate job execution.
 	result := &JobResult{
 		JobID:     job.ID,
 		Phase:     job.Phase,
@@ -361,48 +361,48 @@ func (wqm *WorkQueueManager) executeJob(ctx context.Context, job *ProcessingJob)
 	return result, nil
 }
 
-// handleJobSuccess handles successful job completion
+// handleJobSuccess handles successful job completion.
 func (wqm *WorkQueueManager) handleJobSuccess(job *ProcessingJob, result *JobResult) error {
 	wqm.logger.Info("Job completed successfully", "jobId", job.ID, "phase", job.Phase, "duration", result.Duration)
 
-	// Store result
+	// Store result.
 	wqm.completedJobs.Store(job.ID, result)
 
-	// Remove from active jobs
+	// Remove from active jobs.
 	wqm.activeJobs.Delete(job.ID)
 
-	// Record metrics
+	// Record metrics.
 	wqm.metrics.RecordJobCompleted(job.Phase, result.Duration, true)
 
 	return nil
 }
 
-// handleJobError handles job execution errors
+// handleJobError handles job execution errors.
 func (wqm *WorkQueueManager) handleJobError(job *ProcessingJob, err error) error {
 	wqm.logger.Error(err, "Job execution failed", "jobId", job.ID, "phase", job.Phase, "attempt", job.RetryCount+1)
 
-	// Check if we should retry
+	// Check if we should retry.
 	if job.RetryCount < job.MaxRetries {
 		job.RetryCount++
 		job.StartedAt = nil
 		job.CompletedAt = nil
 
-		// Put back in priority queue for retry
+		// Put back in priority queue for retry.
 		wqm.priorityQueue.Push(*job)
 
 		wqm.logger.Info("Job scheduled for retry", "jobId", job.ID, "attempt", job.RetryCount)
 		return nil
 	}
 
-	// Max retries exceeded
+	// Max retries exceeded.
 	return wqm.recordJobFailure(*job, err)
 }
 
-// recordJobFailure records a permanent job failure
+// recordJobFailure records a permanent job failure.
 func (wqm *WorkQueueManager) recordJobFailure(job ProcessingJob, err error) error {
 	wqm.logger.Error(err, "Job failed permanently", "jobId", job.ID, "phase", job.Phase, "attempts", job.RetryCount+1)
 
-	// Create failure result
+	// Create failure result.
 	result := &JobResult{
 		JobID:     job.ID,
 		Phase:     job.Phase,
@@ -413,19 +413,19 @@ func (wqm *WorkQueueManager) recordJobFailure(job ProcessingJob, err error) erro
 	}
 	result.Duration = result.EndTime.Sub(result.StartTime)
 
-	// Store result
+	// Store result.
 	wqm.completedJobs.Store(job.ID, result)
 
-	// Remove from active jobs
+	// Remove from active jobs.
 	wqm.activeJobs.Delete(job.ID)
 
-	// Record metrics
+	// Record metrics.
 	wqm.metrics.RecordJobCompleted(job.Phase, result.Duration, false)
 
 	return err
 }
 
-// validateJob validates a processing job
+// validateJob validates a processing job.
 func (wqm *WorkQueueManager) validateJob(job ProcessingJob) error {
 	if job.ID == "" {
 		return fmt.Errorf("job ID is required")
@@ -450,13 +450,13 @@ func (wqm *WorkQueueManager) validateJob(job ProcessingJob) error {
 	return nil
 }
 
-// getWorkerCount returns the number of workers for a phase
+// getWorkerCount returns the number of workers for a phase.
 func (wqm *WorkQueueManager) getWorkerCount(phase interfaces.ProcessingPhase) int {
 	if phaseConfig, exists := wqm.config.PhaseConfigs[phase]; exists && phaseConfig.MaxConcurrency > 0 {
 		return phaseConfig.MaxConcurrency
 	}
 
-	// Default worker counts per phase
+	// Default worker counts per phase.
 	switch phase {
 	case interfaces.PhaseLLMProcessing:
 		return 5 // Limited by external API rate limits
@@ -473,7 +473,7 @@ func (wqm *WorkQueueManager) getWorkerCount(phase interfaces.ProcessingPhase) in
 	}
 }
 
-// collectMetrics collects metrics in the background
+// collectMetrics collects metrics in the background.
 func (wqm *WorkQueueManager) collectMetrics(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
@@ -492,14 +492,14 @@ func (wqm *WorkQueueManager) collectMetrics(ctx context.Context) {
 	}
 }
 
-// updateQueueMetrics updates queue depth and processing metrics
+// updateQueueMetrics updates queue depth and processing metrics.
 func (wqm *WorkQueueManager) updateQueueMetrics() {
 	for phase, queue := range wqm.queues {
 		depth := queue.Len()
 		wqm.metrics.UpdateQueueDepth(phase, depth)
 	}
 
-	// Update active job count
+	// Update active job count.
 	activeCount := 0
 	wqm.activeJobs.Range(func(key, value interface{}) bool {
 		if job, ok := value.(*ProcessingJob); ok && job.StartedAt != nil && job.CompletedAt == nil {
@@ -510,9 +510,9 @@ func (wqm *WorkQueueManager) updateQueueMetrics() {
 	wqm.metrics.UpdateActiveJobCount(activeCount)
 }
 
-// GetJobStatus returns the status of a job
+// GetJobStatus returns the status of a job.
 func (wqm *WorkQueueManager) GetJobStatus(jobID string) (*JobStatus, error) {
-	// Check active jobs
+	// Check active jobs.
 	if jobInterface, exists := wqm.activeJobs.Load(jobID); exists {
 		job, ok := jobInterface.(*ProcessingJob)
 		if !ok {
@@ -538,7 +538,7 @@ func (wqm *WorkQueueManager) GetJobStatus(jobID string) (*JobStatus, error) {
 		return status, nil
 	}
 
-	// Check completed jobs
+	// Check completed jobs.
 	if resultInterface, exists := wqm.completedJobs.Load(jobID); exists {
 		result, ok := resultInterface.(*JobResult)
 		if !ok {
@@ -561,7 +561,7 @@ func (wqm *WorkQueueManager) GetJobStatus(jobID string) (*JobStatus, error) {
 	return nil, fmt.Errorf("job %s not found", jobID)
 }
 
-// getJobStatusString returns a human-readable status string for a job
+// getJobStatusString returns a human-readable status string for a job.
 func (wqm *WorkQueueManager) getJobStatusString(job *ProcessingJob) string {
 	if job.CompletedAt != nil {
 		return "completed"
@@ -575,7 +575,7 @@ func (wqm *WorkQueueManager) getJobStatusString(job *ProcessingJob) string {
 	return "queued"
 }
 
-// getResultStatusString returns a status string for a job result
+// getResultStatusString returns a status string for a job result.
 func (wqm *WorkQueueManager) getResultStatusString(result *JobResult) string {
 	if result.Success {
 		return "completed_success"
@@ -583,12 +583,12 @@ func (wqm *WorkQueueManager) getResultStatusString(result *JobResult) string {
 	return "completed_failed"
 }
 
-// GetMetrics returns current work queue metrics
+// GetMetrics returns current work queue metrics.
 func (wqm *WorkQueueManager) GetMetrics() map[string]interface{} {
 	return wqm.metrics.GetMetrics()
 }
 
-// JobResult represents the result of a job execution
+// JobResult represents the result of a job execution.
 type JobResult struct {
 	JobID     string                     `json:"jobId"`
 	Phase     interfaces.ProcessingPhase `json:"phase"`
@@ -600,7 +600,7 @@ type JobResult struct {
 	Duration  time.Duration              `json:"duration"`
 }
 
-// JobStatus represents the current status of a job
+// JobStatus represents the current status of a job.
 type JobStatus struct {
 	JobID       string                     `json:"jobId"`
 	Phase       interfaces.ProcessingPhase `json:"phase"`
@@ -614,37 +614,37 @@ type JobStatus struct {
 	MaxRetries  int                        `json:"maxRetries"`
 }
 
-// PriorityQueue implements a priority queue for processing jobs
+// PriorityQueue implements a priority queue for processing jobs.
 type PriorityQueue struct {
 	jobs  []ProcessingJob
 	mutex sync.RWMutex
 }
 
-// NewPriorityQueue creates a new priority queue
+// NewPriorityQueue creates a new priority queue.
 func NewPriorityQueue() *PriorityQueue {
 	return &PriorityQueue{
 		jobs: make([]ProcessingJob, 0),
 	}
 }
 
-// Push adds a job to the priority queue
+// Push adds a job to the priority queue.
 func (pq *PriorityQueue) Push(job ProcessingJob) {
 	pq.mutex.Lock()
 	defer pq.mutex.Unlock()
 
 	pq.jobs = append(pq.jobs, job)
 
-	// Sort by priority (higher priority first)
+	// Sort by priority (higher priority first).
 	sort.Slice(pq.jobs, func(i, j int) bool {
 		if pq.jobs[i].Priority != pq.jobs[j].Priority {
 			return pq.jobs[i].Priority > pq.jobs[j].Priority
 		}
-		// If priorities are equal, sort by creation time (FIFO)
+		// If priorities are equal, sort by creation time (FIFO).
 		return pq.jobs[i].CreatedAt.Before(pq.jobs[j].CreatedAt)
 	})
 }
 
-// Pop removes and returns the highest priority job
+// Pop removes and returns the highest priority job.
 func (pq *PriorityQueue) Pop() *ProcessingJob {
 	pq.mutex.Lock()
 	defer pq.mutex.Unlock()
@@ -659,7 +659,7 @@ func (pq *PriorityQueue) Pop() *ProcessingJob {
 	return &job
 }
 
-// Len returns the number of jobs in the queue
+// Len returns the number of jobs in the queue.
 func (pq *PriorityQueue) Len() int {
 	pq.mutex.RLock()
 	defer pq.mutex.RUnlock()
@@ -667,7 +667,7 @@ func (pq *PriorityQueue) Len() int {
 	return len(pq.jobs)
 }
 
-// WorkQueueMetrics tracks work queue performance metrics
+// WorkQueueMetrics tracks work queue performance metrics.
 type WorkQueueMetrics struct {
 	JobsEnqueued    map[interfaces.ProcessingPhase]int64         `json:"jobsEnqueued"`
 	JobsStarted     map[interfaces.ProcessingPhase]int64         `json:"jobsStarted"`
@@ -680,7 +680,7 @@ type WorkQueueMetrics struct {
 	mutex sync.RWMutex
 }
 
-// NewWorkQueueMetrics creates new work queue metrics
+// NewWorkQueueMetrics creates new work queue metrics.
 func NewWorkQueueMetrics() *WorkQueueMetrics {
 	return &WorkQueueMetrics{
 		JobsEnqueued:    make(map[interfaces.ProcessingPhase]int64),
@@ -692,7 +692,7 @@ func NewWorkQueueMetrics() *WorkQueueMetrics {
 	}
 }
 
-// RecordJobEnqueued records a job being enqueued
+// RecordJobEnqueued records a job being enqueued.
 func (m *WorkQueueMetrics) RecordJobEnqueued(phase interfaces.ProcessingPhase) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -700,7 +700,7 @@ func (m *WorkQueueMetrics) RecordJobEnqueued(phase interfaces.ProcessingPhase) {
 	m.JobsEnqueued[phase]++
 }
 
-// RecordJobStarted records a job starting
+// RecordJobStarted records a job starting.
 func (m *WorkQueueMetrics) RecordJobStarted(phase interfaces.ProcessingPhase) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -708,7 +708,7 @@ func (m *WorkQueueMetrics) RecordJobStarted(phase interfaces.ProcessingPhase) {
 	m.JobsStarted[phase]++
 }
 
-// RecordJobCompleted records a job completion
+// RecordJobCompleted records a job completion.
 func (m *WorkQueueMetrics) RecordJobCompleted(phase interfaces.ProcessingPhase, duration time.Duration, success bool) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -719,7 +719,7 @@ func (m *WorkQueueMetrics) RecordJobCompleted(phase interfaces.ProcessingPhase, 
 		m.JobsFailed[phase]++
 	}
 
-	// Update average processing time
+	// Update average processing time.
 	if currentAvg, exists := m.ProcessingTimes[phase]; exists {
 		m.ProcessingTimes[phase] = (currentAvg + duration) / 2
 	} else {
@@ -727,7 +727,7 @@ func (m *WorkQueueMetrics) RecordJobCompleted(phase interfaces.ProcessingPhase, 
 	}
 }
 
-// UpdateQueueDepth updates the queue depth for a phase
+// UpdateQueueDepth updates the queue depth for a phase.
 func (m *WorkQueueMetrics) UpdateQueueDepth(phase interfaces.ProcessingPhase, depth int) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -735,7 +735,7 @@ func (m *WorkQueueMetrics) UpdateQueueDepth(phase interfaces.ProcessingPhase, de
 	m.QueueDepths[phase] = depth
 }
 
-// UpdateActiveJobCount updates the active job count
+// UpdateActiveJobCount updates the active job count.
 func (m *WorkQueueMetrics) UpdateActiveJobCount(count int) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -743,7 +743,7 @@ func (m *WorkQueueMetrics) UpdateActiveJobCount(count int) {
 	m.ActiveJobCount = count
 }
 
-// GetMetrics returns current metrics
+// GetMetrics returns current metrics.
 func (m *WorkQueueMetrics) GetMetrics() map[string]interface{} {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()

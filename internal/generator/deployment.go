@@ -12,15 +12,15 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// DeploymentGenerator generates Kubernetes Deployment resources
+// DeploymentGenerator generates Kubernetes Deployment resources.
 type DeploymentGenerator struct{}
 
-// NewDeploymentGenerator creates a new deployment generator
+// NewDeploymentGenerator creates a new deployment generator.
 func NewDeploymentGenerator() *DeploymentGenerator {
 	return &DeploymentGenerator{}
 }
 
-// Generate creates a Kubernetes Deployment from a scaling intent
+// Generate creates a Kubernetes Deployment from a scaling intent.
 func (g *DeploymentGenerator) Generate(intent *intent.ScalingIntent) ([]byte, error) {
 	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -140,17 +140,17 @@ func (g *DeploymentGenerator) Generate(intent *intent.ScalingIntent) ([]byte, er
 		},
 	}
 
-	// Add correlation ID if provided
+	// Add correlation ID if provided.
 	if intent.CorrelationID != "" {
 		deployment.ObjectMeta.Annotations["nephoran.com/correlation-id"] = intent.CorrelationID
 	}
 
-	// Add reason if provided
+	// Add reason if provided.
 	if intent.Reason != "" {
 		deployment.ObjectMeta.Annotations["nephoran.com/reason"] = intent.Reason
 	}
 
-	// Convert to YAML
+	// Convert to YAML.
 	yamlData, err := yaml.Marshal(deployment)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal deployment to YAML: %w", err)
@@ -159,7 +159,7 @@ func (g *DeploymentGenerator) Generate(intent *intent.ScalingIntent) ([]byte, er
 	return yamlData, nil
 }
 
-// GenerateService creates a companion Service for the deployment
+// GenerateService creates a companion Service for the deployment.
 func (g *DeploymentGenerator) GenerateService(intent *intent.ScalingIntent) ([]byte, error) {
 	service := &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
@@ -207,15 +207,15 @@ func (g *DeploymentGenerator) GenerateService(intent *intent.ScalingIntent) ([]b
 	return yamlData, nil
 }
 
-// Helper functions
+// Helper functions.
 
 func int32Ptr(i int32) *int32 {
 	return &i
 }
 
-// safeIntToInt32 safely converts an int to int32 with bounds checking
+// safeIntToInt32 safely converts an int to int32 with bounds checking.
 func safeIntToInt32(i int) int32 {
-	// Check for overflow - int32 max value is 2147483647
+	// Check for overflow - int32 max value is 2147483647.
 	const maxInt32 = int(^uint32(0) >> 1)
 	if i > maxInt32 {
 		return int32(maxInt32)
@@ -226,8 +226,8 @@ func safeIntToInt32(i int) int32 {
 	return int32(i)
 }
 
-// mustParseQuantity parses a resource quantity and panics if it fails
-// This is safe for compile-time constants
+// mustParseQuantity parses a resource quantity and panics if it fails.
+// This is safe for compile-time constants.
 func mustParseQuantity(s string) resource.Quantity {
 	q, err := resource.ParseQuantity(s)
 	if err != nil {

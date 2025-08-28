@@ -86,7 +86,7 @@ func NewEventBus[T any](config EventBusConfig) *EventBus[T] {
 		cancel: cancel,
 	}
 
-	// Start worker goroutines
+	// Start worker goroutines.
 	for i := 0; i < config.WorkerCount; i++ {
 		bus.wg.Add(1)
 		go bus.worker(config.Timeout)
@@ -107,7 +107,7 @@ func (eb *EventBus[T]) SubscribeWithFilter(handler EventHandler[T], filter Event
 	eb.mu.Lock()
 	defer eb.mu.Unlock()
 
-	// Wrap handler with filter
+	// Wrap handler with filter.
 	wrappedHandler := func(ctx context.Context, event Event[T]) Result[bool, error] {
 		if !filter(event) {
 			return Ok[bool, error](true) // Skip this event
@@ -146,7 +146,7 @@ func (eb *EventBus[T]) Publish(event Event[T]) Result[bool, error] {
 
 // PublishSync publishes an event synchronously to all subscribers.
 func (eb *EventBus[T]) PublishSync(ctx context.Context, event Event[T]) Result[[]bool, error] {
-	// Apply global filters
+	// Apply global filters.
 	eb.mu.RLock()
 	for _, filter := range eb.filters {
 		if !filter(event) {
@@ -161,7 +161,7 @@ func (eb *EventBus[T]) PublishSync(ctx context.Context, event Event[T]) Result[[
 	copy(middlewares, eb.middlewares)
 	eb.mu.RUnlock()
 
-	// Apply middlewares
+	// Apply middlewares.
 	processedEvent := event
 	for _, middleware := range middlewares {
 		result := middleware.Process(ctx, processedEvent)
@@ -171,7 +171,7 @@ func (eb *EventBus[T]) PublishSync(ctx context.Context, event Event[T]) Result[[
 		processedEvent = result.Value()
 	}
 
-	// Execute handlers
+	// Execute handlers.
 	results := make([]bool, len(handlers))
 	for i, handler := range handlers {
 		result := handler(ctx, processedEvent)
@@ -218,6 +218,7 @@ type EventLoggingMiddleware[T any] struct {
 	Logger func(Event[T])
 }
 
+// Process performs process operation.
 func (m EventLoggingMiddleware[T]) Process(ctx context.Context, event Event[T]) Result[Event[T], error] {
 	m.Logger(event)
 	return Ok[Event[T], error](event)
@@ -230,6 +231,7 @@ type EventMetricsMiddleware[T any] struct {
 	recorder func(Event[T])
 }
 
+// Process performs process operation.
 func (m EventMetricsMiddleware[T]) Process(ctx context.Context, event Event[T]) Result[Event[T], error] {
 	start := time.Now()
 	m.Counter(event.Type)
@@ -315,10 +317,10 @@ func NewEventAggregator[TInput, TOutput any](
 		cancel:     cancel,
 	}
 
-	// Subscribe to input events
+	// Subscribe to input events.
 	inputBus.Subscribe(ea.handleInputEvent)
 
-	// Start aggregation worker
+	// Start aggregation worker.
 	go ea.aggregateWorker()
 
 	return ea
@@ -358,7 +360,7 @@ func (ea *EventAggregator[TInput, TOutput]) processBuffer() {
 	ea.buffer = ea.buffer[:0] // Clear buffer
 	ea.mu.Unlock()
 
-	// Aggregate events
+	// Aggregate events.
 	result := ea.aggregator(events)
 	if result.IsOk() {
 		_ = ea.outputBus.Publish(result.Value())
@@ -465,7 +467,7 @@ func NewEventStream[T any](bus *EventBus[T], bufferSize int) *EventStream[T] {
 		cancel:     cancel,
 	}
 
-	// Subscribe to bus events
+	// Subscribe to bus events.
 	bus.Subscribe(stream.handleEvent)
 
 	return stream
@@ -478,7 +480,7 @@ func (es *EventStream[T]) AddFilter(filter EventFilter[T]) {
 
 // handleEvent handles events from the bus.
 func (es *EventStream[T]) handleEvent(ctx context.Context, event Event[T]) Result[bool, error] {
-	// Apply filters
+	// Apply filters.
 	for _, filter := range es.filters {
 		if !filter(event) {
 			return Ok[bool, error](true) // Skip filtered events
@@ -507,7 +509,7 @@ func (es *EventStream[T]) Close() error {
 	return nil
 }
 
-// Predefined event filters
+// Predefined event filters.
 
 // TypeFilter creates a filter for specific event types.
 func TypeFilter[T any](eventTypes ...string) EventFilter[T] {

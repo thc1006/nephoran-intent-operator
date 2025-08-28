@@ -19,16 +19,16 @@ import (
 
 // ClientInterface defines the contract for generic clients.
 type ClientInterface[TRequest, TResponse any] interface {
-	// Execute performs the client operation
+	// Execute performs the client operation.
 	Execute(ctx context.Context, request TRequest) Result[TResponse, error]
 
-	// ExecuteWithRetry performs the operation with retry logic
+	// ExecuteWithRetry performs the operation with retry logic.
 	ExecuteWithRetry(ctx context.Context, request TRequest, retries int) Result[TResponse, error]
 
-	// IsHealthy performs a health check
+	// IsHealthy performs a health check.
 	IsHealthy(ctx context.Context) Result[bool, error]
 
-	// Close gracefully closes the client
+	// Close gracefully closes the client.
 	Close() error
 }
 
@@ -36,10 +36,10 @@ type ClientInterface[TRequest, TResponse any] interface {
 type AsyncClientInterface[TRequest, TResponse any] interface {
 	ClientInterface[TRequest, TResponse]
 
-	// ExecuteAsync performs the operation asynchronously
+	// ExecuteAsync performs the operation asynchronously.
 	ExecuteAsync(ctx context.Context, request TRequest) <-chan Result[TResponse, error]
 
-	// ExecuteBatch processes multiple requests concurrently
+	// ExecuteBatch processes multiple requests concurrently.
 	ExecuteBatch(ctx context.Context, requests []TRequest) <-chan Result[TResponse, error]
 }
 
@@ -78,6 +78,7 @@ type ResponseDecoder[T any] interface {
 // JSONRequestTransformer implements RequestTransformer for JSON requests.
 type JSONRequestTransformer[T any] struct{}
 
+// Transform performs transform operation.
 func (t JSONRequestTransformer[T]) Transform(ctx context.Context, req T) Result[io.Reader, error] {
 	data, err := json.Marshal(req)
 	if err != nil {
@@ -89,6 +90,7 @@ func (t JSONRequestTransformer[T]) Transform(ctx context.Context, req T) Result[
 // JSONResponseDecoder implements ResponseDecoder for JSON responses.
 type JSONResponseDecoder[T any] struct{}
 
+// Decode performs decode operation.
 func (d JSONResponseDecoder[T]) Decode(ctx context.Context, resp *http.Response) Result[T, error] {
 	var result T
 	decoder := json.NewDecoder(resp.Body)
@@ -110,7 +112,7 @@ func NewHTTPClient[TRequest, TResponse any](config HTTPClientConfig[TRequest, TR
 		httpClient.Timeout = 30 * time.Second
 	}
 
-	// Set default transformer and decoder if not provided
+	// Set default transformer and decoder if not provided.
 	var transformer RequestTransformer[TRequest]
 	var decoder ResponseDecoder[TResponse]
 
@@ -139,43 +141,43 @@ func NewHTTPClient[TRequest, TResponse any](config HTTPClientConfig[TRequest, TR
 
 // Execute performs the HTTP request.
 func (c *HTTPClient[TRequest, TResponse]) Execute(ctx context.Context, request TRequest) Result[TResponse, error] {
-	// Transform request to HTTP body
+	// Transform request to HTTP body.
 	bodyResult := c.transformer.Transform(ctx, request)
 	if bodyResult.IsErr() {
 		return Err[TResponse, error](bodyResult.Error())
 	}
 
-	// Create HTTP request
+	// Create HTTP request.
 	url := c.baseURL + c.endpoint
 	httpReq, err := http.NewRequestWithContext(ctx, c.method, url, bodyResult.Value())
 	if err != nil {
 		return Err[TResponse, error](fmt.Errorf("failed to create HTTP request: %w", err))
 	}
 
-	// Set headers
+	// Set headers.
 	for key, value := range c.headers {
 		httpReq.Header.Set(key, value)
 	}
 
-	// Set default content type for JSON
+	// Set default content type for JSON.
 	if httpReq.Header.Get("Content-Type") == "" {
 		httpReq.Header.Set("Content-Type", "application/json")
 	}
 
-	// Execute request
+	// Execute request.
 	resp, err := c.client.Do(httpReq)
 	if err != nil {
 		return Err[TResponse, error](fmt.Errorf("HTTP request failed: %w", err))
 	}
 	defer resp.Body.Close()
 
-	// Check status code
+	// Check status code.
 	if resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(resp.Body)
 		return Err[TResponse, error](fmt.Errorf("HTTP error %d: %s", resp.StatusCode, string(body)))
 	}
 
-	// Decode response
+	// Decode response.
 	return c.decoder.Decode(ctx, resp)
 }
 
@@ -192,7 +194,7 @@ func (c *HTTPClient[TRequest, TResponse]) ExecuteWithRetry(ctx context.Context, 
 		lastErr = result.Error()
 
 		if attempt < retries {
-			// Exponential backoff
+			// Exponential backoff.
 			backoff := time.Duration(1<<uint(attempt)) * time.Second
 			timer := time.NewTimer(backoff)
 			select {
@@ -200,7 +202,7 @@ func (c *HTTPClient[TRequest, TResponse]) ExecuteWithRetry(ctx context.Context, 
 				timer.Stop()
 				return Err[TResponse, error](ctx.Err())
 			case <-timer.C:
-				// Continue to next attempt
+				// Continue to next attempt.
 			}
 		}
 	}
@@ -339,17 +341,17 @@ func (c *KubernetesClient[T]) Delete(ctx context.Context, obj T) Result[bool, er
 
 // List retrieves a list of Kubernetes objects.
 func (c *KubernetesClient[T]) List(ctx context.Context, opts ...client.ListOption) Result[[]T, error] {
-	// This is a placeholder implementation - in a real scenario,
-	// you would need to know the list type for T
-	// Apply namespace option if set
+	// This is a placeholder implementation - in a real scenario,.
+	// you would need to know the list type for T.
+	// Apply namespace option if set.
 	if c.namespace != "" {
 		opts = append(opts, client.InNamespace(c.namespace))
 	}
 
-	// Placeholder - in real implementation, you'd need proper list type handling
-	// For now, return an empty list to fix compilation
+	// Placeholder - in real implementation, you'd need proper list type handling.
+	// For now, return an empty list to fix compilation.
 
-	// Extract items from the list (this is simplified for the example)
+	// Extract items from the list (this is simplified for the example).
 	var items []T
 	return Ok[[]T, error](items)
 }
@@ -372,10 +374,15 @@ type DatabaseClient[TEntity, TKey Comparable] struct {
 type DatabaseOperation int
 
 const (
+	// OpCreate holds opcreate value.
 	OpCreate DatabaseOperation = iota
+	// OpRead holds opread value.
 	OpRead
+	// OpUpdate holds opupdate value.
 	OpUpdate
+	// OpDelete holds opdelete value.
 	OpDelete
+	// OpList holds oplist value.
 	OpList
 )
 
@@ -433,7 +440,7 @@ func (q *DatabaseQuery[T]) WithOffset(offset int) *DatabaseQuery[T] {
 	return q
 }
 
-// gRPC Client wrapper would follow similar patterns with protobuf support
+// gRPC Client wrapper would follow similar patterns with protobuf support.
 
 // ClientPool manages a pool of clients for load balancing and failover.
 type ClientPool[TRequest, TResponse any] struct {

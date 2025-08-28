@@ -6,10 +6,10 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 )
 
-// IntegrateWithMetricsCollector demonstrates how to integrate the Weaviate connection pool
+// IntegrateWithMetricsCollector demonstrates how to integrate the Weaviate connection pool.
 // with the main monitoring metrics collector.
 //
-// Example usage:
+// Example usage:.
 //
 //	metricsCollector := monitoring.NewMetricsCollector()
 //	poolConfig := DefaultPoolConfig()
@@ -22,7 +22,7 @@ func IntegrateWeaviatePoolWithMetrics(config *PoolConfig, metricsCollector *moni
 	return NewWeaviateConnectionPoolWithMetrics(config, metricsCollector)
 }
 
-// SetupWeaviatePoolWithMonitoring creates a complete setup with monitoring integration
+// SetupWeaviatePoolWithMonitoring creates a complete setup with monitoring integration.
 func SetupWeaviatePoolWithMonitoring(config *PoolConfig) (*WeaviateConnectionPool, *monitoring.MetricsCollector) {
 	metricsCollector := monitoring.NewMetricsCollector()
 	pool := NewWeaviateConnectionPoolWithMetrics(config, metricsCollector)

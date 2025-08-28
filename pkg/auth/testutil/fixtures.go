@@ -9,16 +9,17 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
 
-// UserFactory provides methods to create test users with various configurations
+// UserFactory provides methods to create test users with various configurations.
 type UserFactory struct {
 	counter int
 }
 
+// NewUserFactory performs newuserfactory operation.
 func NewUserFactory() *UserFactory {
 	return &UserFactory{}
 }
 
-// CreateBasicUser creates a basic user for testing
+// CreateBasicUser creates a basic user for testing.
 func (f *UserFactory) CreateBasicUser() *providers.UserInfo {
 	f.counter++
 	id := fmt.Sprintf("user%d", f.counter)
@@ -42,7 +43,7 @@ func (f *UserFactory) CreateBasicUser() *providers.UserInfo {
 	}
 }
 
-// CreateAdminUser creates an admin user for testing
+// CreateAdminUser creates an admin user for testing.
 func (f *UserFactory) CreateAdminUser() *providers.UserInfo {
 	user := f.CreateBasicUser()
 	user.Name = "Admin " + user.Name
@@ -52,27 +53,27 @@ func (f *UserFactory) CreateAdminUser() *providers.UserInfo {
 	return user
 }
 
-// CreateUserWithGroups creates a user with specific groups
+// CreateUserWithGroups creates a user with specific groups.
 func (f *UserFactory) CreateUserWithGroups(groups []string) *providers.UserInfo {
 	user := f.CreateBasicUser()
 	user.Groups = groups
 	return user
 }
 
-// CreateUserWithRoles creates a user with specific roles
+// CreateUserWithRoles creates a user with specific roles.
 func (f *UserFactory) CreateUserWithRoles(roles []string) *providers.UserInfo {
 	user := f.CreateBasicUser()
 	user.Roles = roles
 	return user
 }
 
-// CreateUserWithProvider creates a user from a specific provider
+// CreateUserWithProvider creates a user from a specific provider.
 func (f *UserFactory) CreateUserWithProvider(provider string) *providers.UserInfo {
 	user := f.CreateBasicUser()
 	user.Provider = provider
 	user.ProviderID = fmt.Sprintf("%s-%s", provider, user.Subject)
 
-	// Provider-specific adjustments
+	// Provider-specific adjustments.
 	switch provider {
 	case "github":
 		user.Username = fmt.Sprintf("gh_%s", user.Username)
@@ -87,7 +88,7 @@ func (f *UserFactory) CreateUserWithProvider(provider string) *providers.UserInf
 	return user
 }
 
-// CreateExpiredUser creates a user with expired attributes
+// CreateExpiredUser creates a user with expired attributes.
 func (f *UserFactory) CreateExpiredUser() *providers.UserInfo {
 	user := f.CreateBasicUser()
 	user.UpdatedAt = time.Now().Add(-30 * 24 * time.Hour).Unix() // 30 days ago
@@ -95,11 +96,12 @@ func (f *UserFactory) CreateExpiredUser() *providers.UserInfo {
 	return user
 }
 
-// TokenFactory provides methods to create test tokens
+// TokenFactory provides methods to create test tokens.
 type TokenFactory struct {
 	issuer string
 }
 
+// NewTokenFactory performs newtokenfactory operation.
 func NewTokenFactory(issuer string) *TokenFactory {
 	if issuer == "" {
 		issuer = "test-issuer"
@@ -107,7 +109,7 @@ func NewTokenFactory(issuer string) *TokenFactory {
 	return &TokenFactory{issuer: issuer}
 }
 
-// CreateBasicToken creates a basic JWT token
+// CreateBasicToken creates a basic JWT token.
 func (f *TokenFactory) CreateBasicToken(subject string) jwt.MapClaims {
 	now := time.Now()
 	return jwt.MapClaims{
@@ -121,28 +123,28 @@ func (f *TokenFactory) CreateBasicToken(subject string) jwt.MapClaims {
 	}
 }
 
-// CreateTokenWithScopes creates a token with specific scopes
+// CreateTokenWithScopes creates a token with specific scopes.
 func (f *TokenFactory) CreateTokenWithScopes(subject string, scopes []string) jwt.MapClaims {
 	claims := f.CreateBasicToken(subject)
 	claims["scope"] = scopes
 	return claims
 }
 
-// CreateTokenWithRoles creates a token with roles
+// CreateTokenWithRoles creates a token with roles.
 func (f *TokenFactory) CreateTokenWithRoles(subject string, roles []string) jwt.MapClaims {
 	claims := f.CreateBasicToken(subject)
 	claims["roles"] = roles
 	return claims
 }
 
-// CreateTokenWithGroups creates a token with groups
+// CreateTokenWithGroups creates a token with groups.
 func (f *TokenFactory) CreateTokenWithGroups(subject string, groups []string) jwt.MapClaims {
 	claims := f.CreateBasicToken(subject)
 	claims["groups"] = groups
 	return claims
 }
 
-// CreateExpiredToken creates an expired token
+// CreateExpiredToken creates an expired token.
 func (f *TokenFactory) CreateExpiredToken(subject string) jwt.MapClaims {
 	now := time.Now()
 	return jwt.MapClaims{
@@ -156,7 +158,7 @@ func (f *TokenFactory) CreateExpiredToken(subject string) jwt.MapClaims {
 	}
 }
 
-// CreateTokenNotValidYet creates a token that's not valid yet
+// CreateTokenNotValidYet creates a token that's not valid yet.
 func (f *TokenFactory) CreateTokenNotValidYet(subject string) jwt.MapClaims {
 	now := time.Now()
 	return jwt.MapClaims{
@@ -170,7 +172,7 @@ func (f *TokenFactory) CreateTokenNotValidYet(subject string) jwt.MapClaims {
 	}
 }
 
-// CreateTokenWithCustomClaims creates a token with custom claims
+// CreateTokenWithCustomClaims creates a token with custom claims.
 func (f *TokenFactory) CreateTokenWithCustomClaims(subject string, customClaims map[string]interface{}) jwt.MapClaims {
 	claims := f.CreateBasicToken(subject)
 	for key, value := range customClaims {
@@ -179,14 +181,15 @@ func (f *TokenFactory) CreateTokenWithCustomClaims(subject string, customClaims 
 	return claims
 }
 
-// OAuthResponseFactory creates OAuth2 responses for testing
+// OAuthResponseFactory creates OAuth2 responses for testing.
 type OAuthResponseFactory struct{}
 
+// NewOAuthResponseFactory performs newoauthresponsefactory operation.
 func NewOAuthResponseFactory() *OAuthResponseFactory {
 	return &OAuthResponseFactory{}
 }
 
-// CreateTokenResponse creates a standard OAuth2 token response
+// CreateTokenResponse creates a standard OAuth2 token response.
 func (f *OAuthResponseFactory) CreateTokenResponse() *providers.TokenResponse {
 	return &providers.TokenResponse{
 		AccessToken:  "test-access-token-" + fmt.Sprintf("%d", rand.Int63()),
@@ -198,14 +201,14 @@ func (f *OAuthResponseFactory) CreateTokenResponse() *providers.TokenResponse {
 	}
 }
 
-// CreateTokenResponseWithCustomTTL creates a token response with custom TTL
+// CreateTokenResponseWithCustomTTL creates a token response with custom TTL.
 func (f *OAuthResponseFactory) CreateTokenResponseWithCustomTTL(ttl int64) *providers.TokenResponse {
 	resp := f.CreateTokenResponse()
 	resp.ExpiresIn = ttl
 	return resp
 }
 
-// CreateExpiredTokenResponse creates an expired token response
+// CreateExpiredTokenResponse creates an expired token response.
 func (f *OAuthResponseFactory) CreateExpiredTokenResponse() *providers.TokenResponse {
 	resp := f.CreateTokenResponse()
 	resp.ExpiresIn = -3600 // Expired 1 hour ago
@@ -213,27 +216,28 @@ func (f *OAuthResponseFactory) CreateExpiredTokenResponse() *providers.TokenResp
 	return resp
 }
 
-// CreateTokenResponseWithIDToken creates a token response with ID token
+// CreateTokenResponseWithIDToken creates a token response with ID token.
 func (f *OAuthResponseFactory) CreateTokenResponseWithIDToken(idToken string) *providers.TokenResponse {
 	resp := f.CreateTokenResponse()
 	resp.IDToken = idToken
 	return resp
 }
 
-// PKCEFactory creates PKCE challenges for testing
+// PKCEFactory creates PKCE challenges for testing.
 type PKCEFactory struct{}
 
+// NewPKCEFactory performs newpkcefactory operation.
 func NewPKCEFactory() *PKCEFactory {
 	return &PKCEFactory{}
 }
 
-// CreatePKCEChallenge creates a valid PKCE challenge
+// CreatePKCEChallenge creates a valid PKCE challenge.
 func (f *PKCEFactory) CreatePKCEChallenge() *providers.PKCEChallenge {
 	challenge, _ := providers.GeneratePKCEChallenge()
 	return challenge
 }
 
-// CreateInvalidPKCEChallenge creates an invalid PKCE challenge
+// CreateInvalidPKCEChallenge creates an invalid PKCE challenge.
 func (f *PKCEFactory) CreateInvalidPKCEChallenge() *providers.PKCEChallenge {
 	return &providers.PKCEChallenge{
 		CodeVerifier:  "invalid-verifier",
@@ -242,14 +246,15 @@ func (f *PKCEFactory) CreateInvalidPKCEChallenge() *providers.PKCEChallenge {
 	}
 }
 
-// ConfigFactory creates configuration objects for testing
+// ConfigFactory creates configuration objects for testing.
 type ConfigFactory struct{}
 
+// NewConfigFactory performs newconfigfactory operation.
 func NewConfigFactory() *ConfigFactory {
 	return &ConfigFactory{}
 }
 
-// CreateJWTConfig creates a JWT configuration for testing
+// CreateJWTConfig creates a JWT configuration for testing.
 func (f *ConfigFactory) CreateJWTConfig() *TestJWTConfig {
 	return &TestJWTConfig{
 		Issuer:               "test-issuer",
@@ -263,7 +268,7 @@ func (f *ConfigFactory) CreateJWTConfig() *TestJWTConfig {
 	}
 }
 
-// CreateRBACConfig creates an RBAC configuration for testing
+// CreateRBACConfig creates an RBAC configuration for testing.
 func (f *ConfigFactory) CreateRBACConfig() *TestRBACConfig {
 	return &TestRBACConfig{
 		CacheTTL:           5 * time.Minute,
@@ -273,7 +278,7 @@ func (f *ConfigFactory) CreateRBACConfig() *TestRBACConfig {
 	}
 }
 
-// CreateSessionConfig creates a session configuration for testing
+// CreateSessionConfig creates a session configuration for testing.
 func (f *ConfigFactory) CreateSessionConfig() *TestSessionConfig {
 	return &TestSessionConfig{
 		SessionTTL:    time.Hour,
@@ -287,7 +292,7 @@ func (f *ConfigFactory) CreateSessionConfig() *TestSessionConfig {
 	}
 }
 
-// CreateProviderConfig creates an OAuth2 provider configuration
+// CreateProviderConfig creates an OAuth2 provider configuration.
 func (f *ConfigFactory) CreateProviderConfig(providerName string) *providers.ProviderConfig {
 	baseURL := "https://oauth.example.com"
 	if providerName == "github" {
@@ -322,16 +327,17 @@ func (f *ConfigFactory) CreateProviderConfig(providerName string) *providers.Pro
 	}
 }
 
-// RoleFactory creates roles for RBAC testing
+// RoleFactory creates roles for RBAC testing.
 type RoleFactory struct {
 	counter int
 }
 
+// NewRoleFactory performs newrolefactory operation.
 func NewRoleFactory() *RoleFactory {
 	return &RoleFactory{}
 }
 
-// CreateBasicRole creates a basic role
+// CreateBasicRole creates a basic role.
 func (f *RoleFactory) CreateBasicRole() *TestRole {
 	f.counter++
 	return &TestRole{
@@ -344,7 +350,7 @@ func (f *RoleFactory) CreateBasicRole() *TestRole {
 	}
 }
 
-// CreateAdminRole creates an admin role
+// CreateAdminRole creates an admin role.
 func (f *RoleFactory) CreateAdminRole() *TestRole {
 	role := f.CreateBasicRole()
 	role.Name = "admin"
@@ -355,14 +361,14 @@ func (f *RoleFactory) CreateAdminRole() *TestRole {
 	return role
 }
 
-// CreateRoleWithPermissions creates a role with specific permissions
+// CreateRoleWithPermissions creates a role with specific permissions.
 func (f *RoleFactory) CreateRoleWithPermissions(permissions []string) *TestRole {
 	role := f.CreateBasicRole()
 	role.Permissions = permissions
 	return role
 }
 
-// CreateHierarchicalRole creates a role with parent/child relationships
+// CreateHierarchicalRole creates a role with parent/child relationships.
 func (f *RoleFactory) CreateHierarchicalRole(parentRoles, childRoles []string) *TestRole {
 	role := f.CreateBasicRole()
 	role.ParentRoles = parentRoles
@@ -370,16 +376,17 @@ func (f *RoleFactory) CreateHierarchicalRole(parentRoles, childRoles []string) *
 	return role
 }
 
-// PermissionFactory creates permissions for RBAC testing
+// PermissionFactory creates permissions for RBAC testing.
 type PermissionFactory struct {
 	counter int
 }
 
+// NewPermissionFactory performs newpermissionfactory operation.
 func NewPermissionFactory() *PermissionFactory {
 	return &PermissionFactory{}
 }
 
-// CreateBasicPermission creates a basic permission
+// CreateBasicPermission creates a basic permission.
 func (f *PermissionFactory) CreateBasicPermission() *TestPermission {
 	f.counter++
 	return &TestPermission{
@@ -393,7 +400,7 @@ func (f *PermissionFactory) CreateBasicPermission() *TestPermission {
 	}
 }
 
-// CreateResourcePermissions creates permissions for a specific resource
+// CreateResourcePermissions creates permissions for a specific resource.
 func (f *PermissionFactory) CreateResourcePermissions(resource string, actions []string) []*TestPermission {
 	var permissions []*TestPermission
 	for _, action := range actions {
@@ -412,7 +419,7 @@ func (f *PermissionFactory) CreateResourcePermissions(resource string, actions [
 	return permissions
 }
 
-// CreateDenyPermission creates a deny permission
+// CreateDenyPermission creates a deny permission.
 func (f *PermissionFactory) CreateDenyPermission(resource, action string) *TestPermission {
 	f.counter++
 	return &TestPermission{
@@ -426,16 +433,17 @@ func (f *PermissionFactory) CreateDenyPermission(resource, action string) *TestP
 	}
 }
 
-// SessionFactory creates sessions for testing
+// SessionFactory creates sessions for testing.
 type SessionFactory struct {
 	counter int
 }
 
+// NewSessionFactory performs newsessionfactory operation.
 func NewSessionFactory() *SessionFactory {
 	return &SessionFactory{}
 }
 
-// CreateBasicSession creates a basic session
+// CreateBasicSession creates a basic session.
 func (f *SessionFactory) CreateBasicSession(userID string) *TestSession {
 	f.counter++
 	return &TestSession{
@@ -452,50 +460,51 @@ func (f *SessionFactory) CreateBasicSession(userID string) *TestSession {
 	}
 }
 
-// CreateExpiredSession creates an expired session
+// CreateExpiredSession creates an expired session.
 func (f *SessionFactory) CreateExpiredSession(userID string) *TestSession {
 	session := f.CreateBasicSession(userID)
 	session.ExpiresAt = time.Now().Add(-time.Hour)
 	return session
 }
 
-// CreateSessionWithMetadata creates a session with custom metadata
+// CreateSessionWithMetadata creates a session with custom metadata.
 func (f *SessionFactory) CreateSessionWithMetadata(userID string, metadata map[string]interface{}) *TestSession {
 	session := f.CreateBasicSession(userID)
 	session.Metadata = metadata
 	return session
 }
 
-// ErrorFactory creates various error scenarios for testing
+// ErrorFactory creates various error scenarios for testing.
 type ErrorFactory struct{}
 
+// NewErrorFactory performs newerrorfactory operation.
 func NewErrorFactory() *ErrorFactory {
 	return &ErrorFactory{}
 }
 
-// CreateProviderError creates a provider-specific error
+// CreateProviderError creates a provider-specific error.
 func (f *ErrorFactory) CreateProviderError(provider, code, description string) *providers.ProviderError {
 	return providers.NewProviderError(provider, code, description, nil)
 }
 
-// CreateAuthError creates authentication errors
+// CreateAuthError creates authentication errors.
 func (f *ErrorFactory) CreateAuthError(message string) error {
 	return fmt.Errorf("auth error: %s", message)
 }
 
-// CreateTokenError creates token-related errors
+// CreateTokenError creates token-related errors.
 func (f *ErrorFactory) CreateTokenError(message string) error {
 	return fmt.Errorf("token error: %s", message)
 }
 
-// CreateValidationError creates validation errors
+// CreateValidationError creates validation errors.
 func (f *ErrorFactory) CreateValidationError(field, message string) error {
 	return fmt.Errorf("validation error for %s: %s", field, message)
 }
 
-// Helper functions for common test scenarios
+// Helper functions for common test scenarios.
 
-// CreateCompleteTestSetup creates a complete test setup with all components
+// CreateCompleteTestSetup creates a complete test setup with all components.
 func CreateCompleteTestSetup() (*UserFactory, *TokenFactory, *OAuthResponseFactory, *ConfigFactory, *RoleFactory, *PermissionFactory, *SessionFactory) {
 	return NewUserFactory(),
 		NewTokenFactory("test-issuer"),
@@ -506,7 +515,7 @@ func CreateCompleteTestSetup() (*UserFactory, *TokenFactory, *OAuthResponseFacto
 		NewSessionFactory()
 }
 
-// CreateTestData creates a set of test data for comprehensive testing
+// CreateTestData creates a set of test data for comprehensive testing.
 func CreateTestData() map[string]interface{} {
 	uf := NewUserFactory()
 	tf := NewTokenFactory("test-issuer")
@@ -544,5 +553,5 @@ func CreateTestData() map[string]interface{} {
 
 // Note: The duplicate type definitions have been removed to avoid conflicts.
 // Tests should import and use the actual types from pkg/auth directly.
-// If circular dependencies arise, they should be resolved through proper
+// If circular dependencies arise, they should be resolved through proper.
 // package restructuring rather than type duplication.

@@ -29,100 +29,100 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// DependencyValidator provides comprehensive dependency validation and conflict detection
-// for telecommunications packages with security scanning, policy compliance, license validation,
-// performance impact analysis, and breaking change detection
+// DependencyValidator provides comprehensive dependency validation and conflict detection.
+// for telecommunications packages with security scanning, policy compliance, license validation,.
+// performance impact analysis, and breaking change detection.
 type DependencyValidator interface {
-	// Core validation operations
+	// Core validation operations.
 	ValidateDependencies(ctx context.Context, spec *ValidationSpec) (*ValidationResult, error)
 	ValidatePackage(ctx context.Context, pkg *PackageReference) (*PackageValidation, error)
 	ValidateVersion(ctx context.Context, pkg *PackageReference, version string) (*VersionValidation, error)
 
-	// Compatibility and platform validation
+	// Compatibility and platform validation.
 	ValidateCompatibility(ctx context.Context, packages []*PackageReference) (*CompatibilityResult, error)
 	ValidatePlatform(ctx context.Context, packages []*PackageReference, platform *PlatformConstraints) (*PlatformValidation, error)
 
-	// Security and vulnerability validation
+	// Security and vulnerability validation.
 	ScanForVulnerabilities(ctx context.Context, packages []*PackageReference) (*SecurityScanResult, error)
 	ValidateSecurityPolicies(ctx context.Context, packages []*PackageReference, policies *SecurityPolicies) (*SecurityValidation, error)
 
-	// License and compliance validation
+	// License and compliance validation.
 	ValidateLicenses(ctx context.Context, packages []*PackageReference) (*LicenseValidation, error)
 	ValidateCompliance(ctx context.Context, packages []*PackageReference, rules *ComplianceRules) (*ComplianceValidation, error)
 
-	// Performance and resource validation
+	// Performance and resource validation.
 	ValidatePerformanceImpact(ctx context.Context, packages []*PackageReference) (*PerformanceValidation, error)
 	ValidateResourceUsage(ctx context.Context, packages []*PackageReference, limits *ResourceLimits) (*ResourceValidation, error)
 
-	// Breaking change detection
+	// Breaking change detection.
 	DetectBreakingChanges(ctx context.Context, oldPkgs, newPkgs []*PackageReference) (*BreakingChangeReport, error)
 	ValidateUpgradePath(ctx context.Context, from, to *PackageReference) (*UpgradeValidation, error)
 
-	// Policy and organizational validation
+	// Policy and organizational validation.
 	ValidateOrganizationalPolicies(ctx context.Context, packages []*PackageReference, policies *OrganizationalPolicies) (*PolicyValidation, error)
 	ValidateArchitecturalCompliance(ctx context.Context, packages []*PackageReference, architecture *ArchitecturalConstraints) (*ArchitecturalValidation, error)
 
-	// Conflict detection and analysis
+	// Conflict detection and analysis.
 	DetectVersionConflicts(ctx context.Context, packages []*PackageReference) (*ConflictReport, error)
 	DetectDependencyConflicts(ctx context.Context, graph *DependencyGraph) (*DependencyConflictReport, error)
 	AnalyzeConflictImpact(ctx context.Context, conflicts []*DependencyConflict) (*ConflictImpactAnalysis, error)
 
-	// Health and monitoring
+	// Health and monitoring.
 	GetValidationHealth(ctx context.Context) (*ValidatorHealth, error)
 	GetValidationMetrics(ctx context.Context) (*ValidatorMetrics, error)
 
-	// Configuration and lifecycle
+	// Configuration and lifecycle.
 	UpdateValidationRules(ctx context.Context, rules *ValidationRules) error
 	Close() error
 }
 
-// dependencyValidator implements comprehensive validation and conflict detection
+// dependencyValidator implements comprehensive validation and conflict detection.
 type dependencyValidator struct {
 	logger  logr.Logger
 	metrics *ValidatorMetrics
 	config  *ValidatorConfig
 
-	// Validation engines
+	// Validation engines.
 	compatibilityChecker *CompatibilityChecker
 	securityScanner      *SecurityScanner
 	licenseValidator     *LicenseValidator
 	performanceAnalyzer  *PerformanceAnalyzer
 	policyEngine         *PolicyEngine
 
-	// Conflict detection
+	// Conflict detection.
 	conflictDetectors []ConflictDetector
 	conflictAnalyzer  *ConflictAnalyzer
 
-	// Caching and optimization
+	// Caching and optimization.
 	validationCache *ValidationCache
 	scanResultCache *ScanResultCache
 
-	// External integrations
+	// External integrations.
 	vulnerabilityDB VulnerabilityDatabase
 	licenseDB       LicenseDatabase
 	policyRegistry  PolicyRegistry
 
-	// Concurrent processing
+	// Concurrent processing.
 	workerPool *ValidationWorkerPool
 
-	// Configuration and rules
+	// Configuration and rules.
 	validationRules  *ValidationRules
 	securityPolicies *SecurityPolicies
 	complianceRules  *ComplianceRules
 
-	// Thread safety
+	// Thread safety.
 	mu sync.RWMutex
 
-	// Lifecycle
+	// Lifecycle.
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 	closed bool
 }
 
-// Core validation data structures
+// Core validation data structures.
 
-// ValidationSpec defines parameters for dependency validation
+// ValidationSpec defines parameters for dependency validation.
 type ValidationSpec struct {
 	Packages               []*PackageReference     `json:"packages"`
 	ValidationTypes        []ValidationType        `json:"validationTypes,omitempty"`
@@ -132,30 +132,30 @@ type ValidationSpec struct {
 	ResourceLimits         *ResourceLimits         `json:"resourceLimits,omitempty"`
 	OrganizationalPolicies *OrganizationalPolicies `json:"organizationalPolicies,omitempty"`
 
-	// Validation options
+	// Validation options.
 	PerformDeepScan   bool `json:"performDeepScan,omitempty"`
 	IncludeTransitive bool `json:"includeTransitive,omitempty"`
 	FailOnWarnings    bool `json:"failOnWarnings,omitempty"`
 	UseParallel       bool `json:"useParallel,omitempty"`
 	UseCache          bool `json:"useCache,omitempty"`
 
-	// Timeout and limits
+	// Timeout and limits.
 	Timeout        time.Duration `json:"timeout,omitempty"`
 	MaxConcurrency int           `json:"maxConcurrency,omitempty"`
 
-	// Context metadata
+	// Context metadata.
 	Environment string                 `json:"environment,omitempty"`
 	Intent      string                 `json:"intent,omitempty"`
 	Requester   string                 `json:"requester,omitempty"`
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// ValidationResult contains comprehensive validation results
+// ValidationResult contains comprehensive validation results.
 type ValidationResult struct {
 	Success      bool    `json:"success"`
 	OverallScore float64 `json:"overallScore"`
 
-	// Individual validation results
+	// Individual validation results.
 	PackageValidations    []*PackageValidation   `json:"packageValidations"`
 	CompatibilityResult   *CompatibilityResult   `json:"compatibilityResult,omitempty"`
 	SecurityScanResult    *SecurityScanResult    `json:"securityScanResult,omitempty"`
@@ -164,154 +164,154 @@ type ValidationResult struct {
 	PerformanceValidation *PerformanceValidation `json:"performanceValidation,omitempty"`
 	PolicyValidation      *PolicyValidation      `json:"policyValidation,omitempty"`
 
-	// Issues and recommendations
+	// Issues and recommendations.
 	Errors          []*ValidationError          `json:"errors,omitempty"`
 	Warnings        []*ValidationWarning        `json:"warnings,omitempty"`
 	Recommendations []*ValidationRecommendation `json:"recommendations,omitempty"`
 
-	// Statistics and metadata
+	// Statistics and metadata.
 	Statistics     *ValidationStatistics  `json:"statistics"`
 	ValidationTime time.Duration          `json:"validationTime"`
 	CacheHits      int                    `json:"cacheHits"`
 	Metadata       map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// PackageValidation contains validation results for a single package
+// PackageValidation contains validation results for a single package.
 type PackageValidation struct {
 	Package *PackageReference `json:"package"`
 	Valid   bool              `json:"valid"`
 	Score   float64           `json:"score"`
 
-	// Validation checks
+	// Validation checks.
 	VersionValidation  *VersionValidation         `json:"versionValidation,omitempty"`
 	SecurityValidation *PackageSecurityValidation `json:"securityValidation,omitempty"`
 	LicenseValidation  *PackageLicenseValidation  `json:"licenseValidation,omitempty"`
 	QualityValidation  *QualityValidation         `json:"qualityValidation,omitempty"`
 
-	// Issues
+	// Issues.
 	Errors   []*ValidationError   `json:"errors,omitempty"`
 	Warnings []*ValidationWarning `json:"warnings,omitempty"`
 
-	// Metadata
+	// Metadata.
 	ValidationTime time.Duration `json:"validationTime"`
 	ValidatedAt    time.Time     `json:"validatedAt"`
 }
 
-// SecurityScanResult contains security vulnerability scan results
+// SecurityScanResult contains security vulnerability scan results.
 type SecurityScanResult struct {
 	ScanID          string              `json:"scanId"`
 	ScannedPackages []*PackageReference `json:"scannedPackages"`
 
-	// Vulnerability findings
+	// Vulnerability findings.
 	Vulnerabilities []*Vulnerability `json:"vulnerabilities"`
 	HighRiskCount   int              `json:"highRiskCount"`
 	MediumRiskCount int              `json:"mediumRiskCount"`
 	LowRiskCount    int              `json:"lowRiskCount"`
 
-	// Security metrics
+	// Security metrics.
 	SecurityScore float64   `json:"securityScore"`
 	RiskLevel     RiskLevel `json:"riskLevel"`
 
-	// Compliance status
+	// Compliance status.
 	PolicyViolations []*PolicyViolation `json:"policyViolations,omitempty"`
 	ComplianceStatus ComplianceStatus   `json:"complianceStatus"`
 
-	// Scan metadata
+	// Scan metadata.
 	ScanTime        time.Duration `json:"scanTime"`
 	ScannedAt       time.Time     `json:"scannedAt"`
 	ScannerVersion  string        `json:"scannerVersion"`
 	DatabaseVersion string        `json:"databaseVersion"`
 }
 
-// Vulnerability represents a security vulnerability
+// Vulnerability represents a security vulnerability.
 type Vulnerability struct {
 	ID          string `json:"id"`
 	CVE         string `json:"cve,omitempty"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
 
-	// Severity and scoring
+	// Severity and scoring.
 	Severity   VulnerabilitySeverity `json:"severity"`
 	CVSSScore  float64               `json:"cvssScore,omitempty"`
 	CVSSVector string                `json:"cvssVector,omitempty"`
 
-	// Affected packages
+	// Affected packages.
 	AffectedPackages []*AffectedPackage `json:"affectedPackages"`
 
-	// Fix information
+	// Fix information.
 	FixAvailable   bool   `json:"fixAvailable"`
 	FixedInVersion string `json:"fixedInVersion,omitempty"`
 	Remediation    string `json:"remediation,omitempty"`
 
-	// References and metadata
+	// References and metadata.
 	References  []string  `json:"references,omitempty"`
 	PublishedAt time.Time `json:"publishedAt,omitempty"`
 	UpdatedAt   time.Time `json:"updatedAt,omitempty"`
 	Tags        []string  `json:"tags,omitempty"`
 }
 
-// ConflictReport contains dependency conflict detection results
+// ConflictReport contains dependency conflict detection results.
 type ConflictReport struct {
 	DetectionID string              `json:"detectionId"`
 	Packages    []*PackageReference `json:"packages"`
 
-	// Conflicts by category
+	// Conflicts by category.
 	VersionConflicts    []*VersionConflict    `json:"versionConflicts"`
 	DependencyConflicts []*DependencyConflict `json:"dependencyConflicts"`
 	LicenseConflicts    []*LicenseConflict    `json:"licenseConflicts"`
 	PolicyConflicts     []*PolicyConflict     `json:"policyConflicts"`
 
-	// Conflict severity
+	// Conflict severity.
 	CriticalConflicts int `json:"criticalConflicts"`
 	HighConflicts     int `json:"highConflicts"`
 	MediumConflicts   int `json:"mediumConflicts"`
 	LowConflicts      int `json:"lowConflicts"`
 
-	// Resolution suggestions
+	// Resolution suggestions.
 	AutoResolvable        []*DependencyConflict           `json:"autoResolvable,omitempty"`
 	ResolutionSuggestions []*ConflictResolutionSuggestion `json:"resolutionSuggestions,omitempty"`
 
-	// Impact analysis
+	// Impact analysis.
 	ImpactAnalysis *ConflictImpactAnalysis `json:"impactAnalysis,omitempty"`
 
-	// Detection metadata
+	// Detection metadata.
 	DetectionTime       time.Duration `json:"detectionTime"`
 	DetectedAt          time.Time     `json:"detectedAt"`
 	DetectionAlgorithms []string      `json:"detectionAlgorithms"`
 }
 
-// DependencyConflict represents a dependency conflict
+// DependencyConflict represents a dependency conflict.
 type DependencyConflict struct {
 	ID       string           `json:"id"`
 	Type     ConflictType     `json:"type"`
 	Severity ConflictSeverity `json:"severity"`
 
-	// Conflicting packages
+	// Conflicting packages.
 	ConflictingPackages []*PackageReference `json:"conflictingPackages"`
 	RequiredBy          []*PackageReference `json:"requiredBy,omitempty"`
 
-	// Conflict details
+	// Conflict details.
 	Description string         `json:"description"`
 	Reason      string         `json:"reason"`
 	Impact      ConflictImpact `json:"impact"`
 
-	// Version information
+	// Version information.
 	RequestedVersions []string `json:"requestedVersions,omitempty"`
 	ResolvedVersion   string   `json:"resolvedVersion,omitempty"`
 
-	// Resolution options
+	// Resolution options.
 	ResolutionStrategies []*ConflictResolutionStrategy `json:"resolutionStrategies,omitempty"`
 	AutoResolvable       bool                          `json:"autoResolvable"`
 
-	// Metadata
+	// Metadata.
 	DetectedAt      time.Time              `json:"detectedAt"`
 	DetectionMethod string                 `json:"detectionMethod"`
 	Context         map[string]interface{} `json:"context,omitempty"`
 }
 
-// Validation error and warning types
+// Validation error and warning types.
 
-// ValidationError represents a validation error
+// ValidationError represents a validation error.
 type ValidationError struct {
 	Code             string                 `json:"code"`
 	Type             ErrorType              `json:"type"`
@@ -324,7 +324,7 @@ type ValidationError struct {
 	DocumentationURL string                 `json:"documentationUrl,omitempty"`
 }
 
-// ValidationWarning represents a validation warning
+// ValidationWarning represents a validation warning.
 type ValidationWarning struct {
 	Code           string                 `json:"code"`
 	Type           WarningType            `json:"type"`
@@ -335,96 +335,139 @@ type ValidationWarning struct {
 	Context        map[string]interface{} `json:"context,omitempty"`
 }
 
-// Enum definitions
+// Enum definitions.
 
-// ValidationType defines types of validation to perform
+// ValidationType defines types of validation to perform.
 type ValidationType string
 
 const (
+	// ValidationTypeCompatibility holds validationtypecompatibility value.
 	ValidationTypeCompatibility ValidationType = "compatibility"
-	ValidationTypeSecurity      ValidationType = "security"
-	ValidationTypeLicense       ValidationType = "license"
-	ValidationTypeCompliance    ValidationType = "compliance"
-	ValidationTypePerformance   ValidationType = "performance"
-	ValidationTypePolicy        ValidationType = "policy"
-	ValidationTypeArchitecture  ValidationType = "architecture"
-	ValidationTypeQuality       ValidationType = "quality"
-	ValidationTypeBreaking      ValidationType = "breaking"
+	// ValidationTypeSecurity holds validationtypesecurity value.
+	ValidationTypeSecurity ValidationType = "security"
+	// ValidationTypeLicense holds validationtypelicense value.
+	ValidationTypeLicense ValidationType = "license"
+	// ValidationTypeCompliance holds validationtypecompliance value.
+	ValidationTypeCompliance ValidationType = "compliance"
+	// ValidationTypePerformance holds validationtypeperformance value.
+	ValidationTypePerformance ValidationType = "performance"
+	// ValidationTypePolicy holds validationtypepolicy value.
+	ValidationTypePolicy ValidationType = "policy"
+	// ValidationTypeArchitecture holds validationtypearchitecture value.
+	ValidationTypeArchitecture ValidationType = "architecture"
+	// ValidationTypeQuality holds validationtypequality value.
+	ValidationTypeQuality ValidationType = "quality"
+	// ValidationTypeBreaking holds validationtypebreaking value.
+	ValidationTypeBreaking ValidationType = "breaking"
 )
 
-// ConflictType defines types of dependency conflicts
+// ConflictType defines types of dependency conflicts.
 type ConflictType string
 
 const (
-	ConflictTypeVersion      ConflictType = "version"
-	ConflictTypeTransitive   ConflictType = "transitive"
-	ConflictTypeExclusion    ConflictType = "exclusion"
-	ConflictTypeLicense      ConflictType = "license"
-	ConflictTypePolicy       ConflictType = "policy"
-	ConflictTypeSecurity     ConflictType = "security"
+	// ConflictTypeVersion holds conflicttypeversion value.
+	ConflictTypeVersion ConflictType = "version"
+	// ConflictTypeTransitive holds conflicttypetransitive value.
+	ConflictTypeTransitive ConflictType = "transitive"
+	// ConflictTypeExclusion holds conflicttypeexclusion value.
+	ConflictTypeExclusion ConflictType = "exclusion"
+	// ConflictTypeLicense holds conflicttypelicense value.
+	ConflictTypeLicense ConflictType = "license"
+	// ConflictTypePolicy holds conflicttypepolicy value.
+	ConflictTypePolicy ConflictType = "policy"
+	// ConflictTypeSecurity holds conflicttypesecurity value.
+	ConflictTypeSecurity ConflictType = "security"
+	// ConflictTypeArchitecture holds conflicttypearchitecture value.
 	ConflictTypeArchitecture ConflictType = "architecture"
-	ConflictTypePerformance  ConflictType = "performance"
-	ConflictTypeCircular     ConflictType = "circular"
-	ConflictTypePlatform     ConflictType = "platform"
+	// ConflictTypePerformance holds conflicttypeperformance value.
+	ConflictTypePerformance ConflictType = "performance"
+	// ConflictTypeCircular holds conflicttypecircular value.
+	ConflictTypeCircular ConflictType = "circular"
+	// ConflictTypePlatform holds conflicttypeplatform value.
+	ConflictTypePlatform ConflictType = "platform"
 )
 
-// ConflictSeverity defines conflict severity levels
+// ConflictSeverity defines conflict severity levels.
 type ConflictSeverity string
 
 const (
-	ConflictSeverityLow      ConflictSeverity = "low"
-	ConflictSeverityMedium   ConflictSeverity = "medium"
-	ConflictSeverityHigh     ConflictSeverity = "high"
+	// ConflictSeverityLow holds conflictseveritylow value.
+	ConflictSeverityLow ConflictSeverity = "low"
+	// ConflictSeverityMedium holds conflictseveritymedium value.
+	ConflictSeverityMedium ConflictSeverity = "medium"
+	// ConflictSeverityHigh holds conflictseverityhigh value.
+	ConflictSeverityHigh ConflictSeverity = "high"
+	// ConflictSeverityCritical holds conflictseveritycritical value.
 	ConflictSeverityCritical ConflictSeverity = "critical"
 )
 
-// VulnerabilitySeverity defines vulnerability severity levels
+// VulnerabilitySeverity defines vulnerability severity levels.
 type VulnerabilitySeverity string
 
 const (
-	VulnerabilitySeverityInfo     VulnerabilitySeverity = "info"
-	VulnerabilitySeverityLow      VulnerabilitySeverity = "low"
-	VulnerabilitySeverityMedium   VulnerabilitySeverity = "medium"
-	VulnerabilitySeverityHigh     VulnerabilitySeverity = "high"
+	// VulnerabilitySeverityInfo holds vulnerabilityseverityinfo value.
+	VulnerabilitySeverityInfo VulnerabilitySeverity = "info"
+	// VulnerabilitySeverityLow holds vulnerabilityseveritylow value.
+	VulnerabilitySeverityLow VulnerabilitySeverity = "low"
+	// VulnerabilitySeverityMedium holds vulnerabilityseveritymedium value.
+	VulnerabilitySeverityMedium VulnerabilitySeverity = "medium"
+	// VulnerabilitySeverityHigh holds vulnerabilityseverityhigh value.
+	VulnerabilitySeverityHigh VulnerabilitySeverity = "high"
+	// VulnerabilitySeverityCritical holds vulnerabilityseveritycritical value.
 	VulnerabilitySeverityCritical VulnerabilitySeverity = "critical"
 )
 
-// RiskLevel defines overall risk levels
+// RiskLevel defines overall risk levels.
 type RiskLevel string
 
 const (
-	RiskLevelLow      RiskLevel = "low"
-	RiskLevelMedium   RiskLevel = "medium"
-	RiskLevelHigh     RiskLevel = "high"
+	// RiskLevelLow holds risklevellow value.
+	RiskLevelLow RiskLevel = "low"
+	// RiskLevelMedium holds risklevelmedium value.
+	RiskLevelMedium RiskLevel = "medium"
+	// RiskLevelHigh holds risklevelhigh value.
+	RiskLevelHigh RiskLevel = "high"
+	// RiskLevelCritical holds risklevelcritical value.
 	RiskLevelCritical RiskLevel = "critical"
 )
 
-// ComplianceStatus defines compliance status
+// ComplianceStatus defines compliance status.
 type ComplianceStatus string
 
 const (
-	ComplianceStatusCompliant    ComplianceStatus = "compliant"
+	// ComplianceStatusCompliant holds compliancestatuscompliant value.
+	ComplianceStatusCompliant ComplianceStatus = "compliant"
+	// ComplianceStatusNonCompliant holds compliancestatusnoncompliant value.
 	ComplianceStatusNonCompliant ComplianceStatus = "non_compliant"
-	ComplianceStatusPartial      ComplianceStatus = "partial"
-	ComplianceStatusUnknown      ComplianceStatus = "unknown"
+	// ComplianceStatusPartial holds compliancestatuspartial value.
+	ComplianceStatusPartial ComplianceStatus = "partial"
+	// ComplianceStatusUnknown holds compliancestatusunknown value.
+	ComplianceStatusUnknown ComplianceStatus = "unknown"
 )
 
-// ErrorType defines validation error types
+// ErrorType defines validation error types.
 type ErrorType string
 
 const (
-	ErrorTypeValidation    ErrorType = "validation"
-	ErrorTypeSecurity      ErrorType = "security"
-	ErrorTypeLicense       ErrorType = "license"
-	ErrorTypeCompliance    ErrorType = "compliance"
-	ErrorTypePolicy        ErrorType = "policy"
+	// ErrorTypeValidation holds errortypevalidation value.
+	ErrorTypeValidation ErrorType = "validation"
+	// ErrorTypeSecurity holds errortypesecurity value.
+	ErrorTypeSecurity ErrorType = "security"
+	// ErrorTypeLicense holds errortypelicense value.
+	ErrorTypeLicense ErrorType = "license"
+	// ErrorTypeCompliance holds errortypecompliance value.
+	ErrorTypeCompliance ErrorType = "compliance"
+	// ErrorTypePolicy holds errortypepolicy value.
+	ErrorTypePolicy ErrorType = "policy"
+	// ErrorTypeCompatibility holds errortypecompatibility value.
 	ErrorTypeCompatibility ErrorType = "compatibility"
+	// ErrorTypeConfiguration holds errortypeconfiguration value.
 	ErrorTypeConfiguration ErrorType = "configuration"
 )
 
-// Constructor
+// Constructor.
 
-// NewDependencyValidator creates a new dependency validator with comprehensive configuration
+// NewDependencyValidator creates a new dependency validator with comprehensive configuration.
 func NewDependencyValidator(config *ValidatorConfig) (DependencyValidator, error) {
 	if config == nil {
 		config = DefaultValidatorConfig()
@@ -444,10 +487,10 @@ func NewDependencyValidator(config *ValidatorConfig) (DependencyValidator, error
 		validationRules: config.DefaultValidationRules,
 	}
 
-	// Initialize metrics
+	// Initialize metrics.
 	validator.metrics = NewValidatorMetrics()
 
-	// Initialize validation engines
+	// Initialize validation engines.
 	var err error
 	validator.compatibilityChecker, err = NewCompatibilityChecker(config.CompatibilityConfig)
 	if err != nil {
@@ -474,7 +517,7 @@ func NewDependencyValidator(config *ValidatorConfig) (DependencyValidator, error
 		return nil, fmt.Errorf("failed to initialize policy engine: %w", err)
 	}
 
-	// Initialize conflict detection
+	// Initialize conflict detection.
 	validator.conflictDetectors = []ConflictDetector{
 		NewVersionConflictDetector(),
 		NewTransitiveConflictDetector(),
@@ -486,13 +529,13 @@ func NewDependencyValidator(config *ValidatorConfig) (DependencyValidator, error
 
 	validator.conflictAnalyzer = NewConflictAnalyzer(config.ConflictAnalyzerConfig)
 
-	// Initialize caching
+	// Initialize caching.
 	if config.EnableCaching {
 		validator.validationCache = NewValidationCache(config.CacheConfig)
 		validator.scanResultCache = NewScanResultCache(config.CacheConfig)
 	}
 
-	// Initialize external integrations
+	// Initialize external integrations.
 	if config.VulnerabilityDBConfig != nil {
 		validator.vulnerabilityDB, err = NewVulnerabilityDatabase(config.VulnerabilityDBConfig)
 		if err != nil {
@@ -507,12 +550,12 @@ func NewDependencyValidator(config *ValidatorConfig) (DependencyValidator, error
 		}
 	}
 
-	// Initialize worker pool
+	// Initialize worker pool.
 	if config.EnableConcurrency {
 		validator.workerPool = NewValidationWorkerPool(config.WorkerCount, config.QueueSize)
 	}
 
-	// Start background processes
+	// Start background processes.
 	validator.startBackgroundProcesses()
 
 	validator.logger.Info("Dependency validator initialized successfully",
@@ -524,18 +567,18 @@ func NewDependencyValidator(config *ValidatorConfig) (DependencyValidator, error
 	return validator, nil
 }
 
-// Core validation methods
+// Core validation methods.
 
-// ValidateDependencies performs comprehensive validation of dependencies
+// ValidateDependencies performs comprehensive validation of dependencies.
 func (v *dependencyValidator) ValidateDependencies(ctx context.Context, spec *ValidationSpec) (*ValidationResult, error) {
 	startTime := time.Now()
 
-	// Validate specification
+	// Validate specification.
 	if err := v.validateSpec(spec); err != nil {
 		return nil, fmt.Errorf("invalid validation spec: %w", err)
 	}
 
-	// Apply timeout if specified
+	// Apply timeout if specified.
 	if spec.Timeout > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, spec.Timeout)
@@ -555,7 +598,7 @@ func (v *dependencyValidator) ValidateDependencies(ctx context.Context, spec *Va
 		Statistics:         &ValidationStatistics{},
 	}
 
-	// Create validation context
+	// Create validation context.
 	validationCtx := &ValidationContext{
 		Spec:      spec,
 		Result:    result,
@@ -563,22 +606,22 @@ func (v *dependencyValidator) ValidateDependencies(ctx context.Context, spec *Va
 		StartTime: startTime,
 	}
 
-	// Perform individual package validations
+	// Perform individual package validations.
 	if err := v.validatePackages(ctx, validationCtx); err != nil {
 		return nil, fmt.Errorf("package validation failed: %w", err)
 	}
 
-	// Perform cross-package validations
+	// Perform cross-package validations.
 	if err := v.performCrossPackageValidations(ctx, validationCtx); err != nil {
 		return nil, fmt.Errorf("cross-package validation failed: %w", err)
 	}
 
-	// Calculate overall results
+	// Calculate overall results.
 	v.calculateOverallResults(validationCtx)
 
 	result.ValidationTime = time.Since(startTime)
 
-	// Update metrics
+	// Update metrics.
 	v.updateValidationMetrics(result)
 
 	v.logger.Info("Dependency validation completed",
@@ -591,7 +634,7 @@ func (v *dependencyValidator) ValidateDependencies(ctx context.Context, spec *Va
 	return result, nil
 }
 
-// DetectVersionConflicts detects version conflicts between packages
+// DetectVersionConflicts detects version conflicts between packages.
 func (v *dependencyValidator) DetectVersionConflicts(ctx context.Context, packages []*PackageReference) (*ConflictReport, error) {
 	startTime := time.Now()
 
@@ -607,10 +650,10 @@ func (v *dependencyValidator) DetectVersionConflicts(ctx context.Context, packag
 		DetectedAt:          time.Now(),
 	}
 
-	// Group packages by name
+	// Group packages by name.
 	packageGroups := v.groupPackagesByName(packages)
 
-	// Detect version conflicts within each group
+	// Detect version conflicts within each group.
 	g, gCtx := errgroup.WithContext(ctx)
 	conflictMutex := sync.Mutex{}
 
@@ -638,17 +681,17 @@ func (v *dependencyValidator) DetectVersionConflicts(ctx context.Context, packag
 		return nil, fmt.Errorf("version conflict detection failed: %w", err)
 	}
 
-	// Analyze conflict severity
+	// Analyze conflict severity.
 	v.analyzeConflictSeverity(report)
 
-	// Generate resolution suggestions
+	// Generate resolution suggestions.
 	if err := v.generateResolutionSuggestions(ctx, report); err != nil {
 		v.logger.Error(err, "Failed to generate resolution suggestions")
 	}
 
 	report.DetectionTime = time.Since(startTime)
 
-	// Update metrics
+	// Update metrics.
 	v.metrics.ConflictDetectionTime.Observe(report.DetectionTime.Seconds())
 	v.metrics.ConflictsDetected.Add(float64(len(report.DependencyConflicts)))
 
@@ -661,7 +704,7 @@ func (v *dependencyValidator) DetectVersionConflicts(ctx context.Context, packag
 	return report, nil
 }
 
-// ScanForVulnerabilities performs comprehensive security vulnerability scanning
+// ScanForVulnerabilities performs comprehensive security vulnerability scanning.
 func (v *dependencyValidator) ScanForVulnerabilities(ctx context.Context, packages []*PackageReference) (*SecurityScanResult, error) {
 	startTime := time.Now()
 
@@ -679,7 +722,7 @@ func (v *dependencyValidator) ScanForVulnerabilities(ctx context.Context, packag
 		ScannedAt:        time.Now(),
 	}
 
-	// Check cache first
+	// Check cache first.
 	if v.scanResultCache != nil {
 		cacheKey := v.generateScanCacheKey(packages)
 		if cached, err := v.scanResultCache.Get(ctx, cacheKey); err == nil {
@@ -689,7 +732,7 @@ func (v *dependencyValidator) ScanForVulnerabilities(ctx context.Context, packag
 		v.metrics.ScanCacheMisses.Inc()
 	}
 
-	// Scan packages for vulnerabilities
+	// Scan packages for vulnerabilities.
 	g, gCtx := errgroup.WithContext(ctx)
 	vulnMutex := sync.Mutex{}
 
@@ -716,14 +759,14 @@ func (v *dependencyValidator) ScanForVulnerabilities(ctx context.Context, packag
 		return nil, fmt.Errorf("vulnerability scanning failed: %w", err)
 	}
 
-	// Categorize vulnerabilities by severity
+	// Categorize vulnerabilities by severity.
 	v.categorizeVulnerabilities(result)
 
-	// Calculate security score
+	// Calculate security score.
 	result.SecurityScore = v.calculateSecurityScore(result)
 	result.RiskLevel = v.determineRiskLevel(result)
 
-	// Check security policy violations
+	// Check security policy violations.
 	if v.securityPolicies != nil {
 		violations := v.checkSecurityPolicyViolations(result.Vulnerabilities, v.securityPolicies)
 		result.PolicyViolations = violations
@@ -732,7 +775,7 @@ func (v *dependencyValidator) ScanForVulnerabilities(ctx context.Context, packag
 
 	result.ScanTime = time.Since(startTime)
 
-	// Cache result
+	// Cache result.
 	if v.scanResultCache != nil {
 		cacheKey := v.generateScanCacheKey(packages)
 		if err := v.scanResultCache.Set(ctx, cacheKey, result); err != nil {
@@ -740,7 +783,7 @@ func (v *dependencyValidator) ScanForVulnerabilities(ctx context.Context, packag
 		}
 	}
 
-	// Update metrics
+	// Update metrics.
 	v.metrics.SecurityScansTotal.Inc()
 	v.metrics.SecurityScanTime.Observe(result.ScanTime.Seconds())
 	v.metrics.VulnerabilitiesFound.Add(float64(len(result.Vulnerabilities)))
@@ -754,7 +797,7 @@ func (v *dependencyValidator) ScanForVulnerabilities(ctx context.Context, packag
 	return result, nil
 }
 
-// ValidateCompatibility validates package compatibility across platforms and versions
+// ValidateCompatibility validates package compatibility across platforms and versions.
 func (v *dependencyValidator) ValidateCompatibility(ctx context.Context, packages []*PackageReference) (*CompatibilityResult, error) {
 	startTime := time.Now()
 
@@ -768,7 +811,7 @@ func (v *dependencyValidator) ValidateCompatibility(ctx context.Context, package
 		ValidatedAt:     time.Now(),
 	}
 
-	// Check compatibility between packages
+	// Check compatibility between packages.
 	for i, pkg1 := range packages {
 		for j, pkg2 := range packages {
 			if i != j {
@@ -802,16 +845,16 @@ func (v *dependencyValidator) ValidateCompatibility(ctx context.Context, package
 
 	validationTime := time.Since(startTime)
 
-	// Update metrics
+	// Update metrics.
 	v.metrics.CompatibilityChecks.Add(float64(len(packages) * len(packages)))
 	v.metrics.CompatibilityValidationTime.Observe(validationTime.Seconds())
 
 	return result, nil
 }
 
-// Helper methods
+// Helper methods.
 
-// ValidationContext holds context for validation operations
+// ValidationContext holds context for validation operations.
 type ValidationContext struct {
 	Spec      *ValidationSpec
 	Result    *ValidationResult
@@ -819,7 +862,7 @@ type ValidationContext struct {
 	StartTime time.Time
 }
 
-// validateSpec validates the validation specification
+// validateSpec validates the validation specification.
 func (v *dependencyValidator) validateSpec(spec *ValidationSpec) error {
 	if spec == nil {
 		return fmt.Errorf("validation spec cannot be nil")
@@ -844,7 +887,7 @@ func (v *dependencyValidator) validateSpec(spec *ValidationSpec) error {
 	return nil
 }
 
-// validatePackages validates individual packages
+// validatePackages validates individual packages.
 func (v *dependencyValidator) validatePackages(ctx context.Context, validationCtx *ValidationContext) error {
 	spec := validationCtx.Spec
 
@@ -855,7 +898,7 @@ func (v *dependencyValidator) validatePackages(ctx context.Context, validationCt
 	return v.validatePackagesSequentially(ctx, validationCtx)
 }
 
-// validatePackagesConcurrently validates packages using concurrent processing
+// validatePackagesConcurrently validates packages using concurrent processing.
 func (v *dependencyValidator) validatePackagesConcurrently(ctx context.Context, validationCtx *ValidationContext) error {
 	g, gCtx := errgroup.WithContext(ctx)
 	if validationCtx.Spec.MaxConcurrency > 0 {
@@ -886,7 +929,7 @@ func (v *dependencyValidator) validatePackagesConcurrently(ctx context.Context, 
 	return g.Wait()
 }
 
-// validatePackagesSequentially validates packages sequentially
+// validatePackagesSequentially validates packages sequentially.
 func (v *dependencyValidator) validatePackagesSequentially(ctx context.Context, validationCtx *ValidationContext) error {
 	for _, pkg := range validationCtx.Spec.Packages {
 		validation, err := v.ValidatePackage(ctx, pkg)
@@ -902,7 +945,7 @@ func (v *dependencyValidator) validatePackagesSequentially(ctx context.Context, 
 	return nil
 }
 
-// groupPackagesByName groups packages by their names for conflict detection
+// groupPackagesByName groups packages by their names for conflict detection.
 func (v *dependencyValidator) groupPackagesByName(packages []*PackageReference) map[string][]*PackageReference {
 	groups := make(map[string][]*PackageReference)
 
@@ -913,7 +956,7 @@ func (v *dependencyValidator) groupPackagesByName(packages []*PackageReference) 
 	return groups
 }
 
-// analyzeConflictSeverity analyzes and updates conflict severity in the report
+// analyzeConflictSeverity analyzes and updates conflict severity in the report.
 func (v *dependencyValidator) analyzeConflictSeverity(report *ConflictReport) {
 	for _, conflict := range report.DependencyConflicts {
 		switch conflict.Severity {
@@ -929,7 +972,7 @@ func (v *dependencyValidator) analyzeConflictSeverity(report *ConflictReport) {
 	}
 }
 
-// generateResolutionSuggestions generates suggestions for resolving conflicts
+// generateResolutionSuggestions generates suggestions for resolving conflicts.
 func (v *dependencyValidator) generateResolutionSuggestions(ctx context.Context, report *ConflictReport) error {
 	suggestions := make([]*ConflictResolutionSuggestion, 0)
 
@@ -945,7 +988,7 @@ func (v *dependencyValidator) generateResolutionSuggestions(ctx context.Context,
 		}
 		suggestions = append(suggestions, suggestion)
 
-		// Check if conflict is auto-resolvable
+		// Check if conflict is auto-resolvable.
 		if v.isConflictAutoResolvable(conflict) {
 			report.AutoResolvable = append(report.AutoResolvable, conflict)
 		}
@@ -955,13 +998,13 @@ func (v *dependencyValidator) generateResolutionSuggestions(ctx context.Context,
 	return nil
 }
 
-// isConflictAutoResolvable checks if a conflict can be automatically resolved
+// isConflictAutoResolvable checks if a conflict can be automatically resolved.
 func (v *dependencyValidator) isConflictAutoResolvable(conflict *DependencyConflict) bool {
-	// Simple heuristic: only minor version conflicts are auto-resolvable
+	// Simple heuristic: only minor version conflicts are auto-resolvable.
 	return conflict.Severity == ConflictSeverityLow || conflict.Severity == ConflictSeverityMedium
 }
 
-// scanPackageVulnerabilities scans a single package for vulnerabilities
+// scanPackageVulnerabilities scans a single package for vulnerabilities.
 func (v *dependencyValidator) scanPackageVulnerabilities(ctx context.Context, pkg *PackageReference) ([]*Vulnerability, error) {
 	if v.vulnerabilityDB == nil {
 		return []*Vulnerability{}, nil
@@ -972,7 +1015,7 @@ func (v *dependencyValidator) scanPackageVulnerabilities(ctx context.Context, pk
 		return nil, fmt.Errorf("vulnerability scan failed for %s: %w", pkg.Name, err)
 	}
 
-	// Convert []Vulnerability to []*Vulnerability
+	// Convert []Vulnerability to []*Vulnerability.
 	ptrVulns := make([]*Vulnerability, len(vulns))
 	for i := range vulns {
 		ptrVulns[i] = &vulns[i]
@@ -981,7 +1024,7 @@ func (v *dependencyValidator) scanPackageVulnerabilities(ctx context.Context, pk
 	return ptrVulns, nil
 }
 
-// categorizeVulnerabilities categorizes vulnerabilities by severity
+// categorizeVulnerabilities categorizes vulnerabilities by severity.
 func (v *dependencyValidator) categorizeVulnerabilities(result *SecurityScanResult) {
 	for _, vuln := range result.Vulnerabilities {
 		switch vuln.Severity {
@@ -995,7 +1038,7 @@ func (v *dependencyValidator) categorizeVulnerabilities(result *SecurityScanResu
 	}
 }
 
-// calculateSecurityScore calculates overall security score based on vulnerabilities
+// calculateSecurityScore calculates overall security score based on vulnerabilities.
 func (v *dependencyValidator) calculateSecurityScore(result *SecurityScanResult) float64 {
 	if len(result.Vulnerabilities) == 0 {
 		return 100.0
@@ -1013,7 +1056,7 @@ func (v *dependencyValidator) calculateSecurityScore(result *SecurityScanResult)
 	return score
 }
 
-// determineRiskLevel determines overall risk level based on vulnerabilities
+// determineRiskLevel determines overall risk level based on vulnerabilities.
 func (v *dependencyValidator) determineRiskLevel(result *SecurityScanResult) RiskLevel {
 	if result.HighRiskCount > 0 {
 		return RiskLevelCritical
@@ -1027,7 +1070,7 @@ func (v *dependencyValidator) determineRiskLevel(result *SecurityScanResult) Ris
 	return RiskLevelLow
 }
 
-// checkSecurityPolicyViolations checks for security policy violations
+// checkSecurityPolicyViolations checks for security policy violations.
 func (v *dependencyValidator) checkSecurityPolicyViolations(vulnerabilities []*Vulnerability, policies *SecurityPolicies) []*PolicyViolation {
 	violations := make([]*PolicyViolation, 0)
 
@@ -1047,7 +1090,7 @@ func (v *dependencyValidator) checkSecurityPolicyViolations(vulnerabilities []*V
 		}
 	}
 
-	// Check against default policy limits (since SecurityPolicies structure is different)
+	// Check against default policy limits (since SecurityPolicies structure is different).
 	maxCritical := 0 // Default: no critical vulnerabilities allowed
 	maxHigh := 5     // Default: maximum 5 high vulnerabilities allowed
 
@@ -1076,7 +1119,7 @@ func (v *dependencyValidator) checkSecurityPolicyViolations(vulnerabilities []*V
 	return violations
 }
 
-// determineComplianceStatus determines compliance status based on policy violations
+// determineComplianceStatus determines compliance status based on policy violations.
 func (v *dependencyValidator) determineComplianceStatus(violations []*PolicyViolation) ComplianceStatus {
 	if len(violations) == 0 {
 		return ComplianceStatusCompliant
@@ -1096,9 +1139,9 @@ func (v *dependencyValidator) determineComplianceStatus(violations []*PolicyViol
 	return ComplianceStatusPartial
 }
 
-// calculateVersionConflictSeverity calculates severity for version conflicts
+// calculateVersionConflictSeverity calculates severity for version conflicts.
 func (v *dependencyValidator) calculateVersionConflictSeverity(versions []string) ConflictSeverity {
-	// Simple heuristic based on number of conflicting versions
+	// Simple heuristic based on number of conflicting versions.
 	if len(versions) > 3 {
 		return ConflictSeverityCritical
 	} else if len(versions) > 2 {
@@ -1109,13 +1152,13 @@ func (v *dependencyValidator) calculateVersionConflictSeverity(versions []string
 	return ConflictSeverityLow
 }
 
-// isVersionConflictAutoResolvable checks if version conflict can be auto-resolved
+// isVersionConflictAutoResolvable checks if version conflict can be auto-resolved.
 func (v *dependencyValidator) isVersionConflictAutoResolvable(versions []string) bool {
-	// Simple heuristic: conflicts with only 2 versions might be auto-resolvable
+	// Simple heuristic: conflicts with only 2 versions might be auto-resolvable.
 	return len(versions) <= 2
 }
 
-// detectVersionConflictsForPackage detects version conflicts for a specific package
+// detectVersionConflictsForPackage detects version conflicts for a specific package.
 func (v *dependencyValidator) detectVersionConflictsForPackage(ctx context.Context, packageName string, packages []*PackageReference) ([]*DependencyConflict, error) {
 	if len(packages) <= 1 {
 		return nil, nil
@@ -1123,14 +1166,14 @@ func (v *dependencyValidator) detectVersionConflictsForPackage(ctx context.Conte
 
 	conflicts := make([]*DependencyConflict, 0)
 
-	// Check for version conflicts
+	// Check for version conflicts.
 	versions := make(map[string][]*PackageReference)
 	for _, pkg := range packages {
 		versions[pkg.Version] = append(versions[pkg.Version], pkg)
 	}
 
 	if len(versions) > 1 {
-		// Multiple versions of the same package
+		// Multiple versions of the same package.
 		versionList := make([]string, 0, len(versions))
 		for version := range versions {
 			versionList = append(versionList, version)
@@ -1157,7 +1200,7 @@ func (v *dependencyValidator) detectVersionConflictsForPackage(ctx context.Conte
 	return conflicts, nil
 }
 
-// Utility functions
+// Utility functions.
 
 func generateDetectionID() string {
 	return fmt.Sprintf("detection-%d", time.Now().UnixNano())
@@ -1174,7 +1217,7 @@ func generateConflictID() string {
 func (v *dependencyValidator) generateScanCacheKey(packages []*PackageReference) string {
 	h := sha256.New()
 
-	// Sort packages for consistent cache keys
+	// Sort packages for consistent cache keys.
 	sortedPackages := make([]*PackageReference, len(packages))
 	copy(sortedPackages, packages)
 	sort.Slice(sortedPackages, func(i, j int) bool {
@@ -1189,24 +1232,24 @@ func (v *dependencyValidator) generateScanCacheKey(packages []*PackageReference)
 }
 
 // Additional implementation methods would continue here...
-// This includes complex validation algorithms, security scanning,
-// license validation, performance analysis, policy enforcement,
-// machine learning integration for conflict prediction,
+// This includes complex validation algorithms, security scanning,.
+// license validation, performance analysis, policy enforcement,.
+// machine learning integration for conflict prediction,.
 // and comprehensive error handling and reporting.
 
-// The implementation demonstrates:
-// 1. Comprehensive validation across multiple dimensions
-// 2. Advanced conflict detection with multiple algorithms
-// 3. Security vulnerability scanning with external databases
-// 4. License compatibility and compliance validation
-// 5. Performance impact analysis and resource validation
-// 6. Policy enforcement and organizational compliance
-// 7. Concurrent processing for scalability
-// 8. Intelligent caching and optimization
-// 9. Production-ready error handling and monitoring
-// 10. Integration with telecommunications-specific requirements
+// The implementation demonstrates:.
+// 1. Comprehensive validation across multiple dimensions.
+// 2. Advanced conflict detection with multiple algorithms.
+// 3. Security vulnerability scanning with external databases.
+// 4. License compatibility and compliance validation.
+// 5. Performance impact analysis and resource validation.
+// 6. Policy enforcement and organizational compliance.
+// 7. Concurrent processing for scalability.
+// 8. Intelligent caching and optimization.
+// 9. Production-ready error handling and monitoring.
+// 10. Integration with telecommunications-specific requirements.
 
-// AnalyzeConflictImpact analyzes the impact of dependency conflicts
+// AnalyzeConflictImpact analyzes the impact of dependency conflicts.
 func (v *dependencyValidator) AnalyzeConflictImpact(ctx context.Context, conflicts []*DependencyConflict) (*ConflictImpactAnalysis, error) {
 	if len(conflicts) == 0 {
 		return &ConflictImpactAnalysis{
@@ -1230,7 +1273,7 @@ func (v *dependencyValidator) AnalyzeConflictImpact(ctx context.Context, conflic
 		AnalyzedAt:       time.Now(),
 	}
 
-	// Analyze conflicts and determine impact
+	// Analyze conflicts and determine impact.
 	criticalCount := 0
 	highCount := 0
 
@@ -1242,7 +1285,7 @@ func (v *dependencyValidator) AnalyzeConflictImpact(ctx context.Context, conflic
 			highCount++
 		}
 
-		// Add affected packages
+		// Add affected packages.
 		for _, pkg := range conflict.ConflictingPackages {
 			analysis.AffectedPackages = append(analysis.AffectedPackages, &AffectedPackage{
 				Package:      pkg,
@@ -1253,7 +1296,7 @@ func (v *dependencyValidator) AnalyzeConflictImpact(ctx context.Context, conflic
 		}
 	}
 
-	// Determine overall impact and risk level
+	// Determine overall impact and risk level.
 	if criticalCount > 0 {
 		analysis.OverallImpact = ConflictImpactCritical
 		analysis.ImpactScore = 1.0
@@ -1275,7 +1318,7 @@ func (v *dependencyValidator) AnalyzeConflictImpact(ctx context.Context, conflic
 	return analysis, nil
 }
 
-// DetectBreakingChanges detects breaking changes between package versions
+// DetectBreakingChanges detects breaking changes between package versions.
 func (v *dependencyValidator) DetectBreakingChanges(ctx context.Context, oldPkgs, newPkgs []*PackageReference) (*BreakingChangeReport, error) {
 	startTime := time.Now()
 
@@ -1289,7 +1332,7 @@ func (v *dependencyValidator) DetectBreakingChanges(ctx context.Context, oldPkgs
 		GeneratedAt:     time.Now(),
 	}
 
-	// Create package maps for comparison
+	// Create package maps for comparison.
 	oldPkgMap := make(map[string]*PackageReference)
 	for _, pkg := range oldPkgs {
 		oldPkgMap[pkg.Name] = pkg
@@ -1300,7 +1343,7 @@ func (v *dependencyValidator) DetectBreakingChanges(ctx context.Context, oldPkgs
 		newPkgMap[pkg.Name] = pkg
 	}
 
-	// Detect breaking changes
+	// Detect breaking changes.
 	for _, newPkg := range newPkgs {
 		if oldPkg, exists := oldPkgMap[newPkg.Name]; exists {
 			if changes := v.detectPackageBreakingChanges(oldPkg, newPkg); len(changes) > 0 {
@@ -1318,11 +1361,11 @@ func (v *dependencyValidator) DetectBreakingChanges(ctx context.Context, oldPkgs
 	return report, nil
 }
 
-// detectPackageBreakingChanges detects breaking changes between two versions of a package
+// detectPackageBreakingChanges detects breaking changes between two versions of a package.
 func (v *dependencyValidator) detectPackageBreakingChanges(oldPkg, newPkg *PackageReference) []*BreakingChange {
 	changes := make([]*BreakingChange, 0)
 
-	// Compare versions - this is a simplified implementation
+	// Compare versions - this is a simplified implementation.
 	if v.isBreakingVersionChange(oldPkg.Version, newPkg.Version) {
 		changes = append(changes, &BreakingChange{
 			Version:     newPkg.Version,
@@ -1336,16 +1379,16 @@ func (v *dependencyValidator) detectPackageBreakingChanges(oldPkg, newPkg *Packa
 	return changes
 }
 
-// isBreakingVersionChange checks if a version change is potentially breaking
+// isBreakingVersionChange checks if a version change is potentially breaking.
 func (v *dependencyValidator) isBreakingVersionChange(oldVersion, newVersion string) bool {
-	// Simple semantic versioning check - major version changes are breaking
-	// This is a simplified implementation
+	// Simple semantic versioning check - major version changes are breaking.
+	// This is a simplified implementation.
 	return oldVersion != newVersion &&
 		len(oldVersion) > 0 && len(newVersion) > 0 &&
 		oldVersion[0] != newVersion[0] // Simple major version check
 }
 
-// ValidateUpgradePath validates the upgrade path between package versions
+// ValidateUpgradePath validates the upgrade path between package versions.
 func (v *dependencyValidator) ValidateUpgradePath(ctx context.Context, from, to *PackageReference) (*UpgradeValidation, error) {
 	validation := &UpgradeValidation{
 		Valid:        true,
@@ -1354,7 +1397,7 @@ func (v *dependencyValidator) ValidateUpgradePath(ctx context.Context, from, to 
 		ValidatedAt:  time.Now(),
 	}
 
-	// Perform upgrade validation checks
+	// Perform upgrade validation checks.
 	if from.Name != to.Name {
 		validation.Valid = false
 		validation.UpgradeScore -= 50.0
@@ -1366,7 +1409,7 @@ func (v *dependencyValidator) ValidateUpgradePath(ctx context.Context, from, to 
 		})
 	}
 
-	// Check for breaking changes
+	// Check for breaking changes.
 	if v.isBreakingVersionChange(from.Version, to.Version) {
 		validation.UpgradeScore -= 30.0
 		validation.Issues = append(validation.Issues, &UpgradeValidationIssue{
@@ -1376,7 +1419,7 @@ func (v *dependencyValidator) ValidateUpgradePath(ctx context.Context, from, to 
 			Resolution:  "Review changelog and test thoroughly",
 		})
 
-		// Create risk assessment
+		// Create risk assessment.
 		validation.RiskAssessment = &RiskAssessment{
 			OverallRisk: RiskLevelHigh,
 			RiskScore:   0.8,
@@ -1393,7 +1436,7 @@ func (v *dependencyValidator) ValidateUpgradePath(ctx context.Context, from, to 
 	return validation, nil
 }
 
-// DetectDependencyConflicts detects conflicts in a dependency graph
+// DetectDependencyConflicts detects conflicts in a dependency graph.
 func (v *dependencyValidator) DetectDependencyConflicts(ctx context.Context, graph *DependencyGraph) (*DependencyConflictReport, error) {
 	startTime := time.Now()
 
@@ -1406,7 +1449,7 @@ func (v *dependencyValidator) DetectDependencyConflicts(ctx context.Context, gra
 		GeneratedAt: time.Now(),
 	}
 
-	// Run conflict detectors on the graph packages
+	// Run conflict detectors on the graph packages.
 	allPackages := v.extractPackagesFromGraph(graph)
 
 	for _, detector := range v.conflictDetectors {
@@ -1418,7 +1461,7 @@ func (v *dependencyValidator) DetectDependencyConflicts(ctx context.Context, gra
 		report.Conflicts = append(report.Conflicts, conflicts...)
 	}
 
-	// Determine overall severity
+	// Determine overall severity.
 	for _, conflict := range report.Conflicts {
 		if conflict.Severity == ConflictSeverityCritical {
 			report.Severity = ConflictSeverityCritical
@@ -1439,7 +1482,7 @@ func (v *dependencyValidator) DetectDependencyConflicts(ctx context.Context, gra
 	return report, nil
 }
 
-// extractPackagesFromGraph extracts all packages from a dependency graph
+// extractPackagesFromGraph extracts all packages from a dependency graph.
 func (v *dependencyValidator) extractPackagesFromGraph(graph *DependencyGraph) []*PackageReference {
 	packages := make([]*PackageReference, 0)
 
@@ -1450,7 +1493,7 @@ func (v *dependencyValidator) extractPackagesFromGraph(graph *DependencyGraph) [
 	return packages
 }
 
-// GetValidationHealth returns the health status of the validator
+// GetValidationHealth returns the health status of the validator.
 func (v *dependencyValidator) GetValidationHealth(ctx context.Context) (*ValidatorHealth, error) {
 	health := &ValidatorHealth{
 		Status:           "healthy",
@@ -1462,7 +1505,7 @@ func (v *dependencyValidator) GetValidationHealth(ctx context.Context) (*Validat
 		CheckedAt:        time.Now(),
 	}
 
-	// Add health checks
+	// Add health checks.
 	if v.vulnerabilityDB == nil {
 		health.Issues = append(health.Issues, "Vulnerability database not configured")
 		health.Status = "degraded"
@@ -1475,12 +1518,12 @@ func (v *dependencyValidator) GetValidationHealth(ctx context.Context) (*Validat
 	return health, nil
 }
 
-// GetValidationMetrics returns current validation metrics
+// GetValidationMetrics returns current validation metrics.
 func (v *dependencyValidator) GetValidationMetrics(ctx context.Context) (*ValidatorMetrics, error) {
 	return v.metrics, nil
 }
 
-// UpdateValidationRules updates the validation rules
+// UpdateValidationRules updates the validation rules.
 func (v *dependencyValidator) UpdateValidationRules(ctx context.Context, rules *ValidationRules) error {
 	v.mu.Lock()
 	defer v.mu.Unlock()
@@ -1490,7 +1533,7 @@ func (v *dependencyValidator) UpdateValidationRules(ctx context.Context, rules *
 	return nil
 }
 
-// ValidatePackage validates a single package
+// ValidatePackage validates a single package.
 func (v *dependencyValidator) ValidatePackage(ctx context.Context, pkg *PackageReference) (*PackageValidation, error) {
 	startTime := time.Now()
 
@@ -1504,7 +1547,7 @@ func (v *dependencyValidator) ValidatePackage(ctx context.Context, pkg *PackageR
 		ValidatedAt:    time.Now(),
 	}
 
-	// Validate package reference
+	// Validate package reference.
 	if pkg.Name == "" {
 		validation.Valid = false
 		validation.Score -= 50.0
@@ -1529,7 +1572,7 @@ func (v *dependencyValidator) ValidatePackage(ctx context.Context, pkg *PackageR
 		})
 	}
 
-	// Additional validations could be added here
+	// Additional validations could be added here.
 
 	validation.ValidationTime = time.Since(startTime)
 
@@ -1540,7 +1583,7 @@ func (v *dependencyValidator) ValidatePackage(ctx context.Context, pkg *PackageR
 	return validation, nil
 }
 
-// ValidateVersion validates a specific version of a package
+// ValidateVersion validates a specific version of a package.
 func (v *dependencyValidator) ValidateVersion(ctx context.Context, pkg *PackageReference, version string) (*VersionValidation, error) {
 	validation := &VersionValidation{
 		Package:     pkg,
@@ -1550,7 +1593,7 @@ func (v *dependencyValidator) ValidateVersion(ctx context.Context, pkg *PackageR
 		ValidatedAt: time.Now(),
 	}
 
-	// Simple version validation
+	// Simple version validation.
 	if version == "" {
 		validation.Valid = false
 		validation.Issues = append(validation.Issues, &VersionIssue{
@@ -1561,12 +1604,12 @@ func (v *dependencyValidator) ValidateVersion(ctx context.Context, pkg *PackageR
 		})
 	}
 
-	// Add more version validation logic here
+	// Add more version validation logic here.
 
 	return validation, nil
 }
 
-// ValidatePlatform validates packages against platform constraints
+// ValidatePlatform validates packages against platform constraints.
 func (v *dependencyValidator) ValidatePlatform(ctx context.Context, packages []*PackageReference, platform *PlatformConstraints) (*PlatformValidation, error) {
 	validation := &PlatformValidation{
 		Packages:    packages,
@@ -1577,12 +1620,12 @@ func (v *dependencyValidator) ValidatePlatform(ctx context.Context, packages []*
 		ValidatedAt: time.Now(),
 	}
 
-	// Platform validation logic would go here
+	// Platform validation logic would go here.
 
 	return validation, nil
 }
 
-// ValidateLicenses validates package licenses
+// ValidateLicenses validates package licenses.
 func (v *dependencyValidator) ValidateLicenses(ctx context.Context, packages []*PackageReference) (*LicenseValidation, error) {
 	validation := &LicenseValidation{
 		Valid:       true,
@@ -1590,12 +1633,12 @@ func (v *dependencyValidator) ValidateLicenses(ctx context.Context, packages []*
 		ValidatedAt: time.Now(),
 	}
 
-	// License validation logic would go here
+	// License validation logic would go here.
 
 	return validation, nil
 }
 
-// ValidateCompliance validates packages against compliance rules
+// ValidateCompliance validates packages against compliance rules.
 func (v *dependencyValidator) ValidateCompliance(ctx context.Context, packages []*PackageReference, rules *ComplianceRules) (*ComplianceValidation, error) {
 	validation := &ComplianceValidation{
 		Compliant:   true,
@@ -1603,12 +1646,12 @@ func (v *dependencyValidator) ValidateCompliance(ctx context.Context, packages [
 		ValidatedAt: time.Now(),
 	}
 
-	// Compliance validation logic would go here
+	// Compliance validation logic would go here.
 
 	return validation, nil
 }
 
-// ValidatePerformanceImpact validates performance impact of packages
+// ValidatePerformanceImpact validates performance impact of packages.
 func (v *dependencyValidator) ValidatePerformanceImpact(ctx context.Context, packages []*PackageReference) (*PerformanceValidation, error) {
 	validation := &PerformanceValidation{
 		Valid:       true,
@@ -1617,12 +1660,12 @@ func (v *dependencyValidator) ValidatePerformanceImpact(ctx context.Context, pac
 		ValidatedAt: time.Now(),
 	}
 
-	// Performance validation logic would go here
+	// Performance validation logic would go here.
 
 	return validation, nil
 }
 
-// ValidateResourceUsage validates resource usage of packages
+// ValidateResourceUsage validates resource usage of packages.
 func (v *dependencyValidator) ValidateResourceUsage(ctx context.Context, packages []*PackageReference, limits *ResourceLimits) (*ResourceValidation, error) {
 	validation := &ResourceValidation{
 		Valid:       true,
@@ -1632,12 +1675,12 @@ func (v *dependencyValidator) ValidateResourceUsage(ctx context.Context, package
 		ValidatedAt: time.Now(),
 	}
 
-	// Resource validation logic would go here
+	// Resource validation logic would go here.
 
 	return validation, nil
 }
 
-// ValidateSecurityPolicies validates packages against security policies
+// ValidateSecurityPolicies validates packages against security policies.
 func (v *dependencyValidator) ValidateSecurityPolicies(ctx context.Context, packages []*PackageReference, policies *SecurityPolicies) (*SecurityValidation, error) {
 	validation := &SecurityValidation{
 		Valid:         true,
@@ -1645,12 +1688,12 @@ func (v *dependencyValidator) ValidateSecurityPolicies(ctx context.Context, pack
 		ValidatedAt:   time.Now(),
 	}
 
-	// Security policy validation logic would go here
+	// Security policy validation logic would go here.
 
 	return validation, nil
 }
 
-// ValidateOrganizationalPolicies validates packages against organizational policies
+// ValidateOrganizationalPolicies validates packages against organizational policies.
 func (v *dependencyValidator) ValidateOrganizationalPolicies(ctx context.Context, packages []*PackageReference, policies *OrganizationalPolicies) (*PolicyValidation, error) {
 	validation := &PolicyValidation{
 		Valid:       true,
@@ -1658,12 +1701,12 @@ func (v *dependencyValidator) ValidateOrganizationalPolicies(ctx context.Context
 		ValidatedAt: time.Now(),
 	}
 
-	// Organizational policy validation logic would go here
+	// Organizational policy validation logic would go here.
 
 	return validation, nil
 }
 
-// ValidateArchitecturalCompliance validates packages against architectural constraints
+// ValidateArchitecturalCompliance validates packages against architectural constraints.
 func (v *dependencyValidator) ValidateArchitecturalCompliance(ctx context.Context, packages []*PackageReference, architecture *ArchitecturalConstraints) (*ArchitecturalValidation, error) {
 	validation := &ArchitecturalValidation{
 		Valid:       true,
@@ -1673,17 +1716,17 @@ func (v *dependencyValidator) ValidateArchitecturalCompliance(ctx context.Contex
 		ValidatedAt: time.Now(),
 	}
 
-	// Architectural validation logic would go here
+	// Architectural validation logic would go here.
 
 	return validation, nil
 }
 
-// performCrossPackageValidations performs validations that require analysis across packages
+// performCrossPackageValidations performs validations that require analysis across packages.
 func (v *dependencyValidator) performCrossPackageValidations(ctx context.Context, validationCtx *ValidationContext) error {
 	spec := validationCtx.Spec
 	result := validationCtx.Result
 
-	// Perform compatibility validation if requested
+	// Perform compatibility validation if requested.
 	if containsValidationType(spec.ValidationTypes, ValidationTypeCompatibility) {
 		compatResult, err := v.ValidateCompatibility(ctx, spec.Packages)
 		if err != nil {
@@ -1695,7 +1738,7 @@ func (v *dependencyValidator) performCrossPackageValidations(ctx context.Context
 		}
 	}
 
-	// Perform security scanning if requested
+	// Perform security scanning if requested.
 	if containsValidationType(spec.ValidationTypes, ValidationTypeSecurity) {
 		scanResult, err := v.ScanForVulnerabilities(ctx, spec.Packages)
 		if err != nil {
@@ -1707,13 +1750,13 @@ func (v *dependencyValidator) performCrossPackageValidations(ctx context.Context
 		}
 	}
 
-	// Perform conflict detection
+	// Perform conflict detection.
 	conflictReport, err := v.DetectVersionConflicts(ctx, spec.Packages)
 	if err != nil {
 		return fmt.Errorf("conflict detection failed: %w", err)
 	}
 
-	// Add conflicts to result
+	// Add conflicts to result.
 	if len(conflictReport.DependencyConflicts) > 0 {
 		for _, conflict := range conflictReport.DependencyConflicts {
 			if conflict.Severity == ConflictSeverityCritical || conflict.Severity == ConflictSeverityHigh {
@@ -1732,31 +1775,31 @@ func (v *dependencyValidator) performCrossPackageValidations(ctx context.Context
 	return nil
 }
 
-// calculateOverallResults calculates overall validation results and scores
+// calculateOverallResults calculates overall validation results and scores.
 func (v *dependencyValidator) calculateOverallResults(validationCtx *ValidationContext) {
 	result := validationCtx.Result
 
-	// Calculate overall success
+	// Calculate overall success.
 	if len(result.Errors) > 0 {
 		result.Success = false
 	}
 
-	// Calculate overall score based on various factors
+	// Calculate overall score based on various factors.
 	score := 100.0
 
-	// Deduct points for errors
+	// Deduct points for errors.
 	score -= float64(len(result.Errors)) * 10.0
 	if score < 0 {
 		score = 0
 	}
 
-	// Deduct points for warnings
+	// Deduct points for warnings.
 	score -= float64(len(result.Warnings)) * 5.0
 	if score < 0 {
 		score = 0
 	}
 
-	// Factor in security scan results
+	// Factor in security scan results.
 	if result.SecurityScanResult != nil {
 		switch result.SecurityScanResult.RiskLevel {
 		case RiskLevelCritical:
@@ -1768,7 +1811,7 @@ func (v *dependencyValidator) calculateOverallResults(validationCtx *ValidationC
 		}
 	}
 
-	// Factor in compatibility results
+	// Factor in compatibility results.
 	if result.CompatibilityResult != nil && !result.CompatibilityResult.Compatible {
 		score -= 15.0
 	}
@@ -1783,7 +1826,7 @@ func (v *dependencyValidator) calculateOverallResults(validationCtx *ValidationC
 	result.OverallScore = score
 }
 
-// Helper function to check if a validation type is requested
+// Helper function to check if a validation type is requested.
 func containsValidationType(types []ValidationType, target ValidationType) bool {
 	if len(types) == 0 {
 		return true // Default to all validations if none specified
@@ -1796,7 +1839,7 @@ func containsValidationType(types []ValidationType, target ValidationType) bool 
 	return false
 }
 
-// Close gracefully shuts down the validator
+// Close gracefully shuts down the validator.
 func (v *dependencyValidator) Close() error {
 	v.mu.Lock()
 	defer v.mu.Unlock()
@@ -1807,11 +1850,11 @@ func (v *dependencyValidator) Close() error {
 
 	v.logger.Info("Shutting down dependency validator")
 
-	// Cancel context and wait for background processes
+	// Cancel context and wait for background processes.
 	v.cancel()
 	v.wg.Wait()
 
-	// Close caches
+	// Close caches.
 	if v.validationCache != nil {
 		v.validationCache.Close()
 	}
@@ -1819,12 +1862,12 @@ func (v *dependencyValidator) Close() error {
 		v.scanResultCache.Close()
 	}
 
-	// Close worker pool
+	// Close worker pool.
 	if v.workerPool != nil {
 		v.workerPool.Close()
 	}
 
-	// Close external integrations
+	// Close external integrations.
 	if v.vulnerabilityDB != nil {
 		v.vulnerabilityDB.Close()
 	}
@@ -1838,26 +1881,26 @@ func (v *dependencyValidator) Close() error {
 	return nil
 }
 
-// startBackgroundProcesses starts background processing goroutines
+// startBackgroundProcesses starts background processing goroutines.
 func (v *dependencyValidator) startBackgroundProcesses() {
-	// Start vulnerability database updates
+	// Start vulnerability database updates.
 	if v.vulnerabilityDB != nil {
 		v.wg.Add(1)
 		go v.vulnerabilityUpdateProcess()
 	}
 
-	// Start cache cleanup process
+	// Start cache cleanup process.
 	if v.validationCache != nil {
 		v.wg.Add(1)
 		go v.cacheCleanupProcess()
 	}
 
-	// Start metrics collection process
+	// Start metrics collection process.
 	v.wg.Add(1)
 	go v.metricsCollectionProcess()
 }
 
-// vulnerabilityUpdateProcess periodically updates vulnerability database
+// vulnerabilityUpdateProcess periodically updates vulnerability database.
 func (v *dependencyValidator) vulnerabilityUpdateProcess() {
 	defer v.wg.Done()
 
@@ -1876,7 +1919,7 @@ func (v *dependencyValidator) vulnerabilityUpdateProcess() {
 	}
 }
 
-// cacheCleanupProcess periodically cleans up expired cache entries
+// cacheCleanupProcess periodically cleans up expired cache entries.
 func (v *dependencyValidator) cacheCleanupProcess() {
 	defer v.wg.Done()
 
@@ -1893,7 +1936,7 @@ func (v *dependencyValidator) cacheCleanupProcess() {
 	}
 }
 
-// metricsCollectionProcess periodically collects and reports metrics
+// metricsCollectionProcess periodically collects and reports metrics.
 func (v *dependencyValidator) metricsCollectionProcess() {
 	defer v.wg.Done()
 
@@ -1912,13 +1955,13 @@ func (v *dependencyValidator) metricsCollectionProcess() {
 
 // Helper methods for cleanup and metrics would be implemented here...
 func (v *dependencyValidator) cleanupCaches() {
-	// Implementation would clean up expired cache entries
+	// Implementation would clean up expired cache entries.
 }
 
 func (v *dependencyValidator) collectAndReportMetrics() {
-	// Implementation would collect and report comprehensive metrics
+	// Implementation would collect and report comprehensive metrics.
 }
 
 func (v *dependencyValidator) updateValidationMetrics(result *ValidationResult) {
-	// Implementation would update validation metrics based on results
+	// Implementation would update validation metrics based on results.
 }

@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	// Metrics
+	// Metrics.
 	backupOperations = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "disaster_recovery_backup_operations_total",
 		Help: "Total number of backup operations",
@@ -58,7 +58,7 @@ var (
 	}, []string{"component"})
 )
 
-// DisasterRecoveryManager manages disaster recovery operations
+// DisasterRecoveryManager manages disaster recovery operations.
 type DisasterRecoveryManager struct {
 	mu              sync.RWMutex
 	config          *DisasterRecoveryConfig
@@ -72,9 +72,9 @@ type DisasterRecoveryManager struct {
 	notifier        *RecoveryNotifier
 }
 
-// DisasterRecoveryConfig holds DR configuration
+// DisasterRecoveryConfig holds DR configuration.
 type DisasterRecoveryConfig struct {
-	// Backup Configuration
+	// Backup Configuration.
 	BackupEnabled     bool              `json:"backup_enabled"`
 	BackupSchedule    string            `json:"backup_schedule"` // Cron expression
 	BackupRetention   BackupRetention   `json:"backup_retention"`
@@ -83,7 +83,7 @@ type DisasterRecoveryConfig struct {
 	BackupEncryption  bool              `json:"backup_encryption"`
 	EncryptionKey     string            `json:"encryption_key"`
 
-	// Recovery Configuration
+	// Recovery Configuration.
 	RecoveryEnabled      bool     `json:"recovery_enabled"`
 	RecoveryTestSchedule string   `json:"recovery_test_schedule"`
 	RPOMinutes           int      `json:"rpo_minutes"` // Recovery Point Objective
@@ -91,14 +91,14 @@ type DisasterRecoveryConfig struct {
 	MultiRegion          bool     `json:"multi_region"`
 	FailoverRegions      []string `json:"failover_regions"`
 
-	// Monitoring
+	// Monitoring.
 	AlertingEnabled    bool     `json:"alerting_enabled"`
 	SlackWebhook       string   `json:"slack_webhook"`
 	EmailNotifications []string `json:"email_notifications"`
 	MetricsEnabled     bool     `json:"metrics_enabled"`
 }
 
-// BackupRetention defines retention policy
+// BackupRetention defines retention policy.
 type BackupRetention struct {
 	DailyBackups   int `json:"daily_backups"`
 	WeeklyBackups  int `json:"weekly_backups"`
@@ -106,7 +106,7 @@ type BackupRetention struct {
 	YearlyBackups  int `json:"yearly_backups"`
 }
 
-// BackupStorageConf defines storage configuration
+// BackupStorageConf defines storage configuration.
 type BackupStorageConf struct {
 	Type       string `json:"type"` // s3, gcs, azure
 	Bucket     string `json:"bucket"`
@@ -115,7 +115,7 @@ type BackupStorageConf struct {
 	AWSProfile string `json:"aws_profile"` // AWS profile for authentication
 }
 
-// BackupStore interface for backup storage
+// BackupStore interface for backup storage.
 type BackupStore interface {
 	Upload(ctx context.Context, backup *Backup) error
 	Download(ctx context.Context, backupID string) (*Backup, error)
@@ -124,7 +124,7 @@ type BackupStore interface {
 	Verify(ctx context.Context, backupID string) error
 }
 
-// Backup represents a system backup
+// Backup represents a system backup.
 type Backup struct {
 	ID            string                     `json:"id"`
 	Type          string                     `json:"type"` // full, incremental
@@ -139,7 +139,7 @@ type Backup struct {
 	Region        string                     `json:"region"`
 }
 
-// BackupMetadata contains backup metadata
+// BackupMetadata contains backup metadata.
 type BackupMetadata struct {
 	ID        string            `json:"id"`
 	Type      string            `json:"type"`
@@ -150,7 +150,7 @@ type BackupMetadata struct {
 	Tags      map[string]string `json:"tags"`
 }
 
-// ComponentBackup represents a component backup
+// ComponentBackup represents a component backup.
 type ComponentBackup struct {
 	Name      string    `json:"name"`
 	Type      string    `json:"type"`
@@ -162,18 +162,18 @@ type ComponentBackup struct {
 	Error     string    `json:"error,omitempty"`
 }
 
-// SnapshotManager manages volume snapshots
+// SnapshotManager manages volume snapshots.
 type SnapshotManager struct {
 	k8sClient kubernetes.Interface
 	logger    *slog.Logger
 }
 
-// BackupValidator validates backup integrity
+// BackupValidator validates backup integrity.
 type BackupValidator struct {
 	logger *slog.Logger
 }
 
-// RecoveryMetrics tracks recovery metrics
+// RecoveryMetrics tracks recovery metrics.
 type RecoveryMetrics struct {
 	mu                  sync.RWMutex
 	LastBackupTime      time.Time
@@ -186,20 +186,20 @@ type RecoveryMetrics struct {
 	CurrentRTO          time.Duration
 }
 
-// BackupScheduler manages backup scheduling
+// BackupScheduler manages backup scheduling.
 type BackupScheduler struct {
 	manager  *DisasterRecoveryManager
 	cronJobs map[string]*CronJob
 	mu       sync.Mutex
 }
 
-// RecoveryNotifier handles notifications
+// RecoveryNotifier handles notifications.
 type RecoveryNotifier struct {
 	config *DisasterRecoveryConfig
 	logger *slog.Logger
 }
 
-// CronJob represents a scheduled job
+// CronJob represents a scheduled job.
 type CronJob struct {
 	ID       string
 	Schedule string
@@ -209,13 +209,13 @@ type CronJob struct {
 	stopCh   chan struct{}
 }
 
-// NewDisasterRecoveryManager creates a new disaster recovery manager
+// NewDisasterRecoveryManager creates a new disaster recovery manager.
 func NewDisasterRecoveryManager(config *DisasterRecoveryConfig, k8sClient kubernetes.Interface, logger *slog.Logger) (*DisasterRecoveryManager, error) {
 	if config == nil {
 		return nil, fmt.Errorf("disaster recovery configuration is required")
 	}
 
-	// Create backup store based on configuration
+	// Create backup store based on configuration.
 	var backupStore BackupStore
 	switch config.BackupStorage.Type {
 	case "s3":
@@ -255,28 +255,28 @@ func NewDisasterRecoveryManager(config *DisasterRecoveryConfig, k8sClient kubern
 	return manager, nil
 }
 
-// Start starts the disaster recovery manager
+// Start starts the disaster recovery manager.
 func (drm *DisasterRecoveryManager) Start(ctx context.Context) error {
 	drm.logger.Info("Starting disaster recovery manager")
 
-	// Initialize recovery status
+	// Initialize recovery status.
 	recoveryStatus.WithLabelValues("overall").Set(0) // Healthy
 
-	// Start backup scheduler
+	// Start backup scheduler.
 	if drm.config.BackupEnabled && drm.config.BackupSchedule != "" {
 		if err := drm.scheduler.Start(ctx); err != nil {
 			return fmt.Errorf("failed to start backup scheduler: %w", err)
 		}
 	}
 
-	// Start recovery test scheduler
+	// Start recovery test scheduler.
 	if drm.config.RecoveryEnabled && drm.config.RecoveryTestSchedule != "" {
 		if err := drm.scheduler.ScheduleRecoveryTests(ctx, drm.config.RecoveryTestSchedule); err != nil {
 			return fmt.Errorf("failed to schedule recovery tests: %w", err)
 		}
 	}
 
-	// Start metrics collection
+	// Start metrics collection.
 	if drm.config.MetricsEnabled {
 		go drm.collectMetrics(ctx)
 	}
@@ -285,7 +285,7 @@ func (drm *DisasterRecoveryManager) Start(ctx context.Context) error {
 	return nil
 }
 
-// CreateBackup creates a comprehensive system backup
+// CreateBackup creates a comprehensive system backup.
 func (drm *DisasterRecoveryManager) CreateBackup(ctx context.Context, backupType string) (*Backup, error) {
 	start := time.Now()
 	defer func() {
@@ -304,7 +304,7 @@ func (drm *DisasterRecoveryManager) CreateBackup(ctx context.Context, backupType
 		Region:     drm.config.BackupStorage.Region,
 	}
 
-	// Backup components concurrently
+	// Backup components concurrently.
 	components := []string{
 		"kubernetes-resources",
 		"persistent-volumes",
@@ -330,7 +330,7 @@ func (drm *DisasterRecoveryManager) CreateBackup(ctx context.Context, backupType
 	wg.Wait()
 	close(errCh)
 
-	// Check for errors
+	// Check for errors.
 	var errors []error
 	for err := range errCh {
 		errors = append(errors, err)
@@ -343,37 +343,37 @@ func (drm *DisasterRecoveryManager) CreateBackup(ctx context.Context, backupType
 		return backup, fmt.Errorf("backup failed with %d errors", len(errors))
 	}
 
-	// Calculate checksum
+	// Calculate checksum.
 	backup.Checksum = drm.calculateChecksum(backup)
 
-	// Upload to backup store
+	// Upload to backup store.
 	if err := drm.backupStore.Upload(ctx, backup); err != nil {
 		backup.Status = "failed"
 		backupOperations.WithLabelValues("failed", backupType).Inc()
 		return backup, fmt.Errorf("failed to upload backup: %w", err)
 	}
 
-	// Update status
+	// Update status.
 	now := time.Now()
 	backup.CompletedAt = &now
 	backup.Status = "completed"
 
-	// Update metrics
+	// Update metrics.
 	backupOperations.WithLabelValues("success", backupType).Inc()
 	backupSize.WithLabelValues(backupType).Set(float64(backup.Size))
 	drm.updateMetrics(backup, nil)
 
-	// Send notification
+	// Send notification.
 	drm.notifier.NotifyBackupSuccess(backup)
 
-	// Clean up old backups
+	// Clean up old backups.
 	go drm.cleanupOldBackups(ctx)
 
 	drm.logger.Info("Backup completed successfully", "backupID", backup.ID, "size", backup.Size)
 	return backup, nil
 }
 
-// backupComponent backs up a specific component
+// backupComponent backs up a specific component.
 func (drm *DisasterRecoveryManager) backupComponent(ctx context.Context, backup *Backup, component string) error {
 	compBackup := ComponentBackup{
 		Name:      component,
@@ -434,7 +434,7 @@ func (drm *DisasterRecoveryManager) backupComponent(ctx context.Context, backup 
 	return nil
 }
 
-// RestoreBackup restores system from backup
+// RestoreBackup restores system from backup.
 func (drm *DisasterRecoveryManager) RestoreBackup(ctx context.Context, backupID string) error {
 	start := time.Now()
 	defer func() {
@@ -443,23 +443,23 @@ func (drm *DisasterRecoveryManager) RestoreBackup(ctx context.Context, backupID 
 
 	drm.logger.Info("Starting backup restoration", "backupID", backupID)
 
-	// Download backup
+	// Download backup.
 	backup, err := drm.backupStore.Download(ctx, backupID)
 	if err != nil {
 		restoreOperations.WithLabelValues("failed", "download").Inc()
 		return fmt.Errorf("failed to download backup: %w", err)
 	}
 
-	// Validate backup integrity
+	// Validate backup integrity.
 	if err := drm.validator.ValidateBackup(backup); err != nil {
 		restoreOperations.WithLabelValues("failed", "validation").Inc()
 		return fmt.Errorf("backup validation failed: %w", err)
 	}
 
-	// Create restore plan
+	// Create restore plan.
 	plan := drm.createRestorePlan(backup)
 
-	// Execute restore plan
+	// Execute restore plan.
 	for _, step := range plan.Steps {
 		drm.logger.Info("Executing restore step", "step", step.Name)
 
@@ -467,7 +467,7 @@ func (drm *DisasterRecoveryManager) RestoreBackup(ctx context.Context, backupID 
 			drm.logger.Error("Restore step failed", "step", step.Name, "error", err)
 			restoreOperations.WithLabelValues("failed", step.Name).Inc()
 
-			// Rollback if critical step fails
+			// Rollback if critical step fails.
 			if step.Critical {
 				drm.rollbackRestore(ctx, plan, step)
 				return fmt.Errorf("critical restore step failed: %w", err)
@@ -475,24 +475,24 @@ func (drm *DisasterRecoveryManager) RestoreBackup(ctx context.Context, backupID 
 		}
 	}
 
-	// Verify restoration
+	// Verify restoration.
 	if err := drm.verifyRestoration(ctx, backup); err != nil {
 		restoreOperations.WithLabelValues("failed", "verification").Inc()
 		return fmt.Errorf("restore verification failed: %w", err)
 	}
 
-	// Update metrics
+	// Update metrics.
 	restoreOperations.WithLabelValues("success", "full").Inc()
 	drm.updateMetrics(nil, backup)
 
-	// Send notification
+	// Send notification.
 	drm.notifier.NotifyRestoreSuccess(backup)
 
 	drm.logger.Info("Backup restoration completed successfully", "backupID", backupID)
 	return nil
 }
 
-// TestRecovery performs a recovery test
+// TestRecovery performs a recovery test.
 func (drm *DisasterRecoveryManager) TestRecovery(ctx context.Context) (*RecoveryTestResult, error) {
 	drm.logger.Info("Starting disaster recovery test")
 
@@ -502,36 +502,36 @@ func (drm *DisasterRecoveryManager) TestRecovery(ctx context.Context) (*Recovery
 		Tests:     make(map[string]TestResult),
 	}
 
-	// Test backup creation
+	// Test backup creation.
 	backupTest := drm.testBackupCreation(ctx)
 	result.Tests["backup_creation"] = backupTest
 
-	// Test backup validation
+	// Test backup validation.
 	validationTest := drm.testBackupValidation(ctx)
 	result.Tests["backup_validation"] = validationTest
 
-	// Test restore procedure
+	// Test restore procedure.
 	restoreTest := drm.testRestoreProcedure(ctx)
 	result.Tests["restore_procedure"] = restoreTest
 
-	// Test failover capability
+	// Test failover capability.
 	failoverTest := drm.testFailoverCapability(ctx)
 	result.Tests["failover_capability"] = failoverTest
 
-	// Calculate overall result
+	// Calculate overall result.
 	result.EndTime = time.Now()
 	result.Duration = result.EndTime.Sub(result.StartTime)
 	result.calculateOverallStatus()
 
-	// Send report
+	// Send report.
 	drm.notifier.NotifyRecoveryTestResult(result)
 
 	return result, nil
 }
 
-// backupKubernetesResources backs up Kubernetes resources
+// backupKubernetesResources backs up Kubernetes resources.
 func (drm *DisasterRecoveryManager) backupKubernetesResources(ctx context.Context, backup *ComponentBackup) error {
-	// Export all custom resources
+	// Export all custom resources.
 	resources := []string{
 		"networkintents.nephoran.com",
 		"e2nodesets.nephoran.com",
@@ -540,8 +540,8 @@ func (drm *DisasterRecoveryManager) backupKubernetesResources(ctx context.Contex
 
 	var data []byte
 	for _, resource := range resources {
-		// Export resource data
-		// Implementation would use dynamic client to export resources
+		// Export resource data.
+		// Implementation would use dynamic client to export resources.
 		data = append(data, []byte(fmt.Sprintf("# Resource: %s\n", resource))...)
 	}
 
@@ -551,9 +551,9 @@ func (drm *DisasterRecoveryManager) backupKubernetesResources(ctx context.Contex
 	return nil
 }
 
-// backupPersistentVolumes backs up persistent volumes
+// backupPersistentVolumes backs up persistent volumes.
 func (drm *DisasterRecoveryManager) backupPersistentVolumes(ctx context.Context, backup *ComponentBackup) error {
-	// Create volume snapshots
+	// Create volume snapshots.
 	pvList, err := drm.k8sClient.CoreV1().PersistentVolumes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to list PVs: %w", err)
@@ -561,7 +561,7 @@ func (drm *DisasterRecoveryManager) backupPersistentVolumes(ctx context.Context,
 
 	var totalSize int64
 	for _, pv := range pvList.Items {
-		// Create snapshot for each PV
+		// Create snapshot for each PV.
 		snapshot, err := drm.snapshotManager.CreateSnapshot(ctx, &pv)
 		if err != nil {
 			drm.logger.Error("Failed to snapshot PV", "pv", pv.Name, "error", err)
@@ -576,16 +576,16 @@ func (drm *DisasterRecoveryManager) backupPersistentVolumes(ctx context.Context,
 	return nil
 }
 
-// Failover performs failover to alternate region
+// Failover performs failover to alternate region.
 func (drm *DisasterRecoveryManager) Failover(ctx context.Context, targetRegion string) error {
 	drm.logger.Info("Initiating failover", "targetRegion", targetRegion)
 
-	// Validate target region
+	// Validate target region.
 	if !drm.isValidFailoverRegion(targetRegion) {
 		return fmt.Errorf("invalid failover region: %s", targetRegion)
 	}
 
-	// Create failover plan
+	// Create failover plan.
 	plan := &FailoverPlan{
 		ID:           fmt.Sprintf("failover-%d", time.Now().Unix()),
 		SourceRegion: drm.config.BackupStorage.Region,
@@ -594,7 +594,7 @@ func (drm *DisasterRecoveryManager) Failover(ctx context.Context, targetRegion s
 		Steps:        drm.createFailoverSteps(targetRegion),
 	}
 
-	// Execute failover
+	// Execute failover.
 	for _, step := range plan.Steps {
 		drm.logger.Info("Executing failover step", "step", step.Name)
 
@@ -606,21 +606,21 @@ func (drm *DisasterRecoveryManager) Failover(ctx context.Context, targetRegion s
 		}
 	}
 
-	// Update configuration
+	// Update configuration.
 	drm.config.BackupStorage.Region = targetRegion
 
-	// Notify completion
+	// Notify completion.
 	drm.notifier.NotifyFailoverComplete(plan)
 
 	drm.logger.Info("Failover completed successfully", "targetRegion", targetRegion)
 	return nil
 }
 
-// Helper methods
+// Helper methods.
 
 func (drm *DisasterRecoveryManager) calculateChecksum(backup *Backup) string {
-	// Calculate SHA256 checksum of backup data
-	// Implementation would hash all backup component data
+	// Calculate SHA256 checksum of backup data.
+	// Implementation would hash all backup component data.
 	return fmt.Sprintf("sha256:%x", time.Now().Unix())
 }
 
@@ -642,12 +642,12 @@ func (drm *DisasterRecoveryManager) updateMetrics(backup *Backup, restore *Backu
 		drm.metrics.RestoreSuccessCount++
 	}
 
-	// Calculate RPO
+	// Calculate RPO.
 	drm.metrics.CurrentRPO = time.Since(drm.metrics.LastBackupTime)
 }
 
 func (drm *DisasterRecoveryManager) cleanupOldBackups(ctx context.Context) {
-	// Implementation would clean up backups based on retention policy
+	// Implementation would clean up backups based on retention policy.
 	drm.logger.Info("Cleaning up old backups based on retention policy")
 }
 
@@ -660,26 +660,26 @@ func (drm *DisasterRecoveryManager) isValidFailoverRegion(region string) bool {
 	return false
 }
 
-// S3BackupStore implements BackupStore for AWS S3
+// S3BackupStore implements BackupStore for AWS S3.
 type S3BackupStore struct {
 	config *BackupStorageConf
 	client *s3.Client
 	logger *slog.Logger
 }
 
-// NewS3BackupStore creates a new S3 backup store
+// NewS3BackupStore creates a new S3 backup store.
 func NewS3BackupStore(backupConfig BackupStorageConf, logger *slog.Logger) *S3BackupStore {
 	ctx := context.TODO()
 
-	// Configure AWS config options
+	// Configure AWS config options.
 	configOptions := []func(*config.LoadOptions) error{
 		config.WithRegion(backupConfig.Region),
 	}
 
-	// Check for AWS profile configuration
+	// Check for AWS profile configuration.
 	awsProfile := backupConfig.AWSProfile
 	if awsProfile == "" {
-		// Fall back to AWS_PROFILE environment variable if not specified in config
+		// Fall back to AWS_PROFILE environment variable if not specified in config.
 		awsProfile = os.Getenv("AWS_PROFILE")
 	}
 
@@ -690,7 +690,7 @@ func NewS3BackupStore(backupConfig BackupStorageConf, logger *slog.Logger) *S3Ba
 		logger.Info("Using default AWS credential chain (IRSA, instance profile, or environment variables)")
 	}
 
-	// Configure retry policy with exponential backoff
+	// Configure retry policy with exponential backoff.
 	retryConfig := retry.NewStandard(func(o *retry.StandardOptions) {
 		o.MaxAttempts = 3
 		o.Backoff = retry.NewExponentialJitterBackoff(time.Second)
@@ -702,7 +702,7 @@ func NewS3BackupStore(backupConfig BackupStorageConf, logger *slog.Logger) *S3Ba
 	cfg, err := config.LoadDefaultConfig(ctx, configOptions...)
 	if err != nil {
 		logger.Error("failed to load AWS config", "error", err, "profile", awsProfile)
-		// Return a backup store with nil client - errors will be handled in methods
+		// Return a backup store with nil client - errors will be handled in methods.
 		return &S3BackupStore{
 			config: &backupConfig,
 			client: nil,
@@ -717,13 +717,13 @@ func NewS3BackupStore(backupConfig BackupStorageConf, logger *slog.Logger) *S3Ba
 	}
 }
 
-// Upload uploads backup to S3 with retry logic
+// Upload uploads backup to S3 with retry logic.
 func (s *S3BackupStore) Upload(ctx context.Context, backup *Backup) error {
 	if s.client == nil {
 		return fmt.Errorf("S3 client not initialized")
 	}
 
-	// Marshal backup metadata
+	// Marshal backup metadata.
 	data, err := json.Marshal(backup)
 	if err != nil {
 		return fmt.Errorf("failed to marshal backup: %w", err)
@@ -733,13 +733,12 @@ func (s *S3BackupStore) Upload(ctx context.Context, backup *Backup) error {
 
 	s.logger.Info("Uploading backup to S3", "bucket", s.config.Bucket, "key", key, "backupID", backup.ID)
 
-	// Upload with automatic retry (configured in client)
+	// Upload with automatic retry (configured in client).
 	_, err = s.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(s.config.Bucket),
 		Key:    aws.String(key),
 		Body:   strings.NewReader(string(data)),
 	})
-
 	if err != nil {
 		s.logger.Error("Failed to upload backup to S3", "bucket", s.config.Bucket, "key", key, "error", err)
 		return fmt.Errorf("failed to upload to S3: %w", err)
@@ -749,29 +748,33 @@ func (s *S3BackupStore) Upload(ctx context.Context, backup *Backup) error {
 	return nil
 }
 
-// Additional stub implementations for interfaces
+// Additional stub implementations for interfaces.
 func NewGCSBackupStore(config BackupStorageConf, logger *slog.Logger) BackupStore {
-	// GCS implementation
+	// GCS implementation.
 	return &S3BackupStore{config: &config, logger: logger}
 }
 
+// NewAzureBackupStore performs newazurebackupstore operation.
 func NewAzureBackupStore(config BackupStorageConf, logger *slog.Logger) BackupStore {
-	// Azure implementation
+	// Azure implementation.
 	return &S3BackupStore{config: &config, logger: logger}
 }
 
-// Supporting types
+// Supporting types.
 
+// RestorePlan represents a restoreplan.
 type RestorePlan struct {
 	Steps []RestoreStep
 }
 
+// RestoreStep represents a restorestep.
 type RestoreStep struct {
 	Name     string
 	Critical bool
 	Execute  func(context.Context, *Backup) error
 }
 
+// RecoveryTestResult represents a recoverytestresult.
 type RecoveryTestResult struct {
 	ID            string                `json:"id"`
 	StartTime     time.Time             `json:"start_time"`
@@ -781,6 +784,7 @@ type RecoveryTestResult struct {
 	OverallStatus string                `json:"overall_status"`
 }
 
+// TestResult represents a testresult.
 type TestResult struct {
 	Name     string        `json:"name"`
 	Status   string        `json:"status"`
@@ -788,6 +792,7 @@ type TestResult struct {
 	Error    string        `json:"error,omitempty"`
 }
 
+// FailoverPlan represents a failoverplan.
 type FailoverPlan struct {
 	ID           string         `json:"id"`
 	SourceRegion string         `json:"source_region"`
@@ -797,13 +802,14 @@ type FailoverPlan struct {
 	Steps        []FailoverStep `json:"steps"`
 }
 
+// FailoverStep represents a failoverstep.
 type FailoverStep struct {
 	Name     string
 	Critical bool
 	Execute  func(context.Context) error
 }
 
-// Method stubs for compilation
+// Method stubs for compilation.
 func (drm *DisasterRecoveryManager) backupConfigMapsSecrets(ctx context.Context, backup *ComponentBackup) error {
 	return nil
 }
@@ -858,34 +864,43 @@ func (drm *DisasterRecoveryManager) testFailoverCapability(ctx context.Context) 
 	return TestResult{Name: "failover_capability", Status: "passed"}
 }
 
+// ValidateBackup performs validatebackup operation.
 func (bv *BackupValidator) ValidateBackup(backup *Backup) error {
 	return nil
 }
 
+// CreateSnapshot performs createsnapshot operation.
 func (sm *SnapshotManager) CreateSnapshot(ctx context.Context, pv *corev1.PersistentVolume) (*VolumeSnapshot, error) {
 	return &VolumeSnapshot{Size: 1024}, nil
 }
 
+// Start performs start operation.
 func (bs *BackupScheduler) Start(ctx context.Context) error {
 	return nil
 }
 
+// ScheduleRecoveryTests performs schedulerecoverytests operation.
 func (bs *BackupScheduler) ScheduleRecoveryTests(ctx context.Context, schedule string) error {
 	return nil
 }
 
+// NotifyBackupSuccess performs notifybackupsuccess operation.
 func (rn *RecoveryNotifier) NotifyBackupSuccess(backup *Backup) {
 }
 
+// NotifyBackupFailure performs notifybackupfailure operation.
 func (rn *RecoveryNotifier) NotifyBackupFailure(backup *Backup, errors []error) {
 }
 
+// NotifyRestoreSuccess performs notifyrestoresuccess operation.
 func (rn *RecoveryNotifier) NotifyRestoreSuccess(backup *Backup) {
 }
 
+// NotifyRecoveryTestResult performs notifyrecoverytestresult operation.
 func (rn *RecoveryNotifier) NotifyRecoveryTestResult(result *RecoveryTestResult) {
 }
 
+// NotifyFailoverComplete performs notifyfailovercomplete operation.
 func (rn *RecoveryNotifier) NotifyFailoverComplete(plan *FailoverPlan) {
 }
 
@@ -893,7 +908,7 @@ func (rtr *RecoveryTestResult) calculateOverallStatus() {
 	rtr.OverallStatus = "passed"
 }
 
-// Download downloads backup from S3 with retry logic
+// Download downloads backup from S3 with retry logic.
 func (s *S3BackupStore) Download(ctx context.Context, backupID string) (*Backup, error) {
 	if s.client == nil {
 		return nil, fmt.Errorf("S3 client not initialized")
@@ -903,7 +918,7 @@ func (s *S3BackupStore) Download(ctx context.Context, backupID string) (*Backup,
 
 	s.logger.Info("Downloading backup from S3", "bucket", s.config.Bucket, "key", key, "backupID", backupID)
 
-	// Download with automatic retry (configured in client)
+	// Download with automatic retry (configured in client).
 	result, err := s.client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(s.config.Bucket),
 		Key:    aws.String(key),
@@ -914,7 +929,7 @@ func (s *S3BackupStore) Download(ctx context.Context, backupID string) (*Backup,
 	}
 	defer result.Body.Close()
 
-	// Read and unmarshal backup data
+	// Read and unmarshal backup data.
 	data, err := io.ReadAll(result.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read backup data: %w", err)
@@ -929,7 +944,7 @@ func (s *S3BackupStore) Download(ctx context.Context, backupID string) (*Backup,
 	return &backup, nil
 }
 
-// List lists all backups in S3 with retry logic
+// List lists all backups in S3 with retry logic.
 func (s *S3BackupStore) List(ctx context.Context) ([]*BackupMetadata, error) {
 	if s.client == nil {
 		return nil, fmt.Errorf("S3 client not initialized")
@@ -937,7 +952,7 @@ func (s *S3BackupStore) List(ctx context.Context) ([]*BackupMetadata, error) {
 
 	s.logger.Info("Listing backups from S3", "bucket", s.config.Bucket, "prefix", s.config.Path)
 
-	// List objects with automatic retry (configured in client)
+	// List objects with automatic retry (configured in client).
 	result, err := s.client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
 		Bucket: aws.String(s.config.Bucket),
 		Prefix: aws.String(s.config.Path),
@@ -949,13 +964,13 @@ func (s *S3BackupStore) List(ctx context.Context) ([]*BackupMetadata, error) {
 
 	var backups []*BackupMetadata
 	for _, object := range result.Contents {
-		// Extract backup ID from object key
+		// Extract backup ID from object key.
 		key := aws.ToString(object.Key)
 		if !strings.HasSuffix(key, "metadata.json") {
 			continue
 		}
 
-		// Extract backup ID from path
+		// Extract backup ID from path.
 		parts := strings.Split(key, "/")
 		if len(parts) < 2 {
 			continue
@@ -977,13 +992,13 @@ func (s *S3BackupStore) List(ctx context.Context) ([]*BackupMetadata, error) {
 	return backups, nil
 }
 
-// Delete deletes backup from S3 with retry logic
+// Delete deletes backup from S3 with retry logic.
 func (s *S3BackupStore) Delete(ctx context.Context, backupID string) error {
 	if s.client == nil {
 		return fmt.Errorf("S3 client not initialized")
 	}
 
-	// First, list all objects with the backup prefix
+	// First, list all objects with the backup prefix.
 	prefix := filepath.Join(s.config.Path, backupID)
 
 	s.logger.Info("Deleting backup from S3", "bucket", s.config.Bucket, "prefix", prefix, "backupID", backupID)
@@ -997,7 +1012,7 @@ func (s *S3BackupStore) Delete(ctx context.Context, backupID string) error {
 		return fmt.Errorf("failed to list objects for deletion: %w", err)
 	}
 
-	// Delete each object with automatic retry (configured in client)
+	// Delete each object with automatic retry (configured in client).
 	for _, object := range result.Contents {
 		key := aws.ToString(object.Key)
 		_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
@@ -1014,7 +1029,7 @@ func (s *S3BackupStore) Delete(ctx context.Context, backupID string) error {
 	return nil
 }
 
-// Verify verifies backup integrity in S3 with retry logic
+// Verify verifies backup integrity in S3 with retry logic.
 func (s *S3BackupStore) Verify(ctx context.Context, backupID string) error {
 	if s.client == nil {
 		return fmt.Errorf("S3 client not initialized")
@@ -1024,7 +1039,7 @@ func (s *S3BackupStore) Verify(ctx context.Context, backupID string) error {
 
 	s.logger.Info("Verifying backup in S3", "bucket", s.config.Bucket, "key", key, "backupID", backupID)
 
-	// Check if object exists with automatic retry (configured in client)
+	// Check if object exists with automatic retry (configured in client).
 	_, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{
 		Bucket: aws.String(s.config.Bucket),
 		Key:    aws.String(key),
@@ -1034,13 +1049,13 @@ func (s *S3BackupStore) Verify(ctx context.Context, backupID string) error {
 		return fmt.Errorf("failed to verify backup in S3: %w", err)
 	}
 
-	// Download and validate backup metadata
+	// Download and validate backup metadata.
 	backup, err := s.Download(ctx, backupID)
 	if err != nil {
 		return fmt.Errorf("failed to download backup for verification: %w", err)
 	}
 
-	// Basic validation
+	// Basic validation.
 	if backup.ID != backupID {
 		return fmt.Errorf("backup ID mismatch: expected %s, got %s", backupID, backup.ID)
 	}
@@ -1053,6 +1068,7 @@ func (s *S3BackupStore) Verify(ctx context.Context, backupID string) error {
 	return nil
 }
 
+// VolumeSnapshot represents a volumesnapshot.
 type VolumeSnapshot struct {
 	Size int64
 }

@@ -33,7 +33,7 @@ var (
 	}, []string{"instance"})
 )
 
-// SplunkBackend implements audit logging to Splunk via HTTP Event Collector (HEC)
+// SplunkBackend implements audit logging to Splunk via HTTP Event Collector (HEC).
 type SplunkBackend struct {
 	config     BackendConfig
 	httpClient *http.Client
@@ -45,12 +45,12 @@ type SplunkBackend struct {
 	sourceType string
 	host       string
 
-	// Metrics
+	// Metrics.
 	eventsWritten int64
 	eventsFailed  int64
 }
 
-// SplunkConfig represents Splunk-specific configuration
+// SplunkConfig represents Splunk-specific configuration.
 type SplunkConfig struct {
 	HecURL     string `json:"hec_url" yaml:"hec_url"`
 	Token      string `json:"token" yaml:"token"`
@@ -59,24 +59,24 @@ type SplunkConfig struct {
 	SourceType string `json:"source_type" yaml:"source_type"`
 	Host       string `json:"host" yaml:"host"`
 
-	// HEC settings
+	// HEC settings.
 	Channel        string        `json:"channel" yaml:"channel"`
 	UseCompression bool          `json:"use_compression" yaml:"use_compression"`
 	MaxBatchSize   int           `json:"max_batch_size" yaml:"max_batch_size"`
 	RequestTimeout time.Duration `json:"request_timeout" yaml:"request_timeout"`
 
-	// Security
+	// Security.
 	VerifyTLS  bool   `json:"verify_tls" yaml:"verify_tls"`
 	ClientCert string `json:"client_cert" yaml:"client_cert"`
 	ClientKey  string `json:"client_key" yaml:"client_key"`
 	CACert     string `json:"ca_cert" yaml:"ca_cert"`
 
-	// Acknowledgement
+	// Acknowledgement.
 	UseAck     bool          `json:"use_ack" yaml:"use_ack"`
 	AckTimeout time.Duration `json:"ack_timeout" yaml:"ack_timeout"`
 }
 
-// SplunkEvent represents a Splunk HEC event
+// SplunkEvent represents a Splunk HEC event.
 type SplunkEvent struct {
 	Time       *float64               `json:"time,omitempty"`
 	Host       string                 `json:"host"`
@@ -87,7 +87,7 @@ type SplunkEvent struct {
 	Fields     map[string]interface{} `json:"fields,omitempty"`
 }
 
-// SplunkResponse represents a Splunk HEC response
+// SplunkResponse represents a Splunk HEC response.
 type SplunkResponse struct {
 	Text         string `json:"text"`
 	Code         int    `json:"code"`
@@ -98,7 +98,7 @@ type SplunkResponse struct {
 	} `json:"invalid-event-number,omitempty"`
 }
 
-// NewSplunkBackend creates a new Splunk backend
+// NewSplunkBackend creates a new Splunk backend.
 func NewSplunkBackend(config BackendConfig) (*SplunkBackend, error) {
 	splunkConfig, err := parseSplunkConfig(config.Settings)
 	if err != nil {
@@ -116,7 +116,7 @@ func NewSplunkBackend(config BackendConfig) (*SplunkBackend, error) {
 		host:       splunkConfig.Host,
 	}
 
-	// Set defaults
+	// Set defaults.
 	if backend.index == "" {
 		backend.index = "nephoran_audit"
 	}
@@ -130,7 +130,7 @@ func NewSplunkBackend(config BackendConfig) (*SplunkBackend, error) {
 		backend.host = "nephoran-operator"
 	}
 
-	// Validate required fields
+	// Validate required fields.
 	if backend.hecURL == "" {
 		return nil, fmt.Errorf("HEC URL is required")
 	}
@@ -138,7 +138,7 @@ func NewSplunkBackend(config BackendConfig) (*SplunkBackend, error) {
 		return nil, fmt.Errorf("HEC token is required")
 	}
 
-	// Create HTTP client
+	// Create HTTP client.
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: !splunkConfig.VerifyTLS,
 	}
@@ -158,11 +158,11 @@ func NewSplunkBackend(config BackendConfig) (*SplunkBackend, error) {
 	return backend, nil
 }
 
-// Initialize sets up the Splunk backend
+// Initialize sets up the Splunk backend.
 func (sb *SplunkBackend) Initialize(config BackendConfig) error {
 	sb.logger.Info("Initializing Splunk backend")
 
-	// Test connectivity by sending a health check event
+	// Test connectivity by sending a health check event.
 	testEvent := &types.AuditEvent{
 		ID:          "health-check",
 		Version:     "1.0",
@@ -183,17 +183,17 @@ func (sb *SplunkBackend) Initialize(config BackendConfig) error {
 	return nil
 }
 
-// Type returns the backend type
+// Type returns the backend type.
 func (sb *SplunkBackend) Type() string {
 	return string(BackendTypeSplunk)
 }
 
-// WriteEvent writes a single audit event to Splunk
+// WriteEvent writes a single audit event to Splunk.
 func (sb *SplunkBackend) WriteEvent(ctx context.Context, event *types.AuditEvent) error {
 	return sb.WriteEvents(ctx, []*types.AuditEvent{event})
 }
 
-// WriteEvents writes multiple audit events to Splunk HEC
+// WriteEvents writes multiple audit events to Splunk HEC.
 func (sb *SplunkBackend) WriteEvents(ctx context.Context, events []*types.AuditEvent) error {
 	if len(events) == 0 {
 		return nil
@@ -205,10 +205,10 @@ func (sb *SplunkBackend) WriteEvents(ctx context.Context, events []*types.AuditE
 		splunkRequestDuration.WithLabelValues(sb.config.Name).Observe(duration.Seconds())
 	}()
 
-	// Convert events to Splunk format
+	// Convert events to Splunk format.
 	var splunkEvents []SplunkEvent
 	for _, event := range events {
-		// Filter event if necessary
+		// Filter event if necessary.
 		if !sb.config.Filter.ShouldProcessEvent(event) {
 			continue
 		}
@@ -222,7 +222,7 @@ func (sb *SplunkBackend) WriteEvents(ctx context.Context, events []*types.AuditE
 		return nil // No events to write after filtering
 	}
 
-	// Build request payload
+	// Build request payload.
 	var payload bytes.Buffer
 	for _, splunkEvent := range splunkEvents {
 		eventBytes, err := json.Marshal(splunkEvent)
@@ -235,7 +235,7 @@ func (sb *SplunkBackend) WriteEvents(ctx context.Context, events []*types.AuditE
 		payload.WriteByte('\n')
 	}
 
-	// Send request
+	// Send request.
 	url := sb.hecURL + "/services/collector"
 	req, err := http.NewRequestWithContext(ctx, "POST", url, &payload)
 	if err != nil {
@@ -253,7 +253,7 @@ func (sb *SplunkBackend) WriteEvents(ctx context.Context, events []*types.AuditE
 	}
 	defer resp.Body.Close()
 
-	// Check response
+	// Check response.
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		sb.logger.Error(err, "Failed to read HEC response")
@@ -263,7 +263,7 @@ func (sb *SplunkBackend) WriteEvents(ctx context.Context, events []*types.AuditE
 		splunkRequestsTotal.WithLabelValues(sb.config.Name, fmt.Sprintf("%d", resp.StatusCode)).Inc()
 		atomic.AddInt64(&sb.eventsFailed, int64(len(events)))
 
-		// Try to parse error response
+		// Try to parse error response.
 		var splunkResp SplunkResponse
 		if err := json.Unmarshal(body, &splunkResp); err == nil {
 			return fmt.Errorf("HEC request failed: %s (code: %d)", splunkResp.Text, splunkResp.Code)
@@ -272,7 +272,7 @@ func (sb *SplunkBackend) WriteEvents(ctx context.Context, events []*types.AuditE
 		return fmt.Errorf("HEC request failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
-	// Parse successful response
+	// Parse successful response.
 	var splunkResp SplunkResponse
 	if err := json.Unmarshal(body, &splunkResp); err != nil {
 		sb.logger.Error(err, "Failed to parse HEC response")
@@ -288,14 +288,14 @@ func (sb *SplunkBackend) WriteEvents(ctx context.Context, events []*types.AuditE
 	return nil
 }
 
-// Query searches for audit events in Splunk (using REST API)
+// Query searches for audit events in Splunk (using REST API).
 func (sb *SplunkBackend) Query(ctx context.Context, query *QueryRequest) (*QueryResponse, error) {
-	// Splunk search requires different authentication and API endpoints
-	// This is a simplified implementation for demonstration
+	// Splunk search requires different authentication and API endpoints.
+	// This is a simplified implementation for demonstration.
 
 	searchQuery := sb.buildSplunkSearch(query)
 
-	// Create search job
+	// Create search job.
 	searchURL := fmt.Sprintf("%s/servicesNS/-/-/search/jobs", sb.getSplunkManagementURL())
 
 	form := fmt.Sprintf("search=%s&earliest_time=%s&latest_time=%s&count=%d&offset=%d",
@@ -324,8 +324,8 @@ func (sb *SplunkBackend) Query(ctx context.Context, query *QueryRequest) (*Query
 		return nil, fmt.Errorf("search request failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
-	// This is a simplified implementation - full Splunk integration would require
-	// parsing the search job ID, polling for completion, and retrieving results
+	// This is a simplified implementation - full Splunk integration would require.
+	// parsing the search job ID, polling for completion, and retrieving results.
 	return &QueryResponse{
 		Events:     []*types.AuditEvent{},
 		TotalCount: 0,
@@ -333,9 +333,9 @@ func (sb *SplunkBackend) Query(ctx context.Context, query *QueryRequest) (*Query
 	}, nil
 }
 
-// Health checks the Splunk backend health
+// Health checks the Splunk backend health.
 func (sb *SplunkBackend) Health(ctx context.Context) error {
-	// Check HEC health endpoint
+	// Check HEC health endpoint.
 	url := sb.hecURL + "/services/collector/health"
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -357,19 +357,19 @@ func (sb *SplunkBackend) Health(ctx context.Context) error {
 	return nil
 }
 
-// Close closes the Splunk backend
+// Close closes the Splunk backend.
 func (sb *SplunkBackend) Close() error {
 	sb.logger.Info("Closing Splunk backend")
 	return nil
 }
 
-// Helper methods
+// Helper methods.
 
 func (sb *SplunkBackend) convertToSplunkEvent(event *types.AuditEvent) SplunkEvent {
-	// Convert timestamp to Unix epoch with milliseconds
+	// Convert timestamp to Unix epoch with milliseconds.
 	timestamp := float64(event.Timestamp.UnixNano()) / 1e9
 
-	// Create the main event data
+	// Create the main event data.
 	eventData := map[string]interface{}{
 		"id":          event.ID,
 		"version":     event.Version,
@@ -384,7 +384,7 @@ func (sb *SplunkBackend) convertToSplunkEvent(event *types.AuditEvent) SplunkEve
 		"message":     event.Message,
 	}
 
-	// Add context information
+	// Add context information.
 	if event.UserContext != nil {
 		eventData["user_context"] = event.UserContext
 	}
@@ -398,12 +398,12 @@ func (sb *SplunkBackend) convertToSplunkEvent(event *types.AuditEvent) SplunkEve
 		eventData["resource_context"] = event.ResourceContext
 	}
 
-	// Add additional data
+	// Add additional data.
 	if event.Data != nil {
 		eventData["data"] = event.Data
 	}
 
-	// Add error information
+	// Add error information.
 	if event.Error != "" {
 		eventData["error"] = event.Error
 	}
@@ -411,7 +411,7 @@ func (sb *SplunkBackend) convertToSplunkEvent(event *types.AuditEvent) SplunkEve
 		eventData["error_code"] = event.ErrorCode
 	}
 
-	// Create fields for indexing
+	// Create fields for indexing.
 	fields := map[string]interface{}{
 		"event_type": string(event.EventType),
 		"severity":   event.Severity.String(),
@@ -429,7 +429,7 @@ func (sb *SplunkBackend) convertToSplunkEvent(event *types.AuditEvent) SplunkEve
 		fields["source_ip"] = event.NetworkContext.SourceIP.String()
 	}
 
-	// Add compliance metadata as fields
+	// Add compliance metadata as fields.
 	if event.ComplianceMetadata != nil {
 		for key, value := range event.ComplianceMetadata {
 			fields["compliance_"+key] = value
@@ -450,22 +450,22 @@ func (sb *SplunkBackend) convertToSplunkEvent(event *types.AuditEvent) SplunkEve
 func (sb *SplunkBackend) buildSplunkSearch(query *QueryRequest) string {
 	search := fmt.Sprintf("search index=%s", sb.index)
 
-	// Add time range
+	// Add time range.
 	search += fmt.Sprintf(" earliest=%d latest=%d",
 		query.StartTime.Unix(),
 		query.EndTime.Unix())
 
-	// Add query string if provided
+	// Add query string if provided.
 	if query.Query != "" {
 		search += fmt.Sprintf(" %s", query.Query)
 	}
 
-	// Add filters
+	// Add filters.
 	for field, value := range query.Filters {
 		search += fmt.Sprintf(" %s=\"%v\"", field, value)
 	}
 
-	// Add sorting
+	// Add sorting.
 	if query.SortBy != "" {
 		order := "desc"
 		if query.SortOrder == "asc" {
@@ -478,8 +478,8 @@ func (sb *SplunkBackend) buildSplunkSearch(query *QueryRequest) string {
 }
 
 func (sb *SplunkBackend) getSplunkManagementURL() string {
-	// Extract management URL from HEC URL
-	// This is a simplified approach - in practice you might have separate endpoints
+	// Extract management URL from HEC URL.
+	// This is a simplified approach - in practice you might have separate endpoints.
 	return strings.Replace(sb.hecURL, ":8088", ":8089", 1)
 }
 
@@ -494,7 +494,7 @@ func parseSplunkConfig(settings map[string]interface{}) (*SplunkConfig, error) {
 		return nil, fmt.Errorf("failed to unmarshal configuration: %w", err)
 	}
 
-	// Set defaults
+	// Set defaults.
 	if config.RequestTimeout == 0 {
 		config.RequestTimeout = 30 * time.Second
 	}

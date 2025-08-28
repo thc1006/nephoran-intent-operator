@@ -1,5 +1,5 @@
-// Example usage of the rate limiter middleware
-// This file demonstrates how to use the IP-based rate limiter
+// Example usage of the rate limiter middleware.
+// This file demonstrates how to use the IP-based rate limiter.
 package middleware
 
 import (
@@ -11,11 +11,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// ExampleRateLimiterUsage performs exampleratelimiterusage operation.
 func ExampleRateLimiterUsage() {
-	// Create logger
+	// Create logger.
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
-	// Configure rate limiter
+	// Configure rate limiter.
 	config := RateLimiterConfig{
 		QPS:             20,               // Allow 20 requests per second per IP
 		Burst:           40,               // Allow burst of 40 requests
@@ -23,32 +24,33 @@ func ExampleRateLimiterUsage() {
 		IPTimeout:       1 * time.Hour,    // Remove IP entries after 1 hour of inactivity
 	}
 
-	// Create rate limiter
+	// Create rate limiter.
 	rateLimiter := NewRateLimiter(config, logger)
 	defer rateLimiter.Stop()
 
-	// Create HTTP handler
+	// Create HTTP handler.
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Hello, World!"))
 	})
 
-	// Apply rate limiting middleware
+	// Apply rate limiting middleware.
 	limitedHandler := rateLimiter.Middleware(handler)
 
-	// Create router and add the rate-limited handler
+	// Create router and add the rate-limited handler.
 	router := mux.NewRouter()
 	router.Handle("/api", limitedHandler).Methods("GET", "POST")
 
-	// Start server
+	// Start server.
 	http.ListenAndServe(":8080", router)
 }
 
+// ExamplePostOnlyRateLimiterUsage performs examplepostonlyratelimiterusage operation.
 func ExamplePostOnlyRateLimiterUsage() {
-	// Create logger
+	// Create logger.
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
-	// Configure rate limiter for POST requests only
+	// Configure rate limiter for POST requests only.
 	config := RateLimiterConfig{
 		QPS:             10,               // Allow 10 POST requests per second per IP
 		Burst:           20,               // Allow burst of 20 POST requests
@@ -56,11 +58,11 @@ func ExamplePostOnlyRateLimiterUsage() {
 		IPTimeout:       1 * time.Hour,    // Remove IP entries after 1 hour of inactivity
 	}
 
-	// Create POST-only rate limiter
+	// Create POST-only rate limiter.
 	postRateLimiter := NewPostOnlyRateLimiter(config, logger)
 	defer postRateLimiter.Stop()
 
-	// Create HTTP handlers
+	// Create HTTP handlers.
 	postHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("POST request processed"))
@@ -71,17 +73,17 @@ func ExamplePostOnlyRateLimiterUsage() {
 		w.Write([]byte("GET request processed"))
 	})
 
-	// Create router
+	// Create router.
 	router := mux.NewRouter()
 
-	// Apply POST-only rate limiting middleware to the entire router
+	// Apply POST-only rate limiting middleware to the entire router.
 	router.Use(postRateLimiter.Middleware)
 
-	// Add handlers - only POST requests will be rate limited
+	// Add handlers - only POST requests will be rate limited.
 	router.Handle("/api/data", postHandler).Methods("POST")
 	router.Handle("/api/data", getHandler).Methods("GET")
 
-	// Start server
+	// Start server.
 	http.ListenAndServe(":8080", router)
 }
 

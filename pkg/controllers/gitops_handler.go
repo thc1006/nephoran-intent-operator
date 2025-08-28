@@ -15,23 +15,25 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/resilience"
 )
 
-// GitOpsHandler handles GitOps operations and deployment verification phases
+// GitOpsHandler handles GitOps operations and deployment verification phases.
 type GitOpsHandler struct {
 	*NetworkIntentReconciler
 }
 
-// Ensure GitOpsHandler implements the required interfaces
-var _ GitOpsHandlerInterface = (*GitOpsHandler)(nil)
-var _ PhaseProcessor = (*GitOpsHandler)(nil)
+// Ensure GitOpsHandler implements the required interfaces.
+var (
+	_ GitOpsHandlerInterface = (*GitOpsHandler)(nil)
+	_ PhaseProcessor         = (*GitOpsHandler)(nil)
+)
 
-// NewGitOpsHandler creates a new GitOps handler
+// NewGitOpsHandler creates a new GitOps handler.
 func NewGitOpsHandler(r *NetworkIntentReconciler) *GitOpsHandler {
 	return &GitOpsHandler{
 		NetworkIntentReconciler: r,
 	}
 }
 
-// CommitToGitOps implements Phase 4: GitOps commit and validation
+// CommitToGitOps implements Phase 4: GitOps commit and validation.
 func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, processingCtx *ProcessingContext) (ctrl.Result, error) {
 	logger := log.FromContext(ctx).WithValues("phase", "gitops-commit")
 	startTime := time.Now()
@@ -42,13 +44,13 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 		return ctrl.Result{}, fmt.Errorf("no manifests available for GitOps commit")
 	}
 
-	// Get Git client
+	// Get Git client.
 	gitClient := g.deps.GetGitClient()
 	if gitClient == nil {
 		return ctrl.Result{}, fmt.Errorf("Git client is not configured")
 	}
 
-	// Get retry count
+	// Get retry count.
 	retryCount := getNetworkIntentRetryCount(networkIntent, "git-deployment")
 	if retryCount >= g.config.MaxRetries {
 		condition := metav1.Condition{
@@ -60,12 +62,12 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
 
-		// Set Ready condition to indicate Git operation failure
+		// Set Ready condition to indicate Git operation failure.
 		g.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "GitOperationsFailed", fmt.Sprintf("Git operations failed after %d retries", g.config.MaxRetries))
 		return ctrl.Result{}, fmt.Errorf("max retries exceeded for GitOps commit")
 	}
 
-	// Initialize Git repository with timeout
+	// Initialize Git repository with timeout.
 	_, err := g.timeoutManager.ExecuteWithTimeout(ctx, resilience.OperationTypeGit,
 		func(timeoutCtx context.Context) (interface{}, error) {
 			return nil, gitClient.InitRepo()
@@ -83,10 +85,10 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
 
-		// Set Ready condition to False during Git initialization failures
+		// Set Ready condition to False during Git initialization failures.
 		g.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "GitRepoInitializationFailed", fmt.Sprintf("Git repository initialization failed: %v", err))
 
-		// Use exponential backoff for Git operations
+		// Use exponential backoff for Git operations.
 		backoffDelay := calculateExponentialBackoffForOperation(retryCount, "git-operations")
 		logger.V(1).Info("Scheduling git initialization retry with exponential backoff",
 			"delay", backoffDelay,
@@ -96,7 +98,7 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 		return ctrl.Result{RequeueAfter: backoffDelay}, nil
 	}
 
-	// Organize manifests by deployment path
+	// Organize manifests by deployment path.
 	deploymentFiles := make(map[string]string)
 	basePath := fmt.Sprintf("%s/%s-%s", g.config.GitDeployPath, networkIntent.Namespace, networkIntent.Name)
 
@@ -105,7 +107,7 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 		deploymentFiles[filePath] = content
 	}
 
-	// Create comprehensive commit message
+	// Create comprehensive commit message.
 	commitMessage := fmt.Sprintf("Deploy NetworkIntent: %s/%s\n\nIntent: %s\nPhase: %s\nNetwork Functions: %s\nGenerated Manifests: %d\nEstimated Cost: $%.2f\n\nProcessed by Nephoran Intent Operator",
 		networkIntent.Namespace,
 		networkIntent.Name,
@@ -116,7 +118,7 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 		processingCtx.ResourcePlan.EstimatedCost,
 	)
 
-	// Commit and push to Git with timeout
+	// Commit and push to Git with timeout.
 	logger.Info("Committing manifests to GitOps repository", "files", len(deploymentFiles))
 	result, err := g.timeoutManager.ExecuteWithTimeout(ctx, resilience.OperationTypeGit,
 		func(timeoutCtx context.Context) (interface{}, error) {
@@ -140,10 +142,10 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
 
-		// Set Ready condition to False during Git commit/push failures
+		// Set Ready condition to False during Git commit/push failures.
 		g.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "GitCommitPushFailed", fmt.Sprintf("Git commit and push failed: %v", err))
 
-		// Use exponential backoff for Git commit/push operations
+		// Use exponential backoff for Git commit/push operations.
 		backoffDelay := calculateExponentialBackoffForOperation(retryCount, "git-operations")
 		logger.V(1).Info("Scheduling git commit/push retry with exponential backoff",
 			"delay", backoffDelay,
@@ -153,13 +155,13 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 		return ctrl.Result{RequeueAfter: backoffDelay}, nil
 	}
 
-	// Store commit hash
+	// Store commit hash.
 	processingCtx.GitCommitHash = commitHash
 
-	// Clear retry count and update success condition
+	// Clear retry count and update success condition.
 	clearNetworkIntentRetryCount(networkIntent, "git-deployment")
 	now := metav1.Now()
-	// Store deployment completion info in Extensions
+	// Store deployment completion info in Extensions.
 	if networkIntent.Status.Extensions == nil {
 		networkIntent.Status.Extensions = make(map[string]runtime.RawExtension)
 	}
@@ -177,13 +179,13 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 	}
 	updateCondition(&networkIntent.Status.Conditions, condition)
 
-	// Note: Don't set Ready=True here yet, wait for full pipeline completion
+	// Note: Don't set Ready=True here yet, wait for full pipeline completion.
 
 	if err := g.safeStatusUpdate(ctx, networkIntent); err != nil {
 		return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update status: %w", err)
 	}
 
-	// Record metrics
+	// Record metrics.
 	if metricsCollector := g.deps.GetMetricsCollector(); metricsCollector != nil {
 		commitDuration := time.Since(startTime)
 		metricsCollector.RecordGitOpsOperation("commit", commitDuration, true)
@@ -203,24 +205,24 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 	return ctrl.Result{}, nil
 }
 
-// VerifyDeployment implements Phase 5: Deployment verification
+// VerifyDeployment implements Phase 5: Deployment verification.
 func (g *GitOpsHandler) VerifyDeployment(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, processingCtx *ProcessingContext) (ctrl.Result, error) {
 	logger := log.FromContext(ctx).WithValues("phase", "deployment-verification")
 	startTime := time.Now()
 
 	processingCtx.CurrentPhase = PhaseDeploymentVerification
 
-	// For now, we'll implement a simple verification that checks if the GitOps commit was successful
-	// In a real implementation, this would check if the manifests were actually deployed and are running
+	// For now, we'll implement a simple verification that checks if the GitOps commit was successful.
+	// In a real implementation, this would check if the manifests were actually deployed and are running.
 
 	if processingCtx.GitCommitHash == "" {
 		return ctrl.Result{}, fmt.Errorf("no Git commit hash available for verification")
 	}
 
-	// Simulate deployment verification delay (in production, this would poll actual resources)
+	// Simulate deployment verification delay (in production, this would poll actual resources).
 	time.Sleep(2 * time.Second)
 
-	// Update deployment status
+	// Update deployment status.
 	deploymentStatus := map[string]interface{}{
 		"git_commit_hash":      processingCtx.GitCommitHash,
 		"deployment_timestamp": time.Now(),
@@ -231,7 +233,7 @@ func (g *GitOpsHandler) VerifyDeployment(ctx context.Context, networkIntent *nep
 
 	processingCtx.DeploymentStatus = deploymentStatus
 
-	// Create successful verification condition
+	// Create successful verification condition.
 	condition := metav1.Condition{
 		Type:   "DeploymentVerified",
 		Status: metav1.ConditionTrue,
@@ -258,25 +260,25 @@ func (g *GitOpsHandler) VerifyDeployment(ctx context.Context, networkIntent *nep
 	return ctrl.Result{}, nil
 }
 
-// VerifyDeploymentAdvanced provides more comprehensive deployment verification
-// This method would be used in production to actually check the deployed resources
+// VerifyDeploymentAdvanced provides more comprehensive deployment verification.
+// This method would be used in production to actually check the deployed resources.
 func (g *GitOpsHandler) VerifyDeploymentAdvanced(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, processingCtx *ProcessingContext) (ctrl.Result, error) {
 	logger := log.FromContext(ctx).WithValues("phase", "deployment-verification-advanced")
 	_ = logger // Suppress unused warning
 
-	// TODO: Implement actual resource verification
-	// This would include:
-	// 1. Check if Deployments are ready
-	// 2. Check if Services are available
-	// 3. Verify network policies are applied
-	// 4. Check if network functions are responding to health checks
-	// 5. Validate inter-service communication
+	// TODO: Implement actual resource verification.
+	// This would include:.
+	// 1. Check if Deployments are ready.
+	// 2. Check if Services are available.
+	// 3. Verify network policies are applied.
+	// 4. Check if network functions are responding to health checks.
+	// 5. Validate inter-service communication.
 
-	// For now, return the simple verification
+	// For now, return the simple verification.
 	return g.VerifyDeployment(ctx, networkIntent, processingCtx)
 }
 
-// CleanupGitOpsResources removes GitOps resources for a NetworkIntent
+// CleanupGitOpsResources removes GitOps resources for a NetworkIntent.
 func (g *GitOpsHandler) CleanupGitOpsResources(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) error {
 	logger := log.FromContext(ctx).WithValues("operation", "gitops-cleanup")
 	_ = logger // Use the logger variable to suppress unused warning
@@ -286,32 +288,31 @@ func (g *GitOpsHandler) CleanupGitOpsResources(ctx context.Context, networkInten
 		return fmt.Errorf("Git client is not configured")
 	}
 
-	// Initialize repository
+	// Initialize repository.
 	if err := gitClient.InitRepo(); err != nil {
 		return fmt.Errorf("failed to initialize git repository: %w", err)
 	}
 
-	// Remove deployment files
+	// Remove deployment files.
 	basePath := fmt.Sprintf("%s/%s-%s", g.config.GitDeployPath, networkIntent.Namespace, networkIntent.Name)
 
-	// Create commit message for cleanup
+	// Create commit message for cleanup.
 	commitMessage := fmt.Sprintf("Remove NetworkIntent: %s/%s\n\nCleaning up resources for deleted NetworkIntent\n\nProcessed by Nephoran Intent Operator",
 		networkIntent.Namespace,
 		networkIntent.Name)
 
-	// Remove the directory and commit
+	// Remove the directory and commit.
 	_, err := g.timeoutManager.ExecuteWithTimeout(ctx, resilience.OperationTypeGit,
 		func(timeoutCtx context.Context) (interface{}, error) {
-			// RemoveAndPush method doesn't exist, use alternative
+			// RemoveAndPush method doesn't exist, use alternative.
 			return gitClient.CommitAndPush(nil, commitMessage)
 		})
-
 	if err != nil {
 		logger.Error(err, "failed to remove GitOps resources")
 		return fmt.Errorf("failed to remove GitOps resources: %w", err)
 	}
 
-	// Record metrics
+	// Record metrics.
 	if metricsCollector := g.deps.GetMetricsCollector(); metricsCollector != nil {
 		metricsCollector.RecordGitOpsOperation("cleanup", time.Since(time.Now()), true)
 	}
@@ -320,7 +321,7 @@ func (g *GitOpsHandler) CleanupGitOpsResources(ctx context.Context, networkInten
 	return nil
 }
 
-// Helper method to get network functions list
+// Helper method to get network functions list.
 func (g *GitOpsHandler) getNetworkFunctionsList(plan *ResourcePlan) string {
 	if plan == nil || len(plan.NetworkFunctions) == 0 {
 		return "none"
@@ -333,12 +334,12 @@ func (g *GitOpsHandler) getNetworkFunctionsList(plan *ResourcePlan) string {
 	return fmt.Sprintf("[%s]", fmt.Sprintf("%v", names))
 }
 
-// Interface implementation methods
+// Interface implementation methods.
 
-// ProcessPhase implements PhaseProcessor interface
+// ProcessPhase implements PhaseProcessor interface.
 func (g *GitOpsHandler) ProcessPhase(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, processingCtx *ProcessingContext) (ctrl.Result, error) {
-	// This processor handles both GitOps commit and deployment verification
-	// Check which phase needs to be executed based on conditions
+	// This processor handles both GitOps commit and deployment verification.
+	// Check which phase needs to be executed based on conditions.
 	if !isConditionTrue(networkIntent.Status.Conditions, "GitOpsCommitted") {
 		return g.CommitToGitOps(ctx, networkIntent, processingCtx)
 	} else if !isConditionTrue(networkIntent.Status.Conditions, "DeploymentVerified") {
@@ -347,12 +348,12 @@ func (g *GitOpsHandler) ProcessPhase(ctx context.Context, networkIntent *nephora
 	return ctrl.Result{}, nil
 }
 
-// GetPhaseName implements PhaseProcessor interface
+// GetPhaseName implements PhaseProcessor interface.
 func (g *GitOpsHandler) GetPhaseName() ProcessingPhase {
 	return PhaseGitOpsCommit
 }
 
-// IsPhaseComplete implements PhaseProcessor interface
+// IsPhaseComplete implements PhaseProcessor interface.
 func (g *GitOpsHandler) IsPhaseComplete(networkIntent *nephoranv1.NetworkIntent) bool {
 	return isConditionTrue(networkIntent.Status.Conditions, "GitOpsCommitted") &&
 		isConditionTrue(networkIntent.Status.Conditions, "DeploymentVerified")

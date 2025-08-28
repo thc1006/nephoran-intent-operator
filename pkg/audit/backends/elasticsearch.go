@@ -32,7 +32,7 @@ var (
 	}, []string{"instance", "method"})
 )
 
-// ElasticsearchBackend implements audit logging to Elasticsearch/OpenSearch
+// ElasticsearchBackend implements audit logging to Elasticsearch/OpenSearch.
 type ElasticsearchBackend struct {
 	config      BackendConfig
 	httpClient  *http.Client
@@ -43,16 +43,16 @@ type ElasticsearchBackend struct {
 	password    string
 	apiKey      string
 
-	// Metrics
+	// Metrics.
 	eventsWritten int64
 	eventsFailed  int64
 
-	// Index management
+	// Index management.
 	indexTemplate string
 	aliasName     string
 }
 
-// ElasticsearchConfig represents Elasticsearch-specific configuration
+// ElasticsearchConfig represents Elasticsearch-specific configuration.
 type ElasticsearchConfig struct {
 	URLs            []string `json:"urls" yaml:"urls"`
 	IndexPrefix     string   `json:"index_prefix" yaml:"index_prefix"`
@@ -62,19 +62,19 @@ type ElasticsearchConfig struct {
 	Replicas        int      `json:"replicas" yaml:"replicas"`
 	RefreshInterval string   `json:"refresh_interval" yaml:"refresh_interval"`
 
-	// Index lifecycle management
+	// Index lifecycle management.
 	ILMPolicy       string        `json:"ilm_policy" yaml:"ilm_policy"`
 	RetentionPeriod time.Duration `json:"retention_period" yaml:"retention_period"`
 	RolloverSize    string        `json:"rollover_size" yaml:"rollover_size"`
 	RolloverAge     time.Duration `json:"rollover_age" yaml:"rollover_age"`
 
-	// Performance tuning
+	// Performance tuning.
 	BulkSize       int           `json:"bulk_size" yaml:"bulk_size"`
 	FlushInterval  time.Duration `json:"flush_interval" yaml:"flush_interval"`
 	MaxRetries     int           `json:"max_retries" yaml:"max_retries"`
 	RequestTimeout time.Duration `json:"request_timeout" yaml:"request_timeout"`
 
-	// Security
+	// Security.
 	Username  string `json:"username" yaml:"username"`
 	Password  string `json:"password" yaml:"password"`
 	APIKey    string `json:"api_key" yaml:"api_key"`
@@ -85,7 +85,7 @@ type ElasticsearchConfig struct {
 	VerifyTLS bool   `json:"verify_tls" yaml:"verify_tls"`
 }
 
-// NewElasticsearchBackend creates a new Elasticsearch backend
+// NewElasticsearchBackend creates a new Elasticsearch backend.
 func NewElasticsearchBackend(config BackendConfig) (*ElasticsearchBackend, error) {
 	esConfig, err := parseElasticsearchConfig(config.Settings)
 	if err != nil {
@@ -110,14 +110,14 @@ func NewElasticsearchBackend(config BackendConfig) (*ElasticsearchBackend, error
 		backend.aliasName = fmt.Sprintf("%s-alias", backend.indexPrefix)
 	}
 
-	// Set base URL
+	// Set base URL.
 	if len(esConfig.URLs) > 0 {
 		backend.baseURL = esConfig.URLs[0] // Use first URL for now
 	} else {
 		return nil, fmt.Errorf("no Elasticsearch URLs provided")
 	}
 
-	// Create HTTP client
+	// Create HTTP client.
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: !esConfig.VerifyTLS,
 	}
@@ -132,21 +132,21 @@ func NewElasticsearchBackend(config BackendConfig) (*ElasticsearchBackend, error
 	return backend, nil
 }
 
-// Initialize sets up the Elasticsearch backend
+// Initialize sets up the Elasticsearch backend.
 func (eb *ElasticsearchBackend) Initialize(config BackendConfig) error {
 	eb.logger.Info("Initializing Elasticsearch backend")
 
-	// Create index template
+	// Create index template.
 	if err := eb.createIndexTemplate(); err != nil {
 		return fmt.Errorf("failed to create index template: %w", err)
 	}
 
-	// Create initial index
+	// Create initial index.
 	if err := eb.createIndex(); err != nil {
 		return fmt.Errorf("failed to create initial index: %w", err)
 	}
 
-	// Create alias
+	// Create alias.
 	if err := eb.createAlias(); err != nil {
 		return fmt.Errorf("failed to create alias: %w", err)
 	}
@@ -155,17 +155,17 @@ func (eb *ElasticsearchBackend) Initialize(config BackendConfig) error {
 	return nil
 }
 
-// Type returns the backend type
+// Type returns the backend type.
 func (eb *ElasticsearchBackend) Type() string {
 	return string(BackendTypeElasticsearch)
 }
 
-// WriteEvent writes a single audit event to Elasticsearch
+// WriteEvent writes a single audit event to Elasticsearch.
 func (eb *ElasticsearchBackend) WriteEvent(ctx context.Context, event *types.AuditEvent) error {
 	return eb.WriteEvents(ctx, []*types.AuditEvent{event})
 }
 
-// WriteEvents writes multiple audit events to Elasticsearch using bulk API
+// WriteEvents writes multiple audit events to Elasticsearch using bulk API.
 func (eb *ElasticsearchBackend) WriteEvents(ctx context.Context, events []*types.AuditEvent) error {
 	if len(events) == 0 {
 		return nil
@@ -177,17 +177,17 @@ func (eb *ElasticsearchBackend) WriteEvents(ctx context.Context, events []*types
 		elasticsearchRequestDuration.WithLabelValues(eb.config.Name, "bulk").Observe(duration.Seconds())
 	}()
 
-	// Build bulk request
+	// Build bulk request.
 	var bulkBody bytes.Buffer
 	for _, event := range events {
-		// Filter event if necessary
+		// Filter event if necessary.
 		if !eb.config.Filter.ShouldProcessEvent(event) {
 			continue
 		}
 
 		filteredEvent := eb.config.Filter.ApplyFieldFilters(event)
 
-		// Create index action
+		// Create index action.
 		indexAction := map[string]interface{}{
 			"index": map[string]interface{}{
 				"_index": eb.getIndexName(filteredEvent.Timestamp),
@@ -219,7 +219,7 @@ func (eb *ElasticsearchBackend) WriteEvents(ctx context.Context, events []*types
 		return nil // No events to write after filtering
 	}
 
-	// Send bulk request
+	// Send bulk request.
 	url := fmt.Sprintf("%s/_bulk", eb.baseURL)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, &bulkBody)
 	if err != nil {
@@ -237,7 +237,7 @@ func (eb *ElasticsearchBackend) WriteEvents(ctx context.Context, events []*types
 	}
 	defer resp.Body.Close()
 
-	// Check response
+	// Check response.
 	if resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(resp.Body)
 		elasticsearchRequestsTotal.WithLabelValues(eb.config.Name, "bulk", fmt.Sprintf("%d", resp.StatusCode)).Inc()
@@ -245,7 +245,7 @@ func (eb *ElasticsearchBackend) WriteEvents(ctx context.Context, events []*types
 		return fmt.Errorf("bulk request failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
-	// Parse bulk response to check for individual failures
+	// Parse bulk response to check for individual failures.
 	var bulkResp BulkResponse
 	if err := json.NewDecoder(resp.Body).Decode(&bulkResp); err != nil {
 		eb.logger.Error(err, "Failed to parse bulk response")
@@ -259,7 +259,7 @@ func (eb *ElasticsearchBackend) WriteEvents(ctx context.Context, events []*types
 	return nil
 }
 
-// Query searches for audit events in Elasticsearch
+// Query searches for audit events in Elasticsearch.
 func (eb *ElasticsearchBackend) Query(ctx context.Context, query *QueryRequest) (*QueryResponse, error) {
 	start := time.Now()
 	defer func() {
@@ -306,7 +306,7 @@ func (eb *ElasticsearchBackend) Query(ctx context.Context, query *QueryRequest) 
 	return eb.parseSearchResponse(&searchResp), nil
 }
 
-// Health checks the Elasticsearch backend health
+// Health checks the Elasticsearch backend health.
 func (eb *ElasticsearchBackend) Health(ctx context.Context) error {
 	url := fmt.Sprintf("%s/_cluster/health", eb.baseURL)
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
@@ -338,13 +338,13 @@ func (eb *ElasticsearchBackend) Health(ctx context.Context) error {
 	return nil
 }
 
-// Close closes the Elasticsearch backend
+// Close closes the Elasticsearch backend.
 func (eb *ElasticsearchBackend) Close() error {
 	eb.logger.Info("Closing Elasticsearch backend")
 	return nil
 }
 
-// Helper methods
+// Helper methods.
 
 func (eb *ElasticsearchBackend) setAuthHeaders(req *http.Request) {
 	if eb.apiKey != "" {
@@ -420,7 +420,7 @@ func (eb *ElasticsearchBackend) createIndex() error {
 		return nil // Index already exists
 	}
 
-	// Create the index
+	// Create the index.
 	req, err = http.NewRequestWithContext(context.Background(), "PUT", url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create index request: %w", err)
@@ -557,7 +557,7 @@ func (eb *ElasticsearchBackend) buildSearchQuery(query *QueryRequest) map[string
 		},
 	}
 
-	// Add query string if provided
+	// Add query string if provided.
 	if query.Query != "" {
 		must := esQuery["query"].(map[string]interface{})["bool"].(map[string]interface{})["must"].([]interface{})
 		must = append(must, map[string]interface{}{
@@ -568,7 +568,7 @@ func (eb *ElasticsearchBackend) buildSearchQuery(query *QueryRequest) map[string
 		esQuery["query"].(map[string]interface{})["bool"].(map[string]interface{})["must"] = must
 	}
 
-	// Add filters
+	// Add filters.
 	if len(query.Filters) > 0 {
 		filter := esQuery["query"].(map[string]interface{})["bool"].(map[string]interface{})["filter"].([]interface{})
 		for field, value := range query.Filters {
@@ -581,7 +581,7 @@ func (eb *ElasticsearchBackend) buildSearchQuery(query *QueryRequest) map[string
 		esQuery["query"].(map[string]interface{})["bool"].(map[string]interface{})["filter"] = filter
 	}
 
-	// Add sorting
+	// Add sorting.
 	if query.SortBy != "" {
 		order := "desc"
 		if query.SortOrder == "asc" {
@@ -639,7 +639,7 @@ func parseElasticsearchConfig(settings map[string]interface{}) (*ElasticsearchCo
 		return nil, fmt.Errorf("failed to unmarshal configuration: %w", err)
 	}
 
-	// Set defaults
+	// Set defaults.
 	if config.RequestTimeout == 0 {
 		config.RequestTimeout = 30 * time.Second
 	}
@@ -653,14 +653,16 @@ func parseElasticsearchConfig(settings map[string]interface{}) (*ElasticsearchCo
 	return &config, nil
 }
 
-// Response types for Elasticsearch API
+// Response types for Elasticsearch API.
 
+// BulkResponse represents a bulkresponse.
 type BulkResponse struct {
 	Took   int        `json:"took"`
 	Errors bool       `json:"errors"`
 	Items  []BulkItem `json:"items"`
 }
 
+// BulkItem represents a bulkitem.
 type BulkItem struct {
 	Index struct {
 		ID     string     `json:"_id"`
@@ -670,11 +672,13 @@ type BulkItem struct {
 	} `json:"index"`
 }
 
+// BulkError represents a bulkerror.
 type BulkError struct {
 	Type   string `json:"type"`
 	Reason string `json:"reason"`
 }
 
+// SearchResponse represents a searchresponse.
 type SearchResponse struct {
 	Took int `json:"took"`
 	Hits struct {
@@ -687,6 +691,7 @@ type SearchResponse struct {
 	} `json:"hits"`
 }
 
+// ClusterHealth represents a clusterhealth.
 type ClusterHealth struct {
 	ClusterName string `json:"cluster_name"`
 	Status      string `json:"status"`

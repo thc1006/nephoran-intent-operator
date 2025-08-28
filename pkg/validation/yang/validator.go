@@ -25,38 +25,38 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
-// ValidatorConfig holds configuration for YANG validation
+// ValidatorConfig holds configuration for YANG validation.
 type ValidatorConfig struct {
-	// Validation options
+	// Validation options.
 	EnableConstraintValidation bool          `yaml:"enableConstraintValidation"`
 	EnableDataTypeValidation   bool          `yaml:"enableDataTypeValidation"`
 	EnableMandatoryCheck       bool          `yaml:"enableMandatoryCheck"`
 	ValidationTimeout          time.Duration `yaml:"validationTimeout"`
 	MaxValidationDepth         int           `yaml:"maxValidationDepth"`
 
-	// Model support
+	// Model support.
 	EnableO_RANModels  bool     `yaml:"enableORANModels"`
 	Enable3GPPModels   bool     `yaml:"enable3GPPModels"`
 	EnableCustomModels bool     `yaml:"enableCustomModels"`
 	ModelSearchPaths   []string `yaml:"modelSearchPaths"`
 
-	// Performance options
+	// Performance options.
 	EnableCaching            bool          `yaml:"enableCaching"`
 	CacheSize                int           `yaml:"cacheSize"`
 	CacheTTL                 time.Duration `yaml:"cacheTTL"`
 	MaxConcurrentValidations int           `yaml:"maxConcurrentValidations"`
 
-	// Metrics and monitoring
+	// Metrics and monitoring.
 	EnableMetrics    bool   `yaml:"enableMetrics"`
 	MetricsNamespace string `yaml:"metricsNamespace"`
 
-	// Error handling
+	// Error handling.
 	StrictMode          bool `yaml:"strictMode"`
 	FailOnWarnings      bool `yaml:"failOnWarnings"`
 	MaxValidationErrors int  `yaml:"maxValidationErrors"`
 }
 
-// DefaultValidatorConfig returns a default ValidatorConfig
+// DefaultValidatorConfig returns a default ValidatorConfig.
 func DefaultValidatorConfig() *ValidatorConfig {
 	return &ValidatorConfig{
 		EnableConstraintValidation: true,
@@ -80,19 +80,19 @@ func DefaultValidatorConfig() *ValidatorConfig {
 	}
 }
 
-// YANGValidator defines the interface for YANG model validation
+// YANGValidator defines the interface for YANG model validation.
 type YANGValidator interface {
-	// ValidatePackageRevision validates a package revision against YANG models
+	// ValidatePackageRevision validates a package revision against YANG models.
 	ValidatePackageRevision(ctx context.Context, pkg *porch.PackageRevision) (*ValidationResult, error)
 
-	// GetValidatorHealth returns the health status of the validator
+	// GetValidatorHealth returns the health status of the validator.
 	GetValidatorHealth(ctx context.Context) (*ValidatorHealth, error)
 
-	// Close gracefully shuts down the validator
+	// Close gracefully shuts down the validator.
 	Close() error
 }
 
-// ValidatorHealth represents the health status of the YANG validator
+// ValidatorHealth represents the health status of the YANG validator.
 type ValidatorHealth struct {
 	Status            string        `json:"status"` // healthy, degraded, unhealthy
 	LastCheck         time.Time     `json:"lastCheck"`
@@ -105,7 +105,7 @@ type ValidatorHealth struct {
 	Version           string        `json:"version,omitempty"`
 }
 
-// ValidatorMetrics implements metrics tracking for YANG validation processes
+// ValidatorMetrics implements metrics tracking for YANG validation processes.
 type ValidatorMetrics struct {
 	ValidationsTotal   prometheus.Counter
 	ValidationDuration prometheus.Histogram
@@ -115,7 +115,7 @@ type ValidatorMetrics struct {
 	ActiveValidations  prometheus.Gauge
 }
 
-// Create a new ValidatorMetrics instance
+// Create a new ValidatorMetrics instance.
 func newValidatorMetrics() *ValidatorMetrics {
 	return &ValidatorMetrics{
 		ValidationsTotal: prometheus.NewCounter(prometheus.CounterOpts{
@@ -149,13 +149,13 @@ func newValidatorMetrics() *ValidatorMetrics {
 	}
 }
 
-// Custom type for package revision resource
+// Custom type for package revision resource.
 type PackageResource struct {
 	Kind string
 	Data interface{}
 }
 
-// Structure definitions
+// Structure definitions.
 type ValidationResult struct {
 	Valid          bool
 	ModelName      string
@@ -163,19 +163,20 @@ type ValidationResult struct {
 	Errors         []*ValidationError
 }
 
+// ValidationError represents a validationerror.
 type ValidationError struct {
 	Code    string
 	Message string
 }
 
-// yangValidator implements the YANGValidator interface
+// yangValidator implements the YANGValidator interface.
 type yangValidator struct {
 	config    *ValidatorConfig
 	metrics   *ValidatorMetrics
 	startTime time.Time
 }
 
-// NewYANGValidator creates a new YANG validator
+// NewYANGValidator creates a new YANG validator.
 func NewYANGValidator(config *ValidatorConfig) (YANGValidator, error) {
 	if config == nil {
 		config = DefaultValidatorConfig()
@@ -188,7 +189,7 @@ func NewYANGValidator(config *ValidatorConfig) (YANGValidator, error) {
 	}, nil
 }
 
-// Additional modifications for resource validation
+// Additional modifications for resource validation.
 func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.PackageRevision) (*ValidationResult, error) {
 	result := &ValidationResult{
 		ModelName:      pkg.ObjectMeta.Name,
@@ -198,7 +199,7 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 	configData := make(map[string]interface{})
 
 	for _, resource := range pkg.Spec.Resources {
-		// Process different resource types
+		// Process different resource types.
 		var res PackageResource
 		switch r := resource.(type) {
 		case PackageResource:
@@ -262,13 +263,13 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 		}
 	}
 
-	// Mark result as valid if no errors
+	// Mark result as valid if no errors.
 	result.Valid = len(result.Errors) == 0
 
 	return result, nil
 }
 
-// GetValidatorHealth returns the health status of the validator
+// GetValidatorHealth returns the health status of the validator.
 func (v *yangValidator) GetValidatorHealth(ctx context.Context) (*ValidatorHealth, error) {
 	return &ValidatorHealth{
 		Status:            "healthy",
@@ -281,8 +282,8 @@ func (v *yangValidator) GetValidatorHealth(ctx context.Context) (*ValidatorHealt
 	}, nil
 }
 
-// Close gracefully shuts down the validator
+// Close gracefully shuts down the validator.
 func (v *yangValidator) Close() error {
-	// Cleanup resources
+	// Cleanup resources.
 	return nil
 }

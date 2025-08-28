@@ -1,4 +1,4 @@
-// Package o2 implements monitoring integrations for O2 IMS infrastructure monitoring
+// Package o2 implements monitoring integrations for O2 IMS infrastructure monitoring.
 package o2
 
 import (
@@ -14,33 +14,33 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
-// MonitoringIntegrations manages integrations with monitoring systems
+// MonitoringIntegrations manages integrations with monitoring systems.
 type MonitoringIntegrations struct {
 	config *MonitoringIntegrationConfig
 	logger *logging.StructuredLogger
 
-	// Integration clients
+	// Integration clients.
 	prometheusClient   v1.API
 	grafanaClient      *GrafanaClient
 	alertmanagerClient *AlertmanagerClient
 	jaegerClient       *JaegerClient
 
-	// Event processors
+	// Event processors.
 	eventProcessor *EventProcessor
 	alertProcessor *AlertProcessor
 
-	// Dashboard management
+	// Dashboard management.
 	dashboardManager *DashboardManager
 
-	// Synchronization
+	// Synchronization.
 	mu sync.RWMutex
 
-	// Lifecycle management
+	// Lifecycle management.
 	ctx    context.Context
 	cancel context.CancelFunc
 }
 
-// MonitoringIntegrationConfig configuration for monitoring integrations
+// MonitoringIntegrationConfig configuration for monitoring integrations.
 type MonitoringIntegrationConfig struct {
 	PrometheusConfig      *PrometheusConfig      `json:"prometheusConfig,omitempty"`
 	GrafanaConfig         *GrafanaConfig         `json:"grafanaConfig,omitempty"`
@@ -50,7 +50,7 @@ type MonitoringIntegrationConfig struct {
 	DashboardConfig       *DashboardConfig       `json:"dashboardConfig,omitempty"`
 }
 
-// PrometheusConfig configuration for Prometheus integration
+// PrometheusConfig configuration for Prometheus integration.
 type PrometheusConfig struct {
 	Enabled          bool          `json:"enabled,omitempty"`
 	Endpoint         string        `json:"endpoint"`
@@ -62,7 +62,7 @@ type PrometheusConfig struct {
 	QueryConcurrency int           `json:"queryConcurrency,omitempty"`
 }
 
-// GrafanaConfig configuration for Grafana integration
+// GrafanaConfig configuration for Grafana integration.
 type GrafanaConfig struct {
 	Enabled         bool       `json:"enabled,omitempty"`
 	Endpoint        string     `json:"endpoint"`
@@ -74,7 +74,7 @@ type GrafanaConfig struct {
 	TLSConfig       *TLSConfig `json:"tlsConfig,omitempty"`
 }
 
-// AlertmanagerConfig configuration for Alertmanager integration
+// AlertmanagerConfig configuration for Alertmanager integration.
 type AlertmanagerConfig struct {
 	Enabled     bool          `json:"enabled,omitempty"`
 	Endpoints   []string      `json:"endpoints"`
@@ -85,7 +85,7 @@ type AlertmanagerConfig struct {
 	Timeout     time.Duration `json:"timeout,omitempty"`
 }
 
-// JaegerConfig configuration for Jaeger integration
+// JaegerConfig configuration for Jaeger integration.
 type JaegerConfig struct {
 	Enabled     bool       `json:"enabled,omitempty"`
 	Endpoint    string     `json:"endpoint"`
@@ -95,7 +95,7 @@ type JaegerConfig struct {
 	TLSConfig   *TLSConfig `json:"tlsConfig,omitempty"`
 }
 
-// EventProcessingConfig configuration for event processing
+// EventProcessingConfig configuration for event processing.
 type EventProcessingConfig struct {
 	Enabled       bool          `json:"enabled,omitempty"`
 	BatchSize     int           `json:"batchSize,omitempty"`
@@ -104,7 +104,7 @@ type EventProcessingConfig struct {
 	RetryBackoff  time.Duration `json:"retryBackoff,omitempty"`
 }
 
-// DashboardConfig configuration for dashboard management
+// DashboardConfig configuration for dashboard management.
 type DashboardConfig struct {
 	Enabled          bool            `json:"enabled,omitempty"`
 	AutoDeploy       bool            `json:"autoDeploy,omitempty"`
@@ -112,7 +112,7 @@ type DashboardConfig struct {
 	CustomDashboards []DashboardSpec `json:"customDashboards,omitempty"`
 }
 
-// TLSConfig TLS configuration
+// TLSConfig TLS configuration.
 type TLSConfig struct {
 	Insecure   bool   `json:"insecure,omitempty"`
 	CertFile   string `json:"certFile,omitempty"`
@@ -121,7 +121,7 @@ type TLSConfig struct {
 	ServerName string `json:"serverName,omitempty"`
 }
 
-// DashboardSpec specification for a dashboard
+// DashboardSpec specification for a dashboard.
 type DashboardSpec struct {
 	Name            string         `json:"name"`
 	Title           string         `json:"title"`
@@ -132,7 +132,7 @@ type DashboardSpec struct {
 	RefreshInterval string         `json:"refreshInterval,omitempty"`
 }
 
-// PanelSpec specification for a dashboard panel
+// PanelSpec specification for a dashboard panel.
 type PanelSpec struct {
 	Title      string          `json:"title"`
 	Type       string          `json:"type"` // graph, stat, table, heatmap
@@ -142,7 +142,7 @@ type PanelSpec struct {
 	GridPos    GridPosition    `json:"gridPos"`
 }
 
-// VariableSpec specification for a dashboard variable
+// VariableSpec specification for a dashboard variable.
 type VariableSpec struct {
 	Name    string   `json:"name"`
 	Type    string   `json:"type"`
@@ -151,14 +151,14 @@ type VariableSpec struct {
 	Multi   bool     `json:"multi,omitempty"`
 }
 
-// ThresholdSpec specification for a panel threshold
+// ThresholdSpec specification for a panel threshold.
 type ThresholdSpec struct {
 	Value     float64 `json:"value"`
 	Color     string  `json:"color"`
 	Operation string  `json:"operation"` // gt, lt, eq
 }
 
-// GridPosition position and size of a panel in the dashboard grid
+// GridPosition position and size of a panel in the dashboard grid.
 type GridPosition struct {
 	X      int `json:"x"`
 	Y      int `json:"y"`
@@ -166,7 +166,7 @@ type GridPosition struct {
 	Height int `json:"h"`
 }
 
-// Event represents a monitoring event
+// Event represents a monitoring event.
 type Event struct {
 	ID          string            `json:"id"`
 	Type        string            `json:"type"`
@@ -184,7 +184,7 @@ type Event struct {
 	Metric      *MetricData       `json:"metric,omitempty"`
 }
 
-// MetricData represents metric data associated with an event
+// MetricData represents metric data associated with an event.
 type MetricData struct {
 	Name   string            `json:"name"`
 	Value  float64           `json:"value"`
@@ -192,7 +192,7 @@ type MetricData struct {
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
-// NewMonitoringIntegrations creates a new monitoring integrations service
+// NewMonitoringIntegrations creates a new monitoring integrations service.
 func NewMonitoringIntegrations(
 	config *MonitoringIntegrationConfig,
 	logger *logging.StructuredLogger,
@@ -214,13 +214,13 @@ func NewMonitoringIntegrations(
 		cancel: cancel,
 	}
 
-	// Initialize clients
+	// Initialize clients.
 	if err := integrations.initializeClients(); err != nil {
 		cancel()
 		return nil, fmt.Errorf("failed to initialize clients: %w", err)
 	}
 
-	// Initialize processors
+	// Initialize processors.
 	if err := integrations.initializeProcessors(); err != nil {
 		cancel()
 		return nil, fmt.Errorf("failed to initialize processors: %w", err)
@@ -229,7 +229,7 @@ func NewMonitoringIntegrations(
 	return integrations, nil
 }
 
-// DefaultMonitoringIntegrationConfig returns default configuration
+// DefaultMonitoringIntegrationConfig returns default configuration.
 func DefaultMonitoringIntegrationConfig() *MonitoringIntegrationConfig {
 	return &MonitoringIntegrationConfig{
 		PrometheusConfig: &PrometheusConfig{
@@ -268,9 +268,9 @@ func DefaultMonitoringIntegrationConfig() *MonitoringIntegrationConfig {
 	}
 }
 
-// initializeClients initializes monitoring system clients
+// initializeClients initializes monitoring system clients.
 func (m *MonitoringIntegrations) initializeClients() error {
-	// Initialize Prometheus client
+	// Initialize Prometheus client.
 	if m.config.PrometheusConfig.Enabled {
 		client, err := api.NewClient(api.Config{
 			Address: m.config.PrometheusConfig.Endpoint,
@@ -284,7 +284,7 @@ func (m *MonitoringIntegrations) initializeClients() error {
 			"endpoint", m.config.PrometheusConfig.Endpoint)
 	}
 
-	// Initialize Grafana client
+	// Initialize Grafana client.
 	if m.config.GrafanaConfig.Enabled {
 		client := NewGrafanaClient(m.config.GrafanaConfig, m.logger)
 		m.grafanaClient = client
@@ -292,7 +292,7 @@ func (m *MonitoringIntegrations) initializeClients() error {
 			"endpoint", m.config.GrafanaConfig.Endpoint)
 	}
 
-	// Initialize Alertmanager client
+	// Initialize Alertmanager client.
 	if m.config.AlertmanagerConfig.Enabled {
 		client := NewAlertmanagerClient(m.config.AlertmanagerConfig, m.logger)
 		m.alertmanagerClient = client
@@ -300,7 +300,7 @@ func (m *MonitoringIntegrations) initializeClients() error {
 			"endpoints", m.config.AlertmanagerConfig.Endpoints)
 	}
 
-	// Initialize Jaeger client
+	// Initialize Jaeger client.
 	if m.config.JaegerConfig.Enabled {
 		client := NewJaegerClient(m.config.JaegerConfig, m.logger)
 		m.jaegerClient = client
@@ -311,19 +311,19 @@ func (m *MonitoringIntegrations) initializeClients() error {
 	return nil
 }
 
-// initializeProcessors initializes event and alert processors
+// initializeProcessors initializes event and alert processors.
 func (m *MonitoringIntegrations) initializeProcessors() error {
-	// Initialize event processor
+	// Initialize event processor.
 	if m.config.EventProcessingConfig.Enabled {
 		processor := NewEventProcessor(m.config.EventProcessingConfig, m.logger)
 		m.eventProcessor = processor
 	}
 
-	// Initialize alert processor
+	// Initialize alert processor.
 	processor := NewAlertProcessor(m.config, m.logger)
 	m.alertProcessor = processor
 
-	// Initialize dashboard manager
+	// Initialize dashboard manager.
 	if m.config.DashboardConfig.Enabled {
 		manager := NewDashboardManager(m.config.DashboardConfig, m.grafanaClient, m.logger)
 		m.dashboardManager = manager
@@ -332,11 +332,11 @@ func (m *MonitoringIntegrations) initializeProcessors() error {
 	return nil
 }
 
-// Start starts the monitoring integrations service
+// Start starts the monitoring integrations service.
 func (m *MonitoringIntegrations) Start(ctx context.Context) error {
 	m.logger.Info("starting monitoring integrations service")
 
-	// Deploy default dashboards
+	// Deploy default dashboards.
 	if m.config.DashboardConfig.Enabled && m.config.DashboardConfig.AutoDeploy {
 		if err := m.deployDefaultDashboards(); err != nil {
 			m.logger.Error("failed to deploy default dashboards", "error", err)
@@ -346,14 +346,14 @@ func (m *MonitoringIntegrations) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the monitoring integrations service
+// Stop stops the monitoring integrations service.
 func (m *MonitoringIntegrations) Stop() error {
 	m.logger.Info("stopping monitoring integrations service")
 	m.cancel()
 	return nil
 }
 
-// QueryMetrics queries metrics from Prometheus
+// QueryMetrics queries metrics from Prometheus.
 func (m *MonitoringIntegrations) QueryMetrics(ctx context.Context, query string, timestamp time.Time) (model.Value, error) {
 	if !m.config.PrometheusConfig.Enabled {
 		return nil, fmt.Errorf("Prometheus client not enabled")
@@ -371,7 +371,7 @@ func (m *MonitoringIntegrations) QueryMetrics(ctx context.Context, query string,
 	return result, nil
 }
 
-// QueryRangeMetrics queries range metrics from Prometheus
+// QueryRangeMetrics queries range metrics from Prometheus.
 func (m *MonitoringIntegrations) QueryRangeMetrics(ctx context.Context, query string, start, end time.Time, step time.Duration) (model.Value, error) {
 	if !m.config.PrometheusConfig.Enabled {
 		return nil, fmt.Errorf("Prometheus client not enabled")
@@ -395,7 +395,7 @@ func (m *MonitoringIntegrations) QueryRangeMetrics(ctx context.Context, query st
 	return result, nil
 }
 
-// CreateDashboard creates a new Grafana dashboard
+// CreateDashboard creates a new Grafana dashboard.
 func (m *MonitoringIntegrations) CreateDashboard(ctx context.Context, spec *DashboardSpec) error {
 	if !m.config.GrafanaConfig.Enabled {
 		return fmt.Errorf("Grafana client not enabled")
@@ -404,7 +404,7 @@ func (m *MonitoringIntegrations) CreateDashboard(ctx context.Context, spec *Dash
 	return m.grafanaClient.CreateDashboard(ctx, spec)
 }
 
-// UpdateDashboard updates an existing Grafana dashboard
+// UpdateDashboard updates an existing Grafana dashboard.
 func (m *MonitoringIntegrations) UpdateDashboard(ctx context.Context, spec *DashboardSpec) error {
 	if !m.config.GrafanaConfig.Enabled {
 		return fmt.Errorf("Grafana client not enabled")
@@ -413,7 +413,7 @@ func (m *MonitoringIntegrations) UpdateDashboard(ctx context.Context, spec *Dash
 	return m.grafanaClient.UpdateDashboard(ctx, spec)
 }
 
-// DeleteDashboard deletes a Grafana dashboard
+// DeleteDashboard deletes a Grafana dashboard.
 func (m *MonitoringIntegrations) DeleteDashboard(ctx context.Context, name string) error {
 	if !m.config.GrafanaConfig.Enabled {
 		return fmt.Errorf("Grafana client not enabled")
@@ -422,7 +422,7 @@ func (m *MonitoringIntegrations) DeleteDashboard(ctx context.Context, name strin
 	return m.grafanaClient.DeleteDashboard(ctx, name)
 }
 
-// CreateAlertRule creates a new alert rule
+// CreateAlertRule creates a new alert rule.
 func (m *MonitoringIntegrations) CreateAlertRule(ctx context.Context, rule *AlertRule) error {
 	if !m.config.AlertmanagerConfig.Enabled {
 		return fmt.Errorf("Alertmanager client not enabled")
@@ -431,7 +431,7 @@ func (m *MonitoringIntegrations) CreateAlertRule(ctx context.Context, rule *Aler
 	return m.alertmanagerClient.CreateAlertRule(ctx, rule)
 }
 
-// ProcessEvent processes a monitoring event
+// ProcessEvent processes a monitoring event.
 func (m *MonitoringIntegrations) ProcessEvent(ctx context.Context, event *Event) error {
 	if m.eventProcessor == nil {
 		return fmt.Errorf("event processor not initialized")
@@ -440,7 +440,7 @@ func (m *MonitoringIntegrations) ProcessEvent(ctx context.Context, event *Event)
 	return m.eventProcessor.ProcessEvent(ctx, event)
 }
 
-// GetInfrastructureHealth gets overall infrastructure health
+// GetInfrastructureHealth gets overall infrastructure health.
 func (m *MonitoringIntegrations) GetInfrastructureHealth(ctx context.Context) (*InfrastructureHealthSummary, error) {
 	summary := &InfrastructureHealthSummary{
 		OverallStatus:   "healthy",
@@ -449,7 +449,7 @@ func (m *MonitoringIntegrations) GetInfrastructureHealth(ctx context.Context) (*
 		Metrics:         make(map[string]float64),
 	}
 
-	// Query key health metrics
+	// Query key health metrics.
 	healthQueries := map[string]string{
 		"node_health":        "up{job=\"node-exporter\"}",
 		"cpu_utilization":    "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
@@ -467,22 +467,22 @@ func (m *MonitoringIntegrations) GetInfrastructureHealth(ctx context.Context) (*
 			continue
 		}
 
-		// Process results and update summary
-		// This is simplified - in practice you'd process the actual results
+		// Process results and update summary.
+		// This is simplified - in practice you'd process the actual results.
 		if vector, ok := result.(model.Vector); ok && len(vector) > 0 {
 			summary.Metrics[metricName] = float64(vector[0].Value)
 		}
 	}
 
-	// Determine overall health based on metrics
+	// Determine overall health based on metrics.
 	summary.OverallStatus = m.calculateOverallHealth(summary.Metrics)
 
 	return summary, nil
 }
 
-// calculateOverallHealth calculates overall health status from metrics
+// calculateOverallHealth calculates overall health status from metrics.
 func (m *MonitoringIntegrations) calculateOverallHealth(metrics map[string]float64) string {
-	// Simple health calculation - in practice this would be more sophisticated
+	// Simple health calculation - in practice this would be more sophisticated.
 	cpuUtil := metrics["cpu_utilization"]
 	memUtil := metrics["memory_utilization"]
 	diskUtil := metrics["disk_utilization"]
@@ -496,7 +496,7 @@ func (m *MonitoringIntegrations) calculateOverallHealth(metrics map[string]float
 	return "healthy"
 }
 
-// deployDefaultDashboards deploys the default set of dashboards
+// deployDefaultDashboards deploys the default set of dashboards.
 func (m *MonitoringIntegrations) deployDefaultDashboards() error {
 	m.logger.Info("deploying default dashboards")
 
@@ -517,10 +517,10 @@ func (m *MonitoringIntegrations) deployDefaultDashboards() error {
 	return nil
 }
 
-// getDefaultDashboards returns the default set of dashboards
+// getDefaultDashboards returns the default set of dashboards.
 func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 	return []DashboardSpec{
-		// Infrastructure Overview Dashboard
+		// Infrastructure Overview Dashboard.
 		{
 			Name:  "infrastructure-overview",
 			Title: "Infrastructure Overview",
@@ -559,7 +559,7 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 			RefreshInterval: "30s",
 		},
 
-		// Telecommunications KPIs Dashboard
+		// Telecommunications KPIs Dashboard.
 		{
 			Name:  "telco-kpis",
 			Title: "Telecommunications KPIs",
@@ -610,7 +610,7 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 			RefreshInterval: "10s",
 		},
 
-		// CNF Management Dashboard
+		// CNF Management Dashboard.
 		{
 			Name:  "cnf-management",
 			Title: "Cloud-Native Network Functions",
@@ -651,7 +651,7 @@ func (m *MonitoringIntegrations) getDefaultDashboards() []DashboardSpec {
 	}
 }
 
-// InfrastructureHealthSummary represents overall infrastructure health
+// InfrastructureHealthSummary represents overall infrastructure health.
 type InfrastructureHealthSummary struct {
 	OverallStatus   string                           `json:"overallStatus"`
 	Timestamp       time.Time                        `json:"timestamp"`
@@ -661,7 +661,7 @@ type InfrastructureHealthSummary struct {
 	ResolvedAlerts  int                              `json:"resolvedAlerts"`
 }
 
-// ComponentHealthStatus represents the health status of a component
+// ComponentHealthStatus represents the health status of a component.
 type ComponentHealthStatus struct {
 	Status    string             `json:"status"`
 	Message   string             `json:"message,omitempty"`
@@ -669,48 +669,57 @@ type ComponentHealthStatus struct {
 	Metrics   map[string]float64 `json:"metrics,omitempty"`
 }
 
-// Stub constructor functions
+// Stub constructor functions.
 func NewGrafanaClient(config *GrafanaConfig, logger *logging.StructuredLogger) *GrafanaClient {
 	return &GrafanaClient{}
 }
 
+// NewAlertmanagerClient performs newalertmanagerclient operation.
 func NewAlertmanagerClient(config *AlertmanagerConfig, logger *logging.StructuredLogger) *AlertmanagerClient {
 	return &AlertmanagerClient{}
 }
 
+// NewJaegerClient performs newjaegerclient operation.
 func NewJaegerClient(config *JaegerConfig, logger *logging.StructuredLogger) *JaegerClient {
 	return &JaegerClient{}
 }
 
+// NewEventProcessor performs neweventprocessor operation.
 func NewEventProcessor(config *EventProcessingConfig, logger *logging.StructuredLogger) *EventProcessor {
 	return &EventProcessor{}
 }
 
+// NewAlertProcessor performs newalertprocessor operation.
 func NewAlertProcessor(config *MonitoringIntegrationConfig, logger *logging.StructuredLogger) *AlertProcessor {
 	return &AlertProcessor{}
 }
 
+// NewDashboardManager performs newdashboardmanager operation.
 func NewDashboardManager(config *DashboardConfig, grafanaClient *GrafanaClient, logger *logging.StructuredLogger) *DashboardManager {
 	return &DashboardManager{}
 }
 
-// Stub methods for the client types
+// Stub methods for the client types.
 func (g *GrafanaClient) CreateDashboard(ctx context.Context, spec *DashboardSpec) error {
 	return nil
 }
 
+// UpdateDashboard performs updatedashboard operation.
 func (g *GrafanaClient) UpdateDashboard(ctx context.Context, spec *DashboardSpec) error {
 	return nil
 }
 
+// DeleteDashboard performs deletedashboard operation.
 func (g *GrafanaClient) DeleteDashboard(ctx context.Context, name string) error {
 	return nil
 }
 
+// CreateAlertRule performs createalertrule operation.
 func (a *AlertmanagerClient) CreateAlertRule(ctx context.Context, rule *AlertRule) error {
 	return nil
 }
 
+// ProcessEvent performs processevent operation.
 func (e *EventProcessor) ProcessEvent(ctx context.Context, event *Event) error {
 	return nil
 }

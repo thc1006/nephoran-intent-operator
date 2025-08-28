@@ -27,7 +27,7 @@ import (
 	"github.com/go-logr/logr"
 )
 
-// NewWorkerPool creates a new worker pool
+// NewWorkerPool creates a new worker pool.
 func NewWorkerPool(name string, workerCount int, processor TaskProcessor, logger logr.Logger) *WorkerPool {
 	pool := &WorkerPool{
 		name:        name,
@@ -39,7 +39,7 @@ func NewWorkerPool(name string, workerCount int, processor TaskProcessor, logger
 		stopChan:    make(chan struct{}),
 	}
 
-	// Create workers
+	// Create workers.
 	for i := 0; i < workerCount; i++ {
 		worker := &Worker{
 			id:           i,
@@ -57,45 +57,45 @@ func NewWorkerPool(name string, workerCount int, processor TaskProcessor, logger
 	return pool
 }
 
-// Start starts all workers in the pool
+// Start starts all workers in the pool.
 func (wp *WorkerPool) Start(ctx context.Context) error {
 	wp.mutex.Lock()
 	defer wp.mutex.Unlock()
 
 	wp.logger.Info("Starting worker pool", "workers", wp.workerCount)
 
-	// Start all workers
+	// Start all workers.
 	for _, worker := range wp.workers {
 		go worker.Start(ctx)
 	}
 
-	// Start result processor
+	// Start result processor.
 	go wp.processResults(ctx)
 
 	return nil
 }
 
-// Stop stops all workers in the pool
+// Stop stops all workers in the pool.
 func (wp *WorkerPool) Stop() {
 	wp.mutex.Lock()
 	defer wp.mutex.Unlock()
 
 	wp.logger.Info("Stopping worker pool")
 
-	// Signal stop to all workers
+	// Signal stop to all workers.
 	close(wp.stopChan)
 
-	// Stop individual workers
+	// Stop individual workers.
 	for _, worker := range wp.workers {
 		worker.Stop()
 	}
 
-	// Close channels
+	// Close channels.
 	close(wp.taskQueue)
 	close(wp.resultQueue)
 }
 
-// SubmitTask submits a task to the worker pool
+// SubmitTask submits a task to the worker pool.
 func (wp *WorkerPool) SubmitTask(task *Task) error {
 	select {
 	case wp.taskQueue <- task:
@@ -105,7 +105,7 @@ func (wp *WorkerPool) SubmitTask(task *Task) error {
 	}
 }
 
-// GetMetrics returns worker pool metrics
+// GetMetrics returns worker pool metrics.
 func (wp *WorkerPool) GetMetrics() map[string]interface{} {
 	wp.mutex.RLock()
 	defer wp.mutex.RUnlock()
@@ -124,7 +124,7 @@ func (wp *WorkerPool) GetMetrics() map[string]interface{} {
 	}
 }
 
-// GetHealth returns health status of the worker pool
+// GetHealth returns health status of the worker pool.
 func (wp *WorkerPool) GetHealth() map[string]interface{} {
 	activeWorkers := atomic.LoadInt32(&wp.activeWorkers)
 	queueLength := len(wp.taskQueue)
@@ -151,7 +151,7 @@ func (wp *WorkerPool) GetHealth() map[string]interface{} {
 	return health
 }
 
-// processResults processes task results from workers
+// processResults processes task results from workers.
 func (wp *WorkerPool) processResults(ctx context.Context) {
 	for {
 		select {
@@ -167,19 +167,19 @@ func (wp *WorkerPool) processResults(ctx context.Context) {
 	}
 }
 
-// handleTaskResult handles a completed task result
+// handleTaskResult handles a completed task result.
 func (wp *WorkerPool) handleTaskResult(result *TaskResult) {
-	// Update pool metrics
+	// Update pool metrics.
 	atomic.AddInt64(&wp.processedTasks, 1)
 
 	if !result.Success {
 		atomic.AddInt64(&wp.failedTasks, 1)
 	}
 
-	// Update average latency
+	// Update average latency.
 	wp.updateAverageLatency(result.Duration)
 
-	// Update resource usage
+	// Update resource usage.
 	atomic.AddInt64(&wp.memoryUsage, result.MemoryUsed)
 	wp.updateCPUUsage(result.CPUUsed)
 
@@ -190,7 +190,7 @@ func (wp *WorkerPool) handleTaskResult(result *TaskResult) {
 		"workerId", result.WorkerID)
 }
 
-// updateAverageLatency updates the average latency calculation
+// updateAverageLatency updates the average latency calculation.
 func (wp *WorkerPool) updateAverageLatency(duration time.Duration) {
 	wp.mutex.Lock()
 	defer wp.mutex.Unlock()
@@ -199,24 +199,24 @@ func (wp *WorkerPool) updateAverageLatency(duration time.Duration) {
 	if processed == 1 {
 		wp.averageLatency = duration
 	} else {
-		// Exponential moving average
+		// Exponential moving average.
 		alpha := 0.1
 		wp.averageLatency = time.Duration(float64(wp.averageLatency)*(1-alpha) + float64(duration)*alpha)
 	}
 }
 
-// updateCPUUsage updates the CPU usage calculation
+// updateCPUUsage updates the CPU usage calculation.
 func (wp *WorkerPool) updateCPUUsage(cpuUsed float64) {
 	wp.mutex.Lock()
 	defer wp.mutex.Unlock()
 
-	// Simple moving average
+	// Simple moving average.
 	wp.cpuUsage = (wp.cpuUsage + cpuUsed) / 2.0
 }
 
-// Worker implementation
+// Worker implementation.
 
-// Start starts the worker
+// Start starts the worker.
 func (w *Worker) Start(ctx context.Context) {
 	w.logger.Info("Worker starting")
 
@@ -236,12 +236,12 @@ func (w *Worker) Start(ctx context.Context) {
 	}
 }
 
-// Stop stops the worker
+// Stop stops the worker.
 func (w *Worker) Stop() {
 	close(w.stopChan)
 }
 
-// processTask processes a single task
+// processTask processes a single task.
 func (w *Worker) processTask(ctx context.Context, task *Task) {
 	startTime := time.Now()
 	now := time.Now()
@@ -263,17 +263,17 @@ func (w *Worker) processTask(ctx context.Context, task *Task) {
 		"taskType", task.Type,
 		"priority", task.Priority)
 
-	// Record resource usage before processing
+	// Record resource usage before processing.
 	memBefore := w.getCurrentMemoryUsage()
 
-	// Process the task
+	// Process the task.
 	result, err := w.processor.ProcessTask(ctx, task)
 
 	duration := time.Since(startTime)
 	memAfter := w.getCurrentMemoryUsage()
 	memUsed := memAfter - memBefore
 
-	// Create result
+	// Create result.
 	if result == nil {
 		result = &TaskResult{
 			TaskID:   task.ID,
@@ -284,7 +284,7 @@ func (w *Worker) processTask(ctx context.Context, task *Task) {
 		}
 	}
 
-	// Fill in additional result information
+	// Fill in additional result information.
 	result.TaskID = task.ID
 	result.Duration = duration
 	result.WorkerID = w.id
@@ -309,22 +309,22 @@ func (w *Worker) processTask(ctx context.Context, task *Task) {
 		atomic.AddInt64(&w.totalProcessed, 1)
 	}
 
-	// Update worker metrics
+	// Update worker metrics.
 	w.updateMetrics(duration)
 
-	// Complete task timing
+	// Complete task timing.
 	completedAt := time.Now()
 	task.CompletedAt = &completedAt
 
-	// Send result
+	// Send result.
 	select {
 	case w.resultQueue <- result:
-		// Result sent successfully
+		// Result sent successfully.
 	default:
 		w.logger.Info("Result queue full, dropping result", "taskId", task.ID)
 	}
 
-	// Execute callbacks if provided
+	// Execute callbacks if provided.
 	if result.Success && task.OnSuccess != nil {
 		task.OnSuccess(result)
 	} else if !result.Success && task.OnFailure != nil {
@@ -337,7 +337,7 @@ func (w *Worker) processTask(ctx context.Context, task *Task) {
 		"duration", duration)
 }
 
-// updateMetrics updates worker metrics
+// updateMetrics updates worker metrics.
 func (w *Worker) updateMetrics(duration time.Duration) {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
@@ -346,27 +346,27 @@ func (w *Worker) updateMetrics(duration time.Duration) {
 	if processed == 1 {
 		w.averageLatency = duration
 	} else {
-		// Exponential moving average
+		// Exponential moving average.
 		alpha := 0.1
 		w.averageLatency = time.Duration(float64(w.averageLatency)*(1-alpha) + float64(duration)*alpha)
 	}
 }
 
-// getCurrentMemoryUsage returns current memory usage for this worker
+// getCurrentMemoryUsage returns current memory usage for this worker.
 func (w *Worker) getCurrentMemoryUsage() int64 {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	return int64(m.Alloc)
 }
 
-// getCurrentCPUUsage returns current CPU usage for this worker
+// getCurrentCPUUsage returns current CPU usage for this worker.
 func (w *Worker) getCurrentCPUUsage() float64 {
-	// This would implement actual per-worker CPU usage calculation
-	// For now, returning a simulated value
+	// This would implement actual per-worker CPU usage calculation.
+	// For now, returning a simulated value.
 	return 0.1 + float64(w.id)*0.05 // Vary by worker ID
 }
 
-// GetMetrics returns worker metrics
+// GetMetrics returns worker metrics.
 func (w *Worker) GetMetrics() map[string]interface{} {
 	w.mutex.RLock()
 	defer w.mutex.RUnlock()
@@ -384,18 +384,18 @@ func (w *Worker) GetMetrics() map[string]interface{} {
 	}
 }
 
-// IsHealthy returns whether the worker is healthy
+// IsHealthy returns whether the worker is healthy.
 func (w *Worker) IsHealthy() bool {
 	w.mutex.RLock()
 	defer w.mutex.RUnlock()
 
-	// Consider worker unhealthy if it hasn't been active recently
+	// Consider worker unhealthy if it hasn't been active recently.
 	return time.Since(w.lastActivity) < 5*time.Minute
 }
 
-// Supporting queue implementation
+// Supporting queue implementation.
 
-// NewPriorityQueue creates a new priority queue
+// NewPriorityQueue creates a new priority queue.
 func NewPriorityQueue(maxSize int) *PriorityQueue {
 	pq := &PriorityQueue{
 		tasks:       make([]*Task, 0, maxSize),
@@ -406,7 +406,7 @@ func NewPriorityQueue(maxSize int) *PriorityQueue {
 	return pq
 }
 
-// Enqueue adds a task to the priority queue
+// Enqueue adds a task to the priority queue.
 func (pq *PriorityQueue) Enqueue(task *Task) error {
 	pq.mutex.Lock()
 	defer pq.mutex.Unlock()
@@ -415,11 +415,11 @@ func (pq *PriorityQueue) Enqueue(task *Task) error {
 		return fmt.Errorf("priority queue is full")
 	}
 
-	// Insert task in priority order (higher priority first)
+	// Insert task in priority order (higher priority first).
 	inserted := false
 	for i, existingTask := range pq.tasks {
 		if task.Priority > existingTask.Priority {
-			// Insert at position i
+			// Insert at position i.
 			pq.tasks = append(pq.tasks[:i], append([]*Task{task}, pq.tasks[i:]...)...)
 			inserted = true
 			break
@@ -427,7 +427,7 @@ func (pq *PriorityQueue) Enqueue(task *Task) error {
 	}
 
 	if !inserted {
-		// Append to end (lowest priority)
+		// Append to end (lowest priority).
 		pq.tasks = append(pq.tasks, task)
 	}
 
@@ -437,7 +437,7 @@ func (pq *PriorityQueue) Enqueue(task *Task) error {
 	return nil
 }
 
-// Dequeue removes and returns the highest priority task
+// Dequeue removes and returns the highest priority task.
 func (pq *PriorityQueue) Dequeue() *Task {
 	pq.mutex.Lock()
 	defer pq.mutex.Unlock()
@@ -457,7 +457,7 @@ func (pq *PriorityQueue) Dequeue() *Task {
 	return task
 }
 
-// DequeueWithTimeout removes and returns the highest priority task with timeout
+// DequeueWithTimeout removes and returns the highest priority task with timeout.
 func (pq *PriorityQueue) DequeueWithTimeout(timeout time.Duration) *Task {
 	done := make(chan *Task, 1)
 
@@ -474,7 +474,7 @@ func (pq *PriorityQueue) DequeueWithTimeout(timeout time.Duration) *Task {
 	}
 }
 
-// Peek returns the highest priority task without removing it
+// Peek returns the highest priority task without removing it.
 func (pq *PriorityQueue) Peek() *Task {
 	pq.mutex.RLock()
 	defer pq.mutex.RUnlock()
@@ -486,26 +486,26 @@ func (pq *PriorityQueue) Peek() *Task {
 	return pq.tasks[0]
 }
 
-// Size returns the current size of the queue
+// Size returns the current size of the queue.
 func (pq *PriorityQueue) Size() int {
 	pq.mutex.RLock()
 	defer pq.mutex.RUnlock()
 	return pq.currentSize
 }
 
-// IsEmpty returns whether the queue is empty
+// IsEmpty returns whether the queue is empty.
 func (pq *PriorityQueue) IsEmpty() bool {
 	return pq.Size() == 0
 }
 
-// IsFull returns whether the queue is full
+// IsFull returns whether the queue is full.
 func (pq *PriorityQueue) IsFull() bool {
 	pq.mutex.RLock()
 	defer pq.mutex.RUnlock()
 	return pq.currentSize >= pq.maxSize
 }
 
-// Clear removes all tasks from the queue
+// Clear removes all tasks from the queue.
 func (pq *PriorityQueue) Clear() {
 	pq.mutex.Lock()
 	defer pq.mutex.Unlock()
@@ -514,7 +514,7 @@ func (pq *PriorityQueue) Clear() {
 	pq.currentSize = 0
 }
 
-// GetTasks returns a copy of all tasks in the queue (for monitoring)
+// GetTasks returns a copy of all tasks in the queue (for monitoring).
 func (pq *PriorityQueue) GetTasks() []*Task {
 	pq.mutex.RLock()
 	defer pq.mutex.RUnlock()

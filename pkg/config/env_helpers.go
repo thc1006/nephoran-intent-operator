@@ -13,7 +13,7 @@ import (
 //
 // This is the primary function for simple environment variable retrieval with fallback.
 //
-// Example:
+// Example:.
 //
 //	port := GetEnvOrDefault("PORT", "8080")
 //	dbURL := GetEnvOrDefault("DATABASE_URL", "localhost:5432")
@@ -28,7 +28,7 @@ func GetEnvOrDefault(key, defaultValue string) string {
 // It accepts "true", "1", "yes", "on" (case-insensitive) as true values.
 // All other values or missing variables return the defaultValue.
 //
-// Example:
+// Example:.
 //
 //	debug := GetBoolEnv("DEBUG", false)
 //	tlsEnabled := GetBoolEnv("TLS_ENABLED", true)
@@ -38,14 +38,14 @@ func GetBoolEnv(key string, defaultValue bool) bool {
 		return defaultValue
 	}
 
-	// Accept common truthy values
+	// Accept common truthy values.
 	switch value {
 	case "true", "1", "yes", "on", "enable", "enabled":
 		return true
 	case "false", "0", "no", "off", "disable", "disabled":
 		return false
 	default:
-		// Invalid value, return default
+		// Invalid value, return default.
 		return defaultValue
 	}
 }
@@ -54,7 +54,7 @@ func GetBoolEnv(key string, defaultValue bool) bool {
 // The value should be a valid duration string parseable by time.ParseDuration.
 // If parsing fails or the variable is missing, returns the defaultValue.
 //
-// Example:
+// Example:.
 //
 //	timeout := GetDurationEnv("REQUEST_TIMEOUT", 30*time.Second)
 //	ttl := GetDurationEnv("CACHE_TTL", 5*time.Minute)
@@ -75,7 +75,7 @@ func GetDurationEnv(key string, defaultValue time.Duration) time.Duration {
 // The value should be comma-separated. Empty items and whitespace are automatically trimmed.
 // Returns defaultValue if the environment variable is missing or results in an empty slice.
 //
-// Example:
+// Example:.
 //
 //	origins := GetStringSliceEnv("ALLOWED_ORIGINS", []string{"http://localhost:3000"})
 //	adminUsers := GetStringSliceEnv("ADMIN_USERS", []string{})
@@ -101,7 +101,7 @@ func GetStringSliceEnv(key string, defaultValue []string) []string {
 // GetIntEnv retrieves an integer value from the environment variable.
 // If parsing fails or the variable is missing, returns the defaultValue.
 //
-// Example:
+// Example:.
 //
 //	maxConnections := GetIntEnv("MAX_CONNECTIONS", 100)
 //	port := GetIntEnv("PORT", 8080)
@@ -121,7 +121,7 @@ func GetIntEnv(key string, defaultValue int) int {
 // GetInt64Env retrieves an int64 value from the environment variable.
 // If parsing fails or the variable is missing, returns the defaultValue.
 //
-// Example:
+// Example:.
 //
 //	maxFileSize := GetInt64Env("MAX_FILE_SIZE", 1024*1024)
 //	timeout := GetInt64Env("TIMEOUT_MS", 30000)
@@ -141,7 +141,7 @@ func GetInt64Env(key string, defaultValue int64) int64 {
 // GetFloatEnv retrieves a float64 value from the environment variable.
 // If parsing fails or the variable is missing, returns the defaultValue.
 //
-// Example:
+// Example:.
 //
 //	threshold := GetFloatEnv("THRESHOLD", 0.95)
 //	factor := GetFloatEnv("SCALING_FACTOR", 1.5)
@@ -162,14 +162,14 @@ func GetFloatEnv(key string, defaultValue float64) float64 {
 // If validation fails, it returns the defaultValue and the validation error.
 // If the environment variable is missing, it validates the defaultValue.
 //
-// Example:
+// Example:.
 //
 //	port, err := GetEnvWithValidation("PORT", "8080", validatePort)
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
 //
-// Where validatePort is a function that validates port numbers:
+// Where validatePort is a function that validates port numbers:.
 //
 //	func validatePort(value string) error {
 //	    port, err := strconv.Atoi(value)
@@ -189,7 +189,7 @@ func GetEnvWithValidation(key, defaultValue string, validator func(string) error
 // GetIntEnvWithValidation retrieves an integer environment variable with validation.
 // If parsing or validation fails, returns the defaultValue and an error.
 //
-// Example:
+// Example:.
 //
 //	maxRetries, err := GetIntEnvWithValidation("MAX_RETRIES", 3, validateNonNegativeInt)
 //	if err != nil {
@@ -218,7 +218,7 @@ func GetIntEnvWithValidation(key string, defaultValue int, validator func(int) e
 // GetDurationEnvWithValidation retrieves a duration environment variable with validation.
 // If parsing or validation fails, returns the defaultValue and an error.
 //
-// Example:
+// Example:.
 //
 //	timeout, err := GetDurationEnvWithValidation("TIMEOUT", 30*time.Second, validatePositiveDuration)
 //	if err != nil {
@@ -244,7 +244,7 @@ func GetDurationEnvWithValidation(key string, defaultValue time.Duration, valida
 	return duration, nil
 }
 
-// Common validator functions
+// Common validator functions.
 
 // ValidateNonEmpty validates that a string is not empty after trimming whitespace.
 func ValidateNonEmpty(value string) error {
@@ -326,7 +326,7 @@ func ValidateLogLevel(value string) error {
 // ValidateOneOf creates a validator that checks if the value is one of the allowed values.
 // The comparison is case-sensitive.
 //
-// Example:
+// Example:.
 //
 //	validateBackend := ValidateOneOf([]string{"redis", "memory", "disk"})
 //	backend, err := GetEnvWithValidation("CACHE_BACKEND", "memory", validateBackend)
@@ -345,15 +345,15 @@ func ValidateOneOf(allowedValues []string) func(string) error {
 // ValidateOneOfIgnoreCase creates a validator that checks if the value is one of the allowed values.
 // The comparison is case-insensitive.
 //
-// Example:
+// Example:.
 //
 //	validateEnv := ValidateOneOfIgnoreCase([]string{"development", "staging", "production"})
 //	env, err := GetEnvWithValidation("ENVIRONMENT", "development", validateEnv)
 func ValidateOneOfIgnoreCase(allowedValues []string) func(string) error {
 	return func(value string) error {
-		value = strings.TrimSpace(strings.ToLower(value))
+		value = strings.TrimSpace(value)
 		for _, allowed := range allowedValues {
-			if value == strings.ToLower(allowed) {
+			if strings.EqualFold(value, allowed) {
 				return nil
 			}
 		}
@@ -363,7 +363,7 @@ func ValidateOneOfIgnoreCase(allowedValues []string) func(string) error {
 
 // ValidateIntRange creates a validator that checks if an integer is within a specified range (inclusive).
 //
-// Example:
+// Example:.
 //
 //	validatePort := ValidateIntRange(1024, 65535)
 //	port, err := GetIntEnvWithValidation("PORT", 8080, validatePort)
@@ -378,7 +378,7 @@ func ValidateIntRange(min, max int) func(int) error {
 
 // ValidateDurationRange creates a validator that checks if a duration is within a specified range (inclusive).
 //
-// Example:
+// Example:.
 //
 //	validateTimeout := ValidateDurationRange(1*time.Second, 5*time.Minute)
 //	timeout, err := GetDurationEnvWithValidation("TIMEOUT", 30*time.Second, validateTimeout)
@@ -394,7 +394,7 @@ func ValidateDurationRange(min, max time.Duration) func(time.Duration) error {
 // MustGetEnv retrieves an environment variable and panics if it's not set or empty.
 // This should only be used for critical configuration that must be present.
 //
-// Example:
+// Example:.
 //
 //	apiKey := MustGetEnv("API_KEY")  // Panics if API_KEY is not set
 func MustGetEnv(key string) string {
@@ -408,7 +408,7 @@ func MustGetEnv(key string) string {
 // MustGetEnvWithValidation retrieves an environment variable with validation and panics on failure.
 // This should only be used for critical configuration that must be present and valid.
 //
-// Example:
+// Example:.
 //
 //	port := MustGetEnvWithValidation("PORT", ValidatePort)
 func MustGetEnvWithValidation(key string, validator func(string) error) string {
@@ -422,7 +422,7 @@ func MustGetEnvWithValidation(key string, validator func(string) error) string {
 // IsSet checks if an environment variable is set (even if empty).
 // This is useful to distinguish between unset variables and empty values.
 //
-// Example:
+// Example:.
 //
 //	if IsSet("DEBUG") {
 //	    // DEBUG environment variable was explicitly set
@@ -435,7 +435,7 @@ func IsSet(key string) bool {
 // GetEnvKeys returns all environment variable keys.
 // This is mainly useful for debugging and configuration discovery.
 //
-// Example:
+// Example:.
 //
 //	keys := GetEnvKeys()
 //	for _, key := range keys {

@@ -21,26 +21,26 @@ import (
 	"time"
 )
 
-// EventBus defines the interface for event communication
+// EventBus defines the interface for event communication.
 type EventBus interface {
-	// Core event operations
+	// Core event operations.
 	PublishStateChange(ctx context.Context, event StateChangeEvent) error
 	Subscribe(eventType string, handler EventHandler) error
 	Unsubscribe(eventType string) error
 
-	// Event bus lifecycle
+	// Event bus lifecycle.
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
 
-	// Event querying
+	// Event querying.
 	GetEventHistory(ctx context.Context, intentID string) ([]ProcessingEvent, error)
 	GetEventsByType(ctx context.Context, eventType string, limit int) ([]ProcessingEvent, error)
 }
 
-// EventHandler defines the function signature for event handlers
+// EventHandler defines the function signature for event handlers.
 type EventHandler func(ctx context.Context, event ProcessingEvent) error
 
-// ProcessingEvent represents an event during intent processing
+// ProcessingEvent represents an event during intent processing.
 type ProcessingEvent struct {
 	Type          string                 `json:"type"`
 	Source        string                 `json:"source"`
@@ -53,7 +53,7 @@ type ProcessingEvent struct {
 	Metadata      map[string]string      `json:"metadata,omitempty"`
 }
 
-// EventBusMetrics provides metrics for the event bus
+// EventBusMetrics provides metrics for the event bus.
 type EventBusMetrics interface {
 	GetTotalEventsPublished() int64
 	GetTotalEventsProcessed() int64
@@ -61,7 +61,7 @@ type EventBusMetrics interface {
 	GetAverageProcessingTime() int64 // in milliseconds
 	GetBufferUtilization() float64
 
-	// Recording methods
+	// Recording methods.
 	RecordEventPublished(eventType string)
 	RecordEventProcessed(processingTime time.Duration)
 	RecordHandlerFailure()

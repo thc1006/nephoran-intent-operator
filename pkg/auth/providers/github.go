@@ -14,14 +14,14 @@ import (
 	"golang.org/x/oauth2/github"
 )
 
-// GitHubProvider implements OAuth2 authentication for GitHub
+// GitHubProvider implements OAuth2 authentication for GitHub.
 type GitHubProvider struct {
 	config     *ProviderConfig
 	httpClient *http.Client
 	oauth2Cfg  *oauth2.Config
 }
 
-// GitHubUserInfo represents GitHub user information
+// GitHubUserInfo represents GitHub user information.
 type GitHubUserInfo struct {
 	ID              int64  `json:"id"`
 	Login           string `json:"login"`
@@ -41,7 +41,7 @@ type GitHubUserInfo struct {
 	UpdatedAt       string `json:"updated_at"`
 }
 
-// GitHubOrganization represents a GitHub organization
+// GitHubOrganization represents a GitHub organization.
 type GitHubOrganization struct {
 	ID          int64  `json:"id"`
 	Login       string `json:"login"`
@@ -52,7 +52,7 @@ type GitHubOrganization struct {
 	Location    string `json:"location"`
 }
 
-// GitHubTeam represents a GitHub team
+// GitHubTeam represents a GitHub team.
 type GitHubTeam struct {
 	ID           int64              `json:"id"`
 	Name         string             `json:"name"`
@@ -63,7 +63,7 @@ type GitHubTeam struct {
 	Organization GitHubOrganization `json:"organization"`
 }
 
-// NewGitHubProvider creates a new GitHub OAuth2 provider
+// NewGitHubProvider creates a new GitHub OAuth2 provider.
 func NewGitHubProvider(clientID, clientSecret, redirectURL string) *GitHubProvider {
 	config := &ProviderConfig{
 		Name:         "github",
@@ -108,16 +108,16 @@ func NewGitHubProvider(clientID, clientSecret, redirectURL string) *GitHubProvid
 	}
 }
 
-// GetProviderName returns the provider name
+// GetProviderName returns the provider name.
 func (p *GitHubProvider) GetProviderName() string {
 	return p.config.Name
 }
 
-// GetAuthorizationURL generates OAuth2 authorization URL with PKCE support
+// GetAuthorizationURL generates OAuth2 authorization URL with PKCE support.
 func (p *GitHubProvider) GetAuthorizationURL(state, redirectURI string, options ...AuthOption) (string, *PKCEChallenge, error) {
 	opts := ApplyOptions(options...)
 
-	// Update redirect URI if provided
+	// Update redirect URI if provided.
 	config := *p.oauth2Cfg
 	if redirectURI != "" {
 		config.RedirectURL = redirectURI
@@ -134,7 +134,7 @@ func (p *GitHubProvider) GetAuthorizationURL(state, redirectURI string, options 
 			return "", nil, fmt.Errorf("failed to generate PKCE challenge: %w", err)
 		}
 
-		// Add PKCE parameters to URL
+		// Add PKCE parameters to URL.
 		parsedURL, err := url.Parse(authURL)
 		if err != nil {
 			return "", nil, fmt.Errorf("failed to parse auth URL: %w", err)
@@ -147,7 +147,7 @@ func (p *GitHubProvider) GetAuthorizationURL(state, redirectURI string, options 
 		authURL = parsedURL.String()
 	}
 
-	// Add custom parameters
+	// Add custom parameters.
 	if opts.LoginHint != "" {
 		parsedURL, err := url.Parse(authURL)
 		if err != nil {
@@ -173,7 +173,7 @@ func (p *GitHubProvider) GetAuthorizationURL(state, redirectURI string, options 
 	return authURL, challenge, nil
 }
 
-// ExchangeCodeForToken exchanges authorization code for access token
+// ExchangeCodeForToken exchanges authorization code for access token.
 func (p *GitHubProvider) ExchangeCodeForToken(ctx context.Context, code, redirectURI string, challenge *PKCEChallenge) (*TokenResponse, error) {
 	config := *p.oauth2Cfg
 	if redirectURI != "" {
@@ -200,7 +200,7 @@ func (p *GitHubProvider) ExchangeCodeForToken(ctx context.Context, code, redirec
 	}, nil
 }
 
-// RefreshToken refreshes an access token using refresh token
+// RefreshToken refreshes an access token using refresh token.
 func (p *GitHubProvider) RefreshToken(ctx context.Context, refreshToken string) (*TokenResponse, error) {
 	token := &oauth2.Token{
 		RefreshToken: refreshToken,
@@ -222,9 +222,9 @@ func (p *GitHubProvider) RefreshToken(ctx context.Context, refreshToken string) 
 	}, nil
 }
 
-// GetUserInfo retrieves user information using access token
+// GetUserInfo retrieves user information using access token.
 func (p *GitHubProvider) GetUserInfo(ctx context.Context, accessToken string) (*UserInfo, error) {
-	// Get primary user info
+	// Get primary user info.
 	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/user", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user info request: %w", err)
@@ -250,10 +250,10 @@ func (p *GitHubProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 		return nil, fmt.Errorf("failed to decode user info: %w", err)
 	}
 
-	// Get user emails if email is null
+	// Get user emails if email is null.
 	emails, err := p.getUserEmails(ctx, accessToken)
 	if err == nil && len(emails) > 0 && githubUser.Email == "" {
-		// Find primary email
+		// Find primary email.
 		for _, email := range emails {
 			if email.Primary {
 				githubUser.Email = email.Email
@@ -262,17 +262,17 @@ func (p *GitHubProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 		}
 	}
 
-	// Get organizations
+	// Get organizations.
 	organizations, err := p.GetOrganizations(ctx, accessToken)
 	if err != nil {
-		// Log error but don't fail the request
+		// Log error but don't fail the request.
 		organizations = []Organization{}
 	}
 
-	// Get teams (groups)
+	// Get teams (groups).
 	teams, err := p.getUserTeams(ctx, accessToken)
 	if err != nil {
-		// Log error but don't fail the request
+		// Log error but don't fail the request.
 		teams = []string{}
 	}
 
@@ -306,7 +306,7 @@ func (p *GitHubProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 	return userInfo, nil
 }
 
-// ValidateToken validates an access token
+// ValidateToken validates an access token.
 func (p *GitHubProvider) ValidateToken(ctx context.Context, accessToken string) (*TokenValidation, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/user", nil)
 	if err != nil {
@@ -351,21 +351,21 @@ func (p *GitHubProvider) ValidateToken(ctx context.Context, accessToken string) 
 	return &TokenValidation{
 		Valid:    true,
 		Username: githubUser.Login,
-		// Note: GitHub doesn't provide token expiration info in user endpoint
+		// Note: GitHub doesn't provide token expiration info in user endpoint.
 		ExpiresAt: time.Now().Add(time.Hour), // Assume 1 hour for validation purposes
 	}, nil
 }
 
-// RevokeToken revokes an access token
+// RevokeToken revokes an access token.
 func (p *GitHubProvider) RevokeToken(ctx context.Context, token string) error {
-	// GitHub doesn't have a standard token revocation endpoint
-	// The token becomes invalid when the user revokes access in GitHub settings
-	// or when the app is uninstalled
+	// GitHub doesn't have a standard token revocation endpoint.
+	// The token becomes invalid when the user revokes access in GitHub settings.
+	// or when the app is uninstalled.
 	return NewProviderError(p.GetProviderName(), "not_supported",
 		"GitHub does not support programmatic token revocation", nil)
 }
 
-// SupportsFeature checks if provider supports specific features
+// SupportsFeature checks if provider supports specific features.
 func (p *GitHubProvider) SupportsFeature(feature ProviderFeature) bool {
 	for _, f := range p.config.Features {
 		if f == feature {
@@ -375,12 +375,12 @@ func (p *GitHubProvider) SupportsFeature(feature ProviderFeature) bool {
 	return false
 }
 
-// GetConfiguration returns provider configuration
+// GetConfiguration returns provider configuration.
 func (p *GitHubProvider) GetConfiguration() *ProviderConfig {
 	return p.config
 }
 
-// GetOrganizations retrieves user's organizations
+// GetOrganizations retrieves user's organizations.
 func (p *GitHubProvider) GetOrganizations(ctx context.Context, accessToken string) ([]Organization, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/user/orgs", nil)
 	if err != nil {
@@ -418,7 +418,7 @@ func (p *GitHubProvider) GetOrganizations(ctx context.Context, accessToken strin
 	return organizations, nil
 }
 
-// getUserEmails retrieves user's email addresses
+// getUserEmails retrieves user's email addresses.
 func (p *GitHubProvider) getUserEmails(ctx context.Context, accessToken string) ([]GitHubEmail, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/user/emails", nil)
 	if err != nil {
@@ -447,7 +447,7 @@ func (p *GitHubProvider) getUserEmails(ctx context.Context, accessToken string) 
 	return emails, nil
 }
 
-// getUserTeams retrieves user's team memberships (as groups)
+// getUserTeams retrieves user's team memberships (as groups).
 func (p *GitHubProvider) getUserTeams(ctx context.Context, accessToken string) ([]string, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/user/teams", nil)
 	if err != nil {
@@ -481,21 +481,21 @@ func (p *GitHubProvider) getUserTeams(ctx context.Context, accessToken string) (
 	return teamNames, nil
 }
 
-// GitHubEmail represents a GitHub email address
+// GitHubEmail represents a GitHub email address.
 type GitHubEmail struct {
 	Email    string `json:"email"`
 	Primary  bool   `json:"primary"`
 	Verified bool   `json:"verified"`
 }
 
-// Additional methods to satisfy EnterpriseProvider interface
+// Additional methods to satisfy EnterpriseProvider interface.
 
-// GetGroups retrieves user groups (teams) from GitHub
+// GetGroups retrieves user groups (teams) from GitHub.
 func (p *GitHubProvider) GetGroups(ctx context.Context, accessToken string) ([]string, error) {
 	return p.getUserTeams(ctx, accessToken)
 }
 
-// GetRoles retrieves user roles from GitHub (organization roles)
+// GetRoles retrieves user roles from GitHub (organization roles).
 func (p *GitHubProvider) GetRoles(ctx context.Context, accessToken string) ([]string, error) {
 	organizations, err := p.GetOrganizations(ctx, accessToken)
 	if err != nil {
@@ -514,7 +514,7 @@ func (p *GitHubProvider) GetRoles(ctx context.Context, accessToken string) ([]st
 	return roles, nil
 }
 
-// CheckGroupMembership checks if user belongs to specific groups (organizations/teams)
+// CheckGroupMembership checks if user belongs to specific groups (organizations/teams).
 func (p *GitHubProvider) CheckGroupMembership(ctx context.Context, accessToken string, groups []string) ([]string, error) {
 	userGroups, err := p.GetGroups(ctx, accessToken)
 	if err != nil {
@@ -526,7 +526,7 @@ func (p *GitHubProvider) CheckGroupMembership(ctx context.Context, accessToken s
 		return nil, err
 	}
 
-	// Create a map of user's groups and organizations
+	// Create a map of user's groups and organizations.
 	userGroupMap := make(map[string]bool)
 	for _, group := range userGroups {
 		userGroupMap[group] = true
@@ -546,16 +546,16 @@ func (p *GitHubProvider) CheckGroupMembership(ctx context.Context, accessToken s
 	return memberGroups, nil
 }
 
-// ValidateUserAccess validates if user has required access level
+// ValidateUserAccess validates if user has required access level.
 func (p *GitHubProvider) ValidateUserAccess(ctx context.Context, accessToken string, requiredLevel AccessLevel) error {
-	// For GitHub, we can check organization membership or repository access
-	// This is a simplified implementation
+	// For GitHub, we can check organization membership or repository access.
+	// This is a simplified implementation.
 	userInfo, err := p.GetUserInfo(ctx, accessToken)
 	if err != nil {
 		return fmt.Errorf("failed to get user info for access validation: %w", err)
 	}
 
-	// Basic validation - ensure user has organizations or is verified
+	// Basic validation - ensure user has organizations or is verified.
 	if requiredLevel >= AccessLevelWrite {
 		if len(userInfo.Organizations) == 0 && !userInfo.EmailVerified {
 			return fmt.Errorf("user does not meet minimum access requirements")

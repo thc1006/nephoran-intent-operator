@@ -12,7 +12,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// ClusterRegistry manages registration and lifecycle of workload clusters
+// ClusterRegistry manages registration and lifecycle of workload clusters.
 type ClusterRegistry struct {
 	mu                  sync.RWMutex
 	clusters            map[string]*WorkloadCluster
@@ -22,7 +22,7 @@ type ClusterRegistry struct {
 	healthCheckCancel   context.CancelFunc
 }
 
-// NewClusterRegistry creates a new cluster registry
+// NewClusterRegistry creates a new cluster registry.
 func NewClusterRegistry(logger *zap.Logger) *ClusterRegistry {
 	return &ClusterRegistry{
 		clusters: make(map[string]*WorkloadCluster),
@@ -35,27 +35,27 @@ func NewClusterRegistry(logger *zap.Logger) *ClusterRegistry {
 	}
 }
 
-// RegisterCluster adds a new workload cluster to the registry
+// RegisterCluster adds a new workload cluster to the registry.
 func (cr *ClusterRegistry) RegisterCluster(ctx context.Context, cluster *WorkloadCluster, options *ClusterRegistrationOptions) error {
 	cr.mu.Lock()
 	defer cr.mu.Unlock()
 
-	// Validate cluster connection
+	// Validate cluster connection.
 	if err := cr.validateClusterConnection(ctx, cluster, options); err != nil {
 		return fmt.Errorf("cluster validation failed: %w", err)
 	}
 
-	// Generate unique cluster ID if not provided
+	// Generate unique cluster ID if not provided.
 	if cluster.ID == "" {
 		cluster.ID = uuid.New().String()
 	}
 
-	// Check for duplicate clusters
+	// Check for duplicate clusters.
 	if _, exists := cr.clusters[cluster.ID]; exists {
 		return fmt.Errorf("cluster with ID %s already registered", cluster.ID)
 	}
 
-	// Store cluster in registry
+	// Store cluster in registry.
 	cr.clusters[cluster.ID] = cluster
 	cr.topology.Clusters[cluster.ID] = cluster
 
@@ -66,27 +66,27 @@ func (cr *ClusterRegistry) RegisterCluster(ctx context.Context, cluster *Workloa
 	return nil
 }
 
-// validateClusterConnection performs connection and capability validation
+// validateClusterConnection performs connection and capability validation.
 func (cr *ClusterRegistry) validateClusterConnection(ctx context.Context, cluster *WorkloadCluster, options *ClusterRegistrationOptions) error {
-	// Default connection timeout
+	// Default connection timeout.
 	if options.ConnectionTimeout == 0 {
 		options.ConnectionTimeout = 30 * time.Second
 	}
 
-	// Create Kubernetes client
+	// Create Kubernetes client.
 	client, err := kubernetes.NewForConfig(cluster.KubeConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 	cluster.Client = client
 
-	// Validate cluster connection with retries
+	// Validate cluster connection with retries.
 	var lastErr error
 	for attempt := 0; attempt < options.ConnectionRetries; attempt++ {
 		ctx, cancel := context.WithTimeout(ctx, options.ConnectionTimeout)
 		defer cancel()
 
-		// Perform health check
+		// Perform health check.
 		_, err := client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 		if err == nil {
 			cluster.Status = ClusterStatusHealthy
@@ -102,7 +102,7 @@ func (cr *ClusterRegistry) validateClusterConnection(ctx context.Context, cluste
 		options.ConnectionRetries, lastErr)
 }
 
-// UnregisterCluster removes a cluster from the registry
+// UnregisterCluster removes a cluster from the registry.
 func (cr *ClusterRegistry) UnregisterCluster(ctx context.Context, clusterID string) error {
 	cr.mu.Lock()
 	defer cr.mu.Unlock()
@@ -118,7 +118,7 @@ func (cr *ClusterRegistry) UnregisterCluster(ctx context.Context, clusterID stri
 	return nil
 }
 
-// StartHealthChecks begins periodic health monitoring for registered clusters
+// StartHealthChecks begins periodic health monitoring for registered clusters.
 func (cr *ClusterRegistry) StartHealthChecks(ctx context.Context) {
 	ctx, cr.healthCheckCancel = context.WithCancel(ctx)
 
@@ -137,7 +137,7 @@ func (cr *ClusterRegistry) StartHealthChecks(ctx context.Context) {
 	}()
 }
 
-// performHealthChecks checks the status of all registered clusters
+// performHealthChecks checks the status of all registered clusters.
 func (cr *ClusterRegistry) performHealthChecks(ctx context.Context) {
 	cr.mu.RLock()
 	defer cr.mu.RUnlock()
@@ -153,12 +153,12 @@ func (cr *ClusterRegistry) performHealthChecks(ctx context.Context) {
 	wg.Wait()
 }
 
-// checkClusterHealth performs a comprehensive health check for a cluster
+// checkClusterHealth performs a comprehensive health check for a cluster.
 func (cr *ClusterRegistry) checkClusterHealth(ctx context.Context, cluster *WorkloadCluster) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	// Check node status
+	// Check node status.
 	nodes, err := cluster.Client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		cluster.Status = ClusterStatusUnreachable
@@ -168,7 +168,7 @@ func (cr *ClusterRegistry) checkClusterHealth(ctx context.Context, cluster *Work
 		return
 	}
 
-	// Count ready nodes
+	// Count ready nodes.
 	readyNodes := 0
 	for _, node := range nodes.Items {
 		for _, condition := range node.Status.Conditions {
@@ -178,7 +178,7 @@ func (cr *ClusterRegistry) checkClusterHealth(ctx context.Context, cluster *Work
 		}
 	}
 
-	// Determine cluster status based on node readiness
+	// Determine cluster status based on node readiness.
 	if readyNodes == 0 {
 		cluster.Status = ClusterStatusDegraded
 	} else {
@@ -191,14 +191,14 @@ func (cr *ClusterRegistry) checkClusterHealth(ctx context.Context, cluster *Work
 		zap.String("status", string(cluster.Status)))
 }
 
-// StopHealthChecks terminates the periodic health checking
+// StopHealthChecks terminates the periodic health checking.
 func (cr *ClusterRegistry) StopHealthChecks() {
 	if cr.healthCheckCancel != nil {
 		cr.healthCheckCancel()
 	}
 }
 
-// GetCluster retrieves a cluster by its ID
+// GetCluster retrieves a cluster by its ID.
 func (cr *ClusterRegistry) GetCluster(clusterID string) (*WorkloadCluster, error) {
 	cr.mu.RLock()
 	defer cr.mu.RUnlock()
@@ -211,7 +211,7 @@ func (cr *ClusterRegistry) GetCluster(clusterID string) (*WorkloadCluster, error
 	return cluster, nil
 }
 
-// ListClusters returns all registered clusters
+// ListClusters returns all registered clusters.
 func (cr *ClusterRegistry) ListClusters() []*WorkloadCluster {
 	cr.mu.RLock()
 	defer cr.mu.RUnlock()

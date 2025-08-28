@@ -42,9 +42,9 @@ func main() {
 	for {
 		select {
 		case <-ticker.C:
-			// Retry logic for transient failures
+			// Retry logic for transient failures.
 			var lastErr error
-			for retry := 0; retry < maxRetries; retry++ {
+			for retry := range maxRetries {
 				if err := generator.GenerateMetric(); err != nil {
 					lastErr = err
 					if retry < maxRetries-1 {

@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-// TelecomKnowledgeBase contains comprehensive 5G network function specifications
-// Based on 3GPP Release 16/17 and O-RAN Alliance specifications
+// TelecomKnowledgeBase contains comprehensive 5G network function specifications.
+// Based on 3GPP Release 16/17 and O-RAN Alliance specifications.
 type TelecomKnowledgeBase struct {
 	NetworkFunctions map[string]*NetworkFunctionSpec
 	Interfaces       map[string]*InterfaceSpec
@@ -19,7 +19,7 @@ type TelecomKnowledgeBase struct {
 	initialized      bool
 }
 
-// NetworkFunctionSpec defines comprehensive 5G Core network function specifications
+// NetworkFunctionSpec defines comprehensive 5G Core network function specifications.
 type NetworkFunctionSpec struct {
 	Name        string `json:"name"`
 	Type        string `json:"type"`
@@ -27,41 +27,41 @@ type NetworkFunctionSpec struct {
 	Version     string `json:"version"`
 	Vendor      string `json:"vendor"`
 
-	// 3GPP Specifications
+	// 3GPP Specifications.
 	Specification3GPP []string `json:"specification_3gpp"`
 
-	// Network Interfaces based on 3GPP TS 23.501
+	// Network Interfaces based on 3GPP TS 23.501.
 	Interfaces        []string `json:"interfaces"`
 	ServiceInterfaces []string `json:"service_interfaces"`
 
-	// Dependencies and relationships
+	// Dependencies and relationships.
 	Dependencies []string `json:"dependencies"`
 	OptionalDeps []string `json:"optional_dependencies"`
 
-	// Resource requirements (production-grade)
+	// Resource requirements (production-grade).
 	Resources ResourceRequirements `json:"resources"`
 
-	// Scaling configuration
+	// Scaling configuration.
 	Scaling ScalingParameters `json:"scaling"`
 
-	// Performance baselines from real deployments
+	// Performance baselines from real deployments.
 	Performance PerformanceBaseline `json:"performance"`
 
-	// Security requirements
+	// Security requirements.
 	Security SecurityRequirements `json:"security"`
 
-	// Deployment patterns
+	// Deployment patterns.
 	DeploymentPatterns map[string]DeploymentConfig `json:"deployment_patterns"`
 
-	// Configuration parameters
+	// Configuration parameters.
 	Configuration map[string]ConfigParameter `json:"configuration"`
 
-	// Health and monitoring
+	// Health and monitoring.
 	HealthChecks      []HealthCheck      `json:"health_checks"`
 	MonitoringMetrics []MetricDefinition `json:"monitoring_metrics"`
 }
 
-// InterfaceSpec defines 5G network interfaces per 3GPP specifications
+// InterfaceSpec defines 5G network interfaces per 3GPP specifications.
 type InterfaceSpec struct {
 	Name            string          `json:"name"`
 	Type            string          `json:"type"` // Reference Point, Service Based
@@ -74,7 +74,7 @@ type InterfaceSpec struct {
 	Reliability     ReliabilitySpec `json:"reliability"`
 }
 
-// ResourceRequirements defines compute, memory, and storage requirements
+// ResourceRequirements defines compute, memory, and storage requirements.
 type ResourceRequirements struct {
 	MinCPU      string `json:"min_cpu"`     // e.g., "2" cores
 	MinMemory   string `json:"min_memory"`  // e.g., "4Gi"
@@ -86,7 +86,7 @@ type ResourceRequirements struct {
 	Accelerator string `json:"accelerator"` // e.g., "nvidia.com/gpu"
 }
 
-// ScalingParameters defines auto-scaling configuration
+// ScalingParameters defines auto-scaling configuration.
 type ScalingParameters struct {
 	MinReplicas      int            `json:"min_replicas"`
 	MaxReplicas      int            `json:"max_replicas"`
@@ -97,7 +97,7 @@ type ScalingParameters struct {
 	CustomMetrics    []CustomMetric `json:"custom_metrics"`
 }
 
-// PerformanceBaseline defines expected performance characteristics
+// PerformanceBaseline defines expected performance characteristics.
 type PerformanceBaseline struct {
 	MaxThroughputRPS      int     `json:"max_throughput_rps"` // Requests per second
 	AvgLatencyMs          float64 `json:"avg_latency_ms"`     // Average latency in ms
@@ -109,7 +109,7 @@ type PerformanceBaseline struct {
 	CPUUsagePercent       int     `json:"cpu_usage_percent"`
 }
 
-// SecurityRequirements defines security specifications
+// SecurityRequirements defines security specifications.
 type SecurityRequirements struct {
 	TLSVersion      []string        `json:"tls_version"`
 	Authentication  []string        `json:"authentication"` // OAuth2, mTLS, etc.
@@ -119,7 +119,7 @@ type SecurityRequirements struct {
 	SecurityContext SecurityContext `json:"security_context"`
 }
 
-// DeploymentConfig defines deployment patterns
+// DeploymentConfig defines deployment patterns.
 type DeploymentConfig struct {
 	Name            string           `json:"name"`
 	Replicas        int              `json:"replicas"`
@@ -133,7 +133,7 @@ type DeploymentConfig struct {
 	BackupPolicy    BackupPolicy     `json:"backup_policy"`
 }
 
-// Supporting types
+// Supporting types.
 type ConfigParameter struct {
 	Name        string      `json:"name"`
 	Type        string      `json:"type"`
@@ -143,6 +143,7 @@ type ConfigParameter struct {
 	Validation  string      `json:"validation"`
 }
 
+// HealthCheck represents a healthcheck.
 type HealthCheck struct {
 	Type         string `json:"type"` // http, tcp, grpc
 	Path         string `json:"path"`
@@ -153,6 +154,7 @@ type HealthCheck struct {
 	InitialDelay int    `json:"initial_delay"` // seconds
 }
 
+// MetricDefinition represents a metricdefinition.
 type MetricDefinition struct {
 	Name        string      `json:"name"`
 	Type        string      `json:"type"` // counter, gauge, histogram
@@ -161,6 +163,7 @@ type MetricDefinition struct {
 	Alerts      []AlertRule `json:"alerts"`
 }
 
+// AlertRule represents a alertrule.
 type AlertRule struct {
 	Name      string  `json:"name"`
 	Condition string  `json:"condition"`
@@ -169,18 +172,21 @@ type AlertRule struct {
 	Severity  string  `json:"severity"`
 }
 
+// CustomMetric represents a custommetric.
 type CustomMetric struct {
 	Name   string `json:"name"`
 	Target int    `json:"target"`
 	Type   string `json:"type"`
 }
 
+// EncryptionSpec represents a encryptionspec.
 type EncryptionSpec struct {
 	AtRest        string   `json:"at_rest"`
 	InTransit     []string `json:"in_transit"`
 	KeyManagement string   `json:"key_management"`
 }
 
+// NetworkPolicy represents a networkpolicy.
 type NetworkPolicy struct {
 	Name      string   `json:"name"`
 	Ingress   []string `json:"ingress"`
@@ -188,6 +194,7 @@ type NetworkPolicy struct {
 	Protocols []string `json:"protocols"`
 }
 
+// SecurityContext represents a securitycontext.
 type SecurityContext struct {
 	RunAsNonRoot   bool              `json:"run_as_non_root"`
 	RunAsUser      int64             `json:"run_as_user"`
@@ -196,6 +203,7 @@ type SecurityContext struct {
 	SeLinuxOptions map[string]string `json:"selinux_options"`
 }
 
+// LoadBalancerSpec represents a loadbalancerspec.
 type LoadBalancerSpec struct {
 	Type            string        `json:"type"`      // ClusterIP, NodePort, LoadBalancer
 	Algorithm       string        `json:"algorithm"` // round-robin, least-connections
@@ -203,6 +211,7 @@ type LoadBalancerSpec struct {
 	HealthCheck     HealthCheckLB `json:"health_check"`
 }
 
+// HealthCheckLB represents a healthchecklb.
 type HealthCheckLB struct {
 	Enabled  bool   `json:"enabled"`
 	Path     string `json:"path"`
@@ -210,6 +219,7 @@ type HealthCheckLB struct {
 	Timeout  int    `json:"timeout"`
 }
 
+// MonitoringConfig represents a monitoringconfig.
 type MonitoringConfig struct {
 	Enabled    bool   `json:"enabled"`
 	Prometheus bool   `json:"prometheus"`
@@ -218,12 +228,14 @@ type MonitoringConfig struct {
 	LogLevel   string `json:"log_level"`
 }
 
+// BackupPolicy represents a backuppolicy.
 type BackupPolicy struct {
 	Enabled   bool   `json:"enabled"`
 	Schedule  string `json:"schedule"`  // cron format
 	Retention int    `json:"retention"` // days
 }
 
+// EndpointSpec represents a endpointspec.
 type EndpointSpec struct {
 	Name     string `json:"name"`
 	Port     int    `json:"port"`
@@ -231,12 +243,14 @@ type EndpointSpec struct {
 	Path     string `json:"path"`
 }
 
+// SecurityModel represents a securitymodel.
 type SecurityModel struct {
 	Authentication string   `json:"authentication"`
 	Authorization  string   `json:"authorization"`
 	Encryption     []string `json:"encryption"`
 }
 
+// QosRequirements represents a qosrequirements.
 type QosRequirements struct {
 	Bandwidth  string  `json:"bandwidth"`
 	Latency    float64 `json:"latency"`     // ms
@@ -244,12 +258,14 @@ type QosRequirements struct {
 	PacketLoss float64 `json:"packet_loss"` // percentage
 }
 
+// ReliabilitySpec represents a reliabilityspec.
 type ReliabilitySpec struct {
 	Availability float64 `json:"availability"` // percentage (99.99)
 	MTBF         int     `json:"mtbf"`         // hours
 	MTTR         int     `json:"mttr"`         // minutes
 }
 
+// QosProfile represents a qosprofile.
 type QosProfile struct {
 	QCI          int     `json:"qci"`            // QoS Class Identifier
 	QFI          int     `json:"qfi"`            // QoS Flow Identifier
@@ -262,6 +278,7 @@ type QosProfile struct {
 	GuaranteedBR string  `json:"guaranteed_br"`  // Mbps
 }
 
+// SliceTypeSpec represents a slicetypespec.
 type SliceTypeSpec struct {
 	SST              int               `json:"sst"` // Slice/Service Type
 	Description      string            `json:"description"`
@@ -272,6 +289,7 @@ type SliceTypeSpec struct {
 	NetworkFunctions []string          `json:"network_functions"`
 }
 
+// SliceRequirements represents a slicerequirements.
 type SliceRequirements struct {
 	Throughput  ThroughputReq  `json:"throughput"`
 	Latency     LatencyReq     `json:"latency"`
@@ -279,36 +297,42 @@ type SliceRequirements struct {
 	Density     DensityReq     `json:"density"`
 }
 
+// ThroughputReq represents a throughputreq.
 type ThroughputReq struct {
 	Min     string `json:"min"`     // Mbps
 	Max     string `json:"max"`     // Mbps
 	Typical string `json:"typical"` // Mbps
 }
 
+// LatencyReq represents a latencyreq.
 type LatencyReq struct {
 	UserPlane    float64 `json:"user_plane"`    // ms
 	ControlPlane float64 `json:"control_plane"` // ms
 	MaxJitter    float64 `json:"max_jitter"`    // ms
 }
 
+// ReliabilityReq represents a reliabilityreq.
 type ReliabilityReq struct {
 	Availability float64 `json:"availability"` // percentage
 	PacketLoss   float64 `json:"packet_loss"`  // percentage
 	ErrorRate    float64 `json:"error_rate"`   // 10^-x
 }
 
+// DensityReq represents a densityreq.
 type DensityReq struct {
 	ConnectedDevices int `json:"connected_devices"` // per km²
 	ActiveDevices    int `json:"active_devices"`    // per km²
 	SessionDensity   int `json:"session_density"`   // per km²
 }
 
+// ResourceProfile represents a resourceprofile.
 type ResourceProfile struct {
 	Compute ComputeProfile `json:"compute"`
 	Network NetworkProfile `json:"network"`
 	Storage StorageProfile `json:"storage"`
 }
 
+// ComputeProfile represents a computeprofile.
 type ComputeProfile struct {
 	CPUIntensive bool   `json:"cpu_intensive"`
 	GPURequired  bool   `json:"gpu_required"`
@@ -316,6 +340,7 @@ type ComputeProfile struct {
 	Architecture string `json:"architecture"` // x86, ARM
 }
 
+// NetworkProfile represents a networkprofile.
 type NetworkProfile struct {
 	BandwidthIntensive bool `json:"bandwidth_intensive"`
 	LatencySensitive   bool `json:"latency_sensitive"`
@@ -324,6 +349,7 @@ type NetworkProfile struct {
 	Multicast          bool `json:"multicast"`
 }
 
+// StorageProfile represents a storageprofile.
 type StorageProfile struct {
 	PersistentStorage bool   `json:"persistent_storage"`
 	HighIOPS          bool   `json:"high_iops"`
@@ -331,6 +357,7 @@ type StorageProfile struct {
 	BackupRequired    bool   `json:"backup_required"`
 }
 
+// KPISpec represents a kpispec.
 type KPISpec struct {
 	Name        string     `json:"name"`
 	Type        string     `json:"type"` // counter, gauge, rate
@@ -341,18 +368,21 @@ type KPISpec struct {
 	SLA         SLASpec    `json:"sla"`
 }
 
+// Thresholds represents a thresholds.
 type Thresholds struct {
 	Critical float64 `json:"critical"`
 	Warning  float64 `json:"warning"`
 	Target   float64 `json:"target"`
 }
 
+// SLASpec represents a slaspec.
 type SLASpec struct {
 	Availability float64 `json:"availability"`
 	Performance  float64 `json:"performance"`
 	Capacity     float64 `json:"capacity"`
 }
 
+// DeploymentPattern represents a deploymentpattern.
 type DeploymentPattern struct {
 	Name         string                 `json:"name"`
 	Description  string                 `json:"description"`
@@ -363,6 +393,7 @@ type DeploymentPattern struct {
 	Performance  PerformancePattern     `json:"performance"`
 }
 
+// DeploymentArchitecture represents a deploymentarchitecture.
 type DeploymentArchitecture struct {
 	Type         string `json:"type"`          // single-zone, multi-zone, multi-region
 	Redundancy   string `json:"redundancy"`    // active-active, active-passive
@@ -371,6 +402,7 @@ type DeploymentArchitecture struct {
 	ServiceMesh  bool   `json:"service_mesh"`
 }
 
+// ScalingPattern represents a scalingpattern.
 type ScalingPattern struct {
 	Horizontal bool `json:"horizontal"`
 	Vertical   bool `json:"vertical"`
@@ -378,6 +410,7 @@ type ScalingPattern struct {
 	Reactive   bool `json:"reactive"`
 }
 
+// ResiliencePattern represents a resiliencepattern.
 type ResiliencePattern struct {
 	CircuitBreaker bool `json:"circuit_breaker"`
 	Retry          bool `json:"retry"`
@@ -386,6 +419,7 @@ type ResiliencePattern struct {
 	HealthCheck    bool `json:"health_check"`
 }
 
+// PerformancePattern represents a performancepattern.
 type PerformancePattern struct {
 	Caching           bool `json:"caching"`
 	LoadBalancing     bool `json:"load_balancing"`
@@ -393,7 +427,7 @@ type PerformancePattern struct {
 	Compression       bool `json:"compression"`
 }
 
-// NewTelecomKnowledgeBase creates and initializes the knowledge base
+// NewTelecomKnowledgeBase creates and initializes the knowledge base.
 func NewTelecomKnowledgeBase() *TelecomKnowledgeBase {
 	kb := &TelecomKnowledgeBase{
 		NetworkFunctions: make(map[string]*NetworkFunctionSpec),
@@ -415,9 +449,9 @@ func NewTelecomKnowledgeBase() *TelecomKnowledgeBase {
 	return kb
 }
 
-// initializeNetworkFunctions initializes 5G Core network function specifications
+// initializeNetworkFunctions initializes 5G Core network function specifications.
 func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
-	// AMF - Access and Mobility Management Function (3GPP TS 23.501)
+	// AMF - Access and Mobility Management Function (3GPP TS 23.501).
 	kb.NetworkFunctions["amf"] = &NetworkFunctionSpec{
 		Name:              "AMF",
 		Type:              "5gc-control-plane",
@@ -562,7 +596,7 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 	}
 
-	// SMF - Session Management Function (3GPP TS 23.501)
+	// SMF - Session Management Function (3GPP TS 23.501).
 	kb.NetworkFunctions["smf"] = &NetworkFunctionSpec{
 		Name:              "SMF",
 		Type:              "5gc-control-plane",
@@ -617,7 +651,7 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 	}
 
-	// UPF - User Plane Function (3GPP TS 23.501)
+	// UPF - User Plane Function (3GPP TS 23.501).
 	kb.NetworkFunctions["upf"] = &NetworkFunctionSpec{
 		Name:              "UPF",
 		Type:              "5gc-user-plane",
@@ -661,7 +695,7 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 	}
 
-	// PCF - Policy Control Function (3GPP TS 23.501)
+	// PCF - Policy Control Function (3GPP TS 23.501).
 	kb.NetworkFunctions["pcf"] = &NetworkFunctionSpec{
 		Name:              "PCF",
 		Type:              "5gc-control-plane",
@@ -687,7 +721,7 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 	}
 
-	// UDM - Unified Data Management (3GPP TS 23.501)
+	// UDM - Unified Data Management (3GPP TS 23.501).
 	kb.NetworkFunctions["udm"] = &NetworkFunctionSpec{
 		Name:              "UDM",
 		Type:              "5gc-control-plane",
@@ -712,7 +746,7 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 	}
 
-	// AUSF - Authentication Server Function (3GPP TS 23.501)
+	// AUSF - Authentication Server Function (3GPP TS 23.501).
 	kb.NetworkFunctions["ausf"] = &NetworkFunctionSpec{
 		Name:              "AUSF",
 		Type:              "5gc-control-plane",
@@ -737,7 +771,7 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 	}
 
-	// NRF - Network Repository Function (3GPP TS 23.501)
+	// NRF - Network Repository Function (3GPP TS 23.501).
 	kb.NetworkFunctions["nrf"] = &NetworkFunctionSpec{
 		Name:              "NRF",
 		Type:              "5gc-control-plane",
@@ -760,7 +794,7 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 	}
 
-	// NSSF - Network Slice Selection Function (3GPP TS 23.501)
+	// NSSF - Network Slice Selection Function (3GPP TS 23.501).
 	kb.NetworkFunctions["nssf"] = &NetworkFunctionSpec{
 		Name:              "NSSF",
 		Type:              "5gc-control-plane",
@@ -785,7 +819,7 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 		},
 	}
 
-	// gNodeB - 5G Base Station (3GPP TS 38.401)
+	// gNodeB - 5G Base Station (3GPP TS 38.401).
 	kb.NetworkFunctions["gnb"] = &NetworkFunctionSpec{
 		Name:              "gNodeB",
 		Type:              "ran",
@@ -812,9 +846,9 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 	}
 }
 
-// initializeInterfaces initializes 5G network interface specifications
+// initializeInterfaces initializes 5G network interface specifications.
 func (kb *TelecomKnowledgeBase) initializeInterfaces() {
-	// N1 Interface (UE ↔ AMF)
+	// N1 Interface (UE ↔ AMF).
 	kb.Interfaces["n1"] = &InterfaceSpec{
 		Name:          "N1",
 		Type:          "reference-point",
@@ -838,7 +872,7 @@ func (kb *TelecomKnowledgeBase) initializeInterfaces() {
 		},
 	}
 
-	// N2 Interface (gNB ↔ AMF)
+	// N2 Interface (gNB ↔ AMF).
 	kb.Interfaces["n2"] = &InterfaceSpec{
 		Name:          "N2",
 		Type:          "reference-point",
@@ -856,7 +890,7 @@ func (kb *TelecomKnowledgeBase) initializeInterfaces() {
 		},
 	}
 
-	// N3 Interface (gNB ↔ UPF)
+	// N3 Interface (gNB ↔ UPF).
 	kb.Interfaces["n3"] = &InterfaceSpec{
 		Name:          "N3",
 		Type:          "reference-point",
@@ -870,7 +904,7 @@ func (kb *TelecomKnowledgeBase) initializeInterfaces() {
 		},
 	}
 
-	// N4 Interface (SMF ↔ UPF)
+	// N4 Interface (SMF ↔ UPF).
 	kb.Interfaces["n4"] = &InterfaceSpec{
 		Name:          "N4",
 		Type:          "reference-point",
@@ -884,7 +918,7 @@ func (kb *TelecomKnowledgeBase) initializeInterfaces() {
 		},
 	}
 
-	// Service Based Interfaces
+	// Service Based Interfaces.
 	kb.Interfaces["namf"] = &InterfaceSpec{
 		Name:          "Namf",
 		Type:          "service-based",
@@ -899,9 +933,9 @@ func (kb *TelecomKnowledgeBase) initializeInterfaces() {
 	}
 }
 
-// initializeQosProfiles initializes QoS profiles based on 3GPP TS 23.501
+// initializeQosProfiles initializes QoS profiles based on 3GPP TS 23.501.
 func (kb *TelecomKnowledgeBase) initializeQosProfiles() {
-	// 5QI 1 - Conversational Voice (GBR)
+	// 5QI 1 - Conversational Voice (GBR).
 	kb.QosProfiles["5qi_1"] = &QosProfile{
 		QCI:          1,
 		QFI:          1,
@@ -914,7 +948,7 @@ func (kb *TelecomKnowledgeBase) initializeQosProfiles() {
 		GuaranteedBR: "64",
 	}
 
-	// 5QI 2 - Conversational Video (GBR)
+	// 5QI 2 - Conversational Video (GBR).
 	kb.QosProfiles["5qi_2"] = &QosProfile{
 		QCI:          2,
 		QFI:          2,
@@ -927,7 +961,7 @@ func (kb *TelecomKnowledgeBase) initializeQosProfiles() {
 		GuaranteedBR: "500",
 	}
 
-	// 5QI 5 - IMS Signaling (Non-GBR)
+	// 5QI 5 - IMS Signaling (Non-GBR).
 	kb.QosProfiles["5qi_5"] = &QosProfile{
 		QCI:          5,
 		QFI:          5,
@@ -939,7 +973,7 @@ func (kb *TelecomKnowledgeBase) initializeQosProfiles() {
 		MaxBitrateDL: "256",
 	}
 
-	// 5QI 9 - Default Bearer (Non-GBR)
+	// 5QI 9 - Default Bearer (Non-GBR).
 	kb.QosProfiles["5qi_9"] = &QosProfile{
 		QCI:          9,
 		QFI:          9,
@@ -951,7 +985,7 @@ func (kb *TelecomKnowledgeBase) initializeQosProfiles() {
 		MaxBitrateDL: "unlimited",
 	}
 
-	// 5QI 82 - Discrete Automation (URLLC)
+	// 5QI 82 - Discrete Automation (URLLC).
 	kb.QosProfiles["5qi_82"] = &QosProfile{
 		QCI:          82,
 		QFI:          82,
@@ -965,9 +999,9 @@ func (kb *TelecomKnowledgeBase) initializeQosProfiles() {
 	}
 }
 
-// initializeSliceTypes initializes network slice type specifications
+// initializeSliceTypes initializes network slice type specifications.
 func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
-	// eMBB - Enhanced Mobile Broadband (SST=1)
+	// eMBB - Enhanced Mobile Broadband (SST=1).
 	kb.SliceTypes["embb"] = &SliceTypeSpec{
 		SST:         1,
 		Description: "Enhanced Mobile Broadband",
@@ -1017,7 +1051,7 @@ func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
 		NetworkFunctions: []string{"amf", "smf", "upf", "pcf", "udm"},
 	}
 
-	// URLLC - Ultra-Reliable Low Latency Communications (SST=2)
+	// URLLC - Ultra-Reliable Low Latency Communications (SST=2).
 	kb.SliceTypes["urllc"] = &SliceTypeSpec{
 		SST:         2,
 		Description: "Ultra-Reliable Low Latency Communications",
@@ -1059,7 +1093,7 @@ func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
 		NetworkFunctions: []string{"amf", "smf", "upf", "pcf"},
 	}
 
-	// mMTC - Massive Machine Type Communications (SST=3)
+	// mMTC - Massive Machine Type Communications (SST=3).
 	kb.SliceTypes["mmtc"] = &SliceTypeSpec{
 		SST:         3,
 		Description: "Massive Machine Type Communications",
@@ -1097,7 +1131,7 @@ func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
 	}
 }
 
-// initializeKPIs initializes performance KPI specifications
+// initializeKPIs initializes performance KPI specifications.
 func (kb *TelecomKnowledgeBase) initializeKPIs() {
 	kb.PerformanceKPIs["registration_success_rate"] = &KPISpec{
 		Name:        "Registration Success Rate",
@@ -1141,7 +1175,7 @@ func (kb *TelecomKnowledgeBase) initializeKPIs() {
 	}
 }
 
-// initializeDeploymentPatterns initializes deployment patterns
+// initializeDeploymentPatterns initializes deployment patterns.
 func (kb *TelecomKnowledgeBase) initializeDeploymentPatterns() {
 	kb.DeploymentTypes["high-availability"] = &DeploymentPattern{
 		Name:        "high-availability",
@@ -1188,31 +1222,31 @@ func (kb *TelecomKnowledgeBase) initializeDeploymentPatterns() {
 	}
 }
 
-// GetNetworkFunction retrieves network function specification by name
+// GetNetworkFunction retrieves network function specification by name.
 func (kb *TelecomKnowledgeBase) GetNetworkFunction(name string) (*NetworkFunctionSpec, bool) {
 	nf, exists := kb.NetworkFunctions[strings.ToLower(name)]
 	return nf, exists
 }
 
-// GetInterface retrieves interface specification by name
+// GetInterface retrieves interface specification by name.
 func (kb *TelecomKnowledgeBase) GetInterface(name string) (*InterfaceSpec, bool) {
 	iface, exists := kb.Interfaces[strings.ToLower(name)]
 	return iface, exists
 }
 
-// GetQosProfile retrieves QoS profile by name
+// GetQosProfile retrieves QoS profile by name.
 func (kb *TelecomKnowledgeBase) GetQosProfile(name string) (*QosProfile, bool) {
 	qos, exists := kb.QosProfiles[strings.ToLower(name)]
 	return qos, exists
 }
 
-// GetSliceType retrieves slice type specification by name
+// GetSliceType retrieves slice type specification by name.
 func (kb *TelecomKnowledgeBase) GetSliceType(name string) (*SliceTypeSpec, bool) {
 	slice, exists := kb.SliceTypes[strings.ToLower(name)]
 	return slice, exists
 }
 
-// ListNetworkFunctions returns all available network function names
+// ListNetworkFunctions returns all available network function names.
 func (kb *TelecomKnowledgeBase) ListNetworkFunctions() []string {
 	var names []string
 	for name := range kb.NetworkFunctions {
@@ -1222,7 +1256,7 @@ func (kb *TelecomKnowledgeBase) ListNetworkFunctions() []string {
 	return names
 }
 
-// GetNetworkFunctionsByType returns network functions of a specific type
+// GetNetworkFunctionsByType returns network functions of a specific type.
 func (kb *TelecomKnowledgeBase) GetNetworkFunctionsByType(nfType string) []*NetworkFunctionSpec {
 	var functions []*NetworkFunctionSpec
 	for _, nf := range kb.NetworkFunctions {
@@ -1233,7 +1267,7 @@ func (kb *TelecomKnowledgeBase) GetNetworkFunctionsByType(nfType string) []*Netw
 	return functions
 }
 
-// GetInterfacesForFunction returns all interfaces used by a network function
+// GetInterfacesForFunction returns all interfaces used by a network function.
 func (kb *TelecomKnowledgeBase) GetInterfacesForFunction(functionName string) []*InterfaceSpec {
 	nf, exists := kb.GetNetworkFunction(functionName)
 	if !exists {
@@ -1249,7 +1283,7 @@ func (kb *TelecomKnowledgeBase) GetInterfacesForFunction(functionName string) []
 	return interfaces
 }
 
-// GetDependenciesForFunction returns all dependencies for a network function
+// GetDependenciesForFunction returns all dependencies for a network function.
 func (kb *TelecomKnowledgeBase) GetDependenciesForFunction(functionName string) ([]*NetworkFunctionSpec, []*NetworkFunctionSpec) {
 	nf, exists := kb.GetNetworkFunction(functionName)
 	if !exists {
@@ -1274,32 +1308,32 @@ func (kb *TelecomKnowledgeBase) GetDependenciesForFunction(functionName string) 
 	return required, optional
 }
 
-// ValidateSliceConfiguration validates a network slice configuration
+// ValidateSliceConfiguration validates a network slice configuration.
 func (kb *TelecomKnowledgeBase) ValidateSliceConfiguration(sliceType, qosProfile string, functions []string) []string {
 	var issues []string
 
-	// Check if slice type exists
+	// Check if slice type exists.
 	slice, exists := kb.GetSliceType(sliceType)
 	if !exists {
 		issues = append(issues, fmt.Sprintf("Unknown slice type: %s", sliceType))
 		return issues
 	}
 
-	// Validate QoS profile
+	// Validate QoS profile.
 	if qosProfile != "" {
 		if _, exists := kb.GetQosProfile(qosProfile); !exists {
 			issues = append(issues, fmt.Sprintf("Unknown QoS profile: %s", qosProfile))
 		}
 	}
 
-	// Validate network functions
+	// Validate network functions.
 	for _, funcName := range functions {
 		if _, exists := kb.GetNetworkFunction(funcName); !exists {
 			issues = append(issues, fmt.Sprintf("Unknown network function: %s", funcName))
 		}
 	}
 
-	// Check if all required functions are present
+	// Check if all required functions are present.
 	requiredFunctions := slice.NetworkFunctions
 	for _, required := range requiredFunctions {
 		found := false
@@ -1317,7 +1351,7 @@ func (kb *TelecomKnowledgeBase) ValidateSliceConfiguration(sliceType, qosProfile
 	return issues
 }
 
-// GetPerformanceBaseline returns performance baseline for a network function
+// GetPerformanceBaseline returns performance baseline for a network function.
 func (kb *TelecomKnowledgeBase) GetPerformanceBaseline(functionName string) (*PerformanceBaseline, bool) {
 	nf, exists := kb.GetNetworkFunction(functionName)
 	if !exists {
@@ -1326,7 +1360,7 @@ func (kb *TelecomKnowledgeBase) GetPerformanceBaseline(functionName string) (*Pe
 	return &nf.Performance, true
 }
 
-// GetScalingParameters returns scaling parameters for a network function
+// GetScalingParameters returns scaling parameters for a network function.
 func (kb *TelecomKnowledgeBase) GetScalingParameters(functionName string) (*ScalingParameters, bool) {
 	nf, exists := kb.GetNetworkFunction(functionName)
 	if !exists {
@@ -1335,13 +1369,13 @@ func (kb *TelecomKnowledgeBase) GetScalingParameters(functionName string) (*Scal
 	return &nf.Scaling, true
 }
 
-// GetDeploymentPattern returns deployment pattern specification
+// GetDeploymentPattern returns deployment pattern specification.
 func (kb *TelecomKnowledgeBase) GetDeploymentPattern(patternName string) (*DeploymentPattern, bool) {
 	pattern, exists := kb.DeploymentTypes[strings.ToLower(patternName)]
 	return pattern, exists
 }
 
-// EstimateResourceRequirements estimates total resource requirements for a set of functions
+// EstimateResourceRequirements estimates total resource requirements for a set of functions.
 func (kb *TelecomKnowledgeBase) EstimateResourceRequirements(functions []string, replicas map[string]int) (ResourceRequirements, error) {
 	var total ResourceRequirements
 	var totalCPU, totalMemory, totalStorage float64
@@ -1357,17 +1391,17 @@ func (kb *TelecomKnowledgeBase) EstimateResourceRequirements(functions []string,
 			replicaCount = r
 		}
 
-		// Parse and sum CPU (assuming cores)
+		// Parse and sum CPU (assuming cores).
 		var cpu float64
 		fmt.Sscanf(nf.Resources.MaxCPU, "%f", &cpu)
 		totalCPU += cpu * float64(replicaCount)
 
-		// Parse and sum Memory (assuming Gi)
+		// Parse and sum Memory (assuming Gi).
 		var memory float64
 		fmt.Sscanf(nf.Resources.MaxMemory, "%fGi", &memory)
 		totalMemory += memory * float64(replicaCount)
 
-		// Parse and sum Storage (assuming Gi)
+		// Parse and sum Storage (assuming Gi).
 		var storage float64
 		fmt.Sscanf(nf.Resources.Storage, "%fGi", &storage)
 		totalStorage += storage * float64(replicaCount)
@@ -1380,7 +1414,7 @@ func (kb *TelecomKnowledgeBase) EstimateResourceRequirements(functions []string,
 	return total, nil
 }
 
-// GetCompatibleSliceTypes returns slice types compatible with given requirements
+// GetCompatibleSliceTypes returns slice types compatible with given requirements.
 func (kb *TelecomKnowledgeBase) GetCompatibleSliceTypes(maxLatency float64, minThroughput int, minReliability float64) []*SliceTypeSpec {
 	var compatible []*SliceTypeSpec
 
@@ -1401,7 +1435,7 @@ func (kb *TelecomKnowledgeBase) GetCompatibleSliceTypes(maxLatency float64, minT
 	return compatible
 }
 
-// GetRecommendedDeploymentConfig returns recommended deployment configuration
+// GetRecommendedDeploymentConfig returns recommended deployment configuration.
 func (kb *TelecomKnowledgeBase) GetRecommendedDeploymentConfig(functionName, environment string) (*DeploymentConfig, error) {
 	nf, exists := kb.GetNetworkFunction(functionName)
 	if !exists {
@@ -1410,7 +1444,7 @@ func (kb *TelecomKnowledgeBase) GetRecommendedDeploymentConfig(functionName, env
 
 	config, exists := nf.DeploymentPatterns[environment]
 	if !exists {
-		// Return production config as default
+		// Return production config as default.
 		if prodConfig, exists := nf.DeploymentPatterns["production"]; exists {
 			return &prodConfig, nil
 		}
@@ -1420,17 +1454,17 @@ func (kb *TelecomKnowledgeBase) GetRecommendedDeploymentConfig(functionName, env
 	return &config, nil
 }
 
-// IsInitialized returns whether the knowledge base has been initialized
+// IsInitialized returns whether the knowledge base has been initialized.
 func (kb *TelecomKnowledgeBase) IsInitialized() bool {
 	return kb.initialized
 }
 
-// GetVersion returns the knowledge base version
+// GetVersion returns the knowledge base version.
 func (kb *TelecomKnowledgeBase) GetVersion() string {
 	return "1.0.0-3GPP-R17"
 }
 
-// GetLastUpdated returns the last update time (placeholder)
+// GetLastUpdated returns the last update time (placeholder).
 func (kb *TelecomKnowledgeBase) GetLastUpdated() time.Time {
 	return time.Now() // In production, this would be from metadata
 }

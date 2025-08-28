@@ -1,4 +1,4 @@
-// Package security provides advanced TLS configuration and security enhancements
+// Package security provides advanced TLS configuration and security enhancements.
 package security
 
 import (
@@ -19,57 +19,57 @@ import (
 	"golang.org/x/crypto/ocsp"
 )
 
-// TLSEnhancedConfig provides advanced TLS configuration with Go 1.24+ features
+// TLSEnhancedConfig provides advanced TLS configuration with Go 1.24+ features.
 type TLSEnhancedConfig struct {
-	// Core configuration
+	// Core configuration.
 	MinVersion       uint16
 	MaxVersion       uint16
 	CipherSuites     []uint16
 	CurvePreferences []tls.CurveID
 
-	// Post-quantum readiness
+	// Post-quantum readiness.
 	PostQuantumEnabled bool
 	HybridMode         bool // Use classical + PQ algorithms
 
-	// Certificate management
+	// Certificate management.
 	CertFile  string
 	KeyFile   string
 	CAFile    string
 	ClientCAs *x509.CertPool
 	RootCAs   *x509.CertPool
 
-	// Advanced features
+	// Advanced features.
 	Enable0RTT         bool
 	SessionTicketKeys  [][32]byte
 	ClientSessionCache tls.ClientSessionCache
 
-	// OCSP configuration
+	// OCSP configuration.
 	OCSPStapling     bool
 	OCSPResponderURL string
 	OCSPCache        *OCSPCache
 
-	// CRL configuration
+	// CRL configuration.
 	CRLCheckEnabled       bool
 	CRLDistributionPoints []string
 	CRLCache              *CRLCache
 
-	// Smart card support
+	// Smart card support.
 	SmartCardEnabled  bool
 	SmartCardProvider string
 
-	// Connection pooling
+	// Connection pooling.
 	ConnectionPool  *TLSConnectionPool
 	MaxIdleConns    int
 	MaxConnsPerHost int
 	IdleConnTimeout time.Duration
 
-	// Monitoring
+	// Monitoring.
 	MetricsCollector *TLSMetricsCollector
 
 	mu sync.RWMutex
 }
 
-// TLSConnectionPool manages TLS connection pooling
+// TLSConnectionPool manages TLS connection pooling.
 type TLSConnectionPool struct {
 	connections map[string][]*tls.Conn
 	maxSize     int
@@ -77,7 +77,7 @@ type TLSConnectionPool struct {
 	stats       *ConnectionPoolStats
 }
 
-// ConnectionPoolStats tracks pool statistics
+// ConnectionPoolStats tracks pool statistics.
 type ConnectionPoolStats struct {
 	hits        uint64
 	misses      uint64
@@ -85,7 +85,7 @@ type ConnectionPoolStats struct {
 	activeConns uint64
 }
 
-// OCSPCache provides OCSP response caching
+// OCSPCache provides OCSP response caching.
 type OCSPCache struct {
 	cache map[string]*ocspCacheEntry
 	mu    sync.RWMutex
@@ -97,7 +97,7 @@ type ocspCacheEntry struct {
 	timestamp time.Time
 }
 
-// CRLCache provides CRL caching
+// CRLCache provides CRL caching.
 type CRLCache struct {
 	cache map[string]*crlCacheEntry
 	mu    sync.RWMutex
@@ -109,7 +109,7 @@ type crlCacheEntry struct {
 	timestamp time.Time
 }
 
-// TLSMetricsCollector collects TLS metrics
+// TLSMetricsCollector collects TLS metrics.
 type TLSMetricsCollector struct {
 	handshakes      uint64
 	handshakeErrors uint64
@@ -120,13 +120,13 @@ type TLSMetricsCollector struct {
 	ocspMisses      uint64
 }
 
-// NewTLSEnhancedConfig creates a new enhanced TLS configuration
+// NewTLSEnhancedConfig creates a new enhanced TLS configuration.
 func NewTLSEnhancedConfig() *TLSEnhancedConfig {
 	return &TLSEnhancedConfig{
 		MinVersion: tls.VersionTLS13,
 		MaxVersion: tls.VersionTLS13,
 		CipherSuites: []uint16{
-			// TLS 1.3 cipher suites (automatic in Go 1.24+)
+			// TLS 1.3 cipher suites (automatic in Go 1.24+).
 			tls.TLS_AES_256_GCM_SHA384,
 			tls.TLS_AES_128_GCM_SHA256,
 			tls.TLS_CHACHA20_POLY1305_SHA256,
@@ -156,7 +156,7 @@ func NewTLSEnhancedConfig() *TLSEnhancedConfig {
 	}
 }
 
-// BuildTLSConfig creates a tls.Config from the enhanced configuration
+// BuildTLSConfig creates a tls.Config from the enhanced configuration.
 func (c *TLSEnhancedConfig) BuildTLSConfig() (*tls.Config, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -171,7 +171,7 @@ func (c *TLSEnhancedConfig) BuildTLSConfig() (*tls.Config, error) {
 		ClientSessionCache: c.ClientSessionCache,
 	}
 
-	// Load certificates if provided
+	// Load certificates if provided.
 	if c.CertFile != "" && c.KeyFile != "" {
 		cert, err := tls.LoadX509KeyPair(c.CertFile, c.KeyFile)
 		if err != nil {
@@ -180,19 +180,19 @@ func (c *TLSEnhancedConfig) BuildTLSConfig() (*tls.Config, error) {
 		tlsConfig.Certificates = []tls.Certificate{cert}
 	}
 
-	// Configure session resumption and 0-RTT
+	// Configure session resumption and 0-RTT.
 	if c.Enable0RTT {
-		// Go 1.24+ supports 0-RTT data
+		// Go 1.24+ supports 0-RTT data.
 		tlsConfig.SessionTicketsDisabled = false
 		if len(c.SessionTicketKeys) > 0 {
 			tlsConfig.SetSessionTicketKeys(c.SessionTicketKeys)
 		}
 	}
 
-	// Set up certificate verification with OCSP/CRL
+	// Set up certificate verification with OCSP/CRL.
 	tlsConfig.VerifyPeerCertificate = c.verifyPeerCertificate
 
-	// Configure OCSP stapling
+	// Configure OCSP stapling.
 	if c.OCSPStapling {
 		tlsConfig.GetCertificate = c.getCertificateWithOCSP
 	}
@@ -200,39 +200,39 @@ func (c *TLSEnhancedConfig) BuildTLSConfig() (*tls.Config, error) {
 	return tlsConfig, nil
 }
 
-// verifyPeerCertificate performs advanced certificate verification
+// verifyPeerCertificate performs advanced certificate verification.
 func (c *TLSEnhancedConfig) verifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	if len(rawCerts) == 0 {
 		return errors.New("no certificates provided")
 	}
 
-	// Parse the leaf certificate
+	// Parse the leaf certificate.
 	cert, err := x509.ParseCertificate(rawCerts[0])
 	if err != nil {
 		return fmt.Errorf("failed to parse certificate: %w", err)
 	}
 
-	// Check OCSP if enabled
+	// Check OCSP if enabled.
 	if c.OCSPStapling && c.OCSPResponderURL != "" {
 		if err := c.checkOCSPStatus(cert, rawCerts); err != nil {
 			return fmt.Errorf("OCSP validation failed: %w", err)
 		}
 	}
 
-	// Check CRL if enabled
+	// Check CRL if enabled.
 	if c.CRLCheckEnabled && len(c.CRLDistributionPoints) > 0 {
 		if err := c.checkCRLStatus(cert); err != nil {
 			return fmt.Errorf("CRL validation failed: %w", err)
 		}
 	}
 
-	// Additional custom verification can be added here
+	// Additional custom verification can be added here.
 	return nil
 }
 
-// checkOCSPStatus verifies certificate status via OCSP
+// checkOCSPStatus verifies certificate status via OCSP.
 func (c *TLSEnhancedConfig) checkOCSPStatus(cert *x509.Certificate, rawCerts [][]byte) error {
-	// Check cache first
+	// Check cache first.
 	c.OCSPCache.mu.RLock()
 	if cached, ok := c.OCSPCache.cache[string(cert.SerialNumber.Bytes())]; ok {
 		if time.Since(cached.timestamp) < c.OCSPCache.ttl {
@@ -248,14 +248,14 @@ func (c *TLSEnhancedConfig) checkOCSPStatus(cert *x509.Certificate, rawCerts [][
 
 	atomic.AddUint64(&c.MetricsCollector.ocspMisses, 1)
 
-	// Create OCSP request
+	// Create OCSP request.
 	issuer := cert // In production, this should be the actual issuer
 	_, err := ocsp.CreateRequest(cert, issuer, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create OCSP request: %w", err)
 	}
 
-	// Send OCSP request
+	// Send OCSP request.
 	httpReq, err := http.NewRequestWithContext(context.Background(), "POST", c.OCSPResponderURL, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create HTTP request: %w", err)
@@ -279,7 +279,7 @@ func (c *TLSEnhancedConfig) checkOCSPStatus(cert *x509.Certificate, rawCerts [][
 		return fmt.Errorf("failed to parse OCSP response: %w", err)
 	}
 
-	// Cache the response
+	// Cache the response.
 	c.OCSPCache.mu.Lock()
 	c.OCSPCache.cache[string(cert.SerialNumber.Bytes())] = &ocspCacheEntry{
 		response:  ocspResp,
@@ -294,14 +294,14 @@ func (c *TLSEnhancedConfig) checkOCSPStatus(cert *x509.Certificate, rawCerts [][
 	return nil
 }
 
-// checkCRLStatus verifies certificate status via CRL
+// checkCRLStatus verifies certificate status via CRL.
 func (c *TLSEnhancedConfig) checkCRLStatus(cert *x509.Certificate) error {
-	// Check cache first
+	// Check cache first.
 	c.CRLCache.mu.RLock()
 	for _, dp := range c.CRLDistributionPoints {
 		if cached, ok := c.CRLCache.cache[dp]; ok {
 			if time.Since(cached.timestamp) < c.CRLCache.ttl {
-				// Check if certificate is in the CRL
+				// Check if certificate is in the CRL.
 				for _, revoked := range cached.crl.RevokedCertificateEntries {
 					if cert.SerialNumber.Cmp(revoked.SerialNumber) == 0 {
 						c.CRLCache.mu.RUnlock()
@@ -313,29 +313,30 @@ func (c *TLSEnhancedConfig) checkCRLStatus(cert *x509.Certificate) error {
 	}
 	c.CRLCache.mu.RUnlock()
 
-	// If not in cache or cache expired, fetch CRL
-	// This is simplified - production code should fetch and parse actual CRL
+	// If not in cache or cache expired, fetch CRL.
+	// This is simplified - production code should fetch and parse actual CRL.
 	return nil
 }
 
-// getCertificateWithOCSP returns certificate with OCSP stapling
+// getCertificateWithOCSP returns certificate with OCSP stapling.
 func (c *TLSEnhancedConfig) getCertificateWithOCSP(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-	// Load certificate
+	// Load certificate.
 	cert, err := tls.LoadX509KeyPair(c.CertFile, c.KeyFile)
 	if err != nil {
 		return nil, err
 	}
 
-	// Add OCSP stapling if available
+	// Add OCSP stapling if available.
 	if c.OCSPStapling && len(cert.Certificate) > 0 {
-		// In production, fetch fresh OCSP response
-		// cert.OCSPStaple = ocspResponse
+		// In production, fetch fresh OCSP response.
+		// cert.OCSPStaple = ocspResponse.
+		// TODO: Implement OCSP stapling.
 	}
 
 	return &cert, nil
 }
 
-// CreateHTTPSServer creates an HTTPS server with enhanced TLS
+// CreateHTTPSServer creates an HTTPS server with enhanced TLS.
 func (c *TLSEnhancedConfig) CreateHTTPSServer(handler http.Handler, addr string) (*http.Server, error) {
 	tlsConfig, err := c.BuildTLSConfig()
 	if err != nil {
@@ -346,7 +347,7 @@ func (c *TLSEnhancedConfig) CreateHTTPSServer(handler http.Handler, addr string)
 		Addr:      addr,
 		Handler:   handler,
 		TLSConfig: tlsConfig,
-		// Enhanced timeouts for security
+		// Enhanced timeouts for security.
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,
 		IdleTimeout:       60 * time.Second,
@@ -354,13 +355,13 @@ func (c *TLSEnhancedConfig) CreateHTTPSServer(handler http.Handler, addr string)
 		MaxHeaderBytes:    1 << 20, // 1 MB
 	}
 
-	// Configure connection state tracking
+	// Configure connection state tracking.
 	server.ConnState = c.trackConnectionState
 
 	return server, nil
 }
 
-// trackConnectionState monitors connection states
+// trackConnectionState monitors connection states.
 func (c *TLSEnhancedConfig) trackConnectionState(conn net.Conn, state http.ConnState) {
 	switch state {
 	case http.StateNew:
@@ -370,7 +371,7 @@ func (c *TLSEnhancedConfig) trackConnectionState(conn net.Conn, state http.ConnS
 	}
 }
 
-// GetMetrics returns current TLS metrics
+// GetMetrics returns current TLS metrics.
 func (c *TLSEnhancedConfig) GetMetrics() map[string]uint64 {
 	return map[string]uint64{
 		"handshakes":        atomic.LoadUint64(&c.MetricsCollector.handshakes),
@@ -386,7 +387,7 @@ func (c *TLSEnhancedConfig) GetMetrics() map[string]uint64 {
 	}
 }
 
-// EnablePostQuantum prepares for post-quantum cryptography
+// EnablePostQuantum prepares for post-quantum cryptography.
 func (c *TLSEnhancedConfig) EnablePostQuantum(hybridMode bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -394,15 +395,15 @@ func (c *TLSEnhancedConfig) EnablePostQuantum(hybridMode bool) {
 	c.PostQuantumEnabled = true
 	c.HybridMode = hybridMode
 
-	// When PQ algorithms are standardized in Go, they will be configured here
-	// For now, we prepare the infrastructure
+	// When PQ algorithms are standardized in Go, they will be configured here.
+	// For now, we prepare the infrastructure.
 	if hybridMode {
-		// Use classical algorithms alongside PQ-ready configurations
+		// Use classical algorithms alongside PQ-ready configurations.
 		c.MinVersion = tls.VersionTLS13
 	}
 }
 
-// LoadCABundle loads CA certificates from a file
+// LoadCABundle loads CA certificates from a file.
 func (c *TLSEnhancedConfig) LoadCABundle(caFile string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -421,7 +422,7 @@ func (c *TLSEnhancedConfig) LoadCABundle(caFile string) error {
 	return nil
 }
 
-// EnableClientCertAuth enables client certificate authentication
+// EnableClientCertAuth enables client certificate authentication.
 func (c *TLSEnhancedConfig) EnableClientCertAuth(clientCAFile string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -439,14 +440,14 @@ func (c *TLSEnhancedConfig) EnableClientCertAuth(clientCAFile string) error {
 	return nil
 }
 
-// SetSessionTicketKeys sets custom session ticket keys for 0-RTT
+// SetSessionTicketKeys sets custom session ticket keys for 0-RTT.
 func (c *TLSEnhancedConfig) SetSessionTicketKeys(keys [][32]byte) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.SessionTicketKeys = keys
 }
 
-// GetConnectionFromPool retrieves a connection from the pool
+// GetConnectionFromPool retrieves a connection from the pool.
 func (p *TLSConnectionPool) GetConnection(addr string) (*tls.Conn, bool) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -462,7 +463,7 @@ func (p *TLSConnectionPool) GetConnection(addr string) (*tls.Conn, bool) {
 	return nil, false
 }
 
-// ReturnConnection returns a connection to the pool
+// ReturnConnection returns a connection to the pool.
 func (p *TLSConnectionPool) ReturnConnection(addr string, conn *tls.Conn) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -475,9 +476,9 @@ func (p *TLSConnectionPool) ReturnConnection(addr string, conn *tls.Conn) {
 	}
 }
 
-// ValidateCertificateChain performs comprehensive certificate chain validation
+// ValidateCertificateChain performs comprehensive certificate chain validation.
 func ValidateCertificateChain(certPEM, chainPEM, rootPEM []byte) error {
-	// Parse certificates
+	// Parse certificates.
 	cert, _ := pem.Decode(certPEM)
 	if cert == nil {
 		return errors.New("failed to decode certificate")
@@ -488,13 +489,13 @@ func ValidateCertificateChain(certPEM, chainPEM, rootPEM []byte) error {
 		return fmt.Errorf("failed to parse certificate: %w", err)
 	}
 
-	// Create certificate pool for roots
+	// Create certificate pool for roots.
 	roots := x509.NewCertPool()
 	if !roots.AppendCertsFromPEM(rootPEM) {
 		return errors.New("failed to parse root certificate")
 	}
 
-	// Create certificate pool for intermediates
+	// Create certificate pool for intermediates.
 	intermediates := x509.NewCertPool()
 	if len(chainPEM) > 0 {
 		if !intermediates.AppendCertsFromPEM(chainPEM) {
@@ -502,7 +503,7 @@ func ValidateCertificateChain(certPEM, chainPEM, rootPEM []byte) error {
 		}
 	}
 
-	// Verify certificate chain
+	// Verify certificate chain.
 	opts := x509.VerifyOptions{
 		Roots:         roots,
 		Intermediates: intermediates,

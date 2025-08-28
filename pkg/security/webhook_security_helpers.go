@@ -7,14 +7,14 @@ import (
 	"time"
 )
 
-// WebhookSecurityValidator provides additional security validation for webhooks
+// WebhookSecurityValidator provides additional security validation for webhooks.
 type WebhookSecurityValidator struct {
 	maxPayloadSize   int64
 	allowedUserAgent string
 	requiredHeaders  []string
 }
 
-// NewWebhookSecurityValidator creates a new webhook security validator
+// NewWebhookSecurityValidator creates a new webhook security validator.
 func NewWebhookSecurityValidator() *WebhookSecurityValidator {
 	return &WebhookSecurityValidator{
 		maxPayloadSize:   10 * 1024 * 1024, // 10MB default
@@ -26,27 +26,27 @@ func NewWebhookSecurityValidator() *WebhookSecurityValidator {
 	}
 }
 
-// WithMaxPayloadSize sets the maximum allowed payload size
+// WithMaxPayloadSize sets the maximum allowed payload size.
 func (v *WebhookSecurityValidator) WithMaxPayloadSize(size int64) *WebhookSecurityValidator {
 	v.maxPayloadSize = size
 	return v
 }
 
-// WithAllowedUserAgent sets the allowed User-Agent header value
+// WithAllowedUserAgent sets the allowed User-Agent header value.
 func (v *WebhookSecurityValidator) WithAllowedUserAgent(userAgent string) *WebhookSecurityValidator {
 	v.allowedUserAgent = userAgent
 	return v
 }
 
-// WithRequiredHeaders sets the required headers for webhook requests
+// WithRequiredHeaders sets the required headers for webhook requests.
 func (v *WebhookSecurityValidator) WithRequiredHeaders(headers []string) *WebhookSecurityValidator {
 	v.requiredHeaders = headers
 	return v
 }
 
-// ValidateRequest performs additional security validation on webhook requests
+// ValidateRequest performs additional security validation on webhook requests.
 func (v *WebhookSecurityValidator) ValidateRequest(r *http.Request) error {
-	// Check Content-Length header
+	// Check Content-Length header.
 	if r.ContentLength > v.maxPayloadSize {
 		return &WebhookSecurityError{
 			Code:    "PAYLOAD_TOO_LARGE",
@@ -54,7 +54,7 @@ func (v *WebhookSecurityValidator) ValidateRequest(r *http.Request) error {
 		}
 	}
 
-	// Check required headers
+	// Check required headers.
 	for _, header := range v.requiredHeaders {
 		if r.Header.Get(header) == "" {
 			return &WebhookSecurityError{
@@ -64,7 +64,7 @@ func (v *WebhookSecurityValidator) ValidateRequest(r *http.Request) error {
 		}
 	}
 
-	// Check User-Agent if specified
+	// Check User-Agent if specified.
 	if v.allowedUserAgent != "" {
 		userAgent := r.Header.Get("User-Agent")
 		if !strings.Contains(userAgent, v.allowedUserAgent) {
@@ -75,7 +75,7 @@ func (v *WebhookSecurityValidator) ValidateRequest(r *http.Request) error {
 		}
 	}
 
-	// Check Content-Type
+	// Check Content-Type.
 	contentType := r.Header.Get("Content-Type")
 	if !strings.Contains(contentType, "application/json") {
 		return &WebhookSecurityError{
@@ -87,34 +87,35 @@ func (v *WebhookSecurityValidator) ValidateRequest(r *http.Request) error {
 	return nil
 }
 
-// WebhookSecurityError represents a webhook security validation error
+// WebhookSecurityError represents a webhook security validation error.
 type WebhookSecurityError struct {
 	Code    string
 	Message string
 }
 
+// Error performs error operation.
 func (e *WebhookSecurityError) Error() string {
 	return e.Message
 }
 
-// SecureStringCompare performs constant-time string comparison
+// SecureStringCompare performs constant-time string comparison.
 func SecureStringCompare(a, b string) bool {
 	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 }
 
-// WebhookTimingValidator helps prevent timing attacks by ensuring consistent response times
+// WebhookTimingValidator helps prevent timing attacks by ensuring consistent response times.
 type WebhookTimingValidator struct {
 	minResponseTime time.Duration
 }
 
-// NewWebhookTimingValidator creates a new timing validator
+// NewWebhookTimingValidator creates a new timing validator.
 func NewWebhookTimingValidator(minTime time.Duration) *WebhookTimingValidator {
 	return &WebhookTimingValidator{
 		minResponseTime: minTime,
 	}
 }
 
-// EnsureMinimumResponseTime ensures responses take at least the minimum time
+// EnsureMinimumResponseTime ensures responses take at least the minimum time.
 func (v *WebhookTimingValidator) EnsureMinimumResponseTime(start time.Time) {
 	elapsed := time.Since(start)
 	if elapsed < v.minResponseTime {
@@ -122,14 +123,14 @@ func (v *WebhookTimingValidator) EnsureMinimumResponseTime(start time.Time) {
 	}
 }
 
-// WebhookRateLimiter provides simple rate limiting for webhook endpoints
+// WebhookRateLimiter provides simple rate limiting for webhook endpoints.
 type WebhookRateLimiter struct {
 	requests map[string][]time.Time
 	limit    int
 	window   time.Duration
 }
 
-// NewWebhookRateLimiter creates a new rate limiter
+// NewWebhookRateLimiter creates a new rate limiter.
 func NewWebhookRateLimiter(limit int, window time.Duration) *WebhookRateLimiter {
 	return &WebhookRateLimiter{
 		requests: make(map[string][]time.Time),
@@ -138,19 +139,19 @@ func NewWebhookRateLimiter(limit int, window time.Duration) *WebhookRateLimiter 
 	}
 }
 
-// IsAllowed checks if a request from the given IP is allowed
+// IsAllowed checks if a request from the given IP is allowed.
 func (rl *WebhookRateLimiter) IsAllowed(ip string) bool {
 	now := time.Now()
 
-	// Clean old requests
+	// Clean old requests.
 	rl.cleanOldRequests(ip, now)
 
-	// Check if we're within limits
+	// Check if we're within limits.
 	if len(rl.requests[ip]) >= rl.limit {
 		return false
 	}
 
-	// Add current request
+	// Add current request.
 	rl.requests[ip] = append(rl.requests[ip], now)
 	return true
 }

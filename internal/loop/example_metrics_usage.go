@@ -10,9 +10,9 @@ import (
 	"time"
 )
 
-// ExampleMetricsUsage demonstrates how to use the comprehensive metrics system
+// ExampleMetricsUsage demonstrates how to use the comprehensive metrics system.
 func ExampleMetricsUsage() {
-	// Create a watcher with metrics enabled
+	// Create a watcher with metrics enabled.
 	config := Config{
 		PorchPath:    "/usr/bin/porch",
 		Mode:         "direct",
@@ -31,17 +31,17 @@ func ExampleMetricsUsage() {
 	}
 	defer watcher.Close()
 
-	// Start the watcher in a goroutine
+	// Start the watcher in a goroutine.
 	go func() {
 		if err := watcher.Start(); err != nil {
 			log.Printf("Watcher error: %v", err)
 		}
 	}()
 
-	// Give it some time to start
+	// Give it some time to start.
 	time.Sleep(2 * time.Second)
 
-	// Example 1: Get metrics programmatically
+	// Example 1: Get metrics programmatically.
 	fmt.Println("=== Programmatic Metrics Access ===")
 	metrics := watcher.GetMetrics()
 	fmt.Printf("Files Processed: %d\n", metrics.FilesProcessedTotal)
@@ -50,7 +50,7 @@ func ExampleMetricsUsage() {
 	fmt.Printf("Worker Utilization: %.2f%%\n", metrics.WorkerUtilization)
 	fmt.Printf("Throughput: %.2f files/sec\n", metrics.ThroughputFilesPerSecond)
 
-	// Example 2: Access JSON metrics via HTTP
+	// Example 2: Access JSON metrics via HTTP.
 	fmt.Println("\n=== HTTP JSON Metrics ===")
 	ctx := context.Background()
 	req, err := http.NewRequestWithContext(ctx, "GET", "http://localhost:8080/metrics", nil)
@@ -68,7 +68,7 @@ func ExampleMetricsUsage() {
 		if err := json.NewDecoder(resp.Body).Decode(&metricsResponse); err != nil {
 			log.Printf("Failed to decode metrics: %v", err)
 		} else {
-			// Pretty print some key metrics
+			// Pretty print some key metrics.
 			if performance, ok := metricsResponse["performance"].(map[string]interface{}); ok {
 				fmt.Printf("Total files processed: %.0f\n", performance["files_processed_total"])
 				fmt.Printf("Average processing time: %s\n", performance["average_processing_time"])
@@ -80,7 +80,7 @@ func ExampleMetricsUsage() {
 		}
 	}
 
-	// Example 3: Prometheus metrics format
+	// Example 3: Prometheus metrics format.
 	fmt.Println("\n=== Prometheus Metrics ===")
 	req, err = http.NewRequestWithContext(ctx, "GET", "http://localhost:8080/metrics/prometheus", nil)
 	if err != nil {
@@ -92,7 +92,7 @@ func ExampleMetricsUsage() {
 		log.Printf("Failed to get Prometheus metrics: %v", err)
 	} else {
 		defer resp.Body.Close()
-		// Show first few lines of Prometheus metrics
+		// Show first few lines of Prometheus metrics.
 		buf := make([]byte, 500)
 		n, err := resp.Body.Read(buf)
 		if err != nil && err != io.EOF {
@@ -102,7 +102,7 @@ func ExampleMetricsUsage() {
 		}
 	}
 
-	// Example 4: Health check
+	// Example 4: Health check.
 	fmt.Println("\n=== Health Check ===")
 	req, err = http.NewRequestWithContext(ctx, "GET", "http://localhost:8080/health", nil)
 	if err != nil {
@@ -124,9 +124,9 @@ func ExampleMetricsUsage() {
 	}
 }
 
-// MetricsCollectorExample shows how to collect and analyze metrics over time
+// MetricsCollectorExample shows how to collect and analyze metrics over time.
 func MetricsCollectorExample() {
-	// This would typically be run in a monitoring system
+	// This would typically be run in a monitoring system.
 	metricsHistory := make([]*WatcherMetrics, 0, 100)
 
 	config := Config{
@@ -141,7 +141,7 @@ func MetricsCollectorExample() {
 	}
 	defer watcher.Close()
 
-	// Collect metrics every 10 seconds for analysis
+	// Collect metrics every 10 seconds for analysis.
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 
@@ -158,7 +158,7 @@ func MetricsCollectorExample() {
 			metrics.WorkerUtilization)
 	}
 
-	// Analyze trends
+	// Analyze trends.
 	fmt.Println("\n=== Trend Analysis ===")
 	if len(metricsHistory) >= 2 {
 		latest := metricsHistory[len(metricsHistory)-1]
@@ -176,24 +176,24 @@ func MetricsCollectorExample() {
 	}
 }
 
-// AlertingExample demonstrates how to set up alerting based on metrics
+// AlertingExample demonstrates how to set up alerting based on metrics.
 func AlertingExample(watcher *Watcher) {
-	// This would typically integrate with alerting systems like Prometheus AlertManager
+	// This would typically integrate with alerting systems like Prometheus AlertManager.
 
 	checkAlerts := func() {
 		metrics := watcher.GetMetrics()
 
-		// Memory usage alert
+		// Memory usage alert.
 		if metrics.MemoryUsageBytes > 100*1024*1024 { // 100MB
 			fmt.Printf("🚨 ALERT: High memory usage: %d MB\n", metrics.MemoryUsageBytes/(1024*1024))
 		}
 
-		// Worker utilization alert
+		// Worker utilization alert.
 		if metrics.WorkerUtilization > 90.0 {
 			fmt.Printf("🚨 ALERT: High worker utilization: %.1f%%\n", metrics.WorkerUtilization)
 		}
 
-		// Error rate alert
+		// Error rate alert.
 		totalFiles := metrics.FilesProcessedTotal + metrics.FilesFailedTotal
 		if totalFiles > 0 {
 			errorRate := float64(metrics.FilesFailedTotal) / float64(totalFiles) * 100
@@ -202,18 +202,18 @@ func AlertingExample(watcher *Watcher) {
 			}
 		}
 
-		// Processing latency alert (would need actual latency calculation)
+		// Processing latency alert (would need actual latency calculation).
 		if metrics.AverageProcessingTime > 30*time.Second {
 			fmt.Printf("🚨 ALERT: High processing latency: %v\n", metrics.AverageProcessingTime)
 		}
 
-		// Backpressure alert
+		// Backpressure alert.
 		if metrics.BackpressureEventsTotal > 0 {
 			fmt.Printf("⚠️ WARNING: Backpressure events detected: %d\n", metrics.BackpressureEventsTotal)
 		}
 	}
 
-	// Check alerts every minute
+	// Check alerts every minute.
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
@@ -222,31 +222,32 @@ func AlertingExample(watcher *Watcher) {
 	}
 }
 
-// CustomMetricsExtension shows how to extend metrics with custom business logic
+// CustomMetricsExtension shows how to extend metrics with custom business logic.
 type CustomMetrics struct {
 	*WatcherMetrics
 	BusinessKPIs map[string]float64
 }
 
+// CalculateBusinessMetrics performs calculatebusinessmetrics operation.
 func (c *CustomMetrics) CalculateBusinessMetrics() {
 	if c.BusinessKPIs == nil {
 		c.BusinessKPIs = make(map[string]float64)
 	}
 
-	// Example business KPIs
+	// Example business KPIs.
 	totalFiles := c.FilesProcessedTotal + c.FilesFailedTotal
 	if totalFiles > 0 {
 		c.BusinessKPIs["success_rate"] = float64(c.FilesProcessedTotal) / float64(totalFiles) * 100
 		c.BusinessKPIs["failure_rate"] = float64(c.FilesFailedTotal) / float64(totalFiles) * 100
 	}
 
-	// Processing efficiency (files per second per worker)
+	// Processing efficiency (files per second per worker).
 	if c.ThroughputFilesPerSecond > 0 {
-		// Assuming we know max workers from config
+		// Assuming we know max workers from config.
 		c.BusinessKPIs["processing_efficiency"] = c.ThroughputFilesPerSecond / 4.0 // assuming 4 workers
 	}
 
-	// Memory efficiency (files processed per MB)
+	// Memory efficiency (files processed per MB).
 	if c.MemoryUsageBytes > 0 {
 		memoryMB := float64(c.MemoryUsageBytes) / (1024 * 1024)
 		c.BusinessKPIs["memory_efficiency"] = float64(c.FilesProcessedTotal) / memoryMB

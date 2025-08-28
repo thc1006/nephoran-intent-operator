@@ -2,6 +2,7 @@ package porch
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,14 +14,14 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/internal/intent"
 )
 
-// Client represents a Porch API client
+// Client represents a Porch API client.
 type Client struct {
 	baseURL    string
 	httpClient *http.Client
 	dryRun     bool
 }
 
-// PackageRequest represents a request to create/update a package
+// PackageRequest represents a request to create/update a package.
 type PackageRequest struct {
 	Repository string                 `json:"repository"`
 	Package    string                 `json:"package"`
@@ -30,7 +31,7 @@ type PackageRequest struct {
 	Files      map[string]interface{} `json:"files,omitempty"`
 }
 
-// PorchPackageRevision represents a package revision in Porch
+// PorchPackageRevision represents a package revision in Porch.
 type PorchPackageRevision struct {
 	Name      string            `json:"name"`
 	Namespace string            `json:"namespace"`
@@ -39,7 +40,7 @@ type PorchPackageRevision struct {
 	Labels    map[string]string `json:"labels,omitempty"`
 }
 
-// Proposal represents a package proposal in Porch
+// Proposal represents a package proposal in Porch.
 type Proposal struct {
 	ID        string    `json:"id"`
 	Package   string    `json:"package"`
@@ -48,7 +49,7 @@ type Proposal struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
-// NewClient creates a new Porch API client
+// NewClient creates a new Porch API client.
 func NewClient(baseURL string, dryRun bool) *Client {
 	return &Client{
 		baseURL: baseURL,
@@ -59,13 +60,13 @@ func NewClient(baseURL string, dryRun bool) *Client {
 	}
 }
 
-// CreateOrUpdatePackage creates or updates a package in Porch
+// CreateOrUpdatePackage creates or updates a package in Porch.
 func (c *Client) CreateOrUpdatePackage(req *PackageRequest) (*PorchPackageRevision, error) {
 	if c.dryRun {
 		return c.dryRunPackage(req)
 	}
 
-	// Check if package exists
+	// Check if package exists.
 	existing, err := c.getPackage(req.Repository, req.Package)
 	if err != nil && !isNotFound(err) {
 		return nil, fmt.Errorf("failed to check existing package: %w", err)
@@ -73,10 +74,10 @@ func (c *Client) CreateOrUpdatePackage(req *PackageRequest) (*PorchPackageRevisi
 
 	var revision *PorchPackageRevision
 	if existing != nil {
-		// Update existing package
+		// Update existing package.
 		revision, err = c.updatePackage(req, existing)
 	} else {
-		// Create new package
+		// Create new package.
 		revision, err = c.createPackage(req)
 	}
 
@@ -84,7 +85,7 @@ func (c *Client) CreateOrUpdatePackage(req *PackageRequest) (*PorchPackageRevisi
 		return nil, err
 	}
 
-	// Apply KRM overlays
+	// Apply KRM overlays.
 	if err := c.applyOverlays(revision, req); err != nil {
 		return nil, fmt.Errorf("failed to apply overlays: %w", err)
 	}
@@ -92,7 +93,7 @@ func (c *Client) CreateOrUpdatePackage(req *PackageRequest) (*PorchPackageRevisi
 	return revision, nil
 }
 
-// SubmitProposal submits a package proposal for review
+// SubmitProposal submits a package proposal for review.
 func (c *Client) SubmitProposal(revision *PorchPackageRevision) (*Proposal, error) {
 	if c.dryRun {
 		return &Proposal{
@@ -134,14 +135,18 @@ func (c *Client) SubmitProposal(revision *PorchPackageRevision) (*Proposal, erro
 	return &proposal, nil
 }
 
-// ApprovePackage approves a package revision
+// ApprovePackage approves a package revision.
 func (c *Client) ApprovePackage(revision *PorchPackageRevision) error {
 	if c.dryRun {
 		return nil
 	}
 
 	url := fmt.Sprintf("%s/api/v1/packagerevisions/%s/approve", c.baseURL, revision.Name)
-	req, err := http.NewRequest(http.MethodPost, url, nil)
+	
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)
 	if err != nil {
 		return err
 	}
@@ -160,7 +165,7 @@ func (c *Client) ApprovePackage(revision *PorchPackageRevision) error {
 	return nil
 }
 
-// Private helper methods
+// Private helper methods.
 
 func (c *Client) getPackage(repo, pkg string) (*PorchPackageRevision, error) {
 	url := fmt.Sprintf("%s/api/v1/repositories/%s/packages/%s", c.baseURL, repo, pkg)
@@ -240,7 +245,10 @@ func (c *Client) updatePackage(req *PackageRequest, existing *PorchPackageRevisi
 		return nil, err
 	}
 
-	request, err := http.NewRequest(http.MethodPatch, url, bytes.NewReader(data))
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	
+	request, err := http.NewRequestWithContext(ctx, http.MethodPatch, url, bytes.NewReader(data))
 	if err != nil {
 		return nil, err
 	}
@@ -266,10 +274,10 @@ func (c *Client) updatePackage(req *PackageRequest, existing *PorchPackageRevisi
 }
 
 func (c *Client) applyOverlays(revision *PorchPackageRevision, req *PackageRequest) error {
-	// Generate KRM overlays
+	// Generate KRM overlays.
 	overlays := c.generateOverlays(req.Intent)
 
-	// Apply overlays to the package revision
+	// Apply overlays to the package revision.
 	url := fmt.Sprintf("%s/api/v1/packagerevisions/%s/resources", c.baseURL, revision.Name)
 
 	for path, content := range overlays {
@@ -300,7 +308,7 @@ func (c *Client) applyOverlays(revision *PorchPackageRevision, req *PackageReque
 func (c *Client) generateOverlays(intent *intent.NetworkIntent) map[string]string {
 	overlays := make(map[string]string)
 
-	// Generate deployment overlay
+	// Generate deployment overlay.
 	deploymentOverlay := fmt.Sprintf(`apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -312,7 +320,7 @@ spec:
 
 	overlays["overlays/deployment.yaml"] = deploymentOverlay
 
-	// Generate ConfigMap with intent
+	// Generate ConfigMap with intent.
 	intentJSON, _ := json.MarshalIndent(intent, "", "  ")
 	configMapOverlay := fmt.Sprintf(`apiVersion: v1
 kind: ConfigMap
@@ -330,34 +338,34 @@ data:
 }
 
 func (c *Client) dryRunPackage(req *PackageRequest) (*PorchPackageRevision, error) {
-	// In dry-run mode, write the request to ./out/
+	// In dry-run mode, write the request to ./out/.
 	outDir := "./out"
-	if err := os.MkdirAll(outDir, 0755); err != nil {
+	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		return nil, fmt.Errorf("failed to create output directory: %w", err)
 	}
 
-	// Write package request
+	// Write package request.
 	reqFile := filepath.Join(outDir, "porch-package-request.json")
 	reqData, err := json.MarshalIndent(req, "", "  ")
 	if err != nil {
 		return nil, err
 	}
 
-	if err := os.WriteFile(reqFile, reqData, 0644); err != nil {
+	if err := os.WriteFile(reqFile, reqData, 0o640); err != nil {
 		return nil, fmt.Errorf("failed to write request file: %w", err)
 	}
 
-	// Write overlays
+	// Write overlays.
 	overlays := c.generateOverlays(req.Intent)
 	for path, content := range overlays {
 		overlayFile := filepath.Join(outDir, path)
 		overlayDir := filepath.Dir(overlayFile)
 
-		if err := os.MkdirAll(overlayDir, 0755); err != nil {
+		if err := os.MkdirAll(overlayDir, 0o755); err != nil {
 			return nil, fmt.Errorf("failed to create overlay directory: %w", err)
 		}
 
-		if err := os.WriteFile(overlayFile, []byte(content), 0644); err != nil {
+		if err := os.WriteFile(overlayFile, []byte(content), 0o640); err != nil {
 			return nil, fmt.Errorf("failed to write overlay file %s: %w", path, err)
 		}
 	}

@@ -1,5 +1,5 @@
 //go:build !disable_rag
-// +build !disable_rag
+// +build !disable_rag.
 
 package llm
 
@@ -14,16 +14,16 @@ import (
 )
 
 var (
-	// prometheusOnce ensures metrics are only registered once
+	// prometheusOnce ensures metrics are only registered once.
 	prometheusOnce sync.Once
 
-	// prometheusMetrics holds the registered Prometheus metrics
+	// prometheusMetrics holds the registered Prometheus metrics.
 	prometheusMetrics *PrometheusMetrics
 )
 
-// PrometheusMetrics holds all LLM-related Prometheus metrics
+// PrometheusMetrics holds all LLM-related Prometheus metrics.
 type PrometheusMetrics struct {
-	// Counter metrics
+	// Counter metrics.
 	RequestsTotal         *prometheus.CounterVec
 	ErrorsTotal           *prometheus.CounterVec
 	CacheHitsTotal        *prometheus.CounterVec
@@ -31,15 +31,15 @@ type PrometheusMetrics struct {
 	FallbackAttemptsTotal *prometheus.CounterVec
 	RetryAttemptsTotal    *prometheus.CounterVec
 
-	// Histogram metrics
+	// Histogram metrics.
 	ProcessingDurationSeconds *prometheus.HistogramVec
 
-	// Registration flag
+	// Registration flag.
 	registered bool
 	mutex      sync.RWMutex
 }
 
-// NewPrometheusMetrics creates and registers LLM Prometheus metrics if enabled
+// NewPrometheusMetrics creates and registers LLM Prometheus metrics if enabled.
 func NewPrometheusMetrics() *PrometheusMetrics {
 	prometheusOnce.Do(func() {
 		if isMetricsEnabled() {
@@ -52,15 +52,15 @@ func NewPrometheusMetrics() *PrometheusMetrics {
 	return prometheusMetrics
 }
 
-// isMetricsEnabled checks if metrics are enabled via environment variable
+// isMetricsEnabled checks if metrics are enabled via environment variable.
 func isMetricsEnabled() bool {
 	return os.Getenv("METRICS_ENABLED") == "true"
 }
 
-// createAndRegisterMetrics creates and registers all LLM Prometheus metrics
+// createAndRegisterMetrics creates and registers all LLM Prometheus metrics.
 func createAndRegisterMetrics() *PrometheusMetrics {
 	pm := &PrometheusMetrics{
-		// Counters with appropriate labels
+		// Counters with appropriate labels.
 		RequestsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "nephoran_llm_requests_total",
 			Help: "Total number of LLM requests by model and status",
@@ -91,7 +91,7 @@ func createAndRegisterMetrics() *PrometheusMetrics {
 			Help: "Total number of LLM retry attempts by model",
 		}, []string{"model"}),
 
-		// Histogram for processing duration
+		// Histogram for processing duration.
 		ProcessingDurationSeconds: promauto.NewHistogramVec(prometheus.HistogramOpts{
 			Name:    "nephoran_llm_processing_duration_seconds",
 			Help:    "Duration of LLM processing requests by model and status",
@@ -101,7 +101,7 @@ func createAndRegisterMetrics() *PrometheusMetrics {
 		registered: true,
 	}
 
-	// Register with controller-runtime metrics registry
+	// Register with controller-runtime metrics registry.
 	metrics.Registry.MustRegister(
 		pm.RequestsTotal,
 		pm.ErrorsTotal,
@@ -115,7 +115,7 @@ func createAndRegisterMetrics() *PrometheusMetrics {
 	return pm
 }
 
-// GetPrometheusMetrics returns the singleton instance
+// GetPrometheusMetrics returns the singleton instance.
 func GetPrometheusMetrics() *PrometheusMetrics {
 	if prometheusMetrics == nil {
 		return NewPrometheusMetrics()
@@ -123,7 +123,7 @@ func GetPrometheusMetrics() *PrometheusMetrics {
 	return prometheusMetrics
 }
 
-// RecordRequest records an LLM request
+// RecordRequest records an LLM request.
 func (pm *PrometheusMetrics) RecordRequest(model, status string, duration time.Duration) {
 	if !pm.isRegistered() {
 		return
@@ -133,7 +133,7 @@ func (pm *PrometheusMetrics) RecordRequest(model, status string, duration time.D
 	pm.ProcessingDurationSeconds.WithLabelValues(model, status).Observe(duration.Seconds())
 }
 
-// RecordError records an LLM error
+// RecordError records an LLM error.
 func (pm *PrometheusMetrics) RecordError(model, errorType string) {
 	if !pm.isRegistered() {
 		return
@@ -142,7 +142,7 @@ func (pm *PrometheusMetrics) RecordError(model, errorType string) {
 	pm.ErrorsTotal.WithLabelValues(model, errorType).Inc()
 }
 
-// RecordCacheHit records a cache hit
+// RecordCacheHit records a cache hit.
 func (pm *PrometheusMetrics) RecordCacheHit(model string) {
 	if !pm.isRegistered() {
 		return
@@ -151,7 +151,7 @@ func (pm *PrometheusMetrics) RecordCacheHit(model string) {
 	pm.CacheHitsTotal.WithLabelValues(model).Inc()
 }
 
-// RecordCacheMiss records a cache miss
+// RecordCacheMiss records a cache miss.
 func (pm *PrometheusMetrics) RecordCacheMiss(model string) {
 	if !pm.isRegistered() {
 		return
@@ -160,7 +160,7 @@ func (pm *PrometheusMetrics) RecordCacheMiss(model string) {
 	pm.CacheMissesTotal.WithLabelValues(model).Inc()
 }
 
-// RecordFallbackAttempt records a fallback attempt
+// RecordFallbackAttempt records a fallback attempt.
 func (pm *PrometheusMetrics) RecordFallbackAttempt(originalModel, fallbackModel string) {
 	if !pm.isRegistered() {
 		return
@@ -169,7 +169,7 @@ func (pm *PrometheusMetrics) RecordFallbackAttempt(originalModel, fallbackModel 
 	pm.FallbackAttemptsTotal.WithLabelValues(originalModel, fallbackModel).Inc()
 }
 
-// RecordRetryAttempt records a retry attempt
+// RecordRetryAttempt records a retry attempt.
 func (pm *PrometheusMetrics) RecordRetryAttempt(model string) {
 	if !pm.isRegistered() {
 		return
@@ -178,7 +178,7 @@ func (pm *PrometheusMetrics) RecordRetryAttempt(model string) {
 	pm.RetryAttemptsTotal.WithLabelValues(model).Inc()
 }
 
-// isRegistered safely checks if metrics are registered
+// isRegistered safely checks if metrics are registered.
 func (pm *PrometheusMetrics) isRegistered() bool {
 	if pm == nil {
 		return false
@@ -189,13 +189,13 @@ func (pm *PrometheusMetrics) isRegistered() bool {
 	return pm.registered
 }
 
-// MetricsIntegrator integrates Prometheus metrics with the existing MetricsCollector
+// MetricsIntegrator integrates Prometheus metrics with the existing MetricsCollector.
 type MetricsIntegrator struct {
 	collector         *MetricsCollector
 	prometheusMetrics *PrometheusMetrics
 }
 
-// NewMetricsIntegrator creates a new metrics integrator
+// NewMetricsIntegrator creates a new metrics integrator.
 func NewMetricsIntegrator(collector *MetricsCollector) *MetricsIntegrator {
 	return &MetricsIntegrator{
 		collector:         collector,
@@ -203,26 +203,26 @@ func NewMetricsIntegrator(collector *MetricsCollector) *MetricsIntegrator {
 	}
 }
 
-// RecordLLMRequest records an LLM request to both metrics systems
+// RecordLLMRequest records an LLM request to both metrics systems.
 func (mi *MetricsIntegrator) RecordLLMRequest(model, status string, latency time.Duration, tokens int) {
-	// Record to existing MetricsCollector
+	// Record to existing MetricsCollector.
 	mi.collector.RecordLLMRequest(model, status, latency, tokens)
 
-	// Record to Prometheus metrics
+	// Record to Prometheus metrics.
 	mi.prometheusMetrics.RecordRequest(model, status, latency)
 
-	// Record error if status indicates failure
+	// Record error if status indicates failure.
 	if status == "error" || status == "failed" {
 		mi.prometheusMetrics.RecordError(model, "processing_error")
 	}
 }
 
-// RecordCacheOperation records cache operations to both metrics systems
+// RecordCacheOperation records cache operations to both metrics systems.
 func (mi *MetricsIntegrator) RecordCacheOperation(model, operation string, hit bool) {
-	// Record to existing MetricsCollector
+	// Record to existing MetricsCollector.
 	mi.collector.RecordCacheOperation(operation, hit)
 
-	// Record to Prometheus metrics
+	// Record to Prometheus metrics.
 	if hit {
 		mi.prometheusMetrics.RecordCacheHit(model)
 	} else {
@@ -230,35 +230,35 @@ func (mi *MetricsIntegrator) RecordCacheOperation(model, operation string, hit b
 	}
 }
 
-// RecordFallbackAttempt records fallback attempts to both metrics systems
+// RecordFallbackAttempt records fallback attempts to both metrics systems.
 func (mi *MetricsIntegrator) RecordFallbackAttempt(originalModel, fallbackModel string) {
-	// Increment fallback in existing collector's client metrics
-	// This requires accessing the client metrics - we'll add a method for this
+	// Increment fallback in existing collector's client metrics.
+	// This requires accessing the client metrics - we'll add a method for this.
 	mi.collector.clientMetrics.mutex.Lock()
 	mi.collector.clientMetrics.FallbackAttempts++
 	mi.collector.clientMetrics.mutex.Unlock()
 
-	// Record to Prometheus metrics
+	// Record to Prometheus metrics.
 	mi.prometheusMetrics.RecordFallbackAttempt(originalModel, fallbackModel)
 }
 
-// RecordRetryAttempt records retry attempts to both metrics systems
+// RecordRetryAttempt records retry attempts to both metrics systems.
 func (mi *MetricsIntegrator) RecordRetryAttempt(model string) {
-	// Increment retry in existing collector's client metrics
+	// Increment retry in existing collector's client metrics.
 	mi.collector.clientMetrics.mutex.Lock()
 	mi.collector.clientMetrics.RetryAttempts++
 	mi.collector.clientMetrics.mutex.Unlock()
 
-	// Record to Prometheus metrics
+	// Record to Prometheus metrics.
 	mi.prometheusMetrics.RecordRetryAttempt(model)
 }
 
-// RecordCircuitBreakerEvent records circuit breaker events with error categorization
+// RecordCircuitBreakerEvent records circuit breaker events with error categorization.
 func (mi *MetricsIntegrator) RecordCircuitBreakerEvent(name, event, model string) {
-	// Record to existing MetricsCollector
+	// Record to existing MetricsCollector.
 	mi.collector.RecordCircuitBreakerEvent(name, event)
 
-	// Map circuit breaker events to error types for Prometheus
+	// Map circuit breaker events to error types for Prometheus.
 	switch event {
 	case "rejected":
 		mi.prometheusMetrics.RecordError(model, "circuit_breaker_rejected")
@@ -269,14 +269,14 @@ func (mi *MetricsIntegrator) RecordCircuitBreakerEvent(name, event, model string
 	}
 }
 
-// ResetMetrics resets both metrics systems (useful for testing)
+// ResetMetrics resets both metrics systems (useful for testing).
 func (mi *MetricsIntegrator) ResetMetrics() {
 	mi.collector.Reset()
-	// Note: Prometheus metrics cannot be reset easily as they're cumulative
-	// This is by design - use different metric names/labels for testing
+	// Note: Prometheus metrics cannot be reset easily as they're cumulative.
+	// This is by design - use different metric names/labels for testing.
 }
 
-// GetComprehensiveMetrics returns metrics from both systems
+// GetComprehensiveMetrics returns metrics from both systems.
 func (mi *MetricsIntegrator) GetComprehensiveMetrics() map[string]interface{} {
 	result := mi.collector.GetComprehensiveMetrics()
 	result["prometheus_enabled"] = mi.prometheusMetrics.isRegistered()

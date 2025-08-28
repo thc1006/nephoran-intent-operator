@@ -22,11 +22,12 @@ import (
 	"time"
 )
 
-// VES Event Structure based on docs/contracts/fcaps.ves.examples.json
+// VES Event Structure based on docs/contracts/fcaps.ves.examples.json.
 type VESEvent struct {
 	Event EventPayload `json:"event"`
 }
 
+// EventPayload represents a eventpayload.
 type EventPayload struct {
 	CommonEventHeader CommonEventHeader  `json:"commonEventHeader"`
 	FaultFields       *FaultFields       `json:"faultFields,omitempty"`
@@ -34,6 +35,7 @@ type EventPayload struct {
 	HeartbeatFields   *HeartbeatFields   `json:"heartbeatFields,omitempty"`
 }
 
+// CommonEventHeader represents a commoneventheader.
 type CommonEventHeader struct {
 	Version             string `json:"version"`
 	Domain              string `json:"domain"`
@@ -49,6 +51,7 @@ type CommonEventHeader struct {
 	TimeZoneOffset      string `json:"timeZoneOffset"`
 }
 
+// FaultFields represents a faultfields.
 type FaultFields struct {
 	FaultFieldsVersion string `json:"faultFieldsVersion"`
 	AlarmCondition     string `json:"alarmCondition"`
@@ -59,24 +62,27 @@ type FaultFields struct {
 	AlarmInterfaceA    string `json:"alarmInterfaceA"`
 }
 
+// MeasurementFields represents a measurementfields.
 type MeasurementFields struct {
 	MeasurementsVersion string                 `json:"measurementsForVfScalingVersion"`
 	VNicUsageArray      []VNicUsage            `json:"vNicUsageArray"`
 	AdditionalFields    map[string]interface{} `json:"additionalFields"`
 }
 
+// VNicUsage represents a vnicusage.
 type VNicUsage struct {
 	VNFNetworkInterface    string `json:"vnfNetworkInterface"`
 	ReceivedOctetsDelta    int64  `json:"receivedOctetsDelta"`
 	TransmittedOctetsDelta int64  `json:"transmittedOctetsDelta"`
 }
 
+// HeartbeatFields represents a heartbeatfields.
 type HeartbeatFields struct {
 	HeartbeatFieldsVersion string `json:"heartbeatFieldsVersion"`
 	HeartbeatInterval      int    `json:"heartbeatInterval"`
 }
 
-// Config holds command-line configuration
+// Config holds command-line configuration.
 type Config struct {
 	CollectorURL string
 	EventType    string
@@ -88,7 +94,7 @@ type Config struct {
 	InsecureTLS  bool
 }
 
-// EventSender handles VES event transmission
+// EventSender handles VES event transmission.
 type EventSender struct {
 	config     Config
 	httpClient *http.Client
@@ -98,7 +104,7 @@ type EventSender struct {
 func main() {
 	config := parseFlags()
 
-	// Security warnings
+	// Security warnings.
 	if config.InsecureTLS {
 		log.Println("⚠️  WARNING: TLS certificate verification is disabled. This is insecure and should only be used in development.")
 		log.Println("⚠️  WARNING: Your connection is vulnerable to man-in-the-middle attacks.")
@@ -108,7 +114,7 @@ func main() {
 		validateCredentialStrength(config.Username, config.Password)
 	}
 
-	// Setup HTTP client with retry and TLS configuration
+	// Setup HTTP client with retry and TLS configuration.
 	httpClient := &http.Client{
 		Timeout: 30 * time.Second,
 		Transport: &http.Transport{
@@ -125,7 +131,7 @@ func main() {
 		sequence:   0,
 	}
 
-	// Setup graceful shutdown
+	// Setup graceful shutdown.
 	ctx, cancel := context.WithCancel(context.Background())
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -136,7 +142,7 @@ func main() {
 		cancel()
 	}()
 
-	// Start sending events
+	// Start sending events.
 	if err := sender.Run(ctx); err != nil {
 		log.Fatalf("Error running event sender: %v", err)
 	}
@@ -158,7 +164,7 @@ func parseFlags() Config {
 
 	flag.Parse()
 
-	// Comprehensive input validation
+	// Comprehensive input validation.
 	if err := validateConfig(&config); err != nil {
 		log.Fatalf("Configuration validation failed: %v", err)
 	}
@@ -166,9 +172,9 @@ func parseFlags() Config {
 	return config
 }
 
-// validateConfig performs comprehensive input validation and sanitization
+// validateConfig performs comprehensive input validation and sanitization.
 func validateConfig(config *Config) error {
-	// Validate and sanitize collector URL
+	// Validate and sanitize collector URL.
 	parsedURL, err := url.Parse(config.CollectorURL)
 	if err != nil {
 		return fmt.Errorf("invalid collector URL: %w", err)
@@ -178,7 +184,7 @@ func validateConfig(config *Config) error {
 	}
 	config.CollectorURL = parsedURL.String() // Use normalized URL
 
-	// Validate event type
+	// Validate event type.
 	validTypes := map[string]bool{
 		"fault":       true,
 		"measurement": true,
@@ -189,7 +195,7 @@ func validateConfig(config *Config) error {
 		return fmt.Errorf("invalid event type '%s'. Must be one of: fault, measurement, heartbeat", config.EventType)
 	}
 
-	// Validate interval bounds
+	// Validate interval bounds.
 	if config.Interval < 100*time.Millisecond {
 		return fmt.Errorf("interval must be at least 100ms")
 	}
@@ -197,7 +203,7 @@ func validateConfig(config *Config) error {
 		return fmt.Errorf("interval cannot exceed 24 hours")
 	}
 
-	// Validate count bounds
+	// Validate count bounds.
 	if config.Count < 0 {
 		return fmt.Errorf("count cannot be negative")
 	}
@@ -205,10 +211,10 @@ func validateConfig(config *Config) error {
 		return fmt.Errorf("count cannot exceed 1000000 for safety")
 	}
 
-	// Sanitize source name (prevent injection attacks)
+	// Sanitize source name (prevent injection attacks).
 	config.Source = sanitizeString(config.Source, 50)
 
-	// Sanitize username (but not password - it might have special chars)
+	// Sanitize username (but not password - it might have special chars).
 	if config.Username != "" {
 		config.Username = sanitizeString(config.Username, 100)
 	}
@@ -216,18 +222,18 @@ func validateConfig(config *Config) error {
 	return nil
 }
 
-// sanitizeString removes potentially dangerous characters and limits length
+// sanitizeString removes potentially dangerous characters and limits length.
 func sanitizeString(input string, maxLen int) string {
-	// Remove control characters and non-printable characters
+	// Remove control characters and non-printable characters.
 	reg := regexp.MustCompile(`[\x00-\x1F\x7F]+`)
 	input = reg.ReplaceAllString(input, "")
 
-	// Remove potential injection characters
+	// Remove potential injection characters.
 	input = strings.ReplaceAll(input, "\n", "")
 	input = strings.ReplaceAll(input, "\r", "")
 	input = strings.ReplaceAll(input, "\t", "")
 
-	// Limit length
+	// Limit length.
 	if len(input) > maxLen {
 		input = input[:maxLen]
 	}
@@ -235,7 +241,7 @@ func sanitizeString(input string, maxLen int) string {
 	return strings.TrimSpace(input)
 }
 
-// validateCredentialStrength checks for weak credentials and warns the user
+// validateCredentialStrength checks for weak credentials and warns the user.
 func validateCredentialStrength(username, password string) {
 	weakPasswords := []string{"password", "admin", "123456", "12345678", "test", "demo"}
 
@@ -255,6 +261,7 @@ func validateCredentialStrength(username, password string) {
 	}
 }
 
+// Run performs run operation.
 func (s *EventSender) Run(ctx context.Context) error {
 	log.Printf("Starting VES event sender...")
 	log.Printf("Collector URL: %s", s.config.CollectorURL)
@@ -262,7 +269,7 @@ func (s *EventSender) Run(ctx context.Context) error {
 	log.Printf("Interval: %s", s.config.Interval)
 	log.Printf("Count: %d", s.config.Count)
 	log.Printf("Source: %s", s.config.Source)
-	// Note: Never log credentials, even in debug mode
+	// Note: Never log credentials, even in debug mode.
 
 	ticker := time.NewTicker(s.config.Interval)
 	defer ticker.Stop()
@@ -283,7 +290,7 @@ func (s *EventSender) Run(ctx context.Context) error {
 			event := s.createEvent()
 			if err := s.sendEvent(event); err != nil {
 				log.Printf("Failed to send event: %v", err)
-				// Continue sending despite errors
+				// Continue sending despite errors.
 			} else {
 				eventsSent++
 				log.Printf("Sent event %d/%d (sequence: %d)", eventsSent, s.config.Count, s.sequence)
@@ -376,27 +383,27 @@ func (s *EventSender) sendEvent(event VESEvent) error {
 		return fmt.Errorf("failed to marshal event: %w", err)
 	}
 
-	// Retry logic with exponential backoff and maximum delay cap
+	// Retry logic with exponential backoff and maximum delay cap.
 	maxRetries := 3
 	baseDelay := 1 * time.Second
 	maxDelay := 30 * time.Second // Cap maximum delay to prevent excessive waiting
 
-	for attempt := 0; attempt < maxRetries; attempt++ {
+	for attempt := range maxRetries {
 		err = s.sendEventAttempt(jsonData)
 		if err == nil {
 			return nil
 		}
 
 		if attempt < maxRetries-1 {
-			// Calculate delay with exponential backoff
+			// Calculate delay with exponential backoff.
 			delay := time.Duration(1<<uint(attempt)) * baseDelay
 
-			// Apply maximum delay cap
+			// Apply maximum delay cap.
 			if delay > maxDelay {
 				delay = maxDelay
 			}
 
-			// Add jitter to prevent thundering herd
+			// Add jitter to prevent thundering herd.
 			jitter := time.Duration(cryptoRandInt64(int64(delay / 4)))
 			delay = delay + jitter
 
@@ -408,18 +415,21 @@ func (s *EventSender) sendEvent(event VESEvent) error {
 	return fmt.Errorf("failed after %d attempts: %w", maxRetries, err)
 }
 
-// cryptoRandInt64 generates a cryptographically secure random int64 in [0, max)
+// cryptoRandInt64 generates a cryptographically secure random int64 in [0, max).
 func cryptoRandInt64(max int64) int64 {
 	n, err := cryptorand.Int(cryptorand.Reader, big.NewInt(max))
 	if err != nil {
-		// Fallback to math/rand if crypto/rand fails
+		// Fallback to math/rand if crypto/rand fails.
 		return rand.Int63n(max)
 	}
 	return n.Int64()
 }
 
 func (s *EventSender) sendEventAttempt(jsonData []byte) error {
-	req, err := http.NewRequest("POST", s.config.CollectorURL, bytes.NewBuffer(jsonData))
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "POST", s.config.CollectorURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -427,9 +437,9 @@ func (s *EventSender) sendEventAttempt(jsonData []byte) error {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "vessend-tool/1.0")
 
-	// Add basic auth if provided (credentials are never logged)
+	// Add basic auth if provided (credentials are never logged).
 	if s.config.Username != "" || s.config.Password != "" {
-		// Ensure both username and password are provided
+		// Ensure both username and password are provided.
 		if s.config.Username == "" || s.config.Password == "" {
 			return fmt.Errorf("both username and password must be provided for basic auth")
 		}
@@ -443,7 +453,7 @@ func (s *EventSender) sendEventAttempt(jsonData []byte) error {
 	}
 	defer resp.Body.Close()
 
-	// Check response status
+	// Check response status.
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("HTTP error: %d %s", resp.StatusCode, resp.Status)
 	}

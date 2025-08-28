@@ -24,96 +24,104 @@ import (
 	"github.com/go-logr/logr"
 )
 
-// TelecomPerformanceOptimizer specializes in telecommunications-specific optimizations
+// TelecomPerformanceOptimizer specializes in telecommunications-specific optimizations.
 type TelecomPerformanceOptimizer struct {
 	logger logr.Logger
 	config *TelecomOptimizerConfig
 
-	// 5G Core optimizers
+	// 5G Core optimizers.
 	coreNetworkOptimizer *CoreNetworkOptimizer
 	sliceOptimizer       *NetworkSliceOptimizer
 
-	// O-RAN optimizers
+	// O-RAN optimizers.
 	ricOptimizer *RICOptimizer
 	ranOptimizer *RANOptimizer
 
-	// Multi-vendor interop optimizer
+	// Multi-vendor interop optimizer.
 	interopOptimizer *InteropOptimizer
 
-	// QoS/SLA optimizer
+	// QoS/SLA optimizer.
 	qosOptimizer *QoSOptimizer
 
-	// Edge deployment optimizer
+	// Edge deployment optimizer.
 	edgeOptimizer *EdgeDeploymentOptimizer
 
-	// Performance metrics collector
+	// Performance metrics collector.
 	telecomMetrics *TelecomMetricsCollector
 }
 
-// TelecomOptimizerConfig contains telecom-specific optimization configuration
+// TelecomOptimizerConfig contains telecom-specific optimization configuration.
 type TelecomOptimizerConfig struct {
-	// 5G Core optimization parameters
+	// 5G Core optimization parameters.
 	CoreNetworkConfig  *CoreNetworkConfig  `json:"coreNetworkConfig"`
 	NetworkSliceConfig *NetworkSliceConfig `json:"networkSliceConfig"`
 
-	// O-RAN optimization parameters
+	// O-RAN optimization parameters.
 	RICConfig *RICConfig `json:"ricConfig"`
 	RANConfig *RANConfig `json:"ranConfig"`
 
-	// Multi-vendor interoperability
+	// Multi-vendor interoperability.
 	InteropConfig *InteropConfig `json:"interopConfig"`
 
-	// QoS and SLA parameters
+	// QoS and SLA parameters.
 	QoSConfig *QoSConfig `json:"qosConfig"`
 
-	// Edge deployment parameters
+	// Edge deployment parameters.
 	EdgeConfig *EdgeConfig `json:"edgeConfig"`
 
-	// Performance thresholds
+	// Performance thresholds.
 	LatencyThresholds    map[string]time.Duration `json:"latencyThresholds"`
 	ThroughputThresholds map[string]float64       `json:"throughputThresholds"`
 	AvailabilityTargets  map[string]float64       `json:"availabilityTargets"`
 
-	// Optimization priorities
+	// Optimization priorities.
 	OptimizationPriorities map[TelecomOptimizationCategory]float64 `json:"optimizationPriorities"`
 }
 
-// TelecomOptimizationCategory defines telecom-specific optimization categories
+// TelecomOptimizationCategory defines telecom-specific optimization categories.
 type TelecomOptimizationCategory string
 
 const (
-	TelecomCategoryLatency     TelecomOptimizationCategory = "latency"
-	TelecomCategoryThroughput  TelecomOptimizationCategory = "throughput"
+	// TelecomCategoryLatency holds telecomcategorylatency value.
+	TelecomCategoryLatency TelecomOptimizationCategory = "latency"
+	// TelecomCategoryThroughput holds telecomcategorythroughput value.
+	TelecomCategoryThroughput TelecomOptimizationCategory = "throughput"
+	// TelecomCategoryReliability holds telecomcategoryreliability value.
 	TelecomCategoryReliability TelecomOptimizationCategory = "reliability"
-	TelecomCategoryEfficiency  TelecomOptimizationCategory = "efficiency"
-	TelecomCategoryInterop     TelecomOptimizationCategory = "interoperability"
-	TelecomCategoryCompliance  TelecomOptimizationCategory = "compliance"
+	// TelecomCategoryEfficiency holds telecomcategoryefficiency value.
+	TelecomCategoryEfficiency TelecomOptimizationCategory = "efficiency"
+	// TelecomCategoryInterop holds telecomcategoryinterop value.
+	TelecomCategoryInterop TelecomOptimizationCategory = "interoperability"
+	// TelecomCategoryCompliance holds telecomcategorycompliance value.
+	TelecomCategoryCompliance TelecomOptimizationCategory = "compliance"
+	// TelecomCategoryScalability holds telecomcategoryscalability value.
 	TelecomCategoryScalability TelecomOptimizationCategory = "scalability"
-	TelecomCategoryEnergyEff   TelecomOptimizationCategory = "energy_efficiency"
+	// TelecomCategoryEnergyEff holds telecomcategoryenergyeff value.
+	TelecomCategoryEnergyEff TelecomOptimizationCategory = "energy_efficiency"
 )
 
-// CoreNetworkConfig defines 5G Core network optimization parameters
+// CoreNetworkConfig defines 5G Core network optimization parameters.
 type CoreNetworkConfig struct {
-	// AMF optimization
+	// AMF optimization.
 	AMFConfig *AMFConfig `json:"amfConfig"`
 
-	// SMF optimization
+	// SMF optimization.
 	SMFConfig *SMFConfig `json:"smfConfig"`
 
-	// UPF optimization
+	// UPF optimization.
 	UPFConfig *UPFConfig `json:"upfConfig"`
 
-	// NSSF optimization
+	// NSSF optimization.
 	NSSFConfig *NSSFConfig `json:"nssfConfig"`
 
-	// Service mesh optimization
+	// Service mesh optimization.
 	ServiceMeshConfig *ServiceMeshConfig `json:"serviceMeshConfig"`
 
-	// Session management
+	// Session management.
 	SessionOptimization *SessionOptimization `json:"sessionOptimization"`
 }
 
-// AMFConfig defines Access and Mobility Management Function optimization
+// AMFConfig defines Access and Mobility Management Function optimization.
 type AMFConfig struct {
 	MaxConcurrentRegistrations int                   `json:"maxConcurrentRegistrations"`
 	RegistrationRetryPolicy    RetryPolicy           `json:"registrationRetryPolicy"`
@@ -125,7 +133,7 @@ type AMFConfig struct {
 	ScalingPolicy              ScalingPolicyConfig   `json:"scalingPolicy"`
 }
 
-// SMFConfig defines Session Management Function optimization
+// SMFConfig defines Session Management Function optimization.
 type SMFConfig struct {
 	MaxConcurrentSessions       int                   `json:"maxConcurrentSessions"`
 	SessionEstablishmentTimeout time.Duration         `json:"sessionEstablishmentTimeout"`
@@ -136,7 +144,7 @@ type SMFConfig struct {
 	SessionStateManagement      *SessionStateConfig   `json:"sessionStateManagement"`
 }
 
-// UPFConfig defines User Plane Function optimization
+// UPFConfig defines User Plane Function optimization.
 type UPFConfig struct {
 	PacketProcessingMode      PacketProcessingMode  `json:"packetProcessingMode"`
 	BufferSizes               BufferSizeConfig      `json:"bufferSizes"`
@@ -147,7 +155,7 @@ type UPFConfig struct {
 	HardwareAcceleration      *HWAccelerationConfig `json:"hardwareAcceleration"`
 }
 
-// NSSFConfig defines Network Slice Selection Function optimization
+// NSSFConfig defines Network Slice Selection Function optimization.
 type NSSFConfig struct {
 	SliceSelectionCriteria    []SliceSelectionCriterion `json:"sliceSelectionCriteria"`
 	SliceAvailabilityTracking bool                      `json:"sliceAvailabilityTracking"`
@@ -157,7 +165,7 @@ type NSSFConfig struct {
 	ResourceAllocationPolicy  ResourceAllocationPolicy  `json:"resourceAllocationPolicy"`
 }
 
-// NetworkSliceConfig defines network slice optimization parameters
+// NetworkSliceConfig defines network slice optimization parameters.
 type NetworkSliceConfig struct {
 	SliceTemplates     map[string]*SliceTemplate `json:"sliceTemplates"`
 	ResourcePooling    *ResourcePoolingConfig    `json:"resourcePooling"`
@@ -167,7 +175,7 @@ type NetworkSliceConfig struct {
 	Performance        *SlicePerformanceConfig   `json:"performance"`
 }
 
-// SliceTemplate defines optimization parameters for different slice types
+// SliceTemplate defines optimization parameters for different slice types.
 type SliceTemplate struct {
 	SliceType              SliceType                 `json:"sliceType"`
 	LatencyRequirement     time.Duration             `json:"latencyRequirement"`
@@ -178,37 +186,40 @@ type SliceTemplate struct {
 	OptimizationStrategy   SliceOptimizationStrategy `json:"optimizationStrategy"`
 }
 
-// SliceType defines different network slice types
+// SliceType defines different network slice types.
 type SliceType string
 
 const (
-	SliceTypeEMBB  SliceType = "embb"  // Enhanced Mobile Broadband
+	// SliceTypeEMBB holds slicetypeembb value.
+	SliceTypeEMBB SliceType = "embb" // Enhanced Mobile Broadband
+	// SliceTypeURLLC holds slicetypeurllc value.
 	SliceTypeURLLC SliceType = "urllc" // Ultra-Reliable Low-Latency Communications
-	SliceTypeMMTC  SliceType = "mmtc"  // Massive Machine-Type Communications
+	// SliceTypeMMTC holds slicetypemmtc value.
+	SliceTypeMMTC SliceType = "mmtc" // Massive Machine-Type Communications
 )
 
-// RICConfig defines RAN Intelligent Controller optimization
+// RICConfig defines RAN Intelligent Controller optimization.
 type RICConfig struct {
-	// Near-RT RIC configuration
+	// Near-RT RIC configuration.
 	NearRTRICConfig *NearRTRICConfig `json:"nearRtRicConfig"`
 
-	// Non-RT RIC configuration
+	// Non-RT RIC configuration.
 	NonRTRICConfig *NonRTRICConfig `json:"nonRtRicConfig"`
 
-	// xApp optimization
+	// xApp optimization.
 	XAppOptimization *XAppOptimization `json:"xAppOptimization"`
 
-	// E2 interface optimization
+	// E2 interface optimization.
 	E2InterfaceConfig *E2InterfaceConfig `json:"e2InterfaceConfig"`
 
-	// A1 interface optimization
+	// A1 interface optimization.
 	A1InterfaceConfig *A1InterfaceConfig `json:"a1InterfaceConfig"`
 
-	// RIC services optimization
+	// RIC services optimization.
 	RICServicesConfig *RICServicesConfig `json:"ricServicesConfig"`
 }
 
-// NearRTRICConfig defines Near Real-Time RIC optimization
+// NearRTRICConfig defines Near Real-Time RIC optimization.
 type NearRTRICConfig struct {
 	ProcessingLatencyTarget  time.Duration            `json:"processingLatencyTarget"`
 	ControlLoopFrequency     time.Duration            `json:"controlLoopFrequency"`
@@ -219,7 +230,7 @@ type NearRTRICConfig struct {
 	HighAvailabilityConfig   *HAConfig                `json:"highAvailabilityConfig"`
 }
 
-// XAppOptimization defines xApp-specific optimizations
+// XAppOptimization defines xApp-specific optimizations.
 type XAppOptimization struct {
 	AutoDeployment         bool                 `json:"autoDeployment"`
 	LoadBalancing          *XAppLoadBalancing   `json:"loadBalancing"`
@@ -229,28 +240,28 @@ type XAppOptimization struct {
 	LifecycleManagement    *XAppLifecycleConfig `json:"lifecycleManagement"`
 }
 
-// RANConfig defines RAN optimization parameters
+// RANConfig defines RAN optimization parameters.
 type RANConfig struct {
-	// Coverage optimization
+	// Coverage optimization.
 	CoverageOptimization *CoverageOptimization `json:"coverageOptimization"`
 
-	// Capacity optimization
+	// Capacity optimization.
 	CapacityOptimization *CapacityOptimization `json:"capacityOptimization"`
 
-	// Interference management
+	// Interference management.
 	InterferenceManagement *InterferenceManagement `json:"interferenceManagement"`
 
-	// Handover optimization
+	// Handover optimization.
 	HandoverOptimization *HandoverOptimization `json:"handoverOptimization"`
 
-	// Beamforming optimization
+	// Beamforming optimization.
 	BeamformingConfig *BeamformingConfig `json:"beamformingConfig"`
 
-	// Energy efficiency
+	// Energy efficiency.
 	EnergyEfficiencyConfig *EnergyEfficiencyConfig `json:"energyEfficiencyConfig"`
 }
 
-// InteropConfig defines multi-vendor interoperability optimization
+// InteropConfig defines multi-vendor interoperability optimization.
 type InteropConfig struct {
 	VendorAdaptationLayer    *VendorAdaptationConfig     `json:"vendorAdaptationLayer"`
 	ProtocolTranslation      *ProtocolTranslationConfig  `json:"protocolTranslation"`
@@ -260,7 +271,7 @@ type InteropConfig struct {
 	PerformanceNormalization *PerfNormalizationConfig    `json:"performanceNormalization"`
 }
 
-// QoSConfig defines Quality of Service optimization
+// QoSConfig defines Quality of Service optimization.
 type QoSConfig struct {
 	QoSClassDefinitions  map[string]*QoSClass    `json:"qosClassDefinitions"`
 	DynamicQoSAdjustment bool                    `json:"dynamicQosAdjustment"`
@@ -270,7 +281,7 @@ type QoSConfig struct {
 	AdmissionControl     *AdmissionControlConfig `json:"admissionControl"`
 }
 
-// EdgeConfig defines edge deployment optimization
+// EdgeConfig defines edge deployment optimization.
 type EdgeConfig struct {
 	EdgeNodeSelection        *EdgeNodeSelectionConfig   `json:"edgeNodeSelection"`
 	WorkloadPlacement        *WorkloadPlacementConfig   `json:"workloadPlacement"`
@@ -280,14 +291,14 @@ type EdgeConfig struct {
 	ResourceManagement       *EdgeResourceMgmtConfig    `json:"resourceManagement"`
 }
 
-// NewTelecomPerformanceOptimizer creates a new telecom performance optimizer
+// NewTelecomPerformanceOptimizer creates a new telecom performance optimizer.
 func NewTelecomPerformanceOptimizer(config *TelecomOptimizerConfig, logger logr.Logger) *TelecomPerformanceOptimizer {
 	optimizer := &TelecomPerformanceOptimizer{
 		logger: logger.WithName("telecom-optimizer"),
 		config: config,
 	}
 
-	// Initialize component optimizers
+	// Initialize component optimizers.
 	optimizer.coreNetworkOptimizer = NewCoreNetworkOptimizer(config.CoreNetworkConfig, logger)
 	optimizer.sliceOptimizer = NewNetworkSliceOptimizer(config.NetworkSliceConfig, logger)
 	optimizer.ricOptimizer = NewRICOptimizer(config.RICConfig, logger)
@@ -300,7 +311,7 @@ func NewTelecomPerformanceOptimizer(config *TelecomOptimizerConfig, logger logr.
 	return optimizer
 }
 
-// TelecomOptimizationStrategy represents a telecom-specific optimization strategy
+// TelecomOptimizationStrategy represents a telecom-specific optimization strategy.
 type TelecomOptimizationStrategy struct {
 	Name                string                     `json:"name"`
 	Category            OptimizationCategory       `json:"category"`
@@ -311,10 +322,10 @@ type TelecomOptimizationStrategy struct {
 	RiskFactors         []RecommendationRiskFactor `json:"riskFactors"`
 }
 
-// GetTelecomOptimizationStrategies returns telecom-specific optimization strategies
+// GetTelecomOptimizationStrategies returns telecom-specific optimization strategies.
 func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies() []TelecomOptimizationStrategy {
 	strategies := []TelecomOptimizationStrategy{
-		// 5G Core optimization strategies
+		// 5G Core optimization strategies.
 		{
 			Name:            "5g_core_latency_optimization",
 			Category:        CategoryTelecommunications,
@@ -367,7 +378,7 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			},
 		},
 
-		// Network slicing optimization
+		// Network slicing optimization.
 		{
 			Name:            "network_slice_optimization",
 			Category:        CategoryTelecommunications,
@@ -410,7 +421,7 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			},
 		},
 
-		// O-RAN RIC optimization
+		// O-RAN RIC optimization.
 		{
 			Name:            "oran_ric_optimization",
 			Category:        CategoryTelecommunications,
@@ -454,7 +465,7 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			},
 		},
 
-		// RAN optimization
+		// RAN optimization.
 		{
 			Name:            "ran_performance_optimization",
 			Category:        CategoryTelecommunications,
@@ -498,7 +509,7 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			},
 		},
 
-		// Multi-vendor interoperability
+		// Multi-vendor interoperability.
 		{
 			Name:            "multi_vendor_interop_optimization",
 			Category:        CategoryTelecommunications,
@@ -518,7 +529,7 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			},
 		},
 
-		// QoS optimization
+		// QoS optimization.
 		{
 			Name:            "qos_sla_optimization",
 			Category:        CategoryTelecommunications,
@@ -538,7 +549,7 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 			},
 		},
 
-		// Edge deployment optimization
+		// Edge deployment optimization.
 		{
 			Name:            "edge_deployment_optimization",
 			Category:        CategoryTelecommunications,
@@ -562,24 +573,23 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 	return strategies
 }
 
-// OptimizeTelecomPerformance applies telecom-specific optimizations
+// OptimizeTelecomPerformance applies telecom-specific optimizations.
 func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 	ctx context.Context,
 	analysisResult *PerformanceAnalysisResult,
 ) ([]*OptimizationRecommendation, error) {
-
 	optimizer.logger.Info("Starting telecom-specific performance optimization")
 
 	var recommendations []*OptimizationRecommendation
 
-	// Collect telecom-specific metrics
+	// Collect telecom-specific metrics.
 	telecomMetrics, err := optimizer.telecomMetrics.CollectMetrics(ctx)
 	if err != nil {
 		optimizer.logger.Error(err, "Failed to collect telecom metrics")
 		return nil, err
 	}
 
-	// Optimize 5G Core network functions
+	// Optimize 5G Core network functions.
 	coreRecommendations, err := optimizer.coreNetworkOptimizer.OptimizeCore(ctx, telecomMetrics, analysisResult)
 	if err != nil {
 		optimizer.logger.Error(err, "Failed to optimize 5G Core")
@@ -587,7 +597,7 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 		recommendations = append(recommendations, coreRecommendations...)
 	}
 
-	// Optimize network slicing
+	// Optimize network slicing.
 	sliceRecommendations, err := optimizer.sliceOptimizer.OptimizeSlicing(ctx, telecomMetrics, analysisResult)
 	if err != nil {
 		optimizer.logger.Error(err, "Failed to optimize network slicing")
@@ -595,7 +605,7 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 		recommendations = append(recommendations, sliceRecommendations...)
 	}
 
-	// Optimize O-RAN RIC
+	// Optimize O-RAN RIC.
 	ricRecommendations, err := optimizer.ricOptimizer.OptimizeRIC(ctx, telecomMetrics, analysisResult)
 	if err != nil {
 		optimizer.logger.Error(err, "Failed to optimize O-RAN RIC")
@@ -603,7 +613,7 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 		recommendations = append(recommendations, ricRecommendations...)
 	}
 
-	// Optimize RAN performance
+	// Optimize RAN performance.
 	ranRecommendations, err := optimizer.ranOptimizer.OptimizeRAN(ctx, telecomMetrics, analysisResult)
 	if err != nil {
 		optimizer.logger.Error(err, "Failed to optimize RAN")
@@ -611,7 +621,7 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 		recommendations = append(recommendations, ranRecommendations...)
 	}
 
-	// Optimize multi-vendor interoperability
+	// Optimize multi-vendor interoperability.
 	interopRecommendations, err := optimizer.interopOptimizer.OptimizeInterop(ctx, telecomMetrics, analysisResult)
 	if err != nil {
 		optimizer.logger.Error(err, "Failed to optimize interoperability")
@@ -619,7 +629,7 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 		recommendations = append(recommendations, interopRecommendations...)
 	}
 
-	// Optimize QoS and SLA compliance
+	// Optimize QoS and SLA compliance.
 	qosRecommendations, err := optimizer.qosOptimizer.OptimizeQoS(ctx, telecomMetrics, analysisResult)
 	if err != nil {
 		optimizer.logger.Error(err, "Failed to optimize QoS")
@@ -627,7 +637,7 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 		recommendations = append(recommendations, qosRecommendations...)
 	}
 
-	// Optimize edge deployment
+	// Optimize edge deployment.
 	edgeRecommendations, err := optimizer.edgeOptimizer.OptimizeEdge(ctx, telecomMetrics, analysisResult)
 	if err != nil {
 		optimizer.logger.Error(err, "Failed to optimize edge deployment")
@@ -635,7 +645,7 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 		recommendations = append(recommendations, edgeRecommendations...)
 	}
 
-	// Apply telecom-specific prioritization
+	// Apply telecom-specific prioritization.
 	optimizer.prioritizeTelecomRecommendations(recommendations)
 
 	optimizer.logger.Info("Completed telecom-specific optimization",
@@ -644,13 +654,13 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 	return recommendations, nil
 }
 
-// prioritizeTelecomRecommendations applies telecom-specific prioritization logic
+// prioritizeTelecomRecommendations applies telecom-specific prioritization logic.
 func (optimizer *TelecomPerformanceOptimizer) prioritizeTelecomRecommendations(recommendations []*OptimizationRecommendation) {
 	for _, rec := range recommendations {
-		// Apply telecom-specific weighting to risk score
-		// Since the OptimizationRecommendation struct is minimal, we work with what's available
+		// Apply telecom-specific weighting to risk score.
+		// Since the OptimizationRecommendation struct is minimal, we work with what's available.
 
-		// Boost recommendations that mention latency or reliability in title/description
+		// Boost recommendations that mention latency or reliability in title/description.
 		if contains(rec.Title, "latency") || contains(rec.Description, "latency") {
 			rec.RiskScore *= 0.9 // Lower risk score is better
 		}
@@ -659,7 +669,7 @@ func (optimizer *TelecomPerformanceOptimizer) prioritizeTelecomRecommendations(r
 			rec.RiskScore *= 0.95 // Slight risk reduction for reliability improvements
 		}
 
-		// Telecom-specific optimizations get priority
+		// Telecom-specific optimizations get priority.
 		if contains(rec.Title, "5g") || contains(rec.Title, "ran") ||
 			contains(rec.Title, "ric") || contains(rec.Title, "telecom") {
 			rec.RiskScore *= 0.85 // Lower risk for telecom-specific optimizations
@@ -667,7 +677,7 @@ func (optimizer *TelecomPerformanceOptimizer) prioritizeTelecomRecommendations(r
 	}
 }
 
-// contains checks if a string contains a substring (case-insensitive)
+// contains checks if a string contains a substring (case-insensitive).
 func contains(s, substr string) bool {
 	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }
@@ -687,35 +697,35 @@ func (optimizer *TelecomPerformanceOptimizer) mapCategoryToTelecom(category Opti
 	return TelecomCategoryEfficiency
 }
 
-// Telecom-specific metrics and analysis
+// Telecom-specific metrics and analysis.
 
-// TelecomMetrics contains telecom-specific performance metrics
+// TelecomMetrics contains telecom-specific performance metrics.
 type TelecomMetrics struct {
-	// 5G Core metrics
+	// 5G Core metrics.
 	AMFMetrics *AMFMetrics `json:"amfMetrics"`
 	SMFMetrics *SMFMetrics `json:"smfMetrics"`
 	UPFMetrics *UPFMetrics `json:"upfMetrics"`
 
-	// Network slicing metrics
+	// Network slicing metrics.
 	SliceMetrics map[string]*SliceMetrics `json:"sliceMetrics"`
 
-	// O-RAN metrics
+	// O-RAN metrics.
 	RICMetrics *RICMetrics `json:"ricMetrics"`
 
-	// RAN metrics
+	// RAN metrics.
 	RANMetrics *RANMetrics `json:"ranMetrics"`
 
-	// QoS metrics
+	// QoS metrics.
 	QoSMetrics *QoSMetrics `json:"qosMetrics"`
 
-	// Edge metrics
+	// Edge metrics.
 	EdgeMetrics map[string]*EdgeMetrics `json:"edgeMetrics"`
 
-	// Interoperability metrics
+	// Interoperability metrics.
 	InteropMetrics *InteropMetrics `json:"interopMetrics"`
 }
 
-// Component-specific metrics structures
+// Component-specific metrics structures.
 type AMFMetrics struct {
 	RegistrationLatency     time.Duration `json:"registrationLatency"`
 	RegistrationSuccessRate float64       `json:"registrationSuccessRate"`
@@ -724,6 +734,7 @@ type AMFMetrics struct {
 	AuthenticationLatency   time.Duration `json:"authenticationLatency"`
 }
 
+// SMFMetrics represents a smfmetrics.
 type SMFMetrics struct {
 	SessionEstablishmentLatency time.Duration `json:"sessionEstablishmentLatency"`
 	SessionEstablishmentRate    float64       `json:"sessionEstablishmentRate"`
@@ -732,6 +743,7 @@ type SMFMetrics struct {
 	PolicyEnforcementLatency    time.Duration `json:"policyEnforcementLatency"`
 }
 
+// UPFMetrics represents a upfmetrics.
 type UPFMetrics struct {
 	PacketProcessingLatency   time.Duration `json:"packetProcessingLatency"`
 	PacketLossRate            float64       `json:"packetLossRate"`
@@ -740,6 +752,7 @@ type UPFMetrics struct {
 	HardwareAccelerationRatio float64       `json:"hardwareAccelerationRatio"`
 }
 
+// SliceMetrics represents a slicemetrics.
 type SliceMetrics struct {
 	SliceID             string        `json:"sliceId"`
 	SliceType           SliceType     `json:"sliceType"`
@@ -751,6 +764,7 @@ type SliceMetrics struct {
 	SLACompliance       float64       `json:"slaCompliance"`
 }
 
+// RICMetrics represents a ricmetrics.
 type RICMetrics struct {
 	NearRTRICLatency    time.Duration           `json:"nearRtRicLatency"`
 	NonRTRICLatency     time.Duration           `json:"nonRtRicLatency"`
@@ -760,6 +774,7 @@ type RICMetrics struct {
 	ConflictResolutions int                     `json:"conflictResolutions"`
 }
 
+// XAppMetrics represents a xappmetrics.
 type XAppMetrics struct {
 	ProcessingLatency time.Duration `json:"processingLatency"`
 	DecisionAccuracy  float64       `json:"decisionAccuracy"`
@@ -767,6 +782,7 @@ type XAppMetrics struct {
 	MessageThroughput float64       `json:"messageThroughput"`
 }
 
+// RANMetrics represents a ranmetrics.
 type RANMetrics struct {
 	CoverageEfficiency  float64 `json:"coverageEfficiency"`
 	CapacityUtilization float64 `json:"capacityUtilization"`
@@ -777,6 +793,7 @@ type RANMetrics struct {
 	SpectrumEfficiency  float64 `json:"spectrumEfficiency"`
 }
 
+// QoSMetrics represents a qosmetrics.
 type QoSMetrics struct {
 	SLACompliance        float64                     `json:"slaCompliance"`
 	QoSViolations        int                         `json:"qosViolations"`
@@ -785,6 +802,7 @@ type QoSMetrics struct {
 	ClassMetrics         map[string]*QoSClassMetrics `json:"classMetrics"`
 }
 
+// QoSClassMetrics represents a qosclassmetrics.
 type QoSClassMetrics struct {
 	LatencyP99     time.Duration `json:"latencyP99"`
 	PacketLossRate float64       `json:"packetLossRate"`
@@ -793,6 +811,7 @@ type QoSClassMetrics struct {
 	ComplianceRate float64       `json:"complianceRate"`
 }
 
+// EdgeMetrics represents a edgemetrics.
 type EdgeMetrics struct {
 	EdgeNodeID          string        `json:"edgeNodeId"`
 	Latency             time.Duration `json:"latency"`
@@ -802,6 +821,7 @@ type EdgeMetrics struct {
 	ConnectivityQuality float64       `json:"connectivityQuality"`
 }
 
+// InteropMetrics represents a interopmetrics.
 type InteropMetrics struct {
 	VendorCompatibility map[string]float64 `json:"vendorCompatibility"`
 	ProtocolCompliance  float64            `json:"protocolCompliance"`
@@ -810,189 +830,276 @@ type InteropMetrics struct {
 	CrossVendorLatency  time.Duration      `json:"crossVendorLatency"`
 }
 
-// Component optimizers (simplified implementations for demonstration)
+// Component optimizers (simplified implementations for demonstration).
 
+// CoreNetworkOptimizer represents a corenetworkoptimizer.
 type CoreNetworkOptimizer struct {
 	logger logr.Logger
 	config *CoreNetworkConfig
 }
 
+// NetworkSliceOptimizer represents a networksliceoptimizer.
 type NetworkSliceOptimizer struct {
 	logger logr.Logger
 	config *NetworkSliceConfig
 }
 
+// RICOptimizer represents a ricoptimizer.
 type RICOptimizer struct {
 	logger logr.Logger
 	config *RICConfig
 }
 
+// RANOptimizer represents a ranoptimizer.
 type RANOptimizer struct {
 	logger logr.Logger
 	config *RANConfig
 }
 
+// InteropOptimizer represents a interopoptimizer.
 type InteropOptimizer struct {
 	logger logr.Logger
 	config *InteropConfig
 }
 
+// QoSOptimizer represents a qosoptimizer.
 type QoSOptimizer struct {
 	logger logr.Logger
 	config *QoSConfig
 }
 
+// EdgeDeploymentOptimizer represents a edgedeploymentoptimizer.
 type EdgeDeploymentOptimizer struct {
 	logger logr.Logger
 	config *EdgeConfig
 }
 
+// TelecomMetricsCollector represents a telecommetricscollector.
 type TelecomMetricsCollector struct {
 	logger logr.Logger
 }
 
-// Constructor functions
+// Constructor functions.
 func NewCoreNetworkOptimizer(config *CoreNetworkConfig, logger logr.Logger) *CoreNetworkOptimizer {
 	return &CoreNetworkOptimizer{logger: logger.WithName("core-network-optimizer"), config: config}
 }
 
+// NewNetworkSliceOptimizer performs newnetworksliceoptimizer operation.
 func NewNetworkSliceOptimizer(config *NetworkSliceConfig, logger logr.Logger) *NetworkSliceOptimizer {
 	return &NetworkSliceOptimizer{logger: logger.WithName("slice-optimizer"), config: config}
 }
 
+// NewRICOptimizer performs newricoptimizer operation.
 func NewRICOptimizer(config *RICConfig, logger logr.Logger) *RICOptimizer {
 	return &RICOptimizer{logger: logger.WithName("ric-optimizer"), config: config}
 }
 
+// NewRANOptimizer performs newranoptimizer operation.
 func NewRANOptimizer(config *RANConfig, logger logr.Logger) *RANOptimizer {
 	return &RANOptimizer{logger: logger.WithName("ran-optimizer"), config: config}
 }
 
+// NewInteropOptimizer performs newinteropoptimizer operation.
 func NewInteropOptimizer(config *InteropConfig, logger logr.Logger) *InteropOptimizer {
 	return &InteropOptimizer{logger: logger.WithName("interop-optimizer"), config: config}
 }
 
+// NewQoSOptimizer performs newqosoptimizer operation.
 func NewQoSOptimizer(config *QoSConfig, logger logr.Logger) *QoSOptimizer {
 	return &QoSOptimizer{logger: logger.WithName("qos-optimizer"), config: config}
 }
 
+// NewEdgeDeploymentOptimizer performs newedgedeploymentoptimizer operation.
 func NewEdgeDeploymentOptimizer(config *EdgeConfig, logger logr.Logger) *EdgeDeploymentOptimizer {
 	return &EdgeDeploymentOptimizer{logger: logger.WithName("edge-optimizer"), config: config}
 }
 
+// NewTelecomMetricsCollector performs newtelecommetricscollector operation.
 func NewTelecomMetricsCollector(logger logr.Logger) *TelecomMetricsCollector {
 	return &TelecomMetricsCollector{logger: logger.WithName("telecom-metrics")}
 }
 
-// Placeholder implementations (would be fully implemented in production)
+// Placeholder implementations (would be fully implemented in production).
 func (collector *TelecomMetricsCollector) CollectMetrics(ctx context.Context) (*TelecomMetrics, error) {
-	// Implementation would collect actual telecom metrics
+	// Implementation would collect actual telecom metrics.
 	return &TelecomMetrics{
 		AMFMetrics: &AMFMetrics{
 			RegistrationLatency:     50 * time.Millisecond,
 			RegistrationSuccessRate: 0.99,
 			ActiveConnections:       1000,
 		},
-		// ... other metrics
+		// ... other metrics.
 	}, nil
 }
 
+// OptimizeCore performs optimizecore operation.
 func (optimizer *CoreNetworkOptimizer) OptimizeCore(ctx context.Context, metrics *TelecomMetrics, analysis *PerformanceAnalysisResult) ([]*OptimizationRecommendation, error) {
-	// Implementation would analyze core network performance and generate recommendations
+	// Implementation would analyze core network performance and generate recommendations.
 	return []*OptimizationRecommendation{}, nil
 }
 
+// OptimizeSlicing performs optimizeslicing operation.
 func (optimizer *NetworkSliceOptimizer) OptimizeSlicing(ctx context.Context, metrics *TelecomMetrics, analysis *PerformanceAnalysisResult) ([]*OptimizationRecommendation, error) {
 	return []*OptimizationRecommendation{}, nil
 }
 
+// OptimizeRIC performs optimizeric operation.
 func (optimizer *RICOptimizer) OptimizeRIC(ctx context.Context, metrics *TelecomMetrics, analysis *PerformanceAnalysisResult) ([]*OptimizationRecommendation, error) {
 	return []*OptimizationRecommendation{}, nil
 }
 
+// OptimizeRAN performs optimizeran operation.
 func (optimizer *RANOptimizer) OptimizeRAN(ctx context.Context, metrics *TelecomMetrics, analysis *PerformanceAnalysisResult) ([]*OptimizationRecommendation, error) {
 	return []*OptimizationRecommendation{}, nil
 }
 
+// OptimizeInterop performs optimizeinterop operation.
 func (optimizer *InteropOptimizer) OptimizeInterop(ctx context.Context, metrics *TelecomMetrics, analysis *PerformanceAnalysisResult) ([]*OptimizationRecommendation, error) {
 	return []*OptimizationRecommendation{}, nil
 }
 
+// OptimizeQoS performs optimizeqos operation.
 func (optimizer *QoSOptimizer) OptimizeQoS(ctx context.Context, metrics *TelecomMetrics, analysis *PerformanceAnalysisResult) ([]*OptimizationRecommendation, error) {
 	return []*OptimizationRecommendation{}, nil
 }
 
+// OptimizeEdge performs optimizeedge operation.
 func (optimizer *EdgeDeploymentOptimizer) OptimizeEdge(ctx context.Context, metrics *TelecomMetrics, analysis *PerformanceAnalysisResult) ([]*OptimizationRecommendation, error) {
 	return []*OptimizationRecommendation{}, nil
 }
 
-// Additional type definitions for completeness (simplified)
-type RetryPolicy struct{}
-type LoadBalancingStrategy string
-type ScalingPolicyConfig struct{}
-type QoSFlowOptimization struct{}
-type UPFSelectionStrategy string
-type ChargingOptimization struct{}
-type PolicyEngineConfig struct{}
-type SessionStateConfig struct{}
-type PacketProcessingMode string
-type BufferSizeConfig struct{}
-type TrafficSteeringRule struct{}
-type QoSEnforcementPolicy string
-type DataPathOptimization struct{}
-type HWAccelerationConfig struct{}
-type SliceSelectionCriterion struct{}
-type SliceIsolationLevel string
-type ResourceAllocationPolicy string
-type ResourcePoolingConfig struct{}
-type SliceIsolationConfig struct{}
-type QoSDifferentiationConfig struct{}
-type SliceAutoScalingConfig struct{}
-type SlicePerformanceConfig struct{}
-type ResourceAllocation struct{}
-type QoSParameters struct{}
-type SliceOptimizationStrategy string
-type NonRTRICConfig struct{}
-type E2InterfaceConfig struct{}
-type A1InterfaceConfig struct{}
-type RICServicesConfig struct{}
-type XAppSchedulingPolicy string
-type ConflictResolutionPolicy string
-type RICResourceAllocation struct{}
-type MessageRoutingConfig struct{}
-type HAConfig struct{}
-type XAppLoadBalancing struct{}
-type XAppResourceMgmt struct{}
-type XAppPerfMonitoring struct{}
-type InterXAppCommConfig struct{}
-type XAppLifecycleConfig struct{}
-type CoverageOptimization struct{}
-type CapacityOptimization struct{}
-type InterferenceManagement struct{}
-type HandoverOptimization struct{}
-type BeamformingConfig struct{}
-type EnergyEfficiencyConfig struct{}
-type VendorAdaptationConfig struct{}
-type ProtocolTranslationConfig struct{}
-type ComplianceCheckConfig struct{}
-type IntegrationTestConfig struct{}
-type VersionCompatibilityConfig struct{}
-type PerfNormalizationConfig struct{}
-type QoSClass struct{}
-type QoSViolationConfig struct{}
-type SLAMonitoringConfig struct{}
-type TrafficShapingConfig struct{}
-type AdmissionControlConfig struct{}
-type EdgeNodeSelectionConfig struct{}
-type WorkloadPlacementConfig struct{}
-type LatencyOptimizationConfig struct{}
-type EdgeCachingConfig struct{}
-type ConnectivityOptConfig struct{}
-type EdgeResourceMgmtConfig struct{}
-type ServiceMeshConfig struct{}
-type SessionOptimization struct{}
+// Additional type definitions for completeness (simplified).
+type (
+	RetryPolicy struct{}
+	// LoadBalancingStrategy represents a loadbalancingstrategy.
+	LoadBalancingStrategy string
+	// ScalingPolicyConfig represents a scalingpolicyconfig.
+	ScalingPolicyConfig struct{}
+	// QoSFlowOptimization represents a qosflowoptimization.
+	QoSFlowOptimization struct{}
+	// UPFSelectionStrategy represents a upfselectionstrategy.
+	UPFSelectionStrategy string
+	// ChargingOptimization represents a chargingoptimization.
+	ChargingOptimization struct{}
+	// PolicyEngineConfig represents a policyengineconfig.
+	PolicyEngineConfig struct{}
+	// SessionStateConfig represents a sessionstateconfig.
+	SessionStateConfig struct{}
+	// PacketProcessingMode represents a packetprocessingmode.
+	PacketProcessingMode string
+	// BufferSizeConfig represents a buffersizeconfig.
+	BufferSizeConfig struct{}
+	// TrafficSteeringRule represents a trafficsteeringrule.
+	TrafficSteeringRule struct{}
+	// QoSEnforcementPolicy represents a qosenforcementpolicy.
+	QoSEnforcementPolicy string
+	// DataPathOptimization represents a datapathoptimization.
+	DataPathOptimization struct{}
+	// HWAccelerationConfig represents a hwaccelerationconfig.
+	HWAccelerationConfig struct{}
+	// SliceSelectionCriterion represents a sliceselectioncriterion.
+	SliceSelectionCriterion struct{}
+	// SliceIsolationLevel represents a sliceisolationlevel.
+	SliceIsolationLevel string
+	// ResourceAllocationPolicy represents a resourceallocationpolicy.
+	ResourceAllocationPolicy string
+	// ResourcePoolingConfig represents a resourcepoolingconfig.
+	ResourcePoolingConfig struct{}
+	// SliceIsolationConfig represents a sliceisolationconfig.
+	SliceIsolationConfig struct{}
+	// QoSDifferentiationConfig represents a qosdifferentiationconfig.
+	QoSDifferentiationConfig struct{}
+	// SliceAutoScalingConfig represents a sliceautoscalingconfig.
+	SliceAutoScalingConfig struct{}
+	// SlicePerformanceConfig represents a sliceperformanceconfig.
+	SlicePerformanceConfig struct{}
+	// ResourceAllocation represents a resourceallocation.
+	ResourceAllocation struct{}
+	// QoSParameters represents a qosparameters.
+	QoSParameters struct{}
+	// SliceOptimizationStrategy represents a sliceoptimizationstrategy.
+	SliceOptimizationStrategy string
+	// NonRTRICConfig represents a nonrtricconfig.
+	NonRTRICConfig struct{}
+	// E2InterfaceConfig represents a e2interfaceconfig.
+	E2InterfaceConfig struct{}
+	// A1InterfaceConfig represents a a1interfaceconfig.
+	A1InterfaceConfig struct{}
+	// RICServicesConfig represents a ricservicesconfig.
+	RICServicesConfig struct{}
+	// XAppSchedulingPolicy represents a xappschedulingpolicy.
+	XAppSchedulingPolicy string
+	// ConflictResolutionPolicy represents a conflictresolutionpolicy.
+	ConflictResolutionPolicy string
+	// RICResourceAllocation represents a ricresourceallocation.
+	RICResourceAllocation struct{}
+	// MessageRoutingConfig represents a messageroutingconfig.
+	MessageRoutingConfig struct{}
+	// HAConfig represents a haconfig.
+	HAConfig struct{}
+	// XAppLoadBalancing represents a xapploadbalancing.
+	XAppLoadBalancing struct{}
+	// XAppResourceMgmt represents a xappresourcemgmt.
+	XAppResourceMgmt struct{}
+	// XAppPerfMonitoring represents a xappperfmonitoring.
+	XAppPerfMonitoring struct{}
+	// InterXAppCommConfig represents a interxappcommconfig.
+	InterXAppCommConfig struct{}
+	// XAppLifecycleConfig represents a xapplifecycleconfig.
+	XAppLifecycleConfig struct{}
+	// CoverageOptimization represents a coverageoptimization.
+	CoverageOptimization struct{}
+	// CapacityOptimization represents a capacityoptimization.
+	CapacityOptimization struct{}
+	// InterferenceManagement represents a interferencemanagement.
+	InterferenceManagement struct{}
+	// HandoverOptimization represents a handoveroptimization.
+	HandoverOptimization struct{}
+	// BeamformingConfig represents a beamformingconfig.
+	BeamformingConfig struct{}
+	// EnergyEfficiencyConfig represents a energyefficiencyconfig.
+	EnergyEfficiencyConfig struct{}
+	// VendorAdaptationConfig represents a vendoradaptationconfig.
+	VendorAdaptationConfig struct{}
+	// ProtocolTranslationConfig represents a protocoltranslationconfig.
+	ProtocolTranslationConfig struct{}
+	// ComplianceCheckConfig represents a compliancecheckconfig.
+	ComplianceCheckConfig struct{}
+	// IntegrationTestConfig represents a integrationtestconfig.
+	IntegrationTestConfig struct{}
+	// VersionCompatibilityConfig represents a versioncompatibilityconfig.
+	VersionCompatibilityConfig struct{}
+	// PerfNormalizationConfig represents a perfnormalizationconfig.
+	PerfNormalizationConfig struct{}
+	// QoSClass represents a qosclass.
+	QoSClass struct{}
+	// QoSViolationConfig represents a qosviolationconfig.
+	QoSViolationConfig struct{}
+	// SLAMonitoringConfig represents a slamonitoringconfig.
+	SLAMonitoringConfig struct{}
+	// TrafficShapingConfig represents a trafficshapingconfig.
+	TrafficShapingConfig struct{}
+	// AdmissionControlConfig represents a admissioncontrolconfig.
+	AdmissionControlConfig struct{}
+	// EdgeNodeSelectionConfig represents a edgenodeselectionconfig.
+	EdgeNodeSelectionConfig struct{}
+	// WorkloadPlacementConfig represents a workloadplacementconfig.
+	WorkloadPlacementConfig struct{}
+	// LatencyOptimizationConfig represents a latencyoptimizationconfig.
+	LatencyOptimizationConfig struct{}
+	// EdgeCachingConfig represents a edgecachingconfig.
+	EdgeCachingConfig struct{}
+	// ConnectivityOptConfig represents a connectivityoptconfig.
+	ConnectivityOptConfig struct{}
+	// EdgeResourceMgmtConfig represents a edgeresourcemgmtconfig.
+	EdgeResourceMgmtConfig struct{}
+	// ServiceMeshConfig represents a servicemeshconfig.
+	ServiceMeshConfig struct{}
+	// SessionOptimization represents a sessionoptimization.
+	SessionOptimization struct{}
+)
 
-// GetDefaultTelecomOptimizerConfig returns default telecom optimizer configuration
+// GetDefaultTelecomOptimizerConfig returns default telecom optimizer configuration.
 func GetDefaultTelecomOptimizerConfig() *TelecomOptimizerConfig {
 	return &TelecomOptimizerConfig{
 		LatencyThresholds: map[string]time.Duration{

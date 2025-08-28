@@ -1,4 +1,4 @@
-// Package validation provides comprehensive test data factories and fixtures
+// Package validation provides comprehensive test data factories and fixtures.
 package validation
 
 import (
@@ -11,13 +11,13 @@ import (
 	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-// TestDataFactory provides factory methods for creating test data
+// TestDataFactory provides factory methods for creating test data.
 type TestDataFactory struct {
 	namespace string
 	counter   int
 }
 
-// NewTestDataFactory creates a new test data factory
+// NewTestDataFactory creates a new test data factory.
 func NewTestDataFactory(namespace string) *TestDataFactory {
 	return &TestDataFactory{
 		namespace: namespace,
@@ -25,35 +25,35 @@ func NewTestDataFactory(namespace string) *TestDataFactory {
 	}
 }
 
-// NetworkIntentFactory provides factory methods for NetworkIntent test objects
+// NetworkIntentFactory provides factory methods for NetworkIntent test objects.
 type NetworkIntentFactory struct {
 	factory *TestDataFactory
 }
 
-// E2NodeSetFactory provides factory methods for E2NodeSet test objects
+// E2NodeSetFactory provides factory methods for E2NodeSet test objects.
 type E2NodeSetFactory struct {
 	factory *TestDataFactory
 }
 
-// GetNetworkIntentFactory returns a NetworkIntent factory
+// GetNetworkIntentFactory returns a NetworkIntent factory.
 func (tdf *TestDataFactory) GetNetworkIntentFactory() *NetworkIntentFactory {
 	return &NetworkIntentFactory{factory: tdf}
 }
 
-// GetE2NodeSetFactory returns an E2NodeSet factory
+// GetE2NodeSetFactory returns an E2NodeSet factory.
 func (tdf *TestDataFactory) GetE2NodeSetFactory() *E2NodeSetFactory {
 	return &E2NodeSetFactory{factory: tdf}
 }
 
-// getUniqueName generates a unique test name
+// getUniqueName generates a unique test name.
 func (tdf *TestDataFactory) getUniqueName(prefix string) string {
 	tdf.counter++
 	return fmt.Sprintf("%s-test-%d-%d", prefix, tdf.counter, time.Now().Unix())
 }
 
-// NetworkIntent Factory Methods
+// NetworkIntent Factory Methods.
 
-// CreateBasicNetworkIntent creates a basic NetworkIntent for testing
+// CreateBasicNetworkIntent creates a basic NetworkIntent for testing.
 func (nif *NetworkIntentFactory) CreateBasicNetworkIntent(name, intent string) *nephranv1.NetworkIntent {
 	if name == "" {
 		name = nif.factory.getUniqueName("basic-intent")
@@ -82,7 +82,7 @@ func (nif *NetworkIntentFactory) CreateBasicNetworkIntent(name, intent string) *
 	}
 }
 
-// CreateProcessingNetworkIntent creates a NetworkIntent in processing state
+// CreateProcessingNetworkIntent creates a NetworkIntent in processing state.
 func (nif *NetworkIntentFactory) CreateProcessingNetworkIntent(name, intent string) *nephranv1.NetworkIntent {
 	ni := nif.CreateBasicNetworkIntent(name, intent)
 	ni.Labels["test-type"] = "processing"
@@ -91,13 +91,13 @@ func (nif *NetworkIntentFactory) CreateProcessingNetworkIntent(name, intent stri
 	return ni
 }
 
-// CreateDeployedNetworkIntent creates a NetworkIntent in deployed state
+// CreateDeployedNetworkIntent creates a NetworkIntent in deployed state.
 func (nif *NetworkIntentFactory) CreateDeployedNetworkIntent(name, intent string) *nephranv1.NetworkIntent {
 	ni := nif.CreateBasicNetworkIntent(name, intent)
 	ni.Labels["test-type"] = "deployed"
 	ni.Status.Phase = "Deployed"
 
-	// Add processing results
+	// Add processing results.
 	confidenceScore := float64(0.95)
 	ni.Status.ProcessingResults = &nephranv1.ProcessingResult{
 		NetworkFunctionType: "AMF",
@@ -107,7 +107,7 @@ func (nif *NetworkIntentFactory) CreateDeployedNetworkIntent(name, intent string
 	return ni
 }
 
-// CreateFailedNetworkIntent creates a NetworkIntent in failed state
+// CreateFailedNetworkIntent creates a NetworkIntent in failed state.
 func (nif *NetworkIntentFactory) CreateFailedNetworkIntent(name, intent string, errorMsg string) *nephranv1.NetworkIntent {
 	ni := nif.CreateBasicNetworkIntent(name, intent)
 	ni.Labels["test-type"] = "failed"
@@ -117,7 +117,7 @@ func (nif *NetworkIntentFactory) CreateFailedNetworkIntent(name, intent string, 
 	return ni
 }
 
-// CreateAMFIntent creates a NetworkIntent specifically for AMF deployment
+// CreateAMFIntent creates a NetworkIntent specifically for AMF deployment.
 func (nif *NetworkIntentFactory) CreateAMFIntent(name string) *nephranv1.NetworkIntent {
 	intent := "Deploy a high-availability AMF instance for production with auto-scaling"
 	ni := nif.CreateBasicNetworkIntent(name, intent)
@@ -127,7 +127,7 @@ func (nif *NetworkIntentFactory) CreateAMFIntent(name string) *nephranv1.Network
 	return ni
 }
 
-// CreateSMFIntent creates a NetworkIntent specifically for SMF deployment
+// CreateSMFIntent creates a NetworkIntent specifically for SMF deployment.
 func (nif *NetworkIntentFactory) CreateSMFIntent(name string) *nephranv1.NetworkIntent {
 	intent := "Deploy SMF instance for session management with UPF integration"
 	ni := nif.CreateBasicNetworkIntent(name, intent)
@@ -137,7 +137,7 @@ func (nif *NetworkIntentFactory) CreateSMFIntent(name string) *nephranv1.Network
 	return ni
 }
 
-// CreateUPFIntent creates a NetworkIntent specifically for UPF deployment
+// CreateUPFIntent creates a NetworkIntent specifically for UPF deployment.
 func (nif *NetworkIntentFactory) CreateUPFIntent(name string) *nephranv1.NetworkIntent {
 	intent := "Deploy UPF at edge location for low-latency data processing"
 	ni := nif.CreateBasicNetworkIntent(name, intent)
@@ -147,7 +147,7 @@ func (nif *NetworkIntentFactory) CreateUPFIntent(name string) *nephranv1.Network
 	return ni
 }
 
-// CreateNSSFIntent creates a NetworkIntent specifically for NSSF deployment
+// CreateNSSFIntent creates a NetworkIntent specifically for NSSF deployment.
 func (nif *NetworkIntentFactory) CreateNSSFIntent(name string) *nephranv1.NetworkIntent {
 	intent := "Deploy NSSF for network slice selection with policy management"
 	ni := nif.CreateBasicNetworkIntent(name, intent)
@@ -157,7 +157,7 @@ func (nif *NetworkIntentFactory) CreateNSSFIntent(name string) *nephranv1.Networ
 	return ni
 }
 
-// CreateSliceIntent creates a NetworkIntent for network slicing
+// CreateSliceIntent creates a NetworkIntent for network slicing.
 func (nif *NetworkIntentFactory) CreateSliceIntent(name string, sliceType string) *nephranv1.NetworkIntent {
 	intent := fmt.Sprintf("Create %s network slice with QoS requirements", sliceType)
 	ni := nif.CreateBasicNetworkIntent(name, intent)
@@ -167,7 +167,7 @@ func (nif *NetworkIntentFactory) CreateSliceIntent(name string, sliceType string
 	return ni
 }
 
-// CreateComplexIntent creates a NetworkIntent with complex requirements
+// CreateComplexIntent creates a NetworkIntent with complex requirements.
 func (nif *NetworkIntentFactory) CreateComplexIntent(name string) *nephranv1.NetworkIntent {
 	intent := "Deploy 5G core network with AMF, SMF, UPF, and NSSF components across multiple regions with high availability, auto-scaling, and edge deployment"
 	ni := nif.CreateBasicNetworkIntent(name, intent)
@@ -178,11 +178,11 @@ func (nif *NetworkIntentFactory) CreateComplexIntent(name string) *nephranv1.Net
 	return ni
 }
 
-// CreateBatchIntents creates multiple NetworkIntents for batch testing
+// CreateBatchIntents creates multiple NetworkIntents for batch testing.
 func (nif *NetworkIntentFactory) CreateBatchIntents(count int, intentType string) []*nephranv1.NetworkIntent {
 	intents := make([]*nephranv1.NetworkIntent, count)
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		name := fmt.Sprintf("batch-%s-%d", intentType, i)
 
 		switch intentType {
@@ -205,9 +205,9 @@ func (nif *NetworkIntentFactory) CreateBatchIntents(count int, intentType string
 	return intents
 }
 
-// E2NodeSet Factory Methods
+// E2NodeSet Factory Methods.
 
-// CreateBasicE2NodeSet creates a basic E2NodeSet for testing
+// CreateBasicE2NodeSet creates a basic E2NodeSet for testing.
 func (enf *E2NodeSetFactory) CreateBasicE2NodeSet(name string, replicas int32) *nephranv1.E2NodeSet {
 	if name == "" {
 		name = enf.factory.getUniqueName("basic-e2nodeset")
@@ -237,13 +237,13 @@ func (enf *E2NodeSetFactory) CreateBasicE2NodeSet(name string, replicas int32) *
 	}
 }
 
-// CreateReadyE2NodeSet creates an E2NodeSet in ready state
+// CreateReadyE2NodeSet creates an E2NodeSet in ready state.
 func (enf *E2NodeSetFactory) CreateReadyE2NodeSet(name string, replicas int32) *nephranv1.E2NodeSet {
 	e2ns := enf.CreateBasicE2NodeSet(name, replicas)
 	e2ns.Labels["test-type"] = "ready"
 	e2ns.Status.ReadyReplicas = replicas
 
-	// Add conditions
+	// Add conditions.
 	e2ns.Status.Conditions = []nephranv1.E2NodeSetCondition{
 		{
 			Type:               nephranv1.E2NodeSetConditionAvailable,
@@ -257,13 +257,13 @@ func (enf *E2NodeSetFactory) CreateReadyE2NodeSet(name string, replicas int32) *
 	return e2ns
 }
 
-// CreateScalingE2NodeSet creates an E2NodeSet in scaling state
+// CreateScalingE2NodeSet creates an E2NodeSet in scaling state.
 func (enf *E2NodeSetFactory) CreateScalingE2NodeSet(name string, currentReplicas, targetReplicas int32) *nephranv1.E2NodeSet {
 	e2ns := enf.CreateBasicE2NodeSet(name, targetReplicas)
 	e2ns.Labels["test-type"] = "scaling"
 	e2ns.Status.ReadyReplicas = currentReplicas
 
-	// Add scaling condition
+	// Add scaling condition.
 	e2ns.Status.Conditions = []nephranv1.E2NodeSetCondition{
 		{
 			Type:               nephranv1.E2NodeSetConditionProgressing,
@@ -277,7 +277,7 @@ func (enf *E2NodeSetFactory) CreateScalingE2NodeSet(name string, currentReplicas
 	return e2ns
 }
 
-// CreateLargeE2NodeSet creates an E2NodeSet for scalability testing
+// CreateLargeE2NodeSet creates an E2NodeSet for scalability testing.
 func (enf *E2NodeSetFactory) CreateLargeE2NodeSet(name string, replicas int32) *nephranv1.E2NodeSet {
 	e2ns := enf.CreateBasicE2NodeSet(name, replicas)
 	e2ns.Labels["test-type"] = "scalability"
@@ -286,11 +286,11 @@ func (enf *E2NodeSetFactory) CreateLargeE2NodeSet(name string, replicas int32) *
 	return e2ns
 }
 
-// CreateBatchE2NodeSets creates multiple E2NodeSets for batch testing
+// CreateBatchE2NodeSets creates multiple E2NodeSets for batch testing.
 func (enf *E2NodeSetFactory) CreateBatchE2NodeSets(count int, replicasPerSet int32) []*nephranv1.E2NodeSet {
 	nodeSets := make([]*nephranv1.E2NodeSet, count)
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		name := fmt.Sprintf("batch-e2nodeset-%d", i)
 		nodeSets[i] = enf.CreateBasicE2NodeSet(name, replicasPerSet)
 		nodeSets[i].Labels["batch-test"] = "true"
@@ -300,26 +300,26 @@ func (enf *E2NodeSetFactory) CreateBatchE2NodeSets(count int, replicasPerSet int
 	return nodeSets
 }
 
-// Test Scenario Factories
+// Test Scenario Factories.
 
-// TestScenarioFactory provides factory methods for complete test scenarios
+// TestScenarioFactory provides factory methods for complete test scenarios.
 type TestScenarioFactory struct {
 	factory *TestDataFactory
 }
 
-// GetTestScenarioFactory returns a test scenario factory
+// GetTestScenarioFactory returns a test scenario factory.
 func (tdf *TestDataFactory) GetTestScenarioFactory() *TestScenarioFactory {
 	return &TestScenarioFactory{factory: tdf}
 }
 
-// CreateLatencyTestScenario creates objects for latency testing
+// CreateLatencyTestScenario creates objects for latency testing.
 func (tsf *TestScenarioFactory) CreateLatencyTestScenario(numIntents int) []*nephranv1.NetworkIntent {
 	nif := tsf.factory.GetNetworkIntentFactory()
 	intents := make([]*nephranv1.NetworkIntent, numIntents)
 
 	intentTypes := []string{"amf", "smf", "upf", "nssf"}
 
-	for i := 0; i < numIntents; i++ {
+	for i := range numIntents {
 		intentType := intentTypes[i%len(intentTypes)]
 		name := fmt.Sprintf("latency-test-%d", i)
 
@@ -341,12 +341,12 @@ func (tsf *TestScenarioFactory) CreateLatencyTestScenario(numIntents int) []*nep
 	return intents
 }
 
-// CreateThroughputTestScenario creates objects for throughput testing
+// CreateThroughputTestScenario creates objects for throughput testing.
 func (tsf *TestScenarioFactory) CreateThroughputTestScenario(numIntents int) []*nephranv1.NetworkIntent {
 	nif := tsf.factory.GetNetworkIntentFactory()
 	intents := make([]*nephranv1.NetworkIntent, numIntents)
 
-	for i := 0; i < numIntents; i++ {
+	for i := range numIntents {
 		name := fmt.Sprintf("throughput-test-%d", i)
 		intent := fmt.Sprintf("Deploy network function %d for throughput testing", i)
 		intents[i] = nif.CreateBasicNetworkIntent(name, intent)
@@ -357,12 +357,12 @@ func (tsf *TestScenarioFactory) CreateThroughputTestScenario(numIntents int) []*
 	return intents
 }
 
-// CreateScalabilityTestScenario creates objects for scalability testing
+// CreateScalabilityTestScenario creates objects for scalability testing.
 func (tsf *TestScenarioFactory) CreateScalabilityTestScenario(maxConcurrency int) []*nephranv1.NetworkIntent {
 	nif := tsf.factory.GetNetworkIntentFactory()
 	intents := make([]*nephranv1.NetworkIntent, maxConcurrency)
 
-	for i := 0; i < maxConcurrency; i++ {
+	for i := range maxConcurrency {
 		name := fmt.Sprintf("scale-test-%d", i)
 		intent := fmt.Sprintf("Deploy scalability test function %d", i)
 		intents[i] = nif.CreateBasicNetworkIntent(name, intent)
@@ -373,7 +373,7 @@ func (tsf *TestScenarioFactory) CreateScalabilityTestScenario(maxConcurrency int
 	return intents
 }
 
-// CreateReliabilityTestScenario creates objects for reliability testing
+// CreateReliabilityTestScenario creates objects for reliability testing.
 func (tsf *TestScenarioFactory) CreateReliabilityTestScenario() *ReliabilityTestScenario {
 	nif := tsf.factory.GetNetworkIntentFactory()
 	enf := tsf.factory.GetE2NodeSetFactory()
@@ -386,7 +386,7 @@ func (tsf *TestScenarioFactory) CreateReliabilityTestScenario() *ReliabilityTest
 	}
 }
 
-// ReliabilityTestScenario contains objects for reliability testing
+// ReliabilityTestScenario contains objects for reliability testing.
 type ReliabilityTestScenario struct {
 	NormalIntent   *nephranv1.NetworkIntent
 	RestartIntent  *nephranv1.NetworkIntent
@@ -394,11 +394,11 @@ type ReliabilityTestScenario struct {
 	E2NodeSet      *nephranv1.E2NodeSet
 }
 
-// CreateSecurityTestScenario creates objects for security testing
+// CreateSecurityTestScenario creates objects for security testing.
 func (tsf *TestScenarioFactory) CreateSecurityTestScenario() *SecurityTestScenario {
 	nif := tsf.factory.GetNetworkIntentFactory()
 
-	// Create intents with different security implications
+	// Create intents with different security implications.
 	authIntent := nif.CreateBasicNetworkIntent("security-auth-test",
 		"Deploy network function with OAuth2 authentication")
 	authIntent.Labels["security-test"] = "authentication"
@@ -418,16 +418,16 @@ func (tsf *TestScenarioFactory) CreateSecurityTestScenario() *SecurityTestScenar
 	}
 }
 
-// SecurityTestScenario contains objects for security testing
+// SecurityTestScenario contains objects for security testing.
 type SecurityTestScenario struct {
 	AuthenticationIntent *nephranv1.NetworkIntent
 	EncryptionIntent     *nephranv1.NetworkIntent
 	RBACIntent           *nephranv1.NetworkIntent
 }
 
-// Utility methods for test data manipulation
+// Utility methods for test data manipulation.
 
-// ApplyTestLabels applies common test labels to any Kubernetes object
+// ApplyTestLabels applies common test labels to any Kubernetes object.
 func (tdf *TestDataFactory) ApplyTestLabels(obj metav1.Object, testType string) {
 	labels := obj.GetLabels()
 	if labels == nil {
@@ -441,7 +441,7 @@ func (tdf *TestDataFactory) ApplyTestLabels(obj metav1.Object, testType string) 
 	obj.SetLabels(labels)
 }
 
-// ApplyTestAnnotations applies common test annotations to any Kubernetes object
+// ApplyTestAnnotations applies common test annotations to any Kubernetes object.
 func (tdf *TestDataFactory) ApplyTestAnnotations(obj metav1.Object) {
 	annotations := obj.GetAnnotations()
 	if annotations == nil {
@@ -454,17 +454,17 @@ func (tdf *TestDataFactory) ApplyTestAnnotations(obj metav1.Object) {
 	obj.SetAnnotations(annotations)
 }
 
-// CleanupSelector returns a label selector for cleaning up test objects
+// CleanupSelector returns a label selector for cleaning up test objects.
 func (tdf *TestDataFactory) CleanupSelector() string {
 	return "test.nephoran.io/managed=true"
 }
 
-// GetTestNamespace returns the namespace used for testing
+// GetTestNamespace returns the namespace used for testing.
 func (tdf *TestDataFactory) GetTestNamespace() string {
 	return tdf.namespace
 }
 
-// GenerateUID generates a unique identifier for test objects
+// GenerateUID generates a unique identifier for test objects.
 func (tdf *TestDataFactory) GenerateUID() types.UID {
 	return types.UID(fmt.Sprintf("test-uid-%d-%d", tdf.counter, time.Now().UnixNano()))
 }

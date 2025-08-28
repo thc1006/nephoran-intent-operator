@@ -6,9 +6,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// Core O2 IMS Data Models following O-RAN.WG6.O2ims-Interface-v01.01 specification
+// Core O2 IMS Data Models following O-RAN.WG6.O2ims-Interface-v01.01 specification.
 
-// ResourcePool represents a collection of infrastructure resources
+// ResourcePool represents a collection of infrastructure resources.
 type ResourcePool struct {
 	ResourcePoolID   string                 `json:"resourcePoolId"`
 	Name             string                 `json:"name"`
@@ -18,7 +18,7 @@ type ResourcePool struct {
 	GlobalLocationID string                 `json:"globalLocationId,omitempty"`
 	Extensions       map[string]interface{} `json:"extensions,omitempty"`
 
-	// Nephoran-specific extensions
+	// Nephoran-specific extensions.
 	Provider  string              `json:"provider"`
 	Region    string              `json:"region,omitempty"`
 	Zone      string              `json:"zone,omitempty"`
@@ -27,11 +27,11 @@ type ResourcePool struct {
 	CreatedAt time.Time           `json:"createdAt"`
 	UpdatedAt time.Time           `json:"updatedAt"`
 
-	// Direct state access for test compatibility
+	// Direct state access for test compatibility.
 	State string `json:"state,omitempty"`
 }
 
-// ResourcePoolStatus represents the current status of a resource pool
+// ResourcePoolStatus represents the current status of a resource pool.
 type ResourcePoolStatus struct {
 	State           string    `json:"state"`  // AVAILABLE, UNAVAILABLE, MAINTENANCE
 	Health          string    `json:"health"` // HEALTHY, DEGRADED, UNHEALTHY
@@ -40,7 +40,7 @@ type ResourcePoolStatus struct {
 	ErrorMessage    string    `json:"errorMessage,omitempty"`
 }
 
-// ResourceCapacity represents resource capacity information
+// ResourceCapacity represents resource capacity information.
 type ResourceCapacity struct {
 	CPU             *ResourceMetric            `json:"cpu,omitempty"`
 	Memory          *ResourceMetric            `json:"memory,omitempty"`
@@ -50,7 +50,7 @@ type ResourceCapacity struct {
 	CustomResources map[string]*ResourceMetric `json:"customResources,omitempty"`
 }
 
-// ResourceMetric represents a resource metric with total, available, and used values
+// ResourceMetric represents a resource metric with total, available, and used values.
 type ResourceMetric struct {
 	Total       string  `json:"total"`
 	Available   string  `json:"available"`
@@ -59,14 +59,14 @@ type ResourceMetric struct {
 	Utilization float64 `json:"utilization"`
 }
 
-// AlarmDictionary defines alarm information for a resource type
+// AlarmDictionary defines alarm information for a resource type.
 type AlarmDictionary struct {
 	ID               string             `json:"id"`
 	Name             string             `json:"name"`
 	AlarmDefinitions []*AlarmDefinition `json:"alarmDefinitions"`
 }
 
-// AlarmDefinition defines a specific alarm type
+// AlarmDefinition defines a specific alarm type.
 type AlarmDefinition struct {
 	AlarmDefinitionID     string            `json:"alarmDefinitionId"`
 	AlarmName             string            `json:"alarmName"`
@@ -76,7 +76,7 @@ type AlarmDefinition struct {
 	AlarmLastChange       string            `json:"alarmLastChange,omitempty"`
 }
 
-// ResourceStatus represents the current status of a resource
+// ResourceStatus represents the current status of a resource.
 type ResourceStatus struct {
 	State               string                 `json:"state"`               // PENDING, ACTIVE, INACTIVE, FAILED, DELETING
 	OperationalState    string                 `json:"operationalState"`    // ENABLED, DISABLED
@@ -89,7 +89,7 @@ type ResourceStatus struct {
 	Metrics             map[string]interface{} `json:"metrics,omitempty"`
 }
 
-// ResourceCondition represents a condition of the resource
+// ResourceCondition represents a condition of the resource.
 type ResourceCondition struct {
 	Type               string    `json:"type"`
 	Status             string    `json:"status"` // True, False, Unknown
@@ -99,9 +99,9 @@ type ResourceCondition struct {
 	LastUpdateTime     time.Time `json:"lastUpdateTime,omitempty"`
 }
 
-// Filter types for resource queries
+// Filter types for resource queries.
 
-// ResourcePoolFilter defines filters for querying resource pools
+// ResourcePoolFilter defines filters for querying resource pools.
 type ResourcePoolFilter struct {
 	Names         []string          `json:"names,omitempty"`
 	OCloudIDs     []string          `json:"oCloudIds,omitempty"`
@@ -118,9 +118,9 @@ type ResourcePoolFilter struct {
 	SortOrder     string            `json:"sortOrder,omitempty"` // ASC, DESC
 }
 
-// Request types for resource management operations
+// Request types for resource management operations.
 
-// CreateResourcePoolRequest represents a request to create a resource pool
+// CreateResourcePoolRequest represents a request to create a resource pool.
 type CreateResourcePoolRequest struct {
 	Name             string                 `json:"name"`
 	Description      string                 `json:"description,omitempty"`
@@ -135,7 +135,7 @@ type CreateResourcePoolRequest struct {
 	Metadata         map[string]string      `json:"metadata,omitempty"`
 }
 
-// UpdateResourcePoolRequest represents a request to update a resource pool
+// UpdateResourcePoolRequest represents a request to update a resource pool.
 type UpdateResourcePoolRequest struct {
 	Name             *string                `json:"name,omitempty"`
 	Description      *string                `json:"description,omitempty"`
@@ -146,7 +146,7 @@ type UpdateResourcePoolRequest struct {
 	Metadata         map[string]string      `json:"metadata,omitempty"`
 }
 
-// Node represents a compute node in the infrastructure inventory
+// Node represents a compute node in the infrastructure inventory.
 type Node struct {
 	NodeID            string                 `json:"nodeId"`
 	Name              string                 `json:"name"`
@@ -166,7 +166,7 @@ type Node struct {
 	UpdatedAt         time.Time              `json:"updatedAt"`
 }
 
-// NodeStatus represents the current status of a node
+// NodeStatus represents the current status of a node.
 type NodeStatus struct {
 	State         string                 `json:"state"`  // READY, NOT_READY, UNKNOWN
 	Phase         string                 `json:"phase"`  // ACTIVE, INACTIVE, MAINTENANCE
@@ -177,7 +177,7 @@ type NodeStatus struct {
 	Alarms        []string               `json:"alarms,omitempty"`
 }
 
-// NodeCondition represents a condition of the node
+// NodeCondition represents a condition of the node.
 type NodeCondition struct {
 	Type               string    `json:"type"`
 	Status             string    `json:"status"`
@@ -186,7 +186,7 @@ type NodeCondition struct {
 	LastTransitionTime time.Time `json:"lastTransitionTime"`
 }
 
-// OperatingSystemInfo represents operating system information
+// OperatingSystemInfo represents operating system information.
 type OperatingSystemInfo struct {
 	Name              string `json:"name"`
 	Version           string `json:"version"`
@@ -196,7 +196,7 @@ type OperatingSystemInfo struct {
 	KubernetesVersion string `json:"kubernetesVersion,omitempty"`
 }
 
-// NetworkInterface represents a network interface on a node
+// NetworkInterface represents a network interface on a node.
 type NetworkInterface struct {
 	Name        string   `json:"name"`
 	Type        string   `json:"type"` // ETHERNET, WIRELESS, LOOPBACK
@@ -207,7 +207,7 @@ type NetworkInterface struct {
 	State       string   `json:"state"` // UP, DOWN, UNKNOWN
 }
 
-// StorageDevice represents a storage device on a node
+// StorageDevice represents a storage device on a node.
 type StorageDevice struct {
 	Name        string  `json:"name"`
 	Type        string  `json:"type"` // HDD, SSD, NVME
@@ -219,7 +219,7 @@ type StorageDevice struct {
 	Utilization float64 `json:"utilization,omitempty"`
 }
 
-// AcceleratorDevice represents an accelerator device on a node
+// AcceleratorDevice represents an accelerator device on a node.
 type AcceleratorDevice struct {
 	Name        string  `json:"name"`
 	Type        string  `json:"type"` // GPU, FPGA, TPU, SR-IOV
@@ -232,7 +232,7 @@ type AcceleratorDevice struct {
 	Utilization float64 `json:"utilization,omitempty"`
 }
 
-// NodeLocation represents the physical location of a node
+// NodeLocation represents the physical location of a node.
 type NodeLocation struct {
 	Datacenter string  `json:"datacenter,omitempty"`
 	Rack       string  `json:"rack,omitempty"`
@@ -243,7 +243,7 @@ type NodeLocation struct {
 	Altitude   float64 `json:"altitude,omitempty"`
 }
 
-// NodeFilter defines filters for querying nodes
+// NodeFilter defines filters for querying nodes.
 type NodeFilter struct {
 	Names           []string          `json:"names,omitempty"`
 	NodeTypes       []string          `json:"nodeTypes,omitempty"`
@@ -261,55 +261,75 @@ type NodeFilter struct {
 	SortOrder       string            `json:"sortOrder,omitempty"`
 }
 
-// Common constants for resource management
+// Common constants for resource management.
 
 const (
-	// Resource Pool States
-	ResourcePoolStateAvailable   = "AVAILABLE"
+	// Resource Pool States.
+	ResourcePoolStateAvailable = "AVAILABLE"
+	// ResourcePoolStateUnavailable holds resourcepoolstateunavailable value.
 	ResourcePoolStateUnavailable = "UNAVAILABLE"
+	// ResourcePoolStateMaintenance holds resourcepoolstatemaintenance value.
 	ResourcePoolStateMaintenance = "MAINTENANCE"
 
-	// Resource Pool Health States
-	ResourcePoolHealthHealthy   = "HEALTHY"
-	ResourcePoolHealthDegraded  = "DEGRADED"
+	// Resource Pool Health States.
+	ResourcePoolHealthHealthy = "HEALTHY"
+	// ResourcePoolHealthDegraded holds resourcepoolhealthdegraded value.
+	ResourcePoolHealthDegraded = "DEGRADED"
+	// ResourcePoolHealthUnhealthy holds resourcepoolhealthunhealthy value.
 	ResourcePoolHealthUnhealthy = "UNHEALTHY"
 
-	// Resource States
-	ResourceStatePending  = "PENDING"
-	ResourceStateActive   = "ACTIVE"
+	// Resource States.
+	ResourceStatePending = "PENDING"
+	// ResourceStateActive holds resourcestateactive value.
+	ResourceStateActive = "ACTIVE"
+	// ResourceStateInactive holds resourcestateinactive value.
 	ResourceStateInactive = "INACTIVE"
-	ResourceStateFailed   = "FAILED"
+	// ResourceStateFailed holds resourcestatefailed value.
+	ResourceStateFailed = "FAILED"
+	// ResourceStateDeleting holds resourcestatedeleting value.
 	ResourceStateDeleting = "DELETING"
 
-	// Administrative States
-	AdminStateUnlocked     = "UNLOCKED"
-	AdminStateLocked       = "LOCKED"
+	// Administrative States.
+	AdminStateUnlocked = "UNLOCKED"
+	// AdminStateLocked holds adminstatelocked value.
+	AdminStateLocked = "LOCKED"
+	// AdminStateShuttingdown holds adminstateshuttingdown value.
 	AdminStateShuttingdown = "SHUTTINGDOWN"
 
-	// Operational States
-	OpStateEnabled  = "ENABLED"
+	// Operational States.
+	OpStateEnabled = "ENABLED"
+	// OpStateDisabled holds opstatedisabled value.
 	OpStateDisabled = "DISABLED"
 
-	// Usage States
-	UsageStateIdle   = "IDLE"
+	// Usage States.
+	UsageStateIdle = "IDLE"
+	// UsageStateActive holds usagestateactive value.
 	UsageStateActive = "ACTIVE"
-	UsageStateBusy   = "BUSY"
+	// UsageStateBusy holds usagestatebusy value.
+	UsageStateBusy = "BUSY"
 
-	// Health States
-	HealthStateHealthy   = "HEALTHY"
-	HealthStateDegraded  = "DEGRADED"
+	// Health States.
+	HealthStateHealthy = "HEALTHY"
+	// HealthStateDegraded holds healthstatedegraded value.
+	HealthStateDegraded = "DEGRADED"
+	// HealthStateUnhealthy holds healthstateunhealthy value.
 	HealthStateUnhealthy = "UNHEALTHY"
-	HealthStateUnknown   = "UNKNOWN"
+	// HealthStateUnknown holds healthstateunknown value.
+	HealthStateUnknown = "UNKNOWN"
 
-	// Node States
-	NodeStateReady    = "READY"
+	// Node States.
+	NodeStateReady = "READY"
+	// NodeStateNotReady holds nodestatenotready value.
 	NodeStateNotReady = "NOT_READY"
-	NodeStateUnknown  = "UNKNOWN"
+	// NodeStateUnknown holds nodestateunknown value.
+	NodeStateUnknown = "UNKNOWN"
 
-	// Node Types
-	NodeTypePhysical  = "PHYSICAL"
-	NodeTypeVirtual   = "VIRTUAL"
+	// Node Types.
+	NodeTypePhysical = "PHYSICAL"
+	// NodeTypeVirtual holds nodetypevirtual value.
+	NodeTypeVirtual = "VIRTUAL"
+	// NodeTypeContainer holds nodetypecontainer value.
 	NodeTypeContainer = "CONTAINER"
 
-	// Resource Categories (removed duplicates - see resource_types.go for category constants)
+	// Resource Categories (removed duplicates - see resource_types.go for category constants).
 )

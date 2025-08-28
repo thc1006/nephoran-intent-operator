@@ -1,5 +1,5 @@
-// Package o2 implements O-RAN Infrastructure Management Service (IMS) API handlers
-// Following O-RAN.WG6.O2ims-Interface-v01.01 specification
+// Package o2 implements O-RAN Infrastructure Management Service (IMS) API handlers.
+// Following O-RAN.WG6.O2ims-Interface-v01.01 specification.
 package o2
 
 import (
@@ -9,7 +9,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
-// HTTP Error Response following RFC 7807 Problem Details for HTTP APIs
+// HTTP Error Response following RFC 7807 Problem Details for HTTP APIs.
 type ProblemDetail struct {
 	Type     string      `json:"type"`
 	Title    string      `json:"title"`
@@ -19,9 +19,9 @@ type ProblemDetail struct {
 	Extra    interface{} `json:"extra,omitempty"`
 }
 
-// Service Information Handlers
+// Service Information Handlers.
 
-// handleGetServiceInfo returns service information
+// handleGetServiceInfo returns service information.
 func (s *O2APIServer) handleGetServiceInfo(w http.ResponseWriter, r *http.Request) {
 	serviceInfo := map[string]interface{}{
 		"name":          "Nephoran O2 IMS",
@@ -41,7 +41,7 @@ func (s *O2APIServer) handleGetServiceInfo(w http.ResponseWriter, r *http.Reques
 	s.writeJSONResponse(w, r, StatusOK, serviceInfo)
 }
 
-// handleHealthCheck returns health status
+// handleHealthCheck returns health status.
 func (s *O2APIServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	health := s.healthChecker.GetHealthStatus()
 
@@ -55,7 +55,7 @@ func (s *O2APIServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) 
 	s.writeJSONResponse(w, r, status, health)
 }
 
-// handleReadinessCheck returns readiness status
+// handleReadinessCheck returns readiness status.
 func (s *O2APIServer) handleReadinessCheck(w http.ResponseWriter, r *http.Request) {
 	ready := map[string]interface{}{
 		"status":    "READY",
@@ -69,9 +69,9 @@ func (s *O2APIServer) handleReadinessCheck(w http.ResponseWriter, r *http.Reques
 	s.writeJSONResponse(w, r, StatusOK, ready)
 }
 
-// Resource Pool Handlers
+// Resource Pool Handlers.
 
-// handleGetResourcePools retrieves resource pools with filtering
+// handleGetResourcePools retrieves resource pools with filtering.
 func (s *O2APIServer) handleGetResourcePools(w http.ResponseWriter, r *http.Request) {
 	filter := s.parseResourcePoolFilter(r)
 
@@ -84,7 +84,7 @@ func (s *O2APIServer) handleGetResourcePools(w http.ResponseWriter, r *http.Requ
 	s.writeJSONResponse(w, r, StatusOK, pools)
 }
 
-// handleGetResourcePool retrieves a specific resource pool
+// handleGetResourcePool retrieves a specific resource pool.
 func (s *O2APIServer) handleGetResourcePool(w http.ResponseWriter, r *http.Request) {
 	poolID := s.getPathParam(r, "resourcePoolId")
 	if poolID == "" {
@@ -101,7 +101,7 @@ func (s *O2APIServer) handleGetResourcePool(w http.ResponseWriter, r *http.Reque
 	s.writeJSONResponse(w, r, StatusOK, pool)
 }
 
-// handleCreateResourcePool creates a new resource pool
+// handleCreateResourcePool creates a new resource pool.
 func (s *O2APIServer) handleCreateResourcePool(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateResourcePoolRequest
 	if err := s.decodeJSONRequest(r, &req); err != nil {
@@ -119,7 +119,7 @@ func (s *O2APIServer) handleCreateResourcePool(w http.ResponseWriter, r *http.Re
 	s.writeJSONResponse(w, r, StatusCreated, pool)
 }
 
-// handleUpdateResourcePool updates an existing resource pool
+// handleUpdateResourcePool updates an existing resource pool.
 func (s *O2APIServer) handleUpdateResourcePool(w http.ResponseWriter, r *http.Request) {
 	poolID := s.getPathParam(r, "resourcePoolId")
 	if poolID == "" {
@@ -143,7 +143,7 @@ func (s *O2APIServer) handleUpdateResourcePool(w http.ResponseWriter, r *http.Re
 	s.writeJSONResponse(w, r, StatusOK, pool)
 }
 
-// handleDeleteResourcePool deletes a resource pool
+// handleDeleteResourcePool deletes a resource pool.
 func (s *O2APIServer) handleDeleteResourcePool(w http.ResponseWriter, r *http.Request) {
 	poolID := s.getPathParam(r, "resourcePoolId")
 	if poolID == "" {
@@ -160,9 +160,9 @@ func (s *O2APIServer) handleDeleteResourcePool(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(StatusNoContent)
 }
 
-// Resource Type Handlers
+// Resource Type Handlers.
 
-// handleGetResourceTypes retrieves resource types
+// handleGetResourceTypes retrieves resource types.
 func (s *O2APIServer) handleGetResourceTypes(w http.ResponseWriter, r *http.Request) {
 	filter := s.parseResourceTypeFilter(r)
 
@@ -175,7 +175,7 @@ func (s *O2APIServer) handleGetResourceTypes(w http.ResponseWriter, r *http.Requ
 	s.writeJSONResponse(w, r, StatusOK, resourceTypes)
 }
 
-// handleGetResourceType retrieves a specific resource type
+// handleGetResourceType retrieves a specific resource type.
 func (s *O2APIServer) handleGetResourceType(w http.ResponseWriter, r *http.Request) {
 	typeID := s.getPathParam(r, "resourceTypeId")
 	if typeID == "" {
@@ -192,7 +192,7 @@ func (s *O2APIServer) handleGetResourceType(w http.ResponseWriter, r *http.Reque
 	s.writeJSONResponse(w, r, StatusOK, resourceType)
 }
 
-// handleCreateResourceType creates a new resource type
+// handleCreateResourceType creates a new resource type.
 func (s *O2APIServer) handleCreateResourceType(w http.ResponseWriter, r *http.Request) {
 	var resourceType models.ResourceType
 	if err := s.decodeJSONRequest(r, &resourceType); err != nil {
@@ -210,7 +210,7 @@ func (s *O2APIServer) handleCreateResourceType(w http.ResponseWriter, r *http.Re
 	s.writeJSONResponse(w, r, StatusCreated, createdType)
 }
 
-// handleUpdateResourceType updates an existing resource type
+// handleUpdateResourceType updates an existing resource type.
 func (s *O2APIServer) handleUpdateResourceType(w http.ResponseWriter, r *http.Request) {
 	typeID := s.getPathParam(r, "resourceTypeId")
 	if typeID == "" {
@@ -234,7 +234,7 @@ func (s *O2APIServer) handleUpdateResourceType(w http.ResponseWriter, r *http.Re
 	s.writeJSONResponse(w, r, StatusOK, updatedType)
 }
 
-// handleDeleteResourceType deletes a resource type
+// handleDeleteResourceType deletes a resource type.
 func (s *O2APIServer) handleDeleteResourceType(w http.ResponseWriter, r *http.Request) {
 	typeID := s.getPathParam(r, "resourceTypeId")
 	if typeID == "" {
@@ -251,9 +251,9 @@ func (s *O2APIServer) handleDeleteResourceType(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(StatusNoContent)
 }
 
-// Resource Handlers
+// Resource Handlers.
 
-// handleGetResources retrieves resources with filtering
+// handleGetResources retrieves resources with filtering.
 func (s *O2APIServer) handleGetResources(w http.ResponseWriter, r *http.Request) {
 	filter := s.parseResourceFilter(r)
 
@@ -266,7 +266,7 @@ func (s *O2APIServer) handleGetResources(w http.ResponseWriter, r *http.Request)
 	s.writeJSONResponse(w, r, StatusOK, resources)
 }
 
-// handleGetResource retrieves a specific resource
+// handleGetResource retrieves a specific resource.
 func (s *O2APIServer) handleGetResource(w http.ResponseWriter, r *http.Request) {
 	resourceID := s.getPathParam(r, "resourceId")
 	if resourceID == "" {
@@ -283,7 +283,7 @@ func (s *O2APIServer) handleGetResource(w http.ResponseWriter, r *http.Request) 
 	s.writeJSONResponse(w, r, StatusOK, resource)
 }
 
-// handleCreateResource creates a new resource
+// handleCreateResource creates a new resource.
 func (s *O2APIServer) handleCreateResource(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateResourceRequest
 	if err := s.decodeJSONRequest(r, &req); err != nil {
@@ -301,7 +301,7 @@ func (s *O2APIServer) handleCreateResource(w http.ResponseWriter, r *http.Reques
 	s.writeJSONResponse(w, r, StatusCreated, resource)
 }
 
-// handleUpdateResource updates an existing resource
+// handleUpdateResource updates an existing resource.
 func (s *O2APIServer) handleUpdateResource(w http.ResponseWriter, r *http.Request) {
 	resourceID := s.getPathParam(r, "resourceId")
 	if resourceID == "" {
@@ -325,7 +325,7 @@ func (s *O2APIServer) handleUpdateResource(w http.ResponseWriter, r *http.Reques
 	s.writeJSONResponse(w, r, StatusOK, resource)
 }
 
-// handleDeleteResource deletes a resource
+// handleDeleteResource deletes a resource.
 func (s *O2APIServer) handleDeleteResource(w http.ResponseWriter, r *http.Request) {
 	resourceID := s.getPathParam(r, "resourceId")
 	if resourceID == "" {
@@ -342,9 +342,9 @@ func (s *O2APIServer) handleDeleteResource(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(StatusNoContent)
 }
 
-// Resource Health and Monitoring Handlers
+// Resource Health and Monitoring Handlers.
 
-// handleGetResourceHealth retrieves resource health status
+// handleGetResourceHealth retrieves resource health status.
 func (s *O2APIServer) handleGetResourceHealth(w http.ResponseWriter, r *http.Request) {
 	resourceID := s.getPathParam(r, "resourceId")
 	if resourceID == "" {
@@ -361,7 +361,7 @@ func (s *O2APIServer) handleGetResourceHealth(w http.ResponseWriter, r *http.Req
 	s.writeJSONResponse(w, r, StatusOK, health)
 }
 
-// handleGetResourceAlarms retrieves resource alarms
+// handleGetResourceAlarms retrieves resource alarms.
 func (s *O2APIServer) handleGetResourceAlarms(w http.ResponseWriter, r *http.Request) {
 	resourceID := s.getPathParam(r, "resourceId")
 	if resourceID == "" {
@@ -379,7 +379,7 @@ func (s *O2APIServer) handleGetResourceAlarms(w http.ResponseWriter, r *http.Req
 	s.writeJSONResponse(w, r, StatusOK, alarms)
 }
 
-// handleGetResourceMetrics retrieves resource metrics
+// handleGetResourceMetrics retrieves resource metrics.
 func (s *O2APIServer) handleGetResourceMetrics(w http.ResponseWriter, r *http.Request) {
 	resourceID := s.getPathParam(r, "resourceId")
 	if resourceID == "" {
@@ -397,9 +397,9 @@ func (s *O2APIServer) handleGetResourceMetrics(w http.ResponseWriter, r *http.Re
 	s.writeJSONResponse(w, r, StatusOK, metrics)
 }
 
-// Deployment Template Handlers
+// Deployment Template Handlers.
 
-// handleGetDeploymentTemplates retrieves deployment templates
+// handleGetDeploymentTemplates retrieves deployment templates.
 func (s *O2APIServer) handleGetDeploymentTemplates(w http.ResponseWriter, r *http.Request) {
 	filter := s.parseDeploymentTemplateFilter(r)
 
@@ -412,7 +412,7 @@ func (s *O2APIServer) handleGetDeploymentTemplates(w http.ResponseWriter, r *htt
 	s.writeJSONResponse(w, r, StatusOK, templates)
 }
 
-// handleGetDeploymentTemplate retrieves a specific deployment template
+// handleGetDeploymentTemplate retrieves a specific deployment template.
 func (s *O2APIServer) handleGetDeploymentTemplate(w http.ResponseWriter, r *http.Request) {
 	templateID := s.getPathParam(r, "templateId")
 	if templateID == "" {
@@ -429,7 +429,7 @@ func (s *O2APIServer) handleGetDeploymentTemplate(w http.ResponseWriter, r *http
 	s.writeJSONResponse(w, r, StatusOK, template)
 }
 
-// handleCreateDeploymentTemplate creates a new deployment template
+// handleCreateDeploymentTemplate creates a new deployment template.
 func (s *O2APIServer) handleCreateDeploymentTemplate(w http.ResponseWriter, r *http.Request) {
 	var template DeploymentTemplate
 	if err := s.decodeJSONRequest(r, &template); err != nil {
@@ -447,7 +447,7 @@ func (s *O2APIServer) handleCreateDeploymentTemplate(w http.ResponseWriter, r *h
 	s.writeJSONResponse(w, r, StatusCreated, createdTemplate)
 }
 
-// handleUpdateDeploymentTemplate updates an existing deployment template
+// handleUpdateDeploymentTemplate updates an existing deployment template.
 func (s *O2APIServer) handleUpdateDeploymentTemplate(w http.ResponseWriter, r *http.Request) {
 	templateID := s.getPathParam(r, "templateId")
 	if templateID == "" {
@@ -471,7 +471,7 @@ func (s *O2APIServer) handleUpdateDeploymentTemplate(w http.ResponseWriter, r *h
 	s.writeJSONResponse(w, r, StatusOK, updatedTemplate)
 }
 
-// handleDeleteDeploymentTemplate deletes a deployment template
+// handleDeleteDeploymentTemplate deletes a deployment template.
 func (s *O2APIServer) handleDeleteDeploymentTemplate(w http.ResponseWriter, r *http.Request) {
 	templateID := s.getPathParam(r, "templateId")
 	if templateID == "" {
@@ -488,9 +488,9 @@ func (s *O2APIServer) handleDeleteDeploymentTemplate(w http.ResponseWriter, r *h
 	w.WriteHeader(StatusNoContent)
 }
 
-// Deployment Management Handlers
+// Deployment Management Handlers.
 
-// handleGetDeployments retrieves deployments
+// handleGetDeployments retrieves deployments.
 func (s *O2APIServer) handleGetDeployments(w http.ResponseWriter, r *http.Request) {
 	filter := s.parseDeploymentFilter(r)
 
@@ -503,7 +503,7 @@ func (s *O2APIServer) handleGetDeployments(w http.ResponseWriter, r *http.Reques
 	s.writeJSONResponse(w, r, StatusOK, deployments)
 }
 
-// handleGetDeployment retrieves a specific deployment
+// handleGetDeployment retrieves a specific deployment.
 func (s *O2APIServer) handleGetDeployment(w http.ResponseWriter, r *http.Request) {
 	deploymentID := s.getPathParam(r, "deploymentId")
 	if deploymentID == "" {
@@ -520,7 +520,7 @@ func (s *O2APIServer) handleGetDeployment(w http.ResponseWriter, r *http.Request
 	s.writeJSONResponse(w, r, StatusOK, deployment)
 }
 
-// handleCreateDeployment creates a new deployment
+// handleCreateDeployment creates a new deployment.
 func (s *O2APIServer) handleCreateDeployment(w http.ResponseWriter, r *http.Request) {
 	var req CreateDeploymentRequest
 	if err := s.decodeJSONRequest(r, &req); err != nil {
@@ -538,7 +538,7 @@ func (s *O2APIServer) handleCreateDeployment(w http.ResponseWriter, r *http.Requ
 	s.writeJSONResponse(w, r, StatusCreated, deployment)
 }
 
-// handleUpdateDeployment updates an existing deployment
+// handleUpdateDeployment updates an existing deployment.
 func (s *O2APIServer) handleUpdateDeployment(w http.ResponseWriter, r *http.Request) {
 	deploymentID := s.getPathParam(r, "deploymentId")
 	if deploymentID == "" {
@@ -562,7 +562,7 @@ func (s *O2APIServer) handleUpdateDeployment(w http.ResponseWriter, r *http.Requ
 	s.writeJSONResponse(w, r, StatusOK, deployment)
 }
 
-// handleDeleteDeployment deletes a deployment
+// handleDeleteDeployment deletes a deployment.
 func (s *O2APIServer) handleDeleteDeployment(w http.ResponseWriter, r *http.Request) {
 	deploymentID := s.getPathParam(r, "deploymentId")
 	if deploymentID == "" {
@@ -579,9 +579,9 @@ func (s *O2APIServer) handleDeleteDeployment(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(StatusNoContent)
 }
 
-// Subscription Handlers
+// Subscription Handlers.
 
-// handleCreateSubscription creates a new subscription
+// handleCreateSubscription creates a new subscription.
 func (s *O2APIServer) handleCreateSubscription(w http.ResponseWriter, r *http.Request) {
 	var subscription Subscription
 	if err := s.decodeJSONRequest(r, &subscription); err != nil {
@@ -598,7 +598,7 @@ func (s *O2APIServer) handleCreateSubscription(w http.ResponseWriter, r *http.Re
 	s.writeJSONResponse(w, r, StatusCreated, createdSubscription)
 }
 
-// handleGetSubscriptions retrieves subscriptions
+// handleGetSubscriptions retrieves subscriptions.
 func (s *O2APIServer) handleGetSubscriptions(w http.ResponseWriter, r *http.Request) {
 	filter := s.parseSubscriptionFilter(r)
 
@@ -611,7 +611,7 @@ func (s *O2APIServer) handleGetSubscriptions(w http.ResponseWriter, r *http.Requ
 	s.writeJSONResponse(w, r, StatusOK, subscriptions)
 }
 
-// handleGetSubscription retrieves a specific subscription
+// handleGetSubscription retrieves a specific subscription.
 func (s *O2APIServer) handleGetSubscription(w http.ResponseWriter, r *http.Request) {
 	subscriptionID := s.getPathParam(r, "subscriptionId")
 	if subscriptionID == "" {
@@ -628,7 +628,7 @@ func (s *O2APIServer) handleGetSubscription(w http.ResponseWriter, r *http.Reque
 	s.writeJSONResponse(w, r, StatusOK, subscription)
 }
 
-// handleUpdateSubscription updates an existing subscription
+// handleUpdateSubscription updates an existing subscription.
 func (s *O2APIServer) handleUpdateSubscription(w http.ResponseWriter, r *http.Request) {
 	subscriptionID := s.getPathParam(r, "subscriptionId")
 	if subscriptionID == "" {
@@ -651,7 +651,7 @@ func (s *O2APIServer) handleUpdateSubscription(w http.ResponseWriter, r *http.Re
 	s.writeJSONResponse(w, r, StatusOK, updatedSubscription)
 }
 
-// handleDeleteSubscription deletes a subscription
+// handleDeleteSubscription deletes a subscription.
 func (s *O2APIServer) handleDeleteSubscription(w http.ResponseWriter, r *http.Request) {
 	subscriptionID := s.getPathParam(r, "subscriptionId")
 	if subscriptionID == "" {
@@ -667,9 +667,9 @@ func (s *O2APIServer) handleDeleteSubscription(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(StatusNoContent)
 }
 
-// Cloud Provider Management Handlers
+// Cloud Provider Management Handlers.
 
-// handleRegisterCloudProvider registers a new cloud provider
+// handleRegisterCloudProvider registers a new cloud provider.
 func (s *O2APIServer) handleRegisterCloudProvider(w http.ResponseWriter, r *http.Request) {
 	var provider CloudProviderConfig
 	if err := s.decodeJSONRequest(r, &provider); err != nil {
@@ -686,7 +686,7 @@ func (s *O2APIServer) handleRegisterCloudProvider(w http.ResponseWriter, r *http
 	s.writeJSONResponse(w, r, StatusCreated, provider)
 }
 
-// handleGetCloudProviders retrieves cloud providers
+// handleGetCloudProviders retrieves cloud providers.
 func (s *O2APIServer) handleGetCloudProviders(w http.ResponseWriter, r *http.Request) {
 	providers, err := s.imsService.GetCloudProviders(r.Context())
 	if err != nil {
@@ -697,7 +697,7 @@ func (s *O2APIServer) handleGetCloudProviders(w http.ResponseWriter, r *http.Req
 	s.writeJSONResponse(w, r, StatusOK, providers)
 }
 
-// handleGetCloudProvider retrieves a specific cloud provider
+// handleGetCloudProvider retrieves a specific cloud provider.
 func (s *O2APIServer) handleGetCloudProvider(w http.ResponseWriter, r *http.Request) {
 	providerID := s.getPathParam(r, "providerId")
 	if providerID == "" {
@@ -714,7 +714,7 @@ func (s *O2APIServer) handleGetCloudProvider(w http.ResponseWriter, r *http.Requ
 	s.writeJSONResponse(w, r, StatusOK, provider)
 }
 
-// handleUpdateCloudProvider updates an existing cloud provider
+// handleUpdateCloudProvider updates an existing cloud provider.
 func (s *O2APIServer) handleUpdateCloudProvider(w http.ResponseWriter, r *http.Request) {
 	providerID := s.getPathParam(r, "providerId")
 	if providerID == "" {
@@ -737,7 +737,7 @@ func (s *O2APIServer) handleUpdateCloudProvider(w http.ResponseWriter, r *http.R
 	s.writeJSONResponse(w, r, StatusOK, provider)
 }
 
-// handleRemoveCloudProvider removes a cloud provider
+// handleRemoveCloudProvider removes a cloud provider.
 func (s *O2APIServer) handleRemoveCloudProvider(w http.ResponseWriter, r *http.Request) {
 	providerID := s.getPathParam(r, "providerId")
 	if providerID == "" {

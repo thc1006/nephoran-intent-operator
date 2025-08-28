@@ -26,36 +26,48 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
-// ResourceType represents different types of resources
+// ResourceType represents different types of resources.
 type ResourceType string
 
 const (
-	ResourceTypeHuman    ResourceType = "human"
-	ResourceTypeCompute  ResourceType = "compute"
-	ResourceTypeStorage  ResourceType = "storage"
-	ResourceTypeNetwork  ResourceType = "network"
+	// ResourceTypeHuman holds resourcetypehuman value.
+	ResourceTypeHuman ResourceType = "human"
+	// ResourceTypeCompute holds resourcetypecompute value.
+	ResourceTypeCompute ResourceType = "compute"
+	// ResourceTypeStorage holds resourcetypestorage value.
+	ResourceTypeStorage ResourceType = "storage"
+	// ResourceTypeNetwork holds resourcetypenetwork value.
+	ResourceTypeNetwork ResourceType = "network"
+	// ResourceTypeSoftware holds resourcetypesoftware value.
 	ResourceTypeSoftware ResourceType = "software"
+	// ResourceTypeHardware holds resourcetypehardware value.
 	ResourceTypeHardware ResourceType = "hardware"
-	ResourceTypeLicense  ResourceType = "license"
+	// ResourceTypeLicense holds resourcetypelicense value.
+	ResourceTypeLicense ResourceType = "license"
 )
 
-// RiskLevel represents overall risk level
+// RiskLevel represents overall risk level.
 type RiskLevel string
 
 const (
-	RiskLevelVeryLow  RiskLevel = "very_low"
-	RiskLevelLow      RiskLevel = "low"
-	RiskLevelMedium   RiskLevel = "medium"
-	RiskLevelHigh     RiskLevel = "high"
+	// RiskLevelVeryLow holds risklevelverylow value.
+	RiskLevelVeryLow RiskLevel = "very_low"
+	// RiskLevelLow holds risklevellow value.
+	RiskLevelLow RiskLevel = "low"
+	// RiskLevelMedium holds risklevelmedium value.
+	RiskLevelMedium RiskLevel = "medium"
+	// RiskLevelHigh holds risklevelhigh value.
+	RiskLevelHigh RiskLevel = "high"
+	// RiskLevelVeryHigh holds risklevelveryhigh value.
 	RiskLevelVeryHigh RiskLevel = "very_high"
 )
 
-// OptimizationRecommendationEngine stub
+// OptimizationRecommendationEngine stub.
 type OptimizationRecommendationEngine struct {
 	logger logr.Logger
 }
 
-// NewOptimizationRecommendationEngine creates a new recommendation engine (stub)
+// NewOptimizationRecommendationEngine creates a new recommendation engine (stub).
 func NewOptimizationRecommendationEngine(
 	analysisEngine *PerformanceAnalysisEngine,
 	config *RecommendationConfig,
@@ -66,16 +78,16 @@ func NewOptimizationRecommendationEngine(
 	}
 }
 
-// GenerateRecommendations generates optimization recommendations (stub)
+// GenerateRecommendations generates optimization recommendations (stub).
 func (engine *OptimizationRecommendationEngine) GenerateRecommendations(
 	ctx context.Context,
 	analysisResult *PerformanceAnalysisResult,
 ) ([]*OptimizationRecommendation, error) {
-	// Return empty list for now
+	// Return empty list for now.
 	return []*OptimizationRecommendation{}, nil
 }
 
-// OptimizationRecommendation represents a recommendation (minimal stub)
+// OptimizationRecommendation represents a recommendation (minimal stub).
 type OptimizationRecommendation struct {
 	RiskScore           float64  `json:"riskScore"`
 	ImplementationSteps []string `json:"implementationSteps"`
@@ -84,7 +96,7 @@ type OptimizationRecommendation struct {
 	Description         string   `json:"description"`
 }
 
-// RecommendationConfig defines configuration for the recommendation engine
+// RecommendationConfig defines configuration for the recommendation engine.
 type RecommendationConfig struct {
 	PerformanceWeight              float64       `json:"performanceWeight"`
 	CostWeight                     float64       `json:"costWeight"`
@@ -102,7 +114,7 @@ type RecommendationConfig struct {
 	ImplementationWeight           float64       `json:"implementationWeight"`
 }
 
-// GetDefaultRecommendationConfig returns default configuration
+// GetDefaultRecommendationConfig returns default configuration.
 func GetDefaultRecommendationConfig() *RecommendationConfig {
 	return &RecommendationConfig{
 		PerformanceWeight:              0.4,
@@ -122,7 +134,7 @@ func GetDefaultRecommendationConfig() *RecommendationConfig {
 	}
 }
 
-// RecommendationStrategy represents a recommendation strategy (stub)
+// RecommendationStrategy represents a recommendation strategy (stub).
 type RecommendationStrategy struct {
 	Name                string                `json:"name"`
 	Category            OptimizationCategory  `json:"category"`
@@ -134,7 +146,7 @@ type RecommendationStrategy struct {
 	ValidationCriteria  []ValidationCriterion `json:"validationCriteria"`
 }
 
-// ValidationCriterion defines criteria for validating optimization success
+// ValidationCriterion defines criteria for validating optimization success.
 type ValidationCriterion struct {
 	Name            string        `json:"name"`
 	MetricName      string        `json:"metricName"`

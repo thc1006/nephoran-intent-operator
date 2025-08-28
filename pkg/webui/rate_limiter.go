@@ -28,7 +28,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 )
 
-// RateLimiter provides distributed rate limiting functionality
+// RateLimiter provides distributed rate limiting functionality.
 type RateLimiter struct {
 	limits         map[string]*rateLimitBucket
 	requestsPerMin int
@@ -39,7 +39,7 @@ type RateLimiter struct {
 	cleanup        chan struct{}
 }
 
-// rateLimitBucket represents a token bucket for rate limiting
+// rateLimitBucket represents a token bucket for rate limiting.
 type rateLimitBucket struct {
 	tokens     int
 	lastRefill time.Time
@@ -47,7 +47,7 @@ type rateLimitBucket struct {
 	mutex      sync.Mutex
 }
 
-// RateLimitStats provides rate limiting statistics
+// RateLimitStats provides rate limiting statistics.
 type RateLimitStats struct {
 	TotalRequests     int64
 	AllowedRequests   int64
@@ -57,13 +57,13 @@ type RateLimitStats struct {
 	AvgRequestsPerMin float64
 }
 
-// rateLimitStatsInternal contains RateLimitStats with an internal mutex for thread safety
+// rateLimitStatsInternal contains RateLimitStats with an internal mutex for thread safety.
 type rateLimitStatsInternal struct {
 	RateLimitStats
 	mutex sync.RWMutex
 }
 
-// RateLimitConfig holds rate limiter configuration
+// RateLimitConfig holds rate limiter configuration.
 type RateLimitConfig struct {
 	RequestsPerMin   int
 	BurstSize        int
@@ -74,7 +74,7 @@ type RateLimitConfig struct {
 	WhitelistUserIDs []string
 }
 
-// NewRateLimiter creates a new rate limiter instance
+// NewRateLimiter creates a new rate limiter instance.
 func NewRateLimiter(requestsPerMin, burstSize int, window time.Duration) *RateLimiter {
 	rl := &RateLimiter{
 		limits:         make(map[string]*rateLimitBucket),
@@ -85,13 +85,13 @@ func NewRateLimiter(requestsPerMin, burstSize int, window time.Duration) *RateLi
 		cleanup:        make(chan struct{}),
 	}
 
-	// Start cleanup goroutine
+	// Start cleanup goroutine.
 	go rl.cleanupExpiredBuckets()
 
 	return rl
 }
 
-// Allow checks if a request should be allowed based on rate limiting
+// Allow checks if a request should be allowed based on rate limiting.
 func (rl *RateLimiter) Allow(identifier string) bool {
 	rl.mutex.Lock()
 	defer rl.mutex.Unlock()
@@ -111,27 +111,27 @@ func (rl *RateLimiter) Allow(identifier string) bool {
 
 	now := time.Now()
 
-	// Refill tokens based on time passed
+	// Refill tokens based on time passed.
 	rl.refillTokens(bucket, now)
 
-	// Clean old requests from sliding window
+	// Clean old requests from sliding window.
 	rl.cleanOldRequests(bucket, now)
 
-	// Check if request is allowed
+	// Check if request is allowed.
 	allowed := false
 
-	// Token bucket check (for burst)
+	// Token bucket check (for burst).
 	if bucket.tokens > 0 {
 		bucket.tokens--
 		allowed = true
 	} else {
-		// Sliding window check
+		// Sliding window check.
 		if len(bucket.requests) < rl.requestsPerMin {
 			allowed = true
 		}
 	}
 
-	// Record request
+	// Record request.
 	rl.updateStats(func(s *RateLimitStats) {
 		s.TotalRequests++
 		if allowed {
@@ -146,7 +146,7 @@ func (rl *RateLimiter) Allow(identifier string) bool {
 	return allowed
 }
 
-// AllowN checks if N requests should be allowed
+// AllowN checks if N requests should be allowed.
 func (rl *RateLimiter) AllowN(identifier string, n int) bool {
 	rl.mutex.Lock()
 	defer rl.mutex.Unlock()
@@ -168,7 +168,7 @@ func (rl *RateLimiter) AllowN(identifier string, n int) bool {
 	rl.refillTokens(bucket, now)
 	rl.cleanOldRequests(bucket, now)
 
-	// Check if we can allow N requests
+	// Check if we can allow N requests.
 	allowed := false
 	if bucket.tokens >= n {
 		bucket.tokens -= n
@@ -177,9 +177,9 @@ func (rl *RateLimiter) AllowN(identifier string, n int) bool {
 		allowed = true
 	}
 
-	// Record requests
+	// Record requests.
 	if allowed {
-		for i := 0; i < n; i++ {
+		for range n {
 			bucket.requests = append(bucket.requests, now)
 		}
 	}
@@ -196,7 +196,7 @@ func (rl *RateLimiter) AllowN(identifier string, n int) bool {
 	return allowed
 }
 
-// GetLimit returns the current rate limit information for an identifier
+// GetLimit returns the current rate limit information for an identifier.
 func (rl *RateLimiter) GetLimit(identifier string) *RateLimitInfo {
 	rl.mutex.RLock()
 	defer rl.mutex.RUnlock()
@@ -237,12 +237,12 @@ func (rl *RateLimiter) GetLimit(identifier string) *RateLimitInfo {
 	}
 }
 
-// Stats returns rate limiting statistics
+// Stats returns rate limiting statistics.
 func (rl *RateLimiter) Stats() *RateLimitStats {
 	rl.stats.mutex.RLock()
 	defer rl.stats.mutex.RUnlock()
 
-	// Return a copy of the stats without the mutex
+	// Return a copy of the stats without the mutex.
 	return &RateLimitStats{
 		TotalRequests:     rl.stats.RateLimitStats.TotalRequests,
 		AllowedRequests:   rl.stats.RateLimitStats.AllowedRequests,
@@ -253,7 +253,7 @@ func (rl *RateLimiter) Stats() *RateLimitStats {
 	}
 }
 
-// Reset clears all rate limit buckets
+// Reset clears all rate limit buckets.
 func (rl *RateLimiter) Reset() {
 	rl.mutex.Lock()
 	defer rl.mutex.Unlock()
@@ -265,12 +265,12 @@ func (rl *RateLimiter) Reset() {
 	})
 }
 
-// Stop stops the rate limiter and cleanup goroutines
+// Stop stops the rate limiter and cleanup goroutines.
 func (rl *RateLimiter) Stop() {
 	close(rl.cleanup)
 }
 
-// RateLimitInfo contains rate limit information for a specific identifier
+// RateLimitInfo contains rate limit information for a specific identifier.
 type RateLimitInfo struct {
 	Limit     int       `json:"limit"`      // Requests per window
 	Remaining int       `json:"remaining"`  // Remaining requests in current window
@@ -278,7 +278,7 @@ type RateLimitInfo struct {
 	Burst     int       `json:"burst"`      // Available burst tokens
 }
 
-// Internal methods
+// Internal methods.
 
 func (rl *RateLimiter) refillTokens(bucket *rateLimitBucket, now time.Time) {
 	elapsed := now.Sub(bucket.lastRefill)
@@ -296,7 +296,7 @@ func (rl *RateLimiter) refillTokens(bucket *rateLimitBucket, now time.Time) {
 func (rl *RateLimiter) cleanOldRequests(bucket *rateLimitBucket, now time.Time) {
 	cutoff := now.Add(-rl.window)
 
-	// Remove requests older than the window
+	// Remove requests older than the window.
 	validRequests := bucket.requests[:0]
 	for _, requestTime := range bucket.requests {
 		if requestTime.After(cutoff) {
@@ -330,7 +330,7 @@ func (rl *RateLimiter) performCleanup() {
 	for identifier, bucket := range rl.limits {
 		bucket.mutex.Lock()
 
-		// Check if bucket is inactive (no recent requests)
+		// Check if bucket is inactive (no recent requests).
 		cutoff := now.Add(-2 * rl.window)
 		hasRecentActivity := false
 
@@ -363,16 +363,16 @@ func (rl *RateLimiter) updateStats(updateFn func(*RateLimitStats)) {
 	defer rl.stats.mutex.Unlock()
 	updateFn(&rl.stats.RateLimitStats)
 
-	// Calculate average requests per minute
+	// Calculate average requests per minute.
 	if rl.stats.RateLimitStats.TotalRequests > 0 {
-		// This is a simplified calculation - in production, you'd track this over time
+		// This is a simplified calculation - in production, you'd track this over time.
 		rl.stats.RateLimitStats.AvgRequestsPerMin = float64(rl.stats.RateLimitStats.AllowedRequests)
 	}
 }
 
-// HTTP middleware integration
+// HTTP middleware integration.
 
-// RateLimitMiddleware creates HTTP middleware for rate limiting
+// RateLimitMiddleware creates HTTP middleware for rate limiting.
 func (s *NephoranAPIServer) rateLimitMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if s.rateLimiter == nil {
@@ -380,17 +380,17 @@ func (s *NephoranAPIServer) rateLimitMiddleware(next http.Handler) http.Handler 
 			return
 		}
 
-		// Determine identifier (user ID or IP)
+		// Determine identifier (user ID or IP).
 		identifier := s.getRateLimitIdentifier(r)
 
-		// Check rate limit
+		// Check rate limit.
 		if !s.rateLimiter.Allow(identifier) {
 			s.metrics.RateLimitExceeded.Inc()
 
-			// Get limit info for headers
+			// Get limit info for headers.
 			limitInfo := s.rateLimiter.GetLimit(identifier)
 
-			// Set rate limit headers
+			// Set rate limit headers.
 			w.Header().Set("X-RateLimit-Limit", strconv.Itoa(limitInfo.Limit))
 			w.Header().Set("X-RateLimit-Remaining", strconv.Itoa(limitInfo.Remaining))
 			w.Header().Set("X-RateLimit-Reset", strconv.FormatInt(limitInfo.ResetTime.Unix(), 10))
@@ -401,7 +401,7 @@ func (s *NephoranAPIServer) rateLimitMiddleware(next http.Handler) http.Handler 
 			return
 		}
 
-		// Get and set rate limit headers
+		// Get and set rate limit headers.
 		limitInfo := s.rateLimiter.GetLimit(identifier)
 		w.Header().Set("X-RateLimit-Limit", strconv.Itoa(limitInfo.Limit))
 		w.Header().Set("X-RateLimit-Remaining", strconv.Itoa(limitInfo.Remaining))
@@ -412,19 +412,19 @@ func (s *NephoranAPIServer) rateLimitMiddleware(next http.Handler) http.Handler 
 }
 
 func (s *NephoranAPIServer) getRateLimitIdentifier(r *http.Request) string {
-	// Try to get authenticated user ID first
+	// Try to get authenticated user ID first.
 	userID := auth.GetUserID(r.Context())
 	if userID != "" {
 		return fmt.Sprintf("user:%s", userID)
 	}
 
-	// Fall back to IP address
+	// Fall back to IP address.
 	ip := s.getClientIP(r)
 	return fmt.Sprintf("ip:%s", ip)
 }
 
 func (s *NephoranAPIServer) getClientIP(r *http.Request) string {
-	// Check X-Forwarded-For header
+	// Check X-Forwarded-For header.
 	xff := r.Header.Get("X-Forwarded-For")
 	if xff != "" {
 		ips := strings.Split(xff, ",")
@@ -434,13 +434,13 @@ func (s *NephoranAPIServer) getClientIP(r *http.Request) string {
 		}
 	}
 
-	// Check X-Real-IP header
+	// Check X-Real-IP header.
 	xri := r.Header.Get("X-Real-IP")
 	if xri != "" && net.ParseIP(xri) != nil {
 		return xri
 	}
 
-	// Fall back to RemoteAddr
+	// Fall back to RemoteAddr.
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return r.RemoteAddr
@@ -448,9 +448,9 @@ func (s *NephoranAPIServer) getClientIP(r *http.Request) string {
 	return host
 }
 
-// Advanced rate limiting features
+// Advanced rate limiting features.
 
-// SetCustomLimit sets a custom rate limit for a specific identifier
+// SetCustomLimit sets a custom rate limit for a specific identifier.
 func (rl *RateLimiter) SetCustomLimit(identifier string, requestsPerMin, burstSize int) {
 	rl.mutex.Lock()
 	defer rl.mutex.Unlock()
@@ -463,7 +463,7 @@ func (rl *RateLimiter) SetCustomLimit(identifier string, requestsPerMin, burstSi
 	rl.limits[identifier] = bucket
 }
 
-// RemoveLimit removes rate limiting for a specific identifier
+// RemoveLimit removes rate limiting for a specific identifier.
 func (rl *RateLimiter) RemoveLimit(identifier string) {
 	rl.mutex.Lock()
 	defer rl.mutex.Unlock()
@@ -471,7 +471,7 @@ func (rl *RateLimiter) RemoveLimit(identifier string) {
 	delete(rl.limits, identifier)
 }
 
-// IsRateLimited checks if an identifier is currently rate limited without consuming a token
+// IsRateLimited checks if an identifier is currently rate limited without consuming a token.
 func (rl *RateLimiter) IsRateLimited(identifier string) bool {
 	rl.mutex.RLock()
 	defer rl.mutex.RUnlock()

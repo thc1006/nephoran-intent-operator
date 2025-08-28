@@ -8,7 +8,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// MetricsCollector collects and manages performance metrics
+// MetricsCollector collects and manages performance metrics.
 type MetricsCollector struct {
 	analyzer       *MetricsAnalyzer
 	cpuUsage       float64
@@ -18,20 +18,20 @@ type MetricsCollector struct {
 	stopChan       chan struct{}
 }
 
-// NewMetricsCollector creates a new metrics collector
+// NewMetricsCollector creates a new metrics collector.
 func NewMetricsCollector() *MetricsCollector {
 	mc := &MetricsCollector{
 		analyzer: NewMetricsAnalyzer(),
 		stopChan: make(chan struct{}),
 	}
 
-	// Start background collection
+	// Start background collection.
 	go mc.collectMetrics()
 
 	return mc
 }
 
-// collectMetrics continuously collects system metrics
+// collectMetrics continuously collects system metrics.
 func (mc *MetricsCollector) collectMetrics() {
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
@@ -46,23 +46,23 @@ func (mc *MetricsCollector) collectMetrics() {
 	}
 }
 
-// updateMetrics updates current metrics
+// updateMetrics updates current metrics.
 func (mc *MetricsCollector) updateMetrics() {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
 
-	// Update CPU usage (simplified - in production use proper CPU monitoring)
+	// Update CPU usage (simplified - in production use proper CPU monitoring).
 	mc.cpuUsage = mc.calculateCPUUsage()
 
-	// Update memory usage
+	// Update memory usage.
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 	mc.memoryUsage = memStats.Alloc
 
-	// Update goroutine count
+	// Update goroutine count.
 	mc.goroutineCount = runtime.NumGoroutine()
 
-	// Record in analyzer
+	// Record in analyzer.
 	mc.analyzer.RecordResourceSnapshot(ResourceSnapshot{
 		Timestamp:      time.Now(),
 		CPUPercent:     mc.cpuUsage,
@@ -71,45 +71,45 @@ func (mc *MetricsCollector) updateMetrics() {
 	})
 }
 
-// calculateCPUUsage calculates current CPU usage
+// calculateCPUUsage calculates current CPU usage.
 func (mc *MetricsCollector) calculateCPUUsage() float64 {
-	// Simplified CPU calculation
-	// In production, use proper CPU monitoring libraries
+	// Simplified CPU calculation.
+	// In production, use proper CPU monitoring libraries.
 	return float64(runtime.NumCPU()) * 10.0 // Placeholder
 }
 
-// GetCPUUsage returns current CPU usage
+// GetCPUUsage returns current CPU usage.
 func (mc *MetricsCollector) GetCPUUsage() float64 {
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
 	return mc.cpuUsage
 }
 
-// GetMemoryUsage returns current memory usage
+// GetMemoryUsage returns current memory usage.
 func (mc *MetricsCollector) GetMemoryUsage() uint64 {
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
 	return mc.memoryUsage
 }
 
-// GetGoroutineCount returns current goroutine count
+// GetGoroutineCount returns current goroutine count.
 func (mc *MetricsCollector) GetGoroutineCount() int {
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
 	return mc.goroutineCount
 }
 
-// Stop stops the metrics collector
+// Stop stops the metrics collector.
 func (mc *MetricsCollector) Stop() {
 	close(mc.stopChan)
 }
 
-// ExportMetrics exports metrics to Prometheus
+// ExportMetrics exports metrics to Prometheus.
 func (mc *MetricsCollector) ExportMetrics(registry *prometheus.Registry) {
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
 
-	// CPU usage
+	// CPU usage.
 	cpuGauge := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "system_cpu_usage_percent",
 		Help: "Current CPU usage percentage",
@@ -117,7 +117,7 @@ func (mc *MetricsCollector) ExportMetrics(registry *prometheus.Registry) {
 	cpuGauge.Set(mc.cpuUsage)
 	registry.MustRegister(cpuGauge)
 
-	// Memory usage
+	// Memory usage.
 	memGauge := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "system_memory_usage_bytes",
 		Help: "Current memory usage in bytes",
@@ -125,7 +125,7 @@ func (mc *MetricsCollector) ExportMetrics(registry *prometheus.Registry) {
 	memGauge.Set(float64(mc.memoryUsage))
 	registry.MustRegister(memGauge)
 
-	// Goroutine count
+	// Goroutine count.
 	goroutineGauge := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "system_goroutines_count",
 		Help: "Current number of goroutines",
@@ -133,6 +133,6 @@ func (mc *MetricsCollector) ExportMetrics(registry *prometheus.Registry) {
 	goroutineGauge.Set(float64(mc.goroutineCount))
 	registry.MustRegister(goroutineGauge)
 
-	// Export analyzer metrics
+	// Export analyzer metrics.
 	mc.analyzer.ExportToPrometheus(registry)
 }

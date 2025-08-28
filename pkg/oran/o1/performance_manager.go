@@ -18,8 +18,8 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 )
 
-// CompletePerformanceManager provides comprehensive O-RAN performance management
-// following O-RAN.WG10.O1-Interface.0-v07.00 specification
+// CompletePerformanceManager provides comprehensive O-RAN performance management.
+// following O-RAN.WG10.O1-Interface.0-v07.00 specification.
 type CompletePerformanceManager struct {
 	config              *PerformanceManagerConfig
 	measurementRegistry *MeasurementRegistry
@@ -40,7 +40,7 @@ type CompletePerformanceManager struct {
 	stopChan            chan struct{}
 }
 
-// PerformanceManagerConfig holds performance manager configuration
+// PerformanceManagerConfig holds performance manager configuration.
 type PerformanceManagerConfig struct {
 	PrometheusURL           string
 	GrafanaURL              string
@@ -56,7 +56,7 @@ type PerformanceManagerConfig struct {
 	MaxConcurrentCollectors int
 }
 
-// MeasurementRegistry manages measurement object definitions
+// MeasurementRegistry manages measurement object definitions.
 type MeasurementRegistry struct {
 	objects      map[string]*MeasurementObject
 	types        map[string]*MeasurementType
@@ -65,7 +65,7 @@ type MeasurementRegistry struct {
 	mutex        sync.RWMutex
 }
 
-// MeasurementObject represents an O-RAN measurement object
+// MeasurementObject represents an O-RAN measurement object.
 type MeasurementObject struct {
 	ID                     string                      `json:"id"`
 	Name                   string                      `json:"name"`
@@ -80,7 +80,7 @@ type MeasurementObject struct {
 	Status                 string                      `json:"status"` // ACTIVE, INACTIVE, DEPRECATED
 }
 
-// MeasurementType defines a specific measurement within an object
+// MeasurementType defines a specific measurement within an object.
 type MeasurementType struct {
 	ID                        string                `json:"id"`
 	Name                      string                `json:"name"`
@@ -101,7 +101,7 @@ type MeasurementType struct {
 	PerformanceMetricGroupRef string                `json:"performance_metric_group_ref,omitempty"`
 }
 
-// MeasurementObjectGroup groups related measurement objects
+// MeasurementObjectGroup groups related measurement objects.
 type MeasurementObjectGroup struct {
 	ID               string   `json:"id"`
 	Name             string   `json:"name"`
@@ -112,7 +112,7 @@ type MeasurementObjectGroup struct {
 	CollectionPolicy string   `json:"collection_policy"` // ALL, SELECTIVE, CONDITIONAL
 }
 
-// MeasurementCapabilities describes system measurement capabilities
+// MeasurementCapabilities describes system measurement capabilities.
 type MeasurementCapabilities struct {
 	SupportedMeasurementGroups  []string        `json:"supported_measurement_groups"`
 	MaxBinCount                 int             `json:"max_bin_count"`
@@ -126,7 +126,7 @@ type MeasurementCapabilities struct {
 	SupportedReportingFormats   []string        `json:"supported_reporting_formats"`
 }
 
-// PerformanceDataCollector collects measurement data from network elements
+// PerformanceDataCollector collects measurement data from network elements.
 type PerformanceDataCollector struct {
 	config            *PerformanceManagerConfig
 	activeCollections map[string]*MeasurementCollection
@@ -137,7 +137,7 @@ type PerformanceDataCollector struct {
 	netconfClients    map[string]*NetconfClient
 }
 
-// MeasurementCollection represents an active measurement collection
+// MeasurementCollection represents an active measurement collection.
 type MeasurementCollection struct {
 	ID                 string                 `json:"id"`
 	ObjectID           string                 `json:"object_id"`
@@ -157,7 +157,7 @@ type MeasurementCollection struct {
 	cancel             context.CancelFunc     `json:"-"`
 }
 
-// MeasurementFilter defines filtering criteria for data collection
+// MeasurementFilter defines filtering criteria for data collection.
 type MeasurementFilter struct {
 	TimeRange        *TimeRange              `json:"time_range,omitempty"`
 	ValueFilters     map[string]*ValueFilter `json:"value_filters,omitempty"`
@@ -165,20 +165,20 @@ type MeasurementFilter struct {
 	SamplingRate     float64                 `json:"sampling_rate,omitempty"`
 }
 
-// TimeRange defines a time range for filtering
+// TimeRange defines a time range for filtering.
 type TimeRange struct {
 	StartTime time.Time `json:"start_time"`
 	EndTime   time.Time `json:"end_time"`
 }
 
-// ValueFilter defines value-based filtering criteria
+// ValueFilter defines value-based filtering criteria.
 type ValueFilter struct {
 	Operator string      `json:"operator"` // GT, LT, EQ, NE, BETWEEN
 	Value    interface{} `json:"value"`
 	Value2   interface{} `json:"value2,omitempty"` // For BETWEEN operator
 }
 
-// MeasurementCollector collects data for a specific measurement collection
+// MeasurementCollector collects data for a specific measurement collection.
 type MeasurementCollector struct {
 	collection     *MeasurementCollection
 	measurementObj *MeasurementObject
@@ -192,7 +192,7 @@ type MeasurementCollector struct {
 	mutex          sync.RWMutex
 }
 
-// CircularDataBuffer provides efficient storage for measurement data
+// CircularDataBuffer provides efficient storage for measurement data.
 type CircularDataBuffer struct {
 	data    []*MeasurementData
 	size    int
@@ -203,7 +203,7 @@ type CircularDataBuffer struct {
 	maxSize int
 }
 
-// MeasurementData represents a single measurement data point
+// MeasurementData represents a single measurement data point.
 type MeasurementData struct {
 	Timestamp       time.Time              `json:"timestamp"`
 	ObjectID        string                 `json:"object_id"`
@@ -216,21 +216,21 @@ type MeasurementData struct {
 	Granularity     time.Duration          `json:"granularity"`
 }
 
-// DataAggregationEngine performs data aggregation and calculations
+// DataAggregationEngine performs data aggregation and calculations.
 type DataAggregationEngine struct {
 	aggregators map[string]AggregationFunction
 	binManagers map[time.Duration]*BinManager
 	mutex       sync.RWMutex
 }
 
-// AggregationFunction interface for different aggregation methods
+// AggregationFunction interface for different aggregation methods.
 type AggregationFunction interface {
 	Aggregate(data []*MeasurementData) (*AggregatedData, error)
 	GetAggregationType() string
 	GetSupportedDataTypes() []string
 }
 
-// AggregatedData represents aggregated measurement data
+// AggregatedData represents aggregated measurement data.
 type AggregatedData struct {
 	Timestamp       time.Time              `json:"timestamp"`
 	StartTime       time.Time              `json:"start_time"`
@@ -244,14 +244,14 @@ type AggregatedData struct {
 	Metadata        map[string]interface{} `json:"metadata"`
 }
 
-// BinManager manages data bins for different time granularities
+// BinManager manages data bins for different time granularities.
 type BinManager struct {
 	granularity time.Duration
 	bins        map[string]*DataBin
 	mutex       sync.RWMutex
 }
 
-// DataBin represents a time-based data bin for aggregation
+// DataBin represents a time-based data bin for aggregation.
 type DataBin struct {
 	StartTime time.Time
 	EndTime   time.Time
@@ -259,7 +259,7 @@ type DataBin struct {
 	Sealed    bool
 }
 
-// PerformanceThresholdManager manages performance thresholds and alerting
+// PerformanceThresholdManager manages performance thresholds and alerting.
 type PerformanceThresholdManager struct {
 	thresholds      map[string]*PerformanceThreshold
 	crossingHistory map[string][]*ThresholdCrossing
@@ -267,7 +267,7 @@ type PerformanceThresholdManager struct {
 	mutex           sync.RWMutex
 }
 
-// PerformanceThreshold defines performance monitoring thresholds
+// PerformanceThreshold defines performance monitoring thresholds.
 type PerformanceThreshold struct {
 	ID                 string                 `json:"id"`
 	ObjectID           string                 `json:"object_id"`
@@ -287,14 +287,14 @@ type PerformanceThreshold struct {
 	CurrentState       string                 `json:"current_state"` // NORMAL, THRESHOLD_CROSSED
 }
 
-// Threshold represents a configurable threshold value
+// Threshold represents a configurable threshold value.
 type Threshold struct {
 	Value      float64 `json:"value"`
 	Direction  string  `json:"direction"` // RISING, FALLING
 	Hysteresis float64 `json:"hysteresis"`
 }
 
-// ThresholdCrossing represents a threshold crossing event
+// ThresholdCrossing represents a threshold crossing event.
 type ThresholdCrossing struct {
 	Timestamp      time.Time `json:"timestamp"`
 	ThresholdID    string    `json:"threshold_id"`
@@ -306,20 +306,20 @@ type ThresholdCrossing struct {
 	ClearTimestamp time.Time `json:"clear_timestamp,omitempty"`
 }
 
-// ThresholdAlertManager manages threshold-based alerts
+// ThresholdAlertManager manages threshold-based alerts.
 type ThresholdAlertManager struct {
 	alertChannels   map[string]AlertChannel
 	escalationRules []*AlertEscalationRule
 	mutex           sync.RWMutex
 }
 
-// AlertChannel interface for different alert delivery methods
+// AlertChannel interface for different alert delivery methods.
 type AlertChannel interface {
 	SendAlert(ctx context.Context, crossing *ThresholdCrossing) error
 	GetChannelType() string
 }
 
-// AlertEscalationRule defines alert escalation policies
+// AlertEscalationRule defines alert escalation policies.
 type AlertEscalationRule struct {
 	ID              string        `json:"id"`
 	Conditions      []string      `json:"conditions"`
@@ -328,7 +328,7 @@ type AlertEscalationRule struct {
 	Enabled         bool          `json:"enabled"`
 }
 
-// RealTimeStreamingManager handles real-time data streaming
+// RealTimeStreamingManager handles real-time data streaming.
 type RealTimeStreamingManager struct {
 	streams         map[string]*DataStream
 	subscribers     map[string]*StreamSubscriber
@@ -336,7 +336,7 @@ type RealTimeStreamingManager struct {
 	mutex           sync.RWMutex
 }
 
-// DataStream represents a real-time data stream
+// DataStream represents a real-time data stream.
 type DataStream struct {
 	ID               string                `json:"id"`
 	Name             string                `json:"name"`
@@ -352,7 +352,7 @@ type DataStream struct {
 	DataBuffer       chan *MeasurementData `json:"-"`
 }
 
-// StreamSubscriber represents a client subscribed to data streams
+// StreamSubscriber represents a client subscribed to data streams.
 type StreamSubscriber struct {
 	ID           string                `json:"id"`
 	StreamIDs    []string              `json:"stream_ids"`
@@ -365,14 +365,14 @@ type StreamSubscriber struct {
 	SendBuffer   chan *MeasurementData `json:"-"`
 }
 
-// PerformanceStreamFilter defines filtering rules for performance stream data
+// PerformanceStreamFilter defines filtering rules for performance stream data.
 type PerformanceStreamFilter struct {
 	Field    string      `json:"field"`
 	Operator string      `json:"operator"`
 	Value    interface{} `json:"value"`
 }
 
-// StreamingServer provides streaming server functionality
+// StreamingServer provides streaming server functionality.
 type StreamingServer struct {
 	httpServer    *http.Server
 	wsConnections map[string]*websocket.Conn
@@ -380,7 +380,7 @@ type StreamingServer struct {
 	mutex         sync.RWMutex
 }
 
-// HistoricalDataManager manages long-term storage and retrieval
+// HistoricalDataManager manages long-term storage and retrieval.
 type HistoricalDataManager struct {
 	storage         HistoricalStorage
 	indexManager    *DataIndexManager
@@ -388,7 +388,7 @@ type HistoricalDataManager struct {
 	compressionMgr  *DataCompressionManager
 }
 
-// HistoricalStorage interface for historical data storage backends
+// HistoricalStorage interface for historical data storage backends.
 type HistoricalStorage interface {
 	Store(ctx context.Context, data []*MeasurementData) error
 	Query(ctx context.Context, query *HistoricalQuery) ([]*MeasurementData, error)
@@ -396,7 +396,7 @@ type HistoricalStorage interface {
 	GetStorageStats() *StorageStatistics
 }
 
-// HistoricalQuery represents a query for historical data
+// HistoricalQuery represents a query for historical data.
 type HistoricalQuery struct {
 	ObjectIDs        []string               `json:"object_ids,omitempty"`
 	MeasurementTypes []string               `json:"measurement_types,omitempty"`
@@ -410,14 +410,14 @@ type HistoricalQuery struct {
 	Offset           int                    `json:"offset,omitempty"`
 }
 
-// DeletionCriteria defines criteria for data deletion
+// DeletionCriteria defines criteria for data deletion.
 type DeletionCriteria struct {
 	ObjectIDs []string  `json:"object_ids,omitempty"`
 	OlderThan time.Time `json:"older_than,omitempty"`
 	Quality   string    `json:"quality,omitempty"`
 }
 
-// StorageStatistics provides storage usage statistics
+// StorageStatistics provides storage usage statistics.
 type StorageStatistics struct {
 	TotalRecords     int64     `json:"total_records"`
 	StorageSize      int64     `json:"storage_size_bytes"`
@@ -426,7 +426,7 @@ type StorageStatistics struct {
 	CompressionRatio float64   `json:"compression_ratio"`
 }
 
-// DataIndexManager manages data indexing for fast queries
+// DataIndexManager manages data indexing for fast queries.
 type DataIndexManager struct {
 	timeIndex        map[time.Time][]string
 	objectIndex      map[string][]string
@@ -434,12 +434,12 @@ type DataIndexManager struct {
 	mutex            sync.RWMutex
 }
 
-// RetentionPolicy defines data retention policies
+// RetentionPolicy defines data retention policies.
 type RetentionPolicy struct {
 	Policies map[string]*RetentionRule `json:"policies"`
 }
 
-// RetentionRule defines a specific retention rule
+// RetentionRule defines a specific retention rule.
 type RetentionRule struct {
 	ObjectPattern   string        `json:"object_pattern"`
 	RetentionPeriod time.Duration `json:"retention_period"`
@@ -447,13 +447,13 @@ type RetentionRule struct {
 	CompressionRule string        `json:"compression_rule"`
 }
 
-// DataCompressionManager handles data compression
+// DataCompressionManager handles data compression.
 type DataCompressionManager struct {
 	compressors map[string]DataCompressor
 	config      *CompressionConfig
 }
 
-// DataCompressor interface for different compression methods
+// DataCompressor interface for different compression methods.
 type DataCompressor interface {
 	Compress(data []byte) ([]byte, error)
 	Decompress(data []byte) ([]byte, error)
@@ -461,14 +461,14 @@ type DataCompressor interface {
 	GetCompressionType() string
 }
 
-// CompressionConfig holds compression configuration
+// CompressionConfig holds compression configuration.
 type CompressionConfig struct {
 	DefaultMethod    string            `json:"default_method"`
 	MethodsByPattern map[string]string `json:"methods_by_pattern"`
 	CompressionLevel int               `json:"compression_level"`
 }
 
-// PerformanceAnomalyDetector detects performance anomalies using ML
+// PerformanceAnomalyDetector detects performance anomalies using ML.
 type PerformanceAnomalyDetector struct {
 	models          map[string]AnomalyDetectionModel
 	baselineManager *BaselineManager
@@ -476,7 +476,7 @@ type PerformanceAnomalyDetector struct {
 	config          *AnomalyDetectionConfig
 }
 
-// AnomalyDetectionModel interface for ML-based anomaly detection
+// AnomalyDetectionModel interface for ML-based anomaly detection.
 type AnomalyDetectionModel interface {
 	Train(ctx context.Context, data []*MeasurementData) error
 	Predict(ctx context.Context, data *MeasurementData) (*AnomalyPrediction, error)
@@ -484,7 +484,7 @@ type AnomalyDetectionModel interface {
 	GetModelInfo() *ModelInfo
 }
 
-// AnomalyPrediction represents anomaly detection results
+// AnomalyPrediction represents anomaly detection results.
 type AnomalyPrediction struct {
 	IsAnomaly    bool                   `json:"is_anomaly"`
 	Confidence   float64                `json:"confidence"`
@@ -494,7 +494,7 @@ type AnomalyPrediction struct {
 	Metadata     map[string]interface{} `json:"metadata"`
 }
 
-// AnomalyFeedback provides feedback for model improvement
+// AnomalyFeedback provides feedback for model improvement.
 type AnomalyFeedback struct {
 	PredictionID  string    `json:"prediction_id"`
 	ActualAnomaly bool      `json:"actual_anomaly"`
@@ -502,7 +502,7 @@ type AnomalyFeedback struct {
 	Timestamp     time.Time `json:"timestamp"`
 }
 
-// ModelInfo provides information about anomaly detection models
+// ModelInfo provides information about anomaly detection models.
 type ModelInfo struct {
 	ModelType    string                 `json:"model_type"`
 	TrainingData int                    `json:"training_data_points"`
@@ -511,13 +511,13 @@ type ModelInfo struct {
 	Parameters   map[string]interface{} `json:"parameters"`
 }
 
-// BaselineManager manages performance baselines
+// BaselineManager manages performance baselines.
 type BaselineManager struct {
 	baselines map[string]*PerformanceBaseline
 	mutex     sync.RWMutex
 }
 
-// PerformanceBaseline represents normal performance characteristics
+// PerformanceBaseline represents normal performance characteristics.
 type PerformanceBaseline struct {
 	ObjectID        string              `json:"object_id"`
 	MeasurementType string              `json:"measurement_type"`
@@ -528,7 +528,7 @@ type PerformanceBaseline struct {
 	Confidence      float64             `json:"confidence"`
 }
 
-// StatisticalSummary provides statistical summary of measurement data
+// StatisticalSummary provides statistical summary of measurement data.
 type StatisticalSummary struct {
 	Mean        float64         `json:"mean"`
 	Median      float64         `json:"median"`
@@ -540,7 +540,7 @@ type StatisticalSummary struct {
 	Timestamp   time.Time       `json:"timestamp"`
 }
 
-// AnomalyAlertManager manages anomaly-based alerts
+// AnomalyAlertManager manages anomaly-based alerts.
 type AnomalyAlertManager struct {
 	alertChannels   map[string]AlertChannel
 	alertHistory    []*AnomalyAlert
@@ -548,7 +548,7 @@ type AnomalyAlertManager struct {
 	mutex           sync.RWMutex
 }
 
-// AnomalyAlert represents an anomaly alert
+// AnomalyAlert represents an anomaly alert.
 type AnomalyAlert struct {
 	ID              string                 `json:"id"`
 	Timestamp       time.Time              `json:"timestamp"`
@@ -562,7 +562,7 @@ type AnomalyAlert struct {
 	Metadata        map[string]interface{} `json:"metadata"`
 }
 
-// AnomalyEscalationRule defines anomaly alert escalation
+// AnomalyEscalationRule defines anomaly alert escalation.
 type AnomalyEscalationRule struct {
 	ID                    string        `json:"id"`
 	AnomalyScoreThreshold float64       `json:"anomaly_score_threshold"`
@@ -571,7 +571,7 @@ type AnomalyEscalationRule struct {
 	Enabled               bool          `json:"enabled"`
 }
 
-// AnomalyDetectionConfig holds anomaly detection configuration
+// AnomalyDetectionConfig holds anomaly detection configuration.
 type AnomalyDetectionConfig struct {
 	EnabledModels    []string      `json:"enabled_models"`
 	TrainingInterval time.Duration `json:"training_interval"`
@@ -580,7 +580,7 @@ type AnomalyDetectionConfig struct {
 	BaselineUpdate   time.Duration `json:"baseline_update_interval"`
 }
 
-// PerformanceReportGenerator generates performance reports
+// PerformanceReportGenerator generates performance reports.
 type PerformanceReportGenerator struct {
 	templates    map[string]*ReportTemplate
 	generators   map[string]ReportGenerator
@@ -588,7 +588,7 @@ type PerformanceReportGenerator struct {
 	distribution *ReportDistribution
 }
 
-// ReportTemplate defines report structure and content
+// ReportTemplate defines report structure and content.
 type ReportTemplate struct {
 	ID                 string           `json:"id"`
 	Name               string           `json:"name"`
@@ -606,7 +606,7 @@ type ReportTemplate struct {
 	UpdatedAt          time.Time        `json:"updated_at"`
 }
 
-// ReportTimeRange defines time range for reports
+// ReportTimeRange defines time range for reports.
 type ReportTimeRange struct {
 	Type        string        `json:"type"` // RELATIVE, ABSOLUTE
 	StartTime   time.Time     `json:"start_time,omitempty"`
@@ -615,7 +615,7 @@ type ReportTimeRange struct {
 	Granularity time.Duration `json:"granularity"`
 }
 
-// Visualization defines report visualizations
+// Visualization defines report visualizations.
 type Visualization struct {
 	Type       string                 `json:"type"` // CHART, TABLE, GAUGE
 	Title      string                 `json:"title"`
@@ -624,7 +624,7 @@ type Visualization struct {
 	Parameters map[string]interface{} `json:"parameters"`
 }
 
-// ReportSchedule defines when reports are generated
+// ReportSchedule defines when reports are generated.
 type ReportSchedule struct {
 	Frequency  string    `json:"frequency"` // HOURLY, DAILY, WEEKLY, MONTHLY
 	DayOfWeek  int       `json:"day_of_week,omitempty"`
@@ -635,14 +635,14 @@ type ReportSchedule struct {
 	NextRun    time.Time `json:"next_run"`
 }
 
-// ReportGenerator interface for different report generation methods
+// ReportGenerator interface for different report generation methods.
 type ReportGenerator interface {
 	GenerateReport(ctx context.Context, template *ReportTemplate, data []*MeasurementData) (*GeneratedReport, error)
 	GetSupportedFormats() []string
 	GetGeneratorType() string
 }
 
-// GeneratedReport represents a generated performance report
+// GeneratedReport represents a generated performance report.
 type GeneratedReport struct {
 	ID          string                 `json:"id"`
 	TemplateID  string                 `json:"template_id"`
@@ -654,7 +654,7 @@ type GeneratedReport struct {
 	Status      string                 `json:"status"`
 }
 
-// ReportScheduler manages scheduled report generation
+// ReportScheduler manages scheduled report generation.
 type ReportScheduler struct {
 	scheduledReports map[string]*ScheduledReport
 	ticker           *time.Ticker
@@ -663,7 +663,7 @@ type ReportScheduler struct {
 	mutex            sync.RWMutex
 }
 
-// ScheduledReport represents a scheduled report
+// ScheduledReport represents a scheduled report.
 type ScheduledReport struct {
 	Template   *ReportTemplate
 	NextRun    time.Time
@@ -673,18 +673,18 @@ type ScheduledReport struct {
 	ErrorCount int64
 }
 
-// ReportDistribution handles report distribution
+// ReportDistribution handles report distribution.
 type ReportDistribution struct {
 	distributors map[string]ReportDistributor
 }
 
-// ReportDistributor interface for report distribution methods
+// ReportDistributor interface for report distribution methods.
 type ReportDistributor interface {
 	DistributeReport(ctx context.Context, report *GeneratedReport, recipients []string) error
 	GetDistributorType() string
 }
 
-// KPICalculator calculates Key Performance Indicators
+// KPICalculator calculates Key Performance Indicators.
 type KPICalculator struct {
 	kpiDefinitions map[string]*KPIDefinition
 	calculatedKPIs map[string]*CalculatedKPI
@@ -692,7 +692,7 @@ type KPICalculator struct {
 	mutex          sync.RWMutex
 }
 
-// KPIDefinition defines a Key Performance Indicator
+// KPIDefinition defines a Key Performance Indicator.
 type KPIDefinition struct {
 	ID                string             `json:"id"`
 	Name              string             `json:"name"`
@@ -709,7 +709,7 @@ type KPIDefinition struct {
 	Enabled           bool               `json:"enabled"`
 }
 
-// CalculatedKPI represents a calculated KPI value
+// CalculatedKPI represents a calculated KPI value.
 type CalculatedKPI struct {
 	DefinitionID string                 `json:"definition_id"`
 	Value        float64                `json:"value"`
@@ -721,19 +721,19 @@ type CalculatedKPI struct {
 	Confidence   float64                `json:"confidence"`
 }
 
-// KPICalculationEngine performs KPI calculations
+// KPICalculationEngine performs KPI calculations.
 type KPICalculationEngine struct {
 	functions map[string]KPIFunction
 }
 
-// KPIFunction interface for KPI calculation functions
+// KPIFunction interface for KPI calculation functions.
 type KPIFunction interface {
 	Calculate(inputs map[string]interface{}) (float64, error)
 	GetFunctionName() string
 	GetRequiredInputs() []string
 }
 
-// GrafanaIntegration integrates with Grafana for visualization
+// GrafanaIntegration integrates with Grafana for visualization.
 type GrafanaIntegration struct {
 	client      *GrafanaClient
 	dashboards  map[string]*GrafanaDashboard
@@ -742,14 +742,14 @@ type GrafanaIntegration struct {
 	config      *GrafanaConfig
 }
 
-// GrafanaClient provides Grafana API client functionality
+// GrafanaClient provides Grafana API client functionality.
 type GrafanaClient struct {
 	baseURL string
 	apiKey  string
 	client  *http.Client
 }
 
-// GrafanaDashboard represents a Grafana dashboard
+// GrafanaDashboard represents a Grafana dashboard.
 type GrafanaDashboard struct {
 	ID        int                    `json:"id"`
 	UID       string                 `json:"uid"`
@@ -761,7 +761,7 @@ type GrafanaDashboard struct {
 	UpdatedAt time.Time              `json:"updated_at"`
 }
 
-// GrafanaDatasource represents a Grafana datasource
+// GrafanaDatasource represents a Grafana datasource.
 type GrafanaDatasource struct {
 	ID       int                    `json:"id"`
 	Name     string                 `json:"name"`
@@ -770,7 +770,7 @@ type GrafanaDatasource struct {
 	Settings map[string]interface{} `json:"settings"`
 }
 
-// GrafanaAlertRule represents a Grafana alert rule
+// GrafanaAlertRule represents a Grafana alert rule.
 type GrafanaAlertRule struct {
 	ID         int                    `json:"id"`
 	Title      string                 `json:"title"`
@@ -781,7 +781,7 @@ type GrafanaAlertRule struct {
 	Enabled    bool                   `json:"enabled"`
 }
 
-// GrafanaConfig holds Grafana integration configuration
+// GrafanaConfig holds Grafana integration configuration.
 type GrafanaConfig struct {
 	URL               string `json:"url"`
 	APIKey            string `json:"api_key"`
@@ -790,7 +790,7 @@ type GrafanaConfig struct {
 	DashboardFolder   string `json:"dashboard_folder"`
 }
 
-// PerformanceMetrics holds Prometheus metrics for performance management
+// PerformanceMetrics holds Prometheus metrics for performance management.
 type PerformanceMetrics struct {
 	DataPointsCollected prometheus.Counter
 	CollectionErrors    prometheus.Counter
@@ -801,7 +801,7 @@ type PerformanceMetrics struct {
 	ActiveStreams       prometheus.Gauge
 }
 
-// CollectorWorkerPool manages collector worker goroutines
+// CollectorWorkerPool manages collector worker goroutines.
 type CollectorWorkerPool struct {
 	workers     int
 	taskQueue   chan *CollectionTask
@@ -811,7 +811,7 @@ type CollectorWorkerPool struct {
 	stopChan    chan struct{}
 }
 
-// CollectionTask represents a data collection task
+// CollectionTask represents a data collection task.
 type CollectionTask struct {
 	CollectionID     string
 	ObjectID         string
@@ -820,7 +820,7 @@ type CollectionTask struct {
 	Timestamp        time.Time
 }
 
-// CollectionResult represents the result of a collection task
+// CollectionResult represents the result of a collection task.
 type CollectionResult struct {
 	TaskID    string
 	Success   bool
@@ -830,7 +830,7 @@ type CollectionResult struct {
 	Duration  time.Duration
 }
 
-// NewCompletePerformanceManager creates a new complete performance manager
+// NewCompletePerformanceManager creates a new complete performance manager.
 func NewCompletePerformanceManager(config *PerformanceManagerConfig) *CompletePerformanceManager {
 	if config == nil {
 		config = &PerformanceManagerConfig{
@@ -862,14 +862,14 @@ func NewCompletePerformanceManager(config *PerformanceManagerConfig) *CompletePe
 		stopChan:            make(chan struct{}),
 	}
 
-	// Initialize core components
+	// Initialize core components.
 	cpm.dataCollector = NewPerformanceDataCollector(config, cpm.measurementRegistry)
 	cpm.aggregationEngine = NewDataAggregationEngine()
 	cpm.thresholdManager = NewPerformanceThresholdManager()
 	cpm.historicalManager = NewHistoricalDataManager()
 	cpm.kpiCalculator = NewKPICalculator()
 
-	// Initialize optional components
+	// Initialize optional components.
 	if config.EnableRealTimeStreaming {
 		cpm.streamingManager = NewRealTimeStreamingManager()
 	}
@@ -888,7 +888,7 @@ func NewCompletePerformanceManager(config *PerformanceManagerConfig) *CompletePe
 		cpm.reportGenerator = NewPerformanceReportGenerator()
 	}
 
-	// Initialize Prometheus client if configured
+	// Initialize Prometheus client if configured.
 	if config.PrometheusURL != "" {
 		client, err := api.NewClient(api.Config{Address: config.PrometheusURL})
 		if err == nil {
@@ -896,7 +896,7 @@ func NewCompletePerformanceManager(config *PerformanceManagerConfig) *CompletePe
 		}
 	}
 
-	// Initialize Grafana integration if configured
+	// Initialize Grafana integration if configured.
 	if config.GrafanaURL != "" {
 		cpm.grafanaIntegration = NewGrafanaIntegration(&GrafanaConfig{
 			URL: config.GrafanaURL,
@@ -906,38 +906,38 @@ func NewCompletePerformanceManager(config *PerformanceManagerConfig) *CompletePe
 	return cpm
 }
 
-// Start starts the performance manager
+// Start starts the performance manager.
 func (cpm *CompletePerformanceManager) Start(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	logger.Info("starting complete performance manager")
 
 	cpm.running = true
 
-	// Start data collector
+	// Start data collector.
 	if err := cpm.dataCollector.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start data collector: %w", err)
 	}
 
-	// Start threshold monitoring
+	// Start threshold monitoring.
 	if err := cpm.thresholdManager.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start threshold manager: %w", err)
 	}
 
-	// Start streaming if enabled
+	// Start streaming if enabled.
 	if cpm.streamingManager != nil {
 		if err := cpm.streamingManager.Start(ctx); err != nil {
 			logger.Error(err, "failed to start streaming manager")
 		}
 	}
 
-	// Start anomaly detection if enabled
+	// Start anomaly detection if enabled.
 	if cpm.anomalyDetector != nil {
 		if err := cpm.anomalyDetector.Start(ctx); err != nil {
 			logger.Error(err, "failed to start anomaly detector")
 		}
 	}
 
-	// Start report generation if enabled
+	// Start report generation if enabled.
 	if cpm.reportGenerator != nil {
 		if err := cpm.reportGenerator.Start(ctx); err != nil {
 			logger.Error(err, "failed to start report generator")
@@ -948,7 +948,7 @@ func (cpm *CompletePerformanceManager) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the performance manager
+// Stop stops the performance manager.
 func (cpm *CompletePerformanceManager) Stop(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	logger.Info("stopping complete performance manager")
@@ -956,7 +956,7 @@ func (cpm *CompletePerformanceManager) Stop(ctx context.Context) error {
 	cpm.running = false
 	close(cpm.stopChan)
 
-	// Stop all collectors
+	// Stop all collectors.
 	cpm.collectorsMux.Lock()
 	for id, collector := range cpm.collectors {
 		collector.Stop()
@@ -964,7 +964,7 @@ func (cpm *CompletePerformanceManager) Stop(ctx context.Context) error {
 	}
 	cpm.collectorsMux.Unlock()
 
-	// Stop components
+	// Stop components.
 	if cpm.dataCollector != nil {
 		cpm.dataCollector.Stop(ctx)
 	}
@@ -989,17 +989,17 @@ func (cpm *CompletePerformanceManager) Stop(ctx context.Context) error {
 	return nil
 }
 
-// StartMeasurementCollection starts a new measurement collection
+// StartMeasurementCollection starts a new measurement collection.
 func (cpm *CompletePerformanceManager) StartMeasurementCollection(ctx context.Context, req *MeasurementCollectionRequest) (*MeasurementCollection, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("starting measurement collection", "objectID", req.ObjectID, "elementID", req.ElementID)
 
-	// Validate request
+	// Validate request.
 	if err := cpm.validateCollectionRequest(req); err != nil {
 		return nil, fmt.Errorf("invalid collection request: %w", err)
 	}
 
-	// Create collection
+	// Create collection.
 	collection := &MeasurementCollection{
 		ID:                 cpm.generateCollectionID(),
 		ObjectID:           req.ObjectID,
@@ -1014,7 +1014,7 @@ func (cpm *CompletePerformanceManager) StartMeasurementCollection(ctx context.Co
 		Configuration:      req.Configuration,
 	}
 
-	// Create collector
+	// Create collector.
 	measurementObj, err := cpm.measurementRegistry.GetObject(req.ObjectID)
 	if err != nil {
 		return nil, fmt.Errorf("measurement object not found: %w", err)
@@ -1022,12 +1022,12 @@ func (cpm *CompletePerformanceManager) StartMeasurementCollection(ctx context.Co
 
 	collector := NewMeasurementCollector(collection, measurementObj, cpm.dataCollector)
 
-	// Start collector
+	// Start collector.
 	if err := collector.Start(ctx); err != nil {
 		return nil, fmt.Errorf("failed to start collector: %w", err)
 	}
 
-	// Store collector
+	// Store collector.
 	cpm.collectorsMux.Lock()
 	cpm.collectors[collection.ID] = collector
 	cpm.collectorsMux.Unlock()
@@ -1036,7 +1036,7 @@ func (cpm *CompletePerformanceManager) StartMeasurementCollection(ctx context.Co
 	return collection, nil
 }
 
-// StopMeasurementCollection stops a measurement collection
+// StopMeasurementCollection stops a measurement collection.
 func (cpm *CompletePerformanceManager) StopMeasurementCollection(ctx context.Context, collectionID string) error {
 	logger := log.FromContext(ctx)
 	logger.Info("stopping measurement collection", "collectionID", collectionID)
@@ -1057,12 +1057,12 @@ func (cpm *CompletePerformanceManager) StopMeasurementCollection(ctx context.Con
 	return nil
 }
 
-// GetMeasurementData retrieves measurement data with optional aggregation
+// GetMeasurementData retrieves measurement data with optional aggregation.
 func (cpm *CompletePerformanceManager) GetMeasurementData(ctx context.Context, query *MeasurementQuery) (*MeasurementQueryResult, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("querying measurement data", "objectIDs", query.ObjectIDs, "startTime", query.StartTime)
 
-	// Query historical data if needed
+	// Query historical data if needed.
 	var historicalData []*MeasurementData
 	if query.StartTime.Before(time.Now().Add(-time.Hour)) {
 		histQuery := &HistoricalQuery{
@@ -1081,19 +1081,19 @@ func (cpm *CompletePerformanceManager) GetMeasurementData(ctx context.Context, q
 		}
 	}
 
-	// Get recent data from buffer
+	// Get recent data from buffer.
 	var recentData []*MeasurementData
 	if query.EndTime.After(time.Now().Add(-time.Hour)) {
 		recentData = cpm.dataCollector.QueryBuffer(query)
 	}
 
-	// Combine and sort data
+	// Combine and sort data.
 	allData := append(historicalData, recentData...)
 	sort.Slice(allData, func(i, j int) bool {
 		return allData[i].Timestamp.Before(allData[j].Timestamp)
 	})
 
-	// Apply aggregation if requested
+	// Apply aggregation if requested.
 	var aggregatedData []*AggregatedData
 	if query.Aggregation != "" && query.Granularity > 0 {
 		var err error
@@ -1119,7 +1119,7 @@ func (cpm *CompletePerformanceManager) GetMeasurementData(ctx context.Context, q
 	return result, nil
 }
 
-// SetPerformanceThreshold sets a performance threshold
+// SetPerformanceThreshold sets a performance threshold.
 func (cpm *CompletePerformanceManager) SetPerformanceThreshold(ctx context.Context, threshold *PerformanceThreshold) error {
 	logger := log.FromContext(ctx)
 	logger.Info("setting performance threshold", "thresholdID", threshold.ID, "objectID", threshold.ObjectID)
@@ -1127,7 +1127,7 @@ func (cpm *CompletePerformanceManager) SetPerformanceThreshold(ctx context.Conte
 	return cpm.thresholdManager.SetThreshold(ctx, threshold)
 }
 
-// GetPerformanceStatistics returns comprehensive performance statistics
+// GetPerformanceStatistics returns comprehensive performance statistics.
 func (cpm *CompletePerformanceManager) GetPerformanceStatistics(ctx context.Context) (*PerformanceStatistics, error) {
 	cpm.collectorsMux.RLock()
 	activeCollectors := len(cpm.collectors)
@@ -1157,7 +1157,7 @@ func (cpm *CompletePerformanceManager) GetPerformanceStatistics(ctx context.Cont
 	return stats, nil
 }
 
-// Helper methods and placeholder implementations
+// Helper methods and placeholder implementations.
 
 func (cpm *CompletePerformanceManager) validateCollectionRequest(req *MeasurementCollectionRequest) error {
 	if req.ObjectID == "" {
@@ -1177,17 +1177,17 @@ func (cpm *CompletePerformanceManager) generateCollectionID() string {
 }
 
 func (cpm *CompletePerformanceManager) calculateDataRate() float64 {
-	// Placeholder - would calculate actual data rate
+	// Placeholder - would calculate actual data rate.
 	return 1000.0
 }
 
 func (cpm *CompletePerformanceManager) calculateStorageUtilization() float64 {
-	// Placeholder - would calculate storage utilization
+	// Placeholder - would calculate storage utilization.
 	return 0.75
 }
 
 func (cpm *CompletePerformanceManager) assessSystemHealth() string {
-	// Placeholder - would assess overall system health
+	// Placeholder - would assess overall system health.
 	return "HEALTHY"
 }
 
@@ -1224,9 +1224,9 @@ func initializePerformanceMetrics() *PerformanceMetrics {
 	}
 }
 
-// Request/Response structures
+// Request/Response structures.
 
-// MeasurementCollectionRequest represents a request to start measurement collection
+// MeasurementCollectionRequest represents a request to start measurement collection.
 type MeasurementCollectionRequest struct {
 	ObjectID           string                 `json:"object_id"`
 	ElementID          string                 `json:"element_id"`
@@ -1238,7 +1238,7 @@ type MeasurementCollectionRequest struct {
 	Configuration      map[string]interface{} `json:"configuration,omitempty"`
 }
 
-// MeasurementQuery represents a query for measurement data
+// MeasurementQuery represents a query for measurement data.
 type MeasurementQuery struct {
 	ObjectIDs        []string               `json:"object_ids,omitempty"`
 	MeasurementTypes []string               `json:"measurement_types,omitempty"`
@@ -1250,7 +1250,7 @@ type MeasurementQuery struct {
 	Limit            int                    `json:"limit,omitempty"`
 }
 
-// MeasurementQueryResult represents the result of a measurement query
+// MeasurementQueryResult represents the result of a measurement query.
 type MeasurementQueryResult struct {
 	Query          *MeasurementQuery  `json:"query"`
 	RawData        []*MeasurementData `json:"raw_data,omitempty"`
@@ -1261,7 +1261,7 @@ type MeasurementQueryResult struct {
 	ExecutionTime  time.Duration      `json:"execution_time"`
 }
 
-// PerformanceStatistics provides comprehensive performance statistics
+// PerformanceStatistics provides comprehensive performance statistics.
 type PerformanceStatistics struct {
 	ActiveCollectors        int                  `json:"active_collectors"`
 	TotalMeasurementObjects int                  `json:"total_measurement_objects"`
@@ -1274,13 +1274,14 @@ type PerformanceStatistics struct {
 	Timestamp               time.Time            `json:"timestamp"`
 }
 
-// Placeholder statistics structures
+// Placeholder statistics structures.
 type ThresholdStatistics struct {
 	ActiveThresholds  int `json:"active_thresholds"`
 	CrossingsLastHour int `json:"crossings_last_hour"`
 	CrossingsLastDay  int `json:"crossings_last_day"`
 }
 
+// AnomalyStatistics represents a anomalystatistics.
 type AnomalyStatistics struct {
 	ModelsActive      int     `json:"models_active"`
 	AnomaliesLastHour int     `json:"anomalies_last_hour"`
@@ -1288,14 +1289,16 @@ type AnomalyStatistics struct {
 	AverageAccuracy   float64 `json:"average_accuracy"`
 }
 
+// StreamingStatistics represents a streamingstatistics.
 type StreamingStatistics struct {
 	ActiveStreams     int     `json:"active_streams"`
 	ActiveSubscribers int     `json:"active_subscribers"`
 	MessagesPerSecond float64 `json:"messages_per_second"`
 }
 
-// Placeholder implementations for subsidiary components - would be fully implemented in production
+// Placeholder implementations for subsidiary components - would be fully implemented in production.
 
+// NewMeasurementRegistry performs newmeasurementregistry operation.
 func NewMeasurementRegistry() *MeasurementRegistry {
 	return &MeasurementRegistry{
 		objects:      make(map[string]*MeasurementObject),
@@ -1315,6 +1318,7 @@ func NewMeasurementRegistry() *MeasurementRegistry {
 	}
 }
 
+// GetObject performs getobject operation.
 func (mr *MeasurementRegistry) GetObject(objectID string) (*MeasurementObject, error) {
 	mr.mutex.RLock()
 	defer mr.mutex.RUnlock()
@@ -1326,6 +1330,7 @@ func (mr *MeasurementRegistry) GetObject(objectID string) (*MeasurementObject, e
 	return obj, nil
 }
 
+// NewPerformanceDataCollector performs newperformancedatacollector operation.
 func NewPerformanceDataCollector(config *PerformanceManagerConfig, registry *MeasurementRegistry) *PerformanceDataCollector {
 	return &PerformanceDataCollector{
 		config:            config,
@@ -1336,18 +1341,22 @@ func NewPerformanceDataCollector(config *PerformanceManagerConfig, registry *Mea
 	}
 }
 
+// Start performs start operation.
 func (pdc *PerformanceDataCollector) Start(ctx context.Context) error {
 	return pdc.collectorPool.Start(ctx)
 }
 
+// Stop performs stop operation.
 func (pdc *PerformanceDataCollector) Stop(ctx context.Context) error {
 	return pdc.collectorPool.Stop(ctx)
 }
 
+// QueryBuffer performs querybuffer operation.
 func (pdc *PerformanceDataCollector) QueryBuffer(query *MeasurementQuery) []*MeasurementData {
 	return pdc.dataBuffer.Query(query)
 }
 
+// NewCircularDataBuffer performs newcirculardatabuffer operation.
 func NewCircularDataBuffer(maxSize int) *CircularDataBuffer {
 	return &CircularDataBuffer{
 		data:    make([]*MeasurementData, maxSize),
@@ -1355,12 +1364,13 @@ func NewCircularDataBuffer(maxSize int) *CircularDataBuffer {
 	}
 }
 
+// Query performs query operation.
 func (cdb *CircularDataBuffer) Query(query *MeasurementQuery) []*MeasurementData {
 	cdb.mutex.RLock()
 	defer cdb.mutex.RUnlock()
 
 	var result []*MeasurementData
-	// Simplified query logic - would implement proper filtering
+	// Simplified query logic - would implement proper filtering.
 	for i := 0; i < cdb.count; i++ {
 		idx := (cdb.head + i) % cdb.maxSize
 		data := cdb.data[idx]
@@ -1371,6 +1381,7 @@ func (cdb *CircularDataBuffer) Query(query *MeasurementQuery) []*MeasurementData
 	return result
 }
 
+// NewCollectorWorkerPool performs newcollectorworkerpool operation.
 func NewCollectorWorkerPool(workers int) *CollectorWorkerPool {
 	return &CollectorWorkerPool{
 		workers:     workers,
@@ -1380,6 +1391,7 @@ func NewCollectorWorkerPool(workers int) *CollectorWorkerPool {
 	}
 }
 
+// Start performs start operation.
 func (cwp *CollectorWorkerPool) Start(ctx context.Context) error {
 	cwp.running = true
 	for i := 0; i < cwp.workers; i++ {
@@ -1389,6 +1401,7 @@ func (cwp *CollectorWorkerPool) Start(ctx context.Context) error {
 	return nil
 }
 
+// Stop performs stop operation.
 func (cwp *CollectorWorkerPool) Stop(ctx context.Context) error {
 	cwp.running = false
 	close(cwp.stopChan)
@@ -1410,14 +1423,14 @@ func (cwp *CollectorWorkerPool) worker(ctx context.Context) {
 			select {
 			case cwp.resultQueue <- result:
 			default:
-				// Result queue full, drop result
+				// Result queue full, drop result.
 			}
 		}
 	}
 }
 
 func (cwp *CollectorWorkerPool) processTask(ctx context.Context, task *CollectionTask) *CollectionResult {
-	// Placeholder - would implement actual data collection
+	// Placeholder - would implement actual data collection.
 	return &CollectionResult{
 		TaskID:    task.CollectionID,
 		Success:   true,
@@ -1427,6 +1440,7 @@ func (cwp *CollectorWorkerPool) processTask(ctx context.Context, task *Collectio
 	}
 }
 
+// NewMeasurementCollector performs newmeasurementcollector operation.
 func NewMeasurementCollector(collection *MeasurementCollection, obj *MeasurementObject, dataCollector *PerformanceDataCollector) *MeasurementCollector {
 	return &MeasurementCollector{
 		collection:     collection,
@@ -1436,6 +1450,7 @@ func NewMeasurementCollector(collection *MeasurementCollection, obj *Measurement
 	}
 }
 
+// Start performs start operation.
 func (mc *MeasurementCollector) Start(ctx context.Context) error {
 	mc.running = true
 	mc.ticker = time.NewTicker(mc.collection.CollectionInterval)
@@ -1444,6 +1459,7 @@ func (mc *MeasurementCollector) Start(ctx context.Context) error {
 	return nil
 }
 
+// Stop performs stop operation.
 func (mc *MeasurementCollector) Stop() {
 	mc.running = false
 	if mc.ticker != nil {
@@ -1466,15 +1482,16 @@ func (mc *MeasurementCollector) collectionLoop(ctx context.Context) {
 }
 
 func (mc *MeasurementCollector) collectData(ctx context.Context) {
-	// Placeholder - would implement actual measurement collection
+	// Placeholder - would implement actual measurement collection.
 	mc.mutex.Lock()
 	mc.successCount++
 	mc.mutex.Unlock()
 }
 
 // Additional placeholder implementations would continue...
-// For brevity, I'll include stubs for the remaining major components
+// For brevity, I'll include stubs for the remaining major components.
 
+// NewDataAggregationEngine performs newdataaggregationengine operation.
 func NewDataAggregationEngine() *DataAggregationEngine {
 	return &DataAggregationEngine{
 		aggregators: make(map[string]AggregationFunction),
@@ -1482,11 +1499,13 @@ func NewDataAggregationEngine() *DataAggregationEngine {
 	}
 }
 
+// AggregateData performs aggregatedata operation.
 func (dae *DataAggregationEngine) AggregateData(data []*MeasurementData, aggregationType string, granularity time.Duration) ([]*AggregatedData, error) {
-	// Placeholder - would implement sophisticated aggregation
+	// Placeholder - would implement sophisticated aggregation.
 	return []*AggregatedData{}, nil
 }
 
+// NewPerformanceThresholdManager performs newperformancethresholdmanager operation.
 func NewPerformanceThresholdManager() *PerformanceThresholdManager {
 	return &PerformanceThresholdManager{
 		thresholds:      make(map[string]*PerformanceThreshold),
@@ -1498,15 +1517,23 @@ func NewPerformanceThresholdManager() *PerformanceThresholdManager {
 	}
 }
 
+// Start performs start operation.
 func (ptm *PerformanceThresholdManager) Start(ctx context.Context) error { return nil }
-func (ptm *PerformanceThresholdManager) Stop(ctx context.Context) error  { return nil }
+
+// Stop performs stop operation.
+func (ptm *PerformanceThresholdManager) Stop(ctx context.Context) error { return nil }
+
+// SetThreshold performs setthreshold operation.
 func (ptm *PerformanceThresholdManager) SetThreshold(ctx context.Context, threshold *PerformanceThreshold) error {
 	return nil
 }
+
+// GetStatistics performs getstatistics operation.
 func (ptm *PerformanceThresholdManager) GetStatistics() *ThresholdStatistics {
 	return &ThresholdStatistics{}
 }
 
+// NewRealTimeStreamingManager performs newrealtimestreamingmanager operation.
 func NewRealTimeStreamingManager() *RealTimeStreamingManager {
 	return &RealTimeStreamingManager{
 		streams:     make(map[string]*DataStream),
@@ -1514,22 +1541,30 @@ func NewRealTimeStreamingManager() *RealTimeStreamingManager {
 	}
 }
 
+// Start performs start operation.
 func (rtsm *RealTimeStreamingManager) Start(ctx context.Context) error { return nil }
-func (rtsm *RealTimeStreamingManager) Stop(ctx context.Context) error  { return nil }
+
+// Stop performs stop operation.
+func (rtsm *RealTimeStreamingManager) Stop(ctx context.Context) error { return nil }
+
+// GetStatistics performs getstatistics operation.
 func (rtsm *RealTimeStreamingManager) GetStatistics() *StreamingStatistics {
 	return &StreamingStatistics{}
 }
 
+// NewHistoricalDataManager performs newhistoricaldatamanager operation.
 func NewHistoricalDataManager() *HistoricalDataManager {
 	return &HistoricalDataManager{
-		// Would initialize with actual storage backend
+		// Would initialize with actual storage backend.
 	}
 }
 
+// Query performs query operation.
 func (hdm *HistoricalDataManager) Query(ctx context.Context, query *HistoricalQuery) ([]*MeasurementData, error) {
 	return []*MeasurementData{}, nil
 }
 
+// NewPerformanceAnomalyDetector performs newperformanceanomalydetector operation.
 func NewPerformanceAnomalyDetector(config *AnomalyDetectionConfig) *PerformanceAnomalyDetector {
 	return &PerformanceAnomalyDetector{
 		models:          make(map[string]AnomalyDetectionModel),
@@ -1538,12 +1573,18 @@ func NewPerformanceAnomalyDetector(config *AnomalyDetectionConfig) *PerformanceA
 	}
 }
 
+// Start performs start operation.
 func (pad *PerformanceAnomalyDetector) Start(ctx context.Context) error { return nil }
-func (pad *PerformanceAnomalyDetector) Stop(ctx context.Context) error  { return nil }
+
+// Stop performs stop operation.
+func (pad *PerformanceAnomalyDetector) Stop(ctx context.Context) error { return nil }
+
+// GetStatistics performs getstatistics operation.
 func (pad *PerformanceAnomalyDetector) GetStatistics() *AnomalyStatistics {
 	return &AnomalyStatistics{}
 }
 
+// NewPerformanceReportGenerator performs newperformancereportgenerator operation.
 func NewPerformanceReportGenerator() *PerformanceReportGenerator {
 	return &PerformanceReportGenerator{
 		templates:  make(map[string]*ReportTemplate),
@@ -1551,9 +1592,13 @@ func NewPerformanceReportGenerator() *PerformanceReportGenerator {
 	}
 }
 
+// Start performs start operation.
 func (prg *PerformanceReportGenerator) Start(ctx context.Context) error { return nil }
-func (prg *PerformanceReportGenerator) Stop(ctx context.Context) error  { return nil }
 
+// Stop performs stop operation.
+func (prg *PerformanceReportGenerator) Stop(ctx context.Context) error { return nil }
+
+// NewKPICalculator performs newkpicalculator operation.
 func NewKPICalculator() *KPICalculator {
 	return &KPICalculator{
 		kpiDefinitions: make(map[string]*KPIDefinition),
@@ -1562,6 +1607,7 @@ func NewKPICalculator() *KPICalculator {
 	}
 }
 
+// NewGrafanaIntegration performs newgrafanaintegration operation.
 func NewGrafanaIntegration(config *GrafanaConfig) *GrafanaIntegration {
 	return &GrafanaIntegration{
 		client:      &GrafanaClient{baseURL: config.URL, apiKey: config.APIKey},

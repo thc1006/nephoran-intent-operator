@@ -27,7 +27,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
-// ImpactPredictor predicts the impact of optimization recommendations
+// ImpactPredictor predicts the impact of optimization recommendations.
 type ImpactPredictor struct {
 	logger  logr.Logger
 	models  map[string]*PredictionModel
@@ -35,7 +35,7 @@ type ImpactPredictor struct {
 	weights map[shared.ComponentType]float64
 }
 
-// PredictionModel represents a machine learning model for impact prediction
+// PredictionModel represents a machine learning model for impact prediction.
 type PredictionModel struct {
 	Type        string                 `json:"type"`        // linear, polynomial, neural_network
 	Features    []string               `json:"features"`    // input features
@@ -46,7 +46,7 @@ type PredictionModel struct {
 	Metadata    map[string]interface{} `json:"metadata"`    // additional model metadata
 }
 
-// PredictorMetrics tracks performance metrics for predictors
+// PredictorMetrics tracks performance metrics for predictors.
 type PredictorMetrics struct {
 	PredictionsCount int64     `json:"predictionsCount"`
 	AccuracyScore    float64   `json:"accuracyScore"`
@@ -55,7 +55,7 @@ type PredictorMetrics struct {
 	LastUpdateTime   time.Time `json:"lastUpdateTime"`
 }
 
-// ImpactPrediction represents a predicted impact of an optimization
+// ImpactPrediction represents a predicted impact of an optimization.
 type ImpactPrediction struct {
 	ComponentType        shared.ComponentType           `json:"componentType"`
 	OptimizationType     string                         `json:"optimizationType"`
@@ -67,9 +67,9 @@ type ImpactPrediction struct {
 	Reasoning            string                         `json:"reasoning"`
 }
 
-// Note: ComponentType is defined in performance_analysis_engine.go
+// Note: ComponentType is defined in performance_analysis_engine.go.
 
-// NewImpactPredictor creates a new impact predictor
+// NewImpactPredictor creates a new impact predictor.
 func NewImpactPredictor(logger logr.Logger) *ImpactPredictor {
 	return &ImpactPredictor{
 		logger:  logger.WithName("impact-predictor"),
@@ -86,12 +86,12 @@ func NewImpactPredictor(logger logr.Logger) *ImpactPredictor {
 	}
 }
 
-// PredictImpact predicts the impact of a specific optimization
+// PredictImpact predicts the impact of a specific optimization.
 func (ip *ImpactPredictor) PredictImpact(ctx context.Context, component shared.ComponentType, optimization string, metrics reporting.ResourceUsageMetrics) (*ImpactPrediction, error) {
 	ip.metrics.PredictionsCount++
 
-	// Simple heuristic-based prediction for now
-	// In production, this would use trained ML models
+	// Simple heuristic-based prediction for now.
+	// In production, this would use trained ML models.
 	prediction := &ImpactPrediction{
 		ComponentType:        component,
 		OptimizationType:     optimization,
@@ -101,12 +101,12 @@ func (ip *ImpactPredictor) PredictImpact(ctx context.Context, component shared.C
 		ResourceRequirements: metrics,
 	}
 
-	// Calculate predicted improvement based on component type and optimization
+	// Calculate predicted improvement based on component type and optimization.
 	improvement, reasoning := ip.calculateImprovement(component, optimization, metrics)
 	prediction.PredictedImprovement = improvement
 	prediction.Reasoning = reasoning
 
-	// Adjust confidence based on historical accuracy
+	// Adjust confidence based on historical accuracy.
 	if model, exists := ip.models[string(component)]; exists {
 		prediction.ConfidenceScore = model.Accuracy
 	}
@@ -114,7 +114,7 @@ func (ip *ImpactPredictor) PredictImpact(ctx context.Context, component shared.C
 	return prediction, nil
 }
 
-// calculateImprovement calculates the expected improvement for an optimization
+// calculateImprovement calculates the expected improvement for an optimization.
 func (ip *ImpactPredictor) calculateImprovement(component shared.ComponentType, optimization string, metrics reporting.ResourceUsageMetrics) (float64, string) {
 	baseImprovement := 10.0 // 10% base improvement
 	reasoning := "Based on historical patterns and system analysis"
@@ -139,18 +139,18 @@ func (ip *ImpactPredictor) calculateImprovement(component shared.ComponentType, 
 		reasoning += ": Cache optimizations typically provide substantial performance gains"
 	}
 
-	// Cap improvement at 80% to be realistic
+	// Cap improvement at 80% to be realistic.
 	return math.Min(baseImprovement, 80.0), reasoning
 }
 
-// ROICalculator calculates return on investment for optimizations
+// ROICalculator calculates return on investment for optimizations.
 type ROICalculator struct {
 	logger     logr.Logger
 	costModels map[shared.ComponentType]*CostModel
 	metrics    *ROIMetrics
 }
 
-// CostModel represents cost modeling for different components
+// CostModel represents cost modeling for different components.
 type CostModel struct {
 	FixedCosts      map[string]float64 `json:"fixedCosts"`      // Fixed costs per time period
 	VariableCosts   map[string]float64 `json:"variableCosts"`   // Variable costs per unit
@@ -158,7 +158,7 @@ type CostModel struct {
 	MaintenanceCost float64            `json:"maintenanceCost"` // Maintenance cost percentage
 }
 
-// ROIMetrics tracks ROI calculation metrics
+// ROIMetrics tracks ROI calculation metrics.
 type ROIMetrics struct {
 	CalculationsCount   int64     `json:"calculationsCount"`
 	AverageROI          float64   `json:"averageROI"`
@@ -168,7 +168,7 @@ type ROIMetrics struct {
 	LastCalculationTime time.Time `json:"lastCalculationTime"`
 }
 
-// ROICalculation represents a return on investment calculation
+// ROICalculation represents a return on investment calculation.
 type ROICalculation struct {
 	OptimizationType  string        `json:"optimizationType"`
 	InitialInvestment float64       `json:"initialInvestment"` // dollars
@@ -182,7 +182,7 @@ type ROICalculation struct {
 	ConfidenceLevel   float64       `json:"confidenceLevel"`   // 0-1
 }
 
-// NewROICalculator creates a new ROI calculator
+// NewROICalculator creates a new ROI calculator.
 func NewROICalculator(logger logr.Logger) *ROICalculator {
 	return &ROICalculator{
 		logger:     logger.WithName("roi-calculator"),
@@ -191,18 +191,18 @@ func NewROICalculator(logger logr.Logger) *ROICalculator {
 	}
 }
 
-// CalculateROI calculates the return on investment for an optimization
+// CalculateROI calculates the return on investment for an optimization.
 func (rc *ROICalculator) CalculateROI(ctx context.Context, component shared.ComponentType, optimization string, impact *ImpactPrediction) (*ROICalculation, error) {
 	rc.metrics.CalculationsCount++
 	rc.metrics.LastCalculationTime = time.Now()
 
-	// Estimate initial investment based on optimization type
+	// Estimate initial investment based on optimization type.
 	initialInvestment := rc.estimateInitialInvestment(component, optimization)
 
-	// Estimate monthly savings based on predicted improvement
+	// Estimate monthly savings based on predicted improvement.
 	monthlySavings := rc.estimateMonthlySavings(component, impact.PredictedImprovement)
 
-	// Calculate basic ROI metrics
+	// Calculate basic ROI metrics.
 	calculation := &ROICalculation{
 		OptimizationType:  optimization,
 		InitialInvestment: initialInvestment,
@@ -210,24 +210,24 @@ func (rc *ROICalculator) CalculateROI(ctx context.Context, component shared.Comp
 		ConfidenceLevel:   impact.ConfidenceScore,
 	}
 
-	// Calculate payback period
+	// Calculate payback period.
 	if monthlySavings > 0 {
 		paybackMonths := initialInvestment / monthlySavings
 		calculation.PaybackPeriod = time.Duration(paybackMonths*30*24) * time.Hour
 		calculation.BreakEvenPoint = time.Now().Add(calculation.PaybackPeriod)
 	}
 
-	// Calculate ROI percentage (annual)
+	// Calculate ROI percentage (annual).
 	if initialInvestment > 0 {
 		annualSavings := monthlySavings * 12
 		calculation.ROIPercentage = ((annualSavings - initialInvestment) / initialInvestment) * 100
 	}
 
-	// Risk-adjusted ROI
+	// Risk-adjusted ROI.
 	riskMultiplier := 1.0 - impact.RiskScore
 	calculation.RiskAdjustedROI = calculation.ROIPercentage * riskMultiplier
 
-	// Track metrics
+	// Track metrics.
 	if calculation.ROIPercentage > 0 {
 		rc.metrics.PositiveROICount++
 	} else {
@@ -239,7 +239,7 @@ func (rc *ROICalculator) CalculateROI(ctx context.Context, component shared.Comp
 	return calculation, nil
 }
 
-// estimateInitialInvestment estimates the upfront cost of an optimization
+// estimateInitialInvestment estimates the upfront cost of an optimization.
 func (rc *ROICalculator) estimateInitialInvestment(component shared.ComponentType, optimization string) float64 {
 	baseCost := 1000.0 // Base cost in dollars
 
@@ -258,7 +258,7 @@ func (rc *ROICalculator) estimateInitialInvestment(component shared.ComponentTyp
 		baseCost = 1500.0
 	}
 
-	// Adjust based on optimization type
+	// Adjust based on optimization type.
 	switch optimization {
 	case "batch_processing":
 		baseCost *= 1.5
@@ -273,9 +273,9 @@ func (rc *ROICalculator) estimateInitialInvestment(component shared.ComponentTyp
 	return baseCost
 }
 
-// estimateMonthlySavings estimates monthly cost savings from an optimization
+// estimateMonthlySavings estimates monthly cost savings from an optimization.
 func (rc *ROICalculator) estimateMonthlySavings(component shared.ComponentType, improvementPercent float64) float64 {
-	// Base monthly operational cost
+	// Base monthly operational cost.
 	baseMonthlyCost := 10000.0
 
 	switch component {
@@ -293,18 +293,18 @@ func (rc *ROICalculator) estimateMonthlySavings(component shared.ComponentType, 
 		baseMonthlyCost = 12000.0
 	}
 
-	// Calculate savings as percentage of base cost
+	// Calculate savings as percentage of base cost.
 	return baseMonthlyCost * (improvementPercent / 100.0)
 }
 
-// RiskAssessor assesses risks associated with optimizations
+// RiskAssessor assesses risks associated with optimizations.
 type RiskAssessor struct {
 	logger     logr.Logger
 	riskModels map[shared.ComponentType]*RiskModel
 	metrics    *RiskMetrics
 }
 
-// RiskModel represents risk assessment model for components
+// RiskModel represents risk assessment model for components.
 type RiskModel struct {
 	ComponentType        shared.ComponentType `json:"componentType"`
 	BaseRiskScore        float64              `json:"baseRiskScore"`        // 0-1
@@ -314,7 +314,7 @@ type RiskModel struct {
 	LastIncidentTime     time.Time            `json:"lastIncidentTime"`
 }
 
-// RiskMetrics tracks risk assessment metrics
+// RiskMetrics tracks risk assessment metrics.
 type RiskMetrics struct {
 	AssessmentsCount   int64     `json:"assessmentsCount"`
 	AverageRiskScore   float64   `json:"averageRiskScore"`
@@ -324,7 +324,7 @@ type RiskMetrics struct {
 	LastAssessmentTime time.Time `json:"lastAssessmentTime"`
 }
 
-// RiskAssessment represents a comprehensive risk assessment
+// RiskAssessment represents a comprehensive risk assessment.
 type RiskAssessment struct {
 	OptimizationType      string               `json:"optimizationType"`
 	ComponentType         shared.ComponentType `json:"componentType"`
@@ -340,7 +340,7 @@ type RiskAssessment struct {
 	ReversibilityScore    float64              `json:"reversibilityScore"`  // 0-1 (higher = easier to reverse)
 }
 
-// RiskFactor represents an individual risk factor
+// RiskFactor represents an individual risk factor.
 type RiskFactor struct {
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
@@ -350,7 +350,7 @@ type RiskFactor struct {
 	Category    string  `json:"category"`    // Technical, Business, Operational
 }
 
-// MitigationStrategy represents a risk mitigation strategy
+// MitigationStrategy represents a risk mitigation strategy.
 type MitigationStrategy struct {
 	RiskFactor         string        `json:"riskFactor"`
 	Strategy           string        `json:"strategy"`
@@ -360,7 +360,7 @@ type MitigationStrategy struct {
 	Priority           string        `json:"priority"` // Low, Medium, High
 }
 
-// NewRiskAssessor creates a new risk assessor
+// NewRiskAssessor creates a new risk assessor.
 func NewRiskAssessor(logger logr.Logger) *RiskAssessor {
 	return &RiskAssessor{
 		logger:     logger.WithName("risk-assessor"),
@@ -369,7 +369,7 @@ func NewRiskAssessor(logger logr.Logger) *RiskAssessor {
 	}
 }
 
-// AssessRisk performs a comprehensive risk assessment for an optimization
+// AssessRisk performs a comprehensive risk assessment for an optimization.
 func (ra *RiskAssessor) AssessRisk(ctx context.Context, component shared.ComponentType, optimization string, impact *ImpactPrediction) (*RiskAssessment, error) {
 	ra.metrics.AssessmentsCount++
 	ra.metrics.LastAssessmentTime = time.Now()
@@ -383,31 +383,31 @@ func (ra *RiskAssessor) AssessRisk(ctx context.Context, component shared.Compone
 		ReversibilityScore:    0.7,             // Reasonably reversible
 	}
 
-	// Identify risk factors
+	// Identify risk factors.
 	assessment.RiskFactors = ra.identifyRiskFactors(component, optimization)
 
-	// Calculate overall risk score
+	// Calculate overall risk score.
 	assessment.OverallRiskScore = ra.calculateOverallRisk(assessment.RiskFactors)
 
-	// Determine risk level
+	// Determine risk level.
 	assessment.RiskLevel = ra.determineRiskLevel(assessment.OverallRiskScore)
 
-	// Generate mitigation strategies
+	// Generate mitigation strategies.
 	assessment.MitigationStrategies = ra.generateMitigationStrategies(assessment.RiskFactors)
 
-	// Generate recommended actions
+	// Generate recommended actions.
 	assessment.RecommendedActions = ra.generateRecommendedActions(assessment)
 
-	// Determine business impact
+	// Determine business impact.
 	assessment.BusinessImpact = ra.determineBusinnessImpact(component, assessment.OverallRiskScore)
 
-	// Update metrics
+	// Update metrics.
 	ra.updateRiskMetrics(assessment.RiskLevel)
 
 	return assessment, nil
 }
 
-// identifyRiskFactors identifies potential risk factors for an optimization
+// identifyRiskFactors identifies potential risk factors for an optimization.
 func (ra *RiskAssessor) identifyRiskFactors(component shared.ComponentType, optimization string) []RiskFactor {
 	factors := []RiskFactor{
 		{
@@ -433,7 +433,7 @@ func (ra *RiskAssessor) identifyRiskFactors(component shared.ComponentType, opti
 		},
 	}
 
-	// Add component-specific risks
+	// Add component-specific risks.
 	switch component {
 	case shared.ComponentTypeLLMProcessor:
 		factors = append(factors, RiskFactor{
@@ -461,7 +461,7 @@ func (ra *RiskAssessor) identifyRiskFactors(component shared.ComponentType, opti
 		})
 	}
 
-	// Calculate risk scores
+	// Calculate risk scores.
 	for i := range factors {
 		factors[i].RiskScore = factors[i].Probability * factors[i].Impact
 	}
@@ -469,7 +469,7 @@ func (ra *RiskAssessor) identifyRiskFactors(component shared.ComponentType, opti
 	return factors
 }
 
-// calculateOverallRisk calculates the overall risk score from individual factors
+// calculateOverallRisk calculates the overall risk score from individual factors.
 func (ra *RiskAssessor) calculateOverallRisk(factors []RiskFactor) float64 {
 	if len(factors) == 0 {
 		return 0.0
@@ -480,11 +480,11 @@ func (ra *RiskAssessor) calculateOverallRisk(factors []RiskFactor) float64 {
 		totalRisk += factor.RiskScore
 	}
 
-	// Normalize to 0-1 range
+	// Normalize to 0-1 range.
 	return math.Min(totalRisk/float64(len(factors)), 1.0)
 }
 
-// determineRiskLevel determines the risk level from the overall risk score
+// determineRiskLevel determines the risk level from the overall risk score.
 func (ra *RiskAssessor) determineRiskLevel(score float64) string {
 	switch {
 	case score >= 0.8:
@@ -500,7 +500,7 @@ func (ra *RiskAssessor) determineRiskLevel(score float64) string {
 	}
 }
 
-// generateMitigationStrategies generates mitigation strategies for identified risks
+// generateMitigationStrategies generates mitigation strategies for identified risks.
 func (ra *RiskAssessor) generateMitigationStrategies(factors []RiskFactor) []MitigationStrategy {
 	strategies := []MitigationStrategy{}
 
@@ -550,7 +550,7 @@ func (ra *RiskAssessor) generateMitigationStrategies(factors []RiskFactor) []Mit
 	return strategies
 }
 
-// generateRecommendedActions generates recommended actions based on risk assessment
+// generateRecommendedActions generates recommended actions based on risk assessment.
 func (ra *RiskAssessor) generateRecommendedActions(assessment *RiskAssessment) []string {
 	actions := []string{
 		"Create comprehensive backup and rollback plan",
@@ -586,11 +586,11 @@ func (ra *RiskAssessor) generateRecommendedActions(assessment *RiskAssessment) [
 	return actions
 }
 
-// determineBusinnessImpact determines business impact based on component and risk
+// determineBusinnessImpact determines business impact based on component and risk.
 func (ra *RiskAssessor) determineBusinnessImpact(component shared.ComponentType, riskScore float64) string {
 	baseImpact := "Medium"
 
-	// Component-specific impact
+	// Component-specific impact.
 	switch component {
 	case shared.ComponentTypeLLMProcessor:
 		baseImpact = "High" // Core functionality
@@ -606,7 +606,7 @@ func (ra *RiskAssessor) determineBusinnessImpact(component shared.ComponentType,
 		baseImpact = "Critical" // Infrastructure critical
 	}
 
-	// Adjust based on risk score
+	// Adjust based on risk score.
 	if riskScore >= 0.8 {
 		switch baseImpact {
 		case "Medium":
@@ -626,7 +626,7 @@ func (ra *RiskAssessor) determineBusinnessImpact(component shared.ComponentType,
 	return baseImpact
 }
 
-// updateRiskMetrics updates risk assessment metrics
+// updateRiskMetrics updates risk assessment metrics.
 func (ra *RiskAssessor) updateRiskMetrics(riskLevel string) {
 	switch riskLevel {
 	case "Critical", "High":
@@ -637,7 +637,7 @@ func (ra *RiskAssessor) updateRiskMetrics(riskLevel string) {
 		ra.metrics.LowRiskCount++
 	}
 
-	// Update average risk score (simplified)
+	// Update average risk score (simplified).
 	total := ra.metrics.HighRiskCount + ra.metrics.MediumRiskCount + ra.metrics.LowRiskCount
 	if total > 0 {
 		weightedSum := float64(ra.metrics.HighRiskCount)*0.8 + float64(ra.metrics.MediumRiskCount)*0.5 + float64(ra.metrics.LowRiskCount)*0.2
@@ -645,25 +645,25 @@ func (ra *RiskAssessor) updateRiskMetrics(riskLevel string) {
 	}
 }
 
-// Additional missing types referenced in performance_analysis_engine.go
+// Additional missing types referenced in performance_analysis_engine.go.
 
-// MetricsStore manages storage and retrieval of performance metrics
+// MetricsStore manages storage and retrieval of performance metrics.
 type MetricsStore struct {
 	data       map[string][]float64
 	timestamps map[string][]time.Time
 	mu         sync.RWMutex
 }
 
-// HistoricalDataStore manages historical performance data for trend analysis
+// HistoricalDataStore manages historical performance data for trend analysis.
 type HistoricalDataStore struct {
 	dataPoints map[string][]DataPoint
 	retention  time.Duration
 	mu         sync.RWMutex
 }
 
-// Note: DataPoint is defined in optimization_dashboard.go
+// Note: DataPoint is defined in optimization_dashboard.go.
 
-// PatternDetector detects performance patterns and anomalies
+// PatternDetector detects performance patterns and anomalies.
 type PatternDetector struct {
 	patterns    []Pattern
 	sensitivity float64
@@ -671,7 +671,7 @@ type PatternDetector struct {
 	mu          sync.RWMutex
 }
 
-// Pattern represents a detected performance pattern
+// Pattern represents a detected performance pattern.
 type Pattern struct {
 	Type        string    `json:"type"`       // trend, spike, anomaly, cyclic
 	Confidence  float64   `json:"confidence"` // 0-1
@@ -681,7 +681,7 @@ type Pattern struct {
 	Metrics     []string  `json:"metrics"`
 }
 
-// BottleneckPredictor predicts potential system bottlenecks
+// BottleneckPredictor predicts potential system bottlenecks.
 type BottleneckPredictor struct {
 	models            map[string]*PredictionModel
 	thresholds        map[string]float64
@@ -689,7 +689,7 @@ type BottleneckPredictor struct {
 	mu                sync.RWMutex
 }
 
-// PerformanceForecaster provides performance forecasting capabilities
+// PerformanceForecaster provides performance forecasting capabilities.
 type PerformanceForecaster struct {
 	forecastModels map[string]*ForecastModel
 	horizon        time.Duration
@@ -697,7 +697,7 @@ type PerformanceForecaster struct {
 	mu             sync.RWMutex
 }
 
-// ForecastModel represents a forecasting model
+// ForecastModel represents a forecasting model.
 type ForecastModel struct {
 	Type        string             `json:"type"` // linear, arima, neural
 	Parameters  map[string]float64 `json:"parameters"`
@@ -705,21 +705,21 @@ type ForecastModel struct {
 	LastTrained time.Time          `json:"lastTrained"`
 }
 
-// OptimizationRanker ranks optimization opportunities by potential impact
+// OptimizationRanker ranks optimization opportunities by potential impact.
 type OptimizationRanker struct {
 	rankingCriteria []RankingCriterion
 	weights         map[string]float64
 	mu              sync.RWMutex
 }
 
-// RankingCriterion defines criteria for ranking optimizations
+// RankingCriterion defines criteria for ranking optimizations.
 type RankingCriterion struct {
 	Name        string  `json:"name"`
 	Weight      float64 `json:"weight"`
 	Description string  `json:"description"`
 }
 
-// NewMetricsStore creates a new metrics store
+// NewMetricsStore creates a new metrics store.
 func NewMetricsStore() *MetricsStore {
 	return &MetricsStore{
 		data:       make(map[string][]float64),
@@ -727,7 +727,7 @@ func NewMetricsStore() *MetricsStore {
 	}
 }
 
-// NewHistoricalDataStore creates a new historical data store
+// NewHistoricalDataStore creates a new historical data store.
 func NewHistoricalDataStore(retention time.Duration) *HistoricalDataStore {
 	return &HistoricalDataStore{
 		dataPoints: make(map[string][]DataPoint),
@@ -735,7 +735,7 @@ func NewHistoricalDataStore(retention time.Duration) *HistoricalDataStore {
 	}
 }
 
-// NewPatternDetector creates a new pattern detector
+// NewPatternDetector creates a new pattern detector.
 func NewPatternDetector(sensitivity float64, windowSize time.Duration) *PatternDetector {
 	return &PatternDetector{
 		patterns:    make([]Pattern, 0),
@@ -744,7 +744,7 @@ func NewPatternDetector(sensitivity float64, windowSize time.Duration) *PatternD
 	}
 }
 
-// NewBottleneckPredictor creates a new bottleneck predictor
+// NewBottleneckPredictor creates a new bottleneck predictor.
 func NewBottleneckPredictor(predictionHorizon time.Duration) *BottleneckPredictor {
 	return &BottleneckPredictor{
 		models:            make(map[string]*PredictionModel),
@@ -753,7 +753,7 @@ func NewBottleneckPredictor(predictionHorizon time.Duration) *BottleneckPredicto
 	}
 }
 
-// NewPerformanceForecaster creates a new performance forecaster
+// NewPerformanceForecaster creates a new performance forecaster.
 func NewPerformanceForecaster(horizon time.Duration) *PerformanceForecaster {
 	return &PerformanceForecaster{
 		forecastModels: make(map[string]*ForecastModel),
@@ -762,7 +762,7 @@ func NewPerformanceForecaster(horizon time.Duration) *PerformanceForecaster {
 	}
 }
 
-// NewOptimizationRanker creates a new optimization ranker
+// NewOptimizationRanker creates a new optimization ranker.
 func NewOptimizationRanker() *OptimizationRanker {
 	return &OptimizationRanker{
 		rankingCriteria: make([]RankingCriterion, 0),

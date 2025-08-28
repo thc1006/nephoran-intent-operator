@@ -19,8 +19,8 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o1/security"
 )
 
-// ComprehensiveSecurityManager provides complete O-RAN security management
-// following O-RAN.WG10.O1-Interface.0-v07.00 specification
+// ComprehensiveSecurityManager provides complete O-RAN security management.
+// following O-RAN.WG10.O1-Interface.0-v07.00 specification.
 type ComprehensiveSecurityManager struct {
 	config               *SecurityManagerConfig
 	certificateManager   *CertificateLifecycleManager
@@ -42,7 +42,7 @@ type ComprehensiveSecurityManager struct {
 	mutex                sync.RWMutex
 }
 
-// SecurityManagerConfig holds security manager configuration
+// SecurityManagerConfig holds security manager configuration.
 type SecurityManagerConfig struct {
 	CertificateAuthority      *CAConfig
 	AuthenticationMethods     []string // password, certificate, oauth2, saml
@@ -59,7 +59,7 @@ type SecurityManagerConfig struct {
 	IncidentResponsePlan      string
 }
 
-// CAConfig holds Certificate Authority configuration
+// CAConfig holds Certificate Authority configuration.
 type CAConfig struct {
 	RootCACert            string
 	RootCAKey             string
@@ -72,7 +72,7 @@ type CAConfig struct {
 	OCSPServers           []string
 }
 
-// EncryptionConfig defines encryption standards and algorithms
+// EncryptionConfig defines encryption standards and algorithms.
 type EncryptionConfig struct {
 	MinTLSVersion         uint16
 	CipherSuites          []uint16
@@ -84,7 +84,7 @@ type EncryptionConfig struct {
 	EncryptionInTransit   bool
 }
 
-// CertificateLifecycleManager manages X.509 certificates
+// CertificateLifecycleManager manages X.509 certificates.
 type CertificateLifecycleManager struct {
 	rootCA            *CertificateAuthority
 	intermediateCA    *CertificateAuthority
@@ -97,7 +97,7 @@ type CertificateLifecycleManager struct {
 	validationService *CertificateValidationService
 }
 
-// CertificateAuthority represents a certificate authority
+// CertificateAuthority represents a certificate authority.
 type CertificateAuthority struct {
 	Certificate  *x509.Certificate
 	PrivateKey   interface{}
@@ -108,7 +108,7 @@ type CertificateAuthority struct {
 	mutex        sync.RWMutex
 }
 
-// ManagedCertificate represents a certificate under management
+// ManagedCertificate represents a certificate under management.
 type ManagedCertificate struct {
 	ID               string
 	Certificate      *x509.Certificate
@@ -128,7 +128,7 @@ type ManagedCertificate struct {
 	UpdatedAt        time.Time
 }
 
-// CertificateStore interface for certificate storage
+// CertificateStore interface for certificate storage.
 type CertificateStore interface {
 	StoreCertificate(cert *ManagedCertificate) error
 	RetrieveCertificate(id string) (*ManagedCertificate, error)
@@ -137,7 +137,7 @@ type CertificateStore interface {
 	DeleteCertificate(id string) error
 }
 
-// CertificateFilter defines filtering criteria for certificates
+// CertificateFilter defines filtering criteria for certificates.
 type CertificateFilter struct {
 	Subject     string
 	Usage       []string
@@ -147,7 +147,7 @@ type CertificateFilter struct {
 	Issuer      string
 }
 
-// CertificateRevocationList manages certificate revocations
+// CertificateRevocationList manages certificate revocations.
 type CertificateRevocationList struct {
 	Issuer         pkix.Name
 	ThisUpdate     time.Time
@@ -158,7 +158,7 @@ type CertificateRevocationList struct {
 	mutex          sync.RWMutex
 }
 
-// RevokedCertificate represents a revoked certificate
+// RevokedCertificate represents a revoked certificate.
 type RevokedCertificate struct {
 	SerialNumber   *big.Int
 	RevocationTime time.Time
@@ -166,7 +166,7 @@ type RevokedCertificate struct {
 	Extensions     []pkix.Extension
 }
 
-// OCSPResponder provides Online Certificate Status Protocol responses
+// OCSPResponder provides Online Certificate Status Protocol responses.
 type OCSPResponder struct {
 	Certificate   *x509.Certificate
 	PrivateKey    interface{}
@@ -175,7 +175,7 @@ type OCSPResponder struct {
 	mutex         sync.RWMutex
 }
 
-// CachedOCSPResponse represents a cached OCSP response
+// CachedOCSPResponse represents a cached OCSP response.
 type CachedOCSPResponse struct {
 	SerialNumber *big.Int
 	Status       int // Good, Revoked, Unknown
@@ -184,7 +184,7 @@ type CachedOCSPResponse struct {
 	NextUpdate   time.Time
 }
 
-// AutoRenewalService automatically renews certificates
+// AutoRenewalService automatically renews certificates.
 type AutoRenewalService struct {
 	renewalQueue  chan *RenewalRequest
 	renewalStatus map[string]*RenewalStatus
@@ -192,7 +192,7 @@ type AutoRenewalService struct {
 	mutex         sync.RWMutex
 }
 
-// RenewalRequest represents a certificate renewal request
+// RenewalRequest represents a certificate renewal request.
 type RenewalRequest struct {
 	CertificateID string
 	RequestedAt   time.Time
@@ -200,7 +200,7 @@ type RenewalRequest struct {
 	Reason        string
 }
 
-// RenewalStatus tracks renewal progress
+// RenewalStatus tracks renewal progress.
 type RenewalStatus struct {
 	CertificateID string
 	Status        string // PENDING, IN_PROGRESS, COMPLETED, FAILED
@@ -210,7 +210,7 @@ type RenewalStatus struct {
 	NewCertID     string
 }
 
-// RenewalPolicy defines automatic renewal policies
+// RenewalPolicy defines automatic renewal policies.
 type RenewalPolicy struct {
 	ID                   string
 	Name                 string
@@ -221,7 +221,7 @@ type RenewalPolicy struct {
 	Enabled              bool
 }
 
-// CertificateValidationService validates certificates
+// CertificateValidationService validates certificates.
 type CertificateValidationService struct {
 	trustStore *TrustStore
 	validators []CertificateValidator
@@ -230,7 +230,7 @@ type CertificateValidationService struct {
 	mutex      sync.RWMutex
 }
 
-// TrustStore manages trusted certificate authorities
+// TrustStore manages trusted certificate authorities.
 type TrustStore struct {
 	TrustedCAs      map[string]*x509.Certificate
 	TrustedRoots    *x509.CertPool
@@ -238,13 +238,13 @@ type TrustStore struct {
 	mutex           sync.RWMutex
 }
 
-// CertificateValidator interface for certificate validation
+// CertificateValidator interface for certificate validation.
 type CertificateValidator interface {
 	ValidateCertificate(cert *x509.Certificate) *security.ValidationResult
 	GetValidatorName() string
 }
 
-// CRLCache caches Certificate Revocation Lists
+// CRLCache caches Certificate Revocation Lists.
 type CRLCache struct {
 	URL        string
 	CRL        *pkix.CertificateList
@@ -253,7 +253,7 @@ type CRLCache struct {
 	FetchError error
 }
 
-// OCSPCache caches OCSP responses
+// OCSPCache caches OCSP responses.
 type OCSPCache struct {
 	URL          string
 	SerialNumber *big.Int
@@ -263,7 +263,7 @@ type OCSPCache struct {
 	NextUpdate   time.Time
 }
 
-// AuthenticationManager handles user authentication
+// AuthenticationManager handles user authentication.
 type AuthenticationManager struct {
 	methods         map[string]AuthenticationMethod
 	sessions        map[string]*AuthSession
@@ -275,14 +275,14 @@ type AuthenticationManager struct {
 	mutex           sync.RWMutex
 }
 
-// AuthenticationMethod interface for different authentication methods
+// AuthenticationMethod interface for different authentication methods.
 type AuthenticationMethod interface {
 	Authenticate(ctx context.Context, credentials *AuthCredentials) (*AuthResult, error)
 	GetMethodName() string
 	GetRequiredCredentials() []string
 }
 
-// AuthCredentials contains authentication credentials
+// AuthCredentials contains authentication credentials.
 type AuthCredentials struct {
 	Username      string
 	Password      string
@@ -293,7 +293,7 @@ type AuthCredentials struct {
 	Metadata      map[string]interface{}
 }
 
-// AuthResult contains authentication results
+// AuthResult contains authentication results.
 type AuthResult struct {
 	Success      bool
 	UserID       string
@@ -309,7 +309,7 @@ type AuthResult struct {
 	Error        string
 }
 
-// AuthSession represents an authenticated session
+// AuthSession represents an authenticated session.
 type AuthSession struct {
 	SessionID    string
 	UserID       string
@@ -326,7 +326,7 @@ type AuthSession struct {
 	Metadata     map[string]interface{}
 }
 
-// FailedAttemptTracker tracks failed authentication attempts
+// FailedAttemptTracker tracks failed authentication attempts.
 type FailedAttemptTracker struct {
 	Username     string
 	IPAddress    string
@@ -337,7 +337,7 @@ type FailedAttemptTracker struct {
 	Attempts     []*FailedAttempt
 }
 
-// FailedAttempt represents a single failed authentication attempt
+// FailedAttempt represents a single failed authentication attempt.
 type FailedAttempt struct {
 	Timestamp time.Time
 	Method    string
@@ -346,7 +346,7 @@ type FailedAttempt struct {
 	UserAgent string
 }
 
-// AuthenticationConfig holds authentication configuration
+// AuthenticationConfig holds authentication configuration.
 type AuthenticationConfig struct {
 	MaxSessions       int
 	SessionTimeout    time.Duration
@@ -357,7 +357,7 @@ type AuthenticationConfig struct {
 	AllowedMFAMethods []string
 }
 
-// PasswordPolicy defines password requirements
+// PasswordPolicy defines password requirements.
 type PasswordPolicy struct {
 	MinLength        int
 	RequireUppercase bool
@@ -369,7 +369,7 @@ type PasswordPolicy struct {
 	MaxAge           time.Duration
 }
 
-// TokenService manages authentication tokens
+// TokenService manages authentication tokens.
 type TokenService struct {
 	signingKey      []byte
 	verifyingKey    []byte
@@ -379,7 +379,7 @@ type TokenService struct {
 	algorithm       string
 }
 
-// MultiFactorAuthService provides MFA capabilities
+// MultiFactorAuthService provides MFA capabilities.
 type MultiFactorAuthService struct {
 	totpService  *TOTPService
 	smsService   *SMSService
@@ -389,7 +389,7 @@ type MultiFactorAuthService struct {
 	mutex        sync.RWMutex
 }
 
-// TOTPService provides Time-based One-Time Password functionality
+// TOTPService provides Time-based One-Time Password functionality.
 type TOTPService struct {
 	secretLength int
 	windowSize   int
@@ -397,7 +397,7 @@ type TOTPService struct {
 	period       int
 }
 
-// SMSService sends SMS-based authentication codes
+// SMSService sends SMS-based authentication codes.
 type SMSService struct {
 	provider  string
 	apiKey    string
@@ -405,7 +405,7 @@ type SMSService struct {
 	rateLimit oran.RateLimiter
 }
 
-// EmailService sends email-based authentication codes
+// EmailService sends email-based authentication codes.
 type EmailService struct {
 	smtpServer string
 	smtpPort   int
@@ -415,20 +415,20 @@ type EmailService struct {
 	rateLimit  oran.RateLimiter
 }
 
-// PushNotificationService sends push notifications for MFA
+// PushNotificationService sends push notifications for MFA.
 type PushNotificationService struct {
 	providers map[string]security.PushProvider
 	config    *security.PushConfig
 }
 
-// SingleSignOnProvider provides SSO integration
+// SingleSignOnProvider provides SSO integration.
 type SingleSignOnProvider struct {
 	samlProvider  *security.SAMLProvider
 	oidcProvider  *security.OIDCProvider
 	oauth2Configs map[string]*security.OAuth2Config
 }
 
-// AuthorizationManager handles access control
+// AuthorizationManager handles access control.
 type AuthorizationManager struct {
 	rbacEngine      *RoleBasedAccessControl
 	abacEngine      *AttributeBasedAccessControl
@@ -437,7 +437,7 @@ type AuthorizationManager struct {
 	mutex           sync.RWMutex
 }
 
-// RoleBasedAccessControl implements RBAC
+// RoleBasedAccessControl implements RBAC.
 type RoleBasedAccessControl struct {
 	roles       map[string]*Role
 	permissions map[string]*Permission
@@ -446,7 +446,7 @@ type RoleBasedAccessControl struct {
 	mutex       sync.RWMutex
 }
 
-// Role represents a role in RBAC
+// Role represents a role in RBAC.
 type Role struct {
 	ID          string
 	Name        string
@@ -457,7 +457,7 @@ type Role struct {
 	UpdatedAt   time.Time
 }
 
-// Permission represents a permission in RBAC
+// Permission represents a permission in RBAC.
 type Permission struct {
 	ID          string
 	Name        string
@@ -468,13 +468,13 @@ type Permission struct {
 	Metadata    map[string]interface{}
 }
 
-// RoleHierarchy manages role inheritance
+// RoleHierarchy manages role inheritance.
 type RoleHierarchy struct {
 	relationships map[string][]string // parent -> children
 	mutex         sync.RWMutex
 }
 
-// AttributeBasedAccessControl implements ABAC
+// AttributeBasedAccessControl implements ABAC.
 type AttributeBasedAccessControl struct {
 	policies   []*ABACPolicy
 	evaluator  *PolicyEvaluator
@@ -482,7 +482,7 @@ type AttributeBasedAccessControl struct {
 	mutex      sync.RWMutex
 }
 
-// ABACPolicy represents an ABAC policy
+// ABACPolicy represents an ABAC policy.
 type ABACPolicy struct {
 	ID          string
 	Name        string
@@ -495,7 +495,7 @@ type ABACPolicy struct {
 	UpdatedAt   time.Time
 }
 
-// PolicyRule represents a single policy rule
+// PolicyRule represents a single policy rule.
 type PolicyRule struct {
 	Condition   string
 	Attributes  map[string]interface{}
@@ -503,7 +503,7 @@ type PolicyRule struct {
 	Action      string
 }
 
-// PolicyEngine evaluates authorization policies
+// PolicyEngine evaluates authorization policies.
 type PolicyEngine struct {
 	policies   map[string]*security.SecurityPolicy
 	evaluators []PolicyEvaluator
@@ -511,7 +511,7 @@ type PolicyEngine struct {
 	mutex      sync.RWMutex
 }
 
-// SecurityManagerPolicy represents a security policy managed by security manager
+// SecurityManagerPolicy represents a security policy managed by security manager.
 type SecurityManagerPolicy struct {
 	ID          string
 	Name        string
@@ -528,13 +528,13 @@ type SecurityManagerPolicy struct {
 	Metadata    map[string]interface{}
 }
 
-// PolicyEvaluator interface for policy evaluation
+// PolicyEvaluator interface for policy evaluation.
 type PolicyEvaluator interface {
 	EvaluatePolicy(ctx context.Context, policy *security.SecurityPolicy, request *AccessRequest) *PolicyDecision
 	GetEvaluatorType() string
 }
 
-// AccessRequest represents an access request
+// AccessRequest represents an access request.
 type AccessRequest struct {
 	Subject   *Subject
 	Resource  *Resource
@@ -543,21 +543,21 @@ type AccessRequest struct {
 	Timestamp time.Time
 }
 
-// Subject represents the entity making the request
+// Subject represents the entity making the request.
 type Subject struct {
 	ID         string
 	Type       string // USER, SERVICE, SYSTEM
 	Attributes map[string]interface{}
 }
 
-// Resource represents the resource being accessed
+// Resource represents the resource being accessed.
 type Resource struct {
 	ID         string
 	Type       string
 	Attributes map[string]interface{}
 }
 
-// RequestContext provides additional request context
+// RequestContext provides additional request context.
 type RequestContext struct {
 	IPAddress   string
 	UserAgent   string
@@ -568,7 +568,7 @@ type RequestContext struct {
 	Attributes  map[string]interface{}
 }
 
-// AccessDecision represents an access control decision
+// AccessDecision represents an access control decision.
 type AccessDecision struct {
 	Decision    string // PERMIT, DENY, NOT_APPLICABLE
 	Policies    []string
@@ -578,7 +578,7 @@ type AccessDecision struct {
 	Timestamp   time.Time
 }
 
-// PolicyDecision represents a policy evaluation decision
+// PolicyDecision represents a policy evaluation decision.
 type PolicyDecision struct {
 	Effect      string // PERMIT, DENY, NOT_APPLICABLE
 	Reasons     []string
@@ -586,28 +586,28 @@ type PolicyDecision struct {
 	Advice      []string
 }
 
-// PolicyCache caches policy decisions
+// PolicyCache caches policy decisions.
 type PolicyCache struct {
 	decisions map[string]*CachedDecision
 	mutex     sync.RWMutex
 	ttl       time.Duration
 }
 
-// CachedDecision represents a cached policy decision
+// CachedDecision represents a cached policy decision.
 type CachedDecision struct {
 	Decision  *PolicyDecision
 	ExpiresAt time.Time
 	HitCount  int
 }
 
-// AttributeStore manages subject and resource attributes
+// AttributeStore manages subject and resource attributes.
 type AttributeStore struct {
 	subjectAttributes  map[string]map[string]interface{}
 	resourceAttributes map[string]map[string]interface{}
 	mutex              sync.RWMutex
 }
 
-// EncryptionManager handles encryption operations
+// EncryptionManager handles encryption operations.
 type EncryptionManager struct {
 	keyManager       *KeyManagementService
 	encryptors       map[string]Encryptor
@@ -617,7 +617,7 @@ type EncryptionManager struct {
 	mutex            sync.RWMutex
 }
 
-// Encryptor interface for encryption operations
+// Encryptor interface for encryption operations.
 type Encryptor interface {
 	Encrypt(ctx context.Context, data []byte, keyID string) ([]byte, error)
 	Decrypt(ctx context.Context, data []byte, keyID string) ([]byte, error)
@@ -625,7 +625,7 @@ type Encryptor interface {
 	GetSupportedAlgorithms() []string
 }
 
-// KeyManagementService manages encryption keys
+// KeyManagementService manages encryption keys.
 type KeyManagementService struct {
 	keys        map[string]*CryptographicKey
 	keyPolicies map[string]*KeyPolicy
@@ -636,7 +636,7 @@ type KeyManagementService struct {
 	mutex       sync.RWMutex
 }
 
-// CryptographicKey represents a cryptographic key
+// CryptographicKey represents a cryptographic key.
 type CryptographicKey struct {
 	ID           string
 	Type         string // SYMMETRIC, ASYMMETRIC
@@ -654,7 +654,7 @@ type CryptographicKey struct {
 	Metadata     map[string]interface{}
 }
 
-// KeyPolicy defines key usage policies
+// KeyPolicy defines key usage policies.
 type KeyPolicy struct {
 	KeyID               string
 	AllowedOperations   []string
@@ -666,7 +666,7 @@ type KeyPolicy struct {
 	ExpirationPolicy    *security.ExpirationPolicy
 }
 
-// KeyStore interface for key storage
+// KeyStore interface for key storage.
 type KeyStore interface {
 	StoreKey(key *CryptographicKey) error
 	RetrieveKey(keyID string) (*CryptographicKey, error)
@@ -675,7 +675,7 @@ type KeyStore interface {
 	ListKeys(filter *KeyFilter) ([]*CryptographicKey, error)
 }
 
-// KeyFilter defines filtering criteria for keys
+// KeyFilter defines filtering criteria for keys.
 type KeyFilter struct {
 	Type          string
 	Algorithm     string
@@ -687,7 +687,7 @@ type KeyFilter struct {
 	ExpiresBefore time.Time
 }
 
-// KeyRotationService handles automatic key rotation
+// KeyRotationService handles automatic key rotation.
 type KeyRotationService struct {
 	rotationQueue  chan *RotationRequest
 	rotationStatus map[string]*RotationStatus
@@ -696,7 +696,7 @@ type KeyRotationService struct {
 	mutex          sync.RWMutex
 }
 
-// RotationRequest represents a key rotation request
+// RotationRequest represents a key rotation request.
 type RotationRequest struct {
 	KeyID       string
 	RequestedAt time.Time
@@ -704,7 +704,7 @@ type RotationRequest struct {
 	Priority    int
 }
 
-// RotationStatus tracks key rotation progress
+// RotationStatus tracks key rotation progress.
 type RotationStatus struct {
 	KeyID       string
 	Status      string // PENDING, IN_PROGRESS, COMPLETED, FAILED
@@ -714,7 +714,7 @@ type RotationStatus struct {
 	NewKeyID    string
 }
 
-// KeyRotationPolicy defines automatic key rotation policies
+// KeyRotationPolicy defines automatic key rotation policies.
 type KeyRotationPolicy struct {
 	ID                   string
 	Name                 string
@@ -725,7 +725,7 @@ type KeyRotationPolicy struct {
 	Enabled              bool
 }
 
-// RotationScheduler schedules key rotations
+// RotationScheduler schedules key rotations.
 type RotationScheduler struct {
 	schedule map[string]*ScheduledRotation
 	ticker   *time.Ticker
@@ -733,7 +733,7 @@ type RotationScheduler struct {
 	stopChan chan struct{}
 }
 
-// ScheduledRotation represents a scheduled key rotation
+// ScheduledRotation represents a scheduled key rotation.
 type ScheduledRotation struct {
 	KeyID    string
 	NextRun  time.Time
@@ -743,7 +743,7 @@ type ScheduledRotation struct {
 	RunCount int64
 }
 
-// KeyEscrowService provides key escrow functionality
+// KeyEscrowService provides key escrow functionality.
 type KeyEscrowService struct {
 	escrowAgents  map[string]*EscrowAgent
 	escrowedKeys  map[string]*EscrowedKey
@@ -752,7 +752,7 @@ type KeyEscrowService struct {
 	mutex         sync.RWMutex
 }
 
-// EscrowAgent represents a key escrow agent
+// EscrowAgent represents a key escrow agent.
 type EscrowAgent struct {
 	ID          string
 	Name        string
@@ -763,7 +763,7 @@ type EscrowAgent struct {
 	Active      bool
 }
 
-// EscrowedKey represents an escrowed key
+// EscrowedKey represents an escrowed key.
 type EscrowedKey struct {
 	KeyID        string
 	EscrowID     string
@@ -774,7 +774,7 @@ type EscrowedKey struct {
 	AccessLog    []*EscrowAccess
 }
 
-// EscrowAccess represents an escrow access event
+// EscrowAccess represents an escrow access event.
 type EscrowAccess struct {
 	AccessID    string
 	RequestedBy string
@@ -784,7 +784,7 @@ type EscrowAccess struct {
 	ApprovedBy  string
 }
 
-// EscrowPolicy defines key escrow policies
+// EscrowPolicy defines key escrow policies.
 type EscrowPolicy struct {
 	ID                string
 	Name              string
@@ -796,7 +796,7 @@ type EscrowPolicy struct {
 	AuditRequirements []string
 }
 
-// EscrowAccessControl manages escrow access control
+// EscrowAccessControl manages escrow access control.
 type EscrowAccessControl struct {
 	accessRules    []*security.EscrowAccessRule
 	approvers      map[string]*security.EscrowApprover
@@ -804,7 +804,7 @@ type EscrowAccessControl struct {
 	mutex          sync.RWMutex
 }
 
-// HardwareSecurityModule provides HSM integration
+// HardwareSecurityModule provides HSM integration.
 type HardwareSecurityModule struct {
 	provider   string
 	connection HSMConnection
@@ -814,7 +814,7 @@ type HardwareSecurityModule struct {
 	mutex      sync.RWMutex
 }
 
-// HSMConnection interface for HSM connectivity
+// HSMConnection interface for HSM connectivity.
 type HSMConnection interface {
 	Connect() error
 	Disconnect() error
@@ -822,7 +822,7 @@ type HSMConnection interface {
 	CreateSession(slotID int) (*HSMSession, error)
 }
 
-// HSMSlot represents an HSM slot
+// HSMSlot represents an HSM slot.
 type HSMSlot struct {
 	ID           int
 	Description  string
@@ -830,7 +830,7 @@ type HSMSlot struct {
 	TokenInfo    *HSMTokenInfo
 }
 
-// HSMTokenInfo represents HSM token information
+// HSMTokenInfo represents HSM token information.
 type HSMTokenInfo struct {
 	Label           string
 	Manufacturer    string
@@ -839,7 +839,7 @@ type HSMTokenInfo struct {
 	FirmwareVersion string
 }
 
-// HSMSession represents an HSM session
+// HSMSession represents an HSM session.
 type HSMSession struct {
 	ID         string
 	SlotID     int
@@ -848,7 +848,7 @@ type HSMSession struct {
 	Operations map[string]*HSMOperation
 }
 
-// HSMOperation represents an HSM cryptographic operation
+// HSMOperation represents an HSM cryptographic operation.
 type HSMOperation struct {
 	ID        string
 	Type      string // ENCRYPT, DECRYPT, SIGN, VERIFY
@@ -858,7 +858,7 @@ type HSMOperation struct {
 	CreatedAt time.Time
 }
 
-// HSMConfig holds HSM configuration
+// HSMConfig holds HSM configuration.
 type HSMConfig struct {
 	Provider    string
 	LibraryPath string
@@ -868,7 +868,7 @@ type HSMConfig struct {
 	Timeout     time.Duration
 }
 
-// IntrusionDetectionSystem detects security intrusions
+// IntrusionDetectionSystem detects security intrusions.
 type IntrusionDetectionSystem struct {
 	sensors        map[string]*IDSSensor
 	rules          []*IDSRule
@@ -880,7 +880,7 @@ type IntrusionDetectionSystem struct {
 	mutex          sync.RWMutex
 }
 
-// IDSSensor represents an intrusion detection sensor
+// IDSSensor represents an intrusion detection sensor.
 type IDSSensor struct {
 	ID           string
 	Type         string // NETWORK, HOST, APPLICATION
@@ -892,7 +892,7 @@ type IDSSensor struct {
 	ConfigParams map[string]interface{}
 }
 
-// IDSRule represents an intrusion detection rule
+// IDSRule represents an intrusion detection rule.
 type IDSRule struct {
 	ID                string
 	Name              string
@@ -906,7 +906,7 @@ type IDSRule struct {
 	UpdatedAt         time.Time
 }
 
-// SecurityAlert represents a security alert
+// SecurityAlert represents a security alert.
 type SecurityAlert struct {
 	ID          string
 	Type        string
@@ -920,7 +920,7 @@ type SecurityAlert struct {
 	AssignedTo  string
 }
 
-// ThreatAnalyzer analyzes security threats
+// ThreatAnalyzer analyzes security threats.
 type ThreatAnalyzer struct {
 	threatIntel       *ThreatIntelligenceService
 	mlModels          map[string]*SecurityMLModel
@@ -928,7 +928,7 @@ type ThreatAnalyzer struct {
 	correlationEngine *AlertCorrelationEngine
 }
 
-// ThreatIntelligenceService provides threat intelligence
+// ThreatIntelligenceService provides threat intelligence.
 type ThreatIntelligenceService struct {
 	feeds          map[string]*ThreatFeed
 	indicators     map[string]*ThreatIndicator
@@ -936,7 +936,7 @@ type ThreatIntelligenceService struct {
 	updateInterval time.Duration
 }
 
-// ThreatFeed represents a threat intelligence feed
+// ThreatFeed represents a threat intelligence feed.
 type ThreatFeed struct {
 	ID          string
 	Name        string
@@ -946,7 +946,7 @@ type ThreatFeed struct {
 	LastUpdate  time.Time
 }
 
-// ThreatIndicator represents a threat indicator
+// ThreatIndicator represents a threat indicator.
 type ThreatIndicator struct {
 	ID         string
 	Type       string // IP, DOMAIN, HASH, URL
@@ -958,7 +958,7 @@ type ThreatIndicator struct {
 	LastSeen   time.Time
 }
 
-// SecurityMLModel represents a machine learning security model
+// SecurityMLModel represents a machine learning security model.
 type SecurityMLModel struct {
 	ID           string
 	Type         string // ANOMALY_DETECTION, CLASSIFICATION, CLUSTERING
@@ -969,7 +969,7 @@ type SecurityMLModel struct {
 	ModelPath    string
 }
 
-// BehaviorProfile represents normal behavior patterns
+// BehaviorProfile represents normal behavior patterns.
 type BehaviorProfile struct {
 	EntityID     string
 	EntityType   string // USER, HOST, APPLICATION
@@ -979,14 +979,14 @@ type BehaviorProfile struct {
 	ProfileData  map[string]interface{}
 }
 
-// AlertCorrelationEngine correlates security alerts
+// AlertCorrelationEngine correlates security alerts.
 type AlertCorrelationEngine struct {
 	correlationRules []*CorrelationRule
 	incidents        map[string]*SecurityIncident
 	mutex            sync.RWMutex
 }
 
-// SecurityIncident represents a security incident
+// SecurityIncident represents a security incident.
 type SecurityIncident struct {
 	ID          string
 	Title       string
@@ -1001,7 +1001,7 @@ type SecurityIncident struct {
 	Evidence    []*Evidence
 }
 
-// Evidence represents security incident evidence
+// Evidence represents security incident evidence.
 type Evidence struct {
 	ID             string
 	Type           string // LOG, FILE, NETWORK_CAPTURE, SCREENSHOT
@@ -1012,7 +1012,7 @@ type Evidence struct {
 	CollectedAt    time.Time
 }
 
-// CustodyRecord represents a chain of custody record
+// CustodyRecord represents a chain of custody record.
 type CustodyRecord struct {
 	Handler   string
 	Action    string
@@ -1022,7 +1022,7 @@ type CustodyRecord struct {
 	Signature string
 }
 
-// AutomatedResponseEngine provides automated incident response
+// AutomatedResponseEngine provides automated incident response.
 type AutomatedResponseEngine struct {
 	playbooks       map[string]*ResponsePlaybook
 	activeResponses map[string]*ActiveResponse
@@ -1030,7 +1030,7 @@ type AutomatedResponseEngine struct {
 	mutex           sync.RWMutex
 }
 
-// ResponsePlaybook defines automated response procedures
+// ResponsePlaybook defines automated response procedures.
 type ResponsePlaybook struct {
 	ID                string
 	Name              string
@@ -1043,7 +1043,7 @@ type ResponsePlaybook struct {
 	UpdatedAt         time.Time
 }
 
-// ResponseAction represents an automated response action
+// ResponseAction represents an automated response action.
 type ResponseAction struct {
 	ID         string
 	Type       string // BLOCK_IP, DISABLE_USER, QUARANTINE_HOST, NOTIFY
@@ -1053,7 +1053,7 @@ type ResponseAction struct {
 	OnFailure  string
 }
 
-// ActiveResponse represents an active response execution
+// ActiveResponse represents an active response execution.
 type ActiveResponse struct {
 	ID           string
 	PlaybookID   string
@@ -1065,7 +1065,7 @@ type ActiveResponse struct {
 	Results      map[string]interface{}
 }
 
-// ActionExecution represents the execution of a response action
+// ActionExecution represents the execution of a response action.
 type ActionExecution struct {
 	ActionID    string
 	Status      string
@@ -1075,7 +1075,7 @@ type ActionExecution struct {
 	Error       string
 }
 
-// IDSConfig holds IDS configuration
+// IDSConfig holds IDS configuration.
 type IDSConfig struct {
 	EnabledSensors     []string
 	AlertThreshold     int
@@ -1086,7 +1086,7 @@ type IDSConfig struct {
 	CorrelationEnabled bool
 }
 
-// SecurityAuditManager manages security auditing
+// SecurityAuditManager manages security auditing.
 type SecurityAuditManager struct {
 	auditLog          *AuditLog
 	auditPolicies     []*AuditPolicy
@@ -1096,7 +1096,7 @@ type SecurityAuditManager struct {
 	mutex             sync.RWMutex
 }
 
-// AuditLog manages audit log entries
+// AuditLog manages audit log entries.
 type AuditLog struct {
 	entries    []*AuditEntry
 	storage    AuditStorage
@@ -1105,7 +1105,7 @@ type AuditLog struct {
 	mutex      sync.RWMutex
 }
 
-// AuditEntry represents a single audit log entry
+// AuditEntry represents a single audit log entry.
 type AuditEntry struct {
 	ID          string
 	Timestamp   time.Time
@@ -1124,7 +1124,7 @@ type AuditEntry struct {
 	Checksum    string
 }
 
-// AuditStorage interface for audit log storage
+// AuditStorage interface for audit log storage.
 type AuditStorage interface {
 	Store(entry *AuditEntry) error
 	Query(filter *AuditFilter) ([]*AuditEntry, error)
@@ -1132,7 +1132,7 @@ type AuditStorage interface {
 	GetStatistics() *AuditStatistics
 }
 
-// AuditFilter defines filtering criteria for audit logs
+// AuditFilter defines filtering criteria for audit logs.
 type AuditFilter struct {
 	StartTime  time.Time
 	EndTime    time.Time
@@ -1145,7 +1145,7 @@ type AuditFilter struct {
 	Offset     int
 }
 
-// AuditStatistics provides audit log statistics
+// AuditStatistics provides audit log statistics.
 type AuditStatistics struct {
 	TotalEntries     int64
 	EntriesPerHour   float64
@@ -1156,7 +1156,7 @@ type AuditStatistics struct {
 	StorageSize      int64
 }
 
-// AuditPolicy defines what events to audit
+// AuditPolicy defines what events to audit.
 type AuditPolicy struct {
 	ID         string
 	Name       string
@@ -1170,19 +1170,19 @@ type AuditPolicy struct {
 	UpdatedAt  time.Time
 }
 
-// LogRetentionPolicy defines log retention policies
+// LogRetentionPolicy defines log retention policies.
 type LogRetentionPolicy struct {
 	Policies map[string]*RetentionRule
 }
 
-// LogShippingService ships logs to external systems
+// LogShippingService ships logs to external systems.
 type LogShippingService struct {
 	destinations map[string]*LogDestination
 	shippers     map[string]*LogShipper
 	config       *LogShippingConfig
 }
 
-// LogDestination represents a log shipping destination
+// LogDestination represents a log shipping destination.
 type LogDestination struct {
 	ID          string
 	Type        string // SIEM, ELASTICSEARCH, SPLUNK, SYSLOG
@@ -1193,7 +1193,7 @@ type LogDestination struct {
 	BatchSize   int
 }
 
-// LogShipper handles log shipping to destinations
+// LogShipper handles log shipping to destinations.
 type LogShipper struct {
 	Destination  *LogDestination
 	Buffer       chan *AuditEntry
@@ -1203,7 +1203,7 @@ type LogShipper struct {
 	SuccessCount int64
 }
 
-// LogShippingConfig holds log shipping configuration
+// LogShippingConfig holds log shipping configuration.
 type LogShippingConfig struct {
 	BatchSize        int
 	ShipInterval     time.Duration
@@ -1213,21 +1213,21 @@ type LogShippingConfig struct {
 	CompressionLevel int
 }
 
-// LogEncryption provides audit log encryption
+// LogEncryption provides audit log encryption.
 type LogEncryption struct {
 	keyManager *KeyManagementService
 	algorithm  string
 	keyID      string
 }
 
-// LogIntegrityService ensures audit log integrity
+// LogIntegrityService ensures audit log integrity.
 type LogIntegrityService struct {
 	hashAlgorithm string
 	signatureKey  interface{}
 	verifyKey     interface{}
 }
 
-// ThreatDetectionManager detects and analyzes threats
+// ThreatDetectionManager detects and analyzes threats.
 type ThreatDetectionManager struct {
 	detectors      map[string]*ThreatDetector
 	threatDatabase *ThreatDatabase
@@ -1238,14 +1238,14 @@ type ThreatDetectionManager struct {
 	mutex          sync.RWMutex
 }
 
-// ThreatDetector interface for threat detection
+// ThreatDetector interface for threat detection.
 type ThreatDetector interface {
 	DetectThreat(ctx context.Context, data interface{}) []*DetectedThreat
 	GetDetectorType() string
 	UpdateSignatures() error
 }
 
-// DetectedThreat represents a detected security threat
+// DetectedThreat represents a detected security threat.
 type DetectedThreat struct {
 	ID              string
 	Type            string
@@ -1261,7 +1261,7 @@ type DetectedThreat struct {
 	Metadata        map[string]interface{}
 }
 
-// ThreatDatabase stores threat information
+// ThreatDatabase stores threat information.
 type ThreatDatabase struct {
 	threats    map[string]*ThreatEntry
 	signatures map[string]*ThreatSignature
@@ -1270,7 +1270,7 @@ type ThreatDatabase struct {
 	mutex      sync.RWMutex
 }
 
-// ThreatEntry represents a threat database entry
+// ThreatEntry represents a threat database entry.
 type ThreatEntry struct {
 	ID          string
 	Name        string
@@ -1286,7 +1286,7 @@ type ThreatEntry struct {
 	Mitigations []string
 }
 
-// ThreatSignature represents a threat detection signature
+// ThreatSignature represents a threat detection signature.
 type ThreatSignature struct {
 	ID                string
 	Name              string
@@ -1298,7 +1298,7 @@ type ThreatSignature struct {
 	UpdatedAt         time.Time
 }
 
-// ThreatCampaign represents a threat campaign
+// ThreatCampaign represents a threat campaign.
 type ThreatCampaign struct {
 	ID          string
 	Name        string
@@ -1311,7 +1311,7 @@ type ThreatCampaign struct {
 	Active      bool
 }
 
-// RiskAssessmentEngine assesses security risks
+// RiskAssessmentEngine assesses security risks.
 type RiskAssessmentEngine struct {
 	riskModels  map[string]*RiskModel
 	assessments map[string]*RiskAssessment
@@ -1320,7 +1320,7 @@ type RiskAssessmentEngine struct {
 	mutex       sync.RWMutex
 }
 
-// RiskModel defines risk assessment models
+// RiskModel defines risk assessment models.
 type RiskModel struct {
 	ID         string
 	Name       string
@@ -1333,7 +1333,7 @@ type RiskModel struct {
 	UpdatedAt  time.Time
 }
 
-// RiskFactor represents a risk factor
+// RiskFactor represents a risk factor.
 type RiskFactor struct {
 	ID          string
 	Name        string
@@ -1344,7 +1344,7 @@ type RiskFactor struct {
 	Description string
 }
 
-// RiskAssessment represents a risk assessment result
+// RiskAssessment represents a risk assessment result.
 type RiskAssessment struct {
 	ID              string
 	AssetID         string
@@ -1361,7 +1361,7 @@ type RiskAssessment struct {
 	ValidUntil      time.Time
 }
 
-// RiskMitigation represents a risk mitigation measure
+// RiskMitigation represents a risk mitigation measure.
 type RiskMitigation struct {
 	ID             string
 	Name           string
@@ -1375,7 +1375,7 @@ type RiskMitigation struct {
 	DueDate        time.Time
 }
 
-// ThreatMitigationService provides threat mitigation
+// ThreatMitigationService provides threat mitigation.
 type ThreatMitigationService struct {
 	strategies        map[string]*MitigationStrategy
 	activeMitigations map[string]*ActiveMitigation
@@ -1383,7 +1383,7 @@ type ThreatMitigationService struct {
 	mutex             sync.RWMutex
 }
 
-// MitigationStrategy defines threat mitigation strategies
+// MitigationStrategy defines threat mitigation strategies.
 type MitigationStrategy struct {
 	ID            string
 	Name          string
@@ -1395,7 +1395,7 @@ type MitigationStrategy struct {
 	SideEffects   []string
 }
 
-// MitigationAction represents a mitigation action
+// MitigationAction represents a mitigation action.
 type MitigationAction struct {
 	ID         string
 	Type       string
@@ -1405,7 +1405,7 @@ type MitigationAction struct {
 	Impact     string
 }
 
-// ActiveMitigation represents an active threat mitigation
+// ActiveMitigation represents an active threat mitigation.
 type ActiveMitigation struct {
 	ID          string
 	ThreatID    string
@@ -1417,7 +1417,7 @@ type ActiveMitigation struct {
 	Results     map[string]interface{}
 }
 
-// MitigationPlaybook defines automated mitigation procedures
+// MitigationPlaybook defines automated mitigation procedures.
 type MitigationPlaybook struct {
 	ID                string
 	Name              string
@@ -1429,7 +1429,7 @@ type MitigationPlaybook struct {
 	Enabled           bool
 }
 
-// ApprovalRequirement defines approval requirements
+// ApprovalRequirement defines approval requirements.
 type ApprovalRequirement struct {
 	Required        bool
 	Approvers       []string
@@ -1438,7 +1438,7 @@ type ApprovalRequirement struct {
 	EscalationLevel int
 }
 
-// ThreatDetectionConfig holds threat detection configuration
+// ThreatDetectionConfig holds threat detection configuration.
 type ThreatDetectionConfig struct {
 	EnabledDetectors     []string
 	UpdateInterval       time.Duration
@@ -1447,7 +1447,7 @@ type ThreatDetectionConfig struct {
 	NotificationChannels []string
 }
 
-// RiskAssessmentConfig holds risk assessment configuration
+// RiskAssessmentConfig holds risk assessment configuration.
 type RiskAssessmentConfig struct {
 	DefaultModel       string
 	AssessmentInterval time.Duration
@@ -1456,7 +1456,7 @@ type RiskAssessmentConfig struct {
 	ReportingInterval  time.Duration
 }
 
-// ComplianceMonitor monitors security compliance
+// ComplianceMonitor monitors security compliance.
 type ComplianceMonitor struct {
 	frameworks  map[string]*ComplianceFramework
 	assessments map[string]*ComplianceAssessment
@@ -1467,7 +1467,7 @@ type ComplianceMonitor struct {
 	mutex       sync.RWMutex
 }
 
-// ComplianceFramework represents a compliance framework
+// ComplianceFramework represents a compliance framework.
 type ComplianceFramework struct {
 	ID          string
 	Name        string
@@ -1482,7 +1482,7 @@ type ComplianceFramework struct {
 	UpdatedAt   time.Time
 }
 
-// ComplianceDomain represents a domain within a framework
+// ComplianceDomain represents a domain within a framework.
 type ComplianceDomain struct {
 	ID          string
 	Name        string
@@ -1491,7 +1491,7 @@ type ComplianceDomain struct {
 	Weight      float64
 }
 
-// ComplianceControl represents a compliance control
+// ComplianceControl represents a compliance control.
 type ComplianceControl struct {
 	ID             string
 	Framework      string
@@ -1510,7 +1510,7 @@ type ComplianceControl struct {
 	NextAssessment time.Time
 }
 
-// ComplianceAssessment represents a compliance assessment
+// ComplianceAssessment represents a compliance assessment.
 type ComplianceAssessment struct {
 	ID             string
 	Framework      string
@@ -1527,7 +1527,7 @@ type ComplianceAssessment struct {
 	Report         *ComplianceReport
 }
 
-// ControlResult represents the result of a control assessment
+// ControlResult represents the result of a control assessment.
 type ControlResult struct {
 	ControlID       string
 	Status          string // COMPLIANT, NON_COMPLIANT, PARTIALLY_COMPLIANT, NOT_APPLICABLE
@@ -1538,7 +1538,7 @@ type ControlResult struct {
 	TestResults     []*TestResult
 }
 
-// TestResult represents the result of a control test
+// TestResult represents the result of a control test.
 type TestResult struct {
 	TestID   string
 	Status   string
@@ -1549,7 +1549,7 @@ type TestResult struct {
 	TestedBy string
 }
 
-// ComplianceFinding represents a compliance finding
+// ComplianceFinding represents a compliance finding.
 type ComplianceFinding struct {
 	ID              string
 	Type            string // DEFICIENCY, WEAKNESS, VIOLATION
@@ -1567,7 +1567,7 @@ type ComplianceFinding struct {
 	Owner           string
 }
 
-// RemediationItem represents a remediation action
+// RemediationItem represents a remediation action.
 type RemediationItem struct {
 	ID            string
 	FindingID     string
@@ -1582,7 +1582,7 @@ type RemediationItem struct {
 	Evidence      []string
 }
 
-// ComplianceEvidence represents compliance evidence
+// ComplianceEvidence represents compliance evidence.
 type ComplianceEvidence struct {
 	ID          string
 	Type        string // DOCUMENT, SCREENSHOT, LOG, CONFIGURATION
@@ -1594,7 +1594,7 @@ type ComplianceEvidence struct {
 	Metadata    map[string]interface{}
 }
 
-// ComplianceReport represents a compliance report
+// ComplianceReport represents a compliance report.
 type ComplianceReport struct {
 	ID               string
 	AssessmentID     string
@@ -1612,7 +1612,7 @@ type ComplianceReport struct {
 	Format           string // PDF, HTML, JSON
 }
 
-// ComplianceScanner performs automated compliance scanning
+// ComplianceScanner performs automated compliance scanning.
 type ComplianceScanner struct {
 	scanners  map[string]*Scanner
 	schedules map[string]*ScanSchedule
@@ -1622,7 +1622,7 @@ type ComplianceScanner struct {
 	mutex     sync.RWMutex
 }
 
-// Scanner represents a compliance scanner
+// Scanner represents a compliance scanner.
 type Scanner struct {
 	ID          string
 	Type        string // CONFIGURATION, VULNERABILITY, POLICY
@@ -1635,7 +1635,7 @@ type Scanner struct {
 	NextRun     time.Time
 }
 
-// ScanRule represents a scanning rule
+// ScanRule represents a scanning rule.
 type ScanRule struct {
 	ID          string
 	Name        string
@@ -1647,7 +1647,7 @@ type ScanRule struct {
 	Enabled     bool
 }
 
-// ScanSchedule represents a scan schedule
+// ScanSchedule represents a scan schedule.
 type ScanSchedule struct {
 	ScannerID string
 	Frequency string // DAILY, WEEKLY, MONTHLY
@@ -1659,7 +1659,7 @@ type ScanSchedule struct {
 	RunCount  int64
 }
 
-// ScanResult represents scan results
+// ScanResult represents scan results.
 type ScanResult struct {
 	ID          string
 	ScannerID   string
@@ -1674,7 +1674,7 @@ type ScanResult struct {
 	Error       string
 }
 
-// ScanFinding represents a scan finding
+// ScanFinding represents a scan finding.
 type ScanFinding struct {
 	RuleID      string
 	Status      string // PASS, FAIL, ERROR, SKIP
@@ -1684,7 +1684,7 @@ type ScanFinding struct {
 	Remediation string
 }
 
-// ComplianceReporter generates compliance reports
+// ComplianceReporter generates compliance reports.
 type ComplianceReporter struct {
 	templates    map[string]*ReportTemplate
 	generators   map[string]*ReportGenerator
@@ -1692,7 +1692,7 @@ type ComplianceReporter struct {
 	distributors map[string]*ReportDistributor
 }
 
-// ComplianceConfig holds compliance monitoring configuration
+// ComplianceConfig holds compliance monitoring configuration.
 type ComplianceConfig struct {
 	EnabledFrameworks    []string
 	AssessmentSchedule   map[string]string
@@ -1702,7 +1702,7 @@ type ComplianceConfig struct {
 	EvidenceRetention    time.Duration
 }
 
-// ScannerConfig holds scanner configuration
+// ScannerConfig holds scanner configuration.
 type ScannerConfig struct {
 	MaxConcurrentScans int
 	ScanTimeout        time.Duration
@@ -1710,7 +1710,7 @@ type ScannerConfig struct {
 	ResultRetention    time.Duration
 }
 
-// SecureChannelManager manages secure communications
+// SecureChannelManager manages secure communications.
 type SecureChannelManager struct {
 	channels   map[string]*SecureChannel
 	tlsConfig  *tls.Config
@@ -1720,7 +1720,7 @@ type SecureChannelManager struct {
 	mutex      sync.RWMutex
 }
 
-// SecureChannel represents a secure communication channel
+// SecureChannel represents a secure communication channel.
 type SecureChannel struct {
 	ID             string
 	Type           string // TLS, VPN, SSH, IPSEC
@@ -1736,7 +1736,7 @@ type SecureChannel struct {
 	BytesReceived  uint64
 }
 
-// VPNManager manages VPN connections
+// VPNManager manages VPN connections.
 type VPNManager struct {
 	connections map[string]*VPNConnection
 	profiles    map[string]*VPNProfile
@@ -1744,7 +1744,7 @@ type VPNManager struct {
 	mutex       sync.RWMutex
 }
 
-// VPNConnection represents a VPN connection
+// VPNConnection represents a VPN connection.
 type VPNConnection struct {
 	ID               string
 	ProfileID        string
@@ -1758,7 +1758,7 @@ type VPNConnection struct {
 	BytesTransferred uint64
 }
 
-// VPNProfile represents a VPN profile
+// VPNProfile represents a VPN profile.
 type VPNProfile struct {
 	ID             string
 	Name           string
@@ -1774,7 +1774,7 @@ type VPNProfile struct {
 	Enabled        bool
 }
 
-// VPNCredentials represents VPN credentials
+// VPNCredentials represents VPN credentials.
 type VPNCredentials struct {
 	Username    string
 	Password    string
@@ -1783,14 +1783,14 @@ type VPNCredentials struct {
 	PSK         string
 }
 
-// TunnelManager manages secure tunnels
+// TunnelManager manages secure tunnels.
 type TunnelManager struct {
 	tunnels map[string]*SecureTunnel
 	config  *security.TunnelConfig
 	mutex   sync.RWMutex
 }
 
-// SecureTunnel represents a secure tunnel
+// SecureTunnel represents a secure tunnel.
 type SecureTunnel struct {
 	ID           string
 	Type         string // SSH, SSL, STUNNEL
@@ -1803,7 +1803,7 @@ type SecureTunnel struct {
 	Connections  int64
 }
 
-// VulnerabilityScanner scans for security vulnerabilities
+// VulnerabilityScanner scans for security vulnerabilities.
 type VulnerabilityScanner struct {
 	scanners  map[string]*VulnScanner
 	database  *VulnerabilityDatabase
@@ -1814,7 +1814,7 @@ type VulnerabilityScanner struct {
 	mutex     sync.RWMutex
 }
 
-// VulnScanner represents a vulnerability scanner
+// VulnScanner represents a vulnerability scanner.
 type VulnScanner struct {
 	ID           string
 	Type         string // NETWORK, WEB, DATABASE, CONFIG
@@ -1825,7 +1825,7 @@ type VulnScanner struct {
 	ScanProfiles map[string]*ScanProfile
 }
 
-// ScanProfile represents a scan profile
+// ScanProfile represents a scan profile.
 type ScanProfile struct {
 	ID            string
 	Name          string
@@ -1838,7 +1838,7 @@ type ScanProfile struct {
 	Enabled       bool
 }
 
-// VulnerabilityDatabase manages vulnerability information
+// VulnerabilityDatabase manages vulnerability information.
 type VulnerabilityDatabase struct {
 	vulnerabilities map[string]*Vulnerability
 	patches         map[string]*SecurityPatch
@@ -1848,7 +1848,7 @@ type VulnerabilityDatabase struct {
 	mutex           sync.RWMutex
 }
 
-// Vulnerability represents a security vulnerability
+// Vulnerability represents a security vulnerability.
 type Vulnerability struct {
 	ID              string
 	CVE             string
@@ -1868,7 +1868,7 @@ type Vulnerability struct {
 	Status          string // NEW, ASSIGNED, MODIFIED, ANALYZED, CLOSED
 }
 
-// SecurityPatch represents a security patch
+// SecurityPatch represents a security patch.
 type SecurityPatch struct {
 	ID              string
 	VulnerabilityID string
@@ -1887,7 +1887,7 @@ type SecurityPatch struct {
 	RestartRequired bool
 }
 
-// SecurityAdvisory represents a security advisory
+// SecurityAdvisory represents a security advisory.
 type SecurityAdvisory struct {
 	ID              string
 	Title           string
@@ -1903,7 +1903,7 @@ type SecurityAdvisory struct {
 	Status          string
 }
 
-// CVEDatabase manages CVE information
+// CVEDatabase manages CVE information.
 type CVEDatabase struct {
 	entries    map[string]*CVEEntry
 	lastUpdate time.Time
@@ -1911,7 +1911,7 @@ type CVEDatabase struct {
 	mutex      sync.RWMutex
 }
 
-// CVEEntry represents a CVE database entry
+// CVEEntry represents a CVE database entry.
 type CVEEntry struct {
 	ID          string
 	Description string
@@ -1923,7 +1923,7 @@ type CVEEntry struct {
 	CPE         []string
 }
 
-// CVSSv2Score represents CVSS v2 scoring
+// CVSSv2Score represents CVSS v2 scoring.
 type CVSSv2Score struct {
 	BaseScore             float64
 	TemporalScore         float64
@@ -1936,7 +1936,7 @@ type CVSSv2Score struct {
 	AvailabilityImpact    string
 }
 
-// CVSSv3Score represents CVSS v3 scoring
+// CVSSv3Score represents CVSS v3 scoring.
 type CVSSv3Score struct {
 	BaseScore             float64
 	TemporalScore         float64
@@ -1951,14 +1951,14 @@ type CVSSv3Score struct {
 	AvailabilityImpact    string
 }
 
-// VulnerabilityReporter generates vulnerability reports
+// VulnerabilityReporter generates vulnerability reports.
 type VulnerabilityReporter struct {
 	templates    map[string]*security.VulnReportTemplate
 	generators   map[string]security.VulnReportGenerator
 	distributors map[string]security.VulnReportDistributor
 }
 
-// VulnerabilityScanConfig holds vulnerability scanning configuration
+// VulnerabilityScanConfig holds vulnerability scanning configuration.
 type VulnerabilityScanConfig struct {
 	EnabledScanners        []string
 	ScanSchedule           map[string]string
@@ -1969,7 +1969,7 @@ type VulnerabilityScanConfig struct {
 	ScanTimeout            time.Duration
 }
 
-// IncidentResponseManager manages security incident response
+// IncidentResponseManager manages security incident response.
 type IncidentResponseManager struct {
 	incidents     map[string]*SecurityIncident
 	playbooks     map[string]*IncidentPlaybook
@@ -1982,7 +1982,7 @@ type IncidentResponseManager struct {
 	mutex         sync.RWMutex
 }
 
-// IncidentPlaybook defines incident response procedures
+// IncidentPlaybook defines incident response procedures.
 type IncidentPlaybook struct {
 	ID            string
 	Name          string
@@ -1999,7 +1999,7 @@ type IncidentPlaybook struct {
 	UpdatedAt     time.Time
 }
 
-// ResponsePhase represents a phase in incident response
+// ResponsePhase represents a phase in incident response.
 type ResponsePhase struct {
 	ID            string
 	Name          string
@@ -2012,7 +2012,7 @@ type ResponsePhase struct {
 	ExitCriteria  []string
 }
 
-// ResponseActivity represents an activity in incident response
+// ResponseActivity represents an activity in incident response.
 type ResponseActivity struct {
 	ID           string
 	Name         string
@@ -2026,7 +2026,7 @@ type ResponseActivity struct {
 	Checklist    []string
 }
 
-// IncidentRole represents a role in incident response
+// IncidentRole represents a role in incident response.
 type IncidentRole struct {
 	ID               string
 	Name             string
@@ -2038,7 +2038,7 @@ type IncidentRole struct {
 	Backup           string
 }
 
-// IncidentResponder represents a person involved in incident response
+// IncidentResponder represents a person involved in incident response.
 type IncidentResponder struct {
 	ID           string
 	Name         string
@@ -2051,7 +2051,7 @@ type IncidentResponder struct {
 	LastActive   time.Time
 }
 
-// ResponseWorkflow represents an incident response workflow
+// ResponseWorkflow represents an incident response workflow.
 type ResponseWorkflow struct {
 	ID           string
 	IncidentID   string
@@ -2066,7 +2066,7 @@ type ResponseWorkflow struct {
 	Notes        []string
 }
 
-// WorkflowPhase represents a workflow phase execution
+// WorkflowPhase represents a workflow phase execution.
 type WorkflowPhase struct {
 	ID          string
 	Status      string
@@ -2076,7 +2076,7 @@ type WorkflowPhase struct {
 	Notes       []string
 }
 
-// ActivityExecution represents activity execution status
+// ActivityExecution represents activity execution status.
 type ActivityExecution struct {
 	ID          string
 	Status      string
@@ -2088,14 +2088,14 @@ type ActivityExecution struct {
 	Notes       string
 }
 
-// IncidentEscalation manages incident escalation
+// IncidentEscalation manages incident escalation.
 type IncidentEscalation struct {
 	rules         []*EscalationRule
 	matrix        *EscalationMatrix
 	notifications *EscalationNotifications
 }
 
-// SecurityEscalationRule defines security escalation conditions
+// SecurityEscalationRule defines security escalation conditions.
 type SecurityEscalationRule struct {
 	ID            string
 	Name          string
@@ -2107,12 +2107,12 @@ type SecurityEscalationRule struct {
 	Enabled       bool
 }
 
-// EscalationMatrix defines escalation paths
+// EscalationMatrix defines escalation paths.
 type EscalationMatrix struct {
 	Levels map[int]*EscalationLevel
 }
 
-// EscalationLevel represents an escalation level
+// EscalationLevel represents an escalation level.
 type EscalationLevel struct {
 	Level     int
 	Name      string
@@ -2122,13 +2122,13 @@ type EscalationLevel struct {
 	NextLevel int
 }
 
-// EscalationNotifications manages escalation notifications
+// EscalationNotifications manages escalation notifications.
 type EscalationNotifications struct {
 	channels  map[string]NotificationChannel
 	templates map[string]*EscalationTemplate
 }
 
-// EscalationTemplate defines escalation notification templates
+// EscalationTemplate defines escalation notification templates.
 type EscalationTemplate struct {
 	ID       string
 	Subject  string
@@ -2137,7 +2137,7 @@ type EscalationTemplate struct {
 	Channels []string
 }
 
-// IncidentCommunication manages incident communications
+// IncidentCommunication manages incident communications.
 type IncidentCommunication struct {
 	channels      map[string]*CommunicationChannel
 	messages      []*IncidentMessage
@@ -2145,7 +2145,7 @@ type IncidentCommunication struct {
 	notifications *CommunicationNotifications
 }
 
-// CommunicationChannel represents a communication channel
+// CommunicationChannel represents a communication channel.
 type CommunicationChannel struct {
 	ID       string
 	Type     string // EMAIL, SLACK, SMS, WEBHOOK
@@ -2155,7 +2155,7 @@ type CommunicationChannel struct {
 	Config   map[string]interface{}
 }
 
-// IncidentMessage represents an incident communication message
+// IncidentMessage represents an incident communication message.
 type IncidentMessage struct {
 	ID             string
 	IncidentID     string
@@ -2169,7 +2169,7 @@ type IncidentMessage struct {
 	DeliveryStatus map[string]string
 }
 
-// StatusPage represents an incident status page
+// StatusPage represents an incident status page.
 type StatusPage struct {
 	ID          string
 	URL         string
@@ -2181,13 +2181,13 @@ type StatusPage struct {
 	Subscribers []string
 }
 
-// CommunicationNotifications manages communication notifications
+// CommunicationNotifications manages communication notifications.
 type CommunicationNotifications struct {
 	subscribers map[string]*CommunicationSubscriber
 	preferences map[string]*NotificationPreferences
 }
 
-// CommunicationSubscriber represents a communication subscriber
+// CommunicationSubscriber represents a communication subscriber.
 type CommunicationSubscriber struct {
 	ID          string
 	Name        string
@@ -2197,7 +2197,7 @@ type CommunicationSubscriber struct {
 	Active      bool
 }
 
-// NotificationPreferences represents notification preferences
+// NotificationPreferences represents notification preferences.
 type NotificationPreferences struct {
 	Channels   []string
 	Severity   []string
@@ -2206,7 +2206,7 @@ type NotificationPreferences struct {
 	QuietHours *QuietHours
 }
 
-// QuietHours represents quiet hours for notifications
+// QuietHours represents quiet hours for notifications.
 type QuietHours struct {
 	Enabled   bool
 	StartTime string
@@ -2215,7 +2215,7 @@ type QuietHours struct {
 	Days      []string
 }
 
-// DigitalForensics provides digital forensics capabilities
+// DigitalForensics provides digital forensics capabilities.
 type DigitalForensics struct {
 	tools          map[string]*ForensicTool
 	evidence       map[string]*DigitalEvidence
@@ -2224,7 +2224,7 @@ type DigitalForensics struct {
 	reporting      *ForensicReporting
 }
 
-// ForensicTool represents a digital forensics tool
+// ForensicTool represents a digital forensics tool.
 type ForensicTool struct {
 	ID           string
 	Name         string
@@ -2236,7 +2236,7 @@ type ForensicTool struct {
 	Available    bool
 }
 
-// DigitalEvidence represents digital evidence
+// DigitalEvidence represents digital evidence.
 type DigitalEvidence struct {
 	ID              string
 	Type            string // DISK_IMAGE, MEMORY_DUMP, NETWORK_CAPTURE, LOG_FILE
@@ -2252,14 +2252,14 @@ type DigitalEvidence struct {
 	Sealed          bool
 }
 
-// ChainOfCustodyManager manages evidence chain of custody
+// ChainOfCustodyManager manages evidence chain of custody.
 type ChainOfCustodyManager struct {
 	records    map[string][]*CustodyRecord
 	custodians map[string]*Custodian
 	transfers  []*CustodyTransfer
 }
 
-// Custodian represents a person in the chain of custody
+// Custodian represents a person in the chain of custody.
 type Custodian struct {
 	ID           string
 	Name         string
@@ -2269,7 +2269,7 @@ type Custodian struct {
 	Authorized   bool
 }
 
-// CustodyTransfer represents a custody transfer
+// CustodyTransfer represents a custody transfer.
 type CustodyTransfer struct {
 	ID            string
 	EvidenceID    string
@@ -2282,7 +2282,7 @@ type CustodyTransfer struct {
 	Notes         string
 }
 
-// ForensicAnalysis provides forensic analysis capabilities
+// ForensicAnalysis provides forensic analysis capabilities.
 type ForensicAnalysis struct {
 	analyzers map[string]*ForensicAnalyzer
 	workflows map[string]*AnalysisWorkflow
@@ -2290,7 +2290,7 @@ type ForensicAnalysis struct {
 	timelines map[string]*ForensicTimeline
 }
 
-// ForensicAnalyzer represents a forensic analyzer
+// ForensicAnalyzer represents a forensic analyzer.
 type ForensicAnalyzer struct {
 	ID           string
 	Name         string
@@ -2300,7 +2300,7 @@ type ForensicAnalyzer struct {
 	Config       map[string]interface{}
 }
 
-// AnalysisWorkflow represents a forensic analysis workflow
+// AnalysisWorkflow represents a forensic analysis workflow.
 type AnalysisWorkflow struct {
 	ID          string
 	Name        string
@@ -2311,7 +2311,7 @@ type AnalysisWorkflow struct {
 	Results     []*AnalysisResult
 }
 
-// AnalysisStep represents a step in analysis workflow
+// AnalysisStep represents a step in analysis workflow.
 type AnalysisStep struct {
 	ID           string
 	Name         string
@@ -2323,7 +2323,7 @@ type AnalysisStep struct {
 	Result       *AnalysisResult
 }
 
-// AnalysisResult represents the result of forensic analysis
+// AnalysisResult represents the result of forensic analysis.
 type AnalysisResult struct {
 	ID         string
 	AnalyzerID string
@@ -2338,7 +2338,7 @@ type AnalysisResult struct {
 	CreatedBy  string
 }
 
-// ForensicFinding represents a forensic finding
+// ForensicFinding represents a forensic finding.
 type ForensicFinding struct {
 	ID           string
 	Type         string
@@ -2351,7 +2351,7 @@ type ForensicFinding struct {
 	Tags         []string
 }
 
-// DigitalArtifact represents a digital artifact
+// DigitalArtifact represents a digital artifact.
 type DigitalArtifact struct {
 	ID         string
 	Type       string
@@ -2365,7 +2365,7 @@ type DigitalArtifact struct {
 	Related    []string
 }
 
-// ForensicTimeline represents a forensic timeline
+// ForensicTimeline represents a forensic timeline.
 type ForensicTimeline struct {
 	ID        string
 	Name      string
@@ -2376,7 +2376,7 @@ type ForensicTimeline struct {
 	CreatedAt time.Time
 }
 
-// TimelineEvent represents an event in a forensic timeline
+// TimelineEvent represents an event in a forensic timeline.
 type TimelineEvent struct {
 	ID           string
 	Timestamp    time.Time
@@ -2388,14 +2388,14 @@ type TimelineEvent struct {
 	Tags         []string
 }
 
-// ForensicReporting provides forensic reporting
+// ForensicReporting provides forensic reporting.
 type ForensicReporting struct {
 	templates  map[string]*ForensicReportTemplate
 	generators map[string]*ForensicReportGenerator
 	reports    map[string]*ForensicReport
 }
 
-// ForensicReportTemplate defines forensic report templates
+// ForensicReportTemplate defines forensic report templates.
 type ForensicReportTemplate struct {
 	ID       string
 	Name     string
@@ -2405,7 +2405,7 @@ type ForensicReportTemplate struct {
 	Template string
 }
 
-// ReportSection represents a section in a forensic report
+// ReportSection represents a section in a forensic report.
 type ReportSection struct {
 	ID       string
 	Title    string
@@ -2415,13 +2415,13 @@ type ReportSection struct {
 	Order    int
 }
 
-// ForensicReportGenerator generates forensic reports
+// ForensicReportGenerator generates forensic reports.
 type ForensicReportGenerator interface {
 	GenerateReport(ctx context.Context, template *ForensicReportTemplate, data interface{}) (*ForensicReport, error)
 	GetSupportedFormats() []string
 }
 
-// ForensicReport represents a generated forensic report
+// ForensicReport represents a generated forensic report.
 type ForensicReport struct {
 	ID              string
 	IncidentID      string
@@ -2439,7 +2439,7 @@ type ForensicReport struct {
 	Format          string
 }
 
-// ReportAppendix represents a report appendix
+// ReportAppendix represents a report appendix.
 type ReportAppendix struct {
 	ID       string
 	Title    string
@@ -2448,7 +2448,7 @@ type ReportAppendix struct {
 	Filename string
 }
 
-// IncidentResponseConfig holds incident response configuration
+// IncidentResponseConfig holds incident response configuration.
 type IncidentResponseConfig struct {
 	DefaultPlaybook       string
 	AutoAssignments       bool
@@ -2460,7 +2460,7 @@ type IncidentResponseConfig struct {
 	MetricsEnabled        bool
 }
 
-// SecurityMetrics holds Prometheus metrics for security management
+// SecurityMetrics holds Prometheus metrics for security management.
 type SecurityMetrics struct {
 	AuthenticationAttempts *prometheus.CounterVec
 	AuthenticationFailures *prometheus.CounterVec
@@ -2475,9 +2475,9 @@ type SecurityMetrics struct {
 }
 
 // Configuration structures and additional types would continue...
-// For brevity, I'll include the main interface methods
+// For brevity, I'll include the main interface methods.
 
-// NewComprehensiveSecurityManager creates a new security manager
+// NewComprehensiveSecurityManager creates a new security manager.
 func NewComprehensiveSecurityManager(config *SecurityManagerConfig) *ComprehensiveSecurityManager {
 	if config == nil {
 		config = &SecurityManagerConfig{
@@ -2498,7 +2498,7 @@ func NewComprehensiveSecurityManager(config *SecurityManagerConfig) *Comprehensi
 		stopChan:        make(chan struct{}),
 	}
 
-	// Initialize all security components
+	// Initialize all security components.
 	csm.certificateManager = NewCertificateLifecycleManager(config.CertificateAuthority)
 	csm.authenticationMgr = NewAuthenticationManager(&AuthenticationConfig{
 		SessionTimeout:    config.SessionTimeout,
@@ -2533,7 +2533,7 @@ func NewComprehensiveSecurityManager(config *SecurityManagerConfig) *Comprehensi
 	return csm
 }
 
-// Start starts the security manager
+// Start starts the security manager.
 func (csm *ComprehensiveSecurityManager) Start(ctx context.Context) error {
 	csm.mutex.Lock()
 	defer csm.mutex.Unlock()
@@ -2545,31 +2545,31 @@ func (csm *ComprehensiveSecurityManager) Start(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	logger.Info("starting comprehensive security manager")
 
-	// Start certificate lifecycle management
+	// Start certificate lifecycle management.
 	if err := csm.certificateManager.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start certificate manager: %w", err)
 	}
 
-	// Start intrusion detection
+	// Start intrusion detection.
 	if csm.intrusionDetection != nil {
 		if err := csm.intrusionDetection.Start(ctx); err != nil {
 			logger.Error(err, "failed to start intrusion detection")
 		}
 	}
 
-	// Start threat detection
+	// Start threat detection.
 	if csm.threatDetectionMgr != nil {
 		if err := csm.threatDetectionMgr.Start(ctx); err != nil {
 			logger.Error(err, "failed to start threat detection")
 		}
 	}
 
-	// Start vulnerability scanning
+	// Start vulnerability scanning.
 	if err := csm.vulnerabilityScanner.Start(ctx); err != nil {
 		logger.Error(err, "failed to start vulnerability scanner")
 	}
 
-	// Start compliance monitoring
+	// Start compliance monitoring.
 	if err := csm.complianceMonitor.Start(ctx); err != nil {
 		logger.Error(err, "failed to start compliance monitor")
 	}
@@ -2579,7 +2579,7 @@ func (csm *ComprehensiveSecurityManager) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the security manager
+// Stop stops the security manager.
 func (csm *ComprehensiveSecurityManager) Stop(ctx context.Context) error {
 	csm.mutex.Lock()
 	defer csm.mutex.Unlock()
@@ -2593,7 +2593,7 @@ func (csm *ComprehensiveSecurityManager) Stop(ctx context.Context) error {
 
 	close(csm.stopChan)
 
-	// Stop all components
+	// Stop all components.
 	if csm.certificateManager != nil {
 		csm.certificateManager.Stop(ctx)
 	}
@@ -2619,26 +2619,26 @@ func (csm *ComprehensiveSecurityManager) Stop(ctx context.Context) error {
 	return nil
 }
 
-// Core security operations
+// Core security operations.
 
-// AuthenticateUser authenticates a user
+// AuthenticateUser authenticates a user.
 func (csm *ComprehensiveSecurityManager) AuthenticateUser(ctx context.Context, credentials *AuthCredentials) (*AuthResult, error) {
 	return csm.authenticationMgr.Authenticate(ctx, credentials)
 }
 
-// AuthorizeAccess authorizes access to a resource
+// AuthorizeAccess authorizes access to a resource.
 func (csm *ComprehensiveSecurityManager) AuthorizeAccess(ctx context.Context, request *AccessRequest) (*AccessDecision, error) {
 	return csm.authorizationMgr.Authorize(ctx, request)
 }
 
-// IssueCertificate issues a new certificate
+// IssueCertificate issues a new certificate.
 func (csm *ComprehensiveSecurityManager) IssueCertificate(ctx context.Context, request *CertificateRequest) (*ManagedCertificate, error) {
 	return csm.certificateManager.IssueCertificate(ctx, request)
 }
 
-// GetSecurityStatus returns overall security status
+// GetSecurityStatus returns overall security status.
 func (csm *ComprehensiveSecurityManager) GetSecurityStatus(ctx context.Context) (*SecurityStatus, error) {
-	// Implementation would aggregate status from all security components
+	// Implementation would aggregate status from all security components.
 	status := &SecurityStatus{
 		ComplianceLevel: "HIGH",
 		ActiveThreats:   []string{},
@@ -2655,10 +2655,10 @@ func (csm *ComprehensiveSecurityManager) GetSecurityStatus(ctx context.Context) 
 	return status, nil
 }
 
-// Helper methods and placeholder implementations
+// Helper methods and placeholder implementations.
 
 func (csm *ComprehensiveSecurityManager) getActiveAlertCount() int {
-	// Would aggregate from all security components
+	// Would aggregate from all security components.
 	return 0
 }
 
@@ -2707,10 +2707,10 @@ func initializeSecurityMetrics() *SecurityMetrics {
 	}
 }
 
-// Placeholder implementations for major security components
-// In production, each would be fully implemented with comprehensive functionality
+// Placeholder implementations for major security components.
+// In production, each would be fully implemented with comprehensive functionality.
 
-// CertificateRequest represents a certificate issuance request
+// CertificateRequest represents a certificate issuance request.
 type CertificateRequest struct {
 	Subject          pkix.Name
 	AlternativeNames []string
@@ -2720,6 +2720,7 @@ type CertificateRequest struct {
 	Template         string
 }
 
+// NewCertificateLifecycleManager performs newcertificatelifecyclemanager operation.
 func NewCertificateLifecycleManager(caConfig *CAConfig) *CertificateLifecycleManager {
 	return &CertificateLifecycleManager{
 		certificates:      make(map[string]*ManagedCertificate),
@@ -2728,13 +2729,21 @@ func NewCertificateLifecycleManager(caConfig *CAConfig) *CertificateLifecycleMan
 	}
 }
 
+// Start performs start operation.
 func (clm *CertificateLifecycleManager) Start(ctx context.Context) error { return nil }
-func (clm *CertificateLifecycleManager) Stop(ctx context.Context) error  { return nil }
+
+// Stop performs stop operation.
+func (clm *CertificateLifecycleManager) Stop(ctx context.Context) error { return nil }
+
+// IssueCertificate performs issuecertificate operation.
 func (clm *CertificateLifecycleManager) IssueCertificate(ctx context.Context, request *CertificateRequest) (*ManagedCertificate, error) {
 	return &ManagedCertificate{}, nil
 }
+
+// GetCertificateCount performs getcertificatecount operation.
 func (clm *CertificateLifecycleManager) GetCertificateCount() int { return len(clm.certificates) }
 
+// NewAuthenticationManager performs newauthenticationmanager operation.
 func NewAuthenticationManager(config *AuthenticationConfig) *AuthenticationManager {
 	return &AuthenticationManager{
 		methods:        make(map[string]AuthenticationMethod),
@@ -2744,11 +2753,15 @@ func NewAuthenticationManager(config *AuthenticationConfig) *AuthenticationManag
 	}
 }
 
+// Authenticate performs authenticate operation.
 func (am *AuthenticationManager) Authenticate(ctx context.Context, credentials *AuthCredentials) (*AuthResult, error) {
 	return &AuthResult{Success: true}, nil
 }
+
+// GetActiveSessions performs getactivesessions operation.
 func (am *AuthenticationManager) GetActiveSessions() int { return len(am.sessions) }
 
+// NewAuthorizationManager performs newauthorizationmanager operation.
 func NewAuthorizationManager() *AuthorizationManager {
 	return &AuthorizationManager{
 		rbacEngine:      &RoleBasedAccessControl{},
@@ -2758,10 +2771,12 @@ func NewAuthorizationManager() *AuthorizationManager {
 	}
 }
 
+// Authorize performs authorize operation.
 func (azm *AuthorizationManager) Authorize(ctx context.Context, request *AccessRequest) (*AccessDecision, error) {
 	return &AccessDecision{Decision: "PERMIT"}, nil
 }
 
+// NewEncryptionManager performs newencryptionmanager operation.
 func NewEncryptionManager(config *EncryptionConfig) *EncryptionManager {
 	return &EncryptionManager{
 		encryptors: make(map[string]Encryptor),
@@ -2769,6 +2784,7 @@ func NewEncryptionManager(config *EncryptionConfig) *EncryptionManager {
 	}
 }
 
+// NewKeyManagementService performs newkeymanagementservice operation.
 func NewKeyManagementService() *KeyManagementService {
 	return &KeyManagementService{
 		keys:        make(map[string]*CryptographicKey),
@@ -2776,6 +2792,7 @@ func NewKeyManagementService() *KeyManagementService {
 	}
 }
 
+// NewSecurityAuditManager performs newsecurityauditmanager operation.
 func NewSecurityAuditManager(retention time.Duration) *SecurityAuditManager {
 	return &SecurityAuditManager{
 		auditLog:      &AuditLog{entries: make([]*AuditEntry, 0)},
@@ -2783,6 +2800,7 @@ func NewSecurityAuditManager(retention time.Duration) *SecurityAuditManager {
 	}
 }
 
+// NewDefaultSecurityPolicyEngine performs newdefaultsecuritypolicyengine operation.
 func NewDefaultSecurityPolicyEngine() security.SecurityPolicyEngine {
 	return &DefaultSecurityPolicyEngine{
 		policies:   make(map[string]*security.SecurityPolicy),
@@ -2791,7 +2809,7 @@ func NewDefaultSecurityPolicyEngine() security.SecurityPolicyEngine {
 	}
 }
 
-// DefaultSecurityPolicyEngine provides a default implementation of SecurityPolicyEngine
+// DefaultSecurityPolicyEngine provides a default implementation of SecurityPolicyEngine.
 type DefaultSecurityPolicyEngine struct {
 	policies   map[string]*security.SecurityPolicy
 	evaluators []PolicyEvaluator
@@ -2799,14 +2817,16 @@ type DefaultSecurityPolicyEngine struct {
 	mutex      sync.RWMutex
 }
 
+// EvaluatePolicy performs evaluatepolicy operation.
 func (dpe *DefaultSecurityPolicyEngine) EvaluatePolicy(request *security.PolicyRequest) (*security.PolicyDecision, error) {
-	// Simplified implementation for compilation
+	// Simplified implementation for compilation.
 	return &security.PolicyDecision{
 		Decision: "PERMIT",
 		Reason:   "Default allow policy",
 	}, nil
 }
 
+// AddPolicy performs addpolicy operation.
 func (dpe *DefaultSecurityPolicyEngine) AddPolicy(policy *security.SecurityPolicy) error {
 	dpe.mutex.Lock()
 	defer dpe.mutex.Unlock()
@@ -2814,6 +2834,7 @@ func (dpe *DefaultSecurityPolicyEngine) AddPolicy(policy *security.SecurityPolic
 	return nil
 }
 
+// RemovePolicy performs removepolicy operation.
 func (dpe *DefaultSecurityPolicyEngine) RemovePolicy(policyID string) error {
 	dpe.mutex.Lock()
 	defer dpe.mutex.Unlock()
@@ -2821,6 +2842,7 @@ func (dpe *DefaultSecurityPolicyEngine) RemovePolicy(policyID string) error {
 	return nil
 }
 
+// UpdatePolicy performs updatepolicy operation.
 func (dpe *DefaultSecurityPolicyEngine) UpdatePolicy(policy *security.SecurityPolicy) error {
 	dpe.mutex.Lock()
 	defer dpe.mutex.Unlock()
@@ -2828,6 +2850,7 @@ func (dpe *DefaultSecurityPolicyEngine) UpdatePolicy(policy *security.SecurityPo
 	return nil
 }
 
+// GetPolicy performs getpolicy operation.
 func (dpe *DefaultSecurityPolicyEngine) GetPolicy(policyID string) (*security.SecurityPolicy, error) {
 	dpe.mutex.RLock()
 	defer dpe.mutex.RUnlock()
@@ -2837,6 +2860,7 @@ func (dpe *DefaultSecurityPolicyEngine) GetPolicy(policyID string) (*security.Se
 	return nil, fmt.Errorf("policy not found: %s", policyID)
 }
 
+// ListPolicies performs listpolicies operation.
 func (dpe *DefaultSecurityPolicyEngine) ListPolicies(filter *security.PolicyFilter) ([]*security.SecurityPolicy, error) {
 	dpe.mutex.RLock()
 	defer dpe.mutex.RUnlock()
@@ -2847,6 +2871,7 @@ func (dpe *DefaultSecurityPolicyEngine) ListPolicies(filter *security.PolicyFilt
 	return result, nil
 }
 
+// NewSecureChannelManager performs newsecurechannelmanager operation.
 func NewSecureChannelManager(config *SecureChannelConfig) *SecureChannelManager {
 	return &SecureChannelManager{
 		channels: make(map[string]*SecureChannel),
@@ -2854,6 +2879,7 @@ func NewSecureChannelManager(config *SecureChannelConfig) *SecureChannelManager 
 	}
 }
 
+// NewIntrusionDetectionSystem performs newintrusiondetectionsystem operation.
 func NewIntrusionDetectionSystem(config *IDSConfig) *IntrusionDetectionSystem {
 	return &IntrusionDetectionSystem{
 		sensors: make(map[string]*IDSSensor),
@@ -2863,9 +2889,13 @@ func NewIntrusionDetectionSystem(config *IDSConfig) *IntrusionDetectionSystem {
 	}
 }
 
+// Start performs start operation.
 func (ids *IntrusionDetectionSystem) Start(ctx context.Context) error { ids.running = true; return nil }
-func (ids *IntrusionDetectionSystem) Stop(ctx context.Context) error  { ids.running = false; return nil }
 
+// Stop performs stop operation.
+func (ids *IntrusionDetectionSystem) Stop(ctx context.Context) error { ids.running = false; return nil }
+
+// NewThreatDetectionManager performs newthreatdetectionmanager operation.
 func NewThreatDetectionManager(config *ThreatDetectionConfig) *ThreatDetectionManager {
 	return &ThreatDetectionManager{
 		detectors:      make(map[string]*ThreatDetector),
@@ -2874,9 +2904,13 @@ func NewThreatDetectionManager(config *ThreatDetectionConfig) *ThreatDetectionMa
 	}
 }
 
+// Start performs start operation.
 func (tdm *ThreatDetectionManager) Start(ctx context.Context) error { tdm.running = true; return nil }
-func (tdm *ThreatDetectionManager) Stop(ctx context.Context) error  { tdm.running = false; return nil }
 
+// Stop performs stop operation.
+func (tdm *ThreatDetectionManager) Stop(ctx context.Context) error { tdm.running = false; return nil }
+
+// NewComplianceMonitor performs newcompliancemonitor operation.
 func NewComplianceMonitor(config *ComplianceConfig) *ComplianceMonitor {
 	return &ComplianceMonitor{
 		frameworks:  make(map[string]*ComplianceFramework),
@@ -2886,10 +2920,16 @@ func NewComplianceMonitor(config *ComplianceConfig) *ComplianceMonitor {
 	}
 }
 
+// Start performs start operation.
 func (cm *ComplianceMonitor) Start(ctx context.Context) error { return nil }
-func (cm *ComplianceMonitor) Stop(ctx context.Context) error  { return nil }
-func (cm *ComplianceMonitor) GetOverallScore() float64        { return 85.5 }
 
+// Stop performs stop operation.
+func (cm *ComplianceMonitor) Stop(ctx context.Context) error { return nil }
+
+// GetOverallScore performs getoverallscore operation.
+func (cm *ComplianceMonitor) GetOverallScore() float64 { return 85.5 }
+
+// NewVulnerabilityScanner performs newvulnerabilityscanner operation.
 func NewVulnerabilityScanner(config *VulnerabilityScanConfig) *VulnerabilityScanner {
 	return &VulnerabilityScanner{
 		scanners: make(map[string]*VulnScanner),
@@ -2898,10 +2938,16 @@ func NewVulnerabilityScanner(config *VulnerabilityScanConfig) *VulnerabilityScan
 	}
 }
 
+// Start performs start operation.
 func (vs *VulnerabilityScanner) Start(ctx context.Context) error { vs.running = true; return nil }
-func (vs *VulnerabilityScanner) Stop(ctx context.Context) error  { vs.running = false; return nil }
-func (vs *VulnerabilityScanner) GetVulnerabilityCount() int      { return 0 }
 
+// Stop performs stop operation.
+func (vs *VulnerabilityScanner) Stop(ctx context.Context) error { vs.running = false; return nil }
+
+// GetVulnerabilityCount performs getvulnerabilitycount operation.
+func (vs *VulnerabilityScanner) GetVulnerabilityCount() int { return 0 }
+
+// NewIncidentResponseManager performs newincidentresponsemanager operation.
 func NewIncidentResponseManager(config *IncidentResponseConfig) *IncidentResponseManager {
 	return &IncidentResponseManager{
 		incidents:  make(map[string]*SecurityIncident),
@@ -2912,7 +2958,7 @@ func NewIncidentResponseManager(config *IncidentResponseConfig) *IncidentRespons
 	}
 }
 
-// Additional configuration types
+// Additional configuration types.
 type SecureChannelConfig struct {
 	DefaultTLSVersion uint16
 	CipherSuites      []uint16

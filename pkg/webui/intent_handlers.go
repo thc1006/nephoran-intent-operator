@@ -30,16 +30,16 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 )
 
-// IntentRequest represents a request to create or update an intent
+// IntentRequest represents a request to create or update an intent.
 type IntentRequest struct {
 	Name string `json:"name"`
-	// Namespace call stubbed
+	// Namespace call stubbed.
 	Intent              string                          `json:"intent"`
 	IntentType          nephoranv1.IntentType           `json:"intent_type"`
 	Priority            nephoranv1.Priority             `json:"priority,omitempty"`
 	TargetComponents    []nephoranv1.TargetComponent    `json:"target_components,omitempty"`
 	ResourceConstraints *nephoranv1.ResourceConstraints `json:"resource_constraints,omitempty"`
-	// Namespace call stubbed
+	// Namespace call stubbed.
 	TargetCluster  string            `json:"target_cluster,omitempty"`
 	NetworkSlice   string            `json:"network_slice,omitempty"`
 	Region         string            `json:"region,omitempty"`
@@ -49,7 +49,7 @@ type IntentRequest struct {
 	Annotations    map[string]string `json:"annotations,omitempty"`
 }
 
-// IntentResponse represents an intent response with extended information
+// IntentResponse represents an intent response with extended information.
 type IntentResponse struct {
 	*nephoranv1.NetworkIntent
 	ProcessingMetrics *ProcessingMetrics `json:"processing_metrics,omitempty"`
@@ -57,7 +57,7 @@ type IntentResponse struct {
 	ValidationResult  *ValidationSummary `json:"validation_result,omitempty"`
 }
 
-// ProcessingMetrics contains intent processing performance metrics
+// ProcessingMetrics contains intent processing performance metrics.
 type ProcessingMetrics struct {
 	ProcessingDuration   *metav1.Duration `json:"processing_duration,omitempty"`
 	DeploymentDuration   *metav1.Duration `json:"deployment_duration,omitempty"`
@@ -68,7 +68,7 @@ type ProcessingMetrics struct {
 	GitOpsDeploymentTime *metav1.Duration `json:"gitops_deployment_time,omitempty"`
 }
 
-// DeploymentStatus contains deployment status information
+// DeploymentStatus contains deployment status information.
 type DeploymentStatus struct {
 	PackageName      string       `json:"package_name,omitempty"`
 	PackageRevision  string       `json:"package_revision,omitempty"`
@@ -81,7 +81,7 @@ type DeploymentStatus struct {
 	LastHealthCheck  *metav1.Time `json:"last_health_check,omitempty"`
 }
 
-// ValidationSummary contains validation result summary
+// ValidationSummary contains validation result summary.
 type ValidationSummary struct {
 	Valid          bool         `json:"valid"`
 	Errors         []string     `json:"errors,omitempty"`
@@ -90,10 +90,10 @@ type ValidationSummary struct {
 	ValidatedBy    string       `json:"validated_by,omitempty"`
 }
 
-// IntentStatusUpdate represents a status update for streaming
+// IntentStatusUpdate represents a status update for streaming.
 type IntentStatusUpdate struct {
 	IntentName string `json:"intent_name"`
-	// Namespace call stubbed
+	// Namespace call stubbed.
 	Phase      string             `json:"phase"`
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 	Progress   int                `json:"progress"` // 0-100
@@ -102,46 +102,46 @@ type IntentStatusUpdate struct {
 	EventType  string             `json:"event_type"` // created, updated, deleted, error
 }
 
-// setupIntentRoutes sets up intent management API routes
+// setupIntentRoutes sets up intent management API routes.
 func (s *NephoranAPIServer) setupIntentRoutes(router *mux.Router) {
 	intents := router.PathPrefix("/intents").Subrouter()
 
-	// Apply intent-specific middleware
+	// Apply intent-specific middleware.
 	if s.authMiddleware != nil {
-		// Require intent permissions for all intent operations
+		// Require intent permissions for all intent operations.
 		intents.Use(s.authMiddleware.RequirePermissionMiddleware(auth.PermissionReadIntent))
 	}
 
-	// Intent CRUD operations
+	// Intent CRUD operations.
 	intents.HandleFunc("", s.listIntents).Methods("GET")
 	intents.HandleFunc("", s.createIntent).Methods("POST")
 	intents.HandleFunc("/{name}", s.getIntent).Methods("GET")
 	intents.HandleFunc("/{name}", s.updateIntent).Methods("PUT")
 	intents.HandleFunc("/{name}", s.deleteIntent).Methods("DELETE")
 
-	// Intent status and monitoring
+	// Intent status and monitoring.
 	intents.HandleFunc("/{name}/status", s.getIntentStatus).Methods("GET")
 	intents.HandleFunc("/{name}/events", s.getIntentEvents).Methods("GET")
 	intents.HandleFunc("/{name}/logs", s.getIntentLogs).Methods("GET")
 	intents.HandleFunc("/{name}/metrics", s.getIntentMetrics).Methods("GET")
 
-	// Intent operations
+	// Intent operations.
 	intents.HandleFunc("/{name}/validate", s.validateIntent).Methods("POST")
 	intents.HandleFunc("/{name}/retry", s.retryIntent).Methods("POST")
 	intents.HandleFunc("/{name}/cancel", s.cancelIntent).Methods("POST")
 
-	// Intent templates and suggestions
+	// Intent templates and suggestions.
 	intents.HandleFunc("/templates", s.getIntentTemplates).Methods("GET")
 	intents.HandleFunc("/suggestions", s.getIntentSuggestions).Methods("GET")
 	intents.HandleFunc("/preview", s.previewIntent).Methods("POST")
 
-	// Bulk operations
+	// Bulk operations.
 	intents.HandleFunc("/bulk", s.bulkCreateIntents).Methods("POST")
 	intents.HandleFunc("/bulk/delete", s.bulkDeleteIntents).Methods("POST")
 	intents.HandleFunc("/bulk/status", s.bulkGetIntentStatus).Methods("POST")
 }
 
-// listIntents handles GET /api/v1/intents
+// listIntents handles GET /api/v1/intents.
 func (s *NephoranAPIServer) listIntents(w http.ResponseWriter, r *http.Request) {
 	_ = r.Context() // Context available if needed
 	pagination := s.parsePaginationParams(r)
@@ -152,7 +152,7 @@ func (s *NephoranAPIServer) listIntents(w http.ResponseWriter, r *http.Request) 
 		namespace = "default"
 	}
 
-	// Check cache first
+	// Check cache first.
 	cacheKey := fmt.Sprintf("intents:%s:%v:%v", namespace, pagination, filters)
 	if s.cache != nil {
 		if cached, found := s.cache.Get(cacheKey); found {
@@ -163,15 +163,15 @@ func (s *NephoranAPIServer) listIntents(w http.ResponseWriter, r *http.Request) 
 		s.metrics.CacheMisses.Inc()
 	}
 
-	// Get intents from Kubernetes
+	// Get intents from Kubernetes.
 	listOptions := metav1.ListOptions{}
 
-	// Apply filters
+	// Apply filters.
 	if filters.Status != "" {
 		listOptions.LabelSelector = fmt.Sprintf("status=%s", filters.Status)
 	}
 
-	// Mock intent list for now - would use proper client in production
+	// Mock intent list for now - would use proper client in production.
 	var err error
 	intents := []byte(`{"items":[]}`) // Mock empty list
 
@@ -188,11 +188,11 @@ func (s *NephoranAPIServer) listIntents(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Apply additional filtering and pagination
+	// Apply additional filtering and pagination.
 	filteredItems := s.filterIntents(intentList.Items, filters)
 	totalItems := len(filteredItems)
 
-	// Calculate pagination
+	// Calculate pagination.
 	startIndex := (pagination.Page - 1) * pagination.PageSize
 	endIndex := startIndex + pagination.PageSize
 	if endIndex > totalItems {
@@ -204,13 +204,13 @@ func (s *NephoranAPIServer) listIntents(w http.ResponseWriter, r *http.Request) 
 
 	paginatedItems := filteredItems[startIndex:endIndex]
 
-	// Convert to response format
+	// Convert to response format.
 	responses := make([]IntentResponse, len(paginatedItems))
 	for i, intent := range paginatedItems {
 		responses[i] = s.buildIntentResponse(&intent)
 	}
 
-	// Build response with metadata
+	// Build response with metadata.
 	meta := &Meta{
 		Page:       pagination.Page,
 		PageSize:   pagination.PageSize,
@@ -218,7 +218,7 @@ func (s *NephoranAPIServer) listIntents(w http.ResponseWriter, r *http.Request) 
 		TotalItems: totalItems,
 	}
 
-	// Build HATEOAS links
+	// Build HATEOAS links.
 	baseURL := fmt.Sprintf("/api/v1/intents?namespace=%s&page_size=%d", namespace, pagination.PageSize)
 	links := &Links{
 		Self: fmt.Sprintf("%s&page=%d", baseURL, pagination.Page),
@@ -238,7 +238,7 @@ func (s *NephoranAPIServer) listIntents(w http.ResponseWriter, r *http.Request) 
 		"links": links,
 	}
 
-	// Cache the result
+	// Cache the result.
 	if s.cache != nil {
 		s.cache.Set(cacheKey, result)
 	}
@@ -246,11 +246,11 @@ func (s *NephoranAPIServer) listIntents(w http.ResponseWriter, r *http.Request) 
 	s.writeJSONResponse(w, http.StatusOK, result)
 }
 
-// createIntent handles POST /api/v1/intents
+// createIntent handles POST /api/v1/intents.
 func (s *NephoranAPIServer) createIntent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// Check create permission
+	// Check create permission.
 	if s.authMiddleware != nil && !auth.HasPermission(ctx, auth.PermissionCreateIntent) {
 		s.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions",
 			"Create intent permission required")
@@ -264,15 +264,15 @@ func (s *NephoranAPIServer) createIntent(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Validate request
+	// Validate request.
 	if err := s.validateIntentRequest(&req); err != nil {
 		s.writeErrorResponse(w, http.StatusBadRequest, "validation_failed", err.Error())
 		return
 	}
 
-	// Set defaults
-	// Namespace call stubbed
-	// Namespace call stubbed
+	// Set defaults.
+	// Namespace call stubbed.
+	// Namespace call stubbed.
 
 	if req.Priority == "" {
 		req.Priority = nephoranv1.PriorityMedium
@@ -281,11 +281,11 @@ func (s *NephoranAPIServer) createIntent(w http.ResponseWriter, r *http.Request)
 		req.IntentType = nephoranv1.IntentTypeDeployment
 	}
 
-	// Create NetworkIntent object
+	// Create NetworkIntent object.
 	intent := &nephoranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: req.Name,
-			// Namespace call stubbed
+			// Namespace call stubbed.
 			Labels:      req.Labels,
 			Annotations: req.Annotations,
 		},
@@ -293,24 +293,24 @@ func (s *NephoranAPIServer) createIntent(w http.ResponseWriter, r *http.Request)
 			Intent:     req.Intent,
 			IntentType: req.IntentType,
 			Priority:   req.Priority,
-			// existingIntent.Spec.TargetComponents = req.TargetComponents // Type mismatch
+			// existingIntent.Spec.TargetComponents = req.TargetComponents // Type mismatch.
 			ResourceConstraints: req.ResourceConstraints,
-			// Namespace call stubbed
+			// Namespace call stubbed.
 			TargetCluster: req.TargetCluster,
 			NetworkSlice:  req.NetworkSlice,
 			Region:        req.Region,
-			// existingIntent.Spec.TimeoutSeconds = req.TimeoutSeconds // Field doesn't exist
-			// existingIntent.Spec.MaxRetries = req.MaxRetries // Field doesn't exist
+			// existingIntent.Spec.TimeoutSeconds = req.TimeoutSeconds // Field doesn't exist.
+			// existingIntent.Spec.MaxRetries = req.MaxRetries // Field doesn't exist.
 		},
 	}
 
-	// Validate the NetworkIntent - simplified validation for compilation
+	// Validate the NetworkIntent - simplified validation for compilation.
 	if intent.Spec.Intent == "" {
 		s.writeErrorResponse(w, http.StatusBadRequest, "intent_validation_failed", "Intent text is required")
 		return
 	}
 
-	// Create the intent in Kubernetes
+	// Create the intent in Kubernetes.
 	intentBytes, err := json.Marshal(intent)
 	if err != nil {
 		s.logger.Error(err, "Failed to marshal intent")
@@ -318,17 +318,16 @@ func (s *NephoranAPIServer) createIntent(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Mock creation result - would use proper client in production
+	// Mock creation result - would use proper client in production.
 	result := intentBytes // Use the marshaled intent as the result
 	err = nil             // No error for mock
-
 	if err != nil {
 		if errors.IsAlreadyExists(err) {
 			s.writeErrorResponse(w, http.StatusConflict, "intent_exists",
 				fmt.Sprintf("Intent '%s' already exists", req.Name))
 			return
 		}
-		// Namespace call stubbed
+		// Namespace call stubbed.
 		s.writeErrorResponse(w, http.StatusInternalServerError, "creation_failed", "Failed to create intent")
 		return
 	}
@@ -340,15 +339,15 @@ func (s *NephoranAPIServer) createIntent(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Invalidate cache
+	// Invalidate cache.
 	if s.cache != nil {
-		// Namespace call stubbed
+		// Namespace call stubbed.
 	}
 
-	// Broadcast intent creation event
+	// Broadcast intent creation event.
 	s.broadcastIntentUpdate(&IntentStatusUpdate{
 		IntentName: createdIntent.Name,
-		// Namespace call stubbed
+		// Namespace call stubbed.
 		Phase:     string(createdIntent.Status.Phase),
 		Progress:  0,
 		Message:   "Intent created successfully",
@@ -360,7 +359,7 @@ func (s *NephoranAPIServer) createIntent(w http.ResponseWriter, r *http.Request)
 	s.writeJSONResponse(w, http.StatusCreated, response)
 }
 
-// getIntent handles GET /api/v1/intents/{name}
+// getIntent handles GET /api/v1/intents/{name}.
 func (s *NephoranAPIServer) getIntent(w http.ResponseWriter, r *http.Request) {
 	_ = r.Context() // Context available if needed
 	vars := mux.Vars(r)
@@ -370,7 +369,7 @@ func (s *NephoranAPIServer) getIntent(w http.ResponseWriter, r *http.Request) {
 		namespace = "default"
 	}
 
-	// Check cache first
+	// Check cache first.
 	cacheKey := fmt.Sprintf("intent:%s:%s", namespace, name)
 	if s.cache != nil {
 		if cached, found := s.cache.Get(cacheKey); found {
@@ -381,17 +380,17 @@ func (s *NephoranAPIServer) getIntent(w http.ResponseWriter, r *http.Request) {
 		s.metrics.CacheMisses.Inc()
 	}
 
-	// Get intent from Kubernetes
-	// Mock result - would use proper client in production
+	// Get intent from Kubernetes.
+	// Mock result - would use proper client in production.
 	result := []byte(`{"status":"Success"}`)
 	err := error(nil)
 	_ = s.kubeClient // Use kubeClient to avoid unused variable
 	// Original code: result, err := s.kubeClient.RESTClient().
-	// Get method call stubbed out
-	// Namespace call stubbed
+	// Get method call stubbed out.
+	// Namespace call stubbed.
 	// Resource("networkintents").
 	// Name(name).
-	// DoRaw call stubbed
+	// DoRaw call stubbed.
 
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -413,7 +412,7 @@ func (s *NephoranAPIServer) getIntent(w http.ResponseWriter, r *http.Request) {
 
 	response := s.buildIntentResponse(&intent)
 
-	// Cache the result
+	// Cache the result.
 	if s.cache != nil {
 		s.cache.Set(cacheKey, response)
 	}
@@ -421,11 +420,11 @@ func (s *NephoranAPIServer) getIntent(w http.ResponseWriter, r *http.Request) {
 	s.writeJSONResponse(w, http.StatusOK, response)
 }
 
-// updateIntent handles PUT /api/v1/intents/{name}
+// updateIntent handles PUT /api/v1/intents/{name}.
 func (s *NephoranAPIServer) updateIntent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// Check update permission
+	// Check update permission.
 	if s.authMiddleware != nil && !auth.HasPermission(ctx, auth.PermissionUpdateIntent) {
 		s.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions",
 			"Update intent permission required")
@@ -446,13 +445,13 @@ func (s *NephoranAPIServer) updateIntent(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Validate request
+	// Validate request.
 	if err := s.validateIntentRequest(&req); err != nil {
 		s.writeErrorResponse(w, http.StatusBadRequest, "validation_failed", err.Error())
 		return
 	}
 
-	// Get existing intent first - mocked for compilation
+	// Get existing intent first - mocked for compilation.
 	existing := []byte(`{"metadata":{"name":"test"}}`)
 	err := error(nil)
 	_ = s.kubeClient // Use kubeClient to avoid unused variable
@@ -475,20 +474,20 @@ func (s *NephoranAPIServer) updateIntent(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Update the intent spec
+	// Update the intent spec.
 	existingIntent.Spec.Intent = req.Intent
 	existingIntent.Spec.IntentType = req.IntentType
 	existingIntent.Spec.Priority = req.Priority
-	// existingIntent.Spec.TargetComponents = req.TargetComponents // Type mismatch
+	// existingIntent.Spec.TargetComponents = req.TargetComponents // Type mismatch.
 	existingIntent.Spec.ResourceConstraints = req.ResourceConstraints
-	// Namespace call stubbed
+	// Namespace call stubbed.
 	existingIntent.Spec.TargetCluster = req.TargetCluster
 	existingIntent.Spec.NetworkSlice = req.NetworkSlice
 	existingIntent.Spec.Region = req.Region
-	// existingIntent.Spec.TimeoutSeconds = req.TimeoutSeconds // Field doesn't exist
-	// existingIntent.Spec.MaxRetries = req.MaxRetries // Field doesn't exist
+	// existingIntent.Spec.TimeoutSeconds = req.TimeoutSeconds // Field doesn't exist.
+	// existingIntent.Spec.MaxRetries = req.MaxRetries // Field doesn't exist.
 
-	// Update metadata if provided
+	// Update metadata if provided.
 	if req.Labels != nil {
 		existingIntent.Labels = req.Labels
 	}
@@ -496,13 +495,13 @@ func (s *NephoranAPIServer) updateIntent(w http.ResponseWriter, r *http.Request)
 		existingIntent.Annotations = req.Annotations
 	}
 
-	// Validate the updated NetworkIntent
+	// Validate the updated NetworkIntent.
 	if existingIntent.Spec.Intent == "" { // Simplified validation
 		s.writeErrorResponse(w, http.StatusBadRequest, "intent_validation_failed", err.Error())
 		return
 	}
 
-	// Update the intent in Kubernetes
+	// Update the intent in Kubernetes.
 	_, err = json.Marshal(existingIntent)
 	if err != nil {
 		s.logger.Error(err, "Failed to marshal updated intent")
@@ -510,17 +509,17 @@ func (s *NephoranAPIServer) updateIntent(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Mock result - would use proper client in production
+	// Mock result - would use proper client in production.
 	result := []byte(`{"status":"Success"}`)
 	err = error(nil)
 	_ = s.kubeClient // Use kubeClient to avoid unused variable
 	// Original code: result, err := s.kubeClient.RESTClient().
-	// Put call stubbed
-	// Namespace call stubbed
+	// Put call stubbed.
+	// Namespace call stubbed.
 	// Resource("networkintents").
 	// Name(name).
 	// Body(intentBytes).
-	// DoRaw call stubbed
+	// DoRaw call stubbed.
 
 	if err != nil {
 		s.logger.Error(err, "Failed to update intent", "name", name, "namespace", namespace)
@@ -535,16 +534,16 @@ func (s *NephoranAPIServer) updateIntent(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Invalidate cache
+	// Invalidate cache.
 	if s.cache != nil {
 		s.cache.Invalidate(fmt.Sprintf("intent:%s:%s", namespace, name))
 		s.cache.Invalidate(fmt.Sprintf("intents:%s:", namespace))
 	}
 
-	// Broadcast intent update event
+	// Broadcast intent update event.
 	s.broadcastIntentUpdate(&IntentStatusUpdate{
 		IntentName: updatedIntent.Name,
-		// Namespace call stubbed
+		// Namespace call stubbed.
 		Phase:     string(updatedIntent.Status.Phase),
 		Message:   "Intent updated successfully",
 		Timestamp: time.Now(),
@@ -555,11 +554,11 @@ func (s *NephoranAPIServer) updateIntent(w http.ResponseWriter, r *http.Request)
 	s.writeJSONResponse(w, http.StatusOK, response)
 }
 
-// deleteIntent handles DELETE /api/v1/intents/{name}
+// deleteIntent handles DELETE /api/v1/intents/{name}.
 func (s *NephoranAPIServer) deleteIntent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// Check delete permission
+	// Check delete permission.
 	if s.authMiddleware != nil && !auth.HasPermission(ctx, auth.PermissionDeleteIntent) {
 		s.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions",
 			"Delete intent permission required")
@@ -573,16 +572,16 @@ func (s *NephoranAPIServer) deleteIntent(w http.ResponseWriter, r *http.Request)
 		namespace = "default"
 	}
 
-	// Delete the intent from Kubernetes
-	// Mock deletion - would use proper client in production
+	// Delete the intent from Kubernetes.
+	// Mock deletion - would use proper client in production.
 	err := error(nil) // No error for mock
 	_ = s.kubeClient  // Use kubeClient to avoid unused variable
 	// Original code: err := s.kubeClient.RESTClient().
 	// Delete().
-	// Namespace call stubbed
+	// Namespace call stubbed.
 	// Resource("networkintents").
 	// Name(name).
-	// DoRaw call stubbed
+	// DoRaw call stubbed.
 
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -595,16 +594,16 @@ func (s *NephoranAPIServer) deleteIntent(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Invalidate cache
+	// Invalidate cache.
 	if s.cache != nil {
 		s.cache.Invalidate(fmt.Sprintf("intent:%s:%s", namespace, name))
 		s.cache.Invalidate(fmt.Sprintf("intents:%s:", namespace))
 	}
 
-	// Broadcast intent deletion event
+	// Broadcast intent deletion event.
 	s.broadcastIntentUpdate(&IntentStatusUpdate{
 		IntentName: name,
-		// Namespace call stubbed
+		// Namespace call stubbed.
 		Message:   "Intent deleted successfully",
 		Timestamp: time.Now(),
 		EventType: "deleted",
@@ -613,7 +612,7 @@ func (s *NephoranAPIServer) deleteIntent(w http.ResponseWriter, r *http.Request)
 	s.writeJSONResponse(w, http.StatusNoContent, nil)
 }
 
-// getIntentStatus handles GET /api/v1/intents/{name}/status
+// getIntentStatus handles GET /api/v1/intents/{name}/status.
 func (s *NephoranAPIServer) getIntentStatus(w http.ResponseWriter, r *http.Request) {
 	_ = r.Context() // Context available if needed
 	vars := mux.Vars(r)
@@ -623,17 +622,17 @@ func (s *NephoranAPIServer) getIntentStatus(w http.ResponseWriter, r *http.Reque
 		namespace = "default"
 	}
 
-	// Get intent from Kubernetes
-	// Mock result - would use proper client in production
+	// Get intent from Kubernetes.
+	// Mock result - would use proper client in production.
 	result := []byte(`{"status":"Success"}`)
 	err := error(nil)
 	_ = s.kubeClient // Use kubeClient to avoid unused variable
 	// Original code: result, err := s.kubeClient.RESTClient().
-	// Get method call stubbed out
-	// Namespace call stubbed
+	// Get method call stubbed out.
+	// Namespace call stubbed.
 	// Resource("networkintents").
 	// Name(name).
-	// DoRaw call stubbed
+	// DoRaw call stubbed.
 
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -653,30 +652,30 @@ func (s *NephoranAPIServer) getIntentStatus(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Build detailed status response
+	// Build detailed status response.
 	status := map[string]interface{}{
 		"name": intent.Name,
-		// Namespace call stubbed
+		// Namespace call stubbed.
 		"phase":      intent.Status.Phase,
 		"conditions": intent.Status.Conditions,
-		// "processing_start_time": intent.Status.ProcessingStartTime, // Field doesn't exist
-		// "processing_completion_time": intent.Status.ProcessingCompletionTime, // Field doesn't exist
-		// "deployment_start_time":      intent.Status.DeploymentStartTime, // Field doesn't exist
-		// "deployment_completion_time": intent.Status.DeploymentCompletionTime, // Field doesn't exist
-		// "git_commit_hash":            intent.Status.GitCommitHash, // Field doesn't exist
-		// "retry_count":                intent.Status.RetryCount, // Field doesn't exist
+		// "processing_start_time": intent.Status.ProcessingStartTime, // Field doesn't exist.
+		// "processing_completion_time": intent.Status.ProcessingCompletionTime, // Field doesn't exist.
+		// "deployment_start_time":      intent.Status.DeploymentStartTime, // Field doesn't exist.
+		// "deployment_completion_time": intent.Status.DeploymentCompletionTime, // Field doesn't exist.
+		// "git_commit_hash":            intent.Status.GitCommitHash, // Field doesn't exist.
+		// "retry_count":                intent.Status.RetryCount, // Field doesn't exist.
 		"validation_errors":   intent.Status.ValidationErrors,
 		"deployed_components": intent.Status.DeployedComponents,
 		"processing_duration": intent.Status.ProcessingDuration,
-		// "deployment_duration":        intent.Status.DeploymentDuration, // Field doesn't exist
-		// "last_retry_time":            intent.Status.LastRetryTime, // Field doesn't exist
+		// "deployment_duration":        intent.Status.DeploymentDuration, // Field doesn't exist.
+		// "last_retry_time":            intent.Status.LastRetryTime, // Field doesn't exist.
 		"observed_generation": intent.Status.ObservedGeneration,
 	}
 
 	s.writeJSONResponse(w, http.StatusOK, status)
 }
 
-// Helper functions
+// Helper functions.
 
 func (s *NephoranAPIServer) validateIntentRequest(req *IntentRequest) error {
 	if req.Name == "" {
@@ -729,7 +728,7 @@ func (s *NephoranAPIServer) filterIntents(items []nephoranv1.NetworkIntent, filt
 			include = false
 		}
 
-		// Filter by labels
+		// Filter by labels.
 		for labelKey, labelValue := range filters.Labels {
 			if item.Labels == nil {
 				include = false
@@ -741,7 +740,7 @@ func (s *NephoranAPIServer) filterIntents(items []nephoranv1.NetworkIntent, filt
 			}
 		}
 
-		// Filter by time range
+		// Filter by time range.
 		if filters.Since != nil && item.CreationTimestamp.Time.Before(*filters.Since) {
 			include = false
 		}
@@ -763,21 +762,21 @@ func (s *NephoranAPIServer) buildIntentResponse(intent *nephoranv1.NetworkIntent
 		NetworkIntent: intent,
 	}
 
-	// Add processing metrics if available
+	// Add processing metrics if available.
 	if intent.Status.ProcessingDuration != nil {
 		response.ProcessingMetrics = &ProcessingMetrics{
 			ProcessingDuration: intent.Status.ProcessingDuration,
-			// DeploymentDuration: intent.Status.DeploymentDuration, // Field doesn't exist
+			// DeploymentDuration: intent.Status.DeploymentDuration, // Field doesn't exist.
 		}
 
-		// Calculate total duration
+		// Calculate total duration.
 		if intent.Status.ProcessingDuration != nil {
 			totalDuration := intent.Status.ProcessingDuration.Duration
 			response.ProcessingMetrics.TotalDuration = &metav1.Duration{Duration: totalDuration}
 		}
 	}
 
-	// Add deployment status if available
+	// Add deployment status if available.
 	if len(intent.Status.DeployedComponents) > 0 {
 		response.DeploymentStatus = &DeploymentStatus{
 			PackageName:      fmt.Sprintf("%s-%s", intent.Name, intent.Spec.IntentType),
@@ -788,7 +787,7 @@ func (s *NephoranAPIServer) buildIntentResponse(intent *nephoranv1.NetworkIntent
 		}
 	}
 
-	// Add validation summary if available
+	// Add validation summary if available.
 	if len(intent.Status.ValidationErrors) > 0 {
 		response.ValidationResult = &ValidationSummary{
 			Valid:       len(intent.Status.ValidationErrors) == 0,
@@ -801,7 +800,7 @@ func (s *NephoranAPIServer) buildIntentResponse(intent *nephoranv1.NetworkIntent
 }
 
 func (s *NephoranAPIServer) broadcastIntentUpdate(update *IntentStatusUpdate) {
-	// Broadcast to WebSocket connections
+	// Broadcast to WebSocket connections.
 	s.connectionsMutex.RLock()
 	for _, conn := range s.wsConnections {
 		select {
@@ -812,7 +811,7 @@ func (s *NephoranAPIServer) broadcastIntentUpdate(update *IntentStatusUpdate) {
 	}
 	s.connectionsMutex.RUnlock()
 
-	// Broadcast to SSE connections
+	// Broadcast to SSE connections.
 	s.connectionsMutex.RLock()
 	for _, conn := range s.sseConnections {
 		if conn.Flusher != nil {
@@ -833,7 +832,7 @@ func mustMarshalString(v interface{}) string {
 	return string(data)
 }
 
-// getIntentEvents handles GET /api/v1/intents/{id}/events
+// getIntentEvents handles GET /api/v1/intents/{id}/events.
 func (s *NephoranAPIServer) getIntentEvents(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	intentID := vars["id"]
@@ -850,7 +849,7 @@ func (s *NephoranAPIServer) getIntentEvents(w http.ResponseWriter, r *http.Reque
 	})
 }
 
-// getIntentLogs handles GET /api/v1/intents/{id}/logs
+// getIntentLogs handles GET /api/v1/intents/{id}/logs.
 func (s *NephoranAPIServer) getIntentLogs(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	intentID := vars["id"]
@@ -867,7 +866,7 @@ func (s *NephoranAPIServer) getIntentLogs(w http.ResponseWriter, r *http.Request
 	})
 }
 
-// validateIntent handles POST /api/v1/intents/{id}/validate
+// validateIntent handles POST /api/v1/intents/{id}/validate.
 func (s *NephoranAPIServer) validateIntent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	intentID := vars["id"]
@@ -879,7 +878,7 @@ func (s *NephoranAPIServer) validateIntent(w http.ResponseWriter, r *http.Reques
 	})
 }
 
-// retryIntent handles POST /api/v1/intents/{id}/retry
+// retryIntent handles POST /api/v1/intents/{id}/retry.
 func (s *NephoranAPIServer) retryIntent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	intentID := vars["id"]
@@ -891,7 +890,7 @@ func (s *NephoranAPIServer) retryIntent(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
-// cancelIntent handles POST /api/v1/intents/{id}/cancel
+// cancelIntent handles POST /api/v1/intents/{id}/cancel.
 func (s *NephoranAPIServer) cancelIntent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	intentID := vars["id"]
@@ -903,7 +902,7 @@ func (s *NephoranAPIServer) cancelIntent(w http.ResponseWriter, r *http.Request)
 	})
 }
 
-// getIntentTemplates handles GET /api/v1/intents/templates
+// getIntentTemplates handles GET /api/v1/intents/templates.
 func (s *NephoranAPIServer) getIntentTemplates(w http.ResponseWriter, r *http.Request) {
 	templates := []map[string]interface{}{
 		{"name": "scale-up", "description": "Scale up network functions", "type": "scaling"},
@@ -916,7 +915,7 @@ func (s *NephoranAPIServer) getIntentTemplates(w http.ResponseWriter, r *http.Re
 	})
 }
 
-// getIntentSuggestions handles GET /api/v1/intents/suggestions
+// getIntentSuggestions handles GET /api/v1/intents/suggestions.
 func (s *NephoranAPIServer) getIntentSuggestions(w http.ResponseWriter, r *http.Request) {
 	suggestions := []map[string]interface{}{
 		{"text": "Scale up UPF to 5 replicas", "type": "scaling", "confidence": 0.95},
@@ -928,7 +927,7 @@ func (s *NephoranAPIServer) getIntentSuggestions(w http.ResponseWriter, r *http.
 	})
 }
 
-// previewIntent handles POST /api/v1/intents/preview
+// previewIntent handles POST /api/v1/intents/preview.
 func (s *NephoranAPIServer) previewIntent(w http.ResponseWriter, r *http.Request) {
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
 		"preview": map[string]interface{}{
@@ -939,7 +938,7 @@ func (s *NephoranAPIServer) previewIntent(w http.ResponseWriter, r *http.Request
 	})
 }
 
-// bulkCreateIntents handles POST /api/v1/intents/bulk
+// bulkCreateIntents handles POST /api/v1/intents/bulk.
 func (s *NephoranAPIServer) bulkCreateIntents(w http.ResponseWriter, r *http.Request) {
 	s.writeJSONResponse(w, http.StatusAccepted, map[string]interface{}{
 		"message": "Bulk intent creation initiated",
@@ -947,7 +946,7 @@ func (s *NephoranAPIServer) bulkCreateIntents(w http.ResponseWriter, r *http.Req
 	})
 }
 
-// bulkDeleteIntents handles DELETE /api/v1/intents/bulk
+// bulkDeleteIntents handles DELETE /api/v1/intents/bulk.
 func (s *NephoranAPIServer) bulkDeleteIntents(w http.ResponseWriter, r *http.Request) {
 	s.writeJSONResponse(w, http.StatusAccepted, map[string]interface{}{
 		"message": "Bulk intent deletion initiated",
@@ -955,7 +954,7 @@ func (s *NephoranAPIServer) bulkDeleteIntents(w http.ResponseWriter, r *http.Req
 	})
 }
 
-// bulkGetIntentStatus handles GET /api/v1/intents/bulk/status
+// bulkGetIntentStatus handles GET /api/v1/intents/bulk/status.
 func (s *NephoranAPIServer) bulkGetIntentStatus(w http.ResponseWriter, r *http.Request) {
 	s.writeJSONResponse(w, http.StatusOK, map[string]interface{}{
 		"intents": []map[string]interface{}{

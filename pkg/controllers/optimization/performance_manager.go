@@ -27,43 +27,43 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
-// PerformanceManager handles performance optimization and scaling decisions
+// PerformanceManager handles performance optimization and scaling decisions.
 type PerformanceManager struct {
 	logger logr.Logger
 
-	// Resource monitoring
+	// Resource monitoring.
 	resourceMonitor *ResourceMonitor
 	metricsAnalyzer *MetricsAnalyzer
 	scalingDecision *ScalingDecisionEngine
 
-	// Caching
+	// Caching.
 	cacheManager *MultiLevelCacheManager
 
-	// Connection pooling
+	// Connection pooling.
 	connectionManager *ConnectionPoolManager
 
-	// Load balancing
+	// Load balancing.
 	loadBalancer *LoadBalancer
 
-	// Performance profiles
+	// Performance profiles.
 	profiles map[string]*PerformanceProfile
 
-	// Configuration
+	// Configuration.
 	config *PerformanceConfig
 
-	// State
+	// State.
 	started  bool
 	stopChan chan bool
 	mutex    sync.RWMutex
 }
 
-// PerformanceConfig holds performance optimization configuration
+// PerformanceConfig holds performance optimization configuration.
 type PerformanceConfig struct {
-	// Monitoring intervals
+	// Monitoring intervals.
 	MetricsCollectionInterval time.Duration `json:"metricsCollectionInterval"`
 	AnalysisInterval          time.Duration `json:"analysisInterval"`
 
-	// Scaling thresholds
+	// Scaling thresholds.
 	CPUScaleUpThreshold      float64       `json:"cpuScaleUpThreshold"`
 	CPUScaleDownThreshold    float64       `json:"cpuScaleDownThreshold"`
 	MemoryScaleUpThreshold   float64       `json:"memoryScaleUpThreshold"`
@@ -71,21 +71,21 @@ type PerformanceConfig struct {
 	QueueDepthThreshold      int           `json:"queueDepthThreshold"`
 	ResponseTimeThreshold    time.Duration `json:"responseTimeThreshold"`
 
-	// Connection pool settings
+	// Connection pool settings.
 	MaxConnectionsPerPool int           `json:"maxConnectionsPerPool"`
 	ConnectionIdleTimeout time.Duration `json:"connectionIdleTimeout"`
 	ConnectionMaxLifetime time.Duration `json:"connectionMaxLifetime"`
 
-	// Cache settings
+	// Cache settings.
 	L1CacheSize     int64         `json:"l1CacheSize"`
 	L2CacheSize     int64         `json:"l2CacheSize"`
 	DefaultCacheTTL time.Duration `json:"defaultCacheTTL"`
 
-	// Performance profiles
+	// Performance profiles.
 	Profiles map[string]PerformanceProfile `json:"profiles"`
 }
 
-// PerformanceProfile defines performance characteristics for different workloads
+// PerformanceProfile defines performance characteristics for different workloads.
 type PerformanceProfile struct {
 	Name                    string          `json:"name"`
 	Description             string          `json:"description"`
@@ -96,7 +96,7 @@ type PerformanceProfile struct {
 	ScalingPolicy           ScalingProfile  `json:"scalingPolicy"`
 }
 
-// TimeoutProfile defines timeout settings
+// TimeoutProfile defines timeout settings.
 type TimeoutProfile struct {
 	LLMProcessing          time.Duration `json:"llmProcessing"`
 	ResourcePlanning       time.Duration `json:"resourcePlanning"`
@@ -105,7 +105,7 @@ type TimeoutProfile struct {
 	DeploymentVerification time.Duration `json:"deploymentVerification"`
 }
 
-// CachingProfile defines caching strategy
+// CachingProfile defines caching strategy.
 type CachingProfile struct {
 	EnableL1Cache      bool    `json:"enableL1Cache"`
 	EnableL2Cache      bool    `json:"enableL2Cache"`
@@ -115,7 +115,7 @@ type CachingProfile struct {
 	CompressionEnabled bool    `json:"compressionEnabled"`
 }
 
-// ResourceProfile defines resource allocation
+// ResourceProfile defines resource allocation.
 type ResourceProfile struct {
 	CPURequest    string `json:"cpuRequest"`
 	CPULimit      string `json:"cpuLimit"`
@@ -124,7 +124,7 @@ type ResourceProfile struct {
 	MaxWorkers    int    `json:"maxWorkers"`
 }
 
-// ScalingProfile defines scaling behavior
+// ScalingProfile defines scaling behavior.
 type ScalingProfile struct {
 	MinReplicas     int           `json:"minReplicas"`
 	MaxReplicas     int           `json:"maxReplicas"`
@@ -132,7 +132,7 @@ type ScalingProfile struct {
 	ScaleDownPolicy ScalingPolicy `json:"scaleDownPolicy"`
 }
 
-// ScalingPolicy defines how scaling should occur
+// ScalingPolicy defines how scaling should occur.
 type ScalingPolicy struct {
 	MetricType          string        `json:"metricType"`
 	TargetValue         float64       `json:"targetValue"`
@@ -140,7 +140,7 @@ type ScalingPolicy struct {
 	ScalingFactor       float64       `json:"scalingFactor"`
 }
 
-// NewPerformanceManager creates a new performance manager
+// NewPerformanceManager creates a new performance manager.
 func NewPerformanceManager(config *PerformanceConfig, logger logr.Logger) *PerformanceManager {
 	pm := &PerformanceManager{
 		logger:   logger.WithName("performance-manager"),
@@ -149,7 +149,7 @@ func NewPerformanceManager(config *PerformanceConfig, logger logr.Logger) *Perfo
 		stopChan: make(chan bool),
 	}
 
-	// Initialize components
+	// Initialize components.
 	pm.resourceMonitor = NewResourceMonitor(logger)
 	pm.metricsAnalyzer = NewMetricsAnalyzer(logger)
 	pm.scalingDecision = NewScalingDecisionEngine(config, logger)
@@ -157,13 +157,13 @@ func NewPerformanceManager(config *PerformanceConfig, logger logr.Logger) *Perfo
 	pm.connectionManager = NewConnectionPoolManager(config, logger)
 	pm.loadBalancer = NewLoadBalancer(logger)
 
-	// Load performance profiles
+	// Load performance profiles.
 	pm.loadPerformanceProfiles(config.Profiles)
 
 	return pm
 }
 
-// Start starts the performance manager
+// Start starts the performance manager.
 func (pm *PerformanceManager) Start(ctx context.Context) error {
 	pm.mutex.Lock()
 	defer pm.mutex.Unlock()
@@ -172,7 +172,7 @@ func (pm *PerformanceManager) Start(ctx context.Context) error {
 		return fmt.Errorf("performance manager already started")
 	}
 
-	// Start all components
+	// Start all components.
 	if err := pm.resourceMonitor.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start resource monitor: %w", err)
 	}
@@ -185,7 +185,7 @@ func (pm *PerformanceManager) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start connection manager: %w", err)
 	}
 
-	// Start performance monitoring and optimization loops
+	// Start performance monitoring and optimization loops.
 	go pm.metricsCollectionLoop(ctx)
 	go pm.performanceAnalysisLoop(ctx)
 	go pm.scalingDecisionLoop(ctx)
@@ -196,7 +196,7 @@ func (pm *PerformanceManager) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the performance manager
+// Stop stops the performance manager.
 func (pm *PerformanceManager) Stop(ctx context.Context) error {
 	pm.mutex.Lock()
 	defer pm.mutex.Unlock()
@@ -207,7 +207,7 @@ func (pm *PerformanceManager) Stop(ctx context.Context) error {
 
 	pm.logger.Info("Stopping performance manager")
 
-	// Stop all components
+	// Stop all components.
 	if err := pm.connectionManager.Stop(ctx); err != nil {
 		pm.logger.Error(err, "Error stopping connection manager")
 	}
@@ -220,7 +220,7 @@ func (pm *PerformanceManager) Stop(ctx context.Context) error {
 		pm.logger.Error(err, "Error stopping resource monitor")
 	}
 
-	// Signal stop to all loops
+	// Signal stop to all loops.
 	close(pm.stopChan)
 
 	pm.started = false
@@ -229,7 +229,7 @@ func (pm *PerformanceManager) Stop(ctx context.Context) error {
 	return nil
 }
 
-// OptimizeForProfile applies a performance profile to the system
+// OptimizeForProfile applies a performance profile to the system.
 func (pm *PerformanceManager) OptimizeForProfile(ctx context.Context, profileName string, phase interfaces.ProcessingPhase) error {
 	profile, exists := pm.profiles[profileName]
 	if !exists {
@@ -238,31 +238,31 @@ func (pm *PerformanceManager) OptimizeForProfile(ctx context.Context, profileNam
 
 	pm.logger.Info("Applying performance profile", "profile", profileName, "phase", phase)
 
-	// Apply caching strategy
+	// Apply caching strategy.
 	if err := pm.cacheManager.ApplyCachingProfile(profile.CachingStrategy); err != nil {
 		pm.logger.Error(err, "Failed to apply caching profile")
 	}
 
-	// Apply connection pool settings
+	// Apply connection pool settings.
 	if err := pm.connectionManager.ApplyResourceProfile(profile.ResourceLimits); err != nil {
 		pm.logger.Error(err, "Failed to apply resource profile")
 	}
 
-	// Apply scaling policies
+	// Apply scaling policies.
 	pm.scalingDecision.ApplyScalingProfile(profile.ScalingPolicy)
 
 	return nil
 }
 
-// GetPerformanceRecommendations analyzes current performance and provides recommendations
+// GetPerformanceRecommendations analyzes current performance and provides recommendations.
 func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context) (*PerformanceRecommendations, error) {
-	// Collect current metrics
+	// Collect current metrics.
 	currentMetrics := pm.resourceMonitor.GetCurrentMetrics()
 
-	// Analyze performance
+	// Analyze performance.
 	analysis := pm.metricsAnalyzer.AnalyzePerformance(currentMetrics)
 
-	// Generate recommendations
+	// Generate recommendations.
 	recommendations := &PerformanceRecommendations{
 		Timestamp:       time.Now(),
 		CurrentMetrics:  currentMetrics,
@@ -270,7 +270,7 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 		Recommendations: make([]Recommendation, 0),
 	}
 
-	// CPU optimization recommendations
+	// CPU optimization recommendations.
 	if analysis.CPUUtilization > pm.config.CPUScaleUpThreshold {
 		recommendations.Recommendations = append(recommendations.Recommendations, Recommendation{
 			Type:        "scaling",
@@ -286,7 +286,7 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 		})
 	}
 
-	// Memory optimization recommendations
+	// Memory optimization recommendations.
 	if analysis.MemoryUtilization > pm.config.MemoryScaleUpThreshold {
 		recommendations.Recommendations = append(recommendations.Recommendations, Recommendation{
 			Type:        "resource",
@@ -301,7 +301,7 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 		})
 	}
 
-	// Queue depth recommendations
+	// Queue depth recommendations.
 	if analysis.MaxQueueDepth > pm.config.QueueDepthThreshold {
 		recommendations.Recommendations = append(recommendations.Recommendations, Recommendation{
 			Type:        "scaling",
@@ -317,7 +317,7 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 		})
 	}
 
-	// Response time recommendations
+	// Response time recommendations.
 	if analysis.AverageResponseTime > pm.config.ResponseTimeThreshold {
 		recommendations.Recommendations = append(recommendations.Recommendations, Recommendation{
 			Type:        "performance",
@@ -333,7 +333,7 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 		})
 	}
 
-	// Cache optimization recommendations
+	// Cache optimization recommendations.
 	if analysis.CacheHitRate < 0.7 { // Less than 70% hit rate
 		recommendations.Recommendations = append(recommendations.Recommendations, Recommendation{
 			Type:        "caching",
@@ -351,7 +351,7 @@ func (pm *PerformanceManager) GetPerformanceRecommendations(ctx context.Context)
 	return recommendations, nil
 }
 
-// AutoOptimize automatically applies optimizations based on current performance
+// AutoOptimize automatically applies optimizations based on current performance.
 func (pm *PerformanceManager) AutoOptimize(ctx context.Context) error {
 	recommendations, err := pm.GetPerformanceRecommendations(ctx)
 	if err != nil {
@@ -371,7 +371,7 @@ func (pm *PerformanceManager) AutoOptimize(ctx context.Context) error {
 	return nil
 }
 
-// metricsCollectionLoop continuously collects performance metrics
+// metricsCollectionLoop continuously collects performance metrics.
 func (pm *PerformanceManager) metricsCollectionLoop(ctx context.Context) {
 	ticker := time.NewTicker(pm.config.MetricsCollectionInterval)
 	defer ticker.Stop()
@@ -394,7 +394,7 @@ func (pm *PerformanceManager) metricsCollectionLoop(ctx context.Context) {
 	}
 }
 
-// performanceAnalysisLoop continuously analyzes performance
+// performanceAnalysisLoop continuously analyzes performance.
 func (pm *PerformanceManager) performanceAnalysisLoop(ctx context.Context) {
 	ticker := time.NewTicker(pm.config.AnalysisInterval)
 	defer ticker.Stop()
@@ -417,7 +417,7 @@ func (pm *PerformanceManager) performanceAnalysisLoop(ctx context.Context) {
 	}
 }
 
-// scalingDecisionLoop makes scaling decisions based on performance metrics
+// scalingDecisionLoop makes scaling decisions based on performance metrics.
 func (pm *PerformanceManager) scalingDecisionLoop(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Minute) // Check every minute
 	defer ticker.Stop()
@@ -440,7 +440,7 @@ func (pm *PerformanceManager) scalingDecisionLoop(ctx context.Context) {
 	}
 }
 
-// Helper methods
+// Helper methods.
 
 func (pm *PerformanceManager) loadPerformanceProfiles(profiles map[string]PerformanceProfile) {
 	for name, profile := range profiles {
@@ -448,7 +448,7 @@ func (pm *PerformanceManager) loadPerformanceProfiles(profiles map[string]Perfor
 		pm.profiles[name] = &profileCopy
 	}
 
-	// Add default profiles if none exist
+	// Add default profiles if none exist.
 	if len(pm.profiles) == 0 {
 		pm.addDefaultProfiles()
 	}
@@ -457,7 +457,7 @@ func (pm *PerformanceManager) loadPerformanceProfiles(profiles map[string]Perfor
 }
 
 func (pm *PerformanceManager) addDefaultProfiles() {
-	// High-performance profile
+	// High-performance profile.
 	pm.profiles["high-performance"] = &PerformanceProfile{
 		Name:                    "high-performance",
 		Description:             "Maximum performance for production workloads",
@@ -496,7 +496,7 @@ func (pm *PerformanceManager) addDefaultProfiles() {
 		},
 	}
 
-	// Balanced profile
+	// Balanced profile.
 	pm.profiles["balanced"] = &PerformanceProfile{
 		Name:                    "balanced",
 		Description:             "Balanced performance and resource usage",
@@ -535,7 +535,7 @@ func (pm *PerformanceManager) addDefaultProfiles() {
 		},
 	}
 
-	// Resource-efficient profile
+	// Resource-efficient profile.
 	pm.profiles["efficient"] = &PerformanceProfile{
 		Name:                    "efficient",
 		Description:             "Optimized for resource efficiency",
@@ -586,7 +586,7 @@ func (pm *PerformanceManager) analyzePerformance(ctx context.Context) {
 	metrics := pm.resourceMonitor.GetCurrentMetrics()
 	analysis := pm.metricsAnalyzer.AnalyzePerformance(metrics)
 
-	// Log significant performance issues
+	// Log significant performance issues.
 	if analysis.CPUUtilization > pm.config.CPUScaleUpThreshold {
 		pm.logger.Info("High CPU utilization detected", "utilization", analysis.CPUUtilization)
 	}
@@ -613,7 +613,7 @@ func (pm *PerformanceManager) makeScalingDecisions(ctx context.Context) {
 			"reason", decision.Reason,
 			"confidence", decision.Confidence)
 
-		// Apply scaling decisions (this would integrate with Kubernetes HPA or custom scaling logic)
+		// Apply scaling decisions (this would integrate with Kubernetes HPA or custom scaling logic).
 		if err := pm.applyScalingDecision(ctx, &decision); err != nil {
 			pm.logger.Error(err, "Failed to apply scaling decision", "action", decision.Action)
 		}
@@ -639,32 +639,32 @@ func (pm *PerformanceManager) applyRecommendation(ctx context.Context, recommend
 }
 
 func (pm *PerformanceManager) handleScaleUpRecommendation(ctx context.Context, recommendation Recommendation) error {
-	// This would implement actual scaling logic
+	// This would implement actual scaling logic.
 	pm.logger.Info("Handling scale up recommendation", "parameters", recommendation.Parameters)
 	return nil
 }
 
 func (pm *PerformanceManager) handleCacheOptimizationRecommendation(ctx context.Context, recommendation Recommendation) error {
-	// This would implement cache optimization logic
+	// This would implement cache optimization logic.
 	pm.logger.Info("Handling cache optimization recommendation", "parameters", recommendation.Parameters)
 	return pm.cacheManager.OptimizeCache(ctx, recommendation.Parameters)
 }
 
 func (pm *PerformanceManager) handlePerformanceOptimizationRecommendation(ctx context.Context, recommendation Recommendation) error {
-	// This would implement general performance optimization
+	// This would implement general performance optimization.
 	pm.logger.Info("Handling performance optimization recommendation", "parameters", recommendation.Parameters)
 	return nil
 }
 
 func (pm *PerformanceManager) applyScalingDecision(ctx context.Context, decision *ScalingDecision) error {
-	// This would implement actual scaling through Kubernetes APIs
+	// This would implement actual scaling through Kubernetes APIs.
 	pm.logger.Info("Applying scaling decision", "decision", decision)
 	return nil
 }
 
-// Data structures
+// Data structures.
 
-// PerformanceRecommendations contains performance analysis and recommendations
+// PerformanceRecommendations contains performance analysis and recommendations.
 type PerformanceRecommendations struct {
 	Timestamp       time.Time            `json:"timestamp"`
 	CurrentMetrics  *SystemMetrics       `json:"currentMetrics"`
@@ -672,7 +672,7 @@ type PerformanceRecommendations struct {
 	Recommendations []Recommendation     `json:"recommendations"`
 }
 
-// Recommendation represents a performance optimization recommendation
+// Recommendation represents a performance optimization recommendation.
 type Recommendation struct {
 	Type        string                 `json:"type"`     // scaling, caching, resource, performance
 	Priority    string                 `json:"priority"` // low, medium, high, critical
@@ -682,7 +682,7 @@ type Recommendation struct {
 	Confidence  float64                `json:"confidence"` // 0.0 to 1.0
 }
 
-// SystemMetrics represents current system performance metrics
+// SystemMetrics represents current system performance metrics.
 type SystemMetrics struct {
 	Timestamp         time.Time                                    `json:"timestamp"`
 	CPUUtilization    float64                                      `json:"cpuUtilization"`
@@ -697,7 +697,7 @@ type SystemMetrics struct {
 	ConnectionMetrics *ConnectionMetrics                           `json:"connectionMetrics"`
 }
 
-// NetworkIOMetrics represents network I/O metrics
+// NetworkIOMetrics represents network I/O metrics.
 type NetworkIOMetrics struct {
 	BytesIn    int64 `json:"bytesIn"`
 	BytesOut   int64 `json:"bytesOut"`
@@ -705,7 +705,7 @@ type NetworkIOMetrics struct {
 	PacketsOut int64 `json:"packetsOut"`
 }
 
-// DiskIOMetrics represents disk I/O metrics
+// DiskIOMetrics represents disk I/O metrics.
 type DiskIOMetrics struct {
 	BytesRead    int64 `json:"bytesRead"`
 	BytesWritten int64 `json:"bytesWritten"`
@@ -713,7 +713,7 @@ type DiskIOMetrics struct {
 	IOPSWrite    int64 `json:"iopsWrite"`
 }
 
-// CacheMetrics represents cache performance metrics
+// CacheMetrics represents cache performance metrics.
 type CacheMetrics struct {
 	HitRate      float64 `json:"hitRate"`
 	MissRate     float64 `json:"missRate"`
@@ -722,7 +722,7 @@ type CacheMetrics struct {
 	ItemCount    int64   `json:"itemCount"`
 }
 
-// ConnectionMetrics represents connection pool metrics
+// ConnectionMetrics represents connection pool metrics.
 type ConnectionMetrics struct {
 	TotalConnections  int `json:"totalConnections"`
 	ActiveConnections int `json:"activeConnections"`
@@ -730,7 +730,7 @@ type ConnectionMetrics struct {
 	FailedConnections int `json:"failedConnections"`
 }
 
-// PerformanceAnalysis represents the results of performance analysis
+// PerformanceAnalysis represents the results of performance analysis.
 type PerformanceAnalysis struct {
 	OverallHealth       string                      `json:"overallHealth"` // healthy, degraded, unhealthy
 	CPUUtilization      float64                     `json:"cpuUtilization"`
@@ -744,7 +744,7 @@ type PerformanceAnalysis struct {
 	Trends              map[string]PerformanceTrend `json:"trends"`
 }
 
-// PerformanceBottleneck identifies a performance bottleneck
+// PerformanceBottleneck identifies a performance bottleneck.
 type PerformanceBottleneck struct {
 	Phase       interfaces.ProcessingPhase `json:"phase"`
 	Type        string                     `json:"type"`     // cpu, memory, io, queue, external
@@ -753,7 +753,7 @@ type PerformanceBottleneck struct {
 	Impact      float64                    `json:"impact"` // 0.0 to 1.0
 }
 
-// PerformanceTrend represents a performance trend over time
+// PerformanceTrend represents a performance trend over time.
 type PerformanceTrend struct {
 	Metric     string  `json:"metric"`
 	Direction  string  `json:"direction"`  // improving, degrading, stable
@@ -761,7 +761,7 @@ type PerformanceTrend struct {
 	Confidence float64 `json:"confidence"` // 0.0 to 1.0
 }
 
-// ScalingDecision represents a scaling decision
+// ScalingDecision represents a scaling decision.
 type ScalingDecision struct {
 	Action          string                     `json:"action"` // scale_up, scale_down, no_action
 	Phase           interfaces.ProcessingPhase `json:"phase"`  // which phase to scale

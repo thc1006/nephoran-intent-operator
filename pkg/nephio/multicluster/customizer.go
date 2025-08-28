@@ -10,25 +10,28 @@ import (
 	"sigs.k8s.io/kustomize/api/krusty"
 	ktypes "sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
-	// Porch types are now defined locally in types.go
+	// Porch types are now defined locally in types.go.
 )
 
-// Customizer manages package customization for different clusters
+// Customizer manages package customization for different clusters.
 type Customizer struct {
 	client client.Client
 	logger logr.Logger
 }
 
-// CustomizationStrategy defines different package customization approaches
+// CustomizationStrategy defines different package customization approaches.
 type CustomizationStrategy string
 
 const (
-	StrategyTemplate  CustomizationStrategy = "template"
-	StrategyOverlay   CustomizationStrategy = "overlay"
+	// StrategyTemplate holds strategytemplate value.
+	StrategyTemplate CustomizationStrategy = "template"
+	// StrategyOverlay holds strategyoverlay value.
+	StrategyOverlay CustomizationStrategy = "overlay"
+	// StrategyGenerated holds strategygenerated value.
 	StrategyGenerated CustomizationStrategy = "generated"
 )
 
-// CustomizationOptions configures package customization
+// CustomizationOptions configures package customization.
 type CustomizationOptions struct {
 	Strategy    CustomizationStrategy
 	Environment string
@@ -38,7 +41,7 @@ type CustomizationOptions struct {
 	Resources   ResourceCustomization
 }
 
-// ResourceCustomization defines custom resource configurations
+// ResourceCustomization defines custom resource configurations.
 type ResourceCustomization struct {
 	Replicas     int
 	Resources    map[string]interface{}
@@ -47,26 +50,26 @@ type ResourceCustomization struct {
 	NodeSelector map[string]string
 }
 
-// CustomizePackage creates a cluster-specific package variant
+// CustomizePackage creates a cluster-specific package variant.
 func (c *Customizer) CustomizePackage(
 	ctx context.Context,
 	packageRevision *PackageRevision,
 	targetCluster types.NamespacedName,
 ) (*PackageRevision, error) {
-	// 1. Extract customization requirements
+	// 1. Extract customization requirements.
 	options, err := c.extractCustomizationOptions(ctx, packageRevision, targetCluster)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract customization options: %w", err)
 	}
 
-	// 2. Create temporary working directory
+	// 2. Create temporary working directory.
 	tmpDir, err := c.createTempWorkspace(packageRevision)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create workspace: %w", err)
 	}
 	defer c.cleanupWorkspace(tmpDir)
 
-	// 3. Apply customization based on strategy
+	// 3. Apply customization based on strategy.
 	switch options.Strategy {
 	case StrategyTemplate:
 		return c.customizeWithTemplate(ctx, packageRevision, options, tmpDir)
@@ -79,17 +82,17 @@ func (c *Customizer) CustomizePackage(
 	}
 }
 
-// extractCustomizationOptions determines package customization requirements
+// extractCustomizationOptions determines package customization requirements.
 func (c *Customizer) extractCustomizationOptions(
 	ctx context.Context,
 	packageRevision *PackageRevision,
 	targetCluster types.NamespacedName,
 ) (*CustomizationOptions, error) {
-	// Implement logic to extract customization options
-	// This could involve:
-	// - Analyzing package metadata
-	// - Checking cluster-specific annotations
-	// - Consulting configuration databases
+	// Implement logic to extract customization options.
+	// This could involve:.
+	// - Analyzing package metadata.
+	// - Checking cluster-specific annotations.
+	// - Consulting configuration databases.
 	return &CustomizationOptions{
 		Strategy:    StrategyOverlay,
 		Environment: "production",
@@ -110,33 +113,33 @@ func (c *Customizer) extractCustomizationOptions(
 	}, nil
 }
 
-// customizeWithTemplate applies Golang template-based customization
+// customizeWithTemplate applies Golang template-based customization.
 func (c *Customizer) customizeWithTemplate(
 	ctx context.Context,
 	packageRevision *PackageRevision,
 	options *CustomizationOptions,
 	workspaceDir string,
 ) (*PackageRevision, error) {
-	// Implement template-based customization
-	// Use Go's text/template to process Kubernetes manifests
+	// Implement template-based customization.
+	// Use Go's text/template to process Kubernetes manifests.
 	return nil, fmt.Errorf("template customization not implemented")
 }
 
-// customizeWithKustomize applies Kustomize-based customization
+// customizeWithKustomize applies Kustomize-based customization.
 func (c *Customizer) customizeWithKustomize(
 	ctx context.Context,
 	packageRevision *PackageRevision,
 	options *CustomizationOptions,
 	workspaceDir string,
 ) (*PackageRevision, error) {
-	// Create Kustomization file
+	// Create Kustomization file.
 	kustomizationContent := c.generateKustomizationFile(options)
 	err := c.writeKustomizationFile(workspaceDir, kustomizationContent)
 	if err != nil {
 		return nil, fmt.Errorf("failed to write kustomization file: %w", err)
 	}
 
-	// Build Kustomize overlay
+	// Build Kustomize overlay.
 	k := krusty.MakeKustomizer(krusty.MakeDefaultOptions())
 	filesys := filesys.MakeFsOnDisk()
 
@@ -145,13 +148,13 @@ func (c *Customizer) customizeWithKustomize(
 		return nil, fmt.Errorf("kustomize build failed: %w", err)
 	}
 
-	// Write customized resources
+	// Write customized resources.
 	customizedResources, err := result.AsYaml()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate customized resources: %w", err)
 	}
 
-	// Create new package revision with customized resources
+	// Create new package revision with customized resources.
 	customizedPackage, err := c.createCustomizedPackageRevision(
 		ctx,
 		packageRevision,
@@ -164,37 +167,37 @@ func (c *Customizer) customizeWithKustomize(
 	return customizedPackage, nil
 }
 
-// customizeWithGeneration generates new resources based on cluster requirements
+// customizeWithGeneration generates new resources based on cluster requirements.
 func (c *Customizer) customizeWithGeneration(
 	ctx context.Context,
 	packageRevision *PackageRevision,
 	options *CustomizationOptions,
 	workspaceDir string,
 ) (*PackageRevision, error) {
-	// Implement adaptive resource generation
-	// Could involve:
-	// - Dynamic resource scaling
-	// - Intelligent placement algorithms
-	// - Custom resource type generation
+	// Implement adaptive resource generation.
+	// Could involve:.
+	// - Dynamic resource scaling.
+	// - Intelligent placement algorithms.
+	// - Custom resource type generation.
 	return nil, fmt.Errorf("generation customization not implemented")
 }
 
-// Helper methods for package customization
+// Helper methods for package customization.
 func (c *Customizer) createTempWorkspace(
 	packageRevision *PackageRevision,
 ) (string, error) {
-	// Create a temporary workspace for package processing
+	// Create a temporary workspace for package processing.
 	return "", nil
 }
 
 func (c *Customizer) cleanupWorkspace(dir string) {
-	// Clean up temporary workspace
+	// Clean up temporary workspace.
 }
 
 func (c *Customizer) generateKustomizationFile(
 	options *CustomizationOptions,
 ) *ktypes.Kustomization {
-	// Generate Kustomization configuration
+	// Generate Kustomization configuration.
 	kustomization := &ktypes.Kustomization{
 		TypeMeta: ktypes.TypeMeta{
 			Kind:       "Kustomization",
@@ -233,7 +236,7 @@ func (c *Customizer) writeKustomizationFile(
 	workspaceDir string,
 	kustomization *ktypes.Kustomization,
 ) error {
-	// Write Kustomization file to workspace
+	// Write Kustomization file to workspace.
 	return nil
 }
 
@@ -242,11 +245,11 @@ func (c *Customizer) createCustomizedPackageRevision(
 	originalPackage *PackageRevision,
 	customizedResources []byte,
 ) (*PackageRevision, error) {
-	// Create a new package revision with customized resources
+	// Create a new package revision with customized resources.
 	return nil, nil
 }
 
-// NewCustomizer creates a new package customizer
+// NewCustomizer creates a new package customizer.
 func NewCustomizer(
 	client client.Client,
 	logger logr.Logger,

@@ -16,7 +16,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/a1"
 )
 
-// SecurityMiddleware provides comprehensive security middleware for A1 service
+// SecurityMiddleware provides comprehensive security middleware for A1 service.
 type SecurityMiddleware struct {
 	config            *SecurityConfig
 	logger            *logging.StructuredLogger
@@ -28,7 +28,7 @@ type SecurityMiddleware struct {
 	rateLimiter       *RateLimiter
 }
 
-// SecurityConfig holds comprehensive security configuration
+// SecurityConfig holds comprehensive security configuration.
 type SecurityConfig struct {
 	Authentication  *AuthConfig         `json:"authentication"`
 	MTLS            *MTLSConfig         `json:"mtls"`
@@ -41,7 +41,7 @@ type SecurityConfig struct {
 	CSRF            *CSRFConfig         `json:"csrf"`
 }
 
-// HeadersConfig holds security headers configuration
+// HeadersConfig holds security headers configuration.
 type HeadersConfig struct {
 	Enabled                   bool              `json:"enabled"`
 	StrictTransportSecurity   string            `json:"strict_transport_security"`
@@ -57,7 +57,7 @@ type HeadersConfig struct {
 	CustomHeaders             map[string]string `json:"custom_headers"`
 }
 
-// CORSConfig holds CORS configuration
+// CORSConfig holds CORS configuration.
 type CORSConfig struct {
 	Enabled          bool     `json:"enabled"`
 	AllowedOrigins   []string `json:"allowed_origins"`
@@ -68,7 +68,7 @@ type CORSConfig struct {
 	MaxAge           int      `json:"max_age"`
 }
 
-// CSRFConfig holds CSRF protection configuration
+// CSRFConfig holds CSRF protection configuration.
 type CSRFConfig struct {
 	Enabled        bool     `json:"enabled"`
 	TokenLength    int      `json:"token_length"`
@@ -78,7 +78,7 @@ type CSRFConfig struct {
 	TrustedOrigins []string `json:"trusted_origins"`
 }
 
-// RequestContext holds request-specific security context
+// RequestContext holds request-specific security context.
 type RequestContext struct {
 	RequestID     string                 `json:"request_id"`
 	SessionID     string                 `json:"session_id,omitempty"`
@@ -93,14 +93,14 @@ type RequestContext struct {
 	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// NewSecurityMiddleware creates a new security middleware
+// NewSecurityMiddleware creates a new security middleware.
 func NewSecurityMiddleware(config *SecurityConfig, logger *logging.StructuredLogger) (*SecurityMiddleware, error) {
 	sm := &SecurityMiddleware{
 		config: config,
 		logger: logger,
 	}
 
-	// Initialize authentication manager
+	// Initialize authentication manager.
 	if config.Authentication != nil && config.Authentication.Enabled {
 		authManager, err := NewAuthManager(config.Authentication, logger)
 		if err != nil {
@@ -109,7 +109,7 @@ func NewSecurityMiddleware(config *SecurityConfig, logger *logging.StructuredLog
 		sm.authManager = authManager
 	}
 
-	// Initialize mTLS manager
+	// Initialize mTLS manager.
 	if config.MTLS != nil && config.MTLS.Enabled {
 		mtlsManager, err := NewMTLSManager(config.MTLS, logger)
 		if err != nil {
@@ -118,7 +118,7 @@ func NewSecurityMiddleware(config *SecurityConfig, logger *logging.StructuredLog
 		sm.mtlsManager = mtlsManager
 	}
 
-	// Initialize encryption manager
+	// Initialize encryption manager.
 	if config.Encryption != nil && config.Encryption.Enabled {
 		encryptionManager, err := NewEncryptionManager(config.Encryption, logger)
 		if err != nil {
@@ -127,7 +127,7 @@ func NewSecurityMiddleware(config *SecurityConfig, logger *logging.StructuredLog
 		sm.encryptionManager = encryptionManager
 	}
 
-	// Initialize sanitization manager
+	// Initialize sanitization manager.
 	if config.Sanitization != nil && config.Sanitization.Enabled {
 		sanitizer, err := NewSanitizationManager(config.Sanitization, logger)
 		if err != nil {
@@ -136,7 +136,7 @@ func NewSecurityMiddleware(config *SecurityConfig, logger *logging.StructuredLog
 		sm.sanitizer = sanitizer
 	}
 
-	// Initialize audit logger
+	// Initialize audit logger.
 	if config.Audit != nil && config.Audit.Enabled {
 		auditLogger, err := NewAuditLogger(config.Audit, logger)
 		if err != nil {
@@ -145,7 +145,7 @@ func NewSecurityMiddleware(config *SecurityConfig, logger *logging.StructuredLog
 		sm.auditLogger = auditLogger
 	}
 
-	// Initialize rate limiter
+	// Initialize rate limiter.
 	if config.RateLimit != nil && config.RateLimit.Enabled {
 		rateLimiter, err := NewRateLimiter(config.RateLimit, logger)
 		if err != nil {
@@ -157,61 +157,61 @@ func NewSecurityMiddleware(config *SecurityConfig, logger *logging.StructuredLog
 	return sm, nil
 }
 
-// CreateMiddlewareChain creates the complete security middleware chain
+// CreateMiddlewareChain creates the complete security middleware chain.
 func (sm *SecurityMiddleware) CreateMiddlewareChain() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		// Build middleware chain in reverse order (innermost first)
+		// Build middleware chain in reverse order (innermost first).
 		handler := next
 
-		// Apply response security headers
+		// Apply response security headers.
 		handler = sm.securityHeadersMiddleware(handler)
 
-		// Apply CORS if enabled
+		// Apply CORS if enabled.
 		if sm.config.CORS != nil && sm.config.CORS.Enabled {
 			handler = sm.corsMiddleware(handler)
 		}
 
-		// Apply CSRF protection if enabled
+		// Apply CSRF protection if enabled.
 		if sm.config.CSRF != nil && sm.config.CSRF.Enabled {
 			handler = sm.csrfMiddleware(handler)
 		}
 
-		// Apply audit logging
+		// Apply audit logging.
 		if sm.auditLogger != nil {
 			handler = sm.auditMiddleware(handler)
 		}
 
-		// Apply authorization
+		// Apply authorization.
 		if sm.authManager != nil {
 			handler = sm.authorizationMiddleware(handler)
 		}
 
-		// Apply authentication
+		// Apply authentication.
 		if sm.authManager != nil {
 			handler = sm.authenticationMiddleware(handler)
 		}
 
-		// Apply rate limiting
+		// Apply rate limiting.
 		if sm.rateLimiter != nil {
 			handler = sm.rateLimitMiddleware(handler)
 		}
 
-		// Apply input sanitization
+		// Apply input sanitization.
 		if sm.sanitizer != nil {
 			handler = sm.sanitizationMiddleware(handler)
 		}
 
-		// Apply request context initialization (outermost)
+		// Apply request context initialization (outermost).
 		handler = sm.requestContextMiddleware(handler)
 
 		return handler
 	}
 }
 
-// requestContextMiddleware initializes request context
+// requestContextMiddleware initializes request context.
 func (sm *SecurityMiddleware) requestContextMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Create request context
+		// Create request context.
 		reqCtx := &RequestContext{
 			RequestID:     uuid.New().String(),
 			ClientIP:      sm.getClientIP(r),
@@ -223,30 +223,30 @@ func (sm *SecurityMiddleware) requestContextMiddleware(next http.Handler) http.H
 			Metadata:      make(map[string]interface{}),
 		}
 
-		// Extract correlation ID if present
+		// Extract correlation ID if present.
 		if corrID := r.Header.Get("X-Correlation-ID"); corrID != "" {
 			reqCtx.CorrelationID = corrID
 		}
 
-		// Add request context to context
+		// Add request context to context.
 		ctx := context.WithValue(r.Context(), "request_context", reqCtx)
 		ctx = context.WithValue(ctx, "request_id", reqCtx.RequestID)
 
-		// Add request ID to response header
+		// Add request ID to response header.
 		w.Header().Set("X-Request-ID", reqCtx.RequestID)
 
-		// Continue with request
+		// Continue with request.
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-// authenticationMiddleware handles authentication
+// authenticationMiddleware handles authentication.
 func (sm *SecurityMiddleware) authenticationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		reqCtx := sm.getRequestContext(ctx)
 
-		// Perform authentication
+		// Perform authentication.
 		authResult, err := sm.authManager.Authenticate(ctx, r)
 		if err != nil {
 			sm.logger.Error("authentication failed",
@@ -254,7 +254,7 @@ func (sm *SecurityMiddleware) authenticationMiddleware(next http.Handler) http.H
 				slog.String("path", r.URL.Path),
 				slog.String("error", err.Error()))
 
-			// Log authentication failure
+			// Log authentication failure.
 			if sm.auditLogger != nil {
 				sm.auditLogger.LogAuthenticationEvent(ctx, "", false, err.Error())
 			}
@@ -263,46 +263,46 @@ func (sm *SecurityMiddleware) authenticationMiddleware(next http.Handler) http.H
 			return
 		}
 
-		// Add user to context
+		// Add user to context.
 		if authResult.User != nil {
 			ctx = context.WithValue(ctx, "user", authResult.User)
 			ctx = context.WithValue(ctx, "user_id", authResult.User.ID)
 			reqCtx.User = authResult.User
 		}
 
-		// Add token claims to context if present
+		// Add token claims to context if present.
 		if authResult.Claims != nil {
 			ctx = context.WithValue(ctx, "claims", authResult.Claims)
 		}
 
-		// Log successful authentication
+		// Log successful authentication.
 		if sm.auditLogger != nil && authResult.User != nil {
 			sm.auditLogger.LogAuthenticationEvent(ctx, authResult.User.Username, true, "")
 		}
 
-		// Continue with authenticated request
+		// Continue with authenticated request.
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-// authorizationMiddleware handles authorization
+// authorizationMiddleware handles authorization.
 func (sm *SecurityMiddleware) authorizationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		reqCtx := sm.getRequestContext(ctx)
 
-		// Get user from context
+		// Get user from context.
 		user, ok := ctx.Value("user").(*User)
 		if !ok || user == nil {
 			sm.sendErrorResponse(w, http.StatusUnauthorized, "User not authenticated")
 			return
 		}
 
-		// Determine resource and action
+		// Determine resource and action.
 		resource := r.URL.Path
 		action := r.Method
 
-		// Check authorization
+		// Check authorization.
 		allowed, err := sm.authManager.Authorize(ctx, user, resource, action)
 		if err != nil {
 			sm.logger.Error("authorization check failed",
@@ -317,7 +317,7 @@ func (sm *SecurityMiddleware) authorizationMiddleware(next http.Handler) http.Ha
 		}
 
 		if !allowed {
-			// Log authorization failure
+			// Log authorization failure.
 			if sm.auditLogger != nil {
 				sm.auditLogger.LogAuthorizationEvent(ctx, user, resource, action, false)
 			}
@@ -326,23 +326,23 @@ func (sm *SecurityMiddleware) authorizationMiddleware(next http.Handler) http.Ha
 			return
 		}
 
-		// Log successful authorization
+		// Log successful authorization.
 		if sm.auditLogger != nil {
 			sm.auditLogger.LogAuthorizationEvent(ctx, user, resource, action, true)
 		}
 
-		// Continue with authorized request
+		// Continue with authorized request.
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-// rateLimitMiddleware handles rate limiting
+// rateLimitMiddleware handles rate limiting.
 func (sm *SecurityMiddleware) rateLimitMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		reqCtx := sm.getRequestContext(ctx)
 
-		// Check rate limit
+		// Check rate limit.
 		result, err := sm.rateLimiter.CheckLimit(ctx, r)
 		if err != nil {
 			sm.logger.Error("rate limit check failed",
@@ -353,11 +353,11 @@ func (sm *SecurityMiddleware) rateLimitMiddleware(next http.Handler) http.Handle
 			return
 		}
 
-		// Set rate limit headers
+		// Set rate limit headers.
 		sm.rateLimiter.SetResponseHeaders(w, result)
 
 		if !result.Allowed {
-			// Log rate limit violation
+			// Log rate limit violation.
 			if sm.auditLogger != nil {
 				event := &AuditEvent{
 					EventType:    EventTypeRateLimitExceeded,
@@ -372,20 +372,20 @@ func (sm *SecurityMiddleware) rateLimitMiddleware(next http.Handler) http.Handle
 			return
 		}
 
-		// Continue with request
+		// Continue with request.
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-// sanitizationMiddleware handles input sanitization
+// sanitizationMiddleware handles input sanitization.
 func (sm *SecurityMiddleware) sanitizationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		reqCtx := sm.getRequestContext(ctx)
 
-		// Only sanitize for methods with body
+		// Only sanitize for methods with body.
 		if r.Method == http.MethodPost || r.Method == http.MethodPut || r.Method == http.MethodPatch {
-			// Parse request body
+			// Parse request body.
 			var body map[string]interface{}
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 				sm.logger.Error("failed to parse request body",
@@ -396,14 +396,14 @@ func (sm *SecurityMiddleware) sanitizationMiddleware(next http.Handler) http.Han
 				return
 			}
 
-			// Sanitize input
+			// Sanitize input.
 			result, err := sm.sanitizer.SanitizePolicyInput(ctx, body)
 			if err != nil {
 				sm.logger.Error("input sanitization failed",
 					slog.String("request_id", reqCtx.RequestID),
 					slog.String("error", err.Error()))
 
-				// Log security violation if malicious patterns detected
+				// Log security violation if malicious patterns detected.
 				if sm.auditLogger != nil && len(result.Violations) > 0 {
 					violations := make(map[string]interface{})
 					for _, v := range result.Violations {
@@ -416,7 +416,7 @@ func (sm *SecurityMiddleware) sanitizationMiddleware(next http.Handler) http.Han
 				return
 			}
 
-			// Replace body with sanitized version
+			// Replace body with sanitized version.
 			if result.Modified {
 				sanitizedBody, _ := json.Marshal(result.SanitizedValue)
 				r.Body = io.NopCloser(strings.NewReader(string(sanitizedBody)))
@@ -424,24 +424,24 @@ func (sm *SecurityMiddleware) sanitizationMiddleware(next http.Handler) http.Han
 			}
 		}
 
-		// Continue with sanitized request
+		// Continue with sanitized request.
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-// auditMiddleware handles audit logging
+// auditMiddleware handles audit logging.
 func (sm *SecurityMiddleware) auditMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		reqCtx := sm.getRequestContext(ctx)
 
-		// Create response wrapper to capture response details
+		// Create response wrapper to capture response details.
 		rw := &responseWrapper{
 			ResponseWriter: w,
 			statusCode:     http.StatusOK,
 		}
 
-		// Create audit event
+		// Create audit event.
 		event := &AuditEvent{
 			EventType:     sm.getEventType(r),
 			Severity:      SeverityInfo,
@@ -454,7 +454,7 @@ func (sm *SecurityMiddleware) auditMiddleware(next http.Handler) http.Handler {
 			RequestPath:   r.URL.Path,
 		}
 
-		// Add actor information if available
+		// Add actor information if available.
 		if reqCtx.User != nil {
 			event.Actor = &Actor{
 				Type:     ActorTypeUser,
@@ -465,14 +465,14 @@ func (sm *SecurityMiddleware) auditMiddleware(next http.Handler) http.Handler {
 			}
 		}
 
-		// Process request
+		// Process request.
 		next.ServeHTTP(rw, r)
 
-		// Update event with response details
+		// Update event with response details.
 		event.ResponseStatus = rw.statusCode
 		event.Duration = time.Since(reqCtx.StartTime)
 
-		// Set result based on status code
+		// Set result based on status code.
 		if rw.statusCode >= 200 && rw.statusCode < 300 {
 			event.Result = ResultSuccess
 		} else if rw.statusCode >= 400 && rw.statusCode < 500 {
@@ -481,18 +481,18 @@ func (sm *SecurityMiddleware) auditMiddleware(next http.Handler) http.Handler {
 			event.Result = ResultError
 		}
 
-		// Log audit event
+		// Log audit event.
 		sm.auditLogger.LogEvent(ctx, event)
 	})
 }
 
-// securityHeadersMiddleware adds security headers
+// securityHeadersMiddleware adds security headers.
 func (sm *SecurityMiddleware) securityHeadersMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if sm.config.SecurityHeaders != nil && sm.config.SecurityHeaders.Enabled {
 			headers := sm.config.SecurityHeaders
 
-			// Add standard security headers
+			// Add standard security headers.
 			if headers.StrictTransportSecurity != "" {
 				w.Header().Set("Strict-Transport-Security", headers.StrictTransportSecurity)
 			}
@@ -524,7 +524,7 @@ func (sm *SecurityMiddleware) securityHeadersMiddleware(next http.Handler) http.
 				w.Header().Set("Cross-Origin-Resource-Policy", headers.CrossOriginResourcePolicy)
 			}
 
-			// Add custom headers
+			// Add custom headers.
 			for name, value := range headers.CustomHeaders {
 				w.Header().Set(name, value)
 			}
@@ -534,12 +534,12 @@ func (sm *SecurityMiddleware) securityHeadersMiddleware(next http.Handler) http.
 	})
 }
 
-// corsMiddleware handles CORS
+// corsMiddleware handles CORS.
 func (sm *SecurityMiddleware) corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
 
-		// Check if origin is allowed
+		// Check if origin is allowed.
 		if sm.isOriginAllowed(origin) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 
@@ -547,7 +547,7 @@ func (sm *SecurityMiddleware) corsMiddleware(next http.Handler) http.Handler {
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
 			}
 
-			// Handle preflight requests
+			// Handle preflight requests.
 			if r.Method == http.MethodOptions {
 				w.Header().Set("Access-Control-Allow-Methods", strings.Join(sm.config.CORS.AllowedMethods, ", "))
 				w.Header().Set("Access-Control-Allow-Headers", strings.Join(sm.config.CORS.AllowedHeaders, ", "))
@@ -556,7 +556,7 @@ func (sm *SecurityMiddleware) corsMiddleware(next http.Handler) http.Handler {
 				return
 			}
 
-			// Set exposed headers
+			// Set exposed headers.
 			if len(sm.config.CORS.ExposedHeaders) > 0 {
 				w.Header().Set("Access-Control-Expose-Headers", strings.Join(sm.config.CORS.ExposedHeaders, ", "))
 			}
@@ -566,10 +566,10 @@ func (sm *SecurityMiddleware) corsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// csrfMiddleware handles CSRF protection
+// csrfMiddleware handles CSRF protection.
 func (sm *SecurityMiddleware) csrfMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Skip CSRF check for safe methods
+		// Skip CSRF check for safe methods.
 		for _, method := range sm.config.CSRF.SafeMethods {
 			if r.Method == method {
 				next.ServeHTTP(w, r)
@@ -577,10 +577,10 @@ func (sm *SecurityMiddleware) csrfMiddleware(next http.Handler) http.Handler {
 			}
 		}
 
-		// Check CSRF token
+		// Check CSRF token.
 		token := r.Header.Get(sm.config.CSRF.TokenHeader)
 		if token == "" {
-			// Try to get from cookie
+			// Try to get from cookie.
 			if cookie, err := r.Cookie(sm.config.CSRF.TokenCookie); err == nil {
 				token = cookie.Value
 			}
@@ -591,15 +591,15 @@ func (sm *SecurityMiddleware) csrfMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// Validate CSRF token
-		// This is a simplified implementation
-		// In production, you would validate against stored tokens
+		// Validate CSRF token.
+		// This is a simplified implementation.
+		// In production, you would validate against stored tokens.
 
 		next.ServeHTTP(w, r)
 	})
 }
 
-// Helper methods
+// Helper methods.
 
 func (sm *SecurityMiddleware) getRequestContext(ctx context.Context) *RequestContext {
 	if reqCtx, ok := ctx.Value("request_context").(*RequestContext); ok {
@@ -609,7 +609,7 @@ func (sm *SecurityMiddleware) getRequestContext(ctx context.Context) *RequestCon
 }
 
 func (sm *SecurityMiddleware) getClientIP(r *http.Request) string {
-	// Check X-Forwarded-For header
+	// Check X-Forwarded-For header.
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 		parts := strings.Split(xff, ",")
 		if len(parts) > 0 {
@@ -617,18 +617,18 @@ func (sm *SecurityMiddleware) getClientIP(r *http.Request) string {
 		}
 	}
 
-	// Check X-Real-IP header
+	// Check X-Real-IP header.
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
 		return xri
 	}
 
-	// Fall back to RemoteAddr
+	// Fall back to RemoteAddr.
 	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
 	return ip
 }
 
 func (sm *SecurityMiddleware) getEventType(r *http.Request) EventType {
-	// Determine event type based on path and method
+	// Determine event type based on path and method.
 	path := r.URL.Path
 	method := r.Method
 
@@ -671,13 +671,14 @@ func (sm *SecurityMiddleware) sendErrorResponse(w http.ResponseWriter, statusCod
 	json.NewEncoder(w).Encode(response)
 }
 
-// responseWrapper wraps http.ResponseWriter to capture response details
+// responseWrapper wraps http.ResponseWriter to capture response details.
 type responseWrapper struct {
 	http.ResponseWriter
 	statusCode int
 	written    bool
 }
 
+// WriteHeader performs writeheader operation.
 func (rw *responseWrapper) WriteHeader(code int) {
 	if !rw.written {
 		rw.statusCode = code
@@ -686,6 +687,7 @@ func (rw *responseWrapper) WriteHeader(code int) {
 	}
 }
 
+// Write performs write operation.
 func (rw *responseWrapper) Write(b []byte) (int, error) {
 	if !rw.written {
 		rw.WriteHeader(http.StatusOK)
@@ -693,9 +695,9 @@ func (rw *responseWrapper) Write(b []byte) (int, error) {
 	return rw.ResponseWriter.Write(b)
 }
 
-// CreateA1SecurityMiddleware creates security middleware specifically for A1 service
+// CreateA1SecurityMiddleware creates security middleware specifically for A1 service.
 func CreateA1SecurityMiddleware(config *a1.A1ServerConfig) (func(http.Handler) http.Handler, error) {
-	// Convert A1 config to security config
+	// Convert A1 config to security config.
 	secConfig := &SecurityConfig{
 		Authentication: &AuthConfig{
 			Enabled: config.AuthenticationConfig != nil && config.AuthenticationConfig.Enabled,
@@ -732,7 +734,7 @@ func CreateA1SecurityMiddleware(config *a1.A1ServerConfig) (func(http.Handler) h
 		},
 	}
 
-	// Create security middleware
+	// Create security middleware.
 	middleware, err := NewSecurityMiddleware(secConfig, config.Logger)
 	if err != nil {
 		return nil, err

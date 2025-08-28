@@ -13,14 +13,15 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 )
 
-// AuthContextKey represents the context key for authentication
+// AuthContextKey represents the context key for authentication.
 type AuthContextKey string
 
 const (
+	// ControllerAuthContextKey holds controllerauthcontextkey value.
 	ControllerAuthContextKey AuthContextKey = "controller_auth_context"
 )
 
-// ControllerAuthContext holds authentication context for controller operations
+// ControllerAuthContext holds authentication context for controller operations.
 type ControllerAuthContext struct {
 	UserID            string
 	OperationType     string
@@ -31,7 +32,7 @@ type ControllerAuthContext struct {
 	RequestID         string
 }
 
-// AuthenticatedReconciler provides authentication context
+// AuthenticatedReconciler provides authentication context.
 type AuthenticatedReconciler struct {
 	client.Client
 	logger          *slog.Logger
@@ -39,7 +40,7 @@ type AuthenticatedReconciler struct {
 	requireAuth     bool
 }
 
-// NewAuthenticatedReconciler creates authenticated reconciler
+// NewAuthenticatedReconciler creates authenticated reconciler.
 func NewAuthenticatedReconciler(
 	client client.Client,
 	authIntegration *auth.NephoranAuthIntegration,
@@ -54,7 +55,7 @@ func NewAuthenticatedReconciler(
 	}
 }
 
-// WithAuthContext adds authentication context
+// WithAuthContext adds authentication context.
 func (ar *AuthenticatedReconciler) WithAuthContext(ctx context.Context, operation string, resourceType string, resourceName string, resourceNamespace string) (context.Context, error) {
 	authCtx := &ControllerAuthContext{
 		OperationType:     operation,
@@ -68,7 +69,7 @@ func (ar *AuthenticatedReconciler) WithAuthContext(ctx context.Context, operatio
 	return context.WithValue(ctx, ControllerAuthContextKey, authCtx), nil
 }
 
-// ValidateNetworkIntentAccess validates access to NetworkIntent
+// ValidateNetworkIntentAccess validates access to NetworkIntent.
 func (ar *AuthenticatedReconciler) ValidateNetworkIntentAccess(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, operation string) error {
 	if !ar.requireAuth {
 		return nil
@@ -76,13 +77,13 @@ func (ar *AuthenticatedReconciler) ValidateNetworkIntentAccess(ctx context.Conte
 	return nil
 }
 
-// NetworkIntentAuthDecorator decorates controller with auth
+// NetworkIntentAuthDecorator decorates controller with auth.
 type NetworkIntentAuthDecorator struct {
 	*AuthenticatedReconciler
 	originalReconciler *NetworkIntentReconciler
 }
 
-// NewNetworkIntentAuthDecorator creates authenticated controller
+// NewNetworkIntentAuthDecorator creates authenticated controller.
 func NewNetworkIntentAuthDecorator(
 	originalReconciler *NetworkIntentReconciler,
 	authIntegration *auth.NephoranAuthIntegration,
@@ -102,7 +103,7 @@ func NewNetworkIntentAuthDecorator(
 	}
 }
 
-// Reconcile wraps original reconcile with authentication
+// Reconcile wraps original reconcile with authentication.
 func (niad *NetworkIntentAuthDecorator) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	authCtx, err := niad.WithAuthContext(ctx, "reconcile", "networkintents", req.Name, req.Namespace)
 	if err != nil {
@@ -121,13 +122,13 @@ func (niad *NetworkIntentAuthDecorator) Reconcile(ctx context.Context, req ctrl.
 	return niad.originalReconciler.Reconcile(authCtx, req)
 }
 
-// AuthenticatedE2NodeSetReconciler decorates E2NodeSet controller with auth
+// AuthenticatedE2NodeSetReconciler decorates E2NodeSet controller with auth.
 type AuthenticatedE2NodeSetReconciler struct {
 	*AuthenticatedReconciler
 	OriginalReconciler *E2NodeSetReconciler
 }
 
-// NewAuthenticatedE2NodeSetReconciler creates authenticated E2NodeSet controller
+// NewAuthenticatedE2NodeSetReconciler creates authenticated E2NodeSet controller.
 func NewAuthenticatedE2NodeSetReconciler(
 	originalReconciler *E2NodeSetReconciler,
 	authIntegration *auth.NephoranAuthIntegration,
@@ -147,16 +148,16 @@ func NewAuthenticatedE2NodeSetReconciler(
 	}
 }
 
-// Reconcile wraps original reconcile with authentication for E2NodeSet
+// Reconcile wraps original reconcile with authentication for E2NodeSet.
 func (aer *AuthenticatedE2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	authCtx, err := aer.WithAuthContext(ctx, "reconcile", "e2nodesets", req.Name, req.Namespace)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	// Add E2-specific authentication validation if needed
+	// Add E2-specific authentication validation if needed.
 	if aer.requireAuth {
-		// Check if user has permission to manage E2 nodes
+		// Check if user has permission to manage E2 nodes.
 		if err := aer.validateE2NodeAccess(authCtx, req); err != nil {
 			aer.logger.Error("E2NodeSet access denied",
 				"namespace", req.Namespace,
@@ -169,15 +170,15 @@ func (aer *AuthenticatedE2NodeSetReconciler) Reconcile(ctx context.Context, req 
 	return aer.OriginalReconciler.Reconcile(authCtx, req)
 }
 
-// validateE2NodeAccess validates access to E2NodeSet resources
+// validateE2NodeAccess validates access to E2NodeSet resources.
 func (aer *AuthenticatedE2NodeSetReconciler) validateE2NodeAccess(ctx context.Context, req ctrl.Request) error {
-	// Extract auth context
+	// Extract auth context.
 	authCtx, ok := ctx.Value(ControllerAuthContextKey).(*ControllerAuthContext)
 	if !ok {
 		return fmt.Errorf("authentication context not found")
 	}
 
-	// Log the access attempt for audit
+	// Log the access attempt for audit.
 	aer.logger.Info("E2NodeSet access validation",
 		"operation", authCtx.OperationType,
 		"resource", authCtx.ResourceType,
@@ -185,9 +186,9 @@ func (aer *AuthenticatedE2NodeSetReconciler) validateE2NodeAccess(ctx context.Co
 		"namespace", authCtx.ResourceNamespace,
 		"request_id", authCtx.RequestID)
 
-	// For now, we'll allow all authenticated users to manage E2 nodes
-	// In a production environment, you might want to check specific RBAC permissions
-	// using the auth integration's RBAC manager
+	// For now, we'll allow all authenticated users to manage E2 nodes.
+	// In a production environment, you might want to check specific RBAC permissions.
+	// using the auth integration's RBAC manager.
 
 	return nil
 }

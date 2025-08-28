@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// WorkloadClusterConfig defines configuration for workload cluster management
+// WorkloadClusterConfig defines configuration for workload cluster management.
 type WorkloadClusterConfig struct {
 	HealthCheckInterval     time.Duration `json:"healthCheckInterval" yaml:"healthCheckInterval"`
 	AutoClusterRegistration bool          `json:"autoClusterRegistration" yaml:"autoClusterRegistration"`
@@ -42,7 +42,7 @@ type WorkloadClusterConfig struct {
 	EnableTracing           bool          `json:"enableTracing" yaml:"enableTracing"`
 }
 
-// ClusterRegistryMetrics provides cluster registry metrics
+// ClusterRegistryMetrics provides cluster registry metrics.
 type ClusterRegistryMetrics struct {
 	ClusterRegistrations *prometheus.CounterVec
 	ClusterHealth        *prometheus.GaugeVec
@@ -52,7 +52,7 @@ type ClusterRegistryMetrics struct {
 	ClusterEvents        *prometheus.CounterVec
 }
 
-// ClusterHealth represents the health status of a workload cluster
+// ClusterHealth represents the health status of a workload cluster.
 type ClusterHealth struct {
 	Status       string                     `json:"status"`
 	LastChecked  time.Time                  `json:"lastChecked"`
@@ -66,7 +66,7 @@ type ClusterHealth struct {
 	LastError    string                     `json:"lastError,omitempty"`
 }
 
-// ComponentHealth represents health of a cluster component
+// ComponentHealth represents health of a cluster component.
 type ComponentHealth struct {
 	Name     string    `json:"name"`
 	Status   string    `json:"status"`
@@ -74,7 +74,7 @@ type ComponentHealth struct {
 	LastSeen time.Time `json:"lastSeen"`
 }
 
-// ResourceHealthStatus represents cluster resource health
+// ResourceHealthStatus represents cluster resource health.
 type ResourceHealthStatus struct {
 	CPUUsage     float64 `json:"cpuUsage"`
 	MemoryUsage  float64 `json:"memoryUsage"`
@@ -84,7 +84,7 @@ type ResourceHealthStatus struct {
 	NodeCount    int     `json:"nodeCount"`
 }
 
-// ConnectivityStatus represents cluster connectivity status
+// ConnectivityStatus represents cluster connectivity status.
 type ConnectivityStatus struct {
 	APIServer     bool          `json:"apiServer"`
 	Etcd          bool          `json:"etcd"`
@@ -94,7 +94,7 @@ type ConnectivityStatus struct {
 	Latency       time.Duration `json:"latency"`
 }
 
-// ClusterConfigSync represents Config Sync configuration for a cluster
+// ClusterConfigSync represents Config Sync configuration for a cluster.
 type ClusterConfigSync struct {
 	Enabled     bool            `json:"enabled"`
 	Repository  string          `json:"repository"`
@@ -107,7 +107,7 @@ type ClusterConfigSync struct {
 	Credentials *GitCredentials `json:"credentials,omitempty"`
 }
 
-// GitCredentials represents Git repository credentials
+// GitCredentials represents Git repository credentials.
 type GitCredentials struct {
 	Type       string `json:"type"`
 	Username   string `json:"username,omitempty"`
@@ -117,7 +117,7 @@ type GitCredentials struct {
 	SecretName string `json:"secretName,omitempty"`
 }
 
-// ClusterHealthMonitor provides cluster health monitoring
+// ClusterHealthMonitor provides cluster health monitoring.
 type ClusterHealthMonitor struct {
 	client   client.Client
 	registry *WorkloadClusterRegistry
@@ -128,7 +128,7 @@ type ClusterHealthMonitor struct {
 	mu       sync.RWMutex
 }
 
-// WorkloadDeployment represents a deployment to a workload cluster
+// WorkloadDeployment represents a deployment to a workload cluster.
 type WorkloadDeployment struct {
 	ID             string           `json:"id"`
 	PackageVariant *PackageVariant  `json:"packageVariant"`
@@ -142,7 +142,7 @@ type WorkloadDeployment struct {
 	LastRetry      *time.Time       `json:"lastRetry,omitempty"`
 }
 
-// DefaultWorkloadClusterConfig provides default configuration values
+// DefaultWorkloadClusterConfig provides default configuration values.
 var DefaultWorkloadClusterConfig = &WorkloadClusterConfig{
 	HealthCheckInterval:     1 * time.Minute,
 	AutoClusterRegistration: true,
@@ -153,7 +153,7 @@ var DefaultWorkloadClusterConfig = &WorkloadClusterConfig{
 	EnableTracing:           true,
 }
 
-// NewWorkloadClusterRegistry creates a new workload cluster registry
+// NewWorkloadClusterRegistry creates a new workload cluster registry.
 func NewWorkloadClusterRegistry(
 	client client.Client,
 	config *WorkloadClusterConfig,
@@ -162,7 +162,7 @@ func NewWorkloadClusterRegistry(
 		config = DefaultWorkloadClusterConfig
 	}
 
-	// Initialize metrics
+	// Initialize metrics.
 	metrics := &ClusterRegistryMetrics{
 		ClusterRegistrations: promauto.NewCounterVec(
 			prometheus.CounterOpts{
@@ -216,7 +216,7 @@ func NewWorkloadClusterRegistry(
 		tracer:  otel.Tracer("nephio-workload-registry"),
 	}
 
-	// Initialize health monitor
+	// Initialize health monitor.
 	registry.healthMonitor = &ClusterHealthMonitor{
 		client:   client,
 		registry: registry,
@@ -226,12 +226,12 @@ func NewWorkloadClusterRegistry(
 		stopCh:   make(chan struct{}),
 	}
 
-	// Start health monitoring if enabled
+	// Start health monitoring if enabled.
 	if config.HealthCheckInterval > 0 {
 		go registry.healthMonitor.Start()
 	}
 
-	// Initialize with standard clusters if auto-registration is enabled
+	// Initialize with standard clusters if auto-registration is enabled.
 	if config.AutoClusterRegistration {
 		go registry.discoverAndRegisterClusters(context.Background())
 	}
@@ -239,7 +239,7 @@ func NewWorkloadClusterRegistry(
 	return registry, nil
 }
 
-// RegisterWorkloadCluster registers a new workload cluster
+// RegisterWorkloadCluster registers a new workload cluster.
 func (wcr *WorkloadClusterRegistry) RegisterWorkloadCluster(ctx context.Context, cluster *WorkloadCluster) error {
 	ctx, span := wcr.tracer.Start(ctx, "register-workload-cluster")
 	defer span.End()
@@ -258,7 +258,7 @@ func (wcr *WorkloadClusterRegistry) RegisterWorkloadCluster(ctx context.Context,
 
 	startTime := time.Now()
 
-	// Validate cluster
+	// Validate cluster.
 	if err := wcr.validateCluster(ctx, cluster); err != nil {
 		span.RecordError(err)
 		wcr.metrics.RegistrationErrors.WithLabelValues(
@@ -267,7 +267,7 @@ func (wcr *WorkloadClusterRegistry) RegisterWorkloadCluster(ctx context.Context,
 		return fmt.Errorf("cluster validation failed: %w", err)
 	}
 
-	// Check if cluster already exists
+	// Check if cluster already exists.
 	if _, exists := wcr.clusters.Load(cluster.Name); exists {
 		wcr.metrics.RegistrationErrors.WithLabelValues(
 			cluster.Name, "already_exists",
@@ -275,23 +275,23 @@ func (wcr *WorkloadClusterRegistry) RegisterWorkloadCluster(ctx context.Context,
 		return fmt.Errorf("cluster %s already registered", cluster.Name)
 	}
 
-	// Set initial status
+	// Set initial status.
 	cluster.Status = WorkloadClusterStatusRegistering
 	cluster.CreatedAt = time.Now()
 
-	// Perform cluster connectivity check
+	// Perform cluster connectivity check.
 	if err := wcr.performConnectivityCheck(ctx, cluster); err != nil {
 		logger.Error(err, "Cluster connectivity check failed")
 		cluster.Status = WorkloadClusterStatusUnreachable
 		wcr.metrics.RegistrationErrors.WithLabelValues(
 			cluster.Name, "connectivity_failed",
 		).Inc()
-		// Continue with registration but mark as unreachable
+		// Continue with registration but mark as unreachable.
 	} else {
 		cluster.Status = WorkloadClusterStatusActive
 	}
 
-	// Initialize health monitoring
+	// Initialize health monitoring.
 	cluster.Health = &ClusterHealth{
 		Status:       "Unknown",
 		LastChecked:  time.Now(),
@@ -300,13 +300,13 @@ func (wcr *WorkloadClusterRegistry) RegisterWorkloadCluster(ctx context.Context,
 		WarningCount: 0,
 	}
 
-	// Setup Config Sync if enabled
+	// Setup Config Sync if enabled.
 	if err := wcr.setupConfigSync(ctx, cluster); err != nil {
 		logger.Error(err, "Failed to setup Config Sync")
-		// Continue with registration - Config Sync is not critical for registration
+		// Continue with registration - Config Sync is not critical for registration.
 	}
 
-	// Store cluster in registry
+	// Store cluster in registry.
 	wcr.clusters.Store(cluster.Name, cluster)
 	wcr.registrations.Store(cluster.Name, &ClusterRegistration{
 		Cluster:      cluster,
@@ -314,12 +314,12 @@ func (wcr *WorkloadClusterRegistry) RegisterWorkloadCluster(ctx context.Context,
 		Status:       "active",
 	})
 
-	// Update metrics
+	// Update metrics.
 	wcr.metrics.ClusterRegistrations.WithLabelValues(
 		cluster.Name, cluster.Region, "success",
 	).Inc()
 
-	// Update capability metrics
+	// Update capability metrics.
 	for _, capability := range cluster.Capabilities {
 		wcr.metrics.ClusterCapabilities.WithLabelValues(
 			cluster.Name, cluster.Region, capability.Name,
@@ -333,7 +333,7 @@ func (wcr *WorkloadClusterRegistry) RegisterWorkloadCluster(ctx context.Context,
 		"capabilities", len(cluster.Capabilities),
 	)
 
-	// Emit cluster event
+	// Emit cluster event.
 	wcr.metrics.ClusterEvents.WithLabelValues(
 		cluster.Name, "registered",
 	).Inc()
@@ -347,7 +347,7 @@ func (wcr *WorkloadClusterRegistry) RegisterWorkloadCluster(ctx context.Context,
 	return nil
 }
 
-// UnregisterWorkloadCluster removes a workload cluster from the registry
+// UnregisterWorkloadCluster removes a workload cluster from the registry.
 func (wcr *WorkloadClusterRegistry) UnregisterWorkloadCluster(ctx context.Context, clusterName string) error {
 	ctx, span := wcr.tracer.Start(ctx, "unregister-workload-cluster")
 	defer span.End()
@@ -356,7 +356,7 @@ func (wcr *WorkloadClusterRegistry) UnregisterWorkloadCluster(ctx context.Contex
 
 	span.SetAttributes(attribute.String("cluster.name", clusterName))
 
-	// Check if cluster exists
+	// Check if cluster exists.
 	value, exists := wcr.clusters.Load(clusterName)
 	if !exists {
 		return fmt.Errorf("cluster %s not found", clusterName)
@@ -367,28 +367,28 @@ func (wcr *WorkloadClusterRegistry) UnregisterWorkloadCluster(ctx context.Contex
 		return fmt.Errorf("invalid cluster object for %s", clusterName)
 	}
 
-	// Update cluster status
+	// Update cluster status.
 	cluster.Status = WorkloadClusterStatusTerminating
 
-	// Cleanup Config Sync
+	// Cleanup Config Sync.
 	if err := wcr.cleanupConfigSync(ctx, cluster); err != nil {
 		logger.Error(err, "Failed to cleanup Config Sync")
-		// Continue with unregistration
+		// Continue with unregistration.
 	}
 
-	// Remove from registry
+	// Remove from registry.
 	wcr.clusters.Delete(clusterName)
 	wcr.registrations.Delete(clusterName)
 
 	logger.Info("Cluster unregistered successfully")
 
-	// Emit cluster event
+	// Emit cluster event.
 	wcr.metrics.ClusterEvents.WithLabelValues(clusterName, "unregistered").Inc()
 
 	return nil
 }
 
-// GetWorkloadCluster retrieves a workload cluster by name
+// GetWorkloadCluster retrieves a workload cluster by name.
 func (wcr *WorkloadClusterRegistry) GetWorkloadCluster(ctx context.Context, clusterName string) (*WorkloadCluster, error) {
 	if value, exists := wcr.clusters.Load(clusterName); exists {
 		if cluster, ok := value.(*WorkloadCluster); ok {
@@ -398,7 +398,7 @@ func (wcr *WorkloadClusterRegistry) GetWorkloadCluster(ctx context.Context, clus
 	return nil, fmt.Errorf("cluster %s not found", clusterName)
 }
 
-// ListWorkloadClusters lists all registered workload clusters
+// ListWorkloadClusters lists all registered workload clusters.
 func (wcr *WorkloadClusterRegistry) ListWorkloadClusters(ctx context.Context) ([]*WorkloadCluster, error) {
 	clusters := make([]*WorkloadCluster, 0)
 
@@ -412,7 +412,7 @@ func (wcr *WorkloadClusterRegistry) ListWorkloadClusters(ctx context.Context) ([
 	return clusters, nil
 }
 
-// CheckClusterHealth performs a health check on a specific cluster
+// CheckClusterHealth performs a health check on a specific cluster.
 func (wcr *WorkloadClusterRegistry) CheckClusterHealth(ctx context.Context, clusterName string) (*ClusterHealth, error) {
 	ctx, span := wcr.tracer.Start(ctx, "check-cluster-health")
 	defer span.End()
@@ -432,36 +432,36 @@ func (wcr *WorkloadClusterRegistry) CheckClusterHealth(ctx context.Context, clus
 		return nil, err
 	}
 
-	// Perform comprehensive health check
+	// Perform comprehensive health check.
 	health := &ClusterHealth{
 		LastChecked: time.Now(),
 		Components:  make(map[string]ComponentHealth),
 	}
 
-	// Check API server connectivity
+	// Check API server connectivity.
 	apiHealth := wcr.checkAPIServerHealth(ctx, cluster)
 	health.Components["api-server"] = apiHealth
 
-	// Check node health
+	// Check node health.
 	nodeHealth := wcr.checkNodeHealth(ctx, cluster)
 	health.Components["nodes"] = nodeHealth
 
-	// Check system pods
+	// Check system pods.
 	podHealth := wcr.checkSystemPodsHealth(ctx, cluster)
 	health.Components["system-pods"] = podHealth
 
-	// Check network connectivity
+	// Check network connectivity.
 	networkHealth := wcr.checkNetworkHealth(ctx, cluster)
 	health.Components["network"] = networkHealth
 
-	// Check resource utilization
+	// Check resource utilization.
 	resourceHealth := wcr.checkResourceHealth(ctx, cluster)
 	health.Resources = resourceHealth
 
-	// Determine overall status
+	// Determine overall status.
 	health.Status = wcr.calculateOverallHealth(health.Components)
 
-	// Count errors and warnings
+	// Count errors and warnings.
 	for _, component := range health.Components {
 		if component.Status == "Error" {
 			health.ErrorCount++
@@ -470,11 +470,11 @@ func (wcr *WorkloadClusterRegistry) CheckClusterHealth(ctx context.Context, clus
 		}
 	}
 
-	// Update cluster health
+	// Update cluster health.
 	cluster.Health = health
 	cluster.LastHealthCheck = &health.LastChecked
 
-	// Update metrics
+	// Update metrics.
 	healthValue := 1.0
 	if health.Status != "Healthy" {
 		healthValue = 0.0
@@ -493,7 +493,7 @@ func (wcr *WorkloadClusterRegistry) CheckClusterHealth(ctx context.Context, clus
 	return health, nil
 }
 
-// validateCluster validates cluster configuration
+// validateCluster validates cluster configuration.
 func (wcr *WorkloadClusterRegistry) validateCluster(ctx context.Context, cluster *WorkloadCluster) error {
 	if cluster.Name == "" {
 		return fmt.Errorf("cluster name is required")
@@ -507,20 +507,20 @@ func (wcr *WorkloadClusterRegistry) validateCluster(ctx context.Context, cluster
 	return nil
 }
 
-// performConnectivityCheck checks if cluster is reachable
+// performConnectivityCheck checks if cluster is reachable.
 func (wcr *WorkloadClusterRegistry) performConnectivityCheck(ctx context.Context, cluster *WorkloadCluster) error {
-	// In a real implementation, this would:
-	// 1. Test connection to cluster API server
-	// 2. Verify authentication credentials
-	// 3. Test basic API operations
-	// 4. Check cluster version compatibility
+	// In a real implementation, this would:.
+	// 1. Test connection to cluster API server.
+	// 2. Verify authentication credentials.
+	// 3. Test basic API operations.
+	// 4. Check cluster version compatibility.
 
-	// For now, simulate connectivity check
-	// return nil for successful connection
+	// For now, simulate connectivity check.
+	// return nil for successful connection.
 	return nil
 }
 
-// setupConfigSync configures Config Sync for the cluster
+// setupConfigSync configures Config Sync for the cluster.
 func (wcr *WorkloadClusterRegistry) setupConfigSync(ctx context.Context, cluster *WorkloadCluster) error {
 	if cluster.ConfigSync == nil {
 		cluster.ConfigSync = &ClusterConfigSync{
@@ -533,11 +533,11 @@ func (wcr *WorkloadClusterRegistry) setupConfigSync(ctx context.Context, cluster
 		}
 	}
 
-	// In a real implementation, this would:
-	// 1. Install Config Sync in the cluster
-	// 2. Configure repository access
-	// 3. Set up sync policies
-	// 4. Verify sync status
+	// In a real implementation, this would:.
+	// 1. Install Config Sync in the cluster.
+	// 2. Configure repository access.
+	// 3. Set up sync policies.
+	// 4. Verify sync status.
 
 	cluster.ConfigSync.Status = "Active"
 	now := time.Now()
@@ -546,24 +546,24 @@ func (wcr *WorkloadClusterRegistry) setupConfigSync(ctx context.Context, cluster
 	return nil
 }
 
-// cleanupConfigSync removes Config Sync configuration
+// cleanupConfigSync removes Config Sync configuration.
 func (wcr *WorkloadClusterRegistry) cleanupConfigSync(ctx context.Context, cluster *WorkloadCluster) error {
 	if cluster.ConfigSync != nil {
 		cluster.ConfigSync.Status = "Terminating"
 	}
 
-	// In a real implementation, this would:
-	// 1. Remove Config Sync components
-	// 2. Clean up repository configurations
-	// 3. Remove sync policies
+	// In a real implementation, this would:.
+	// 1. Remove Config Sync components.
+	// 2. Clean up repository configurations.
+	// 3. Remove sync policies.
 
 	return nil
 }
 
-// Health check methods
+// Health check methods.
 
 func (wcr *WorkloadClusterRegistry) checkAPIServerHealth(ctx context.Context, cluster *WorkloadCluster) ComponentHealth {
-	// In a real implementation, this would test API server connectivity
+	// In a real implementation, this would test API server connectivity.
 	return ComponentHealth{
 		Name:     "api-server",
 		Status:   "Healthy",
@@ -573,7 +573,7 @@ func (wcr *WorkloadClusterRegistry) checkAPIServerHealth(ctx context.Context, cl
 }
 
 func (wcr *WorkloadClusterRegistry) checkNodeHealth(ctx context.Context, cluster *WorkloadCluster) ComponentHealth {
-	// In a real implementation, this would check node readiness
+	// In a real implementation, this would check node readiness.
 	return ComponentHealth{
 		Name:     "nodes",
 		Status:   "Healthy",
@@ -583,7 +583,7 @@ func (wcr *WorkloadClusterRegistry) checkNodeHealth(ctx context.Context, cluster
 }
 
 func (wcr *WorkloadClusterRegistry) checkSystemPodsHealth(ctx context.Context, cluster *WorkloadCluster) ComponentHealth {
-	// In a real implementation, this would check system pod status
+	// In a real implementation, this would check system pod status.
 	return ComponentHealth{
 		Name:     "system-pods",
 		Status:   "Healthy",
@@ -593,7 +593,7 @@ func (wcr *WorkloadClusterRegistry) checkSystemPodsHealth(ctx context.Context, c
 }
 
 func (wcr *WorkloadClusterRegistry) checkNetworkHealth(ctx context.Context, cluster *WorkloadCluster) ComponentHealth {
-	// In a real implementation, this would test network connectivity
+	// In a real implementation, this would test network connectivity.
 	return ComponentHealth{
 		Name:     "network",
 		Status:   "Healthy",
@@ -603,7 +603,7 @@ func (wcr *WorkloadClusterRegistry) checkNetworkHealth(ctx context.Context, clus
 }
 
 func (wcr *WorkloadClusterRegistry) checkResourceHealth(ctx context.Context, cluster *WorkloadCluster) *ResourceHealthStatus {
-	// In a real implementation, this would gather resource metrics
+	// In a real implementation, this would gather resource metrics.
 	return &ResourceHealthStatus{
 		CPUUsage:     45.5,
 		MemoryUsage:  60.2,
@@ -636,17 +636,17 @@ func (wcr *WorkloadClusterRegistry) calculateOverallHealth(components map[string
 	return "Healthy"
 }
 
-// discoverAndRegisterClusters automatically discovers and registers clusters
+// discoverAndRegisterClusters automatically discovers and registers clusters.
 func (wcr *WorkloadClusterRegistry) discoverAndRegisterClusters(ctx context.Context) error {
 	logger := log.FromContext(ctx).WithName("cluster-discovery")
 
-	// In a real implementation, this would:
-	// 1. Query cloud providers for managed clusters
-	// 2. Scan network for cluster API servers
-	// 3. Check configuration files for cluster definitions
-	// 4. Register discovered clusters
+	// In a real implementation, this would:.
+	// 1. Query cloud providers for managed clusters.
+	// 2. Scan network for cluster API servers.
+	// 3. Check configuration files for cluster definitions.
+	// 4. Register discovered clusters.
 
-	// For now, register some example clusters
+	// For now, register some example clusters.
 	exampleClusters := []*WorkloadCluster{
 		{
 			Name:     "edge-cluster-1",
@@ -709,7 +709,7 @@ func (wcr *WorkloadClusterRegistry) discoverAndRegisterClusters(ctx context.Cont
 	return nil
 }
 
-// ClusterRegistration represents a cluster registration record
+// ClusterRegistration represents a cluster registration record.
 type ClusterRegistration struct {
 	Cluster      *WorkloadCluster  `json:"cluster"`
 	RegisteredAt time.Time         `json:"registeredAt"`
@@ -717,7 +717,7 @@ type ClusterRegistration struct {
 	Metadata     map[string]string `json:"metadata,omitempty"`
 }
 
-// Start health monitoring
+// Start health monitoring.
 func (chm *ClusterHealthMonitor) Start() {
 	logger := log.Log.WithName("cluster-health-monitor")
 	logger.Info("Starting cluster health monitoring")
@@ -736,12 +736,12 @@ func (chm *ClusterHealthMonitor) Start() {
 	}
 }
 
-// Stop health monitoring
+// Stop health monitoring.
 func (chm *ClusterHealthMonitor) Stop() {
 	close(chm.stopCh)
 }
 
-// performHealthChecks performs health checks on all registered clusters
+// performHealthChecks performs health checks on all registered clusters.
 func (chm *ClusterHealthMonitor) performHealthChecks(ctx context.Context) {
 	logger := log.FromContext(ctx).WithName("health-checks")
 

@@ -10,11 +10,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// ComponentMonitor provides detailed latency monitoring for individual system components
+// ComponentMonitor provides detailed latency monitoring for individual system components.
 type ComponentMonitor struct {
 	mu sync.RWMutex
 
-	// Component monitors
+	// Component monitors.
 	controllerMonitor *ControllerLatencyMonitor
 	llmMonitor        *LLMProcessorMonitor
 	ragMonitor        *RAGSystemMonitor
@@ -23,26 +23,26 @@ type ComponentMonitor struct {
 	cacheMonitor      *CachePerformanceMonitor
 	queueMonitor      *QueueProcessingMonitor
 
-	// Aggregated metrics
+	// Aggregated metrics.
 	aggregator *ComponentAggregator
 
-	// Performance tracking
+	// Performance tracking.
 	performanceTracker *ComponentPerformanceTracker
 
-	// Metrics
+	// Metrics.
 	metrics *ComponentMetrics
 
-	// Configuration
+	// Configuration.
 	config *ComponentMonitorConfig
 }
 
-// ComponentMonitorConfig contains configuration for component monitoring
+// ComponentMonitorConfig contains configuration for component monitoring.
 type ComponentMonitorConfig struct {
-	// Monitoring intervals
+	// Monitoring intervals.
 	SamplingInterval    time.Duration `json:"sampling_interval"`
 	AggregationInterval time.Duration `json:"aggregation_interval"`
 
-	// Component-specific settings
+	// Component-specific settings.
 	ControllerSettings ControllerMonitorSettings `json:"controller_settings"`
 	LLMSettings        LLMMonitorSettings        `json:"llm_settings"`
 	RAGSettings        RAGMonitorSettings        `json:"rag_settings"`
@@ -51,196 +51,197 @@ type ComponentMonitorConfig struct {
 	CacheSettings      CacheMonitorSettings      `json:"cache_settings"`
 	QueueSettings      QueueMonitorSettings      `json:"queue_settings"`
 
-	// Performance thresholds
+	// Performance thresholds.
 	PerformanceThresholds map[string]time.Duration `json:"performance_thresholds"`
 }
 
-// ControllerLatencyMonitor monitors Kubernetes controller latency
+// ControllerLatencyMonitor monitors Kubernetes controller latency.
 type ControllerLatencyMonitor struct {
 	mu sync.RWMutex
 
-	// Reconciliation metrics
+	// Reconciliation metrics.
 	reconcileLatency *LatencyTracker
 	reconcileQueue   *QueueMetrics
 
-	// API server interactions
+	// API server interactions.
 	apiLatency   *LatencyTracker
 	apiCallCount atomic.Int64
 
-	// Resource operations
+	// Resource operations.
 	createLatency *LatencyTracker
 	updateLatency *LatencyTracker
 	deleteLatency *LatencyTracker
 
-	// Watch operations
+	// Watch operations.
 	watchLatency    *LatencyTracker
 	eventProcessing *LatencyTracker
 
-	// Controller-specific metrics
+	// Controller-specific metrics.
 	workQueueDepth   atomic.Int64
 	workQueueLatency *LatencyTracker
 	retryCount       atomic.Int64
 
-	// Settings
+	// Settings.
 	settings ControllerMonitorSettings
 }
 
-// LLMProcessorMonitor monitors LLM processing latency
+// LLMProcessorMonitor monitors LLM processing latency.
 type LLMProcessorMonitor struct {
 	mu sync.RWMutex
 
-	// Token processing
+	// Token processing.
 	tokenGeneration *LatencyTracker
 	tokenPerSecond  *RateTracker
 
-	// API interactions
+	// API interactions.
 	apiCallLatency *LatencyTracker
 	apiRetries     atomic.Int64
 
-	// Context handling
+	// Context handling.
 	contextBuilding  *LatencyTracker
 	contextSwitching *LatencyTracker
 
-	// Model-specific metrics
+	// Model-specific metrics.
 	modelLatency map[string]*LatencyTracker
 	modelUsage   map[string]int64
 
-	// Streaming metrics
+	// Streaming metrics.
 	streamInitLatency  *LatencyTracker
 	streamChunkLatency *LatencyTracker
 
-	// Cost tracking
+	// Cost tracking.
 	tokenCount    atomic.Int64
 	estimatedCost atomic.Uint64 // In cents
 
-	// Settings
+	// Settings.
 	settings LLMMonitorSettings
 }
 
-// RAGSystemMonitor monitors RAG system latency
+// RAGSystemMonitor monitors RAG system latency.
 type RAGSystemMonitor struct {
 	mu sync.RWMutex
 
-	// Vector search
+	// Vector search.
 	vectorSearchLatency *LatencyTracker
 	embeddingLatency    *LatencyTracker
 
-	// Document operations
+	// Document operations.
 	documentRetrieval *LatencyTracker
 	documentRanking   *LatencyTracker
 
-	// Context building
+	// Context building.
 	contextGeneration *LatencyTracker
 	contextSize       atomic.Int64
 
-	// Cache performance
+	// Cache performance.
 	cacheHitLatency  *LatencyTracker
 	cacheMissLatency *LatencyTracker
 	cacheHitRate     *RateTracker
 
-	// Index operations
+	// Index operations.
 	indexUpdateLatency *LatencyTracker
 	indexSearchLatency *LatencyTracker
 
-	// Settings
+	// Settings.
 	settings RAGMonitorSettings
 }
 
-// GitOpsMonitor monitors GitOps pipeline latency
+// GitOpsMonitor monitors GitOps pipeline latency.
 type GitOpsMonitor struct {
 	mu sync.RWMutex
 
-	// Git operations
+	// Git operations.
 	cloneLatency  *LatencyTracker
 	fetchLatency  *LatencyTracker
 	pushLatency   *LatencyTracker
 	commitLatency *LatencyTracker
 
-	// Package operations
+	// Package operations.
 	packageGeneration *LatencyTracker
 	packageValidation *LatencyTracker
 
-	// Deployment operations
+	// Deployment operations.
 	deploymentLatency *LatencyTracker
 	syncLatency       *LatencyTracker
 
-	// Pipeline stages
+	// Pipeline stages.
 	stageLatencies map[string]*LatencyTracker
 
-	// Settings
+	// Settings.
 	settings GitOpsMonitorSettings
 }
 
-// DatabaseOperationMonitor monitors database operation latency
+// DatabaseOperationMonitor monitors database operation latency.
 type DatabaseOperationMonitor struct {
 	mu sync.RWMutex
 
-	// Query operations
+	// Query operations.
 	queryLatency map[string]*LatencyTracker // By query type
 	queryCount   atomic.Int64
 
-	// Connection management
+	// Connection management.
 	connectionWait *LatencyTracker
 	connectionPool *PoolMetrics
 
-	// Transaction metrics
+	// Transaction metrics.
 	transactionLatency *LatencyTracker
 	lockWaitTime       *LatencyTracker
 
-	// Slow query tracking
+	// Slow query tracking.
 	slowQueries *SlowQueryTracker
 
-	// Settings
+	// Settings.
 	settings DatabaseMonitorSettings
 }
 
-// CachePerformanceMonitor monitors cache performance
+// CachePerformanceMonitor monitors cache performance.
 type CachePerformanceMonitor struct {
 	mu sync.RWMutex
 
-	// Cache operations
+	// Cache operations.
 	getLatency    *LatencyTracker
 	setLatency    *LatencyTracker
 	deleteLatency *LatencyTracker
 
-	// Hit/Miss tracking
+	// Hit/Miss tracking.
 	hitCount  atomic.Int64
 	missCount atomic.Int64
 	hitRate   *RateTracker
 
-	// Eviction metrics
+	// Eviction metrics.
 	evictionCount   atomic.Int64
 	evictionLatency *LatencyTracker
 
-	// Size metrics
+	// Size metrics.
 	cacheSize   atomic.Int64
 	memoryUsage atomic.Int64
 
-	// Settings
+	// Settings.
 	settings CacheMonitorSettings
 }
 
-// QueueProcessingMonitor monitors message queue latency
+// QueueProcessingMonitor monitors message queue latency.
 type QueueProcessingMonitor struct {
 	mu sync.RWMutex
 
-	// Queue metrics by queue name
+	// Queue metrics by queue name.
 	queues map[string]*QueueMetrics
 
-	// Processing latency
+	// Processing latency.
 	enqueueLatency    *LatencyTracker
 	dequeueLatency    *LatencyTracker
 	processingLatency *LatencyTracker
 
-	// Queue depth
+	// Queue depth.
 	totalDepth atomic.Int64
 
-	// Settings
+	// Settings.
 	settings QueueMonitorSettings
 }
 
-// Supporting types
+// Supporting types.
 
+// LatencyTracker represents a latencytracker.
 type LatencyTracker struct {
 	mu           sync.RWMutex
 	samples      []LatencySample
@@ -252,12 +253,14 @@ type LatencyTracker struct {
 	totalLatency int64
 }
 
+// LatencySample represents a latencysample.
 type LatencySample struct {
 	Timestamp time.Time
 	Duration  time.Duration
 	Tags      map[string]string
 }
 
+// RateTracker represents a ratetracker.
 type RateTracker struct {
 	mu          sync.RWMutex
 	window      time.Duration
@@ -265,6 +268,7 @@ type RateTracker struct {
 	currentRate float64
 }
 
+// QueueMetrics represents a queuemetrics.
 type QueueMetrics struct {
 	Depth       atomic.Int64
 	EnqueueRate *RateTracker
@@ -273,6 +277,7 @@ type QueueMetrics struct {
 	WaitTime    *LatencyTracker
 }
 
+// PoolMetrics represents a poolmetrics.
 type PoolMetrics struct {
 	ActiveConnections atomic.Int64
 	IdleConnections   atomic.Int64
@@ -281,6 +286,7 @@ type PoolMetrics struct {
 	WaitTime          *LatencyTracker
 }
 
+// SlowQueryTracker represents a slowquerytracker.
 type SlowQueryTracker struct {
 	mu         sync.RWMutex
 	queries    []SlowQuery
@@ -288,6 +294,7 @@ type SlowQueryTracker struct {
 	maxQueries int
 }
 
+// SlowQuery represents a slowquery.
 type SlowQuery struct {
 	Query      string
 	Duration   time.Duration
@@ -295,12 +302,14 @@ type SlowQuery struct {
 	Parameters map[string]interface{}
 }
 
+// ComponentAggregator represents a componentaggregator.
 type ComponentAggregator struct {
 	mu              sync.RWMutex
 	aggregates      map[string]*ComponentAggregate
 	lastAggregation time.Time
 }
 
+// ComponentAggregate represents a componentaggregate.
 type ComponentAggregate struct {
 	Component    string
 	TotalLatency time.Duration
@@ -312,12 +321,14 @@ type ComponentAggregate struct {
 	MinLatency   time.Duration
 }
 
+// ComponentPerformanceTracker represents a componentperformancetracker.
 type ComponentPerformanceTracker struct {
 	mu          sync.RWMutex
 	performance map[string]*PerformanceMetrics
 	trends      map[string]*PerformanceTrend
 }
 
+// PerformanceMetrics represents a performancemetrics.
 type PerformanceMetrics struct {
 	Component       string
 	CurrentLatency  time.Duration
@@ -326,6 +337,7 @@ type PerformanceMetrics struct {
 	TrendDirection  string // "improving", "degrading", "stable"
 }
 
+// PerformanceTrend represents a performancetrend.
 type PerformanceTrend struct {
 	Component  string
 	DataPoints []TrendPoint
@@ -333,11 +345,13 @@ type PerformanceTrend struct {
 	Prediction time.Duration
 }
 
+// TrendPoint represents a trendpoint.
 type TrendPoint struct {
 	Timestamp time.Time
 	Value     time.Duration
 }
 
+// ComponentMetrics represents a componentmetrics.
 type ComponentMetrics struct {
 	componentLatency    *prometheus.HistogramVec
 	componentThroughput *prometheus.GaugeVec
@@ -346,8 +360,9 @@ type ComponentMetrics struct {
 	cacheHitRate        prometheus.Gauge
 }
 
-// Monitor settings for each component
+// Monitor settings for each component.
 
+// ControllerMonitorSettings represents a controllermonitorsettings.
 type ControllerMonitorSettings struct {
 	EnableReconcileTracking bool          `json:"enable_reconcile_tracking"`
 	EnableAPITracking       bool          `json:"enable_api_tracking"`
@@ -356,6 +371,7 @@ type ControllerMonitorSettings struct {
 	ReconcileTimeout        time.Duration `json:"reconcile_timeout"`
 }
 
+// LLMMonitorSettings represents a llmmonitorsettings.
 type LLMMonitorSettings struct {
 	EnableTokenTracking   bool          `json:"enable_token_tracking"`
 	EnableCostTracking    bool          `json:"enable_cost_tracking"`
@@ -364,6 +380,7 @@ type LLMMonitorSettings struct {
 	SlowResponseThreshold time.Duration `json:"slow_response_threshold"`
 }
 
+// RAGMonitorSettings represents a ragmonitorsettings.
 type RAGMonitorSettings struct {
 	EnableVectorMetrics bool          `json:"enable_vector_metrics"`
 	EnableCacheMetrics  bool          `json:"enable_cache_metrics"`
@@ -372,6 +389,7 @@ type RAGMonitorSettings struct {
 	SlowSearchThreshold time.Duration `json:"slow_search_threshold"`
 }
 
+// GitOpsMonitorSettings represents a gitopsmonitorsettings.
 type GitOpsMonitorSettings struct {
 	EnableGitMetrics       bool          `json:"enable_git_metrics"`
 	EnablePipelineMetrics  bool          `json:"enable_pipeline_metrics"`
@@ -380,6 +398,7 @@ type GitOpsMonitorSettings struct {
 	SlowOperationThreshold time.Duration `json:"slow_operation_threshold"`
 }
 
+// DatabaseMonitorSettings represents a databasemonitorsettings.
 type DatabaseMonitorSettings struct {
 	EnableQueryTracking bool          `json:"enable_query_tracking"`
 	EnablePoolMetrics   bool          `json:"enable_pool_metrics"`
@@ -388,6 +407,7 @@ type DatabaseMonitorSettings struct {
 	MaxSlowQueries      int           `json:"max_slow_queries"`
 }
 
+// CacheMonitorSettings represents a cachemonitorsettings.
 type CacheMonitorSettings struct {
 	EnableHitRateTracking bool `json:"enable_hit_rate_tracking"`
 	EnableSizeMetrics     bool `json:"enable_size_metrics"`
@@ -395,6 +415,7 @@ type CacheMonitorSettings struct {
 	MaxSamples            int  `json:"max_samples"`
 }
 
+// QueueMonitorSettings represents a queuemonitorsettings.
 type QueueMonitorSettings struct {
 	EnableDepthTracking   bool `json:"enable_depth_tracking"`
 	EnableRateMetrics     bool `json:"enable_rate_metrics"`
@@ -402,7 +423,7 @@ type QueueMonitorSettings struct {
 	MaxQueues             int  `json:"max_queues"`
 }
 
-// NewComponentMonitor creates a new component monitor
+// NewComponentMonitor creates a new component monitor.
 func NewComponentMonitor(config *ComponentMonitorConfig) *ComponentMonitor {
 	if config == nil {
 		config = DefaultComponentMonitorConfig()
@@ -414,7 +435,7 @@ func NewComponentMonitor(config *ComponentMonitorConfig) *ComponentMonitor {
 		performanceTracker: NewComponentPerformanceTracker(),
 	}
 
-	// Initialize component monitors
+	// Initialize component monitors.
 	monitor.controllerMonitor = NewControllerLatencyMonitor(config.ControllerSettings)
 	monitor.llmMonitor = NewLLMProcessorMonitor(config.LLMSettings)
 	monitor.ragMonitor = NewRAGSystemMonitor(config.RAGSettings)
@@ -423,103 +444,104 @@ func NewComponentMonitor(config *ComponentMonitorConfig) *ComponentMonitor {
 	monitor.cacheMonitor = NewCachePerformanceMonitor(config.CacheSettings)
 	monitor.queueMonitor = NewQueueProcessingMonitor(config.QueueSettings)
 
-	// Initialize metrics
+	// Initialize metrics.
 	monitor.initMetrics()
 
-	// Start background tasks
+	// Start background tasks.
 	go monitor.runAggregation()
 
 	return monitor
 }
 
-// RecordControllerLatency records controller operation latency
+// RecordControllerLatency records controller operation latency.
 func (m *ComponentMonitor) RecordControllerLatency(ctx context.Context, operation string, duration time.Duration) {
 	m.controllerMonitor.RecordLatency(operation, duration)
 	m.aggregator.Record("controller", operation, duration)
 	m.performanceTracker.Update("controller", duration)
 }
 
-// RecordLLMLatency records LLM processing latency
+// RecordLLMLatency records LLM processing latency.
 func (m *ComponentMonitor) RecordLLMLatency(ctx context.Context, model string, operation string, duration time.Duration, tokens int) {
 	m.llmMonitor.RecordLatency(model, operation, duration, tokens)
 	m.aggregator.Record("llm_processor", operation, duration)
 	m.performanceTracker.Update("llm_processor", duration)
 }
 
-// RecordRAGLatency records RAG system latency
+// RecordRAGLatency records RAG system latency.
 func (m *ComponentMonitor) RecordRAGLatency(ctx context.Context, operation string, duration time.Duration, cacheHit bool) {
 	m.ragMonitor.RecordLatency(operation, duration, cacheHit)
 	m.aggregator.Record("rag_system", operation, duration)
 	m.performanceTracker.Update("rag_system", duration)
 }
 
-// RecordGitOpsLatency records GitOps operation latency
+// RecordGitOpsLatency records GitOps operation latency.
 func (m *ComponentMonitor) RecordGitOpsLatency(ctx context.Context, operation string, stage string, duration time.Duration) {
 	m.gitopsMonitor.RecordLatency(operation, stage, duration)
 	m.aggregator.Record("gitops", operation, duration)
 	m.performanceTracker.Update("gitops", duration)
 }
 
-// RecordDatabaseLatency records database operation latency
+// RecordDatabaseLatency records database operation latency.
 func (m *ComponentMonitor) RecordDatabaseLatency(ctx context.Context, queryType string, duration time.Duration, rowsAffected int64) {
 	m.databaseMonitor.RecordLatency(queryType, duration, rowsAffected)
 	m.aggregator.Record("database", queryType, duration)
 	m.performanceTracker.Update("database", duration)
 }
 
-// RecordCacheLatency records cache operation latency
+// RecordCacheLatency records cache operation latency.
 func (m *ComponentMonitor) RecordCacheLatency(ctx context.Context, operation string, duration time.Duration, hit bool) {
 	m.cacheMonitor.RecordLatency(operation, duration, hit)
 	m.aggregator.Record("cache", operation, duration)
 	m.performanceTracker.Update("cache", duration)
 }
 
-// RecordQueueLatency records queue processing latency
+// RecordQueueLatency records queue processing latency.
 func (m *ComponentMonitor) RecordQueueLatency(ctx context.Context, queueName string, operation string, duration time.Duration) {
 	m.queueMonitor.RecordLatency(queueName, operation, duration)
 	m.aggregator.Record(fmt.Sprintf("queue_%s", queueName), operation, duration)
 	m.performanceTracker.Update(fmt.Sprintf("queue_%s", queueName), duration)
 }
 
-// GetComponentReport returns a comprehensive component latency report
+// GetComponentReport returns a comprehensive component latency report.
 func (m *ComponentMonitor) GetComponentReport() *ComponentLatencyReport {
 	report := &ComponentLatencyReport{
 		Timestamp:  time.Now(),
 		Components: make(map[string]*ComponentStats),
 	}
 
-	// Controller stats
+	// Controller stats.
 	report.Components["controller"] = m.controllerMonitor.GetStats()
 
-	// LLM stats
+	// LLM stats.
 	report.Components["llm_processor"] = m.llmMonitor.GetStats()
 
-	// RAG stats
+	// RAG stats.
 	report.Components["rag_system"] = m.ragMonitor.GetStats()
 
-	// GitOps stats
+	// GitOps stats.
 	report.Components["gitops"] = m.gitopsMonitor.GetStats()
 
-	// Database stats
+	// Database stats.
 	report.Components["database"] = m.databaseMonitor.GetStats()
 
-	// Cache stats
+	// Cache stats.
 	report.Components["cache"] = m.cacheMonitor.GetStats()
 
-	// Queue stats
+	// Queue stats.
 	report.Components["queue"] = m.queueMonitor.GetStats()
 
-	// Add aggregated metrics
+	// Add aggregated metrics.
 	report.Aggregates = m.aggregator.GetAggregates()
 
-	// Add performance trends
+	// Add performance trends.
 	report.PerformanceTrends = m.performanceTracker.GetTrends()
 
 	return report
 }
 
-// Component monitor implementations
+// Component monitor implementations.
 
+// NewControllerLatencyMonitor performs newcontrollerlatencymonitor operation.
 func NewControllerLatencyMonitor(settings ControllerMonitorSettings) *ControllerLatencyMonitor {
 	return &ControllerLatencyMonitor{
 		reconcileLatency: NewLatencyTracker(settings.MaxSamples),
@@ -535,6 +557,7 @@ func NewControllerLatencyMonitor(settings ControllerMonitorSettings) *Controller
 	}
 }
 
+// RecordLatency performs recordlatency operation.
 func (c *ControllerLatencyMonitor) RecordLatency(operation string, duration time.Duration) {
 	switch operation {
 	case "reconcile":
@@ -557,6 +580,7 @@ func (c *ControllerLatencyMonitor) RecordLatency(operation string, duration time
 	}
 }
 
+// GetStats performs getstats operation.
 func (c *ControllerLatencyMonitor) GetStats() *ComponentStats {
 	return &ComponentStats{
 		Component: "controller",
@@ -578,6 +602,7 @@ func (c *ControllerLatencyMonitor) GetStats() *ComponentStats {
 	}
 }
 
+// NewLLMProcessorMonitor performs newllmprocessormonitor operation.
 func NewLLMProcessorMonitor(settings LLMMonitorSettings) *LLMProcessorMonitor {
 	return &LLMProcessorMonitor{
 		tokenGeneration:    NewLatencyTracker(settings.MaxSamples),
@@ -593,18 +618,19 @@ func NewLLMProcessorMonitor(settings LLMMonitorSettings) *LLMProcessorMonitor {
 	}
 }
 
+// RecordLatency performs recordlatency operation.
 func (l *LLMProcessorMonitor) RecordLatency(model, operation string, duration time.Duration, tokens int) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	// Record model-specific latency
+	// Record model-specific latency.
 	if _, exists := l.modelLatency[model]; !exists {
 		l.modelLatency[model] = NewLatencyTracker(l.settings.MaxSamples)
 	}
 	l.modelLatency[model].Add(duration)
 	l.modelUsage[model]++
 
-	// Record operation-specific latency
+	// Record operation-specific latency.
 	switch operation {
 	case "token_generation":
 		l.tokenGeneration.Add(duration)
@@ -624,15 +650,16 @@ func (l *LLMProcessorMonitor) RecordLatency(model, operation string, duration ti
 		l.streamChunkLatency.Add(duration)
 	}
 
-	// Update token count and cost
+	// Update token count and cost.
 	if tokens > 0 {
 		l.tokenCount.Add(int64(tokens))
-		// Estimate cost (simplified - would use actual pricing)
+		// Estimate cost (simplified - would use actual pricing).
 		costCents := uint64(tokens) * 2 / 1000 // $0.02 per 1K tokens
 		l.estimatedCost.Add(costCents)
 	}
 }
 
+// GetStats performs getstats operation.
 func (l *LLMProcessorMonitor) GetStats() *ComponentStats {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
@@ -655,7 +682,7 @@ func (l *LLMProcessorMonitor) GetStats() *ComponentStats {
 		ModelStats: make(map[string]*ModelStats),
 	}
 
-	// Add model-specific stats
+	// Add model-specific stats.
 	for model, tracker := range l.modelLatency {
 		stats.ModelStats[model] = &ModelStats{
 			Model:   model,
@@ -667,6 +694,7 @@ func (l *LLMProcessorMonitor) GetStats() *ComponentStats {
 	return stats
 }
 
+// NewRAGSystemMonitor performs newragsystemmonitor operation.
 func NewRAGSystemMonitor(settings RAGMonitorSettings) *RAGSystemMonitor {
 	return &RAGSystemMonitor{
 		vectorSearchLatency: NewLatencyTracker(settings.MaxSamples),
@@ -683,6 +711,7 @@ func NewRAGSystemMonitor(settings RAGMonitorSettings) *RAGSystemMonitor {
 	}
 }
 
+// RecordLatency performs recordlatency operation.
 func (r *RAGSystemMonitor) RecordLatency(operation string, duration time.Duration, cacheHit bool) {
 	switch operation {
 	case "vector_search":
@@ -701,7 +730,7 @@ func (r *RAGSystemMonitor) RecordLatency(operation string, duration time.Duratio
 		r.indexSearchLatency.Add(duration)
 	}
 
-	// Record cache metrics
+	// Record cache metrics.
 	if cacheHit {
 		r.cacheHitLatency.Add(duration)
 		r.cacheHitRate.Record(1)
@@ -711,6 +740,7 @@ func (r *RAGSystemMonitor) RecordLatency(operation string, duration time.Duratio
 	}
 }
 
+// GetStats performs getstats operation.
 func (r *RAGSystemMonitor) GetStats() *ComponentStats {
 	return &ComponentStats{
 		Component: "rag_system",
@@ -734,6 +764,7 @@ func (r *RAGSystemMonitor) GetStats() *ComponentStats {
 	}
 }
 
+// NewGitOpsMonitor performs newgitopsmonitor operation.
 func NewGitOpsMonitor(settings GitOpsMonitorSettings) *GitOpsMonitor {
 	return &GitOpsMonitor{
 		cloneLatency:      NewLatencyTracker(settings.MaxSamples),
@@ -749,6 +780,7 @@ func NewGitOpsMonitor(settings GitOpsMonitorSettings) *GitOpsMonitor {
 	}
 }
 
+// RecordLatency performs recordlatency operation.
 func (g *GitOpsMonitor) RecordLatency(operation, stage string, duration time.Duration) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -772,7 +804,7 @@ func (g *GitOpsMonitor) RecordLatency(operation, stage string, duration time.Dur
 		g.syncLatency.Add(duration)
 	}
 
-	// Record stage-specific latency
+	// Record stage-specific latency.
 	if stage != "" {
 		if _, exists := g.stageLatencies[stage]; !exists {
 			g.stageLatencies[stage] = NewLatencyTracker(g.settings.MaxSamples)
@@ -781,6 +813,7 @@ func (g *GitOpsMonitor) RecordLatency(operation, stage string, duration time.Dur
 	}
 }
 
+// GetStats performs getstats operation.
 func (g *GitOpsMonitor) GetStats() *ComponentStats {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
@@ -800,7 +833,7 @@ func (g *GitOpsMonitor) GetStats() *ComponentStats {
 		StageLatencies: make(map[string]*LatencyStats),
 	}
 
-	// Add stage-specific stats
+	// Add stage-specific stats.
 	for stage, tracker := range g.stageLatencies {
 		stats.StageLatencies[stage] = tracker.GetStats()
 	}
@@ -808,6 +841,7 @@ func (g *GitOpsMonitor) GetStats() *ComponentStats {
 	return stats
 }
 
+// NewDatabaseOperationMonitor performs newdatabaseoperationmonitor operation.
 func NewDatabaseOperationMonitor(settings DatabaseMonitorSettings) *DatabaseOperationMonitor {
 	return &DatabaseOperationMonitor{
 		queryLatency:       make(map[string]*LatencyTracker),
@@ -820,18 +854,19 @@ func NewDatabaseOperationMonitor(settings DatabaseMonitorSettings) *DatabaseOper
 	}
 }
 
+// RecordLatency performs recordlatency operation.
 func (d *DatabaseOperationMonitor) RecordLatency(queryType string, duration time.Duration, rowsAffected int64) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	// Record query-specific latency
+	// Record query-specific latency.
 	if _, exists := d.queryLatency[queryType]; !exists {
 		d.queryLatency[queryType] = NewLatencyTracker(1000)
 	}
 	d.queryLatency[queryType].Add(duration)
 	d.queryCount.Add(1)
 
-	// Check for slow query
+	// Check for slow query.
 	if d.settings.EnableSlowQueryLog && duration > d.settings.SlowQueryThreshold {
 		d.slowQueries.Add(SlowQuery{
 			Query:     queryType,
@@ -841,6 +876,7 @@ func (d *DatabaseOperationMonitor) RecordLatency(queryType string, duration time
 	}
 }
 
+// GetStats performs getstats operation.
 func (d *DatabaseOperationMonitor) GetStats() *ComponentStats {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
@@ -857,7 +893,7 @@ func (d *DatabaseOperationMonitor) GetStats() *ComponentStats {
 		},
 	}
 
-	// Add query-specific stats
+	// Add query-specific stats.
 	for queryType, tracker := range d.queryLatency {
 		stats.Latencies[fmt.Sprintf("query_%s", queryType)] = tracker.GetStats()
 	}
@@ -866,12 +902,13 @@ func (d *DatabaseOperationMonitor) GetStats() *ComponentStats {
 	stats.Latencies["transaction"] = d.transactionLatency.GetStats()
 	stats.Latencies["lock_wait"] = d.lockWaitTime.GetStats()
 
-	// Add slow queries
+	// Add slow queries.
 	stats.SlowQueries = d.slowQueries.GetQueries()
 
 	return stats
 }
 
+// NewCachePerformanceMonitor performs newcacheperformancemonitor operation.
 func NewCachePerformanceMonitor(settings CacheMonitorSettings) *CachePerformanceMonitor {
 	return &CachePerformanceMonitor{
 		getLatency:      NewLatencyTracker(settings.MaxSamples),
@@ -883,6 +920,7 @@ func NewCachePerformanceMonitor(settings CacheMonitorSettings) *CachePerformance
 	}
 }
 
+// RecordLatency performs recordlatency operation.
 func (c *CachePerformanceMonitor) RecordLatency(operation string, duration time.Duration, hit bool) {
 	switch operation {
 	case "get":
@@ -904,6 +942,7 @@ func (c *CachePerformanceMonitor) RecordLatency(operation string, duration time.
 	}
 }
 
+// GetStats performs getstats operation.
 func (c *CachePerformanceMonitor) GetStats() *ComponentStats {
 	hits := c.hitCount.Load()
 	misses := c.missCount.Load()
@@ -936,6 +975,7 @@ func (c *CachePerformanceMonitor) GetStats() *ComponentStats {
 	}
 }
 
+// NewQueueProcessingMonitor performs newqueueprocessingmonitor operation.
 func NewQueueProcessingMonitor(settings QueueMonitorSettings) *QueueProcessingMonitor {
 	return &QueueProcessingMonitor{
 		queues:            make(map[string]*QueueMetrics),
@@ -946,11 +986,12 @@ func NewQueueProcessingMonitor(settings QueueMonitorSettings) *QueueProcessingMo
 	}
 }
 
+// RecordLatency performs recordlatency operation.
 func (q *QueueProcessingMonitor) RecordLatency(queueName, operation string, duration time.Duration) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
-	// Get or create queue metrics
+	// Get or create queue metrics.
 	if _, exists := q.queues[queueName]; !exists {
 		q.queues[queueName] = &QueueMetrics{
 			EnqueueRate: NewRateTracker(time.Minute),
@@ -977,6 +1018,7 @@ func (q *QueueProcessingMonitor) RecordLatency(queueName, operation string, dura
 	}
 }
 
+// GetStats performs getstats operation.
 func (q *QueueProcessingMonitor) GetStats() *ComponentStats {
 	q.mu.RLock()
 	defer q.mu.RUnlock()
@@ -994,7 +1036,7 @@ func (q *QueueProcessingMonitor) GetStats() *ComponentStats {
 		},
 	}
 
-	// Add queue-specific stats
+	// Add queue-specific stats.
 	for name, queue := range q.queues {
 		stats.QueueStats[name] = &QueueStats{
 			Name:        name,
@@ -1009,8 +1051,9 @@ func (q *QueueProcessingMonitor) GetStats() *ComponentStats {
 	return stats
 }
 
-// Helper implementations
+// Helper implementations.
 
+// NewLatencyTracker performs newlatencytracker operation.
 func NewLatencyTracker(maxSamples int) *LatencyTracker {
 	if maxSamples <= 0 {
 		maxSamples = 1000
@@ -1021,6 +1064,7 @@ func NewLatencyTracker(maxSamples int) *LatencyTracker {
 	}
 }
 
+// Add performs add operation.
 func (l *LatencyTracker) Add(duration time.Duration) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -1038,7 +1082,7 @@ func (l *LatencyTracker) Add(duration time.Duration) {
 	l.totalCount++
 	l.totalLatency += int64(duration)
 
-	// Update percentiles
+	// Update percentiles.
 	l.updatePercentiles()
 }
 
@@ -1047,13 +1091,13 @@ func (l *LatencyTracker) updatePercentiles() {
 		return
 	}
 
-	// Create sorted copy
+	// Create sorted copy.
 	durations := make([]time.Duration, len(l.samples))
 	for i, s := range l.samples {
 		durations[i] = s.Duration
 	}
 
-	// Simple bubble sort for small datasets
+	// Simple bubble sort for small datasets.
 	for i := 0; i < len(durations); i++ {
 		for j := i + 1; j < len(durations); j++ {
 			if durations[j] < durations[i] {
@@ -1062,7 +1106,7 @@ func (l *LatencyTracker) updatePercentiles() {
 		}
 	}
 
-	// Calculate percentiles
+	// Calculate percentiles.
 	p50Index := len(durations) * 50 / 100
 	p95Index := len(durations) * 95 / 100
 	p99Index := len(durations) * 99 / 100
@@ -1078,6 +1122,7 @@ func (l *LatencyTracker) updatePercentiles() {
 	}
 }
 
+// GetStats performs getstats operation.
 func (l *LatencyTracker) GetStats() *LatencyStats {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
@@ -1096,6 +1141,7 @@ func (l *LatencyTracker) GetStats() *LatencyStats {
 	}
 }
 
+// NewRateTracker performs newratetracker operation.
 func NewRateTracker(window time.Duration) *RateTracker {
 	return &RateTracker{
 		window:  window,
@@ -1103,6 +1149,7 @@ func NewRateTracker(window time.Duration) *RateTracker {
 	}
 }
 
+// Record performs record operation.
 func (r *RateTracker) Record(value int64) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -1110,7 +1157,7 @@ func (r *RateTracker) Record(value int64) {
 	now := time.Now().Truncate(time.Second)
 	r.buckets[now] += value
 
-	// Clean old buckets
+	// Clean old buckets.
 	cutoff := now.Add(-r.window)
 	for t := range r.buckets {
 		if t.Before(cutoff) {
@@ -1118,7 +1165,7 @@ func (r *RateTracker) Record(value int64) {
 		}
 	}
 
-	// Calculate rate
+	// Calculate rate.
 	total := int64(0)
 	for _, v := range r.buckets {
 		total += v
@@ -1127,12 +1174,14 @@ func (r *RateTracker) Record(value int64) {
 	r.currentRate = float64(total) / r.window.Seconds()
 }
 
+// GetRate performs getrate operation.
 func (r *RateTracker) GetRate() float64 {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.currentRate
 }
 
+// NewSlowQueryTracker performs newslowquerytracker operation.
 func NewSlowQueryTracker(threshold time.Duration, maxQueries int) *SlowQueryTracker {
 	return &SlowQueryTracker{
 		queries:    make([]SlowQuery, 0, maxQueries),
@@ -1141,6 +1190,7 @@ func NewSlowQueryTracker(threshold time.Duration, maxQueries int) *SlowQueryTrac
 	}
 }
 
+// Add performs add operation.
 func (s *SlowQueryTracker) Add(query SlowQuery) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -1155,6 +1205,7 @@ func (s *SlowQueryTracker) Add(query SlowQuery) {
 	}
 }
 
+// GetQueries performs getqueries operation.
 func (s *SlowQueryTracker) GetQueries() []SlowQuery {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -1164,12 +1215,14 @@ func (s *SlowQueryTracker) GetQueries() []SlowQuery {
 	return result
 }
 
+// NewComponentAggregator performs newcomponentaggregator operation.
 func NewComponentAggregator() *ComponentAggregator {
 	return &ComponentAggregator{
 		aggregates: make(map[string]*ComponentAggregate),
 	}
 }
 
+// Record performs record operation.
 func (a *ComponentAggregator) Record(component, operation string, duration time.Duration) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -1196,6 +1249,7 @@ func (a *ComponentAggregator) Record(component, operation string, duration time.
 	}
 }
 
+// GetAggregates performs getaggregates operation.
 func (a *ComponentAggregator) GetAggregates() map[string]*ComponentAggregate {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -1217,6 +1271,7 @@ func (a *ComponentAggregator) GetAggregates() map[string]*ComponentAggregate {
 	return result
 }
 
+// NewComponentPerformanceTracker performs newcomponentperformancetracker operation.
 func NewComponentPerformanceTracker() *ComponentPerformanceTracker {
 	return &ComponentPerformanceTracker{
 		performance: make(map[string]*PerformanceMetrics),
@@ -1224,6 +1279,7 @@ func NewComponentPerformanceTracker() *ComponentPerformanceTracker {
 	}
 }
 
+// Update performs update operation.
 func (p *ComponentPerformanceTracker) Update(component string, latency time.Duration) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -1242,24 +1298,24 @@ func (p *ComponentPerformanceTracker) Update(component string, latency time.Dura
 	perf := p.performance[component]
 	perf.CurrentLatency = latency
 
-	// Calculate deviation from baseline
+	// Calculate deviation from baseline.
 	if perf.BaselineLatency > 0 {
 		perf.Deviation = float64(latency-perf.BaselineLatency) / float64(perf.BaselineLatency)
 	}
 
-	// Determine trend direction
+	// Determine trend direction.
 	trend := p.trends[component]
 	trend.DataPoints = append(trend.DataPoints, TrendPoint{
 		Timestamp: time.Now(),
 		Value:     latency,
 	})
 
-	// Keep only last 100 points
+	// Keep only last 100 points.
 	if len(trend.DataPoints) > 100 {
 		trend.DataPoints = trend.DataPoints[len(trend.DataPoints)-100:]
 	}
 
-	// Calculate trend
+	// Calculate trend.
 	if len(trend.DataPoints) >= 10 {
 		p.calculateTrend(trend)
 
@@ -1274,7 +1330,7 @@ func (p *ComponentPerformanceTracker) Update(component string, latency time.Dura
 }
 
 func (p *ComponentPerformanceTracker) calculateTrend(trend *PerformanceTrend) {
-	// Simple linear regression
+	// Simple linear regression.
 	n := len(trend.DataPoints)
 	if n < 2 {
 		return
@@ -1292,18 +1348,19 @@ func (p *ComponentPerformanceTracker) calculateTrend(trend *PerformanceTrend) {
 		sumX2 += x * x
 	}
 
-	// Calculate slope
+	// Calculate slope.
 	denominator := float64(n)*sumX2 - sumX*sumX
 	if denominator != 0 {
 		trend.Slope = (float64(n)*sumXY - sumX*sumY) / denominator
 
-		// Predict next value
+		// Predict next value.
 		intercept := (sumY - trend.Slope*sumX) / float64(n)
 		nextX := float64(n)
 		trend.Prediction = time.Duration(trend.Slope*nextX + intercept)
 	}
 }
 
+// GetTrends performs gettrends operation.
 func (p *ComponentPerformanceTracker) GetTrends() map[string]*PerformanceTrend {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -1322,7 +1379,7 @@ func (m *ComponentMonitor) runAggregation() {
 
 	for range ticker.C {
 		m.aggregator.lastAggregation = time.Now()
-		// Perform any periodic aggregation tasks
+		// Perform any periodic aggregation tasks.
 	}
 }
 
@@ -1356,8 +1413,9 @@ func (m *ComponentMonitor) initMetrics() {
 	}
 }
 
-// Report types
+// Report types.
 
+// ComponentLatencyReport represents a componentlatencyreport.
 type ComponentLatencyReport struct {
 	Timestamp         time.Time                      `json:"timestamp"`
 	Components        map[string]*ComponentStats     `json:"components"`
@@ -1365,6 +1423,7 @@ type ComponentLatencyReport struct {
 	PerformanceTrends map[string]*PerformanceTrend   `json:"performance_trends"`
 }
 
+// ComponentStats represents a componentstats.
 type ComponentStats struct {
 	Component      string                   `json:"component"`
 	Latencies      map[string]*LatencyStats `json:"latencies"`
@@ -1376,6 +1435,7 @@ type ComponentStats struct {
 	SlowQueries    []SlowQuery              `json:"slow_queries,omitempty"`
 }
 
+// LatencyStats represents a latencystats.
 type LatencyStats struct {
 	Count   int64         `json:"count"`
 	Mean    time.Duration `json:"mean"`
@@ -1385,12 +1445,14 @@ type LatencyStats struct {
 	Samples int           `json:"samples"`
 }
 
+// ModelStats represents a modelstats.
 type ModelStats struct {
 	Model   string        `json:"model"`
 	Usage   int64         `json:"usage"`
 	Latency *LatencyStats `json:"latency"`
 }
 
+// QueueStats represents a queuestats.
 type QueueStats struct {
 	Name        string        `json:"name"`
 	Depth       int64         `json:"depth"`
@@ -1400,7 +1462,7 @@ type QueueStats struct {
 	WaitTime    *LatencyStats `json:"wait_time"`
 }
 
-// DefaultComponentMonitorConfig returns default configuration
+// DefaultComponentMonitorConfig returns default configuration.
 func DefaultComponentMonitorConfig() *ComponentMonitorConfig {
 	return &ComponentMonitorConfig{
 		SamplingInterval:    100 * time.Millisecond,

@@ -6,35 +6,35 @@ import (
 	"time"
 )
 
-// BoundedStats implements memory-efficient statistics collection with rolling windows
+// BoundedStats implements memory-efficient statistics collection with rolling windows.
 type BoundedStats struct {
 	mu sync.RWMutex
 
-	// Counters (atomic for lock-free access)
+	// Counters (atomic for lock-free access).
 	totalProcessed atomic.Int64
 	successCount   atomic.Int64
 	failureCount   atomic.Int64
 	timeoutCount   atomic.Int64
 
-	// Rolling windows for time-series data
+	// Rolling windows for time-series data.
 	processingTimes  *RingBuffer
 	queueDepths      *RingBuffer
 	throughputWindow *ThroughputWindow
 
-	// Aggregated metrics (updated periodically)
+	// Aggregated metrics (updated periodically).
 	aggregates      *AggregatedMetrics
 	lastAggregation time.Time
 
-	// Memory-efficient file tracking
+	// Memory-efficient file tracking.
 	recentFiles  *BoundedFileList
 	errorSummary *ErrorSummary
 
-	// Resource metrics
+	// Resource metrics.
 	memorySnapshots *RingBuffer
 	cpuSnapshots    *RingBuffer
 }
 
-// AggregatedMetrics holds pre-computed aggregate values
+// AggregatedMetrics holds pre-computed aggregate values.
 type AggregatedMetrics struct {
 	AvgProcessingTime time.Duration
 	P50ProcessingTime time.Duration
@@ -47,7 +47,7 @@ type AggregatedMetrics struct {
 	LastUpdate        time.Time
 }
 
-// ThroughputWindow tracks throughput over a sliding window
+// ThroughputWindow tracks throughput over a sliding window.
 type ThroughputWindow struct {
 	mu         sync.Mutex
 	buckets    []int64
@@ -57,7 +57,7 @@ type ThroughputWindow struct {
 	lastUpdate time.Time
 }
 
-// BoundedFileList maintains a bounded list of recent files
+// BoundedFileList maintains a bounded list of recent files.
 type BoundedFileList struct {
 	mu      sync.RWMutex
 	files   []FileInfo
@@ -65,7 +65,7 @@ type BoundedFileList struct {
 	current int
 }
 
-// FileInfo stores minimal file information
+// FileInfo stores minimal file information.
 type FileInfo struct {
 	Name      string // Just filename, not full path
 	Size      int64
@@ -73,14 +73,14 @@ type FileInfo struct {
 	Status    string
 }
 
-// ErrorSummary tracks error counts by type
+// ErrorSummary tracks error counts by type.
 type ErrorSummary struct {
 	mu      sync.RWMutex
 	counts  map[string]int64
 	maxKeys int
 }
 
-// RingBuffer implements a fixed-size circular buffer for numeric values
+// RingBuffer implements a fixed-size circular buffer for numeric values.
 type RingBuffer struct {
 	mu       sync.RWMutex
 	data     []float64
@@ -89,7 +89,7 @@ type RingBuffer struct {
 	count    int
 }
 
-// BoundedStatsConfig configures the bounded statistics collector
+// BoundedStatsConfig configures the bounded statistics collector.
 type BoundedStatsConfig struct {
 	ProcessingWindowSize int           // Number of samples for processing times
 	QueueWindowSize      int           // Number of samples for queue depths
@@ -100,7 +100,7 @@ type BoundedStatsConfig struct {
 	AggregationInterval  time.Duration // How often to compute aggregates
 }
 
-// DefaultBoundedStatsConfig returns optimized default configuration
+// DefaultBoundedStatsConfig returns optimized default configuration.
 func DefaultBoundedStatsConfig() *BoundedStatsConfig {
 	return &BoundedStatsConfig{
 		ProcessingWindowSize: 1000,
@@ -113,7 +113,7 @@ func DefaultBoundedStatsConfig() *BoundedStatsConfig {
 	}
 }
 
-// NewBoundedStats creates a new bounded statistics collector
+// NewBoundedStats creates a new bounded statistics collector.
 func NewBoundedStats(config *BoundedStatsConfig) *BoundedStats {
 	if config == nil {
 		config = DefaultBoundedStatsConfig()
@@ -130,7 +130,7 @@ func NewBoundedStats(config *BoundedStatsConfig) *BoundedStats {
 		lastAggregation: time.Now(),
 	}
 
-	// Initialize throughput window
+	// Initialize throughput window.
 	stats.throughputWindow = &ThroughputWindow{
 		buckets:    make([]int64, config.ThroughputBuckets),
 		bucketSize: config.ThroughputInterval,
@@ -138,24 +138,24 @@ func NewBoundedStats(config *BoundedStatsConfig) *BoundedStats {
 		lastUpdate: time.Now(),
 	}
 
-	// Start aggregation goroutine
+	// Start aggregation goroutine.
 	go stats.aggregationLoop(config.AggregationInterval)
 
 	return stats
 }
 
-// RecordProcessing records a successful processing event
+// RecordProcessing records a successful processing event.
 func (s *BoundedStats) RecordProcessing(filename string, size int64, duration time.Duration) {
 	s.totalProcessed.Add(1)
 	s.successCount.Add(1)
 
-	// Add to processing times window
+	// Add to processing times window.
 	s.processingTimes.Add(float64(duration.Milliseconds()))
 
-	// Update throughput
+	// Update throughput.
 	s.throughputWindow.Increment()
 
-	// Add to recent files (memory-efficient)
+	// Add to recent files (memory-efficient).
 	s.recentFiles.Add(FileInfo{
 		Name:      extractFileName(filename),
 		Size:      size,
@@ -164,15 +164,15 @@ func (s *BoundedStats) RecordProcessing(filename string, size int64, duration ti
 	})
 }
 
-// RecordFailure records a failed processing event
-func (s *BoundedStats) RecordFailure(filename string, errorType string) {
+// RecordFailure records a failed processing event.
+func (s *BoundedStats) RecordFailure(filename, errorType string) {
 	s.totalProcessed.Add(1)
 	s.failureCount.Add(1)
 
-	// Update error summary
+	// Update error summary.
 	s.errorSummary.Increment(errorType)
 
-	// Add to recent files
+	// Add to recent files.
 	s.recentFiles.Add(FileInfo{
 		Name:      extractFileName(filename),
 		Size:      0,
@@ -181,29 +181,29 @@ func (s *BoundedStats) RecordFailure(filename string, errorType string) {
 	})
 }
 
-// RecordTimeout records a timeout event
+// RecordTimeout records a timeout event.
 func (s *BoundedStats) RecordTimeout() {
 	s.timeoutCount.Add(1)
 }
 
-// RecordQueueDepth records current queue depth
+// RecordQueueDepth records current queue depth.
 func (s *BoundedStats) RecordQueueDepth(depth int) {
 	s.queueDepths.Add(float64(depth))
 }
 
-// RecordMemoryUsage records current memory usage
+// RecordMemoryUsage records current memory usage.
 func (s *BoundedStats) RecordMemoryUsage(bytes int64) {
 	s.memorySnapshots.Add(float64(bytes))
 }
 
-// RecordCPUUsage records current CPU usage percentage
+// RecordCPUUsage records current CPU usage percentage.
 func (s *BoundedStats) RecordCPUUsage(percentage float64) {
 	s.cpuSnapshots.Add(percentage)
 }
 
-// GetSnapshot returns a lightweight snapshot of current statistics
+// GetSnapshot returns a lightweight snapshot of current statistics.
 func (s *BoundedStats) GetSnapshot() StatsSnapshot {
-	// Get latest aggregates
+	// Get latest aggregates.
 	s.mu.RLock()
 	aggregates := *s.aggregates
 	s.mu.RUnlock()
@@ -226,7 +226,7 @@ func (s *BoundedStats) GetSnapshot() StatsSnapshot {
 	}
 }
 
-// StatsSnapshot represents a point-in-time view of statistics
+// StatsSnapshot represents a point-in-time view of statistics.
 type StatsSnapshot struct {
 	TotalProcessed    int64
 	SuccessCount      int64
@@ -244,13 +244,13 @@ type StatsSnapshot struct {
 	LastUpdate        time.Time
 }
 
-// ErrorCount represents an error type and its count
+// ErrorCount represents an error type and its count.
 type ErrorCount struct {
 	Type  string
 	Count int64
 }
 
-// aggregationLoop periodically computes aggregate metrics
+// aggregationLoop periodically computes aggregate metrics.
 func (s *BoundedStats) aggregationLoop(interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -260,12 +260,12 @@ func (s *BoundedStats) aggregationLoop(interval time.Duration) {
 	}
 }
 
-// computeAggregates computes aggregate metrics from raw data
+// computeAggregates computes aggregate metrics from raw data.
 func (s *BoundedStats) computeAggregates() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// Calculate processing time percentiles
+	// Calculate processing time percentiles.
 	times := s.processingTimes.GetAll()
 	if len(times) > 0 {
 		s.aggregates.AvgProcessingTime = time.Duration(average(times)) * time.Millisecond
@@ -274,17 +274,17 @@ func (s *BoundedStats) computeAggregates() {
 		s.aggregates.P99ProcessingTime = time.Duration(percentile(times, 99)) * time.Millisecond
 	}
 
-	// Calculate queue depth metrics
+	// Calculate queue depth metrics.
 	depths := s.queueDepths.GetAll()
 	if len(depths) > 0 {
 		s.aggregates.AvgQueueDepth = average(depths)
 		s.aggregates.MaxQueueDepth = int(maximum(depths))
 	}
 
-	// Calculate throughput
+	// Calculate throughput.
 	s.aggregates.Throughput = s.throughputWindow.GetThroughput()
 
-	// Calculate success rate
+	// Calculate success rate.
 	total := s.totalProcessed.Load()
 	if total > 0 {
 		s.aggregates.SuccessRate = float64(s.successCount.Load()) / float64(total)
@@ -293,7 +293,7 @@ func (s *BoundedStats) computeAggregates() {
 	s.aggregates.LastUpdate = time.Now()
 }
 
-// NewRingBuffer creates a new ring buffer
+// NewRingBuffer creates a new ring buffer.
 func NewRingBuffer(size int) *RingBuffer {
 	return &RingBuffer{
 		data: make([]float64, size),
@@ -301,7 +301,7 @@ func NewRingBuffer(size int) *RingBuffer {
 	}
 }
 
-// Add adds a value to the ring buffer
+// Add adds a value to the ring buffer.
 func (r *RingBuffer) Add(value float64) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -313,7 +313,7 @@ func (r *RingBuffer) Add(value float64) {
 	}
 }
 
-// GetAll returns all values in the buffer
+// GetAll returns all values in the buffer.
 func (r *RingBuffer) GetAll() []float64 {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -326,7 +326,7 @@ func (r *RingBuffer) GetAll() []float64 {
 	if r.count < r.size {
 		copy(result, r.data[:r.count])
 	} else {
-		// Buffer is full, need to reconstruct in order
+		// Buffer is full, need to reconstruct in order.
 		idx := 0
 		for i := r.position; i < r.size; i++ {
 			result[idx] = r.data[i]
@@ -341,7 +341,7 @@ func (r *RingBuffer) GetAll() []float64 {
 	return result
 }
 
-// Average returns the average of all values
+// Average returns the average of all values.
 func (r *RingBuffer) Average() float64 {
 	values := r.GetAll()
 	if len(values) == 0 {
@@ -350,7 +350,7 @@ func (r *RingBuffer) Average() float64 {
 	return average(values)
 }
 
-// Last returns the most recent value
+// Last returns the most recent value.
 func (r *RingBuffer) Last() float64 {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -366,7 +366,7 @@ func (r *RingBuffer) Last() float64 {
 	return r.data[idx]
 }
 
-// NewBoundedFileList creates a new bounded file list
+// NewBoundedFileList creates a new bounded file list.
 func NewBoundedFileList(maxSize int) *BoundedFileList {
 	return &BoundedFileList{
 		files:   make([]FileInfo, maxSize),
@@ -374,7 +374,7 @@ func NewBoundedFileList(maxSize int) *BoundedFileList {
 	}
 }
 
-// Add adds a file to the list
+// Add adds a file to the list.
 func (l *BoundedFileList) Add(info FileInfo) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -383,7 +383,7 @@ func (l *BoundedFileList) Add(info FileInfo) {
 	l.current = (l.current + 1) % l.maxSize
 }
 
-// GetRecent returns the N most recent files
+// GetRecent returns the N most recent files.
 func (l *BoundedFileList) GetRecent(n int) []FileInfo {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
@@ -407,7 +407,7 @@ func (l *BoundedFileList) GetRecent(n int) []FileInfo {
 	return result
 }
 
-// NewErrorSummary creates a new error summary
+// NewErrorSummary creates a new error summary.
 func NewErrorSummary(maxKeys int) *ErrorSummary {
 	return &ErrorSummary{
 		counts:  make(map[string]int64),
@@ -415,22 +415,22 @@ func NewErrorSummary(maxKeys int) *ErrorSummary {
 	}
 }
 
-// Increment increments the count for an error type
+// Increment increments the count for an error type.
 func (e *ErrorSummary) Increment(errorType string) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
 	e.counts[errorType]++
 
-	// Prune if too many keys
+	// Prune if too many keys.
 	if len(e.counts) > e.maxKeys {
 		e.pruneLocked()
 	}
 }
 
-// pruneLocked removes least frequent errors (must be called with lock held)
+// pruneLocked removes least frequent errors (must be called with lock held).
 func (e *ErrorSummary) pruneLocked() {
-	// Find minimum count
+	// Find minimum count.
 	minCount := int64(^uint64(0) >> 1) // Max int64
 	minKey := ""
 	for key, count := range e.counts {
@@ -440,24 +440,24 @@ func (e *ErrorSummary) pruneLocked() {
 		}
 	}
 
-	// Remove minimum
+	// Remove minimum.
 	if minKey != "" {
 		delete(e.counts, minKey)
 	}
 }
 
-// GetTop returns the top N error types by count
+// GetTop returns the top N error types by count.
 func (e *ErrorSummary) GetTop(n int) []ErrorCount {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
-	// Convert to slice for sorting
+	// Convert to slice for sorting.
 	errors := make([]ErrorCount, 0, len(e.counts))
 	for typ, count := range e.counts {
 		errors = append(errors, ErrorCount{Type: typ, Count: count})
 	}
 
-	// Simple selection sort for top N (efficient for small N)
+	// Simple selection sort for top N (efficient for small N).
 	for i := 0; i < n && i < len(errors); i++ {
 		maxIdx := i
 		for j := i + 1; j < len(errors); j++ {
@@ -475,7 +475,7 @@ func (e *ErrorSummary) GetTop(n int) []ErrorCount {
 	return errors
 }
 
-// Increment increments the current throughput bucket
+// Increment increments the current throughput bucket.
 func (t *ThroughputWindow) Increment() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -483,10 +483,10 @@ func (t *ThroughputWindow) Increment() {
 	now := time.Now()
 	elapsed := now.Sub(t.lastUpdate)
 
-	// Move to new bucket if needed
+	// Move to new bucket if needed.
 	bucketsToAdvance := int(elapsed / t.bucketSize)
 	if bucketsToAdvance > 0 {
-		// Clear old buckets
+		// Clear old buckets.
 		for i := 0; i < bucketsToAdvance && i < t.windowSize; i++ {
 			t.currentIdx = (t.currentIdx + 1) % t.windowSize
 			t.buckets[t.currentIdx] = 0
@@ -494,11 +494,11 @@ func (t *ThroughputWindow) Increment() {
 		t.lastUpdate = now
 	}
 
-	// Increment current bucket
+	// Increment current bucket.
 	t.buckets[t.currentIdx]++
 }
 
-// GetThroughput returns the average throughput per second
+// GetThroughput returns the average throughput per second.
 func (t *ThroughputWindow) GetThroughput() float64 {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -508,12 +508,12 @@ func (t *ThroughputWindow) GetThroughput() float64 {
 		sum += count
 	}
 
-	// Calculate average per second
+	// Calculate average per second.
 	windowDuration := float64(t.windowSize) * t.bucketSize.Seconds()
 	return float64(sum) / windowDuration
 }
 
-// Helper functions
+// Helper functions.
 
 func extractFileName(path string) string {
 	for i := len(path) - 1; i >= 0; i-- {
@@ -539,13 +539,13 @@ func maximum(values []float64) float64 {
 	if len(values) == 0 {
 		return 0
 	}
-	max := values[0]
+	maxVal := values[0]
 	for _, v := range values {
-		if v > max {
-			max = v
+		if v > maxVal {
+			maxVal = v
 		}
 	}
-	return max
+	return maxVal
 }
 
 func percentile(values []float64, p float64) float64 {
@@ -553,11 +553,11 @@ func percentile(values []float64, p float64) float64 {
 		return 0
 	}
 
-	// Simple implementation - for production use a proper sorting algorithm
+	// Simple implementation - for production use a proper sorting algorithm.
 	sorted := make([]float64, len(values))
 	copy(sorted, values)
 
-	// Bubble sort (ok for small datasets)
+	// Bubble sort (ok for small datasets).
 	for i := range len(sorted) - 1 {
 		for j := range len(sorted) - i - 1 {
 			if sorted[j] > sorted[j+1] {

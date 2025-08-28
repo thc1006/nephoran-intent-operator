@@ -12,7 +12,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// MetricsAnalyzer provides advanced metrics analysis capabilities
+// MetricsAnalyzer provides advanced metrics analysis capabilities.
 type MetricsAnalyzer struct {
 	samples        map[string][]float64
 	latencies      map[string][]time.Duration
@@ -25,7 +25,7 @@ type MetricsAnalyzer struct {
 	analysisConfig AnalysisConfig
 }
 
-// ResourceSnapshot captures resource state at a point in time
+// ResourceSnapshot captures resource state at a point in time.
 type ResourceSnapshot struct {
 	Timestamp      time.Time
 	CPUPercent     float64
@@ -35,7 +35,7 @@ type ResourceSnapshot struct {
 	DiskIO         DiskMetrics
 }
 
-// Anomaly represents a detected performance anomaly
+// Anomaly represents a detected performance anomaly.
 type Anomaly struct {
 	Timestamp   time.Time
 	Type        string
@@ -47,7 +47,7 @@ type Anomaly struct {
 	Description string
 }
 
-// MetricsBottleneck represents a detected performance bottleneck from metrics analysis
+// MetricsBottleneck represents a detected performance bottleneck from metrics analysis.
 type MetricsBottleneck struct {
 	Component   string
 	Type        string
@@ -57,7 +57,7 @@ type MetricsBottleneck struct {
 	Suggestions []string
 }
 
-// AnalysisConfig configures the analysis parameters
+// AnalysisConfig configures the analysis parameters.
 type AnalysisConfig struct {
 	AnomalyThreshold       float64 // Standard deviations for anomaly detection
 	BottleneckThreshold    float64 // Percentage threshold for bottleneck detection
@@ -66,7 +66,7 @@ type AnalysisConfig struct {
 	EnableAutoOptimization bool
 }
 
-// NewMetricsAnalyzer creates a new metrics analyzer
+// NewMetricsAnalyzer creates a new metrics analyzer.
 func NewMetricsAnalyzer() *MetricsAnalyzer {
 	return &MetricsAnalyzer{
 		samples:       make(map[string][]float64),
@@ -86,7 +86,7 @@ func NewMetricsAnalyzer() *MetricsAnalyzer {
 	}
 }
 
-// CalculateAverage calculates the average of a slice of durations
+// CalculateAverage calculates the average of a slice of durations.
 func (ma *MetricsAnalyzer) CalculateAverage(values []time.Duration) time.Duration {
 	if len(values) == 0 {
 		return 0
@@ -99,7 +99,7 @@ func (ma *MetricsAnalyzer) CalculateAverage(values []time.Duration) time.Duratio
 	return sum / time.Duration(len(values))
 }
 
-// CalculateAverageFloat calculates the average of float values
+// CalculateAverageFloat calculates the average of float values.
 func (ma *MetricsAnalyzer) CalculateAverageFloat(values []float64) float64 {
 	if len(values) == 0 {
 		return 0
@@ -112,20 +112,20 @@ func (ma *MetricsAnalyzer) CalculateAverageFloat(values []float64) float64 {
 	return sum / float64(len(values))
 }
 
-// CalculatePercentile calculates the Nth percentile of latencies
+// CalculatePercentile calculates the Nth percentile of latencies.
 func (ma *MetricsAnalyzer) CalculatePercentile(values []time.Duration, percentile float64) time.Duration {
 	if len(values) == 0 {
 		return 0
 	}
 
-	// Sort values
+	// Sort values.
 	sorted := make([]time.Duration, len(values))
 	copy(sorted, values)
 	sort.Slice(sorted, func(i, j int) bool {
 		return sorted[i] < sorted[j]
 	})
 
-	// Calculate percentile index
+	// Calculate percentile index.
 	index := int(math.Ceil(float64(len(sorted)) * percentile / 100.0))
 	if index >= len(sorted) {
 		index = len(sorted) - 1
@@ -137,18 +137,18 @@ func (ma *MetricsAnalyzer) CalculatePercentile(values []time.Duration, percentil
 	return sorted[index]
 }
 
-// CalculatePercentileFloat calculates the Nth percentile of float values
+// CalculatePercentileFloat calculates the Nth percentile of float values.
 func (ma *MetricsAnalyzer) CalculatePercentileFloat(values []float64, percentile float64) float64 {
 	if len(values) == 0 {
 		return 0
 	}
 
-	// Sort values
+	// Sort values.
 	sorted := make([]float64, len(values))
 	copy(sorted, values)
 	sort.Float64s(sorted)
 
-	// Calculate percentile index
+	// Calculate percentile index.
 	index := int(math.Ceil(float64(len(sorted)) * percentile / 100.0))
 	if index >= len(sorted) {
 		index = len(sorted) - 1
@@ -160,7 +160,7 @@ func (ma *MetricsAnalyzer) CalculatePercentileFloat(values []float64, percentile
 	return sorted[index]
 }
 
-// CalculateMax returns the maximum value from a slice of durations
+// CalculateMax returns the maximum value from a slice of durations.
 func (ma *MetricsAnalyzer) CalculateMax(values []time.Duration) time.Duration {
 	if len(values) == 0 {
 		return 0
@@ -175,7 +175,7 @@ func (ma *MetricsAnalyzer) CalculateMax(values []time.Duration) time.Duration {
 	return max
 }
 
-// CalculateMaxFloat returns the maximum value from a slice of floats
+// CalculateMaxFloat returns the maximum value from a slice of floats.
 func (ma *MetricsAnalyzer) CalculateMaxFloat(values []float64) float64 {
 	if len(values) == 0 {
 		return 0
@@ -190,7 +190,7 @@ func (ma *MetricsAnalyzer) CalculateMaxFloat(values []float64) float64 {
 	return max
 }
 
-// CalculateThroughput calculates requests per second
+// CalculateThroughput calculates requests per second.
 func (ma *MetricsAnalyzer) CalculateThroughput(requestCount int64, duration time.Duration) float64 {
 	if duration == 0 {
 		return 0
@@ -198,23 +198,23 @@ func (ma *MetricsAnalyzer) CalculateThroughput(requestCount int64, duration time
 	return float64(requestCount) / duration.Seconds()
 }
 
-// CalculateResourceEfficiency calculates resource efficiency metrics
+// CalculateResourceEfficiency calculates resource efficiency metrics.
 func (ma *MetricsAnalyzer) CalculateResourceEfficiency(cpu float64, memory float64, throughput float64) map[string]float64 {
 	efficiency := make(map[string]float64)
 
-	// CPU efficiency: throughput per CPU percent
+	// CPU efficiency: throughput per CPU percent.
 	if cpu > 0 {
 		efficiency["cpu_per_request"] = cpu / throughput
 		efficiency["requests_per_cpu"] = throughput / cpu
 	}
 
-	// Memory efficiency: throughput per MB
+	// Memory efficiency: throughput per MB.
 	if memory > 0 {
 		efficiency["memory_per_request"] = memory / throughput
 		efficiency["requests_per_mb"] = throughput / memory
 	}
 
-	// Overall efficiency score (0-100)
+	// Overall efficiency score (0-100).
 	cpuScore := math.Min(100, (throughput/cpu)*10)
 	memScore := math.Min(100, (throughput/memory)*10)
 	efficiency["overall_score"] = (cpuScore + memScore) / 2
@@ -222,14 +222,14 @@ func (ma *MetricsAnalyzer) CalculateResourceEfficiency(cpu float64, memory float
 	return efficiency
 }
 
-// DetectBottlenecks analyzes metrics to identify performance bottlenecks
+// DetectBottlenecks analyzes metrics to identify performance bottlenecks.
 func (ma *MetricsAnalyzer) DetectBottlenecks(metrics map[string]interface{}) []MetricsBottleneck {
 	ma.mu.Lock()
 	defer ma.mu.Unlock()
 
 	bottlenecks := []MetricsBottleneck{}
 
-	// CPU bottleneck detection
+	// CPU bottleneck detection.
 	if cpu, ok := metrics["cpu_percent"].(float64); ok && cpu > ma.analysisConfig.BottleneckThreshold {
 		bottlenecks = append(bottlenecks, MetricsBottleneck{
 			Component:   "CPU",
@@ -249,7 +249,7 @@ func (ma *MetricsAnalyzer) DetectBottlenecks(metrics map[string]interface{}) []M
 		})
 	}
 
-	// Memory bottleneck detection
+	// Memory bottleneck detection.
 	if memory, ok := metrics["memory_mb"].(float64); ok {
 		var memStats runtime.MemStats
 		runtime.ReadMemStats(&memStats)
@@ -276,7 +276,7 @@ func (ma *MetricsAnalyzer) DetectBottlenecks(metrics map[string]interface{}) []M
 		}
 	}
 
-	// Goroutine bottleneck detection
+	// Goroutine bottleneck detection.
 	if goroutines, ok := metrics["goroutines"].(int); ok && goroutines > 1000 {
 		bottlenecks = append(bottlenecks, MetricsBottleneck{
 			Component:   "Goroutines",
@@ -295,7 +295,7 @@ func (ma *MetricsAnalyzer) DetectBottlenecks(metrics map[string]interface{}) []M
 		})
 	}
 
-	// Latency bottleneck detection
+	// Latency bottleneck detection.
 	if latencyP95, ok := metrics["latency_p95_ms"].(float64); ok && latencyP95 > 5000 {
 		bottlenecks = append(bottlenecks, MetricsBottleneck{
 			Component:   "Latency",
@@ -315,7 +315,7 @@ func (ma *MetricsAnalyzer) DetectBottlenecks(metrics map[string]interface{}) []M
 		})
 	}
 
-	// Queue bottleneck detection
+	// Queue bottleneck detection.
 	if queueSize, ok := metrics["queue_size"].(int); ok && queueSize > 100 {
 		bottlenecks = append(bottlenecks, MetricsBottleneck{
 			Component:   "Queue",
@@ -338,23 +338,23 @@ func (ma *MetricsAnalyzer) DetectBottlenecks(metrics map[string]interface{}) []M
 	return bottlenecks
 }
 
-// DetectAnomalies uses statistical analysis to detect performance anomalies
+// DetectAnomalies uses statistical analysis to detect performance anomalies.
 func (ma *MetricsAnalyzer) DetectAnomalies(metricName string, currentValue float64) *Anomaly {
 	ma.mu.Lock()
 	defer ma.mu.Unlock()
 
 	samples, exists := ma.samples[metricName]
 	if !exists || len(samples) < 10 {
-		// Not enough data for anomaly detection
+		// Not enough data for anomaly detection.
 		ma.samples[metricName] = append(ma.samples[metricName], currentValue)
 		return nil
 	}
 
-	// Calculate statistics
+	// Calculate statistics.
 	mean := ma.CalculateAverageFloat(samples)
 	stdDev := ma.calculateStandardDeviation(samples)
 
-	// Check if current value is anomalous
+	// Check if current value is anomalous.
 	zScore := math.Abs(currentValue-mean) / stdDev
 	if zScore > ma.analysisConfig.AnomalyThreshold {
 		anomaly := &Anomaly{
@@ -372,7 +372,7 @@ func (ma *MetricsAnalyzer) DetectAnomalies(metricName string, currentValue float
 		return anomaly
 	}
 
-	// Add to samples (sliding window)
+	// Add to samples (sliding window).
 	if len(samples) > 1000 {
 		ma.samples[metricName] = samples[1:]
 	}
@@ -381,7 +381,7 @@ func (ma *MetricsAnalyzer) DetectAnomalies(metricName string, currentValue float
 	return nil
 }
 
-// calculateStandardDeviation calculates the standard deviation of values
+// calculateStandardDeviation calculates the standard deviation of values.
 func (ma *MetricsAnalyzer) calculateStandardDeviation(values []float64) float64 {
 	if len(values) < 2 {
 		return 0
@@ -399,7 +399,7 @@ func (ma *MetricsAnalyzer) calculateStandardDeviation(values []float64) float64 
 	return math.Sqrt(variance)
 }
 
-// getSeverity determines anomaly severity based on deviation
+// getSeverity determines anomaly severity based on deviation.
 func (ma *MetricsAnalyzer) getSeverity(zScore float64) string {
 	switch {
 	case zScore > 5:
@@ -413,7 +413,7 @@ func (ma *MetricsAnalyzer) getSeverity(zScore float64) string {
 	}
 }
 
-// AnalyzeLatencyPattern analyzes latency patterns for optimization opportunities
+// AnalyzeLatencyPattern analyzes latency patterns for optimization opportunities.
 func (ma *MetricsAnalyzer) AnalyzeLatencyPattern(latencies []time.Duration) map[string]interface{} {
 	if len(latencies) == 0 {
 		return nil
@@ -421,7 +421,7 @@ func (ma *MetricsAnalyzer) AnalyzeLatencyPattern(latencies []time.Duration) map[
 
 	analysis := make(map[string]interface{})
 
-	// Basic statistics
+	// Basic statistics.
 	analysis["count"] = len(latencies)
 	analysis["average"] = ma.CalculateAverage(latencies)
 	analysis["p50"] = ma.CalculatePercentile(latencies, 50)
@@ -429,23 +429,23 @@ func (ma *MetricsAnalyzer) AnalyzeLatencyPattern(latencies []time.Duration) map[
 	analysis["p99"] = ma.CalculatePercentile(latencies, 99)
 	analysis["max"] = ma.CalculateMax(latencies)
 
-	// Convert to float64 for advanced analysis
+	// Convert to float64 for advanced analysis.
 	values := make([]float64, len(latencies))
 	for i, l := range latencies {
 		values[i] = l.Seconds()
 	}
 
-	// Distribution analysis
+	// Distribution analysis.
 	analysis["std_dev"] = ma.calculateStandardDeviation(values)
 	analysis["coefficient_of_variation"] = ma.calculateCoefficientOfVariation(values)
 
-	// Trend analysis
+	// Trend analysis.
 	if len(values) > 10 {
 		analysis["trend"] = ma.calculateTrend(values)
 		analysis["is_degrading"] = ma.isPerformanceDegrading(values)
 	}
 
-	// Outlier detection
+	// Outlier detection.
 	outliers := ma.detectOutliers(values)
 	analysis["outlier_count"] = len(outliers)
 	analysis["outlier_percentage"] = float64(len(outliers)) / float64(len(values)) * 100
@@ -453,7 +453,7 @@ func (ma *MetricsAnalyzer) AnalyzeLatencyPattern(latencies []time.Duration) map[
 	return analysis
 }
 
-// calculateCoefficientOfVariation calculates CV for stability analysis
+// calculateCoefficientOfVariation calculates CV for stability analysis.
 func (ma *MetricsAnalyzer) calculateCoefficientOfVariation(values []float64) float64 {
 	mean := ma.CalculateAverageFloat(values)
 	if mean == 0 {
@@ -463,13 +463,13 @@ func (ma *MetricsAnalyzer) calculateCoefficientOfVariation(values []float64) flo
 	return (stdDev / mean) * 100
 }
 
-// calculateTrend calculates the trend direction of values
+// calculateTrend calculates the trend direction of values.
 func (ma *MetricsAnalyzer) calculateTrend(values []float64) string {
 	if len(values) < 2 {
 		return "stable"
 	}
 
-	// Simple linear regression
+	// Simple linear regression.
 	n := float64(len(values))
 	var sumX, sumY, sumXY, sumX2 float64
 
@@ -483,7 +483,7 @@ func (ma *MetricsAnalyzer) calculateTrend(values []float64) string {
 
 	slope := (n*sumXY - sumX*sumY) / (n*sumX2 - sumX*sumX)
 
-	// Determine trend based on slope
+	// Determine trend based on slope.
 	mean := sumY / n
 	slopePercent := (slope / mean) * 100
 
@@ -497,13 +497,13 @@ func (ma *MetricsAnalyzer) calculateTrend(values []float64) string {
 	}
 }
 
-// isPerformanceDegrading checks if performance is degrading over time
+// isPerformanceDegrading checks if performance is degrading over time.
 func (ma *MetricsAnalyzer) isPerformanceDegrading(values []float64) bool {
 	if len(values) < 20 {
 		return false
 	}
 
-	// Compare recent performance with historical
+	// Compare recent performance with historical.
 	midPoint := len(values) / 2
 	historical := values[:midPoint]
 	recent := values[midPoint:]
@@ -511,11 +511,11 @@ func (ma *MetricsAnalyzer) isPerformanceDegrading(values []float64) bool {
 	historicalAvg := ma.CalculateAverageFloat(historical)
 	recentAvg := ma.CalculateAverageFloat(recent)
 
-	// Performance is degrading if recent average is 20% worse
+	// Performance is degrading if recent average is 20% worse.
 	return recentAvg > historicalAvg*1.2
 }
 
-// detectOutliers identifies outlier values using IQR method
+// detectOutliers identifies outlier values using IQR method.
 func (ma *MetricsAnalyzer) detectOutliers(values []float64) []int {
 	if len(values) < 4 {
 		return []int{}
@@ -538,7 +538,7 @@ func (ma *MetricsAnalyzer) detectOutliers(values []float64) []int {
 	return outliers
 }
 
-// RecordLatency records a latency measurement
+// RecordLatency records a latency measurement.
 func (ma *MetricsAnalyzer) RecordLatency(operation string, latency time.Duration) {
 	ma.mu.Lock()
 	defer ma.mu.Unlock()
@@ -549,18 +549,18 @@ func (ma *MetricsAnalyzer) RecordLatency(operation string, latency time.Duration
 
 	ma.latencies[operation] = append(ma.latencies[operation], latency)
 
-	// Maintain sliding window
+	// Maintain sliding window.
 	if len(ma.latencies[operation]) > 10000 {
 		ma.latencies[operation] = ma.latencies[operation][1:]
 	}
 
-	// Check for anomaly
+	// Check for anomaly.
 	if anomaly := ma.DetectAnomalies(operation+"_latency", latency.Seconds()); anomaly != nil {
 		klog.Warningf("Latency anomaly detected: %v", anomaly)
 	}
 }
 
-// RecordThroughput records throughput measurement
+// RecordThroughput records throughput measurement.
 func (ma *MetricsAnalyzer) RecordThroughput(operation string, throughput float64) {
 	ma.mu.Lock()
 	defer ma.mu.Unlock()
@@ -571,13 +571,13 @@ func (ma *MetricsAnalyzer) RecordThroughput(operation string, throughput float64
 
 	ma.throughput[operation] = append(ma.throughput[operation], throughput)
 
-	// Maintain sliding window
+	// Maintain sliding window.
 	if len(ma.throughput[operation]) > 1000 {
 		ma.throughput[operation] = ma.throughput[operation][1:]
 	}
 }
 
-// RecordResourceSnapshot records current resource usage
+// RecordResourceSnapshot records current resource usage.
 func (ma *MetricsAnalyzer) RecordResourceSnapshot(snapshot ResourceSnapshot) {
 	ma.mu.Lock()
 	defer ma.mu.Unlock()
@@ -589,7 +589,7 @@ func (ma *MetricsAnalyzer) RecordResourceSnapshot(snapshot ResourceSnapshot) {
 
 	ma.resourceUsage[key] = append(ma.resourceUsage[key], snapshot)
 
-	// Maintain sliding window based on time
+	// Maintain sliding window based on time.
 	cutoff := time.Now().Add(-ma.historyWindow)
 	filtered := make([]ResourceSnapshot, 0)
 	for _, s := range ma.resourceUsage[key] {
@@ -599,20 +599,20 @@ func (ma *MetricsAnalyzer) RecordResourceSnapshot(snapshot ResourceSnapshot) {
 	}
 	ma.resourceUsage[key] = filtered
 
-	// Detect resource anomalies
+	// Detect resource anomalies.
 	ma.DetectAnomalies("cpu_percent", snapshot.CPUPercent)
 	ma.DetectAnomalies("memory_mb", snapshot.MemoryMB)
 	ma.DetectAnomalies("goroutines", float64(snapshot.GoroutineCount))
 }
 
-// GetPerformanceSummary returns a comprehensive performance summary
+// GetPerformanceSummary returns a comprehensive performance summary.
 func (ma *MetricsAnalyzer) GetPerformanceSummary() map[string]interface{} {
 	ma.mu.RLock()
 	defer ma.mu.RUnlock()
 
 	summary := make(map[string]interface{})
 
-	// Latency summaries
+	// Latency summaries.
 	latencySummary := make(map[string]interface{})
 	for operation, latencies := range ma.latencies {
 		if len(latencies) > 0 {
@@ -621,7 +621,7 @@ func (ma *MetricsAnalyzer) GetPerformanceSummary() map[string]interface{} {
 	}
 	summary["latencies"] = latencySummary
 
-	// Throughput summaries
+	// Throughput summaries.
 	throughputSummary := make(map[string]interface{})
 	for operation, values := range ma.throughput {
 		if len(values) > 0 {
@@ -635,7 +635,7 @@ func (ma *MetricsAnalyzer) GetPerformanceSummary() map[string]interface{} {
 	}
 	summary["throughput"] = throughputSummary
 
-	// Resource usage summaries
+	// Resource usage summaries.
 	if snapshots, exists := ma.resourceUsage["system"]; exists && len(snapshots) > 0 {
 		cpuValues := make([]float64, len(snapshots))
 		memValues := make([]float64, len(snapshots))
@@ -666,7 +666,7 @@ func (ma *MetricsAnalyzer) GetPerformanceSummary() map[string]interface{} {
 		}
 	}
 
-	// Recent anomalies
+	// Recent anomalies.
 	recentAnomalies := []Anomaly{}
 	cutoff := time.Now().Add(-5 * time.Minute)
 	for _, anomaly := range ma.anomalies {
@@ -676,21 +676,21 @@ func (ma *MetricsAnalyzer) GetPerformanceSummary() map[string]interface{} {
 	}
 	summary["recent_anomalies"] = recentAnomalies
 
-	// Current bottlenecks
+	// Current bottlenecks.
 	summary["bottlenecks"] = ma.bottlenecks
 
 	return summary
 }
 
-// ExportToPrometheus exports metrics to Prometheus
+// ExportToPrometheus exports metrics to Prometheus.
 func (ma *MetricsAnalyzer) ExportToPrometheus(registry *prometheus.Registry) {
 	ma.mu.RLock()
 	defer ma.mu.RUnlock()
 
-	// Export latency metrics
+	// Export latency metrics.
 	for operation, latencies := range ma.latencies {
 		if len(latencies) > 0 {
-			// Create histogram
+			// Create histogram.
 			histogram := prometheus.NewHistogramVec(prometheus.HistogramOpts{
 				Name:    fmt.Sprintf("analyzer_%s_latency_seconds", operation),
 				Help:    fmt.Sprintf("Latency distribution for %s operation", operation),
@@ -705,7 +705,7 @@ func (ma *MetricsAnalyzer) ExportToPrometheus(registry *prometheus.Registry) {
 		}
 	}
 
-	// Export throughput metrics
+	// Export throughput metrics.
 	for operation, values := range ma.throughput {
 		if len(values) > 0 {
 			gauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -720,7 +720,7 @@ func (ma *MetricsAnalyzer) ExportToPrometheus(registry *prometheus.Registry) {
 		}
 	}
 
-	// Export anomaly metrics
+	// Export anomaly metrics.
 	anomalyGauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "analyzer_anomalies_total",
 		Help: "Total number of detected anomalies",
@@ -737,7 +737,7 @@ func (ma *MetricsAnalyzer) ExportToPrometheus(registry *prometheus.Registry) {
 
 	registry.MustRegister(anomalyGauge)
 
-	// Export bottleneck metrics
+	// Export bottleneck metrics.
 	bottleneckGauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "analyzer_bottlenecks_total",
 		Help: "Total number of detected bottlenecks",

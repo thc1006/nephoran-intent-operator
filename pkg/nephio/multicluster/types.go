@@ -7,10 +7,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// Common types for multicluster package management
-// Note: ResourceUtilization is defined in cluster_manager.go to avoid redeclaration
+// Common types for multicluster package management.
+// Note: ResourceUtilization is defined in cluster_manager.go to avoid redeclaration.
 
-// DependencyHealthReport provides health status for dependencies
+// DependencyHealthReport provides health status for dependencies.
 type DependencyHealthReport struct {
 	ComponentName     string
 	Status            HealthStatus
@@ -20,7 +20,7 @@ type DependencyHealthReport struct {
 	RecommendedAction string
 }
 
-// MaintenanceWindow defines scheduled maintenance periods
+// MaintenanceWindow defines scheduled maintenance periods.
 type MaintenanceWindow struct {
 	Name        string
 	Description string
@@ -31,7 +31,7 @@ type MaintenanceWindow struct {
 	Operations  []string
 }
 
-// AlertThresholds defines monitoring thresholds
+// AlertThresholds defines monitoring thresholds.
 type AlertThresholds struct {
 	CPUWarning       float64
 	CPUCritical      float64
@@ -43,7 +43,7 @@ type AlertThresholds struct {
 	ErrorRatePercent float64
 }
 
-// BusinessImpact describes the potential impact of operations
+// BusinessImpact describes the potential impact of operations.
 type BusinessImpact struct {
 	Severity          string // "low", "medium", "high", "critical"
 	AffectedServices  []string
@@ -53,7 +53,7 @@ type BusinessImpact struct {
 	MitigationPlan    []string
 }
 
-// Recommendation provides automated recommendations for operations
+// Recommendation provides automated recommendations for operations.
 type Recommendation struct {
 	ID          string
 	Type        string // "scaling", "maintenance", "optimization", "security"
@@ -67,7 +67,7 @@ type Recommendation struct {
 	ExpiresAt   time.Time
 }
 
-// RecommendationAction defines a specific action to take
+// RecommendationAction defines a specific action to take.
 type RecommendationAction struct {
 	Step        int
 	Description string
@@ -76,29 +76,33 @@ type RecommendationAction struct {
 	Validation  string
 }
 
-// HealthStatus represents the overall health of components (already exists in health_monitor.go)
-// Keep this here for reference but don't duplicate
-// type HealthStatus string
+// HealthStatus represents the overall health of components (already exists in health_monitor.go).
+// Keep this here for reference but don't duplicate.
+// type HealthStatus string.
 
-// Alert types and severity (already exists in health_monitor.go)
-// Keep these here for reference but don't duplicate
-// type Alert struct { ... }
-// type AlertSeverity string
-// type AlertType string
+// Alert types and severity (already exists in health_monitor.go).
+// Keep these here for reference but don't duplicate.
+// type Alert struct { ... }.
+// type AlertSeverity string.
+// type AlertType string.
 
-// Nephio-specific types (since external dependency is not available)
+// Nephio-specific types (since external dependency is not available).
 
-// DeploymentStatus represents the status of a deployment
+// DeploymentStatus represents the status of a deployment.
 type DeploymentStatus string
 
 const (
-	DeploymentStatusPending   DeploymentStatus = "Pending"
-	DeploymentStatusRunning   DeploymentStatus = "Running"
+	// DeploymentStatusPending holds deploymentstatuspending value.
+	DeploymentStatusPending DeploymentStatus = "Pending"
+	// DeploymentStatusRunning holds deploymentstatusrunning value.
+	DeploymentStatusRunning DeploymentStatus = "Running"
+	// DeploymentStatusSucceeded holds deploymentstatussucceeded value.
 	DeploymentStatusSucceeded DeploymentStatus = "Succeeded"
-	DeploymentStatusFailed    DeploymentStatus = "Failed"
+	// DeploymentStatusFailed holds deploymentstatusfailed value.
+	DeploymentStatusFailed DeploymentStatus = "Failed"
 )
 
-// ClusterDeploymentStatus represents the deployment status for a specific cluster
+// ClusterDeploymentStatus represents the deployment status for a specific cluster.
 type ClusterDeploymentStatus struct {
 	ClusterName string
 	Status      DeploymentStatus
@@ -107,7 +111,7 @@ type ClusterDeploymentStatus struct {
 	Errors      []string
 }
 
-// MultiClusterDeploymentStatus represents the overall deployment status across multiple clusters
+// MultiClusterDeploymentStatus represents the overall deployment status across multiple clusters.
 type MultiClusterDeploymentStatus struct {
 	Clusters      map[string]ClusterDeploymentStatus
 	OverallStatus DeploymentStatus
@@ -116,19 +120,22 @@ type MultiClusterDeploymentStatus struct {
 	Summary       string
 }
 
-// Porch-like API types for package management
-// These types follow the Porch/kpt patterns but are defined locally
+// Porch-like API types for package management.
+// These types follow the Porch/kpt patterns but are defined locally.
 
-// PackageRevisionLifecycle represents the lifecycle state of a package revision
+// PackageRevisionLifecycle represents the lifecycle state of a package revision.
 type PackageRevisionLifecycle string
 
 const (
-	PackageRevisionLifecycleDraft     PackageRevisionLifecycle = "Draft"
-	PackageRevisionLifecycleProposed  PackageRevisionLifecycle = "Proposed"
+	// PackageRevisionLifecycleDraft holds packagerevisionlifecycledraft value.
+	PackageRevisionLifecycleDraft PackageRevisionLifecycle = "Draft"
+	// PackageRevisionLifecycleProposed holds packagerevisionlifecycleproposed value.
+	PackageRevisionLifecycleProposed PackageRevisionLifecycle = "Proposed"
+	// PackageRevisionLifecyclePublished holds packagerevisionlifecyclepublished value.
 	PackageRevisionLifecyclePublished PackageRevisionLifecycle = "Published"
 )
 
-// PackageRevisionSpec defines the desired state of PackageRevision
+// PackageRevisionSpec defines the desired state of PackageRevision.
 type PackageRevisionSpec struct {
 	PackageName   string                   `json:"packageName,omitempty"`
 	Revision      string                   `json:"revision,omitempty"`
@@ -140,7 +147,7 @@ type PackageRevisionSpec struct {
 	Functions     []interface{}            `json:"functions,omitempty"`
 }
 
-// PackageRevisionStatus defines the observed state of PackageRevision
+// PackageRevisionStatus defines the observed state of PackageRevision.
 type PackageRevisionStatus struct {
 	Conditions      []metav1.Condition `json:"conditions,omitempty"`
 	UpstreamLock    *UpstreamLock      `json:"upstreamLock,omitempty"`
@@ -150,7 +157,7 @@ type PackageRevisionStatus struct {
 	DeploymentReady bool               `json:"deploymentReady,omitempty"`
 }
 
-// PackageRevision represents a revision of a package
+// PackageRevision represents a revision of a package.
 type PackageRevision struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -159,20 +166,20 @@ type PackageRevision struct {
 	Status PackageRevisionStatus `json:"status,omitempty"`
 }
 
-// Task represents a configuration transformation task
+// Task represents a configuration transformation task.
 type Task struct {
 	Type   string                 `json:"type,omitempty"`
 	Image  string                 `json:"image,omitempty"`
 	Config map[string]interface{} `json:"config,omitempty"`
 }
 
-// UpstreamLock contains information about the upstream source
+// UpstreamLock contains information about the upstream source.
 type UpstreamLock struct {
 	Type string  `json:"type,omitempty"`
 	Git  GitLock `json:"git,omitempty"`
 }
 
-// GitLock contains Git-specific upstream information
+// GitLock contains Git-specific upstream information.
 type GitLock struct {
 	Repo      string `json:"repo,omitempty"`
 	Directory string `json:"directory,omitempty"`
@@ -180,21 +187,21 @@ type GitLock struct {
 	Commit    string `json:"commit,omitempty"`
 }
 
-// SetCondition adds or updates a condition in the PackageRevision status
+// SetCondition adds or updates a condition in the PackageRevision status.
 func (pr *PackageRevision) SetCondition(condition metav1.Condition) {
 	if pr.Status.Conditions == nil {
 		pr.Status.Conditions = []metav1.Condition{}
 	}
 
-	// Look for existing condition with the same type
+	// Look for existing condition with the same type.
 	for i, existing := range pr.Status.Conditions {
 		if existing.Type == condition.Type {
-			// Update existing condition
+			// Update existing condition.
 			pr.Status.Conditions[i] = condition
 			return
 		}
 	}
 
-	// Add new condition
+	// Add new condition.
 	pr.Status.Conditions = append(pr.Status.Conditions, condition)
 }

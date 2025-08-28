@@ -20,8 +20,8 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// EnhancedProfiler provides advanced profiling capabilities leveraging Go 1.24+ features
-// including continuous profiling, automated analysis, and intelligent optimization suggestions
+// EnhancedProfiler provides advanced profiling capabilities leveraging Go 1.24+ features.
+// including continuous profiling, automated analysis, and intelligent optimization suggestions.
 type EnhancedProfiler struct {
 	config           *ProfilerConfig
 	activeProfiles   map[string]*ActiveProfile
@@ -34,44 +34,44 @@ type EnhancedProfiler struct {
 	mutex            sync.RWMutex
 }
 
-// ProfilerConfig defines comprehensive profiling configuration
+// ProfilerConfig defines comprehensive profiling configuration.
 type ProfilerConfig struct {
-	// Output configuration
+	// Output configuration.
 	OutputDirectory    string
 	ProfilePrefix      string
 	CompressionEnabled bool
 	RetentionDays      int
 
-	// Profiling parameters
+	// Profiling parameters.
 	CPUProfileRate     int // Hz, 100 = 100 samples/sec
 	MemProfileRate     int // bytes, 0 = off, 1 = all allocations
 	BlockProfileRate   int // nanoseconds, fraction of blocking events to profile
 	MutexProfileRate   int // fraction of mutex contention events to profile
 	GoroutineThreshold int // threshold for goroutine leak detection
 
-	// Continuous profiling
+	// Continuous profiling.
 	ContinuousInterval  time.Duration // Interval for continuous profiling
 	AutoAnalysisEnabled bool          // Automatically analyze profiles
 	OptimizationHints   bool          // Generate optimization suggestions
 
-	// Advanced features (Go 1.24+)
+	// Advanced features (Go 1.24+).
 	ExecutionTracing      bool // Enable execution tracing
 	GCProfileEnabled      bool // Profile garbage collection
 	AllocProfileEnabled   bool // Detailed allocation profiling
 	ThreadCreationProfile bool // Profile thread creation
 
-	// HTTP profiler
+	// HTTP profiler.
 	HTTPEnabled bool   // Enable HTTP pprof endpoints
 	HTTPAddress string // Address to bind HTTP profiler
 	HTTPAuth    bool   // Enable authentication for HTTP endpoints
 
-	// Integration
+	// Integration.
 	PrometheusIntegration bool // Export metrics to Prometheus
 	AlertingEnabled       bool // Enable performance alerting
 	SlackIntegration      bool // Send optimization alerts to Slack
 }
 
-// ActiveProfile represents a currently running profiling session
+// ActiveProfile represents a currently running profiling session.
 type ActiveProfile struct {
 	Type       string
 	StartTime  time.Time
@@ -84,16 +84,16 @@ type ActiveProfile struct {
 	CancelFunc context.CancelFunc
 }
 
-// ProfileAnalyzer provides intelligent analysis of profile data
+// ProfileAnalyzer provides intelligent analysis of profile data.
 type ProfileAnalyzer struct {
 	config          *AnalyzerConfig
 	hotspotDetector *HotspotDetector
 	leakDetector    *LeakDetector
-	// trendAnalyzer    *TrendAnalyzer // TODO: Fix import or define TrendAnalyzer
+	// trendAnalyzer    *TrendAnalyzer // TODO: Fix import or define TrendAnalyzer.
 	baselineProfiles map[string]*profile.Profile
 }
 
-// AnalyzerConfig configures profile analysis behavior
+// AnalyzerConfig configures profile analysis behavior.
 type AnalyzerConfig struct {
 	HotspotThreshold    float64       // CPU usage % threshold for hotspot detection
 	LeakDetectionWindow time.Duration // Window for memory leak detection
@@ -102,7 +102,7 @@ type AnalyzerConfig struct {
 	AutoBaselineUpdate  bool          // Automatically update baselines
 }
 
-// ProfileOptimizer suggests code and configuration optimizations
+// ProfileOptimizer suggests code and configuration optimizations.
 type ProfileOptimizer struct {
 	config      *OptimizerConfig
 	patterns    []OptimizationPattern
@@ -110,7 +110,7 @@ type ProfileOptimizer struct {
 	metrics     *OptimizationMetrics
 }
 
-// OptimizerConfig configures optimization analysis
+// OptimizerConfig configures optimization analysis.
 type OptimizerConfig struct {
 	EnableSuggestions    bool
 	MinImpactThreshold   float64 // Minimum impact % to suggest optimization
@@ -119,9 +119,9 @@ type OptimizerConfig struct {
 	PrioritizeByCPUUsage bool    // Prioritize by CPU usage impact
 }
 
-// OptimizationPattern is defined in benchmark_runner.go
+// OptimizationPattern is defined in benchmark_runner.go.
 
-// OptimizationSuggestion represents a specific optimization recommendation
+// OptimizationSuggestion represents a specific optimization recommendation.
 type OptimizationSuggestion struct {
 	ID                  string
 	PatternMatched      *OptimizationPattern
@@ -134,7 +134,7 @@ type OptimizationSuggestion struct {
 	EstimatedEffort     time.Duration
 }
 
-// OptimizationMetrics tracks optimization effectiveness
+// OptimizationMetrics tracks optimization effectiveness.
 type OptimizationMetrics struct {
 	TotalSuggestions     int
 	ImplementedCount     int
@@ -143,7 +143,7 @@ type OptimizationMetrics struct {
 	TimeToImplementation time.Duration
 }
 
-// CompletedOptimization represents a successfully implemented optimization
+// CompletedOptimization represents a successfully implemented optimization.
 type CompletedOptimization struct {
 	Suggestion        *OptimizationSuggestion
 	ImplementedAt     time.Time
@@ -151,31 +151,31 @@ type CompletedOptimization struct {
 	EffortRequired    time.Duration
 }
 
-// ProfileMetricsCollector integrates with Prometheus for metrics
+// ProfileMetricsCollector integrates with Prometheus for metrics.
 type ProfileMetricsCollector struct {
 	registry *prometheus.Registry
 
-	// Profiling metrics
+	// Profiling metrics.
 	profileDuration   *prometheus.HistogramVec
 	profileSize       *prometheus.GaugeVec
 	hotspotCount      *prometheus.GaugeVec
 	optimizationCount *prometheus.CounterVec
 
-	// Performance metrics
+	// Performance metrics.
 	cpuUsage       *prometheus.GaugeVec
 	memoryUsage    *prometheus.GaugeVec
 	goroutineCount *prometheus.GaugeVec
 	gcPauseTime    *prometheus.HistogramVec
 }
 
-// TraceAnalyzer provides execution trace analysis capabilities
+// TraceAnalyzer provides execution trace analysis capabilities.
 type TraceAnalyzer struct {
 	config   *TraceConfig
 	traces   map[string]*TraceSession
 	analyzer *ExecutionAnalyzer
 }
 
-// TraceConfig configures execution tracing
+// TraceConfig configures execution tracing.
 type TraceConfig struct {
 	TraceDuration     time.Duration
 	GoroutineAnalysis bool
@@ -184,7 +184,7 @@ type TraceConfig struct {
 	SchedulerAnalysis bool
 }
 
-// TraceSession represents an active tracing session
+// TraceSession represents an active tracing session.
 type TraceSession struct {
 	ID        string
 	StartTime time.Time
@@ -193,7 +193,7 @@ type TraceSession struct {
 	Analysis  *TraceAnalysisResult
 }
 
-// TraceAnalysisResult contains results from trace analysis
+// TraceAnalysisResult contains results from trace analysis.
 type TraceAnalysisResult struct {
 	GoroutineEvents []GoroutineEvent
 	NetworkEvents   []NetworkEvent
@@ -203,14 +203,14 @@ type TraceAnalysisResult struct {
 	Recommendations []TraceRecommendation
 }
 
-// HotspotDetector identifies CPU and memory hotspots
+// HotspotDetector identifies CPU and memory hotspots.
 type HotspotDetector struct {
 	thresholdCPU    float64
 	thresholdMemory int64
 	patterns        map[string]*HotspotPattern
 }
 
-// HotspotPattern defines patterns for hotspot detection
+// HotspotPattern defines patterns for hotspot detection.
 type HotspotPattern struct {
 	Name         string
 	Signature    string
@@ -219,14 +219,14 @@ type HotspotPattern struct {
 	Frequency    int
 }
 
-// LeakDetector identifies memory and goroutine leaks
+// LeakDetector identifies memory and goroutine leaks.
 type LeakDetector struct {
 	windowSize      time.Duration
 	growthThreshold float64
 	samples         []LeakSample
 }
 
-// LeakSample represents a sample for leak detection
+// LeakSample represents a sample for leak detection.
 type LeakSample struct {
 	Timestamp      time.Time
 	MemoryUsage    int64
@@ -234,7 +234,7 @@ type LeakSample struct {
 	AllocCount     int64
 }
 
-// NewEnhancedProfiler creates a new enhanced profiler with Go 1.24+ features
+// NewEnhancedProfiler creates a new enhanced profiler with Go 1.24+ features.
 func NewEnhancedProfiler(config *ProfilerConfig) *EnhancedProfiler {
 	if config == nil {
 		config = getDefaultProfilerConfig()
@@ -249,12 +249,12 @@ func NewEnhancedProfiler(config *ProfilerConfig) *EnhancedProfiler {
 		traceAnalyzer:  NewTraceAnalyzer(getDefaultTraceConfig()),
 	}
 
-	// Initialize metrics collector if Prometheus integration enabled
+	// Initialize metrics collector if Prometheus integration enabled.
 	if config.PrometheusIntegration {
 		profiler.metricsCollector = NewProfileMetricsCollector()
 	}
 
-	// Start HTTP profiler if enabled
+	// Start HTTP profiler if enabled.
 	if config.HTTPEnabled {
 		if err := profiler.StartHTTPProfiler(); err != nil {
 			klog.Warningf("Failed to start HTTP profiler: %v", err)
@@ -264,7 +264,7 @@ func NewEnhancedProfiler(config *ProfilerConfig) *EnhancedProfiler {
 	return profiler
 }
 
-// getDefaultProfilerConfig returns default profiling configuration optimized for Go 1.24+
+// getDefaultProfilerConfig returns default profiling configuration optimized for Go 1.24+.
 func getDefaultProfilerConfig() *ProfilerConfig {
 	return &ProfilerConfig{
 		OutputDirectory:       "/tmp/nephoran-profiles",
@@ -292,7 +292,7 @@ func getDefaultProfilerConfig() *ProfilerConfig {
 	}
 }
 
-// StartContinuousProfiling enables continuous background profiling
+// StartContinuousProfiling enables continuous background profiling.
 func (ep *EnhancedProfiler) StartContinuousProfiling(ctx context.Context) error {
 	if ep.continuousMode {
 		return fmt.Errorf("continuous profiling already running")
@@ -301,15 +301,15 @@ func (ep *EnhancedProfiler) StartContinuousProfiling(ctx context.Context) error 
 	ep.continuousMode = true
 	klog.Info("Starting continuous profiling mode")
 
-	// Create output directory
-	if err := os.MkdirAll(ep.config.OutputDirectory, 0755); err != nil {
+	// Create output directory.
+	if err := os.MkdirAll(ep.config.OutputDirectory, 0o755); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
-	// Start continuous profiling goroutine
+	// Start continuous profiling goroutine.
 	go ep.continuousProfilingLoop(ctx)
 
-	// Start trace analysis if enabled
+	// Start trace analysis if enabled.
 	if ep.config.ExecutionTracing {
 		go ep.continuousTracing(ctx)
 	}
@@ -317,7 +317,7 @@ func (ep *EnhancedProfiler) StartContinuousProfiling(ctx context.Context) error 
 	return nil
 }
 
-// continuousProfilingLoop runs the continuous profiling cycle
+// continuousProfilingLoop runs the continuous profiling cycle.
 func (ep *EnhancedProfiler) continuousProfilingLoop(ctx context.Context) {
 	ticker := time.NewTicker(ep.config.ContinuousInterval)
 	defer ticker.Stop()
@@ -334,37 +334,37 @@ func (ep *EnhancedProfiler) continuousProfilingLoop(ctx context.Context) {
 	}
 }
 
-// performProfilingCycle executes a single profiling cycle
+// performProfilingCycle executes a single profiling cycle.
 func (ep *EnhancedProfiler) performProfilingCycle(ctx context.Context) {
 	cycleID := fmt.Sprintf("continuous-%d", time.Now().Unix())
 	klog.Infof("Starting profiling cycle: %s", cycleID)
 
-	// CPU profiling
+	// CPU profiling.
 	if err := ep.startTimedProfile(ctx, "cpu", 30*time.Second, cycleID); err != nil {
 		klog.Warningf("CPU profiling failed in cycle %s: %v", cycleID, err)
 	}
 
-	// Memory profiling
+	// Memory profiling.
 	if err := ep.captureMemorySnapshot(cycleID); err != nil {
 		klog.Warningf("Memory profiling failed in cycle %s: %v", cycleID, err)
 	}
 
-	// Goroutine profiling
+	// Goroutine profiling.
 	if err := ep.captureGoroutineSnapshot(cycleID); err != nil {
 		klog.Warningf("Goroutine profiling failed in cycle %s: %v", cycleID, err)
 	}
 
-	// Block and mutex profiling
+	// Block and mutex profiling.
 	if err := ep.captureContentionProfiles(cycleID); err != nil {
 		klog.Warningf("Contention profiling failed in cycle %s: %v", cycleID, err)
 	}
 
-	// Analyze profiles if auto-analysis enabled
+	// Analyze profiles if auto-analysis enabled.
 	if ep.config.AutoAnalysisEnabled {
 		go ep.analyzeRecentProfiles(cycleID)
 	}
 
-	// Update metrics
+	// Update metrics.
 	if ep.metricsCollector != nil {
 		ep.updateProfilingMetrics()
 	}
@@ -372,7 +372,7 @@ func (ep *EnhancedProfiler) performProfilingCycle(ctx context.Context) {
 	klog.Infof("Completed profiling cycle: %s", cycleID)
 }
 
-// startTimedProfile starts a timed CPU profile
+// startTimedProfile starts a timed CPU profile.
 func (ep *EnhancedProfiler) startTimedProfile(ctx context.Context, profileType string, duration time.Duration, cycleID string) error {
 	profileID := fmt.Sprintf("%s-%s-%s", profileType, cycleID, time.Now().Format("20060102-150405"))
 	filename := filepath.Join(ep.config.OutputDirectory, fmt.Sprintf("%s-%s.prof", ep.config.ProfilePrefix, profileID))
@@ -403,14 +403,14 @@ func (ep *EnhancedProfiler) startTimedProfile(ctx context.Context, profileType s
 	ep.activeProfiles[profileID] = activeProfile
 	ep.mutex.Unlock()
 
-	// Start CPU profiling
+	// Start CPU profiling.
 	if profileType == "cpu" {
 		if err := pprof.StartCPUProfile(file); err != nil {
 			file.Close()
 			return fmt.Errorf("failed to start CPU profiling: %w", err)
 		}
 
-		// Stop profiling after duration
+		// Stop profiling after duration.
 		go func() {
 			<-profileCtx.Done()
 			pprof.StopCPUProfile()
@@ -427,9 +427,9 @@ func (ep *EnhancedProfiler) startTimedProfile(ctx context.Context, profileType s
 	return nil
 }
 
-// captureMemorySnapshot captures a memory profile snapshot
+// captureMemorySnapshot captures a memory profile snapshot.
 func (ep *EnhancedProfiler) captureMemorySnapshot(cycleID string) error {
-	// Force garbage collection for accurate snapshot
+	// Force garbage collection for accurate snapshot.
 	runtime.GC()
 
 	profileID := fmt.Sprintf("memory-%s-%s", cycleID, time.Now().Format("20060102-150405"))
@@ -441,7 +441,7 @@ func (ep *EnhancedProfiler) captureMemorySnapshot(cycleID string) error {
 	}
 	defer file.Close()
 
-	// Capture heap profile
+	// Capture heap profile.
 	if err := pprof.WriteHeapProfile(file); err != nil {
 		return fmt.Errorf("failed to write heap profile: %w", err)
 	}
@@ -450,7 +450,7 @@ func (ep *EnhancedProfiler) captureMemorySnapshot(cycleID string) error {
 	return nil
 }
 
-// captureGoroutineSnapshot captures goroutine profile
+// captureGoroutineSnapshot captures goroutine profile.
 func (ep *EnhancedProfiler) captureGoroutineSnapshot(cycleID string) error {
 	profileID := fmt.Sprintf("goroutine-%s-%s", cycleID, time.Now().Format("20060102-150405"))
 	filename := filepath.Join(ep.config.OutputDirectory, fmt.Sprintf("%s-%s.prof", ep.config.ProfilePrefix, profileID))
@@ -461,19 +461,19 @@ func (ep *EnhancedProfiler) captureGoroutineSnapshot(cycleID string) error {
 	}
 	defer file.Close()
 
-	// Get goroutine profile with stack traces
+	// Get goroutine profile with stack traces.
 	profile := pprof.Lookup("goroutine")
 	if err := profile.WriteTo(file, 2); err != nil {
 		return fmt.Errorf("failed to write goroutine profile: %w", err)
 	}
 
-	// Check for potential goroutine leaks
+	// Check for potential goroutine leaks.
 	goroutineCount := runtime.NumGoroutine()
 	if goroutineCount > ep.config.GoroutineThreshold {
 		klog.Warningf("High goroutine count detected: %d (threshold: %d)",
 			goroutineCount, ep.config.GoroutineThreshold)
 
-		// Trigger leak detection
+		// Trigger leak detection.
 		go ep.analyzer.leakDetector.detectGoroutineLeaks(filename)
 	}
 
@@ -481,9 +481,9 @@ func (ep *EnhancedProfiler) captureGoroutineSnapshot(cycleID string) error {
 	return nil
 }
 
-// captureContentionProfiles captures block and mutex profiles
+// captureContentionProfiles captures block and mutex profiles.
 func (ep *EnhancedProfiler) captureContentionProfiles(cycleID string) error {
-	// Block profile
+	// Block profile.
 	if ep.config.BlockProfileRate > 0 {
 		runtime.SetBlockProfileRate(ep.config.BlockProfileRate)
 
@@ -495,7 +495,7 @@ func (ep *EnhancedProfiler) captureContentionProfiles(cycleID string) error {
 		}
 	}
 
-	// Mutex profile
+	// Mutex profile.
 	if ep.config.MutexProfileRate > 0 {
 		runtime.SetMutexProfileFraction(ep.config.MutexProfileRate)
 
@@ -510,7 +510,7 @@ func (ep *EnhancedProfiler) captureContentionProfiles(cycleID string) error {
 	return nil
 }
 
-// writeProfile writes a named profile to file
+// writeProfile writes a named profile to file.
 func (ep *EnhancedProfiler) writeProfile(profileName, filename string) error {
 	file, err := os.Create(filename)
 	if err != nil {
@@ -531,7 +531,7 @@ func (ep *EnhancedProfiler) writeProfile(profileName, filename string) error {
 	return nil
 }
 
-// continuousTracing performs continuous execution tracing
+// continuousTracing performs continuous execution tracing.
 func (ep *EnhancedProfiler) continuousTracing(ctx context.Context) {
 	ticker := time.NewTicker(ep.config.ContinuousInterval * 2) // Less frequent than profiling
 	defer ticker.Stop()
@@ -548,7 +548,7 @@ func (ep *EnhancedProfiler) continuousTracing(ctx context.Context) {
 	}
 }
 
-// performTracingCycle executes a single tracing cycle
+// performTracingCycle executes a single tracing cycle.
 func (ep *EnhancedProfiler) performTracingCycle(ctx context.Context) error {
 	traceID := fmt.Sprintf("trace-%d", time.Now().Unix())
 	filename := filepath.Join(ep.config.OutputDirectory, fmt.Sprintf("%s-%s.trace", ep.config.ProfilePrefix, traceID))
@@ -558,13 +558,13 @@ func (ep *EnhancedProfiler) performTracingCycle(ctx context.Context) error {
 		return fmt.Errorf("failed to create trace file: %w", err)
 	}
 
-	// Start tracing
+	// Start tracing.
 	if err := trace.Start(file); err != nil {
 		file.Close()
 		return fmt.Errorf("failed to start trace: %w", err)
 	}
 
-	// Create trace session
+	// Create trace session.
 	session := &TraceSession{
 		ID:        traceID,
 		StartTime: time.Now(),
@@ -574,13 +574,13 @@ func (ep *EnhancedProfiler) performTracingCycle(ctx context.Context) error {
 
 	ep.traceAnalyzer.traces[traceID] = session
 
-	// Stop tracing after duration
+	// Stop tracing after duration.
 	go func() {
 		time.Sleep(session.Duration)
 		trace.Stop()
 		file.Close()
 
-		// Analyze trace
+		// Analyze trace.
 		if analysis, err := ep.traceAnalyzer.AnalyzeTrace(session); err != nil {
 			klog.Warningf("Trace analysis failed: %v", err)
 		} else {
@@ -592,11 +592,11 @@ func (ep *EnhancedProfiler) performTracingCycle(ctx context.Context) error {
 	return nil
 }
 
-// analyzeRecentProfiles performs automated analysis of recent profiles
+// analyzeRecentProfiles performs automated analysis of recent profiles.
 func (ep *EnhancedProfiler) analyzeRecentProfiles(cycleID string) {
 	klog.Infof("Starting analysis for cycle: %s", cycleID)
 
-	// Find profiles from this cycle
+	// Find profiles from this cycle.
 	profiles := ep.findProfilesForCycle(cycleID)
 
 	for _, profilePath := range profiles {
@@ -606,7 +606,7 @@ func (ep *EnhancedProfiler) analyzeRecentProfiles(cycleID string) {
 			continue
 		}
 
-		// Generate optimization suggestions if enabled
+		// Generate optimization suggestions if enabled.
 		if ep.config.OptimizationHints {
 			suggestions := ep.optimizer.GenerateSuggestions(analysis)
 			if len(suggestions) > 0 {
@@ -614,18 +614,18 @@ func (ep *EnhancedProfiler) analyzeRecentProfiles(cycleID string) {
 			}
 		}
 
-		// Check for performance regressions
+		// Check for performance regressions.
 		if ep.analyzer.config.BaselineComparison {
 			ep.analyzer.CompareToBaseline(analysis, profilePath)
 		}
 	}
 }
 
-// findProfilesForCycle finds all profiles created during a specific cycle
+// findProfilesForCycle finds all profiles created during a specific cycle.
 func (ep *EnhancedProfiler) findProfilesForCycle(cycleID string) []string {
 	profiles := make([]string, 0)
 
-	// Scan output directory for profiles with matching cycle ID
+	// Scan output directory for profiles with matching cycle ID.
 	files, err := filepath.Glob(filepath.Join(ep.config.OutputDirectory, fmt.Sprintf("*%s*.prof", cycleID)))
 	if err != nil {
 		klog.Warningf("Failed to find profiles for cycle %s: %v", cycleID, err)
@@ -635,7 +635,7 @@ func (ep *EnhancedProfiler) findProfilesForCycle(cycleID string) []string {
 	return files
 }
 
-// handleOptimizationSuggestions processes optimization suggestions
+// handleOptimizationSuggestions processes optimization suggestions.
 func (ep *EnhancedProfiler) handleOptimizationSuggestions(suggestions []OptimizationSuggestion, profilePath string) {
 	klog.Infof("Generated %d optimization suggestions for %s", len(suggestions), profilePath)
 
@@ -643,12 +643,12 @@ func (ep *EnhancedProfiler) handleOptimizationSuggestions(suggestions []Optimiza
 		klog.Infof("Optimization suggestion: %s - %s (Impact: %.1f%%)",
 			suggestion.ID, suggestion.PatternMatched.Name, suggestion.ExpectedImprovement)
 
-		// Send alerts for high-impact suggestions if alerting enabled
+		// Send alerts for high-impact suggestions if alerting enabled.
 		if ep.config.AlertingEnabled && suggestion.Priority == "Critical" {
 			ep.sendOptimizationAlert(suggestion)
 		}
 
-		// Update metrics
+		// Update metrics.
 		if ep.metricsCollector != nil {
 			ep.metricsCollector.optimizationCount.WithLabelValues(
 				suggestion.PatternMatched.Name, suggestion.Priority).Inc()
@@ -656,14 +656,14 @@ func (ep *EnhancedProfiler) handleOptimizationSuggestions(suggestions []Optimiza
 	}
 }
 
-// sendOptimizationAlert sends alert for optimization suggestions
+// sendOptimizationAlert sends alert for optimization suggestions.
 func (ep *EnhancedProfiler) sendOptimizationAlert(suggestion OptimizationSuggestion) {
-	// Implementation would send alerts via configured channels
+	// Implementation would send alerts via configured channels.
 	klog.Warningf("OPTIMIZATION ALERT: %s at %s - Expected improvement: %.1f%%",
 		suggestion.PatternMatched.Name, suggestion.Location, suggestion.ExpectedImprovement)
 }
 
-// StartHTTPProfiler starts the HTTP pprof server
+// StartHTTPProfiler starts the HTTP pprof server.
 func (ep *EnhancedProfiler) StartHTTPProfiler() error {
 	if ep.httpServer != nil {
 		return fmt.Errorf("HTTP profiler already running")
@@ -671,12 +671,12 @@ func (ep *EnhancedProfiler) StartHTTPProfiler() error {
 
 	mux := http.NewServeMux()
 
-	// Register standard pprof handlers
+	// Register standard pprof handlers.
 	mux.HandleFunc("/debug/pprof/", func(w http.ResponseWriter, r *http.Request) {
 		http.DefaultServeMux.ServeHTTP(w, r)
 	})
 
-	// Custom endpoints
+	// Custom endpoints.
 	mux.HandleFunc("/debug/nephoran/profiles", ep.handleProfileList)
 	mux.HandleFunc("/debug/nephoran/analysis", ep.handleAnalysisResults)
 	mux.HandleFunc("/debug/nephoran/suggestions", ep.handleOptimizationSuggestionsHTTP)
@@ -697,7 +697,7 @@ func (ep *EnhancedProfiler) StartHTTPProfiler() error {
 	return nil
 }
 
-// HTTP handlers for custom endpoints
+// HTTP handlers for custom endpoints.
 
 func (ep *EnhancedProfiler) handleProfileList(w http.ResponseWriter, r *http.Request) {
 	profiles := ep.listAvailableProfiles()
@@ -707,7 +707,7 @@ func (ep *EnhancedProfiler) handleProfileList(w http.ResponseWriter, r *http.Req
 }
 
 func (ep *EnhancedProfiler) handleAnalysisResults(w http.ResponseWriter, r *http.Request) {
-	// Return recent analysis results
+	// Return recent analysis results.
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprintf(w, `{"status": "analysis results endpoint"}`)
 }
@@ -721,7 +721,7 @@ func (ep *EnhancedProfiler) handleOptimizationSuggestionsHTTP(w http.ResponseWri
 
 func (ep *EnhancedProfiler) handleMetricsEndpoint(w http.ResponseWriter, r *http.Request) {
 	if ep.metricsCollector != nil {
-		// Export Prometheus metrics
+		// Export Prometheus metrics.
 		ep.metricsCollector.registry.Gather()
 	}
 
@@ -729,7 +729,7 @@ func (ep *EnhancedProfiler) handleMetricsEndpoint(w http.ResponseWriter, r *http
 	fmt.Fprintf(w, "# Profiling metrics endpoint\n")
 }
 
-// listAvailableProfiles returns list of available profiles
+// listAvailableProfiles returns list of available profiles.
 func (ep *EnhancedProfiler) listAvailableProfiles() []string {
 	profiles := make([]string, 0)
 
@@ -742,41 +742,41 @@ func (ep *EnhancedProfiler) listAvailableProfiles() []string {
 	return files
 }
 
-// updateProfilingMetrics updates Prometheus metrics
+// updateProfilingMetrics updates Prometheus metrics.
 func (ep *EnhancedProfiler) updateProfilingMetrics() {
 	if ep.metricsCollector == nil {
 		return
 	}
 
-	// Update CPU usage
-	// This would typically get actual CPU metrics
+	// Update CPU usage.
+	// This would typically get actual CPU metrics.
 	ep.metricsCollector.cpuUsage.WithLabelValues("nephoran").Set(45.5)
 
-	// Update memory usage
+	// Update memory usage.
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 	ep.metricsCollector.memoryUsage.WithLabelValues("heap").Set(float64(memStats.HeapAlloc))
 	ep.metricsCollector.memoryUsage.WithLabelValues("sys").Set(float64(memStats.Sys))
 
-	// Update goroutine count
+	// Update goroutine count.
 	ep.metricsCollector.goroutineCount.WithLabelValues("active").Set(float64(runtime.NumGoroutine()))
 
-	// Update GC metrics
+	// Update GC metrics.
 	ep.metricsCollector.gcPauseTime.WithLabelValues("pause").Observe(float64(memStats.PauseNs[(memStats.NumGC+255)%256]))
 }
 
-// Stop gracefully stops the enhanced profiler
+// Stop gracefully stops the enhanced profiler.
 func (ep *EnhancedProfiler) Stop(ctx context.Context) error {
 	ep.continuousMode = false
 
-	// Stop HTTP server
+	// Stop HTTP server.
 	if ep.httpServer != nil {
 		if err := ep.httpServer.Shutdown(ctx); err != nil {
 			klog.Warningf("HTTP profiler shutdown error: %v", err)
 		}
 	}
 
-	// Wait for active profiles to complete
+	// Wait for active profiles to complete.
 	ep.mutex.Lock()
 	for profileID, profile := range ep.activeProfiles {
 		profile.CancelFunc()
@@ -788,8 +788,9 @@ func (ep *EnhancedProfiler) Stop(ctx context.Context) error {
 	return nil
 }
 
-// Supporting implementations
+// Supporting implementations.
 
+// NewProfileAnalyzer performs newprofileanalyzer operation.
 func NewProfileAnalyzer(config *AnalyzerConfig) *ProfileAnalyzer {
 	return &ProfileAnalyzer{
 		config:           config,
@@ -799,6 +800,7 @@ func NewProfileAnalyzer(config *AnalyzerConfig) *ProfileAnalyzer {
 	}
 }
 
+// NewProfileOptimizer performs newprofileoptimizer operation.
 func NewProfileOptimizer(config *OptimizerConfig) *ProfileOptimizer {
 	return &ProfileOptimizer{
 		config:      config,
@@ -808,6 +810,7 @@ func NewProfileOptimizer(config *OptimizerConfig) *ProfileOptimizer {
 	}
 }
 
+// NewProfileMetricsCollector performs newprofilemetricscollector operation.
 func NewProfileMetricsCollector() *ProfileMetricsCollector {
 	registry := prometheus.NewRegistry()
 
@@ -864,7 +867,7 @@ func NewProfileMetricsCollector() *ProfileMetricsCollector {
 		),
 	}
 
-	// Register metrics
+	// Register metrics.
 	registry.MustRegister(collector.profileDuration)
 	registry.MustRegister(collector.profileSize)
 	registry.MustRegister(collector.cpuUsage)
@@ -876,6 +879,7 @@ func NewProfileMetricsCollector() *ProfileMetricsCollector {
 	return collector
 }
 
+// NewTraceAnalyzer performs newtraceanalyzer operation.
 func NewTraceAnalyzer(config *TraceConfig) *TraceAnalyzer {
 	return &TraceAnalyzer{
 		config:   config,
@@ -884,7 +888,7 @@ func NewTraceAnalyzer(config *TraceConfig) *TraceAnalyzer {
 	}
 }
 
-// Default configurations
+// Default configurations.
 
 func getDefaultAnalyzerConfig() *AnalyzerConfig {
 	return &AnalyzerConfig{
@@ -943,8 +947,9 @@ func getOptimizationPatterns() []OptimizationPattern {
 	}
 }
 
-// Placeholder implementations for remaining interfaces
+// Placeholder implementations for remaining interfaces.
 
+// NewHotspotDetector performs newhotspotdetector operation.
 func NewHotspotDetector(threshold float64) *HotspotDetector {
 	return &HotspotDetector{
 		thresholdCPU: threshold,
@@ -952,6 +957,7 @@ func NewHotspotDetector(threshold float64) *HotspotDetector {
 	}
 }
 
+// NewLeakDetector performs newleakdetector operation.
 func NewLeakDetector(windowSize time.Duration) *LeakDetector {
 	return &LeakDetector{
 		windowSize:      windowSize,
@@ -961,10 +967,11 @@ func NewLeakDetector(windowSize time.Duration) *LeakDetector {
 }
 
 func (ld *LeakDetector) detectGoroutineLeaks(profilePath string) {
-	// Implementation would analyze goroutine profile for leaks
+	// Implementation would analyze goroutine profile for leaks.
 	klog.Infof("Analyzing profile for goroutine leaks: %s", profilePath)
 }
 
+// AnalyzeProfile performs analyzeprofile operation.
 func (pa *ProfileAnalyzer) AnalyzeProfile(profilePath string) (*ProfileAnalysisResult, error) {
 	return &ProfileAnalysisResult{
 		ProfilePath: profilePath,
@@ -973,19 +980,23 @@ func (pa *ProfileAnalyzer) AnalyzeProfile(profilePath string) (*ProfileAnalysisR
 	}, nil
 }
 
+// CompareToBaseline performs comparetobaseline operation.
 func (pa *ProfileAnalyzer) CompareToBaseline(analysis *ProfileAnalysisResult, profilePath string) {
-	// Implementation would compare with baseline profiles
+	// Implementation would compare with baseline profiles.
 	klog.Infof("Comparing profile to baseline: %s", profilePath)
 }
 
+// GenerateSuggestions performs generatesuggestions operation.
 func (po *ProfileOptimizer) GenerateSuggestions(analysis *ProfileAnalysisResult) []OptimizationSuggestion {
 	return make([]OptimizationSuggestion, 0)
 }
 
+// GetRecentSuggestions performs getrecentsuggestions operation.
 func (po *ProfileOptimizer) GetRecentSuggestions() []OptimizationSuggestion {
 	return po.suggestions
 }
 
+// AnalyzeTrace performs analyzetrace operation.
 func (ta *TraceAnalyzer) AnalyzeTrace(session *TraceSession) (*TraceAnalysisResult, error) {
 	return &TraceAnalysisResult{
 		GoroutineEvents: make([]GoroutineEvent, 0),
@@ -995,53 +1006,63 @@ func (ta *TraceAnalyzer) AnalyzeTrace(session *TraceSession) (*TraceAnalysisResu
 	}, nil
 }
 
-// Supporting types for completeness
+// Supporting types for completeness.
 
+// ProfileAnalysisResult represents a profileanalysisresult.
 type ProfileAnalysisResult struct {
 	ProfilePath string
 	HotSpots    []EnhancedHotSpot
 	Leaks       []Leak
 }
 
+// EnhancedHotSpot represents a enhancedhotspot.
 type EnhancedHotSpot struct {
 	Function string
 	CPUTime  float64
 }
 
+// Leak represents a leak.
 type Leak struct {
 	Type     string
 	Location string
 	Growth   float64
 }
 
+// ExecutionAnalyzer represents a executionanalyzer.
 type ExecutionAnalyzer struct{}
 
+// GoroutineEvent represents a goroutineevent.
 type GoroutineEvent struct {
 	Timestamp time.Time
 	Action    string
 }
 
+// NetworkEvent represents a networkevent.
 type NetworkEvent struct {
 	Timestamp time.Time
 	Action    string
 }
 
+// GCEvent represents a gcevent.
 type GCEvent struct {
 	Timestamp time.Time
 	Duration  time.Duration
 }
 
+// SchedulerEvent represents a schedulerevent.
 type SchedulerEvent struct {
 	Timestamp time.Time
 	Action    string
 }
 
+// CriticalPathEvent represents a criticalpathevent.
 type CriticalPathEvent struct {
 	Timestamp time.Time
 	Function  string
 	Duration  time.Duration
 }
 
+// TraceRecommendation represents a tracerecommendation.
 type TraceRecommendation struct {
 	Type        string
 	Description string

@@ -10,8 +10,8 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// StatisticalValidator provides comprehensive statistical analysis and validation
-// for performance benchmarks with proper confidence intervals and regression testing
+// StatisticalValidator provides comprehensive statistical analysis and validation.
+// for performance benchmarks with proper confidence intervals and regression testing.
 type StatisticalValidator struct {
 	confidenceLevel   float64
 	significanceLevel float64
@@ -19,7 +19,7 @@ type StatisticalValidator struct {
 	powerThreshold    float64
 }
 
-// ValidationConfig defines parameters for statistical validation
+// ValidationConfig defines parameters for statistical validation.
 type ValidationConfig struct {
 	ConfidenceLevel     float64 // e.g., 0.95 for 95% confidence
 	SignificanceLevel   float64 // e.g., 0.05 for 5% significance
@@ -28,7 +28,7 @@ type ValidationConfig struct {
 	EffectSizeThreshold float64 // Minimum effect size to detect
 }
 
-// PerformanceMetrics represents a collection of performance measurements
+// PerformanceMetrics represents a collection of performance measurements.
 type PerformanceMetrics struct {
 	Name       string
 	Values     []float64
@@ -38,7 +38,7 @@ type PerformanceMetrics struct {
 	TestConfig *ValidationConfig
 }
 
-// StatisticalSummary contains comprehensive statistical analysis
+// StatisticalSummary contains comprehensive statistical analysis.
 type StatisticalSummary struct {
 	Metric             string
 	SampleSize         int
@@ -60,7 +60,7 @@ type StatisticalSummary struct {
 	PowerAnalysis      *PowerAnalysis
 }
 
-// ConfidenceInterval represents statistical confidence bounds
+// ConfidenceInterval represents statistical confidence bounds.
 type ConfidenceInterval struct {
 	Level         float64
 	LowerBound    float64
@@ -68,7 +68,7 @@ type ConfidenceInterval struct {
 	MarginOfError float64
 }
 
-// OutlierAnalysis identifies and analyzes statistical outliers
+// OutlierAnalysis identifies and analyzes statistical outliers.
 type OutlierAnalysis struct {
 	Method            string // "IQR", "Z-Score", "Modified Z-Score"
 	OutlierCount      int
@@ -79,7 +79,7 @@ type OutlierAnalysis struct {
 	UpperBound        float64
 }
 
-// NormalityTestResult contains results from normality testing
+// NormalityTestResult contains results from normality testing.
 type NormalityTestResult struct {
 	TestName   string
 	Statistic  float64
@@ -88,7 +88,7 @@ type NormalityTestResult struct {
 	Conclusion string
 }
 
-// PowerAnalysis evaluates the statistical power of the test
+// PowerAnalysis evaluates the statistical power of the test.
 type PowerAnalysis struct {
 	EffectSize       float64
 	Power            float64
@@ -98,7 +98,7 @@ type PowerAnalysis struct {
 	EffectSizeTable  map[string]int // Maps effect size categories to required samples
 }
 
-// RegressionAnalysis compares current metrics against baseline/historical data
+// RegressionAnalysis compares current metrics against baseline/historical data.
 type RegressionAnalysis struct {
 	Metric             string
 	CurrentValue       float64
@@ -112,7 +112,7 @@ type RegressionAnalysis struct {
 	TTestResult        *TTestResult
 }
 
-// TTestResult contains results from t-test analysis
+// TTestResult contains results from t-test analysis.
 type TTestResult struct {
 	TestType         string // "one-sample", "two-sample", "paired"
 	Statistic        float64
@@ -122,7 +122,7 @@ type TTestResult struct {
 	EffectSize       float64
 }
 
-// ValidationResult represents the overall validation outcome
+// ValidationResult represents the overall validation outcome.
 type ValidationResult struct {
 	Metric              string
 	TargetValue         float64
@@ -135,7 +135,7 @@ type ValidationResult struct {
 	Recommendations     []string
 }
 
-// NewStatisticalValidator creates a new statistical validator with default settings
+// NewStatisticalValidator creates a new statistical validator with default settings.
 func NewStatisticalValidator(config *ValidationConfig) *StatisticalValidator {
 	if config == nil {
 		config = &ValidationConfig{
@@ -155,13 +155,13 @@ func NewStatisticalValidator(config *ValidationConfig) *StatisticalValidator {
 	}
 }
 
-// AnalyzeMetrics performs comprehensive statistical analysis on performance metrics
+// AnalyzeMetrics performs comprehensive statistical analysis on performance metrics.
 func (sv *StatisticalValidator) AnalyzeMetrics(metrics *PerformanceMetrics) (*StatisticalSummary, error) {
 	if len(metrics.Values) < sv.minSampleSize {
 		return nil, fmt.Errorf("insufficient sample size: %d < %d", len(metrics.Values), sv.minSampleSize)
 	}
 
-	// Create a copy and sort for percentile calculations
+	// Create a copy and sort for percentile calculations.
 	values := make([]float64, len(metrics.Values))
 	copy(values, metrics.Values)
 	sort.Float64s(values)
@@ -171,7 +171,7 @@ func (sv *StatisticalValidator) AnalyzeMetrics(metrics *PerformanceMetrics) (*St
 		SampleSize: len(values),
 	}
 
-	// Basic descriptive statistics
+	// Basic descriptive statistics.
 	summary.Mean = stat.Mean(values, nil)
 	summary.Median = stat.Quantile(0.5, stat.Empirical, values, nil)
 	summary.StandardDeviation = stat.StdDev(values, nil)
@@ -181,11 +181,11 @@ func (sv *StatisticalValidator) AnalyzeMetrics(metrics *PerformanceMetrics) (*St
 	summary.Max = values[len(values)-1]
 	summary.Range = summary.Max - summary.Min
 
-	// Advanced statistical measures
+	// Advanced statistical measures.
 	summary.Skewness = sv.calculateSkewness(values, summary.Mean, summary.StandardDeviation)
 	summary.Kurtosis = sv.calculateKurtosis(values, summary.Mean, summary.StandardDeviation)
 
-	// Percentiles
+	// Percentiles.
 	summary.Percentiles = map[float64]float64{
 		5:    stat.Quantile(0.05, stat.Empirical, values, nil),
 		10:   stat.Quantile(0.10, stat.Empirical, values, nil),
@@ -202,22 +202,22 @@ func (sv *StatisticalValidator) AnalyzeMetrics(metrics *PerformanceMetrics) (*St
 	q3 := summary.Percentiles[75]
 	summary.InterquartileRange = q3 - q1
 
-	// Confidence interval
+	// Confidence interval.
 	summary.ConfidenceInterval = sv.calculateConfidenceInterval(values, summary.Mean, summary.StandardError)
 
-	// Outlier analysis
+	// Outlier analysis.
 	summary.OutlierAnalysis = sv.detectOutliers(values, q1, q3, summary.InterquartileRange)
 
-	// Normality testing
+	// Normality testing.
 	summary.NormalityTest = sv.testNormality(values)
 
-	// Power analysis
+	// Power analysis.
 	summary.PowerAnalysis = sv.performPowerAnalysis(len(values), summary.StandardDeviation)
 
 	return summary, nil
 }
 
-// CompareToBaseline performs regression analysis against historical baseline
+// CompareToBaseline performs regression analysis against historical baseline.
 func (sv *StatisticalValidator) CompareToBaseline(current *PerformanceMetrics, baseline *PerformanceMetrics) (*RegressionAnalysis, error) {
 	if len(current.Values) < sv.minSampleSize || len(baseline.Values) < sv.minSampleSize {
 		return nil, fmt.Errorf("insufficient sample size for comparison")
@@ -237,18 +237,18 @@ func (sv *StatisticalValidator) CompareToBaseline(current *PerformanceMetrics, b
 		analysis.RelativeChange = (currentMean - baselineMean) / baselineMean * 100
 	}
 
-	// Perform two-sample t-test
+	// Perform two-sample t-test.
 	analysis.TTestResult = sv.performTTest(current.Values, baseline.Values)
 
-	// Determine if this represents a significant regression
-	// For performance metrics, we typically care about increases (regressions)
+	// Determine if this represents a significant regression.
+	// For performance metrics, we typically care about increases (regressions).
 	threshold := 0.05 // 5% threshold for considering regression
 	analysis.IsRegression = analysis.RelativeChange > threshold && analysis.TTestResult.IsSignificant
 
-	// Calculate significance level
+	// Calculate significance level.
 	analysis.Significance = analysis.TTestResult.PValue
 
-	// Determine regression severity
+	// Determine regression severity.
 	if analysis.IsRegression {
 		if analysis.RelativeChange > 20 {
 			analysis.RegressionSeverity = "Critical"
@@ -264,7 +264,7 @@ func (sv *StatisticalValidator) CompareToBaseline(current *PerformanceMetrics, b
 	return analysis, nil
 }
 
-// ValidateTarget validates if current performance meets specified target
+// ValidateTarget validates if current performance meets specified target.
 func (sv *StatisticalValidator) ValidateTarget(metrics *PerformanceMetrics, target float64, comparison string) (*ValidationResult, error) {
 	summary, err := sv.AnalyzeMetrics(metrics)
 	if err != nil {
@@ -281,22 +281,22 @@ func (sv *StatisticalValidator) ValidateTarget(metrics *PerformanceMetrics, targ
 		Recommendations:  make([]string, 0),
 	}
 
-	// Determine if target is met based on comparison type and confidence interval
+	// Determine if target is met based on comparison type and confidence interval.
 	switch comparison {
 	case "less_than", "<":
-		// For latency metrics - want actual < target
+		// For latency metrics - want actual < target.
 		result.Passed = summary.ConfidenceInterval.UpperBound < target
 		if !result.Passed {
 			result.RequiredImprovement = summary.ConfidenceInterval.UpperBound - target
 		}
 	case "greater_than", ">":
-		// For throughput metrics - want actual > target
+		// For throughput metrics - want actual > target.
 		result.Passed = summary.ConfidenceInterval.LowerBound > target
 		if !result.Passed {
 			result.RequiredImprovement = target - summary.ConfidenceInterval.LowerBound
 		}
 	case "approximately", "≈":
-		// For hit rates, availability - want actual ≈ target (within margin)
+		// For hit rates, availability - want actual ≈ target (within margin).
 		margin := target * 0.02 // 2% margin
 		result.Passed = math.Abs(summary.Mean-target) <= margin
 		if !result.Passed {
@@ -306,7 +306,7 @@ func (sv *StatisticalValidator) ValidateTarget(metrics *PerformanceMetrics, targ
 		return nil, fmt.Errorf("invalid comparison type: %s", comparison)
 	}
 
-	// Generate recommendations
+	// Generate recommendations.
 	if !result.Passed {
 		result.Recommendations = append(result.Recommendations,
 			fmt.Sprintf("Performance target not met with %.1f%% confidence", sv.confidenceLevel*100))
@@ -332,12 +332,12 @@ func (sv *StatisticalValidator) ValidateTarget(metrics *PerformanceMetrics, targ
 	return result, nil
 }
 
-// calculateConfidenceInterval computes confidence interval using t-distribution
+// calculateConfidenceInterval computes confidence interval using t-distribution.
 func (sv *StatisticalValidator) calculateConfidenceInterval(values []float64, mean, standardError float64) *ConfidenceInterval {
 	n := len(values)
 	df := n - 1 // degrees of freedom
 
-	// t-critical value for given confidence level
+	// t-critical value for given confidence level.
 	alpha := 1 - sv.confidenceLevel
 	tDist := distuv.StudentsT{Mu: 0, Sigma: 1, Nu: float64(df)}
 	tCritical := tDist.Quantile(1 - alpha/2)
@@ -352,7 +352,7 @@ func (sv *StatisticalValidator) calculateConfidenceInterval(values []float64, me
 	}
 }
 
-// detectOutliers identifies outliers using IQR method
+// detectOutliers identifies outliers using IQR method.
 func (sv *StatisticalValidator) detectOutliers(values []float64, q1, q3, iqr float64) *OutlierAnalysis {
 	lowerBound := q1 - 1.5*iqr
 	upperBound := q3 + 1.5*iqr
@@ -378,10 +378,10 @@ func (sv *StatisticalValidator) detectOutliers(values []float64, q1, q3, iqr flo
 	}
 }
 
-// testNormality performs Shapiro-Wilk test for normality (simplified implementation)
+// testNormality performs Shapiro-Wilk test for normality (simplified implementation).
 func (sv *StatisticalValidator) testNormality(values []float64) *NormalityTestResult {
-	// For sample sizes > 50, use alternative test
-	// This is a simplified implementation - in production, use proper statistical libraries
+	// For sample sizes > 50, use alternative test.
+	// This is a simplified implementation - in production, use proper statistical libraries.
 
 	n := len(values)
 	if n < 3 || n > 5000 {
@@ -392,15 +392,15 @@ func (sv *StatisticalValidator) testNormality(values []float64) *NormalityTestRe
 		}
 	}
 
-	// Simplified normality check using skewness and kurtosis
+	// Simplified normality check using skewness and kurtosis.
 	mean := stat.Mean(values, nil)
 	stdDev := stat.StdDev(values, nil)
 
 	skewness := sv.calculateSkewness(values, mean, stdDev)
 	kurtosis := sv.calculateKurtosis(values, mean, stdDev)
 
-	// Rule of thumb: data is approximately normal if:
-	// |skewness| < 2 and |kurtosis - 3| < 2
+	// Rule of thumb: data is approximately normal if:.
+	// |skewness| < 2 and |kurtosis - 3| < 2.
 	isNormal := math.Abs(skewness) < 2 && math.Abs(kurtosis-3) < 2
 
 	conclusion := "Data appears normally distributed"
@@ -417,10 +417,10 @@ func (sv *StatisticalValidator) testNormality(values []float64) *NormalityTestRe
 	}
 }
 
-// performPowerAnalysis calculates statistical power and required sample size
+// performPowerAnalysis calculates statistical power and required sample size.
 func (sv *StatisticalValidator) performPowerAnalysis(currentSampleSize int, standardDeviation float64) *PowerAnalysis {
-	// Effect size calculation (Cohen's d)
-	// Small effect: 0.2, Medium: 0.5, Large: 0.8
+	// Effect size calculation (Cohen's d).
+	// Small effect: 0.2, Medium: 0.5, Large: 0.8.
 	effectSizes := []float64{0.2, 0.5, 0.8}
 	effectSizeLabels := []string{"small", "medium", "large"}
 
@@ -428,37 +428,37 @@ func (sv *StatisticalValidator) performPowerAnalysis(currentSampleSize int, stan
 		EffectSizeTable: make(map[string]int),
 	}
 
-	// Calculate power for medium effect size (0.5)
+	// Calculate power for medium effect size (0.5).
 	effectSize := 0.5
 	analysis.EffectSize = effectSize
 
-	// Simplified power calculation using normal approximation
-	// In practice, use proper power analysis libraries
+	// Simplified power calculation using normal approximation.
+	// In practice, use proper power analysis libraries.
 	alpha := sv.significanceLevel
 	zAlpha := sv.normalQuantile(1 - alpha/2)
 	zBeta := sv.normalQuantile(sv.powerThreshold)
 
-	// Calculate required sample sizes for different effect sizes using the effectSizes array
+	// Calculate required sample sizes for different effect sizes using the effectSizes array.
 	for i, es := range effectSizes {
 		requiredN := int(math.Pow((zAlpha+zBeta)/es, 2) * 2)
 		analysis.EffectSizeTable[effectSizeLabels[i]] = requiredN
 	}
 
-	// Required sample size for medium effect (primary analysis)
+	// Required sample size for medium effect (primary analysis).
 	analysis.RequiredSamples = analysis.EffectSizeTable["medium"]
 
-	// Calculate actual power with current sample size
+	// Calculate actual power with current sample size.
 	if currentSampleSize > 0 {
 		actualZBeta := effectSize*math.Sqrt(float64(currentSampleSize)/2) - zAlpha
 		analysis.Power = sv.normalCDF(actualZBeta)
 	}
 
-	// Minimum detectable effect with current sample
+	// Minimum detectable effect with current sample.
 	if currentSampleSize > 0 {
 		analysis.DetectableEffect = (zAlpha + zBeta) / math.Sqrt(float64(currentSampleSize)/2)
 	}
 
-	// Generate recommendation
+	// Generate recommendation.
 	if analysis.Power < sv.powerThreshold {
 		analysis.Recommendation = fmt.Sprintf("Increase sample size to %d for %.1f%% power to detect medium effects (small: %d, large: %d)",
 			analysis.RequiredSamples, sv.powerThreshold*100,
@@ -470,7 +470,7 @@ func (sv *StatisticalValidator) performPowerAnalysis(currentSampleSize int, stan
 	return analysis
 }
 
-// performTTest performs two-sample t-test
+// performTTest performs two-sample t-test.
 func (sv *StatisticalValidator) performTTest(sample1, sample2 []float64) *TTestResult {
 	n1, n2 := len(sample1), len(sample2)
 
@@ -480,19 +480,19 @@ func (sv *StatisticalValidator) performTTest(sample1, sample2 []float64) *TTestR
 	var1 := stat.Variance(sample1, nil)
 	var2 := stat.Variance(sample2, nil)
 
-	// Welch's t-test (unequal variances)
+	// Welch's t-test (unequal variances).
 	pooledSE := math.Sqrt(var1/float64(n1) + var2/float64(n2))
 	tStatistic := (mean1 - mean2) / pooledSE
 
-	// Degrees of freedom for Welch's t-test
+	// Degrees of freedom for Welch's t-test.
 	df := math.Pow(var1/float64(n1)+var2/float64(n2), 2) /
 		(math.Pow(var1/float64(n1), 2)/float64(n1-1) + math.Pow(var2/float64(n2), 2)/float64(n2-1))
 
-	// Calculate p-value (simplified)
+	// Calculate p-value (simplified).
 	tDist := distuv.StudentsT{Mu: 0, Sigma: 1, Nu: df}
 	pValue := 2 * (1 - tDist.CDF(math.Abs(tStatistic)))
 
-	// Effect size (Cohen's d)
+	// Effect size (Cohen's d).
 	pooledStd := math.Sqrt(((float64(n1-1))*var1 + (float64(n2-1))*var2) / float64(n1+n2-2))
 	effectSize := (mean1 - mean2) / pooledStd
 
@@ -506,7 +506,7 @@ func (sv *StatisticalValidator) performTTest(sample1, sample2 []float64) *TTestR
 	}
 }
 
-// Helper mathematical functions
+// Helper mathematical functions.
 
 func (sv *StatisticalValidator) calculateSkewness(values []float64, mean, stdDev float64) float64 {
 	n := float64(len(values))
@@ -532,24 +532,24 @@ func (sv *StatisticalValidator) calculateKurtosis(values []float64, mean, stdDev
 	return sum / n
 }
 
-// normalQuantile returns the quantile of the standard normal distribution
+// normalQuantile returns the quantile of the standard normal distribution.
 func (sv *StatisticalValidator) normalQuantile(p float64) float64 {
 	normal := distuv.Normal{Mu: 0, Sigma: 1}
 	return normal.Quantile(p)
 }
 
-// normalCDF returns the cumulative distribution function of standard normal
+// normalCDF returns the cumulative distribution function of standard normal.
 func (sv *StatisticalValidator) normalCDF(x float64) float64 {
 	normal := distuv.Normal{Mu: 0, Sigma: 1}
 	return normal.CDF(x)
 }
 
-// GenerateReport creates a comprehensive statistical report
+// GenerateReport creates a comprehensive statistical report.
 func (sv *StatisticalValidator) GenerateReport(summaries []*StatisticalSummary, validations []*ValidationResult, regressions []*RegressionAnalysis) string {
 	report := "COMPREHENSIVE PERFORMANCE VALIDATION REPORT\n"
 	report += "============================================\n\n"
 
-	// Executive Summary
+	// Executive Summary.
 	report += "EXECUTIVE SUMMARY\n"
 	report += "-----------------\n"
 
@@ -576,7 +576,7 @@ func (sv *StatisticalValidator) GenerateReport(summaries []*StatisticalSummary, 
 
 	report += fmt.Sprintf("Statistical Confidence Level: %.1f%%\n\n", sv.confidenceLevel*100)
 
-	// Detailed Results
+	// Detailed Results.
 	report += "DETAILED PERFORMANCE ANALYSIS\n"
 	report += "=============================\n\n"
 
@@ -608,7 +608,7 @@ func (sv *StatisticalValidator) GenerateReport(summaries []*StatisticalSummary, 
 		report += "\n"
 	}
 
-	// Regression Analysis
+	// Regression Analysis.
 	if len(regressions) > 0 {
 		report += "REGRESSION ANALYSIS\n"
 		report += "==================\n\n"
@@ -632,13 +632,14 @@ func (sv *StatisticalValidator) GenerateReport(summaries []*StatisticalSummary, 
 	return report
 }
 
-// BatchValidation performs validation on multiple metrics simultaneously
+// BatchValidation performs validation on multiple metrics simultaneously.
 type BatchValidation struct {
 	validator *StatisticalValidator
 	results   []*ValidationResult
 	summaries []*StatisticalSummary
 }
 
+// NewBatchValidation performs newbatchvalidation operation.
 func NewBatchValidation(validator *StatisticalValidator) *BatchValidation {
 	return &BatchValidation{
 		validator: validator,
@@ -647,6 +648,7 @@ func NewBatchValidation(validator *StatisticalValidator) *BatchValidation {
 	}
 }
 
+// AddTarget performs addtarget operation.
 func (bv *BatchValidation) AddTarget(metrics *PerformanceMetrics, target float64, comparison string) error {
 	summary, err := bv.validator.AnalyzeMetrics(metrics)
 	if err != nil {
@@ -664,10 +666,12 @@ func (bv *BatchValidation) AddTarget(metrics *PerformanceMetrics, target float64
 	return nil
 }
 
+// GetResults performs getresults operation.
 func (bv *BatchValidation) GetResults() ([]*ValidationResult, []*StatisticalSummary) {
 	return bv.results, bv.summaries
 }
 
+// GenerateReport performs generatereport operation.
 func (bv *BatchValidation) GenerateReport() string {
 	return bv.validator.GenerateReport(bv.summaries, bv.results, nil)
 }

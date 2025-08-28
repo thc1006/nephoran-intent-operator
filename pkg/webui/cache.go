@@ -26,7 +26,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 )
 
-// Cache provides thread-safe in-memory caching with TTL support
+// Cache provides thread-safe in-memory caching with TTL support.
 type Cache struct {
 	items      map[string]*cacheItem
 	mutex      sync.RWMutex
@@ -35,7 +35,7 @@ type Cache struct {
 	stats      *cacheStatsInternal
 }
 
-// cacheItem represents a cached item with expiration
+// cacheItem represents a cached item with expiration.
 type cacheItem struct {
 	value      interface{}
 	expiration time.Time
@@ -44,7 +44,7 @@ type cacheItem struct {
 	size       int64 // approximate size in bytes
 }
 
-// CacheStats provides cache performance metrics
+// CacheStats provides cache performance metrics.
 type CacheStats struct {
 	Hits         int64
 	Misses       int64
@@ -56,13 +56,13 @@ type CacheStats struct {
 	AvgItemSize  float64
 }
 
-// cacheStatsInternal contains CacheStats with an internal mutex for thread safety
+// cacheStatsInternal contains CacheStats with an internal mutex for thread safety.
 type cacheStatsInternal struct {
 	CacheStats
 	mutex sync.RWMutex
 }
 
-// CacheConfig holds cache configuration
+// CacheConfig holds cache configuration.
 type CacheConfig struct {
 	MaxSize         int
 	DefaultTTL      time.Duration
@@ -70,7 +70,7 @@ type CacheConfig struct {
 	MaxItemSize     int64
 }
 
-// NewCache creates a new cache instance
+// NewCache creates a new cache instance.
 func NewCache(maxSize int, defaultTTL time.Duration) *Cache {
 	cache := &Cache{
 		items:      make(map[string]*cacheItem),
@@ -79,13 +79,13 @@ func NewCache(maxSize int, defaultTTL time.Duration) *Cache {
 		stats:      &cacheStatsInternal{},
 	}
 
-	// Start cleanup goroutine
+	// Start cleanup goroutine.
 	go cache.cleanupExpiredItems()
 
 	return cache
 }
 
-// Get retrieves a value from cache
+// Get retrieves a value from cache.
 func (c *Cache) Get(key string) (interface{}, bool) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
@@ -98,9 +98,9 @@ func (c *Cache) Get(key string) (interface{}, bool) {
 		return nil, false
 	}
 
-	// Check expiration
+	// Check expiration.
 	if time.Now().After(item.expiration) {
-		// Item expired, remove it
+		// Item expired, remove it.
 		c.mutex.RUnlock()
 		c.mutex.Lock()
 		delete(c.items, key)
@@ -116,7 +116,7 @@ func (c *Cache) Get(key string) (interface{}, bool) {
 		return nil, false
 	}
 
-	// Update access statistics
+	// Update access statistics.
 	item.hits++
 	item.lastAccess = time.Now()
 
@@ -127,33 +127,33 @@ func (c *Cache) Get(key string) (interface{}, bool) {
 	return item.value, true
 }
 
-// Set stores a value in cache with default TTL
+// Set stores a value in cache with default TTL.
 func (c *Cache) Set(key string, value interface{}) {
 	c.SetWithTTL(key, value, c.defaultTTL)
 }
 
-// SetWithTTL stores a value in cache with custom TTL
+// SetWithTTL stores a value in cache with custom TTL.
 func (c *Cache) SetWithTTL(key string, value interface{}, ttl time.Duration) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	// Calculate approximate size
+	// Calculate approximate size.
 	itemSize := c.estimateItemSize(key, value)
 
-	// Check if we need to evict items
+	// Check if we need to evict items.
 	c.evictIfNecessary(itemSize)
 
 	expiration := time.Now().Add(ttl)
 
-	// Check if item already exists
+	// Check if item already exists.
 	if existingItem, exists := c.items[key]; exists {
-		// Update existing item
+		// Update existing item.
 		c.updateStats(func(s *CacheStats) {
 			s.TotalSize -= existingItem.size
 			s.TotalSize += itemSize
 		})
 	} else {
-		// New item
+		// New item.
 		c.updateStats(func(s *CacheStats) {
 			s.TotalItems++
 			s.TotalSize += itemSize
@@ -174,7 +174,7 @@ func (c *Cache) SetWithTTL(key string, value interface{}, ttl time.Duration) {
 	})
 }
 
-// Delete removes an item from cache
+// Delete removes an item from cache.
 func (c *Cache) Delete(key string) bool {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -191,7 +191,7 @@ func (c *Cache) Delete(key string) bool {
 	return false
 }
 
-// Invalidate removes all items matching a key prefix
+// Invalidate removes all items matching a key prefix.
 func (c *Cache) Invalidate(keyPrefix string) int {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -219,7 +219,7 @@ func (c *Cache) Invalidate(keyPrefix string) int {
 	return removedCount
 }
 
-// Clear removes all items from cache
+// Clear removes all items from cache.
 func (c *Cache) Clear() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -235,19 +235,19 @@ func (c *Cache) Clear() {
 	})
 }
 
-// Size returns the number of items in cache
+// Size returns the number of items in cache.
 func (c *Cache) Size() int {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	return len(c.items)
 }
 
-// Stats returns cache statistics
+// Stats returns cache statistics.
 func (c *Cache) Stats() *CacheStats {
 	c.stats.mutex.RLock()
 	defer c.stats.mutex.RUnlock()
 
-	// Return a copy of the stats without the mutex
+	// Return a copy of the stats without the mutex.
 	return &CacheStats{
 		Hits:         c.stats.CacheStats.Hits,
 		Misses:       c.stats.CacheStats.Misses,
@@ -260,7 +260,7 @@ func (c *Cache) Stats() *CacheStats {
 	}
 }
 
-// HitRate returns the cache hit rate as a percentage
+// HitRate returns the cache hit rate as a percentage.
 func (c *Cache) HitRate() float64 {
 	stats := c.Stats()
 	total := stats.Hits + stats.Misses
@@ -270,7 +270,7 @@ func (c *Cache) HitRate() float64 {
 	return float64(stats.Hits) / float64(total) * 100
 }
 
-// Keys returns all cache keys (for debugging)
+// Keys returns all cache keys (for debugging).
 func (c *Cache) Keys() []string {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
@@ -282,22 +282,22 @@ func (c *Cache) Keys() []string {
 	return keys
 }
 
-// Internal methods
+// Internal methods.
 
 func (c *Cache) evictIfNecessary(newItemSize int64) {
-	// Check if we need to evict based on count
+	// Check if we need to evict based on count.
 	for len(c.items) >= c.maxSize {
 		c.evictLeastRecentlyUsed()
 	}
 
-	// Could also implement size-based eviction here if needed
+	// Could also implement size-based eviction here if needed.
 }
 
 func (c *Cache) evictLeastRecentlyUsed() {
 	var oldestKey string
 	var oldestTime time.Time = time.Now()
 
-	// Find the least recently used item
+	// Find the least recently used item.
 	for key, item := range c.items {
 		if item.lastAccess.Before(oldestTime) {
 			oldestTime = item.lastAccess
@@ -305,7 +305,7 @@ func (c *Cache) evictLeastRecentlyUsed() {
 		}
 	}
 
-	// Remove the oldest item
+	// Remove the oldest item.
 	if oldestKey != "" {
 		if item, exists := c.items[oldestKey]; exists {
 			delete(c.items, oldestKey)
@@ -350,7 +350,7 @@ func (c *Cache) cleanupExpiredItems() {
 }
 
 func (c *Cache) estimateItemSize(key string, value interface{}) int64 {
-	// Rough estimation of item size in bytes
+	// Rough estimation of item size in bytes.
 	size := int64(len(key))
 
 	switch v := value.(type) {
@@ -363,7 +363,7 @@ func (c *Cache) estimateItemSize(key string, value interface{}) int64 {
 	case bool:
 		size += 1
 	default:
-		// For complex objects, assume 1KB average size
+		// For complex objects, assume 1KB average size.
 		size += 1024
 	}
 
@@ -384,26 +384,26 @@ func (c *Cache) calculateAvgItemSize() {
 	}
 }
 
-// CacheMiddleware provides HTTP middleware for caching responses
+// CacheMiddleware provides HTTP middleware for caching responses.
 func (s *NephoranAPIServer) cacheMiddleware(ttl time.Duration) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Only cache GET requests
+			// Only cache GET requests.
 			if r.Method != "GET" {
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			// Skip caching for real-time endpoints
+			// Skip caching for real-time endpoints.
 			if strings.HasPrefix(r.URL.Path, "/api/v1/realtime/") {
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			// Generate cache key
+			// Generate cache key.
 			cacheKey := s.generateCacheKey(r)
 
-			// Check cache first
+			// Check cache first.
 			if s.cache != nil {
 				if cached, found := s.cache.Get(cacheKey); found {
 					s.metrics.CacheHits.Inc()
@@ -414,7 +414,7 @@ func (s *NephoranAPIServer) cacheMiddleware(ttl time.Duration) func(http.Handler
 				s.metrics.CacheMisses.Inc()
 			}
 
-			// Wrap response writer to capture response
+			// Wrap response writer to capture response.
 			wrapper := &cacheResponseWrapper{
 				ResponseWriter: w,
 				body:           make([]byte, 0),
@@ -423,7 +423,7 @@ func (s *NephoranAPIServer) cacheMiddleware(ttl time.Duration) func(http.Handler
 
 			next.ServeHTTP(wrapper, r)
 
-			// Cache successful responses
+			// Cache successful responses.
 			if wrapper.statusCode == http.StatusOK && s.cache != nil {
 				s.cache.SetWithTTL(cacheKey, wrapper.body, ttl)
 				w.Header().Set("X-Cache", "MISS")
@@ -433,23 +433,25 @@ func (s *NephoranAPIServer) cacheMiddleware(ttl time.Duration) func(http.Handler
 }
 
 func (s *NephoranAPIServer) generateCacheKey(r *http.Request) string {
-	// Include user ID for user-specific caching
+	// Include user ID for user-specific caching.
 	userID := auth.GetUserID(r.Context())
 	return fmt.Sprintf("%s:%s:%s:%s", r.Method, r.URL.Path, r.URL.RawQuery, userID)
 }
 
-// cacheResponseWrapper wraps http.ResponseWriter to capture response body
+// cacheResponseWrapper wraps http.ResponseWriter to capture response body.
 type cacheResponseWrapper struct {
 	http.ResponseWriter
 	body       []byte
 	statusCode int
 }
 
+// WriteHeader performs writeheader operation.
 func (w *cacheResponseWrapper) WriteHeader(code int) {
 	w.statusCode = code
 	w.ResponseWriter.WriteHeader(code)
 }
 
+// Write performs write operation.
 func (w *cacheResponseWrapper) Write(data []byte) (int, error) {
 	w.body = append(w.body, data...)
 	return w.ResponseWriter.Write(data)

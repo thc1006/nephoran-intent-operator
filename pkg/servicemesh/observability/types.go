@@ -1,4 +1,4 @@
-// Package observability provides types for service mesh observability
+// Package observability provides types for service mesh observability.
 package observability
 
 import (
@@ -7,7 +7,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
 )
 
-// MTLSReport represents a comprehensive mTLS status report
+// MTLSReport represents a comprehensive mTLS status report.
 type MTLSReport struct {
 	Timestamp           time.Time                       `json:"timestamp"`
 	Provider            abstraction.ServiceMeshProvider `json:"provider"`
@@ -19,7 +19,7 @@ type MTLSReport struct {
 	Recommendations     []string                        `json:"recommendations"`
 }
 
-// CertificateMetrics represents certificate metrics
+// CertificateMetrics represents certificate metrics.
 type CertificateMetrics struct {
 	Service         string    `json:"service"`
 	Namespace       string    `json:"namespace"`
@@ -29,7 +29,7 @@ type CertificateMetrics struct {
 	NeedsRotation   bool      `json:"needsRotation"`
 }
 
-// DependencyVisualization represents service dependency visualization data
+// DependencyVisualization represents service dependency visualization data.
 type DependencyVisualization struct {
 	Namespace string              `json:"namespace"`
 	Timestamp time.Time           `json:"timestamp"`
@@ -39,7 +39,7 @@ type DependencyVisualization struct {
 	Cycles    [][]string          `json:"cycles,omitempty"`
 }
 
-// VisualizationNode represents a node in the dependency visualization
+// VisualizationNode represents a node in the dependency visualization.
 type VisualizationNode struct {
 	ID          string      `json:"id"`
 	Name        string      `json:"name"`
@@ -48,14 +48,14 @@ type VisualizationNode struct {
 	Metrics     NodeMetrics `json:"metrics"`
 }
 
-// NodeMetrics represents metrics for a node
+// NodeMetrics represents metrics for a node.
 type NodeMetrics struct {
 	RequestRate float64 `json:"requestRate"`
 	ErrorRate   float64 `json:"errorRate"`
 	P99Latency  float64 `json:"p99Latency"`
 }
 
-// VisualizationEdge represents an edge in the dependency visualization
+// VisualizationEdge represents an edge in the dependency visualization.
 type VisualizationEdge struct {
 	Source      string      `json:"source"`
 	Target      string      `json:"target"`
@@ -64,14 +64,14 @@ type VisualizationEdge struct {
 	Metrics     EdgeMetrics `json:"metrics"`
 }
 
-// EdgeMetrics represents metrics for an edge
+// EdgeMetrics represents metrics for an edge.
 type EdgeMetrics struct {
 	RequestRate float64 `json:"requestRate"`
 	ErrorRate   float64 `json:"errorRate"`
 	Latency     float64 `json:"latency"`
 }
 
-// ServiceMeshMetrics represents aggregated service mesh metrics
+// ServiceMeshMetrics represents aggregated service mesh metrics.
 type ServiceMeshMetrics struct {
 	Timestamp            time.Time `json:"timestamp"`
 	MTLSConnections      int64     `json:"mtlsConnections"`
@@ -86,7 +86,7 @@ type ServiceMeshMetrics struct {
 	UnhealthyServices    int       `json:"unhealthyServices"`
 }
 
-// SecurityEvent represents a security-related event in the mesh
+// SecurityEvent represents a security-related event in the mesh.
 type SecurityEvent struct {
 	Timestamp   time.Time              `json:"timestamp"`
 	Type        string                 `json:"type"`
@@ -97,7 +97,7 @@ type SecurityEvent struct {
 	Details     map[string]interface{} `json:"details,omitempty"`
 }
 
-// PerformanceMetrics represents performance metrics for the mesh
+// PerformanceMetrics represents performance metrics for the mesh.
 type PerformanceMetrics struct {
 	Timestamp         time.Time                     `json:"timestamp"`
 	ServiceMetrics    map[string]ServicePerformance `json:"serviceMetrics"`
@@ -106,7 +106,7 @@ type PerformanceMetrics struct {
 	ErrorRate         float64                       `json:"errorRate"`
 }
 
-// ServicePerformance represents performance metrics for a single service
+// ServicePerformance represents performance metrics for a single service.
 type ServicePerformance struct {
 	Service     string              `json:"service"`
 	Namespace   string              `json:"namespace"`
@@ -118,7 +118,7 @@ type ServicePerformance struct {
 	ActiveConns int                 `json:"activeConnections"`
 }
 
-// LatencyDistribution represents latency distribution metrics
+// LatencyDistribution represents latency distribution metrics.
 type LatencyDistribution struct {
 	P50  float64 `json:"p50"`
 	P90  float64 `json:"p90"`
@@ -129,7 +129,7 @@ type LatencyDistribution struct {
 	Min  float64 `json:"min"`
 }
 
-// TracingData represents distributed tracing data
+// TracingData represents distributed tracing data.
 type TracingData struct {
 	TraceID   string            `json:"traceId"`
 	SpanID    string            `json:"spanId"`
@@ -143,14 +143,14 @@ type TracingData struct {
 	Events    []TraceEvent      `json:"events,omitempty"`
 }
 
-// TraceEvent represents an event within a trace
+// TraceEvent represents an event within a trace.
 type TraceEvent struct {
 	Timestamp  time.Time         `json:"timestamp"`
 	Name       string            `json:"name"`
 	Attributes map[string]string `json:"attributes,omitempty"`
 }
 
-// AlertConfiguration represents alert configuration
+// AlertConfiguration represents alert configuration.
 type AlertConfiguration struct {
 	Name      string            `json:"name"`
 	Type      string            `json:"type"`
@@ -160,7 +160,7 @@ type AlertConfiguration struct {
 	Labels    map[string]string `json:"labels,omitempty"`
 }
 
-// AlertCondition represents an alert condition
+// AlertCondition represents an alert condition.
 type AlertCondition struct {
 	Metric    string  `json:"metric"`
 	Operator  string  `json:"operator"`
@@ -168,13 +168,13 @@ type AlertCondition struct {
 	Duration  string  `json:"duration"`
 }
 
-// AlertAction represents an action to take when alert triggers
+// AlertAction represents an action to take when alert triggers.
 type AlertAction struct {
 	Type   string            `json:"type"`
 	Config map[string]string `json:"config"`
 }
 
-// Dashboard represents a monitoring dashboard configuration
+// Dashboard represents a monitoring dashboard configuration.
 type Dashboard struct {
 	Name        string              `json:"name"`
 	Description string              `json:"description"`
@@ -183,7 +183,7 @@ type Dashboard struct {
 	RefreshRate string              `json:"refreshRate"`
 }
 
-// DashboardPanel represents a panel in a dashboard
+// DashboardPanel represents a panel in a dashboard.
 type DashboardPanel struct {
 	ID       string                 `json:"id"`
 	Title    string                 `json:"title"`
@@ -193,7 +193,7 @@ type DashboardPanel struct {
 	Options  map[string]interface{} `json:"options,omitempty"`
 }
 
-// PanelPosition represents the position of a panel
+// PanelPosition represents the position of a panel.
 type PanelPosition struct {
 	X      int `json:"x"`
 	Y      int `json:"y"`
@@ -201,7 +201,7 @@ type PanelPosition struct {
 	Height int `json:"height"`
 }
 
-// DashboardVariable represents a dashboard variable
+// DashboardVariable represents a dashboard variable.
 type DashboardVariable struct {
 	Name    string   `json:"name"`
 	Type    string   `json:"type"`

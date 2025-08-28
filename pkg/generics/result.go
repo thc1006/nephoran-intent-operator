@@ -1,6 +1,6 @@
 //go:build go1.24
 
-// Package generics provides type-safe generic implementations leveraging Go 1.24+ features
+// Package generics provides type-safe generic implementations leveraging Go 1.24+ features.
 // for the Nephoran Intent Operator's telecommunications network orchestration platform.
 package generics
 
@@ -9,7 +9,7 @@ import (
 )
 
 // Result represents a value that may be successful (T) or contain an error (E).
-// This follows the functional programming paradigm for explicit error handling
+// This follows the functional programming paradigm for explicit error handling.
 // with compile-time type safety and zero runtime overhead.
 type Result[T, E any] struct {
 	value T
@@ -93,7 +93,7 @@ func MapErr[T, E, F any](r Result[T, E], fn func(E) F) Result[T, F] {
 	return Err[T, F](fn(r.err))
 }
 
-// FlatMap chains Results together. If the current Result is successful,
+// FlatMap chains Results together. If the current Result is successful,.
 // applies the function and returns its Result. Otherwise returns the error.
 func FlatMap[T, U, E any](r Result[T, E], fn func(T) Result[U, E]) Result[U, E] {
 	if !r.ok {
@@ -243,7 +243,7 @@ func (c *Chain[T, E]) Result() Result[T, E] {
 func Recovery[T, E any](fn func() T, recoverFn func(any) E) Result[T, E] {
 	defer func() {
 		if r := recover(); r != nil {
-			// This will be handled by the outer function
+			// This will be handled by the outer function.
 		}
 	}()
 

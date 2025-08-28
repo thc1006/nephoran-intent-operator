@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-// convertUsageDataToDataPoints converts UsageData slice to UsageDataPoint slice
+// convertUsageDataToDataPoints converts UsageData slice to UsageDataPoint slice.
 func convertUsageDataToDataPoints(usageData []*UsageData) []UsageDataPoint {
 	dataPoints := make([]UsageDataPoint, len(usageData))
 	for i, data := range usageData {
@@ -34,13 +34,13 @@ func convertUsageDataToDataPoints(usageData []*UsageData) []UsageDataPoint {
 	return dataPoints
 }
 
-// Helper methods for usage analysis in analyzer.go
+// Helper methods for usage analysis in analyzer.go.
 
-// AnalyzePatterns analyzes usage patterns from usage data
+// AnalyzePatterns analyzes usage patterns from usage data.
 func (a *UsageAnalyzer) AnalyzePatterns(usageData []UsageDataPoint) []*UsagePattern {
 	patterns := make([]*UsagePattern, 0)
 
-	// Stub implementation - analyze patterns in usage data
+	// Stub implementation - analyze patterns in usage data.
 	if len(usageData) > 0 {
 		pattern := &UsagePattern{
 			Type:        "daily",
@@ -55,7 +55,7 @@ func (a *UsageAnalyzer) AnalyzePatterns(usageData []UsageDataPoint) []*UsagePatt
 	return patterns
 }
 
-// calculateTotalUsage calculates total usage from usage data
+// calculateTotalUsage calculates total usage from usage data.
 func (a *dependencyAnalyzer) calculateTotalUsage(usageData []UsageDataPoint) int64 {
 	var total int64 = 0
 	for _, data := range usageData {
@@ -64,7 +64,7 @@ func (a *dependencyAnalyzer) calculateTotalUsage(usageData []UsageDataPoint) int
 	return total
 }
 
-// calculateAverageUsage calculates average usage from usage data
+// calculateAverageUsage calculates average usage from usage data.
 func (a *dependencyAnalyzer) calculateAverageUsage(usageData []UsageDataPoint) float64 {
 	if len(usageData) == 0 {
 		return 0.0
@@ -74,13 +74,13 @@ func (a *dependencyAnalyzer) calculateAverageUsage(usageData []UsageDataPoint) f
 	return float64(total) / float64(len(usageData))
 }
 
-// calculateUsageGrowthRate calculates usage growth rate over time period
+// calculateUsageGrowthRate calculates usage growth rate over time period.
 func (a *dependencyAnalyzer) calculateUsageGrowthRate(usageData []UsageDataPoint, timeRange *TimeRange) float64 {
 	if len(usageData) < 2 || timeRange == nil {
 		return 0.0
 	}
 
-	// Simple growth rate calculation
+	// Simple growth rate calculation.
 	firstPeriod := usageData[0].Usage
 	lastPeriod := usageData[len(usageData)-1].Usage
 
@@ -91,17 +91,17 @@ func (a *dependencyAnalyzer) calculateUsageGrowthRate(usageData []UsageDataPoint
 	return float64(lastPeriod-firstPeriod) / float64(firstPeriod)
 }
 
-// rankPackagesByUsage ranks packages by their usage
+// rankPackagesByUsage ranks packages by their usage.
 func (a *dependencyAnalyzer) rankPackagesByUsage(usageData []UsageDataPoint) []*UsageRanking {
 	rankings := make([]*UsageRanking, 0)
 
-	// Group usage by package and create rankings
+	// Group usage by package and create rankings.
 	packageUsage := make(map[string]int64)
 	for _, data := range usageData {
 		packageUsage[data.PackageName] += data.Usage
 	}
 
-	// Create ranking objects
+	// Create ranking objects.
 	for packageName, usage := range packageUsage {
 		ranking := &UsageRanking{
 			PackageName: packageName,
@@ -116,11 +116,11 @@ func (a *dependencyAnalyzer) rankPackagesByUsage(usageData []UsageDataPoint) []*
 	return rankings
 }
 
-// detectTrendingPackages detects packages with trending usage
+// detectTrendingPackages detects packages with trending usage.
 func (a *dependencyAnalyzer) detectTrendingPackages(usageData []UsageDataPoint) []*TrendingPackage {
 	trending := make([]*TrendingPackage, 0)
 
-	// Group data by package and analyze trends
+	// Group data by package and analyze trends.
 	packageData := make(map[string][]UsageDataPoint)
 	for _, data := range usageData {
 		packageData[data.PackageName] = append(packageData[data.PackageName], data)
@@ -128,7 +128,7 @@ func (a *dependencyAnalyzer) detectTrendingPackages(usageData []UsageDataPoint) 
 
 	for packageName, data := range packageData {
 		if len(data) >= 2 {
-			// Check if usage is trending up
+			// Check if usage is trending up.
 			recent := data[len(data)-1].Usage
 			older := data[0].Usage
 
@@ -148,11 +148,11 @@ func (a *dependencyAnalyzer) detectTrendingPackages(usageData []UsageDataPoint) 
 	return trending
 }
 
-// findUnusedPackages finds packages that are not being used
+// findUnusedPackages finds packages that are not being used.
 func (a *dependencyAnalyzer) findUnusedPackages(packages []*PackageReference, usageData []UsageDataPoint) []*UnusedPackage {
 	unused := make([]*UnusedPackage, 0)
 
-	// Create a set of used package names
+	// Create a set of used package names.
 	usedPackages := make(map[string]bool)
 	for _, data := range usageData {
 		if data.Usage > 0 {
@@ -160,7 +160,7 @@ func (a *dependencyAnalyzer) findUnusedPackages(packages []*PackageReference, us
 		}
 	}
 
-	// Find packages that are not used
+	// Find packages that are not used.
 	for _, pkg := range packages {
 		if !usedPackages[pkg.Name] {
 			unusedPkg := &UnusedPackage{
@@ -178,21 +178,21 @@ func (a *dependencyAnalyzer) findUnusedPackages(packages []*PackageReference, us
 	return unused
 }
 
-// findUnderutilizedPackages finds packages that are underutilized
+// findUnderutilizedPackages finds packages that are underutilized.
 func (a *dependencyAnalyzer) findUnderutilizedPackages(usageData []UsageDataPoint) []*UnderutilizedPackage {
 	underutilized := make([]*UnderutilizedPackage, 0)
 
-	// Calculate average usage
+	// Calculate average usage.
 	avgUsage := a.calculateAverageUsage(usageData)
 	threshold := avgUsage * 0.1 // 10% of average usage
 
-	// Group data by package
+	// Group data by package.
 	packageUsage := make(map[string]int64)
 	for _, data := range usageData {
 		packageUsage[data.PackageName] += data.Usage
 	}
 
-	// Find underutilized packages
+	// Find underutilized packages.
 	for packageName, usage := range packageUsage {
 		if float64(usage) < threshold && usage > 0 {
 			underutilizedPkg := &UnderutilizedPackage{
@@ -210,19 +210,19 @@ func (a *dependencyAnalyzer) findUnderutilizedPackages(usageData []UsageDataPoin
 	return underutilized
 }
 
-// calculateUsageEfficiency calculates overall usage efficiency
+// calculateUsageEfficiency calculates overall usage efficiency.
 func (a *dependencyAnalyzer) calculateUsageEfficiency(usageData []UsageDataPoint) float64 {
 	if len(usageData) == 0 {
 		return 0.0
 	}
 
-	// Simple efficiency calculation based on usage variance
+	// Simple efficiency calculation based on usage variance.
 	avgUsage := a.calculateAverageUsage(usageData)
 	if avgUsage == 0 {
 		return 0.0
 	}
 
-	// Calculate how many packages are being actively used
+	// Calculate how many packages are being actively used.
 	usedPackages := make(map[string]bool)
 	for _, data := range usageData {
 		if data.Usage > 0 {
@@ -230,7 +230,7 @@ func (a *dependencyAnalyzer) calculateUsageEfficiency(usageData []UsageDataPoint
 		}
 	}
 
-	// Efficiency is the ratio of used packages to total unique packages
+	// Efficiency is the ratio of used packages to total unique packages.
 	totalPackages := make(map[string]bool)
 	for _, data := range usageData {
 		totalPackages[data.PackageName] = true
@@ -243,17 +243,17 @@ func (a *dependencyAnalyzer) calculateUsageEfficiency(usageData []UsageDataPoint
 	return float64(len(usedPackages)) / float64(len(totalPackages))
 }
 
-// calculateUsageWaste calculates percentage of wasted usage
+// calculateUsageWaste calculates percentage of wasted usage.
 func (a *dependencyAnalyzer) calculateUsageWaste(usageData []UsageDataPoint) float64 {
 	efficiency := a.calculateUsageEfficiency(usageData)
 	return (1.0 - efficiency) * 100.0 // Return as percentage
 }
 
-// generateUsageOptimizations generates optimization recommendations based on usage analysis
+// generateUsageOptimizations generates optimization recommendations based on usage analysis.
 func (a *dependencyAnalyzer) generateUsageOptimizations(analysis *UsageAnalysis) []*UsageOptimization {
 	optimizations := make([]*UsageOptimization, 0)
 
-	// Generate optimization based on unused packages
+	// Generate optimization based on unused packages.
 	if len(analysis.UnusedPackages) > 0 {
 		opt := &UsageOptimization{
 			Type:             "remove_unused",
@@ -272,7 +272,7 @@ func (a *dependencyAnalyzer) generateUsageOptimizations(analysis *UsageAnalysis)
 		optimizations = append(optimizations, opt)
 	}
 
-	// Generate optimization based on underutilized packages
+	// Generate optimization based on underutilized packages.
 	if len(analysis.UnderutilizedPackages) > 0 {
 		opt := &UsageOptimization{
 			Type:             "optimize_underutilized",

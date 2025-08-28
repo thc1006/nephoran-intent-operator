@@ -3,13 +3,14 @@ package planner
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 )
 
-// Intent matches the intent.schema.json contract
+// Intent matches the intent.schema.json contract.
 type Intent struct {
 	IntentType    string `json:"intent_type"`              // "scaling"
 	Target        string `json:"target"`                   // deployment name
@@ -20,7 +21,7 @@ type Intent struct {
 	CorrelationID string `json:"correlation_id,omitempty"` // optional trace id
 }
 
-// httpClient is a reusable HTTP client with timeout
+// httpClient is a reusable HTTP client with timeout.
 var httpClient = &http.Client{
 	Timeout: 30 * time.Second,
 }
@@ -31,7 +32,11 @@ func PostIntent(url string, in Intent) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal intent: %w", err)
 	}
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(b))
+	
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}

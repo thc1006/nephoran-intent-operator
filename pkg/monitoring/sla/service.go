@@ -17,9 +17,9 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
-// Service provides comprehensive SLA monitoring for the Nephoran Intent Operator
+// Service provides comprehensive SLA monitoring for the Nephoran Intent Operator.
 type Service struct {
-	// Core configuration
+	// Core configuration.
 	config     *ServiceConfig
 	logger     *logging.StructuredLogger
 	collector  *Collector
@@ -28,132 +28,132 @@ type Service struct {
 	alerting   *AlertManager
 	storage    *StorageManager
 
-	// Worker pool management
+	// Worker pool management.
 	workers     []*Worker
 	workerPool  chan *Worker
 	taskQueue   chan Task
 	workerCount int32
 	activeJobs  int64
 
-	// Circuit breaker for external dependencies
+	// Circuit breaker for external dependencies.
 	circuitBreaker *gobreaker.CircuitBreaker
 
-	// Health and state management
+	// Health and state management.
 	healthChecker *health.HealthChecker
 	started       atomic.Bool
 	stopping      atomic.Bool
 	stopped       chan struct{}
 
-	// Performance monitoring
+	// Performance monitoring.
 	metrics         *ServiceMetrics
 	lastStatsUpdate time.Time
 	processingRate  atomic.Uint64
 	errorRate       atomic.Uint64
 
-	// Current metric values for retrieval
+	// Current metric values for retrieval.
 	currentMemoryUsage atomic.Uint64
 	currentCPUUsage    atomic.Uint64
 
-	// Synchronization
+	// Synchronization.
 	mu      sync.RWMutex
 	startMu sync.Mutex
 }
 
-// ServiceConfig holds configuration for the SLA monitoring service
+// ServiceConfig holds configuration for the SLA monitoring service.
 type ServiceConfig struct {
-	// Worker pool configuration
+	// Worker pool configuration.
 	WorkerCount        int `yaml:"worker_count"`
 	TaskQueueSize      int `yaml:"task_queue_size"`
 	MaxConcurrentTasks int `yaml:"max_concurrent_tasks"`
 
-	// Performance settings
+	// Performance settings.
 	CollectionInterval   time.Duration `yaml:"collection_interval"`
 	CalculationInterval  time.Duration `yaml:"calculation_interval"`
 	MetricsFlushInterval time.Duration `yaml:"metrics_flush_interval"`
 
-	// Capacity limits
+	// Capacity limits.
 	MaxIntentsPerSecond int     `yaml:"max_intents_per_second"`
 	MaxMemoryUsageMB    int64   `yaml:"max_memory_usage_mb"`
 	MaxCPUUsagePercent  float64 `yaml:"max_cpu_usage_percent"`
 
-	// SLA thresholds
+	// SLA thresholds.
 	AvailabilityTarget float64       `yaml:"availability_target"`
 	P95LatencyTarget   time.Duration `yaml:"p95_latency_target"`
 	ThroughputTarget   float64       `yaml:"throughput_target"`
 	ErrorRateTarget    float64       `yaml:"error_rate_target"`
 
-	// Circuit breaker settings
+	// Circuit breaker settings.
 	CircuitBreakerTimeout      time.Duration `yaml:"circuit_breaker_timeout"`
 	CircuitBreakerMaxRequests  uint32        `yaml:"circuit_breaker_max_requests"`
 	CircuitBreakerInterval     time.Duration `yaml:"circuit_breaker_interval"`
 	CircuitBreakerFailureRatio float64       `yaml:"circuit_breaker_failure_ratio"`
 
-	// Health check configuration
+	// Health check configuration.
 	HealthCheckInterval time.Duration `yaml:"health_check_interval"`
 	GracePeriod         time.Duration `yaml:"grace_period"`
 }
 
-// DefaultServiceConfig returns a configuration with production-ready defaults
+// DefaultServiceConfig returns a configuration with production-ready defaults.
 func DefaultServiceConfig() *ServiceConfig {
 	return &ServiceConfig{
-		// Worker pool optimized for high throughput
+		// Worker pool optimized for high throughput.
 		WorkerCount:        runtime.NumCPU() * 2,
 		TaskQueueSize:      10000,
 		MaxConcurrentTasks: 1000,
 
-		// Performance settings for sub-100ms latency
+		// Performance settings for sub-100ms latency.
 		CollectionInterval:   100 * time.Millisecond,
 		CalculationInterval:  1 * time.Second,
 		MetricsFlushInterval: 5 * time.Second,
 
-		// Capacity limits for production workloads
+		// Capacity limits for production workloads.
 		MaxIntentsPerSecond: 1000,
 		MaxMemoryUsageMB:    50,  // <50MB memory footprint
 		MaxCPUUsagePercent:  1.0, // <1% CPU overhead
 
-		// Production SLA targets
+		// Production SLA targets.
 		AvailabilityTarget: 99.95,
 		P95LatencyTarget:   2 * time.Second,
 		ThroughputTarget:   1000.0,
 		ErrorRateTarget:    0.1,
 
-		// Circuit breaker for resilience
+		// Circuit breaker for resilience.
 		CircuitBreakerTimeout:      30 * time.Second,
 		CircuitBreakerMaxRequests:  10,
 		CircuitBreakerInterval:     10 * time.Second,
 		CircuitBreakerFailureRatio: 0.6,
 
-		// Health monitoring
+		// Health monitoring.
 		HealthCheckInterval: 30 * time.Second,
 		GracePeriod:         2 * time.Minute,
 	}
 }
 
-// ServiceMetrics contains Prometheus metrics for the SLA service
+// ServiceMetrics contains Prometheus metrics for the SLA service.
 type ServiceMetrics struct {
-	// Processing metrics
+	// Processing metrics.
 	TasksProcessed    *prometheus.CounterVec
 	ProcessingLatency *prometheus.HistogramVec
 	ActiveWorkers     prometheus.Gauge
 	QueueDepth        prometheus.Gauge
 
-	// Performance metrics
+	// Performance metrics.
 	ProcessingRate prometheus.Gauge
 	ErrorRate      prometheus.Gauge
 	MemoryUsage    prometheus.Gauge
 	CPUUsage       prometheus.Gauge
 
-	// SLA compliance metrics
+	// SLA compliance metrics.
 	SLACompliance   *prometheus.GaugeVec
 	SLAViolations   *prometheus.CounterVec
 	ErrorBudgetBurn prometheus.Gauge
 
-	// Circuit breaker metrics
+	// Circuit breaker metrics.
 	CircuitBreakerState *prometheus.GaugeVec
 	CircuitBreakerTotal *prometheus.CounterVec
 }
 
-// Task represents work to be processed by the SLA monitoring service
+// Task represents work to be processed by the SLA monitoring service.
 type Task interface {
 	Execute(ctx context.Context) error
 	GetType() TaskType
@@ -161,28 +161,37 @@ type Task interface {
 	GetTimeout() time.Duration
 }
 
-// TaskType defines the type of monitoring task
+// TaskType defines the type of monitoring task.
 type TaskType string
 
 const (
-	TaskTypeCollection  TaskType = "collection"
+	// TaskTypeCollection holds tasktypecollection value.
+	TaskTypeCollection TaskType = "collection"
+	// TaskTypeCalculation holds tasktypecalculation value.
 	TaskTypeCalculation TaskType = "calculation"
-	TaskTypeAlerting    TaskType = "alerting"
-	TaskTypeStorage     TaskType = "storage"
+	// TaskTypeAlerting holds tasktypealerting value.
+	TaskTypeAlerting TaskType = "alerting"
+	// TaskTypeStorage holds tasktypestorage value.
+	TaskTypeStorage TaskType = "storage"
+	// TaskTypeHealthCheck holds tasktypehealthcheck value.
 	TaskTypeHealthCheck TaskType = "health_check"
 )
 
-// Priority defines task execution priority
+// Priority defines task execution priority.
 type Priority int
 
 const (
-	PriorityLow      Priority = 1
-	PriorityNormal   Priority = 2
-	PriorityHigh     Priority = 3
+	// PriorityLow holds prioritylow value.
+	PriorityLow Priority = 1
+	// PriorityNormal holds prioritynormal value.
+	PriorityNormal Priority = 2
+	// PriorityHigh holds priorityhigh value.
+	PriorityHigh Priority = 3
+	// PriorityCritical holds prioritycritical value.
 	PriorityCritical Priority = 4
 )
 
-// Worker represents a worker in the processing pool
+// Worker represents a worker in the processing pool.
 type Worker struct {
 	id      int
 	service *Service
@@ -191,14 +200,14 @@ type Worker struct {
 	metrics *WorkerMetrics
 }
 
-// WorkerMetrics tracks metrics for individual workers
+// WorkerMetrics tracks metrics for individual workers.
 type WorkerMetrics struct {
 	TasksProcessed prometheus.Counter
 	ProcessingTime prometheus.Histogram
 	Errors         prometheus.Counter
 }
 
-// NewService creates a new SLA monitoring service with the given configuration
+// NewService creates a new SLA monitoring service with the given configuration.
 func NewService(cfg *ServiceConfig, appConfig *config.Config, logger *logging.StructuredLogger) (*Service, error) {
 	if cfg == nil {
 		cfg = DefaultServiceConfig()
@@ -208,7 +217,7 @@ func NewService(cfg *ServiceConfig, appConfig *config.Config, logger *logging.St
 		return nil, fmt.Errorf("logger is required")
 	}
 
-	// Initialize service metrics
+	// Initialize service metrics.
 	metrics := &ServiceMetrics{
 		TasksProcessed: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "sla_service_tasks_processed_total",
@@ -277,7 +286,7 @@ func NewService(cfg *ServiceConfig, appConfig *config.Config, logger *logging.St
 		}, []string{"dependency", "state"}),
 	}
 
-	// Register metrics with Prometheus
+	// Register metrics with Prometheus.
 	prometheus.MustRegister(
 		metrics.TasksProcessed,
 		metrics.ProcessingLatency,
@@ -294,7 +303,7 @@ func NewService(cfg *ServiceConfig, appConfig *config.Config, logger *logging.St
 		metrics.CircuitBreakerTotal,
 	)
 
-	// Initialize circuit breaker
+	// Initialize circuit breaker.
 	cbSettings := gobreaker.Settings{
 		Name:        "sla-service",
 		MaxRequests: cfg.CircuitBreakerMaxRequests,
@@ -312,7 +321,7 @@ func NewService(cfg *ServiceConfig, appConfig *config.Config, logger *logging.St
 				"to", to.String(),
 			)
 
-			// Update metrics
+			// Update metrics.
 			var stateValue float64
 			switch to {
 			case gobreaker.StateClosed:
@@ -329,11 +338,11 @@ func NewService(cfg *ServiceConfig, appConfig *config.Config, logger *logging.St
 
 	circuitBreaker := gobreaker.NewCircuitBreaker(cbSettings)
 
-	// Initialize health checker
+	// Initialize health checker.
 	healthChecker := health.NewHealthChecker("sla-service", "v1.0.0",
 		logger.WithComponent("health").Logger)
 
-	// Create service instance
+	// Create service instance.
 	service := &Service{
 		config:         cfg,
 		logger:         logger.WithComponent("sla-service"),
@@ -345,10 +354,10 @@ func NewService(cfg *ServiceConfig, appConfig *config.Config, logger *logging.St
 		workerPool:     make(chan *Worker, cfg.WorkerCount),
 	}
 
-	// Initialize components
+	// Initialize components.
 	var err error
 
-	// Initialize collector with high-performance settings
+	// Initialize collector with high-performance settings.
 	service.collector, err = NewCollector(&CollectorConfig{
 		BufferSize:     cfg.TaskQueueSize,
 		BatchSize:      100,
@@ -360,7 +369,7 @@ func NewService(cfg *ServiceConfig, appConfig *config.Config, logger *logging.St
 		return nil, fmt.Errorf("failed to initialize collector: %w", err)
 	}
 
-	// Initialize calculator for real-time SLI/SLO calculations
+	// Initialize calculator for real-time SLI/SLO calculations.
 	service.calculator, err = NewCalculator(&CalculatorConfig{
 		WindowSize:          5 * time.Minute,
 		CalculationInterval: cfg.CalculationInterval,
@@ -371,7 +380,7 @@ func NewService(cfg *ServiceConfig, appConfig *config.Config, logger *logging.St
 		return nil, fmt.Errorf("failed to initialize calculator: %w", err)
 	}
 
-	// Initialize tracker for end-to-end monitoring
+	// Initialize tracker for end-to-end monitoring.
 	service.tracker, err = NewTracker(&TrackerConfig{
 		MaxActiveIntents:    cfg.MaxConcurrentTasks,
 		TrackingTimeout:     10 * time.Minute,
@@ -381,7 +390,7 @@ func NewService(cfg *ServiceConfig, appConfig *config.Config, logger *logging.St
 		return nil, fmt.Errorf("failed to initialize tracker: %w", err)
 	}
 
-	// Initialize alerting for SLA violation detection
+	// Initialize alerting for SLA violation detection.
 	service.alerting, err = NewAlertManager(&AlertManagerConfig{
 		EvaluationInterval:  cfg.CalculationInterval,
 		NotificationTimeout: 30 * time.Second,
@@ -392,7 +401,7 @@ func NewService(cfg *ServiceConfig, appConfig *config.Config, logger *logging.St
 		return nil, fmt.Errorf("failed to initialize alert manager: %w", err)
 	}
 
-	// Initialize storage manager
+	// Initialize storage manager.
 	service.storage, err = NewStorageManager(&StorageConfig{
 		RetentionPeriod:    7 * 24 * time.Hour, // 7 days
 		CompactionInterval: 1 * time.Hour,
@@ -403,13 +412,13 @@ func NewService(cfg *ServiceConfig, appConfig *config.Config, logger *logging.St
 		return nil, fmt.Errorf("failed to initialize storage manager: %w", err)
 	}
 
-	// Register health checks
+	// Register health checks.
 	service.registerHealthChecks()
 
 	return service, nil
 }
 
-// Start begins the SLA monitoring service
+// Start begins the SLA monitoring service.
 func (s *Service) Start(ctx context.Context) error {
 	s.startMu.Lock()
 	defer s.startMu.Unlock()
@@ -424,7 +433,7 @@ func (s *Service) Start(ctx context.Context) error {
 		"max_concurrent_tasks", s.config.MaxConcurrentTasks,
 	)
 
-	// Start components
+	// Start components.
 	if err := s.collector.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start collector: %w", err)
 	}
@@ -445,7 +454,7 @@ func (s *Service) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start storage manager: %w", err)
 	}
 
-	// Initialize worker pool
+	// Initialize worker pool.
 	s.workers = make([]*Worker, s.config.WorkerCount)
 	for i := 0; i < s.config.WorkerCount; i++ {
 		worker := s.createWorker(i)
@@ -455,12 +464,12 @@ func (s *Service) Start(ctx context.Context) error {
 		go s.runWorker(ctx, worker)
 	}
 
-	// Start background goroutines
+	// Start background goroutines.
 	go s.processTaskQueue(ctx)
 	go s.updateMetrics(ctx)
 	go s.performHealthChecks(ctx)
 
-	// Mark as started and ready
+	// Mark as started and ready.
 	s.started.Store(true)
 	s.healthChecker.SetReady(true)
 	s.healthChecker.SetHealthy(true)
@@ -470,7 +479,7 @@ func (s *Service) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop gracefully shuts down the SLA monitoring service
+// Stop gracefully shuts down the SLA monitoring service.
 func (s *Service) Stop(ctx context.Context) error {
 	if !s.started.Load() || s.stopping.Load() {
 		return nil
@@ -479,13 +488,13 @@ func (s *Service) Stop(ctx context.Context) error {
 	s.stopping.Store(true)
 	s.logger.InfoWithContext("Stopping SLA monitoring service")
 
-	// Mark as not ready
+	// Mark as not ready.
 	s.healthChecker.SetReady(false)
 
-	// Stop accepting new tasks
+	// Stop accepting new tasks.
 	close(s.taskQueue)
 
-	// Wait for active tasks to complete or timeout
+	// Wait for active tasks to complete or timeout.
 	timeout := 30 * time.Second
 	deadline := time.Now().Add(timeout)
 
@@ -493,7 +502,7 @@ func (s *Service) Stop(ctx context.Context) error {
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	// Stop components
+	// Stop components.
 	if err := s.collector.Stop(ctx); err != nil {
 		s.logger.ErrorWithContext("Failed to stop collector", err)
 	}
@@ -514,7 +523,7 @@ func (s *Service) Stop(ctx context.Context) error {
 		s.logger.ErrorWithContext("Failed to stop storage manager", err)
 	}
 
-	// Stop workers
+	// Stop workers.
 	for _, worker := range s.workers {
 		if worker != nil {
 			close(worker.quit)
@@ -527,7 +536,7 @@ func (s *Service) Stop(ctx context.Context) error {
 	return nil
 }
 
-// SubmitTask submits a task for processing
+// SubmitTask submits a task for processing.
 func (s *Service) SubmitTask(ctx context.Context, task Task) error {
 	if s.stopping.Load() {
 		return fmt.Errorf("service is stopping")
@@ -544,12 +553,12 @@ func (s *Service) SubmitTask(ctx context.Context, task Task) error {
 	}
 }
 
-// GetHealthStatus returns the current health status of the service
+// GetHealthStatus returns the current health status of the service.
 func (s *Service) GetHealthStatus(ctx context.Context) *health.HealthResponse {
 	return s.healthChecker.Check(ctx)
 }
 
-// GetMetrics returns current service metrics
+// GetMetrics returns current service metrics.
 func (s *Service) GetMetrics() ServiceStats {
 	return ServiceStats{
 		ActiveWorkers:   int(atomic.LoadInt32(&s.workerCount)),
@@ -562,7 +571,7 @@ func (s *Service) GetMetrics() ServiceStats {
 	}
 }
 
-// ServiceStats contains current service statistics
+// ServiceStats contains current service statistics.
 type ServiceStats struct {
 	ActiveWorkers   int           `json:"active_workers"`
 	QueueDepth      int           `json:"queue_depth"`
@@ -573,7 +582,7 @@ type ServiceStats struct {
 	Uptime          time.Duration `json:"uptime"`
 }
 
-// createWorker creates a new worker instance
+// createWorker creates a new worker instance.
 func (s *Service) createWorker(id int) *Worker {
 	return &Worker{
 		id:      id,
@@ -601,7 +610,7 @@ func (s *Service) createWorker(id int) *Worker {
 	}
 }
 
-// runWorker runs the worker goroutine
+// runWorker runs the worker goroutine.
 func (s *Service) runWorker(ctx context.Context, worker *Worker) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -629,7 +638,7 @@ func (s *Service) runWorker(ctx context.Context, worker *Worker) {
 	}
 }
 
-// processTaskQueue processes tasks from the main queue
+// processTaskQueue processes tasks from the main queue.
 func (s *Service) processTaskQueue(ctx context.Context) {
 	for {
 		select {
@@ -642,34 +651,34 @@ func (s *Service) processTaskQueue(ctx context.Context) {
 				return
 			}
 
-			// Get a worker from the pool
+			// Get a worker from the pool.
 			select {
 			case worker := <-s.workerPool:
 				select {
 				case worker.tasks <- task:
-					// Task dispatched successfully
+					// Task dispatched successfully.
 				default:
-					// Worker busy, put back in pool and try another
+					// Worker busy, put back in pool and try another.
 					s.workerPool <- worker
-					// Try to process task with circuit breaker
+					// Try to process task with circuit breaker.
 					s.processTaskWithCircuitBreaker(ctx, task)
 				}
 			default:
-				// No workers available, process with circuit breaker
+				// No workers available, process with circuit breaker.
 				s.processTaskWithCircuitBreaker(ctx, task)
 			}
 		}
 	}
 }
 
-// processTask processes a single task
+// processTask processes a single task.
 func (s *Service) processTask(ctx context.Context, worker *Worker, task Task) {
 	defer func() {
-		// Return worker to pool
+		// Return worker to pool.
 		select {
 		case s.workerPool <- worker:
 		default:
-			// Pool is full, worker will be garbage collected
+			// Pool is full, worker will be garbage collected.
 		}
 		atomic.AddInt64(&s.activeJobs, -1)
 	}()
@@ -677,15 +686,15 @@ func (s *Service) processTask(ctx context.Context, worker *Worker, task Task) {
 	atomic.AddInt64(&s.activeJobs, 1)
 	start := time.Now()
 
-	// Create context with timeout
+	// Create context with timeout.
 	taskCtx, cancel := context.WithTimeout(ctx, task.GetTimeout())
 	defer cancel()
 
-	// Execute task
+	// Execute task.
 	err := task.Execute(taskCtx)
 	duration := time.Since(start)
 
-	// Update metrics
+	// Update metrics.
 	worker.metrics.TasksProcessed.Inc()
 	worker.metrics.ProcessingTime.Observe(duration.Seconds())
 
@@ -709,7 +718,7 @@ func (s *Service) processTask(ctx context.Context, worker *Worker, task Task) {
 	s.metrics.ProcessingLatency.WithLabelValues(taskType).Observe(duration.Seconds())
 }
 
-// processTaskWithCircuitBreaker processes a task with circuit breaker protection
+// processTaskWithCircuitBreaker processes a task with circuit breaker protection.
 func (s *Service) processTaskWithCircuitBreaker(ctx context.Context, task Task) {
 	_, err := s.circuitBreaker.Execute(func() (interface{}, error) {
 		return nil, task.Execute(ctx)
@@ -725,7 +734,7 @@ func (s *Service) processTaskWithCircuitBreaker(ctx context.Context, task Task) 
 	}
 }
 
-// updateMetrics updates service performance metrics
+// updateMetrics updates service performance metrics.
 func (s *Service) updateMetrics(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
@@ -739,7 +748,7 @@ func (s *Service) updateMetrics(ctx context.Context) {
 		case <-s.stopped:
 			return
 		case <-ticker.C:
-			// Calculate rates
+			// Calculate rates.
 			currentProcessed := s.processingRate.Load()
 			currentErrors := s.errorRate.Load()
 
@@ -752,32 +761,32 @@ func (s *Service) updateMetrics(ctx context.Context) {
 			lastProcessed = currentProcessed
 			lastErrors = currentErrors
 
-			// Update resource usage
+			// Update resource usage.
 			s.updateResourceMetrics()
 
-			// Update queue depth
+			// Update queue depth.
 			s.metrics.QueueDepth.Set(float64(len(s.taskQueue)))
 			s.metrics.ActiveWorkers.Set(float64(atomic.LoadInt32(&s.workerCount)))
 		}
 	}
 }
 
-// updateResourceMetrics updates CPU and memory usage metrics
+// updateResourceMetrics updates CPU and memory usage metrics.
 func (s *Service) updateResourceMetrics() {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
-	// Convert bytes to MB
+	// Convert bytes to MB.
 	memoryMB := float64(m.Alloc) / 1024 / 1024
 	s.metrics.MemoryUsage.Set(memoryMB)
 
-	// CPU usage would be calculated using additional tools in production
-	// For now, we'll use a simplified approach
+	// CPU usage would be calculated using additional tools in production.
+	// For now, we'll use a simplified approach.
 	cpuPercent := float64(runtime.NumGoroutine()) / float64(runtime.NumCPU()) * 0.1
 	s.metrics.CPUUsage.Set(cpuPercent)
 }
 
-// performHealthChecks performs periodic health checks
+// performHealthChecks performs periodic health checks.
 func (s *Service) performHealthChecks(ctx context.Context) {
 	ticker := time.NewTicker(s.config.HealthCheckInterval)
 	defer ticker.Stop()
@@ -789,7 +798,7 @@ func (s *Service) performHealthChecks(ctx context.Context) {
 		case <-s.stopped:
 			return
 		case <-ticker.C:
-			// Check resource limits
+			// Check resource limits.
 			memoryMB := float64(s.currentMemoryUsage.Load())
 			cpuPercent := float64(s.currentCPUUsage.Load())
 
@@ -815,9 +824,9 @@ func (s *Service) performHealthChecks(ctx context.Context) {
 	}
 }
 
-// registerHealthChecks registers health check functions
+// registerHealthChecks registers health check functions.
 func (s *Service) registerHealthChecks() {
-	// Register component health checks
+	// Register component health checks.
 	s.healthChecker.RegisterCheck("collector", func(ctx context.Context) *health.Check {
 		if s.collector == nil {
 			return &health.Check{

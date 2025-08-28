@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 )
 
-// WriteIntent writes the intent to the output directory in the specified format
-// format can be "full" (default YAML) or "smp" (Strategic Merge Patch JSON)
+// WriteIntent writes the intent to the output directory in the specified format.
+// format can be "full" (default YAML) or "smp" (Strategic Merge Patch JSON).
 func WriteIntent(intent interface{}, outDir, format string) error {
-	// Extract fields using JSON tags via marshal/unmarshal
+	// Extract fields using JSON tags via marshal/unmarshal.
 	data, err := json.Marshal(intent)
 	if err != nil {
 		return fmt.Errorf("failed to marshal intent: %w", err)
@@ -26,12 +26,12 @@ func WriteIntent(intent interface{}, outDir, format string) error {
 		return fmt.Errorf("failed to unmarshal intent: %w", err)
 	}
 
-	// Validate
+	// Validate.
 	if fields.IntentType != "scaling" {
 		return fmt.Errorf("only scaling intent is supported in MVP")
 	}
 
-	// Create output directory
+	// Create output directory.
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
@@ -40,7 +40,7 @@ func WriteIntent(intent interface{}, outDir, format string) error {
 	var filename string
 
 	if format == "smp" {
-		// Strategic Merge Patch format (JSON)
+		// Strategic Merge Patch format (JSON).
 		smp := map[string]interface{}{
 			"apiVersion": "apps/v1",
 			"kind":       "Deployment",
@@ -58,7 +58,7 @@ func WriteIntent(intent interface{}, outDir, format string) error {
 		}
 		filename = "scaling-patch.json"
 	} else {
-		// Full manifest format (YAML) - default
+		// Full manifest format (YAML) - default.
 		yaml := fmt.Sprintf(`apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -71,9 +71,9 @@ spec:
 		filename = "scaling-patch.yaml"
 	}
 
-	// Write file
+	// Write file.
 	dst := filepath.Join(outDir, filename)
-	if err := os.WriteFile(dst, content, 0o644); err != nil {
+	if err := os.WriteFile(dst, content, 0o640); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 

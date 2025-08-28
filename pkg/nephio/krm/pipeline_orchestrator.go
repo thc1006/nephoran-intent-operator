@@ -33,7 +33,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
-// PipelineOrchestrator manages execution of KRM function pipelines
+// PipelineOrchestrator manages execution of KRM function pipelines.
 type PipelineOrchestrator struct {
 	config          *PipelineOrchestratorConfig
 	functionManager *FunctionManager
@@ -45,77 +45,77 @@ type PipelineOrchestrator struct {
 	mu              sync.RWMutex
 }
 
-// PipelineOrchestratorConfig defines configuration for pipeline orchestration
+// PipelineOrchestratorConfig defines configuration for pipeline orchestration.
 type PipelineOrchestratorConfig struct {
-	// Execution settings
+	// Execution settings.
 	MaxConcurrentPipelines int           `json:"maxConcurrentPipelines" yaml:"maxConcurrentPipelines"`
 	MaxConcurrentStages    int           `json:"maxConcurrentStages" yaml:"maxConcurrentStages"`
 	DefaultTimeout         time.Duration `json:"defaultTimeout" yaml:"defaultTimeout"`
 	MaxPipelineTimeout     time.Duration `json:"maxPipelineTimeout" yaml:"maxPipelineTimeout"`
 
-	// Error handling
+	// Error handling.
 	FailureMode            string        `json:"failureMode" yaml:"failureMode"` // fail-fast, continue, rollback
 	MaxRetries             int           `json:"maxRetries" yaml:"maxRetries"`
 	RetryDelay             time.Duration `json:"retryDelay" yaml:"retryDelay"`
 	RetryBackoffMultiplier float64       `json:"retryBackoffMultiplier" yaml:"retryBackoffMultiplier"`
 
-	// State management
+	// State management.
 	EnableStateManagement bool   `json:"enableStateManagement" yaml:"enableStateManagement"`
 	CheckpointInterval    int    `json:"checkpointInterval" yaml:"checkpointInterval"`
 	StateStorageType      string `json:"stateStorageType" yaml:"stateStorageType"` // memory, file, database
 
-	// Performance optimization
+	// Performance optimization.
 	EnableParallelism  bool `json:"enableParallelism" yaml:"enableParallelism"`
 	EnableOptimization bool `json:"enableOptimization" yaml:"enableOptimization"`
 	EnableCaching      bool `json:"enableCaching" yaml:"enableCaching"`
 	EnableBatching     bool `json:"enableBatching" yaml:"enableBatching"`
 
-	// Observability
+	// Observability.
 	EnableMetrics   bool `json:"enableMetrics" yaml:"enableMetrics"`
 	EnableTracing   bool `json:"enableTracing" yaml:"enableTracing"`
 	EnableProfiling bool `json:"enableProfiling" yaml:"enableProfiling"`
 	DetailedLogging bool `json:"detailedLogging" yaml:"detailedLogging"`
 
-	// Resource management
+	// Resource management.
 	ResourceQuotas       map[string]string `json:"resourceQuotas" yaml:"resourceQuotas"`
 	PriorityClassMapping map[string]int    `json:"priorityClassMapping" yaml:"priorityClassMapping"`
 }
 
-// PipelineDefinition defines a complete KRM function pipeline
+// PipelineDefinition defines a complete KRM function pipeline.
 type PipelineDefinition struct {
-	// Metadata
+	// Metadata.
 	Name        string            `json:"name" yaml:"name"`
 	Version     string            `json:"version" yaml:"version"`
 	Description string            `json:"description,omitempty" yaml:"description,omitempty"`
 	Labels      map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty" yaml:"annotations,omitempty"`
 
-	// Pipeline structure
+	// Pipeline structure.
 	Stages       []*PipelineStage     `json:"stages" yaml:"stages"`
 	Dependencies []*StageDependency   `json:"dependencies,omitempty" yaml:"dependencies,omitempty"`
 	Variables    map[string]*Variable `json:"variables,omitempty" yaml:"variables,omitempty"`
 
-	// Execution settings
+	// Execution settings.
 	ExecutionMode string        `json:"executionMode" yaml:"executionMode"` // sequential, parallel, dag
 	Timeout       time.Duration `json:"timeout,omitempty" yaml:"timeout,omitempty"`
 	Priority      int           `json:"priority,omitempty" yaml:"priority,omitempty"`
 
-	// Error handling
+	// Error handling.
 	FailurePolicy *FailurePolicy `json:"failurePolicy,omitempty" yaml:"failurePolicy,omitempty"`
 	RetryPolicy   *RetryPolicy   `json:"retryPolicy,omitempty" yaml:"retryPolicy,omitempty"`
 
-	// State management
+	// State management.
 	Checkpoints []string `json:"checkpoints,omitempty" yaml:"checkpoints,omitempty"`
 
-	// O-RAN/5G specific metadata
+	// O-RAN/5G specific metadata.
 	TelecomProfile *TelecomPipelineProfile `json:"telecomProfile,omitempty" yaml:"telecomProfile,omitempty"`
 }
 
-// PipelineStage is defined in pipeline.go
+// PipelineStage is defined in pipeline.go.
 
-// StageFunction is defined in pipeline.go
+// StageFunction is defined in pipeline.go.
 
-// StageDependency defines dependencies between stages
+// StageDependency defines dependencies between stages.
 type StageDependency struct {
 	From      string               `json:"from" yaml:"from"`
 	To        string               `json:"to" yaml:"to"`
@@ -123,44 +123,44 @@ type StageDependency struct {
 	Condition *DependencyCondition `json:"condition,omitempty" yaml:"condition,omitempty"`
 }
 
-// PipelineVariable is defined in pipeline.go as Variable
+// PipelineVariable is defined in pipeline.go as Variable.
 
-// StageCondition defines conditional execution logic
+// StageCondition defines conditional execution logic.
 type StageCondition struct {
 	Type       string                 `json:"type" yaml:"type"`
 	Expression string                 `json:"expression,omitempty" yaml:"expression,omitempty"`
 	Parameters map[string]interface{} `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 }
 
-// DependencyCondition defines dependency conditions
+// DependencyCondition defines dependency conditions.
 type DependencyCondition struct {
 	Status     []string               `json:"status,omitempty" yaml:"status,omitempty"`
 	Expression string                 `json:"expression,omitempty" yaml:"expression,omitempty"`
 	Parameters map[string]interface{} `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 }
 
-// FailurePolicy defines pipeline failure handling
+// FailurePolicy defines pipeline failure handling.
 type FailurePolicy struct {
 	Mode       string            `json:"mode" yaml:"mode"` // fail-fast, continue, rollback
 	Stages     []string          `json:"stages,omitempty" yaml:"stages,omitempty"`
 	Conditions []*StageCondition `json:"conditions,omitempty" yaml:"conditions,omitempty"`
 }
 
-// RetryPolicy is defined in pipeline.go
+// RetryPolicy is defined in pipeline.go.
 
-// FailureAction defines what to do on stage failure
+// FailureAction defines what to do on stage failure.
 type FailureAction struct {
 	Action     string                 `json:"action" yaml:"action"`
 	Parameters map[string]interface{} `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 }
 
-// SuccessAction defines what to do on stage success
+// SuccessAction defines what to do on stage success.
 type SuccessAction struct {
 	Action     string                 `json:"action" yaml:"action"`
 	Parameters map[string]interface{} `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 }
 
-// StageResources defines resource requirements for a stage
+// StageResources defines resource requirements for a stage.
 type StageResources struct {
 	CPU      string            `json:"cpu,omitempty" yaml:"cpu,omitempty"`
 	Memory   string            `json:"memory,omitempty" yaml:"memory,omitempty"`
@@ -169,9 +169,9 @@ type StageResources struct {
 	Requests map[string]string `json:"requests,omitempty" yaml:"requests,omitempty"`
 }
 
-// ResourceSelector is defined in pipeline.go
+// ResourceSelector is defined in pipeline.go.
 
-// TelecomPipelineProfile defines telecom-specific pipeline characteristics
+// TelecomPipelineProfile defines telecom-specific pipeline characteristics.
 type TelecomPipelineProfile struct {
 	Domain       string   `json:"domain" yaml:"domain"`             // 5g-core, o-ran, edge
 	Components   []string `json:"components" yaml:"components"`     // AMF, SMF, UPF, etc.
@@ -180,15 +180,15 @@ type TelecomPipelineProfile struct {
 	Optimization string   `json:"optimization" yaml:"optimization"` // performance, cost, compliance
 }
 
-// PipelineExecution is defined in pipeline.go
+// PipelineExecution is defined in pipeline.go.
 
-// StageExecution is defined in pipeline.go
+// StageExecution is defined in pipeline.go.
 
-// FunctionExecution is defined in pipeline.go
+// FunctionExecution is defined in pipeline.go.
 
-// ExecutionCheckpoint is defined in pipeline.go
+// ExecutionCheckpoint is defined in pipeline.go.
 
-// PipelineResourceUsage represents resource usage metrics
+// PipelineResourceUsage represents resource usage metrics.
 type PipelineResourceUsage struct {
 	TotalCPU    float64 `json:"totalCpu"`
 	TotalMemory int64   `json:"totalMemory"`
@@ -196,38 +196,51 @@ type PipelineResourceUsage struct {
 	PeakMemory  int64   `json:"peakMemory"`
 }
 
-// ExecutionResult is defined in pipeline.go
+// ExecutionResult is defined in pipeline.go.
 
-// ExecutionError is defined in pipeline.go
+// ExecutionError is defined in pipeline.go.
 
-// Execution status enums
-type PipelineStatus string
-type PipelinePhase string
-
-// ExecutionStatus is defined in pipeline.go
-
-const (
-	PipelineStatusPending    PipelineStatus = "pending"
-	PipelineStatusRunning    PipelineStatus = "running"
-	PipelineStatusSucceeded  PipelineStatus = "succeeded"
-	PipelineStatusFailed     PipelineStatus = "failed"
-	PipelineStatusCancelled  PipelineStatus = "cancelled"
-	PipelineStatusRolledBack PipelineStatus = "rolled-back"
-
-	PipelinePhaseInitialization PipelinePhase = "initialization"
-	PipelinePhaseExecution      PipelinePhase = "execution"
-	PipelinePhaseFinalization   PipelinePhase = "finalization"
-	PipelinePhaseCleanup        PipelinePhase = "cleanup"
+// Execution status enums.
+type (
+	PipelineStatus string
+	// PipelinePhase represents a pipelinephase.
+	PipelinePhase string
 )
 
-// DependencyGraph manages stage dependencies
+// ExecutionStatus is defined in pipeline.go.
+
+const (
+	// PipelineStatusPending holds pipelinestatuspending value.
+	PipelineStatusPending PipelineStatus = "pending"
+	// PipelineStatusRunning holds pipelinestatusrunning value.
+	PipelineStatusRunning PipelineStatus = "running"
+	// PipelineStatusSucceeded holds pipelinestatussucceeded value.
+	PipelineStatusSucceeded PipelineStatus = "succeeded"
+	// PipelineStatusFailed holds pipelinestatusfailed value.
+	PipelineStatusFailed PipelineStatus = "failed"
+	// PipelineStatusCancelled holds pipelinestatuscancelled value.
+	PipelineStatusCancelled PipelineStatus = "cancelled"
+	// PipelineStatusRolledBack holds pipelinestatusrolledback value.
+	PipelineStatusRolledBack PipelineStatus = "rolled-back"
+
+	// PipelinePhaseInitialization holds pipelinephaseinitialization value.
+	PipelinePhaseInitialization PipelinePhase = "initialization"
+	// PipelinePhaseExecution holds pipelinephaseexecution value.
+	PipelinePhaseExecution PipelinePhase = "execution"
+	// PipelinePhaseFinalization holds pipelinephasefinalization value.
+	PipelinePhaseFinalization PipelinePhase = "finalization"
+	// PipelinePhaseCleanup holds pipelinephasecleanup value.
+	PipelinePhaseCleanup PipelinePhase = "cleanup"
+)
+
+// DependencyGraph manages stage dependencies.
 type DependencyGraph struct {
 	nodes map[string]*DependencyNode
 	edges map[string][]*DependencyEdge
 	mu    sync.RWMutex
 }
 
-// DependencyNode represents a node in the dependency graph
+// DependencyNode represents a node in the dependency graph.
 type DependencyNode struct {
 	Name         string
 	Stage        *PipelineStage
@@ -236,7 +249,7 @@ type DependencyNode struct {
 	Status       ExecutionStatus
 }
 
-// DependencyEdge represents an edge in the dependency graph
+// DependencyEdge represents an edge in the dependency graph.
 type DependencyEdge struct {
 	From      *DependencyNode
 	To        *DependencyNode
@@ -244,7 +257,7 @@ type DependencyEdge struct {
 	Condition *DependencyCondition
 }
 
-// ExecutionEngine manages pipeline execution
+// ExecutionEngine manages pipeline execution.
 type ExecutionEngine struct {
 	config    *PipelineOrchestratorConfig
 	funcMgr   *FunctionManager
@@ -253,7 +266,7 @@ type ExecutionEngine struct {
 	mu        sync.RWMutex
 }
 
-// StageExecutor executes individual stages
+// StageExecutor executes individual stages.
 type StageExecutor struct {
 	stage     *PipelineStage
 	execution *PipelineExecution
@@ -266,7 +279,7 @@ type StageExecutor struct {
 	mu        sync.Mutex
 }
 
-// StageScheduler schedules stage execution
+// StageScheduler schedules stage execution.
 type StageScheduler struct {
 	queue      chan *ScheduledStage
 	workers    []*SchedulerWorker
@@ -276,7 +289,7 @@ type StageScheduler struct {
 	wg         sync.WaitGroup
 }
 
-// ScheduledStage represents a scheduled stage
+// ScheduledStage represents a scheduled stage.
 type ScheduledStage struct {
 	Stage       *PipelineStage
 	Execution   *PipelineExecution
@@ -286,7 +299,7 @@ type ScheduledStage struct {
 	Context     context.Context
 }
 
-// StageExecutionResult represents stage execution result
+// StageExecutionResult represents stage execution result.
 type StageExecutionResult struct {
 	Stage     *PipelineStage
 	Status    ExecutionStatus
@@ -296,7 +309,7 @@ type StageExecutionResult struct {
 	Duration  time.Duration
 }
 
-// SchedulerWorker executes scheduled stages
+// SchedulerWorker executes scheduled stages.
 type SchedulerWorker struct {
 	id      int
 	funcMgr *FunctionManager
@@ -305,16 +318,16 @@ type SchedulerWorker struct {
 	cancel  context.CancelFunc
 }
 
-// PipelineStateManager manages pipeline execution state
+// PipelineStateManager manages pipeline execution state.
 type PipelineStateManager struct {
 	storage    StateStorage
 	executions map[string]*PipelineExecution
 	mu         sync.RWMutex
 }
 
-// StateStorage is defined in pipeline.go
+// StateStorage is defined in pipeline.go.
 
-// PipelineOrchestratorMetrics provides comprehensive metrics
+// PipelineOrchestratorMetrics provides comprehensive metrics.
 type PipelineOrchestratorMetrics struct {
 	PipelineExecutions   *prometheus.CounterVec
 	ExecutionDuration    *prometheus.HistogramVec
@@ -327,7 +340,7 @@ type PipelineOrchestratorMetrics struct {
 	QueueDepth           prometheus.Gauge
 }
 
-// Default configuration
+// Default configuration.
 var DefaultPipelineOrchestratorConfig = &PipelineOrchestratorConfig{
 	MaxConcurrentPipelines: 10,
 	MaxConcurrentStages:    20,
@@ -350,18 +363,18 @@ var DefaultPipelineOrchestratorConfig = &PipelineOrchestratorConfig{
 	DetailedLogging:        false,
 }
 
-// NewPipelineOrchestrator creates a new pipeline orchestrator
+// NewPipelineOrchestrator creates a new pipeline orchestrator.
 func NewPipelineOrchestrator(config *PipelineOrchestratorConfig, functionManager *FunctionManager) (*PipelineOrchestrator, error) {
 	if config == nil {
 		config = DefaultPipelineOrchestratorConfig
 	}
 
-	// Validate configuration
+	// Validate configuration.
 	if err := validatePipelineOrchestratorConfig(config); err != nil {
 		return nil, fmt.Errorf("invalid pipeline orchestrator configuration: %w", err)
 	}
 
-	// Initialize metrics
+	// Initialize metrics.
 	metrics := &PipelineOrchestratorMetrics{
 		PipelineExecutions: promauto.NewCounterVec(
 			prometheus.CounterOpts{
@@ -429,13 +442,13 @@ func NewPipelineOrchestrator(config *PipelineOrchestratorConfig, functionManager
 		),
 	}
 
-	// Initialize dependency graph
+	// Initialize dependency graph.
 	dependencyGraph := &DependencyGraph{
 		nodes: make(map[string]*DependencyNode),
 		edges: make(map[string][]*DependencyEdge),
 	}
 
-	// Initialize stage scheduler
+	// Initialize stage scheduler.
 	ctx, cancel := context.WithCancel(context.Background())
 	scheduler := &StageScheduler{
 		queue:      make(chan *ScheduledStage, 1000),
@@ -444,7 +457,7 @@ func NewPipelineOrchestrator(config *PipelineOrchestratorConfig, functionManager
 		cancel:     cancel,
 	}
 
-	// Initialize workers
+	// Initialize workers.
 	for i := 0; i < scheduler.maxWorkers; i++ {
 		worker := &SchedulerWorker{
 			id:      i,
@@ -457,7 +470,7 @@ func NewPipelineOrchestrator(config *PipelineOrchestratorConfig, functionManager
 		go worker.run()
 	}
 
-	// Initialize execution engine
+	// Initialize execution engine.
 	executionEngine := &ExecutionEngine{
 		config:    config,
 		funcMgr:   functionManager,
@@ -465,7 +478,7 @@ func NewPipelineOrchestrator(config *PipelineOrchestratorConfig, functionManager
 		scheduler: scheduler,
 	}
 
-	// Initialize state manager
+	// Initialize state manager.
 	var storage StateStorage = &MemoryStateStorage{
 		data: make(map[string][]byte),
 	}
@@ -488,12 +501,12 @@ func NewPipelineOrchestrator(config *PipelineOrchestratorConfig, functionManager
 	return orchestrator, nil
 }
 
-// ExecutePipeline executes a pipeline definition
+// ExecutePipeline executes a pipeline definition.
 func (po *PipelineOrchestrator) ExecutePipeline(ctx context.Context, definition *PipelineDefinition, resources []*porch.KRMResource) (*PipelineExecution, error) {
 	ctx, span := po.tracer.Start(ctx, "pipeline-orchestrator-execute")
 	defer span.End()
 
-	// Generate execution ID
+	// Generate execution ID.
 	executionID := generateExecutionID()
 
 	span.SetAttributes(
@@ -514,7 +527,7 @@ func (po *PipelineOrchestrator) ExecutePipeline(ctx context.Context, definition 
 		"resources", len(resources),
 	)
 
-	// Create pipeline execution
+	// Create pipeline execution.
 	execution := &PipelineExecution{
 		ID:          executionID,
 		Name:        definition.Name,
@@ -531,7 +544,7 @@ func (po *PipelineOrchestrator) ExecutePipeline(ctx context.Context, definition 
 		Metadata:    make(map[string]string),
 	}
 
-	// Store execution
+	// Store execution.
 	po.stateManager.mu.Lock()
 	po.stateManager.executions[executionID] = execution
 	po.stateManager.mu.Unlock()
@@ -539,7 +552,7 @@ func (po *PipelineOrchestrator) ExecutePipeline(ctx context.Context, definition 
 	po.metrics.ActivePipelines.Inc()
 	defer po.metrics.ActivePipelines.Dec()
 
-	// Build dependency graph
+	// Build dependency graph.
 	startTime := time.Now()
 	dependencyGraph, err := po.buildDependencyGraph(definition)
 	if err != nil {
@@ -549,11 +562,11 @@ func (po *PipelineOrchestrator) ExecutePipeline(ctx context.Context, definition 
 	}
 	po.metrics.DependencyResolution.WithLabelValues(definition.Name).Observe(time.Since(startTime).Seconds())
 
-	// Update phase
-	// Update phase to execution (phases tracked separately if needed)
+	// Update phase.
+	// Update phase to execution (phases tracked separately if needed).
 	execution.Status = StatusRunning
 
-	// Execute pipeline based on execution mode
+	// Execute pipeline based on execution mode.
 	switch definition.ExecutionMode {
 	case "sequential":
 		err = po.executeSequential(ctx, execution, dependencyGraph)
@@ -565,8 +578,8 @@ func (po *PipelineOrchestrator) ExecutePipeline(ctx context.Context, definition 
 		err = po.executeDAG(ctx, execution, dependencyGraph) // Default to DAG
 	}
 
-	// Finalize execution
-	// Update phase to finalization (phases tracked separately if needed)
+	// Finalize execution.
+	// Update phase to finalization (phases tracked separately if needed).
 	execution.EndTime = &time.Time{}
 	*execution.EndTime = time.Now()
 	execution.Duration = execution.EndTime.Sub(execution.StartTime)
@@ -595,14 +608,14 @@ func (po *PipelineOrchestrator) ExecutePipeline(ctx context.Context, definition 
 
 	po.metrics.ExecutionDuration.WithLabelValues(definition.Name).Observe(execution.Duration.Seconds())
 
-	// Cleanup
-	// Update phase to cleanup (phases tracked separately if needed)
+	// Cleanup.
+	// Update phase to cleanup (phases tracked separately if needed).
 
 	span.SetStatus(codes.Ok, "pipeline execution completed")
 	return execution, err
 }
 
-// GetExecution returns a pipeline execution by ID
+// GetExecution returns a pipeline execution by ID.
 func (po *PipelineOrchestrator) GetExecution(ctx context.Context, executionID string) (*PipelineExecution, error) {
 	po.stateManager.mu.RLock()
 	defer po.stateManager.mu.RUnlock()
@@ -615,7 +628,7 @@ func (po *PipelineOrchestrator) GetExecution(ctx context.Context, executionID st
 	return execution, nil
 }
 
-// ListExecutions returns all pipeline executions
+// ListExecutions returns all pipeline executions.
 func (po *PipelineOrchestrator) ListExecutions(ctx context.Context) ([]*PipelineExecution, error) {
 	po.stateManager.mu.RLock()
 	defer po.stateManager.mu.RUnlock()
@@ -628,7 +641,7 @@ func (po *PipelineOrchestrator) ListExecutions(ctx context.Context) ([]*Pipeline
 	return executions, nil
 }
 
-// CancelExecution cancels a running pipeline execution
+// CancelExecution cancels a running pipeline execution.
 func (po *PipelineOrchestrator) CancelExecution(ctx context.Context, executionID string) error {
 	po.stateManager.mu.Lock()
 	defer po.stateManager.mu.Unlock()
@@ -644,7 +657,7 @@ func (po *PipelineOrchestrator) CancelExecution(ctx context.Context, executionID
 		*execution.EndTime = time.Now()
 		execution.Duration = execution.EndTime.Sub(execution.StartTime)
 
-		// Cancel running stages
+		// Cancel running stages.
 		for _, stageExec := range execution.Stages {
 			if stageExec.Status == StatusRunning {
 				stageExec.Status = StatusCancelled
@@ -657,7 +670,7 @@ func (po *PipelineOrchestrator) CancelExecution(ctx context.Context, executionID
 	return nil
 }
 
-// Private methods
+// Private methods.
 
 func (po *PipelineOrchestrator) buildDependencyGraph(definition *PipelineDefinition) (*DependencyGraph, error) {
 	graph := &DependencyGraph{
@@ -665,7 +678,7 @@ func (po *PipelineOrchestrator) buildDependencyGraph(definition *PipelineDefinit
 		edges: make(map[string][]*DependencyEdge),
 	}
 
-	// Create nodes for each stage
+	// Create nodes for each stage.
 	for _, stage := range definition.Stages {
 		node := &DependencyNode{
 			Name:         stage.Name,
@@ -677,7 +690,7 @@ func (po *PipelineOrchestrator) buildDependencyGraph(definition *PipelineDefinit
 		graph.nodes[stage.Name] = node
 	}
 
-	// Create edges from explicit dependencies
+	// Create edges from explicit dependencies.
 	for _, dependency := range definition.Dependencies {
 		fromNode, fromExists := graph.nodes[dependency.From]
 		toNode, toExists := graph.nodes[dependency.To]
@@ -701,7 +714,7 @@ func (po *PipelineOrchestrator) buildDependencyGraph(definition *PipelineDefinit
 		graph.edges[dependency.From] = append(graph.edges[dependency.From], edge)
 	}
 
-	// Create edges from stage dependsOn declarations
+	// Create edges from stage dependsOn declarations.
 	for _, stage := range definition.Stages {
 		toNode := graph.nodes[stage.Name]
 
@@ -723,7 +736,7 @@ func (po *PipelineOrchestrator) buildDependencyGraph(definition *PipelineDefinit
 		}
 	}
 
-	// Validate for cycles
+	// Validate for cycles.
 	if err := po.validateDependencyGraph(graph); err != nil {
 		return nil, err
 	}
@@ -766,7 +779,7 @@ func (po *PipelineOrchestrator) validateDependencyGraph(graph *DependencyGraph) 
 }
 
 func (po *PipelineOrchestrator) executeSequential(ctx context.Context, execution *PipelineExecution, graph *DependencyGraph) error {
-	// Simple sequential execution without dependency resolution
+	// Simple sequential execution without dependency resolution.
 	for _, stage := range execution.Pipeline.Stages {
 		stageExec, err := po.executeStage(ctx, execution, stage)
 		execution.Stages[stage.Name] = stageExec
@@ -775,12 +788,12 @@ func (po *PipelineOrchestrator) executeSequential(ctx context.Context, execution
 			if po.config.FailureMode == "fail-fast" {
 				return err
 			}
-			// Continue with remaining stages in continue mode
+			// Continue with remaining stages in continue mode.
 		}
 
-		// Update resources for next stage
+		// Update resources for next stage.
 		if stageExec.Status == StatusSucceeded {
-			// Update output resources with results from this stage
+			// Update output resources with results from this stage.
 			po.updateOutputResources(execution, stageExec)
 		}
 	}
@@ -800,7 +813,7 @@ func (po *PipelineOrchestrator) executeParallel(ctx context.Context, execution *
 		go func(s *PipelineStage) {
 			defer wg.Done()
 
-			// Acquire semaphore
+			// Acquire semaphore.
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 
@@ -825,19 +838,19 @@ func (po *PipelineOrchestrator) executeParallel(ctx context.Context, execution *
 }
 
 func (po *PipelineOrchestrator) executeDAG(ctx context.Context, execution *PipelineExecution, graph *DependencyGraph) error {
-	// Topological sort to determine execution order
+	// Topological sort to determine execution order.
 	executionOrder, err := po.topologicalSort(graph)
 	if err != nil {
 		return err
 	}
 
-	// Execute stages in topological order, respecting dependencies
+	// Execute stages in topological order, respecting dependencies.
 	for _, stageName := range executionOrder {
 		stage := graph.nodes[stageName].Stage
 
-		// Check if dependencies are satisfied
+		// Check if dependencies are satisfied.
 		if !po.areDependenciesSatisfied(graph.nodes[stageName], execution) {
-			// Skip this stage for now - it will be retried later
+			// Skip this stage for now - it will be retried later.
 			continue
 		}
 
@@ -850,7 +863,7 @@ func (po *PipelineOrchestrator) executeDAG(ctx context.Context, execution *Pipel
 			}
 		}
 
-		// Update graph node status
+		// Update graph node status.
 		if stageExec.Status == StatusSucceeded {
 			graph.nodes[stageName].Status = StatusSucceeded
 			po.updateOutputResources(execution, stageExec)
@@ -874,7 +887,7 @@ func (po *PipelineOrchestrator) topologicalSort(graph *DependencyGraph) ([]strin
 
 		visited[nodeName] = true
 
-		// Visit all dependencies first
+		// Visit all dependencies first.
 		for _, edge := range graph.edges[nodeName] {
 			if err := visit(edge.To.Name); err != nil {
 				return err
@@ -898,7 +911,7 @@ func (po *PipelineOrchestrator) areDependenciesSatisfied(node *DependencyNode, e
 	for _, edge := range node.Dependencies {
 		fromStageExec, exists := execution.Stages[edge.From.Name]
 		if !exists || fromStageExec.Status != StatusSucceeded {
-			// Check if condition allows bypass
+			// Check if condition allows bypass.
 			if edge.Condition != nil {
 				if po.evaluateDependencyCondition(edge.Condition, execution) {
 					continue
@@ -911,10 +924,10 @@ func (po *PipelineOrchestrator) areDependenciesSatisfied(node *DependencyNode, e
 }
 
 func (po *PipelineOrchestrator) evaluateDependencyCondition(condition *DependencyCondition, execution *PipelineExecution) bool {
-	// Simple condition evaluation
+	// Simple condition evaluation.
 	if len(condition.Status) > 0 {
 		for _, requiredStatus := range condition.Status {
-			// Check if any dependent stage has this status
+			// Check if any dependent stage has this status.
 			for _, stageExec := range execution.Stages {
 				if string(stageExec.Status) == requiredStatus {
 					return true
@@ -939,7 +952,7 @@ func (po *PipelineOrchestrator) executeStage(ctx context.Context, execution *Pip
 	logger := log.FromContext(ctx).WithValues("stage", stage.Name)
 	logger.Info("Starting stage execution", "functions", len(stage.Functions))
 
-	// Execute functions in the stage
+	// Execute functions in the stage.
 	var stageErr error
 	defer func() {
 		stageExec.EndTime = &time.Time{}
@@ -967,7 +980,7 @@ func (po *PipelineOrchestrator) executeStage(ctx context.Context, execution *Pip
 		logger.Info("Stage execution completed", "status", status, "duration", stageExec.Duration)
 	}()
 
-	// Execute functions based on stage type
+	// Execute functions based on stage type.
 	switch stage.Type {
 	case "parallel-group":
 		stageErr = po.executeStageFunctionsParallel(ctx, execution, stage, stageExec)
@@ -990,10 +1003,10 @@ func (po *PipelineOrchestrator) executeStageFunctionsSequential(ctx context.Cont
 				return err
 			}
 		} else {
-			// Update resources for next function
+			// Update resources for next function.
 			if funcExec.Status == StatusSucceeded {
-				// In a real implementation, we would parse function output
-				// For now, we keep the same resources
+				// In a real implementation, we would parse function output.
+				// For now, we keep the same resources.
 			}
 		}
 	}
@@ -1040,13 +1053,13 @@ func (po *PipelineOrchestrator) executeStageFunction(ctx context.Context, execut
 		Results:    []*porch.FunctionResult{},
 	}
 
-	// Filter resources if filter is specified
+	// Filter resources if filter is specified.
 	filteredResources := resources
 	if function.ResourceFilter != nil {
 		filteredResources = po.filterResources(resources, function.ResourceFilter)
 	}
 
-	// Create function execution request
+	// Create function execution request.
 	funcName := function.Name
 	if function.Image != "" {
 		funcName = function.Image
@@ -1062,7 +1075,7 @@ func (po *PipelineOrchestrator) executeStageFunction(ctx context.Context, execut
 		EnableCaching:  po.config.EnableCaching,
 	}
 
-	// Execute function
+	// Execute function.
 	response, err := po.functionManager.ExecuteFunction(ctx, request)
 
 	funcExec.EndTime = &time.Time{}
@@ -1100,7 +1113,7 @@ func (po *PipelineOrchestrator) filterResources(resources []*porch.KRMResource, 
 	for _, resource := range resources {
 		include := len(filter.Include) == 0 // If no include filters, include by default
 
-		// Check include filters
+		// Check include filters.
 		for _, selector := range filter.Include {
 			if po.resourceMatchesSelector(resource, selector) {
 				include = true
@@ -1108,7 +1121,7 @@ func (po *PipelineOrchestrator) filterResources(resources []*porch.KRMResource, 
 			}
 		}
 
-		// Check exclude filters
+		// Check exclude filters.
 		exclude := false
 		for _, selector := range filter.Exclude {
 			if po.resourceMatchesSelector(resource, selector) {
@@ -1143,7 +1156,7 @@ func (po *PipelineOrchestrator) resourceMatchesSelector(resource *porch.KRMResou
 		}
 	}
 
-	// Check label selectors
+	// Check label selectors.
 	for key, value := range selector.Labels {
 		if labels, ok := resource.Metadata["labels"].(map[string]interface{}); ok {
 			if labelValue, exists := labels[key]; !exists || labelValue != value {
@@ -1158,8 +1171,8 @@ func (po *PipelineOrchestrator) resourceMatchesSelector(resource *porch.KRMResou
 }
 
 func (po *PipelineOrchestrator) updateOutputResources(execution *PipelineExecution, stageExec *StageExecution) {
-	// In a real implementation, this would merge the output resources from all successful functions
-	// For now, we keep the current resources
+	// In a real implementation, this would merge the output resources from all successful functions.
+	// For now, we keep the current resources.
 }
 
 func (po *PipelineOrchestrator) initializeVariables(variables map[string]*Variable) map[string]interface{} {
@@ -1176,7 +1189,7 @@ func (po *PipelineOrchestrator) initializeVariables(variables map[string]*Variab
 	return result
 }
 
-// SchedulerWorker methods
+// SchedulerWorker methods.
 
 func (sw *SchedulerWorker) run() {
 	for {
@@ -1190,8 +1203,8 @@ func (sw *SchedulerWorker) run() {
 }
 
 func (sw *SchedulerWorker) executeScheduledStage(scheduled *ScheduledStage) {
-	// This would execute the scheduled stage
-	// For now, return a placeholder result
+	// This would execute the scheduled stage.
+	// For now, return a placeholder result.
 	result := &StageExecutionResult{
 		Stage:     scheduled.Stage,
 		Status:    StatusSucceeded,
@@ -1206,7 +1219,7 @@ func (sw *SchedulerWorker) executeScheduledStage(scheduled *ScheduledStage) {
 	}
 }
 
-// Health returns orchestrator health status
+// Health returns orchestrator health status.
 func (po *PipelineOrchestrator) Health() *PipelineOrchestratorHealth {
 	po.mu.RLock()
 	defer po.mu.RUnlock()
@@ -1229,7 +1242,7 @@ func (po *PipelineOrchestrator) Health() *PipelineOrchestratorHealth {
 	}
 }
 
-// PipelineOrchestratorHealth represents health status
+// PipelineOrchestratorHealth represents health status.
 type PipelineOrchestratorHealth struct {
 	Status           string    `json:"status"`
 	ActiveExecutions int       `json:"activeExecutions"`
@@ -1238,15 +1251,15 @@ type PipelineOrchestratorHealth struct {
 	LastHealthCheck  time.Time `json:"lastHealthCheck"`
 }
 
-// Shutdown gracefully shuts down the pipeline orchestrator
+// Shutdown gracefully shuts down the pipeline orchestrator.
 func (po *PipelineOrchestrator) Shutdown(ctx context.Context) error {
 	logger := log.FromContext(ctx).WithName("pipeline-orchestrator")
 	logger.Info("Shutting down pipeline orchestrator")
 
-	// Cancel scheduler
+	// Cancel scheduler.
 	po.executionEngine.scheduler.cancel()
 
-	// Wait for workers
+	// Wait for workers.
 	done := make(chan struct{})
 	go func() {
 		po.executionEngine.scheduler.wg.Wait()
@@ -1264,7 +1277,7 @@ func (po *PipelineOrchestrator) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// Helper functions
+// Helper functions.
 
 func convertToSlice(resources []*porch.KRMResource) []porch.KRMResource {
 	result := make([]porch.KRMResource, len(resources))
@@ -1293,4 +1306,4 @@ func generateExecutionID() string {
 	return fmt.Sprintf("pipeline-%d", time.Now().UnixNano())
 }
 
-// MemoryStateStorage is defined in pipeline.go
+// MemoryStateStorage is defined in pipeline.go.

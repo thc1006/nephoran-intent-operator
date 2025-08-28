@@ -30,79 +30,79 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// repositoryManager implements the RepositoryManager interface
+// repositoryManager implements the RepositoryManager interface.
 type repositoryManager struct {
-	// Parent client for API operations
+	// Parent client for API operations.
 	client *Client
 
-	// Logger for repository operations
+	// Logger for repository operations.
 	logger logr.Logger
 
-	// Metrics for repository operations
+	// Metrics for repository operations.
 	metrics *RepositoryMetrics
 
-	// Repository state tracking
+	// Repository state tracking.
 	repositories map[string]*repositoryState
 	stateMutex   sync.RWMutex
 
-	// Background sync management
+	// Background sync management.
 	syncCancel context.CancelFunc
 	syncWg     sync.WaitGroup
 
-	// Health check management
+	// Health check management.
 	healthCancel context.CancelFunc
 	healthWg     sync.WaitGroup
 
-	// Git client factory for repository operations
+	// Git client factory for repository operations.
 	gitClientFactory GitClientFactory
 
-	// Credential store for repository authentication
+	// Credential store for repository authentication.
 	credentialStore CredentialStore
 
-	// Repository validation rules
+	// Repository validation rules.
 	validationRules []RepositoryValidationRule
 
-	// Event handlers for repository lifecycle events
+	// Event handlers for repository lifecycle events.
 	eventHandlers []RepositoryEventHandler
 }
 
-// repositoryState tracks the runtime state of a repository
+// repositoryState tracks the runtime state of a repository.
 type repositoryState struct {
-	// Repository configuration
+	// Repository configuration.
 	config *RepositoryConfig
 
-	// Current sync status
+	// Current sync status.
 	lastSync       time.Time
 	syncError      error
 	syncInProgress bool
 
-	// Health status
+	// Health status.
 	health          RepositoryHealth
 	healthError     error
 	lastHealthCheck time.Time
 
-	// Branch information
+	// Branch information.
 	branches      []string
 	defaultBranch string
 
-	// Package count and metadata
+	// Package count and metadata.
 	packageCount int32
 	lastUpdated  time.Time
 
-	// Authentication status
+	// Authentication status.
 	authValid   bool
 	authChecked time.Time
 
-	// Performance metrics
+	// Performance metrics.
 	syncDuration time.Duration
 	syncCount    int64
 	errorCount   int64
 
-	// Mutex for thread-safe access
+	// Mutex for thread-safe access.
 	mutex sync.RWMutex
 }
 
-// RepositoryMetrics defines Prometheus metrics for repository operations
+// RepositoryMetrics defines Prometheus metrics for repository operations.
 type RepositoryMetrics struct {
 	syncOperations       *prometheus.CounterVec
 	syncDuration         *prometheus.HistogramVec
@@ -113,13 +113,13 @@ type RepositoryMetrics struct {
 	branchCount          *prometheus.GaugeVec
 }
 
-// GitClientFactory creates Git clients for repository operations
+// GitClientFactory creates Git clients for repository operations.
 type GitClientFactory interface {
 	CreateClient(ctx context.Context, config *RepositoryConfig) (GitClient, error)
 	ValidateRepository(ctx context.Context, config *RepositoryConfig) error
 }
 
-// GitClient provides Git operations for repositories
+// GitClient provides Git operations for repositories.
 type GitClient interface {
 	Clone(ctx context.Context, targetDir string) error
 	Pull(ctx context.Context) error
@@ -131,7 +131,7 @@ type GitClient interface {
 	ValidateAccess(ctx context.Context) error
 }
 
-// CredentialStore manages repository credentials
+// CredentialStore manages repository credentials.
 type CredentialStore interface {
 	StoreCredentials(ctx context.Context, repoName string, creds *Credentials) error
 	GetCredentials(ctx context.Context, repoName string) (*Credentials, error)
@@ -139,13 +139,13 @@ type CredentialStore interface {
 	ValidateCredentials(ctx context.Context, repoName string) error
 }
 
-// RepositoryValidationRule defines a validation rule for repositories
+// RepositoryValidationRule defines a validation rule for repositories.
 type RepositoryValidationRule interface {
 	Validate(ctx context.Context, config *RepositoryConfig) error
 	GetName() string
 }
 
-// RepositoryEventHandler handles repository lifecycle events
+// RepositoryEventHandler handles repository lifecycle events.
 type RepositoryEventHandler interface {
 	OnRepositoryRegistered(ctx context.Context, repo *Repository)
 	OnRepositoryUnregistered(ctx context.Context, repoName string)
@@ -153,7 +153,7 @@ type RepositoryEventHandler interface {
 	OnRepositoryError(ctx context.Context, repoName string, err error)
 }
 
-// NewRepositoryManager creates a new repository manager
+// NewRepositoryManager creates a new repository manager.
 func NewRepositoryManager(client *Client) RepositoryManager {
 	return &repositoryManager{
 		client:       client,
@@ -163,16 +163,16 @@ func NewRepositoryManager(client *Client) RepositoryManager {
 	}
 }
 
-// RegisterRepository registers a new repository for management
+// RegisterRepository registers a new repository for management.
 func (rm *repositoryManager) RegisterRepository(ctx context.Context, config *RepositoryConfig) (*Repository, error) {
 	rm.logger.Info("Registering repository", "name", config.Name, "url", config.URL)
 
-	// Validate configuration
+	// Validate configuration.
 	if err := rm.validateRepositoryConfig(ctx, config); err != nil {
 		return nil, fmt.Errorf("repository configuration validation failed: %w", err)
 	}
 
-	// Check if repository already exists
+	// Check if repository already exists.
 	rm.stateMutex.RLock()
 	_, exists := rm.repositories[config.Name]
 	rm.stateMutex.RUnlock()
@@ -181,7 +181,7 @@ func (rm *repositoryManager) RegisterRepository(ctx context.Context, config *Rep
 		return nil, fmt.Errorf("repository %s already registered", config.Name)
 	}
 
-	// Create repository resource
+	// Create repository resource.
 	repo := &Repository{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: config.Name,
@@ -215,13 +215,13 @@ func (rm *repositoryManager) RegisterRepository(ctx context.Context, config *Rep
 		},
 	}
 
-	// Create repository using Porch client
+	// Create repository using Porch client.
 	created, err := rm.client.CreateRepository(ctx, repo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create repository in Porch: %w", err)
 	}
 
-	// Initialize repository state
+	// Initialize repository state.
 	state := &repositoryState{
 		config:    config,
 		health:    RepositoryHealthUnknown,
@@ -234,27 +234,27 @@ func (rm *repositoryManager) RegisterRepository(ctx context.Context, config *Rep
 	rm.repositories[config.Name] = state
 	rm.stateMutex.Unlock()
 
-	// Start background sync if configured
+	// Start background sync if configured.
 	if config.Sync != nil && config.Sync.AutoSync {
 		go rm.startRepositorySync(ctx, config.Name)
 	}
 
-	// Start health monitoring
+	// Start health monitoring.
 	go rm.startHealthMonitoring(ctx, config.Name)
 
-	// Trigger initial validation
+	// Trigger initial validation.
 	go func() {
 		if err := rm.validateRepositoryAccess(ctx, config.Name); err != nil {
 			rm.logger.Error(err, "Initial repository access validation failed", "name", config.Name)
 		}
 	}()
 
-	// Update metrics
+	// Update metrics.
 	if rm.metrics != nil {
 		rm.metrics.repositoryHealth.WithLabelValues(config.Name).Set(0) // Unknown
 	}
 
-	// Notify event handlers
+	// Notify event handlers.
 	for _, handler := range rm.eventHandlers {
 		handler.OnRepositoryRegistered(ctx, created)
 	}
@@ -263,11 +263,11 @@ func (rm *repositoryManager) RegisterRepository(ctx context.Context, config *Rep
 	return created, nil
 }
 
-// UnregisterRepository unregisters a repository from management
+// UnregisterRepository unregisters a repository from management.
 func (rm *repositoryManager) UnregisterRepository(ctx context.Context, name string) error {
 	rm.logger.Info("Unregistering repository", "name", name)
 
-	// Check if repository exists
+	// Check if repository exists.
 	rm.stateMutex.RLock()
 	_, exists := rm.repositories[name]
 	rm.stateMutex.RUnlock()
@@ -276,27 +276,27 @@ func (rm *repositoryManager) UnregisterRepository(ctx context.Context, name stri
 		return fmt.Errorf("repository %s not found", name)
 	}
 
-	// Delete repository from Porch
+	// Delete repository from Porch.
 	if err := rm.client.DeleteRepository(ctx, name); err != nil {
 		return fmt.Errorf("failed to delete repository from Porch: %w", err)
 	}
 
-	// Stop background operations
+	// Stop background operations.
 	rm.stopRepositoryOperations(name)
 
-	// Clean up credentials
+	// Clean up credentials.
 	if rm.credentialStore != nil {
 		if err := rm.credentialStore.DeleteCredentials(ctx, name); err != nil {
 			rm.logger.Error(err, "Failed to delete repository credentials", "name", name)
 		}
 	}
 
-	// Remove from state tracking
+	// Remove from state tracking.
 	rm.stateMutex.Lock()
 	delete(rm.repositories, name)
 	rm.stateMutex.Unlock()
 
-	// Clean up metrics
+	// Clean up metrics.
 	if rm.metrics != nil {
 		rm.metrics.repositoryHealth.DeleteLabelValues(name)
 		rm.metrics.packageCount.DeleteLabelValues(name)
@@ -304,7 +304,7 @@ func (rm *repositoryManager) UnregisterRepository(ctx context.Context, name stri
 		rm.metrics.branchCount.DeleteLabelValues(name)
 	}
 
-	// Notify event handlers
+	// Notify event handlers.
 	for _, handler := range rm.eventHandlers {
 		handler.OnRepositoryUnregistered(ctx, name)
 	}
@@ -313,11 +313,11 @@ func (rm *repositoryManager) UnregisterRepository(ctx context.Context, name stri
 	return nil
 }
 
-// SynchronizeRepository performs a manual synchronization of a repository
+// SynchronizeRepository performs a manual synchronization of a repository.
 func (rm *repositoryManager) SynchronizeRepository(ctx context.Context, name string) (*SyncResult, error) {
 	rm.logger.V(1).Info("Synchronizing repository", "name", name)
 
-	// Get repository state
+	// Get repository state.
 	rm.stateMutex.RLock()
 	state, exists := rm.repositories[name]
 	rm.stateMutex.RUnlock()
@@ -326,7 +326,7 @@ func (rm *repositoryManager) SynchronizeRepository(ctx context.Context, name str
 		return nil, fmt.Errorf("repository %s not found", name)
 	}
 
-	// Check if sync is already in progress
+	// Check if sync is already in progress.
 	state.mutex.RLock()
 	if state.syncInProgress {
 		state.mutex.RUnlock()
@@ -334,18 +334,18 @@ func (rm *repositoryManager) SynchronizeRepository(ctx context.Context, name str
 	}
 	state.mutex.RUnlock()
 
-	// Perform synchronization
+	// Perform synchronization.
 	result, err := rm.performRepositorySync(ctx, name, state)
 	if err != nil {
 		return nil, fmt.Errorf("synchronization failed for repository %s: %w", name, err)
 	}
 
-	// Update repository status in Porch
+	// Update repository status in Porch.
 	if err := rm.updateRepositoryStatus(ctx, name, result); err != nil {
 		rm.logger.Error(err, "Failed to update repository status", "name", name)
 	}
 
-	// Notify event handlers
+	// Notify event handlers.
 	for _, handler := range rm.eventHandlers {
 		handler.OnRepositorySynced(ctx, name, result)
 	}
@@ -354,7 +354,7 @@ func (rm *repositoryManager) SynchronizeRepository(ctx context.Context, name str
 	return result, nil
 }
 
-// GetRepositoryHealth returns the current health status of a repository
+// GetRepositoryHealth returns the current health status of a repository.
 func (rm *repositoryManager) GetRepositoryHealth(ctx context.Context, name string) (*RepositoryHealth, error) {
 	rm.stateMutex.RLock()
 	state, exists := rm.repositories[name]
@@ -371,7 +371,7 @@ func (rm *repositoryManager) GetRepositoryHealth(ctx context.Context, name strin
 	return &health, nil
 }
 
-// CreateBranch creates a new branch in the repository
+// CreateBranch creates a new branch in the repository.
 func (rm *repositoryManager) CreateBranch(ctx context.Context, repoName string, branchName string, baseBranch string) error {
 	rm.logger.V(1).Info("Creating branch", "repo", repoName, "branch", branchName, "base", baseBranch)
 
@@ -380,25 +380,25 @@ func (rm *repositoryManager) CreateBranch(ctx context.Context, repoName string, 
 		return fmt.Errorf("repository %s not found", repoName)
 	}
 
-	// Create Git client
+	// Create Git client.
 	gitClient, err := rm.createGitClient(ctx, state.config)
 	if err != nil {
 		return fmt.Errorf("failed to create Git client: %w", err)
 	}
 
-	// Create branch
+	// Create branch.
 	if err := gitClient.CreateBranch(ctx, branchName, baseBranch); err != nil {
 		return fmt.Errorf("failed to create branch %s: %w", branchName, err)
 	}
 
-	// Update branch list
+	// Update branch list.
 	rm.updateBranchList(ctx, repoName)
 
 	rm.logger.Info("Successfully created branch", "repo", repoName, "branch", branchName)
 	return nil
 }
 
-// DeleteBranch deletes a branch from the repository
+// DeleteBranch deletes a branch from the repository.
 func (rm *repositoryManager) DeleteBranch(ctx context.Context, repoName string, branchName string) error {
 	rm.logger.V(1).Info("Deleting branch", "repo", repoName, "branch", branchName)
 
@@ -407,7 +407,7 @@ func (rm *repositoryManager) DeleteBranch(ctx context.Context, repoName string, 
 		return fmt.Errorf("repository %s not found", repoName)
 	}
 
-	// Prevent deletion of default branch
+	// Prevent deletion of default branch.
 	state.mutex.RLock()
 	defaultBranch := state.defaultBranch
 	state.mutex.RUnlock()
@@ -416,25 +416,25 @@ func (rm *repositoryManager) DeleteBranch(ctx context.Context, repoName string, 
 		return fmt.Errorf("cannot delete default branch %s", branchName)
 	}
 
-	// Create Git client
+	// Create Git client.
 	gitClient, err := rm.createGitClient(ctx, state.config)
 	if err != nil {
 		return fmt.Errorf("failed to create Git client: %w", err)
 	}
 
-	// Delete branch
+	// Delete branch.
 	if err := gitClient.DeleteBranch(ctx, branchName); err != nil {
 		return fmt.Errorf("failed to delete branch %s: %w", branchName, err)
 	}
 
-	// Update branch list
+	// Update branch list.
 	rm.updateBranchList(ctx, repoName)
 
 	rm.logger.Info("Successfully deleted branch", "repo", repoName, "branch", branchName)
 	return nil
 }
 
-// ListBranches returns the list of branches in the repository
+// ListBranches returns the list of branches in the repository.
 func (rm *repositoryManager) ListBranches(ctx context.Context, repoName string) ([]string, error) {
 	state, exists := rm.getRepositoryState(repoName)
 	if !exists {
@@ -446,7 +446,7 @@ func (rm *repositoryManager) ListBranches(ctx context.Context, repoName string) 
 	copy(branches, state.branches)
 	state.mutex.RUnlock()
 
-	// Refresh branch list if it's stale
+	// Refresh branch list if it's stale.
 	if len(branches) == 0 || time.Since(state.lastUpdated) > 5*time.Minute {
 		if err := rm.updateBranchList(ctx, repoName); err != nil {
 			rm.logger.Error(err, "Failed to update branch list", "repo", repoName)
@@ -461,7 +461,7 @@ func (rm *repositoryManager) ListBranches(ctx context.Context, repoName string) 
 	return branches, nil
 }
 
-// UpdateCredentials updates the authentication credentials for a repository
+// UpdateCredentials updates the authentication credentials for a repository.
 func (rm *repositoryManager) UpdateCredentials(ctx context.Context, repoName string, creds *Credentials) error {
 	rm.logger.V(1).Info("Updating credentials", "repo", repoName)
 
@@ -470,19 +470,19 @@ func (rm *repositoryManager) UpdateCredentials(ctx context.Context, repoName str
 		return fmt.Errorf("repository %s not found", repoName)
 	}
 
-	// Validate credentials format
+	// Validate credentials format.
 	if err := rm.validateCredentials(creds); err != nil {
 		return fmt.Errorf("invalid credentials: %w", err)
 	}
 
-	// Store credentials
+	// Store credentials.
 	if rm.credentialStore != nil {
 		if err := rm.credentialStore.StoreCredentials(ctx, repoName, creds); err != nil {
 			return fmt.Errorf("failed to store credentials: %w", err)
 		}
 	}
 
-	// Update repository configuration
+	// Update repository configuration.
 	state.mutex.Lock()
 	if state.config.Auth == nil {
 		state.config.Auth = &AuthConfig{}
@@ -490,12 +490,12 @@ func (rm *repositoryManager) UpdateCredentials(ctx context.Context, repoName str
 	state.config.Auth.Type = creds.Type
 	state.config.Auth.Username = creds.Username
 	state.config.Auth.Headers = creds.Headers
-	// Don't store sensitive data in memory
+	// Don't store sensitive data in memory.
 	state.authValid = false
 	state.authChecked = time.Time{}
 	state.mutex.Unlock()
 
-	// Validate new credentials
+	// Validate new credentials.
 	go func() {
 		if err := rm.ValidateAccess(ctx, repoName); err != nil {
 			rm.logger.Error(err, "New credentials validation failed", "repo", repoName)
@@ -506,23 +506,23 @@ func (rm *repositoryManager) UpdateCredentials(ctx context.Context, repoName str
 	return nil
 }
 
-// ValidateAccess validates that the repository can be accessed with current credentials
+// ValidateAccess validates that the repository can be accessed with current credentials.
 func (rm *repositoryManager) ValidateAccess(ctx context.Context, repoName string) error {
 	state, exists := rm.getRepositoryState(repoName)
 	if !exists {
 		return fmt.Errorf("repository %s not found", repoName)
 	}
 
-	// Create Git client
+	// Create Git client.
 	gitClient, err := rm.createGitClient(ctx, state.config)
 	if err != nil {
 		return fmt.Errorf("failed to create Git client: %w", err)
 	}
 
-	// Validate access
+	// Validate access.
 	err = gitClient.ValidateAccess(ctx)
 
-	// Update authentication status
+	// Update authentication status.
 	state.mutex.Lock()
 	state.authValid = (err == nil)
 	state.authChecked = time.Now()
@@ -531,7 +531,7 @@ func (rm *repositoryManager) ValidateAccess(ctx context.Context, repoName string
 	}
 	state.mutex.Unlock()
 
-	// Update metrics
+	// Update metrics.
 	if rm.metrics != nil {
 		authStatus := float64(0)
 		if err == nil {
@@ -543,9 +543,9 @@ func (rm *repositoryManager) ValidateAccess(ctx context.Context, repoName string
 	return err
 }
 
-// Private helper methods
+// Private helper methods.
 
-// validateRepositoryConfig validates repository configuration
+// validateRepositoryConfig validates repository configuration.
 func (rm *repositoryManager) validateRepositoryConfig(ctx context.Context, config *RepositoryConfig) error {
 	if config.Name == "" {
 		return fmt.Errorf("repository name is required")
@@ -559,13 +559,13 @@ func (rm *repositoryManager) validateRepositoryConfig(ctx context.Context, confi
 		return fmt.Errorf("repository type is required")
 	}
 
-	// Validate URL format
+	// Validate URL format.
 	parsedURL, err := url.Parse(config.URL)
 	if err != nil {
 		return fmt.Errorf("invalid repository URL: %w", err)
 	}
 
-	// Validate repository type and URL compatibility
+	// Validate repository type and URL compatibility.
 	switch config.Type {
 	case "git":
 		if !strings.HasPrefix(config.URL, "https://") && !strings.HasPrefix(config.URL, "git@") {
@@ -579,7 +579,7 @@ func (rm *repositoryManager) validateRepositoryConfig(ctx context.Context, confi
 		return fmt.Errorf("unsupported repository type: %s", config.Type)
 	}
 
-	// Apply validation rules
+	// Apply validation rules.
 	for _, rule := range rm.validationRules {
 		if err := rule.Validate(ctx, config); err != nil {
 			return fmt.Errorf("validation rule %s failed: %w", rule.GetName(), err)
@@ -589,7 +589,7 @@ func (rm *repositoryManager) validateRepositoryConfig(ctx context.Context, confi
 	return nil
 }
 
-// validateCredentials validates credential format and content
+// validateCredentials validates credential format and content.
 func (rm *repositoryManager) validateCredentials(creds *Credentials) error {
 	if creds.Type == "" {
 		return fmt.Errorf("credential type is required")
@@ -615,7 +615,7 @@ func (rm *repositoryManager) validateCredentials(creds *Credentials) error {
 	return nil
 }
 
-// getRepositoryState safely retrieves repository state
+// getRepositoryState safely retrieves repository state.
 func (rm *repositoryManager) getRepositoryState(name string) (*repositoryState, bool) {
 	rm.stateMutex.RLock()
 	defer rm.stateMutex.RUnlock()
@@ -623,7 +623,7 @@ func (rm *repositoryManager) getRepositoryState(name string) (*repositoryState, 
 	return state, exists
 }
 
-// createGitClient creates a Git client for the repository
+// createGitClient creates a Git client for the repository.
 func (rm *repositoryManager) createGitClient(ctx context.Context, config *RepositoryConfig) (GitClient, error) {
 	if rm.gitClientFactory != nil {
 		return rm.gitClientFactory.CreateClient(ctx, config)
@@ -631,11 +631,11 @@ func (rm *repositoryManager) createGitClient(ctx context.Context, config *Reposi
 	return nil, fmt.Errorf("git client factory not configured")
 }
 
-// performRepositorySync performs the actual repository synchronization
+// performRepositorySync performs the actual repository synchronization.
 func (rm *repositoryManager) performRepositorySync(ctx context.Context, name string, state *repositoryState) (*SyncResult, error) {
 	start := time.Now()
 
-	// Mark sync as in progress
+	// Mark sync as in progress.
 	state.mutex.Lock()
 	state.syncInProgress = true
 	state.mutex.Unlock()
@@ -654,7 +654,7 @@ func (rm *repositoryManager) performRepositorySync(ctx context.Context, name str
 		Success:  false,
 	}
 
-	// Create Git client
+	// Create Git client.
 	gitClient, err := rm.createGitClient(ctx, state.config)
 	if err != nil {
 		result.Error = fmt.Sprintf("failed to create Git client: %v", err)
@@ -665,7 +665,7 @@ func (rm *repositoryManager) performRepositorySync(ctx context.Context, name str
 		return result, err
 	}
 
-	// Get commit hash for comparison
+	// Get commit hash for comparison.
 	commitHash, err := gitClient.GetCommitHash(ctx)
 	if err != nil {
 		result.Error = fmt.Sprintf("failed to get commit hash: %v", err)
@@ -680,13 +680,13 @@ func (rm *repositoryManager) performRepositorySync(ctx context.Context, name str
 	result.Success = true
 	result.PackageCount = state.packageCount // This would be updated from actual package discovery
 
-	// Update state
+	// Update state.
 	state.mutex.Lock()
 	state.syncError = nil
 	state.health = RepositoryHealthHealthy
 	state.mutex.Unlock()
 
-	// Update metrics
+	// Update metrics.
 	if rm.metrics != nil {
 		rm.metrics.syncOperations.WithLabelValues(name, "success").Inc()
 		rm.metrics.syncDuration.WithLabelValues(name).Observe(time.Since(start).Seconds())
@@ -696,14 +696,14 @@ func (rm *repositoryManager) performRepositorySync(ctx context.Context, name str
 	return result, nil
 }
 
-// updateRepositoryStatus updates the repository status in Porch
+// updateRepositoryStatus updates the repository status in Porch.
 func (rm *repositoryManager) updateRepositoryStatus(ctx context.Context, name string, result *SyncResult) error {
 	repo, err := rm.client.GetRepository(ctx, name)
 	if err != nil {
 		return fmt.Errorf("failed to get repository: %w", err)
 	}
 
-	// Update status
+	// Update status.
 	repo.Status.LastSyncTime = &metav1.Time{Time: result.SyncTime}
 	repo.Status.CommitHash = result.CommitHash
 	repo.Status.PackageCount = result.PackageCount
@@ -732,7 +732,7 @@ func (rm *repositoryManager) updateRepositoryStatus(ctx context.Context, name st
 	return err
 }
 
-// updateBranchList updates the cached branch list for a repository
+// updateBranchList updates the cached branch list for a repository.
 func (rm *repositoryManager) updateBranchList(ctx context.Context, repoName string) error {
 	state, exists := rm.getRepositoryState(repoName)
 	if !exists {
@@ -763,7 +763,7 @@ func (rm *repositoryManager) updateBranchList(ctx context.Context, repoName stri
 	state.lastUpdated = time.Now()
 	state.mutex.Unlock()
 
-	// Update metrics
+	// Update metrics.
 	if rm.metrics != nil {
 		rm.metrics.branchCount.WithLabelValues(repoName).Set(float64(len(branches)))
 	}
@@ -771,7 +771,7 @@ func (rm *repositoryManager) updateBranchList(ctx context.Context, repoName stri
 	return nil
 }
 
-// startRepositorySync starts background synchronization for a repository
+// startRepositorySync starts background synchronization for a repository.
 func (rm *repositoryManager) startRepositorySync(ctx context.Context, repoName string) {
 	state, exists := rm.getRepositoryState(repoName)
 	if !exists {
@@ -798,7 +798,7 @@ func (rm *repositoryManager) startRepositorySync(ctx context.Context, repoName s
 			if _, err := rm.SynchronizeRepository(ctx, repoName); err != nil {
 				rm.logger.Error(err, "Background sync failed", "repo", repoName)
 
-				// Notify error handlers
+				// Notify error handlers.
 				for _, handler := range rm.eventHandlers {
 					handler.OnRepositoryError(ctx, repoName, err)
 				}
@@ -807,7 +807,7 @@ func (rm *repositoryManager) startRepositorySync(ctx context.Context, repoName s
 	}
 }
 
-// startHealthMonitoring starts health monitoring for a repository
+// startHealthMonitoring starts health monitoring for a repository.
 func (rm *repositoryManager) startHealthMonitoring(ctx context.Context, repoName string) {
 	interval := 1 * time.Minute
 	ticker := time.NewTicker(interval)
@@ -828,14 +828,14 @@ func (rm *repositoryManager) startHealthMonitoring(ctx context.Context, repoName
 	}
 }
 
-// checkRepositoryHealth performs a health check on a repository
+// checkRepositoryHealth performs a health check on a repository.
 func (rm *repositoryManager) checkRepositoryHealth(ctx context.Context, repoName string) error {
 	state, exists := rm.getRepositoryState(repoName)
 	if !exists {
 		return fmt.Errorf("repository %s not found", repoName)
 	}
 
-	// Simple health check - validate access
+	// Simple health check - validate access.
 	err := rm.ValidateAccess(ctx, repoName)
 
 	health := RepositoryHealthHealthy
@@ -849,7 +849,7 @@ func (rm *repositoryManager) checkRepositoryHealth(ctx context.Context, repoName
 	state.lastHealthCheck = time.Now()
 	state.mutex.Unlock()
 
-	// Update metrics
+	// Update metrics.
 	if rm.metrics != nil {
 		healthValue := float64(1)
 		if err != nil {
@@ -861,18 +861,18 @@ func (rm *repositoryManager) checkRepositoryHealth(ctx context.Context, repoName
 	return err
 }
 
-// stopRepositoryOperations stops background operations for a repository
+// stopRepositoryOperations stops background operations for a repository.
 func (rm *repositoryManager) stopRepositoryOperations(repoName string) {
-	// This would cancel context-specific operations
+	// This would cancel context-specific operations.
 	rm.logger.V(1).Info("Stopping repository operations", "repo", repoName)
 }
 
-// validateRepositoryAccess performs initial access validation
+// validateRepositoryAccess performs initial access validation.
 func (rm *repositoryManager) validateRepositoryAccess(ctx context.Context, repoName string) error {
 	return rm.ValidateAccess(ctx, repoName)
 }
 
-// initRepositoryMetrics initializes Prometheus metrics for repository operations
+// initRepositoryMetrics initializes Prometheus metrics for repository operations.
 func initRepositoryMetrics() *RepositoryMetrics {
 	return &RepositoryMetrics{
 		syncOperations: prometheus.NewCounterVec(
@@ -928,36 +928,36 @@ func initRepositoryMetrics() *RepositoryMetrics {
 	}
 }
 
-// GetRepositoryMetrics returns the repository metrics
+// GetRepositoryMetrics returns the repository metrics.
 func (rm *repositoryManager) GetRepositoryMetrics() *RepositoryMetrics {
 	return rm.metrics
 }
 
-// AddValidationRule adds a validation rule for repositories
+// AddValidationRule adds a validation rule for repositories.
 func (rm *repositoryManager) AddValidationRule(rule RepositoryValidationRule) {
 	rm.validationRules = append(rm.validationRules, rule)
 }
 
-// AddEventHandler adds an event handler for repository lifecycle events
+// AddEventHandler adds an event handler for repository lifecycle events.
 func (rm *repositoryManager) AddEventHandler(handler RepositoryEventHandler) {
 	rm.eventHandlers = append(rm.eventHandlers, handler)
 }
 
-// SetGitClientFactory sets the Git client factory
+// SetGitClientFactory sets the Git client factory.
 func (rm *repositoryManager) SetGitClientFactory(factory GitClientFactory) {
 	rm.gitClientFactory = factory
 }
 
-// SetCredentialStore sets the credential store
+// SetCredentialStore sets the credential store.
 func (rm *repositoryManager) SetCredentialStore(store CredentialStore) {
 	rm.credentialStore = store
 }
 
-// Close gracefully shuts down the repository manager
+// Close gracefully shuts down the repository manager.
 func (rm *repositoryManager) Close() error {
 	rm.logger.Info("Shutting down repository manager")
 
-	// Cancel background operations
+	// Cancel background operations.
 	if rm.syncCancel != nil {
 		rm.syncCancel()
 	}
@@ -965,11 +965,11 @@ func (rm *repositoryManager) Close() error {
 		rm.healthCancel()
 	}
 
-	// Wait for background goroutines to finish
+	// Wait for background goroutines to finish.
 	rm.syncWg.Wait()
 	rm.healthWg.Wait()
 
-	// Clear state
+	// Clear state.
 	rm.stateMutex.Lock()
 	rm.repositories = make(map[string]*repositoryState)
 	rm.stateMutex.Unlock()

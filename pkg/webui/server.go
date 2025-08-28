@@ -41,47 +41,47 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/services"
 )
 
-// NephoranAPIServer provides comprehensive Web UI integration for the Nephoran Intent Operator
+// NephoranAPIServer provides comprehensive Web UI integration for the Nephoran Intent Operator.
 type NephoranAPIServer struct {
-	// Core dependencies
+	// Core dependencies.
 	intentReconciler *controllers.NetworkIntentReconciler
 	packageManager   packagerevision.PackageRevisionManager
 	clusterManager   multicluster.ClusterPropagationManager
 	llmProcessor     *services.LLMProcessorService
 	kubeClient       kubernetes.Interface
 
-	// Authentication and authorization
+	// Authentication and authorization.
 	authMiddleware *auth.AuthMiddleware
 	sessionManager *auth.SessionManager
 	rbacManager    *auth.RBACManager
 
-	// Configuration and metrics
+	// Configuration and metrics.
 	config  *ServerConfig
 	metrics *ServerMetrics
 	logger  logr.Logger
 
-	// HTTP server and routing
+	// HTTP server and routing.
 	server   *http.Server
 	router   *mux.Router
 	upgrader websocket.Upgrader
 
-	// WebSocket and SSE connection management
+	// WebSocket and SSE connection management.
 	wsConnections    map[string]*WebSocketConnection
 	sseConnections   map[string]*SSEConnection
 	connectionsMutex sync.RWMutex
 
-	// Caching and performance
+	// Caching and performance.
 	cache       *Cache
 	rateLimiter *RateLimiter
 
-	// Background workers
+	// Background workers.
 	shutdown chan struct{}
 	wg       sync.WaitGroup
 }
 
-// ServerConfig holds API server configuration
+// ServerConfig holds API server configuration.
 type ServerConfig struct {
-	// Server settings
+	// Server settings.
 	Address         string        `json:"address"`
 	Port            int           `json:"port"`
 	ReadTimeout     time.Duration `json:"read_timeout"`
@@ -89,49 +89,49 @@ type ServerConfig struct {
 	IdleTimeout     time.Duration `json:"idle_timeout"`
 	ShutdownTimeout time.Duration `json:"shutdown_timeout"`
 
-	// TLS settings
+	// TLS settings.
 	TLSEnabled  bool   `json:"tls_enabled"`
 	TLSCertFile string `json:"tls_cert_file"`
 	TLSKeyFile  string `json:"tls_key_file"`
 
-	// CORS settings
+	// CORS settings.
 	EnableCORS       bool     `json:"enable_cors"`
 	AllowedOrigins   []string `json:"allowed_origins"`
 	AllowedMethods   []string `json:"allowed_methods"`
 	AllowedHeaders   []string `json:"allowed_headers"`
 	AllowCredentials bool     `json:"allow_credentials"`
 
-	// Rate limiting
+	// Rate limiting.
 	EnableRateLimit bool          `json:"enable_rate_limit"`
 	RequestsPerMin  int           `json:"requests_per_min"`
 	BurstSize       int           `json:"burst_size"`
 	RateLimitWindow time.Duration `json:"rate_limit_window"`
 
-	// Caching
+	// Caching.
 	EnableCaching bool          `json:"enable_caching"`
 	CacheSize     int           `json:"cache_size"`
 	CacheTTL      time.Duration `json:"cache_ttl"`
 
-	// WebSocket and SSE
+	// WebSocket and SSE.
 	MaxWSConnections int           `json:"max_ws_connections"`
 	WSTimeout        time.Duration `json:"ws_timeout"`
 	SSETimeout       time.Duration `json:"sse_timeout"`
 	PingInterval     time.Duration `json:"ping_interval"`
 
-	// Pagination
+	// Pagination.
 	DefaultPageSize int `json:"default_page_size"`
 	MaxPageSize     int `json:"max_page_size"`
 
-	// Feature flags
+	// Feature flags.
 	EnableMetrics     bool `json:"enable_metrics"`
 	EnableProfiling   bool `json:"enable_profiling"`
 	EnableHealthCheck bool `json:"enable_health_check"`
 
-	// Authentication configuration
+	// Authentication configuration.
 	AuthConfigFile string `json:"auth_config_file"`
 }
 
-// ServerMetrics contains Prometheus metrics for the API server
+// ServerMetrics contains Prometheus metrics for the API server.
 type ServerMetrics struct {
 	RequestsTotal        *prometheus.CounterVec
 	RequestDuration      *prometheus.HistogramVec
@@ -142,7 +142,7 @@ type ServerMetrics struct {
 	RateLimitExceeded    prometheus.Counter
 }
 
-// WebSocketConnection represents an active WebSocket connection
+// WebSocketConnection represents an active WebSocket connection.
 type WebSocketConnection struct {
 	ID         string
 	UserID     string
@@ -152,7 +152,7 @@ type WebSocketConnection struct {
 	LastSeen   time.Time
 }
 
-// SSEConnection represents an active Server-Sent Events connection
+// SSEConnection represents an active Server-Sent Events connection.
 type SSEConnection struct {
 	ID       string
 	UserID   string
@@ -162,7 +162,7 @@ type SSEConnection struct {
 	LastSeen time.Time
 }
 
-// APIResponse represents a standard API response format
+// APIResponse represents a standard API response format.
 type APIResponse struct {
 	Success   bool        `json:"success"`
 	Data      interface{} `json:"data,omitempty"`
@@ -172,7 +172,7 @@ type APIResponse struct {
 	Timestamp time.Time   `json:"timestamp"`
 }
 
-// APIError represents an API error response
+// APIError represents an API error response.
 type APIError struct {
 	Code      string      `json:"code"`
 	Message   string      `json:"message"`
@@ -180,7 +180,7 @@ type APIError struct {
 	RequestID string      `json:"request_id,omitempty"`
 }
 
-// Meta contains response metadata for pagination and filtering
+// Meta contains response metadata for pagination and filtering.
 type Meta struct {
 	Page       int `json:"page"`
 	PageSize   int `json:"page_size"`
@@ -188,7 +188,7 @@ type Meta struct {
 	TotalItems int `json:"total_items"`
 }
 
-// Links contains HATEOAS navigation links
+// Links contains HATEOAS navigation links.
 type Links struct {
 	Self     string `json:"self"`
 	First    string `json:"first,omitempty"`
@@ -197,7 +197,7 @@ type Links struct {
 	Next     string `json:"next,omitempty"`
 }
 
-// PaginationParams represents pagination parameters
+// PaginationParams represents pagination parameters.
 type PaginationParams struct {
 	Page     int    `json:"page"`
 	PageSize int    `json:"page_size"`
@@ -205,7 +205,7 @@ type PaginationParams struct {
 	Order    string `json:"order"`
 }
 
-// FilterParams represents filtering parameters
+// FilterParams represents filtering parameters.
 type FilterParams struct {
 	Status    string            `json:"status,omitempty"`
 	Type      string            `json:"type,omitempty"`
@@ -217,7 +217,7 @@ type FilterParams struct {
 	Until     *time.Time        `json:"until,omitempty"`
 }
 
-// NewNephoranAPIServer creates a new API server instance
+// NewNephoranAPIServer creates a new API server instance.
 func NewNephoranAPIServer(
 	intentReconciler *controllers.NetworkIntentReconciler,
 	packageManager packagerevision.PackageRevisionManager,
@@ -232,7 +232,7 @@ func NewNephoranAPIServer(
 
 	logger := log.Log.WithName("nephoran-api-server")
 
-	// Initialize metrics
+	// Initialize metrics.
 	metrics := initServerMetrics()
 	prometheus.MustRegister(
 		metrics.RequestsTotal,
@@ -244,13 +244,13 @@ func NewNephoranAPIServer(
 		metrics.RateLimitExceeded,
 	)
 
-	// Initialize cache if enabled
+	// Initialize cache if enabled.
 	var cache *Cache
 	if config.EnableCaching {
 		cache = NewCache(config.CacheSize, config.CacheTTL)
 	}
 
-	// Initialize rate limiter if enabled
+	// Initialize rate limiter if enabled.
 	var rateLimiter *RateLimiter
 	if config.EnableRateLimit {
 		rateLimiter = NewRateLimiter(config.RequestsPerMin, config.BurstSize, config.RateLimitWindow)
@@ -279,15 +279,15 @@ func NewNephoranAPIServer(
 		},
 	}
 
-	// Initialize authentication middleware
+	// Initialize authentication middleware.
 	if err := server.initializeAuth(); err != nil {
 		return nil, fmt.Errorf("failed to initialize authentication: %w", err)
 	}
 
-	// Setup router and routes
+	// Setup router and routes.
 	server.setupRouter()
 
-	// Create HTTP server
+	// Create HTTP server.
 	server.server = &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", config.Address, config.Port),
 		Handler:      server.router,
@@ -296,7 +296,7 @@ func NewNephoranAPIServer(
 		IdleTimeout:  config.IdleTimeout,
 	}
 
-	// Start background workers
+	// Start background workers.
 	server.startBackgroundWorkers()
 
 	logger.Info("Nephoran API Server initialized",
@@ -310,7 +310,7 @@ func NewNephoranAPIServer(
 	return server, nil
 }
 
-// initializeAuth sets up authentication and authorization middleware
+// initializeAuth sets up authentication and authorization middleware.
 func (s *NephoranAPIServer) initializeAuth() error {
 	authConfig, err := auth.LoadAuthConfig(s.config.AuthConfigFile)
 	if err != nil {
@@ -322,12 +322,12 @@ func (s *NephoranAPIServer) initializeAuth() error {
 		return nil
 	}
 
-	// Initialize session manager
-	// Note: NewSessionManager requires config, jwtManager, rbacManager, logger - will be set after managers are created
-	// s.sessionManager = auth.NewSessionManager(authConfig, s.logger.WithName("session-manager"))
+	// Initialize session manager.
+	// Note: NewSessionManager requires config, jwtManager, rbacManager, logger - will be set after managers are created.
+	// s.sessionManager = auth.NewSessionManager(authConfig, s.logger.WithName("session-manager")).
 
-	// Initialize RBAC manager
-	// Create RBACManagerConfig from RBACConfig
+	// Initialize RBAC manager.
+	// Create RBACManagerConfig from RBACConfig.
 	rbacManagerConfig := &auth.RBACManagerConfig{
 		CacheTTL:           15 * time.Minute,
 		EnableHierarchy:    true,
@@ -338,8 +338,8 @@ func (s *NephoranAPIServer) initializeAuth() error {
 	}
 	s.rbacManager = auth.NewRBACManager(rbacManagerConfig, nil)
 
-	// Initialize JWT manager
-	// Note: NewJWTManager requires config, tokenStore, blacklist, logger
+	// Initialize JWT manager.
+	// Note: NewJWTManager requires config, tokenStore, blacklist, logger.
 	jwtManager, err := auth.NewJWTManager(&auth.JWTConfig{
 		Issuer:     "nephoran",
 		DefaultTTL: 24 * time.Hour,
@@ -349,7 +349,7 @@ func (s *NephoranAPIServer) initializeAuth() error {
 		return fmt.Errorf("failed to create JWT manager: %w", err)
 	}
 
-	// Initialize auth middleware
+	// Initialize auth middleware.
 	middlewareConfig := &auth.MiddlewareConfig{
 		SkipAuth: []string{
 			"/health", "/metrics", "/openapi", "/docs",
@@ -368,11 +368,11 @@ func (s *NephoranAPIServer) initializeAuth() error {
 	return nil
 }
 
-// setupRouter configures the HTTP router with all endpoints
+// setupRouter configures the HTTP router with all endpoints.
 func (s *NephoranAPIServer) setupRouter() {
 	s.router = mux.NewRouter().StrictSlash(true)
 
-	// Apply middleware
+	// Apply middleware.
 	s.router.Use(s.loggingMiddleware)
 	s.router.Use(s.metricsMiddleware)
 
@@ -385,28 +385,28 @@ func (s *NephoranAPIServer) setupRouter() {
 		s.router.Use(s.authMiddleware.RequestLoggingMiddleware)
 	}
 
-	// Setup API versioned routes
+	// Setup API versioned routes.
 	v1 := s.router.PathPrefix("/api/v1").Subrouter()
 
-	// Intent Management APIs
+	// Intent Management APIs.
 	s.setupIntentRoutes(v1)
 
-	// Package Management APIs
+	// Package Management APIs.
 	s.setupPackageRoutes(v1)
 
-	// Multi-Cluster APIs
+	// Multi-Cluster APIs.
 	s.setupClusterRoutes(v1)
 
-	// Real-time APIs
+	// Real-time APIs.
 	s.setupRealtimeRoutes(v1)
 
-	// Dashboard APIs
+	// Dashboard APIs.
 	s.setupDashboardRoutes(v1)
 
-	// System APIs
+	// System APIs.
 	s.setupSystemRoutes(s.router)
 
-	// Setup CORS if enabled
+	// Setup CORS if enabled.
 	if s.config.EnableCORS {
 		c := cors.New(cors.Options{
 			AllowedOrigins:   s.config.AllowedOrigins,
@@ -418,11 +418,11 @@ func (s *NephoranAPIServer) setupRouter() {
 	}
 }
 
-// Start starts the API server
+// Start starts the API server.
 func (s *NephoranAPIServer) Start(ctx context.Context) error {
 	s.logger.Info("Starting Nephoran API Server", "address", s.server.Addr)
 
-	// Start server
+	// Start server.
 	go func() {
 		var err error
 		if s.config.TLSEnabled {
@@ -436,22 +436,22 @@ func (s *NephoranAPIServer) Start(ctx context.Context) error {
 		}
 	}()
 
-	// Wait for shutdown signal
+	// Wait for shutdown signal.
 	<-ctx.Done()
 	return s.Shutdown()
 }
 
-// Shutdown gracefully shuts down the API server
+// Shutdown gracefully shuts down the API server.
 func (s *NephoranAPIServer) Shutdown() error {
 	s.logger.Info("Shutting down Nephoran API Server")
 
-	// Signal background workers to stop
+	// Signal background workers to stop.
 	close(s.shutdown)
 
-	// Wait for background workers to finish
+	// Wait for background workers to finish.
 	s.wg.Wait()
 
-	// Close WebSocket connections
+	// Close WebSocket connections.
 	s.connectionsMutex.Lock()
 	for id, conn := range s.wsConnections {
 		if err := conn.Connection.Close(); err != nil {
@@ -462,7 +462,7 @@ func (s *NephoranAPIServer) Shutdown() error {
 	}
 	s.connectionsMutex.Unlock()
 
-	// Shutdown HTTP server
+	// Shutdown HTTP server.
 	ctx, cancel := context.WithTimeout(context.Background(), s.config.ShutdownTimeout)
 	defer cancel()
 
@@ -475,11 +475,11 @@ func (s *NephoranAPIServer) Shutdown() error {
 	return nil
 }
 
-// Middleware functions
+// Middleware functions.
 
 func (s *NephoranAPIServer) loggingMiddleware(next http.Handler) http.Handler {
-	// handlers.LoggingHandler expects io.Writer, but we have logr.Logger
-	// Use a simple logging wrapper instead
+	// handlers.LoggingHandler expects io.Writer, but we have logr.Logger.
+	// Use a simple logging wrapper instead.
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		next.ServeHTTP(w, r)
@@ -494,7 +494,7 @@ func (s *NephoranAPIServer) metricsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
-		// Wrap response writer to capture status code
+		// Wrap response writer to capture status code.
 		wrapper := &responseWrapper{ResponseWriter: w, statusCode: http.StatusOK}
 
 		next.ServeHTTP(wrapper, r)
@@ -514,14 +514,14 @@ func (s *NephoranAPIServer) metricsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// Background workers
+// Background workers.
 
 func (s *NephoranAPIServer) startBackgroundWorkers() {
-	// Connection cleanup worker
+	// Connection cleanup worker.
 	s.wg.Add(1)
 	go s.connectionCleanupWorker()
 
-	// Metrics collection worker
+	// Metrics collection worker.
 	s.wg.Add(1)
 	go s.metricsWorker()
 }
@@ -562,7 +562,7 @@ func (s *NephoranAPIServer) cleanupStaleConnections() {
 	s.connectionsMutex.Lock()
 	defer s.connectionsMutex.Unlock()
 
-	// Cleanup WebSocket connections
+	// Cleanup WebSocket connections.
 	for id, conn := range s.wsConnections {
 		if conn.LastSeen.Before(threshold) {
 			conn.Connection.Close()
@@ -570,7 +570,7 @@ func (s *NephoranAPIServer) cleanupStaleConnections() {
 		}
 	}
 
-	// Cleanup SSE connections
+	// Cleanup SSE connections.
 	for id, conn := range s.sseConnections {
 		if conn.LastSeen.Before(threshold) {
 			delete(s.sseConnections, id)
@@ -588,7 +588,7 @@ func (s *NephoranAPIServer) updateConnectionMetrics() {
 	s.metrics.SSEConnectionsActive.Set(float64(sseCount))
 }
 
-// Utility functions
+// Utility functions.
 
 func (s *NephoranAPIServer) writeJSONResponse(w http.ResponseWriter, status int, data interface{}) {
 	response := &APIResponse{
@@ -672,7 +672,7 @@ func (s *NephoranAPIServer) parseFilterParams(r *http.Request) FilterParams {
 		params.Cluster = cluster
 	}
 
-	// Parse label filters (format: label.key=value)
+	// Parse label filters (format: label.key=value).
 	for key, values := range r.URL.Query() {
 		if strings.HasPrefix(key, "label.") {
 			labelKey := strings.TrimPrefix(key, "label.")
@@ -685,7 +685,7 @@ func (s *NephoranAPIServer) parseFilterParams(r *http.Request) FilterParams {
 	return params
 }
 
-// Default configuration
+// Default configuration.
 
 func getDefaultServerConfig() *ServerConfig {
 	return &ServerConfig{
@@ -721,7 +721,7 @@ func getDefaultServerConfig() *ServerConfig {
 	}
 }
 
-// Initialize server metrics
+// Initialize server metrics.
 func initServerMetrics() *ServerMetrics {
 	return &ServerMetrics{
 		RequestsTotal: prometheus.NewCounterVec(
@@ -771,18 +771,19 @@ func initServerMetrics() *ServerMetrics {
 	}
 }
 
-// responseWrapper captures response status code for metrics
+// responseWrapper captures response status code for metrics.
 type responseWrapper struct {
 	http.ResponseWriter
 	statusCode int
 }
 
+// WriteHeader performs writeheader operation.
 func (rw *responseWrapper) WriteHeader(code int) {
 	rw.statusCode = code
 	rw.ResponseWriter.WriteHeader(code)
 }
 
-// getClientIP extracts client IP from request
+// getClientIP extracts client IP from request.
 func getClientIP(r *http.Request) string {
 	xff := r.Header.Get("X-Forwarded-For")
 	if xff != "" {

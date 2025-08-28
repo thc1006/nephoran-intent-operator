@@ -9,55 +9,55 @@ import (
 	"time"
 )
 
-// BottleneckDetector automatically identifies and analyzes performance bottlenecks
+// BottleneckDetector automatically identifies and analyzes performance bottlenecks.
 type BottleneckDetector struct {
 	mu sync.RWMutex
 
-	// Detection engines
+	// Detection engines.
 	criticalPathAnalyzer     *CriticalPathAnalyzer
 	resourceBottleneckFinder *ResourceBottleneckFinder
 	contentionDetector       *ContentionPointDetector
 	cascadeAnalyzer          *CascadeDelayAnalyzer
 	rootCauseAnalyzer        *RootCauseAnalyzer
 
-	// Remediation system
+	// Remediation system.
 	autoRemediator *AutomaticRemediator
 
-	// Detection results
+	// Detection results.
 	detectedBottlenecks   []DetectedBottleneck
 	activeBottlenecks     map[string]*ActiveBottleneck
 	historicalBottlenecks *BottleneckHistory
 
-	// Metrics and monitoring
+	// Metrics and monitoring.
 	detectionMetrics  *DetectionMetrics
 	performanceImpact *PerformanceImpactTracker
 
-	// Configuration
+	// Configuration.
 	config *BottleneckDetectorConfig
 }
 
-// BottleneckDetectorConfig contains configuration for bottleneck detection
+// BottleneckDetectorConfig contains configuration for bottleneck detection.
 type BottleneckDetectorConfig struct {
-	// Detection thresholds
+	// Detection thresholds.
 	LatencyThreshold    time.Duration        `json:"latency_threshold"`
 	ResourceThreshold   ResourceThresholds   `json:"resource_threshold"`
 	ContentionThreshold ContentionThresholds `json:"contention_threshold"`
 
-	// Analysis settings
+	// Analysis settings.
 	CriticalPathDepth      int           `json:"critical_path_depth"`
 	AnalysisWindow         time.Duration `json:"analysis_window"`
 	MinSamplesForDetection int           `json:"min_samples_for_detection"`
 
-	// Auto-remediation
+	// Auto-remediation.
 	EnableAutoRemediation bool              `json:"enable_auto_remediation"`
 	RemediationPolicy     RemediationPolicy `json:"remediation_policy"`
 
-	// Alerting
+	// Alerting.
 	AlertingEnabled bool            `json:"alerting_enabled"`
 	AlertThresholds AlertThresholds `json:"alert_thresholds"`
 }
 
-// ResourceThresholds defines thresholds for resource bottlenecks
+// ResourceThresholds defines thresholds for resource bottlenecks.
 type ResourceThresholds struct {
 	CPUUtilization      float64 `json:"cpu_utilization"`
 	MemoryUtilization   float64 `json:"memory_utilization"`
@@ -66,7 +66,7 @@ type ResourceThresholds struct {
 	ConnectionPoolUsage float64 `json:"connection_pool_usage"`
 }
 
-// ContentionThresholds defines thresholds for contention detection
+// ContentionThresholds defines thresholds for contention detection.
 type ContentionThresholds struct {
 	LockWaitTime     time.Duration `json:"lock_wait_time"`
 	QueueDepth       int           `json:"queue_depth"`
@@ -74,7 +74,7 @@ type ContentionThresholds struct {
 	DatabaseLockTime time.Duration `json:"database_lock_time"`
 }
 
-// RemediationPolicy defines how automatic remediation should work
+// RemediationPolicy defines how automatic remediation should work.
 type RemediationPolicy struct {
 	MaxScaleOutInstances   int           `json:"max_scale_out_instances"`
 	MinScaleInInstances    int           `json:"min_scale_in_instances"`
@@ -84,14 +84,14 @@ type RemediationPolicy struct {
 	AllowCircuitBreaker    bool          `json:"allow_circuit_breaker"`
 }
 
-// AlertThresholds defines when to trigger alerts
+// AlertThresholds defines when to trigger alerts.
 type AlertThresholds struct {
 	CriticalBottleneckCount int           `json:"critical_bottleneck_count"`
 	SustainedDuration       time.Duration `json:"sustained_duration"`
 	ImpactThreshold         float64       `json:"impact_threshold"`
 }
 
-// DetectedBottleneck represents a detected performance bottleneck
+// DetectedBottleneck represents a detected performance bottleneck.
 type DetectedBottleneck struct {
 	ID              string                 `json:"id"`
 	Type            BottleneckType         `json:"type"`
@@ -107,32 +107,45 @@ type DetectedBottleneck struct {
 	AutoRemediation *AutoRemediationResult `json:"auto_remediation,omitempty"`
 }
 
-// BottleneckType categorizes the type of bottleneck
+// BottleneckType categorizes the type of bottleneck.
 type BottleneckType string
 
 const (
-	CPUBottleneck         BottleneckType = "CPU"
-	MemoryBottleneck      BottleneckType = "MEMORY"
-	IOBottleneck          BottleneckType = "IO"
-	NetworkBottleneck     BottleneckType = "NETWORK"
-	DatabaseBottleneck    BottleneckType = "DATABASE"
+	// CPUBottleneck holds cpubottleneck value.
+	CPUBottleneck BottleneckType = "CPU"
+	// MemoryBottleneck holds memorybottleneck value.
+	MemoryBottleneck BottleneckType = "MEMORY"
+	// IOBottleneck holds iobottleneck value.
+	IOBottleneck BottleneckType = "IO"
+	// NetworkBottleneck holds networkbottleneck value.
+	NetworkBottleneck BottleneckType = "NETWORK"
+	// DatabaseBottleneck holds databasebottleneck value.
+	DatabaseBottleneck BottleneckType = "DATABASE"
+	// ConcurrencyBottleneck holds concurrencybottleneck value.
 	ConcurrencyBottleneck BottleneckType = "CONCURRENCY"
-	QueueBottleneck       BottleneckType = "QUEUE"
-	CacheBottleneck       BottleneckType = "CACHE"
+	// QueueBottleneck holds queuebottleneck value.
+	QueueBottleneck BottleneckType = "QUEUE"
+	// CacheBottleneck holds cachebottleneck value.
+	CacheBottleneck BottleneckType = "CACHE"
+	// AlgorithmicBottleneck holds algorithmicbottleneck value.
 	AlgorithmicBottleneck BottleneckType = "ALGORITHMIC"
 )
 
-// BottleneckSeverity indicates the severity of a bottleneck
+// BottleneckSeverity indicates the severity of a bottleneck.
 type BottleneckSeverity string
 
 const (
+	// CriticalSeverity holds criticalseverity value.
 	CriticalSeverity BottleneckSeverity = "CRITICAL"
-	HighSeverity     BottleneckSeverity = "HIGH"
-	MediumSeverity   BottleneckSeverity = "MEDIUM"
-	LowSeverity      BottleneckSeverity = "LOW"
+	// HighSeverity holds highseverity value.
+	HighSeverity BottleneckSeverity = "HIGH"
+	// MediumSeverity holds mediumseverity value.
+	MediumSeverity BottleneckSeverity = "MEDIUM"
+	// LowSeverity holds lowseverity value.
+	LowSeverity BottleneckSeverity = "LOW"
 )
 
-// BottleneckEvidence provides evidence for a detected bottleneck
+// BottleneckEvidence provides evidence for a detected bottleneck.
 type BottleneckEvidence struct {
 	Metric    string      `json:"metric"`
 	Value     interface{} `json:"value"`
@@ -141,7 +154,7 @@ type BottleneckEvidence struct {
 	Timestamp time.Time   `json:"timestamp"`
 }
 
-// ActiveBottleneck represents a currently active bottleneck
+// ActiveBottleneck represents a currently active bottleneck.
 type ActiveBottleneck struct {
 	Bottleneck       DetectedBottleneck `json:"bottleneck"`
 	StartTime        time.Time          `json:"start_time"`
@@ -151,22 +164,22 @@ type ActiveBottleneck struct {
 	Status           string             `json:"status"` // "active", "mitigating", "resolved"
 }
 
-// CriticalPathAnalyzer identifies the critical path in processing
+// CriticalPathAnalyzer identifies the critical path in processing.
 type CriticalPathAnalyzer struct {
 	mu sync.RWMutex
 
-	// Dependency graph
+	// Dependency graph.
 	dependencyGraph *DependencyGraph
 
-	// Path analysis
+	// Path analysis.
 	criticalPaths map[string]*CriticalPath
 	pathLatencies map[string]time.Duration
 
-	// Statistics
+	// Statistics.
 	pathStatistics *PathStatistics
 }
 
-// CriticalPath represents the longest path through the system
+// CriticalPath represents the longest path through the system.
 type CriticalPath struct {
 	ID                    string          `json:"id"`
 	Components            []PathComponent `json:"components"`
@@ -175,7 +188,7 @@ type CriticalPath struct {
 	OptimizationPotential time.Duration   `json:"optimization_potential"`
 }
 
-// PathComponent represents a component in the critical path
+// PathComponent represents a component in the critical path.
 type PathComponent struct {
 	Name           string        `json:"name"`
 	Latency        time.Duration `json:"latency"`
@@ -184,24 +197,24 @@ type PathComponent struct {
 	Parallelizable bool          `json:"parallelizable"`
 }
 
-// ResourceBottleneckFinder identifies resource-related bottlenecks
+// ResourceBottleneckFinder identifies resource-related bottlenecks.
 type ResourceBottleneckFinder struct {
 	mu sync.RWMutex
 
-	// Resource monitors
+	// Resource monitors.
 	cpuMonitor     *CPUMonitor
 	memoryMonitor  *MemoryMonitor
 	diskMonitor    *DiskIOMonitor
 	networkMonitor *NetworkMonitor
 
-	// Resource bottlenecks
+	// Resource bottlenecks.
 	bottlenecks []ResourceBottleneck
 
-	// Thresholds
+	// Thresholds.
 	thresholds ResourceThresholds
 }
 
-// ResourceBottleneck represents a resource-related bottleneck
+// ResourceBottleneck represents a resource-related bottleneck.
 type ResourceBottleneck struct {
 	Resource    string        `json:"resource"`
 	Utilization float64       `json:"utilization"`
@@ -211,23 +224,23 @@ type ResourceBottleneck struct {
 	AffectedOps []string      `json:"affected_operations"`
 }
 
-// ContentionPointDetector identifies contention points in the system
+// ContentionPointDetector identifies contention points in the system.
 type ContentionPointDetector struct {
 	mu sync.RWMutex
 
-	// Contention monitors
+	// Contention monitors.
 	lockMonitor  *LockContentionMonitor
 	poolMonitor  *ConnectionPoolMonitor
 	queueMonitor *QueueContentionMonitor
 
-	// Detected contention
+	// Detected contention.
 	contentionPoints []ContentionPoint
 
-	// Thresholds
+	// Thresholds.
 	thresholds ContentionThresholds
 }
 
-// ContentionPoint represents a point of contention in the system
+// ContentionPoint represents a point of contention in the system.
 type ContentionPoint struct {
 	Type         string        `json:"type"` // "lock", "pool", "queue"
 	Location     string        `json:"location"`
@@ -237,19 +250,19 @@ type ContentionPoint struct {
 	Impact       float64       `json:"impact"`
 }
 
-// CascadeDelayAnalyzer analyzes how delays cascade through the system
+// CascadeDelayAnalyzer analyzes how delays cascade through the system.
 type CascadeDelayAnalyzer struct {
 	mu sync.RWMutex
 
-	// Cascade tracking
+	// Cascade tracking.
 	cascades  map[string]*DelayCascade
 	impactMap map[string][]string
 
-	// Analysis results
+	// Analysis results.
 	cascadeEffects []CascadeEffect
 }
 
-// DelayCascade represents how a delay cascades through components
+// DelayCascade represents how a delay cascades through components.
 type DelayCascade struct {
 	OriginComponent     string              `json:"origin_component"`
 	OriginDelay         time.Duration       `json:"origin_delay"`
@@ -258,7 +271,7 @@ type DelayCascade struct {
 	AmplificationFactor float64             `json:"amplification_factor"`
 }
 
-// AffectedComponent represents a component affected by cascade delay
+// AffectedComponent represents a component affected by cascade delay.
 type AffectedComponent struct {
 	Name            string        `json:"name"`
 	DirectDelay     time.Duration `json:"direct_delay"`
@@ -266,7 +279,7 @@ type AffectedComponent struct {
 	PropagationPath []string      `json:"propagation_path"`
 }
 
-// CascadeEffect represents the effect of a cascade
+// CascadeEffect represents the effect of a cascade.
 type CascadeEffect struct {
 	Source          string   `json:"source"`
 	Targets         []string `json:"targets"`
@@ -274,20 +287,20 @@ type CascadeEffect struct {
 	CriticalPath    bool     `json:"critical_path"`
 }
 
-// RootCauseAnalyzer performs root cause analysis on bottlenecks
+// RootCauseAnalyzer performs root cause analysis on bottlenecks.
 type RootCauseAnalyzer struct {
 	mu sync.RWMutex
 
-	// Analysis engines
+	// Analysis engines.
 	changeAnalyzer    *ChangeCorrelationAnalyzer
 	patternMatcher    *PatternMatcher
 	anomalyCorrelator *AnomalyCorrelator
 
-	// Root causes
+	// Root causes.
 	identifiedCauses map[string]*RootCause
 }
 
-// RootCause represents the root cause of a bottleneck
+// RootCause represents the root cause of a bottleneck.
 type RootCause struct {
 	ID             string           `json:"id"`
 	Type           string           `json:"type"`
@@ -298,7 +311,7 @@ type RootCause struct {
 	RelatedChanges []SystemChange   `json:"related_changes"`
 }
 
-// CausalEvidence provides evidence for a root cause
+// CausalEvidence provides evidence for a root cause.
 type CausalEvidence struct {
 	Type        string    `json:"type"`
 	Description string    `json:"description"`
@@ -306,7 +319,7 @@ type CausalEvidence struct {
 	Timestamp   time.Time `json:"timestamp"`
 }
 
-// TimelineEvent represents an event in the root cause timeline
+// TimelineEvent represents an event in the root cause timeline.
 type TimelineEvent struct {
 	Timestamp time.Time `json:"timestamp"`
 	Event     string    `json:"event"`
@@ -314,7 +327,7 @@ type TimelineEvent struct {
 	Impact    string    `json:"impact"`
 }
 
-// SystemChange represents a change in the system
+// SystemChange represents a change in the system.
 type SystemChange struct {
 	Timestamp        time.Time `json:"timestamp"`
 	Type             string    `json:"type"` // "deployment", "config", "scale"
@@ -323,24 +336,24 @@ type SystemChange struct {
 	CorrelationScore float64   `json:"correlation_score"`
 }
 
-// AutomaticRemediator handles automatic remediation of bottlenecks
+// AutomaticRemediator handles automatic remediation of bottlenecks.
 type AutomaticRemediator struct {
 	mu sync.RWMutex
 
-	// Remediation strategies
+	// Remediation strategies.
 	strategies map[BottleneckType][]RemediationStrategy
 
-	// Remediation history
+	// Remediation history.
 	history []RemediationAction
 
-	// Active remediations
+	// Active remediations.
 	activeRemediations map[string]*ActiveRemediation
 
-	// Policy
+	// Policy.
 	policy RemediationPolicy
 }
 
-// RemediationStrategy defines a strategy for remediating a bottleneck
+// RemediationStrategy defines a strategy for remediating a bottleneck.
 type RemediationStrategy struct {
 	Name                string `json:"name"`
 	Type                string `json:"type"`
@@ -351,7 +364,7 @@ type RemediationStrategy struct {
 	Risk                string  `json:"risk"` // "low", "medium", "high"
 }
 
-// RemediationAction represents a remediation action
+// RemediationAction represents a remediation action.
 type RemediationAction struct {
 	ID                  string    `json:"id"`
 	BottleneckID        string    `json:"bottleneck_id"`
@@ -362,7 +375,7 @@ type RemediationAction struct {
 	ImprovementMeasured float64   `json:"improvement_measured"`
 }
 
-// ActiveRemediation represents an ongoing remediation
+// ActiveRemediation represents an ongoing remediation.
 type ActiveRemediation struct {
 	Action     RemediationAction `json:"action"`
 	StartTime  time.Time         `json:"start_time"`
@@ -370,7 +383,7 @@ type ActiveRemediation struct {
 	CancelFunc context.CancelFunc
 }
 
-// AutoRemediationResult represents the result of automatic remediation
+// AutoRemediationResult represents the result of automatic remediation.
 type AutoRemediationResult struct {
 	Success        bool     `json:"success"`
 	ActionsTaken   []string `json:"actions_taken"`
@@ -378,21 +391,21 @@ type AutoRemediationResult struct {
 	Message        string   `json:"message"`
 }
 
-// BottleneckHistory maintains historical bottleneck data
+// BottleneckHistory maintains historical bottleneck data.
 type BottleneckHistory struct {
 	mu sync.RWMutex
 
-	// Historical data
+	// Historical data.
 	bottlenecks []HistoricalBottleneck
 
-	// Patterns
+	// Patterns.
 	recurringPatterns []RecurringPattern
 
-	// Statistics
+	// Statistics.
 	statistics *HistoricalStatistics
 }
 
-// HistoricalBottleneck represents a historical bottleneck
+// HistoricalBottleneck represents a historical bottleneck.
 type HistoricalBottleneck struct {
 	Bottleneck     DetectedBottleneck `json:"bottleneck"`
 	Resolution     string             `json:"resolution"`
@@ -400,7 +413,7 @@ type HistoricalBottleneck struct {
 	Recurrence     int                `json:"recurrence"`
 }
 
-// RecurringPattern represents a recurring bottleneck pattern
+// RecurringPattern represents a recurring bottleneck pattern.
 type RecurringPattern struct {
 	Pattern           string   `json:"pattern"`
 	Frequency         string   `json:"frequency"` // "hourly", "daily", "weekly"
@@ -409,7 +422,7 @@ type RecurringPattern struct {
 	PreventiveAction  string   `json:"preventive_action"`
 }
 
-// DetectionMetrics tracks bottleneck detection metrics
+// DetectionMetrics tracks bottleneck detection metrics.
 type DetectionMetrics struct {
 	bottlenecksDetected    atomic.Int64
 	criticalBottlenecks    atomic.Int64
@@ -420,21 +433,21 @@ type DetectionMetrics struct {
 	averageResolutionTime  atomic.Int64
 }
 
-// PerformanceImpactTracker tracks the performance impact of bottlenecks
+// PerformanceImpactTracker tracks the performance impact of bottlenecks.
 type PerformanceImpactTracker struct {
 	mu sync.RWMutex
 
-	// Impact measurements
+	// Impact measurements.
 	impactHistory []ImpactMeasurement
 
-	// Current impact
+	// Current impact.
 	currentImpact float64
 
-	// Cumulative impact
+	// Cumulative impact.
 	cumulativeImpact float64
 }
 
-// ImpactMeasurement represents a performance impact measurement
+// ImpactMeasurement represents a performance impact measurement.
 type ImpactMeasurement struct {
 	Timestamp        time.Time     `json:"timestamp"`
 	BottleneckID     string        `json:"bottleneck_id"`
@@ -445,7 +458,7 @@ type ImpactMeasurement struct {
 	UserImpact       int           `json:"user_impact"`
 }
 
-// NewBottleneckDetector creates a new bottleneck detector
+// NewBottleneckDetector creates a new bottleneck detector.
 func NewBottleneckDetector(config *BottleneckDetectorConfig) *BottleneckDetector {
 	if config == nil {
 		config = DefaultBottleneckConfig()
@@ -458,51 +471,51 @@ func NewBottleneckDetector(config *BottleneckDetectorConfig) *BottleneckDetector
 		detectionMetrics:    &DetectionMetrics{},
 	}
 
-	// Initialize analysis engines
+	// Initialize analysis engines.
 	detector.criticalPathAnalyzer = NewCriticalPathAnalyzer()
 	detector.resourceBottleneckFinder = NewResourceBottleneckFinder(config.ResourceThreshold)
 	detector.contentionDetector = NewContentionPointDetector(config.ContentionThreshold)
 	detector.cascadeAnalyzer = NewCascadeDelayAnalyzer()
 	detector.rootCauseAnalyzer = NewRootCauseAnalyzer()
 
-	// Initialize remediation system
+	// Initialize remediation system.
 	if config.EnableAutoRemediation {
 		detector.autoRemediator = NewAutomaticRemediator(config.RemediationPolicy)
 	}
 
-	// Initialize tracking
+	// Initialize tracking.
 	detector.historicalBottlenecks = NewBottleneckHistory()
 	detector.performanceImpact = NewPerformanceImpactTracker()
 
-	// Start detection loop
+	// Start detection loop.
 	go detector.runContinuousDetection()
 
 	return detector
 }
 
-// DetectBottlenecks analyzes data to detect bottlenecks
+// DetectBottlenecks analyzes data to detect bottlenecks.
 func (d *BottleneckDetector) DetectBottlenecks(ctx context.Context, profile *IntentProfile) []DetectedBottleneck {
 	var bottlenecks []DetectedBottleneck
 
-	// Analyze critical path
+	// Analyze critical path.
 	criticalPath := d.criticalPathAnalyzer.AnalyzePath(profile)
 	if criticalPath != nil && criticalPath.BottleneckNode != "" {
 		bottlenecks = append(bottlenecks, d.createBottleneckFromPath(criticalPath))
 	}
 
-	// Check resource bottlenecks
+	// Check resource bottlenecks.
 	resourceBottlenecks := d.resourceBottleneckFinder.FindBottlenecks(profile)
 	for _, rb := range resourceBottlenecks {
 		bottlenecks = append(bottlenecks, d.createBottleneckFromResource(rb))
 	}
 
-	// Detect contention points
+	// Detect contention points.
 	contentionPoints := d.contentionDetector.DetectContention(profile)
 	for _, cp := range contentionPoints {
 		bottlenecks = append(bottlenecks, d.createBottleneckFromContention(cp))
 	}
 
-	// Analyze cascade delays
+	// Analyze cascade delays.
 	cascades := d.cascadeAnalyzer.AnalyzeCascades(profile)
 	for _, cascade := range cascades {
 		if cascade.AmplificationFactor > 1.5 {
@@ -510,20 +523,20 @@ func (d *BottleneckDetector) DetectBottlenecks(ctx context.Context, profile *Int
 		}
 	}
 
-	// Perform root cause analysis
+	// Perform root cause analysis.
 	for i := range bottlenecks {
 		bottlenecks[i].RootCause = d.rootCauseAnalyzer.AnalyzeRootCause(&bottlenecks[i])
 	}
 
-	// Generate recommendations
+	// Generate recommendations.
 	for i := range bottlenecks {
 		bottlenecks[i].Recommendations = d.generateRecommendations(&bottlenecks[i])
 	}
 
-	// Store detected bottlenecks
+	// Store detected bottlenecks.
 	d.storeBottlenecks(bottlenecks)
 
-	// Auto-remediate if enabled
+	// Auto-remediate if enabled.
 	if d.config.EnableAutoRemediation {
 		for i := range bottlenecks {
 			if bottlenecks[i].Severity == CriticalSeverity {
@@ -533,13 +546,13 @@ func (d *BottleneckDetector) DetectBottlenecks(ctx context.Context, profile *Int
 		}
 	}
 
-	// Update metrics
+	// Update metrics.
 	d.detectionMetrics.bottlenecksDetected.Add(int64(len(bottlenecks)))
 
 	return bottlenecks
 }
 
-// GetActiveBottlenecks returns currently active bottlenecks
+// GetActiveBottlenecks returns currently active bottlenecks.
 func (d *BottleneckDetector) GetActiveBottlenecks() []ActiveBottleneck {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
@@ -549,7 +562,7 @@ func (d *BottleneckDetector) GetActiveBottlenecks() []ActiveBottleneck {
 		active = append(active, *bottleneck)
 	}
 
-	// Sort by impact
+	// Sort by impact.
 	sort.Slice(active, func(i, j int) bool {
 		return active[i].CumulativeImpact > active[j].CumulativeImpact
 	})
@@ -557,17 +570,17 @@ func (d *BottleneckDetector) GetActiveBottlenecks() []ActiveBottleneck {
 	return active
 }
 
-// GetBottleneckHistory returns historical bottleneck data
+// GetBottleneckHistory returns historical bottleneck data.
 func (d *BottleneckDetector) GetBottleneckHistory(duration time.Duration) []HistoricalBottleneck {
 	return d.historicalBottlenecks.GetHistory(duration)
 }
 
-// GetRecurringPatterns returns detected recurring patterns
+// GetRecurringPatterns returns detected recurring patterns.
 func (d *BottleneckDetector) GetRecurringPatterns() []RecurringPattern {
 	return d.historicalBottlenecks.GetPatterns()
 }
 
-// GetImpactReport returns performance impact report
+// GetImpactReport returns performance impact report.
 func (d *BottleneckDetector) GetImpactReport() *ImpactReport {
 	return &ImpactReport{
 		CurrentImpact:    d.performanceImpact.GetCurrentImpact(),
@@ -577,7 +590,7 @@ func (d *BottleneckDetector) GetImpactReport() *ImpactReport {
 	}
 }
 
-// Helper methods
+// Helper methods.
 
 func (d *BottleneckDetector) createBottleneckFromPath(path *CriticalPath) DetectedBottleneck {
 	return DetectedBottleneck{
@@ -831,10 +844,10 @@ func (d *BottleneckDetector) storeBottlenecks(bottlenecks []DetectedBottleneck) 
 	defer d.mu.Unlock()
 
 	for _, bottleneck := range bottlenecks {
-		// Add to detected list
+		// Add to detected list.
 		d.detectedBottlenecks = append(d.detectedBottlenecks, bottleneck)
 
-		// Update active bottlenecks
+		// Update active bottlenecks.
 		if active, exists := d.activeBottlenecks[bottleneck.Component]; exists {
 			active.LastSeen = time.Now()
 			active.OccurrenceCount++
@@ -850,13 +863,13 @@ func (d *BottleneckDetector) storeBottlenecks(bottlenecks []DetectedBottleneck) 
 			}
 		}
 
-		// Update metrics
+		// Update metrics.
 		if bottleneck.Severity == CriticalSeverity {
 			d.detectionMetrics.criticalBottlenecks.Add(1)
 		}
 	}
 
-	// Trim old data
+	// Trim old data.
 	if len(d.detectedBottlenecks) > 10000 {
 		d.detectedBottlenecks = d.detectedBottlenecks[len(d.detectedBottlenecks)-10000:]
 	}
@@ -877,12 +890,12 @@ func (d *BottleneckDetector) getTopImpactors() []TopImpactor {
 		})
 	}
 
-	// Sort by impact
+	// Sort by impact.
 	sort.Slice(impactors, func(i, j int) bool {
 		return impactors[i].CumulativeImpact > impactors[j].CumulativeImpact
 	})
 
-	// Return top 10
+	// Return top 10.
 	if len(impactors) > 10 {
 		impactors = impactors[:10]
 	}
@@ -895,13 +908,13 @@ func (d *BottleneckDetector) runContinuousDetection() {
 	defer ticker.Stop()
 
 	for range ticker.C {
-		// Clean up resolved bottlenecks
+		// Clean up resolved bottlenecks.
 		d.cleanupResolvedBottlenecks()
 
-		// Check for recurring patterns
+		// Check for recurring patterns.
 		d.historicalBottlenecks.AnalyzePatterns()
 
-		// Update impact measurements
+		// Update impact measurements.
 		d.performanceImpact.UpdateMeasurements()
 	}
 }
@@ -916,7 +929,7 @@ func (d *BottleneckDetector) cleanupResolvedBottlenecks() {
 		if active.LastSeen.Before(cutoff) {
 			active.Status = "resolved"
 
-			// Move to history
+			// Move to history.
 			d.historicalBottlenecks.Add(HistoricalBottleneck{
 				Bottleneck:     active.Bottleneck,
 				Resolution:     "timeout",
@@ -929,8 +942,9 @@ func (d *BottleneckDetector) cleanupResolvedBottlenecks() {
 	}
 }
 
-// Supporting type implementations
+// Supporting type implementations.
 
+// NewCriticalPathAnalyzer performs newcriticalpathanalyzer operation.
 func NewCriticalPathAnalyzer() *CriticalPathAnalyzer {
 	return &CriticalPathAnalyzer{
 		dependencyGraph: &DependencyGraph{},
@@ -940,15 +954,16 @@ func NewCriticalPathAnalyzer() *CriticalPathAnalyzer {
 	}
 }
 
+// AnalyzePath performs analyzepath operation.
 func (c *CriticalPathAnalyzer) AnalyzePath(profile *IntentProfile) *CriticalPath {
-	// Simplified critical path analysis
+	// Simplified critical path analysis.
 	path := &CriticalPath{
 		ID:           fmt.Sprintf("path-%d", time.Now().UnixNano()),
 		Components:   []PathComponent{},
 		TotalLatency: profile.TotalDuration,
 	}
 
-	// Find the component with maximum latency
+	// Find the component with maximum latency.
 	var maxComponent string
 	var maxLatency time.Duration
 
@@ -972,6 +987,7 @@ func (c *CriticalPathAnalyzer) AnalyzePath(profile *IntentProfile) *CriticalPath
 	return path
 }
 
+// NewResourceBottleneckFinder performs newresourcebottleneckfinder operation.
 func NewResourceBottleneckFinder(thresholds ResourceThresholds) *ResourceBottleneckFinder {
 	return &ResourceBottleneckFinder{
 		thresholds:     thresholds,
@@ -983,10 +999,11 @@ func NewResourceBottleneckFinder(thresholds ResourceThresholds) *ResourceBottlen
 	}
 }
 
+// FindBottlenecks performs findbottlenecks operation.
 func (r *ResourceBottleneckFinder) FindBottlenecks(profile *IntentProfile) []ResourceBottleneck {
 	var bottlenecks []ResourceBottleneck
 
-	// Check CPU utilization
+	// Check CPU utilization.
 	if cpuUtil := r.cpuMonitor.GetUtilization(); cpuUtil > r.thresholds.CPUUtilization {
 		bottlenecks = append(bottlenecks, ResourceBottleneck{
 			Resource:    "cpu",
@@ -998,7 +1015,7 @@ func (r *ResourceBottleneckFinder) FindBottlenecks(profile *IntentProfile) []Res
 		})
 	}
 
-	// Check memory utilization
+	// Check memory utilization.
 	if memUtil := r.memoryMonitor.GetUtilization(); memUtil > r.thresholds.MemoryUtilization {
 		bottlenecks = append(bottlenecks, ResourceBottleneck{
 			Resource:    "memory",
@@ -1013,6 +1030,7 @@ func (r *ResourceBottleneckFinder) FindBottlenecks(profile *IntentProfile) []Res
 	return bottlenecks
 }
 
+// NewContentionPointDetector performs newcontentionpointdetector operation.
 func NewContentionPointDetector(thresholds ContentionThresholds) *ContentionPointDetector {
 	return &ContentionPointDetector{
 		thresholds:       thresholds,
@@ -1023,10 +1041,11 @@ func NewContentionPointDetector(thresholds ContentionThresholds) *ContentionPoin
 	}
 }
 
+// DetectContention performs detectcontention operation.
 func (c *ContentionPointDetector) DetectContention(profile *IntentProfile) []ContentionPoint {
 	var points []ContentionPoint
 
-	// Check for database lock contention
+	// Check for database lock contention.
 	for _, latency := range profile.Components {
 		if latency.DatabaseLatency != nil &&
 			latency.DatabaseLatency.LockWaitTime > c.thresholds.DatabaseLockTime {
@@ -1044,6 +1063,7 @@ func (c *ContentionPointDetector) DetectContention(profile *IntentProfile) []Con
 	return points
 }
 
+// NewCascadeDelayAnalyzer performs newcascadedelayanalyzer operation.
 func NewCascadeDelayAnalyzer() *CascadeDelayAnalyzer {
 	return &CascadeDelayAnalyzer{
 		cascades:       make(map[string]*DelayCascade),
@@ -1052,10 +1072,11 @@ func NewCascadeDelayAnalyzer() *CascadeDelayAnalyzer {
 	}
 }
 
+// AnalyzeCascades performs analyzecascades operation.
 func (c *CascadeDelayAnalyzer) AnalyzeCascades(profile *IntentProfile) []*DelayCascade {
 	var cascades []*DelayCascade
 
-	// Simplified cascade analysis
+	// Simplified cascade analysis.
 	for component, latency := range profile.Components {
 		if latency.Duration > 500*time.Millisecond {
 			cascade := &DelayCascade{
@@ -1065,7 +1086,7 @@ func (c *CascadeDelayAnalyzer) AnalyzeCascades(profile *IntentProfile) []*DelayC
 				AmplificationFactor: 2.0,
 			}
 
-			// Find affected components (simplified)
+			// Find affected components (simplified).
 			for otherComp := range profile.Components {
 				if otherComp != component {
 					cascade.AffectedComponents = append(cascade.AffectedComponents, AffectedComponent{
@@ -1085,6 +1106,7 @@ func (c *CascadeDelayAnalyzer) AnalyzeCascades(profile *IntentProfile) []*DelayC
 	return cascades
 }
 
+// NewRootCauseAnalyzer performs newrootcauseanalyzer operation.
 func NewRootCauseAnalyzer() *RootCauseAnalyzer {
 	return &RootCauseAnalyzer{
 		changeAnalyzer:    &ChangeCorrelationAnalyzer{},
@@ -1094,6 +1116,7 @@ func NewRootCauseAnalyzer() *RootCauseAnalyzer {
 	}
 }
 
+// AnalyzeRootCause performs analyzerootcause operation.
 func (r *RootCauseAnalyzer) AnalyzeRootCause(bottleneck *DetectedBottleneck) *RootCause {
 	cause := &RootCause{
 		ID:          fmt.Sprintf("cause-%d", time.Now().UnixNano()),
@@ -1102,7 +1125,7 @@ func (r *RootCauseAnalyzer) AnalyzeRootCause(bottleneck *DetectedBottleneck) *Ro
 		Confidence:  0.75, // Example confidence
 	}
 
-	// Add evidence
+	// Add evidence.
 	cause.Evidence = []CausalEvidence{
 		{
 			Type:        "metric",
@@ -1112,7 +1135,7 @@ func (r *RootCauseAnalyzer) AnalyzeRootCause(bottleneck *DetectedBottleneck) *Ro
 		},
 	}
 
-	// Add timeline
+	// Add timeline.
 	cause.Timeline = []TimelineEvent{
 		{
 			Timestamp: bottleneck.DetectedAt,
@@ -1125,6 +1148,7 @@ func (r *RootCauseAnalyzer) AnalyzeRootCause(bottleneck *DetectedBottleneck) *Ro
 	return cause
 }
 
+// NewAutomaticRemediator performs newautomaticremediator operation.
 func NewAutomaticRemediator(policy RemediationPolicy) *AutomaticRemediator {
 	remediator := &AutomaticRemediator{
 		strategies:         make(map[BottleneckType][]RemediationStrategy),
@@ -1133,14 +1157,14 @@ func NewAutomaticRemediator(policy RemediationPolicy) *AutomaticRemediator {
 		policy:             policy,
 	}
 
-	// Initialize strategies
+	// Initialize strategies.
 	remediator.initializeStrategies()
 
 	return remediator
 }
 
 func (a *AutomaticRemediator) initializeStrategies() {
-	// CPU bottleneck strategies
+	// CPU bottleneck strategies.
 	a.strategies[CPUBottleneck] = []RemediationStrategy{
 		{
 			Name: "scale_out",
@@ -1149,7 +1173,7 @@ func (a *AutomaticRemediator) initializeStrategies() {
 				return b.Severity == CriticalSeverity
 			},
 			Execute: func(ctx context.Context, b *DetectedBottleneck) error {
-				// Scale out implementation
+				// Scale out implementation.
 				return nil
 			},
 			ExpectedImprovement: 0.4,
@@ -1157,16 +1181,17 @@ func (a *AutomaticRemediator) initializeStrategies() {
 		},
 	}
 
-	// Add more strategies for other bottleneck types
+	// Add more strategies for other bottleneck types.
 }
 
+// Remediate performs remediate operation.
 func (a *AutomaticRemediator) Remediate(ctx context.Context, bottleneck *DetectedBottleneck) *AutoRemediationResult {
 	result := &AutoRemediationResult{
 		Success: false,
 		Message: "No applicable remediation strategy",
 	}
 
-	// Find applicable strategies
+	// Find applicable strategies.
 	strategies, exists := a.strategies[bottleneck.Type]
 	if !exists {
 		return result
@@ -1174,7 +1199,7 @@ func (a *AutomaticRemediator) Remediate(ctx context.Context, bottleneck *Detecte
 
 	for _, strategy := range strategies {
 		if strategy.Applicability(bottleneck) {
-			// Execute remediation
+			// Execute remediation.
 			action := RemediationAction{
 				ID:           fmt.Sprintf("action-%d", time.Now().UnixNano()),
 				BottleneckID: bottleneck.ID,
@@ -1183,10 +1208,10 @@ func (a *AutomaticRemediator) Remediate(ctx context.Context, bottleneck *Detecte
 				Status:       "executing",
 			}
 
-			// Create cancellable context
+			// Create cancellable context.
 			remCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 
-			// Store active remediation
+			// Store active remediation.
 			a.mu.Lock()
 			a.activeRemediations[action.ID] = &ActiveRemediation{
 				Action:     action,
@@ -1196,10 +1221,10 @@ func (a *AutomaticRemediator) Remediate(ctx context.Context, bottleneck *Detecte
 			}
 			a.mu.Unlock()
 
-			// Execute strategy
+			// Execute strategy.
 			err := strategy.Execute(remCtx, bottleneck)
 
-			// Clean up
+			// Clean up.
 			a.mu.Lock()
 			delete(a.activeRemediations, action.ID)
 			a.mu.Unlock()
@@ -1219,12 +1244,12 @@ func (a *AutomaticRemediator) Remediate(ctx context.Context, bottleneck *Detecte
 				action.Result = err.Error()
 			}
 
-			// Store in history
+			// Store in history.
 			a.mu.Lock()
 			a.history = append(a.history, action)
 			a.mu.Unlock()
 
-			// Update metrics
+			// Update metrics.
 			a.updateMetrics(result.Success)
 
 			break // Apply only one strategy
@@ -1235,9 +1260,10 @@ func (a *AutomaticRemediator) Remediate(ctx context.Context, bottleneck *Detecte
 }
 
 func (a *AutomaticRemediator) updateMetrics(success bool) {
-	// Update remediation metrics
+	// Update remediation metrics.
 }
 
+// NewBottleneckHistory performs newbottleneckhistory operation.
 func NewBottleneckHistory() *BottleneckHistory {
 	return &BottleneckHistory{
 		bottlenecks:       make([]HistoricalBottleneck, 0),
@@ -1246,18 +1272,20 @@ func NewBottleneckHistory() *BottleneckHistory {
 	}
 }
 
+// Add performs add operation.
 func (h *BottleneckHistory) Add(bottleneck HistoricalBottleneck) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
 	h.bottlenecks = append(h.bottlenecks, bottleneck)
 
-	// Keep only last 1000 entries
+	// Keep only last 1000 entries.
 	if len(h.bottlenecks) > 1000 {
 		h.bottlenecks = h.bottlenecks[len(h.bottlenecks)-1000:]
 	}
 }
 
+// GetHistory performs gethistory operation.
 func (h *BottleneckHistory) GetHistory(duration time.Duration) []HistoricalBottleneck {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
@@ -1274,6 +1302,7 @@ func (h *BottleneckHistory) GetHistory(duration time.Duration) []HistoricalBottl
 	return history
 }
 
+// GetPatterns performs getpatterns operation.
 func (h *BottleneckHistory) GetPatterns() []RecurringPattern {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
@@ -1283,28 +1312,33 @@ func (h *BottleneckHistory) GetPatterns() []RecurringPattern {
 	return patterns
 }
 
+// AnalyzePatterns performs analyzepatterns operation.
 func (h *BottleneckHistory) AnalyzePatterns() {
-	// Analyze historical data for patterns
+	// Analyze historical data for patterns.
 }
 
+// NewPerformanceImpactTracker performs newperformanceimpacttracker operation.
 func NewPerformanceImpactTracker() *PerformanceImpactTracker {
 	return &PerformanceImpactTracker{
 		impactHistory: make([]ImpactMeasurement, 0),
 	}
 }
 
+// GetCurrentImpact performs getcurrentimpact operation.
 func (p *PerformanceImpactTracker) GetCurrentImpact() float64 {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 	return p.currentImpact
 }
 
+// GetCumulativeImpact performs getcumulativeimpact operation.
 func (p *PerformanceImpactTracker) GetCumulativeImpact() float64 {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 	return p.cumulativeImpact
 }
 
+// GetHistory performs gethistory operation.
 func (p *PerformanceImpactTracker) GetHistory() []ImpactMeasurement {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -1314,32 +1348,49 @@ func (p *PerformanceImpactTracker) GetHistory() []ImpactMeasurement {
 	return history
 }
 
+// UpdateMeasurements performs updatemeasurements operation.
 func (p *PerformanceImpactTracker) UpdateMeasurements() {
-	// Update impact measurements
+	// Update impact measurements.
 }
 
-// Stub implementations for monitors
+// Stub implementations for monitors.
 type CPUMonitor struct{}
 
+// GetUtilization performs getutilization operation.
 func (c *CPUMonitor) GetUtilization() float64 { return 75.0 } // Example
 
+// MemoryMonitor represents a memorymonitor.
 type MemoryMonitor struct{}
 
+// GetUtilization performs getutilization operation.
 func (m *MemoryMonitor) GetUtilization() float64 { return 65.0 } // Example
 
-type DiskIOMonitor struct{}
-type NetworkMonitor struct{}
-type LockContentionMonitor struct{}
-type ConnectionPoolMonitor struct{}
-type QueueContentionMonitor struct{}
-type DependencyGraph struct{}
-type PathStatistics struct{}
-type ChangeCorrelationAnalyzer struct{}
-type PatternMatcher struct{}
-type AnomalyCorrelator struct{}
-type HistoricalStatistics struct{}
+// DiskIOMonitor represents a diskiomonitor.
+type (
+	DiskIOMonitor struct{}
+	// NetworkMonitor represents a networkmonitor.
+	NetworkMonitor struct{}
+	// LockContentionMonitor represents a lockcontentionmonitor.
+	LockContentionMonitor struct{}
+	// ConnectionPoolMonitor represents a connectionpoolmonitor.
+	ConnectionPoolMonitor struct{}
+	// QueueContentionMonitor represents a queuecontentionmonitor.
+	QueueContentionMonitor struct{}
+	// DependencyGraph represents a dependencygraph.
+	DependencyGraph struct{}
+	// PathStatistics represents a pathstatistics.
+	PathStatistics struct{}
+	// ChangeCorrelationAnalyzer represents a changecorrelationanalyzer.
+	ChangeCorrelationAnalyzer struct{}
+	// PatternMatcher represents a patternmatcher.
+	PatternMatcher struct{}
+	// AnomalyCorrelator represents a anomalycorrelator.
+	AnomalyCorrelator struct{}
+	// HistoricalStatistics represents a historicalstatistics.
+	HistoricalStatistics struct{}
+)
 
-// Report types
+// Report types.
 type ImpactReport struct {
 	CurrentImpact    float64             `json:"current_impact"`
 	CumulativeImpact float64             `json:"cumulative_impact"`
@@ -1347,6 +1398,7 @@ type ImpactReport struct {
 	TopImpactors     []TopImpactor       `json:"top_impactors"`
 }
 
+// TopImpactor represents a topimpactor.
 type TopImpactor struct {
 	Component        string         `json:"component"`
 	CumulativeImpact float64        `json:"cumulative_impact"`
@@ -1354,7 +1406,7 @@ type TopImpactor struct {
 	Type             BottleneckType `json:"type"`
 }
 
-// DefaultBottleneckConfig returns default configuration
+// DefaultBottleneckConfig returns default configuration.
 func DefaultBottleneckConfig() *BottleneckDetectorConfig {
 	return &BottleneckDetectorConfig{
 		LatencyThreshold: 500 * time.Millisecond,

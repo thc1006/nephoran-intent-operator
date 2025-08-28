@@ -1,4 +1,4 @@
-// Package testtools provides envtest binary management utilities
+// Package testtools provides envtest binary management utilities.
 package testtools
 
 import (
@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// EnvtestBinaryManager manages kubebuilder assets for envtest
+// EnvtestBinaryManager manages kubebuilder assets for envtest.
 type EnvtestBinaryManager struct {
 	kubernetesVersion string
 	binDirectory      string
@@ -21,7 +21,7 @@ type EnvtestBinaryManager struct {
 	arch              string
 }
 
-// NewEnvtestBinaryManager creates a new binary manager
+// NewEnvtestBinaryManager creates a new binary manager.
 func NewEnvtestBinaryManager() *EnvtestBinaryManager {
 	return &EnvtestBinaryManager{
 		kubernetesVersion: getEnvOrDefault("ENVTEST_K8S_VERSION", "1.28.0"),
@@ -32,16 +32,16 @@ func NewEnvtestBinaryManager() *EnvtestBinaryManager {
 	}
 }
 
-// EnsureBinariesInstalled checks if required binaries are available and installs them if needed
+// EnsureBinariesInstalled checks if required binaries are available and installs them if needed.
 func (ebm *EnvtestBinaryManager) EnsureBinariesInstalled(ctx context.Context) error {
-	// Check if binaries already exist
+	// Check if binaries already exist.
 	if ebm.binariesExist() {
 		return nil
 	}
 
 	fmt.Printf("envtest binaries not found, installing for Kubernetes %s...\n", ebm.kubernetesVersion)
 
-	// Try using setup-envtest first
+	// Try using setup-envtest first.
 	if err := ebm.installWithSetupEnvtest(ctx); err != nil {
 		fmt.Printf("setup-envtest installation failed: %v, trying manual installation...\n", err)
 		return ebm.installManually(ctx)
@@ -50,7 +50,7 @@ func (ebm *EnvtestBinaryManager) EnsureBinariesInstalled(ctx context.Context) er
 	return nil
 }
 
-// binariesExist checks if all required binaries are present
+// binariesExist checks if all required binaries are present.
 func (ebm *EnvtestBinaryManager) binariesExist() bool {
 	requiredBinaries := []string{"etcd", "kube-apiserver", "kubectl"}
 
@@ -60,7 +60,7 @@ func (ebm *EnvtestBinaryManager) binariesExist() bool {
 			return false
 		}
 
-		// Check if binary is executable
+		// Check if binary is executable.
 		if !ebm.isBinaryExecutable(binaryPath) {
 			return false
 		}
@@ -69,25 +69,25 @@ func (ebm *EnvtestBinaryManager) binariesExist() bool {
 	return true
 }
 
-// isBinaryExecutable checks if a binary is executable
+// isBinaryExecutable checks if a binary is executable.
 func (ebm *EnvtestBinaryManager) isBinaryExecutable(path string) bool {
 	info, err := os.Stat(path)
 	if err != nil {
 		return false
 	}
 
-	// Check if file has execute permission
-	return info.Mode()&0111 != 0
+	// Check if file has execute permission.
+	return info.Mode()&0o111 != 0
 }
 
-// installWithSetupEnvtest uses the setup-envtest tool to install binaries
+// installWithSetupEnvtest uses the setup-envtest tool to install binaries.
 func (ebm *EnvtestBinaryManager) installWithSetupEnvtest(ctx context.Context) error {
-	// Install setup-envtest if not present
+	// Install setup-envtest if not present.
 	if err := ebm.installSetupEnvtest(ctx); err != nil {
 		return fmt.Errorf("failed to install setup-envtest: %w", err)
 	}
 
-	// Use setup-envtest to download assets
+	// Use setup-envtest to download assets.
 	cmd := exec.CommandContext(ctx, "setup-envtest", "use", ebm.kubernetesVersion,
 		"--bin-dir", ebm.cacheDirectory, "-p", "path")
 
@@ -101,13 +101,13 @@ func (ebm *EnvtestBinaryManager) installWithSetupEnvtest(ctx context.Context) er
 		return fmt.Errorf("setup-envtest returned empty path")
 	}
 
-	// Copy binaries to target directory
+	// Copy binaries to target directory.
 	return ebm.copyBinaries(assetsPath)
 }
 
-// installSetupEnvtest installs the setup-envtest tool
+// installSetupEnvtest installs the setup-envtest tool.
 func (ebm *EnvtestBinaryManager) installSetupEnvtest(ctx context.Context) error {
-	// Check if already installed
+	// Check if already installed.
 	if _, err := exec.LookPath("setup-envtest"); err == nil {
 		return nil
 	}
@@ -123,14 +123,14 @@ func (ebm *EnvtestBinaryManager) installSetupEnvtest(ctx context.Context) error 
 	return nil
 }
 
-// installManually installs binaries by downloading them directly
+// installManually installs binaries by downloading them directly.
 func (ebm *EnvtestBinaryManager) installManually(ctx context.Context) error {
-	// Create cache directory
-	if err := os.MkdirAll(ebm.cacheDirectory, 0755); err != nil {
+	// Create cache directory.
+	if err := os.MkdirAll(ebm.cacheDirectory, 0o755); err != nil {
 		return fmt.Errorf("failed to create cache directory: %w", err)
 	}
 
-	// Download tarball
+	// Download tarball.
 	tarball := fmt.Sprintf("kubebuilder-tools-%s-%s-%s.tar.gz",
 		ebm.kubernetesVersion, ebm.platform, ebm.arch)
 	downloadURL := fmt.Sprintf("https://go.kubebuilder.io/test-tools/%s/%s/%s/%s",
@@ -143,18 +143,18 @@ func (ebm *EnvtestBinaryManager) installManually(ctx context.Context) error {
 		return fmt.Errorf("failed to download tarball: %w", err)
 	}
 
-	// Extract tarball
+	// Extract tarball.
 	fmt.Printf("Extracting %s...\n", tarball)
 	if err := ebm.extractTarball(ctx, tarballPath, ebm.cacheDirectory); err != nil {
 		return fmt.Errorf("failed to extract tarball: %w", err)
 	}
 
-	// Copy binaries
+	// Copy binaries.
 	assetsPath := filepath.Join(ebm.cacheDirectory, "kubebuilder", "bin")
 	return ebm.copyBinaries(assetsPath)
 }
 
-// downloadFile downloads a file from a URL
+// downloadFile downloads a file from a URL.
 func (ebm *EnvtestBinaryManager) downloadFile(ctx context.Context, url, dest string) error {
 	var cmd *exec.Cmd
 
@@ -169,21 +169,21 @@ func (ebm *EnvtestBinaryManager) downloadFile(ctx context.Context, url, dest str
 	return cmd.Run()
 }
 
-// extractTarball extracts a tarball
+// extractTarball extracts a tarball.
 func (ebm *EnvtestBinaryManager) extractTarball(ctx context.Context, tarball, dest string) error {
 	cmd := exec.CommandContext(ctx, "tar", "-xzf", tarball, "-C", dest)
 	return cmd.Run()
 }
 
-// copyBinaries copies binaries from source to target directory
+// copyBinaries copies binaries from source to target directory.
 func (ebm *EnvtestBinaryManager) copyBinaries(sourcePath string) error {
 	if _, err := os.Stat(sourcePath); os.IsNotExist(err) {
 		return fmt.Errorf("source path %s does not exist", sourcePath)
 	}
 
-	// Create target directory with proper permissions
-	if err := os.MkdirAll(ebm.binDirectory, 0755); err != nil {
-		// Try with sudo if regular creation fails (for system directories)
+	// Create target directory with proper permissions.
+	if err := os.MkdirAll(ebm.binDirectory, 0o755); err != nil {
+		// Try with sudo if regular creation fails (for system directories).
 		if strings.Contains(ebm.binDirectory, "/usr/local") {
 			cmd := exec.Command("sudo", "mkdir", "-p", ebm.binDirectory)
 			if err := cmd.Run(); err != nil {
@@ -194,7 +194,7 @@ func (ebm *EnvtestBinaryManager) copyBinaries(sourcePath string) error {
 		}
 	}
 
-	// Copy files
+	// Copy files.
 	requiredBinaries := []string{"etcd", "kube-apiserver", "kubectl"}
 
 	for _, binary := range requiredBinaries {
@@ -205,9 +205,9 @@ func (ebm *EnvtestBinaryManager) copyBinaries(sourcePath string) error {
 			return fmt.Errorf("failed to copy %s: %w", binary, err)
 		}
 
-		// Make executable
-		if err := os.Chmod(destPath, 0755); err != nil {
-			// Try with sudo if regular chmod fails
+		// Make executable.
+		if err := os.Chmod(destPath, 0o755); err != nil {
+			// Try with sudo if regular chmod fails.
 			cmd := exec.Command("sudo", "chmod", "+x", destPath)
 			if err := cmd.Run(); err != nil {
 				return fmt.Errorf("failed to make %s executable: %w", binary, err)
@@ -218,14 +218,14 @@ func (ebm *EnvtestBinaryManager) copyBinaries(sourcePath string) error {
 	return nil
 }
 
-// copyFile copies a file from src to dest
+// copyFile copies a file from src to dest.
 func (ebm *EnvtestBinaryManager) copyFile(src, dest string) error {
-	// Try regular copy first
+	// Try regular copy first.
 	if err := ebm.regularCopy(src, dest); err == nil {
 		return nil
 	}
 
-	// Try with sudo if regular copy fails (for system directories)
+	// Try with sudo if regular copy fails (for system directories).
 	if strings.Contains(dest, "/usr/local") {
 		cmd := exec.Command("sudo", "cp", src, dest)
 		return cmd.Run()
@@ -234,7 +234,7 @@ func (ebm *EnvtestBinaryManager) copyFile(src, dest string) error {
 	return fmt.Errorf("failed to copy %s to %s", src, dest)
 }
 
-// regularCopy performs a regular file copy
+// regularCopy performs a regular file copy.
 func (ebm *EnvtestBinaryManager) regularCopy(src, dest string) error {
 	sourceFile, err := os.Open(src)
 	if err != nil {
@@ -252,22 +252,22 @@ func (ebm *EnvtestBinaryManager) regularCopy(src, dest string) error {
 	return err
 }
 
-// GetBinaryPath returns the path to a specific binary
+// GetBinaryPath returns the path to a specific binary.
 func (ebm *EnvtestBinaryManager) GetBinaryPath(binary string) string {
 	return filepath.Join(ebm.binDirectory, binary)
 }
 
-// GetBinaryDirectory returns the binary directory path
+// GetBinaryDirectory returns the binary directory path.
 func (ebm *EnvtestBinaryManager) GetBinaryDirectory() string {
 	return ebm.binDirectory
 }
 
-// SetupEnvironment sets up the KUBEBUILDER_ASSETS environment variable
+// SetupEnvironment sets up the KUBEBUILDER_ASSETS environment variable.
 func (ebm *EnvtestBinaryManager) SetupEnvironment() {
 	os.Setenv("KUBEBUILDER_ASSETS", ebm.binDirectory)
 }
 
-// ValidateInstallation validates that all required binaries are installed and working
+// ValidateInstallation validates that all required binaries are installed and working.
 func (ebm *EnvtestBinaryManager) ValidateInstallation(ctx context.Context) error {
 	requiredBinaries := []string{"etcd", "kube-apiserver", "kubectl"}
 
@@ -282,16 +282,16 @@ func (ebm *EnvtestBinaryManager) ValidateInstallation(ctx context.Context) error
 			return fmt.Errorf("%s is not executable", binary)
 		}
 
-		// Quick version check with timeout
+		// Quick version check with timeout.
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
 		cmd := exec.CommandContext(ctx, binaryPath, "--version")
 		if err := cmd.Run(); err != nil {
-			// Some binaries might not support --version, try --help
+			// Some binaries might not support --version, try --help.
 			cmd = exec.CommandContext(ctx, binaryPath, "--help")
 			if err := cmd.Run(); err != nil {
-				// etcd might need version command instead of --version
+				// etcd might need version command instead of --version.
 				if binary == "etcd" {
 					cmd = exec.CommandContext(ctx, binaryPath, "version")
 					if err := cmd.Run(); err != nil {
@@ -307,7 +307,7 @@ func (ebm *EnvtestBinaryManager) ValidateInstallation(ctx context.Context) error
 	return nil
 }
 
-// getEnvOrDefault returns environment variable value or default
+// getEnvOrDefault returns environment variable value or default.
 func getEnvOrDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value

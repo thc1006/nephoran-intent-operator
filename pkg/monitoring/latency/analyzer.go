@@ -9,14 +9,14 @@ import (
 	"time"
 )
 
-// LatencyAnalyzer provides advanced analysis of latency patterns and optimization recommendations
+// LatencyAnalyzer provides advanced analysis of latency patterns and optimization recommendations.
 type LatencyAnalyzer struct {
 	mu sync.RWMutex
 
-	// Data storage
+	// Data storage.
 	historicalData *HistoricalDataStore
 
-	// Analysis engines
+	// Analysis engines.
 	trendAnalyzer      *TrendAnalyzer
 	correlationEngine  *CorrelationEngine
 	seasonalDetector   *SeasonalPatternDetector
@@ -24,43 +24,43 @@ type LatencyAnalyzer struct {
 	regressionDetector *PerformanceRegressionDetector
 	optimizer          *OptimizationRecommender
 
-	// ML models
+	// ML models.
 	anomalyModel  *AnomalyDetectionModel
 	forecastModel *LatencyForecastModel
 
-	// Configuration
+	// Configuration.
 	config *AnalyzerConfig
 
-	// Metrics
+	// Metrics.
 	metrics *AnalyzerMetrics
 }
 
-// AnalyzerConfig contains configuration for the latency analyzer
+// AnalyzerConfig contains configuration for the latency analyzer.
 type AnalyzerConfig struct {
-	// Historical data settings
+	// Historical data settings.
 	DataRetentionDays   int           `json:"data_retention_days"`
 	SamplingRate        float64       `json:"sampling_rate"`
 	AggregationInterval time.Duration `json:"aggregation_interval"`
 
-	// Analysis settings
+	// Analysis settings.
 	TrendWindowSize      time.Duration `json:"trend_window_size"`
 	CorrelationThreshold float64       `json:"correlation_threshold"`
 	SeasonalityMinCycles int           `json:"seasonality_min_cycles"`
 
-	// Prediction settings
+	// Prediction settings.
 	PredictionHorizon    time.Duration `json:"prediction_horizon"`
 	PredictionConfidence float64       `json:"prediction_confidence"`
 
-	// Regression detection
+	// Regression detection.
 	RegressionThreshold float64       `json:"regression_threshold"`
 	RegressionWindow    time.Duration `json:"regression_window"`
 
-	// Optimization settings
+	// Optimization settings.
 	OptimizationTargets    OptimizationTargets `json:"optimization_targets"`
 	EnableAutoOptimization bool                `json:"enable_auto_optimization"`
 }
 
-// OptimizationTargets defines performance targets for optimization
+// OptimizationTargets defines performance targets for optimization.
 type OptimizationTargets struct {
 	TargetP50            time.Duration `json:"target_p50"`
 	TargetP95            time.Duration `json:"target_p95"`
@@ -69,38 +69,38 @@ type OptimizationTargets struct {
 	CostOptimization     bool          `json:"cost_optimization"`
 }
 
-// HistoricalDataStore manages historical latency data
+// HistoricalDataStore manages historical latency data.
 type HistoricalDataStore struct {
 	mu sync.RWMutex
 
-	// Time series data by component
+	// Time series data by component.
 	timeSeries map[string]*TimeSeries
 
-	// Aggregated data
+	// Aggregated data.
 	hourlyAggregates map[string]*HourlyAggregate
 	dailyAggregates  map[string]*DailyAggregate
 
-	// Metadata
+	// Metadata.
 	dataPoints int64
 	oldestData time.Time
 	newestData time.Time
 }
 
-// TimeSeries represents time-series latency data
+// TimeSeries represents time-series latency data.
 type TimeSeries struct {
 	Component  string            `json:"component"`
 	DataPoints []DataPoint       `json:"data_points"`
 	Statistics *SeriesStatistics `json:"statistics"`
 }
 
-// DataPoint represents a single latency measurement
+// DataPoint represents a single latency measurement.
 type DataPoint struct {
 	Timestamp time.Time              `json:"timestamp"`
 	Value     time.Duration          `json:"value"`
 	Metadata  map[string]interface{} `json:"metadata"`
 }
 
-// SeriesStatistics contains statistical information about a time series
+// SeriesStatistics contains statistical information about a time series.
 type SeriesStatistics struct {
 	Mean       time.Duration `json:"mean"`
 	StdDev     time.Duration `json:"std_dev"`
@@ -111,21 +111,21 @@ type SeriesStatistics struct {
 	Volatility float64       `json:"volatility"`
 }
 
-// TrendAnalyzer analyzes latency trends over time
+// TrendAnalyzer analyzes latency trends over time.
 type TrendAnalyzer struct {
 	mu sync.RWMutex
 
-	// Trend detection algorithms
+	// Trend detection algorithms.
 	linearRegression     *LinearRegressionAnalyzer
 	exponentialSmoothing *ExponentialSmoothingAnalyzer
 	movingAverage        *MovingAverageAnalyzer
 
-	// Trend results
+	// Trend results.
 	currentTrends map[string]*TrendResult
 	trendHistory  []TrendSnapshot
 }
 
-// TrendResult represents the result of trend analysis
+// TrendResult represents the result of trend analysis.
 type TrendResult struct {
 	Component          string           `json:"component"`
 	TrendDirection     string           `json:"trend_direction"` // "increasing", "decreasing", "stable"
@@ -135,20 +135,20 @@ type TrendResult struct {
 	ConfidenceInterval [2]time.Duration `json:"confidence_interval"`
 }
 
-// CorrelationEngine analyzes correlations between components and external factors
+// CorrelationEngine analyzes correlations between components and external factors.
 type CorrelationEngine struct {
 	mu sync.RWMutex
 
-	// Correlation matrices
+	// Correlation matrices.
 	componentCorrelations map[string]map[string]float64
 	loadCorrelations      map[string]float64
 	timeCorrelations      map[string]float64
 
-	// External factor correlations
+	// External factor correlations.
 	externalFactors map[string]*ExternalFactor
 }
 
-// ExternalFactor represents an external factor that may affect latency
+// ExternalFactor represents an external factor that may affect latency.
 type ExternalFactor struct {
 	Name             string  `json:"name"`
 	CurrentValue     float64 `json:"current_value"`
@@ -156,21 +156,21 @@ type ExternalFactor struct {
 	Impact           string  `json:"impact"` // "high", "medium", "low"
 }
 
-// SeasonalPatternDetector detects seasonal patterns in latency
+// SeasonalPatternDetector detects seasonal patterns in latency.
 type SeasonalPatternDetector struct {
 	mu sync.RWMutex
 
-	// Pattern detection
+	// Pattern detection.
 	hourlyPatterns  map[string]*HourlyPattern
 	dailyPatterns   map[string]*DailyPattern
 	weeklyPatterns  map[string]*WeeklyPattern
 	monthlyPatterns map[string]*MonthlyPattern
 
-	// Detected seasonality
+	// Detected seasonality.
 	detectedPatterns []SeasonalPattern
 }
 
-// SeasonalPattern represents a detected seasonal pattern
+// SeasonalPattern represents a detected seasonal pattern.
 type SeasonalPattern struct {
 	Component   string        `json:"component"`
 	PatternType string        `json:"pattern_type"` // "hourly", "daily", "weekly", "monthly"
@@ -181,21 +181,21 @@ type SeasonalPattern struct {
 	Description string        `json:"description"`
 }
 
-// PredictiveLatencyModel predicts future latency based on historical patterns
+// PredictiveLatencyModel predicts future latency based on historical patterns.
 type PredictiveLatencyModel struct {
 	mu sync.RWMutex
 
-	// Prediction models
+	// Prediction models.
 	arimaModel    *ARIMAModel
 	lstmModel     *LSTMModel
 	ensembleModel *EnsembleModel
 
-	// Predictions
+	// Predictions.
 	predictions map[string]*LatencyPrediction
 	accuracy    map[string]float64
 }
 
-// LatencyPrediction represents a latency prediction
+// LatencyPrediction represents a latency prediction.
 type LatencyPrediction struct {
 	Component       string               `json:"component"`
 	PredictionTime  time.Time            `json:"prediction_time"`
@@ -205,7 +205,7 @@ type LatencyPrediction struct {
 	Factors         []ContributingFactor `json:"factors"`
 }
 
-// PredictedValue represents a predicted latency value at a specific time
+// PredictedValue represents a predicted latency value at a specific time.
 type PredictedValue struct {
 	Timestamp        time.Time     `json:"timestamp"`
 	PredictedLatency time.Duration `json:"predicted_latency"`
@@ -214,30 +214,30 @@ type PredictedValue struct {
 	Probability      float64       `json:"probability"`
 }
 
-// ContributingFactor represents a factor contributing to the prediction
+// ContributingFactor represents a factor contributing to the prediction.
 type ContributingFactor struct {
 	Name        string  `json:"name"`
 	Impact      float64 `json:"impact"`
 	Description string  `json:"description"`
 }
 
-// PerformanceRegressionDetector detects performance regressions
+// PerformanceRegressionDetector detects performance regressions.
 type PerformanceRegressionDetector struct {
 	mu sync.RWMutex
 
-	// Baseline performance
+	// Baseline performance.
 	baselines map[string]*PerformanceBaseline
 
-	// Regression detection
+	// Regression detection.
 	detectedRegressions []PerformanceRegression
 	regressionAlerts    []RegressionAlert
 
-	// Statistical tests
+	// Statistical tests.
 	changePointDetector *ChangePointDetector
 	mannWhitneyTest     *MannWhitneyUTest
 }
 
-// PerformanceBaseline represents baseline performance metrics
+// PerformanceBaseline represents baseline performance metrics.
 type PerformanceBaseline struct {
 	Component     string        `json:"component"`
 	BaselineP50   time.Duration `json:"baseline_p50"`
@@ -248,7 +248,7 @@ type PerformanceBaseline struct {
 	Confidence    float64       `json:"confidence"`
 }
 
-// PerformanceRegression represents a detected performance regression
+// PerformanceRegression represents a detected performance regression.
 type PerformanceRegression struct {
 	Component      string        `json:"component"`
 	DetectedAt     time.Time     `json:"detected_at"`
@@ -261,21 +261,21 @@ type PerformanceRegression struct {
 	Recommendation string        `json:"recommendation"`
 }
 
-// OptimizationRecommender provides optimization recommendations
+// OptimizationRecommender provides optimization recommendations.
 type OptimizationRecommender struct {
 	mu sync.RWMutex
 
-	// Optimization strategies
+	// Optimization strategies.
 	strategies []OptimizationStrategy
 
-	// Recommendations
+	// Recommendations.
 	recommendations map[string]*OptimizationRecommendation
 
-	// Impact analysis
+	// Impact analysis.
 	impactAnalyzer *ImpactAnalyzer
 }
 
-// OptimizationStrategy represents an optimization strategy
+// OptimizationStrategy represents an optimization strategy.
 type OptimizationStrategy struct {
 	Name                string   `json:"name"`
 	Type                string   `json:"type"` // "caching", "parallelization", "batching", "resource"
@@ -285,7 +285,7 @@ type OptimizationStrategy struct {
 	Priority            int      `json:"priority"`
 }
 
-// OptimizationRecommendation represents an optimization recommendation
+// OptimizationRecommendation represents an optimization recommendation.
 type OptimizationRecommendation struct {
 	Component      string                `json:"component"`
 	Strategy       string                `json:"strategy"`
@@ -297,7 +297,7 @@ type OptimizationRecommendation struct {
 	Dependencies   []string              `json:"dependencies"`
 }
 
-// ImplementationDetails provides details for implementing an optimization
+// ImplementationDetails provides details for implementing an optimization.
 type ImplementationDetails struct {
 	Steps           []string               `json:"steps"`
 	CodeChanges     []CodeChange           `json:"code_changes"`
@@ -305,7 +305,7 @@ type ImplementationDetails struct {
 	EstimatedEffort string                 `json:"estimated_effort"`
 }
 
-// CodeChange represents a suggested code change
+// CodeChange represents a suggested code change.
 type CodeChange struct {
 	File        string `json:"file"`
 	Function    string `json:"function"`
@@ -313,7 +313,7 @@ type CodeChange struct {
 	Example     string `json:"example"`
 }
 
-// AnalyzerMetrics contains metrics for the analyzer
+// AnalyzerMetrics contains metrics for the analyzer.
 type AnalyzerMetrics struct {
 	analysisCount          int64
 	trendsDetected         int64
@@ -323,7 +323,7 @@ type AnalyzerMetrics struct {
 	recommendationsCreated int64
 }
 
-// NewLatencyAnalyzer creates a new latency analyzer
+// NewLatencyAnalyzer creates a new latency analyzer.
 func NewLatencyAnalyzer(config *AnalyzerConfig) *LatencyAnalyzer {
 	if config == nil {
 		config = DefaultAnalyzerConfig()
@@ -335,7 +335,7 @@ func NewLatencyAnalyzer(config *AnalyzerConfig) *LatencyAnalyzer {
 		metrics:        &AnalyzerMetrics{},
 	}
 
-	// Initialize analysis engines
+	// Initialize analysis engines.
 	analyzer.trendAnalyzer = NewTrendAnalyzer(config)
 	analyzer.correlationEngine = NewCorrelationEngine(config)
 	analyzer.seasonalDetector = NewSeasonalPatternDetector(config)
@@ -343,17 +343,17 @@ func NewLatencyAnalyzer(config *AnalyzerConfig) *LatencyAnalyzer {
 	analyzer.regressionDetector = NewPerformanceRegressionDetector(config)
 	analyzer.optimizer = NewOptimizationRecommender(config)
 
-	// Initialize ML models
+	// Initialize ML models.
 	analyzer.anomalyModel = NewAnomalyDetectionModel()
 	analyzer.forecastModel = NewLatencyForecastModel()
 
-	// Start background analysis
+	// Start background analysis.
 	go analyzer.runContinuousAnalysis()
 
 	return analyzer
 }
 
-// AnalyzeLatency performs comprehensive latency analysis
+// AnalyzeLatency performs comprehensive latency analysis.
 func (a *LatencyAnalyzer) AnalyzeLatency(ctx context.Context, data *IntentProfile) *LatencyAnalysisReport {
 	report := &LatencyAnalysisReport{
 		Timestamp: time.Now(),
@@ -361,80 +361,80 @@ func (a *LatencyAnalyzer) AnalyzeLatency(ctx context.Context, data *IntentProfil
 		Analysis:  make(map[string]*ComponentAnalysis),
 	}
 
-	// Store data for historical analysis
+	// Store data for historical analysis.
 	a.storeHistoricalData(data)
 
-	// Analyze each component
+	// Analyze each component.
 	for component, latency := range data.Components {
 		analysis := &ComponentAnalysis{
 			Component:      component,
 			CurrentLatency: latency.Duration,
 		}
 
-		// Trend analysis
+		// Trend analysis.
 		analysis.Trend = a.trendAnalyzer.AnalyzeTrend(component, latency.Duration)
 
-		// Correlation analysis
+		// Correlation analysis.
 		analysis.Correlations = a.correlationEngine.FindCorrelations(component)
 
-		// Seasonal pattern detection
+		// Seasonal pattern detection.
 		analysis.SeasonalPattern = a.seasonalDetector.DetectPattern(component)
 
-		// Performance regression check
+		// Performance regression check.
 		analysis.Regression = a.regressionDetector.CheckRegression(component, latency.Duration)
 
-		// Generate predictions
+		// Generate predictions.
 		analysis.Prediction = a.predictiveModel.Predict(component)
 
-		// Get optimization recommendations
+		// Get optimization recommendations.
 		analysis.Optimizations = a.optimizer.GetRecommendations(component, latency.Duration)
 
 		report.Analysis[component] = analysis
 	}
 
-	// Overall analysis
+	// Overall analysis.
 	report.OverallTrend = a.analyzeOverallTrend(data)
 	report.Bottlenecks = a.identifyBottlenecks(data)
 	report.PredictedPerformance = a.predictOverallPerformance()
 	report.RecommendedActions = a.generateActionPlan(report)
 
-	// Update metrics
+	// Update metrics.
 	a.metrics.analysisCount++
 
 	return report
 }
 
-// AnalyzeTrends analyzes historical latency trends
+// AnalyzeTrends analyzes historical latency trends.
 func (a *LatencyAnalyzer) AnalyzeTrends(window time.Duration) *TrendAnalysisReport {
 	return a.trendAnalyzer.AnalyzeWindow(window)
 }
 
-// DetectSeasonality detects seasonal patterns in latency
+// DetectSeasonality detects seasonal patterns in latency.
 func (a *LatencyAnalyzer) DetectSeasonality() []SeasonalPattern {
 	return a.seasonalDetector.GetDetectedPatterns()
 }
 
-// PredictLatency predicts future latency
+// PredictLatency predicts future latency.
 func (a *LatencyAnalyzer) PredictLatency(component string, horizon time.Duration) *LatencyPrediction {
 	return a.predictiveModel.PredictHorizon(component, horizon)
 }
 
-// DetectRegressions detects performance regressions
+// DetectRegressions detects performance regressions.
 func (a *LatencyAnalyzer) DetectRegressions() []PerformanceRegression {
 	return a.regressionDetector.GetDetectedRegressions()
 }
 
-// GetOptimizationPlan generates a comprehensive optimization plan
+// GetOptimizationPlan generates a comprehensive optimization plan.
 func (a *LatencyAnalyzer) GetOptimizationPlan() *OptimizationPlan {
 	plan := &OptimizationPlan{
 		GeneratedAt:     time.Now(),
 		Recommendations: make([]PrioritizedRecommendation, 0),
 	}
 
-	// Get all recommendations
+	// Get all recommendations.
 	recommendations := a.optimizer.GetAllRecommendations()
 
-	// Prioritize based on impact and cost
+	// Prioritize based on impact and cost.
 	for _, rec := range recommendations {
 		priority := a.calculatePriority(rec)
 		plan.Recommendations = append(plan.Recommendations, PrioritizedRecommendation{
@@ -444,12 +444,12 @@ func (a *LatencyAnalyzer) GetOptimizationPlan() *OptimizationPlan {
 		})
 	}
 
-	// Sort by priority
+	// Sort by priority.
 	sort.Slice(plan.Recommendations, func(i, j int) bool {
 		return plan.Recommendations[i].Priority > plan.Recommendations[j].Priority
 	})
 
-	// Calculate total expected improvement
+	// Calculate total expected improvement.
 	for _, rec := range plan.Recommendations {
 		plan.TotalExpectedImprovement += rec.Recommendation.ExpectedSaving
 	}
@@ -457,7 +457,7 @@ func (a *LatencyAnalyzer) GetOptimizationPlan() *OptimizationPlan {
 	return plan
 }
 
-// Helper methods
+// Helper methods.
 
 func (a *LatencyAnalyzer) storeHistoricalData(data *IntentProfile) {
 	a.historicalData.mu.Lock()
@@ -480,10 +480,10 @@ func (a *LatencyAnalyzer) storeHistoricalData(data *IntentProfile) {
 			},
 		})
 
-		// Update statistics
+		// Update statistics.
 		a.updateSeriesStatistics(series)
 
-		// Trim old data
+		// Trim old data.
 		a.trimOldData(series)
 	}
 
@@ -502,7 +502,7 @@ func (a *LatencyAnalyzer) updateSeriesStatistics(series *TimeSeries) {
 
 	stats := &SeriesStatistics{}
 
-	// Calculate basic statistics
+	// Calculate basic statistics.
 	var sum, sumSq time.Duration
 	values := make([]time.Duration, len(series.DataPoints))
 
@@ -515,13 +515,13 @@ func (a *LatencyAnalyzer) updateSeriesStatistics(series *TimeSeries) {
 	n := len(values)
 	stats.Mean = sum / time.Duration(n)
 
-	// Calculate standard deviation
+	// Calculate standard deviation.
 	variance := float64(sumSq)/float64(n) - math.Pow(float64(stats.Mean), 2)
 	if variance > 0 {
 		stats.StdDev = time.Duration(math.Sqrt(variance))
 	}
 
-	// Calculate median
+	// Calculate median.
 	sort.Slice(values, func(i, j int) bool {
 		return values[i] < values[j]
 	})
@@ -535,10 +535,10 @@ func (a *LatencyAnalyzer) updateSeriesStatistics(series *TimeSeries) {
 	stats.Min = values[0]
 	stats.Max = values[n-1]
 
-	// Calculate trend
+	// Calculate trend.
 	stats.Trend = a.calculateTrendSlope(series.DataPoints)
 
-	// Calculate volatility
+	// Calculate volatility.
 	stats.Volatility = float64(stats.StdDev) / float64(stats.Mean)
 
 	series.Statistics = stats
@@ -549,7 +549,7 @@ func (a *LatencyAnalyzer) calculateTrendSlope(points []DataPoint) float64 {
 		return 0
 	}
 
-	// Simple linear regression
+	// Simple linear regression.
 	n := len(points)
 	var sumX, sumY, sumXY, sumX2 float64
 
@@ -585,7 +585,7 @@ func (a *LatencyAnalyzer) trimOldData(series *TimeSeries) {
 }
 
 func (a *LatencyAnalyzer) analyzeOverallTrend(data *IntentProfile) string {
-	// Analyze overall trend based on all components
+	// Analyze overall trend based on all components.
 	var totalImprovement, totalDegradation int
 
 	for _, analysis := range data.Components {
@@ -610,7 +610,7 @@ func (a *LatencyAnalyzer) analyzeOverallTrend(data *IntentProfile) string {
 func (a *LatencyAnalyzer) identifyBottlenecks(data *IntentProfile) []string {
 	var bottlenecks []string
 
-	// Find components taking more than 30% of total time
+	// Find components taking more than 30% of total time.
 	for component, latency := range data.Components {
 		percentage := float64(latency.Duration) / float64(data.TotalDuration)
 		if percentage > 0.3 {
@@ -626,7 +626,7 @@ func (a *LatencyAnalyzer) predictOverallPerformance() *OverallPrediction {
 		Timestamp: time.Now(),
 	}
 
-	// Aggregate predictions from all components
+	// Aggregate predictions from all components.
 	var totalPredicted time.Duration
 	minConfidence := 1.0
 
@@ -648,7 +648,7 @@ func (a *LatencyAnalyzer) predictOverallPerformance() *OverallPrediction {
 func (a *LatencyAnalyzer) generateActionPlan(report *LatencyAnalysisReport) []RecommendedAction {
 	var actions []RecommendedAction
 
-	// Check for regressions
+	// Check for regressions.
 	for _, analysis := range report.Analysis {
 		if analysis.Regression != nil && analysis.Regression.Severity == "critical" {
 			actions = append(actions, RecommendedAction{
@@ -662,7 +662,7 @@ func (a *LatencyAnalyzer) generateActionPlan(report *LatencyAnalysisReport) []Re
 		}
 	}
 
-	// Add optimization recommendations
+	// Add optimization recommendations.
 	for _, analysis := range report.Analysis {
 		for _, opt := range analysis.Optimizations {
 			if opt.ImpactScore > 0.5 {
@@ -678,7 +678,7 @@ func (a *LatencyAnalyzer) generateActionPlan(report *LatencyAnalysisReport) []Re
 		}
 	}
 
-	// Sort by priority
+	// Sort by priority.
 	sort.Slice(actions, func(i, j int) bool {
 		return actions[i].Priority < actions[j].Priority
 	})
@@ -698,7 +698,7 @@ func (a *LatencyAnalyzer) categorizeImpact(score float64) string {
 }
 
 func (a *LatencyAnalyzer) calculatePriority(rec *OptimizationRecommendation) float64 {
-	// Priority based on impact and implementation cost
+	// Priority based on impact and implementation cost.
 	impactWeight := 0.7
 	costWeight := 0.3
 
@@ -716,7 +716,7 @@ func (a *LatencyAnalyzer) calculatePriority(rec *OptimizationRecommendation) flo
 }
 
 func (a *LatencyAnalyzer) calculateROI(rec *OptimizationRecommendation) float64 {
-	// Simplified ROI calculation
+	// Simplified ROI calculation.
 	savingHours := float64(rec.ExpectedSaving) / float64(time.Hour)
 
 	effortHours := 1.0
@@ -729,8 +729,8 @@ func (a *LatencyAnalyzer) calculateROI(rec *OptimizationRecommendation) float64 
 		effortHours = 40
 	}
 
-	// ROI = (Benefit - Cost) / Cost
-	// Assuming each saved hour is worth $100 and development costs $150/hour
+	// ROI = (Benefit - Cost) / Cost.
+	// Assuming each saved hour is worth $100 and development costs $150/hour.
 	benefit := savingHours * 100 * 365 // Annual savings
 	cost := effortHours * 150
 
@@ -746,7 +746,7 @@ func (a *LatencyAnalyzer) runContinuousAnalysis() {
 	defer ticker.Stop()
 
 	for range ticker.C {
-		// Run periodic analysis tasks
+		// Run periodic analysis tasks.
 		a.trendAnalyzer.UpdateTrends()
 		a.correlationEngine.UpdateCorrelations()
 		a.seasonalDetector.UpdatePatterns()
@@ -756,8 +756,9 @@ func (a *LatencyAnalyzer) runContinuousAnalysis() {
 	}
 }
 
-// Supporting type implementations
+// Supporting type implementations.
 
+// NewHistoricalDataStore performs newhistoricaldatastore operation.
 func NewHistoricalDataStore() *HistoricalDataStore {
 	return &HistoricalDataStore{
 		timeSeries:       make(map[string]*TimeSeries),
@@ -766,6 +767,7 @@ func NewHistoricalDataStore() *HistoricalDataStore {
 	}
 }
 
+// NewTrendAnalyzer performs newtrendanalyzer operation.
 func NewTrendAnalyzer(config *AnalyzerConfig) *TrendAnalyzer {
 	return &TrendAnalyzer{
 		linearRegression:     &LinearRegressionAnalyzer{},
@@ -776,11 +778,12 @@ func NewTrendAnalyzer(config *AnalyzerConfig) *TrendAnalyzer {
 	}
 }
 
+// AnalyzeTrend performs analyzetrend operation.
 func (t *TrendAnalyzer) AnalyzeTrend(component string, latency time.Duration) *TrendResult {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	// Get or create trend result
+	// Get or create trend result.
 	if _, exists := t.currentTrends[component]; !exists {
 		t.currentTrends[component] = &TrendResult{
 			Component: component,
@@ -789,12 +792,12 @@ func (t *TrendAnalyzer) AnalyzeTrend(component string, latency time.Duration) *T
 
 	trend := t.currentTrends[component]
 
-	// Analyze using multiple methods
+	// Analyze using multiple methods.
 	linearTrend := t.linearRegression.Analyze(component, latency)
 	_ = t.exponentialSmoothing.Analyze(component, latency)
 	_ = t.movingAverage.Analyze(component, latency)
 
-	// Combine results (simplified - in production, use ensemble methods)
+	// Combine results (simplified - in production, use ensemble methods).
 	if linearTrend > 0.1 {
 		trend.TrendDirection = "increasing"
 	} else if linearTrend < -0.1 {
@@ -807,7 +810,7 @@ func (t *TrendAnalyzer) AnalyzeTrend(component string, latency time.Duration) *T
 	trend.ChangeRate = linearTrend
 	trend.ProjectedLatency = time.Duration(float64(latency) * (1 + linearTrend))
 
-	// Calculate confidence interval
+	// Calculate confidence interval.
 	stdDev := time.Duration(float64(latency) * 0.1) // Simplified
 	trend.ConfidenceInterval[0] = trend.ProjectedLatency - 2*stdDev
 	trend.ConfidenceInterval[1] = trend.ProjectedLatency + 2*stdDev
@@ -815,16 +818,19 @@ func (t *TrendAnalyzer) AnalyzeTrend(component string, latency time.Duration) *T
 	return trend
 }
 
+// GetTrend performs gettrend operation.
 func (t *TrendAnalyzer) GetTrend(component string) *TrendResult {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 	return t.currentTrends[component]
 }
 
+// UpdateTrends performs updatetrends operation.
 func (t *TrendAnalyzer) UpdateTrends() {
-	// Update all trends based on latest data
+	// Update all trends based on latest data.
 }
 
+// AnalyzeWindow performs analyzewindow operation.
 func (t *TrendAnalyzer) AnalyzeWindow(window time.Duration) *TrendAnalysisReport {
 	return &TrendAnalysisReport{
 		Window:    window,
@@ -833,6 +839,7 @@ func (t *TrendAnalyzer) AnalyzeWindow(window time.Duration) *TrendAnalysisReport
 	}
 }
 
+// NewCorrelationEngine performs newcorrelationengine operation.
 func NewCorrelationEngine(config *AnalyzerConfig) *CorrelationEngine {
 	return &CorrelationEngine{
 		componentCorrelations: make(map[string]map[string]float64),
@@ -842,25 +849,26 @@ func NewCorrelationEngine(config *AnalyzerConfig) *CorrelationEngine {
 	}
 }
 
+// FindCorrelations performs findcorrelations operation.
 func (c *CorrelationEngine) FindCorrelations(component string) map[string]float64 {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
 	correlations := make(map[string]float64)
 
-	// Component correlations
+	// Component correlations.
 	if compCorr, exists := c.componentCorrelations[component]; exists {
 		for comp, corr := range compCorr {
 			correlations[fmt.Sprintf("component_%s", comp)] = corr
 		}
 	}
 
-	// Load correlation
+	// Load correlation.
 	if loadCorr, exists := c.loadCorrelations[component]; exists {
 		correlations["load"] = loadCorr
 	}
 
-	// Time correlation
+	// Time correlation.
 	if timeCorr, exists := c.timeCorrelations[component]; exists {
 		correlations["time_of_day"] = timeCorr
 	}
@@ -868,10 +876,12 @@ func (c *CorrelationEngine) FindCorrelations(component string) map[string]float6
 	return correlations
 }
 
+// UpdateCorrelations performs updatecorrelations operation.
 func (c *CorrelationEngine) UpdateCorrelations() {
-	// Update correlation matrices based on latest data
+	// Update correlation matrices based on latest data.
 }
 
+// NewSeasonalPatternDetector performs newseasonalpatterndetector operation.
 func NewSeasonalPatternDetector(config *AnalyzerConfig) *SeasonalPatternDetector {
 	return &SeasonalPatternDetector{
 		hourlyPatterns:   make(map[string]*HourlyPattern),
@@ -882,11 +892,12 @@ func NewSeasonalPatternDetector(config *AnalyzerConfig) *SeasonalPatternDetector
 	}
 }
 
+// DetectPattern performs detectpattern operation.
 func (s *SeasonalPatternDetector) DetectPattern(component string) *SeasonalPattern {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	// Check for patterns in order of granularity
+	// Check for patterns in order of granularity.
 	for _, pattern := range s.detectedPatterns {
 		if pattern.Component == component && pattern.Confidence > 0.7 {
 			return &pattern
@@ -896,6 +907,7 @@ func (s *SeasonalPatternDetector) DetectPattern(component string) *SeasonalPatte
 	return nil
 }
 
+// GetDetectedPatterns performs getdetectedpatterns operation.
 func (s *SeasonalPatternDetector) GetDetectedPatterns() []SeasonalPattern {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -905,10 +917,12 @@ func (s *SeasonalPatternDetector) GetDetectedPatterns() []SeasonalPattern {
 	return result
 }
 
+// UpdatePatterns performs updatepatterns operation.
 func (s *SeasonalPatternDetector) UpdatePatterns() {
-	// Update pattern detection based on latest data
+	// Update pattern detection based on latest data.
 }
 
+// NewPredictiveLatencyModel performs newpredictivelatencymodel operation.
 func NewPredictiveLatencyModel(config *AnalyzerConfig) *PredictiveLatencyModel {
 	return &PredictiveLatencyModel{
 		arimaModel:    &ARIMAModel{},
@@ -919,11 +933,12 @@ func NewPredictiveLatencyModel(config *AnalyzerConfig) *PredictiveLatencyModel {
 	}
 }
 
+// Predict performs predict operation.
 func (p *PredictiveLatencyModel) Predict(component string) *LatencyPrediction {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	// Use ensemble model for prediction
+	// Use ensemble model for prediction.
 	prediction := &LatencyPrediction{
 		Component:      component,
 		PredictionTime: time.Now(),
@@ -931,7 +946,7 @@ func (p *PredictiveLatencyModel) Predict(component string) *LatencyPrediction {
 		Confidence:     0.85, // Simplified
 	}
 
-	// Generate predicted values
+	// Generate predicted values.
 	for i := 0; i < 5; i++ {
 		timestamp := time.Now().Add(time.Duration(i+1) * time.Minute)
 		prediction.PredictedValues = append(prediction.PredictedValues, PredictedValue{
@@ -948,14 +963,17 @@ func (p *PredictiveLatencyModel) Predict(component string) *LatencyPrediction {
 	return prediction
 }
 
+// PredictHorizon performs predicthorizon operation.
 func (p *PredictiveLatencyModel) PredictHorizon(component string, horizon time.Duration) *LatencyPrediction {
 	return p.Predict(component) // Simplified
 }
 
+// UpdatePredictions performs updatepredictions operation.
 func (p *PredictiveLatencyModel) UpdatePredictions() {
-	// Update predictions based on latest data
+	// Update predictions based on latest data.
 }
 
+// NewPerformanceRegressionDetector performs newperformanceregressiondetector operation.
 func NewPerformanceRegressionDetector(config *AnalyzerConfig) *PerformanceRegressionDetector {
 	return &PerformanceRegressionDetector{
 		baselines:           make(map[string]*PerformanceBaseline),
@@ -966,14 +984,15 @@ func NewPerformanceRegressionDetector(config *AnalyzerConfig) *PerformanceRegres
 	}
 }
 
+// CheckRegression performs checkregression operation.
 func (r *PerformanceRegressionDetector) CheckRegression(component string, latency time.Duration) *PerformanceRegression {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// Get baseline
+	// Get baseline.
 	baseline, exists := r.baselines[component]
 	if !exists {
-		// Create baseline
+		// Create baseline.
 		r.baselines[component] = &PerformanceBaseline{
 			Component:     component,
 			BaselineP50:   latency,
@@ -982,7 +1001,7 @@ func (r *PerformanceRegressionDetector) CheckRegression(component string, latenc
 		return nil
 	}
 
-	// Check for regression
+	// Check for regression.
 	degradation := float64(latency-baseline.BaselineP50) / float64(baseline.BaselineP50)
 
 	if degradation > 0.2 { // 20% degradation
@@ -1015,6 +1034,7 @@ func (r *PerformanceRegressionDetector) categorizeSeverity(degradation float64) 
 	return "minor"
 }
 
+// GetDetectedRegressions performs getdetectedregressions operation.
 func (r *PerformanceRegressionDetector) GetDetectedRegressions() []PerformanceRegression {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -1024,10 +1044,12 @@ func (r *PerformanceRegressionDetector) GetDetectedRegressions() []PerformanceRe
 	return result
 }
 
+// CheckForRegressions performs checkforregressions operation.
 func (r *PerformanceRegressionDetector) CheckForRegressions() {
-	// Check all components for regressions
+	// Check all components for regressions.
 }
 
+// NewOptimizationRecommender performs newoptimizationrecommender operation.
 func NewOptimizationRecommender(config *AnalyzerConfig) *OptimizationRecommender {
 	recommender := &OptimizationRecommender{
 		strategies:      generateOptimizationStrategies(),
@@ -1075,6 +1097,7 @@ func generateOptimizationStrategies() []OptimizationStrategy {
 	}
 }
 
+// GetRecommendations performs getrecommendations operation.
 func (o *OptimizationRecommender) GetRecommendations(component string, latency time.Duration) []*OptimizationRecommendation {
 	o.mu.RLock()
 	defer o.mu.RUnlock()
@@ -1082,7 +1105,7 @@ func (o *OptimizationRecommender) GetRecommendations(component string, latency t
 	var recommendations []*OptimizationRecommendation
 
 	for _, strategy := range o.strategies {
-		// Check if strategy applies to this component
+		// Check if strategy applies to this component.
 		applies := false
 		for _, applicable := range strategy.ApplicableTo {
 			if applicable == component {
@@ -1112,6 +1135,7 @@ func (o *OptimizationRecommender) GetRecommendations(component string, latency t
 	return recommendations
 }
 
+// GetAllRecommendations performs getallrecommendations operation.
 func (o *OptimizationRecommender) GetAllRecommendations() []*OptimizationRecommendation {
 	o.mu.RLock()
 	defer o.mu.RUnlock()
@@ -1124,67 +1148,97 @@ func (o *OptimizationRecommender) GetAllRecommendations() []*OptimizationRecomme
 	return all
 }
 
+// UpdateRecommendations performs updaterecommendations operation.
 func (o *OptimizationRecommender) UpdateRecommendations() {
-	// Update recommendations based on latest analysis
+	// Update recommendations based on latest analysis.
 }
 
-// ML Model stubs
+// ML Model stubs.
 
+// AnomalyDetectionModel represents a anomalydetectionmodel.
 type AnomalyDetectionModel struct{}
 
+// NewAnomalyDetectionModel performs newanomalydetectionmodel operation.
 func NewAnomalyDetectionModel() *AnomalyDetectionModel {
 	return &AnomalyDetectionModel{}
 }
 
+// LatencyForecastModel represents a latencyforecastmodel.
 type LatencyForecastModel struct{}
 
+// NewLatencyForecastModel performs newlatencyforecastmodel operation.
 func NewLatencyForecastModel() *LatencyForecastModel {
 	return &LatencyForecastModel{}
 }
 
+// LinearRegressionAnalyzer represents a linearregressionanalyzer.
 type LinearRegressionAnalyzer struct{}
 
+// Analyze performs analyze operation.
 func (l *LinearRegressionAnalyzer) Analyze(component string, latency time.Duration) float64 {
-	// Simplified linear regression
+	// Simplified linear regression.
 	return 0.05 // 5% increase trend
 }
 
+// ExponentialSmoothingAnalyzer represents a exponentialsmoothinganalyzer.
 type ExponentialSmoothingAnalyzer struct {
 	alpha float64
 }
 
+// Analyze performs analyze operation.
 func (e *ExponentialSmoothingAnalyzer) Analyze(component string, latency time.Duration) float64 {
-	// Simplified exponential smoothing
+	// Simplified exponential smoothing.
 	return 0.03
 }
 
+// MovingAverageAnalyzer represents a movingaverageanalyzer.
 type MovingAverageAnalyzer struct {
 	window int
 }
 
+// Analyze performs analyze operation.
 func (m *MovingAverageAnalyzer) Analyze(component string, latency time.Duration) float64 {
-	// Simplified moving average
+	// Simplified moving average.
 	return 0.04
 }
 
-type ARIMAModel struct{}
-type LSTMModel struct{}
-type EnsembleModel struct{}
-type ChangePointDetector struct{}
-type MannWhitneyUTest struct{}
-type ImpactAnalyzer struct{}
+// ARIMAModel represents a arimamodel.
+type (
+	ARIMAModel struct{}
+	// LSTMModel represents a lstmmodel.
+	LSTMModel struct{}
+	// EnsembleModel represents a ensemblemodel.
+	EnsembleModel struct{}
+	// ChangePointDetector represents a changepointdetector.
+	ChangePointDetector struct{}
+	// MannWhitneyUTest represents a mannwhitneyutest.
+	MannWhitneyUTest struct{}
+	// ImpactAnalyzer represents a impactanalyzer.
+	ImpactAnalyzer struct{}
+)
 
-type HourlyAggregate struct{}
-type DailyAggregate struct{}
-type HourlyPattern struct{}
-type DailyPattern struct{}
-type WeeklyPattern struct{}
-type MonthlyPattern struct{}
-type TrendSnapshot struct{}
-type RegressionAlert struct{}
+// HourlyAggregate represents a hourlyaggregate.
+type (
+	HourlyAggregate struct{}
+	// DailyAggregate represents a dailyaggregate.
+	DailyAggregate struct{}
+	// HourlyPattern represents a hourlypattern.
+	HourlyPattern struct{}
+	// DailyPattern represents a dailypattern.
+	DailyPattern struct{}
+	// WeeklyPattern represents a weeklypattern.
+	WeeklyPattern struct{}
+	// MonthlyPattern represents a monthlypattern.
+	MonthlyPattern struct{}
+	// TrendSnapshot represents a trendsnapshot.
+	TrendSnapshot struct{}
+	// RegressionAlert represents a regressionalert.
+	RegressionAlert struct{}
+)
 
-// Report types
+// Report types.
 
+// LatencyAnalysisReport represents a latencyanalysisreport.
 type LatencyAnalysisReport struct {
 	Timestamp            time.Time                     `json:"timestamp"`
 	IntentID             string                        `json:"intent_id"`
@@ -1195,6 +1249,7 @@ type LatencyAnalysisReport struct {
 	RecommendedActions   []RecommendedAction           `json:"recommended_actions"`
 }
 
+// ComponentAnalysis represents a componentanalysis.
 type ComponentAnalysis struct {
 	Component       string                        `json:"component"`
 	CurrentLatency  time.Duration                 `json:"current_latency"`
@@ -1206,30 +1261,35 @@ type ComponentAnalysis struct {
 	Optimizations   []*OptimizationRecommendation `json:"optimizations"`
 }
 
+// TrendAnalysisReport represents a trendanalysisreport.
 type TrendAnalysisReport struct {
 	Window    time.Duration           `json:"window"`
 	Trends    map[string]*TrendResult `json:"trends"`
 	Timestamp time.Time               `json:"timestamp"`
 }
 
+// OptimizationPlan represents a optimizationplan.
 type OptimizationPlan struct {
 	GeneratedAt              time.Time                   `json:"generated_at"`
 	Recommendations          []PrioritizedRecommendation `json:"recommendations"`
 	TotalExpectedImprovement time.Duration               `json:"total_expected_improvement"`
 }
 
+// PrioritizedRecommendation represents a prioritizedrecommendation.
 type PrioritizedRecommendation struct {
 	Recommendation *OptimizationRecommendation `json:"recommendation"`
 	Priority       float64                     `json:"priority"`
 	ROI            float64                     `json:"roi"`
 }
 
+// OverallPrediction represents a overallprediction.
 type OverallPrediction struct {
 	Timestamp        time.Time     `json:"timestamp"`
 	PredictedLatency time.Duration `json:"predicted_latency"`
 	Confidence       float64       `json:"confidence"`
 }
 
+// RecommendedAction represents a recommendedaction.
 type RecommendedAction struct {
 	Type        string `json:"type"`
 	Component   string `json:"component"`
@@ -1239,7 +1299,7 @@ type RecommendedAction struct {
 	Description string `json:"description"`
 }
 
-// DefaultAnalyzerConfig returns default configuration
+// DefaultAnalyzerConfig returns default configuration.
 func DefaultAnalyzerConfig() *AnalyzerConfig {
 	return &AnalyzerConfig{
 		DataRetentionDays:    30,

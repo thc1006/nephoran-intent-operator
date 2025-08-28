@@ -1,4 +1,4 @@
-// Package validation provides advanced load generation for performance testing
+// Package validation provides advanced load generation for performance testing.
 package validation
 
 import (
@@ -23,7 +23,7 @@ import (
 	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-// AdvancedLoadGenerator provides sophisticated load generation capabilities
+// AdvancedLoadGenerator provides sophisticated load generation capabilities.
 type AdvancedLoadGenerator struct {
 	k8sClient        client.Client
 	httpClient       *http.Client
@@ -33,14 +33,14 @@ type AdvancedLoadGenerator struct {
 	mu               sync.RWMutex
 }
 
-// LoadScenario defines a load testing scenario
+// LoadScenario defines a load testing scenario.
 type LoadScenario interface {
 	Generate(ctx context.Context) <-chan *LoadRequest
 	GetName() string
 	GetDescription() string
 }
 
-// LoadRequest represents a single load test request
+// LoadRequest represents a single load test request.
 type LoadRequest struct {
 	Method      string
 	URL         string
@@ -51,7 +51,7 @@ type LoadRequest struct {
 	ScenarioTag string
 }
 
-// LoadMetricsCollector collects detailed load test metrics
+// LoadMetricsCollector collects detailed load test metrics.
 type LoadMetricsCollector struct {
 	requests    int64
 	successes   int64
@@ -65,7 +65,7 @@ type LoadMetricsCollector struct {
 	startTime   time.Time
 }
 
-// LoadTestReport contains comprehensive load test results
+// LoadTestReport contains comprehensive load test results.
 type LoadTestReport struct {
 	Scenario           string
 	Duration           time.Duration
@@ -73,7 +73,7 @@ type LoadTestReport struct {
 	SuccessfulRequests int64
 	FailedRequests     int64
 
-	// Latency metrics
+	// Latency metrics.
 	MinLatency    time.Duration
 	MaxLatency    time.Duration
 	MeanLatency   time.Duration
@@ -85,28 +85,28 @@ type LoadTestReport struct {
 	P99Latency    time.Duration
 	StdDevLatency time.Duration
 
-	// Throughput metrics
+	// Throughput metrics.
 	RequestsPerSecond float64
 	BytesPerSecond    float64
 
-	// Error analysis
+	// Error analysis.
 	ErrorRate      float64
 	ErrorsByType   map[string]int64
 	StatusCodeDist map[int]int64
 
-	// Advanced metrics
+	// Advanced metrics.
 	ApdexScore       float64 // Application Performance Index
 	TimeToFirstByte  time.Duration
 	ConnectionErrors int64
 	TimeoutErrors    int64
 
-	// Resource metrics
+	// Resource metrics.
 	CPUUsage       []float64
 	MemoryUsage    []float64
 	NetworkLatency []time.Duration
 }
 
-// safeMathConversion safely converts float64 to int64 with bounds checking
+// safeMathConversion safely converts float64 to int64 with bounds checking.
 func safeMathConversion(val float64) int64 {
 	if val < 0 {
 		return 0 // Handle negative values
@@ -117,7 +117,7 @@ func safeMathConversion(val float64) int64 {
 	return int64(val)
 }
 
-// NewAdvancedLoadGenerator creates an advanced load generator
+// NewAdvancedLoadGenerator creates an advanced load generator.
 func NewAdvancedLoadGenerator(k8sClient client.Client, baseURL string) *AdvancedLoadGenerator {
 	return &AdvancedLoadGenerator{
 		k8sClient: k8sClient,
@@ -135,7 +135,7 @@ func NewAdvancedLoadGenerator(k8sClient client.Client, baseURL string) *Advanced
 	}
 }
 
-// NewLoadMetricsCollector creates a metrics collector
+// NewLoadMetricsCollector creates a metrics collector.
 func NewLoadMetricsCollector() *LoadMetricsCollector {
 	return &LoadMetricsCollector{
 		latencies:   make([]time.Duration, 0, 100000),
@@ -146,14 +146,14 @@ func NewLoadMetricsCollector() *LoadMetricsCollector {
 	}
 }
 
-// RegisterScenario registers a load testing scenario
+// RegisterScenario registers a load testing scenario.
 func (alg *AdvancedLoadGenerator) RegisterScenario(scenario LoadScenario) {
 	alg.mu.Lock()
 	defer alg.mu.Unlock()
 	alg.scenarios[scenario.GetName()] = scenario
 }
 
-// RunScenario executes a specific load testing scenario
+// RunScenario executes a specific load testing scenario.
 func (alg *AdvancedLoadGenerator) RunScenario(ctx context.Context, scenarioName string, duration time.Duration) (*LoadTestReport, error) {
 	alg.mu.RLock()
 	scenario, exists := alg.scenarios[scenarioName]
@@ -165,17 +165,17 @@ func (alg *AdvancedLoadGenerator) RunScenario(ctx context.Context, scenarioName 
 
 	ginkgo.By(fmt.Sprintf("Running load scenario: %s", scenario.GetDescription()))
 
-	// Reset metrics collector
+	// Reset metrics collector.
 	alg.metricsCollector = NewLoadMetricsCollector()
 
-	// Create context with timeout
+	// Create context with timeout.
 	testCtx, cancel := context.WithTimeout(ctx, duration)
 	defer cancel()
 
-	// Generate load
+	// Generate load.
 	requestChan := scenario.Generate(testCtx)
 
-	// Process requests concurrently
+	// Process requests concurrently.
 	var wg sync.WaitGroup
 	workers := 50 // Number of concurrent workers
 
@@ -187,14 +187,14 @@ func (alg *AdvancedLoadGenerator) RunScenario(ctx context.Context, scenarioName 
 		}(i)
 	}
 
-	// Wait for completion
+	// Wait for completion.
 	wg.Wait()
 
-	// Generate report
+	// Generate report.
 	return alg.generateReport(scenario.GetName(), duration), nil
 }
 
-// processRequests processes load test requests
+// processRequests processes load test requests.
 func (alg *AdvancedLoadGenerator) processRequests(ctx context.Context, requests <-chan *LoadRequest, workerID int) {
 	for {
 		select {
@@ -209,23 +209,23 @@ func (alg *AdvancedLoadGenerator) processRequests(ctx context.Context, requests 
 	}
 }
 
-// executeRequest executes a single load test request
+// executeRequest executes a single load test request.
 func (alg *AdvancedLoadGenerator) executeRequest(ctx context.Context, req *LoadRequest) {
 	startTime := time.Now()
 
-	// Create HTTP request
+	// Create HTTP request.
 	httpReq, err := http.NewRequestWithContext(ctx, req.Method, req.URL, bytes.NewReader(req.Body))
 	if err != nil {
 		alg.metricsCollector.recordError("request_creation", err)
 		return
 	}
 
-	// Set headers
+	// Set headers.
 	for key, value := range req.Headers {
 		httpReq.Header.Set(key, value)
 	}
 
-	// Execute request
+	// Execute request.
 	resp, err := alg.httpClient.Do(httpReq)
 	latency := time.Since(startTime)
 
@@ -236,46 +236,46 @@ func (alg *AdvancedLoadGenerator) executeRequest(ctx context.Context, req *LoadR
 	}
 	defer resp.Body.Close()
 
-	// Read response body
+	// Read response body.
 	body, _ := io.ReadAll(resp.Body)
 
-	// Record metrics
+	// Record metrics.
 	alg.metricsCollector.recordSuccess(latency, resp.StatusCode, int64(len(body)))
 }
 
-// RunVegetaTest runs a load test using Vegeta library
+// RunVegetaTest runs a load test using Vegeta library.
 func (alg *AdvancedLoadGenerator) RunVegetaTest(ctx context.Context, rate uint64, duration time.Duration) (*LoadTestReport, error) {
 	ginkgo.By(fmt.Sprintf("Running Vegeta load test: %d req/s for %v", rate, duration))
 
-	// Create targeter
+	// Create targeter.
 	targeter := vegeta.NewStaticTargeter(alg.generateVegetaTargets()...)
 
-	// Create attacker
+	// Create attacker.
 	attacker := vegeta.NewAttacker(
 		vegeta.Workers(uint64(rate/10)),
 		vegeta.MaxWorkers(100),
 		vegeta.Timeout(10*time.Second),
 	)
 
-	// Metrics to collect results
+	// Metrics to collect results.
 	var metrics vegeta.Metrics
 
-	// Run attack
+	// Run attack.
 	for res := range attacker.Attack(targeter, vegeta.Rate{Freq: int(rate), Per: time.Second}, duration, "Load Test") {
 		metrics.Add(res)
 	}
 
 	metrics.Close()
 
-	// Convert Vegeta metrics to our report format
+	// Convert Vegeta metrics to our report format.
 	return alg.convertVegetaMetrics(&metrics), nil
 }
 
-// generateVegetaTargets generates targets for Vegeta
+// generateVegetaTargets generates targets for Vegeta.
 func (alg *AdvancedLoadGenerator) generateVegetaTargets() []vegeta.Target {
 	targets := []vegeta.Target{}
 
-	// Generate various intent types
+	// Generate various intent types.
 	intents := []string{
 		"Deploy AMF with high availability",
 		"Configure SMF with QoS policies",
@@ -312,13 +312,13 @@ func (alg *AdvancedLoadGenerator) generateVegetaTargets() []vegeta.Target {
 	return targets
 }
 
-// convertVegetaMetrics converts Vegeta metrics to our report format
+// convertVegetaMetrics converts Vegeta metrics to our report format.
 func (alg *AdvancedLoadGenerator) convertVegetaMetrics(metrics *vegeta.Metrics) *LoadTestReport {
 	return &LoadTestReport{
 		Scenario:      "Vegeta Load Test",
 		Duration:      metrics.Duration,
 		TotalRequests: int64(metrics.Requests),
-		// Fix G115: Add bounds checking for integer overflow
+		// Fix G115: Add bounds checking for integer overflow.
 		SuccessfulRequests: safeMathConversion(float64(metrics.Requests) * metrics.Success),
 		FailedRequests:     safeMathConversion(float64(metrics.Requests) * (1 - metrics.Success)),
 
@@ -338,7 +338,7 @@ func (alg *AdvancedLoadGenerator) convertVegetaMetrics(metrics *vegeta.Metrics) 
 	}
 }
 
-// convertStatusCodes converts Vegeta status codes to our format
+// convertStatusCodes converts Vegeta status codes to our format.
 func (alg *AdvancedLoadGenerator) convertStatusCodes(codes map[string]int) map[int]int64 {
 	result := make(map[int]int64)
 	for code, count := range codes {
@@ -349,7 +349,7 @@ func (alg *AdvancedLoadGenerator) convertStatusCodes(codes map[string]int) map[i
 	return result
 }
 
-// generateReport generates a comprehensive load test report
+// generateReport generates a comprehensive load test report.
 func (alg *AdvancedLoadGenerator) generateReport(scenario string, duration time.Duration) *LoadTestReport {
 	alg.metricsCollector.mu.RLock()
 	defer alg.metricsCollector.mu.RUnlock()
@@ -364,7 +364,7 @@ func (alg *AdvancedLoadGenerator) generateReport(scenario string, duration time.
 		StatusCodeDist:     alg.metricsCollector.statusCodes,
 	}
 
-	// Calculate latency statistics
+	// Calculate latency statistics.
 	if len(alg.metricsCollector.latencies) > 0 {
 		latencies := alg.metricsCollector.latencies
 		sort.Slice(latencies, func(i, j int) bool {
@@ -375,21 +375,21 @@ func (alg *AdvancedLoadGenerator) generateReport(scenario string, duration time.
 		report.MaxLatency = latencies[len(latencies)-1]
 		report.MedianLatency = latencies[len(latencies)/2]
 
-		// Calculate percentiles
+		// Calculate percentiles.
 		report.P50Latency = alg.calculatePercentile(latencies, 50)
 		report.P75Latency = alg.calculatePercentile(latencies, 75)
 		report.P90Latency = alg.calculatePercentile(latencies, 90)
 		report.P95Latency = alg.calculatePercentile(latencies, 95)
 		report.P99Latency = alg.calculatePercentile(latencies, 99)
 
-		// Calculate mean and standard deviation
+		// Calculate mean and standard deviation.
 		var sum time.Duration
 		for _, l := range latencies {
 			sum += l
 		}
 		report.MeanLatency = sum / time.Duration(len(latencies))
 
-		// Convert to float64 for stats calculation
+		// Convert to float64 for stats calculation.
 		floatLatencies := make([]float64, len(latencies))
 		for i, l := range latencies {
 			floatLatencies[i] = float64(l.Nanoseconds())
@@ -400,24 +400,24 @@ func (alg *AdvancedLoadGenerator) generateReport(scenario string, duration time.
 		}
 	}
 
-	// Calculate throughput
+	// Calculate throughput.
 	if duration > 0 {
 		report.RequestsPerSecond = float64(report.TotalRequests) / duration.Seconds()
 		report.BytesPerSecond = float64(atomic.LoadInt64(&alg.metricsCollector.totalBytes)) / duration.Seconds()
 	}
 
-	// Calculate error rate
+	// Calculate error rate.
 	if report.TotalRequests > 0 {
 		report.ErrorRate = float64(report.FailedRequests) / float64(report.TotalRequests)
 	}
 
-	// Calculate Apdex score (Application Performance Index)
+	// Calculate Apdex score (Application Performance Index).
 	report.ApdexScore = alg.calculateApdex(alg.metricsCollector.latencies, 2*time.Second)
 
 	return report
 }
 
-// calculatePercentile calculates the specified percentile
+// calculatePercentile calculates the specified percentile.
 func (alg *AdvancedLoadGenerator) calculatePercentile(latencies []time.Duration, percentile int) time.Duration {
 	if len(latencies) == 0 {
 		return 0
@@ -434,7 +434,7 @@ func (alg *AdvancedLoadGenerator) calculatePercentile(latencies []time.Duration,
 	return latencies[index]
 }
 
-// calculateApdex calculates the Apdex score
+// calculateApdex calculates the Apdex score.
 func (alg *AdvancedLoadGenerator) calculateApdex(latencies []time.Duration, threshold time.Duration) float64 {
 	if len(latencies) == 0 {
 		return 0
@@ -454,7 +454,7 @@ func (alg *AdvancedLoadGenerator) calculateApdex(latencies []time.Duration, thre
 	return float64(satisfied+tolerating/2) / float64(len(latencies))
 }
 
-// LoadMetricsCollector methods
+// LoadMetricsCollector methods.
 
 func (lmc *LoadMetricsCollector) recordSuccess(latency time.Duration, statusCode int, bytes int64) {
 	atomic.AddInt64(&lmc.requests, 1)
@@ -494,9 +494,9 @@ func (lmc *LoadMetricsCollector) recordError(errorType string, err error) {
 	lmc.errorTypes[errorType]++
 }
 
-// Predefined load scenarios
+// Predefined load scenarios.
 
-// ConstantRateScenario generates constant rate load
+// ConstantRateScenario generates constant rate load.
 type ConstantRateScenario struct {
 	name        string
 	description string
@@ -504,6 +504,7 @@ type ConstantRateScenario struct {
 	duration    time.Duration
 }
 
+// NewConstantRateScenario performs newconstantratescenario operation.
 func NewConstantRateScenario(rate int, duration time.Duration) *ConstantRateScenario {
 	return &ConstantRateScenario{
 		name:        "constant_rate",
@@ -513,9 +514,13 @@ func NewConstantRateScenario(rate int, duration time.Duration) *ConstantRateScen
 	}
 }
 
-func (crs *ConstantRateScenario) GetName() string        { return crs.name }
+// GetName performs getname operation.
+func (crs *ConstantRateScenario) GetName() string { return crs.name }
+
+// GetDescription performs getdescription operation.
 func (crs *ConstantRateScenario) GetDescription() string { return crs.description }
 
+// Generate performs generate operation.
 func (crs *ConstantRateScenario) Generate(ctx context.Context) <-chan *LoadRequest {
 	requests := make(chan *LoadRequest, 100)
 
@@ -570,7 +575,7 @@ func (crs *ConstantRateScenario) generateIntentBody(id int) []byte {
 	return body
 }
 
-// RampUpScenario gradually increases load
+// RampUpScenario gradually increases load.
 type RampUpScenario struct {
 	name        string
 	description string
@@ -579,6 +584,7 @@ type RampUpScenario struct {
 	rampTime    time.Duration
 }
 
+// NewRampUpScenario performs newrampupscenario operation.
 func NewRampUpScenario(startRate, endRate int, rampTime time.Duration) *RampUpScenario {
 	return &RampUpScenario{
 		name:        "ramp_up",
@@ -589,9 +595,13 @@ func NewRampUpScenario(startRate, endRate int, rampTime time.Duration) *RampUpSc
 	}
 }
 
-func (rus *RampUpScenario) GetName() string        { return rus.name }
+// GetName performs getname operation.
+func (rus *RampUpScenario) GetName() string { return rus.name }
+
+// GetDescription performs getdescription operation.
 func (rus *RampUpScenario) GetDescription() string { return rus.description }
 
+// Generate performs generate operation.
 func (rus *RampUpScenario) Generate(ctx context.Context) <-chan *LoadRequest {
 	requests := make(chan *LoadRequest, 100)
 
@@ -655,7 +665,7 @@ func (rus *RampUpScenario) generateIntentBody(id int) []byte {
 	return body
 }
 
-// SpikeScenario generates spike traffic patterns
+// SpikeScenario generates spike traffic patterns.
 type SpikeScenario struct {
 	name          string
 	description   string
@@ -665,6 +675,7 @@ type SpikeScenario struct {
 	restDuration  time.Duration
 }
 
+// NewSpikeScenario performs newspikescenario operation.
 func NewSpikeScenario(baseRate, spikeRate int, spikeDuration, restDuration time.Duration) *SpikeScenario {
 	return &SpikeScenario{
 		name:          "spike",
@@ -676,9 +687,13 @@ func NewSpikeScenario(baseRate, spikeRate int, spikeDuration, restDuration time.
 	}
 }
 
-func (ss *SpikeScenario) GetName() string        { return ss.name }
+// GetName performs getname operation.
+func (ss *SpikeScenario) GetName() string { return ss.name }
+
+// GetDescription performs getdescription operation.
 func (ss *SpikeScenario) GetDescription() string { return ss.description }
 
+// Generate performs generate operation.
 func (ss *SpikeScenario) Generate(ctx context.Context) <-chan *LoadRequest {
 	requests := make(chan *LoadRequest, 100)
 
@@ -687,7 +702,7 @@ func (ss *SpikeScenario) Generate(ctx context.Context) <-chan *LoadRequest {
 
 		requestID := 0
 		for {
-			// Rest period
+			// Rest period.
 			restEnd := time.Now().Add(ss.restDuration)
 			for time.Now().Before(restEnd) {
 				select {
@@ -705,7 +720,7 @@ func (ss *SpikeScenario) Generate(ctx context.Context) <-chan *LoadRequest {
 				}
 			}
 
-			// Spike period
+			// Spike period.
 			spikeEnd := time.Now().Add(ss.spikeDuration)
 			for time.Now().Before(spikeEnd) {
 				select {
@@ -753,12 +768,13 @@ func (ss *SpikeScenario) generateRequest(id int, rate int) *LoadRequest {
 	}
 }
 
-// RealisticTelecomScenario simulates realistic telecom traffic patterns
+// RealisticTelecomScenario simulates realistic telecom traffic patterns.
 type RealisticTelecomScenario struct {
 	name        string
 	description string
 }
 
+// NewRealisticTelecomScenario performs newrealistictelecomscenario operation.
 func NewRealisticTelecomScenario() *RealisticTelecomScenario {
 	return &RealisticTelecomScenario{
 		name:        "realistic_telecom",
@@ -766,9 +782,13 @@ func NewRealisticTelecomScenario() *RealisticTelecomScenario {
 	}
 }
 
-func (rts *RealisticTelecomScenario) GetName() string        { return rts.name }
+// GetName performs getname operation.
+func (rts *RealisticTelecomScenario) GetName() string { return rts.name }
+
+// GetDescription performs getdescription operation.
 func (rts *RealisticTelecomScenario) GetDescription() string { return rts.description }
 
+// Generate performs generate operation.
 func (rts *RealisticTelecomScenario) Generate(ctx context.Context) <-chan *LoadRequest {
 	requests := make(chan *LoadRequest, 100)
 
@@ -783,11 +803,11 @@ func (rts *RealisticTelecomScenario) Generate(ctx context.Context) <-chan *LoadR
 			case <-ctx.Done():
 				return
 			default:
-				// Simulate daily traffic pattern
+				// Simulate daily traffic pattern.
 				elapsed := time.Since(startTime)
 				hour := int(elapsed.Hours()) % 24
 
-				// Traffic varies by hour of day
+				// Traffic varies by hour of day.
 				var rate int
 				switch {
 				case hour >= 0 && hour < 6:
@@ -806,7 +826,7 @@ func (rts *RealisticTelecomScenario) Generate(ctx context.Context) <-chan *LoadR
 					rate = 20 // Late evening
 				}
 
-				// Add some randomness
+				// Add some randomness.
 				rate = rate + rand.Intn(10) - 5
 				if rate < 5 {
 					rate = 5
@@ -828,7 +848,7 @@ func (rts *RealisticTelecomScenario) Generate(ctx context.Context) <-chan *LoadR
 }
 
 func (rts *RealisticTelecomScenario) generateRealisticRequest(id int) *LoadRequest {
-	// Variety of realistic telecom intents
+	// Variety of realistic telecom intents.
 	intents := []string{
 		"Deploy AMF for subscriber group A with high availability",
 		"Configure SMF with premium QoS for enterprise customers",

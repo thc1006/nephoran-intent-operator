@@ -1,4 +1,4 @@
-// Package validation provides baseline management for regression testing
+// Package validation provides baseline management for regression testing.
 package validation
 
 import (
@@ -14,13 +14,13 @@ import (
 	"github.com/onsi/ginkgo/v2"
 )
 
-// BaselineManager handles creation, storage, and retrieval of validation baselines
+// BaselineManager handles creation, storage, and retrieval of validation baselines.
 type BaselineManager struct {
 	config      *RegressionConfig
 	storagePath string
 }
 
-// NewBaselineManager creates a new baseline manager
+// NewBaselineManager creates a new baseline manager.
 func NewBaselineManager(config *RegressionConfig) *BaselineManager {
 	return &BaselineManager{
 		config:      config,
@@ -28,14 +28,14 @@ func NewBaselineManager(config *RegressionConfig) *BaselineManager {
 	}
 }
 
-// CreateBaseline creates a new baseline from validation results
+// CreateBaseline creates a new baseline from validation results.
 func (bm *BaselineManager) CreateBaseline(results *ValidationResults, context string) (*BaselineSnapshot, error) {
 	ginkgo.By(fmt.Sprintf("Creating baseline with context: %s", context))
 
-	// Generate baseline ID
+	// Generate baseline ID.
 	baselineID := bm.generateBaselineID(results, context)
 
-	// Create baseline snapshot
+	// Create baseline snapshot.
 	baseline := &BaselineSnapshot{
 		ID:                   baselineID,
 		Timestamp:            time.Now(),
@@ -49,12 +49,12 @@ func (bm *BaselineManager) CreateBaseline(results *ValidationResults, context st
 		Statistics:           bm.calculateBaselineStatistics(results),
 	}
 
-	// Store baseline
+	// Store baseline.
 	if err := bm.storeBaseline(baseline); err != nil {
 		return nil, fmt.Errorf("failed to store baseline: %w", err)
 	}
 
-	// Clean up old baselines if retention limit exceeded
+	// Clean up old baselines if retention limit exceeded.
 	if err := bm.cleanupOldBaselines(); err != nil {
 		ginkgo.By(fmt.Sprintf("Warning: Failed to cleanup old baselines: %v", err))
 	}
@@ -63,7 +63,7 @@ func (bm *BaselineManager) CreateBaseline(results *ValidationResults, context st
 	return baseline, nil
 }
 
-// LoadLatestBaseline loads the most recent baseline
+// LoadLatestBaseline loads the most recent baseline.
 func (bm *BaselineManager) LoadLatestBaseline() (*BaselineSnapshot, error) {
 	baselines, err := bm.listBaselines()
 	if err != nil {
@@ -74,7 +74,7 @@ func (bm *BaselineManager) LoadLatestBaseline() (*BaselineSnapshot, error) {
 		return nil, os.ErrNotExist
 	}
 
-	// Sort by timestamp (newest first)
+	// Sort by timestamp (newest first).
 	sort.Slice(baselines, func(i, j int) bool {
 		return baselines[i].Timestamp.After(baselines[j].Timestamp)
 	})
@@ -82,12 +82,12 @@ func (bm *BaselineManager) LoadLatestBaseline() (*BaselineSnapshot, error) {
 	return bm.loadBaseline(baselines[0].ID)
 }
 
-// LoadBaseline loads a specific baseline by ID
+// LoadBaseline loads a specific baseline by ID.
 func (bm *BaselineManager) LoadBaseline(id string) (*BaselineSnapshot, error) {
 	return bm.loadBaseline(id)
 }
 
-// LoadAllBaselines loads all available baselines
+// LoadAllBaselines loads all available baselines.
 func (bm *BaselineManager) LoadAllBaselines() ([]*BaselineSnapshot, error) {
 	baselineInfos, err := bm.listBaselines()
 	if err != nil {
@@ -103,7 +103,7 @@ func (bm *BaselineManager) LoadAllBaselines() ([]*BaselineSnapshot, error) {
 		baselines[i] = baseline
 	}
 
-	// Sort by timestamp (newest first)
+	// Sort by timestamp (newest first).
 	sort.Slice(baselines, func(i, j int) bool {
 		return baselines[i].Timestamp.After(baselines[j].Timestamp)
 	})
@@ -111,11 +111,11 @@ func (bm *BaselineManager) LoadAllBaselines() ([]*BaselineSnapshot, error) {
 	return baselines, nil
 }
 
-// GetRegressionHistory returns regression detection history
+// GetRegressionHistory returns regression detection history.
 func (bm *BaselineManager) GetRegressionHistory(days int) ([]*RegressionDetection, error) {
 	since := time.Now().AddDate(0, 0, -days)
 
-	// List regression reports
+	// List regression reports.
 	reportFiles, err := filepath.Glob(filepath.Join(bm.storagePath, "regression-report-*.json"))
 	if err != nil {
 		return nil, err
@@ -123,7 +123,7 @@ func (bm *BaselineManager) GetRegressionHistory(days int) ([]*RegressionDetectio
 
 	var history []*RegressionDetection
 	for _, file := range reportFiles {
-		// Check file modification time
+		// Check file modification time.
 		stat, err := os.Stat(file)
 		if err != nil {
 			continue
@@ -133,7 +133,7 @@ func (bm *BaselineManager) GetRegressionHistory(days int) ([]*RegressionDetectio
 			continue
 		}
 
-		// Load regression detection
+		// Load regression detection.
 		detection, err := bm.loadRegressionReport(file)
 		if err != nil {
 			ginkgo.By(fmt.Sprintf("Warning: Failed to load regression report %s: %v", file, err))
@@ -143,7 +143,7 @@ func (bm *BaselineManager) GetRegressionHistory(days int) ([]*RegressionDetectio
 		history = append(history, detection)
 	}
 
-	// Sort by comparison time (newest first)
+	// Sort by comparison time (newest first).
 	sort.Slice(history, func(i, j int) bool {
 		return history[i].ComparisonTime.After(history[j].ComparisonTime)
 	})
@@ -151,7 +151,7 @@ func (bm *BaselineManager) GetRegressionHistory(days int) ([]*RegressionDetectio
 	return history, nil
 }
 
-// CompareBaselines compares two baselines and returns differences
+// CompareBaselines compares two baselines and returns differences.
 func (bm *BaselineManager) CompareBaselines(baselineA, baselineB *BaselineSnapshot) *BaselineComparison {
 	comparison := &BaselineComparison{
 		BaselineA:      baselineA,
@@ -160,7 +160,7 @@ func (bm *BaselineManager) CompareBaselines(baselineA, baselineB *BaselineSnapsh
 		Differences:    make(map[string]*BaselineDifference),
 	}
 
-	// Compare overall scores
+	// Compare overall scores.
 	comparison.Differences["overall_score"] = &BaselineDifference{
 		Category:      "Overall Score",
 		ValueA:        float64(baselineA.Results.TotalScore),
@@ -169,7 +169,7 @@ func (bm *BaselineManager) CompareBaselines(baselineA, baselineB *BaselineSnapsh
 		PercentChange: calculatePercentChange(float64(baselineA.Results.TotalScore), float64(baselineB.Results.TotalScore)),
 	}
 
-	// Compare category scores
+	// Compare category scores.
 	categories := map[string][2]int{
 		"functional":  {baselineA.Results.FunctionalScore, baselineB.Results.FunctionalScore},
 		"performance": {baselineA.Results.PerformanceScore, baselineB.Results.PerformanceScore},
@@ -187,7 +187,7 @@ func (bm *BaselineManager) CompareBaselines(baselineA, baselineB *BaselineSnapsh
 		}
 	}
 
-	// Compare performance metrics
+	// Compare performance metrics.
 	if baselineA.Results.P95Latency > 0 && baselineB.Results.P95Latency > 0 {
 		comparison.Differences["p95_latency"] = &BaselineDifference{
 			Category:      "P95 Latency",
@@ -221,7 +221,7 @@ func (bm *BaselineManager) CompareBaselines(baselineA, baselineB *BaselineSnapsh
 	return comparison
 }
 
-// BaselineComparison holds the result of comparing two baselines
+// BaselineComparison holds the result of comparing two baselines.
 type BaselineComparison struct {
 	BaselineA      *BaselineSnapshot              `json:"baseline_a"`
 	BaselineB      *BaselineSnapshot              `json:"baseline_b"`
@@ -229,7 +229,7 @@ type BaselineComparison struct {
 	Differences    map[string]*BaselineDifference `json:"differences"`
 }
 
-// BaselineDifference represents a difference between two baseline values
+// BaselineDifference represents a difference between two baseline values.
 type BaselineDifference struct {
 	Category      string  `json:"category"`
 	ValueA        float64 `json:"value_a"`
@@ -238,18 +238,18 @@ type BaselineDifference struct {
 	PercentChange float64 `json:"percent_change"`
 }
 
-// generateBaselineID creates a unique identifier for a baseline
+// generateBaselineID creates a unique identifier for a baseline.
 func (bm *BaselineManager) generateBaselineID(results *ValidationResults, context string) string {
 	timestamp := time.Now().Format("2006-01-02T15-04-05")
 	hash := sha256.Sum256([]byte(fmt.Sprintf("%s-%s-%d", timestamp, context, results.TotalScore)))
 	return fmt.Sprintf("%s-%x", timestamp, hash[:8])
 }
 
-// createPerformanceBaselines extracts performance baselines from results
+// createPerformanceBaselines extracts performance baselines from results.
 func (bm *BaselineManager) createPerformanceBaselines(results *ValidationResults) map[string]*PerformanceBaseline {
 	baselines := make(map[string]*PerformanceBaseline)
 
-	// P95 Latency baseline
+	// P95 Latency baseline.
 	if results.P95Latency > 0 {
 		baselines["p95_latency"] = &PerformanceBaseline{
 			MetricName:      "P95 Latency",
@@ -263,7 +263,7 @@ func (bm *BaselineManager) createPerformanceBaselines(results *ValidationResults
 		}
 	}
 
-	// Throughput baseline
+	// Throughput baseline.
 	if results.ThroughputAchieved > 0 {
 		baselines["throughput"] = &PerformanceBaseline{
 			MetricName:      "Throughput",
@@ -277,7 +277,7 @@ func (bm *BaselineManager) createPerformanceBaselines(results *ValidationResults
 		}
 	}
 
-	// Availability baseline
+	// Availability baseline.
 	if results.AvailabilityAchieved > 0 {
 		baselines["availability"] = &PerformanceBaseline{
 			MetricName:      "Availability",
@@ -294,7 +294,7 @@ func (bm *BaselineManager) createPerformanceBaselines(results *ValidationResults
 	return baselines
 }
 
-// createSecurityBaseline extracts security baseline from results
+// createSecurityBaseline extracts security baseline from results.
 func (bm *BaselineManager) createSecurityBaseline(results *ValidationResults) *SecurityBaseline {
 	baseline := &SecurityBaseline{
 		SecurityScore:           results.SecurityScore,
@@ -306,7 +306,7 @@ func (bm *BaselineManager) createSecurityBaseline(results *ValidationResults) *S
 		AuthenticationScore:     5,     // Default assumption from max auth score
 	}
 
-	// Count vulnerabilities by severity
+	// Count vulnerabilities by severity.
 	for _, finding := range results.SecurityFindings {
 		baseline.ComplianceFindings[finding.Type] = finding
 		switch strings.ToLower(finding.Severity) {
@@ -320,7 +320,7 @@ func (bm *BaselineManager) createSecurityBaseline(results *ValidationResults) *S
 	return baseline
 }
 
-// createProductionBaseline extracts production readiness baseline from results
+// createProductionBaseline extracts production readiness baseline from results.
 func (bm *BaselineManager) createProductionBaseline(results *ValidationResults) *ProductionBaseline {
 	baseline := &ProductionBaseline{
 		AvailabilityTarget:    results.AvailabilityAchieved,
@@ -332,7 +332,7 @@ func (bm *BaselineManager) createProductionBaseline(results *ValidationResults) 
 		DisasterRecoveryScore: 2,               // Default assumption from max disaster recovery score
 	}
 
-	// Extract from reliability metrics if available
+	// Extract from reliability metrics if available.
 	if results.ReliabilityMetrics != nil {
 		baseline.MTBF = results.ReliabilityMetrics.MTBF
 		baseline.MTTR = results.ReliabilityMetrics.MTTR
@@ -343,7 +343,7 @@ func (bm *BaselineManager) createProductionBaseline(results *ValidationResults) 
 	return baseline
 }
 
-// calculateBaselineStatistics calculates statistical metrics for the baseline
+// calculateBaselineStatistics calculates statistical metrics for the baseline.
 func (bm *BaselineManager) calculateBaselineStatistics(results *ValidationResults) *BaselineStatistics {
 	return &BaselineStatistics{
 		SampleSize:       1, // Single sample for new baseline
@@ -354,7 +354,7 @@ func (bm *BaselineManager) calculateBaselineStatistics(results *ValidationResult
 	}
 }
 
-// storeBaseline saves a baseline to storage
+// storeBaseline saves a baseline to storage.
 func (bm *BaselineManager) storeBaseline(baseline *BaselineSnapshot) error {
 	filename := fmt.Sprintf("baseline-%s.json", baseline.ID)
 	path := filepath.Join(bm.storagePath, filename)
@@ -364,10 +364,10 @@ func (bm *BaselineManager) storeBaseline(baseline *BaselineSnapshot) error {
 		return fmt.Errorf("failed to marshal baseline: %w", err)
 	}
 
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0o640)
 }
 
-// loadBaseline loads a baseline from storage
+// loadBaseline loads a baseline from storage.
 func (bm *BaselineManager) loadBaseline(id string) (*BaselineSnapshot, error) {
 	filename := fmt.Sprintf("baseline-%s.json", id)
 	path := filepath.Join(bm.storagePath, filename)
@@ -385,7 +385,7 @@ func (bm *BaselineManager) loadBaseline(id string) (*BaselineSnapshot, error) {
 	return &baseline, nil
 }
 
-// listBaselines returns a list of all available baselines
+// listBaselines returns a list of all available baselines.
 func (bm *BaselineManager) listBaselines() ([]*BaselineSnapshot, error) {
 	pattern := filepath.Join(bm.storagePath, "baseline-*.json")
 	files, err := filepath.Glob(pattern)
@@ -395,11 +395,11 @@ func (bm *BaselineManager) listBaselines() ([]*BaselineSnapshot, error) {
 
 	var baselines []*BaselineSnapshot
 	for _, file := range files {
-		// Extract baseline ID from filename
+		// Extract baseline ID from filename.
 		filename := filepath.Base(file)
 		id := strings.TrimSuffix(strings.TrimPrefix(filename, "baseline-"), ".json")
 
-		// Load minimal baseline info (could be optimized to load only metadata)
+		// Load minimal baseline info (could be optimized to load only metadata).
 		baseline, err := bm.loadBaseline(id)
 		if err != nil {
 			ginkgo.By(fmt.Sprintf("Warning: Failed to load baseline %s: %v", id, err))
@@ -412,7 +412,7 @@ func (bm *BaselineManager) listBaselines() ([]*BaselineSnapshot, error) {
 	return baselines, nil
 }
 
-// cleanupOldBaselines removes baselines beyond retention limit
+// cleanupOldBaselines removes baselines beyond retention limit.
 func (bm *BaselineManager) cleanupOldBaselines() error {
 	if bm.config.BaselineRetention <= 0 {
 		return nil // No retention limit
@@ -427,12 +427,12 @@ func (bm *BaselineManager) cleanupOldBaselines() error {
 		return nil // Within retention limit
 	}
 
-	// Sort by timestamp (oldest first for deletion)
+	// Sort by timestamp (oldest first for deletion).
 	sort.Slice(baselines, func(i, j int) bool {
 		return baselines[i].Timestamp.Before(baselines[j].Timestamp)
 	})
 
-	// Delete excess baselines
+	// Delete excess baselines.
 	excessCount := len(baselines) - bm.config.BaselineRetention
 	for i := 0; i < excessCount; i++ {
 		filename := fmt.Sprintf("baseline-%s.json", baselines[i].ID)
@@ -448,7 +448,7 @@ func (bm *BaselineManager) cleanupOldBaselines() error {
 	return nil
 }
 
-// loadRegressionReport loads a regression report from file
+// loadRegressionReport loads a regression report from file.
 func (bm *BaselineManager) loadRegressionReport(filename string) (*RegressionDetection, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
@@ -463,19 +463,19 @@ func (bm *BaselineManager) loadRegressionReport(filename string) (*RegressionDet
 	return &detection, nil
 }
 
-// getSystemVersion returns the current system version
+// getSystemVersion returns the current system version.
 func (bm *BaselineManager) getSystemVersion() string {
-	// This would typically read from VERSION file or build info
+	// This would typically read from VERSION file or build info.
 	return "v1.0.0" // Placeholder
 }
 
-// getCurrentCommitHash returns the current git commit hash
+// getCurrentCommitHash returns the current git commit hash.
 func (bm *BaselineManager) getCurrentCommitHash() string {
-	// This would typically execute: git rev-parse HEAD
+	// This would typically execute: git rev-parse HEAD.
 	return "main" // Placeholder
 }
 
-// getEnvironmentInfo returns information about the test environment
+// getEnvironmentInfo returns information about the test environment.
 func (bm *BaselineManager) getEnvironmentInfo() string {
 	env := os.Getenv("TEST_ENVIRONMENT")
 	if env == "" {
@@ -484,7 +484,7 @@ func (bm *BaselineManager) getEnvironmentInfo() string {
 	return env
 }
 
-// calculatePercentChange calculates the percentage change between two values
+// calculatePercentChange calculates the percentage change between two values.
 func calculatePercentChange(oldValue, newValue float64) float64 {
 	if oldValue == 0 {
 		if newValue == 0 {

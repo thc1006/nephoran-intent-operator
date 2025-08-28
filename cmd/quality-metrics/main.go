@@ -6,11 +6,13 @@ import (
 	"log"
 	"os"
 	"runtime"
-	"strings"
 	"time"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
-// QualityMetricsReport represents comprehensive code quality metrics
+// QualityMetricsReport represents comprehensive code quality metrics.
 type QualityMetricsReport struct {
 	ProjectPath     string              `json:"project_path"`
 	Timestamp       time.Time           `json:"timestamp"`
@@ -23,6 +25,7 @@ type QualityMetricsReport struct {
 	Recommendations []Recommendation    `json:"recommendations"`
 }
 
+// QualitySummary represents a qualitysummary.
 type QualitySummary struct {
 	OverallScore   float64 `json:"overall_score"`
 	Grade          string  `json:"grade"`
@@ -33,6 +36,7 @@ type QualitySummary struct {
 	InfoIssues     int     `json:"info_issues"`
 }
 
+// CodeMetrics represents a codemetrics.
 type CodeMetrics struct {
 	LinesOfCode          int     `json:"lines_of_code"`
 	LinesOfComments      int     `json:"lines_of_comments"`
@@ -44,6 +48,7 @@ type CodeMetrics struct {
 	Maintainability      float64 `json:"maintainability"`
 }
 
+// TestMetrics represents a testmetrics.
 type TestMetrics struct {
 	TotalTests       int     `json:"total_tests"`
 	PassingTests     int     `json:"passing_tests"`
@@ -54,6 +59,7 @@ type TestMetrics struct {
 	UnitTests        int     `json:"unit_tests"`
 }
 
+// SecurityMetrics represents a securitymetrics.
 type SecurityMetrics struct {
 	Vulnerabilities    int      `json:"vulnerabilities"`
 	HighSeverity       int      `json:"high_severity"`
@@ -63,6 +69,7 @@ type SecurityMetrics struct {
 	VulnerablePackages []string `json:"vulnerable_packages"`
 }
 
+// TechnicalDebtReport represents a technicaldebtreport.
 type TechnicalDebtReport struct {
 	EstimatedHours   float64        `json:"estimated_hours"`
 	DebtRatio        float64        `json:"debt_ratio"`
@@ -71,6 +78,7 @@ type TechnicalDebtReport struct {
 	IssuesBySeverity map[string]int `json:"issues_by_severity"`
 }
 
+// Recommendation represents a recommendation.
 type Recommendation struct {
 	Type        string `json:"type"`
 	Severity    string `json:"severity"`
@@ -83,25 +91,25 @@ func main() {
 	fmt.Println("🚀 Nephoran Quality Metrics Analysis")
 	fmt.Println("====================================")
 
-	// Initialize report
+	// Initialize report.
 	report := &QualityMetricsReport{
 		ProjectPath: ".",
 		Timestamp:   time.Now(),
 		GoVersion:   runtime.Version(),
 	}
 
-	// Analyze code quality
+	// Analyze code quality.
 	if err := report.analyzeCodeQuality(); err != nil {
 		log.Fatalf("Code quality analysis failed: %v", err)
 	}
 
-	// Generate quality summary
+	// Generate quality summary.
 	report.generateQualitySummary()
 
-	// Generate recommendations
+	// Generate recommendations.
 	report.generateRecommendations()
 
-	// Generate reports
+	// Generate reports.
 	report.generateReports()
 
 	fmt.Println("✅ Quality metrics analysis completed!")
@@ -110,7 +118,7 @@ func main() {
 func (qmr *QualityMetricsReport) analyzeCodeQuality() error {
 	fmt.Println("📊 Analyzing code quality metrics...")
 
-	// Analyze code metrics
+	// Analyze code metrics.
 	qmr.CodeMetrics = CodeMetrics{
 		LinesOfCode:          50000,
 		LinesOfComments:      8000,
@@ -122,7 +130,7 @@ func (qmr *QualityMetricsReport) analyzeCodeQuality() error {
 		Maintainability:      85.0,
 	}
 
-	// Analyze test metrics
+	// Analyze test metrics.
 	qmr.TestMetrics = TestMetrics{
 		TotalTests:       450,
 		PassingTests:     430,
@@ -133,7 +141,7 @@ func (qmr *QualityMetricsReport) analyzeCodeQuality() error {
 		UnitTests:        350,
 	}
 
-	// Analyze security metrics
+	// Analyze security metrics.
 	qmr.SecurityMetrics = SecurityMetrics{
 		Vulnerabilities:    3,
 		HighSeverity:       0,
@@ -143,7 +151,7 @@ func (qmr *QualityMetricsReport) analyzeCodeQuality() error {
 		VulnerablePackages: []string{"old-package-v1.0"},
 	}
 
-	// Analyze technical debt
+	// Analyze technical debt.
 	qmr.TechnicalDebt = TechnicalDebtReport{
 		EstimatedHours: 24.5,
 		DebtRatio:      5.2,
@@ -171,7 +179,7 @@ func (qmr *QualityMetricsReport) analyzeCodeQuality() error {
 func (qmr *QualityMetricsReport) generateQualitySummary() {
 	fmt.Println("🔍 Generating quality summary...")
 
-	// Calculate overall score based on multiple factors
+	// Calculate overall score based on multiple factors.
 	codeScore := qmr.CodeMetrics.Maintainability
 	testScore := qmr.TestMetrics.TestCoverage
 	securityScore := qmr.SecurityMetrics.SecurityScore
@@ -237,13 +245,13 @@ func (qmr *QualityMetricsReport) generateRecommendations() {
 func (qmr *QualityMetricsReport) generateReports() {
 	fmt.Println("📄 Generating quality reports...")
 
-	// Generate JSON report
+	// Generate JSON report.
 	qmr.generateJSONReport()
 
-	// Generate markdown report
+	// Generate markdown report.
 	qmr.generateMarkdownReport()
 
-	// Generate HTML report
+	// Generate HTML report.
 	qmr.generateHTMLReport()
 }
 
@@ -279,7 +287,7 @@ func (qmr *QualityMetricsReport) generateMarkdownReport() {
 	}
 	defer func() { _ = file.Close() }()
 
-	// FIXME: Batch error handling for multiple fmt.Fprintf calls in markdown generation
+	// FIXME: Batch error handling for multiple fmt.Fprintf calls in markdown generation.
 	var mdWriteErr error
 	if _, err := fmt.Fprintf(file, "# Code Quality Metrics Report\n\n"); err != nil && mdWriteErr == nil {
 		mdWriteErr = err
@@ -327,7 +335,7 @@ func (qmr *QualityMetricsReport) generateMarkdownReport() {
 		mdWriteErr = err
 	}
 	for _, rec := range qmr.Recommendations {
-		if _, err := fmt.Fprintf(file, "### %s (%s)\n", rec.Type, strings.Title(rec.Severity)); err != nil && mdWriteErr == nil {
+		if _, err := fmt.Fprintf(file, "### %s (%s)\n", rec.Type, cases.Title(language.English).String(rec.Severity)); err != nil && mdWriteErr == nil {
 			mdWriteErr = err
 		}
 		if _, err := fmt.Fprintf(file, "%s\n\n", rec.Description); err != nil && mdWriteErr == nil {
@@ -338,7 +346,7 @@ func (qmr *QualityMetricsReport) generateMarkdownReport() {
 		}
 	}
 
-	// Check for any write errors
+	// Check for any write errors.
 	if mdWriteErr != nil {
 		log.Printf("Error writing markdown report: %v", mdWriteErr)
 		return
@@ -387,7 +395,7 @@ func (qmr *QualityMetricsReport) generateHTMLReport() {
 </body>
 </html>`
 
-	// FIXME: Adding error check for fmt.Fprintf per errcheck linter
+	// FIXME: Adding error check for fmt.Fprintf per errcheck linter.
 	if _, err := fmt.Fprintf(file, html,
 		qmr.Summary.OverallScore, qmr.Summary.Grade, qmr.Summary.Status,
 		qmr.Timestamp.Format("2006-01-02 15:04:05"),

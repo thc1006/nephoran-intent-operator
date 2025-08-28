@@ -22,56 +22,77 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
-// ComponentType is an alias for shared.ComponentType for backward compatibility
-// and cleaner imports within the optimization package
+// ComponentType is an alias for shared.ComponentType for backward compatibility.
+// and cleaner imports within the optimization package.
 type ComponentType = shared.ComponentType
 
-// OptimizationCategory represents different categories of optimizations
+// OptimizationCategory represents different categories of optimizations.
 type OptimizationCategory string
 
 const (
-	CategoryPerformance        OptimizationCategory = "performance"
-	CategoryResource           OptimizationCategory = "resource"
-	CategoryCost               OptimizationCategory = "cost"
-	CategoryReliability        OptimizationCategory = "reliability"
-	CategorySecurity           OptimizationCategory = "security"
-	CategoryCompliance         OptimizationCategory = "compliance"
-	CategoryMaintenance        OptimizationCategory = "maintenance"
+	// CategoryPerformance holds categoryperformance value.
+	CategoryPerformance OptimizationCategory = "performance"
+	// CategoryResource holds categoryresource value.
+	CategoryResource OptimizationCategory = "resource"
+	// CategoryCost holds categorycost value.
+	CategoryCost OptimizationCategory = "cost"
+	// CategoryReliability holds categoryreliability value.
+	CategoryReliability OptimizationCategory = "reliability"
+	// CategorySecurity holds categorysecurity value.
+	CategorySecurity OptimizationCategory = "security"
+	// CategoryCompliance holds categorycompliance value.
+	CategoryCompliance OptimizationCategory = "compliance"
+	// CategoryMaintenance holds categorymaintenance value.
+	CategoryMaintenance OptimizationCategory = "maintenance"
+	// CategoryTelecommunications holds categorytelecommunications value.
 	CategoryTelecommunications OptimizationCategory = "telecommunications"
 )
 
-// OptimizationPriority represents priority levels for optimizations
+// OptimizationPriority represents priority levels for optimizations.
 type OptimizationPriority string
 
 const (
+	// PriorityCritical holds prioritycritical value.
 	PriorityCritical OptimizationPriority = "critical"
-	PriorityHigh     OptimizationPriority = "high"
-	PriorityMedium   OptimizationPriority = "medium"
-	PriorityLow      OptimizationPriority = "low"
+	// PriorityHigh holds priorityhigh value.
+	PriorityHigh OptimizationPriority = "high"
+	// PriorityMedium holds prioritymedium value.
+	PriorityMedium OptimizationPriority = "medium"
+	// PriorityLow holds prioritylow value.
+	PriorityLow OptimizationPriority = "low"
 )
 
-// SeverityLevel represents severity levels
+// SeverityLevel represents severity levels.
 type SeverityLevel string
 
 const (
+	// SeverityCritical holds severitycritical value.
 	SeverityCritical SeverityLevel = "critical"
-	SeverityHigh     SeverityLevel = "high"
-	SeverityMedium   SeverityLevel = "medium"
-	SeverityLow      SeverityLevel = "low"
-	SeverityInfo     SeverityLevel = "info"
+	// SeverityHigh holds severityhigh value.
+	SeverityHigh SeverityLevel = "high"
+	// SeverityMedium holds severitymedium value.
+	SeverityMedium SeverityLevel = "medium"
+	// SeverityLow holds severitylow value.
+	SeverityLow SeverityLevel = "low"
+	// SeverityInfo holds severityinfo value.
+	SeverityInfo SeverityLevel = "info"
 )
 
-// AutomationLevel defines levels of automation for implementation steps
+// AutomationLevel defines levels of automation for implementation steps.
 type AutomationLevel string
 
 const (
-	AutomationFull     AutomationLevel = "full"
-	AutomationPartial  AutomationLevel = "partial"
-	AutomationManual   AutomationLevel = "manual"
+	// AutomationFull holds automationfull value.
+	AutomationFull AutomationLevel = "full"
+	// AutomationPartial holds automationpartial value.
+	AutomationPartial AutomationLevel = "partial"
+	// AutomationManual holds automationmanual value.
+	AutomationManual AutomationLevel = "manual"
+	// AutomationAssisted holds automationassisted value.
 	AutomationAssisted AutomationLevel = "assisted"
 )
 
-// ExpectedBenefits represents expected benefits from optimization
+// ExpectedBenefits represents expected benefits from optimization.
 type ExpectedBenefits struct {
 	LatencyReduction       float64 `json:"latencyReduction"`
 	ThroughputIncrease     float64 `json:"throughputIncrease"`
@@ -82,13 +103,13 @@ type ExpectedBenefits struct {
 	ReliabilityImprovement float64 `json:"reliabilityImprovement"`
 	EnergyEfficiencyGain   float64 `json:"energyEfficiencyGain"`
 
-	// Telecom-specific benefits
+	// Telecom-specific benefits.
 	SignalingEfficiencyGain float64 `json:"signalingEfficiencyGain"`
 	SpectrumEfficiencyGain  float64 `json:"spectrumEfficiencyGain"`
 	InteropImprovements     float64 `json:"interopImprovements"`
 }
 
-// ImplementationStep represents a single implementation step
+// ImplementationStep represents a single implementation step.
 type ImplementationStep struct {
 	Order           int             `json:"order"`
 	Name            string          `json:"name"`
@@ -100,7 +121,7 @@ type ImplementationStep struct {
 	RollbackAction  string          `json:"rollbackAction,omitempty"`
 }
 
-// ConfidenceInterval represents a confidence interval for statistical data
+// ConfidenceInterval represents a confidence interval for statistical data.
 type ConfidenceInterval struct {
 	Timestamp       time.Time `json:"timestamp,omitempty"`
 	LowerBound      float64   `json:"lowerBound"`
@@ -108,7 +129,7 @@ type ConfidenceInterval struct {
 	ConfidenceLevel float64   `json:"confidenceLevel"`
 }
 
-// ExpectedImpact represents the expected impact of optimization changes
+// ExpectedImpact represents the expected impact of optimization changes.
 type ExpectedImpact struct {
 	LatencyReduction   float64 `json:"latencyReduction"`
 	ThroughputIncrease float64 `json:"throughputIncrease"`
@@ -117,19 +138,25 @@ type ExpectedImpact struct {
 	EfficiencyGain     float64 `json:"efficiencyGain"`
 }
 
-// ComparisonOperator defines comparison operators for conditions
+// ComparisonOperator defines comparison operators for conditions.
 type ComparisonOperator string
 
 const (
-	OperatorGreaterThan  ComparisonOperator = "gt"
-	OperatorLessThan     ComparisonOperator = "lt"
-	OperatorEqual        ComparisonOperator = "eq"
+	// OperatorGreaterThan holds operatorgreaterthan value.
+	OperatorGreaterThan ComparisonOperator = "gt"
+	// OperatorLessThan holds operatorlessthan value.
+	OperatorLessThan ComparisonOperator = "lt"
+	// OperatorEqual holds operatorequal value.
+	OperatorEqual ComparisonOperator = "eq"
+	// OperatorGreaterEqual holds operatorgreaterequal value.
 	OperatorGreaterEqual ComparisonOperator = "gte"
-	OperatorLessEqual    ComparisonOperator = "lte"
-	OperatorBetween      ComparisonOperator = "between"
+	// OperatorLessEqual holds operatorlessequal value.
+	OperatorLessEqual ComparisonOperator = "lte"
+	// OperatorBetween holds operatorbetween value.
+	OperatorBetween ComparisonOperator = "between"
 )
 
-// ScenarioCondition defines when a strategy is applicable
+// ScenarioCondition defines when a strategy is applicable.
 type ScenarioCondition struct {
 	MetricName    string             `json:"metricName"`
 	Operator      ComparisonOperator `json:"operator"`
@@ -138,31 +165,31 @@ type ScenarioCondition struct {
 	TimeWindow    time.Duration      `json:"timeWindow"`
 }
 
-// OptimizationKnowledgeBase contains optimization knowledge and best practices
+// OptimizationKnowledgeBase contains optimization knowledge and best practices.
 type OptimizationKnowledgeBase struct {
-	// Best practices indexed by component type
+	// Best practices indexed by component type.
 	BestPractices map[shared.ComponentType][]*OptimizationBestPractice `json:"bestPractices"`
 
-	// Historical optimization results
+	// Historical optimization results.
 	OptimizationHistory []*OptimizationHistoryEntry `json:"optimizationHistory"`
 
-	// Common bottlenecks and their solutions
+	// Common bottlenecks and their solutions.
 	KnownBottlenecks map[string]*BottleneckSolution `json:"knownBottlenecks"`
 
-	// Telecom-specific optimization rules
+	// Telecom-specific optimization rules.
 	TelecomRules []*TelecomOptimizationRule `json:"telecomRules"`
 
-	// ML model metadata
+	// ML model metadata.
 	ModelMetadata map[string]*MLModelMetadata `json:"modelMetadata"`
 
-	// Compliance requirements
+	// Compliance requirements.
 	ComplianceRequirements []*ComplianceRequirement `json:"complianceRequirements"`
 
-	// Last updated timestamp
+	// Last updated timestamp.
 	LastUpdated time.Time `json:"lastUpdated"`
 }
 
-// OptimizationBestPractice represents an optimization best practice
+// OptimizationBestPractice represents an optimization best practice.
 type OptimizationBestPractice struct {
 	ID              string               `json:"id"`
 	Name            string               `json:"name"`
@@ -177,7 +204,7 @@ type OptimizationBestPractice struct {
 	ValidationSteps []string             `json:"validationSteps"`
 }
 
-// OptimizationHistoryEntry tracks past optimization results
+// OptimizationHistoryEntry tracks past optimization results.
 type OptimizationHistoryEntry struct {
 	Timestamp        time.Time            `json:"timestamp"`
 	ComponentType    shared.ComponentType `json:"componentType"`
@@ -190,7 +217,7 @@ type OptimizationHistoryEntry struct {
 	Duration         time.Duration        `json:"duration"`
 }
 
-// BottleneckSolution contains solutions for known bottlenecks
+// BottleneckSolution contains solutions for known bottlenecks.
 type BottleneckSolution struct {
 	BottleneckType     string                  `json:"bottleneckType"`
 	Description        string                  `json:"description"`
@@ -200,7 +227,7 @@ type BottleneckSolution struct {
 	DetectionMethod    string                  `json:"detectionMethod"`
 }
 
-// OptimizationSolution represents a specific solution to a bottleneck
+// OptimizationSolution represents a specific solution to a bottleneck.
 type OptimizationSolution struct {
 	Name          string        `json:"name"`
 	Description   string        `json:"description"`
@@ -212,7 +239,7 @@ type OptimizationSolution struct {
 	RollbackSteps []string      `json:"rollbackSteps"`
 }
 
-// TelecomOptimizationRule represents telecom-specific optimization rules
+// TelecomOptimizationRule represents telecom-specific optimization rules.
 type TelecomOptimizationRule struct {
 	ID              string                      `json:"id"`
 	Name            string                      `json:"name"`
@@ -226,7 +253,7 @@ type TelecomOptimizationRule struct {
 	Enabled         bool                        `json:"enabled"`
 }
 
-// OptimizationRuleCondition defines a condition in optimization rules
+// OptimizationRuleCondition defines a condition in optimization rules.
 type OptimizationRuleCondition struct {
 	MetricName     string        `json:"metricName"`
 	Operator       string        `json:"operator"`
@@ -235,7 +262,7 @@ type OptimizationRuleCondition struct {
 	Severity       string        `json:"severity"`
 }
 
-// OptimizationRuleAction defines an action to take when rule conditions are met
+// OptimizationRuleAction defines an action to take when rule conditions are met.
 type OptimizationRuleAction struct {
 	ActionType        string            `json:"actionType"`
 	Parameters        map[string]string `json:"parameters"`
@@ -244,7 +271,7 @@ type OptimizationRuleAction struct {
 	NotificationLevel string            `json:"notificationLevel"`
 }
 
-// MLModelMetadata contains metadata about ML models used in optimization
+// MLModelMetadata contains metadata about ML models used in optimization.
 type MLModelMetadata struct {
 	ModelID        string                 `json:"modelId"`
 	Name           string                 `json:"name"`
@@ -259,7 +286,7 @@ type MLModelMetadata struct {
 	OutputFormat   string                 `json:"outputFormat"`
 }
 
-// ComplianceRequirement represents compliance requirements for optimizations
+// ComplianceRequirement represents compliance requirements for optimizations.
 type ComplianceRequirement struct {
 	ID              string                 `json:"id"`
 	Name            string                 `json:"name"`
@@ -272,7 +299,7 @@ type ComplianceRequirement struct {
 	Deadline        time.Time              `json:"deadline,omitempty"`
 }
 
-// PerformanceBottleneck represents a detected performance bottleneck
+// PerformanceBottleneck represents a detected performance bottleneck.
 type PerformanceBottleneck struct {
 	ID                 string                 `json:"id"`
 	Name               string                 `json:"name"`
@@ -290,7 +317,7 @@ type PerformanceBottleneck struct {
 	BusinessImpact     string                 `json:"businessImpact"`
 }
 
-// PerformanceIssue represents a detected performance issue
+// PerformanceIssue represents a detected performance issue.
 type PerformanceIssue struct {
 	ID                string               `json:"id"`
 	Name              string               `json:"name"`
@@ -310,20 +337,27 @@ type PerformanceIssue struct {
 	Resolution        *IssueResolution     `json:"resolution,omitempty"`
 }
 
-// IssueCategory represents the category of a performance issue
+// IssueCategory represents the category of a performance issue.
 type IssueCategory string
 
 const (
-	IssueCategoryLatency      IssueCategory = "latency"
-	IssueCategoryThroughput   IssueCategory = "throughput"
-	IssueCategoryMemory       IssueCategory = "memory"
-	IssueCategoryCPU          IssueCategory = "cpu"
-	IssueCategoryNetwork      IssueCategory = "network"
-	IssueCategoryStorage      IssueCategory = "storage"
+	// IssueCategoryLatency holds issuecategorylatency value.
+	IssueCategoryLatency IssueCategory = "latency"
+	// IssueCategoryThroughput holds issuecategorythroughput value.
+	IssueCategoryThroughput IssueCategory = "throughput"
+	// IssueCategoryMemory holds issuecategorymemory value.
+	IssueCategoryMemory IssueCategory = "memory"
+	// IssueCategoryCPU holds issuecategorycpu value.
+	IssueCategoryCPU IssueCategory = "cpu"
+	// IssueCategoryNetwork holds issuecategorynetwork value.
+	IssueCategoryNetwork IssueCategory = "network"
+	// IssueCategoryStorage holds issuecategorystorage value.
+	IssueCategoryStorage IssueCategory = "storage"
+	// IssueCategoryAvailability holds issuecategoryavailability value.
 	IssueCategoryAvailability IssueCategory = "availability"
 )
 
-// RootCauseAnalysis contains root cause analysis information
+// RootCauseAnalysis contains root cause analysis information.
 type RootCauseAnalysis struct {
 	PossibleCauses     []string  `json:"possibleCauses"`
 	MostLikelyCause    string    `json:"mostLikelyCause"`
@@ -334,7 +368,7 @@ type RootCauseAnalysis struct {
 	AnalysisTimestamp  time.Time `json:"analysisTimestamp"`
 }
 
-// IssueResolution contains information about issue resolution
+// IssueResolution contains information about issue resolution.
 type IssueResolution struct {
 	ResolutionID       string           `json:"resolutionId"`
 	Status             ResolutionStatus `json:"status"`
@@ -345,17 +379,21 @@ type IssueResolution struct {
 	PreventionMeasures []string         `json:"preventionMeasures"`
 }
 
-// ResolutionStatus represents the status of issue resolution
+// ResolutionStatus represents the status of issue resolution.
 type ResolutionStatus string
 
 const (
-	ResolutionStatusPending    ResolutionStatus = "pending"
+	// ResolutionStatusPending holds resolutionstatuspending value.
+	ResolutionStatusPending ResolutionStatus = "pending"
+	// ResolutionStatusInProgress holds resolutionstatusinprogress value.
 	ResolutionStatusInProgress ResolutionStatus = "in_progress"
-	ResolutionStatusResolved   ResolutionStatus = "resolved"
-	ResolutionStatusFailed     ResolutionStatus = "failed"
+	// ResolutionStatusResolved holds resolutionstatusresolved value.
+	ResolutionStatusResolved ResolutionStatus = "resolved"
+	// ResolutionStatusFailed holds resolutionstatusfailed value.
+	ResolutionStatusFailed ResolutionStatus = "failed"
 )
 
-// ResourceConstraint represents a resource constraint affecting performance
+// ResourceConstraint represents a resource constraint affecting performance.
 type ResourceConstraint struct {
 	ID               string               `json:"id"`
 	Name             string               `json:"name"`
@@ -374,16 +412,21 @@ type ResourceConstraint struct {
 	BusinessContext  string               `json:"businessContext"`
 }
 
-// Additional constraint type constants for ResourceConstraint
+// Additional constraint type constants for ResourceConstraint.
 const (
-	ConstraintTypeCapacity    = "capacity"
+	// ConstraintTypeCapacity holds constrainttypecapacity value.
+	ConstraintTypeCapacity = "capacity"
+	// ConstraintTypePerformance holds constrainttypeperformance value.
 	ConstraintTypePerformance = "performance"
-	ConstraintTypeCost        = "cost"
-	ConstraintTypeCompliance  = "compliance"
-	ConstraintTypeSLA         = "sla"
+	// ConstraintTypeCost holds constrainttypecost value.
+	ConstraintTypeCost = "cost"
+	// ConstraintTypeCompliance holds constrainttypecompliance value.
+	ConstraintTypeCompliance = "compliance"
+	// ConstraintTypeSLA holds constrainttypesla value.
+	ConstraintTypeSLA = "sla"
 )
 
-// ConstraintImpact represents the impact of a resource constraint
+// ConstraintImpact represents the impact of a resource constraint.
 type ConstraintImpact struct {
 	PerformanceDegradation float64  `json:"performanceDegradation"`
 	AffectedServices       []string `json:"affectedServices"`
@@ -392,7 +435,7 @@ type ConstraintImpact struct {
 	CostImplication        float64  `json:"costImplication"`
 }
 
-// OptimizationOpportunity represents an identified optimization opportunity
+// OptimizationOpportunity represents an identified optimization opportunity.
 type OptimizationOpportunity struct {
 	ID                   string                     `json:"id"`
 	Name                 string                     `json:"name"`
@@ -410,17 +453,21 @@ type OptimizationOpportunity struct {
 	EstimatedCompletion  time.Duration              `json:"estimatedCompletion"`
 }
 
-// OpportunityPriority represents the priority of an optimization opportunity
+// OpportunityPriority represents the priority of an optimization opportunity.
 type OpportunityPriority string
 
 const (
-	OpportunityPriorityLow      OpportunityPriority = "low"
-	OpportunityPriorityMedium   OpportunityPriority = "medium"
-	OpportunityPriorityHigh     OpportunityPriority = "high"
+	// OpportunityPriorityLow holds opportunityprioritylow value.
+	OpportunityPriorityLow OpportunityPriority = "low"
+	// OpportunityPriorityMedium holds opportunityprioritymedium value.
+	OpportunityPriorityMedium OpportunityPriority = "medium"
+	// OpportunityPriorityHigh holds opportunitypriorityhigh value.
+	OpportunityPriorityHigh OpportunityPriority = "high"
+	// OpportunityPriorityCritical holds opportunityprioritycritical value.
 	OpportunityPriorityCritical OpportunityPriority = "critical"
 )
 
-// EstimatedImprovement represents expected improvements from an optimization
+// EstimatedImprovement represents expected improvements from an optimization.
 type EstimatedImprovement struct {
 	PerformanceGain    float64            `json:"performanceGain"`
 	CostSaving         float64            `json:"costSaving"`
@@ -432,7 +479,7 @@ type EstimatedImprovement struct {
 	SLACompliance      float64            `json:"slaCompliance"`
 }
 
-// OpportunityRiskAssessment represents risk assessment for an optimization opportunity
+// OpportunityRiskAssessment represents risk assessment for an optimization opportunity.
 type OpportunityRiskAssessment struct {
 	OverallRisk          RiskLevel               `json:"overallRisk"` // Using existing RiskLevel type
 	RiskFactors          []OpportunityRiskFactor `json:"riskFactors"`
@@ -442,7 +489,7 @@ type OpportunityRiskAssessment struct {
 	BackupPlan           string                  `json:"backupPlan"`
 }
 
-// OpportunityRiskFactor represents a specific risk factor for optimization opportunities
+// OpportunityRiskFactor represents a specific risk factor for optimization opportunities.
 type OpportunityRiskFactor struct {
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
@@ -453,7 +500,7 @@ type OpportunityRiskFactor struct {
 	Contingency string  `json:"contingency"`
 }
 
-// RiskImpactAnalysis contains analysis of potential risks
+// RiskImpactAnalysis contains analysis of potential risks.
 type RiskImpactAnalysis struct {
 	PerformanceRisk  float64       `json:"performanceRisk"`
 	AvailabilityRisk float64       `json:"availabilityRisk"`
@@ -464,7 +511,7 @@ type RiskImpactAnalysis struct {
 	AffectedSystems  []string      `json:"affectedSystems"`
 }
 
-// ROIAnalysis contains return on investment analysis
+// ROIAnalysis contains return on investment analysis.
 type ROIAnalysis struct {
 	InitialInvestment   float64            `json:"initialInvestment"`
 	ExpectedSavings     float64            `json:"expectedSavings"`
@@ -477,7 +524,7 @@ type ROIAnalysis struct {
 	SensitivityAnalysis map[string]float64 `json:"sensitivityAnalysis"`
 }
 
-// ResourceUtilization represents resource utilization metrics
+// ResourceUtilization represents resource utilization metrics.
 type ResourceUtilization struct {
 	ComponentType         shared.ComponentType       `json:"componentType"`
 	TimePeriod            TimePeriod                 `json:"timePeriod"`
@@ -493,7 +540,7 @@ type ResourceUtilization struct {
 	TrendAnalysis         *UtilizationTrend          `json:"trendAnalysis"`
 }
 
-// TimePeriod represents a time period for metrics
+// TimePeriod represents a time period for metrics.
 type TimePeriod struct {
 	Start       time.Time     `json:"start"`
 	End         time.Time     `json:"end"`
@@ -501,7 +548,7 @@ type TimePeriod struct {
 	Granularity string        `json:"granularity"`
 }
 
-// ResourceMetric represents metrics for a specific resource type
+// ResourceMetric represents metrics for a specific resource type.
 type ResourceMetric struct {
 	Current     float64               `json:"current"`
 	Average     float64               `json:"average"`
@@ -513,7 +560,7 @@ type ResourceMetric struct {
 	Anomalies   []*UtilizationAnomaly `json:"anomalies"`
 }
 
-// ResourceThreshold represents thresholds for resource metrics
+// ResourceThreshold represents thresholds for resource metrics.
 type ResourceThreshold struct {
 	Warning  float64 `json:"warning"`
 	Critical float64 `json:"critical"`
@@ -521,7 +568,7 @@ type ResourceThreshold struct {
 	Optimal  float64 `json:"optimal"`
 }
 
-// WasteFactor represents factors contributing to resource waste
+// WasteFactor represents factors contributing to resource waste.
 type WasteFactor struct {
 	Factor      string  `json:"factor"`
 	Impact      float64 `json:"impact"`
@@ -529,7 +576,7 @@ type WasteFactor struct {
 	Remedy      string  `json:"remedy"`
 }
 
-// BenchmarkComparison compares utilization against benchmarks
+// BenchmarkComparison compares utilization against benchmarks.
 type BenchmarkComparison struct {
 	Industry     float64 `json:"industry"`
 	Internal     float64 `json:"internal"`
@@ -538,7 +585,7 @@ type BenchmarkComparison struct {
 	Ranking      string  `json:"ranking"`
 }
 
-// UtilizationTrend represents trends in resource utilization
+// UtilizationTrend represents trends in resource utilization.
 type UtilizationTrend struct {
 	Direction       string        `json:"direction"`
 	Rate            float64       `json:"rate"`
@@ -548,7 +595,7 @@ type UtilizationTrend struct {
 	PredictedValues []float64     `json:"predictedValues"`
 }
 
-// UtilizationAnomaly represents an anomaly in resource utilization
+// UtilizationAnomaly represents an anomaly in resource utilization.
 type UtilizationAnomaly struct {
 	Timestamp   time.Time `json:"timestamp"`
 	Type        string    `json:"type"`
@@ -559,7 +606,7 @@ type UtilizationAnomaly struct {
 	Description string    `json:"description"`
 }
 
-// ComponentPerformanceMetrics represents performance metrics for a component
+// ComponentPerformanceMetrics represents performance metrics for a component.
 type ComponentPerformanceMetrics struct {
 	ComponentType     shared.ComponentType          `json:"componentType"`
 	MeasurementPeriod TimePeriod                    `json:"measurementPeriod"`
@@ -577,7 +624,7 @@ type ComponentPerformanceMetrics struct {
 	BenchmarkResults  *PerformanceBenchmark         `json:"benchmarkResults"`
 }
 
-// PerformanceMetric represents a general performance metric
+// PerformanceMetric represents a general performance metric.
 type PerformanceMetric struct {
 	Value         float64           `json:"value"`
 	Unit          string            `json:"unit"`
@@ -590,7 +637,7 @@ type PerformanceMetric struct {
 	QualityGates  []*QualityGate    `json:"qualityGates"`
 }
 
-// AvailabilityMetric represents availability metrics
+// AvailabilityMetric represents availability metrics.
 type AvailabilityMetric struct {
 	*PerformanceMetric
 	Uptime        time.Duration `json:"uptime"`
@@ -600,7 +647,7 @@ type AvailabilityMetric struct {
 	IncidentCount int           `json:"incidentCount"`
 }
 
-// ReliabilityMetric represents reliability metrics
+// ReliabilityMetric represents reliability metrics.
 type ReliabilityMetric struct {
 	*PerformanceMetric
 	SuccessRate      float64       `json:"successRate"`
@@ -611,7 +658,7 @@ type ReliabilityMetric struct {
 	ConsistencyScore float64       `json:"consistencyScore"`
 }
 
-// ScalabilityMetric represents scalability metrics
+// ScalabilityMetric represents scalability metrics.
 type ScalabilityMetric struct {
 	*PerformanceMetric
 	MaxCapacity        float64       `json:"maxCapacity"`
@@ -622,7 +669,7 @@ type ScalabilityMetric struct {
 	ResourceEfficiency float64       `json:"resourceEfficiency"`
 }
 
-// EfficiencyMetric represents efficiency metrics
+// EfficiencyMetric represents efficiency metrics.
 type EfficiencyMetric struct {
 	*PerformanceMetric
 	ResourceEfficiency float64 `json:"resourceEfficiency"`
@@ -633,7 +680,7 @@ type EfficiencyMetric struct {
 	OptimizationGain   float64 `json:"optimizationGain"`
 }
 
-// SLAComplianceMetric represents SLA compliance metrics
+// SLAComplianceMetric represents SLA compliance metrics.
 type SLAComplianceMetric struct {
 	OverallCompliance  float64                   `json:"overallCompliance"`
 	SLAViolations      int                       `json:"slaViolations"`
@@ -643,7 +690,7 @@ type SLAComplianceMetric struct {
 	ComplianceHistory  []*ComplianceHistoryEntry `json:"complianceHistory"`
 }
 
-// SLABoundaries represents SLA boundaries for a metric
+// SLABoundaries represents SLA boundaries for a metric.
 type SLABoundaries struct {
 	Target    float64 `json:"target"`
 	Threshold float64 `json:"threshold"`
@@ -651,7 +698,7 @@ type SLABoundaries struct {
 	Optimal   float64 `json:"optimal"`
 }
 
-// QualityGate represents a quality gate for performance metrics
+// QualityGate represents a quality gate for performance metrics.
 type QualityGate struct {
 	Name        string  `json:"name"`
 	Threshold   float64 `json:"threshold"`
@@ -661,7 +708,7 @@ type QualityGate struct {
 	Impact      string  `json:"impact"`
 }
 
-// MetricTrend represents trends in performance metrics
+// MetricTrend represents trends in performance metrics.
 type MetricTrend struct {
 	MetricName       string        `json:"metricName"`
 	TrendType        string        `json:"trendType"`
@@ -673,7 +720,7 @@ type MetricTrend struct {
 	InflectionPoints []time.Time   `json:"inflectionPoints"`
 }
 
-// ComplianceHistoryEntry represents historical compliance data
+// ComplianceHistoryEntry represents historical compliance data.
 type ComplianceHistoryEntry struct {
 	Timestamp   time.Time `json:"timestamp"`
 	Compliance  float64   `json:"compliance"`
@@ -682,7 +729,7 @@ type ComplianceHistoryEntry struct {
 	ActionTaken string    `json:"actionTaken"`
 }
 
-// PerformanceTrend represents trends in system performance
+// PerformanceTrend represents trends in system performance.
 type PerformanceTrend struct {
 	ComponentType       shared.ComponentType `json:"componentType"`
 	MetricName          string               `json:"metricName"`
@@ -701,20 +748,25 @@ type PerformanceTrend struct {
 	Forecast            *ForecastData        `json:"forecast,omitempty"`
 }
 
-// TrendType represents the type of trend analysis
+// TrendType represents the type of trend analysis.
 type TrendType string
 
 const (
-	TrendTypeLinear      TrendType = "linear"
+	// TrendTypeLinear holds trendtypelinear value.
+	TrendTypeLinear TrendType = "linear"
+	// TrendTypeExponential holds trendtypeexponential value.
 	TrendTypeExponential TrendType = "exponential"
-	TrendTypeSeasonal    TrendType = "seasonal"
-	TrendTypeCyclical    TrendType = "cyclical"
-	TrendTypeNoTrend     TrendType = "no_trend"
+	// TrendTypeSeasonal holds trendtypeseasonal value.
+	TrendTypeSeasonal TrendType = "seasonal"
+	// TrendTypeCyclical holds trendtypecyclical value.
+	TrendTypeCyclical TrendType = "cyclical"
+	// TrendTypeNoTrend holds trendtypenotrend value.
+	TrendTypeNoTrend TrendType = "no_trend"
 )
 
-// Note: TrendDirection is already defined in performance_analysis_engine.go
+// Note: TrendDirection is already defined in performance_analysis_engine.go.
 
-// ForecastData represents forecast information for performance trends
+// ForecastData represents forecast information for performance trends.
 type ForecastData struct {
 	PredictedValues     []float64            `json:"predictedValues"`
 	ConfidenceIntervals []ConfidenceInterval `json:"confidenceIntervals"` // Using existing type
@@ -723,9 +775,9 @@ type ForecastData struct {
 	ModelType           string               `json:"modelType"`
 }
 
-// Note: ConfidenceInterval is already defined in performance_analysis_engine.go
+// Note: ConfidenceInterval is already defined in performance_analysis_engine.go.
 
-// PerformanceBenchmark represents benchmark results
+// PerformanceBenchmark represents benchmark results.
 type PerformanceBenchmark struct {
 	BenchmarkSuite     string                `json:"benchmarkSuite"`
 	Version            string                `json:"version"`
@@ -738,7 +790,7 @@ type PerformanceBenchmark struct {
 	Environment        *BenchmarkEnvironment `json:"environment"`
 }
 
-// BenchmarkEnvironment represents the environment where benchmarks were run
+// BenchmarkEnvironment represents the environment where benchmarks were run.
 type BenchmarkEnvironment struct {
 	Platform       string            `json:"platform"`
 	Version        string            `json:"version"`

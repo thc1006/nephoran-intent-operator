@@ -19,7 +19,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
-// SelfSignedBackend implements a self-signed CA backend for development and testing
+// SelfSignedBackend implements a self-signed CA backend for development and testing.
 type SelfSignedBackend struct {
 	logger        *logging.StructuredLogger
 	config        *SelfSignedBackendConfig
@@ -33,35 +33,35 @@ type SelfSignedBackend struct {
 	serialCounter *big.Int
 }
 
-// SelfSignedBackendConfig holds self-signed backend configuration
+// SelfSignedBackendConfig holds self-signed backend configuration.
 type SelfSignedBackendConfig struct {
-	// Root CA configuration
+	// Root CA configuration.
 	RootCA *CAConfig `yaml:"root_ca"`
 
-	// Intermediate CA configuration
+	// Intermediate CA configuration.
 	IntermediateCA *CAConfig `yaml:"intermediate_ca"`
 
-	// Certificate defaults
+	// Certificate defaults.
 	DefaultKeySize      int      `yaml:"default_key_size"`
 	DefaultValidityDays int      `yaml:"default_validity_days"`
 	MaxValidityDays     int      `yaml:"max_validity_days"`
 	AllowedKeyUsages    []string `yaml:"allowed_key_usages"`
 	AllowedExtKeyUsages []string `yaml:"allowed_ext_key_usages"`
 
-	// Security settings
+	// Security settings.
 	MinKeySize              int  `yaml:"min_key_size"`
 	RequireExplicitKeyUsage bool `yaml:"require_explicit_key_usage"`
 
-	// CRL settings
+	// CRL settings.
 	CRLConfig *SelfSignedCRLConfig `yaml:"crl_config"`
 
-	// Storage settings
+	// Storage settings.
 	PersistentStorage bool   `yaml:"persistent_storage"`
 	StoragePath       string `yaml:"storage_path"`
 	EncryptStorage    bool   `yaml:"encrypt_storage"`
 }
 
-// CAConfig holds CA certificate configuration
+// CAConfig holds CA certificate configuration.
 type CAConfig struct {
 	Subject               *pkix.Name `yaml:"subject"`
 	KeySize               int        `yaml:"key_size"`
@@ -73,7 +73,7 @@ type CAConfig struct {
 	IssuerURL             string     `yaml:"issuer_url"`
 }
 
-// SelfSignedCRLConfig holds CRL configuration
+// SelfSignedCRLConfig holds CRL configuration.
 type SelfSignedCRLConfig struct {
 	Enabled         bool          `yaml:"enabled"`
 	ValidityDays    int           `yaml:"validity_days"`
@@ -81,7 +81,7 @@ type SelfSignedCRLConfig struct {
 	DistributionURL string        `yaml:"distribution_url"`
 }
 
-// IssuedCertificate represents an issued certificate
+// IssuedCertificate represents an issued certificate.
 type IssuedCertificate struct {
 	Certificate  *x509.Certificate `json:"certificate"`
 	SerialNumber string            `json:"serial_number"`
@@ -92,14 +92,14 @@ type IssuedCertificate struct {
 	RequestID    string            `json:"request_id"`
 }
 
-// RevokedCertificate represents a revoked certificate
+// RevokedCertificate represents a revoked certificate.
 type RevokedCertificate struct {
 	SerialNumber string    `json:"serial_number"`
 	RevokedAt    time.Time `json:"revoked_at"`
 	Reason       int       `json:"reason"`
 }
 
-// NewSelfSignedBackend creates a new self-signed CA backend
+// NewSelfSignedBackend creates a new self-signed CA backend.
 func NewSelfSignedBackend(logger *logging.StructuredLogger) (Backend, error) {
 	return &SelfSignedBackend{
 		logger:        logger,
@@ -109,7 +109,7 @@ func NewSelfSignedBackend(logger *logging.StructuredLogger) (Backend, error) {
 	}, nil
 }
 
-// Initialize initializes the self-signed backend
+// Initialize initializes the self-signed backend.
 func (b *SelfSignedBackend) Initialize(ctx context.Context, config interface{}) error {
 	ssConfig, ok := config.(*SelfSignedBackendConfig)
 	if !ok {
@@ -118,24 +118,24 @@ func (b *SelfSignedBackend) Initialize(ctx context.Context, config interface{}) 
 
 	b.config = ssConfig
 
-	// Validate configuration
+	// Validate configuration.
 	if err := b.validateConfig(); err != nil {
 		return fmt.Errorf("self-signed config validation failed: %w", err)
 	}
 
-	// Load or create root CA
+	// Load or create root CA.
 	if err := b.initializeRootCA(); err != nil {
 		return fmt.Errorf("root CA initialization failed: %w", err)
 	}
 
-	// Load or create intermediate CA if configured
+	// Load or create intermediate CA if configured.
 	if b.config.IntermediateCA != nil {
 		if err := b.initializeIntermediateCA(); err != nil {
 			return fmt.Errorf("intermediate CA initialization failed: %w", err)
 		}
 	}
 
-	// Load persisted certificates if enabled
+	// Load persisted certificates if enabled.
 	if b.config.PersistentStorage {
 		if err := b.loadPersistedData(); err != nil {
 			b.logger.Warn("failed to load persisted data", "error", err)
@@ -149,7 +149,7 @@ func (b *SelfSignedBackend) Initialize(ctx context.Context, config interface{}) 
 	return nil
 }
 
-// HealthCheck performs health check on the self-signed backend
+// HealthCheck performs health check on the self-signed backend.
 func (b *SelfSignedBackend) HealthCheck(ctx context.Context) error {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
@@ -158,7 +158,7 @@ func (b *SelfSignedBackend) HealthCheck(ctx context.Context) error {
 		return fmt.Errorf("root CA not initialized")
 	}
 
-	// Check if root CA is still valid
+	// Check if root CA is still valid.
 	now := time.Now()
 	if now.After(b.rootCA.NotAfter) {
 		return fmt.Errorf("root CA expired at %v", b.rootCA.NotAfter)
@@ -168,7 +168,7 @@ func (b *SelfSignedBackend) HealthCheck(ctx context.Context) error {
 		return fmt.Errorf("root CA not yet valid (valid from %v)", b.rootCA.NotBefore)
 	}
 
-	// Check intermediate CA if present
+	// Check intermediate CA if present.
 	if b.intermCA != nil {
 		if now.After(b.intermCA.NotAfter) {
 			return fmt.Errorf("intermediate CA expired at %v", b.intermCA.NotAfter)
@@ -181,7 +181,7 @@ func (b *SelfSignedBackend) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
-// IssueCertificate issues a certificate using the self-signed CA
+// IssueCertificate issues a certificate using the self-signed CA.
 func (b *SelfSignedBackend) IssueCertificate(ctx context.Context, req *CertificateRequest) (*CertificateResponse, error) {
 	b.logger.Info("issuing certificate via self-signed CA",
 		"request_id", req.ID,
@@ -190,17 +190,17 @@ func (b *SelfSignedBackend) IssueCertificate(ctx context.Context, req *Certifica
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	// Generate key pair
+	// Generate key pair.
 	privateKey, err := rsa.GenerateKey(rand.Reader, req.KeySize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate private key: %w", err)
 	}
 
-	// Generate serial number
+	// Generate serial number.
 	serialNumber := new(big.Int).Set(b.serialCounter)
 	b.serialCounter.Add(b.serialCounter, big.NewInt(1))
 
-	// Create certificate template
+	// Create certificate template.
 	template := &x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
@@ -215,23 +215,23 @@ func (b *SelfSignedBackend) IssueCertificate(ctx context.Context, req *Certifica
 		IsCA:                  false,
 	}
 
-	// Add DNS names
+	// Add DNS names.
 	template.DNSNames = req.DNSNames
 
-	// Add IP addresses
+	// Add IP addresses.
 	for _, ipStr := range req.IPAddresses {
 		if ip := net.ParseIP(ipStr); ip != nil {
 			template.IPAddresses = append(template.IPAddresses, ip)
 		}
 	}
 
-	// Add email addresses
+	// Add email addresses.
 	template.EmailAddresses = req.EmailAddresses
 
-	// Add URIs
+	// Add URIs.
 	template.URIs = req.URIs
 
-	// Select issuer (intermediate CA if available, otherwise root CA)
+	// Select issuer (intermediate CA if available, otherwise root CA).
 	var issuer *x509.Certificate
 	var issuerKey interface{}
 
@@ -243,25 +243,25 @@ func (b *SelfSignedBackend) IssueCertificate(ctx context.Context, req *Certifica
 		issuerKey = b.rootKey
 	}
 
-	// Create certificate
+	// Create certificate.
 	certBytes, err := x509.CreateCertificate(rand.Reader, template, issuer, &privateKey.PublicKey, issuerKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create certificate: %w", err)
 	}
 
-	// Parse the created certificate
+	// Parse the created certificate.
 	cert, err := x509.ParseCertificate(certBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse created certificate: %w", err)
 	}
 
-	// Encode certificate to PEM
+	// Encode certificate to PEM.
 	certPEM := pem.EncodeToMemory(&pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: certBytes,
 	})
 
-	// Encode private key to PEM
+	// Encode private key to PEM.
 	privKeyBytes, err := x509.MarshalPKCS8PrivateKey(privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal private key: %w", err)
@@ -272,18 +272,18 @@ func (b *SelfSignedBackend) IssueCertificate(ctx context.Context, req *Certifica
 		Bytes: privKeyBytes,
 	})
 
-	// Encode issuer certificate to PEM
+	// Encode issuer certificate to PEM.
 	issuerPEM := pem.EncodeToMemory(&pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: issuer.Raw,
 	})
 
-	// Build CA chain
+	// Build CA chain.
 	var caChain []string
 	if b.intermCA != nil {
-		// Include intermediate CA
+		// Include intermediate CA.
 		caChain = append(caChain, string(issuerPEM))
-		// Include root CA
+		// Include root CA.
 		rootPEM := pem.EncodeToMemory(&pem.Block{
 			Type:  "CERTIFICATE",
 			Bytes: b.rootCA.Raw,
@@ -293,7 +293,7 @@ func (b *SelfSignedBackend) IssueCertificate(ctx context.Context, req *Certifica
 		caChain = append(caChain, string(issuerPEM))
 	}
 
-	// Store issued certificate
+	// Store issued certificate.
 	issuedCert := &IssuedCertificate{
 		Certificate:  cert,
 		SerialNumber: serialNumber.String(),
@@ -305,14 +305,14 @@ func (b *SelfSignedBackend) IssueCertificate(ctx context.Context, req *Certifica
 	}
 	b.issuedCerts[serialNumber.String()] = issuedCert
 
-	// Persist data if enabled
+	// Persist data if enabled.
 	if b.config.PersistentStorage {
 		if err := b.persistData(); err != nil {
 			b.logger.Warn("failed to persist certificate data", "error", err)
 		}
 	}
 
-	// Build response
+	// Build response.
 	response := &CertificateResponse{
 		RequestID:        req.ID,
 		Certificate:      cert,
@@ -343,7 +343,7 @@ func (b *SelfSignedBackend) IssueCertificate(ctx context.Context, req *Certifica
 	return response, nil
 }
 
-// RevokeCertificate revokes a certificate
+// RevokeCertificate revokes a certificate.
 func (b *SelfSignedBackend) RevokeCertificate(ctx context.Context, serialNumber string, reason int) error {
 	b.logger.Info("revoking certificate",
 		"serial_number", serialNumber,
@@ -352,18 +352,18 @@ func (b *SelfSignedBackend) RevokeCertificate(ctx context.Context, serialNumber 
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	// Check if certificate exists
+	// Check if certificate exists.
 	issuedCert, exists := b.issuedCerts[serialNumber]
 	if !exists {
 		return fmt.Errorf("certificate with serial number %s not found", serialNumber)
 	}
 
-	// Check if already revoked
+	// Check if already revoked.
 	if _, revoked := b.revokedCerts[serialNumber]; revoked {
 		return fmt.Errorf("certificate already revoked")
 	}
 
-	// Add to revoked certificates
+	// Add to revoked certificates.
 	revokedCert := &RevokedCertificate{
 		SerialNumber: serialNumber,
 		RevokedAt:    time.Now(),
@@ -371,10 +371,10 @@ func (b *SelfSignedBackend) RevokeCertificate(ctx context.Context, serialNumber 
 	}
 	b.revokedCerts[serialNumber] = revokedCert
 
-	// Update issued certificate status
+	// Update issued certificate status.
 	issuedCert.Status = StatusRevoked
 
-	// Persist data if enabled
+	// Persist data if enabled.
 	if b.config.PersistentStorage {
 		if err := b.persistData(); err != nil {
 			b.logger.Warn("failed to persist revocation data", "error", err)
@@ -387,9 +387,9 @@ func (b *SelfSignedBackend) RevokeCertificate(ctx context.Context, serialNumber 
 	return nil
 }
 
-// RenewCertificate renews a certificate (issues a new one)
+// RenewCertificate renews a certificate (issues a new one).
 func (b *SelfSignedBackend) RenewCertificate(ctx context.Context, req *CertificateRequest) (*CertificateResponse, error) {
-	// For self-signed backend, renewal means issuing a new certificate
+	// For self-signed backend, renewal means issuing a new certificate.
 	response, err := b.IssueCertificate(ctx, req)
 	if err != nil {
 		return nil, err
@@ -399,7 +399,7 @@ func (b *SelfSignedBackend) RenewCertificate(ctx context.Context, req *Certifica
 	return response, nil
 }
 
-// GetCAChain retrieves the CA certificate chain
+// GetCAChain retrieves the CA certificate chain.
 func (b *SelfSignedBackend) GetCAChain(ctx context.Context) ([]*x509.Certificate, error) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
@@ -417,7 +417,7 @@ func (b *SelfSignedBackend) GetCAChain(ctx context.Context) ([]*x509.Certificate
 	return chain, nil
 }
 
-// GetCRL retrieves the Certificate Revocation List
+// GetCRL retrieves the Certificate Revocation List.
 func (b *SelfSignedBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, error) {
 	if b.config.CRLConfig == nil || !b.config.CRLConfig.Enabled {
 		return nil, fmt.Errorf("CRL not enabled for self-signed backend")
@@ -426,7 +426,7 @@ func (b *SelfSignedBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, 
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
-	// Create CRL template
+	// Create CRL template.
 	now := time.Now()
 	template := &x509.RevocationList{
 		Number:     big.NewInt(1),
@@ -434,7 +434,7 @@ func (b *SelfSignedBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, 
 		NextUpdate: now.AddDate(0, 0, b.config.CRLConfig.ValidityDays),
 	}
 
-	// Add revoked certificates
+	// Add revoked certificates.
 	for _, revoked := range b.revokedCerts {
 		serialNumber := new(big.Int)
 		serialNumber.SetString(revoked.SerialNumber, 10)
@@ -445,7 +445,7 @@ func (b *SelfSignedBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, 
 		})
 	}
 
-	// Select issuer
+	// Select issuer.
 	var issuer *x509.Certificate
 	var issuerKey crypto.Signer
 
@@ -465,7 +465,7 @@ func (b *SelfSignedBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, 
 		}
 	}
 
-	// Create CRL
+	// Create CRL.
 	crlBytes, err := x509.CreateRevocationList(rand.Reader, template, issuer, issuerKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create CRL: %w", err)
@@ -474,7 +474,7 @@ func (b *SelfSignedBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, 
 	return x509.ParseCRL(crlBytes)
 }
 
-// GetBackendInfo returns backend information
+// GetBackendInfo returns backend information.
 func (b *SelfSignedBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, error) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
@@ -505,7 +505,7 @@ func (b *SelfSignedBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, e
 	}, nil
 }
 
-// GetSupportedFeatures returns supported features
+// GetSupportedFeatures returns supported features.
 func (b *SelfSignedBackend) GetSupportedFeatures() []string {
 	return []string{
 		"certificate_issuance",
@@ -519,7 +519,7 @@ func (b *SelfSignedBackend) GetSupportedFeatures() []string {
 	}
 }
 
-// Helper methods
+// Helper methods.
 
 func (b *SelfSignedBackend) validateConfig() error {
 	if b.config.DefaultKeySize == 0 {
@@ -554,13 +554,13 @@ func (b *SelfSignedBackend) initializeRootCA() error {
 		b.config.RootCA.ValidityDays = 3650 // 10 years
 	}
 
-	// Generate root CA key
+	// Generate root CA key.
 	rootKey, err := rsa.GenerateKey(rand.Reader, b.config.RootCA.KeySize)
 	if err != nil {
 		return fmt.Errorf("failed to generate root CA key: %w", err)
 	}
 
-	// Create root CA certificate template
+	// Create root CA certificate template.
 	template := &x509.Certificate{
 		SerialNumber:          big.NewInt(1),
 		Subject:               *b.config.RootCA.Subject,
@@ -574,23 +574,23 @@ func (b *SelfSignedBackend) initializeRootCA() error {
 		MaxPathLenZero:        false,
 	}
 
-	// Add CRL distribution points if configured
+	// Add CRL distribution points if configured.
 	if len(b.config.RootCA.CRLDistributionPoints) > 0 {
 		template.CRLDistributionPoints = b.config.RootCA.CRLDistributionPoints
 	}
 
-	// Add OCSP servers if configured
+	// Add OCSP servers if configured.
 	if len(b.config.RootCA.OCSPServers) > 0 {
 		template.OCSPServer = b.config.RootCA.OCSPServers
 	}
 
-	// Create self-signed root CA certificate
+	// Create self-signed root CA certificate.
 	rootCertBytes, err := x509.CreateCertificate(rand.Reader, template, template, &rootKey.PublicKey, rootKey)
 	if err != nil {
 		return fmt.Errorf("failed to create root CA certificate: %w", err)
 	}
 
-	// Parse the created certificate
+	// Parse the created certificate.
 	rootCert, err := x509.ParseCertificate(rootCertBytes)
 	if err != nil {
 		return fmt.Errorf("failed to parse root CA certificate: %w", err)
@@ -611,13 +611,13 @@ func (b *SelfSignedBackend) initializeIntermediateCA() error {
 		b.config.IntermediateCA.ValidityDays = 1825 // 5 years
 	}
 
-	// Generate intermediate CA key
+	// Generate intermediate CA key.
 	intermKey, err := rsa.GenerateKey(rand.Reader, b.config.IntermediateCA.KeySize)
 	if err != nil {
 		return fmt.Errorf("failed to generate intermediate CA key: %w", err)
 	}
 
-	// Create intermediate CA certificate template
+	// Create intermediate CA certificate template.
 	template := &x509.Certificate{
 		SerialNumber:          big.NewInt(2),
 		Subject:               *b.config.IntermediateCA.Subject,
@@ -631,23 +631,23 @@ func (b *SelfSignedBackend) initializeIntermediateCA() error {
 		MaxPathLenZero:        true,
 	}
 
-	// Add CRL distribution points if configured
+	// Add CRL distribution points if configured.
 	if len(b.config.IntermediateCA.CRLDistributionPoints) > 0 {
 		template.CRLDistributionPoints = b.config.IntermediateCA.CRLDistributionPoints
 	}
 
-	// Add OCSP servers if configured
+	// Add OCSP servers if configured.
 	if len(b.config.IntermediateCA.OCSPServers) > 0 {
 		template.OCSPServer = b.config.IntermediateCA.OCSPServers
 	}
 
-	// Create intermediate CA certificate signed by root CA
+	// Create intermediate CA certificate signed by root CA.
 	intermCertBytes, err := x509.CreateCertificate(rand.Reader, template, b.rootCA, &intermKey.PublicKey, b.rootKey)
 	if err != nil {
 		return fmt.Errorf("failed to create intermediate CA certificate: %w", err)
 	}
 
-	// Parse the created certificate
+	// Parse the created certificate.
 	intermCert, err := x509.ParseCertificate(intermCertBytes)
 	if err != nil {
 		return fmt.Errorf("failed to parse intermediate CA certificate: %w", err)
@@ -685,7 +685,7 @@ func (b *SelfSignedBackend) convertKeyUsage(keyUsages []string) x509.KeyUsage {
 		}
 	}
 
-	// Default usage if none specified
+	// Default usage if none specified.
 	if usage == 0 {
 		usage = x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment
 	}
@@ -713,7 +713,7 @@ func (b *SelfSignedBackend) convertExtKeyUsage(extKeyUsages []string) []x509.Ext
 		}
 	}
 
-	// Default extended key usages if none specified
+	// Default extended key usages if none specified.
 	if len(usages) == 0 {
 		usages = []x509.ExtKeyUsage{
 			x509.ExtKeyUsageServerAuth,
@@ -730,15 +730,15 @@ func (b *SelfSignedBackend) calculateFingerprint(certBytes []byte) string {
 }
 
 func (b *SelfSignedBackend) loadPersistedData() error {
-	// Implementation would load from persistent storage
-	// This is a placeholder for actual implementation
+	// Implementation would load from persistent storage.
+	// This is a placeholder for actual implementation.
 	b.logger.Debug("loading persisted certificate data")
 	return nil
 }
 
 func (b *SelfSignedBackend) persistData() error {
-	// Implementation would save to persistent storage
-	// This is a placeholder for actual implementation
+	// Implementation would save to persistent storage.
+	// This is a placeholder for actual implementation.
 	b.logger.Debug("persisting certificate data")
 	return nil
 }

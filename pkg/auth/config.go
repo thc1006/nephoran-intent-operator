@@ -14,7 +14,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/security"
 )
 
-// AuthConfig holds authentication configuration
+// AuthConfig holds authentication configuration.
 type AuthConfig struct {
 	Enabled       bool                          `json:"enabled"`
 	JWTSecretKey  string                        `json:"jwt_secret_key"`
@@ -27,7 +27,7 @@ type AuthConfig struct {
 	OperatorUsers []string                      `json:"operator_users"`
 }
 
-// ProviderConfig holds OAuth2 provider configuration
+// ProviderConfig holds OAuth2 provider configuration.
 type ProviderConfig struct {
 	Enabled      bool     `json:"enabled"`
 	Type         string   `json:"type"` // azure-ad, okta, keycloak, google, ldap
@@ -43,7 +43,7 @@ type ProviderConfig struct {
 	UserInfoURL  string   `json:"user_info_url,omitempty"` // Custom
 }
 
-// LDAPProviderConfig holds LDAP provider configuration
+// LDAPProviderConfig holds LDAP provider configuration.
 type LDAPProviderConfig struct {
 	Enabled              bool                 `json:"enabled"`
 	Host                 string               `json:"host"`
@@ -72,7 +72,7 @@ type LDAPProviderConfig struct {
 	DefaultRoles         []string             `json:"default_roles"`
 }
 
-// LDAPAttributeMapping maps LDAP attributes to standard fields
+// LDAPAttributeMapping maps LDAP attributes to standard fields.
 type LDAPAttributeMapping struct {
 	Username    string `json:"username"`
 	Email       string `json:"email"`
@@ -86,7 +86,7 @@ type LDAPAttributeMapping struct {
 	Manager     string `json:"manager"`
 }
 
-// RBACConfig holds role-based access control configuration
+// RBACConfig holds role-based access control configuration.
 type RBACConfig struct {
 	Enabled       bool                `json:"enabled"`
 	DefaultRole   string              `json:"default_role"`
@@ -98,39 +98,55 @@ type RBACConfig struct {
 	Permissions   map[string][]string `json:"permissions"` // role -> permissions
 }
 
-// Configuration constants for security limits and validation
+// Configuration constants for security limits and validation.
 const (
-	// Secret file size limits
-	MaxSecretFileSize     = 64 * 1024 // 64KB limit for secret files
-	MinSecretLength       = 16        // Minimum secret length for security
-	MaxSecretLength       = 512       // Maximum secret length to prevent DoS
-	MaxProviderNameLength = 50        // Maximum provider name length
-	MinJWTSecretLength    = 32        // Minimum JWT secret length
+	// Secret file size limits.
+	MaxSecretFileSize = 64 * 1024 // 64KB limit for secret files
+	// MinSecretLength holds minsecretlength value.
+	MinSecretLength = 16 // Minimum secret length for security
+	// MaxSecretLength holds maxsecretlength value.
+	MaxSecretLength = 512 // Maximum secret length to prevent DoS
+	// MaxProviderNameLength holds maxprovidernamelength value.
+	MaxProviderNameLength = 50 // Maximum provider name length
+	// MinJWTSecretLength holds minjwtsecretlength value.
+	MinJWTSecretLength = 32 // Minimum JWT secret length
 
-	// Default configuration values
-	DefaultKeycloakRealm = "master"         // Default Keycloak realm
-	DefaultTokenTTL      = 24 * 60 * 60     // 24 hours in seconds
-	DefaultRefreshTTL    = 7 * 24 * 60 * 60 // 7 days in seconds
+	// Default configuration values.
+	DefaultKeycloakRealm = "master" // Default Keycloak realm
+	// DefaultTokenTTL holds defaulttokenttl value.
+	DefaultTokenTTL = 24 * 60 * 60 // 24 hours in seconds
+	// DefaultRefreshTTL holds defaultrefreshttl value.
+	DefaultRefreshTTL = 7 * 24 * 60 * 60 // 7 days in seconds
 )
 
-// Permission constants
+// Permission constants.
 const (
-	PermissionCreateIntent  = "intent:create"
-	PermissionReadIntent    = "intent:read"
-	PermissionUpdateIntent  = "intent:update"
-	PermissionDeleteIntent  = "intent:delete"
+	// PermissionCreateIntent holds permissioncreateintent value.
+	PermissionCreateIntent = "intent:create"
+	// PermissionReadIntent holds permissionreadintent value.
+	PermissionReadIntent = "intent:read"
+	// PermissionUpdateIntent holds permissionupdateintent value.
+	PermissionUpdateIntent = "intent:update"
+	// PermissionDeleteIntent holds permissiondeleteintent value.
+	PermissionDeleteIntent = "intent:delete"
+	// PermissionManageE2Nodes holds permissionmanagee2nodes value.
 	PermissionManageE2Nodes = "e2nodes:manage"
-	PermissionViewMetrics   = "metrics:view"
-	PermissionManageSystem  = "system:manage"
-	PermissionManageUsers   = "users:manage"
-	PermissionViewLogs      = "logs:view"
+	// PermissionViewMetrics holds permissionviewmetrics value.
+	PermissionViewMetrics = "metrics:view"
+	// PermissionManageSystem holds permissionmanagesystem value.
+	PermissionManageSystem = "system:manage"
+	// PermissionManageUsers holds permissionmanageusers value.
+	PermissionManageUsers = "users:manage"
+	// PermissionViewLogs holds permissionviewlogs value.
+	PermissionViewLogs = "logs:view"
+	// PermissionManageSecrets holds permissionmanagesecrets value.
 	PermissionManageSecrets = "secrets:manage"
 )
 
-// LoadAuthConfig loads authentication configuration from environment and file
-// configPath: Path to the auth config file. If empty, falls back to AUTH_CONFIG_FILE env var
+// LoadAuthConfig loads authentication configuration from environment and file.
+// configPath: Path to the auth config file. If empty, falls back to AUTH_CONFIG_FILE env var.
 func LoadAuthConfig(configPath string) (*AuthConfig, error) {
-	// Load JWT secret key from file or env
+	// Load JWT secret key from file or env.
 	jwtSecretKey, _ := config.LoadJWTSecretKeyFromFile(security.GlobalAuditLogger)
 
 	authConfig := &AuthConfig{
@@ -154,35 +170,35 @@ func LoadAuthConfig(configPath string) (*AuthConfig, error) {
 		OperatorUsers: config.GetStringSliceEnv("OPERATOR_USERS", []string{}),
 	}
 
-	// Load provider configurations
+	// Load provider configurations.
 	if err := authConfig.loadProviders(); err != nil {
 		return nil, fmt.Errorf("failed to load providers: %w", err)
 	}
 
-	// Load LDAP provider configurations
+	// Load LDAP provider configurations.
 	if err := authConfig.loadLDAPProviders(); err != nil {
 		return nil, fmt.Errorf("failed to load LDAP providers: %w", err)
 	}
 
-	// Determine config file path: use provided path or fall back to environment variable
+	// Determine config file path: use provided path or fall back to environment variable.
 	configFile := configPath
 	if configFile == "" {
 		configFile = config.GetEnvOrDefault("AUTH_CONFIG_FILE", "")
 	}
 
-	// Load from config file if specified
+	// Load from config file if specified.
 	if configFile != "" {
 		if err := authConfig.loadFromFile(configFile); err != nil {
 			return nil, fmt.Errorf("failed to load config file %q: %w", configFile, err)
 		}
 	}
 
-	// Validate JWT secret if auth is enabled
+	// Validate JWT secret if auth is enabled.
 	if authConfig.Enabled && strings.TrimSpace(authConfig.JWTSecretKey) == "" {
 		return nil, fmt.Errorf("auth enabled but JWTSecretKey is empty")
 	}
 
-	// Validate configuration
+	// Validate configuration.
 	if err := authConfig.validate(); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
@@ -190,11 +206,11 @@ func LoadAuthConfig(configPath string) (*AuthConfig, error) {
 	return authConfig, nil
 }
 
-// loadProviders loads OAuth2 provider configurations from environment with secure error handling
+// loadProviders loads OAuth2 provider configurations from environment with secure error handling.
 func (c *AuthConfig) loadProviders() error {
 	var errors []error
 
-	// Azure AD provider
+	// Azure AD provider.
 	if azureClientID := config.GetEnvOrDefault("AZURE_CLIENT_ID", ""); azureClientID != "" {
 		secret, err := getOAuth2ClientSecret("azure")
 		if err != nil && config.GetBoolEnv("AZURE_ENABLED", true) {
@@ -211,7 +227,7 @@ func (c *AuthConfig) loadProviders() error {
 		}
 	}
 
-	// Okta provider
+	// Okta provider.
 	if oktaClientID := config.GetEnvOrDefault("OKTA_CLIENT_ID", ""); oktaClientID != "" {
 		secret, err := getOAuth2ClientSecret("okta")
 		if err != nil && config.GetBoolEnv("OKTA_ENABLED", true) {
@@ -228,7 +244,7 @@ func (c *AuthConfig) loadProviders() error {
 		}
 	}
 
-	// Keycloak provider
+	// Keycloak provider.
 	if keycloakClientID := config.GetEnvOrDefault("KEYCLOAK_CLIENT_ID", ""); keycloakClientID != "" {
 		secret, err := getOAuth2ClientSecret("keycloak")
 		if err != nil && config.GetBoolEnv("KEYCLOAK_ENABLED", true) {
@@ -246,7 +262,7 @@ func (c *AuthConfig) loadProviders() error {
 		}
 	}
 
-	// Google provider
+	// Google provider.
 	if googleClientID := config.GetEnvOrDefault("GOOGLE_CLIENT_ID", ""); googleClientID != "" {
 		secret, err := getOAuth2ClientSecret("google")
 		if err != nil && config.GetBoolEnv("GOOGLE_ENABLED", true) {
@@ -262,7 +278,7 @@ func (c *AuthConfig) loadProviders() error {
 		}
 	}
 
-	// Custom provider
+	// Custom provider.
 	if customClientID := config.GetEnvOrDefault("CUSTOM_CLIENT_ID", ""); customClientID != "" {
 		secret, err := getOAuth2ClientSecret("custom")
 		if err != nil && config.GetBoolEnv("CUSTOM_ENABLED", true) {
@@ -281,14 +297,14 @@ func (c *AuthConfig) loadProviders() error {
 		}
 	}
 
-	// If there are errors for enabled providers, aggregate them
+	// If there are errors for enabled providers, aggregate them.
 	if len(errors) > 0 {
-		// Log individual errors for debugging
+		// Log individual errors for debugging.
 		for _, err := range errors {
 			slog.Error("Provider configuration error", "error", err)
 		}
 
-		// Return aggregated error
+		// Return aggregated error.
 		if len(errors) == 1 {
 			return errors[0]
 		}
@@ -298,15 +314,15 @@ func (c *AuthConfig) loadProviders() error {
 	return nil
 }
 
-// loadLDAPProviders loads LDAP provider configurations from environment with secure error handling
+// loadLDAPProviders loads LDAP provider configurations from environment with secure error handling.
 func (c *AuthConfig) loadLDAPProviders() error {
 	var errors []error
 
-	// LDAP provider (primary)
+	// LDAP provider (primary).
 	if ldapHost := config.GetEnvOrDefault("LDAP_HOST", ""); ldapHost != "" {
 		bindPassword := config.GetEnvOrDefault("LDAP_BIND_PASSWORD", "")
 		if bindPassword == "" {
-			// Try to load from file
+			// Try to load from file.
 			if passwordFile := config.GetEnvOrDefault("LDAP_BIND_PASSWORD_FILE", ""); passwordFile != "" {
 				if password, err := readSecretFile(passwordFile); err == nil {
 					bindPassword = password
@@ -354,11 +370,11 @@ func (c *AuthConfig) loadLDAPProviders() error {
 		}
 	}
 
-	// Active Directory provider (alternative configuration)
+	// Active Directory provider (alternative configuration).
 	if adHost := config.GetEnvOrDefault("AD_HOST", ""); adHost != "" {
 		bindPassword := config.GetEnvOrDefault("AD_BIND_PASSWORD", "")
 		if bindPassword == "" {
-			// Try to load from file
+			// Try to load from file.
 			if passwordFile := config.GetEnvOrDefault("AD_BIND_PASSWORD_FILE", ""); passwordFile != "" {
 				if password, err := readSecretFile(passwordFile); err == nil {
 					bindPassword = password
@@ -406,7 +422,7 @@ func (c *AuthConfig) loadLDAPProviders() error {
 		}
 	}
 
-	// Log warnings for any configuration errors but don't fail
+	// Log warnings for any configuration errors but don't fail.
 	if len(errors) > 0 {
 		for _, err := range errors {
 			slog.Warn("LDAP provider configuration warning", "error", err)
@@ -416,15 +432,15 @@ func (c *AuthConfig) loadLDAPProviders() error {
 	return nil
 }
 
-// parseRoleMappings parses role mappings from environment string format
-// Expected format: "group1:role1,role2;group2:role3,role4"
+// parseRoleMappings parses role mappings from environment string format.
+// Expected format: "group1:role1,role2;group2:role3,role4".
 func parseRoleMappings(mappingStr string) map[string][]string {
 	mappings := make(map[string][]string)
 	if mappingStr == "" {
 		return mappings
 	}
 
-	// Split by semicolon for different groups
+	// Split by semicolon for different groups.
 	groupMappings := strings.Split(mappingStr, ";")
 	for _, groupMapping := range groupMappings {
 		groupMapping = strings.TrimSpace(groupMapping)
@@ -432,7 +448,7 @@ func parseRoleMappings(mappingStr string) map[string][]string {
 			continue
 		}
 
-		// Split by colon to separate group and roles
+		// Split by colon to separate group and roles.
 		parts := strings.SplitN(groupMapping, ":", 2)
 		if len(parts) != 2 {
 			continue
@@ -442,7 +458,7 @@ func parseRoleMappings(mappingStr string) map[string][]string {
 		rolesStr := strings.TrimSpace(parts[1])
 
 		if group != "" && rolesStr != "" {
-			// Split roles by comma
+			// Split roles by comma.
 			roles := strings.Split(rolesStr, ",")
 			for i, role := range roles {
 				roles[i] = strings.TrimSpace(role)
@@ -454,11 +470,11 @@ func parseRoleMappings(mappingStr string) map[string][]string {
 	return mappings
 }
 
-// loadFromFile loads configuration from JSON file with comprehensive security validation
+// loadFromFile loads configuration from JSON file with comprehensive security validation.
 func (c *AuthConfig) loadFromFile(filename string) error {
-	// SECURITY: Validate config file path to prevent path traversal attacks
+	// SECURITY: Validate config file path to prevent path traversal attacks.
 	if err := validateConfigFilePath(filename); err != nil {
-		// Log security event for audit trail
+		// Log security event for audit trail.
 		slog.Error("Config file path validation failed",
 			"file", filename,
 			"error", err,
@@ -475,7 +491,7 @@ func (c *AuthConfig) loadFromFile(filename string) error {
 		return fmt.Errorf("invalid config file path: %w", err)
 	}
 
-	// SECURITY: Check file metadata before reading
+	// SECURITY: Check file metadata before reading.
 	info, err := os.Stat(filename)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -487,7 +503,7 @@ func (c *AuthConfig) loadFromFile(filename string) error {
 		return fmt.Errorf("cannot access config file: %w", err)
 	}
 
-	// SECURITY: Prevent reading extremely large files (potential DoS)
+	// SECURITY: Prevent reading extremely large files (potential DoS).
 	const maxConfigFileSize = 10 * 1024 * 1024 // 10MB limit for config files
 	if info.Size() > maxConfigFileSize {
 		return fmt.Errorf("config file too large (max %d bytes): %d bytes", maxConfigFileSize, info.Size())
@@ -497,14 +513,14 @@ func (c *AuthConfig) loadFromFile(filename string) error {
 		return fmt.Errorf("config file is empty")
 	}
 
-	// SECURITY: Check if file is a symlink and resolve it safely
+	// SECURITY: Check if file is a symlink and resolve it safely.
 	if info.Mode()&os.ModeSymlink != 0 {
-		// Resolve symlink and validate the target
+		// Resolve symlink and validate the target.
 		realPath, err := filepath.EvalSymlinks(filename)
 		if err != nil {
 			return fmt.Errorf("cannot resolve symlink: %w", err)
 		}
-		// Re-validate the resolved path
+		// Re-validate the resolved path.
 		if err := validateConfigFilePath(realPath); err != nil {
 			slog.Error("Symlink target validation failed",
 				"symlink", filename,
@@ -516,7 +532,7 @@ func (c *AuthConfig) loadFromFile(filename string) error {
 		filename = realPath
 	}
 
-	// SECURITY: Warn about overly permissive file permissions
+	// SECURITY: Warn about overly permissive file permissions.
 	mode := info.Mode()
 	if mode&0o044 != 0 { // Check if world or group readable
 		slog.Warn("Config file has overly permissive permissions",
@@ -525,18 +541,18 @@ func (c *AuthConfig) loadFromFile(filename string) error {
 			"recommended", "0600 or 0640")
 	}
 
-	// Read file contents with security checks passed
+	// Read file contents with security checks passed.
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	// SECURITY: Validate JSON structure before unmarshaling to prevent malformed input attacks
+	// SECURITY: Validate JSON structure before unmarshaling to prevent malformed input attacks.
 	if !json.Valid(data) {
 		return fmt.Errorf("config file contains invalid JSON")
 	}
 
-	// Parse JSON with size-limited decoder to prevent memory exhaustion
+	// Parse JSON with size-limited decoder to prevent memory exhaustion.
 	decoder := json.NewDecoder(strings.NewReader(string(data)))
 	decoder.DisallowUnknownFields() // Strict parsing - reject unknown fields
 
@@ -544,7 +560,7 @@ func (c *AuthConfig) loadFromFile(filename string) error {
 		return fmt.Errorf("failed to parse config file: %w", err)
 	}
 
-	// Log successful config load for audit trail
+	// Log successful config load for audit trail.
 	slog.Info("Auth config loaded from file",
 		"file", filename,
 		"size", info.Size(),
@@ -554,13 +570,13 @@ func (c *AuthConfig) loadFromFile(filename string) error {
 	return nil
 }
 
-// validate validates the configuration with enhanced security checks
+// validate validates the configuration with enhanced security checks.
 func (c *AuthConfig) validate() error {
 	if !c.Enabled {
 		return nil // Skip validation if auth is disabled
 	}
 
-	// Validate JWT secret key
+	// Validate JWT secret key.
 	if c.JWTSecretKey == "" {
 		return fmt.Errorf("JWT_SECRET_KEY is required when authentication is enabled")
 	}
@@ -569,16 +585,16 @@ func (c *AuthConfig) validate() error {
 		return fmt.Errorf("JWT_SECRET_KEY must be at least %d characters long for security", MinJWTSecretLength)
 	}
 
-	// Check for common weak JWT secrets
+	// Check for common weak JWT secrets.
 	if err := validateJWTSecret(c.JWTSecretKey); err != nil {
 		return fmt.Errorf("JWT_SECRET_KEY validation failed: %w", err)
 	}
 
-	// Validate at least one provider is configured
+	// Validate at least one provider is configured.
 	hasEnabledProvider := false
 	providerErrors := make(map[string][]string)
 
-	// Check OAuth2 providers
+	// Check OAuth2 providers.
 
 	for name, provider := range c.Providers {
 		if !provider.Enabled {
@@ -588,24 +604,24 @@ func (c *AuthConfig) validate() error {
 		hasEnabledProvider = true
 		var errs []string
 
-		// Basic validation
+		// Basic validation.
 		if provider.ClientID == "" {
 			errs = append(errs, "client_id is required")
 		}
 
-		// Enhanced secret validation
+		// Enhanced secret validation.
 		if provider.ClientSecret == "" {
-			// Check if this is a loading error or truly empty
-			// The error would have been logged during loadProviders
+			// Check if this is a loading error or truly empty.
+			// The error would have been logged during loadProviders.
 			errs = append(errs, "client_secret is required but not available")
 		} else {
-			// Validate the secret format if it exists
+			// Validate the secret format if it exists.
 			if err := validateOAuth2ClientSecret(name, provider.ClientSecret); err != nil {
 				errs = append(errs, fmt.Sprintf("client_secret validation failed: %v", err))
 			}
 		}
 
-		// Type-specific validation
+		// Type-specific validation.
 		switch provider.Type {
 		case "azure-ad":
 			if provider.TenantID == "" {
@@ -620,7 +636,7 @@ func (c *AuthConfig) validate() error {
 				errs = append(errs, "base_url is required for Keycloak")
 			}
 			if provider.Realm == "" {
-				// Update the provider in the map with default realm
+				// Update the provider in the map with default realm.
 				updatedProvider := provider
 				updatedProvider.Realm = DefaultKeycloakRealm
 				c.Providers[name] = updatedProvider
@@ -642,7 +658,7 @@ func (c *AuthConfig) validate() error {
 		}
 	}
 
-	// Check LDAP providers
+	// Check LDAP providers.
 	for name, provider := range c.LDAPProviders {
 		if !provider.Enabled {
 			continue
@@ -651,7 +667,7 @@ func (c *AuthConfig) validate() error {
 		hasEnabledProvider = true
 		var errs []string
 
-		// Basic LDAP validation
+		// Basic LDAP validation.
 		if provider.Host == "" {
 			errs = append(errs, "host is required")
 		}
@@ -667,7 +683,7 @@ func (c *AuthConfig) validate() error {
 		}
 	}
 
-	// Report validation errors for all providers
+	// Report validation errors for all providers.
 	if len(providerErrors) > 0 {
 		var errorMsgs []string
 		for provider, errs := range providerErrors {
@@ -683,9 +699,9 @@ func (c *AuthConfig) validate() error {
 	return nil
 }
 
-// validateJWTSecret checks JWT secret for common weak values
+// validateJWTSecret checks JWT secret for common weak values.
 func validateJWTSecret(secret string) error {
-	// Check for common weak secrets
+	// Check for common weak secrets.
 	weakSecrets := []string{
 		"secret", "changeme", "password", "12345678",
 		"default", "admin", "test", "demo",
@@ -698,7 +714,7 @@ func validateJWTSecret(secret string) error {
 		}
 	}
 
-	// Check for repetitive patterns
+	// Check for repetitive patterns.
 	if len(secret) > 4 {
 		firstChar := secret[0]
 		allSame := true
@@ -716,7 +732,7 @@ func validateJWTSecret(secret string) error {
 	return nil
 }
 
-// CreateOAuth2Providers creates OAuth2 provider instances from configuration with validation
+// CreateOAuth2Providers creates OAuth2 provider instances from configuration with validation.
 func (c *AuthConfig) CreateOAuth2Providers() (map[string]*OAuth2Provider, error) {
 	providers := make(map[string]*OAuth2Provider)
 	var errors []error
@@ -726,7 +742,7 @@ func (c *AuthConfig) CreateOAuth2Providers() (map[string]*OAuth2Provider, error)
 			continue
 		}
 
-		// Validate configuration before creating provider
+		// Validate configuration before creating provider.
 		if config.ClientID == "" {
 			errors = append(errors, fmt.Errorf("%s: client_id is empty", name))
 			continue
@@ -737,7 +753,7 @@ func (c *AuthConfig) CreateOAuth2Providers() (map[string]*OAuth2Provider, error)
 			continue
 		}
 
-		// Additional validation for secret format
+		// Additional validation for secret format.
 		if err := validateOAuth2ClientSecret(strings.TrimSuffix(name, "-ad"), config.ClientSecret); err != nil {
 			errors = append(errors, fmt.Errorf("%s: %w", name, err))
 			continue
@@ -789,26 +805,26 @@ func (c *AuthConfig) CreateOAuth2Providers() (map[string]*OAuth2Provider, error)
 			continue
 		}
 
-		// Apply custom scopes if specified
+		// Apply custom scopes if specified.
 		if len(config.Scopes) > 0 {
 			provider.Scopes = config.Scopes
 		}
 
 		providers[name] = provider
 
-		// Log successful provider creation
+		// Log successful provider creation.
 		slog.Info("OAuth2 provider created successfully",
 			"provider", name,
 			"type", config.Type,
 			"scopes", config.Scopes)
 	}
 
-	// If no providers were successfully created and there were errors, return error
+	// If no providers were successfully created and there were errors, return error.
 	if len(providers) == 0 && len(errors) > 0 {
 		return nil, fmt.Errorf("failed to create any OAuth2 providers: %v", errors)
 	}
 
-	// Log warnings for failed providers but continue if at least one succeeded
+	// Log warnings for failed providers but continue if at least one succeeded.
 	if len(errors) > 0 {
 		for _, err := range errors {
 			slog.Warn("Failed to create OAuth2 provider", "error", err)
@@ -818,12 +834,12 @@ func (c *AuthConfig) CreateOAuth2Providers() (map[string]*OAuth2Provider, error)
 	return providers, nil
 }
 
-// CreateLDAPProviders creates LDAP provider instances from configuration with validation
+// CreateLDAPProviders creates LDAP provider instances from configuration with validation.
 func (c *AuthConfig) CreateLDAPProviders() (map[string]providers.LDAPProvider, error) {
 	ldapProviders := make(map[string]providers.LDAPProvider)
 	var errors []error
 
-	// Create logger for LDAP providers
+	// Create logger for LDAP providers.
 	logger := slog.Default()
 
 	for name, ldapConfig := range c.LDAPProviders {
@@ -831,7 +847,7 @@ func (c *AuthConfig) CreateLDAPProviders() (map[string]providers.LDAPProvider, e
 			continue
 		}
 
-		// Convert config format
+		// Convert config format.
 		providerConfig := &providers.LDAPConfig{
 			Host:                 ldapConfig.Host,
 			Port:                 ldapConfig.Port,
@@ -868,11 +884,11 @@ func (c *AuthConfig) CreateLDAPProviders() (map[string]providers.LDAPProvider, e
 			},
 		}
 
-		// Create LDAP provider instance
+		// Create LDAP provider instance.
 		provider := providers.NewLDAPClient(providerConfig, logger.With("ldap_provider", name))
 		ldapProviders[name] = provider
 
-		// Log successful provider creation
+		// Log successful provider creation.
 		slog.Info("LDAP provider created successfully",
 			"provider", name,
 			"host", ldapConfig.Host,
@@ -881,12 +897,12 @@ func (c *AuthConfig) CreateLDAPProviders() (map[string]providers.LDAPProvider, e
 			"use_tls", ldapConfig.UseTLS)
 	}
 
-	// If no providers were successfully created and there were errors, return error
+	// If no providers were successfully created and there were errors, return error.
 	if len(ldapProviders) == 0 && len(errors) > 0 {
 		return nil, fmt.Errorf("failed to create any LDAP providers: %v", errors)
 	}
 
-	// Log warnings for failed providers but continue if at least one succeeded
+	// Log warnings for failed providers but continue if at least one succeeded.
 	if len(errors) > 0 {
 		for _, err := range errors {
 			slog.Warn("Failed to create LDAP provider", "error", err)
@@ -896,7 +912,7 @@ func (c *AuthConfig) CreateLDAPProviders() (map[string]providers.LDAPProvider, e
 	return ldapProviders, nil
 }
 
-// getDefaultPermissions returns default role-permission mapping
+// getDefaultPermissions returns default role-permission mapping.
 func getDefaultPermissions() map[string][]string {
 	return map[string][]string{
 		"admin": {
@@ -938,31 +954,31 @@ func getDefaultPermissions() map[string][]string {
 	}
 }
 
-// Note: Environment helper functions have been moved to pkg/config/env_helpers.go
-// All getEnv, getBoolEnv, getDurationEnv, getStringSliceEnv calls now use config.* variants
+// Note: Environment helper functions have been moved to pkg/config/env_helpers.go.
+// All getEnv, getBoolEnv, getDurationEnv, getStringSliceEnv calls now use config.* variants.
 
-// getOAuth2ClientSecret loads OAuth2 client secret from environment variables or files with secure error handling
+// getOAuth2ClientSecret loads OAuth2 client secret from environment variables or files with secure error handling.
 func getOAuth2ClientSecret(provider string) (string, error) {
-	// Validate provider name to prevent injection attacks
+	// Validate provider name to prevent injection attacks.
 	if provider == "" {
 		auditSecretAccess("", "validation", "", false, "empty provider name")
 		return "", fmt.Errorf("provider name cannot be empty")
 	}
 
-	// Sanitize provider name to prevent injection - only allow alphanumeric and hyphens
+	// Sanitize provider name to prevent injection - only allow alphanumeric and hyphens.
 	sanitizedProvider := strings.ToUpper(strings.ReplaceAll(provider, "-", "_"))
 	if !isValidProviderName(sanitizedProvider) {
 		auditSecretAccess(provider, "validation", "", false, "invalid provider name format")
 		return "", fmt.Errorf("invalid provider name format")
 	}
 
-	// Step 1: Check environment variable first - OAUTH2_<PROVIDER>_CLIENT_SECRET
+	// Step 1: Check environment variable first - OAUTH2_<PROVIDER>_CLIENT_SECRET.
 	envVar := fmt.Sprintf("OAUTH2_%s_CLIENT_SECRET", sanitizedProvider)
 
-	// Use atomic read of environment variable to prevent race conditions
+	// Use atomic read of environment variable to prevent race conditions.
 	secret := getEnvAtomic(envVar)
 	if secret != "" {
-		// Validate the secret content
+		// Validate the secret content.
 		if err := validateSecretContent(secret); err != nil {
 			auditSecretAccess(provider, "environment", envVar, false, "secret validation failed")
 			return "", fmt.Errorf("invalid OAuth2 client secret format for provider %s", provider)
@@ -976,11 +992,11 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 		return secret, nil
 	}
 
-	// Step 1.5: Check fallback environment variable for backward compatibility - <PROVIDER>_CLIENT_SECRET
+	// Step 1.5: Check fallback environment variable for backward compatibility - <PROVIDER>_CLIENT_SECRET.
 	fallbackEnvVar := fmt.Sprintf("%s_CLIENT_SECRET", sanitizedProvider)
 	secret = getEnvAtomic(fallbackEnvVar)
 	if secret != "" {
-		// Validate the secret content
+		// Validate the secret content.
 		if err := validateSecretContent(secret); err != nil {
 			auditSecretAccess(provider, "environment", fallbackEnvVar, false, "secret validation failed")
 			return "", fmt.Errorf("invalid OAuth2 client secret format for provider %s", provider)
@@ -995,12 +1011,12 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 		return secret, nil
 	}
 
-	// Step 2: Fall back to file path from environment variable - OAUTH2_<PROVIDER>_SECRET_FILE
+	// Step 2: Fall back to file path from environment variable - OAUTH2_<PROVIDER>_SECRET_FILE.
 	fileEnvVar := fmt.Sprintf("OAUTH2_%s_SECRET_FILE", sanitizedProvider)
 	filePath := getEnvAtomic(fileEnvVar)
 
 	if filePath != "" {
-		// Validate file path to prevent path traversal attacks
+		// Validate file path to prevent path traversal attacks.
 		if err := validateFilePath(filePath); err != nil {
 			auditSecretAccess(provider, "file_path_validation", fileEnvVar, false, err.Error())
 			slog.Error("Invalid file path for OAuth2 secret",
@@ -1009,7 +1025,7 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 			return "", fmt.Errorf("OAuth2 client secret configuration error for provider: %s", provider)
 		}
 
-		// Read file contents securely
+		// Read file contents securely.
 		secret, err := readSecretFile(filePath)
 		if err != nil {
 			auditSecretAccess(provider, "file", filePath, false, "file read failed")
@@ -1019,7 +1035,7 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 			return "", fmt.Errorf("OAuth2 client secret file not accessible for provider: %s", provider)
 		}
 
-		// Validate the secret content
+		// Validate the secret content.
 		if err := validateSecretContent(secret); err != nil {
 			auditSecretAccess(provider, "file", filePath, false, "secret validation failed")
 			return "", fmt.Errorf("invalid OAuth2 client secret format for provider %s", provider)
@@ -1032,7 +1048,7 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 		return secret, nil
 	}
 
-	// Step 3: Neither environment variable nor file path provided
+	// Step 3: Neither environment variable nor file path provided.
 	auditSecretAccess(provider, "not_configured", "", false, "no secret source configured")
 	slog.Error("OAuth2 client secret not configured",
 		"provider", provider,
@@ -1043,12 +1059,12 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 		provider, envVar, fileEnvVar)
 }
 
-// getEnvAtomic performs atomic read of environment variable to prevent race conditions
+// getEnvAtomic performs atomic read of environment variable to prevent race conditions.
 func getEnvAtomic(key string) string {
 	return config.GetEnvOrDefault(key, "")
 }
 
-// isValidProviderName validates provider name format to prevent injection
+// isValidProviderName validates provider name format to prevent injection.
 func isValidProviderName(provider string) bool {
 	if len(provider) == 0 || len(provider) > MaxProviderNameLength {
 		return false
@@ -1062,45 +1078,45 @@ func isValidProviderName(provider string) bool {
 	return true
 }
 
-// validateConfigFilePath validates configuration file paths with stricter security rules
-// This is used specifically for main config files, not OAuth2 secrets
+// validateConfigFilePath validates configuration file paths with stricter security rules.
+// This is used specifically for main config files, not OAuth2 secrets.
 func validateConfigFilePath(filePath string) error {
-	// Check for empty path
+	// Check for empty path.
 	if strings.TrimSpace(filePath) == "" {
 		return fmt.Errorf("empty file path")
 	}
 
-	// SECURITY: Clean the path first to normalize it
+	// SECURITY: Clean the path first to normalize it.
 	cleanedPath := filepath.Clean(filePath)
 
-	// SECURITY: Detect obvious path traversal attempts before resolution
+	// SECURITY: Detect obvious path traversal attempts before resolution.
 	if strings.Contains(filePath, "..") || strings.Contains(cleanedPath, "..") {
 		return fmt.Errorf("path traversal attempt detected: contains '..'")
 	}
 
-	// SECURITY: Reject paths with null bytes (potential injection)
+	// SECURITY: Reject paths with null bytes (potential injection).
 	if strings.Contains(filePath, "\x00") {
 		return fmt.Errorf("path contains null byte")
 	}
 
-	// Convert to absolute path for validation
+	// Convert to absolute path for validation.
 	absPath, err := filepath.Abs(cleanedPath)
 	if err != nil {
 		return fmt.Errorf("invalid file path format: %w", err)
 	}
 
-	// SECURITY: Additional check after absolute path conversion
+	// SECURITY: Additional check after absolute path conversion.
 	if strings.Contains(absPath, "..") {
 		return fmt.Errorf("path traversal detected in absolute path")
 	}
 
-	// SECURITY: Check for Windows UNC paths or special devices
+	// SECURITY: Check for Windows UNC paths or special devices.
 	if strings.HasPrefix(absPath, "\\\\") || strings.HasPrefix(absPath, "//") {
 		return fmt.Errorf("UNC paths not allowed")
 	}
 
-	// SECURITY: Restrict to specific directories for config files
-	// Config files should only be in designated configuration directories
+	// SECURITY: Restrict to specific directories for config files.
+	// Config files should only be in designated configuration directories.
 	allowedPrefixes := []string{
 		"/etc/nephoran",          // Production config directory
 		"/etc/nephoran-operator", // Alternative production config
@@ -1110,23 +1126,23 @@ func validateConfigFilePath(filePath string) error {
 		"/etc/config",            // Alternative Kubernetes mount
 	}
 
-	// For development/testing, allow current directory subdirectories
+	// For development/testing, allow current directory subdirectories.
 	currentDir, err := os.Getwd()
 	if err == nil && currentDir != "" {
-		// Only allow config subdirectory in development
+		// Only allow config subdirectory in development.
 		allowedPrefixes = append(allowedPrefixes, filepath.Join(currentDir, "config"))
 		allowedPrefixes = append(allowedPrefixes, filepath.Join(currentDir, "test", "config"))
 
-		// For CI/CD environments
+		// For CI/CD environments.
 		if strings.Contains(currentDir, "github") || strings.Contains(currentDir, "gitlab") {
 			allowedPrefixes = append(allowedPrefixes, currentDir)
 		}
 	}
 
-	// SECURITY: Check if path starts with any allowed prefix
+	// SECURITY: Check if path starts with any allowed prefix.
 	pathAllowed := false
 	for _, prefix := range allowedPrefixes {
-		// Use proper path comparison to avoid prefix bypass
+		// Use proper path comparison to avoid prefix bypass.
 		prefixAbs, _ := filepath.Abs(prefix)
 		if prefixAbs != "" && (absPath == prefixAbs || strings.HasPrefix(absPath, prefixAbs+string(filepath.Separator))) {
 			pathAllowed = true
@@ -1138,7 +1154,7 @@ func validateConfigFilePath(filePath string) error {
 		return fmt.Errorf("config file path not in allowed directory (must be in /etc/nephoran, /config, or ./config)")
 	}
 
-	// SECURITY: Validate file extension
+	// SECURITY: Validate file extension.
 	ext := strings.ToLower(filepath.Ext(absPath))
 	allowedExtensions := []string{".json", ".yaml", ".yml", ".conf", ""}
 	extensionAllowed := false
@@ -1153,13 +1169,13 @@ func validateConfigFilePath(filePath string) error {
 		return fmt.Errorf("invalid config file extension: %s (allowed: .json, .yaml, .yml, .conf)", ext)
 	}
 
-	// SECURITY: Check filename for suspicious patterns
+	// SECURITY: Check filename for suspicious patterns.
 	filename := filepath.Base(absPath)
 	if strings.HasPrefix(filename, ".") && filename != ".config" {
 		return fmt.Errorf("hidden files not allowed as config")
 	}
 
-	// SECURITY: Reject special file names
+	// SECURITY: Reject special file names.
 	dangerousNames := []string{"/dev/", "/proc/", "/sys/", "passwd", "shadow", "sudoers"}
 	for _, dangerous := range dangerousNames {
 		if strings.Contains(strings.ToLower(absPath), dangerous) {
@@ -1170,26 +1186,26 @@ func validateConfigFilePath(filePath string) error {
 	return nil
 }
 
-// validateFilePath prevents path traversal attacks and validates file path security
-// This is used for OAuth2 secret files with different allowed directories
+// validateFilePath prevents path traversal attacks and validates file path security.
+// This is used for OAuth2 secret files with different allowed directories.
 func validateFilePath(filePath string) error {
-	// Check for empty path
+	// Check for empty path.
 	if strings.TrimSpace(filePath) == "" {
 		return fmt.Errorf("empty file path")
 	}
 
-	// Convert to absolute path and clean it
+	// Convert to absolute path and clean it.
 	absPath, err := filepath.Abs(filepath.Clean(filePath))
 	if err != nil {
 		return fmt.Errorf("invalid file path format")
 	}
 
-	// Prevent path traversal attacks - check for suspicious patterns
+	// Prevent path traversal attacks - check for suspicious patterns.
 	if strings.Contains(absPath, "..") {
 		return fmt.Errorf("path traversal attempt detected")
 	}
 
-	// Restrict to reasonable base directories for security
+	// Restrict to reasonable base directories for security.
 	allowedPrefixes := []string{
 		"/etc/secrets",
 		"/var/secrets",
@@ -1198,14 +1214,14 @@ func validateFilePath(filePath string) error {
 		"/run/secrets", // Common Kubernetes secret mount path
 	}
 
-	// Allow relative paths under current directory for development
+	// Allow relative paths under current directory for development.
 	currentDir, err := os.Getwd()
 	if err == nil && currentDir != "" {
 		allowedPrefixes = append(allowedPrefixes, filepath.Join(currentDir, "secrets"))
 		allowedPrefixes = append(allowedPrefixes, filepath.Join(currentDir, "config"))
 	}
 
-	// Check if path starts with any allowed prefix
+	// Check if path starts with any allowed prefix.
 	pathAllowed := false
 	for _, prefix := range allowedPrefixes {
 		if strings.HasPrefix(absPath, prefix) {
@@ -1221,9 +1237,9 @@ func validateFilePath(filePath string) error {
 	return nil
 }
 
-// readSecretFile securely reads secret from file with proper error handling
+// readSecretFile securely reads secret from file with proper error handling.
 func readSecretFile(filePath string) (string, error) {
-	// Check if file exists and is readable
+	// Check if file exists and is readable.
 	info, err := os.Stat(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -1235,7 +1251,7 @@ func readSecretFile(filePath string) (string, error) {
 		return "", fmt.Errorf("cannot access secret file")
 	}
 
-	// Check file size limits (prevent reading huge files)
+	// Check file size limits (prevent reading huge files).
 	if info.Size() > MaxSecretFileSize {
 		return "", fmt.Errorf("secret file too large")
 	}
@@ -1244,7 +1260,7 @@ func readSecretFile(filePath string) (string, error) {
 		return "", fmt.Errorf("secret file is empty")
 	}
 
-	// Check file permissions - should not be world-readable
+	// Check file permissions - should not be world-readable.
 	mode := info.Mode()
 	if mode&0o044 != 0 { // Check if world or group readable
 		slog.Warn("Secret file has overly permissive permissions",
@@ -1252,13 +1268,13 @@ func readSecretFile(filePath string) (string, error) {
 			"mode", mode.String())
 	}
 
-	// Read file contents
+	// Read file contents.
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to read secret file contents")
 	}
 
-	// Trim whitespace and newlines
+	// Trim whitespace and newlines.
 	secret := strings.TrimSpace(string(content))
 	if secret == "" {
 		return "", fmt.Errorf("secret file contains only whitespace")
@@ -1267,28 +1283,28 @@ func readSecretFile(filePath string) (string, error) {
 	return secret, nil
 }
 
-// validateSecretContent validates OAuth2 client secret format and security requirements
+// validateSecretContent validates OAuth2 client secret format and security requirements.
 func validateSecretContent(secret string) error {
-	// Check for empty or whitespace-only secrets
+	// Check for empty or whitespace-only secrets.
 	secret = strings.TrimSpace(secret)
 	if secret == "" {
 		return fmt.Errorf("secret is empty or contains only whitespace")
 	}
 
-	// Check minimum length for security
+	// Check minimum length for security.
 	if len(secret) < MinSecretLength {
 		return fmt.Errorf("secret too short, minimum %d characters required", MinSecretLength)
 	}
 
-	// Check maximum length to prevent potential DoS
+	// Check maximum length to prevent potential DoS.
 	if len(secret) > MaxSecretLength {
 		return fmt.Errorf("secret too long, maximum %d characters allowed", MaxSecretLength)
 	}
 
-	// Check for common weak patterns
+	// Check for common weak patterns.
 	lowerSecret := strings.ToLower(secret)
 
-	// Check if secret starts with obvious weak patterns
+	// Check if secret starts with obvious weak patterns.
 	weakPrefixes := []string{"password", "test", "example", "demo", "sample"}
 	for _, prefix := range weakPrefixes {
 		if strings.HasPrefix(lowerSecret, prefix+"-") || strings.HasPrefix(lowerSecret, prefix+"_") {
@@ -1296,10 +1312,10 @@ func validateSecretContent(secret string) error {
 		}
 	}
 
-	// Only reject if the secret is JUST a weak pattern or very simple
+	// Only reject if the secret is JUST a weak pattern or very simple.
 	weakPatterns := []string{"password", "secret", "test", "example", "admin", "demo"}
 	for _, pattern := range weakPatterns {
-		// Reject if the secret is exactly the pattern or pattern with simple suffix
+		// Reject if the secret is exactly the pattern or pattern with simple suffix.
 		if lowerSecret == pattern ||
 			lowerSecret == pattern+"123" ||
 			lowerSecret == pattern+"1234" ||
@@ -1309,7 +1325,7 @@ func validateSecretContent(secret string) error {
 		}
 	}
 
-	// Basic entropy check - ensure it's not all the same character
+	// Basic entropy check - ensure it's not all the same character.
 	if len(strings.TrimLeft(secret, string(secret[0]))) == 0 {
 		return fmt.Errorf("secret has insufficient entropy")
 	}
@@ -1317,7 +1333,7 @@ func validateSecretContent(secret string) error {
 	return nil
 }
 
-// auditSecretAccess provides comprehensive audit logging for security compliance
+// auditSecretAccess provides comprehensive audit logging for security compliance.
 func auditSecretAccess(provider, source, location string, success bool, errorMsg string) {
 	logLevel := slog.LevelInfo
 	if !success {
@@ -1333,7 +1349,7 @@ func auditSecretAccess(provider, source, location string, success bool, errorMsg
 	}
 
 	if location != "" && success {
-		// For successful operations, log safe location info
+		// For successful operations, log safe location info.
 		if strings.Contains(location, "OAUTH2_") {
 			attrs = append(attrs, slog.String("env_var", "OAUTH2_***_CLIENT_SECRET"))
 		} else {
@@ -1347,7 +1363,7 @@ func auditSecretAccess(provider, source, location string, success bool, errorMsg
 
 	slog.LogAttrs(nil, logLevel, "OAuth2 client secret access attempt", attrs...)
 
-	// Additional audit logging through security package if available
+	// Additional audit logging through security package if available.
 	if security.GlobalAuditLogger != nil {
 		security.GlobalAuditLogger.LogSecretAccess(
 			fmt.Sprintf("oauth2_%s", provider),
@@ -1362,49 +1378,49 @@ func auditSecretAccess(provider, source, location string, success bool, errorMsg
 	}
 }
 
-// validateOAuth2ClientSecret validates OAuth2 client secret format and strength
+// validateOAuth2ClientSecret validates OAuth2 client secret format and strength.
 func validateOAuth2ClientSecret(provider, secret string) error {
-	// Check for empty secret
+	// Check for empty secret.
 	if strings.TrimSpace(secret) == "" {
 		return fmt.Errorf("empty secret")
 	}
 
-	// Provider-specific validation
+	// Provider-specific validation.
 	switch provider {
 	case "azure":
-		// Azure client secrets should be at least minimum length
+		// Azure client secrets should be at least minimum length.
 		if len(secret) < MinSecretLength {
 			return fmt.Errorf("secret too short")
 		}
-		// Azure secrets often contain special characters
-		// No specific format validation beyond length
+		// Azure secrets often contain special characters.
+		// No specific format validation beyond length.
 
 	case "okta":
-		// Okta client secrets are typically 64 characters
+		// Okta client secrets are typically 64 characters.
 		if len(secret) < 40 {
 			return fmt.Errorf("secret too short")
 		}
 
 	case "keycloak":
-		// Keycloak secrets are UUID-like or random strings - require longer minimum
+		// Keycloak secrets are UUID-like or random strings - require longer minimum.
 		if len(secret) < MinJWTSecretLength {
 			return fmt.Errorf("secret too short")
 		}
 
 	case "google":
-		// Google OAuth2 secrets have specific format
+		// Google OAuth2 secrets have specific format.
 		if len(secret) < 24 {
 			return fmt.Errorf("secret too short")
 		}
 
 	default:
-		// Generic validation for custom providers
+		// Generic validation for custom providers.
 		if len(secret) < MinSecretLength {
 			return fmt.Errorf("secret too short")
 		}
 	}
 
-	// Check for common placeholder values
+	// Check for common placeholder values.
 	lowerSecret := strings.ToLower(secret)
 	if strings.Contains(lowerSecret, "your-secret") ||
 		strings.Contains(lowerSecret, "client-secret") ||
@@ -1418,14 +1434,14 @@ func validateOAuth2ClientSecret(provider, secret string) error {
 	return nil
 }
 
-// determineSecretSource determines whether secret was loaded from file or environment
+// determineSecretSource determines whether secret was loaded from file or environment.
 func determineSecretSource(filename, envVar string) string {
-	// Check if file exists
+	// Check if file exists.
 	if _, err := os.Stat(filepath.Join("/secrets/oauth2", filename)); err == nil {
 		return "file"
 	}
 
-	// Check if environment variable is set
+	// Check if environment variable is set.
 	if config.GetEnvOrDefault(envVar, "") != "" {
 		return "environment"
 	}
@@ -1433,7 +1449,7 @@ func determineSecretSource(filename, envVar string) string {
 	return "unknown"
 }
 
-// ToOAuth2Config converts AuthConfig to OAuth2Config
+// ToOAuth2Config converts AuthConfig to OAuth2Config.
 func (c *AuthConfig) ToOAuth2Config() (*OAuth2Config, error) {
 	providers, err := c.CreateOAuth2Providers()
 	if err != nil {

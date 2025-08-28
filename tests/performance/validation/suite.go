@@ -11,7 +11,7 @@ import (
 	"gonum.org/v1/gonum/stat"
 )
 
-// ValidationSuite provides comprehensive performance validation with statistical rigor
+// ValidationSuite provides comprehensive performance validation with statistical rigor.
 type ValidationSuite struct {
 	config            *ValidationConfig
 	statisticalTests  *StatisticalValidator
@@ -19,25 +19,25 @@ type ValidationSuite struct {
 	testRunner        *TestRunner
 	results           *ValidationResults
 	mu                sync.RWMutex
-	// prometheusClient  v1.API // TODO: Re-enable when Prometheus integration is needed
+	// prometheusClient  v1.API // TODO: Re-enable when Prometheus integration is needed.
 }
 
-// ValidationConfig defines all validation parameters and statistical requirements
+// ValidationConfig defines all validation parameters and statistical requirements.
 type ValidationConfig struct {
-	// Performance Claims to Validate
+	// Performance Claims to Validate.
 	Claims PerformanceClaims `json:"claims"`
 
-	// Statistical Configuration
+	// Statistical Configuration.
 	Statistics StatisticalConfig `json:"statistics"`
 
-	// Test Configuration
+	// Test Configuration.
 	TestConfig TestConfiguration `json:"test_config"`
 
-	// Evidence Requirements
+	// Evidence Requirements.
 	Evidence EvidenceRequirements `json:"evidence"`
 }
 
-// PerformanceClaims defines all claims to be validated
+// PerformanceClaims defines all claims to be validated.
 type PerformanceClaims struct {
 	IntentLatencyP95       time.Duration `json:"intent_latency_p95"`        // Sub-2-second P95 latency
 	ConcurrentCapacity     int           `json:"concurrent_capacity"`       // 200+ concurrent intents
@@ -47,7 +47,7 @@ type PerformanceClaims struct {
 	CacheHitRate           float64       `json:"cache_hit_rate"`            // 87% cache hit rate
 }
 
-// StatisticalConfig defines statistical validation parameters
+// StatisticalConfig defines statistical validation parameters.
 type StatisticalConfig struct {
 	ConfidenceLevel     float64 `json:"confidence_level"`      // 95% confidence level
 	SignificanceLevel   float64 `json:"significance_level"`    // 5% alpha level
@@ -57,7 +57,7 @@ type StatisticalConfig struct {
 	MultipleComparisons string  `json:"multiple_comparisons"`  // Correction method
 }
 
-// TestConfiguration defines test execution parameters
+// TestConfiguration defines test execution parameters.
 type TestConfiguration struct {
 	TestDuration        time.Duration  `json:"test_duration"`
 	WarmupDuration      time.Duration  `json:"warmup_duration"`
@@ -68,7 +68,7 @@ type TestConfiguration struct {
 	EnvironmentVariants []EnvVariant   `json:"environment_variants"`
 }
 
-// EvidenceRequirements defines what evidence must be collected
+// EvidenceRequirements defines what evidence must be collected.
 type EvidenceRequirements struct {
 	MetricsPrecision     int    `json:"metrics_precision"`     // Decimal places for metrics
 	TimeSeriesResolution string `json:"timeseries_resolution"` // Data granularity
@@ -78,7 +78,7 @@ type EvidenceRequirements struct {
 	HypothesisTests      bool   `json:"hypothesis_tests"`      // Formal hypothesis testing
 }
 
-// LoadPattern defines different load testing patterns
+// LoadPattern defines different load testing patterns.
 type LoadPattern struct {
 	Name       string                 `json:"name"`
 	Pattern    string                 `json:"pattern"` // "constant", "ramp", "spike", "burst"
@@ -86,7 +86,7 @@ type LoadPattern struct {
 	Parameters map[string]interface{} `json:"parameters"`
 }
 
-// TestScenario represents a telecommunications-specific test scenario
+// TestScenario represents a telecommunications-specific test scenario.
 type TestScenario struct {
 	Name        string                 `json:"name"`
 	Description string                 `json:"description"`
@@ -95,14 +95,14 @@ type TestScenario struct {
 	Parameters  map[string]interface{} `json:"parameters"`
 }
 
-// EnvVariant represents different environment configurations
+// EnvVariant represents different environment configurations.
 type EnvVariant struct {
 	Name        string                 `json:"name"`
 	Description string                 `json:"description"`
 	Config      map[string]interface{} `json:"config"`
 }
 
-// HypothesisTest represents a formal hypothesis test
+// HypothesisTest represents a formal hypothesis test.
 type HypothesisTest struct {
 	Claim              string              `json:"claim"`
 	NullHypothesis     string              `json:"null_hypothesis"`
@@ -117,7 +117,7 @@ type HypothesisTest struct {
 	SampleSize         int                 `json:"sample_size"`
 }
 
-// ConfidenceInterval represents statistical confidence intervals
+// ConfidenceInterval represents statistical confidence intervals.
 type ConfidenceInterval struct {
 	Lower  float64 `json:"lower"`
 	Upper  float64 `json:"upper"`
@@ -125,7 +125,7 @@ type ConfidenceInterval struct {
 	Method string  `json:"method"`
 }
 
-// ValidationResults contains comprehensive validation results
+// ValidationResults contains comprehensive validation results.
 type ValidationResults struct {
 	Summary          ValidationSummary          `json:"summary"`
 	ClaimResults     map[string]*ClaimResult    `json:"claim_results"`
@@ -136,7 +136,7 @@ type ValidationResults struct {
 	Metadata         *ValidationMetadata        `json:"metadata"`
 }
 
-// ValidationSummary provides high-level validation results
+// ValidationSummary provides high-level validation results.
 type ValidationSummary struct {
 	TotalClaims     int           `json:"total_claims"`
 	ValidatedClaims int           `json:"validated_claims"`
@@ -147,7 +147,7 @@ type ValidationSummary struct {
 	TestDuration    time.Duration `json:"test_duration"`
 }
 
-// ClaimResult contains detailed results for a single performance claim
+// ClaimResult contains detailed results for a single performance claim.
 type ClaimResult struct {
 	Claim          string            `json:"claim"`
 	Target         interface{}       `json:"target"`
@@ -159,7 +159,7 @@ type ClaimResult struct {
 	HypothesisTest *HypothesisTest   `json:"hypothesis_test"`
 }
 
-// ClaimEvidence contains supporting evidence for a claim
+// ClaimEvidence contains supporting evidence for a claim.
 type ClaimEvidence struct {
 	SampleSize      int                   `json:"sample_size"`
 	MeasurementUnit string                `json:"measurement_unit"`
@@ -170,7 +170,7 @@ type ClaimEvidence struct {
 	TimeSeriesData  []TimeSeriesPoint     `json:"timeseries_data"`
 }
 
-// DescriptiveStats contains comprehensive descriptive statistics
+// DescriptiveStats contains comprehensive descriptive statistics.
 type DescriptiveStats struct {
 	Mean           float64 `json:"mean"`
 	Median         float64 `json:"median"`
@@ -186,7 +186,7 @@ type DescriptiveStats struct {
 	CoeffVariation float64 `json:"coefficient_variation"`
 }
 
-// DistributionAnalysis contains statistical distribution analysis
+// DistributionAnalysis contains statistical distribution analysis.
 type DistributionAnalysis struct {
 	Type          string             `json:"type"`
 	GoodnessOfFit *GoodnessOfFitTest `json:"goodness_of_fit"`
@@ -195,7 +195,7 @@ type DistributionAnalysis struct {
 	QQPlotData    []QQPoint          `json:"qq_plot_data"`
 }
 
-// GoodnessOfFitTest represents distribution fit testing
+// GoodnessOfFitTest represents distribution fit testing.
 type GoodnessOfFitTest struct {
 	TestName         string  `json:"test_name"`
 	TestStatistic    float64 `json:"test_statistic"`
@@ -204,14 +204,14 @@ type GoodnessOfFitTest struct {
 	Conclusion       string  `json:"conclusion"`
 }
 
-// NormalityTest represents normality testing results
+// NormalityTest represents normality testing results.
 type NormalityTest struct {
 	ShapiroWilk       *StatisticalTest `json:"shapiro_wilk"`
 	AndersonDarling   *StatisticalTest `json:"anderson_darling"`
 	KolmogorovSmirnov *StatisticalTest `json:"kolmogorov_smirnov"`
 }
 
-// StatisticalTest represents a general statistical test
+// StatisticalTest represents a general statistical test.
 type StatisticalTest struct {
 	TestStatistic float64 `json:"test_statistic"`
 	PValue        float64 `json:"p_value"`
@@ -219,20 +219,20 @@ type StatisticalTest struct {
 	Conclusion    string  `json:"conclusion"`
 }
 
-// QQPoint represents a quantile-quantile plot point
+// QQPoint represents a quantile-quantile plot point.
 type QQPoint struct {
 	Theoretical float64 `json:"theoretical"`
 	Sample      float64 `json:"sample"`
 }
 
-// TimeSeriesPoint represents a time series data point
+// TimeSeriesPoint represents a time series data point.
 type TimeSeriesPoint struct {
 	Timestamp time.Time         `json:"timestamp"`
 	Value     float64           `json:"value"`
 	Labels    map[string]string `json:"labels"`
 }
 
-// NewValidationSuite creates a new validation suite instance
+// NewValidationSuite creates a new validation suite instance.
 func NewValidationSuite(config *ValidationConfig) *ValidationSuite {
 	return &ValidationSuite{
 		config:            config,
@@ -246,21 +246,21 @@ func NewValidationSuite(config *ValidationConfig) *ValidationSuite {
 	}
 }
 
-// ValidateAllClaims performs comprehensive validation of all performance claims
+// ValidateAllClaims performs comprehensive validation of all performance claims.
 func (vs *ValidationSuite) ValidateAllClaims(ctx context.Context) (*ValidationResults, error) {
 	vs.mu.Lock()
 	defer vs.mu.Unlock()
 
 	startTime := time.Now()
 
-	// Initialize results
+	// Initialize results.
 	vs.results.Metadata = &ValidationMetadata{
 		StartTime:   startTime,
 		Environment: vs.gatherEnvironmentInfo(),
 		TestConfig:  vs.config.TestConfig,
 	}
 
-	// Validate each claim
+	// Validate each claim.
 	claims := []struct {
 		name      string
 		validator func(ctx context.Context) (*ClaimResult, error)
@@ -289,7 +289,7 @@ func (vs *ValidationSuite) ValidateAllClaims(ctx context.Context) (*ValidationRe
 		}
 	}
 
-	// Calculate overall summary
+	// Calculate overall summary.
 	vs.results.Summary = ValidationSummary{
 		TotalClaims:     totalClaims,
 		ValidatedClaims: validatedClaims,
@@ -300,10 +300,10 @@ func (vs *ValidationSuite) ValidateAllClaims(ctx context.Context) (*ValidationRe
 		TestDuration:    time.Since(startTime),
 	}
 
-	// Generate evidence report
+	// Generate evidence report.
 	vs.results.Evidence = vs.evidenceCollector.GenerateEvidenceReport(vs.results)
 
-	// Generate recommendations
+	// Generate recommendations.
 	vs.results.Recommendations = vs.generateRecommendations()
 
 	vs.results.Metadata.EndTime = time.Now()
@@ -311,25 +311,25 @@ func (vs *ValidationSuite) ValidateAllClaims(ctx context.Context) (*ValidationRe
 	return vs.results, nil
 }
 
-// validateIntentLatencyP95 validates the claim of sub-2-second P95 latency for intent processing
+// validateIntentLatencyP95 validates the claim of sub-2-second P95 latency for intent processing.
 func (vs *ValidationSuite) validateIntentLatencyP95(ctx context.Context) (*ClaimResult, error) {
 	target := vs.config.Claims.IntentLatencyP95
 
-	// Run comprehensive latency test
+	// Run comprehensive latency test.
 	measurements, err := vs.testRunner.RunIntentLatencyTest(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Calculate P95 latency
+	// Calculate P95 latency.
 	p95Latency := vs.calculatePercentile(measurements, 95.0)
 
-	// Generate descriptive statistics
+	// Generate descriptive statistics.
 	stats := vs.calculateDescriptiveStats(measurements)
 
-	// Perform hypothesis test
-	// H0: P95 latency >= 2 seconds
-	// H1: P95 latency < 2 seconds (one-tailed test)
+	// Perform hypothesis test.
+	// H0: P95 latency >= 2 seconds.
+	// H1: P95 latency < 2 seconds (one-tailed test).
 	hypothesisTest := vs.statisticalTests.OneTailedTTest(
 		measurements,
 		target.Seconds(),
@@ -337,7 +337,7 @@ func (vs *ValidationSuite) validateIntentLatencyP95(ctx context.Context) (*Claim
 		fmt.Sprintf("P95 intent processing latency is less than %.2f seconds", target.Seconds()),
 	)
 
-	// Determine validation status
+	// Determine validation status.
 	status := "failed"
 	if p95Latency <= target.Seconds() && hypothesisTest.PValue < vs.config.Statistics.SignificanceLevel {
 		status = "validated"
@@ -368,22 +368,22 @@ func (vs *ValidationSuite) validateIntentLatencyP95(ctx context.Context) (*Claim
 	}, nil
 }
 
-// validateConcurrentCapacity validates the claim of handling 200+ concurrent intents
+// validateConcurrentCapacity validates the claim of handling 200+ concurrent intents.
 func (vs *ValidationSuite) validateConcurrentCapacity(ctx context.Context) (*ClaimResult, error) {
 	target := vs.config.Claims.ConcurrentCapacity
 
-	// Run concurrent capacity test
+	// Run concurrent capacity test.
 	maxConcurrent, measurements, err := vs.testRunner.RunConcurrentCapacityTest(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Generate statistics
+	// Generate statistics.
 	stats := vs.calculateDescriptiveStats(measurements)
 
-	// Hypothesis test
-	// H0: Max concurrent capacity <= 200
-	// H1: Max concurrent capacity > 200 (one-tailed test)
+	// Hypothesis test.
+	// H0: Max concurrent capacity <= 200.
+	// H1: Max concurrent capacity > 200 (one-tailed test).
 	hypothesisTest := vs.statisticalTests.OneTailedTTest(
 		measurements,
 		float64(target),
@@ -391,7 +391,7 @@ func (vs *ValidationSuite) validateConcurrentCapacity(ctx context.Context) (*Cla
 		fmt.Sprintf("System can handle more than %d concurrent intents", target),
 	)
 
-	// Determine validation status
+	// Determine validation status.
 	status := "failed"
 	if maxConcurrent >= target && hypothesisTest.PValue < vs.config.Statistics.SignificanceLevel {
 		status = "validated"
@@ -422,25 +422,25 @@ func (vs *ValidationSuite) validateConcurrentCapacity(ctx context.Context) (*Cla
 	}, nil
 }
 
-// validateThroughputRate validates the claim of 45 intents per minute throughput
+// validateThroughputRate validates the claim of 45 intents per minute throughput.
 func (vs *ValidationSuite) validateThroughputRate(ctx context.Context) (*ClaimResult, error) {
 	target := float64(vs.config.Claims.ThroughputRate)
 
-	// Run throughput test
+	// Run throughput test.
 	measurements, err := vs.testRunner.RunThroughputTest(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Calculate average throughput
+	// Calculate average throughput.
 	avgThroughput := vs.calculateMean(measurements)
 
-	// Generate statistics
+	// Generate statistics.
 	stats := vs.calculateDescriptiveStats(measurements)
 
-	// Hypothesis test
-	// H0: Throughput <= 45 intents/minute
-	// H1: Throughput > 45 intents/minute (one-tailed test)
+	// Hypothesis test.
+	// H0: Throughput <= 45 intents/minute.
+	// H1: Throughput > 45 intents/minute (one-tailed test).
 	hypothesisTest := vs.statisticalTests.OneTailedTTest(
 		measurements,
 		target,
@@ -448,7 +448,7 @@ func (vs *ValidationSuite) validateThroughputRate(ctx context.Context) (*ClaimRe
 		fmt.Sprintf("System achieves more than %.0f intents per minute", target),
 	)
 
-	// Determine validation status
+	// Determine validation status.
 	status := "failed"
 	if avgThroughput >= target && hypothesisTest.PValue < vs.config.Statistics.SignificanceLevel {
 		status = "validated"
@@ -479,9 +479,9 @@ func (vs *ValidationSuite) validateThroughputRate(ctx context.Context) (*ClaimRe
 	}, nil
 }
 
-// Utility methods for statistical calculations
+// Utility methods for statistical calculations.
 
-// calculatePercentile calculates the specified percentile of a dataset
+// calculatePercentile calculates the specified percentile of a dataset.
 func (vs *ValidationSuite) calculatePercentile(data []float64, percentile float64) float64 {
 	if len(data) == 0 {
 		return 0
@@ -494,7 +494,7 @@ func (vs *ValidationSuite) calculatePercentile(data []float64, percentile float6
 	return stat.Quantile(percentile/100.0, stat.Empirical, sorted, nil)
 }
 
-// calculateMean calculates the arithmetic mean of a dataset
+// calculateMean calculates the arithmetic mean of a dataset.
 func (vs *ValidationSuite) calculateMean(data []float64) float64 {
 	if len(data) == 0 {
 		return 0
@@ -502,7 +502,7 @@ func (vs *ValidationSuite) calculateMean(data []float64) float64 {
 	return stat.Mean(data, nil)
 }
 
-// calculateDescriptiveStats generates comprehensive descriptive statistics
+// calculateDescriptiveStats generates comprehensive descriptive statistics.
 func (vs *ValidationSuite) calculateDescriptiveStats(data []float64) *DescriptiveStats {
 	if len(data) == 0 {
 		return &DescriptiveStats{}
@@ -529,7 +529,7 @@ func (vs *ValidationSuite) calculateDescriptiveStats(data []float64) *Descriptiv
 	}
 }
 
-// analyzeDistribution performs comprehensive distribution analysis
+// analyzeDistribution performs comprehensive distribution analysis.
 func (vs *ValidationSuite) analyzeDistribution(data []float64) *DistributionAnalysis {
 	if len(data) < 3 {
 		return &DistributionAnalysis{
@@ -540,17 +540,17 @@ func (vs *ValidationSuite) analyzeDistribution(data []float64) *DistributionAnal
 		}
 	}
 
-	// Perform normality test
+	// Perform normality test.
 	normalityTest := vs.statisticalTests.PerformNormalityTest(data)
 
-	// Determine likely distribution type based on statistics
+	// Determine likely distribution type based on statistics.
 	stats := vs.calculateDescriptiveStats(data)
 	distributionType := vs.inferDistributionType(stats, normalityTest)
 
-	// Calculate distribution parameters based on type
+	// Calculate distribution parameters based on type.
 	parameters := vs.calculateDistributionParameters(data, distributionType)
 
-	// Perform goodness of fit test
+	// Perform goodness of fit test.
 	goodnessOfFit := vs.performGoodnessOfFitTest(data, distributionType, parameters)
 
 	return &DistributionAnalysis{
@@ -562,16 +562,16 @@ func (vs *ValidationSuite) analyzeDistribution(data []float64) *DistributionAnal
 	}
 }
 
-// inferDistributionType infers the most likely distribution type
+// inferDistributionType infers the most likely distribution type.
 func (vs *ValidationSuite) inferDistributionType(stats *DescriptiveStats, normalityTest *NormalityTest) string {
-	// Simple heuristics for distribution identification
+	// Simple heuristics for distribution identification.
 
-	// Check for normality first
+	// Check for normality first.
 	if normalityTest.ShapiroWilk != nil && normalityTest.ShapiroWilk.PValue > 0.05 {
 		return "normal"
 	}
 
-	// Check skewness and kurtosis
+	// Check skewness and kurtosis.
 	if abs(stats.Skewness) < 0.5 {
 		return "normal"
 	} else if stats.Skewness > 1.0 {
@@ -580,11 +580,11 @@ func (vs *ValidationSuite) inferDistributionType(stats *DescriptiveStats, normal
 		return "beta"
 	}
 
-	// Default to empirical distribution
+	// Default to empirical distribution.
 	return "empirical"
 }
 
-// calculateDistributionParameters calculates parameters for the identified distribution
+// calculateDistributionParameters calculates parameters for the identified distribution.
 func (vs *ValidationSuite) calculateDistributionParameters(data []float64, distType string) map[string]float64 {
 	params := make(map[string]float64)
 	stats := vs.calculateDescriptiveStats(data)
@@ -596,7 +596,7 @@ func (vs *ValidationSuite) calculateDistributionParameters(data []float64, distT
 	case "exponential":
 		params["lambda"] = 1.0 / stats.Mean
 	case "beta":
-		// Method of moments estimation for beta distribution
+		// Method of moments estimation for beta distribution.
 		mean := stats.Mean
 		variance := stats.Variance
 		if mean > 0 && mean < 1 && variance > 0 {
@@ -613,9 +613,9 @@ func (vs *ValidationSuite) calculateDistributionParameters(data []float64, distT
 	return params
 }
 
-// performGoodnessOfFitTest performs goodness of fit testing
+// performGoodnessOfFitTest performs goodness of fit testing.
 func (vs *ValidationSuite) performGoodnessOfFitTest(data []float64, distType string, params map[string]float64) *GoodnessOfFitTest {
-	// Simplified implementation - would use proper statistical libraries in practice
+	// Simplified implementation - would use proper statistical libraries in practice.
 	return &GoodnessOfFitTest{
 		TestName:         "Kolmogorov-Smirnov",
 		TestStatistic:    0.08, // Placeholder
@@ -625,22 +625,22 @@ func (vs *ValidationSuite) performGoodnessOfFitTest(data []float64, distType str
 	}
 }
 
-// generateQQPlotData generates Q-Q plot data for distribution analysis
+// generateQQPlotData generates Q-Q plot data for distribution analysis.
 func (vs *ValidationSuite) generateQQPlotData(data []float64, distType string) []QQPoint {
 	if len(data) < 2 {
 		return []QQPoint{}
 	}
 
-	// Sort the data
+	// Sort the data.
 	sortedData := make([]float64, len(data))
 	copy(sortedData, data)
-	// Implementation would sort the data and calculate theoretical quantiles
+	// Implementation would sort the data and calculate theoretical quantiles.
 
-	// Generate Q-Q points (simplified)
+	// Generate Q-Q points (simplified).
 	points := make([]QQPoint, min(len(data), 100)) // Limit to 100 points for visualization
 
 	for i := range points {
-		// This would calculate actual theoretical vs sample quantiles
+		// This would calculate actual theoretical vs sample quantiles.
 		points[i] = QQPoint{
 			Theoretical: float64(i) / float64(len(points)),
 			Sample:      sortedData[i*len(sortedData)/len(points)],
@@ -650,7 +650,7 @@ func (vs *ValidationSuite) generateQQPlotData(data []float64, distType string) [
 	return points
 }
 
-// gatherEnvironmentInfo collects environment information for metadata
+// gatherEnvironmentInfo collects environment information for metadata.
 func (vs *ValidationSuite) gatherEnvironmentInfo() *EnvironmentInfo {
 	return &EnvironmentInfo{
 		Platform:          "linux",
@@ -672,11 +672,11 @@ func (vs *ValidationSuite) gatherEnvironmentInfo() *EnvironmentInfo {
 	}
 }
 
-// generateRecommendations generates recommendations based on validation results
+// generateRecommendations generates recommendations based on validation results.
 func (vs *ValidationSuite) generateRecommendations() []Recommendation {
 	var recommendations []Recommendation
 
-	// This would analyze validation results and generate specific recommendations
+	// This would analyze validation results and generate specific recommendations.
 	recommendations = append(recommendations, Recommendation{
 		Type:        "performance",
 		Priority:    "medium",
@@ -689,7 +689,7 @@ func (vs *ValidationSuite) generateRecommendations() []Recommendation {
 	return recommendations
 }
 
-// Helper functions
+// Helper functions.
 
 func abs(x float64) float64 {
 	if x < 0 {
@@ -705,7 +705,7 @@ func min(a, b int) int {
 	return b
 }
 
-// Recommendation represents a recommendation based on validation results
+// Recommendation represents a recommendation based on validation results.
 type Recommendation struct {
 	Type        string   `json:"type"`     // "performance", "reliability", "scalability"
 	Priority    string   `json:"priority"` // "high", "medium", "low"
@@ -716,7 +716,7 @@ type Recommendation struct {
 	Actions     []string `json:"actions,omitempty"`
 }
 
-// BaselineComparison contains baseline comparison results
+// BaselineComparison contains baseline comparison results.
 type BaselineComparison struct {
 	HasBaseline   bool                         `json:"has_baseline"`
 	BaselineDate  time.Time                    `json:"baseline_date,omitempty"`
@@ -725,7 +725,7 @@ type BaselineComparison struct {
 	Conclusion    string                       `json:"conclusion"`
 }
 
-// MetricComparison represents comparison of a metric against baseline
+// MetricComparison represents comparison of a metric against baseline.
 type MetricComparison struct {
 	Metric         string  `json:"metric"`
 	CurrentValue   float64 `json:"current_value"`
@@ -737,25 +737,25 @@ type MetricComparison struct {
 	Interpretation string  `json:"interpretation"`
 }
 
-// validateSystemAvailability validates the claim of 99.95% system availability
+// validateSystemAvailability validates the claim of 99.95% system availability.
 func (vs *ValidationSuite) validateSystemAvailability(ctx context.Context) (*ClaimResult, error) {
 	target := vs.config.Claims.SystemAvailability
 
-	// Run availability monitoring test
+	// Run availability monitoring test.
 	measurements, err := vs.testRunner.RunSystemAvailabilityTest(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Calculate average availability
+	// Calculate average availability.
 	avgAvailability := vs.calculateMean(measurements)
 
-	// Generate descriptive statistics
+	// Generate descriptive statistics.
 	stats := vs.calculateDescriptiveStats(measurements)
 
-	// Perform hypothesis test
-	// H0: Availability <= 99.95%
-	// H1: Availability > 99.95% (one-tailed test)
+	// Perform hypothesis test.
+	// H0: Availability <= 99.95%.
+	// H1: Availability > 99.95% (one-tailed test).
 	hypothesisTest := vs.statisticalTests.OneTailedTTest(
 		measurements,
 		target,
@@ -763,7 +763,7 @@ func (vs *ValidationSuite) validateSystemAvailability(ctx context.Context) (*Cla
 		fmt.Sprintf("System availability is greater than %.3f%%", target),
 	)
 
-	// Determine validation status
+	// Determine validation status.
 	status := "failed"
 	if avgAvailability >= target && hypothesisTest.PValue < vs.config.Statistics.SignificanceLevel {
 		status = "validated"
@@ -794,25 +794,25 @@ func (vs *ValidationSuite) validateSystemAvailability(ctx context.Context) (*Cla
 	}, nil
 }
 
-// validateRAGRetrievalLatencyP95 validates the claim of sub-200ms P95 RAG retrieval latency
+// validateRAGRetrievalLatencyP95 validates the claim of sub-200ms P95 RAG retrieval latency.
 func (vs *ValidationSuite) validateRAGRetrievalLatencyP95(ctx context.Context) (*ClaimResult, error) {
 	target := vs.config.Claims.RAGRetrievalLatencyP95
 
-	// Run RAG retrieval latency test
+	// Run RAG retrieval latency test.
 	measurements, err := vs.testRunner.RunRAGRetrievalLatencyTest(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Calculate P95 latency
+	// Calculate P95 latency.
 	p95Latency := vs.calculatePercentile(measurements, 95.0)
 
-	// Generate descriptive statistics
+	// Generate descriptive statistics.
 	stats := vs.calculateDescriptiveStats(measurements)
 
-	// Perform hypothesis test
-	// H0: P95 RAG latency >= 200ms
-	// H1: P95 RAG latency < 200ms (one-tailed test)
+	// Perform hypothesis test.
+	// H0: P95 RAG latency >= 200ms.
+	// H1: P95 RAG latency < 200ms (one-tailed test).
 	hypothesisTest := vs.statisticalTests.OneTailedTTest(
 		measurements,
 		target.Seconds(),
@@ -820,7 +820,7 @@ func (vs *ValidationSuite) validateRAGRetrievalLatencyP95(ctx context.Context) (
 		fmt.Sprintf("RAG P95 retrieval latency is less than %v", target),
 	)
 
-	// Determine validation status
+	// Determine validation status.
 	status := "failed"
 	if p95Latency <= target.Seconds() && hypothesisTest.PValue < vs.config.Statistics.SignificanceLevel {
 		status = "validated"
@@ -851,25 +851,25 @@ func (vs *ValidationSuite) validateRAGRetrievalLatencyP95(ctx context.Context) (
 	}, nil
 }
 
-// validateCacheHitRate validates the claim of 87% cache hit rate
+// validateCacheHitRate validates the claim of 87% cache hit rate.
 func (vs *ValidationSuite) validateCacheHitRate(ctx context.Context) (*ClaimResult, error) {
 	target := vs.config.Claims.CacheHitRate
 
-	// Run cache hit rate test
+	// Run cache hit rate test.
 	measurements, err := vs.testRunner.RunCacheHitRateTest(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Calculate average hit rate
+	// Calculate average hit rate.
 	avgHitRate := vs.calculateMean(measurements)
 
-	// Generate descriptive statistics
+	// Generate descriptive statistics.
 	stats := vs.calculateDescriptiveStats(measurements)
 
-	// Perform hypothesis test
-	// H0: Cache hit rate <= 87%
-	// H1: Cache hit rate > 87% (one-tailed test)
+	// Perform hypothesis test.
+	// H0: Cache hit rate <= 87%.
+	// H1: Cache hit rate > 87% (one-tailed test).
 	hypothesisTest := vs.statisticalTests.OneTailedTTest(
 		measurements,
 		target,
@@ -877,7 +877,7 @@ func (vs *ValidationSuite) validateCacheHitRate(ctx context.Context) (*ClaimResu
 		fmt.Sprintf("Cache hit rate is greater than %.1f%%", target),
 	)
 
-	// Determine validation status
+	// Determine validation status.
 	status := "failed"
 	if avgHitRate >= target && hypothesisTest.PValue < vs.config.Statistics.SignificanceLevel {
 		status = "validated"

@@ -4,19 +4,19 @@ import (
 	"time"
 )
 
-// TestConfig provides configuration constants for test suites
+// TestConfig provides configuration constants for test suites.
 type TestConfig struct {
-	// Test timeouts
+	// Test timeouts.
 	DefaultTimeout       time.Duration
 	ReconcileTimeout     time.Duration
 	EventuallyTimeout    time.Duration
 	ConsistentlyDuration time.Duration
 
-	// Polling intervals
+	// Polling intervals.
 	DefaultInterval   time.Duration
 	ReconcileInterval time.Duration
 
-	// Controller-specific settings
+	// Controller-specific settings.
 	E2NodeSetConfig         E2NodeSetTestConfig
 	NetworkIntentConfig     NetworkIntentTestConfig
 	OranControllerConfig    OranControllerTestConfig
@@ -24,7 +24,7 @@ type TestConfig struct {
 	TrafficControllerConfig TrafficControllerTestConfig
 }
 
-// E2NodeSetTestConfig provides test configuration for E2NodeSet controller
+// E2NodeSetTestConfig provides test configuration for E2NodeSet controller.
 type E2NodeSetTestConfig struct {
 	DefaultReplicas     int32
 	MaxReplicas         int32
@@ -34,7 +34,7 @@ type E2NodeSetTestConfig struct {
 	HealthCheckInterval time.Duration
 }
 
-// NetworkIntentTestConfig provides test configuration for NetworkIntent controller
+// NetworkIntentTestConfig provides test configuration for NetworkIntent controller.
 type NetworkIntentTestConfig struct {
 	MaxRetries          int
 	RetryDelay          time.Duration
@@ -44,7 +44,7 @@ type NetworkIntentTestConfig struct {
 	LLMTimeout          time.Duration
 }
 
-// OranControllerTestConfig provides test configuration for ORAN controller
+// OranControllerTestConfig provides test configuration for ORAN controller.
 type OranControllerTestConfig struct {
 	DeploymentReadyTimeout time.Duration
 	O1ConfigurationTimeout time.Duration
@@ -52,7 +52,7 @@ type OranControllerTestConfig struct {
 	HealthCheckInterval    time.Duration
 }
 
-// EdgeControllerTestConfig provides test configuration for Edge controller
+// EdgeControllerTestConfig provides test configuration for Edge controller.
 type EdgeControllerTestConfig struct {
 	NodeDiscoveryInterval time.Duration
 	HealthCheckInterval   time.Duration
@@ -61,7 +61,7 @@ type EdgeControllerTestConfig struct {
 	ResourceThreshold     float64
 }
 
-// TrafficControllerTestConfig provides test configuration for Traffic controller
+// TrafficControllerTestConfig provides test configuration for Traffic controller.
 type TrafficControllerTestConfig struct {
 	HealthCheckInterval       time.Duration
 	RoutingDecisionInterval   time.Duration
@@ -70,20 +70,20 @@ type TrafficControllerTestConfig struct {
 	RecoveryThreshold         float64
 }
 
-// GetDefaultTestConfig returns the default test configuration
+// GetDefaultTestConfig returns the default test configuration.
 func GetDefaultTestConfig() *TestConfig {
 	return &TestConfig{
-		// Global test timeouts
+		// Global test timeouts.
 		DefaultTimeout:       30 * time.Second,
 		ReconcileTimeout:     10 * time.Second,
 		EventuallyTimeout:    30 * time.Second,
 		ConsistentlyDuration: 5 * time.Second,
 
-		// Global polling intervals
+		// Global polling intervals.
 		DefaultInterval:   100 * time.Millisecond,
 		ReconcileInterval: 1 * time.Second,
 
-		// Controller-specific configurations
+		// Controller-specific configurations.
 		E2NodeSetConfig: E2NodeSetTestConfig{
 			DefaultReplicas:     3,
 			MaxReplicas:         10,
@@ -127,16 +127,16 @@ func GetDefaultTestConfig() *TestConfig {
 	}
 }
 
-// GetCITestConfig returns configuration optimized for CI environments
+// GetCITestConfig returns configuration optimized for CI environments.
 func GetCITestConfig() *TestConfig {
 	config := GetDefaultTestConfig()
 
-	// Reduce timeouts for faster CI runs
+	// Reduce timeouts for faster CI runs.
 	config.DefaultTimeout = 20 * time.Second
 	config.EventuallyTimeout = 20 * time.Second
 	config.ConsistentlyDuration = 3 * time.Second
 
-	// Reduce controller-specific timeouts
+	// Reduce controller-specific timeouts.
 	config.E2NodeSetConfig.ScaleUpTimeout = 30 * time.Second
 	config.E2NodeSetConfig.ScaleDownTimeout = 15 * time.Second
 
@@ -146,23 +146,23 @@ func GetCITestConfig() *TestConfig {
 	return config
 }
 
-// GetDevelopmentTestConfig returns configuration optimized for development
+// GetDevelopmentTestConfig returns configuration optimized for development.
 func GetDevelopmentTestConfig() *TestConfig {
 	config := GetDefaultTestConfig()
 
-	// Increase timeouts for debugging
+	// Increase timeouts for debugging.
 	config.DefaultTimeout = 60 * time.Second
 	config.EventuallyTimeout = 60 * time.Second
 	config.ConsistentlyDuration = 10 * time.Second
 
-	// Increase polling intervals for less aggressive testing
+	// Increase polling intervals for less aggressive testing.
 	config.DefaultInterval = 200 * time.Millisecond
 	config.ReconcileInterval = 2 * time.Second
 
 	return config
 }
 
-// TestScenarioConfig defines configuration for specific test scenarios
+// TestScenarioConfig defines configuration for specific test scenarios.
 type TestScenarioConfig struct {
 	Name            string
 	Description     string
@@ -172,7 +172,7 @@ type TestScenarioConfig struct {
 	Tags            []string
 }
 
-// GetScenarioConfigs returns predefined test scenario configurations
+// GetScenarioConfigs returns predefined test scenario configurations.
 func GetScenarioConfigs() map[string]TestScenarioConfig {
 	return map[string]TestScenarioConfig{
 		"happy-path": {
@@ -220,7 +220,7 @@ func GetScenarioConfigs() map[string]TestScenarioConfig {
 	}
 }
 
-// Coverage configuration
+// Coverage configuration.
 type CoverageConfig struct {
 	Enabled          bool
 	MinimumThreshold float64
@@ -230,7 +230,7 @@ type CoverageConfig struct {
 	ExcludePatterns  []string
 }
 
-// GetCoverageConfig returns the default coverage configuration
+// GetCoverageConfig returns the default coverage configuration.
 func GetCoverageConfig() *CoverageConfig {
 	return &CoverageConfig{
 		Enabled:          true,
@@ -251,7 +251,7 @@ func GetCoverageConfig() *CoverageConfig {
 	}
 }
 
-// Benchmark configuration
+// Benchmark configuration.
 type BenchmarkConfig struct {
 	Enabled    bool
 	Duration   time.Duration
@@ -260,7 +260,7 @@ type BenchmarkConfig struct {
 	OutputPath string
 }
 
-// GetBenchmarkConfig returns the default benchmark configuration
+// GetBenchmarkConfig returns the default benchmark configuration.
 func GetBenchmarkConfig() *BenchmarkConfig {
 	return &BenchmarkConfig{
 		Enabled:    true,
@@ -271,7 +271,7 @@ func GetBenchmarkConfig() *BenchmarkConfig {
 	}
 }
 
-// Helper functions
+// Helper functions.
 func timePtr(t time.Duration) *time.Duration {
 	return &t
 }

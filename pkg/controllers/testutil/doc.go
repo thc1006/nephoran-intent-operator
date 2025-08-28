@@ -1,16 +1,16 @@
 // Package testutil provides shared testing utilities for the controllers package.
 //
-// This package consolidates common test helpers, fake implementations, and utility
-// functions to avoid duplication across test files and enable clean, maintainable
+// This package consolidates common test helpers, fake implementations, and utility.
+// functions to avoid duplication across test files and enable clean, maintainable.
 // test code.
 //
-// Key components:
-//   - FakeE2Manager: Mock implementation of E2ManagerInterface for testing
-//   - Condition helpers: Functions for working with Kubernetes conditions
-//   - Test helpers: Utilities for creating test resources and managing namespaces
-//   - Constants: Common test values and timeouts
+// Key components:.
+//   - FakeE2Manager: Mock implementation of E2ManagerInterface for testing.
+//   - Condition helpers: Functions for working with Kubernetes conditions.
+//   - Test helpers: Utilities for creating test resources and managing namespaces.
+//   - Constants: Common test values and timeouts.
 //
-// Usage:
+// Usage:.
 //
 //	import "github.com/thc1006/nephoran-intent-operator/pkg/controllers/testutil"
 //

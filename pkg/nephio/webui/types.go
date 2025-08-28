@@ -6,20 +6,20 @@ import (
 	"github.com/google/uuid"
 )
 
-// APIError represents a standardized error response
+// APIError represents a standardized error response.
 type APIError struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 	Details string `json:"details,omitempty"`
 }
 
-// PaginationRequest represents pagination parameters for API requests
+// PaginationRequest represents pagination parameters for API requests.
 type PaginationRequest struct {
 	Page     int `json:"page"`
 	PageSize int `json:"page_size"`
 }
 
-// PaginationResponse wraps paginated results
+// PaginationResponse wraps paginated results.
 type PaginationResponse struct {
 	Total      int64 `json:"total"`
 	Page       int   `json:"page"`
@@ -27,7 +27,7 @@ type PaginationResponse struct {
 	TotalPages int   `json:"total_pages"`
 }
 
-// PackageRevisionSpec represents the specification for a package revision
+// PackageRevisionSpec represents the specification for a package revision.
 type PackageRevisionSpec struct {
 	Name        string            `json:"name"`
 	Repository  string            `json:"repository"`
@@ -37,14 +37,14 @@ type PackageRevisionSpec struct {
 	Annotations map[string]string `json:"annotations"`
 }
 
-// PackageRevisionStatus represents the status of a package revision
+// PackageRevisionStatus represents the status of a package revision.
 type PackageRevisionStatus struct {
 	Phase       string      `json:"phase"`
 	Conditions  []Condition `json:"conditions"`
 	LastUpdated time.Time   `json:"last_updated"`
 }
 
-// Condition represents a condition in a resource's status
+// Condition represents a condition in a resource's status.
 type Condition struct {
 	Type    string `json:"type"`
 	Status  string `json:"status"`
@@ -52,7 +52,7 @@ type Condition struct {
 	Message string `json:"message,omitempty"`
 }
 
-// PackageRevision represents a complete package revision
+// PackageRevision represents a complete package revision.
 type PackageRevision struct {
 	ID        uuid.UUID             `json:"id"`
 	Spec      PackageRevisionSpec   `json:"spec"`
@@ -61,7 +61,7 @@ type PackageRevision struct {
 	UpdatedAt time.Time             `json:"updated_at"`
 }
 
-// WorkloadCluster represents a managed workload cluster
+// WorkloadCluster represents a managed workload cluster.
 type WorkloadCluster struct {
 	Name        string            `json:"name"`
 	Namespace   string            `json:"namespace"`
@@ -71,7 +71,7 @@ type WorkloadCluster struct {
 	LastSync    time.Time         `json:"last_sync"`
 }
 
-// NetworkIntent represents a network configuration intent
+// NetworkIntent represents a network configuration intent.
 type NetworkIntent struct {
 	ID          uuid.UUID           `json:"id"`
 	Description string              `json:"description"`
@@ -80,14 +80,14 @@ type NetworkIntent struct {
 	CreatedAt   time.Time           `json:"created_at"`
 }
 
-// NetworkIntentSpec defines the desired network configuration
+// NetworkIntentSpec defines the desired network configuration.
 type NetworkIntentSpec struct {
 	Type           string            `json:"type"`
 	Parameters     map[string]string `json:"parameters"`
 	TargetClusters []string          `json:"target_clusters"`
 }
 
-// NetworkIntentStatus represents the processing status of a network intent
+// NetworkIntentStatus represents the processing status of a network intent.
 type NetworkIntentStatus struct {
 	Phase       string      `json:"phase"`
 	Progress    float64     `json:"progress"`
@@ -95,7 +95,7 @@ type NetworkIntentStatus struct {
 	LastUpdated time.Time   `json:"last_updated"`
 }
 
-// GitRepository represents a configured Git repository
+// GitRepository represents a configured Git repository.
 type GitRepository struct {
 	Name        string    `json:"name"`
 	URL         string    `json:"url"`
@@ -105,23 +105,27 @@ type GitRepository struct {
 	Status      string    `json:"status"`
 }
 
-// WebSocketMessage represents a message sent over WebSocket
+// WebSocketMessage represents a message sent over WebSocket.
 type WebSocketMessage struct {
 	Type    string      `json:"type"`
 	Payload interface{} `json:"payload"`
 }
 
-// WebSocketEventType defines types of WebSocket events
+// WebSocketEventType defines types of WebSocket events.
 type WebSocketEventType string
 
 const (
-	EventTypePackageUpdate      WebSocketEventType = "package_update"
-	EventTypeClusterStatus      WebSocketEventType = "cluster_status"
-	EventTypeIntentProcessing   WebSocketEventType = "intent_processing"
+	// EventTypePackageUpdate holds eventtypepackageupdate value.
+	EventTypePackageUpdate WebSocketEventType = "package_update"
+	// EventTypeClusterStatus holds eventtypeclusterstatus value.
+	EventTypeClusterStatus WebSocketEventType = "cluster_status"
+	// EventTypeIntentProcessing holds eventtypeintentprocessing value.
+	EventTypeIntentProcessing WebSocketEventType = "intent_processing"
+	// EventTypeSystemNotification holds eventtypesystemnotification value.
 	EventTypeSystemNotification WebSocketEventType = "system_notification"
 )
 
-// APIHealthStatus represents the health status of the API service
+// APIHealthStatus represents the health status of the API service.
 type APIHealthStatus struct {
 	Status           string            `json:"status"`
 	Version          string            `json:"version"`

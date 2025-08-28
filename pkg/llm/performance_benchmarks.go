@@ -1,5 +1,5 @@
 //go:build !disable_rag
-// +build !disable_rag
+// +build !disable_rag.
 
 package llm
 
@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// PerformanceBenchmarks demonstrates the performance improvements achieved
+// PerformanceBenchmarks demonstrates the performance improvements achieved.
 type PerformanceBenchmarks struct {
 	originalController  *OriginalController
 	optimizedController *OptimizedControllerIntegration
@@ -21,65 +21,65 @@ type PerformanceBenchmarks struct {
 	results *BenchmarkResults
 }
 
-// BenchmarkResults holds comparative performance data
+// BenchmarkResults holds comparative performance data.
 type BenchmarkResults struct {
-	// Latency improvements
+	// Latency improvements.
 	OriginalP99Latency  time.Duration `json:"original_p99_latency"`
 	OptimizedP99Latency time.Duration `json:"optimized_p99_latency"`
 	LatencyImprovement  float64       `json:"latency_improvement_percent"`
 
-	// CPU optimization
+	// CPU optimization.
 	OriginalCPUUsage  float64 `json:"original_cpu_usage_percent"`
 	OptimizedCPUUsage float64 `json:"optimized_cpu_usage_percent"`
 	CPUReduction      float64 `json:"cpu_reduction_percent"`
 
-	// Memory optimization
+	// Memory optimization.
 	OriginalMemoryUsage  int64   `json:"original_memory_bytes"`
 	OptimizedMemoryUsage int64   `json:"optimized_memory_bytes"`
 	MemoryReduction      float64 `json:"memory_reduction_percent"`
 
-	// Throughput improvements
+	// Throughput improvements.
 	OriginalThroughput    float64 `json:"original_requests_per_second"`
 	OptimizedThroughput   float64 `json:"optimized_requests_per_second"`
 	ThroughputImprovement float64 `json:"throughput_improvement_percent"`
 
-	// HTTP connection optimization
+	// HTTP connection optimization.
 	ConnectionReuseRate  float64 `json:"connection_reuse_rate_percent"`
 	HTTPLatencyReduction float64 `json:"http_latency_reduction_percent"`
 
-	// Cache effectiveness
+	// Cache effectiveness.
 	CacheHitRate          float64 `json:"cache_hit_rate_percent"`
 	CacheLatencyReduction float64 `json:"cache_latency_reduction_percent"`
 
-	// Batch processing efficiency
+	// Batch processing efficiency.
 	BatchingEfficiency float64 `json:"batching_efficiency_percent"`
 	AverageBatchSize   float64 `json:"average_batch_size"`
 
-	// JSON processing optimization
+	// JSON processing optimization.
 	JSONProcessingSpeedup float64 `json:"json_processing_speedup_factor"`
 
-	// Overall system improvements
+	// Overall system improvements.
 	TotalLatencyReduction float64 `json:"total_latency_reduction_percent"`
 	TotalCPUReduction     float64 `json:"total_cpu_reduction_percent"`
 }
 
-// OriginalController simulates the original implementation for comparison
+// OriginalController simulates the original implementation for comparison.
 type OriginalController struct {
 	logger *slog.Logger
 }
 
-// NewPerformanceBenchmarks creates a new benchmark suite
+// NewPerformanceBenchmarks creates a new benchmark suite.
 func NewPerformanceBenchmarks() (*PerformanceBenchmarks, error) {
 	logger := slog.Default().With("component", "performance-benchmarks")
 
-	// Create optimized controller
+	// Create optimized controller.
 	optimizedConfig := getDefaultOptimizedControllerConfig()
 	optimizedController, err := NewOptimizedControllerIntegration(optimizedConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create optimized controller: %w", err)
 	}
 
-	// Create original controller simulation
+	// Create original controller simulation.
 	originalController := &OriginalController{
 		logger: logger,
 	}
@@ -92,11 +92,11 @@ func NewPerformanceBenchmarks() (*PerformanceBenchmarks, error) {
 	}, nil
 }
 
-// RunComprehensiveBenchmarks executes all performance benchmarks
+// RunComprehensiveBenchmarks executes all performance benchmarks.
 func (pb *PerformanceBenchmarks) RunComprehensiveBenchmarks(ctx context.Context) (*BenchmarkResults, error) {
 	pb.logger.Info("Starting comprehensive performance benchmarks")
 
-	// Test scenarios
+	// Test scenarios.
 	testCases := []struct {
 		name        string
 		intent      string
@@ -147,25 +147,25 @@ func (pb *PerformanceBenchmarks) RunComprehensiveBenchmarks(ctx context.Context)
 			"iterations", tc.iterations,
 		)
 
-		// Run original implementation
+		// Run original implementation.
 		originalResults, err := pb.benchmarkOriginal(ctx, tc.intent, tc.intentType, tc.concurrency, tc.iterations)
 		if err != nil {
 			pb.logger.Error("Original benchmark failed", "error", err)
 			continue
 		}
 
-		// Run optimized implementation
+		// Run optimized implementation.
 		optimizedResults, err := pb.benchmarkOptimized(ctx, tc.intent, tc.intentType, tc.concurrency, tc.iterations)
 		if err != nil {
 			pb.logger.Error("Optimized benchmark failed", "error", err)
 			continue
 		}
 
-		// Calculate improvements
+		// Calculate improvements.
 		pb.calculateImprovements(tc.name, originalResults, optimizedResults)
 	}
 
-	// Run specific optimization benchmarks
+	// Run specific optimization benchmarks.
 	pb.benchmarkHTTPOptimizations(ctx)
 	pb.benchmarkCacheOptimizations(ctx)
 	pb.benchmarkJSONOptimizations(ctx)
@@ -180,25 +180,24 @@ func (pb *PerformanceBenchmarks) RunComprehensiveBenchmarks(ctx context.Context)
 	return pb.results, nil
 }
 
-// benchmarkOriginal runs benchmarks against the original implementation
+// benchmarkOriginal runs benchmarks against the original implementation.
 func (pb *PerformanceBenchmarks) benchmarkOriginal(
 	ctx context.Context,
 	intent, intentType string,
 	concurrency, iterations int,
 ) (*TestResults, error) {
-
 	results := &TestResults{
 		Latencies: make([]time.Duration, 0, concurrency*iterations),
 		StartTime: time.Now(),
 	}
 
-	// Measure initial memory
+	// Measure initial memory.
 	var startMemStats runtime.MemStats
 	runtime.GC()
 	runtime.ReadMemStats(&startMemStats)
 	results.StartMemory = int64(startMemStats.Alloc)
 
-	// Run concurrent test
+	// Run concurrent test.
 	var wg sync.WaitGroup
 	latencyChan := make(chan time.Duration, concurrency*iterations)
 	errorChan := make(chan error, concurrency*iterations)
@@ -211,7 +210,7 @@ func (pb *PerformanceBenchmarks) benchmarkOriginal(
 			for i := 0; i < iterations; i++ {
 				start := time.Now()
 
-				// Simulate original processing (slower, more CPU intensive)
+				// Simulate original processing (slower, more CPU intensive).
 				err := pb.originalController.processLLMPhaseOriginal(ctx, intent, intentType)
 
 				latency := time.Since(start)
@@ -229,7 +228,7 @@ func (pb *PerformanceBenchmarks) benchmarkOriginal(
 	close(latencyChan)
 	close(errorChan)
 
-	// Collect results
+	// Collect results.
 	for latency := range latencyChan {
 		results.Latencies = append(results.Latencies, latency)
 	}
@@ -238,7 +237,7 @@ func (pb *PerformanceBenchmarks) benchmarkOriginal(
 		results.Errors = append(results.Errors, err)
 	}
 
-	// Measure final memory
+	// Measure final memory.
 	var endMemStats runtime.MemStats
 	runtime.GC()
 	runtime.ReadMemStats(&endMemStats)
@@ -247,31 +246,30 @@ func (pb *PerformanceBenchmarks) benchmarkOriginal(
 	results.EndTime = time.Now()
 	results.TotalTime = results.EndTime.Sub(results.StartTime)
 
-	// Calculate statistics
+	// Calculate statistics.
 	pb.calculateStatistics(results)
 
 	return results, nil
 }
 
-// benchmarkOptimized runs benchmarks against the optimized implementation
+// benchmarkOptimized runs benchmarks against the optimized implementation.
 func (pb *PerformanceBenchmarks) benchmarkOptimized(
 	ctx context.Context,
 	intent, intentType string,
 	concurrency, iterations int,
 ) (*TestResults, error) {
-
 	results := &TestResults{
 		Latencies: make([]time.Duration, 0, concurrency*iterations),
 		StartTime: time.Now(),
 	}
 
-	// Measure initial memory
+	// Measure initial memory.
 	var startMemStats runtime.MemStats
 	runtime.GC()
 	runtime.ReadMemStats(&startMemStats)
 	results.StartMemory = int64(startMemStats.Alloc)
 
-	// Run concurrent test
+	// Run concurrent test.
 	var wg sync.WaitGroup
 	latencyChan := make(chan time.Duration, concurrency*iterations)
 	errorChan := make(chan error, concurrency*iterations)
@@ -284,7 +282,7 @@ func (pb *PerformanceBenchmarks) benchmarkOptimized(
 			for i := 0; i < iterations; i++ {
 				start := time.Now()
 
-				// Use optimized processing
+				// Use optimized processing.
 				parameters := map[string]interface{}{
 					"model":      "gpt-4o-mini",
 					"max_tokens": 2048,
@@ -309,7 +307,7 @@ func (pb *PerformanceBenchmarks) benchmarkOptimized(
 	close(latencyChan)
 	close(errorChan)
 
-	// Collect results
+	// Collect results.
 	for latency := range latencyChan {
 		results.Latencies = append(results.Latencies, latency)
 	}
@@ -318,7 +316,7 @@ func (pb *PerformanceBenchmarks) benchmarkOptimized(
 		results.Errors = append(results.Errors, err)
 	}
 
-	// Measure final memory
+	// Measure final memory.
 	var endMemStats runtime.MemStats
 	runtime.GC()
 	runtime.ReadMemStats(&endMemStats)
@@ -327,32 +325,32 @@ func (pb *PerformanceBenchmarks) benchmarkOptimized(
 	results.EndTime = time.Now()
 	results.TotalTime = results.EndTime.Sub(results.StartTime)
 
-	// Calculate statistics
+	// Calculate statistics.
 	pb.calculateStatistics(results)
 
 	return results, nil
 }
 
-// benchmarkHTTPOptimizations tests HTTP client optimizations
+// benchmarkHTTPOptimizations tests HTTP client optimizations.
 func (pb *PerformanceBenchmarks) benchmarkHTTPOptimizations(ctx context.Context) {
 	pb.logger.Info("Benchmarking HTTP optimizations")
 
-	// Test connection reuse
+	// Test connection reuse.
 	iterations := 100
 
-	// Without connection pooling (simulate original)
+	// Without connection pooling (simulate original).
 	start := time.Now()
 	for i := 0; i < iterations; i++ {
-		// Simulate creating new connection each time
+		// Simulate creating new connection each time.
 		time.Sleep(time.Millisecond * 5)  // Connection establishment overhead
 		time.Sleep(time.Millisecond * 10) // Request processing
 	}
 	originalHTTPTime := time.Since(start)
 
-	// With connection pooling (optimized)
+	// With connection pooling (optimized).
 	start = time.Now()
 	for i := 0; i < iterations; i++ {
-		// Simulate reused connection
+		// Simulate reused connection.
 		if i == 0 {
 			time.Sleep(time.Millisecond * 5) // Initial connection only
 		}
@@ -372,22 +370,22 @@ func (pb *PerformanceBenchmarks) benchmarkHTTPOptimizations(ctx context.Context)
 	)
 }
 
-// benchmarkCacheOptimizations tests intelligent caching
+// benchmarkCacheOptimizations tests intelligent caching.
 func (pb *PerformanceBenchmarks) benchmarkCacheOptimizations(ctx context.Context) {
 	pb.logger.Info("Benchmarking cache optimizations")
 
-	// Simulate cache performance
+	// Simulate cache performance.
 	iterations := 100
 	cacheHitRate := 0.75 // 75% cache hit rate
 
-	// Without cache (original)
+	// Without cache (original).
 	start := time.Now()
 	for i := 0; i < iterations; i++ {
 		time.Sleep(time.Millisecond * 50) // Full LLM processing time
 	}
 	originalCacheTime := time.Since(start)
 
-	// With intelligent cache (optimized)
+	// With intelligent cache (optimized).
 	start = time.Now()
 	for i := 0; i < iterations; i++ {
 		if float64(i)/float64(iterations) < cacheHitRate {
@@ -409,7 +407,7 @@ func (pb *PerformanceBenchmarks) benchmarkCacheOptimizations(ctx context.Context
 	)
 }
 
-// benchmarkJSONOptimizations tests JSON processing optimizations
+// benchmarkJSONOptimizations tests JSON processing optimizations.
 func (pb *PerformanceBenchmarks) benchmarkJSONOptimizations(ctx context.Context) {
 	pb.logger.Info("Benchmarking JSON optimizations")
 
@@ -423,14 +421,14 @@ func (pb *PerformanceBenchmarks) benchmarkJSONOptimizations(ctx context.Context)
 
 	iterations := 1000
 
-	// Standard JSON parsing
+	// Standard JSON parsing.
 	start := time.Now()
 	for i := 0; i < iterations; i++ {
 		pb.parseJSONStandard(testJSON)
 	}
 	standardTime := time.Since(start)
 
-	// Optimized JSON parsing
+	// Optimized JSON parsing.
 	processor := NewFastJSONProcessor(JSONOptimizationConfig{
 		UseUnsafeOperations:   true,
 		EnableZeroCopyParsing: true,
@@ -452,22 +450,22 @@ func (pb *PerformanceBenchmarks) benchmarkJSONOptimizations(ctx context.Context)
 	)
 }
 
-// benchmarkBatchProcessing tests batch processing efficiency
+// benchmarkBatchProcessing tests batch processing efficiency.
 func (pb *PerformanceBenchmarks) benchmarkBatchProcessing(ctx context.Context) {
 	pb.logger.Info("Benchmarking batch processing")
 
-	// Simulate batch vs individual processing
+	// Simulate batch vs individual processing.
 	requests := 20
 	batchSize := 5
 
-	// Individual processing
+	// Individual processing.
 	start := time.Now()
 	for i := 0; i < requests; i++ {
 		time.Sleep(time.Millisecond * 25) // Individual request overhead
 	}
 	individualTime := time.Since(start)
 
-	// Batch processing
+	// Batch processing.
 	start = time.Now()
 	for i := 0; i < requests/batchSize; i++ {
 		time.Sleep(time.Millisecond * 75) // Batch processing time (less than 5x individual)
@@ -485,14 +483,14 @@ func (pb *PerformanceBenchmarks) benchmarkBatchProcessing(ctx context.Context) {
 	)
 }
 
-// Helper methods
+// Helper methods.
 
 func (pb *PerformanceBenchmarks) calculateImprovements(testName string, original, optimized *TestResults) {
 	latencyImprovement := (1.0 - float64(optimized.P99Latency)/float64(original.P99Latency)) * 100
 	throughputImprovement := (optimized.Throughput/original.Throughput - 1.0) * 100
 	memoryReduction := (1.0 - float64(optimized.PeakMemory)/float64(original.PeakMemory)) * 100
 
-	// Update aggregate results
+	// Update aggregate results.
 	pb.results.OriginalP99Latency = original.P99Latency
 	pb.results.OptimizedP99Latency = optimized.P99Latency
 	pb.results.LatencyImprovement = latencyImprovement
@@ -505,7 +503,7 @@ func (pb *PerformanceBenchmarks) calculateImprovements(testName string, original
 	pb.results.OptimizedMemoryUsage = optimized.PeakMemory
 	pb.results.MemoryReduction = memoryReduction
 
-	// Calculate overall improvements
+	// Calculate overall improvements.
 	pb.results.TotalLatencyReduction = latencyImprovement
 	pb.results.TotalCPUReduction = 60.0 // Target 60% CPU reduction
 
@@ -522,11 +520,11 @@ func (pb *PerformanceBenchmarks) calculateStatistics(results *TestResults) {
 		return
 	}
 
-	// Sort latencies for percentile calculations
+	// Sort latencies for percentile calculations.
 	latencies := make([]time.Duration, len(results.Latencies))
 	copy(latencies, results.Latencies)
 
-	// Simple sort for percentiles (would use proper sorting in production)
+	// Simple sort for percentiles (would use proper sorting in production).
 	for i := 0; i < len(latencies)-1; i++ {
 		for j := i + 1; j < len(latencies); j++ {
 			if latencies[i] > latencies[j] {
@@ -535,15 +533,15 @@ func (pb *PerformanceBenchmarks) calculateStatistics(results *TestResults) {
 		}
 	}
 
-	// Calculate percentiles
+	// Calculate percentiles.
 	results.P50Latency = latencies[len(latencies)*50/100]
 	results.P95Latency = latencies[len(latencies)*95/100]
 	results.P99Latency = latencies[len(latencies)*99/100]
 
-	// Calculate throughput
+	// Calculate throughput.
 	results.Throughput = float64(len(results.Latencies)) / results.TotalTime.Seconds()
 
-	// Calculate memory usage
+	// Calculate memory usage.
 	results.PeakMemory = results.EndMemory
 	if results.StartMemory > results.EndMemory {
 		results.PeakMemory = results.StartMemory
@@ -551,24 +549,24 @@ func (pb *PerformanceBenchmarks) calculateStatistics(results *TestResults) {
 }
 
 func (pb *PerformanceBenchmarks) parseJSONStandard(data string) error {
-	// Standard JSON parsing simulation
+	// Standard JSON parsing simulation.
 	time.Sleep(time.Microsecond * 10)
 	return nil
 }
 
-// Original controller simulation
+// Original controller simulation.
 func (oc *OriginalController) processLLMPhaseOriginal(ctx context.Context, intent, intentType string) error {
-	// Simulate original processing with higher latency and CPU usage
+	// Simulate original processing with higher latency and CPU usage.
 	start := time.Now()
 
-	// Simulate HTTP request without connection pooling
+	// Simulate HTTP request without connection pooling.
 	time.Sleep(time.Millisecond * 15) // Connection establishment
 	time.Sleep(time.Millisecond * 35) // Request/response
 
-	// Simulate JSON parsing without optimization
+	// Simulate JSON parsing without optimization.
 	time.Sleep(time.Millisecond * 5)
 
-	// Simulate additional CPU-intensive processing
+	// Simulate additional CPU-intensive processing.
 	time.Sleep(time.Millisecond * 20)
 
 	totalTime := time.Since(start)
@@ -577,7 +575,7 @@ func (oc *OriginalController) processLLMPhaseOriginal(ctx context.Context, inten
 	return nil
 }
 
-// TestResults holds benchmark test results
+// TestResults holds benchmark test results.
 type TestResults struct {
 	StartTime time.Time
 	EndTime   time.Time
@@ -597,7 +595,7 @@ type TestResults struct {
 	Errors []error
 }
 
-// GetBenchmarkSummary returns a human-readable benchmark summary
+// GetBenchmarkSummary returns a human-readable benchmark summary.
 func (pb *PerformanceBenchmarks) GetBenchmarkSummary() string {
 	return fmt.Sprintf(`
 Performance Benchmark Results:

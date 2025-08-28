@@ -28,9 +28,9 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 )
 
-// ResilienceManager manages all resilience patterns for the system
+// ResilienceManager manages all resilience patterns for the system.
 type ResilienceManager struct {
-	// Pattern implementations
+	// Pattern implementations.
 	timeoutManager     *TimeoutManager
 	bulkheadManager    *BulkheadManager
 	circuitBreakerMgr  *CircuitBreakerManager
@@ -39,56 +39,56 @@ type ResilienceManager struct {
 	healthCheckManager *HealthCheckManager
 	gracefulShutdown   *GracefulShutdownManager
 
-	// Configuration and state
+	// Configuration and state.
 	config  *ResilienceConfig
 	logger  logr.Logger
 	metrics *ResilienceMetrics
 
-	// Lifecycle
+	// Lifecycle.
 	mutex        sync.RWMutex
 	started      bool
 	stopChan     chan struct{}
 	healthTicker *time.Ticker
 }
 
-// ResilienceConfig holds configuration for all resilience patterns
+// ResilienceConfig holds configuration for all resilience patterns.
 type ResilienceConfig struct {
-	// Global settings
+	// Global settings.
 	DefaultTimeout          time.Duration `json:"defaultTimeout"`
 	MaxConcurrentOperations int           `json:"maxConcurrentOperations"`
 	HealthCheckInterval     time.Duration `json:"healthCheckInterval"`
 
-	// Timeout settings
+	// Timeout settings.
 	TimeoutEnabled bool                      `json:"timeoutEnabled"`
 	TimeoutConfigs map[string]*TimeoutConfig `json:"timeoutConfigs"`
 
-	// Bulkhead settings
+	// Bulkhead settings.
 	BulkheadEnabled bool                       `json:"bulkheadEnabled"`
 	BulkheadConfigs map[string]*BulkheadConfig `json:"bulkheadConfigs"`
 
-	// Circuit breaker settings
+	// Circuit breaker settings.
 	CircuitBreakerEnabled bool                             `json:"circuitBreakerEnabled"`
 	CircuitBreakerConfigs map[string]*CircuitBreakerConfig `json:"circuitBreakerConfigs"`
 
-	// Rate limiting settings
+	// Rate limiting settings.
 	RateLimitingEnabled bool                        `json:"rateLimitingEnabled"`
 	RateLimitConfigs    map[string]*RateLimitConfig `json:"rateLimitConfigs"`
 
-	// Retry settings
+	// Retry settings.
 	RetryEnabled bool                    `json:"retryEnabled"`
 	RetryConfigs map[string]*RetryConfig `json:"retryConfigs"`
 
-	// Health check settings
+	// Health check settings.
 	HealthCheckEnabled bool                          `json:"healthCheckEnabled"`
 	HealthCheckConfigs map[string]*HealthCheckConfig `json:"healthCheckConfigs"`
 
-	// Graceful shutdown settings
+	// Graceful shutdown settings.
 	GracefulShutdownEnabled bool          `json:"gracefulShutdownEnabled"`
 	ShutdownTimeout         time.Duration `json:"shutdownTimeout"`
 	ShutdownHooks           []string      `json:"shutdownHooks"`
 }
 
-// CircuitBreakerMetrics tracks circuit breaker pattern metrics
+// CircuitBreakerMetrics tracks circuit breaker pattern metrics.
 type CircuitBreakerMetrics struct {
 	TotalRequests  int64     `json:"totalRequests"`
 	FailedRequests int64     `json:"failedRequests"`
@@ -98,15 +98,15 @@ type CircuitBreakerMetrics struct {
 	LastFailure    time.Time `json:"lastFailure"`
 }
 
-// ResilienceMetrics tracks metrics for all resilience patterns
+// ResilienceMetrics tracks metrics for all resilience patterns.
 type ResilienceMetrics struct {
-	// Overall metrics
+	// Overall metrics.
 	TotalOperations      int64         `json:"totalOperations"`
 	SuccessfulOperations int64         `json:"successfulOperations"`
 	FailedOperations     int64         `json:"failedOperations"`
 	AverageLatency       time.Duration `json:"averageLatency"`
 
-	// Pattern-specific metrics
+	// Pattern-specific metrics.
 	TimeoutMetrics        *TimeoutMetrics        `json:"timeoutMetrics"`
 	BulkheadMetrics       *BulkheadMetrics       `json:"bulkheadMetrics"`
 	CircuitBreakerMetrics *CircuitBreakerMetrics `json:"circuitBreakerMetrics"`
@@ -114,14 +114,14 @@ type ResilienceMetrics struct {
 	RetryMetrics          *RetryMetrics          `json:"retryMetrics"`
 	HealthCheckMetrics    *HealthCheckMetrics    `json:"healthCheckMetrics"`
 
-	// Resource metrics
+	// Resource metrics.
 	ResourceMetrics *ResourceMetrics `json:"resourceMetrics"`
 
 	LastUpdated time.Time `json:"lastUpdated"`
 	mutex       sync.RWMutex
 }
 
-// TimeoutManager manages timeout patterns
+// TimeoutManager manages timeout patterns.
 type TimeoutManager struct {
 	configs    map[string]*TimeoutConfig
 	operations sync.Map // map[string]*TimeoutOperation
@@ -130,7 +130,7 @@ type TimeoutManager struct {
 	mutex      sync.RWMutex
 }
 
-// TimeoutConfig configures timeout behavior
+// TimeoutConfig configures timeout behavior.
 type TimeoutConfig struct {
 	Name            string        `json:"name"`
 	DefaultTimeout  time.Duration `json:"defaultTimeout"`
@@ -140,7 +140,7 @@ type TimeoutConfig struct {
 	AdaptiveTimeout bool          `json:"adaptiveTimeout"` // Learn optimal timeout
 }
 
-// TimeoutOperation tracks an operation with timeout
+// TimeoutOperation tracks an operation with timeout.
 type TimeoutOperation struct {
 	ID            string
 	StartTime     time.Time
@@ -152,7 +152,7 @@ type TimeoutOperation struct {
 	mutex         sync.RWMutex
 }
 
-// TimeoutMetrics tracks timeout-related metrics
+// TimeoutMetrics tracks timeout-related metrics.
 type TimeoutMetrics struct {
 	TotalOperations     int64         `json:"totalOperations"`
 	TimeoutOperations   int64         `json:"timeoutOperations"`
@@ -165,7 +165,7 @@ type TimeoutMetrics struct {
 	mutex sync.RWMutex
 }
 
-// BulkheadManager manages bulkhead isolation patterns
+// BulkheadManager manages bulkhead isolation patterns.
 type BulkheadManager struct {
 	bulkheads map[string]*Bulkhead
 	metrics   *BulkheadMetrics
@@ -173,7 +173,7 @@ type BulkheadManager struct {
 	mutex     sync.RWMutex
 }
 
-// BulkheadConfig configures bulkhead behavior
+// BulkheadConfig configures bulkhead behavior.
 type BulkheadConfig struct {
 	Name              string        `json:"name"`
 	MaxConcurrent     int           `json:"maxConcurrent"`
@@ -185,7 +185,7 @@ type BulkheadConfig struct {
 	ScalingThreshold  float64       `json:"scalingThreshold"`
 }
 
-// Bulkhead implements resource isolation
+// Bulkhead implements resource isolation.
 type Bulkhead struct {
 	config            *BulkheadConfig
 	semaphore         chan struct{}
@@ -195,7 +195,7 @@ type Bulkhead struct {
 	rejectedRequests  int64
 	completedRequests int64
 
-	// Auto-scaling
+	// Auto-scaling.
 	loadMetrics     *LoadMetrics
 	scalingDecision chan ScalingDecision
 
@@ -204,7 +204,7 @@ type Bulkhead struct {
 	mutex    sync.RWMutex
 }
 
-// BulkheadRequest represents a request to be processed in a bulkhead
+// BulkheadRequest represents a request to be processed in a bulkhead.
 type BulkheadRequest struct {
 	ID         string
 	Operation  func(ctx context.Context) (interface{}, error)
@@ -215,7 +215,7 @@ type BulkheadRequest struct {
 	CreatedAt  time.Time
 }
 
-// BulkheadResult represents the result of a bulkhead operation
+// BulkheadResult represents the result of a bulkhead operation.
 type BulkheadResult struct {
 	Success     bool
 	Result      interface{}
@@ -225,7 +225,7 @@ type BulkheadResult struct {
 	ExecuteTime time.Duration
 }
 
-// LoadMetrics tracks load for auto-scaling decisions
+// LoadMetrics tracks load for auto-scaling decisions.
 type LoadMetrics struct {
 	RequestRate      float64
 	ResponseTime     time.Duration
@@ -237,7 +237,7 @@ type LoadMetrics struct {
 	mutex   sync.RWMutex
 }
 
-// LoadMeasurement represents a point-in-time load measurement
+// LoadMeasurement represents a point-in-time load measurement.
 type LoadMeasurement struct {
 	Timestamp    time.Time
 	RequestRate  float64
@@ -245,7 +245,7 @@ type LoadMeasurement struct {
 	QueueUsage   float64
 }
 
-// ScalingDecision represents an auto-scaling decision
+// ScalingDecision represents an auto-scaling decision.
 type ScalingDecision struct {
 	Action     ScalingAction
 	TargetSize int
@@ -254,16 +254,19 @@ type ScalingDecision struct {
 	Timestamp  time.Time
 }
 
-// ScalingAction defines auto-scaling actions
+// ScalingAction defines auto-scaling actions.
 type ScalingAction string
 
 const (
-	ScaleUp   ScalingAction = "scale_up"
+	// ScaleUp holds scaleup value.
+	ScaleUp ScalingAction = "scale_up"
+	// ScaleDown holds scaledown value.
 	ScaleDown ScalingAction = "scale_down"
-	NoScale   ScalingAction = "no_scale"
+	// NoScale holds noscale value.
+	NoScale ScalingAction = "no_scale"
 )
 
-// BulkheadMetrics tracks bulkhead-related metrics
+// BulkheadMetrics tracks bulkhead-related metrics.
 type BulkheadMetrics struct {
 	TotalBulkheads     int           `json:"totalBulkheads"`
 	ActiveRequests     int64         `json:"activeRequests"`
@@ -278,7 +281,7 @@ type BulkheadMetrics struct {
 	mutex sync.RWMutex
 }
 
-// BulkheadDetail tracks detailed metrics for a specific bulkhead
+// BulkheadDetail tracks detailed metrics for a specific bulkhead.
 type BulkheadDetail struct {
 	Name              string           `json:"name"`
 	MaxConcurrent     int              `json:"maxConcurrent"`
@@ -292,7 +295,7 @@ type BulkheadDetail struct {
 	HealthStatus      string           `json:"healthStatus"`
 }
 
-// CircuitBreakerManager manages circuit breaker patterns
+// CircuitBreakerManager manages circuit breaker patterns.
 type CircuitBreakerManager struct {
 	circuitBreakers map[string]*AdvancedCircuitBreaker
 	metrics         *CircuitBreakerMetrics
@@ -300,7 +303,7 @@ type CircuitBreakerManager struct {
 	mutex           sync.RWMutex
 }
 
-// CircuitBreakerConfig configures circuit breaker behavior
+// CircuitBreakerConfig configures circuit breaker behavior.
 type CircuitBreakerConfig struct {
 	Name                string        `json:"name"`
 	FailureThreshold    int           `json:"failureThreshold"`
@@ -308,41 +311,41 @@ type CircuitBreakerConfig struct {
 	Timeout             time.Duration `json:"timeout"`
 	MaxHalfOpenRequests int           `json:"maxHalfOpenRequests"`
 
-	// Advanced features
+	// Advanced features.
 	AdaptiveThreshold       bool          `json:"adaptiveThreshold"`
 	FailureRateThreshold    float64       `json:"failureRateThreshold"`
 	SlidingWindowSize       time.Duration `json:"slidingWindowSize"`
 	MinimumRequestThreshold int           `json:"minimumRequestThreshold"`
 
-	// Monitoring
+	// Monitoring.
 	MetricsEnabled     bool `json:"metricsEnabled"`
 	AlertingEnabled    bool `json:"alertingEnabled"`
 	HealthCheckEnabled bool `json:"healthCheckEnabled"`
 }
 
-// AdvancedCircuitBreaker implements advanced circuit breaker pattern
+// AdvancedCircuitBreaker implements advanced circuit breaker pattern.
 type AdvancedCircuitBreaker struct {
 	config          *CircuitBreakerConfig
 	state           CircuitState
 	lastStateChange time.Time
 
-	// Counters
+	// Counters.
 	totalRequests      int64
 	successfulRequests int64
 	failedRequests     int64
 	halfOpenRequests   int64
 
-	// Sliding window for failure rate calculation
+	// Sliding window for failure rate calculation.
 	requestWindow *SlidingWindow
 	failureWindow *SlidingWindow
 
-	// Adaptive threshold
+	// Adaptive threshold.
 	adaptiveThreshold *AdaptiveThreshold
 
-	// Health check
+	// Health check.
 	healthChecker HealthChecker
 
-	// Callbacks
+	// Callbacks.
 	onStateChange func(from, to CircuitState)
 	onOpen        func(metrics CircuitMetrics)
 	onHalfOpen    func()
@@ -352,16 +355,19 @@ type AdvancedCircuitBreaker struct {
 	mutex  sync.RWMutex
 }
 
-// CircuitState represents the state of a circuit breaker
+// CircuitState represents the state of a circuit breaker.
 type CircuitState int
 
 const (
+	// CircuitClosed holds circuitclosed value.
 	CircuitClosed CircuitState = iota
+	// CircuitOpen holds circuitopen value.
 	CircuitOpen
+	// CircuitHalfOpen holds circuithalfopen value.
 	CircuitHalfOpen
 )
 
-// String returns string representation of circuit state
+// String returns string representation of circuit state.
 func (cs CircuitState) String() string {
 	switch cs {
 	case CircuitClosed:
@@ -375,7 +381,7 @@ func (cs CircuitState) String() string {
 	}
 }
 
-// SlidingWindow implements a time-based sliding window
+// SlidingWindow implements a time-based sliding window.
 type SlidingWindow struct {
 	windowSize time.Duration
 	buckets    []WindowBucket
@@ -384,7 +390,7 @@ type SlidingWindow struct {
 	mutex      sync.RWMutex
 }
 
-// WindowBucket represents a bucket in the sliding window
+// WindowBucket represents a bucket in the sliding window.
 type WindowBucket struct {
 	Timestamp time.Time
 	Count     int64
@@ -392,7 +398,7 @@ type WindowBucket struct {
 	Failure   int64
 }
 
-// AdaptiveThreshold dynamically adjusts circuit breaker thresholds
+// AdaptiveThreshold dynamically adjusts circuit breaker thresholds.
 type AdaptiveThreshold struct {
 	baseThreshold     int
 	currentThreshold  int
@@ -403,7 +409,7 @@ type AdaptiveThreshold struct {
 	mutex             sync.RWMutex
 }
 
-// ThresholdAdjustment tracks threshold adjustments
+// ThresholdAdjustment tracks threshold adjustments.
 type ThresholdAdjustment struct {
 	Timestamp       time.Time
 	OldThreshold    int
@@ -412,7 +418,7 @@ type ThresholdAdjustment struct {
 	PerformanceData map[string]float64
 }
 
-// CircuitMetrics provides metrics about circuit breaker state
+// CircuitMetrics provides metrics about circuit breaker state.
 type CircuitMetrics struct {
 	State              CircuitState  `json:"state"`
 	TotalRequests      int64         `json:"totalRequests"`
@@ -424,14 +430,14 @@ type CircuitMetrics struct {
 	AdaptiveThreshold  int           `json:"adaptiveThreshold"`
 }
 
-// HealthChecker defines interface for health checking
+// HealthChecker defines interface for health checking.
 type HealthChecker interface {
 	CheckHealth(ctx context.Context) error
 	IsHealthy() bool
 	GetHealthMetrics() map[string]interface{}
 }
 
-// DefaultHealthChecker provides basic health checking
+// DefaultHealthChecker provides basic health checking.
 type DefaultHealthChecker struct {
 	checkFunc       func(ctx context.Context) error
 	lastCheckTime   time.Time
@@ -440,7 +446,7 @@ type DefaultHealthChecker struct {
 	mutex           sync.RWMutex
 }
 
-// RateLimiterManager manages rate limiting patterns
+// RateLimiterManager manages rate limiting patterns.
 type RateLimiterManager struct {
 	limiters map[string]*AdaptiveRateLimiter
 	metrics  *RateLimitMetrics
@@ -448,24 +454,24 @@ type RateLimiterManager struct {
 	mutex    sync.RWMutex
 }
 
-// RateLimitConfig configures rate limiting behavior
+// RateLimitConfig configures rate limiting behavior.
 type RateLimitConfig struct {
 	Name              string  `json:"name"`
 	RequestsPerSecond float64 `json:"requestsPerSecond"`
 	BurstSize         int     `json:"burstSize"`
 
-	// Adaptive features
+	// Adaptive features.
 	AdaptiveEnabled  bool          `json:"adaptiveEnabled"`
 	MaxRate          float64       `json:"maxRate"`
 	MinRate          float64       `json:"minRate"`
 	AdjustmentWindow time.Duration `json:"adjustmentWindow"`
 
-	// Monitoring
+	// Monitoring.
 	MonitoringEnabled bool `json:"monitoringEnabled"`
 	AlertingEnabled   bool `json:"alertingEnabled"`
 }
 
-// AdaptiveRateLimiter implements adaptive rate limiting
+// AdaptiveRateLimiter implements adaptive rate limiting.
 type AdaptiveRateLimiter struct {
 	config         *RateLimitConfig
 	tokenBucket    *TokenBucket
@@ -475,7 +481,7 @@ type AdaptiveRateLimiter struct {
 	mutex          sync.RWMutex
 }
 
-// TokenBucket implements token bucket algorithm
+// TokenBucket implements token bucket algorithm.
 type TokenBucket struct {
 	capacity       int
 	tokens         int
@@ -484,7 +490,7 @@ type TokenBucket struct {
 	mutex          sync.Mutex
 }
 
-// RateAdaptationEngine adapts rate limits based on system performance
+// RateAdaptationEngine adapts rate limits based on system performance.
 type RateAdaptationEngine struct {
 	currentRate       float64
 	targetLatency     time.Duration
@@ -493,7 +499,7 @@ type RateAdaptationEngine struct {
 	mutex             sync.RWMutex
 }
 
-// PerformanceWindow tracks recent performance metrics
+// PerformanceWindow tracks recent performance metrics.
 type PerformanceWindow struct {
 	measurements []PerformanceMeasurement
 	windowSize   time.Duration
@@ -501,7 +507,7 @@ type PerformanceWindow struct {
 	mutex        sync.RWMutex
 }
 
-// PerformanceMeasurement represents a performance measurement
+// PerformanceMeasurement represents a performance measurement.
 type PerformanceMeasurement struct {
 	Timestamp     time.Time
 	Latency       time.Duration
@@ -511,7 +517,7 @@ type PerformanceMeasurement struct {
 	ResourceUsage map[string]float64
 }
 
-// RateAdjustment tracks rate limit adjustments
+// RateAdjustment tracks rate limit adjustments.
 type RateAdjustment struct {
 	Timestamp   time.Time
 	OldRate     float64
@@ -520,7 +526,7 @@ type RateAdjustment struct {
 	Performance PerformanceMeasurement
 }
 
-// NewResilienceManager creates a new resilience manager
+// NewResilienceManager creates a new resilience manager.
 func NewResilienceManager(config *ResilienceConfig, logger logr.Logger) *ResilienceManager {
 	if config == nil {
 		config = getDefaultResilienceConfig()
@@ -534,7 +540,7 @@ func NewResilienceManager(config *ResilienceConfig, logger logr.Logger) *Resilie
 		healthTicker: time.NewTicker(config.HealthCheckInterval),
 	}
 
-	// Initialize pattern managers
+	// Initialize pattern managers.
 	if config.TimeoutEnabled {
 		rm.timeoutManager = NewTimeoutManager(config.TimeoutConfigs, logger)
 	}
@@ -566,7 +572,7 @@ func NewResilienceManager(config *ResilienceConfig, logger logr.Logger) *Resilie
 	return rm
 }
 
-// Start starts the resilience manager and all pattern managers
+// Start starts the resilience manager and all pattern managers.
 func (rm *ResilienceManager) Start(ctx context.Context) error {
 	rm.mutex.Lock()
 	defer rm.mutex.Unlock()
@@ -577,7 +583,7 @@ func (rm *ResilienceManager) Start(ctx context.Context) error {
 
 	rm.logger.Info("Starting resilience manager")
 
-	// Start pattern managers
+	// Start pattern managers.
 	if rm.timeoutManager != nil {
 		go rm.timeoutManager.Start(ctx)
 	}
@@ -606,7 +612,7 @@ func (rm *ResilienceManager) Start(ctx context.Context) error {
 		go rm.gracefulShutdown.Start(ctx)
 	}
 
-	// Start monitoring
+	// Start monitoring.
 	go rm.monitor(ctx)
 
 	rm.started = true
@@ -615,7 +621,7 @@ func (rm *ResilienceManager) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the resilience manager
+// Stop stops the resilience manager.
 func (rm *ResilienceManager) Stop() error {
 	rm.mutex.Lock()
 	defer rm.mutex.Unlock()
@@ -626,11 +632,11 @@ func (rm *ResilienceManager) Stop() error {
 
 	rm.logger.Info("Stopping resilience manager")
 
-	// Signal stop
+	// Signal stop.
 	close(rm.stopChan)
 	rm.healthTicker.Stop()
 
-	// Stop pattern managers
+	// Stop pattern managers.
 	if rm.timeoutManager != nil {
 		rm.timeoutManager.Stop()
 	}
@@ -665,16 +671,16 @@ func (rm *ResilienceManager) Stop() error {
 	return nil
 }
 
-// ExecuteWithResilience executes an operation with all configured resilience patterns
+// ExecuteWithResilience executes an operation with all configured resilience patterns.
 func (rm *ResilienceManager) ExecuteWithResilience(ctx context.Context, operationName string, operation func(ctx context.Context) (interface{}, error)) (interface{}, error) {
 	startTime := time.Now()
 
-	// Apply timeout
+	// Apply timeout.
 	if rm.timeoutManager != nil {
 		ctx = rm.timeoutManager.ApplyTimeout(ctx, operationName)
 	}
 
-	// Check rate limit
+	// Check rate limit.
 	if rm.rateLimiterMgr != nil {
 		if !rm.rateLimiterMgr.Allow(operationName) {
 			rm.updateMetrics(operationName, false, time.Since(startTime), "rate_limited")
@@ -682,7 +688,7 @@ func (rm *ResilienceManager) ExecuteWithResilience(ctx context.Context, operatio
 		}
 	}
 
-	// Check circuit breaker
+	// Check circuit breaker.
 	if rm.circuitBreakerMgr != nil {
 		if !rm.circuitBreakerMgr.CanExecute(operationName) {
 			rm.updateMetrics(operationName, false, time.Since(startTime), "circuit_breaker_open")
@@ -690,20 +696,20 @@ func (rm *ResilienceManager) ExecuteWithResilience(ctx context.Context, operatio
 		}
 	}
 
-	// Execute with bulkhead if configured
+	// Execute with bulkhead if configured.
 	if rm.bulkheadManager != nil {
 		return rm.bulkheadManager.Execute(ctx, operationName, operation)
 	}
 
-	// Execute directly
+	// Execute directly.
 	result, err := operation(ctx)
 
-	// Update metrics
+	// Update metrics.
 	success := err == nil
 	duration := time.Since(startTime)
 	rm.updateMetrics(operationName, success, duration, "")
 
-	// Update circuit breaker
+	// Update circuit breaker.
 	if rm.circuitBreakerMgr != nil {
 		rm.circuitBreakerMgr.RecordResult(operationName, success, duration)
 	}
@@ -711,7 +717,7 @@ func (rm *ResilienceManager) ExecuteWithResilience(ctx context.Context, operatio
 	return result, err
 }
 
-// monitor performs periodic monitoring and maintenance
+// monitor performs periodic monitoring and maintenance.
 func (rm *ResilienceManager) monitor(ctx context.Context) {
 	for {
 		select {
@@ -728,60 +734,60 @@ func (rm *ResilienceManager) monitor(ctx context.Context) {
 	}
 }
 
-// performHealthCheck performs comprehensive health checking
+// performHealthCheck performs comprehensive health checking.
 func (rm *ResilienceManager) performHealthCheck() {
-	// Check all pattern managers
+	// Check all pattern managers.
 	if rm.healthCheckManager != nil {
 		rm.healthCheckManager.PerformHealthChecks()
 	}
 
-	// Check circuit breakers
+	// Check circuit breakers.
 	if rm.circuitBreakerMgr != nil {
 		rm.circuitBreakerMgr.CheckHealth()
 	}
 
-	// Check bulkheads
+	// Check bulkheads.
 	if rm.bulkheadManager != nil {
 		rm.bulkheadManager.CheckHealth()
 	}
 
-	// Check rate limiters
+	// Check rate limiters.
 	if rm.rateLimiterMgr != nil {
 		rm.rateLimiterMgr.CheckHealth()
 	}
 }
 
-// collectMetrics collects metrics from all pattern managers
+// collectMetrics collects metrics from all pattern managers.
 func (rm *ResilienceManager) collectMetrics() {
 	rm.metrics.mutex.Lock()
 	defer rm.metrics.mutex.Unlock()
 
-	// Collect timeout metrics
+	// Collect timeout metrics.
 	if rm.timeoutManager != nil {
 		rm.metrics.TimeoutMetrics = rm.timeoutManager.GetMetrics()
 	}
 
-	// Collect bulkhead metrics
+	// Collect bulkhead metrics.
 	if rm.bulkheadManager != nil {
 		rm.metrics.BulkheadMetrics = rm.bulkheadManager.GetMetrics()
 	}
 
-	// Collect circuit breaker metrics
+	// Collect circuit breaker metrics.
 	if rm.circuitBreakerMgr != nil {
 		rm.metrics.CircuitBreakerMetrics = rm.circuitBreakerMgr.GetMetrics()
 	}
 
-	// Collect rate limit metrics
+	// Collect rate limit metrics.
 	if rm.rateLimiterMgr != nil {
 		rm.metrics.RateLimitMetrics = rm.rateLimiterMgr.GetMetrics()
 	}
 
-	// Collect retry metrics
+	// Collect retry metrics.
 	if rm.retryManager != nil {
 		rm.metrics.RetryMetrics = rm.retryManager.GetMetrics()
 	}
 
-	// Collect health check metrics
+	// Collect health check metrics.
 	if rm.healthCheckManager != nil {
 		rm.metrics.HealthCheckMetrics = rm.healthCheckManager.GetMetrics()
 	}
@@ -789,7 +795,7 @@ func (rm *ResilienceManager) collectMetrics() {
 	rm.metrics.LastUpdated = time.Now()
 }
 
-// updateMetrics updates overall resilience metrics
+// updateMetrics updates overall resilience metrics.
 func (rm *ResilienceManager) updateMetrics(operationName string, success bool, duration time.Duration, reason string) {
 	rm.metrics.mutex.Lock()
 	defer rm.metrics.mutex.Unlock()
@@ -802,7 +808,7 @@ func (rm *ResilienceManager) updateMetrics(operationName string, success bool, d
 		atomic.AddInt64(&rm.metrics.FailedOperations, 1)
 	}
 
-	// Update average latency
+	// Update average latency.
 	if rm.metrics.TotalOperations > 0 {
 		totalLatency := time.Duration(rm.metrics.TotalOperations-1) * rm.metrics.AverageLatency
 		totalLatency += duration
@@ -810,12 +816,12 @@ func (rm *ResilienceManager) updateMetrics(operationName string, success bool, d
 	}
 }
 
-// GetMetrics returns comprehensive resilience metrics
+// GetMetrics returns comprehensive resilience metrics.
 func (rm *ResilienceManager) GetMetrics() *ResilienceMetrics {
 	rm.metrics.mutex.RLock()
 	defer rm.metrics.mutex.RUnlock()
 
-	// Return a copy to prevent concurrent access issues
+	// Return a copy to prevent concurrent access issues.
 	metricsCopy := &ResilienceMetrics{
 		TotalOperations:       rm.metrics.TotalOperations,
 		SuccessfulOperations:  rm.metrics.SuccessfulOperations,
@@ -833,9 +839,9 @@ func (rm *ResilienceManager) GetMetrics() *ResilienceMetrics {
 	return metricsCopy
 }
 
-// Helper functions and supporting implementations
+// Helper functions and supporting implementations.
 
-// getDefaultResilienceConfig returns default resilience configuration
+// getDefaultResilienceConfig returns default resilience configuration.
 func getDefaultResilienceConfig() *ResilienceConfig {
 	return &ResilienceConfig{
 		DefaultTimeout:          30 * time.Second,
@@ -866,7 +872,7 @@ func getDefaultResilienceConfig() *ResilienceConfig {
 	}
 }
 
-// NewResilienceMetrics creates new resilience metrics
+// NewResilienceMetrics creates new resilience metrics.
 func NewResilienceMetrics() *ResilienceMetrics {
 	return &ResilienceMetrics{
 		TimeoutMetrics:        &TimeoutMetrics{OperationsByTimeout: make(map[time.Duration]int64)},
@@ -880,7 +886,7 @@ func NewResilienceMetrics() *ResilienceMetrics {
 	}
 }
 
-// Define missing metric types (placeholder implementations)
+// Define missing metric types (placeholder implementations).
 type RetryMetrics struct {
 	TotalRetries      int64         `json:"totalRetries"`
 	SuccessfulRetries int64         `json:"successfulRetries"`
@@ -889,6 +895,7 @@ type RetryMetrics struct {
 	AverageLatency    time.Duration `json:"averageLatency"`
 }
 
+// HealthCheckMetrics represents a healthcheckmetrics.
 type HealthCheckMetrics struct {
 	TotalChecks     int64         `json:"totalChecks"`
 	HealthyChecks   int64         `json:"healthyChecks"`
@@ -897,6 +904,7 @@ type HealthCheckMetrics struct {
 	CheckFrequency  float64       `json:"checkFrequency"`
 }
 
+// ResourceMetrics represents a resourcemetrics.
 type ResourceMetrics struct {
 	CPUUsage       float64 `json:"cpuUsage"`
 	MemoryUsage    int64   `json:"memoryUsage"`
@@ -905,6 +913,7 @@ type ResourceMetrics struct {
 	GoroutineCount int     `json:"goroutineCount"`
 }
 
+// RetryConfig represents a retryconfig.
 type RetryConfig struct {
 	Name          string        `json:"name"`
 	MaxAttempts   int           `json:"maxAttempts"`
@@ -914,6 +923,7 @@ type RetryConfig struct {
 	Jitter        bool          `json:"jitter"`
 }
 
+// HealthCheckConfig represents a healthcheckconfig.
 type HealthCheckConfig struct {
 	Name             string        `json:"name"`
 	Interval         time.Duration `json:"interval"`
@@ -922,6 +932,7 @@ type HealthCheckConfig struct {
 	SuccessThreshold int           `json:"successThreshold"`
 }
 
+// RateLimitMetrics represents a ratelimitmetrics.
 type RateLimitMetrics struct {
 	TotalRequests    int64   `json:"totalRequests"`
 	AllowedRequests  int64   `json:"allowedRequests"`
@@ -930,6 +941,7 @@ type RateLimitMetrics struct {
 	AverageRate      float64 `json:"averageRate"`
 }
 
+// RateLimiterMetrics represents a ratelimitermetrics.
 type RateLimiterMetrics struct {
 	RequestsAllowed  int64   `json:"requestsAllowed"`
 	RequestsRejected int64   `json:"requestsRejected"`
@@ -937,12 +949,16 @@ type RateLimiterMetrics struct {
 	RefillRate       float64 `json:"refillRate"`
 }
 
-// Placeholder manager implementations (these would be fully implemented in production)
-type RetryManager struct{ logger logr.Logger }
-type HealthCheckManager struct{ logger logr.Logger }
-type GracefulShutdownManager struct{ logger logr.Logger }
+// Placeholder manager implementations (these would be fully implemented in production).
+type (
+	RetryManager struct{ logger logr.Logger }
+	// HealthCheckManager represents a healthcheckmanager.
+	HealthCheckManager struct{ logger logr.Logger }
+	// GracefulShutdownManager represents a gracefulshutdownmanager.
+	GracefulShutdownManager struct{ logger logr.Logger }
+)
 
-// NewBulkheadManager creates a new BulkheadManager
+// NewBulkheadManager creates a new BulkheadManager.
 func NewBulkheadManager(configs map[string]*BulkheadConfig, logger logr.Logger) *BulkheadManager {
 	return &BulkheadManager{
 		bulkheads: make(map[string]*Bulkhead),
@@ -951,7 +967,7 @@ func NewBulkheadManager(configs map[string]*BulkheadConfig, logger logr.Logger) 
 	}
 }
 
-// NewCircuitBreakerManager creates a new CircuitBreakerManager
+// NewCircuitBreakerManager creates a new CircuitBreakerManager.
 func NewCircuitBreakerManager(configs map[string]*CircuitBreakerConfig, logger logr.Logger) *CircuitBreakerManager {
 	return &CircuitBreakerManager{
 		circuitBreakers: make(map[string]*AdvancedCircuitBreaker),
@@ -960,7 +976,7 @@ func NewCircuitBreakerManager(configs map[string]*CircuitBreakerConfig, logger l
 	}
 }
 
-// NewRateLimiterManager creates a new RateLimiterManager
+// NewRateLimiterManager creates a new RateLimiterManager.
 func NewRateLimiterManager(configs map[string]*RateLimitConfig, logger logr.Logger) *RateLimiterManager {
 	return &RateLimiterManager{
 		limiters: make(map[string]*AdaptiveRateLimiter),
@@ -969,66 +985,110 @@ func NewRateLimiterManager(configs map[string]*RateLimitConfig, logger logr.Logg
 	}
 }
 
+// NewRetryManager performs newretrymanager operation.
 func NewRetryManager(configs map[string]*RetryConfig, logger logr.Logger) *RetryManager {
 	return &RetryManager{logger: logger}
 }
 
+// NewHealthCheckManager performs newhealthcheckmanager operation.
 func NewHealthCheckManager(configs map[string]*HealthCheckConfig, logger logr.Logger) *HealthCheckManager {
 	return &HealthCheckManager{logger: logger}
 }
 
+// NewGracefulShutdownManager performs newgracefulshutdownmanager operation.
 func NewGracefulShutdownManager(timeout time.Duration, logger logr.Logger) *GracefulShutdownManager {
 	return &GracefulShutdownManager{logger: logger}
 }
 
-// BulkheadManager methods
-func (bm *BulkheadManager) Start(ctx context.Context)    { /* Implementation */ }
-func (bm *BulkheadManager) Stop()                        { /* Implementation */ }
+// BulkheadManager methods.
+func (bm *BulkheadManager) Start(ctx context.Context) { /* Implementation */ }
+
+// Stop performs stop operation.
+func (bm *BulkheadManager) Stop() { /* Implementation */ }
+
+// GetMetrics performs getmetrics operation.
 func (bm *BulkheadManager) GetMetrics() *BulkheadMetrics { return bm.metrics }
+
+// Execute performs execute operation.
 func (bm *BulkheadManager) Execute(ctx context.Context, operationName string, operation func(ctx context.Context) (interface{}, error)) (interface{}, error) {
 	return operation(ctx) /* Implementation */
 }
+
+// CheckHealth performs checkhealth operation.
 func (bm *BulkheadManager) CheckHealth() map[string]interface{} {
 	return map[string]interface{}{"healthy": true}
 }
 
-// CircuitBreakerManager methods
-func (cbm *CircuitBreakerManager) Start(ctx context.Context)          { /* Implementation */ }
-func (cbm *CircuitBreakerManager) Stop()                              { /* Implementation */ }
+// CircuitBreakerManager methods.
+func (cbm *CircuitBreakerManager) Start(ctx context.Context) { /* Implementation */ }
+
+// Stop performs stop operation.
+func (cbm *CircuitBreakerManager) Stop() { /* Implementation */ }
+
+// GetMetrics performs getmetrics operation.
 func (cbm *CircuitBreakerManager) GetMetrics() *CircuitBreakerMetrics { return cbm.metrics }
+
+// CanExecute performs canexecute operation.
 func (cbm *CircuitBreakerManager) CanExecute(operationName string) bool {
 	return true /* Implementation */
 }
+
+// RecordResult performs recordresult operation.
 func (cbm *CircuitBreakerManager) RecordResult(operationName string, success bool, duration ...time.Duration) { /* Implementation */
 }
+
+// CheckHealth performs checkhealth operation.
 func (cbm *CircuitBreakerManager) CheckHealth() map[string]interface{} {
 	return map[string]interface{}{"healthy": true}
 }
 
-// RateLimiterManager methods
-func (rlm *RateLimiterManager) Start(ctx context.Context)       { /* Implementation */ }
-func (rlm *RateLimiterManager) Stop()                           { /* Implementation */ }
-func (rlm *RateLimiterManager) GetMetrics() *RateLimitMetrics   { return rlm.metrics }
+// RateLimiterManager methods.
+func (rlm *RateLimiterManager) Start(ctx context.Context) { /* Implementation */ }
+
+// Stop performs stop operation.
+func (rlm *RateLimiterManager) Stop() { /* Implementation */ }
+
+// GetMetrics performs getmetrics operation.
+func (rlm *RateLimiterManager) GetMetrics() *RateLimitMetrics { return rlm.metrics }
+
+// Allow performs allow operation.
 func (rlm *RateLimiterManager) Allow(operationName string) bool { return true /* Implementation */ }
+
+// CheckHealth performs checkhealth operation.
 func (rlm *RateLimiterManager) CheckHealth() map[string]interface{} {
 	return map[string]interface{}{"healthy": true}
 }
 
+// Start performs start operation.
 func (rm *RetryManager) Start(ctx context.Context) { /* Implementation */ }
-func (rm *RetryManager) Stop()                     { /* Implementation */ }
+
+// Stop performs stop operation.
+func (rm *RetryManager) Stop() { /* Implementation */ }
+
+// GetMetrics performs getmetrics operation.
 func (rm *RetryManager) GetMetrics() *RetryMetrics { return &RetryMetrics{} }
 
-func (hcm *HealthCheckManager) Start(ctx context.Context)       { /* Implementation */ }
-func (hcm *HealthCheckManager) Stop()                           { /* Implementation */ }
-func (hcm *HealthCheckManager) PerformHealthChecks()            { /* Implementation */ }
+// Start performs start operation.
+func (hcm *HealthCheckManager) Start(ctx context.Context) { /* Implementation */ }
+
+// Stop performs stop operation.
+func (hcm *HealthCheckManager) Stop() { /* Implementation */ }
+
+// PerformHealthChecks performs performhealthchecks operation.
+func (hcm *HealthCheckManager) PerformHealthChecks() { /* Implementation */ }
+
+// GetMetrics performs getmetrics operation.
 func (hcm *HealthCheckManager) GetMetrics() *HealthCheckMetrics { return &HealthCheckMetrics{} }
 
+// Start performs start operation.
 func (gsm *GracefulShutdownManager) Start(ctx context.Context) { /* Implementation */ }
-func (gsm *GracefulShutdownManager) Stop()                     { /* Implementation */ }
 
-// GetStats implementations for manager interfaces
+// Stop performs stop operation.
+func (gsm *GracefulShutdownManager) Stop() { /* Implementation */ }
 
-// GetStats returns statistics for BulkheadManager (interface-compatible method)
+// GetStats implementations for manager interfaces.
+
+// GetStats returns statistics for BulkheadManager (interface-compatible method).
 func (bm *BulkheadManager) GetStats() (map[string]interface{}, error) {
 	bm.mutex.RLock()
 	defer bm.mutex.RUnlock()
@@ -1041,7 +1101,7 @@ func (bm *BulkheadManager) GetStats() (map[string]interface{}, error) {
 	return stats, nil
 }
 
-// GetStats returns statistics for CircuitBreakerManager (interface-compatible method)
+// GetStats returns statistics for CircuitBreakerManager (interface-compatible method).
 func (cbm *CircuitBreakerManager) GetStats() (map[string]interface{}, error) {
 	cbm.mutex.RLock()
 	defer cbm.mutex.RUnlock()
@@ -1054,7 +1114,7 @@ func (cbm *CircuitBreakerManager) GetStats() (map[string]interface{}, error) {
 	return stats, nil
 }
 
-// GetStats returns statistics for RateLimiterManager (interface-compatible method)
+// GetStats returns statistics for RateLimiterManager (interface-compatible method).
 func (rlm *RateLimiterManager) GetStats() (map[string]interface{}, error) {
 	rlm.mutex.RLock()
 	defer rlm.mutex.RUnlock()

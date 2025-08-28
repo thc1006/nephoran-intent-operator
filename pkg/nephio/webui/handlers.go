@@ -13,13 +13,13 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// PackageHandlers manages HTTP handlers for package-related operations
+// PackageHandlers manages HTTP handlers for package-related operations.
 type PackageHandlers struct {
 	logger     *zap.Logger
 	kubeClient kubernetes.Interface
 }
 
-// NewPackageHandlers creates a new PackageHandlers instance
+// NewPackageHandlers creates a new PackageHandlers instance.
 func NewPackageHandlers(logger *zap.Logger, kubeClient kubernetes.Interface) *PackageHandlers {
 	return &PackageHandlers{
 		logger:     logger,
@@ -27,7 +27,7 @@ func NewPackageHandlers(logger *zap.Logger, kubeClient kubernetes.Interface) *Pa
 	}
 }
 
-// ListPackages handles GET request to list package revisions
+// ListPackages handles GET request to list package revisions.
 func (h *PackageHandlers) ListPackages(w http.ResponseWriter, r *http.Request) {
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
@@ -39,8 +39,8 @@ func (h *PackageHandlers) ListPackages(w http.ResponseWriter, r *http.Request) {
 		pageSize = 20
 	}
 
-	// TODO: Implement actual package listing logic
-	// This is a placeholder implementation
+	// TODO: Implement actual package listing logic.
+	// This is a placeholder implementation.
 	packages := []PackageRevision{
 		{
 			ID: uuid.New(),
@@ -73,7 +73,7 @@ func (h *PackageHandlers) ListPackages(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// CreatePackage handles POST request to create a new package revision
+// CreatePackage handles POST request to create a new package revision.
 func (h *PackageHandlers) CreatePackage(w http.ResponseWriter, r *http.Request) {
 	var packageSpec PackageRevisionSpec
 	if err := json.NewDecoder(r.Body).Decode(&packageSpec); err != nil {
@@ -81,7 +81,7 @@ func (h *PackageHandlers) CreatePackage(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// TODO: Implement package creation logic with Nephio Porch
+	// TODO: Implement package creation logic with Nephio Porch.
 
 	newPackage := PackageRevision{
 		ID:        uuid.New(),
@@ -97,12 +97,12 @@ func (h *PackageHandlers) CreatePackage(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(newPackage)
 }
 
-// GetPackage handles GET request to retrieve a specific package revision
+// GetPackage handles GET request to retrieve a specific package revision.
 func (h *PackageHandlers) GetPackage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	packageID := vars["id"]
 
-	// TODO: Implement package retrieval logic
+	// TODO: Implement package retrieval logic.
 	packageRevision := PackageRevision{
 		ID: uuid.MustParse(packageID),
 		Spec: PackageRevisionSpec{
@@ -120,7 +120,7 @@ func (h *PackageHandlers) GetPackage(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(packageRevision)
 }
 
-// UpdatePackage handles PUT request to update an existing package revision
+// UpdatePackage handles PUT request to update an existing package revision.
 func (h *PackageHandlers) UpdatePackage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	packageID := vars["id"]
@@ -131,7 +131,7 @@ func (h *PackageHandlers) UpdatePackage(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// TODO: Implement package update logic with Nephio Porch
+	// TODO: Implement package update logic with Nephio Porch.
 
 	updatedPackage := PackageRevision{
 		ID:        uuid.MustParse(packageID),
@@ -146,23 +146,23 @@ func (h *PackageHandlers) UpdatePackage(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(updatedPackage)
 }
 
-// DeletePackage handles DELETE request to remove a package revision
+// DeletePackage handles DELETE request to remove a package revision.
 func (h *PackageHandlers) DeletePackage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	_ = vars["id"]
 
-	// TODO: Implement package deletion logic with Nephio Porch
+	// TODO: Implement package deletion logic with Nephio Porch.
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// ClusterHandlers manages HTTP handlers for cluster-related operations
+// ClusterHandlers manages HTTP handlers for cluster-related operations.
 type ClusterHandlers struct {
 	logger     *zap.Logger
 	kubeClient kubernetes.Interface
 }
 
-// NewClusterHandlers creates a new ClusterHandlers instance
+// NewClusterHandlers creates a new ClusterHandlers instance.
 func NewClusterHandlers(logger *zap.Logger, kubeClient kubernetes.Interface) *ClusterHandlers {
 	return &ClusterHandlers{
 		logger:     logger,
@@ -170,7 +170,7 @@ func NewClusterHandlers(logger *zap.Logger, kubeClient kubernetes.Interface) *Cl
 	}
 }
 
-// ListClusters handles GET request to list workload clusters
+// ListClusters handles GET request to list workload clusters.
 func (h *ClusterHandlers) ListClusters(w http.ResponseWriter, r *http.Request) {
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
@@ -182,7 +182,7 @@ func (h *ClusterHandlers) ListClusters(w http.ResponseWriter, r *http.Request) {
 		pageSize = 20
 	}
 
-	// TODO: Implement actual cluster listing logic
+	// TODO: Implement actual cluster listing logic.
 	clusters := []WorkloadCluster{
 		{
 			Name:        "cluster-01",
@@ -209,13 +209,13 @@ func (h *ClusterHandlers) ListClusters(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// NetworkIntentHandlers manages HTTP handlers for network intent processing
+// NetworkIntentHandlers manages HTTP handlers for network intent processing.
 type NetworkIntentHandlers struct {
 	logger     *zap.Logger
 	kubeClient kubernetes.Interface
 }
 
-// NewNetworkIntentHandlers creates a new NetworkIntentHandlers instance
+// NewNetworkIntentHandlers creates a new NetworkIntentHandlers instance.
 func NewNetworkIntentHandlers(logger *zap.Logger, kubeClient kubernetes.Interface) *NetworkIntentHandlers {
 	return &NetworkIntentHandlers{
 		logger:     logger,
@@ -223,7 +223,7 @@ func NewNetworkIntentHandlers(logger *zap.Logger, kubeClient kubernetes.Interfac
 	}
 }
 
-// SubmitIntent handles POST request to submit a new network intent
+// SubmitIntent handles POST request to submit a new network intent.
 func (h *NetworkIntentHandlers) SubmitIntent(w http.ResponseWriter, r *http.Request) {
 	var intentSpec NetworkIntentSpec
 	if err := json.NewDecoder(r.Body).Decode(&intentSpec); err != nil {
@@ -231,7 +231,7 @@ func (h *NetworkIntentHandlers) SubmitIntent(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// TODO: Implement network intent submission logic
+	// TODO: Implement network intent submission logic.
 	intent := NetworkIntent{
 		ID:          uuid.New(),
 		Description: intentSpec.Type,
@@ -254,7 +254,7 @@ func (h *NetworkIntentHandlers) SubmitIntent(w http.ResponseWriter, r *http.Requ
 	json.NewEncoder(w).Encode(intent)
 }
 
-// ListIntents handles GET request to list network intents
+// ListIntents handles GET request to list network intents.
 func (h *NetworkIntentHandlers) ListIntents(w http.ResponseWriter, r *http.Request) {
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
@@ -266,7 +266,7 @@ func (h *NetworkIntentHandlers) ListIntents(w http.ResponseWriter, r *http.Reque
 		pageSize = 20
 	}
 
-	// TODO: Implement actual intent listing logic
+	// TODO: Implement actual intent listing logic.
 	intents := []NetworkIntent{
 		{
 			ID:          uuid.New(),
@@ -306,13 +306,13 @@ func (h *NetworkIntentHandlers) ListIntents(w http.ResponseWriter, r *http.Reque
 	json.NewEncoder(w).Encode(response)
 }
 
-// SystemHandlers manages system-related API endpoints
+// SystemHandlers manages system-related API endpoints.
 type SystemHandlers struct {
 	logger     *zap.Logger
 	kubeClient kubernetes.Interface
 }
 
-// NewSystemHandlers creates a new SystemHandlers instance
+// NewSystemHandlers creates a new SystemHandlers instance.
 func NewSystemHandlers(logger *zap.Logger, kubeClient kubernetes.Interface) *SystemHandlers {
 	return &SystemHandlers{
 		logger:     logger,
@@ -320,9 +320,9 @@ func NewSystemHandlers(logger *zap.Logger, kubeClient kubernetes.Interface) *Sys
 	}
 }
 
-// GetHealthStatus provides system health status
+// GetHealthStatus provides system health status.
 func (h *SystemHandlers) GetHealthStatus(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement comprehensive health check logic
+	// TODO: Implement comprehensive health check logic.
 	healthStatus := APIHealthStatus{
 		Status:  "Healthy",
 		Version: "1.0.0",

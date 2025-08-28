@@ -13,64 +13,64 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
-// Calculator provides real-time SLI/SLO calculations with streaming quantiles
-// and multi-dimensional availability computation
+// Calculator provides real-time SLI/SLO calculations with streaming quantiles.
+// and multi-dimensional availability computation.
 type Calculator struct {
 	config  *CalculatorConfig
 	logger  *logging.StructuredLogger
 	started atomic.Bool
 
-	// Availability calculators
+	// Availability calculators.
 	availabilityCalc *AvailabilityCalculator
 	latencyCalc      *LatencyCalculator
 	throughputCalc   *ThroughputCalculator
 	errorRateCalc    *ErrorRateCalculator
 
-	// Real-time state management
+	// Real-time state management.
 	currentState  *SLIState
 	stateHistory  *CircularBuffer
 	sloCompliance *SLOComplianceTracker
 
-	// Performance metrics
+	// Performance metrics.
 	metrics          *CalculatorMetrics
 	calculationCount atomic.Uint64
 	violationCount   atomic.Uint64
 
-	// Synchronization
+	// Synchronization.
 	mu     sync.RWMutex
 	stopCh chan struct{}
 	wg     sync.WaitGroup
 }
 
-// CalculatorConfig holds configuration for the SLA calculator
+// CalculatorConfig holds configuration for the SLA calculator.
 type CalculatorConfig struct {
-	// Calculation intervals
+	// Calculation intervals.
 	CalculationInterval time.Duration `yaml:"calculation_interval"`
 	WindowSize          time.Duration `yaml:"window_size"`
 	QuantileAccuracy    float64       `yaml:"quantile_accuracy"`
 
-	// History management
+	// History management.
 	MaxHistoryPoints   int           `yaml:"max_history_points"`
 	CompactionInterval time.Duration `yaml:"compaction_interval"`
 
-	// SLO targets
+	// SLO targets.
 	AvailabilityTarget float64       `yaml:"availability_target"`
 	P95LatencyTarget   time.Duration `yaml:"p95_latency_target"`
 	P99LatencyTarget   time.Duration `yaml:"p99_latency_target"`
 	ThroughputTarget   float64       `yaml:"throughput_target"`
 	ErrorRateTarget    float64       `yaml:"error_rate_target"`
 
-	// Error budget configuration
+	// Error budget configuration.
 	ErrorBudgetWindow  time.Duration `yaml:"error_budget_window"`
 	BurnRateThresholds []float64     `yaml:"burn_rate_thresholds"`
 
-	// Component weights for composite availability
+	// Component weights for composite availability.
 	ComponentWeights  map[string]float64 `yaml:"component_weights"`
 	DependencyWeights map[string]float64 `yaml:"dependency_weights"`
 	JourneyWeights    map[string]float64 `yaml:"journey_weights"`
 }
 
-// DefaultCalculatorConfig returns optimized default configuration
+// DefaultCalculatorConfig returns optimized default configuration.
 func DefaultCalculatorConfig() *CalculatorConfig {
 	return &CalculatorConfig{
 		CalculationInterval: 1 * time.Second,
@@ -80,7 +80,7 @@ func DefaultCalculatorConfig() *CalculatorConfig {
 		MaxHistoryPoints:   1000,
 		CompactionInterval: 10 * time.Minute,
 
-		// Production SLO targets
+		// Production SLO targets.
 		AvailabilityTarget: 99.95,
 		P95LatencyTarget:   2 * time.Second,
 		P99LatencyTarget:   5 * time.Second,
@@ -90,7 +90,7 @@ func DefaultCalculatorConfig() *CalculatorConfig {
 		ErrorBudgetWindow:  24 * time.Hour,
 		BurnRateThresholds: []float64{1.0, 2.0, 5.0, 10.0},
 
-		// Default component weights
+		// Default component weights.
 		ComponentWeights: map[string]float64{
 			"llm-processor":  0.3,
 			"rag-api":        0.2,
@@ -116,82 +116,82 @@ func DefaultCalculatorConfig() *CalculatorConfig {
 	}
 }
 
-// SLIState represents the current state of all Service Level Indicators
+// SLIState represents the current state of all Service Level Indicators.
 type SLIState struct {
 	Timestamp time.Time `json:"timestamp"`
 
-	// Availability metrics
+	// Availability metrics.
 	ComponentAvailability  float64 `json:"component_availability"`
 	DependencyAvailability float64 `json:"dependency_availability"`
 	JourneyAvailability    float64 `json:"journey_availability"`
 	CompositeAvailability  float64 `json:"composite_availability"`
 
-	// Latency metrics
+	// Latency metrics.
 	P50Latency  time.Duration `json:"p50_latency"`
 	P95Latency  time.Duration `json:"p95_latency"`
 	P99Latency  time.Duration `json:"p99_latency"`
 	MeanLatency time.Duration `json:"mean_latency"`
 
-	// Throughput metrics
+	// Throughput metrics.
 	CurrentThroughput   float64 `json:"current_throughput"`
 	PeakThroughput      float64 `json:"peak_throughput"`
 	SustainedThroughput float64 `json:"sustained_throughput"`
 	CapacityUtilization float64 `json:"capacity_utilization"`
 
-	// Error metrics
+	// Error metrics.
 	ErrorRate            float64 `json:"error_rate"`
 	ErrorBudgetRemaining float64 `json:"error_budget_remaining"`
 	ErrorBudgetBurnRate  float64 `json:"error_budget_burn_rate"`
 
-	// Compliance status
+	// Compliance status.
 	SLOCompliance  map[string]float64 `json:"slo_compliance"`
 	ViolationCount int                `json:"violation_count"`
 }
 
-// CalculatorMetrics contains Prometheus metrics for the calculator
+// CalculatorMetrics contains Prometheus metrics for the calculator.
 type CalculatorMetrics struct {
-	// Calculation metrics
+	// Calculation metrics.
 	CalculationsPerformed *prometheus.CounterVec
 	CalculationLatency    *prometheus.HistogramVec
 	CalculationErrors     *prometheus.CounterVec
 
-	// SLI metrics
+	// SLI metrics.
 	AvailabilitySLI *prometheus.GaugeVec
 	LatencySLI      *prometheus.GaugeVec
 	ThroughputSLI   prometheus.Gauge
 	ErrorRateSLI    prometheus.Gauge
 
-	// SLO compliance metrics
+	// SLO compliance metrics.
 	SLOCompliance        *prometheus.GaugeVec
 	SLOViolations        *prometheus.CounterVec
 	ErrorBudgetRemaining prometheus.Gauge
 	ErrorBudgetBurnRate  prometheus.Gauge
 
-	// Performance metrics
+	// Performance metrics.
 	QuantileCalculationTime prometheus.Histogram
 	StateUpdateLatency      prometheus.Histogram
 }
 
-// AvailabilityCalculator computes multi-dimensional availability
+// AvailabilityCalculator computes multi-dimensional availability.
 type AvailabilityCalculator struct {
-	// Component states and weights
+	// Component states and weights.
 	componentStates  map[string]*ComponentState
 	dependencyStates map[string]*DependencyState
 	journeyStates    map[string]*JourneyState
 
-	// Historical tracking
+	// Historical tracking.
 	availabilityHistory *CircularBuffer
 	downtimeTracker     *DowntimeTracker
 
-	// Configuration
+	// Configuration.
 	weights *AvailabilityWeights
 
-	// Metrics
+	// Metrics.
 	metrics *AvailabilityMetrics
 	mu      sync.RWMutex
 }
 
-// ComponentState tracks the availability state of a component
+// ComponentState tracks the availability state of a component.
 type ComponentState struct {
 	Name            string    `json:"name"`
 	Available       bool      `json:"available"`
@@ -201,7 +201,7 @@ type ComponentState struct {
 	Weight          float64   `json:"weight"`
 }
 
-// DependencyState tracks the availability state of external dependencies
+// DependencyState tracks the availability state of external dependencies.
 type DependencyState struct {
 	Name                string        `json:"name"`
 	Available           bool          `json:"available"`
@@ -211,7 +211,7 @@ type DependencyState struct {
 	Weight              float64       `json:"weight"`
 }
 
-// JourneyState tracks end-to-end user journey success rates
+// JourneyState tracks end-to-end user journey success rates.
 type JourneyState struct {
 	Name               string    `json:"name"`
 	SuccessRate        float64   `json:"success_rate"`
@@ -221,14 +221,14 @@ type JourneyState struct {
 	LastUpdated        time.Time `json:"last_updated"`
 }
 
-// AvailabilityWeights contains weights for composite availability calculation
+// AvailabilityWeights contains weights for composite availability calculation.
 type AvailabilityWeights struct {
 	Components   map[string]float64 `json:"components"`
 	Dependencies map[string]float64 `json:"dependencies"`
 	Journeys     map[string]float64 `json:"journeys"`
 }
 
-// AvailabilityMetrics tracks availability calculation metrics
+// AvailabilityMetrics tracks availability calculation metrics.
 type AvailabilityMetrics struct {
 	ComponentAvailability  *prometheus.GaugeVec
 	DependencyAvailability *prometheus.GaugeVec
@@ -237,32 +237,32 @@ type AvailabilityMetrics struct {
 	DowntimeMinutes        *prometheus.CounterVec
 }
 
-// LatencyCalculator computes real-time latency percentiles using streaming algorithms
+// LatencyCalculator computes real-time latency percentiles using streaming algorithms.
 type LatencyCalculator struct {
-	// Quantile estimators for different components
+	// Quantile estimators for different components.
 	endToEndEstimator   *QuantileEstimator
 	llmEstimator        *QuantileEstimator
 	ragEstimator        *QuantileEstimator
 	gitopsEstimator     *QuantileEstimator
 	deploymentEstimator *QuantileEstimator
 
-	// Latency tracking
+	// Latency tracking.
 	latencyHistory *LatencyTimeSeries
 	violations     *LatencyViolationTracker
 
-	// Metrics
+	// Metrics.
 	metrics *LatencyMetrics
 	mu      sync.RWMutex
 }
 
-// QuantileEstimator provides efficient real-time quantile estimation using P² algorithm
+// QuantileEstimator provides efficient real-time quantile estimation using P² algorithm.
 type QuantileEstimator struct {
-	// P2 algorithm state
+	// P2 algorithm state.
 	p50 *P2Estimator
 	p95 *P2Estimator
 	p99 *P2Estimator
 
-	// Additional statistics
+	// Additional statistics.
 	count atomic.Uint64
 	sum   atomic.Uint64 // For mean calculation
 	min   atomic.Uint64
@@ -271,7 +271,7 @@ type QuantileEstimator struct {
 	mu sync.RWMutex
 }
 
-// P2Estimator implements the P² algorithm for dynamic quantile estimation
+// P2Estimator implements the P² algorithm for dynamic quantile estimation.
 type P2Estimator struct {
 	quantile    float64
 	markers     [5]float64 // Height markers
@@ -281,7 +281,7 @@ type P2Estimator struct {
 	initialized bool
 }
 
-// LatencyMetrics tracks latency calculation metrics
+// LatencyMetrics tracks latency calculation metrics.
 type LatencyMetrics struct {
 	LatencyQuantiles   *prometheus.GaugeVec // By component and quantile
 	LatencyViolations  *prometheus.CounterVec
@@ -289,29 +289,29 @@ type LatencyMetrics struct {
 	CalculationLatency prometheus.Histogram
 }
 
-// ThroughputCalculator computes real-time throughput and capacity metrics
+// ThroughputCalculator computes real-time throughput and capacity metrics.
 type ThroughputCalculator struct {
-	// Rate tracking
+	// Rate tracking.
 	requestCounter    *RateCounter
 	capacityTracker   *CapacityTracker
 	queueDepthMonitor *QueueDepthMonitor
 
-	// Historical data
+	// Historical data.
 	throughputHistory *CircularBuffer
 	peakTracker       *PeakTracker
 
-	// Metrics
+	// Metrics.
 	metrics *ThroughputMetrics
 	mu      sync.RWMutex
 }
 
-// RateCounter tracks request rates with sliding windows
+// RateCounter tracks request rates with sliding windows.
 type RateCounter struct {
 	windows map[time.Duration]*SlidingWindow
 	mu      sync.RWMutex
 }
 
-// SlidingWindow implements a sliding window rate counter
+// SlidingWindow implements a sliding window rate counter.
 type SlidingWindow struct {
 	buckets    []float64
 	bucketSize time.Duration
@@ -321,7 +321,7 @@ type SlidingWindow struct {
 	mu         sync.RWMutex
 }
 
-// ThroughputMetrics tracks throughput metrics
+// ThroughputMetrics tracks throughput metrics.
 type ThroughputMetrics struct {
 	CurrentThroughput   prometheus.Gauge
 	PeakThroughput      prometheus.Gauge
@@ -330,22 +330,22 @@ type ThroughputMetrics struct {
 	ThroughputHistory   *prometheus.GaugeVec
 }
 
-// ErrorRateCalculator computes error rates and budget consumption
+// ErrorRateCalculator computes error rates and budget consumption.
 type ErrorRateCalculator struct {
-	// Error tracking
+	// Error tracking.
 	errorCounter       *ErrorCounter
 	budgetTracker      *ErrorBudgetTracker
 	burnRateCalculator *BurnRateCalculator
 
-	// Historical data
+	// Historical data.
 	errorHistory *CircularBuffer
 
-	// Metrics
+	// Metrics.
 	metrics *ErrorRateMetrics
 	mu      sync.RWMutex
 }
 
-// ErrorCounter tracks errors by type and severity
+// ErrorCounter tracks errors by type and severity.
 type ErrorCounter struct {
 	totalRequests    atomic.Uint64
 	totalErrors      atomic.Uint64
@@ -354,7 +354,7 @@ type ErrorCounter struct {
 	mu               sync.RWMutex
 }
 
-// ErrorBudgetTracker manages error budget consumption
+// ErrorBudgetTracker manages error budget consumption.
 type ErrorBudgetTracker struct {
 	budgetWindow    time.Duration
 	totalBudget     float64
@@ -364,7 +364,7 @@ type ErrorBudgetTracker struct {
 	mu              sync.RWMutex
 }
 
-// BurnRateCalculator computes error budget burn rates
+// BurnRateCalculator computes error budget burn rates.
 type BurnRateCalculator struct {
 	shortWindow time.Duration // e.g., 5 minutes
 	longWindow  time.Duration // e.g., 1 hour
@@ -373,7 +373,7 @@ type BurnRateCalculator struct {
 	mu          sync.RWMutex
 }
 
-// ErrorRateMetrics tracks error rate metrics
+// ErrorRateMetrics tracks error rate metrics.
 type ErrorRateMetrics struct {
 	ErrorRate            prometheus.Gauge
 	ErrorsByType         *prometheus.CounterVec
@@ -381,7 +381,7 @@ type ErrorRateMetrics struct {
 	BurnRate             *prometheus.GaugeVec
 }
 
-// NewCalculator creates a new SLA calculator with the given configuration
+// NewCalculator creates a new SLA calculator with the given configuration.
 func NewCalculator(config *CalculatorConfig, logger *logging.StructuredLogger) (*Calculator, error) {
 	if config == nil {
 		config = DefaultCalculatorConfig()
@@ -391,7 +391,7 @@ func NewCalculator(config *CalculatorConfig, logger *logging.StructuredLogger) (
 		return nil, fmt.Errorf("logger is required")
 	}
 
-	// Initialize metrics
+	// Initialize metrics.
 	metrics := &CalculatorMetrics{
 		CalculationsPerformed: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "sla_calculator_calculations_total",
@@ -462,7 +462,7 @@ func NewCalculator(config *CalculatorConfig, logger *logging.StructuredLogger) (
 		}),
 	}
 
-	// Initialize availability calculator
+	// Initialize availability calculator.
 	availabilityCalc := &AvailabilityCalculator{
 		componentStates:  make(map[string]*ComponentState),
 		dependencyStates: make(map[string]*DependencyState),
@@ -498,7 +498,7 @@ func NewCalculator(config *CalculatorConfig, logger *logging.StructuredLogger) (
 		},
 	}
 
-	// Initialize latency calculator
+	// Initialize latency calculator.
 	latencyCalc := &LatencyCalculator{
 		endToEndEstimator:   NewQuantileEstimator(),
 		llmEstimator:        NewQuantileEstimator(),
@@ -527,7 +527,7 @@ func NewCalculator(config *CalculatorConfig, logger *logging.StructuredLogger) (
 		},
 	}
 
-	// Initialize throughput calculator
+	// Initialize throughput calculator.
 	throughputCalc := &ThroughputCalculator{
 		requestCounter:    NewRateCounter(),
 		capacityTracker:   NewCapacityTracker(),
@@ -558,7 +558,7 @@ func NewCalculator(config *CalculatorConfig, logger *logging.StructuredLogger) (
 		},
 	}
 
-	// Initialize error rate calculator
+	// Initialize error rate calculator.
 	errorRateCalc := &ErrorRateCalculator{
 		errorCounter:       NewErrorCounter(),
 		budgetTracker:      NewErrorBudgetTracker(config.ErrorBudgetWindow, config.AvailabilityTarget),
@@ -601,7 +601,7 @@ func NewCalculator(config *CalculatorConfig, logger *logging.StructuredLogger) (
 	return calculator, nil
 }
 
-// Start begins the SLA calculation process
+// Start begins the SLA calculation process.
 func (c *Calculator) Start(ctx context.Context) error {
 	if c.started.Load() {
 		return fmt.Errorf("calculator already started")
@@ -613,15 +613,15 @@ func (c *Calculator) Start(ctx context.Context) error {
 		"quantile_accuracy", c.config.QuantileAccuracy,
 	)
 
-	// Start calculation loop
+	// Start calculation loop.
 	c.wg.Add(1)
 	go c.runCalculationLoop(ctx)
 
-	// Start state compaction
+	// Start state compaction.
 	c.wg.Add(1)
 	go c.runStateCompaction(ctx)
 
-	// Start metrics updater
+	// Start metrics updater.
 	c.wg.Add(1)
 	go c.updateMetrics(ctx)
 
@@ -631,7 +631,7 @@ func (c *Calculator) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop gracefully stops the SLA calculator
+// Stop gracefully stops the SLA calculator.
 func (c *Calculator) Stop(ctx context.Context) error {
 	if !c.started.Load() {
 		return nil
@@ -647,17 +647,17 @@ func (c *Calculator) Stop(ctx context.Context) error {
 	return nil
 }
 
-// GetCurrentState returns the current SLI state
+// GetCurrentState returns the current SLI state.
 func (c *Calculator) GetCurrentState() *SLIState {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	// Return a copy to avoid race conditions
+	// Return a copy to avoid race conditions.
 	state := *c.currentState
 	return &state
 }
 
-// RecordLatency records a latency measurement for a specific component
+// RecordLatency records a latency measurement for a specific component.
 func (c *Calculator) RecordLatency(component string, latency time.Duration) {
 	c.latencyCalc.mu.Lock()
 	defer c.latencyCalc.mu.Unlock()
@@ -677,11 +677,11 @@ func (c *Calculator) RecordLatency(component string, latency time.Duration) {
 		c.latencyCalc.deploymentEstimator.AddObservation(latencyMs)
 	}
 
-	// Check for SLO violations
+	// Check for SLO violations.
 	c.checkLatencyViolations(component, latency)
 }
 
-// UpdateComponentAvailability updates the availability state of a component
+// UpdateComponentAvailability updates the availability state of a component.
 func (c *Calculator) UpdateComponentAvailability(component string, available bool) {
 	c.availabilityCalc.mu.Lock()
 	defer c.availabilityCalc.mu.Unlock()
@@ -697,17 +697,17 @@ func (c *Calculator) UpdateComponentAvailability(component string, available boo
 
 	now := time.Now()
 
-	// Update state
+	// Update state.
 	if state.Available != available {
 		if available {
-			// Component came back online
+			// Component came back online.
 			if !state.LastSeen.IsZero() {
 				downtime := now.Sub(state.LastSeen).Seconds()
 				state.DowntimeSeconds += downtime
 				c.availabilityCalc.metrics.DowntimeMinutes.WithLabelValues(component, "minor").Add(downtime / 60)
 			}
 		} else {
-			// Component went offline
+			// Component went offline.
 			if !state.LastSeen.IsZero() {
 				uptime := now.Sub(state.LastSeen).Seconds()
 				state.UptimeSeconds += uptime
@@ -718,7 +718,7 @@ func (c *Calculator) UpdateComponentAvailability(component string, available boo
 	state.Available = available
 	state.LastSeen = now
 
-	// Update metrics
+	// Update metrics.
 	availability := 0.0
 	if available {
 		availability = 100.0
@@ -726,7 +726,7 @@ func (c *Calculator) UpdateComponentAvailability(component string, available boo
 	c.availabilityCalc.metrics.ComponentAvailability.WithLabelValues(component).Set(availability)
 }
 
-// RecordRequest records a request for throughput calculation
+// RecordRequest records a request for throughput calculation.
 func (c *Calculator) RecordRequest(success bool) {
 	c.throughputCalc.mu.Lock()
 	defer c.throughputCalc.mu.Unlock()
@@ -741,7 +741,7 @@ func (c *Calculator) RecordRequest(success bool) {
 	}
 }
 
-// runCalculationLoop runs the main calculation loop
+// runCalculationLoop runs the main calculation loop.
 func (c *Calculator) runCalculationLoop(ctx context.Context) {
 	defer c.wg.Done()
 
@@ -760,7 +760,7 @@ func (c *Calculator) runCalculationLoop(ctx context.Context) {
 	}
 }
 
-// performCalculation performs a complete SLI calculation cycle
+// performCalculation performs a complete SLI calculation cycle.
 func (c *Calculator) performCalculation() {
 	start := time.Now()
 	defer func() {
@@ -769,36 +769,36 @@ func (c *Calculator) performCalculation() {
 		c.calculationCount.Add(1)
 	}()
 
-	// Calculate each SLI dimension
+	// Calculate each SLI dimension.
 	state := &SLIState{
 		Timestamp:     time.Now(),
 		SLOCompliance: make(map[string]float64),
 	}
 
-	// Calculate availability
+	// Calculate availability.
 	c.calculateAvailability(state)
 
-	// Calculate latency
+	// Calculate latency.
 	c.calculateLatency(state)
 
-	// Calculate throughput
+	// Calculate throughput.
 	c.calculateThroughput(state)
 
-	// Calculate error rate
+	// Calculate error rate.
 	c.calculateErrorRate(state)
 
-	// Calculate SLO compliance
+	// Calculate SLO compliance.
 	c.calculateSLOCompliance(state)
 
-	// Update current state
+	// Update current state.
 	c.mu.Lock()
 	c.currentState = state
 	c.mu.Unlock()
 
-	// Add to history
+	// Add to history.
 	c.stateHistory.Add(state)
 
-	// Update metrics
+	// Update metrics.
 	c.updateSLIMetrics(state)
 
 	c.logger.DebugWithContext("SLA calculation completed",
@@ -809,7 +809,7 @@ func (c *Calculator) performCalculation() {
 	)
 }
 
-// calculateAvailability computes multi-dimensional availability
+// calculateAvailability computes multi-dimensional availability.
 func (c *Calculator) calculateAvailability(state *SLIState) {
 	start := time.Now()
 	defer func() {
@@ -819,28 +819,28 @@ func (c *Calculator) calculateAvailability(state *SLIState) {
 	c.availabilityCalc.mu.RLock()
 	defer c.availabilityCalc.mu.RUnlock()
 
-	// Calculate component availability
+	// Calculate component availability.
 	state.ComponentAvailability = c.calculateWeightedAvailability(
 		c.availabilityCalc.componentStates,
 		c.availabilityCalc.weights.Components,
 	)
 
-	// Calculate dependency availability
+	// Calculate dependency availability.
 	state.DependencyAvailability = c.calculateDependencyAvailability()
 
-	// Calculate journey availability
+	// Calculate journey availability.
 	state.JourneyAvailability = c.calculateJourneyAvailability()
 
-	// Calculate composite availability
+	// Calculate composite availability.
 	state.CompositeAvailability = (state.ComponentAvailability*0.4 +
 		state.DependencyAvailability*0.3 +
 		state.JourneyAvailability*0.3)
 
-	// Update metrics
+	// Update metrics.
 	c.availabilityCalc.metrics.CompositeAvailability.Set(state.CompositeAvailability)
 }
 
-// calculateWeightedAvailability calculates weighted availability for components
+// calculateWeightedAvailability calculates weighted availability for components.
 func (c *Calculator) calculateWeightedAvailability(states map[string]*ComponentState, weights map[string]float64) float64 {
 	totalWeight := 0.0
 	weightedSum := 0.0
@@ -865,7 +865,7 @@ func (c *Calculator) calculateWeightedAvailability(states map[string]*ComponentS
 	return (weightedSum / totalWeight) * 100.0
 }
 
-// calculateDependencyAvailability calculates dependency availability
+// calculateDependencyAvailability calculates dependency availability.
 func (c *Calculator) calculateDependencyAvailability() float64 {
 	totalWeight := 0.0
 	weightedSum := 0.0
@@ -886,7 +886,7 @@ func (c *Calculator) calculateDependencyAvailability() float64 {
 	return (weightedSum / totalWeight) * 100.0
 }
 
-// calculateJourneyAvailability calculates user journey availability
+// calculateJourneyAvailability calculates user journey availability.
 func (c *Calculator) calculateJourneyAvailability() float64 {
 	totalWeight := 0.0
 	weightedSum := 0.0
@@ -904,7 +904,7 @@ func (c *Calculator) calculateJourneyAvailability() float64 {
 	return (weightedSum / totalWeight)
 }
 
-// calculateLatency computes real-time latency percentiles
+// calculateLatency computes real-time latency percentiles.
 func (c *Calculator) calculateLatency(state *SLIState) {
 	start := time.Now()
 	defer func() {
@@ -914,7 +914,7 @@ func (c *Calculator) calculateLatency(state *SLIState) {
 	c.latencyCalc.mu.RLock()
 	defer c.latencyCalc.mu.RUnlock()
 
-	// Get percentiles from end-to-end estimator
+	// Get percentiles from end-to-end estimator.
 	p50 := c.latencyCalc.endToEndEstimator.GetQuantile(0.50)
 	p95 := c.latencyCalc.endToEndEstimator.GetQuantile(0.95)
 	p99 := c.latencyCalc.endToEndEstimator.GetQuantile(0.99)
@@ -925,7 +925,7 @@ func (c *Calculator) calculateLatency(state *SLIState) {
 	state.P99Latency = time.Duration(p99 * float64(time.Millisecond))
 	state.MeanLatency = time.Duration(mean * float64(time.Millisecond))
 
-	// Update component-specific metrics
+	// Update component-specific metrics.
 	components := []string{"end-to-end", "llm", "rag", "gitops", "deployment"}
 	estimators := []*QuantileEstimator{
 		c.latencyCalc.endToEndEstimator,
@@ -947,51 +947,51 @@ func (c *Calculator) calculateLatency(state *SLIState) {
 	}
 }
 
-// calculateThroughput computes throughput and capacity metrics
+// calculateThroughput computes throughput and capacity metrics.
 func (c *Calculator) calculateThroughput(state *SLIState) {
 	c.throughputCalc.mu.RLock()
 	defer c.throughputCalc.mu.RUnlock()
 
-	// Get current throughput from rate counter
+	// Get current throughput from rate counter.
 	state.CurrentThroughput = c.throughputCalc.requestCounter.GetRate(time.Minute)
 	state.PeakThroughput = c.throughputCalc.peakTracker.GetPeak()
 	state.SustainedThroughput = c.throughputCalc.requestCounter.GetRate(5 * time.Minute)
 
-	// Calculate capacity utilization
+	// Calculate capacity utilization.
 	if c.config.ThroughputTarget > 0 {
 		state.CapacityUtilization = (state.CurrentThroughput / c.config.ThroughputTarget) * 100.0
 	}
 
-	// Update metrics
+	// Update metrics.
 	c.throughputCalc.metrics.CurrentThroughput.Set(state.CurrentThroughput)
 	c.throughputCalc.metrics.PeakThroughput.Set(state.PeakThroughput)
 	c.throughputCalc.metrics.CapacityUtilization.Set(state.CapacityUtilization)
 }
 
-// calculateErrorRate computes error rates and budget consumption
+// calculateErrorRate computes error rates and budget consumption.
 func (c *Calculator) calculateErrorRate(state *SLIState) {
 	c.errorRateCalc.mu.RLock()
 	defer c.errorRateCalc.mu.RUnlock()
 
-	// Get current error rate
+	// Get current error rate.
 	state.ErrorRate = c.errorRateCalc.errorCounter.GetErrorRate()
 
-	// Calculate error budget
+	// Calculate error budget.
 	state.ErrorBudgetRemaining = c.errorRateCalc.budgetTracker.GetRemainingBudget()
 	state.ErrorBudgetBurnRate = c.errorRateCalc.burnRateCalculator.GetCurrentBurnRate()
 
-	// Update metrics
+	// Update metrics.
 	c.errorRateCalc.metrics.ErrorRate.Set(state.ErrorRate)
 	c.errorRateCalc.metrics.ErrorBudgetRemaining.Set(state.ErrorBudgetRemaining)
 }
 
-// calculateSLOCompliance computes SLO compliance for each metric
+// calculateSLOCompliance computes SLO compliance for each metric.
 func (c *Calculator) calculateSLOCompliance(state *SLIState) {
-	// Availability compliance
+	// Availability compliance.
 	availabilityCompliance := math.Min(state.CompositeAvailability/c.config.AvailabilityTarget*100.0, 100.0)
 	state.SLOCompliance["availability"] = availabilityCompliance
 
-	// Latency compliance
+	// Latency compliance.
 	p95Target := c.config.P95LatencyTarget.Seconds()
 	p95Actual := state.P95Latency.Seconds()
 	latencyCompliance := 100.0
@@ -1000,18 +1000,18 @@ func (c *Calculator) calculateSLOCompliance(state *SLIState) {
 	}
 	state.SLOCompliance["latency"] = latencyCompliance
 
-	// Throughput compliance
+	// Throughput compliance.
 	throughputCompliance := math.Min(state.CurrentThroughput/c.config.ThroughputTarget*100.0, 100.0)
 	state.SLOCompliance["throughput"] = throughputCompliance
 
-	// Error rate compliance
+	// Error rate compliance.
 	errorRateCompliance := 100.0
 	if state.ErrorRate > c.config.ErrorRateTarget {
 		errorRateCompliance = math.Max(0, 100.0*(1.0-(state.ErrorRate-c.config.ErrorRateTarget)/c.config.ErrorRateTarget))
 	}
 	state.SLOCompliance["error_rate"] = errorRateCompliance
 
-	// Count violations
+	// Count violations.
 	violationCount := 0
 	for _, compliance := range state.SLOCompliance {
 		if compliance < 100.0 {
@@ -1022,27 +1022,27 @@ func (c *Calculator) calculateSLOCompliance(state *SLIState) {
 	c.violationCount.Store(uint64(violationCount))
 }
 
-// updateSLIMetrics updates Prometheus metrics with current SLI values
+// updateSLIMetrics updates Prometheus metrics with current SLI values.
 func (c *Calculator) updateSLIMetrics(state *SLIState) {
-	// Availability metrics
+	// Availability metrics.
 	c.metrics.AvailabilitySLI.WithLabelValues("component").Set(state.ComponentAvailability)
 	c.metrics.AvailabilitySLI.WithLabelValues("dependency").Set(state.DependencyAvailability)
 	c.metrics.AvailabilitySLI.WithLabelValues("journey").Set(state.JourneyAvailability)
 	c.metrics.AvailabilitySLI.WithLabelValues("composite").Set(state.CompositeAvailability)
 
-	// Latency metrics
+	// Latency metrics.
 	c.metrics.LatencySLI.WithLabelValues("end-to-end", "p50").Set(state.P50Latency.Seconds())
 	c.metrics.LatencySLI.WithLabelValues("end-to-end", "p95").Set(state.P95Latency.Seconds())
 	c.metrics.LatencySLI.WithLabelValues("end-to-end", "p99").Set(state.P99Latency.Seconds())
 	c.metrics.LatencySLI.WithLabelValues("end-to-end", "mean").Set(state.MeanLatency.Seconds())
 
-	// Throughput and error metrics
+	// Throughput and error metrics.
 	c.metrics.ThroughputSLI.Set(state.CurrentThroughput)
 	c.metrics.ErrorRateSLI.Set(state.ErrorRate)
 	c.metrics.ErrorBudgetRemaining.Set(state.ErrorBudgetRemaining)
 	c.metrics.ErrorBudgetBurnRate.Set(state.ErrorBudgetBurnRate)
 
-	// SLO compliance metrics
+	// SLO compliance metrics.
 	for sloType, compliance := range state.SLOCompliance {
 		c.metrics.SLOCompliance.WithLabelValues(sloType).Set(compliance)
 
@@ -1059,7 +1059,7 @@ func (c *Calculator) updateSLIMetrics(state *SLIState) {
 	}
 }
 
-// runStateCompaction performs periodic state compaction
+// runStateCompaction performs periodic state compaction.
 func (c *Calculator) runStateCompaction(ctx context.Context) {
 	defer c.wg.Done()
 
@@ -1078,16 +1078,16 @@ func (c *Calculator) runStateCompaction(ctx context.Context) {
 	}
 }
 
-// performStateCompaction compacts historical state data
+// performStateCompaction compacts historical state data.
 func (c *Calculator) performStateCompaction() {
 	c.logger.DebugWithContext("Performing state compaction")
 
-	// This would implement state compaction logic
-	// For now, we'll just log the operation
+	// This would implement state compaction logic.
+	// For now, we'll just log the operation.
 	c.metrics.CalculationsPerformed.WithLabelValues("compaction", "success").Inc()
 }
 
-// updateMetrics updates calculator performance metrics
+// updateMetrics updates calculator performance metrics.
 func (c *Calculator) updateMetrics(ctx context.Context) {
 	defer c.wg.Done()
 
@@ -1101,17 +1101,17 @@ func (c *Calculator) updateMetrics(ctx context.Context) {
 		case <-c.stopCh:
 			return
 		case <-ticker.C:
-			// Update calculation rate and other performance metrics
-			// Implementation would go here
+			// Update calculation rate and other performance metrics.
+			// Implementation would go here.
 		}
 	}
 }
 
-// checkLatencyViolations checks for latency SLO violations
+// checkLatencyViolations checks for latency SLO violations.
 func (c *Calculator) checkLatencyViolations(component string, latency time.Duration) {
 	var targetLatency time.Duration
 
-	// For this example, we'll use P95 target for all components
+	// For this example, we'll use P95 target for all components.
 	targetLatency = c.config.P95LatencyTarget
 
 	if latency > targetLatency {
@@ -1124,9 +1124,10 @@ func (c *Calculator) checkLatencyViolations(component string, latency time.Durat
 	}
 }
 
-// Placeholder implementations for missing types and functions
-// These would be fully implemented in a production system
+// Placeholder implementations for missing types and functions.
+// These would be fully implemented in a production system.
 
+// NewQuantileEstimator performs newquantileestimator operation.
 func NewQuantileEstimator() *QuantileEstimator {
 	return &QuantileEstimator{
 		p50: &P2Estimator{quantile: 0.50},
@@ -1135,6 +1136,7 @@ func NewQuantileEstimator() *QuantileEstimator {
 	}
 }
 
+// AddObservation performs addobservation operation.
 func (qe *QuantileEstimator) AddObservation(value float64) {
 	qe.mu.Lock()
 	defer qe.mu.Unlock()
@@ -1146,7 +1148,7 @@ func (qe *QuantileEstimator) AddObservation(value float64) {
 	qe.count.Add(1)
 	qe.sum.Add(uint64(value))
 
-	// Update min/max
+	// Update min/max.
 	valueUint := uint64(value)
 	for {
 		current := qe.min.Load()
@@ -1163,6 +1165,7 @@ func (qe *QuantileEstimator) AddObservation(value float64) {
 	}
 }
 
+// GetQuantile performs getquantile operation.
 func (qe *QuantileEstimator) GetQuantile(quantile float64) float64 {
 	qe.mu.RLock()
 	defer qe.mu.RUnlock()
@@ -1179,6 +1182,7 @@ func (qe *QuantileEstimator) GetQuantile(quantile float64) float64 {
 	}
 }
 
+// GetMean performs getmean operation.
 func (qe *QuantileEstimator) GetMean() float64 {
 	count := qe.count.Load()
 	if count == 0 {
@@ -1187,10 +1191,11 @@ func (qe *QuantileEstimator) GetMean() float64 {
 	return float64(qe.sum.Load()) / float64(count)
 }
 
+// Add performs add operation.
 func (p2 *P2Estimator) Add(value float64) {
-	// Simplified P2 algorithm implementation
+	// Simplified P2 algorithm implementation.
 	if !p2.initialized {
-		// Initialize with first few values
+		// Initialize with first few values.
 		p2.markers[p2.count] = value
 		p2.count++
 		if p2.count == 5 {
@@ -1200,13 +1205,14 @@ func (p2 *P2Estimator) Add(value float64) {
 		return
 	}
 
-	// Full P2 algorithm would be implemented here
-	// For now, simplified approximation
+	// Full P2 algorithm would be implemented here.
+	// For now, simplified approximation.
 	if p2.count < len(p2.markers) {
 		p2.markers[2] = value // Use middle marker as approximation
 	}
 }
 
+// GetQuantile performs getquantile operation.
 func (p2 *P2Estimator) GetQuantile() float64 {
 	if !p2.initialized || p2.count == 0 {
 		return 0
@@ -1214,43 +1220,79 @@ func (p2 *P2Estimator) GetQuantile() float64 {
 	return p2.markers[2] // Return middle marker
 }
 
-// Additional placeholder functions
+// Additional placeholder functions.
 func NewLatencyTimeSeries(maxPoints int) *LatencyTimeSeries { return &LatencyTimeSeries{} }
-func NewLatencyViolationTracker() *LatencyViolationTracker  { return &LatencyViolationTracker{} }
+
+// NewLatencyViolationTracker performs newlatencyviolationtracker operation.
+func NewLatencyViolationTracker() *LatencyViolationTracker { return &LatencyViolationTracker{} }
+
+// NewRateCounter performs newratecounter operation.
 func NewRateCounter() *RateCounter {
 	return &RateCounter{windows: make(map[time.Duration]*SlidingWindow)}
 }
-func NewCapacityTracker() *CapacityTracker     { return &CapacityTracker{} }
+
+// NewCapacityTracker performs newcapacitytracker operation.
+func NewCapacityTracker() *CapacityTracker { return &CapacityTracker{} }
+
+// NewQueueDepthMonitor performs newqueuedepthmonitor operation.
 func NewQueueDepthMonitor() *QueueDepthMonitor { return &QueueDepthMonitor{} }
-func NewPeakTracker() *PeakTracker             { return &PeakTracker{} }
+
+// NewPeakTracker performs newpeaktracker operation.
+func NewPeakTracker() *PeakTracker { return &PeakTracker{} }
+
+// NewErrorCounter performs newerrorcounter operation.
 func NewErrorCounter() *ErrorCounter {
 	return &ErrorCounter{errorsByType: make(map[string]*atomic.Uint64), errorsBySeverity: make(map[string]*atomic.Uint64)}
 }
+
+// NewErrorBudgetTracker performs newerrorbudgettracker operation.
 func NewErrorBudgetTracker(window time.Duration, target float64) *ErrorBudgetTracker {
 	return &ErrorBudgetTracker{budgetWindow: window, totalBudget: target}
 }
+
+// NewBurnRateCalculator performs newburnratecalculator operation.
 func NewBurnRateCalculator(thresholds []float64) *BurnRateCalculator {
 	return &BurnRateCalculator{thresholds: thresholds}
 }
+
+// NewSLOComplianceTracker performs newslocompliancetracker operation.
 func NewSLOComplianceTracker(config *CalculatorConfig) *SLOComplianceTracker {
 	return &SLOComplianceTracker{}
 }
+
+// NewDowntimeTracker performs newdowntimetracker operation.
 func NewDowntimeTracker() *DowntimeTracker { return &DowntimeTracker{} }
 
-// Placeholder types
-type LatencyTimeSeries struct{}
-type LatencyViolationTracker struct{}
-type CapacityTracker struct{}
-type PeakTracker struct{}
-type SLOComplianceTracker struct{}
-type DowntimeTracker struct{}
+// Placeholder types.
+type (
+	LatencyTimeSeries struct{}
+	// LatencyViolationTracker represents a latencyviolationtracker.
+	LatencyViolationTracker struct{}
+	// CapacityTracker represents a capacitytracker.
+	CapacityTracker struct{}
+	// PeakTracker represents a peaktracker.
+	PeakTracker struct{}
+	// SLOComplianceTracker represents a slocompliancetracker.
+	SLOComplianceTracker struct{}
+	// DowntimeTracker represents a downtimetracker.
+	DowntimeTracker struct{}
+)
 
-func (rc *RateCounter) AddRequest(t time.Time)               {}
+// AddRequest performs addrequest operation.
+func (rc *RateCounter) AddRequest(t time.Time) {}
+
+// GetRate performs getrate operation.
 func (rc *RateCounter) GetRate(window time.Duration) float64 { return 0 }
-func (pt *PeakTracker) GetPeak() float64                     { return 0 }
+
+// GetPeak performs getpeak operation.
+func (pt *PeakTracker) GetPeak() float64 { return 0 }
+
+// RecordError performs recorderror operation.
 func (ec *ErrorCounter) RecordError(errorType, severity string) {
 	ec.totalErrors.Add(1)
 }
+
+// GetErrorRate performs geterrorrate operation.
 func (ec *ErrorCounter) GetErrorRate() float64 {
 	total := ec.totalRequests.Load()
 	if total == 0 {
@@ -1259,5 +1301,9 @@ func (ec *ErrorCounter) GetErrorRate() float64 {
 	errors := ec.totalErrors.Load()
 	return float64(errors) / float64(total) * 100.0
 }
+
+// GetRemainingBudget performs getremainingbudget operation.
 func (ebt *ErrorBudgetTracker) GetRemainingBudget() float64 { return 0 }
+
+// GetCurrentBurnRate performs getcurrentburnrate operation.
 func (brc *BurnRateCalculator) GetCurrentBurnRate() float64 { return 0 }

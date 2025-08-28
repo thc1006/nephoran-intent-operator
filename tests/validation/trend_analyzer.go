@@ -1,4 +1,4 @@
-// Package validation provides trend analysis capabilities for regression testing
+// Package validation provides trend analysis capabilities for regression testing.
 package validation
 
 import (
@@ -11,42 +11,42 @@ import (
 	"github.com/onsi/ginkgo/v2"
 )
 
-// TrendAnalyzer performs statistical analysis of validation trends over time
+// TrendAnalyzer performs statistical analysis of validation trends over time.
 type TrendAnalyzer struct {
 	config *RegressionConfig
 }
 
-// NewTrendAnalyzer creates a new trend analyzer
+// NewTrendAnalyzer creates a new trend analyzer.
 func NewTrendAnalyzer(config *RegressionConfig) *TrendAnalyzer {
 	return &TrendAnalyzer{
 		config: config,
 	}
 }
 
-// TrendAnalysis contains comprehensive trend analysis results
+// TrendAnalysis contains comprehensive trend analysis results.
 type TrendAnalysis struct {
-	// Overall trends
+	// Overall trends.
 	OverallTrend *OverallTrendAnalysis `json:"overall_trend"`
 
-	// Category-specific trends
+	// Category-specific trends.
 	PerformanceTrends map[string]*PerformanceTrend `json:"performance_trends"`
 	FunctionalTrends  map[string]*FunctionalTrend  `json:"functional_trends"`
 	SecurityTrends    *SecurityTrend               `json:"security_trends"`
 	ProductionTrends  *ProductionTrend             `json:"production_trends"`
 
-	// Statistical insights
+	// Statistical insights.
 	SeasonalPatterns map[string]*SeasonalPattern `json:"seasonal_patterns"`
 	Anomalies        []*TrendAnomaly             `json:"anomalies"`
 	Predictions      map[string]*TrendPrediction `json:"predictions"`
 
-	// Analysis metadata
+	// Analysis metadata.
 	AnalysisTime    time.Time `json:"analysis_time"`
 	SampleSize      int       `json:"sample_size"`
 	TimeRange       TimeRange `json:"time_range"`
 	ConfidenceLevel float64   `json:"confidence_level"`
 }
 
-// OverallTrendAnalysis provides high-level trend insights
+// OverallTrendAnalysis provides high-level trend insights.
 type OverallTrendAnalysis struct {
 	Direction          string         `json:"direction"` // "improving", "stable", "degrading"
 	Confidence         float64        `json:"confidence"`
@@ -57,7 +57,7 @@ type OverallTrendAnalysis struct {
 	RiskLevel          string         `json:"risk_level"` // "low", "medium", "high", "critical"
 }
 
-// PerformanceTrend tracks performance metric trends
+// PerformanceTrend tracks performance metric trends.
 type PerformanceTrend struct {
 	MetricName         string            `json:"metric_name"`
 	Direction          string            `json:"direction"`
@@ -71,7 +71,7 @@ type PerformanceTrend struct {
 	PredictionInterval [2]float64        `json:"prediction_interval"`
 }
 
-// FunctionalTrend tracks functional test trends
+// FunctionalTrend tracks functional test trends.
 type FunctionalTrend struct {
 	Category           string           `json:"category"`
 	PassRateTrend      string           `json:"pass_rate_trend"`
@@ -83,7 +83,7 @@ type FunctionalTrend struct {
 	TrendConfidence    float64          `json:"trend_confidence"`
 }
 
-// SecurityTrend tracks security posture trends
+// SecurityTrend tracks security posture trends.
 type SecurityTrend struct {
 	VulnerabilityTrend       string           `json:"vulnerability_trend"`
 	ComplianceTrend          string           `json:"compliance_trend"`
@@ -94,7 +94,7 @@ type SecurityTrend struct {
 	SecurityPostureTrend     string           `json:"security_posture_trend"`
 }
 
-// ProductionTrend tracks production readiness trends
+// ProductionTrend tracks production readiness trends.
 type ProductionTrend struct {
 	ReadinessTrend     string           `json:"readiness_trend"`
 	AvailabilityTrend  string           `json:"availability_trend"`
@@ -105,14 +105,14 @@ type ProductionTrend struct {
 	RecoveryEfficiency float64          `json:"recovery_efficiency"`
 }
 
-// TrendDataPoint represents a single data point in a trend
+// TrendDataPoint represents a single data point in a trend.
 type TrendDataPoint struct {
 	Timestamp time.Time              `json:"timestamp"`
 	Value     float64                `json:"value"`
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// SeasonalPattern identifies recurring patterns
+// SeasonalPattern identifies recurring patterns.
 type SeasonalPattern struct {
 	Pattern    string    `json:"pattern"` // "daily", "weekly", "monthly"
 	Strength   float64   `json:"strength"`
@@ -123,7 +123,7 @@ type SeasonalPattern struct {
 	NextTrough time.Time `json:"next_trough"`
 }
 
-// TrendAnomaly represents an unusual data point
+// TrendAnomaly represents an unusual data point.
 type TrendAnomaly struct {
 	Timestamp     time.Time `json:"timestamp"`
 	MetricName    string    `json:"metric_name"`
@@ -134,7 +134,7 @@ type TrendAnomaly struct {
 	PossibleCause string    `json:"possible_cause"`
 }
 
-// TrendPrediction provides future value predictions
+// TrendPrediction provides future value predictions.
 type TrendPrediction struct {
 	MetricName         string        `json:"metric_name"`
 	PredictedValue     float64       `json:"predicted_value"`
@@ -144,7 +144,7 @@ type TrendPrediction struct {
 	Model              string        `json:"model"` // "linear", "exponential", "polynomial"
 }
 
-// ThresholdBreach tracks when metrics exceeded thresholds
+// ThresholdBreach tracks when metrics exceeded thresholds.
 type ThresholdBreach struct {
 	Timestamp     time.Time     `json:"timestamp"`
 	ThresholdType string        `json:"threshold_type"` // "warning", "critical"
@@ -153,13 +153,13 @@ type ThresholdBreach struct {
 	Duration      time.Duration `json:"duration"`
 }
 
-// TimeRange defines the analysis time period
+// TimeRange defines the analysis time period.
 type TimeRange struct {
 	Start time.Time `json:"start"`
 	End   time.Time `json:"end"`
 }
 
-// AnalyzeTrends compares current results with baseline and generates trend analysis
+// AnalyzeTrends compares current results with baseline and generates trend analysis.
 func (ta *TrendAnalyzer) AnalyzeTrends(baseline *BaselineSnapshot, current *ValidationResults) *TrendAnalysis {
 	ginkgo.By("Performing trend analysis")
 
@@ -178,26 +178,26 @@ func (ta *TrendAnalyzer) AnalyzeTrends(baseline *BaselineSnapshot, current *Vali
 		},
 	}
 
-	// Analyze overall trends
+	// Analyze overall trends.
 	analysis.OverallTrend = ta.analyzeOverallTrend(baseline, current)
 
-	// Analyze performance trends
+	// Analyze performance trends.
 	analysis.PerformanceTrends = ta.analyzePerformanceTrends(baseline, current)
 
-	// Analyze functional trends
+	// Analyze functional trends.
 	analysis.FunctionalTrends = ta.analyzeFunctionalTrends(baseline, current)
 
-	// Analyze security trends
+	// Analyze security trends.
 	analysis.SecurityTrends = ta.analyzeSecurityTrends(baseline, current)
 
-	// Analyze production trends
+	// Analyze production trends.
 	analysis.ProductionTrends = ta.analyzeProductionTrends(baseline, current)
 
 	ginkgo.By("Trend analysis completed")
 	return analysis
 }
 
-// GenerateTrends creates comprehensive trend analysis from multiple baselines
+// GenerateTrends creates comprehensive trend analysis from multiple baselines.
 func (ta *TrendAnalyzer) GenerateTrends(baselines []*BaselineSnapshot) *TrendAnalysis {
 	ginkgo.By(fmt.Sprintf("Generating comprehensive trends from %d baselines", len(baselines)))
 
@@ -206,7 +206,7 @@ func (ta *TrendAnalyzer) GenerateTrends(baselines []*BaselineSnapshot) *TrendAna
 		return ta.createMinimalTrendAnalysis(baselines)
 	}
 
-	// Sort baselines by timestamp
+	// Sort baselines by timestamp.
 	sort.Slice(baselines, func(i, j int) bool {
 		return baselines[i].Timestamp.Before(baselines[j].Timestamp)
 	})
@@ -226,7 +226,7 @@ func (ta *TrendAnalyzer) GenerateTrends(baselines []*BaselineSnapshot) *TrendAna
 		},
 	}
 
-	// Generate comprehensive trend analysis
+	// Generate comprehensive trend analysis.
 	analysis.OverallTrend = ta.generateOverallTrends(baselines)
 	analysis.PerformanceTrends = ta.generatePerformanceTrends(baselines)
 	analysis.FunctionalTrends = ta.generateFunctionalTrends(baselines)
@@ -240,7 +240,7 @@ func (ta *TrendAnalyzer) GenerateTrends(baselines []*BaselineSnapshot) *TrendAna
 	return analysis
 }
 
-// analyzeOverallTrend determines the overall quality trajectory
+// analyzeOverallTrend determines the overall quality trajectory.
 func (ta *TrendAnalyzer) analyzeOverallTrend(baseline *BaselineSnapshot, current *ValidationResults) *OverallTrendAnalysis {
 	scoreDiff := current.TotalScore - baseline.Results.TotalScore
 
@@ -270,11 +270,11 @@ func (ta *TrendAnalyzer) analyzeOverallTrend(baseline *BaselineSnapshot, current
 	}
 }
 
-// analyzePerformanceTrends analyzes performance metric trends
+// analyzePerformanceTrends analyzes performance metric trends.
 func (ta *TrendAnalyzer) analyzePerformanceTrends(baseline *BaselineSnapshot, current *ValidationResults) map[string]*PerformanceTrend {
 	trends := make(map[string]*PerformanceTrend)
 
-	// P95 Latency trend
+	// P95 Latency trend.
 	if baseline.Results.P95Latency > 0 && current.P95Latency > 0 {
 		baselineNs := float64(baseline.Results.P95Latency.Nanoseconds())
 		currentNs := float64(current.P95Latency.Nanoseconds())
@@ -299,7 +299,7 @@ func (ta *TrendAnalyzer) analyzePerformanceTrends(baseline *BaselineSnapshot, cu
 		}
 	}
 
-	// Throughput trend
+	// Throughput trend.
 	if baseline.Results.ThroughputAchieved > 0 && current.ThroughputAchieved > 0 {
 		direction := ta.determineDirection(baseline.Results.ThroughputAchieved, current.ThroughputAchieved, false) // Higher is better
 		slope := ta.calculateSlope([]TrendDataPoint{
@@ -321,7 +321,7 @@ func (ta *TrendAnalyzer) analyzePerformanceTrends(baseline *BaselineSnapshot, cu
 		}
 	}
 
-	// Availability trend
+	// Availability trend.
 	if baseline.Results.AvailabilityAchieved > 0 && current.AvailabilityAchieved > 0 {
 		direction := ta.determineDirection(baseline.Results.AvailabilityAchieved, current.AvailabilityAchieved, false) // Higher is better
 		slope := ta.calculateSlope([]TrendDataPoint{
@@ -346,11 +346,11 @@ func (ta *TrendAnalyzer) analyzePerformanceTrends(baseline *BaselineSnapshot, cu
 	return trends
 }
 
-// analyzeFunctionalTrends analyzes functional test trends
+// analyzeFunctionalTrends analyzes functional test trends.
 func (ta *TrendAnalyzer) analyzeFunctionalTrends(baseline *BaselineSnapshot, current *ValidationResults) map[string]*FunctionalTrend {
 	trends := make(map[string]*FunctionalTrend)
 
-	// Overall functional trend
+	// Overall functional trend.
 	baselinePassRate := float64(baseline.Results.FunctionalScore) / 50.0 * 100
 	currentPassRate := float64(current.FunctionalScore) / 50.0 * 100
 
@@ -371,7 +371,7 @@ func (ta *TrendAnalyzer) analyzeFunctionalTrends(baseline *BaselineSnapshot, cur
 	return trends
 }
 
-// analyzeSecurityTrends analyzes security posture trends
+// analyzeSecurityTrends analyzes security posture trends.
 func (ta *TrendAnalyzer) analyzeSecurityTrends(baseline *BaselineSnapshot, current *ValidationResults) *SecurityTrend {
 	baselineVulns := len(baseline.Results.SecurityFindings)
 	currentVulns := len(current.SecurityFindings)
@@ -399,7 +399,7 @@ func (ta *TrendAnalyzer) analyzeSecurityTrends(baseline *BaselineSnapshot, curre
 	}
 }
 
-// analyzeProductionTrends analyzes production readiness trends
+// analyzeProductionTrends analyzes production readiness trends.
 func (ta *TrendAnalyzer) analyzeProductionTrends(baseline *BaselineSnapshot, current *ValidationResults) *ProductionTrend {
 	baselineScore := float64(baseline.Results.ProductionScore)
 	currentScore := float64(current.ProductionScore)
@@ -424,9 +424,9 @@ func (ta *TrendAnalyzer) analyzeProductionTrends(baseline *BaselineSnapshot, cur
 	}
 }
 
-// Helper methods for more comprehensive trend analysis with multiple baselines
+// Helper methods for more comprehensive trend analysis with multiple baselines.
 
-// generateOverallTrends creates overall trend analysis from multiple baselines
+// generateOverallTrends creates overall trend analysis from multiple baselines.
 func (ta *TrendAnalyzer) generateOverallTrends(baselines []*BaselineSnapshot) *OverallTrendAnalysis {
 	scores := make([]float64, len(baselines))
 	for i, baseline := range baselines {
@@ -471,23 +471,23 @@ func (ta *TrendAnalyzer) generateOverallTrends(baselines []*BaselineSnapshot) *O
 	}
 }
 
-// generatePerformanceTrends creates performance trends from multiple baselines
+// generatePerformanceTrends creates performance trends from multiple baselines.
 func (ta *TrendAnalyzer) generatePerformanceTrends(baselines []*BaselineSnapshot) map[string]*PerformanceTrend {
 	trends := make(map[string]*PerformanceTrend)
 
-	// Extract P95 latency values
+	// Extract P95 latency values.
 	p95Values := ta.extractP95LatencyValues(baselines)
 	if len(p95Values) >= ta.config.MinimumSamples {
 		trends["p95_latency"] = ta.createPerformanceTrend("P95 Latency", baselines, p95Values, true)
 	}
 
-	// Extract throughput values
+	// Extract throughput values.
 	throughputValues := ta.extractThroughputValues(baselines)
 	if len(throughputValues) >= ta.config.MinimumSamples {
 		trends["throughput"] = ta.createPerformanceTrend("Throughput", baselines, throughputValues, false)
 	}
 
-	// Extract availability values
+	// Extract availability values.
 	availabilityValues := ta.extractAvailabilityValues(baselines)
 	if len(availabilityValues) >= ta.config.MinimumSamples {
 		trends["availability"] = ta.createPerformanceTrend("Availability", baselines, availabilityValues, false)
@@ -496,7 +496,7 @@ func (ta *TrendAnalyzer) generatePerformanceTrends(baselines []*BaselineSnapshot
 	return trends
 }
 
-// generateFunctionalTrends creates functional trends from multiple baselines
+// generateFunctionalTrends creates functional trends from multiple baselines.
 func (ta *TrendAnalyzer) generateFunctionalTrends(baselines []*BaselineSnapshot) map[string]*FunctionalTrend {
 	trends := make(map[string]*FunctionalTrend)
 
@@ -516,7 +516,7 @@ func (ta *TrendAnalyzer) generateFunctionalTrends(baselines []*BaselineSnapshot)
 	return trends
 }
 
-// generateSecurityTrends creates security trends from multiple baselines
+// generateSecurityTrends creates security trends from multiple baselines.
 func (ta *TrendAnalyzer) generateSecurityTrends(baselines []*BaselineSnapshot) *SecurityTrend {
 	vulnCounts := make([]float64, len(baselines))
 	securityScores := make([]float64, len(baselines))
@@ -535,7 +535,7 @@ func (ta *TrendAnalyzer) generateSecurityTrends(baselines []*BaselineSnapshot) *
 	}
 }
 
-// generateProductionTrends creates production trends from multiple baselines
+// generateProductionTrends creates production trends from multiple baselines.
 func (ta *TrendAnalyzer) generateProductionTrends(baselines []*BaselineSnapshot) *ProductionTrend {
 	productionScores := make([]float64, len(baselines))
 	availabilityScores := make([]float64, len(baselines))
@@ -554,21 +554,21 @@ func (ta *TrendAnalyzer) generateProductionTrends(baselines []*BaselineSnapshot)
 	}
 }
 
-// detectSeasonalPatterns identifies recurring patterns in the data
+// detectSeasonalPatterns identifies recurring patterns in the data.
 func (ta *TrendAnalyzer) detectSeasonalPatterns(baselines []*BaselineSnapshot) map[string]*SeasonalPattern {
 	patterns := make(map[string]*SeasonalPattern)
 
-	// For now, return empty patterns as we'd need more sophisticated time series analysis
-	// This would typically use FFT or autocorrelation analysis
+	// For now, return empty patterns as we'd need more sophisticated time series analysis.
+	// This would typically use FFT or autocorrelation analysis.
 
 	return patterns
 }
 
-// detectAnomalies identifies unusual data points
+// detectAnomalies identifies unusual data points.
 func (ta *TrendAnalyzer) detectAnomalies(baselines []*BaselineSnapshot) []*TrendAnomaly {
 	var anomalies []*TrendAnomaly
 
-	// Simple anomaly detection using standard deviation
+	// Simple anomaly detection using standard deviation.
 	scores := make([]float64, len(baselines))
 	for i, baseline := range baselines {
 		scores[i] = float64(baseline.Results.TotalScore)
@@ -603,11 +603,11 @@ func (ta *TrendAnalyzer) detectAnomalies(baselines []*BaselineSnapshot) []*Trend
 	return anomalies
 }
 
-// generatePredictions creates future value predictions
+// generatePredictions creates future value predictions.
 func (ta *TrendAnalyzer) generatePredictions(baselines []*BaselineSnapshot) map[string]*TrendPrediction {
 	predictions := make(map[string]*TrendPrediction)
 
-	// Predict total score trend
+	// Predict total score trend.
 	scores := make([]float64, len(baselines))
 	for i, baseline := range baselines {
 		scores[i] = float64(baseline.Results.TotalScore)
@@ -631,7 +631,7 @@ func (ta *TrendAnalyzer) generatePredictions(baselines []*BaselineSnapshot) map[
 	return predictions
 }
 
-// Utility methods
+// Utility methods.
 
 func (ta *TrendAnalyzer) createMinimalTrendAnalysis(baselines []*BaselineSnapshot) *TrendAnalysis {
 	return &TrendAnalysis{
@@ -735,7 +735,7 @@ func (ta *TrendAnalyzer) calculateLinearSlope(values []float64) float64 {
 		sumX2 += x * x
 	}
 
-	// Calculate slope using least squares method
+	// Calculate slope using least squares method.
 	denominator := n*sumX2 - sumX*sumX
 	if denominator == 0 {
 		return 0
@@ -749,7 +749,7 @@ func (ta *TrendAnalyzer) calculateLinearTrendSlope(baselines []*BaselineSnapshot
 		return 0
 	}
 
-	// Convert timestamps to numeric values for regression
+	// Convert timestamps to numeric values for regression.
 	times := make([]float64, len(baselines))
 	baseTime := baselines[0].Timestamp.Unix()
 	for i, baseline := range baselines {
@@ -834,7 +834,7 @@ func (ta *TrendAnalyzer) calculateStability(values []float64) float64 {
 		return 0.0
 	}
 
-	// Coefficient of variation (inverted for stability)
+	// Coefficient of variation (inverted for stability).
 	cv := stdDev / math.Abs(mean)
 	stability := math.Max(0, 100.0-cv*100.0)
 
@@ -846,7 +846,7 @@ func (ta *TrendAnalyzer) calculateTrendConfidence(values []float64) float64 {
 		return 0.0
 	}
 
-	// Simple confidence based on sample size and stability
+	// Simple confidence based on sample size and stability.
 	stability := ta.calculateStability(values)
 	sampleWeight := math.Min(100.0, float64(len(values))/float64(ta.config.MinimumSamples)*50.0)
 
@@ -861,7 +861,7 @@ func (ta *TrendAnalyzer) predictNextValue(values []float64) float64 {
 		return 0
 	}
 
-	// Simple linear prediction
+	// Simple linear prediction.
 	slope := ta.calculateLinearSlope(values)
 	return values[len(values)-1] + slope
 }
@@ -931,7 +931,7 @@ func (ta *TrendAnalyzer) calculateVulnRate(baseline *BaselineSnapshot, current *
 		newVulns = 0
 	}
 
-	// Rate per day
+	// Rate per day.
 	return float64(newVulns) / (timeDiff / 24.0)
 }
 
@@ -969,7 +969,7 @@ func (ta *TrendAnalyzer) inferAnomalyCause(actual, expected float64) string {
 	return "Possible improvement or test variation"
 }
 
-// Helper methods for extracting values from baselines
+// Helper methods for extracting values from baselines.
 func (ta *TrendAnalyzer) extractP95LatencyValues(baselines []*BaselineSnapshot) []float64 {
 	var values []float64
 	for _, baseline := range baselines {

@@ -7,9 +7,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-// MLOptimizationMetrics provides Prometheus metrics for the ML optimization engine
+// MLOptimizationMetrics provides Prometheus metrics for the ML optimization engine.
 var (
-	// Request metrics
+	// Request metrics.
 	optimizationRequests = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "ml_optimization_requests_total",
@@ -27,7 +27,7 @@ var (
 		[]string{"intent_type", "phase"},
 	)
 
-	// Data gathering metrics
+	// Data gathering metrics.
 	dataGatheringDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "ml_data_gathering_duration_seconds",
@@ -45,7 +45,7 @@ var (
 		[]string{"query_type", "error_type"},
 	)
 
-	// Memory metrics
+	// Memory metrics.
 	dataPointsInMemory = promauto.NewGauge(
 		prometheus.GaugeOpts{
 			Name: "ml_data_points_in_memory",
@@ -61,7 +61,7 @@ var (
 		[]string{"component"},
 	)
 
-	// Model metrics
+	// Model metrics.
 	modelAccuracy = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "ml_model_accuracy",
@@ -88,7 +88,7 @@ var (
 		[]string{"model_type"},
 	)
 
-	// Cache metrics
+	// Cache metrics.
 	cacheHits = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "ml_cache_hits_total",
@@ -113,7 +113,7 @@ var (
 		[]string{"cache_type"},
 	)
 
-	// Recommendation quality metrics
+	// Recommendation quality metrics.
 	recommendationConfidence = promauto.NewHistogram(
 		prometheus.HistogramOpts{
 			Name:    "ml_recommendation_confidence_score",
@@ -130,7 +130,7 @@ var (
 		},
 	)
 
-	// Resource utilization metrics
+	// Resource utilization metrics.
 	cpuUtilization = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "ml_resource_cpu_utilization_percent",
@@ -146,7 +146,7 @@ var (
 		},
 	)
 
-	// Circuit breaker metrics
+	// Circuit breaker metrics.
 	circuitBreakerState = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "ml_circuit_breaker_state",
@@ -164,38 +164,38 @@ var (
 	)
 )
 
-// RecordOptimizationRequest records metrics for an optimization request
+// RecordOptimizationRequest records metrics for an optimization request.
 func RecordOptimizationRequest(intentType, status string, duration float64) {
 	optimizationRequests.WithLabelValues(intentType, status).Inc()
 	optimizationDuration.WithLabelValues(intentType, "total").Observe(duration)
 }
 
-// RecordDataGathering records metrics for data gathering operations
+// RecordDataGathering records metrics for data gathering operations.
 func RecordDataGathering(queryType string, duration float64) {
 	dataGatheringDuration.WithLabelValues(queryType).Observe(duration)
 }
 
-// RecordPrometheusError records Prometheus query errors
+// RecordPrometheusError records Prometheus query errors.
 func RecordPrometheusError(queryType, errorType string) {
 	prometheusQueryErrors.WithLabelValues(queryType, errorType).Inc()
 }
 
-// UpdateMemoryMetrics updates memory usage metrics
+// UpdateMemoryMetrics updates memory usage metrics.
 func UpdateMemoryMetrics(component string, bytes float64) {
 	memoryUsageBytes.WithLabelValues(component).Set(bytes)
 }
 
-// UpdateModelMetrics updates model performance metrics
+// UpdateModelMetrics updates model performance metrics.
 func UpdateModelMetrics(modelType string, accuracy float64) {
 	modelAccuracy.WithLabelValues(modelType).Set(accuracy)
 }
 
-// RecordModelPrediction records model prediction metrics
+// RecordModelPrediction records model prediction metrics.
 func RecordModelPrediction(modelType string, duration float64) {
 	modelPredictionDuration.WithLabelValues(modelType).Observe(duration)
 }
 
-// RecordCacheMetrics records cache performance metrics
+// RecordCacheMetrics records cache performance metrics.
 func RecordCacheMetrics(cacheType string, hit bool) {
 	if hit {
 		cacheHits.WithLabelValues(cacheType).Inc()
@@ -204,24 +204,24 @@ func RecordCacheMetrics(cacheType string, hit bool) {
 	}
 }
 
-// UpdateCacheSize updates cache size metrics
+// UpdateCacheSize updates cache size metrics.
 func UpdateCacheSize(cacheType string, size float64) {
 	cacheSize.WithLabelValues(cacheType).Set(size)
 }
 
-// RecordRecommendationQuality records recommendation quality metrics
+// RecordRecommendationQuality records recommendation quality metrics.
 func RecordRecommendationQuality(confidence, potential float64) {
 	recommendationConfidence.Observe(confidence)
 	optimizationPotential.Observe(potential)
 }
 
-// UpdateResourceMetrics updates resource utilization metrics
+// UpdateResourceMetrics updates resource utilization metrics.
 func UpdateResourceMetrics(component string, cpuPercent float64, goroutines int) {
 	cpuUtilization.WithLabelValues(component).Set(cpuPercent)
 	goroutineCount.Set(float64(goroutines))
 }
 
-// UpdateCircuitBreakerMetrics updates circuit breaker metrics
+// UpdateCircuitBreakerMetrics updates circuit breaker metrics.
 func UpdateCircuitBreakerMetrics(breakerName string, state int, trips int64) {
 	circuitBreakerState.WithLabelValues(breakerName).Set(float64(state))
 	if trips > 0 {
@@ -229,7 +229,7 @@ func UpdateCircuitBreakerMetrics(breakerName string, state int, trips int64) {
 	}
 }
 
-// GrafanaDashboardJSON provides a Grafana dashboard configuration for ML optimization metrics
+// GrafanaDashboardJSON provides a Grafana dashboard configuration for ML optimization metrics.
 const GrafanaDashboardJSON = `{
   "dashboard": {
     "title": "ML Optimization Engine Performance",
@@ -296,7 +296,7 @@ const GrafanaDashboardJSON = `{
   }
 }`
 
-// PrometheusRecordingRules provides recording rules for common queries
+// PrometheusRecordingRules provides recording rules for common queries.
 const PrometheusRecordingRules = `
 groups:
   - name: ml_optimization_recording
@@ -333,7 +333,7 @@ groups:
           ml_data_points_in_memory
 `
 
-// AlertingRules provides Prometheus alerting rules
+// AlertingRules provides Prometheus alerting rules.
 const AlertingRules = `
 groups:
   - name: ml_optimization_alerts

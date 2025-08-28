@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// Reducer tracks events and detects bursts for scaling decisions
+// Reducer tracks events and detects bursts for scaling decisions.
 type Reducer struct {
 	mu             sync.Mutex
 	events         []timestampedEvent
@@ -22,7 +22,7 @@ type timestampedEvent struct {
 	timestamp time.Time
 }
 
-// ScalingIntent represents the reducer's scaling intent output
+// ScalingIntent represents the reducer's scaling intent output.
 type ScalingIntent struct {
 	IntentType    string `json:"intent_type"`
 	Target        string `json:"target"`
@@ -34,7 +34,7 @@ type ScalingIntent struct {
 	Timestamp     string `json:"timestamp"`
 }
 
-// NewReducer creates a new event reducer
+// NewReducer creates a new event reducer.
 func NewReducer(burstThreshold int, outHandoff string) *Reducer {
 	return &Reducer{
 		events:         make([]timestampedEvent, 0),
@@ -44,7 +44,7 @@ func NewReducer(burstThreshold int, outHandoff string) *Reducer {
 	}
 }
 
-// ProcessEvent processes an event and returns a scaling intent if burst detected
+// ProcessEvent processes an event and returns a scaling intent if burst detected.
 func (r *Reducer) ProcessEvent(event FCAPSEvent) *ScalingIntent {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -55,7 +55,7 @@ func (r *Reducer) ProcessEvent(event FCAPSEvent) *ScalingIntent {
 		timestamp: now,
 	})
 
-	// Clean old events outside window
+	// Clean old events outside window.
 	cutoff := now.Add(-r.windowDuration)
 	filtered := make([]timestampedEvent, 0)
 	criticalCount := 0
@@ -72,12 +72,12 @@ func (r *Reducer) ProcessEvent(event FCAPSEvent) *ScalingIntent {
 	r.events = filtered
 	r.criticalCount = criticalCount
 
-	// Check burst condition with 30s cooldown
+	// Check burst condition with 30s cooldown.
 	if criticalCount >= r.burstThreshold {
 		if time.Since(r.lastIntentTime) > 30*time.Second {
 			r.lastIntentTime = now
 
-			// Calculate scaling factor
+			// Calculate scaling factor.
 			replicas := 2 + (criticalCount / r.burstThreshold)
 			if replicas > 10 {
 				replicas = 10
@@ -105,7 +105,7 @@ func (r *Reducer) ProcessEvent(event FCAPSEvent) *ScalingIntent {
 }
 
 func isCriticalEvent(event FCAPSEvent) bool {
-	// Check fault events
+	// Check fault events.
 	if event.Event.FaultFields != nil {
 		severity := event.Event.FaultFields.EventSeverity
 		if severity == "CRITICAL" || severity == "MAJOR" {
@@ -113,19 +113,19 @@ func isCriticalEvent(event FCAPSEvent) bool {
 		}
 	}
 
-	// Check performance thresholds
+	// Check performance thresholds.
 	if event.Event.MeasurementsForVfScalingFields != nil {
 		fields := event.Event.MeasurementsForVfScalingFields.AdditionalFields
 		if fields != nil {
-			// PRB utilization > 80%
+			// PRB utilization > 80%.
 			if prb, ok := fields["kpm.prb_utilization"].(float64); ok && prb > 0.8 {
 				return true
 			}
-			// P95 latency > 100ms
+			// P95 latency > 100ms.
 			if latency, ok := fields["kpm.p95_latency_ms"].(float64); ok && latency > 100 {
 				return true
 			}
-			// CPU utilization > 85%
+			// CPU utilization > 85%.
 			if cpu, ok := fields["kpm.cpu_utilization"].(float64); ok && cpu > 0.85 {
 				return true
 			}
@@ -135,8 +135,8 @@ func isCriticalEvent(event FCAPSEvent) bool {
 	return false
 }
 
-// GetStats returns current event statistics
-func (r *Reducer) GetStats() (total int, critical int) {
+// GetStats returns current event statistics.
+func (r *Reducer) GetStats() (total, critical int) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return len(r.events), r.criticalCount

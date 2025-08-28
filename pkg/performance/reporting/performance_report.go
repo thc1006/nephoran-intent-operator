@@ -12,17 +12,17 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/performance/analysis"
 )
 
-// ReportGenerator creates comprehensive performance reports
+// ReportGenerator creates comprehensive performance reports.
 type ReportGenerator struct {
 	performanceData []analysis.PerformanceMetric
 }
 
-// NewReportGenerator initializes a report generator
+// NewReportGenerator initializes a report generator.
 func NewReportGenerator(metrics []analysis.PerformanceMetric) *ReportGenerator {
 	return &ReportGenerator{performanceData: metrics}
 }
 
-// GenerateJSONReport creates a machine-readable JSON report
+// GenerateJSONReport creates a machine-readable JSON report.
 func (rg *ReportGenerator) GenerateJSONReport() ([]byte, error) {
 	analyzer := analysis.NewStatisticalAnalyzer(rg.performanceData)
 	descriptiveStats := analyzer.DescriptiveStatistics()
@@ -41,7 +41,7 @@ func (rg *ReportGenerator) GenerateJSONReport() ([]byte, error) {
 	return json.MarshalIndent(report, "", "  ")
 }
 
-// GenerateCSVReport exports performance data to CSV
+// GenerateCSVReport exports performance data to CSV.
 func (rg *ReportGenerator) GenerateCSVReport(filename string) error {
 	file, err := os.Create(filename)
 	if err != nil {
@@ -52,13 +52,13 @@ func (rg *ReportGenerator) GenerateCSVReport(filename string) error {
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
 
-	// Write CSV headers
+	// Write CSV headers.
 	headers := []string{"Timestamp", "Value"}
 	if err := writer.Write(headers); err != nil {
 		return err
 	}
 
-	// Write performance metrics
+	// Write performance metrics.
 	for _, metric := range rg.performanceData {
 		record := []string{
 			fmt.Sprintf("%d", metric.Timestamp),
@@ -72,7 +72,7 @@ func (rg *ReportGenerator) GenerateCSVReport(filename string) error {
 	return nil
 }
 
-// GenerateHTMLReport creates a human-readable HTML report
+// GenerateHTMLReport creates a human-readable HTML report.
 func (rg *ReportGenerator) GenerateHTMLReport() (string, error) {
 	analyzer := analysis.NewStatisticalAnalyzer(rg.performanceData)
 	descriptiveStats := analyzer.DescriptiveStatistics()

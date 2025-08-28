@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// CertificatePool manages certificate storage and retrieval
+// CertificatePool manages certificate storage and retrieval.
 type CertificatePool struct {
 	config       *CertificateStoreConfig
 	logger       *logging.StructuredLogger
@@ -27,7 +27,7 @@ type CertificatePool struct {
 	lastBackup   time.Time
 }
 
-// CertificateIndices provides efficient certificate lookup
+// CertificateIndices provides efficient certificate lookup.
 type CertificateIndices struct {
 	ByTenant      map[string][]*CertificateResponse
 	ByStatus      map[CertificateStatus][]*CertificateResponse
@@ -36,27 +36,27 @@ type CertificateIndices struct {
 	ByRequestID   map[string]*CertificateResponse
 }
 
-// ExpiryIndex provides efficient expiry-based lookups
+// ExpiryIndex provides efficient expiry-based lookups.
 type ExpiryIndex struct {
 	entries []ExpiryEntry
 	sorted  bool
 	mu      sync.RWMutex
 }
 
-// ExpiryEntry represents a certificate expiry entry
+// ExpiryEntry represents a certificate expiry entry.
 type ExpiryEntry struct {
 	SerialNumber string
 	ExpiresAt    time.Time
 }
 
-// CertificateEncryptor handles certificate encryption for storage
+// CertificateEncryptor handles certificate encryption for storage.
 type CertificateEncryptor struct {
 	enabled   bool
 	key       []byte
 	algorithm string
 }
 
-// StoredCertificate represents a certificate stored in Kubernetes
+// StoredCertificate represents a certificate stored in Kubernetes.
 type StoredCertificate struct {
 	CertificateResponse *CertificateResponse `json:"certificate_response"`
 	StoredAt            time.Time            `json:"stored_at"`
@@ -65,7 +65,7 @@ type StoredCertificate struct {
 	Checksum            string               `json:"checksum"`
 }
 
-// NewCertificatePool creates a new certificate pool
+// NewCertificatePool creates a new certificate pool.
 func NewCertificatePool(config *CertificateStoreConfig, logger *logging.StructuredLogger) (*CertificatePool, error) {
 	pool := &CertificatePool{
 		config:       config,
@@ -80,7 +80,7 @@ func NewCertificatePool(config *CertificateStoreConfig, logger *logging.Structur
 		},
 	}
 
-	// Initialize encryptor if encryption is enabled
+	// Initialize encryptor if encryption is enabled.
 	if config.EncryptionKey != "" {
 		encryptor, err := NewCertificateEncryptor(config.EncryptionKey)
 		if err != nil {
@@ -89,13 +89,13 @@ func NewCertificatePool(config *CertificateStoreConfig, logger *logging.Structur
 		pool.encryptor = encryptor
 	}
 
-	// Start background processes
+	// Start background processes.
 	go pool.runMaintenanceTasks()
 
 	return pool, nil
 }
 
-// StoreCertificate stores a certificate in the pool
+// StoreCertificate stores a certificate in the pool.
 func (p *CertificatePool) StoreCertificate(cert *CertificateResponse) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -104,13 +104,13 @@ func (p *CertificatePool) StoreCertificate(cert *CertificateResponse) error {
 		"serial_number", cert.SerialNumber,
 		"request_id", cert.RequestID)
 
-	// Store in memory
+	// Store in memory.
 	p.certificates[cert.SerialNumber] = cert
 
-	// Update indices
+	// Update indices.
 	p.updateIndices(cert, false)
 
-	// Persist to Kubernetes if configured
+	// Persist to Kubernetes if configured.
 	if p.config.Type == "kubernetes" {
 		if err := p.persistToKubernetes(cert); err != nil {
 			p.logger.Error("failed to persist certificate to Kubernetes",
@@ -127,14 +127,14 @@ func (p *CertificatePool) StoreCertificate(cert *CertificateResponse) error {
 	return nil
 }
 
-// GetCertificate retrieves a certificate by serial number
+// GetCertificate retrieves a certificate by serial number.
 func (p *CertificatePool) GetCertificate(serialNumber string) (*CertificateResponse, error) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
 	cert, exists := p.certificates[serialNumber]
 	if !exists {
-		// Try loading from persistent storage
+		// Try loading from persistent storage.
 		if loadedCert, err := p.loadFromStorage(serialNumber); err == nil {
 			return loadedCert, nil
 		}
@@ -144,14 +144,14 @@ func (p *CertificatePool) GetCertificate(serialNumber string) (*CertificateRespo
 	return cert, nil
 }
 
-// ListCertificates lists certificates with optional filters
+// ListCertificates lists certificates with optional filters.
 func (p *CertificatePool) ListCertificates(filters map[string]string) ([]*CertificateResponse, error) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
 	var results []*CertificateResponse
 
-	// If no filters, return all certificates
+	// If no filters, return all certificates.
 	if len(filters) == 0 {
 		for _, cert := range p.certificates {
 			results = append(results, cert)
@@ -159,7 +159,7 @@ func (p *CertificatePool) ListCertificates(filters map[string]string) ([]*Certif
 		return results, nil
 	}
 
-	// Apply filters using indices for efficiency
+	// Apply filters using indices for efficiency.
 	if tenantID, ok := filters["tenant_id"]; ok {
 		if tenantCerts, exists := p.indices.ByTenant[tenantID]; exists {
 			results = tenantCerts
@@ -169,7 +169,7 @@ func (p *CertificatePool) ListCertificates(filters map[string]string) ([]*Certif
 			results = statusCerts
 		}
 	} else {
-		// Fallback to linear search for other filters
+		// Fallback to linear search for other filters.
 		for _, cert := range p.certificates {
 			if p.matchesFilters(cert, filters) {
 				results = append(results, cert)
@@ -180,14 +180,14 @@ func (p *CertificatePool) ListCertificates(filters map[string]string) ([]*Certif
 	return results, nil
 }
 
-// GetExpiringCertificates returns certificates expiring before the given threshold
+// GetExpiringCertificates returns certificates expiring before the given threshold.
 func (p *CertificatePool) GetExpiringCertificates(threshold time.Time) ([]*CertificateResponse, error) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
 	var expiring []*CertificateResponse
 
-	// Use expiry index for efficient lookup
+	// Use expiry index for efficient lookup.
 	p.indices.ByExpiryDate.mu.RLock()
 	defer p.indices.ByExpiryDate.mu.RUnlock()
 
@@ -197,7 +197,7 @@ func (p *CertificatePool) GetExpiringCertificates(threshold time.Time) ([]*Certi
 				expiring = append(expiring, cert)
 			}
 		} else {
-			// Since entries are sorted, we can break early
+			// Since entries are sorted, we can break early.
 			break
 		}
 	}
@@ -205,7 +205,7 @@ func (p *CertificatePool) GetExpiringCertificates(threshold time.Time) ([]*Certi
 	return expiring, nil
 }
 
-// UpdateCertificate updates an existing certificate
+// UpdateCertificate updates an existing certificate.
 func (p *CertificatePool) UpdateCertificate(cert *CertificateResponse) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -215,16 +215,16 @@ func (p *CertificatePool) UpdateCertificate(cert *CertificateResponse) error {
 		return fmt.Errorf("certificate with serial number %s not found", cert.SerialNumber)
 	}
 
-	// Update indices (remove old entry)
+	// Update indices (remove old entry).
 	p.updateIndices(existing, true)
 
-	// Update certificate
+	// Update certificate.
 	p.certificates[cert.SerialNumber] = cert
 
-	// Update indices (add new entry)
+	// Update indices (add new entry).
 	p.updateIndices(cert, false)
 
-	// Persist to storage
+	// Persist to storage.
 	if p.config.Type == "kubernetes" {
 		if err := p.persistToKubernetes(cert); err != nil {
 			return fmt.Errorf("failed to persist updated certificate: %w", err)
@@ -234,7 +234,7 @@ func (p *CertificatePool) UpdateCertificate(cert *CertificateResponse) error {
 	return nil
 }
 
-// DeleteCertificate removes a certificate from the pool
+// DeleteCertificate removes a certificate from the pool.
 func (p *CertificatePool) DeleteCertificate(serialNumber string) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -244,13 +244,13 @@ func (p *CertificatePool) DeleteCertificate(serialNumber string) error {
 		return fmt.Errorf("certificate with serial number %s not found", serialNumber)
 	}
 
-	// Remove from indices
+	// Remove from indices.
 	p.updateIndices(cert, true)
 
-	// Remove from memory
+	// Remove from memory.
 	delete(p.certificates, serialNumber)
 
-	// Remove from persistent storage
+	// Remove from persistent storage.
 	if p.config.Type == "kubernetes" {
 		if err := p.removeFromKubernetes(serialNumber); err != nil {
 			p.logger.Warn("failed to remove certificate from Kubernetes",
@@ -262,7 +262,7 @@ func (p *CertificatePool) DeleteCertificate(serialNumber string) error {
 	return nil
 }
 
-// GetCertificateByFingerprint retrieves a certificate by fingerprint
+// GetCertificateByFingerprint retrieves a certificate by fingerprint.
 func (p *CertificatePool) GetCertificateByFingerprint(fingerprint string) (*CertificateResponse, error) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -274,7 +274,7 @@ func (p *CertificatePool) GetCertificateByFingerprint(fingerprint string) (*Cert
 	return nil, fmt.Errorf("certificate with fingerprint %s not found", fingerprint)
 }
 
-// GetCertificateByRequestID retrieves a certificate by request ID
+// GetCertificateByRequestID retrieves a certificate by request ID.
 func (p *CertificatePool) GetCertificateByRequestID(requestID string) (*CertificateResponse, error) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -286,7 +286,7 @@ func (p *CertificatePool) GetCertificateByRequestID(requestID string) (*Certific
 	return nil, fmt.Errorf("certificate with request ID %s not found", requestID)
 }
 
-// GetStatistics returns certificate pool statistics
+// GetStatistics returns certificate pool statistics.
 func (p *CertificatePool) GetStatistics() map[string]interface{} {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -298,17 +298,17 @@ func (p *CertificatePool) GetStatistics() map[string]interface{} {
 		"expiring_soon":      0,
 	}
 
-	// Count by status
+	// Count by status.
 	for status, certs := range p.indices.ByStatus {
 		stats["by_status"].(map[string]int)[string(status)] = len(certs)
 	}
 
-	// Count by tenant
+	// Count by tenant.
 	for tenant, certs := range p.indices.ByTenant {
 		stats["by_tenant"].(map[string]int)[tenant] = len(certs)
 	}
 
-	// Count expiring certificates (next 30 days)
+	// Count expiring certificates (next 30 days).
 	threshold := time.Now().Add(30 * 24 * time.Hour)
 	for _, cert := range p.certificates {
 		if cert.ExpiresAt.Before(threshold) {
@@ -319,11 +319,11 @@ func (p *CertificatePool) GetStatistics() map[string]interface{} {
 	return stats
 }
 
-// Close gracefully shuts down the certificate pool
+// Close gracefully shuts down the certificate pool.
 func (p *CertificatePool) Close() error {
 	p.logger.Info("shutting down certificate pool")
 
-	// Perform final backup if enabled
+	// Perform final backup if enabled.
 	if p.config.BackupEnabled {
 		if err := p.performBackup(); err != nil {
 			p.logger.Error("final backup failed", "error", err)
@@ -333,14 +333,14 @@ func (p *CertificatePool) Close() error {
 	return nil
 }
 
-// Helper methods
+// Helper methods.
 
 func (p *CertificatePool) updateIndices(cert *CertificateResponse, remove bool) {
-	// Update tenant index
+	// Update tenant index.
 	tenantID := cert.Metadata["tenant_id"]
 	if tenantID != "" {
 		if remove {
-			// Get existing slice, modify it, and put it back
+			// Get existing slice, modify it, and put it back.
 			tenantCerts := p.indices.ByTenant[tenantID]
 			p.removeFromSlice(&tenantCerts, cert)
 			if len(tenantCerts) == 0 {
@@ -353,9 +353,9 @@ func (p *CertificatePool) updateIndices(cert *CertificateResponse, remove bool) 
 		}
 	}
 
-	// Update status index
+	// Update status index.
 	if remove {
-		// Get existing slice, modify it, and put it back
+		// Get existing slice, modify it, and put it back.
 		statusCerts := p.indices.ByStatus[cert.Status]
 		p.removeFromSlice(&statusCerts, cert)
 		if len(statusCerts) == 0 {
@@ -367,7 +367,7 @@ func (p *CertificatePool) updateIndices(cert *CertificateResponse, remove bool) 
 		p.indices.ByStatus[cert.Status] = append(p.indices.ByStatus[cert.Status], cert)
 	}
 
-	// Update expiry index
+	// Update expiry index.
 	p.indices.ByExpiryDate.mu.Lock()
 	if remove {
 		p.removeFromExpiryIndex(cert.SerialNumber)
@@ -380,14 +380,14 @@ func (p *CertificatePool) updateIndices(cert *CertificateResponse, remove bool) 
 	}
 	p.indices.ByExpiryDate.mu.Unlock()
 
-	// Update fingerprint index
+	// Update fingerprint index.
 	if remove {
 		delete(p.indices.ByFingerprint, cert.Fingerprint)
 	} else {
 		p.indices.ByFingerprint[cert.Fingerprint] = cert
 	}
 
-	// Update request ID index
+	// Update request ID index.
 	if remove {
 		delete(p.indices.ByRequestID, cert.RequestID)
 	} else {
@@ -449,13 +449,13 @@ func (p *CertificatePool) persistToKubernetes(cert *CertificateResponse) error {
 		Version:             1,
 	}
 
-	// Serialize certificate data
+	// Serialize certificate data.
 	data, err := json.Marshal(storedCert)
 	if err != nil {
 		return fmt.Errorf("failed to marshal certificate data: %w", err)
 	}
 
-	// Encrypt if enabled
+	// Encrypt if enabled.
 	if p.encryptor != nil && p.encryptor.enabled {
 		data, err = p.encryptor.Encrypt(data)
 		if err != nil {
@@ -463,7 +463,7 @@ func (p *CertificatePool) persistToKubernetes(cert *CertificateResponse) error {
 		}
 	}
 
-	// Create or update Kubernetes secret
+	// Create or update Kubernetes secret.
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secretName,
@@ -489,17 +489,17 @@ func (p *CertificatePool) persistToKubernetes(cert *CertificateResponse) error {
 		},
 	}
 
-	// Add the certificate and key data for easy access
+	// Add the certificate and key data for easy access.
 	secret.Data["tls.crt"] = []byte(cert.CertificatePEM)
 	secret.Data["tls.key"] = []byte(cert.PrivateKeyPEM)
 	if cert.CACertificatePEM != "" {
 		secret.Data["ca.crt"] = []byte(cert.CACertificatePEM)
 	}
 
-	// Create or update the secret
+	// Create or update the secret.
 	err = p.client.Create(context.TODO(), secret)
 	if err != nil {
-		// Try update if create failed
+		// Try update if create failed.
 		existingSecret := &corev1.Secret{}
 		if getErr := p.client.Get(context.TODO(), types.NamespacedName{
 			Name:      secretName,
@@ -534,7 +534,7 @@ func (p *CertificatePool) loadFromStorage(serialNumber string) (*CertificateResp
 		return nil, fmt.Errorf("certificate data not found in secret")
 	}
 
-	// Decrypt if needed
+	// Decrypt if needed.
 	if p.encryptor != nil && p.encryptor.enabled {
 		data, err = p.encryptor.Decrypt(data)
 		if err != nil {
@@ -547,7 +547,7 @@ func (p *CertificatePool) loadFromStorage(serialNumber string) (*CertificateResp
 		return nil, fmt.Errorf("failed to unmarshal certificate data: %w", err)
 	}
 
-	// Add to memory cache
+	// Add to memory cache.
 	p.mu.Lock()
 	p.certificates[serialNumber] = storedCert.CertificateResponse
 	p.updateIndices(storedCert.CertificateResponse, false)
@@ -588,7 +588,7 @@ func (p *CertificatePool) runMaintenanceTasks() {
 func (p *CertificatePool) performMaintenance() {
 	p.logger.Debug("performing certificate pool maintenance")
 
-	// Sort expiry index if needed
+	// Sort expiry index if needed.
 	p.indices.ByExpiryDate.mu.Lock()
 	if !p.indices.ByExpiryDate.sorted {
 		sort.Slice(p.indices.ByExpiryDate.entries, func(i, j int) bool {
@@ -598,12 +598,12 @@ func (p *CertificatePool) performMaintenance() {
 	}
 	p.indices.ByExpiryDate.mu.Unlock()
 
-	// Clean up expired certificates if retention period is configured
+	// Clean up expired certificates if retention period is configured.
 	if p.config.RetentionPeriod > 0 {
 		p.cleanupExpiredCertificates()
 	}
 
-	// Perform backup if enabled
+	// Perform backup if enabled.
 	if p.config.BackupEnabled && time.Since(p.lastBackup) > p.config.BackupInterval {
 		if err := p.performBackup(); err != nil {
 			p.logger.Error("certificate pool backup failed", "error", err)
@@ -633,7 +633,7 @@ func (p *CertificatePool) cleanupExpiredCertificates() {
 		p.updateIndices(cert, true)
 		delete(p.certificates, serialNumber)
 
-		// Remove from persistent storage
+		// Remove from persistent storage.
 		if err := p.removeFromKubernetes(serialNumber); err != nil {
 			p.logger.Warn("failed to remove expired certificate from storage",
 				"serial_number", serialNumber,
@@ -644,12 +644,12 @@ func (p *CertificatePool) cleanupExpiredCertificates() {
 
 func (p *CertificatePool) performBackup() error {
 	p.logger.Info("performing certificate pool backup")
-	// Implementation would create a backup of all certificates
-	// This is a placeholder for actual backup logic
+	// Implementation would create a backup of all certificates.
+	// This is a placeholder for actual backup logic.
 	return nil
 }
 
-// NewCertificateEncryptor creates a new certificate encryptor
+// NewCertificateEncryptor creates a new certificate encryptor.
 func NewCertificateEncryptor(key string) (*CertificateEncryptor, error) {
 	return &CertificateEncryptor{
 		enabled:   true,
@@ -658,16 +658,16 @@ func NewCertificateEncryptor(key string) (*CertificateEncryptor, error) {
 	}, nil
 }
 
-// Encrypt encrypts certificate data
+// Encrypt encrypts certificate data.
 func (e *CertificateEncryptor) Encrypt(data []byte) ([]byte, error) {
-	// Implementation would use AES-GCM encryption
-	// This is a placeholder for actual encryption logic
+	// Implementation would use AES-GCM encryption.
+	// This is a placeholder for actual encryption logic.
 	return data, nil
 }
 
-// Decrypt decrypts certificate data
+// Decrypt decrypts certificate data.
 func (e *CertificateEncryptor) Decrypt(data []byte) ([]byte, error) {
-	// Implementation would use AES-GCM decryption
-	// This is a placeholder for actual decryption logic
+	// Implementation would use AES-GCM decryption.
+	// This is a placeholder for actual decryption logic.
 	return data, nil
 }

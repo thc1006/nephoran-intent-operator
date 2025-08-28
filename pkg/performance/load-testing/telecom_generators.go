@@ -1,4 +1,4 @@
-// Package loadtesting provides telecom-specific load generators
+// Package loadtesting provides telecom-specific load generators.
 package loadtesting
 
 import (
@@ -15,7 +15,7 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// RealisticTelecomGenerator simulates realistic telecommunications workloads
+// RealisticTelecomGenerator simulates realistic telecommunications workloads.
 type RealisticTelecomGenerator struct {
 	id              int
 	config          *LoadTestConfig
@@ -28,7 +28,7 @@ type RealisticTelecomGenerator struct {
 	wg              sync.WaitGroup
 	mu              sync.RWMutex
 
-	// Metrics tracking
+	// Metrics tracking.
 	requestsSent      atomic.Int64
 	requestsSucceeded atomic.Int64
 	requestsFailed    atomic.Int64
@@ -36,7 +36,7 @@ type RealisticTelecomGenerator struct {
 	latencyCount      atomic.Int64
 }
 
-// TelecomWorkloadGenerator generates telecom-specific workloads
+// TelecomWorkloadGenerator generates telecom-specific workloads.
 type TelecomWorkloadGenerator struct {
 	config          *LoadTestConfig
 	workloadWeights []WorkloadWeight
@@ -45,28 +45,28 @@ type TelecomWorkloadGenerator struct {
 	mu              sync.Mutex
 }
 
-// WorkloadWeight represents weighted workload selection
+// WorkloadWeight represents weighted workload selection.
 type WorkloadWeight struct {
 	Type       string
 	Weight     float64
 	Cumulative float64
 }
 
-// ComplexityWeight represents weighted complexity selection
+// ComplexityWeight represents weighted complexity selection.
 type ComplexityWeight struct {
 	Level      string
 	Weight     float64
 	Cumulative float64
 }
 
-// IntentGenerator creates realistic network intents
+// IntentGenerator creates realistic network intents.
 type IntentGenerator struct {
 	templates map[string][]IntentTemplate
 	random    *rand.Rand
 	mu        sync.Mutex
 }
 
-// IntentTemplate defines intent structure
+// IntentTemplate defines intent structure.
 type IntentTemplate struct {
 	Type         string
 	Complexity   string
@@ -76,7 +76,7 @@ type IntentTemplate struct {
 	Validation   ValidationSpec
 }
 
-// ParameterSpec defines parameter generation rules
+// ParameterSpec defines parameter generation rules.
 type ParameterSpec struct {
 	Type      string        // string, int, float, bool, enum
 	Range     []interface{} // min/max for numbers, options for enum
@@ -84,14 +84,14 @@ type ParameterSpec struct {
 	Generator string        // custom generator function name
 }
 
-// ValidationSpec defines expected validation behavior
+// ValidationSpec defines expected validation behavior.
 type ValidationSpec struct {
 	ExpectedLatency   time.Duration
 	ExpectedResources ResourceRequirements
 	SuccessRate       float64
 }
 
-// ResourceRequirements defines resource needs
+// ResourceRequirements defines resource needs.
 type ResourceRequirements struct {
 	CPU         float64 // cores
 	MemoryGB    float64
@@ -99,7 +99,7 @@ type ResourceRequirements struct {
 	StorageGB   float64
 }
 
-// NetworkIntent represents a generated intent
+// NetworkIntent represents a generated intent.
 type NetworkIntent struct {
 	ID         string                 `json:"id"`
 	Type       string                 `json:"type"`
@@ -110,7 +110,7 @@ type NetworkIntent struct {
 	Timestamp  time.Time              `json:"timestamp"`
 }
 
-// IntentMetadata contains intent metadata
+// IntentMetadata contains intent metadata.
 type IntentMetadata struct {
 	Source       string   `json:"source"`
 	Priority     int      `json:"priority"`
@@ -120,7 +120,7 @@ type IntentMetadata struct {
 	Tenant       string   `json:"tenant"`
 }
 
-// NewRealisticTelecomGenerator creates a new realistic telecom load generator
+// NewRealisticTelecomGenerator creates a new realistic telecom load generator.
 func NewRealisticTelecomGenerator(id int, config *LoadTestConfig, logger *zap.Logger) (*RealisticTelecomGenerator, error) {
 	if config == nil {
 		return nil, fmt.Errorf("config is required")
@@ -130,7 +130,7 @@ func NewRealisticTelecomGenerator(id int, config *LoadTestConfig, logger *zap.Lo
 		logger = zap.NewNop()
 	}
 
-	// Calculate rate limit based on target throughput
+	// Calculate rate limit based on target throughput.
 	rateLimit := config.TargetThroughput / 60.0 // Convert per minute to per second
 	if rateLimit <= 0 {
 		rateLimit = 1.0 // Default to 1 intent per second
@@ -145,23 +145,23 @@ func NewRealisticTelecomGenerator(id int, config *LoadTestConfig, logger *zap.Lo
 		stopChan: make(chan struct{}),
 	}
 
-	// Initialize workload generator
+	// Initialize workload generator.
 	gen.workloadGen = newTelecomWorkloadGenerator(config)
 
-	// Initialize intent generator
+	// Initialize intent generator.
 	gen.intentGenerator = newIntentGenerator()
 
 	return gen, nil
 }
 
-// Initialize prepares the generator
+// Initialize prepares the generator.
 func (g *RealisticTelecomGenerator) Initialize(config *LoadTestConfig) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
 	g.config = config
 
-	// Recalculate rate limit
+	// Recalculate rate limit.
 	rateLimit := config.TargetThroughput / 60.0
 	g.limiter = rate.NewLimiter(rate.Limit(rateLimit), int(rateLimit*2))
 
@@ -172,14 +172,14 @@ func (g *RealisticTelecomGenerator) Initialize(config *LoadTestConfig) error {
 	return nil
 }
 
-// Generate starts generating load
+// Generate starts generating load.
 func (g *RealisticTelecomGenerator) Generate(ctx context.Context) error {
 	g.logger.Info("Starting load generation")
 
 	g.wg.Add(1)
 	defer g.wg.Done()
 
-	// Generate workload based on pattern
+	// Generate workload based on pattern.
 	switch g.config.LoadPattern {
 	case LoadPatternConstant:
 		return g.generateConstantLoad(ctx)
@@ -194,7 +194,7 @@ func (g *RealisticTelecomGenerator) Generate(ctx context.Context) error {
 	}
 }
 
-// GetMetrics returns current metrics
+// GetMetrics returns current metrics.
 func (g *RealisticTelecomGenerator) GetMetrics() GeneratorMetrics {
 	sent := g.requestsSent.Load()
 	succeeded := g.requestsSucceeded.Load()
@@ -206,26 +206,26 @@ func (g *RealisticTelecomGenerator) GetMetrics() GeneratorMetrics {
 		RequestsFailed:    failed,
 	}
 
-	// Calculate average latency
+	// Calculate average latency.
 	latencySum := g.totalLatency.Load()
 	latencyCount := g.latencyCount.Load()
 	if latencyCount > 0 {
 		metrics.AverageLatency = time.Duration(latencySum / latencyCount)
 	}
 
-	// Calculate error rate
+	// Calculate error rate.
 	if sent > 0 {
 		metrics.ErrorRate = float64(failed) / float64(sent)
 	}
 
-	// Calculate current rate (requests per second)
-	// This is a simplified calculation - in production, use a sliding window
+	// Calculate current rate (requests per second).
+	// This is a simplified calculation - in production, use a sliding window.
 	metrics.CurrentRate = float64(sent) / time.Since(time.Now()).Seconds()
 
 	return metrics
 }
 
-// Adjust modifies generation parameters
+// Adjust modifies generation parameters.
 func (g *RealisticTelecomGenerator) Adjust(params map[string]interface{}) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -241,7 +241,7 @@ func (g *RealisticTelecomGenerator) Adjust(params map[string]interface{}) error 
 	return nil
 }
 
-// Stop gracefully stops generation
+// Stop gracefully stops generation.
 func (g *RealisticTelecomGenerator) Stop() error {
 	g.logger.Info("Stopping generator")
 	close(g.stopChan)
@@ -249,7 +249,7 @@ func (g *RealisticTelecomGenerator) Stop() error {
 	return nil
 }
 
-// Private methods for different load patterns
+// Private methods for different load patterns.
 
 func (g *RealisticTelecomGenerator) generateConstantLoad(ctx context.Context) error {
 	for {
@@ -259,12 +259,12 @@ func (g *RealisticTelecomGenerator) generateConstantLoad(ctx context.Context) er
 		case <-g.stopChan:
 			return nil
 		default:
-			// Wait for rate limiter
+			// Wait for rate limiter.
 			if err := g.limiter.Wait(ctx); err != nil {
 				return err
 			}
 
-			// Generate and send intent
+			// Generate and send intent.
 			g.sendIntent(ctx)
 		}
 	}
@@ -283,8 +283,8 @@ func (g *RealisticTelecomGenerator) generateBurstLoad(ctx context.Context) error
 		case <-g.stopChan:
 			return nil
 		case <-ticker.C:
-			// Send burst of requests
-			for i := 0; i < burstSize; i++ {
+			// Send burst of requests.
+			for range burstSize {
 				g.sendIntent(ctx)
 			}
 		}
@@ -303,15 +303,15 @@ func (g *RealisticTelecomGenerator) generateWaveLoad(ctx context.Context) error 
 		case <-g.stopChan:
 			return nil
 		case <-ticker.C:
-			// Generate wave pattern (sine wave)
+			// Generate wave pattern (sine wave).
 			t += 0.1
 			amplitude := g.config.TargetThroughput / 60.0
 			waveRate := amplitude * (1 + math.Sin(t))
 
-			// Adjust rate limiter
+			// Adjust rate limiter.
 			g.limiter.SetLimit(rate.Limit(waveRate))
 
-			// Send intent if allowed
+			// Send intent if allowed.
 			if g.limiter.Allow() {
 				g.sendIntent(ctx)
 			}
@@ -320,11 +320,11 @@ func (g *RealisticTelecomGenerator) generateWaveLoad(ctx context.Context) error 
 }
 
 func (g *RealisticTelecomGenerator) generateRealisticLoad(ctx context.Context) error {
-	// Simulate realistic telecom traffic patterns
-	// - Morning ramp-up (6am-9am)
-	// - Steady daytime load (9am-5pm)
-	// - Evening peak (5pm-10pm)
-	// - Night time low (10pm-6am)
+	// Simulate realistic telecom traffic patterns.
+	// - Morning ramp-up (6am-9am).
+	// - Steady daytime load (9am-5pm).
+	// - Evening peak (5pm-10pm).
+	// - Night time low (10pm-6am).
 
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
@@ -336,34 +336,34 @@ func (g *RealisticTelecomGenerator) generateRealisticLoad(ctx context.Context) e
 		case <-g.stopChan:
 			return nil
 		case <-ticker.C:
-			// Get current hour (simplified - in production use proper timezone)
+			// Get current hour (simplified - in production use proper timezone).
 			hour := time.Now().Hour()
 
-			// Determine load multiplier based on time
+			// Determine load multiplier based on time.
 			var multiplier float64
 			switch {
 			case hour >= 6 && hour < 9:
-				// Morning ramp-up
+				// Morning ramp-up.
 				multiplier = 0.5 + 0.5*float64(hour-6)/3.0
 			case hour >= 9 && hour < 17:
-				// Daytime steady
+				// Daytime steady.
 				multiplier = 1.0
 			case hour >= 17 && hour < 22:
-				// Evening peak
+				// Evening peak.
 				multiplier = 1.2
 			default:
-				// Night time low
+				// Night time low.
 				multiplier = 0.3
 			}
 
-			// Add some randomness
+			// Add some randomness.
 			multiplier *= (0.9 + rand.Float64()*0.2)
 
-			// Adjust rate
+			// Adjust rate.
 			newRate := (g.config.TargetThroughput / 60.0) * multiplier
 			g.limiter.SetLimit(rate.Limit(newRate))
 
-			// Send intent if allowed
+			// Send intent if allowed.
 			if g.limiter.Allow() {
 				g.sendIntent(ctx)
 			}
@@ -374,13 +374,13 @@ func (g *RealisticTelecomGenerator) generateRealisticLoad(ctx context.Context) e
 func (g *RealisticTelecomGenerator) sendIntent(ctx context.Context) {
 	start := time.Now()
 
-	// Generate intent
+	// Generate intent.
 	intent := g.generateIntent()
 
-	// Simulate sending intent (in real implementation, send to actual system)
+	// Simulate sending intent (in real implementation, send to actual system).
 	success, latency := g.simulateSendIntent(ctx, intent)
 
-	// Update metrics
+	// Update metrics.
 	g.requestsSent.Add(1)
 	if success {
 		g.requestsSucceeded.Add(1)
@@ -401,16 +401,16 @@ func (g *RealisticTelecomGenerator) sendIntent(ctx context.Context) {
 }
 
 func (g *RealisticTelecomGenerator) generateIntent() *NetworkIntent {
-	// Select workload type
+	// Select workload type.
 	workloadType := g.workloadGen.SelectWorkloadType()
 
-	// Select complexity
+	// Select complexity.
 	complexity := g.workloadGen.SelectComplexity()
 
-	// Generate intent based on type and complexity
+	// Generate intent based on type and complexity.
 	intent := g.intentGenerator.Generate(workloadType, complexity)
 
-	// Add metadata
+	// Add metadata.
 	intent.Metadata = IntentMetadata{
 		Source:   fmt.Sprintf("generator-%d", g.id),
 		Priority: rand.Intn(5) + 1,
@@ -430,10 +430,10 @@ func (g *RealisticTelecomGenerator) selectRegion() string {
 }
 
 func (g *RealisticTelecomGenerator) simulateSendIntent(ctx context.Context, intent *NetworkIntent) (bool, time.Duration) {
-	// Simulate network latency and processing time
+	// Simulate network latency and processing time.
 	baseLatency := 50 * time.Millisecond
 
-	// Add complexity-based latency
+	// Add complexity-based latency.
 	switch intent.Complexity {
 	case "simple":
 		baseLatency += time.Duration(rand.Intn(200)) * time.Millisecond
@@ -443,12 +443,12 @@ func (g *RealisticTelecomGenerator) simulateSendIntent(ctx context.Context, inte
 		baseLatency += time.Duration(rand.Intn(1500)) * time.Millisecond
 	}
 
-	// Simulate processing
+	// Simulate processing.
 	select {
 	case <-ctx.Done():
 		return false, baseLatency
 	case <-time.After(baseLatency):
-		// Simulate success rate based on complexity
+		// Simulate success rate based on complexity.
 		successRate := 0.95
 		switch intent.Complexity {
 		case "moderate":
@@ -462,7 +462,7 @@ func (g *RealisticTelecomGenerator) simulateSendIntent(ctx context.Context, inte
 	}
 }
 
-// TelecomWorkloadGenerator implementation
+// TelecomWorkloadGenerator implementation.
 
 func newTelecomWorkloadGenerator(config *LoadTestConfig) *TelecomWorkloadGenerator {
 	gen := &TelecomWorkloadGenerator{
@@ -470,10 +470,10 @@ func newTelecomWorkloadGenerator(config *LoadTestConfig) *TelecomWorkloadGenerat
 		random: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 
-	// Build weighted workload selection
+	// Build weighted workload selection.
 	gen.buildWorkloadWeights()
 
-	// Build complexity distribution
+	// Build complexity distribution.
 	gen.buildComplexityWeights()
 
 	return gen
@@ -505,6 +505,7 @@ func (g *TelecomWorkloadGenerator) buildComplexityWeights() {
 	}
 }
 
+// SelectWorkloadType performs selectworkloadtype operation.
 func (g *TelecomWorkloadGenerator) SelectWorkloadType() string {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -520,6 +521,7 @@ func (g *TelecomWorkloadGenerator) SelectWorkloadType() string {
 	return "core_network" // Default
 }
 
+// SelectComplexity performs selectcomplexity operation.
 func (g *TelecomWorkloadGenerator) SelectComplexity() string {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -535,7 +537,7 @@ func (g *TelecomWorkloadGenerator) SelectComplexity() string {
 	return "simple" // Default
 }
 
-// IntentGenerator implementation
+// IntentGenerator implementation.
 
 func newIntentGenerator() *IntentGenerator {
 	gen := &IntentGenerator{
@@ -543,14 +545,14 @@ func newIntentGenerator() *IntentGenerator {
 		random:    rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 
-	// Initialize templates
+	// Initialize templates.
 	gen.initializeTemplates()
 
 	return gen
 }
 
 func (g *IntentGenerator) initializeTemplates() {
-	// 5G Core Network templates
+	// 5G Core Network templates.
 	g.templates["core_network"] = []IntentTemplate{
 		{
 			Type:       "core_network",
@@ -604,7 +606,7 @@ func (g *IntentGenerator) initializeTemplates() {
 		},
 	}
 
-	// O-RAN configurations templates
+	// O-RAN configurations templates.
 	g.templates["oran_config"] = []IntentTemplate{
 		{
 			Type:       "oran_config",
@@ -659,7 +661,7 @@ func (g *IntentGenerator) initializeTemplates() {
 		},
 	}
 
-	// Network slicing templates
+	// Network slicing templates.
 	g.templates["network_slice"] = []IntentTemplate{
 		{
 			Type:       "network_slice",
@@ -712,7 +714,7 @@ func (g *IntentGenerator) initializeTemplates() {
 		},
 	}
 
-	// Policy management templates
+	// Policy management templates.
 	g.templates["policy_mgmt"] = []IntentTemplate{
 		{
 			Type:       "policy_mgmt",
@@ -748,7 +750,7 @@ func (g *IntentGenerator) initializeTemplates() {
 		},
 	}
 
-	// Performance optimization templates
+	// Performance optimization templates.
 	g.templates["perf_opt"] = []IntentTemplate{
 		{
 			Type:       "perf_opt",
@@ -784,7 +786,7 @@ func (g *IntentGenerator) initializeTemplates() {
 		},
 	}
 
-	// Scaling operations templates
+	// Scaling operations templates.
 	g.templates["scaling"] = []IntentTemplate{
 		{
 			Type:       "scaling",
@@ -823,18 +825,19 @@ func (g *IntentGenerator) initializeTemplates() {
 	}
 }
 
+// Generate performs generate operation.
 func (g *IntentGenerator) Generate(workloadType, complexity string) *NetworkIntent {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
-	// Get templates for workload type
+	// Get templates for workload type.
 	templates, ok := g.templates[workloadType]
 	if !ok {
-		// Fallback to core network
+		// Fallback to core network.
 		templates = g.templates["core_network"]
 	}
 
-	// Find template with matching complexity
+	// Find template with matching complexity.
 	var template *IntentTemplate
 	for _, t := range templates {
 		if t.Complexity == complexity {
@@ -843,12 +846,12 @@ func (g *IntentGenerator) Generate(workloadType, complexity string) *NetworkInte
 		}
 	}
 
-	// Fallback to first template if no match
+	// Fallback to first template if no match.
 	if template == nil && len(templates) > 0 {
 		template = &templates[0]
 	}
 
-	// Generate intent from template
+	// Generate intent from template.
 	intent := &NetworkIntent{
 		ID:         fmt.Sprintf("intent-%d-%d", time.Now().UnixNano(), g.random.Intn(10000)),
 		Type:       workloadType,
@@ -857,12 +860,12 @@ func (g *IntentGenerator) Generate(workloadType, complexity string) *NetworkInte
 		Parameters: make(map[string]interface{}),
 	}
 
-	// Generate parameters
+	// Generate parameters.
 	for name, spec := range template.Parameters {
 		intent.Parameters[name] = g.generateParameter(spec)
 	}
 
-	// Generate intent text from template
+	// Generate intent text from template.
 	intent.Intent = g.fillTemplate(template.Template, intent.Parameters)
 
 	return intent
@@ -907,8 +910,8 @@ func (g *IntentGenerator) generateParameter(spec ParameterSpec) interface{} {
 }
 
 func (g *IntentGenerator) generateStringFromPattern(pattern string) string {
-	// Simplified pattern generation
-	// In production, use a proper regex-based generator
+	// Simplified pattern generation.
+	// In production, use a proper regex-based generator.
 
 	if pattern == "amf-[a-z0-9]{8}" {
 		return fmt.Sprintf("amf-%08x", g.random.Uint32())
@@ -948,8 +951,8 @@ func (g *IntentGenerator) generateStringFromPattern(pattern string) string {
 func (g *IntentGenerator) fillTemplate(template string, params map[string]interface{}) string {
 	result := template
 
-	// Simple template filling
-	// In production, use text/template package
+	// Simple template filling.
+	// In production, use text/template package.
 	for key, value := range params {
 		placeholder := fmt.Sprintf("{{.%s}}", key)
 		result = strings.ReplaceAll(result, placeholder, fmt.Sprintf("%v", value))
@@ -958,16 +961,16 @@ func (g *IntentGenerator) fillTemplate(template string, params map[string]interf
 	return result
 }
 
-// Additional generator types
+// Additional generator types.
 
-// BurstLoadGenerator generates burst traffic patterns
+// BurstLoadGenerator generates burst traffic patterns.
 type BurstLoadGenerator struct {
 	*RealisticTelecomGenerator
 	burstSize     int
 	burstInterval time.Duration
 }
 
-// NewBurstLoadGenerator creates a burst load generator
+// NewBurstLoadGenerator creates a burst load generator.
 func NewBurstLoadGenerator(id int, config *LoadTestConfig, logger *zap.Logger) (*BurstLoadGenerator, error) {
 	base, err := NewRealisticTelecomGenerator(id, config, logger)
 	if err != nil {
@@ -981,13 +984,13 @@ func NewBurstLoadGenerator(id int, config *LoadTestConfig, logger *zap.Logger) (
 	}, nil
 }
 
-// ChaosLoadGenerator generates chaotic traffic patterns for stress testing
+// ChaosLoadGenerator generates chaotic traffic patterns for stress testing.
 type ChaosLoadGenerator struct {
 	*RealisticTelecomGenerator
 	chaosLevel float64 // 0.0 to 1.0
 }
 
-// NewChaosLoadGenerator creates a chaos load generator
+// NewChaosLoadGenerator creates a chaos load generator.
 func NewChaosLoadGenerator(id int, config *LoadTestConfig, logger *zap.Logger) (*ChaosLoadGenerator, error) {
 	base, err := NewRealisticTelecomGenerator(id, config, logger)
 	if err != nil {
@@ -1000,12 +1003,12 @@ func NewChaosLoadGenerator(id int, config *LoadTestConfig, logger *zap.Logger) (
 	}, nil
 }
 
-// StandardLoadGenerator provides basic load generation
+// StandardLoadGenerator provides basic load generation.
 type StandardLoadGenerator struct {
 	*RealisticTelecomGenerator
 }
 
-// NewStandardLoadGenerator creates a standard load generator
+// NewStandardLoadGenerator creates a standard load generator.
 func NewStandardLoadGenerator(id int, config *LoadTestConfig, logger *zap.Logger) (*StandardLoadGenerator, error) {
 	base, err := NewRealisticTelecomGenerator(id, config, logger)
 	if err != nil {

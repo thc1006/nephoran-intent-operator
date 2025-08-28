@@ -1,5 +1,5 @@
 //go:build disable_rag
-// +build disable_rag
+// +build disable_rag.
 
 package llm
 
@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-// ClientMetrics tracks client performance metrics (simplified for disable_rag)
+// ClientMetrics tracks client performance metrics (simplified for disable_rag).
 type ClientMetrics struct {
 	RequestsTotal    int64         `json:"requests_total"`
 	RequestsSuccess  int64         `json:"requests_success"`
@@ -31,41 +31,41 @@ type ClientMetrics struct {
 	mutex            sync.RWMutex
 }
 
-// Client is the simplified LLM client when RAG is disabled
+// Client is the simplified LLM client when RAG is disabled.
 type Client struct {
-	// HTTP client with optimization
+	// HTTP client with optimization.
 	httpClient *http.Client
 	transport  *http.Transport
 
-	// Core configuration
+	// Core configuration.
 	url         string
 	apiKey      string
 	modelName   string
 	maxTokens   int
 	backendType string
 
-	// Smart endpoints for backends
+	// Smart endpoints for backends.
 	processEndpoint string
 	healthEndpoint  string
 
-	// Performance components (simplified)
+	// Performance components (simplified).
 	cache          *ResponseCache
 	circuitBreaker *CircuitBreaker
 	retryConfig    RetryConfig
 
-	// Observability (simplified)
+	// Observability (simplified).
 	logger  *slog.Logger
 	metrics *ClientMetrics
 
-	// Concurrency control
+	// Concurrency control.
 	mutex        sync.RWMutex
 	fallbackURLs []string
 
-	// Token and cost tracking
+	// Token and cost tracking.
 	tokenTracker *SimpleTokenTracker
 }
 
-// ClientConfig holds unified configuration (simplified)
+// ClientConfig holds unified configuration (simplified).
 type ClientConfig struct {
 	APIKey              string        `json:"api_key"`
 	ModelName           string        `json:"model_name"`
@@ -74,21 +74,21 @@ type ClientConfig struct {
 	Timeout             time.Duration `json:"timeout"`
 	SkipTLSVerification bool          `json:"skip_tls_verification"`
 
-	// Performance settings
+	// Performance settings.
 	MaxConnsPerHost  int           `json:"max_conns_per_host"`
 	MaxIdleConns     int           `json:"max_idle_conns"`
 	IdleConnTimeout  time.Duration `json:"idle_conn_timeout"`
 	KeepAliveTimeout time.Duration `json:"keep_alive_timeout"`
 
-	// Cache settings
+	// Cache settings.
 	CacheTTL     time.Duration `json:"cache_ttl"`
 	CacheMaxSize int           `json:"cache_max_size"`
 
-	// Circuit breaker settings
+	// Circuit breaker settings.
 	CircuitBreakerConfig *CircuitBreakerConfig `json:"circuit_breaker_config"`
 }
 
-// RetryConfig defines retry behavior
+// RetryConfig defines retry behavior.
 type RetryConfig struct {
 	MaxRetries    int           `json:"max_retries"`
 	BaseDelay     time.Duration `json:"base_delay"`
@@ -97,7 +97,7 @@ type RetryConfig struct {
 	BackoffFactor float64       `json:"backoff_factor"`
 }
 
-// NewClient creates a new simplified client when RAG is disabled
+// NewClient creates a new simplified client when RAG is disabled.
 func NewClient(url, apiKey, modelName string, maxTokens int, config *ClientConfig) *Client {
 	if config == nil {
 		config = getDefaultClientConfig()
@@ -152,16 +152,16 @@ func NewClient(url, apiKey, modelName string, maxTokens int, config *ClientConfi
 	return client
 }
 
-// ProcessIntent processes an intent (simplified implementation)
+// ProcessIntent processes an intent (simplified implementation).
 func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, error) {
 	startTime := time.Now()
 
-	// Update metrics
+	// Update metrics.
 	c.updateMetrics(func(m *ClientMetrics) {
 		m.RequestsTotal++
 	})
 
-	// Check cache first
+	// Check cache first.
 	if cached, found := c.cache.Get(intent); found {
 		c.updateMetrics(func(m *ClientMetrics) {
 			m.CacheHits++
@@ -170,7 +170,7 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 		return cached, nil
 	}
 
-	// Create request
+	// Create request.
 	reqBody := map[string]interface{}{
 		"intent":     intent,
 		"model":      c.modelName,
@@ -185,7 +185,7 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 		return "", fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	// Execute request with retry logic
+	// Execute request with retry logic.
 	var response string
 	err = c.executeWithRetry(ctx, func() error {
 		var execErr error
@@ -193,7 +193,7 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 		return execErr
 	})
 
-	// Update metrics
+	// Update metrics.
 	latency := time.Since(startTime)
 	c.updateMetrics(func(m *ClientMetrics) {
 		m.TotalLatency += latency
@@ -209,13 +209,13 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 		return "", err
 	}
 
-	// Cache the response
+	// Cache the response.
 	c.cache.Set(intent, response)
 
 	return response, nil
 }
 
-// executeRequest executes the HTTP request
+// executeRequest executes the HTTP request.
 func (c *Client) executeRequest(ctx context.Context, jsonData []byte) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, "POST", c.processEndpoint, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -243,13 +243,13 @@ func (c *Client) executeRequest(ctx context.Context, jsonData []byte) (string, e
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	// Parse response
+	// Parse response.
 	var result map[string]interface{}
 	if err := json.Unmarshal(responseBody, &result); err != nil {
 		return "", fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
-	// Extract content from response
+	// Extract content from response.
 	if content, ok := result["content"].(string); ok {
 		return content, nil
 	}
@@ -261,7 +261,7 @@ func (c *Client) executeRequest(ctx context.Context, jsonData []byte) (string, e
 	return string(responseBody), nil
 }
 
-// executeWithRetry executes a function with retry logic
+// executeWithRetry executes a function with retry logic.
 func (c *Client) executeWithRetry(ctx context.Context, fn func() error) error {
 	var lastErr error
 
@@ -293,7 +293,7 @@ func (c *Client) executeWithRetry(ctx context.Context, fn func() error) error {
 	return lastErr
 }
 
-// calculateBackoffDelay calculates the delay for exponential backoff
+// calculateBackoffDelay calculates the delay for exponential backoff.
 func (c *Client) calculateBackoffDelay(attempt int) time.Duration {
 	delay := time.Duration(float64(c.retryConfig.BaseDelay) * (c.retryConfig.BackoffFactor * float64(attempt)))
 	if delay > c.retryConfig.MaxDelay {
@@ -301,7 +301,7 @@ func (c *Client) calculateBackoffDelay(attempt int) time.Duration {
 	}
 
 	if c.retryConfig.JitterEnabled {
-		// Add 20% jitter
+		// Add 20% jitter.
 		jitter := time.Duration(float64(delay) * 0.2)
 		jitterFactor := (2.0*float64(time.Now().UnixNano()%100)/100.0 - 1.0)
 		delay += time.Duration(float64(jitter) * jitterFactor)
@@ -310,29 +310,29 @@ func (c *Client) calculateBackoffDelay(attempt int) time.Duration {
 	return delay
 }
 
-// isRetryableError determines if an error is retryable
+// isRetryableError determines if an error is retryable.
 func (c *Client) isRetryableError(err error) bool {
-	// Simple retry logic for common network errors
+	// Simple retry logic for common network errors.
 	return strings.Contains(err.Error(), "connection refused") ||
 		strings.Contains(err.Error(), "timeout") ||
 		strings.Contains(err.Error(), "temporary failure")
 }
 
-// updateMetrics safely updates metrics
+// updateMetrics safely updates metrics.
 func (c *Client) updateMetrics(updater func(*ClientMetrics)) {
 	c.metrics.mutex.Lock()
 	defer c.metrics.mutex.Unlock()
 	updater(c.metrics)
 }
 
-// GetMetrics returns current metrics
+// GetMetrics returns current metrics.
 func (c *Client) GetMetrics() ClientMetrics {
 	c.metrics.mutex.RLock()
 	defer c.metrics.mutex.RUnlock()
 	return *c.metrics
 }
 
-// Close closes the client and cleans up resources
+// Close closes the client and cleans up resources.
 func (c *Client) Close() error {
 	if c.cache != nil {
 		c.cache.Stop()
@@ -343,7 +343,7 @@ func (c *Client) Close() error {
 	return nil
 }
 
-// Health checks the health of the backend
+// Health checks the health of the backend.
 func (c *Client) Health(ctx context.Context) error {
 	req, err := http.NewRequestWithContext(ctx, "GET", c.healthEndpoint, nil)
 	if err != nil {
@@ -363,7 +363,7 @@ func (c *Client) Health(ctx context.Context) error {
 	return nil
 }
 
-// getDefaultClientConfig returns default client configuration
+// getDefaultClientConfig returns default client configuration.
 func getDefaultClientConfig() *ClientConfig {
 	return &ClientConfig{
 		Timeout:          30 * time.Second,

@@ -10,7 +10,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
-// ConcreteDependencies is a concrete implementation of the Dependencies interface
+// ConcreteDependencies is a concrete implementation of the Dependencies interface.
 type ConcreteDependencies struct {
 	gitClient     git.ClientInterface
 	llmClient     shared.ClientInterface
@@ -19,7 +19,7 @@ type ConcreteDependencies struct {
 	eventRecorder record.EventRecorder
 }
 
-// NewConcreteDependencies creates a new instance of ConcreteDependencies
+// NewConcreteDependencies creates a new instance of ConcreteDependencies.
 func NewConcreteDependencies(
 	gitClient git.ClientInterface,
 	llmClient shared.ClientInterface,
@@ -36,27 +36,27 @@ func NewConcreteDependencies(
 	}
 }
 
-// GetGitClient returns the Git client
+// GetGitClient returns the Git client.
 func (d *ConcreteDependencies) GetGitClient() git.ClientInterface {
 	return d.gitClient
 }
 
-// GetLLMClient returns the LLM client
+// GetLLMClient returns the LLM client.
 func (d *ConcreteDependencies) GetLLMClient() shared.ClientInterface {
 	return d.llmClient
 }
 
-// GetPackageGenerator returns the Nephio package generator
+// GetPackageGenerator returns the Nephio package generator.
 func (d *ConcreteDependencies) GetPackageGenerator() *nephio.PackageGenerator {
 	return d.packageGen
 }
 
-// GetHTTPClient returns the HTTP client
+// GetHTTPClient returns the HTTP client.
 func (d *ConcreteDependencies) GetHTTPClient() *http.Client {
 	return d.httpClient
 }
 
-// GetEventRecorder returns the event recorder
+// GetEventRecorder returns the event recorder.
 func (d *ConcreteDependencies) GetEventRecorder() record.EventRecorder {
 	return d.eventRecorder
 }

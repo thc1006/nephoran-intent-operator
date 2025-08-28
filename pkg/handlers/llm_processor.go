@@ -17,7 +17,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 )
 
-// LLMProcessorHandler handles HTTP requests for the LLM processor service
+// LLMProcessorHandler handles HTTP requests for the LLM processor service.
 type LLMProcessorHandler struct {
 	config             *config.LLMProcessorConfig
 	processor          *IntentProcessor
@@ -36,12 +36,13 @@ type LLMProcessorHandler struct {
 	metricsCollector  *monitoring.MetricsCollector
 }
 
-// Request/Response structures
+// Request/Response structures.
 type ProcessIntentRequest struct {
 	Intent   string            `json:"intent"`
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
+// ProcessIntentResponse represents a processintentresponse.
 type ProcessIntentResponse struct {
 	Result         string                 `json:"result"`
 	ProcessingTime string                 `json:"processing_time"`
@@ -52,6 +53,7 @@ type ProcessIntentResponse struct {
 	Error          string                 `json:"error,omitempty"`
 }
 
+// HealthResponse represents a healthresponse.
 type HealthResponse struct {
 	Status    string `json:"status"`
 	Version   string `json:"version"`
@@ -59,7 +61,7 @@ type HealthResponse struct {
 	Timestamp string `json:"timestamp"`
 }
 
-// ProcessIntentResult represents the result of intent processing
+// ProcessIntentResult represents the result of intent processing.
 type ProcessIntentResult struct {
 	Result         string                 `json:"result"`
 	RequestID      string                 `json:"request_id"`
@@ -68,7 +70,7 @@ type ProcessIntentResult struct {
 	Status         string                 `json:"status"`
 }
 
-// IntentProcessor handles the LLM processing logic with RAG enhancement
+// IntentProcessor handles the LLM processing logic with RAG enhancement.
 type IntentProcessor struct {
 	LLMClient         *llm.Client
 	RAGEnhancedClient interface{} // Stub for RAG enhanced processor
@@ -76,7 +78,7 @@ type IntentProcessor struct {
 	Logger            *slog.Logger
 }
 
-// NewLLMProcessorHandler creates a new handler instance
+// NewLLMProcessorHandler creates a new handler instance.
 func NewLLMProcessorHandler(
 	config *config.LLMProcessorConfig,
 	processor *IntentProcessor,
@@ -109,7 +111,7 @@ func NewLLMProcessorHandler(
 	)
 }
 
-// NewLLMProcessorHandlerWithMetrics creates a new handler instance with a provided metrics collector
+// NewLLMProcessorHandlerWithMetrics creates a new handler instance with a provided metrics collector.
 func NewLLMProcessorHandlerWithMetrics(
 	config *config.LLMProcessorConfig,
 	processor *IntentProcessor,
@@ -143,13 +145,13 @@ func NewLLMProcessorHandlerWithMetrics(
 	}
 }
 
-// ProcessIntentHandler handles intent processing requests
+// ProcessIntentHandler handles intent processing requests.
 func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *http.Request) {
-	// Start timing for metrics
+	// Start timing for metrics.
 	handlerStartTime := time.Now()
 	var statusCode int = http.StatusOK // Default to OK, will be overridden on error
 
-	// Ensure metrics are recorded when handler exits
+	// Ensure metrics are recorded when handler exits.
 	defer func() {
 		duration := time.Since(handlerStartTime)
 		h.metricsCollector.RecordHTTPRequest(
@@ -186,7 +188,7 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Process intent with context cancellation support
+	// Process intent with context cancellation support.
 	ctx, cancel := context.WithTimeout(r.Context(), h.config.RequestTimeout)
 	defer cancel()
 
@@ -225,13 +227,13 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 	)
 }
 
-// StatusHandler returns service status information
+// StatusHandler returns service status information.
 func (h *LLMProcessorHandler) StatusHandler(w http.ResponseWriter, r *http.Request) {
-	// Start timing for metrics
+	// Start timing for metrics.
 	handlerStartTime := time.Now()
 	statusCode := http.StatusOK
 
-	// Ensure metrics are recorded when handler exits
+	// Ensure metrics are recorded when handler exits.
 	defer func() {
 		duration := time.Since(handlerStartTime)
 		h.metricsCollector.RecordHTTPRequest(
@@ -257,19 +259,19 @@ func (h *LLMProcessorHandler) StatusHandler(w http.ResponseWriter, r *http.Reque
 	h.writeJSONResponse(w, status, http.StatusOK)
 }
 
-// StreamingHandler handles Server-Sent Events streaming requests
+// StreamingHandler handles Server-Sent Events streaming requests.
 func (h *LLMProcessorHandler) StreamingHandler(w http.ResponseWriter, r *http.Request) {
-	// Start timing for HTTP request metrics
+	// Start timing for HTTP request metrics.
 	handlerStartTime := time.Now()
 	var statusCode int = http.StatusOK
 
-	// Start timing for SSE stream duration
+	// Start timing for SSE stream duration.
 	streamStartTime := time.Now()
 	streamRoute := "/api/v1/stream"
 
-	// Ensure HTTP metrics are recorded when handler exits
+	// Ensure HTTP metrics are recorded when handler exits.
 	defer func() {
-		// Record HTTP request metrics
+		// Record HTTP request metrics.
 		duration := time.Since(handlerStartTime)
 		h.metricsCollector.RecordHTTPRequest(
 			r.Method,
@@ -278,7 +280,7 @@ func (h *LLMProcessorHandler) StreamingHandler(w http.ResponseWriter, r *http.Re
 			duration,
 		)
 
-		// Record SSE stream duration only if streaming actually occurred
+		// Record SSE stream duration only if streaming actually occurred.
 		if statusCode == http.StatusOK {
 			streamDuration := time.Since(streamStartTime)
 			h.metricsCollector.RecordSSEStream(streamRoute, streamDuration)
@@ -311,7 +313,7 @@ func (h *LLMProcessorHandler) StreamingHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	// Set defaults
+	// Set defaults.
 	if req.ModelName == "" {
 		req.ModelName = h.config.LLMModelName
 	}
@@ -325,29 +327,29 @@ func (h *LLMProcessorHandler) StreamingHandler(w http.ResponseWriter, r *http.Re
 		"enable_rag", req.EnableRAG,
 	)
 
-	// Add timeout context for streaming
+	// Add timeout context for streaming.
 	ctx, cancel := context.WithTimeout(r.Context(), h.config.StreamTimeout)
 	defer cancel()
 
-	// Update request with context
+	// Update request with context.
 	r = r.WithContext(ctx)
 
 	err := h.streamingProcessor.HandleStreamingRequest(w, r, &req)
 	if err != nil {
 		h.logger.Error("Streaming request failed", slog.String("error", err.Error()))
-		// Error handling is done within HandleStreamingRequest
-		// Set status code to indicate error for metrics
+		// Error handling is done within HandleStreamingRequest.
+		// Set status code to indicate error for metrics.
 		statusCode = http.StatusInternalServerError
 	}
 }
 
-// MetricsHandler provides comprehensive metrics
+// MetricsHandler provides comprehensive metrics.
 func (h *LLMProcessorHandler) MetricsHandler(w http.ResponseWriter, r *http.Request) {
-	// Start timing for metrics
+	// Start timing for metrics.
 	handlerStartTime := time.Now()
 	statusCode := http.StatusOK
 
-	// Ensure metrics are recorded when handler exits
+	// Ensure metrics are recorded when handler exits.
 	defer func() {
 		duration := time.Since(handlerStartTime)
 		h.metricsCollector.RecordHTTPRequest(
@@ -364,32 +366,32 @@ func (h *LLMProcessorHandler) MetricsHandler(w http.ResponseWriter, r *http.Requ
 		"uptime":  time.Since(h.startTime).String(),
 	}
 
-	// Add token manager metrics
+	// Add token manager metrics.
 	if h.tokenManager != nil {
 		metrics["supported_models"] = h.tokenManager.GetSupportedModels()
 	}
 
-	// Add circuit breaker metrics
+	// Add circuit breaker metrics.
 	if h.circuitBreakerMgr != nil {
 		metrics["circuit_breakers"] = h.circuitBreakerMgr.GetAllStats()
 	}
 
-	// Add streaming metrics
+	// Add streaming metrics.
 	if h.streamingProcessor != nil {
 		metrics["streaming"] = h.streamingProcessor.GetMetrics()
 	}
 
-	// Add context builder metrics
+	// Add context builder metrics.
 	if h.contextBuilder != nil {
 		metrics["context_builder"] = h.contextBuilder.GetMetrics()
 	}
 
-	// Add relevance scorer metrics
+	// Add relevance scorer metrics.
 	if h.relevanceScorer != nil {
 		metrics["relevance_scorer"] = h.relevanceScorer.GetMetrics()
 	}
 
-	// Add prompt builder metrics
+	// Add prompt builder metrics.
 	if h.promptBuilder != nil {
 		metrics["prompt_builder"] = map[string]interface{}{"status": "stubbed"}
 	}
@@ -397,13 +399,13 @@ func (h *LLMProcessorHandler) MetricsHandler(w http.ResponseWriter, r *http.Requ
 	h.writeJSONResponse(w, metrics, http.StatusOK)
 }
 
-// CircuitBreakerStatusHandler provides circuit breaker status and control
+// CircuitBreakerStatusHandler provides circuit breaker status and control.
 func (h *LLMProcessorHandler) CircuitBreakerStatusHandler(w http.ResponseWriter, r *http.Request) {
-	// Start timing for metrics
+	// Start timing for metrics.
 	handlerStartTime := time.Now()
 	var statusCode int = http.StatusOK
 
-	// Ensure metrics are recorded when handler exits
+	// Ensure metrics are recorded when handler exits.
 	defer func() {
 		duration := time.Since(handlerStartTime)
 		h.metricsCollector.RecordHTTPRequest(
@@ -420,7 +422,7 @@ func (h *LLMProcessorHandler) CircuitBreakerStatusHandler(w http.ResponseWriter,
 		return
 	}
 
-	// Handle POST requests for circuit breaker operations
+	// Handle POST requests for circuit breaker operations.
 	if r.Method == http.MethodPost {
 		var req struct {
 			Action string `json:"action"`
@@ -457,21 +459,21 @@ func (h *LLMProcessorHandler) CircuitBreakerStatusHandler(w http.ResponseWriter,
 		return
 	}
 
-	// Handle GET requests for status
+	// Handle GET requests for status.
 	stats := h.circuitBreakerMgr.GetAllStats()
 	h.writeJSONResponse(w, stats, http.StatusOK)
 }
 
-// ProcessIntent processes an intent using the configured processor
+// ProcessIntent processes an intent using the configured processor.
 func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string, metadata map[string]string) (*ProcessIntentResult, error) {
 	p.Logger.Debug("Processing intent with enhanced client", slog.String("intent", intent))
 
-	// Use circuit breaker for fault tolerance
+	// Use circuit breaker for fault tolerance.
 	operation := func(ctx context.Context) (interface{}, error) {
-		// RAG-enhanced processing stubbed out
-		// if p.RAGEnhancedClient != nil { ... }
+		// RAG-enhanced processing stubbed out.
+		// if p.RAGEnhancedClient != nil { ... }.
 
-		// Fallback to base LLM client
+		// Fallback to base LLM client.
 		return p.LLMClient.ProcessIntent(ctx, intent)
 	}
 
@@ -480,7 +482,7 @@ func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string, meta
 		return nil, fmt.Errorf("LLM processing failed: %w", err)
 	}
 
-	// Create ProcessIntentResult from the raw LLM response
+	// Create ProcessIntentResult from the raw LLM response.
 	processedResult := &ProcessIntentResult{
 		Result: result.(string),
 		Status: "success",
@@ -493,7 +495,7 @@ func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string, meta
 	return processedResult, nil
 }
 
-// Helper methods
+// Helper methods.
 
 func (h *LLMProcessorHandler) writeJSONResponse(w http.ResponseWriter, data interface{}, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
@@ -503,8 +505,8 @@ func (h *LLMProcessorHandler) writeJSONResponse(w http.ResponseWriter, data inte
 	}
 }
 
-// NLToIntentHandler handles natural language to intent conversion
-// POST /nl/intent - Accepts text/plain body and returns Intent JSON
+// NLToIntentHandler handles natural language to intent conversion.
+// POST /nl/intent - Accepts text/plain body and returns Intent JSON.
 func (h *LLMProcessorHandler) NLToIntentHandler(w http.ResponseWriter, r *http.Request) {
 	var statusCode int
 	startTime := time.Now()
@@ -526,14 +528,14 @@ func (h *LLMProcessorHandler) NLToIntentHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Read the raw text body
+	// Read the raw text body.
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		statusCode = http.StatusBadRequest
 		h.writeErrorResponse(w, "Failed to read request body", statusCode, "")
 		return
 	}
-	// Ignore body close error - defer handles cleanup
+	// Ignore body close error - defer handles cleanup.
 	defer func() { _ = r.Body.Close() }()
 
 	text := string(body)
@@ -543,7 +545,7 @@ func (h *LLMProcessorHandler) NLToIntentHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Use the rule-based parser from internal/ingest
+	// Use the rule-based parser from internal/ingest.
 	parser := ingest.NewRuleBasedIntentParser()
 	intent, err := parser.ParseIntent(text)
 	if err != nil {
@@ -556,7 +558,7 @@ func (h *LLMProcessorHandler) NLToIntentHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Validate the intent structure with JSON schema
+	// Validate the intent structure with JSON schema.
 	if err := ingest.ValidateIntentWithSchema(intent, ""); err != nil {
 		h.logger.Error("Invalid intent structure",
 			slog.String("error", err.Error()),

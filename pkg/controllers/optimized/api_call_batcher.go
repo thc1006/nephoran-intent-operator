@@ -11,19 +11,25 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// APICallType represents different types of API operations
+// APICallType represents different types of API operations.
 type APICallType string
 
 const (
-	GetCall    APICallType = "get"
-	ListCall   APICallType = "list"
+	// GetCall holds getcall value.
+	GetCall APICallType = "get"
+	// ListCall holds listcall value.
+	ListCall APICallType = "list"
+	// CreateCall holds createcall value.
 	CreateCall APICallType = "create"
+	// UpdateCall holds updatecall value.
 	UpdateCall APICallType = "update"
+	// DeleteCall holds deletecall value.
 	DeleteCall APICallType = "delete"
-	PatchCall  APICallType = "patch"
+	// PatchCall holds patchcall value.
+	PatchCall APICallType = "patch"
 )
 
-// APICall represents a batched API call
+// APICall represents a batched API call.
 type APICall struct {
 	Type          APICallType
 	Object        client.Object
@@ -40,13 +46,13 @@ type APICall struct {
 	Priority      UpdatePriority
 }
 
-// APICallResult represents the result of an API call
+// APICallResult represents the result of an API call.
 type APICallResult struct {
 	Object client.Object
 	Error  error
 }
 
-// APIBatchConfig configures the API call batcher
+// APIBatchConfig configures the API call batcher.
 type APIBatchConfig struct {
 	MaxBatchSize    int           // Maximum number of calls per batch
 	BatchTimeout    time.Duration // Maximum time to wait for a batch
@@ -56,7 +62,7 @@ type APIBatchConfig struct {
 	ParallelBatches int           // Number of parallel batch processors
 }
 
-// DefaultAPIBatchConfig provides sensible defaults
+// DefaultAPIBatchConfig provides sensible defaults.
 var DefaultAPIBatchConfig = APIBatchConfig{
 	MaxBatchSize:    5, // Smaller batch size for API calls
 	BatchTimeout:    500 * time.Millisecond,
@@ -66,7 +72,7 @@ var DefaultAPIBatchConfig = APIBatchConfig{
 	ParallelBatches: 3,
 }
 
-// APICallBatcher batches Kubernetes API calls to reduce server load
+// APICallBatcher batches Kubernetes API calls to reduce server load.
 type APICallBatcher struct {
 	client     client.Client
 	config     APIBatchConfig
@@ -77,14 +83,14 @@ type APICallBatcher struct {
 	cancel     context.CancelFunc
 	wg         sync.WaitGroup
 
-	// Metrics
+	// Metrics.
 	batchesProcessed int64
 	callsProcessed   int64
 	callsDropped     int64
 	callsFailed      int64
 }
 
-// NewAPICallBatcher creates a new API call batcher
+// NewAPICallBatcher creates a new API call batcher.
 func NewAPICallBatcher(client client.Client, config APIBatchConfig) *APICallBatcher {
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -96,7 +102,7 @@ func NewAPICallBatcher(client client.Client, config APIBatchConfig) *APICallBatc
 		cancel: cancel,
 	}
 
-	// Start multiple batch processors
+	// Start multiple batch processors.
 	for i := 0; i < config.ParallelBatches; i++ {
 		batcher.wg.Add(1)
 		go batcher.processCalls()
@@ -105,7 +111,7 @@ func NewAPICallBatcher(client client.Client, config APIBatchConfig) *APICallBatc
 	return batcher
 }
 
-// Get queues a Get API call
+// Get queues a Get API call.
 func (ab *APICallBatcher) Get(ctx context.Context, key types.NamespacedName, obj client.Object, opts ...client.GetOption) error {
 	resultChan := make(chan APICallResult, 1)
 
@@ -123,13 +129,13 @@ func (ab *APICallBatcher) Get(ctx context.Context, key types.NamespacedName, obj
 		return err
 	}
 
-	// Wait for result
+	// Wait for result.
 	select {
 	case result := <-resultChan:
 		if result.Error != nil {
 			return result.Error
 		}
-		// Copy result to the provided object
+		// Copy result to the provided object.
 		if result.Object != nil {
 			if deepCopyObj, ok := result.Object.(interface{ DeepCopyInto(interface{}) }); ok {
 				deepCopyObj.DeepCopyInto(obj)
@@ -143,7 +149,7 @@ func (ab *APICallBatcher) Get(ctx context.Context, key types.NamespacedName, obj
 	}
 }
 
-// Update queues an Update API call
+// Update queues an Update API call.
 func (ab *APICallBatcher) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
 	resultChan := make(chan APICallResult, 1)
 
@@ -160,7 +166,7 @@ func (ab *APICallBatcher) Update(ctx context.Context, obj client.Object, opts ..
 		return err
 	}
 
-	// Wait for result
+	// Wait for result.
 	select {
 	case result := <-resultChan:
 		return result.Error
@@ -171,7 +177,7 @@ func (ab *APICallBatcher) Update(ctx context.Context, obj client.Object, opts ..
 	}
 }
 
-// Create queues a Create API call
+// Create queues a Create API call.
 func (ab *APICallBatcher) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
 	resultChan := make(chan APICallResult, 1)
 
@@ -188,7 +194,7 @@ func (ab *APICallBatcher) Create(ctx context.Context, obj client.Object, opts ..
 		return err
 	}
 
-	// Wait for result
+	// Wait for result.
 	select {
 	case result := <-resultChan:
 		return result.Error
@@ -199,7 +205,7 @@ func (ab *APICallBatcher) Create(ctx context.Context, obj client.Object, opts ..
 	}
 }
 
-// Delete queues a Delete API call
+// Delete queues a Delete API call.
 func (ab *APICallBatcher) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
 	resultChan := make(chan APICallResult, 1)
 
@@ -216,7 +222,7 @@ func (ab *APICallBatcher) Delete(ctx context.Context, obj client.Object, opts ..
 		return err
 	}
 
-	// Wait for result
+	// Wait for result.
 	select {
 	case result := <-resultChan:
 		return result.Error
@@ -227,7 +233,7 @@ func (ab *APICallBatcher) Delete(ctx context.Context, obj client.Object, opts ..
 	}
 }
 
-// Patch queues a Patch API call
+// Patch queues a Patch API call.
 func (ab *APICallBatcher) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
 	resultChan := make(chan APICallResult, 1)
 
@@ -245,7 +251,7 @@ func (ab *APICallBatcher) Patch(ctx context.Context, obj client.Object, patch cl
 		return err
 	}
 
-	// Wait for result
+	// Wait for result.
 	select {
 	case result := <-resultChan:
 		return result.Error
@@ -256,12 +262,12 @@ func (ab *APICallBatcher) Patch(ctx context.Context, obj client.Object, patch cl
 	}
 }
 
-// queueCall adds an API call to the queue
+// queueCall adds an API call to the queue.
 func (ab *APICallBatcher) queueCall(call *APICall) error {
 	ab.mu.Lock()
 	defer ab.mu.Unlock()
 
-	// Check queue size limit
+	// Check queue size limit.
 	if len(ab.queue) >= ab.config.MaxQueueSize {
 		ab.callsDropped++
 		close(call.ResultChannel)
@@ -270,7 +276,7 @@ func (ab *APICallBatcher) queueCall(call *APICall) error {
 
 	ab.queue = append(ab.queue, call)
 
-	// Trigger immediate flush for high priority calls
+	// Trigger immediate flush for high priority calls.
 	if call.Priority >= HighPriority {
 		ab.triggerFlush()
 	} else if len(ab.queue) >= ab.config.MaxBatchSize {
@@ -282,7 +288,7 @@ func (ab *APICallBatcher) queueCall(call *APICall) error {
 	return nil
 }
 
-// Flush immediately processes all queued calls
+// Flush immediately processes all queued calls.
 func (ab *APICallBatcher) Flush() error {
 	ab.mu.Lock()
 	if ab.flushTimer != nil {
@@ -294,22 +300,22 @@ func (ab *APICallBatcher) Flush() error {
 	return ab.processBatch()
 }
 
-// Stop gracefully shuts down the API call batcher
+// Stop gracefully shuts down the API call batcher.
 func (ab *APICallBatcher) Stop() error {
 	ab.cancel()
 
-	// Process any remaining calls
+	// Process any remaining calls.
 	if err := ab.Flush(); err != nil {
 		log.Log.Error(err, "Failed to flush final API batch during shutdown")
 	}
 
-	// Wait for background processors to finish
+	// Wait for background processors to finish.
 	ab.wg.Wait()
 
 	return nil
 }
 
-// processCalls runs in background goroutines to process API calls
+// processCalls runs in background goroutines to process API calls.
 func (ab *APICallBatcher) processCalls() {
 	defer ab.wg.Done()
 
@@ -328,7 +334,7 @@ func (ab *APICallBatcher) processCalls() {
 	}
 }
 
-// triggerFlush triggers an immediate flush
+// triggerFlush triggers an immediate flush.
 func (ab *APICallBatcher) triggerFlush() {
 	go func() {
 		if err := ab.processBatch(); err != nil {
@@ -337,7 +343,7 @@ func (ab *APICallBatcher) triggerFlush() {
 	}()
 }
 
-// processBatch processes a batch of API calls
+// processBatch processes a batch of API calls.
 func (ab *APICallBatcher) processBatch() error {
 	ab.mu.Lock()
 
@@ -346,7 +352,7 @@ func (ab *APICallBatcher) processBatch() error {
 		return nil
 	}
 
-	// Extract batch for processing
+	// Extract batch for processing.
 	batchSize := len(ab.queue)
 	if batchSize > ab.config.MaxBatchSize {
 		batchSize = ab.config.MaxBatchSize
@@ -355,12 +361,12 @@ func (ab *APICallBatcher) processBatch() error {
 	batch := make([]*APICall, batchSize)
 	copy(batch, ab.queue[:batchSize])
 
-	// Remove processed items from queue
+	// Remove processed items from queue.
 	remaining := ab.queue[batchSize:]
 	ab.queue = make([]*APICall, 0, cap(ab.queue))
 	ab.queue = append(ab.queue, remaining...)
 
-	// Reset flush timer
+	// Reset flush timer.
 	if ab.flushTimer != nil {
 		ab.flushTimer.Stop()
 		ab.flushTimer = nil
@@ -368,21 +374,21 @@ func (ab *APICallBatcher) processBatch() error {
 
 	ab.mu.Unlock()
 
-	// Sort by priority if enabled
+	// Sort by priority if enabled.
 	if ab.config.EnablePriority {
 		ab.sortByPriority(batch)
 	}
 
-	// Process batch outside of lock
+	// Process batch outside of lock.
 	successCount := 0
 	for _, call := range batch {
 		result := ab.executeCall(call)
 
-		// Send result back to caller
+		// Send result back to caller.
 		select {
 		case call.ResultChannel <- result:
 		default:
-			// Channel closed, caller timed out
+			// Channel closed, caller timed out.
 		}
 		close(call.ResultChannel)
 
@@ -393,14 +399,14 @@ func (ab *APICallBatcher) processBatch() error {
 		}
 	}
 
-	// Update metrics
+	// Update metrics.
 	ab.batchesProcessed++
 	ab.callsProcessed += int64(successCount)
 
 	return nil
 }
 
-// executeCall executes a single API call
+// executeCall executes a single API call.
 func (ab *APICallBatcher) executeCall(call *APICall) APICallResult {
 	var err error
 	var obj client.Object
@@ -432,7 +438,7 @@ func (ab *APICallBatcher) executeCall(call *APICall) APICallResult {
 	}
 }
 
-// sortByPriority sorts calls by priority (highest first)
+// sortByPriority sorts calls by priority (highest first).
 func (ab *APICallBatcher) sortByPriority(calls []*APICall) {
 	for i := 0; i < len(calls)-1; i++ {
 		for j := i + 1; j < len(calls); j++ {
@@ -443,7 +449,7 @@ func (ab *APICallBatcher) sortByPriority(calls []*APICall) {
 	}
 }
 
-// GetStats returns statistics about the API batcher
+// GetStats returns statistics about the API batcher.
 func (ab *APICallBatcher) GetStats() APIBatcherStats {
 	ab.mu.RLock()
 	defer ab.mu.RUnlock()
@@ -457,7 +463,7 @@ func (ab *APICallBatcher) GetStats() APIBatcherStats {
 	}
 }
 
-// APIBatcherStats contains statistics about the API batcher
+// APIBatcherStats contains statistics about the API batcher.
 type APIBatcherStats struct {
 	QueueSize        int   `json:"queue_size"`
 	BatchesProcessed int64 `json:"batches_processed"`

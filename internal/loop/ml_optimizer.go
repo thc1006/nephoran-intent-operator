@@ -9,7 +9,7 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// MLOptimizer implements AI/ML-driven performance optimization for O-RAN L Release
+// MLOptimizer implements AI/ML-driven performance optimization for O-RAN L Release.
 type MLOptimizer struct {
 	trafficPredictor  *TransformerPredictor // Attention-based traffic prediction
 	anomalyDetector   *AutoEncoderDetector  // Unsupervised anomaly detection
@@ -20,7 +20,7 @@ type MLOptimizer struct {
 	config            *MLConfig
 }
 
-// MLConfig holds configuration for ML optimization
+// MLConfig holds configuration for ML optimization.
 type MLConfig struct {
 	TrafficWindowSize int           `json:"traffic_window_size"` // Historical data window
 	PredictionHorizon time.Duration `json:"prediction_horizon"`  // How far ahead to predict
@@ -32,7 +32,7 @@ type MLConfig struct {
 	CarbonAware       bool          `json:"carbon_aware"`        // Enable carbon-aware optimization
 }
 
-// TransformerPredictor implements attention-based traffic prediction
+// TransformerPredictor implements attention-based traffic prediction.
 type TransformerPredictor struct {
 	attention    *AttentionMechanism
 	embeddings   *mat.Dense
@@ -44,7 +44,7 @@ type TransformerPredictor struct {
 	mu           sync.RWMutex
 }
 
-// TrafficSample represents a single traffic measurement
+// TrafficSample represents a single traffic measurement.
 type TrafficSample struct {
 	Timestamp      time.Time `json:"timestamp"`
 	RequestRate    float64   `json:"request_rate"`    // Requests per second
@@ -55,7 +55,7 @@ type TrafficSample struct {
 	EnergyUsage    float64   `json:"energy_usage"`    // Current power consumption
 }
 
-// AttentionMechanism implements multi-head self-attention
+// AttentionMechanism implements multi-head self-attention.
 type AttentionMechanism struct {
 	numHeads      int
 	headDim       int
@@ -65,7 +65,7 @@ type AttentionMechanism struct {
 	outputWeights *mat.Dense
 }
 
-// AutoEncoderDetector for anomaly detection
+// AutoEncoderDetector for anomaly detection.
 type AutoEncoderDetector struct {
 	encoder      *NeuralNetwork
 	decoder      *NeuralNetwork
@@ -75,7 +75,7 @@ type AutoEncoderDetector struct {
 	mu           sync.RWMutex
 }
 
-// AnomalyEvent represents a detected anomaly
+// AnomalyEvent represents a detected anomaly.
 type AnomalyEvent struct {
 	Timestamp           time.Time `json:"timestamp"`
 	Severity            float64   `json:"severity"` // 0.0-1.0 severity score
@@ -84,7 +84,7 @@ type AnomalyEvent struct {
 	Explanation         string    `json:"explanation"` // Human-readable explanation
 }
 
-// RLOptimizer implements reinforcement learning for resource optimization
+// RLOptimizer implements reinforcement learning for resource optimization.
 type RLOptimizer struct {
 	agent         *PPOAgent    // Proximal Policy Optimization
 	environment   *ResourceEnv // Resource allocation environment
@@ -95,7 +95,7 @@ type RLOptimizer struct {
 	mu            sync.RWMutex
 }
 
-// EnergyPredictor implements O-RAN L Release energy optimization
+// EnergyPredictor implements O-RAN L Release energy optimization.
 type EnergyPredictor struct {
 	powerModel          *PowerModel
 	carbonIntensity     *CarbonModel
@@ -105,7 +105,7 @@ type EnergyPredictor struct {
 	mu                  sync.RWMutex
 }
 
-// PowerModel predicts power consumption based on workload
+// PowerModel predicts power consumption based on workload.
 type PowerModel struct {
 	cpuCoefficient     float64 // Power per CPU unit
 	memoryCoefficient  float64 // Power per GB memory
@@ -115,14 +115,14 @@ type PowerModel struct {
 	coolingPUE         float64 // Power Usage Effectiveness for cooling
 }
 
-// NewMLOptimizer creates a new ML optimizer
+// NewMLOptimizer creates a new ML optimizer.
 func NewMLOptimizer(config *MLConfig) *MLOptimizer {
 	optimizer := &MLOptimizer{
 		config:            config,
 		performanceModels: make(map[string]*PerformanceModel),
 	}
 
-	// Initialize traffic predictor with transformer architecture
+	// Initialize traffic predictor with transformer architecture.
 	optimizer.trafficPredictor = &TransformerPredictor{
 		attention: &AttentionMechanism{
 			numHeads: 8,
@@ -133,14 +133,14 @@ func NewMLOptimizer(config *MLConfig) *MLOptimizer {
 	}
 	optimizer.trafficPredictor.initializeWeights()
 
-	// Initialize anomaly detector
+	// Initialize anomaly detector.
 	optimizer.anomalyDetector = &AutoEncoderDetector{
 		encoder:   NewNeuralNetwork([]int{6, 12, 6, 3}), // 6->3 compression
 		decoder:   NewNeuralNetwork([]int{3, 6, 12, 6}), // 3->6 decompression
 		threshold: 0.95,                                 // 95th percentile threshold
 	}
 
-	// Initialize RL optimizer
+	// Initialize RL optimizer.
 	optimizer.resourceOptimizer = &RLOptimizer{
 		agent:        NewPPOAgent(16, 4), // 16 state features, 4 actions
 		environment:  NewResourceEnv(),
@@ -148,7 +148,7 @@ func NewMLOptimizer(config *MLConfig) *MLOptimizer {
 		epsilon:      0.1, // 10% exploration
 	}
 
-	// Initialize energy predictor
+	// Initialize energy predictor.
 	optimizer.energyPredictor = &EnergyPredictor{
 		powerModel: &PowerModel{
 			cpuCoefficient:     10.0,  // 10W per CPU core at 100%
@@ -171,7 +171,7 @@ func NewMLOptimizer(config *MLConfig) *MLOptimizer {
 	return optimizer
 }
 
-// PredictTraffic uses transformer model to predict future traffic
+// PredictTraffic uses transformer model to predict future traffic.
 func (ml *MLOptimizer) PredictTraffic(historical []TrafficSample, horizon time.Duration) (*TrafficPrediction, error) {
 	ml.mu.RLock()
 	defer ml.mu.RUnlock()
@@ -181,31 +181,31 @@ func (ml *MLOptimizer) PredictTraffic(historical []TrafficSample, horizon time.D
 			ml.trafficPredictor.windowSize, len(historical))
 	}
 
-	// Prepare input sequence
+	// Prepare input sequence.
 	inputSequence := ml.prepareInputSequence(historical)
 
-	// Apply self-attention
+	// Apply self-attention.
 	attentionOutput, err := ml.trafficPredictor.attention.Forward(inputSequence)
 	if err != nil {
 		return nil, fmt.Errorf("attention forward pass failed: %w", err)
 	}
 
-	// Apply layer normalization
+	// Apply layer normalization.
 	normalized := ml.trafficPredictor.layerNorm.Forward(attentionOutput)
 
-	// Apply feed-forward network
+	// Apply feed-forward network.
 	prediction := ml.trafficPredictor.feedForward.Forward(normalized)
 
-	// Convert to prediction structure
+	// Convert to prediction structure.
 	return ml.interpretPrediction(prediction, horizon), nil
 }
 
-// DetectAnomalies uses autoencoder to detect system anomalies
+// DetectAnomalies uses autoencoder to detect system anomalies.
 func (ml *MLOptimizer) DetectAnomalies(sample TrafficSample) (*AnomalyResult, error) {
 	ml.mu.Lock()
 	defer ml.mu.Unlock()
 
-	// Convert sample to feature vector
+	// Convert sample to feature vector.
 	features := []float64{
 		sample.RequestRate,
 		sample.ProcessingTime,
@@ -215,19 +215,19 @@ func (ml *MLOptimizer) DetectAnomalies(sample TrafficSample) (*AnomalyResult, er
 		sample.EnergyUsage,
 	}
 
-	// Normalize features
+	// Normalize features.
 	normalizedFeatures := ml.normalizeFeatures(features)
 
-	// Encode
+	// Encode.
 	encoded := ml.anomalyDetector.encoder.Forward(normalizedFeatures)
 
-	// Decode
+	// Decode.
 	decoded := ml.anomalyDetector.decoder.Forward(encoded)
 
-	// Calculate reconstruction error
+	// Calculate reconstruction error.
 	reconstructionError := ml.calculateReconstructionError(normalizedFeatures, decoded)
 
-	// Determine if anomaly
+	// Determine if anomaly.
 	isAnomaly := reconstructionError > ml.anomalyDetector.threshold
 
 	result := &AnomalyResult{
@@ -241,7 +241,7 @@ func (ml *MLOptimizer) DetectAnomalies(sample TrafficSample) (*AnomalyResult, er
 	if isAnomaly {
 		result.Explanation = ml.generateAnomalyExplanation(features, decoded)
 
-		// Store anomaly for learning
+		// Store anomaly for learning.
 		anomaly := AnomalyEvent{
 			Timestamp:           sample.Timestamp,
 			Severity:            result.Severity,
@@ -255,18 +255,18 @@ func (ml *MLOptimizer) DetectAnomalies(sample TrafficSample) (*AnomalyResult, er
 	return result, nil
 }
 
-// OptimizeResources uses RL to optimize resource allocation
+// OptimizeResources uses RL to optimize resource allocation.
 func (ml *MLOptimizer) OptimizeResources(currentState *ResourceState) (*ResourceAction, error) {
 	ml.resourceOptimizer.mu.Lock()
 	defer ml.resourceOptimizer.mu.Unlock()
 
-	// Convert state to feature vector
+	// Convert state to feature vector.
 	stateVector := ml.stateToVector(currentState)
 
-	// Get action from RL agent
+	// Get action from RL agent.
 	action := ml.resourceOptimizer.agent.SelectAction(stateVector)
 
-	// Convert action to resource changes
+	// Convert action to resource changes.
 	resourceAction := &ResourceAction{
 		WorkerCountChange: int(action[0]),
 		MemoryAllocation:  action[1],
@@ -276,7 +276,7 @@ func (ml *MLOptimizer) OptimizeResources(currentState *ResourceState) (*Resource
 		ExpectedReward:    ml.predictReward(stateVector, action),
 	}
 
-	// Store experience for training
+	// Store experience for training.
 	if ml.resourceOptimizer.trainingMode {
 		experience := &Experience{
 			State:     stateVector,
@@ -290,12 +290,12 @@ func (ml *MLOptimizer) OptimizeResources(currentState *ResourceState) (*Resource
 	return resourceAction, nil
 }
 
-// PredictEnergyConsumption predicts power usage and optimizes for efficiency
+// PredictEnergyConsumption predicts power usage and optimizes for efficiency.
 func (ml *MLOptimizer) PredictEnergyConsumption(workload *WorkloadProfile) (*EnergyPrediction, error) {
 	ml.energyPredictor.mu.RLock()
 	defer ml.energyPredictor.mu.RUnlock()
 
-	// Calculate component power consumption
+	// Calculate component power consumption.
 	cpuPower := float64(workload.CPUUtilization) * ml.energyPredictor.powerModel.cpuCoefficient
 	memoryPower := float64(workload.MemoryUsage) * ml.energyPredictor.powerModel.memoryCoefficient
 	ioPower := float64(workload.IOOperations) * ml.energyPredictor.powerModel.ioCoefficient
@@ -305,19 +305,19 @@ func (ml *MLOptimizer) PredictEnergyConsumption(workload *WorkloadProfile) (*Ene
 		(cpuPower+memoryPower+ioPower+networkPower)*
 			ml.energyPredictor.powerModel.coolingPUE
 
-	// Get carbon intensity forecast
+	// Get carbon intensity forecast.
 	carbonIntensity, err := ml.energyPredictor.carbonIntensity.GetCurrentIntensity()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get carbon intensity: %w", err)
 	}
 
-	// Get renewable energy availability
+	// Get renewable energy availability.
 	renewablePercent, err := ml.energyPredictor.renewableForecaster.GetRenewableAvailability(time.Now())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get renewable forecast: %w", err)
 	}
 
-	// Calculate efficiency metrics
+	// Calculate efficiency metrics.
 	throughput := workload.RequestsPerSecond
 	efficiency := throughput / totalPower // Requests per Watt
 
@@ -334,27 +334,27 @@ func (ml *MLOptimizer) PredictEnergyConsumption(workload *WorkloadProfile) (*Ene
 	return prediction, nil
 }
 
-// Train updates all ML models with recent data
+// Train updates all ML models with recent data.
 func (ml *MLOptimizer) Train(trainingData *TrainingData) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
 
-	// Train traffic predictor
+	// Train traffic predictor.
 	if err := ml.trainTrafficPredictor(ctx, trainingData.TrafficSamples); err != nil {
 		return fmt.Errorf("failed to train traffic predictor: %w", err)
 	}
 
-	// Train anomaly detector
+	// Train anomaly detector.
 	if err := ml.trainAnomalyDetector(ctx, trainingData.TrafficSamples); err != nil {
 		return fmt.Errorf("failed to train anomaly detector: %w", err)
 	}
 
-	// Train RL optimizer
+	// Train RL optimizer.
 	if err := ml.trainRLOptimizer(ctx, trainingData.ResourceData); err != nil {
 		return fmt.Errorf("failed to train RL optimizer: %w", err)
 	}
 
-	// Update energy models
+	// Update energy models.
 	if err := ml.updateEnergyModels(ctx, trainingData.EnergyData); err != nil {
 		return fmt.Errorf("failed to update energy models: %w", err)
 	}
@@ -362,8 +362,9 @@ func (ml *MLOptimizer) Train(trainingData *TrainingData) error {
 	return nil
 }
 
-// Helper functions and type definitions
+// Helper functions and type definitions.
 
+// TrafficPrediction represents a trafficprediction.
 type TrafficPrediction struct {
 	RequestRateForecast    []float64     `json:"request_rate_forecast"`
 	ProcessingTimeForecast []float64     `json:"processing_time_forecast"`
@@ -373,6 +374,7 @@ type TrafficPrediction struct {
 	Timestamp              time.Time     `json:"timestamp"`
 }
 
+// AnomalyResult represents a anomalyresult.
 type AnomalyResult struct {
 	IsAnomaly           bool      `json:"is_anomaly"`
 	ReconstructionError float64   `json:"reconstruction_error"`
@@ -382,6 +384,7 @@ type AnomalyResult struct {
 	Explanation         string    `json:"explanation"`
 }
 
+// ResourceState represents a resourcestate.
 type ResourceState struct {
 	WorkerCount    int     `json:"worker_count"`
 	CPUUtilization float64 `json:"cpu_utilization"`
@@ -392,6 +395,7 @@ type ResourceState struct {
 	ErrorRate      float64 `json:"error_rate"`
 }
 
+// ResourceAction represents a resourceaction.
 type ResourceAction struct {
 	WorkerCountChange int       `json:"worker_count_change"`
 	MemoryAllocation  float64   `json:"memory_allocation"`
@@ -401,6 +405,7 @@ type ResourceAction struct {
 	ExpectedReward    float64   `json:"expected_reward"`
 }
 
+// EnergyPrediction represents a energyprediction.
 type EnergyPrediction struct {
 	PowerConsumption  float64             `json:"power_consumption"`
 	CarbonEmissions   float64             `json:"carbon_emissions"`
@@ -411,20 +416,25 @@ type EnergyPrediction struct {
 	Timestamp         time.Time           `json:"timestamp"`
 }
 
+// EnergyConstraints represents a energyconstraints.
 type EnergyConstraints struct {
 	MaxPowerBudget   float64 `json:"max_power_budget"`
 	TargetEfficiency float64 `json:"target_efficiency"`
 	CarbonLimit      float64 `json:"carbon_limit"`
 }
 
-// Placeholder implementations - full implementations would be much larger
+// Placeholder implementations - full implementations would be much larger.
 func (tp *TransformerPredictor) initializeWeights() {}
+
+// Forward performs forward operation.
 func (am *AttentionMechanism) Forward(input *mat.Dense) (*mat.Dense, error) {
 	return mat.NewDense(1, 1, nil), nil
 }
+
 func (ml *MLOptimizer) prepareInputSequence([]TrafficSample) *mat.Dense {
 	return mat.NewDense(1, 1, nil)
 }
+
 func (ml *MLOptimizer) interpretPrediction(*mat.Dense, time.Duration) *TrafficPrediction {
 	return &TrafficPrediction{}
 }
@@ -439,40 +449,58 @@ func (ml *MLOptimizer) getOptimalScheduling(*WorkloadProfile, float64) *Scheduli
 	return nil
 }
 
-// Training functions
+// Training functions.
 func (ml *MLOptimizer) trainTrafficPredictor(context.Context, []TrafficSample) error { return nil }
 func (ml *MLOptimizer) trainAnomalyDetector(context.Context, []TrafficSample) error  { return nil }
 func (ml *MLOptimizer) trainRLOptimizer(context.Context, []ResourceData) error       { return nil }
 func (ml *MLOptimizer) updateEnergyModels(context.Context, []EnergyData) error       { return nil }
 
-// Additional type definitions
+// Additional type definitions.
 type LayerNormalization struct{}
 
+// Forward performs forward operation.
 func (ln *LayerNormalization) Forward(input *mat.Dense) *mat.Dense { return input }
 
+// FeedForwardNetwork represents a feedforwardnetwork.
 type FeedForwardNetwork struct{}
 
+// Forward performs forward operation.
 func (ffn *FeedForwardNetwork) Forward(input *mat.Dense) *mat.Dense { return input }
 
+// NeuralNetwork represents a neuralnetwork.
 type NeuralNetwork struct{}
 
-func NewNeuralNetwork([]int) *NeuralNetwork           { return &NeuralNetwork{} }
+// NewNeuralNetwork performs newneuralnetwork operation.
+func NewNeuralNetwork([]int) *NeuralNetwork { return &NeuralNetwork{} }
+
+// Forward performs forward operation.
 func (nn *NeuralNetwork) Forward([]float64) []float64 { return nil }
 
+// PPOAgent represents a ppoagent.
 type PPOAgent struct{}
 
-func NewPPOAgent(int, int) *PPOAgent                     { return &PPOAgent{} }
+// NewPPOAgent performs newppoagent operation.
+func NewPPOAgent(int, int) *PPOAgent { return &PPOAgent{} }
+
+// SelectAction performs selectaction operation.
 func (agent *PPOAgent) SelectAction([]float64) []float64 { return nil }
 
+// ResourceEnv represents a resourceenv.
 type ResourceEnv struct{}
 
+// NewResourceEnv performs newresourceenv operation.
 func NewResourceEnv() *ResourceEnv { return &ResourceEnv{} }
 
+// ReplayBuffer represents a replaybuffer.
 type ReplayBuffer struct{}
 
-func NewReplayBuffer(int) *ReplayBuffer  { return &ReplayBuffer{} }
+// NewReplayBuffer performs newreplaybuffer operation.
+func NewReplayBuffer(int) *ReplayBuffer { return &ReplayBuffer{} }
+
+// Add performs add operation.
 func (rb *ReplayBuffer) Add(*Experience) {}
 
+// Experience represents a experience.
 type Experience struct {
 	State     []float64
 	Action    []float64
@@ -480,29 +508,46 @@ type Experience struct {
 	NextState []float64
 }
 
+// CarbonModel represents a carbonmodel.
 type CarbonModel struct{}
 
-func NewCarbonModel() *CarbonModel                            { return &CarbonModel{} }
+// NewCarbonModel performs newcarbonmodel operation.
+func NewCarbonModel() *CarbonModel { return &CarbonModel{} }
+
+// GetCurrentIntensity performs getcurrentintensity operation.
 func (cm *CarbonModel) GetCurrentIntensity() (float64, error) { return 400.0, nil }
 
+// RenewableForecaster represents a renewableforecaster.
 type RenewableForecaster struct{}
 
-func NewRenewableForecaster() *RenewableForecaster                                  { return &RenewableForecaster{} }
+// NewRenewableForecaster performs newrenewableforecaster operation.
+func NewRenewableForecaster() *RenewableForecaster { return &RenewableForecaster{} }
+
+// GetRenewableAvailability performs getrenewableavailability operation.
 func (rf *RenewableForecaster) GetRenewableAvailability(time.Time) (float64, error) { return 0.6, nil }
 
+// EfficiencyTracker represents a efficiencytracker.
 type EfficiencyTracker struct{}
 
+// NewEfficiencyTracker performs newefficiencytracker operation.
 func NewEfficiencyTracker() *EfficiencyTracker { return &EfficiencyTracker{} }
 
+// SchedulingStrategy represents a schedulingstrategy.
 type SchedulingStrategy struct{}
 
+// TrainingData represents a trainingdata.
 type TrainingData struct {
 	TrafficSamples []TrafficSample
 	ResourceData   []ResourceData
 	EnergyData     []EnergyData
 }
 
-type ResourceData struct{}
-type EnergyData struct{}
+// ResourceData represents a resourcedata.
+type (
+	ResourceData struct{}
+	// EnergyData represents a energydata.
+	EnergyData struct{}
+)
 
+// PerformanceModel represents a performancemodel.
 type PerformanceModel struct{}

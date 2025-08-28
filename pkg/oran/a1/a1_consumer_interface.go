@@ -9,12 +9,12 @@ import (
 	"time"
 )
 
-// A1-C (Consumer) Interface Implementation
-// This implements the O-RAN A1-C specification for Non-RT RIC to Near-RT RIC communication
+// A1-C (Consumer) Interface Implementation.
+// This implements the O-RAN A1-C specification for Non-RT RIC to Near-RT RIC communication.
 
-// A1ConsumerInterface is defined in types.go
+// A1ConsumerInterface is defined in types.go.
 
-// A1PolicyTypeRegistration represents a policy type registration from Non-RT RIC
+// A1PolicyTypeRegistration represents a policy type registration from Non-RT RIC.
 type A1PolicyTypeRegistration struct {
 	PolicyTypeID      int                    `json:"policy_type_id"`
 	PolicyTypeName    string                 `json:"policy_type_name"`
@@ -28,13 +28,13 @@ type A1PolicyTypeRegistration struct {
 	SourceNonRTRIC    string                 `json:"source_non_rt_ric"`
 }
 
-// ValidityPeriod defines the validity period for a policy type
+// ValidityPeriod defines the validity period for a policy type.
 type ValidityPeriod struct {
 	StartTime time.Time `json:"start_time"`
 	EndTime   time.Time `json:"end_time"`
 }
 
-// PolicyTypeStatus represents the status of a registered policy type
+// PolicyTypeStatus represents the status of a registered policy type.
 type PolicyTypeStatus struct {
 	PolicyTypeID       int                `json:"policy_type_id"`
 	RegistrationStatus string             `json:"registration_status"` // REGISTERED, DEREGISTERED, FAILED
@@ -45,7 +45,7 @@ type PolicyTypeStatus struct {
 	PerformanceMetrics *PolicyTypeMetrics `json:"performance_metrics,omitempty"`
 }
 
-// XAppInfo represents information about xApps that support a policy type
+// XAppInfo represents information about xApps that support a policy type.
 type XAppInfo struct {
 	XAppName    string   `json:"xapp_name"`
 	XAppVersion string   `json:"xapp_version"`
@@ -53,7 +53,7 @@ type XAppInfo struct {
 	Status      string   `json:"status"` // ACTIVE, INACTIVE, ERROR
 }
 
-// PolicyTypeMetrics represents performance metrics for a policy type
+// PolicyTypeMetrics represents performance metrics for a policy type.
 type PolicyTypeMetrics struct {
 	TotalPoliciesCreated   int           `json:"total_policies_created"`
 	TotalPoliciesEnforced  int           `json:"total_policies_enforced"`
@@ -62,7 +62,7 @@ type PolicyTypeMetrics struct {
 	LastMetricsUpdate      time.Time     `json:"last_metrics_update"`
 }
 
-// NearRTRICCapabilities represents the capabilities of a Near-RT RIC
+// NearRTRICCapabilities represents the capabilities of a Near-RT RIC.
 type NearRTRICCapabilities struct {
 	RICID                  string                   `json:"ric_id"`
 	RICName                string                   `json:"ric_name"`
@@ -76,7 +76,7 @@ type NearRTRICCapabilities struct {
 	LastCapabilityUpdate   time.Time                `json:"last_capability_update"`
 }
 
-// ServiceModelCapability represents a service model capability
+// ServiceModelCapability represents a service model capability.
 type ServiceModelCapability struct {
 	ServiceModelOID     string   `json:"service_model_oid"`
 	ServiceModelName    string   `json:"service_model_name"`
@@ -85,7 +85,7 @@ type ServiceModelCapability struct {
 	RanFunctionID       int      `json:"ran_function_id"`
 }
 
-// QoSLevel represents a supported QoS level
+// QoSLevel represents a supported QoS level.
 type QoSLevel struct {
 	QoSID       int    `json:"qos_id"`
 	QoSName     string `json:"qos_name"`
@@ -93,14 +93,14 @@ type QoSLevel struct {
 	Priority    int    `json:"priority"`
 }
 
-// GeographicArea represents the geographic coverage area
+// GeographicArea represents the geographic coverage area.
 type GeographicArea struct {
 	AreaType    string      `json:"area_type"` // CIRCULAR, POLYGONAL, RECTANGLE
 	Coordinates interface{} `json:"coordinates"`
 	Radius      float64     `json:"radius,omitempty"` // for circular areas
 }
 
-// NearRTRICHealth represents the health status of a Near-RT RIC
+// NearRTRICHealth represents the health status of a Near-RT RIC.
 type NearRTRICHealth struct {
 	RICID            string                     `json:"ric_id"`
 	OverallStatus    string                     `json:"overall_status"` // HEALTHY, DEGRADED, UNHEALTHY
@@ -112,7 +112,7 @@ type NearRTRICHealth struct {
 	HealthCheckID    string                     `json:"health_check_id"`
 }
 
-// ComponentHealth represents the health status of a RIC component
+// ComponentHealth represents the health status of a RIC component.
 type ComponentHealth struct {
 	ComponentName string    `json:"component_name"`
 	Status        string    `json:"status"` // HEALTHY, DEGRADED, UNHEALTHY
@@ -120,7 +120,7 @@ type ComponentHealth struct {
 	LastUpdate    time.Time `json:"last_update"`
 }
 
-// ResourceUsage represents resource usage information
+// ResourceUsage represents resource usage information.
 type ResourceUsage struct {
 	CPUUsagePercent    float64 `json:"cpu_usage_percent"`
 	MemoryUsagePercent float64 `json:"memory_usage_percent"`
@@ -128,7 +128,7 @@ type ResourceUsage struct {
 	NetworkUtilization float64 `json:"network_utilization"`
 }
 
-// PolicyEventSubscription represents a subscription to policy events
+// PolicyEventSubscription represents a subscription to policy events.
 type PolicyEventSubscription struct {
 	SubscriptionID     string          `json:"subscription_id"`
 	CallbackURL        string          `json:"callback_url"`
@@ -139,7 +139,7 @@ type PolicyEventSubscription struct {
 	ExpirationTime     *time.Time      `json:"expiration_time,omitempty"`
 }
 
-// SubscriberInfo represents information about the event subscriber
+// SubscriberInfo represents information about the event subscriber.
 type SubscriberInfo struct {
 	SubscriberName     string            `json:"subscriber_name"`
 	SubscriberType     string            `json:"subscriber_type"` // NON_RT_RIC, EXTERNAL_SYSTEM
@@ -147,7 +147,7 @@ type SubscriberInfo struct {
 	AuthenticationInfo *AuthInfo         `json:"authentication_info,omitempty"`
 }
 
-// AuthInfo represents authentication information for callbacks
+// AuthInfo represents authentication information for callbacks.
 type AuthInfo struct {
 	AuthType    string            `json:"auth_type"` // OAUTH2, API_KEY, BASIC
 	Credentials map[string]string `json:"credentials"`
@@ -155,7 +155,7 @@ type AuthInfo struct {
 	ExpiresAt   *time.Time        `json:"expires_at,omitempty"`
 }
 
-// A1ConsumerAdaptor implements the A1-C interface
+// A1ConsumerAdaptor implements the A1-C interface.
 type A1ConsumerAdaptor struct {
 	httpClient *http.Client
 	ricURL     string
@@ -163,7 +163,7 @@ type A1ConsumerAdaptor struct {
 	clientID   string
 }
 
-// NewA1ConsumerAdaptor creates a new A1-C adaptor
+// NewA1ConsumerAdaptor creates a new A1-C adaptor.
 func NewA1ConsumerAdaptor(ricURL, apiVersion, clientID string) *A1ConsumerAdaptor {
 	return &A1ConsumerAdaptor{
 		httpClient: &http.Client{Timeout: 30 * time.Second},
@@ -173,11 +173,11 @@ func NewA1ConsumerAdaptor(ricURL, apiVersion, clientID string) *A1ConsumerAdapto
 	}
 }
 
-// RegisterPolicyType registers a policy type with the Near-RT RIC
+// RegisterPolicyType registers a policy type with the Near-RT RIC.
 func (ac *A1ConsumerAdaptor) RegisterPolicyType(ctx context.Context, policyType *A1PolicyTypeRegistration) error {
 	url := fmt.Sprintf("%s/A1-C/v1/policytypes/%d", ac.ricURL, policyType.PolicyTypeID)
 
-	// Set registration time and source
+	// Set registration time and source.
 	policyType.RegistrationTime = time.Now()
 	policyType.SourceNonRTRIC = ac.clientID
 
@@ -217,7 +217,7 @@ func (ac *A1ConsumerAdaptor) RegisterPolicyType(ctx context.Context, policyType 
 	}
 }
 
-// DeregisterPolicyType deregisters a policy type from the Near-RT RIC
+// DeregisterPolicyType deregisters a policy type from the Near-RT RIC.
 func (ac *A1ConsumerAdaptor) DeregisterPolicyType(ctx context.Context, policyTypeID int) error {
 	url := fmt.Sprintf("%s/A1-C/v1/policytypes/%d", ac.ricURL, policyTypeID)
 
@@ -249,7 +249,7 @@ func (ac *A1ConsumerAdaptor) DeregisterPolicyType(ctx context.Context, policyTyp
 	}
 }
 
-// GetPolicyTypeStatus gets the status of a registered policy type
+// GetPolicyTypeStatus gets the status of a registered policy type.
 func (ac *A1ConsumerAdaptor) GetPolicyTypeStatus(ctx context.Context, policyTypeID int) (*PolicyTypeStatus, error) {
 	url := fmt.Sprintf("%s/A1-C/v1/policytypes/%d/status", ac.ricURL, policyTypeID)
 
@@ -281,7 +281,7 @@ func (ac *A1ConsumerAdaptor) GetPolicyTypeStatus(ctx context.Context, policyType
 	}
 }
 
-// GetNearRTRICCapabilities gets the capabilities of the Near-RT RIC
+// GetNearRTRICCapabilities gets the capabilities of the Near-RT RIC.
 func (ac *A1ConsumerAdaptor) GetNearRTRICCapabilities(ctx context.Context) (*NearRTRICCapabilities, error) {
 	url := fmt.Sprintf("%s/A1-C/v1/capabilities", ac.ricURL)
 
@@ -311,7 +311,7 @@ func (ac *A1ConsumerAdaptor) GetNearRTRICCapabilities(ctx context.Context) (*Nea
 	return &capabilities, nil
 }
 
-// GetNearRTRICHealth gets the health status of the Near-RT RIC
+// GetNearRTRICHealth gets the health status of the Near-RT RIC.
 func (ac *A1ConsumerAdaptor) GetNearRTRICHealth(ctx context.Context) (*NearRTRICHealth, error) {
 	url := fmt.Sprintf("%s/A1-C/v1/health", ac.ricURL)
 
@@ -341,7 +341,7 @@ func (ac *A1ConsumerAdaptor) GetNearRTRICHealth(ctx context.Context) (*NearRTRIC
 	return &health, nil
 }
 
-// SubscribeToPolicyEvents subscribes to policy-related events
+// SubscribeToPolicyEvents subscribes to policy-related events.
 func (ac *A1ConsumerAdaptor) SubscribeToPolicyEvents(ctx context.Context, subscription *PolicyEventSubscription) error {
 	url := fmt.Sprintf("%s/A1-C/v1/subscriptions", ac.ricURL)
 
@@ -377,7 +377,7 @@ func (ac *A1ConsumerAdaptor) SubscribeToPolicyEvents(ctx context.Context, subscr
 	}
 }
 
-// UnsubscribeFromPolicyEvents unsubscribes from policy events
+// UnsubscribeFromPolicyEvents unsubscribes from policy events.
 func (ac *A1ConsumerAdaptor) UnsubscribeFromPolicyEvents(ctx context.Context, subscriptionID string) error {
 	url := fmt.Sprintf("%s/A1-C/v1/subscriptions/%s", ac.ricURL, subscriptionID)
 

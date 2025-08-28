@@ -30,45 +30,45 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-// ConfigurationManager manages system configuration
+// ConfigurationManager manages system configuration.
 type ConfigurationManager struct {
 	logger logr.Logger
 	mutex  sync.RWMutex
 
-	// Configuration storage
+	// Configuration storage.
 	configs        map[string]interface{}
 	configFiles    map[string]string
 	configWatchers map[string]*ConfigWatcher
 
-	// Configuration validation
+	// Configuration validation.
 	validators map[string]ConfigValidator
 	schemas    map[string]interface{}
 
-	// Change notification
+	// Change notification.
 	changeNotifiers []ConfigChangeNotifier
 
-	// Configuration source
+	// Configuration source.
 	configDir      string
 	defaultConfigs map[string]interface{}
 
-	// Runtime state
+	// Runtime state.
 	started  bool
 	stopChan chan bool
 	workerWG sync.WaitGroup
 }
 
-// ConfigValidator validates configuration
+// ConfigValidator validates configuration.
 type ConfigValidator interface {
 	Validate(config interface{}) error
 	GetConfigType() string
 }
 
-// ConfigChangeNotifier notifies about configuration changes
+// ConfigChangeNotifier notifies about configuration changes.
 type ConfigChangeNotifier interface {
 	OnConfigChange(configType string, oldConfig, newConfig interface{}) error
 }
 
-// ConfigWatcher watches configuration files for changes
+// ConfigWatcher watches configuration files for changes.
 type ConfigWatcher struct {
 	filePath    string
 	lastModTime time.Time
@@ -76,7 +76,7 @@ type ConfigWatcher struct {
 	manager     *ConfigurationManager
 }
 
-// NewConfigurationManager creates a new configuration manager
+// NewConfigurationManager creates a new configuration manager.
 func NewConfigurationManager(configDir string) *ConfigurationManager {
 	cm := &ConfigurationManager{
 		logger:          ctrl.Log.WithName("configuration-manager"),
@@ -91,13 +91,13 @@ func NewConfigurationManager(configDir string) *ConfigurationManager {
 		stopChan:        make(chan bool),
 	}
 
-	// Initialize default configurations
+	// Initialize default configurations.
 	cm.initializeDefaults()
 
 	return cm
 }
 
-// initializeDefaults sets up default configurations
+// initializeDefaults sets up default configurations.
 func (cm *ConfigurationManager) initializeDefaults() {
 	cm.defaultConfigs["integration"] = DefaultIntegrationConfig()
 	cm.defaultConfigs["state-manager"] = DefaultStateManagerConfig()
@@ -107,7 +107,7 @@ func (cm *ConfigurationManager) initializeDefaults() {
 	cm.defaultConfigs["recovery"] = DefaultRecoveryConfig()
 }
 
-// Start starts the configuration manager
+// Start starts the configuration manager.
 func (cm *ConfigurationManager) Start(ctx context.Context) error {
 	cm.mutex.Lock()
 	defer cm.mutex.Unlock()
@@ -116,17 +116,17 @@ func (cm *ConfigurationManager) Start(ctx context.Context) error {
 		return nil
 	}
 
-	// Ensure config directory exists
-	if err := os.MkdirAll(cm.configDir, 0755); err != nil {
+	// Ensure config directory exists.
+	if err := os.MkdirAll(cm.configDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
-	// Load all configurations
+	// Load all configurations.
 	if err := cm.loadAllConfigurations(); err != nil {
 		return fmt.Errorf("failed to load configurations: %w", err)
 	}
 
-	// Start configuration watchers
+	// Start configuration watchers.
 	cm.workerWG.Add(1)
 	go cm.configWatcherLoop(ctx)
 
@@ -136,7 +136,7 @@ func (cm *ConfigurationManager) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the configuration manager
+// Stop stops the configuration manager.
 func (cm *ConfigurationManager) Stop(ctx context.Context) error {
 	cm.mutex.Lock()
 	defer cm.mutex.Unlock()
@@ -145,10 +145,10 @@ func (cm *ConfigurationManager) Stop(ctx context.Context) error {
 		return nil
 	}
 
-	// Signal stop
+	// Signal stop.
 	close(cm.stopChan)
 
-	// Wait for workers
+	// Wait for workers.
 	cm.workerWG.Wait()
 
 	cm.started = false
@@ -157,25 +157,25 @@ func (cm *ConfigurationManager) Stop(ctx context.Context) error {
 	return nil
 }
 
-// IsHealthy returns the health status
+// IsHealthy returns the health status.
 func (cm *ConfigurationManager) IsHealthy() bool {
 	return cm.started
 }
 
-// GetName returns the component name
+// GetName returns the component name.
 func (cm *ConfigurationManager) GetName() string {
 	return "configuration-manager"
 }
 
-// LoadConfiguration loads a specific configuration
+// LoadConfiguration loads a specific configuration.
 func (cm *ConfigurationManager) LoadConfiguration(configType string, target interface{}) error {
 	cm.mutex.RLock()
 	defer cm.mutex.RUnlock()
 
-	// Check if config exists
+	// Check if config exists.
 	config, exists := cm.configs[configType]
 	if !exists {
-		// Use default configuration
+		// Use default configuration.
 		if defaultConfig, hasDefault := cm.defaultConfigs[configType]; hasDefault {
 			config = defaultConfig
 		} else {
@@ -183,7 +183,7 @@ func (cm *ConfigurationManager) LoadConfiguration(configType string, target inte
 		}
 	}
 
-	// Marshal and unmarshal to convert to target type
+	// Marshal and unmarshal to convert to target type.
 	data, err := json.Marshal(config)
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
@@ -196,32 +196,32 @@ func (cm *ConfigurationManager) LoadConfiguration(configType string, target inte
 	return nil
 }
 
-// SaveConfiguration saves a configuration
+// SaveConfiguration saves a configuration.
 func (cm *ConfigurationManager) SaveConfiguration(configType string, config interface{}) error {
 	cm.mutex.Lock()
 	defer cm.mutex.Unlock()
 
-	// Validate configuration
+	// Validate configuration.
 	if validator, exists := cm.validators[configType]; exists {
 		if err := validator.Validate(config); err != nil {
 			return fmt.Errorf("configuration validation failed: %w", err)
 		}
 	}
 
-	// Store old config for change notification
+	// Store old config for change notification.
 	oldConfig := cm.configs[configType]
 
-	// Save new configuration
+	// Save new configuration.
 	cm.configs[configType] = config
 
-	// Save to file if configured
+	// Save to file if configured.
 	if filePath, exists := cm.configFiles[configType]; exists {
 		if err := cm.saveConfigToFile(filePath, config); err != nil {
 			return fmt.Errorf("failed to save config to file: %w", err)
 		}
 	}
 
-	// Notify change listeners
+	// Notify change listeners.
 	for _, notifier := range cm.changeNotifiers {
 		if err := notifier.OnConfigChange(configType, oldConfig, config); err != nil {
 			cm.logger.Error(err, "Config change notification failed", "configType", configType)
@@ -233,15 +233,15 @@ func (cm *ConfigurationManager) SaveConfiguration(configType string, config inte
 	return nil
 }
 
-// RegisterConfigFile registers a configuration file to watch
+// RegisterConfigFile registers a configuration file to watch.
 func (cm *ConfigurationManager) RegisterConfigFile(configType, filePath string) error {
 	cm.mutex.Lock()
 	defer cm.mutex.Unlock()
 
-	// Store file path mapping
+	// Store file path mapping.
 	cm.configFiles[configType] = filePath
 
-	// Create watcher
+	// Create watcher.
 	watcher := &ConfigWatcher{
 		filePath:   filePath,
 		configType: configType,
@@ -250,7 +250,7 @@ func (cm *ConfigurationManager) RegisterConfigFile(configType, filePath string) 
 
 	cm.configWatchers[configType] = watcher
 
-	// Load configuration from file if it exists
+	// Load configuration from file if it exists.
 	if _, err := os.Stat(filePath); err == nil {
 		if err := cm.loadConfigFromFile(configType, filePath); err != nil {
 			return fmt.Errorf("failed to load config from file: %w", err)
@@ -262,7 +262,7 @@ func (cm *ConfigurationManager) RegisterConfigFile(configType, filePath string) 
 	return nil
 }
 
-// RegisterValidator registers a configuration validator
+// RegisterValidator registers a configuration validator.
 func (cm *ConfigurationManager) RegisterValidator(validator ConfigValidator) {
 	cm.mutex.Lock()
 	defer cm.mutex.Unlock()
@@ -273,7 +273,7 @@ func (cm *ConfigurationManager) RegisterValidator(validator ConfigValidator) {
 	cm.logger.Info("Registered config validator", "configType", configType)
 }
 
-// RegisterChangeNotifier registers a configuration change notifier
+// RegisterChangeNotifier registers a configuration change notifier.
 func (cm *ConfigurationManager) RegisterChangeNotifier(notifier ConfigChangeNotifier) {
 	cm.mutex.Lock()
 	defer cm.mutex.Unlock()
@@ -283,7 +283,7 @@ func (cm *ConfigurationManager) RegisterChangeNotifier(notifier ConfigChangeNoti
 	cm.logger.Info("Registered config change notifier")
 }
 
-// GetAllConfigTypes returns all available configuration types
+// GetAllConfigTypes returns all available configuration types.
 func (cm *ConfigurationManager) GetAllConfigTypes() []string {
 	cm.mutex.RLock()
 	defer cm.mutex.RUnlock()
@@ -293,7 +293,7 @@ func (cm *ConfigurationManager) GetAllConfigTypes() []string {
 		types = append(types, configType)
 	}
 
-	// Add default configs not yet loaded
+	// Add default configs not yet loaded.
 	for configType := range cm.defaultConfigs {
 		found := false
 		for _, existing := range types {
@@ -310,7 +310,7 @@ func (cm *ConfigurationManager) GetAllConfigTypes() []string {
 	return types
 }
 
-// GetConfigurationStatus returns the status of all configurations
+// GetConfigurationStatus returns the status of all configurations.
 func (cm *ConfigurationManager) GetConfigurationStatus() map[string]ConfigStatus {
 	cm.mutex.RLock()
 	defer cm.mutex.RUnlock()
@@ -335,7 +335,7 @@ func (cm *ConfigurationManager) GetConfigurationStatus() map[string]ConfigStatus
 			}
 		}
 
-		// Check validation
+		// Check validation.
 		if validator, exists := cm.validators[configType]; exists {
 			if config := cm.configs[configType]; config != nil {
 				if err := validator.Validate(config); err != nil {
@@ -351,7 +351,7 @@ func (cm *ConfigurationManager) GetConfigurationStatus() map[string]ConfigStatus
 	return status
 }
 
-// ReloadConfiguration reloads a configuration from file
+// ReloadConfiguration reloads a configuration from file.
 func (cm *ConfigurationManager) ReloadConfiguration(configType string) error {
 	cm.mutex.Lock()
 	defer cm.mutex.Unlock()
@@ -364,12 +364,12 @@ func (cm *ConfigurationManager) ReloadConfiguration(configType string) error {
 	return cm.loadConfigFromFile(configType, filePath)
 }
 
-// ReloadAllConfigurations reloads all configurations from files
+// ReloadAllConfigurations reloads all configurations from files.
 func (cm *ConfigurationManager) ReloadAllConfigurations() error {
 	return cm.loadAllConfigurations()
 }
 
-// Internal methods
+// Internal methods.
 
 func (cm *ConfigurationManager) loadAllConfigurations() error {
 	for configType, filePath := range cm.configFiles {
@@ -382,19 +382,19 @@ func (cm *ConfigurationManager) loadAllConfigurations() error {
 }
 
 func (cm *ConfigurationManager) loadConfigFromFile(configType, filePath string) error {
-	// Check if file exists
+	// Check if file exists.
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		cm.logger.V(1).Info("Config file does not exist, using defaults", "configType", configType, "filePath", filePath)
 		return nil
 	}
 
-	// Read file
+	// Read file.
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	// Determine file format
+	// Determine file format.
 	var config interface{}
 	ext := filepath.Ext(filePath)
 
@@ -408,7 +408,7 @@ func (cm *ConfigurationManager) loadConfigFromFile(configType, filePath string) 
 			return fmt.Errorf("failed to unmarshal YAML config: %w", err)
 		}
 	default:
-		// Try JSON first, then YAML
+		// Try JSON first, then YAML.
 		if err := json.Unmarshal(data, &config); err != nil {
 			if err := yaml.Unmarshal(data, &config); err != nil {
 				return fmt.Errorf("failed to unmarshal config (tried JSON and YAML): %w", err)
@@ -416,27 +416,27 @@ func (cm *ConfigurationManager) loadConfigFromFile(configType, filePath string) 
 		}
 	}
 
-	// Validate configuration
+	// Validate configuration.
 	if validator, exists := cm.validators[configType]; exists {
 		if err := validator.Validate(config); err != nil {
 			return fmt.Errorf("configuration validation failed: %w", err)
 		}
 	}
 
-	// Store old config for change notification
+	// Store old config for change notification.
 	oldConfig := cm.configs[configType]
 
-	// Store configuration
+	// Store configuration.
 	cm.configs[configType] = config
 
-	// Update watcher modification time
+	// Update watcher modification time.
 	if watcher, exists := cm.configWatchers[configType]; exists {
 		if stat, err := os.Stat(filePath); err == nil {
 			watcher.lastModTime = stat.ModTime()
 		}
 	}
 
-	// Notify change listeners
+	// Notify change listeners.
 	for _, notifier := range cm.changeNotifiers {
 		if err := notifier.OnConfigChange(configType, oldConfig, config); err != nil {
 			cm.logger.Error(err, "Config change notification failed", "configType", configType)
@@ -449,12 +449,12 @@ func (cm *ConfigurationManager) loadConfigFromFile(configType, filePath string) 
 }
 
 func (cm *ConfigurationManager) saveConfigToFile(filePath string, config interface{}) error {
-	// Ensure directory exists
-	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+	// Ensure directory exists.
+	if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
-	// Determine format from file extension
+	// Determine format from file extension.
 	ext := filepath.Ext(filePath)
 	var data []byte
 	var err error
@@ -465,7 +465,7 @@ func (cm *ConfigurationManager) saveConfigToFile(filePath string, config interfa
 	case ".yaml", ".yml":
 		data, err = yaml.Marshal(config)
 	default:
-		// Default to JSON
+		// Default to JSON.
 		data, err = json.MarshalIndent(config, "", "  ")
 	}
 
@@ -473,9 +473,9 @@ func (cm *ConfigurationManager) saveConfigToFile(filePath string, config interfa
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	// Write file atomically
+	// Write file atomically.
 	tmpPath := filePath + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
+	if err := os.WriteFile(tmpPath, data, 0o640); err != nil {
 		return fmt.Errorf("failed to write temp config file: %w", err)
 	}
 
@@ -528,7 +528,7 @@ func (cm *ConfigurationManager) checkConfigChanges() {
 	}
 }
 
-// ConfigStatus represents the status of a configuration
+// ConfigStatus represents the status of a configuration.
 type ConfigStatus struct {
 	Type            string    `json:"type"`
 	Loaded          bool      `json:"loaded"`
@@ -540,13 +540,14 @@ type ConfigStatus struct {
 	ValidationError string    `json:"validationError,omitempty"`
 }
 
-// Built-in configuration validators
+// Built-in configuration validators.
 
-// IntegrationConfigValidator validates integration configuration
+// IntegrationConfigValidator validates integration configuration.
 type IntegrationConfigValidator struct{}
 
+// Validate performs validate operation.
 func (v *IntegrationConfigValidator) Validate(config interface{}) error {
-	// Convert to IntegrationConfig and validate
+	// Convert to IntegrationConfig and validate.
 	data, err := json.Marshal(config)
 	if err != nil {
 		return err
@@ -557,7 +558,7 @@ func (v *IntegrationConfigValidator) Validate(config interface{}) error {
 		return err
 	}
 
-	// Validate required fields and ranges
+	// Validate required fields and ranges.
 	if integrationConfig.MetricsAddr == "" {
 		return fmt.Errorf("metricsAddr is required")
 	}
@@ -573,13 +574,15 @@ func (v *IntegrationConfigValidator) Validate(config interface{}) error {
 	return nil
 }
 
+// GetConfigType performs getconfigtype operation.
 func (v *IntegrationConfigValidator) GetConfigType() string {
 	return "integration"
 }
 
-// StateManagerConfigValidator validates state manager configuration
+// StateManagerConfigValidator validates state manager configuration.
 type StateManagerConfigValidator struct{}
 
+// Validate performs validate operation.
 func (v *StateManagerConfigValidator) Validate(config interface{}) error {
 	data, err := json.Marshal(config)
 	if err != nil {
@@ -591,7 +594,7 @@ func (v *StateManagerConfigValidator) Validate(config interface{}) error {
 		return err
 	}
 
-	// Validate ranges and required fields
+	// Validate ranges and required fields.
 	if stateConfig.CacheSize <= 0 {
 		return fmt.Errorf("cacheSize must be positive")
 	}
@@ -603,11 +606,12 @@ func (v *StateManagerConfigValidator) Validate(config interface{}) error {
 	return nil
 }
 
+// GetConfigType performs getconfigtype operation.
 func (v *StateManagerConfigValidator) GetConfigType() string {
 	return "state-manager"
 }
 
-// RegisterBuiltinValidators registers all built-in validators
+// RegisterBuiltinValidators registers all built-in validators.
 func (cm *ConfigurationManager) RegisterBuiltinValidators() {
 	cm.RegisterValidator(&IntegrationConfigValidator{})
 	cm.RegisterValidator(&StateManagerConfigValidator{})

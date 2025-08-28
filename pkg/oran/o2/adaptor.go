@@ -1,5 +1,5 @@
-// Package o2 provides a comprehensive implementation of the O-RAN O2 Interface
-// for Infrastructure Management Services (IMS), supporting multi-cloud
+// Package o2 provides a comprehensive implementation of the O-RAN O2 Interface.
+// for Infrastructure Management Services (IMS), supporting multi-cloud.
 // resource orchestration, deployment management, and cloud-native operations.
 package o2
 
@@ -21,125 +21,125 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 )
 
-// O2AdaptorInterface defines the complete O2 IMS interface following O-RAN.WG6.O2ims-Interface-v01.01
+// O2AdaptorInterface defines the complete O2 IMS interface following O-RAN.WG6.O2ims-Interface-v01.01.
 type O2AdaptorInterface interface {
-	// Infrastructure Management Services (O-RAN.WG6.O2ims-Interface-v01.01)
+	// Infrastructure Management Services (O-RAN.WG6.O2ims-Interface-v01.01).
 
-	// Resource Pool Management
+	// Resource Pool Management.
 	GetResourcePools(ctx context.Context, filter *models.ResourcePoolFilter) ([]*models.ResourcePool, error)
 	GetResourcePool(ctx context.Context, poolID string) (*models.ResourcePool, error)
 	CreateResourcePool(ctx context.Context, req *models.CreateResourcePoolRequest) (*models.ResourcePool, error)
 	UpdateResourcePool(ctx context.Context, poolID string, req *models.UpdateResourcePoolRequest) error
 	DeleteResourcePool(ctx context.Context, poolID string) error
 
-	// Resource Type Management
+	// Resource Type Management.
 	GetResourceTypes(ctx context.Context, filter *models.ResourceTypeFilter) ([]*models.ResourceType, error)
 	GetResourceType(ctx context.Context, typeID string) (*models.ResourceType, error)
 
-	// Resource Management
+	// Resource Management.
 	GetResources(ctx context.Context, filter *models.ResourceFilter) ([]*models.Resource, error)
 	GetResource(ctx context.Context, resourceID string) (*models.Resource, error)
 	CreateResource(ctx context.Context, req *models.CreateResourceRequest) (*models.Resource, error)
 	UpdateResource(ctx context.Context, resourceID string, req *models.UpdateResourceRequest) error
 	DeleteResource(ctx context.Context, resourceID string) error
 
-	// Deployment Template Management
+	// Deployment Template Management.
 	GetDeploymentTemplates(ctx context.Context, filter *models.DeploymentTemplateFilter) ([]*models.DeploymentTemplate, error)
 	GetDeploymentTemplate(ctx context.Context, templateID string) (*models.DeploymentTemplate, error)
 	CreateDeploymentTemplate(ctx context.Context, req *models.CreateDeploymentTemplateRequest) (*models.DeploymentTemplate, error)
 	UpdateDeploymentTemplate(ctx context.Context, templateID string, req *models.UpdateDeploymentTemplateRequest) error
 	DeleteDeploymentTemplate(ctx context.Context, templateID string) error
 
-	// Deployment Manager Interface
+	// Deployment Manager Interface.
 	CreateDeployment(ctx context.Context, req *models.CreateDeploymentRequest) (*models.Deployment, error)
 	GetDeployments(ctx context.Context, filter *models.DeploymentFilter) ([]*models.Deployment, error)
 	GetDeployment(ctx context.Context, deploymentID string) (*models.Deployment, error)
 	UpdateDeployment(ctx context.Context, deploymentID string, req *models.UpdateDeploymentRequest) error
 	DeleteDeployment(ctx context.Context, deploymentID string) error
 
-	// Subscription Management
+	// Subscription Management.
 	CreateSubscription(ctx context.Context, req *models.CreateSubscriptionRequest) (*models.Subscription, error)
 	GetSubscriptions(ctx context.Context, filter *models.SubscriptionFilter) ([]*models.Subscription, error)
 	GetSubscription(ctx context.Context, subscriptionID string) (*models.Subscription, error)
 	UpdateSubscription(ctx context.Context, subscriptionID string, req *models.UpdateSubscriptionRequest) error
 	DeleteSubscription(ctx context.Context, subscriptionID string) error
 
-	// Notification Management
+	// Notification Management.
 	GetNotificationEventTypes(ctx context.Context) ([]*models.NotificationEventType, error)
 
-	// Infrastructure Inventory Management
+	// Infrastructure Inventory Management.
 	GetInventoryNodes(ctx context.Context, filter *models.NodeFilter) ([]*models.Node, error)
 	GetInventoryNode(ctx context.Context, nodeID string) (*models.Node, error)
 
-	// Alarm and Fault Management
+	// Alarm and Fault Management.
 	GetAlarms(ctx context.Context, filter *models.AlarmFilter) ([]*models.Alarm, error)
 	GetAlarm(ctx context.Context, alarmID string) (*models.Alarm, error)
 	AcknowledgeAlarm(ctx context.Context, alarmID string, req *models.AlarmAcknowledgementRequest) error
 	ClearAlarm(ctx context.Context, alarmID string, req *models.AlarmClearRequest) error
 }
 
-// O2Adaptor implements the complete O2 IMS interface
+// O2Adaptor implements the complete O2 IMS interface.
 type O2Adaptor struct {
-	// Core clients and configuration
+	// Core clients and configuration.
 	kubeClient client.Client
 	clientset  kubernetes.Interface
 	config     *O2Config
 
-	// Service components
+	// Service components.
 	imsService          *ims.IMSService
 	catalogService      *ims.CatalogService
 	inventoryService    *ims.InventoryService
 	lifecycleService    *ims.LifecycleService
 	subscriptionService *ims.SubscriptionService
 
-	// Multi-cloud providers
+	// Multi-cloud providers.
 	providers map[string]providers.CloudProvider
 
-	// Circuit breaker and resilience
+	// Circuit breaker and resilience.
 	circuitBreaker *llm.CircuitBreaker
 	retryConfig    *RetryConfig
 
-	// State management
+	// State management.
 	resourcePools map[string]*models.ResourcePool
 	deployments   map[string]*models.Deployment
 	subscriptions map[string]*models.Subscription
 	mutex         sync.RWMutex
 
-	// Background services
+	// Background services.
 	monitoringCtx    context.Context
 	monitoringCancel context.CancelFunc
 }
 
-// O2Config holds comprehensive O2 interface configuration
+// O2Config holds comprehensive O2 interface configuration.
 type O2Config struct {
-	// Basic configuration
+	// Basic configuration.
 	Namespace        string                       `yaml:"namespace"`
 	ServiceAccount   string                       `yaml:"serviceAccount"`
 	DefaultResources *corev1.ResourceRequirements `yaml:"defaultResources,omitempty"`
 
-	// Multi-cloud configuration
+	// Multi-cloud configuration.
 	Providers       map[string]*ProviderConfig `yaml:"providers"`
 	DefaultProvider string                     `yaml:"defaultProvider"`
 
-	// O2 IMS specific configuration
+	// O2 IMS specific configuration.
 	IMSConfiguration *IMSConfig `yaml:"imsConfiguration"`
 
-	// API configuration
+	// API configuration.
 	APIServerConfig *APIServerConfig `yaml:"apiServerConfig"`
 
-	// Monitoring and observability
+	// Monitoring and observability.
 	MonitoringConfig *MonitoringConfig `yaml:"monitoringConfig"`
 
-	// Security and authentication
+	// Security and authentication.
 	TLSConfig  *oran.TLSConfig `yaml:"tlsConfig"`
 	AuthConfig *AuthConfig     `yaml:"authConfig"`
 
-	// Performance and resilience
+	// Performance and resilience.
 	CircuitBreakerConfig *llm.CircuitBreakerConfig `yaml:"circuitBreakerConfig"`
 	RetryConfig          *RetryConfig              `yaml:"retryConfig"`
 }
 
-// ProviderConfig holds configuration for cloud providers
+// ProviderConfig holds configuration for cloud providers.
 type ProviderConfig struct {
 	Type        string            `yaml:"type"` // kubernetes, aws, azure, gcp
 	Enabled     bool              `yaml:"enabled"`
@@ -148,7 +148,7 @@ type ProviderConfig struct {
 	Config      map[string]string `yaml:"config"`
 }
 
-// IMSConfig holds O2 IMS specific configuration
+// IMSConfig holds O2 IMS specific configuration.
 type IMSConfig struct {
 	SystemName           string   `yaml:"systemName"`
 	SystemDescription    string   `yaml:"systemDescription"`
@@ -159,7 +159,7 @@ type IMSConfig struct {
 	MaxDeployments       int      `yaml:"maxDeployments"`
 }
 
-// APIServerConfig holds REST API server configuration
+// APIServerConfig holds REST API server configuration.
 type APIServerConfig struct {
 	Enabled        bool          `yaml:"enabled"`
 	Port           int           `yaml:"port"`
@@ -170,7 +170,7 @@ type APIServerConfig struct {
 	MaxRequestSize int64         `yaml:"maxRequestSize"`
 }
 
-// MonitoringConfig holds monitoring and observability configuration
+// MonitoringConfig holds monitoring and observability configuration.
 type MonitoringConfig struct {
 	EnableMetrics   bool          `yaml:"enableMetrics"`
 	EnableTracing   bool          `yaml:"enableTracing"`
@@ -179,7 +179,7 @@ type MonitoringConfig struct {
 	AlertingEnabled bool          `yaml:"alertingEnabled"`
 }
 
-// AuthConfig holds authentication and authorization configuration
+// AuthConfig holds authentication and authorization configuration.
 type AuthConfig struct {
 	AuthMode          string             `yaml:"authMode"` // none, token, certificate, oauth2
 	TokenValidation   *TokenConfig       `yaml:"tokenValidation"`
@@ -188,7 +188,7 @@ type AuthConfig struct {
 	RBACEnabled       bool               `yaml:"rbacEnabled"`
 }
 
-// TokenConfig holds token-based authentication configuration
+// TokenConfig holds token-based authentication configuration.
 type TokenConfig struct {
 	Enabled     bool          `yaml:"enabled"`
 	TokenExpiry time.Duration `yaml:"tokenExpiry"`
@@ -196,7 +196,7 @@ type TokenConfig struct {
 	ValidateURL string        `yaml:"validateURL"`
 }
 
-// CertificateConfig holds certificate-based authentication configuration
+// CertificateConfig holds certificate-based authentication configuration.
 type CertificateConfig struct {
 	Enabled          bool   `yaml:"enabled"`
 	CAFile           string `yaml:"caFile"`
@@ -206,7 +206,7 @@ type CertificateConfig struct {
 	VerifyClientCert bool   `yaml:"verifyClientCert"`
 }
 
-// OAuth2Config holds OAuth2 authentication configuration
+// OAuth2Config holds OAuth2 authentication configuration.
 type OAuth2Config struct {
 	Enabled      bool     `yaml:"enabled"`
 	ProviderURL  string   `yaml:"providerURL"`
@@ -216,7 +216,7 @@ type OAuth2Config struct {
 	Scopes       []string `yaml:"scopes"`
 }
 
-// RetryConfig holds retry configuration for O2 operations
+// RetryConfig holds retry configuration for O2 operations.
 type RetryConfig struct {
 	MaxRetries      int           `json:"max_retries"`
 	InitialDelay    time.Duration `json:"initial_delay"`
@@ -226,13 +226,13 @@ type RetryConfig struct {
 	RetryableErrors []string      `json:"retryable_errors"`
 }
 
-// NewO2Adaptor creates a new O2 adaptor with comprehensive IMS capabilities
+// NewO2Adaptor creates a new O2 adaptor with comprehensive IMS capabilities.
 func NewO2Adaptor(kubeClient client.Client, clientset kubernetes.Interface, config *O2Config) (*O2Adaptor, error) {
 	if config == nil {
 		config = DefaultO2Config()
 	}
 
-	// Initialize core services
+	// Initialize core services.
 	catalogService := ims.NewCatalogService()
 	inventoryService := ims.NewInventoryService(kubeClient, clientset)
 	lifecycleService := ims.NewLifecycleService()
@@ -240,13 +240,13 @@ func NewO2Adaptor(kubeClient client.Client, clientset kubernetes.Interface, conf
 
 	imsService := ims.NewIMSService(catalogService, inventoryService, lifecycleService, subscriptionService)
 
-	// Initialize cloud providers
+	// Initialize cloud providers.
 	providerManager, err := initializeProviders(config.Providers, kubeClient, clientset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize cloud providers: %w", err)
 	}
 
-	// Set up circuit breaker configuration
+	// Set up circuit breaker configuration.
 	if config.CircuitBreakerConfig == nil {
 		config.CircuitBreakerConfig = &llm.CircuitBreakerConfig{
 			FailureThreshold:    5,
@@ -264,7 +264,7 @@ func NewO2Adaptor(kubeClient client.Client, clientset kubernetes.Interface, conf
 		}
 	}
 
-	// Set up retry configuration
+	// Set up retry configuration.
 	if config.RetryConfig == nil {
 		config.RetryConfig = &RetryConfig{
 			MaxRetries:    3,
@@ -281,10 +281,10 @@ func NewO2Adaptor(kubeClient client.Client, clientset kubernetes.Interface, conf
 		}
 	}
 
-	// Create circuit breaker
+	// Create circuit breaker.
 	circuitBreaker := llm.NewCircuitBreaker("o2-adaptor", config.CircuitBreakerConfig)
 
-	// Initialize monitoring context
+	// Initialize monitoring context.
 	monitoringCtx, monitoringCancel := context.WithCancel(context.Background())
 
 	adaptor := &O2Adaptor{
@@ -306,7 +306,7 @@ func NewO2Adaptor(kubeClient client.Client, clientset kubernetes.Interface, conf
 		monitoringCancel:    monitoringCancel,
 	}
 
-	// Start background monitoring services
+	// Start background monitoring services.
 	if config.MonitoringConfig.EnableMetrics {
 		go adaptor.startResourceMonitoring()
 		go adaptor.startHealthMonitoring()
@@ -315,7 +315,7 @@ func NewO2Adaptor(kubeClient client.Client, clientset kubernetes.Interface, conf
 	return adaptor, nil
 }
 
-// DefaultO2Config returns default O2 configuration
+// DefaultO2Config returns default O2 configuration.
 func DefaultO2Config() *O2Config {
 	return &O2Config{
 		Namespace:       "o-ran-o2",
@@ -366,7 +366,7 @@ func DefaultO2Config() *O2Config {
 	}
 }
 
-// initializeProviders initializes and validates cloud providers
+// initializeProviders initializes and validates cloud providers.
 func initializeProviders(providerConfigs map[string]*ProviderConfig, kubeClient client.Client, clientset kubernetes.Interface) (map[string]providers.CloudProvider, error) {
 	providerManager := make(map[string]providers.CloudProvider)
 
@@ -375,7 +375,7 @@ func initializeProviders(providerConfigs map[string]*ProviderConfig, kubeClient 
 			continue
 		}
 
-		// Convert ProviderConfig to ProviderConfiguration
+		// Convert ProviderConfig to ProviderConfiguration.
 		providerConfig := &providers.ProviderConfiguration{
 			Name:        name,
 			Type:        config.Type,
@@ -414,22 +414,22 @@ func initializeProviders(providerConfigs map[string]*ProviderConfig, kubeClient 
 	return providerManager, nil
 }
 
-// Health and lifecycle management
+// Health and lifecycle management.
 
-// Shutdown gracefully shuts down the O2 adaptor
+// Shutdown gracefully shuts down the O2 adaptor.
 func (a *O2Adaptor) Shutdown(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	logger.Info("shutting down O2 adaptor")
 
-	// Cancel monitoring services
+	// Cancel monitoring services.
 	a.monitoringCancel()
 
-	// Close circuit breaker
+	// Close circuit breaker.
 	if a.circuitBreaker != nil {
-		// Circuit breaker cleanup would be implemented here
+		// Circuit breaker cleanup would be implemented here.
 	}
 
-	// Close provider connections
+	// Close provider connections.
 	for name, provider := range a.providers {
 		if err := provider.Close(); err != nil {
 			logger.Error(err, "failed to close provider", "provider", name)
@@ -440,7 +440,7 @@ func (a *O2Adaptor) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// GetSystemInfo returns O2 IMS system information
+// GetSystemInfo returns O2 IMS system information.
 func (a *O2Adaptor) GetSystemInfo(ctx context.Context) (*models.SystemInfo, error) {
 	return &models.SystemInfo{
 		Name:                   a.config.IMSConfiguration.SystemName,
@@ -453,7 +453,7 @@ func (a *O2Adaptor) GetSystemInfo(ctx context.Context) (*models.SystemInfo, erro
 	}, nil
 }
 
-// Private helper methods
+// Private helper methods.
 
 func (a *O2Adaptor) getSupportedResourceTypes() []string {
 	return []string{
@@ -483,7 +483,7 @@ func (a *O2Adaptor) getSystemExtensions() map[string]interface{} {
 	}
 }
 
-// Background monitoring services
+// Background monitoring services.
 
 func (a *O2Adaptor) startResourceMonitoring() {
 	logger := log.FromContext(a.monitoringCtx)
@@ -524,7 +524,7 @@ func (a *O2Adaptor) startHealthMonitoring() {
 func (a *O2Adaptor) collectResourceMetrics() {
 	logger := log.FromContext(a.monitoringCtx)
 
-	// Collect metrics from all providers
+	// Collect metrics from all providers.
 	for name, provider := range a.providers {
 		metrics, err := provider.GetMetrics(a.monitoringCtx)
 		if err != nil {
@@ -532,12 +532,12 @@ func (a *O2Adaptor) collectResourceMetrics() {
 			continue
 		}
 
-		// Process and store metrics
-		// This would integrate with Prometheus or other monitoring systems
+		// Process and store metrics.
+		// This would integrate with Prometheus or other monitoring systems.
 		logger.V(1).Info("collected provider metrics", "provider", name, "metrics", len(metrics))
 	}
 
-	// Collect O2-specific metrics
+	// Collect O2-specific metrics.
 	a.mutex.RLock()
 	resourcePoolCount := len(a.resourcePools)
 	deploymentCount := len(a.deployments)
@@ -553,15 +553,15 @@ func (a *O2Adaptor) collectResourceMetrics() {
 func (a *O2Adaptor) performHealthChecks() {
 	logger := log.FromContext(a.monitoringCtx)
 
-	// Check provider health
+	// Check provider health.
 	for name, provider := range a.providers {
 		if err := provider.HealthCheck(a.monitoringCtx); err != nil {
 			logger.Error(err, "provider health check failed", "provider", name)
-			// Could trigger alerts or automatic remediation here
+			// Could trigger alerts or automatic remediation here.
 		}
 	}
 
-	// Check circuit breaker status
+	// Check circuit breaker status.
 	if a.circuitBreaker != nil {
 		stats := a.circuitBreaker.GetStats()
 		if failureRate, ok := stats["failure_rate"].(float64); ok && failureRate > 0.5 {

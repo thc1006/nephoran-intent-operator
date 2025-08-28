@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// NetconfClient provides NETCONF protocol implementation
+// NetconfClient provides NETCONF protocol implementation.
 type NetconfClient struct {
 	conn         net.Conn
 	sshClient    *ssh.Client
@@ -29,7 +29,7 @@ type NetconfClient struct {
 	config       *NetconfConfig
 }
 
-// NetconfConfig holds NETCONF client configuration
+// NetconfConfig holds NETCONF client configuration.
 type NetconfConfig struct {
 	Host           string
 	Port           int
@@ -42,7 +42,7 @@ type NetconfConfig struct {
 	TLSConfig      *tls.Config
 }
 
-// AuthConfig holds authentication configuration
+// AuthConfig holds authentication configuration.
 type AuthConfig struct {
 	Username   string
 	Password   string
@@ -50,7 +50,7 @@ type AuthConfig struct {
 	TLSConfig  *tls.Config
 }
 
-// ConfigData represents NETCONF configuration data
+// ConfigData represents NETCONF configuration data.
 type ConfigData struct {
 	XMLData   string
 	Format    string // xml, json, yang
@@ -58,10 +58,10 @@ type ConfigData struct {
 	Operation string // merge, replace, create, delete
 }
 
-// EventCallback is called when NETCONF events are received
+// EventCallback is called when NETCONF events are received.
 type EventCallback func(event *NetconfEvent)
 
-// NetconfEvent represents a NETCONF notification event
+// NetconfEvent represents a NETCONF notification event.
 type NetconfEvent struct {
 	Type      string                 `json:"type"`
 	Timestamp time.Time              `json:"timestamp"`
@@ -70,7 +70,7 @@ type NetconfEvent struct {
 	XML       string                 `json:"xml,omitempty"`
 }
 
-// NetconfRPC represents a NETCONF RPC message
+// NetconfRPC represents a NETCONF RPC message.
 type NetconfRPC struct {
 	XMLName   xml.Name `xml:"rpc"`
 	MessageID string   `xml:"message-id,attr"`
@@ -78,7 +78,7 @@ type NetconfRPC struct {
 	Operation string   `xml:",innerxml"`
 }
 
-// NetconfReply represents a NETCONF reply
+// NetconfReply represents a NETCONF reply.
 type NetconfReply struct {
 	XMLName   xml.Name    `xml:"rpc-reply"`
 	MessageID string      `xml:"message-id,attr"`
@@ -87,7 +87,7 @@ type NetconfReply struct {
 	Error     *RPCError   `xml:"rpc-error,omitempty"`
 }
 
-// RPCError represents a NETCONF RPC error
+// RPCError represents a NETCONF RPC error.
 type RPCError struct {
 	Type     string `xml:"error-type"`
 	Tag      string `xml:"error-tag"`
@@ -96,7 +96,7 @@ type RPCError struct {
 	Info     string `xml:"error-info,omitempty"`
 }
 
-// HelloMessage represents the NETCONF hello message
+// HelloMessage represents the NETCONF hello message.
 type HelloMessage struct {
 	XMLName      xml.Name `xml:"hello"`
 	Namespace    string   `xml:"xmlns,attr"`
@@ -104,7 +104,7 @@ type HelloMessage struct {
 	SessionID    string   `xml:"session-id,omitempty"`
 }
 
-// NewNetconfClient creates a new NETCONF client
+// NewNetconfClient creates a new NETCONF client.
 func NewNetconfClient(config *NetconfConfig) *NetconfClient {
 	if config.Timeout == 0 {
 		config.Timeout = 30 * time.Second
@@ -124,7 +124,7 @@ func NewNetconfClient(config *NetconfConfig) *NetconfClient {
 	}
 }
 
-// Connect establishes a NETCONF connection
+// Connect establishes a NETCONF connection.
 func (nc *NetconfClient) Connect(endpoint string, auth *AuthConfig) error {
 	nc.mutex.Lock()
 	defer nc.mutex.Unlock()
@@ -133,7 +133,7 @@ func (nc *NetconfClient) Connect(endpoint string, auth *AuthConfig) error {
 		return nil
 	}
 
-	// Parse endpoint
+	// Parse endpoint.
 	host, portStr, err := net.SplitHostPort(endpoint)
 	if err != nil {
 		host = endpoint
@@ -145,14 +145,14 @@ func (nc *NetconfClient) Connect(endpoint string, auth *AuthConfig) error {
 		return fmt.Errorf("invalid port: %w", err)
 	}
 
-	// Setup SSH client configuration
+	// Setup SSH client configuration.
 	sshConfig := &ssh.ClientConfig{
 		User:            auth.Username,
 		Timeout:         nc.config.Timeout,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // In production, use proper host key verification
 	}
 
-	// Configure authentication
+	// Configure authentication.
 	if auth.PrivateKey != nil {
 		signer, err := ssh.ParsePrivateKey(auth.PrivateKey)
 		if err != nil {
@@ -163,17 +163,17 @@ func (nc *NetconfClient) Connect(endpoint string, auth *AuthConfig) error {
 		sshConfig.Auth = []ssh.AuthMethod{ssh.Password(auth.Password)}
 	}
 
-	// Establish connection (SSH over TLS if TLS config is provided)
+	// Establish connection (SSH over TLS if TLS config is provided).
 	address := net.JoinHostPort(host, strconv.Itoa(port))
 
-	// If TLS config is provided, establish TLS connection first
+	// If TLS config is provided, establish TLS connection first.
 	if auth.TLSConfig != nil {
 		tlsConn, err := tls.Dial("tcp", address, auth.TLSConfig)
 		if err != nil {
 			return fmt.Errorf("failed to establish TLS connection: %w", err)
 		}
 
-		// Create SSH connection over TLS
+		// Create SSH connection over TLS.
 		sshConn, chans, reqs, err := ssh.NewClientConn(tlsConn, address, sshConfig)
 		if err != nil {
 			tlsConn.Close()
@@ -183,21 +183,21 @@ func (nc *NetconfClient) Connect(endpoint string, auth *AuthConfig) error {
 		nc.sshClient = ssh.NewClient(sshConn, chans, reqs)
 		nc.conn = tlsConn
 	} else {
-		// Standard SSH connection
+		// Standard SSH connection.
 		nc.sshClient, err = ssh.Dial("tcp", address, sshConfig)
 		if err != nil {
 			return fmt.Errorf("failed to connect via SSH: %w", err)
 		}
 	}
 
-	// Start NETCONF subsystem
+	// Start NETCONF subsystem.
 	nc.session, err = nc.sshClient.NewSession()
 	if err != nil {
 		nc.sshClient.Close()
 		return fmt.Errorf("failed to create SSH session: %w", err)
 	}
 
-	// Get I/O streams from session
+	// Get I/O streams from session.
 	nc.stdin, err = nc.session.StdinPipe()
 	if err != nil {
 		nc.session.Close()
@@ -212,14 +212,14 @@ func (nc *NetconfClient) Connect(endpoint string, auth *AuthConfig) error {
 		return fmt.Errorf("failed to get stdout pipe: %w", err)
 	}
 
-	// Request NETCONF subsystem
+	// Request NETCONF subsystem.
 	if err := nc.session.RequestSubsystem("netconf"); err != nil {
 		nc.session.Close()
 		nc.sshClient.Close()
 		return fmt.Errorf("failed to start NETCONF subsystem: %w", err)
 	}
 
-	// Exchange hello messages
+	// Exchange hello messages.
 	if err := nc.exchangeHello(); err != nil {
 		nc.close()
 		return fmt.Errorf("failed to exchange hello: %w", err)
@@ -229,9 +229,9 @@ func (nc *NetconfClient) Connect(endpoint string, auth *AuthConfig) error {
 	return nil
 }
 
-// exchangeHello performs NETCONF hello message exchange
+// exchangeHello performs NETCONF hello message exchange.
 func (nc *NetconfClient) exchangeHello() error {
-	// Send client hello
+	// Send client hello.
 	clientHello := &HelloMessage{
 		Namespace: "urn:ietf:params:xml:ns:netconf:base:1.0",
 		Capabilities: []string{
@@ -248,20 +248,20 @@ func (nc *NetconfClient) exchangeHello() error {
 		return fmt.Errorf("failed to marshal hello message: %w", err)
 	}
 
-	// Send hello with NETCONF framing
+	// Send hello with NETCONF framing.
 	message := fmt.Sprintf("%s]]>]]>", string(helloXML))
 	if _, err := nc.stdin.Write([]byte(message)); err != nil {
 		return fmt.Errorf("failed to send hello message: %w", err)
 	}
 
-	// Read server hello (simplified - in production, implement proper framing)
+	// Read server hello (simplified - in production, implement proper framing).
 	buffer := make([]byte, 4096)
 	n, err := nc.stdout.Read(buffer)
 	if err != nil {
 		return fmt.Errorf("failed to read hello response: %w", err)
 	}
 
-	// Parse server hello
+	// Parse server hello.
 	responseXML := string(buffer[:n])
 	responseXML = strings.TrimSuffix(responseXML, "]]>]]>")
 
@@ -276,7 +276,7 @@ func (nc *NetconfClient) exchangeHello() error {
 	return nil
 }
 
-// GetConfig retrieves configuration data
+// GetConfig retrieves configuration data.
 func (nc *NetconfClient) GetConfig(filter string) (*ConfigData, error) {
 	nc.mutex.RLock()
 	defer nc.mutex.RUnlock()
@@ -285,7 +285,7 @@ func (nc *NetconfClient) GetConfig(filter string) (*ConfigData, error) {
 		return nil, fmt.Errorf("not connected")
 	}
 
-	// Build get-config RPC
+	// Build get-config RPC.
 	var filterXML string
 	if filter != "" {
 		filterXML = fmt.Sprintf("<filter type=\"xpath\" select=\"%s\"/>", filter)
@@ -311,7 +311,7 @@ func (nc *NetconfClient) GetConfig(filter string) (*ConfigData, error) {
 	}, nil
 }
 
-// SetConfig applies configuration data
+// SetConfig applies configuration data.
 func (nc *NetconfClient) SetConfig(config *ConfigData) error {
 	nc.mutex.RLock()
 	defer nc.mutex.RUnlock()
@@ -344,7 +344,7 @@ func (nc *NetconfClient) SetConfig(config *ConfigData) error {
 	return nil
 }
 
-// Subscribe creates a NETCONF notification subscription
+// Subscribe creates a NETCONF notification subscription.
 func (nc *NetconfClient) Subscribe(xpath string, callback EventCallback) error {
 	nc.mutex.RLock()
 	defer nc.mutex.RUnlock()
@@ -353,7 +353,7 @@ func (nc *NetconfClient) Subscribe(xpath string, callback EventCallback) error {
 		return fmt.Errorf("not connected")
 	}
 
-	// Check if server supports notifications
+	// Check if server supports notifications.
 	hasNotifications := false
 	for _, cap := range nc.capabilities {
 		if strings.Contains(cap, "notification") {
@@ -366,7 +366,7 @@ func (nc *NetconfClient) Subscribe(xpath string, callback EventCallback) error {
 		return fmt.Errorf("server does not support notifications")
 	}
 
-	// Create subscription
+	// Create subscription.
 	var filterXML string
 	if xpath != "" {
 		filterXML = fmt.Sprintf("<filter type=\"xpath\" select=\"%s\"/>", xpath)
@@ -382,13 +382,13 @@ func (nc *NetconfClient) Subscribe(xpath string, callback EventCallback) error {
 		return fmt.Errorf("create-subscription failed: %w", err)
 	}
 
-	// Start notification listener in goroutine
+	// Start notification listener in goroutine.
 	go nc.notificationListener(callback)
 
 	return nil
 }
 
-// sendRPC sends a NETCONF RPC and waits for response
+// sendRPC sends a NETCONF RPC and waits for response.
 func (nc *NetconfClient) sendRPC(operation string) (string, error) {
 	messageID := fmt.Sprintf("msg-%d", time.Now().UnixNano())
 
@@ -403,13 +403,13 @@ func (nc *NetconfClient) sendRPC(operation string) (string, error) {
 		return "", fmt.Errorf("failed to marshal RPC: %w", err)
 	}
 
-	// Send RPC with NETCONF framing
+	// Send RPC with NETCONF framing.
 	message := fmt.Sprintf("%s]]>]]>", string(rpcXML))
 	if _, err := nc.stdin.Write([]byte(message)); err != nil {
 		return "", fmt.Errorf("failed to send RPC: %w", err)
 	}
 
-	// Read response (simplified - in production, implement proper framing and correlation)
+	// Read response (simplified - in production, implement proper framing and correlation).
 	buffer := make([]byte, 8192)
 	n, err := nc.stdout.Read(buffer)
 	if err != nil {
@@ -419,7 +419,7 @@ func (nc *NetconfClient) sendRPC(operation string) (string, error) {
 	responseXML := string(buffer[:n])
 	responseXML = strings.TrimSuffix(responseXML, "]]>]]>")
 
-	// Parse response for errors
+	// Parse response for errors.
 	var reply NetconfReply
 	if err := xml.Unmarshal([]byte(responseXML), &reply); err != nil {
 		return "", fmt.Errorf("failed to parse RPC reply: %w", err)
@@ -432,7 +432,7 @@ func (nc *NetconfClient) sendRPC(operation string) (string, error) {
 	return responseXML, nil
 }
 
-// notificationListener listens for NETCONF notifications
+// notificationListener listens for NETCONF notifications.
 func (nc *NetconfClient) notificationListener(callback EventCallback) {
 	logger := log.Log.WithName("netconf-notifications")
 
@@ -447,7 +447,7 @@ func (nc *NetconfClient) notificationListener(callback EventCallback) {
 		notificationXML := string(buffer[:n])
 		notificationXML = strings.TrimSuffix(notificationXML, "]]>]]>")
 
-		// Parse notification (simplified)
+		// Parse notification (simplified).
 		if strings.Contains(notificationXML, "<notification") {
 			event := &NetconfEvent{
 				Type:      "notification",
@@ -457,7 +457,7 @@ func (nc *NetconfClient) notificationListener(callback EventCallback) {
 				Data:      make(map[string]interface{}),
 			}
 
-			// Extract basic event data (in production, implement proper XML parsing)
+			// Extract basic event data (in production, implement proper XML parsing).
 			if strings.Contains(notificationXML, "alarm") {
 				event.Data["event_type"] = "alarm"
 			} else if strings.Contains(notificationXML, "config-change") {
@@ -469,7 +469,7 @@ func (nc *NetconfClient) notificationListener(callback EventCallback) {
 	}
 }
 
-// Close closes the NETCONF connection
+// Close closes the NETCONF connection.
 func (nc *NetconfClient) Close() error {
 	nc.mutex.Lock()
 	defer nc.mutex.Unlock()
@@ -477,7 +477,7 @@ func (nc *NetconfClient) Close() error {
 	return nc.close()
 }
 
-// close internal method to close connection (assumes mutex is held)
+// close internal method to close connection (assumes mutex is held).
 func (nc *NetconfClient) close() error {
 	nc.connected = false
 
@@ -496,7 +496,7 @@ func (nc *NetconfClient) close() error {
 		nc.sshClient = nil
 	}
 
-	// Close TLS connection if exists
+	// Close TLS connection if exists.
 	if nc.conn != nil {
 		nc.conn.Close()
 		nc.conn = nil
@@ -505,28 +505,28 @@ func (nc *NetconfClient) close() error {
 	return nil
 }
 
-// IsConnected returns connection status
+// IsConnected returns connection status.
 func (nc *NetconfClient) IsConnected() bool {
 	nc.mutex.RLock()
 	defer nc.mutex.RUnlock()
 	return nc.connected
 }
 
-// GetCapabilities returns server capabilities
+// GetCapabilities returns server capabilities.
 func (nc *NetconfClient) GetCapabilities() []string {
 	nc.mutex.RLock()
 	defer nc.mutex.RUnlock()
 	return append([]string(nil), nc.capabilities...)
 }
 
-// GetSessionID returns the NETCONF session ID
+// GetSessionID returns the NETCONF session ID.
 func (nc *NetconfClient) GetSessionID() string {
 	nc.mutex.RLock()
 	defer nc.mutex.RUnlock()
 	return nc.sessionID
 }
 
-// Validate performs basic NETCONF validation
+// Validate performs basic NETCONF validation.
 func (nc *NetconfClient) Validate(source string) error {
 	nc.mutex.RLock()
 	defer nc.mutex.RUnlock()
@@ -550,7 +550,7 @@ func (nc *NetconfClient) Validate(source string) error {
 	return nil
 }
 
-// Lock locks a configuration datastore
+// Lock locks a configuration datastore.
 func (nc *NetconfClient) Lock(target string) error {
 	nc.mutex.RLock()
 	defer nc.mutex.RUnlock()
@@ -570,7 +570,7 @@ func (nc *NetconfClient) Lock(target string) error {
 	return err
 }
 
-// Unlock unlocks a configuration datastore
+// Unlock unlocks a configuration datastore.
 func (nc *NetconfClient) Unlock(target string) error {
 	nc.mutex.RLock()
 	defer nc.mutex.RUnlock()

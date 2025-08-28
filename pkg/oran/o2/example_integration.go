@@ -1,4 +1,4 @@
-// Package o2 provides comprehensive examples demonstrating O2 IMS API server integration
+// Package o2 provides comprehensive examples demonstrating O2 IMS API server integration.
 package o2
 
 import (
@@ -13,30 +13,30 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
-// ComprehensiveO2Example demonstrates complete O2 IMS functionality
+// ComprehensiveO2Example demonstrates complete O2 IMS functionality.
 func ComprehensiveO2Example() error {
 	klog.Info("=== Nephoran O2 IMS Comprehensive Integration Example ===")
 
-	// 1. Create production-ready configuration
+	// 1. Create production-ready configuration.
 	config := CreateProductionConfig()
 	config.Port = 8090
 	config.Host = "localhost"
 	config.TLSEnabled = false // Disabled for example
-	// DatabaseType field was removed from O2IMSConfig - use DatabaseURL instead
+	// DatabaseType field was removed from O2IMSConfig - use DatabaseURL instead.
 	config.DatabaseURL = "memory://"
 	config.AuthenticationConfig.Enabled = false // Disabled for example
 
-	// Setup default providers
+	// Setup default providers.
 	SetupDefaultProviders(config)
 
-	// Validate configuration
+	// Validate configuration.
 	if err := ValidateConfiguration(config); err != nil {
 		return fmt.Errorf("configuration validation failed: %w", err)
 	}
 
 	klog.Info("✓ Configuration validated successfully")
 
-	// 2. Create and initialize API server
+	// 2. Create and initialize API server.
 	server, err := NewO2APIServer(config)
 	if err != nil {
 		return fmt.Errorf("failed to create API server: %w", err)
@@ -44,7 +44,7 @@ func ComprehensiveO2Example() error {
 
 	klog.Info("✓ O2 IMS API server created")
 
-	// 3. Start server in background
+	// 3. Start server in background.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -54,45 +54,45 @@ func ComprehensiveO2Example() error {
 		}
 	}()
 
-	// Give server time to start
+	// Give server time to start.
 	time.Sleep(2 * time.Second)
 	klog.Infof("✓ O2 IMS API server started on %s:%d", config.Host, config.Port)
 
-	// 4. Demonstrate resource pool management
+	// 4. Demonstrate resource pool management.
 	fmt.Println("\n--- Resource Pool Management ---")
 	if err := demonstrateResourcePools(ctx, server.imsService); err != nil {
 		return fmt.Errorf("resource pool demonstration failed: %w", err)
 	}
 
-	// 5. Demonstrate resource type management
+	// 5. Demonstrate resource type management.
 	fmt.Println("\n--- Resource Type Management ---")
 	if err := demonstrateResourceTypes(ctx, server.imsService); err != nil {
 		return fmt.Errorf("resource type demonstration failed: %w", err)
 	}
 
-	// 6. Demonstrate resource management
+	// 6. Demonstrate resource management.
 	fmt.Println("\n--- Resource Management ---")
 	if err := demonstrateResources(ctx, server.imsService); err != nil {
 		return fmt.Errorf("resource demonstration failed: %w", err)
 	}
 
-	// 7. Demonstrate resource lifecycle operations
+	// 7. Demonstrate resource lifecycle operations.
 	fmt.Println("\n--- Resource Lifecycle Management ---")
 	if err := demonstrateResourceLifecycle(ctx, server.resourceManager); err != nil {
 		return fmt.Errorf("resource lifecycle demonstration failed: %w", err)
 	}
 
-	// 8. Demonstrate cloud provider management
+	// 8. Demonstrate cloud provider management.
 	fmt.Println("\n--- Cloud Provider Management ---")
 	if err := demonstrateCloudProviders(ctx, server.imsService); err != nil {
 		return fmt.Errorf("cloud provider demonstration failed: %w", err)
 	}
 
-	// 9. Demonstrate monitoring and health
+	// 9. Demonstrate monitoring and health.
 	fmt.Println("\n--- Monitoring and Health ---")
 	demonstrateHealthCheck(server.healthChecker)
 
-	// 10. Shutdown server gracefully
+	// 10. Shutdown server gracefully.
 	fmt.Println("\n--- Graceful Shutdown ---")
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
@@ -107,9 +107,9 @@ func ComprehensiveO2Example() error {
 	return nil
 }
 
-// demonstrateResourcePools shows resource pool management operations
+// demonstrateResourcePools shows resource pool management operations.
 func demonstrateResourcePools(ctx context.Context, service O2IMSService) error {
-	// Create resource pool
+	// Create resource pool.
 	createReq := &models.CreateResourcePoolRequest{
 		Name:             "example-pool",
 		Description:      "Example resource pool for demonstration",
@@ -128,7 +128,7 @@ func demonstrateResourcePools(ctx context.Context, service O2IMSService) error {
 
 	fmt.Printf("✓ Created resource pool: %s (ID: %s)\n", pool.Name, pool.ResourcePoolID)
 
-	// List resource pools
+	// List resource pools.
 	pools, err := service.GetResourcePools(ctx, &models.ResourcePoolFilter{
 		Names:  []string{"example-pool"},
 		Limit:  10,
@@ -140,13 +140,13 @@ func demonstrateResourcePools(ctx context.Context, service O2IMSService) error {
 
 	fmt.Printf("✓ Retrieved %d resource pool(s)\n", len(pools))
 
-	// Get specific resource pool
+	// Get specific resource pool.
 	retrievedPool, err := service.GetResourcePool(ctx, pool.ResourcePoolID)
 	if err != nil {
 		return fmt.Errorf("failed to get resource pool: %w", err)
 	}
 
-	// Check if Status exists before accessing its fields
+	// Check if Status exists before accessing its fields.
 	var statusState string
 	if retrievedPool.Status != nil {
 		statusState = retrievedPool.Status.State
@@ -159,9 +159,9 @@ func demonstrateResourcePools(ctx context.Context, service O2IMSService) error {
 	return nil
 }
 
-// demonstrateResourceTypes shows resource type management operations
+// demonstrateResourceTypes shows resource type management operations.
 func demonstrateResourceTypes(ctx context.Context, service O2IMSService) error {
-	// Create resource type
+	// Create resource type.
 	resourceType := &models.ResourceType{
 		ResourceTypeID: "example-compute-type",
 		Name:           "Example Compute Type",
@@ -191,7 +191,7 @@ func demonstrateResourceTypes(ctx context.Context, service O2IMSService) error {
 	fmt.Printf("✓ Created resource type: %s (ID: %s)\n",
 		createdType.Name, createdType.ResourceTypeID)
 
-	// List resource types
+	// List resource types.
 	types, err := service.GetResourceTypes(ctx, &models.ResourceTypeFilter{
 		Categories: []string{models.ResourceCategoryCompute},
 		Limit:      10,
@@ -206,9 +206,9 @@ func demonstrateResourceTypes(ctx context.Context, service O2IMSService) error {
 	return nil
 }
 
-// demonstrateResources shows resource management operations
+// demonstrateResources shows resource management operations.
 func demonstrateResources(ctx context.Context, service O2IMSService) error {
-	// First, we need a resource pool and type
+	// First, we need a resource pool and type.
 	pools, err := service.GetResourcePools(ctx, &models.ResourcePoolFilter{Limit: 1})
 	if err != nil || len(pools) == 0 {
 		return fmt.Errorf("no resource pools available")
@@ -219,7 +219,7 @@ func demonstrateResources(ctx context.Context, service O2IMSService) error {
 		return fmt.Errorf("no resource types available")
 	}
 
-	// Create resource
+	// Create resource.
 	createReq := &models.CreateResourceRequest{
 		Name:           "example-resource",
 		ResourceTypeID: types[0].ResourceTypeID,
@@ -242,7 +242,7 @@ func demonstrateResources(ctx context.Context, service O2IMSService) error {
 	fmt.Printf("✓ Created resource: %s (ID: %s, Status: %s)\n",
 		resource.Name, resource.ResourceID, resource.Status)
 
-	// List resources
+	// List resources.
 	resources, err := service.GetResources(ctx, &models.ResourceFilter{
 		ResourcePoolIDs: []string{pools[0].ResourcePoolID},
 		Limit:           10,
@@ -258,9 +258,9 @@ func demonstrateResources(ctx context.Context, service O2IMSService) error {
 	return nil
 }
 
-// demonstrateResourceLifecycle shows resource lifecycle management operations
+// demonstrateResourceLifecycle shows resource lifecycle management operations.
 func demonstrateResourceLifecycle(ctx context.Context, manager ResourceManager) error {
-	// Provision a resource
+	// Provision a resource.
 	provisionReq := &ProvisionResourceRequest{
 		Name:           "lifecycle-example",
 		ResourceType:   "example-compute-type",
@@ -284,13 +284,13 @@ func demonstrateResourceLifecycle(ctx context.Context, manager ResourceManager) 
 		return fmt.Errorf("failed to provision resource: %w", err)
 	}
 
-	// Create a stub resource for demonstration (since ProvisionResource returns interface{})
+	// Create a stub resource for demonstration (since ProvisionResource returns interface{}).
 	resourceID := "lifecycle-example-id-123"
 	resourceName := "lifecycle-example"
 
 	fmt.Printf("✓ Provisioned resource: %s (ID: %s)\n", resourceName, resourceID)
 
-	// Configure resource
+	// Configure resource.
 	newConfig := &runtime.RawExtension{
 		Raw: []byte(`{"replicas": 2, "image": "nginx:1.21", "resources": {"limits": {"memory": "1Gi"}}}`),
 	}
@@ -302,7 +302,7 @@ func demonstrateResourceLifecycle(ctx context.Context, manager ResourceManager) 
 
 	fmt.Printf("✓ Configured resource: %s\n", resourceID)
 
-	// Scale resource
+	// Scale resource.
 	scaleReq := &ScaleResourceRequest{
 		ScaleType:      ScaleTypeHorizontal,
 		TargetReplicas: 3,
@@ -316,7 +316,7 @@ func demonstrateResourceLifecycle(ctx context.Context, manager ResourceManager) 
 	fmt.Printf("✓ Scaled resource: %s to %d replicas\n",
 		resourceID, scaleReq.TargetReplicas)
 
-	// Backup resource
+	// Backup resource.
 	backupReq := &BackupResourceRequest{
 		BackupType:      "FULL", // Use string literal instead of undefined constant
 		StorageLocation: "/backups/example",
@@ -328,7 +328,7 @@ func demonstrateResourceLifecycle(ctx context.Context, manager ResourceManager) 
 		return fmt.Errorf("failed to backup resource: %w", err)
 	}
 
-	// Create a stub backup ID for demonstration (since BackupResource returns interface{})
+	// Create a stub backup ID for demonstration (since BackupResource returns interface{}).
 	backupID := "backup-lifecycle-example-123"
 
 	fmt.Printf("✓ Created backup: %s for resource: %s\n",
@@ -339,9 +339,9 @@ func demonstrateResourceLifecycle(ctx context.Context, manager ResourceManager) 
 	return nil
 }
 
-// demonstrateCloudProviders shows cloud provider management
+// demonstrateCloudProviders shows cloud provider management.
 func demonstrateCloudProviders(ctx context.Context, service O2IMSService) error {
-	// Register additional cloud provider - using map for compatibility with interface{}
+	// Register additional cloud provider - using map for compatibility with interface{}.
 	awsProvider := map[string]interface{}{
 		"providerId":  "aws-example",
 		"name":        "AWS Example Provider",
@@ -376,7 +376,7 @@ func demonstrateCloudProviders(ctx context.Context, service O2IMSService) error 
 	fmt.Printf("✓ Registered cloud provider: %s (%s)\n",
 		awsProvider["name"].(string), awsProvider["type"].(string))
 
-	// List cloud providers
+	// List cloud providers.
 	providers, err := service.GetCloudProviders(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to list cloud providers: %w", err)
@@ -384,10 +384,10 @@ func demonstrateCloudProviders(ctx context.Context, service O2IMSService) error 
 
 	fmt.Printf("✓ Available cloud providers:\n")
 
-	// Handle interface{} return from GetCloudProviders
+	// Handle interface{} return from GetCloudProviders.
 	if providerSlice, ok := providers.([]interface{}); ok {
 		for _, provider := range providerSlice {
-			// Handle provider interface{} fields safely
+			// Handle provider interface{} fields safely.
 			if providerMap, ok := provider.(map[string]interface{}); ok {
 				name := "unknown"
 				providerType := "unknown"
@@ -411,7 +411,7 @@ func demonstrateCloudProviders(ctx context.Context, service O2IMSService) error 
 	return nil
 }
 
-// demonstrateHealthCheck shows health monitoring
+// demonstrateHealthCheck shows health monitoring.
 func demonstrateHealthCheck(healthChecker *HealthChecker) {
 	if healthChecker == nil {
 		fmt.Printf("⚠ Health checker not available\n")
@@ -430,7 +430,7 @@ func demonstrateHealthCheck(healthChecker *HealthChecker) {
 	}
 }
 
-// RESTAPIClientExample demonstrates how to interact with the O2 IMS API using HTTP clients
+// RESTAPIClientExample demonstrates how to interact with the O2 IMS API using HTTP clients.
 func RESTAPIClientExample() {
 	fmt.Println("\n=== REST API Client Usage Example ===")
 
@@ -520,7 +520,7 @@ func RESTAPIClientExample() {
 	}
 }
 
-// PerformanceExample demonstrates performance characteristics
+// PerformanceExample demonstrates performance characteristics.
 func PerformanceExample() {
 	fmt.Println("=== Performance Characteristics ===")
 	fmt.Printf("O2 IMS API Server Performance Profile:\n\n")
@@ -553,7 +553,7 @@ func PerformanceExample() {
 	fmt.Printf("  - Auto-failover: < 5 minutes recovery\n")
 }
 
-// ComplianceExample demonstrates O-RAN compliance features
+// ComplianceExample demonstrates O-RAN compliance features.
 func ComplianceExample() {
 	fmt.Println("=== O-RAN Compliance Features ===")
 
@@ -612,7 +612,7 @@ func ComplianceExample() {
 	fmt.Printf("  ✓ Cloud-native deployment patterns\n")
 }
 
-// Helper functions
+// Helper functions.
 func int32Ptr(i int32) *int32 {
 	return &i
 }

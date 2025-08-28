@@ -34,23 +34,28 @@ import (
 )
 
 const (
-	// Default test values
-	DefaultTestNamespace   = "test-namespace"
-	DefaultTestRepository  = "test-repo"
+	// Default test values.
+	DefaultTestNamespace = "test-namespace"
+	// DefaultTestRepository holds defaulttestrepository value.
+	DefaultTestRepository = "test-repo"
+	// DefaultTestPackageName holds defaulttestpackagename value.
 	DefaultTestPackageName = "test-package"
-	DefaultTestRevision    = "v1.0.0"
-	DefaultTestBranch      = "main"
-	DefaultTestURL         = "https://github.com/test/test-repo.git"
+	// DefaultTestRevision holds defaulttestrevision value.
+	DefaultTestRevision = "v1.0.0"
+	// DefaultTestBranch holds defaulttestbranch value.
+	DefaultTestBranch = "main"
+	// DefaultTestURL holds defaulttesturl value.
+	DefaultTestURL = "https://github.com/test/test-repo.git"
 )
 
-// TestFixture provides a complete test environment (generic version)
+// TestFixture provides a complete test environment (generic version).
 type TestFixture struct {
 	Client    client.Client
 	Context   context.Context
 	Namespace string
 }
 
-// NewTestFixture creates a new test fixture with default configuration
+// NewTestFixture creates a new test fixture with default configuration.
 func NewTestFixture(ctx context.Context) *TestFixture {
 	if ctx == nil {
 		ctx = context.Background()
@@ -72,7 +77,7 @@ func NewTestFixture(ctx context.Context) *TestFixture {
 	return fixture
 }
 
-// CreateTestNetworkIntent creates a test NetworkIntent for testing
+// CreateTestNetworkIntent creates a test NetworkIntent for testing.
 func (f *TestFixture) CreateTestNetworkIntent(name string, opts ...NetworkIntentOption) *v1.NetworkIntent {
 	if name == "" {
 		name = fmt.Sprintf("test-intent-%s", GenerateRandomString(8))
@@ -106,7 +111,7 @@ func (f *TestFixture) CreateTestNetworkIntent(name string, opts ...NetworkIntent
 		},
 	}
 
-	// Apply options
+	// Apply options.
 	for _, opt := range opts {
 		opt(intent)
 	}
@@ -114,47 +119,47 @@ func (f *TestFixture) CreateTestNetworkIntent(name string, opts ...NetworkIntent
 	return intent
 }
 
-// NetworkIntentOption allows customization of test network intents
+// NetworkIntentOption allows customization of test network intents.
 type NetworkIntentOption func(*v1.NetworkIntent)
 
-// WithIntentType sets the intent type
+// WithIntentType sets the intent type.
 func WithIntentType(intentType v1.IntentType) NetworkIntentOption {
 	return func(intent *v1.NetworkIntent) {
 		intent.Spec.IntentType = intentType
 	}
 }
 
-// WithIntentPriority sets the intent priority
+// WithIntentPriority sets the intent priority.
 func WithIntentPriority(priority v1.Priority) NetworkIntentOption {
 	return func(intent *v1.NetworkIntent) {
 		intent.Spec.Priority = priority
 	}
 }
 
-// WithTargetComponent adds a target component
+// WithTargetComponent adds a target component.
 func WithTargetComponent(component v1.ORANComponent) NetworkIntentOption {
 	return func(intent *v1.NetworkIntent) {
 		intent.Spec.TargetComponents = append(intent.Spec.TargetComponents, component)
 	}
 }
 
-// WithIntent sets the intent text
+// WithIntent sets the intent text.
 func WithIntent(intentText string) NetworkIntentOption {
 	return func(intent *v1.NetworkIntent) {
 		intent.Spec.Intent = intentText
 	}
 }
 
-// WithIntentPhase sets the intent phase
+// WithIntentPhase sets the intent phase.
 func WithIntentPhase(phase string) NetworkIntentOption {
 	return func(intent *v1.NetworkIntent) {
 		intent.Status.Phase = v1.NetworkIntentPhase(phase)
 	}
 }
 
-// Helper functions for test data generation
+// Helper functions for test data generation.
 
-// GenerateRandomString generates a random string of specified length
+// GenerateRandomString generates a random string of specified length.
 func GenerateRandomString(length int) string {
 	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
 	b := make([]byte, length)
@@ -164,12 +169,12 @@ func GenerateRandomString(length int) string {
 	return string(b)
 }
 
-// Cleanup removes test resources and performs cleanup
+// Cleanup removes test resources and performs cleanup.
 func (f *TestFixture) Cleanup() {
-	// Clear any internal state if needed
+	// Clear any internal state if needed.
 }
 
-// AssertCondition checks if a condition exists and has expected values
+// AssertCondition checks if a condition exists and has expected values.
 func AssertCondition(conditions []metav1.Condition, conditionType string, status metav1.ConditionStatus, reason string) bool {
 	for _, condition := range conditions {
 		if condition.Type == conditionType &&
@@ -181,7 +186,7 @@ func AssertCondition(conditions []metav1.Condition, conditionType string, status
 	return false
 }
 
-// WaitForCondition waits for a condition to be met within a timeout
+// WaitForCondition waits for a condition to be met within a timeout.
 func WaitForCondition(ctx context.Context, check func() bool, timeout time.Duration) bool {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -201,7 +206,7 @@ func WaitForCondition(ctx context.Context, check func() bool, timeout time.Durat
 	}
 }
 
-// GetTestKubeConfig returns a test Kubernetes configuration
+// GetTestKubeConfig returns a test Kubernetes configuration.
 func GetTestKubeConfig() *rest.Config {
 	return &rest.Config{
 		Host: "https://localhost:6443",

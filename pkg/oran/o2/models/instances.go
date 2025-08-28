@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// ResourceInstance represents a specific instance of a resource type
+// ResourceInstance represents a specific instance of a resource type.
 type ResourceInstance struct {
 	ResourceInstanceID   string                 `json:"resourceInstanceId"`
 	ResourceTypeID       string                 `json:"resourceTypeId"`
@@ -19,7 +19,7 @@ type ResourceInstance struct {
 	UsageStatus          string                 `json:"usageStatus"`          // IDLE, ACTIVE, BUSY
 	Extensions           map[string]interface{} `json:"extensions,omitempty"`
 
-	// Nephoran-specific extensions
+	// Nephoran-specific extensions.
 	Provider    string                 `json:"provider,omitempty"`
 	Region      string                 `json:"region,omitempty"`
 	Zone        string                 `json:"zone,omitempty"`
@@ -31,7 +31,7 @@ type ResourceInstance struct {
 	UpdatedAt   time.Time              `json:"updatedAt"`
 }
 
-// ResourceMetrics represents metrics collected from a resource
+// ResourceMetrics represents metrics collected from a resource.
 type ResourceMetrics struct {
 	ResourceID    string                  `json:"resourceId"`
 	Timestamp     time.Time               `json:"timestamp"`
@@ -43,7 +43,7 @@ type ResourceMetrics struct {
 	CustomMetrics map[string]*MetricValue `json:"customMetrics,omitempty"`
 }
 
-// MetricValue represents a single metric value with metadata
+// MetricValue represents a single metric value with metadata.
 type MetricValue struct {
 	Value       float64           `json:"value"`
 	Unit        string            `json:"unit"`
@@ -52,7 +52,7 @@ type MetricValue struct {
 	Labels      map[string]string `json:"labels,omitempty"`
 }
 
-// NetworkMetrics represents network-specific metrics
+// NetworkMetrics represents network-specific metrics.
 type NetworkMetrics struct {
 	BytesIn     *MetricValue `json:"bytesIn,omitempty"`
 	BytesOut    *MetricValue `json:"bytesOut,omitempty"`
@@ -63,7 +63,7 @@ type NetworkMetrics struct {
 	Throughput  *MetricValue `json:"throughput,omitempty"`
 }
 
-// CreateResourceInstanceRequest represents a request to create a resource instance
+// CreateResourceInstanceRequest represents a request to create a resource instance.
 type CreateResourceInstanceRequest struct {
 	Name           string                 `json:"name"`
 	Description    string                 `json:"description,omitempty"`
@@ -78,7 +78,7 @@ type CreateResourceInstanceRequest struct {
 	Annotations    map[string]string      `json:"annotations,omitempty"`
 }
 
-// UpdateResourceInstanceRequest represents a request to update a resource instance
+// UpdateResourceInstanceRequest represents a request to update a resource instance.
 type UpdateResourceInstanceRequest struct {
 	Name                 *string                `json:"name,omitempty"`
 	Description          *string                `json:"description,omitempty"`
@@ -91,7 +91,7 @@ type UpdateResourceInstanceRequest struct {
 	Annotations          map[string]string      `json:"annotations,omitempty"`
 }
 
-// ResourceInstanceFilter defines filters for querying resource instances
+// ResourceInstanceFilter defines filters for querying resource instances.
 type ResourceInstanceFilter struct {
 	Names                  []string          `json:"names,omitempty"`
 	ResourceTypeIDs        []string          `json:"resourceTypeIds,omitempty"`
@@ -114,23 +114,29 @@ type ResourceInstanceFilter struct {
 	SortOrder              string            `json:"sortOrder,omitempty"` // ASC, DESC
 }
 
-// Constants for resource instance states and statuses
+// Constants for resource instance states and statuses.
 const (
-	// Resource instance states
+	// Resource instance states.
 	ResourceInstanceStateInstantiated = "INSTANTIATED"
-	ResourceInstanceStateTerminated   = "TERMINATED"
+	// ResourceInstanceStateTerminated holds resourceinstancestateterminated value.
+	ResourceInstanceStateTerminated = "TERMINATED"
 
-	// Operational statuses
-	ResourceInstanceOperationalStatusEnabled  = "ENABLED"
+	// Operational statuses.
+	ResourceInstanceOperationalStatusEnabled = "ENABLED"
+	// ResourceInstanceOperationalStatusDisabled holds resourceinstanceoperationalstatusdisabled value.
 	ResourceInstanceOperationalStatusDisabled = "DISABLED"
 
-	// Administrative statuses
-	ResourceInstanceAdministrativeStatusLocked       = "LOCKED"
-	ResourceInstanceAdministrativeStatusUnlocked     = "UNLOCKED"
+	// Administrative statuses.
+	ResourceInstanceAdministrativeStatusLocked = "LOCKED"
+	// ResourceInstanceAdministrativeStatusUnlocked holds resourceinstanceadministrativestatusunlocked value.
+	ResourceInstanceAdministrativeStatusUnlocked = "UNLOCKED"
+	// ResourceInstanceAdministrativeStatusShuttingDown holds resourceinstanceadministrativestatusshuttingdown value.
 	ResourceInstanceAdministrativeStatusShuttingDown = "SHUTTINGDOWN"
 
-	// Usage statuses
-	ResourceInstanceUsageStatusIdle   = "IDLE"
+	// Usage statuses.
+	ResourceInstanceUsageStatusIdle = "IDLE"
+	// ResourceInstanceUsageStatusActive holds resourceinstanceusagestatusactive value.
 	ResourceInstanceUsageStatusActive = "ACTIVE"
-	ResourceInstanceUsageStatusBusy   = "BUSY"
+	// ResourceInstanceUsageStatusBusy holds resourceinstanceusagestatusbusy value.
+	ResourceInstanceUsageStatusBusy = "BUSY"
 )

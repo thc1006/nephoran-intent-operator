@@ -12,14 +12,14 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-// RedisContainer manages Redis test container lifecycle
+// RedisContainer manages Redis test container lifecycle.
 type RedisContainer struct {
 	container testcontainers.Container
 	endpoint  string
 	ctx       context.Context
 }
 
-// SetupRedisContainer starts a Redis container for testing
+// SetupRedisContainer starts a Redis container for testing.
 func SetupRedisContainer(t *testing.T) (*RedisContainer, func()) {
 	ctx := context.Background()
 
@@ -57,18 +57,18 @@ func SetupRedisContainer(t *testing.T) (*RedisContainer, func()) {
 		}
 	}
 
-	// Verify container is ready
+	// Verify container is ready.
 	container.waitForReady(t)
 
 	return container, cleanup
 }
 
-// GetEndpoint returns the Redis connection endpoint
+// GetEndpoint returns the Redis connection endpoint.
 func (r *RedisContainer) GetEndpoint() string {
 	return r.endpoint
 }
 
-// GetHost returns just the host:port without the redis:// prefix
+// GetHost returns just the host:port without the redis:// prefix.
 func (r *RedisContainer) GetHost() string {
 	endpoint, err := r.container.Endpoint(r.ctx, "")
 	if err != nil {
@@ -77,16 +77,16 @@ func (r *RedisContainer) GetHost() string {
 	return endpoint
 }
 
-// GetPort returns the mapped Redis port
+// GetPort returns the mapped Redis port.
 func (r *RedisContainer) GetPort(t *testing.T) int {
 	port, err := r.container.MappedPort(r.ctx, "6379/tcp")
 	require.NoError(t, err)
 	return port.Int()
 }
 
-// waitForReady ensures Redis is ready to accept connections
+// waitForReady ensures Redis is ready to accept connections.
 func (r *RedisContainer) waitForReady(t *testing.T) {
-	// Additional readiness check beyond container wait
+	// Additional readiness check beyond container wait.
 	ready := make(chan bool, 1)
 	timeout := time.After(30 * time.Second)
 
@@ -108,14 +108,14 @@ func (r *RedisContainer) waitForReady(t *testing.T) {
 	}
 }
 
-// isReady checks if Redis is accepting connections
+// isReady checks if Redis is accepting connections.
 func (r *RedisContainer) isReady() bool {
-	// This would normally use a Redis client to ping
-	// For now, we rely on the container's wait strategy
+	// This would normally use a Redis client to ping.
+	// For now, we rely on the container's wait strategy.
 	return true
 }
 
-// ExecuteRedisCommand executes a Redis command in the container
+// ExecuteRedisCommand executes a Redis command in the container.
 func (r *RedisContainer) ExecuteRedisCommand(t *testing.T, command ...string) string {
 	cmd := append([]string{"redis-cli"}, command...)
 
@@ -129,29 +129,29 @@ func (r *RedisContainer) ExecuteRedisCommand(t *testing.T, command ...string) st
 	return string(outputBytes)
 }
 
-// FlushAll clears all data from Redis
+// FlushAll clears all data from Redis.
 func (r *RedisContainer) FlushAll(t *testing.T) {
 	r.ExecuteRedisCommand(t, "FLUSHALL")
 }
 
-// SetKey sets a key-value pair in Redis
+// SetKey sets a key-value pair in Redis.
 func (r *RedisContainer) SetKey(t *testing.T, key, value string) {
 	r.ExecuteRedisCommand(t, "SET", key, value)
 }
 
-// GetKey retrieves a value by key from Redis
+// GetKey retrieves a value by key from Redis.
 func (r *RedisContainer) GetKey(t *testing.T, key string) string {
 	return r.ExecuteRedisCommand(t, "GET", key)
 }
 
-// ContainerManager manages multiple test containers
+// ContainerManager manages multiple test containers.
 type ContainerManager struct {
 	containers map[string]testcontainers.Container
 	cleanups   []func()
 	ctx        context.Context
 }
 
-// NewContainerManager creates a new container manager
+// NewContainerManager creates a new container manager.
 func NewContainerManager() *ContainerManager {
 	return &ContainerManager{
 		containers: make(map[string]testcontainers.Container),
@@ -160,7 +160,7 @@ func NewContainerManager() *ContainerManager {
 	}
 }
 
-// AddRedis adds a Redis container to the manager
+// AddRedis adds a Redis container to the manager.
 func (cm *ContainerManager) AddRedis(t *testing.T, name string) *RedisContainer {
 	redisContainer, cleanup := SetupRedisContainer(t)
 
@@ -170,7 +170,7 @@ func (cm *ContainerManager) AddRedis(t *testing.T, name string) *RedisContainer 
 	return redisContainer
 }
 
-// Cleanup terminates all managed containers
+// Cleanup terminates all managed containers.
 func (cm *ContainerManager) Cleanup(t *testing.T) {
 	for _, cleanup := range cm.cleanups {
 		cleanup()
@@ -179,7 +179,7 @@ func (cm *ContainerManager) Cleanup(t *testing.T) {
 	cm.cleanups = make([]func(), 0)
 }
 
-// GetContainer returns a managed container by name
+// GetContainer returns a managed container by name.
 func (cm *ContainerManager) GetContainer(name string) testcontainers.Container {
 	return cm.containers[name]
 }

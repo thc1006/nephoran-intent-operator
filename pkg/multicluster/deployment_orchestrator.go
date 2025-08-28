@@ -15,13 +15,13 @@ import (
 	"k8s.io/client-go/restmapper"
 )
 
-// PackageDeploymentOrchestrator manages package deployments across multiple clusters
+// PackageDeploymentOrchestrator manages package deployments across multiple clusters.
 type PackageDeploymentOrchestrator struct {
 	clusterRegistry *ClusterRegistry
 	logger          *zap.Logger
 }
 
-// NewPackageDeploymentOrchestrator creates a new deployment orchestrator
+// NewPackageDeploymentOrchestrator creates a new deployment orchestrator.
 func NewPackageDeploymentOrchestrator(registry *ClusterRegistry, logger *zap.Logger) *PackageDeploymentOrchestrator {
 	return &PackageDeploymentOrchestrator{
 		clusterRegistry: registry,
@@ -29,19 +29,19 @@ func NewPackageDeploymentOrchestrator(registry *ClusterRegistry, logger *zap.Log
 	}
 }
 
-// PropagatePackage deploys a package to selected target clusters
+// PropagatePackage deploys a package to selected target clusters.
 func (pdo *PackageDeploymentOrchestrator) PropagatePackage(
 	ctx context.Context,
 	packageName string,
 	options *PropagationOptions,
 ) (*PropagationResult, error) {
-	// Select deployment targets
+	// Select deployment targets.
 	targets, err := pdo.selectDeploymentTargets(ctx, packageName, options)
 	if err != nil {
 		return nil, fmt.Errorf("target selection failed: %w", err)
 	}
 
-	// Prepare propagation result
+	// Prepare propagation result.
 	result := &PropagationResult{
 		PackageName:           packageName,
 		Timestamp:             metav1.Now(),
@@ -49,18 +49,18 @@ func (pdo *PackageDeploymentOrchestrator) PropagatePackage(
 		FailedDeployments:     []string{},
 	}
 
-	// Determine deployment concurrency based on strategy
+	// Determine deployment concurrency based on strategy.
 	maxConcurrent := options.Strategy.MaxConcurrentClusters
 	if maxConcurrent == 0 {
 		maxConcurrent = len(targets)
 	}
 
-	// Create semaphore for concurrent deployments
+	// Create semaphore for concurrent deployments.
 	sem := make(chan struct{}, maxConcurrent)
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
-	// Deploy to selected targets
+	// Deploy to selected targets.
 	for _, target := range targets {
 		sem <- struct{}{}
 		wg.Add(1)
@@ -93,10 +93,10 @@ func (pdo *PackageDeploymentOrchestrator) PropagatePackage(
 		}(target)
 	}
 
-	// Wait for all deployments to complete
+	// Wait for all deployments to complete.
 	wg.Wait()
 
-	// Determine overall result
+	// Determine overall result.
 	if len(result.FailedDeployments) > 0 {
 		if options.Strategy.RollbackOnFailure {
 			pdo.rollbackFailedDeployments(ctx, packageName, result)
@@ -106,66 +106,65 @@ func (pdo *PackageDeploymentOrchestrator) PropagatePackage(
 	return result, nil
 }
 
-// deployToCluster handles package deployment to a single cluster
+// deployToCluster handles package deployment to a single cluster.
 func (pdo *PackageDeploymentOrchestrator) deployToCluster(
 	ctx context.Context,
 	packageName string,
 	target *DeploymentTarget,
 	options *PropagationOptions,
 ) (bool, error) {
-	// Create dynamic client for flexible resource management
+	// Create dynamic client for flexible resource management.
 	dynamicClient, err := dynamic.NewForConfig(target.Cluster.KubeConfig)
 	if err != nil {
 		return false, fmt.Errorf("failed to create dynamic client: %w", err)
 	}
 
-	// Create discovery client for RESTMapper
+	// Create discovery client for RESTMapper.
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(target.Cluster.KubeConfig)
 	if err != nil {
 		return false, fmt.Errorf("failed to create discovery client: %w", err)
 	}
 
-	// Create RESTMapper to convert GVK to GVR
+	// Create RESTMapper to convert GVK to GVR.
 	groupResources, err := restmapper.GetAPIGroupResources(discoveryClient)
 	if err != nil {
 		return false, fmt.Errorf("failed to get API group resources: %w", err)
 	}
 	mapper := restmapper.NewDiscoveryRESTMapper(groupResources)
 
-	// TODO: Implement package retrieval and parsing logic
-	// This would typically involve fetching the package from a package repository
-	// or using Nephio Porch API to get package details
+	// TODO: Implement package retrieval and parsing logic.
+	// This would typically involve fetching the package from a package repository.
+	// or using Nephio Porch API to get package details.
 	packageResources, err := pdo.retrievePackageResources(ctx, packageName)
 	if err != nil {
 		return false, fmt.Errorf("failed to retrieve package resources: %w", err)
 	}
 
-	// If dry run is enabled, just validate without actual deployment
+	// If dry run is enabled, just validate without actual deployment.
 	if options.DryRun {
 		return pdo.validatePackageDeployment(ctx, packageResources, target)
 	}
 
-	// Apply package resources to the target cluster
+	// Apply package resources to the target cluster.
 	for _, resource := range packageResources {
-		// Set namespace if not specified
+		// Set namespace if not specified.
 		if resource.GetNamespace() == "" {
 			resource.SetNamespace("default")
 		}
 
-		// Convert GVK to GVR using RESTMapper
+		// Convert GVK to GVR using RESTMapper.
 		gvk := resource.GroupVersionKind()
 		mapping, err := mapper.RESTMapping(schema.GroupKind{Group: gvk.Group, Kind: gvk.Kind}, gvk.Version)
 		if err != nil {
 			return false, fmt.Errorf("failed to get REST mapping for %s: %w", gvk.String(), err)
 		}
 
-		// Create or update resource
+		// Create or update resource.
 		_, err = dynamicClient.Resource(mapping.Resource).Namespace(resource.GetNamespace()).Create(
 			ctx,
 			resource,
 			metav1.CreateOptions{},
 		)
-
 		if err != nil {
 			return false, fmt.Errorf("failed to deploy resource %s: %w", resource.GetName(), err)
 		}
@@ -174,22 +173,22 @@ func (pdo *PackageDeploymentOrchestrator) deployToCluster(
 	return true, nil
 }
 
-// validatePackageDeployment performs a dry run validation of package deployment
+// validatePackageDeployment performs a dry run validation of package deployment.
 func (pdo *PackageDeploymentOrchestrator) validatePackageDeployment(
 	ctx context.Context,
 	resources []*unstructured.Unstructured,
 	target *DeploymentTarget,
 ) (bool, error) {
-	// Implement validation logic
-	// Check:
-	// 1. Resource compatibility with cluster
-	// 2. Resource quotas
-	// 3. RBAC permissions
-	// 4. Constraint satisfaction
+	// Implement validation logic.
+	// Check:.
+	// 1. Resource compatibility with cluster.
+	// 2. Resource quotas.
+	// 3. RBAC permissions.
+	// 4. Constraint satisfaction.
 
-	// Placeholder validation
+	// Placeholder validation.
 	for _, constraint := range target.Constraints {
-		// Basic constraint validation
+		// Basic constraint validation.
 		switch constraint.Type {
 		case "RequiredCapability":
 			found := false
@@ -208,7 +207,7 @@ func (pdo *PackageDeploymentOrchestrator) validatePackageDeployment(
 	return true, nil
 }
 
-// rollbackFailedDeployments handles rollback for failed deployments
+// rollbackFailedDeployments handles rollback for failed deployments.
 func (pdo *PackageDeploymentOrchestrator) rollbackFailedDeployments(
 	ctx context.Context,
 	packageName string,
@@ -223,28 +222,28 @@ func (pdo *PackageDeploymentOrchestrator) rollbackFailedDeployments(
 			continue
 		}
 
-		// TODO: Implement actual rollback logic
-		// This would involve removing deployed resources or restoring previous state
+		// TODO: Implement actual rollback logic.
+		// This would involve removing deployed resources or restoring previous state.
 		pdo.logger.Warn("Rollback initiated for cluster",
 			zap.String("packageName", packageName),
 			zap.String("clusterID", clusterID))
 	}
 }
 
-// selectDeploymentTargets selects clusters for package deployment based on options
+// selectDeploymentTargets selects clusters for package deployment based on options.
 func (pdo *PackageDeploymentOrchestrator) selectDeploymentTargets(
 	ctx context.Context,
 	packageName string,
 	options *PropagationOptions,
 ) ([]*DeploymentTarget, error) {
-	// Get all available clusters from registry
+	// Get all available clusters from registry.
 	clusters := pdo.clusterRegistry.ListClusters()
 
 	var targets []*DeploymentTarget
 
-	// Filter clusters based on constraints
+	// Filter clusters based on constraints.
 	for _, cluster := range clusters {
-		// Check cluster health
+		// Check cluster health.
 		if cluster.Status != ClusterStatusHealthy {
 			pdo.logger.Debug("Skipping unhealthy cluster",
 				zap.String("clusterID", cluster.ID),
@@ -252,7 +251,7 @@ func (pdo *PackageDeploymentOrchestrator) selectDeploymentTargets(
 			continue
 		}
 
-		// Create deployment target
+		// Create deployment target.
 		target := &DeploymentTarget{
 			Cluster:     cluster,
 			Constraints: options.Constraints,
@@ -260,7 +259,7 @@ func (pdo *PackageDeploymentOrchestrator) selectDeploymentTargets(
 			Fitness:     1.0,
 		}
 
-		// Evaluate constraints
+		// Evaluate constraints.
 		constraintsMet := true
 		for _, constraint := range options.Constraints {
 			if !pdo.evaluateConstraint(cluster, constraint) {
@@ -268,7 +267,7 @@ func (pdo *PackageDeploymentOrchestrator) selectDeploymentTargets(
 					constraintsMet = false
 					break
 				}
-				// Reduce fitness for preferred constraints not met
+				// Reduce fitness for preferred constraints not met.
 				if constraint.Requirement == ConstraintPreferred {
 					target.Fitness *= 0.8
 				}
@@ -287,7 +286,7 @@ func (pdo *PackageDeploymentOrchestrator) selectDeploymentTargets(
 	return targets, nil
 }
 
-// evaluateConstraint checks if a cluster meets a specific constraint
+// evaluateConstraint checks if a cluster meets a specific constraint.
 func (pdo *PackageDeploymentOrchestrator) evaluateConstraint(
 	cluster *WorkloadCluster,
 	constraint PlacementConstraint,
@@ -312,21 +311,21 @@ func (pdo *PackageDeploymentOrchestrator) evaluateConstraint(
 		}
 		return false
 	default:
-		// Unknown constraint type, consider it not met
+		// Unknown constraint type, consider it not met.
 		return false
 	}
 }
 
-// retrievePackageResources fetches package resources
-// TODO: Replace with actual Nephio Porch package retrieval
+// retrievePackageResources fetches package resources.
+// TODO: Replace with actual Nephio Porch package retrieval.
 func (pdo *PackageDeploymentOrchestrator) retrievePackageResources(
 	ctx context.Context,
 	packageName string,
 ) ([]*unstructured.Unstructured, error) {
-	// Placeholder implementation
-	// In real-world scenario, this would:
-	// 1. Use Nephio Porch API to retrieve package
-	// 2. Parse package contents
-	// 3. Convert to Unstructured resources
+	// Placeholder implementation.
+	// In real-world scenario, this would:.
+	// 1. Use Nephio Porch API to retrieve package.
+	// 2. Parse package contents.
+	// 3. Convert to Unstructured resources.
 	return []*unstructured.Unstructured{}, nil
 }

@@ -21,11 +21,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// DeepCopy implementations for all Porch types
-// These methods provide type-safe deep copying required for Kubernetes client-go
+// DeepCopy implementations for all Porch types.
+// These methods provide type-safe deep copying required for Kubernetes client-go.
 
-// Repository DeepCopy methods
+// Repository DeepCopy methods.
 
+// DeepCopy performs deepcopy operation.
 func (r *RepositoryList) DeepCopy() *RepositoryList {
 	if r == nil {
 		return nil
@@ -35,6 +36,7 @@ func (r *RepositoryList) DeepCopy() *RepositoryList {
 	return out
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (r *RepositoryList) DeepCopyInto(out *RepositoryList) {
 	*out = *r
 	out.TypeMeta = r.TypeMeta
@@ -47,6 +49,7 @@ func (r *RepositoryList) DeepCopyInto(out *RepositoryList) {
 	}
 }
 
+// DeepCopy performs deepcopy operation.
 func (ac *AuthConfig) DeepCopy() *AuthConfig {
 	if ac == nil {
 		return nil
@@ -56,6 +59,7 @@ func (ac *AuthConfig) DeepCopy() *AuthConfig {
 	return out
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (ac *AuthConfig) DeepCopyInto(out *AuthConfig) {
 	*out = *ac
 	if ac.SecretRef != nil {
@@ -70,6 +74,7 @@ func (ac *AuthConfig) DeepCopyInto(out *AuthConfig) {
 	}
 }
 
+// DeepCopy performs deepcopy operation.
 func (sc *SyncConfig) DeepCopy() *SyncConfig {
 	if sc == nil {
 		return nil
@@ -79,6 +84,7 @@ func (sc *SyncConfig) DeepCopy() *SyncConfig {
 	return out
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (sc *SyncConfig) DeepCopyInto(out *SyncConfig) {
 	*out = *sc
 	if sc.Interval != nil {
@@ -91,18 +97,19 @@ func (sc *SyncConfig) DeepCopyInto(out *SyncConfig) {
 	}
 }
 
-// PackageRevision DeepCopy methods
+// PackageRevision DeepCopy methods.
 
-// DeepCopy methods for PackageRevision are in multicluster package
+// DeepCopy methods for PackageRevision are in multicluster package.
 
-// PackageRevisionSpec DeepCopy methods are in multicluster package
+// PackageRevisionSpec DeepCopy methods are in multicluster package.
 
-// PackageRevisionStatus DeepCopy methods are in multicluster package
+// PackageRevisionStatus DeepCopy methods are in multicluster package.
 
-// Note: PackageRevision-related DeepCopy methods moved to multicluster package
+// Note: PackageRevision-related DeepCopy methods moved to multicluster package.
 
-// KRMResource DeepCopy methods
+// KRMResource DeepCopy methods.
 
+// DeepCopyInto performs deepcopyinto operation.
 func (kr *KRMResource) DeepCopyInto(out *KRMResource) {
 	*out = *kr
 	if kr.Metadata != nil {
@@ -131,8 +138,9 @@ func (kr *KRMResource) DeepCopyInto(out *KRMResource) {
 	}
 }
 
-// FunctionConfig DeepCopy methods
+// FunctionConfig DeepCopy methods.
 
+// DeepCopyInto performs deepcopyinto operation.
 func (fc *FunctionConfig) DeepCopyInto(out *FunctionConfig) {
 	*out = *fc
 	if fc.ConfigMap != nil {
@@ -153,6 +161,7 @@ func (fc *FunctionConfig) DeepCopyInto(out *FunctionConfig) {
 	}
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (rs *ResourceSelector) DeepCopyInto(out *ResourceSelector) {
 	*out = *rs
 	if rs.Labels != nil {
@@ -163,6 +172,7 @@ func (rs *ResourceSelector) DeepCopyInto(out *ResourceSelector) {
 	}
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (ec *ExecConfig) DeepCopyInto(out *ExecConfig) {
 	*out = *ec
 	if ec.Args != nil {
@@ -177,8 +187,9 @@ func (ec *ExecConfig) DeepCopyInto(out *ExecConfig) {
 	}
 }
 
-// Workflow DeepCopy methods
+// Workflow DeepCopy methods.
 
+// DeepCopy performs deepcopy operation.
 func (w *Workflow) DeepCopy() *Workflow {
 	if w == nil {
 		return nil
@@ -188,6 +199,7 @@ func (w *Workflow) DeepCopy() *Workflow {
 	return out
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (w *Workflow) DeepCopyInto(out *Workflow) {
 	*out = *w
 	out.TypeMeta = w.TypeMeta
@@ -196,6 +208,7 @@ func (w *Workflow) DeepCopyInto(out *Workflow) {
 	w.Status.DeepCopyInto(&out.Status)
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (ws *WorkflowSpec) DeepCopyInto(out *WorkflowSpec) {
 	*out = *ws
 	if ws.Stages != nil {
@@ -224,6 +237,7 @@ func (ws *WorkflowSpec) DeepCopyInto(out *WorkflowSpec) {
 	}
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (ws *WorkflowStatus) DeepCopyInto(out *WorkflowStatus) {
 	*out = *ws
 	if ws.Conditions != nil {
@@ -248,6 +262,7 @@ func (ws *WorkflowStatus) DeepCopyInto(out *WorkflowStatus) {
 	}
 }
 
+// DeepCopy performs deepcopy operation.
 func (wl *WorkflowList) DeepCopy() *WorkflowList {
 	if wl == nil {
 		return nil
@@ -257,6 +272,7 @@ func (wl *WorkflowList) DeepCopy() *WorkflowList {
 	return out
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (wl *WorkflowList) DeepCopyInto(out *WorkflowList) {
 	*out = *wl
 	out.TypeMeta = wl.TypeMeta
@@ -269,8 +285,9 @@ func (wl *WorkflowList) DeepCopyInto(out *WorkflowList) {
 	}
 }
 
-// Supporting types DeepCopy methods
+// Supporting types DeepCopy methods.
 
+// DeepCopyInto performs deepcopyinto operation.
 func (pm *PackageMetadata) DeepCopyInto(out *PackageMetadata) {
 	*out = *pm
 	if pm.Keywords != nil {
@@ -291,6 +308,7 @@ func (pm *PackageMetadata) DeepCopyInto(out *PackageMetadata) {
 	}
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (wl *WorkflowLock) DeepCopyInto(out *WorkflowLock) {
 	*out = *wl
 	if wl.LockedAt != nil {
@@ -299,6 +317,7 @@ func (wl *WorkflowLock) DeepCopyInto(out *WorkflowLock) {
 	}
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (ds *DeploymentStatus) DeepCopyInto(out *DeploymentStatus) {
 	*out = *ds
 	if ds.Conditions != nil {
@@ -323,6 +342,7 @@ func (ds *DeploymentStatus) DeepCopyInto(out *DeploymentStatus) {
 	}
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (dt *DeploymentTarget) DeepCopyInto(out *DeploymentTarget) {
 	*out = *dt
 	if dt.Resources != nil {
@@ -331,6 +351,7 @@ func (dt *DeploymentTarget) DeepCopyInto(out *DeploymentTarget) {
 	}
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (vr *ValidationResult) DeepCopyInto(out *ValidationResult) {
 	*out = *vr
 	if vr.Errors != nil {
@@ -343,6 +364,7 @@ func (vr *ValidationResult) DeepCopyInto(out *ValidationResult) {
 	}
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (rr *RenderResult) DeepCopyInto(out *RenderResult) {
 	*out = *rr
 	if rr.Resources != nil {
@@ -372,6 +394,7 @@ func (rr *RenderResult) DeepCopyInto(out *RenderResult) {
 	}
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (ws *WorkflowStage) DeepCopyInto(out *WorkflowStage) {
 	*out = *ws
 	if ws.Conditions != nil {
@@ -400,6 +423,7 @@ func (ws *WorkflowStage) DeepCopyInto(out *WorkflowStage) {
 	}
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (wt *WorkflowTrigger) DeepCopyInto(out *WorkflowTrigger) {
 	*out = *wt
 	if wt.Condition != nil {
@@ -410,6 +434,7 @@ func (wt *WorkflowTrigger) DeepCopyInto(out *WorkflowTrigger) {
 	}
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (rp *RetryPolicy) DeepCopyInto(out *RetryPolicy) {
 	*out = *rp
 	if rp.BackoffDelay != nil {
@@ -418,6 +443,7 @@ func (rp *RetryPolicy) DeepCopyInto(out *RetryPolicy) {
 	}
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (wc *WorkflowCondition) DeepCopyInto(out *WorkflowCondition) {
 	*out = *wc
 	if wc.Condition != nil {
@@ -428,6 +454,7 @@ func (wc *WorkflowCondition) DeepCopyInto(out *WorkflowCondition) {
 	}
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (wa *WorkflowAction) DeepCopyInto(out *WorkflowAction) {
 	*out = *wa
 	if wa.Config != nil {
@@ -438,6 +465,7 @@ func (wa *WorkflowAction) DeepCopyInto(out *WorkflowAction) {
 	}
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (fa *FailureAction) DeepCopyInto(out *FailureAction) {
 	*out = *fa
 	if fa.Config != nil {
@@ -448,6 +476,7 @@ func (fa *FailureAction) DeepCopyInto(out *FailureAction) {
 	}
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (wr *WorkflowResult) DeepCopyInto(out *WorkflowResult) {
 	*out = *wr
 	if wr.Timestamp != nil {
@@ -462,8 +491,9 @@ func (wr *WorkflowResult) DeepCopyInto(out *WorkflowResult) {
 	}
 }
 
-// Network slice types DeepCopy methods
+// Network slice types DeepCopy methods.
 
+// DeepCopyInto performs deepcopyinto operation.
 func (sr *SliceResources) DeepCopyInto(out *SliceResources) {
 	*out = *sr
 	if sr.CPU != nil {
@@ -484,6 +514,7 @@ func (sr *SliceResources) DeepCopyInto(out *SliceResources) {
 	}
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (lr *LatencyRequirement) DeepCopyInto(out *LatencyRequirement) {
 	*out = *lr
 	if lr.MaxLatency != nil {
@@ -496,6 +527,7 @@ func (lr *LatencyRequirement) DeepCopyInto(out *LatencyRequirement) {
 	}
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (tr *ThroughputRequirement) DeepCopyInto(out *ThroughputRequirement) {
 	*out = *tr
 	if tr.MinDownlink != nil {
@@ -516,6 +548,7 @@ func (tr *ThroughputRequirement) DeepCopyInto(out *ThroughputRequirement) {
 	}
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (ar *AvailabilityRequirement) DeepCopyInto(out *AvailabilityRequirement) {
 	*out = *ar
 	if ar.Downtime != nil {
@@ -524,6 +557,7 @@ func (ar *AvailabilityRequirement) DeepCopyInto(out *AvailabilityRequirement) {
 	}
 }
 
+// DeepCopyInto performs deepcopyinto operation.
 func (rr *ReliabilityRequirement) DeepCopyInto(out *ReliabilityRequirement) {
 	*out = *rr
 	if rr.MeanTimeBetweenFailures != nil {
@@ -536,7 +570,7 @@ func (rr *ReliabilityRequirement) DeepCopyInto(out *ReliabilityRequirement) {
 	}
 }
 
-// deepCopyInterface provides deep copying for interface{} values
+// deepCopyInterface provides deep copying for interface{} values.
 func deepCopyInterface(v interface{}) interface{} {
 	if v == nil {
 		return nil
@@ -558,7 +592,7 @@ func deepCopyInterface(v interface{}) interface{} {
 	case string, int, int32, int64, float32, float64, bool:
 		return val
 	default:
-		// For unknown types, return as-is (this may not be safe for all types)
+		// For unknown types, return as-is (this may not be safe for all types).
 		return val
 	}
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
-// DocumentChunk represents a document chunk for RAG processing (stub type)
+// DocumentChunk represents a document chunk for RAG processing (stub type).
 type DocumentChunk struct {
 	ID             string
 	DocumentID     string
@@ -27,7 +27,7 @@ type DocumentChunk struct {
 }
 
 func main() {
-	// Test DocumentChunk type
+	// Test DocumentChunk type.
 	chunk := &DocumentChunk{
 		ID:             "test_chunk_1",
 		DocumentID:     "test_doc",
@@ -48,7 +48,7 @@ func main() {
 
 	fmt.Printf("DocumentChunk created: ID=%s, Content=%s\n", chunk.ID, chunk.Content)
 
-	// Test SearchQuery type
+	// Test SearchQuery type.
 	query := &shared.SearchQuery{
 		Query:         "test query",
 		Limit:         10,
@@ -65,7 +65,7 @@ func main() {
 	fmt.Printf("SearchQuery created: Query=%s, Limit=%d, TargetVectors=%v\n",
 		query.Query, query.Limit, query.TargetVectors)
 
-	// Test type alias - for now just use shared.SearchQuery directly
+	// Test type alias - for now just use shared.SearchQuery directly.
 	fmt.Printf("SearchQuery works: Query=%s\n", query.Query)
 
 	fmt.Println("✅ All types are working correctly!")

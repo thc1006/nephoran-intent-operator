@@ -1,5 +1,5 @@
-// Package framework provides comprehensive testing infrastructure for Nephoran Intent Operator
-// This includes unit testing, integration testing, load testing, and chaos engineering capabilities
+// Package framework provides comprehensive testing infrastructure for Nephoran Intent Operator.
+// This includes unit testing, integration testing, load testing, and chaos engineering capabilities.
 package framework
 
 import (
@@ -24,64 +24,64 @@ import (
 	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-// TestSuite provides comprehensive testing infrastructure
+// TestSuite provides comprehensive testing infrastructure.
 type TestSuite struct {
 	suite.Suite
 
-	// Environment setup
+	// Environment setup.
 	testEnv   *envtest.Environment
 	cfg       *rest.Config
 	k8sClient client.Client
 
-	// Test context and cancellation
+	// Test context and cancellation.
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	// Test configuration
+	// Test configuration.
 	config *TestConfig
 
-	// Mocking infrastructure
+	// Mocking infrastructure.
 	mocks *MockManager
 
-	// Performance metrics
+	// Performance metrics.
 	metrics *TestMetrics
 
-	// Synchronization
+	// Synchronization.
 	mu sync.RWMutex
 }
 
-// TestConfig holds configuration for test execution
+// TestConfig holds configuration for test execution.
 type TestConfig struct {
-	// Environment settings
+	// Environment settings.
 	UseExistingCluster bool
 	CRDPath            string
 	BinaryAssetsPath   string
 
-	// Test execution settings
+	// Test execution settings.
 	Timeout        time.Duration
 	CleanupTimeout time.Duration
 	ParallelNodes  int
 
-	// Coverage settings
+	// Coverage settings.
 	CoverageEnabled   bool
 	CoverageThreshold float64
 
-	// Load testing settings
+	// Load testing settings.
 	LoadTestEnabled bool
 	MaxConcurrency  int
 	TestDuration    time.Duration
 
-	// Chaos testing settings
+	// Chaos testing settings.
 	ChaosTestEnabled bool
 	FailureRate      float64
 
-	// External services
+	// External services.
 	WeaviateURL      string
 	LLMProviderURL   string
 	MockExternalAPIs bool
 }
 
-// DefaultTestConfig returns a default test configuration
+// DefaultTestConfig returns a default test configuration.
 func DefaultTestConfig() *TestConfig {
 	return &TestConfig{
 		UseExistingCluster: false,
@@ -103,7 +103,7 @@ func DefaultTestConfig() *TestConfig {
 	}
 }
 
-// NewTestSuite creates a new comprehensive test suite
+// NewTestSuite creates a new comprehensive test suite.
 func NewTestSuite(config *TestConfig) *TestSuite {
 	if config == nil {
 		config = DefaultTestConfig()
@@ -120,13 +120,13 @@ func NewTestSuite(config *TestConfig) *TestSuite {
 	}
 }
 
-// SetupSuite initializes the test environment
+// SetupSuite initializes the test environment.
 func (ts *TestSuite) SetupSuite() {
 	logf.SetLogger(crzap.New(crzap.UseDevMode(true)))
 
 	ginkgo.By("Bootstrapping test environment")
 
-	// Setup test environment
+	// Setup test environment.
 	ts.testEnv = &envtest.Environment{
 		CRDDirectoryPaths:     []string{ts.config.CRDPath},
 		ErrorIfCRDPathMissing: true,
@@ -139,96 +139,96 @@ func (ts *TestSuite) SetupSuite() {
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	gomega.Expect(ts.cfg).NotTo(gomega.BeNil())
 
-	// Register our API types
+	// Register our API types.
 	err = nephranv1.AddToScheme(scheme.Scheme)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-	// Create Kubernetes client
+	// Create Kubernetes client.
 	ts.k8sClient, err = client.New(ts.cfg, client.Options{Scheme: scheme.Scheme})
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	gomega.Expect(ts.k8sClient).NotTo(gomega.BeNil())
 
-	// Initialize mocking infrastructure
+	// Initialize mocking infrastructure.
 	ts.mocks.Initialize(ts.config)
 
-	// Setup performance metrics collection
+	// Setup performance metrics collection.
 	ts.metrics.Initialize()
 
 	ginkgo.By("Test environment ready")
 }
 
-// TearDownSuite cleans up the test environment
+// TearDownSuite cleans up the test environment.
 func (ts *TestSuite) TearDownSuite() {
 	ginkgo.By("Tearing down test environment")
 
-	// Cancel context
+	// Cancel context.
 	ts.cancel()
 
-	// Generate test reports
+	// Generate test reports.
 	ts.generateTestReports()
 
-	// Cleanup mocks
+	// Cleanup mocks.
 	ts.mocks.Cleanup()
 
-	// Stop test environment
+	// Stop test environment.
 	err := ts.testEnv.Stop()
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 }
 
-// SetupTest initializes each test case
+// SetupTest initializes each test case.
 func (ts *TestSuite) SetupTest() {
-	// Reset metrics for each test
+	// Reset metrics for each test.
 	ts.metrics.Reset()
 
-	// Reset mocks
+	// Reset mocks.
 	ts.mocks.Reset()
 
-	// Create test-specific context
+	// Create test-specific context.
 	ts.ctx, ts.cancel = context.WithTimeout(context.Background(), ts.config.Timeout)
 }
 
-// TearDownTest cleans up after each test case
+// TearDownTest cleans up after each test case.
 func (ts *TestSuite) TearDownTest() {
-	// Collect test metrics
+	// Collect test metrics.
 	ts.metrics.CollectTestMetrics()
 
-	// Cancel test context
+	// Cancel test context.
 	if ts.cancel != nil {
 		ts.cancel()
 	}
 }
 
-// GetK8sClient returns the Kubernetes client for testing
+// GetK8sClient returns the Kubernetes client for testing.
 func (ts *TestSuite) GetK8sClient() client.Client {
 	return ts.k8sClient
 }
 
-// GetConfig returns the REST config for testing
+// GetConfig returns the REST config for testing.
 func (ts *TestSuite) GetConfig() *rest.Config {
 	return ts.cfg
 }
 
-// GetTestConfig returns the test configuration
+// GetTestConfig returns the test configuration.
 func (ts *TestSuite) GetTestConfig() *TestConfig {
 	return ts.config
 }
 
-// GetContext returns the test context
+// GetContext returns the test context.
 func (ts *TestSuite) GetContext() context.Context {
 	return ts.ctx
 }
 
-// GetMocks returns the mock manager
+// GetMocks returns the mock manager.
 func (ts *TestSuite) GetMocks() *MockManager {
 	return ts.mocks
 }
 
-// GetMetrics returns the test metrics collector
+// GetMetrics returns the test metrics collector.
 func (ts *TestSuite) GetMetrics() *TestMetrics {
 	return ts.metrics
 }
 
-// RunLoadTest executes load testing scenarios
+// RunLoadTest executes load testing scenarios.
 func (ts *TestSuite) RunLoadTest(testFunc func() error) error {
 	if !ts.config.LoadTestEnabled {
 		return nil
@@ -239,7 +239,7 @@ func (ts *TestSuite) RunLoadTest(testFunc func() error) error {
 	return ts.metrics.ExecuteLoadTest(ts.config.MaxConcurrency, ts.config.TestDuration, testFunc)
 }
 
-// RunChaosTest executes chaos engineering scenarios
+// RunChaosTest executes chaos engineering scenarios.
 func (ts *TestSuite) RunChaosTest(testFunc func() error) error {
 	if !ts.config.ChaosTestEnabled {
 		return nil
@@ -250,26 +250,26 @@ func (ts *TestSuite) RunChaosTest(testFunc func() error) error {
 	return ts.mocks.InjectChaos(ts.config.FailureRate, testFunc)
 }
 
-// generateTestReports creates comprehensive test reports
+// generateTestReports creates comprehensive test reports.
 func (ts *TestSuite) generateTestReports() {
 	ginkgo.By("Generating test reports")
 
-	// Generate coverage report
+	// Generate coverage report.
 	if ts.config.CoverageEnabled {
 		ts.generateCoverageReport()
 	}
 
-	// Generate performance report
+	// Generate performance report.
 	ts.metrics.GenerateReport()
 
-	// Generate mock interaction report
+	// Generate mock interaction report.
 	ts.mocks.GenerateReport()
 }
 
-// generateCoverageReport creates a code coverage report
+// generateCoverageReport creates a code coverage report.
 func (ts *TestSuite) generateCoverageReport() {
-	// Implementation for coverage reporting
-	// This would integrate with Go's coverage tools
+	// Implementation for coverage reporting.
+	// This would integrate with Go's coverage tools.
 	coverage := ts.metrics.GetCoveragePercentage()
 
 	if coverage < ts.config.CoverageThreshold {
@@ -279,26 +279,26 @@ func (ts *TestSuite) generateCoverageReport() {
 	fmt.Printf("Code coverage: %.2f%%\n", coverage)
 }
 
-// RunIntegrationTests executes comprehensive integration test scenarios
+// RunIntegrationTests executes comprehensive integration test scenarios.
 func RunIntegrationTests(t *testing.T, config *TestConfig) {
 	if config == nil {
 		config = DefaultTestConfig()
 	}
 
-	// Register Ginkgo fail handler
+	// Register Ginkgo fail handler.
 	gomega.RegisterFailHandler(ginkgo.Fail)
 
-	// Create test suite
+	// Create test suite.
 	testSuite := NewTestSuite(config)
 	_ = testSuite // Use the test suite variable
 
-	// Run Ginkgo tests
+	// Run Ginkgo tests.
 	ginkgo.RunSpecs(t, "Nephoran Intent Operator Integration Test Suite")
 }
 
-// ValidateTestEnvironment ensures the test environment is properly configured
+// ValidateTestEnvironment ensures the test environment is properly configured.
 func (ts *TestSuite) ValidateTestEnvironment() error {
-	// Check if required environment variables are set
+	// Check if required environment variables are set.
 	requiredEnvVars := []string{
 		"KUBEBUILDER_ASSETS",
 	}
@@ -309,7 +309,7 @@ func (ts *TestSuite) ValidateTestEnvironment() error {
 		}
 	}
 
-	// Validate CRD paths exist
+	// Validate CRD paths exist.
 	if _, err := os.Stat(ts.config.CRDPath); os.IsNotExist(err) {
 		return fmt.Errorf("CRD path does not exist: %s", ts.config.CRDPath)
 	}
@@ -317,7 +317,7 @@ func (ts *TestSuite) ValidateTestEnvironment() error {
 	return nil
 }
 
-// GetTestNamespace returns a unique namespace for testing
+// GetTestNamespace returns a unique namespace for testing.
 func (ts *TestSuite) GetTestNamespace() string {
 	return fmt.Sprintf("nephran-test-%d", time.Now().Unix())
 }

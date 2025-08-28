@@ -1,5 +1,5 @@
-// Package reporting provides webhook integration capabilities for automated
-// performance reporting and real-time notifications
+// Package reporting provides webhook integration capabilities for automated.
+// performance reporting and real-time notifications.
 package reporting
 
 import (
@@ -21,39 +21,39 @@ import (
 	"go.uber.org/zap"
 )
 
-// WebhookManager manages webhook integrations for performance reporting
+// WebhookManager manages webhook integrations for performance reporting.
 type WebhookManager struct {
 	logger   *zap.Logger
 	client   *http.Client
 	webhooks map[string]WebhookConfig
 
-	// Metrics
+	// Metrics.
 	webhookRequests prometheus.Counter
 	webhookFailures prometheus.Counter
 	webhookLatency  prometheus.Histogram
 	webhookRetries  prometheus.Counter
 }
 
-// WebhookPayload represents the standard webhook payload structure
+// WebhookPayload represents the standard webhook payload structure.
 type WebhookPayload struct {
-	// Standard fields
+	// Standard fields.
 	EventType   string    `json:"event_type"`
 	Timestamp   time.Time `json:"timestamp"`
 	Source      string    `json:"source"`
 	Environment string    `json:"environment"`
 	Severity    string    `json:"severity"`
 
-	// Performance report data
+	// Performance report data.
 	Report  *PerformanceReport `json:"report,omitempty"`
 	Summary *ExecutiveSummary  `json:"summary,omitempty"`
 	Claims  []ClaimValidation  `json:"claims,omitempty"`
 	Alerts  []AlertInfo        `json:"alerts,omitempty"`
 
-	// Custom data
+	// Custom data.
 	CustomData map[string]interface{} `json:"custom_data,omitempty"`
 }
 
-// SlackPayload represents Slack-specific webhook format
+// SlackPayload represents Slack-specific webhook format.
 type SlackPayload struct {
 	Channel     string            `json:"channel,omitempty"`
 	Username    string            `json:"username,omitempty"`
@@ -62,7 +62,7 @@ type SlackPayload struct {
 	Attachments []SlackAttachment `json:"attachments,omitempty"`
 }
 
-// SlackAttachment represents Slack message attachment
+// SlackAttachment represents Slack message attachment.
 type SlackAttachment struct {
 	Color      string        `json:"color,omitempty"`
 	Title      string        `json:"title,omitempty"`
@@ -74,14 +74,14 @@ type SlackAttachment struct {
 	FooterIcon string        `json:"footer_icon,omitempty"`
 }
 
-// SlackField represents Slack attachment field
+// SlackField represents Slack attachment field.
 type SlackField struct {
 	Title string `json:"title"`
 	Value string `json:"value"`
 	Short bool   `json:"short"`
 }
 
-// SlackAction represents Slack interactive action
+// SlackAction represents Slack interactive action.
 type SlackAction struct {
 	Type  string `json:"type"`
 	Text  string `json:"text"`
@@ -89,7 +89,7 @@ type SlackAction struct {
 	Style string `json:"style,omitempty"`
 }
 
-// TeamsPayload represents Microsoft Teams webhook format
+// TeamsPayload represents Microsoft Teams webhook format.
 type TeamsPayload struct {
 	Type       string         `json:"@type"`
 	Context    string         `json:"@context"`
@@ -99,7 +99,7 @@ type TeamsPayload struct {
 	Actions    []TeamsAction  `json:"potentialAction,omitempty"`
 }
 
-// TeamsSection represents Teams message section
+// TeamsSection represents Teams message section.
 type TeamsSection struct {
 	ActivityTitle    string      `json:"activityTitle,omitempty"`
 	ActivitySubtitle string      `json:"activitySubtitle,omitempty"`
@@ -109,20 +109,20 @@ type TeamsSection struct {
 	Markdown         bool        `json:"markdown,omitempty"`
 }
 
-// TeamsFact represents Teams fact
+// TeamsFact represents Teams fact.
 type TeamsFact struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
 }
 
-// TeamsAction represents Teams action
+// TeamsAction represents Teams action.
 type TeamsAction struct {
 	Type    string              `json:"@type"`
 	Name    string              `json:"name"`
 	Targets []map[string]string `json:"targets,omitempty"`
 }
 
-// PagerDutyPayload represents PagerDuty webhook format
+// PagerDutyPayload represents PagerDuty webhook format.
 type PagerDutyPayload struct {
 	RoutingKey  string                `json:"routing_key"`
 	EventAction string                `json:"event_action"`
@@ -132,7 +132,7 @@ type PagerDutyPayload struct {
 	Images      []PagerDutyImage      `json:"images,omitempty"`
 }
 
-// PagerDutyEventPayload represents PagerDuty event payload
+// PagerDutyEventPayload represents PagerDuty event payload.
 type PagerDutyEventPayload struct {
 	Summary   string                 `json:"summary"`
 	Source    string                 `json:"source"`
@@ -144,20 +144,20 @@ type PagerDutyEventPayload struct {
 	Details   map[string]interface{} `json:"custom_details,omitempty"`
 }
 
-// PagerDutyLink represents PagerDuty link
+// PagerDutyLink represents PagerDuty link.
 type PagerDutyLink struct {
 	Href string `json:"href"`
 	Text string `json:"text"`
 }
 
-// PagerDutyImage represents PagerDuty image
+// PagerDutyImage represents PagerDuty image.
 type PagerDutyImage struct {
 	Src  string `json:"src"`
 	Href string `json:"href,omitempty"`
 	Alt  string `json:"alt,omitempty"`
 }
 
-// WebhookEvent represents different types of webhook events
+// WebhookEvent represents different types of webhook events.
 type WebhookEvent struct {
 	Type       string
 	Report     *PerformanceReport
@@ -166,9 +166,9 @@ type WebhookEvent struct {
 	CustomData map[string]interface{}
 }
 
-// NewWebhookManager creates a new webhook manager
+// NewWebhookManager creates a new webhook manager.
 func NewWebhookManager(logger *zap.Logger, webhooks map[string]WebhookConfig) *WebhookManager {
-	// Initialize metrics
+	// Initialize metrics.
 	webhookRequests := promauto.NewCounter(prometheus.CounterOpts{
 		Name: "nephoran_webhook_requests_total",
 		Help: "Total number of webhook requests sent",
@@ -201,7 +201,7 @@ func NewWebhookManager(logger *zap.Logger, webhooks map[string]WebhookConfig) *W
 	}
 }
 
-// SendPerformanceReport sends performance report to all configured webhooks
+// SendPerformanceReport sends performance report to all configured webhooks.
 func (wm *WebhookManager) SendPerformanceReport(ctx context.Context, report *PerformanceReport) error {
 	event := WebhookEvent{
 		Type:   "performance_report",
@@ -229,7 +229,7 @@ func (wm *WebhookManager) SendPerformanceReport(ctx context.Context, report *Per
 	return nil
 }
 
-// SendAlert sends alert notification to configured webhooks
+// SendAlert sends alert notification to configured webhooks.
 func (wm *WebhookManager) SendAlert(ctx context.Context, alert *AlertInfo) error {
 	event := WebhookEvent{
 		Type:  "alert",
@@ -242,7 +242,7 @@ func (wm *WebhookManager) SendAlert(ctx context.Context, alert *AlertInfo) error
 			continue
 		}
 
-		// Check if webhook should receive alerts
+		// Check if webhook should receive alerts.
 		if !wm.shouldSendAlert(webhook, alert) {
 			continue
 		}
@@ -263,7 +263,7 @@ func (wm *WebhookManager) SendAlert(ctx context.Context, alert *AlertInfo) error
 	return nil
 }
 
-// SendRegressionAlert sends regression detection notification
+// SendRegressionAlert sends regression detection notification.
 func (wm *WebhookManager) SendRegressionAlert(ctx context.Context, regression *RegressionAnalysis) error {
 	if !regression.RegressionDetected {
 		return nil // No regression to report
@@ -295,7 +295,7 @@ func (wm *WebhookManager) SendRegressionAlert(ctx context.Context, regression *R
 	return nil
 }
 
-// sendWebhook sends a webhook with retry logic
+// sendWebhook sends a webhook with retry logic.
 func (wm *WebhookManager) sendWebhook(ctx context.Context, name string, webhook WebhookConfig, event WebhookEvent) error {
 	timer := prometheus.NewTimer(wm.webhookLatency)
 	defer timer.ObserveDuration()
@@ -314,42 +314,42 @@ func (wm *WebhookManager) sendWebhook(ctx context.Context, name string, webhook 
 			case <-ctx.Done():
 				return ctx.Err()
 			case <-time.After(backoff):
-				// Continue with retry
+				// Continue with retry.
 			}
 		}
 
 		wm.webhookRequests.Inc()
 
-		// Create payload based on webhook format
+		// Create payload based on webhook format.
 		payload, contentType, err := wm.createPayload(webhook, event)
 		if err != nil {
 			lastErr = fmt.Errorf("failed to create payload: %w", err)
 			continue
 		}
 
-		// Create HTTP request
+		// Create HTTP request.
 		req, err := http.NewRequestWithContext(ctx, webhook.Method, webhook.URL, bytes.NewReader(payload))
 		if err != nil {
 			lastErr = fmt.Errorf("failed to create request: %w", err)
 			continue
 		}
 
-		// Set headers
+		// Set headers.
 		req.Header.Set("Content-Type", contentType)
 		req.Header.Set("User-Agent", "Nephoran-Performance-Monitor/1.0")
 
-		// Add custom headers
+		// Add custom headers.
 		for key, value := range webhook.Headers {
 			req.Header.Set(key, value)
 		}
 
-		// Add authentication if configured
+		// Add authentication if configured.
 		if err := wm.addAuthentication(req, webhook, payload); err != nil {
 			lastErr = fmt.Errorf("failed to add authentication: %w", err)
 			continue
 		}
 
-		// Send request with timeout
+		// Send request with timeout.
 		client := wm.client
 		if webhook.Timeout > 0 {
 			client = &http.Client{Timeout: webhook.Timeout}
@@ -361,11 +361,11 @@ func (wm *WebhookManager) sendWebhook(ctx context.Context, name string, webhook 
 			continue
 		}
 
-		// Read response
+		// Read response.
 		body, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
 
-		// Check response status
+		// Check response status.
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 			wm.logger.Info("Webhook sent successfully",
 				zap.String("webhook", name),
@@ -387,7 +387,7 @@ func (wm *WebhookManager) sendWebhook(ctx context.Context, name string, webhook 
 	return fmt.Errorf("webhook failed after %d attempts: %w", maxRetries+1, lastErr)
 }
 
-// createPayload creates the appropriate payload format for the webhook
+// createPayload creates the appropriate payload format for the webhook.
 func (wm *WebhookManager) createPayload(webhook WebhookConfig, event WebhookEvent) ([]byte, string, error) {
 	switch strings.ToLower(webhook.Format) {
 	case "slack":
@@ -405,7 +405,7 @@ func (wm *WebhookManager) createPayload(webhook WebhookConfig, event WebhookEven
 	}
 }
 
-// createSlackPayload creates Slack-formatted webhook payload
+// createSlackPayload creates Slack-formatted webhook payload.
 func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event WebhookEvent) ([]byte, string, error) {
 	var payload SlackPayload
 	var color string
@@ -416,7 +416,7 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 			return nil, "", fmt.Errorf("missing performance report")
 		}
 
-		// Determine color based on performance score
+		// Determine color based on performance score.
 		score := event.Report.ExecutiveSummary.OverallScore
 		if score >= 90 {
 			color = "good"
@@ -471,7 +471,7 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 			},
 		}
 
-		// Add performance claims status
+		// Add performance claims status.
 		if len(event.Report.PerformanceClaims) > 0 {
 			claimsText := "*Performance Claims Status:*\n"
 			for _, claim := range event.Report.PerformanceClaims {
@@ -495,7 +495,7 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 			return nil, "", fmt.Errorf("missing alert")
 		}
 
-		// Determine color based on severity
+		// Determine color based on severity.
 		switch strings.ToLower(event.Alert.Severity) {
 		case "critical":
 			color = "danger"
@@ -577,7 +577,7 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 			},
 		}
 
-		// Add performance changes
+		// Add performance changes.
 		if len(event.Regression.PerformanceChange) > 0 {
 			changesText := "*Performance Changes:*\n"
 			for metric, change := range event.Regression.PerformanceChange {
@@ -595,7 +595,7 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 	return data, "application/json", nil
 }
 
-// createTeamsPayload creates Microsoft Teams webhook payload
+// createTeamsPayload creates Microsoft Teams webhook payload.
 func (wm *WebhookManager) createTeamsPayload(webhook WebhookConfig, event WebhookEvent) ([]byte, string, error) {
 	var payload TeamsPayload
 	var themeColor string
@@ -744,11 +744,11 @@ func (wm *WebhookManager) createTeamsPayload(webhook WebhookConfig, event Webhoo
 	return data, "application/json", nil
 }
 
-// createPagerDutyPayload creates PagerDuty webhook payload
+// createPagerDutyPayload creates PagerDuty webhook payload.
 func (wm *WebhookManager) createPagerDutyPayload(webhook WebhookConfig, event WebhookEvent) ([]byte, string, error) {
 	var payload PagerDutyPayload
 
-	// PagerDuty routing key should be in webhook headers or config
+	// PagerDuty routing key should be in webhook headers or config.
 	routingKey, ok := webhook.Headers["X-Routing-Key"]
 	if !ok {
 		return nil, "", fmt.Errorf("PagerDuty routing key not configured")
@@ -760,7 +760,7 @@ func (wm *WebhookManager) createPagerDutyPayload(webhook WebhookConfig, event We
 			return nil, "", fmt.Errorf("missing alert")
 		}
 
-		// Map severity levels
+		// Map severity levels.
 		severity := "info"
 		switch strings.ToLower(event.Alert.Severity) {
 		case "critical":
@@ -841,7 +841,7 @@ func (wm *WebhookManager) createPagerDutyPayload(webhook WebhookConfig, event We
 	return data, "application/json", nil
 }
 
-// createJSONPayload creates standard JSON webhook payload
+// createJSONPayload creates standard JSON webhook payload.
 func (wm *WebhookManager) createJSONPayload(webhook WebhookConfig, event WebhookEvent) ([]byte, string, error) {
 	payload := WebhookPayload{
 		EventType:   event.Type,
@@ -852,7 +852,7 @@ func (wm *WebhookManager) createJSONPayload(webhook WebhookConfig, event Webhook
 		CustomData:  event.CustomData,
 	}
 
-	// Set severity based on event type
+	// Set severity based on event type.
 	switch event.Type {
 	case "alert":
 		if event.Alert != nil {
@@ -889,18 +889,18 @@ func (wm *WebhookManager) createJSONPayload(webhook WebhookConfig, event Webhook
 	return data, "application/json", nil
 }
 
-// createCustomPayload creates custom webhook payload using templates
+// createCustomPayload creates custom webhook payload using templates.
 func (wm *WebhookManager) createCustomPayload(webhook WebhookConfig, event WebhookEvent) ([]byte, string, error) {
 	templateName := webhook.Templates[event.Type]
 	if templateName == "" {
 		return nil, "", fmt.Errorf("no template configured for event type: %s", event.Type)
 	}
 
-	// Load and execute template
+	// Load and execute template.
 	tmpl := template.New(templateName)
 
-	// TODO: Load template content from file or configuration
-	// This would typically load from a template file or configuration
+	// TODO: Load template content from file or configuration.
+	// This would typically load from a template file or configuration.
 	templateContent := `{
 		"event": "{{ .Type }}",
 		"timestamp": "{{ .Timestamp }}",
@@ -928,9 +928,9 @@ func (wm *WebhookManager) createCustomPayload(webhook WebhookConfig, event Webho
 	return buf.Bytes(), "application/json", nil
 }
 
-// addAuthentication adds authentication to the webhook request
+// addAuthentication adds authentication to the webhook request.
 func (wm *WebhookManager) addAuthentication(req *http.Request, webhook WebhookConfig, payload []byte) error {
-	// HMAC signature for webhook verification
+	// HMAC signature for webhook verification.
 	if secret, ok := webhook.Headers["X-Webhook-Secret"]; ok && secret != "" {
 		h := hmac.New(sha256.New, []byte(secret))
 		h.Write(payload)
@@ -938,7 +938,7 @@ func (wm *WebhookManager) addAuthentication(req *http.Request, webhook WebhookCo
 		req.Header.Set("X-Hub-Signature-256", signature)
 	}
 
-	// Bearer token authentication
+	// Bearer token authentication.
 	if token, ok := webhook.Headers["Authorization"]; ok && token != "" {
 		if !strings.HasPrefix(token, "Bearer ") {
 			token = "Bearer " + token
@@ -946,7 +946,7 @@ func (wm *WebhookManager) addAuthentication(req *http.Request, webhook WebhookCo
 		req.Header.Set("Authorization", token)
 	}
 
-	// API key authentication
+	// API key authentication.
 	if apiKey, ok := webhook.Headers["X-API-Key"]; ok && apiKey != "" {
 		req.Header.Set("X-API-Key", apiKey)
 	}
@@ -954,9 +954,9 @@ func (wm *WebhookManager) addAuthentication(req *http.Request, webhook WebhookCo
 	return nil
 }
 
-// shouldSendAlert determines if an alert should be sent to a specific webhook
+// shouldSendAlert determines if an alert should be sent to a specific webhook.
 func (wm *WebhookManager) shouldSendAlert(webhook WebhookConfig, alert *AlertInfo) bool {
-	// Check severity filter
+	// Check severity filter.
 	if severityFilter, ok := webhook.Headers["X-Min-Severity"]; ok {
 		minSeverity := parseSeverity(severityFilter)
 		alertSeverity := parseSeverity(alert.Severity)
@@ -965,7 +965,7 @@ func (wm *WebhookManager) shouldSendAlert(webhook WebhookConfig, alert *AlertInf
 		}
 	}
 
-	// Check component filter
+	// Check component filter.
 	if componentFilter, ok := webhook.Headers["X-Component-Filter"]; ok {
 		components := strings.Split(componentFilter, ",")
 		found := false
@@ -983,7 +983,7 @@ func (wm *WebhookManager) shouldSendAlert(webhook WebhookConfig, alert *AlertInf
 	return true
 }
 
-// parseSeverity converts severity string to numeric value for comparison
+// parseSeverity converts severity string to numeric value for comparison.
 func parseSeverity(severity string) int {
 	switch strings.ToLower(strings.TrimSpace(severity)) {
 	case "critical":

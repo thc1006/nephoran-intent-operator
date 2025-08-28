@@ -11,7 +11,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 )
 
-// LLMProcessorService manages the lifecycle of LLM processor components
+// LLMProcessorService manages the lifecycle of LLM processor components.
 type LLMProcessorService struct {
 	config             *config.LLMProcessorConfig
 	secretManager      *config.SecretManager
@@ -26,7 +26,7 @@ type LLMProcessorService struct {
 	healthChecker      *health.HealthChecker
 }
 
-// NewLLMProcessorService creates a new service instance
+// NewLLMProcessorService creates a new service instance.
 func NewLLMProcessorService(config *config.LLMProcessorConfig, logger *slog.Logger) *LLMProcessorService {
 	return &LLMProcessorService{
 		config: config,
@@ -34,31 +34,31 @@ func NewLLMProcessorService(config *config.LLMProcessorConfig, logger *slog.Logg
 	}
 }
 
-// Initialize initializes all components of the LLM processor service
+// Initialize initializes all components of the LLM processor service.
 func (s *LLMProcessorService) Initialize(ctx context.Context) error {
 	s.logger.Info("Initializing LLM Processor service components")
 
-	// Initialize secret manager if enabled
+	// Initialize secret manager if enabled.
 	if err := s.initializeSecretManager(); err != nil {
 		return fmt.Errorf("failed to initialize secret manager: %w", err)
 	}
 
-	// Initialize health checker
+	// Initialize health checker.
 	s.healthChecker = health.NewHealthChecker("llm-processor", s.config.ServiceVersion, s.logger)
 
-	// Initialize core components
+	// Initialize core components.
 	if err := s.initializeLLMComponents(ctx); err != nil {
 		return fmt.Errorf("failed to initialize LLM components: %w", err)
 	}
 
-	// Register health checks
+	// Register health checks.
 	s.registerHealthChecks()
 
 	s.logger.Info("LLM Processor service components initialized successfully")
 	return nil
 }
 
-// initializeSecretManager initializes the Kubernetes secret manager if enabled
+// initializeSecretManager initializes the Kubernetes secret manager if enabled.
 func (s *LLMProcessorService) initializeSecretManager() error {
 	if s.config.UseKubernetesSecrets {
 		var err error
@@ -74,33 +74,33 @@ func (s *LLMProcessorService) initializeSecretManager() error {
 	return nil
 }
 
-// initializeLLMComponents initializes all LLM-related components
+// initializeLLMComponents initializes all LLM-related components.
 func (s *LLMProcessorService) initializeLLMComponents(ctx context.Context) error {
-	// Initialize token manager
+	// Initialize token manager.
 	s.tokenManager = llm.NewTokenManager()
 
-	// Initialize circuit breaker manager
+	// Initialize circuit breaker manager.
 	s.circuitBreakerMgr = llm.NewCircuitBreakerManager(nil)
 
-	// Load API keys securely
+	// Load API keys securely.
 	apiKeys, err := s.loadSecureAPIKeys(ctx)
 	if err != nil {
 		s.logger.Error("Failed to load API keys", slog.String("error", err.Error()))
 		return fmt.Errorf("failed to load API keys: %w", err)
 	}
 
-	// Use the secure API key for LLM client
+	// Use the secure API key for LLM client.
 	apiKey := apiKeys.OpenAI
 	if apiKey == "" {
 		apiKey = s.config.LLMAPIKey // fallback to config
 	}
 
-	// Validate configuration before creating client
+	// Validate configuration before creating client.
 	if err := s.validateLLMConfig(apiKey); err != nil {
 		return fmt.Errorf("LLM configuration validation failed: %w", err)
 	}
 
-	// Create LLM client configuration
+	// Create LLM client configuration.
 	clientConfig := llm.ClientConfig{
 		APIKey:      apiKey,
 		ModelName:   s.config.LLMModelName,
@@ -109,36 +109,36 @@ func (s *LLMProcessorService) initializeLLMComponents(ctx context.Context) error
 		Timeout:     s.config.LLMTimeout,
 	}
 
-	// Create base LLM client
+	// Create base LLM client.
 	llmClient := llm.NewClientWithConfig(s.config.RAGAPIURL, clientConfig)
 	if llmClient == nil {
 		return fmt.Errorf("failed to create LLM client - nil client returned")
 	}
 
-	// Initialize relevance scorer stub
+	// Initialize relevance scorer stub.
 	s.relevanceScorer = llm.NewRelevanceScorerStub()
 
-	// Initialize context builder if enabled
+	// Initialize context builder if enabled.
 	if s.config.EnableContextBuilder {
 		s.contextBuilder = llm.NewContextBuilderStub()
 	}
 
-	// Initialize prompt builder
+	// Initialize prompt builder.
 	s.promptBuilder = llm.NewRAGAwarePromptBuilder(s.tokenManager, nil)
 
-	// Initialize RAG-enhanced processor if enabled (stubbed)
+	// Initialize RAG-enhanced processor if enabled (stubbed).
 	var ragEnhanced interface{} = nil // Stubbed
 	if s.config.RAGEnabled {
-		// ragEnhanced = llm.NewRAGEnhancedProcessor(llmClient, nil, nil, nil) // Stubbed
+		// ragEnhanced = llm.NewRAGEnhancedProcessor(llmClient, nil, nil, nil) // Stubbed.
 	}
 
-	// Initialize streaming processor if enabled
+	// Initialize streaming processor if enabled.
 	if s.config.StreamingEnabled {
-		// StreamingConfig doesn't exist, use basic streaming processor
+		// StreamingConfig doesn't exist, use basic streaming processor.
 		s.streamingProcessor = llm.NewStreamingProcessor()
 	}
 
-	// Initialize main processor with circuit breaker
+	// Initialize main processor with circuit breaker.
 	circuitBreaker := s.circuitBreakerMgr.GetOrCreate("llm-processor", nil)
 	s.processor = &handlers.IntentProcessor{
 		LLMClient:         llmClient,
@@ -150,7 +150,7 @@ func (s *LLMProcessorService) initializeLLMComponents(ctx context.Context) error
 	return nil
 }
 
-// validateLLMConfig validates the LLM configuration
+// validateLLMConfig validates the LLM configuration.
 func (s *LLMProcessorService) validateLLMConfig(apiKey string) error {
 	if apiKey == "" && s.config.LLMBackendType != "mock" && s.config.LLMBackendType != "rag" {
 		return fmt.Errorf("API Key is required for non-mock/non-rag backends")
@@ -170,9 +170,9 @@ func (s *LLMProcessorService) validateLLMConfig(apiKey string) error {
 	return nil
 }
 
-// loadSecureAPIKeys loads API keys from files, Kubernetes secrets, or environment variables
+// loadSecureAPIKeys loads API keys from files, Kubernetes secrets, or environment variables.
 func (s *LLMProcessorService) loadSecureAPIKeys(ctx context.Context) (*config.APIKeys, error) {
-	// Try file-based secrets first
+	// Try file-based secrets first.
 	fileAPIKeys, err := config.LoadFileBasedAPIKeysWithValidation()
 	if err == nil && !fileAPIKeys.IsEmpty() {
 		s.logger.Info("Loaded API keys from files")
@@ -182,7 +182,7 @@ func (s *LLMProcessorService) loadSecureAPIKeys(ctx context.Context) (*config.AP
 		s.logger.Info("Failed to load API keys from files", "error", err.Error())
 	}
 
-	// If file loading failed or returned empty keys, try Kubernetes secrets
+	// If file loading failed or returned empty keys, try Kubernetes secrets.
 	if s.secretManager != nil {
 		k8sAPIKeys, err := s.secretManager.GetAPIKeys(ctx)
 		if err == nil && !k8sAPIKeys.IsEmpty() {
@@ -191,7 +191,7 @@ func (s *LLMProcessorService) loadSecureAPIKeys(ctx context.Context) (*config.AP
 		}
 	}
 
-	// Fall back to environment variables as last resort
+	// Fall back to environment variables as last resort.
 	s.logger.Info("Falling back to environment variables for API keys")
 	return &config.APIKeys{
 		OpenAI:    config.GetEnvOrDefault("OPENAI_API_KEY", ""),
@@ -201,9 +201,9 @@ func (s *LLMProcessorService) loadSecureAPIKeys(ctx context.Context) (*config.AP
 	}, nil
 }
 
-// registerHealthChecks registers all health checks for the service
+// registerHealthChecks registers all health checks for the service.
 func (s *LLMProcessorService) registerHealthChecks() {
-	// Internal service health checks
+	// Internal service health checks.
 	s.healthChecker.RegisterCheck("service_status", func(ctx context.Context) *health.Check {
 		return &health.Check{
 			Status:  health.StatusHealthy,
@@ -211,7 +211,7 @@ func (s *LLMProcessorService) registerHealthChecks() {
 		}
 	})
 
-	// Circuit breaker health check
+	// Circuit breaker health check.
 	if s.circuitBreakerMgr != nil {
 		s.healthChecker.RegisterCheck("circuit_breaker", func(ctx context.Context) *health.Check {
 			stats := s.circuitBreakerMgr.GetAllStats()
@@ -222,8 +222,8 @@ func (s *LLMProcessorService) registerHealthChecks() {
 				}
 			}
 
-			// Check if any circuit breakers are open
-			// Preallocate slice with expected capacity for performance
+			// Check if any circuit breakers are open.
+			// Preallocate slice with expected capacity for performance.
 			openBreakers := make([]string, 0, len(stats))
 			for name, cbStats := range stats {
 				if cbMap, ok := cbStats.(map[string]interface{}); ok {
@@ -247,7 +247,7 @@ func (s *LLMProcessorService) registerHealthChecks() {
 		})
 	}
 
-	// Token manager health check
+	// Token manager health check.
 	if s.tokenManager != nil {
 		s.healthChecker.RegisterCheck("token_manager", func(ctx context.Context) *health.Check {
 			models := s.tokenManager.GetSupportedModels()
@@ -261,7 +261,7 @@ func (s *LLMProcessorService) registerHealthChecks() {
 		})
 	}
 
-	// Streaming processor health check
+	// Streaming processor health check.
 	if s.streamingProcessor != nil {
 		s.healthChecker.RegisterCheck("streaming_processor", func(ctx context.Context) *health.Check {
 			metrics := s.streamingProcessor.GetMetrics()
@@ -273,7 +273,7 @@ func (s *LLMProcessorService) registerHealthChecks() {
 		})
 	}
 
-	// RAG API dependency check with smart endpoint detection
+	// RAG API dependency check with smart endpoint detection.
 	if s.config.RAGEnabled && s.config.RAGAPIURL != "" {
 		_, healthEndpoint := s.config.GetEffectiveRAGEndpoints()
 		s.healthChecker.RegisterDependency("rag_api", health.HTTPCheck("rag_api", healthEndpoint))
@@ -282,7 +282,7 @@ func (s *LLMProcessorService) registerHealthChecks() {
 	s.logger.Info("Health checks registered")
 }
 
-// GetComponents returns the initialized components
+// GetComponents returns the initialized components.
 func (s *LLMProcessorService) GetComponents() (
 	*handlers.IntentProcessor,
 	*llm.StreamingProcessorStub,
@@ -297,23 +297,23 @@ func (s *LLMProcessorService) GetComponents() (
 		s.contextBuilder, s.relevanceScorer, s.promptBuilder, s.healthChecker
 }
 
-// Shutdown gracefully shuts down the service
+// Shutdown gracefully shuts down the service.
 func (s *LLMProcessorService) Shutdown(ctx context.Context) error {
 	s.logger.Info("Shutting down LLM Processor service")
 
-	// Mark service as not ready
+	// Mark service as not ready.
 	if s.healthChecker != nil {
 		s.healthChecker.SetReady(false)
 	}
 
-	// Shutdown streaming processor if enabled
+	// Shutdown streaming processor if enabled.
 	if s.streamingProcessor != nil {
 		if err := s.streamingProcessor.Shutdown(ctx); err != nil {
 			s.logger.Error("Failed to shutdown streaming processor", slog.String("error", err.Error()))
 		}
 	}
 
-	// Close circuit breakers
+	// Close circuit breakers.
 	if s.circuitBreakerMgr != nil {
 		s.circuitBreakerMgr.Shutdown()
 	}
@@ -322,4 +322,4 @@ func (s *LLMProcessorService) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// Note: Helper functions have been moved to pkg/config/env_helpers.go
+// Note: Helper functions have been moved to pkg/config/env_helpers.go.

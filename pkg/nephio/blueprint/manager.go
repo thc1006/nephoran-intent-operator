@@ -34,29 +34,38 @@ import (
 )
 
 const (
-	// Blueprint lifecycle phases
-	BlueprintPhasePending    = "Pending"
+	// Blueprint lifecycle phases.
+	BlueprintPhasePending = "Pending"
+	// BlueprintPhaseProcessing holds blueprintphaseprocessing value.
 	BlueprintPhaseProcessing = "Processing"
-	BlueprintPhaseReady      = "Ready"
-	BlueprintPhaseFailed     = "Failed"
+	// BlueprintPhaseReady holds blueprintphaseready value.
+	BlueprintPhaseReady = "Ready"
+	// BlueprintPhaseFailed holds blueprintphasefailed value.
+	BlueprintPhaseFailed = "Failed"
+	// BlueprintPhaseDeprecated holds blueprintphasedeprecated value.
 	BlueprintPhaseDeprecated = "Deprecated"
 
-	// Cache TTL for blueprint templates
+	// Cache TTL for blueprint templates.
 	DefaultCacheTTL = 15 * time.Minute
 
-	// Max concurrent blueprint operations
+	// Max concurrent blueprint operations.
 	DefaultMaxConcurrency = 50
 
-	// Blueprint metadata annotations
-	AnnotationBlueprintVersion   = "nephoran.com/blueprint-version"
-	AnnotationBlueprintType      = "nephoran.com/blueprint-type"
+	// Blueprint metadata annotations.
+	AnnotationBlueprintVersion = "nephoran.com/blueprint-version"
+	// AnnotationBlueprintType holds annotationblueprinttype value.
+	AnnotationBlueprintType = "nephoran.com/blueprint-type"
+	// AnnotationBlueprintComponent holds annotationblueprintcomponent value.
 	AnnotationBlueprintComponent = "nephoran.com/blueprint-component"
+	// AnnotationBlueprintGenerated holds annotationblueprintgenerated value.
 	AnnotationBlueprintGenerated = "nephoran.com/blueprint-generated"
-	AnnotationIntentID           = "nephoran.com/intent-id"
-	AnnotationORANCompliant      = "nephoran.com/oran-compliant"
+	// AnnotationIntentID holds annotationintentid value.
+	AnnotationIntentID = "nephoran.com/intent-id"
+	// AnnotationORANCompliant holds annotationorancompliant value.
+	AnnotationORANCompliant = "nephoran.com/oran-compliant"
 )
 
-// PackageRevision represents a simplified Nephio package revision
+// PackageRevision represents a simplified Nephio package revision.
 type PackageRevision struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -64,6 +73,7 @@ type PackageRevision struct {
 	Spec PackageRevisionSpec `json:"spec,omitempty"`
 }
 
+// PackageRevisionSpec represents a packagerevisionspec.
 type PackageRevisionSpec struct {
 	PackageName   string            `json:"packageName"`
 	WorkspaceName WorkspaceName     `json:"workspaceName"`
@@ -71,53 +81,57 @@ type PackageRevisionSpec struct {
 	Resources     map[string]string `json:"resources,omitempty"`
 }
 
+// WorkspaceName represents a workspacename.
 type WorkspaceName struct {
 	Name      string `json:"name"`
 	Namespace string `json:"namespace"`
 }
 
+// Task represents a task.
 type Task struct {
 	Type string               `json:"type"`
 	Init *PackageInitTaskSpec `json:"init,omitempty"`
 }
 
+// PackageInitTaskSpec represents a packageinittaskspec.
 type PackageInitTaskSpec struct {
 	Description string `json:"description"`
 }
 
 const (
+	// TaskTypeInit holds tasktypeinit value.
 	TaskTypeInit = "init"
 )
 
-// BlueprintMetrics contains Prometheus metrics for blueprint operations
+// BlueprintMetrics contains Prometheus metrics for blueprint operations.
 type BlueprintMetrics struct {
-	// Blueprint generation metrics
+	// Blueprint generation metrics.
 	GenerationDuration prometheus.Histogram
 	GenerationTotal    prometheus.Counter
 	GenerationErrors   prometheus.Counter
 
-	// Template metrics
+	// Template metrics.
 	TemplateHits   prometheus.Counter
 	TemplateMisses prometheus.Counter
 	TemplateErrors prometheus.Counter
 
-	// Validation metrics
+	// Validation metrics.
 	ValidationDuration prometheus.Histogram
 	ValidationTotal    prometheus.Counter
 	ValidationErrors   prometheus.Counter
 
-	// Cache metrics
+	// Cache metrics.
 	CacheSize      prometheus.Gauge
 	CacheHitRatio  prometheus.Gauge
 	CacheEvictions prometheus.Counter
 
-	// Performance metrics
+	// Performance metrics.
 	ConcurrentOperations prometheus.Gauge
 	QueueDepth           prometheus.Gauge
 	ProcessingLatency    prometheus.Histogram
 }
 
-// NewBlueprintMetrics creates new blueprint metrics
+// NewBlueprintMetrics creates new blueprint metrics.
 func NewBlueprintMetrics() *BlueprintMetrics {
 	return &BlueprintMetrics{
 		GenerationDuration: promauto.NewHistogram(prometheus.HistogramOpts{
@@ -186,37 +200,37 @@ func NewBlueprintMetrics() *BlueprintMetrics {
 	}
 }
 
-// BlueprintConfig contains configuration for the blueprint manager
+// BlueprintConfig contains configuration for the blueprint manager.
 type BlueprintConfig struct {
-	// PorchEndpoint is the Nephio Porch API endpoint
+	// PorchEndpoint is the Nephio Porch API endpoint.
 	PorchEndpoint string
 
-	// LLMEndpoint is the LLM processor service endpoint
+	// LLMEndpoint is the LLM processor service endpoint.
 	LLMEndpoint string
 
-	// RAGEndpoint is the RAG API service endpoint
+	// RAGEndpoint is the RAG API service endpoint.
 	RAGEndpoint string
 
-	// CacheTTL is the cache TTL for blueprint templates
+	// CacheTTL is the cache TTL for blueprint templates.
 	CacheTTL time.Duration
 
-	// MaxConcurrency is the maximum number of concurrent blueprint operations
+	// MaxConcurrency is the maximum number of concurrent blueprint operations.
 	MaxConcurrency int
 
-	// EnableValidation enables comprehensive blueprint validation
+	// EnableValidation enables comprehensive blueprint validation.
 	EnableValidation bool
 
-	// EnableORANCompliance enables O-RAN compliance checking
+	// EnableORANCompliance enables O-RAN compliance checking.
 	EnableORANCompliance bool
 
-	// TemplateRepository is the Git repository for blueprint templates
+	// TemplateRepository is the Git repository for blueprint templates.
 	TemplateRepository string
 
-	// DefaultNamespace is the default namespace for blueprint operations
+	// DefaultNamespace is the default namespace for blueprint operations.
 	DefaultNamespace string
 }
 
-// DefaultBlueprintConfig returns default configuration
+// DefaultBlueprintConfig returns default configuration.
 func DefaultBlueprintConfig() *BlueprintConfig {
 	return &BlueprintConfig{
 		PorchEndpoint:        "http://porch-server.porch-system.svc.cluster.local:9080",
@@ -231,7 +245,7 @@ func DefaultBlueprintConfig() *BlueprintConfig {
 	}
 }
 
-// BlueprintOperation represents a blueprint operation request
+// BlueprintOperation represents a blueprint operation request.
 type BlueprintOperation struct {
 	ID        string
 	Intent    *v1.NetworkIntent
@@ -242,7 +256,7 @@ type BlueprintOperation struct {
 	Callback  func(*BlueprintResult)
 }
 
-// BlueprintResult represents the result of a blueprint operation
+// BlueprintResult represents the result of a blueprint operation.
 type BlueprintResult struct {
 	Operation         *BlueprintOperation
 	Success           bool
@@ -254,42 +268,42 @@ type BlueprintResult struct {
 	Duration          time.Duration
 }
 
-// SimpleValidationResult represents validation results (simplified)
+// SimpleValidationResult represents validation results (simplified).
 type SimpleValidationResult struct {
 	IsValid bool     `json:"isValid"`
 	Errors  []string `json:"errors,omitempty"`
 }
 
-// Manager handles blueprint lifecycle operations and orchestration
+// Manager handles blueprint lifecycle operations and orchestration.
 type Manager struct {
-	// Core dependencies
+	// Core dependencies.
 	client    client.Client
 	k8sClient kubernetes.Interface
 	config    *BlueprintConfig
 	logger    *zap.Logger
 	metrics   *BlueprintMetrics
 
-	// Components
+	// Components.
 	catalog    *Catalog
 	generator  *Generator
 	customizer *Customizer
 	validator  *Validator
 
-	// Operation management
+	// Operation management.
 	operationQueue chan *BlueprintOperation
 	semaphore      chan struct{}
 	wg             sync.WaitGroup
 	ctx            context.Context
 	cancel         context.CancelFunc
 
-	// Cache and state
+	// Cache and state.
 	cache           sync.Map
 	healthStatus    map[string]bool
 	healthMutex     sync.RWMutex
 	lastHealthCheck time.Time
 }
 
-// NewManager creates a new blueprint manager
+// NewManager creates a new blueprint manager.
 func NewManager(mgr manager.Manager, config *BlueprintConfig, logger *zap.Logger) (*Manager, error) {
 	if config == nil {
 		config = DefaultBlueprintConfig()
@@ -319,13 +333,13 @@ func NewManager(mgr manager.Manager, config *BlueprintConfig, logger *zap.Logger
 		healthStatus:   make(map[string]bool),
 	}
 
-	// Initialize components
+	// Initialize components.
 	if err := m.initializeComponents(); err != nil {
 		cancel()
 		return nil, fmt.Errorf("failed to initialize components: %w", err)
 	}
 
-	// Start background workers
+	// Start background workers.
 	m.startWorkers()
 
 	logger.Info("Blueprint manager initialized successfully",
@@ -337,29 +351,29 @@ func NewManager(mgr manager.Manager, config *BlueprintConfig, logger *zap.Logger
 	return m, nil
 }
 
-// initializeComponents initializes all blueprint manager components
+// initializeComponents initializes all blueprint manager components.
 func (m *Manager) initializeComponents() error {
 	var err error
 
-	// Initialize catalog
+	// Initialize catalog.
 	m.catalog, err = NewCatalog(m.config, m.logger.Named("catalog"))
 	if err != nil {
 		return fmt.Errorf("failed to initialize catalog: %w", err)
 	}
 
-	// Initialize generator
+	// Initialize generator.
 	m.generator, err = NewGenerator(m.config, m.logger.Named("generator"))
 	if err != nil {
 		return fmt.Errorf("failed to initialize generator: %w", err)
 	}
 
-	// Initialize customizer
+	// Initialize customizer.
 	m.customizer, err = NewCustomizer(m.config, m.logger.Named("customizer"))
 	if err != nil {
 		return fmt.Errorf("failed to initialize customizer: %w", err)
 	}
 
-	// Initialize validator if enabled
+	// Initialize validator if enabled.
 	if m.config.EnableValidation {
 		m.validator, err = NewValidator(m.config, m.logger.Named("validator"))
 		if err != nil {
@@ -370,28 +384,28 @@ func (m *Manager) initializeComponents() error {
 	return nil
 }
 
-// startWorkers starts background worker goroutines
+// startWorkers starts background worker goroutines.
 func (m *Manager) startWorkers() {
-	// Start operation processor workers
+	// Start operation processor workers.
 	for i := 0; i < m.config.MaxConcurrency/2; i++ {
 		m.wg.Add(1)
 		go m.operationWorker()
 	}
 
-	// Start health check worker
+	// Start health check worker.
 	m.wg.Add(1)
 	go m.healthCheckWorker()
 
-	// Start metrics updater
+	// Start metrics updater.
 	m.wg.Add(1)
 	go m.metricsWorker()
 
-	// Start cache cleanup worker
+	// Start cache cleanup worker.
 	m.wg.Add(1)
 	go m.cacheCleanupWorker()
 }
 
-// ProcessNetworkIntent processes a NetworkIntent and generates blueprint packages
+// ProcessNetworkIntent processes a NetworkIntent and generates blueprint packages.
 func (m *Manager) ProcessNetworkIntent(ctx context.Context, intent *v1.NetworkIntent) (*BlueprintResult, error) {
 	startTime := time.Now()
 	m.metrics.GenerationTotal.Inc()
@@ -409,7 +423,7 @@ func (m *Manager) ProcessNetworkIntent(ctx context.Context, intent *v1.NetworkIn
 		zap.String("intent_type", string(intent.Spec.IntentType)),
 		zap.String("priority", string(intent.Spec.Priority)))
 
-	// Create operation context
+	// Create operation context.
 	operation := &BlueprintOperation{
 		ID:        fmt.Sprintf("%s-%d", intent.Name, time.Now().UnixNano()),
 		Intent:    intent,
@@ -419,7 +433,7 @@ func (m *Manager) ProcessNetworkIntent(ctx context.Context, intent *v1.NetworkIn
 		StartTime: startTime,
 	}
 
-	// Process operation synchronously for immediate response
+	// Process operation synchronously for immediate response.
 	result := m.processOperationSync(operation)
 
 	if result.Error != nil {
@@ -437,7 +451,7 @@ func (m *Manager) ProcessNetworkIntent(ctx context.Context, intent *v1.NetworkIn
 	return result, result.Error
 }
 
-// processOperationSync processes a blueprint operation synchronously
+// processOperationSync processes a blueprint operation synchronously.
 func (m *Manager) processOperationSync(operation *BlueprintOperation) *BlueprintResult {
 	result := &BlueprintResult{
 		Operation: operation,
@@ -447,7 +461,7 @@ func (m *Manager) processOperationSync(operation *BlueprintOperation) *Blueprint
 		result.Duration = time.Since(operation.StartTime)
 	}()
 
-	// Step 1: Generate blueprint from NetworkIntent
+	// Step 1: Generate blueprint from NetworkIntent.
 	generatedFiles, err := m.generator.GenerateFromNetworkIntent(operation.Context, operation.Intent)
 	if err != nil {
 		result.Error = fmt.Errorf("blueprint generation failed: %w", err)
@@ -455,7 +469,7 @@ func (m *Manager) processOperationSync(operation *BlueprintOperation) *Blueprint
 	}
 	result.GeneratedFiles = generatedFiles
 
-	// Step 2: Customize blueprint based on intent parameters
+	// Step 2: Customize blueprint based on intent parameters.
 	customizedFiles, err := m.customizer.CustomizeBlueprint(operation.Context, operation.Intent, generatedFiles)
 	if err != nil {
 		result.Error = fmt.Errorf("blueprint customization failed: %w", err)
@@ -463,14 +477,14 @@ func (m *Manager) processOperationSync(operation *BlueprintOperation) *Blueprint
 	}
 	result.GeneratedFiles = customizedFiles
 
-	// Step 3: Validate blueprint if validation is enabled
+	// Step 3: Validate blueprint if validation is enabled.
 	if m.validator != nil {
 		validationResult, err := m.validator.ValidateBlueprint(operation.Context, operation.Intent, customizedFiles)
 		if err != nil {
 			result.Error = fmt.Errorf("blueprint validation failed: %w", err)
 			return result
 		}
-		// Convert ValidationResult to SimpleValidationResult
+		// Convert ValidationResult to SimpleValidationResult.
 		errorStrings := make([]string, len(validationResult.Errors))
 		for i, err := range validationResult.Errors {
 			errorStrings[i] = err.Message
@@ -486,7 +500,7 @@ func (m *Manager) processOperationSync(operation *BlueprintOperation) *Blueprint
 		}
 	}
 
-	// Step 4: Create Nephio PackageRevision
+	// Step 4: Create Nephio PackageRevision.
 	packageRevision, err := m.createPackageRevision(operation.Context, operation.Intent, customizedFiles)
 	if err != nil {
 		result.Error = fmt.Errorf("package revision creation failed: %w", err)
@@ -498,7 +512,7 @@ func (m *Manager) processOperationSync(operation *BlueprintOperation) *Blueprint
 	return result
 }
 
-// createPackageRevision creates a Nephio PackageRevision
+// createPackageRevision creates a Nephio PackageRevision.
 func (m *Manager) createPackageRevision(ctx context.Context, intent *v1.NetworkIntent, files map[string]string) (*PackageRevision, error) {
 	packageRevision := &PackageRevision{
 		TypeMeta: metav1.TypeMeta{
@@ -547,7 +561,7 @@ func (m *Manager) createPackageRevision(ctx context.Context, intent *v1.NetworkI
 	return packageRevision, nil
 }
 
-// getComponentFromIntent extracts the primary component type from NetworkIntent
+// getComponentFromIntent extracts the primary component type from NetworkIntent.
 func (m *Manager) getComponentFromIntent(intent *v1.NetworkIntent) string {
 	if len(intent.Spec.TargetComponents) > 0 {
 		return string(intent.Spec.TargetComponents[0])
@@ -555,7 +569,7 @@ func (m *Manager) getComponentFromIntent(intent *v1.NetworkIntent) string {
 	return "unknown"
 }
 
-// operationWorker processes blueprint operations from the queue
+// operationWorker processes blueprint operations from the queue.
 func (m *Manager) operationWorker() {
 	defer m.wg.Done()
 
@@ -564,18 +578,18 @@ func (m *Manager) operationWorker() {
 		case <-m.ctx.Done():
 			return
 		case operation := <-m.operationQueue:
-			// Acquire semaphore
+			// Acquire semaphore.
 			select {
 			case m.semaphore <- struct{}{}:
-				// Process operation
+				// Process operation.
 				result := m.processOperationSync(operation)
 
-				// Execute callback if provided
+				// Execute callback if provided.
 				if operation.Callback != nil {
 					operation.Callback(result)
 				}
 
-				// Release semaphore
+				// Release semaphore.
 				<-m.semaphore
 
 			case <-m.ctx.Done():
@@ -585,7 +599,7 @@ func (m *Manager) operationWorker() {
 	}
 }
 
-// healthCheckWorker performs periodic health checks
+// healthCheckWorker performs periodic health checks.
 func (m *Manager) healthCheckWorker() {
 	defer m.wg.Done()
 
@@ -602,7 +616,7 @@ func (m *Manager) healthCheckWorker() {
 	}
 }
 
-// performHealthCheck checks the health of all components
+// performHealthCheck checks the health of all components.
 func (m *Manager) performHealthCheck() {
 	m.healthMutex.Lock()
 	defer m.healthMutex.Unlock()
@@ -610,16 +624,16 @@ func (m *Manager) performHealthCheck() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Check catalog health
+	// Check catalog health.
 	m.healthStatus["catalog"] = m.catalog.HealthCheck(ctx)
 
-	// Check generator health
+	// Check generator health.
 	m.healthStatus["generator"] = m.generator.HealthCheck(ctx)
 
-	// Check customizer health
+	// Check customizer health.
 	m.healthStatus["customizer"] = m.customizer.HealthCheck(ctx)
 
-	// Check validator health if enabled
+	// Check validator health if enabled.
 	if m.validator != nil {
 		m.healthStatus["validator"] = m.validator.HealthCheck(ctx)
 	}
@@ -627,7 +641,7 @@ func (m *Manager) performHealthCheck() {
 	m.lastHealthCheck = time.Now()
 }
 
-// metricsWorker updates metrics periodically
+// metricsWorker updates metrics periodically.
 func (m *Manager) metricsWorker() {
 	defer m.wg.Done()
 
@@ -644,12 +658,12 @@ func (m *Manager) metricsWorker() {
 	}
 }
 
-// updateMetrics updates Prometheus metrics
+// updateMetrics updates Prometheus metrics.
 func (m *Manager) updateMetrics() {
-	// Update queue depth
+	// Update queue depth.
 	m.metrics.QueueDepth.Set(float64(len(m.operationQueue)))
 
-	// Update cache size
+	// Update cache size.
 	cacheSize := 0
 	m.cache.Range(func(_, _ interface{}) bool {
 		cacheSize++
@@ -657,7 +671,7 @@ func (m *Manager) updateMetrics() {
 	})
 	m.metrics.CacheSize.Set(float64(cacheSize))
 
-	// Update cache hit ratio if we have template metrics
+	// Update cache hit ratio if we have template metrics.
 	if m.catalog != nil {
 		hits := m.catalog.GetCacheHits()
 		misses := m.catalog.GetCacheMisses()
@@ -668,7 +682,7 @@ func (m *Manager) updateMetrics() {
 	}
 }
 
-// cacheCleanupWorker performs periodic cache cleanup
+// cacheCleanupWorker performs periodic cache cleanup.
 func (m *Manager) cacheCleanupWorker() {
 	defer m.wg.Done()
 
@@ -685,7 +699,7 @@ func (m *Manager) cacheCleanupWorker() {
 	}
 }
 
-// cleanupCache removes expired entries from cache
+// cleanupCache removes expired entries from cache.
 func (m *Manager) cleanupCache() {
 	now := time.Now()
 	evicted := 0
@@ -708,7 +722,7 @@ func (m *Manager) cleanupCache() {
 	}
 }
 
-// GetHealthStatus returns the current health status of all components
+// GetHealthStatus returns the current health status of all components.
 func (m *Manager) GetHealthStatus() map[string]bool {
 	m.healthMutex.RLock()
 	defer m.healthMutex.RUnlock()
@@ -721,7 +735,7 @@ func (m *Manager) GetHealthStatus() map[string]bool {
 	return status
 }
 
-// GetMetrics returns current metrics
+// GetMetrics returns current metrics.
 func (m *Manager) GetMetrics() map[string]interface{} {
 	return map[string]interface{}{
 		"queue_depth":           len(m.operationQueue),
@@ -738,14 +752,14 @@ func (m *Manager) GetMetrics() map[string]interface{} {
 	}
 }
 
-// Stop gracefully stops the blueprint manager
+// Stop gracefully stops the blueprint manager.
 func (m *Manager) Stop() error {
 	m.logger.Info("Stopping blueprint manager...")
 
-	// Cancel context to stop workers
+	// Cancel context to stop workers.
 	m.cancel()
 
-	// Wait for workers to finish with timeout
+	// Wait for workers to finish with timeout.
 	done := make(chan struct{})
 	go func() {
 		m.wg.Wait()

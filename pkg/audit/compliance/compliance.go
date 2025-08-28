@@ -31,22 +31,22 @@ var (
 	}, []string{"standard"})
 )
 
-// ComplianceLogger handles compliance-specific audit logging and reporting
+// ComplianceLogger handles compliance-specific audit logging and reporting.
 type ComplianceLogger struct {
 	mutex     sync.RWMutex
 	logger    logr.Logger
 	standards []types.ComplianceStandard
 
-	// Compliance tracking
+	// Compliance tracking.
 	soc2Tracker     *SOC2Tracker
 	iso27001Tracker *ISO27001Tracker
 	pciDSSTracker   *PCIDSSTracker
 
-	// Configuration
+	// Configuration.
 	config *ComplianceConfig
 }
 
-// ComplianceConfig holds configuration for compliance logging
+// ComplianceConfig holds configuration for compliance logging.
 type ComplianceConfig struct {
 	Standards             []types.ComplianceStandard `json:"standards" yaml:"standards"`
 	ReportingInterval     time.Duration              `json:"reporting_interval" yaml:"reporting_interval"`
@@ -57,7 +57,7 @@ type ComplianceConfig struct {
 	ReportOutputFormats   []string                   `json:"report_output_formats" yaml:"report_output_formats"`
 }
 
-// ComplianceReport represents a comprehensive compliance report
+// ComplianceReport represents a comprehensive compliance report.
 type ComplianceReport struct {
 	ReportID        string                     `json:"report_id"`
 	Standard        types.ComplianceStandard   `json:"standard"`
@@ -72,14 +72,14 @@ type ComplianceReport struct {
 	Attestation     *ComplianceAttestation     `json:"attestation,omitempty"`
 }
 
-// ReportPeriod defines the time period covered by a compliance report
+// ReportPeriod defines the time period covered by a compliance report.
 type ReportPeriod struct {
 	StartTime time.Time `json:"start_time"`
 	EndTime   time.Time `json:"end_time"`
 	Duration  string    `json:"duration"`
 }
 
-// ComplianceSummary provides high-level compliance metrics
+// ComplianceSummary provides high-level compliance metrics.
 type ComplianceSummary struct {
 	TotalControls        int     `json:"total_controls"`
 	ControlsCompliant    int     `json:"controls_compliant"`
@@ -90,7 +90,7 @@ type ComplianceSummary struct {
 	ViolationCount       int     `json:"violation_count"`
 }
 
-// ControlAssessment represents the assessment of a specific control
+// ControlAssessment represents the assessment of a specific control.
 type ControlAssessment struct {
 	ControlID       string                 `json:"control_id"`
 	ControlName     string                 `json:"control_name"`
@@ -104,7 +104,7 @@ type ControlAssessment struct {
 	Metadata        map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// ComplianceViolation represents a specific compliance violation
+// ComplianceViolation represents a specific compliance violation.
 type ComplianceViolation struct {
 	ViolationID       string                 `json:"violation_id"`
 	ControlID         string                 `json:"control_id"`
@@ -120,7 +120,7 @@ type ComplianceViolation struct {
 	Metadata          map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// ComplianceRecommendation provides actionable recommendations
+// ComplianceRecommendation provides actionable recommendations.
 type ComplianceRecommendation struct {
 	RecommendationID string                 `json:"recommendation_id"`
 	Priority         string                 `json:"priority"`
@@ -133,7 +133,7 @@ type ComplianceRecommendation struct {
 	Metadata         map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// ComplianceEvidence represents evidence for compliance controls
+// ComplianceEvidence represents evidence for compliance controls.
 type ComplianceEvidence struct {
 	EvidenceID   string    `json:"evidence_id"`
 	ControlID    string    `json:"control_id"`
@@ -147,7 +147,7 @@ type ComplianceEvidence struct {
 	Hash         string    `json:"hash"`
 }
 
-// ComplianceAttestation provides formal attestation
+// ComplianceAttestation provides formal attestation.
 type ComplianceAttestation struct {
 	AttestorName     string    `json:"attestor_name"`
 	AttestorRole     string    `json:"attestor_role"`
@@ -156,7 +156,7 @@ type ComplianceAttestation struct {
 	DigitalSignature string    `json:"digital_signature"`
 }
 
-// NewComplianceLogger creates a new compliance logger
+// NewComplianceLogger creates a new compliance logger.
 func NewComplianceLogger(standards []types.ComplianceStandard) *ComplianceLogger {
 	config := DefaultComplianceConfig()
 	config.Standards = standards
@@ -167,7 +167,7 @@ func NewComplianceLogger(standards []types.ComplianceStandard) *ComplianceLogger
 		config:    config,
 	}
 
-	// Initialize trackers for each standard
+	// Initialize trackers for each standard.
 	for _, standard := range standards {
 		switch standard {
 		case types.ComplianceSOC2:
@@ -182,12 +182,12 @@ func NewComplianceLogger(standards []types.ComplianceStandard) *ComplianceLogger
 	return cl
 }
 
-// ProcessEvent processes an audit event for compliance tracking
+// ProcessEvent processes an audit event for compliance tracking.
 func (cl *ComplianceLogger) ProcessEvent(event *types.AuditEvent) {
 	cl.mutex.Lock()
 	defer cl.mutex.Unlock()
 
-	// Process event with each enabled compliance tracker
+	// Process event with each enabled compliance tracker.
 	for _, standard := range cl.standards {
 		switch standard {
 		case types.ComplianceSOC2:
@@ -205,11 +205,11 @@ func (cl *ComplianceLogger) ProcessEvent(event *types.AuditEvent) {
 		}
 	}
 
-	// Check for violations
+	// Check for violations.
 	cl.checkComplianceViolations(event)
 }
 
-// GenerateReport generates a compliance report for a specific standard
+// GenerateReport generates a compliance report for a specific standard.
 func (cl *ComplianceLogger) GenerateReport(ctx context.Context, standard types.ComplianceStandard, reportType string, startTime, endTime time.Time) (*ComplianceReport, error) {
 	start := time.Now()
 	defer func() {
@@ -232,7 +232,7 @@ func (cl *ComplianceLogger) GenerateReport(ctx context.Context, standard types.C
 		},
 	}
 
-	// Generate report based on standard
+	// Generate report based on standard.
 	switch standard {
 	case types.ComplianceSOC2:
 		if cl.soc2Tracker != nil {
@@ -252,7 +252,7 @@ func (cl *ComplianceLogger) GenerateReport(ctx context.Context, standard types.C
 	return report, nil
 }
 
-// GetComplianceStatus returns current compliance status
+// GetComplianceStatus returns current compliance status.
 func (cl *ComplianceLogger) GetComplianceStatus() map[string]interface{} {
 	cl.mutex.RLock()
 	defer cl.mutex.RUnlock()
@@ -279,12 +279,12 @@ func (cl *ComplianceLogger) GetComplianceStatus() map[string]interface{} {
 	return status
 }
 
-// checkComplianceViolations checks for compliance violations in an audit event
+// checkComplianceViolations checks for compliance violations in an audit event.
 func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
-	// Check for common violation patterns
+	// Check for common violation patterns.
 	violations := make([]ComplianceViolation, 0)
 
-	// Check authentication failures
+	// Check authentication failures.
 	if event.EventType == types.EventTypeAuthenticationFailed {
 		for _, standard := range cl.standards {
 			violation := ComplianceViolation{
@@ -307,7 +307,7 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 		}
 	}
 
-	// Check unauthorized access
+	// Check unauthorized access.
 	if event.EventType == types.EventTypeAuthorizationFailed {
 		for _, standard := range cl.standards {
 			violation := ComplianceViolation{
@@ -330,7 +330,7 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 		}
 	}
 
-	// Check data access without proper authorization
+	// Check data access without proper authorization.
 	if event.EventType == types.EventTypeDataAccess && event.Result != types.ResultSuccess {
 		for _, standard := range cl.standards {
 			violation := ComplianceViolation{
@@ -349,16 +349,16 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 		}
 	}
 
-	// Store violations for reporting
+	// Store violations for reporting.
 	if len(violations) > 0 {
 		cl.storeViolations(violations)
 	}
 }
 
-// Helper methods for generating specific compliance reports
+// Helper methods for generating specific compliance reports.
 
 func (cl *ComplianceLogger) generateSOC2Report(report *ComplianceReport, reportType string, startTime, endTime time.Time) (*ComplianceReport, error) {
-	// SOC 2 Trust Services Categories: Security, Availability, Processing Integrity, Confidentiality, Privacy
+	// SOC 2 Trust Services Categories: Security, Availability, Processing Integrity, Confidentiality, Privacy.
 	controls := []ControlAssessment{
 		{
 			ControlID:       "CC6.1",
@@ -389,7 +389,7 @@ func (cl *ComplianceLogger) generateSOC2Report(report *ComplianceReport, reportT
 		},
 	}
 
-	// Calculate compliance score
+	// Calculate compliance score.
 	compliantControls := 0
 	for _, control := range controls {
 		if control.Status == "compliant" {
@@ -412,7 +412,7 @@ func (cl *ComplianceLogger) generateSOC2Report(report *ComplianceReport, reportT
 }
 
 func (cl *ComplianceLogger) generateISO27001Report(report *ComplianceReport, reportType string, startTime, endTime time.Time) (*ComplianceReport, error) {
-	// ISO 27001 Annex A controls
+	// ISO 27001 Annex A controls.
 	controls := []ControlAssessment{
 		{
 			ControlID:       "A.9.2.1",
@@ -448,7 +448,7 @@ func (cl *ComplianceLogger) generateISO27001Report(report *ComplianceReport, rep
 }
 
 func (cl *ComplianceLogger) generatePCIDSSReport(report *ComplianceReport, reportType string, startTime, endTime time.Time) (*ComplianceReport, error) {
-	// PCI DSS Requirements
+	// PCI DSS Requirements.
 	controls := []ControlAssessment{
 		{
 			ControlID:       "8.1.1",
@@ -483,7 +483,7 @@ func (cl *ComplianceLogger) generatePCIDSSReport(report *ComplianceReport, repor
 	return report, nil
 }
 
-// Helper methods
+// Helper methods.
 
 func (cl *ComplianceLogger) getAuthenticationControlID(standard types.ComplianceStandard) string {
 	switch standard {
@@ -536,8 +536,8 @@ func (cl *ComplianceLogger) calculateRiskLevel(complianceScore float64) string {
 }
 
 func (cl *ComplianceLogger) storeViolations(violations []ComplianceViolation) {
-	// In a real implementation, this would store violations in a database
-	// or send them to a compliance management system
+	// In a real implementation, this would store violations in a database.
+	// or send them to a compliance management system.
 	for _, violation := range violations {
 		cl.logger.Info("Compliance violation detected",
 			"violation_id", violation.ViolationID,
@@ -548,7 +548,7 @@ func (cl *ComplianceLogger) storeViolations(violations []ComplianceViolation) {
 	}
 }
 
-// DefaultComplianceConfig returns a default compliance configuration
+// DefaultComplianceConfig returns a default compliance configuration.
 func DefaultComplianceConfig() *ComplianceConfig {
 	return &ComplianceConfig{
 		Standards:         []types.ComplianceStandard{},

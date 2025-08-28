@@ -15,7 +15,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// EnhancedGoroutinePool provides advanced goroutine management with Go 1.24+ optimizations
+// EnhancedGoroutinePool provides advanced goroutine management with Go 1.24+ optimizations.
 type EnhancedGoroutinePool struct {
 	workStealingQueues []*WorkStealingQueue
 	workers            []*Worker
@@ -28,7 +28,7 @@ type EnhancedGoroutinePool struct {
 	mu                 sync.RWMutex
 }
 
-// PoolConfig contains goroutine pool configuration
+// PoolConfig contains goroutine pool configuration.
 type PoolConfig struct {
 	MinWorkers          int
 	MaxWorkers          int
@@ -44,7 +44,7 @@ type PoolConfig struct {
 	PreemptionEnabled   bool
 }
 
-// WorkStealingQueue implements a lock-free work-stealing deque
+// WorkStealingQueue implements a lock-free work-stealing deque.
 type WorkStealingQueue struct {
 	tasks   []unsafe.Pointer
 	head    int64
@@ -55,7 +55,7 @@ type WorkStealingQueue struct {
 	mu      sync.Mutex // Only for resize operations
 }
 
-// Worker represents a worker goroutine with CPU affinity
+// Worker represents a worker goroutine with CPU affinity.
 type Worker struct {
 	id             int
 	queue          *WorkStealingQueue
@@ -72,7 +72,7 @@ type Worker struct {
 	priority       Priority
 }
 
-// Scheduler manages task distribution and worker scaling
+// Scheduler manages task distribution and worker scaling.
 type Scheduler struct {
 	pendingTasks     int64
 	activeWorkers    int64
@@ -84,7 +84,7 @@ type Scheduler struct {
 	mu               sync.RWMutex
 }
 
-// CPUAffinityManager manages CPU affinity for workers
+// CPUAffinityManager manages CPU affinity for workers.
 type CPUAffinityManager struct {
 	cpuCount        int
 	affinityMap     map[int]int // worker ID -> CPU core
@@ -94,14 +94,14 @@ type CPUAffinityManager struct {
 	mu              sync.RWMutex
 }
 
-// NumaNode represents a NUMA node with CPU cores
+// NumaNode represents a NUMA node with CPU cores.
 type NumaNode struct {
 	ID     int
 	Cores  []int
 	Memory int64
 }
 
-// Task represents a task with priority and metadata
+// Task represents a task with priority and metadata.
 type Task struct {
 	ID          uint64
 	Function    func() error
@@ -116,17 +116,21 @@ type Task struct {
 	MaxRetries  int
 }
 
-// Priority defines task priority levels
+// Priority defines task priority levels.
 type Priority int
 
 const (
+	// PriorityLow holds prioritylow value.
 	PriorityLow Priority = iota
+	// PriorityNormal holds prioritynormal value.
 	PriorityNormal
+	// PriorityHigh holds priorityhigh value.
 	PriorityHigh
+	// PriorityCritical holds prioritycritical value.
 	PriorityCritical
 )
 
-// PoolMetrics tracks advanced pool performance metrics
+// PoolMetrics tracks advanced pool performance metrics.
 type PoolMetrics struct {
 	ActiveWorkers      int64
 	IdleWorkers        int64
@@ -146,7 +150,7 @@ type PoolMetrics struct {
 	AffinityViolations int64
 }
 
-// NewEnhancedGoroutinePool creates a new enhanced goroutine pool
+// NewEnhancedGoroutinePool creates a new enhanced goroutine pool.
 func NewEnhancedGoroutinePool(config *PoolConfig) *EnhancedGoroutinePool {
 	if config == nil {
 		config = DefaultPoolConfig()
@@ -166,28 +170,28 @@ func NewEnhancedGoroutinePool(config *PoolConfig) *EnhancedGoroutinePool {
 		shutdown:           make(chan struct{}),
 	}
 
-	// Initialize work-stealing queues
+	// Initialize work-stealing queues.
 	for i := range pool.workStealingQueues {
 		pool.workStealingQueues[i] = NewWorkStealingQueue(config.QueueSize)
 	}
 
-	// Initialize CPU affinity manager
+	// Initialize CPU affinity manager.
 	if config.EnableCPUAffinity {
 		pool.affinityManager = NewCPUAffinityManager(numCPU)
 	}
 
-	// Start with minimum workers
-	for i := 0; i < config.MinWorkers; i++ {
+	// Start with minimum workers.
+	for range config.MinWorkers {
 		pool.addWorker()
 	}
 
-	// Start background tasks
+	// Start background tasks.
 	pool.startBackgroundTasks()
 
 	return pool
 }
 
-// DefaultPoolConfig returns default pool configuration
+// DefaultPoolConfig returns default pool configuration.
 func DefaultPoolConfig() *PoolConfig {
 	return &PoolConfig{
 		MinWorkers:          runtime.NumCPU(),
@@ -205,9 +209,9 @@ func DefaultPoolConfig() *PoolConfig {
 	}
 }
 
-// NewWorkStealingQueue creates a new work-stealing queue
+// NewWorkStealingQueue creates a new work-stealing queue.
 func NewWorkStealingQueue(size int) *WorkStealingQueue {
-	// Ensure size is power of 2
+	// Ensure size is power of 2.
 	powerOf2Size := 1
 	for powerOf2Size < size {
 		powerOf2Size <<= 1
@@ -219,40 +223,40 @@ func NewWorkStealingQueue(size int) *WorkStealingQueue {
 	}
 }
 
-// PushBottom adds a task to the bottom of the queue (owner only)
+// PushBottom adds a task to the bottom of the queue (owner only).
 func (wsq *WorkStealingQueue) PushBottom(task *Task) bool {
 	tail := atomic.LoadInt64(&wsq.tail)
 	head := atomic.LoadInt64(&wsq.head)
 	size := tail - head
 
-	// Check if queue is full
+	// Check if queue is full.
 	if size >= int64(len(wsq.tasks)) {
 		return false
 	}
 
-	// Store task
+	// Store task.
 	atomic.StorePointer(&wsq.tasks[tail&wsq.mask], unsafe.Pointer(task))
 	atomic.StoreInt64(&wsq.tail, tail+1)
 	return true
 }
 
-// PopBottom removes a task from the bottom of the queue (owner only)
+// PopBottom removes a task from the bottom of the queue (owner only).
 func (wsq *WorkStealingQueue) PopBottom() *Task {
 	tail := atomic.LoadInt64(&wsq.tail) - 1
 	atomic.StoreInt64(&wsq.tail, tail)
 	head := atomic.LoadInt64(&wsq.head)
 
 	if tail < head {
-		// Queue is empty
+		// Queue is empty.
 		atomic.StoreInt64(&wsq.tail, head)
 		return nil
 	}
 
 	taskPtr := atomic.LoadPointer(&wsq.tasks[tail&wsq.mask])
 	if tail == head {
-		// Last element, need to compete with stealers
+		// Last element, need to compete with stealers.
 		if !atomic.CompareAndSwapInt64(&wsq.head, head, head+1) {
-			// Stealer won
+			// Stealer won.
 			atomic.StoreInt64(&wsq.tail, head+1)
 			return nil
 		}
@@ -261,19 +265,19 @@ func (wsq *WorkStealingQueue) PopBottom() *Task {
 	return (*Task)(taskPtr)
 }
 
-// PopTop removes a task from the top of the queue (stealers)
+// PopTop removes a task from the top of the queue (stealers).
 func (wsq *WorkStealingQueue) PopTop() *Task {
 	head := atomic.LoadInt64(&wsq.head)
 	tail := atomic.LoadInt64(&wsq.tail)
 
 	if head >= tail {
-		// Queue is empty
+		// Queue is empty.
 		return nil
 	}
 
 	taskPtr := atomic.LoadPointer(&wsq.tasks[head&wsq.mask])
 	if !atomic.CompareAndSwapInt64(&wsq.head, head, head+1) {
-		// Failed to steal
+		// Failed to steal.
 		return nil
 	}
 
@@ -281,7 +285,7 @@ func (wsq *WorkStealingQueue) PopTop() *Task {
 	return (*Task)(taskPtr)
 }
 
-// Size returns the approximate queue size
+// Size returns the approximate queue size.
 func (wsq *WorkStealingQueue) Size() int64 {
 	tail := atomic.LoadInt64(&wsq.tail)
 	head := atomic.LoadInt64(&wsq.head)
@@ -292,14 +296,14 @@ func (wsq *WorkStealingQueue) Size() int64 {
 	return size
 }
 
-// NewScheduler creates a new task scheduler
+// NewScheduler creates a new task scheduler.
 func NewScheduler() *Scheduler {
 	return &Scheduler{
 		lastScaleTime: time.Now(),
 	}
 }
 
-// NewCPUAffinityManager creates a new CPU affinity manager
+// NewCPUAffinityManager creates a new CPU affinity manager.
 func NewCPUAffinityManager(cpuCount int) *CPUAffinityManager {
 	return &CPUAffinityManager{
 		cpuCount:        cpuCount,
@@ -309,7 +313,7 @@ func NewCPUAffinityManager(cpuCount int) *CPUAffinityManager {
 	}
 }
 
-// SubmitTask submits a task to the pool with priority
+// SubmitTask submits a task to the pool with priority.
 func (pool *EnhancedGoroutinePool) SubmitTask(task *Task) error {
 	if task == nil {
 		return fmt.Errorf("task cannot be nil")
@@ -323,7 +327,7 @@ func (pool *EnhancedGoroutinePool) SubmitTask(task *Task) error {
 	atomic.AddInt64(&pool.metrics.TotalTasks, 1)
 	atomic.AddInt64(&pool.scheduler.pendingTasks, 1)
 
-	// Try to submit to least loaded worker queue
+	// Try to submit to least loaded worker queue.
 	bestWorkerIdx := pool.findBestWorker()
 	if bestWorkerIdx >= 0 && bestWorkerIdx < len(pool.workStealingQueues) {
 		if pool.workStealingQueues[bestWorkerIdx].PushBottom(task) {
@@ -332,10 +336,10 @@ func (pool *EnhancedGoroutinePool) SubmitTask(task *Task) error {
 		}
 	}
 
-	// All queues are full, try to scale up
+	// All queues are full, try to scale up.
 	if pool.shouldScaleUp() {
 		if pool.addWorker() {
-			// Retry with new worker
+			// Retry with new worker.
 			newWorkerIdx := len(pool.workers) - 1
 			if newWorkerIdx >= 0 && newWorkerIdx < len(pool.workStealingQueues) {
 				if pool.workStealingQueues[newWorkerIdx].PushBottom(task) {
@@ -346,12 +350,12 @@ func (pool *EnhancedGoroutinePool) SubmitTask(task *Task) error {
 		}
 	}
 
-	// Failed to submit task
+	// Failed to submit task.
 	atomic.AddInt64(&pool.metrics.FailedTasks, 1)
 	return fmt.Errorf("failed to submit task: all queues full")
 }
 
-// SubmitWithTimeout submits a task with a timeout
+// SubmitWithTimeout submits a task with a timeout.
 func (pool *EnhancedGoroutinePool) SubmitWithTimeout(task *Task, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -362,13 +366,13 @@ func (pool *EnhancedGoroutinePool) SubmitWithTimeout(task *Task, timeout time.Du
 	return pool.SubmitTask(task)
 }
 
-// SubmitBatch submits multiple tasks as a batch
+// SubmitBatch submits multiple tasks as a batch.
 func (pool *EnhancedGoroutinePool) SubmitBatch(tasks []*Task) error {
 	if len(tasks) == 0 {
 		return nil
 	}
 
-	// Use error group for batch submission
+	// Use error group for batch submission.
 	g, ctx := errgroup.WithContext(context.Background())
 
 	for _, task := range tasks {
@@ -382,7 +386,7 @@ func (pool *EnhancedGoroutinePool) SubmitBatch(tasks []*Task) error {
 	return g.Wait()
 }
 
-// findBestWorker finds the worker with the least load
+// findBestWorker finds the worker with the least load.
 func (pool *EnhancedGoroutinePool) findBestWorker() int {
 	pool.mu.RLock()
 	defer pool.mu.RUnlock()
@@ -405,7 +409,7 @@ func (pool *EnhancedGoroutinePool) findBestWorker() int {
 	return bestIdx
 }
 
-// shouldScaleUp determines if the pool should add more workers
+// shouldScaleUp determines if the pool should add more workers.
 func (pool *EnhancedGoroutinePool) shouldScaleUp() bool {
 	pool.mu.RLock()
 	defer pool.mu.RUnlock()
@@ -418,7 +422,7 @@ func (pool *EnhancedGoroutinePool) shouldScaleUp() bool {
 		return false
 	}
 
-	// Check if average queue size exceeds threshold
+	// Check if average queue size exceeds threshold.
 	totalQueueSize := int64(0)
 	for _, queue := range pool.workStealingQueues[:len(pool.workers)] {
 		totalQueueSize += queue.Size()
@@ -432,7 +436,7 @@ func (pool *EnhancedGoroutinePool) shouldScaleUp() bool {
 	return true
 }
 
-// shouldScaleDown determines if the pool should remove workers
+// shouldScaleDown determines if the pool should remove workers.
 func (pool *EnhancedGoroutinePool) shouldScaleDown() bool {
 	pool.mu.RLock()
 	defer pool.mu.RUnlock()
@@ -445,7 +449,7 @@ func (pool *EnhancedGoroutinePool) shouldScaleDown() bool {
 		return false
 	}
 
-	// Check if workers are idle
+	// Check if workers are idle.
 	idleWorkers := atomic.LoadInt64(&pool.scheduler.idleWorkers)
 	activeWorkers := atomic.LoadInt64(&pool.scheduler.activeWorkers)
 	totalWorkers := idleWorkers + activeWorkers
@@ -458,7 +462,7 @@ func (pool *EnhancedGoroutinePool) shouldScaleDown() bool {
 	return false
 }
 
-// addWorker adds a new worker to the pool
+// addWorker adds a new worker to the pool.
 func (pool *EnhancedGoroutinePool) addWorker() bool {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
@@ -478,7 +482,7 @@ func (pool *EnhancedGoroutinePool) addWorker() bool {
 		priority: PriorityNormal,
 	}
 
-	// Set CPU affinity if enabled
+	// Set CPU affinity if enabled.
 	if pool.config.EnableCPUAffinity && pool.affinityManager != nil {
 		worker.cpuAffinity = pool.affinityManager.AssignCPU(workerID)
 	}
@@ -495,7 +499,7 @@ func (pool *EnhancedGoroutinePool) addWorker() bool {
 	return true
 }
 
-// removeWorker removes a worker from the pool
+// removeWorker removes a worker from the pool.
 func (pool *EnhancedGoroutinePool) removeWorker() bool {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
@@ -504,7 +508,7 @@ func (pool *EnhancedGoroutinePool) removeWorker() bool {
 		return false
 	}
 
-	// Find the most idle worker
+	// Find the most idle worker.
 	mostIdleIdx := pool.findMostIdleWorker()
 	if mostIdleIdx == -1 {
 		return false
@@ -513,7 +517,7 @@ func (pool *EnhancedGoroutinePool) removeWorker() bool {
 	worker := pool.workers[mostIdleIdx]
 	worker.cancel() // Signal worker to stop
 
-	// Remove from slice
+	// Remove from slice.
 	pool.workers = append(pool.workers[:mostIdleIdx], pool.workers[mostIdleIdx+1:]...)
 	atomic.AddInt64(&pool.scheduler.activeWorkers, -1)
 	atomic.AddInt64(&pool.metrics.ScalingEvents, 1)
@@ -523,7 +527,7 @@ func (pool *EnhancedGoroutinePool) removeWorker() bool {
 	return true
 }
 
-// findMostIdleWorker finds the worker that has been idle the longest
+// findMostIdleWorker finds the worker that has been idle the longest.
 func (pool *EnhancedGoroutinePool) findMostIdleWorker() int {
 	mostIdleIdx := -1
 	maxIdleTime := int64(0)
@@ -539,7 +543,7 @@ func (pool *EnhancedGoroutinePool) findMostIdleWorker() int {
 	return mostIdleIdx
 }
 
-// workerLoop is the main loop for a worker goroutine
+// workerLoop is the main loop for a worker goroutine.
 func (pool *EnhancedGoroutinePool) workerLoop(worker *Worker) {
 	defer pool.wg.Done()
 	defer func() {
@@ -561,15 +565,15 @@ func (pool *EnhancedGoroutinePool) workerLoop(worker *Worker) {
 		default:
 		}
 
-		// Try to get task from own queue first
+		// Try to get task from own queue first.
 		task := worker.queue.PopBottom()
 		if task == nil && pool.config.EnableWorkStealing {
-			// Try to steal from other workers
+			// Try to steal from other workers.
 			task = pool.stealTask(worker.id)
 		}
 
 		if task != nil {
-			// Reset idle tracking
+			// Reset idle tracking.
 			if spinCount > 0 {
 				idleDuration := time.Since(idleStart)
 				atomic.AddInt64(&worker.idleTime, idleDuration.Nanoseconds())
@@ -577,26 +581,26 @@ func (pool *EnhancedGoroutinePool) workerLoop(worker *Worker) {
 				spinCount = 0
 			}
 
-			// Process task
+			// Process task.
 			pool.processTask(worker, task)
 			idleStart = time.Now()
 		} else {
-			// No task available
+			// No task available.
 			spinCount++
 			if spinCount == 1 {
-				// First idle spin
+				// First idle spin.
 				atomic.AddInt64(&pool.scheduler.idleWorkers, 1)
 			}
 
 			if spinCount < pool.config.SpinCount {
-				// Spin-wait for better latency
+				// Spin-wait for better latency.
 				runtime.Gosched()
 			} else {
-				// Sleep to save CPU
+				// Sleep to save CPU.
 				time.Sleep(100 * time.Microsecond)
 			}
 
-			// Check if worker should be removed due to inactivity
+			// Check if worker should be removed due to inactivity.
 			if spinCount > 10000 && pool.shouldScaleDown() {
 				return
 			}
@@ -604,14 +608,14 @@ func (pool *EnhancedGoroutinePool) workerLoop(worker *Worker) {
 	}
 }
 
-// stealTask attempts to steal a task from another worker's queue
+// stealTask attempts to steal a task from another worker's queue.
 func (pool *EnhancedGoroutinePool) stealTask(workerID int) *Task {
 	pool.mu.RLock()
 	workerCount := len(pool.workers)
 	pool.mu.RUnlock()
 
-	// Try to steal from a random worker (avoid systematic bias)
-	for attempts := 0; attempts < 3; attempts++ {
+	// Try to steal from a random worker (avoid systematic bias).
+	for attempts := range 3 {
 		victimID := (workerID + 1 + attempts) % workerCount
 		if victimID != workerID && victimID < len(pool.workStealingQueues) {
 			if task := pool.workStealingQueues[victimID].PopTop(); task != nil {
@@ -626,7 +630,7 @@ func (pool *EnhancedGoroutinePool) stealTask(workerID int) *Task {
 	return nil
 }
 
-// processTask processes a single task
+// processTask processes a single task.
 func (pool *EnhancedGoroutinePool) processTask(worker *Worker, task *Task) {
 	start := time.Now()
 	task.StartedAt = start
@@ -642,7 +646,7 @@ func (pool *EnhancedGoroutinePool) processTask(worker *Worker, task *Task) {
 		atomic.AddInt64(&worker.processingTime, processingTime.Nanoseconds())
 		atomic.AddInt64(&pool.metrics.CompletedTasks, 1)
 
-		// Update metrics
+		// Update metrics.
 		pool.updateTaskMetrics(waitTime, processingTime)
 
 		if r := recover(); r != nil {
@@ -656,7 +660,7 @@ func (pool *EnhancedGoroutinePool) processTask(worker *Worker, task *Task) {
 		}
 	}()
 
-	// Check task timeout
+	// Check task timeout.
 	if !task.Deadline.IsZero() && time.Now().After(task.Deadline) {
 		err := fmt.Errorf("task %d timed out", task.ID)
 		if task.Callback != nil {
@@ -665,21 +669,21 @@ func (pool *EnhancedGoroutinePool) processTask(worker *Worker, task *Task) {
 		return
 	}
 
-	// Execute task
+	// Execute task.
 	var err error
 	if task.Function != nil {
 		err = task.Function()
 	}
 
-	// Handle result
+	// Handle result.
 	if err != nil {
 		atomic.AddInt64(&worker.failedTasks, 1)
 		atomic.AddInt64(&pool.metrics.FailedTasks, 1)
 
-		// Retry logic
+		// Retry logic.
 		if task.Retries < task.MaxRetries {
 			task.Retries++
-			// Re-submit with exponential backoff
+			// Re-submit with exponential backoff.
 			go func() {
 				backoff := time.Duration(task.Retries) * time.Second
 				time.Sleep(backoff)
@@ -694,20 +698,20 @@ func (pool *EnhancedGoroutinePool) processTask(worker *Worker, task *Task) {
 	}
 }
 
-// updateTaskMetrics updates task processing metrics
+// updateTaskMetrics updates task processing metrics.
 func (pool *EnhancedGoroutinePool) updateTaskMetrics(waitTime, processingTime time.Duration) {
-	// Update average wait time
+	// Update average wait time.
 	currentAvgWait := atomic.LoadInt64(&pool.metrics.AverageWaitTime)
 	newAvgWait := (currentAvgWait + waitTime.Nanoseconds()) / 2
 	atomic.StoreInt64(&pool.metrics.AverageWaitTime, newAvgWait)
 
-	// Update average processing time
+	// Update average processing time.
 	currentAvgProcess := atomic.LoadInt64(&pool.metrics.AverageProcessTime)
 	newAvgProcess := (currentAvgProcess + processingTime.Nanoseconds()) / 2
 	atomic.StoreInt64(&pool.metrics.AverageProcessTime, newAvgProcess)
 }
 
-// AssignCPU assigns a CPU core to a worker (simplified implementation)
+// AssignCPU assigns a CPU core to a worker (simplified implementation).
 func (cam *CPUAffinityManager) AssignCPU(workerID int) int {
 	if !cam.enabled {
 		return -1
@@ -716,15 +720,15 @@ func (cam *CPUAffinityManager) AssignCPU(workerID int) int {
 	cam.mu.Lock()
 	defer cam.mu.Unlock()
 
-	// Simple round-robin assignment
+	// Simple round-robin assignment.
 	cpuCore := workerID % cam.cpuCount
 	cam.affinityMap[workerID] = cpuCore
 	return cpuCore
 }
 
-// startBackgroundTasks starts background maintenance tasks
+// startBackgroundTasks starts background maintenance tasks.
 func (pool *EnhancedGoroutinePool) startBackgroundTasks() {
-	// Metrics collection
+	// Metrics collection.
 	go func() {
 		ticker := time.NewTicker(pool.config.MetricsInterval)
 		defer ticker.Stop()
@@ -739,7 +743,7 @@ func (pool *EnhancedGoroutinePool) startBackgroundTasks() {
 		}
 	}()
 
-	// Auto-scaling
+	// Auto-scaling.
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
@@ -759,7 +763,7 @@ func (pool *EnhancedGoroutinePool) startBackgroundTasks() {
 	}()
 }
 
-// updateMetrics updates pool metrics
+// updateMetrics updates pool metrics.
 func (pool *EnhancedGoroutinePool) updateMetrics() {
 	pool.mu.RLock()
 	workerCount := len(pool.workers)
@@ -768,7 +772,7 @@ func (pool *EnhancedGoroutinePool) updateMetrics() {
 	atomic.StoreInt64(&pool.metrics.ActiveWorkers, int64(workerCount))
 	atomic.StoreInt64(&pool.metrics.GoroutineCount, int64(runtime.NumGoroutine()))
 
-	// Calculate throughput (tasks per second)
+	// Calculate throughput (tasks per second).
 	completedTasks := atomic.LoadInt64(&pool.metrics.CompletedTasks)
 	if pool.scheduler.lastScaleTime.Before(time.Now().Add(-1 * time.Second)) {
 		elapsed := time.Since(pool.scheduler.lastScaleTime).Seconds()
@@ -777,13 +781,13 @@ func (pool *EnhancedGoroutinePool) updateMetrics() {
 		}
 	}
 
-	// Update CPU utilization (simplified)
+	// Update CPU utilization (simplified).
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 	atomic.StoreInt64(&pool.metrics.MemoryUsage, int64(memStats.HeapInuse))
 }
 
-// GetMetrics returns current pool metrics
+// GetMetrics returns current pool metrics.
 func (pool *EnhancedGoroutinePool) GetMetrics() PoolMetrics {
 	return PoolMetrics{
 		ActiveWorkers:      atomic.LoadInt64(&pool.metrics.ActiveWorkers),
@@ -805,7 +809,7 @@ func (pool *EnhancedGoroutinePool) GetMetrics() PoolMetrics {
 	}
 }
 
-// GetWorkerStats returns statistics for all workers
+// GetWorkerStats returns statistics for all workers.
 func (pool *EnhancedGoroutinePool) GetWorkerStats() []WorkerStats {
 	pool.mu.RLock()
 	defer pool.mu.RUnlock()
@@ -827,7 +831,7 @@ func (pool *EnhancedGoroutinePool) GetWorkerStats() []WorkerStats {
 	return stats
 }
 
-// WorkerStats contains statistics for a single worker
+// WorkerStats contains statistics for a single worker.
 type WorkerStats struct {
 	ID             int
 	ProcessedTasks int64
@@ -839,50 +843,50 @@ type WorkerStats struct {
 	QueueSize      int64
 }
 
-// GetAverageWaitTime returns the average task wait time in milliseconds
+// GetAverageWaitTime returns the average task wait time in milliseconds.
 func (pool *EnhancedGoroutinePool) GetAverageWaitTime() float64 {
 	waitTime := atomic.LoadInt64(&pool.metrics.AverageWaitTime)
 	return float64(waitTime) / 1e6 // Convert to milliseconds
 }
 
-// GetAverageProcessingTime returns the average task processing time in milliseconds
+// GetAverageProcessingTime returns the average task processing time in milliseconds.
 func (pool *EnhancedGoroutinePool) GetAverageProcessingTime() float64 {
 	processTime := atomic.LoadInt64(&pool.metrics.AverageProcessTime)
 	return float64(processTime) / 1e6 // Convert to milliseconds
 }
 
-// GetThroughput returns the current throughput in tasks per second
+// GetThroughput returns the current throughput in tasks per second.
 func (pool *EnhancedGoroutinePool) GetThroughput() float64 {
 	return pool.metrics.Throughput
 }
 
-// Shutdown gracefully shuts down the goroutine pool
+// Shutdown gracefully shuts down the goroutine pool.
 func (pool *EnhancedGoroutinePool) Shutdown(ctx context.Context) error {
 	close(pool.shutdown)
 
-	// Cancel all workers
+	// Cancel all workers.
 	pool.mu.RLock()
 	for _, worker := range pool.workers {
 		worker.cancel()
 	}
 	pool.mu.RUnlock()
 
-	// Wait for all workers to finish
+	// Wait for all workers to finish.
 	done := make(chan struct{})
 	go func() {
 		pool.wg.Wait()
 		close(done)
 	}()
 
-	// Wait with timeout
+	// Wait with timeout.
 	select {
 	case <-done:
-		// All workers finished
+		// All workers finished.
 	case <-ctx.Done():
 		return ctx.Err()
 	}
 
-	// Log final metrics
+	// Log final metrics.
 	metrics := pool.GetMetrics()
 	klog.Infof("Goroutine pool shutdown - Total tasks: %d, Completed: %d, Failed: %d, Throughput: %.2f tasks/sec",
 		metrics.TotalTasks,
@@ -894,7 +898,7 @@ func (pool *EnhancedGoroutinePool) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// ResetMetrics resets all performance metrics
+// ResetMetrics resets all performance metrics.
 func (pool *EnhancedGoroutinePool) ResetMetrics() {
 	atomic.StoreInt64(&pool.metrics.TotalTasks, 0)
 	atomic.StoreInt64(&pool.metrics.CompletedTasks, 0)
@@ -910,11 +914,11 @@ func (pool *EnhancedGoroutinePool) ResetMetrics() {
 	pool.metrics.Throughput = 0
 	pool.metrics.CPUUtilization = 0
 
-	// Reset scheduler metrics
+	// Reset scheduler metrics.
 	atomic.StoreInt64(&pool.scheduler.pendingTasks, 0)
 	atomic.StoreInt64(&pool.scheduler.idleWorkers, 0)
 
-	// Reset worker metrics
+	// Reset worker metrics.
 	pool.mu.RLock()
 	for _, worker := range pool.workers {
 		atomic.StoreInt64(&worker.processedTasks, 0)

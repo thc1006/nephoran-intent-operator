@@ -26,15 +26,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// Core missing types for dependency analyzer
+// Core missing types for dependency analyzer.
 
-// TimeRange defines a time range for analysis
+// TimeRange defines a time range for analysis.
 type TimeRange struct {
 	Start time.Time `json:"start"`
 	End   time.Time `json:"end"`
 }
 
-// ScopeFilter defines filtering criteria for analysis scope
+// ScopeFilter defines filtering criteria for analysis scope.
 type ScopeFilter struct {
 	Name          string   `json:"name"`
 	Type          string   `json:"type"`
@@ -43,7 +43,7 @@ type ScopeFilter struct {
 	CaseSensitive bool     `json:"caseSensitive,omitempty"`
 }
 
-// VersionRange defines a version range constraint
+// VersionRange defines a version range constraint.
 type VersionRange struct {
 	Min          string `json:"min,omitempty"`
 	Max          string `json:"max,omitempty"`
@@ -52,7 +52,7 @@ type VersionRange struct {
 	Constraint   string `json:"constraint,omitempty"` // Semantic version constraint like ">=1.0.0,<2.0.0"
 }
 
-// GraphAnalysis contains graph analysis results
+// GraphAnalysis contains graph analysis results.
 type GraphAnalysis struct {
 	TotalNodes          int                 `json:"totalNodes"`
 	TotalEdges          int                 `json:"totalEdges"`
@@ -62,7 +62,7 @@ type GraphAnalysis struct {
 	Metrics             *GraphMetrics       `json:"metrics"`
 }
 
-// CyclicDependency represents a circular dependency
+// CyclicDependency represents a circular dependency.
 type CyclicDependency struct {
 	Cycle      []*GraphNode `json:"cycle"`
 	Impact     string       `json:"impact"`
@@ -70,7 +70,7 @@ type CyclicDependency struct {
 	Resolution string       `json:"resolution,omitempty"`
 }
 
-// SecurityInfo contains security-related information
+// SecurityInfo contains security-related information.
 type SecurityInfo struct {
 	Vulnerabilities  []*VulnerabilityInfo `json:"vulnerabilities,omitempty"`
 	LastSecurityScan time.Time            `json:"lastSecurityScan,omitempty"`
@@ -78,7 +78,7 @@ type SecurityInfo struct {
 	TrustLevel       string               `json:"trustLevel,omitempty"`
 }
 
-// VulnerabilityInfo represents a security vulnerability
+// VulnerabilityInfo represents a security vulnerability.
 type VulnerabilityInfo struct {
 	ID          string    `json:"id"`
 	Severity    string    `json:"severity"`
@@ -89,7 +89,7 @@ type VulnerabilityInfo struct {
 	References  []string  `json:"references,omitempty"`
 }
 
-// AnalysisReport represents a comprehensive dependency analysis report
+// AnalysisReport represents a comprehensive dependency analysis report.
 type AnalysisReport struct {
 	ID        string  `json:"id"`
 	RequestID string  `json:"requestId,omitempty"`
@@ -97,29 +97,29 @@ type AnalysisReport struct {
 	Status    string  `json:"status"`
 	Progress  float64 `json:"progress"`
 
-	// Analysis scope
+	// Analysis scope.
 	ScopeFilters []*ScopeFilter `json:"scopeFilters,omitempty"`
 	TimeRange    *TimeRange     `json:"timeRange,omitempty"`
 
-	// Analysis results
+	// Analysis results.
 	Summary       *AnalysisSummary `json:"summary"`
 	GraphAnalysis *GraphAnalysis   `json:"graphAnalysis,omitempty"`
 
-	// Execution metadata
+	// Execution metadata.
 	StartedAt   time.Time     `json:"startedAt"`
 	CompletedAt *time.Time    `json:"completedAt,omitempty"`
 	Duration    time.Duration `json:"duration,omitempty"`
 	ExecutedBy  string        `json:"executedBy,omitempty"`
 
-	// Configuration
+	// Configuration.
 	Config *AnalysisConfig `json:"config,omitempty"`
 
-	// Error information
+	// Error information.
 	Errors   []string `json:"errors,omitempty"`
 	Warnings []string `json:"warnings,omitempty"`
 }
 
-// AnalysisSummary provides a high-level summary of analysis results
+// AnalysisSummary provides a high-level summary of analysis results.
 type AnalysisSummary struct {
 	TotalPackages      int     `json:"totalPackages"`
 	DirectDependencies int     `json:"directDependencies"`
@@ -132,14 +132,14 @@ type AnalysisSummary struct {
 	HealthScore        float64 `json:"healthScore"`
 }
 
-// AnalysisConfig contains configuration for dependency analysis
+// AnalysisConfig contains configuration for dependency analysis.
 type AnalysisConfig struct {
-	// Analysis scope
+	// Analysis scope.
 	Scope             []*ScopeFilter `json:"scope,omitempty"`
 	IncludeTransitive bool           `json:"includeTransitive"`
 	MaxDepth          int            `json:"maxDepth,omitempty"`
 
-	// Analysis types
+	// Analysis types.
 	EnableGraphAnalysis       bool `json:"enableGraphAnalysis"`
 	EnableSecurityAnalysis    bool `json:"enableSecurityAnalysis"`
 	EnableLicenseAnalysis     bool `json:"enableLicenseAnalysis"`
@@ -152,13 +152,13 @@ type AnalysisConfig struct {
 	EnableMLAnalysis          bool `json:"enableMLAnalysis"`
 	EnableMLOptimization      bool `json:"enableMLOptimization"`
 
-	// Output options
+	// Output options.
 	OutputFormat           string `json:"outputFormat"` // "json", "yaml", "csv", "html"
 	IncludeRecommendations bool   `json:"includeRecommendations"`
 	IncludeVisualizations  bool   `json:"includeVisualizations"`
 	IncludeMetrics         bool   `json:"includeMetrics"`
 
-	// Performance options
+	// Performance options.
 	EnableCaching        bool `json:"enableCaching"`
 	EnableConcurrency    bool `json:"enableConcurrency"`
 	WorkerCount          int  `json:"workerCount,omitempty"`
@@ -166,17 +166,17 @@ type AnalysisConfig struct {
 	EnableTrendAnalysis  bool `json:"enableTrendAnalysis"`
 	EnableCostProjection bool `json:"enableCostProjection"`
 
-	// Filtering and thresholds
+	// Filtering and thresholds.
 	MinimumRiskScore       float64  `json:"minimumRiskScore,omitempty"`
 	SecuritySeverityFilter []string `json:"securitySeverityFilter,omitempty"`
 	LicenseFilter          []string `json:"licenseFilter,omitempty"`
 
-	// External integrations
+	// External integrations.
 	PackageRegistries []string `json:"packageRegistries,omitempty"`
 	SecurityDatabases []string `json:"securityDatabases,omitempty"`
 	LicenseDatabases  []string `json:"licenseDatabases,omitempty"`
 
-	// Component configurations (references to separate config types)
+	// Component configurations (references to separate config types).
 	UsageAnalyzerConfig       *UsageAnalyzerConfig       `json:"usageAnalyzerConfig,omitempty"`
 	CostAnalyzerConfig        *CostAnalyzerConfig        `json:"costAnalyzerConfig,omitempty"`
 	HealthAnalyzerConfig      *HealthAnalyzerConfig      `json:"healthAnalyzerConfig,omitempty"`
@@ -191,12 +191,12 @@ type AnalysisConfig struct {
 	RecommendationModelConfig *RecommendationModelConfig `json:"recommendationModelConfig,omitempty"`
 	AnomalyDetectorConfig     *AnomalyDetectorConfig     `json:"anomalyDetectorConfig,omitempty"`
 
-	// System metadata
+	// System metadata.
 	Version  string `json:"version"`
 	Currency string `json:"currency,omitempty"`
 }
 
-// VersionStatistics contains statistics about version resolution
+// VersionStatistics contains statistics about version resolution.
 type VersionStatistics struct {
 	TotalPackages      int           `json:"totalPackages"`
 	ResolvedPackages   int           `json:"resolvedPackages"`
@@ -206,7 +206,7 @@ type VersionStatistics struct {
 	ResolutionTime     time.Duration `json:"resolutionTime"`
 }
 
-// VersionResolutionResult contains aggregate results for version resolution of multiple packages
+// VersionResolutionResult contains aggregate results for version resolution of multiple packages.
 type VersionResolutionResult struct {
 	Success        bool                          `json:"success"`
 	Resolutions    map[string]*VersionResolution `json:"resolutions"`
@@ -215,7 +215,7 @@ type VersionResolutionResult struct {
 	ResolutionTime time.Duration                 `json:"resolutionTime"`
 }
 
-// ConflictStatistics contains statistics about conflict detection
+// ConflictStatistics contains statistics about conflict detection.
 type ConflictStatistics struct {
 	TotalConflicts      int           `json:"totalConflicts"`
 	ResolvedConflicts   int           `json:"resolvedConflicts"`
@@ -223,58 +223,90 @@ type ConflictStatistics struct {
 	DetectionTime       time.Duration `json:"detectionTime"`
 }
 
-// Component configuration types (placeholder implementations)
-type UsageAnalyzerConfig struct{}
-type CostAnalyzerConfig struct{}
-type HealthAnalyzerConfig struct{}
-type RiskAnalyzerConfig struct{}
-type PerformanceAnalyzerConfig struct{}
-type OptimizationEngineConfig struct{}
-type MLOptimizerConfig struct{}
-type UsageCollectorConfig struct{}
-type MetricsCollectorConfig struct{}
-type EventProcessorConfig struct{}
-type PredictionModelConfig struct{}
-type RecommendationModelConfig struct{}
-type AnomalyDetectorConfig struct{}
-type AnalysisCacheConfig struct {
-	TTL             time.Duration `json:"ttl"`
-	MaxEntries      int           `json:"maxEntries"`
-	CleanupInterval time.Duration `json:"cleanupInterval"`
-}
+// Component configuration types (placeholder implementations).
+type (
+	UsageAnalyzerConfig struct{}
+	// CostAnalyzerConfig represents a costanalyzerconfig.
+	CostAnalyzerConfig struct{}
+	// HealthAnalyzerConfig represents a healthanalyzerconfig.
+	HealthAnalyzerConfig struct{}
+	// RiskAnalyzerConfig represents a riskanalyzerconfig.
+	RiskAnalyzerConfig struct{}
+	// PerformanceAnalyzerConfig represents a performanceanalyzerconfig.
+	PerformanceAnalyzerConfig struct{}
+	// OptimizationEngineConfig represents a optimizationengineconfig.
+	OptimizationEngineConfig struct{}
+	// MLOptimizerConfig represents a mloptimizerconfig.
+	MLOptimizerConfig struct{}
+	// UsageCollectorConfig represents a usagecollectorconfig.
+	UsageCollectorConfig struct{}
+	// MetricsCollectorConfig represents a metricscollectorconfig.
+	MetricsCollectorConfig struct{}
+	// EventProcessorConfig represents a eventprocessorconfig.
+	EventProcessorConfig struct{}
+	// PredictionModelConfig represents a predictionmodelconfig.
+	PredictionModelConfig struct{}
+	// RecommendationModelConfig represents a recommendationmodelconfig.
+	RecommendationModelConfig struct{}
+	// AnomalyDetectorConfig represents a anomalydetectorconfig.
+	AnomalyDetectorConfig struct{}
+	// AnalysisCacheConfig represents a analysiscacheconfig.
+	AnalysisCacheConfig struct {
+		TTL             time.Duration `json:"ttl"`
+		MaxEntries      int           `json:"maxEntries"`
+		CleanupInterval time.Duration `json:"cleanupInterval"`
+	}
+)
+
+// DataStoreConfig represents a datastoreconfig.
 type DataStoreConfig struct{}
 
-// Validate validates the analyzer configuration
+// Validate validates the analyzer configuration.
 func (c *AnalysisConfig) Validate() error {
-	// Add validation logic here
+	// Add validation logic here.
 	return nil
 }
 
-// Metrics and analysis component types (simplified definitions)
-type UsageAnalyzer struct{}
-type CostAnalyzer struct{}
-type HealthAnalyzer struct{}
-type RiskAnalyzer struct{}
-type PerformanceAnalyzer struct{}
-type CostProvider interface{}
+// Metrics and analysis component types (simplified definitions).
+type (
+	UsageAnalyzer struct{}
+	// CostAnalyzer represents a costanalyzer.
+	CostAnalyzer struct{}
+	// HealthAnalyzer represents a healthanalyzer.
+	HealthAnalyzer struct{}
+	// RiskAnalyzer represents a riskanalyzer.
+	RiskAnalyzer struct{}
+	// PerformanceAnalyzer represents a performanceanalyzer.
+	PerformanceAnalyzer struct{}
+	// CostProvider represents a costprovider.
+	CostProvider interface{}
+)
 
-// Constructor functions (placeholder implementations)
+// Constructor functions (placeholder implementations).
 func NewUsageAnalyzer(config *UsageAnalyzerConfig) (*UsageAnalyzer, error) {
 	return &UsageAnalyzer{}, nil
 }
+
+// NewCostAnalyzer performs newcostanalyzer operation.
 func NewCostAnalyzer(config *CostAnalyzerConfig) (*CostAnalyzer, error) { return &CostAnalyzer{}, nil }
+
+// NewHealthAnalyzer performs newhealthanalyzer operation.
 func NewHealthAnalyzer(config *HealthAnalyzerConfig) (*HealthAnalyzer, error) {
 	return &HealthAnalyzer{}, nil
 }
+
+// NewRiskAnalyzer performs newriskanalyzer operation.
 func NewRiskAnalyzer(config *RiskAnalyzerConfig) (*RiskAnalyzer, error) { return &RiskAnalyzer{}, nil }
+
+// NewPerformanceAnalyzer performs newperformanceanalyzer operation.
 func NewPerformanceAnalyzer(config interface{}) (*PerformanceAnalyzer, error) {
-	// Accept both PerformanceAnalyzerConfig and PerformanceConfig for compatibility
+	// Accept both PerformanceAnalyzerConfig and PerformanceConfig for compatibility.
 	return &PerformanceAnalyzer{}, nil
 }
 
-// Additional analysis result types that are referenced
+// Additional analysis result types that are referenced.
 
-// UsageAnalysisResult represents package usage analysis results
+// UsageAnalysisResult represents package usage analysis results.
 type UsageAnalysisResult struct {
 	PackageName        string           `json:"packageName"`
 	TotalUsage         int64            `json:"totalUsage"`
@@ -290,7 +322,7 @@ type UsageAnalysisResult struct {
 	RecommendedAction  string           `json:"recommendedAction,omitempty"`
 }
 
-// UsageTrend represents usage trend over time
+// UsageTrend represents usage trend over time.
 type UsageTrend struct {
 	Period     *TimePeriod `json:"period"`
 	Usage      int64       `json:"usage"`
@@ -298,14 +330,14 @@ type UsageTrend struct {
 	Anomalies  []string    `json:"anomalies,omitempty"`
 }
 
-// TimePeriod represents a time period
+// TimePeriod represents a time period.
 type TimePeriod struct {
 	Start time.Time `json:"start"`
 	End   time.Time `json:"end"`
 	Label string    `json:"label,omitempty"`
 }
 
-// CostAnalysisResult represents cost analysis results
+// CostAnalysisResult represents cost analysis results.
 type CostAnalysisResult struct {
 	PackageName        string              `json:"packageName"`
 	TotalCost          float64             `json:"totalCost"`
@@ -319,7 +351,7 @@ type CostAnalysisResult struct {
 	RecommendedActions []string            `json:"recommendedActions,omitempty"`
 }
 
-// CostBreakdown represents detailed cost breakdown
+// CostBreakdown represents detailed cost breakdown.
 type CostBreakdown struct {
 	LicenseCost        float64            `json:"licenseCost"`
 	SupportCost        float64            `json:"supportCost"`
@@ -329,7 +361,7 @@ type CostBreakdown struct {
 	CustomBreakdown    map[string]float64 `json:"customBreakdown,omitempty"`
 }
 
-// CostOptimization represents a cost optimization opportunity
+// CostOptimization represents a cost optimization opportunity.
 type CostOptimization struct {
 	ID              string  `json:"id"`
 	Type            string  `json:"type"`
@@ -341,7 +373,7 @@ type CostOptimization struct {
 	Priority        string  `json:"priority"` // "low", "medium", "high", "critical"
 }
 
-// CostProjection represents cost projections
+// CostProjection represents cost projections.
 type CostProjection struct {
 	ProjectionPeriod *TimePeriod     `json:"projectionPeriod"`
 	BaselineCost     float64         `json:"baselineCost"`
@@ -351,7 +383,7 @@ type CostProjection struct {
 	Scenarios        []*CostScenario `json:"scenarios,omitempty"`
 }
 
-// CostScenario represents different cost scenarios
+// CostScenario represents different cost scenarios.
 type CostScenario struct {
 	Name        string   `json:"name"`
 	Description string   `json:"description"`
@@ -360,22 +392,22 @@ type CostScenario struct {
 	Factors     []string `json:"factors,omitempty"`
 }
 
-// Usage analysis types
+// Usage analysis types.
 
-// UsagePattern represents usage patterns for packages
+// UsagePattern represents usage patterns for packages.
 type UsagePattern struct {
 	Pattern     string      `json:"pattern"`
 	Frequency   int64       `json:"frequency"`
 	TimeRange   *TimePeriod `json:"timeRange"`
 	Description string      `json:"description,omitempty"`
 
-	// Additional fields referenced in usage_analysis_helpers.go
+	// Additional fields referenced in usage_analysis_helpers.go.
 	Type     string                 `json:"type"`
 	Strength float64                `json:"strength"`
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// PeakUsageTime represents peak usage time periods
+// PeakUsageTime represents peak usage time periods.
 type PeakUsageTime struct {
 	StartTime   time.Time `json:"startTime"`
 	EndTime     time.Time `json:"endTime"`
@@ -383,7 +415,7 @@ type PeakUsageTime struct {
 	Description string    `json:"description,omitempty"`
 }
 
-// SeasonalPattern represents seasonal usage patterns
+// SeasonalPattern represents seasonal usage patterns.
 type SeasonalPattern struct {
 	Season      string    `json:"season"`
 	Multiplier  float64   `json:"multiplier"`
@@ -392,19 +424,19 @@ type SeasonalPattern struct {
 	Description string    `json:"description,omitempty"`
 }
 
-// UsageRanking represents package usage rankings
+// UsageRanking represents package usage rankings.
 type UsageRanking struct {
 	PackageName string  `json:"packageName"`
 	UsageCount  int64   `json:"usageCount"`
 	Rank        int     `json:"rank"`
 	Score       float64 `json:"score,omitempty"`
 
-	// Additional fields referenced in usage_analysis_helpers.go
+	// Additional fields referenced in usage_analysis_helpers.go.
 	Usage    int64                  `json:"usage"`
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// TrendingPackage represents trending packages
+// TrendingPackage represents trending packages.
 type TrendingPackage struct {
 	PackageName string      `json:"packageName"`
 	GrowthRate  float64     `json:"growthRate"`
@@ -412,21 +444,21 @@ type TrendingPackage struct {
 	TrendScore  float64     `json:"trendScore"`
 	Period      *TimePeriod `json:"period"`
 
-	// Additional fields referenced in usage_analysis_helpers.go
+	// Additional fields referenced in usage_analysis_helpers.go.
 	TrendStrength float64                `json:"trendStrength"`
 	Direction     TrendDirection         `json:"direction"`
 	Confidence    float64                `json:"confidence"`
 	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// UnusedPackage represents packages that are not being used
+// UnusedPackage represents packages that are not being used.
 type UnusedPackage struct {
 	PackageName     string    `json:"packageName"`
 	LastUsed        time.Time `json:"lastUsed"`
 	DaysUnused      int       `json:"daysUnused"`
 	RecommendAction string    `json:"recommendAction,omitempty"`
 
-	// Additional fields referenced in usage_analysis_helpers.go
+	// Additional fields referenced in usage_analysis_helpers.go.
 	Package        *PackageReference      `json:"package"`
 	UnusedDuration time.Duration          `json:"unusedDuration"`
 	Reason         string                 `json:"reason"`
@@ -434,23 +466,23 @@ type UnusedPackage struct {
 	Metadata       map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// UnderutilizedPackage represents packages with low utilization
+// UnderutilizedPackage represents packages with low utilization.
 type UnderutilizedPackage struct {
 	PackageName         string  `json:"packageName"`
 	UtilizationRate     float64 `json:"utilizationRate"`
 	ExpectedUtilization float64 `json:"expectedUtilization"`
 	RecommendAction     string  `json:"recommendAction,omitempty"`
 
-	// Additional fields referenced in usage_analysis_helpers.go
+	// Additional fields referenced in usage_analysis_helpers.go.
 	CurrentUsage   int64                  `json:"currentUsage"`
 	ExpectedUsage  int64                  `json:"expectedUsage"`
 	Recommendation string                 `json:"recommendation"`
 	Metadata       map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// Additional analysis types
+// Additional analysis types.
 
-// UsageOptimization represents a usage optimization recommendation
+// UsageOptimization represents a usage optimization recommendation.
 type UsageOptimization struct {
 	ID               string  `json:"id"`
 	Type             string  `json:"type"`
@@ -458,7 +490,7 @@ type UsageOptimization struct {
 	Priority         string  `json:"priority"` // high, medium, low
 	PotentialSavings float64 `json:"potentialSavings,omitempty"`
 
-	// Additional fields referenced in usage_analysis_helpers.go
+	// Additional fields referenced in usage_analysis_helpers.go.
 	Impact           string                 `json:"impact"`
 	Effort           string                 `json:"effort"`
 	EstimatedBenefit float64                `json:"estimatedBenefit"`
@@ -466,14 +498,14 @@ type UsageOptimization struct {
 	Metadata         map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// Cost represents monetary cost
+// Cost represents monetary cost.
 type Cost struct {
 	Amount   float64 `json:"amount"`
 	Currency string  `json:"currency"`
 	Period   string  `json:"period,omitempty"` // monthly, yearly, etc.
 }
 
-// PackageCost represents cost associated with a specific package
+// PackageCost represents cost associated with a specific package.
 type PackageCost struct {
 	PackageName string  `json:"packageName"`
 	Cost        *Cost   `json:"cost"`
@@ -481,7 +513,7 @@ type PackageCost struct {
 	CostPerUse  float64 `json:"costPerUse,omitempty"`
 }
 
-// CostOptimizationOpportunity represents a cost optimization opportunity
+// CostOptimizationOpportunity represents a cost optimization opportunity.
 type CostOptimizationOpportunity struct {
 	ID                   string `json:"id"`
 	Type                 string `json:"type"`
@@ -491,7 +523,7 @@ type CostOptimizationOpportunity struct {
 	Priority             string `json:"priority"`
 }
 
-// CostBenchmarkComparison represents comparison against benchmarks
+// CostBenchmarkComparison represents comparison against benchmarks.
 type CostBenchmarkComparison struct {
 	BenchmarkType string  `json:"benchmarkType"`
 	YourCost      *Cost   `json:"yourCost"`
@@ -500,9 +532,9 @@ type CostBenchmarkComparison struct {
 	Rating        string  `json:"rating"`   // excellent, good, average, poor
 }
 
-// Health analysis types
+// Health analysis types.
 
-// SecurityHealth represents security health metrics
+// SecurityHealth represents security health metrics.
 type SecurityHealth struct {
 	Score                   float64          `json:"score"`
 	VulnerabilityCount      int              `json:"vulnerabilityCount"`
@@ -511,7 +543,7 @@ type SecurityHealth struct {
 	SecurityIssues          []*SecurityIssue `json:"securityIssues,omitempty"`
 }
 
-// MaintenanceHealth represents maintenance health metrics
+// MaintenanceHealth represents maintenance health metrics.
 type MaintenanceHealth struct {
 	Score              float64   `json:"score"`
 	OutdatedPackages   int       `json:"outdatedPackages"`
@@ -520,7 +552,7 @@ type MaintenanceHealth struct {
 	MaintenanceIssues  []string  `json:"maintenanceIssues,omitempty"`
 }
 
-// QualityHealth represents code quality health metrics
+// QualityHealth represents code quality health metrics.
 type QualityHealth struct {
 	Score         float64  `json:"score"`
 	CodeCoverage  float64  `json:"codeCoverage"`
@@ -529,7 +561,7 @@ type QualityHealth struct {
 	QualityIssues []string `json:"qualityIssues,omitempty"`
 }
 
-// PerformanceHealth represents performance health metrics
+// PerformanceHealth represents performance health metrics.
 type PerformanceHealth struct {
 	Score             float64  `json:"score"`
 	ResponseTime      float64  `json:"responseTime"`
@@ -538,7 +570,7 @@ type PerformanceHealth struct {
 	PerformanceIssues []string `json:"performanceIssues,omitempty"`
 }
 
-// SecurityIssue represents a security issue
+// SecurityIssue represents a security issue.
 type SecurityIssue struct {
 	ID           string    `json:"id"`
 	Severity     string    `json:"severity"`
@@ -548,9 +580,9 @@ type SecurityIssue struct {
 	DetectedAt   time.Time `json:"detectedAt"`
 }
 
-// Additional analysis result types
+// Additional analysis result types.
 
-// RiskAnalysis represents risk analysis results
+// RiskAnalysis represents risk analysis results.
 type RiskAnalysis struct {
 	AnalysisID       string       `json:"analysisId"`
 	OverallRiskScore float64      `json:"overallRiskScore"`
@@ -559,7 +591,7 @@ type RiskAnalysis struct {
 	Recommendations  []string     `json:"recommendations,omitempty"`
 }
 
-// RiskFactor represents an individual risk factor
+// RiskFactor represents an individual risk factor.
 type RiskFactor struct {
 	Type        string  `json:"type"`
 	Severity    string  `json:"severity"`
@@ -567,7 +599,7 @@ type RiskFactor struct {
 	Description string  `json:"description"`
 }
 
-// PerformanceAnalysis represents performance analysis results
+// PerformanceAnalysis represents performance analysis results.
 type PerformanceAnalysis struct {
 	AnalysisID    string             `json:"analysisId"`
 	OverallScore  float64            `json:"overallScore"`
@@ -577,7 +609,7 @@ type PerformanceAnalysis struct {
 	Bottlenecks   []string           `json:"bottlenecks,omitempty"`
 }
 
-// PerformanceMetric represents a performance metric
+// PerformanceMetric represents a performance metric.
 type PerformanceMetric struct {
 	Current float64 `json:"current"`
 	Target  float64 `json:"target"`
@@ -585,7 +617,7 @@ type PerformanceMetric struct {
 	Status  string  `json:"status"` // good, warning, critical
 }
 
-// ResourceMetrics represents resource usage metrics
+// ResourceMetrics represents resource usage metrics.
 type ResourceMetrics struct {
 	CPU     float64 `json:"cpu"`
 	Memory  float64 `json:"memory"`
@@ -593,7 +625,7 @@ type ResourceMetrics struct {
 	Network float64 `json:"network"`
 }
 
-// CriticalIssue represents a critical issue
+// CriticalIssue represents a critical issue.
 type CriticalIssue struct {
 	ID          string    `json:"id"`
 	Type        string    `json:"type"`
@@ -604,7 +636,7 @@ type CriticalIssue struct {
 	Resolution  string    `json:"resolution,omitempty"`
 }
 
-// HealthWarning represents a health warning
+// HealthWarning represents a health warning.
 type HealthWarning struct {
 	ID         string    `json:"id"`
 	Type       string    `json:"type"`
@@ -613,7 +645,7 @@ type HealthWarning struct {
 	DetectedAt time.Time `json:"detectedAt"`
 }
 
-// HealthRecommendation represents a health improvement recommendation
+// HealthRecommendation represents a health improvement recommendation.
 type HealthRecommendation struct {
 	ID              string   `json:"id"`
 	Type            string   `json:"type"`
@@ -625,7 +657,7 @@ type HealthRecommendation struct {
 	EstimatedImpact float64  `json:"estimatedImpact"`
 }
 
-// VersionOptimization represents a version optimization recommendation
+// VersionOptimization represents a version optimization recommendation.
 type VersionOptimization struct {
 	PackageName        string `json:"packageName"`
 	CurrentVersion     string `json:"currentVersion"`
@@ -635,7 +667,7 @@ type VersionOptimization struct {
 	Impact             string `json:"impact,omitempty"`
 }
 
-// DependencyOptimization represents a dependency optimization recommendation
+// DependencyOptimization represents a dependency optimization recommendation.
 type DependencyOptimization struct {
 	Type             string   `json:"type"` // remove, replace, upgrade
 	Description      string   `json:"description"`
@@ -644,7 +676,7 @@ type DependencyOptimization struct {
 	Effort           string   `json:"effort"`
 }
 
-// DistributionStats represents statistical distribution
+// DistributionStats represents statistical distribution.
 type DistributionStats struct {
 	Mean        float64            `json:"mean"`
 	Median      float64            `json:"median"`
@@ -655,9 +687,9 @@ type DistributionStats struct {
 	Percentiles map[string]float64 `json:"percentiles,omitempty"`
 }
 
-// More analysis types
+// More analysis types.
 
-// UpgradeRecommendation represents an upgrade recommendation
+// UpgradeRecommendation represents an upgrade recommendation.
 type UpgradeRecommendation struct {
 	PackageName        string   `json:"packageName"`
 	CurrentVersion     string   `json:"currentVersion"`
@@ -668,7 +700,7 @@ type UpgradeRecommendation struct {
 	Risks              []string `json:"risks,omitempty"`
 }
 
-// ReplacementSuggestion represents a package replacement suggestion
+// ReplacementSuggestion represents a package replacement suggestion.
 type ReplacementSuggestion struct {
 	OriginalPackage  string   `json:"originalPackage"`
 	SuggestedPackage string   `json:"suggestedPackage"`
@@ -677,7 +709,7 @@ type ReplacementSuggestion struct {
 	MigrationEffort  string   `json:"migrationEffort"`
 }
 
-// IssuePrediction represents predicted issues
+// IssuePrediction represents predicted issues.
 type IssuePrediction struct {
 	Type            string    `json:"type"`
 	Probability     float64   `json:"probability"`
@@ -687,7 +719,7 @@ type IssuePrediction struct {
 	PreventionSteps []string  `json:"preventionSteps,omitempty"`
 }
 
-// SecurityOptimization represents security optimization recommendations
+// SecurityOptimization represents security optimization recommendations.
 type SecurityOptimization struct {
 	Type             string   `json:"type"`
 	Description      string   `json:"description"`
@@ -697,7 +729,7 @@ type SecurityOptimization struct {
 	Priority         string   `json:"priority"`
 }
 
-// PerformanceOptimization represents performance optimization recommendations
+// PerformanceOptimization represents performance optimization recommendations.
 type PerformanceOptimization struct {
 	Type                 string   `json:"type"`
 	Description          string   `json:"description"`
@@ -706,7 +738,7 @@ type PerformanceOptimization struct {
 	ImplementationEffort string   `json:"implementationEffort"`
 }
 
-// OptimizationAction represents an optimization action
+// OptimizationAction represents an optimization action.
 type OptimizationAction struct {
 	ID          string    `json:"id"`
 	Type        string    `json:"type"`
@@ -717,7 +749,7 @@ type OptimizationAction struct {
 	DueDate     time.Time `json:"dueDate,omitempty"`
 }
 
-// OptimizationBenefits represents expected benefits from optimizations
+// OptimizationBenefits represents expected benefits from optimizations.
 type OptimizationBenefits struct {
 	CostSavings          *Cost    `json:"costSavings,omitempty"`
 	PerformanceGains     float64  `json:"performanceGains,omitempty"`
@@ -725,7 +757,7 @@ type OptimizationBenefits struct {
 	MaintenanceReduction string   `json:"maintenanceReduction,omitempty"`
 }
 
-// MLRecommendation represents ML-driven recommendations
+// MLRecommendation represents ML-driven recommendations.
 type MLRecommendation struct {
 	ID           string   `json:"id"`
 	Type         string   `json:"type"`
@@ -735,18 +767,19 @@ type MLRecommendation struct {
 	Evidence     []string `json:"evidence,omitempty"`
 }
 
-// String methods for debugging
+// String methods for debugging.
 func (tr *TimeRange) String() string {
 	return fmt.Sprintf("TimeRange{Start: %v, End: %v}", tr.Start, tr.End)
 }
 
+// String performs string operation.
 func (ar *AnalysisReport) String() string {
 	return fmt.Sprintf("AnalysisReport{ID: %s, Type: %s, Status: %s}", ar.ID, ar.Type, ar.Status)
 }
 
-// Missing types for analyzer.go
+// Missing types for analyzer.go.
 
-// TrendAnalysis represents trend analysis results over time
+// TrendAnalysis represents trend analysis results over time.
 type TrendAnalysis struct {
 	AnalysisID   string                 `json:"analysisId"`
 	TimeRange    *TimeRange             `json:"timeRange"`
@@ -760,7 +793,7 @@ type TrendAnalysis struct {
 	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// Trend represents a specific trend
+// Trend represents a specific trend.
 type Trend struct {
 	Type       TrendType      `json:"type"`
 	Direction  TrendDirection `json:"direction"`
@@ -769,14 +802,14 @@ type Trend struct {
 	DataPoints []*TrendPoint  `json:"dataPoints"`
 }
 
-// TrendPoint represents a data point in a trend
+// TrendPoint represents a data point in a trend.
 type TrendPoint struct {
 	Timestamp time.Time              `json:"timestamp"`
 	Value     float64                `json:"value"`
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// TrendPrediction represents a future trend prediction
+// TrendPrediction represents a future trend prediction.
 type TrendPrediction struct {
 	TargetDate     time.Time   `json:"targetDate"`
 	PredictedValue float64     `json:"predictedValue"`
@@ -784,7 +817,7 @@ type TrendPrediction struct {
 	Range          *ValueRange `json:"range,omitempty"`
 }
 
-// TrendAnomaly represents an anomaly in trend data
+// TrendAnomaly represents an anomaly in trend data.
 type TrendAnomaly struct {
 	Timestamp     time.Time `json:"timestamp"`
 	ExpectedValue float64   `json:"expectedValue"`
@@ -793,34 +826,43 @@ type TrendAnomaly struct {
 	Severity      string    `json:"severity"`
 }
 
-// ValueRange represents a range of values
+// ValueRange represents a range of values.
 type ValueRange struct {
 	Min float64 `json:"min"`
 	Max float64 `json:"max"`
 }
 
-// TrendDirection defines trend directions
+// TrendDirection defines trend directions.
 type TrendDirection string
 
 const (
-	TrendDirectionUp       TrendDirection = "up"
-	TrendDirectionDown     TrendDirection = "down"
-	TrendDirectionStable   TrendDirection = "stable"
+	// TrendDirectionUp holds trenddirectionup value.
+	TrendDirectionUp TrendDirection = "up"
+	// TrendDirectionDown holds trenddirectiondown value.
+	TrendDirectionDown TrendDirection = "down"
+	// TrendDirectionStable holds trenddirectionstable value.
+	TrendDirectionStable TrendDirection = "stable"
+	// TrendDirectionVolatile holds trenddirectionvolatile value.
 	TrendDirectionVolatile TrendDirection = "volatile"
 )
 
-// TrendType defines types of trends
+// TrendType defines types of trends.
 type TrendType string
 
 const (
-	TrendTypeUsage       TrendType = "usage"
-	TrendTypeCost        TrendType = "cost"
+	// TrendTypeUsage holds trendtypeusage value.
+	TrendTypeUsage TrendType = "usage"
+	// TrendTypeCost holds trendtypecost value.
+	TrendTypeCost TrendType = "cost"
+	// TrendTypePerformance holds trendtypeperformance value.
 	TrendTypePerformance TrendType = "performance"
-	TrendTypeSecurity    TrendType = "security"
-	TrendTypeHealth      TrendType = "health"
+	// TrendTypeSecurity holds trendtypesecurity value.
+	TrendTypeSecurity TrendType = "security"
+	// TrendTypeHealth holds trendtypehealth value.
+	TrendTypeHealth TrendType = "health"
 )
 
-// AnomalyDetectionResult represents anomaly detection results
+// AnomalyDetectionResult represents anomaly detection results.
 type AnomalyDetectionResult struct {
 	DetectionID         string                 `json:"detectionId"`
 	Anomalies           []*Anomaly             `json:"anomalies"`
@@ -832,7 +874,7 @@ type AnomalyDetectionResult struct {
 	Metadata            map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// Anomaly represents a detected anomaly
+// Anomaly represents a detected anomaly.
 type Anomaly struct {
 	ID            string                 `json:"id"`
 	Type          AnomalyType            `json:"type"`
@@ -846,18 +888,23 @@ type Anomaly struct {
 	Context       map[string]interface{} `json:"context,omitempty"`
 }
 
-// AnomalyType defines types of anomalies
+// AnomalyType defines types of anomalies.
 type AnomalyType string
 
 const (
-	AnomalyTypeUsageSpike      AnomalyType = "usage_spike"
-	AnomalyTypeUsageDrop       AnomalyType = "usage_drop"
-	AnomalyTypeCostIncrease    AnomalyType = "cost_increase"
+	// AnomalyTypeUsageSpike holds anomalytypeusagespike value.
+	AnomalyTypeUsageSpike AnomalyType = "usage_spike"
+	// AnomalyTypeUsageDrop holds anomalytypeusagedrop value.
+	AnomalyTypeUsageDrop AnomalyType = "usage_drop"
+	// AnomalyTypeCostIncrease holds anomalytypecostincrease value.
+	AnomalyTypeCostIncrease AnomalyType = "cost_increase"
+	// AnomalyTypePerformanceDrop holds anomalytypeperformancedrop value.
 	AnomalyTypePerformanceDrop AnomalyType = "performance_drop"
-	AnomalyTypeSecurityAlert   AnomalyType = "security_alert"
+	// AnomalyTypeSecurityAlert holds anomalytypesecurityalert value.
+	AnomalyTypeSecurityAlert AnomalyType = "security_alert"
 )
 
-// AnalysisError represents an analysis error
+// AnalysisError represents an analysis error.
 type AnalysisError struct {
 	Code       string                 `json:"code"`
 	Type       AnalysisErrorType      `json:"type"`
@@ -869,7 +916,7 @@ type AnalysisError struct {
 	StackTrace string                 `json:"stackTrace,omitempty"`
 }
 
-// AnalysisWarning represents an analysis warning
+// AnalysisWarning represents an analysis warning.
 type AnalysisWarning struct {
 	Code           string                 `json:"code"`
 	Type           AnalysisWarningType    `json:"type"`
@@ -880,29 +927,39 @@ type AnalysisWarning struct {
 	Timestamp      time.Time              `json:"timestamp"`
 }
 
-// AnalysisErrorType defines types of analysis errors
+// AnalysisErrorType defines types of analysis errors.
 type AnalysisErrorType string
 
 const (
-	AnalysisErrorTypeData          AnalysisErrorType = "data"
-	AnalysisErrorTypeValidation    AnalysisErrorType = "validation"
-	AnalysisErrorTypeProcessing    AnalysisErrorType = "processing"
-	AnalysisErrorTypeIntegration   AnalysisErrorType = "integration"
+	// AnalysisErrorTypeData holds analysiserrortypedata value.
+	AnalysisErrorTypeData AnalysisErrorType = "data"
+	// AnalysisErrorTypeValidation holds analysiserrortypevalidation value.
+	AnalysisErrorTypeValidation AnalysisErrorType = "validation"
+	// AnalysisErrorTypeProcessing holds analysiserrortypeprocessing value.
+	AnalysisErrorTypeProcessing AnalysisErrorType = "processing"
+	// AnalysisErrorTypeIntegration holds analysiserrortypeintegration value.
+	AnalysisErrorTypeIntegration AnalysisErrorType = "integration"
+	// AnalysisErrorTypeConfiguration holds analysiserrortypeconfiguration value.
 	AnalysisErrorTypeConfiguration AnalysisErrorType = "configuration"
 )
 
-// AnalysisWarningType defines types of analysis warnings
+// AnalysisWarningType defines types of analysis warnings.
 type AnalysisWarningType string
 
 const (
-	AnalysisWarningTypeData        AnalysisWarningType = "data"
+	// AnalysisWarningTypeData holds analysiswarningtypedata value.
+	AnalysisWarningTypeData AnalysisWarningType = "data"
+	// AnalysisWarningTypePerformance holds analysiswarningtypeperformance value.
 	AnalysisWarningTypePerformance AnalysisWarningType = "performance"
-	AnalysisWarningTypeQuality     AnalysisWarningType = "quality"
-	AnalysisWarningTypeSecurity    AnalysisWarningType = "security"
-	AnalysisWarningTypeCompliance  AnalysisWarningType = "compliance"
+	// AnalysisWarningTypeQuality holds analysiswarningtypequality value.
+	AnalysisWarningTypeQuality AnalysisWarningType = "quality"
+	// AnalysisWarningTypeSecurity holds analysiswarningtypesecurity value.
+	AnalysisWarningTypeSecurity AnalysisWarningType = "security"
+	// AnalysisWarningTypeCompliance holds analysiswarningtypecompliance value.
+	AnalysisWarningTypeCompliance AnalysisWarningType = "compliance"
 )
 
-// AnalysisStatistics contains comprehensive analysis statistics
+// AnalysisStatistics contains comprehensive analysis statistics.
 type AnalysisStatistics struct {
 	TotalPackagesAnalyzed int                       `json:"totalPackagesAnalyzed"`
 	SuccessfulAnalyses    int                       `json:"successfulAnalyses"`
@@ -916,7 +973,7 @@ type AnalysisStatistics struct {
 	ResourceUtilization   *ResourceUtilizationStats `json:"resourceUtilization,omitempty"`
 }
 
-// ResourceUtilizationStats contains resource utilization statistics
+// ResourceUtilizationStats contains resource utilization statistics.
 type ResourceUtilizationStats struct {
 	CPUUsage    float64 `json:"cpuUsage"`
 	MemoryUsage float64 `json:"memoryUsage"`
@@ -924,7 +981,7 @@ type ResourceUtilizationStats struct {
 	NetworkIO   float64 `json:"networkIO"`
 }
 
-// PackageUsageMetrics contains detailed usage metrics for a package
+// PackageUsageMetrics contains detailed usage metrics for a package.
 type PackageUsageMetrics struct {
 	PackageName        string             `json:"packageName"`
 	TotalUsage         int64              `json:"totalUsage"`
@@ -941,7 +998,7 @@ type PackageUsageMetrics struct {
 	UsageScore         float64            `json:"usageScore"`
 }
 
-// HealthScore represents comprehensive health scoring for a package
+// HealthScore represents comprehensive health scoring for a package.
 type HealthScore struct {
 	Package            *PackageReference       `json:"package"`
 	OverallScore       float64                 `json:"overallScore"`
@@ -961,7 +1018,7 @@ type HealthScore struct {
 	AssessmentVersion  string                  `json:"assessmentVersion"`
 }
 
-// QualityMetrics contains quality-related metrics
+// QualityMetrics contains quality-related metrics.
 type QualityMetrics struct {
 	CodeQuality           float64 `json:"codeQuality"`
 	TestCoverage          float64 `json:"testCoverage"`
@@ -979,7 +1036,7 @@ type QualityMetrics struct {
 	BestPracticesScore    float64 `json:"bestPracticesScore"`
 }
 
-// PerformanceMetrics contains performance-related metrics
+// PerformanceMetrics contains performance-related metrics.
 type PerformanceMetrics struct {
 	ResponseTime       float64            `json:"responseTime"`
 	Throughput         float64            `json:"throughput"`
@@ -996,7 +1053,7 @@ type PerformanceMetrics struct {
 	BenchmarkResults   []*BenchmarkResult `json:"benchmarkResults,omitempty"`
 }
 
-// BenchmarkResult contains benchmark test results
+// BenchmarkResult contains benchmark test results.
 type BenchmarkResult struct {
 	Name               string                 `json:"name"`
 	Iterations         int64                  `json:"iterations"`
@@ -1007,7 +1064,7 @@ type BenchmarkResult struct {
 	Metadata           map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// AffectedPackage represents a package affected by a vulnerability or issue
+// AffectedPackage represents a package affected by a vulnerability or issue.
 type AffectedPackage struct {
 	Package        *PackageReference `json:"package"`
 	VersionRange   *VersionRange     `json:"versionRange"`
@@ -1017,53 +1074,71 @@ type AffectedPackage struct {
 	ImpactScore    float64           `json:"impactScore"`
 }
 
-// Missing types from validator.go
+// Missing types from validator.go.
 
-// ErrorSeverity defines error severity levels
+// ErrorSeverity defines error severity levels.
 type ErrorSeverity string
 
 const (
-	ErrorSeverityLow      ErrorSeverity = "low"
-	ErrorSeverityMedium   ErrorSeverity = "medium"
-	ErrorSeverityHigh     ErrorSeverity = "high"
+	// ErrorSeverityLow holds errorseveritylow value.
+	ErrorSeverityLow ErrorSeverity = "low"
+	// ErrorSeverityMedium holds errorseveritymedium value.
+	ErrorSeverityMedium ErrorSeverity = "medium"
+	// ErrorSeverityHigh holds errorseverityhigh value.
+	ErrorSeverityHigh ErrorSeverity = "high"
+	// ErrorSeverityCritical holds errorseveritycritical value.
 	ErrorSeverityCritical ErrorSeverity = "critical"
 )
 
-// WarningType defines types of warnings
+// WarningType defines types of warnings.
 type WarningType string
 
 const (
+	// WarningTypeCompatibility holds warningtypecompatibility value.
 	WarningTypeCompatibility WarningType = "compatibility"
-	WarningTypeSecurity      WarningType = "security"
-	WarningTypeLicense       WarningType = "license"
-	WarningTypePerformance   WarningType = "performance"
-	WarningTypeQuality       WarningType = "quality"
-	WarningTypeCompliance    WarningType = "compliance"
+	// WarningTypeSecurity holds warningtypesecurity value.
+	WarningTypeSecurity WarningType = "security"
+	// WarningTypeLicense holds warningtypelicense value.
+	WarningTypeLicense WarningType = "license"
+	// WarningTypePerformance holds warningtypeperformance value.
+	WarningTypePerformance WarningType = "performance"
+	// WarningTypeQuality holds warningtypequality value.
+	WarningTypeQuality WarningType = "quality"
+	// WarningTypeCompliance holds warningtypecompliance value.
+	WarningTypeCompliance WarningType = "compliance"
 )
 
-// WarningImpact defines warning impact levels
+// WarningImpact defines warning impact levels.
 type WarningImpact string
 
 const (
-	WarningImpactLow      WarningImpact = "low"
-	WarningImpactMedium   WarningImpact = "medium"
-	WarningImpactHigh     WarningImpact = "high"
+	// WarningImpactLow holds warningimpactlow value.
+	WarningImpactLow WarningImpact = "low"
+	// WarningImpactMedium holds warningimpactmedium value.
+	WarningImpactMedium WarningImpact = "medium"
+	// WarningImpactHigh holds warningimpacthigh value.
+	WarningImpactHigh WarningImpact = "high"
+	// WarningImpactCritical holds warningimpactcritical value.
 	WarningImpactCritical WarningImpact = "critical"
 )
 
-// ConflictImpact defines conflict impact levels
+// ConflictImpact defines conflict impact levels.
 type ConflictImpact string
 
 const (
-	ConflictImpactLow      ConflictImpact = "low"
-	ConflictImpactMedium   ConflictImpact = "medium"
-	ConflictImpactHigh     ConflictImpact = "high"
+	// ConflictImpactLow holds conflictimpactlow value.
+	ConflictImpactLow ConflictImpact = "low"
+	// ConflictImpactMedium holds conflictimpactmedium value.
+	ConflictImpactMedium ConflictImpact = "medium"
+	// ConflictImpactHigh holds conflictimpacthigh value.
+	ConflictImpactHigh ConflictImpact = "high"
+	// ConflictImpactCritical holds conflictimpactcritical value.
 	ConflictImpactCritical ConflictImpact = "critical"
 )
 
-// Additional missing types for analyzer.go and validator.go
+// Additional missing types for analyzer.go and validator.go.
 
-// OptimizationObjectives defines optimization objectives
+// OptimizationObjectives defines optimization objectives.
 type OptimizationObjectives struct {
 	CostOptimization        bool               `json:"costOptimization"`
 	PerformanceOptimization bool               `json:"performanceOptimization"`
@@ -1073,7 +1148,7 @@ type OptimizationObjectives struct {
 	WeightedObjectives      map[string]float64 `json:"weightedObjectives,omitempty"`
 }
 
-// CostConstraints defines cost constraints for optimization
+// CostConstraints defines cost constraints for optimization.
 type CostConstraints struct {
 	MaxTotalCost      float64            `json:"maxTotalCost,omitempty"`
 	MaxCostPerPackage float64            `json:"maxCostPerPackage,omitempty"`
@@ -1081,7 +1156,7 @@ type CostConstraints struct {
 	Currency          string             `json:"currency"`
 }
 
-// CostReport contains comprehensive cost reporting
+// CostReport contains comprehensive cost reporting.
 type CostReport struct {
 	ReportID      string              `json:"reportId"`
 	Scope         *CostReportScope    `json:"scope"`
@@ -1092,7 +1167,7 @@ type CostReport struct {
 	GeneratedAt   time.Time           `json:"generatedAt"`
 }
 
-// CostReportScope defines the scope for cost reporting
+// CostReportScope defines the scope for cost reporting.
 type CostReportScope struct {
 	Packages    []*PackageReference `json:"packages"`
 	TimeRange   *TimeRange          `json:"timeRange,omitempty"`
@@ -1100,9 +1175,9 @@ type CostReportScope struct {
 	Categories  []string            `json:"categories,omitempty"`
 }
 
-// Additional analyzer types
+// Additional analyzer types.
 
-// UnusedDependencyReport contains unused dependency analysis
+// UnusedDependencyReport contains unused dependency analysis.
 type UnusedDependencyReport struct {
 	ReportID               string                   `json:"reportId"`
 	AnalyzedPackages       []*PackageReference      `json:"analyzedPackages"`
@@ -1113,7 +1188,7 @@ type UnusedDependencyReport struct {
 	GeneratedAt            time.Time                `json:"generatedAt"`
 }
 
-// UnusedDependency represents an unused dependency
+// UnusedDependency represents an unused dependency.
 type UnusedDependency struct {
 	Package      *PackageReference   `json:"package"`
 	LastUsed     time.Time           `json:"lastUsed,omitempty"`
@@ -1124,7 +1199,7 @@ type UnusedDependency struct {
 	Dependencies []*PackageReference `json:"dependencies,omitempty"`
 }
 
-// RemovalRecommendation represents a recommendation to remove a dependency
+// RemovalRecommendation represents a recommendation to remove a dependency.
 type RemovalRecommendation struct {
 	Package          *PackageReference `json:"package"`
 	Reason           string            `json:"reason"`
@@ -1134,7 +1209,7 @@ type RemovalRecommendation struct {
 	Steps            []string          `json:"steps,omitempty"`
 }
 
-// SecurityRiskAssessment contains security risk assessment results
+// SecurityRiskAssessment contains security risk assessment results.
 type SecurityRiskAssessment struct {
 	AssessmentID    string                    `json:"assessmentId"`
 	Packages        []*PackageReference       `json:"packages"`
@@ -1146,7 +1221,7 @@ type SecurityRiskAssessment struct {
 	AssessedAt      time.Time                 `json:"assessedAt"`
 }
 
-// SecurityRecommendation represents a security recommendation
+// SecurityRecommendation represents a security recommendation.
 type SecurityRecommendation struct {
 	ID               string              `json:"id"`
 	Type             string              `json:"type"`
@@ -1157,7 +1232,7 @@ type SecurityRecommendation struct {
 	Timeline         string              `json:"timeline,omitempty"`
 }
 
-// ComplianceRiskAnalysis contains compliance risk analysis results
+// ComplianceRiskAnalysis contains compliance risk analysis results.
 type ComplianceRiskAnalysis struct {
 	AnalysisID       string              `json:"analysisId"`
 	Packages         []*PackageReference `json:"packages"`
@@ -1168,7 +1243,7 @@ type ComplianceRiskAnalysis struct {
 	AnalyzedAt       time.Time           `json:"analyzedAt"`
 }
 
-// ComplianceIssue represents a compliance issue
+// ComplianceIssue represents a compliance issue.
 type ComplianceIssue struct {
 	ID             string            `json:"id"`
 	Type           string            `json:"type"`
@@ -1179,7 +1254,7 @@ type ComplianceIssue struct {
 	RequiredAction string            `json:"requiredAction"`
 }
 
-// ComplianceAction represents a required compliance action
+// ComplianceAction represents a required compliance action.
 type ComplianceAction struct {
 	ID          string    `json:"id"`
 	Type        string    `json:"type"`
@@ -1189,7 +1264,7 @@ type ComplianceAction struct {
 	Status      string    `json:"status"`
 }
 
-// OptimizedGraph represents an optimized dependency graph
+// OptimizedGraph represents an optimized dependency graph.
 type OptimizedGraph struct {
 	OriginalGraph  *DependencyGraph     `json:"originalGraph"`
 	OptimizedGraph *DependencyGraph     `json:"optimizedGraph"`
@@ -1199,7 +1274,7 @@ type OptimizedGraph struct {
 	OptimizedAt    time.Time            `json:"optimizedAt"`
 }
 
-// GraphOptimization represents a graph optimization
+// GraphOptimization represents a graph optimization.
 type GraphOptimization struct {
 	Type          string   `json:"type"`
 	Description   string   `json:"description"`
@@ -1208,7 +1283,7 @@ type GraphOptimization struct {
 	Impact        string   `json:"impact"`
 }
 
-// OptimizationMetrics contains optimization metrics
+// OptimizationMetrics contains optimization metrics.
 type OptimizationMetrics struct {
 	NodesReduced      int     `json:"nodesReduced"`
 	EdgesReduced      int     `json:"edgesReduced"`
@@ -1217,7 +1292,7 @@ type OptimizationMetrics struct {
 	CostReduction     *Cost   `json:"costReduction,omitempty"`
 }
 
-// ReplacementCriteria defines criteria for package replacement suggestions
+// ReplacementCriteria defines criteria for package replacement suggestions.
 type ReplacementCriteria struct {
 	MinPopularityScore      float64            `json:"minPopularityScore,omitempty"`
 	MaxAge                  time.Duration      `json:"maxAge,omitempty"`
@@ -1228,7 +1303,7 @@ type ReplacementCriteria struct {
 	PerformanceRequirements map[string]float64 `json:"performanceRequirements,omitempty"`
 }
 
-// ResourceUsageAnalysis contains resource usage analysis results
+// ResourceUsageAnalysis contains resource usage analysis results.
 type ResourceUsageAnalysis struct {
 	AnalysisID      string                    `json:"analysisId"`
 	Packages        []*PackageReference       `json:"packages"`
@@ -1239,7 +1314,7 @@ type ResourceUsageAnalysis struct {
 	AnalyzedAt      time.Time                 `json:"analyzedAt"`
 }
 
-// ResourceUsage represents resource usage metrics
+// ResourceUsage represents resource usage metrics.
 type ResourceUsage struct {
 	CPU     float64 `json:"cpu"`
 	Memory  int64   `json:"memory"`
@@ -1248,7 +1323,7 @@ type ResourceUsage struct {
 	GPU     float64 `json:"gpu,omitempty"`
 }
 
-// ResourceUsageTrend represents resource usage trends
+// ResourceUsageTrend represents resource usage trends.
 type ResourceUsageTrend struct {
 	ResourceType string               `json:"resourceType"`
 	Trend        TrendDirection       `json:"trend"`
@@ -1256,14 +1331,14 @@ type ResourceUsageTrend struct {
 	DataPoints   []*ResourceDataPoint `json:"dataPoints"`
 }
 
-// ResourceDataPoint represents a resource usage data point
+// ResourceDataPoint represents a resource usage data point.
 type ResourceDataPoint struct {
 	Timestamp time.Time `json:"timestamp"`
 	Value     float64   `json:"value"`
 	Unit      string    `json:"unit"`
 }
 
-// ResourceOptimization represents resource optimization recommendations
+// ResourceOptimization represents resource optimization recommendations.
 type ResourceOptimization struct {
 	Type                 string              `json:"type"`
 	Description          string              `json:"description"`
@@ -1273,7 +1348,7 @@ type ResourceOptimization struct {
 	Priority             string              `json:"priority"`
 }
 
-// EvolutionAnalysis contains package evolution analysis
+// EvolutionAnalysis contains package evolution analysis.
 type EvolutionAnalysis struct {
 	AnalysisID      string                 `json:"analysisId"`
 	Package         *PackageReference      `json:"package"`
@@ -1284,7 +1359,7 @@ type EvolutionAnalysis struct {
 	AnalyzedAt      time.Time              `json:"analyzedAt"`
 }
 
-// VersionInfo contains information about a specific version
+// VersionInfo contains information about a specific version.
 type VersionInfo struct {
 	Version         string                 `json:"version"`
 	ReleaseDate     time.Time              `json:"releaseDate"`
@@ -1295,7 +1370,7 @@ type VersionInfo struct {
 	Metadata        map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// EvolutionTrend represents evolution trends for a package
+// EvolutionTrend represents evolution trends for a package.
 type EvolutionTrend struct {
 	Aspect      string         `json:"aspect"`
 	Direction   TrendDirection `json:"direction"`
@@ -1303,7 +1378,7 @@ type EvolutionTrend struct {
 	Description string         `json:"description"`
 }
 
-// BreakingChange represents a breaking change in package evolution
+// BreakingChange represents a breaking change in package evolution.
 type BreakingChange struct {
 	Version      string   `json:"version"`
 	Type         string   `json:"type"`
@@ -1313,7 +1388,7 @@ type BreakingChange struct {
 	AffectedAPIs []string `json:"affectedAPIs,omitempty"`
 }
 
-// EvolutionPrediction represents predictions about package evolution
+// EvolutionPrediction represents predictions about package evolution.
 type EvolutionPrediction struct {
 	Aspect         string        `json:"aspect"`
 	PredictedValue string        `json:"predictedValue"`
@@ -1322,7 +1397,7 @@ type EvolutionPrediction struct {
 	BasedOnFactors []string      `json:"basedOnFactors,omitempty"`
 }
 
-// AnalyzerHealth represents analyzer health status
+// AnalyzerHealth represents analyzer health status.
 type AnalyzerHealth struct {
 	Status            string             `json:"status"`
 	Uptime            time.Duration      `json:"uptime"`
@@ -1334,7 +1409,7 @@ type AnalyzerHealth struct {
 	Metrics           map[string]float64 `json:"metrics,omitempty"`
 }
 
-// HealthIssue represents a health issue
+// HealthIssue represents a health issue.
 type HealthIssue struct {
 	Severity    string    `json:"severity"`
 	Component   string    `json:"component"`
@@ -1342,7 +1417,7 @@ type HealthIssue struct {
 	Timestamp   time.Time `json:"timestamp"`
 }
 
-// AnalysisModels contains machine learning models for analysis
+// AnalysisModels contains machine learning models for analysis.
 type AnalysisModels struct {
 	Version             string     `json:"version"`
 	PredictionModel     *ModelInfo `json:"predictionModel,omitempty"`
@@ -1351,7 +1426,7 @@ type AnalysisModels struct {
 	OptimizationModel   *ModelInfo `json:"optimizationModel,omitempty"`
 }
 
-// ModelInfo contains information about a machine learning model
+// ModelInfo contains information about a machine learning model.
 type ModelInfo struct {
 	Name             string                 `json:"name"`
 	Version          string                 `json:"version"`
@@ -1362,9 +1437,9 @@ type ModelInfo struct {
 	Metadata         map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// Missing interface types that are referenced
+// Missing interface types that are referenced.
 
-// Alert represents a monitoring alert
+// Alert represents a monitoring alert.
 type Alert struct {
 	ID        string                 `json:"id"`
 	Type      string                 `json:"type"`
@@ -1375,9 +1450,9 @@ type Alert struct {
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// Additional missing types from analyzer.go
+// Additional missing types from analyzer.go.
 
-// ResourceUsageMetrics contains resource usage metrics for a package
+// ResourceUsageMetrics contains resource usage metrics for a package.
 type ResourceUsageMetrics struct {
 	PackageName     string   `json:"packageName"`
 	CPUUsage        float64  `json:"cpuUsage"`
@@ -1394,7 +1469,7 @@ type ResourceUsageMetrics struct {
 	Recommendations []string `json:"recommendations,omitempty"`
 }
 
-// CostMetrics contains cost metrics for a package
+// CostMetrics contains cost metrics for a package.
 type CostMetrics struct {
 	PackageName        string  `json:"packageName"`
 	TotalCost          float64 `json:"totalCost"`
@@ -1411,7 +1486,7 @@ type CostMetrics struct {
 	ProjectedCost      float64 `json:"projectedCost,omitempty"`
 }
 
-// RecommendedAction represents a recommended action for a package
+// RecommendedAction represents a recommended action for a package.
 type RecommendedAction struct {
 	ID          string                 `json:"id"`
 	Type        ActionType             `json:"type"`
@@ -1431,7 +1506,7 @@ type RecommendedAction struct {
 	Context     map[string]interface{} `json:"context,omitempty"`
 }
 
-// PredictedIssue represents a predicted issue for a package
+// PredictedIssue represents a predicted issue for a package.
 type PredictedIssue struct {
 	ID          string            `json:"id"`
 	Type        IssueType         `json:"type"`
@@ -1448,107 +1523,153 @@ type PredictedIssue struct {
 	Model       string            `json:"model,omitempty"`
 }
 
-// Action-related enums
+// Action-related enums.
 
-// ActionType defines types of recommended actions
+// ActionType defines types of recommended actions.
 type ActionType string
 
 const (
-	ActionTypeUpgrade   ActionType = "upgrade"
+	// ActionTypeUpgrade holds actiontypeupgrade value.
+	ActionTypeUpgrade ActionType = "upgrade"
+	// ActionTypeDowngrade holds actiontypedowngrade value.
 	ActionTypeDowngrade ActionType = "downgrade"
-	ActionTypeReplace   ActionType = "replace"
-	ActionTypeRemove    ActionType = "remove"
-	ActionTypeAdd       ActionType = "add"
+	// ActionTypeReplace holds actiontypereplace value.
+	ActionTypeReplace ActionType = "replace"
+	// ActionTypeRemove holds actiontyperemove value.
+	ActionTypeRemove ActionType = "remove"
+	// ActionTypeAdd holds actiontypeadd value.
+	ActionTypeAdd ActionType = "add"
+	// ActionTypeConfigure holds actiontypeconfigure value.
 	ActionTypeConfigure ActionType = "configure"
-	ActionTypeMonitor   ActionType = "monitor"
-	ActionTypeReview    ActionType = "review"
+	// ActionTypeMonitor holds actiontypemonitor value.
+	ActionTypeMonitor ActionType = "monitor"
+	// ActionTypeReview holds actiontypereview value.
+	ActionTypeReview ActionType = "review"
 )
 
-// ActionPriority defines priority levels for actions
+// ActionPriority defines priority levels for actions.
 type ActionPriority string
 
 const (
-	ActionPriorityLow       ActionPriority = "low"
-	ActionPriorityMedium    ActionPriority = "medium"
-	ActionPriorityHigh      ActionPriority = "high"
+	// ActionPriorityLow holds actionprioritylow value.
+	ActionPriorityLow ActionPriority = "low"
+	// ActionPriorityMedium holds actionprioritymedium value.
+	ActionPriorityMedium ActionPriority = "medium"
+	// ActionPriorityHigh holds actionpriorityhigh value.
+	ActionPriorityHigh ActionPriority = "high"
+	// ActionPritorityCritical holds actionpritoritycritical value.
 	ActionPritorityCritical ActionPriority = "critical"
 )
 
-// ActionEffort defines effort levels for actions
+// ActionEffort defines effort levels for actions.
 type ActionEffort string
 
 const (
-	ActionEffortMinimal     ActionEffort = "minimal"
-	ActionEffortLow         ActionEffort = "low"
-	ActionEffortMedium      ActionEffort = "medium"
-	ActionEffortHigh        ActionEffort = "high"
+	// ActionEffortMinimal holds actioneffortminimal value.
+	ActionEffortMinimal ActionEffort = "minimal"
+	// ActionEffortLow holds actioneffortlow value.
+	ActionEffortLow ActionEffort = "low"
+	// ActionEffortMedium holds actioneffortmedium value.
+	ActionEffortMedium ActionEffort = "medium"
+	// ActionEffortHigh holds actionefforthigh value.
+	ActionEffortHigh ActionEffort = "high"
+	// ActionEffortSignificant holds actioneffortsignificant value.
 	ActionEffortSignificant ActionEffort = "significant"
 )
 
-// ActionImpact defines impact levels for actions
+// ActionImpact defines impact levels for actions.
 type ActionImpact string
 
 const (
+	// ActionImpactMinimal holds actionimpactminimal value.
 	ActionImpactMinimal ActionImpact = "minimal"
-	ActionImpactLow     ActionImpact = "low"
-	ActionImpactMedium  ActionImpact = "medium"
-	ActionImpactHigh    ActionImpact = "high"
-	ActionImpactMajor   ActionImpact = "major"
+	// ActionImpactLow holds actionimpactlow value.
+	ActionImpactLow ActionImpact = "low"
+	// ActionImpactMedium holds actionimpactmedium value.
+	ActionImpactMedium ActionImpact = "medium"
+	// ActionImpactHigh holds actionimpacthigh value.
+	ActionImpactHigh ActionImpact = "high"
+	// ActionImpactMajor holds actionimpactmajor value.
+	ActionImpactMajor ActionImpact = "major"
 )
 
-// ActionStatus defines status of actions
+// ActionStatus defines status of actions.
 type ActionStatus string
 
 const (
-	ActionStatusPending    ActionStatus = "pending"
+	// ActionStatusPending holds actionstatuspending value.
+	ActionStatusPending ActionStatus = "pending"
+	// ActionStatusInProgress holds actionstatusinprogress value.
 	ActionStatusInProgress ActionStatus = "in_progress"
-	ActionStatusCompleted  ActionStatus = "completed"
-	ActionStatusFailed     ActionStatus = "failed"
-	ActionStatusCancelled  ActionStatus = "cancelled"
-	ActionStatusOnHold     ActionStatus = "on_hold"
+	// ActionStatusCompleted holds actionstatuscompleted value.
+	ActionStatusCompleted ActionStatus = "completed"
+	// ActionStatusFailed holds actionstatusfailed value.
+	ActionStatusFailed ActionStatus = "failed"
+	// ActionStatusCancelled holds actionstatuscancelled value.
+	ActionStatusCancelled ActionStatus = "cancelled"
+	// ActionStatusOnHold holds actionstatusonhold value.
+	ActionStatusOnHold ActionStatus = "on_hold"
 )
 
-// Issue-related enums
+// Issue-related enums.
 
-// IssueType defines types of predicted issues
+// IssueType defines types of predicted issues.
 type IssueType string
 
 const (
-	IssueTypeSecurity      IssueType = "security"
-	IssueTypePerformance   IssueType = "performance"
+	// IssueTypeSecurity holds issuetypesecurity value.
+	IssueTypeSecurity IssueType = "security"
+	// IssueTypePerformance holds issuetypeperformance value.
+	IssueTypePerformance IssueType = "performance"
+	// IssueTypeCompatibility holds issuetypecompatibility value.
 	IssueTypeCompatibility IssueType = "compatibility"
-	IssueTypeMaintenance   IssueType = "maintenance"
-	IssueTypeLicense       IssueType = "license"
-	IssueTypeCompliance    IssueType = "compliance"
-	IssueTypeDependency    IssueType = "dependency"
-	IssueTypeObsolescence  IssueType = "obsolescence"
+	// IssueTypeMaintenance holds issuetypemaintenance value.
+	IssueTypeMaintenance IssueType = "maintenance"
+	// IssueTypeLicense holds issuetypelicense value.
+	IssueTypeLicense IssueType = "license"
+	// IssueTypeCompliance holds issuetypecompliance value.
+	IssueTypeCompliance IssueType = "compliance"
+	// IssueTypeDependency holds issuetypedependency value.
+	IssueTypeDependency IssueType = "dependency"
+	// IssueTypeObsolescence holds issuetypeobsolescence value.
+	IssueTypeObsolescence IssueType = "obsolescence"
 )
 
-// IssueSeverity defines severity levels for issues
+// IssueSeverity defines severity levels for issues.
 type IssueSeverity string
 
 const (
-	IssueSeverityInfo     IssueSeverity = "info"
-	IssueSeverityLow      IssueSeverity = "low"
-	IssueSeverityMedium   IssueSeverity = "medium"
-	IssueSeverityHigh     IssueSeverity = "high"
+	// IssueSeverityInfo holds issueseverityinfo value.
+	IssueSeverityInfo IssueSeverity = "info"
+	// IssueSeverityLow holds issueseveritylow value.
+	IssueSeverityLow IssueSeverity = "low"
+	// IssueSeverityMedium holds issueseveritymedium value.
+	IssueSeverityMedium IssueSeverity = "medium"
+	// IssueSeverityHigh holds issueseverityhigh value.
+	IssueSeverityHigh IssueSeverity = "high"
+	// IssueSeverityCritical holds issueseveritycritical value.
 	IssueSeverityCritical IssueSeverity = "critical"
 )
 
-// IssueImpact defines impact levels for issues
+// IssueImpact defines impact levels for issues.
 type IssueImpact string
 
 const (
+	// IssueImpactMinimal holds issueimpactminimal value.
 	IssueImpactMinimal IssueImpact = "minimal"
-	IssueImpactLow     IssueImpact = "low"
-	IssueImpactMedium  IssueImpact = "medium"
-	IssueImpactHigh    IssueImpact = "high"
-	IssueImpactSevere  IssueImpact = "severe"
+	// IssueImpactLow holds issueimpactlow value.
+	IssueImpactLow IssueImpact = "low"
+	// IssueImpactMedium holds issueimpactmedium value.
+	IssueImpactMedium IssueImpact = "medium"
+	// IssueImpactHigh holds issueimpacthigh value.
+	IssueImpactHigh IssueImpact = "high"
+	// IssueImpactSevere holds issueimpactsevere value.
+	IssueImpactSevere IssueImpact = "severe"
 )
 
-// Additional validator types
+// Additional validator types.
 
-// HealthTrendAnalysis contains health trend analysis results
+// HealthTrendAnalysis contains health trend analysis results.
 type HealthTrendAnalysis struct {
 	AnalysisID       string                   `json:"analysisId"`
 	Packages         []*PackageReference      `json:"packages"`
@@ -1563,7 +1684,7 @@ type HealthTrendAnalysis struct {
 	AnalyzedAt       time.Time                `json:"analyzedAt"`
 }
 
-// PackageHealthTrend represents health trend for a specific package
+// PackageHealthTrend represents health trend for a specific package.
 type PackageHealthTrend struct {
 	Package       *PackageReference `json:"package"`
 	Trend         HealthTrend       `json:"trend"`
@@ -1573,7 +1694,7 @@ type PackageHealthTrend struct {
 	Confidence    float64           `json:"confidence"`
 }
 
-// HealthPrediction represents a prediction about package health
+// HealthPrediction represents a prediction about package health.
 type HealthPrediction struct {
 	Package        *PackageReference `json:"package"`
 	PredictedScore float64           `json:"predictedScore"`
@@ -1583,7 +1704,7 @@ type HealthPrediction struct {
 	RiskFactors    []string          `json:"riskFactors,omitempty"`
 }
 
-// HealthSnapshot represents a snapshot of package health at a point in time
+// HealthSnapshot represents a snapshot of package health at a point in time.
 type HealthSnapshot struct {
 	PackageName       string      `json:"packageName"`
 	Timestamp         time.Time   `json:"timestamp"`
@@ -1595,7 +1716,7 @@ type HealthSnapshot struct {
 	Grade             HealthGrade `json:"grade"`
 }
 
-// HealthTrendPrediction represents a prediction about health trends
+// HealthTrendPrediction represents a prediction about health trends.
 type HealthTrendPrediction struct {
 	PackageName    string        `json:"packageName"`
 	PredictedTrend HealthTrend   `json:"predictedTrend"`
@@ -1606,9 +1727,9 @@ type HealthTrendPrediction struct {
 	RiskIndicators []string      `json:"riskIndicators,omitempty"`
 }
 
-// Additional missing types from validator.go
+// Additional missing types from validator.go.
 
-// ValidationRecommendation represents a validation recommendation
+// ValidationRecommendation represents a validation recommendation.
 type ValidationRecommendation struct {
 	ID              string            `json:"id"`
 	Type            string            `json:"type"`
@@ -1622,7 +1743,7 @@ type ValidationRecommendation struct {
 	Timeline        string            `json:"timeline,omitempty"`
 }
 
-// ValidationStatistics contains validation statistics
+// ValidationStatistics contains validation statistics.
 type ValidationStatistics struct {
 	TotalPackages     int           `json:"totalPackages"`
 	ValidatedPackages int           `json:"validatedPackages"`
@@ -1635,9 +1756,9 @@ type ValidationStatistics struct {
 	ThroughputPPS     float64       `json:"throughputPPS"` // Packages per second
 }
 
-// Additional types needed for completeness
+// Additional types needed for completeness.
 
-// AnalyzerConfig represents the main analyzer configuration
+// AnalyzerConfig represents the main analyzer configuration.
 type AnalyzerConfig struct {
 	Version                   string                     `json:"version"`
 	EnableMLAnalysis          bool                       `json:"enableMLAnalysis"`
@@ -1667,9 +1788,9 @@ type AnalyzerConfig struct {
 	PackageRegistryConfig     *PackageRegistryConfig     `json:"packageRegistryConfig,omitempty"`
 }
 
-// Additional missing types from various files
+// Additional missing types from various files.
 
-// CriticalPath represents a critical path in dependency graph
+// CriticalPath represents a critical path in dependency graph.
 type CriticalPath struct {
 	Path       []*GraphNode `json:"path"`
 	Length     int          `json:"length"`
@@ -1677,7 +1798,7 @@ type CriticalPath struct {
 	Bottleneck *GraphNode   `json:"bottleneck,omitempty"`
 }
 
-// GraphPattern represents patterns in dependency graphs
+// GraphPattern represents patterns in dependency graphs.
 type GraphPattern struct {
 	Type        PatternType   `json:"type"`
 	Nodes       []*GraphNode  `json:"nodes"`
@@ -1686,19 +1807,25 @@ type GraphPattern struct {
 	Impact      PatternImpact `json:"impact"`
 }
 
-// PatternType defines types of graph patterns
+// PatternType defines types of graph patterns.
 type PatternType string
 
 const (
+	// PatternTypeCircular holds patterntypecircular value.
 	PatternTypeCircular PatternType = "circular"
-	PatternTypeFanOut   PatternType = "fan_out"
-	PatternTypeFanIn    PatternType = "fan_in"
-	PatternTypeChain    PatternType = "chain"
-	PatternTypeHub      PatternType = "hub"
+	// PatternTypeFanOut holds patterntypefanout value.
+	PatternTypeFanOut PatternType = "fan_out"
+	// PatternTypeFanIn holds patterntypefanin value.
+	PatternTypeFanIn PatternType = "fan_in"
+	// PatternTypeChain holds patterntypechain value.
+	PatternTypeChain PatternType = "chain"
+	// PatternTypeHub holds patterntypehub value.
+	PatternTypeHub PatternType = "hub"
+	// PatternTypeIsolated holds patterntypeisolated value.
 	PatternTypeIsolated PatternType = "isolated"
 )
 
-// PatternAnalysis represents the result of pattern detection analysis
+// PatternAnalysis represents the result of pattern detection analysis.
 type PatternAnalysis struct {
 	AnalysisID       string              `json:"analysisId"`
 	PatternsDetected []*GraphPattern     `json:"patternsDetected"`
@@ -1709,27 +1836,35 @@ type PatternAnalysis struct {
 	Recommendations  []string            `json:"recommendations,omitempty"`
 }
 
-// PatternImpact defines impact levels of patterns
+// PatternImpact defines impact levels of patterns.
 type PatternImpact string
 
 const (
-	PatternImpactLow      PatternImpact = "low"
-	PatternImpactMedium   PatternImpact = "medium"
-	PatternImpactHigh     PatternImpact = "high"
+	// PatternImpactLow holds patternimpactlow value.
+	PatternImpactLow PatternImpact = "low"
+	// PatternImpactMedium holds patternimpactmedium value.
+	PatternImpactMedium PatternImpact = "medium"
+	// PatternImpactHigh holds patternimpacthigh value.
+	PatternImpactHigh PatternImpact = "high"
+	// PatternImpactCritical holds patternimpactcritical value.
 	PatternImpactCritical PatternImpact = "critical"
 )
 
-// CycleImpact defines impact levels of dependency cycles
+// CycleImpact defines impact levels of dependency cycles.
 type CycleImpact string
 
 const (
-	CycleImpactLow    CycleImpact = "low"
+	// CycleImpactLow holds cycleimpactlow value.
+	CycleImpactLow CycleImpact = "low"
+	// CycleImpactMedium holds cycleimpactmedium value.
 	CycleImpactMedium CycleImpact = "medium"
-	CycleImpactHigh   CycleImpact = "high"
+	// CycleImpactHigh holds cycleimpacthigh value.
+	CycleImpactHigh CycleImpact = "high"
+	// CycleImpactSevere holds cycleimpactsevere value.
 	CycleImpactSevere CycleImpact = "severe"
 )
 
-// CycleBreakingOption represents options for breaking dependency cycles
+// CycleBreakingOption represents options for breaking dependency cycles.
 type CycleBreakingOption struct {
 	Type           BreakingOptionType `json:"type"`
 	Target         *GraphNode         `json:"target"`
@@ -1740,28 +1875,37 @@ type CycleBreakingOption struct {
 	Recommendation string             `json:"recommendation"`
 }
 
-// BreakingOptionType defines types of cycle breaking options
+// BreakingOptionType defines types of cycle breaking options.
 type BreakingOptionType string
 
 const (
-	BreakingOptionTypeRemove    BreakingOptionType = "remove"
-	BreakingOptionTypeReplace   BreakingOptionType = "replace"
+	// BreakingOptionTypeRemove holds breakingoptiontyperemove value.
+	BreakingOptionTypeRemove BreakingOptionType = "remove"
+	// BreakingOptionTypeReplace holds breakingoptiontypereplace value.
+	BreakingOptionTypeReplace BreakingOptionType = "replace"
+	// BreakingOptionTypeDowngrade holds breakingoptiontypedowngrade value.
 	BreakingOptionTypeDowngrade BreakingOptionType = "downgrade"
-	BreakingOptionTypeExclude   BreakingOptionType = "exclude"
-	BreakingOptionTypeRefactor  BreakingOptionType = "refactor"
+	// BreakingOptionTypeExclude holds breakingoptiontypeexclude value.
+	BreakingOptionTypeExclude BreakingOptionType = "exclude"
+	// BreakingOptionTypeRefactor holds breakingoptiontyperefactor value.
+	BreakingOptionTypeRefactor BreakingOptionType = "refactor"
 )
 
-// BreakingRiskLevel defines risk levels for breaking changes
+// BreakingRiskLevel defines risk levels for breaking changes.
 type BreakingRiskLevel string
 
 const (
-	BreakingRiskLow      BreakingRiskLevel = "low"
-	BreakingRiskMedium   BreakingRiskLevel = "medium"
-	BreakingRiskHigh     BreakingRiskLevel = "high"
+	// BreakingRiskLow holds breakingrisklow value.
+	BreakingRiskLow BreakingRiskLevel = "low"
+	// BreakingRiskMedium holds breakingriskmedium value.
+	BreakingRiskMedium BreakingRiskLevel = "medium"
+	// BreakingRiskHigh holds breakingriskhigh value.
+	BreakingRiskHigh BreakingRiskLevel = "high"
+	// BreakingRiskCritical holds breakingriskcritical value.
 	BreakingRiskCritical BreakingRiskLevel = "critical"
 )
 
-// AutoUpdateConfig represents automatic update configuration
+// AutoUpdateConfig represents automatic update configuration.
 type AutoUpdateConfig struct {
 	Enabled              bool                 `json:"enabled"`
 	UpdateStrategy       UpdateStrategy       `json:"updateStrategy"`
@@ -1777,7 +1921,7 @@ type AutoUpdateConfig struct {
 	NotificationConfig   *NotificationConfig  `json:"notificationConfig,omitempty"`
 }
 
-// MaintenanceWindow represents a maintenance window for updates
+// MaintenanceWindow represents a maintenance window for updates.
 type MaintenanceWindow struct {
 	Name        string        `json:"name"`
 	Description string        `json:"description,omitempty"`
@@ -1789,30 +1933,41 @@ type MaintenanceWindow struct {
 	Recurrence  Recurrence    `json:"recurrence"`
 }
 
-// Weekday represents days of the week
+// Weekday represents days of the week.
 type Weekday string
 
 const (
-	Monday    Weekday = "monday"
-	Tuesday   Weekday = "tuesday"
+	// Monday holds monday value.
+	Monday Weekday = "monday"
+	// Tuesday holds tuesday value.
+	Tuesday Weekday = "tuesday"
+	// Wednesday holds wednesday value.
 	Wednesday Weekday = "wednesday"
-	Thursday  Weekday = "thursday"
-	Friday    Weekday = "friday"
-	Saturday  Weekday = "saturday"
-	Sunday    Weekday = "sunday"
+	// Thursday holds thursday value.
+	Thursday Weekday = "thursday"
+	// Friday holds friday value.
+	Friday Weekday = "friday"
+	// Saturday holds saturday value.
+	Saturday Weekday = "saturday"
+	// Sunday holds sunday value.
+	Sunday Weekday = "sunday"
 )
 
-// Recurrence defines recurrence patterns
+// Recurrence defines recurrence patterns.
 type Recurrence string
 
 const (
-	RecurrenceDaily   Recurrence = "daily"
-	RecurrenceWeekly  Recurrence = "weekly"
+	// RecurrenceDaily holds recurrencedaily value.
+	RecurrenceDaily Recurrence = "daily"
+	// RecurrenceWeekly holds recurrenceweekly value.
+	RecurrenceWeekly Recurrence = "weekly"
+	// RecurrenceMonthly holds recurrencemonthly value.
 	RecurrenceMonthly Recurrence = "monthly"
-	RecurrenceCustom  Recurrence = "custom"
+	// RecurrenceCustom holds recurrencecustom value.
+	RecurrenceCustom Recurrence = "custom"
 )
 
-// NotificationConfig represents notification configuration
+// NotificationConfig represents notification configuration.
 type NotificationConfig struct {
 	Enabled   bool                   `json:"enabled"`
 	Channels  []*NotificationChannel `json:"channels"`
@@ -1820,38 +1975,48 @@ type NotificationConfig struct {
 	Events    []NotificationEvent    `json:"events"`
 }
 
-// NotificationChannel represents a notification channel
+// NotificationChannel represents a notification channel.
 type NotificationChannel struct {
 	Type     ChannelType            `json:"type"`
 	Endpoint string                 `json:"endpoint"`
 	Config   map[string]interface{} `json:"config,omitempty"`
 }
 
-// ChannelType defines notification channel types
+// ChannelType defines notification channel types.
 type ChannelType string
 
 const (
-	ChannelTypeEmail   ChannelType = "email"
-	ChannelTypeSlack   ChannelType = "slack"
+	// ChannelTypeEmail holds channeltypeemail value.
+	ChannelTypeEmail ChannelType = "email"
+	// ChannelTypeSlack holds channeltypeslack value.
+	ChannelTypeSlack ChannelType = "slack"
+	// ChannelTypeWebhook holds channeltypewebhook value.
 	ChannelTypeWebhook ChannelType = "webhook"
-	ChannelTypeSMS     ChannelType = "sms"
+	// ChannelTypeSMS holds channeltypesms value.
+	ChannelTypeSMS ChannelType = "sms"
 )
 
-// NotificationEvent defines notification events
+// NotificationEvent defines notification events.
 type NotificationEvent string
 
 const (
+	// NotificationEventUpdateAvailable holds notificationeventupdateavailable value.
 	NotificationEventUpdateAvailable NotificationEvent = "update_available"
-	NotificationEventUpdateStarted   NotificationEvent = "update_started"
+	// NotificationEventUpdateStarted holds notificationeventupdatestarted value.
+	NotificationEventUpdateStarted NotificationEvent = "update_started"
+	// NotificationEventUpdateCompleted holds notificationeventupdatecompleted value.
 	NotificationEventUpdateCompleted NotificationEvent = "update_completed"
-	NotificationEventUpdateFailed    NotificationEvent = "update_failed"
-	NotificationEventSecurityAlert   NotificationEvent = "security_alert"
-	NotificationEventError           NotificationEvent = "error"
+	// NotificationEventUpdateFailed holds notificationeventupdatefailed value.
+	NotificationEventUpdateFailed NotificationEvent = "update_failed"
+	// NotificationEventSecurityAlert holds notificationeventsecurityalert value.
+	NotificationEventSecurityAlert NotificationEvent = "security_alert"
+	// NotificationEventError holds notificationeventerror value.
+	NotificationEventError NotificationEvent = "error"
 )
 
-// Additional missing types from graph.go
+// Additional missing types from graph.go.
 
-// GraphUpdate represents an update to a dependency graph
+// GraphUpdate represents an update to a dependency graph.
 type GraphUpdate struct {
 	Type      UpdateType             `json:"type"`
 	Node      *GraphNode             `json:"node,omitempty"`
@@ -1863,28 +2028,37 @@ type GraphUpdate struct {
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// UpdateOperation defines graph update operations
+// UpdateOperation defines graph update operations.
 type UpdateOperation string
 
 const (
-	UpdateOperationAdd    UpdateOperation = "add"
+	// UpdateOperationAdd holds updateoperationadd value.
+	UpdateOperationAdd UpdateOperation = "add"
+	// UpdateOperationRemove holds updateoperationremove value.
 	UpdateOperationRemove UpdateOperation = "remove"
+	// UpdateOperationUpdate holds updateoperationupdate value.
 	UpdateOperationUpdate UpdateOperation = "update"
-	UpdateOperationMove   UpdateOperation = "move"
+	// UpdateOperationMove holds updateoperationmove value.
+	UpdateOperationMove UpdateOperation = "move"
 )
 
-// UpdateImpact defines impact levels of graph updates
+// UpdateImpact defines impact levels of graph updates.
 type UpdateImpact string
 
 const (
-	UpdateImpactNone     UpdateImpact = "none"
-	UpdateImpactMinimal  UpdateImpact = "minimal"
+	// UpdateImpactNone holds updateimpactnone value.
+	UpdateImpactNone UpdateImpact = "none"
+	// UpdateImpactMinimal holds updateimpactminimal value.
+	UpdateImpactMinimal UpdateImpact = "minimal"
+	// UpdateImpactModerate holds updateimpactmoderate value.
 	UpdateImpactModerate UpdateImpact = "moderate"
-	UpdateImpactHigh     UpdateImpact = "high"
+	// UpdateImpactHigh holds updateimpacthigh value.
+	UpdateImpactHigh UpdateImpact = "high"
+	// UpdateImpactCritical holds updateimpactcritical value.
 	UpdateImpactCritical UpdateImpact = "critical"
 )
 
-// GraphVisitor represents a visitor for graph traversal
+// GraphVisitor represents a visitor for graph traversal.
 type GraphVisitor interface {
 	VisitNode(node *GraphNode) error
 	VisitEdge(edge *GraphEdge) error
@@ -1892,7 +2066,7 @@ type GraphVisitor interface {
 	PostOrder() bool
 }
 
-// GraphPath represents a path through the dependency graph
+// GraphPath represents a path through the dependency graph.
 type GraphPath struct {
 	Nodes    []*GraphNode           `json:"nodes"`
 	Edges    []*GraphEdge           `json:"edges"`
@@ -1903,7 +2077,7 @@ type GraphPath struct {
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// ComplexityAnalysis represents complexity analysis results
+// ComplexityAnalysis represents complexity analysis results.
 type ComplexityAnalysis struct {
 	AnalysisID           string             `json:"analysisId"`
 	OverallComplexity    float64            `json:"overallComplexity"`
@@ -1916,7 +2090,7 @@ type ComplexityAnalysis struct {
 	AnalyzedAt           time.Time          `json:"analyzedAt"`
 }
 
-// ComplexityFactor represents a factor contributing to complexity
+// ComplexityFactor represents a factor contributing to complexity.
 type ComplexityFactor struct {
 	Type         ComplexityFactorType `json:"type"`
 	Value        float64              `json:"value"`
@@ -1925,19 +2099,25 @@ type ComplexityFactor struct {
 	Contribution float64              `json:"contribution"`
 }
 
-// ComplexityFactorType defines types of complexity factors
+// ComplexityFactorType defines types of complexity factors.
 type ComplexityFactorType string
 
 const (
-	ComplexityFactorNodes    ComplexityFactorType = "nodes"
-	ComplexityFactorEdges    ComplexityFactorType = "edges"
-	ComplexityFactorCycles   ComplexityFactorType = "cycles"
-	ComplexityFactorDepth    ComplexityFactorType = "depth"
-	ComplexityFactorFanOut   ComplexityFactorType = "fan_out"
+	// ComplexityFactorNodes holds complexityfactornodes value.
+	ComplexityFactorNodes ComplexityFactorType = "nodes"
+	// ComplexityFactorEdges holds complexityfactoredges value.
+	ComplexityFactorEdges ComplexityFactorType = "edges"
+	// ComplexityFactorCycles holds complexityfactorcycles value.
+	ComplexityFactorCycles ComplexityFactorType = "cycles"
+	// ComplexityFactorDepth holds complexityfactordepth value.
+	ComplexityFactorDepth ComplexityFactorType = "depth"
+	// ComplexityFactorFanOut holds complexityfactorfanout value.
+	ComplexityFactorFanOut ComplexityFactorType = "fan_out"
+	// ComplexityFactorCoupling holds complexityfactorcoupling value.
 	ComplexityFactorCoupling ComplexityFactorType = "coupling"
 )
 
-// GraphFilter represents filters for graph operations
+// GraphFilter represents filters for graph operations.
 type GraphFilter struct {
 	IncludePackages []string               `json:"includePackages,omitempty"`
 	ExcludePackages []string               `json:"excludePackages,omitempty"`
@@ -1950,7 +2130,7 @@ type GraphFilter struct {
 	Metadata        map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// GraphMetadata represents metadata for graph operations
+// GraphMetadata represents metadata for graph operations.
 type GraphMetadata struct {
 	Version     string                 `json:"version"`
 	CreatedAt   time.Time              `json:"createdAt"`
@@ -1961,7 +2141,7 @@ type GraphMetadata struct {
 	Properties  map[string]interface{} `json:"properties,omitempty"`
 }
 
-// OptimizationOptions represents options for graph optimization
+// OptimizationOptions represents options for graph optimization.
 type OptimizationOptions struct {
 	Strategy             OptimizationStrategy     `json:"strategy"`
 	MaxIterations        int                      `json:"maxIterations"`
@@ -1975,7 +2155,7 @@ type OptimizationOptions struct {
 	Objectives           []OptimizationObjective  `json:"objectives,omitempty"`
 }
 
-// OptimizationConstraint represents a constraint for optimization
+// OptimizationConstraint represents a constraint for optimization.
 type OptimizationConstraint struct {
 	Type        string  `json:"type"`
 	Target      string  `json:"target"`
@@ -1984,7 +2164,7 @@ type OptimizationConstraint struct {
 	Description string  `json:"description,omitempty"`
 }
 
-// OptimizationObjective represents an optimization objective
+// OptimizationObjective represents an optimization objective.
 type OptimizationObjective struct {
 	Type        ObjectiveType `json:"type"`
 	Weight      float64       `json:"weight"`
@@ -1992,30 +2172,41 @@ type OptimizationObjective struct {
 	Description string        `json:"description,omitempty"`
 }
 
-// ObjectiveType defines types of optimization objectives
+// ObjectiveType defines types of optimization objectives.
 type ObjectiveType string
 
 const (
-	ObjectiveTypeMinimizeCost        ObjectiveType = "minimize_cost"
+	// ObjectiveTypeMinimizeCost holds objectivetypeminimizecost value.
+	ObjectiveTypeMinimizeCost ObjectiveType = "minimize_cost"
+	// ObjectiveTypeMaximizePerformance holds objectivetypemaximizeperformance value.
 	ObjectiveTypeMaximizePerformance ObjectiveType = "maximize_performance"
-	ObjectiveTypeMinimizeComplexity  ObjectiveType = "minimize_complexity"
-	ObjectiveTypeMinimizeRisk        ObjectiveType = "minimize_risk"
+	// ObjectiveTypeMinimizeComplexity holds objectivetypeminimizecomplexity value.
+	ObjectiveTypeMinimizeComplexity ObjectiveType = "minimize_complexity"
+	// ObjectiveTypeMinimizeRisk holds objectivetypeminimizerisk value.
+	ObjectiveTypeMinimizeRisk ObjectiveType = "minimize_risk"
+	// ObjectiveTypeMaximizeReliability holds objectivetypemaximizereliability value.
 	ObjectiveTypeMaximizeReliability ObjectiveType = "maximize_reliability"
 )
 
-// VersionStrategy defines version selection strategies
+// VersionStrategy defines version selection strategies.
 type VersionStrategy string
 
 const (
-	VersionStrategyExact      VersionStrategy = "exact"
-	VersionStrategyLatest     VersionStrategy = "latest"
-	VersionStrategyStable     VersionStrategy = "stable"
+	// VersionStrategyExact holds versionstrategyexact value.
+	VersionStrategyExact VersionStrategy = "exact"
+	// VersionStrategyLatest holds versionstrategylatest value.
+	VersionStrategyLatest VersionStrategy = "latest"
+	// VersionStrategyStable holds versionstrategystable value.
+	VersionStrategyStable VersionStrategy = "stable"
+	// VersionStrategyPrerelease holds versionstrategyprerelease value.
 	VersionStrategyPrerelease VersionStrategy = "prerelease"
-	VersionStrategyRange      VersionStrategy = "range"
-	VersionStrategyPinned     VersionStrategy = "pinned"
+	// VersionStrategyRange holds versionstrategyrange value.
+	VersionStrategyRange VersionStrategy = "range"
+	// VersionStrategyPinned holds versionstrategypinned value.
+	VersionStrategyPinned VersionStrategy = "pinned"
 )
 
-// PackageFilter represents filters for package operations
+// PackageFilter represents filters for package operations.
 type PackageFilter struct {
 	Names             []string               `json:"names,omitempty"`
 	Namespaces        []string               `json:"namespaces,omitempty"`
@@ -2032,7 +2223,7 @@ type PackageFilter struct {
 	CustomFilters     map[string]interface{} `json:"customFilters,omitempty"`
 }
 
-// SecurityFilter represents security-related package filters
+// SecurityFilter represents security-related package filters.
 type SecurityFilter struct {
 	MinSecurityScore    float64  `json:"minSecurityScore,omitempty"`
 	MaxVulnerabilities  int      `json:"maxVulnerabilities,omitempty"`
@@ -2041,16 +2232,16 @@ type SecurityFilter struct {
 	RequireVerification bool     `json:"requireVerification,omitempty"`
 }
 
-// Additional missing types from graph.go interfaces
+// Additional missing types from graph.go interfaces.
 
-// GraphTransformer interface for graph transformations
+// GraphTransformer interface for graph transformations.
 type GraphTransformer interface {
 	Transform(graph *DependencyGraph) (*DependencyGraph, error)
 	CanTransform(graph *DependencyGraph) bool
 	TransformationType() string
 }
 
-// GraphValidation represents graph validation results
+// GraphValidation represents graph validation results.
 type GraphValidation struct {
 	Valid           bool                   `json:"valid"`
 	Errors          []*ValidationError     `json:"errors,omitempty"`
@@ -2061,7 +2252,7 @@ type GraphValidation struct {
 	Metadata        map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// GraphManagerHealth represents health status of graph manager
+// GraphManagerHealth represents health status of graph manager.
 type GraphManagerHealth struct {
 	Status         string            `json:"status"`
 	Components     map[string]string `json:"components"`
@@ -2072,7 +2263,7 @@ type GraphManagerHealth struct {
 	GoroutineCount int               `json:"goroutineCount"`
 }
 
-// GraphManagerMetrics represents metrics for graph manager
+// GraphManagerMetrics represents metrics for graph manager.
 type GraphManagerMetrics struct {
 	GraphsManaged       int64         `json:"graphsManaged"`
 	NodesTotal          int64         `json:"nodesTotal"`
@@ -2083,33 +2274,35 @@ type GraphManagerMetrics struct {
 	ErrorRate           float64       `json:"errorRate"`
 	LastUpdated         time.Time     `json:"lastUpdated"`
 
-	// Analysis metrics - these need to have Observe() method for compatibility
+	// Analysis metrics - these need to have Observe() method for compatibility.
 	CycleDetectionTime     MetricObserver `json:"-"`
 	CyclesDetected         MetricCounter  `json:"-"`
 	TopologicalSortTime    MetricObserver `json:"-"`
 	MetricsCalculationTime MetricObserver `json:"-"`
 }
 
-// MetricObserver interface for metrics that observe values
+// MetricObserver interface for metrics that observe values.
 type MetricObserver interface {
 	Observe(value float64)
 }
 
-// MetricCounter interface for metrics that count events
+// MetricCounter interface for metrics that count events.
 type MetricCounter interface {
 	Add(value float64)
 }
 
-// Simple stub implementations for metrics
+// Simple stub implementations for metrics.
 type stubMetricObserver struct{}
 
+// Observe performs observe operation.
 func (s *stubMetricObserver) Observe(value float64) {}
 
 type stubMetricCounter struct{}
 
+// Add performs add operation.
 func (s *stubMetricCounter) Add(value float64) {}
 
-// DependencyInfo represents information about a dependency relationship
+// DependencyInfo represents information about a dependency relationship.
 type DependencyInfo struct {
 	Package    *PackageReference `json:"package"`
 	Version    string            `json:"version,omitempty"`
@@ -2120,7 +2313,7 @@ type DependencyInfo struct {
 	Reason     string            `json:"reason,omitempty"`
 }
 
-// GraphStorage interface for graph persistence
+// GraphStorage interface for graph persistence.
 type GraphStorage interface {
 	Store(graph *DependencyGraph) error
 	Load(id string) (*DependencyGraph, error)
@@ -2130,7 +2323,7 @@ type GraphStorage interface {
 	Close() error
 }
 
-// GraphAnalyzer interface for graph analysis
+// GraphAnalyzer interface for graph analysis.
 type GraphAnalyzer interface {
 	Analyze(graph *DependencyGraph) (*GraphAnalysis, error)
 	AnalyzeComplexity(graph *DependencyGraph) (*ComplexityAnalysis, error)
@@ -2139,25 +2332,30 @@ type GraphAnalyzer interface {
 	DetectPatterns(graph *DependencyGraph) ([]*GraphPattern, error)
 }
 
-// GraphVisualizer interface for graph visualization
+// GraphVisualizer interface for graph visualization.
 type GraphVisualizer interface {
 	GenerateVisualization(graph *DependencyGraph, format string) ([]byte, error)
 	GenerateLayout(graph *DependencyGraph, layout LayoutType) (*GraphLayout, error)
 	ExportToFormat(graph *DependencyGraph, format string) ([]byte, error)
 }
 
-// LayoutType defines graph layout types
+// LayoutType defines graph layout types.
 type LayoutType string
 
 const (
-	LayoutTypeHierarchical  LayoutType = "hierarchical"
-	LayoutTypeCircular      LayoutType = "circular"
+	// LayoutTypeHierarchical holds layouttypehierarchical value.
+	LayoutTypeHierarchical LayoutType = "hierarchical"
+	// LayoutTypeCircular holds layouttypecircular value.
+	LayoutTypeCircular LayoutType = "circular"
+	// LayoutTypeForceDirected holds layouttypeforcedirected value.
 	LayoutTypeForceDirected LayoutType = "force_directed"
-	LayoutTypeTree          LayoutType = "tree"
-	LayoutTypeRadial        LayoutType = "radial"
+	// LayoutTypeTree holds layouttypetree value.
+	LayoutTypeTree LayoutType = "tree"
+	// LayoutTypeRadial holds layouttyperadial value.
+	LayoutTypeRadial LayoutType = "radial"
 )
 
-// GraphLayout represents graph layout information
+// GraphLayout represents graph layout information.
 type GraphLayout struct {
 	Type        LayoutType               `json:"type"`
 	Nodes       map[string]*NodePosition `json:"nodes"`
@@ -2166,7 +2364,7 @@ type GraphLayout struct {
 	GeneratedAt time.Time                `json:"generatedAt"`
 }
 
-// NodePosition represents position of a node in layout
+// NodePosition represents position of a node in layout.
 type NodePosition struct {
 	X      float64 `json:"x"`
 	Y      float64 `json:"y"`
@@ -2174,7 +2372,7 @@ type NodePosition struct {
 	Height float64 `json:"height,omitempty"`
 }
 
-// LayoutBounds represents layout boundaries
+// LayoutBounds represents layout boundaries.
 type LayoutBounds struct {
 	MinX float64 `json:"minX"`
 	MaxX float64 `json:"maxX"`
@@ -2182,14 +2380,14 @@ type LayoutBounds struct {
 	MaxY float64 `json:"maxY"`
 }
 
-// GraphOptimizer interface for graph optimization
+// GraphOptimizer interface for graph optimization.
 type GraphOptimizer interface {
 	Optimize(graph *DependencyGraph, options *OptimizationOptions) (*OptimizedGraph, error)
 	EstimateOptimization(graph *DependencyGraph, options *OptimizationOptions) (*OptimizationEstimate, error)
 	ValidateOptimization(original, optimized *DependencyGraph) (*OptimizationValidation, error)
 }
 
-// OptimizationEstimate represents optimization estimate
+// OptimizationEstimate represents optimization estimate.
 type OptimizationEstimate struct {
 	PotentialSavings    float64       `json:"potentialSavings"`
 	EstimatedTime       time.Duration `json:"estimatedTime"`
@@ -2198,7 +2396,7 @@ type OptimizationEstimate struct {
 	Recommendations     []string      `json:"recommendations,omitempty"`
 }
 
-// OptimizationValidation represents optimization validation results
+// OptimizationValidation represents optimization validation results.
 type OptimizationValidation struct {
 	Valid                  bool      `json:"valid"`
 	FunctionalEquivalence  bool      `json:"functionalEquivalence"`
@@ -2207,7 +2405,7 @@ type OptimizationValidation struct {
 	ValidatedAt            time.Time `json:"validatedAt"`
 }
 
-// GraphAlgorithm interface for graph algorithms
+// GraphAlgorithm interface for graph algorithms.
 type GraphAlgorithm interface {
 	Execute(graph *DependencyGraph) (interface{}, error)
 	Name() string
@@ -2215,9 +2413,9 @@ type GraphAlgorithm interface {
 	RequiredCapabilities() []string
 }
 
-// Additional missing types from various files
+// Additional missing types from various files.
 
-// GraphWorkerPool represents a pool of workers for graph operations
+// GraphWorkerPool represents a pool of workers for graph operations.
 type GraphWorkerPool interface {
 	Submit(task GraphTask) error
 	SubmitWithTimeout(task GraphTask, timeout time.Duration) error
@@ -2227,14 +2425,14 @@ type GraphWorkerPool interface {
 	Close() error
 }
 
-// GraphTask represents a task for graph workers
+// GraphTask represents a task for graph workers.
 type GraphTask interface {
 	Execute() error
 	ID() string
 	Priority() int
 }
 
-// GraphManagerConfig represents configuration for graph manager
+// GraphManagerConfig represents configuration for graph manager.
 type GraphManagerConfig struct {
 	MaxConcurrency    int               `json:"maxConcurrency"`
 	WorkerPoolSize    int               `json:"workerPoolSize"`
@@ -2250,35 +2448,44 @@ type GraphManagerConfig struct {
 	OptimizationLevel OptimizationLevel `json:"optimizationLevel"`
 }
 
-// StorageConfig represents storage configuration
+// StorageConfig represents storage configuration.
 type StorageConfig struct {
 	Type    StorageType            `json:"type"`
 	URL     string                 `json:"url"`
 	Options map[string]interface{} `json:"options,omitempty"`
 }
 
-// StorageType defines storage types
+// StorageType defines storage types.
 type StorageType string
 
 const (
-	StorageTypeMemory   StorageType = "memory"
-	StorageTypeFile     StorageType = "file"
+	// StorageTypeMemory holds storagetypememory value.
+	StorageTypeMemory StorageType = "memory"
+	// StorageTypeFile holds storagetypefile value.
+	StorageTypeFile StorageType = "file"
+	// StorageTypeDatabase holds storagetypedatabase value.
 	StorageTypeDatabase StorageType = "database"
-	StorageTypeRedis    StorageType = "redis"
-	StorageTypeEtcd     StorageType = "etcd"
+	// StorageTypeRedis holds storagetyperedis value.
+	StorageTypeRedis StorageType = "redis"
+	// StorageTypeEtcd holds storagetypeetcd value.
+	StorageTypeEtcd StorageType = "etcd"
 )
 
-// OptimizationLevel defines optimization levels
+// OptimizationLevel defines optimization levels.
 type OptimizationLevel string
 
 const (
-	OptimizationLevelNone     OptimizationLevel = "none"
-	OptimizationLevelBasic    OptimizationLevel = "basic"
+	// OptimizationLevelNone holds optimizationlevelnone value.
+	OptimizationLevelNone OptimizationLevel = "none"
+	// OptimizationLevelBasic holds optimizationlevelbasic value.
+	OptimizationLevelBasic OptimizationLevel = "basic"
+	// OptimizationLevelStandard holds optimizationlevelstandard value.
 	OptimizationLevelStandard OptimizationLevel = "standard"
+	// OptimizationLevelAdvanced holds optimizationleveladvanced value.
 	OptimizationLevelAdvanced OptimizationLevel = "advanced"
 )
 
-// PlatformConstraints represents platform-specific constraints
+// PlatformConstraints represents platform-specific constraints.
 type PlatformConstraints struct {
 	OS                []string          `json:"os,omitempty"`
 	Architecture      []string          `json:"architecture,omitempty"`
@@ -2292,17 +2499,21 @@ type PlatformConstraints struct {
 	SecurityContext   *SecurityContext  `json:"securityContext,omitempty"`
 }
 
-// NetworkAccess defines network access requirements
+// NetworkAccess defines network access requirements.
 type NetworkAccess string
 
 const (
-	NetworkAccessNone       NetworkAccess = "none"
+	// NetworkAccessNone holds networkaccessnone value.
+	NetworkAccessNone NetworkAccess = "none"
+	// NetworkAccessRestricted holds networkaccessrestricted value.
 	NetworkAccessRestricted NetworkAccess = "restricted"
-	NetworkAccessInternet   NetworkAccess = "internet"
-	NetworkAccessFull       NetworkAccess = "full"
+	// NetworkAccessInternet holds networkaccessinternet value.
+	NetworkAccessInternet NetworkAccess = "internet"
+	// NetworkAccessFull holds networkaccessfull value.
+	NetworkAccessFull NetworkAccess = "full"
 )
 
-// SecurityContext represents security context constraints
+// SecurityContext represents security context constraints.
 type SecurityContext struct {
 	RunAsUser                *int64                `json:"runAsUser,omitempty"`
 	RunAsGroup               *int64                `json:"runAsGroup,omitempty"`
@@ -2313,13 +2524,13 @@ type SecurityContext struct {
 	SELinuxOptions           *SELinuxOptions       `json:"seLinuxOptions,omitempty"`
 }
 
-// SecurityCapabilities represents security capabilities
+// SecurityCapabilities represents security capabilities.
 type SecurityCapabilities struct {
 	Add  []string `json:"add,omitempty"`
 	Drop []string `json:"drop,omitempty"`
 }
 
-// SELinuxOptions represents SELinux options
+// SELinuxOptions represents SELinux options.
 type SELinuxOptions struct {
 	User  string `json:"user,omitempty"`
 	Role  string `json:"role,omitempty"`
@@ -2327,7 +2538,7 @@ type SELinuxOptions struct {
 	Level string `json:"level,omitempty"`
 }
 
-// SecurityConstraints represents security-related constraints
+// SecurityConstraints represents security-related constraints.
 type SecurityConstraints struct {
 	MaxVulnerabilities     int                     `json:"maxVulnerabilities,omitempty"`
 	ForbiddenSeverities    []string                `json:"forbiddenSeverities,omitempty"`
@@ -2342,7 +2553,7 @@ type SecurityConstraints struct {
 	SecurityPolicies       []*SecurityPolicy       `json:"securityPolicies,omitempty"`
 }
 
-// ComplianceRequirement represents a compliance requirement
+// ComplianceRequirement represents a compliance requirement.
 type ComplianceRequirement struct {
 	Standard    string   `json:"standard"`
 	Version     string   `json:"version,omitempty"`
@@ -2351,7 +2562,7 @@ type ComplianceRequirement struct {
 	Description string   `json:"description,omitempty"`
 }
 
-// SecurityPolicy represents a security policy
+// SecurityPolicy represents a security policy.
 type SecurityPolicy struct {
 	Name        string            `json:"name"`
 	Version     string            `json:"version,omitempty"`
@@ -2360,7 +2571,7 @@ type SecurityPolicy struct {
 	Description string            `json:"description,omitempty"`
 }
 
-// SecurityRule represents a security rule
+// SecurityRule represents a security rule.
 type SecurityRule struct {
 	ID        string                 `json:"id"`
 	Type      SecurityRuleType       `json:"type"`
@@ -2371,51 +2582,69 @@ type SecurityRule struct {
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// SecurityRuleType defines types of security rules
+// SecurityRuleType defines types of security rules.
 type SecurityRuleType string
 
 const (
+	// SecurityRuleTypeVulnerability holds securityruletypevulnerability value.
 	SecurityRuleTypeVulnerability SecurityRuleType = "vulnerability"
-	SecurityRuleTypeLicense       SecurityRuleType = "license"
-	SecurityRuleTypeCompliance    SecurityRuleType = "compliance"
-	SecurityRuleTypePolicy        SecurityRuleType = "policy"
-	SecurityRuleTypeBehavior      SecurityRuleType = "behavior"
+	// SecurityRuleTypeLicense holds securityruletypelicense value.
+	SecurityRuleTypeLicense SecurityRuleType = "license"
+	// SecurityRuleTypeCompliance holds securityruletypecompliance value.
+	SecurityRuleTypeCompliance SecurityRuleType = "compliance"
+	// SecurityRuleTypePolicy holds securityruletypepolicy value.
+	SecurityRuleTypePolicy SecurityRuleType = "policy"
+	// SecurityRuleTypeBehavior holds securityruletypebehavior value.
+	SecurityRuleTypeBehavior SecurityRuleType = "behavior"
 )
 
-// SecurityAction defines security actions
+// SecurityAction defines security actions.
 type SecurityAction string
 
 const (
-	SecurityActionAllow      SecurityAction = "allow"
-	SecurityActionDeny       SecurityAction = "deny"
-	SecurityActionWarn       SecurityAction = "warn"
+	// SecurityActionAllow holds securityactionallow value.
+	SecurityActionAllow SecurityAction = "allow"
+	// SecurityActionDeny holds securityactiondeny value.
+	SecurityActionDeny SecurityAction = "deny"
+	// SecurityActionWarn holds securityactionwarn value.
+	SecurityActionWarn SecurityAction = "warn"
+	// SecurityActionQuarantine holds securityactionquarantine value.
 	SecurityActionQuarantine SecurityAction = "quarantine"
-	SecurityActionBlock      SecurityAction = "block"
+	// SecurityActionBlock holds securityactionblock value.
+	SecurityActionBlock SecurityAction = "block"
 )
 
-// SecuritySeverity defines security severity levels
+// SecuritySeverity defines security severity levels.
 type SecuritySeverity string
 
 const (
-	SecuritySeverityInfo     SecuritySeverity = "info"
-	SecuritySeverityLow      SecuritySeverity = "low"
-	SecuritySeverityMedium   SecuritySeverity = "medium"
-	SecuritySeverityHigh     SecuritySeverity = "high"
+	// SecuritySeverityInfo holds securityseverityinfo value.
+	SecuritySeverityInfo SecuritySeverity = "info"
+	// SecuritySeverityLow holds securityseveritylow value.
+	SecuritySeverityLow SecuritySeverity = "low"
+	// SecuritySeverityMedium holds securityseveritymedium value.
+	SecuritySeverityMedium SecuritySeverity = "medium"
+	// SecuritySeverityHigh holds securityseverityhigh value.
+	SecuritySeverityHigh SecuritySeverity = "high"
+	// SecuritySeverityCritical holds securityseveritycritical value.
 	SecuritySeverityCritical SecuritySeverity = "critical"
 )
 
-// PolicyEnforcement defines policy enforcement modes
+// PolicyEnforcement defines policy enforcement modes.
 type PolicyEnforcement string
 
 const (
+	// PolicyEnforcementPermissive holds policyenforcementpermissive value.
 	PolicyEnforcementPermissive PolicyEnforcement = "permissive"
-	PolicyEnforcementEnforcing  PolicyEnforcement = "enforcing"
-	PolicyEnforcementDisabled   PolicyEnforcement = "disabled"
+	// PolicyEnforcementEnforcing holds policyenforcementenforcing value.
+	PolicyEnforcementEnforcing PolicyEnforcement = "enforcing"
+	// PolicyEnforcementDisabled holds policyenforcementdisabled value.
+	PolicyEnforcementDisabled PolicyEnforcement = "disabled"
 )
 
-// Final batch of missing types
+// Final batch of missing types.
 
-// TransitiveOptions represents options for transitive dependency resolution
+// TransitiveOptions represents options for transitive dependency resolution.
 type TransitiveOptions struct {
 	MaxDepth        int                `json:"maxDepth,omitempty"`
 	IncludeOptional bool               `json:"includeOptional,omitempty"`
@@ -2427,16 +2656,19 @@ type TransitiveOptions struct {
 	Timeout         time.Duration      `json:"timeout,omitempty"`
 }
 
-// TransitiveStrategy defines strategies for transitive resolution
+// TransitiveStrategy defines strategies for transitive resolution.
 type TransitiveStrategy string
 
 const (
+	// TransitiveStrategyBreadthFirst holds transitivestrategybreadthfirst value.
 	TransitiveStrategyBreadthFirst TransitiveStrategy = "breadth_first"
-	TransitiveStrategyDepthFirst   TransitiveStrategy = "depth_first"
-	TransitiveStrategyOptimal      TransitiveStrategy = "optimal"
+	// TransitiveStrategyDepthFirst holds transitivestrategydepthfirst value.
+	TransitiveStrategyDepthFirst TransitiveStrategy = "depth_first"
+	// TransitiveStrategyOptimal holds transitivestrategyoptimal value.
+	TransitiveStrategyOptimal TransitiveStrategy = "optimal"
 )
 
-// TransitiveResult represents the result of transitive dependency resolution
+// TransitiveResult represents the result of transitive dependency resolution.
 type TransitiveResult struct {
 	Dependencies []*ResolvedDependency `json:"dependencies"`
 	Tree         *DependencyTree       `json:"tree"`
@@ -2446,7 +2678,7 @@ type TransitiveResult struct {
 	ResolvedAt   time.Time             `json:"resolvedAt"`
 }
 
-// PolicyConstraints represents policy-based constraints
+// PolicyConstraints represents policy-based constraints.
 type PolicyConstraints struct {
 	AllowedLicenses          []string             `json:"allowedLicenses,omitempty"`
 	ForbiddenLicenses        []string             `json:"forbiddenLicenses,omitempty"`
@@ -2459,7 +2691,7 @@ type PolicyConstraints struct {
 	ComplianceStandards      []ComplianceStandard `json:"complianceStandards,omitempty"`
 }
 
-// CustomPolicy represents a custom policy constraint
+// CustomPolicy represents a custom policy constraint.
 type CustomPolicy struct {
 	Name        string         `json:"name"`
 	Description string         `json:"description,omitempty"`
@@ -2468,7 +2700,7 @@ type CustomPolicy struct {
 	Action      PolicyAction   `json:"action"`
 }
 
-// PolicyRule represents a policy rule
+// PolicyRule represents a policy rule.
 type PolicyRule struct {
 	Field    string      `json:"field"`
 	Operator string      `json:"operator"` // "equals", "contains", "matches", "gt", "lt", etc.
@@ -2476,27 +2708,35 @@ type PolicyRule struct {
 	Negate   bool        `json:"negate,omitempty"`
 }
 
-// PolicySeverity defines policy severity levels
+// PolicySeverity defines policy severity levels.
 type PolicySeverity string
 
 const (
-	PolicySeverityInfo     PolicySeverity = "info"
-	PolicySeverityWarning  PolicySeverity = "warning"
-	PolicySeverityError    PolicySeverity = "error"
+	// PolicySeverityInfo holds policyseverityinfo value.
+	PolicySeverityInfo PolicySeverity = "info"
+	// PolicySeverityWarning holds policyseveritywarning value.
+	PolicySeverityWarning PolicySeverity = "warning"
+	// PolicySeverityError holds policyseverityerror value.
+	PolicySeverityError PolicySeverity = "error"
+	// PolicySeverityCritical holds policyseveritycritical value.
 	PolicySeverityCritical PolicySeverity = "critical"
 )
 
-// PolicyAction defines policy actions
+// PolicyAction defines policy actions.
 type PolicyAction string
 
 const (
-	PolicyActionLog    PolicyAction = "log"
-	PolicyActionWarn   PolicyAction = "warn"
+	// PolicyActionLog holds policyactionlog value.
+	PolicyActionLog PolicyAction = "log"
+	// PolicyActionWarn holds policyactionwarn value.
+	PolicyActionWarn PolicyAction = "warn"
+	// PolicyActionReject holds policyactionreject value.
 	PolicyActionReject PolicyAction = "reject"
-	PolicyActionBlock  PolicyAction = "block"
+	// PolicyActionBlock holds policyactionblock value.
+	PolicyActionBlock PolicyAction = "block"
 )
 
-// ComplianceStandard represents a compliance standard
+// ComplianceStandard represents a compliance standard.
 type ComplianceStandard struct {
 	Name      string   `json:"name"`
 	Version   string   `json:"version"`
@@ -2505,7 +2745,7 @@ type ComplianceStandard struct {
 	Authority string   `json:"authority,omitempty"`
 }
 
-// DependencyTree represents a dependency tree structure
+// DependencyTree represents a dependency tree structure.
 type DependencyTree struct {
 	Root      *TreeNode              `json:"root"`
 	Depth     int                    `json:"depth"`
@@ -2513,7 +2753,7 @@ type DependencyTree struct {
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// TreeNode represents a node in the dependency tree
+// TreeNode represents a node in the dependency tree.
 type TreeNode struct {
 	Package  *PackageReference      `json:"package"`
 	Children []*TreeNode            `json:"children,omitempty"`
@@ -2522,7 +2762,7 @@ type TreeNode struct {
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// ResolutionWarning represents a warning during resolution
+// ResolutionWarning represents a warning during resolution.
 type ResolutionWarning struct {
 	Code       string                 `json:"code"`
 	Type       WarningType            `json:"type"`
@@ -2532,7 +2772,7 @@ type ResolutionWarning struct {
 	Metadata   map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// ResolutionError represents an error during resolution
+// ResolutionError represents an error during resolution.
 type ResolutionError struct {
 	Code       string                 `json:"code"`
 	Type       ErrorType              `json:"type"`
@@ -2543,7 +2783,7 @@ type ResolutionError struct {
 	Metadata   map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// ResolutionStatistics represents statistics from resolution
+// ResolutionStatistics represents statistics from resolution.
 type ResolutionStatistics struct {
 	TotalPackages      int           `json:"totalPackages"`
 	ResolvedPackages   int           `json:"resolvedPackages"`
@@ -2556,7 +2796,7 @@ type ResolutionStatistics struct {
 	DependencyDepth    int           `json:"dependencyDepth"`
 }
 
-// ResolvedDependency represents a resolved dependency
+// ResolvedDependency represents a resolved dependency.
 type ResolvedDependency struct {
 	Package         *PackageReference   `json:"package"`
 	RequestedBy     []*PackageReference `json:"requestedBy,omitempty"`
@@ -2570,18 +2810,23 @@ type ResolvedDependency struct {
 	ResolutionPath  []*PackageReference `json:"resolutionPath,omitempty"`
 }
 
-// ResolutionSource defines sources for dependency resolution
+// ResolutionSource defines sources for dependency resolution.
 type ResolutionSource string
 
 const (
+	// ResolutionSourceRegistry holds resolutionsourceregistry value.
 	ResolutionSourceRegistry ResolutionSource = "registry"
-	ResolutionSourceCache    ResolutionSource = "cache"
-	ResolutionSourceLocal    ResolutionSource = "local"
-	ResolutionSourceMirror   ResolutionSource = "mirror"
+	// ResolutionSourceCache holds resolutionsourcecache value.
+	ResolutionSourceCache ResolutionSource = "cache"
+	// ResolutionSourceLocal holds resolutionsourcelocal value.
+	ResolutionSourceLocal ResolutionSource = "local"
+	// ResolutionSourceMirror holds resolutionsourcemirror value.
+	ResolutionSourceMirror ResolutionSource = "mirror"
+	// ResolutionSourceFallback holds resolutionsourcefallback value.
 	ResolutionSourceFallback ResolutionSource = "fallback"
 )
 
-// LicenseInfo contains license information
+// LicenseInfo contains license information.
 type LicenseInfo struct {
 	Name         string   `json:"name"`
 	SPDXID       string   `json:"spdxId,omitempty"`
@@ -2594,7 +2839,7 @@ type LicenseInfo struct {
 	Conditions   []string `json:"conditions,omitempty"`
 }
 
-// PerformanceInfo contains performance information
+// PerformanceInfo contains performance information.
 type PerformanceInfo struct {
 	BundleSize       int64                   `json:"bundleSize,omitempty"`
 	LoadTime         time.Duration           `json:"loadTime,omitempty"`
@@ -2605,7 +2850,7 @@ type PerformanceInfo struct {
 	OptimizationTips []string                `json:"optimizationTips,omitempty"`
 }
 
-// PerformanceBenchmark represents a performance benchmark
+// PerformanceBenchmark represents a performance benchmark.
 type PerformanceBenchmark struct {
 	Name          string                 `json:"name"`
 	Value         float64                `json:"value"`
@@ -2615,7 +2860,7 @@ type PerformanceBenchmark struct {
 	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// ComplianceInfo contains compliance information
+// ComplianceInfo contains compliance information.
 type ComplianceInfo struct {
 	Standards          []ComplianceStandard   `json:"standards,omitempty"`
 	Violations         []*ComplianceViolation `json:"violations,omitempty"`
@@ -2625,7 +2870,7 @@ type ComplianceInfo struct {
 	Auditor            string                 `json:"auditor,omitempty"`
 }
 
-// ComplianceViolation represents a compliance violation
+// ComplianceViolation represents a compliance violation.
 type ComplianceViolation struct {
 	Standard    string    `json:"standard"`
 	Control     string    `json:"control"`
@@ -2635,7 +2880,7 @@ type ComplianceViolation struct {
 	DetectedAt  time.Time `json:"detectedAt"`
 }
 
-// ConflictResolutionStrategy represents a strategy for resolving conflicts
+// ConflictResolutionStrategy represents a strategy for resolving conflicts.
 type ConflictResolutionStrategy struct {
 	Type        ConflictResolutionType `json:"type"`
 	Priority    int                    `json:"priority"`
@@ -2644,21 +2889,27 @@ type ConflictResolutionStrategy struct {
 	Conditions  []string               `json:"conditions,omitempty"`
 }
 
-// ConflictResolutionType defines types of conflict resolution strategies
+// ConflictResolutionType defines types of conflict resolution strategies.
 type ConflictResolutionType string
 
 const (
-	ConflictResolutionTypeLatest   ConflictResolutionType = "latest"
-	ConflictResolutionTypeOldest   ConflictResolutionType = "oldest"
-	ConflictResolutionTypeNearest  ConflictResolutionType = "nearest"
+	// ConflictResolutionTypeLatest holds conflictresolutiontypelatest value.
+	ConflictResolutionTypeLatest ConflictResolutionType = "latest"
+	// ConflictResolutionTypeOldest holds conflictresolutiontypeoldest value.
+	ConflictResolutionTypeOldest ConflictResolutionType = "oldest"
+	// ConflictResolutionTypeNearest holds conflictresolutiontypenearest value.
+	ConflictResolutionTypeNearest ConflictResolutionType = "nearest"
+	// ConflictResolutionTypeMajority holds conflictresolutiontypemajority value.
 	ConflictResolutionTypeMajority ConflictResolutionType = "majority"
-	ConflictResolutionTypeManual   ConflictResolutionType = "manual"
-	ConflictResolutionTypeCustom   ConflictResolutionType = "custom"
+	// ConflictResolutionTypeManual holds conflictresolutiontypemanual value.
+	ConflictResolutionTypeManual ConflictResolutionType = "manual"
+	// ConflictResolutionTypeCustom holds conflictresolutiontypecustom value.
+	ConflictResolutionTypeCustom ConflictResolutionType = "custom"
 )
 
-// Final missing types from resolver.go and validator.go
+// Final missing types from resolver.go and validator.go.
 
-// ConstraintSolution represents a solution for constraint resolution
+// ConstraintSolution represents a solution for constraint resolution.
 type ConstraintSolution struct {
 	ID          string                 `json:"id"`
 	Type        SolutionType           `json:"type"`
@@ -2670,7 +2921,7 @@ type ConstraintSolution struct {
 	Valid       bool                   `json:"valid"`
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 
-	// Additional fields needed by resolver.go
+	// Additional fields needed by resolver.go.
 	Satisfiable bool                   `json:"satisfiable"`
 	Assignments map[string]interface{} `json:"assignments"`
 	Conflicts   []*ConstraintConflict  `json:"conflicts"`
@@ -2679,18 +2930,33 @@ type ConstraintSolution struct {
 	Algorithm   string                 `json:"algorithm"`
 }
 
-// SolutionType defines types of constraint solutions
+// SolutionType defines types of constraint solutions.
 type SolutionType string
 
 const (
-	SolutionTypeUpgrade   SolutionType = "upgrade"
+	// SolutionTypeUpgrade holds solutiontypeupgrade value.
+	SolutionTypeUpgrade SolutionType = "upgrade"
+	// SolutionTypeDowngrade holds solutiontypedowngrade value.
 	SolutionTypeDowngrade SolutionType = "downgrade"
-	SolutionTypeReplace   SolutionType = "replace"
-	SolutionTypeRemove    SolutionType = "remove"
-	SolutionTypeAdd       SolutionType = "add"
+	// SolutionTypeReplace holds solutiontypereplace value.
+	SolutionTypeReplace SolutionType = "replace"
+	// SolutionTypeRemove holds solutiontyperemove value.
+	SolutionTypeRemove SolutionType = "remove"
+	// SolutionTypeAdd holds solutiontypeadd value.
+	SolutionTypeAdd SolutionType = "add"
 )
 
-// ConstraintChange represents a change in constraints
+// ConstraintConflict represents a conflict in dependency constraints.
+type ConstraintConflict struct {
+	PackageA     string                 `json:"package_a"`
+	PackageB     string                 `json:"package_b"`
+	ConflictType string                 `json:"conflict_type"`
+	Description  string                 `json:"description"`
+	Severity     string                 `json:"severity,omitempty"`
+	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// ConstraintChange represents a change in constraints.
 type ConstraintChange struct {
 	Type     ChangeType        `json:"type"`
 	Package  *PackageReference `json:"package"`
@@ -2700,28 +2966,37 @@ type ConstraintChange struct {
 	Impact   ChangeImpact      `json:"impact"`
 }
 
-// ChangeType defines types of constraint changes
+// ChangeType defines types of constraint changes.
 type ChangeType string
 
 const (
-	ChangeTypeVersion    ChangeType = "version"
+	// ChangeTypeVersion holds changetypeversion value.
+	ChangeTypeVersion ChangeType = "version"
+	// ChangeTypeConstraint holds changetypeconstraint value.
 	ChangeTypeConstraint ChangeType = "constraint"
+	// ChangeTypeDependency holds changetypedependency value.
 	ChangeTypeDependency ChangeType = "dependency"
-	ChangeTypeExclusion  ChangeType = "exclusion"
+	// ChangeTypeExclusion holds changetypeexclusion value.
+	ChangeTypeExclusion ChangeType = "exclusion"
 )
 
-// ChangeImpact defines impact levels of changes
+// ChangeImpact defines impact levels of changes.
 type ChangeImpact string
 
 const (
-	ChangeImpactNone     ChangeImpact = "none"
-	ChangeImpactMinor    ChangeImpact = "minor"
+	// ChangeImpactNone holds changeimpactnone value.
+	ChangeImpactNone ChangeImpact = "none"
+	// ChangeImpactMinor holds changeimpactminor value.
+	ChangeImpactMinor ChangeImpact = "minor"
+	// ChangeImpactModerate holds changeimpactmoderate value.
 	ChangeImpactModerate ChangeImpact = "moderate"
-	ChangeImpactMajor    ChangeImpact = "major"
+	// ChangeImpactMajor holds changeimpactmajor value.
+	ChangeImpactMajor ChangeImpact = "major"
+	// ChangeImpactBreaking holds changeimpactbreaking value.
 	ChangeImpactBreaking ChangeImpact = "breaking"
 )
 
-// ConstraintValidation represents validation of constraints
+// ConstraintValidation represents validation of constraints.
 type ConstraintValidation struct {
 	Valid       bool                   `json:"valid"`
 	Violations  []*ConstraintViolation `json:"violations,omitempty"`
@@ -2731,7 +3006,7 @@ type ConstraintValidation struct {
 	Validator   string                 `json:"validator"`
 }
 
-// ConstraintViolation represents a constraint violation
+// ConstraintViolation represents a constraint violation.
 type ConstraintViolation struct {
 	Type       ViolationType     `json:"type"`
 	Constraint string            `json:"constraint"`
@@ -2741,29 +3016,39 @@ type ConstraintViolation struct {
 	Suggestion string            `json:"suggestion,omitempty"`
 }
 
-// ViolationType defines types of constraint violations
+// ViolationType defines types of constraint violations.
 type ViolationType string
 
 const (
-	ViolationTypeVersion       ViolationType = "version"
-	ViolationTypeDependency    ViolationType = "dependency"
-	ViolationTypeSecurity      ViolationType = "security"
-	ViolationTypeLicense       ViolationType = "license"
-	ViolationTypePolicy        ViolationType = "policy"
+	// ViolationTypeVersion holds violationtypeversion value.
+	ViolationTypeVersion ViolationType = "version"
+	// ViolationTypeDependency holds violationtypedependency value.
+	ViolationTypeDependency ViolationType = "dependency"
+	// ViolationTypeSecurity holds violationtypesecurity value.
+	ViolationTypeSecurity ViolationType = "security"
+	// ViolationTypeLicense holds violationtypelicense value.
+	ViolationTypeLicense ViolationType = "license"
+	// ViolationTypePolicy holds violationtypepolicy value.
+	ViolationTypePolicy ViolationType = "policy"
+	// ViolationTypeCompatibility holds violationtypecompatibility value.
 	ViolationTypeCompatibility ViolationType = "compatibility"
 )
 
-// ViolationSeverity defines severity levels of violations
+// ViolationSeverity defines severity levels of violations.
 type ViolationSeverity string
 
 const (
-	ViolationSeverityInfo     ViolationSeverity = "info"
-	ViolationSeverityWarning  ViolationSeverity = "warning"
-	ViolationSeverityError    ViolationSeverity = "error"
+	// ViolationSeverityInfo holds violationseverityinfo value.
+	ViolationSeverityInfo ViolationSeverity = "info"
+	// ViolationSeverityWarning holds violationseveritywarning value.
+	ViolationSeverityWarning ViolationSeverity = "warning"
+	// ViolationSeverityError holds violationseverityerror value.
+	ViolationSeverityError ViolationSeverity = "error"
+	// ViolationSeverityCritical holds violationseveritycritical value.
 	ViolationSeverityCritical ViolationSeverity = "critical"
 )
 
-// ConstraintWarning represents a constraint warning
+// ConstraintWarning represents a constraint warning.
 type ConstraintWarning struct {
 	Type       WarningType       `json:"type"`
 	Message    string            `json:"message"`
@@ -2771,7 +3056,7 @@ type ConstraintWarning struct {
 	Suggestion string            `json:"suggestion,omitempty"`
 }
 
-// VersionRequirement represents a version requirement
+// VersionRequirement represents a version requirement.
 type VersionRequirement struct {
 	Package    *PackageReference      `json:"package"`
 	Constraint string                 `json:"constraint"`
@@ -2781,7 +3066,7 @@ type VersionRequirement struct {
 	Metadata   map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// VersionResolution represents the result of version resolution
+// VersionResolution represents the result of version resolution.
 type VersionResolution struct {
 	Package         *PackageReference   `json:"package"`
 	ResolvedVersion string              `json:"resolvedVersion"`
@@ -2791,7 +3076,7 @@ type VersionResolution struct {
 	ResolvedAt      time.Time           `json:"resolvedAt"`
 }
 
-// VersionCandidate represents a version candidate
+// VersionCandidate represents a version candidate.
 type VersionCandidate struct {
 	Version     string                 `json:"version"`
 	Score       float64                `json:"score"`
@@ -2804,7 +3089,7 @@ type VersionCandidate struct {
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// VersionConflict represents a version conflict
+// VersionConflict represents a version conflict.
 type VersionConflict struct {
 	Package             *PackageReference             `json:"package"`
 	ConflictingVersions []string                      `json:"conflictingVersions"`
@@ -2814,7 +3099,7 @@ type VersionConflict struct {
 	PossibleResolutions []*ConflictResolutionStrategy `json:"possibleResolutions,omitempty"`
 }
 
-// LicenseConflict represents a license conflict
+// LicenseConflict represents a license conflict.
 type LicenseConflict struct {
 	Package1        *PackageReference `json:"package1"`
 	Package2        *PackageReference `json:"package2"`
@@ -2826,7 +3111,7 @@ type LicenseConflict struct {
 	Recommendations []string          `json:"recommendations,omitempty"`
 }
 
-// PolicyConflict represents a policy conflict
+// PolicyConflict represents a policy conflict.
 type PolicyConflict struct {
 	Package        *PackageReference `json:"package"`
 	Policy         string            `json:"policy"`
@@ -2837,7 +3122,7 @@ type PolicyConflict struct {
 	Exemptions     []string          `json:"exemptions,omitempty"`
 }
 
-// ConflictResolutionSuggestion represents a suggestion for resolving conflicts
+// ConflictResolutionSuggestion represents a suggestion for resolving conflicts.
 type ConflictResolutionSuggestion struct {
 	ID              string              `json:"id"`
 	Type            SuggestionType      `json:"type"`
@@ -2850,26 +3135,33 @@ type ConflictResolutionSuggestion struct {
 	Benefits        []string            `json:"benefits,omitempty"`
 }
 
-// SuggestionType defines types of resolution suggestions
+// SuggestionType defines types of resolution suggestions.
 type SuggestionType string
 
 const (
+	// SuggestionTypeAutomatic holds suggestiontypeautomatic value.
 	SuggestionTypeAutomatic SuggestionType = "automatic"
-	SuggestionTypeManual    SuggestionType = "manual"
-	SuggestionTypeOptional  SuggestionType = "optional"
+	// SuggestionTypeManual holds suggestiontypemanual value.
+	SuggestionTypeManual SuggestionType = "manual"
+	// SuggestionTypeOptional holds suggestiontypeoptional value.
+	SuggestionTypeOptional SuggestionType = "optional"
 )
 
-// SuggestionPriority defines priority levels for suggestions
+// SuggestionPriority defines priority levels for suggestions.
 type SuggestionPriority string
 
 const (
-	SuggestionPriorityLow      SuggestionPriority = "low"
-	SuggestionPriorityMedium   SuggestionPriority = "medium"
-	SuggestionPriorityHigh     SuggestionPriority = "high"
+	// SuggestionPriorityLow holds suggestionprioritylow value.
+	SuggestionPriorityLow SuggestionPriority = "low"
+	// SuggestionPriorityMedium holds suggestionprioritymedium value.
+	SuggestionPriorityMedium SuggestionPriority = "medium"
+	// SuggestionPriorityHigh holds suggestionpriorityhigh value.
+	SuggestionPriorityHigh SuggestionPriority = "high"
+	// SuggestionPriorityCritical holds suggestionprioritycritical value.
 	SuggestionPriorityCritical SuggestionPriority = "critical"
 )
 
-// ResolutionAction represents an action to resolve a conflict
+// ResolutionAction represents an action to resolve a conflict.
 type ResolutionAction struct {
 	Type        ActionType        `json:"type"`
 	Package     *PackageReference `json:"package,omitempty"`
@@ -2879,7 +3171,7 @@ type ResolutionAction struct {
 	Reversible  bool              `json:"reversible"`
 }
 
-// ConflictImpactAnalysis represents analysis of conflict impact
+// ConflictImpactAnalysis represents analysis of conflict impact.
 type ConflictImpactAnalysis struct {
 	AnalysisID       string                  `json:"analysisId"`
 	Conflicts        []*DependencyConflict   `json:"conflicts"`
@@ -2891,7 +3183,7 @@ type ConflictImpactAnalysis struct {
 	AnalyzedAt       time.Time               `json:"analyzedAt"`
 }
 
-// ImpactRecommendation represents a recommendation based on impact analysis
+// ImpactRecommendation represents a recommendation based on impact analysis.
 type ImpactRecommendation struct {
 	Type             string              `json:"type"`
 	Priority         RiskLevel           `json:"priority"`
@@ -2901,23 +3193,27 @@ type ImpactRecommendation struct {
 	Timeline         string              `json:"timeline,omitempty"`
 	Resources        []string            `json:"resources,omitempty"`
 
-	// Additional field referenced in updater_helpers.go
+	// Additional field referenced in updater_helpers.go.
 	Action string `json:"action"`
 }
 
-// Final final batch of missing types from resolver.go
+// Final final batch of missing types from resolver.go.
 
-// ConflictStrategy defines strategies for handling conflicts
+// ConflictStrategy defines strategies for handling conflicts.
 type ConflictStrategy string
 
 const (
-	ConflictStrategyFail    ConflictStrategy = "fail"
-	ConflictStrategyWarn    ConflictStrategy = "warn"
+	// ConflictStrategyFail holds conflictstrategyfail value.
+	ConflictStrategyFail ConflictStrategy = "fail"
+	// ConflictStrategyWarn holds conflictstrategywarn value.
+	ConflictStrategyWarn ConflictStrategy = "warn"
+	// ConflictStrategyResolve holds conflictstrategyresolve value.
 	ConflictStrategyResolve ConflictStrategy = "resolve"
-	ConflictStrategyIgnore  ConflictStrategy = "ignore"
+	// ConflictStrategyIgnore holds conflictstrategyignore value.
+	ConflictStrategyIgnore ConflictStrategy = "ignore"
 )
 
-// ConflictResolution represents the result of conflict resolution
+// ConflictResolution represents the result of conflict resolution.
 type ConflictResolution struct {
 	ConflictID string                        `json:"conflictId"`
 	Strategy   ConflictStrategy              `json:"strategy"`
@@ -2928,7 +3224,7 @@ type ConflictResolution struct {
 	Duration   time.Duration                 `json:"duration"`
 }
 
-// RollbackPlan represents a plan for rolling back changes
+// RollbackPlan represents a plan for rolling back changes.
 type RollbackPlan struct {
 	PlanID      string                 `json:"planId"`
 	Description string                 `json:"description"`
@@ -2938,7 +3234,7 @@ type RollbackPlan struct {
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// CacheStats represents cache statistics
+// CacheStats represents cache statistics.
 type CacheStats struct {
 	Hits         int64     `json:"hits"`
 	Misses       int64     `json:"misses"`
@@ -2950,7 +3246,7 @@ type CacheStats struct {
 	LastEviction time.Time `json:"lastEviction,omitempty"`
 }
 
-// ResolverHealth represents resolver health status
+// ResolverHealth represents resolver health status.
 type ResolverHealth struct {
 	Status               string            `json:"status"`
 	Components           map[string]string `json:"components"`
@@ -2962,7 +3258,7 @@ type ResolverHealth struct {
 	RegistryConnectivity bool              `json:"registryConnectivity"`
 }
 
-// ResolverMetrics represents resolver performance metrics
+// ResolverMetrics represents resolver performance metrics.
 type ResolverMetrics struct {
 	ResolutionsTotal      int64         `json:"resolutionsTotal"`
 	ResolutionsSuccessful int64         `json:"resolutionsSuccessful"`
@@ -2975,7 +3271,7 @@ type ResolverMetrics struct {
 	NetworkRequestsFailed int64         `json:"networkRequestsFailed"`
 	LastUpdated           time.Time     `json:"lastUpdated"`
 
-	// Prometheus counters and histograms referenced in resolver.go
+	// Prometheus counters and histograms referenced in resolver.go.
 	CacheHits                 prometheus.Counter
 	CacheMisses               prometheus.Counter
 	ConstraintCacheHits       prometheus.Counter
@@ -2990,9 +3286,9 @@ type ResolverMetrics struct {
 	ConflictsDetected         prometheus.Counter
 }
 
-// Very final missing types from resolver.go
+// Very final missing types from resolver.go.
 
-// ConstraintSolverMetrics represents metrics for constraint solver
+// ConstraintSolverMetrics represents metrics for constraint solver.
 type ConstraintSolverMetrics struct {
 	SolveTime          time.Duration `json:"solveTime"`
 	ConstraintsTotal   int           `json:"constraintsTotal"`
@@ -3003,7 +3299,7 @@ type ConstraintSolverMetrics struct {
 	CacheMisses        int           `json:"cacheMisses"`
 }
 
-// ConstraintCache represents a cache for constraint solving
+// ConstraintCache represents a cache for constraint solving.
 type ConstraintCache interface {
 	Get(key string) (interface{}, bool)
 	Set(key string, value interface{})
@@ -3013,7 +3309,7 @@ type ConstraintCache interface {
 	Stats() *CacheStats
 }
 
-// SolverHeuristic represents heuristics for constraint solving
+// SolverHeuristic represents heuristics for constraint solving.
 type SolverHeuristic interface {
 	SelectVariable(variables []string) string
 	SelectValue(variable string, domain []interface{}) interface{}
@@ -3021,14 +3317,14 @@ type SolverHeuristic interface {
 	Name() string
 }
 
-// ConstraintOptimizer represents an optimizer for constraints
+// ConstraintOptimizer represents an optimizer for constraints.
 type ConstraintOptimizer interface {
 	Optimize(constraints []*Constraint) ([]*Constraint, error)
 	EstimateOptimization(constraints []*Constraint) (*OptimizationEstimate, error)
 	CanOptimize(constraints []*Constraint) bool
 }
 
-// VersionSolverMetrics represents metrics for version solver
+// VersionSolverMetrics represents metrics for version solver.
 type VersionSolverMetrics struct {
 	SolveTime         time.Duration `json:"solveTime"`
 	VersionsEvaluated int           `json:"versionsEvaluated"`
@@ -3038,7 +3334,7 @@ type VersionSolverMetrics struct {
 	CacheMisses       int           `json:"cacheMisses"`
 }
 
-// VersionCache represents a cache for version resolution
+// VersionCache represents a cache for version resolution.
 type VersionCache interface {
 	Get(packageName, version string) (interface{}, bool)
 	Set(packageName, version string, value interface{})
@@ -3048,7 +3344,7 @@ type VersionCache interface {
 	Stats() *CacheStats
 }
 
-// VersionComparator interface for comparing versions
+// VersionComparator interface for comparing versions.
 type VersionComparator interface {
 	Compare(version1, version2 string) int
 	IsCompatible(version1, version2 string) bool
@@ -3056,7 +3352,7 @@ type VersionComparator interface {
 	ValidateVersion(version string) error
 }
 
-// ParsedVersion represents a parsed version
+// ParsedVersion represents a parsed version.
 type ParsedVersion struct {
 	Major      int    `json:"major"`
 	Minor      int    `json:"minor"`
@@ -3066,14 +3362,14 @@ type ParsedVersion struct {
 	Original   string `json:"original"`
 }
 
-// VersionSelector interface for selecting versions
+// VersionSelector interface for selecting versions.
 type VersionSelector interface {
 	SelectVersion(candidates []*VersionCandidate, constraints []string) (*VersionCandidate, error)
 	RankCandidates(candidates []*VersionCandidate) []*VersionCandidate
 	FilterCandidates(candidates []*VersionCandidate, criteria *SelectionCriteria) []*VersionCandidate
 }
 
-// SelectionCriteria represents criteria for version selection
+// SelectionCriteria represents criteria for version selection.
 type SelectionCriteria struct {
 	PreferStable     bool          `json:"preferStable"`
 	AllowPrerelease  bool          `json:"allowPrerelease"`
@@ -3083,7 +3379,7 @@ type SelectionCriteria struct {
 	ExcludedVersions []string      `json:"excludedVersions,omitempty"`
 }
 
-// RollbackResult represents the result of a rollback operation
+// RollbackResult represents the result of a rollback operation.
 type RollbackResult struct {
 	PlanID       string        `json:"planId"`
 	Success      bool          `json:"success"`
@@ -3093,7 +3389,7 @@ type RollbackResult struct {
 	RolledBackAt time.Time     `json:"rolledBackAt"`
 }
 
-// ResolutionCache represents a cache for dependency resolution
+// ResolutionCache represents a cache for dependency resolution.
 type ResolutionCache interface {
 	Get(key string) (interface{}, bool)
 	Set(key string, value interface{}, ttl time.Duration)
@@ -3103,25 +3399,31 @@ type ResolutionCache interface {
 	Stats() *CacheStats
 }
 
-// PrereleaseStrategy defines strategies for handling prerelease versions
+// PrereleaseStrategy defines strategies for handling prerelease versions.
 type PrereleaseStrategy string
 
 const (
-	PrereleaseStrategyAllow  PrereleaseStrategy = "allow"
-	PrereleaseStrategyDeny   PrereleaseStrategy = "deny"
+	// PrereleaseStrategyAllow holds prereleasestrategyallow value.
+	PrereleaseStrategyAllow PrereleaseStrategy = "allow"
+	// PrereleaseStrategyDeny holds prereleasestrategydeny value.
+	PrereleaseStrategyDeny PrereleaseStrategy = "deny"
+	// PrereleaseStrategyLatest holds prereleasestrategylatest value.
 	PrereleaseStrategyLatest PrereleaseStrategy = "latest"
 )
 
-// BuildMetadataStrategy defines strategies for handling build metadata
+// BuildMetadataStrategy defines strategies for handling build metadata.
 type BuildMetadataStrategy string
 
 const (
-	BuildMetadataStrategyIgnore  BuildMetadataStrategy = "ignore"
+	// BuildMetadataStrategyIgnore holds buildmetadatastrategyignore value.
+	BuildMetadataStrategyIgnore BuildMetadataStrategy = "ignore"
+	// BuildMetadataStrategyInclude holds buildmetadatastrategyinclude value.
 	BuildMetadataStrategyInclude BuildMetadataStrategy = "include"
-	BuildMetadataStrategyPrefer  BuildMetadataStrategy = "prefer"
+	// BuildMetadataStrategyPrefer holds buildmetadatastrategyprefer value.
+	BuildMetadataStrategyPrefer BuildMetadataStrategy = "prefer"
 )
 
-// ConflictResolverMetrics represents metrics for conflict resolver
+// ConflictResolverMetrics represents metrics for conflict resolver.
 type ConflictResolverMetrics struct {
 	ConflictsDetected    int64         `json:"conflictsDetected"`
 	ConflictsResolved    int64         `json:"conflictsResolved"`
@@ -3131,21 +3433,21 @@ type ConflictResolverMetrics struct {
 	ManualResolutions    int64         `json:"manualResolutions"`
 }
 
-// ConflictDetector interface for detecting conflicts
+// ConflictDetector interface for detecting conflicts.
 type ConflictDetector interface {
 	DetectConflicts(dependencies []*PackageReference) ([]*DependencyConflict, error)
 	ValidateResolution(resolution *DependencyResolution) error
 	AnalyzeImpact(conflicts []*DependencyConflict) (*ConflictImpactAnalysis, error)
 }
 
-// ConflictPredictor interface for predicting conflicts
+// ConflictPredictor interface for predicting conflicts.
 type ConflictPredictor interface {
 	PredictConflicts(dependencies []*PackageReference) ([]*PredictedConflict, error)
 	EstimateResolutionEffort(conflicts []*DependencyConflict) (time.Duration, error)
 	RecommendPrevention(predictions []*PredictedConflict) ([]*PreventionRecommendation, error)
 }
 
-// PredictedConflict represents a predicted conflict
+// PredictedConflict represents a predicted conflict.
 type PredictedConflict struct {
 	ID          string              `json:"id"`
 	Type        ConflictType        `json:"type"`
@@ -3156,7 +3458,7 @@ type PredictedConflict struct {
 	Prevention  []string            `json:"prevention,omitempty"`
 }
 
-// PreventionRecommendation represents a recommendation to prevent conflicts
+// PreventionRecommendation represents a recommendation to prevent conflicts.
 type PreventionRecommendation struct {
 	Type        string              `json:"type"`
 	Description string              `json:"description"`
@@ -3165,7 +3467,7 @@ type PreventionRecommendation struct {
 	Priority    string              `json:"priority"`
 }
 
-// Constraint represents a generic constraint
+// Constraint represents a generic constraint.
 type Constraint struct {
 	ID          string                 `json:"id"`
 	Type        string                 `json:"type"`
@@ -3175,7 +3477,7 @@ type Constraint struct {
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// DependencyResolution represents the result of dependency resolution
+// DependencyResolution represents the result of dependency resolution.
 type DependencyResolution struct {
 	Dependencies []*ResolvedDependency `json:"dependencies"`
 	Conflicts    []*DependencyConflict `json:"conflicts,omitempty"`
@@ -3185,7 +3487,7 @@ type DependencyResolution struct {
 	ResolvedAt   time.Time             `json:"resolvedAt"`
 }
 
-// WorkerPool interface for managing worker pools
+// WorkerPool interface for managing worker pools.
 type WorkerPool interface {
 	Submit(task func() error) error
 	Workers() int
@@ -3193,14 +3495,14 @@ type WorkerPool interface {
 	Close() error
 }
 
-// RateLimiter interface for rate limiting
+// RateLimiter interface for rate limiting.
 type RateLimiter interface {
 	Allow() bool
 	Wait(ctx context.Context) error
 	Limit() int
 }
 
-// ResolverConfig represents configuration for dependency resolver
+// ResolverConfig represents configuration for dependency resolver.
 type ResolverConfig struct {
 	MaxConcurrency           int           `json:"maxConcurrency"`
 	Timeout                  time.Duration `json:"timeout"`
@@ -3212,7 +3514,7 @@ type ResolverConfig struct {
 	WorkerPoolSize           int           `json:"workerPoolSize"`
 	EnableConflictResolution bool          `json:"enableConflictResolution"`
 
-	// Strategy and solver configuration
+	// Strategy and solver configuration.
 	DefaultStrategy        ResolutionStrategy `json:"defaultStrategy"`
 	MaxSolverIterations    int                `json:"maxSolverIterations"`
 	MaxSolverBacktracks    int                `json:"maxSolverBacktracks"`
@@ -3223,54 +3525,58 @@ type ResolverConfig struct {
 	WorkerCount            int                `json:"workerCount"`
 	QueueSize              int                `json:"queueSize"`
 
-	// Version and prerelease handling
+	// Version and prerelease handling.
 	PrereleaseStrategy    PrereleaseStrategy    `json:"prereleaseStrategy"`
 	BuildMetadataStrategy BuildMetadataStrategy `json:"buildMetadataStrategy"`
 	StrictSemVer          bool                  `json:"strictSemVer"`
 
-	// Machine learning and conflict prediction
+	// Machine learning and conflict prediction.
 	EnableMLConflictPrediction bool                   `json:"enableMLConflictPrediction"`
 	ConflictStrategies         map[string]interface{} `json:"conflictStrategies"`
 
-	// Cache configuration
+	// Cache configuration.
 	CacheConfig               *CacheConfig  `json:"cacheConfig"`
 	CacheCleanupInterval      time.Duration `json:"cacheCleanupInterval"`
 	MetricsCollectionInterval time.Duration `json:"metricsCollectionInterval"`
 	HealthCheckInterval       time.Duration `json:"healthCheckInterval"`
 
-	// Provider configurations
+	// Provider configurations.
 	GitConfig   *GitConfig   `json:"gitConfig"`
 	OCIConfig   *OCIConfig   `json:"ociConfig"`
 	HelmConfig  *HelmConfig  `json:"helmConfig"`
 	LocalConfig *LocalConfig `json:"localConfig"`
 }
 
-// Configuration types for providers
+// Configuration types for providers.
 type CacheConfig struct {
 	TTL             time.Duration `json:"ttl"`
 	MaxEntries      int           `json:"maxEntries"`
 	CleanupInterval time.Duration `json:"cleanupInterval"`
 }
 
+// GitConfig represents a gitconfig.
 type GitConfig struct {
 	DefaultBranch string `json:"defaultBranch"`
 	Token         string `json:"token,omitempty"`
 }
 
+// OCIConfig represents a ociconfig.
 type OCIConfig struct {
 	Registry string `json:"registry"`
 	Token    string `json:"token,omitempty"`
 }
 
+// HelmConfig represents a helmconfig.
 type HelmConfig struct {
 	Repository string `json:"repository"`
 }
 
+// LocalConfig represents a localconfig.
 type LocalConfig struct {
 	RootPath string `json:"rootPath"`
 }
 
-// Validate validates the resolver configuration
+// Validate validates the resolver configuration.
 func (c *ResolverConfig) Validate() error {
 	if c.MaxConcurrency <= 0 {
 		return fmt.Errorf("max concurrency must be positive")
@@ -3287,7 +3593,7 @@ func (c *ResolverConfig) Validate() error {
 	return nil
 }
 
-// DefaultResolverConfig returns a default resolver configuration
+// DefaultResolverConfig returns a default resolver configuration.
 func DefaultResolverConfig() *ResolverConfig {
 	return &ResolverConfig{
 		MaxConcurrency:             10,
@@ -3336,7 +3642,7 @@ func DefaultResolverConfig() *ResolverConfig {
 	}
 }
 
-// NewResolverMetrics creates a new resolver metrics instance
+// NewResolverMetrics creates a new resolver metrics instance.
 func NewResolverMetrics() *ResolverMetrics {
 	return &ResolverMetrics{
 		ResolutionsTotal:      0,
@@ -3350,7 +3656,7 @@ func NewResolverMetrics() *ResolverMetrics {
 		NetworkRequestsFailed: 0,
 		LastUpdated:           time.Now(),
 
-		// Initialize prometheus metrics
+		// Initialize prometheus metrics.
 		CacheHits:                 prometheus.NewCounter(prometheus.CounterOpts{Name: "cache_hits_total"}),
 		CacheMisses:               prometheus.NewCounter(prometheus.CounterOpts{Name: "cache_misses_total"}),
 		ConstraintCacheHits:       prometheus.NewCounter(prometheus.CounterOpts{Name: "constraint_cache_hits_total"}),
@@ -3366,7 +3672,7 @@ func NewResolverMetrics() *ResolverMetrics {
 	}
 }
 
-// DependencyProvider interface for providing dependencies
+// DependencyProvider interface for providing dependencies.
 type DependencyProvider interface {
 	GetDependency(ctx context.Context, ref *PackageReference) (*PackageReference, error)
 	ListVersions(ctx context.Context, name string) ([]string, error)
@@ -3374,7 +3680,7 @@ type DependencyProvider interface {
 	Close() error
 }
 
-// UpdateConstraints represents constraints for updates
+// UpdateConstraints represents constraints for updates.
 type UpdateConstraints struct {
 	AllowMajorUpdates   bool                 `json:"allowMajorUpdates"`
 	AllowMinorUpdates   bool                 `json:"allowMinorUpdates"`
@@ -3386,7 +3692,7 @@ type UpdateConstraints struct {
 	SecurityConstraints *SecurityConstraints `json:"securityConstraints,omitempty"`
 }
 
-// CompatibilityRules represents rules for compatibility checking
+// CompatibilityRules represents rules for compatibility checking.
 type CompatibilityRules struct {
 	Rules                   []*CompatibilityRule `json:"rules"`
 	StrictMode              bool                 `json:"strictMode"`
@@ -3394,7 +3700,7 @@ type CompatibilityRules struct {
 	CompatibilityMatrix     map[string][]string  `json:"compatibilityMatrix,omitempty"`
 }
 
-// CompatibilityRule represents a single compatibility rule
+// CompatibilityRule represents a single compatibility rule.
 type CompatibilityRule struct {
 	ID           string   `json:"id"`
 	Name         string   `json:"name"`
@@ -3405,7 +3711,7 @@ type CompatibilityRule struct {
 	Priority     int      `json:"priority"`
 }
 
-// RolloutConfig represents configuration for rollout strategy
+// RolloutConfig represents configuration for rollout strategy.
 type RolloutConfig struct {
 	Strategy            RolloutStrategy `json:"strategy"`
 	BatchSize           int             `json:"batchSize"`
@@ -3417,17 +3723,21 @@ type RolloutConfig struct {
 	CanaryConfig        *CanaryConfig   `json:"canaryConfig,omitempty"`
 }
 
-// RolloutStrategy defines rollout strategies
+// RolloutStrategy defines rollout strategies.
 type RolloutStrategy string
 
 const (
-	RolloutStrategyAll       RolloutStrategy = "all"
-	RolloutStrategyBatched   RolloutStrategy = "batched"
-	RolloutStrategyCanary    RolloutStrategy = "canary"
+	// RolloutStrategyAll holds rolloutstrategyall value.
+	RolloutStrategyAll RolloutStrategy = "all"
+	// RolloutStrategyBatched holds rolloutstrategybatched value.
+	RolloutStrategyBatched RolloutStrategy = "batched"
+	// RolloutStrategyCanary holds rolloutstrategycanary value.
+	RolloutStrategyCanary RolloutStrategy = "canary"
+	// RolloutStrategyBlueGreen holds rolloutstrategybluegreen value.
 	RolloutStrategyBlueGreen RolloutStrategy = "blue_green"
 )
 
-// CanaryConfig represents canary deployment configuration
+// CanaryConfig represents canary deployment configuration.
 type CanaryConfig struct {
 	TrafficPercent   float64        `json:"trafficPercent"`
 	Duration         time.Duration  `json:"duration"`
@@ -3436,7 +3746,7 @@ type CanaryConfig struct {
 	MetricsConfig    *MetricsConfig `json:"metricsConfig,omitempty"`
 }
 
-// MetricsConfig represents metrics configuration
+// MetricsConfig represents metrics configuration.
 type MetricsConfig struct {
 	Enabled            bool               `json:"enabled"`
 	CollectionInterval time.Duration      `json:"collectionInterval"`
@@ -3444,7 +3754,7 @@ type MetricsConfig struct {
 	Thresholds         map[string]float64 `json:"thresholds,omitempty"`
 }
 
-// ValidationConfig represents validation configuration
+// ValidationConfig represents validation configuration.
 type ValidationConfig struct {
 	Enabled         bool              `json:"enabled"`
 	Timeout         time.Duration     `json:"timeout"`
@@ -3454,7 +3764,7 @@ type ValidationConfig struct {
 	RetryCount      int               `json:"retryCount"`
 }
 
-// ValidationStep represents a validation step
+// ValidationStep represents a validation step.
 type ValidationStep struct {
 	Name       string        `json:"name"`
 	Type       string        `json:"type"`
@@ -3465,7 +3775,7 @@ type ValidationStep struct {
 	RetryCount int           `json:"retryCount"`
 }
 
-// ApprovalPolicy represents approval policy for updates
+// ApprovalPolicy represents approval policy for updates.
 type ApprovalPolicy struct {
 	Required         bool               `json:"required"`
 	Approvers        []string           `json:"approvers"`
@@ -3475,7 +3785,7 @@ type ApprovalPolicy struct {
 	EscalationPolicy *EscalationPolicy  `json:"escalationPolicy,omitempty"`
 }
 
-// AutoApproveRule represents a rule for automatic approval
+// AutoApproveRule represents a rule for automatic approval.
 type AutoApproveRule struct {
 	Name        string   `json:"name"`
 	Conditions  []string `json:"conditions"`
@@ -3483,7 +3793,7 @@ type AutoApproveRule struct {
 	Packages    []string `json:"packages,omitempty"`
 }
 
-// EscalationPolicy represents escalation policy for approvals
+// EscalationPolicy represents escalation policy for approvals.
 type EscalationPolicy struct {
 	Enabled        bool          `json:"enabled"`
 	EscalateAfter  time.Duration `json:"escalateAfter"`
@@ -3491,9 +3801,9 @@ type EscalationPolicy struct {
 	MaxEscalations int           `json:"maxEscalations"`
 }
 
-// Very final missing types from updater.go
+// Very final missing types from updater.go.
 
-// UpdatedPackage represents a package that was successfully updated
+// UpdatedPackage represents a package that was successfully updated.
 type UpdatedPackage struct {
 	Package    *PackageReference `json:"package"`
 	OldVersion string            `json:"oldVersion"`
@@ -3503,13 +3813,13 @@ type UpdatedPackage struct {
 	Changes    []string          `json:"changes,omitempty"`
 	Impact     UpdateImpact      `json:"impact"`
 
-	// Additional fields referenced in updater_helpers.go
+	// Additional fields referenced in updater_helpers.go.
 	PreviousVersion string        `json:"previousVersion"`
 	UpdateTime      time.Time     `json:"updateTime"`
 	UpdateDuration  time.Duration `json:"updateDuration"`
 }
 
-// FailedUpdate represents a package that failed to update
+// FailedUpdate represents a package that failed to update.
 type FailedUpdate struct {
 	Package     *PackageReference `json:"package"`
 	Error       string            `json:"error"`
@@ -3518,18 +3828,18 @@ type FailedUpdate struct {
 	Attempts    int               `json:"attempts"`
 	MaxAttempts int               `json:"maxAttempts"`
 
-	// Additional fields referenced in updater_helpers.go
+	// Additional fields referenced in updater_helpers.go.
 	Retries int `json:"retries"`
 }
 
-// SkippedUpdate represents a package that was skipped during update
+// SkippedUpdate represents a package that was skipped during update.
 type SkippedUpdate struct {
 	Package   *PackageReference `json:"package"`
 	Reason    string            `json:"reason"`
 	SkippedAt time.Time         `json:"skippedAt"`
 }
 
-// RolloutExecution represents the execution of a rollout
+// RolloutExecution represents the execution of a rollout.
 type RolloutExecution struct {
 	ID          string            `json:"id"`
 	Status      RolloutStatus     `json:"status"`
@@ -3541,9 +3851,9 @@ type RolloutExecution struct {
 	Errors      []string          `json:"errors,omitempty"`
 }
 
-// Final missing impact types
+// Final missing impact types.
 
-// CompatibilityImpact represents compatibility impact of an update
+// CompatibilityImpact represents compatibility impact of an update.
 type CompatibilityImpact struct {
 	BreakingChanges    []string `json:"breakingChanges,omitempty"`
 	DeprecatedAPIs     []string `json:"deprecatedAPIs,omitempty"`
@@ -3555,7 +3865,7 @@ type CompatibilityImpact struct {
 	CompatibilityScore float64  `json:"compatibilityScore"`
 }
 
-// BusinessImpact represents business impact of an update
+// BusinessImpact represents business impact of an update.
 type BusinessImpact struct {
 	CostImpact           float64  `json:"costImpact"`
 	RevenueImpact        float64  `json:"revenueImpact"`
@@ -3567,7 +3877,7 @@ type BusinessImpact struct {
 	RegulatoryImpact     []string `json:"regulatoryImpact,omitempty"`
 }
 
-// BreakingChangeImpact represents impact of breaking changes
+// BreakingChangeImpact represents impact of breaking changes.
 type BreakingChangeImpact struct {
 	AffectedComponents  []string      `json:"affectedComponents"`
 	SeverityLevel       string        `json:"severityLevel"`
@@ -3578,7 +3888,7 @@ type BreakingChangeImpact struct {
 	ImpactScore         float64       `json:"impactScore"`
 }
 
-// MitigationStrategy represents strategy for mitigating update risks
+// MitigationStrategy represents strategy for mitigating update risks.
 type MitigationStrategy struct {
 	Type               string        `json:"type"`
 	Description        string        `json:"description"`
@@ -3589,14 +3899,14 @@ type MitigationStrategy struct {
 	Monitoring         []string      `json:"monitoring,omitempty"`
 	RollbackPlan       *RollbackPlan `json:"rollbackPlan,omitempty"`
 
-	// Additional fields referenced in updater_helpers.go
+	// Additional fields referenced in updater_helpers.go.
 	Name     string    `json:"name"`
 	Priority RiskLevel `json:"priority"`
 }
 
-// Absolutely final missing types
+// Absolutely final missing types.
 
-// TestingRecommendation represents testing recommendations for an update
+// TestingRecommendation represents testing recommendations for an update.
 type TestingRecommendation struct {
 	Type           string        `json:"type"`
 	Description    string        `json:"description"`
@@ -3608,7 +3918,7 @@ type TestingRecommendation struct {
 	Environment    string        `json:"environment,omitempty"`
 }
 
-// CompatibilityResult represents compatibility validation result
+// CompatibilityResult represents compatibility validation result.
 type CompatibilityResult struct {
 	Compatible      bool                  `json:"compatible"`
 	Score           float64               `json:"score"`
@@ -3618,7 +3928,7 @@ type CompatibilityResult struct {
 	ValidatedAt     time.Time             `json:"validatedAt"`
 }
 
-// CompatibilityIssue represents a compatibility issue
+// CompatibilityIssue represents a compatibility issue.
 type CompatibilityIssue struct {
 	Type        string   `json:"type"`
 	Severity    string   `json:"severity"`
@@ -3627,7 +3937,7 @@ type CompatibilityIssue struct {
 	Resolution  string   `json:"resolution,omitempty"`
 }
 
-// LicenseValidation represents license validation result
+// LicenseValidation represents license validation result.
 type LicenseValidation struct {
 	Valid           bool            `json:"valid"`
 	License         *LicenseInfo    `json:"license"`
@@ -3636,7 +3946,7 @@ type LicenseValidation struct {
 	ValidatedAt     time.Time       `json:"validatedAt"`
 }
 
-// LicenseIssue represents a license issue
+// LicenseIssue represents a license issue.
 type LicenseIssue struct {
 	Type        string `json:"type"`
 	Severity    string `json:"severity"`
@@ -3644,7 +3954,7 @@ type LicenseIssue struct {
 	Resolution  string `json:"resolution,omitempty"`
 }
 
-// ComplianceValidation represents compliance validation result
+// ComplianceValidation represents compliance validation result.
 type ComplianceValidation struct {
 	Compliant       bool                   `json:"compliant"`
 	Score           float64                `json:"score"`
@@ -3654,7 +3964,7 @@ type ComplianceValidation struct {
 	ValidatedAt     time.Time              `json:"validatedAt"`
 }
 
-// PerformanceValidation represents performance validation result
+// PerformanceValidation represents performance validation result.
 type PerformanceValidation struct {
 	Valid           bool                    `json:"valid"`
 	Score           float64                 `json:"score"`
@@ -3665,7 +3975,7 @@ type PerformanceValidation struct {
 	ValidatedAt     time.Time               `json:"validatedAt"`
 }
 
-// PerformanceIssue represents a performance issue
+// PerformanceIssue represents a performance issue.
 type PerformanceIssue struct {
 	Type        string  `json:"type"`
 	Severity    string  `json:"severity"`
@@ -3676,7 +3986,7 @@ type PerformanceIssue struct {
 	Resolution  string  `json:"resolution,omitempty"`
 }
 
-// VersionValidation represents version validation result
+// VersionValidation represents version validation result.
 type VersionValidation struct {
 	Package         *PackageReference `json:"package"`
 	Valid           bool              `json:"valid"`
@@ -3686,7 +3996,7 @@ type VersionValidation struct {
 	ValidatedAt     time.Time         `json:"validatedAt"`
 }
 
-// VersionIssue represents a version issue
+// VersionIssue represents a version issue.
 type VersionIssue struct {
 	Type        string `json:"type"`
 	Severity    string `json:"severity"`
@@ -3694,7 +4004,7 @@ type VersionIssue struct {
 	Resolution  string `json:"resolution,omitempty"`
 }
 
-// PackageSecurityValidation represents package security validation
+// PackageSecurityValidation represents package security validation.
 type PackageSecurityValidation struct {
 	Secure          bool                     `json:"secure"`
 	SecurityScore   float64                  `json:"securityScore"`
@@ -3704,7 +4014,7 @@ type PackageSecurityValidation struct {
 	ValidatedAt     time.Time                `json:"validatedAt"`
 }
 
-// SecurityVulnerability represents a security vulnerability
+// SecurityVulnerability represents a security vulnerability.
 type SecurityVulnerability struct {
 	ID          string    `json:"id"`
 	CVE         string    `json:"cve,omitempty"`
@@ -3715,7 +4025,7 @@ type SecurityVulnerability struct {
 	PublishedAt time.Time `json:"publishedAt,omitempty"`
 }
 
-// PackageLicenseValidation represents package license validation
+// PackageLicenseValidation represents package license validation.
 type PackageLicenseValidation struct {
 	Valid           bool            `json:"valid"`
 	LicenseInfo     *LicenseInfo    `json:"licenseInfo"`
@@ -3724,7 +4034,7 @@ type PackageLicenseValidation struct {
 	ValidatedAt     time.Time       `json:"validatedAt"`
 }
 
-// QualityValidation represents quality validation result
+// QualityValidation represents quality validation result.
 type QualityValidation struct {
 	Valid           bool            `json:"valid"`
 	QualityScore    float64         `json:"qualityScore"`
@@ -3734,7 +4044,7 @@ type QualityValidation struct {
 	ValidatedAt     time.Time       `json:"validatedAt"`
 }
 
-// QualityIssue represents a quality issue
+// QualityIssue represents a quality issue.
 type QualityIssue struct {
 	Type        string  `json:"type"`
 	Severity    string  `json:"severity"`
@@ -3745,7 +4055,7 @@ type QualityIssue struct {
 	Resolution  string  `json:"resolution,omitempty"`
 }
 
-// PolicyViolation represents a policy violation
+// PolicyViolation represents a policy violation.
 type PolicyViolation struct {
 	PolicyName    string            `json:"policyName"`
 	RuleName      string            `json:"ruleName"`
@@ -3759,9 +4069,9 @@ type PolicyViolation struct {
 	DetectedAt    time.Time         `json:"detectedAt"`
 }
 
-// Truly final batch of missing types
+// Truly final batch of missing types.
 
-// PolicyValidation represents policy validation result
+// PolicyValidation represents policy validation result.
 type PolicyValidation struct {
 	Valid           bool               `json:"valid"`
 	Score           float64            `json:"score"`
@@ -3771,7 +4081,7 @@ type PolicyValidation struct {
 	ValidatedAt     time.Time          `json:"validatedAt"`
 }
 
-// ApprovalRequest represents a request for approval
+// ApprovalRequest represents a request for approval.
 type ApprovalRequest struct {
 	ID              string            `json:"id"`
 	Type            string            `json:"type"`
@@ -3788,17 +4098,21 @@ type ApprovalRequest struct {
 	ApprovalHistory []*ApprovalAction `json:"approvalHistory,omitempty"`
 }
 
-// ApprovalStatus defines approval statuses
+// ApprovalStatus defines approval statuses.
 type ApprovalStatus string
 
 const (
-	ApprovalStatusPending  ApprovalStatus = "pending"
+	// ApprovalStatusPending holds approvalstatuspending value.
+	ApprovalStatusPending ApprovalStatus = "pending"
+	// ApprovalStatusApproved holds approvalstatusapproved value.
 	ApprovalStatusApproved ApprovalStatus = "approved"
+	// ApprovalStatusRejected holds approvalstatusrejected value.
 	ApprovalStatusRejected ApprovalStatus = "rejected"
-	ApprovalStatusExpired  ApprovalStatus = "expired"
+	// ApprovalStatusExpired holds approvalstatusexpired value.
+	ApprovalStatusExpired ApprovalStatus = "expired"
 )
 
-// ApprovalAction represents an approval action
+// ApprovalAction represents an approval action.
 type ApprovalAction struct {
 	Approver  string         `json:"approver"`
 	Action    ApprovalStatus `json:"action"`
@@ -3806,7 +4120,7 @@ type ApprovalAction struct {
 	Timestamp time.Time      `json:"timestamp"`
 }
 
-// UpdateError represents an update error
+// UpdateError represents an update error.
 type UpdateError struct {
 	Code        string            `json:"code"`
 	Type        string            `json:"type"`
@@ -3818,7 +4132,7 @@ type UpdateError struct {
 	Timestamp   time.Time         `json:"timestamp"`
 }
 
-// UpdateWarning represents an update warning
+// UpdateWarning represents an update warning.
 type UpdateWarning struct {
 	Code      string            `json:"code"`
 	Type      string            `json:"type"`
@@ -3829,7 +4143,7 @@ type UpdateWarning struct {
 	Timestamp time.Time         `json:"timestamp"`
 }
 
-// UpdateStatistics represents update statistics
+// UpdateStatistics represents update statistics.
 type UpdateStatistics struct {
 	TotalPackages     int           `json:"totalPackages"`
 	UpdatedPackages   int           `json:"updatedPackages"`
@@ -3843,7 +4157,7 @@ type UpdateStatistics struct {
 	TestSuccessRate   float64       `json:"testSuccessRate"`
 }
 
-// PropagationFilter represents filters for update propagation
+// PropagationFilter represents filters for update propagation.
 type PropagationFilter struct {
 	IncludeEnvironments []string         `json:"includeEnvironments,omitempty"`
 	ExcludeEnvironments []string         `json:"excludeEnvironments,omitempty"`
@@ -3854,7 +4168,7 @@ type PropagationFilter struct {
 	CustomRules         []string         `json:"customRules,omitempty"`
 }
 
-// PropagatedUpdate represents a propagated update
+// PropagatedUpdate represents a propagated update.
 type PropagatedUpdate struct {
 	Package     *PackageReference `json:"package"`
 	Environment string            `json:"environment"`
@@ -3866,18 +4180,23 @@ type PropagatedUpdate struct {
 	TestResults []string          `json:"testResults,omitempty"`
 }
 
-// PropagationStatus defines propagation statuses
+// PropagationStatus defines propagation statuses.
 type PropagationStatus string
 
 const (
-	PropagationStatusPending   PropagationStatus = "pending"
-	PropagationStatusRunning   PropagationStatus = "running"
+	// PropagationStatusPending holds propagationstatuspending value.
+	PropagationStatusPending PropagationStatus = "pending"
+	// PropagationStatusRunning holds propagationstatusrunning value.
+	PropagationStatusRunning PropagationStatus = "running"
+	// PropagationStatusCompleted holds propagationstatuscompleted value.
 	PropagationStatusCompleted PropagationStatus = "completed"
-	PropagationStatusFailed    PropagationStatus = "failed"
-	PropagationStatusSkipped   PropagationStatus = "skipped"
+	// PropagationStatusFailed holds propagationstatusfailed value.
+	PropagationStatusFailed PropagationStatus = "failed"
+	// PropagationStatusSkipped holds propagationstatusskipped value.
+	PropagationStatusSkipped PropagationStatus = "skipped"
 )
 
-// FailedPropagation represents a failed propagation
+// FailedPropagation represents a failed propagation.
 type FailedPropagation struct {
 	Package     *PackageReference `json:"package"`
 	Environment string            `json:"environment"`
@@ -3887,7 +4206,7 @@ type FailedPropagation struct {
 	Attempts    int               `json:"attempts"`
 }
 
-// SkippedPropagation represents a skipped propagation
+// SkippedPropagation represents a skipped propagation.
 type SkippedPropagation struct {
 	Package     *PackageReference `json:"package"`
 	Environment string            `json:"environment"`
@@ -3895,7 +4214,7 @@ type SkippedPropagation struct {
 	SkippedAt   time.Time         `json:"skippedAt"`
 }
 
-// EnvironmentUpdateResult represents the result of updates in an environment
+// EnvironmentUpdateResult represents the result of updates in an environment.
 type EnvironmentUpdateResult struct {
 	Environment     string                `json:"environment"`
 	Status          EnvironmentStatus     `json:"status"`
@@ -3908,26 +4227,30 @@ type EnvironmentUpdateResult struct {
 	SuccessRate     float64               `json:"successRate"`
 }
 
-// EnvironmentStatus defines environment statuses
+// EnvironmentStatus defines environment statuses.
 type EnvironmentStatus string
 
 const (
-	EnvironmentStatusPending   EnvironmentStatus = "pending"
-	EnvironmentStatusRunning   EnvironmentStatus = "running"
+	// EnvironmentStatusPending holds environmentstatuspending value.
+	EnvironmentStatusPending EnvironmentStatus = "pending"
+	// EnvironmentStatusRunning holds environmentstatusrunning value.
+	EnvironmentStatusRunning EnvironmentStatus = "running"
+	// EnvironmentStatusCompleted holds environmentstatuscompleted value.
 	EnvironmentStatusCompleted EnvironmentStatus = "completed"
-	EnvironmentStatusFailed    EnvironmentStatus = "failed"
+	// EnvironmentStatusFailed holds environmentstatusfailed value.
+	EnvironmentStatusFailed EnvironmentStatus = "failed"
 )
 
-// Last batch of missing types
+// Last batch of missing types.
 
-// UpdateSchedule represents a schedule for updates
+// UpdateSchedule represents a schedule for updates.
 type UpdateSchedule interface {
 	Next(now time.Time) time.Time
 	ShouldUpdate(now time.Time) bool
 	Description() string
 }
 
-// ScheduledUpdate represents a scheduled update
+// ScheduledUpdate represents a scheduled update.
 type ScheduledUpdate struct {
 	ID         string            `json:"id"`
 	Package    *PackageReference `json:"package"`
@@ -3940,18 +4263,21 @@ type ScheduledUpdate struct {
 	UpdatedAt  time.Time         `json:"updatedAt"`
 }
 
-// ScheduleStatus defines schedule statuses
+// ScheduleStatus defines schedule statuses.
 type ScheduleStatus string
 
 const (
-	ScheduleStatusActive   ScheduleStatus = "active"
-	ScheduleStatusPaused   ScheduleStatus = "paused"
+	// ScheduleStatusActive holds schedulestatusactive value.
+	ScheduleStatusActive ScheduleStatus = "active"
+	// ScheduleStatusPaused holds schedulestatuspaused value.
+	ScheduleStatusPaused ScheduleStatus = "paused"
+	// ScheduleStatusDisabled holds schedulestatusdisabled value.
 	ScheduleStatusDisabled ScheduleStatus = "disabled"
 )
 
-// ValidatorConfig holds validation configuration
+// ValidatorConfig holds validation configuration.
 type ValidatorConfig struct {
-	// Core validation settings
+	// Core validation settings.
 	EnableCompatibilityCheck bool          `json:"enableCompatibilityCheck"`
 	EnableSecurityScan       bool          `json:"enableSecurityScan"`
 	EnableLicenseValidation  bool          `json:"enableLicenseValidation"`
@@ -3959,18 +4285,18 @@ type ValidatorConfig struct {
 	ValidationTimeout        time.Duration `json:"validationTimeout"`
 	PolicyRules              []string      `json:"policyRules,omitempty"`
 
-	// Caching configuration
+	// Caching configuration.
 	EnableCaching bool          `json:"enableCaching"`
 	CacheEnabled  bool          `json:"cacheEnabled"`
 	CacheTTL      time.Duration `json:"cacheTTL"`
 	CacheConfig   *CacheConfig  `json:"cacheConfig,omitempty"`
 
-	// Concurrency configuration
+	// Concurrency configuration.
 	EnableConcurrency bool `json:"enableConcurrency"`
 	WorkerCount       int  `json:"workerCount"`
 	QueueSize         int  `json:"queueSize"`
 
-	// Validation rules and configurations
+	// Validation rules and configurations.
 	DefaultValidationRules *ValidationRules        `json:"defaultValidationRules,omitempty"`
 	CompatibilityConfig    *CompatibilityConfig    `json:"compatibilityConfig,omitempty"`
 	SecurityConfig         *SecurityConfig         `json:"securityConfig,omitempty"`
@@ -3979,71 +4305,77 @@ type ValidatorConfig struct {
 	PolicyConfig           *PolicyConfig           `json:"policyConfig,omitempty"`
 	ConflictAnalyzerConfig *ConflictAnalyzerConfig `json:"conflictAnalyzerConfig,omitempty"`
 
-	// External database configurations
+	// External database configurations.
 	VulnerabilityDBConfig *VulnerabilityDBConfig `json:"vulnerabilityDBConfig,omitempty"`
 	LicenseDBConfig       *LicenseDBConfig       `json:"licenseDBConfig,omitempty"`
 
-	// Background process intervals
+	// Background process intervals.
 	VulnerabilityUpdateInterval time.Duration `json:"vulnerabilityUpdateInterval"`
 	CacheCleanupInterval        time.Duration `json:"cacheCleanupInterval"`
 	MetricsCollectionInterval   time.Duration `json:"metricsCollectionInterval"`
 }
 
-// CompatibilityChecker provides compatibility checking functionality
+// CompatibilityChecker provides compatibility checking functionality.
 type CompatibilityChecker struct {
 	logger logr.Logger
 	config *ValidatorConfig
 }
 
-// SecurityScanner provides security scanning functionality
+// SecurityScanner provides security scanning functionality.
 type SecurityScanner struct {
 	logger logr.Logger
 	config *ValidatorConfig
 }
 
-// LicenseValidator provides license validation functionality
+// LicenseValidator provides license validation functionality.
 type LicenseValidator struct {
 	logger logr.Logger
 	config *ValidatorConfig
 }
 
-// PolicyEngine provides policy validation functionality
+// PolicyEngine provides policy validation functionality.
 type PolicyEngine struct {
 	logger logr.Logger
 	config *ValidatorConfig
 }
 
-// Additional missing validator types
+// Additional missing validator types.
 type ConflictAnalyzer struct {
 	logger logr.Logger
 }
 
+// ValidationCache represents a validationcache.
 type ValidationCache struct {
 	cache map[string]interface{}
 }
 
+// ScanResultCache represents a scanresultcache.
 type ScanResultCache struct {
 	cache map[string]interface{}
 }
 
+// VulnerabilityDatabase represents a vulnerabilitydatabase.
 type VulnerabilityDatabase interface {
 	ScanPackage(packageName, version string) ([]Vulnerability, error)
 	Update(ctx context.Context) error
 	Close() error
 }
 
+// LicenseDatabase represents a licensedatabase.
 type LicenseDatabase interface {
 	GetLicense(packageName, version string) (*License, error)
 	Close() error
 }
 
+// PolicyRegistry represents a policyregistry.
 type PolicyRegistry interface {
 	GetPolicies() ([]Policy, error)
 	ValidateAgainstPolicy(pkg Package, policy Policy) error
 }
 
-// Vulnerability type already defined in validator.go - removing duplicate
+// Vulnerability type already defined in validator.go - removing duplicate.
 
+// License represents a license.
 type License struct {
 	ID          string   `json:"id"`
 	Name        string   `json:"name"`
@@ -4053,6 +4385,7 @@ type License struct {
 	Limitations []string `json:"limitations"`
 }
 
+// Policy represents a policy.
 type Policy struct {
 	ID          string                 `json:"id"`
 	Name        string                 `json:"name"`
@@ -4061,8 +4394,9 @@ type Policy struct {
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// PolicyRule type already defined at line 2362 - removing duplicate
+// PolicyRule type already defined at line 2362 - removing duplicate.
 
+// Package represents a package.
 type Package struct {
 	Name        string            `json:"name"`
 	Version     string            `json:"version"`
@@ -4072,7 +4406,7 @@ type Package struct {
 	Metadata    map[string]string `json:"metadata,omitempty"`
 }
 
-// UpdateConfig represents update configuration
+// UpdateConfig represents update configuration.
 type UpdateConfig struct {
 	Strategy           UpdateStrategy      `json:"strategy"`
 	Constraints        *UpdateConstraints  `json:"constraints,omitempty"`
@@ -4082,7 +4416,7 @@ type UpdateConfig struct {
 	NotificationConfig *NotificationConfig `json:"notificationConfig,omitempty"`
 }
 
-// UpdatePlan represents a plan for updates
+// UpdatePlan represents a plan for updates.
 type UpdatePlan struct {
 	ID                string              `json:"id"`
 	Description       string              `json:"description"`
@@ -4097,7 +4431,7 @@ type UpdatePlan struct {
 	Status            PlanStatus          `json:"status"`
 }
 
-// PlannedUpdate represents a planned update
+// PlannedUpdate represents a planned update.
 type PlannedUpdate struct {
 	Package       *PackageReference `json:"package"`
 	FromVersion   string            `json:"fromVersion"`
@@ -4108,7 +4442,7 @@ type PlannedUpdate struct {
 	Risks         []string          `json:"risks,omitempty"`
 }
 
-// UpdateDependency represents a dependency between updates
+// UpdateDependency represents a dependency between updates.
 type UpdateDependency struct {
 	From        string `json:"from"`
 	To          string `json:"to"`
@@ -4116,20 +4450,27 @@ type UpdateDependency struct {
 	Description string `json:"description,omitempty"`
 }
 
-// PlanStatus defines plan statuses
+// PlanStatus defines plan statuses.
 type PlanStatus string
 
 const (
-	PlanStatusDraft     PlanStatus = "draft"
-	PlanStatusReview    PlanStatus = "review"
-	PlanStatusApproved  PlanStatus = "approved"
+	// PlanStatusDraft holds planstatusdraft value.
+	PlanStatusDraft PlanStatus = "draft"
+	// PlanStatusReview holds planstatusreview value.
+	PlanStatusReview PlanStatus = "review"
+	// PlanStatusApproved holds planstatusapproved value.
+	PlanStatusApproved PlanStatus = "approved"
+	// PlanStatusExecuting holds planstatusexecuting value.
 	PlanStatusExecuting PlanStatus = "executing"
+	// PlanStatusCompleted holds planstatuscompleted value.
 	PlanStatusCompleted PlanStatus = "completed"
-	PlanStatusFailed    PlanStatus = "failed"
+	// PlanStatusFailed holds planstatusfailed value.
+	PlanStatusFailed PlanStatus = "failed"
+	// PlanStatusCancelled holds planstatuscancelled value.
 	PlanStatusCancelled PlanStatus = "cancelled"
 )
 
-// RiskAssessment represents risk assessment for updates
+// RiskAssessment represents risk assessment for updates.
 type RiskAssessment struct {
 	OverallRisk     RiskLevel     `json:"overallRisk"`
 	RiskFactors     []*RiskFactor `json:"riskFactors"`
@@ -4139,7 +4480,7 @@ type RiskAssessment struct {
 	AssessedBy      string        `json:"assessedBy,omitempty"`
 }
 
-// PropagationError represents a propagation error
+// PropagationError represents a propagation error.
 type PropagationError struct {
 	Environment string            `json:"environment"`
 	Package     *PackageReference `json:"package"`
@@ -4150,7 +4491,7 @@ type PropagationError struct {
 	Retryable   bool              `json:"retryable"`
 }
 
-// PropagationWarning represents a propagation warning
+// PropagationWarning represents a propagation warning.
 type PropagationWarning struct {
 	Environment string            `json:"environment"`
 	Package     *PackageReference `json:"package"`
@@ -4160,9 +4501,9 @@ type PropagationWarning struct {
 	Severity    string            `json:"severity"`
 }
 
-// Absolutely final missing types
+// Absolutely final missing types.
 
-// PlanValidation represents validation of an update plan
+// PlanValidation represents validation of an update plan.
 type PlanValidation struct {
 	Valid           bool                     `json:"valid"`
 	ValidationScore float64                  `json:"validationScore"`
@@ -4174,7 +4515,7 @@ type PlanValidation struct {
 	ValidatedBy     string                   `json:"validatedBy,omitempty"`
 }
 
-// PlanValidationIssue represents an issue in plan validation
+// PlanValidationIssue represents an issue in plan validation.
 type PlanValidationIssue struct {
 	Type        string   `json:"type"`
 	Severity    string   `json:"severity"`
@@ -4183,7 +4524,7 @@ type PlanValidationIssue struct {
 	Resolution  string   `json:"resolution,omitempty"`
 }
 
-// PlanValidationWarning represents a warning in plan validation
+// PlanValidationWarning represents a warning in plan validation.
 type PlanValidationWarning struct {
 	Type       string   `json:"type"`
 	Message    string   `json:"message"`
@@ -4191,7 +4532,7 @@ type PlanValidationWarning struct {
 	Suggestion string   `json:"suggestion,omitempty"`
 }
 
-// RollbackValidation represents validation of a rollback operation
+// RollbackValidation represents validation of a rollback operation.
 type RollbackValidation struct {
 	Valid           bool                         `json:"valid"`
 	ValidationScore float64                      `json:"validationScore"`
@@ -4202,7 +4543,7 @@ type RollbackValidation struct {
 	ValidatedAt     time.Time                    `json:"validatedAt"`
 }
 
-// RollbackValidationIssue represents an issue in rollback validation
+// RollbackValidationIssue represents an issue in rollback validation.
 type RollbackValidationIssue struct {
 	Type        string `json:"type"`
 	Severity    string `json:"severity"`
@@ -4211,7 +4552,7 @@ type RollbackValidationIssue struct {
 	Resolution  string `json:"resolution,omitempty"`
 }
 
-// RollbackValidationWarning represents a warning in rollback validation
+// RollbackValidationWarning represents a warning in rollback validation.
 type RollbackValidationWarning struct {
 	Type       string `json:"type"`
 	Message    string `json:"message"`
@@ -4219,7 +4560,7 @@ type RollbackValidationWarning struct {
 	Suggestion string `json:"suggestion,omitempty"`
 }
 
-// UpdateHistoryFilter represents filters for update history
+// UpdateHistoryFilter represents filters for update history.
 type UpdateHistoryFilter struct {
 	Packages         []string      `json:"packages,omitempty"`
 	Environments     []string      `json:"environments,omitempty"`
@@ -4232,7 +4573,7 @@ type UpdateHistoryFilter struct {
 	IncludeRollbacks bool          `json:"includeRollbacks"`
 }
 
-// UpdateRecord represents a record of an update operation
+// UpdateRecord represents a record of an update operation.
 type UpdateRecord struct {
 	ID             string                 `json:"id"`
 	Package        *PackageReference      `json:"package"`
@@ -4250,24 +4591,29 @@ type UpdateRecord struct {
 	RollbackRecord *RollbackRecord        `json:"rollbackRecord,omitempty"`
 	Metadata       map[string]interface{} `json:"metadata,omitempty"`
 
-	// Additional fields referenced in updater_helpers.go
+	// Additional fields referenced in updater_helpers.go.
 	Type      string              `json:"type"`
 	Packages  []*PackageReference `json:"packages"`
 	Requester string              `json:"requester"`
 }
 
-// UpdateStatus defines update statuses
+// UpdateStatus defines update statuses.
 type UpdateStatus string
 
 const (
-	UpdateStatusPending    UpdateStatus = "pending"
-	UpdateStatusRunning    UpdateStatus = "running"
-	UpdateStatusCompleted  UpdateStatus = "completed"
-	UpdateStatusFailed     UpdateStatus = "failed"
+	// UpdateStatusPending holds updatestatuspending value.
+	UpdateStatusPending UpdateStatus = "pending"
+	// UpdateStatusRunning holds updatestatusrunning value.
+	UpdateStatusRunning UpdateStatus = "running"
+	// UpdateStatusCompleted holds updatestatuscompleted value.
+	UpdateStatusCompleted UpdateStatus = "completed"
+	// UpdateStatusFailed holds updatestatusfailed value.
+	UpdateStatusFailed UpdateStatus = "failed"
+	// UpdateStatusRolledBack holds updatestatusrolledback value.
 	UpdateStatusRolledBack UpdateStatus = "rolled_back"
 )
 
-// RollbackRecord represents a record of a rollback operation
+// RollbackRecord represents a record of a rollback operation.
 type RollbackRecord struct {
 	ID          string        `json:"id"`
 	Reason      string        `json:"reason"`
@@ -4279,9 +4625,9 @@ type RollbackRecord struct {
 	Errors      []string      `json:"errors,omitempty"`
 }
 
-// The truly absolutely final missing types
+// The truly absolutely final missing types.
 
-// ChangeReport represents a report of changes between versions
+// ChangeReport represents a report of changes between versions.
 type ChangeReport struct {
 	Package         *PackageReference   `json:"package"`
 	FromVersion     string              `json:"fromVersion"`
@@ -4295,7 +4641,7 @@ type ChangeReport struct {
 	GeneratedAt     time.Time           `json:"generatedAt"`
 }
 
-// Change represents a single change
+// Change represents a single change.
 type Change struct {
 	Type        ChangeType `json:"type"`
 	Description string     `json:"description"`
@@ -4304,7 +4650,7 @@ type Change struct {
 	Breaking    bool       `json:"breaking"`
 }
 
-// DependencyChange represents a change in dependencies
+// DependencyChange represents a change in dependencies.
 type DependencyChange struct {
 	Package     *PackageReference `json:"package"`
 	ChangeType  string            `json:"changeType"`
@@ -4313,7 +4659,7 @@ type DependencyChange struct {
 	Description string            `json:"description,omitempty"`
 }
 
-// ApprovalFilter represents filters for approval requests
+// ApprovalFilter represents filters for approval requests.
 type ApprovalFilter struct {
 	Status       []ApprovalStatus `json:"status,omitempty"`
 	Requester    []string         `json:"requester,omitempty"`
@@ -4326,7 +4672,7 @@ type ApprovalFilter struct {
 	ExpiredOnly  bool             `json:"expiredOnly"`
 }
 
-// UpdateNotification represents a notification about an update
+// UpdateNotification represents a notification about an update.
 type UpdateNotification struct {
 	ID        string                 `json:"id"`
 	Type      NotificationType       `json:"type"`
@@ -4342,45 +4688,60 @@ type UpdateNotification struct {
 	ReadAt    *time.Time             `json:"readAt,omitempty"`
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 
-	// Additional fields referenced in updater_helpers.go
+	// Additional fields referenced in updater_helpers.go.
 	Title     string    `json:"title"`
 	CreatedAt time.Time `json:"createdAt"`
 }
 
-// NotificationType defines notification types
+// NotificationType defines notification types.
 type NotificationType string
 
 const (
-	NotificationTypeUpdateAvailable  NotificationType = "update_available"
-	NotificationTypeUpdateStarted    NotificationType = "update_started"
-	NotificationTypeUpdateCompleted  NotificationType = "update_completed"
-	NotificationTypeUpdateFailed     NotificationType = "update_failed"
+	// NotificationTypeUpdateAvailable holds notificationtypeupdateavailable value.
+	NotificationTypeUpdateAvailable NotificationType = "update_available"
+	// NotificationTypeUpdateStarted holds notificationtypeupdatestarted value.
+	NotificationTypeUpdateStarted NotificationType = "update_started"
+	// NotificationTypeUpdateCompleted holds notificationtypeupdatecompleted value.
+	NotificationTypeUpdateCompleted NotificationType = "update_completed"
+	// NotificationTypeUpdateFailed holds notificationtypeupdatefailed value.
+	NotificationTypeUpdateFailed NotificationType = "update_failed"
+	// NotificationTypeApprovalRequired holds notificationtypeapprovalrequired value.
 	NotificationTypeApprovalRequired NotificationType = "approval_required"
-	NotificationTypeSecurityAlert    NotificationType = "security_alert"
+	// NotificationTypeSecurityAlert holds notificationtypesecurityalert value.
+	NotificationTypeSecurityAlert NotificationType = "security_alert"
 )
 
-// NotificationStatus defines notification statuses
+// NotificationStatus defines notification statuses.
 type NotificationStatus string
 
 const (
-	NotificationStatusPending   NotificationStatus = "pending"
-	NotificationStatusSent      NotificationStatus = "sent"
-	NotificationStatusRead      NotificationStatus = "read"
-	NotificationStatusFailed    NotificationStatus = "failed"
+	// NotificationStatusPending holds notificationstatuspending value.
+	NotificationStatusPending NotificationStatus = "pending"
+	// NotificationStatusSent holds notificationstatussent value.
+	NotificationStatusSent NotificationStatus = "sent"
+	// NotificationStatusRead holds notificationstatusread value.
+	NotificationStatusRead NotificationStatus = "read"
+	// NotificationStatusFailed holds notificationstatusfailed value.
+	NotificationStatusFailed NotificationStatus = "failed"
+	// NotificationStatusCancelled holds notificationstatuscancelled value.
 	NotificationStatusCancelled NotificationStatus = "cancelled"
 )
 
-// NotificationPriority defines notification priorities
+// NotificationPriority defines notification priorities.
 type NotificationPriority string
 
 const (
-	NotificationPriorityLow      NotificationPriority = "low"
-	NotificationPriorityNormal   NotificationPriority = "normal"
-	NotificationPriorityHigh     NotificationPriority = "high"
+	// NotificationPriorityLow holds notificationprioritylow value.
+	NotificationPriorityLow NotificationPriority = "low"
+	// NotificationPriorityNormal holds notificationprioritynormal value.
+	NotificationPriorityNormal NotificationPriority = "normal"
+	// NotificationPriorityHigh holds notificationpriorityhigh value.
+	NotificationPriorityHigh NotificationPriority = "high"
+	// NotificationPriorityCritical holds notificationprioritycritical value.
 	NotificationPriorityCritical NotificationPriority = "critical"
 )
 
-// UpdaterHealth represents health status of the updater
+// UpdaterHealth represents health status of the updater.
 type UpdaterHealth struct {
 	Status               string            `json:"status"`
 	Components           map[string]string `json:"components"`
@@ -4393,7 +4754,7 @@ type UpdaterHealth struct {
 	LastSuccessfulUpdate time.Time         `json:"lastSuccessfulUpdate,omitempty"`
 }
 
-// UpdaterMetrics represents metrics for the updater
+// UpdaterMetrics represents metrics for the updater.
 type UpdaterMetrics struct {
 	TotalUpdates      int64         `json:"totalUpdates"`
 	SuccessfulUpdates int64         `json:"successfulUpdates"`
@@ -4407,11 +4768,11 @@ type UpdaterMetrics struct {
 	ErrorRate         float64       `json:"errorRate"`
 	LastUpdated       time.Time     `json:"lastUpdated"`
 
-	// Prometheus metrics for impact analysis
+	// Prometheus metrics for impact analysis.
 	ImpactAnalysisTime  *prometheus.HistogramVec `json:"-"`
 	ImpactAnalysisTotal *prometheus.CounterVec   `json:"-"`
 
-	// Additional Prometheus metrics referenced in updater_helpers.go
+	// Additional Prometheus metrics referenced in updater_helpers.go.
 	UpdatesTotal        prometheus.Counter     `json:"-"`
 	UpdateDuration      prometheus.Histogram   `json:"-"`
 	UpdateErrors        *prometheus.CounterVec `json:"-"`
@@ -4419,8 +4780,9 @@ type UpdaterMetrics struct {
 	PropagationDuration prometheus.Histogram   `json:"-"`
 }
 
-// Additional missing types for stub implementations
+// Additional missing types for stub implementations.
 
+// CrossUpdateImpact represents a crossupdateimpact.
 type CrossUpdateImpact struct {
 	Updates      []*DependencyUpdate `json:"updates"`
 	Conflicts    []*UpdateConflict   `json:"conflicts,omitempty"`
@@ -4428,6 +4790,7 @@ type CrossUpdateImpact struct {
 	RiskLevel    string              `json:"riskLevel"`
 }
 
+// UpdateConflict represents a updateconflict.
 type UpdateConflict struct {
 	ID           string            `json:"id"`
 	Update1      *DependencyUpdate `json:"update1"`
@@ -4436,6 +4799,7 @@ type UpdateConflict struct {
 	Description  string            `json:"description"`
 }
 
+// CrossDependency represents a crossdependency.
 type CrossDependency struct {
 	ID           string            `json:"id"`
 	Source       *PackageReference `json:"source"`
@@ -4443,6 +4807,7 @@ type CrossDependency struct {
 	Relationship string            `json:"relationship"`
 }
 
+// RolloutStage represents a rolloutstage.
 type RolloutStage struct {
 	ID          string        `json:"id"`
 	Name        string        `json:"name"`
@@ -4451,7 +4816,7 @@ type RolloutStage struct {
 	CompletedAt *time.Time    `json:"completedAt,omitempty"`
 }
 
-// UpdateAnalysisResult represents the result of analyzing a single update
+// UpdateAnalysisResult represents the result of analyzing a single update.
 type UpdateAnalysisResult struct {
 	UpdateID  string            `json:"updateId"`
 	Package   *PackageReference `json:"package"`
@@ -4459,9 +4824,9 @@ type UpdateAnalysisResult struct {
 	RiskLevel string            `json:"riskLevel"`
 }
 
-// The very last missing types from validator.go
+// The very last missing types from validator.go.
 
-// PlatformValidation represents platform validation result
+// PlatformValidation represents platform validation result.
 type PlatformValidation struct {
 	Packages           []*PackageReference  `json:"packages"`
 	Platform           *PlatformConstraints `json:"platform"`
@@ -4474,7 +4839,7 @@ type PlatformValidation struct {
 	ValidatedAt        time.Time            `json:"validatedAt"`
 }
 
-// PlatformValidationIssue represents a platform validation issue
+// PlatformValidationIssue represents a platform validation issue.
 type PlatformValidationIssue struct {
 	Platform    string `json:"platform"`
 	Type        string `json:"type"`
@@ -4483,7 +4848,7 @@ type PlatformValidationIssue struct {
 	Resolution  string `json:"resolution,omitempty"`
 }
 
-// SecurityPolicies represents security policies
+// SecurityPolicies represents security policies.
 type SecurityPolicies struct {
 	Policies        []*SecurityPolicy `json:"policies"`
 	DefaultPolicy   *SecurityPolicy   `json:"defaultPolicy,omitempty"`
@@ -4491,7 +4856,7 @@ type SecurityPolicies struct {
 	UpdatedAt       time.Time         `json:"updatedAt"`
 }
 
-// ComplianceRules represents compliance rules
+// ComplianceRules represents compliance rules.
 type ComplianceRules struct {
 	Rules           []*ComplianceRule `json:"rules"`
 	Standards       []string          `json:"standards"`
@@ -4500,7 +4865,7 @@ type ComplianceRules struct {
 	UpdatedAt       time.Time         `json:"updatedAt"`
 }
 
-// ComplianceRule represents a compliance rule
+// ComplianceRule represents a compliance rule.
 type ComplianceRule struct {
 	ID          string   `json:"id"`
 	Name        string   `json:"name"`
@@ -4513,7 +4878,7 @@ type ComplianceRule struct {
 	Tags        []string `json:"tags,omitempty"`
 }
 
-// ResourceLimits represents resource limits
+// ResourceLimits represents resource limits.
 type ResourceLimits struct {
 	CPU     *ResourceLimit `json:"cpu,omitempty"`
 	Memory  *ResourceLimit `json:"memory,omitempty"`
@@ -4522,7 +4887,7 @@ type ResourceLimits struct {
 	GPU     *ResourceLimit `json:"gpu,omitempty"`
 }
 
-// ResourceLimit represents a limit on a resource
+// ResourceLimit represents a limit on a resource.
 type ResourceLimit struct {
 	Min     float64 `json:"min,omitempty"`
 	Max     float64 `json:"max,omitempty"`
@@ -4530,7 +4895,7 @@ type ResourceLimit struct {
 	Unit    string  `json:"unit"`
 }
 
-// OrganizationalPolicies represents organizational policies
+// OrganizationalPolicies represents organizational policies.
 type OrganizationalPolicies struct {
 	Policies         []*OrganizationalPolicy `json:"policies"`
 	DefaultPolicies  []*OrganizationalPolicy `json:"defaultPolicies,omitempty"`
@@ -4539,7 +4904,7 @@ type OrganizationalPolicies struct {
 	UpdatedAt        time.Time               `json:"updatedAt"`
 }
 
-// OrganizationalPolicy represents an organizational policy
+// OrganizationalPolicy represents an organizational policy.
 type OrganizationalPolicy struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`
@@ -4553,9 +4918,9 @@ type OrganizationalPolicy struct {
 	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
-// The absolutely final missing types from validator.go
+// The absolutely final missing types from validator.go.
 
-// SecurityValidation represents security validation result
+// SecurityValidation represents security validation result.
 type SecurityValidation struct {
 	Valid            bool                       `json:"valid"`
 	SecurityScore    float64                    `json:"securityScore"`
@@ -4566,7 +4931,7 @@ type SecurityValidation struct {
 	ValidatedAt      time.Time                  `json:"validatedAt"`
 }
 
-// SecurityPolicyViolation represents a security policy violation
+// SecurityPolicyViolation represents a security policy violation.
 type SecurityPolicyViolation struct {
 	PolicyName  string `json:"policyName"`
 	RuleName    string `json:"ruleName"`
@@ -4575,7 +4940,7 @@ type SecurityPolicyViolation struct {
 	Resolution  string `json:"resolution,omitempty"`
 }
 
-// ResourceValidation represents resource validation result
+// ResourceValidation represents resource validation result.
 type ResourceValidation struct {
 	Valid           bool                       `json:"valid"`
 	Score           float64                    `json:"score"`
@@ -4586,7 +4951,7 @@ type ResourceValidation struct {
 	ValidatedAt     time.Time                  `json:"validatedAt"`
 }
 
-// ResourceValidationIssue represents a resource validation issue
+// ResourceValidationIssue represents a resource validation issue.
 type ResourceValidationIssue struct {
 	ResourceType string  `json:"resourceType"`
 	Type         string  `json:"type"`
@@ -4597,7 +4962,7 @@ type ResourceValidationIssue struct {
 	Resolution   string  `json:"resolution,omitempty"`
 }
 
-// BreakingChangeReport represents a breaking change report
+// BreakingChangeReport represents a breaking change report.
 type BreakingChangeReport struct {
 	Package         *PackageReference     `json:"package"`
 	FromVersion     string                `json:"fromVersion"`
@@ -4608,7 +4973,7 @@ type BreakingChangeReport struct {
 	GeneratedAt     time.Time             `json:"generatedAt"`
 }
 
-// UpgradeValidation represents upgrade validation result
+// UpgradeValidation represents upgrade validation result.
 type UpgradeValidation struct {
 	Valid                bool                      `json:"valid"`
 	UpgradeScore         float64                   `json:"upgradeScore"`
@@ -4620,7 +4985,7 @@ type UpgradeValidation struct {
 	ValidatedAt          time.Time                 `json:"validatedAt"`
 }
 
-// UpgradeValidationIssue represents an upgrade validation issue
+// UpgradeValidationIssue represents an upgrade validation issue.
 type UpgradeValidationIssue struct {
 	Type        string `json:"type"`
 	Severity    string `json:"severity"`
@@ -4629,7 +4994,7 @@ type UpgradeValidationIssue struct {
 	Resolution  string `json:"resolution,omitempty"`
 }
 
-// ArchitecturalConstraints represents architectural constraints
+// ArchitecturalConstraints represents architectural constraints.
 type ArchitecturalConstraints struct {
 	PatternConstraints   []string           `json:"patternConstraints,omitempty"`
 	LayerConstraints     []string           `json:"layerConstraints,omitempty"`
@@ -4641,9 +5006,9 @@ type ArchitecturalConstraints struct {
 	ComponentConstraints []string           `json:"componentConstraints,omitempty"`
 }
 
-// Final missing types to complete the dependencies package
+// Final missing types to complete the dependencies package.
 
-// ArchitecturalValidation represents architectural validation result
+// ArchitecturalValidation represents architectural validation result.
 type ArchitecturalValidation struct {
 	Valid           bool                            `json:"valid"`
 	Score           float64                         `json:"score"`
@@ -4653,7 +5018,7 @@ type ArchitecturalValidation struct {
 	ValidatedAt     time.Time                       `json:"validatedAt"`
 }
 
-// ArchitecturalValidationIssue represents an architectural validation issue
+// ArchitecturalValidationIssue represents an architectural validation issue.
 type ArchitecturalValidationIssue struct {
 	Type        string `json:"type"`
 	Severity    string `json:"severity"`
@@ -4663,7 +5028,7 @@ type ArchitecturalValidationIssue struct {
 	Resolution  string `json:"resolution,omitempty"`
 }
 
-// DependencyConflictReport represents a dependency conflict report
+// DependencyConflictReport represents a dependency conflict report.
 type DependencyConflictReport struct {
 	ReportID    string                          `json:"reportId"`
 	Conflicts   []*DependencyConflict           `json:"conflicts"`
@@ -4673,7 +5038,7 @@ type DependencyConflictReport struct {
 	GeneratedAt time.Time                       `json:"generatedAt"`
 }
 
-// ValidatorHealth represents health status of the validator
+// ValidatorHealth represents health status of the validator.
 type ValidatorHealth struct {
 	Status            string            `json:"status"`
 	Components        map[string]string `json:"components"`
@@ -4688,7 +5053,7 @@ type ValidatorHealth struct {
 	CheckedAt         time.Time         `json:"checkedAt"`
 }
 
-// ValidatorMetrics represents metrics for the validator
+// ValidatorMetrics represents metrics for the validator.
 type ValidatorMetrics struct {
 	TotalValidations      int64         `json:"totalValidations"`
 	SuccessfulValidations int64         `json:"successfulValidations"`
@@ -4700,7 +5065,7 @@ type ValidatorMetrics struct {
 	ThroughputPPS         float64       `json:"throughputPPS"` // Packages per second
 	LastUpdated           time.Time     `json:"lastUpdated"`
 
-	// Additional metrics fields needed by validator
+	// Additional metrics fields needed by validator.
 	ConflictDetectionTime       *dummyMetricObserver `json:"-"`
 	ConflictsDetected           *dummyMetricCounter  `json:"-"`
 	ScanCacheHits               *dummyMetricCounter  `json:"-"`
@@ -4712,7 +5077,7 @@ type ValidatorMetrics struct {
 	CompatibilityValidationTime *dummyMetricObserver `json:"-"`
 }
 
-// ValidationRules represents validation rules
+// ValidationRules represents validation rules.
 type ValidationRules struct {
 	Rules        []*ValidationRule      `json:"rules"`
 	RuleGroups   []*ValidationRuleGroup `json:"ruleGroups,omitempty"`
@@ -4720,13 +5085,13 @@ type ValidationRules struct {
 	CustomRules  []*ValidationRule      `json:"customRules,omitempty"`
 	UpdatedAt    time.Time              `json:"updatedAt"`
 
-	// Additional fields for validator configuration
+	// Additional fields for validator configuration.
 	MaxDependencyDepth int  `json:"maxDependencyDepth"`
 	AllowPrerelease    bool `json:"allowPrerelease"`
 	RequireValidation  bool `json:"requireValidation"`
 }
 
-// ValidationRule represents a validation rule
+// ValidationRule represents a validation rule.
 type ValidationRule struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`
@@ -4742,7 +5107,7 @@ type ValidationRule struct {
 	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
-// ValidationRuleGroup represents a group of validation rules
+// ValidationRuleGroup represents a group of validation rules.
 type ValidationRuleGroup struct {
 	ID          string            `json:"id"`
 	Name        string            `json:"name"`
@@ -4754,7 +5119,7 @@ type ValidationRuleGroup struct {
 	UpdatedAt   time.Time         `json:"updatedAt"`
 }
 
-// RolloutProgress represents rollout progress
+// RolloutProgress represents rollout progress.
 type RolloutProgress struct {
 	TotalBatches     int     `json:"totalBatches"`
 	CompletedBatches int     `json:"completedBatches"`
@@ -4762,7 +5127,7 @@ type RolloutProgress struct {
 	ProgressPercent  float64 `json:"progressPercent"`
 }
 
-// BatchExecution represents the execution of a batch
+// BatchExecution represents the execution of a batch.
 type BatchExecution struct {
 	ID          string        `json:"id"`
 	Status      BatchStatus   `json:"status"`
@@ -4773,17 +5138,21 @@ type BatchExecution struct {
 	Errors      []string      `json:"errors,omitempty"`
 }
 
-// BatchStatus defines batch statuses
+// BatchStatus defines batch statuses.
 type BatchStatus string
 
 const (
-	BatchStatusPending   BatchStatus = "pending"
-	BatchStatusRunning   BatchStatus = "running"
+	// BatchStatusPending holds batchstatuspending value.
+	BatchStatusPending BatchStatus = "pending"
+	// BatchStatusRunning holds batchstatusrunning value.
+	BatchStatusRunning BatchStatus = "running"
+	// BatchStatusCompleted holds batchstatuscompleted value.
 	BatchStatusCompleted BatchStatus = "completed"
-	BatchStatusFailed    BatchStatus = "failed"
+	// BatchStatusFailed holds batchstatusfailed value.
+	BatchStatusFailed BatchStatus = "failed"
 )
 
-// SecurityImpact represents security impact of an update
+// SecurityImpact represents security impact of an update.
 type SecurityImpact struct {
 	VulnerabilitiesFixed    int               `json:"vulnerabilitiesFixed"`
 	VulnerabilitiesAdded    int               `json:"vulnerabilitiesAdded"`
@@ -4792,11 +5161,11 @@ type SecurityImpact struct {
 	SecurityRecommendations []string          `json:"securityRecommendations,omitempty"`
 	ComplianceImpact        *ComplianceImpact `json:"complianceImpact,omitempty"`
 
-	// Additional field referenced in updater_helpers.go
+	// Additional field referenced in updater_helpers.go.
 	Vulnerabilities []string `json:"vulnerabilities,omitempty"`
 }
 
-// ComplianceImpact represents compliance impact of an update
+// ComplianceImpact represents compliance impact of an update.
 type ComplianceImpact struct {
 	ComplianceScoreChange float64  `json:"complianceScoreChange"`
 	StandardsAffected     []string `json:"standardsAffected,omitempty"`
@@ -4804,7 +5173,7 @@ type ComplianceImpact struct {
 	ViolationsAdded       int      `json:"violationsAdded"`
 }
 
-// PerformanceImpact represents performance impact of an update
+// PerformanceImpact represents performance impact of an update.
 type PerformanceImpact struct {
 	BenchmarkResults   []*BenchmarkComparison `json:"benchmarkResults,omitempty"`
 	MemoryUsageChange  float64                `json:"memoryUsageChange"`
@@ -4815,7 +5184,7 @@ type PerformanceImpact struct {
 	OverallImpactScore float64                `json:"overallImpactScore"`
 }
 
-// BenchmarkComparison represents comparison of benchmark results
+// BenchmarkComparison represents comparison of benchmark results.
 type BenchmarkComparison struct {
 	BenchmarkName string  `json:"benchmarkName"`
 	OldResult     float64 `json:"oldResult"`
@@ -4825,7 +5194,7 @@ type BenchmarkComparison struct {
 	Significance  string  `json:"significance"`
 }
 
-// Validate method for AnalyzerConfig
+// Validate method for AnalyzerConfig.
 func (c *AnalyzerConfig) Validate() error {
 	if c.Version == "" {
 		c.Version = "1.0.0"
@@ -4842,9 +5211,9 @@ func (c *AnalyzerConfig) Validate() error {
 	return nil
 }
 
-// Missing configuration types for validator
+// Missing configuration types for validator.
 
-// CompatibilityConfig holds compatibility checking configuration
+// CompatibilityConfig holds compatibility checking configuration.
 type CompatibilityConfig struct {
 	StrictVersionChecking bool     `json:"strictVersionChecking"`
 	AllowedVersionSkew    int      `json:"allowedVersionSkew"`
@@ -4852,7 +5221,7 @@ type CompatibilityConfig struct {
 	PlatformConstraints   []string `json:"platformConstraints,omitempty"`
 }
 
-// SecurityConfig holds security scanning configuration
+// SecurityConfig holds security scanning configuration.
 type SecurityConfig struct {
 	VulnerabilityDBURL string        `json:"vulnerabilityDbUrl"`
 	ScanTimeout        time.Duration `json:"scanTimeout"`
@@ -4860,7 +5229,7 @@ type SecurityConfig struct {
 	MinSeverity        string        `json:"minSeverity"`
 }
 
-// LicenseConfig holds license validation configuration
+// LicenseConfig holds license validation configuration.
 type LicenseConfig struct {
 	AllowedLicenses []string `json:"allowedLicenses"`
 	DeniedLicenses  []string `json:"deniedLicenses"`
@@ -4868,7 +5237,7 @@ type LicenseConfig struct {
 	AllowCopyleft   bool     `json:"allowCopyleft"`
 }
 
-// PerformanceConfig holds performance analysis configuration
+// PerformanceConfig holds performance analysis configuration.
 type PerformanceConfig struct {
 	BenchmarkEnabled bool          `json:"benchmarkEnabled"`
 	Timeout          time.Duration `json:"timeout"`
@@ -4876,21 +5245,21 @@ type PerformanceConfig struct {
 	MaxCPUPercent    float64       `json:"maxCPUPercent"`
 }
 
-// PolicyConfig holds policy validation configuration
+// PolicyConfig holds policy validation configuration.
 type PolicyConfig struct {
 	PolicyFiles []string `json:"policyFiles"`
 	StrictMode  bool     `json:"strictMode"`
 	CustomRules []string `json:"customRules,omitempty"`
 }
 
-// ConflictAnalyzerConfig holds conflict analyzer configuration
+// ConflictAnalyzerConfig holds conflict analyzer configuration.
 type ConflictAnalyzerConfig struct {
 	AnalysisDepth      int           `json:"analysisDepth"`
 	Timeout            time.Duration `json:"timeout"`
 	EnableMLPrediction bool          `json:"enableMLPrediction"`
 }
 
-// VulnerabilityDBConfig holds vulnerability database configuration
+// VulnerabilityDBConfig holds vulnerability database configuration.
 type VulnerabilityDBConfig struct {
 	URL            string        `json:"url"`
 	APIKey         string        `json:"apiKey"`
@@ -4898,19 +5267,19 @@ type VulnerabilityDBConfig struct {
 	CacheEnabled   bool          `json:"cacheEnabled"`
 }
 
-// LicenseDBConfig holds license database configuration
+// LicenseDBConfig holds license database configuration.
 type LicenseDBConfig struct {
 	URL          string `json:"url"`
 	CacheEnabled bool   `json:"cacheEnabled"`
 }
 
-// Validate method for ValidatorConfig
+// Validate method for ValidatorConfig.
 func (c *ValidatorConfig) Validate() error {
 	if c == nil {
 		return fmt.Errorf("validator config cannot be nil")
 	}
 
-	// Set defaults for timeouts
+	// Set defaults for timeouts.
 	if c.SecurityScanTimeout == 0 {
 		c.SecurityScanTimeout = 5 * time.Minute
 	}
@@ -4927,7 +5296,7 @@ func (c *ValidatorConfig) Validate() error {
 		c.MetricsCollectionInterval = 5 * time.Minute
 	}
 
-	// Set defaults for concurrency
+	// Set defaults for concurrency.
 	if c.WorkerCount <= 0 {
 		c.WorkerCount = 4
 	}
@@ -4935,7 +5304,7 @@ func (c *ValidatorConfig) Validate() error {
 		c.QueueSize = 100
 	}
 
-	// Set default cache TTL
+	// Set default cache TTL.
 	if c.CacheTTL == 0 {
 		c.CacheTTL = time.Hour
 	}
@@ -4943,7 +5312,7 @@ func (c *ValidatorConfig) Validate() error {
 	return nil
 }
 
-// DefaultValidatorConfig creates a default validator configuration
+// DefaultValidatorConfig creates a default validator configuration.
 func DefaultValidatorConfig() *ValidatorConfig {
 	return &ValidatorConfig{
 		EnableCompatibilityCheck:    true,
@@ -5000,9 +5369,9 @@ func DefaultValidatorConfig() *ValidatorConfig {
 	}
 }
 
-// Constructor functions for validator components
+// Constructor functions for validator components.
 
-// NewValidatorMetrics creates a new validator metrics instance
+// NewValidatorMetrics creates a new validator metrics instance.
 func NewValidatorMetrics() *ValidatorMetrics {
 	return &ValidatorMetrics{
 		ConflictDetectionTime:       &dummyMetricObserver{},
@@ -5017,24 +5386,27 @@ func NewValidatorMetrics() *ValidatorMetrics {
 	}
 }
 
-// Dummy metric implementations for ValidatorMetrics
+// Dummy metric implementations for ValidatorMetrics.
 type dummyMetricObserver struct{}
 
+// Observe performs observe operation.
 func (d *dummyMetricObserver) Observe(value float64) {
-	// Dummy implementation
+	// Dummy implementation.
 }
 
 type dummyMetricCounter struct{}
 
+// Inc performs inc operation.
 func (d *dummyMetricCounter) Inc() {
-	// Dummy implementation
+	// Dummy implementation.
 }
 
+// Add performs add operation.
 func (d *dummyMetricCounter) Add(value float64) {
-	// Dummy implementation
+	// Dummy implementation.
 }
 
-// NewCompatibilityChecker creates a new compatibility checker
+// NewCompatibilityChecker creates a new compatibility checker.
 func NewCompatibilityChecker(config *CompatibilityConfig) (*CompatibilityChecker, error) {
 	if config == nil {
 		config = &CompatibilityConfig{
@@ -5049,19 +5421,19 @@ func NewCompatibilityChecker(config *CompatibilityConfig) (*CompatibilityChecker
 	}, nil
 }
 
-// CheckCompatibility checks compatibility between two packages
+// CheckCompatibility checks compatibility between two packages.
 func (c *CompatibilityChecker) CheckCompatibility(ctx context.Context, pkg1, pkg2 *PackageReference) (bool, error) {
-	// Simple compatibility check - in reality this would be more sophisticated
+	// Simple compatibility check - in reality this would be more sophisticated.
 	if pkg1.Name == pkg2.Name {
-		// Same package, check version compatibility
+		// Same package, check version compatibility.
 		return pkg1.Version == pkg2.Version, nil
 	}
 
-	// Different packages are generally compatible unless there are known conflicts
+	// Different packages are generally compatible unless there are known conflicts.
 	return true, nil
 }
 
-// NewSecurityScanner creates a new security scanner
+// NewSecurityScanner creates a new security scanner.
 func NewSecurityScanner(config *SecurityConfig) (*SecurityScanner, error) {
 	if config == nil {
 		config = &SecurityConfig{
@@ -5075,7 +5447,7 @@ func NewSecurityScanner(config *SecurityConfig) (*SecurityScanner, error) {
 	}, nil
 }
 
-// NewLicenseValidator creates a new license validator
+// NewLicenseValidator creates a new license validator.
 func NewLicenseValidator(config *LicenseConfig) (*LicenseValidator, error) {
 	if config == nil {
 		config = &LicenseConfig{
@@ -5089,7 +5461,7 @@ func NewLicenseValidator(config *LicenseConfig) (*LicenseValidator, error) {
 	}, nil
 }
 
-// NewPolicyEngine creates a new policy engine
+// NewPolicyEngine creates a new policy engine.
 func NewPolicyEngine(config *PolicyConfig) (*PolicyEngine, error) {
 	if config == nil {
 		config = &PolicyConfig{
@@ -5102,7 +5474,7 @@ func NewPolicyEngine(config *PolicyConfig) (*PolicyEngine, error) {
 	}, nil
 }
 
-// NewConflictAnalyzer creates a new conflict analyzer
+// NewConflictAnalyzer creates a new conflict analyzer.
 func NewConflictAnalyzer(config *ConflictAnalyzerConfig) *ConflictAnalyzer {
 	if config == nil {
 		config = &ConflictAnalyzerConfig{
@@ -5116,49 +5488,52 @@ func NewConflictAnalyzer(config *ConflictAnalyzerConfig) *ConflictAnalyzer {
 	}
 }
 
-// NewValidationCache creates a new validation cache
+// NewValidationCache creates a new validation cache.
 func NewValidationCache(config *CacheConfig) *ValidationCache {
 	return &ValidationCache{
 		cache: make(map[string]interface{}),
 	}
 }
 
-// NewScanResultCache creates a new scan result cache
+// NewScanResultCache creates a new scan result cache.
 func NewScanResultCache(config *CacheConfig) *ScanResultCache {
 	return &ScanResultCache{
 		cache: make(map[string]interface{}),
 	}
 }
 
-// NewVulnerabilityDatabase creates a new vulnerability database
+// NewVulnerabilityDatabase creates a new vulnerability database.
 func NewVulnerabilityDatabase(config *VulnerabilityDBConfig) (VulnerabilityDatabase, error) {
 	return &vulnerabilityDatabase{
 		config: config,
 	}, nil
 }
 
-// NewLicenseDatabase creates a new license database
+// NewLicenseDatabase creates a new license database.
 func NewLicenseDatabase(config *LicenseDBConfig) (LicenseDatabase, error) {
 	return &licenseDatabase{
 		config: config,
 	}, nil
 }
 
-// Missing struct definitions for analyzer components
+// Missing struct definitions for analyzer components.
 
-// Implementation stubs for database types
+// Implementation stubs for database types.
 type vulnerabilityDatabase struct {
 	config *VulnerabilityDBConfig
 }
 
+// ScanPackage performs scanpackage operation.
 func (v *vulnerabilityDatabase) ScanPackage(packageName, version string) ([]Vulnerability, error) {
 	return nil, nil
 }
 
+// Update performs update operation.
 func (v *vulnerabilityDatabase) Update(ctx context.Context) error {
 	return nil
 }
 
+// Close performs close operation.
 func (v *vulnerabilityDatabase) Close() error {
 	return nil
 }
@@ -5167,139 +5542,165 @@ type licenseDatabase struct {
 	config *LicenseDBConfig
 }
 
+// GetLicense performs getlicense operation.
 func (l *licenseDatabase) GetLicense(packageName, version string) (*License, error) {
 	return nil, nil
 }
 
+// Close performs close operation.
 func (l *licenseDatabase) Close() error {
 	return nil
 }
 
-// Close method for ValidationCache
+// Close method for ValidationCache.
 func (c *ValidationCache) Close() {}
 
-// Close method for ScanResultCache
+// Close method for ScanResultCache.
 func (c *ScanResultCache) Close() {}
 
-// Get method for ScanResultCache
+// Get method for ScanResultCache.
 func (c *ScanResultCache) Get(ctx context.Context, key string) (*SecurityScanResult, error) {
 	return nil, fmt.Errorf("not found")
 }
 
-// Set method for ScanResultCache
+// Set method for ScanResultCache.
 func (c *ScanResultCache) Set(ctx context.Context, key string, result *SecurityScanResult) error {
 	c.cache[key] = result
 	return nil
 }
 
-// Conflict detector implementations
+// Conflict detector implementations.
 
 type versionConflictDetector struct{}
 
+// NewVersionConflictDetector performs newversionconflictdetector operation.
 func NewVersionConflictDetector() ConflictDetector {
 	return &versionConflictDetector{}
 }
 
+// DetectConflicts performs detectconflicts operation.
 func (d *versionConflictDetector) DetectConflicts(packages []*PackageReference) ([]*DependencyConflict, error) {
 	return []*DependencyConflict{}, nil
 }
 
+// ValidateResolution performs validateresolution operation.
 func (d *versionConflictDetector) ValidateResolution(resolution *DependencyResolution) error {
 	return nil
 }
 
+// AnalyzeImpact performs analyzeimpact operation.
 func (d *versionConflictDetector) AnalyzeImpact(conflicts []*DependencyConflict) (*ConflictImpactAnalysis, error) {
 	return &ConflictImpactAnalysis{}, nil
 }
 
 type transitiveConflictDetector struct{}
 
+// NewTransitiveConflictDetector performs newtransitiveconflictdetector operation.
 func NewTransitiveConflictDetector() ConflictDetector {
 	return &transitiveConflictDetector{}
 }
 
+// DetectConflicts performs detectconflicts operation.
 func (d *transitiveConflictDetector) DetectConflicts(packages []*PackageReference) ([]*DependencyConflict, error) {
 	return []*DependencyConflict{}, nil
 }
 
+// ValidateResolution performs validateresolution operation.
 func (d *transitiveConflictDetector) ValidateResolution(resolution *DependencyResolution) error {
 	return nil
 }
 
+// AnalyzeImpact performs analyzeimpact operation.
 func (d *transitiveConflictDetector) AnalyzeImpact(conflicts []*DependencyConflict) (*ConflictImpactAnalysis, error) {
 	return &ConflictImpactAnalysis{}, nil
 }
 
 type licenseConflictDetector struct{}
 
+// NewLicenseConflictDetector performs newlicenseconflictdetector operation.
 func NewLicenseConflictDetector() ConflictDetector {
 	return &licenseConflictDetector{}
 }
 
+// DetectConflicts performs detectconflicts operation.
 func (d *licenseConflictDetector) DetectConflicts(packages []*PackageReference) ([]*DependencyConflict, error) {
 	return []*DependencyConflict{}, nil
 }
 
+// ValidateResolution performs validateresolution operation.
 func (d *licenseConflictDetector) ValidateResolution(resolution *DependencyResolution) error {
 	return nil
 }
 
+// AnalyzeImpact performs analyzeimpact operation.
 func (d *licenseConflictDetector) AnalyzeImpact(conflicts []*DependencyConflict) (*ConflictImpactAnalysis, error) {
 	return &ConflictImpactAnalysis{}, nil
 }
 
 type policyConflictDetector struct{}
 
+// NewPolicyConflictDetector performs newpolicyconflictdetector operation.
 func NewPolicyConflictDetector() ConflictDetector {
 	return &policyConflictDetector{}
 }
 
+// DetectConflicts performs detectconflicts operation.
 func (d *policyConflictDetector) DetectConflicts(packages []*PackageReference) ([]*DependencyConflict, error) {
 	return []*DependencyConflict{}, nil
 }
 
+// ValidateResolution performs validateresolution operation.
 func (d *policyConflictDetector) ValidateResolution(resolution *DependencyResolution) error {
 	return nil
 }
 
+// AnalyzeImpact performs analyzeimpact operation.
 func (d *policyConflictDetector) AnalyzeImpact(conflicts []*DependencyConflict) (*ConflictImpactAnalysis, error) {
 	return &ConflictImpactAnalysis{}, nil
 }
 
 type architectureConflictDetector struct{}
 
+// NewArchitectureConflictDetector performs newarchitectureconflictdetector operation.
 func NewArchitectureConflictDetector() ConflictDetector {
 	return &architectureConflictDetector{}
 }
 
+// DetectConflicts performs detectconflicts operation.
 func (d *architectureConflictDetector) DetectConflicts(packages []*PackageReference) ([]*DependencyConflict, error) {
 	return []*DependencyConflict{}, nil
 }
 
+// ValidateResolution performs validateresolution operation.
 func (d *architectureConflictDetector) ValidateResolution(resolution *DependencyResolution) error {
 	return nil
 }
 
+// AnalyzeImpact performs analyzeimpact operation.
 func (d *architectureConflictDetector) AnalyzeImpact(conflicts []*DependencyConflict) (*ConflictImpactAnalysis, error) {
 	return &ConflictImpactAnalysis{}, nil
 }
 
 type securityConflictDetector struct{}
 
+// NewSecurityConflictDetector performs newsecurityconflictdetector operation.
 func NewSecurityConflictDetector() ConflictDetector {
 	return &securityConflictDetector{}
 }
 
+// DetectConflicts performs detectconflicts operation.
 func (d *securityConflictDetector) DetectConflicts(packages []*PackageReference) ([]*DependencyConflict, error) {
 	return []*DependencyConflict{}, nil
 }
 
+// ValidateResolution performs validateresolution operation.
 func (d *securityConflictDetector) ValidateResolution(resolution *DependencyResolution) error {
 	return nil
 }
 
+// AnalyzeImpact performs analyzeimpact operation.
 func (d *securityConflictDetector) AnalyzeImpact(conflicts []*DependencyConflict) (*ConflictImpactAnalysis, error) {
 	return &ConflictImpactAnalysis{}, nil
 }
 
-// Missing types referenced in validator.go - all types already exist in the codebase
+// Missing types referenced in validator.go - all types already exist in the codebase.

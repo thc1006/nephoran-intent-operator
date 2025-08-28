@@ -10,36 +10,40 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-// IntentType represents the different types of intents
+// IntentType represents the different types of intents.
 type IntentType string
 
 const (
-	IntentTypeCore    IntentType = "core"
-	IntentTypeRAN     IntentType = "ran"
+	// IntentTypeCore holds intenttypecore value.
+	IntentTypeCore IntentType = "core"
+	// IntentTypeRAN holds intenttyperan value.
+	IntentTypeRAN IntentType = "ran"
+	// IntentTypeSlicing holds intenttypeslicing value.
 	IntentTypeSlicing IntentType = "slicing"
+	// IntentTypeDefault holds intenttypedefault value.
 	IntentTypeDefault IntentType = "default"
 )
 
-// ThroughputTracker provides real-time throughput monitoring
+// ThroughputTracker provides real-time throughput monitoring.
 type ThroughputTracker struct {
 	mu sync.RWMutex
 
-	// Sliding window counters for different time windows
+	// Sliding window counters for different time windows.
 	windows map[time.Duration]*SlidingWindowCounter
 
-	// Prometheus metrics
+	// Prometheus metrics.
 	intentProcessedTotal *prometheus.CounterVec
 	intentProcessingTime *prometheus.HistogramVec
 	queueDepth           *prometheus.GaugeVec
 
-	// Burst detection
+	// Burst detection.
 	burstDetector *BurstDetector
 
-	// Geographic tracking
+	// Geographic tracking.
 	regionCounters map[string]*SlidingWindowCounter
 }
 
-// NewThroughputTracker creates a new throughput tracker
+// NewThroughputTracker creates a new throughput tracker.
 func NewThroughputTracker() *ThroughputTracker {
 	windows := map[time.Duration]*SlidingWindowCounter{
 		time.Minute:      NewSlidingWindowCounter(time.Minute),
@@ -68,7 +72,7 @@ func NewThroughputTracker() *ThroughputTracker {
 	}
 }
 
-// RecordIntent records an intent processing event
+// RecordIntent records an intent processing event.
 func (t *ThroughputTracker) RecordIntent(
 	intentType IntentType,
 	status string,
@@ -78,26 +82,26 @@ func (t *ThroughputTracker) RecordIntent(
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	// Update sliding window counters
+	// Update sliding window counters.
 	for _, window := range t.windows {
 		window.Increment()
 	}
 
-	// Update region-specific counter
+	// Update region-specific counter.
 	if _, exists := t.regionCounters[region]; !exists {
 		t.regionCounters[region] = NewSlidingWindowCounter(time.Minute * 15)
 	}
 	t.regionCounters[region].Increment()
 
-	// Prometheus metrics
+	// Prometheus metrics.
 	t.intentProcessedTotal.WithLabelValues(string(intentType), status, region).Inc()
 	t.intentProcessingTime.WithLabelValues(string(intentType), status).Observe(processingTime.Seconds())
 
-	// Burst detection
+	// Burst detection.
 	t.burstDetector.Record()
 }
 
-// GetThroughputRates returns throughput rates for different windows
+// GetThroughputRates returns throughput rates for different windows.
 func (t *ThroughputTracker) GetThroughputRates() map[string]float64 {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
@@ -109,7 +113,7 @@ func (t *ThroughputTracker) GetThroughputRates() map[string]float64 {
 	return rates
 }
 
-// GetRegionalThroughput returns throughput rates by region
+// GetRegionalThroughput returns throughput rates by region.
 func (t *ThroughputTracker) GetRegionalThroughput() map[string]float64 {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
@@ -121,7 +125,7 @@ func (t *ThroughputTracker) GetRegionalThroughput() map[string]float64 {
 	return regionalRates
 }
 
-// SlidingWindowCounter tracks events in a sliding time window
+// SlidingWindowCounter tracks events in a sliding time window.
 type SlidingWindowCounter struct {
 	mu        sync.Mutex
 	window    time.Duration
@@ -130,7 +134,7 @@ type SlidingWindowCounter struct {
 	startTime int64
 }
 
-// NewSlidingWindowCounter creates a new sliding window counter
+// NewSlidingWindowCounter creates a new sliding window counter.
 func NewSlidingWindowCounter(window time.Duration) *SlidingWindowCounter {
 	return &SlidingWindowCounter{
 		window:    window,
@@ -139,7 +143,7 @@ func NewSlidingWindowCounter(window time.Duration) *SlidingWindowCounter {
 	}
 }
 
-// Increment adds a new event to the counter
+// Increment adds a new event to the counter.
 func (c *SlidingWindowCounter) Increment() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -148,11 +152,11 @@ func (c *SlidingWindowCounter) Increment() {
 	c.buckets[now]++
 	c.totalSum++
 
-	// Remove old buckets
+	// Remove old buckets.
 	c.prune(now)
 }
 
-// Rate calculates the rate of events
+// Rate calculates the rate of events.
 func (c *SlidingWindowCounter) Rate() float64 {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -164,7 +168,7 @@ func (c *SlidingWindowCounter) Rate() float64 {
 	return float64(c.totalSum) / elapsed * 60 // Per minute rate
 }
 
-// prune removes old buckets outside the time window
+// prune removes old buckets outside the time window.
 func (c *SlidingWindowCounter) prune(now int64) {
 	for bucket := range c.buckets {
 		if now-bucket > int64(c.window.Seconds()) {
@@ -174,14 +178,14 @@ func (c *SlidingWindowCounter) prune(now int64) {
 	}
 }
 
-// BurstDetector tracks burst events
+// BurstDetector tracks burst events.
 type BurstDetector struct {
 	mu             sync.Mutex
 	timestamps     []time.Time
 	burstThreshold int
 }
 
-// NewBurstDetector creates a new burst detector
+// NewBurstDetector creates a new burst detector.
 func NewBurstDetector() *BurstDetector {
 	return &BurstDetector{
 		timestamps:     make([]time.Time, 0),
@@ -189,7 +193,7 @@ func NewBurstDetector() *BurstDetector {
 	}
 }
 
-// Record adds a new timestamp
+// Record adds a new timestamp.
 func (b *BurstDetector) Record() {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -199,15 +203,15 @@ func (b *BurstDetector) Record() {
 	b.prune(now)
 }
 
-// prune removes old timestamps and checks for bursts
+// prune removes old timestamps and checks for bursts.
 func (b *BurstDetector) prune(now time.Time) {
-	// Remove timestamps older than 1 second
+	// Remove timestamps older than 1 second.
 	for len(b.timestamps) > 0 && now.Sub(b.timestamps[0]) > time.Second {
 		b.timestamps = b.timestamps[1:]
 	}
 }
 
-// IsBurstDetected checks if a burst has occurred
+// IsBurstDetected checks if a burst has occurred.
 func (b *BurstDetector) IsBurstDetected() bool {
 	b.mu.Lock()
 	defer b.mu.Unlock()

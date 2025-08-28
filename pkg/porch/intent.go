@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-// ScalingIntent represents the MVP scaling intent structure
+// ScalingIntent represents the MVP scaling intent structure.
 type ScalingIntent struct {
 	IntentType    string `json:"intent_type"`
 	Target        string `json:"target"`
@@ -17,7 +17,7 @@ type ScalingIntent struct {
 	CorrelationID string `json:"correlation_id,omitempty"`
 }
 
-// ValidateIntent validates the scaling intent
+// ValidateIntent validates the scaling intent.
 func ValidateIntent(intent *ScalingIntent) error {
 	if intent.IntentType != "scaling" {
 		return fmt.Errorf("invalid intent_type: %s, only 'scaling' is supported", intent.IntentType)
@@ -37,7 +37,7 @@ func ValidateIntent(intent *ScalingIntent) error {
 	return nil
 }
 
-// ParseIntentFromFile reads and parses an intent JSON file
+// ParseIntentFromFile reads and parses an intent JSON file.
 func ParseIntentFromFile(path string) (*ScalingIntent, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {

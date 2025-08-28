@@ -19,20 +19,20 @@ package common
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-// SharedDeploymentStrategy consolidates deployment strategies across different resource types
+// SharedDeploymentStrategy consolidates deployment strategies across different resource types.
 type SharedDeploymentStrategy struct {
 	Type     string               `json:"type"`
 	Rolling  *RollingUpdateConfig `json:"rolling,omitempty"`
 	Recreate bool                 `json:"recreate,omitempty"`
 }
 
-// RollingUpdateConfig defines rolling update configuration
+// RollingUpdateConfig defines rolling update configuration.
 type RollingUpdateConfig struct {
 	MaxUnavailable *int32 `json:"maxUnavailable,omitempty"`
 	MaxSurge       *int32 `json:"maxSurge,omitempty"`
 }
 
-// SharedHealthCheckConfig consolidates health check configurations
+// SharedHealthCheckConfig consolidates health check configurations.
 type SharedHealthCheckConfig struct {
 	Enabled          bool   `json:"enabled"`
 	Path             string `json:"path,omitempty"`
@@ -42,14 +42,14 @@ type SharedHealthCheckConfig struct {
 	FailureThreshold int32  `json:"failureThreshold,omitempty"`
 }
 
-// SharedSecretReference consolidates secret references across different resource types
+// SharedSecretReference consolidates secret references across different resource types.
 type SharedSecretReference struct {
 	Name      string `json:"name"`
 	Namespace string `json:"namespace,omitempty"`
 	Key       string `json:"key,omitempty"`
 }
 
-// SharedHealthStatus consolidates health status definitions
+// SharedHealthStatus consolidates health status definitions.
 type SharedHealthStatus struct {
 	Phase      string      `json:"phase"`
 	Message    string      `json:"message,omitempty"`

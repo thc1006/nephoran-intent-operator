@@ -29,44 +29,44 @@ var (
 	}, []string{"policy", "storage_tier"})
 )
 
-// RetentionManager manages audit event retention policies
+// RetentionManager manages audit event retention policies.
 type RetentionManager struct {
 	mutex    sync.RWMutex
 	logger   logr.Logger
 	config   *RetentionConfig
 	policies map[string]*RetentionPolicy
 
-	// Storage tracking
+	// Storage tracking.
 	storageStats map[string]StorageStats
 
-	// Background processing
+	// Background processing.
 	running     bool
 	ticker      *time.Ticker
 	stopChannel chan bool
 }
 
-// RetentionConfig holds configuration for retention management
+// RetentionConfig holds configuration for retention management.
 type RetentionConfig struct {
-	// Global settings
+	// Global settings.
 	DefaultRetention time.Duration        `json:"default_retention" yaml:"default_retention"`
 	CheckInterval    time.Duration        `json:"check_interval" yaml:"check_interval"`
 	BatchSize        int                  `json:"batch_size" yaml:"batch_size"`
 	ComplianceMode   []ComplianceStandard `json:"compliance_mode" yaml:"compliance_mode"`
 
-	// Policy-specific settings
+	// Policy-specific settings.
 	Policies map[string]RetentionPolicyConfig `json:"policies" yaml:"policies"`
 
-	// Storage tiers
+	// Storage tiers.
 	StorageTiers []StorageTier `json:"storage_tiers" yaml:"storage_tiers"`
 
-	// Archival settings
+	// Archival settings.
 	ArchivalEnabled     bool   `json:"archival_enabled" yaml:"archival_enabled"`
 	ArchivalDestination string `json:"archival_destination" yaml:"archival_destination"`
 	CompressionEnabled  bool   `json:"compression_enabled" yaml:"compression_enabled"`
 	EncryptionEnabled   bool   `json:"encryption_enabled" yaml:"encryption_enabled"`
 }
 
-// RetentionPolicyConfig defines configuration for a specific retention policy
+// RetentionPolicyConfig defines configuration for a specific retention policy.
 type RetentionPolicyConfig struct {
 	Name               string             `json:"name" yaml:"name"`
 	Description        string             `json:"description" yaml:"description"`
@@ -76,19 +76,19 @@ type RetentionPolicyConfig struct {
 	Components         []string           `json:"components" yaml:"components"`
 	ComplianceStandard ComplianceStandard `json:"compliance_standard" yaml:"compliance_standard"`
 
-	// Storage lifecycle
+	// Storage lifecycle.
 	StorageTransitions []StorageTransition `json:"storage_transitions" yaml:"storage_transitions"`
 
-	// Actions
+	// Actions.
 	ArchiveBeforeDelete bool `json:"archive_before_delete" yaml:"archive_before_delete"`
 	NotifyOnDeletion    bool `json:"notify_on_deletion" yaml:"notify_on_deletion"`
 	RequireApproval     bool `json:"require_approval" yaml:"require_approval"`
 
-	// Legal hold
+	// Legal hold.
 	LegalHoldExempt bool `json:"legal_hold_exempt" yaml:"legal_hold_exempt"`
 }
 
-// RetentionPolicy represents an active retention policy
+// RetentionPolicy represents an active retention policy.
 type RetentionPolicy struct {
 	config         RetentionPolicyConfig
 	lastExecution  time.Time
@@ -97,12 +97,12 @@ type RetentionPolicy struct {
 	eventsDeleted  int64
 	storageUsage   int64
 
-	// Legal holds
+	// Legal holds.
 	legalHolds     map[string]LegalHold
 	legalHoldMutex sync.RWMutex
 }
 
-// StorageTier represents a storage tier with different characteristics
+// StorageTier represents a storage tier with different characteristics.
 type StorageTier struct {
 	Name              string        `json:"name" yaml:"name"`
 	Description       string        `json:"description" yaml:"description"`
@@ -112,7 +112,7 @@ type StorageTier struct {
 	AvailabilityZones int           `json:"availability_zones" yaml:"availability_zones"`
 }
 
-// StorageTransition defines how events move between storage tiers
+// StorageTransition defines how events move between storage tiers.
 type StorageTransition struct {
 	FromTier   string   `json:"from_tier" yaml:"from_tier"`
 	ToTier     string   `json:"to_tier" yaml:"to_tier"`
@@ -120,7 +120,7 @@ type StorageTransition struct {
 	Conditions []string `json:"conditions" yaml:"conditions"`
 }
 
-// StorageStats tracks storage usage statistics
+// StorageStats tracks storage usage statistics.
 type StorageStats struct {
 	TotalEvents      int64                      `json:"total_events"`
 	TotalSize        int64                      `json:"total_size_bytes"`
@@ -130,14 +130,14 @@ type StorageStats struct {
 	LastUpdated      time.Time                  `json:"last_updated"`
 }
 
-// StorageTierStat represents statistics for a specific storage tier
+// StorageTierStat represents statistics for a specific storage tier.
 type StorageTierStat struct {
 	EventCount int64   `json:"event_count"`
 	SizeBytes  int64   `json:"size_bytes"`
 	CostUSD    float64 `json:"cost_usd"`
 }
 
-// LegalHold represents a legal hold on audit events
+// LegalHold represents a legal hold on audit events.
 type LegalHold struct {
 	HoldID      string     `json:"hold_id"`
 	Title       string     `json:"title"`
@@ -147,7 +147,7 @@ type LegalHold struct {
 	Custodian   string     `json:"custodian"`
 	Matter      string     `json:"matter"`
 
-	// Scope
+	// Scope.
 	EventTypes []EventType `json:"event_types"`
 	UserIDs    []string    `json:"user_ids"`
 	DateRange  *struct {
@@ -159,7 +159,7 @@ type LegalHold struct {
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// RetentionAction represents an action taken by the retention policy
+// RetentionAction represents an action taken by the retention policy.
 type RetentionAction struct {
 	ActionID   string                 `json:"action_id"`
 	PolicyName string                 `json:"policy_name"`
@@ -171,7 +171,7 @@ type RetentionAction struct {
 	Details    map[string]interface{} `json:"details,omitempty"`
 }
 
-// NewRetentionManager creates a new retention manager
+// NewRetentionManager creates a new retention manager.
 func NewRetentionManager(config *RetentionConfig) *RetentionManager {
 	if config == nil {
 		config = DefaultRetentionConfig()
@@ -185,7 +185,7 @@ func NewRetentionManager(config *RetentionConfig) *RetentionManager {
 		stopChannel:  make(chan bool),
 	}
 
-	// Initialize retention policies
+	// Initialize retention policies.
 	for name, policyConfig := range config.Policies {
 		policy := &RetentionPolicy{
 			config:     policyConfig,
@@ -197,7 +197,7 @@ func NewRetentionManager(config *RetentionConfig) *RetentionManager {
 	return rm
 }
 
-// Start begins the retention manager background processing
+// Start begins the retention manager background processing.
 func (rm *RetentionManager) Start(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 
@@ -241,7 +241,7 @@ func (rm *RetentionManager) Start(ctx context.Context, wg *sync.WaitGroup) {
 	}
 }
 
-// Stop gracefully stops the retention manager
+// Stop gracefully stops the retention manager.
 func (rm *RetentionManager) Stop() {
 	rm.mutex.RLock()
 	running := rm.running
@@ -252,7 +252,7 @@ func (rm *RetentionManager) Stop() {
 	}
 }
 
-// AddLegalHold adds a legal hold to prevent deletion of events
+// AddLegalHold adds a legal hold to prevent deletion of events.
 func (rm *RetentionManager) AddLegalHold(policyName string, hold LegalHold) error {
 	rm.mutex.Lock()
 	defer rm.mutex.Unlock()
@@ -281,7 +281,7 @@ func (rm *RetentionManager) AddLegalHold(policyName string, hold LegalHold) erro
 	return nil
 }
 
-// RemoveLegalHold removes a legal hold
+// RemoveLegalHold removes a legal hold.
 func (rm *RetentionManager) RemoveLegalHold(policyName, holdID string) error {
 	rm.mutex.Lock()
 	defer rm.mutex.Unlock()
@@ -299,7 +299,7 @@ func (rm *RetentionManager) RemoveLegalHold(policyName, holdID string) error {
 		return fmt.Errorf("legal hold %s not found", holdID)
 	}
 
-	// Mark as released rather than deleting immediately
+	// Mark as released rather than deleting immediately.
 	now := time.Now().UTC()
 	hold.EndDate = &now
 	hold.Status = "released"
@@ -313,7 +313,7 @@ func (rm *RetentionManager) RemoveLegalHold(policyName, holdID string) error {
 	return nil
 }
 
-// GetRetentionStatus returns the current status of retention policies
+// GetRetentionStatus returns the current status of retention policies.
 func (rm *RetentionManager) GetRetentionStatus() map[string]interface{} {
 	rm.mutex.RLock()
 	defer rm.mutex.RUnlock()
@@ -331,7 +331,7 @@ func (rm *RetentionManager) GetRetentionStatus() map[string]interface{} {
 			"legal_holds_count": len(policy.legalHolds),
 		}
 
-		// Add legal hold information
+		// Add legal hold information.
 		activeLegalHolds := 0
 		policy.legalHoldMutex.RLock()
 		for _, hold := range policy.legalHolds {
@@ -352,7 +352,7 @@ func (rm *RetentionManager) GetRetentionStatus() map[string]interface{} {
 	return status
 }
 
-// GetStorageReport generates a detailed storage report
+// GetStorageReport generates a detailed storage report.
 func (rm *RetentionManager) GetStorageReport() StorageReport {
 	rm.mutex.RLock()
 	defer rm.mutex.RUnlock()
@@ -375,7 +375,7 @@ func (rm *RetentionManager) GetStorageReport() StorageReport {
 			NewestEvent:      stats.NewestEvent,
 		}
 
-		// Calculate total cost for this policy
+		// Calculate total cost for this policy.
 		var policyCost float64
 		for tierName, tierStat := range stats.TierDistribution {
 			tier := rm.getStorageTier(tierName)
@@ -404,7 +404,7 @@ func (rm *RetentionManager) GetStorageReport() StorageReport {
 	return report
 }
 
-// executeRetentionPolicies executes all retention policies
+// executeRetentionPolicies executes all retention policies.
 func (rm *RetentionManager) executeRetentionPolicies(ctx context.Context) {
 	rm.logger.Info("Executing retention policies")
 
@@ -418,12 +418,12 @@ func (rm *RetentionManager) executeRetentionPolicies(ctx context.Context) {
 	}
 }
 
-// executePolicyActions executes retention actions for a specific policy
+// executePolicyActions executes retention actions for a specific policy.
 func (rm *RetentionManager) executePolicyActions(ctx context.Context, policyName string, policy *RetentionPolicy) error {
 	now := time.Now().UTC()
 	cutoffTime := now.Add(-policy.config.RetentionPeriod)
 
-	// Check if there are any legal holds that prevent deletion
+	// Check if there are any legal holds that prevent deletion.
 	activeLegalHolds := rm.getActiveLegalHolds(policy)
 
 	rm.logger.V(1).Info("Executing policy actions",
@@ -431,13 +431,13 @@ func (rm *RetentionManager) executePolicyActions(ctx context.Context, policyName
 		"cutoff_time", cutoffTime,
 		"legal_holds", len(activeLegalHolds))
 
-	// This is a simplified implementation - in practice, you would:
-	// 1. Query audit events that match the policy criteria and are older than cutoff
-	// 2. Check each event against legal holds
-	// 3. Archive or delete events as appropriate
-	// 4. Update storage statistics
+	// This is a simplified implementation - in practice, you would:.
+	// 1. Query audit events that match the policy criteria and are older than cutoff.
+	// 2. Check each event against legal holds.
+	// 3. Archive or delete events as appropriate.
+	// 4. Update storage statistics.
 
-	// Simulate processing events
+	// Simulate processing events.
 	eventsProcessed := rm.simulateEventProcessing(policyName, policy, cutoffTime, activeLegalHolds)
 
 	policy.lastExecution = now
@@ -446,21 +446,21 @@ func (rm *RetentionManager) executePolicyActions(ctx context.Context, policyName
 	return nil
 }
 
-// simulateEventProcessing simulates processing events for retention
-// In a real implementation, this would interact with the audit storage backend
+// simulateEventProcessing simulates processing events for retention.
+// In a real implementation, this would interact with the audit storage backend.
 func (rm *RetentionManager) simulateEventProcessing(policyName string, policy *RetentionPolicy, cutoffTime time.Time, legalHolds []LegalHold) int {
-	// This is a placeholder implementation
-	// Real implementation would query actual audit events and process them
+	// This is a placeholder implementation.
+	// Real implementation would query actual audit events and process them.
 
 	processedCount := 0
 
-	// Simulate finding events that match the policy
-	// In reality, this would query the backend storage
+	// Simulate finding events that match the policy.
+	// In reality, this would query the backend storage.
 	for i := 0; i < 100; i++ {
-		// Simulate an event that's older than cutoff time
+		// Simulate an event that's older than cutoff time.
 		eventTime := cutoffTime.Add(-time.Duration(i) * time.Hour)
 
-		// Check if event is protected by legal hold
+		// Check if event is protected by legal hold.
 		protected := false
 		for _, hold := range legalHolds {
 			if rm.isEventProtectedByLegalHold(eventTime, hold) {
@@ -470,18 +470,18 @@ func (rm *RetentionManager) simulateEventProcessing(policyName string, policy *R
 		}
 
 		if !protected {
-			// Archive or delete the event
+			// Archive or delete the event.
 			if policy.config.ArchiveBeforeDelete {
-				// Archive the event
+				// Archive the event.
 				policy.eventsArchived++
 				retentionEventsProcessed.WithLabelValues(policyName, "archived").Inc()
 			} else {
-				// Delete the event
+				// Delete the event.
 				policy.eventsDeleted++
 				retentionEventsProcessed.WithLabelValues(policyName, "deleted").Inc()
 			}
 		} else {
-			// Event is protected, keep it
+			// Event is protected, keep it.
 			policy.eventsRetained++
 			retentionEventsProcessed.WithLabelValues(policyName, "retained").Inc()
 		}
@@ -492,7 +492,7 @@ func (rm *RetentionManager) simulateEventProcessing(policyName string, policy *R
 	return processedCount
 }
 
-// getActiveLegalHolds returns active legal holds for a policy
+// getActiveLegalHolds returns active legal holds for a policy.
 func (rm *RetentionManager) getActiveLegalHolds(policy *RetentionPolicy) []LegalHold {
 	policy.legalHoldMutex.RLock()
 	defer policy.legalHoldMutex.RUnlock()
@@ -507,21 +507,21 @@ func (rm *RetentionManager) getActiveLegalHolds(policy *RetentionPolicy) []Legal
 	return activeLegalHolds
 }
 
-// isEventProtectedByLegalHold checks if an event is protected by a legal hold
+// isEventProtectedByLegalHold checks if an event is protected by a legal hold.
 func (rm *RetentionManager) isEventProtectedByLegalHold(eventTime time.Time, hold LegalHold) bool {
-	// Check if event falls within legal hold date range
+	// Check if event falls within legal hold date range.
 	if hold.DateRange != nil {
 		if eventTime.Before(hold.DateRange.StartTime) || eventTime.After(hold.DateRange.EndTime) {
 			return false
 		}
 	}
 
-	// Check if event started after hold start date
+	// Check if event started after hold start date.
 	if eventTime.Before(hold.StartDate) {
 		return false
 	}
 
-	// Check if hold has ended
+	// Check if hold has ended.
 	if hold.EndDate != nil && eventTime.After(*hold.EndDate) {
 		return false
 	}
@@ -529,7 +529,7 @@ func (rm *RetentionManager) isEventProtectedByLegalHold(eventTime time.Time, hol
 	return true
 }
 
-// getStorageTier returns a storage tier by name
+// getStorageTier returns a storage tier by name.
 func (rm *RetentionManager) getStorageTier(tierName string) *StorageTier {
 	for _, tier := range rm.config.StorageTiers {
 		if tier.Name == tierName {
@@ -539,14 +539,14 @@ func (rm *RetentionManager) getStorageTier(tierName string) *StorageTier {
 	return nil
 }
 
-// StorageReport represents a comprehensive storage report
+// StorageReport represents a comprehensive storage report.
 type StorageReport struct {
 	GeneratedAt time.Time                      `json:"generated_at"`
 	Summary     StorageReportSummary           `json:"summary"`
 	Policies    map[string]PolicyStorageReport `json:"policies"`
 }
 
-// StorageReportSummary provides high-level storage metrics
+// StorageReportSummary provides high-level storage metrics.
 type StorageReportSummary struct {
 	TotalEvents      int64   `json:"total_events"`
 	TotalStorageSize int64   `json:"total_storage_size_bytes"`
@@ -554,7 +554,7 @@ type StorageReportSummary struct {
 	PoliciesCount    int     `json:"policies_count"`
 }
 
-// PolicyStorageReport provides storage metrics for a specific policy
+// PolicyStorageReport provides storage metrics for a specific policy.
 type PolicyStorageReport struct {
 	EventCount       int64                      `json:"event_count"`
 	StorageSize      int64                      `json:"storage_size_bytes"`
@@ -564,7 +564,7 @@ type PolicyStorageReport struct {
 	NewestEvent      time.Time                  `json:"newest_event"`
 }
 
-// DefaultRetentionConfig returns a default retention configuration
+// DefaultRetentionConfig returns a default retention configuration.
 func DefaultRetentionConfig() *RetentionConfig {
 	return &RetentionConfig{
 		DefaultRetention:   365 * 24 * time.Hour, // 1 year default

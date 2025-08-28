@@ -1,4 +1,4 @@
-// Package observability provides observability integration for service mesh
+// Package observability provides observability integration for service mesh.
 package observability
 
 import (
@@ -18,7 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// Integration manages observability for service mesh
+// Integration manages observability for service mesh.
 type Integration struct {
 	mesh            abstraction.ServiceMeshInterface
 	metricsRegistry *prometheus.Registry
@@ -26,7 +26,7 @@ type Integration struct {
 	meter           metric.Meter
 	logger          logr.Logger
 
-	// Metrics
+	// Metrics.
 	mtlsConnections      metric.Int64Counter
 	certificateRotations metric.Int64Counter
 	policyApplications   metric.Int64Counter
@@ -35,7 +35,7 @@ type Integration struct {
 	errorRate            metric.Float64ObservableGauge
 }
 
-// NewIntegration creates new observability integration
+// NewIntegration creates new observability integration.
 func NewIntegration(mesh abstraction.ServiceMeshInterface) (*Integration, error) {
 	tracer := otel.Tracer("service-mesh")
 	meter := otel.Meter("service-mesh")
@@ -48,12 +48,12 @@ func NewIntegration(mesh abstraction.ServiceMeshInterface) (*Integration, error)
 		logger:          log.Log.WithName("mesh-observability"),
 	}
 
-	// Initialize metrics
+	// Initialize metrics.
 	if err := integration.initializeMetrics(); err != nil {
 		return nil, fmt.Errorf("failed to initialize metrics: %w", err)
 	}
 
-	// Register mesh-specific metrics
+	// Register mesh-specific metrics.
 	for _, collector := range mesh.GetMetrics() {
 		integration.metricsRegistry.MustRegister(collector)
 	}
@@ -61,11 +61,11 @@ func NewIntegration(mesh abstraction.ServiceMeshInterface) (*Integration, error)
 	return integration, nil
 }
 
-// initializeMetrics initializes OpenTelemetry metrics
+// initializeMetrics initializes OpenTelemetry metrics.
 func (o *Integration) initializeMetrics() error {
 	var err error
 
-	// mTLS connections counter
+	// mTLS connections counter.
 	o.mtlsConnections, err = o.meter.Int64Counter(
 		"service_mesh_mtls_connections_total",
 		metric.WithDescription("Total number of mTLS connections established"),
@@ -75,7 +75,7 @@ func (o *Integration) initializeMetrics() error {
 		return fmt.Errorf("failed to create mtls connections metric: %w", err)
 	}
 
-	// Certificate rotations counter
+	// Certificate rotations counter.
 	o.certificateRotations, err = o.meter.Int64Counter(
 		"service_mesh_certificate_rotations_total",
 		metric.WithDescription("Total number of certificate rotations"),
@@ -85,7 +85,7 @@ func (o *Integration) initializeMetrics() error {
 		return fmt.Errorf("failed to create certificate rotations metric: %w", err)
 	}
 
-	// Policy applications counter
+	// Policy applications counter.
 	o.policyApplications, err = o.meter.Int64Counter(
 		"service_mesh_policy_applications_total",
 		metric.WithDescription("Total number of policy applications"),
@@ -95,7 +95,7 @@ func (o *Integration) initializeMetrics() error {
 		return fmt.Errorf("failed to create policy applications metric: %w", err)
 	}
 
-	// Service latency histogram
+	// Service latency histogram.
 	o.serviceLatency, err = o.meter.Float64Histogram(
 		"service_mesh_latency_milliseconds",
 		metric.WithDescription("Service-to-service latency in milliseconds"),
@@ -105,7 +105,7 @@ func (o *Integration) initializeMetrics() error {
 		return fmt.Errorf("failed to create service latency metric: %w", err)
 	}
 
-	// Mesh health gauge
+	// Mesh health gauge.
 	o.meshHealthGauge, err = o.meter.Float64ObservableGauge(
 		"service_mesh_health_score",
 		metric.WithDescription("Service mesh health score (0-100)"),
@@ -115,7 +115,7 @@ func (o *Integration) initializeMetrics() error {
 		return fmt.Errorf("failed to create mesh health metric: %w", err)
 	}
 
-	// Error rate gauge
+	// Error rate gauge.
 	o.errorRate, err = o.meter.Float64ObservableGauge(
 		"service_mesh_error_rate",
 		metric.WithDescription("Service mesh error rate percentage"),
@@ -125,7 +125,7 @@ func (o *Integration) initializeMetrics() error {
 		return fmt.Errorf("failed to create error rate metric: %w", err)
 	}
 
-	// Register callbacks for observable gauges
+	// Register callbacks for observable gauges.
 	_, err = o.meter.RegisterCallback(o.observeMetrics,
 		o.meshHealthGauge,
 		o.errorRate,
@@ -137,22 +137,22 @@ func (o *Integration) initializeMetrics() error {
 	return nil
 }
 
-// observeMetrics is the callback for observable metrics
+// observeMetrics is the callback for observable metrics.
 func (o *Integration) observeMetrics(ctx context.Context, observer metric.Observer) error {
-	// Get mesh health status
+	// Get mesh health status.
 	if err := o.mesh.IsHealthy(ctx); err == nil {
 		observer.ObserveFloat64(o.meshHealthGauge, 100.0)
 	} else {
 		observer.ObserveFloat64(o.meshHealthGauge, 0.0)
 	}
 
-	// Calculate error rate (simplified - would need actual data)
+	// Calculate error rate (simplified - would need actual data).
 	observer.ObserveFloat64(o.errorRate, 0.01) // 1% error rate
 
 	return nil
 }
 
-// RecordMTLSConnection records an mTLS connection
+// RecordMTLSConnection records an mTLS connection.
 func (o *Integration) RecordMTLSConnection(ctx context.Context, source, destination string) {
 	_, span := o.tracer.Start(ctx, "mtls_connection",
 		trace.WithAttributes(
@@ -170,7 +170,7 @@ func (o *Integration) RecordMTLSConnection(ctx context.Context, source, destinat
 	)
 }
 
-// RecordCertificateRotation records a certificate rotation
+// RecordCertificateRotation records a certificate rotation.
 func (o *Integration) RecordCertificateRotation(ctx context.Context, service, namespace string) {
 	_, span := o.tracer.Start(ctx, "certificate_rotation",
 		trace.WithAttributes(
@@ -188,7 +188,7 @@ func (o *Integration) RecordCertificateRotation(ctx context.Context, service, na
 	)
 }
 
-// RecordPolicyApplication records a policy application
+// RecordPolicyApplication records a policy application.
 func (o *Integration) RecordPolicyApplication(ctx context.Context, policyType, policyName string, success bool) {
 	_, span := o.tracer.Start(ctx, "policy_application",
 		trace.WithAttributes(
@@ -207,7 +207,7 @@ func (o *Integration) RecordPolicyApplication(ctx context.Context, policyType, p
 	)
 }
 
-// RecordServiceLatency records service-to-service latency
+// RecordServiceLatency records service-to-service latency.
 func (o *Integration) RecordServiceLatency(ctx context.Context, source, destination string, latencyMs float64) {
 	_, span := o.tracer.Start(ctx, "service_communication",
 		trace.WithAttributes(
@@ -226,7 +226,7 @@ func (o *Integration) RecordServiceLatency(ctx context.Context, source, destinat
 	)
 }
 
-// GenerateMTLSReport generates a comprehensive mTLS status report
+// GenerateMTLSReport generates a comprehensive mTLS status report.
 func (o *Integration) GenerateMTLSReport(ctx context.Context) (*MTLSReport, error) {
 	ctx, span := o.tracer.Start(ctx, "generate_mtls_report")
 	defer span.End()
@@ -236,7 +236,7 @@ func (o *Integration) GenerateMTLSReport(ctx context.Context) (*MTLSReport, erro
 		Provider:  o.mesh.GetProvider(),
 	}
 
-	// Get mTLS status from mesh
+	// Get mTLS status from mesh.
 	status, err := o.mesh.GetMTLSStatus(ctx, "")
 	if err != nil {
 		span.RecordError(err)
@@ -248,7 +248,7 @@ func (o *Integration) GenerateMTLSReport(ctx context.Context) (*MTLSReport, erro
 	report.Coverage = status.Coverage
 	report.CertificateStatus = make([]CertificateMetrics, 0)
 
-	// Analyze certificate status
+	// Analyze certificate status.
 	for _, certStatus := range status.CertificateStatus {
 		metrics := CertificateMetrics{
 			Service:         certStatus.Service,
@@ -261,10 +261,10 @@ func (o *Integration) GenerateMTLSReport(ctx context.Context) (*MTLSReport, erro
 		report.CertificateStatus = append(report.CertificateStatus, metrics)
 	}
 
-	// Calculate health score
+	// Calculate health score.
 	report.HealthScore = o.calculateHealthScore(status)
 
-	// Add recommendations
+	// Add recommendations.
 	report.Recommendations = o.generateRecommendations(status)
 
 	span.SetAttributes(
@@ -276,16 +276,16 @@ func (o *Integration) GenerateMTLSReport(ctx context.Context) (*MTLSReport, erro
 	return report, nil
 }
 
-// calculateHealthScore calculates the overall health score
+// calculateHealthScore calculates the overall health score.
 func (o *Integration) calculateHealthScore(status *abstraction.MTLSStatusReport) float64 {
 	score := 0.0
 	weights := 0.0
 
-	// mTLS coverage (weight: 40%)
+	// mTLS coverage (weight: 40%).
 	score += status.Coverage * 0.4
 	weights += 40.0
 
-	// Certificate validity (weight: 30%)
+	// Certificate validity (weight: 30%).
 	validCerts := 0
 	for _, cert := range status.CertificateStatus {
 		if cert.Valid && !cert.NeedsRotation {
@@ -298,7 +298,7 @@ func (o *Integration) calculateHealthScore(status *abstraction.MTLSStatusReport)
 		weights += 30.0
 	}
 
-	// Policy compliance (weight: 30%)
+	// Policy compliance (weight: 30%).
 	if len(status.PolicyStatus) > 0 {
 		compliantPolicies := 0
 		for _, policy := range status.PolicyStatus {
@@ -317,17 +317,17 @@ func (o *Integration) calculateHealthScore(status *abstraction.MTLSStatusReport)
 	return 0
 }
 
-// generateRecommendations generates recommendations based on status
+// generateRecommendations generates recommendations based on status.
 func (o *Integration) generateRecommendations(status *abstraction.MTLSStatusReport) []string {
 	recommendations := []string{}
 
-	// Check mTLS coverage
+	// Check mTLS coverage.
 	if status.Coverage < 100 {
 		recommendations = append(recommendations,
 			fmt.Sprintf("Enable mTLS for remaining %.0f%% of services", 100-status.Coverage))
 	}
 
-	// Check certificate expiry
+	// Check certificate expiry.
 	expiringCerts := 0
 	for _, cert := range status.CertificateStatus {
 		if cert.NeedsRotation {
@@ -339,7 +339,7 @@ func (o *Integration) generateRecommendations(status *abstraction.MTLSStatusRepo
 			fmt.Sprintf("Rotate %d expiring certificates", expiringCerts))
 	}
 
-	// Check for permissive mTLS mode
+	// Check for permissive mTLS mode.
 	permissiveCount := 0
 	for _, policy := range status.PolicyStatus {
 		if policy.MTLSMode == "PERMISSIVE" {
@@ -351,7 +351,7 @@ func (o *Integration) generateRecommendations(status *abstraction.MTLSStatusRepo
 			fmt.Sprintf("Switch %d services from PERMISSIVE to STRICT mTLS mode", permissiveCount))
 	}
 
-	// Check for issues
+	// Check for issues.
 	for _, issue := range status.Issues {
 		if issue.Severity == "critical" {
 			recommendations = append(recommendations,
@@ -362,12 +362,12 @@ func (o *Integration) generateRecommendations(status *abstraction.MTLSStatusRepo
 	return recommendations
 }
 
-// GenerateServiceDependencyMap generates a service dependency visualization
+// GenerateServiceDependencyMap generates a service dependency visualization.
 func (o *Integration) GenerateServiceDependencyMap(ctx context.Context, namespace string) (*DependencyVisualization, error) {
 	ctx, span := o.tracer.Start(ctx, "generate_dependency_map")
 	defer span.End()
 
-	// Get dependency graph from mesh
+	// Get dependency graph from mesh.
 	graph, err := o.mesh.GetServiceDependencies(ctx, namespace)
 	if err != nil {
 		span.RecordError(err)
@@ -381,7 +381,7 @@ func (o *Integration) GenerateServiceDependencyMap(ctx context.Context, namespac
 		Edges:     make([]VisualizationEdge, 0),
 	}
 
-	// Convert nodes
+	// Convert nodes.
 	for _, node := range graph.Nodes {
 		vizNode := VisualizationNode{
 			ID:          node.ID,
@@ -397,7 +397,7 @@ func (o *Integration) GenerateServiceDependencyMap(ctx context.Context, namespac
 		viz.Nodes = append(viz.Nodes, vizNode)
 	}
 
-	// Convert edges
+	// Convert edges.
 	for _, edge := range graph.Edges {
 		vizEdge := VisualizationEdge{
 			Source:      edge.Source,
@@ -413,7 +413,7 @@ func (o *Integration) GenerateServiceDependencyMap(ctx context.Context, namespac
 		viz.Edges = append(viz.Edges, vizEdge)
 	}
 
-	// Detect cycles
+	// Detect cycles.
 	if len(graph.Cycles) > 0 {
 		viz.HasCycles = true
 		viz.Cycles = graph.Cycles
@@ -428,15 +428,15 @@ func (o *Integration) GenerateServiceDependencyMap(ctx context.Context, namespac
 	return viz, nil
 }
 
-// ExportMetrics exports metrics in Prometheus format
+// ExportMetrics exports metrics in Prometheus format.
 func (o *Integration) ExportMetrics() ([]byte, error) {
-	// Use Prometheus registry to gather metrics
+	// Use Prometheus registry to gather metrics.
 	metricFamilies, err := o.metricsRegistry.Gather()
 	if err != nil {
 		return nil, fmt.Errorf("failed to gather metrics: %w", err)
 	}
 
-	// Convert to text format
+	// Convert to text format.
 	var buf bytes.Buffer
 	for _, mf := range metricFamilies {
 		if _, err := expfmt.MetricFamilyToText(&buf, mf); err != nil {
@@ -447,7 +447,7 @@ func (o *Integration) ExportMetrics() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// StartContinuousMonitoring starts continuous monitoring
+// StartContinuousMonitoring starts continuous monitoring.
 func (o *Integration) StartContinuousMonitoring(ctx context.Context, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -463,21 +463,21 @@ func (o *Integration) StartContinuousMonitoring(ctx context.Context, interval ti
 	}
 }
 
-// performHealthCheck performs a health check
+// performHealthCheck performs a health check.
 func (o *Integration) performHealthCheck(ctx context.Context) {
 	ctx, span := o.tracer.Start(ctx, "health_check")
 	defer span.End()
 
-	// Check mesh health
+	// Check mesh health.
 	if err := o.mesh.IsHealthy(ctx); err != nil {
 		o.logger.Error(err, "Mesh health check failed")
 		span.RecordError(err)
-		// Record unhealthy state
+		// Record unhealthy state.
 		o.recordHealthMetric(ctx, false)
 		return
 	}
 
-	// Check mTLS status
+	// Check mTLS status.
 	status, err := o.mesh.GetMTLSStatus(ctx, "")
 	if err != nil {
 		o.logger.Error(err, "Failed to get mTLS status")
@@ -485,13 +485,13 @@ func (o *Integration) performHealthCheck(ctx context.Context) {
 		return
 	}
 
-	// Log status
+	// Log status.
 	o.logger.Info("Health check completed",
 		"mtls_coverage", status.Coverage,
 		"total_services", status.TotalServices,
 		"issues", len(status.Issues))
 
-	// Record healthy state
+	// Record healthy state.
 	o.recordHealthMetric(ctx, true)
 
 	span.SetAttributes(
@@ -501,14 +501,14 @@ func (o *Integration) performHealthCheck(ctx context.Context) {
 	)
 }
 
-// recordHealthMetric records health metric
+// recordHealthMetric records health metric.
 func (o *Integration) recordHealthMetric(ctx context.Context, healthy bool) {
 	healthValue := 0.0
 	if healthy {
 		healthValue = 1.0
 	}
 
-	// Record to Prometheus metric
+	// Record to Prometheus metric.
 	healthGauge := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "service_mesh_health",
 		Help: "Service mesh health status (1 = healthy, 0 = unhealthy)",

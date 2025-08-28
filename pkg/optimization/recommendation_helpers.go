@@ -20,9 +20,9 @@ import (
 	"time"
 )
 
-// Additional types to fix compilation issues
+// Additional types to fix compilation issues.
 
-// RecommendationRiskFactor identifies potential risks of implementing an optimization
+// RecommendationRiskFactor identifies potential risks of implementing an optimization.
 type RecommendationRiskFactor struct {
 	Name        string       `json:"name"`
 	Description string       `json:"description"`
@@ -32,30 +32,41 @@ type RecommendationRiskFactor struct {
 	Category    RiskCategory `json:"category"`
 }
 
-// RiskCategory represents different categories of risk
+// RiskCategory represents different categories of risk.
 type RiskCategory string
 
 const (
-	RiskCategoryPerformance  RiskCategory = "performance"
+	// RiskCategoryPerformance holds riskcategoryperformance value.
+	RiskCategoryPerformance RiskCategory = "performance"
+	// RiskCategoryAvailability holds riskcategoryavailability value.
 	RiskCategoryAvailability RiskCategory = "availability"
-	RiskCategorySecurity     RiskCategory = "security"
-	RiskCategoryCompliance   RiskCategory = "compliance"
-	RiskCategoryOperational  RiskCategory = "operational"
-	RiskCategoryFinancial    RiskCategory = "financial"
+	// RiskCategorySecurity holds riskcategorysecurity value.
+	RiskCategorySecurity RiskCategory = "security"
+	// RiskCategoryCompliance holds riskcategorycompliance value.
+	RiskCategoryCompliance RiskCategory = "compliance"
+	// RiskCategoryOperational holds riskcategoryoperational value.
+	RiskCategoryOperational RiskCategory = "operational"
+	// RiskCategoryFinancial holds riskcategoryfinancial value.
+	RiskCategoryFinancial RiskCategory = "financial"
 )
 
-// ImpactLevel represents the level of impact
+// ImpactLevel represents the level of impact.
 type ImpactLevel string
 
 const (
+	// ImpactCritical holds impactcritical value.
 	ImpactCritical ImpactLevel = "critical"
-	ImpactHigh     ImpactLevel = "high"
-	ImpactMedium   ImpactLevel = "medium"
-	ImpactLow      ImpactLevel = "low"
-	ImpactMinimal  ImpactLevel = "minimal"
+	// ImpactHigh holds impacthigh value.
+	ImpactHigh ImpactLevel = "high"
+	// ImpactMedium holds impactmedium value.
+	ImpactMedium ImpactLevel = "medium"
+	// ImpactLow holds impactlow value.
+	ImpactLow ImpactLevel = "low"
+	// ImpactMinimal holds impactminimal value.
+	ImpactMinimal ImpactLevel = "minimal"
 )
 
-// RecommendationMitigationStrategy defines a strategy to mitigate risks
+// RecommendationMitigationStrategy defines a strategy to mitigate risks.
 type RecommendationMitigationStrategy struct {
 	Name            string        `json:"name"`
 	Description     string        `json:"description"`
@@ -64,7 +75,7 @@ type RecommendationMitigationStrategy struct {
 	TimeToImplement time.Duration `json:"timeToImplement"`
 }
 
-// OptimizationRiskAssessment contains comprehensive risk analysis for optimizations
+// OptimizationRiskAssessment contains comprehensive risk analysis for optimizations.
 type OptimizationRiskAssessment struct {
 	OverallRiskLevel     RiskLevel                          `json:"overallRiskLevel"`
 	ImplementationRisk   float64                            `json:"implementationRisk"`
@@ -77,9 +88,9 @@ type OptimizationRiskAssessment struct {
 	RiskScoreBreakdown   map[string]float64                 `json:"riskScoreBreakdown"`
 }
 
-// Add helper methods to convert predictors' types to recommendation engine types
+// Add helper methods to convert predictors' types to recommendation engine types.
 
-// ConvertRiskAssessment converts the RiskAssessment from predictors to OptimizationRiskAssessment
+// ConvertRiskAssessment converts the RiskAssessment from predictors to OptimizationRiskAssessment.
 func ConvertRiskAssessment(ra *RiskAssessment) *OptimizationRiskAssessment {
 	if ra == nil {
 		return &OptimizationRiskAssessment{

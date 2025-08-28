@@ -1,11 +1,11 @@
-// Package istio provides metrics for Istio service mesh operations
+// Package istio provides metrics for Istio service mesh operations.
 package istio
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// IstioMetrics contains Prometheus metrics for Istio operations
+// IstioMetrics contains Prometheus metrics for Istio operations.
 type IstioMetrics struct {
 	policiesApplied      prometheus.Counter
 	servicesRegistered   prometheus.Gauge
@@ -15,7 +15,7 @@ type IstioMetrics struct {
 	meshHealthStatus     prometheus.Gauge
 }
 
-// NewIstioMetrics creates new Istio metrics
+// NewIstioMetrics creates new Istio metrics.
 func NewIstioMetrics() *IstioMetrics {
 	return &IstioMetrics{
 		policiesApplied: prometheus.NewCounter(prometheus.CounterOpts{
@@ -45,7 +45,7 @@ func NewIstioMetrics() *IstioMetrics {
 	}
 }
 
-// GetCollectors returns all Prometheus collectors
+// GetCollectors returns all Prometheus collectors.
 func (m *IstioMetrics) GetCollectors() []prometheus.Collector {
 	return []prometheus.Collector{
 		m.policiesApplied,
@@ -57,7 +57,7 @@ func (m *IstioMetrics) GetCollectors() []prometheus.Collector {
 	}
 }
 
-// Inc increments a counter metric
+// Inc increments a counter metric.
 func (m *IstioMetrics) Inc(metric string) {
 	switch metric {
 	case "policies_applied":
@@ -71,7 +71,7 @@ func (m *IstioMetrics) Inc(metric string) {
 	}
 }
 
-// Set sets a gauge metric value
+// Set sets a gauge metric value.
 func (m *IstioMetrics) Set(metric string, value float64) {
 	switch metric {
 	case "services_registered":
@@ -81,7 +81,7 @@ func (m *IstioMetrics) Set(metric string, value float64) {
 	}
 }
 
-// Add adds to a gauge metric
+// Add adds to a gauge metric.
 func (m *IstioMetrics) Add(metric string, value float64) {
 	switch metric {
 	case "services_registered":

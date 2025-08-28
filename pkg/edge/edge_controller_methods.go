@@ -8,7 +8,7 @@ import (
 	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-// Missing struct definitions for tests
+// Missing struct definitions for tests.
 type EdgeOptimizationPlan struct {
 	OptimizationType string   `json:"optimization_type"`
 	TargetNodes      []string `json:"target_nodes"`
@@ -16,6 +16,7 @@ type EdgeOptimizationPlan struct {
 	EstimatedBenefit float64  `json:"estimated_benefit"`
 }
 
+// NodeHealth represents a nodehealth.
 type NodeHealth struct {
 	NodeID    string         `json:"node_id"`
 	Status    EdgeNodeStatus `json:"status"`
@@ -23,6 +24,7 @@ type NodeHealth struct {
 	Issues    []string       `json:"issues"`
 }
 
+// ResourceRequest represents a resourcerequest.
 type ResourceRequest struct {
 	CPUCores  int     `json:"cpu_cores"`
 	MemoryGB  float64 `json:"memory_gb"`
@@ -30,6 +32,7 @@ type ResourceRequest struct {
 	GPUCores  int     `json:"gpu_cores"`
 }
 
+// ResourceAllocation represents a resourceallocation.
 type ResourceAllocation struct {
 	AllocationID string          `json:"allocation_id"`
 	NodeID       string          `json:"node_id"`
@@ -37,6 +40,7 @@ type ResourceAllocation struct {
 	AllocatedAt  time.Time       `json:"allocated_at"`
 }
 
+// FailoverPlan represents a failoverplan.
 type FailoverPlan struct {
 	ID                string        `json:"id"`
 	SourceNode        string        `json:"source_node"`
@@ -46,6 +50,7 @@ type FailoverPlan struct {
 	CreatedAt         time.Time     `json:"created_at"`
 }
 
+// MLModel represents a mlmodel.
 type MLModel struct {
 	ID          string  `json:"id"`
 	Name        string  `json:"name"`
@@ -55,6 +60,7 @@ type MLModel struct {
 	RequiresGPU bool    `json:"requires_gpu"`
 }
 
+// MLDeployment represents a mldeployment.
 type MLDeployment struct {
 	ID         string    `json:"id"`
 	ModelID    string    `json:"model_id"`
@@ -64,12 +70,14 @@ type MLDeployment struct {
 	DeployedAt time.Time `json:"deployed_at"`
 }
 
+// InferenceRequest represents a inferencerequest.
 type InferenceRequest struct {
 	ModelID string            `json:"model_id"`
 	Input   []byte            `json:"input"`
 	Options map[string]string `json:"options"`
 }
 
+// InferenceResult represents a inferenceresult.
 type InferenceResult struct {
 	RequestID       string  `json:"request_id"`
 	Output          []byte  `json:"output"`
@@ -77,12 +85,14 @@ type InferenceResult struct {
 	Confidence      float64 `json:"confidence"`
 }
 
+// MLOptimization represents a mloptimization.
 type MLOptimization struct {
 	ModelID          string   `json:"model_id"`
 	Recommendations  []string `json:"recommendations"`
 	EstimatedSpeedup float64  `json:"estimated_speedup"`
 }
 
+// CacheConfig represents a cacheconfig.
 type CacheConfig struct {
 	MaxSizeGB      float64  `json:"max_size_gb"`
 	EvictionPolicy string   `json:"eviction_policy"`
@@ -90,6 +100,7 @@ type CacheConfig struct {
 	ContentTypes   []string `json:"content_types"`
 }
 
+// CacheContent represents a cachecontent.
 type CacheContent struct {
 	ID         string    `json:"id"`
 	Type       string    `json:"type"`
@@ -98,6 +109,7 @@ type CacheContent struct {
 	LastAccess time.Time `json:"last_access"`
 }
 
+// CacheStats represents a cachestats.
 type CacheStats struct {
 	HitRate      float64 `json:"hit_rate"`
 	MissRate     float64 `json:"miss_rate"`
@@ -106,6 +118,7 @@ type CacheStats struct {
 	EvictionRate float64 `json:"eviction_rate"`
 }
 
+// ZoneReport represents a zonereport.
 type ZoneReport struct {
 	ZoneID         string        `json:"zone_id"`
 	TotalNodes     int           `json:"total_nodes"`
@@ -116,6 +129,7 @@ type ZoneReport struct {
 	HealthScore    float64       `json:"health_score"`
 }
 
+// ResourcePrediction represents a resourceprediction.
 type ResourcePrediction struct {
 	ZoneID           string        `json:"zone_id"`
 	TimeHorizon      time.Duration `json:"time_horizon"`
@@ -125,11 +139,13 @@ type ResourcePrediction struct {
 	Confidence       float64       `json:"confidence"`
 }
 
+// PlacementOptimization represents a placementoptimization.
 type PlacementOptimization struct {
 	Recommendations  []PlacementRecommendation `json:"recommendations"`
 	EstimatedSavings float64                   `json:"estimated_savings"`
 }
 
+// PlacementRecommendation represents a placementrecommendation.
 type PlacementRecommendation struct {
 	NodeID   string `json:"node_id"`
 	Action   string `json:"action"`
@@ -137,7 +153,7 @@ type PlacementRecommendation struct {
 	Priority int    `json:"priority"`
 }
 
-// Node Management Methods
+// Node Management Methods.
 func (r *EdgeController) RegisterNode(node *EdgeNode) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -151,6 +167,7 @@ func (r *EdgeController) RegisterNode(node *EdgeNode) error {
 	return nil
 }
 
+// UpdateNodeStatus performs updatenodestatus operation.
 func (r *EdgeController) UpdateNodeStatus(nodeID string, status EdgeNodeStatus) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -166,6 +183,7 @@ func (r *EdgeController) UpdateNodeStatus(nodeID string, status EdgeNodeStatus) 
 	return nil
 }
 
+// GetNode performs getnode operation.
 func (r *EdgeController) GetNode(nodeID string) (*EdgeNode, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
@@ -178,6 +196,7 @@ func (r *EdgeController) GetNode(nodeID string) (*EdgeNode, error) {
 	return node, nil
 }
 
+// RemoveNode performs removenode operation.
 func (r *EdgeController) RemoveNode(nodeID string) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -187,7 +206,7 @@ func (r *EdgeController) RemoveNode(nodeID string) error {
 	return nil
 }
 
-// Zone Management Methods
+// Zone Management Methods.
 func (r *EdgeController) CreateZone(zone *EdgeZone) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -201,6 +220,7 @@ func (r *EdgeController) CreateZone(zone *EdgeZone) error {
 	return nil
 }
 
+// UpdateZone performs updatezone operation.
 func (r *EdgeController) UpdateZone(zone *EdgeZone) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -214,6 +234,7 @@ func (r *EdgeController) UpdateZone(zone *EdgeZone) error {
 	return nil
 }
 
+// GetZone performs getzone operation.
 func (r *EdgeController) GetZone(zoneID string) (*EdgeZone, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
@@ -226,6 +247,7 @@ func (r *EdgeController) GetZone(zoneID string) (*EdgeZone, error) {
 	return zone, nil
 }
 
+// DeleteZone performs deletezone operation.
 func (r *EdgeController) DeleteZone(zoneID string) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -235,7 +257,7 @@ func (r *EdgeController) DeleteZone(zoneID string) error {
 	return nil
 }
 
-// Network Intent Processing
+// Network Intent Processing.
 func (r *EdgeController) ProcessNetworkIntent(intent *nephoran.NetworkIntent) (*EdgeOptimizationPlan, error) {
 	plan := &EdgeOptimizationPlan{
 		OptimizationType: "",
@@ -249,7 +271,7 @@ func (r *EdgeController) ProcessNetworkIntent(intent *nephoran.NetworkIntent) (*
 	switch intent.Spec.IntentType {
 	case "low-latency":
 		plan.OptimizationType = "latency-optimization"
-		// Find nodes with lowest latency
+		// Find nodes with lowest latency.
 		for id, node := range r.edgeNodes {
 			if node.Status == EdgeNodeActive && node.Resources.CPUUtilization < 0.7 {
 				plan.TargetNodes = append(plan.TargetNodes, id)
@@ -259,7 +281,7 @@ func (r *EdgeController) ProcessNetworkIntent(intent *nephoran.NetworkIntent) (*
 
 	case "high-throughput":
 		plan.OptimizationType = "throughput-optimization"
-		// Find all available nodes
+		// Find all available nodes.
 		for id, node := range r.edgeNodes {
 			if node.Status == EdgeNodeActive {
 				plan.TargetNodes = append(plan.TargetNodes, id)
@@ -269,7 +291,7 @@ func (r *EdgeController) ProcessNetworkIntent(intent *nephoran.NetworkIntent) (*
 
 	case "ml-inference":
 		plan.OptimizationType = "ml-optimization"
-		// Find GPU-enabled nodes
+		// Find GPU-enabled nodes.
 		for id, node := range r.edgeNodes {
 			if node.Status == EdgeNodeActive && node.Capabilities.GPUEnabled {
 				plan.TargetNodes = append(plan.TargetNodes, id)
@@ -285,7 +307,7 @@ func (r *EdgeController) ProcessNetworkIntent(intent *nephoran.NetworkIntent) (*
 	return plan, nil
 }
 
-// Health Monitoring Methods
+// Health Monitoring Methods.
 func (r *EdgeController) CheckNodeHealth(nodeID string) (*NodeHealth, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
@@ -302,7 +324,7 @@ func (r *EdgeController) CheckNodeHealth(nodeID string) (*NodeHealth, error) {
 		Issues:    []string{},
 	}
 
-	// Check various health metrics
+	// Check various health metrics.
 	if node.HealthMetrics.Latency > float64(r.config.MaxLatencyMs) {
 		health.IsHealthy = false
 		health.Issues = append(health.Issues, "high latency")
@@ -324,6 +346,7 @@ func (r *EdgeController) CheckNodeHealth(nodeID string) (*NodeHealth, error) {
 	return health, nil
 }
 
+// UpdateHealthMetrics performs updatehealthmetrics operation.
 func (r *EdgeController) UpdateHealthMetrics(nodeID string, metrics EdgeHealthMetrics) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -336,7 +359,7 @@ func (r *EdgeController) UpdateHealthMetrics(nodeID string, metrics EdgeHealthMe
 	node.HealthMetrics = metrics
 	node.LastSeen = time.Now()
 
-	// Update status based on metrics
+	// Update status based on metrics.
 	if metrics.Latency > float64(r.config.MaxLatencyMs) || metrics.PacketLoss > 0.05 {
 		node.Status = EdgeNodeDegraded
 	} else {
@@ -346,6 +369,7 @@ func (r *EdgeController) UpdateHealthMetrics(nodeID string, metrics EdgeHealthMe
 	return nil
 }
 
+// DetectUnhealthyNodes performs detectunhealthynodes operation.
 func (r *EdgeController) DetectUnhealthyNodes() []string {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
@@ -360,12 +384,12 @@ func (r *EdgeController) DetectUnhealthyNodes() []string {
 	return unhealthyNodes
 }
 
-// Resource Allocation Methods
+// Resource Allocation Methods.
 func (r *EdgeController) AllocateResources(request ResourceRequest) (*ResourceAllocation, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	// Find node with sufficient resources
+	// Find node with sufficient resources.
 	var selectedNode *EdgeNode
 	var selectedNodeID string
 
@@ -374,7 +398,7 @@ func (r *EdgeController) AllocateResources(request ResourceRequest) (*ResourceAl
 			continue
 		}
 
-		// Check if node has enough resources
+		// Check if node has enough resources.
 		availableCPU := float64(node.Capabilities.ComputeCores) * (1 - node.Resources.CPUUtilization)
 		availableMemory := node.Capabilities.MemoryGB * (1 - node.Resources.MemoryUtilization)
 		availableStorage := node.Capabilities.StorageGB * (1 - node.Resources.StorageUtilization)
@@ -393,7 +417,7 @@ func (r *EdgeController) AllocateResources(request ResourceRequest) (*ResourceAl
 		return nil, fmt.Errorf("insufficient resources available")
 	}
 
-	// Update node utilization
+	// Update node utilization.
 	cpuIncrease := float64(request.CPUCores) / float64(selectedNode.Capabilities.ComputeCores)
 	memoryIncrease := request.MemoryGB / selectedNode.Capabilities.MemoryGB
 	storageIncrease := request.StorageGB / selectedNode.Capabilities.StorageGB
@@ -412,6 +436,7 @@ func (r *EdgeController) AllocateResources(request ResourceRequest) (*ResourceAl
 	return allocation, nil
 }
 
+// ReleaseResources performs releaseresources operation.
 func (r *EdgeController) ReleaseResources(nodeID string, request ResourceRequest) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -421,7 +446,7 @@ func (r *EdgeController) ReleaseResources(nodeID string, request ResourceRequest
 		return fmt.Errorf("node %s not found", nodeID)
 	}
 
-	// Update node utilization
+	// Update node utilization.
 	cpuDecrease := float64(request.CPUCores) / float64(node.Capabilities.ComputeCores)
 	memoryDecrease := request.MemoryGB / node.Capabilities.MemoryGB
 	storageDecrease := request.StorageGB / node.Capabilities.StorageGB
@@ -430,7 +455,7 @@ func (r *EdgeController) ReleaseResources(nodeID string, request ResourceRequest
 	node.Resources.MemoryUtilization -= memoryDecrease
 	node.Resources.StorageUtilization -= storageDecrease
 
-	// Ensure utilization doesn't go negative
+	// Ensure utilization doesn't go negative.
 	if node.Resources.CPUUtilization < 0 {
 		node.Resources.CPUUtilization = 0
 	}
@@ -444,7 +469,7 @@ func (r *EdgeController) ReleaseResources(nodeID string, request ResourceRequest
 	return nil
 }
 
-// Failover Methods
+// Failover Methods.
 func (r *EdgeController) InitiateFailover(sourceNodeID string) (*FailoverPlan, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -454,7 +479,7 @@ func (r *EdgeController) InitiateFailover(sourceNodeID string) (*FailoverPlan, e
 		return nil, fmt.Errorf("source node %s not found", sourceNodeID)
 	}
 
-	// Find suitable target node
+	// Find suitable target node.
 	var targetNodeID string
 	var minUtilization float64 = 1.0
 
@@ -463,7 +488,7 @@ func (r *EdgeController) InitiateFailover(sourceNodeID string) (*FailoverPlan, e
 			continue
 		}
 
-		// Check if in same zone
+		// Check if in same zone.
 		if node.Zone == sourceNode.Zone {
 			avgUtilization := (node.Resources.CPUUtilization +
 				node.Resources.MemoryUtilization +
@@ -492,6 +517,7 @@ func (r *EdgeController) InitiateFailover(sourceNodeID string) (*FailoverPlan, e
 	return plan, nil
 }
 
+// ExecuteFailover performs executefailover operation.
 func (r *EdgeController) ExecuteFailover(plan *FailoverPlan) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -503,11 +529,11 @@ func (r *EdgeController) ExecuteFailover(plan *FailoverPlan) error {
 
 	sourceNode, exists := r.edgeNodes[plan.SourceNode]
 	if exists {
-		// Clear services from source node
+		// Clear services from source node.
 		sourceNode.LocalServices = []EdgeService{}
 	}
 
-	// Migrate services to target node
+	// Migrate services to target node.
 	targetNode.LocalServices = append(targetNode.LocalServices, plan.ServicesToMigrate...)
 
 	r.Log.Info("Executed failover", "source", plan.SourceNode, "target", plan.TargetNode,
@@ -516,6 +542,7 @@ func (r *EdgeController) ExecuteFailover(plan *FailoverPlan) error {
 	return nil
 }
 
+// InitiateFailback performs initiatefailback operation.
 func (r *EdgeController) InitiateFailback(primaryNodeID, backupNodeID string) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -530,7 +557,7 @@ func (r *EdgeController) InitiateFailback(primaryNodeID, backupNodeID string) er
 		return fmt.Errorf("backup node %s not found", backupNodeID)
 	}
 
-	// Move services back to primary
+	// Move services back to primary.
 	primaryNode.LocalServices = append(primaryNode.LocalServices, backupNode.LocalServices...)
 	backupNode.LocalServices = []EdgeService{}
 
@@ -539,7 +566,7 @@ func (r *EdgeController) InitiateFailback(primaryNodeID, backupNodeID string) er
 	return nil
 }
 
-// ML Capabilities Methods
+// ML Capabilities Methods.
 func (r *EdgeController) DeployMLModel(model *MLModel, nodeID string) (*MLDeployment, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -562,7 +589,7 @@ func (r *EdgeController) DeployMLModel(model *MLModel, nodeID string) (*MLDeploy
 		DeployedAt: time.Now(),
 	}
 
-	// Add to node's services
+	// Add to node's services.
 	service := EdgeService{
 		Name:     model.Name,
 		Type:     "ml-inference",
@@ -574,6 +601,7 @@ func (r *EdgeController) DeployMLModel(model *MLModel, nodeID string) (*MLDeploy
 	return deployment, nil
 }
 
+// RunInference performs runinference operation.
 func (r *EdgeController) RunInference(nodeID string, request *InferenceRequest) (*InferenceResult, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
@@ -583,7 +611,7 @@ func (r *EdgeController) RunInference(nodeID string, request *InferenceRequest) 
 		return nil, fmt.Errorf("node %s not found", nodeID)
 	}
 
-	// Simulate inference
+	// Simulate inference.
 	result := &InferenceResult{
 		RequestID:       fmt.Sprintf("inf-%d", time.Now().Unix()),
 		Output:          []byte("inference-result"),
@@ -594,6 +622,7 @@ func (r *EdgeController) RunInference(nodeID string, request *InferenceRequest) 
 	return result, nil
 }
 
+// OptimizeMLDeployment performs optimizemldeployment operation.
 func (r *EdgeController) OptimizeMLDeployment(modelID string) (*MLOptimization, error) {
 	optimization := &MLOptimization{
 		ModelID: modelID,
@@ -609,7 +638,7 @@ func (r *EdgeController) OptimizeMLDeployment(modelID string) (*MLOptimization, 
 	return optimization, nil
 }
 
-// Caching Methods
+// Caching Methods.
 func (r *EdgeController) ConfigureCache(nodeID string, config *CacheConfig) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -623,12 +652,13 @@ func (r *EdgeController) ConfigureCache(nodeID string, config *CacheConfig) erro
 		return fmt.Errorf("node %s does not support caching", nodeID)
 	}
 
-	// Store cache configuration (in real implementation, this would configure the actual cache)
+	// Store cache configuration (in real implementation, this would configure the actual cache).
 	r.Log.Info("Configured cache", "nodeID", nodeID, "maxSize", config.MaxSizeGB)
 
 	return nil
 }
 
+// CacheContent performs cachecontent operation.
 func (r *EdgeController) CacheContent(nodeID string, content *CacheContent) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -642,12 +672,13 @@ func (r *EdgeController) CacheContent(nodeID string, content *CacheContent) erro
 		return fmt.Errorf("node %s does not support caching", nodeID)
 	}
 
-	// Cache the content (simulated)
+	// Cache the content (simulated).
 	r.Log.Info("Cached content", "nodeID", nodeID, "contentID", content.ID, "size", content.SizeMB)
 
 	return nil
 }
 
+// GetCacheStats performs getcachestats operation.
 func (r *EdgeController) GetCacheStats(nodeID string) (*CacheStats, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
@@ -661,7 +692,7 @@ func (r *EdgeController) GetCacheStats(nodeID string) (*CacheStats, error) {
 		return nil, fmt.Errorf("node %s does not support caching", nodeID)
 	}
 
-	// Return simulated stats
+	// Return simulated stats.
 	stats := &CacheStats{
 		HitRate:      0.85,
 		MissRate:     0.15,
@@ -673,7 +704,7 @@ func (r *EdgeController) GetCacheStats(nodeID string) (*CacheStats, error) {
 	return stats, nil
 }
 
-// Analytics Methods
+// Analytics Methods.
 func (r *EdgeController) GenerateZoneReport(zoneID string) (*ZoneReport, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
@@ -712,6 +743,7 @@ func (r *EdgeController) GenerateZoneReport(zoneID string) (*ZoneReport, error) 
 	return report, nil
 }
 
+// PredictResourceDemand performs predictresourcedemand operation.
 func (r *EdgeController) PredictResourceDemand(zoneID string, horizon time.Duration) (*ResourcePrediction, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
@@ -721,7 +753,7 @@ func (r *EdgeController) PredictResourceDemand(zoneID string, horizon time.Durat
 		return nil, fmt.Errorf("zone %s not found", zoneID)
 	}
 
-	// Simple prediction (in real implementation, would use ML models)
+	// Simple prediction (in real implementation, would use ML models).
 	prediction := &ResourcePrediction{
 		ZoneID:           zoneID,
 		TimeHorizon:      horizon,
@@ -734,6 +766,7 @@ func (r *EdgeController) PredictResourceDemand(zoneID string, horizon time.Durat
 	return prediction, nil
 }
 
+// OptimizeNodePlacement performs optimizenodeplacement operation.
 func (r *EdgeController) OptimizeNodePlacement() (*PlacementOptimization, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
@@ -743,7 +776,7 @@ func (r *EdgeController) OptimizeNodePlacement() (*PlacementOptimization, error)
 		EstimatedSavings: 0,
 	}
 
-	// Analyze node utilization and make recommendations
+	// Analyze node utilization and make recommendations.
 	for id, node := range r.edgeNodes {
 		avgUtilization := (node.Resources.CPUUtilization +
 			node.Resources.MemoryUtilization +
@@ -767,7 +800,7 @@ func (r *EdgeController) OptimizeNodePlacement() (*PlacementOptimization, error)
 		}
 	}
 
-	// Sort by priority
+	// Sort by priority.
 	sort.Slice(optimization.Recommendations, func(i, j int) bool {
 		return optimization.Recommendations[i].Priority < optimization.Recommendations[j].Priority
 	})

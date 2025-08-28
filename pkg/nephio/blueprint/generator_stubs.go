@@ -26,7 +26,7 @@ import (
 	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-// generateKptFile generates the Kpt package file
+// generateKptFile generates the Kpt package file.
 func (g *Generator) generateKptFile(genCtx *GenerationContext) (string, error) {
 	return fmt.Sprintf(`apiVersion: kpt.dev/v1
 kind: Kptfile
@@ -45,7 +45,7 @@ upstream:
 `, genCtx.Intent.Name, genCtx.Intent.Spec.IntentType), nil
 }
 
-// generateReadme generates the README file
+// generateReadme generates the README file.
 func (g *Generator) generateReadme(genCtx *GenerationContext) (string, error) {
 	return fmt.Sprintf(`# %s Blueprint
 
@@ -64,7 +64,7 @@ kubectl apply -k .
 		strings.Join(g.targetComponentsToStrings(genCtx.Intent.Spec.TargetComponents), ", ")), nil
 }
 
-// generateMetadata generates package metadata
+// generateMetadata generates package metadata.
 func (g *Generator) generateMetadata(genCtx *GenerationContext) (string, error) {
 	return fmt.Sprintf(`apiVersion: v1
 kind: ConfigMap
@@ -81,7 +81,7 @@ data:
 		time.Now().Format(time.RFC3339)), nil
 }
 
-// generateFunctionConfig generates function configuration
+// generateFunctionConfig generates function configuration.
 func (g *Generator) generateFunctionConfig(genCtx *GenerationContext) (string, error) {
 	return fmt.Sprintf(`apiVersion: fn.kpt.dev/v1alpha1
 kind: StarlarkRun
@@ -96,9 +96,9 @@ spec:
 `, genCtx.Intent.Name, genCtx.Intent.Name), nil
 }
 
-// generateGenericBlueprint generates a generic blueprint for components without specific templates
+// generateGenericBlueprint generates a generic blueprint for components without specific templates.
 func (g *Generator) generateGenericBlueprint(genCtx *GenerationContext, component v1.ORANComponent, files map[string]string) error {
-	// Generic blueprint for components without specific templates
+	// Generic blueprint for components without specific templates.
 	files[fmt.Sprintf("%s-deployment.yaml", strings.ToLower(string(component)))] = fmt.Sprintf(`apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -127,7 +127,7 @@ spec:
 	return nil
 }
 
-// generateComponentService generates a service for a component
+// generateComponentService generates a service for a component.
 func (g *Generator) generateComponentService(genCtx *GenerationContext, component string) (string, error) {
 	return fmt.Sprintf(`apiVersion: v1
 kind: Service
@@ -143,7 +143,7 @@ spec:
 `, genCtx.Intent.Name, component, genCtx.TargetNamespace, genCtx.Intent.Name, component), nil
 }
 
-// Configuration generation stub methods
+// Configuration generation stub methods.
 func (g *Generator) generateAMFConfig(genCtx *GenerationContext) (string, error) {
 	return `# AMF Configuration placeholder`, nil
 }
@@ -168,7 +168,7 @@ func (g *Generator) generateXAppDescriptor(genCtx *GenerationContext) (string, e
 	return `{"xapp_name": "placeholder", "version": "1.0.0"}`, nil
 }
 
-// Template data building helpers
+// Template data building helpers.
 func (g *Generator) buildRICTemplateData(genCtx *GenerationContext, ricType string) map[string]interface{} {
 	return map[string]interface{}{
 		"Name":      fmt.Sprintf("%s-%s-ric", genCtx.Intent.Name, ricType),
@@ -247,7 +247,7 @@ func (g *Generator) extractEnvironment(deployConfig map[string]interface{}) []ma
 	return []map[string]string{}
 }
 
-// Service mesh and observability stub methods
+// Service mesh and observability stub methods.
 func (g *Generator) generateSliceQoSConfig(genCtx *GenerationContext) (string, error) {
 	return `# Network Slice QoS Config placeholder`, nil
 }

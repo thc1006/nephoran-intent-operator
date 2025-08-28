@@ -15,41 +15,57 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// ReportType represents different types of availability reports
+// ReportType represents different types of availability reports.
 type ReportType string
 
 const (
-	ReportTypeLive       ReportType = "live"       // Real-time status
+	// ReportTypeLive holds reporttypelive value.
+	ReportTypeLive ReportType = "live" // Real-time status
+	// ReportTypeHistorical holds reporttypehistorical value.
 	ReportTypeHistorical ReportType = "historical" // Historical analysis
-	ReportTypeSLA        ReportType = "sla"        // SLA compliance
-	ReportTypeIncident   ReportType = "incident"   // Incident correlation
+	// ReportTypeSLA holds reporttypesla value.
+	ReportTypeSLA ReportType = "sla" // SLA compliance
+	// ReportTypeIncident holds reporttypeincident value.
+	ReportTypeIncident ReportType = "incident" // Incident correlation
+	// ReportTypeCompliance holds reporttypecompliance value.
 	ReportTypeCompliance ReportType = "compliance" // Audit and compliance
-	ReportTypeTrend      ReportType = "trend"      // Trend analysis
+	// ReportTypeTrend holds reporttypetrend value.
+	ReportTypeTrend ReportType = "trend" // Trend analysis
 )
 
-// ReportFormat represents output format options
+// ReportFormat represents output format options.
 type ReportFormat string
 
 const (
-	FormatJSON       ReportFormat = "json"
-	FormatHTML       ReportFormat = "html"
-	FormatCSV        ReportFormat = "csv"
-	FormatPDF        ReportFormat = "pdf"
+	// FormatJSON holds formatjson value.
+	FormatJSON ReportFormat = "json"
+	// FormatHTML holds formathtml value.
+	FormatHTML ReportFormat = "html"
+	// FormatCSV holds formatcsv value.
+	FormatCSV ReportFormat = "csv"
+	// FormatPDF holds formatpdf value.
+	FormatPDF ReportFormat = "pdf"
+	// FormatPrometheus holds formatprometheus value.
 	FormatPrometheus ReportFormat = "prometheus"
-	FormatDashboard  ReportFormat = "dashboard"
+	// FormatDashboard holds formatdashboard value.
+	FormatDashboard ReportFormat = "dashboard"
 )
 
-// ComplianceStatus represents SLA compliance status
+// ComplianceStatus represents SLA compliance status.
 type ComplianceStatus string
 
 const (
-	ComplianceHealthy  ComplianceStatus = "healthy"  // Within SLA targets
-	ComplianceWarning  ComplianceStatus = "warning"  // Approaching SLA breach
+	// ComplianceHealthy holds compliancehealthy value.
+	ComplianceHealthy ComplianceStatus = "healthy" // Within SLA targets
+	// ComplianceWarning holds compliancewarning value.
+	ComplianceWarning ComplianceStatus = "warning" // Approaching SLA breach
+	// ComplianceCritical holds compliancecritical value.
 	ComplianceCritical ComplianceStatus = "critical" // SLA breached
-	ComplianceUnknown  ComplianceStatus = "unknown"  // Insufficient data
+	// ComplianceUnknown holds complianceunknown value.
+	ComplianceUnknown ComplianceStatus = "unknown" // Insufficient data
 )
 
-// AvailabilityReport represents a comprehensive availability report
+// AvailabilityReport represents a comprehensive availability report.
 type AvailabilityReport struct {
 	ID          string       `json:"id"`
 	Type        ReportType   `json:"type"`
@@ -59,32 +75,32 @@ type AvailabilityReport struct {
 	StartTime   time.Time    `json:"start_time"`
 	EndTime     time.Time    `json:"end_time"`
 
-	// Summary metrics
+	// Summary metrics.
 	Summary *AvailabilitySummary `json:"summary"`
 
-	// Detailed sections
+	// Detailed sections.
 	ServiceMetrics     []ServiceAvailability     `json:"service_metrics,omitempty"`
 	ComponentMetrics   []ComponentAvailability   `json:"component_metrics,omitempty"`
 	DependencyMetrics  []DependencyAvailability  `json:"dependency_metrics,omitempty"`
 	UserJourneyMetrics []UserJourneyAvailability `json:"user_journey_metrics,omitempty"`
 
-	// SLA and compliance
+	// SLA and compliance.
 	SLACompliance *SLAComplianceReport `json:"sla_compliance,omitempty"`
 	ErrorBudgets  []ErrorBudgetStatus  `json:"error_budgets,omitempty"`
 
-	// Incidents and alerts
+	// Incidents and alerts.
 	Incidents    []IncidentSummary `json:"incidents,omitempty"`
 	AlertHistory []AlertSummary    `json:"alert_history,omitempty"`
 
-	// Trends and analysis
+	// Trends and analysis.
 	TrendAnalysis      *TrendAnalysis      `json:"trend_analysis,omitempty"`
 	PredictiveInsights *PredictiveInsights `json:"predictive_insights,omitempty"`
 
-	// Metadata
+	// Metadata.
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// AvailabilitySummary provides high-level availability metrics
+// AvailabilitySummary provides high-level availability metrics.
 type AvailabilitySummary struct {
 	OverallAvailability     float64          `json:"overall_availability"`  // 0.0 to 1.0
 	WeightedAvailability    float64          `json:"weighted_availability"` // Business impact weighted
@@ -96,24 +112,24 @@ type AvailabilitySummary struct {
 	IncidentCount           int              `json:"incident_count"`
 	CriticalIncidentCount   int              `json:"critical_incident_count"`
 
-	// Business impact
+	// Business impact.
 	BusinessImpactScore  float64 `json:"business_impact_score"` // 0-100
 	AffectedUserCount    int64   `json:"affected_user_count"`
 	EstimatedRevenueLoss float64 `json:"estimated_revenue_loss"`
 
-	// Performance metrics
+	// Performance metrics.
 	AverageResponseTime time.Duration `json:"average_response_time"`
 	P95ResponseTime     time.Duration `json:"p95_response_time"`
 	P99ResponseTime     time.Duration `json:"p99_response_time"`
 	ErrorRate           float64       `json:"error_rate"` // 0.0 to 1.0
 
-	// Health distribution
+	// Health distribution.
 	HealthyPercentage   float64 `json:"healthy_percentage"`
 	DegradedPercentage  float64 `json:"degraded_percentage"`
 	UnhealthyPercentage float64 `json:"unhealthy_percentage"`
 }
 
-// ServiceAvailability represents availability metrics for a service
+// ServiceAvailability represents availability metrics for a service.
 type ServiceAvailability struct {
 	ServiceName         string         `json:"service_name"`
 	ServiceType         string         `json:"service_type"`
@@ -130,7 +146,7 @@ type ServiceAvailability struct {
 	RecoveryTime        time.Duration  `json:"recovery_time"`
 }
 
-// ComponentAvailability represents availability metrics for system components
+// ComponentAvailability represents availability metrics for system components.
 type ComponentAvailability struct {
 	ComponentName       string             `json:"component_name"`
 	ComponentType       string             `json:"component_type"`
@@ -145,7 +161,7 @@ type ComponentAvailability struct {
 	LastRestart         *time.Time         `json:"last_restart,omitempty"`
 }
 
-// DependencyAvailability represents availability metrics for dependencies
+// DependencyAvailability represents availability metrics for dependencies.
 type DependencyAvailability struct {
 	DependencyName      string           `json:"dependency_name"`
 	DependencyType      DependencyType   `json:"dependency_type"`
@@ -160,7 +176,7 @@ type DependencyAvailability struct {
 	RecoveryTime        time.Duration    `json:"recovery_time"`
 }
 
-// UserJourneyAvailability represents availability metrics for user journeys
+// UserJourneyAvailability represents availability metrics for user journeys.
 type UserJourneyAvailability struct {
 	JourneyName           string         `json:"journey_name"`
 	BusinessImpact        BusinessImpact `json:"business_impact"`
@@ -173,7 +189,7 @@ type UserJourneyAvailability struct {
 	FailedExecutions      int64          `json:"failed_executions"`
 }
 
-// SLAComplianceReport represents SLA compliance status
+// SLAComplianceReport represents SLA compliance status.
 type SLAComplianceReport struct {
 	Target               SLATarget         `json:"target"`
 	CurrentAvailability  float64           `json:"current_availability"`
@@ -186,7 +202,7 @@ type SLAComplianceReport struct {
 	ComplianceHistory    []CompliancePoint `json:"compliance_history"`
 }
 
-// ErrorBudgetStatus represents current error budget status
+// ErrorBudgetStatus represents current error budget status.
 type ErrorBudgetStatus struct {
 	Service            string        `json:"service"`
 	Target             SLATarget     `json:"target"`
@@ -199,7 +215,7 @@ type ErrorBudgetStatus struct {
 	AlertLevel         string        `json:"alert_level"`
 }
 
-// CompliancePoint represents a point in compliance history
+// CompliancePoint represents a point in compliance history.
 type CompliancePoint struct {
 	Timestamp       time.Time        `json:"timestamp"`
 	Availability    float64          `json:"availability"`
@@ -207,7 +223,7 @@ type CompliancePoint struct {
 	BudgetRemaining time.Duration    `json:"budget_remaining"`
 }
 
-// IncidentSummary represents a summary of an availability incident
+// IncidentSummary represents a summary of an availability incident.
 type IncidentSummary struct {
 	ID               string         `json:"id"`
 	Title            string         `json:"title"`
@@ -223,7 +239,7 @@ type IncidentSummary struct {
 	Postmortem       string         `json:"postmortem"`
 }
 
-// AlertSummary represents a summary of availability alerts
+// AlertSummary represents a summary of availability alerts.
 type AlertSummary struct {
 	ID          string         `json:"id"`
 	AlertName   string         `json:"alert_name"`
@@ -237,7 +253,7 @@ type AlertSummary struct {
 	Impact      BusinessImpact `json:"impact"`
 }
 
-// TrendAnalysis represents availability trend analysis
+// TrendAnalysis represents availability trend analysis.
 type TrendAnalysis struct {
 	TimeWindow        TimeWindow `json:"time_window"`
 	AvailabilityTrend float64    `json:"availability_trend"` // Positive = improving
@@ -245,18 +261,18 @@ type TrendAnalysis struct {
 	IncidentTrend     float64    `json:"incident_trend"`     // Negative = improving
 	ErrorRateTrend    float64    `json:"error_rate_trend"`   // Negative = improving
 
-	// Patterns
+	// Patterns.
 	PeakUsageHours   []int             `json:"peak_usage_hours"`
 	MostReliableDay  string            `json:"most_reliable_day"`
 	LeastReliableDay string            `json:"least_reliable_day"`
 	SeasonalPatterns []SeasonalPattern `json:"seasonal_patterns"`
 
-	// Correlations
+	// Correlations.
 	PerformanceCorrelation float64 `json:"performance_correlation"` // With availability
 	LoadCorrelation        float64 `json:"load_correlation"`        // With availability
 }
 
-// SeasonalPattern represents seasonal availability patterns
+// SeasonalPattern represents seasonal availability patterns.
 type SeasonalPattern struct {
 	Pattern    string  `json:"pattern"`    // daily, weekly, monthly
 	PeakTime   string  `json:"peak_time"`  // When issues are most common
@@ -265,7 +281,7 @@ type SeasonalPattern struct {
 	Confidence float64 `json:"confidence"` // Pattern confidence 0-1
 }
 
-// PredictiveInsights represents predictive availability insights
+// PredictiveInsights represents predictive availability insights.
 type PredictiveInsights struct {
 	PredictedAvailability float64              `json:"predicted_availability"`
 	PredictionConfidence  float64              `json:"prediction_confidence"`
@@ -275,7 +291,7 @@ type PredictiveInsights struct {
 	FailureProbabilities  []FailureProbability `json:"failure_probabilities"`
 }
 
-// RiskFactor represents a risk factor for availability
+// RiskFactor represents a risk factor for availability.
 type RiskFactor struct {
 	Factor      string  `json:"factor"`
 	Risk        string  `json:"risk"`        // high, medium, low
@@ -284,7 +300,7 @@ type RiskFactor struct {
 	Mitigation  string  `json:"mitigation"`  // Suggested mitigation
 }
 
-// CapacityForecast represents capacity planning forecasts
+// CapacityForecast represents capacity planning forecasts.
 type CapacityForecast struct {
 	TimeHorizon           time.Duration `json:"time_horizon"`
 	ProjectedLoad         float64       `json:"projected_load"`
@@ -294,7 +310,7 @@ type CapacityForecast struct {
 	ScalingRecommendation string        `json:"scaling_recommendation"`
 }
 
-// FailureProbability represents probability of component failures
+// FailureProbability represents probability of component failures.
 type FailureProbability struct {
 	Component   string         `json:"component"`
 	Service     string         `json:"service"`
@@ -303,34 +319,34 @@ type FailureProbability struct {
 	Impact      BusinessImpact `json:"impact"`
 }
 
-// ReporterConfig holds configuration for the availability reporter
+// ReporterConfig holds configuration for the availability reporter.
 type ReporterConfig struct {
-	// Report generation
+	// Report generation.
 	DefaultTimeWindow TimeWindow    `json:"default_time_window"`
 	RefreshInterval   time.Duration `json:"refresh_interval"`
 	RetentionPeriod   time.Duration `json:"retention_period"`
 
-	// SLA configuration
+	// SLA configuration.
 	SLATargets         []SLATargetConfig   `json:"sla_targets"`
 	BusinessHours      BusinessHours       `json:"business_hours"`
 	PlannedMaintenance []MaintenanceWindow `json:"planned_maintenance"`
 
-	// Dashboard configuration
+	// Dashboard configuration.
 	DashboardURL  string `json:"dashboard_url"`
 	PrometheusURL string `json:"prometheus_url"`
 	GrafanaURL    string `json:"grafana_url"`
 
-	// Alerting
+	// Alerting.
 	AlertWebhookURL string          `json:"alert_webhook_url"`
 	AlertThresholds AlertThresholds `json:"alert_thresholds"`
 
-	// Export configuration
+	// Export configuration.
 	ExportFormats  []ReportFormat `json:"export_formats"`
 	S3BucketName   string         `json:"s3_bucket_name"`
 	ArchiveEnabled bool           `json:"archive_enabled"`
 }
 
-// SLATargetConfig represents SLA target configuration
+// SLATargetConfig represents SLA target configuration.
 type SLATargetConfig struct {
 	Service        string         `json:"service"`
 	Target         SLATarget      `json:"target"`
@@ -338,7 +354,7 @@ type SLATargetConfig struct {
 	Enabled        bool           `json:"enabled"`
 }
 
-// BusinessHours represents business hour configuration
+// BusinessHours represents business hour configuration.
 type BusinessHours struct {
 	Timezone     string      `json:"timezone"`
 	StartHour    int         `json:"start_hour"` // 0-23
@@ -347,7 +363,7 @@ type BusinessHours struct {
 	Holidays     []time.Time `json:"holidays"`
 }
 
-// AlertThresholds represents alerting thresholds for availability
+// AlertThresholds represents alerting thresholds for availability.
 type AlertThresholds struct {
 	AvailabilityWarning  float64       `json:"availability_warning"`  // 0-1
 	AvailabilityCritical float64       `json:"availability_critical"` // 0-1
@@ -361,36 +377,36 @@ type AlertThresholds struct {
 	ErrorRate            float64       `json:"error_rate"`          // percentage
 }
 
-// AvailabilityReporter provides comprehensive availability reporting capabilities
+// AvailabilityReporter provides comprehensive availability reporting capabilities.
 type AvailabilityReporter struct {
 	config *ReporterConfig
 
-	// Dependencies
+	// Dependencies.
 	tracker           *MultiDimensionalTracker
 	calculator        *AvailabilityCalculator
 	dependencyTracker *DependencyChainTracker
 	syntheticMonitor  *SyntheticMonitor
 	promClient        v1.API
 
-	// State management
+	// State management.
 	reports         map[string]*AvailabilityReport
 	reportsMutex    sync.RWMutex
 	dashboards      map[string]*Dashboard
 	dashboardsMutex sync.RWMutex
 
-	// Control
+	// Control.
 	ctx    context.Context
 	cancel context.CancelFunc
 	stopCh chan struct{}
 
-	// Observability
+	// Observability.
 	tracer trace.Tracer
 
-	// Live dashboard
+	// Live dashboard.
 	liveUpdater *LiveDashboardUpdater
 }
 
-// Dashboard represents a live availability dashboard
+// Dashboard represents a live availability dashboard.
 type Dashboard struct {
 	ID              string              `json:"id"`
 	Name            string              `json:"name"`
@@ -402,7 +418,7 @@ type Dashboard struct {
 	Alerts          []ActiveAlert       `json:"alerts"`
 }
 
-// DashboardPanel represents a panel in the dashboard
+// DashboardPanel represents a panel in the dashboard.
 type DashboardPanel struct {
 	ID       string                 `json:"id"`
 	Title    string                 `json:"title"`
@@ -412,7 +428,7 @@ type DashboardPanel struct {
 	Config   map[string]interface{} `json:"config"`
 }
 
-// PanelPosition represents panel positioning in dashboard
+// PanelPosition represents panel positioning in dashboard.
 type PanelPosition struct {
 	Row    int `json:"row"`
 	Column int `json:"column"`
@@ -420,7 +436,7 @@ type PanelPosition struct {
 	Height int `json:"height"`
 }
 
-// ActiveAlert represents an active availability alert
+// ActiveAlert represents an active availability alert.
 type ActiveAlert struct {
 	ID          string        `json:"id"`
 	Rule        string        `json:"rule"`
@@ -436,14 +452,14 @@ type ActiveAlert struct {
 	Runbook     string        `json:"runbook"`
 }
 
-// LiveDashboardUpdater manages real-time dashboard updates
+// LiveDashboardUpdater manages real-time dashboard updates.
 type LiveDashboardUpdater struct {
 	reporter    *AvailabilityReporter
 	subscribers map[string]chan *Dashboard // dashboard_id -> update channel
 	subsMutex   sync.RWMutex
 }
 
-// NewAvailabilityReporter creates a new availability reporter
+// NewAvailabilityReporter creates a new availability reporter.
 func NewAvailabilityReporter(
 	config *ReporterConfig,
 	tracker *MultiDimensionalTracker,
@@ -478,7 +494,7 @@ func NewAvailabilityReporter(
 		tracer:            otel.Tracer("availability-reporter"),
 	}
 
-	// Initialize live updater
+	// Initialize live updater.
 	reporter.liveUpdater = &LiveDashboardUpdater{
 		reporter:    reporter,
 		subscribers: make(map[string]chan *Dashboard),
@@ -487,36 +503,36 @@ func NewAvailabilityReporter(
 	return reporter, nil
 }
 
-// Start begins availability reporting
+// Start begins availability reporting.
 func (ar *AvailabilityReporter) Start() error {
 	ctx, span := ar.tracer.Start(ar.ctx, "availability-reporter-start")
 	defer span.End()
 
 	span.AddEvent("Starting availability reporter")
 
-	// Start periodic report generation
+	// Start periodic report generation.
 	go ar.runReportGeneration(ctx)
 
-	// Start dashboard updates
+	// Start dashboard updates.
 	go ar.runDashboardUpdates(ctx)
 
-	// Start compliance monitoring
+	// Start compliance monitoring.
 	go ar.runComplianceMonitoring(ctx)
 
-	// Start cleanup routine
+	// Start cleanup routine.
 	go ar.runCleanup(ctx)
 
 	return nil
 }
 
-// Stop stops availability reporting
+// Stop stops availability reporting.
 func (ar *AvailabilityReporter) Stop() error {
 	ar.cancel()
 	close(ar.stopCh)
 	return nil
 }
 
-// GenerateReport generates an availability report
+// GenerateReport generates an availability report.
 func (ar *AvailabilityReporter) GenerateReport(ctx context.Context, reportType ReportType, timeWindow TimeWindow, format ReportFormat) (*AvailabilityReport, error) {
 	ctx, span := ar.tracer.Start(ctx, "generate-report",
 		trace.WithAttributes(
@@ -527,7 +543,7 @@ func (ar *AvailabilityReporter) GenerateReport(ctx context.Context, reportType R
 	)
 	defer span.End()
 
-	// Calculate time range based on window
+	// Calculate time range based on window.
 	endTime := time.Now()
 	startTime := ar.calculateStartTime(endTime, timeWindow)
 
@@ -541,7 +557,7 @@ func (ar *AvailabilityReporter) GenerateReport(ctx context.Context, reportType R
 		EndTime:     endTime,
 	}
 
-	// Generate different sections based on report type
+	// Generate different sections based on report type.
 	switch reportType {
 	case ReportTypeLive:
 		if err := ar.generateLiveReport(ctx, report); err != nil {
@@ -571,7 +587,7 @@ func (ar *AvailabilityReporter) GenerateReport(ctx context.Context, reportType R
 		return nil, fmt.Errorf("unsupported report type: %s", reportType)
 	}
 
-	// Store report
+	// Store report.
 	ar.storeReport(report)
 
 	span.AddEvent("Report generated",
@@ -585,86 +601,86 @@ func (ar *AvailabilityReporter) GenerateReport(ctx context.Context, reportType R
 	return report, nil
 }
 
-// generateLiveReport generates a real-time availability report
+// generateLiveReport generates a real-time availability report.
 func (ar *AvailabilityReporter) generateLiveReport(ctx context.Context, report *AvailabilityReport) error {
 	ctx, span := ar.tracer.Start(ctx, "generate-live-report")
 	defer span.End()
 
-	// Get current state from tracker
+	// Get current state from tracker.
 	state := ar.tracker.GetCurrentState()
 
-	// Generate summary
+	// Generate summary.
 	summary := ar.calculateSummaryMetrics(ctx, state.CurrentMetrics, report.StartTime, report.EndTime)
 	report.Summary = summary
 
-	// Get service metrics
+	// Get service metrics.
 	serviceMetrics := ar.generateServiceMetrics(ctx, report.StartTime, report.EndTime)
 	report.ServiceMetrics = serviceMetrics
 
-	// Get component metrics
+	// Get component metrics.
 	componentMetrics := ar.generateComponentMetrics(ctx, report.StartTime, report.EndTime)
 	report.ComponentMetrics = componentMetrics
 
-	// Get dependency metrics
+	// Get dependency metrics.
 	if ar.dependencyTracker != nil {
 		dependencyMetrics := ar.generateDependencyMetrics(ctx, report.StartTime, report.EndTime)
 		report.DependencyMetrics = dependencyMetrics
 	}
 
-	// Get user journey metrics
+	// Get user journey metrics.
 	userJourneyMetrics := ar.generateUserJourneyMetrics(ctx, report.StartTime, report.EndTime)
 	report.UserJourneyMetrics = userJourneyMetrics
 
-	// Get active alerts
+	// Get active alerts.
 	alerts := ar.getActiveAlerts(ctx)
 	report.AlertHistory = alerts
 
 	return nil
 }
 
-// generateHistoricalReport generates a historical availability report
+// generateHistoricalReport generates a historical availability report.
 func (ar *AvailabilityReporter) generateHistoricalReport(ctx context.Context, report *AvailabilityReport) error {
 	ctx, span := ar.tracer.Start(ctx, "generate-historical-report")
 	defer span.End()
 
-	// Get historical metrics from tracker
+	// Get historical metrics from tracker.
 	metrics := ar.tracker.GetMetricsHistory(report.StartTime, report.EndTime)
 
-	// Calculate historical summary
+	// Calculate historical summary.
 	summary := ar.calculateHistoricalSummary(ctx, metrics, report.StartTime, report.EndTime)
 	report.Summary = summary
 
-	// Generate detailed metrics by dimension
+	// Generate detailed metrics by dimension.
 	report.ServiceMetrics = ar.generateServiceMetrics(ctx, report.StartTime, report.EndTime)
 	report.ComponentMetrics = ar.generateComponentMetrics(ctx, report.StartTime, report.EndTime)
 	report.DependencyMetrics = ar.generateDependencyMetrics(ctx, report.StartTime, report.EndTime)
 	report.UserJourneyMetrics = ar.generateUserJourneyMetrics(ctx, report.StartTime, report.EndTime)
 
-	// Generate trend analysis
+	// Generate trend analysis.
 	trendAnalysis := ar.generateTrendAnalysis(ctx, metrics, report.TimeWindow)
 	report.TrendAnalysis = trendAnalysis
 
-	// Get incident history
+	// Get incident history.
 	incidents := ar.getIncidentHistory(ctx, report.StartTime, report.EndTime)
 	report.Incidents = incidents
 
 	return nil
 }
 
-// generateSLAReport generates an SLA compliance report
+// generateSLAReport generates an SLA compliance report.
 func (ar *AvailabilityReporter) generateSLAReport(ctx context.Context, report *AvailabilityReport) error {
 	ctx, span := ar.tracer.Start(ctx, "generate-sla-report")
 	defer span.End()
 
-	// Calculate SLA compliance for each configured target
+	// Calculate SLA compliance for each configured target.
 	slaCompliance := &SLAComplianceReport{}
 
 	if ar.calculator != nil {
-		// Get error budgets from calculator
+		// Get error budgets from calculator.
 		errorBudgets := ar.calculateErrorBudgets(ctx, report.StartTime, report.EndTime)
 		report.ErrorBudgets = errorBudgets
 
-		// Determine overall compliance status
+		// Determine overall compliance status.
 		if len(errorBudgets) > 0 {
 			slaCompliance.Status = ar.determineComplianceStatus(errorBudgets)
 		}
@@ -672,58 +688,58 @@ func (ar *AvailabilityReporter) generateSLAReport(ctx context.Context, report *A
 
 	report.SLACompliance = slaCompliance
 
-	// Generate compliance-focused summary
+	// Generate compliance-focused summary.
 	summary := ar.generateComplianceSummary(ctx, report.StartTime, report.EndTime)
 	report.Summary = summary
 
 	return nil
 }
 
-// generateIncidentReport generates an incident correlation report
+// generateIncidentReport generates an incident correlation report.
 func (ar *AvailabilityReporter) generateIncidentReport(ctx context.Context, report *AvailabilityReport) error {
 	ctx, span := ar.tracer.Start(ctx, "generate-incident-report")
 	defer span.End()
 
-	// Get incident data
+	// Get incident data.
 	incidents := ar.getIncidentHistory(ctx, report.StartTime, report.EndTime)
 	report.Incidents = incidents
 
-	// Calculate incident-focused metrics
+	// Calculate incident-focused metrics.
 	summary := ar.calculateIncidentSummary(ctx, incidents, report.StartTime, report.EndTime)
 	report.Summary = summary
 
-	// Correlate with availability metrics
+	// Correlate with availability metrics.
 	report.ServiceMetrics = ar.generateServiceMetrics(ctx, report.StartTime, report.EndTime)
 
-	// Generate root cause analysis
+	// Generate root cause analysis.
 	ar.enrichIncidentsWithRootCause(ctx, incidents)
 
 	return nil
 }
 
-// generateComplianceReport generates a compliance audit report
+// generateComplianceReport generates a compliance audit report.
 func (ar *AvailabilityReporter) generateComplianceReport(ctx context.Context, report *AvailabilityReport) error {
 	ctx, span := ar.tracer.Start(ctx, "generate-compliance-report")
 	defer span.End()
 
-	// Generate comprehensive compliance metrics
+	// Generate comprehensive compliance metrics.
 	summary := ar.generateComplianceSummary(ctx, report.StartTime, report.EndTime)
 	report.Summary = summary
 
-	// Calculate error budgets for compliance
+	// Calculate error budgets for compliance.
 	errorBudgets := ar.calculateErrorBudgets(ctx, report.StartTime, report.EndTime)
 	report.ErrorBudgets = errorBudgets
 
-	// Generate SLA compliance report
+	// Generate SLA compliance report.
 	slaCompliance := ar.generateSLAComplianceReport(ctx, report.StartTime, report.EndTime)
 	report.SLACompliance = slaCompliance
 
-	// Include all metric types for comprehensive view
+	// Include all metric types for comprehensive view.
 	report.ServiceMetrics = ar.generateServiceMetrics(ctx, report.StartTime, report.EndTime)
 	report.ComponentMetrics = ar.generateComponentMetrics(ctx, report.StartTime, report.EndTime)
 	report.DependencyMetrics = ar.generateDependencyMetrics(ctx, report.StartTime, report.EndTime)
 
-	// Add audit trail metadata
+	// Add audit trail metadata.
 	report.Metadata = map[string]interface{}{
 		"audit_trail":        true,
 		"compliance_period":  fmt.Sprintf("%s to %s", report.StartTime.Format(time.RFC3339), report.EndTime.Format(time.RFC3339)),
@@ -734,30 +750,30 @@ func (ar *AvailabilityReporter) generateComplianceReport(ctx context.Context, re
 	return nil
 }
 
-// generateTrendReport generates a trend analysis report
+// generateTrendReport generates a trend analysis report.
 func (ar *AvailabilityReporter) generateTrendReport(ctx context.Context, report *AvailabilityReport) error {
 	ctx, span := ar.tracer.Start(ctx, "generate-trend-report")
 	defer span.End()
 
-	// Get historical data for trend analysis
+	// Get historical data for trend analysis.
 	metrics := ar.tracker.GetMetricsHistory(report.StartTime, report.EndTime)
 
-	// Generate trend analysis
+	// Generate trend analysis.
 	trendAnalysis := ar.generateTrendAnalysis(ctx, metrics, report.TimeWindow)
 	report.TrendAnalysis = trendAnalysis
 
-	// Generate predictive insights
+	// Generate predictive insights.
 	predictiveInsights := ar.generatePredictiveInsights(ctx, metrics, trendAnalysis)
 	report.PredictiveInsights = predictiveInsights
 
-	// Calculate trend-focused summary
+	// Calculate trend-focused summary.
 	summary := ar.calculateTrendSummary(ctx, metrics, trendAnalysis)
 	report.Summary = summary
 
 	return nil
 }
 
-// CreateDashboard creates a new live dashboard
+// CreateDashboard creates a new live dashboard.
 func (ar *AvailabilityReporter) CreateDashboard(dashboardID, name string, reportType ReportType, refreshInterval time.Duration) (*Dashboard, error) {
 	ar.dashboardsMutex.Lock()
 	defer ar.dashboardsMutex.Unlock()
@@ -774,13 +790,13 @@ func (ar *AvailabilityReporter) CreateDashboard(dashboardID, name string, report
 
 	ar.dashboards[dashboardID] = dashboard
 
-	// Start live updates for this dashboard
+	// Start live updates for this dashboard.
 	go ar.updateDashboardLoop(ar.ctx, dashboard)
 
 	return dashboard, nil
 }
 
-// SubscribeToDashboard subscribes to dashboard updates
+// SubscribeToDashboard subscribes to dashboard updates.
 func (ar *AvailabilityReporter) SubscribeToDashboard(dashboardID string) (<-chan *Dashboard, error) {
 	ar.liveUpdater.subsMutex.Lock()
 	defer ar.liveUpdater.subsMutex.Unlock()
@@ -799,7 +815,7 @@ func (ar *AvailabilityReporter) SubscribeToDashboard(dashboardID string) (<-chan
 	return updateChan, nil
 }
 
-// GetReports returns stored reports
+// GetReports returns stored reports.
 func (ar *AvailabilityReporter) GetReports() []*AvailabilityReport {
 	ar.reportsMutex.RLock()
 	defer ar.reportsMutex.RUnlock()
@@ -809,7 +825,7 @@ func (ar *AvailabilityReporter) GetReports() []*AvailabilityReport {
 		reports = append(reports, report)
 	}
 
-	// Sort by generation time (newest first)
+	// Sort by generation time (newest first).
 	sort.Slice(reports, func(i, j int) bool {
 		return reports[i].GeneratedAt.After(reports[j].GeneratedAt)
 	})
@@ -817,7 +833,7 @@ func (ar *AvailabilityReporter) GetReports() []*AvailabilityReport {
 	return reports
 }
 
-// GetReport returns a specific report by ID
+// GetReport returns a specific report by ID.
 func (ar *AvailabilityReporter) GetReport(reportID string) (*AvailabilityReport, error) {
 	ar.reportsMutex.RLock()
 	defer ar.reportsMutex.RUnlock()
@@ -830,7 +846,7 @@ func (ar *AvailabilityReporter) GetReport(reportID string) (*AvailabilityReport,
 	return report, nil
 }
 
-// GetDashboard returns a dashboard by ID
+// GetDashboard returns a dashboard by ID.
 func (ar *AvailabilityReporter) GetDashboard(dashboardID string) (*Dashboard, error) {
 	ar.dashboardsMutex.RLock()
 	defer ar.dashboardsMutex.RUnlock()
@@ -843,7 +859,7 @@ func (ar *AvailabilityReporter) GetDashboard(dashboardID string) (*Dashboard, er
 	return dashboard, nil
 }
 
-// ExportReport exports a report in the specified format
+// ExportReport exports a report in the specified format.
 func (ar *AvailabilityReporter) ExportReport(ctx context.Context, reportID string, format ReportFormat) ([]byte, error) {
 	report, err := ar.GetReport(reportID)
 	if err != nil {
@@ -866,7 +882,7 @@ func (ar *AvailabilityReporter) ExportReport(ctx context.Context, reportID strin
 	}
 }
 
-// Helper methods for report generation
+// Helper methods for report generation.
 func (ar *AvailabilityReporter) calculateStartTime(endTime time.Time, window TimeWindow) time.Time {
 	switch window {
 	case Window1Minute:
@@ -893,7 +909,7 @@ func (ar *AvailabilityReporter) storeReport(report *AvailabilityReport) {
 	ar.reports[report.ID] = report
 }
 
-// Background routines
+// Background routines.
 func (ar *AvailabilityReporter) runReportGeneration(ctx context.Context) {
 	ticker := time.NewTicker(ar.config.RefreshInterval)
 	defer ticker.Stop()
@@ -903,7 +919,7 @@ func (ar *AvailabilityReporter) runReportGeneration(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			// Generate scheduled reports
+			// Generate scheduled reports.
 			ar.generateScheduledReports(ctx)
 		}
 	}
@@ -951,11 +967,11 @@ func (ar *AvailabilityReporter) runCleanup(ctx context.Context) {
 	}
 }
 
-// Placeholder implementations for helper methods
-// These would need to be implemented based on specific requirements
+// Placeholder implementations for helper methods.
+// These would need to be implemented based on specific requirements.
 
 func (ar *AvailabilityReporter) calculateSummaryMetrics(ctx context.Context, metrics map[string]*AvailabilityMetric, startTime, endTime time.Time) *AvailabilitySummary {
-	// Implementation would calculate comprehensive summary metrics
+	// Implementation would calculate comprehensive summary metrics.
 	return &AvailabilitySummary{
 		OverallAvailability:     0.9995, // 99.95%
 		WeightedAvailability:    0.9993,
@@ -978,32 +994,32 @@ func (ar *AvailabilityReporter) calculateSummaryMetrics(ctx context.Context, met
 }
 
 func (ar *AvailabilityReporter) generateServiceMetrics(ctx context.Context, startTime, endTime time.Time) []ServiceAvailability {
-	// Implementation would generate service-specific availability metrics
+	// Implementation would generate service-specific availability metrics.
 	return []ServiceAvailability{}
 }
 
 func (ar *AvailabilityReporter) generateComponentMetrics(ctx context.Context, startTime, endTime time.Time) []ComponentAvailability {
-	// Implementation would generate component-specific availability metrics
+	// Implementation would generate component-specific availability metrics.
 	return []ComponentAvailability{}
 }
 
 func (ar *AvailabilityReporter) generateDependencyMetrics(ctx context.Context, startTime, endTime time.Time) []DependencyAvailability {
-	// Implementation would generate dependency-specific availability metrics
+	// Implementation would generate dependency-specific availability metrics.
 	return []DependencyAvailability{}
 }
 
 func (ar *AvailabilityReporter) generateUserJourneyMetrics(ctx context.Context, startTime, endTime time.Time) []UserJourneyAvailability {
-	// Implementation would generate user journey availability metrics
+	// Implementation would generate user journey availability metrics.
 	return []UserJourneyAvailability{}
 }
 
 func (ar *AvailabilityReporter) calculateHistoricalSummary(ctx context.Context, metrics []AvailabilityMetric, startTime, endTime time.Time) *AvailabilitySummary {
-	// Implementation would calculate historical summary from metrics
+	// Implementation would calculate historical summary from metrics.
 	return ar.calculateSummaryMetrics(ctx, nil, startTime, endTime)
 }
 
 func (ar *AvailabilityReporter) generateTrendAnalysis(ctx context.Context, metrics []AvailabilityMetric, timeWindow TimeWindow) *TrendAnalysis {
-	// Implementation would analyze trends in the metrics
+	// Implementation would analyze trends in the metrics.
 	return &TrendAnalysis{
 		TimeWindow:        timeWindow,
 		AvailabilityTrend: 0.001,  // Slight improvement
@@ -1014,7 +1030,7 @@ func (ar *AvailabilityReporter) generateTrendAnalysis(ctx context.Context, metri
 }
 
 func (ar *AvailabilityReporter) generatePredictiveInsights(ctx context.Context, metrics []AvailabilityMetric, trends *TrendAnalysis) *PredictiveInsights {
-	// Implementation would generate ML-based predictive insights
+	// Implementation would generate ML-based predictive insights.
 	return &PredictiveInsights{
 		PredictedAvailability: 0.9996,
 		PredictionConfidence:  0.85,
@@ -1025,29 +1041,38 @@ func (ar *AvailabilityReporter) generatePredictiveInsights(ctx context.Context, 
 func (ar *AvailabilityReporter) getActiveAlerts(ctx context.Context) []AlertSummary {
 	return []AlertSummary{}
 }
+
 func (ar *AvailabilityReporter) getIncidentHistory(ctx context.Context, startTime, endTime time.Time) []IncidentSummary {
 	return []IncidentSummary{}
 }
+
 func (ar *AvailabilityReporter) calculateErrorBudgets(ctx context.Context, startTime, endTime time.Time) []ErrorBudgetStatus {
 	return []ErrorBudgetStatus{}
 }
+
 func (ar *AvailabilityReporter) determineComplianceStatus(budgets []ErrorBudgetStatus) ComplianceStatus {
 	return ComplianceHealthy
 }
+
 func (ar *AvailabilityReporter) generateComplianceSummary(ctx context.Context, startTime, endTime time.Time) *AvailabilitySummary {
 	return ar.calculateSummaryMetrics(ctx, nil, startTime, endTime)
 }
+
 func (ar *AvailabilityReporter) calculateIncidentSummary(ctx context.Context, incidents []IncidentSummary, startTime, endTime time.Time) *AvailabilitySummary {
 	return ar.calculateSummaryMetrics(ctx, nil, startTime, endTime)
 }
+
 func (ar *AvailabilityReporter) enrichIncidentsWithRootCause(ctx context.Context, incidents []IncidentSummary) {
 }
+
 func (ar *AvailabilityReporter) generateSLAComplianceReport(ctx context.Context, startTime, endTime time.Time) *SLAComplianceReport {
 	return &SLAComplianceReport{}
 }
+
 func (ar *AvailabilityReporter) calculateTrendSummary(ctx context.Context, metrics []AvailabilityMetric, trends *TrendAnalysis) *AvailabilitySummary {
 	return ar.calculateSummaryMetrics(ctx, nil, time.Now(), time.Now())
 }
+
 func (ar *AvailabilityReporter) createDefaultPanels(reportType ReportType) []DashboardPanel {
 	return []DashboardPanel{}
 }
@@ -1059,12 +1084,15 @@ func (ar *AvailabilityReporter) cleanupOldReports(ctx context.Context)          
 func (ar *AvailabilityReporter) exportReportAsCSV(report *AvailabilityReport) ([]byte, error) {
 	return []byte{}, nil
 }
+
 func (ar *AvailabilityReporter) exportReportAsHTML(report *AvailabilityReport) ([]byte, error) {
 	return []byte{}, nil
 }
+
 func (ar *AvailabilityReporter) exportReportAsPDF(report *AvailabilityReport) ([]byte, error) {
 	return []byte{}, nil
 }
+
 func (ar *AvailabilityReporter) exportReportAsPrometheusMetrics(report *AvailabilityReport) ([]byte, error) {
 	return []byte{}, nil
 }

@@ -39,39 +39,39 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
-// SpecializedResourcePlanningController handles resource planning and optimization for telecom workloads
+// SpecializedResourcePlanningController handles resource planning and optimization for telecom workloads.
 type SpecializedResourcePlanningController struct {
 	client.Client
 	Scheme   *runtime.Scheme
 	Recorder record.EventRecorder
 	Logger   logr.Logger
 
-	// Resource planning services
+	// Resource planning services.
 	ResourceCalculator *TelecomResourceCalculator
 	OptimizationEngine *ResourceOptimizationEngine
 	ConstraintSolver   *ResourceConstraintSolver
 	CostEstimator      *TelecomCostEstimator
 
-	// Configuration
+	// Configuration.
 	Config            ResourcePlanningConfig
 	ResourceTemplates map[string]*NetworkFunctionTemplate
 	ConstraintRules   []*ResourceConstraintRule
 
-	// Internal state
+	// Internal state.
 	activePlanning sync.Map // map[string]*PlanningSession
 	planningCache  *ResourcePlanCache
 	metrics        *ResourcePlanningMetrics
 
-	// Health and lifecycle
+	// Health and lifecycle.
 	started      bool
 	stopChan     chan struct{}
 	healthStatus interfaces.HealthStatus
 	mutex        sync.RWMutex
 }
 
-// Note: ResourcePlanningConfig is defined in resource_planning_controller.go to avoid duplication
+// Note: ResourcePlanningConfig is defined in resource_planning_controller.go to avoid duplication.
 
-// TelecomResourceCalculator calculates resource requirements for telecom NFs
+// TelecomResourceCalculator calculates resource requirements for telecom NFs.
 type TelecomResourceCalculator struct {
 	logger             logr.Logger
 	baselineProfiles   map[string]*ResourceProfile
@@ -79,7 +79,7 @@ type TelecomResourceCalculator struct {
 	performanceTargets map[string]*PerformanceTarget
 }
 
-// ResourceProfile defines baseline resource requirements
+// ResourceProfile defines baseline resource requirements.
 type ResourceProfile struct {
 	NetworkFunction  string                 `json:"networkFunction"`
 	BaselineCPU      resource.Quantity      `json:"baselineCpu"`
@@ -90,7 +90,7 @@ type ResourceProfile struct {
 	Metadata         map[string]interface{} `json:"metadata"`
 }
 
-// ScalingProfile defines how resources scale with load
+// ScalingProfile defines how resources scale with load.
 type ScalingProfile struct {
 	NetworkFunction      string  `json:"networkFunction"`
 	CPUScalingFactor     float64 `json:"cpuScalingFactor"`
@@ -101,7 +101,7 @@ type ScalingProfile struct {
 	ScalingThreshold     float64 `json:"scalingThreshold"`
 }
 
-// PerformanceTarget defines performance requirements
+// PerformanceTarget defines performance requirements.
 type PerformanceTarget struct {
 	NetworkFunction    string        `json:"networkFunction"`
 	MaxLatency         time.Duration `json:"maxLatency"`
@@ -110,7 +110,7 @@ type PerformanceTarget struct {
 	AvailabilityTarget float64       `json:"availabilityTarget"`
 }
 
-// NetworkFunctionTemplate defines templates for common NF deployments
+// NetworkFunctionTemplate defines templates for common NF deployments.
 type NetworkFunctionTemplate struct {
 	Name             string                   `json:"name"`
 	Type             string                   `json:"type"`
@@ -122,7 +122,7 @@ type NetworkFunctionTemplate struct {
 	Metadata         map[string]interface{}   `json:"metadata"`
 }
 
-// ResourceConstraintRule defines resource constraints
+// ResourceConstraintRule defines resource constraints.
 type ResourceConstraintRule struct {
 	ID              string                  `json:"id"`
 	Name            string                  `json:"name"`
@@ -133,10 +133,10 @@ type ResourceConstraintRule struct {
 	Metadata        map[string]interface{}  `json:"metadata"`
 }
 
-// ResourceConstraintCheck defines constraint checking logic
+// ResourceConstraintCheck defines constraint checking logic.
 type ResourceConstraintCheck func(plan *interfaces.ResourcePlan) error
 
-// PlanningSession tracks active resource planning
+// PlanningSession tracks active resource planning.
 type PlanningSession struct {
 	IntentID      string    `json:"intentId"`
 	CorrelationID string    `json:"correlationId"`
@@ -145,28 +145,28 @@ type PlanningSession struct {
 	Progress      float64   `json:"progress"`
 	CurrentStep   string    `json:"currentStep"`
 
-	// Input data
+	// Input data.
 	LLMResponse    map[string]interface{} `json:"llmResponse"`
 	RequiredNFs    []string               `json:"requiredNFs"`
 	DeploymentType string                 `json:"deploymentType"`
 
-	// Planning results
+	// Planning results.
 	ResourcePlan  *interfaces.ResourcePlan  `json:"resourcePlan"`
 	OptimizedPlan *interfaces.OptimizedPlan `json:"optimizedPlan"`
 	CostEstimate  *interfaces.CostEstimate  `json:"costEstimate"`
 
-	// Error handling
+	// Error handling.
 	Errors    []string `json:"errors"`
 	Warnings  []string `json:"warnings"`
 	LastError string   `json:"lastError"`
 
-	// Performance tracking
+	// Performance tracking.
 	Metrics PlanningSessionMetrics `json:"metrics"`
 
 	mutex sync.RWMutex
 }
 
-// PlanningSessionMetrics tracks metrics for planning session
+// PlanningSessionMetrics tracks metrics for planning session.
 type PlanningSessionMetrics struct {
 	CalculationTime      time.Duration `json:"calculationTime"`
 	OptimizationTime     time.Duration `json:"optimizationTime"`
@@ -178,7 +178,7 @@ type PlanningSessionMetrics struct {
 	CacheHit             bool          `json:"cacheHit"`
 }
 
-// ResourcePlanningMetrics tracks overall controller metrics
+// ResourcePlanningMetrics tracks overall controller metrics.
 type ResourcePlanningMetrics struct {
 	TotalPlanned        int64         `json:"totalPlanned"`
 	SuccessfulPlanned   int64         `json:"successfulPlanned"`
@@ -186,15 +186,15 @@ type ResourcePlanningMetrics struct {
 	AveragePlanningTime time.Duration `json:"averagePlanningTime"`
 	AverageCostSavings  float64       `json:"averageCostSavings"`
 
-	// Per NF type metrics
+	// Per NF type metrics.
 	NFTypeMetrics map[string]*NFPlanningMetrics `json:"nfTypeMetrics"`
 
-	// Resource utilization
+	// Resource utilization.
 	TotalCPUPlanned     resource.Quantity `json:"totalCpuPlanned"`
 	TotalMemoryPlanned  resource.Quantity `json:"totalMemoryPlanned"`
 	TotalStoragePlanned resource.Quantity `json:"totalStoragePlanned"`
 
-	// Cache metrics
+	// Cache metrics.
 	CacheHitRate         float64 `json:"cacheHitRate"`
 	ConstraintViolations int64   `json:"constraintViolations"`
 
@@ -202,7 +202,7 @@ type ResourcePlanningMetrics struct {
 	mutex       sync.RWMutex
 }
 
-// NFPlanningMetrics tracks metrics per NF type
+// NFPlanningMetrics tracks metrics per NF type.
 type NFPlanningMetrics struct {
 	Count               int64             `json:"count"`
 	AverageCPU          resource.Quantity `json:"averageCpu"`
@@ -212,7 +212,7 @@ type NFPlanningMetrics struct {
 	AveragePlanningTime time.Duration     `json:"averagePlanningTime"`
 }
 
-// ResourcePlanCache provides caching for resource plans
+// ResourcePlanCache provides caching for resource plans.
 type ResourcePlanCache struct {
 	entries    map[string]*PlanCacheEntry
 	mutex      sync.RWMutex
@@ -220,7 +220,7 @@ type ResourcePlanCache struct {
 	maxEntries int
 }
 
-// PlanCacheEntry represents a cached resource plan
+// PlanCacheEntry represents a cached resource plan.
 type PlanCacheEntry struct {
 	Plan      *interfaces.ResourcePlan `json:"plan"`
 	Timestamp time.Time                `json:"timestamp"`
@@ -228,20 +228,20 @@ type PlanCacheEntry struct {
 	PlanHash  string                   `json:"planHash"`
 }
 
-// NewSpecializedResourcePlanningController creates a new resource planning controller
+// NewSpecializedResourcePlanningController creates a new resource planning controller.
 func NewSpecializedResourcePlanningController(mgr ctrl.Manager, config ResourcePlanningConfig) (*SpecializedResourcePlanningController, error) {
 	logger := log.FromContext(context.Background()).WithName("specialized-resource-planner")
 
-	// Initialize resource calculator
+	// Initialize resource calculator.
 	resourceCalculator := NewTelecomResourceCalculator(logger)
 
-	// Initialize optimization engine
+	// Initialize optimization engine.
 	optimizationEngine := NewResourceOptimizationEngine(logger, config)
 
-	// Initialize constraint solver
+	// Initialize constraint solver.
 	constraintSolver := NewResourceConstraintSolver(logger)
 
-	// Initialize cost estimator
+	// Initialize cost estimator.
 	costEstimator := NewTelecomCostEstimator(logger)
 
 	controller := &SpecializedResourcePlanningController{
@@ -269,7 +269,7 @@ func NewSpecializedResourcePlanningController(mgr ctrl.Manager, config ResourceP
 		},
 	}
 
-	// Initialize cache if enabled
+	// Initialize cache if enabled.
 	if config.CacheEnabled {
 		controller.planningCache = &ResourcePlanCache{
 			entries:    make(map[string]*PlanCacheEntry),
@@ -281,7 +281,7 @@ func NewSpecializedResourcePlanningController(mgr ctrl.Manager, config ResourceP
 	return controller, nil
 }
 
-// ProcessPhase implements the PhaseController interface
+// ProcessPhase implements the PhaseController interface.
 func (c *SpecializedResourcePlanningController) ProcessPhase(ctx context.Context, intent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase) (interfaces.ProcessingResult, error) {
 	if phase != interfaces.PhaseResourcePlanning {
 		return interfaces.ProcessingResult{
@@ -290,7 +290,7 @@ func (c *SpecializedResourcePlanningController) ProcessPhase(ctx context.Context
 		}, nil
 	}
 
-	// Extract LLM response from intent status
+	// Extract LLM response from intent status.
 	var llmResponse map[string]interface{}
 	if len(intent.Status.LLMResponse.Raw) > 0 {
 		if err := json.Unmarshal(intent.Status.LLMResponse.Raw, &llmResponse); err != nil {
@@ -311,7 +311,7 @@ func (c *SpecializedResourcePlanningController) ProcessPhase(ctx context.Context
 	return c.planResourcesFromLLM(ctx, intent, llmResponse)
 }
 
-// PlanResources implements the ResourcePlanner interface
+// PlanResources implements the ResourcePlanner interface.
 func (c *SpecializedResourcePlanningController) PlanResources(ctx context.Context, llmResponse map[string]interface{}) (*interfaces.ResourcePlan, error) {
 	result, err := c.planResourcesFromLLM(ctx, nil, llmResponse)
 	if err != nil {
@@ -329,7 +329,7 @@ func (c *SpecializedResourcePlanningController) PlanResources(ctx context.Contex
 	return nil, fmt.Errorf("invalid resource plan in result")
 }
 
-// planResourcesFromLLM performs resource planning based on LLM response
+// planResourcesFromLLM performs resource planning based on LLM response.
 func (c *SpecializedResourcePlanningController) planResourcesFromLLM(ctx context.Context, intent *nephoranv1.NetworkIntent, llmResponse map[string]interface{}) (interfaces.ProcessingResult, error) {
 	startTime := time.Now()
 
@@ -340,7 +340,7 @@ func (c *SpecializedResourcePlanningController) planResourcesFromLLM(ctx context
 
 	c.Logger.Info("Planning resources from LLM response", "intentId", intentID)
 
-	// Create planning session
+	// Create planning session.
 	session := &PlanningSession{
 		IntentID:      intentID,
 		CorrelationID: fmt.Sprintf("plan-%s-%d", intentID, startTime.Unix()),
@@ -351,11 +351,11 @@ func (c *SpecializedResourcePlanningController) planResourcesFromLLM(ctx context
 		LLMResponse:   llmResponse,
 	}
 
-	// Store session for tracking
+	// Store session for tracking.
 	c.activePlanning.Store(intentID, session)
 	defer c.activePlanning.Delete(intentID)
 
-	// Check cache first
+	// Check cache first.
 	if c.planningCache != nil {
 		if cached := c.getCachedPlan(llmResponse); cached != nil {
 			c.Logger.Info("Cache hit for resource plan", "intentId", intentID)
@@ -377,7 +377,7 @@ func (c *SpecializedResourcePlanningController) planResourcesFromLLM(ctx context
 		}
 	}
 
-	// Parse network functions from LLM response
+	// Parse network functions from LLM response.
 	session.updateProgress(0.2, "parsing_network_functions")
 	networkFunctions, err := c.parseNetworkFunctions(llmResponse)
 	if err != nil {
@@ -391,7 +391,7 @@ func (c *SpecializedResourcePlanningController) planResourcesFromLLM(ctx context
 	}
 	session.RequiredNFs = c.extractNFNames(networkFunctions)
 
-	// Calculate resource requirements
+	// Calculate resource requirements.
 	session.updateProgress(0.4, "calculating_resources")
 	calcStartTime := time.Now()
 	resourcePlan, err := c.calculateResourceRequirements(ctx, networkFunctions, llmResponse)
@@ -407,16 +407,16 @@ func (c *SpecializedResourcePlanningController) planResourcesFromLLM(ctx context
 	session.Metrics.CalculationTime = time.Since(calcStartTime)
 	session.ResourcePlan = resourcePlan
 
-	// Validate constraints
+	// Validate constraints.
 	session.updateProgress(0.6, "validating_constraints")
 	constraintStartTime := time.Now()
 	if err := c.ValidateResourceConstraints(ctx, resourcePlan); err != nil {
 		session.addWarning(fmt.Sprintf("constraint validation warning: %v", err))
-		// Continue with warnings, don't fail
+		// Continue with warnings, don't fail.
 	}
 	session.Metrics.ConstraintCheckTime = time.Since(constraintStartTime)
 
-	// Optimize resource allocation if enabled
+	// Optimize resource allocation if enabled.
 	var optimizedPlan *interfaces.OptimizedPlan
 	if c.Config.OptimizationEnabled {
 		session.updateProgress(0.8, "optimizing_resources")
@@ -431,10 +431,10 @@ func (c *SpecializedResourcePlanningController) planResourcesFromLLM(ctx context
 		optimizedPlan, err = c.OptimizeResourceAllocation(ctx, requirements)
 		if err != nil {
 			session.addWarning(fmt.Sprintf("optimization failed: %v", err))
-			// Continue without optimization
+			// Continue without optimization.
 		} else {
 			session.OptimizedPlan = optimizedPlan
-			// Use optimized plan if available
+			// Use optimized plan if available.
 			if optimizedPlan != nil && optimizedPlan.OptimizedPlan != nil {
 				resourcePlan = optimizedPlan.OptimizedPlan
 			}
@@ -442,21 +442,21 @@ func (c *SpecializedResourcePlanningController) planResourcesFromLLM(ctx context
 		session.Metrics.OptimizationTime = time.Since(optStartTime)
 	}
 
-	// Estimate costs
+	// Estimate costs.
 	session.updateProgress(0.9, "estimating_costs")
 	costEstimate, err := c.EstimateResourceCosts(ctx, resourcePlan)
 	if err != nil {
 		session.addWarning(fmt.Sprintf("cost estimation failed: %v", err))
-		// Continue without cost estimate
+		// Continue without cost estimate.
 	} else {
 		session.CostEstimate = costEstimate
 	}
 
-	// Finalize
+	// Finalize.
 	session.updateProgress(1.0, "completed")
 	session.Metrics.TotalTime = time.Since(startTime)
 
-	// Create result
+	// Create result.
 	resultData := map[string]interface{}{
 		"resourcePlan":     resourcePlan,
 		"correlationId":    session.CorrelationID,
@@ -496,12 +496,12 @@ func (c *SpecializedResourcePlanningController) planResourcesFromLLM(ctx context
 		},
 	}
 
-	// Cache result if enabled
+	// Cache result if enabled.
 	if c.planningCache != nil {
 		c.cachePlan(llmResponse, resourcePlan)
 	}
 
-	// Update metrics
+	// Update metrics.
 	c.updateMetrics(session, true, time.Since(startTime))
 
 	c.Logger.Info("Resource planning completed successfully",
@@ -512,11 +512,11 @@ func (c *SpecializedResourcePlanningController) planResourcesFromLLM(ctx context
 	return result, nil
 }
 
-// parseNetworkFunctions parses network functions from LLM response
+// parseNetworkFunctions parses network functions from LLM response.
 func (c *SpecializedResourcePlanningController) parseNetworkFunctions(llmResponse map[string]interface{}) ([]interfaces.PlannedNetworkFunction, error) {
 	var networkFunctions []interfaces.PlannedNetworkFunction
 
-	// Try to extract network functions from various possible fields
+	// Try to extract network functions from various possible fields.
 	nfFields := []string{"network_functions", "networkFunctions", "nfs", "components", "services"}
 
 	var nfData interface{}
@@ -534,7 +534,7 @@ func (c *SpecializedResourcePlanningController) parseNetworkFunctions(llmRespons
 		return nil, fmt.Errorf("no network functions found in LLM response")
 	}
 
-	// Parse based on data type
+	// Parse based on data type.
 	switch nfs := nfData.(type) {
 	case []interface{}:
 		for i, nfInterface := range nfs {
@@ -546,7 +546,7 @@ func (c *SpecializedResourcePlanningController) parseNetworkFunctions(llmRespons
 			networkFunctions = append(networkFunctions, *nf)
 		}
 	case map[string]interface{}:
-		// Single network function
+		// Single network function.
 		nf, err := c.parseNetworkFunction(nfs, 0)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse network function: %w", err)
@@ -563,14 +563,14 @@ func (c *SpecializedResourcePlanningController) parseNetworkFunctions(llmRespons
 	return networkFunctions, nil
 }
 
-// parseNetworkFunction parses a single network function from data
+// parseNetworkFunction parses a single network function from data.
 func (c *SpecializedResourcePlanningController) parseNetworkFunction(data interface{}, index int) (*interfaces.PlannedNetworkFunction, error) {
 	nfMap, ok := data.(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("network function data must be an object")
 	}
 
-	// Extract basic information
+	// Extract basic information.
 	name, _ := nfMap["name"].(string)
 	if name == "" {
 		name = fmt.Sprintf("nf-%d", index)
@@ -584,7 +584,7 @@ func (c *SpecializedResourcePlanningController) parseNetworkFunction(data interf
 	image, _ := nfMap["image"].(string)
 	version, _ := nfMap["version"].(string)
 
-	// Parse replicas
+	// Parse replicas.
 	replicas := int32(1)
 	if replicasInterface, exists := nfMap["replicas"]; exists {
 		switch r := replicasInterface.(type) {
@@ -599,16 +599,16 @@ func (c *SpecializedResourcePlanningController) parseNetworkFunction(data interf
 		}
 	}
 
-	// Parse resources
+	// Parse resources.
 	resources := c.parseResourceSpec(nfMap)
 
-	// Parse ports
+	// Parse ports.
 	ports := c.parsePorts(nfMap)
 
-	// Parse environment variables
+	// Parse environment variables.
 	environment := c.parseEnvironment(nfMap)
 
-	// Parse configuration
+	// Parse configuration.
 	configuration := make(map[string]interface{})
 	if configInterface, exists := nfMap["configuration"]; exists {
 		if configMap, ok := configInterface.(map[string]interface{}); ok {
@@ -631,7 +631,7 @@ func (c *SpecializedResourcePlanningController) parseNetworkFunction(data interf
 	return nf, nil
 }
 
-// parseResourceSpec parses resource specifications
+// parseResourceSpec parses resource specifications.
 func (c *SpecializedResourcePlanningController) parseResourceSpec(nfMap map[string]interface{}) interfaces.ResourceSpec {
 	resourceSpec := interfaces.ResourceSpec{
 		Requests: interfaces.ResourceRequirements{
@@ -646,10 +646,10 @@ func (c *SpecializedResourcePlanningController) parseResourceSpec(nfMap map[stri
 		},
 	}
 
-	// Parse resources from various possible locations
+	// Parse resources from various possible locations.
 	if resourcesInterface, exists := nfMap["resources"]; exists {
 		if resourcesMap, ok := resourcesInterface.(map[string]interface{}); ok {
-			// Parse requests
+			// Parse requests.
 			if requestsInterface, exists := resourcesMap["requests"]; exists {
 				if requestsMap, ok := requestsInterface.(map[string]interface{}); ok {
 					if cpu, exists := requestsMap["cpu"]; exists {
@@ -670,7 +670,7 @@ func (c *SpecializedResourcePlanningController) parseResourceSpec(nfMap map[stri
 				}
 			}
 
-			// Parse limits
+			// Parse limits.
 			if limitsInterface, exists := resourcesMap["limits"]; exists {
 				if limitsMap, ok := limitsInterface.(map[string]interface{}); ok {
 					if cpu, exists := limitsMap["cpu"]; exists {
@@ -696,7 +696,7 @@ func (c *SpecializedResourcePlanningController) parseResourceSpec(nfMap map[stri
 	return resourceSpec
 }
 
-// parsePorts parses port specifications
+// parsePorts parses port specifications.
 func (c *SpecializedResourcePlanningController) parsePorts(nfMap map[string]interface{}) []interfaces.PortSpec {
 	var ports []interfaces.PortSpec
 
@@ -735,7 +735,7 @@ func (c *SpecializedResourcePlanningController) parsePorts(nfMap map[string]inte
 	return ports
 }
 
-// parseEnvironment parses environment variables
+// parseEnvironment parses environment variables.
 func (c *SpecializedResourcePlanningController) parseEnvironment(nfMap map[string]interface{}) []interfaces.EnvVar {
 	var environment []interfaces.EnvVar
 
@@ -771,29 +771,29 @@ func (c *SpecializedResourcePlanningController) parseEnvironment(nfMap map[strin
 	return environment
 }
 
-// calculateResourceRequirements calculates total resource requirements
+// calculateResourceRequirements calculates total resource requirements.
 func (c *SpecializedResourcePlanningController) calculateResourceRequirements(ctx context.Context, networkFunctions []interfaces.PlannedNetworkFunction, llmResponse map[string]interface{}) (*interfaces.ResourcePlan, error) {
-	// Extract deployment pattern
+	// Extract deployment pattern.
 	deploymentPattern, _ := llmResponse["deployment_pattern"].(string)
 	if deploymentPattern == "" {
 		deploymentPattern = "standard"
 	}
 
-	// Calculate total resource requirements
+	// Calculate total resource requirements.
 	totalCPU := resource.NewQuantity(0, resource.DecimalSI)
 	totalMemory := resource.NewQuantity(0, resource.BinarySI)
 	totalStorage := resource.NewQuantity(0, resource.BinarySI)
 
-	// Calculate resources for each NF
+	// Calculate resources for each NF.
 	for i := range networkFunctions {
 		nf := &networkFunctions[i]
 
-		// Apply resource templates if available
+		// Apply resource templates if available.
 		if template, exists := c.ResourceTemplates[nf.Type]; exists {
 			c.applyResourceTemplate(nf, template)
 		}
 
-		// Calculate per-replica resources
+		// Calculate per-replica resources.
 		cpuRequest, err := resource.ParseQuantity(nf.Resources.Requests.CPU)
 		if err != nil {
 			cpuRequest, _ = resource.ParseQuantity(c.Config.DefaultCPURequest)
@@ -809,22 +809,22 @@ func (c *SpecializedResourcePlanningController) calculateResourceRequirements(ct
 			storageRequest, _ = resource.ParseQuantity(c.Config.DefaultStorageRequest)
 		}
 
-		// Multiply by replicas
+		// Multiply by replicas.
 		replicaMultiplier := int64(nf.Replicas)
 		cpuRequest.Set(cpuRequest.Value() * replicaMultiplier)
 		memoryRequest.Set(memoryRequest.Value() * replicaMultiplier)
 		storageRequest.Set(storageRequest.Value() * replicaMultiplier)
 
-		// Add to totals
+		// Add to totals.
 		totalCPU.Add(cpuRequest)
 		totalMemory.Add(memoryRequest)
 		totalStorage.Add(storageRequest)
 	}
 
-	// Calculate constraints
+	// Calculate constraints.
 	constraints := c.calculateConstraints(networkFunctions, deploymentPattern)
 
-	// Calculate dependencies
+	// Calculate dependencies.
 	dependencies := c.calculateDependencies(networkFunctions)
 
 	resourcePlan := &interfaces.ResourcePlan{
@@ -842,9 +842,9 @@ func (c *SpecializedResourcePlanningController) calculateResourceRequirements(ct
 	return resourcePlan, nil
 }
 
-// applyResourceTemplate applies resource template to network function
+// applyResourceTemplate applies resource template to network function.
 func (c *SpecializedResourcePlanningController) applyResourceTemplate(nf *interfaces.PlannedNetworkFunction, template *NetworkFunctionTemplate) {
-	// Apply default resources if not specified
+	// Apply default resources if not specified.
 	if nf.Resources.Requests.CPU == "" || nf.Resources.Requests.CPU == c.Config.DefaultCPURequest {
 		nf.Resources.Requests.CPU = template.DefaultResources.Requests.CPU
 	}
@@ -855,7 +855,7 @@ func (c *SpecializedResourcePlanningController) applyResourceTemplate(nf *interf
 		nf.Resources.Requests.Storage = template.DefaultResources.Requests.Storage
 	}
 
-	// Apply limits if not specified
+	// Apply limits if not specified.
 	if nf.Resources.Limits.CPU == "" {
 		nf.Resources.Limits.CPU = template.DefaultResources.Limits.CPU
 	}
@@ -866,7 +866,7 @@ func (c *SpecializedResourcePlanningController) applyResourceTemplate(nf *interf
 		nf.Resources.Limits.Storage = template.DefaultResources.Limits.Storage
 	}
 
-	// Apply metadata
+	// Apply metadata.
 	if nf.Configuration == nil {
 		nf.Configuration = make(map[string]interface{})
 	}
@@ -877,11 +877,11 @@ func (c *SpecializedResourcePlanningController) applyResourceTemplate(nf *interf
 	}
 }
 
-// calculateConstraints calculates resource constraints
+// calculateConstraints calculates resource constraints.
 func (c *SpecializedResourcePlanningController) calculateConstraints(networkFunctions []interfaces.PlannedNetworkFunction, deploymentPattern string) []interfaces.ResourceConstraint {
 	var constraints []interfaces.ResourceConstraint
 
-	// Anti-affinity constraints for critical NFs
+	// Anti-affinity constraints for critical NFs.
 	criticalNFs := []string{"amf", "smf", "upf", "ausf", "nrf"}
 	for _, nf := range networkFunctions {
 		for _, criticalType := range criticalNFs {
@@ -898,7 +898,7 @@ func (c *SpecializedResourcePlanningController) calculateConstraints(networkFunc
 		}
 	}
 
-	// Resource limit constraints
+	// Resource limit constraints.
 	constraints = append(constraints, interfaces.ResourceConstraint{
 		Type:     "resource-limit",
 		Resource: "cpu",
@@ -915,7 +915,7 @@ func (c *SpecializedResourcePlanningController) calculateConstraints(networkFunc
 		Message:  "Ensure sufficient memory headroom for system processes",
 	})
 
-	// Deployment pattern specific constraints
+	// Deployment pattern specific constraints.
 	switch deploymentPattern {
 	case "high-availability":
 		constraints = append(constraints, interfaces.ResourceConstraint{
@@ -938,11 +938,11 @@ func (c *SpecializedResourcePlanningController) calculateConstraints(networkFunc
 	return constraints
 }
 
-// calculateDependencies calculates NF dependencies
+// calculateDependencies calculates NF dependencies.
 func (c *SpecializedResourcePlanningController) calculateDependencies(networkFunctions []interfaces.PlannedNetworkFunction) []interfaces.Dependency {
 	var dependencies []interfaces.Dependency
 
-	// Define common 5G dependencies
+	// Define common 5G dependencies.
 	dependencyMap := map[string][]string{
 		"amf":  {"nrf", "ausf", "udm"},
 		"smf":  {"nrf", "udm", "upf"},
@@ -955,13 +955,13 @@ func (c *SpecializedResourcePlanningController) calculateDependencies(networkFun
 		"nef":  {"nrf"},
 	}
 
-	// Create dependency map for existing NFs
+	// Create dependency map for existing NFs.
 	existingNFs := make(map[string]bool)
 	for _, nf := range networkFunctions {
 		existingNFs[strings.ToLower(nf.Type)] = true
 	}
 
-	// Calculate dependencies
+	// Calculate dependencies.
 	for _, nf := range networkFunctions {
 		nfType := strings.ToLower(nf.Type)
 		if deps, exists := dependencyMap[nfType]; exists {
@@ -985,7 +985,7 @@ func (c *SpecializedResourcePlanningController) calculateDependencies(networkFun
 	return dependencies
 }
 
-// extractNFNames extracts network function names
+// extractNFNames extracts network function names.
 func (c *SpecializedResourcePlanningController) extractNFNames(networkFunctions []interfaces.PlannedNetworkFunction) []string {
 	names := make([]string, len(networkFunctions))
 	for i, nf := range networkFunctions {
@@ -994,9 +994,9 @@ func (c *SpecializedResourcePlanningController) extractNFNames(networkFunctions 
 	return names
 }
 
-// Helper methods for session management
+// Helper methods for session management.
 
-// updateProgress updates session progress
+// updateProgress updates session progress.
 func (s *PlanningSession) updateProgress(progress float64, step string) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
@@ -1004,7 +1004,7 @@ func (s *PlanningSession) updateProgress(progress float64, step string) {
 	s.CurrentStep = step
 }
 
-// addError adds error to session
+// addError adds error to session.
 func (s *PlanningSession) addError(errorMsg string) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
@@ -1012,16 +1012,16 @@ func (s *PlanningSession) addError(errorMsg string) {
 	s.LastError = errorMsg
 }
 
-// addWarning adds warning to session
+// addWarning adds warning to session.
 func (s *PlanningSession) addWarning(warningMsg string) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	s.Warnings = append(s.Warnings, warningMsg)
 }
 
-// Cache management methods
+// Cache management methods.
 
-// getCachedPlan retrieves cached plan
+// getCachedPlan retrieves cached plan.
 func (c *SpecializedResourcePlanningController) getCachedPlan(llmResponse map[string]interface{}) *PlanCacheEntry {
 	if c.planningCache == nil {
 		return nil
@@ -1032,19 +1032,19 @@ func (c *SpecializedResourcePlanningController) getCachedPlan(llmResponse map[st
 
 	planHash := c.hashLLMResponse(llmResponse)
 	if entry, exists := c.planningCache.entries[planHash]; exists {
-		// Check if entry is still valid
+		// Check if entry is still valid.
 		if time.Since(entry.Timestamp) < c.planningCache.ttl {
 			entry.HitCount++
 			return entry
 		}
-		// Entry expired, remove it
+		// Entry expired, remove it.
 		delete(c.planningCache.entries, planHash)
 	}
 
 	return nil
 }
 
-// cachePlan stores plan in cache
+// cachePlan stores plan in cache.
 func (c *SpecializedResourcePlanningController) cachePlan(llmResponse map[string]interface{}, plan *interfaces.ResourcePlan) {
 	if c.planningCache == nil {
 		return
@@ -1055,9 +1055,9 @@ func (c *SpecializedResourcePlanningController) cachePlan(llmResponse map[string
 
 	planHash := c.hashLLMResponse(llmResponse)
 
-	// Check cache size limit
+	// Check cache size limit.
 	if len(c.planningCache.entries) >= c.planningCache.maxEntries {
-		// Remove oldest entry (simple LRU)
+		// Remove oldest entry (simple LRU).
 		var oldestKey string
 		var oldestTime time.Time
 		for key, entry := range c.planningCache.entries {
@@ -1079,9 +1079,9 @@ func (c *SpecializedResourcePlanningController) cachePlan(llmResponse map[string
 	}
 }
 
-// hashLLMResponse creates a hash for LLM response
+// hashLLMResponse creates a hash for LLM response.
 func (c *SpecializedResourcePlanningController) hashLLMResponse(llmResponse map[string]interface{}) string {
-	// Simple hash based on key characteristics - in production, use proper hashing
+	// Simple hash based on key characteristics - in production, use proper hashing.
 	var hashComponents []string
 
 	if nfs, exists := llmResponse["network_functions"]; exists {
@@ -1098,7 +1098,7 @@ func (c *SpecializedResourcePlanningController) hashLLMResponse(llmResponse map[
 	return fmt.Sprintf("plan_%x", len(combined)+int(combined[0]))
 }
 
-// updateMetrics updates controller metrics
+// updateMetrics updates controller metrics.
 func (c *SpecializedResourcePlanningController) updateMetrics(session *PlanningSession, success bool, totalDuration time.Duration) {
 	c.metrics.mutex.Lock()
 	defer c.metrics.mutex.Unlock()
@@ -1110,7 +1110,7 @@ func (c *SpecializedResourcePlanningController) updateMetrics(session *PlanningS
 		c.metrics.FailedPlanned++
 	}
 
-	// Update average planning time
+	// Update average planning time.
 	if c.metrics.TotalPlanned > 0 {
 		totalTime := time.Duration(c.metrics.TotalPlanned-1) * c.metrics.AveragePlanningTime
 		totalTime += totalDuration
@@ -1119,7 +1119,7 @@ func (c *SpecializedResourcePlanningController) updateMetrics(session *PlanningS
 		c.metrics.AveragePlanningTime = totalDuration
 	}
 
-	// Update per NF type metrics
+	// Update per NF type metrics.
 	for _, nfName := range session.RequiredNFs {
 		if _, exists := c.metrics.NFTypeMetrics[nfName]; !exists {
 			c.metrics.NFTypeMetrics[nfName] = &NFPlanningMetrics{}
@@ -1127,17 +1127,17 @@ func (c *SpecializedResourcePlanningController) updateMetrics(session *PlanningS
 		nfMetrics := c.metrics.NFTypeMetrics[nfName]
 		nfMetrics.Count++
 		if success {
-			// Update success rate
+			// Update success rate.
 			nfMetrics.SuccessRate = float64(nfMetrics.Count-1)/float64(nfMetrics.Count)*nfMetrics.SuccessRate + 1.0/float64(nfMetrics.Count)
 		}
 
-		// Update average planning time
+		// Update average planning time.
 		totalNFTime := time.Duration(nfMetrics.Count-1) * nfMetrics.AveragePlanningTime
 		totalNFTime += totalDuration
 		nfMetrics.AveragePlanningTime = totalNFTime / time.Duration(nfMetrics.Count)
 	}
 
-	// Update cache hit rate
+	// Update cache hit rate.
 	if c.planningCache != nil {
 		totalRequests := c.metrics.TotalPlanned
 		cacheHits := int64(0)
@@ -1155,14 +1155,14 @@ func (c *SpecializedResourcePlanningController) updateMetrics(session *PlanningS
 	c.metrics.LastUpdated = time.Now()
 }
 
-// NewResourcePlanningMetrics creates new metrics instance
+// NewResourcePlanningMetrics creates new metrics instance.
 func NewResourcePlanningMetrics() *ResourcePlanningMetrics {
 	return &ResourcePlanningMetrics{
 		NFTypeMetrics: make(map[string]*NFPlanningMetrics),
 	}
 }
 
-// OptimizeResourceAllocation implements the ResourcePlanner interface
+// OptimizeResourceAllocation implements the ResourcePlanner interface.
 func (c *SpecializedResourcePlanningController) OptimizeResourceAllocation(ctx context.Context, requirements *interfaces.ResourceRequirements) (*interfaces.OptimizedPlan, error) {
 	if !c.Config.OptimizationEnabled {
 		return nil, fmt.Errorf("optimization not enabled")
@@ -1171,7 +1171,7 @@ func (c *SpecializedResourcePlanningController) OptimizeResourceAllocation(ctx c
 	return c.OptimizationEngine.OptimizeAllocation(ctx, requirements, c.Config)
 }
 
-// ValidateResourceConstraints implements the ResourcePlanner interface
+// ValidateResourceConstraints implements the ResourcePlanner interface.
 func (c *SpecializedResourcePlanningController) ValidateResourceConstraints(ctx context.Context, plan *interfaces.ResourcePlan) error {
 	if !c.Config.ConstraintCheckEnabled {
 		return nil
@@ -1180,12 +1180,12 @@ func (c *SpecializedResourcePlanningController) ValidateResourceConstraints(ctx 
 	return c.ConstraintSolver.ValidateConstraints(ctx, plan, c.ConstraintRules)
 }
 
-// EstimateResourceCosts implements the ResourcePlanner interface
+// EstimateResourceCosts implements the ResourcePlanner interface.
 func (c *SpecializedResourcePlanningController) EstimateResourceCosts(ctx context.Context, plan *interfaces.ResourcePlan) (*interfaces.CostEstimate, error) {
 	return c.CostEstimator.EstimateCosts(ctx, plan)
 }
 
-// GetPhaseStatus returns the status of a processing phase
+// GetPhaseStatus returns the status of a processing phase.
 func (c *SpecializedResourcePlanningController) GetPhaseStatus(ctx context.Context, intentID string) (*interfaces.PhaseStatus, error) {
 	if session, exists := c.activePlanning.Load(intentID); exists {
 		s := session.(*PlanningSession)
@@ -1222,7 +1222,7 @@ func (c *SpecializedResourcePlanningController) GetPhaseStatus(ctx context.Conte
 	}, nil
 }
 
-// HandlePhaseError handles errors during phase processing
+// HandlePhaseError handles errors during phase processing.
 func (c *SpecializedResourcePlanningController) HandlePhaseError(ctx context.Context, intentID string, err error) error {
 	c.Logger.Error(err, "Resource planning error", "intentId", intentID)
 
@@ -1234,12 +1234,12 @@ func (c *SpecializedResourcePlanningController) HandlePhaseError(ctx context.Con
 	return err
 }
 
-// GetDependencies returns phase dependencies
+// GetDependencies returns phase dependencies.
 func (c *SpecializedResourcePlanningController) GetDependencies() []interfaces.ProcessingPhase {
 	return []interfaces.ProcessingPhase{interfaces.PhaseLLMProcessing}
 }
 
-// GetBlockedPhases returns phases blocked by this controller
+// GetBlockedPhases returns phases blocked by this controller.
 func (c *SpecializedResourcePlanningController) GetBlockedPhases() []interfaces.ProcessingPhase {
 	return []interfaces.ProcessingPhase{
 		interfaces.PhaseManifestGeneration,
@@ -1248,14 +1248,14 @@ func (c *SpecializedResourcePlanningController) GetBlockedPhases() []interfaces.
 	}
 }
 
-// SetupWithManager sets up the controller with the Manager
+// SetupWithManager sets up the controller with the Manager.
 func (c *SpecializedResourcePlanningController) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoranv1.NetworkIntent{}).
 		Complete(c)
 }
 
-// Start starts the controller
+// Start starts the controller.
 func (c *SpecializedResourcePlanningController) Start(ctx context.Context) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -1266,7 +1266,7 @@ func (c *SpecializedResourcePlanningController) Start(ctx context.Context) error
 
 	c.Logger.Info("Starting specialized resource planning controller")
 
-	// Start background goroutines
+	// Start background goroutines.
 	go c.backgroundCleanup(ctx)
 	go c.healthMonitoring(ctx)
 
@@ -1280,7 +1280,7 @@ func (c *SpecializedResourcePlanningController) Start(ctx context.Context) error
 	return nil
 }
 
-// Stop stops the controller
+// Stop stops the controller.
 func (c *SpecializedResourcePlanningController) Stop(ctx context.Context) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -1302,7 +1302,7 @@ func (c *SpecializedResourcePlanningController) Stop(ctx context.Context) error 
 	return nil
 }
 
-// GetHealthStatus returns the health status of the controller
+// GetHealthStatus returns the health status of the controller.
 func (c *SpecializedResourcePlanningController) GetHealthStatus(ctx context.Context) (interfaces.HealthStatus, error) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
@@ -1319,7 +1319,7 @@ func (c *SpecializedResourcePlanningController) GetHealthStatus(ctx context.Cont
 	return c.healthStatus, nil
 }
 
-// GetMetrics returns controller metrics
+// GetMetrics returns controller metrics.
 func (c *SpecializedResourcePlanningController) GetMetrics(ctx context.Context) (map[string]float64, error) {
 	c.metrics.mutex.RLock()
 	defer c.metrics.mutex.RUnlock()
@@ -1337,11 +1337,11 @@ func (c *SpecializedResourcePlanningController) GetMetrics(ctx context.Context) 
 	}, nil
 }
 
-// Reconcile implements the controller reconciliation logic
+// Reconcile implements the controller reconciliation logic.
 func (c *SpecializedResourcePlanningController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	// Get the NetworkIntent
+	// Get the NetworkIntent.
 	var intent nephoranv1.NetworkIntent
 	if err := c.Get(ctx, req.NamespacedName, &intent); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -1352,23 +1352,23 @@ func (c *SpecializedResourcePlanningController) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, err
 	}
 
-	// Check if this intent should be processed by this controller
+	// Check if this intent should be processed by this controller.
 	if intent.Status.ProcessingPhase != string(interfaces.PhaseResourcePlanning) {
 		return ctrl.Result{}, nil
 	}
 
-	// Process the intent
+	// Process the intent.
 	result, err := c.ProcessPhase(ctx, &intent, interfaces.PhaseResourcePlanning)
 	if err != nil {
 		logger.Error(err, "Failed to process resource planning phase")
 		return ctrl.Result{RequeueAfter: time.Minute * 1}, err
 	}
 
-	// Update intent status based on result
+	// Update intent status based on result.
 	if result.Success {
 		intent.Status.ProcessingPhase = string(result.NextPhase)
 
-		// Marshal result.Data to JSON and create RawExtension
+		// Marshal result.Data to JSON and create RawExtension.
 		if resultBytes, err := json.Marshal(result.Data); err != nil {
 			logger.Error(err, "Failed to marshal result data")
 			return ctrl.Result{}, err
@@ -1383,7 +1383,7 @@ func (c *SpecializedResourcePlanningController) Reconcile(ctx context.Context, r
 		intent.Status.LastUpdated = metav1.Now()
 	}
 
-	// Update the intent status
+	// Update the intent status.
 	if err := c.Status().Update(ctx, &intent); err != nil {
 		logger.Error(err, "Failed to update NetworkIntent status")
 		return ctrl.Result{}, err
@@ -1394,9 +1394,9 @@ func (c *SpecializedResourcePlanningController) Reconcile(ctx context.Context, r
 	return ctrl.Result{}, nil
 }
 
-// Helper methods
+// Helper methods.
 
-// backgroundCleanup performs background cleanup tasks
+// backgroundCleanup performs background cleanup tasks.
 func (c *SpecializedResourcePlanningController) backgroundCleanup(ctx context.Context) {
 	ticker := time.NewTicker(10 * time.Minute)
 	defer ticker.Stop()
@@ -1416,7 +1416,7 @@ func (c *SpecializedResourcePlanningController) backgroundCleanup(ctx context.Co
 	}
 }
 
-// healthMonitoring performs periodic health monitoring
+// healthMonitoring performs periodic health monitoring.
 func (c *SpecializedResourcePlanningController) healthMonitoring(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
@@ -1435,7 +1435,7 @@ func (c *SpecializedResourcePlanningController) healthMonitoring(ctx context.Con
 	}
 }
 
-// cleanupExpiredSessions removes expired planning sessions
+// cleanupExpiredSessions removes expired planning sessions.
 func (c *SpecializedResourcePlanningController) cleanupExpiredSessions() {
 	expiredSessions := make([]string, 0)
 
@@ -1453,7 +1453,7 @@ func (c *SpecializedResourcePlanningController) cleanupExpiredSessions() {
 	}
 }
 
-// cleanupExpiredCache removes expired cache entries
+// cleanupExpiredCache removes expired cache entries.
 func (c *SpecializedResourcePlanningController) cleanupExpiredCache() {
 	if c.planningCache == nil {
 		return
@@ -1478,7 +1478,7 @@ func (c *SpecializedResourcePlanningController) cleanupExpiredCache() {
 	}
 }
 
-// performHealthCheck performs controller health checking
+// performHealthCheck performs controller health checking.
 func (c *SpecializedResourcePlanningController) performHealthCheck() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -1511,7 +1511,7 @@ func (c *SpecializedResourcePlanningController) performHealthCheck() {
 	}
 }
 
-// getSuccessRate calculates success rate
+// getSuccessRate calculates success rate.
 func (c *SpecializedResourcePlanningController) getSuccessRate() float64 {
 	if c.metrics.TotalPlanned == 0 {
 		return 1.0
@@ -1519,7 +1519,7 @@ func (c *SpecializedResourcePlanningController) getSuccessRate() float64 {
 	return float64(c.metrics.SuccessfulPlanned) / float64(c.metrics.TotalPlanned)
 }
 
-// getActivePlanningCount returns count of active planning sessions
+// getActivePlanningCount returns count of active planning sessions.
 func (c *SpecializedResourcePlanningController) getActivePlanningCount() int {
 	count := 0
 	c.activePlanning.Range(func(key, value interface{}) bool {
@@ -1529,9 +1529,9 @@ func (c *SpecializedResourcePlanningController) getActivePlanningCount() int {
 	return count
 }
 
-// Helper service implementations
+// Helper service implementations.
 
-// NewTelecomResourceCalculator creates a new resource calculator
+// NewTelecomResourceCalculator creates a new resource calculator.
 func NewTelecomResourceCalculator(logger logr.Logger) *TelecomResourceCalculator {
 	return &TelecomResourceCalculator{
 		logger:             logger,
@@ -1541,13 +1541,13 @@ func NewTelecomResourceCalculator(logger logr.Logger) *TelecomResourceCalculator
 	}
 }
 
-// ResourceOptimizationEngine handles resource optimization
+// ResourceOptimizationEngine handles resource optimization.
 type ResourceOptimizationEngine struct {
 	logger logr.Logger
 	config ResourcePlanningConfig
 }
 
-// NewResourceOptimizationEngine creates a new optimization engine
+// NewResourceOptimizationEngine creates a new optimization engine.
 func NewResourceOptimizationEngine(logger logr.Logger, config ResourcePlanningConfig) *ResourceOptimizationEngine {
 	return &ResourceOptimizationEngine{
 		logger: logger,
@@ -1555,16 +1555,16 @@ func NewResourceOptimizationEngine(logger logr.Logger, config ResourcePlanningCo
 	}
 }
 
-// OptimizeAllocation optimizes resource allocation
+// OptimizeAllocation optimizes resource allocation.
 func (e *ResourceOptimizationEngine) OptimizeAllocation(ctx context.Context, requirements *interfaces.ResourceRequirements, config ResourcePlanningConfig) (*interfaces.OptimizedPlan, error) {
-	// Simple optimization: apply overcommit ratios
+	// Simple optimization: apply overcommit ratios.
 	originalPlan := &interfaces.ResourcePlan{
 		ResourceRequirements: *requirements,
 	}
 
 	optimizedRequirements := *requirements
 
-	// Apply CPU overcommit
+	// Apply CPU overcommit.
 	if cpuQuantity, err := resource.ParseQuantity(requirements.CPU); err == nil {
 		optimizedCPU := cpuQuantity.DeepCopy()
 		optimizedValue := float64(cpuQuantity.MilliValue()) / config.CPUOvercommitRatio
@@ -1572,7 +1572,7 @@ func (e *ResourceOptimizationEngine) OptimizeAllocation(ctx context.Context, req
 		optimizedRequirements.CPU = optimizedCPU.String()
 	}
 
-	// Apply memory overcommit
+	// Apply memory overcommit.
 	if memQuantity, err := resource.ParseQuantity(requirements.Memory); err == nil {
 		optimizedMem := memQuantity.DeepCopy()
 		optimizedValue := float64(memQuantity.Value()) / config.MemoryOvercommitRatio
@@ -1602,19 +1602,19 @@ func (e *ResourceOptimizationEngine) OptimizeAllocation(ctx context.Context, req
 	}, nil
 }
 
-// ResourceConstraintSolver handles constraint validation
+// ResourceConstraintSolver handles constraint validation.
 type ResourceConstraintSolver struct {
 	logger logr.Logger
 }
 
-// NewResourceConstraintSolver creates a new constraint solver
+// NewResourceConstraintSolver creates a new constraint solver.
 func NewResourceConstraintSolver(logger logr.Logger) *ResourceConstraintSolver {
 	return &ResourceConstraintSolver{
 		logger: logger,
 	}
 }
 
-// ValidateConstraints validates resource constraints
+// ValidateConstraints validates resource constraints.
 func (s *ResourceConstraintSolver) ValidateConstraints(ctx context.Context, plan *interfaces.ResourcePlan, rules []*ResourceConstraintRule) error {
 	var violations []string
 
@@ -1635,13 +1635,13 @@ func (s *ResourceConstraintSolver) ValidateConstraints(ctx context.Context, plan
 	return nil
 }
 
-// TelecomCostEstimator estimates costs for telecom deployments
+// TelecomCostEstimator estimates costs for telecom deployments.
 type TelecomCostEstimator struct {
 	logger       logr.Logger
 	pricingModel map[string]float64
 }
 
-// NewTelecomCostEstimator creates a new cost estimator
+// NewTelecomCostEstimator creates a new cost estimator.
 func NewTelecomCostEstimator(logger logr.Logger) *TelecomCostEstimator {
 	return &TelecomCostEstimator{
 		logger: logger,
@@ -1653,32 +1653,32 @@ func NewTelecomCostEstimator(logger logr.Logger) *TelecomCostEstimator {
 	}
 }
 
-// EstimateCosts estimates costs for a resource plan
+// EstimateCosts estimates costs for a resource plan.
 func (e *TelecomCostEstimator) EstimateCosts(ctx context.Context, plan *interfaces.ResourcePlan) (*interfaces.CostEstimate, error) {
 	costBreakdown := make(map[string]float64)
 
-	// Parse CPU requirements
+	// Parse CPU requirements.
 	if cpuQuantity, err := resource.ParseQuantity(plan.ResourceRequirements.CPU); err == nil {
 		cpuCores := float64(cpuQuantity.MilliValue()) / 1000.0
 		hourlyCPUCost := cpuCores * e.pricingModel["cpu_core_hour"]
 		costBreakdown["cpu"] = hourlyCPUCost * 24 * 30 // Monthly cost
 	}
 
-	// Parse memory requirements
+	// Parse memory requirements.
 	if memQuantity, err := resource.ParseQuantity(plan.ResourceRequirements.Memory); err == nil {
 		memoryGB := float64(memQuantity.Value()) / (1024 * 1024 * 1024)
 		hourlyMemCost := memoryGB * e.pricingModel["memory_gb_hour"]
 		costBreakdown["memory"] = hourlyMemCost * 24 * 30 // Monthly cost
 	}
 
-	// Parse storage requirements
+	// Parse storage requirements.
 	if storageQuantity, err := resource.ParseQuantity(plan.ResourceRequirements.Storage); err == nil {
 		storageGB := float64(storageQuantity.Value()) / (1024 * 1024 * 1024)
 		monthlyStoageCost := storageGB * e.pricingModel["storage_gb_month"]
 		costBreakdown["storage"] = monthlyStoageCost
 	}
 
-	// Calculate total cost
+	// Calculate total cost.
 	totalCost := 0.0
 	for _, cost := range costBreakdown {
 		totalCost += cost
@@ -1693,13 +1693,13 @@ func (e *TelecomCostEstimator) EstimateCosts(ctx context.Context, plan *interfac
 	}, nil
 }
 
-// Initialize helper functions
+// Initialize helper functions.
 
-// initializeResourceTemplates initializes resource templates for common NFs
+// initializeResourceTemplates initializes resource templates for common NFs.
 func initializeResourceTemplates() map[string]*NetworkFunctionTemplate {
 	templates := make(map[string]*NetworkFunctionTemplate)
 
-	// AMF Template
+	// AMF Template.
 	templates["amf"] = &NetworkFunctionTemplate{
 		Name:     "amf",
 		Type:     "amf",
@@ -1720,7 +1720,7 @@ func initializeResourceTemplates() map[string]*NetworkFunctionTemplate {
 		AntiAffinity: []string{"amf"},
 	}
 
-	// SMF Template
+	// SMF Template.
 	templates["smf"] = &NetworkFunctionTemplate{
 		Name:     "smf",
 		Type:     "smf",
@@ -1741,7 +1741,7 @@ func initializeResourceTemplates() map[string]*NetworkFunctionTemplate {
 		AntiAffinity: []string{"smf"},
 	}
 
-	// UPF Template
+	// UPF Template.
 	templates["upf"] = &NetworkFunctionTemplate{
 		Name:     "upf",
 		Type:     "upf",
@@ -1764,11 +1764,11 @@ func initializeResourceTemplates() map[string]*NetworkFunctionTemplate {
 	return templates
 }
 
-// initializeConstraintRules initializes constraint rules
+// initializeConstraintRules initializes constraint rules.
 func initializeConstraintRules() []*ResourceConstraintRule {
 	var rules []*ResourceConstraintRule
 
-	// CPU limit constraint
+	// CPU limit constraint.
 	rules = append(rules, &ResourceConstraintRule{
 		ID:    "cpu-limit",
 		Name:  "CPU Limit Constraint",
@@ -1785,7 +1785,7 @@ func initializeConstraintRules() []*ResourceConstraintRule {
 		ViolationAction: "warn",
 	})
 
-	// Memory limit constraint
+	// Memory limit constraint.
 	rules = append(rules, &ResourceConstraintRule{
 		ID:    "memory-limit",
 		Name:  "Memory Limit Constraint",
@@ -1805,7 +1805,7 @@ func initializeConstraintRules() []*ResourceConstraintRule {
 	return rules
 }
 
-// initializeBaselineProfiles initializes baseline resource profiles
+// initializeBaselineProfiles initializes baseline resource profiles.
 func initializeBaselineProfiles() map[string]*ResourceProfile {
 	profiles := make(map[string]*ResourceProfile)
 
@@ -1839,7 +1839,7 @@ func initializeBaselineProfiles() map[string]*ResourceProfile {
 	return profiles
 }
 
-// initializeScalingFactors initializes scaling factors
+// initializeScalingFactors initializes scaling factors.
 func initializeScalingFactors() map[string]*ScalingProfile {
 	profiles := make(map[string]*ScalingProfile)
 
@@ -1876,7 +1876,7 @@ func initializeScalingFactors() map[string]*ScalingProfile {
 	return profiles
 }
 
-// initializePerformanceTargets initializes performance targets
+// initializePerformanceTargets initializes performance targets.
 func initializePerformanceTargets() map[string]*PerformanceTarget {
 	targets := make(map[string]*PerformanceTarget)
 

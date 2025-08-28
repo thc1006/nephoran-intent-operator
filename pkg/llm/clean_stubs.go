@@ -18,7 +18,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
-// StreamingProcessorStub handles streaming requests with server-sent events
+// StreamingProcessorStub handles streaming requests with server-sent events.
 type StreamingProcessorStub struct {
 	httpClient *http.Client
 	ragAPIURL  string
@@ -26,8 +26,9 @@ type StreamingProcessorStub struct {
 	mutex      sync.RWMutex
 }
 
-// Note: StreamingRequest is defined in streaming_processor.go
+// Note: StreamingRequest is defined in streaming_processor.go.
 
+// NewStreamingProcessor performs newstreamingprocessor operation.
 func NewStreamingProcessor() *StreamingProcessorStub {
 	return &StreamingProcessorStub{
 		httpClient: &http.Client{
@@ -38,16 +39,17 @@ func NewStreamingProcessor() *StreamingProcessorStub {
 	}
 }
 
+// HandleStreamingRequest performs handlestreamingrequest operation.
 func (sp *StreamingProcessorStub) HandleStreamingRequest(w http.ResponseWriter, r *http.Request, req *StreamingRequest) error {
 	sp.logger.Info("Handling streaming request", slog.String("query", req.Query))
 
-	// Set SSE headers
+	// Set SSE headers.
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	// Create request to RAG API stream endpoint
+	// Create request to RAG API stream endpoint.
 	reqBody, err := json.Marshal(req)
 	if err != nil {
 		return fmt.Errorf("failed to marshal request: %w", err)
@@ -62,7 +64,7 @@ func (sp *StreamingProcessorStub) HandleStreamingRequest(w http.ResponseWriter, 
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Accept", "text/event-stream")
 
-	// Execute the request
+	// Execute the request.
 	resp, err := sp.httpClient.Do(httpReq)
 	if err != nil {
 		return fmt.Errorf("failed to connect to RAG API stream: %w", err)
@@ -74,7 +76,7 @@ func (sp *StreamingProcessorStub) HandleStreamingRequest(w http.ResponseWriter, 
 		return fmt.Errorf("RAG API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
-	// Stream the response using bufio.Scanner
+	// Stream the response using bufio.Scanner.
 	scanner := bufio.NewScanner(resp.Body)
 	flusher, ok := w.(http.Flusher)
 	if !ok {
@@ -84,15 +86,15 @@ func (sp *StreamingProcessorStub) HandleStreamingRequest(w http.ResponseWriter, 
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		// Forward the SSE event to client
+		// Forward the SSE event to client.
 		fmt.Fprintf(w, "%s\n", line)
 
-		// Flush after each line for SSE
+		// Flush after each line for SSE.
 		if line == "" {
 			flusher.Flush()
 		}
 
-		// Check if client disconnected
+		// Check if client disconnected.
 		select {
 		case <-r.Context().Done():
 			sp.logger.Info("Client disconnected from stream")
@@ -109,6 +111,7 @@ func (sp *StreamingProcessorStub) HandleStreamingRequest(w http.ResponseWriter, 
 	return nil
 }
 
+// GetMetrics performs getmetrics operation.
 func (sp *StreamingProcessorStub) GetMetrics() map[string]interface{} {
 	return map[string]interface{}{
 		"streaming_enabled": true,
@@ -117,20 +120,23 @@ func (sp *StreamingProcessorStub) GetMetrics() map[string]interface{} {
 	}
 }
 
+// Shutdown performs shutdown operation.
 func (sp *StreamingProcessorStub) Shutdown(ctx context.Context) error {
 	sp.logger.Info("Shutting down streaming processor")
 	return nil
 }
 
-// ContextBuilderStub provides RAG context building capabilities
-// Note: The actual ContextBuilder type is defined in interface_consolidated.go
+// ContextBuilderStub provides RAG context building capabilities.
+// Note: The actual ContextBuilder type is defined in interface_consolidated.go.
 
-// Note: ContextBuilderConfig and ContextBuilderMetrics are now defined in interface_consolidated.go
+// Note: ContextBuilderConfig and ContextBuilderMetrics are now defined in interface_consolidated.go.
 
+// NewContextBuilderStub performs newcontextbuilderstub operation.
 func NewContextBuilderStub() *ContextBuilder {
 	return NewContextBuilderWithPool(nil)
 }
 
+// NewContextBuilderWithPool performs newcontextbuilderwithpool operation.
 func NewContextBuilderWithPool(pool *WeaviateConnectionPool) *ContextBuilder {
 	config := &ContextBuilderConfig{
 		DefaultMaxDocs:        5,
@@ -149,7 +155,7 @@ func NewContextBuilderWithPool(pool *WeaviateConnectionPool) *ContextBuilder {
 		},
 	}
 
-	// Use the ContextBuilder from interface_consolidated.go with proper initialization
+	// Use the ContextBuilder from interface_consolidated.go with proper initialization.
 	cb := &ContextBuilder{
 		weaviatePool: pool,
 		config:       config,
@@ -157,7 +163,7 @@ func NewContextBuilderWithPool(pool *WeaviateConnectionPool) *ContextBuilder {
 		metrics:      &ContextBuilderMetrics{},
 	}
 
-	// Log configuration attempt for debugging
+	// Log configuration attempt for debugging.
 	if slog.Default() != nil {
 		slog.Default().With("component", "context-builder").Info("Created ContextBuilder stub",
 			"config_provided", config != nil,
@@ -167,16 +173,16 @@ func NewContextBuilderWithPool(pool *WeaviateConnectionPool) *ContextBuilder {
 	return cb
 }
 
-// BuildContext retrieves and builds context from the RAG system using semantic search
+// BuildContext retrieves and builds context from the RAG system using semantic search.
 func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDocs int) ([]map[string]any, error) {
 	startTime := time.Now()
 
-	// Update metrics
+	// Update metrics.
 	cb.updateMetrics(func(m *ContextBuilderMetrics) {
 		m.TotalQueries++
 	})
 
-	// Validate inputs
+	// Validate inputs.
 	if intent == "" {
 		cb.updateMetrics(func(m *ContextBuilderMetrics) {
 			m.FailedQueries++
@@ -188,7 +194,7 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 		maxDocs = cb.config.DefaultMaxDocs
 	}
 
-	// Check if we have a connection pool
+	// Check if we have a connection pool.
 	if cb.weaviatePool == nil {
 		if cb.logger != nil {
 			cb.logger.Warn("No Weaviate connection pool available, returning empty context")
@@ -199,37 +205,37 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 		return []map[string]any{}, nil
 	}
 
-	// Enhance the query with telecom-specific context if enabled
+	// Enhance the query with telecom-specific context if enabled.
 	enhancedQuery := intent
 	if cb.config.QueryExpansionEnabled {
 		enhancedQuery = cb.expandQuery(intent)
 	}
 
-	// Perform semantic search using the connection pool
+	// Perform semantic search using the connection pool.
 	var searchResults []*shared.SearchResult
 	var searchErr error
 
-	// Stub implementation: Since this is a stub and we don't have actual Weaviate connection,
-	// we'll simulate some search results based on telecom keywords
+	// Stub implementation: Since this is a stub and we don't have actual Weaviate connection,.
+	// we'll simulate some search results based on telecom keywords.
 
-	// Simulate search operation with mock results
+	// Simulate search operation with mock results.
 	if cb.config != nil && cb.config.EnableHybridSearch {
-		// Simulate hybrid search results
+		// Simulate hybrid search results.
 		searchResults = cb.generateMockHybridSearchResults(enhancedQuery, maxDocs)
 	} else {
-		// Simulate vector search results
+		// Simulate vector search results.
 		searchResults = cb.generateMockVectorSearchResults(enhancedQuery, maxDocs)
 	}
 
-	// Stub implementation completed above - no GraphQL calls needed
+	// Stub implementation completed above - no GraphQL calls needed.
 
-	// For stub implementation, searchErr would be set if mock generation failed
+	// For stub implementation, searchErr would be set if mock generation failed.
 	if searchErr != nil {
 		slog.Default().Error("Mock search generation failed", "error", searchErr, "query", enhancedQuery)
 		return nil, fmt.Errorf("mock semantic search failed: %w", searchErr)
 	}
 
-	// Convert search results to context format
+	// Convert search results to context format.
 	contextDocs := make([]map[string]any, 0, len(searchResults))
 	totalContentLength := 0
 
@@ -240,7 +246,7 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 
 		doc := result.Document
 
-		// Check content length limits
+		// Check content length limits.
 		if totalContentLength+len(doc.Content) > cb.config.MaxContextLength {
 			if cb.logger != nil {
 				cb.logger.Debug("Context length limit reached, truncating results",
@@ -251,7 +257,7 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 			break
 		}
 
-		// Build context document
+		// Build context document.
 		contextDoc := map[string]any{
 			"id":            doc.ID,
 			"title":         doc.Title,
@@ -266,7 +272,7 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 			"distance":      result.Distance,
 		}
 
-		// Add array fields if they exist
+		// Add array fields if they exist.
 		if len(doc.Keywords) > 0 {
 			contextDoc["keywords"] = doc.Keywords
 		}
@@ -280,7 +286,7 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 			contextDoc["use_case"] = doc.UseCase
 		}
 
-		// Add metadata if available
+		// Add metadata if available.
 		if doc.Metadata != nil && len(doc.Metadata) > 0 {
 			contextDoc["metadata"] = doc.Metadata
 		}
@@ -289,7 +295,7 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 		totalContentLength += len(doc.Content)
 	}
 
-	// Update metrics with successful query
+	// Update metrics with successful query.
 	duration := time.Since(startTime)
 	cb.updateMetrics(func(m *ContextBuilderMetrics) {
 		m.SuccessfulQueries++
@@ -317,28 +323,28 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 	return contextDocs, nil
 }
 
-// expandQuery enhances the query with telecom-specific context
+// expandQuery enhances the query with telecom-specific context.
 func (cb *ContextBuilder) expandQuery(query string) string {
-	// Convert to lowercase for matching
+	// Convert to lowercase for matching.
 	lowerQuery := strings.ToLower(query)
 
-	// Find relevant telecom keywords that might enhance the query
+	// Find relevant telecom keywords that might enhance the query.
 	var relevantKeywords []string
 	for _, keyword := range cb.config.TelecomKeywords {
 		if !strings.Contains(lowerQuery, strings.ToLower(keyword)) {
-			// Add related keywords based on context
+			// Add related keywords based on context.
 			if cb.isRelatedKeyword(lowerQuery, keyword) {
 				relevantKeywords = append(relevantKeywords, keyword)
 			}
 		}
 	}
 
-	// Limit the number of additional keywords to avoid query bloat
+	// Limit the number of additional keywords to avoid query bloat.
 	if len(relevantKeywords) > 3 {
 		relevantKeywords = relevantKeywords[:3]
 	}
 
-	// Enhance the query if relevant keywords were found
+	// Enhance the query if relevant keywords were found.
 	if len(relevantKeywords) > 0 {
 		enhanced := fmt.Sprintf("%s %s", query, strings.Join(relevantKeywords, " "))
 		if cb.logger != nil {
@@ -354,9 +360,9 @@ func (cb *ContextBuilder) expandQuery(query string) string {
 	return query
 }
 
-// isRelatedKeyword determines if a keyword is contextually related to the query
+// isRelatedKeyword determines if a keyword is contextually related to the query.
 func (cb *ContextBuilder) isRelatedKeyword(query, keyword string) bool {
-	// Define keyword relationships for telecom domain
+	// Define keyword relationships for telecom domain.
 	relations := map[string][]string{
 		"deploy":    {"orchestration", "5G", "Core", "RAN"},
 		"create":    {"deployment", "network", "function"},
@@ -383,13 +389,14 @@ func (cb *ContextBuilder) isRelatedKeyword(query, keyword string) bool {
 	return false
 }
 
-// updateMetrics safely updates metrics with a function
+// updateMetrics safely updates metrics with a function.
 func (cb *ContextBuilder) updateMetrics(updateFunc func(*ContextBuilderMetrics)) {
 	cb.mutex.Lock()
 	defer cb.mutex.Unlock()
 	updateFunc(cb.metrics)
 }
 
+// GetMetrics performs getmetrics operation.
 func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
 	cb.mutex.RLock()
 	defer cb.mutex.RUnlock()
@@ -414,7 +421,7 @@ func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
 	}
 }
 
-// getSuccessRate calculates the success rate percentage
+// getSuccessRate calculates the success rate percentage.
 func (cb *ContextBuilder) getSuccessRate() float64 {
 	if cb.metrics.TotalQueries == 0 {
 		return 0.0
@@ -422,7 +429,7 @@ func (cb *ContextBuilder) getSuccessRate() float64 {
 	return float64(cb.metrics.SuccessfulQueries) / float64(cb.metrics.TotalQueries) * 100.0
 }
 
-// getCacheHitRate calculates the cache hit rate percentage
+// getCacheHitRate calculates the cache hit rate percentage.
 func (cb *ContextBuilder) getCacheHitRate() float64 {
 	totalCacheOps := cb.metrics.CacheHits + cb.metrics.CacheMisses
 	if totalCacheOps == 0 {
@@ -431,12 +438,12 @@ func (cb *ContextBuilder) getCacheHitRate() float64 {
 	return float64(cb.metrics.CacheHits) / float64(totalCacheOps) * 100.0
 }
 
-// parseSearchResult converts a GraphQL result item to a SearchResult
+// parseSearchResult converts a GraphQL result item to a SearchResult.
 func (cb *ContextBuilder) parseSearchResult(item map[string]interface{}) *shared.SearchResult {
 	doc := &shared.TelecomDocument{}
 	result := &shared.SearchResult{Document: doc}
 
-	// Parse document fields
+	// Parse document fields.
 	if val, ok := item["content"].(string); ok {
 		doc.Content = val
 	}
@@ -462,7 +469,7 @@ func (cb *ContextBuilder) parseSearchResult(item map[string]interface{}) *shared
 		doc.DocumentType = val
 	}
 
-	// Parse array fields
+	// Parse array fields.
 	if val, ok := item["keywords"].([]interface{}); ok {
 		keywords := make([]string, 0, len(val))
 		for _, keyword := range val {
@@ -503,7 +510,7 @@ func (cb *ContextBuilder) parseSearchResult(item map[string]interface{}) *shared
 		doc.UseCase = useCases
 	}
 
-	// Parse additional fields
+	// Parse additional fields.
 	if additional, ok := item["_additional"].(map[string]interface{}); ok {
 		if id, ok := additional["id"].(string); ok {
 			doc.ID = id
@@ -516,7 +523,7 @@ func (cb *ContextBuilder) parseSearchResult(item map[string]interface{}) *shared
 		}
 	}
 
-	// Set default confidence if not provided
+	// Set default confidence if not provided.
 	if doc.Confidence == 0 {
 		doc.Confidence = 0.5 // Default confidence
 	}
@@ -524,10 +531,11 @@ func (cb *ContextBuilder) parseSearchResult(item map[string]interface{}) *shared
 	return result
 }
 
-// RelevanceScorer stub implementation - Note: actual type is defined in interface_consolidated.go
+// RelevanceScorer stub implementation - Note: actual type is defined in interface_consolidated.go.
 
+// NewRelevanceScorerStub performs newrelevancescorerstub operation.
 func NewRelevanceScorerStub() *RelevanceScorer {
-	// Create RelevanceScorer with proper field structure
+	// Create RelevanceScorer with proper field structure.
 	return &RelevanceScorer{
 		config:          &RelevanceScorerConfig{},
 		logger:          slog.Default().With("component", "relevance-scorer-stub"),
@@ -537,9 +545,9 @@ func NewRelevanceScorerStub() *RelevanceScorer {
 	}
 }
 
-// Score calculates the relevance score between a document and intent using semantic similarity
+// Score calculates the relevance score between a document and intent using semantic similarity.
 func (rs *RelevanceScorer) Score(ctx context.Context, doc string, intent string) (float32, error) {
-	// Simple keyword matching for stub implementation
+	// Simple keyword matching for stub implementation.
 	docLower := strings.ToLower(doc)
 	intentLower := strings.ToLower(intent)
 	words := strings.Fields(intentLower)
@@ -550,13 +558,14 @@ func (rs *RelevanceScorer) Score(ctx context.Context, doc string, intent string)
 			score += 0.1
 		}
 	}
-	// Ensure score doesn't exceed 1.0
+	// Ensure score doesn't exceed 1.0.
 	if score > 1.0 {
 		score = 1.0
 	}
 	return score, nil
 }
 
+// GetMetrics performs getmetrics operation.
 func (rs *RelevanceScorer) GetMetrics() map[string]interface{} {
 	return map[string]interface{}{
 		"relevance_scorer_enabled": false,
@@ -565,13 +574,15 @@ func (rs *RelevanceScorer) GetMetrics() map[string]interface{} {
 	}
 }
 
-// RAGAwarePromptBuilder stub implementation
+// RAGAwarePromptBuilder stub implementation.
 type RAGAwarePromptBuilderStub struct{}
 
+// NewRAGAwarePromptBuilderStub performs newragawarepromptbuilderstub operation.
 func NewRAGAwarePromptBuilderStub() *RAGAwarePromptBuilderStub {
 	return &RAGAwarePromptBuilderStub{}
 }
 
+// GetMetrics performs getmetrics operation.
 func (rpb *RAGAwarePromptBuilderStub) GetMetrics() map[string]interface{} {
 	return map[string]interface{}{
 		"prompt_builder_enabled": false,
@@ -579,17 +590,17 @@ func (rpb *RAGAwarePromptBuilderStub) GetMetrics() map[string]interface{} {
 	}
 }
 
-// generateMockHybridSearchResults generates mock search results for hybrid search
+// generateMockHybridSearchResults generates mock search results for hybrid search.
 func (cb *ContextBuilder) generateMockHybridSearchResults(query string, maxDocs int) []*shared.SearchResult {
 	return cb.generateMockResults(query, maxDocs, "hybrid")
 }
 
-// generateMockVectorSearchResults generates mock search results for vector search
+// generateMockVectorSearchResults generates mock search results for vector search.
 func (cb *ContextBuilder) generateMockVectorSearchResults(query string, maxDocs int) []*shared.SearchResult {
 	return cb.generateMockResults(query, maxDocs, "vector")
 }
 
-// generateMockResults generates mock search results based on telecom keywords
+// generateMockResults generates mock search results based on telecom keywords.
 func (cb *ContextBuilder) generateMockResults(query string, maxDocs int, searchType string) []*shared.SearchResult {
 	if maxDocs <= 0 {
 		maxDocs = 3
@@ -598,7 +609,7 @@ func (cb *ContextBuilder) generateMockResults(query string, maxDocs int, searchT
 	queryLower := strings.ToLower(query)
 	results := make([]*shared.SearchResult, 0, maxDocs)
 
-	// Mock telecom knowledge base entries
+	// Mock telecom knowledge base entries.
 	mockDocs := []struct {
 		title      string
 		content    string
@@ -629,7 +640,7 @@ func (cb *ContextBuilder) generateMockResults(query string, maxDocs int, searchT
 		},
 	}
 
-	// Score and select relevant documents
+	// Score and select relevant documents.
 	for i, doc := range mockDocs {
 		score := cb.calculateMockRelevanceScore(queryLower, doc.keywords, doc.content)
 		if score > 0.1 { // Minimum relevance threshold
@@ -657,12 +668,12 @@ func (cb *ContextBuilder) generateMockResults(query string, maxDocs int, searchT
 	return results
 }
 
-// calculateMockRelevanceScore calculates a simple relevance score for mock results
+// calculateMockRelevanceScore calculates a simple relevance score for mock results.
 func (cb *ContextBuilder) calculateMockRelevanceScore(query string, keywords []string, content string) float32 {
 	score := float32(0.0)
 	queryWords := strings.Fields(query)
 
-	// Score based on keyword matches
+	// Score based on keyword matches.
 	for _, keyword := range keywords {
 		keywordLower := strings.ToLower(keyword)
 		for _, queryWord := range queryWords {
@@ -673,7 +684,7 @@ func (cb *ContextBuilder) calculateMockRelevanceScore(query string, keywords []s
 		}
 	}
 
-	// Score based on content matches
+	// Score based on content matches.
 	contentLower := strings.ToLower(content)
 	for _, queryWord := range queryWords {
 		if strings.Contains(contentLower, strings.ToLower(queryWord)) {
@@ -681,7 +692,7 @@ func (cb *ContextBuilder) calculateMockRelevanceScore(query string, keywords []s
 		}
 	}
 
-	// Normalize score to 0-1 range
+	// Normalize score to 0-1 range.
 	if score > 1.0 {
 		score = 1.0
 	}

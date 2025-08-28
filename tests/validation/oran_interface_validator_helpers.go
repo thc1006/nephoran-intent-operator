@@ -1,5 +1,5 @@
-// Package validation provides additional helper methods for O-RAN interface validation
-// This module contains helper methods that support the main O-RAN interface validation functionality
+// Package validation provides additional helper methods for O-RAN interface validation.
+// This module contains helper methods that support the main O-RAN interface validation functionality.
 package validation
 
 import (
@@ -7,24 +7,24 @@ import (
 	"time"
 )
 
-// GetRICMockService returns the RIC mock service for testing
+// GetRICMockService returns the RIC mock service for testing.
 func (oiv *ORANInterfaceValidator) GetRICMockService() *RICMockService {
 	return oiv.ricMockService
 }
 
-// GetSMOMockService returns the SMO mock service for testing
+// GetSMOMockService returns the SMO mock service for testing.
 func (oiv *ORANInterfaceValidator) GetSMOMockService() *SMOMockService {
 	return oiv.smoMockService
 }
 
-// GetE2MockService returns the E2 mock service for testing
+// GetE2MockService returns the E2 mock service for testing.
 func (oiv *ORANInterfaceValidator) GetE2MockService() *E2MockService {
 	return oiv.e2MockService
 }
 
-// ValidateYANGModel validates YANG model structure for O1 testing
+// ValidateYANGModel validates YANG model structure for O1 testing.
 func (oiv *ORANInterfaceValidator) ValidateYANGModel(model map[string]interface{}) bool {
-	// Check required fields
+	// Check required fields.
 	requiredFields := []string{"module", "namespace", "prefix", "description"}
 	for _, field := range requiredFields {
 		if _, exists := model[field]; !exists {
@@ -32,7 +32,7 @@ func (oiv *ORANInterfaceValidator) ValidateYANGModel(model map[string]interface{
 		}
 	}
 
-	// Validate schema structure
+	// Validate schema structure.
 	if schema, exists := model["schema"]; exists {
 		if schemaMap, ok := schema.(map[string]interface{}); ok {
 			if container, exists := schemaMap["container"]; exists {
@@ -48,9 +48,9 @@ func (oiv *ORANInterfaceValidator) ValidateYANGModel(model map[string]interface{
 	return true
 }
 
-// TestNETCONFOperations tests NETCONF protocol operations for O1 testing
+// TestNETCONFOperations tests NETCONF protocol operations for O1 testing.
 func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bool {
-	// Simulate NETCONF session establishment
+	// Simulate NETCONF session establishment.
 	session := map[string]interface{}{
 		"sessionId": "netconf-session-001",
 		"capabilities": []string{
@@ -62,12 +62,12 @@ func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bo
 		"status":    "active",
 	}
 
-	// Validate session establishment
+	// Validate session establishment.
 	if session["status"] != "active" {
 		return false
 	}
 
-	// Test get operation
+	// Test get operation.
 	getConfig := map[string]interface{}{
 		"operation": "get-config",
 		"source":    "running",
@@ -77,7 +77,7 @@ func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bo
 		},
 	}
 
-	// Test edit-config operation
+	// Test edit-config operation.
 	editConfig := map[string]interface{}{
 		"operation": "edit-config",
 		"target":    "candidate",
@@ -89,16 +89,16 @@ func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bo
 		},
 	}
 
-	// Test commit operation
+	// Test commit operation.
 	commit := map[string]interface{}{
 		"operation": "commit",
 	}
 
-	// Simulate NETCONF operations execution
+	// Simulate NETCONF operations execution.
 	operations := []map[string]interface{}{getConfig, editConfig, commit}
 	for _, op := range operations {
 		if operation, exists := op["operation"]; exists {
-			// Simulate processing time based on operation type
+			// Simulate processing time based on operation type.
 			switch operation {
 			case "get-config":
 				time.Sleep(10 * time.Millisecond)
@@ -113,9 +113,9 @@ func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bo
 	return true
 }
 
-// ValidateTerraformTemplate validates Terraform template structure for O2 testing
+// ValidateTerraformTemplate validates Terraform template structure for O2 testing.
 func (oiv *ORANInterfaceValidator) ValidateTerraformTemplate(template map[string]interface{}) bool {
-	// Check for required sections
+	// Check for required sections.
 	requiredSections := []string{"terraform", "resource"}
 	for _, section := range requiredSections {
 		if _, exists := template[section]; !exists {
@@ -123,7 +123,7 @@ func (oiv *ORANInterfaceValidator) ValidateTerraformTemplate(template map[string
 		}
 	}
 
-	// Validate terraform section
+	// Validate terraform section.
 	if terraform, exists := template["terraform"]; exists {
 		if tfMap, ok := terraform.(map[string]interface{}); ok {
 			if _, exists := tfMap["required_providers"]; !exists {
@@ -135,7 +135,7 @@ func (oiv *ORANInterfaceValidator) ValidateTerraformTemplate(template map[string
 	return true
 }
 
-// ValidateCloudProviderConfig validates cloud provider configuration for O2 testing
+// ValidateCloudProviderConfig validates cloud provider configuration for O2 testing.
 func (oiv *ORANInterfaceValidator) ValidateCloudProviderConfig(config map[string]interface{}) bool {
 	requiredFields := []string{"provider", "region", "resources"}
 	for _, field := range requiredFields {
@@ -144,7 +144,7 @@ func (oiv *ORANInterfaceValidator) ValidateCloudProviderConfig(config map[string
 		}
 	}
 
-	// Validate resources section
+	// Validate resources section.
 	if resources, exists := config["resources"]; exists {
 		if resourceMap, ok := resources.(map[string]interface{}); ok {
 			if len(resourceMap) == 0 {

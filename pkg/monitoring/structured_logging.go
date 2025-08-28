@@ -11,18 +11,23 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// LogLevel represents logging levels
+// LogLevel represents logging levels.
 type LogLevel int
 
 const (
+	// LogLevelDebug holds logleveldebug value.
 	LogLevelDebug LogLevel = iota
+	// LogLevelInfo holds loglevelinfo value.
 	LogLevelInfo
+	// LogLevelWarn holds loglevelwarn value.
 	LogLevelWarn
+	// LogLevelError holds loglevelerror value.
 	LogLevelError
+	// LogLevelFatal holds loglevelfatal value.
 	LogLevelFatal
 )
 
-// String returns string representation of log level
+// String returns string representation of log level.
 func (l LogLevel) String() string {
 	switch l {
 	case LogLevelDebug:
@@ -40,7 +45,7 @@ func (l LogLevel) String() string {
 	}
 }
 
-// StructuredLogger provides structured logging with correlation IDs and tracing
+// StructuredLogger provides structured logging with correlation IDs and tracing.
 type StructuredLogger struct {
 	logger       *slog.Logger
 	serviceName  string
@@ -49,7 +54,7 @@ type StructuredLogger struct {
 	defaultAttrs []slog.Attr
 }
 
-// LogConfig holds logging configuration
+// LogConfig holds logging configuration.
 type LogConfig struct {
 	Level       string `json:"level"`
 	Format      string `json:"format"` // "json" or "text"
@@ -59,7 +64,7 @@ type LogConfig struct {
 	Output      string `json:"output"` // "stdout", "stderr", or file path
 }
 
-// DefaultLogConfig returns default logging configuration
+// DefaultLogConfig returns default logging configuration.
 func DefaultLogConfig() *LogConfig {
 	return &LogConfig{
 		Level:       "info",
@@ -71,13 +76,13 @@ func DefaultLogConfig() *LogConfig {
 	}
 }
 
-// NewStructuredLogger creates a new structured logger
+// NewStructuredLogger creates a new structured logger.
 func NewStructuredLogger(config *LogConfig) (*StructuredLogger, error) {
 	if config == nil {
 		config = DefaultLogConfig()
 	}
 
-	// Configure log level
+	// Configure log level.
 	var level slog.Level
 	switch config.Level {
 	case "debug":
@@ -92,7 +97,7 @@ func NewStructuredLogger(config *LogConfig) (*StructuredLogger, error) {
 		level = slog.LevelInfo
 	}
 
-	// Configure output
+	// Configure output.
 	var output *os.File
 	switch config.Output {
 	case "stdout":
@@ -101,20 +106,20 @@ func NewStructuredLogger(config *LogConfig) (*StructuredLogger, error) {
 		output = os.Stderr
 	default:
 		var err error
-		output, err = os.OpenFile(config.Output, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		output, err = os.OpenFile(config.Output, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 		if err != nil {
 			return nil, fmt.Errorf("failed to open log file: %w", err)
 		}
 	}
 
-	// Configure handler
+	// Configure handler.
 	var handler slog.Handler
 	if config.Format == "json" {
 		handler = slog.NewJSONHandler(output, &slog.HandlerOptions{
 			Level:     level,
 			AddSource: true,
 			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
-				// Customize attribute formatting
+				// Customize attribute formatting.
 				if a.Key == slog.TimeKey {
 					return slog.Attr{
 						Key:   "timestamp",
@@ -145,7 +150,7 @@ func NewStructuredLogger(config *LogConfig) (*StructuredLogger, error) {
 
 	logger := slog.New(handler)
 
-	// Default attributes
+	// Default attributes.
 	defaultAttrs := []slog.Attr{
 		slog.String("service", config.ServiceName),
 		slog.String("environment", config.Environment),
@@ -161,17 +166,21 @@ func NewStructuredLogger(config *LogConfig) (*StructuredLogger, error) {
 	}, nil
 }
 
-// ContextKey type for context keys
+// ContextKey type for context keys.
 type ContextKey string
 
 const (
+	// CorrelationIDKey holds correlationidkey value.
 	CorrelationIDKey ContextKey = "correlation_id"
-	UserIDKey        ContextKey = "user_id"
-	RequestIDKey     ContextKey = "request_id"
-	OperationIDKey   ContextKey = "operation_id"
+	// UserIDKey holds useridkey value.
+	UserIDKey ContextKey = "user_id"
+	// RequestIDKey holds requestidkey value.
+	RequestIDKey ContextKey = "request_id"
+	// OperationIDKey holds operationidkey value.
+	OperationIDKey ContextKey = "operation_id"
 )
 
-// WithCorrelationID adds correlation ID to context
+// WithCorrelationID adds correlation ID to context.
 func WithCorrelationID(ctx context.Context, correlationID string) context.Context {
 	if correlationID == "" {
 		correlationID = uuid.New().String()
@@ -179,7 +188,7 @@ func WithCorrelationID(ctx context.Context, correlationID string) context.Contex
 	return context.WithValue(ctx, CorrelationIDKey, correlationID)
 }
 
-// WithRequestID adds request ID to context
+// WithRequestID adds request ID to context.
 func WithRequestID(ctx context.Context, requestID string) context.Context {
 	if requestID == "" {
 		requestID = uuid.New().String()
@@ -187,7 +196,7 @@ func WithRequestID(ctx context.Context, requestID string) context.Context {
 	return context.WithValue(ctx, RequestIDKey, requestID)
 }
 
-// WithOperationID adds operation ID to context
+// WithOperationID adds operation ID to context.
 func WithOperationID(ctx context.Context, operationID string) context.Context {
 	if operationID == "" {
 		operationID = uuid.New().String()
@@ -195,7 +204,7 @@ func WithOperationID(ctx context.Context, operationID string) context.Context {
 	return context.WithValue(ctx, OperationIDKey, operationID)
 }
 
-// GetCorrelationID gets correlation ID from context
+// GetCorrelationID gets correlation ID from context.
 func GetCorrelationID(ctx context.Context) string {
 	if id, ok := ctx.Value(CorrelationIDKey).(string); ok {
 		return id
@@ -203,7 +212,7 @@ func GetCorrelationID(ctx context.Context) string {
 	return ""
 }
 
-// GetRequestID gets request ID from context
+// GetRequestID gets request ID from context.
 func GetRequestID(ctx context.Context) string {
 	if id, ok := ctx.Value(RequestIDKey).(string); ok {
 		return id
@@ -211,7 +220,7 @@ func GetRequestID(ctx context.Context) string {
 	return ""
 }
 
-// GetOperationID gets operation ID from context
+// GetOperationID gets operation ID from context.
 func GetOperationID(ctx context.Context) string {
 	if id, ok := ctx.Value(OperationIDKey).(string); ok {
 		return id
@@ -219,26 +228,26 @@ func GetOperationID(ctx context.Context) string {
 	return ""
 }
 
-// extractContextAttributes extracts logging attributes from context
+// extractContextAttributes extracts logging attributes from context.
 func (sl *StructuredLogger) extractContextAttributes(ctx context.Context) []slog.Attr {
 	var attrs []slog.Attr
 
-	// Add correlation ID
+	// Add correlation ID.
 	if correlationID := GetCorrelationID(ctx); correlationID != "" {
 		attrs = append(attrs, slog.String("correlation_id", correlationID))
 	}
 
-	// Add request ID
+	// Add request ID.
 	if requestID := GetRequestID(ctx); requestID != "" {
 		attrs = append(attrs, slog.String("request_id", requestID))
 	}
 
-	// Add operation ID
+	// Add operation ID.
 	if operationID := GetOperationID(ctx); operationID != "" {
 		attrs = append(attrs, slog.String("operation_id", operationID))
 	}
 
-	// Add trace information if available
+	// Add trace information if available.
 	span := trace.SpanFromContext(ctx)
 	if span.SpanContext().IsValid() {
 		attrs = append(attrs,
@@ -250,41 +259,41 @@ func (sl *StructuredLogger) extractContextAttributes(ctx context.Context) []slog
 	return attrs
 }
 
-// buildLogAttributes builds complete set of log attributes
+// buildLogAttributes builds complete set of log attributes.
 func (sl *StructuredLogger) buildLogAttributes(ctx context.Context, attrs ...slog.Attr) []slog.Attr {
 	allAttrs := make([]slog.Attr, 0, len(sl.defaultAttrs)+len(attrs)+5)
 
-	// Add default attributes
+	// Add default attributes.
 	allAttrs = append(allAttrs, sl.defaultAttrs...)
 
-	// Add context attributes
+	// Add context attributes.
 	allAttrs = append(allAttrs, sl.extractContextAttributes(ctx)...)
 
-	// Add provided attributes
+	// Add provided attributes.
 	allAttrs = append(allAttrs, attrs...)
 
 	return allAttrs
 }
 
-// Debug logs a debug message
+// Debug logs a debug message.
 func (sl *StructuredLogger) Debug(ctx context.Context, msg string, attrs ...slog.Attr) {
 	allAttrs := sl.buildLogAttributes(ctx, attrs...)
 	sl.logger.LogAttrs(ctx, slog.LevelDebug, msg, allAttrs...)
 }
 
-// Info logs an info message
+// Info logs an info message.
 func (sl *StructuredLogger) Info(ctx context.Context, msg string, attrs ...slog.Attr) {
 	allAttrs := sl.buildLogAttributes(ctx, attrs...)
 	sl.logger.LogAttrs(ctx, slog.LevelInfo, msg, allAttrs...)
 }
 
-// Warn logs a warning message
+// Warn logs a warning message.
 func (sl *StructuredLogger) Warn(ctx context.Context, msg string, attrs ...slog.Attr) {
 	allAttrs := sl.buildLogAttributes(ctx, attrs...)
 	sl.logger.LogAttrs(ctx, slog.LevelWarn, msg, allAttrs...)
 }
 
-// Error logs an error message
+// Error logs an error message.
 func (sl *StructuredLogger) Error(ctx context.Context, msg string, err error, attrs ...slog.Attr) {
 	allAttrs := sl.buildLogAttributes(ctx, attrs...)
 	if err != nil {
@@ -294,7 +303,7 @@ func (sl *StructuredLogger) Error(ctx context.Context, msg string, err error, at
 	sl.logger.LogAttrs(ctx, slog.LevelError, msg, allAttrs...)
 }
 
-// Fatal logs a fatal message and exits
+// Fatal logs a fatal message and exits.
 func (sl *StructuredLogger) Fatal(ctx context.Context, msg string, err error, attrs ...slog.Attr) {
 	allAttrs := sl.buildLogAttributes(ctx, attrs...)
 	if err != nil {
@@ -305,7 +314,7 @@ func (sl *StructuredLogger) Fatal(ctx context.Context, msg string, err error, at
 	os.Exit(1)
 }
 
-// WithFields returns a logger with additional fields
+// WithFields returns a logger with additional fields.
 func (sl *StructuredLogger) WithFields(attrs ...slog.Attr) *StructuredLogger {
 	newDefaultAttrs := make([]slog.Attr, 0, len(sl.defaultAttrs)+len(attrs))
 	newDefaultAttrs = append(newDefaultAttrs, sl.defaultAttrs...)
@@ -320,12 +329,12 @@ func (sl *StructuredLogger) WithFields(attrs ...slog.Attr) *StructuredLogger {
 	}
 }
 
-// NetworkIntentLogger provides specialized logging for NetworkIntent operations
+// NetworkIntentLogger provides specialized logging for NetworkIntent operations.
 type NetworkIntentLogger struct {
 	*StructuredLogger
 }
 
-// NewNetworkIntentLogger creates a NetworkIntent-specific logger
+// NewNetworkIntentLogger creates a NetworkIntent-specific logger.
 func NewNetworkIntentLogger(baseLogger *StructuredLogger) *NetworkIntentLogger {
 	return &NetworkIntentLogger{
 		StructuredLogger: baseLogger.WithFields(
@@ -334,7 +343,7 @@ func NewNetworkIntentLogger(baseLogger *StructuredLogger) *NetworkIntentLogger {
 	}
 }
 
-// LogReconciliationStart logs the start of reconciliation
+// LogReconciliationStart logs the start of reconciliation.
 func (nil *NetworkIntentLogger) LogReconciliationStart(ctx context.Context, name, namespace string) {
 	nil.Info(ctx, "Starting NetworkIntent reconciliation",
 		slog.String("intent_name", name),
@@ -343,7 +352,7 @@ func (nil *NetworkIntentLogger) LogReconciliationStart(ctx context.Context, name
 	)
 }
 
-// LogReconciliationComplete logs successful reconciliation completion
+// LogReconciliationComplete logs successful reconciliation completion.
 func (nil *NetworkIntentLogger) LogReconciliationComplete(ctx context.Context, name, namespace string, duration time.Duration) {
 	nil.Info(ctx, "NetworkIntent reconciliation completed successfully",
 		slog.String("intent_name", name),
@@ -354,7 +363,7 @@ func (nil *NetworkIntentLogger) LogReconciliationComplete(ctx context.Context, n
 	)
 }
 
-// LogReconciliationError logs reconciliation errors
+// LogReconciliationError logs reconciliation errors.
 func (nil *NetworkIntentLogger) LogReconciliationError(ctx context.Context, name, namespace string, err error, duration time.Duration) {
 	nil.Error(ctx, "NetworkIntent reconciliation failed", err,
 		slog.String("intent_name", name),
@@ -365,7 +374,7 @@ func (nil *NetworkIntentLogger) LogReconciliationError(ctx context.Context, name
 	)
 }
 
-// LogLLMProcessing logs LLM processing events
+// LogLLMProcessing logs LLM processing events.
 func (nil *NetworkIntentLogger) LogLLMProcessing(ctx context.Context, name, namespace, model string, tokensUsed int, cost float64, duration time.Duration) {
 	nil.Info(ctx, "LLM processing completed",
 		slog.String("intent_name", name),
@@ -378,7 +387,7 @@ func (nil *NetworkIntentLogger) LogLLMProcessing(ctx context.Context, name, name
 	)
 }
 
-// LogStatusTransition logs status transitions
+// LogStatusTransition logs status transitions.
 func (nil *NetworkIntentLogger) LogStatusTransition(ctx context.Context, name, namespace, fromStatus, toStatus string) {
 	nil.Info(ctx, "NetworkIntent status transition",
 		slog.String("intent_name", name),
@@ -389,12 +398,12 @@ func (nil *NetworkIntentLogger) LogStatusTransition(ctx context.Context, name, n
 	)
 }
 
-// ORANInterfaceLogger provides specialized logging for O-RAN interface operations
+// ORANInterfaceLogger provides specialized logging for O-RAN interface operations.
 type ORANInterfaceLogger struct {
 	*StructuredLogger
 }
 
-// NewORANInterfaceLogger creates an O-RAN interface-specific logger
+// NewORANInterfaceLogger creates an O-RAN interface-specific logger.
 func NewORANInterfaceLogger(baseLogger *StructuredLogger) *ORANInterfaceLogger {
 	return &ORANInterfaceLogger{
 		StructuredLogger: baseLogger.WithFields(
@@ -403,7 +412,7 @@ func NewORANInterfaceLogger(baseLogger *StructuredLogger) *ORANInterfaceLogger {
 	}
 }
 
-// LogInterfaceRequest logs O-RAN interface requests
+// LogInterfaceRequest logs O-RAN interface requests.
 func (oil *ORANInterfaceLogger) LogInterfaceRequest(ctx context.Context, interfaceType, operation, endpoint string, duration time.Duration, statusCode int) {
 	level := slog.LevelInfo
 	if statusCode >= 400 {
@@ -425,7 +434,7 @@ func (oil *ORANInterfaceLogger) LogInterfaceRequest(ctx context.Context, interfa
 	)
 }
 
-// LogConnectionStatus logs connection status changes
+// LogConnectionStatus logs connection status changes.
 func (oil *ORANInterfaceLogger) LogConnectionStatus(ctx context.Context, interfaceType, endpoint string, connected bool) {
 	status := "disconnected"
 	level := slog.LevelError
@@ -445,7 +454,7 @@ func (oil *ORANInterfaceLogger) LogConnectionStatus(ctx context.Context, interfa
 	)
 }
 
-// LogPolicyOperation logs policy operations
+// LogPolicyOperation logs policy operations.
 func (oil *ORANInterfaceLogger) LogPolicyOperation(ctx context.Context, policyType, operation, policyID string, success bool, duration time.Duration) {
 	level := slog.LevelInfo
 	if !success {
@@ -464,12 +473,12 @@ func (oil *ORANInterfaceLogger) LogPolicyOperation(ctx context.Context, policyTy
 	)
 }
 
-// SecurityLogger provides specialized logging for security events
+// SecurityLogger provides specialized logging for security events.
 type SecurityLogger struct {
 	*StructuredLogger
 }
 
-// NewSecurityLogger creates a security-specific logger
+// NewSecurityLogger creates a security-specific logger.
 func NewSecurityLogger(baseLogger *StructuredLogger) *SecurityLogger {
 	return &SecurityLogger{
 		StructuredLogger: baseLogger.WithFields(
@@ -479,7 +488,7 @@ func NewSecurityLogger(baseLogger *StructuredLogger) *SecurityLogger {
 	}
 }
 
-// LogAuthenticationEvent logs authentication events
+// LogAuthenticationEvent logs authentication events.
 func (sl *SecurityLogger) LogAuthenticationEvent(ctx context.Context, userID, method string, success bool, clientIP string) {
 	level := slog.LevelInfo
 	if !success {
@@ -497,7 +506,7 @@ func (sl *SecurityLogger) LogAuthenticationEvent(ctx context.Context, userID, me
 	)
 }
 
-// LogAuthorizationEvent logs authorization events
+// LogAuthorizationEvent logs authorization events.
 func (sl *SecurityLogger) LogAuthorizationEvent(ctx context.Context, userID, resource, action string, allowed bool) {
 	level := slog.LevelInfo
 	if !allowed {
@@ -515,7 +524,7 @@ func (sl *SecurityLogger) LogAuthorizationEvent(ctx context.Context, userID, res
 	)
 }
 
-// LogSecurityIncident logs security incidents
+// LogSecurityIncident logs security incidents.
 func (sl *SecurityLogger) LogSecurityIncident(ctx context.Context, incidentType, description string, severity string, sourceIP string) {
 	level := slog.LevelError
 	switch severity {
@@ -540,12 +549,12 @@ func (sl *SecurityLogger) LogSecurityIncident(ctx context.Context, incidentType,
 	)
 }
 
-// AuditLogger provides specialized logging for audit events
+// AuditLogger provides specialized logging for audit events.
 type AuditLogger struct {
 	*StructuredLogger
 }
 
-// NewAuditLogger creates an audit-specific logger
+// NewAuditLogger creates an audit-specific logger.
 func NewAuditLogger(baseLogger *StructuredLogger) *AuditLogger {
 	return &AuditLogger{
 		StructuredLogger: baseLogger.WithFields(
@@ -555,7 +564,7 @@ func NewAuditLogger(baseLogger *StructuredLogger) *AuditLogger {
 	}
 }
 
-// LogResourceOperation logs resource operations for audit
+// LogResourceOperation logs resource operations for audit.
 func (al *AuditLogger) LogResourceOperation(ctx context.Context, userID, operation, resourceType, resourceName, namespace string, success bool) {
 	level := slog.LevelInfo
 	if !success {
@@ -575,7 +584,7 @@ func (al *AuditLogger) LogResourceOperation(ctx context.Context, userID, operati
 	)
 }
 
-// LogConfigurationChange logs configuration changes
+// LogConfigurationChange logs configuration changes.
 func (al *AuditLogger) LogConfigurationChange(ctx context.Context, userID, configType, configName string, oldValue, newValue interface{}) {
 	al.Info(ctx, "Configuration change",
 		slog.String("user_id", userID),
@@ -587,10 +596,10 @@ func (al *AuditLogger) LogConfigurationChange(ctx context.Context, userID, confi
 	)
 }
 
-// Global logger instance
+// Global logger instance.
 var DefaultLogger *StructuredLogger
 
-// InitializeLogging initializes the global logger
+// InitializeLogging initializes the global logger.
 func InitializeLogging(config *LogConfig) error {
 	logger, err := NewStructuredLogger(config)
 	if err != nil {
@@ -600,7 +609,7 @@ func InitializeLogging(config *LogConfig) error {
 	return nil
 }
 
-// GetLogger returns the global logger instance
+// GetLogger returns the global logger instance.
 func GetLogger() *StructuredLogger {
 	return DefaultLogger
 }

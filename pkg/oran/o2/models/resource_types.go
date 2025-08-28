@@ -6,9 +6,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// Resource Type Management Models following O-RAN.WG6.O2ims-Interface-v01.01
+// Resource Type Management Models following O-RAN.WG6.O2ims-Interface-v01.01.
 
-// ResourceType represents a type of infrastructure resource following O2 IMS specification
+// ResourceType represents a type of infrastructure resource following O2 IMS specification.
 type ResourceType struct {
 	ResourceTypeID string `json:"resourceTypeId"`
 	Name           string `json:"name"`
@@ -17,60 +17,60 @@ type ResourceType struct {
 	Model          string `json:"model,omitempty"`
 	Version        string `json:"version"`
 
-	// Resource type classification
+	// Resource type classification.
 	Category      string `json:"category,omitempty"`      // COMPUTE, STORAGE, NETWORK, ACCELERATOR
 	ResourceClass string `json:"resourceClass,omitempty"` // PHYSICAL, VIRTUAL, LOGICAL
 	ResourceKind  string `json:"resourceKind,omitempty"`  // SERVER, SWITCH, STORAGE_ARRAY
 
-	// Configuration and schema
+	// Configuration and schema.
 	YANGModel    *YANGModelReference   `json:"yangModel,omitempty"`
 	ConfigSchema *runtime.RawExtension `json:"configSchema,omitempty"`
 	StateSchema  *runtime.RawExtension `json:"stateSchema,omitempty"`
 
-	// Capabilities and features
+	// Capabilities and features.
 	SupportedOperations []string             `json:"supportedOperations,omitempty"`
 	Capabilities        []ResourceCapability `json:"capabilities,omitempty"`
 	Features            []ResourceFeature    `json:"features,omitempty"`
 
-	// Resource characteristics
+	// Resource characteristics.
 	ResourceLimits     *ResourceLimits     `json:"resourceLimits,omitempty"`
 	PerformanceProfile *PerformanceProfile `json:"performanceProfile,omitempty"`
 
-	// Lifecycle and management
+	// Lifecycle and management.
 	LifecycleStates   []string `json:"lifecycleStates,omitempty"`
 	ManagementMethods []string `json:"managementMethods,omitempty"`
 
-	// Compatibility and requirements
+	// Compatibility and requirements.
 	Dependencies  []*TypeDependency    `json:"dependencies,omitempty"`
 	Compatibility []*CompatibilityRule `json:"compatibility,omitempty"`
 	Requirements  []*TypeRequirement   `json:"requirements,omitempty"`
 
-	// Extensions and metadata
+	// Extensions and metadata.
 	VendorExtensions map[string]interface{} `json:"vendorExtensions,omitempty"`
 	Extensions       map[string]interface{} `json:"extensions,omitempty"`
 	Tags             map[string]string      `json:"tags,omitempty"`
 	Labels           map[string]string      `json:"labels,omitempty"`
 
-	// Legacy fields for backward compatibility (mapped to current model)
-	// Specifications maps to Category, ResourceLimits, and other current fields
+	// Legacy fields for backward compatibility (mapped to current model).
+	// Specifications maps to Category, ResourceLimits, and other current fields.
 	Specifications *ResourceTypeSpec `json:"specifications,omitempty"`
-	// SupportedActions maps to SupportedOperations
+	// SupportedActions maps to SupportedOperations.
 	SupportedActions []string `json:"supportedActions,omitempty"`
-	// Capabilities as map (legacy format) - use Capabilities field for current model
+	// Capabilities as map (legacy format) - use Capabilities field for current model.
 	CapabilitiesMap map[string]interface{} `json:"capabilitiesLegacy,omitempty"`
 
-	// Lifecycle information
+	// Lifecycle information.
 	Status    string    `json:"status"` // ACTIVE, DEPRECATED, OBSOLETE
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 	CreatedBy string    `json:"createdBy,omitempty"`
 	UpdatedBy string    `json:"updatedBy,omitempty"`
 
-	// Compliance information for test compatibility
+	// Compliance information for test compatibility.
 	Compliance *ComplianceInfo `json:"compliance,omitempty"`
 }
 
-// YANGModelReference represents a reference to a YANG model
+// YANGModelReference represents a reference to a YANG model.
 type YANGModelReference struct {
 	ModelName      string `json:"modelName"`
 	Version        string `json:"version"`
@@ -80,7 +80,7 @@ type YANGModelReference struct {
 	SchemaLocation string `json:"schemaLocation,omitempty"`
 }
 
-// ResourceCapability represents a capability of a resource type
+// ResourceCapability represents a capability of a resource type.
 type ResourceCapability struct {
 	Name         string                  `json:"name"`
 	Type         string                  `json:"type"` // FUNCTIONAL, PERFORMANCE, OPERATIONAL
@@ -90,7 +90,7 @@ type ResourceCapability struct {
 	SupportLevel string                  `json:"supportLevel,omitempty"` // MANDATORY, OPTIONAL, CONDITIONAL
 }
 
-// ResourceFeature represents a feature supported by a resource type
+// ResourceFeature represents a feature supported by a resource type.
 type ResourceFeature struct {
 	Name          string                 `json:"name"`
 	Description   string                 `json:"description,omitempty"`
@@ -101,24 +101,24 @@ type ResourceFeature struct {
 	Configuration map[string]interface{} `json:"configuration,omitempty"`
 }
 
-// ResourceLimits defines limits and constraints for resources of this type
+// ResourceLimits defines limits and constraints for resources of this type.
 type ResourceLimits struct {
-	// Quantity limits
+	// Quantity limits.
 	MinInstances     *int `json:"minInstances,omitempty"`
 	MaxInstances     *int `json:"maxInstances,omitempty"`
 	DefaultInstances *int `json:"defaultInstances,omitempty"`
 
-	// Resource limits
+	// Resource limits.
 	CPULimits     *ResourceLimit `json:"cpuLimits,omitempty"`
 	MemoryLimits  *ResourceLimit `json:"memoryLimits,omitempty"`
 	StorageLimits *ResourceLimit `json:"storageLimits,omitempty"`
 	NetworkLimits *NetworkLimits `json:"networkLimits,omitempty"`
 
-	// Custom limits
+	// Custom limits.
 	CustomLimits map[string]*ResourceLimit `json:"customLimits,omitempty"`
 }
 
-// ResourceLimit defines limits for a specific resource metric
+// ResourceLimit defines limits for a specific resource metric.
 type ResourceLimit struct {
 	MinValue     string   `json:"minValue,omitempty"`
 	MaxValue     string   `json:"maxValue,omitempty"`
@@ -127,7 +127,7 @@ type ResourceLimit struct {
 	Constraints  []string `json:"constraints,omitempty"`
 }
 
-// NetworkLimits defines network-specific limits
+// NetworkLimits defines network-specific limits.
 type NetworkLimits struct {
 	MaxBandwidth       string   `json:"maxBandwidth,omitempty"`
 	MaxConnections     *int     `json:"maxConnections,omitempty"`
@@ -135,27 +135,27 @@ type NetworkLimits struct {
 	SupportedProtocols []string `json:"supportedProtocols,omitempty"`
 }
 
-// PerformanceProfile defines expected performance characteristics
+// PerformanceProfile defines expected performance characteristics.
 type PerformanceProfile struct {
-	// Compute performance
+	// Compute performance.
 	CPUPerformance    *PerformanceMetric `json:"cpuPerformance,omitempty"`
 	MemoryPerformance *PerformanceMetric `json:"memoryPerformance,omitempty"`
 
-	// Storage performance
+	// Storage performance.
 	StorageIOPS       *PerformanceMetric `json:"storageIops,omitempty"`
 	StorageThroughput *PerformanceMetric `json:"storageThroughput,omitempty"`
 	StorageLatency    *PerformanceMetric `json:"storageLatency,omitempty"`
 
-	// Network performance
+	// Network performance.
 	NetworkThroughput *PerformanceMetric `json:"networkThroughput,omitempty"`
 	NetworkLatency    *PerformanceMetric `json:"networkLatency,omitempty"`
 	NetworkPacketRate *PerformanceMetric `json:"networkPacketRate,omitempty"`
 
-	// Custom performance metrics
+	// Custom performance metrics.
 	CustomMetrics map[string]*PerformanceMetric `json:"customMetrics,omitempty"`
 }
 
-// PerformanceMetric defines a performance metric with expected values
+// PerformanceMetric defines a performance metric with expected values.
 type PerformanceMetric struct {
 	MetricName   string            `json:"metricName"`
 	Unit         string            `json:"unit"`
@@ -166,7 +166,7 @@ type PerformanceMetric struct {
 	Conditions   []string          `json:"conditions,omitempty"`
 }
 
-// TypeDependency represents a dependency between resource types
+// TypeDependency represents a dependency between resource types.
 type TypeDependency struct {
 	DependencyType string                  `json:"dependencyType"` // REQUIRES, CONFLICTS, RECOMMENDS
 	ResourceTypeID string                  `json:"resourceTypeId"`
@@ -177,7 +177,7 @@ type TypeDependency struct {
 	Constraints    []*DependencyConstraint `json:"constraints,omitempty"`
 }
 
-// CompatibilityRule defines compatibility rules for resource types
+// CompatibilityRule defines compatibility rules for resource types.
 type CompatibilityRule struct {
 	RuleType      string `json:"ruleType"` // COMPATIBLE, INCOMPATIBLE, CONDITIONAL
 	TargetTypeID  string `json:"targetTypeId,omitempty"`
@@ -187,7 +187,7 @@ type CompatibilityRule struct {
 	Severity      string `json:"severity,omitempty"` // ERROR, WARNING, INFO
 }
 
-// TypeRequirement defines requirements for deploying resources of this type
+// TypeRequirement defines requirements for deploying resources of this type.
 type TypeRequirement struct {
 	RequirementType string                   `json:"requirementType"` // HARDWARE, SOFTWARE, NETWORK, SECURITY
 	Name            string                   `json:"name"`
@@ -198,7 +198,7 @@ type TypeRequirement struct {
 	Validation      *RequirementValidation   `json:"validation,omitempty"`
 }
 
-// CapabilityConstraint defines constraints for resource capabilities
+// CapabilityConstraint defines constraints for resource capabilities.
 type CapabilityConstraint struct {
 	ConstraintType string      `json:"constraintType"` // RANGE, ENUM, PATTERN, CUSTOM
 	Parameter      string      `json:"parameter"`
@@ -210,7 +210,7 @@ type CapabilityConstraint struct {
 	ErrorMessage   string      `json:"errorMessage,omitempty"`
 }
 
-// FeatureConstraint defines constraints for resource features
+// FeatureConstraint defines constraints for resource features.
 type FeatureConstraint struct {
 	ConstraintType string      `json:"constraintType"`
 	Condition      string      `json:"condition"`
@@ -218,7 +218,7 @@ type FeatureConstraint struct {
 	Message        string      `json:"message,omitempty"`
 }
 
-// DependencyConstraint defines constraints for type dependencies
+// DependencyConstraint defines constraints for type dependencies.
 type DependencyConstraint struct {
 	ConstraintType string      `json:"constraintType"`
 	Property       string      `json:"property"`
@@ -227,7 +227,7 @@ type DependencyConstraint struct {
 	Description    string      `json:"description,omitempty"`
 }
 
-// RequirementConstraint defines constraints for type requirements
+// RequirementConstraint defines constraints for type requirements.
 type RequirementConstraint struct {
 	ConstraintType string      `json:"constraintType"`
 	Field          string      `json:"field"`
@@ -236,7 +236,7 @@ type RequirementConstraint struct {
 	Message        string      `json:"message,omitempty"`
 }
 
-// RequirementValidation defines validation rules for requirements
+// RequirementValidation defines validation rules for requirements.
 type RequirementValidation struct {
 	ValidationType   string                 `json:"validationType"` // SCRIPT, API, MANUAL
 	ValidationScript string                 `json:"validationScript,omitempty"`
@@ -245,7 +245,7 @@ type RequirementValidation struct {
 	RetryPolicy      *ValidationRetryPolicy `json:"retryPolicy,omitempty"`
 }
 
-// ValidationRetryPolicy defines retry policy for requirement validation
+// ValidationRetryPolicy defines retry policy for requirement validation.
 type ValidationRetryPolicy struct {
 	MaxRetries       int           `json:"maxRetries"`
 	RetryInterval    time.Duration `json:"retryInterval"`
@@ -253,7 +253,7 @@ type ValidationRetryPolicy struct {
 	MaxRetryInterval time.Duration `json:"maxRetryInterval"`
 }
 
-// Resource represents an infrastructure resource instance following O2 IMS specification
+// Resource represents an infrastructure resource instance following O2 IMS specification.
 type Resource struct {
 	ResourceID       string `json:"resourceId"`
 	Name             string `json:"name"`
@@ -264,47 +264,47 @@ type Resource struct {
 	GlobalAssetID    string `json:"globalAssetId,omitempty"`
 	Provider         string `json:"provider,omitempty"`
 
-	// Resource state and configuration
+	// Resource state and configuration.
 	Status        *ResourceStatus       `json:"status"`
 	Configuration *runtime.RawExtension `json:"configuration,omitempty"`
 	State         *runtime.RawExtension `json:"state,omitempty"`
 
-	// Resource allocation and capacity
+	// Resource allocation and capacity.
 	AllocatedCapacity *ResourceCapacity `json:"allocatedCapacity,omitempty"`
 	UtilizedCapacity  *ResourceCapacity `json:"utilizedCapacity,omitempty"`
 
-	// Relationships and dependencies
+	// Relationships and dependencies.
 	Dependencies  []string                `json:"dependencies,omitempty"`
 	Dependents    []string                `json:"dependents,omitempty"`
 	Relationships []*ResourceRelationship `json:"relationships,omitempty"`
 
-	// Location and placement
+	// Location and placement.
 	Location  *ResourceLocation  `json:"location,omitempty"`
 	Placement *ResourcePlacement `json:"placement,omitempty"`
 
-	// Monitoring and health
+	// Monitoring and health.
 	Health  *ResourceHealthInfo    `json:"health,omitempty"`
 	Metrics map[string]interface{} `json:"metrics,omitempty"`
 	Alarms  []*ResourceAlarm       `json:"alarms,omitempty"`
 
-	// Lifecycle and management
+	// Lifecycle and management.
 	LifecycleState string                  `json:"lifecycleState,omitempty"`
 	ManagementInfo *ResourceManagementInfo `json:"managementInfo,omitempty"`
 
-	// Extensions and metadata
+	// Extensions and metadata.
 	VendorExtensions map[string]interface{} `json:"vendorExtensions,omitempty"`
 	Extensions       map[string]interface{} `json:"extensions,omitempty"`
 	Tags             map[string]string      `json:"tags,omitempty"`
 	Labels           map[string]string      `json:"labels,omitempty"`
 
-	// Lifecycle information
+	// Lifecycle information.
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 	CreatedBy string    `json:"createdBy,omitempty"`
 	UpdatedBy string    `json:"updatedBy,omitempty"`
 }
 
-// ResourceRelationship represents a relationship between resources
+// ResourceRelationship represents a relationship between resources.
 type ResourceRelationship struct {
 	RelationshipType string                 `json:"relationshipType"` // CONTAINS, USES, CONNECTS_TO, DEPENDS_ON
 	TargetResourceID string                 `json:"targetResourceId"`
@@ -312,65 +312,65 @@ type ResourceRelationship struct {
 	Description      string                 `json:"description,omitempty"`
 }
 
-// ResourceLocation represents the location of a resource
+// ResourceLocation represents the location of a resource.
 type ResourceLocation struct {
-	// Geographic location
+	// Geographic location.
 	Country    string `json:"country,omitempty"`
 	Region     string `json:"region,omitempty"`
 	City       string `json:"city,omitempty"`
 	DataCenter string `json:"dataCenter,omitempty"`
 	Zone       string `json:"zone,omitempty"`
 
-	// Coordinates
+	// Coordinates.
 	Latitude  *float64 `json:"latitude,omitempty"`
 	Longitude *float64 `json:"longitude,omitempty"`
 
-	// Physical location
+	// Physical location.
 	Building string `json:"building,omitempty"`
 	Floor    string `json:"floor,omitempty"`
 	Room     string `json:"room,omitempty"`
 	Rack     string `json:"rack,omitempty"`
 	Position string `json:"position,omitempty"`
 
-	// Logical location
+	// Logical location.
 	Cluster   string `json:"cluster,omitempty"`
 	Namespace string `json:"namespace,omitempty"`
 
-	// Additional properties
+	// Additional properties.
 	Properties map[string]interface{} `json:"properties,omitempty"`
 }
 
-// ResourcePlacement represents placement constraints and preferences
+// ResourcePlacement represents placement constraints and preferences.
 type ResourcePlacement struct {
-	// Affinity rules
+	// Affinity rules.
 	NodeAffinity     *NodeAffinity     `json:"nodeAffinity,omitempty"`
 	ResourceAffinity *ResourceAffinity `json:"resourceAffinity,omitempty"`
 
-	// Anti-affinity rules
+	// Anti-affinity rules.
 	AntiAffinity *AntiAffinityRules `json:"antiAffinity,omitempty"`
 
-	// Placement constraints
+	// Placement constraints.
 	Constraints []*PlacementConstraint `json:"constraints,omitempty"`
 	Preferences []*PlacementPreference `json:"preferences,omitempty"`
 
-	// Topology
+	// Topology.
 	TopologyKey    string                    `json:"topologyKey,omitempty"`
 	TopologySpread *TopologySpreadConstraint `json:"topologySpread,omitempty"`
 }
 
-// NodeAffinity represents node affinity rules (from helper_types.go but included here for completeness)
+// NodeAffinity represents node affinity rules (from helper_types.go but included here for completeness).
 type NodeAffinity struct {
 	RequiredDuringSchedulingIgnoredDuringExecution  []*NodeSelectorTerm        `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty"`
 	PreferredDuringSchedulingIgnoredDuringExecution []*PreferredSchedulingTerm `json:"preferredDuringSchedulingIgnoredDuringExecution,omitempty"`
 }
 
-// ResourceAffinity represents affinity rules based on resource properties
+// ResourceAffinity represents affinity rules based on resource properties.
 type ResourceAffinity struct {
 	RequiredRules  []*ResourceAffinityRule `json:"requiredRules,omitempty"`
 	PreferredRules []*ResourceAffinityRule `json:"preferredRules,omitempty"`
 }
 
-// ResourceAffinityRule defines a resource affinity rule
+// ResourceAffinityRule defines a resource affinity rule.
 type ResourceAffinityRule struct {
 	Weight      int32    `json:"weight,omitempty"`
 	Property    string   `json:"property"`
@@ -379,7 +379,7 @@ type ResourceAffinityRule struct {
 	TopologyKey string   `json:"topologyKey,omitempty"`
 }
 
-// AntiAffinityRules represents anti-affinity rules
+// AntiAffinityRules represents anti-affinity rules.
 type AntiAffinityRules struct {
 	ResourceTypes []string                  `json:"resourceTypes,omitempty"`
 	ResourceIDs   []string                  `json:"resourceIds,omitempty"`
@@ -387,7 +387,7 @@ type AntiAffinityRules struct {
 	Constraints   []*AntiAffinityConstraint `json:"constraints,omitempty"`
 }
 
-// AntiAffinityConstraint defines an anti-affinity constraint
+// AntiAffinityConstraint defines an anti-affinity constraint.
 type AntiAffinityConstraint struct {
 	Type     string   `json:"type"` // HARD, SOFT
 	Property string   `json:"property"`
@@ -396,7 +396,7 @@ type AntiAffinityConstraint struct {
 	Scope    string   `json:"scope"` // NODE, RACK, ZONE, REGION
 }
 
-// PlacementConstraint defines a placement constraint
+// PlacementConstraint defines a placement constraint.
 type PlacementConstraint struct {
 	ConstraintType string      `json:"constraintType"` // LOCATION, CAPACITY, NETWORK, SECURITY
 	Property       string      `json:"property"`
@@ -406,7 +406,7 @@ type PlacementConstraint struct {
 	Description    string      `json:"description,omitempty"`
 }
 
-// PlacementPreference defines a placement preference
+// PlacementPreference defines a placement preference.
 type PlacementPreference struct {
 	PreferenceType string      `json:"preferenceType"`
 	Property       string      `json:"property"`
@@ -415,7 +415,7 @@ type PlacementPreference struct {
 	Description    string      `json:"description,omitempty"`
 }
 
-// TopologySpreadConstraint defines topology spread constraints
+// TopologySpreadConstraint defines topology spread constraints.
 type TopologySpreadConstraint struct {
 	MaxSkew           int32          `json:"maxSkew"`
 	TopologyKey       string         `json:"topologyKey"`
@@ -423,7 +423,7 @@ type TopologySpreadConstraint struct {
 	LabelSelector     *LabelSelector `json:"labelSelector,omitempty"`
 }
 
-// ResourceHealthInfo represents health information for a resource
+// ResourceHealthInfo represents health information for a resource.
 type ResourceHealthInfo struct {
 	OverallHealth string                `json:"overallHealth"` // HEALTHY, DEGRADED, UNHEALTHY, UNKNOWN
 	HealthScore   float64               `json:"healthScore,omitempty"`
@@ -432,7 +432,7 @@ type ResourceHealthInfo struct {
 	HealthHistory []*HealthHistoryEntry `json:"healthHistory,omitempty"`
 }
 
-// HealthCheckInfo represents information about a specific health check
+// HealthCheckInfo represents information about a specific health check.
 type HealthCheckInfo struct {
 	CheckName string                 `json:"checkName"`
 	CheckType string                 `json:"checkType"` // LIVENESS, READINESS, STARTUP
@@ -443,7 +443,7 @@ type HealthCheckInfo struct {
 	Details   map[string]interface{} `json:"details,omitempty"`
 }
 
-// HealthHistoryEntry represents a health history entry
+// HealthHistoryEntry represents a health history entry.
 type HealthHistoryEntry struct {
 	Timestamp   time.Time              `json:"timestamp"`
 	Health      string                 `json:"health"`
@@ -452,7 +452,7 @@ type HealthHistoryEntry struct {
 	Details     map[string]interface{} `json:"details,omitempty"`
 }
 
-// ResourceAlarm represents an alarm associated with a resource
+// ResourceAlarm represents an alarm associated with a resource.
 type ResourceAlarm struct {
 	AlarmID   string                 `json:"alarmId"`
 	AlarmType string                 `json:"alarmType"`
@@ -464,7 +464,7 @@ type ResourceAlarm struct {
 	ClearedAt *time.Time             `json:"clearedAt,omitempty"`
 }
 
-// ResourceManagementInfo represents management information for a resource
+// ResourceManagementInfo represents management information for a resource.
 type ResourceManagementInfo struct {
 	ManagedBy          string                 `json:"managedBy,omitempty"`
 	ManagementAPI      string                 `json:"managementApi,omitempty"`
@@ -474,9 +474,9 @@ type ResourceManagementInfo struct {
 	LastManaged        time.Time              `json:"lastManaged,omitempty"`
 }
 
-// Filter types for resource queries
+// Filter types for resource queries.
 
-// ResourceTypeFilter defines filters for resource type queries
+// ResourceTypeFilter defines filters for resource type queries.
 type ResourceTypeFilter struct {
 	Names           []string          `json:"names,omitempty"`
 	Vendors         []string          `json:"vendors,omitempty"`
@@ -498,7 +498,7 @@ type ResourceTypeFilter struct {
 	SortOrder       string            `json:"sortOrder,omitempty"`
 }
 
-// ResourceFilter defines filters for resource queries
+// ResourceFilter defines filters for resource queries.
 type ResourceFilter struct {
 	Names             []string          `json:"names,omitempty"`
 	ResourceTypeIDs   []string          `json:"resourceTypeIds,omitempty"`
@@ -517,7 +517,7 @@ type ResourceFilter struct {
 	SortOrder         string            `json:"sortOrder,omitempty"`
 }
 
-// LocationFilter defines location-based filtering (from subscription models but included here for completeness)
+// LocationFilter defines location-based filtering (from subscription models but included here for completeness).
 type LocationFilter struct {
 	Regions     []string        `json:"regions,omitempty"`
 	Zones       []string        `json:"zones,omitempty"`
@@ -525,7 +525,7 @@ type LocationFilter struct {
 	Coordinates *GeographicArea `json:"coordinates,omitempty"`
 }
 
-// GeographicArea defines a geographic area for filtering (from subscription models)
+// GeographicArea defines a geographic area for filtering (from subscription models).
 type GeographicArea struct {
 	CenterLatitude  float64      `json:"centerLatitude"`
 	CenterLongitude float64      `json:"centerLongitude"`
@@ -533,7 +533,7 @@ type GeographicArea struct {
 	BoundingBox     *BoundingBox `json:"boundingBox,omitempty"`
 }
 
-// BoundingBox defines a rectangular geographic boundary (from subscription models)
+// BoundingBox defines a rectangular geographic boundary (from subscription models).
 type BoundingBox struct {
 	NorthLatitude float64 `json:"northLatitude"`
 	SouthLatitude float64 `json:"southLatitude"`
@@ -541,9 +541,9 @@ type BoundingBox struct {
 	WestLongitude float64 `json:"westLongitude"`
 }
 
-// Request types for resource management operations
+// Request types for resource management operations.
 
-// CreateResourceRequest represents a request to create a resource
+// CreateResourceRequest represents a request to create a resource.
 type CreateResourceRequest struct {
 	Name                 string                 `json:"name"`
 	Description          string                 `json:"description,omitempty"`
@@ -559,7 +559,7 @@ type CreateResourceRequest struct {
 	Extensions           map[string]interface{} `json:"extensions,omitempty"`
 }
 
-// UpdateResourceRequest represents a request to update a resource
+// UpdateResourceRequest represents a request to update a resource.
 type UpdateResourceRequest struct {
 	Name          *string                `json:"name,omitempty"`
 	Description   *string                `json:"description,omitempty"`
@@ -570,102 +570,152 @@ type UpdateResourceRequest struct {
 	Metadata      map[string]string      `json:"metadata,omitempty"`
 }
 
-// Constants for resource types and resources
+// Constants for resource types and resources.
 
 const (
-	// Resource type categories
-	ResourceCategoryCompute     = "COMPUTE"
-	ResourceCategoryStorage     = "STORAGE"
-	ResourceCategoryNetwork     = "NETWORK"
+	// Resource type categories.
+	ResourceCategoryCompute = "COMPUTE"
+	// ResourceCategoryStorage holds resourcecategorystorage value.
+	ResourceCategoryStorage = "STORAGE"
+	// ResourceCategoryNetwork holds resourcecategorynetwork value.
+	ResourceCategoryNetwork = "NETWORK"
+	// ResourceCategoryAccelerator holds resourcecategoryaccelerator value.
 	ResourceCategoryAccelerator = "ACCELERATOR"
-	ResourceCategorySecurity    = "SECURITY"
-	ResourceCategoryMonitoring  = "MONITORING"
+	// ResourceCategorySecurity holds resourcecategorysecurity value.
+	ResourceCategorySecurity = "SECURITY"
+	// ResourceCategoryMonitoring holds resourcecategorymonitoring value.
+	ResourceCategoryMonitoring = "MONITORING"
 
-	// Resource classes
-	ResourceClassPhysical  = "PHYSICAL"
-	ResourceClassVirtual   = "VIRTUAL"
-	ResourceClassLogical   = "LOGICAL"
+	// Resource classes.
+	ResourceClassPhysical = "PHYSICAL"
+	// ResourceClassVirtual holds resourceclassvirtual value.
+	ResourceClassVirtual = "VIRTUAL"
+	// ResourceClassLogical holds resourceclasslogical value.
+	ResourceClassLogical = "LOGICAL"
+	// ResourceClassContainer holds resourceclasscontainer value.
 	ResourceClassContainer = "CONTAINER"
 
-	// Resource kinds
-	ResourceKindServer       = "SERVER"
-	ResourceKindSwitch       = "SWITCH"
-	ResourceKindRouter       = "ROUTER"
+	// Resource kinds.
+	ResourceKindServer = "SERVER"
+	// ResourceKindSwitch holds resourcekindswitch value.
+	ResourceKindSwitch = "SWITCH"
+	// ResourceKindRouter holds resourcekindrouter value.
+	ResourceKindRouter = "ROUTER"
+	// ResourceKindStorageArray holds resourcekindstoragearray value.
 	ResourceKindStorageArray = "STORAGE_ARRAY"
+	// ResourceKindLoadBalancer holds resourcekindloadbalancer value.
 	ResourceKindLoadBalancer = "LOAD_BALANCER"
-	ResourceKindFirewall     = "FIREWALL"
-	ResourceKindGPU          = "GPU"
-	ResourceKindFPGA         = "FPGA"
+	// ResourceKindFirewall holds resourcekindfirewall value.
+	ResourceKindFirewall = "FIREWALL"
+	// ResourceKindGPU holds resourcekindgpu value.
+	ResourceKindGPU = "GPU"
+	// ResourceKindFPGA holds resourcekindfpga value.
+	ResourceKindFPGA = "FPGA"
 
-	// Resource type status
-	ResourceTypeStatusActive     = "ACTIVE"
+	// Resource type status.
+	ResourceTypeStatusActive = "ACTIVE"
+	// ResourceTypeStatusDeprecated holds resourcetypestatusdeprecated value.
 	ResourceTypeStatusDeprecated = "DEPRECATED"
-	ResourceTypeStatusObsolete   = "OBSOLETE"
+	// ResourceTypeStatusObsolete holds resourcetypestatusobsolete value.
+	ResourceTypeStatusObsolete = "OBSOLETE"
 
-	// Lifecycle states
+	// Lifecycle states.
 	LifecycleStateProvisioning = "PROVISIONING"
-	LifecycleStateActive       = "ACTIVE"
-	LifecycleStateInactive     = "INACTIVE"
-	LifecycleStateUpdating     = "UPDATING"
-	LifecycleStateScaling      = "SCALING"
-	LifecycleStateMaintenance  = "MAINTENANCE"
-	LifecycleStateFailed       = "FAILED"
-	LifecycleStateTerminating  = "TERMINATING"
-	LifecycleStateTerminated   = "TERMINATED"
+	// LifecycleStateActive holds lifecyclestateactive value.
+	LifecycleStateActive = "ACTIVE"
+	// LifecycleStateInactive holds lifecyclestateinactive value.
+	LifecycleStateInactive = "INACTIVE"
+	// LifecycleStateUpdating holds lifecyclestateupdating value.
+	LifecycleStateUpdating = "UPDATING"
+	// LifecycleStateScaling holds lifecyclestatescaling value.
+	LifecycleStateScaling = "SCALING"
+	// LifecycleStateMaintenance holds lifecyclestatemaintenance value.
+	LifecycleStateMaintenance = "MAINTENANCE"
+	// LifecycleStateFailed holds lifecyclestatefailed value.
+	LifecycleStateFailed = "FAILED"
+	// LifecycleStateTerminating holds lifecyclestateterminating value.
+	LifecycleStateTerminating = "TERMINATING"
+	// LifecycleStateTerminated holds lifecyclestateterminated value.
+	LifecycleStateTerminated = "TERMINATED"
 
-	// Resource health states
-	ResourceHealthHealthy   = "HEALTHY"
-	ResourceHealthDegraded  = "DEGRADED"
+	// Resource health states.
+	ResourceHealthHealthy = "HEALTHY"
+	// ResourceHealthDegraded holds resourcehealthdegraded value.
+	ResourceHealthDegraded = "DEGRADED"
+	// ResourceHealthUnhealthy holds resourcehealthunhealthy value.
 	ResourceHealthUnhealthy = "UNHEALTHY"
-	ResourceHealthUnknown   = "UNKNOWN"
+	// ResourceHealthUnknown holds resourcehealthunknown value.
+	ResourceHealthUnknown = "UNKNOWN"
 
-	// Capability types
-	CapabilityTypeFunctional  = "FUNCTIONAL"
+	// Capability types.
+	CapabilityTypeFunctional = "FUNCTIONAL"
+	// CapabilityTypePerformance holds capabilitytypeperformance value.
 	CapabilityTypePerformance = "PERFORMANCE"
+	// CapabilityTypeOperational holds capabilitytypeoperational value.
 	CapabilityTypeOperational = "OPERATIONAL"
 
-	// Support levels
-	SupportLevelMandatory    = "MANDATORY"
-	SupportLevelOptional     = "OPTIONAL"
-	SupportLevelConditional  = "CONDITIONAL"
-	SupportLevelFull         = "FULL"
-	SupportLevelPartial      = "PARTIAL"
+	// Support levels.
+	SupportLevelMandatory = "MANDATORY"
+	// SupportLevelOptional holds supportleveloptional value.
+	SupportLevelOptional = "OPTIONAL"
+	// SupportLevelConditional holds supportlevelconditional value.
+	SupportLevelConditional = "CONDITIONAL"
+	// SupportLevelFull holds supportlevelfull value.
+	SupportLevelFull = "FULL"
+	// SupportLevelPartial holds supportlevelpartial value.
+	SupportLevelPartial = "PARTIAL"
+	// SupportLevelExperimental holds supportlevelexperimental value.
 	SupportLevelExperimental = "EXPERIMENTAL"
 
-	// Feature types
-	FeatureTypeStandard       = "STANDARD"
+	// Feature types.
+	FeatureTypeStandard = "STANDARD"
+	// FeatureTypeVendorSpecific holds featuretypevendorspecific value.
 	FeatureTypeVendorSpecific = "VENDOR_SPECIFIC"
-	FeatureTypeExperimental   = "EXPERIMENTAL"
+	// FeatureTypeExperimental holds featuretypeexperimental value.
+	FeatureTypeExperimental = "EXPERIMENTAL"
 
-	// Dependency types
-	DependencyTypeRequires   = "REQUIRES"
-	DependencyTypeConflicts  = "CONFLICTS"
+	// Dependency types.
+	DependencyTypeRequires = "REQUIRES"
+	// DependencyTypeConflicts holds dependencytypeconflicts value.
+	DependencyTypeConflicts = "CONFLICTS"
+	// DependencyTypeRecommends holds dependencytyperecommends value.
 	DependencyTypeRecommends = "RECOMMENDS"
 
-	// Compatibility rule types
-	CompatibilityRuleCompatible   = "COMPATIBLE"
+	// Compatibility rule types.
+	CompatibilityRuleCompatible = "COMPATIBLE"
+	// CompatibilityRuleIncompatible holds compatibilityruleincompatible value.
 	CompatibilityRuleIncompatible = "INCOMPATIBLE"
-	CompatibilityRuleConditional  = "CONDITIONAL"
+	// CompatibilityRuleConditional holds compatibilityruleconditional value.
+	CompatibilityRuleConditional = "CONDITIONAL"
 
-	// Requirement types
+	// Requirement types.
 	RequirementTypeHardware = "HARDWARE"
+	// RequirementTypeSoftware holds requirementtypesoftware value.
 	RequirementTypeSoftware = "SOFTWARE"
-	RequirementTypeNetwork  = "NETWORK"
+	// RequirementTypeNetwork holds requirementtypenetwork value.
+	RequirementTypeNetwork = "NETWORK"
+	// RequirementTypeSecurity holds requirementtypesecurity value.
 	RequirementTypeSecurity = "SECURITY"
-	RequirementTypePolicy   = "POLICY"
+	// RequirementTypePolicy holds requirementtypepolicy value.
+	RequirementTypePolicy = "POLICY"
 
-	// Relationship types
-	RelationshipTypeContains   = "CONTAINS"
-	RelationshipTypeUses       = "USES"
+	// Relationship types.
+	RelationshipTypeContains = "CONTAINS"
+	// RelationshipTypeUses holds relationshiptypeuses value.
+	RelationshipTypeUses = "USES"
+	// RelationshipTypeConnectsTo holds relationshiptypeconnectsto value.
 	RelationshipTypeConnectsTo = "CONNECTS_TO"
-	RelationshipTypeDependsOn  = "DEPENDS_ON"
-	RelationshipTypeHostedBy   = "HOSTED_BY"
-	RelationshipTypeManages    = "MANAGES"
+	// RelationshipTypeDependsOn holds relationshiptypedependson value.
+	RelationshipTypeDependsOn = "DEPENDS_ON"
+	// RelationshipTypeHostedBy holds relationshiptypehostedby value.
+	RelationshipTypeHostedBy = "HOSTED_BY"
+	// RelationshipTypeManages holds relationshiptypemanages value.
+	RelationshipTypeManages = "MANAGES"
 )
 
-// Legacy types for backward compatibility - these map to current model fields
+// Legacy types for backward compatibility - these map to current model fields.
 
-// ResourceTypeSpec represents legacy resource type specifications
+// ResourceTypeSpec represents legacy resource type specifications.
 // Now mapped to current ResourceType fields: Category, ResourceLimits, etc.
 type ResourceTypeSpec struct {
 	Category         string                 `json:"category"`
@@ -679,14 +729,14 @@ type ResourceTypeSpec struct {
 	Capabilities     map[string]interface{} `json:"capabilities,omitempty"`
 }
 
-// PortSpec represents a port specification for network services
+// PortSpec represents a port specification for network services.
 type PortSpec struct {
 	Name     string `json:"name"`
 	Port     int32  `json:"port"`
 	Protocol string `json:"protocol"`
 }
 
-// ComplianceInfo represents compliance information for resources
+// ComplianceInfo represents compliance information for resources.
 type ComplianceInfo struct {
 	Standard           string                 `json:"standard"`
 	Version            string                 `json:"version"`

@@ -1,5 +1,5 @@
 //go:build !disable_rag
-// +build !disable_rag
+// +build !disable_rag.
 
 package llm
 
@@ -17,60 +17,60 @@ import (
 	"time"
 )
 
-// ProcessingEngine provides unified processing for batch, streaming, and RAG requests
+// ProcessingEngine provides unified processing for batch, streaming, and RAG requests.
 type ProcessingEngine struct {
-	// Core components
+	// Core components.
 	baseClient   *Client
 	promptEngine *TelecomPromptEngine
 	config       *ProcessingConfig
 	logger       *slog.Logger
 
-	// HTTP client for external APIs
+	// HTTP client for external APIs.
 	httpClient *http.Client
 	ragAPIURL  string
 
-	// Smart endpoints from configuration
+	// Smart endpoints from configuration.
 	processEndpoint string
 	streamEndpoint  string
 	healthEndpoint  string
 
-	// Processing state
+	// Processing state.
 	mutex          sync.RWMutex
 	activeStreams  map[string]*StreamContext
 	batchQueue     chan *ProcessingBatchRequest
 	batchProcessor *batchProcessor
 
-	// Metrics and monitoring
+	// Metrics and monitoring.
 	metrics *ProcessingMetrics
 }
 
-// ProcessingConfig holds configuration for the processing engine
+// ProcessingConfig holds configuration for the processing engine.
 type ProcessingConfig struct {
-	// RAG configuration
+	// RAG configuration.
 	EnableRAG              bool    `json:"enable_rag"`
 	RAGAPIURL              string  `json:"rag_api_url"`
 	RAGConfidenceThreshold float32 `json:"rag_confidence_threshold"`
 	FallbackToBase         bool    `json:"fallback_to_base"`
 
-	// Batch processing
+	// Batch processing.
 	EnableBatching      bool          `json:"enable_batching"`
 	MinBatchSize        int           `json:"min_batch_size"`
 	MaxBatchSize        int           `json:"max_batch_size"`
 	BatchTimeout        time.Duration `json:"batch_timeout"`
 	SimilarityThreshold float64       `json:"similarity_threshold"`
 
-	// Streaming configuration
+	// Streaming configuration.
 	EnableStreaming  bool          `json:"enable_streaming"`
 	StreamBufferSize int           `json:"stream_buffer_size"`
 	StreamTimeout    time.Duration `json:"stream_timeout"`
 
-	// General processing
+	// General processing.
 	QueryTimeout          time.Duration `json:"query_timeout"`
 	MaxConcurrentRequests int           `json:"max_concurrent_requests"`
 	EnableCaching         bool          `json:"enable_caching"`
 }
 
-// ProcessingMetrics tracks processing performance
+// ProcessingMetrics tracks processing performance.
 type ProcessingMetrics struct {
 	TotalRequests   int64         `json:"total_requests"`
 	BatchedRequests int64         `json:"batched_requests"`
@@ -83,7 +83,7 @@ type ProcessingMetrics struct {
 	mutex           sync.RWMutex
 }
 
-// StreamContext represents an active streaming session
+// StreamContext represents an active streaming session.
 type StreamContext struct {
 	ID        string
 	StartTime time.Time
@@ -93,7 +93,7 @@ type StreamContext struct {
 	Flusher   http.Flusher
 }
 
-// ProcessingBatchRequest represents a request for batch processing
+// ProcessingBatchRequest represents a request for batch processing.
 type ProcessingBatchRequest struct {
 	ID         string                 `json:"id"`
 	Intent     string                 `json:"intent"`
@@ -105,7 +105,7 @@ type ProcessingBatchRequest struct {
 	Context    context.Context        `json:"-"`
 }
 
-// ProcessingResult represents the result of processing
+// ProcessingResult represents the result of processing.
 type ProcessingResult struct {
 	Content        string                 `json:"content"`
 	TokensUsed     int                    `json:"tokens_used"`
@@ -116,7 +116,7 @@ type ProcessingResult struct {
 	Error          error                  `json:"error,omitempty"`
 }
 
-// ProcessingStreamingRequest represents a streaming request payload
+// ProcessingStreamingRequest represents a streaming request payload.
 type ProcessingStreamingRequest struct {
 	Query     string `json:"query"`
 	ModelName string `json:"model_name,omitempty"`
@@ -124,7 +124,7 @@ type ProcessingStreamingRequest struct {
 	EnableRAG bool   `json:"enable_rag,omitempty"`
 }
 
-// batchProcessor handles batch processing internally
+// batchProcessor handles batch processing internally.
 type batchProcessor struct {
 	config          *ProcessingConfig
 	baseClient      *Client
@@ -136,13 +136,13 @@ type batchProcessor struct {
 	wg              sync.WaitGroup
 }
 
-// NewProcessingEngine creates a new unified processing engine
+// NewProcessingEngine creates a new unified processing engine.
 func NewProcessingEngine(baseClient *Client, config *ProcessingConfig) *ProcessingEngine {
 	if config == nil {
 		config = getDefaultProcessingConfig()
 	}
 
-	// Create HTTP client for external APIs
+	// Create HTTP client for external APIs.
 	httpClient := &http.Client{
 		Timeout: config.QueryTimeout,
 	}
@@ -159,10 +159,10 @@ func NewProcessingEngine(baseClient *Client, config *ProcessingConfig) *Processi
 		metrics:       &ProcessingMetrics{},
 	}
 
-	// Initialize smart endpoints
+	// Initialize smart endpoints.
 	processor.initializeEndpoints()
 
-	// Initialize batch processor if enabled
+	// Initialize batch processor if enabled.
 	if config.EnableBatching {
 		processor.batchProcessor = &batchProcessor{
 			config:          config,
@@ -173,7 +173,7 @@ func NewProcessingEngine(baseClient *Client, config *ProcessingConfig) *Processi
 			stopCh:          make(chan struct{}),
 		}
 
-		// Start batch processing workers
+		// Start batch processing workers.
 		for i := 0; i < 3; i++ {
 			go processor.batchProcessor.processingWorker()
 		}
@@ -182,25 +182,25 @@ func NewProcessingEngine(baseClient *Client, config *ProcessingConfig) *Processi
 	return processor
 }
 
-// initializeEndpoints initializes smart endpoints based on configuration
+// initializeEndpoints initializes smart endpoints based on configuration.
 func (pe *ProcessingEngine) initializeEndpoints() {
-	// For ProcessingEngine, we need to work with ProcessingConfig
-	// Since ProcessingConfig doesn't have GetEffectiveRAGEndpoints, we implement the logic here
+	// For ProcessingEngine, we need to work with ProcessingConfig.
+	// Since ProcessingConfig doesn't have GetEffectiveRAGEndpoints, we implement the logic here.
 	baseURL := strings.TrimSuffix(pe.ragAPIURL, "/")
 
-	// Determine process endpoint based on URL pattern
+	// Determine process endpoint based on URL pattern.
 	if strings.HasSuffix(pe.ragAPIURL, "/process_intent") {
-		// Legacy pattern - use as configured
+		// Legacy pattern - use as configured.
 		pe.processEndpoint = pe.ragAPIURL
 	} else if strings.HasSuffix(pe.ragAPIURL, "/process") {
-		// New pattern - use as configured
+		// New pattern - use as configured.
 		pe.processEndpoint = pe.ragAPIURL
 	} else {
-		// Base URL pattern - default to /process for new installations
+		// Base URL pattern - default to /process for new installations.
 		pe.processEndpoint = baseURL + "/process"
 	}
 
-	// Streaming endpoint
+	// Streaming endpoint.
 	processBase := baseURL
 	if strings.HasSuffix(pe.processEndpoint, "/process_intent") {
 		processBase = strings.TrimSuffix(pe.processEndpoint, "/process_intent")
@@ -217,7 +217,7 @@ func (pe *ProcessingEngine) initializeEndpoints() {
 	)
 }
 
-// getDefaultProcessingConfig returns default processing configuration
+// getDefaultProcessingConfig returns default processing configuration.
 func getDefaultProcessingConfig() *ProcessingConfig {
 	return &ProcessingConfig{
 		EnableRAG:              true,
@@ -241,7 +241,7 @@ func getDefaultProcessingConfig() *ProcessingConfig {
 	}
 }
 
-// ProcessIntent processes an intent with the appropriate method (single, batch, or streaming)
+// ProcessIntent processes an intent with the appropriate method (single, batch, or streaming).
 func (pe *ProcessingEngine) ProcessIntent(ctx context.Context, intent string) (*ProcessingResult, error) {
 	start := time.Now()
 	pe.updateMetrics(func(m *ProcessingMetrics) {
@@ -250,16 +250,16 @@ func (pe *ProcessingEngine) ProcessIntent(ctx context.Context, intent string) (*
 
 	pe.logger.Debug("Processing intent", slog.String("intent", intent))
 
-	// Determine processing method based on configuration and context
+	// Determine processing method based on configuration and context.
 	if pe.config.EnableRAG {
 		return pe.processWithRAG(ctx, intent, start)
 	}
 
-	// Fall back to base client processing
+	// Fall back to base client processing.
 	return pe.processWithBaseClient(ctx, intent, start)
 }
 
-// ProcessBatch processes multiple intents as a batch
+// ProcessBatch processes multiple intents as a batch.
 func (pe *ProcessingEngine) ProcessBatch(ctx context.Context, requests []*ProcessingBatchRequest) ([]*ProcessingResult, error) {
 	if !pe.config.EnableBatching {
 		return pe.processIndividually(ctx, requests)
@@ -267,7 +267,7 @@ func (pe *ProcessingEngine) ProcessBatch(ctx context.Context, requests []*Proces
 
 	pe.logger.Debug("Processing batch", slog.Int("count", len(requests)))
 
-	// Group similar requests if similarity batching is enabled
+	// Group similar requests if similarity batching is enabled.
 	groups := pe.groupSimilarRequests(requests)
 
 	results := make([]*ProcessingResult, len(requests))
@@ -285,7 +285,7 @@ func (pe *ProcessingEngine) ProcessBatch(ctx context.Context, requests []*Proces
 	return results, nil
 }
 
-// HandleStreamingRequest handles server-sent events streaming
+// HandleStreamingRequest handles server-sent events streaming.
 func (pe *ProcessingEngine) HandleStreamingRequest(w http.ResponseWriter, r *http.Request, req *StreamingRequest) error {
 	if !pe.config.EnableStreaming {
 		return fmt.Errorf("streaming not enabled")
@@ -293,19 +293,19 @@ func (pe *ProcessingEngine) HandleStreamingRequest(w http.ResponseWriter, r *htt
 
 	pe.logger.Info("Handling streaming request", slog.String("query", req.Query))
 
-	// Set SSE headers
+	// Set SSE headers.
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	// Get flusher for SSE
+	// Get flusher for SSE.
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		return fmt.Errorf("streaming not supported")
 	}
 
-	// Create stream context
+	// Create stream context.
 	streamCtx, cancel := context.WithTimeout(r.Context(), pe.config.StreamTimeout)
 	defer cancel()
 
@@ -319,21 +319,21 @@ func (pe *ProcessingEngine) HandleStreamingRequest(w http.ResponseWriter, r *htt
 		Flusher:   flusher,
 	}
 
-	// Register stream
+	// Register stream.
 	pe.registerStream(streamID, streamContext)
 	defer pe.unregisterStream(streamID)
 
-	// Process streaming request
+	// Process streaming request.
 	return pe.processStreamingRequest(streamContext, req)
 }
 
-// processWithRAG processes intent using RAG API
+// processWithRAG processes intent using RAG API.
 func (pe *ProcessingEngine) processWithRAG(ctx context.Context, intent string, startTime time.Time) (*ProcessingResult, error) {
 	pe.updateMetrics(func(m *ProcessingMetrics) {
 		m.RAGRequests++
 	})
 
-	// Create request payload
+	// Create request payload.
 	reqPayload := map[string]interface{}{
 		"intent": intent,
 	}
@@ -343,7 +343,7 @@ func (pe *ProcessingEngine) processWithRAG(ctx context.Context, intent string, s
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	// Create HTTP request using smart endpoint
+	// Create HTTP request using smart endpoint.
 	if pe.processEndpoint == "" {
 		return nil, fmt.Errorf("process endpoint not initialized")
 	}
@@ -355,7 +355,7 @@ func (pe *ProcessingEngine) processWithRAG(ctx context.Context, intent string, s
 
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	// Execute the request
+	// Execute the request.
 	resp, err := pe.httpClient.Do(httpReq)
 	if err != nil {
 		if pe.config.FallbackToBase {
@@ -366,7 +366,7 @@ func (pe *ProcessingEngine) processWithRAG(ctx context.Context, intent string, s
 	}
 	defer resp.Body.Close()
 
-	// Read response
+	// Read response.
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
@@ -393,7 +393,7 @@ func (pe *ProcessingEngine) processWithRAG(ctx context.Context, intent string, s
 	}, nil
 }
 
-// processWithBaseClient processes intent using the base LLM client
+// processWithBaseClient processes intent using the base LLM client.
 func (pe *ProcessingEngine) processWithBaseClient(ctx context.Context, intent string, startTime time.Time) (*ProcessingResult, error) {
 	result, err := pe.baseClient.ProcessIntent(ctx, intent)
 	if err != nil {
@@ -412,13 +412,13 @@ func (pe *ProcessingEngine) processWithBaseClient(ctx context.Context, intent st
 	}, nil
 }
 
-// processStreamingRequest processes a streaming request
+// processStreamingRequest processes a streaming request.
 func (pe *ProcessingEngine) processStreamingRequest(streamCtx *StreamContext, req *StreamingRequest) error {
 	pe.updateMetrics(func(m *ProcessingMetrics) {
 		m.StreamRequests++
 	})
 
-	// Create request to RAG API stream endpoint
+	// Create request to RAG API stream endpoint.
 	reqBody, err := json.Marshal(req)
 	if err != nil {
 		return fmt.Errorf("failed to marshal request: %w", err)
@@ -436,7 +436,7 @@ func (pe *ProcessingEngine) processStreamingRequest(streamCtx *StreamContext, re
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Accept", "text/event-stream")
 
-	// Execute the request
+	// Execute the request.
 	resp, err := pe.httpClient.Do(httpReq)
 	if err != nil {
 		return fmt.Errorf("failed to connect to RAG API stream: %w", err)
@@ -448,7 +448,7 @@ func (pe *ProcessingEngine) processStreamingRequest(streamCtx *StreamContext, re
 		return fmt.Errorf("RAG API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
-	// Stream the response
+	// Stream the response.
 	scanner := bufio.NewScanner(resp.Body)
 	for scanner.Scan() {
 		select {
@@ -467,7 +467,7 @@ func (pe *ProcessingEngine) processStreamingRequest(streamCtx *StreamContext, re
 	return scanner.Err()
 }
 
-// processIndividually processes requests individually when batching is disabled
+// processIndividually processes requests individually when batching is disabled.
 func (pe *ProcessingEngine) processIndividually(ctx context.Context, requests []*ProcessingBatchRequest) ([]*ProcessingResult, error) {
 	results := make([]*ProcessingResult, len(requests))
 	var wg sync.WaitGroup
@@ -485,9 +485,9 @@ func (pe *ProcessingEngine) processIndividually(ctx context.Context, requests []
 	return results, nil
 }
 
-// groupSimilarRequests groups similar requests for batch processing
+// groupSimilarRequests groups similar requests for batch processing.
 func (pe *ProcessingEngine) groupSimilarRequests(requests []*ProcessingBatchRequest) [][]*ProcessingBatchRequest {
-	// Simple grouping by intent similarity
+	// Simple grouping by intent similarity.
 	groups := make([][]*ProcessingBatchRequest, 0)
 	processed := make(map[int]bool)
 
@@ -499,7 +499,7 @@ func (pe *ProcessingEngine) groupSimilarRequests(requests []*ProcessingBatchRequ
 		group := []*ProcessingBatchRequest{req1}
 		processed[i] = true
 
-		// Find similar requests
+		// Find similar requests.
 		for j, req2 := range requests {
 			if i != j && !processed[j] {
 				if pe.calculateSimilarity(req1.Intent, req2.Intent) > pe.config.SimilarityThreshold {
@@ -515,9 +515,9 @@ func (pe *ProcessingEngine) groupSimilarRequests(requests []*ProcessingBatchRequ
 	return groups
 }
 
-// calculateSimilarity calculates similarity between two intents (simplified)
+// calculateSimilarity calculates similarity between two intents (simplified).
 func (pe *ProcessingEngine) calculateSimilarity(intent1, intent2 string) float64 {
-	// Simple word-based similarity calculation
+	// Simple word-based similarity calculation.
 	words1 := strings.Fields(strings.ToLower(intent1))
 	words2 := strings.Fields(strings.ToLower(intent2))
 
@@ -542,51 +542,51 @@ func (pe *ProcessingEngine) calculateSimilarity(intent1, intent2 string) float64
 	return float64(common*2) / float64(totalWords)
 }
 
-// processBatchGroup processes a group of similar requests
+// processBatchGroup processes a group of similar requests.
 func (pe *ProcessingEngine) processBatchGroup(ctx context.Context, batch []*ProcessingBatchRequest, results []*ProcessingResult) {
 	pe.updateMetrics(func(m *ProcessingMetrics) {
 		m.BatchedRequests += int64(len(batch))
 	})
 
-	// For now, process each request individually
-	// In a more sophisticated implementation, this could optimize by combining similar requests
+	// For now, process each request individually.
+	// In a more sophisticated implementation, this could optimize by combining similar requests.
 	for _, req := range batch {
 		result, _ := pe.ProcessIntent(ctx, req.Intent)
 		if result != nil {
 			result.Batched = true
 		}
-		// Note: This simplified implementation assumes results array has correct indexing
-		// In production, you'd need proper index mapping
+		// Note: This simplified implementation assumes results array has correct indexing.
+		// In production, you'd need proper index mapping.
 	}
 }
 
-// registerStream registers an active streaming session
+// registerStream registers an active streaming session.
 func (pe *ProcessingEngine) registerStream(streamID string, streamCtx *StreamContext) {
 	pe.mutex.Lock()
 	defer pe.mutex.Unlock()
 	pe.activeStreams[streamID] = streamCtx
 }
 
-// unregisterStream removes a streaming session
+// unregisterStream removes a streaming session.
 func (pe *ProcessingEngine) unregisterStream(streamID string) {
 	pe.mutex.Lock()
 	defer pe.mutex.Unlock()
 	delete(pe.activeStreams, streamID)
 }
 
-// updateMetrics safely updates processing metrics
+// updateMetrics safely updates processing metrics.
 func (pe *ProcessingEngine) updateMetrics(updater func(*ProcessingMetrics)) {
 	pe.metrics.mutex.Lock()
 	defer pe.metrics.mutex.Unlock()
 	updater(pe.metrics)
 }
 
-// GetMetrics returns current processing metrics
+// GetMetrics returns current processing metrics.
 func (pe *ProcessingEngine) GetMetrics() *ProcessingMetrics {
 	pe.metrics.mutex.RLock()
 	defer pe.metrics.mutex.RUnlock()
 
-	// Create a copy without the mutex
+	// Create a copy without the mutex.
 	metrics := &ProcessingMetrics{
 		TotalRequests:   pe.metrics.TotalRequests,
 		BatchedRequests: pe.metrics.BatchedRequests,
@@ -600,17 +600,17 @@ func (pe *ProcessingEngine) GetMetrics() *ProcessingMetrics {
 	return metrics
 }
 
-// Shutdown gracefully shuts down the processing engine
+// Shutdown gracefully shuts down the processing engine.
 func (pe *ProcessingEngine) Shutdown(ctx context.Context) error {
 	pe.logger.Info("Shutting down processing engine")
 
-	// Stop batch processor if running
+	// Stop batch processor if running.
 	if pe.batchProcessor != nil {
 		close(pe.batchProcessor.stopCh)
 		pe.batchProcessor.wg.Wait()
 	}
 
-	// Cancel all active streams
+	// Cancel all active streams.
 	pe.mutex.Lock()
 	for streamID, streamCtx := range pe.activeStreams {
 		pe.logger.Debug("Canceling active stream", slog.String("stream_id", streamID))
@@ -621,7 +621,7 @@ func (pe *ProcessingEngine) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// processingWorker processes batch requests
+// processingWorker processes batch requests.
 func (bp *batchProcessor) processingWorker() {
 	bp.wg.Add(1)
 	defer bp.wg.Done()
@@ -631,7 +631,7 @@ func (bp *batchProcessor) processingWorker() {
 		case <-bp.stopCh:
 			return
 		case req := <-bp.processingQueue:
-			// Process individual batch request
+			// Process individual batch request.
 			result, err := bp.baseClient.ProcessIntent(req.Context, req.Intent)
 
 			processingResult := &ProcessingResult{
@@ -641,11 +641,11 @@ func (bp *batchProcessor) processingWorker() {
 				Error:          err,
 			}
 
-			// Send result back
+			// Send result back.
 			select {
 			case req.ResponseCh <- processingResult:
 			case <-req.Context.Done():
-				// Request context cancelled
+				// Request context cancelled.
 			}
 		}
 	}

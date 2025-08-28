@@ -1,4 +1,4 @@
-// Package kpm provides E2 KPM (Key Performance Measurement) simulation capabilities
+// Package kpm provides E2 KPM (Key Performance Measurement) simulation capabilities.
 // for the Nephoran Intent Operator, generating metrics compatible with O-RAN E2SM-KPM.
 package kpm
 
@@ -12,7 +12,7 @@ import (
 )
 
 // KPMMetric represents a single KPM measurement from an E2 node.
-// It follows the minimal structure defined in docs/contracts/e2.kpm.profile.md
+// It follows the minimal structure defined in docs/contracts/e2.kpm.profile.md.
 // for planner consumption.
 type KPMMetric struct {
 	NodeID    string    `json:"node_id"`
@@ -23,7 +23,7 @@ type KPMMetric struct {
 }
 
 // Generator produces periodic KPM metrics for a specified E2 node.
-// It simulates E2SM-KPM measurements by generating utilization metrics
+// It simulates E2SM-KPM measurements by generating utilization metrics.
 // as JSON files for consumption by the planner component.
 type Generator struct {
 	nodeID    string
@@ -54,7 +54,7 @@ func NewGenerator(nodeID, outputDir string) (*Generator, error) {
 // The metric value is a random float64 between 0 and 1 representing resource utilization.
 // Returns an error if JSON marshaling or file writing fails.
 func (g *Generator) GenerateMetric() error {
-	// Generate value and ensure it's clamped to [0, 1] range
+	// Generate value and ensure it's clamped to [0, 1] range.
 	value := g.rng.Float64()
 	if value < 0 {
 		value = 0
@@ -80,7 +80,7 @@ func (g *Generator) GenerateMetric() error {
 		g.nodeID)
 	metricPath := filepath.Join(g.outputDir, filename)
 
-	if err := os.WriteFile(metricPath, data, 0600); err != nil {
+	if err := os.WriteFile(metricPath, data, 0o600); err != nil {
 		return fmt.Errorf("write file: %w", err)
 	}
 

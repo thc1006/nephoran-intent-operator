@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// CAIntegration provides integration between CA management and existing security components
+// CAIntegration provides integration between CA management and existing security components.
 type CAIntegration struct {
 	caManager  *CAManager
 	tlsManager *security.TLSManager
@@ -24,28 +24,28 @@ type CAIntegration struct {
 	config     *IntegrationConfig
 }
 
-// IntegrationConfig configures CA integration with existing systems
+// IntegrationConfig configures CA integration with existing systems.
 type IntegrationConfig struct {
-	// TLS integration
+	// TLS integration.
 	TLSIntegration *TLSIntegrationConfig `yaml:"tls_integration"`
 
-	// RBAC integration
+	// RBAC integration.
 	RBACIntegration *RBACIntegrationConfig `yaml:"rbac_integration"`
 
-	// Secret management
+	// Secret management.
 	SecretIntegration *SecretIntegrationConfig `yaml:"secret_integration"`
 
-	// Service mesh integration
+	// Service mesh integration.
 	ServiceMeshConfig *ServiceMeshIntegration `yaml:"service_mesh"`
 
-	// Ingress integration
+	// Ingress integration.
 	IngressConfig *IngressIntegration `yaml:"ingress"`
 
-	// Operator integration
+	// Operator integration.
 	OperatorConfig *OperatorIntegration `yaml:"operator"`
 }
 
-// TLSIntegrationConfig configures TLS integration
+// TLSIntegrationConfig configures TLS integration.
 type TLSIntegrationConfig struct {
 	Enabled               bool          `yaml:"enabled"`
 	AutoUpdateTLSConfig   bool          `yaml:"auto_update_tls_config"`
@@ -55,7 +55,7 @@ type TLSIntegrationConfig struct {
 	HotReloadEnabled      bool          `yaml:"hot_reload_enabled"`
 }
 
-// RBACIntegrationConfig configures RBAC integration
+// RBACIntegrationConfig configures RBAC integration.
 type RBACIntegrationConfig struct {
 	Enabled                   bool   `yaml:"enabled"`
 	CertificateBasedAuth      bool   `yaml:"certificate_based_auth"`
@@ -63,7 +63,7 @@ type RBACIntegrationConfig struct {
 	ServiceAccountIntegration bool   `yaml:"service_account_integration"`
 }
 
-// SecretIntegrationConfig configures secret management integration
+// SecretIntegrationConfig configures secret management integration.
 type SecretIntegrationConfig struct {
 	Enabled            bool              `yaml:"enabled"`
 	AutoCreateSecrets  bool              `yaml:"auto_create_secrets"`
@@ -73,7 +73,7 @@ type SecretIntegrationConfig struct {
 	EncryptionEnabled  bool              `yaml:"encryption_enabled"`
 }
 
-// ServiceMeshIntegration configures service mesh integration
+// ServiceMeshIntegration configures service mesh integration.
 type ServiceMeshIntegration struct {
 	Enabled                bool              `yaml:"enabled"`
 	MeshType               string            `yaml:"mesh_type"` // istio, linkerd, consul
@@ -83,7 +83,7 @@ type ServiceMeshIntegration struct {
 	CertificateTemplate    string            `yaml:"certificate_template"`
 }
 
-// IngressIntegration configures ingress integration
+// IngressIntegration configures ingress integration.
 type IngressIntegration struct {
 	Enabled               bool   `yaml:"enabled"`
 	IngressClass          string `yaml:"ingress_class"`
@@ -92,7 +92,7 @@ type IngressIntegration struct {
 	TLSSecretTemplate     string `yaml:"tls_secret_template"`
 }
 
-// OperatorIntegration configures operator-level integration
+// OperatorIntegration configures operator-level integration.
 type OperatorIntegration struct {
 	Enabled             bool   `yaml:"enabled"`
 	WebhookCertificates bool   `yaml:"webhook_certificates"`
@@ -101,7 +101,7 @@ type OperatorIntegration struct {
 	CertRotationDays    int    `yaml:"cert_rotation_days"`
 }
 
-// CertificateRequest represents a certificate request from integration
+// CertificateRequest represents a certificate request from integration.
 type IntegrationCertificateRequest struct {
 	Name         string            `yaml:"name"`
 	Namespace    string            `yaml:"namespace"`
@@ -119,7 +119,7 @@ type IntegrationCertificateRequest struct {
 	AutoRenew    bool              `yaml:"auto_renew"`
 }
 
-// NewCAIntegration creates a new CA integration
+// NewCAIntegration creates a new CA integration.
 func NewCAIntegration(caManager *CAManager, client client.Client, logger *logging.StructuredLogger, config *IntegrationConfig) *CAIntegration {
 	return &CAIntegration{
 		caManager: caManager,
@@ -129,25 +129,25 @@ func NewCAIntegration(caManager *CAManager, client client.Client, logger *loggin
 	}
 }
 
-// Initialize initializes the CA integration
+// Initialize initializes the CA integration.
 func (i *CAIntegration) Initialize(ctx context.Context) error {
 	i.logger.Info("initializing CA integration")
 
-	// Initialize TLS integration
+	// Initialize TLS integration.
 	if i.config.TLSIntegration != nil && i.config.TLSIntegration.Enabled {
 		if err := i.initializeTLSIntegration(ctx); err != nil {
 			return fmt.Errorf("failed to initialize TLS integration: %w", err)
 		}
 	}
 
-	// Initialize RBAC integration
+	// Initialize RBAC integration.
 	if i.config.RBACIntegration != nil && i.config.RBACIntegration.Enabled {
 		if err := i.initializeRBACIntegration(ctx); err != nil {
 			return fmt.Errorf("failed to initialize RBAC integration: %w", err)
 		}
 	}
 
-	// Initialize operator integration (for webhook certificates)
+	// Initialize operator integration (for webhook certificates).
 	if i.config.OperatorConfig != nil && i.config.OperatorConfig.Enabled {
 		if err := i.initializeOperatorIntegration(ctx); err != nil {
 			return fmt.Errorf("failed to initialize operator integration: %w", err)
@@ -158,21 +158,21 @@ func (i *CAIntegration) Initialize(ctx context.Context) error {
 	return nil
 }
 
-// RequestCertificate requests a certificate through the integration layer
+// RequestCertificate requests a certificate through the integration layer.
 func (i *CAIntegration) RequestCertificate(ctx context.Context, req *IntegrationCertificateRequest) (*CertificateResponse, error) {
 	i.logger.Info("processing certificate request through integration",
 		"name", req.Name,
 		"namespace", req.Namespace,
 		"common_name", req.CommonName)
 
-	// Generate a unique request ID
+	// Generate a unique request ID.
 	randBytes := make([]byte, 16)
 	if _, err := rand.Read(randBytes); err != nil {
 		return nil, fmt.Errorf("failed to generate request ID: %w", err)
 	}
 	requestID := hex.EncodeToString(randBytes)
 
-	// Convert integration request to CA manager request
+	// Convert integration request to CA manager request.
 	caReq := &CertificateRequest{
 		ID:               requestID,
 		TenantID:         req.TenantID,
@@ -192,17 +192,17 @@ func (i *CAIntegration) RequestCertificate(ctx context.Context, req *Integration
 		},
 	}
 
-	// Set default key usages for integration requests
+	// Set default key usages for integration requests.
 	caReq.KeyUsage = []string{"digital_signature", "key_encipherment"}
 	caReq.ExtKeyUsage = []string{"server_auth", "client_auth"}
 
-	// Issue certificate through CA manager
+	// Issue certificate through CA manager.
 	response, err := i.caManager.IssueCertificate(ctx, caReq)
 	if err != nil {
 		return nil, fmt.Errorf("certificate issuance failed: %w", err)
 	}
 
-	// Handle secret creation if enabled
+	// Handle secret creation if enabled.
 	if i.config.SecretIntegration != nil && i.config.SecretIntegration.AutoCreateSecrets {
 		if err := i.createCertificateSecret(ctx, req, response); err != nil {
 			i.logger.Warn("failed to create certificate secret",
@@ -211,7 +211,7 @@ func (i *CAIntegration) RequestCertificate(ctx context.Context, req *Integration
 		}
 	}
 
-	// Update TLS configuration if enabled
+	// Update TLS configuration if enabled.
 	if i.config.TLSIntegration != nil && i.config.TLSIntegration.AutoUpdateTLSConfig {
 		if err := i.updateTLSConfiguration(ctx, response); err != nil {
 			i.logger.Warn("failed to update TLS configuration",
@@ -228,7 +228,7 @@ func (i *CAIntegration) RequestCertificate(ctx context.Context, req *Integration
 	return response, nil
 }
 
-// RenewCertificate renews a certificate through the integration layer
+// RenewCertificate renews a certificate through the integration layer.
 func (i *CAIntegration) RenewCertificate(ctx context.Context, serialNumber string) (*CertificateResponse, error) {
 	i.logger.Info("renewing certificate through integration",
 		"serial_number", serialNumber)
@@ -238,7 +238,7 @@ func (i *CAIntegration) RenewCertificate(ctx context.Context, serialNumber strin
 		return nil, fmt.Errorf("certificate renewal failed: %w", err)
 	}
 
-	// Update associated secrets
+	// Update associated secrets.
 	if i.config.SecretIntegration != nil && i.config.SecretIntegration.AutoCreateSecrets {
 		if err := i.updateCertificateSecret(ctx, response); err != nil {
 			i.logger.Warn("failed to update certificate secret",
@@ -254,7 +254,7 @@ func (i *CAIntegration) RenewCertificate(ctx context.Context, serialNumber strin
 	return response, nil
 }
 
-// GetOperatorWebhookCertificate generates/retrieves webhook certificates for the operator
+// GetOperatorWebhookCertificate generates/retrieves webhook certificates for the operator.
 func (i *CAIntegration) GetOperatorWebhookCertificate(ctx context.Context) (*CertificateResponse, error) {
 	if i.config.OperatorConfig == nil || !i.config.OperatorConfig.WebhookCertificates {
 		return nil, fmt.Errorf("operator webhook certificates not enabled")
@@ -289,20 +289,20 @@ func (i *CAIntegration) GetOperatorWebhookCertificate(ctx context.Context) (*Cer
 	return i.RequestCertificate(ctx, req)
 }
 
-// Helper methods
+// Helper methods.
 
 func (i *CAIntegration) initializeTLSIntegration(ctx context.Context) error {
 	i.logger.Info("initializing TLS integration")
 
-	// Check if TLS manager is available
+	// Check if TLS manager is available.
 	if i.tlsManager == nil {
 		i.logger.Warn("TLS manager not available, creating certificates without TLS integration")
 		return nil
 	}
 
-	// Set up certificate refresh hooks if hot-reload is enabled
+	// Set up certificate refresh hooks if hot-reload is enabled.
 	if i.config.TLSIntegration.HotReloadEnabled {
-		// This would integrate with the TLS manager's hot-reload functionality
+		// This would integrate with the TLS manager's hot-reload functionality.
 		i.logger.Info("TLS hot-reload integration enabled")
 	}
 
@@ -312,12 +312,12 @@ func (i *CAIntegration) initializeTLSIntegration(ctx context.Context) error {
 func (i *CAIntegration) initializeRBACIntegration(ctx context.Context) error {
 	i.logger.Info("initializing RBAC integration")
 
-	// Set up certificate-based authentication if enabled
+	// Set up certificate-based authentication if enabled.
 	if i.config.RBACIntegration.CertificateBasedAuth {
 		i.logger.Info("certificate-based authentication integration enabled")
 
-		// This would configure client certificate authentication
-		// for Kubernetes API server access
+		// This would configure client certificate authentication.
+		// for Kubernetes API server access.
 	}
 
 	return nil
@@ -326,12 +326,12 @@ func (i *CAIntegration) initializeRBACIntegration(ctx context.Context) error {
 func (i *CAIntegration) initializeOperatorIntegration(ctx context.Context) error {
 	i.logger.Info("initializing operator integration")
 
-	// Generate webhook certificates if needed
+	// Generate webhook certificates if needed.
 	if i.config.OperatorConfig.WebhookCertificates {
 		i.logger.Info("webhook certificate generation enabled")
 
-		// This would be called during operator startup to ensure
-		// webhook certificates are available
+		// This would be called during operator startup to ensure.
+		// webhook certificates are available.
 	}
 
 	return nil
@@ -340,7 +340,7 @@ func (i *CAIntegration) initializeOperatorIntegration(ctx context.Context) error
 func (i *CAIntegration) createCertificateSecret(ctx context.Context, req *IntegrationCertificateRequest, cert *CertificateResponse) error {
 	secretName := req.SecretName
 	if secretName == "" {
-		// Generate secret name from template
+		// Generate secret name from template.
 		if i.config.SecretIntegration.SecretNameTemplate != "" {
 			secretName = fmt.Sprintf(i.config.SecretIntegration.SecretNameTemplate, req.Name)
 		} else {
@@ -362,12 +362,12 @@ func (i *CAIntegration) createCertificateSecret(ctx context.Context, req *Integr
 		},
 	}
 
-	// Add CA certificate if available
+	// Add CA certificate if available.
 	if cert.CACertificatePEM != "" {
 		secret.Data["ca.crt"] = []byte(cert.CACertificatePEM)
 	}
 
-	// Add certificate metadata
+	// Add certificate metadata.
 	if secret.Annotations == nil {
 		secret.Annotations = make(map[string]string)
 	}
@@ -376,10 +376,10 @@ func (i *CAIntegration) createCertificateSecret(ctx context.Context, req *Integr
 	secret.Annotations["nephoran.io/issued-by"] = cert.IssuedBy
 	secret.Annotations["nephoran.io/auto-renew"] = fmt.Sprintf("%v", req.AutoRenew)
 
-	// Create or update secret
+	// Create or update secret.
 	err := i.client.Create(ctx, secret)
 	if err != nil {
-		// Try update if create failed
+		// Try update if create failed.
 		existingSecret := &corev1.Secret{}
 		if getErr := i.client.Get(ctx, types.NamespacedName{
 			Name:      secretName,
@@ -403,7 +403,7 @@ func (i *CAIntegration) createCertificateSecret(ctx context.Context, req *Integr
 }
 
 func (i *CAIntegration) updateCertificateSecret(ctx context.Context, cert *CertificateResponse) error {
-	// Find secrets associated with this certificate
+	// Find secrets associated with this certificate.
 	secretName := cert.Metadata["secret_name"]
 	namespace := cert.Metadata["integration_namespace"]
 
@@ -421,14 +421,14 @@ func (i *CAIntegration) updateCertificateSecret(ctx context.Context, cert *Certi
 		return fmt.Errorf("failed to get certificate secret: %w", err)
 	}
 
-	// Update secret data
+	// Update secret data.
 	secret.Data["tls.crt"] = []byte(cert.CertificatePEM)
 	secret.Data["tls.key"] = []byte(cert.PrivateKeyPEM)
 	if cert.CACertificatePEM != "" {
 		secret.Data["ca.crt"] = []byte(cert.CACertificatePEM)
 	}
 
-	// Update annotations
+	// Update annotations.
 	if secret.Annotations == nil {
 		secret.Annotations = make(map[string]string)
 	}
@@ -454,8 +454,8 @@ func (i *CAIntegration) updateTLSConfiguration(ctx context.Context, cert *Certif
 		return nil
 	}
 
-	// This would update the TLS manager configuration with new certificates
-	// Implementation depends on the TLS manager interface
+	// This would update the TLS manager configuration with new certificates.
+	// Implementation depends on the TLS manager interface.
 	i.logger.Info("updating TLS configuration",
 		"certificate", cert.SerialNumber)
 
@@ -465,17 +465,17 @@ func (i *CAIntegration) updateTLSConfiguration(ctx context.Context, cert *Certif
 func (i *CAIntegration) mergeLabels(reqLabels, configLabels map[string]string) map[string]string {
 	merged := make(map[string]string)
 
-	// Add config labels first
+	// Add config labels first.
 	for k, v := range configLabels {
 		merged[k] = v
 	}
 
-	// Add request labels (can override config labels)
+	// Add request labels (can override config labels).
 	for k, v := range reqLabels {
 		merged[k] = v
 	}
 
-	// Add standard labels
+	// Add standard labels.
 	merged["app.kubernetes.io/managed-by"] = "nephoran-intent-operator"
 	merged["nephoran.io/certificate"] = "true"
 
@@ -485,12 +485,12 @@ func (i *CAIntegration) mergeLabels(reqLabels, configLabels map[string]string) m
 func (i *CAIntegration) mergeAnnotations(reqAnnotations, configAnnotations map[string]string) map[string]string {
 	merged := make(map[string]string)
 
-	// Add config annotations first
+	// Add config annotations first.
 	for k, v := range configAnnotations {
 		merged[k] = v
 	}
 
-	// Add request annotations (can override config annotations)
+	// Add request annotations (can override config annotations).
 	for k, v := range reqAnnotations {
 		merged[k] = v
 	}
@@ -498,15 +498,15 @@ func (i *CAIntegration) mergeAnnotations(reqAnnotations, configAnnotations map[s
 	return merged
 }
 
-// GetCertificateStatus returns the status of certificates managed by integration
+// GetCertificateStatus returns the status of certificates managed by integration.
 func (i *CAIntegration) GetCertificateStatus(ctx context.Context) (map[string]interface{}, error) {
 	status := make(map[string]interface{})
 
-	// Get certificate statistics from CA manager
+	// Get certificate statistics from CA manager.
 	healthStatus := i.caManager.HealthCheck(ctx)
 	status["backend_health"] = healthStatus
 
-	// Get certificate count by namespace
+	// Get certificate count by namespace.
 	namespaces := i.config.TLSIntegration.CertificateNamespaces
 	for _, ns := range namespaces {
 		secrets := &corev1.SecretList{}

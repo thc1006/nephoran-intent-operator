@@ -8,15 +8,15 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// KptfileGenerator generates Kptfile for KRM packages
+// KptfileGenerator generates Kptfile for KRM packages.
 type KptfileGenerator struct{}
 
-// NewKptfileGenerator creates a new Kptfile generator
+// NewKptfileGenerator creates a new Kptfile generator.
 func NewKptfileGenerator() *KptfileGenerator {
 	return &KptfileGenerator{}
 }
 
-// Kptfile represents the structure of a Kptfile
+// Kptfile represents the structure of a Kptfile.
 type Kptfile struct {
 	APIVersion string           `yaml:"apiVersion"`
 	Kind       string           `yaml:"kind"`
@@ -25,7 +25,7 @@ type Kptfile struct {
 	Pipeline   *KptfilePipeline `yaml:"pipeline,omitempty"`
 }
 
-// KptfileMetadata contains metadata for the Kptfile
+// KptfileMetadata contains metadata for the Kptfile.
 type KptfileMetadata struct {
 	Name        string            `yaml:"name"`
 	Namespace   string            `yaml:"namespace,omitempty"`
@@ -33,7 +33,7 @@ type KptfileMetadata struct {
 	Annotations map[string]string `yaml:"annotations,omitempty"`
 }
 
-// KptfileInfo contains package information
+// KptfileInfo contains package information.
 type KptfileInfo struct {
 	Description string   `yaml:"description"`
 	Site        string   `yaml:"site,omitempty"`
@@ -41,12 +41,12 @@ type KptfileInfo struct {
 	Keywords    []string `yaml:"keywords,omitempty"`
 }
 
-// KptfilePipeline defines the mutation pipeline
+// KptfilePipeline defines the mutation pipeline.
 type KptfilePipeline struct {
 	Mutators []KptfileMutator `yaml:"mutators,omitempty"`
 }
 
-// KptfileMutator defines a pipeline mutator
+// KptfileMutator defines a pipeline mutator.
 type KptfileMutator struct {
 	Image      string                 `yaml:"image"`
 	ConfigMap  map[string]interface{} `yaml:"configMap,omitempty"`
@@ -54,7 +54,7 @@ type KptfileMutator struct {
 	Name       string                 `yaml:"name,omitempty"`
 }
 
-// Generate creates a Kptfile from a scaling intent
+// Generate creates a Kptfile from a scaling intent.
 func (g *KptfileGenerator) Generate(intent *intent.ScalingIntent) ([]byte, error) {
 	kptfile := &Kptfile{
 		APIVersion: "kpt.dev/v1",
@@ -114,20 +114,20 @@ func (g *KptfileGenerator) Generate(intent *intent.ScalingIntent) ([]byte, error
 		},
 	}
 
-	// Add correlation ID if provided
+	// Add correlation ID if provided.
 	if intent.CorrelationID != "" {
 		kptfile.Metadata.Annotations["nephoran.com/correlation-id"] = intent.CorrelationID
-		// Add to pipeline mutator as well
+		// Add to pipeline mutator as well.
 		kptfile.Pipeline.Mutators[1].ConfigMap["nephoran.com/correlation-id"] = intent.CorrelationID
 	}
 
-	// Add reason if provided
+	// Add reason if provided.
 	if intent.Reason != "" {
 		kptfile.Metadata.Annotations["nephoran.com/reason"] = intent.Reason
 		kptfile.Pipeline.Mutators[1].ConfigMap["nephoran.com/reason"] = intent.Reason
 	}
 
-	// Convert to YAML
+	// Convert to YAML.
 	yamlData, err := yaml.Marshal(kptfile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal Kptfile to YAML: %w", err)
@@ -136,7 +136,7 @@ func (g *KptfileGenerator) Generate(intent *intent.ScalingIntent) ([]byte, error
 	return yamlData, nil
 }
 
-// GenerateMinimal creates a minimal Kptfile without pipeline for simple packages
+// GenerateMinimal creates a minimal Kptfile without pipeline for simple packages.
 func (g *KptfileGenerator) GenerateMinimal(intent *intent.ScalingIntent) ([]byte, error) {
 	kptfile := &Kptfile{
 		APIVersion: "kpt.dev/v1",

@@ -5,7 +5,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// NetworkIntentFixture represents a test fixture for NetworkIntent resources
+// NetworkIntentFixture represents a test fixture for NetworkIntent resources.
 type NetworkIntentFixture struct {
 	Name      string
 	Namespace string
@@ -13,7 +13,7 @@ type NetworkIntentFixture struct {
 	Expected  nephoranv1.NetworkIntentSpec
 }
 
-// E2NodeSetFixture represents a test fixture for E2NodeSet resources
+// E2NodeSetFixture represents a test fixture for E2NodeSet resources.
 type E2NodeSetFixture struct {
 	Name      string
 	Namespace string
@@ -21,7 +21,7 @@ type E2NodeSetFixture struct {
 	Expected  nephoranv1.E2NodeSetStatus
 }
 
-// NetworkIntentFixtures provides common NetworkIntent test fixtures
+// NetworkIntentFixtures provides common NetworkIntent test fixtures.
 var NetworkIntentFixtures = []NetworkIntentFixture{
 	{
 		Name:      "upf-deployment",
@@ -65,7 +65,7 @@ var NetworkIntentFixtures = []NetworkIntentFixture{
 	},
 }
 
-// E2NodeSetFixtures provides common E2NodeSet test fixtures
+// E2NodeSetFixtures provides common E2NodeSet test fixtures.
 var E2NodeSetFixtures = []E2NodeSetFixture{
 	{
 		Name:      "test-e2nodeset-small",
@@ -101,7 +101,7 @@ var E2NodeSetFixtures = []E2NodeSetFixture{
 	},
 }
 
-// CreateNetworkIntent creates a NetworkIntent resource from a fixture
+// CreateNetworkIntent creates a NetworkIntent resource from a fixture.
 func CreateNetworkIntent(fixture NetworkIntentFixture) *nephoranv1.NetworkIntent {
 	return &nephoranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
@@ -116,7 +116,7 @@ func CreateNetworkIntent(fixture NetworkIntentFixture) *nephoranv1.NetworkIntent
 	}
 }
 
-// CreateE2NodeSet creates an E2NodeSet resource from a fixture
+// CreateE2NodeSet creates an E2NodeSet resource from a fixture.
 func CreateE2NodeSet(fixture E2NodeSetFixture) *nephoranv1.E2NodeSet {
 	return &nephoranv1.E2NodeSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -132,7 +132,7 @@ func CreateE2NodeSet(fixture E2NodeSetFixture) *nephoranv1.E2NodeSet {
 	}
 }
 
-// CreateProcessedNetworkIntent creates a NetworkIntent with processed status
+// CreateProcessedNetworkIntent creates a NetworkIntent with processed status.
 func CreateProcessedNetworkIntent(fixture NetworkIntentFixture) *nephoranv1.NetworkIntent {
 	ni := CreateNetworkIntent(fixture)
 	ni.Status.Phase = "Processed"
@@ -140,7 +140,7 @@ func CreateProcessedNetworkIntent(fixture NetworkIntentFixture) *nephoranv1.Netw
 	return ni
 }
 
-// CreateDeployedNetworkIntent creates a NetworkIntent with deployed status
+// CreateDeployedNetworkIntent creates a NetworkIntent with deployed status.
 func CreateDeployedNetworkIntent(fixture NetworkIntentFixture) *nephoranv1.NetworkIntent {
 	ni := CreateProcessedNetworkIntent(fixture)
 	ni.Status.Phase = "Deployed"
@@ -148,14 +148,14 @@ func CreateDeployedNetworkIntent(fixture NetworkIntentFixture) *nephoranv1.Netwo
 	return ni
 }
 
-// CreateReadyE2NodeSet creates an E2NodeSet with ready status
+// CreateReadyE2NodeSet creates an E2NodeSet with ready status.
 func CreateReadyE2NodeSet(fixture E2NodeSetFixture) *nephoranv1.E2NodeSet {
 	e2ns := CreateE2NodeSet(fixture)
 	e2ns.Status.ReadyReplicas = fixture.Replicas
 	return e2ns
 }
 
-// GetNetworkIntentByName returns a NetworkIntent fixture by name
+// GetNetworkIntentByName returns a NetworkIntent fixture by name.
 func GetNetworkIntentByName(name string) *NetworkIntentFixture {
 	for _, fixture := range NetworkIntentFixtures {
 		if fixture.Name == name {
@@ -165,7 +165,7 @@ func GetNetworkIntentByName(name string) *NetworkIntentFixture {
 	return nil
 }
 
-// GetE2NodeSetByName returns an E2NodeSet fixture by name
+// GetE2NodeSetByName returns an E2NodeSet fixture by name.
 func GetE2NodeSetByName(name string) *E2NodeSetFixture {
 	for _, fixture := range E2NodeSetFixtures {
 		if fixture.Name == name {

@@ -14,13 +14,13 @@ import (
 )
 
 func main() {
-	// Parse command-line flags
+	// Parse command-line flags.
 	handoffDir := flag.String("handoff", "./handoff", "Directory to watch for intent files")
 	postURL := flag.String("post-url", "", "Optional HTTP endpoint to POST valid intents")
 	schemaPath := flag.String("schema", "./docs/contracts/intent.schema.json", "Path to intent schema file")
 	debounceMs := flag.Int("debounce-ms", 300, "Debounce delay in milliseconds to handle partial writes")
 
-	// Security flags
+	// Security flags.
 	bearerToken := flag.String("bearer-token", "", "Bearer token for authentication")
 	apiKey := flag.String("api-key", "", "API key for authentication")
 	apiKeyHeader := flag.String("api-key-header", "X-API-Key", "Custom API key header")
@@ -28,12 +28,12 @@ func main() {
 
 	flag.Parse()
 
-	// Validate POST URL if provided
+	// Validate POST URL if provided.
 	if *postURL != "" {
 		if _, err := url.Parse(*postURL); err != nil {
 			log.Fatalf("Invalid POST URL '%s': %v", *postURL, err)
 		}
-		// Ensure it's HTTP or HTTPS
+		// Ensure it's HTTP or HTTPS.
 		if parsedURL, err := url.Parse(*postURL); err != nil {
 			log.Fatalf("Failed to re-parse POST URL '%s': %v", *postURL, err)
 		} else if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
@@ -41,11 +41,11 @@ func main() {
 		}
 	}
 
-	// Set up structured logging
+	// Set up structured logging.
 	log.SetPrefix("[conductor-watch] ")
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
 
-	// Convert to absolute paths for Windows compatibility
+	// Convert to absolute paths for Windows compatibility.
 	absHandoffDir, err := filepath.Abs(*handoffDir)
 	if err != nil {
 		log.Fatalf("Failed to get absolute path for handoff dir: %v", err)
@@ -56,12 +56,12 @@ func main() {
 		log.Fatalf("Failed to get absolute path for schema: %v", err)
 	}
 
-	// Ensure handoff directory exists
-	if err := os.MkdirAll(absHandoffDir, 0755); err != nil {
+	// Ensure handoff directory exists.
+	if err := os.MkdirAll(absHandoffDir, 0o755); err != nil {
 		log.Fatalf("Failed to create handoff directory %s: %v", absHandoffDir, err)
 	}
 
-	// Verify schema file exists
+	// Verify schema file exists.
 	if _, err := os.Stat(absSchemaPath); err != nil {
 		log.Fatalf("Schema file not found at %s: %v", absSchemaPath, err)
 	}
@@ -83,7 +83,7 @@ func main() {
 		}
 	}
 
-	// Create watcher configuration
+	// Create watcher configuration.
 	config := &watch.Config{
 		HandoffDir:         absHandoffDir,
 		SchemaPath:         absSchemaPath,
@@ -95,23 +95,23 @@ func main() {
 		InsecureSkipVerify: *insecureSkipVerify,
 	}
 
-	// Create and start watcher
+	// Create and start watcher.
 	watcher, err := watch.NewWatcher(config)
 	if err != nil {
 		log.Fatalf("Failed to create watcher: %v", err)
 	}
 
-	// Setup signal handling for graceful shutdown
+	// Setup signal handling for graceful shutdown.
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
-	// Start watching in a goroutine
+	// Start watching in a goroutine.
 	done := make(chan error, 1)
 	go func() {
 		done <- watcher.Start()
 	}()
 
-	// Wait for either error or interrupt signal
+	// Wait for either error or interrupt signal.
 	select {
 	case err := <-done:
 		if err != nil {

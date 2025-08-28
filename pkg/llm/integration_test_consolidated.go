@@ -1,5 +1,5 @@
 //go:build !disable_rag
-// +build !disable_rag
+// +build !disable_rag.
 
 package llm
 
@@ -13,19 +13,19 @@ import (
 	"time"
 )
 
-// Note: All required types (BatchConfig, StreamingRequest, WorkerPoolConfig, etc.)
+// Note: All required types (BatchConfig, StreamingRequest, WorkerPoolConfig, etc.).
 // are already defined in other files in this package.
 
-// TestFullIntegrationWorkflow tests the complete LLM processing workflow
+// TestFullIntegrationWorkflow tests the complete LLM processing workflow.
 func TestFullIntegrationWorkflow(t *testing.T) {
-	// Setup mock servers
+	// Setup mock servers.
 	llmServer := setupMockLLMServer(t)
 	defer llmServer.Close()
 
 	ragServer := setupMockRAGServer(t)
 	defer ragServer.Close()
 
-	// Create processing engine with all components
+	// Create processing engine with all components.
 	client := NewClientWithConfig(llmServer.URL, ClientConfig{
 		APIKey:      "test-key",
 		ModelName:   "gpt-4o-mini",
@@ -47,7 +47,7 @@ func TestFullIntegrationWorkflow(t *testing.T) {
 
 	engine := NewProcessingEngine(client, processingConfig)
 
-	// Test scenarios
+	// Test scenarios.
 	testScenarios := []struct {
 		name        string
 		intent      string
@@ -82,7 +82,7 @@ func TestFullIntegrationWorkflow(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Execute test scenarios
+	// Execute test scenarios.
 	for _, scenario := range testScenarios {
 		t.Run(scenario.name, func(t *testing.T) {
 			result, err := engine.ProcessIntent(ctx, scenario.intent)
@@ -103,7 +103,7 @@ func TestFullIntegrationWorkflow(t *testing.T) {
 				}
 			}
 
-			// Verify processing time is reasonable
+			// Verify processing time is reasonable.
 			if result.ProcessingTime > 5*time.Second {
 				t.Errorf("Processing time too high for scenario %s: %v", scenario.name, result.ProcessingTime)
 			}
@@ -111,7 +111,7 @@ func TestFullIntegrationWorkflow(t *testing.T) {
 	}
 }
 
-// TestCacheIntegration tests cache integration across components
+// TestCacheIntegration tests cache integration across components.
 func TestCacheIntegration(t *testing.T) {
 	callCount := 0
 
@@ -130,7 +130,7 @@ func TestCacheIntegration(t *testing.T) {
 	}))
 	defer server.Close()
 
-	// Create client with caching enabled
+	// Create client with caching enabled.
 	client := NewClientWithConfig(server.URL, ClientConfig{
 		APIKey:      "test-key",
 		BackendType: "openai",
@@ -138,7 +138,7 @@ func TestCacheIntegration(t *testing.T) {
 		Timeout:     10 * time.Second,
 	})
 
-	// Create cache with semantic similarity
+	// Create cache with semantic similarity.
 	cache := NewResponseCacheWithConfig(&CacheConfig{
 		TTL:                 2 * time.Minute,
 		MaxSize:             1000,
@@ -150,7 +150,7 @@ func TestCacheIntegration(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Test exact cache matches
+	// Test exact cache matches.
 	intent1 := "Deploy AMF with high availability"
 	result1, err := client.ProcessIntent(ctx, intent1)
 	if err != nil {
@@ -170,15 +170,15 @@ func TestCacheIntegration(t *testing.T) {
 		t.Errorf("Expected 1 server call (second should be cached), got %d", callCount)
 	}
 
-	// Test semantic similarity caching
+	// Test semantic similarity caching.
 	cache.Set("similar_intent_1", "{\"deployment\": \"amf-similar\"}")
 
 	if result, found := cache.Get("similar_intent_2"); found {
-		// This might find a similar result depending on keywords
+		// This might find a similar result depending on keywords.
 		t.Logf("Found similar cached result: %s", result)
 	}
 
-	// Verify cache statistics
+	// Verify cache statistics.
 	stats := cache.GetStats()
 	if stats["l1_size"].(int) == 0 && stats["l2_size"].(int) == 0 {
 		t.Error("Cache should contain entries")
@@ -191,9 +191,9 @@ func TestCacheIntegration(t *testing.T) {
 	cache.Stop()
 }
 
-// TestWorkerPoolIntegration tests worker pool integration
+// TestWorkerPoolIntegration tests worker pool integration.
 func TestWorkerPoolIntegration(t *testing.T) {
-	// Create worker pool
+	// Create worker pool.
 	config := &WorkerPoolConfig{
 		MinWorkers:          2,
 		MaxWorkers:          5,
@@ -213,7 +213,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Start worker pool
+	// Start worker pool.
 	if err := pool.Start(ctx); err != nil {
 		t.Fatalf("Failed to start worker pool: %v", err)
 	}
@@ -224,7 +224,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 		}
 	}()
 
-	// Submit various task types
+	// Submit various task types.
 	tasks := []Task{
 		{
 			ID:       "llm-task-1",
@@ -249,17 +249,17 @@ func TestWorkerPoolIntegration(t *testing.T) {
 		},
 	}
 
-	// Submit tasks
+	// Submit tasks.
 	for i := range tasks {
 		if err := pool.Submit(&tasks[i]); err != nil {
 			t.Errorf("Failed to submit task %s: %v", tasks[i].ID, err)
 		}
 	}
 
-	// Wait for processing
+	// Wait for processing.
 	time.Sleep(1 * time.Second)
 
-	// Check metrics
+	// Check metrics.
 	metrics := pool.GetMetrics()
 	if metrics.ActiveWorkers < 2 {
 		t.Errorf("Expected at least 2 active workers, got %d", metrics.ActiveWorkers)
@@ -270,7 +270,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 		t.Error("Worker pool should be running")
 	}
 
-	// Test scaling by submitting many tasks
+	// Test scaling by submitting many tasks.
 	for i := 0; i < 50; i++ {
 		task := Task{
 			ID:       fmt.Sprintf("scale-task-%d", i),
@@ -280,28 +280,28 @@ func TestWorkerPoolIntegration(t *testing.T) {
 			Context:  ctx,
 		}
 
-		// Non-blocking submit (queue might be full)
+		// Non-blocking submit (queue might be full).
 		pool.Submit(&task)
 	}
 
-	// Wait for scaling
+	// Wait for scaling.
 	time.Sleep(2 * time.Second)
 
-	// Verify scaling occurred
+	// Verify scaling occurred.
 	finalMetrics := pool.GetMetrics()
 	if finalMetrics.ActiveWorkers <= metrics.ActiveWorkers {
 		t.Log("Worker pool may have scaled up") // This is timing-dependent
 	}
 }
 
-// TestCircuitBreakerIntegration tests circuit breaker integration
+// TestCircuitBreakerIntegration tests circuit breaker integration.
 func TestCircuitBreakerIntegration(t *testing.T) {
 	failureCount := 0
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		failureCount++
 
-		// Fail first 5 requests, then succeed
+		// Fail first 5 requests, then succeed.
 		if failureCount <= 5 {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("Temporary failure"))
@@ -320,7 +320,7 @@ func TestCircuitBreakerIntegration(t *testing.T) {
 	}))
 	defer server.Close()
 
-	// Configure circuit breaker with low thresholds for testing
+	// Configure circuit breaker with low thresholds for testing.
 	cbConfig := &CircuitBreakerConfig{
 		FailureThreshold:    3,
 		FailureRate:         0.6,
@@ -339,16 +339,16 @@ func TestCircuitBreakerIntegration(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Make failing requests to trigger circuit breaker
+	// Make failing requests to trigger circuit breaker.
 	for i := 0; i < 6; i++ {
 		result, err := client.ProcessIntent(ctx, fmt.Sprintf("Trigger circuit breaker %d", i))
 		if i < 3 {
-			// First few requests should reach server and fail
+			// First few requests should reach server and fail.
 			if err == nil {
 				t.Errorf("Request %d should have failed", i+1)
 			}
 		} else {
-			// Later requests might be rejected by circuit breaker
+			// Later requests might be rejected by circuit breaker.
 			if err != nil && strings.Contains(err.Error(), "circuit breaker") {
 				t.Logf("Request %d properly rejected by circuit breaker", i+1)
 			}
@@ -356,10 +356,10 @@ func TestCircuitBreakerIntegration(t *testing.T) {
 		_ = result
 	}
 
-	// Wait for circuit breaker to potentially reset
+	// Wait for circuit breaker to potentially reset.
 	time.Sleep(200 * time.Millisecond)
 
-	// Try again - circuit might be half-open
+	// Try again - circuit might be half-open.
 	result, err := client.ProcessIntent(ctx, "Test circuit recovery")
 	if err == nil {
 		if strings.Contains(result, "circuit-recovery") {
@@ -368,7 +368,7 @@ func TestCircuitBreakerIntegration(t *testing.T) {
 	}
 }
 
-// TestPerformanceUnderLoad tests system performance under load
+// TestPerformanceUnderLoad tests system performance under load.
 func TestPerformanceUnderLoad(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping performance test in short mode")
@@ -395,20 +395,20 @@ func TestPerformanceUnderLoad(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Create multiple concurrent requests
+	// Create multiple concurrent requests.
 	numRequests := 100
 	numWorkers := 10
 
 	requestChan := make(chan string, numRequests)
 	resultChan := make(chan *ProcessingResult, numRequests)
 
-	// Generate requests
+	// Generate requests.
 	for i := 0; i < numRequests; i++ {
 		requestChan <- fmt.Sprintf("Performance test request %d - deploy AMF with %d replicas", i, i%5+1)
 	}
 	close(requestChan)
 
-	// Start workers
+	// Start workers.
 	startTime := time.Now()
 
 	for i := 0; i < numWorkers; i++ {
@@ -425,7 +425,7 @@ func TestPerformanceUnderLoad(t *testing.T) {
 		}(i)
 	}
 
-	// Collect results
+	// Collect results.
 	successCount := 0
 	errorCount := 0
 	totalProcessingTime := time.Duration(0)
@@ -442,7 +442,7 @@ func TestPerformanceUnderLoad(t *testing.T) {
 
 	totalTime := time.Since(startTime)
 
-	// Analyze performance
+	// Analyze performance.
 	successRate := float64(successCount) / float64(numRequests)
 	averageProcessingTime := totalProcessingTime / time.Duration(successCount)
 	requestsPerSecond := float64(numRequests) / totalTime.Seconds()
@@ -454,7 +454,7 @@ func TestPerformanceUnderLoad(t *testing.T) {
 	t.Logf("  Requests per Second: %.2f", requestsPerSecond)
 	t.Logf("  Total Time: %v", totalTime)
 
-	// Performance assertions
+	// Performance assertions.
 	if successRate < 0.95 {
 		t.Errorf("Success rate too low: %.2f%% (expected > 95%%)", successRate*100)
 	}
@@ -467,28 +467,28 @@ func TestPerformanceUnderLoad(t *testing.T) {
 		t.Errorf("Throughput too low: %.2f RPS (expected > 10 RPS)", requestsPerSecond)
 	}
 
-	// Check metrics
+	// Check metrics.
 	metrics := engine.GetMetrics()
 	if metrics.TotalRequests == 0 {
 		t.Error("Processing metrics should show requests processed")
 	}
 }
 
-// TestSecurityFeatures tests security-related functionality
+// TestSecurityFeatures tests security-related functionality.
 func TestSecurityFeatures(t *testing.T) {
-	// Test TLS configuration
+	// Test TLS configuration.
 	client := NewClientWithConfig("https://secure.example.com", ClientConfig{
 		APIKey:              "test-key",
 		SkipTLSVerification: false, // Security should be enforced
 		Timeout:             10 * time.Second,
 	})
 
-	// Test API key handling (simplified check)
+	// Test API key handling (simplified check).
 	if client == nil {
 		t.Error("Client should be created successfully")
 	}
 
-	// Test timeout enforcement
+	// Test timeout enforcement.
 	shortClient := NewClientWithConfig("http://slow.example.com", ClientConfig{
 		Timeout: 1 * time.Millisecond, // Very short timeout
 	})
@@ -498,11 +498,11 @@ func TestSecurityFeatures(t *testing.T) {
 	}
 }
 
-// Helper functions for testing
+// Helper functions for testing.
 
 func setupMockLLMServer(t *testing.T) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Simulate realistic LLM API responses
+		// Simulate realistic LLM API responses.
 		time.Sleep(10 * time.Millisecond) // Simulate processing time
 
 		w.WriteHeader(http.StatusOK)
@@ -551,7 +551,7 @@ func setupMockRAGServer(t *testing.T) *httptest.Server {
 
 func setupHighPerformanceMockServer(t *testing.T) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Fast response for performance testing
+		// Fast response for performance testing.
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{
 			"choices": [{

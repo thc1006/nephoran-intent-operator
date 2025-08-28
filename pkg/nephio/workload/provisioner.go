@@ -18,7 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ClusterProvisioner handles cluster provisioning across multiple cloud providers
+// ClusterProvisioner handles cluster provisioning across multiple cloud providers.
 type ClusterProvisioner struct {
 	providers        map[CloudProvider]CloudProviderInterface
 	templates        map[string]*ProvisioningTemplate
@@ -31,7 +31,7 @@ type ClusterProvisioner struct {
 	mu               sync.RWMutex
 }
 
-// CloudProviderInterface defines the interface for cloud providers
+// CloudProviderInterface defines the interface for cloud providers.
 type CloudProviderInterface interface {
 	CreateCluster(ctx context.Context, spec *ClusterSpec) (*ProvisionedCluster, error)
 	UpdateCluster(ctx context.Context, clusterID string, spec *ClusterSpec) error
@@ -42,7 +42,7 @@ type CloudProviderInterface interface {
 	EstimateCost(spec *ClusterSpec) (*CostEstimate, error)
 }
 
-// ClusterSpec defines the specification for cluster provisioning
+// ClusterSpec defines the specification for cluster provisioning.
 type ClusterSpec struct {
 	Name             string               `json:"name"`
 	Provider         CloudProvider        `json:"provider"`
@@ -59,7 +59,7 @@ type ClusterSpec struct {
 	Tags             map[string]string    `json:"tags"`
 }
 
-// NodePoolSpec defines a node pool specification
+// NodePoolSpec defines a node pool specification.
 type NodePoolSpec struct {
 	Name          string            `json:"name"`
 	MachineType   string            `json:"machine_type"`
@@ -75,20 +75,20 @@ type NodePoolSpec struct {
 	GPUConfig     *GPUConfig        `json:"gpu_config,omitempty"`
 }
 
-// TaintSpec defines a node taint
+// TaintSpec defines a node taint.
 type TaintSpec struct {
 	Key    string `json:"key"`
 	Value  string `json:"value"`
 	Effect string `json:"effect"`
 }
 
-// GPUConfig defines GPU configuration for nodes
+// GPUConfig defines GPU configuration for nodes.
 type GPUConfig struct {
 	Type  string `json:"type"`
 	Count int    `json:"count"`
 }
 
-// NetworkingSpec defines networking configuration
+// NetworkingSpec defines networking configuration.
 type NetworkingSpec struct {
 	VPCName           string `json:"vpc_name"`
 	SubnetCIDR        string `json:"subnet_cidr"`
@@ -101,7 +101,7 @@ type NetworkingSpec struct {
 	IngressController string `json:"ingress_controller"`
 }
 
-// SecuritySpec defines security configuration
+// SecuritySpec defines security configuration.
 type SecuritySpec struct {
 	EnableRBAC            bool             `json:"enable_rbac"`
 	EnablePodSecurity     bool             `json:"enable_pod_security"`
@@ -114,21 +114,21 @@ type SecuritySpec struct {
 	ComplianceMode        string           `json:"compliance_mode"`
 }
 
-// ServiceAccount defines a service account configuration
+// ServiceAccount defines a service account configuration.
 type ServiceAccount struct {
 	Name      string   `json:"name"`
 	Namespace string   `json:"namespace"`
 	Roles     []string `json:"roles"`
 }
 
-// AddonSpec defines a cluster addon
+// AddonSpec defines a cluster addon.
 type AddonSpec struct {
 	Name    string            `json:"name"`
 	Version string            `json:"version"`
 	Config  map[string]string `json:"config"`
 }
 
-// BackupSpec defines backup configuration
+// BackupSpec defines backup configuration.
 type BackupSpec struct {
 	Enabled           bool     `json:"enabled"`
 	Schedule          string   `json:"schedule"`
@@ -138,7 +138,7 @@ type BackupSpec struct {
 	DisasterRecovery  DRConfig `json:"disaster_recovery"`
 }
 
-// DRConfig defines disaster recovery configuration
+// DRConfig defines disaster recovery configuration.
 type DRConfig struct {
 	Enabled         bool   `json:"enabled"`
 	SecondaryRegion string `json:"secondary_region"`
@@ -147,7 +147,7 @@ type DRConfig struct {
 	ReplicationMode string `json:"replication_mode"`
 }
 
-// MonitoringSpec defines monitoring configuration
+// MonitoringSpec defines monitoring configuration.
 type MonitoringSpec struct {
 	Provider         string   `json:"provider"`
 	MetricsRetention int      `json:"metrics_retention"`
@@ -156,7 +156,7 @@ type MonitoringSpec struct {
 	CustomMetrics    []string `json:"custom_metrics"`
 }
 
-// AutoscalingSpec defines autoscaling configuration
+// AutoscalingSpec defines autoscaling configuration.
 type AutoscalingSpec struct {
 	Enabled        bool           `json:"enabled"`
 	MinNodes       int            `json:"min_nodes"`
@@ -167,14 +167,14 @@ type AutoscalingSpec struct {
 	CustomMetrics  []CustomMetric `json:"custom_metrics"`
 }
 
-// CustomMetric defines a custom autoscaling metric
+// CustomMetric defines a custom autoscaling metric.
 type CustomMetric struct {
 	Name   string  `json:"name"`
 	Target float64 `json:"target"`
 	Type   string  `json:"type"`
 }
 
-// CostOptimizationSpec defines cost optimization settings
+// CostOptimizationSpec defines cost optimization settings.
 type CostOptimizationSpec struct {
 	UseSpotInstances      bool    `json:"use_spot_instances"`
 	SpotInstanceRatio     float64 `json:"spot_instance_ratio"`
@@ -185,7 +185,7 @@ type CostOptimizationSpec struct {
 	UnusedResourceCleanup bool    `json:"unused_resource_cleanup"`
 }
 
-// ProvisionedCluster represents a provisioned cluster
+// ProvisionedCluster represents a provisioned cluster.
 type ProvisionedCluster struct {
 	ID        string            `json:"id"`
 	Name      string            `json:"name"`
@@ -202,19 +202,25 @@ type ProvisionedCluster struct {
 	Metadata  map[string]string `json:"metadata"`
 }
 
-// ProvisionStatus represents the provisioning status
+// ProvisionStatus represents the provisioning status.
 type ProvisionStatus string
 
 const (
-	ProvisionStatusPending      ProvisionStatus = "pending"
+	// ProvisionStatusPending holds provisionstatuspending value.
+	ProvisionStatusPending ProvisionStatus = "pending"
+	// ProvisionStatusProvisioning holds provisionstatusprovisioning value.
 	ProvisionStatusProvisioning ProvisionStatus = "provisioning"
-	ProvisionStatusReady        ProvisionStatus = "ready"
-	ProvisionStatusUpdating     ProvisionStatus = "updating"
-	ProvisionStatusDeleting     ProvisionStatus = "deleting"
-	ProvisionStatusFailed       ProvisionStatus = "failed"
+	// ProvisionStatusReady holds provisionstatusready value.
+	ProvisionStatusReady ProvisionStatus = "ready"
+	// ProvisionStatusUpdating holds provisionstatusupdating value.
+	ProvisionStatusUpdating ProvisionStatus = "updating"
+	// ProvisionStatusDeleting holds provisionstatusdeleting value.
+	ProvisionStatusDeleting ProvisionStatus = "deleting"
+	// ProvisionStatusFailed holds provisionstatusfailed value.
+	ProvisionStatusFailed ProvisionStatus = "failed"
 )
 
-// CostInfo contains cost information
+// CostInfo contains cost information.
 type CostInfo struct {
 	HourlyCost    float64 `json:"hourly_cost"`
 	DailyCost     float64 `json:"daily_cost"`
@@ -222,14 +228,14 @@ type CostInfo struct {
 	EstimatedCost float64 `json:"estimated_cost"`
 }
 
-// HealthInfo contains health information
+// HealthInfo contains health information.
 type HealthInfo struct {
 	Status    string    `json:"status"`
 	Message   string    `json:"message"`
 	LastCheck time.Time `json:"last_check"`
 }
 
-// CostEstimate represents a cost estimate
+// CostEstimate represents a cost estimate.
 type CostEstimate struct {
 	HourlyCost      float64            `json:"hourly_cost"`
 	MonthlyCost     float64            `json:"monthly_cost"`
@@ -238,7 +244,7 @@ type CostEstimate struct {
 	Recommendations []string           `json:"recommendations"`
 }
 
-// ProvisioningTemplate represents a cluster provisioning template
+// ProvisioningTemplate represents a cluster provisioning template.
 type ProvisioningTemplate struct {
 	Name        string            `json:"name"`
 	Provider    CloudProvider     `json:"provider"`
@@ -248,7 +254,7 @@ type ProvisioningTemplate struct {
 	Defaults    ClusterSpec       `json:"defaults"`
 }
 
-// ClusterLifecycleManager manages cluster lifecycle operations
+// ClusterLifecycleManager manages cluster lifecycle operations.
 type ClusterLifecycleManager struct {
 	provisioner *ClusterProvisioner
 	upgrades    map[string]*UpgradeOperation
@@ -256,7 +262,7 @@ type ClusterLifecycleManager struct {
 	mu          sync.RWMutex
 }
 
-// UpgradeOperation represents a cluster upgrade operation
+// UpgradeOperation represents a cluster upgrade operation.
 type UpgradeOperation struct {
 	ClusterID      string    `json:"cluster_id"`
 	CurrentVersion string    `json:"current_version"`
@@ -267,7 +273,7 @@ type UpgradeOperation struct {
 	RollbackOnFail bool      `json:"rollback_on_fail"`
 }
 
-// CostOptimizer optimizes cluster costs
+// CostOptimizer optimizes cluster costs.
 type CostOptimizer struct {
 	recommendations map[string][]*CostRecommendation
 	savings         map[string]float64
@@ -275,7 +281,7 @@ type CostOptimizer struct {
 	mu              sync.RWMutex
 }
 
-// CostRecommendation represents a cost optimization recommendation
+// CostRecommendation represents a cost optimization recommendation.
 type CostRecommendation struct {
 	Type            string  `json:"type"`
 	Description     string  `json:"description"`
@@ -284,7 +290,7 @@ type CostRecommendation struct {
 	Implementation  string  `json:"implementation"`
 }
 
-// BackupManager manages cluster backups
+// BackupManager manages cluster backups.
 type BackupManager struct {
 	backups   map[string][]*ClusterBackup
 	schedules map[string]*BackupSchedule
@@ -292,7 +298,7 @@ type BackupManager struct {
 	mu        sync.RWMutex
 }
 
-// ClusterBackup represents a cluster backup
+// ClusterBackup represents a cluster backup.
 type ClusterBackup struct {
 	ID        string    `json:"id"`
 	ClusterID string    `json:"cluster_id"`
@@ -304,7 +310,7 @@ type ClusterBackup struct {
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
-// BackupSchedule represents a backup schedule
+// BackupSchedule represents a backup schedule.
 type BackupSchedule struct {
 	ClusterID string `json:"cluster_id"`
 	Schedule  string `json:"schedule"`
@@ -312,7 +318,7 @@ type BackupSchedule struct {
 	Enabled   bool   `json:"enabled"`
 }
 
-// provisionerMetrics contains Prometheus metrics
+// provisionerMetrics contains Prometheus metrics.
 type provisionerMetrics struct {
 	provisioningDuration *prometheus.HistogramVec
 	provisioningTotal    *prometheus.CounterVec
@@ -321,7 +327,7 @@ type provisionerMetrics struct {
 	upgradeOperations    *prometheus.CounterVec
 }
 
-// NewClusterProvisioner creates a new cluster provisioner
+// NewClusterProvisioner creates a new cluster provisioner.
 func NewClusterProvisioner(client client.Client, logger logr.Logger) *ClusterProvisioner {
 	metrics := &provisionerMetrics{
 		provisioningDuration: prometheus.NewHistogramVec(
@@ -362,7 +368,7 @@ func NewClusterProvisioner(client client.Client, logger logr.Logger) *ClusterPro
 		),
 	}
 
-	// Register metrics
+	// Register metrics.
 	prometheus.MustRegister(
 		metrics.provisioningDuration,
 		metrics.provisioningTotal,
@@ -397,16 +403,16 @@ func NewClusterProvisioner(client client.Client, logger logr.Logger) *ClusterPro
 		logger:    logger.WithName("backup-manager"),
 	}
 
-	// Initialize cloud providers
+	// Initialize cloud providers.
 	provisioner.initializeProviders()
 
-	// Load provisioning templates
+	// Load provisioning templates.
 	provisioner.loadTemplates()
 
 	return provisioner
 }
 
-// ProvisionCluster provisions a new cluster
+// ProvisionCluster provisions a new cluster.
 func (cp *ClusterProvisioner) ProvisionCluster(ctx context.Context, spec *ClusterSpec) (*ProvisionedCluster, error) {
 	cp.logger.Info("Provisioning cluster", "name", spec.Name, "provider", spec.Provider)
 
@@ -416,56 +422,56 @@ func (cp *ClusterProvisioner) ProvisionCluster(ctx context.Context, spec *Cluste
 	))
 	defer timer.ObserveDuration()
 
-	// Validate specification
+	// Validate specification.
 	if err := cp.validateSpec(spec); err != nil {
 		cp.metrics.provisioningTotal.WithLabelValues(string(spec.Provider), "create", "failed").Inc()
 		return nil, fmt.Errorf("invalid cluster specification: %w", err)
 	}
 
-	// Apply cost optimization if enabled
+	// Apply cost optimization if enabled.
 	if spec.CostOptimization.RightSizing {
 		spec = cp.optimizeSpec(spec)
 	}
 
-	// Get provider
+	// Get provider.
 	provider, exists := cp.providers[spec.Provider]
 	if !exists {
 		cp.metrics.provisioningTotal.WithLabelValues(string(spec.Provider), "create", "failed").Inc()
 		return nil, fmt.Errorf("unsupported provider: %s", spec.Provider)
 	}
 
-	// Generate Infrastructure as Code
+	// Generate Infrastructure as Code.
 	iacConfig, err := cp.generateIaC(spec)
 	if err != nil {
 		cp.metrics.provisioningTotal.WithLabelValues(string(spec.Provider), "create", "failed").Inc()
 		return nil, fmt.Errorf("failed to generate IaC: %w", err)
 	}
 
-	// Store IaC configuration
+	// Store IaC configuration.
 	if err := cp.storeIaCConfig(ctx, spec.Name, iacConfig); err != nil {
 		cp.logger.Error(err, "Failed to store IaC configuration", "cluster", spec.Name)
 	}
 
-	// Provision cluster
+	// Provision cluster.
 	cluster, err := provider.CreateCluster(ctx, spec)
 	if err != nil {
 		cp.metrics.provisioningTotal.WithLabelValues(string(spec.Provider), "create", "failed").Inc()
 		return nil, fmt.Errorf("failed to provision cluster: %w", err)
 	}
 
-	// Setup backup if enabled
+	// Setup backup if enabled.
 	if spec.Backup.Enabled {
 		if err := cp.backupManager.SetupBackup(ctx, cluster.ID, spec.Backup); err != nil {
 			cp.logger.Error(err, "Failed to setup backup", "cluster", cluster.ID)
 		}
 	}
 
-	// Setup monitoring
+	// Setup monitoring.
 	if err := cp.setupMonitoring(ctx, cluster, spec.Monitoring); err != nil {
 		cp.logger.Error(err, "Failed to setup monitoring", "cluster", cluster.ID)
 	}
 
-	// Update metrics
+	// Update metrics.
 	cp.metrics.provisioningTotal.WithLabelValues(string(spec.Provider), "create", "success").Inc()
 	cp.metrics.clusterCost.WithLabelValues(cluster.ID, string(spec.Provider), "hourly").Set(cluster.Cost.HourlyCost)
 	cp.metrics.clusterCost.WithLabelValues(cluster.ID, string(spec.Provider), "monthly").Set(cluster.Cost.MonthlyCost)
@@ -474,7 +480,7 @@ func (cp *ClusterProvisioner) ProvisionCluster(ctx context.Context, spec *Cluste
 	return cluster, nil
 }
 
-// UpdateCluster updates an existing cluster
+// UpdateCluster updates an existing cluster.
 func (cp *ClusterProvisioner) UpdateCluster(ctx context.Context, clusterID string, spec *ClusterSpec) error {
 	cp.logger.Info("Updating cluster", "id", clusterID)
 
@@ -494,11 +500,11 @@ func (cp *ClusterProvisioner) UpdateCluster(ctx context.Context, clusterID strin
 	return nil
 }
 
-// DeleteCluster deletes a cluster
+// DeleteCluster deletes a cluster.
 func (cp *ClusterProvisioner) DeleteCluster(ctx context.Context, clusterID string, provider CloudProvider) error {
 	cp.logger.Info("Deleting cluster", "id", clusterID)
 
-	// Create final backup before deletion
+	// Create final backup before deletion.
 	if err := cp.backupManager.CreateFinalBackup(ctx, clusterID); err != nil {
 		cp.logger.Error(err, "Failed to create final backup", "cluster", clusterID)
 	}
@@ -519,20 +525,20 @@ func (cp *ClusterProvisioner) DeleteCluster(ctx context.Context, clusterID strin
 	return nil
 }
 
-// ScaleCluster scales a cluster
+// ScaleCluster scales a cluster.
 func (cp *ClusterProvisioner) ScaleCluster(ctx context.Context, clusterID string, nodePoolName string, targetNodes int) error {
 	cp.logger.Info("Scaling cluster", "id", clusterID, "nodePool", nodePoolName, "targetNodes", targetNodes)
 
-	// Implementation would scale the specified node pool
+	// Implementation would scale the specified node pool.
 	return nil
 }
 
-// UpgradeCluster upgrades a cluster to a new version
+// UpgradeCluster upgrades a cluster to a new version.
 func (cp *ClusterProvisioner) UpgradeCluster(ctx context.Context, clusterID string, targetVersion string, rollbackOnFail bool) error {
 	return cp.lifecycleManager.UpgradeCluster(ctx, clusterID, targetVersion, rollbackOnFail)
 }
 
-// EstimateCost estimates the cost of a cluster specification
+// EstimateCost estimates the cost of a cluster specification.
 func (cp *ClusterProvisioner) EstimateCost(spec *ClusterSpec) (*CostEstimate, error) {
 	provider, exists := cp.providers[spec.Provider]
 	if !exists {
@@ -544,14 +550,14 @@ func (cp *ClusterProvisioner) EstimateCost(spec *ClusterSpec) (*CostEstimate, er
 		return nil, fmt.Errorf("failed to estimate cost: %w", err)
 	}
 
-	// Add optimization recommendations
+	// Add optimization recommendations.
 	recommendations := cp.costOptimizer.GetRecommendations(spec)
 	estimate.Recommendations = append(estimate.Recommendations, recommendations...)
 
 	return estimate, nil
 }
 
-// GetOptimizationRecommendations gets cost optimization recommendations
+// GetOptimizationRecommendations gets cost optimization recommendations.
 func (cp *ClusterProvisioner) GetOptimizationRecommendations(clusterID string) ([]*CostRecommendation, error) {
 	cp.costOptimizer.mu.RLock()
 	defer cp.costOptimizer.mu.RUnlock()
@@ -564,34 +570,34 @@ func (cp *ClusterProvisioner) GetOptimizationRecommendations(clusterID string) (
 	return recommendations, nil
 }
 
-// CreateBackup creates a backup of a cluster
+// CreateBackup creates a backup of a cluster.
 func (cp *ClusterProvisioner) CreateBackup(ctx context.Context, clusterID string, backupType string) (*ClusterBackup, error) {
 	return cp.backupManager.CreateBackup(ctx, clusterID, backupType)
 }
 
-// RestoreBackup restores a cluster from a backup
+// RestoreBackup restores a cluster from a backup.
 func (cp *ClusterProvisioner) RestoreBackup(ctx context.Context, backupID string, targetClusterID string) error {
 	return cp.backupManager.RestoreBackup(ctx, backupID, targetClusterID)
 }
 
-// Private methods
+// Private methods.
 
 func (cp *ClusterProvisioner) initializeProviders() {
-	// Initialize AWS provider
-	// cp.providers[CloudProviderAWS] = NewAWSProvider(cp.logger)
+	// Initialize AWS provider.
+	// cp.providers[CloudProviderAWS] = NewAWSProvider(cp.logger).
 
-	// Initialize Azure provider
-	// cp.providers[CloudProviderAzure] = NewAzureProvider(cp.logger)
+	// Initialize Azure provider.
+	// cp.providers[CloudProviderAzure] = NewAzureProvider(cp.logger).
 
-	// Initialize GCP provider
-	// cp.providers[CloudProviderGCP] = NewGCPProvider(cp.logger)
+	// Initialize GCP provider.
+	// cp.providers[CloudProviderGCP] = NewGCPProvider(cp.logger).
 
-	// Initialize on-premise provider
-	// cp.providers[CloudProviderOnPremise] = NewOnPremiseProvider(cp.logger)
+	// Initialize on-premise provider.
+	// cp.providers[CloudProviderOnPremise] = NewOnPremiseProvider(cp.logger).
 }
 
 func (cp *ClusterProvisioner) loadTemplates() {
-	// Load templates from ConfigMaps or files
+	// Load templates from ConfigMaps or files.
 	templatesDir := "/etc/nephio/cluster-templates"
 
 	files, err := os.ReadDir(templatesDir)
@@ -628,7 +634,7 @@ func (cp *ClusterProvisioner) loadTemplate(path string) {
 }
 
 func (cp *ClusterProvisioner) validateSpec(spec *ClusterSpec) error {
-	// Validate required fields
+	// Validate required fields.
 	if spec.Name == "" {
 		return fmt.Errorf("cluster name is required")
 	}
@@ -642,7 +648,7 @@ func (cp *ClusterProvisioner) validateSpec(spec *ClusterSpec) error {
 		return fmt.Errorf("at least one node pool is required")
 	}
 
-	// Validate node pools
+	// Validate node pools.
 	for _, pool := range spec.NodePools {
 		if pool.Name == "" {
 			return fmt.Errorf("node pool name is required")
@@ -655,7 +661,7 @@ func (cp *ClusterProvisioner) validateSpec(spec *ClusterSpec) error {
 		}
 	}
 
-	// Validate networking
+	// Validate networking.
 	if spec.Networking.PodCIDR == "" {
 		return fmt.Errorf("pod CIDR is required")
 	}
@@ -669,16 +675,16 @@ func (cp *ClusterProvisioner) validateSpec(spec *ClusterSpec) error {
 func (cp *ClusterProvisioner) optimizeSpec(spec *ClusterSpec) *ClusterSpec {
 	optimized := *spec
 
-	// Optimize node pools
+	// Optimize node pools.
 	for i := range optimized.NodePools {
 		pool := &optimized.NodePools[i]
 
-		// Enable spot instances if cost optimization is enabled
+		// Enable spot instances if cost optimization is enabled.
 		if spec.CostOptimization.UseSpotInstances {
 			pool.SpotInstances = true
 		}
 
-		// Right-size machine types based on workload patterns
+		// Right-size machine types based on workload patterns.
 		if spec.CostOptimization.RightSizing {
 			pool.MachineType = cp.selectOptimalMachineType(pool)
 		}
@@ -688,12 +694,12 @@ func (cp *ClusterProvisioner) optimizeSpec(spec *ClusterSpec) *ClusterSpec {
 }
 
 func (cp *ClusterProvisioner) selectOptimalMachineType(pool *NodePoolSpec) string {
-	// Implementation would analyze workload patterns and select optimal machine type
+	// Implementation would analyze workload patterns and select optimal machine type.
 	return pool.MachineType
 }
 
 func (cp *ClusterProvisioner) generateIaC(spec *ClusterSpec) (string, error) {
-	// Select template based on provider
+	// Select template based on provider.
 	templateName := fmt.Sprintf("%s-cluster", strings.ToLower(string(spec.Provider)))
 
 	cp.mu.RLock()
@@ -704,7 +710,7 @@ func (cp *ClusterProvisioner) generateIaC(spec *ClusterSpec) (string, error) {
 		return "", fmt.Errorf("template %s not found", templateName)
 	}
 
-	// Parse and execute template
+	// Parse and execute template.
 	t, err := template.New("cluster").Parse(tmpl.Template)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse template: %w", err)
@@ -719,7 +725,7 @@ func (cp *ClusterProvisioner) generateIaC(spec *ClusterSpec) (string, error) {
 }
 
 func (cp *ClusterProvisioner) storeIaCConfig(ctx context.Context, clusterName string, config string) error {
-	// Store IaC configuration as a ConfigMap
+	// Store IaC configuration as a ConfigMap.
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-iac", clusterName),
@@ -738,18 +744,18 @@ func (cp *ClusterProvisioner) storeIaCConfig(ctx context.Context, clusterName st
 }
 
 func (cp *ClusterProvisioner) setupMonitoring(ctx context.Context, cluster *ProvisionedCluster, spec MonitoringSpec) error {
-	// Implementation would setup monitoring based on provider
+	// Implementation would setup monitoring based on provider.
 	cp.logger.Info("Setting up monitoring", "cluster", cluster.ID, "provider", spec.Provider)
 	return nil
 }
 
-// ClusterLifecycleManager methods
+// ClusterLifecycleManager methods.
 
-// UpgradeCluster upgrades a cluster to a new version
+// UpgradeCluster upgrades a cluster to a new version.
 func (clm *ClusterLifecycleManager) UpgradeCluster(ctx context.Context, clusterID string, targetVersion string, rollbackOnFail bool) error {
 	clm.mu.Lock()
 
-	// Check if upgrade is already in progress
+	// Check if upgrade is already in progress.
 	if upgrade, exists := clm.upgrades[clusterID]; exists && upgrade.Status == "in-progress" {
 		clm.mu.Unlock()
 		return fmt.Errorf("upgrade already in progress for cluster %s", clusterID)
@@ -766,7 +772,7 @@ func (clm *ClusterLifecycleManager) UpgradeCluster(ctx context.Context, clusterI
 	clm.upgrades[clusterID] = upgrade
 	clm.mu.Unlock()
 
-	// Perform upgrade
+	// Perform upgrade.
 	go clm.performUpgrade(ctx, upgrade)
 
 	return nil
@@ -775,10 +781,10 @@ func (clm *ClusterLifecycleManager) UpgradeCluster(ctx context.Context, clusterI
 func (clm *ClusterLifecycleManager) performUpgrade(ctx context.Context, upgrade *UpgradeOperation) {
 	clm.logger.Info("Starting cluster upgrade", "cluster", upgrade.ClusterID, "target", upgrade.TargetVersion)
 
-	// Implementation would perform the actual upgrade
-	// This is a placeholder
+	// Implementation would perform the actual upgrade.
+	// This is a placeholder.
 
-	// Update status
+	// Update status.
 	clm.mu.Lock()
 	upgrade.Status = "completed"
 	upgrade.CompletedAt = time.Now()
@@ -788,13 +794,13 @@ func (clm *ClusterLifecycleManager) performUpgrade(ctx context.Context, upgrade 
 	clm.logger.Info("Cluster upgrade completed", "cluster", upgrade.ClusterID)
 }
 
-// CostOptimizer methods
+// CostOptimizer methods.
 
-// GetRecommendations gets cost optimization recommendations for a cluster spec
+// GetRecommendations gets cost optimization recommendations for a cluster spec.
 func (co *CostOptimizer) GetRecommendations(spec *ClusterSpec) []string {
 	recommendations := []string{}
 
-	// Check for spot instance usage
+	// Check for spot instance usage.
 	hasSpot := false
 	for _, pool := range spec.NodePools {
 		if pool.SpotInstances {
@@ -806,7 +812,7 @@ func (co *CostOptimizer) GetRecommendations(spec *ClusterSpec) []string {
 		recommendations = append(recommendations, "Consider using spot instances for non-critical workloads")
 	}
 
-	// Check for over-provisioning
+	// Check for over-provisioning.
 	totalNodes := 0
 	for _, pool := range spec.NodePools {
 		totalNodes += pool.DesiredNodes
@@ -815,12 +821,12 @@ func (co *CostOptimizer) GetRecommendations(spec *ClusterSpec) []string {
 		recommendations = append(recommendations, "Review node count for potential over-provisioning")
 	}
 
-	// Check for reserved instances
+	// Check for reserved instances.
 	if !spec.CostOptimization.UseReservedInstances && totalNodes > 5 {
 		recommendations = append(recommendations, "Consider reserved instances for predictable workloads")
 	}
 
-	// Check for auto-shutdown
+	// Check for auto-shutdown.
 	if !spec.CostOptimization.AutoShutdown {
 		recommendations = append(recommendations, "Enable auto-shutdown for development clusters")
 	}
@@ -828,9 +834,9 @@ func (co *CostOptimizer) GetRecommendations(spec *ClusterSpec) []string {
 	return recommendations
 }
 
-// BackupManager methods
+// BackupManager methods.
 
-// SetupBackup sets up backup for a cluster
+// SetupBackup sets up backup for a cluster.
 func (bm *BackupManager) SetupBackup(ctx context.Context, clusterID string, spec BackupSpec) error {
 	bm.mu.Lock()
 	defer bm.mu.Unlock()
@@ -848,7 +854,7 @@ func (bm *BackupManager) SetupBackup(ctx context.Context, clusterID string, spec
 	return nil
 }
 
-// CreateBackup creates a backup of a cluster
+// CreateBackup creates a backup of a cluster.
 func (bm *BackupManager) CreateBackup(ctx context.Context, clusterID string, backupType string) (*ClusterBackup, error) {
 	bm.logger.Info("Creating backup", "cluster", clusterID, "type", backupType)
 
@@ -864,14 +870,14 @@ func (bm *BackupManager) CreateBackup(ctx context.Context, clusterID string, bac
 	bm.backups[clusterID] = append(bm.backups[clusterID], backup)
 	bm.mu.Unlock()
 
-	// Perform backup (placeholder)
+	// Perform backup (placeholder).
 	go bm.performBackup(ctx, backup)
 
 	return backup, nil
 }
 
 func (bm *BackupManager) performBackup(ctx context.Context, backup *ClusterBackup) {
-	// Implementation would perform the actual backup
+	// Implementation would perform the actual backup.
 	time.Sleep(5 * time.Second) // Simulate backup operation
 
 	bm.mu.Lock()
@@ -882,7 +888,7 @@ func (bm *BackupManager) performBackup(ctx context.Context, backup *ClusterBacku
 	bm.logger.Info("Backup completed", "backup", backup.ID)
 }
 
-// CreateFinalBackup creates a final backup before cluster deletion
+// CreateFinalBackup creates a final backup before cluster deletion.
 func (bm *BackupManager) CreateFinalBackup(ctx context.Context, clusterID string) error {
 	backup, err := bm.CreateBackup(ctx, clusterID, "final")
 	if err != nil {
@@ -893,10 +899,10 @@ func (bm *BackupManager) CreateFinalBackup(ctx context.Context, clusterID string
 	return nil
 }
 
-// RestoreBackup restores a cluster from a backup
+// RestoreBackup restores a cluster from a backup.
 func (bm *BackupManager) RestoreBackup(ctx context.Context, backupID string, targetClusterID string) error {
 	bm.logger.Info("Restoring backup", "backup", backupID, "target", targetClusterID)
 
-	// Implementation would perform the actual restore
+	// Implementation would perform the actual restore.
 	return nil
 }

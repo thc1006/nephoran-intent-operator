@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// RenewalRequest represents a certificate renewal request
+// RenewalRequest represents a certificate renewal request.
 type RenewalRequest struct {
 	ServiceName       string             `json:"service_name"`
 	Namespace         string             `json:"namespace"`
@@ -34,18 +34,18 @@ type RenewalRequest struct {
 	CreatedAt         time.Time          `json:"created_at"`
 }
 
-// RotationCoordinator handles coordinated certificate rotation across clustered deployments
+// RotationCoordinator handles coordinated certificate rotation across clustered deployments.
 type RotationCoordinator struct {
 	logger     *logging.StructuredLogger
 	kubeClient kubernetes.Interface
 
-	// Coordination state
+	// Coordination state.
 	activeRotations map[string]*RotationSession
 	rotationLocks   map[string]*sync.RWMutex
 	mu              sync.RWMutex
 }
 
-// RotationSession represents an active rotation session
+// RotationSession represents an active rotation session.
 type RotationSession struct {
 	ID             string             `json:"id"`
 	ServiceName    string             `json:"service_name"`
@@ -60,7 +60,7 @@ type RotationSession struct {
 	mu             sync.RWMutex
 }
 
-// ServiceInstance represents a service instance in the rotation
+// ServiceInstance represents a service instance in the rotation.
 type ServiceInstance struct {
 	Name      string            `json:"name"`
 	Endpoint  string            `json:"endpoint"`
@@ -70,20 +70,27 @@ type ServiceInstance struct {
 	LastCheck time.Time         `json:"last_check"`
 }
 
-// RotationPhase represents the current phase of rotation
+// RotationPhase represents the current phase of rotation.
 type RotationPhase string
 
 const (
+	// PhaseInitializing holds phaseinitializing value.
 	PhaseInitializing RotationPhase = "initializing"
-	PhaseValidating   RotationPhase = "validating"
-	PhaseRotating     RotationPhase = "rotating"
-	PhaseVerifying    RotationPhase = "verifying"
-	PhaseCompleted    RotationPhase = "completed"
-	PhaseFailed       RotationPhase = "failed"
-	PhaseRollingBack  RotationPhase = "rolling_back"
+	// PhaseValidating holds phasevalidating value.
+	PhaseValidating RotationPhase = "validating"
+	// PhaseRotating holds phaserotating value.
+	PhaseRotating RotationPhase = "rotating"
+	// PhaseVerifying holds phaseverifying value.
+	PhaseVerifying RotationPhase = "verifying"
+	// PhaseCompleted holds phasecompleted value.
+	PhaseCompleted RotationPhase = "completed"
+	// PhaseFailed holds phasefailed value.
+	PhaseFailed RotationPhase = "failed"
+	// PhaseRollingBack holds phaserollingback value.
+	PhaseRollingBack RotationPhase = "rolling_back"
 )
 
-// RollbackPlan defines the rollback strategy
+// RollbackPlan defines the rollback strategy.
 type RollbackPlan struct {
 	Enabled            bool              `json:"enabled"`
 	MaxFailureCount    int               `json:"max_failure_count"`
@@ -92,7 +99,7 @@ type RollbackPlan struct {
 	BackupCertificates map[string]string `json:"backup_certificates"`
 }
 
-// NewRotationCoordinator creates a new rotation coordinator
+// NewRotationCoordinator creates a new rotation coordinator.
 func NewRotationCoordinator(
 	logger *logging.StructuredLogger,
 	kubeClient kubernetes.Interface,
@@ -105,7 +112,7 @@ func NewRotationCoordinator(
 	}
 }
 
-// StartCoordinatedRotation starts a coordinated rotation session
+// StartCoordinatedRotation starts a coordinated rotation session.
 func (rc *RotationCoordinator) StartCoordinatedRotation(
 	ctx context.Context,
 	req *RenewalRequest,
@@ -115,7 +122,7 @@ func (rc *RotationCoordinator) StartCoordinatedRotation(
 
 	sessionID := fmt.Sprintf("%s-%s-%d", req.ServiceName, req.Namespace, time.Now().Unix())
 
-	// Check if rotation is already in progress for this service
+	// Check if rotation is already in progress for this service.
 	for _, session := range rc.activeRotations {
 		if session.ServiceName == req.ServiceName && session.Namespace == req.Namespace {
 			if session.Phase != PhaseCompleted && session.Phase != PhaseFailed {
@@ -124,13 +131,13 @@ func (rc *RotationCoordinator) StartCoordinatedRotation(
 		}
 	}
 
-	// Discover service instances
+	// Discover service instances.
 	instances, err := rc.discoverServiceInstances(ctx, req.ServiceName, req.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to discover service instances: %w", err)
 	}
 
-	// Create rotation session
+	// Create rotation session.
 	session := &RotationSession{
 		ID:           sessionID,
 		ServiceName:  req.ServiceName,
@@ -148,7 +155,7 @@ func (rc *RotationCoordinator) StartCoordinatedRotation(
 		},
 	}
 
-	// Create rotation lock for this service
+	// Create rotation lock for this service.
 	serviceKey := fmt.Sprintf("%s/%s", req.Namespace, req.ServiceName)
 	rc.rotationLocks[serviceKey] = &sync.RWMutex{}
 
@@ -164,7 +171,7 @@ func (rc *RotationCoordinator) StartCoordinatedRotation(
 	return session, nil
 }
 
-// ExecuteCoordinatedRotation executes the coordinated rotation
+// ExecuteCoordinatedRotation executes the coordinated rotation.
 func (rc *RotationCoordinator) ExecuteCoordinatedRotation(
 	ctx context.Context,
 	session *RotationSession,
@@ -178,17 +185,17 @@ func (rc *RotationCoordinator) ExecuteCoordinatedRotation(
 		"service", session.ServiceName,
 		"instance_count", len(session.Instances))
 
-	// Phase 1: Initial health check
+	// Phase 1: Initial health check.
 	session.Phase = PhaseValidating
 	if err := rc.performHealthChecks(ctx, session); err != nil {
 		session.Phase = PhaseFailed
 		return fmt.Errorf("initial health check failed: %w", err)
 	}
 
-	// Phase 2: Rolling rotation
+	// Phase 2: Rolling rotation.
 	session.Phase = PhaseRotating
 	if err := rc.performRollingRotation(ctx, session, rotationFunc); err != nil {
-		// Check if rollback is needed
+		// Check if rollback is needed.
 		if session.RollbackPlan.Enabled && rc.shouldRollback(session) {
 			rc.logger.Warn("rotation failed, initiating rollback",
 				"session_id", session.ID,
@@ -205,7 +212,7 @@ func (rc *RotationCoordinator) ExecuteCoordinatedRotation(
 		return err
 	}
 
-	// Phase 3: Final verification
+	// Phase 3: Final verification.
 	session.Phase = PhaseVerifying
 	if err := rc.performHealthChecks(ctx, session); err != nil {
 		if session.RollbackPlan.Enabled {
@@ -231,13 +238,13 @@ func (rc *RotationCoordinator) ExecuteCoordinatedRotation(
 	return nil
 }
 
-// performRollingRotation performs rolling rotation of service instances
+// performRollingRotation performs rolling rotation of service instances.
 func (rc *RotationCoordinator) performRollingRotation(
 	ctx context.Context,
 	session *RotationSession,
 	rotationFunc func(instance *ServiceInstance) error,
 ) error {
-	// Calculate batch size for rolling updates
+	// Calculate batch size for rolling updates.
 	batchSize := rc.calculateBatchSize(len(session.Instances))
 
 	rc.logger.Info("starting rolling rotation",
@@ -259,7 +266,7 @@ func (rc *RotationCoordinator) performRollingRotation(
 			"batch_end", end-1,
 			"batch_size", len(batch))
 
-		// Rotate batch in parallel
+		// Rotate batch in parallel.
 		var wg sync.WaitGroup
 		var batchErrors []error
 		var errorMu sync.Mutex
@@ -292,7 +299,7 @@ func (rc *RotationCoordinator) performRollingRotation(
 
 		wg.Wait()
 
-		// Check batch results
+		// Check batch results.
 		if len(batchErrors) > 0 {
 			if rc.shouldRollback(session) {
 				return fmt.Errorf("batch rotation failed with %d errors, rollback triggered", len(batchErrors))
@@ -303,7 +310,7 @@ func (rc *RotationCoordinator) performRollingRotation(
 				"failed_total", session.FailedCount)
 		}
 
-		// Wait between batches for system stabilization
+		// Wait between batches for system stabilization.
 		if i+batchSize < len(session.Instances) {
 			stabilizationDelay := 30 * time.Second
 			rc.logger.Debug("waiting for system stabilization",
@@ -316,7 +323,7 @@ func (rc *RotationCoordinator) performRollingRotation(
 			case <-time.After(stabilizationDelay):
 			}
 
-			// Perform health check after each batch
+			// Perform health check after each batch.
 			if session.HealthChecks != nil && session.HealthChecks.Enabled {
 				if err := rc.performHealthChecks(ctx, session); err != nil {
 					return fmt.Errorf("health check failed after batch: %w", err)
@@ -328,7 +335,7 @@ func (rc *RotationCoordinator) performRollingRotation(
 	return nil
 }
 
-// performHealthChecks performs health checks on all service instances
+// performHealthChecks performs health checks on all service instances.
 func (rc *RotationCoordinator) performHealthChecks(ctx context.Context, session *RotationSession) error {
 	if session.HealthChecks == nil || !session.HealthChecks.Enabled {
 		rc.logger.Debug("health checks disabled, skipping",
@@ -368,7 +375,7 @@ func (rc *RotationCoordinator) performHealthChecks(ctx context.Context, session 
 
 	wg.Wait()
 
-	// Calculate health percentage
+	// Calculate health percentage.
 	healthPercentage := float64(healthyCount) / float64(len(session.Instances))
 	requiredThreshold := 0.8 // 80% healthy threshold
 
@@ -386,20 +393,20 @@ func (rc *RotationCoordinator) performHealthChecks(ctx context.Context, session 
 	return nil
 }
 
-// checkInstanceHealth checks health of a single service instance
+// checkInstanceHealth checks health of a single service instance.
 func (rc *RotationCoordinator) checkInstanceHealth(
 	ctx context.Context,
 	instance *ServiceInstance,
 	healthConfig *HealthCheckConfig,
 ) bool {
-	// HTTP health check
+	// HTTP health check.
 	if healthConfig.HTTPEndpoint != "" {
 		if rc.checkHTTPHealth(ctx, instance, healthConfig) {
 			return true
 		}
 	}
 
-	// gRPC health check
+	// gRPC health check.
 	if healthConfig.GRPCService != "" {
 		if rc.checkGRPCHealth(ctx, instance, healthConfig) {
 			return true
@@ -409,7 +416,7 @@ func (rc *RotationCoordinator) checkInstanceHealth(
 	return false
 }
 
-// checkHTTPHealth performs HTTP health check
+// checkHTTPHealth performs HTTP health check.
 func (rc *RotationCoordinator) checkHTTPHealth(
 	ctx context.Context,
 	instance *ServiceInstance,
@@ -444,7 +451,7 @@ func (rc *RotationCoordinator) checkHTTPHealth(
 	return false
 }
 
-// checkGRPCHealth performs gRPC health check
+// checkGRPCHealth performs gRPC health check.
 func (rc *RotationCoordinator) checkGRPCHealth(
 	ctx context.Context,
 	instance *ServiceInstance,
@@ -478,18 +485,18 @@ func (rc *RotationCoordinator) checkGRPCHealth(
 	return false
 }
 
-// shouldRollback determines if rollback should be initiated
+// shouldRollback determines if rollback should be initiated.
 func (rc *RotationCoordinator) shouldRollback(session *RotationSession) bool {
 	if !session.RollbackPlan.Enabled {
 		return false
 	}
 
-	// Check absolute failure count
+	// Check absolute failure count.
 	if session.FailedCount >= session.RollbackPlan.MaxFailureCount {
 		return true
 	}
 
-	// Check failure percentage
+	// Check failure percentage.
 	totalAttempted := session.CompletedCount + session.FailedCount
 	if totalAttempted == 0 {
 		return false
@@ -499,20 +506,20 @@ func (rc *RotationCoordinator) shouldRollback(session *RotationSession) bool {
 	return failureRate >= session.RollbackPlan.FailureThreshold
 }
 
-// performRollback performs rollback of the rotation
+// performRollback performs rollback of the rotation.
 func (rc *RotationCoordinator) performRollback(ctx context.Context, session *RotationSession) error {
 	rc.logger.Info("performing rotation rollback",
 		"session_id", session.ID,
 		"failed_count", session.FailedCount)
 
-	// This would implement the actual rollback logic
-	// For now, we'll just log the rollback attempt
+	// This would implement the actual rollback logic.
+	// For now, we'll just log the rollback attempt.
 
 	rollbackTimeout := session.RollbackPlan.RollbackTimeout
 	rollbackCtx, cancel := context.WithTimeout(ctx, rollbackTimeout)
 	defer cancel()
 
-	// Restore backup certificates for rotated instances
+	// Restore backup certificates for rotated instances.
 	for _, instance := range session.Instances {
 		if instance.Rotated {
 			if err := rc.rollbackInstance(rollbackCtx, instance, session); err != nil {
@@ -532,10 +539,10 @@ func (rc *RotationCoordinator) performRollback(ctx context.Context, session *Rot
 	return nil
 }
 
-// rollbackInstance rolls back a specific instance
+// rollbackInstance rolls back a specific instance.
 func (rc *RotationCoordinator) rollbackInstance(ctx context.Context, instance *ServiceInstance, session *RotationSession) error {
-	// Implementation would restore the backup certificate
-	// This is a placeholder for the actual rollback logic
+	// Implementation would restore the backup certificate.
+	// This is a placeholder for the actual rollback logic.
 	rc.logger.Debug("rolling back instance",
 		"session_id", session.ID,
 		"instance", instance.Name)
@@ -543,9 +550,9 @@ func (rc *RotationCoordinator) rollbackInstance(ctx context.Context, instance *S
 	return nil
 }
 
-// discoverServiceInstances discovers service instances for rotation
+// discoverServiceInstances discovers service instances for rotation.
 func (rc *RotationCoordinator) discoverServiceInstances(ctx context.Context, serviceName, namespace string) ([]*ServiceInstance, error) {
-	// Get service endpoints
+	// Get service endpoints.
 	endpoints, err := rc.kubeClient.CoreV1().Endpoints(namespace).Get(ctx, serviceName, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get service endpoints: %w", err)
@@ -580,13 +587,13 @@ func (rc *RotationCoordinator) discoverServiceInstances(ctx context.Context, ser
 	return instances, nil
 }
 
-// calculateBatchSize calculates the optimal batch size for rolling updates
+// calculateBatchSize calculates the optimal batch size for rolling updates.
 func (rc *RotationCoordinator) calculateBatchSize(totalInstances int) int {
 	if totalInstances <= 2 {
 		return 1
 	}
 
-	// Use 25% of instances per batch, minimum 1, maximum 5
+	// Use 25% of instances per batch, minimum 1, maximum 5.
 	batchSize := totalInstances / 4
 	if batchSize < 1 {
 		batchSize = 1
@@ -598,7 +605,7 @@ func (rc *RotationCoordinator) calculateBatchSize(totalInstances int) int {
 	return batchSize
 }
 
-// GetRotationSession gets an active rotation session
+// GetRotationSession gets an active rotation session.
 func (rc *RotationCoordinator) GetRotationSession(sessionID string) (*RotationSession, bool) {
 	rc.mu.RLock()
 	defer rc.mu.RUnlock()
@@ -607,7 +614,7 @@ func (rc *RotationCoordinator) GetRotationSession(sessionID string) (*RotationSe
 	return session, exists
 }
 
-// CleanupCompletedSessions removes completed rotation sessions
+// CleanupCompletedSessions removes completed rotation sessions.
 func (rc *RotationCoordinator) CleanupCompletedSessions() {
 	rc.mu.Lock()
 	defer rc.mu.Unlock()
@@ -618,7 +625,7 @@ func (rc *RotationCoordinator) CleanupCompletedSessions() {
 		if (session.Phase == PhaseCompleted || session.Phase == PhaseFailed) &&
 			session.StartTime.Before(cutoff) {
 
-			// Clean up rotation lock
+			// Clean up rotation lock.
 			serviceKey := fmt.Sprintf("%s/%s", session.Namespace, session.ServiceName)
 			delete(rc.rotationLocks, serviceKey)
 

@@ -1,5 +1,5 @@
-// Nephoran Intent Operator - Advanced AI/ML Network Optimization Engine
-// Phase 4 Enterprise Architecture - Machine Learning Integration
+// Nephoran Intent Operator - Advanced AI/ML Network Optimization Engine.
+// Phase 4 Enterprise Architecture - Machine Learning Integration.
 package ml
 
 import (
@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// OptimizationEngine provides AI/ML-driven network optimization capabilities
+// OptimizationEngine provides AI/ML-driven network optimization capabilities.
 type OptimizationEngine struct {
 	prometheusClient v1.API
 	models           map[string]MLModel
@@ -23,7 +23,7 @@ type OptimizationEngine struct {
 	logger           logr.Logger
 }
 
-// OptimizationConfig defines configuration for the ML optimization engine
+// OptimizationConfig defines configuration for the ML optimization engine.
 type OptimizationConfig struct {
 	PrometheusURL           string         `json:"prometheus_url"`
 	ModelUpdateInterval     time.Duration  `json:"model_update_interval"`
@@ -35,7 +35,7 @@ type OptimizationConfig struct {
 	MLModelConfig           *MLModelConfig `json:"ml_model_config"`
 }
 
-// MLModelConfig defines machine learning model configurations
+// MLModelConfig defines machine learning model configurations.
 type MLModelConfig struct {
 	TrafficPrediction    *ModelConfig `json:"traffic_prediction"`
 	ResourceOptimization *ModelConfig `json:"resource_optimization"`
@@ -43,7 +43,7 @@ type MLModelConfig struct {
 	IntentClassification *ModelConfig `json:"intent_classification"`
 }
 
-// ModelConfig defines individual ML model configuration
+// ModelConfig defines individual ML model configuration.
 type ModelConfig struct {
 	Algorithm        string            `json:"algorithm"`
 	Parameters       map[string]string `json:"parameters"`
@@ -51,7 +51,7 @@ type ModelConfig struct {
 	Enabled          bool              `json:"enabled"`
 }
 
-// NetworkIntent represents a network intent for optimization
+// NetworkIntent represents a network intent for optimization.
 type NetworkIntent struct {
 	ID          string                 `json:"id"`
 	Description string                 `json:"description"`
@@ -60,7 +60,7 @@ type NetworkIntent struct {
 	Timestamp   time.Time              `json:"timestamp"`
 }
 
-// OptimizationRecommendations contains ML-driven optimization recommendations
+// OptimizationRecommendations contains ML-driven optimization recommendations.
 type OptimizationRecommendations struct {
 	IntentID              string                     `json:"intent_id"`
 	ResourceAllocation    *ResourceRecommendation    `json:"resource_allocation"`
@@ -72,7 +72,7 @@ type OptimizationRecommendations struct {
 	Timestamp             time.Time                  `json:"timestamp"`
 }
 
-// ResourceRecommendation provides optimal resource allocation recommendations
+// ResourceRecommendation provides optimal resource allocation recommendations.
 type ResourceRecommendation struct {
 	CPU              string            `json:"cpu"`
 	Memory           string            `json:"memory"`
@@ -83,7 +83,7 @@ type ResourceRecommendation struct {
 	ResourceProfile  string            `json:"resource_profile"`
 }
 
-// ScalingRecommendation provides intelligent auto-scaling recommendations
+// ScalingRecommendation provides intelligent auto-scaling recommendations.
 type ScalingRecommendation struct {
 	MinReplicas             int32     `json:"min_replicas"`
 	MaxReplicas             int32     `json:"max_replicas"`
@@ -95,7 +95,7 @@ type ScalingRecommendation struct {
 	TrafficForecast         []float64 `json:"traffic_forecast"`
 }
 
-// PerformanceRecommendation provides performance optimization recommendations
+// PerformanceRecommendation provides performance optimization recommendations.
 type PerformanceRecommendation struct {
 	JVMSettings          map[string]string `json:"jvm_settings"`
 	NetworkConfig        map[string]string `json:"network_config"`
@@ -104,7 +104,7 @@ type PerformanceRecommendation struct {
 	OptimizationProfile  string            `json:"optimization_profile"`
 }
 
-// RiskAssessment provides deployment risk analysis
+// RiskAssessment provides deployment risk analysis.
 type RiskAssessment struct {
 	OverallRisk        string              `json:"overall_risk"`
 	RiskFactors        []string            `json:"risk_factors"`
@@ -116,7 +116,7 @@ type RiskAssessment struct {
 	RecommendedActions []RecommendedAction `json:"recommended_actions"`
 }
 
-// RecommendedAction represents a specific recommended action
+// RecommendedAction represents a specific recommended action.
 type RecommendedAction struct {
 	Action      string `json:"action"`
 	Priority    string `json:"priority"`
@@ -124,7 +124,7 @@ type RecommendedAction struct {
 	Impact      string `json:"impact"`
 }
 
-// MLModel interface defines the contract for machine learning models
+// MLModel interface defines the contract for machine learning models.
 type MLModel interface {
 	Train(ctx context.Context, data []DataPoint) error
 	Predict(ctx context.Context, input interface{}) (interface{}, error)
@@ -133,7 +133,7 @@ type MLModel interface {
 	UpdateModel(ctx context.Context) error
 }
 
-// DataPoint represents a single data point for ML training
+// DataPoint represents a single data point for ML training.
 type DataPoint struct {
 	Timestamp time.Time              `json:"timestamp"`
 	Features  map[string]float64     `json:"features"`
@@ -141,7 +141,7 @@ type DataPoint struct {
 	Metadata  map[string]string      `json:"metadata"`
 }
 
-// TrafficPredictionModel implements traffic prediction using time series analysis
+// TrafficPredictionModel implements traffic prediction using time series analysis.
 type TrafficPredictionModel struct {
 	weights         []float64
 	accuracy        float64
@@ -150,7 +150,7 @@ type TrafficPredictionModel struct {
 	predictionModel string
 }
 
-// ResourceOptimizationModel implements resource optimization using reinforcement learning
+// ResourceOptimizationModel implements resource optimization using reinforcement learning.
 type ResourceOptimizationModel struct {
 	qTable       map[string]map[string]float64
 	accuracy     float64
@@ -159,7 +159,7 @@ type ResourceOptimizationModel struct {
 	epsilon      float64
 }
 
-// AnomalyDetectionModel implements anomaly detection using statistical methods
+// AnomalyDetectionModel implements anomaly detection using statistical methods.
 type AnomalyDetectionModel struct {
 	thresholds   map[string]float64
 	accuracy     float64
@@ -167,7 +167,7 @@ type AnomalyDetectionModel struct {
 	sensitivity  float64
 }
 
-// IntentClassificationModel implements intent classification using NLP techniques
+// IntentClassificationModel implements intent classification using NLP techniques.
 type IntentClassificationModel struct {
 	classifier   map[string][]string
 	accuracy     float64
@@ -175,11 +175,11 @@ type IntentClassificationModel struct {
 	vocabulary   map[string]int
 }
 
-// NewOptimizationEngine creates a new AI/ML optimization engine
+// NewOptimizationEngine creates a new AI/ML optimization engine.
 func NewOptimizationEngine(config *OptimizationConfig) (*OptimizationEngine, error) {
 	logger := log.Log.WithName("optimization-engine")
 
-	// Initialize Prometheus client
+	// Initialize Prometheus client.
 	client, err := api.NewClient(api.Config{
 		Address: config.PrometheusURL,
 	})
@@ -187,7 +187,7 @@ func NewOptimizationEngine(config *OptimizationConfig) (*OptimizationEngine, err
 		return nil, fmt.Errorf("failed to create Prometheus client: %w", err)
 	}
 
-	// Initialize ML models
+	// Initialize ML models.
 	models := make(map[string]MLModel)
 
 	if config.MLModelConfig.TrafficPrediction.Enabled {
@@ -229,24 +229,24 @@ func NewOptimizationEngine(config *OptimizationConfig) (*OptimizationEngine, err
 	return engine, nil
 }
 
-// OptimizeNetworkDeployment provides comprehensive optimization recommendations
+// OptimizeNetworkDeployment provides comprehensive optimization recommendations.
 func (oe *OptimizationEngine) OptimizeNetworkDeployment(ctx context.Context, intent *NetworkIntent) (*OptimizationRecommendations, error) {
 	oe.logger.Info("Starting network deployment optimization", "intent_id", intent.ID)
 
-	// Gather historical data
+	// Gather historical data.
 	historicalData, err := oe.gatherHistoricalData(ctx, intent)
 	if err != nil {
 		oe.logger.Error(err, "Failed to gather historical data")
 		return nil, err
 	}
 
-	// Generate predictions and recommendations
+	// Generate predictions and recommendations.
 	recommendations := &OptimizationRecommendations{
 		IntentID:  intent.ID,
 		Timestamp: time.Now(),
 	}
 
-	// Traffic prediction and scaling recommendations
+	// Traffic prediction and scaling recommendations.
 	if oe.config.EnablePredictiveScaling {
 		scalingRec, err := oe.generateScalingRecommendations(ctx, intent, historicalData)
 		if err != nil {
@@ -256,7 +256,7 @@ func (oe *OptimizationEngine) OptimizeNetworkDeployment(ctx context.Context, int
 		}
 	}
 
-	// Resource optimization
+	// Resource optimization.
 	if oe.config.EnableResourceOptim {
 		resourceRec, err := oe.generateResourceRecommendations(ctx, intent, historicalData)
 		if err != nil {
@@ -266,7 +266,7 @@ func (oe *OptimizationEngine) OptimizeNetworkDeployment(ctx context.Context, int
 		}
 	}
 
-	// Performance tuning
+	// Performance tuning.
 	performanceRec, err := oe.generatePerformanceRecommendations(ctx, intent, historicalData)
 	if err != nil {
 		oe.logger.Error(err, "Failed to generate performance recommendations")
@@ -274,7 +274,7 @@ func (oe *OptimizationEngine) OptimizeNetworkDeployment(ctx context.Context, int
 		recommendations.PerformanceTuning = performanceRec
 	}
 
-	// Risk assessment
+	// Risk assessment.
 	riskAssessment, err := oe.assessDeploymentRisk(ctx, intent, recommendations)
 	if err != nil {
 		oe.logger.Error(err, "Failed to assess deployment risk")
@@ -282,7 +282,7 @@ func (oe *OptimizationEngine) OptimizeNetworkDeployment(ctx context.Context, int
 		recommendations.RiskAssessment = riskAssessment
 	}
 
-	// Calculate overall confidence and optimization potential
+	// Calculate overall confidence and optimization potential.
 	recommendations.ConfidenceScore = oe.calculateConfidenceScore(recommendations)
 	recommendations.OptimizationPotential = oe.calculateOptimizationPotential(intent, recommendations)
 
@@ -294,15 +294,15 @@ func (oe *OptimizationEngine) OptimizeNetworkDeployment(ctx context.Context, int
 	return recommendations, nil
 }
 
-// gatherHistoricalData collects historical metrics for ML analysis
+// gatherHistoricalData collects historical metrics for ML analysis.
 func (oe *OptimizationEngine) gatherHistoricalData(ctx context.Context, intent *NetworkIntent) ([]DataPoint, error) {
 	var dataPoints []DataPoint
 
-	// Define time range for historical data (last 30 days)
+	// Define time range for historical data (last 30 days).
 	endTime := time.Now()
 	startTime := endTime.Add(-30 * 24 * time.Hour)
 
-	// Gather CPU utilization data
+	// Gather CPU utilization data.
 	cpuQuery := `avg_over_time(cpu_usage_rate[1h])`
 	cpuResult, _, err := oe.prometheusClient.QueryRange(ctx, cpuQuery, v1.Range{
 		Start: startTime,
@@ -313,7 +313,7 @@ func (oe *OptimizationEngine) gatherHistoricalData(ctx context.Context, intent *
 		return nil, fmt.Errorf("failed to query CPU data: %w", err)
 	}
 
-	// Gather memory utilization data
+	// Gather memory utilization data.
 	memoryQuery := `avg_over_time(memory_usage_rate[1h])`
 	memoryResult, _, err := oe.prometheusClient.QueryRange(ctx, memoryQuery, v1.Range{
 		Start: startTime,
@@ -324,7 +324,7 @@ func (oe *OptimizationEngine) gatherHistoricalData(ctx context.Context, intent *
 		return nil, fmt.Errorf("failed to query memory data: %w", err)
 	}
 
-	// Gather traffic data
+	// Gather traffic data.
 	trafficQuery := `rate(http_requests_total[1h])`
 	trafficResult, _, err := oe.prometheusClient.QueryRange(ctx, trafficQuery, v1.Range{
 		Start: startTime,
@@ -335,7 +335,7 @@ func (oe *OptimizationEngine) gatherHistoricalData(ctx context.Context, intent *
 		return nil, fmt.Errorf("failed to query traffic data: %w", err)
 	}
 
-	// Process results and create data points
+	// Process results and create data points.
 	if matrix, ok := cpuResult.(model.Matrix); ok {
 		for _, sample := range matrix {
 			for _, value := range sample.Values {
@@ -352,7 +352,7 @@ func (oe *OptimizationEngine) gatherHistoricalData(ctx context.Context, intent *
 					},
 				}
 
-				// Add memory data if available
+				// Add memory data if available.
 				if memMatrix, ok := memoryResult.(model.Matrix); ok {
 					for _, memSample := range memMatrix {
 						for _, memValue := range memSample.Values {
@@ -364,7 +364,7 @@ func (oe *OptimizationEngine) gatherHistoricalData(ctx context.Context, intent *
 					}
 				}
 
-				// Add traffic data if available
+				// Add traffic data if available.
 				if trafficMatrix, ok := trafficResult.(model.Matrix); ok {
 					for _, trafficSample := range trafficMatrix {
 						for _, trafficValue := range trafficSample.Values {
@@ -384,9 +384,9 @@ func (oe *OptimizationEngine) gatherHistoricalData(ctx context.Context, intent *
 	return dataPoints, nil
 }
 
-// generateScalingRecommendations creates intelligent auto-scaling recommendations
+// generateScalingRecommendations creates intelligent auto-scaling recommendations.
 func (oe *OptimizationEngine) generateScalingRecommendations(ctx context.Context, intent *NetworkIntent, data []DataPoint) (*ScalingRecommendation, error) {
-	// Use traffic prediction model if available
+	// Use traffic prediction model if available.
 	var trafficForecast []float64
 
 	if model, exists := oe.models["traffic_prediction"]; exists {
@@ -397,7 +397,7 @@ func (oe *OptimizationEngine) generateScalingRecommendations(ctx context.Context
 		}
 	}
 
-	// Calculate current resource utilization patterns
+	// Calculate current resource utilization patterns.
 	var avgCPU, avgMemory, maxCPU, maxMemory float64
 	for _, point := range data {
 		if cpu, exists := point.Features["cpu_utilization"]; exists {
@@ -419,15 +419,15 @@ func (oe *OptimizationEngine) generateScalingRecommendations(ctx context.Context
 		avgMemory /= float64(len(data))
 	}
 
-	// Generate scaling recommendations based on analysis
+	// Generate scaling recommendations based on analysis.
 	recommendation := &ScalingRecommendation{
 		TrafficForecast:   trafficForecast,
 		PredictiveScaling: oe.config.EnablePredictiveScaling,
 	}
 
-	// Determine optimal replica range based on traffic patterns
+	// Determine optimal replica range based on traffic patterns.
 	if maxCPU > 80 || maxMemory > 80 {
-		// High utilization - recommend more aggressive scaling
+		// High utilization - recommend more aggressive scaling.
 		recommendation.MinReplicas = 3
 		recommendation.MaxReplicas = 20
 		recommendation.TargetCPUUtilization = 60
@@ -435,7 +435,7 @@ func (oe *OptimizationEngine) generateScalingRecommendations(ctx context.Context
 		recommendation.ScaleUpPolicy = "aggressive"
 		recommendation.ScaleDownPolicy = "conservative"
 	} else if avgCPU < 30 && avgMemory < 30 {
-		// Low utilization - optimize for cost
+		// Low utilization - optimize for cost.
 		recommendation.MinReplicas = 1
 		recommendation.MaxReplicas = 10
 		recommendation.TargetCPUUtilization = 70
@@ -443,7 +443,7 @@ func (oe *OptimizationEngine) generateScalingRecommendations(ctx context.Context
 		recommendation.ScaleUpPolicy = "moderate"
 		recommendation.ScaleDownPolicy = "moderate"
 	} else {
-		// Balanced utilization - standard scaling
+		// Balanced utilization - standard scaling.
 		recommendation.MinReplicas = 2
 		recommendation.MaxReplicas = 15
 		recommendation.TargetCPUUtilization = 65
@@ -455,9 +455,9 @@ func (oe *OptimizationEngine) generateScalingRecommendations(ctx context.Context
 	return recommendation, nil
 }
 
-// generateResourceRecommendations creates optimal resource allocation recommendations
+// generateResourceRecommendations creates optimal resource allocation recommendations.
 func (oe *OptimizationEngine) generateResourceRecommendations(ctx context.Context, intent *NetworkIntent, data []DataPoint) (*ResourceRecommendation, error) {
-	// Analyze resource usage patterns
+	// Analyze resource usage patterns.
 	var totalCPU, totalMemory, totalRequests float64
 	var maxCPU, maxMemory float64
 
@@ -488,13 +488,13 @@ func (oe *OptimizationEngine) generateResourceRecommendations(ctx context.Contex
 	avgMemory := totalMemory / dataCount
 	avgRequests := totalRequests / dataCount
 
-	// Determine resource profile based on workload characteristics
+	// Determine resource profile based on workload characteristics.
 	var resourceProfile string
 	var cpuRequest, memoryRequest string
 	var nodeAffinity map[string]string
 
 	if avgRequests > 1000 {
-		// High-traffic workload
+		// High-traffic workload.
 		resourceProfile = "high-performance"
 		cpuRequest = "2000m"
 		memoryRequest = "4Gi"
@@ -503,7 +503,7 @@ func (oe *OptimizationEngine) generateResourceRecommendations(ctx context.Contex
 			"node-type":     "cpu-optimized",
 		}
 	} else if avgCPU > 70 {
-		// CPU-intensive workload
+		// CPU-intensive workload.
 		resourceProfile = "cpu-intensive"
 		cpuRequest = "1500m"
 		memoryRequest = "2Gi"
@@ -512,7 +512,7 @@ func (oe *OptimizationEngine) generateResourceRecommendations(ctx context.Contex
 			"node-type":     "cpu-optimized",
 		}
 	} else if avgMemory > 70 {
-		// Memory-intensive workload
+		// Memory-intensive workload.
 		resourceProfile = "memory-intensive"
 		cpuRequest = "1000m"
 		memoryRequest = "6Gi"
@@ -521,7 +521,7 @@ func (oe *OptimizationEngine) generateResourceRecommendations(ctx context.Contex
 			"node-type":     "memory-optimized",
 		}
 	} else {
-		// Balanced workload
+		// Balanced workload.
 		resourceProfile = "balanced"
 		cpuRequest = "1000m"
 		memoryRequest = "2Gi"
@@ -543,9 +543,9 @@ func (oe *OptimizationEngine) generateResourceRecommendations(ctx context.Contex
 	return recommendation, nil
 }
 
-// generatePerformanceRecommendations creates performance optimization recommendations
+// generatePerformanceRecommendations creates performance optimization recommendations.
 func (oe *OptimizationEngine) generatePerformanceRecommendations(ctx context.Context, intent *NetworkIntent, data []DataPoint) (*PerformanceRecommendation, error) {
-	// Analyze performance patterns and generate tuning recommendations
+	// Analyze performance patterns and generate tuning recommendations.
 	recommendation := &PerformanceRecommendation{
 		OptimizationProfile: "standard",
 		JVMSettings: map[string]string{
@@ -571,7 +571,7 @@ func (oe *OptimizationEngine) generatePerformanceRecommendations(ctx context.Con
 		},
 	}
 
-	// Adjust recommendations based on workload characteristics
+	// Adjust recommendations based on workload characteristics.
 	var avgLatency, avgThroughput float64
 	for _, point := range data {
 		if latency, exists := point.Features["response_latency"]; exists {
@@ -587,7 +587,7 @@ func (oe *OptimizationEngine) generatePerformanceRecommendations(ctx context.Con
 		avgThroughput /= float64(len(data))
 	}
 
-	// High-throughput optimizations
+	// High-throughput optimizations.
 	if avgThroughput > 1000 {
 		recommendation.OptimizationProfile = "high-throughput"
 		recommendation.JVMSettings["Xmx"] = "4g"
@@ -596,7 +596,7 @@ func (oe *OptimizationEngine) generatePerformanceRecommendations(ctx context.Con
 		recommendation.DatabaseOptimization["connection_pool_size"] = "50"
 	}
 
-	// Low-latency optimizations
+	// Low-latency optimizations.
 	if avgLatency < 100 {
 		recommendation.OptimizationProfile = "low-latency"
 		recommendation.JVMSettings["XX:MaxGCPauseMillis"] = "50"
@@ -607,7 +607,7 @@ func (oe *OptimizationEngine) generatePerformanceRecommendations(ctx context.Con
 	return recommendation, nil
 }
 
-// assessDeploymentRisk performs comprehensive risk assessment
+// assessDeploymentRisk performs comprehensive risk assessment.
 func (oe *OptimizationEngine) assessDeploymentRisk(ctx context.Context, intent *NetworkIntent, recommendations *OptimizationRecommendations) (*RiskAssessment, error) {
 	assessment := &RiskAssessment{
 		RecommendedActions: make([]RecommendedAction, 0),
@@ -617,7 +617,7 @@ func (oe *OptimizationEngine) assessDeploymentRisk(ctx context.Context, intent *
 	var mitigationActions []string
 	var riskScore float64 = 0.0
 
-	// Assess resource allocation risk
+	// Assess resource allocation risk.
 	if recommendations.ResourceAllocation != nil {
 		if recommendations.ResourceAllocation.ResourceProfile == "high-performance" {
 			riskScore += 0.2
@@ -626,7 +626,7 @@ func (oe *OptimizationEngine) assessDeploymentRisk(ctx context.Context, intent *
 		}
 	}
 
-	// Assess scaling risk
+	// Assess scaling risk.
 	if recommendations.ScalingParameters != nil {
 		if recommendations.ScalingParameters.MaxReplicas > 15 {
 			riskScore += 0.3
@@ -635,7 +635,7 @@ func (oe *OptimizationEngine) assessDeploymentRisk(ctx context.Context, intent *
 		}
 	}
 
-	// Check for anomalies using anomaly detection model
+	// Check for anomalies using anomaly detection model.
 	if model, exists := oe.models["anomaly_detection"]; exists {
 		if anomalies, err := model.Predict(ctx, intent); err == nil {
 			if anomalyList, ok := anomalies.([]string); ok && len(anomalyList) > 0 {
@@ -646,7 +646,7 @@ func (oe *OptimizationEngine) assessDeploymentRisk(ctx context.Context, intent *
 		}
 	}
 
-	// Determine overall risk level
+	// Determine overall risk level.
 	var overallRisk string
 	if riskScore < 0.3 {
 		overallRisk = "LOW"
@@ -656,7 +656,7 @@ func (oe *OptimizationEngine) assessDeploymentRisk(ctx context.Context, intent *
 		overallRisk = "HIGH"
 	}
 
-	// Generate recommended actions based on risk assessment
+	// Generate recommended actions based on risk assessment.
 	if riskScore > 0.5 {
 		assessment.RecommendedActions = append(assessment.RecommendedActions, RecommendedAction{
 			Action:      "gradual_rollout",
@@ -686,18 +686,18 @@ func (oe *OptimizationEngine) assessDeploymentRisk(ctx context.Context, intent *
 	return assessment, nil
 }
 
-// calculateConfidenceScore calculates overall confidence in recommendations
+// calculateConfidenceScore calculates overall confidence in recommendations.
 func (oe *OptimizationEngine) calculateConfidenceScore(recommendations *OptimizationRecommendations) float64 {
 	var totalConfidence float64
 	var componentCount float64
 
-	// Factor in model accuracies
+	// Factor in model accuracies.
 	for _, model := range oe.models {
 		totalConfidence += model.GetAccuracy()
 		componentCount++
 	}
 
-	// Factor in data completeness
+	// Factor in data completeness.
 	if recommendations.ResourceAllocation != nil {
 		totalConfidence += 0.9
 		componentCount++
@@ -725,11 +725,11 @@ func (oe *OptimizationEngine) calculateConfidenceScore(recommendations *Optimiza
 	return totalConfidence / componentCount
 }
 
-// calculateOptimizationPotential estimates the potential improvement from recommendations
+// calculateOptimizationPotential estimates the potential improvement from recommendations.
 func (oe *OptimizationEngine) calculateOptimizationPotential(intent *NetworkIntent, recommendations *OptimizationRecommendations) float64 {
 	var potential float64 = 0.0
 
-	// Factor in resource optimization potential
+	// Factor in resource optimization potential.
 	if recommendations.ResourceAllocation != nil {
 		switch recommendations.ResourceAllocation.ResourceProfile {
 		case "high-performance":
@@ -741,12 +741,12 @@ func (oe *OptimizationEngine) calculateOptimizationPotential(intent *NetworkInte
 		}
 	}
 
-	// Factor in scaling optimization potential
+	// Factor in scaling optimization potential.
 	if recommendations.ScalingParameters != nil && recommendations.ScalingParameters.PredictiveScaling {
 		potential += 0.2 // 20% improvement from predictive scaling
 	}
 
-	// Factor in performance tuning potential
+	// Factor in performance tuning potential.
 	if recommendations.PerformanceTuning != nil {
 		switch recommendations.PerformanceTuning.OptimizationProfile {
 		case "high-throughput", "low-latency":
@@ -756,7 +756,7 @@ func (oe *OptimizationEngine) calculateOptimizationPotential(intent *NetworkInte
 		}
 	}
 
-	// Factor in risk mitigation
+	// Factor in risk mitigation.
 	if recommendations.RiskAssessment != nil && recommendations.RiskAssessment.OverallRisk == "LOW" {
 		potential += 0.1 // 10% bonus for low-risk deployment
 	}
@@ -764,7 +764,7 @@ func (oe *OptimizationEngine) calculateOptimizationPotential(intent *NetworkInte
 	return math.Min(potential, 1.0) // Cap at 100%
 }
 
-// UpdateModels triggers model updates and retraining
+// UpdateModels triggers model updates and retraining.
 func (oe *OptimizationEngine) UpdateModels(ctx context.Context) error {
 	oe.logger.Info("Starting ML model updates")
 
@@ -785,7 +785,7 @@ func (oe *OptimizationEngine) UpdateModels(ctx context.Context) error {
 	return nil
 }
 
-// GetModelMetrics returns current model performance metrics
+// GetModelMetrics returns current model performance metrics.
 func (oe *OptimizationEngine) GetModelMetrics() map[string]interface{} {
 	metrics := make(map[string]interface{})
 
@@ -799,9 +799,9 @@ func (oe *OptimizationEngine) GetModelMetrics() map[string]interface{} {
 	return metrics
 }
 
-// Implement MLModel interface for TrafficPredictionModel
+// Implement MLModel interface for TrafficPredictionModel.
 func (tpm *TrafficPredictionModel) Train(ctx context.Context, data []DataPoint) error {
-	// Simple linear regression for traffic prediction
+	// Simple linear regression for traffic prediction.
 	if len(data) < 2 {
 		return fmt.Errorf("insufficient data for training")
 	}
@@ -809,7 +809,7 @@ func (tpm *TrafficPredictionModel) Train(ctx context.Context, data []DataPoint) 
 	tpm.trainingData = data
 	tpm.lastTraining = time.Now()
 
-	// Calculate weights using least squares method (simplified)
+	// Calculate weights using least squares method (simplified).
 	n := len(data)
 	var sumX, sumY, sumXY, sumX2 float64
 
@@ -833,12 +833,13 @@ func (tpm *TrafficPredictionModel) Train(ctx context.Context, data []DataPoint) 
 	return nil
 }
 
+// Predict performs predict operation.
 func (tpm *TrafficPredictionModel) Predict(ctx context.Context, input interface{}) (interface{}, error) {
 	if len(tpm.weights) < 2 {
 		return nil, fmt.Errorf("model not trained")
 	}
 
-	// Generate traffic forecast for next 24 hours
+	// Generate traffic forecast for next 24 hours.
 	forecast := make([]float64, 24)
 	for i := 0; i < 24; i++ {
 		forecast[i] = tpm.weights[0] + tpm.weights[1]*float64(i)
@@ -847,82 +848,94 @@ func (tpm *TrafficPredictionModel) Predict(ctx context.Context, input interface{
 	return forecast, nil
 }
 
+// GetAccuracy performs getaccuracy operation.
 func (tpm *TrafficPredictionModel) GetAccuracy() float64 {
 	return tpm.accuracy
 }
 
+// GetLastTraining performs getlasttraining operation.
 func (tpm *TrafficPredictionModel) GetLastTraining() time.Time {
 	return tpm.lastTraining
 }
 
+// UpdateModel performs updatemodel operation.
 func (tpm *TrafficPredictionModel) UpdateModel(ctx context.Context) error {
-	// In a real implementation, this would retrain with fresh data
+	// In a real implementation, this would retrain with fresh data.
 	tpm.lastTraining = time.Now()
 	return nil
 }
 
-// Implement MLModel interface for ResourceOptimizationModel
+// Implement MLModel interface for ResourceOptimizationModel.
 func (rom *ResourceOptimizationModel) Train(ctx context.Context, data []DataPoint) error {
 	rom.lastTraining = time.Now()
 	rom.accuracy = 0.8
 	return nil
 }
 
+// Predict performs predict operation.
 func (rom *ResourceOptimizationModel) Predict(ctx context.Context, input interface{}) (interface{}, error) {
-	// Simplified resource optimization prediction
+	// Simplified resource optimization prediction.
 	return map[string]string{
 		"cpu":    "1000m",
 		"memory": "2Gi",
 	}, nil
 }
 
+// GetAccuracy performs getaccuracy operation.
 func (rom *ResourceOptimizationModel) GetAccuracy() float64 {
 	return rom.accuracy
 }
 
+// GetLastTraining performs getlasttraining operation.
 func (rom *ResourceOptimizationModel) GetLastTraining() time.Time {
 	return rom.lastTraining
 }
 
+// UpdateModel performs updatemodel operation.
 func (rom *ResourceOptimizationModel) UpdateModel(ctx context.Context) error {
 	rom.lastTraining = time.Now()
 	return nil
 }
 
-// Implement MLModel interface for AnomalyDetectionModel
+// Implement MLModel interface for AnomalyDetectionModel.
 func (adm *AnomalyDetectionModel) Train(ctx context.Context, data []DataPoint) error {
 	adm.lastTraining = time.Now()
 	adm.accuracy = 0.9
 	return nil
 }
 
+// Predict performs predict operation.
 func (adm *AnomalyDetectionModel) Predict(ctx context.Context, input interface{}) (interface{}, error) {
-	// Simplified anomaly detection
+	// Simplified anomaly detection.
 	return []string{}, nil // No anomalies detected
 }
 
+// GetAccuracy performs getaccuracy operation.
 func (adm *AnomalyDetectionModel) GetAccuracy() float64 {
 	return adm.accuracy
 }
 
+// GetLastTraining performs getlasttraining operation.
 func (adm *AnomalyDetectionModel) GetLastTraining() time.Time {
 	return adm.lastTraining
 }
 
+// UpdateModel performs updatemodel operation.
 func (adm *AnomalyDetectionModel) UpdateModel(ctx context.Context) error {
 	adm.lastTraining = time.Now()
 	return nil
 }
 
-// Implement MLModel interface for IntentClassificationModel
+// Implement MLModel interface for IntentClassificationModel.
 func (icm *IntentClassificationModel) Train(ctx context.Context, data []DataPoint) error {
 	icm.lastTraining = time.Now()
 	icm.accuracy = 0.88
 	return nil
 }
 
+// Predict performs predict operation.
 func (icm *IntentClassificationModel) Predict(ctx context.Context, input interface{}) (interface{}, error) {
-	// Simplified intent classification
+	// Simplified intent classification.
 	if _, ok := input.(*NetworkIntent); ok {
 		return map[string]float64{
 			"deployment":    0.8,
@@ -933,14 +946,17 @@ func (icm *IntentClassificationModel) Predict(ctx context.Context, input interfa
 	return nil, fmt.Errorf("invalid input type")
 }
 
+// GetAccuracy performs getaccuracy operation.
 func (icm *IntentClassificationModel) GetAccuracy() float64 {
 	return icm.accuracy
 }
 
+// GetLastTraining performs getlasttraining operation.
 func (icm *IntentClassificationModel) GetLastTraining() time.Time {
 	return icm.lastTraining
 }
 
+// UpdateModel performs updatemodel operation.
 func (icm *IntentClassificationModel) UpdateModel(ctx context.Context) error {
 	icm.lastTraining = time.Now()
 	return nil

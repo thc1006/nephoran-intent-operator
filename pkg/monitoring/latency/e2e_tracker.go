@@ -12,7 +12,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// UserSession represents a user session with tracking information
+// UserSession represents a user session with tracking information.
 type UserSession struct {
 	SessionID       string            `json:"sessionId"`
 	UserID          string            `json:"userId"`
@@ -24,7 +24,7 @@ type UserSession struct {
 	ExperienceScore float64           `json:"experienceScore"`
 }
 
-// CircularBuffer for storing completed intents
+// CircularBuffer for storing completed intents.
 type CircularBuffer struct {
 	mu       sync.RWMutex
 	items    []*IntentTrace
@@ -34,7 +34,7 @@ type CircularBuffer struct {
 	size     int
 }
 
-// NewCircularBuffer creates a new circular buffer
+// NewCircularBuffer creates a new circular buffer.
 func NewCircularBuffer(capacity int) *CircularBuffer {
 	return &CircularBuffer{
 		items:    make([]*IntentTrace, capacity),
@@ -42,12 +42,12 @@ func NewCircularBuffer(capacity int) *CircularBuffer {
 	}
 }
 
-// Add adds an item to the buffer
+// Add adds an item to the buffer.
 func (c *CircularBuffer) Add(trace interface{}) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	// Type assertion to handle both interface{} and *IntentTrace
+	// Type assertion to handle both interface{} and *IntentTrace.
 	var intentTrace *IntentTrace
 	if trace != nil {
 		if t, ok := trace.(*IntentTrace); ok {
@@ -65,82 +65,82 @@ func (c *CircularBuffer) Add(trace interface{}) {
 	}
 }
 
-// RemoveOlderThan removes items older than the cutoff time
+// RemoveOlderThan removes items older than the cutoff time.
 func (c *CircularBuffer) RemoveOlderThan(cutoff time.Time) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	// This is a simplified implementation
-	// In production, would implement proper removal
+	// This is a simplified implementation.
+	// In production, would implement proper removal.
 }
 
-// E2ELatencyTracker tracks end-to-end latency from intent submission to deployment completion
+// E2ELatencyTracker tracks end-to-end latency from intent submission to deployment completion.
 type E2ELatencyTracker struct {
 	mu sync.RWMutex
 
-	// Active intent tracking
+	// Active intent tracking.
 	activeIntents map[string]*IntentTrace
 
-	// Completed intent history
+	// Completed intent history.
 	completedIntents *CircularBuffer
 
-	// Percentile calculators
+	// Percentile calculators.
 	percentileCalc *StreamingPercentiles
 
-	// Latency histograms
+	// Latency histograms.
 	latencyHistogram *LatencyHistogram
 
-	// SLA compliance tracking
+	// SLA compliance tracking.
 	slaTracker *SLAComplianceTracker
 
-	// Anomaly detection
+	// Anomaly detection.
 	anomalyDetector *LatencyAnomalyDetector
 
-	// Latency budget tracking
+	// Latency budget tracking.
 	budgetTracker *LatencyBudgetTracker
 
-	// User experience correlation
+	// User experience correlation.
 	uxCorrelator *UserExperienceCorrelator
 
-	// Metrics
+	// Metrics.
 	metrics *E2EMetrics
 
-	// Configuration
+	// Configuration.
 	config *E2ETrackerConfig
 
-	// Statistics
+	// Statistics.
 	stats *E2EStatistics
 }
 
-// E2ETrackerConfig contains configuration for the E2E tracker
+// E2ETrackerConfig contains configuration for the E2E tracker.
 type E2ETrackerConfig struct {
-	// SLA targets
+	// SLA targets.
 	P50Target            time.Duration `json:"p50_target"`
 	P95Target            time.Duration `json:"p95_target"`
 	P99Target            time.Duration `json:"p99_target"`
 	MaxAcceptableLatency time.Duration `json:"max_acceptable_latency"`
 
-	// Histogram configuration
+	// Histogram configuration.
 	HistogramBuckets   []float64 `json:"histogram_buckets"`
 	HistogramPrecision int       `json:"histogram_precision"`
 
-	// Anomaly detection
+	// Anomaly detection.
 	AnomalyWindowSize time.Duration `json:"anomaly_window_size"`
 	AnomalyThreshold  float64       `json:"anomaly_threshold"`
 
-	// Budget allocation (percentages)
+	// Budget allocation (percentages).
 	ControllerBudget float64 `json:"controller_budget"`
 	LLMBudget        float64 `json:"llm_budget"`
 	RAGBudget        float64 `json:"rag_budget"`
 	GitOpsBudget     float64 `json:"gitops_budget"`
 	DeploymentBudget float64 `json:"deployment_budget"`
 
-	// Retention
+	// Retention.
 	HistorySize       int           `json:"history_size"`
 	RetentionDuration time.Duration `json:"retention_duration"`
 }
 
-// IntentTrace represents a complete intent processing trace
+// IntentTrace represents a complete intent processing trace.
 type IntentTrace struct {
 	ID               string                   `json:"id"`
 	IntentID         string                   `json:"intent_id"`
@@ -157,7 +157,7 @@ type IntentTrace struct {
 	AnomalyScore     float64                  `json:"anomaly_score"`
 }
 
-// StageLatency represents latency for a specific processing stage
+// StageLatency represents latency for a specific processing stage.
 type StageLatency struct {
 	Name       string         `json:"name"`
 	StartTime  time.Time      `json:"start_time"`
@@ -167,27 +167,27 @@ type StageLatency struct {
 	SubStages  []StageLatency `json:"sub_stages,omitempty"`
 }
 
-// StreamingPercentiles calculates percentiles using streaming algorithms
+// StreamingPercentiles calculates percentiles using streaming algorithms.
 type StreamingPercentiles struct {
 	mu sync.RWMutex
 
-	// T-Digest for accurate percentile estimation
+	// T-Digest for accurate percentile estimation.
 	tdigest *TDigest
 
-	// Running statistics
+	// Running statistics.
 	count int64
 	sum   int64
 	sumSq int64
 	min   int64
 	max   int64
 
-	// Percentile cache
+	// Percentile cache.
 	percentileCache map[float64]time.Duration
 	cacheTime       time.Time
 	cacheTTL        time.Duration
 }
 
-// LatencyHistogram provides fine-grained latency distribution tracking
+// LatencyHistogram provides fine-grained latency distribution tracking.
 type LatencyHistogram struct {
 	mu        sync.RWMutex
 	buckets   []HistogramBucket
@@ -196,27 +196,27 @@ type LatencyHistogram struct {
 	total     int64
 }
 
-// HistogramBucket represents a single histogram bucket
+// HistogramBucket represents a single histogram bucket.
 type HistogramBucket struct {
 	UpperBound time.Duration `json:"upper_bound"`
 	Count      int64         `json:"count"`
 }
 
-// SLAComplianceTracker tracks SLA compliance over time
+// SLAComplianceTracker tracks SLA compliance over time.
 type SLAComplianceTracker struct {
 	mu sync.RWMutex
 
-	// Time windows for SLA tracking
+	// Time windows for SLA tracking.
 	windows map[time.Duration]*ComplianceWindow
 
-	// Real-time compliance status
+	// Real-time compliance status.
 	currentCompliance float64
 
-	// Historical compliance
+	// Historical compliance.
 	history []ComplianceSnapshot
 }
 
-// ComplianceWindow represents an SLA compliance time window
+// ComplianceWindow represents an SLA compliance time window.
 type ComplianceWindow struct {
 	Duration       time.Duration
 	TotalRequests  int64
@@ -225,37 +225,37 @@ type ComplianceWindow struct {
 	LastUpdated    time.Time
 }
 
-// LatencyAnomalyDetector detects latency anomalies and regressions
+// LatencyAnomalyDetector detects latency anomalies and regressions.
 type LatencyAnomalyDetector struct {
 	mu sync.RWMutex
 
-	// Moving statistics
+	// Moving statistics.
 	movingAvg    *ExponentialMovingAverage
 	movingStdDev *ExponentialMovingStdDev
 
-	// Anomaly history
+	// Anomaly history.
 	anomalies []LatencyAnomalyEvent
 
-	// Configuration
+	// Configuration.
 	sensitivity float64
 	windowSize  time.Duration
 }
 
-// LatencyBudgetTracker tracks latency budgets for components
+// LatencyBudgetTracker tracks latency budgets for components.
 type LatencyBudgetTracker struct {
 	mu sync.RWMutex
 
-	// Component budgets (in milliseconds)
+	// Component budgets (in milliseconds).
 	budgets map[string]time.Duration
 
-	// Current usage
+	// Current usage.
 	usage map[string]*BudgetUsage
 
-	// Violations
+	// Violations.
 	violations []BudgetViolation
 }
 
-// BudgetUsage tracks budget usage for a component
+// BudgetUsage tracks budget usage for a component.
 type BudgetUsage struct {
 	Component      string        `json:"component"`
 	Allocated      time.Duration `json:"allocated"`
@@ -264,7 +264,7 @@ type BudgetUsage struct {
 	ViolationCount int64         `json:"violation_count"`
 }
 
-// BudgetViolation represents a budget violation event
+// BudgetViolation represents a budget violation event.
 type BudgetViolation struct {
 	Component string        `json:"component"`
 	Budget    time.Duration `json:"budget"`
@@ -274,21 +274,21 @@ type BudgetViolation struct {
 	IntentID  string        `json:"intent_id"`
 }
 
-// UserExperienceCorrelator correlates technical latency with user experience
+// UserExperienceCorrelator correlates technical latency with user experience.
 type UserExperienceCorrelator struct {
 	mu sync.RWMutex
 
-	// User session tracking
+	// User session tracking.
 	sessions map[string]*UserSession
 
-	// Experience metrics
+	// Experience metrics.
 	experienceScores map[string]float64
 
-	// Impact analysis
+	// Impact analysis.
 	impactAnalyzer *UserImpactAnalyzer
 }
 
-// E2EMetrics contains Prometheus metrics for E2E tracking
+// E2EMetrics contains Prometheus metrics for E2E tracking.
 type E2EMetrics struct {
 	intentLatency     *prometheus.HistogramVec
 	percentileGauge   *prometheus.GaugeVec
@@ -298,7 +298,7 @@ type E2EMetrics struct {
 	userExperience    *prometheus.GaugeVec
 }
 
-// E2EStatistics contains running statistics
+// E2EStatistics contains running statistics.
 type E2EStatistics struct {
 	TotalIntents      atomic.Int64
 	CompletedIntents  atomic.Int64
@@ -311,7 +311,7 @@ type E2EStatistics struct {
 	BudgetViolations  atomic.Int64
 }
 
-// NewE2ELatencyTracker creates a new end-to-end latency tracker
+// NewE2ELatencyTracker creates a new end-to-end latency tracker.
 func NewE2ELatencyTracker(config *E2ETrackerConfig) *E2ELatencyTracker {
 	if config == nil {
 		config = DefaultE2EConfig()
@@ -324,7 +324,7 @@ func NewE2ELatencyTracker(config *E2ETrackerConfig) *E2ELatencyTracker {
 		stats:            &E2EStatistics{},
 	}
 
-	// Initialize components
+	// Initialize components.
 	tracker.percentileCalc = NewStreamingPercentiles()
 	tracker.latencyHistogram = NewLatencyHistogram(config.HistogramBuckets)
 	tracker.slaTracker = NewSLAComplianceTracker(config)
@@ -332,16 +332,16 @@ func NewE2ELatencyTracker(config *E2ETrackerConfig) *E2ELatencyTracker {
 	tracker.budgetTracker = NewLatencyBudgetTracker(config)
 	tracker.uxCorrelator = NewUserExperienceCorrelator()
 
-	// Initialize metrics
+	// Initialize metrics.
 	tracker.initMetrics()
 
-	// Start background tasks
+	// Start background tasks.
 	go tracker.runPeriodicTasks()
 
 	return tracker
 }
 
-// StartIntent begins tracking a new intent
+// StartIntent begins tracking a new intent.
 func (t *E2ELatencyTracker) StartIntent(ctx context.Context, intentID, intentType string) context.Context {
 	intentTrace := &IntentTrace{
 		ID:         fmt.Sprintf("trace-%s-%d", intentID, time.Now().UnixNano()),
@@ -352,26 +352,26 @@ func (t *E2ELatencyTracker) StartIntent(ctx context.Context, intentID, intentTyp
 		Metadata:   make(map[string]interface{}),
 	}
 
-	// Extract trace context if available
+	// Extract trace context if available.
 	if span := trace.SpanFromContext(ctx); span != nil {
 		intentTrace.TraceContext = span.SpanContext()
 	}
 
-	// Store active trace
+	// Store active trace.
 	t.mu.Lock()
 	t.activeIntents[intentID] = intentTrace
 	t.mu.Unlock()
 
-	// Update statistics
+	// Update statistics.
 	t.stats.TotalIntents.Add(1)
 
-	// Store trace ID in context
+	// Store trace ID in context.
 	ctx = context.WithValue(ctx, "e2e_trace_id", intentTrace.ID)
 
 	return ctx
 }
 
-// EndIntent completes tracking for an intent
+// EndIntent completes tracking for an intent.
 func (t *E2ELatencyTracker) EndIntent(ctx context.Context, intentID string, success bool) *IntentTrace {
 	t.mu.Lock()
 	trace, exists := t.activeIntents[intentID]
@@ -384,53 +384,53 @@ func (t *E2ELatencyTracker) EndIntent(ctx context.Context, intentID string, succ
 		return nil
 	}
 
-	// Complete the trace
+	// Complete the trace.
 	trace.EndTime = time.Now()
 	trace.TotalLatency = trace.EndTime.Sub(trace.StartTime)
 
-	// Calculate user-perceived latency (might differ from total)
+	// Calculate user-perceived latency (might differ from total).
 	trace.UserPerceived = t.calculateUserPerceivedLatency(trace)
 
-	// Check SLA compliance
+	// Check SLA compliance.
 	trace.SLACompliant = t.checkSLACompliance(trace)
 
-	// Check budget violations
+	// Check budget violations.
 	trace.BudgetViolations = t.budgetTracker.CheckViolations(trace)
 
-	// Calculate anomaly score
+	// Calculate anomaly score.
 	trace.AnomalyScore = t.anomalyDetector.CalculateScore(trace.TotalLatency)
 
-	// Update percentiles
+	// Update percentiles.
 	t.percentileCalc.Add(trace.TotalLatency)
 
-	// Update histogram
+	// Update histogram.
 	t.latencyHistogram.Add(trace.TotalLatency)
 
-	// Update SLA tracker
+	// Update SLA tracker.
 	t.slaTracker.RecordIntent(trace)
 
-	// Check for anomalies
+	// Check for anomalies.
 	if trace.AnomalyScore > t.config.AnomalyThreshold {
 		t.recordAnomaly(trace)
 	}
 
-	// Store completed trace
+	// Store completed trace.
 	t.completedIntents.Add(trace)
 
-	// Update statistics
+	// Update statistics.
 	if success {
 		t.stats.CompletedIntents.Add(1)
 	} else {
 		t.stats.FailedIntents.Add(1)
 	}
 
-	// Update metrics
+	// Update metrics.
 	t.updateMetrics(trace)
 
 	return trace
 }
 
-// RecordStage records latency for a specific processing stage
+// RecordStage records latency for a specific processing stage.
 func (t *E2ELatencyTracker) RecordStage(ctx context.Context, intentID, stageName string, duration time.Duration) {
 	t.mu.Lock()
 	trace, exists := t.activeIntents[intentID]
@@ -447,7 +447,7 @@ func (t *E2ELatencyTracker) RecordStage(ctx context.Context, intentID, stageName
 		Duration:  duration,
 	}
 
-	// Calculate budget usage
+	// Calculate budget usage.
 	if budget := t.budgetTracker.GetBudget(stageName); budget > 0 {
 		stage.BudgetUsed = float64(duration) / float64(budget)
 		t.budgetTracker.RecordUsage(stageName, duration)
@@ -458,13 +458,13 @@ func (t *E2ELatencyTracker) RecordStage(ctx context.Context, intentID, stageName
 	t.mu.Unlock()
 }
 
-// GetPercentiles returns current percentile values
+// GetPercentiles returns current percentile values.
 func (t *E2ELatencyTracker) GetPercentiles() *PercentileReport {
 	p50 := t.percentileCalc.GetPercentile(50)
 	p95 := t.percentileCalc.GetPercentile(95)
 	p99 := t.percentileCalc.GetPercentile(99)
 
-	// Update statistics
+	// Update statistics.
 	t.stats.P50Latency.Store(int64(p50))
 	t.stats.P95Latency.Store(int64(p95))
 	t.stats.P99Latency.Store(int64(p99))
@@ -483,16 +483,16 @@ func (t *E2ELatencyTracker) GetPercentiles() *PercentileReport {
 	}
 }
 
-// GetHistogram returns the latency histogram
+// GetHistogram returns the latency histogram.
 func (t *E2ELatencyTracker) GetHistogram() *HistogramReport {
 	return t.latencyHistogram.GetReport()
 }
 
-// GetSLACompliance returns current SLA compliance metrics
+// GetSLACompliance returns current SLA compliance metrics.
 func (t *E2ELatencyTracker) GetSLACompliance() *SLAReport {
 	compliance := t.slaTracker.GetCompliance()
 
-	// Update statistics
+	// Update statistics.
 	t.stats.SLACompliance.Store(uint64(compliance.CurrentCompliance * 10000)) // Store as basis points
 
 	return &SLAReport{
@@ -506,36 +506,36 @@ func (t *E2ELatencyTracker) GetSLACompliance() *SLAReport {
 	}
 }
 
-// GetAnomalies returns detected anomalies
+// GetAnomalies returns detected anomalies.
 func (t *E2ELatencyTracker) GetAnomalies(since time.Time) []LatencyAnomalyEvent {
 	return t.anomalyDetector.GetAnomalies(since)
 }
 
-// GetBudgetReport returns latency budget usage report
+// GetBudgetReport returns latency budget usage report.
 func (t *E2ELatencyTracker) GetBudgetReport() *BudgetReport {
 	return t.budgetTracker.GetReport()
 }
 
-// GetUserExperienceReport returns user experience correlation report
+// GetUserExperienceReport returns user experience correlation report.
 func (t *E2ELatencyTracker) GetUserExperienceReport() *UserExperienceReport {
 	return t.uxCorrelator.GetReport()
 }
 
-// Helper methods
+// Helper methods.
 
 func (t *E2ELatencyTracker) calculateUserPerceivedLatency(trace *IntentTrace) time.Duration {
-	// User-perceived latency might be different from total latency
-	// For example, if some operations happen asynchronously after initial response
+	// User-perceived latency might be different from total latency.
+	// For example, if some operations happen asynchronously after initial response.
 
-	// Check if there's a specific "user_response" stage
+	// Check if there's a specific "user_response" stage.
 	if stage, exists := trace.Stages["user_response"]; exists {
 		return stage.Duration
 	}
 
-	// Otherwise, calculate based on critical path to first user feedback
+	// Otherwise, calculate based on critical path to first user feedback.
 	criticalLatency := time.Duration(0)
 	for name, stage := range trace.Stages {
-		// Consider stages that affect user perception
+		// Consider stages that affect user perception.
 		if t.isUserFacingStage(name) {
 			criticalLatency += stage.Duration
 		}
@@ -566,7 +566,7 @@ func (t *E2ELatencyTracker) isUserFacingStage(stageName string) bool {
 }
 
 func (t *E2ELatencyTracker) checkSLACompliance(trace *IntentTrace) bool {
-	// Check against P95 target (primary SLA)
+	// Check against P95 target (primary SLA).
 	return trace.TotalLatency <= t.config.P95Target
 }
 
@@ -619,16 +619,16 @@ func (t *E2ELatencyTracker) runPeriodicTasks() {
 	defer ticker.Stop()
 
 	for range ticker.C {
-		// Update cached percentiles
+		// Update cached percentiles.
 		t.percentileCalc.RefreshCache()
 
-		// Clean old data
+		// Clean old data.
 		t.cleanOldData()
 
-		// Update SLA windows
+		// Update SLA windows.
 		t.slaTracker.UpdateWindows()
 
-		// Check for sustained anomalies
+		// Check for sustained anomalies.
 		t.anomalyDetector.CheckSustainedAnomalies()
 	}
 }
@@ -636,13 +636,13 @@ func (t *E2ELatencyTracker) runPeriodicTasks() {
 func (t *E2ELatencyTracker) cleanOldData() {
 	cutoff := time.Now().Add(-t.config.RetentionDuration)
 
-	// Clean completed intents
+	// Clean completed intents.
 	t.completedIntents.RemoveOlderThan(cutoff)
 
-	// Clean anomaly history
+	// Clean anomaly history.
 	t.anomalyDetector.CleanOldAnomalies(cutoff)
 
-	// Clean budget violations
+	// Clean budget violations.
 	t.budgetTracker.CleanOldViolations(cutoff)
 }
 
@@ -682,32 +682,33 @@ func (t *E2ELatencyTracker) initMetrics() {
 }
 
 func (t *E2ELatencyTracker) updateMetrics(trace *IntentTrace) {
-	// Update latency histogram
+	// Update latency histogram.
 	status := "success"
 	if !trace.SLACompliant {
 		status = "sla_violation"
 	}
 	t.metrics.intentLatency.WithLabelValues(trace.IntentType, status).Observe(trace.TotalLatency.Seconds())
 
-	// Update percentiles
+	// Update percentiles.
 	percentiles := t.GetPercentiles()
 	t.metrics.percentileGauge.WithLabelValues("p50").Set(percentiles.P50.Seconds())
 	t.metrics.percentileGauge.WithLabelValues("p95").Set(percentiles.P95.Seconds())
 	t.metrics.percentileGauge.WithLabelValues("p99").Set(percentiles.P99.Seconds())
 
-	// Update SLA compliance
+	// Update SLA compliance.
 	compliance := t.slaTracker.GetCompliance()
 	t.metrics.slaCompliance.Set(compliance.CurrentCompliance)
 
-	// Update budget violations
+	// Update budget violations.
 	for _, violation := range trace.BudgetViolations {
 		t.metrics.budgetViolations.WithLabelValues(violation.Component).Inc()
 		t.stats.BudgetViolations.Add(1)
 	}
 }
 
-// Supporting types and helper implementations
+// Supporting types and helper implementations.
 
+// PercentileReport represents a percentilereport.
 type PercentileReport struct {
 	P50          time.Duration `json:"p50"`
 	P95          time.Duration `json:"p95"`
@@ -721,6 +722,7 @@ type PercentileReport struct {
 	SLACompliant bool          `json:"sla_compliant"`
 }
 
+// HistogramReport represents a histogramreport.
 type HistogramReport struct {
 	Buckets      []HistogramBucket  `json:"buckets"`
 	TotalCount   int64              `json:"total_count"`
@@ -729,6 +731,7 @@ type HistogramReport struct {
 	Distribution map[string]float64 `json:"distribution"`
 }
 
+// SLAReport represents a slareport.
 type SLAReport struct {
 	CurrentCompliance  float64   `json:"current_compliance"`
 	HourlyCompliance   float64   `json:"hourly_compliance"`
@@ -739,6 +742,7 @@ type SLAReport struct {
 	LastViolation      time.Time `json:"last_violation"`
 }
 
+// BudgetReport represents a budgetreport.
 type BudgetReport struct {
 	ComponentUsage  map[string]*BudgetUsage `json:"component_usage"`
 	TotalViolations int64                   `json:"total_violations"`
@@ -746,6 +750,7 @@ type BudgetReport struct {
 	BudgetHealth    float64                 `json:"budget_health"`
 }
 
+// UserExperienceReport represents a userexperiencereport.
 type UserExperienceReport struct {
 	AverageScore     float64            `json:"average_score"`
 	CategoryScores   map[string]float64 `json:"category_scores"`
@@ -753,6 +758,7 @@ type UserExperienceReport struct {
 	Recommendations  []string           `json:"recommendations"`
 }
 
+// LatencyAnomalyEvent represents a latencyanomalyevent.
 type LatencyAnomalyEvent struct {
 	Timestamp    time.Time     `json:"timestamp"`
 	IntentID     string        `json:"intent_id"`
@@ -762,28 +768,32 @@ type LatencyAnomalyEvent struct {
 	Description  string        `json:"description"`
 }
 
+// UserImpactAnalyzer represents a userimpactanalyzer.
 type UserImpactAnalyzer struct {
 	sessions map[string]*UserSession
 }
 
+// ComplianceSnapshot represents a compliancesnapshot.
 type ComplianceSnapshot struct {
 	Timestamp  time.Time `json:"timestamp"`
 	Compliance float64   `json:"compliance"`
 	Window     string    `json:"window"`
 }
 
-// TDigest implementation for accurate percentile calculation
+// TDigest implementation for accurate percentile calculation.
 type TDigest struct {
 	centroids   []Centroid
 	count       int64
 	compression float64
 }
 
+// Centroid represents a centroid.
 type Centroid struct {
 	mean  float64
 	count int64
 }
 
+// NewStreamingPercentiles performs newstreamingpercentiles operation.
 func NewStreamingPercentiles() *StreamingPercentiles {
 	return &StreamingPercentiles{
 		tdigest:         NewTDigest(100),
@@ -792,6 +802,7 @@ func NewStreamingPercentiles() *StreamingPercentiles {
 	}
 }
 
+// Add performs add operation.
 func (s *StreamingPercentiles) Add(latency time.Duration) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -810,15 +821,16 @@ func (s *StreamingPercentiles) Add(latency time.Duration) {
 
 	s.tdigest.Add(float64(value))
 
-	// Invalidate cache
+	// Invalidate cache.
 	s.percentileCache = make(map[float64]time.Duration)
 }
 
+// GetPercentile performs getpercentile operation.
 func (s *StreamingPercentiles) GetPercentile(p float64) time.Duration {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	// Check cache
+	// Check cache.
 	if cached, exists := s.percentileCache[p]; exists && time.Since(s.cacheTime) < s.cacheTTL {
 		return cached
 	}
@@ -831,6 +843,7 @@ func (s *StreamingPercentiles) GetPercentile(p float64) time.Duration {
 	return time.Duration(value)
 }
 
+// GetMean performs getmean operation.
 func (s *StreamingPercentiles) GetMean() time.Duration {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -842,6 +855,7 @@ func (s *StreamingPercentiles) GetMean() time.Duration {
 	return time.Duration(s.sum / s.count)
 }
 
+// GetStdDev performs getstddev operation.
 func (s *StreamingPercentiles) GetStdDev() time.Duration {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -860,29 +874,33 @@ func (s *StreamingPercentiles) GetStdDev() time.Duration {
 	return time.Duration(math.Sqrt(variance))
 }
 
+// GetMin performs getmin operation.
 func (s *StreamingPercentiles) GetMin() time.Duration {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return time.Duration(s.min)
 }
 
+// GetMax performs getmax operation.
 func (s *StreamingPercentiles) GetMax() time.Duration {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return time.Duration(s.max)
 }
 
+// GetCount performs getcount operation.
 func (s *StreamingPercentiles) GetCount() int64 {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.count
 }
 
+// RefreshCache performs refreshcache operation.
 func (s *StreamingPercentiles) RefreshCache() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// Pre-calculate common percentiles
+	// Pre-calculate common percentiles.
 	percentiles := []float64{50, 75, 90, 95, 99, 99.9}
 	for _, p := range percentiles {
 		value := s.tdigest.Quantile(p / 100.0)
@@ -891,7 +909,7 @@ func (s *StreamingPercentiles) RefreshCache() {
 	s.cacheTime = time.Now()
 }
 
-// Simplified TDigest implementation
+// Simplified TDigest implementation.
 func NewTDigest(compression float64) *TDigest {
 	return &TDigest{
 		centroids:   make([]Centroid, 0, int(compression)*2),
@@ -899,24 +917,26 @@ func NewTDigest(compression float64) *TDigest {
 	}
 }
 
+// Add performs add operation.
 func (t *TDigest) Add(value float64) {
-	// Simplified implementation - in production, use a proper TDigest library
+	// Simplified implementation - in production, use a proper TDigest library.
 	t.centroids = append(t.centroids, Centroid{mean: value, count: 1})
 	t.count++
 
-	// Compress if needed
+	// Compress if needed.
 	if len(t.centroids) > int(t.compression*2) {
 		t.compress()
 	}
 }
 
+// Quantile performs quantile operation.
 func (t *TDigest) Quantile(q float64) float64 {
 	if t.count == 0 {
 		return 0
 	}
 
-	// Simplified quantile calculation
-	// In production, use proper TDigest quantile algorithm
+	// Simplified quantile calculation.
+	// In production, use proper TDigest quantile algorithm.
 	targetCount := int64(float64(t.count) * q)
 	var cumCount int64
 
@@ -931,13 +951,13 @@ func (t *TDigest) Quantile(q float64) float64 {
 }
 
 func (t *TDigest) compress() {
-	// Simplified compression - merge adjacent centroids
-	// In production, use proper TDigest compression algorithm
+	// Simplified compression - merge adjacent centroids.
+	// In production, use proper TDigest compression algorithm.
 	if len(t.centroids) <= int(t.compression) {
 		return
 	}
 
-	// Sort centroids by mean
+	// Sort centroids by mean.
 	for i := 0; i < len(t.centroids); i++ {
 		for j := i + 1; j < len(t.centroids); j++ {
 			if t.centroids[j].mean < t.centroids[i].mean {
@@ -946,7 +966,7 @@ func (t *TDigest) compress() {
 		}
 	}
 
-	// Merge adjacent centroids
+	// Merge adjacent centroids.
 	merged := make([]Centroid, 0, int(t.compression))
 	for i := 0; i < len(t.centroids); i += 2 {
 		if i+1 < len(t.centroids) {
@@ -962,8 +982,9 @@ func (t *TDigest) compress() {
 	t.centroids = merged
 }
 
-// Helper implementations for other components
+// Helper implementations for other components.
 
+// NewLatencyHistogram performs newlatencyhistogram operation.
 func NewLatencyHistogram(buckets []float64) *LatencyHistogram {
 	if len(buckets) == 0 {
 		buckets = DefaultHistogramBuckets()
@@ -983,13 +1004,14 @@ func NewLatencyHistogram(buckets []float64) *LatencyHistogram {
 	return hist
 }
 
+// Add performs add operation.
 func (h *LatencyHistogram) Add(latency time.Duration) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
 	h.total++
 
-	// Find appropriate bucket
+	// Find appropriate bucket.
 	for i := range h.buckets {
 		if latency <= h.buckets[i].UpperBound {
 			h.buckets[i].Count++
@@ -997,10 +1019,11 @@ func (h *LatencyHistogram) Add(latency time.Duration) {
 		}
 	}
 
-	// Overflow
+	// Overflow.
 	h.overflow++
 }
 
+// GetReport performs getreport operation.
 func (h *LatencyHistogram) GetReport() *HistogramReport {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
@@ -1015,7 +1038,7 @@ func (h *LatencyHistogram) GetReport() *HistogramReport {
 
 	copy(report.Buckets, h.buckets)
 
-	// Calculate distribution percentages
+	// Calculate distribution percentages.
 	if h.total > 0 {
 		for _, bucket := range h.buckets {
 			key := fmt.Sprintf("%.3fs", bucket.UpperBound.Seconds())
@@ -1026,13 +1049,14 @@ func (h *LatencyHistogram) GetReport() *HistogramReport {
 	return report
 }
 
+// NewSLAComplianceTracker performs newslacompliancetracker operation.
 func NewSLAComplianceTracker(config *E2ETrackerConfig) *SLAComplianceTracker {
 	tracker := &SLAComplianceTracker{
 		windows: make(map[time.Duration]*ComplianceWindow),
 		history: make([]ComplianceSnapshot, 0, 1000),
 	}
 
-	// Initialize windows
+	// Initialize windows.
 	windows := []time.Duration{
 		1 * time.Hour,
 		24 * time.Hour,
@@ -1049,6 +1073,7 @@ func NewSLAComplianceTracker(config *E2ETrackerConfig) *SLAComplianceTracker {
 	return tracker
 }
 
+// RecordIntent performs recordintent operation.
 func (s *SLAComplianceTracker) RecordIntent(trace *IntentTrace) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -1062,25 +1087,26 @@ func (s *SLAComplianceTracker) RecordIntent(trace *IntentTrace) {
 		}
 	}
 
-	// Update current compliance
+	// Update current compliance.
 	if s.windows[1*time.Hour].TotalRequests > 0 {
 		s.currentCompliance = float64(s.windows[1*time.Hour].CompliantCount) /
 			float64(s.windows[1*time.Hour].TotalRequests)
 	}
 
-	// Add to history
+	// Add to history.
 	s.history = append(s.history, ComplianceSnapshot{
 		Timestamp:  time.Now(),
 		Compliance: s.currentCompliance,
 		Window:     "1h",
 	})
 
-	// Trim history
+	// Trim history.
 	if len(s.history) > 1000 {
 		s.history = s.history[len(s.history)-1000:]
 	}
 }
 
+// GetCompliance performs getcompliance operation.
 func (s *SLAComplianceTracker) GetCompliance() *SLACompliance {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -1101,12 +1127,12 @@ func (s *SLAComplianceTracker) GetCompliance() *SLACompliance {
 		compliance.WeeklyCompliance = float64(window.CompliantCount) / float64(window.TotalRequests)
 	}
 
-	// Count violations and consecutive success
+	// Count violations and consecutive success.
 	for _, window := range s.windows {
 		compliance.ViolationCount += window.ViolationCount
 	}
 
-	// Find consecutive success
+	// Find consecutive success.
 	for i := len(s.history) - 1; i >= 0; i-- {
 		if s.history[i].Compliance < 1.0 {
 			compliance.LastViolation = s.history[i].Timestamp
@@ -1118,6 +1144,7 @@ func (s *SLAComplianceTracker) GetCompliance() *SLACompliance {
 	return compliance
 }
 
+// UpdateWindows performs updatewindows operation.
 func (s *SLAComplianceTracker) UpdateWindows() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -1126,7 +1153,7 @@ func (s *SLAComplianceTracker) UpdateWindows() {
 
 	for duration, window := range s.windows {
 		if now.Sub(window.LastUpdated) > duration {
-			// Reset window
+			// Reset window.
 			window.TotalRequests = 0
 			window.CompliantCount = 0
 			window.ViolationCount = 0
@@ -1135,6 +1162,7 @@ func (s *SLAComplianceTracker) UpdateWindows() {
 	}
 }
 
+// SLACompliance represents a slacompliance.
 type SLACompliance struct {
 	CurrentCompliance  float64
 	HourlyCompliance   float64
@@ -1145,6 +1173,7 @@ type SLACompliance struct {
 	LastViolation      time.Time
 }
 
+// NewLatencyAnomalyDetector performs newlatencyanomalydetector operation.
 func NewLatencyAnomalyDetector(config *E2ETrackerConfig) *LatencyAnomalyDetector {
 	return &LatencyAnomalyDetector{
 		movingAvg:    NewExponentialMovingAverage(0.1),
@@ -1155,6 +1184,7 @@ func NewLatencyAnomalyDetector(config *E2ETrackerConfig) *LatencyAnomalyDetector
 	}
 }
 
+// CalculateScore performs calculatescore operation.
 func (a *LatencyAnomalyDetector) CalculateScore(latency time.Duration) float64 {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -1163,7 +1193,7 @@ func (a *LatencyAnomalyDetector) CalculateScore(latency time.Duration) float64 {
 	avg := a.movingAvg.Value()
 	stdDev := a.movingStdDev.Value()
 
-	// Update moving statistics
+	// Update moving statistics.
 	a.movingAvg.Add(value)
 	a.movingStdDev.Add(value)
 
@@ -1171,24 +1201,26 @@ func (a *LatencyAnomalyDetector) CalculateScore(latency time.Duration) float64 {
 		return 0
 	}
 
-	// Calculate z-score
+	// Calculate z-score.
 	zScore := math.Abs((value - avg) / stdDev)
 
 	return zScore
 }
 
+// RecordAnomaly performs recordanomaly operation.
 func (a *LatencyAnomalyDetector) RecordAnomaly(anomaly LatencyAnomalyEvent) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
 	a.anomalies = append(a.anomalies, anomaly)
 
-	// Keep only last 100 anomalies
+	// Keep only last 100 anomalies.
 	if len(a.anomalies) > 100 {
 		a.anomalies = a.anomalies[len(a.anomalies)-100:]
 	}
 }
 
+// GetAnomalies performs getanomalies operation.
 func (a *LatencyAnomalyDetector) GetAnomalies(since time.Time) []LatencyAnomalyEvent {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -1203,11 +1235,13 @@ func (a *LatencyAnomalyDetector) GetAnomalies(since time.Time) []LatencyAnomalyE
 	return result
 }
 
+// CheckSustainedAnomalies performs checksustainedanomalies operation.
 func (a *LatencyAnomalyDetector) CheckSustainedAnomalies() {
-	// Check if we're seeing sustained high latencies
-	// This would trigger alerts for persistent performance degradation
+	// Check if we're seeing sustained high latencies.
+	// This would trigger alerts for persistent performance degradation.
 }
 
+// CleanOldAnomalies performs cleanoldanomalies operation.
 func (a *LatencyAnomalyDetector) CleanOldAnomalies(cutoff time.Time) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -1222,16 +1256,19 @@ func (a *LatencyAnomalyDetector) CleanOldAnomalies(cutoff time.Time) {
 	a.anomalies = kept
 }
 
+// ExponentialMovingAverage represents a exponentialmovingaverage.
 type ExponentialMovingAverage struct {
 	alpha float64
 	value float64
 	count int64
 }
 
+// NewExponentialMovingAverage performs newexponentialmovingaverage operation.
 func NewExponentialMovingAverage(alpha float64) *ExponentialMovingAverage {
 	return &ExponentialMovingAverage{alpha: alpha}
 }
 
+// Add performs add operation.
 func (e *ExponentialMovingAverage) Add(value float64) {
 	if e.count == 0 {
 		e.value = value
@@ -1241,10 +1278,12 @@ func (e *ExponentialMovingAverage) Add(value float64) {
 	e.count++
 }
 
+// Value performs value operation.
 func (e *ExponentialMovingAverage) Value() float64 {
 	return e.value
 }
 
+// ExponentialMovingStdDev represents a exponentialmovingstddev.
 type ExponentialMovingStdDev struct {
 	alpha    float64
 	mean     float64
@@ -1252,10 +1291,12 @@ type ExponentialMovingStdDev struct {
 	count    int64
 }
 
+// NewExponentialMovingStdDev performs newexponentialmovingstddev operation.
 func NewExponentialMovingStdDev(alpha float64) *ExponentialMovingStdDev {
 	return &ExponentialMovingStdDev{alpha: alpha}
 }
 
+// Add performs add operation.
 func (e *ExponentialMovingStdDev) Add(value float64) {
 	if e.count == 0 {
 		e.mean = value
@@ -1268,10 +1309,12 @@ func (e *ExponentialMovingStdDev) Add(value float64) {
 	e.count++
 }
 
+// Value performs value operation.
 func (e *ExponentialMovingStdDev) Value() float64 {
 	return math.Sqrt(e.variance)
 }
 
+// NewLatencyBudgetTracker performs newlatencybudgettracker operation.
 func NewLatencyBudgetTracker(config *E2ETrackerConfig) *LatencyBudgetTracker {
 	tracker := &LatencyBudgetTracker{
 		budgets:    make(map[string]time.Duration),
@@ -1279,7 +1322,7 @@ func NewLatencyBudgetTracker(config *E2ETrackerConfig) *LatencyBudgetTracker {
 		violations: make([]BudgetViolation, 0, 100),
 	}
 
-	// Set up budgets based on config (assuming 2-second total budget)
+	// Set up budgets based on config (assuming 2-second total budget).
 	totalBudget := 2 * time.Second
 
 	tracker.budgets["controller"] = time.Duration(float64(totalBudget) * config.ControllerBudget)
@@ -1288,7 +1331,7 @@ func NewLatencyBudgetTracker(config *E2ETrackerConfig) *LatencyBudgetTracker {
 	tracker.budgets["gitops"] = time.Duration(float64(totalBudget) * config.GitOpsBudget)
 	tracker.budgets["deployment"] = time.Duration(float64(totalBudget) * config.DeploymentBudget)
 
-	// Initialize usage
+	// Initialize usage.
 	for component, budget := range tracker.budgets {
 		tracker.usage[component] = &BudgetUsage{
 			Component: component,
@@ -1299,12 +1342,14 @@ func NewLatencyBudgetTracker(config *E2ETrackerConfig) *LatencyBudgetTracker {
 	return tracker
 }
 
+// GetBudget performs getbudget operation.
 func (b *LatencyBudgetTracker) GetBudget(component string) time.Duration {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	return b.budgets[component]
 }
 
+// RecordUsage performs recordusage operation.
 func (b *LatencyBudgetTracker) RecordUsage(component string, duration time.Duration) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -1319,6 +1364,7 @@ func (b *LatencyBudgetTracker) RecordUsage(component string, duration time.Durat
 	}
 }
 
+// CheckViolations performs checkviolations operation.
 func (b *LatencyBudgetTracker) CheckViolations(trace *IntentTrace) []BudgetViolation {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -1342,7 +1388,7 @@ func (b *LatencyBudgetTracker) CheckViolations(trace *IntentTrace) []BudgetViola
 		}
 	}
 
-	// Trim violations history
+	// Trim violations history.
 	if len(b.violations) > 100 {
 		b.violations = b.violations[len(b.violations)-100:]
 	}
@@ -1350,6 +1396,7 @@ func (b *LatencyBudgetTracker) CheckViolations(trace *IntentTrace) []BudgetViola
 	return violations
 }
 
+// GetReport performs getreport operation.
 func (b *LatencyBudgetTracker) GetReport() *BudgetReport {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
@@ -1359,7 +1406,7 @@ func (b *LatencyBudgetTracker) GetReport() *BudgetReport {
 		TotalViolations: int64(len(b.violations)),
 	}
 
-	// Copy usage data
+	// Copy usage data.
 	for component, usage := range b.usage {
 		report.ComponentUsage[component] = &BudgetUsage{
 			Component:      usage.Component,
@@ -1369,14 +1416,14 @@ func (b *LatencyBudgetTracker) GetReport() *BudgetReport {
 			ViolationCount: usage.ViolationCount,
 		}
 
-		// Find worst offender
+		// Find worst offender.
 		if usage.ViolationCount > 0 && (report.WorstOffender == "" ||
 			usage.ViolationCount > report.ComponentUsage[report.WorstOffender].ViolationCount) {
 			report.WorstOffender = component
 		}
 	}
 
-	// Calculate budget health (percentage of components within budget)
+	// Calculate budget health (percentage of components within budget).
 	componentsWithinBudget := 0
 	for _, usage := range b.usage {
 		if usage.Percentage <= 100 {
@@ -1391,6 +1438,7 @@ func (b *LatencyBudgetTracker) GetReport() *BudgetReport {
 	return report
 }
 
+// CleanOldViolations performs cleanoldviolations operation.
 func (b *LatencyBudgetTracker) CleanOldViolations(cutoff time.Time) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -1405,6 +1453,7 @@ func (b *LatencyBudgetTracker) CleanOldViolations(cutoff time.Time) {
 	b.violations = kept
 }
 
+// NewUserExperienceCorrelator performs newuserexperiencecorrelator operation.
 func NewUserExperienceCorrelator() *UserExperienceCorrelator {
 	return &UserExperienceCorrelator{
 		sessions:         make(map[string]*UserSession),
@@ -1413,6 +1462,7 @@ func NewUserExperienceCorrelator() *UserExperienceCorrelator {
 	}
 }
 
+// GetReport performs getreport operation.
 func (u *UserExperienceCorrelator) GetReport() *UserExperienceReport {
 	u.mu.RLock()
 	defer u.mu.RUnlock()
@@ -1422,7 +1472,7 @@ func (u *UserExperienceCorrelator) GetReport() *UserExperienceReport {
 		Recommendations: []string{},
 	}
 
-	// Calculate average experience score
+	// Calculate average experience score.
 	totalScore := 0.0
 	count := 0
 	for _, score := range u.experienceScores {
@@ -1434,20 +1484,20 @@ func (u *UserExperienceCorrelator) GetReport() *UserExperienceReport {
 		report.AverageScore = totalScore / float64(count)
 	}
 
-	// Categorize experience
+	// Categorize experience.
 	report.CategoryScores["excellent"] = u.calculateCategoryScore(90, 100)
 	report.CategoryScores["good"] = u.calculateCategoryScore(70, 90)
 	report.CategoryScores["fair"] = u.calculateCategoryScore(50, 70)
 	report.CategoryScores["poor"] = u.calculateCategoryScore(0, 50)
 
-	// Count impacted sessions
+	// Count impacted sessions.
 	for _, session := range u.sessions {
 		if session.ExperienceScore < 70 {
 			report.ImpactedSessions++
 		}
 	}
 
-	// Generate recommendations
+	// Generate recommendations.
 	if report.AverageScore < 70 {
 		report.Recommendations = append(report.Recommendations,
 			"Consider implementing caching to reduce latency",
@@ -1473,7 +1523,7 @@ func (u *UserExperienceCorrelator) calculateCategoryScore(min, max float64) floa
 	return float64(count) / float64(len(u.experienceScores)) * 100
 }
 
-// Default configuration
+// Default configuration.
 func DefaultE2EConfig() *E2ETrackerConfig {
 	return &E2ETrackerConfig{
 		P50Target:            500 * time.Millisecond,
@@ -1494,6 +1544,7 @@ func DefaultE2EConfig() *E2ETrackerConfig {
 	}
 }
 
+// DefaultHistogramBuckets performs defaulthistogrambuckets operation.
 func DefaultHistogramBuckets() []float64 {
 	return []float64{
 		0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 0.75,

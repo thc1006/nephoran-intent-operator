@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// FakeWeaviateServer provides an in-memory implementation of Weaviate for testing
+// FakeWeaviateServer provides an in-memory implementation of Weaviate for testing.
 type FakeWeaviateServer struct {
 	mu          sync.RWMutex
 	classes     map[string]*WeaviateClass
@@ -20,7 +20,7 @@ type FakeWeaviateServer struct {
 	initialized bool
 }
 
-// WeaviateClass represents a Weaviate class schema
+// WeaviateClass represents a Weaviate class schema.
 type WeaviateClass struct {
 	Name         string                 `json:"class"`
 	Description  string                 `json:"description"`
@@ -29,14 +29,14 @@ type WeaviateClass struct {
 	ModuleConfig map[string]interface{} `json:"moduleConfig"`
 }
 
-// WeaviateProperty represents a property in a Weaviate class
+// WeaviateProperty represents a property in a Weaviate class.
 type WeaviateProperty struct {
 	Name        string   `json:"name"`
 	DataType    []string `json:"dataType"`
 	Description string   `json:"description"`
 }
 
-// WeaviateObject represents an object in Weaviate
+// WeaviateObject represents an object in Weaviate.
 type WeaviateObject struct {
 	ID         string                 `json:"id"`
 	Class      string                 `json:"class"`
@@ -46,12 +46,12 @@ type WeaviateObject struct {
 	UpdatedAt  time.Time              `json:"lastUpdateTimeUnix"`
 }
 
-// SearchResult represents search results from Weaviate
+// SearchResult represents search results from Weaviate.
 type SearchResult struct {
 	Objects []SearchObject `json:"objects"`
 }
 
-// SearchObject represents an individual search result object
+// SearchObject represents an individual search result object.
 type SearchObject struct {
 	ID         string                 `json:"id"`
 	Class      string                 `json:"class"`
@@ -62,7 +62,7 @@ type SearchObject struct {
 	Certainty  float32                `json:"certainty,omitempty"`
 }
 
-// NewFakeWeaviateServer creates a new fake Weaviate server
+// NewFakeWeaviateServer creates a new fake Weaviate server.
 func NewFakeWeaviateServer() *FakeWeaviateServer {
 	server := &FakeWeaviateServer{
 		classes:    make(map[string]*WeaviateClass),
@@ -70,18 +70,18 @@ func NewFakeWeaviateServer() *FakeWeaviateServer {
 		embeddings: make(map[string][]float32),
 	}
 
-	// Initialize with telecommunications knowledge base schema
+	// Initialize with telecommunications knowledge base schema.
 	server.initializeWithTelecomSchema()
 
 	return server
 }
 
-// initializeWithTelecomSchema sets up the telecommunications domain schema
+// initializeWithTelecomSchema sets up the telecommunications domain schema.
 func (f *FakeWeaviateServer) initializeWithTelecomSchema() {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	// Create TelecomDocument class
+	// Create TelecomDocument class.
 	telecomDocClass := &WeaviateClass{
 		Name:        "TelecomDocument",
 		Description: "Telecommunications domain documents and specifications",
@@ -130,7 +130,7 @@ func (f *FakeWeaviateServer) initializeWithTelecomSchema() {
 		},
 	}
 
-	// Create NetworkFunction class
+	// Create NetworkFunction class.
 	networkFunctionClass := &WeaviateClass{
 		Name:        "NetworkFunction",
 		Description: "5G Core and O-RAN network function definitions",
@@ -174,14 +174,14 @@ func (f *FakeWeaviateServer) initializeWithTelecomSchema() {
 	f.objects["TelecomDocument"] = make(map[string]*WeaviateObject)
 	f.objects["NetworkFunction"] = make(map[string]*WeaviateObject)
 
-	// Populate with sample telecommunications data
+	// Populate with sample telecommunications data.
 	f.populateSampleData()
 	f.initialized = true
 }
 
-// populateSampleData adds sample telecommunications knowledge to the database
+// populateSampleData adds sample telecommunications knowledge to the database.
 func (f *FakeWeaviateServer) populateSampleData() {
-	// Sample 5G Core network function documents
+	// Sample 5G Core network function documents.
 	sampleDocuments := []struct {
 		title        string
 		content      string
@@ -248,7 +248,7 @@ func (f *FakeWeaviateServer) populateSampleData() {
 		f.embeddings[objID] = obj.Vector
 	}
 
-	// Sample network functions
+	// Sample network functions.
 	sampleFunctions := []struct {
 		name                   string
 		description            string
@@ -305,19 +305,19 @@ func (f *FakeWeaviateServer) populateSampleData() {
 	}
 }
 
-// generateMockEmbedding creates a mock embedding vector based on text content
+// generateMockEmbedding creates a mock embedding vector based on text content.
 func (f *FakeWeaviateServer) generateMockEmbedding(text string) []float32 {
-	// Simple mock embedding based on text characteristics
+	// Simple mock embedding based on text characteristics.
 	text = strings.ToLower(text)
 	embedding := make([]float32, 1536) // OpenAI embedding size
 
-	// Use text characteristics to generate deterministic but varied embeddings
+	// Use text characteristics to generate deterministic but varied embeddings.
 	words := strings.Fields(text)
 	for i, word := range words {
 		if i >= len(embedding) {
 			break
 		}
-		// Simple hash-based mock embedding
+		// Simple hash-based mock embedding.
 		hash := 0
 		for _, char := range word {
 			hash = hash*31 + int(char)
@@ -325,7 +325,7 @@ func (f *FakeWeaviateServer) generateMockEmbedding(text string) []float32 {
 		embedding[i] = float32(hash%1000-500) / 1000.0 // Normalize to [-0.5, 0.5]
 	}
 
-	// Add some telecommunications domain-specific patterns
+	// Add some telecommunications domain-specific patterns.
 	telecomKeywords := map[string]float32{
 		"amf": 0.8, "smf": 0.7, "upf": 0.6, "5g": 0.9, "core": 0.5,
 		"oran": 0.8, "ric": 0.7, "ran": 0.6, "deployment": 0.4, "scaling": 0.3,
@@ -339,7 +339,7 @@ func (f *FakeWeaviateServer) generateMockEmbedding(text string) []float32 {
 		}
 	}
 
-	// Normalize vector
+	// Normalize vector.
 	norm := float32(0)
 	for _, val := range embedding {
 		norm += val * val
@@ -354,14 +354,14 @@ func (f *FakeWeaviateServer) generateMockEmbedding(text string) []float32 {
 	return embedding
 }
 
-// IsReady checks if the fake Weaviate server is ready
+// IsReady checks if the fake Weaviate server is ready.
 func (f *FakeWeaviateServer) IsReady() bool {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 	return f.initialized
 }
 
-// GetSchema returns the schema of all classes
+// GetSchema returns the schema of all classes.
 func (f *FakeWeaviateServer) GetSchema() map[string]*WeaviateClass {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
@@ -373,7 +373,7 @@ func (f *FakeWeaviateServer) GetSchema() map[string]*WeaviateClass {
 	return result
 }
 
-// AddObject adds a new object to the specified class
+// AddObject adds a new object to the specified class.
 func (f *FakeWeaviateServer) AddObject(className string, obj *WeaviateObject) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -401,7 +401,7 @@ func (f *FakeWeaviateServer) AddObject(className string, obj *WeaviateObject) er
 	return nil
 }
 
-// GetObject retrieves an object by ID and class
+// GetObject retrieves an object by ID and class.
 func (f *FakeWeaviateServer) GetObject(className, objectID string) (*WeaviateObject, error) {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
@@ -415,7 +415,7 @@ func (f *FakeWeaviateServer) GetObject(className, objectID string) (*WeaviateObj
 	return nil, fmt.Errorf("object %s not found in class %s", objectID, className)
 }
 
-// DeleteObject removes an object from the specified class
+// DeleteObject removes an object from the specified class.
 func (f *FakeWeaviateServer) DeleteObject(className, objectID string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -429,7 +429,7 @@ func (f *FakeWeaviateServer) DeleteObject(className, objectID string) error {
 	return fmt.Errorf("object %s not found in class %s", objectID, className)
 }
 
-// VectorSearch performs vector similarity search
+// VectorSearch performs vector similarity search.
 func (f *FakeWeaviateServer) VectorSearch(className string, vector []float32, limit int, certainty float32) (*SearchResult, error) {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
@@ -458,12 +458,12 @@ func (f *FakeWeaviateServer) VectorSearch(className string, vector []float32, li
 		}
 	}
 
-	// Sort by similarity score (descending)
+	// Sort by similarity score (descending).
 	sort.Slice(results, func(i, j int) bool {
 		return results[i].Score > results[j].Score
 	})
 
-	// Apply limit
+	// Apply limit.
 	if len(results) > limit {
 		results = results[:limit]
 	}
@@ -471,7 +471,7 @@ func (f *FakeWeaviateServer) VectorSearch(className string, vector []float32, li
 	return &SearchResult{Objects: results}, nil
 }
 
-// HybridSearch performs hybrid search combining vector and keyword search
+// HybridSearch performs hybrid search combining vector and keyword search.
 func (f *FakeWeaviateServer) HybridSearch(className string, query string, vector []float32, limit int) (*SearchResult, error) {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
@@ -488,13 +488,13 @@ func (f *FakeWeaviateServer) HybridSearch(className string, query string, vector
 	for objectID, obj := range classObjects {
 		score := float32(0.0)
 
-		// Vector similarity component (70% weight)
+		// Vector similarity component (70% weight).
 		if embedding, exists := f.embeddings[objectID]; exists && len(vector) > 0 {
 			vectorScore := f.cosineSimilarity(vector, embedding)
 			score += vectorScore * 0.7
 		}
 
-		// Keyword search component (30% weight)
+		// Keyword search component (30% weight).
 		keywordScore := f.calculateKeywordScore(obj, queryTerms)
 		score += keywordScore * 0.3
 
@@ -511,12 +511,12 @@ func (f *FakeWeaviateServer) HybridSearch(className string, query string, vector
 		}
 	}
 
-	// Sort by combined score (descending)
+	// Sort by combined score (descending).
 	sort.Slice(results, func(i, j int) bool {
 		return results[i].Score > results[j].Score
 	})
 
-	// Apply limit
+	// Apply limit.
 	if len(results) > limit {
 		results = results[:limit]
 	}
@@ -524,7 +524,7 @@ func (f *FakeWeaviateServer) HybridSearch(className string, query string, vector
 	return &SearchResult{Objects: results}, nil
 }
 
-// cosineSimilarity calculates cosine similarity between two vectors
+// cosineSimilarity calculates cosine similarity between two vectors.
 func (f *FakeWeaviateServer) cosineSimilarity(a, b []float32) float32 {
 	if len(a) != len(b) {
 		return 0
@@ -544,13 +544,13 @@ func (f *FakeWeaviateServer) cosineSimilarity(a, b []float32) float32 {
 	return dotProduct / (float32(math.Sqrt(float64(normA))) * float32(math.Sqrt(float64(normB))))
 }
 
-// calculateKeywordScore calculates keyword matching score for an object
+// calculateKeywordScore calculates keyword matching score for an object.
 func (f *FakeWeaviateServer) calculateKeywordScore(obj *WeaviateObject, queryTerms []string) float32 {
 	if len(queryTerms) == 0 {
 		return 0
 	}
 
-	// Convert object properties to searchable text
+	// Convert object properties to searchable text.
 	searchableText := f.extractSearchableText(obj)
 	searchableTextLower := strings.ToLower(searchableText)
 
@@ -564,7 +564,7 @@ func (f *FakeWeaviateServer) calculateKeywordScore(obj *WeaviateObject, queryTer
 	return float32(matchedTerms) / float32(len(queryTerms))
 }
 
-// extractSearchableText extracts searchable text from object properties
+// extractSearchableText extracts searchable text from object properties.
 func (f *FakeWeaviateServer) extractSearchableText(obj *WeaviateObject) string {
 	var textParts []string
 
@@ -586,7 +586,7 @@ func (f *FakeWeaviateServer) extractSearchableText(obj *WeaviateObject) string {
 	return strings.Join(textParts, " ")
 }
 
-// GetObjectCount returns the number of objects in a class
+// GetObjectCount returns the number of objects in a class.
 func (f *FakeWeaviateServer) GetObjectCount(className string) int {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
@@ -597,7 +597,7 @@ func (f *FakeWeaviateServer) GetObjectCount(className string) int {
 	return 0
 }
 
-// Reset clears all data and reinitializes the server
+// Reset clears all data and reinitializes the server.
 func (f *FakeWeaviateServer) Reset() {
 	f.mu.Lock()
 	defer f.mu.Unlock()

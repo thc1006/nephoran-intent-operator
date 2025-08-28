@@ -11,7 +11,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
-// CAMonitor monitors Certificate Authority health and performance
+// CAMonitor monitors Certificate Authority health and performance.
 type CAMonitor struct {
 	config  *MonitoringConfig
 	logger  *logging.StructuredLogger
@@ -23,42 +23,42 @@ type CAMonitor struct {
 	cancel  context.CancelFunc
 }
 
-// CAMetrics holds Prometheus metrics for CA operations
+// CAMetrics holds Prometheus metrics for CA operations.
 type CAMetrics struct {
-	// Certificate metrics
+	// Certificate metrics.
 	CertificatesIssued  *prometheus.CounterVec
 	CertificatesRevoked *prometheus.CounterVec
 	CertificatesExpired *prometheus.CounterVec
 	CertificateLifetime *prometheus.HistogramVec
 
-	// Backend metrics
+	// Backend metrics.
 	BackendHealth     *prometheus.GaugeVec
 	BackendOperations *prometheus.CounterVec
 	BackendLatency    *prometheus.HistogramVec
 	BackendErrors     *prometheus.CounterVec
 
-	// Pool metrics
+	// Pool metrics.
 	CertificatePoolSize *prometheus.GaugeVec
 	PoolOperations      *prometheus.CounterVec
 	PoolCacheHitRate    *prometheus.GaugeVec
 
-	// Distribution metrics
+	// Distribution metrics.
 	DistributionJobs    *prometheus.CounterVec
 	DistributionLatency *prometheus.HistogramVec
 	DistributionErrors  *prometheus.CounterVec
 
-	// Policy metrics
+	// Policy metrics.
 	PolicyValidations *prometheus.CounterVec
 	PolicyViolations  *prometheus.CounterVec
 	ApprovalRequests  *prometheus.CounterVec
 
-	// System metrics
+	// System metrics.
 	ActiveSessions *prometheus.GaugeVec
 	ResourceUsage  *prometheus.GaugeVec
 	ErrorRate      *prometheus.GaugeVec
 }
 
-// AlertManager manages certificate-related alerts
+// AlertManager manages certificate-related alerts.
 type AlertManager struct {
 	config       *AlertConfig
 	logger       *logging.StructuredLogger
@@ -67,7 +67,7 @@ type AlertManager struct {
 	mu           sync.RWMutex
 }
 
-// AlertConfig configures alert management
+// AlertConfig configures alert management.
 type AlertConfig struct {
 	Enabled              bool                  `yaml:"enabled"`
 	Rules                []*AlertRule          `yaml:"rules"`
@@ -77,7 +77,7 @@ type AlertConfig struct {
 	MaxAlerts            int                   `yaml:"max_alerts"`
 }
 
-// AlertRule defines an alert rule
+// AlertRule defines an alert rule.
 type AlertRule struct {
 	Name        string            `yaml:"name"`
 	Description string            `yaml:"description"`
@@ -90,30 +90,34 @@ type AlertRule struct {
 	Actions     []AlertAction     `yaml:"actions"`
 }
 
-// AlertSeverity represents alert severity levels
+// AlertSeverity represents alert severity levels.
 type AlertSeverity string
 
 const (
-	SeverityInfo     AlertSeverity = "info"
-	SeverityWarning  AlertSeverity = "warning"
-	SeverityError    AlertSeverity = "error"
+	// SeverityInfo holds severityinfo value.
+	SeverityInfo AlertSeverity = "info"
+	// SeverityWarning holds severitywarning value.
+	SeverityWarning AlertSeverity = "warning"
+	// SeverityError holds severityerror value.
+	SeverityError AlertSeverity = "error"
+	// SeverityCritical holds severitycritical value.
 	SeverityCritical AlertSeverity = "critical"
 )
 
-// AlertAction defines what to do when an alert fires
+// AlertAction defines what to do when an alert fires.
 type AlertAction struct {
 	Type   string            `yaml:"type"`
 	Config map[string]string `yaml:"config"`
 }
 
-// NotificationChannel defines how to send alerts
+// NotificationChannel defines how to send alerts.
 type NotificationChannel struct {
 	Name   string            `yaml:"name"`
 	Type   string            `yaml:"type"` // email, slack, webhook, pagerduty
 	Config map[string]string `yaml:"config"`
 }
 
-// AlertThresholds defines default alert thresholds
+// AlertThresholds defines default alert thresholds.
 type AlertThresholds struct {
 	CertificateExpiryDays   int     `yaml:"certificate_expiry_days"`
 	BackendErrorRate        float64 `yaml:"backend_error_rate"`
@@ -122,7 +126,7 @@ type AlertThresholds struct {
 	SystemResourceUsage     float64 `yaml:"system_resource_usage"`
 }
 
-// Alert represents an active alert
+// Alert represents an active alert.
 type Alert struct {
 	ID           string            `json:"id"`
 	Rule         *AlertRule        `json:"rule"`
@@ -136,42 +140,55 @@ type Alert struct {
 	GeneratorURL string            `json:"generator_url,omitempty"`
 }
 
-// AlertStatus represents the status of an alert
+// AlertStatus represents the status of an alert.
 type AlertStatus string
 
 const (
-	AlertStatusFiring     AlertStatus = "firing"
-	AlertStatusResolved   AlertStatus = "resolved"
+	// AlertStatusFiring holds alertstatusfiring value.
+	AlertStatusFiring AlertStatus = "firing"
+	// AlertStatusResolved holds alertstatusresolved value.
+	AlertStatusResolved AlertStatus = "resolved"
+	// AlertStatusSuppressed holds alertstatussuppressed value.
 	AlertStatusSuppressed AlertStatus = "suppressed"
 )
 
-// HealthCheck represents a health check function
+// HealthCheck represents a health check function.
 type HealthCheck interface {
 	Name() string
 	Check(ctx context.Context) error
 	Critical() bool
 }
 
-// BackendHealthCheck checks backend health
+// BackendHealthCheck checks backend health.
 type BackendHealthCheck struct {
 	name    string
 	backend Backend
 }
 
-func (h *BackendHealthCheck) Name() string   { return h.name }
+// Name performs name operation.
+func (h *BackendHealthCheck) Name() string { return h.name }
+
+// Critical performs critical operation.
 func (h *BackendHealthCheck) Critical() bool { return true }
+
+// Check performs check operation.
 func (h *BackendHealthCheck) Check(ctx context.Context) error {
 	return h.backend.HealthCheck(ctx)
 }
 
-// CertificateExpiryCheck checks for expiring certificates
+// CertificateExpiryCheck checks for expiring certificates.
 type CertificateExpiryCheck struct {
 	pool      *CertificatePool
 	threshold time.Duration
 }
 
-func (h *CertificateExpiryCheck) Name() string   { return "certificate_expiry" }
+// Name performs name operation.
+func (h *CertificateExpiryCheck) Name() string { return "certificate_expiry" }
+
+// Critical performs critical operation.
 func (h *CertificateExpiryCheck) Critical() bool { return false }
+
+// Check performs check operation.
 func (h *CertificateExpiryCheck) Check(ctx context.Context) error {
 	threshold := time.Now().Add(h.threshold)
 	expiring, err := h.pool.GetExpiringCertificates(threshold)
@@ -186,7 +203,7 @@ func (h *CertificateExpiryCheck) Check(ctx context.Context) error {
 	return nil
 }
 
-// NewCAMonitor creates a new CA monitor
+// NewCAMonitor creates a new CA monitor.
 func NewCAMonitor(config *MonitoringConfig, logger *logging.StructuredLogger) (*CAMonitor, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -198,10 +215,10 @@ func NewCAMonitor(config *MonitoringConfig, logger *logging.StructuredLogger) (*
 		cancel: cancel,
 	}
 
-	// Initialize metrics
+	// Initialize metrics.
 	monitor.metrics = initializeMetrics()
 
-	// Initialize alert manager
+	// Initialize alert manager.
 	if config.AlertingEnabled {
 		alertConfig := &AlertConfig{
 			Enabled: true,
@@ -227,17 +244,17 @@ func NewCAMonitor(config *MonitoringConfig, logger *logging.StructuredLogger) (*
 	return monitor, nil
 }
 
-// Start starts the CA monitor
+// Start starts the CA monitor.
 func (m *CAMonitor) Start(ctx context.Context) {
 	m.logger.Info("starting CA monitor")
 
-	// Start health check loop
+	// Start health check loop.
 	go m.runHealthChecks()
 
-	// Start metrics collection loop
+	// Start metrics collection loop.
 	go m.runMetricsCollection()
 
-	// Start alert processing loop
+	// Start alert processing loop.
 	if m.alerts != nil {
 		go m.alerts.Start(ctx)
 	}
@@ -246,13 +263,13 @@ func (m *CAMonitor) Start(ctx context.Context) {
 	m.logger.Info("CA monitor stopped")
 }
 
-// Stop stops the CA monitor
+// Stop stops the CA monitor.
 func (m *CAMonitor) Stop() {
 	m.logger.Info("stopping CA monitor")
 	m.cancel()
 }
 
-// AddHealthCheck adds a health check
+// AddHealthCheck adds a health check.
 func (m *CAMonitor) AddHealthCheck(check HealthCheck) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -263,7 +280,7 @@ func (m *CAMonitor) AddHealthCheck(check HealthCheck) {
 		"critical", check.Critical())
 }
 
-// RemoveHealthCheck removes a health check
+// RemoveHealthCheck removes a health check.
 func (m *CAMonitor) RemoveHealthCheck(name string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -272,18 +289,18 @@ func (m *CAMonitor) RemoveHealthCheck(name string) {
 	m.logger.Info("health check removed", "name", name)
 }
 
-// RecordCertificateIssued records a certificate issuance
+// RecordCertificateIssued records a certificate issuance.
 func (m *CAMonitor) RecordCertificateIssued(backend string, tenantID string, duration time.Duration) {
 	m.metrics.CertificatesIssued.WithLabelValues(backend, tenantID).Inc()
 	m.metrics.CertificateLifetime.WithLabelValues(backend, tenantID).Observe(duration.Hours())
 }
 
-// RecordCertificateRevoked records a certificate revocation
+// RecordCertificateRevoked records a certificate revocation.
 func (m *CAMonitor) RecordCertificateRevoked(backend string, tenantID string, reason string) {
 	m.metrics.CertificatesRevoked.WithLabelValues(backend, tenantID, reason).Inc()
 }
 
-// RecordBackendOperation records a backend operation
+// RecordBackendOperation records a backend operation.
 func (m *CAMonitor) RecordBackendOperation(backend string, operation string, success bool, duration time.Duration) {
 	status := "success"
 	if !success {
@@ -295,7 +312,7 @@ func (m *CAMonitor) RecordBackendOperation(backend string, operation string, suc
 	m.metrics.BackendLatency.WithLabelValues(backend, operation).Observe(duration.Seconds())
 }
 
-// RecordDistributionJob records a distribution job
+// RecordDistributionJob records a distribution job.
 func (m *CAMonitor) RecordDistributionJob(status string, targetType string, duration time.Duration) {
 	m.metrics.DistributionJobs.WithLabelValues(status, targetType).Inc()
 	m.metrics.DistributionLatency.WithLabelValues(targetType).Observe(duration.Seconds())
@@ -305,7 +322,7 @@ func (m *CAMonitor) RecordDistributionJob(status string, targetType string, dura
 	}
 }
 
-// RecordPolicyValidation records a policy validation
+// RecordPolicyValidation records a policy validation.
 func (m *CAMonitor) RecordPolicyValidation(template string, valid bool, violationCount int) {
 	status := "passed"
 	if !valid {
@@ -316,7 +333,7 @@ func (m *CAMonitor) RecordPolicyValidation(template string, valid bool, violatio
 	m.metrics.PolicyValidations.WithLabelValues(template, status).Inc()
 }
 
-// UpdateBackendHealth updates backend health status
+// UpdateBackendHealth updates backend health status.
 func (m *CAMonitor) UpdateBackendHealth(backend string, healthy bool) {
 	value := float64(0)
 	if healthy {
@@ -325,13 +342,13 @@ func (m *CAMonitor) UpdateBackendHealth(backend string, healthy bool) {
 	m.metrics.BackendHealth.WithLabelValues(backend).Set(value)
 }
 
-// UpdatePoolMetrics updates certificate pool metrics
+// UpdatePoolMetrics updates certificate pool metrics.
 func (m *CAMonitor) UpdatePoolMetrics(poolSize int, hitRate float64) {
 	m.metrics.CertificatePoolSize.WithLabelValues("active").Set(float64(poolSize))
 	m.metrics.PoolCacheHitRate.WithLabelValues("memory").Set(hitRate)
 }
 
-// GetHealthStatus returns overall health status
+// GetHealthStatus returns overall health status.
 func (m *CAMonitor) GetHealthStatus() map[string]interface{} {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -343,7 +360,7 @@ func (m *CAMonitor) GetHealthStatus() map[string]interface{} {
 		"alert_count": 0,
 	}
 
-	// Check all health checks
+	// Check all health checks.
 	for name, check := range m.checks {
 		err := check.Check(m.ctx)
 		checkStatus := map[string]interface{}{
@@ -361,7 +378,7 @@ func (m *CAMonitor) GetHealthStatus() map[string]interface{} {
 		status["checks"].(map[string]interface{})[name] = checkStatus
 	}
 
-	// Add alert count
+	// Add alert count.
 	if m.alerts != nil {
 		status["alert_count"] = len(m.alerts.GetActiveAlerts())
 	}
@@ -369,7 +386,7 @@ func (m *CAMonitor) GetHealthStatus() map[string]interface{} {
 	return status
 }
 
-// Helper methods
+// Helper methods.
 
 func (m *CAMonitor) runHealthChecks() {
 	ticker := time.NewTicker(m.config.HealthCheckInterval)
@@ -405,7 +422,7 @@ func (m *CAMonitor) performHealthChecks() {
 				"duration", duration,
 				"critical", check.Critical())
 
-			// Trigger alert if enabled
+			// Trigger alert if enabled.
 			if m.alerts != nil {
 				m.alerts.TriggerAlert("health_check_failed", map[string]string{
 					"check":    name,
@@ -436,17 +453,17 @@ func (m *CAMonitor) runMetricsCollection() {
 }
 
 func (m *CAMonitor) collectSystemMetrics() {
-	// Collect system resource usage
+	// Collect system resource usage.
 	// This would typically use runtime metrics, cgroup stats, etc.
 
 	m.logger.Debug("collecting system metrics")
 
-	// Example metrics collection (would be replaced with actual implementation)
+	// Example metrics collection (would be replaced with actual implementation).
 	m.metrics.ResourceUsage.WithLabelValues("cpu").Set(0.25)    // 25% CPU
 	m.metrics.ResourceUsage.WithLabelValues("memory").Set(0.40) // 40% Memory
 }
 
-// Initialize Prometheus metrics
+// Initialize Prometheus metrics.
 func initializeMetrics() *CAMetrics {
 	return &CAMetrics{
 		CertificatesIssued: promauto.NewCounterVec(
@@ -593,9 +610,9 @@ func initializeMetrics() *CAMetrics {
 	}
 }
 
-// AlertManager methods
+// AlertManager methods.
 
-// NewAlertManager creates a new alert manager
+// NewAlertManager creates a new alert manager.
 func NewAlertManager(config *AlertConfig, logger *logging.StructuredLogger) (*AlertManager, error) {
 	am := &AlertManager{
 		config:       config,
@@ -604,7 +621,7 @@ func NewAlertManager(config *AlertConfig, logger *logging.StructuredLogger) (*Al
 		activeAlerts: make(map[string]*Alert),
 	}
 
-	// Load alert rules
+	// Load alert rules.
 	for _, rule := range config.Rules {
 		am.rules[rule.Name] = rule
 	}
@@ -612,7 +629,7 @@ func NewAlertManager(config *AlertConfig, logger *logging.StructuredLogger) (*Al
 	return am, nil
 }
 
-// Start starts the alert manager
+// Start starts the alert manager.
 func (am *AlertManager) Start(ctx context.Context) {
 	am.logger.Info("starting alert manager")
 
@@ -629,7 +646,7 @@ func (am *AlertManager) Start(ctx context.Context) {
 	}
 }
 
-// TriggerAlert triggers an alert
+// TriggerAlert triggers an alert.
 func (am *AlertManager) TriggerAlert(ruleName string, labels map[string]string) {
 	am.mu.Lock()
 	defer am.mu.Unlock()
@@ -642,7 +659,7 @@ func (am *AlertManager) TriggerAlert(ruleName string, labels map[string]string) 
 
 	alertID := am.generateAlertID(rule, labels)
 
-	// Check if alert already exists and is in cooldown
+	// Check if alert already exists and is in cooldown.
 	if existing, exists := am.activeAlerts[alertID]; exists {
 		if time.Since(existing.UpdatedAt) < am.config.Cooldown {
 			return // Still in cooldown
@@ -667,11 +684,11 @@ func (am *AlertManager) TriggerAlert(ruleName string, labels map[string]string) 
 		"severity", rule.Severity,
 		"labels", labels)
 
-	// Send notifications
+	// Send notifications.
 	go am.sendNotifications(alert)
 }
 
-// GetActiveAlerts returns all active alerts
+// GetActiveAlerts returns all active alerts.
 func (am *AlertManager) GetActiveAlerts() []*Alert {
 	am.mu.RLock()
 	defer am.mu.RUnlock()
@@ -684,13 +701,13 @@ func (am *AlertManager) GetActiveAlerts() []*Alert {
 	return alerts
 }
 
-// Helper methods for AlertManager
+// Helper methods for AlertManager.
 
 func (am *AlertManager) processAlerts() {
 	am.mu.Lock()
 	defer am.mu.Unlock()
 
-	// Clean up old alerts
+	// Clean up old alerts.
 	for id, alert := range am.activeAlerts {
 		if alert.Status == AlertStatusResolved && time.Since(alert.UpdatedAt) > 24*time.Hour {
 			delete(am.activeAlerts, id)
@@ -715,21 +732,21 @@ func (am *AlertManager) sendWebhookNotification(channel NotificationChannel, ale
 	am.logger.Debug("sending webhook notification",
 		"channel", channel.Name,
 		"alert", alert.ID)
-	// Implementation would send HTTP POST to webhook URL
+	// Implementation would send HTTP POST to webhook URL.
 }
 
 func (am *AlertManager) sendEmailNotification(channel NotificationChannel, alert *Alert) {
 	am.logger.Debug("sending email notification",
 		"channel", channel.Name,
 		"alert", alert.ID)
-	// Implementation would send email via SMTP
+	// Implementation would send email via SMTP.
 }
 
 func (am *AlertManager) sendSlackNotification(channel NotificationChannel, alert *Alert) {
 	am.logger.Debug("sending Slack notification",
 		"channel", channel.Name,
 		"alert", alert.ID)
-	// Implementation would send message to Slack webhook
+	// Implementation would send message to Slack webhook.
 }
 
 func (am *AlertManager) generateAlertID(rule *AlertRule, labels map[string]string) string {

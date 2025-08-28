@@ -32,30 +32,30 @@ import (
 )
 
 var (
-	// Component health metrics
+	// Component health metrics.
 	componentHealthStatus = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "disaster_recovery_component_health",
 		Help: "Health status of disaster recovery components (0=unhealthy, 1=healthy)",
 	}, []string{"component"})
 
-	// Recovery operation metrics
+	// Recovery operation metrics.
 	recoveryOperations = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "disaster_recovery_operations_total",
 		Help: "Total number of disaster recovery operations",
 	}, []string{"operation", "status"})
 
-	// RTO/RPO tracking - commented out unused metrics
-	// recoveryTimeObjective = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	// RTO/RPO tracking - commented out unused metrics.
+	// recoveryTimeObjective = promauto.NewGaugeVec(prometheus.GaugeOpts{.
 	//	Name: "disaster_recovery_rto_seconds",
 	//	Help: "Recovery Time Objective in seconds",
-	// }, []string{"region"})
+	// }, []string{"region"}).
 
-	// recoveryPointObjective = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	// recoveryPointObjective = promauto.NewGaugeVec(prometheus.GaugeOpts{.
 	//	Name: "disaster_recovery_rpo_seconds",
 	//	Help: "Recovery Point Objective in seconds",
-	// }, []string{"region"})
+	// }, []string{"region"}).
 
-	// Service restart duration
+	// Service restart duration.
 	serviceRestartDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "disaster_recovery_service_restart_duration_seconds",
 		Help:    "Duration of service restart operations",
@@ -63,14 +63,14 @@ var (
 	}, []string{"service"})
 )
 
-// ComponentHealthChecker defines health check interface for components
+// ComponentHealthChecker defines health check interface for components.
 type ComponentHealthChecker interface {
 	CheckHealth(ctx context.Context) error
 	GetComponentName() string
 	GetDependencies() []string
 }
 
-// DisasterRecoveryManager manages disaster recovery operations with real Kubernetes integration
+// DisasterRecoveryManager manages disaster recovery operations with real Kubernetes integration.
 type DisasterRecoveryManager struct {
 	mu              sync.RWMutex
 	logger          *slog.Logger
@@ -84,36 +84,36 @@ type DisasterRecoveryManager struct {
 	recoveryStatus  map[string]*ComponentStatus
 	lastHealthCheck time.Time
 
-	// Recovery procedures
+	// Recovery procedures.
 	recoverySequence []RecoveryStep
 
-	// Notifications
+	// Notifications.
 	alertManager AlertManager
 }
 
-// DisasterRecoveryConfig holds configuration for disaster recovery
+// DisasterRecoveryConfig holds configuration for disaster recovery.
 type DisasterRecoveryConfig struct {
-	// Health check configuration
+	// Health check configuration.
 	HealthCheckInterval time.Duration     `json:"health_check_interval"`
 	HealthCheckTimeout  time.Duration     `json:"health_check_timeout"`
 	ComponentEndpoints  map[string]string `json:"component_endpoints"`
 
-	// Recovery configuration
+	// Recovery configuration.
 	RecoveryEnabled        bool `json:"recovery_enabled"`
 	AutoRecovery           bool `json:"auto_recovery"`
 	RecoveryTimeoutMinutes int  `json:"recovery_timeout_minutes"`
 
-	// Dependency configuration
+	// Dependency configuration.
 	ComponentDependencies map[string][]string `json:"component_dependencies"`
 
-	// Notification configuration
+	// Notification configuration.
 	AlertingConfig AlertingConfig `json:"alerting_config"`
 
-	// Redis configuration
+	// Redis configuration.
 	RedisConfig RedisConfig `json:"redis_config"`
 }
 
-// ComponentStatus tracks the status of a component
+// ComponentStatus tracks the status of a component.
 type ComponentStatus struct {
 	Name             string                 `json:"name"`
 	Healthy          bool                   `json:"healthy"`
@@ -126,7 +126,7 @@ type ComponentStatus struct {
 	Metadata         map[string]interface{} `json:"metadata"`
 }
 
-// RecoveryStep represents a step in the recovery process
+// RecoveryStep represents a step in the recovery process.
 type RecoveryStep struct {
 	Name         string `json:"name"`
 	Component    string `json:"component"`
@@ -137,26 +137,26 @@ type RecoveryStep struct {
 	Retries      int           `json:"retries"`
 }
 
-// AlertingConfig defines alerting configuration
+// AlertingConfig defines alerting configuration.
 type AlertingConfig struct {
 	SlackWebhook    string   `json:"slack_webhook"`
 	EmailRecipients []string `json:"email_recipients"`
 	AlertThreshold  int      `json:"alert_threshold"`
 }
 
-// RedisConfig defines Redis connection configuration
+// RedisConfig defines Redis connection configuration.
 type RedisConfig struct {
 	Address  string `json:"address"`
 	Password string `json:"password"`
 	DB       int    `json:"db"`
 }
 
-// AlertManager interface for sending alerts
+// AlertManager interface for sending alerts.
 type AlertManager interface {
 	SendAlert(ctx context.Context, alert Alert) error
 }
 
-// Alert represents an alert message
+// Alert represents an alert message.
 type Alert struct {
 	Level     string                 `json:"level"`
 	Component string                 `json:"component"`
@@ -165,7 +165,7 @@ type Alert struct {
 	Metadata  map[string]interface{} `json:"metadata"`
 }
 
-// NewDisasterRecoveryManager creates a new disaster recovery manager
+// NewDisasterRecoveryManager creates a new disaster recovery manager.
 func NewDisasterRecoveryManager(config *DisasterRecoveryConfig, k8sClient kubernetes.Interface, logger *slog.Logger) (*DisasterRecoveryManager, error) {
 	if config == nil {
 		return nil, fmt.Errorf("disaster recovery configuration is required")
@@ -175,7 +175,7 @@ func NewDisasterRecoveryManager(config *DisasterRecoveryConfig, k8sClient kubern
 		return nil, fmt.Errorf("kubernetes client is required")
 	}
 
-	// Initialize Redis client
+	// Initialize Redis client.
 	var redisClient *redis.Client
 	if config.RedisConfig.Address != "" {
 		redisClient = redis.NewClient(&redis.Options{
@@ -194,13 +194,13 @@ func NewDisasterRecoveryManager(config *DisasterRecoveryConfig, k8sClient kubern
 		recoveryStatus: make(map[string]*ComponentStatus),
 	}
 
-	// Initialize health checkers for core components
+	// Initialize health checkers for core components.
 	drm.initializeHealthCheckers()
 
-	// Initialize recovery sequence
+	// Initialize recovery sequence.
 	drm.initializeRecoverySequence()
 
-	// Initialize sub-managers
+	// Initialize sub-managers.
 	var err error
 	drm.backupManager, err = NewBackupManager(config, k8sClient, logger)
 	if err != nil {
@@ -220,9 +220,9 @@ func NewDisasterRecoveryManager(config *DisasterRecoveryConfig, k8sClient kubern
 	return drm, nil
 }
 
-// initializeHealthCheckers sets up health checkers for all components
+// initializeHealthCheckers sets up health checkers for all components.
 func (drm *DisasterRecoveryManager) initializeHealthCheckers() {
-	// LLM Processor health checker
+	// LLM Processor health checker.
 	drm.healthCheckers["llm-processor"] = &HTTPHealthChecker{
 		name:     "llm-processor",
 		endpoint: drm.getComponentEndpoint("llm-processor", "http://llm-processor:8080/healthz"),
@@ -230,7 +230,7 @@ func (drm *DisasterRecoveryManager) initializeHealthCheckers() {
 		logger:   drm.logger,
 	}
 
-	// Weaviate health checker
+	// Weaviate health checker.
 	drm.healthCheckers["weaviate"] = &HTTPHealthChecker{
 		name:     "weaviate",
 		endpoint: drm.getComponentEndpoint("weaviate", "http://weaviate:8080/v1/.well-known/ready"),
@@ -238,7 +238,7 @@ func (drm *DisasterRecoveryManager) initializeHealthCheckers() {
 		logger:   drm.logger,
 	}
 
-	// Redis health checker
+	// Redis health checker.
 	if drm.redisClient != nil {
 		drm.healthCheckers["redis"] = &RedisHealthChecker{
 			name:        "redis",
@@ -248,7 +248,7 @@ func (drm *DisasterRecoveryManager) initializeHealthCheckers() {
 		}
 	}
 
-	// Nephio Bridge health checker
+	// Nephio Bridge health checker.
 	drm.healthCheckers["nephio-bridge"] = &HTTPHealthChecker{
 		name:     "nephio-bridge",
 		endpoint: drm.getComponentEndpoint("nephio-bridge", "http://nephio-bridge:8080/healthz"),
@@ -256,7 +256,7 @@ func (drm *DisasterRecoveryManager) initializeHealthCheckers() {
 		logger:   drm.logger,
 	}
 
-	// O-RAN Adaptor health checker
+	// O-RAN Adaptor health checker.
 	drm.healthCheckers["oran-adaptor"] = &HTTPHealthChecker{
 		name:     "oran-adaptor",
 		endpoint: drm.getComponentEndpoint("oran-adaptor", "http://oran-adaptor:8080/healthz"),
@@ -264,7 +264,7 @@ func (drm *DisasterRecoveryManager) initializeHealthCheckers() {
 		logger:   drm.logger,
 	}
 
-	// Prometheus health checker
+	// Prometheus health checker.
 	drm.healthCheckers["prometheus"] = &HTTPHealthChecker{
 		name:     "prometheus",
 		endpoint: drm.getComponentEndpoint("prometheus", "http://prometheus:9090/-/healthy"),
@@ -272,7 +272,7 @@ func (drm *DisasterRecoveryManager) initializeHealthCheckers() {
 		logger:   drm.logger,
 	}
 
-	// Grafana health checker
+	// Grafana health checker.
 	drm.healthCheckers["grafana"] = &HTTPHealthChecker{
 		name:     "grafana",
 		endpoint: drm.getComponentEndpoint("grafana", "http://grafana:3000/api/health"),
@@ -281,7 +281,7 @@ func (drm *DisasterRecoveryManager) initializeHealthCheckers() {
 	}
 }
 
-// getComponentEndpoint returns the endpoint for a component with fallback to default
+// getComponentEndpoint returns the endpoint for a component with fallback to default.
 func (drm *DisasterRecoveryManager) getComponentEndpoint(component, defaultEndpoint string) string {
 	if endpoint, exists := drm.config.ComponentEndpoints[component]; exists {
 		return endpoint
@@ -289,7 +289,7 @@ func (drm *DisasterRecoveryManager) getComponentEndpoint(component, defaultEndpo
 	return defaultEndpoint
 }
 
-// initializeRecoverySequence sets up the service restart sequence with dependency ordering
+// initializeRecoverySequence sets up the service restart sequence with dependency ordering.
 func (drm *DisasterRecoveryManager) initializeRecoverySequence() {
 	drm.recoverySequence = []RecoveryStep{
 		{
@@ -358,19 +358,19 @@ func (drm *DisasterRecoveryManager) initializeRecoverySequence() {
 	}
 }
 
-// Start starts the disaster recovery manager
+// Start starts the disaster recovery manager.
 func (drm *DisasterRecoveryManager) Start(ctx context.Context) error {
 	drm.logger.Info("Starting disaster recovery manager")
 
-	// Start health monitoring
+	// Start health monitoring.
 	go drm.startHealthMonitoring(ctx)
 
-	// Start recovery monitoring
+	// Start recovery monitoring.
 	if drm.config.AutoRecovery {
 		go drm.startRecoveryMonitoring(ctx)
 	}
 
-	// Initialize component status
+	// Initialize component status.
 	for name := range drm.healthCheckers {
 		drm.recoveryStatus[name] = &ComponentStatus{
 			Name:         name,
@@ -384,7 +384,7 @@ func (drm *DisasterRecoveryManager) Start(ctx context.Context) error {
 	return nil
 }
 
-// startHealthMonitoring starts continuous health monitoring
+// startHealthMonitoring starts continuous health monitoring.
 func (drm *DisasterRecoveryManager) startHealthMonitoring(ctx context.Context) {
 	ticker := time.NewTicker(drm.config.HealthCheckInterval)
 	defer ticker.Stop()
@@ -400,7 +400,7 @@ func (drm *DisasterRecoveryManager) startHealthMonitoring(ctx context.Context) {
 	}
 }
 
-// performHealthChecks performs health checks on all components
+// performHealthChecks performs health checks on all components.
 func (drm *DisasterRecoveryManager) performHealthChecks(ctx context.Context) {
 	drm.mu.Lock()
 	defer drm.mu.Unlock()
@@ -420,7 +420,7 @@ func (drm *DisasterRecoveryManager) performHealthChecks(ctx context.Context) {
 			drm.logger.Error("Health check failed", "component", name, "error", err)
 
 			if status.Healthy {
-				// Component just became unhealthy
+				// Component just became unhealthy.
 				componentHealthStatus.WithLabelValues(name).Set(0)
 				drm.sendAlert(ctx, Alert{
 					Level:     "warning",
@@ -437,7 +437,7 @@ func (drm *DisasterRecoveryManager) performHealthChecks(ctx context.Context) {
 			status.ErrorCount++
 		} else {
 			if !status.Healthy {
-				// Component just became healthy
+				// Component just became healthy.
 				componentHealthStatus.WithLabelValues(name).Set(1)
 				drm.logger.Info("Component recovered", "component", name)
 
@@ -456,7 +456,7 @@ func (drm *DisasterRecoveryManager) performHealthChecks(ctx context.Context) {
 	}
 }
 
-// startRecoveryMonitoring monitors for components that need recovery
+// startRecoveryMonitoring monitors for components that need recovery.
 func (drm *DisasterRecoveryManager) startRecoveryMonitoring(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
@@ -472,14 +472,14 @@ func (drm *DisasterRecoveryManager) startRecoveryMonitoring(ctx context.Context)
 	}
 }
 
-// checkForRecoveryNeeded checks if any components need recovery
+// checkForRecoveryNeeded checks if any components need recovery.
 func (drm *DisasterRecoveryManager) checkForRecoveryNeeded(ctx context.Context) {
 	drm.mu.RLock()
 	defer drm.mu.RUnlock()
 
 	for name, status := range drm.recoveryStatus {
 		if !status.Healthy && status.ErrorCount >= drm.config.AlertingConfig.AlertThreshold {
-			// Check if we haven't attempted recovery recently
+			// Check if we haven't attempted recovery recently.
 			if time.Since(status.LastRecovery) > 10*time.Minute {
 				drm.logger.Info("Initiating automatic recovery", "component", name)
 				go drm.recoverComponent(ctx, name)
@@ -488,7 +488,7 @@ func (drm *DisasterRecoveryManager) checkForRecoveryNeeded(ctx context.Context) 
 	}
 }
 
-// recoverComponent attempts to recover a specific component
+// recoverComponent attempts to recover a specific component.
 func (drm *DisasterRecoveryManager) recoverComponent(ctx context.Context, componentName string) error {
 	drm.mu.Lock()
 	status := drm.recoveryStatus[componentName]
@@ -498,7 +498,7 @@ func (drm *DisasterRecoveryManager) recoverComponent(ctx context.Context, compon
 
 	drm.logger.Info("Starting component recovery", "component", componentName)
 
-	// Find the recovery step for this component
+	// Find the recovery step for this component.
 	var recoveryStep *RecoveryStep
 	for _, step := range drm.recoverySequence {
 		if step.Component == componentName {
@@ -511,7 +511,7 @@ func (drm *DisasterRecoveryManager) recoverComponent(ctx context.Context, compon
 		return fmt.Errorf("no recovery step found for component %s", componentName)
 	}
 
-	// Check dependencies are healthy
+	// Check dependencies are healthy.
 	for _, dep := range recoveryStep.Dependencies {
 		depStatus := drm.recoveryStatus[dep]
 		if depStatus != nil && !depStatus.Healthy {
@@ -522,7 +522,7 @@ func (drm *DisasterRecoveryManager) recoverComponent(ctx context.Context, compon
 		}
 	}
 
-	// Execute recovery action
+	// Execute recovery action.
 	recoveryCtx, cancel := context.WithTimeout(ctx, recoveryStep.Timeout)
 	defer cancel()
 
@@ -553,7 +553,7 @@ func (drm *DisasterRecoveryManager) recoverComponent(ctx context.Context, compon
 	recoveryOperations.WithLabelValues("restart", "success").Inc()
 	drm.logger.Info("Component recovery completed", "component", componentName, "duration", duration)
 
-	// Wait for component to become healthy
+	// Wait for component to become healthy.
 	maxWait := 2 * time.Minute
 	checkInterval := 10 * time.Second
 
@@ -576,7 +576,7 @@ func (drm *DisasterRecoveryManager) recoverComponent(ctx context.Context, compon
 	return fmt.Errorf("component %s did not become healthy after recovery", componentName)
 }
 
-// getComponentDependencies returns the dependencies for a component
+// getComponentDependencies returns the dependencies for a component.
 func (drm *DisasterRecoveryManager) getComponentDependencies(component string) []string {
 	if deps, exists := drm.config.ComponentDependencies[component]; exists {
 		return deps
@@ -584,7 +584,7 @@ func (drm *DisasterRecoveryManager) getComponentDependencies(component string) [
 	return []string{}
 }
 
-// sendAlert sends an alert through the alert manager
+// sendAlert sends an alert through the alert manager.
 func (drm *DisasterRecoveryManager) sendAlert(ctx context.Context, alert Alert) {
 	if drm.alertManager != nil {
 		go func() {
@@ -595,7 +595,7 @@ func (drm *DisasterRecoveryManager) sendAlert(ctx context.Context, alert Alert) 
 	}
 }
 
-// GetComponentStatus returns the status of a specific component
+// GetComponentStatus returns the status of a specific component.
 func (drm *DisasterRecoveryManager) GetComponentStatus(componentName string) (*ComponentStatus, error) {
 	drm.mu.RLock()
 	defer drm.mu.RUnlock()
@@ -608,7 +608,7 @@ func (drm *DisasterRecoveryManager) GetComponentStatus(componentName string) (*C
 	return status, nil
 }
 
-// GetAllComponentStatus returns the status of all components
+// GetAllComponentStatus returns the status of all components.
 func (drm *DisasterRecoveryManager) GetAllComponentStatus() map[string]*ComponentStatus {
 	drm.mu.RLock()
 	defer drm.mu.RUnlock()
@@ -621,7 +621,7 @@ func (drm *DisasterRecoveryManager) GetAllComponentStatus() map[string]*Componen
 	return result
 }
 
-// TriggerFailover triggers failover to a target region
+// TriggerFailover triggers failover to a target region.
 func (drm *DisasterRecoveryManager) TriggerFailover(ctx context.Context, targetRegion string) error {
 	if drm.failoverManager == nil {
 		return fmt.Errorf("failover manager not initialized")
@@ -630,7 +630,7 @@ func (drm *DisasterRecoveryManager) TriggerFailover(ctx context.Context, targetR
 	return drm.failoverManager.TriggerFailover(ctx, targetRegion)
 }
 
-// HTTPHealthChecker implements health checking via HTTP endpoints
+// HTTPHealthChecker implements health checking via HTTP endpoints.
 type HTTPHealthChecker struct {
 	name     string
 	endpoint string
@@ -638,6 +638,7 @@ type HTTPHealthChecker struct {
 	logger   *slog.Logger
 }
 
+// CheckHealth performs checkhealth operation.
 func (h *HTTPHealthChecker) CheckHealth(ctx context.Context) error {
 	client := &http.Client{
 		Timeout: h.timeout,
@@ -661,15 +662,17 @@ func (h *HTTPHealthChecker) CheckHealth(ctx context.Context) error {
 	return nil
 }
 
+// GetComponentName performs getcomponentname operation.
 func (h *HTTPHealthChecker) GetComponentName() string {
 	return h.name
 }
 
+// GetDependencies performs getdependencies operation.
 func (h *HTTPHealthChecker) GetDependencies() []string {
 	return []string{}
 }
 
-// RedisHealthChecker implements health checking for Redis
+// RedisHealthChecker implements health checking for Redis.
 type RedisHealthChecker struct {
 	name        string
 	redisClient *redis.Client
@@ -677,6 +680,7 @@ type RedisHealthChecker struct {
 	logger      *slog.Logger
 }
 
+// CheckHealth performs checkhealth operation.
 func (r *RedisHealthChecker) CheckHealth(ctx context.Context) error {
 	pingCtx, cancel := context.WithTimeout(ctx, r.timeout)
 	defer cancel()
@@ -689,17 +693,19 @@ func (r *RedisHealthChecker) CheckHealth(ctx context.Context) error {
 	return nil
 }
 
+// GetComponentName performs getcomponentname operation.
 func (r *RedisHealthChecker) GetComponentName() string {
 	return r.name
 }
 
+// GetDependencies performs getdependencies operation.
 func (r *RedisHealthChecker) GetDependencies() []string {
 	return []string{}
 }
 
-// Service restart methods using Kubernetes API
+// Service restart methods using Kubernetes API.
 
-// restartRedis restarts Redis deployment
+// restartRedis restarts Redis deployment.
 func (drm *DisasterRecoveryManager) restartRedis(ctx context.Context, _ *DisasterRecoveryManager) error {
 	deploymentName := "redis"
 	namespace := "nephoran-system"
@@ -709,7 +715,7 @@ func (drm *DisasterRecoveryManager) restartRedis(ctx context.Context, _ *Disaste
 	return drm.restartDeployment(ctx, deploymentName, namespace)
 }
 
-// restartWeaviate restarts Weaviate StatefulSet
+// restartWeaviate restarts Weaviate StatefulSet.
 func (drm *DisasterRecoveryManager) restartWeaviate(ctx context.Context, _ *DisasterRecoveryManager) error {
 	statefulSetName := "weaviate"
 	namespace := "nephoran-system"
@@ -719,7 +725,7 @@ func (drm *DisasterRecoveryManager) restartWeaviate(ctx context.Context, _ *Disa
 	return drm.restartStatefulSet(ctx, statefulSetName, namespace)
 }
 
-// restartPrometheus restarts Prometheus deployment
+// restartPrometheus restarts Prometheus deployment.
 func (drm *DisasterRecoveryManager) restartPrometheus(ctx context.Context, _ *DisasterRecoveryManager) error {
 	deploymentName := "prometheus"
 	namespace := "nephoran-system"
@@ -729,7 +735,7 @@ func (drm *DisasterRecoveryManager) restartPrometheus(ctx context.Context, _ *Di
 	return drm.restartDeployment(ctx, deploymentName, namespace)
 }
 
-// restartLLMProcessor restarts LLM Processor deployment
+// restartLLMProcessor restarts LLM Processor deployment.
 func (drm *DisasterRecoveryManager) restartLLMProcessor(ctx context.Context, _ *DisasterRecoveryManager) error {
 	deploymentName := "llm-processor"
 	namespace := "nephoran-system"
@@ -739,7 +745,7 @@ func (drm *DisasterRecoveryManager) restartLLMProcessor(ctx context.Context, _ *
 	return drm.restartDeployment(ctx, deploymentName, namespace)
 }
 
-// restartNephioBridge restarts Nephio Bridge deployment
+// restartNephioBridge restarts Nephio Bridge deployment.
 func (drm *DisasterRecoveryManager) restartNephioBridge(ctx context.Context, _ *DisasterRecoveryManager) error {
 	deploymentName := "nephio-bridge"
 	namespace := "nephoran-system"
@@ -749,7 +755,7 @@ func (drm *DisasterRecoveryManager) restartNephioBridge(ctx context.Context, _ *
 	return drm.restartDeployment(ctx, deploymentName, namespace)
 }
 
-// restartORANAdaptor restarts O-RAN Adaptor deployment
+// restartORANAdaptor restarts O-RAN Adaptor deployment.
 func (drm *DisasterRecoveryManager) restartORANAdaptor(ctx context.Context, _ *DisasterRecoveryManager) error {
 	deploymentName := "oran-adaptor"
 	namespace := "nephoran-system"
@@ -759,7 +765,7 @@ func (drm *DisasterRecoveryManager) restartORANAdaptor(ctx context.Context, _ *D
 	return drm.restartDeployment(ctx, deploymentName, namespace)
 }
 
-// restartGrafana restarts Grafana deployment
+// restartGrafana restarts Grafana deployment.
 func (drm *DisasterRecoveryManager) restartGrafana(ctx context.Context, _ *DisasterRecoveryManager) error {
 	deploymentName := "grafana"
 	namespace := "nephoran-system"
@@ -769,23 +775,23 @@ func (drm *DisasterRecoveryManager) restartGrafana(ctx context.Context, _ *Disas
 	return drm.restartDeployment(ctx, deploymentName, namespace)
 }
 
-// restartDeployment restarts a Kubernetes deployment by adding restart annotation
+// restartDeployment restarts a Kubernetes deployment by adding restart annotation.
 func (drm *DisasterRecoveryManager) restartDeployment(ctx context.Context, name, namespace string) error {
 	deploymentsClient := drm.k8sClient.AppsV1().Deployments(namespace)
 
-	// Get the deployment
+	// Get the deployment.
 	deployment, err := deploymentsClient.Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get deployment %s/%s: %w", namespace, name, err)
 	}
 
-	// Add restart annotation to trigger rolling restart
+	// Add restart annotation to trigger rolling restart.
 	if deployment.Spec.Template.Annotations == nil {
 		deployment.Spec.Template.Annotations = make(map[string]string)
 	}
 	deployment.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
 
-	// Update the deployment
+	// Update the deployment.
 	_, err = deploymentsClient.Update(ctx, deployment, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to restart deployment %s/%s: %w", namespace, name, err)
@@ -793,27 +799,27 @@ func (drm *DisasterRecoveryManager) restartDeployment(ctx context.Context, name,
 
 	drm.logger.Info("Deployment restart initiated", "deployment", name, "namespace", namespace)
 
-	// Wait for deployment to be ready
+	// Wait for deployment to be ready.
 	return drm.waitForDeploymentReady(ctx, name, namespace, 5*time.Minute)
 }
 
-// restartStatefulSet restarts a Kubernetes StatefulSet
+// restartStatefulSet restarts a Kubernetes StatefulSet.
 func (drm *DisasterRecoveryManager) restartStatefulSet(ctx context.Context, name, namespace string) error {
 	statefulSetsClient := drm.k8sClient.AppsV1().StatefulSets(namespace)
 
-	// Get the StatefulSet
+	// Get the StatefulSet.
 	statefulSet, err := statefulSetsClient.Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get statefulset %s/%s: %w", namespace, name, err)
 	}
 
-	// Add restart annotation to trigger rolling restart
+	// Add restart annotation to trigger rolling restart.
 	if statefulSet.Spec.Template.Annotations == nil {
 		statefulSet.Spec.Template.Annotations = make(map[string]string)
 	}
 	statefulSet.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
 
-	// Update the StatefulSet
+	// Update the StatefulSet.
 	_, err = statefulSetsClient.Update(ctx, statefulSet, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to restart statefulset %s/%s: %w", namespace, name, err)
@@ -821,11 +827,11 @@ func (drm *DisasterRecoveryManager) restartStatefulSet(ctx context.Context, name
 
 	drm.logger.Info("StatefulSet restart initiated", "statefulset", name, "namespace", namespace)
 
-	// Wait for StatefulSet to be ready
+	// Wait for StatefulSet to be ready.
 	return drm.waitForStatefulSetReady(ctx, name, namespace, 10*time.Minute)
 }
 
-// waitForDeploymentReady waits for a deployment to be ready
+// waitForDeploymentReady waits for a deployment to be ready.
 func (drm *DisasterRecoveryManager) waitForDeploymentReady(ctx context.Context, name, namespace string, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -846,7 +852,7 @@ func (drm *DisasterRecoveryManager) waitForDeploymentReady(ctx context.Context, 
 			continue
 		}
 
-		// Check if deployment is ready
+		// Check if deployment is ready.
 		if deployment.Status.ReadyReplicas == *deployment.Spec.Replicas &&
 			deployment.Status.UpdatedReplicas == *deployment.Spec.Replicas {
 			drm.logger.Info("Deployment is ready", "deployment", name, "namespace", namespace)
@@ -862,7 +868,7 @@ func (drm *DisasterRecoveryManager) waitForDeploymentReady(ctx context.Context, 
 	}
 }
 
-// waitForStatefulSetReady waits for a StatefulSet to be ready
+// waitForStatefulSetReady waits for a StatefulSet to be ready.
 func (drm *DisasterRecoveryManager) waitForStatefulSetReady(ctx context.Context, name, namespace string, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -883,7 +889,7 @@ func (drm *DisasterRecoveryManager) waitForStatefulSetReady(ctx context.Context,
 			continue
 		}
 
-		// Check if StatefulSet is ready
+		// Check if StatefulSet is ready.
 		if statefulSet.Status.ReadyReplicas == *statefulSet.Spec.Replicas &&
 			statefulSet.Status.UpdatedReplicas == *statefulSet.Spec.Replicas {
 			drm.logger.Info("StatefulSet is ready", "statefulset", name, "namespace", namespace)

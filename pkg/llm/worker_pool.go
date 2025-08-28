@@ -1,5 +1,5 @@
 //go:build !disable_rag
-// +build !disable_rag
+// +build !disable_rag.
 
 package llm
 
@@ -17,254 +17,254 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// WorkerPool provides high-performance goroutine pool for LLM processing
+// WorkerPool provides high-performance goroutine pool for LLM processing.
 type WorkerPool struct {
-	// Worker management
+	// Worker management.
 	workers     []*Worker
 	workerCount int32
 	minWorkers  int32
 	maxWorkers  int32
 
-	// Task management
+	// Task management.
 	taskQueue      chan *Task
 	priorityQueues map[Priority]chan *Task
 	resultChannel  chan *TaskResult
 
-	// Dynamic scaling
+	// Dynamic scaling.
 	scaler       *DynamicScaler
 	loadBalancer *LoadBalancer
 
-	// Worker lifecycle
+	// Worker lifecycle.
 	workerWG     sync.WaitGroup
 	shutdownCh   chan struct{}
 	shutdownOnce sync.Once
 
-	// Performance optimization
+	// Performance optimization.
 	pool      *ResourcePool
 	scheduler *TaskScheduler
 
-	// Monitoring and metrics
+	// Monitoring and metrics.
 	metrics *WorkerPoolMetrics
 	tracer  trace.Tracer
 	logger  *slog.Logger
 
-	// Configuration
+	// Configuration.
 	config *WorkerPoolConfig
 
-	// State management
+	// State management.
 	state      WorkerPoolState
 	stateMutex sync.RWMutex
 }
 
-// Worker represents a single worker goroutine with optimized processing
+// Worker represents a single worker goroutine with optimized processing.
 type Worker struct {
 	id   int32
 	pool *WorkerPool
 
-	// Processing state
+	// Processing state.
 	currentTask   *Task
 	taskProcessor *TaskProcessor
 
-	// Performance tracking
+	// Performance tracking.
 	tasksProcessed int64
 	totalTime      time.Duration
 	idleTime       time.Duration
 	lastActivity   time.Time
 
-	// Resource management
+	// Resource management.
 	resourceQuota *ResourceQuota
 	contextPool   *ContextPool
 
-	// Communication channels
+	// Communication channels.
 	taskChan    chan *Task
 	resultChan  chan *TaskResult
 	controlChan chan WorkerControl
 
-	// State
+	// State.
 	state      WorkerState
 	stateMutex sync.RWMutex
 
 	logger *slog.Logger
 }
 
-// Task represents a unit of work for the worker pool
+// Task represents a unit of work for the worker pool.
 type Task struct {
-	// Task identification
+	// Task identification.
 	ID       string
 	Type     TaskType
 	Priority Priority
 
-	// Task data
+	// Task data.
 	Intent     string
 	Parameters map[string]interface{}
 	Context    context.Context
 
-	// Processing requirements
+	// Processing requirements.
 	RequiredWorkerType WorkerType
 	EstimatedDuration  time.Duration
 	MaxRetries         int
 
-	// Callbacks and results
+	// Callbacks and results.
 	ResultCallback   func(*TaskResult)
 	ErrorCallback    func(error)
 	ProgressCallback func(*TaskProgress)
 
-	// Timing
+	// Timing.
 	CreatedAt   time.Time
 	ScheduledAt time.Time
 	StartedAt   time.Time
 
-	// Dependencies
+	// Dependencies.
 	Dependencies   []string
 	DependentTasks []string
 
-	// Resource requirements
+	// Resource requirements.
 	MemoryRequirement int64
 	CPURequirement    float64
 
-	// Metadata
+	// Metadata.
 	Metadata map[string]interface{}
 
-	// Internal state
+	// Internal state.
 	attempts   int32
 	lastError  error
 	stateMutex sync.RWMutex
 }
 
-// TaskResult represents the result of task processing
+// TaskResult represents the result of task processing.
 type TaskResult struct {
 	TaskID  string
 	Success bool
 	Result  interface{}
 	Error   error
 
-	// Performance metrics
+	// Performance metrics.
 	ProcessingTime time.Duration
 	QueueTime      time.Duration
 
-	// Worker information
+	// Worker information.
 	WorkerID   int32
 	WorkerType WorkerType
 
-	// Resource usage
+	// Resource usage.
 	MemoryUsed int64
 	CPUUsed    float64
 
-	// Timing
+	// Timing.
 	CompletedAt time.Time
 
-	// Metadata
+	// Metadata.
 	Metadata map[string]interface{}
 }
 
-// WorkerPoolConfig holds configuration for the worker pool
+// WorkerPoolConfig holds configuration for the worker pool.
 type WorkerPoolConfig struct {
-	// Pool sizing
+	// Pool sizing.
 	MinWorkers     int32 `json:"min_workers"`
 	MaxWorkers     int32 `json:"max_workers"`
 	InitialWorkers int32 `json:"initial_workers"`
 
-	// Queue configuration
+	// Queue configuration.
 	TaskQueueSize      int              `json:"task_queue_size"`
 	QueueSize          int              `json:"queue_size"` // Alias for compatibility
 	ResultQueueSize    int              `json:"result_queue_size"`
 	PriorityQueueSizes map[Priority]int `json:"priority_queue_sizes"`
 
-	// Dynamic scaling
+	// Dynamic scaling.
 	ScalingEnabled     bool          `json:"scaling_enabled"`
 	ScaleUpThreshold   float64       `json:"scale_up_threshold"`
 	ScaleDownThreshold float64       `json:"scale_down_threshold"`
 	ScalingInterval    time.Duration `json:"scaling_interval"`
 
-	// Worker configuration
+	// Worker configuration.
 	WorkerIdleTimeout time.Duration `json:"worker_idle_timeout"`
 	TaskTimeout       time.Duration `json:"task_timeout"`
 	MaxTaskRetries    int           `json:"max_task_retries"`
 
-	// Performance tuning
+	// Performance tuning.
 	BatchProcessing bool          `json:"batch_processing"`
 	BatchSize       int           `json:"batch_size"`
 	BatchTimeout    time.Duration `json:"batch_timeout"`
 
-	// Resource management
+	// Resource management.
 	MemoryLimitPerWorker int64   `json:"memory_limit_per_worker"`
 	CPULimitPerWorker    float64 `json:"cpu_limit_per_worker"`
 
-	// Monitoring
+	// Monitoring.
 	MetricsEnabled      bool          `json:"metrics_enabled"`
 	TracingEnabled      bool          `json:"tracing_enabled"`
 	HealthCheckEnabled  bool          `json:"health_check_enabled"`
 	HealthCheckInterval time.Duration `json:"health_check_interval"`
 }
 
-// DynamicScaler handles automatic worker scaling based on load
+// DynamicScaler handles automatic worker scaling based on load.
 type DynamicScaler struct {
 	pool *WorkerPool
 
-	// Scaling metrics
+	// Scaling metrics.
 	queueLength       int64
 	avgProcessTime    time.Duration
 	workerUtilization float64
 
-	// Scaling parameters
+	// Scaling parameters.
 	scaleUpThreshold   float64
 	scaleDownThreshold float64
 	cooldownPeriod     time.Duration
 	lastScaleAction    time.Time
 
-	// State
+	// State.
 	enabled bool
 	mutex   sync.RWMutex
 	logger  *slog.Logger
 }
 
-// TaskProcessor handles the actual task processing with optimizations
+// TaskProcessor handles the actual task processing with optimizations.
 type TaskProcessor struct {
-	// Processing components
+	// Processing components.
 	llmClient *OptimizedHTTPClient
 	cache     *IntelligentCache
 	validator *TaskValidator
 
-	// Performance optimizations
+	// Performance optimizations.
 	jsonParser   *FastJSONParser
 	responsePool *ResponsePool
 
-	// Context management
+	// Context management.
 	contextPool *ContextPool
 
 	logger *slog.Logger
 }
 
-// WorkerPoolMetrics tracks comprehensive performance metrics
+// WorkerPoolMetrics tracks comprehensive performance metrics.
 type WorkerPoolMetrics struct {
-	// Task metrics
+	// Task metrics.
 	TasksSubmitted int64
 	TasksCompleted int64
 	TasksFailed    int64
 	TasksRetried   int64
 	TasksDropped   int64
 
-	// Timing metrics
+	// Timing metrics.
 	TotalProcessingTime time.Duration
 	AverageQueueTime    time.Duration
 	AverageProcessTime  time.Duration
 
-	// Worker metrics
+	// Worker metrics.
 	ActiveWorkers     int32
 	IdleWorkers       int32
 	TotalWorkers      int32
 	WorkerUtilization float64
 
-	// Queue metrics
+	// Queue metrics.
 	QueueLength      int64
 	MaxQueueLength   int64
 	QueueUtilization float64
 
-	// Resource metrics
+	// Resource metrics.
 	TotalMemoryUsage int64
 	TotalCPUUsage    float64
 
-	// Performance indicators
+	// Performance indicators.
 	ThroughputRPS float64
 	LatencyP95    time.Duration
 	LatencyP99    time.Duration
@@ -272,13 +272,13 @@ type WorkerPoolMetrics struct {
 	mutex sync.RWMutex
 }
 
-// NewWorkerPool creates a new optimized worker pool
+// NewWorkerPool creates a new optimized worker pool.
 func NewWorkerPool(config *WorkerPoolConfig) (*WorkerPool, error) {
 	if config == nil {
 		config = getDefaultWorkerPoolConfig()
 	}
 
-	// Validate configuration
+	// Validate configuration.
 	if err := validateWorkerPoolConfig(config); err != nil {
 		return nil, fmt.Errorf("invalid worker pool config: %w", err)
 	}
@@ -286,7 +286,7 @@ func NewWorkerPool(config *WorkerPoolConfig) (*WorkerPool, error) {
 	logger := slog.Default().With("component", "worker-pool")
 	tracer := otel.Tracer("nephoran-intent-operator/worker-pool")
 
-	// Create worker pool
+	// Create worker pool.
 	pool := &WorkerPool{
 		workers:        make([]*Worker, 0, config.MaxWorkers),
 		minWorkers:     config.MinWorkers,
@@ -313,7 +313,7 @@ func NewWorkerPool(config *WorkerPoolConfig) (*WorkerPool, error) {
 
 	pool.scaler.pool = pool
 
-	// Initialize priority queues
+	// Initialize priority queues.
 	for _, priority := range []Priority{PriorityUrgent, PriorityHigh, PriorityNormal, PriorityLow} {
 		queueSize := config.PriorityQueueSizes[priority]
 		if queueSize == 0 {
@@ -322,14 +322,14 @@ func NewWorkerPool(config *WorkerPoolConfig) (*WorkerPool, error) {
 		pool.priorityQueues[priority] = make(chan *Task, queueSize)
 	}
 
-	// Create initial workers
+	// Create initial workers.
 	for i := int32(0); i < config.InitialWorkers; i++ {
 		if err := pool.addWorker(); err != nil {
 			return nil, fmt.Errorf("failed to create initial worker %d: %w", i, err)
 		}
 	}
 
-	// Start background processes
+	// Start background processes.
 	go pool.taskDispatcher()
 	go pool.resultCollector()
 
@@ -353,17 +353,17 @@ func NewWorkerPool(config *WorkerPoolConfig) (*WorkerPool, error) {
 	return pool, nil
 }
 
-// Submit submits a task to the worker pool
+// Submit submits a task to the worker pool.
 func (wp *WorkerPool) Submit(task *Task) error {
 	if wp.getState() != WorkerPoolStateRunning {
 		return fmt.Errorf("worker pool is not running")
 	}
 
-	// Set task metadata
+	// Set task metadata.
 	task.CreatedAt = time.Now()
 	task.ScheduledAt = time.Now()
 
-	// Add tracing
+	// Add tracing.
 	ctx, span := wp.tracer.Start(task.Context, "worker_pool.submit_task")
 	defer span.End()
 	task.Context = ctx
@@ -374,10 +374,10 @@ func (wp *WorkerPool) Submit(task *Task) error {
 		attribute.String("task.priority", fmt.Sprintf("%d", task.Priority)),
 	)
 
-	// Update metrics
+	// Update metrics.
 	atomic.AddInt64(&wp.metrics.TasksSubmitted, 1)
 
-	// Submit to appropriate priority queue
+	// Submit to appropriate priority queue.
 	select {
 	case wp.priorityQueues[task.Priority] <- task:
 		wp.logger.Debug("Task submitted",
@@ -387,7 +387,7 @@ func (wp *WorkerPool) Submit(task *Task) error {
 		)
 		return nil
 	default:
-		// Priority queue is full, try main queue
+		// Priority queue is full, try main queue.
 		select {
 		case wp.taskQueue <- task:
 			wp.logger.Debug("Task submitted to main queue",
@@ -403,13 +403,13 @@ func (wp *WorkerPool) Submit(task *Task) error {
 	}
 }
 
-// SubmitWithCallback submits a task with result callback
+// SubmitWithCallback submits a task with result callback.
 func (wp *WorkerPool) SubmitWithCallback(task *Task, callback func(*TaskResult)) error {
 	task.ResultCallback = callback
 	return wp.Submit(task)
 }
 
-// taskDispatcher distributes tasks to available workers
+// taskDispatcher distributes tasks to available workers.
 func (wp *WorkerPool) taskDispatcher() {
 	defer wp.logger.Info("Task dispatcher stopped")
 
@@ -419,11 +419,11 @@ func (wp *WorkerPool) taskDispatcher() {
 			return
 
 		default:
-			// Priority-based task selection
+			// Priority-based task selection.
 			var task *Task
 			var found bool
 
-			// Check priority queues in order
+			// Check priority queues in order.
 			for _, priority := range []Priority{PriorityUrgent, PriorityHigh, PriorityNormal, PriorityLow} {
 				select {
 				case task = <-wp.priorityQueues[priority]:
@@ -434,7 +434,7 @@ func (wp *WorkerPool) taskDispatcher() {
 				break
 			}
 
-			// Check main queue if no priority task found
+			// Check main queue if no priority task found.
 			if !found {
 				select {
 				case task = <-wp.taskQueue:
@@ -445,26 +445,26 @@ func (wp *WorkerPool) taskDispatcher() {
 			}
 
 			if found {
-				// Find available worker or create new one
+				// Find available worker or create new one.
 				if err := wp.dispatchTask(task); err != nil {
 					wp.logger.Error("Failed to dispatch task",
 						"task_id", task.ID,
 						"error", err,
 					)
 
-					// Return task to queue with retry logic
+					// Return task to queue with retry logic.
 					if atomic.LoadInt32(&task.attempts) < int32(wp.config.MaxTaskRetries) {
 						atomic.AddInt32(&task.attempts, 1)
 						task.lastError = err
 
-						// Exponential backoff retry
+						// Exponential backoff retry.
 						go func() {
 							delay := time.Duration(task.attempts) * time.Second
 							time.Sleep(delay)
 							wp.taskQueue <- task
 						}()
 					} else {
-						// Max retries exceeded
+						// Max retries exceeded.
 						atomic.AddInt64(&wp.metrics.TasksFailed, 1)
 						if task.ErrorCallback != nil {
 							task.ErrorCallback(fmt.Errorf("max retries exceeded: %w", err))
@@ -476,9 +476,9 @@ func (wp *WorkerPool) taskDispatcher() {
 	}
 }
 
-// dispatchTask assigns a task to an available worker
+// dispatchTask assigns a task to an available worker.
 func (wp *WorkerPool) dispatchTask(task *Task) error {
-	// Find idle worker
+	// Find idle worker.
 	wp.stateMutex.RLock()
 	var selectedWorker *Worker
 	for _, worker := range wp.workers {
@@ -489,14 +489,14 @@ func (wp *WorkerPool) dispatchTask(task *Task) error {
 	}
 	wp.stateMutex.RUnlock()
 
-	// No idle workers, check if we can scale up
+	// No idle workers, check if we can scale up.
 	if selectedWorker == nil {
 		if atomic.LoadInt32(&wp.workerCount) < wp.maxWorkers {
 			if err := wp.addWorker(); err != nil {
 				return fmt.Errorf("failed to add worker: %w", err)
 			}
 
-			// Try again with new worker
+			// Try again with new worker.
 			wp.stateMutex.RLock()
 			if len(wp.workers) > 0 {
 				selectedWorker = wp.workers[len(wp.workers)-1]
@@ -509,7 +509,7 @@ func (wp *WorkerPool) dispatchTask(task *Task) error {
 		return fmt.Errorf("no available workers and cannot scale up")
 	}
 
-	// Assign task to worker
+	// Assign task to worker.
 	select {
 	case selectedWorker.taskChan <- task:
 		task.StartedAt = time.Now()
@@ -524,7 +524,7 @@ func (wp *WorkerPool) dispatchTask(task *Task) error {
 	}
 }
 
-// addWorker creates and starts a new worker
+// addWorker creates and starts a new worker.
 func (wp *WorkerPool) addWorker() error {
 	workerID := atomic.AddInt32(&wp.workerCount, 1)
 
@@ -547,7 +547,7 @@ func (wp *WorkerPool) addWorker() error {
 	wp.workers = append(wp.workers, worker)
 	wp.stateMutex.Unlock()
 
-	// Start worker goroutine
+	// Start worker goroutine.
 	wp.workerWG.Add(1)
 	go worker.run()
 
@@ -555,7 +555,7 @@ func (wp *WorkerPool) addWorker() error {
 	return nil
 }
 
-// Worker execution
+// Worker execution.
 
 func (w *Worker) run() {
 	defer w.pool.workerWG.Done()
@@ -574,16 +574,16 @@ func (w *Worker) run() {
 			w.currentTask = task
 			w.lastActivity = time.Now()
 
-			// Reset idle timer
+			// Reset idle timer.
 			if !idleTimer.Stop() {
 				<-idleTimer.C
 			}
 			idleTimer.Reset(w.pool.config.WorkerIdleTimeout)
 
-			// Process task
+			// Process task.
 			result := w.processTask(task)
 
-			// Send result
+			// Send result.
 			select {
 			case w.pool.resultChannel <- result:
 			case <-time.After(time.Second * 5):
@@ -606,7 +606,7 @@ func (w *Worker) run() {
 			}
 
 		case <-idleTimer.C:
-			// Worker has been idle too long, consider shutdown if we have excess workers
+			// Worker has been idle too long, consider shutdown if we have excess workers.
 			if atomic.LoadInt32(&w.pool.workerCount) > w.pool.minWorkers {
 				w.logger.Debug("Worker shutting down due to idle timeout")
 				w.setState(WorkerStateShutdown)
@@ -621,7 +621,7 @@ func (w *Worker) run() {
 	}
 }
 
-// processTask processes a single task with full optimization
+// processTask processes a single task with full optimization.
 func (w *Worker) processTask(task *Task) *TaskResult {
 	start := time.Now()
 	ctx, span := w.pool.tracer.Start(task.Context, "worker.process_task")
@@ -639,7 +639,7 @@ func (w *Worker) processTask(task *Task) *TaskResult {
 		WorkerType: WorkerTypeLLM, // Default
 	}
 
-	// Process based on task type
+	// Process based on task type.
 	var err error
 	switch task.Type {
 	case TaskTypeLLMProcessing:
@@ -671,7 +671,7 @@ func (w *Worker) processTask(task *Task) *TaskResult {
 		atomic.AddInt64(&w.pool.metrics.TasksCompleted, 1)
 	}
 
-	// Update worker metrics
+	// Update worker metrics.
 	w.totalTime += processingTime
 
 	span.SetAttributes(
@@ -680,7 +680,7 @@ func (w *Worker) processTask(task *Task) *TaskResult {
 		attribute.Int64("queue_time_ms", result.QueueTime.Milliseconds()),
 	)
 
-	// Execute callback if provided
+	// Execute callback if provided.
 	if task.ResultCallback != nil {
 		go task.ResultCallback(result)
 	}
@@ -688,12 +688,12 @@ func (w *Worker) processTask(task *Task) *TaskResult {
 	return result
 }
 
-// processLLMTask processes LLM-specific tasks
+// processLLMTask processes LLM-specific tasks.
 func (w *Worker) processLLMTask(ctx context.Context, task *Task) (interface{}, error) {
-	// This would interface with the optimized LLM client
+	// This would interface with the optimized LLM client.
 	w.logger.Debug("Processing LLM task", "task_id", task.ID, "intent", task.Intent)
 
-	// Simulate LLM processing (replace with actual implementation)
+	// Simulate LLM processing (replace with actual implementation).
 	time.Sleep(time.Millisecond * 100) // Simulate processing time
 
 	return map[string]interface{}{
@@ -704,7 +704,7 @@ func (w *Worker) processLLMTask(ctx context.Context, task *Task) (interface{}, e
 	}, nil
 }
 
-// Background routines
+// Background routines.
 
 func (wp *WorkerPool) scalingRoutine() {
 	ticker := time.NewTicker(wp.config.ScalingInterval)
@@ -740,7 +740,7 @@ func (wp *WorkerPool) resultCollector() {
 		case <-wp.shutdownCh:
 			return
 		case result := <-wp.resultChannel:
-			// Handle result (logging, metrics, etc.)
+			// Handle result (logging, metrics, etc.).
 			wp.logger.Debug("Task completed",
 				"task_id", result.TaskID,
 				"success", result.Success,
@@ -751,7 +751,7 @@ func (wp *WorkerPool) resultCollector() {
 	}
 }
 
-// Utility functions
+// Utility functions.
 
 func (w *Worker) setState(state WorkerState) {
 	w.stateMutex.Lock()
@@ -777,22 +777,23 @@ func (wp *WorkerPool) getState() WorkerPoolState {
 	return wp.state
 }
 
-// Placeholder implementations and type definitions
+// Placeholder implementations and type definitions.
 
 func (ds *DynamicScaler) evaluateScaling() {}
 func (wp *WorkerPool) updateMetrics()      {}
 func (w *Worker) processValidationTask(ctx context.Context, task *Task) (interface{}, error) {
 	return nil, nil
 }
+
 func (w *Worker) processCachingTask(ctx context.Context, task *Task) (interface{}, error) {
 	return nil, nil
 }
 
-// processRAGTask processes RAG-specific tasks
+// processRAGTask processes RAG-specific tasks.
 func (w *Worker) processRAGTask(ctx context.Context, task *Task) (interface{}, error) {
 	w.logger.Debug("Processing RAG task", "task_id", task.ID, "intent", task.Intent)
 
-	// Simulate RAG processing (replace with actual implementation)
+	// Simulate RAG processing (replace with actual implementation).
 	time.Sleep(time.Millisecond * 150) // Simulate processing time
 
 	return map[string]interface{}{
@@ -804,11 +805,11 @@ func (w *Worker) processRAGTask(ctx context.Context, task *Task) (interface{}, e
 	}, nil
 }
 
-// processBatchTask processes batch-specific tasks
+// processBatchTask processes batch-specific tasks.
 func (w *Worker) processBatchTask(ctx context.Context, task *Task) (interface{}, error) {
 	w.logger.Debug("Processing batch task", "task_id", task.ID, "intent", task.Intent)
 
-	// Simulate batch processing (replace with actual implementation)
+	// Simulate batch processing (replace with actual implementation).
 	time.Sleep(time.Millisecond * 200) // Simulate processing time
 
 	return map[string]interface{}{
@@ -862,58 +863,94 @@ func validateWorkerPoolConfig(config *WorkerPoolConfig) error {
 	return nil
 }
 
-// Supporting type definitions
+// Supporting type definitions.
 
-// Priority is defined in batch_processor.go
-// type Priority int
-type TaskType string
-type WorkerType string
-type WorkerState int
-type WorkerPoolState int
-type WorkerControl int
+// Priority is defined in batch_processor.go.
+// type Priority int.
+type (
+	TaskType string
+	// WorkerType represents a workertype.
+	WorkerType string
+	// WorkerState represents a workerstate.
+	WorkerState int
+	// WorkerPoolState represents a workerpoolstate.
+	WorkerPoolState int
+	// WorkerControl represents a workercontrol.
+	WorkerControl int
+)
 
-type TaskProgress struct{}
-type ResourceQuota struct{}
-type ContextPool struct{}
-type ResourcePool struct{}
-type TaskScheduler struct{}
-type LoadBalancer struct{}
-type TaskValidator struct{}
-type FastJSONParser struct{}
-type ResponsePool struct{}
+// TaskProgress represents a taskprogress.
+type (
+	TaskProgress struct{}
+	// ResourceQuota represents a resourcequota.
+	ResourceQuota struct{}
+	// ContextPool represents a contextpool.
+	ContextPool struct{}
+	// ResourcePool represents a resourcepool.
+	ResourcePool struct{}
+	// TaskScheduler represents a taskscheduler.
+	TaskScheduler struct{}
+	// LoadBalancer represents a loadbalancer.
+	LoadBalancer struct{}
+	// TaskValidator represents a taskvalidator.
+	TaskValidator struct{}
+	// FastJSONParser represents a fastjsonparser.
+	FastJSONParser struct{}
+	// ResponsePool represents a responsepool.
+	ResponsePool struct{}
+)
 
 const (
-	// PriorityUrgent is defined in batch_processor.go with value 3
-	// PriorityHigh - defined in batch_processor.go
-	// PriorityNormal - defined in batch_processor.go
-	// PriorityLow - defined in batch_processor.go
+	// PriorityUrgent is defined in batch_processor.go with value 3.
+	// PriorityHigh - defined in batch_processor.go.
+	// PriorityNormal - defined in batch_processor.go.
+	// PriorityLow - defined in batch_processor.go.
 
-	TaskTypeLLMProcessing   TaskType = "llm_processing"
-	TaskTypeRAGProcessing   TaskType = "rag_processing"
+	// TaskTypeLLMProcessing holds tasktypellmprocessing value.
+	TaskTypeLLMProcessing TaskType = "llm_processing"
+	// TaskTypeRAGProcessing holds tasktyperagprocessing value.
+	TaskTypeRAGProcessing TaskType = "rag_processing"
+	// TaskTypeBatchProcessing holds tasktypebatchprocessing value.
 	TaskTypeBatchProcessing TaskType = "batch_processing"
-	TaskTypeValidation      TaskType = "validation"
-	TaskTypeCaching         TaskType = "caching"
+	// TaskTypeValidation holds tasktypevalidation value.
+	TaskTypeValidation TaskType = "validation"
+	// TaskTypeCaching holds tasktypecaching value.
+	TaskTypeCaching TaskType = "caching"
 
-	WorkerTypeLLM     WorkerType = "llm"
+	// WorkerTypeLLM holds workertypellm value.
+	WorkerTypeLLM WorkerType = "llm"
+	// WorkerTypeGeneral holds workertypegeneral value.
 	WorkerTypeGeneral WorkerType = "general"
 
+	// WorkerStateStarting holds workerstatestarting value.
 	WorkerStateStarting WorkerState = iota
+	// WorkerStateIdle holds workerstateidle value.
 	WorkerStateIdle
+	// WorkerStateBusy holds workerstatebusy value.
 	WorkerStateBusy
+	// WorkerStatePaused holds workerstatepaused value.
 	WorkerStatePaused
+	// WorkerStateShutdown holds workerstateshutdown value.
 	WorkerStateShutdown
 
+	// WorkerPoolStateStarting holds workerpoolstatestarting value.
 	WorkerPoolStateStarting WorkerPoolState = iota
+	// WorkerPoolStateRunning holds workerpoolstaterunning value.
 	WorkerPoolStateRunning
+	// WorkerPoolStatePaused holds workerpoolstatepaused value.
 	WorkerPoolStatePaused
+	// WorkerPoolStateShutdown holds workerpoolstateshutdown value.
 	WorkerPoolStateShutdown
 
+	// WorkerControlShutdown holds workercontrolshutdown value.
 	WorkerControlShutdown WorkerControl = iota
+	// WorkerControlPause holds workercontrolpause value.
 	WorkerControlPause
+	// WorkerControlResume holds workercontrolresume value.
 	WorkerControlResume
 )
 
-// Start starts the worker pool (it's already started in NewWorkerPool, so this is a no-op)
+// Start starts the worker pool (it's already started in NewWorkerPool, so this is a no-op).
 func (wp *WorkerPool) Start(ctx context.Context) error {
 	if wp.getState() == WorkerPoolStateRunning {
 		return nil // Already running
@@ -922,27 +959,27 @@ func (wp *WorkerPool) Start(ctx context.Context) error {
 	return nil
 }
 
-// Shutdown gracefully shuts down the worker pool
+// Shutdown gracefully shuts down the worker pool.
 func (wp *WorkerPool) Shutdown(ctx context.Context) error {
 	wp.shutdownOnce.Do(func() {
 		wp.setState(WorkerPoolStateShutdown)
 		close(wp.shutdownCh)
 
-		// Send shutdown signal to all workers
+		// Send shutdown signal to all workers.
 		wp.stateMutex.RLock()
 		for _, worker := range wp.workers {
 			select {
 			case worker.controlChan <- WorkerControlShutdown:
 			default:
-				// Worker might be busy, it will see shutdown channel
+				// Worker might be busy, it will see shutdown channel.
 			}
 		}
 		wp.stateMutex.RUnlock()
 
-		// Wait for all workers to complete
+		// Wait for all workers to complete.
 		wp.workerWG.Wait()
 
-		// Close channels
+		// Close channels.
 		close(wp.taskQueue)
 		for _, queue := range wp.priorityQueues {
 			close(queue)
@@ -952,12 +989,12 @@ func (wp *WorkerPool) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// GetMetrics returns current worker pool metrics
+// GetMetrics returns current worker pool metrics.
 func (wp *WorkerPool) GetMetrics() *WorkerPoolMetrics {
 	wp.metrics.mutex.RLock()
 	defer wp.metrics.mutex.RUnlock()
 
-	// Create a copy without the mutex to avoid race conditions
+	// Create a copy without the mutex to avoid race conditions.
 	metrics := &WorkerPoolMetrics{
 		TasksSubmitted:      wp.metrics.TasksSubmitted,
 		TasksCompleted:      wp.metrics.TasksCompleted,
@@ -981,7 +1018,7 @@ func (wp *WorkerPool) GetMetrics() *WorkerPoolMetrics {
 		LatencyP99:          wp.metrics.LatencyP99,
 	}
 
-	// Update real-time values
+	// Update real-time values.
 	metrics.ActiveWorkers = atomic.LoadInt32(&wp.workerCount)
 	metrics.TotalWorkers = metrics.ActiveWorkers
 	metrics.QueueLength = int64(len(wp.taskQueue))
@@ -989,7 +1026,7 @@ func (wp *WorkerPool) GetMetrics() *WorkerPoolMetrics {
 	return metrics
 }
 
-// GetStatus returns current worker pool status information
+// GetStatus returns current worker pool status information.
 func (wp *WorkerPool) GetStatus() map[string]interface{} {
 	return map[string]interface{}{
 		"running":         wp.getState() == WorkerPoolStateRunning,

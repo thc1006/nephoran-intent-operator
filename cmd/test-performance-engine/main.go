@@ -13,7 +13,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/optimization"
 )
 
-// Test that the PerformanceAnalysisEngine compiles and runs
+// Test that the PerformanceAnalysisEngine compiles and runs.
 func main() {
 	logger := logr.Discard()
 	var prometheusClient v1.API

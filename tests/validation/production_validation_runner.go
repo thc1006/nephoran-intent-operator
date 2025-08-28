@@ -1,5 +1,5 @@
-// Package validation provides production validation test runner
-// This runner orchestrates all production deployment validation tests
+// Package validation provides production validation test runner.
+// This runner orchestrates all production deployment validation tests.
 package validation
 
 import (
@@ -12,16 +12,16 @@ import (
 	"github.com/onsi/gomega"
 )
 
-// ProductionValidationRunner orchestrates comprehensive production validation testing
+// ProductionValidationRunner orchestrates comprehensive production validation testing.
 type ProductionValidationRunner struct {
 	validationSuite *ValidationSuite
 	checklist       *ProductionReadinessChecklist
 	config          *ValidationConfig
 }
 
-// NewProductionValidationRunner creates a new production validation runner
+// NewProductionValidationRunner creates a new production validation runner.
 func NewProductionValidationRunner() *ProductionValidationRunner {
-	// Create validation configuration with production targets
+	// Create validation configuration with production targets.
 	config := &ValidationConfig{
 		FunctionalTarget:  45, // Target 45/50 points
 		PerformanceTarget: 23, // Target 23/25 points
@@ -44,7 +44,7 @@ func NewProductionValidationRunner() *ProductionValidationRunner {
 		EnableSecurityTesting: true,
 	}
 
-	// Create validation suite
+	// Create validation suite.
 	validationSuite := NewValidationSuite(config)
 
 	return &ProductionValidationRunner{
@@ -53,33 +53,33 @@ func NewProductionValidationRunner() *ProductionValidationRunner {
 	}
 }
 
-// RunProductionValidation executes comprehensive production validation
+// RunProductionValidation executes comprehensive production validation.
 func (pvr *ProductionValidationRunner) RunProductionValidation(ctx context.Context) error {
 	ginkgo.By("Starting Production Deployment Validation Suite")
 
-	// Setup validation suite
+	// Setup validation suite.
 	pvr.validationSuite.SetupSuite()
 	defer pvr.validationSuite.TearDownSuite()
 
-	// Create production readiness checklist
+	// Create production readiness checklist.
 	pvr.checklist = NewProductionReadinessChecklist(pvr.validationSuite.reliabilityTest)
 
-	// Execute comprehensive validation with focus on production readiness
+	// Execute comprehensive validation with focus on production readiness.
 	results, err := pvr.validationSuite.ExecuteComprehensiveValidation(ctx)
 	if err != nil {
 		return fmt.Errorf("comprehensive validation failed: %w", err)
 	}
 
-	// Execute production readiness checklist
+	// Execute production readiness checklist.
 	checklistResults, err := pvr.checklist.ExecuteProductionReadinessAssessment(ctx)
 	if err != nil {
 		return fmt.Errorf("production readiness assessment failed: %w", err)
 	}
 
-	// Generate comprehensive reports
+	// Generate comprehensive reports.
 	pvr.generateReports(results, checklistResults)
 
-	// Validate against production targets
+	// Validate against production targets.
 	if results.ProductionScore < pvr.config.ProductionTarget {
 		return fmt.Errorf("production readiness failed: achieved %d points, target %d points",
 			results.ProductionScore, pvr.config.ProductionTarget)
@@ -96,26 +96,26 @@ func (pvr *ProductionValidationRunner) RunProductionValidation(ctx context.Conte
 	return nil
 }
 
-// generateReports generates comprehensive production validation reports
+// generateReports generates comprehensive production validation reports.
 func (pvr *ProductionValidationRunner) generateReports(results *ValidationResults, checklistResults *ProductionReadinessResults) {
-	// Generate main validation report
+	// Generate main validation report.
 	mainReport := pvr.generateMainReport(results)
 
-	// Generate production readiness checklist report
+	// Generate production readiness checklist report.
 	checklistReport := pvr.checklist.GenerateProductionReadinessReport()
 
-	// Generate detailed component reports
+	// Generate detailed component reports.
 	detailedReports := pvr.generateDetailedReports()
 
-	// Write reports to files
+	// Write reports to files.
 	pvr.writeReportsToFiles(mainReport, checklistReport, detailedReports)
 
-	// Print summary to console
+	// Print summary to console.
 	fmt.Println(mainReport)
 	fmt.Println(checklistReport)
 }
 
-// generateMainReport generates the main production validation report
+// generateMainReport generates the main production validation report.
 func (pvr *ProductionValidationRunner) generateMainReport(results *ValidationResults) string {
 	return fmt.Sprintf(`
 =============================================================================
@@ -167,34 +167,34 @@ EXECUTION SUMMARY:
 	)
 }
 
-// generateDetailedReports generates detailed component reports
+// generateDetailedReports generates detailed component reports.
 func (pvr *ProductionValidationRunner) generateDetailedReports() map[string]string {
 	reports := make(map[string]string)
 
-	// Get detailed metrics from specialized validators
+	// Get detailed metrics from specialized validators.
 	reliabilityValidator := pvr.validationSuite.reliabilityTest
 
-	// Production deployment metrics
+	// Production deployment metrics.
 	if productionMetrics := reliabilityValidator.GetProductionMetrics(); productionMetrics != nil {
 		reports["production_deployment"] = fmt.Sprintf("Production Deployment Metrics:\n%+v", productionMetrics)
 	}
 
-	// Chaos engineering metrics
+	// Chaos engineering metrics.
 	if chaosMetrics := reliabilityValidator.GetChaosMetrics(); chaosMetrics != nil {
 		reports["chaos_engineering"] = fmt.Sprintf("Chaos Engineering Metrics:\n%+v", chaosMetrics)
 	}
 
-	// Observability metrics
+	// Observability metrics.
 	if observabilityMetrics := reliabilityValidator.GetObservabilityMetrics(); observabilityMetrics != nil {
 		reports["observability"] = fmt.Sprintf("Observability Metrics:\n%+v", observabilityMetrics)
 	}
 
-	// Disaster recovery metrics
+	// Disaster recovery metrics.
 	if drMetrics := reliabilityValidator.GetDisasterRecoveryMetrics(); drMetrics != nil {
 		reports["disaster_recovery"] = fmt.Sprintf("Disaster Recovery Metrics:\n%+v", drMetrics)
 	}
 
-	// Deployment scenarios metrics
+	// Deployment scenarios metrics.
 	if deploymentMetrics := reliabilityValidator.GetDeploymentScenariosMetrics(); deploymentMetrics != nil {
 		reports["deployment_scenarios"] = fmt.Sprintf("Deployment Scenarios Metrics:\n%+v", deploymentMetrics)
 	}
@@ -202,32 +202,32 @@ func (pvr *ProductionValidationRunner) generateDetailedReports() map[string]stri
 	return reports
 }
 
-// writeReportsToFiles writes all reports to output files
+// writeReportsToFiles writes all reports to output files.
 func (pvr *ProductionValidationRunner) writeReportsToFiles(mainReport, checklistReport string, detailedReports map[string]string) {
 	outputDir := "test-results/production-validation"
 
-	// Create output directory
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
+	// Create output directory.
+	if err := os.MkdirAll(outputDir, 0o755); err != nil {
 		ginkgo.By(fmt.Sprintf("Failed to create output directory: %v", err))
 		return
 	}
 
-	// Write main report
+	// Write main report.
 	mainReportFile := fmt.Sprintf("%s/production-validation-summary.txt", outputDir)
-	if err := os.WriteFile(mainReportFile, []byte(mainReport), 0644); err != nil {
+	if err := os.WriteFile(mainReportFile, []byte(mainReport), 0o640); err != nil {
 		ginkgo.By(fmt.Sprintf("Failed to write main report: %v", err))
 	}
 
-	// Write checklist report
+	// Write checklist report.
 	checklistReportFile := fmt.Sprintf("%s/production-readiness-checklist.txt", outputDir)
-	if err := os.WriteFile(checklistReportFile, []byte(checklistReport), 0644); err != nil {
+	if err := os.WriteFile(checklistReportFile, []byte(checklistReport), 0o640); err != nil {
 		ginkgo.By(fmt.Sprintf("Failed to write checklist report: %v", err))
 	}
 
-	// Write detailed reports
+	// Write detailed reports.
 	for name, report := range detailedReports {
 		detailedReportFile := fmt.Sprintf("%s/%s-detailed.txt", outputDir, name)
-		if err := os.WriteFile(detailedReportFile, []byte(report), 0644); err != nil {
+		if err := os.WriteFile(detailedReportFile, []byte(report), 0o640); err != nil {
 			ginkgo.By(fmt.Sprintf("Failed to write %s detailed report: %v", name, err))
 		}
 	}
@@ -235,7 +235,7 @@ func (pvr *ProductionValidationRunner) writeReportsToFiles(mainReport, checklist
 	ginkgo.By(fmt.Sprintf("Production validation reports written to: %s", outputDir))
 }
 
-// Production Validation Test Suite using Ginkgo
+// Production Validation Test Suite using Ginkgo.
 var _ = ginkgo.Describe("Production Deployment Validation Suite", func() {
 	var runner *ProductionValidationRunner
 	var ctx context.Context
@@ -255,7 +255,7 @@ var _ = ginkgo.Describe("Production Deployment Validation Suite", func() {
 			err := runner.RunProductionValidation(ctx)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			// Additional validations
+			// Additional validations.
 			checklistResults := runner.checklist.GetProductionReadinessResults()
 			gomega.Expect(checklistResults).NotTo(gomega.BeNil())
 			gomega.Expect(checklistResults.TotalScore).To(gomega.BeNumerically(">=", 8))
@@ -300,7 +300,7 @@ var _ = ginkgo.Describe("Production Deployment Validation Suite", func() {
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			checklistResults := runner.checklist.GetProductionReadinessResults()
-			// Deployment scenarios are additional, so no minimum requirement
+			// Deployment scenarios are additional, so no minimum requirement.
 			gomega.Expect(checklistResults.DeploymentScenariosScore).To(gomega.BeNumerically(">=", 0))
 		})
 
@@ -309,7 +309,7 @@ var _ = ginkgo.Describe("Production Deployment Validation Suite", func() {
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			checklistResults := runner.checklist.GetProductionReadinessResults()
-			// Infrastructure as Code is additional, so no minimum requirement
+			// Infrastructure as Code is additional, so no minimum requirement.
 			gomega.Expect(checklistResults.InfrastructureAsCodeScore).To(gomega.BeNumerically(">=", 0))
 		})
 	})
@@ -319,15 +319,15 @@ var _ = ginkgo.Describe("Production Deployment Validation Suite", func() {
 			err := runner.RunProductionValidation(ctx)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			// Verify reports were generated
+			// Verify reports were generated.
 			outputDir := "test-results/production-validation"
 
-			// Check main report exists
+			// Check main report exists.
 			mainReportFile := fmt.Sprintf("%s/production-validation-summary.txt", outputDir)
 			_, err = os.Stat(mainReportFile)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			// Check checklist report exists
+			// Check checklist report exists.
 			checklistReportFile := fmt.Sprintf("%s/production-readiness-checklist.txt", outputDir)
 			_, err = os.Stat(checklistReportFile)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -335,33 +335,37 @@ var _ = ginkgo.Describe("Production Deployment Validation Suite", func() {
 	})
 })
 
-// Entry point for standalone execution
+// Entry point for standalone execution.
 func RunProductionValidationSuite() {
-	// Configure Ginkgo for production validation
-	// Create a dummy testing.T for Ginkgo - this is safe as Ginkgo doesn't actually use these methods in this context
+	// Configure Ginkgo for production validation.
+	// Create a dummy testing.T for Ginkgo - this is safe as Ginkgo doesn't actually use these methods in this context.
 	dummyT := &DummyTestingT{}
 	ginkgo.RunSpecs(dummyT, "Nephoran Production Deployment Validation Suite")
 }
 
-// DummyTestingT provides a minimal testing.T interface for Ginkgo
+// DummyTestingT provides a minimal testing.T interface for Ginkgo.
 type DummyTestingT struct {
 	failed bool
 }
 
+// Errorf performs errorf operation.
 func (t *DummyTestingT) Errorf(format string, args ...interface{}) {
 	fmt.Printf("ERROR: "+format+"\n", args...)
 	t.failed = true
 }
 
+// FailNow performs failnow operation.
 func (t *DummyTestingT) FailNow() {
 	t.failed = true
 	panic("test failed")
 }
 
+// Failed performs failed operation.
 func (t *DummyTestingT) Failed() bool {
 	return t.failed
 }
 
+// Fail performs fail operation.
 func (t *DummyTestingT) Fail() {
 	t.failed = true
 }

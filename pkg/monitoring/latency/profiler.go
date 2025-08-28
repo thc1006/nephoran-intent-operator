@@ -13,7 +13,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// ComponentLatency represents latency breakdown for a specific component
+// ComponentLatency represents latency breakdown for a specific component.
 type ComponentLatency struct {
 	Component       string             `json:"component"`
 	Duration        time.Duration      `json:"duration"`
@@ -25,7 +25,7 @@ type ComponentLatency struct {
 	DatabaseLatency *DatabaseMetrics   `json:"database_latency,omitempty"`
 }
 
-// ResourceMetrics captures resource utilization during component execution
+// ResourceMetrics captures resource utilization during component execution.
 type ResourceMetrics struct {
 	CPUUsage        float64       `json:"cpu_usage"`
 	MemoryUsage     int64         `json:"memory_usage_bytes"`
@@ -35,7 +35,7 @@ type ResourceMetrics struct {
 	GCPauseTime     time.Duration `json:"gc_pause_time"`
 }
 
-// NetworkMetrics captures network-related latencies
+// NetworkMetrics captures network-related latencies.
 type NetworkMetrics struct {
 	DNSLookupTime    time.Duration `json:"dns_lookup_time"`
 	ConnectionTime   time.Duration `json:"connection_time"`
@@ -47,7 +47,7 @@ type NetworkMetrics struct {
 	BytesReceived    int64         `json:"bytes_received"`
 }
 
-// DatabaseMetrics captures database operation latencies
+// DatabaseMetrics captures database operation latencies.
 type DatabaseMetrics struct {
 	QueryPrepTime   time.Duration `json:"query_prep_time"`
 	QueryExecTime   time.Duration `json:"query_exec_time"`
@@ -58,76 +58,76 @@ type DatabaseMetrics struct {
 	RowsAffected    int64         `json:"rows_affected"`
 }
 
-// LatencyProfiler provides deep instrumentation of the intent processing pipeline
+// LatencyProfiler provides deep instrumentation of the intent processing pipeline.
 type LatencyProfiler struct {
 	mu sync.RWMutex
 
-	// Core profiling data
+	// Core profiling data.
 	profiles map[string]*IntentProfile
 
-	// Component-level timing
+	// Component-level timing.
 	componentTimers map[string]*ComponentTimer
 
-	// Resource monitoring
+	// Resource monitoring.
 	resourceMonitor *ResourceMonitor
 
-	// Network profiling
+	// Network profiling.
 	networkProfiler *NetworkProfiler
 
-	// Database profiling
+	// Database profiling.
 	databaseProfiler *DatabaseProfiler
 
-	// CPU profiling integration
+	// CPU profiling integration.
 	cpuProfiler *CPUProfiler
 
-	// Flame graph generation
+	// Flame graph generation.
 	flameGraphGen *FlameGraphGenerator
 
-	// Metrics
+	// Metrics.
 	metrics *ProfilerMetrics
 
-	// Configuration
+	// Configuration.
 	config *ProfilerConfig
 
-	// Active traces
+	// Active traces.
 	activeTraces map[string]*ProfileTrace
 
-	// Performance counters
+	// Performance counters.
 	counters *PerformanceCounters
 }
 
-// ProfilerConfig contains configuration for the latency profiler
+// ProfilerConfig contains configuration for the latency profiler.
 type ProfilerConfig struct {
-	// Profiling configuration
+	// Profiling configuration.
 	EnableCPUProfiling    bool `json:"enable_cpu_profiling"`
 	EnableMemoryProfiling bool `json:"enable_memory_profiling"`
 	EnableBlockProfiling  bool `json:"enable_block_profiling"`
 	EnableMutexProfiling  bool `json:"enable_mutex_profiling"`
 	ProfileSamplingRate   int  `json:"profile_sampling_rate"`
 
-	// Instrumentation configuration
+	// Instrumentation configuration.
 	TraceEveryNthRequest   int           `json:"trace_every_nth_request"`
 	DetailedProfilingRatio float64       `json:"detailed_profiling_ratio"`
 	MaxProfileDuration     time.Duration `json:"max_profile_duration"`
 
-	// Resource monitoring
+	// Resource monitoring.
 	ResourceCheckInterval  time.Duration `json:"resource_check_interval"`
 	EnableResourceTracking bool          `json:"enable_resource_tracking"`
 
-	// Network profiling
+	// Network profiling.
 	EnableNetworkProfiling bool `json:"enable_network_profiling"`
 	CapturePayloadSize     bool `json:"capture_payload_size"`
 
-	// Database profiling
+	// Database profiling.
 	EnableDatabaseProfiling bool          `json:"enable_database_profiling"`
 	SlowQueryThreshold      time.Duration `json:"slow_query_threshold"`
 
-	// Storage configuration
+	// Storage configuration.
 	ProfileRetentionDays int `json:"profile_retention_days"`
 	MaxProfilesStored    int `json:"max_profiles_stored"`
 }
 
-// IntentProfile represents a complete profile of an intent processing request
+// IntentProfile represents a complete profile of an intent processing request.
 type IntentProfile struct {
 	ID              string                       `json:"id"`
 	IntentID        string                       `json:"intent_id"`
@@ -144,7 +144,7 @@ type IntentProfile struct {
 	Anomalies       []LatencyAnomaly             `json:"anomalies"`
 }
 
-// ComponentTimer tracks timing for individual components
+// ComponentTimer tracks timing for individual components.
 type ComponentTimer struct {
 	name      string
 	startTime time.Time
@@ -152,7 +152,7 @@ type ComponentTimer struct {
 	mu        sync.Mutex
 }
 
-// TimeSpan represents a time interval with metadata
+// TimeSpan represents a time interval with metadata.
 type TimeSpan struct {
 	Name     string            `json:"name"`
 	Start    time.Time         `json:"start"`
@@ -161,7 +161,7 @@ type TimeSpan struct {
 	Tags     map[string]string `json:"tags"`
 }
 
-// ResourceMonitor tracks resource utilization during profiling
+// ResourceMonitor tracks resource utilization during profiling.
 type ResourceMonitor struct {
 	mu              sync.RWMutex
 	samples         []ResourceSample
@@ -171,7 +171,7 @@ type ResourceMonitor struct {
 	cpuPercent      float64
 }
 
-// ResourceSample represents a point-in-time resource measurement
+// ResourceSample represents a point-in-time resource measurement.
 type ResourceSample struct {
 	Timestamp       time.Time     `json:"timestamp"`
 	CPUPercent      float64       `json:"cpu_percent"`
@@ -182,7 +182,7 @@ type ResourceSample struct {
 	ContextSwitches int64         `json:"context_switches"`
 }
 
-// ProfilerMetrics contains Prometheus metrics for the profiler
+// ProfilerMetrics contains Prometheus metrics for the profiler.
 type ProfilerMetrics struct {
 	profilesCreated     prometheus.Counter
 	profileDuration     prometheus.Histogram
@@ -194,7 +194,7 @@ type ProfilerMetrics struct {
 	anomaliesDetected   prometheus.Counter
 }
 
-// ProfileTrace represents an active profiling trace
+// ProfileTrace represents an active profiling trace.
 type ProfileTrace struct {
 	TraceID          string
 	StartTime        time.Time
@@ -204,7 +204,7 @@ type ProfileTrace struct {
 	ResourceBaseline *ResourceMetrics
 }
 
-// PerformanceCounters tracks various performance counters
+// PerformanceCounters tracks various performance counters.
 type PerformanceCounters struct {
 	intentCount        atomic.Int64
 	totalLatency       atomic.Int64
@@ -215,7 +215,7 @@ type PerformanceCounters struct {
 	cacheMisses        atomic.Int64
 }
 
-// NewLatencyProfiler creates a new latency profiler instance
+// NewLatencyProfiler creates a new latency profiler instance.
 func NewLatencyProfiler(config *ProfilerConfig) *LatencyProfiler {
 	if config == nil {
 		config = DefaultProfilerConfig()
@@ -229,22 +229,22 @@ func NewLatencyProfiler(config *ProfilerConfig) *LatencyProfiler {
 		counters:        &PerformanceCounters{},
 	}
 
-	// Initialize sub-profilers
+	// Initialize sub-profilers.
 	profiler.resourceMonitor = NewResourceMonitor(config)
 	profiler.networkProfiler = NewNetworkProfiler(config)
 	profiler.databaseProfiler = NewDatabaseProfiler(config)
 	profiler.cpuProfiler = NewCPUProfiler(config)
 	profiler.flameGraphGen = NewFlameGraphGenerator()
 
-	// Initialize metrics
+	// Initialize metrics.
 	profiler.initMetrics()
 
-	// Start background monitoring if enabled
+	// Start background monitoring if enabled.
 	if config.EnableResourceTracking {
 		go profiler.runResourceMonitoring()
 	}
 
-	// Configure runtime profiling
+	// Configure runtime profiling.
 	if config.EnableBlockProfiling {
 		runtime.SetBlockProfileRate(config.ProfileSamplingRate)
 	}
@@ -255,7 +255,7 @@ func NewLatencyProfiler(config *ProfilerConfig) *LatencyProfiler {
 	return profiler
 }
 
-// StartIntentProfiling begins profiling an intent processing request
+// StartIntentProfiling begins profiling an intent processing request.
 func (p *LatencyProfiler) StartIntentProfiling(ctx context.Context, intentID string) context.Context {
 	profileID := fmt.Sprintf("profile-%s-%d", intentID, time.Now().UnixNano())
 
@@ -266,12 +266,12 @@ func (p *LatencyProfiler) StartIntentProfiling(ctx context.Context, intentID str
 		Components: make(map[string]*ComponentLatency),
 	}
 
-	// Store the profile
+	// Store the profile.
 	p.mu.Lock()
 	p.profiles[profileID] = profile
 	p.mu.Unlock()
 
-	// Create trace
+	// Create trace.
 	trace := &ProfileTrace{
 		TraceID:          profileID,
 		StartTime:        time.Now(),
@@ -283,21 +283,21 @@ func (p *LatencyProfiler) StartIntentProfiling(ctx context.Context, intentID str
 	p.activeTraces[profileID] = trace
 	p.mu.Unlock()
 
-	// Store profile ID in context
+	// Store profile ID in context.
 	ctx = context.WithValue(ctx, "profile_id", profileID)
 
-	// Start CPU profiling if enabled for this request
+	// Start CPU profiling if enabled for this request.
 	if p.shouldProfileRequest() && p.config.EnableCPUProfiling {
 		p.cpuProfiler.Start(profileID)
 	}
 
-	// Increment counters
+	// Increment counters.
 	p.counters.intentCount.Add(1)
 
 	return ctx
 }
 
-// EndIntentProfiling completes profiling for an intent
+// EndIntentProfiling completes profiling for an intent.
 func (p *LatencyProfiler) EndIntentProfiling(ctx context.Context) *IntentProfile {
 	profileID, ok := ctx.Value("profile_id").(string)
 	if !ok {
@@ -314,11 +314,11 @@ func (p *LatencyProfiler) EndIntentProfiling(ctx context.Context) *IntentProfile
 		return nil
 	}
 
-	// Finalize profile
+	// Finalize profile.
 	profile.EndTime = time.Now()
 	profile.TotalDuration = profile.EndTime.Sub(profile.StartTime)
 
-	// Stop CPU profiling
+	// Stop CPU profiling.
 	if p.config.EnableCPUProfiling {
 		cpuProfile := p.cpuProfiler.Stop(profileID)
 		if cpuProfile != nil {
@@ -326,31 +326,31 @@ func (p *LatencyProfiler) EndIntentProfiling(ctx context.Context) *IntentProfile
 		}
 	}
 
-	// Capture final resource metrics
+	// Capture final resource metrics.
 	if trace != nil && trace.ResourceBaseline != nil {
 		currentMetrics := p.captureResourceMetrics()
 		profile.ResourceProfile = p.calculateResourceDelta(trace.ResourceBaseline, currentMetrics)
 	}
 
-	// Analyze critical path
+	// Analyze critical path.
 	profile.CriticalPath = p.analyzeCriticalPath(profile)
 
-	// Detect bottlenecks
+	// Detect bottlenecks.
 	profile.Bottlenecks = p.detectBottlenecks(profile)
 
-	// Detect anomalies
+	// Detect anomalies.
 	profile.Anomalies = p.detectAnomalies(profile)
 
-	// Update metrics
+	// Update metrics.
 	p.updateMetrics(profile)
 
-	// Update counters
+	// Update counters.
 	p.counters.totalLatency.Add(int64(profile.TotalDuration))
 
 	return profile
 }
 
-// StartComponentTiming begins timing a specific component
+// StartComponentTiming begins timing a specific component.
 func (p *LatencyProfiler) StartComponentTiming(ctx context.Context, component string) context.Context {
 	profileID, ok := ctx.Value("profile_id").(string)
 	if !ok {
@@ -366,20 +366,20 @@ func (p *LatencyProfiler) StartComponentTiming(ctx context.Context, component st
 	p.mu.Lock()
 	p.componentTimers[fmt.Sprintf("%s-%s", profileID, component)] = timer
 
-	// Update component stack
+	// Update component stack.
 	if trace, exists := p.activeTraces[profileID]; exists {
 		trace.ComponentStack = append(trace.ComponentStack, component)
 		trace.CurrentComponent = component
 	}
 	p.mu.Unlock()
 
-	// Store component in context
+	// Store component in context.
 	ctx = context.WithValue(ctx, "current_component", component)
 
 	return ctx
 }
 
-// EndComponentTiming completes timing for a component
+// EndComponentTiming completes timing for a component.
 func (p *LatencyProfiler) EndComponentTiming(ctx context.Context, component string) *ComponentLatency {
 	profileID, ok := ctx.Value("profile_id").(string)
 	if !ok {
@@ -392,7 +392,7 @@ func (p *LatencyProfiler) EndComponentTiming(ctx context.Context, component stri
 	timer, exists := p.componentTimers[timerKey]
 	delete(p.componentTimers, timerKey)
 
-	// Update component stack
+	// Update component stack.
 	if trace, exists := p.activeTraces[profileID]; exists && len(trace.ComponentStack) > 0 {
 		trace.ComponentStack = trace.ComponentStack[:len(trace.ComponentStack)-1]
 		if len(trace.ComponentStack) > 0 {
@@ -417,19 +417,19 @@ func (p *LatencyProfiler) EndComponentTiming(ctx context.Context, component stri
 		EndTime:   endTime,
 	}
 
-	// Capture resource metrics for this component
+	// Capture resource metrics for this component.
 	if p.config.EnableResourceTracking {
 		componentLatency.ResourceMetrics = p.captureResourceMetrics()
 	}
 
-	// Store in profile
+	// Store in profile.
 	p.mu.Lock()
 	if profile, exists := p.profiles[profileID]; exists {
 		profile.Components[component] = componentLatency
 	}
 	p.mu.Unlock()
 
-	// Update component counter
+	// Update component counter.
 	if counter, ok := p.counters.componentLatencies.LoadOrStore(component, &atomic.Int64{}); ok {
 		counter.(*atomic.Int64).Add(int64(duration))
 	}
@@ -437,7 +437,7 @@ func (p *LatencyProfiler) EndComponentTiming(ctx context.Context, component stri
 	return componentLatency
 }
 
-// RecordNetworkLatency records network operation latency
+// RecordNetworkLatency records network operation latency.
 func (p *LatencyProfiler) RecordNetworkLatency(ctx context.Context, operation string, metrics *NetworkMetrics) {
 	if !p.config.EnableNetworkProfiling {
 		return
@@ -453,7 +453,7 @@ func (p *LatencyProfiler) RecordNetworkLatency(ctx context.Context, operation st
 	p.networkProfiler.Record(profileID, component, operation, metrics)
 	p.counters.networkCalls.Add(1)
 
-	// Update component latency with network metrics
+	// Update component latency with network metrics.
 	p.mu.Lock()
 	if profile, exists := p.profiles[profileID]; exists {
 		if compLatency, exists := profile.Components[component]; exists {
@@ -463,7 +463,7 @@ func (p *LatencyProfiler) RecordNetworkLatency(ctx context.Context, operation st
 	p.mu.Unlock()
 }
 
-// RecordDatabaseLatency records database operation latency
+// RecordDatabaseLatency records database operation latency.
 func (p *LatencyProfiler) RecordDatabaseLatency(ctx context.Context, operation string, metrics *DatabaseMetrics) {
 	if !p.config.EnableDatabaseProfiling {
 		return
@@ -479,7 +479,7 @@ func (p *LatencyProfiler) RecordDatabaseLatency(ctx context.Context, operation s
 	p.databaseProfiler.Record(profileID, component, operation, metrics)
 	p.counters.databaseQueries.Add(1)
 
-	// Update component latency with database metrics
+	// Update component latency with database metrics.
 	p.mu.Lock()
 	if profile, exists := p.profiles[profileID]; exists {
 		if compLatency, exists := profile.Components[component]; exists {
@@ -489,7 +489,7 @@ func (p *LatencyProfiler) RecordDatabaseLatency(ctx context.Context, operation s
 	p.mu.Unlock()
 }
 
-// RecordCacheAccess records cache hit/miss
+// RecordCacheAccess records cache hit/miss.
 func (p *LatencyProfiler) RecordCacheAccess(ctx context.Context, hit bool, latency time.Duration) {
 	if hit {
 		p.counters.cacheHits.Add(1)
@@ -497,16 +497,16 @@ func (p *LatencyProfiler) RecordCacheAccess(ctx context.Context, hit bool, laten
 		p.counters.cacheMisses.Add(1)
 	}
 
-	// Record in component timing if active
+	// Record in component timing if active.
 	if component, ok := ctx.Value("current_component").(string); ok {
 		p.recordSubComponentTiming(ctx, fmt.Sprintf("cache_%s", component), latency)
 	}
 }
 
-// Helper methods
+// Helper methods.
 
 func (p *LatencyProfiler) shouldProfileRequest() bool {
-	// Implement sampling logic based on configuration
+	// Implement sampling logic based on configuration.
 	if p.config.TraceEveryNthRequest <= 0 {
 		return false
 	}
@@ -541,11 +541,11 @@ func (p *LatencyProfiler) calculateResourceDelta(baseline, current *ResourceMetr
 }
 
 func (p *LatencyProfiler) analyzeCriticalPath(profile *IntentProfile) []string {
-	// Identify the longest sequence of dependent components
+	// Identify the longest sequence of dependent components.
 	var criticalPath []string
 
-	// Simple implementation: return components sorted by duration
-	// In production, this would use dependency graph analysis
+	// Simple implementation: return components sorted by duration.
+	// In production, this would use dependency graph analysis.
 	type componentDuration struct {
 		name     string
 		duration time.Duration
@@ -559,7 +559,7 @@ func (p *LatencyProfiler) analyzeCriticalPath(profile *IntentProfile) []string {
 		})
 	}
 
-	// Sort by duration (descending)
+	// Sort by duration (descending).
 	for i := 0; i < len(components); i++ {
 		for j := i + 1; j < len(components); j++ {
 			if components[j].duration > components[i].duration {
@@ -568,7 +568,7 @@ func (p *LatencyProfiler) analyzeCriticalPath(profile *IntentProfile) []string {
 		}
 	}
 
-	// Return top components as critical path
+	// Return top components as critical path.
 	for i := 0; i < len(components) && i < 5; i++ {
 		criticalPath = append(criticalPath, components[i].name)
 	}
@@ -579,9 +579,9 @@ func (p *LatencyProfiler) analyzeCriticalPath(profile *IntentProfile) []string {
 func (p *LatencyProfiler) detectBottlenecks(profile *IntentProfile) []Bottleneck {
 	var bottlenecks []Bottleneck
 
-	// Check for components exceeding thresholds
+	// Check for components exceeding thresholds.
 	for component, latency := range profile.Components {
-		// Component taking more than 30% of total time
+		// Component taking more than 30% of total time.
 		if latency.Duration > profile.TotalDuration*30/100 {
 			bottlenecks = append(bottlenecks, Bottleneck{
 				Component:   component,
@@ -591,7 +591,7 @@ func (p *LatencyProfiler) detectBottlenecks(profile *IntentProfile) []Bottleneck
 			})
 		}
 
-		// High resource usage
+		// High resource usage.
 		if latency.ResourceMetrics != nil && latency.ResourceMetrics.CPUUsage > 80 {
 			bottlenecks = append(bottlenecks, Bottleneck{
 				Component:   component,
@@ -601,7 +601,7 @@ func (p *LatencyProfiler) detectBottlenecks(profile *IntentProfile) []Bottleneck
 			})
 		}
 
-		// Database bottlenecks
+		// Database bottlenecks.
 		if latency.DatabaseLatency != nil && latency.DatabaseLatency.LockWaitTime > 100*time.Millisecond {
 			bottlenecks = append(bottlenecks, Bottleneck{
 				Component:   component,
@@ -618,7 +618,7 @@ func (p *LatencyProfiler) detectBottlenecks(profile *IntentProfile) []Bottleneck
 func (p *LatencyProfiler) detectAnomalies(profile *IntentProfile) []LatencyAnomaly {
 	var anomalies []LatencyAnomaly
 
-	// Compare against historical averages
+	// Compare against historical averages.
 	for component, latency := range profile.Components {
 		if avgLatency := p.getAverageLatency(component); avgLatency > 0 {
 			deviation := float64(latency.Duration) / float64(avgLatency)
@@ -648,7 +648,7 @@ func (p *LatencyProfiler) getAverageLatency(component string) time.Duration {
 }
 
 func (p *LatencyProfiler) recordSubComponentTiming(ctx context.Context, subComponent string, duration time.Duration) {
-	// Record timing for sub-components within a main component
+	// Record timing for sub-components within a main component.
 	profileID, _ := ctx.Value("profile_id").(string)
 	component, _ := ctx.Value("current_component").(string)
 
@@ -734,14 +734,14 @@ func (p *LatencyProfiler) updateMetrics(profile *IntentProfile) {
 	p.metrics.anomaliesDetected.Add(float64(len(profile.Anomalies)))
 }
 
-// GetProfile retrieves a specific profile by ID
+// GetProfile retrieves a specific profile by ID.
 func (p *LatencyProfiler) GetProfile(profileID string) *IntentProfile {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 	return p.profiles[profileID]
 }
 
-// GetRecentProfiles returns the most recent profiles
+// GetRecentProfiles returns the most recent profiles.
 func (p *LatencyProfiler) GetRecentProfiles(count int) []*IntentProfile {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -757,7 +757,7 @@ func (p *LatencyProfiler) GetRecentProfiles(count int) []*IntentProfile {
 	return profiles
 }
 
-// GetStatistics returns profiling statistics
+// GetStatistics returns profiling statistics.
 func (p *LatencyProfiler) GetStatistics() *ProfilerStatistics {
 	return &ProfilerStatistics{
 		TotalIntents:    p.counters.intentCount.Load(),
@@ -778,8 +778,9 @@ func (p *LatencyProfiler) calculateCacheHitRate() float64 {
 	return float64(hits) / float64(total)
 }
 
-// Supporting types
+// Supporting types.
 
+// Bottleneck represents a bottleneck.
 type Bottleneck struct {
 	Component   string  `json:"component"`
 	Type        string  `json:"type"`
@@ -787,6 +788,7 @@ type Bottleneck struct {
 	Description string  `json:"description"`
 }
 
+// LatencyAnomaly represents a latencyanomaly.
 type LatencyAnomaly struct {
 	Component string  `json:"component"`
 	Type      string  `json:"type"`
@@ -794,6 +796,7 @@ type LatencyAnomaly struct {
 	Message   string  `json:"message"`
 }
 
+// ResourceProfile represents a resourceprofile.
 type ResourceProfile struct {
 	CPUUsageDelta    float64       `json:"cpu_usage_delta"`
 	MemoryUsageDelta int64         `json:"memory_usage_delta"`
@@ -801,6 +804,7 @@ type ResourceProfile struct {
 	GCPauseTimeDelta time.Duration `json:"gc_pause_time_delta"`
 }
 
+// NetworkProfile represents a networkprofile.
 type NetworkProfile struct {
 	TotalCalls     int           `json:"total_calls"`
 	TotalLatency   time.Duration `json:"total_latency"`
@@ -808,6 +812,7 @@ type NetworkProfile struct {
 	SlowCalls      int           `json:"slow_calls"`
 }
 
+// DatabaseProfile represents a databaseprofile.
 type DatabaseProfile struct {
 	TotalQueries int           `json:"total_queries"`
 	TotalLatency time.Duration `json:"total_latency"`
@@ -815,6 +820,7 @@ type DatabaseProfile struct {
 	LockWaitTime time.Duration `json:"lock_wait_time"`
 }
 
+// ProfilerStatistics represents a profilerstatistics.
 type ProfilerStatistics struct {
 	TotalIntents    int64         `json:"total_intents"`
 	AverageLatency  time.Duration `json:"average_latency"`
@@ -823,14 +829,16 @@ type ProfilerStatistics struct {
 	CacheHitRate    float64       `json:"cache_hit_rate"`
 }
 
-// Helper functions for sub-profilers
+// Helper functions for sub-profilers.
 
+// NewResourceMonitor performs newresourcemonitor operation.
 func NewResourceMonitor(config *ProfilerConfig) *ResourceMonitor {
 	return &ResourceMonitor{
 		samples: make([]ResourceSample, 0, 1000),
 	}
 }
 
+// Sample performs sample operation.
 func (r *ResourceMonitor) Sample() {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
@@ -845,24 +853,27 @@ func (r *ResourceMonitor) Sample() {
 
 	r.mu.Lock()
 	r.samples = append(r.samples, sample)
-	// Keep only last 1000 samples
+	// Keep only last 1000 samples.
 	if len(r.samples) > 1000 {
 		r.samples = r.samples[len(r.samples)-1000:]
 	}
 	r.mu.Unlock()
 }
 
+// NewNetworkProfiler performs newnetworkprofiler operation.
 func NewNetworkProfiler(config *ProfilerConfig) *NetworkProfiler {
 	return &NetworkProfiler{
 		profiles: make(map[string]*NetworkProfile),
 	}
 }
 
+// NetworkProfiler represents a networkprofiler.
 type NetworkProfiler struct {
 	mu       sync.RWMutex
 	profiles map[string]*NetworkProfile
 }
 
+// Record performs record operation.
 func (n *NetworkProfiler) Record(profileID, component, operation string, metrics *NetworkMetrics) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
@@ -880,6 +891,7 @@ func (n *NetworkProfiler) Record(profileID, component, operation string, metrics
 	}
 }
 
+// NewDatabaseProfiler performs newdatabaseprofiler operation.
 func NewDatabaseProfiler(config *ProfilerConfig) *DatabaseProfiler {
 	return &DatabaseProfiler{
 		profiles:           make(map[string]*DatabaseProfile),
@@ -887,12 +899,14 @@ func NewDatabaseProfiler(config *ProfilerConfig) *DatabaseProfiler {
 	}
 }
 
+// DatabaseProfiler represents a databaseprofiler.
 type DatabaseProfiler struct {
 	mu                 sync.RWMutex
 	profiles           map[string]*DatabaseProfile
 	slowQueryThreshold time.Duration
 }
 
+// Record performs record operation.
 func (d *DatabaseProfiler) Record(profileID, component, operation string, metrics *DatabaseMetrics) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -911,6 +925,7 @@ func (d *DatabaseProfiler) Record(profileID, component, operation string, metric
 	}
 }
 
+// NewCPUProfiler performs newcpuprofiler operation.
 func NewCPUProfiler(config *ProfilerConfig) *CPUProfiler {
 	return &CPUProfiler{
 		profiles: make(map[string]*pprof.Profile),
@@ -918,21 +933,24 @@ func NewCPUProfiler(config *ProfilerConfig) *CPUProfiler {
 	}
 }
 
+// CPUProfiler represents a cpuprofiler.
 type CPUProfiler struct {
 	mu       sync.RWMutex
 	profiles map[string]*pprof.Profile
 	enabled  bool
 }
 
+// Start performs start operation.
 func (c *CPUProfiler) Start(profileID string) {
 	if !c.enabled {
 		return
 	}
 
-	// CPU profiling implementation would go here
-	// Using runtime/pprof package
+	// CPU profiling implementation would go here.
+	// Using runtime/pprof package.
 }
 
+// Stop performs stop operation.
 func (c *CPUProfiler) Stop(profileID string) *pprof.Profile {
 	if !c.enabled {
 		return nil
@@ -944,19 +962,22 @@ func (c *CPUProfiler) Stop(profileID string) *pprof.Profile {
 	return c.profiles[profileID]
 }
 
+// NewFlameGraphGenerator performs newflamegraphgenerator operation.
 func NewFlameGraphGenerator() *FlameGraphGenerator {
 	return &FlameGraphGenerator{}
 }
 
+// FlameGraphGenerator represents a flamegraphgenerator.
 type FlameGraphGenerator struct{}
 
+// Generate performs generate operation.
 func (f *FlameGraphGenerator) Generate(profile *pprof.Profile) []byte {
-	// Flame graph generation implementation would go here
-	// This would convert the pprof data to flame graph format
+	// Flame graph generation implementation would go here.
+	// This would convert the pprof data to flame graph format.
 	return nil
 }
 
-// DefaultProfilerConfig returns default configuration
+// DefaultProfilerConfig returns default configuration.
 func DefaultProfilerConfig() *ProfilerConfig {
 	return &ProfilerConfig{
 		EnableCPUProfiling:      true,

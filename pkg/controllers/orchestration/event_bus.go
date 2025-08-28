@@ -29,7 +29,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
-// ProcessingEvent represents an event during intent processing
+// ProcessingEvent represents an event during intent processing.
 type ProcessingEvent struct {
 	Type          string                     `json:"type"`
 	Source        string                     `json:"source"`
@@ -42,65 +42,89 @@ type ProcessingEvent struct {
 	Metadata      map[string]string          `json:"metadata,omitempty"`
 }
 
-// EventHandler defines the interface for event handling
+// EventHandler defines the interface for event handling.
 type EventHandler func(ctx context.Context, event ProcessingEvent) error
 
-// EventBus provides decoupled communication between controllers
+// EventBus provides decoupled communication between controllers.
 type EventBus struct {
 	client   client.Client
 	recorder record.EventRecorder
 	logger   logr.Logger
 
-	// Event handling
+	// Event handling.
 	subscribers map[string][]EventHandler
 	mutex       sync.RWMutex
 
-	// Event persistence
+	// Event persistence.
 	eventStore *EventStore
 
-	// Configuration
+	// Configuration.
 	bufferSize   int
 	maxRetries   int
 	retryBackoff time.Duration
 
-	// Channels for event processing
+	// Channels for event processing.
 	eventChan chan ProcessingEvent
 	stopChan  chan bool
 	started   bool
 }
 
-// Event types for phase transitions
+// Event types for phase transitions.
 const (
-	EventIntentReceived                  = "intent.received"
-	EventLLMProcessingStarted            = "llm.processing.started"
-	EventLLMProcessingCompleted          = "llm.processing.completed"
-	EventLLMProcessingFailed             = "llm.processing.failed"
-	EventResourcePlanningStarted         = "resource.planning.started"
-	EventResourcePlanningCompleted       = "resource.planning.completed"
-	EventResourcePlanningFailed          = "resource.planning.failed"
-	EventManifestGenerationStarted       = "manifest.generation.started"
-	EventManifestGenerationCompleted     = "manifest.generation.completed"
-	EventManifestGenerationFailed        = "manifest.generation.failed"
-	EventGitOpsCommitStarted             = "gitops.commit.started"
-	EventGitOpsCommitCompleted           = "gitops.commit.completed"
-	EventGitOpsCommitFailed              = "gitops.commit.failed"
-	EventDeploymentVerificationStarted   = "deployment.verification.started"
+	// EventIntentReceived holds eventintentreceived value.
+	EventIntentReceived = "intent.received"
+	// EventLLMProcessingStarted holds eventllmprocessingstarted value.
+	EventLLMProcessingStarted = "llm.processing.started"
+	// EventLLMProcessingCompleted holds eventllmprocessingcompleted value.
+	EventLLMProcessingCompleted = "llm.processing.completed"
+	// EventLLMProcessingFailed holds eventllmprocessingfailed value.
+	EventLLMProcessingFailed = "llm.processing.failed"
+	// EventResourcePlanningStarted holds eventresourceplanningstarted value.
+	EventResourcePlanningStarted = "resource.planning.started"
+	// EventResourcePlanningCompleted holds eventresourceplanningcompleted value.
+	EventResourcePlanningCompleted = "resource.planning.completed"
+	// EventResourcePlanningFailed holds eventresourceplanningfailed value.
+	EventResourcePlanningFailed = "resource.planning.failed"
+	// EventManifestGenerationStarted holds eventmanifestgenerationstarted value.
+	EventManifestGenerationStarted = "manifest.generation.started"
+	// EventManifestGenerationCompleted holds eventmanifestgenerationcompleted value.
+	EventManifestGenerationCompleted = "manifest.generation.completed"
+	// EventManifestGenerationFailed holds eventmanifestgenerationfailed value.
+	EventManifestGenerationFailed = "manifest.generation.failed"
+	// EventGitOpsCommitStarted holds eventgitopscommitstarted value.
+	EventGitOpsCommitStarted = "gitops.commit.started"
+	// EventGitOpsCommitCompleted holds eventgitopscommitcompleted value.
+	EventGitOpsCommitCompleted = "gitops.commit.completed"
+	// EventGitOpsCommitFailed holds eventgitopscommitfailed value.
+	EventGitOpsCommitFailed = "gitops.commit.failed"
+	// EventDeploymentVerificationStarted holds eventdeploymentverificationstarted value.
+	EventDeploymentVerificationStarted = "deployment.verification.started"
+	// EventDeploymentVerificationCompleted holds eventdeploymentverificationcompleted value.
 	EventDeploymentVerificationCompleted = "deployment.verification.completed"
-	EventDeploymentVerificationFailed    = "deployment.verification.failed"
-	EventProcessingFailed                = "processing.failed"
-	EventRetryRequired                   = "retry.required"
-	EventIntentCompleted                 = "intent.completed"
-	EventIntentFailed                    = "intent.failed"
+	// EventDeploymentVerificationFailed holds eventdeploymentverificationfailed value.
+	EventDeploymentVerificationFailed = "deployment.verification.failed"
+	// EventProcessingFailed holds eventprocessingfailed value.
+	EventProcessingFailed = "processing.failed"
+	// EventRetryRequired holds eventretryrequired value.
+	EventRetryRequired = "retry.required"
+	// EventIntentCompleted holds eventintentcompleted value.
+	EventIntentCompleted = "intent.completed"
+	// EventIntentFailed holds eventintentfailed value.
+	EventIntentFailed = "intent.failed"
 
-	// Cross-phase coordination events
-	EventDependencyMet       = "dependency.met"
-	EventResourceAllocated   = "resource.allocated"
+	// Cross-phase coordination events.
+	EventDependencyMet = "dependency.met"
+	// EventResourceAllocated holds eventresourceallocated value.
+	EventResourceAllocated = "resource.allocated"
+	// EventResourceDeallocated holds eventresourcedeallocated value.
 	EventResourceDeallocated = "resource.deallocated"
-	EventErrorRecovery       = "error.recovery"
-	EventParallelPhaseSync   = "parallel.phase.sync"
+	// EventErrorRecovery holds eventerrorrecovery value.
+	EventErrorRecovery = "error.recovery"
+	// EventParallelPhaseSync holds eventparallelphasesync value.
+	EventParallelPhaseSync = "parallel.phase.sync"
 )
 
-// NewEventBus creates a new EventBus
+// NewEventBus creates a new EventBus.
 func NewEventBus(client client.Client, logger logr.Logger) *EventBus {
 	return &EventBus{
 		client:       client,
@@ -115,7 +139,7 @@ func NewEventBus(client client.Client, logger logr.Logger) *EventBus {
 	}
 }
 
-// Subscribe registers an event handler for a specific event type
+// Subscribe registers an event handler for a specific event type.
 func (e *EventBus) Subscribe(eventType string, handler EventHandler) error {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
@@ -130,7 +154,7 @@ func (e *EventBus) Subscribe(eventType string, handler EventHandler) error {
 	return nil
 }
 
-// Unsubscribe removes an event handler (note: removes all handlers for the event type)
+// Unsubscribe removes an event handler (note: removes all handlers for the event type).
 func (e *EventBus) Unsubscribe(eventType string) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
@@ -139,23 +163,23 @@ func (e *EventBus) Unsubscribe(eventType string) {
 	e.logger.Info("Unsubscribed from event type", "eventType", eventType)
 }
 
-// Publish publishes an event to all subscribers
+// Publish publishes an event to all subscribers.
 func (e *EventBus) Publish(ctx context.Context, event ProcessingEvent) error {
 	if !e.started {
 		return fmt.Errorf("event bus not started")
 	}
 
-	// Add timestamp if not set
+	// Add timestamp if not set.
 	if event.Timestamp.IsZero() {
 		event.Timestamp = time.Now()
 	}
 
-	// Store event for persistence
+	// Store event for persistence.
 	if err := e.eventStore.Store(event); err != nil {
 		e.logger.Error(err, "Failed to store event", "eventType", event.Type, "intentId", event.IntentID)
 	}
 
-	// Send to processing channel (non-blocking)
+	// Send to processing channel (non-blocking).
 	select {
 	case e.eventChan <- event:
 		return nil
@@ -165,7 +189,7 @@ func (e *EventBus) Publish(ctx context.Context, event ProcessingEvent) error {
 	}
 }
 
-// PublishPhaseEvent publishes a phase-specific event
+// PublishPhaseEvent publishes a phase-specific event.
 func (e *EventBus) PublishPhaseEvent(ctx context.Context, phase interfaces.ProcessingPhase, eventType string, intentID string, success bool, data map[string]interface{}) error {
 	event := ProcessingEvent{
 		Type:          eventType,
@@ -181,7 +205,7 @@ func (e *EventBus) PublishPhaseEvent(ctx context.Context, phase interfaces.Proce
 	return e.Publish(ctx, event)
 }
 
-// Start starts the event bus processing
+// Start starts the event bus processing.
 func (e *EventBus) Start(ctx context.Context) error {
 	if e.started {
 		return fmt.Errorf("event bus already started")
@@ -189,14 +213,14 @@ func (e *EventBus) Start(ctx context.Context) error {
 
 	e.started = true
 
-	// Start event processing goroutine
+	// Start event processing goroutine.
 	go e.processEvents(ctx)
 
 	e.logger.Info("Event bus started")
 	return nil
 }
 
-// Stop stops the event bus
+// Stop stops the event bus.
 func (e *EventBus) Stop(ctx context.Context) error {
 	if !e.started {
 		return nil
@@ -207,7 +231,7 @@ func (e *EventBus) Stop(ctx context.Context) error {
 	close(e.stopChan)
 	e.started = false
 
-	// Wait for processing to complete with timeout
+	// Wait for processing to complete with timeout.
 	select {
 	case <-time.After(10 * time.Second):
 		e.logger.Info("Event bus stopped with timeout")
@@ -218,7 +242,7 @@ func (e *EventBus) Stop(ctx context.Context) error {
 	return nil
 }
 
-// processEvents processes events from the event channel
+// processEvents processes events from the event channel.
 func (e *EventBus) processEvents(ctx context.Context) {
 	e.logger.Info("Started event processing")
 
@@ -238,15 +262,15 @@ func (e *EventBus) processEvents(ctx context.Context) {
 	}
 }
 
-// handleEvent processes a single event
+// handleEvent processes a single event.
 func (e *EventBus) handleEvent(ctx context.Context, event ProcessingEvent) {
 	log := e.logger.WithValues("eventType", event.Type, "intentId", event.IntentID, "phase", event.Phase)
 
-	// Get subscribers for this event type
+	// Get subscribers for this event type.
 	e.mutex.RLock()
 	handlers := e.subscribers[event.Type]
 
-	// Also get wildcard subscribers (if any)
+	// Also get wildcard subscribers (if any).
 	wildcardHandlers := e.subscribers["*"]
 	allHandlers := append(handlers, wildcardHandlers...)
 	e.mutex.RUnlock()
@@ -258,12 +282,12 @@ func (e *EventBus) handleEvent(ctx context.Context, event ProcessingEvent) {
 
 	log.Info("Processing event", "handlerCount", len(allHandlers))
 
-	// Process handlers with retry logic
+	// Process handlers with retry logic.
 	for i, handler := range allHandlers {
 		if err := e.executeHandlerWithRetry(ctx, handler, event); err != nil {
 			log.Error(err, "Handler failed permanently", "handlerIndex", i)
 
-			// Record handler failure
+			// Record handler failure.
 			e.recordHandlerFailure(event, i, err)
 		}
 	}
@@ -271,13 +295,13 @@ func (e *EventBus) handleEvent(ctx context.Context, event ProcessingEvent) {
 	log.V(1).Info("Event processed successfully")
 }
 
-// executeHandlerWithRetry executes a handler with retry logic
+// executeHandlerWithRetry executes a handler with retry logic.
 func (e *EventBus) executeHandlerWithRetry(ctx context.Context, handler EventHandler, event ProcessingEvent) error {
 	var lastErr error
 
 	for attempt := 0; attempt < e.maxRetries; attempt++ {
 		if attempt > 0 {
-			// Wait before retry
+			// Wait before retry.
 			select {
 			case <-time.After(e.retryBackoff * time.Duration(attempt)):
 			case <-ctx.Done():
@@ -297,39 +321,39 @@ func (e *EventBus) executeHandlerWithRetry(ctx context.Context, handler EventHan
 	return fmt.Errorf("handler failed after %d attempts: %w", e.maxRetries, lastErr)
 }
 
-// recordHandlerFailure records a handler failure for monitoring
+// recordHandlerFailure records a handler failure for monitoring.
 func (e *EventBus) recordHandlerFailure(event ProcessingEvent, handlerIndex int, err error) {
-	// Create a Kubernetes event for the failure
+	// Create a Kubernetes event for the failure.
 	if e.recorder != nil {
 		_ = fmt.Sprintf("Event handler %d failed for event type %s: %v", handlerIndex, event.Type, err)
 
-		// We would need an object reference here - in practice, this would be the NetworkIntent
-		// For now, we'll just log it
+		// We would need an object reference here - in practice, this would be the NetworkIntent.
+		// For now, we'll just log it.
 		e.logger.Error(err, "Handler failure recorded", "eventType", event.Type, "handlerIndex", handlerIndex)
 	}
 }
 
-// GetEventHistory retrieves event history for an intent
+// GetEventHistory retrieves event history for an intent.
 func (e *EventBus) GetEventHistory(ctx context.Context, intentID string) ([]ProcessingEvent, error) {
 	return e.eventStore.GetEventsByIntentID(intentID)
 }
 
-// GetEventsByType retrieves events by type
+// GetEventsByType retrieves events by type.
 func (e *EventBus) GetEventsByType(ctx context.Context, eventType string, limit int) ([]ProcessingEvent, error) {
 	return e.eventStore.GetEventsByType(eventType, limit)
 }
 
-// EventStore provides event persistence
+// EventStore provides event persistence.
 type EventStore struct {
 	events []ProcessingEvent
 	mutex  sync.RWMutex
 
-	// Configuration
+	// Configuration.
 	maxEvents     int
 	retentionTime time.Duration
 }
 
-// NewEventStore creates a new event store
+// NewEventStore creates a new event store.
 func NewEventStore() *EventStore {
 	return &EventStore{
 		events:        make([]ProcessingEvent, 0),
@@ -338,22 +362,22 @@ func NewEventStore() *EventStore {
 	}
 }
 
-// Store stores an event
+// Store stores an event.
 func (es *EventStore) Store(event ProcessingEvent) error {
 	es.mutex.Lock()
 	defer es.mutex.Unlock()
 
-	// Add event
+	// Add event.
 	es.events = append(es.events, event)
 
-	// Cleanup old events if needed
+	// Cleanup old events if needed.
 	if len(es.events) > es.maxEvents {
-		// Remove oldest 10% of events
+		// Remove oldest 10% of events.
 		removeCount := es.maxEvents / 10
 		es.events = es.events[removeCount:]
 	}
 
-	// Cleanup events older than retention time
+	// Cleanup events older than retention time.
 	cutoff := time.Now().Add(-es.retentionTime)
 	for i, e := range es.events {
 		if e.Timestamp.After(cutoff) {
@@ -365,7 +389,7 @@ func (es *EventStore) Store(event ProcessingEvent) error {
 	return nil
 }
 
-// GetEventsByIntentID retrieves events for a specific intent
+// GetEventsByIntentID retrieves events for a specific intent.
 func (es *EventStore) GetEventsByIntentID(intentID string) ([]ProcessingEvent, error) {
 	es.mutex.RLock()
 	defer es.mutex.RUnlock()
@@ -380,7 +404,7 @@ func (es *EventStore) GetEventsByIntentID(intentID string) ([]ProcessingEvent, e
 	return result, nil
 }
 
-// GetEventsByType retrieves events by type
+// GetEventsByType retrieves events by type.
 func (es *EventStore) GetEventsByType(eventType string, limit int) ([]ProcessingEvent, error) {
 	es.mutex.RLock()
 	defer es.mutex.RUnlock()
@@ -388,7 +412,7 @@ func (es *EventStore) GetEventsByType(eventType string, limit int) ([]Processing
 	var result []ProcessingEvent
 	count := 0
 
-	// Return most recent events first
+	// Return most recent events first.
 	for i := len(es.events) - 1; i >= 0 && count < limit; i-- {
 		if es.events[i].Type == eventType {
 			result = append(result, es.events[i])
@@ -399,7 +423,7 @@ func (es *EventStore) GetEventsByType(eventType string, limit int) ([]Processing
 	return result, nil
 }
 
-// EventBusMetrics provides metrics for the event bus
+// EventBusMetrics provides metrics for the event bus.
 type EventBusMetrics struct {
 	TotalEventsPublished  int64            `json:"totalEventsPublished"`
 	TotalEventsProcessed  int64            `json:"totalEventsProcessed"`
@@ -411,14 +435,14 @@ type EventBusMetrics struct {
 	mutex sync.RWMutex
 }
 
-// NewEventBusMetrics creates new metrics collector
+// NewEventBusMetrics creates new metrics collector.
 func NewEventBusMetrics() *EventBusMetrics {
 	return &EventBusMetrics{
 		EventsPerType: make(map[string]int64),
 	}
 }
 
-// RecordEventPublished records an event publication
+// RecordEventPublished records an event publication.
 func (m *EventBusMetrics) RecordEventPublished(eventType string) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -427,14 +451,14 @@ func (m *EventBusMetrics) RecordEventPublished(eventType string) {
 	m.EventsPerType[eventType]++
 }
 
-// RecordEventProcessed records event processing completion
+// RecordEventProcessed records event processing completion.
 func (m *EventBusMetrics) RecordEventProcessed(processingTime time.Duration) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
 	m.TotalEventsProcessed++
 
-	// Update average processing time (simple moving average)
+	// Update average processing time (simple moving average).
 	if m.AverageProcessingTime == 0 {
 		m.AverageProcessingTime = processingTime
 	} else {
@@ -442,7 +466,7 @@ func (m *EventBusMetrics) RecordEventProcessed(processingTime time.Duration) {
 	}
 }
 
-// RecordHandlerFailure records a handler failure
+// RecordHandlerFailure records a handler failure.
 func (m *EventBusMetrics) RecordHandlerFailure() {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -450,7 +474,7 @@ func (m *EventBusMetrics) RecordHandlerFailure() {
 	m.FailedHandlers++
 }
 
-// GetMetrics returns current metrics
+// GetMetrics returns current metrics.
 func (m *EventBusMetrics) GetMetrics() map[string]interface{} {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()

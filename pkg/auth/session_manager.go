@@ -13,29 +13,29 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
 
-// SessionManager manages user sessions and SSO
+// SessionManager manages user sessions and SSO.
 type SessionManager struct {
-	// Session storage
+	// Session storage.
 	sessions map[string]*UserSession
 
-	// Components
+	// Components.
 	jwtManager  *JWTManager
 	rbacManager *RBACManager
 	providers   map[string]providers.OAuthProvider
 
-	// Configuration
+	// Configuration.
 	config *SessionConfig
 
-	// State management
+	// State management.
 	stateStore map[string]*AuthState // CSRF state management
 
 	logger *slog.Logger
 	mutex  sync.RWMutex
 }
 
-// UserSession is defined in interfaces.go
+// UserSession is defined in interfaces.go.
 
-// AuthState represents OAuth2 authorization state
+// AuthState represents OAuth2 authorization state.
 type AuthState struct {
 	State         string                   `json:"state"`
 	Provider      string                   `json:"provider"`
@@ -46,11 +46,11 @@ type AuthState struct {
 	IPAddress     string                   `json:"ip_address"`
 	UserAgent     string                   `json:"user_agent"`
 
-	// Custom parameters
+	// Custom parameters.
 	CustomParams map[string]string `json:"custom_params,omitempty"`
 }
 
-// SessionConfig represents session configuration
+// SessionConfig represents session configuration.
 type SessionConfig struct {
 	SessionTimeout   time.Duration `json:"session_timeout"`
 	RefreshThreshold time.Duration `json:"refresh_threshold"`
@@ -60,21 +60,21 @@ type SessionConfig struct {
 	CookieDomain     string        `json:"cookie_domain"`
 	CookiePath       string        `json:"cookie_path"`
 
-	// SSO settings
+	// SSO settings.
 	EnableSSO      bool   `json:"enable_sso"`
 	SSODomain      string `json:"sso_domain"`
 	CrossDomainSSO bool   `json:"cross_domain_sso"`
 
-	// Security settings
+	// Security settings.
 	EnableCSRF   bool          `json:"enable_csrf"`
 	StateTimeout time.Duration `json:"state_timeout"`
 	RequireHTTPS bool          `json:"require_https"`
 
-	// Session cleanup
+	// Session cleanup.
 	CleanupInterval time.Duration `json:"cleanup_interval"`
 }
 
-// LoginRequest represents a login initiation request
+// LoginRequest represents a login initiation request.
 type LoginRequest struct {
 	Provider    string            `json:"provider"`
 	RedirectURI string            `json:"redirect_uri,omitempty"`
@@ -84,7 +84,7 @@ type LoginRequest struct {
 	UserAgent   string            `json:"user_agent"`
 }
 
-// LoginResponse represents login initiation response
+// LoginResponse represents login initiation response.
 type LoginResponse struct {
 	AuthURL       string `json:"auth_url"`
 	State         string `json:"state"`
@@ -92,7 +92,7 @@ type LoginResponse struct {
 	PKCEChallenge string `json:"pkce_challenge,omitempty"`
 }
 
-// CallbackRequest represents OAuth2 callback request
+// CallbackRequest represents OAuth2 callback request.
 type CallbackRequest struct {
 	Provider    string `json:"provider"`
 	Code        string `json:"code"`
@@ -102,7 +102,7 @@ type CallbackRequest struct {
 	UserAgent   string `json:"user_agent"`
 }
 
-// CallbackResponse represents OAuth2 callback response
+// CallbackResponse represents OAuth2 callback response.
 type CallbackResponse struct {
 	Success      bool                `json:"success"`
 	SessionID    string              `json:"session_id"`
@@ -114,7 +114,7 @@ type CallbackResponse struct {
 	Error        string              `json:"error,omitempty"`
 }
 
-// SessionInfo represents session information for API responses
+// SessionInfo represents session information for API responses.
 type SessionInfo struct {
 	ID           string              `json:"id"`
 	UserID       string              `json:"user_id"`
@@ -129,7 +129,7 @@ type SessionInfo struct {
 	UserInfo     *providers.UserInfo `json:"user_info,omitempty"`
 }
 
-// NewSessionManager creates a new session manager
+// NewSessionManager creates a new session manager.
 func NewSessionManager(config *SessionConfig, jwtManager *JWTManager, rbacManager *RBACManager, logger *slog.Logger) *SessionManager {
 	if config == nil {
 		config = &SessionConfig{
@@ -157,13 +157,13 @@ func NewSessionManager(config *SessionConfig, jwtManager *JWTManager, rbacManage
 		logger:      logger,
 	}
 
-	// Start background cleanup
+	// Start background cleanup.
 	go manager.cleanupLoop()
 
 	return manager
 }
 
-// RegisterProvider registers an OAuth2 provider
+// RegisterProvider registers an OAuth2 provider.
 func (sm *SessionManager) RegisterProvider(provider providers.OAuthProvider) {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
@@ -176,24 +176,24 @@ func (sm *SessionManager) RegisterProvider(provider providers.OAuthProvider) {
 		"features", provider.GetConfiguration().Features)
 }
 
-// InitiateLogin starts the OAuth2 login flow
+// InitiateLogin starts the OAuth2 login flow.
 func (sm *SessionManager) InitiateLogin(ctx context.Context, request *LoginRequest) (*LoginResponse, error) {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 
-	// Validate provider
+	// Validate provider.
 	provider, exists := sm.providers[request.Provider]
 	if !exists {
 		return nil, fmt.Errorf("unknown provider: %s", request.Provider)
 	}
 
-	// Generate state
+	// Generate state.
 	state := request.State
 	if state == "" {
 		state = sm.generateState()
 	}
 
-	// Build auth options
+	// Build auth options.
 	capacity := len(request.Options)
 	if sm.config.EnableCSRF {
 		capacity++
@@ -203,18 +203,18 @@ func (sm *SessionManager) InitiateLogin(ctx context.Context, request *LoginReque
 		authOptions = append(authOptions, providers.WithPKCE())
 	}
 
-	// Add custom options
+	// Add custom options.
 	for key, value := range request.Options {
 		authOptions = append(authOptions, providers.WithCustomParam(key, value))
 	}
 
-	// Get authorization URL
+	// Get authorization URL.
 	authURL, challenge, err := provider.GetAuthorizationURL(state, request.RedirectURI, authOptions...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get authorization URL: %w", err)
 	}
 
-	// Store state
+	// Store state.
 	authState := &AuthState{
 		State:         state,
 		Provider:      request.Provider,
@@ -246,12 +246,12 @@ func (sm *SessionManager) InitiateLogin(ctx context.Context, request *LoginReque
 	return response, nil
 }
 
-// HandleCallback handles OAuth2 callback and creates session
+// HandleCallback handles OAuth2 callback and creates session.
 func (sm *SessionManager) HandleCallback(ctx context.Context, request *CallbackRequest) (*CallbackResponse, error) {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 
-	// Validate state
+	// Validate state.
 	authState, exists := sm.stateStore[request.State]
 	if !exists {
 		return &CallbackResponse{
@@ -260,7 +260,7 @@ func (sm *SessionManager) HandleCallback(ctx context.Context, request *CallbackR
 		}, nil
 	}
 
-	// Check state expiration
+	// Check state expiration.
 	if time.Now().After(authState.ExpiresAt) {
 		delete(sm.stateStore, request.State)
 		return &CallbackResponse{
@@ -269,7 +269,7 @@ func (sm *SessionManager) HandleCallback(ctx context.Context, request *CallbackR
 		}, nil
 	}
 
-	// Validate provider match
+	// Validate provider match.
 	if authState.Provider != request.Provider {
 		return &CallbackResponse{
 			Success: false,
@@ -277,7 +277,7 @@ func (sm *SessionManager) HandleCallback(ctx context.Context, request *CallbackR
 		}, nil
 	}
 
-	// Get provider
+	// Get provider.
 	provider, exists := sm.providers[request.Provider]
 	if !exists {
 		return &CallbackResponse{
@@ -286,7 +286,7 @@ func (sm *SessionManager) HandleCallback(ctx context.Context, request *CallbackR
 		}, nil
 	}
 
-	// Exchange code for token
+	// Exchange code for token.
 	tokenResponse, err := provider.ExchangeCodeForToken(ctx, request.Code, request.RedirectURI, authState.PKCEChallenge)
 	if err != nil {
 		sm.logger.Error("Token exchange failed",
@@ -298,7 +298,7 @@ func (sm *SessionManager) HandleCallback(ctx context.Context, request *CallbackR
 		}, nil
 	}
 
-	// Get user info
+	// Get user info.
 	userInfo, err := provider.GetUserInfo(ctx, tokenResponse.AccessToken)
 	if err != nil {
 		sm.logger.Error("Failed to get user info",
@@ -310,7 +310,7 @@ func (sm *SessionManager) HandleCallback(ctx context.Context, request *CallbackR
 		}, nil
 	}
 
-	// Create user session
+	// Create user session.
 	session, err := sm.createUserSession(ctx, userInfo, tokenResponse, request)
 	if err != nil {
 		sm.logger.Error("Failed to create user session",
@@ -323,7 +323,7 @@ func (sm *SessionManager) HandleCallback(ctx context.Context, request *CallbackR
 		}, nil
 	}
 
-	// Clean up state
+	// Clean up state.
 	delete(sm.stateStore, request.State)
 
 	sm.logger.Info("User authentication successful",
@@ -342,9 +342,9 @@ func (sm *SessionManager) HandleCallback(ctx context.Context, request *CallbackR
 	}, nil
 }
 
-// CreateSession creates a new user session
+// CreateSession creates a new user session.
 func (sm *SessionManager) createUserSession(ctx context.Context, userInfo *providers.UserInfo, tokenResponse *providers.TokenResponse, request *CallbackRequest) (*UserSession, error) {
-	// Assign roles based on provider claims
+	// Assign roles based on provider claims.
 	if sm.rbacManager != nil {
 		if err := sm.rbacManager.AssignRolesFromClaims(ctx, userInfo); err != nil {
 			sm.logger.Warn("Failed to assign roles from claims",
@@ -353,18 +353,18 @@ func (sm *SessionManager) createUserSession(ctx context.Context, userInfo *provi
 		}
 	}
 
-	// Get user roles and permissions
+	// Get user roles and permissions.
 	var roles, permissions []string
 	if sm.rbacManager != nil {
 		roles = sm.rbacManager.GetUserRoles(ctx, userInfo.Subject)
 		permissions = sm.rbacManager.GetUserPermissions(ctx, userInfo.Subject)
 	}
 
-	// Generate session ID and CSRF token
+	// Generate session ID and CSRF token.
 	sessionID := sm.generateSessionID()
 	csrfToken := sm.generateCSRFToken()
 
-	// Create session
+	// Create session.
 	session := &UserSession{
 		ID:             sessionID,
 		UserID:         userInfo.Subject,
@@ -387,18 +387,18 @@ func (sm *SessionManager) createUserSession(ctx context.Context, userInfo *provi
 		SecureContext:  sm.config.RequireHTTPS,
 	}
 
-	// Check session limits
+	// Check session limits.
 	if err := sm.enforceSessionLimits(userInfo.Subject); err != nil {
 		return nil, fmt.Errorf("session limit exceeded: %w", err)
 	}
 
-	// Store session
+	// Store session.
 	sm.sessions[sessionID] = session
 
 	return session, nil
 }
 
-// GetSession retrieves a session by ID
+// GetSession retrieves a session by ID.
 func (sm *SessionManager) GetSession(ctx context.Context, sessionID string) (*UserSession, error) {
 	sm.mutex.RLock()
 	defer sm.mutex.RUnlock()
@@ -408,7 +408,7 @@ func (sm *SessionManager) GetSession(ctx context.Context, sessionID string) (*Us
 		return nil, fmt.Errorf("session not found")
 	}
 
-	// Check expiration
+	// Check expiration.
 	if time.Now().After(session.ExpiresAt) {
 		sm.mutex.RUnlock()
 		sm.mutex.Lock()
@@ -418,13 +418,13 @@ func (sm *SessionManager) GetSession(ctx context.Context, sessionID string) (*Us
 		return nil, fmt.Errorf("session expired")
 	}
 
-	// Update last activity
+	// Update last activity.
 	session.LastActivity = time.Now()
 
 	return session, nil
 }
 
-// RefreshSession refreshes session tokens if needed
+// RefreshSession refreshes session tokens if needed.
 func (sm *SessionManager) RefreshSession(ctx context.Context, sessionID string) error {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
@@ -434,18 +434,18 @@ func (sm *SessionManager) RefreshSession(ctx context.Context, sessionID string) 
 		return fmt.Errorf("session not found")
 	}
 
-	// Check if refresh is needed
+	// Check if refresh is needed.
 	if time.Until(session.ExpiresAt) > sm.config.RefreshThreshold {
 		return nil // No refresh needed
 	}
 
-	// Get provider
+	// Get provider.
 	provider, exists := sm.providers[session.Provider]
 	if !exists {
 		return fmt.Errorf("provider not available for refresh")
 	}
 
-	// Refresh token
+	// Refresh token.
 	tokenResponse, err := provider.RefreshToken(ctx, session.RefreshToken)
 	if err != nil {
 		sm.logger.Error("Token refresh failed",
@@ -456,7 +456,7 @@ func (sm *SessionManager) RefreshSession(ctx context.Context, sessionID string) 
 		return fmt.Errorf("token refresh failed: %w", err)
 	}
 
-	// Update session
+	// Update session.
 	session.AccessToken = tokenResponse.AccessToken
 	if tokenResponse.RefreshToken != "" {
 		session.RefreshToken = tokenResponse.RefreshToken
@@ -475,14 +475,14 @@ func (sm *SessionManager) RefreshSession(ctx context.Context, sessionID string) 
 	return nil
 }
 
-// ValidateSession validates a session and returns user info
+// ValidateSession validates a session and returns user info.
 func (sm *SessionManager) ValidateSession(ctx context.Context, sessionID string) (*SessionInfo, error) {
 	session, err := sm.GetSession(ctx, sessionID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Try to refresh if near expiration
+	// Try to refresh if near expiration.
 	if time.Until(session.ExpiresAt) < sm.config.RefreshThreshold {
 		if refreshErr := sm.RefreshSession(ctx, sessionID); refreshErr != nil {
 			sm.logger.Warn("Session refresh failed during validation",
@@ -506,7 +506,7 @@ func (sm *SessionManager) ValidateSession(ctx context.Context, sessionID string)
 	}, nil
 }
 
-// RevokeSession revokes a user session
+// RevokeSession revokes a user session.
 func (sm *SessionManager) RevokeSession(ctx context.Context, sessionID string) error {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
@@ -516,7 +516,7 @@ func (sm *SessionManager) RevokeSession(ctx context.Context, sessionID string) e
 		return fmt.Errorf("session not found")
 	}
 
-	// Revoke tokens with provider if supported
+	// Revoke tokens with provider if supported.
 	if provider, exists := sm.providers[session.Provider]; exists {
 		if provider.SupportsFeature(providers.FeatureTokenRevocation) {
 			if err := provider.RevokeToken(ctx, session.AccessToken); err != nil {
@@ -528,7 +528,7 @@ func (sm *SessionManager) RevokeSession(ctx context.Context, sessionID string) e
 		}
 	}
 
-	// Revoke JWT tokens
+	// Revoke JWT tokens.
 	if sm.jwtManager != nil {
 		if err := sm.jwtManager.RevokeUserTokens(ctx, session.UserID); err != nil {
 			sm.logger.Warn("Failed to revoke JWT tokens",
@@ -538,7 +538,7 @@ func (sm *SessionManager) RevokeSession(ctx context.Context, sessionID string) e
 		}
 	}
 
-	// Remove session
+	// Remove session.
 	delete(sm.sessions, sessionID)
 
 	sm.logger.Info("Session revoked",
@@ -549,7 +549,7 @@ func (sm *SessionManager) RevokeSession(ctx context.Context, sessionID string) e
 	return nil
 }
 
-// RevokeUserSessions revokes all sessions for a user
+// RevokeUserSessions revokes all sessions for a user.
 func (sm *SessionManager) RevokeUserSessions(ctx context.Context, userID string) error {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
@@ -564,7 +564,7 @@ func (sm *SessionManager) RevokeUserSessions(ctx context.Context, userID string)
 	for _, sessionID := range sessionIDs {
 		session := sm.sessions[sessionID]
 
-		// Revoke tokens with provider
+		// Revoke tokens with provider.
 		if provider, exists := sm.providers[session.Provider]; exists {
 			if provider.SupportsFeature(providers.FeatureTokenRevocation) {
 				provider.RevokeToken(ctx, session.AccessToken)
@@ -574,7 +574,7 @@ func (sm *SessionManager) RevokeUserSessions(ctx context.Context, userID string)
 		delete(sm.sessions, sessionID)
 	}
 
-	// Revoke JWT tokens
+	// Revoke JWT tokens.
 	if sm.jwtManager != nil {
 		sm.jwtManager.RevokeUserTokens(ctx, userID)
 	}
@@ -586,7 +586,7 @@ func (sm *SessionManager) RevokeUserSessions(ctx context.Context, userID string)
 	return nil
 }
 
-// ListUserSessions returns all active sessions for a user
+// ListUserSessions returns all active sessions for a user.
 func (sm *SessionManager) ListUserSessions(ctx context.Context, userID string) ([]*SessionInfo, error) {
 	sm.mutex.RLock()
 	defer sm.mutex.RUnlock()
@@ -614,7 +614,7 @@ func (sm *SessionManager) ListUserSessions(ctx context.Context, userID string) (
 	return sessions, nil
 }
 
-// GetSessionMetrics returns session statistics
+// GetSessionMetrics returns session statistics.
 func (sm *SessionManager) GetSessionMetrics(ctx context.Context) map[string]interface{} {
 	sm.mutex.RLock()
 	defer sm.mutex.RUnlock()
@@ -645,12 +645,12 @@ func (sm *SessionManager) GetSessionMetrics(ctx context.Context) map[string]inte
 	}
 }
 
-// Helper methods
+// Helper methods.
 
 func (sm *SessionManager) generateSessionID() string {
 	bytes := make([]byte, 32)
 	if _, err := rand.Read(bytes); err != nil {
-		// Fallback to time-based ID if random generation fails
+		// Fallback to time-based ID if random generation fails.
 		return fmt.Sprintf("%x", time.Now().UnixNano())
 	}
 	return hex.EncodeToString(bytes)
@@ -659,7 +659,7 @@ func (sm *SessionManager) generateSessionID() string {
 func (sm *SessionManager) generateState() string {
 	bytes := make([]byte, 16)
 	if _, err := rand.Read(bytes); err != nil {
-		// Fallback to time-based state if random generation fails
+		// Fallback to time-based state if random generation fails.
 		return fmt.Sprintf("%x", time.Now().UnixNano())
 	}
 	return hex.EncodeToString(bytes)
@@ -668,7 +668,7 @@ func (sm *SessionManager) generateState() string {
 func (sm *SessionManager) generateCSRFToken() string {
 	bytes := make([]byte, 16)
 	if _, err := rand.Read(bytes); err != nil {
-		// Fallback to time-based token if random generation fails
+		// Fallback to time-based token if random generation fails.
 		return fmt.Sprintf("%x", time.Now().UnixNano())
 	}
 	return hex.EncodeToString(bytes)
@@ -743,7 +743,7 @@ func (sm *SessionManager) cleanupExpiredStates() {
 	}
 }
 
-// SetSessionCookie sets session cookie on HTTP response
+// SetSessionCookie sets session cookie on HTTP response.
 func (sm *SessionManager) SetSessionCookie(w http.ResponseWriter, sessionID string) {
 	cookie := &http.Cookie{
 		Name:     "nephoran_session",
@@ -767,7 +767,7 @@ func (sm *SessionManager) SetSessionCookie(w http.ResponseWriter, sessionID stri
 	http.SetCookie(w, cookie)
 }
 
-// ClearSessionCookie clears session cookie
+// ClearSessionCookie clears session cookie.
 func (sm *SessionManager) ClearSessionCookie(w http.ResponseWriter) {
 	cookie := &http.Cookie{
 		Name:     "nephoran_session",
@@ -782,7 +782,7 @@ func (sm *SessionManager) ClearSessionCookie(w http.ResponseWriter) {
 	http.SetCookie(w, cookie)
 }
 
-// SessionData represents data used to create a new session
+// SessionData represents data used to create a new session.
 type SessionData struct {
 	UserID      string            `json:"user_id"`
 	Username    string            `json:"username"`
@@ -794,7 +794,7 @@ type SessionData struct {
 	Metadata    map[string]string `json:"metadata,omitempty"`
 }
 
-// CreateSession creates a new user session from session data
+// CreateSession creates a new user session from session data.
 func (sm *SessionManager) CreateSession(ctx context.Context, data *SessionData) (*UserSession, error) {
 	sessionID := sm.generateSessionID()
 
@@ -823,7 +823,7 @@ func (sm *SessionManager) CreateSession(ctx context.Context, data *SessionData) 
 	return session, nil
 }
 
-// InvalidateSession invalidates a session by session ID
+// InvalidateSession invalidates a session by session ID.
 func (sm *SessionManager) InvalidateSession(ctx context.Context, sessionID string) error {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()

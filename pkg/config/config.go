@@ -12,80 +12,80 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/interfaces"
 )
 
-// Config holds all configuration for the Nephoran Intent Operator
+// Config holds all configuration for the Nephoran Intent Operator.
 type Config struct {
-	// Controller configuration
+	// Controller configuration.
 	MetricsAddr          string
 	ProbeAddr            string
 	EnableLeaderElection bool
 
-	// Intent processing features - control core functionality
+	// Intent processing features - control core functionality.
 	EnableNetworkIntent bool // Enable/disable NetworkIntent controller (default: true) - controls whether NetworkIntent CRDs are reconciled
 	EnableLLMIntent     bool // Enable/disable LLM Intent processing (default: false) - enables AI-powered natural language intent interpretation
 
-	// LLM Processor configuration
+	// LLM Processor configuration.
 	LLMProcessorURL     string
 	LLMProcessorTimeout time.Duration
 	LLMTimeout          time.Duration // Timeout for individual LLM requests in seconds (default: 15s) - balances response time vs reliability
 	LLMMaxRetries       int           // Maximum retry attempts for LLM requests (default: 2) - uses exponential backoff, 0-10 range
 	LLMCacheMaxEntries  int           // Maximum entries in LLM response cache (default: 512) - LRU eviction, ~1-5KB per entry
 
-	// RAG API configuration
+	// RAG API configuration.
 	RAGAPIURLInternal string
 	RAGAPIURLExternal string
 	RAGAPITimeout     time.Duration
 
-	// Git integration configuration
+	// Git integration configuration.
 	GitRepoURL             string
 	GitToken               string
 	GitTokenPath           string // Path to file containing Git token
 	GitBranch              string
 	GitConcurrentPushLimit int // Maximum concurrent git operations (default 4 if <= 0)
 
-	// Weaviate configuration
+	// Weaviate configuration.
 	WeaviateURL   string
 	WeaviateIndex string
 
-	// OpenAI configuration
+	// OpenAI configuration.
 	OpenAIAPIKey         string
 	OpenAIModel          string
 	OpenAIEmbeddingModel string
 
-	// Kubernetes configuration
+	// Kubernetes configuration.
 	Namespace string
 	CRDPath   string
 
-	// HTTP configuration
+	// HTTP configuration.
 	HTTPMaxBody int64 // Maximum HTTP request body size in bytes (default: 1MB) - prevents DoS attacks, range 1KB-100MB
 
-	// Metrics configuration - observability and security
+	// Metrics configuration - observability and security.
 	MetricsEnabled    bool     // Enable/disable Prometheus metrics endpoint (default: false) - exposes /metrics for monitoring
 	MetricsAllowedIPs []string // Comma-separated IP addresses allowed to access metrics - security control, empty blocks all, "*" allows all
 
-	// mTLS Configuration
+	// mTLS Configuration.
 	MTLSConfig *MTLSConfig
 }
 
-// MTLSConfig holds mTLS-specific configuration
+// MTLSConfig holds mTLS-specific configuration.
 type MTLSConfig struct {
-	// Global mTLS settings
+	// Global mTLS settings.
 	Enabled            bool   `yaml:"enabled"`
 	RequireClientCerts bool   `yaml:"require_client_certs"`
 	TenantID           string `yaml:"tenant_id"`
 
-	// Certificate Authority settings
+	// Certificate Authority settings.
 	CAManagerEnabled bool   `yaml:"ca_manager_enabled"`
 	AutoProvision    bool   `yaml:"auto_provision"`
 	PolicyTemplate   string `yaml:"policy_template"`
 
-	// Certificate paths and settings
+	// Certificate paths and settings.
 	CertificateBaseDir string        `yaml:"certificate_base_dir"`
 	ValidityDuration   time.Duration `yaml:"validity_duration"`
 	RenewalThreshold   time.Duration `yaml:"renewal_threshold"`
 	RotationEnabled    bool          `yaml:"rotation_enabled"`
 	RotationInterval   time.Duration `yaml:"rotation_interval"`
 
-	// Service-specific configurations
+	// Service-specific configurations.
 	Controller   *ServiceMTLSConfig `yaml:"controller"`
 	LLMProcessor *ServiceMTLSConfig `yaml:"llm_processor"`
 	RAGService   *ServiceMTLSConfig `yaml:"rag_service"`
@@ -95,19 +95,19 @@ type MTLSConfig struct {
 	ORANAdaptor  *ServiceMTLSConfig `yaml:"oran_adaptor"`
 	Monitoring   *ServiceMTLSConfig `yaml:"monitoring"`
 
-	// TLS settings
+	// TLS settings.
 	MinTLSVersion string   `yaml:"min_tls_version"`
 	MaxTLSVersion string   `yaml:"max_tls_version"`
 	CipherSuites  []string `yaml:"cipher_suites"`
 
-	// Security settings
+	// Security settings.
 	AllowedClientCNs  []string `yaml:"allowed_client_cns"`
 	AllowedClientOrgs []string `yaml:"allowed_client_orgs"`
 	EnableHSTS        bool     `yaml:"enable_hsts"`
 	HSTSMaxAge        int64    `yaml:"hsts_max_age"`
 }
 
-// ServiceMTLSConfig holds mTLS configuration for a specific service
+// ServiceMTLSConfig holds mTLS configuration for a specific service.
 type ServiceMTLSConfig struct {
 	Enabled            bool   `yaml:"enabled"`
 	ServiceName        string `yaml:"service_name"`
@@ -120,31 +120,31 @@ type ServiceMTLSConfig struct {
 	Port               int    `yaml:"port"`
 	InsecureSkipVerify bool   `yaml:"insecure_skip_verify"`
 
-	// Connection settings
+	// Connection settings.
 	DialTimeout      time.Duration `yaml:"dial_timeout"`
 	KeepAliveTimeout time.Duration `yaml:"keep_alive_timeout"`
 	MaxIdleConns     int           `yaml:"max_idle_conns"`
 	MaxConnsPerHost  int           `yaml:"max_conns_per_host"`
 	IdleConnTimeout  time.Duration `yaml:"idle_conn_timeout"`
 
-	// Service-specific settings
+	// Service-specific settings.
 	RequireClientCert bool     `yaml:"require_client_cert"`
 	AllowedClientCNs  []string `yaml:"allowed_client_cns"`
 	AllowedClientOrgs []string `yaml:"allowed_client_orgs"`
 }
 
-// DefaultConfig returns a configuration with sensible defaults
+// DefaultConfig returns a configuration with sensible defaults.
 func DefaultConfig() *Config {
 	return &Config{
 		MetricsAddr:          ":8080",
 		ProbeAddr:            ":8081",
 		EnableLeaderElection: false,
 
-		// Intent processing features
+		// Intent processing features.
 		EnableNetworkIntent: true,  // Default enabled
 		EnableLLMIntent:     false, // Default disabled
 
-		// LLM configuration
+		// LLM configuration.
 		LLMProcessorURL:     "http://llm-processor.default.svc.cluster.local:8080",
 		LLMProcessorTimeout: 30 * time.Second,
 		LLMTimeout:          15 * time.Second, // Default 15s for individual requests
@@ -167,10 +167,10 @@ func DefaultConfig() *Config {
 		Namespace: "default",
 		CRDPath:   "deployments/crds",
 
-		// HTTP configuration
+		// HTTP configuration.
 		HTTPMaxBody: 1048576, // Default 1MB
 
-		// Metrics configuration
+		// Metrics configuration.
 		MetricsEnabled:    false,      // Default disabled for security
 		MetricsAllowedIPs: []string{}, // Empty by default
 
@@ -178,7 +178,7 @@ func DefaultConfig() *Config {
 	}
 }
 
-// DefaultMTLSConfig returns default mTLS configuration
+// DefaultMTLSConfig returns default mTLS configuration.
 func DefaultMTLSConfig() *MTLSConfig {
 	baseDir := "/etc/nephoran/certs"
 
@@ -324,28 +324,28 @@ func DefaultMTLSConfig() *MTLSConfig {
 	}
 }
 
-// LoadFromEnv loads configuration from environment variables
+// LoadFromEnv loads configuration from environment variables.
 func LoadFromEnv() (*Config, error) {
 	cfg := DefaultConfig()
 
-	// Override defaults with environment variables if they exist
+	// Override defaults with environment variables if they exist.
 	cfg.MetricsAddr = GetEnvOrDefault("METRICS_ADDR", cfg.MetricsAddr)
 	cfg.ProbeAddr = GetEnvOrDefault("PROBE_ADDR", cfg.ProbeAddr)
 	cfg.EnableLeaderElection = GetBoolEnv("ENABLE_LEADER_ELECTION", cfg.EnableLeaderElection)
 
-	// Intent processing features
+	// Intent processing features.
 	cfg.EnableNetworkIntent = GetBoolEnv("ENABLE_NETWORK_INTENT", cfg.EnableNetworkIntent)
 	cfg.EnableLLMIntent = GetBoolEnv("ENABLE_LLM_INTENT", cfg.EnableLLMIntent)
 
-	// LLM configuration
+	// LLM configuration.
 	cfg.LLMProcessorURL = GetEnvOrDefault("LLM_PROCESSOR_URL", cfg.LLMProcessorURL)
 	cfg.LLMProcessorTimeout = GetDurationEnv("LLM_PROCESSOR_TIMEOUT", cfg.LLMProcessorTimeout)
-	// Handle LLM_TIMEOUT_SECS as integer seconds value for consistency with LLM implementations
+	// Handle LLM_TIMEOUT_SECS as integer seconds value for consistency with LLM implementations.
 	if envTimeoutSecs := GetEnvOrDefault("LLM_TIMEOUT_SECS", ""); envTimeoutSecs != "" {
 		if timeoutSecs, err := strconv.Atoi(envTimeoutSecs); err == nil && timeoutSecs > 0 {
 			cfg.LLMTimeout = time.Duration(timeoutSecs) * time.Second
 		} else {
-			// Log parsing error but continue with default
+			// Log parsing error but continue with default.
 			log.Printf("Config warning: LLM_TIMEOUT_SECS parsing error: %v, using default %v", err, cfg.LLMTimeout)
 		}
 	}
@@ -357,24 +357,24 @@ func LoadFromEnv() (*Config, error) {
 	cfg.RAGAPITimeout = GetDurationEnv("RAG_API_TIMEOUT", cfg.RAGAPITimeout)
 	cfg.GitRepoURL = GetEnvOrDefault("GIT_REPO_URL", cfg.GitRepoURL)
 
-	// Check for token file path first
+	// Check for token file path first.
 	cfg.GitTokenPath = GetEnvOrDefault("GIT_TOKEN_PATH", cfg.GitTokenPath)
 	if cfg.GitTokenPath != "" {
-		// Try to read the token from file
+		// Try to read the token from file.
 		if tokenData, err := os.ReadFile(cfg.GitTokenPath); err == nil {
 			cfg.GitToken = strings.TrimSpace(string(tokenData))
 		}
-		// If file read fails, GitToken will remain empty and fallback will occur
+		// If file read fails, GitToken will remain empty and fallback will occur.
 	}
 
-	// Fallback to direct environment variable if no token loaded from file
+	// Fallback to direct environment variable if no token loaded from file.
 	if cfg.GitToken == "" {
 		cfg.GitToken = GetEnvOrDefault("GIT_TOKEN", cfg.GitToken)
 	}
 
 	cfg.GitBranch = GetEnvOrDefault("GIT_BRANCH", cfg.GitBranch)
 
-	// Use GetIntEnv with validation for positive values only
+	// Use GetIntEnv with validation for positive values only.
 	if limit := GetIntEnv("GIT_CONCURRENT_PUSH_LIMIT", cfg.GitConcurrentPushLimit); limit > 0 {
 		cfg.GitConcurrentPushLimit = limit
 	}
@@ -387,16 +387,16 @@ func LoadFromEnv() (*Config, error) {
 	cfg.Namespace = GetEnvOrDefault("NAMESPACE", cfg.Namespace)
 	cfg.CRDPath = GetEnvOrDefault("CRD_PATH", cfg.CRDPath)
 
-	// HTTP configuration
+	// HTTP configuration.
 	cfg.HTTPMaxBody = GetInt64Env("HTTP_MAX_BODY", cfg.HTTPMaxBody)
 
-	// Metrics configuration
+	// Metrics configuration.
 	cfg.MetricsEnabled = GetBoolEnv("METRICS_ENABLED", cfg.MetricsEnabled)
 	cfg.MetricsAllowedIPs = GetStringSliceEnv("METRICS_ALLOWED_IPS", cfg.MetricsAllowedIPs)
 
-	// Security validation for metrics configuration
+	// Security validation for metrics configuration.
 	if cfg.MetricsEnabled && len(cfg.MetricsAllowedIPs) == 0 {
-		// Check if user explicitly set "*" to allow all access
+		// Check if user explicitly set "*" to allow all access.
 		if metricsIPsEnv := GetEnvOrDefault("METRICS_ALLOWED_IPS", ""); metricsIPsEnv == "*" {
 			cfg.MetricsAllowedIPs = []string{"*"}
 			log.Printf("Config warning: Metrics endpoint is enabled with unrestricted access (METRICS_ALLOWED_IPS=*). This may expose sensitive information.")
@@ -405,10 +405,10 @@ func LoadFromEnv() (*Config, error) {
 		}
 	}
 
-	// Load mTLS configuration from environment
+	// Load mTLS configuration from environment.
 	loadMTLSFromEnv(cfg)
 
-	// Validate required configuration
+	// Validate required configuration.
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("configuration validation failed: %w", err)
 	}
@@ -416,42 +416,42 @@ func LoadFromEnv() (*Config, error) {
 	return cfg, nil
 }
 
-// Validate checks that required configuration is present
+// Validate checks that required configuration is present.
 func (c *Config) Validate() error {
 	var errors []string
 
-	// Always required configuration
+	// Always required configuration.
 	if c.OpenAIAPIKey == "" {
 		errors = append(errors, "OPENAI_API_KEY is required")
 	}
 
-	// Git features validation - enabled when Git integration is intended
-	// Git features are considered enabled when GitRepoURL is configured or
-	// when other Git-related config suggests Git usage
+	// Git features validation - enabled when Git integration is intended.
+	// Git features are considered enabled when GitRepoURL is configured or.
+	// when other Git-related config suggests Git usage.
 	if c.isGitFeatureEnabled() {
 		if c.GitRepoURL == "" {
 			errors = append(errors, "GIT_REPO_URL is required when Git features are enabled")
 		}
 	}
 
-	// LLM processing validation - enabled when LLM processing is intended
-	// LLM processing is considered enabled when LLMProcessorURL is configured
+	// LLM processing validation - enabled when LLM processing is intended.
+	// LLM processing is considered enabled when LLMProcessorURL is configured.
 	if c.isLLMProcessingEnabled() {
 		if c.LLMProcessorURL == "" {
 			errors = append(errors, "LLM_PROCESSOR_URL is required when LLM processing is enabled")
 		}
 	}
 
-	// RAG features validation - enabled when RAG features are intended
-	// RAG features are considered enabled when RAG API URL is configured or
-	// when RAG-related infrastructure is configured
+	// RAG features validation - enabled when RAG features are intended.
+	// RAG features are considered enabled when RAG API URL is configured or.
+	// when RAG-related infrastructure is configured.
 	if c.isRAGFeatureEnabled() {
 		if c.RAGAPIURLInternal == "" {
 			errors = append(errors, "RAG_API_URL_INTERNAL is required when RAG features are enabled")
 		}
 	}
 
-	// Return validation errors if any
+	// Return validation errors if any.
 	if len(errors) > 0 {
 		return fmt.Errorf("configuration validation failed: %s", strings.Join(errors, "; "))
 	}
@@ -459,28 +459,28 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// isGitFeatureEnabled checks if Git features are enabled based on configuration
+// isGitFeatureEnabled checks if Git features are enabled based on configuration.
 func (c *Config) isGitFeatureEnabled() bool {
-	// Git features are enabled when GitRepoURL is set or when Git token is provided
-	// (indicating intention to use Git even if URL is missing - validation error)
+	// Git features are enabled when GitRepoURL is set or when Git token is provided.
+	// (indicating intention to use Git even if URL is missing - validation error).
 	return c.GitRepoURL != "" || c.GitToken != ""
 }
 
-// isLLMProcessingEnabled checks if LLM processing is enabled based on configuration
+// isLLMProcessingEnabled checks if LLM processing is enabled based on configuration.
 func (c *Config) isLLMProcessingEnabled() bool {
-	// LLM processing is enabled when LLMProcessorURL is set
-	// This follows the pattern seen in networkintent_constructor.go
+	// LLM processing is enabled when LLMProcessorURL is set.
+	// This follows the pattern seen in networkintent_constructor.go.
 	return c.LLMProcessorURL != ""
 }
 
-// isRAGFeatureEnabled checks if RAG features are enabled based on configuration
+// isRAGFeatureEnabled checks if RAG features are enabled based on configuration.
 func (c *Config) isRAGFeatureEnabled() bool {
-	// RAG features are enabled when RAG API URL is set or when Weaviate is configured
-	// (indicating intention to use RAG even if internal URL is missing - validation error)
+	// RAG features are enabled when RAG API URL is set or when Weaviate is configured.
+	// (indicating intention to use RAG even if internal URL is missing - validation error).
 	return c.RAGAPIURLInternal != "" || c.RAGAPIURLExternal != "" || c.WeaviateURL != ""
 }
 
-// GetRAGAPIURL returns the appropriate RAG API URL based on environment
+// GetRAGAPIURL returns the appropriate RAG API URL based on environment.
 func (c *Config) GetRAGAPIURL(useInternal bool) string {
 	if useInternal {
 		return c.RAGAPIURLInternal
@@ -488,13 +488,13 @@ func (c *Config) GetRAGAPIURL(useInternal bool) string {
 	return c.RAGAPIURLExternal
 }
 
-// loadMTLSFromEnv loads mTLS configuration from environment variables
+// loadMTLSFromEnv loads mTLS configuration from environment variables.
 func loadMTLSFromEnv(cfg *Config) {
 	if cfg.MTLSConfig == nil {
 		return
 	}
 
-	// Global mTLS settings
+	// Global mTLS settings.
 	cfg.MTLSConfig.Enabled = GetBoolEnv("MTLS_ENABLED", cfg.MTLSConfig.Enabled)
 	cfg.MTLSConfig.RequireClientCerts = GetBoolEnv("MTLS_REQUIRE_CLIENT_CERTS", cfg.MTLSConfig.RequireClientCerts)
 	cfg.MTLSConfig.TenantID = GetEnvOrDefault("MTLS_TENANT_ID", cfg.MTLSConfig.TenantID)
@@ -507,42 +507,42 @@ func loadMTLSFromEnv(cfg *Config) {
 	cfg.MTLSConfig.RotationEnabled = GetBoolEnv("MTLS_ROTATION_ENABLED", cfg.MTLSConfig.RotationEnabled)
 	cfg.MTLSConfig.RotationInterval = GetDurationEnv("MTLS_ROTATION_INTERVAL", cfg.MTLSConfig.RotationInterval)
 
-	// TLS version settings
+	// TLS version settings.
 	cfg.MTLSConfig.MinTLSVersion = GetEnvOrDefault("MTLS_MIN_TLS_VERSION", cfg.MTLSConfig.MinTLSVersion)
 	cfg.MTLSConfig.MaxTLSVersion = GetEnvOrDefault("MTLS_MAX_TLS_VERSION", cfg.MTLSConfig.MaxTLSVersion)
 
-	// Security settings
+	// Security settings.
 	cfg.MTLSConfig.EnableHSTS = GetBoolEnv("MTLS_ENABLE_HSTS", cfg.MTLSConfig.EnableHSTS)
 	cfg.MTLSConfig.HSTSMaxAge = GetInt64Env("MTLS_HSTS_MAX_AGE", cfg.MTLSConfig.HSTSMaxAge)
 	cfg.MTLSConfig.AllowedClientCNs = GetStringSliceEnv("MTLS_ALLOWED_CLIENT_CNS", cfg.MTLSConfig.AllowedClientCNs)
 	cfg.MTLSConfig.AllowedClientOrgs = GetStringSliceEnv("MTLS_ALLOWED_CLIENT_ORGS", cfg.MTLSConfig.AllowedClientOrgs)
 
-	// Service-specific settings - Controller
+	// Service-specific settings - Controller.
 	loadServiceMTLSFromEnv(cfg.MTLSConfig.Controller, "CONTROLLER")
 
-	// Service-specific settings - LLM Processor
+	// Service-specific settings - LLM Processor.
 	loadServiceMTLSFromEnv(cfg.MTLSConfig.LLMProcessor, "LLM_PROCESSOR")
 
-	// Service-specific settings - RAG Service
+	// Service-specific settings - RAG Service.
 	loadServiceMTLSFromEnv(cfg.MTLSConfig.RAGService, "RAG_SERVICE")
 
-	// Service-specific settings - Git Client
+	// Service-specific settings - Git Client.
 	loadServiceMTLSFromEnv(cfg.MTLSConfig.GitClient, "GIT_CLIENT")
 
-	// Service-specific settings - Database
+	// Service-specific settings - Database.
 	loadServiceMTLSFromEnv(cfg.MTLSConfig.Database, "DATABASE")
 
-	// Service-specific settings - Nephio Bridge
+	// Service-specific settings - Nephio Bridge.
 	loadServiceMTLSFromEnv(cfg.MTLSConfig.NephioBridge, "NEPHIO_BRIDGE")
 
-	// Service-specific settings - ORAN Adaptor
+	// Service-specific settings - ORAN Adaptor.
 	loadServiceMTLSFromEnv(cfg.MTLSConfig.ORANAdaptor, "ORAN_ADAPTOR")
 
-	// Service-specific settings - Monitoring
+	// Service-specific settings - Monitoring.
 	loadServiceMTLSFromEnv(cfg.MTLSConfig.Monitoring, "MONITORING")
 }
 
-// loadServiceMTLSFromEnv loads mTLS configuration for a specific service
+// loadServiceMTLSFromEnv loads mTLS configuration for a specific service.
 func loadServiceMTLSFromEnv(serviceCfg *ServiceMTLSConfig, prefix string) {
 	if serviceCfg == nil {
 		return
@@ -569,148 +569,155 @@ func loadServiceMTLSFromEnv(serviceCfg *ServiceMTLSConfig, prefix string) {
 	serviceCfg.AllowedClientOrgs = GetStringSliceEnv(fmt.Sprintf("MTLS_%s_ALLOWED_CLIENT_ORGS", prefix), serviceCfg.AllowedClientOrgs)
 }
 
-// ConfigProvider interface methods
+// ConfigProvider interface methods.
 
-// GetLLMProcessorURL returns the LLM processor URL
+// GetLLMProcessorURL returns the LLM processor URL.
 func (c *Config) GetLLMProcessorURL() string {
 	return c.LLMProcessorURL
 }
 
-// GetLLMProcessorTimeout returns the LLM processor timeout
+// GetLLMProcessorTimeout returns the LLM processor timeout.
 func (c *Config) GetLLMProcessorTimeout() time.Duration {
 	return c.LLMProcessorTimeout
 }
 
-// GetGitRepoURL returns the Git repository URL
+// GetGitRepoURL returns the Git repository URL.
 func (c *Config) GetGitRepoURL() string {
 	return c.GitRepoURL
 }
 
-// GetGitToken returns the Git token
+// GetGitToken returns the Git token.
 func (c *Config) GetGitToken() string {
 	return c.GitToken
 }
 
-// GetGitBranch returns the Git branch
+// GetGitBranch returns the Git branch.
 func (c *Config) GetGitBranch() string {
 	return c.GitBranch
 }
 
-// GetWeaviateURL returns the Weaviate URL
+// GetWeaviateURL returns the Weaviate URL.
 func (c *Config) GetWeaviateURL() string {
 	return c.WeaviateURL
 }
 
-// GetWeaviateIndex returns the Weaviate index name
+// GetWeaviateIndex returns the Weaviate index name.
 func (c *Config) GetWeaviateIndex() string {
 	return c.WeaviateIndex
 }
 
-// GetOpenAIAPIKey returns the OpenAI API key
+// GetOpenAIAPIKey returns the OpenAI API key.
 func (c *Config) GetOpenAIAPIKey() string {
 	return c.OpenAIAPIKey
 }
 
-// GetOpenAIModel returns the OpenAI model
+// GetOpenAIModel returns the OpenAI model.
 func (c *Config) GetOpenAIModel() string {
 	return c.OpenAIModel
 }
 
-// GetOpenAIEmbeddingModel returns the OpenAI embedding model
+// GetOpenAIEmbeddingModel returns the OpenAI embedding model.
 func (c *Config) GetOpenAIEmbeddingModel() string {
 	return c.OpenAIEmbeddingModel
 }
 
-// GetNamespace returns the Kubernetes namespace
+// GetNamespace returns the Kubernetes namespace.
 func (c *Config) GetNamespace() string {
 	return c.Namespace
 }
 
-// GetEnableNetworkIntent returns whether NetworkIntent controller is enabled
+// GetEnableNetworkIntent returns whether NetworkIntent controller is enabled.
 func (c *Config) GetEnableNetworkIntent() bool {
 	return c.EnableNetworkIntent
 }
 
-// GetEnableLLMIntent returns whether LLM Intent processing is enabled
+// GetEnableLLMIntent returns whether LLM Intent processing is enabled.
 func (c *Config) GetEnableLLMIntent() bool {
 	return c.EnableLLMIntent
 }
 
-// GetLLMTimeout returns the timeout for individual LLM requests
+// GetLLMTimeout returns the timeout for individual LLM requests.
 func (c *Config) GetLLMTimeout() time.Duration {
 	return c.LLMTimeout
 }
 
-// GetLLMMaxRetries returns the maximum retry attempts for LLM requests
+// GetLLMMaxRetries returns the maximum retry attempts for LLM requests.
 func (c *Config) GetLLMMaxRetries() int {
 	return c.LLMMaxRetries
 }
 
-// GetLLMCacheMaxEntries returns the maximum entries in LLM cache
+// GetLLMCacheMaxEntries returns the maximum entries in LLM cache.
 func (c *Config) GetLLMCacheMaxEntries() int {
 	return c.LLMCacheMaxEntries
 }
 
-// GetHTTPMaxBody returns the maximum HTTP request body size
+// GetHTTPMaxBody returns the maximum HTTP request body size.
 func (c *Config) GetHTTPMaxBody() int64 {
 	return c.HTTPMaxBody
 }
 
-// GetMetricsEnabled returns whether metrics endpoint is enabled
+// GetMetricsEnabled returns whether metrics endpoint is enabled.
 func (c *Config) GetMetricsEnabled() bool {
 	return c.MetricsEnabled
 }
 
-// GetMetricsAllowedIPs returns the IP addresses allowed to access metrics
+// GetMetricsAllowedIPs returns the IP addresses allowed to access metrics.
 func (c *Config) GetMetricsAllowedIPs() []string {
 	return c.MetricsAllowedIPs
 }
 
-// Ensure Config implements interfaces.ConfigProvider
+// Ensure Config implements interfaces.ConfigProvider.
 var _ interfaces.ConfigProvider = (*Config)(nil)
 
-// Type aliases for disable_rag builds
+// Type aliases for disable_rag builds.
 type APIKeys = interfaces.APIKeys
 
-// SecretManager provides a concrete type for disable_rag builds
+// SecretManager provides a concrete type for disable_rag builds.
 type SecretManager struct {
 	namespace string
 }
 
-// Stub implementations for disable_rag builds
+// Stub implementations for disable_rag builds.
 func NewSecretManager(namespace string) (*SecretManager, error) {
 	return &SecretManager{namespace: namespace}, nil
 }
 
+// LoadFileBasedAPIKeysWithValidation performs loadfilebasedapikeyswithvalidation operation.
 func LoadFileBasedAPIKeysWithValidation() (*APIKeys, error) {
 	return &APIKeys{}, nil
 }
 
-// Stub methods for SecretManager (disable_rag builds)
+// Stub methods for SecretManager (disable_rag builds).
 func (sm *SecretManager) GetSecretValue(ctx context.Context, secretName, key, envVarName string) (string, error) {
 	return "", fmt.Errorf("secret manager disabled with disable_rag build tag")
 }
 
+// CreateSecretFromEnvVars performs createsecretfromenvvars operation.
 func (sm *SecretManager) CreateSecretFromEnvVars(ctx context.Context, secretName string, envVarMapping map[string]string) error {
 	return fmt.Errorf("secret manager disabled with disable_rag build tag")
 }
 
+// UpdateSecret performs updatesecret operation.
 func (sm *SecretManager) UpdateSecret(ctx context.Context, secretName string, data map[string][]byte) error {
 	return fmt.Errorf("secret manager disabled with disable_rag build tag")
 }
 
+// SecretExists performs secretexists operation.
 func (sm *SecretManager) SecretExists(ctx context.Context, secretName string) bool {
 	return false
 }
 
+// RotateSecret performs rotatesecret operation.
 func (sm *SecretManager) RotateSecret(ctx context.Context, secretName, secretKey, newValue string) error {
 	return fmt.Errorf("secret manager disabled with disable_rag build tag")
 }
 
+// GetSecretRotationInfo performs getsecretrotationinfo operation.
 func (sm *SecretManager) GetSecretRotationInfo(ctx context.Context, secretName string) (map[string]string, error) {
 	return nil, fmt.Errorf("secret manager disabled with disable_rag build tag")
 }
 
+// GetAPIKeys performs getapikeys operation.
 func (sm *SecretManager) GetAPIKeys(ctx context.Context) (*APIKeys, error) {
 	return &APIKeys{}, nil
 }

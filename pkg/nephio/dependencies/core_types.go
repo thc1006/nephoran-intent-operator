@@ -24,30 +24,30 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// Core missing types for the dependency updater that are referenced but not defined
+// Core missing types for the dependency updater that are referenced but not defined.
 
-// UpdaterConfig holds comprehensive configuration for the dependency updater
+// UpdaterConfig holds comprehensive configuration for the dependency updater.
 type UpdaterConfig struct {
-	// Core engine configurations
+	// Core engine configurations.
 	UpdateEngineConfig      *UpdateEngineConfig      `yaml:"updateEngine"`
 	PropagationEngineConfig *PropagationEngineConfig `yaml:"propagationEngine"`
 	ImpactAnalyzerConfig    *ImpactAnalyzerConfig    `yaml:"impactAnalyzer"`
 	RolloutManagerConfig    *RolloutManagerConfig    `yaml:"rolloutManager"`
 	RollbackManagerConfig   *RollbackManagerConfig   `yaml:"rollbackManager"`
 
-	// Automation and scheduling
+	// Automation and scheduling.
 	AutoUpdateConfig    *AutoUpdateConfig    `yaml:"autoUpdate"`
 	UpdateQueueConfig   *UpdateQueueConfig   `yaml:"updateQueue"`
 	ChangeTrackerConfig *ChangeTrackerConfig `yaml:"changeTracker"`
 	UpdateHistoryConfig *UpdateHistoryConfig `yaml:"updateHistory"`
 	AuditLoggerConfig   *AuditLoggerConfig   `yaml:"auditLogger"`
 
-	// Policy and workflow
+	// Policy and workflow.
 	PolicyEngineConfig        *PolicyEngineConfig        `yaml:"policyEngine"`
 	ApprovalWorkflowConfig    *ApprovalWorkflowConfig    `yaml:"approvalWorkflow"`
 	NotificationManagerConfig *NotificationManagerConfig `yaml:"notificationManager"`
 
-	// Performance and caching
+	// Performance and caching.
 	EnableCaching     bool               `yaml:"enableCaching"`
 	UpdateCacheConfig *UpdateCacheConfig `yaml:"updateCache"`
 	EnableConcurrency bool               `yaml:"enableConcurrency"`
@@ -55,11 +55,11 @@ type UpdaterConfig struct {
 	WorkerCount       int                `yaml:"workerCount"`
 	QueueSize         int                `yaml:"queueSize"`
 
-	// External integrations
+	// External integrations.
 	PackageRegistryConfig *PackageRegistryConfig `yaml:"packageRegistry"`
 }
 
-// Configuration type definitions
+// Configuration type definitions.
 type UpdateEngineConfig struct {
 	MaxRetries          int           `yaml:"maxRetries"`
 	RetryDelay          time.Duration `yaml:"retryDelay"`
@@ -67,48 +67,56 @@ type UpdateEngineConfig struct {
 	ValidateAfterUpdate bool          `yaml:"validateAfterUpdate"`
 }
 
+// PropagationEngineConfig represents a propagationengineconfig.
 type PropagationEngineConfig struct {
 	PropagationTimeout time.Duration `yaml:"propagationTimeout"`
 	MaxParallelUpdates int           `yaml:"maxParallelUpdates"`
 	FailureTolerance   float64       `yaml:"failureTolerance"`
 }
 
+// ImpactAnalyzerConfig represents a impactanalyzerconfig.
 type ImpactAnalyzerConfig struct {
 	AnalysisTimeout   time.Duration `yaml:"analysisTimeout"`
 	EnableRiskScoring bool          `yaml:"enableRiskScoring"`
 	MaxAnalysisDepth  int           `yaml:"maxAnalysisDepth"`
 }
 
+// RolloutManagerConfig represents a rolloutmanagerconfig.
 type RolloutManagerConfig struct {
 	StagedRolloutEnabled bool          `yaml:"stagedRolloutEnabled"`
 	CanaryPercentage     float64       `yaml:"canaryPercentage"`
 	RolloutTimeout       time.Duration `yaml:"rolloutTimeout"`
 }
 
+// RollbackManagerConfig represents a rollbackmanagerconfig.
 type RollbackManagerConfig struct {
 	AutoRollbackEnabled bool          `yaml:"autoRollbackEnabled"`
 	RollbackTimeout     time.Duration `yaml:"rollbackTimeout"`
 	MaxRollbackAttempts int           `yaml:"maxRollbackAttempts"`
 }
 
+// UpdateQueueConfig represents a updatequeueconfig.
 type UpdateQueueConfig struct {
 	MaxQueueSize    int           `yaml:"maxQueueSize"`
 	ProcessInterval time.Duration `yaml:"processInterval"`
 	PriorityEnabled bool          `yaml:"priorityEnabled"`
 }
 
+// ChangeTrackerConfig represents a changetrackerconfig.
 type ChangeTrackerConfig struct {
 	TrackingEnabled bool          `yaml:"trackingEnabled"`
 	RetentionPeriod time.Duration `yaml:"retentionPeriod"`
 	MaxEventHistory int           `yaml:"maxEventHistory"`
 }
 
+// UpdateHistoryConfig represents a updatehistoryconfig.
 type UpdateHistoryConfig struct {
 	StoragePath     string        `yaml:"storagePath"`
 	RetentionPeriod time.Duration `yaml:"retentionPeriod"`
 	CompressOldData bool          `yaml:"compressOldData"`
 }
 
+// AuditLoggerConfig represents a auditloggerconfig.
 type AuditLoggerConfig struct {
 	LogLevel    string `yaml:"logLevel"`
 	LogPath     string `yaml:"logPath"`
@@ -116,12 +124,14 @@ type AuditLoggerConfig struct {
 	MaxLogFiles int    `yaml:"maxLogFiles"`
 }
 
+// PolicyEngineConfig represents a policyengineconfig.
 type PolicyEngineConfig struct {
 	PolicyPath       string        `yaml:"policyPath"`
 	PolicyReloadTime time.Duration `yaml:"policyReloadTime"`
 	StrictMode       bool          `yaml:"strictMode"`
 }
 
+// ApprovalWorkflowConfig represents a approvalworkflowconfig.
 type ApprovalWorkflowConfig struct {
 	RequireApproval   bool          `yaml:"requireApproval"`
 	ApprovalTimeout   time.Duration `yaml:"approvalTimeout"`
@@ -129,6 +139,7 @@ type ApprovalWorkflowConfig struct {
 	AutoApproveMinor  bool          `yaml:"autoApproveMinor"`
 }
 
+// NotificationManagerConfig represents a notificationmanagerconfig.
 type NotificationManagerConfig struct {
 	Enabled      bool                   `yaml:"enabled"`
 	Channels     []string               `yaml:"channels"`
@@ -136,12 +147,14 @@ type NotificationManagerConfig struct {
 	Integrations map[string]interface{} `yaml:"integrations"`
 }
 
+// UpdateCacheConfig represents a updatecacheconfig.
 type UpdateCacheConfig struct {
 	CacheSize     int           `yaml:"cacheSize"`
 	CacheTTL      time.Duration `yaml:"cacheTTL"`
 	EnableMetrics bool          `yaml:"enableMetrics"`
 }
 
+// PackageRegistryConfig represents a packageregistryconfig.
 type PackageRegistryConfig struct {
 	Endpoint    string            `yaml:"endpoint"`
 	Timeout     time.Duration     `yaml:"timeout"`
@@ -149,6 +162,7 @@ type PackageRegistryConfig struct {
 	TLSConfig   *TLSConfig        `yaml:"tlsConfig"`
 }
 
+// TLSConfig represents a tlsconfig.
 type TLSConfig struct {
 	Enabled    bool   `yaml:"enabled"`
 	CertFile   string `yaml:"certFile"`
@@ -157,95 +171,106 @@ type TLSConfig struct {
 	SkipVerify bool   `yaml:"skipVerify"`
 }
 
-// Core engine implementations
+// Core engine implementations.
 type UpdateEngine struct {
 	config  *UpdateEngineConfig
 	logger  logr.Logger
 	metrics *UpdateEngineMetrics
 }
 
+// PropagationEngine represents a propagationengine.
 type PropagationEngine struct {
 	config  *PropagationEngineConfig
 	logger  logr.Logger
 	metrics *PropagationEngineMetrics
 }
 
+// ImpactAnalyzer represents a impactanalyzer.
 type ImpactAnalyzer struct {
 	config  *ImpactAnalyzerConfig
 	logger  logr.Logger
 	metrics *ImpactAnalyzerMetrics
 }
 
+// RolloutManager represents a rolloutmanager.
 type RolloutManager struct {
 	config  *RolloutManagerConfig
 	logger  logr.Logger
 	metrics *RolloutManagerMetrics
 }
 
+// RollbackManager represents a rollbackmanager.
 type RollbackManager struct {
 	config  *RollbackManagerConfig
 	logger  logr.Logger
 	metrics *RollbackManagerMetrics
 }
 
-// Automation components
+// Automation components.
 type AutoUpdateManager struct {
 	config *AutoUpdateConfig
 	logger logr.Logger
 }
 
+// UpdateQueue represents a updatequeue.
 type UpdateQueue struct {
 	config *UpdateQueueConfig
 	logger logr.Logger
 	queue  chan *DependencyUpdate
 }
 
+// ChangeTracker represents a changetracker.
 type ChangeTracker struct {
 	config  *ChangeTrackerConfig
 	logger  logr.Logger
 	changes []ChangeEvent
 }
 
+// UpdateHistoryStore represents a updatehistorystore.
 type UpdateHistoryStore struct {
 	config *UpdateHistoryConfig
 	logger logr.Logger
 }
 
+// AuditLogger represents a auditlogger.
 type AuditLogger struct {
 	config *AuditLoggerConfig
 	logger logr.Logger
 }
 
-// Policy and workflow components
+// Policy and workflow components.
 type UpdatePolicyEngine struct {
 	config *PolicyEngineConfig
 	logger logr.Logger
 }
 
+// ApprovalWorkflow represents a approvalworkflow.
 type ApprovalWorkflow struct {
 	config *ApprovalWorkflowConfig
 	logger logr.Logger
 }
 
+// NotificationManager represents a notificationmanager.
 type NotificationManager struct {
 	config *NotificationManagerConfig
 	logger logr.Logger
 }
 
-// Performance components
+// Performance components.
 type UpdateCache struct {
 	config *UpdateCacheConfig
 	logger logr.Logger
 	cache  map[string]interface{}
 }
 
+// UpdateWorkerPool represents a updateworkerpool.
 type UpdateWorkerPool struct {
 	workers   int
 	queueSize int
 	logger    logr.Logger
 }
 
-// Metrics types
+// Metrics types.
 type UpdateEngineMetrics struct {
 	UpdatesTotal   prometheus.Counter
 	UpdateDuration prometheus.Histogram
@@ -253,6 +278,7 @@ type UpdateEngineMetrics struct {
 	ActiveUpdates  prometheus.Gauge
 }
 
+// PropagationEngineMetrics represents a propagationenginemetrics.
 type PropagationEngineMetrics struct {
 	PropagationsTotal   prometheus.Counter
 	PropagationDuration prometheus.Histogram
@@ -260,6 +286,7 @@ type PropagationEngineMetrics struct {
 	ActivePropagations  prometheus.Gauge
 }
 
+// ImpactAnalyzerMetrics represents a impactanalyzermetrics.
 type ImpactAnalyzerMetrics struct {
 	AnalysisTotal      prometheus.Counter
 	AnalysisDuration   prometheus.Histogram
@@ -267,6 +294,7 @@ type ImpactAnalyzerMetrics struct {
 	RiskScoreHistogram prometheus.Histogram
 }
 
+// RolloutManagerMetrics represents a rolloutmanagermetrics.
 type RolloutManagerMetrics struct {
 	RolloutsTotal   prometheus.Counter
 	RolloutDuration prometheus.Histogram
@@ -274,6 +302,7 @@ type RolloutManagerMetrics struct {
 	ActiveRollouts  prometheus.Gauge
 }
 
+// RollbackManagerMetrics represents a rollbackmanagermetrics.
 type RollbackManagerMetrics struct {
 	RollbacksTotal   prometheus.Counter
 	RollbackDuration prometheus.Histogram
@@ -281,23 +310,25 @@ type RollbackManagerMetrics struct {
 	ActiveRollbacks  prometheus.Gauge
 }
 
-// External integrations
+// External integrations.
 type PackageRegistry interface {
 	GetPackageVersions(ctx context.Context, packageName string) ([]string, error)
 	GetPackageInfo(ctx context.Context, packageName, version string) (*PackageInfo, error)
 }
 
+// DeploymentManager represents a deploymentmanager.
 type DeploymentManager interface {
 	Deploy(ctx context.Context, deployment interface{}) error
 	GetDeploymentStatus(ctx context.Context, deploymentID string) (*DeploymentStatus, error)
 }
 
+// MonitoringSystem represents a monitoringsystem.
 type MonitoringSystem interface {
 	RecordMetric(metric string, value float64, labels map[string]string) error
 	GetMetrics(ctx context.Context) (map[string]float64, error)
 }
 
-// Supporting data structures
+// Supporting data structures.
 type ChangeEvent struct {
 	ID         string                 `json:"id"`
 	Type       string                 `json:"type"`
@@ -309,6 +340,7 @@ type ChangeEvent struct {
 	Metadata   map[string]interface{} `json:"metadata"`
 }
 
+// PackageInfo represents a packageinfo.
 type PackageInfo struct {
 	Name         string            `json:"name"`
 	Version      string            `json:"version"`
@@ -317,6 +349,7 @@ type PackageInfo struct {
 	Metadata     map[string]string `json:"metadata"`
 }
 
+// DeploymentStatus represents a deploymentstatus.
 type DeploymentStatus struct {
 	Status        string    `json:"status"`
 	Phase         string    `json:"phase"`
@@ -325,7 +358,7 @@ type DeploymentStatus struct {
 	LastUpdated   time.Time `json:"lastUpdated"`
 }
 
-// Constructor functions
+// Constructor functions.
 func DefaultUpdaterConfig() *UpdaterConfig {
 	return &UpdaterConfig{
 		UpdateEngineConfig: &UpdateEngineConfig{
@@ -362,7 +395,7 @@ func DefaultUpdaterConfig() *UpdaterConfig {
 	}
 }
 
-// Validate validates the UpdaterConfig
+// Validate validates the UpdaterConfig.
 func (c *UpdaterConfig) Validate() error {
 	if c.MaxConcurrency <= 0 {
 		c.MaxConcurrency = 10
@@ -376,7 +409,7 @@ func (c *UpdaterConfig) Validate() error {
 	return nil
 }
 
-// Constructor functions for engines and components
+// Constructor functions for engines and components.
 func NewUpdateEngine(config *UpdateEngineConfig) (*UpdateEngine, error) {
 	return &UpdateEngine{
 		config:  config,
@@ -385,6 +418,7 @@ func NewUpdateEngine(config *UpdateEngineConfig) (*UpdateEngine, error) {
 	}, nil
 }
 
+// NewPropagationEngine performs newpropagationengine operation.
 func NewPropagationEngine(config *PropagationEngineConfig) (*PropagationEngine, error) {
 	return &PropagationEngine{
 		config:  config,
@@ -393,6 +427,7 @@ func NewPropagationEngine(config *PropagationEngineConfig) (*PropagationEngine, 
 	}, nil
 }
 
+// NewImpactAnalyzer performs newimpactanalyzer operation.
 func NewImpactAnalyzer(config *ImpactAnalyzerConfig) (*ImpactAnalyzer, error) {
 	return &ImpactAnalyzer{
 		config:  config,
@@ -401,6 +436,7 @@ func NewImpactAnalyzer(config *ImpactAnalyzerConfig) (*ImpactAnalyzer, error) {
 	}, nil
 }
 
+// NewRolloutManager performs newrolloutmanager operation.
 func NewRolloutManager(config *RolloutManagerConfig) (*RolloutManager, error) {
 	return &RolloutManager{
 		config:  config,
@@ -409,6 +445,7 @@ func NewRolloutManager(config *RolloutManagerConfig) (*RolloutManager, error) {
 	}, nil
 }
 
+// NewRollbackManager performs newrollbackmanager operation.
 func NewRollbackManager(config *RollbackManagerConfig) (*RollbackManager, error) {
 	return &RollbackManager{
 		config:  config,
@@ -417,6 +454,7 @@ func NewRollbackManager(config *RollbackManagerConfig) (*RollbackManager, error)
 	}, nil
 }
 
+// NewAutoUpdateManager performs newautoupdatemanager operation.
 func NewAutoUpdateManager(config *AutoUpdateConfig) *AutoUpdateManager {
 	return &AutoUpdateManager{
 		config: config,
@@ -424,6 +462,7 @@ func NewAutoUpdateManager(config *AutoUpdateConfig) *AutoUpdateManager {
 	}
 }
 
+// NewUpdateQueue performs newupdatequeue operation.
 func NewUpdateQueue(config *UpdateQueueConfig) *UpdateQueue {
 	return &UpdateQueue{
 		config: config,
@@ -432,6 +471,7 @@ func NewUpdateQueue(config *UpdateQueueConfig) *UpdateQueue {
 	}
 }
 
+// NewChangeTracker performs newchangetracker operation.
 func NewChangeTracker(config *ChangeTrackerConfig) *ChangeTracker {
 	return &ChangeTracker{
 		config:  config,
@@ -440,6 +480,7 @@ func NewChangeTracker(config *ChangeTrackerConfig) *ChangeTracker {
 	}
 }
 
+// NewUpdateHistoryStore performs newupdatehistorystore operation.
 func NewUpdateHistoryStore(config *UpdateHistoryConfig) (*UpdateHistoryStore, error) {
 	return &UpdateHistoryStore{
 		config: config,
@@ -447,6 +488,7 @@ func NewUpdateHistoryStore(config *UpdateHistoryConfig) (*UpdateHistoryStore, er
 	}, nil
 }
 
+// NewAuditLogger performs newauditlogger operation.
 func NewAuditLogger(config *AuditLoggerConfig) *AuditLogger {
 	return &AuditLogger{
 		config: config,
@@ -454,6 +496,7 @@ func NewAuditLogger(config *AuditLoggerConfig) *AuditLogger {
 	}
 }
 
+// NewUpdatePolicyEngine performs newupdatepolicyengine operation.
 func NewUpdatePolicyEngine(config *PolicyEngineConfig) *UpdatePolicyEngine {
 	return &UpdatePolicyEngine{
 		config: config,
@@ -461,6 +504,7 @@ func NewUpdatePolicyEngine(config *PolicyEngineConfig) *UpdatePolicyEngine {
 	}
 }
 
+// NewApprovalWorkflow performs newapprovalworkflow operation.
 func NewApprovalWorkflow(config *ApprovalWorkflowConfig) *ApprovalWorkflow {
 	return &ApprovalWorkflow{
 		config: config,
@@ -468,6 +512,7 @@ func NewApprovalWorkflow(config *ApprovalWorkflowConfig) *ApprovalWorkflow {
 	}
 }
 
+// NewNotificationManager performs newnotificationmanager operation.
 func NewNotificationManager(config *NotificationManagerConfig) *NotificationManager {
 	return &NotificationManager{
 		config: config,
@@ -475,6 +520,7 @@ func NewNotificationManager(config *NotificationManagerConfig) *NotificationMana
 	}
 }
 
+// NewUpdateCache performs newupdatecache operation.
 func NewUpdateCache(config *UpdateCacheConfig) *UpdateCache {
 	return &UpdateCache{
 		config: config,
@@ -483,6 +529,7 @@ func NewUpdateCache(config *UpdateCacheConfig) *UpdateCache {
 	}
 }
 
+// NewUpdateWorkerPool performs newupdateworkerpool operation.
 func NewUpdateWorkerPool(workers, queueSize int) *UpdateWorkerPool {
 	return &UpdateWorkerPool{
 		workers:   workers,
@@ -491,11 +538,13 @@ func NewUpdateWorkerPool(workers, queueSize int) *UpdateWorkerPool {
 	}
 }
 
+// NewPackageRegistry performs newpackageregistry operation.
 func NewPackageRegistry(config *PackageRegistryConfig) (PackageRegistry, error) {
-	// This would return a concrete implementation
+	// This would return a concrete implementation.
 	return nil, nil
 }
 
+// NewUpdaterMetrics performs newupdatermetrics operation.
 func NewUpdaterMetrics() *UpdaterMetrics {
 	return &UpdaterMetrics{
 		TotalUpdates:      0,
@@ -508,14 +557,20 @@ func NewUpdaterMetrics() *UpdaterMetrics {
 		ActiveWorkers:     0,
 		ThroughputPPS:     0.0,
 		ErrorRate:         0.0,
-		// Additional metrics would be initialized here
+		// Additional metrics would be initialized here.
 	}
 }
 
-// Close methods for cleanup
-func (c *UpdateCache) Close() error        { return nil }
+// Close methods for cleanup.
+func (c *UpdateCache) Close() error { return nil }
+
+// Close performs close operation.
 func (h *UpdateHistoryStore) Close() error { return nil }
-func (w *UpdateWorkerPool) Close() error   { return nil }
+
+// Close performs close operation.
+func (w *UpdateWorkerPool) Close() error { return nil }
+
+// Record performs record operation.
 func (h *UpdateHistoryStore) Record(ctx context.Context, record interface{}) error {
 	return nil
 }

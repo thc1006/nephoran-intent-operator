@@ -12,16 +12,16 @@ import (
 )
 
 func main() {
-	// Create a test logger
+	// Create a test logger.
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	}))
 
-	// Initialize metrics
+	// Initialize metrics.
 	registry := prometheus.NewRegistry()
 	git.InitMetrics(registry)
 
-	// Create a git client with limited concurrency
+	// Create a git client with limited concurrency.
 	client := git.NewClientWithLogger(
 		"https://github.com/test/repo.git",
 		"main",
@@ -29,7 +29,7 @@ func main() {
 		logger,
 	)
 
-	// Set concurrent push limit via environment
+	// Set concurrent push limit via environment.
 	_ = os.Setenv("GIT_CONCURRENT_PUSH_LIMIT", "2")
 
 	logger.Info("=== Observability Features Verification ===")
@@ -42,15 +42,15 @@ func main() {
 	logger.Info("   (Watch for debug logs with in_flight and limit fields)")
 	logger.Info("")
 
-	// Test concurrent operations
+	// Test concurrent operations.
 	var wg sync.WaitGroup
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
 
-			// This will trigger semaphore acquisition/release with logging
-			// Note: actual push will fail without a real repo, but that's ok
+			// This will trigger semaphore acquisition/release with logging.
+			// Note: actual push will fail without a real repo, but that's ok.
 			files := map[string]string{
 				fmt.Sprintf("test%d.txt", id): fmt.Sprintf("content %d", id),
 			}
@@ -64,7 +64,7 @@ func main() {
 			}
 		}(i)
 
-		// Small delay between launches to see semaphore behavior
+		// Small delay between launches to see semaphore behavior.
 		time.Sleep(100 * time.Millisecond)
 	}
 
@@ -73,7 +73,7 @@ func main() {
 	logger.Info("")
 	logger.Info("3. Metrics verification:")
 
-	// Gather metrics
+	// Gather metrics.
 	mfs, err := registry.Gather()
 	if err != nil {
 		logger.Error("Error gathering metrics", "error", err)

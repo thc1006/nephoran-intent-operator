@@ -4,24 +4,27 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
-
-	"log/slog"
 )
 
-// Status represents the health status of a component
+// Status represents the health status of a component.
 type Status string
 
 const (
-	StatusHealthy   Status = "healthy"
+	// StatusHealthy holds statushealthy value.
+	StatusHealthy Status = "healthy"
+	// StatusUnhealthy holds statusunhealthy value.
 	StatusUnhealthy Status = "unhealthy"
-	StatusUnknown   Status = "unknown"
-	StatusDegraded  Status = "degraded"
+	// StatusUnknown holds statusunknown value.
+	StatusUnknown Status = "unknown"
+	// StatusDegraded holds statusdegraded value.
+	StatusDegraded Status = "degraded"
 )
 
-// Check represents a single health check
+// Check represents a single health check.
 type Check struct {
 	Name      string        `json:"name"`
 	Status    Status        `json:"status"`
@@ -34,10 +37,10 @@ type Check struct {
 	Metadata  interface{}   `json:"metadata,omitempty"`
 }
 
-// CheckFunc is a function that performs a health check
+// CheckFunc is a function that performs a health check.
 type CheckFunc func(ctx context.Context) *Check
 
-// HealthChecker manages and executes health checks
+// HealthChecker manages and executes health checks.
 type HealthChecker struct {
 	serviceName    string
 	serviceVersion string
@@ -53,7 +56,7 @@ type HealthChecker struct {
 	stateMu        sync.RWMutex
 }
 
-// HealthResponse represents the complete health check response
+// HealthResponse represents the complete health check response.
 type HealthResponse struct {
 	Service      string                 `json:"service"`
 	Version      string                 `json:"version"`
@@ -66,7 +69,7 @@ type HealthResponse struct {
 	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// HealthSummary provides aggregated health information
+// HealthSummary provides aggregated health information.
 type HealthSummary struct {
 	Total     int `json:"total"`
 	Healthy   int `json:"healthy"`
@@ -75,7 +78,7 @@ type HealthSummary struct {
 	Unknown   int `json:"unknown"`
 }
 
-// NewHealthChecker creates a new health checker instance
+// NewHealthChecker creates a new health checker instance.
 func NewHealthChecker(serviceName, serviceVersion string, logger *slog.Logger) *HealthChecker {
 	return &HealthChecker{
 		serviceName:    serviceName,
@@ -91,7 +94,7 @@ func NewHealthChecker(serviceName, serviceVersion string, logger *slog.Logger) *
 	}
 }
 
-// RegisterCheck registers a health check function
+// RegisterCheck registers a health check function.
 func (hc *HealthChecker) RegisterCheck(name string, checkFunc CheckFunc) {
 	hc.mu.Lock()
 	defer hc.mu.Unlock()
@@ -102,7 +105,7 @@ func (hc *HealthChecker) RegisterCheck(name string, checkFunc CheckFunc) {
 	hc.logger.Info("Health check registered", "name", name, "service", hc.serviceName)
 }
 
-// RegisterDependency registers a dependency health check
+// RegisterDependency registers a dependency health check.
 func (hc *HealthChecker) RegisterDependency(name string, checkFunc CheckFunc) {
 	hc.mu.Lock()
 	defer hc.mu.Unlock()
@@ -113,7 +116,7 @@ func (hc *HealthChecker) RegisterDependency(name string, checkFunc CheckFunc) {
 	hc.logger.Info("Dependency check registered", "name", name, "service", hc.serviceName)
 }
 
-// SetReady marks the service as ready
+// SetReady marks the service as ready.
 func (hc *HealthChecker) SetReady(ready bool) {
 	hc.stateMu.Lock()
 	defer hc.stateMu.Unlock()
@@ -121,7 +124,7 @@ func (hc *HealthChecker) SetReady(ready bool) {
 	hc.logger.Info("Readiness state changed", "ready", ready, "service", hc.serviceName)
 }
 
-// SetHealthy marks the service as healthy or unhealthy
+// SetHealthy marks the service as healthy or unhealthy.
 func (hc *HealthChecker) SetHealthy(healthy bool) {
 	hc.stateMu.Lock()
 	defer hc.stateMu.Unlock()
@@ -129,21 +132,21 @@ func (hc *HealthChecker) SetHealthy(healthy bool) {
 	hc.logger.Info("Health state changed", "healthy", healthy, "service", hc.serviceName)
 }
 
-// IsReady returns the current readiness state
+// IsReady returns the current readiness state.
 func (hc *HealthChecker) IsReady() bool {
 	hc.stateMu.RLock()
 	defer hc.stateMu.RUnlock()
 	return hc.readyState
 }
 
-// IsHealthy returns the current health state
+// IsHealthy returns the current health state.
 func (hc *HealthChecker) IsHealthy() bool {
 	hc.stateMu.RLock()
 	defer hc.stateMu.RUnlock()
 	return hc.healthyState
 }
 
-// Check performs all registered health checks
+// Check performs all registered health checks.
 func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 	ctx, cancel := context.WithTimeout(ctx, hc.timeout)
 	defer cancel()
@@ -162,7 +165,7 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 		},
 	}
 
-	// Perform internal health checks
+	// Perform internal health checks.
 	hc.mu.RLock()
 	checks := make(map[string]CheckFunc)
 	for name, checkFunc := range hc.checks {
@@ -174,11 +177,11 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 	}
 	hc.mu.RUnlock()
 
-	// Execute checks concurrently
+	// Execute checks concurrently.
 	var wg sync.WaitGroup
 	checkResults := make(chan Check, len(checks)+len(dependencies))
 
-	// Execute service checks
+	// Execute service checks.
 	for name, checkFunc := range checks {
 		wg.Add(1)
 		go func(name string, checkFunc CheckFunc) {
@@ -203,7 +206,7 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 		}(name, checkFunc)
 	}
 
-	// Execute dependency checks
+	// Execute dependency checks.
 	for name, checkFunc := range dependencies {
 		wg.Add(1)
 		go func(name string, checkFunc CheckFunc) {
@@ -228,13 +231,13 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 		}(name, checkFunc)
 	}
 
-	// Wait for all checks to complete
+	// Wait for all checks to complete.
 	go func() {
 		wg.Wait()
 		close(checkResults)
 	}()
 
-	// Collect results
+	// Collect results.
 	summary := HealthSummary{}
 	for check := range checkResults {
 		summary.Total++
@@ -258,16 +261,16 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 
 	response.Summary = summary
 
-	// Determine overall status
+	// Determine overall status.
 	response.Status = hc.determineOverallStatus(summary)
 
-	// Update internal health state based on checks
+	// Update internal health state based on checks.
 	hc.updateHealthState(response.Status)
 
 	return response
 }
 
-// HealthzHandler provides Kubernetes liveness probe endpoint
+// HealthzHandler provides Kubernetes liveness probe endpoint.
 func (hc *HealthChecker) HealthzHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -279,7 +282,7 @@ func (hc *HealthChecker) HealthzHandler(w http.ResponseWriter, r *http.Request) 
 
 	w.Header().Set("Content-Type", "application/json")
 
-	// During grace period, always return healthy
+	// During grace period, always return healthy.
 	if hc.isInGracePeriod() {
 		response.Status = StatusHealthy
 		w.WriteHeader(http.StatusOK)
@@ -292,7 +295,7 @@ func (hc *HealthChecker) HealthzHandler(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(response)
 }
 
-// ReadyzHandler provides Kubernetes readiness probe endpoint
+// ReadyzHandler provides Kubernetes readiness probe endpoint.
 func (hc *HealthChecker) ReadyzHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -302,10 +305,10 @@ func (hc *HealthChecker) ReadyzHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	response := hc.Check(ctx)
 
-	// Readiness includes dependency checks and internal ready state
+	// Readiness includes dependency checks and internal ready state.
 	isReady := hc.IsReady() && (response.Status == StatusHealthy || response.Status == StatusDegraded)
 
-	// Check critical dependencies
+	// Check critical dependencies.
 	for _, dep := range response.Dependencies {
 		if dep.Status == StatusUnhealthy {
 			isReady = false
@@ -326,43 +329,43 @@ func (hc *HealthChecker) ReadyzHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// determineOverallStatus determines the overall service status
+// determineOverallStatus determines the overall service status.
 func (hc *HealthChecker) determineOverallStatus(summary HealthSummary) Status {
 	if summary.Total == 0 {
 		return StatusUnknown
 	}
 
-	// If all checks are healthy, service is healthy
+	// If all checks are healthy, service is healthy.
 	if summary.Healthy == summary.Total {
 		return StatusHealthy
 	}
 
-	// If any check is unhealthy, service is unhealthy
+	// If any check is unhealthy, service is unhealthy.
 	if summary.Unhealthy > 0 {
 		return StatusUnhealthy
 	}
 
-	// If we have degraded checks but no unhealthy ones, service is degraded
+	// If we have degraded checks but no unhealthy ones, service is degraded.
 	if summary.Degraded > 0 {
 		return StatusDegraded
 	}
 
-	// Otherwise, status is unknown
+	// Otherwise, status is unknown.
 	return StatusUnknown
 }
 
-// updateHealthState updates the internal health state
+// updateHealthState updates the internal health state.
 func (hc *HealthChecker) updateHealthState(status Status) {
 	healthy := status == StatusHealthy || status == StatusDegraded
 	hc.SetHealthy(healthy)
 }
 
-// isInGracePeriod checks if we're still in the startup grace period
+// isInGracePeriod checks if we're still in the startup grace period.
 func (hc *HealthChecker) isInGracePeriod() bool {
 	return time.Since(hc.startTime) < hc.gracePeriod
 }
 
-// getGracePeriodRemaining returns remaining grace period duration
+// getGracePeriodRemaining returns remaining grace period duration.
 func (hc *HealthChecker) getGracePeriodRemaining() time.Duration {
 	remaining := hc.gracePeriod - time.Since(hc.startTime)
 	if remaining < 0 {
@@ -371,9 +374,9 @@ func (hc *HealthChecker) getGracePeriodRemaining() time.Duration {
 	return remaining
 }
 
-// Common health check functions
+// Common health check functions.
 
-// HTTPCheck performs an HTTP health check
+// HTTPCheck performs an HTTP health check.
 func HTTPCheck(name, url string) CheckFunc {
 	return func(ctx context.Context) *Check {
 		client := &http.Client{Timeout: 5 * time.Second}
@@ -412,7 +415,7 @@ func HTTPCheck(name, url string) CheckFunc {
 	}
 }
 
-// DatabaseCheck performs a database connection health check
+// DatabaseCheck performs a database connection health check.
 func DatabaseCheck(name string, pingFunc func(ctx context.Context) error) CheckFunc {
 	return func(ctx context.Context) *Check {
 		err := pingFunc(ctx)
@@ -431,11 +434,11 @@ func DatabaseCheck(name string, pingFunc func(ctx context.Context) error) CheckF
 	}
 }
 
-// MemoryCheck performs a memory usage health check
+// MemoryCheck performs a memory usage health check.
 func MemoryCheck(name string, maxMemoryMB int64) CheckFunc {
 	return func(ctx context.Context) *Check {
-		// This is a simplified memory check
-		// In a real implementation, you would use runtime.MemStats
+		// This is a simplified memory check.
+		// In a real implementation, you would use runtime.MemStats.
 		return &Check{
 			Name:    name,
 			Status:  StatusHealthy,

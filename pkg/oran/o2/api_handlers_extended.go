@@ -1,4 +1,4 @@
-// Package o2 implements extended O2 IMS API handlers for resource lifecycle management
+// Package o2 implements extended O2 IMS API handlers for resource lifecycle management.
 package o2
 
 import (
@@ -10,9 +10,9 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
-// Resource Lifecycle Operation Handlers
+// Resource Lifecycle Operation Handlers.
 
-// handleProvisionResource provisions a resource
+// handleProvisionResource provisions a resource.
 func (s *O2APIServer) handleProvisionResource(w http.ResponseWriter, r *http.Request) {
 	resourceID := s.getPathParam(r, "resourceId")
 	if resourceID == "" {
@@ -36,7 +36,7 @@ func (s *O2APIServer) handleProvisionResource(w http.ResponseWriter, r *http.Req
 	s.writeJSONResponse(w, r, StatusAccepted, resource)
 }
 
-// handleConfigureResource configures a resource
+// handleConfigureResource configures a resource.
 func (s *O2APIServer) handleConfigureResource(w http.ResponseWriter, r *http.Request) {
 	resourceID := s.getPathParam(r, "resourceId")
 	if resourceID == "" {
@@ -64,7 +64,7 @@ func (s *O2APIServer) handleConfigureResource(w http.ResponseWriter, r *http.Req
 	})
 }
 
-// handleScaleResource scales a resource
+// handleScaleResource scales a resource.
 func (s *O2APIServer) handleScaleResource(w http.ResponseWriter, r *http.Request) {
 	resourceID := s.getPathParam(r, "resourceId")
 	if resourceID == "" {
@@ -94,7 +94,7 @@ func (s *O2APIServer) handleScaleResource(w http.ResponseWriter, r *http.Request
 	})
 }
 
-// handleMigrateResource migrates a resource
+// handleMigrateResource migrates a resource.
 func (s *O2APIServer) handleMigrateResource(w http.ResponseWriter, r *http.Request) {
 	resourceID := s.getPathParam(r, "resourceId")
 	if resourceID == "" {
@@ -124,7 +124,7 @@ func (s *O2APIServer) handleMigrateResource(w http.ResponseWriter, r *http.Reque
 	})
 }
 
-// handleBackupResource creates a backup of a resource
+// handleBackupResource creates a backup of a resource.
 func (s *O2APIServer) handleBackupResource(w http.ResponseWriter, r *http.Request) {
 	resourceID := s.getPathParam(r, "resourceId")
 	if resourceID == "" {
@@ -148,7 +148,7 @@ func (s *O2APIServer) handleBackupResource(w http.ResponseWriter, r *http.Reques
 	s.writeJSONResponse(w, r, StatusAccepted, backupInfo)
 }
 
-// handleRestoreResource restores a resource from backup
+// handleRestoreResource restores a resource from backup.
 func (s *O2APIServer) handleRestoreResource(w http.ResponseWriter, r *http.Request) {
 	resourceID := s.getPathParam(r, "resourceId")
 	if resourceID == "" {
@@ -162,7 +162,7 @@ func (s *O2APIServer) handleRestoreResource(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Create a restore request with backupID
+	// Create a restore request with backupID.
 	restoreReq := map[string]interface{}{
 		"backupId": backupID,
 	}
@@ -181,7 +181,7 @@ func (s *O2APIServer) handleRestoreResource(w http.ResponseWriter, r *http.Reque
 	})
 }
 
-// handleTerminateResource terminates a resource
+// handleTerminateResource terminates a resource.
 func (s *O2APIServer) handleTerminateResource(w http.ResponseWriter, r *http.Request) {
 	resourceID := s.getPathParam(r, "resourceId")
 	if resourceID == "" {
@@ -201,9 +201,9 @@ func (s *O2APIServer) handleTerminateResource(w http.ResponseWriter, r *http.Req
 	})
 }
 
-// Infrastructure Discovery and Inventory Handlers
+// Infrastructure Discovery and Inventory Handlers.
 
-// handleDiscoverInfrastructure discovers infrastructure for a provider
+// handleDiscoverInfrastructure discovers infrastructure for a provider.
 func (s *O2APIServer) handleDiscoverInfrastructure(w http.ResponseWriter, r *http.Request) {
 	providerID := s.getPathParam(r, "providerId")
 	if providerID == "" {
@@ -211,10 +211,10 @@ func (s *O2APIServer) handleDiscoverInfrastructure(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Validate supported provider types
+	// Validate supported provider types.
 	switch providerID {
 	case CloudProviderKubernetes, CloudProviderOpenStack, CloudProviderAWS, CloudProviderAzure, CloudProviderGCP, CloudProviderVMware, CloudProviderEdge:
-		// Valid provider
+		// Valid provider.
 	default:
 		s.writeErrorResponse(w, r, StatusBadRequest, "Unsupported provider type", nil)
 		return
@@ -230,7 +230,7 @@ func (s *O2APIServer) handleDiscoverInfrastructure(w http.ResponseWriter, r *htt
 	s.writeJSONResponse(w, r, StatusAccepted, discovery)
 }
 
-// handleSyncInventory synchronizes inventory updates
+// handleSyncInventory synchronizes inventory updates.
 func (s *O2APIServer) handleSyncInventory(w http.ResponseWriter, r *http.Request) {
 	var updates []*InventoryUpdate
 	if err := s.decodeJSONRequest(r, &updates); err != nil {
@@ -250,16 +250,16 @@ func (s *O2APIServer) handleSyncInventory(w http.ResponseWriter, r *http.Request
 	})
 }
 
-// handleGetAssets retrieves inventory assets
+// handleGetAssets retrieves inventory assets.
 func (s *O2APIServer) handleGetAssets(w http.ResponseWriter, r *http.Request) {
-	// Parse query parameters for asset filtering
+	// Parse query parameters for asset filtering.
 	assetType := s.getQueryParam(r, "type")
 	provider := s.getQueryParam(r, "provider")
 	status := s.getQueryParam(r, "status")
 	limit := s.getQueryParamInt(r, "limit", 100)
 	offset := s.getQueryParamInt(r, "offset", 0)
 
-	// Build filter based on query parameters
+	// Build filter based on query parameters.
 	filter := &AssetFilter{
 		Types:     []string{assetType},
 		Providers: []string{provider},
@@ -277,7 +277,7 @@ func (s *O2APIServer) handleGetAssets(w http.ResponseWriter, r *http.Request) {
 	s.writeJSONResponse(w, r, StatusOK, assets)
 }
 
-// handleGetAsset retrieves a specific asset
+// handleGetAsset retrieves a specific asset.
 func (s *O2APIServer) handleGetAsset(w http.ResponseWriter, r *http.Request) {
 	assetID := s.getPathParam(r, "assetId")
 	if assetID == "" {
@@ -294,16 +294,16 @@ func (s *O2APIServer) handleGetAsset(w http.ResponseWriter, r *http.Request) {
 	s.writeJSONResponse(w, r, StatusOK, asset)
 }
 
-// Helper method to get assets (placeholder implementation)
+// Helper method to get assets (placeholder implementation).
 func (s *O2APIServer) getAssets(ctx context.Context, filter *AssetFilter) ([]*Asset, error) {
-	// This would typically call the inventory service
-	// For now, return an empty slice
+	// This would typically call the inventory service.
+	// For now, return an empty slice.
 	return []*Asset{}, nil
 }
 
-// Utility methods for parsing request filters
+// Utility methods for parsing request filters.
 
-// parseResourceTypeFilter parses resource type filter from query parameters
+// parseResourceTypeFilter parses resource type filter from query parameters.
 func (s *O2APIServer) parseResourceTypeFilter(r *http.Request) *models.ResourceTypeFilter {
 	filter := &models.ResourceTypeFilter{
 		Limit:  s.getQueryParamInt(r, "limit", 100),
@@ -333,7 +333,7 @@ func (s *O2APIServer) parseResourceTypeFilter(r *http.Request) *models.ResourceT
 	return filter
 }
 
-// parseResourceFilter parses resource filter from query parameters
+// parseResourceFilter parses resource filter from query parameters.
 func (s *O2APIServer) parseResourceFilter(r *http.Request) *models.ResourceFilter {
 	filter := &models.ResourceFilter{
 		Limit:  s.getQueryParamInt(r, "limit", 100),
@@ -355,7 +355,7 @@ func (s *O2APIServer) parseResourceFilter(r *http.Request) *models.ResourceFilte
 	return filter
 }
 
-// parseAlarmFilter parses alarm filter from query parameters
+// parseAlarmFilter parses alarm filter from query parameters.
 func (s *O2APIServer) parseAlarmFilter(r *http.Request) *models.AlarmFilter {
 	return &models.AlarmFilter{
 		PerceivedSeverity: []string{s.getQueryParam(r, "severity")},
@@ -365,35 +365,35 @@ func (s *O2APIServer) parseAlarmFilter(r *http.Request) *models.AlarmFilter {
 	}
 }
 
-// parseMetricsFilter parses metrics filter from query parameters
+// parseMetricsFilter parses metrics filter from query parameters.
 func (s *O2APIServer) parseMetricsFilter(r *http.Request) *MetricsFilter {
 	filter := &MetricsFilter{
 		MetricNames: s.parseQueryParamArray(r, "metricNames"),
 		Limit:       s.getQueryParamInt(r, "limit", 1000),
 	}
 
-	// Parse StartTime if provided
+	// Parse StartTime if provided.
 	if startTimeStr := s.getQueryParam(r, "startTime"); startTimeStr != "" {
 		if startTime, err := s.parseTimeParam(r, "startTime"); err == nil && startTime != nil {
 			filter.StartTime = startTime
 		}
 	}
 
-	// Parse EndTime if provided
+	// Parse EndTime if provided.
 	if endTimeStr := s.getQueryParam(r, "endTime"); endTimeStr != "" {
 		if endTime, err := s.parseTimeParam(r, "endTime"); err == nil && endTime != nil {
 			filter.EndTime = endTime
 		}
 	}
 
-	// Parse other string fields
+	// Parse other string fields.
 	filter.Interval = s.getQueryParam(r, "interval")
 	filter.Aggregation = s.getQueryParam(r, "aggregation")
 
 	return filter
 }
 
-// parseDeploymentTemplateFilter parses deployment template filter from query parameters
+// parseDeploymentTemplateFilter parses deployment template filter from query parameters.
 func (s *O2APIServer) parseDeploymentTemplateFilter(r *http.Request) *DeploymentTemplateFilter {
 	return &DeploymentTemplateFilter{
 		Names:      s.parseQueryParamArray(r, "names"),
@@ -406,7 +406,7 @@ func (s *O2APIServer) parseDeploymentTemplateFilter(r *http.Request) *Deployment
 	}
 }
 
-// parseDeploymentFilter parses deployment filter from query parameters
+// parseDeploymentFilter parses deployment filter from query parameters.
 func (s *O2APIServer) parseDeploymentFilter(r *http.Request) *DeploymentFilter {
 	return &DeploymentFilter{
 		Names:           s.parseQueryParamArray(r, "names"),
@@ -420,7 +420,7 @@ func (s *O2APIServer) parseDeploymentFilter(r *http.Request) *DeploymentFilter {
 	}
 }
 
-// parseSubscriptionFilter parses subscription filter from query parameters
+// parseSubscriptionFilter parses subscription filter from query parameters.
 func (s *O2APIServer) parseSubscriptionFilter(r *http.Request) *SubscriptionFilter {
 	return &SubscriptionFilter{
 		Names:           s.parseQueryParamArray(r, "names"),
@@ -434,13 +434,13 @@ func (s *O2APIServer) parseSubscriptionFilter(r *http.Request) *SubscriptionFilt
 	}
 }
 
-// parseQueryParamArray parses a comma-separated query parameter into an array
+// parseQueryParamArray parses a comma-separated query parameter into an array.
 func (s *O2APIServer) parseQueryParamArray(r *http.Request, param string) []string {
 	value := r.URL.Query().Get(param)
 	if value == "" {
 		return nil
 	}
 
-	// Simple comma-separated parsing - could be enhanced for more complex cases
+	// Simple comma-separated parsing - could be enhanced for more complex cases.
 	return []string{value}
 }

@@ -12,13 +12,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// NetworkPolicyManager implements zero-trust networking for O-RAN components
+// NetworkPolicyManager implements zero-trust networking for O-RAN components.
 type NetworkPolicyManager struct {
 	client    client.Client
 	namespace string
 }
 
-// NewNetworkPolicyManager creates a new network policy manager
+// NewNetworkPolicyManager creates a new network policy manager.
 func NewNetworkPolicyManager(client client.Client, namespace string) *NetworkPolicyManager {
 	return &NetworkPolicyManager{
 		client:    client,
@@ -26,18 +26,23 @@ func NewNetworkPolicyManager(client client.Client, namespace string) *NetworkPol
 	}
 }
 
-// PolicyType defines the type of network policy
+// PolicyType defines the type of network policy.
 type PolicyType string
 
 const (
-	PolicyTypeDenyAll           PolicyType = "deny-all"
-	PolicyTypeAllowIngress      PolicyType = "allow-ingress"
-	PolicyTypeAllowEgress       PolicyType = "allow-egress"
+	// PolicyTypeDenyAll holds policytypedenyall value.
+	PolicyTypeDenyAll PolicyType = "deny-all"
+	// PolicyTypeAllowIngress holds policytypeallowingress value.
+	PolicyTypeAllowIngress PolicyType = "allow-ingress"
+	// PolicyTypeAllowEgress holds policytypeallowegress value.
+	PolicyTypeAllowEgress PolicyType = "allow-egress"
+	// PolicyTypeComponentSpecific holds policytypecomponentspecific value.
 	PolicyTypeComponentSpecific PolicyType = "component-specific"
-	PolicyTypeORANInterface     PolicyType = "oran-interface"
+	// PolicyTypeORANInterface holds policytypeoraninterface value.
+	PolicyTypeORANInterface PolicyType = "oran-interface"
 )
 
-// CreateDefaultDenyAllPolicy creates a default deny-all network policy (zero-trust baseline)
+// CreateDefaultDenyAllPolicy creates a default deny-all network policy (zero-trust baseline).
 func (m *NetworkPolicyManager) CreateDefaultDenyAllPolicy(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
@@ -58,7 +63,7 @@ func (m *NetworkPolicyManager) CreateDefaultDenyAllPolicy(ctx context.Context) e
 				networkingv1.PolicyTypeIngress,
 				networkingv1.PolicyTypeEgress,
 			},
-			// Empty ingress and egress rules mean deny all
+			// Empty ingress and egress rules mean deny all.
 			Ingress: []networkingv1.NetworkPolicyIngressRule{},
 			Egress:  []networkingv1.NetworkPolicyEgressRule{},
 		},
@@ -73,7 +78,7 @@ func (m *NetworkPolicyManager) CreateDefaultDenyAllPolicy(ctx context.Context) e
 	return nil
 }
 
-// CreateControllerNetworkPolicy creates network policy for the operator controller
+// CreateControllerNetworkPolicy creates network policy for the operator controller.
 func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
@@ -100,7 +105,7 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 			},
 			Ingress: []networkingv1.NetworkPolicyIngressRule{
 				{
-					// Allow webhook traffic from API server
+					// Allow webhook traffic from API server.
 					From: []networkingv1.NetworkPolicyPeer{
 						{
 							NamespaceSelector: &metav1.LabelSelector{
@@ -118,7 +123,7 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 					},
 				},
 				{
-					// Allow metrics scraping from Prometheus
+					// Allow metrics scraping from Prometheus.
 					From: []networkingv1.NetworkPolicyPeer{
 						{
 							PodSelector: &metav1.LabelSelector{
@@ -138,7 +143,7 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 			},
 			Egress: []networkingv1.NetworkPolicyEgressRule{
 				{
-					// Allow DNS resolution
+					// Allow DNS resolution.
 					To: []networkingv1.NetworkPolicyPeer{
 						{
 							NamespaceSelector: &metav1.LabelSelector{
@@ -161,7 +166,7 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 					},
 				},
 				{
-					// Allow Kubernetes API access
+					// Allow Kubernetes API access.
 					To: []networkingv1.NetworkPolicyPeer{
 						{
 							IPBlock: &networkingv1.IPBlock{
@@ -181,7 +186,7 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 					},
 				},
 				{
-					// Allow LLM service access
+					// Allow LLM service access.
 					To: []networkingv1.NetworkPolicyPeer{
 						{
 							PodSelector: &metav1.LabelSelector{
@@ -212,7 +217,7 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 	return nil
 }
 
-// CreateLLMServiceNetworkPolicy creates network policy for LLM service
+// CreateLLMServiceNetworkPolicy creates network policy for LLM service.
 func (m *NetworkPolicyManager) CreateLLMServiceNetworkPolicy(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
@@ -239,7 +244,7 @@ func (m *NetworkPolicyManager) CreateLLMServiceNetworkPolicy(ctx context.Context
 			},
 			Ingress: []networkingv1.NetworkPolicyIngressRule{
 				{
-					// Allow traffic from controller
+					// Allow traffic from controller.
 					From: []networkingv1.NetworkPolicyPeer{
 						{
 							PodSelector: &metav1.LabelSelector{
@@ -260,7 +265,7 @@ func (m *NetworkPolicyManager) CreateLLMServiceNetworkPolicy(ctx context.Context
 			},
 			Egress: []networkingv1.NetworkPolicyEgressRule{
 				{
-					// Allow DNS
+					// Allow DNS.
 					To: []networkingv1.NetworkPolicyPeer{
 						{
 							NamespaceSelector: &metav1.LabelSelector{
@@ -283,7 +288,7 @@ func (m *NetworkPolicyManager) CreateLLMServiceNetworkPolicy(ctx context.Context
 					},
 				},
 				{
-					// Allow OpenAI API access (HTTPS)
+					// Allow OpenAI API access (HTTPS).
 					To: []networkingv1.NetworkPolicyPeer{
 						{
 							IPBlock: &networkingv1.IPBlock{
@@ -304,7 +309,7 @@ func (m *NetworkPolicyManager) CreateLLMServiceNetworkPolicy(ctx context.Context
 					},
 				},
 				{
-					// Allow Weaviate vector database access
+					// Allow Weaviate vector database access.
 					To: []networkingv1.NetworkPolicyPeer{
 						{
 							PodSelector: &metav1.LabelSelector{
@@ -334,7 +339,7 @@ func (m *NetworkPolicyManager) CreateLLMServiceNetworkPolicy(ctx context.Context
 	return nil
 }
 
-// CreateORANInterfacePolicy creates network policies for O-RAN interfaces
+// CreateORANInterfacePolicy creates network policies for O-RAN interfaces.
 func (m *NetworkPolicyManager) CreateORANInterfacePolicy(ctx context.Context, interfaceType string) error {
 	logger := log.FromContext(ctx)
 
@@ -362,7 +367,7 @@ func (m *NetworkPolicyManager) CreateORANInterfacePolicy(ctx context.Context, in
 	return nil
 }
 
-// createA1InterfacePolicy creates network policy for A1 interface (Non-RT RIC to Near-RT RIC)
+// createA1InterfacePolicy creates network policy for A1 interface (Non-RT RIC to Near-RT RIC).
 func (m *NetworkPolicyManager) createA1InterfacePolicy() *networkingv1.NetworkPolicy {
 	return &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
@@ -407,7 +412,7 @@ func (m *NetworkPolicyManager) createA1InterfacePolicy() *networkingv1.NetworkPo
 	}
 }
 
-// createO1InterfacePolicy creates network policy for O1 interface (FCAPS management)
+// createO1InterfacePolicy creates network policy for O1 interface (FCAPS management).
 func (m *NetworkPolicyManager) createO1InterfacePolicy() *networkingv1.NetworkPolicy {
 	return &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
@@ -456,7 +461,7 @@ func (m *NetworkPolicyManager) createO1InterfacePolicy() *networkingv1.NetworkPo
 	}
 }
 
-// createO2InterfacePolicy creates network policy for O2 interface (Cloud infrastructure)
+// createO2InterfacePolicy creates network policy for O2 interface (Cloud infrastructure).
 func (m *NetworkPolicyManager) createO2InterfacePolicy() *networkingv1.NetworkPolicy {
 	return &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
@@ -501,7 +506,7 @@ func (m *NetworkPolicyManager) createO2InterfacePolicy() *networkingv1.NetworkPo
 	}
 }
 
-// createE2InterfacePolicy creates network policy for E2 interface (Near-RT RIC to E2 nodes)
+// createE2InterfacePolicy creates network policy for E2 interface (Near-RT RIC to E2 nodes).
 func (m *NetworkPolicyManager) createE2InterfacePolicy() *networkingv1.NetworkPolicy {
 	return &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
@@ -566,11 +571,11 @@ func (m *NetworkPolicyManager) createE2InterfacePolicy() *networkingv1.NetworkPo
 	}
 }
 
-// CreateExternalAccessPolicy creates policy for external service access
+// CreateExternalAccessPolicy creates policy for external service access.
 func (m *NetworkPolicyManager) CreateExternalAccessPolicy(ctx context.Context, serviceName string, allowedCIDRs []string) error {
 	logger := log.FromContext(ctx)
 
-	// Build IPBlock peers
+	// Build IPBlock peers.
 	var peers []networkingv1.NetworkPolicyPeer
 	for _, cidr := range allowedCIDRs {
 		peers = append(peers, networkingv1.NetworkPolicyPeer{
@@ -622,7 +627,7 @@ func (m *NetworkPolicyManager) CreateExternalAccessPolicy(ctx context.Context, s
 	return nil
 }
 
-// ValidateNetworkPolicies validates that network policies are effective
+// ValidateNetworkPolicies validates that network policies are effective.
 func (m *NetworkPolicyManager) ValidateNetworkPolicies(ctx context.Context) (*NetworkPolicyValidationReport, error) {
 	logger := log.FromContext(ctx)
 
@@ -633,7 +638,7 @@ func (m *NetworkPolicyManager) ValidateNetworkPolicies(ctx context.Context) (*Ne
 		Warnings:  []string{},
 	}
 
-	// List all network policies
+	// List all network policies.
 	policies := &networkingv1.NetworkPolicyList{}
 	if err := m.client.List(ctx, policies, client.InNamespace(m.namespace)); err != nil {
 		return nil, fmt.Errorf("failed to list network policies: %w", err)
@@ -641,7 +646,7 @@ func (m *NetworkPolicyManager) ValidateNetworkPolicies(ctx context.Context) (*Ne
 
 	report.PolicyCount = len(policies.Items)
 
-	// Check for default deny-all policy
+	// Check for default deny-all policy.
 	hasDenyAll := false
 	for _, policy := range policies.Items {
 		if policy.Name == "default-deny-all" {
@@ -654,13 +659,13 @@ func (m *NetworkPolicyManager) ValidateNetworkPolicies(ctx context.Context) (*Ne
 		report.Issues = append(report.Issues, "Missing default deny-all policy (zero-trust baseline)")
 	}
 
-	// List all pods
+	// List all pods.
 	pods := &corev1.PodList{}
 	if err := m.client.List(ctx, pods, client.InNamespace(m.namespace)); err != nil {
 		return nil, fmt.Errorf("failed to list pods: %w", err)
 	}
 
-	// Check pod coverage
+	// Check pod coverage.
 	coveredPods := make(map[string]bool)
 	for _, policy := range policies.Items {
 		for _, pod := range pods.Items {
@@ -678,9 +683,9 @@ func (m *NetworkPolicyManager) ValidateNetworkPolicies(ctx context.Context) (*Ne
 		report.Warnings = append(report.Warnings, fmt.Sprintf("%d pods not covered by network policies", uncoveredCount))
 	}
 
-	// Validate individual policies
+	// Validate individual policies.
 	for _, policy := range policies.Items {
-		// Check for overly permissive rules
+		// Check for overly permissive rules.
 		for _, ingress := range policy.Spec.Ingress {
 			if len(ingress.From) == 0 {
 				report.Warnings = append(report.Warnings, fmt.Sprintf("Policy %s has ingress rule with no source restrictions", policy.Name))
@@ -692,7 +697,7 @@ func (m *NetworkPolicyManager) ValidateNetworkPolicies(ctx context.Context) (*Ne
 				report.Warnings = append(report.Warnings, fmt.Sprintf("Policy %s has egress rule with no destination restrictions", policy.Name))
 			}
 
-			// Check for overly broad CIDR blocks
+			// Check for overly broad CIDR blocks.
 			for _, peer := range egress.To {
 				if peer.IPBlock != nil && peer.IPBlock.CIDR == "0.0.0.0/0" {
 					hasExceptions := len(peer.IPBlock.Except) > 0
@@ -713,7 +718,7 @@ func (m *NetworkPolicyManager) ValidateNetworkPolicies(ctx context.Context) (*Ne
 	return report, nil
 }
 
-// NetworkPolicyValidationReport contains network policy validation results
+// NetworkPolicyValidationReport contains network policy validation results.
 type NetworkPolicyValidationReport struct {
 	Timestamp   metav1.Time
 	Namespace   string
@@ -725,21 +730,21 @@ type NetworkPolicyValidationReport struct {
 	Warnings    []string
 }
 
-// isPodSelected checks if a pod matches a label selector
+// isPodSelected checks if a pod matches a label selector.
 func (m *NetworkPolicyManager) isPodSelected(pod corev1.Pod, selector metav1.LabelSelector) bool {
 	if len(selector.MatchLabels) == 0 && len(selector.MatchExpressions) == 0 {
-		// Empty selector matches all pods
+		// Empty selector matches all pods.
 		return true
 	}
 
-	// Check MatchLabels
+	// Check MatchLabels.
 	for key, value := range selector.MatchLabels {
 		if podValue, exists := pod.Labels[key]; !exists || podValue != value {
 			return false
 		}
 	}
 
-	// Check MatchExpressions (simplified)
+	// Check MatchExpressions (simplified).
 	for _, expr := range selector.MatchExpressions {
 		podValue, exists := pod.Labels[expr.Key]
 
@@ -766,16 +771,16 @@ func (m *NetworkPolicyManager) isPodSelected(pod corev1.Pod, selector metav1.Lab
 	return true
 }
 
-// EnforceZeroTrustNetworking applies comprehensive zero-trust networking
+// EnforceZeroTrustNetworking applies comprehensive zero-trust networking.
 func (m *NetworkPolicyManager) EnforceZeroTrustNetworking(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
-	// Create default deny-all policy
+	// Create default deny-all policy.
 	if err := m.CreateDefaultDenyAllPolicy(ctx); err != nil {
 		return fmt.Errorf("failed to create deny-all policy: %w", err)
 	}
 
-	// Create component-specific policies
+	// Create component-specific policies.
 	if err := m.CreateControllerNetworkPolicy(ctx); err != nil {
 		return fmt.Errorf("failed to create controller policy: %w", err)
 	}
@@ -784,12 +789,12 @@ func (m *NetworkPolicyManager) EnforceZeroTrustNetworking(ctx context.Context) e
 		return fmt.Errorf("failed to create LLM service policy: %w", err)
 	}
 
-	// Create O-RAN interface policies
+	// Create O-RAN interface policies.
 	interfaces := []string{"A1", "O1", "O2", "E2"}
 	for _, iface := range interfaces {
 		if err := m.CreateORANInterfacePolicy(ctx, iface); err != nil {
 			logger.Error(err, "Failed to create O-RAN interface policy", "interface", iface)
-			// Continue with other interfaces
+			// Continue with other interfaces.
 		}
 	}
 

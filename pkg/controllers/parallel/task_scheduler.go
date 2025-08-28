@@ -25,7 +25,7 @@ import (
 	"github.com/go-logr/logr"
 )
 
-// NewTaskScheduler creates a new task scheduler
+// NewTaskScheduler creates a new task scheduler.
 func NewTaskScheduler(engine *ParallelProcessingEngine, logger logr.Logger) *TaskScheduler {
 	scheduler := &TaskScheduler{
 		engine:          engine,
@@ -38,7 +38,7 @@ func NewTaskScheduler(engine *ParallelProcessingEngine, logger logr.Logger) *Tas
 		stopChan:        make(chan struct{}),
 	}
 
-	// Register scheduling strategies
+	// Register scheduling strategies.
 	scheduler.strategies["priority_first"] = NewPriorityFirstStrategy()
 	scheduler.strategies["load_balanced"] = NewLoadBalancedStrategy()
 	scheduler.strategies["dependency_aware"] = NewDependencyAwareStrategy()
@@ -46,27 +46,27 @@ func NewTaskScheduler(engine *ParallelProcessingEngine, logger logr.Logger) *Tas
 	return scheduler
 }
 
-// Start starts the task scheduler
+// Start starts the task scheduler.
 func (ts *TaskScheduler) Start(ctx context.Context) {
 	ts.logger.Info("Starting task scheduler")
 
-	// Start dependency resolver
+	// Start dependency resolver.
 	go ts.dependencyResolver(ctx)
 
-	// Start task scheduler
+	// Start task scheduler.
 	go ts.taskScheduler(ctx)
 
-	// Start ready task dispatcher
+	// Start ready task dispatcher.
 	go ts.readyTaskDispatcher(ctx)
 }
 
-// Stop stops the task scheduler
+// Stop stops the task scheduler.
 func (ts *TaskScheduler) Stop() {
 	ts.logger.Info("Stopping task scheduler")
 	close(ts.stopChan)
 }
 
-// dependencyResolver resolves task dependencies
+// dependencyResolver resolves task dependencies.
 func (ts *TaskScheduler) dependencyResolver(ctx context.Context) {
 	ts.logger.Info("Dependency resolver started")
 
@@ -86,32 +86,32 @@ func (ts *TaskScheduler) dependencyResolver(ctx context.Context) {
 	}
 }
 
-// processDependencies processes task dependencies
+// processDependencies processes task dependencies.
 func (ts *TaskScheduler) processDependencies(task *Task) {
 	ts.logger.Info("Processing dependencies", "taskId", task.ID, "dependencies", len(task.Dependencies))
 
-	// Check if all dependencies are satisfied
+	// Check if all dependencies are satisfied.
 	if ts.dependencyGraph.AreDependenciesSatisfied(task.ID) {
 		ts.logger.Info("Dependencies satisfied, task ready", "taskId", task.ID)
 
-		// Mark as scheduled
+		// Mark as scheduled.
 		now := time.Now()
 		task.ScheduledAt = &now
 
-		// Send to ready queue
+		// Send to ready queue.
 		select {
 		case ts.readyTasks <- task:
-			// Task queued successfully
+			// Task queued successfully.
 		default:
 			ts.logger.Info("Ready task queue full", "taskId", task.ID)
 		}
 	} else {
 		ts.logger.Info("Dependencies not satisfied, waiting", "taskId", task.ID)
-		// Task will be re-evaluated when dependencies complete
+		// Task will be re-evaluated when dependencies complete.
 	}
 }
 
-// taskScheduler schedules ready tasks to appropriate worker pools
+// taskScheduler schedules ready tasks to appropriate worker pools.
 func (ts *TaskScheduler) taskScheduler(ctx context.Context) {
 	ts.logger.Info("Task scheduler started")
 
@@ -131,12 +131,12 @@ func (ts *TaskScheduler) taskScheduler(ctx context.Context) {
 	}
 }
 
-// scheduleTask schedules a single task
+// scheduleTask schedules a single task.
 func (ts *TaskScheduler) scheduleTask(task *Task) {
-	// Get available worker pools
+	// Get available worker pools.
 	availableWorkers := ts.getAvailableWorkers()
 
-	// Use strategy to select pool
+	// Use strategy to select pool.
 	strategy := ts.strategies[ts.currentStrategy]
 	poolName, err := strategy.ScheduleTask(task, availableWorkers)
 	if err != nil {
@@ -144,7 +144,7 @@ func (ts *TaskScheduler) scheduleTask(task *Task) {
 		return
 	}
 
-	// Submit task to selected pool
+	// Submit task to selected pool.
 	if err := ts.submitToPool(poolName, task); err != nil {
 		ts.logger.Error(err, "Failed to submit task to pool", "taskId", task.ID, "pool", poolName)
 	} else {
@@ -152,7 +152,7 @@ func (ts *TaskScheduler) scheduleTask(task *Task) {
 	}
 }
 
-// getAvailableWorkers returns available worker counts for each pool
+// getAvailableWorkers returns available worker counts for each pool.
 func (ts *TaskScheduler) getAvailableWorkers() map[string]int {
 	pools := map[string]*WorkerPool{
 		"intent":     ts.engine.intentPool,
@@ -174,7 +174,7 @@ func (ts *TaskScheduler) getAvailableWorkers() map[string]int {
 	return available
 }
 
-// submitToPool submits a task to the specified worker pool
+// submitToPool submits a task to the specified worker pool.
 func (ts *TaskScheduler) submitToPool(poolName string, task *Task) error {
 	var pool *WorkerPool
 
@@ -200,7 +200,7 @@ func (ts *TaskScheduler) submitToPool(poolName string, task *Task) error {
 	return pool.SubmitTask(task)
 }
 
-// readyTaskDispatcher dispatches ready tasks
+// readyTaskDispatcher dispatches ready tasks.
 func (ts *TaskScheduler) readyTaskDispatcher(ctx context.Context) {
 	ts.logger.Info("Ready task dispatcher started")
 
@@ -223,40 +223,40 @@ func (ts *TaskScheduler) readyTaskDispatcher(ctx context.Context) {
 	}
 }
 
-// checkForReadyTasks checks for tasks that have become ready
+// checkForReadyTasks checks for tasks that have become ready.
 func (ts *TaskScheduler) checkForReadyTasks() {
-	// This would implement logic to check for tasks whose dependencies
-	// have been satisfied and make them ready for scheduling
+	// This would implement logic to check for tasks whose dependencies.
+	// have been satisfied and make them ready for scheduling.
 
-	// For now, this is a placeholder as dependency satisfaction
-	// is handled in the dependency resolver
+	// For now, this is a placeholder as dependency satisfaction.
+	// is handled in the dependency resolver.
 }
 
-// Scheduling Strategies
+// Scheduling Strategies.
 
-// PriorityFirstStrategy schedules tasks based on priority
+// PriorityFirstStrategy schedules tasks based on priority.
 type PriorityFirstStrategy struct {
 	name string
 }
 
-// NewPriorityFirstStrategy creates a new priority-first strategy
+// NewPriorityFirstStrategy creates a new priority-first strategy.
 func NewPriorityFirstStrategy() *PriorityFirstStrategy {
 	return &PriorityFirstStrategy{
 		name: "priority_first",
 	}
 }
 
-// ScheduleTask schedules a task using priority-first strategy
+// ScheduleTask schedules a task using priority-first strategy.
 func (pfs *PriorityFirstStrategy) ScheduleTask(task *Task, availableWorkers map[string]int) (string, error) {
-	// Map task type to pool name
+	// Map task type to pool name.
 	poolName := getPoolNameForTaskType(task.Type)
 
-	// Check if pool has capacity
+	// Check if pool has capacity.
 	if available, exists := availableWorkers[poolName]; exists && available > 0 {
 		return poolName, nil
 	}
 
-	// If preferred pool is full, try to find alternative
+	// If preferred pool is full, try to find alternative.
 	for name, available := range availableWorkers {
 		if available > 0 {
 			return name, nil
@@ -266,44 +266,44 @@ func (pfs *PriorityFirstStrategy) ScheduleTask(task *Task, availableWorkers map[
 	return "", fmt.Errorf("no available workers for task %s", task.ID)
 }
 
-// GetStrategyName returns the strategy name
+// GetStrategyName returns the strategy name.
 func (pfs *PriorityFirstStrategy) GetStrategyName() string {
 	return pfs.name
 }
 
-// GetMetrics returns strategy metrics
+// GetMetrics returns strategy metrics.
 func (pfs *PriorityFirstStrategy) GetMetrics() map[string]float64 {
 	return map[string]float64{
 		"strategy_success_rate": 0.95,
 	}
 }
 
-// LoadBalancedStrategy balances load across worker pools
+// LoadBalancedStrategy balances load across worker pools.
 type LoadBalancedStrategy struct {
 	name string
 }
 
-// NewLoadBalancedStrategy creates a new load-balanced strategy
+// NewLoadBalancedStrategy creates a new load-balanced strategy.
 func NewLoadBalancedStrategy() *LoadBalancedStrategy {
 	return &LoadBalancedStrategy{
 		name: "load_balanced",
 	}
 }
 
-// ScheduleTask schedules a task using load-balanced strategy
+// ScheduleTask schedules a task using load-balanced strategy.
 func (lbs *LoadBalancedStrategy) ScheduleTask(task *Task, availableWorkers map[string]int) (string, error) {
-	// Find pool with most available capacity
+	// Find pool with most available capacity.
 	maxAvailable := 0
 	bestPool := ""
 
-	// First try the preferred pool for this task type
+	// First try the preferred pool for this task type.
 	preferredPool := getPoolNameForTaskType(task.Type)
 	if available, exists := availableWorkers[preferredPool]; exists && available > 0 {
 		maxAvailable = available
 		bestPool = preferredPool
 	}
 
-	// Look for better options
+	// Look for better options.
 	for poolName, available := range availableWorkers {
 		if available > maxAvailable {
 			maxAvailable = available
@@ -318,12 +318,12 @@ func (lbs *LoadBalancedStrategy) ScheduleTask(task *Task, availableWorkers map[s
 	return bestPool, nil
 }
 
-// GetStrategyName returns the strategy name
+// GetStrategyName returns the strategy name.
 func (lbs *LoadBalancedStrategy) GetStrategyName() string {
 	return lbs.name
 }
 
-// GetMetrics returns strategy metrics
+// GetMetrics returns strategy metrics.
 func (lbs *LoadBalancedStrategy) GetMetrics() map[string]float64 {
 	return map[string]float64{
 		"strategy_success_rate": 0.92,
@@ -331,29 +331,29 @@ func (lbs *LoadBalancedStrategy) GetMetrics() map[string]float64 {
 	}
 }
 
-// DependencyAwareStrategy considers task dependencies in scheduling
+// DependencyAwareStrategy considers task dependencies in scheduling.
 type DependencyAwareStrategy struct {
 	name string
 }
 
-// NewDependencyAwareStrategy creates a new dependency-aware strategy
+// NewDependencyAwareStrategy creates a new dependency-aware strategy.
 func NewDependencyAwareStrategy() *DependencyAwareStrategy {
 	return &DependencyAwareStrategy{
 		name: "dependency_aware",
 	}
 }
 
-// ScheduleTask schedules a task using dependency-aware strategy
+// ScheduleTask schedules a task using dependency-aware strategy.
 func (das *DependencyAwareStrategy) ScheduleTask(task *Task, availableWorkers map[string]int) (string, error) {
-	// Prioritize pools that can handle dependent tasks
+	// Prioritize pools that can handle dependent tasks.
 	preferredPool := getPoolNameForTaskType(task.Type)
 
-	// Check if preferred pool has capacity
+	// Check if preferred pool has capacity.
 	if available, exists := availableWorkers[preferredPool]; exists && available > 0 {
 		return preferredPool, nil
 	}
 
-	// Look for alternative with capacity
+	// Look for alternative with capacity.
 	for poolName, available := range availableWorkers {
 		if available > 0 {
 			return poolName, nil
@@ -363,12 +363,12 @@ func (das *DependencyAwareStrategy) ScheduleTask(task *Task, availableWorkers ma
 	return "", fmt.Errorf("no available workers for task %s", task.ID)
 }
 
-// GetStrategyName returns the strategy name
+// GetStrategyName returns the strategy name.
 func (das *DependencyAwareStrategy) GetStrategyName() string {
 	return das.name
 }
 
-// GetMetrics returns strategy metrics
+// GetMetrics returns strategy metrics.
 func (das *DependencyAwareStrategy) GetMetrics() map[string]float64 {
 	return map[string]float64{
 		"strategy_success_rate": 0.89,
@@ -376,21 +376,21 @@ func (das *DependencyAwareStrategy) GetMetrics() map[string]float64 {
 	}
 }
 
-// Dependency Graph Implementation
+// Dependency Graph Implementation.
 
-// NewDependencyGraph creates a new dependency graph
+// NewDependencyGraph creates a new dependency graph.
 func NewDependencyGraph() *DependencyGraph {
 	return &DependencyGraph{
 		nodes: make(map[string]*DependencyNode),
 	}
 }
 
-// AddTask adds a task to the dependency graph
+// AddTask adds a task to the dependency graph.
 func (dg *DependencyGraph) AddTask(taskID string, dependencies []string, dependents []string) {
 	dg.mutex.Lock()
 	defer dg.mutex.Unlock()
 
-	// Create node if it doesn't exist
+	// Create node if it doesn't exist.
 	if _, exists := dg.nodes[taskID]; !exists {
 		dg.nodes[taskID] = &DependencyNode{
 			TaskID:       taskID,
@@ -401,7 +401,7 @@ func (dg *DependencyGraph) AddTask(taskID string, dependencies []string, depende
 
 	node := dg.nodes[taskID]
 
-	// Add dependencies
+	// Add dependencies.
 	for _, depID := range dependencies {
 		if _, exists := dg.nodes[depID]; !exists {
 			dg.nodes[depID] = &DependencyNode{
@@ -416,7 +416,7 @@ func (dg *DependencyGraph) AddTask(taskID string, dependencies []string, depende
 		depNode.Dependents = append(depNode.Dependents, node)
 	}
 
-	// Add dependents
+	// Add dependents.
 	for _, depID := range dependents {
 		if _, exists := dg.nodes[depID]; !exists {
 			dg.nodes[depID] = &DependencyNode{
@@ -432,7 +432,7 @@ func (dg *DependencyGraph) AddTask(taskID string, dependencies []string, depende
 	}
 }
 
-// AreDependenciesSatisfied checks if all dependencies for a task are satisfied
+// AreDependenciesSatisfied checks if all dependencies for a task are satisfied.
 func (dg *DependencyGraph) AreDependenciesSatisfied(taskID string) bool {
 	dg.mutex.RLock()
 	defer dg.mutex.RUnlock()
@@ -458,7 +458,7 @@ func (dg *DependencyGraph) AreDependenciesSatisfied(taskID string) bool {
 	return true
 }
 
-// MarkTaskCompleted marks a task as completed
+// MarkTaskCompleted marks a task as completed.
 func (dg *DependencyGraph) MarkTaskCompleted(taskID string, success bool) {
 	dg.mutex.Lock()
 	defer dg.mutex.Unlock()
@@ -475,7 +475,7 @@ func (dg *DependencyGraph) MarkTaskCompleted(taskID string, success bool) {
 	node.Failed = !success
 }
 
-// GetReadyTasks returns tasks that are ready to be scheduled
+// GetReadyTasks returns tasks that are ready to be scheduled.
 func (dg *DependencyGraph) GetReadyTasks() []string {
 	dg.mutex.RLock()
 	defer dg.mutex.RUnlock()
@@ -493,7 +493,7 @@ func (dg *DependencyGraph) GetReadyTasks() []string {
 	return ready
 }
 
-// areDependenciesSatisfiedUnsafe checks dependencies without locking (assumes already locked)
+// areDependenciesSatisfiedUnsafe checks dependencies without locking (assumes already locked).
 func (dg *DependencyGraph) areDependenciesSatisfiedUnsafe(node *DependencyNode) bool {
 	for _, dep := range node.Dependencies {
 		dep.mutex.RLock()
@@ -507,7 +507,7 @@ func (dg *DependencyGraph) areDependenciesSatisfiedUnsafe(node *DependencyNode) 
 	return true
 }
 
-// GetTaskStatus returns the status of a task in the dependency graph
+// GetTaskStatus returns the status of a task in the dependency graph.
 func (dg *DependencyGraph) GetTaskStatus(taskID string) (completed bool, failed bool, exists bool) {
 	dg.mutex.RLock()
 	defer dg.mutex.RUnlock()
@@ -523,9 +523,9 @@ func (dg *DependencyGraph) GetTaskStatus(taskID string) (completed bool, failed 
 	return node.Completed, node.Failed, true
 }
 
-// Helper functions
+// Helper functions.
 
-// getPoolNameForTaskType returns the appropriate pool name for a task type
+// getPoolNameForTaskType returns the appropriate pool name for a task type.
 func getPoolNameForTaskType(taskType TaskType) string {
 	switch taskType {
 	case TaskTypeIntentProcessing:
@@ -547,9 +547,9 @@ func getPoolNameForTaskType(taskType TaskType) string {
 	}
 }
 
-// Load Balancer Implementation
+// Load Balancer Implementation.
 
-// NewLoadBalancer creates a new load balancer
+// NewLoadBalancer creates a new load balancer.
 func NewLoadBalancer(logger logr.Logger) *LoadBalancer {
 	lb := &LoadBalancer{
 		strategies:  make(map[string]LoadBalancingStrategy),
@@ -558,7 +558,7 @@ func NewLoadBalancer(logger logr.Logger) *LoadBalancer {
 		logger:      logger.WithName("load-balancer"),
 	}
 
-	// Register load balancing strategies
+	// Register load balancing strategies.
 	lb.strategies["round_robin"] = NewRoundRobinLoadBalancer()
 	lb.strategies["least_connections"] = NewLeastConnectionsLoadBalancer()
 	lb.strategies["weighted_response_time"] = NewWeightedResponseTimeLoadBalancer()
@@ -566,7 +566,7 @@ func NewLoadBalancer(logger logr.Logger) *LoadBalancer {
 	return lb
 }
 
-// SelectPool selects a pool using the current load balancing strategy
+// SelectPool selects a pool using the current load balancing strategy.
 func (lb *LoadBalancer) SelectPool(pools map[string]*WorkerPool, task *Task) (string, error) {
 	lb.mutex.RLock()
 	strategy := lb.strategies[lb.current]
@@ -579,36 +579,36 @@ func (lb *LoadBalancer) SelectPool(pools map[string]*WorkerPool, task *Task) (st
 	return strategy.SelectPool(pools, task)
 }
 
-// UpdatePoolMetrics updates metrics for a pool
+// UpdatePoolMetrics updates metrics for a pool.
 func (lb *LoadBalancer) UpdatePoolMetrics(poolName string, metrics *PoolMetrics) {
 	lb.mutex.Lock()
 	defer lb.mutex.Unlock()
 
 	lb.poolMetrics[poolName] = metrics
 
-	// Update strategy metrics
+	// Update strategy metrics.
 	for _, strategy := range lb.strategies {
 		strategy.UpdateMetrics(poolName, metrics)
 	}
 }
 
-// Load Balancing Strategies
+// Load Balancing Strategies.
 
-// RoundRobinLoadBalancer implements round-robin load balancing
+// RoundRobinLoadBalancer implements round-robin load balancing.
 type RoundRobinLoadBalancer struct {
 	name    string
 	counter int
 	mutex   sync.Mutex
 }
 
-// NewRoundRobinLoadBalancer creates a new round-robin load balancer
+// NewRoundRobinLoadBalancer creates a new round-robin load balancer.
 func NewRoundRobinLoadBalancer() *RoundRobinLoadBalancer {
 	return &RoundRobinLoadBalancer{
 		name: "round_robin",
 	}
 }
 
-// SelectPool selects a pool using round-robin
+// SelectPool selects a pool using round-robin.
 func (rr *RoundRobinLoadBalancer) SelectPool(pools map[string]*WorkerPool, task *Task) (string, error) {
 	rr.mutex.Lock()
 	defer rr.mutex.Unlock()
@@ -628,29 +628,29 @@ func (rr *RoundRobinLoadBalancer) SelectPool(pools map[string]*WorkerPool, task 
 	return selected, nil
 }
 
-// GetStrategyName returns the strategy name
+// GetStrategyName returns the strategy name.
 func (rr *RoundRobinLoadBalancer) GetStrategyName() string {
 	return rr.name
 }
 
-// UpdateMetrics updates metrics (no-op for round-robin)
+// UpdateMetrics updates metrics (no-op for round-robin).
 func (rr *RoundRobinLoadBalancer) UpdateMetrics(poolName string, metrics *PoolMetrics) {
-	// No-op for round-robin
+	// No-op for round-robin.
 }
 
-// LeastConnectionsLoadBalancer selects pool with least active connections
+// LeastConnectionsLoadBalancer selects pool with least active connections.
 type LeastConnectionsLoadBalancer struct {
 	name string
 }
 
-// NewLeastConnectionsLoadBalancer creates a new least-connections load balancer
+// NewLeastConnectionsLoadBalancer creates a new least-connections load balancer.
 func NewLeastConnectionsLoadBalancer() *LeastConnectionsLoadBalancer {
 	return &LeastConnectionsLoadBalancer{
 		name: "least_connections",
 	}
 }
 
-// SelectPool selects pool with least connections
+// SelectPool selects pool with least connections.
 func (lc *LeastConnectionsLoadBalancer) SelectPool(pools map[string]*WorkerPool, task *Task) (string, error) {
 	if len(pools) == 0 {
 		return "", fmt.Errorf("no pools available")
@@ -670,24 +670,24 @@ func (lc *LeastConnectionsLoadBalancer) SelectPool(pools map[string]*WorkerPool,
 	return bestPool, nil
 }
 
-// GetStrategyName returns the strategy name
+// GetStrategyName returns the strategy name.
 func (lc *LeastConnectionsLoadBalancer) GetStrategyName() string {
 	return lc.name
 }
 
-// UpdateMetrics updates metrics (no-op for least connections)
+// UpdateMetrics updates metrics (no-op for least connections).
 func (lc *LeastConnectionsLoadBalancer) UpdateMetrics(poolName string, metrics *PoolMetrics) {
-	// No-op for least connections
+	// No-op for least connections.
 }
 
-// WeightedResponseTimeLoadBalancer selects pool based on response time
+// WeightedResponseTimeLoadBalancer selects pool based on response time.
 type WeightedResponseTimeLoadBalancer struct {
 	name        string
 	poolWeights map[string]float64
 	mutex       sync.RWMutex
 }
 
-// NewWeightedResponseTimeLoadBalancer creates a new weighted response time load balancer
+// NewWeightedResponseTimeLoadBalancer creates a new weighted response time load balancer.
 func NewWeightedResponseTimeLoadBalancer() *WeightedResponseTimeLoadBalancer {
 	return &WeightedResponseTimeLoadBalancer{
 		name:        "weighted_response_time",
@@ -695,7 +695,7 @@ func NewWeightedResponseTimeLoadBalancer() *WeightedResponseTimeLoadBalancer {
 	}
 }
 
-// SelectPool selects pool based on weighted response time
+// SelectPool selects pool based on weighted response time.
 func (wrt *WeightedResponseTimeLoadBalancer) SelectPool(pools map[string]*WorkerPool, task *Task) (string, error) {
 	wrt.mutex.RLock()
 	defer wrt.mutex.RUnlock()
@@ -720,7 +720,7 @@ func (wrt *WeightedResponseTimeLoadBalancer) SelectPool(pools map[string]*Worker
 	}
 
 	if bestPool == "" {
-		// Fallback to first pool
+		// Fallback to first pool.
 		for name := range pools {
 			return name, nil
 		}
@@ -729,17 +729,17 @@ func (wrt *WeightedResponseTimeLoadBalancer) SelectPool(pools map[string]*Worker
 	return bestPool, nil
 }
 
-// GetStrategyName returns the strategy name
+// GetStrategyName returns the strategy name.
 func (wrt *WeightedResponseTimeLoadBalancer) GetStrategyName() string {
 	return wrt.name
 }
 
-// UpdateMetrics updates pool weights based on metrics
+// UpdateMetrics updates pool weights based on metrics.
 func (wrt *WeightedResponseTimeLoadBalancer) UpdateMetrics(poolName string, metrics *PoolMetrics) {
 	wrt.mutex.Lock()
 	defer wrt.mutex.Unlock()
 
-	// Calculate weight based on response time (inverse relationship)
+	// Calculate weight based on response time (inverse relationship).
 	if metrics.AverageLatency > 0 {
 		weight := 1.0 / metrics.AverageLatency.Seconds()
 		wrt.poolWeights[poolName] = weight

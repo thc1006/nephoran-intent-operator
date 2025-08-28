@@ -7,33 +7,39 @@ import (
 	"time"
 )
 
-// Stub types for when RAG is disabled
+// Stub types for when RAG is disabled.
 
-// MetricsIntegrator stub
+// MetricsIntegrator stub.
 type MetricsIntegrator struct{}
 
+// NewMetricsIntegrator performs newmetricsintegrator operation.
 func NewMetricsIntegrator(collector interface{}) *MetricsIntegrator {
 	return &MetricsIntegrator{}
 }
 
-// MetricsCollector stub
+// MetricsCollector stub.
 type MetricsCollector struct{}
 
+// NewMetricsCollector performs newmetricscollector operation.
 func NewMetricsCollector() *MetricsCollector {
 	return &MetricsCollector{}
 }
 
-// Priority stub for batch processing
+// Priority stub for batch processing.
 type Priority int
 
 const (
+	// PriorityLow holds prioritylow value.
 	PriorityLow Priority = iota
+	// PriorityNormal holds prioritynormal value.
 	PriorityNormal
+	// PriorityHigh holds priorityhigh value.
 	PriorityHigh
+	// PriorityCritical holds prioritycritical value.
 	PriorityCritical
 )
 
-// BatchResult stub
+// BatchResult stub.
 type BatchResult struct {
 	Index   int           `json:"index"`
 	Result  interface{}   `json:"result"`
@@ -41,7 +47,7 @@ type BatchResult struct {
 	Latency time.Duration `json:"latency"`
 }
 
-// BatchProcessorStats stub
+// BatchProcessorStats stub.
 type BatchProcessorStats struct {
 	TotalProcessed  int64         `json:"total_processed"`
 	SuccessfulBatch int64         `json:"successful_batch"`
@@ -52,25 +58,26 @@ type BatchProcessorStats struct {
 	LastProcessedAt time.Time     `json:"last_processed_at"`
 }
 
-// WeaviateConnectionPool stub
+// WeaviateConnectionPool stub.
 type WeaviateConnectionPool struct{}
 
-// EmbeddingServiceInterface stub
+// EmbeddingServiceInterface stub.
 type EmbeddingServiceInterface interface {
 	GenerateEmbedding(ctx context.Context, text string) ([]float32, error)
 }
 
-// EmbeddingService stub
+// EmbeddingService stub.
 type EmbeddingService struct{}
 
+// GenerateEmbedding performs generateembedding operation.
 func (e *EmbeddingService) GenerateEmbedding(ctx context.Context, text string) ([]float32, error) {
 	return nil, nil
 }
 
-// WeaviateClient stub
+// WeaviateClient stub.
 type WeaviateClient struct{}
 
-// TelecomDocument stub
+// TelecomDocument stub.
 type TelecomDocument struct {
 	ID         string                 `json:"id"`
 	Title      string                 `json:"title"`
@@ -84,7 +91,7 @@ type TelecomDocument struct {
 	UpdatedAt  time.Time              `json:"updated_at"`
 }
 
-// SearchResponse stub
+// SearchResponse stub.
 type SearchResponse struct {
 	Results     []*SearchResult `json:"results"`
 	Total       int             `json:"total"`
@@ -92,17 +99,17 @@ type SearchResponse struct {
 	ProcessedAt time.Time       `json:"processed_at"`
 }
 
-// SearchResult stub
+// SearchResult stub.
 type SearchResult struct {
 	Document *TelecomDocument `json:"document"`
 	Score    float32          `json:"score"`
 	Snippet  string           `json:"snippet,omitempty"`
 }
 
-// RAGService stub
+// RAGService stub.
 type RAGService struct{}
 
-// RAGRequest stub
+// RAGRequest stub.
 type RAGRequest struct {
 	Query             string                 `json:"query"`
 	IntentType        string                 `json:"intent_type,omitempty"`
@@ -114,7 +121,7 @@ type RAGRequest struct {
 	SearchFilters     map[string]interface{} `json:"search_filters,omitempty"`
 }
 
-// RAGResponse stub
+// RAGResponse stub.
 type RAGResponse struct {
 	Answer          string          `json:"answer"`
 	Confidence      float32         `json:"confidence"`
@@ -124,7 +131,7 @@ type RAGResponse struct {
 	UsedCache       bool            `json:"used_cache"`
 }
 
-// SearchQuery stub
+// SearchQuery stub.
 type SearchQuery struct {
 	Query      string                 `json:"query"`
 	MaxResults int                    `json:"max_results"`
@@ -132,60 +139,71 @@ type SearchQuery struct {
 	Filters    map[string]interface{} `json:"filters,omitempty"`
 }
 
-// SimpleTokenTracker stub
+// SimpleTokenTracker stub.
 type SimpleTokenTracker struct{}
 
+// NewSimpleTokenTracker performs newsimpletokentracker operation.
 func NewSimpleTokenTracker() *SimpleTokenTracker {
 	return &SimpleTokenTracker{}
 }
 
-// CircuitBreaker stub
+// CircuitBreaker stub.
 type CircuitBreaker struct{}
 
+// Execute performs execute operation.
 func (cb *CircuitBreaker) Execute(fn func() error) error {
 	return fn()
 }
 
-// CircuitBreakerConfig stub
+// CircuitBreakerConfig stub.
 type CircuitBreakerConfig struct {
 	FailureThreshold int64         `json:"failure_threshold"`
 	Timeout          time.Duration `json:"timeout"`
 }
 
+// NewCircuitBreaker performs newcircuitbreaker operation.
 func NewCircuitBreaker(name string, config *CircuitBreakerConfig) *CircuitBreaker {
 	return &CircuitBreaker{}
 }
 
-// ResponseCache stub
+// ResponseCache stub.
 type ResponseCache struct{}
 
+// NewResponseCache performs newresponsecache operation.
 func NewResponseCache(ttl time.Duration, maxSize int) *ResponseCache {
 	return &ResponseCache{}
 }
 
+// Get performs get operation.
 func (rc *ResponseCache) Get(key string) (string, bool) {
 	return "", false
 }
 
+// Set performs set operation.
 func (rc *ResponseCache) Set(key, value string) {}
 
+// Stop performs stop operation.
 func (rc *ResponseCache) Stop() {}
 
-// CircuitState stub
+// CircuitState stub.
 type CircuitState int
 
 const (
+	// CircuitStateClosed holds circuitstateclosed value.
 	CircuitStateClosed CircuitState = iota
+	// CircuitStateOpen holds circuitstateopen value.
 	CircuitStateOpen
+	// CircuitStateHalfOpen holds circuitstatehalfopen value.
 	CircuitStateHalfOpen
 )
 
-// CircuitBreakerError stub
+// CircuitBreakerError stub.
 type CircuitBreakerError struct {
 	State CircuitState
 	Err   error
 }
 
+// Error performs error operation.
 func (e *CircuitBreakerError) Error() string {
 	if e.Err != nil {
 		return e.Err.Error()
@@ -193,7 +211,7 @@ func (e *CircuitBreakerError) Error() string {
 	return "circuit breaker error"
 }
 
-// Additional stub types for handlers compatibility
+// Additional stub types for handlers compatibility.
 type StreamingRequest struct {
 	Query     string `json:"query"`
 	ModelName string `json:"model_name"`
@@ -201,67 +219,85 @@ type StreamingRequest struct {
 	EnableRAG bool   `json:"enable_rag"`
 }
 
+// CircuitBreakerManager represents a circuitbreakermanager.
 type CircuitBreakerManager struct{}
 
+// GetAllStats performs getallstats operation.
 func (cbm *CircuitBreakerManager) GetAllStats() map[string]interface{} {
 	return make(map[string]interface{})
 }
 
+// Get performs get operation.
 func (cbm *CircuitBreakerManager) Get(name string) *CircuitBreaker {
 	return &CircuitBreaker{}
 }
 
+// TokenManager represents a tokenmanager.
 type TokenManager struct{}
 
+// GetSupportedModels performs getsupportedmodels operation.
 func (tm *TokenManager) GetSupportedModels() []string {
 	return []string{}
 }
 
+// ContextBuilder represents a contextbuilder.
 type ContextBuilder struct{}
 
+// GetMetrics performs getmetrics operation.
 func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
 	return make(map[string]interface{})
 }
 
+// RelevanceScorer represents a relevancescorer.
 type RelevanceScorer struct{}
 
+// GetMetrics performs getmetrics operation.
 func (rs *RelevanceScorer) GetMetrics() map[string]interface{} {
 	return make(map[string]interface{})
 }
 
+// RAGAwarePromptBuilder represents a ragawarepromptbuilder.
 type RAGAwarePromptBuilder struct{}
 
+// GetMetrics performs getmetrics operation.
 func (pb *RAGAwarePromptBuilder) GetMetrics() map[string]interface{} {
 	return make(map[string]interface{})
 }
 
+// RAGEnhancedProcessor represents a ragenhancedprocessor.
 type RAGEnhancedProcessor struct{}
 
+// ProcessIntent performs processintent operation.
 func (rep *RAGEnhancedProcessor) ProcessIntent(ctx context.Context, intent string) (string, error) {
 	return "RAG is disabled", nil
 }
 
-// Stub constructors
+// Stub constructors.
 func NewCircuitBreakerManager() *CircuitBreakerManager {
 	return &CircuitBreakerManager{}
 }
 
+// NewTokenManager performs newtokenmanager operation.
 func NewTokenManager() *TokenManager {
 	return &TokenManager{}
 }
 
+// NewContextBuilder performs newcontextbuilder operation.
 func NewContextBuilder() *ContextBuilder {
 	return &ContextBuilder{}
 }
 
+// NewRelevanceScorer performs newrelevancescorer operation.
 func NewRelevanceScorer() *RelevanceScorer {
 	return &RelevanceScorer{}
 }
 
+// NewRAGAwarePromptBuilder performs newragawarepromptbuilder operation.
 func NewRAGAwarePromptBuilder(tokenManager *TokenManager, config interface{}) *RAGAwarePromptBuilder {
 	return &RAGAwarePromptBuilder{}
 }
 
+// NewRAGEnhancedProcessor performs newragenhancedprocessor operation.
 func NewRAGEnhancedProcessor(client *Client, weaviateClient interface{}, ragService interface{}, config interface{}) *RAGEnhancedProcessor {
 	return &RAGEnhancedProcessor{}
 }

@@ -1,5 +1,5 @@
 //go:build !disable_rag
-// +build !disable_rag
+// +build !disable_rag.
 
 package llm
 
@@ -15,7 +15,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// DynamicContextManager handles intelligent context injection and budget control
+// DynamicContextManager handles intelligent context injection and budget control.
 type DynamicContextManager struct {
 	logger            *zap.Logger
 	telecomTemplates  *TelecomPromptTemplates
@@ -26,7 +26,7 @@ type DynamicContextManager struct {
 	mu                sync.RWMutex
 }
 
-// ContextInjectionRequest represents a request for context injection
+// ContextInjectionRequest represents a request for context injection.
 type ContextInjectionRequest struct {
 	Intent           string
 	IntentType       string
@@ -39,7 +39,7 @@ type ContextInjectionRequest struct {
 	Priority         Priority
 }
 
-// ContextInjectionResult contains the result of context injection
+// ContextInjectionResult contains the result of context injection.
 type ContextInjectionResult struct {
 	FinalPrompt     string
 	TokensUsed      int
@@ -51,7 +51,7 @@ type ContextInjectionResult struct {
 	ProcessingTime  time.Duration
 }
 
-// NetworkState holds current network information
+// NetworkState holds current network information.
 type NetworkState struct {
 	NetworkFunctions []NetworkFunction
 	ActiveSlices     []NetworkSlice
@@ -62,14 +62,14 @@ type NetworkState struct {
 	RecentEvents     []NetworkEvent
 }
 
-// NetworkTopology represents network topology information
+// NetworkTopology represents network topology information.
 type NetworkTopology struct {
 	Sites       []Site
 	Connections []Connection
 	Coverage    []CoverageArea
 }
 
-// Site represents a network site
+// Site represents a network site.
 type Site struct {
 	ID         string
 	Location   string
@@ -78,7 +78,7 @@ type Site struct {
 	Capacity   int
 }
 
-// Connection represents a network connection
+// Connection represents a network connection.
 type Connection struct {
 	Source      string
 	Destination string
@@ -87,7 +87,7 @@ type Connection struct {
 	Latency     float64
 }
 
-// CoverageArea represents a coverage area
+// CoverageArea represents a coverage area.
 type CoverageArea struct {
 	ID      string
 	Type    string
@@ -95,7 +95,7 @@ type CoverageArea struct {
 	Quality float64
 }
 
-// NetworkEvent represents a recent network event
+// NetworkEvent represents a recent network event.
 type NetworkEvent struct {
 	ID          string
 	Type        string
@@ -106,14 +106,14 @@ type NetworkEvent struct {
 	Impact      string
 }
 
-// ContextStrategy defines how context should be selected and compressed
+// ContextStrategy defines how context should be selected and compressed.
 type ContextStrategy interface {
 	SelectContext(request *ContextInjectionRequest) (*SelectedContext, error)
 	EstimateTokens(content string, modelName string) int
 	Compress(content string, level CompressionLevel) string
 }
 
-// SelectedContext represents the selected context for injection
+// SelectedContext represents the selected context for injection.
 type SelectedContext struct {
 	SystemPrompt    string
 	Examples        []PromptExample
@@ -123,7 +123,7 @@ type SelectedContext struct {
 	ConfidenceScore float64
 }
 
-// ModelConfig holds configuration for different models
+// ModelConfig holds configuration for different models.
 type ModelConfig struct {
 	Name           string
 	MaxTokens      int
@@ -134,33 +134,41 @@ type ModelConfig struct {
 	OptimalTemp    float64
 }
 
-// ContextLevel represents different levels of context detail
+// ContextLevel represents different levels of context detail.
 type ContextLevel int
 
 const (
+	// MinimalContext holds minimalcontext value.
 	MinimalContext ContextLevel = iota
+	// StandardContext holds standardcontext value.
 	StandardContext
+	// ComprehensiveContext holds comprehensivecontext value.
 	ComprehensiveContext
+	// ExpertContext holds expertcontext value.
 	ExpertContext
 )
 
-// CompressionLevel represents different levels of content compression
+// CompressionLevel represents different levels of content compression.
 type CompressionLevel int
 
 const (
+	// NoCompression holds nocompression value.
 	NoCompression CompressionLevel = iota
+	// LightCompression holds lightcompression value.
 	LightCompression
+	// ModerateCompression holds moderatecompression value.
 	ModerateCompression
+	// HeavyCompression holds heavycompression value.
 	HeavyCompression
 )
 
-// TokenEstimator provides token estimation for different models
+// TokenEstimator provides token estimation for different models.
 type TokenEstimator struct {
 	modelTokenRatios map[string]float64
 	mu               sync.RWMutex
 }
 
-// contextMetrics tracks context management metrics
+// contextMetrics tracks context management metrics.
 type contextMetrics struct {
 	requestsTotal      prometheus.Counter
 	tokensUsed         prometheus.Histogram
@@ -170,7 +178,7 @@ type contextMetrics struct {
 	processingDuration prometheus.Histogram
 }
 
-// NewDynamicContextManager creates a new dynamic context manager
+// NewDynamicContextManager creates a new dynamic context manager.
 func NewDynamicContextManager(logger *zap.Logger) *DynamicContextManager {
 	metrics := &contextMetrics{
 		requestsTotal: prometheus.NewCounter(prometheus.CounterOpts{
@@ -201,7 +209,7 @@ func NewDynamicContextManager(logger *zap.Logger) *DynamicContextManager {
 		}),
 	}
 
-	// Register metrics
+	// Register metrics.
 	prometheus.MustRegister(
 		metrics.requestsTotal,
 		metrics.tokensUsed,
@@ -222,14 +230,14 @@ func NewDynamicContextManager(logger *zap.Logger) *DynamicContextManager {
 		metrics:           metrics,
 	}
 
-	// Initialize default configurations
+	// Initialize default configurations.
 	manager.initializeModelConfigs()
 	manager.initializeContextStrategies()
 
 	return manager
 }
 
-// initializeModelConfigs sets up default model configurations
+// initializeModelConfigs sets up default model configurations.
 func (m *DynamicContextManager) initializeModelConfigs() {
 	m.modelConfigs["gpt-4"] = ModelConfig{
 		Name:           "gpt-4",
@@ -271,14 +279,14 @@ func (m *DynamicContextManager) initializeModelConfigs() {
 		OptimalTemp:    0.7,
 	}
 
-	// Initialize token estimator ratios
+	// Initialize token estimator ratios.
 	m.tokenEstimator.modelTokenRatios["gpt-4"] = 1.3
 	m.tokenEstimator.modelTokenRatios["gpt-4-32k"] = 1.3
 	m.tokenEstimator.modelTokenRatios["gpt-3.5-turbo"] = 1.3
 	m.tokenEstimator.modelTokenRatios["claude-3"] = 1.2
 }
 
-// initializeContextStrategies sets up context selection strategies
+// initializeContextStrategies sets up context selection strategies.
 func (m *DynamicContextManager) initializeContextStrategies() {
 	m.contextStrategies["telecom"] = &TelecomContextStrategy{
 		templates:      m.telecomTemplates,
@@ -294,7 +302,7 @@ func (m *DynamicContextManager) initializeContextStrategies() {
 	}
 }
 
-// InjectContext performs dynamic context injection with budget control
+// InjectContext performs dynamic context injection with budget control.
 func (m *DynamicContextManager) InjectContext(
 	ctx context.Context,
 	request *ContextInjectionRequest,
@@ -307,32 +315,32 @@ func (m *DynamicContextManager) InjectContext(
 		m.metrics.processingDuration.Observe(duration.Seconds())
 	}()
 
-	// Validate request
+	// Validate request.
 	if err := m.validateRequest(request); err != nil {
 		return nil, fmt.Errorf("invalid request: %w", err)
 	}
 
-	// Get model configuration
+	// Get model configuration.
 	modelConfig, exists := m.modelConfigs[request.ModelName]
 	if !exists {
 		modelConfig = m.modelConfigs["gpt-4"] // fallback
 	}
 
-	// Determine optimal context strategy
+	// Determine optimal context strategy.
 	contextLevel := m.determineContextLevel(request, modelConfig)
 	strategy := m.selectStrategy(request)
 
-	// Select and prepare context
+	// Select and prepare context.
 	selectedContext, err := strategy.SelectContext(request)
 	if err != nil {
 		return nil, fmt.Errorf("failed to select context: %w", err)
 	}
 
-	// Build initial prompt
+	// Build initial prompt.
 	initialPrompt := m.buildPromptFromContext(selectedContext, request)
 	initialTokens := strategy.EstimateTokens(initialPrompt, request.ModelName)
 
-	// Apply budget control and compression if needed
+	// Apply budget control and compression if needed.
 	finalPrompt, tokensUsed, compressionUsed := m.applyBudgetControl(
 		initialPrompt,
 		initialTokens,
@@ -341,7 +349,7 @@ func (m *DynamicContextManager) InjectContext(
 		request.ModelName,
 	)
 
-	// Calculate result metrics
+	// Calculate result metrics.
 	result := &ContextInjectionResult{
 		FinalPrompt:     finalPrompt,
 		TokensUsed:      tokensUsed,
@@ -353,7 +361,7 @@ func (m *DynamicContextManager) InjectContext(
 		ProcessingTime:  time.Since(start),
 	}
 
-	// Update metrics
+	// Update metrics.
 	m.metrics.tokensUsed.Observe(float64(tokensUsed))
 	m.metrics.contextLevels.WithLabelValues(m.contextLevelToString(contextLevel)).Inc()
 	m.metrics.compressionUsed.WithLabelValues(m.compressionLevelToString(compressionUsed)).Inc()
@@ -372,16 +380,16 @@ func (m *DynamicContextManager) InjectContext(
 	return result, nil
 }
 
-// determineContextLevel determines the appropriate context level based on constraints
+// determineContextLevel determines the appropriate context level based on constraints.
 func (m *DynamicContextManager) determineContextLevel(
 	request *ContextInjectionRequest,
 	modelConfig ModelConfig,
 ) ContextLevel {
-	// Calculate available tokens for context (reserve some for response)
+	// Calculate available tokens for context (reserve some for response).
 	responseReserve := int(float64(modelConfig.MaxTokens) * 0.3) // 30% for response
 	availableTokens := min(request.MaxTokenBudget, modelConfig.ContextWindow) - responseReserve
 
-	// Determine context level based on available tokens and priority
+	// Determine context level based on available tokens and priority.
 	switch {
 	case availableTokens >= 8000 && request.Priority >= PriorityHigh:
 		return ExpertContext
@@ -394,21 +402,21 @@ func (m *DynamicContextManager) determineContextLevel(
 	}
 }
 
-// selectStrategy selects the appropriate context strategy
+// selectStrategy selects the appropriate context strategy.
 func (m *DynamicContextManager) selectStrategy(request *ContextInjectionRequest) ContextStrategy {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	// Select strategy based on domain and intent type
+	// Select strategy based on domain and intent type.
 	if strategy, exists := m.contextStrategies[request.Domain]; exists {
 		return strategy
 	}
 
-	// Fallback to telecom strategy
+	// Fallback to telecom strategy.
 	return m.contextStrategies["telecom"]
 }
 
-// applyBudgetControl applies token budget control and compression
+// applyBudgetControl applies token budget control and compression.
 func (m *DynamicContextManager) applyBudgetControl(
 	prompt string,
 	estimatedTokens int,
@@ -420,7 +428,7 @@ func (m *DynamicContextManager) applyBudgetControl(
 		return prompt, estimatedTokens, NoCompression
 	}
 
-	// Try progressive compression levels
+	// Try progressive compression levels.
 	compressionLevels := []CompressionLevel{
 		LightCompression,
 		ModerateCompression,
@@ -436,12 +444,12 @@ func (m *DynamicContextManager) applyBudgetControl(
 		}
 	}
 
-	// If still over budget, use heavy compression and truncate
+	// If still over budget, use heavy compression and truncate.
 	compressed := strategy.Compress(prompt, HeavyCompression)
 	tokens := strategy.EstimateTokens(compressed, modelName)
 
 	if tokens > maxTokens {
-		// Truncate to fit budget (last resort)
+		// Truncate to fit budget (last resort).
 		words := strings.Fields(compressed)
 		targetWords := int(float64(maxTokens) / 1.3) // rough word-to-token ratio
 		if targetWords < len(words) {
@@ -453,21 +461,21 @@ func (m *DynamicContextManager) applyBudgetControl(
 	return compressed, tokens, HeavyCompression
 }
 
-// buildPromptFromContext builds a complete prompt from selected context
+// buildPromptFromContext builds a complete prompt from selected context.
 func (m *DynamicContextManager) buildPromptFromContext(
 	context *SelectedContext,
 	request *ContextInjectionRequest,
 ) string {
 	var builder strings.Builder
 
-	// Add system prompt
+	// Add system prompt.
 	if context.SystemPrompt != "" {
 		builder.WriteString("## System Instructions\n")
 		builder.WriteString(context.SystemPrompt)
 		builder.WriteString("\n\n")
 	}
 
-	// Add examples if requested and available
+	// Add examples if requested and available.
 	if request.IncludeExamples && len(context.Examples) > 0 {
 		builder.WriteString("## Examples\n\n")
 		for i, example := range context.Examples {
@@ -480,14 +488,14 @@ func (m *DynamicContextManager) buildPromptFromContext(
 		}
 	}
 
-	// Add network context
+	// Add network context.
 	if context.NetworkContext != "" {
 		builder.WriteString("## Current Network Context\n")
 		builder.WriteString(context.NetworkContext)
 		builder.WriteString("\n\n")
 	}
 
-	// Add relevant documentation
+	// Add relevant documentation.
 	if len(context.RelevantDocs) > 0 {
 		builder.WriteString("## Relevant Documentation\n")
 		for _, doc := range context.RelevantDocs {
@@ -496,12 +504,12 @@ func (m *DynamicContextManager) buildPromptFromContext(
 		builder.WriteString("\n")
 	}
 
-	// Add user intent
+	// Add user intent.
 	builder.WriteString("## User Intent\n")
 	builder.WriteString(request.Intent)
 	builder.WriteString("\n\n")
 
-	// Add response format instructions
+	// Add response format instructions.
 	builder.WriteString("## Response Requirements\n")
 	builder.WriteString("Please provide your response in valid YAML format with:\n")
 	builder.WriteString("1. Detailed configuration parameters\n")
@@ -513,7 +521,7 @@ func (m *DynamicContextManager) buildPromptFromContext(
 	return builder.String()
 }
 
-// validateRequest validates the context injection request
+// validateRequest validates the context injection request.
 func (m *DynamicContextManager) validateRequest(request *ContextInjectionRequest) error {
 	if request.Intent == "" {
 		return fmt.Errorf("intent cannot be empty")
@@ -527,7 +535,7 @@ func (m *DynamicContextManager) validateRequest(request *ContextInjectionRequest
 	return nil
 }
 
-// Helper functions for string conversion
+// Helper functions for string conversion.
 func (m *DynamicContextManager) contextLevelToString(level ContextLevel) string {
 	switch level {
 	case MinimalContext:
@@ -572,28 +580,29 @@ func min(a, b int) int {
 	return b
 }
 
-// Context Strategy Implementations
+// Context Strategy Implementations.
 
-// TelecomContextStrategy implements context selection for general telecom intents
+// TelecomContextStrategy implements context selection for general telecom intents.
 type TelecomContextStrategy struct {
 	templates      *TelecomPromptTemplates
 	tokenEstimator *TokenEstimator
 }
 
+// SelectContext performs selectcontext operation.
 func (s *TelecomContextStrategy) SelectContext(request *ContextInjectionRequest) (*SelectedContext, error) {
-	// Determine intent type from content
+	// Determine intent type from content.
 	intentType := s.classifyIntentType(request.Intent)
 
-	// Get system prompt
+	// Get system prompt.
 	systemPrompt, err := s.templates.GetSystemPrompt(intentType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get system prompt: %w", err)
 	}
 
-	// Get examples - using GetFewShotExamples instead of GetExamples
+	// Get examples - using GetFewShotExamples instead of GetExamples.
 	examples := s.templates.GetFewShotExamples(intentType, "general")
 
-	// Format network context
+	// Format network context.
 	var networkContext string
 	if request.NetworkState != nil {
 		telecomContext := TelecomContext{
@@ -606,7 +615,7 @@ func (s *TelecomContextStrategy) SelectContext(request *ContextInjectionRequest)
 		networkContext = s.formatTelecomContext(telecomContext)
 	}
 
-	// Calculate confidence based on available context
+	// Calculate confidence based on available context.
 	confidence := s.calculateConfidence(request, intentType)
 
 	return &SelectedContext{
@@ -619,10 +628,12 @@ func (s *TelecomContextStrategy) SelectContext(request *ContextInjectionRequest)
 	}, nil
 }
 
+// EstimateTokens performs estimatetokens operation.
 func (s *TelecomContextStrategy) EstimateTokens(content string, modelName string) int {
 	return s.tokenEstimator.EstimateTokens(content, modelName)
 }
 
+// Compress performs compress operation.
 func (s *TelecomContextStrategy) Compress(content string, level CompressionLevel) string {
 	switch level {
 	case LightCompression:
@@ -658,11 +669,11 @@ func (s *TelecomContextStrategy) classifyIntentType(intent string) string {
 func (s *TelecomContextStrategy) calculateConfidence(request *ContextInjectionRequest, intentType string) float64 {
 	confidence := 0.7 // base confidence
 
-	// Boost confidence if we have network state
+	// Boost confidence if we have network state.
 	if request.NetworkState != nil {
 		confidence += 0.1
 
-		// More boost for more complete network state
+		// More boost for more complete network state.
 		if len(request.NetworkState.NetworkFunctions) > 0 {
 			confidence += 0.05
 		}
@@ -674,7 +685,7 @@ func (s *TelecomContextStrategy) calculateConfidence(request *ContextInjectionRe
 		}
 	}
 
-	// Boost confidence for well-classified intents
+	// Boost confidence for well-classified intents.
 	if intentType != "oran_network_intent" { // not default
 		confidence += 0.05
 	}
@@ -683,7 +694,7 @@ func (s *TelecomContextStrategy) calculateConfidence(request *ContextInjectionRe
 }
 
 func (s *TelecomContextStrategy) lightCompress(content string) string {
-	// Remove extra whitespace and empty lines
+	// Remove extra whitespace and empty lines.
 	lines := strings.Split(content, "\n")
 	var compressed []string
 	for _, line := range lines {
@@ -696,13 +707,13 @@ func (s *TelecomContextStrategy) lightCompress(content string) string {
 }
 
 func (s *TelecomContextStrategy) moderateCompress(content string) string {
-	// Apply light compression first
+	// Apply light compression first.
 	content = s.lightCompress(content)
 
-	// Remove example explanations
+	// Remove example explanations.
 	content = strings.ReplaceAll(content, "**Explanation:**", "")
 
-	// Simplify section headers
+	// Simplify section headers.
 	content = strings.ReplaceAll(content, "## Current Network Context", "## Context")
 	content = strings.ReplaceAll(content, "## Response Requirements", "## Requirements")
 
@@ -710,10 +721,10 @@ func (s *TelecomContextStrategy) moderateCompress(content string) string {
 }
 
 func (s *TelecomContextStrategy) heavyCompress(content string) string {
-	// Apply moderate compression first
+	// Apply moderate compression first.
 	content = s.moderateCompress(content)
 
-	// Remove all examples
+	// Remove all examples.
 	lines := strings.Split(content, "\n")
 	var compressed []string
 	inExample := false
@@ -734,7 +745,7 @@ func (s *TelecomContextStrategy) heavyCompress(content string) string {
 	return strings.Join(compressed, "\n")
 }
 
-// formatTelecomContext formats TelecomContext into a readable string
+// formatTelecomContext formats TelecomContext into a readable string.
 func (s *TelecomContextStrategy) formatTelecomContext(ctx TelecomContext) string {
 	var sb strings.Builder
 
@@ -778,7 +789,7 @@ func (s *TelecomContextStrategy) formatTelecomContext(ctx TelecomContext) string
 	return sb.String()
 }
 
-// convertFewShotToPromptExamples converts FewShotExample to PromptExample
+// convertFewShotToPromptExamples converts FewShotExample to PromptExample.
 func convertFewShotToPromptExamples(fewShotExamples []FewShotExample) []PromptExample {
 	examples := make([]PromptExample, len(fewShotExamples))
 	for i, fse := range fewShotExamples {
@@ -793,7 +804,7 @@ func convertFewShotToPromptExamples(fewShotExamples []FewShotExample) []PromptEx
 	return examples
 }
 
-// TokenEstimator implementation
+// TokenEstimator implementation.
 func (te *TokenEstimator) EstimateTokens(content string, modelName string) int {
 	te.mu.RLock()
 	defer te.mu.RUnlock()
@@ -807,30 +818,34 @@ func (te *TokenEstimator) EstimateTokens(content string, modelName string) int {
 	return int(float64(words) * ratio)
 }
 
-// ORANContextStrategy and FiveGCoreContextStrategy would be similar implementations
-// tailored for their specific domains
+// ORANContextStrategy and FiveGCoreContextStrategy would be similar implementations.
+// tailored for their specific domains.
 
+// ORANContextStrategy represents a orancontextstrategy.
 type ORANContextStrategy struct {
 	templates      *TelecomPromptTemplates
 	tokenEstimator *TokenEstimator
 }
 
+// SelectContext performs selectcontext operation.
 func (s *ORANContextStrategy) SelectContext(request *ContextInjectionRequest) (*SelectedContext, error) {
-	// Focus on O-RAN specific context
+	// Focus on O-RAN specific context.
 	return s.selectORANContext(request)
 }
 
+// EstimateTokens performs estimatetokens operation.
 func (s *ORANContextStrategy) EstimateTokens(content string, modelName string) int {
 	return s.tokenEstimator.EstimateTokens(content, modelName)
 }
 
+// Compress performs compress operation.
 func (s *ORANContextStrategy) Compress(content string, level CompressionLevel) string {
-	// O-RAN specific compression logic
+	// O-RAN specific compression logic.
 	return content
 }
 
 func (s *ORANContextStrategy) selectORANContext(request *ContextInjectionRequest) (*SelectedContext, error) {
-	// Implementation would focus on O-RAN specific context selection
+	// Implementation would focus on O-RAN specific context selection.
 	systemPrompt, _ := s.templates.GetSystemPrompt("oran_network_intent")
 	examples := s.templates.GetFewShotExamples("oran_network_intent", "o-ran")
 
@@ -844,27 +859,31 @@ func (s *ORANContextStrategy) selectORANContext(request *ContextInjectionRequest
 	}, nil
 }
 
+// FiveGCoreContextStrategy represents a fivegcorecontextstrategy.
 type FiveGCoreContextStrategy struct {
 	templates      *TelecomPromptTemplates
 	tokenEstimator *TokenEstimator
 }
 
+// SelectContext performs selectcontext operation.
 func (s *FiveGCoreContextStrategy) SelectContext(request *ContextInjectionRequest) (*SelectedContext, error) {
-	// Focus on 5G Core specific context
+	// Focus on 5G Core specific context.
 	return s.select5GCoreContext(request)
 }
 
+// EstimateTokens performs estimatetokens operation.
 func (s *FiveGCoreContextStrategy) EstimateTokens(content string, modelName string) int {
 	return s.tokenEstimator.EstimateTokens(content, modelName)
 }
 
+// Compress performs compress operation.
 func (s *FiveGCoreContextStrategy) Compress(content string, level CompressionLevel) string {
-	// 5G Core specific compression logic
+	// 5G Core specific compression logic.
 	return content
 }
 
 func (s *FiveGCoreContextStrategy) select5GCoreContext(request *ContextInjectionRequest) (*SelectedContext, error) {
-	// Implementation would focus on 5G Core specific context selection
+	// Implementation would focus on 5G Core specific context selection.
 	systemPrompt, _ := s.templates.GetSystemPrompt("5gc_network_intent")
 	examples := s.templates.GetFewShotExamples("5gc_network_intent", "5g-core")
 

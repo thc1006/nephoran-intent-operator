@@ -10,25 +10,30 @@ import (
 	"sync"
 )
 
-// ContextAssembler assembles coherent context from search results
+// ContextAssembler assembles coherent context from search results.
 type ContextAssembler struct {
 	config *RetrievalConfig
 	logger *slog.Logger
 	mutex  sync.RWMutex
 }
 
-// ContextAssemblyStrategy defines how context should be assembled
+// ContextAssemblyStrategy defines how context should be assembled.
 type ContextAssemblyStrategy string
 
 const (
-	StrategyRankBased    ContextAssemblyStrategy = "rank_based"   // Use results in rank order
+	// StrategyRankBased holds strategyrankbased value.
+	StrategyRankBased ContextAssemblyStrategy = "rank_based" // Use results in rank order
+	// StrategyHierarchical holds strategyhierarchical value.
 	StrategyHierarchical ContextAssemblyStrategy = "hierarchical" // Group by document hierarchy
-	StrategyTopical      ContextAssemblyStrategy = "topical"      // Group by topic/domain
-	StrategyProgressive  ContextAssemblyStrategy = "progressive"  // Build context progressively
-	StrategyBalanced     ContextAssemblyStrategy = "balanced"     // Balance different sources/types
+	// StrategyTopical holds strategytopical value.
+	StrategyTopical ContextAssemblyStrategy = "topical" // Group by topic/domain
+	// StrategyProgressive holds strategyprogressive value.
+	StrategyProgressive ContextAssemblyStrategy = "progressive" // Build context progressively
+	// StrategyBalanced holds strategybalanced value.
+	StrategyBalanced ContextAssemblyStrategy = "balanced" // Balance different sources/types
 )
 
-// ContextSection represents a section of assembled context
+// ContextSection represents a section of assembled context.
 type ContextSection struct {
 	Title       string                  `json:"title"`
 	Content     string                  `json:"content"`
@@ -41,7 +46,7 @@ type ContextSection struct {
 	SectionType string                  `json:"section_type"` // introduction, main, detail, conclusion
 }
 
-// NewContextAssembler creates a new context assembler
+// NewContextAssembler creates a new context assembler.
 func NewContextAssembler(config *RetrievalConfig) *ContextAssembler {
 	return &ContextAssembler{
 		config: config,
@@ -49,7 +54,7 @@ func NewContextAssembler(config *RetrievalConfig) *ContextAssembler {
 	}
 }
 
-// AssembleContext assembles coherent context from search results
+// AssembleContext assembles coherent context from search results.
 func (ca *ContextAssembler) AssembleContext(results []*EnhancedSearchResult, request *EnhancedSearchRequest) (string, *ContextMetadata) {
 	if len(results) == 0 {
 		return "", &ContextMetadata{
@@ -64,16 +69,16 @@ func (ca *ContextAssembler) AssembleContext(results []*EnhancedSearchResult, req
 		"max_context_length", ca.config.MaxContextLength,
 	)
 
-	// Determine assembly strategy based on intent and results
+	// Determine assembly strategy based on intent and results.
 	strategy := ca.determineAssemblyStrategy(results, request)
 
-	// Create context sections based on strategy
+	// Create context sections based on strategy.
 	sections := ca.createContextSections(results, request, strategy)
 
-	// Assemble final context
+	// Assemble final context.
 	assembledContext := ca.assembleContextFromSections(sections, request)
 
-	// Create metadata
+	// Create metadata.
 	metadata := ca.createContextMetadata(sections, results, assembledContext)
 
 	ca.logger.Info("Context assembly completed",
@@ -86,12 +91,12 @@ func (ca *ContextAssembler) AssembleContext(results []*EnhancedSearchResult, req
 	return assembledContext, metadata
 }
 
-// determineAssemblyStrategy determines the best strategy for context assembly
+// determineAssemblyStrategy determines the best strategy for context assembly.
 func (ca *ContextAssembler) determineAssemblyStrategy(results []*EnhancedSearchResult, request *EnhancedSearchRequest) ContextAssemblyStrategy {
-	// Default strategy
+	// Default strategy.
 	strategy := StrategyRankBased
 
-	// Consider intent type
+	// Consider intent type.
 	if request.IntentType != "" {
 		switch request.IntentType {
 		case "configuration":
@@ -105,12 +110,12 @@ func (ca *ContextAssembler) determineAssemblyStrategy(results []*EnhancedSearchR
 		}
 	}
 
-	// Consider result diversity
+	// Consider result diversity.
 	if ca.hasHighDiversity(results) {
 		strategy = StrategyTopical // Group similar topics together
 	}
 
-	// Consider hierarchy information
+	// Consider hierarchy information.
 	if ca.hasRichHierarchy(results) {
 		strategy = StrategyHierarchical
 	}
@@ -118,13 +123,13 @@ func (ca *ContextAssembler) determineAssemblyStrategy(results []*EnhancedSearchR
 	return strategy
 }
 
-// hasHighDiversity checks if results have high topic diversity
+// hasHighDiversity checks if results have high topic diversity.
 func (ca *ContextAssembler) hasHighDiversity(results []*EnhancedSearchResult) bool {
 	if len(results) < 3 {
 		return false
 	}
 
-	// Check source diversity
+	// Check source diversity.
 	sources := make(map[string]bool)
 	categories := make(map[string]bool)
 
@@ -135,11 +140,11 @@ func (ca *ContextAssembler) hasHighDiversity(results []*EnhancedSearchResult) bo
 		}
 	}
 
-	// High diversity if we have multiple sources and categories
+	// High diversity if we have multiple sources and categories.
 	return len(sources) >= 3 || len(categories) >= 2
 }
 
-// hasRichHierarchy checks if results have rich hierarchical information
+// hasRichHierarchy checks if results have rich hierarchical information.
 func (ca *ContextAssembler) hasRichHierarchy(results []*EnhancedSearchResult) bool {
 	hierarchyCount := 0
 	for _, result := range results {
@@ -150,7 +155,7 @@ func (ca *ContextAssembler) hasRichHierarchy(results []*EnhancedSearchResult) bo
 	return float64(hierarchyCount)/float64(len(results)) > 0.5
 }
 
-// createContextSections creates context sections based on the chosen strategy
+// createContextSections creates context sections based on the chosen strategy.
 func (ca *ContextAssembler) createContextSections(results []*EnhancedSearchResult, request *EnhancedSearchRequest, strategy ContextAssemblyStrategy) []*ContextSection {
 	switch strategy {
 	case StrategyHierarchical:
@@ -166,11 +171,11 @@ func (ca *ContextAssembler) createContextSections(results []*EnhancedSearchResul
 	}
 }
 
-// createRankBasedSections creates sections in rank order
+// createRankBasedSections creates sections in rank order.
 func (ca *ContextAssembler) createRankBasedSections(results []*EnhancedSearchResult, request *EnhancedSearchRequest) []*ContextSection {
 	var sections []*ContextSection
 
-	// Group results into sections to avoid too many small sections
+	// Group results into sections to avoid too many small sections.
 	sectionSize := 2 // Results per section
 	if len(results) > 10 {
 		sectionSize = 3
@@ -190,9 +195,9 @@ func (ca *ContextAssembler) createRankBasedSections(results []*EnhancedSearchRes
 	return sections
 }
 
-// createHierarchicalSections creates sections based on document hierarchy
+// createHierarchicalSections creates sections based on document hierarchy.
 func (ca *ContextAssembler) createHierarchicalSections(results []*EnhancedSearchResult, request *EnhancedSearchRequest) []*ContextSection {
-	// Group results by category and subcategory
+	// Group results by category and subcategory.
 	categoryGroups := make(map[string][]*EnhancedSearchResult)
 
 	for _, result := range results {
@@ -210,11 +215,11 @@ func (ca *ContextAssembler) createHierarchicalSections(results []*EnhancedSearch
 
 	var sections []*ContextSection
 
-	// Create sections for each category
+	// Create sections for each category.
 	categoryOrder := []string{"RAN", "Core", "Transport", "Management", "General"}
 	for _, category := range categoryOrder {
 		if groupResults, exists := categoryGroups[category]; exists {
-			// Sort by relevance within category
+			// Sort by relevance within category.
 			sort.Slice(groupResults, func(i, j int) bool {
 				return groupResults[i].CombinedScore > groupResults[j].CombinedScore
 			})
@@ -224,7 +229,7 @@ func (ca *ContextAssembler) createHierarchicalSections(results []*EnhancedSearch
 		}
 	}
 
-	// Add any remaining categories
+	// Add any remaining categories.
 	for category, groupResults := range categoryGroups {
 		found := false
 		for _, orderedCat := range categoryOrder {
@@ -242,15 +247,15 @@ func (ca *ContextAssembler) createHierarchicalSections(results []*EnhancedSearch
 	return sections
 }
 
-// createTopicalSections creates sections grouped by topic
+// createTopicalSections creates sections grouped by topic.
 func (ca *ContextAssembler) createTopicalSections(results []*EnhancedSearchResult, request *EnhancedSearchRequest) []*ContextSection {
-	// Cluster results by semantic similarity
+	// Cluster results by semantic similarity.
 	clusters := ca.clusterResultsByTopic(results)
 
 	var sections []*ContextSection
 
 	for i, cluster := range clusters {
-		// Generate topic title from cluster
+		// Generate topic title from cluster.
 		topicTitle := ca.generateTopicTitle(cluster, request)
 		sectionType := ca.determineSectionType(topicTitle, i)
 
@@ -261,7 +266,7 @@ func (ca *ContextAssembler) createTopicalSections(results []*EnhancedSearchResul
 	return sections
 }
 
-// createProgressiveSections creates sections that build context progressively
+// createProgressiveSections creates sections that build context progressively.
 func (ca *ContextAssembler) createProgressiveSections(results []*EnhancedSearchResult, request *EnhancedSearchRequest) []*ContextSection {
 	var sections []*ContextSection
 
@@ -269,7 +274,7 @@ func (ca *ContextAssembler) createProgressiveSections(results []*EnhancedSearchR
 		return sections
 	}
 
-	// Introduction section - highest relevance overview
+	// Introduction section - highest relevance overview.
 	if len(results) > 0 {
 		introResults := []*EnhancedSearchResult{results[0]}
 		if len(results) > 1 && results[1].CombinedScore > 0.8 {
@@ -279,10 +284,10 @@ func (ca *ContextAssembler) createProgressiveSections(results []*EnhancedSearchR
 		sections = append(sections, section)
 	}
 
-	// Main content sections - group remaining results
+	// Main content sections - group remaining results.
 	remaining := results[len(sections):]
 	if len(remaining) > 0 {
-		// Create main sections
+		// Create main sections.
 		sectionSize := 3
 		for i := 0; i < len(remaining); i += sectionSize {
 			end := i + sectionSize
@@ -300,9 +305,9 @@ func (ca *ContextAssembler) createProgressiveSections(results []*EnhancedSearchR
 	return sections
 }
 
-// createBalancedSections creates balanced sections across sources and types
+// createBalancedSections creates balanced sections across sources and types.
 func (ca *ContextAssembler) createBalancedSections(results []*EnhancedSearchResult, request *EnhancedSearchRequest) []*ContextSection {
-	// Group by source first to ensure diversity
+	// Group by source first to ensure diversity.
 	sourceGroups := make(map[string][]*EnhancedSearchResult)
 
 	for _, result := range results {
@@ -315,7 +320,7 @@ func (ca *ContextAssembler) createBalancedSections(results []*EnhancedSearchResu
 
 	var sections []*ContextSection
 
-	// Create balanced sections by interleaving sources
+	// Create balanced sections by interleaving sources.
 	sourceOrder := []string{"3GPP", "O-RAN", "ETSI", "ITU", "Unknown"}
 	maxSourceResults := 2 // Maximum results per source per section
 
@@ -324,10 +329,10 @@ func (ca *ContextAssembler) createBalancedSections(results []*EnhancedSearchResu
 		var sectionResults []*EnhancedSearchResult
 		hasMore := false
 
-		// Take results from each source in order
+		// Take results from each source in order.
 		for _, source := range sourceOrder {
 			if groupResults, exists := sourceGroups[source]; exists && len(groupResults) > 0 {
-				// Take up to maxSourceResults from this source
+				// Take up to maxSourceResults from this source.
 				takeCount := min(maxSourceResults, len(groupResults))
 				sectionResults = append(sectionResults, groupResults[:takeCount]...)
 				sourceGroups[source] = groupResults[takeCount:]
@@ -342,7 +347,7 @@ func (ca *ContextAssembler) createBalancedSections(results []*EnhancedSearchResu
 			break
 		}
 
-		// Sort section results by combined score
+		// Sort section results by combined score.
 		sort.Slice(sectionResults, func(i, j int) bool {
 			return sectionResults[i].CombinedScore > sectionResults[j].CombinedScore
 		})
@@ -361,13 +366,13 @@ func (ca *ContextAssembler) createBalancedSections(results []*EnhancedSearchResu
 	return sections
 }
 
-// clusterResultsByTopic clusters results by semantic topic similarity
+// clusterResultsByTopic clusters results by semantic topic similarity.
 func (ca *ContextAssembler) clusterResultsByTopic(results []*EnhancedSearchResult) [][]*EnhancedSearchResult {
 	if len(results) <= 2 {
 		return [][]*EnhancedSearchResult{results}
 	}
 
-	// Simple clustering based on keyword similarity
+	// Simple clustering based on keyword similarity.
 	var clusters [][]*EnhancedSearchResult
 	used := make(map[int]bool)
 
@@ -379,7 +384,7 @@ func (ca *ContextAssembler) clusterResultsByTopic(results []*EnhancedSearchResul
 		cluster := []*EnhancedSearchResult{result}
 		used[i] = true
 
-		// Find similar results
+		// Find similar results.
 		for j := i + 1; j < len(results); j++ {
 			if used[j] {
 				continue
@@ -397,7 +402,7 @@ func (ca *ContextAssembler) clusterResultsByTopic(results []*EnhancedSearchResul
 	return clusters
 }
 
-// areTopicallySimilar checks if two results are topically similar
+// areTopicallySimilar checks if two results are topically similar.
 func (ca *ContextAssembler) areTopicallySimilar(result1, result2 *EnhancedSearchResult) bool {
 	if result1.Document == nil || result2.Document == nil {
 		return false
@@ -405,12 +410,12 @@ func (ca *ContextAssembler) areTopicallySimilar(result1, result2 *EnhancedSearch
 
 	doc1, doc2 := result1.Document, result2.Document
 
-	// Check category similarity
+	// Check category similarity.
 	if doc1.Category != "" && doc2.Category != "" && doc1.Category == doc2.Category {
 		return true
 	}
 
-	// Check technology overlap
+	// Check technology overlap.
 	if len(doc1.Technology) > 0 && len(doc2.Technology) > 0 {
 		for _, tech1 := range doc1.Technology {
 			for _, tech2 := range doc2.Technology {
@@ -421,7 +426,7 @@ func (ca *ContextAssembler) areTopicallySimilar(result1, result2 *EnhancedSearch
 		}
 	}
 
-	// Check network function overlap
+	// Check network function overlap.
 	if len(doc1.NetworkFunction) > 0 && len(doc2.NetworkFunction) > 0 {
 		for _, nf1 := range doc1.NetworkFunction {
 			for _, nf2 := range doc2.NetworkFunction {
@@ -432,7 +437,7 @@ func (ca *ContextAssembler) areTopicallySimilar(result1, result2 *EnhancedSearch
 		}
 	}
 
-	// Check keyword similarity
+	// Check keyword similarity.
 	if len(doc1.Keywords) > 0 && len(doc2.Keywords) > 0 {
 		commonKeywords := 0
 		for _, kw1 := range doc1.Keywords {
@@ -442,7 +447,7 @@ func (ca *ContextAssembler) areTopicallySimilar(result1, result2 *EnhancedSearch
 				}
 			}
 		}
-		// Similar if they share more than 30% of keywords
+		// Similar if they share more than 30% of keywords.
 		totalKeywords := len(doc1.Keywords) + len(doc2.Keywords)
 		if float64(commonKeywords*2)/float64(totalKeywords) > 0.3 {
 			return true
@@ -452,13 +457,13 @@ func (ca *ContextAssembler) areTopicallySimilar(result1, result2 *EnhancedSearch
 	return false
 }
 
-// generateTopicTitle generates a title for a topic cluster
+// generateTopicTitle generates a title for a topic cluster.
 func (ca *ContextAssembler) generateTopicTitle(cluster []*EnhancedSearchResult, request *EnhancedSearchRequest) string {
 	if len(cluster) == 0 {
 		return "Information"
 	}
 
-	// Find common themes
+	// Find common themes.
 	categories := make(map[string]int)
 	technologies := make(map[string]int)
 	networkFunctions := make(map[string]int)
@@ -482,7 +487,7 @@ func (ca *ContextAssembler) generateTopicTitle(cluster []*EnhancedSearchResult, 
 		}
 	}
 
-	// Find the most common theme
+	// Find the most common theme.
 	if mostCommon := findMostCommon(categories); mostCommon != "" {
 		return mostCommon
 	}
@@ -498,7 +503,7 @@ func (ca *ContextAssembler) generateTopicTitle(cluster []*EnhancedSearchResult, 
 	return "Related Information"
 }
 
-// findMostCommon finds the most common item in a frequency map
+// findMostCommon finds the most common item in a frequency map.
 func findMostCommon(freq map[string]int) string {
 	maxCount := 0
 	mostCommon := ""
@@ -513,7 +518,7 @@ func findMostCommon(freq map[string]int) string {
 	return mostCommon
 }
 
-// createSectionFromResults creates a context section from results
+// createSectionFromResults creates a context section from results.
 func (ca *ContextAssembler) createSectionFromResults(results []*EnhancedSearchResult, title, sectionType string) *ContextSection {
 	if len(results) == 0 {
 		return &ContextSection{
@@ -529,7 +534,7 @@ func (ca *ContextAssembler) createSectionFromResults(results []*EnhancedSearchRe
 	var sources []string
 	totalRelevance := float32(0.0)
 
-	// Add section header if configured
+	// Add section header if configured.
 	if ca.config.IncludeHierarchyInfo && title != "" {
 		contentBuilder.WriteString(fmt.Sprintf("=== %s ===\n\n", title))
 	}
@@ -542,7 +547,7 @@ func (ca *ContextAssembler) createSectionFromResults(results []*EnhancedSearchRe
 		doc := result.Document
 		totalRelevance += result.CombinedScore
 
-		// Add document header with metadata
+		// Add document header with metadata.
 		if ca.config.IncludeSourceMetadata {
 			var headerParts []string
 			if doc.Source != "" && doc.Source != "Unknown" {
@@ -560,7 +565,7 @@ func (ca *ContextAssembler) createSectionFromResults(results []*EnhancedSearchRe
 			}
 		}
 
-		// Add the content
+		// Add the content.
 		content := doc.Content
 		if len(content) > 2000 { // Limit individual document content
 			content = content[:2000] + "..."
@@ -568,24 +573,24 @@ func (ca *ContextAssembler) createSectionFromResults(results []*EnhancedSearchRe
 
 		contentBuilder.WriteString(content)
 
-		// Add spacing between documents
+		// Add spacing between documents.
 		if i < len(results)-1 {
 			contentBuilder.WriteString("\n\n---\n\n")
 		}
 
-		// Track sources
+		// Track sources.
 		if doc.Source != "" && doc.Source != "Unknown" {
 			sources = append(sources, doc.Source)
 		}
 	}
 
-	// Calculate average relevance
+	// Calculate average relevance.
 	avgRelevance := float32(0.0)
 	if len(results) > 0 {
 		avgRelevance = totalRelevance / float32(len(results))
 	}
 
-	// Create metadata
+	// Create metadata.
 	metadata := map[string]interface{}{
 		"result_count":      len(results),
 		"average_relevance": avgRelevance,
@@ -606,7 +611,7 @@ func (ca *ContextAssembler) createSectionFromResults(results []*EnhancedSearchRe
 	return section
 }
 
-// determineSectionType determines the type of section based on position and content
+// determineSectionType determines the type of section based on position and content.
 func (ca *ContextAssembler) determineSectionType(title string, position int) string {
 	titleLower := strings.ToLower(title)
 
@@ -629,7 +634,7 @@ func (ca *ContextAssembler) determineSectionType(title string, position int) str
 	return "main"
 }
 
-// assembleContextFromSections assembles the final context from sections
+// assembleContextFromSections assembles the final context from sections.
 func (ca *ContextAssembler) assembleContextFromSections(sections []*ContextSection, request *EnhancedSearchRequest) string {
 	if len(sections) == 0 {
 		return ""
@@ -639,15 +644,15 @@ func (ca *ContextAssembler) assembleContextFromSections(sections []*ContextSecti
 	currentLength := 0
 	maxLength := ca.config.MaxContextLength
 
-	// Sort sections by type and relevance
+	// Sort sections by type and relevance.
 	ca.sortSectionsByPriority(sections)
 
 	for i, section := range sections {
 		sectionContent := section.Content
 
-		// Check if adding this section would exceed the limit
+		// Check if adding this section would exceed the limit.
 		if currentLength+len(sectionContent) > maxLength {
-			// Try to include partial content
+			// Try to include partial content.
 			remainingSpace := maxLength - currentLength
 			if remainingSpace > 200 { // Only include if we have meaningful space
 				truncated := ca.truncateAtSentenceBoundary(sectionContent, remainingSpace)
@@ -662,7 +667,7 @@ func (ca *ContextAssembler) assembleContextFromSections(sections []*ContextSecti
 		contextBuilder.WriteString(sectionContent)
 		currentLength += len(sectionContent)
 
-		// Add section separator (except for the last section)
+		// Add section separator (except for the last section).
 		if i < len(sections)-1 {
 			separator := "\n\n"
 			contextBuilder.WriteString(separator)
@@ -673,7 +678,7 @@ func (ca *ContextAssembler) assembleContextFromSections(sections []*ContextSecti
 	return contextBuilder.String()
 }
 
-// sortSectionsByPriority sorts sections by type priority and relevance
+// sortSectionsByPriority sorts sections by type priority and relevance.
 func (ca *ContextAssembler) sortSectionsByPriority(sections []*ContextSection) {
 	typePriority := map[string]int{
 		"introduction": 0,
@@ -683,7 +688,7 @@ func (ca *ContextAssembler) sortSectionsByPriority(sections []*ContextSection) {
 	}
 
 	sort.Slice(sections, func(i, j int) bool {
-		// First sort by type priority
+		// First sort by type priority.
 		priI := typePriority[sections[i].SectionType]
 		priJ := typePriority[sections[j].SectionType]
 
@@ -691,21 +696,21 @@ func (ca *ContextAssembler) sortSectionsByPriority(sections []*ContextSection) {
 			return priI < priJ
 		}
 
-		// Then by relevance (descending)
+		// Then by relevance (descending).
 		return sections[i].Relevance > sections[j].Relevance
 	})
 }
 
-// truncateAtSentenceBoundary truncates content at a sentence boundary
+// truncateAtSentenceBoundary truncates content at a sentence boundary.
 func (ca *ContextAssembler) truncateAtSentenceBoundary(content string, maxLength int) string {
 	if len(content) <= maxLength {
 		return content
 	}
 
-	// Find the last sentence boundary before maxLength
+	// Find the last sentence boundary before maxLength.
 	truncated := content[:maxLength]
 
-	// Look for sentence endings
+	// Look for sentence endings.
 	lastDot := strings.LastIndex(truncated, ".")
 	lastExclamation := strings.LastIndex(truncated, "!")
 	lastQuestion := strings.LastIndex(truncated, "?")
@@ -716,7 +721,7 @@ func (ca *ContextAssembler) truncateAtSentenceBoundary(content string, maxLength
 		return content[:lastSentenceEnd+1]
 	}
 
-	// Fallback: truncate at word boundary
+	// Fallback: truncate at word boundary.
 	words := strings.Fields(truncated)
 	if len(words) > 1 {
 		words = words[:len(words)-1] // Remove last potentially incomplete word
@@ -726,7 +731,7 @@ func (ca *ContextAssembler) truncateAtSentenceBoundary(content string, maxLength
 	return truncated
 }
 
-// createContextMetadata creates metadata about the assembled context
+// createContextMetadata creates metadata about the assembled context.
 func (ca *ContextAssembler) createContextMetadata(sections []*ContextSection, results []*EnhancedSearchResult, context string) *ContextMetadata {
 	metadata := &ContextMetadata{
 		TotalLength:        len(context),
@@ -735,14 +740,14 @@ func (ca *ContextAssembler) createContextMetadata(sections []*ContextSection, re
 		HierarchyLevels:    []int{},
 	}
 
-	// Count sources
+	// Count sources.
 	for _, result := range results {
 		if result.Document != nil && result.Document.Source != "" {
 			metadata.SourceDistribution[result.Document.Source]++
 		}
 	}
 
-	// Calculate average quality
+	// Calculate average quality.
 	totalQuality := float32(0.0)
 	qualityCount := 0
 	technicalTermCount := 0
@@ -763,7 +768,7 @@ func (ca *ContextAssembler) createContextMetadata(sections []*ContextSection, re
 
 	metadata.TechnicalTermCount = technicalTermCount
 
-	// Check if content was truncated
+	// Check if content was truncated.
 	requestedLength := 0
 	for _, section := range sections {
 		requestedLength += len(section.Content)
@@ -776,7 +781,7 @@ func (ca *ContextAssembler) createContextMetadata(sections []*ContextSection, re
 	return metadata
 }
 
-// uniqueStrings removes duplicate strings from a slice
+// uniqueStrings removes duplicate strings from a slice.
 func (ca *ContextAssembler) uniqueStrings(strings []string) []string {
 	keys := make(map[string]bool)
 	var unique []string
@@ -791,9 +796,9 @@ func (ca *ContextAssembler) uniqueStrings(strings []string) []string {
 	return unique
 }
 
-// Helper functions
+// Helper functions.
 
-// min returns the minimum of two integers
+// min returns the minimum of two integers.
 func min(a, b int) int {
 	if a < b {
 		return a
@@ -801,7 +806,7 @@ func min(a, b int) int {
 	return b
 }
 
-// max returns the maximum of three integers
+// max returns the maximum of three integers.
 func max(a, b, c int) int {
 	if a > b {
 		if a > c {

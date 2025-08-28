@@ -19,7 +19,7 @@ func main() {
 	interval := flag.Int("interval", 60, "heartbeat interval in seconds")
 	flag.Parse()
 
-	// Create output directory if it doesn't exist
+	// Create output directory if it doesn't exist.
 	if err := os.MkdirAll(*outDir, 0o755); err != nil {
 		log.Fatalf("Failed to create output directory: %v", err)
 	}
@@ -32,7 +32,7 @@ func main() {
 	case "fault":
 		event = ves.NewFaultEvent(*sourceName, "LinkDown", "MAJOR")
 	default:
-		// For other domains, create a minimal event
+		// For other domains, create a minimal event.
 		now := time.Now().UTC()
 		nowMicros := now.UnixNano() / 1000
 		event = &ves.Event{
@@ -59,18 +59,18 @@ func main() {
 		}
 	}
 
-	// Marshal event to JSON with indentation
+	// Marshal event to JSON with indentation.
 	jsonData, err := json.MarshalIndent(event, "", "  ")
 	if err != nil {
 		log.Fatalf("Failed to marshal event: %v", err)
 	}
 
-	// Generate filename with timestamp
+	// Generate filename with timestamp.
 	filename := time.Now().UTC().Format("20060102T150405Z") + ".json"
 	filepath := filepath.Join(*outDir, filename)
 
-	// Write to file
-	if err := os.WriteFile(filepath, jsonData, 0o644); err != nil {
+	// Write to file.
+	if err := os.WriteFile(filepath, jsonData, 0o640); err != nil {
 		log.Fatalf("Failed to write event file: %v", err)
 	}
 

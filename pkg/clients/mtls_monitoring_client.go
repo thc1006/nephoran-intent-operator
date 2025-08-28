@@ -12,13 +12,13 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
-// MTLSMonitoringClient provides mTLS-enabled monitoring client functionality
+// MTLSMonitoringClient provides mTLS-enabled monitoring client functionality.
 type MTLSMonitoringClient struct {
 	httpClient *http.Client
 	logger     *logging.StructuredLogger
 }
 
-// MetricData represents a metric data point
+// MetricData represents a metric data point.
 type MetricData struct {
 	Name      string                 `json:"name"`
 	Value     float64                `json:"value"`
@@ -30,7 +30,7 @@ type MetricData struct {
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// AlertData represents alert information
+// AlertData represents alert information.
 type AlertData struct {
 	Name         string                 `json:"name"`
 	State        string                 `json:"state"`    // firing, resolved, pending
@@ -44,7 +44,7 @@ type AlertData struct {
 	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// LogData represents log entry
+// LogData represents log entry.
 type LogData struct {
 	Level     string                 `json:"level"`
 	Message   string                 `json:"message"`
@@ -54,7 +54,7 @@ type LogData struct {
 	Fields    map[string]interface{} `json:"fields,omitempty"`
 }
 
-// QueryRequest represents a monitoring query request
+// QueryRequest represents a monitoring query request.
 type QueryRequest struct {
 	Query     string            `json:"query"`
 	StartTime *time.Time        `json:"start_time,omitempty"`
@@ -63,14 +63,14 @@ type QueryRequest struct {
 	Labels    map[string]string `json:"labels,omitempty"`
 }
 
-// QueryResponse represents a monitoring query response
+// QueryResponse represents a monitoring query response.
 type QueryResponse struct {
 	Status string      `json:"status"`
 	Data   interface{} `json:"data"`
 	Error  string      `json:"error,omitempty"`
 }
 
-// SendMetrics sends metrics to the monitoring system using mTLS
+// SendMetrics sends metrics to the monitoring system using mTLS.
 func (c *MTLSMonitoringClient) SendMetrics(ctx context.Context, metrics []*MetricData, endpoint string) error {
 	if len(metrics) == 0 {
 		return fmt.Errorf("no metrics provided")
@@ -84,7 +84,7 @@ func (c *MTLSMonitoringClient) SendMetrics(ctx context.Context, metrics []*Metri
 		"metric_count", len(metrics),
 		"endpoint", endpoint)
 
-	// Prepare metrics payload
+	// Prepare metrics payload.
 	payload := map[string]interface{}{
 		"metrics":   metrics,
 		"timestamp": time.Now(),
@@ -94,7 +94,7 @@ func (c *MTLSMonitoringClient) SendMetrics(ctx context.Context, metrics []*Metri
 	return c.sendPayload(ctx, "POST", endpoint, payload)
 }
 
-// SendAlert sends an alert to the monitoring system
+// SendAlert sends an alert to the monitoring system.
 func (c *MTLSMonitoringClient) SendAlert(ctx context.Context, alert *AlertData, endpoint string) error {
 	if alert == nil {
 		return fmt.Errorf("alert data cannot be nil")
@@ -110,7 +110,7 @@ func (c *MTLSMonitoringClient) SendAlert(ctx context.Context, alert *AlertData, 
 		"state", alert.State,
 		"endpoint", endpoint)
 
-	// Prepare alert payload
+	// Prepare alert payload.
 	payload := map[string]interface{}{
 		"alerts": []*AlertData{alert},
 		"source": "nephoran-intent-operator",
@@ -119,7 +119,7 @@ func (c *MTLSMonitoringClient) SendAlert(ctx context.Context, alert *AlertData, 
 	return c.sendPayload(ctx, "POST", endpoint, payload)
 }
 
-// SendLogs sends logs to the monitoring system
+// SendLogs sends logs to the monitoring system.
 func (c *MTLSMonitoringClient) SendLogs(ctx context.Context, logs []*LogData, endpoint string) error {
 	if len(logs) == 0 {
 		return fmt.Errorf("no logs provided")
@@ -133,7 +133,7 @@ func (c *MTLSMonitoringClient) SendLogs(ctx context.Context, logs []*LogData, en
 		"log_count", len(logs),
 		"endpoint", endpoint)
 
-	// Prepare logs payload
+	// Prepare logs payload.
 	payload := map[string]interface{}{
 		"logs":   logs,
 		"source": "nephoran-intent-operator",
@@ -142,7 +142,7 @@ func (c *MTLSMonitoringClient) SendLogs(ctx context.Context, logs []*LogData, en
 	return c.sendPayload(ctx, "POST", endpoint, payload)
 }
 
-// QueryMetrics queries metrics from the monitoring system
+// QueryMetrics queries metrics from the monitoring system.
 func (c *MTLSMonitoringClient) QueryMetrics(ctx context.Context, query *QueryRequest, endpoint string) (*QueryResponse, error) {
 	if query == nil || query.Query == "" {
 		return nil, fmt.Errorf("query cannot be empty")
@@ -164,7 +164,7 @@ func (c *MTLSMonitoringClient) QueryMetrics(ctx context.Context, query *QueryReq
 	return &response, nil
 }
 
-// QueryRangeMetrics queries range metrics from the monitoring system
+// QueryRangeMetrics queries range metrics from the monitoring system.
 func (c *MTLSMonitoringClient) QueryRangeMetrics(ctx context.Context, query *QueryRequest, endpoint string) (*QueryResponse, error) {
 	if query == nil || query.Query == "" {
 		return nil, fmt.Errorf("query cannot be empty")
@@ -188,7 +188,7 @@ func (c *MTLSMonitoringClient) QueryRangeMetrics(ctx context.Context, query *Que
 	return &response, nil
 }
 
-// GetAlerts retrieves active alerts from the monitoring system
+// GetAlerts retrieves active alerts from the monitoring system.
 func (c *MTLSMonitoringClient) GetAlerts(ctx context.Context, labels map[string]string, endpoint string) ([]*AlertData, error) {
 	if endpoint == "" {
 		endpoint = "/api/v1/alerts"
@@ -198,7 +198,7 @@ func (c *MTLSMonitoringClient) GetAlerts(ctx context.Context, labels map[string]
 		"labels", labels,
 		"endpoint", endpoint)
 
-	// Build query parameters
+	// Build query parameters.
 	queryParams := make(map[string]interface{})
 	if len(labels) > 0 {
 		queryParams["labels"] = labels
@@ -221,7 +221,7 @@ func (c *MTLSMonitoringClient) GetAlerts(ctx context.Context, labels map[string]
 	return response.Alerts, nil
 }
 
-// CreateSilence creates an alert silence
+// CreateSilence creates an alert silence.
 func (c *MTLSMonitoringClient) CreateSilence(ctx context.Context, silence *SilenceData, endpoint string) (*SilenceResponse, error) {
 	if silence == nil {
 		return nil, fmt.Errorf("silence data cannot be nil")
@@ -247,7 +247,7 @@ func (c *MTLSMonitoringClient) CreateSilence(ctx context.Context, silence *Silen
 	return &response, nil
 }
 
-// DeleteSilence deletes an alert silence
+// DeleteSilence deletes an alert silence.
 func (c *MTLSMonitoringClient) DeleteSilence(ctx context.Context, silenceID string, endpoint string) error {
 	if silenceID == "" {
 		return fmt.Errorf("silence ID cannot be empty")
@@ -270,12 +270,12 @@ func (c *MTLSMonitoringClient) DeleteSilence(ctx context.Context, silenceID stri
 	return nil
 }
 
-// sendPayload sends a payload to the specified endpoint
+// sendPayload sends a payload to the specified endpoint.
 func (c *MTLSMonitoringClient) sendPayload(ctx context.Context, method, endpoint string, payload interface{}) error {
 	return c.makeRequest(ctx, method, endpoint, payload, nil)
 }
 
-// makeRequest makes an HTTP request to a monitoring endpoint
+// makeRequest makes an HTTP request to a monitoring endpoint.
 func (c *MTLSMonitoringClient) makeRequest(ctx context.Context, method, endpoint string, requestBody interface{}, responseBody interface{}) error {
 	var reqBody io.Reader
 
@@ -287,7 +287,7 @@ func (c *MTLSMonitoringClient) makeRequest(ctx context.Context, method, endpoint
 		reqBody = bytes.NewBuffer(jsonBody)
 	}
 
-	// Create HTTP request
+	// Create HTTP request.
 	httpReq, err := http.NewRequestWithContext(ctx, method, endpoint, reqBody)
 	if err != nil {
 		return fmt.Errorf("failed to create HTTP request: %w", err)
@@ -304,7 +304,7 @@ func (c *MTLSMonitoringClient) makeRequest(ctx context.Context, method, endpoint
 		"endpoint", endpoint,
 		"has_body", requestBody != nil)
 
-	// Make request
+	// Make request.
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
 		return fmt.Errorf("failed to make HTTP request: %w", err)
@@ -315,13 +315,13 @@ func (c *MTLSMonitoringClient) makeRequest(ctx context.Context, method, endpoint
 		"status_code", resp.StatusCode,
 		"content_length", resp.ContentLength)
 
-	// Check for success status codes
+	// Check for success status codes.
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("request failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
-	// Decode response if needed
+	// Decode response if needed.
 	if responseBody != nil && resp.ContentLength != 0 {
 		if err := json.NewDecoder(resp.Body).Decode(responseBody); err != nil {
 			return fmt.Errorf("failed to decode response: %w", err)
@@ -331,7 +331,7 @@ func (c *MTLSMonitoringClient) makeRequest(ctx context.Context, method, endpoint
 	return nil
 }
 
-// GetHealth returns the health status of the monitoring service
+// GetHealth returns the health status of the monitoring service.
 func (c *MTLSMonitoringClient) GetHealth() (*HealthStatus, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -348,11 +348,11 @@ func (c *MTLSMonitoringClient) GetHealth() (*HealthStatus, error) {
 	return &health, nil
 }
 
-// Close closes the monitoring client and cleans up resources
+// Close closes the monitoring client and cleans up resources.
 func (c *MTLSMonitoringClient) Close() error {
 	c.logger.Debug("closing mTLS monitoring client")
 
-	// Close idle connections in HTTP client
+	// Close idle connections in HTTP client.
 	if transport, ok := c.httpClient.Transport.(*http.Transport); ok {
 		transport.CloseIdleConnections()
 	}
@@ -360,7 +360,7 @@ func (c *MTLSMonitoringClient) Close() error {
 	return nil
 }
 
-// SilenceData represents alert silence data
+// SilenceData represents alert silence data.
 type SilenceData struct {
 	Matchers  []SilenceMatcher `json:"matchers"`
 	StartsAt  time.Time        `json:"startsAt"`
@@ -369,14 +369,14 @@ type SilenceData struct {
 	Comment   string           `json:"comment"`
 }
 
-// SilenceMatcher represents a silence matcher
+// SilenceMatcher represents a silence matcher.
 type SilenceMatcher struct {
 	Name    string `json:"name"`
 	Value   string `json:"value"`
 	IsRegex bool   `json:"isRegex"`
 }
 
-// SilenceResponse represents a silence creation response
+// SilenceResponse represents a silence creation response.
 type SilenceResponse struct {
 	SilenceID string `json:"silenceID"`
 }

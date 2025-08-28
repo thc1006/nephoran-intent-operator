@@ -13,12 +13,12 @@ import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-// CreateIsolatedNamespace creates a unique namespace for test isolation
+// CreateIsolatedNamespace creates a unique namespace for test isolation.
 func CreateIsolatedNamespace(baseName string) string {
 	return fmt.Sprintf("%s-%d", baseName, rand.Intn(10000))
 }
 
-// CreateTestNamespace creates a namespace with the given name using the client
+// CreateTestNamespace creates a namespace with the given name using the client.
 func CreateTestNamespace(ctx context.Context, k8sClient client.Client, namespaceName string) error {
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -28,7 +28,7 @@ func CreateTestNamespace(ctx context.Context, k8sClient client.Client, namespace
 	return k8sClient.Create(ctx, namespace)
 }
 
-// DeleteTestNamespace deletes a namespace using the client
+// DeleteTestNamespace deletes a namespace using the client.
 func DeleteTestNamespace(ctx context.Context, k8sClient client.Client, namespaceName string) error {
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -38,7 +38,7 @@ func DeleteTestNamespace(ctx context.Context, k8sClient client.Client, namespace
 	return k8sClient.Delete(ctx, namespace)
 }
 
-// CreateTestE2NodeSet creates a basic E2NodeSet for testing
+// CreateTestE2NodeSet creates a basic E2NodeSet for testing.
 func CreateTestE2NodeSet(name, namespace string, replicas int32) *nephoranv1.E2NodeSet {
 	return &nephoranv1.E2NodeSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -52,7 +52,7 @@ func CreateTestE2NodeSet(name, namespace string, replicas int32) *nephoranv1.E2N
 	}
 }
 
-// CreateTestNetworkIntent creates a basic NetworkIntent for testing
+// CreateTestNetworkIntent creates a basic NetworkIntent for testing.
 func CreateTestNetworkIntent(name, namespace string) *nephoranv1.NetworkIntent {
 	return &nephoranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
@@ -66,7 +66,7 @@ func CreateTestNetworkIntent(name, namespace string) *nephoranv1.NetworkIntent {
 	}
 }
 
-// WaitForCondition waits for a condition to be met on a resource
+// WaitForCondition waits for a condition to be met on a resource.
 func WaitForCondition(ctx context.Context, k8sClient client.Client, obj client.Object, conditionCheck func() bool, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -89,16 +89,16 @@ func WaitForCondition(ctx context.Context, k8sClient client.Client, obj client.O
 	}
 }
 
-// EnsureResourceExists checks if a resource exists and creates it if it doesn't
+// EnsureResourceExists checks if a resource exists and creates it if it doesn't.
 func EnsureResourceExists(ctx context.Context, k8sClient client.Client, obj client.Object) error {
 	if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
-		// Resource doesn't exist, create it
+		// Resource doesn't exist, create it.
 		return k8sClient.Create(ctx, obj)
 	}
 	return nil
 }
 
-// EnsureResourceDeleted ensures a resource is deleted
+// EnsureResourceDeleted ensures a resource is deleted.
 func EnsureResourceDeleted(ctx context.Context, k8sClient client.Client, obj client.Object) error {
 	return client.IgnoreNotFound(k8sClient.Delete(ctx, obj))
 }

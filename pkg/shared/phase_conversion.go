@@ -21,7 +21,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
-// ProcessingPhaseToNetworkIntentPhase converts a ProcessingPhase to NetworkIntentPhase
+// ProcessingPhaseToNetworkIntentPhase converts a ProcessingPhase to NetworkIntentPhase.
 func ProcessingPhaseToNetworkIntentPhase(phase interfaces.ProcessingPhase) nephoranv1.NetworkIntentPhase {
 	switch phase {
 	case interfaces.PhaseIntentReceived, interfaces.PhaseReceived:
@@ -43,7 +43,7 @@ func ProcessingPhaseToNetworkIntentPhase(phase interfaces.ProcessingPhase) nepho
 	}
 }
 
-// NetworkIntentPhaseToProcessingPhase converts a NetworkIntentPhase to ProcessingPhase
+// NetworkIntentPhaseToProcessingPhase converts a NetworkIntentPhase to ProcessingPhase.
 func NetworkIntentPhaseToProcessingPhase(phase nephoranv1.NetworkIntentPhase) interfaces.ProcessingPhase {
 	switch phase {
 	case nephoranv1.NetworkIntentPhasePending:
@@ -63,7 +63,7 @@ func NetworkIntentPhaseToProcessingPhase(phase nephoranv1.NetworkIntentPhase) in
 	}
 }
 
-// StringToNetworkIntentPhase converts a string to NetworkIntentPhase with validation
+// StringToNetworkIntentPhase converts a string to NetworkIntentPhase with validation.
 func StringToNetworkIntentPhase(phase string) nephoranv1.NetworkIntentPhase {
 	switch phase {
 	case "Pending":
@@ -85,7 +85,7 @@ func StringToNetworkIntentPhase(phase string) nephoranv1.NetworkIntentPhase {
 	}
 }
 
-// NetworkIntentPhaseToString converts a NetworkIntentPhase to string
+// NetworkIntentPhaseToString converts a NetworkIntentPhase to string.
 func NetworkIntentPhaseToString(phase nephoranv1.NetworkIntentPhase) string {
 	return string(phase)
 }

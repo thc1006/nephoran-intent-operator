@@ -21,7 +21,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/hack/testtools"
 )
 
-// EnhancedDisasterRecoveryTestSuite provides comprehensive disaster recovery testing with enhanced envtest setup
+// EnhancedDisasterRecoveryTestSuite provides comprehensive disaster recovery testing with enhanced envtest setup.
 type EnhancedDisasterRecoveryTestSuite struct {
 	suite.Suite
 	testEnv   *testtools.TestEnvironment
@@ -32,21 +32,22 @@ type EnhancedDisasterRecoveryTestSuite struct {
 	scenarios []*DisasterScenario
 }
 
+// SetupSuite performs setupsuite operation.
 func (suite *EnhancedDisasterRecoveryTestSuite) SetupSuite() {
 	suite.ctx, suite.cancel = context.WithCancel(context.TODO())
 
-	// Create temporary backup directory
+	// Create temporary backup directory.
 	tempDir, err := os.MkdirTemp("", "disaster-recovery-test-*")
 	require.NoError(suite.T(), err)
 	suite.backupDir = tempDir
 
-	// Setup enhanced test environment with automatic binary installation
+	// Setup enhanced test environment with automatic binary installation.
 	suite.T().Log("Setting up enhanced test environment with envtest binary management...")
 
-	// Get disaster recovery specific options
+	// Get disaster recovery specific options.
 	options := testtools.DisasterRecoveryTestEnvironmentOptions()
 
-	// Override CRD paths for this test
+	// Override CRD paths for this test.
 	options.CRDDirectoryPaths = []string{
 		filepath.Join("..", "..", "config", "crd", "bases"),
 		filepath.Join("..", "..", "deployments", "crds"),
@@ -54,22 +55,22 @@ func (suite *EnhancedDisasterRecoveryTestSuite) SetupSuite() {
 		filepath.Join("deployments", "crds"),
 	}
 
-	// Add Nephoran scheme
+	// Add Nephoran scheme.
 	options.SchemeBuilders = append(options.SchemeBuilders, nephoran.AddToScheme)
 
-	// Create test environment with binary management
+	// Create test environment with binary management.
 	var testEnv *testtools.TestEnvironment
 	if hasEnhancedTesttools() {
 		testEnv, err = testtools.SetupTestEnvironmentWithBinaryCheck(options)
 	} else {
-		// Fallback to original setup
+		// Fallback to original setup.
 		testEnv, err = suite.setupFallbackEnvironment(options)
 	}
 
 	if err != nil {
 		suite.T().Logf("Enhanced envtest setup failed: %v", err)
 
-		// Try with existing cluster as final fallback
+		// Try with existing cluster as final fallback.
 		suite.T().Log("Attempting fallback to existing cluster...")
 		useExisting := true
 		options.UseExistingCluster = &useExisting
@@ -85,40 +86,41 @@ func (suite *EnhancedDisasterRecoveryTestSuite) SetupSuite() {
 	require.NotNil(suite.T(), suite.testEnv)
 	require.NotNil(suite.T(), suite.testEnv.K8sClient)
 
-	// Initialize test data and scenarios
+	// Initialize test data and scenarios.
 	suite.setupTestData()
 	suite.setupDisasterScenarios()
 
 	suite.T().Log("✅ Enhanced disaster recovery test environment setup completed")
 }
 
+// TearDownSuite performs teardownsuite operation.
 func (suite *EnhancedDisasterRecoveryTestSuite) TearDownSuite() {
 	suite.cancel()
 
-	// Cleanup backup directory
+	// Cleanup backup directory.
 	if suite.backupDir != "" {
 		os.RemoveAll(suite.backupDir)
 	}
 
-	// Stop test environment
+	// Stop test environment.
 	if suite.testEnv != nil {
 		suite.testEnv.TeardownTestEnvironment()
 	}
 }
 
-// setupFallbackEnvironment provides a fallback environment setup
+// setupFallbackEnvironment provides a fallback environment setup.
 func (suite *EnhancedDisasterRecoveryTestSuite) setupFallbackEnvironment(options testtools.TestEnvironmentOptions) (*testtools.TestEnvironment, error) {
-	// This is a simplified fallback - in reality you'd use the original SetupTestEnvironmentWithOptions
+	// This is a simplified fallback - in reality you'd use the original SetupTestEnvironmentWithOptions.
 	suite.T().Log("Using fallback test environment setup...")
 
-	// For now, return nil to indicate we should skip if enhanced setup fails
+	// For now, return nil to indicate we should skip if enhanced setup fails.
 	return nil, fmt.Errorf("fallback not implemented - enhanced setup required")
 }
 
-// hasEnhancedTesttools checks if enhanced testtools functions are available
+// hasEnhancedTesttools checks if enhanced testtools functions are available.
 func hasEnhancedTesttools() bool {
-	// This would check if the enhanced functions are available
-	// For now, assume they are
+	// This would check if the enhanced functions are available.
+	// For now, assume they are.
 	return false // Set to false until we integrate properly
 }
 
@@ -234,8 +236,9 @@ func (suite *EnhancedDisasterRecoveryTestSuite) setupDisasterScenarios() {
 	}
 }
 
-// Enhanced disaster recovery test functions
+// Enhanced disaster recovery test functions.
 
+// TestEnhancedDataCorruptionRecovery performs testenhanceddatacorruptionrecovery operation.
 func (suite *EnhancedDisasterRecoveryTestSuite) TestEnhancedDataCorruptionRecovery() {
 	if suite.testEnv == nil {
 		suite.T().Skip("Test environment not available")
@@ -243,6 +246,7 @@ func (suite *EnhancedDisasterRecoveryTestSuite) TestEnhancedDataCorruptionRecove
 	suite.runDisasterScenario(suite.scenarios[0])
 }
 
+// TestEnhancedControllerRecovery performs testenhancedcontrollerrecovery operation.
 func (suite *EnhancedDisasterRecoveryTestSuite) TestEnhancedControllerRecovery() {
 	if suite.testEnv == nil {
 		suite.T().Skip("Test environment not available")
@@ -257,7 +261,7 @@ func (suite *EnhancedDisasterRecoveryTestSuite) runDisasterScenario(scenario *Di
 		StartTime: time.Now(),
 	}
 
-	// Enhanced scenario execution with better error handling
+	// Enhanced scenario execution with better error handling.
 	steps := []struct {
 		name string
 		fn   func(*EnhancedDisasterRecoveryTestSuite) error
@@ -282,7 +286,7 @@ func (suite *EnhancedDisasterRecoveryTestSuite) runDisasterScenario(scenario *Di
 				fmt.Sprintf("Step %s failed: %v", step.name, err))
 			suite.T().Errorf("❌ Step %s failed after %v: %v", step.name, stepDuration, err)
 
-			// Continue with cleanup even if earlier steps failed
+			// Continue with cleanup even if earlier steps failed.
 			if step.name != "post-cleanup" {
 				suite.T().Log("🔄 Attempting cleanup after failure...")
 				cleanupStep := steps[len(steps)-1] // Last step should be cleanup
@@ -300,7 +304,7 @@ func (suite *EnhancedDisasterRecoveryTestSuite) runDisasterScenario(scenario *Di
 	metrics.ActualRTO = metrics.EndTime.Sub(metrics.StartTime)
 	metrics.RecoverySuccess = len(metrics.ErrorMessages) == 0
 
-	// Enhanced validation of recovery objectives
+	// Enhanced validation of recovery objectives.
 	suite.validateEnhancedRecoveryObjectives(scenario, metrics)
 
 	suite.T().Logf("🎉 Enhanced disaster recovery scenario completed: %s", scenario.Name)
@@ -308,12 +312,12 @@ func (suite *EnhancedDisasterRecoveryTestSuite) runDisasterScenario(scenario *Di
 	suite.T().Logf("   ✅ Recovery Success: %t", metrics.RecoverySuccess)
 }
 
-// Enhanced implementation functions
+// Enhanced implementation functions.
 
 func (suite *EnhancedDisasterRecoveryTestSuite) setupEnhancedDataCorruptionPreConditions(s *EnhancedDisasterRecoveryTestSuite) error {
 	suite.T().Log("Setting up enhanced pre-conditions for data corruption test...")
 
-	// Create test resources with enhanced metadata
+	// Create test resources with enhanced metadata.
 	for i, intent := range suite.testData.NetworkIntents {
 		intent.Labels = map[string]string{
 			"test":            "disaster-recovery",
@@ -330,7 +334,7 @@ func (suite *EnhancedDisasterRecoveryTestSuite) setupEnhancedDataCorruptionPreCo
 		}
 	}
 
-	// Create enhanced backup with metadata
+	// Create enhanced backup with metadata.
 	return suite.createEnhancedBackup("enhanced-pre-corruption-backup",
 		[]string{"network-intents", "e2-nodesets", "metadata"})
 }
@@ -338,7 +342,7 @@ func (suite *EnhancedDisasterRecoveryTestSuite) setupEnhancedDataCorruptionPreCo
 func (suite *EnhancedDisasterRecoveryTestSuite) executeEnhancedBackupRestore(s *EnhancedDisasterRecoveryTestSuite) error {
 	suite.T().Log("🔄 Executing enhanced backup restore...")
 
-	// Simulate enhanced restoration with validation
+	// Simulate enhanced restoration with validation.
 	for i, intent := range suite.testData.NetworkIntents {
 		intent.ResourceVersion = "" // Clear for recreation
 		intent.Annotations["disaster-recovery.nephoran.com/restored-at"] = time.Now().Format(time.RFC3339)
@@ -356,7 +360,7 @@ func (suite *EnhancedDisasterRecoveryTestSuite) executeEnhancedBackupRestore(s *
 func (suite *EnhancedDisasterRecoveryTestSuite) executeEnhancedControllerFailover(s *EnhancedDisasterRecoveryTestSuite) error {
 	suite.T().Log("🔄 Executing enhanced controller failover...")
 
-	// Enhanced failover with health checks
+	// Enhanced failover with health checks.
 	deployment := &appsv1.Deployment{}
 	key := types.NamespacedName{
 		Name:      suite.testData.Deployments[0].Name,
@@ -367,7 +371,7 @@ func (suite *EnhancedDisasterRecoveryTestSuite) executeEnhancedControllerFailove
 		return fmt.Errorf("failed to get deployment for enhanced failover: %w", err)
 	}
 
-	// Scale up with enhanced monitoring
+	// Scale up with enhanced monitoring.
 	deployment.Spec.Replicas = int32Ptr(5) // Scale to more replicas for resilience
 	deployment.Annotations = map[string]string{
 		"disaster-recovery.nephoran.com/failover-at": time.Now().Format(time.RFC3339),
@@ -382,11 +386,11 @@ func (suite *EnhancedDisasterRecoveryTestSuite) executeEnhancedControllerFailove
 	return nil
 }
 
-// Enhanced helper functions
+// Enhanced helper functions.
 
 func (suite *EnhancedDisasterRecoveryTestSuite) createEnhancedBackup(backupID string, components []string) error {
 	backupPath := filepath.Join(suite.backupDir, backupID)
-	if err := os.MkdirAll(backupPath, 0755); err != nil {
+	if err := os.MkdirAll(backupPath, 0o755); err != nil {
 		return fmt.Errorf("failed to create enhanced backup directory: %w", err)
 	}
 
@@ -406,28 +410,28 @@ func (suite *EnhancedDisasterRecoveryTestSuite) createEnhancedBackup(backupID st
 }
 
 func (suite *EnhancedDisasterRecoveryTestSuite) validateEnhancedRecoveryObjectives(scenario *DisasterScenario, metrics *RecoveryMetrics) {
-	// Enhanced validation with more detailed checks
+	// Enhanced validation with more detailed checks.
 	rtoTolerance := scenario.ExpectedRTO * 2 // 2x tolerance for enhanced tests
 
 	assert.True(suite.T(), metrics.ActualRTO <= rtoTolerance,
 		"Enhanced recovery took too long: actual %v, expected max %v (2x tolerance)",
 		metrics.ActualRTO, rtoTolerance)
 
-	// Enhanced RPO validation
+	// Enhanced RPO validation.
 	assert.False(suite.T(), metrics.DataLossOccurred && scenario.ExpectedRPO == 0,
 		"Unexpected data loss occurred in enhanced test when RPO was 0")
 
-	// Overall success validation
+	// Overall success validation.
 	assert.True(suite.T(), metrics.RecoverySuccess,
 		"Enhanced recovery failed with errors: %v", metrics.ErrorMessages)
 
-	// Additional enhanced checks
+	// Additional enhanced checks.
 	if metrics.RecoverySuccess {
 		suite.T().Logf("✅ Enhanced validation passed - RTO within tolerance, no data loss")
 	}
 }
 
-// Reuse existing implementation functions from the original test
+// Reuse existing implementation functions from the original test.
 func (suite *EnhancedDisasterRecoveryTestSuite) injectDataCorruption(s *EnhancedDisasterRecoveryTestSuite) error {
 	suite.T().Log("💥 Injecting data corruption...")
 
@@ -479,7 +483,7 @@ func (suite *EnhancedDisasterRecoveryTestSuite) cleanupDataCorruption(s *Enhance
 	return nil
 }
 
-// Controller failure functions (reusing existing logic)
+// Controller failure functions (reusing existing logic).
 func (suite *EnhancedDisasterRecoveryTestSuite) setupControllerFailurePreConditions(s *EnhancedDisasterRecoveryTestSuite) error {
 	deployment := &suite.testData.Deployments[0]
 	if err := suite.testEnv.K8sClient.Create(suite.ctx, deployment); err != nil {
@@ -574,6 +578,7 @@ func int32Ptr(i int32) *int32 {
 	return &i
 }
 
+// TestEnhancedDisasterRecoveryTestSuite performs testenhanceddisasterrecoverytestsuite operation.
 func TestEnhancedDisasterRecoveryTestSuite(t *testing.T) {
 	suite.Run(t, new(EnhancedDisasterRecoveryTestSuite))
 }

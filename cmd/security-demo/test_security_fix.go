@@ -1,5 +1,5 @@
-// Security Fix Demonstration
-// This file demonstrates the comprehensive security fix for the path traversal vulnerability
+// Security Fix Demonstration.
+// This file demonstrates the comprehensive security fix for the path traversal vulnerability.
 
 // Package main provides security fix validation for the Nephoran Intent Operator.
 package main
@@ -10,51 +10,51 @@ import (
 	"strings"
 )
 
-// validateConfigFilePath validates configuration file paths with stricter security rules
-// This is the production-safe validation function for config files
+// validateConfigFilePath validates configuration file paths with stricter security rules.
+// This is the production-safe validation function for config files.
 func validateConfigFilePath(filePath string) error {
-	// Check for empty path
+	// Check for empty path.
 	if strings.TrimSpace(filePath) == "" {
 		return fmt.Errorf("empty file path")
 	}
 
-	// SECURITY: Clean the path first to normalize it
+	// SECURITY: Clean the path first to normalize it.
 	cleanedPath := filepath.Clean(filePath)
 
-	// SECURITY: Detect obvious path traversal attempts before resolution
+	// SECURITY: Detect obvious path traversal attempts before resolution.
 	if strings.Contains(filePath, "..") || strings.Contains(cleanedPath, "..") {
 		return fmt.Errorf("path traversal attempt detected: contains '..'")
 	}
 
-	// SECURITY: Reject paths with null bytes (potential injection)
+	// SECURITY: Reject paths with null bytes (potential injection).
 	if strings.Contains(filePath, "\x00") {
 		return fmt.Errorf("path contains null byte")
 	}
 
-	// Convert to absolute path for validation
+	// Convert to absolute path for validation.
 	absPath, err := filepath.Abs(cleanedPath)
 	if err != nil {
 		return fmt.Errorf("invalid file path format: %w", err)
 	}
 
-	// SECURITY: Additional check after absolute path conversion
+	// SECURITY: Additional check after absolute path conversion.
 	if strings.Contains(absPath, "..") {
 		return fmt.Errorf("path traversal detected in absolute path")
 	}
 
-	// SECURITY: Check for Windows UNC paths or special devices
+	// SECURITY: Check for Windows UNC paths or special devices.
 	if strings.HasPrefix(absPath, "\\\\") || strings.HasPrefix(absPath, "//") {
 		return fmt.Errorf("UNC paths not allowed")
 	}
 
-	// SECURITY: Restrict to specific directories for config files
+	// SECURITY: Restrict to specific directories for config files.
 	allowedPrefixes := []string{
 		"/etc/nephoran",
 		"/config",
 		"/var/lib/nephoran",
 	}
 
-	// Check if path starts with any allowed prefix
+	// Check if path starts with any allowed prefix.
 	pathAllowed := false
 	for _, prefix := range allowedPrefixes {
 		prefixAbs, _ := filepath.Abs(prefix)
@@ -68,7 +68,7 @@ func validateConfigFilePath(filePath string) error {
 		return fmt.Errorf("config file path not in allowed directory")
 	}
 
-	// SECURITY: Reject special file names
+	// SECURITY: Reject special file names.
 	dangerousNames := []string{"/dev/", "/proc/", "/sys/", "passwd", "shadow"}
 	for _, dangerous := range dangerousNames {
 		if strings.Contains(strings.ToLower(absPath), dangerous) {
@@ -80,7 +80,7 @@ func validateConfigFilePath(filePath string) error {
 }
 
 func main() {
-	// Test various attack vectors
+	// Test various attack vectors.
 	testPaths := []struct {
 		path   string
 		attack string

@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// Go124TestFramework provides enhanced testing capabilities using Go 1.24+ features
+// Go124TestFramework provides enhanced testing capabilities using Go 1.24+ features.
 type Go124TestFramework struct {
 	t             *testing.T
 	suite         *TestSuiteBase
@@ -27,37 +27,37 @@ type Go124TestFramework struct {
 	mu            sync.RWMutex
 }
 
-// TestSuiteBase provides a base test suite with Go 1.24+ enhancements
+// TestSuiteBase provides a base test suite with Go 1.24+ enhancements.
 type TestSuiteBase struct {
 	suite.Suite
 	Framework *Go124TestFramework
 
-	// Performance tracking
+	// Performance tracking.
 	startTime        time.Time
 	setupDuration    time.Duration
 	teardownDuration time.Duration
 
-	// Resource management
+	// Resource management.
 	tempDirs       []string
 	testContainers []TestContainer
 	networkPorts   []int
 
-	// Test isolation
+	// Test isolation.
 	isolationLevel IsolationLevel
 	resourceLimits *ResourceLimits
 
-	// Enhanced assertions
+	// Enhanced assertions.
 	assertionCount int
 	failureReasons []string
 
-	// Context management
+	// Context management.
 	rootContext  context.Context
 	testContexts map[string]context.Context
 
 	mu sync.RWMutex
 }
 
-// BenchmarkResult stores comprehensive benchmark results
+// BenchmarkResult stores comprehensive benchmark results.
 type BenchmarkResult struct {
 	Name           string             `json:"name"`
 	Iterations     int                `json:"iterations"`
@@ -76,7 +76,7 @@ type BenchmarkResult struct {
 	Architecture   string             `json:"architecture"`
 }
 
-// TestMetrics tracks comprehensive test execution metrics
+// TestMetrics tracks comprehensive test execution metrics.
 type TestMetrics struct {
 	TotalTests         int                         `json:"total_tests"`
 	PassedTests        int                         `json:"passed_tests"`
@@ -93,7 +93,7 @@ type TestMetrics struct {
 	EndTime            time.Time                   `json:"end_time"`
 }
 
-// TestResult represents individual test execution results
+// TestResult represents individual test execution results.
 type TestResult struct {
 	Name           string        `json:"name"`
 	Status         TestStatus    `json:"status"`
@@ -106,7 +106,7 @@ type TestResult struct {
 	Timestamp      time.Time     `json:"timestamp"`
 }
 
-// TestConfiguration defines test execution parameters
+// TestConfiguration defines test execution parameters.
 type TestConfiguration struct {
 	Parallel        bool              `json:"parallel"`
 	Timeout         time.Duration     `json:"timeout"`
@@ -120,37 +120,49 @@ type TestConfiguration struct {
 	CustomTags      map[string]string `json:"custom_tags"`
 }
 
-// TestStatus represents the status of a test
+// TestStatus represents the status of a test.
 type TestStatus string
 
 const (
-	TestStatusPassed  TestStatus = "passed"
-	TestStatusFailed  TestStatus = "failed"
+	// TestStatusPassed holds teststatuspassed value.
+	TestStatusPassed TestStatus = "passed"
+	// TestStatusFailed holds teststatusfailed value.
+	TestStatusFailed TestStatus = "failed"
+	// TestStatusSkipped holds teststatusskipped value.
 	TestStatusSkipped TestStatus = "skipped"
+	// TestStatusRunning holds teststatusrunning value.
 	TestStatusRunning TestStatus = "running"
 )
 
-// IsolationLevel defines test isolation levels
+// IsolationLevel defines test isolation levels.
 type IsolationLevel string
 
 const (
-	IsolationNone      IsolationLevel = "none"
-	IsolationProcess   IsolationLevel = "process"
+	// IsolationNone holds isolationnone value.
+	IsolationNone IsolationLevel = "none"
+	// IsolationProcess holds isolationprocess value.
+	IsolationProcess IsolationLevel = "process"
+	// IsolationContainer holds isolationcontainer value.
 	IsolationContainer IsolationLevel = "container"
+	// IsolationNamespace holds isolationnamespace value.
 	IsolationNamespace IsolationLevel = "namespace"
 )
 
-// ReportFormat defines output report formats
+// ReportFormat defines output report formats.
 type ReportFormat string
 
 const (
-	ReportJSON     ReportFormat = "json"
-	ReportXML      ReportFormat = "xml"
-	ReportHTML     ReportFormat = "html"
+	// ReportJSON holds reportjson value.
+	ReportJSON ReportFormat = "json"
+	// ReportXML holds reportxml value.
+	ReportXML ReportFormat = "xml"
+	// ReportHTML holds reporthtml value.
+	ReportHTML ReportFormat = "html"
+	// ReportMarkdown holds reportmarkdown value.
 	ReportMarkdown ReportFormat = "markdown"
 )
 
-// ResourceLimits defines resource constraints for tests
+// ResourceLimits defines resource constraints for tests.
 type ResourceLimits struct {
 	MaxMemoryMB    int64         `json:"max_memory_mb"`
 	MaxCPUPercent  float64       `json:"max_cpu_percent"`
@@ -159,7 +171,7 @@ type ResourceLimits struct {
 	MaxFileHandles int           `json:"max_file_handles"`
 }
 
-// MemoryProfile captures memory usage information
+// MemoryProfile captures memory usage information.
 type MemoryProfile struct {
 	HeapAlloc     uint64    `json:"heap_alloc"`
 	HeapSys       uint64    `json:"heap_sys"`
@@ -173,7 +185,7 @@ type MemoryProfile struct {
 	LastGC        time.Time `json:"last_gc"`
 }
 
-// CPUProfile captures CPU usage information
+// CPUProfile captures CPU usage information.
 type CPUProfile struct {
 	UserTime   time.Duration `json:"user_time"`
 	SystemTime time.Duration `json:"system_time"`
@@ -182,7 +194,7 @@ type CPUProfile struct {
 	NumCPU     int           `json:"num_cpu"`
 }
 
-// TestContainer represents a test container instance
+// TestContainer represents a test container instance.
 type TestContainer struct {
 	ID          string            `json:"id"`
 	Image       string            `json:"image"`
@@ -192,7 +204,7 @@ type TestContainer struct {
 	StartTime   time.Time         `json:"start_time"`
 }
 
-// NewGo124TestFramework creates a new enhanced testing framework
+// NewGo124TestFramework creates a new enhanced testing framework.
 func NewGo124TestFramework(t *testing.T) *Go124TestFramework {
 	framework := &Go124TestFramework{
 		t:            t,
@@ -216,7 +228,7 @@ func NewGo124TestFramework(t *testing.T) *Go124TestFramework {
 		cleanup: make([]func(), 0),
 	}
 
-	// Setup automatic cleanup
+	// Setup automatic cleanup.
 	t.Cleanup(func() {
 		framework.performCleanup()
 	})
@@ -224,7 +236,7 @@ func NewGo124TestFramework(t *testing.T) *Go124TestFramework {
 	return framework
 }
 
-// SetupSuite initializes the test suite with Go 1.24+ enhancements
+// SetupSuite initializes the test suite with Go 1.24+ enhancements.
 func (ts *TestSuiteBase) SetupSuite() {
 	ts.startTime = time.Now()
 	ts.tempDirs = make([]string, 0)
@@ -233,63 +245,63 @@ func (ts *TestSuiteBase) SetupSuite() {
 	ts.testContexts = make(map[string]context.Context)
 	ts.rootContext = context.Background()
 
-	// Initialize framework
+	// Initialize framework.
 	if ts.Framework == nil {
 		ts.Framework = NewGo124TestFramework(ts.T())
 	}
 
-	// Setup resource monitoring
+	// Setup resource monitoring.
 	ts.Framework.startResourceMonitoring()
 
 	setupStart := time.Now()
-	// Call the embedded suite's SetupSuite if it exists
+	// Call the embedded suite's SetupSuite if it exists.
 	if ts.Suite.T() != nil {
-		// Use reflection to check if SetupSuite method exists and call it
-		// For now, just track the setup duration
+		// Use reflection to check if SetupSuite method exists and call it.
+		// For now, just track the setup duration.
 	}
 	ts.setupDuration = time.Since(setupStart)
 }
 
-// TearDownSuite cleans up after test suite completion
+// TearDownSuite cleans up after test suite completion.
 func (ts *TestSuiteBase) TearDownSuite() {
 	teardownStart := time.Now()
 
-	// Cleanup containers
+	// Cleanup containers.
 	for _, container := range ts.testContainers {
 		ts.cleanupContainer(container)
 	}
 
-	// Cleanup temp directories
+	// Cleanup temp directories.
 	for _, dir := range ts.tempDirs {
 		os.RemoveAll(dir)
 	}
 
-	// Release network ports
+	// Release network ports.
 	for _, port := range ts.networkPorts {
 		ts.releasePort(port)
 	}
 
-	// Call the embedded suite's TearDownSuite if it exists
+	// Call the embedded suite's TearDownSuite if it exists.
 	if ts.Suite.T() != nil {
-		// Use reflection to check if TearDownSuite method exists and call it
-		// For now, just track the teardown duration
+		// Use reflection to check if TearDownSuite method exists and call it.
+		// For now, just track the teardown duration.
 	}
 	ts.teardownDuration = time.Since(teardownStart)
 
-	// Generate test report
+	// Generate test report.
 	if ts.Framework != nil {
 		ts.Framework.generateReport()
 	}
 }
 
-// EnhancedAssert provides enhanced assertion capabilities
+// EnhancedAssert provides enhanced assertion capabilities.
 type EnhancedAssert struct {
 	t       *testing.T
 	context string
 	tags    map[string]string
 }
 
-// NewEnhancedAssert creates an enhanced assertion helper
+// NewEnhancedAssert creates an enhanced assertion helper.
 func (fw *Go124TestFramework) NewEnhancedAssert(context string) *EnhancedAssert {
 	return &EnhancedAssert{
 		t:       fw.t,
@@ -298,13 +310,13 @@ func (fw *Go124TestFramework) NewEnhancedAssert(context string) *EnhancedAssert 
 	}
 }
 
-// WithTag adds a tag to the assertion
+// WithTag adds a tag to the assertion.
 func (ea *EnhancedAssert) WithTag(key, value string) *EnhancedAssert {
 	ea.tags[key] = value
 	return ea
 }
 
-// Equal performs enhanced equality assertion with detailed reporting
+// Equal performs enhanced equality assertion with detailed reporting.
 func (ea *EnhancedAssert) Equal(expected, actual interface{}, msgAndArgs ...interface{}) bool {
 	if !assert.Equal(ea.t, expected, actual, msgAndArgs...) {
 		ea.t.Logf("Enhanced Assertion Failed in context: %s", ea.context)
@@ -316,7 +328,7 @@ func (ea *EnhancedAssert) Equal(expected, actual interface{}, msgAndArgs ...inte
 	return true
 }
 
-// EventuallyWithContext performs assertion with timeout and context
+// EventuallyWithContext performs assertion with timeout and context.
 func (ea *EnhancedAssert) EventuallyWithContext(ctx context.Context, condition func() bool, timeout time.Duration, tick time.Duration, msgAndArgs ...interface{}) bool {
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
@@ -340,9 +352,9 @@ func (ea *EnhancedAssert) EventuallyWithContext(ctx context.Context, condition f
 	}
 }
 
-// BenchmarkWithMetrics performs enhanced benchmarking with detailed metrics
+// BenchmarkWithMetrics performs enhanced benchmarking with detailed metrics.
 func (fw *Go124TestFramework) BenchmarkWithMetrics(name string, benchFunc func(*testing.B)) *BenchmarkResult {
-	// Capture initial state
+	// Capture initial state.
 	var memStatsBefore runtime.MemStats
 	runtime.GC()
 	runtime.ReadMemStats(&memStatsBefore)
@@ -350,16 +362,16 @@ func (fw *Go124TestFramework) BenchmarkWithMetrics(name string, benchFunc func(*
 	goroutinesBefore := runtime.NumGoroutine()
 	startTime := time.Now()
 
-	// Run benchmark
+	// Run benchmark.
 	result := testing.Benchmark(benchFunc)
 
-	// Capture final state
+	// Capture final state.
 	endTime := time.Now()
 	var memStatsAfter runtime.MemStats
 	runtime.ReadMemStats(&memStatsAfter)
 	goroutinesAfter := runtime.NumGoroutine()
 
-	// Create enhanced result
+	// Create enhanced result.
 	benchResult := &BenchmarkResult{
 		Name:           name,
 		Iterations:     result.N,
@@ -376,7 +388,7 @@ func (fw *Go124TestFramework) BenchmarkWithMetrics(name string, benchFunc func(*
 		Architecture:   runtime.GOARCH,
 	}
 
-	// Store result
+	// Store result.
 	fw.mu.Lock()
 	fw.benchResults[name] = benchResult
 	fw.testMetrics.BenchmarkResults[name] = benchResult
@@ -385,15 +397,15 @@ func (fw *Go124TestFramework) BenchmarkWithMetrics(name string, benchFunc func(*
 	return benchResult
 }
 
-// ParallelTest runs tests in parallel with enhanced coordination
+// ParallelTest runs tests in parallel with enhanced coordination.
 func (fw *Go124TestFramework) ParallelTest(testFunc func(*testing.T)) {
 	fw.t.Parallel()
 
-	// Setup parallel test context
+	// Setup parallel test context.
 	ctx := context.WithValue(context.Background(), "test_parallel", true)
 	ctx = context.WithValue(ctx, "test_id", fw.generateTestID())
 
-	// Track parallel execution
+	// Track parallel execution.
 	fw.mu.Lock()
 	fw.testMetrics.TotalTests++
 	fw.mu.Unlock()
@@ -404,7 +416,7 @@ func (fw *Go124TestFramework) ParallelTest(testFunc func(*testing.T)) {
 		fw.recordTestResult(fw.t.Name(), TestStatusPassed, duration, "")
 	}()
 
-	// Run test with enhanced error handling
+	// Run test with enhanced error handling.
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -417,16 +429,16 @@ func (fw *Go124TestFramework) ParallelTest(testFunc func(*testing.T)) {
 	}()
 }
 
-// SubTest creates enhanced subtests with better isolation
+// SubTest creates enhanced subtests with better isolation.
 func (fw *Go124TestFramework) SubTest(name string, testFunc func(*testing.T)) bool {
 	return fw.t.Run(name, func(subT *testing.T) {
-		// Create sub-framework
+		// Create sub-framework.
 		subFramework := NewGo124TestFramework(subT)
 
-		// Copy configuration
+		// Copy configuration.
 		subFramework.configuration = fw.configuration
 
-		// Setup subtest context
+		// Setup subtest context.
 		ctx := context.WithValue(context.Background(), "parent_test", fw.t.Name())
 		ctx = context.WithValue(ctx, "subtest_name", name)
 
@@ -436,7 +448,7 @@ func (fw *Go124TestFramework) SubTest(name string, testFunc func(*testing.T)) bo
 			subFramework.recordTestResult(name, TestStatusPassed, duration, "")
 		}()
 
-		// Run subtest with enhanced error handling
+		// Run subtest with enhanced error handling.
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -450,7 +462,7 @@ func (fw *Go124TestFramework) SubTest(name string, testFunc func(*testing.T)) bo
 	})
 }
 
-// TableTest performs table-driven testing with enhanced reporting
+// TableTest performs table-driven testing with enhanced reporting.
 func (fw *Go124TestFramework) TableTest(name string, testCases []TestCase, testFunc func(*testing.T, TestCase)) {
 	for i, tc := range testCases {
 		testName := fmt.Sprintf("%s/%d-%s", name, i, tc.Name)
@@ -469,7 +481,7 @@ func (fw *Go124TestFramework) TableTest(name string, testCases []TestCase, testF
 	}
 }
 
-// TestCase represents a table-driven test case
+// TestCase represents a table-driven test case.
 type TestCase struct {
 	Name        string                 `json:"name"`
 	Input       interface{}            `json:"input"`
@@ -481,8 +493,9 @@ type TestCase struct {
 	Metadata    map[string]interface{} `json:"metadata"`
 }
 
-// Helper methods for resource management
+// Helper methods for resource management.
 
+// CreateTempDir performs createtempdir operation.
 func (fw *Go124TestFramework) CreateTempDir(prefix string) (string, error) {
 	dir, err := os.MkdirTemp("", prefix)
 	if err != nil {
@@ -496,9 +509,10 @@ func (fw *Go124TestFramework) CreateTempDir(prefix string) (string, error) {
 	return dir, nil
 }
 
+// WriteTestFile performs writetestfile operation.
 func (fw *Go124TestFramework) WriteTestFile(dir, filename string, content []byte) error {
 	filePath := filepath.Join(dir, filename)
-	return os.WriteFile(filePath, content, 0644)
+	return os.WriteFile(filePath, content, 0o640)
 }
 
 func (fw *Go124TestFramework) startResourceMonitoring() {
@@ -511,7 +525,7 @@ func (fw *Go124TestFramework) startResourceMonitoring() {
 			case <-ticker.C:
 				fw.collectMetrics()
 			default:
-				// Check if test deadline is approaching
+				// Check if test deadline is approaching.
 				if deadline, ok := fw.t.Deadline(); ok && time.Until(deadline) < 5*time.Second {
 					return
 				}
@@ -600,13 +614,13 @@ func (fw *Go124TestFramework) generateReport() {
 		fw.testMetrics.AverageDuration = fw.testMetrics.TotalDuration / time.Duration(fw.testMetrics.TotalTests)
 	}
 
-	// Create output directory
-	if err := os.MkdirAll(fw.configuration.OutputDirectory, 0755); err != nil {
+	// Create output directory.
+	if err := os.MkdirAll(fw.configuration.OutputDirectory, 0o755); err != nil {
 		fw.t.Logf("Failed to create output directory: %v", err)
 		return
 	}
 
-	// Generate report based on format
+	// Generate report based on format.
 	switch fw.configuration.ReportFormat {
 	case ReportJSON:
 		fw.generateJSONReport()
@@ -626,7 +640,7 @@ func (fw *Go124TestFramework) generateJSONReport() {
 		return
 	}
 
-	if err := os.WriteFile(reportPath, data, 0644); err != nil {
+	if err := os.WriteFile(reportPath, data, 0o640); err != nil {
 		fw.t.Logf("Failed to write JSON report: %v", err)
 		return
 	}
@@ -635,7 +649,7 @@ func (fw *Go124TestFramework) generateJSONReport() {
 }
 
 func (fw *Go124TestFramework) generateHTMLReport() {
-	// HTML report generation would go here
+	// HTML report generation would go here.
 	fw.t.Logf("HTML report generation not implemented yet")
 }
 
@@ -668,7 +682,7 @@ func (fw *Go124TestFramework) generateMarkdownReport() {
 		sb.WriteString("\n")
 	}
 
-	if err := os.WriteFile(reportPath, []byte(sb.String()), 0644); err != nil {
+	if err := os.WriteFile(reportPath, []byte(sb.String()), 0o640); err != nil {
 		fw.t.Logf("Failed to write Markdown report: %v", err)
 		return
 	}
@@ -676,13 +690,13 @@ func (fw *Go124TestFramework) generateMarkdownReport() {
 	fw.t.Logf("Test report generated: %s", reportPath)
 }
 
-// Helper methods for test suite
+// Helper methods for test suite.
 func (ts *TestSuiteBase) cleanupContainer(container TestContainer) {
-	// Container cleanup logic would go here
+	// Container cleanup logic would go here.
 	ts.T().Logf("Cleaning up container: %s", container.ID)
 }
 
 func (ts *TestSuiteBase) releasePort(port int) {
-	// Port release logic would go here
+	// Port release logic would go here.
 	ts.T().Logf("Releasing port: %d", port)
 }

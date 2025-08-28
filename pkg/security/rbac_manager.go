@@ -1,4 +1,4 @@
-// Package security provides comprehensive security management for the Nephoran Intent Operator
+// Package security provides comprehensive security management for the Nephoran Intent Operator.
 package security
 
 import (
@@ -13,14 +13,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// RBACManager manages RBAC policies with least privilege principle
+// RBACManager manages RBAC policies with least privilege principle.
 type RBACManager struct {
 	client    client.Client
 	clientset *kubernetes.Clientset
 	namespace string
 }
 
-// NewRBACManager creates a new RBAC manager instance
+// NewRBACManager creates a new RBAC manager instance.
 func NewRBACManager(client client.Client, clientset *kubernetes.Clientset, namespace string) *RBACManager {
 	return &RBACManager{
 		client:    client,
@@ -29,23 +29,23 @@ func NewRBACManager(client client.Client, clientset *kubernetes.Clientset, names
 	}
 }
 
-// OperatorRole defines different operator personas with specific permissions
+// OperatorRole defines different operator personas with specific permissions.
 type OperatorRole string
 
 const (
-	// RoleNetworkOperator can view and manage network intents
+	// RoleNetworkOperator can view and manage network intents.
 	RoleNetworkOperator OperatorRole = "network-operator"
-	// RoleNetworkViewer can only view network intents and status
+	// RoleNetworkViewer can only view network intents and status.
 	RoleNetworkViewer OperatorRole = "network-viewer"
-	// RoleSecurityAuditor can view all resources and audit logs
+	// RoleSecurityAuditor can view all resources and audit logs.
 	RoleSecurityAuditor OperatorRole = "security-auditor"
-	// RoleClusterAdmin has full administrative privileges
+	// RoleClusterAdmin has full administrative privileges.
 	RoleClusterAdmin OperatorRole = "cluster-admin"
-	// RoleServiceOperator can manage specific services
+	// RoleServiceOperator can manage specific services.
 	RoleServiceOperator OperatorRole = "service-operator"
 )
 
-// RoleDefinition contains RBAC rules for a specific role
+// RoleDefinition contains RBAC rules for a specific role.
 type RoleDefinition struct {
 	Name        string
 	Rules       []rbacv1.PolicyRule
@@ -53,7 +53,7 @@ type RoleDefinition struct {
 	Labels      map[string]string
 }
 
-// GetRoleDefinitions returns role definitions following least privilege principle
+// GetRoleDefinitions returns role definitions following least privilege principle.
 func (m *RBACManager) GetRoleDefinitions() map[OperatorRole]RoleDefinition {
 	return map[OperatorRole]RoleDefinition{
 		RoleNetworkOperator: {
@@ -173,7 +173,7 @@ func (m *RBACManager) GetRoleDefinitions() map[OperatorRole]RoleDefinition {
 	}
 }
 
-// CreateRole creates a Role or ClusterRole with least privilege permissions
+// CreateRole creates a Role or ClusterRole with least privilege permissions.
 func (m *RBACManager) CreateRole(ctx context.Context, role OperatorRole) error {
 	logger := log.FromContext(ctx)
 	definitions := m.GetRoleDefinitions()
@@ -216,7 +216,7 @@ func (m *RBACManager) CreateRole(ctx context.Context, role OperatorRole) error {
 	return nil
 }
 
-// CreateServiceAccount creates a ServiceAccount with appropriate labels
+// CreateServiceAccount creates a ServiceAccount with appropriate labels.
 func (m *RBACManager) CreateServiceAccount(ctx context.Context, name string, role OperatorRole) error {
 	logger := log.FromContext(ctx)
 
@@ -245,7 +245,7 @@ func (m *RBACManager) CreateServiceAccount(ctx context.Context, name string, rol
 	return nil
 }
 
-// BindRoleToServiceAccount creates RoleBinding or ClusterRoleBinding
+// BindRoleToServiceAccount creates RoleBinding or ClusterRoleBinding.
 func (m *RBACManager) BindRoleToServiceAccount(ctx context.Context, saName string, role OperatorRole) error {
 	logger := log.FromContext(ctx)
 	definitions := m.GetRoleDefinitions()
@@ -320,10 +320,10 @@ func (m *RBACManager) BindRoleToServiceAccount(ctx context.Context, saName strin
 	return nil
 }
 
-// ValidatePermissions validates that permissions follow least privilege principle
+// ValidatePermissions validates that permissions follow least privilege principle.
 func (m *RBACManager) ValidatePermissions(ctx context.Context, rules []rbacv1.PolicyRule) error {
 	for _, rule := range rules {
-		// Check for wildcard permissions (violates least privilege)
+		// Check for wildcard permissions (violates least privilege).
 		for _, apiGroup := range rule.APIGroups {
 			if apiGroup == "*" {
 				return fmt.Errorf("wildcard API group not allowed: use specific API groups")
@@ -342,14 +342,14 @@ func (m *RBACManager) ValidatePermissions(ctx context.Context, rules []rbacv1.Po
 			}
 		}
 
-		// Check for dangerous verb combinations
+		// Check for dangerous verb combinations.
 		hasDelete := contains(rule.Verbs, "delete")
 		hasDeleteCollection := contains(rule.Verbs, "deletecollection")
 		if hasDelete && hasDeleteCollection {
 			return fmt.Errorf("both delete and deletecollection verbs present: consider separating concerns")
 		}
 
-		// Check for escalation permissions
+		// Check for escalation permissions.
 		if contains(rule.Resources, "clusterroles") || contains(rule.Resources, "clusterrolebindings") {
 			if contains(rule.Verbs, "create") || contains(rule.Verbs, "update") || contains(rule.Verbs, "patch") {
 				return fmt.Errorf("privilege escalation risk: modifying cluster RBAC requires additional validation")
@@ -360,7 +360,7 @@ func (m *RBACManager) ValidatePermissions(ctx context.Context, rules []rbacv1.Po
 	return nil
 }
 
-// AuditRBACCompliance performs comprehensive RBAC audit
+// AuditRBACCompliance performs comprehensive RBAC audit.
 func (m *RBACManager) AuditRBACCompliance(ctx context.Context) (*RBACAuditReport, error) {
 	logger := log.FromContext(ctx)
 	report := &RBACAuditReport{
@@ -370,7 +370,7 @@ func (m *RBACManager) AuditRBACCompliance(ctx context.Context) (*RBACAuditReport
 		Warnings:  []string{},
 	}
 
-	// Audit ClusterRoles
+	// Audit ClusterRoles.
 	clusterRoles := &rbacv1.ClusterRoleList{}
 	if err := m.client.List(ctx, clusterRoles); err != nil {
 		return nil, fmt.Errorf("failed to list ClusterRoles: %w", err)
@@ -381,13 +381,13 @@ func (m *RBACManager) AuditRBACCompliance(ctx context.Context) (*RBACAuditReport
 			report.Issues = append(report.Issues, fmt.Sprintf("ClusterRole %s: %s", cr.Name, err.Error()))
 		}
 
-		// Check for system:masters binding (critical security issue)
+		// Check for system:masters binding (critical security issue).
 		if cr.Name == "cluster-admin" {
 			report.Warnings = append(report.Warnings, "cluster-admin role detected: ensure minimal usage")
 		}
 	}
 
-	// Audit Roles in namespace
+	// Audit Roles in namespace.
 	roles := &rbacv1.RoleList{}
 	if err := m.client.List(ctx, roles, client.InNamespace(m.namespace)); err != nil {
 		return nil, fmt.Errorf("failed to list Roles: %w", err)
@@ -399,7 +399,7 @@ func (m *RBACManager) AuditRBACCompliance(ctx context.Context) (*RBACAuditReport
 		}
 	}
 
-	// Audit ServiceAccounts
+	// Audit ServiceAccounts.
 	serviceAccounts := &corev1.ServiceAccountList{}
 	if err := m.client.List(ctx, serviceAccounts, client.InNamespace(m.namespace)); err != nil {
 		return nil, fmt.Errorf("failed to list ServiceAccounts: %w", err)
@@ -407,7 +407,7 @@ func (m *RBACManager) AuditRBACCompliance(ctx context.Context) (*RBACAuditReport
 
 	report.ServiceAccountCount = len(serviceAccounts.Items)
 
-	// Check for default service account usage
+	// Check for default service account usage.
 	for _, sa := range serviceAccounts.Items {
 		if sa.Name == "default" && len(sa.Secrets) > 0 {
 			report.Warnings = append(report.Warnings, "default ServiceAccount has mounted secrets: consider using dedicated ServiceAccounts")
@@ -420,7 +420,7 @@ func (m *RBACManager) AuditRBACCompliance(ctx context.Context) (*RBACAuditReport
 	return report, nil
 }
 
-// RBACAuditReport contains RBAC compliance audit results
+// RBACAuditReport contains RBAC compliance audit results.
 type RBACAuditReport struct {
 	Timestamp           metav1.Time
 	Namespace           string
@@ -430,11 +430,11 @@ type RBACAuditReport struct {
 	ServiceAccountCount int
 }
 
-// EnforceMinimalPermissions ensures minimal required permissions for operation
+// EnforceMinimalPermissions ensures minimal required permissions for operation.
 func (m *RBACManager) EnforceMinimalPermissions(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
-	// Create minimal operator role
+	// Create minimal operator role.
 	minimalRole := &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "nephoran-minimal-operator",
@@ -467,7 +467,7 @@ func (m *RBACManager) EnforceMinimalPermissions(ctx context.Context) error {
 	return nil
 }
 
-// contains checks if a string slice contains a value
+// contains checks if a string slice contains a value.
 func contains(slice []string, value string) bool {
 	for _, v := range slice {
 		if v == value {
@@ -477,7 +477,7 @@ func contains(slice []string, value string) bool {
 	return false
 }
 
-// GetServiceAccountToken retrieves a token for a ServiceAccount
+// GetServiceAccountToken retrieves a token for a ServiceAccount.
 func (m *RBACManager) GetServiceAccountToken(ctx context.Context, saName string) (string, error) {
 	sa := &corev1.ServiceAccount{}
 	if err := m.client.Get(ctx, client.ObjectKey{
@@ -491,7 +491,7 @@ func (m *RBACManager) GetServiceAccountToken(ctx context.Context, saName string)
 		return "", fmt.Errorf("no secrets found for ServiceAccount %s", saName)
 	}
 
-	// Get the first secret (usually the token)
+	// Get the first secret (usually the token).
 	secret := &corev1.Secret{}
 	if err := m.client.Get(ctx, client.ObjectKey{
 		Name:      sa.Secrets[0].Name,
@@ -508,9 +508,9 @@ func (m *RBACManager) GetServiceAccountToken(ctx context.Context, saName string)
 	return string(token), nil
 }
 
-// ValidateServiceAccountPermissions validates a ServiceAccount has expected permissions
+// ValidateServiceAccountPermissions validates a ServiceAccount has expected permissions.
 func (m *RBACManager) ValidateServiceAccountPermissions(ctx context.Context, saName string, expectedRole OperatorRole) error {
-	// Get RoleBindings for the ServiceAccount
+	// Get RoleBindings for the ServiceAccount.
 	roleBindings := &rbacv1.RoleBindingList{}
 	if err := m.client.List(ctx, roleBindings, client.InNamespace(m.namespace)); err != nil {
 		return fmt.Errorf("failed to list RoleBindings: %w", err)

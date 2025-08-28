@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// CreateDraftPackageRevision performs createdraftpackagerevision operation.
 func CreateDraftPackageRevision(
 	ctx context.Context,
 	restcfg *rest.Config,
@@ -21,7 +22,6 @@ func CreateDraftPackageRevision(
 	labels map[string]string,
 	annotations map[string]string,
 ) (*unstructured.Unstructured, error) {
-
 	gvr := schema.GroupVersionResource{
 		Group:    "porch.kpt.dev",
 		Version:  "v1alpha1",
