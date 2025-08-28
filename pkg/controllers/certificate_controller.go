@@ -297,7 +297,7 @@ func (r *CertificateAutomationReconciler) reconcileProvisioning(ctx context.Cont
 	// Submit provisioning request
 	resp := r.AutomationEngine.ProcessManualRequest(req)
 	if resp.Error != "" {
-		log.Error(fmt.Errorf(resp.Error), "Failed to request certificate provisioning")
+		log.Error(fmt.Errorf("certificate provisioning error: %s", resp.Error), "Failed to request certificate provisioning")
 		return r.updateStatus(ctx, certAutomation, nephv1alpha1.CertificateAutomationPhaseFailed, fmt.Sprintf("Provisioning request failed: %v", resp.Error))
 	}
 
@@ -457,7 +457,7 @@ func (r *CertificateAutomationReconciler) initiateRenewal(ctx context.Context, c
 
 	resp := r.AutomationEngine.ProcessManualRequest(req)
 	if resp.Error != "" {
-		log.Error(fmt.Errorf(resp.Error), "Failed to request certificate renewal")
+		log.Error(fmt.Errorf("certificate renewal error: %s", resp.Error), "Failed to request certificate renewal")
 		return r.updateStatus(ctx, certAutomation, nephv1alpha1.CertificateAutomationPhaseFailed, fmt.Sprintf("Renewal request failed: %v", resp.Error))
 	}
 

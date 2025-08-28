@@ -11,7 +11,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
-// Type aliases for rag package types - this resolves the undefined type issues
+// Type aliases for rag package types - all types actually exist in pkg/rag
 
 // WeaviateConnectionPool is re-exported from rag package
 type WeaviateConnectionPool = rag.WeaviateConnectionPool
@@ -43,5 +43,8 @@ type RAGRequest = rag.RAGRequest
 // RAGResponse is re-exported from rag package
 type RAGResponse = rag.RAGResponse
 
-// Additional helpful type aliases for common rag operations
+// SearchQuery is re-exported from shared package
 type SearchQuery = shared.SearchQuery
+
+// Type aliases are working correctly - no additional type assertions needed since
+// all types exist and are correctly defined in their respective packages

@@ -56,7 +56,7 @@ type CNFDeploymentReconciler struct {
 	Recorder         record.EventRecorder
 	CNFOrchestrator  *cnf.CNFOrchestrator
 	LLMProcessor     *llm.Processor
-	RAGService       *rag.Service
+	RAGService       *rag.RAGService
 	MetricsCollector *monitoring.MetricsCollector
 	Config           *CNFControllerConfig
 }

@@ -18,6 +18,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
@@ -27,6 +28,14 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
 )
+
+// Test constants
+const (
+	DefaultRetryDelay    = time.Second
+	DefaultTimeout       = 30 * time.Second
+	DefaultGitDeployPath = "networkintents"
+)
+
 
 // MockDependencies implements Dependencies interface for testing
 type MockDependencies struct {
@@ -114,6 +123,52 @@ func (m *MockLLMClientComprehensive) SetFailCount(count int) {
 	m.failCount = count
 }
 
+func (m *MockLLMClientComprehensive) Close() error {
+	// No-op for mock
+	return nil
+}
+
+func (m *MockLLMClientComprehensive) EstimateTokens(text string) int {
+	// Simple token estimation for testing
+	return len(text) / 4
+}
+
+func (m *MockLLMClientComprehensive) GetMaxTokens(modelName string) int {
+	// Return a reasonable token limit for testing, ignore model name
+	return 4096
+}
+
+func (m *MockLLMClientComprehensive) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
+	// Return basic capabilities for testing
+	return &shared.ModelCapabilities{
+		MaxTokens:         4096,
+		SupportsChat:      true,
+		SupportsFunction:  true,
+		SupportsStreaming: false,
+		CostPerToken:      0.001,
+		Features:          map[string]interface{}{"test": true},
+	}, nil
+}
+
+func (m *MockLLMClientComprehensive) GetSupportedModels() []string {
+	return []string{"gpt-4", "gpt-3.5-turbo"}
+}
+
+func (m *MockLLMClientComprehensive) ValidateModel(modelName string) error {
+	// All models are valid in testing
+	return nil
+}
+
+func (m *MockLLMClientComprehensive) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *shared.StreamingChunk) error {
+	// Simple streaming implementation for testing
+	chunks <- &shared.StreamingChunk{
+		Content: "Test streaming response",
+		IsLast:  true,
+	}
+	close(chunks)
+	return nil
+}
+
 // MockGitClient for testing Git operations
 type MockGitClientComprehensive struct {
 	mock.Mock
@@ -125,11 +180,199 @@ func NewMockGitClientComprehensive() *MockGitClientComprehensive {
 	return &MockGitClientComprehensive{}
 }
 
-func (m *MockGitClientComprehensive) CommitFiles(files map[string]string, message string) (string, error) {
-	if m.shouldFail {
-		return "", errors.New("git commit failed")
-	}
-	return "abc123", nil
+func (m *MockGitClientComprehensive) CommitAndPush(files map[string]string, message string) (string, error) {
+	args := m.Called(files, message)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockGitClientComprehensive) CommitAndPushChanges(message string) error {
+	args := m.Called(message)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) InitRepo() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) RemoveDirectory(path string, commitMessage string) error {
+	args := m.Called(path, commitMessage)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) CommitFiles(files []string, message string) error {
+	args := m.Called(files, message)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) CreateBranch(name string) error {
+	args := m.Called(name)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) SwitchBranch(name string) error {
+	args := m.Called(name)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) GetCurrentBranch() (string, error) {
+	args := m.Called()
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockGitClientComprehensive) ListBranches() ([]string, error) {
+	args := m.Called()
+	return args.Get(0).([]string), args.Error(1)
+}
+
+func (m *MockGitClientComprehensive) GetFileContent(path string) ([]byte, error) {
+	args := m.Called(path)
+	return args.Get(0).([]byte), args.Error(1)
+}
+
+func (m *MockGitClientComprehensive) Add(path string) error {
+	args := m.Called(path)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) Remove(path string) error {
+	args := m.Called(path)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) Move(oldPath, newPath string) error {
+	args := m.Called(oldPath, newPath)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) Restore(path string) error {
+	args := m.Called(path)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) DeleteBranch(name string) error {
+	args := m.Called(name)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) MergeBranch(sourceBranch, targetBranch string) error {
+	args := m.Called(sourceBranch, targetBranch)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) RebaseBranch(sourceBranch, targetBranch string) error {
+	args := m.Called(sourceBranch, targetBranch)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) CherryPick(commitHash string) error {
+	args := m.Called(commitHash)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) Reset(options git.ResetOptions) error {
+	args := m.Called(options)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) Clean(force bool) error {
+	args := m.Called(force)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) GetCommitHistory(options git.LogOptions) ([]git.CommitInfo, error) {
+	args := m.Called(options)
+	return args.Get(0).([]git.CommitInfo), args.Error(1)
+}
+
+func (m *MockGitClientComprehensive) CreateTag(name, message string) error {
+	args := m.Called(name, message)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) ListTags() ([]git.TagInfo, error) {
+	args := m.Called()
+	return args.Get(0).([]git.TagInfo), args.Error(1)
+}
+
+func (m *MockGitClientComprehensive) GetTagInfo(name string) (git.TagInfo, error) {
+	args := m.Called(name)
+	return args.Get(0).(git.TagInfo), args.Error(1)
+}
+
+func (m *MockGitClientComprehensive) CreatePullRequest(options git.PullRequestOptions) (git.PullRequestInfo, error) {
+	args := m.Called(options)
+	return args.Get(0).(git.PullRequestInfo), args.Error(1)
+}
+
+func (m *MockGitClientComprehensive) GetPullRequestStatus(id int) (string, error) {
+	args := m.Called(id)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockGitClientComprehensive) ApprovePullRequest(id int) error {
+	args := m.Called(id)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) MergePullRequest(id int) error {
+	args := m.Called(id)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) GetDiff(options git.DiffOptions) (string, error) {
+	args := m.Called(options)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockGitClientComprehensive) GetStatus() ([]git.StatusInfo, error) {
+	args := m.Called()
+	return args.Get(0).([]git.StatusInfo), args.Error(1)
+}
+
+func (m *MockGitClientComprehensive) ApplyPatch(patch string) error {
+	args := m.Called(patch)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) CreatePatch(options git.DiffOptions) (string, error) {
+	args := m.Called(options)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockGitClientComprehensive) GetRemotes() ([]git.RemoteInfo, error) {
+	args := m.Called()
+	return args.Get(0).([]git.RemoteInfo), args.Error(1)
+}
+
+func (m *MockGitClientComprehensive) AddRemote(name, url string) error {
+	args := m.Called(name, url)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) RemoveRemote(name string) error {
+	args := m.Called(name)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) Fetch(remote string) error {
+	args := m.Called(remote)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) Pull(remote string) error {
+	args := m.Called(remote)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) Push(remote string) error {
+	args := m.Called(remote)
+	return args.Error(0)
+}
+
+func (m *MockGitClientComprehensive) GetLog(options git.LogOptions) ([]git.CommitInfo, error) {
+	args := m.Called(options)
+	return args.Get(0).([]git.CommitInfo), args.Error(1)
 }
 
 func (m *MockGitClientComprehensive) PushChanges() error {
@@ -507,7 +750,7 @@ func TestUpdatePhase(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create test NetworkIntent
 			ni := createTestNetworkIntent("test-phase", "default", "test intent")
-			ni.Status.Phase = tt.initialPhase
+			ni.Status.Phase = nephoranv1.NetworkIntentPhase(tt.initialPhase)
 
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(ni).Build()
 			mockDeps := NewMockDependencies()

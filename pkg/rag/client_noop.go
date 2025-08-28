@@ -1,4 +1,5 @@
-//go:build !rag
+//go:build disable_rag
+// +build disable_rag
 
 package rag
 
@@ -43,4 +44,16 @@ func (c *noOpRAGClient) IsHealthy() bool {
 func (c *noOpRAGClient) Shutdown(ctx context.Context) error {
 	// No-op client requires no shutdown
 	return nil
+}
+
+// Close is a no-op for the no-op implementation
+func (c *noOpRAGClient) Close() error {
+	// No-op client requires no close
+	return nil
+}
+
+// Query returns empty results for no-op implementation
+func (c *noOpRAGClient) Query(ctx context.Context, query string) ([]*Doc, error) {
+	// Return empty results - no error, just no content
+	return []*Doc{}, nil
 }

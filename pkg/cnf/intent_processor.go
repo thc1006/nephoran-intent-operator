@@ -38,7 +38,7 @@ import (
 type CNFIntentProcessor struct {
 	Client           client.Client
 	LLMProcessor     llm.Processor
-	RAGService       *rag.Service
+	RAGService       *rag.RAGService
 	KnowledgeBase    *CNFKnowledgeBase
 	TemplateRegistry *CNFTemplateRegistry
 	Config           *CNFIntentProcessorConfig
@@ -159,7 +159,7 @@ type CNFIntentContext struct {
 }
 
 // NewCNFIntentProcessor creates a new CNF intent processor
-func NewCNFIntentProcessor(client client.Client, llmProcessor llm.Processor, ragService *rag.Service) *CNFIntentProcessor {
+func NewCNFIntentProcessor(client client.Client, llmProcessor llm.Processor, ragService *rag.RAGService) *CNFIntentProcessor {
 	processor := &CNFIntentProcessor{
 		Client:       client,
 		LLMProcessor: llmProcessor,

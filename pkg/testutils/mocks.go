@@ -321,9 +321,12 @@ func (m *MockGitClient) CommitAndPush(files map[string]string, message string) (
 	// Store commit message
 	m.commits = append(m.commits, message)
 
-	// Generate commit hash
-	commitHash := fmt.Sprintf("commit-hash-%d", m.commitCount)
-	m.lastCommitHash = commitHash
+	// Use pre-set commit hash or generate one
+	commitHash := m.lastCommitHash
+	if commitHash == "initial-commit-hash" {
+		commitHash = fmt.Sprintf("commit-hash-%d", m.commitCount)
+		m.lastCommitHash = commitHash
+	}
 
 	return commitHash, nil
 }
@@ -450,6 +453,16 @@ func (m *MockGitClient) GetFileContentString(filePath string) string {
 // GetCommits returns all commits made to the mock repository
 func (m *MockGitClient) GetCommits() []string {
 	return m.commits
+}
+
+// SetCommitHash sets the commit hash that will be returned by CommitAndPush
+func (m *MockGitClient) SetCommitHash(hash string) {
+	m.lastCommitHash = hash
+}
+
+// GetLastCommitHash returns the last commit hash
+func (m *MockGitClient) GetLastCommitHash() string {
+	return m.lastCommitHash
 }
 
 // ResetMock clears all mock state
@@ -701,6 +714,63 @@ func (m *MockDependencies) GetHTTPClient() *http.Client { return &http.Client{} 
 func (m *MockDependencies) GetEventRecorder() record.EventRecorder { return &record.FakeRecorder{} }
 func (m *MockDependencies) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase { return nil }
 func (m *MockDependencies) GetMetricsCollector() *monitoring.MetricsCollector { return nil }
+
+// MockDependenciesBuilder provides a builder pattern for creating mock dependencies
+type MockDependenciesBuilder struct {
+	llmClient *MockLLMClient
+	gitClient *MockGitClient
+}
+
+// NewMockDependenciesBuilder creates a new builder for mock dependencies
+func NewMockDependenciesBuilder() *MockDependenciesBuilder {
+	return &MockDependenciesBuilder{
+		llmClient: NewMockLLMClient(),
+		gitClient: NewMockGitClient(),
+	}
+}
+
+// WithLLMClient sets the LLM client
+func (b *MockDependenciesBuilder) WithLLMClient(client *MockLLMClient) *MockDependenciesBuilder {
+	b.llmClient = client
+	return b
+}
+
+// WithGitClient sets the Git client
+func (b *MockDependenciesBuilder) WithGitClient(client *MockGitClient) *MockDependenciesBuilder {
+	b.gitClient = client
+	return b
+}
+
+// Build creates the mock dependencies
+func (b *MockDependenciesBuilder) Build() *MockDependencies {
+	return &MockDependencies{
+		LLMClient: b.llmClient,
+		GitClient: b.gitClient,
+	}
+}
+
+// MockLLMClientInterface is an alias for MockLLMClient for backward compatibility
+type MockLLMClientInterface = MockLLMClient
+
+// MockGitClientInterface is an alias for MockGitClient for interface compatibility
+type MockGitClientInterface = MockGitClient
+
+// EnhancedMockGitClient is an alias for MockGitClient with enhanced functionality
+type EnhancedMockGitClient = MockGitClient
+
+// NewEnhancedMockGitClient creates a new enhanced mock git client
+func NewEnhancedMockGitClient() *EnhancedMockGitClient {
+	return NewMockGitClient()
+}
+
+// MockGitClientComprehensive is an alias for MockGitClient
+type MockGitClientComprehensive = MockGitClient
+
+// MockDependenciesComprehensive provides comprehensive mock dependencies
+type MockDependenciesComprehensive struct {
+	llmClient *MockLLMClient
+	gitClient *MockGitClientComprehensive
+}
 
 // Ensure mock clients implement the expected interfaces
 var _ shared.ClientInterface = (*MockLLMClient)(nil)

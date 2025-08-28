@@ -50,11 +50,21 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 				LLMClient: testutils.NewMockLLMClient(),
 				GitClient: testutils.NewMockGitClient(),
 			}
-			networkIntentReconciler = &NetworkIntentReconciler{
-				Client: k8sClient,
-				Scheme: testEnv.Scheme,
-				deps:   mockDeps,
+			
+			config := &Config{
+				MaxRetries:      3,
+				RetryDelay:      time.Second,
+				Timeout:         30 * time.Second,
+				GitRepoURL:      "https://github.com/test/deployments.git",
+				GitBranch:       "main",
+				GitDeployPath:   "networkintents",
+				LLMProcessorURL: "http://localhost:8080",
+				UseNephioPorch:  false,
 			}
+			
+			var err error
+			networkIntentReconciler, err = NewNetworkIntentReconciler(k8sClient, testEnv.Scheme, mockDeps, config)
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("Should process NetworkIntent from creation to completion", func() {
@@ -75,11 +85,11 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 				"priority":    "high",
 			}
 			mockResponseBytes, _ := json.Marshal(mockResponse)
-			mockLLMClient := networkIntentReconciler.deps.(*testutils.MockDependencies).LLMClient.(*testutils.MockLLMClient)
+			mockLLMClient := networkIntentReconciler.deps.(*testutils.MockDependencies).LLMClient
 			mockLLMClient.SetResponse(networkIntent.Spec.Intent, string(mockResponseBytes))
 
 			// Set up mock Git client for successful deployment
-			mockGitClient := networkIntentReconciler.deps.(*testutils.MockDependencies).GitClient.(*testutils.MockGitClient)
+			mockGitClient := networkIntentReconciler.deps.(*testutils.MockDependencies).GitClient
 			mockGitClient.SetCommitHash("e2e-test-commit-123")
 
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
@@ -134,11 +144,11 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 			)
 
 			// Set up mock LLM client that fails initially
-			mockLLMClient := networkIntentReconciler.deps.(*testutils.MockDependencies).LLMClient.(*testutils.MockLLMClient)
+			mockLLMClient := networkIntentReconciler.deps.(*testutils.MockDependencies).LLMClient
 			mockLLMClient.SetShouldReturnError(true)
 			mockLLMClient.Error = fmt.Errorf("temporary service unavailable")
 
-			mockGitClient := networkIntentReconciler.deps.(*testutils.MockDependencies).GitClient.(*testutils.MockGitClient)
+			mockGitClient := networkIntentReconciler.deps.(*testutils.MockDependencies).GitClient
 			mockGitClient.SetCommitHash("recovery-commit-456")
 
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
@@ -440,10 +450,10 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 				"namespace":   namespaceName,
 			}
 			mockResponseBytes, _ := json.Marshal(mockResponse)
-			mockLLMClient := mockDeps.LLMClient.(*testutils.MockLLMClient)
+			mockLLMClient := mockDeps.LLMClient
 			mockLLMClient.SetResponse(networkIntent.Spec.Intent, string(mockResponseBytes))
 
-			mockGitClient := mockDeps.GitClient.(*testutils.MockGitClient)
+			mockGitClient := mockDeps.GitClient
 			mockGitClient.SetCommitHash("integration-commit-789")
 
 			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())

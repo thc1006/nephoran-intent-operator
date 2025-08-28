@@ -66,16 +66,7 @@ func setupBenchmarkEngine() (*ParallelProcessingEngine, func(), error) {
 		return nil, nil, err
 	}
 
-	// Minimal error tracking for performance
-	errorConfig := &monitoring.ErrorTrackingConfig{
-		EnablePrometheus:    false, // Disable for performance
-		EnableOpenTelemetry: false, // Disable for performance
-		AlertingEnabled:     false,
-		DashboardEnabled:    false,
-		ReportsEnabled:      false,
-	}
-
-	// Remove unused errorTracker
+	// Error tracking removed for performance
 
 	// High-capacity engine configuration
 	engineConfig := &ProcessingEngineConfig{
@@ -127,12 +118,14 @@ func BenchmarkSingleIntentProcessing(b *testing.B) {
 		intent := &v1alpha1.NetworkIntent{
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("warmup-%d", i), Namespace: "benchmark"},
 			Spec: v1alpha1.NetworkIntentSpec{
-				IntentType: "simple_deployment",
-				Intent:     "Deploy simple network service",
-				Priority:   "medium",
+				IntentType: "scaling",
+				Target:     "simple-service",
+				Namespace:  "benchmark",
+				Replicas:   3,
+				Source:     "test",
 			},
 		}
-		engine.ProcessIntentWorkflow(ctx, intent)
+		engine.ProcessIntent(ctx, intent)
 	}
 
 	// Reset timer after warmup
@@ -146,25 +139,28 @@ func BenchmarkSingleIntentProcessing(b *testing.B) {
 				Namespace: "benchmark",
 			},
 			Spec: v1alpha1.NetworkIntentSpec{
-				IntentType: "benchmark_deployment",
-				Intent:     fmt.Sprintf("Benchmark intent %d", i),
-				Priority:   "medium",
+				IntentType: "scaling",
+				Target:     fmt.Sprintf("bench-service-%d", i),
+				Namespace:  "benchmark",
+				Replicas:   int32(i%5 + 1),
+				Source:     "test",
 			},
 		}
 
-		result, err := engine.ProcessIntentWorkflow(ctx, intent)
+		err := engine.ProcessIntent(ctx, intent)
 		if err != nil {
 			b.Logf("Intent %d failed: %v", i, err)
-		}
-		if result != nil && !result.Success {
-			b.Logf("Intent %d unsuccessful", i)
 		}
 	}
 
 	// Report final metrics
 	metrics := engine.GetMetrics()
-	b.Logf("Final metrics: TotalTasks=%d, SuccessRate=%.2f%%, AvgLatency=%v",
-		metrics.TotalTasks, metrics.SuccessRate*100, metrics.AverageLatency)
+	successRate := float64(0)
+	if metrics.TotalIntentsProcessed > 0 {
+		successRate = float64(metrics.SuccessfulIntents) / float64(metrics.TotalIntentsProcessed) * 100
+	}
+	b.Logf("Final metrics: TotalIntents=%d, SuccessRate=%.2f%%, AvgLatency=%v",
+		metrics.TotalIntentsProcessed, successRate, metrics.AverageProcessingTime)
 }
 
 // BenchmarkConcurrentIntentProcessing benchmarks concurrent intent processing
@@ -200,13 +196,15 @@ func BenchmarkConcurrentIntentProcessing(b *testing.B) {
 								Namespace: "benchmark",
 							},
 							Spec: v1alpha1.NetworkIntentSpec{
-								IntentType: "concurrent_test",
-								Intent:     fmt.Sprintf("Concurrent intent %d-%d", i, intentNum),
-								Priority:   "medium",
+								IntentType: "scaling",
+								Target:     fmt.Sprintf("concurrent-service-%d-%d", i, intentNum),
+								Namespace:  "benchmark",
+								Replicas:   int32(intentNum%3 + 1),
+								Source:     "test",
 							},
 						}
 
-						engine.ProcessIntentWorkflow(ctx, intent)
+						engine.ProcessIntent(ctx, intent)
 					}(j)
 				}
 
@@ -252,7 +250,7 @@ func BenchmarkTaskSubmission(b *testing.B) {
 
 	metrics := engine.GetMetrics()
 	b.Logf("Task submission benchmark: %d tasks submitted, %d processed",
-		b.N, metrics.TotalTasks)
+		b.N, metrics.TotalIntentsProcessed)
 }
 
 // BenchmarkMemoryAllocation benchmarks memory allocation patterns
@@ -281,13 +279,15 @@ func BenchmarkMemoryAllocation(b *testing.B) {
 				Namespace: "benchmark",
 			},
 			Spec: v1alpha1.NetworkIntentSpec{
-				IntentType: "memory_test",
-				Intent:     fmt.Sprintf("Memory allocation test intent %d", i),
-				Priority:   "medium",
+				IntentType: "scaling",
+				Target:     fmt.Sprintf("memory-service-%d", i),
+				Namespace:  "benchmark",
+				Replicas:   int32(i%10 + 1),
+				Source:     "test",
 			},
 		}
 
-		engine.ProcessIntentWorkflow(ctx, intent)
+		engine.ProcessIntent(ctx, intent)
 
 		// Periodic GC to measure actual allocation
 		if i%100 == 0 {
@@ -344,13 +344,15 @@ func BenchmarkThroughput(b *testing.B) {
 					Namespace: "benchmark",
 				},
 				Spec: v1alpha1.NetworkIntentSpec{
-					IntentType: "throughput_test",
-					Intent:     fmt.Sprintf("Throughput test intent %d", num),
-					Priority:   "medium",
+					IntentType: "scaling",
+					Target:     fmt.Sprintf("throughput-service-%d", num),
+					Namespace:  "benchmark",
+					Replicas:   int32(num%5 + 1),
+					Source:     "test",
 				},
 			}
 
-			engine.ProcessIntentWorkflow(ctx, intent)
+			engine.ProcessIntent(ctx, intent)
 		}(intentCount)
 
 		intentCount++
@@ -372,9 +374,13 @@ func BenchmarkThroughput(b *testing.B) {
 	b.Logf("  Duration: %v", actualDuration)
 	b.Logf("  Intents submitted: %d", intentCount)
 	b.Logf("  Throughput: %.2f intents/second", throughput)
-	b.Logf("  Tasks processed: %d", metrics.TotalTasks)
-	b.Logf("  Success rate: %.2f%%", metrics.SuccessRate*100)
-	b.Logf("  Average latency: %v", metrics.AverageLatency)
+	successRateThrough := float64(0)
+	if metrics.TotalIntentsProcessed > 0 {
+		successRateThrough = float64(metrics.SuccessfulIntents) / float64(metrics.TotalIntentsProcessed) * 100
+	}
+	b.Logf("  Tasks processed: %d", metrics.TotalIntentsProcessed)
+	b.Logf("  Success rate: %.2f%%", successRateThrough)
+	b.Logf("  Average latency: %v", metrics.AverageProcessingTime)
 }
 
 // BenchmarkWorkerPoolScaling benchmarks worker pool scaling behavior
@@ -415,12 +421,6 @@ func BenchmarkWorkerPoolScaling(b *testing.B) {
 			resilienceMgr.Start(ctx)
 			defer resilienceMgr.Stop()
 
-			errorConfig := &monitoring.ErrorTrackingConfig{
-				EnablePrometheus:    false,
-				EnableOpenTelemetry: false,
-			}
-			errorTracker, _ := monitoring.NewErrorTracker(errorConfig, logger)
-
 			engineConfig := &ProcessingEngineConfig{
 				MaxConcurrentIntents: 100,
 				IntentWorkers:       config.intentPool,
@@ -433,10 +433,7 @@ func BenchmarkWorkerPoolScaling(b *testing.B) {
 				MaxQueueSize:        500,
 			}
 
-			engine, err := NewParallelProcessingEngine(engineConfig, resilienceMgr, errorTracker, logger)
-			if err != nil {
-				b.Fatalf("Failed to create engine: %v", err)
-			}
+			engine := NewParallelProcessingEngine(engineConfig, logger)
 
 			engine.Start(ctx)
 			defer engine.Stop()
@@ -458,13 +455,15 @@ func BenchmarkWorkerPoolScaling(b *testing.B) {
 							Namespace: "benchmark",
 						},
 						Spec: v1alpha1.NetworkIntentSpec{
-							IntentType: "scaling_test",
-							Intent:     fmt.Sprintf("Pool scaling test %d", intentNum),
-							Priority:   "medium",
+							IntentType: "scaling",
+							Target:     fmt.Sprintf("scaling-service-%d", intentNum),
+							Namespace:  "benchmark",
+							Replicas:   int32(intentNum%8 + 1),
+							Source:     "test",
 						},
 					}
 
-					engine.ProcessIntentWorkflow(ctx, intent)
+					engine.ProcessIntent(ctx, intent)
 				}(i)
 			}
 
@@ -474,8 +473,12 @@ func BenchmarkWorkerPoolScaling(b *testing.B) {
 			metrics := engine.GetMetrics()
 			throughput := float64(b.N) / duration.Seconds()
 
+			successRateScaling := float64(0)
+			if metrics.TotalIntentsProcessed > 0 {
+				successRateScaling = float64(metrics.SuccessfulIntents) / float64(metrics.TotalIntentsProcessed) * 100
+			}
 			b.Logf("%s config: %.2f intents/sec, %d tasks, %.2f%% success",
-				config.name, throughput, metrics.TotalTasks, metrics.SuccessRate*100)
+				config.name, throughput, metrics.TotalIntentsProcessed, successRateScaling)
 		})
 	}
 }
@@ -509,14 +512,16 @@ func BenchmarkLatencyDistribution(b *testing.B) {
 					Namespace: "benchmark",
 				},
 				Spec: v1alpha1.NetworkIntentSpec{
-					IntentType: "latency_test",
-					Intent:     fmt.Sprintf("Latency measurement intent %d", intentNum),
-					Priority:   "medium",
+					IntentType: "scaling",
+					Target:     fmt.Sprintf("latency-service-%d", intentNum),
+					Namespace:  "benchmark",
+					Replicas:   int32(intentNum%4 + 1),
+					Source:     "test",
 				},
 			}
 
 			startTime := time.Now()
-			engine.ProcessIntentWorkflow(ctx, intent)
+			engine.ProcessIntent(ctx, intent)
 			latency := time.Since(startTime)
 
 			latencyMutex.Lock()
