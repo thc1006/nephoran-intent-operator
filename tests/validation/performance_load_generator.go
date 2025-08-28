@@ -106,6 +106,17 @@ type LoadTestReport struct {
 	NetworkLatency []time.Duration
 }
 
+// safeMathConversion safely converts float64 to int64 with bounds checking
+func safeMathConversion(val float64) int64 {
+	if val < 0 {
+		return 0 // Handle negative values
+	}
+	if val > float64(math.MaxInt64) {
+		return math.MaxInt64 // Cap at max int64
+	}
+	return int64(val)
+}
+
 // NewAdvancedLoadGenerator creates an advanced load generator
 func NewAdvancedLoadGenerator(k8sClient client.Client, baseURL string) *AdvancedLoadGenerator {
 	return &AdvancedLoadGenerator{
@@ -307,8 +318,9 @@ func (alg *AdvancedLoadGenerator) convertVegetaMetrics(metrics *vegeta.Metrics) 
 		Scenario:           "Vegeta Load Test",
 		Duration:           metrics.Duration,
 		TotalRequests:      int64(metrics.Requests),
-		SuccessfulRequests: int64(float64(metrics.Requests) * metrics.Success),
-		FailedRequests:     int64(float64(metrics.Requests) * (1 - metrics.Success)),
+		// Fix G115: Add bounds checking for integer overflow
+		SuccessfulRequests: safeMathConversion(float64(metrics.Requests) * metrics.Success),
+		FailedRequests:     safeMathConversion(float64(metrics.Requests) * (1 - metrics.Success)),
 
 		MinLatency:  metrics.Latencies.Min,
 		MaxLatency:  metrics.Latencies.Max,

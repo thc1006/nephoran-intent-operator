@@ -30,7 +30,9 @@ func main() {
 		fmt.Printf("Error creating audit logger: %v\n", err)
 	} else {
 		fmt.Printf("Audit logger created: %v\n", auditLogger != nil)
-		auditLogger.Close()
+		if err := auditLogger.Close(); err != nil {
+			fmt.Printf("Warning: Failed to close audit logger: %v\n", err)
+		}
 	}
 
 	fmt.Println("Import cycle test completed successfully!")

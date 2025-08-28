@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	ingest "github.com/thc1006/nephoran-intent-operator/internal/ingest"
 )
@@ -69,7 +70,10 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
-		_, _ = w.Write([]byte("ok\n"))
+		if _, err := w.Write([]byte("ok\n")); err != nil {
+			// Log error but continue since response may have already been sent
+			log.Printf("Failed to write health check response: %v", err)
+		}
 	})
 	mux.HandleFunc("/intent", h.HandleIntent)
 
@@ -84,5 +88,13 @@ func main() {
 	log.Printf("  Schema: %s", schemaPath)
 
 	fmt.Printf("\nReady to accept intents at http://localhost%s/intent\n", *addr)
-	log.Fatal(http.ListenAndServe(*addr, mux))
+	// Use http.Server with timeouts to fix G114 security warning
+	server := &http.Server{
+		Addr:         *addr,
+		Handler:      mux,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+	log.Fatal(server.ListenAndServe())
 }

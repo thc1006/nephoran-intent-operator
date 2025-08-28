@@ -332,7 +332,9 @@ func main() {
 		}
 	case sig := <-sigChan:
 		log.Printf("Received signal %v, shutting down gracefully", sig)
-		watcher.Close()
+		if err := watcher.Close(); err != nil {
+			log.Printf("Error closing watcher: %v", err)
+		}
 
 		// Check stats after graceful shutdown to distinguish shutdown vs real failures
 		if !*useProcessor {

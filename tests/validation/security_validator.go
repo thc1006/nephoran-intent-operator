@@ -745,7 +745,12 @@ func (sv *SecurityValidator) validateOIDCEndpoint(issuerURL string) bool {
 	client := &http.Client{
 		Timeout: 5 * time.Second,
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // For testing
+			// G402: TLS InsecureSkipVerify disabled for production security
+			// Only use InsecureSkipVerify in controlled test environments
+			TLSClientConfig: &tls.Config{
+				// InsecureSkipVerify: true, // Removed for security compliance
+				MinVersion: tls.VersionTLS12, // Enforce minimum TLS 1.2
+			},
 		},
 	}
 

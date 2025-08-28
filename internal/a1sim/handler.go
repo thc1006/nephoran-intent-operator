@@ -62,6 +62,10 @@ func SavePolicyHandler(dir string) http.HandlerFunc {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusAccepted)
-		w.Write([]byte(`{"status":"accepted","saved":"` + path + `"}`))
+		if _, err := w.Write([]byte(`{"status":"accepted","saved":"` + path + `"}`)); err != nil {
+			// Log error but can't change status code at this point
+			http.Error(w, "Failed to write response", http.StatusInternalServerError)
+			return
+		}
 	}
 }

@@ -454,7 +454,10 @@ func (s *NephoranAPIServer) Shutdown() error {
 	// Close WebSocket connections
 	s.connectionsMutex.Lock()
 	for id, conn := range s.wsConnections {
-		conn.Connection.Close()
+		if err := conn.Connection.Close(); err != nil {
+			s.logger.Error(err, "Failed to close WebSocket connection",
+				"connection_id", id)
+		}
 		delete(s.wsConnections, id)
 	}
 	s.connectionsMutex.Unlock()

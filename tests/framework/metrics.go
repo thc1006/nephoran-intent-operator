@@ -466,9 +466,16 @@ func (tm *TestMetrics) GenerateReport() {
 	report := tm.createTestReport()
 
 	// Write report to file
-	reportData, _ := json.MarshalIndent(report, "", "  ")
+	reportData, err := json.MarshalIndent(report, "", "  ")
+	if err != nil {
+		fmt.Printf("Warning: Failed to marshal test report: %v\n", err)
+		return
+	}
 	filename := fmt.Sprintf("test-report-%d.json", time.Now().Unix())
-	os.WriteFile(filename, reportData, 0644)
+	if err := os.WriteFile(filename, reportData, 0644); err != nil {
+		fmt.Printf("Warning: Failed to write test report to %s: %v\n", filename, err)
+		return
+	}
 
 	// Print summary to console
 	tm.printSummary(report)

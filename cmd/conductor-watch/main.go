@@ -34,7 +34,9 @@ func main() {
 			log.Fatalf("Invalid POST URL '%s': %v", *postURL, err)
 		}
 		// Ensure it's HTTP or HTTPS
-		if parsedURL, _ := url.Parse(*postURL); parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		if parsedURL, err := url.Parse(*postURL); err != nil {
+			log.Fatalf("Failed to re-parse POST URL '%s': %v", *postURL, err)
+		} else if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
 			log.Fatalf("POST URL must use HTTP or HTTPS scheme, got: %s", *postURL)
 		}
 	}

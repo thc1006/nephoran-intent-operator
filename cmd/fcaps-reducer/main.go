@@ -59,7 +59,15 @@ func main() {
 	log.Printf("Burst detection: %d events in %d seconds triggers scaling intent",
 		config.BurstThreshold, config.WindowSeconds)
 
-	if err := http.ListenAndServe(config.ListenAddr, nil); err != nil {
+	// Use http.Server with timeouts to fix G114 security warning
+	server := &http.Server{
+		Addr:         config.ListenAddr,
+		Handler:      nil,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
 }

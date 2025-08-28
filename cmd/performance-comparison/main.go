@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"runtime"
 	"time"
@@ -41,6 +42,26 @@ type PerformanceComparison struct {
 	GoVersion   string             `json:"go_version"`
 	Results     []ComparisonResult `json:"results"`
 	OverallGain float64            `json:"overall_gain"`
+}
+
+// safeIntConversion safely converts uint64 difference to int64 with bounds checking
+func safeIntConversion(after, before uint64) int64 {
+	if after < before {
+		return 0 // Handle underflow
+	}
+	diff := after - before
+	if diff > math.MaxInt64 {
+		return math.MaxInt64 // Cap at max int64
+	}
+	return int64(diff)
+}
+
+// safeUintToInt safely converts uint64 to int64 with bounds checking
+func safeUintToInt(val uint64) int64 {
+	if val > math.MaxInt64 {
+		return math.MaxInt64 // Cap at max int64
+	}
+	return int64(val)
 }
 
 func main() {
@@ -97,8 +118,9 @@ func runPerformanceTests() *PerformanceMetrics {
 		GoVersion:          runtime.Version(),
 		Timestamp:          time.Now(),
 		Duration:           duration,
-		MemoryAllocated:    int64(memStatsAfter.TotalAlloc - memStatsBefore.TotalAlloc),
-		MemoryReleased:     int64(memStatsAfter.Frees - memStatsBefore.Frees),
+		// Fix G115: Add bounds checking for integer overflow
+		MemoryAllocated:    safeIntConversion(memStatsAfter.TotalAlloc, memStatsBefore.TotalAlloc),
+		MemoryReleased:     safeUintToInt(memStatsAfter.Frees - memStatsBefore.Frees),
 		GoroutineCount:     goroutinesAfter - goroutinesBefore,
 		GCCount:            memStatsAfter.NumGC - memStatsBefore.NumGC,
 		HTTPRequestsPerSec: httpOps,
@@ -151,7 +173,11 @@ func benchmarkJSONProcessing() int64 {
 
 	for time.Since(start) < testDuration {
 		// Marshal
-		data, _ := json.Marshal(testData)
+		data, err := json.Marshal(testData)
+		if err != nil {
+			// This is a benchmark, just continue on marshal error
+			continue
+		}
 
 		// Unmarshal
 		var result map[string]interface{}

@@ -113,7 +113,10 @@ func (p *LDAPConnectionPool) GetConnection(ctx context.Context) (*ldap.Conn, err
 			return conn, nil
 		}
 		// Connection is invalid, close it and create new one
-		conn.Close()
+		if err := conn.Close(); err != nil {
+			// Log error but continue - connection was invalid anyway
+			p.logger.Debug("Failed to close invalid LDAP connection", "error", err)
+		}
 		p.stats.mu.Lock()
 		p.stats.ConnectionsFailed++
 		p.stats.mu.Unlock()

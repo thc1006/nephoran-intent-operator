@@ -173,7 +173,7 @@ func NewSpecializedIntentProcessingController(mgr ctrl.Manager, config IntentPro
 	promptEngine := llm.NewTelecomPromptEngine()
 
 	// Initialize streaming processor
-	streamingProcessor := llm.NewStreamingProcessorImpl(*llmClient, llm.NewTokenManager(), nil)
+	streamingProcessor := llm.NewStreamingProcessorImpl(llmClient, llm.NewTokenManager(), nil)
 
 	// Initialize performance optimizer
 	performanceOptimizer := llm.NewPerformanceOptimizer(&llm.PerformanceConfig{
