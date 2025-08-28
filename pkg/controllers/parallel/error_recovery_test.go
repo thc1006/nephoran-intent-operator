@@ -90,16 +90,16 @@ func (suite *ErrorRecoveryTestSuite) SetupSuite() {
 	require.NoError(suite.T(), err)
 
 	// Create parallel processing engine
-	engineConfig := &ParallelProcessingConfig{
+	engineConfig := &ProcessingEngineConfig{
 		MaxConcurrentIntents: 20,
-		IntentPoolSize:       5,
-		LLMPoolSize:          3,
-		RAGPoolSize:          3,
-		ResourcePoolSize:     4,
-		ManifestPoolSize:     4,
-		GitOpsPoolSize:       2,
-		DeploymentPoolSize:   2,
-		TaskQueueSize:        100,
+		IntentWorkers:       5,
+		LLMWorkers:          3,
+		RAGWorkers:          3,
+		ResourceWorkers:     4,
+		ManifestWorkers:     4,
+		GitOpsWorkers:       2,
+		DeploymentWorkers:   2,
+		MaxQueueSize:        100,
 		HealthCheckInterval:  5 * time.Second,
 	}
 

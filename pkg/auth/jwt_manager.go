@@ -5,10 +5,13 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"errors"
 	"fmt"
 	"log/slog"
+	"math/big"
+	"strings"
 	"sync"
 	"time"
 
@@ -727,4 +730,33 @@ func (jm *JWTManager) GetKeyID() string {
 	jm.mutex.RLock()
 	defer jm.mutex.RUnlock()
 	return jm.keyID
+}
+
+// GetJWKS returns the JSON Web Key Set for public key verification
+func (jm *JWTManager) GetJWKS() (map[string]interface{}, error) {
+	jm.mutex.RLock()
+	defer jm.mutex.RUnlock()
+	
+	if jm.verifyingKey == nil {
+		return nil, fmt.Errorf("verifying key not initialized")
+	}
+	
+	// Create JWKS response
+	return map[string]interface{}{
+		"keys": []interface{}{
+			map[string]interface{}{
+				"kty": "RSA",
+				"use": "sig",
+				"kid": jm.keyID,
+				"alg": "RS256",
+				"n": encodeBase64URL(jm.verifyingKey.N.Bytes()),
+				"e": encodeBase64URL(big.NewInt(int64(jm.verifyingKey.E)).Bytes()),
+			},
+		},
+	}, nil
+}
+
+// encodeBase64URL encodes bytes to base64 URL encoding without padding
+func encodeBase64URL(data []byte) string {
+	return strings.TrimRight(base64.URLEncoding.EncodeToString(data), "=")
 }

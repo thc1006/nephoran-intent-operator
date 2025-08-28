@@ -65,7 +65,7 @@ func TestObservabilityLogging(t *testing.T) {
 	client := &Client{
 		RepoURL:  "https://github.com/test/repo.git",
 		Branch:   "main",
-		SshKey:   "test-key",
+		SSHKey:   "test-key",
 		RepoPath: repoPath,
 		logger:   logger,
 		pushSem:  make(chan struct{}, 2), // Limit of 2
@@ -197,7 +197,7 @@ func TestObservabilityMetrics(t *testing.T) {
 	client := &Client{
 		RepoURL:  "https://github.com/test/repo.git",
 		Branch:   "main",
-		SshKey:   "test-key",
+		SSHKey:   "test-key",
 		RepoPath: repoPath,
 		logger:   slog.Default(),
 		pushSem:  make(chan struct{}, 3), // Limit of 3
@@ -241,7 +241,7 @@ func TestObservabilityUnderLoad(t *testing.T) {
 	client := &Client{
 		RepoURL:  "https://github.com/test/repo.git",
 		Branch:   "main",
-		SshKey:   "test-key",
+		SSHKey:   "test-key",
 		RepoPath: "/tmp/test-repo",
 		logger:   logger,
 		pushSem:  make(chan struct{}, 2), // Very limited

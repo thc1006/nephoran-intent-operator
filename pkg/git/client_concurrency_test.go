@@ -54,7 +54,7 @@ func TestConcurrentPushLimit(t *testing.T) {
 	client := &Client{
 		RepoURL:  "https://github.com/test/repo.git",
 		Branch:   "main",
-		SshKey:   "test-key",
+		SSHKey:   "test-key",
 		RepoPath: repoPath,
 		logger:   slog.Default().With("test", "concurrency"),
 		pushSem:  make(chan struct{}, concurrentLimit),
@@ -189,7 +189,7 @@ func TestConcurrentPushWithErrors(t *testing.T) {
 	client := &Client{
 		RepoURL:  "https://github.com/test/repo.git",
 		Branch:   "main",
-		SshKey:   "test-key",
+		SSHKey:   "test-key",
 		RepoPath: repoPath,
 		logger:   slog.Default().With("test", "error-handling"),
 		pushSem:  make(chan struct{}, concurrentLimit),
@@ -296,7 +296,7 @@ func TestConcurrentPushDeadlockPrevention(t *testing.T) {
 	client := &Client{
 		RepoURL:  "https://github.com/test/repo.git",
 		Branch:   "main",
-		SshKey:   "test-key",
+		SSHKey:   "test-key",
 		RepoPath: repoPath,
 		logger:   slog.Default().With("test", "deadlock-prevention"),
 		pushSem:  make(chan struct{}, concurrentLimit),
@@ -347,7 +347,7 @@ func TestSemaphoreAcquisitionOrder(t *testing.T) {
 	client := &Client{
 		RepoURL:  "https://github.com/test/repo.git",
 		Branch:   "main",
-		SshKey:   "test-key",
+		SSHKey:   "test-key",
 		RepoPath: "/tmp/test-repo",
 		logger:   slog.Default().With("test", "acquisition-order"),
 		pushSem:  make(chan struct{}, concurrentLimit),
@@ -455,7 +455,7 @@ func TestConcurrentDifferentOperations(t *testing.T) {
 	client := &Client{
 		RepoURL:  "https://github.com/test/repo.git",
 		Branch:   "main",
-		SshKey:   "test-key",
+		SSHKey:   "test-key",
 		RepoPath: repoPath,
 		logger:   slog.Default().With("test", "mixed-operations"),
 		pushSem:  make(chan struct{}, concurrentLimit),

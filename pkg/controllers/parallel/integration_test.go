@@ -98,16 +98,16 @@ func (suite *ParallelProcessingIntegrationTestSuite) SetupSuite() {
 	require.NoError(suite.T(), err)
 
 	// Setup parallel processing engine
-	engineConfig := &ParallelProcessingConfig{
+	engineConfig := &ProcessingEngineConfig{
 		MaxConcurrentIntents: 50,
-		IntentPoolSize:       10,
-		LLMPoolSize:          5,
-		RAGPoolSize:          5,
-		ResourcePoolSize:     8,
-		ManifestPoolSize:     8,
-		GitOpsPoolSize:       4,
-		DeploymentPoolSize:   4,
-		TaskQueueSize:        200,
+		IntentWorkers:        10,
+		LLMWorkers:           5,
+		RAGWorkers:           5,
+		ResourceWorkers:      8,
+		ManifestWorkers:      8,
+		GitOpsWorkers:        4,
+		DeploymentWorkers:    4,
+		MaxQueueSize:        200,
 		HealthCheckInterval:  10 * time.Second,
 	}
 

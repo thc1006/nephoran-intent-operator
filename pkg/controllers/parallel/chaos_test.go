@@ -95,16 +95,16 @@ func (suite *ChaosTestSuite) SetupSuite() {
 	require.NoError(suite.T(), err)
 
 	// Setup processing engine with high capacity for chaos testing
-	engineConfig := &ParallelProcessingConfig{
+	engineConfig := &ProcessingEngineConfig{
 		MaxConcurrentIntents: 100,
-		IntentPoolSize:       15,
-		LLMPoolSize:          10,
-		RAGPoolSize:          10,
-		ResourcePoolSize:     15,
-		ManifestPoolSize:     15,
-		GitOpsPoolSize:       8,
-		DeploymentPoolSize:   8,
-		TaskQueueSize:        500,
+		IntentWorkers:       15,
+		LLMWorkers:          10,
+		RAGWorkers:          10,
+		ResourceWorkers:     15,
+		ManifestWorkers:     15,
+		GitOpsWorkers:       8,
+		DeploymentWorkers:   8,
+		MaxQueueSize:        500,
 		HealthCheckInterval:  3 * time.Second,
 	}
 

@@ -85,14 +85,14 @@ func setupBenchmarkEngine() (*ParallelProcessingEngine, func(), error) {
 	// High-capacity engine configuration
 	engineConfig := &ProcessingEngineConfig{
 		MaxConcurrentIntents: 200,
-		IntentPoolSize:       25,
-		LLMPoolSize:          15,
-		RAGPoolSize:          15,
-		ResourcePoolSize:     20,
-		ManifestPoolSize:     20,
-		GitOpsPoolSize:       10,
-		DeploymentPoolSize:   10,
-		TaskQueueSize:        1000,
+		IntentWorkers:       25,
+		LLMWorkers:          15,
+		RAGWorkers:          15,
+		ResourceWorkers:     20,
+		ManifestWorkers:     20,
+		GitOpsWorkers:       10,
+		DeploymentWorkers:   10,
+		MaxQueueSize:        1000,
 		HealthCheckInterval:  30 * time.Second,
 	}
 
@@ -435,14 +435,14 @@ func BenchmarkWorkerPoolScaling(b *testing.B) {
 
 			engineConfig := &ProcessingEngineConfig{
 				MaxConcurrentIntents: 100,
-				IntentPoolSize:       config.intentPool,
-				LLMPoolSize:          config.llmPool,
-				RAGPoolSize:          config.llmPool,
-				ResourcePoolSize:     config.resourcePool,
-				ManifestPoolSize:     config.resourcePool,
-				GitOpsPoolSize:       config.resourcePool / 2,
-				DeploymentPoolSize:   config.resourcePool / 2,
-				TaskQueueSize:        500,
+				IntentWorkers:       config.intentPool,
+				LLMWorkers:          config.llmPool,
+				RAGWorkers:          config.llmPool,
+				ResourceWorkers:     config.resourcePool,
+				ManifestWorkers:     config.resourcePool,
+				GitOpsWorkers:       config.resourcePool / 2,
+				DeploymentWorkers:   config.resourcePool / 2,
+				MaxQueueSize:        500,
 			}
 
 			engine, err := NewParallelProcessingEngine(engineConfig, resilienceMgr, errorTracker, logger)

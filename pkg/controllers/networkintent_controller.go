@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
@@ -444,6 +446,110 @@ func (r *NetworkIntentReconciler) reconcileDelete(ctx context.Context, networkIn
 func (r *NetworkIntentReconciler) performCleanup(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) error {
 	// Use GitOps handler for cleanup
 	return r.reconciler.gitopsHandler.CleanupGitOpsResources(ctx, networkIntent)
+}
+
+// cleanupGitOpsPackages removes GitOps packages for the NetworkIntent
+func (r *NetworkIntentReconciler) cleanupGitOpsPackages(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, gitClient GitClientInterface) error {
+	if gitClient == nil {
+		return fmt.Errorf("git client is nil")
+	}
+	
+	packagePath := fmt.Sprintf("networkintents/%s", networkIntent.Name)
+	commitMsg := fmt.Sprintf("Remove NetworkIntent package: %s", networkIntent.Name)
+	
+	// Remove the package directory
+	if err := gitClient.RemoveDirectory(packagePath, commitMsg); err != nil {
+		// If directory doesn't exist, that's fine - it might already be cleaned up
+		if !isNotFoundError(err) {
+			return fmt.Errorf("failed to remove package directory: %w", err)
+		}
+		r.logger.Info("Package directory not found, skipping removal", "path", packagePath)
+		return nil
+	}
+	
+	// Commit and push changes
+	if err := gitClient.CommitAndPushChanges(commitMsg); err != nil {
+		return fmt.Errorf("failed to commit and push changes: %w", err)
+	}
+	
+	r.logger.Info("Successfully cleaned up GitOps packages", "intent", networkIntent.Name, "path", packagePath)
+	return nil
+}
+
+// cleanupGeneratedResources removes generated Kubernetes resources for the NetworkIntent
+func (r *NetworkIntentReconciler) cleanupGeneratedResources(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) error {
+	// List all resources with the NetworkIntent label
+	labelSelector := fmt.Sprintf("nephoran.io/network-intent=%s", networkIntent.Name)
+	
+	// Remove ConfigMaps
+	if err := r.cleanupResourcesByLabel(ctx, &corev1.ConfigMapList{}, labelSelector, networkIntent.Namespace); err != nil {
+		return fmt.Errorf("failed to cleanup ConfigMaps: %w", err)
+	}
+	
+	// Remove Secrets
+	if err := r.cleanupResourcesByLabel(ctx, &corev1.SecretList{}, labelSelector, networkIntent.Namespace); err != nil {
+		return fmt.Errorf("failed to cleanup Secrets: %w", err)
+	}
+	
+	// Remove Services
+	if err := r.cleanupResourcesByLabel(ctx, &corev1.ServiceList{}, labelSelector, networkIntent.Namespace); err != nil {
+		return fmt.Errorf("failed to cleanup Services: %w", err)
+	}
+	
+	r.logger.Info("Successfully cleaned up generated resources", "intent", networkIntent.Name)
+	return nil
+}
+
+// cleanupResourcesByLabel removes resources of a specific type that match the label selector
+func (r *NetworkIntentReconciler) cleanupResourcesByLabel(ctx context.Context, list client.ObjectList, labelSelector, namespace string) error {
+	opts := []client.ListOption{
+		client.InNamespace(namespace),
+		client.MatchingLabels(parseLabels(labelSelector)),
+	}
+	
+	if err := r.List(ctx, list, opts...); err != nil {
+		return fmt.Errorf("failed to list resources: %w", err)
+	}
+	
+	// Extract items using reflection
+	items := reflect.ValueOf(list).Elem().FieldByName("Items")
+	if !items.IsValid() {
+		return fmt.Errorf("unable to extract items from list")
+	}
+	
+	for i := 0; i < items.Len(); i++ {
+		item := items.Index(i).Addr().Interface().(client.Object)
+		if err := r.Delete(ctx, item); err != nil && !apierrors.IsNotFound(err) {
+			r.logger.Error("Failed to delete resource", "error", err, "resource", item.GetName())
+			// Continue with other resources instead of failing completely
+		} else {
+			r.logger.Info("Deleted resource", "type", reflect.TypeOf(item), "name", item.GetName())
+		}
+	}
+	
+	return nil
+}
+
+// Helper function to check if error is a not found error
+func isNotFoundError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "not found")
+}
+
+// Helper function to parse label selector string
+func parseLabels(labelSelector string) map[string]string {
+	labels := make(map[string]string)
+	if labelSelector == "" {
+		return labels
+	}
+	
+	pairs := strings.Split(labelSelector, ",")
+	for _, pair := range pairs {
+		kv := strings.SplitN(pair, "=", 2)
+		if len(kv) == 2 {
+			labels[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
+		}
+	}
+	return labels
 }
 
 // Finalizer helper functions
