@@ -24,7 +24,7 @@ env:
   GO_VERSION_FILE: "go.mod"
   REGISTRY_BASE: ghcr.io/${{ github.repository_owner }}
   PLATFORMS: linux/amd64,linux/arm64
-  GOLANGCI_LINT_VERSION: "1.62.0"  # Updated to support Go 1.24+
+  GOLANGCI_LINT_VERSION: "1.64.3"  # Updated to support Go 1.24+
   GOVULNCHECK_VERSION: "1.1.4"
   # Cache optimization settings
   GOPROXY: "https://proxy.golang.org,direct"
@@ -184,7 +184,7 @@ jobs:
       - name: Run golangci-lint with comprehensive checks
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.62.0
+          version: v${{ env.GOLANGCI_LINT_VERSION }}
           args: --timeout=10m --out-format=json:golangci-lint.json,colored-line-number
           skip-cache: false
 
