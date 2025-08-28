@@ -2,13 +2,19 @@ package o2
 
 import (
 	"context"
+	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/common"
+	o2models "github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
+	securityconfig "github.com/thc1006/nephoran-intent-operator/pkg/security"
 )
 
 // ===== HTTP STATUS CONSTANTS =====
@@ -27,6 +33,13 @@ const (
 	StatusServiceUnavailable = 503
 )
 
+// Content type constants
+const (
+	ContentTypeProblemJSON = "application/problem+json"
+	ContentTypeJSON        = "application/json"
+	ContentTypeXML         = "application/xml"
+)
+
 // ===== MISSING INTERFACE DEFINITIONS =====
 
 // ResourceManager provides resource management capabilities for O-RAN O2 IMS
@@ -37,6 +50,10 @@ type ResourceManager interface {
 	ScaleResource(ctx context.Context, resourceID string, req *ScaleResourceRequest) error
 	TerminateResource(ctx context.Context, resourceID string) error
 	MigrateResource(ctx context.Context, resourceID string, req *MigrateResourceRequest) error
+
+	// Backup and restore operations
+	BackupResource(ctx context.Context, resourceID string, req *BackupResourceRequest) (*BackupInfo, error)
+	RestoreResource(ctx context.Context, resourceID string, backupID string) error
 
 	// Resource discovery and inventory
 	DiscoverResources(ctx context.Context, providerID string) ([]*models.Resource, error)
@@ -177,6 +194,26 @@ type ContainerRegistryManager interface {
 	GetRegistryMetrics(ctx context.Context, registryName string) (map[string]interface{}, error)
 }
 
+// InfrastructureInventoryManager provides infrastructure inventory management capabilities  
+type InfrastructureInventoryManager interface {
+	// Inventory operations
+	GetInventory(ctx context.Context) (*InfrastructureAsset, error)
+	UpdateInventory(ctx context.Context, asset *InfrastructureAsset) error
+	SynchronizeInventory(ctx context.Context) error
+	
+	// Asset discovery
+	DiscoverAssets(ctx context.Context) ([]*InfrastructureAsset, error)
+	RefreshAsset(ctx context.Context, assetID string) (*InfrastructureAsset, error)
+	
+	// Asset lifecycle
+	RegisterAsset(ctx context.Context, asset *InfrastructureAsset) error
+	UnregisterAsset(ctx context.Context, assetID string) error
+	
+	// Asset queries
+	ListAssets(ctx context.Context, filters map[string]interface{}) ([]*InfrastructureAsset, error)
+	GetAsset(ctx context.Context, assetID string) (*InfrastructureAsset, error)
+}
+
 // InfrastructureHealthChecker provides infrastructure health checking capabilities
 type InfrastructureHealthChecker interface {
 	// Health checking
@@ -227,36 +264,7 @@ type O2IMSStorage interface {
 	GetStorageMetrics(ctx context.Context) (map[string]interface{}, error)
 }
 
-// O2IMSService provides the main service interface for O2 IMS operations with cloud provider support
-type O2IMSService interface {
-	// Core IMS operations
-	GetResourceAlarms(ctx context.Context, resourceID string, filter *AlarmFilter) ([]*models.Alarm, error)
-	GetResourceMetrics(ctx context.Context, resourceID string, filter *MetricsFilter) (map[string]interface{}, error)
-	GetResourceStatus(ctx context.Context, resourceID string) (*models.ResourceStatus, error)
-	
-	// Cloud provider management
-	RegisterCloudProvider(ctx context.Context, provider *CloudProviderConfigO2) error
-	UnregisterCloudProvider(ctx context.Context, providerID string) error
-	GetCloudProviders(ctx context.Context) ([]*CloudProviderConfigO2, error)
-	GetCloudProvider(ctx context.Context, providerID string) (*CloudProviderConfigO2, error)
-	
-	// Resource pool management
-	CreateResourcePool(ctx context.Context, pool *models.ResourcePool) (*models.ResourcePool, error)
-	GetResourcePool(ctx context.Context, poolID string) (*models.ResourcePool, error)
-	ListResourcePools(ctx context.Context) ([]*models.ResourcePool, error)
-	UpdateResourcePool(ctx context.Context, pool *models.ResourcePool) (*models.ResourcePool, error)
-	DeleteResourcePool(ctx context.Context, poolID string) error
-	
-	// Subscription management
-	CreateSubscription(ctx context.Context, req *CreateSubscriptionRequest) (*models.Subscription, error)
-	GetSubscription(ctx context.Context, subscriptionID string) (*models.Subscription, error)
-	UpdateSubscription(ctx context.Context, subscriptionID string, req *UpdateSubscriptionRequest) (*models.Subscription, error)
-	DeleteSubscription(ctx context.Context, subscriptionID string) error
-	
-	// Service health
-	GetServiceHealth(ctx context.Context) (*models.HealthStatus, error)
-	GetServiceMetrics(ctx context.Context) (map[string]interface{}, error)
-}
+// Note: O2IMSService type definition moved to adaptor.go to avoid duplicates
 
 // ===== SUPPORTING TYPE DEFINITIONS =====
 
@@ -264,10 +272,13 @@ type O2IMSService interface {
 type O2IMSConfig struct {
 	ServiceName     string            `json:"serviceName"`
 	ServiceVersion  string            `json:"serviceVersion"`
+	Host            string            `json:"host"`
+	Port            int               `json:"port"`
 	ListenAddress   string            `json:"listenAddress"`
 	ListenPort      int               `json:"listenPort"`
 	MetricsPort     int               `json:"metricsPort"`
 	HealthPort      int               `json:"healthPort"`
+	TLSEnabled      bool              `json:"tlsEnabled"`
 	LogLevel        string            `json:"logLevel"`
 	DatabaseURL     string            `json:"databaseUrl"`
 	RedisURL        string            `json:"redisUrl"`
@@ -282,6 +293,265 @@ type O2IMSConfig struct {
 	Cache           map[string]string `json:"cache"`
 	Notifications   map[string]string `json:"notifications"`
 	CustomSettings  map[string]interface{} `json:"customSettings"`
+	
+	// Logger instance
+	Logger          *logging.StructuredLogger `json:"-"`
+	
+	// Security configuration
+	SecurityConfig  *SecurityConfig `json:"securityConfig"`
+	
+	// Health check configuration - using separate type to avoid conflicts
+	// The health checker will create its own default config
+	
+	// Server timeouts configuration
+	ReadTimeout    time.Duration `json:"readTimeout"`
+	WriteTimeout   time.Duration `json:"writeTimeout"`
+	IdleTimeout    time.Duration `json:"idleTimeout"`
+	MaxHeaderBytes int           `json:"maxHeaderBytes"`
+	
+	// Authentication configuration
+	AuthenticationConfig *AuthenticationConfig `json:"authenticationConfig"`
+	
+	// Metrics configuration
+	MetricsConfig *MetricsConfig `json:"metricsConfig"`
+	
+	// Certificate configuration for TLS
+	CertFile string `json:"certFile"`
+	KeyFile  string `json:"keyFile"`
+}
+
+// SecurityConfig defines security configuration for the O2 IMS service - use common config
+type SecurityConfig = securityconfig.CommonSecurityConfig
+
+// RateLimitConfig defines rate limiting configuration
+type RateLimitConfig struct {
+	Enabled        bool   `json:"enabled"`
+	RequestsPerMin int    `json:"requestsPerMin"`
+	BurstSize      int    `json:"burstSize"`
+	KeyFunc        string `json:"keyFunc"` // ip, user, token
+}
+
+// TLSSecurityConfig defines TLS security configuration
+type TLSSecurityConfig struct {
+	Enabled    bool   `json:"enabled"`
+	CertFile   string `json:"certFile"`
+	KeyFile    string `json:"keyFile"`
+	CACertFile string `json:"caCertFile"`
+}
+
+// AuthConfigSecurity defines authentication configuration for security
+type AuthConfigSecurity struct {
+	Enabled    bool     `json:"enabled"`
+	Providers  []string `json:"providers"`
+	JWTConfig  JWTConfig `json:"jwtConfig"`
+}
+
+// JWTConfig defines JWT authentication configuration
+type JWTConfig struct {
+	SecretKey      string `json:"secretKey"`
+	TokenDuration  string `json:"tokenDuration"`
+	RefreshEnabled bool   `json:"refreshEnabled"`
+}
+
+// AuthenticationConfig defines authentication configuration for the API
+type AuthenticationConfig struct {
+	Enabled         bool     `json:"enabled"`
+	JWTSecret       string   `json:"jwtSecret"`
+	TokenExpiry     string   `json:"tokenExpiry"`
+	AllowedIssuers  []string `json:"allowedIssuers"`
+	RequiredClaims  []string `json:"requiredClaims"`
+}
+
+// MetricsConfig defines metrics configuration
+type MetricsConfig struct {
+	Enabled            bool          `json:"enabled"`
+	Path               string        `json:"path"`
+	Port               int           `json:"port"`
+	CollectionInterval time.Duration `json:"collectionInterval"`
+}
+
+// InputValidationConfig defines input validation configuration
+type InputValidationConfig struct {
+	Enabled               bool `json:"enabled"`
+	MaxRequestSize        int  `json:"maxRequestSize"`
+	SanitizeHTML          bool `json:"sanitizeHTML"`
+	ValidateJSONSchema    bool `json:"validateJSONSchema"`
+	StrictValidation      bool `json:"strictValidation"`
+	EnableSchemaValidation bool `json:"enableSchemaValidation"`
+	SanitizeInput         bool `json:"sanitizeInput"`
+}
+
+// RequestContext is already defined in types.go, removing duplicate
+
+// HealthCheckConfigForAPI defines health check configuration for API server (different from infrastructure one)
+type HealthCheckConfigForAPI struct {
+	Enabled          bool          `json:"enabled"`
+	CheckInterval    time.Duration `json:"checkInterval"`
+	Timeout          time.Duration `json:"timeout"`
+	FailureThreshold int           `json:"failureThreshold"`
+	SuccessThreshold int           `json:"successThreshold"`
+	DeepHealthCheck  bool          `json:"deepHealthCheck"`
+}
+
+// DefaultO2IMSConfig returns the default O2 IMS configuration
+func DefaultO2IMSConfig() *O2IMSConfig {
+	return &O2IMSConfig{
+		ServiceName:    "nephoran-o2-ims",
+		ServiceVersion: "1.0.0",
+		Host:          "localhost",
+		Port:          8080,
+		ListenAddress: "0.0.0.0",
+		ListenPort:    8080,
+		MetricsPort:   8081,
+		HealthPort:    8082,
+		TLSEnabled:    false,
+		LogLevel:      "info",
+		DatabaseURL:   "postgres://localhost/o2ims",
+		RedisURL:      "redis://localhost:6379",
+		CloudProviders: []string{"kubernetes"},
+		Features: map[string]bool{
+			"monitoring": true,
+			"alerting":   true,
+			"metrics":    true,
+		},
+		Timeouts: map[string]string{
+			"request": "30s",
+			"shutdown": "30s",
+		},
+		Limits: map[string]int{
+			"max_connections": 1000,
+			"max_requests":    10000,
+		},
+		SecurityConfig: &SecurityConfig{
+			RateLimitConfig: &RateLimitConfig{
+				Enabled:        true,
+				RequestsPerMin: 1000,
+				BurstSize:      10,
+				KeyFunc:        "ip",
+			},
+			TLSConfig: TLSSecurityConfig{
+				Enabled: false,
+			},
+			AuthConfig: AuthConfigSecurity{
+				Enabled: false,
+			},
+			CORSEnabled:           true,
+			CORSAllowedOrigins:    []string{"*"},
+			CORSAllowedMethods:    []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			CORSAllowedHeaders:    []string{"Content-Type", "Authorization", "X-Request-ID"},
+			InputValidation: &InputValidationConfig{
+				Enabled:               true,
+				MaxRequestSize:        10 * 1024 * 1024, // 10MB
+				SanitizeHTML:          true,
+				ValidateJSONSchema:    true,
+				StrictValidation:      true,
+				EnableSchemaValidation: true,
+				SanitizeInput:         true,
+			},
+		},
+		// Server timeout defaults
+		ReadTimeout:    30 * time.Second,
+		WriteTimeout:   30 * time.Second,
+		IdleTimeout:    60 * time.Second,
+		MaxHeaderBytes: 1 << 20, // 1MB
+		
+		// Authentication config
+		AuthenticationConfig: &AuthenticationConfig{
+			Enabled:         false,
+			JWTSecret:       "default-secret",
+			TokenExpiry:     "24h",
+			AllowedIssuers:  []string{"nephoran-o2-ims"},
+			RequiredClaims:  []string{"iss", "aud", "exp"},
+		},
+		
+		// Metrics config
+		MetricsConfig: &MetricsConfig{
+			Enabled:            true,
+			Path:               "/metrics",
+			Port:               8081,
+			CollectionInterval: 30 * time.Second,
+		},
+		
+		// Certificate files
+		CertFile: "",
+		KeyFile:  "",
+	}
+}
+
+// NewO2IMSServiceImpl creates a new O2 IMS service implementation
+func NewO2IMSServiceImpl(config *O2IMSConfig, storage O2IMSStorage, providerRegistry *providers.ProviderRegistry, logger *logging.StructuredLogger) O2IMSService {
+	return &IMSService{
+		config:           config,
+		storage:          storage,
+		providerRegistry: providerRegistry,
+		logger:           logger,
+	}
+}
+
+// NewResourceManagerImpl creates a new resource manager implementation
+func NewResourceManagerImpl(config *O2IMSConfig, providerRegistry *providers.ProviderRegistry, logger *logging.StructuredLogger) ResourceManager {
+	return &ResourceManagerImpl{
+		config:           config,
+		providerRegistry: providerRegistry,
+		logger:           logger,
+	}
+}
+
+// NewInventoryServiceImpl creates a new inventory service implementation
+func NewInventoryServiceImpl(config *O2IMSConfig, providerRegistry *providers.ProviderRegistry, logger *logging.StructuredLogger) InventoryService {
+	return &InventoryServiceImpl{
+		config:           config,
+		providerRegistry: providerRegistry,
+		logger:           logger,
+	}
+}
+
+// NewMonitoringServiceImpl creates a new monitoring service implementation
+func NewMonitoringServiceImpl(config *O2IMSConfig, logger *logging.StructuredLogger) MonitoringService {
+	return &MonitoringServiceImpl{
+		config: config,
+		logger: logger,
+	}
+}
+
+// Stub implementation for ResourceManagerImpl
+type ResourceManagerImpl struct {
+	config           *O2IMSConfig
+	providerRegistry *providers.ProviderRegistry
+	logger           *logging.StructuredLogger
+}
+
+// Stub implementation for InventoryServiceImpl
+type InventoryServiceImpl struct {
+	config           *O2IMSConfig
+	providerRegistry *providers.ProviderRegistry
+	logger           *logging.StructuredLogger
+}
+
+// Stub implementation for MonitoringServiceImpl
+type MonitoringServiceImpl struct {
+	config *O2IMSConfig
+	logger *logging.StructuredLogger
+}
+
+// Component health check types are defined in health_checker.go
+
+// Health check wrapper functions to convert between common.ComponentCheck and local ComponentCheck
+
+// WrapCommonComponentCheck converts a function returning common.ComponentCheck to ComponentHealthCheck
+func WrapCommonComponentCheck(checkFunc func(ctx context.Context) common.ComponentCheck) ComponentHealthCheck {
+	return func(ctx context.Context) ComponentCheck {
+		commonCheck := checkFunc(ctx)
+		return ComponentCheck{
+			Name:      commonCheck.Name,
+			Status:    commonCheck.Status,
+			Message:   commonCheck.Message,
+			Timestamp: commonCheck.Timestamp,
+			Duration:  commonCheck.Duration,
+			Details:   commonCheck.Details,
+			CheckType: commonCheck.CheckType,
+		}
+	}
 }
 
 // Cloud provider configuration with O2 suffix to avoid conflicts
@@ -302,30 +572,7 @@ type CloudProviderConfigO2 struct {
 // Type alias for backward compatibility
 type CloudProviderConfig = CloudProviderConfigO2
 
-// Service implementations with stub methods - using interface{} for logger to avoid import issues
-type IMSService struct {
-	Config    *O2IMSConfig
-	Logger    interface{}  // Placeholder for logger
-	K8sClient client.Client
-	ClientSet *kubernetes.Clientset
-	IMSClient interface{}  // Placeholder for IMS client
-	mu        sync.RWMutex
-}
-
-type InventoryService struct {
-	Config *O2IMSConfig
-	Logger interface{}  // Placeholder for logger
-}
-
-type LifecycleService struct {
-	Config *O2IMSConfig
-	Logger interface{}  // Placeholder for logger
-}
-
-type SubscriptionService struct {
-	Config *O2IMSConfig
-	Logger interface{}  // Placeholder for logger
-}
+// Note: Service struct definitions moved to adaptor.go to avoid duplicates
 
 type LifecycleOperation struct {
 	ID            string                 `json:"id"`
@@ -661,95 +908,4 @@ type HealthTrendsO2 struct {
 	MTTR             time.Duration       `json:"mttr"` // Mean Time To Recovery
 }
 
-// ===== STUB IMPLEMENTATIONS =====
-
-// IMSService stub implementations for O2IMSService interface
-func (s *IMSService) GetResourceAlarms(ctx context.Context, resourceID string, filter *AlarmFilter) ([]*models.Alarm, error) {
-	// Stub implementation
-	return []*models.Alarm{}, nil
-}
-
-func (s *IMSService) GetResourceMetrics(ctx context.Context, resourceID string, filter *MetricsFilter) (map[string]interface{}, error) {
-	// Stub implementation
-	return map[string]interface{}{}, nil
-}
-
-func (s *IMSService) GetResourceStatus(ctx context.Context, resourceID string) (*models.ResourceStatus, error) {
-	// Stub implementation
-	return &models.ResourceStatus{}, nil
-}
-
-func (s *IMSService) RegisterCloudProvider(ctx context.Context, provider *CloudProviderConfigO2) error {
-	// Stub implementation
-	return nil
-}
-
-func (s *IMSService) UnregisterCloudProvider(ctx context.Context, providerID string) error {
-	// Stub implementation
-	return nil
-}
-
-func (s *IMSService) GetCloudProviders(ctx context.Context) ([]*CloudProviderConfigO2, error) {
-	// Stub implementation
-	return []*CloudProviderConfigO2{}, nil
-}
-
-func (s *IMSService) GetCloudProvider(ctx context.Context, providerID string) (*CloudProviderConfigO2, error) {
-	// Stub implementation
-	return &CloudProviderConfigO2{}, nil
-}
-
-func (s *IMSService) CreateResourcePool(ctx context.Context, pool *models.ResourcePool) (*models.ResourcePool, error) {
-	// Stub implementation
-	return pool, nil
-}
-
-func (s *IMSService) GetResourcePool(ctx context.Context, poolID string) (*models.ResourcePool, error) {
-	// Stub implementation
-	return &models.ResourcePool{}, nil
-}
-
-func (s *IMSService) ListResourcePools(ctx context.Context) ([]*models.ResourcePool, error) {
-	// Stub implementation
-	return []*models.ResourcePool{}, nil
-}
-
-func (s *IMSService) UpdateResourcePool(ctx context.Context, pool *models.ResourcePool) (*models.ResourcePool, error) {
-	// Stub implementation
-	return pool, nil
-}
-
-func (s *IMSService) DeleteResourcePool(ctx context.Context, poolID string) error {
-	// Stub implementation
-	return nil
-}
-
-func (s *IMSService) CreateSubscription(ctx context.Context, req *CreateSubscriptionRequest) (*models.Subscription, error) {
-	// Stub implementation
-	return &models.Subscription{}, nil
-}
-
-func (s *IMSService) GetSubscription(ctx context.Context, subscriptionID string) (*models.Subscription, error) {
-	// Stub implementation
-	return &models.Subscription{}, nil
-}
-
-func (s *IMSService) UpdateSubscription(ctx context.Context, subscriptionID string, req *UpdateSubscriptionRequest) (*models.Subscription, error) {
-	// Stub implementation
-	return &models.Subscription{}, nil
-}
-
-func (s *IMSService) DeleteSubscription(ctx context.Context, subscriptionID string) error {
-	// Stub implementation
-	return nil
-}
-
-func (s *IMSService) GetServiceHealth(ctx context.Context) (*models.HealthStatus, error) {
-	// Stub implementation
-	return &models.HealthStatus{}, nil
-}
-
-func (s *IMSService) GetServiceMetrics(ctx context.Context) (map[string]interface{}, error) {
-	// Stub implementation
-	return map[string]interface{}{}, nil
-}
+// Note: Stub implementations moved to adaptor.go to avoid duplicates

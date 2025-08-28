@@ -465,11 +465,11 @@ func (s *InMemoryStorage) GetSubscription(ctx context.Context, subscriptionID st
 }
 
 // ListSubscriptions lists subscriptions
-func (s *InMemoryStorage) ListSubscriptions(ctx context.Context, filter *SubscriptionFilter) ([]*Subscription, error) {
+func (s *InMemoryStorage) ListSubscriptions(ctx context.Context, filter *SubscriptionQueryFilter) ([]*models.Subscription, error) {
 	s.sMutex.RLock()
 	defer s.sMutex.RUnlock()
 
-	var subscriptions []*Subscription
+	var subscriptions []*models.Subscription
 	for _, subscription := range s.subscriptions {
 		subscriptions = append(subscriptions, subscription)
 	}

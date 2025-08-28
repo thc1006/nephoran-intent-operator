@@ -9,9 +9,6 @@ import (
 	"fmt"
 	"time"
 
-	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	cmmetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
-	certmanagerclientset "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned"
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

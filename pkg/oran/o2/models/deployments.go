@@ -1,4 +1,4 @@
-package models
+package o2models
 
 import (
 	"time"
@@ -778,7 +778,6 @@ const (
 	EndpointTypeUDP   = "UDP"
 	EndpointTypeGRPC  = "GRPC"
 )
-
 
 // Additional types that may be missing from other files
 

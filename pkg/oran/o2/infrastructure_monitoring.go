@@ -157,7 +157,7 @@ func NewInfrastructureMonitoringService(
 	}
 
 	if logger == nil {
-		logger = logging.NewStructuredLogger(
+		logger = logging.NewStructuredLoggerWithOptions(
 			logging.WithService("infrastructure-monitoring"),
 			logging.WithVersion("1.0.0"),
 		)

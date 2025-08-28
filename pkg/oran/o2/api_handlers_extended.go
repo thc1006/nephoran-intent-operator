@@ -9,6 +9,25 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// Supporting types for inventory operations - using existing types from other files
+type InfrastructureDiscovery struct {
+	ProviderID   string                 `json:"providerId"`
+	Provider     CloudProviderType      `json:"provider"`
+	Timestamp    string                 `json:"timestamp"`
+	Assets       []*Asset               `json:"assets"`
+	Summary      *DiscoverySummary      `json:"summary"`
+	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+}
+
+type DiscoverySummary struct {
+	TotalAssets      int `json:"totalAssets"`
+	ComputeResources int `json:"computeResources"`
+	StorageResources int `json:"storageResources"`
+	NetworkResources int `json:"networkResources"`
+	NewAssets        int `json:"newAssets"`
+	UpdatedAssets    int `json:"updatedAssets"`
+}
+
 // Resource Lifecycle Operation Handlers
 
 // handleProvisionResource provisions a resource
@@ -198,8 +217,8 @@ func (s *O2APIServer) handleDiscoverInfrastructure(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Convert providerID to CloudProvider type
-	var provider CloudProvider
+	// Convert providerID to CloudProviderType
+	var provider CloudProviderType
 	switch providerID {
 	case "kubernetes":
 		provider = CloudProviderKubernetes
@@ -348,7 +367,7 @@ func (s *O2APIServer) parseResourceFilter(r *http.Request) *models.ResourceFilte
 	}
 
 	if statuses := r.URL.Query().Get("statuses"); statuses != "" {
-		filter.Statuses = []string{statuses}
+		filter.LifecycleStates = []string{statuses}
 	}
 
 	return filter
@@ -379,8 +398,8 @@ func (s *O2APIServer) parseMetricsFilter(r *http.Request) *MetricsFilter {
 }
 
 // parseDeploymentTemplateFilter parses deployment template filter from query parameters
-func (s *O2APIServer) parseDeploymentTemplateFilter(r *http.Request) *DeploymentTemplateFilter {
-	return &DeploymentTemplateFilter{
+func (s *O2APIServer) parseDeploymentTemplateFilter(r *http.Request) *models.DeploymentTemplateFilter {
+	return &models.DeploymentTemplateFilter{
 		Names:      s.parseQueryParamArray(r, "names"),
 		Categories: s.parseQueryParamArray(r, "categories"),
 		Types:      s.parseQueryParamArray(r, "types"),
@@ -392,22 +411,20 @@ func (s *O2APIServer) parseDeploymentTemplateFilter(r *http.Request) *Deployment
 }
 
 // parseDeploymentFilter parses deployment filter from query parameters
-func (s *O2APIServer) parseDeploymentFilter(r *http.Request) *DeploymentFilter {
-	return &DeploymentFilter{
+func (s *O2APIServer) parseDeploymentFilter(r *http.Request) *models.DeploymentFilter {
+	return &models.DeploymentFilter{
 		Names:       s.parseQueryParamArray(r, "names"),
-		Statuses:    s.parseQueryParamArray(r, "statuses"),
+		States:      s.parseQueryParamArray(r, "states"),
 		TemplateIDs: s.parseQueryParamArray(r, "templateIds"),
-		Providers:   s.parseQueryParamArray(r, "providers"),
 		Limit:       s.getQueryParamInt(r, "limit", 100),
 		Offset:      s.getQueryParamInt(r, "offset", 0),
 	}
 }
 
 // parseSubscriptionFilter parses subscription filter from query parameters
-func (s *O2APIServer) parseSubscriptionFilter(r *http.Request) *SubscriptionFilter {
-	return &SubscriptionFilter{
+func (s *O2APIServer) parseSubscriptionFilter(r *http.Request) *models.SubscriptionQueryFilter {
+	return &models.SubscriptionQueryFilter{
 		EventTypes: s.parseQueryParamArray(r, "eventTypes"),
-		Status:     s.getQueryParam(r, "status"),
 		Limit:      s.getQueryParamInt(r, "limit", 100),
 		Offset:     s.getQueryParamInt(r, "offset", 0),
 	}

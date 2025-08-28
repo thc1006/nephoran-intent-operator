@@ -1,6 +1,6 @@
 // Package providers implements O-RAN O2 IMS (Infrastructure Management Services) providers
 // for managing cloud infrastructure resources following O-RAN O2 specifications.
-package providers
+package o2providers
 
 import (
 	"time"

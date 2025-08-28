@@ -5,6 +5,20 @@ import (
 	"time"
 )
 
+// CloudProvider constants for provider types
+const (
+	CloudProviderKubernetes = "kubernetes"
+	CloudProviderOpenStack = "openstack"
+	CloudProviderAWS        = "aws"
+	CloudProviderAzure      = "azure"
+	CloudProviderGCP        = "gcp"
+	CloudProviderVMware     = "vmware"
+	CloudProviderEdge       = "edge"
+)
+
+// CloudProviderType represents different cloud provider types as a string
+type CloudProviderType string
+
 // CloudProvider interface defines the contract for cloud infrastructure providers
 type CloudProvider interface {
 	// Provider metadata

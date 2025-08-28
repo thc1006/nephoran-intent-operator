@@ -1,4 +1,4 @@
-package models
+package o2models
 
 import (
 	"time"
@@ -364,3 +364,4 @@ const (
 	DaySaturday  = "SAT"
 	DaySunday    = "SUN"
 )
+

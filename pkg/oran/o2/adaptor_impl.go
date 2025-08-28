@@ -352,7 +352,7 @@ func (a *O2Adaptor) CreateSubscription(ctx context.Context, req *models.CreateSu
 	return subscription, nil
 }
 
-func (a *O2Adaptor) GetSubscriptions(ctx context.Context, filter *models.SubscriptionFilter) ([]*models.Subscription, error) {
+func (a *O2Adaptor) GetSubscriptions(ctx context.Context, filter *models.SubscriptionQueryFilter) ([]*models.Subscription, error) {
 	a.mutex.RLock()
 	defer a.mutex.RUnlock()
 

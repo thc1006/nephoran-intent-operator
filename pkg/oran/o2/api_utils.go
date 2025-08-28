@@ -128,15 +128,31 @@ func (s *O2APIServer) extractRequestContext(r *http.Request) *RequestContext {
 		requestID = id.(string)
 	}
 
+	userID := ""
+	if uid := r.Context().Value("user_id"); uid != nil {
+		userID = uid.(string)
+	}
+
+	tenantID := ""
+	if tid := r.Context().Value("tenant_id"); tid != nil {
+		tenantID = tid.(string)
+	}
+
+	traceID := ""
+	if trace := r.Context().Value("trace_id"); trace != nil {
+		traceID = trace.(string)
+	}
+
 	return &RequestContext{
+		UserID:      userID,
+		TenantID:    tenantID,
+		TraceID:     traceID,
 		RequestID:   requestID,
-		Method:      r.Method,
-		Path:        r.URL.Path,
-		RemoteAddr:  r.RemoteAddr,
+		Metadata:    make(map[string]string),
+		Timestamp:   time.Now(),
+		IPAddress:   r.RemoteAddr,
 		UserAgent:   r.Header.Get("User-Agent"),
-		Headers:     r.Header,
-		QueryParams: r.URL.Query(),
-		StartTime:   r.Context().Value("start_time").(time.Time),
+		Permissions: []string{}, // Will be populated by auth middleware
 	}
 }
 

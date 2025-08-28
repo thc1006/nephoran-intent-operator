@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
+	models "github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
 // HTTP Error Response following RFC 7807 Problem Details for HTTP APIs

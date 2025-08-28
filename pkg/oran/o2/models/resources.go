@@ -1,9 +1,7 @@
-package models
+package o2models
 
 import (
 	"time"
-
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // Core O2 IMS Data Models following O-RAN.WG6.O2ims-Interface-v01.01 specification
@@ -52,121 +50,230 @@ type Node struct {
 	StorageDevices    []*StorageDevice       `json:"storageDevices,omitempty"`
 	Accelerators      []*AcceleratorDevice   `json:"accelerators,omitempty"`
 	Location          *NodeLocation          `json:"location,omitempty"`
-	Extensions        map[string]interface{} `json:"extensions,omitempty"`
+	Labels            map[string]string      `json:"labels,omitempty"`
+	Annotations       map[string]string      `json:"annotations,omitempty"`
 	CreatedAt         time.Time              `json:"createdAt"`
 	UpdatedAt         time.Time              `json:"updatedAt"`
 }
 
-// NodeStatus represents the current status of a node
+// NodeStatus represents the current status of a compute node
 type NodeStatus struct {
-	State         string                 `json:"state"`  // READY, NOT_READY, UNKNOWN
-	Phase         string                 `json:"phase"`  // ACTIVE, INACTIVE, MAINTENANCE
-	Health        string                 `json:"health"` // HEALTHY, DEGRADED, UNHEALTHY
-	LastHeartbeat time.Time              `json:"lastHeartbeat"`
-	Conditions    []NodeCondition        `json:"conditions,omitempty"`
-	Metrics       map[string]interface{} `json:"metrics,omitempty"`
-	Alarms        []string               `json:"alarms,omitempty"`
+	State           string               `json:"state"`  // READY, NOT_READY, UNKNOWN
+	Phase           string               `json:"phase"`  // ACTIVE, INACTIVE, MAINTENANCE, PROVISIONING
+	Health          string               `json:"health"` // HEALTHY, DEGRADED, UNHEALTHY
+	Conditions      []*NodeCondition     `json:"conditions,omitempty"`
+	Utilization     *ResourceUtilization `json:"utilization,omitempty"`
+	LastHeartbeat   time.Time            `json:"lastHeartbeat"`
+	LastHealthCheck time.Time            `json:"lastHealthCheck"`
+	ErrorMessage    string               `json:"errorMessage,omitempty"`
+	Events          []*NodeEvent         `json:"events,omitempty"`
 }
 
-// NodeCondition represents a condition of the node
+// NodeCondition represents a condition of a node
 type NodeCondition struct {
 	Type               string    `json:"type"`
 	Status             string    `json:"status"`
+	LastTransitionTime time.Time `json:"lastTransitionTime"`
+	LastHeartbeatTime  time.Time `json:"lastHeartbeatTime"`
 	Reason             string    `json:"reason,omitempty"`
 	Message            string    `json:"message,omitempty"`
-	LastTransitionTime time.Time `json:"lastTransitionTime"`
 }
 
-// OperatingSystemInfo represents operating system information
+// NodeEvent represents an event related to a node
+type NodeEvent struct {
+	ID             string                 `json:"id"`
+	Type           string                 `json:"type"` // NORMAL, WARNING, ERROR
+	Reason         string                 `json:"reason"`
+	Message        string                 `json:"message"`
+	Source         string                 `json:"source"`
+	FirstTimestamp time.Time              `json:"firstTimestamp"`
+	LastTimestamp  time.Time              `json:"lastTimestamp"`
+	Count          int32                  `json:"count"`
+	AdditionalData map[string]interface{} `json:"additionalData,omitempty"`
+}
+
+// ResourceUtilization represents the current utilization of resources
+type ResourceUtilization struct {
+	CPU              *ResourceMetric        `json:"cpu,omitempty"`
+	Memory           *ResourceMetric        `json:"memory,omitempty"`
+	Storage          *ResourceMetric        `json:"storage,omitempty"`
+	EphemeralStorage *ResourceMetric        `json:"ephemeralStorage,omitempty"`
+	Pods             *ResourceMetric        `json:"pods,omitempty"`
+	GPU              *ResourceMetric        `json:"gpu,omitempty"`
+	Network          *NetworkUtilization    `json:"network,omitempty"`
+	CustomResources  map[string]interface{} `json:"customResources,omitempty"`
+	Timestamp        time.Time              `json:"timestamp"`
+}
+
+// NetworkUtilization represents network utilization metrics
+type NetworkUtilization struct {
+	RxBytes   int64   `json:"rxBytes"`
+	TxBytes   int64   `json:"txBytes"`
+	RxPackets int64   `json:"rxPackets"`
+	TxPackets int64   `json:"txPackets"`
+	RxErrors  int64   `json:"rxErrors,omitempty"`
+	TxErrors  int64   `json:"txErrors,omitempty"`
+	Bandwidth string  `json:"bandwidth,omitempty"`
+	Latency   float64 `json:"latency,omitempty"`
+}
+
+// OperatingSystemInfo represents information about the operating system
 type OperatingSystemInfo struct {
-	Name              string `json:"name"`
-	Version           string `json:"version"`
-	KernelVersion     string `json:"kernelVersion,omitempty"`
-	Architecture      string `json:"architecture,omitempty"`
-	ContainerRuntime  string `json:"containerRuntime,omitempty"`
-	KubernetesVersion string `json:"kubernetesVersion,omitempty"`
+	Name         string `json:"name"`
+	Version      string `json:"version"`
+	Distribution string `json:"distribution,omitempty"`
+	Kernel       string `json:"kernel,omitempty"`
+	Architecture string `json:"architecture,omitempty"`
 }
 
-// NetworkInterface represents a network interface on a node
+// NetworkInterface represents a network interface
 type NetworkInterface struct {
 	Name        string   `json:"name"`
-	Type        string   `json:"type"` // ETHERNET, WIRELESS, LOOPBACK
-	MACAddress  string   `json:"macAddress,omitempty"`
+	Type        string   `json:"type"` // ETHERNET, WIFI, LOOPBACK
+	MacAddress  string   `json:"macAddress,omitempty"`
 	IPAddresses []string `json:"ipAddresses,omitempty"`
-	Speed       string   `json:"speed,omitempty"`
 	MTU         int      `json:"mtu,omitempty"`
-	State       string   `json:"state"` // UP, DOWN, UNKNOWN
+	Speed       string   `json:"speed,omitempty"`
+	State       string   `json:"state"` // UP, DOWN
 }
 
-// StorageDevice represents a storage device on a node
+// StorageDevice represents a storage device
 type StorageDevice struct {
-	Name        string  `json:"name"`
-	Type        string  `json:"type"` // HDD, SSD, NVME
-	Size        string  `json:"size"`
-	MountPoint  string  `json:"mountPoint,omitempty"`
-	FileSystem  string  `json:"fileSystem,omitempty"`
-	Available   string  `json:"available,omitempty"`
-	Used        string  `json:"used,omitempty"`
-	Utilization float64 `json:"utilization,omitempty"`
+	Name       string `json:"name"`
+	Type       string `json:"type"` // SSD, HDD, NVME
+	Size       string `json:"size"`
+	Model      string `json:"model,omitempty"`
+	Vendor     string `json:"vendor,omitempty"`
+	SerialNo   string `json:"serialNo,omitempty"`
+	MountPoint string `json:"mountPoint,omitempty"`
+	FileSystem string `json:"fileSystem,omitempty"`
+	Health     string `json:"health,omitempty"`
 }
 
-// AcceleratorDevice represents an accelerator device on a node
+// AcceleratorDevice represents an accelerator device (GPU, FPGA, etc.)
 type AcceleratorDevice struct {
-	Name        string  `json:"name"`
-	Type        string  `json:"type"` // GPU, FPGA, TPU, SR-IOV
-	Model       string  `json:"model,omitempty"`
-	Vendor      string  `json:"vendor,omitempty"`
-	Memory      string  `json:"memory,omitempty"`
-	Count       int     `json:"count"`
-	Available   int     `json:"available"`
-	Used        int     `json:"used"`
-	Utilization float64 `json:"utilization,omitempty"`
+	Name     string                 `json:"name"`
+	Type     string                 `json:"type"` // GPU, FPGA, TPU
+	Model    string                 `json:"model"`
+	Vendor   string                 `json:"vendor,omitempty"`
+	Memory   string                 `json:"memory,omitempty"`
+	PCIAddr  string                 `json:"pciAddr,omitempty"`
+	Driver   string                 `json:"driver,omitempty"`
+	Status   string                 `json:"status"` // ACTIVE, INACTIVE, ERROR
+	Features map[string]interface{} `json:"features,omitempty"`
 }
 
 // NodeLocation represents the physical location of a node
 type NodeLocation struct {
-	Datacenter string  `json:"datacenter,omitempty"`
-	Rack       string  `json:"rack,omitempty"`
-	Chassis    string  `json:"chassis,omitempty"`
-	Slot       string  `json:"slot,omitempty"`
-	Latitude   float64 `json:"latitude,omitempty"`
-	Longitude  float64 `json:"longitude,omitempty"`
-	Altitude   float64 `json:"altitude,omitempty"`
+	Region         string  `json:"region"`
+	AvailableZone  string  `json:"availabilityZone,omitempty"`
+	DataCenter     string  `json:"dataCenter,omitempty"`
+	Rack           string  `json:"rack,omitempty"`
+	Row            string  `json:"row,omitempty"`
+	Latitude       float64 `json:"latitude,omitempty"`
+	Longitude      float64 `json:"longitude,omitempty"`
+	Address        string  `json:"address,omitempty"`
+	Building       string  `json:"building,omitempty"`
+	Floor          string  `json:"floor,omitempty"`
+	Room           string  `json:"room,omitempty"`
+	Position       string  `json:"position,omitempty"`
+	AdministrativeRegion string `json:"administrativeRegion,omitempty"`
+}
+
+// ResourceElement represents an element within a resource
+type ResourceElement struct {
+	ElementID   string                 `json:"elementId"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description,omitempty"`
+	Type        string                 `json:"type"`
+	Properties  map[string]interface{} `json:"properties,omitempty"`
+	Status      *ResourceStatus        `json:"status,omitempty"`
+}
+
+// OCloud represents an O-Cloud infrastructure domain
+type OCloud struct {
+	OCloudID         string                 `json:"oCloudId"`
+	Name             string                 `json:"name"`
+	Description      string                 `json:"description,omitempty"`
+	ServiceURI       string                 `json:"serviceUri"`
+	SupportedFeatures []string               `json:"supportedFeatures,omitempty"`
+	Extensions       map[string]interface{} `json:"extensions,omitempty"`
+
+	// Nephoran-specific extensions
+	Region       string            `json:"region,omitempty"`
+	Provider     string            `json:"provider,omitempty"`
+	Version      string            `json:"version,omitempty"`
+	Capabilities []string          `json:"capabilities,omitempty"`
+	Status       *OCloudStatus     `json:"status,omitempty"`
+	ResourcePools []*ResourcePool   `json:"resourcePools,omitempty"`
+	DeploymentManagers []*DeploymentManager `json:"deploymentManagers,omitempty"`
+	CreatedAt    time.Time         `json:"createdAt"`
+	UpdatedAt    time.Time         `json:"updatedAt"`
+}
+
+// OCloudStatus represents the status of an O-Cloud
+type OCloudStatus struct {
+	State           string    `json:"state"`  // AVAILABLE, UNAVAILABLE, MAINTENANCE
+	Health          string    `json:"health"` // HEALTHY, DEGRADED, UNHEALTHY
+	Connectivity    string    `json:"connectivity"` // CONNECTED, DISCONNECTED, INTERMITTENT
+	LastHealthCheck time.Time `json:"lastHealthCheck"`
+	ErrorMessage    string    `json:"errorMessage,omitempty"`
+}
+
+// Filter types for querying resources
+
+// ResourcePoolFilter defines filters for querying resource pools
+type ResourcePoolFilter struct {
+	Names        []string          `json:"names,omitempty"`
+	OCloudIDs    []string          `json:"oCloudIds,omitempty"`
+	Providers    []string          `json:"providers,omitempty"`
+	Regions      []string          `json:"regions,omitempty"`
+	Zones        []string          `json:"zones,omitempty"`
+	States       []string          `json:"states,omitempty"`
+	HealthStates []string          `json:"healthStates,omitempty"`
+	Labels       map[string]string `json:"labels,omitempty"`
+	Limit        int               `json:"limit,omitempty"`
+	Offset       int               `json:"offset,omitempty"`
+	SortBy       string            `json:"sortBy,omitempty"`
+	SortOrder    string            `json:"sortOrder,omitempty"`
 }
 
 // NodeFilter defines filters for querying nodes
 type NodeFilter struct {
-	Names           []string          `json:"names,omitempty"`
-	NodeTypes       []string          `json:"nodeTypes,omitempty"`
-	ResourcePoolIDs []string          `json:"resourcePoolIds,omitempty"`
-	States          []string          `json:"states,omitempty"`
-	HealthStates    []string          `json:"healthStates,omitempty"`
-	Architectures   []string          `json:"architectures,omitempty"`
-	Labels          map[string]string `json:"labels,omitempty"`
-	MinCPU          string            `json:"minCpu,omitempty"`
-	MinMemory       string            `json:"minMemory,omitempty"`
-	HasAccelerators *bool             `json:"hasAccelerators,omitempty"`
-	Limit           int               `json:"limit,omitempty"`
-	Offset          int               `json:"offset,omitempty"`
-	SortBy          string            `json:"sortBy,omitempty"`
-	SortOrder       string            `json:"sortOrder,omitempty"`
+	Names            []string          `json:"names,omitempty"`
+	ResourcePoolIDs  []string          `json:"resourcePoolIds,omitempty"`
+	NodeTypes        []string          `json:"nodeTypes,omitempty"`
+	States           []string          `json:"states,omitempty"`
+	Phases           []string          `json:"phases,omitempty"`
+	HealthStates     []string          `json:"healthStates,omitempty"`
+	Architectures    []string          `json:"architectures,omitempty"`
+	Regions          []string          `json:"regions,omitempty"`
+	AvailabilityZones []string          `json:"availabilityZones,omitempty"`
+	Labels           map[string]string `json:"labels,omitempty"`
+	MinCPU           string            `json:"minCpu,omitempty"`
+	MinMemory        string            `json:"minMemory,omitempty"`
+	MinStorage       string            `json:"minStorage,omitempty"`
+	HasGPU           *bool             `json:"hasGpu,omitempty"`
+	Limit            int               `json:"limit,omitempty"`
+	Offset           int               `json:"offset,omitempty"`
+	SortBy           string            `json:"sortBy,omitempty"`
+	SortOrder        string            `json:"sortOrder,omitempty"`
 }
 
-// ResourcePoolFilter defines filters for querying resource pools
-type ResourcePoolFilter struct {
-	Names         []string          `json:"names,omitempty"`
-	OCloudIDs     []string          `json:"oCloudIds,omitempty"`
-	Providers     []string          `json:"providers,omitempty"`
-	Regions       []string          `json:"regions,omitempty"`
-	States        []string          `json:"states,omitempty"`
-	HealthStates  []string          `json:"healthStates,omitempty"`
-	Labels        map[string]string `json:"labels,omitempty"`
-	CreatedAfter  *time.Time        `json:"createdAfter,omitempty"`
-	CreatedBefore *time.Time        `json:"createdBefore,omitempty"`
-	Limit         int               `json:"limit,omitempty"`
-	Offset        int               `json:"offset,omitempty"`
-	SortBy        string            `json:"sortBy,omitempty"`
-	SortOrder     string            `json:"sortOrder,omitempty"` // ASC, DESC
+// OCloudFilter defines filters for querying O-Clouds
+type OCloudFilter struct {
+	Names        []string          `json:"names,omitempty"`
+	Providers    []string          `json:"providers,omitempty"`
+	Regions      []string          `json:"regions,omitempty"`
+	Versions     []string          `json:"versions,omitempty"`
+	States       []string          `json:"states,omitempty"`
+	HealthStates []string          `json:"healthStates,omitempty"`
+	Capabilities []string          `json:"capabilities,omitempty"`
+	Labels       map[string]string `json:"labels,omitempty"`
+	Limit        int               `json:"limit,omitempty"`
+	Offset       int               `json:"offset,omitempty"`
+	SortBy       string            `json:"sortBy,omitempty"`
+	SortOrder    string            `json:"sortOrder,omitempty"`
 }
 
 // Request types for resource management operations
@@ -181,9 +288,7 @@ type CreateResourcePoolRequest struct {
 	Provider         string                 `json:"provider"`
 	Region           string                 `json:"region,omitempty"`
 	Zone             string                 `json:"zone,omitempty"`
-	Configuration    *runtime.RawExtension  `json:"configuration,omitempty"`
 	Extensions       map[string]interface{} `json:"extensions,omitempty"`
-	Metadata         map[string]string      `json:"metadata,omitempty"`
 }
 
 // UpdateResourcePoolRequest represents a request to update a resource pool
@@ -192,12 +297,61 @@ type UpdateResourcePoolRequest struct {
 	Description      *string                `json:"description,omitempty"`
 	Location         *string                `json:"location,omitempty"`
 	GlobalLocationID *string                `json:"globalLocationId,omitempty"`
-	Configuration    *runtime.RawExtension  `json:"configuration,omitempty"`
 	Extensions       map[string]interface{} `json:"extensions,omitempty"`
-	Metadata         map[string]string      `json:"metadata,omitempty"`
 }
 
-// Common constants for resource management
+// CreateNodeRequest represents a request to create a node
+type CreateNodeRequest struct {
+	Name              string                 `json:"name"`
+	Description       string                 `json:"description,omitempty"`
+	ResourcePoolID    string                 `json:"resourcePoolId"`
+	NodeType          string                 `json:"nodeType"`
+	Architecture      string                 `json:"architecture,omitempty"`
+	OperatingSystem   *OperatingSystemInfo   `json:"operatingSystem,omitempty"`
+	Capacity          *ResourceCapacity      `json:"capacity"`
+	NetworkInterfaces []*NetworkInterface    `json:"networkInterfaces,omitempty"`
+	StorageDevices    []*StorageDevice       `json:"storageDevices,omitempty"`
+	Accelerators      []*AcceleratorDevice   `json:"accelerators,omitempty"`
+	Location          *NodeLocation          `json:"location,omitempty"`
+	Labels            map[string]string      `json:"labels,omitempty"`
+	Annotations       map[string]string      `json:"annotations,omitempty"`
+}
+
+// UpdateNodeRequest represents a request to update a node
+type UpdateNodeRequest struct {
+	Name            *string               `json:"name,omitempty"`
+	Description     *string               `json:"description,omitempty"`
+	OperatingSystem *OperatingSystemInfo  `json:"operatingSystem,omitempty"`
+	Location        *NodeLocation         `json:"location,omitempty"`
+	Labels          map[string]string     `json:"labels,omitempty"`
+	Annotations     map[string]string     `json:"annotations,omitempty"`
+}
+
+// CreateOCloudRequest represents a request to create an O-Cloud
+type CreateOCloudRequest struct {
+	Name              string                 `json:"name"`
+	Description       string                 `json:"description,omitempty"`
+	ServiceURI        string                 `json:"serviceUri"`
+	SupportedFeatures []string               `json:"supportedFeatures,omitempty"`
+	Region            string                 `json:"region,omitempty"`
+	Provider          string                 `json:"provider,omitempty"`
+	Version           string                 `json:"version,omitempty"`
+	Capabilities      []string               `json:"capabilities,omitempty"`
+	Extensions        map[string]interface{} `json:"extensions,omitempty"`
+}
+
+// UpdateOCloudRequest represents a request to update an O-Cloud
+type UpdateOCloudRequest struct {
+	Name              *string                `json:"name,omitempty"`
+	Description       *string                `json:"description,omitempty"`
+	ServiceURI        *string                `json:"serviceUri,omitempty"`
+	SupportedFeatures []string               `json:"supportedFeatures,omitempty"`
+	Version           *string                `json:"version,omitempty"`
+	Capabilities      []string               `json:"capabilities,omitempty"`
+	Extensions        map[string]interface{} `json:"extensions,omitempty"`
+}
+
+// Constants for resource management
 
 const (
 	// Resource Pool States
@@ -205,31 +359,21 @@ const (
 	ResourcePoolStateUnavailable = "UNAVAILABLE"
 	ResourcePoolStateMaintenance = "MAINTENANCE"
 
-	// Resource Pool Health States
-	ResourcePoolHealthHealthy   = "HEALTHY"
-	ResourcePoolHealthDegraded  = "DEGRADED"
-	ResourcePoolHealthUnhealthy = "UNHEALTHY"
+	// Node Types
+	NodeTypePhysical  = "PHYSICAL"
+	NodeTypeVirtual   = "VIRTUAL"
+	NodeTypeContainer = "CONTAINER"
 
-	// Resource States
-	ResourceStatePending  = "PENDING"
-	ResourceStateActive   = "ACTIVE"
-	ResourceStateInactive = "INACTIVE"
-	ResourceStateFailed   = "FAILED"
-	ResourceStateDeleting = "DELETING"
+	// Node States
+	NodeStateReady     = "READY"
+	NodeStateNotReady  = "NOT_READY"
+	NodeStateUnknown   = "UNKNOWN"
 
-	// Administrative States
-	AdminStateUnlocked     = "UNLOCKED"
-	AdminStateLocked       = "LOCKED"
-	AdminStateShuttingdown = "SHUTTINGDOWN"
-
-	// Operational States
-	OpStateEnabled  = "ENABLED"
-	OpStateDisabled = "DISABLED"
-
-	// Usage States
-	UsageStateIdle   = "IDLE"
-	UsageStateActive = "ACTIVE"
-	UsageStateBusy   = "BUSY"
+	// Node Phases
+	NodePhaseActive       = "ACTIVE"
+	NodePhaseInactive     = "INACTIVE"
+	NodePhaseMaintenance  = "MAINTENANCE"
+	NodePhaseProvisioning = "PROVISIONING"
 
 	// Health States
 	HealthStateHealthy   = "HEALTHY"
@@ -237,13 +381,42 @@ const (
 	HealthStateUnhealthy = "UNHEALTHY"
 	HealthStateUnknown   = "UNKNOWN"
 
-	// Node States
-	NodeStateReady    = "READY"
-	NodeStateNotReady = "NOT_READY"
-	NodeStateUnknown  = "UNKNOWN"
+	// O-Cloud States
+	OCloudStateAvailable   = "AVAILABLE"
+	OCloudStateUnavailable = "UNAVAILABLE"
+	OCloudStateMaintenance = "MAINTENANCE"
 
-	// Node Types
-	NodeTypePhysical  = "PHYSICAL"
-	NodeTypeVirtual   = "VIRTUAL"
-	NodeTypeContainer = "CONTAINER"
+	// Connectivity States
+	ConnectivityStateConnected     = "CONNECTED"
+	ConnectivityStateDisconnected  = "DISCONNECTED"
+	ConnectivityStateIntermittent  = "INTERMITTENT"
+
+	// Network Interface States
+	NetworkInterfaceStateUp   = "UP"
+	NetworkInterfaceStateDown = "DOWN"
+
+	// Network Interface Types
+	NetworkInterfaceTypeEthernet = "ETHERNET"
+	NetworkInterfaceTypeWifi     = "WIFI"
+	NetworkInterfaceTypeLoopback = "LOOPBACK"
+
+	// Storage Device Types
+	StorageDeviceTypeSSD  = "SSD"
+	StorageDeviceTypeHDD  = "HDD"
+	StorageDeviceTypeNVME = "NVME"
+
+	// Accelerator Device Types
+	AcceleratorTypeGPU  = "GPU"
+	AcceleratorTypeFPGA = "FPGA"
+	AcceleratorTypeTPU  = "TPU"
+
+	// Accelerator Device Statuses
+	AcceleratorStatusActive   = "ACTIVE"
+	AcceleratorStatusInactive = "INACTIVE"
+	AcceleratorStatusError    = "ERROR"
+
+	// Event Types
+	NodeEventTypeNormal  = "NORMAL"
+	NodeEventTypeWarning = "WARNING"
+	NodeEventTypeError   = "ERROR"
 )

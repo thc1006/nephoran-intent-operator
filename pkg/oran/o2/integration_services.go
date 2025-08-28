@@ -154,7 +154,7 @@ func NewIntegratedO2IMS(
 	}
 
 	if logger == nil {
-		logger = logging.NewStructuredLogger(
+		logger = logging.NewStructuredLoggerWithOptions(
 			logging.WithService("integrated-o2-ims"),
 			logging.WithVersion("1.0.0"),
 		)

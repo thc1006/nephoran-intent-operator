@@ -30,10 +30,13 @@ func NewServerManager(config *O2IMSConfig) (*ServerManager, error) {
 
 	logger := config.Logger
 	if logger == nil {
-		logger = logging.NewStructuredLogger(
-			logging.WithService("o2-ims-server"),
-			logging.WithVersion("1.0.0"),
-		)
+		logger = logging.NewStructuredLogger(logging.Config{
+			ServiceName: "o2-ims-server",
+			Version:     "1.0.0",
+			Level:       logging.LevelInfo,
+			Format:      "json",
+			Component:   "server",
+		})
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

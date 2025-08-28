@@ -1,4 +1,4 @@
-package models
+package o2models
 
 import (
 	"time"
@@ -121,4 +121,27 @@ type UpdateResourceTypeRequest struct {
 	Tags          map[string]string      `json:"tags,omitempty"`
 }
 
-// These types are already defined in deployments.go, so we remove duplicates
+// MetricsFilter for filtering metrics queries
+type MetricsFilter struct {
+	ResourceID  string    `json:"resourceId,omitempty"`
+	MetricNames []string  `json:"metricNames,omitempty"`
+	StartTime   time.Time `json:"startTime,omitempty"`
+	EndTime     time.Time `json:"endTime,omitempty"`
+	Interval    string    `json:"interval,omitempty"`
+	Aggregation string    `json:"aggregation,omitempty"`
+}
+
+// CloudProvider represents a cloud provider configuration
+type CloudProvider struct {
+	ID             string                 `json:"id"`
+	Name           string                 `json:"name"`
+	Type           string                 `json:"type"` // AWS, Azure, GCP, OpenStack, VMware
+	Region         string                 `json:"region,omitempty"`
+	Endpoint       string                 `json:"endpoint,omitempty"`
+	Credentials    map[string]string      `json:"credentials"`
+	Configuration  map[string]interface{} `json:"configuration,omitempty"`
+	Capabilities   []string               `json:"capabilities"`
+	Status         string                 `json:"status"`
+	LastSync       time.Time              `json:"lastSync,omitempty"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+}

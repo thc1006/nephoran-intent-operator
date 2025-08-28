@@ -315,7 +315,8 @@ type Subscription struct {
 	RetryPolicy *RetryPolicy           `json:"retryPolicy,omitempty"`
 }
 
-type SubscriptionFilter struct {
+// SubscriptionQueryFilter is used for API query filtering, distinct from models.SubscriptionFilter
+type SubscriptionQueryFilter struct {
 	ConsumerIDs []string   `json:"consumerIds,omitempty"`
 	EventTypes  []string   `json:"eventTypes,omitempty"`
 	Status      []string   `json:"status,omitempty"`

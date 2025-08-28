@@ -357,7 +357,7 @@ func NewCNFManagementService(
 	}
 
 	if logger == nil {
-		logger = logging.NewStructuredLogger(
+		logger = logging.NewStructuredLoggerWithOptions(
 			logging.WithService("cnf-management"),
 			logging.WithVersion("1.0.0"),
 		)

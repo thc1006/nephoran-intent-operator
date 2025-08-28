@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-logr/logr"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -16,6 +17,16 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 )
+
+// Supporting types for inventory operations
+type InventoryUpdate struct {
+	AssetID     string                 `json:"assetId"`
+	UpdateType  string                 `json:"updateType"` // CREATE, UPDATE, DELETE
+	Asset       *Asset                 `json:"asset,omitempty"`
+	Changes     map[string]interface{} `json:"changes,omitempty"`
+	Timestamp   string                 `json:"timestamp"`
+	Source      string                 `json:"source,omitempty"`
+}
 
 // O2AdaptorInterface defines the complete O2 IMS interface following O-RAN.WG6.O2ims-Interface-v01.01
 type O2AdaptorInterface interface {
@@ -55,7 +66,7 @@ type O2AdaptorInterface interface {
 
 	// Subscription Management
 	CreateSubscription(ctx context.Context, req *models.CreateSubscriptionRequest) (*models.Subscription, error)
-	GetSubscriptions(ctx context.Context, filter *models.SubscriptionFilter) ([]*models.Subscription, error)
+	GetSubscriptions(ctx context.Context, filter *models.SubscriptionQueryFilter) ([]*models.Subscription, error)
 	GetSubscription(ctx context.Context, subscriptionID string) (*models.Subscription, error)
 	UpdateSubscription(ctx context.Context, subscriptionID string, req *models.UpdateSubscriptionRequest) error
 	DeleteSubscription(ctx context.Context, subscriptionID string) error
@@ -451,6 +462,332 @@ func (a *O2Adaptor) GetSystemInfo(ctx context.Context) (*models.SystemInfo, erro
 		Extensions:             a.getSystemExtensions(),
 		Timestamp:              time.Now(),
 	}, nil
+}
+
+// Service struct definitions
+
+// IMSService provides Infrastructure Management Service functionality
+type IMSService struct {
+	catalogService      *ims.CatalogService
+	inventoryService    *InventoryService
+	lifecycleService    *LifecycleService
+	subscriptionService *SubscriptionService
+	logger              logr.Logger
+}
+
+// O2IMSService is an alias for IMSService to match API server expectations
+type O2IMSService = IMSService
+
+// InventoryService manages resource inventory operations
+type InventoryService struct {
+	kubeClient client.Client
+	clientset  kubernetes.Interface
+	logger     logr.Logger
+}
+
+// LifecycleService manages resource lifecycle operations
+type LifecycleService struct {
+	logger logr.Logger
+}
+
+// SubscriptionService manages O2 subscriptions
+type SubscriptionService struct {
+	logger logr.Logger
+}
+
+// Constructor functions for services
+
+// NewInventoryService creates a new inventory service instance
+func NewInventoryService(kubeClient client.Client, clientset kubernetes.Interface) *InventoryService {
+	return &InventoryService{
+		kubeClient: kubeClient,
+		clientset:  clientset,
+		logger:     log.Log.WithName("o2-inventory"),
+	}
+}
+
+// DiscoverInfrastructure discovers infrastructure for a cloud provider
+func (s *InventoryService) DiscoverInfrastructure(ctx context.Context, provider CloudProviderType) (*InfrastructureDiscovery, error) {
+	s.logger.Info("Discovering infrastructure", "provider", provider)
+	
+	// Stub implementation - return empty discovery result
+	discovery := &InfrastructureDiscovery{
+		ProviderID: string(provider),
+		Provider:   provider,
+		Timestamp:  "2023-01-01T00:00:00Z",
+		Assets:     []*Asset{},
+		Summary: &DiscoverySummary{
+			TotalAssets:      0,
+			ComputeResources: 0,
+			StorageResources: 0,
+			NetworkResources: 0,
+			NewAssets:        0,
+			UpdatedAssets:    0,
+		},
+		Metadata: map[string]interface{}{
+			"discoveryMethod": "api",
+			"status":          "completed",
+		},
+	}
+	
+	return discovery, nil
+}
+
+// UpdateInventory updates inventory with the provided updates
+func (s *InventoryService) UpdateInventory(ctx context.Context, updates []*InventoryUpdate) error {
+	s.logger.Info("Updating inventory", "updateCount", len(updates))
+	
+	// Stub implementation - just log the updates
+	for _, update := range updates {
+		s.logger.Info("Processing inventory update", "assetId", update.AssetID, "updateType", update.UpdateType)
+	}
+	
+	return nil
+}
+
+// GetAsset retrieves an asset by ID
+func (s *InventoryService) GetAsset(ctx context.Context, assetID string) (*Asset, error) {
+	s.logger.Info("Getting asset", "assetId", assetID)
+	
+	// Stub implementation - return a mock asset
+	asset := &Asset{
+		AssetID:    assetID,
+		Type:       "compute",
+		Provider:   "kubernetes",
+		Status:     "active",
+		Properties: map[string]interface{}{
+			"cpu":    "2",
+			"memory": "4Gi",
+		},
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	
+	return asset, nil
+}
+
+// NewLifecycleService creates a new lifecycle service instance
+func NewLifecycleService() *LifecycleService {
+	return &LifecycleService{
+		logger: log.Log.WithName("o2-lifecycle"),
+	}
+}
+
+// NewSubscriptionService creates a new subscription service instance
+func NewSubscriptionService() *SubscriptionService {
+	return &SubscriptionService{
+		logger: log.Log.WithName("o2-subscription"),
+	}
+}
+
+// NewIMSService creates a new IMS service instance
+func NewIMSService(catalogService *ims.CatalogService, inventoryService *InventoryService, lifecycleService *LifecycleService, subscriptionService *SubscriptionService) *IMSService {
+	return &IMSService{
+		catalogService:      catalogService,
+		inventoryService:    inventoryService,
+		lifecycleService:    lifecycleService,
+		subscriptionService: subscriptionService,
+		logger:              log.Log.WithName("o2-ims"),
+	}
+}
+
+// IMSService method implementations
+
+// Resource Pool Management
+func (s *IMSService) GetResourcePools(ctx context.Context, filter *models.ResourcePoolFilter) ([]*models.ResourcePool, error) {
+	s.logger.Info("Getting resource pools")
+	return []*models.ResourcePool{}, nil // Stub implementation
+}
+
+func (s *IMSService) GetResourcePool(ctx context.Context, poolID string) (*models.ResourcePool, error) {
+	s.logger.Info("Getting resource pool", "poolID", poolID)
+	return &models.ResourcePool{}, nil // Stub implementation
+}
+
+func (s *IMSService) CreateResourcePool(ctx context.Context, req *models.CreateResourcePoolRequest) (*models.ResourcePool, error) {
+	s.logger.Info("Creating resource pool")
+	return &models.ResourcePool{}, nil // Stub implementation
+}
+
+func (s *IMSService) UpdateResourcePool(ctx context.Context, poolID string, req *models.UpdateResourcePoolRequest) error {
+	s.logger.Info("Updating resource pool", "poolID", poolID)
+	return nil // Stub implementation
+}
+
+func (s *IMSService) DeleteResourcePool(ctx context.Context, poolID string) error {
+	s.logger.Info("Deleting resource pool", "poolID", poolID)
+	return nil // Stub implementation
+}
+
+// Resource Type Management
+func (s *IMSService) GetResourceTypes(ctx context.Context, filter *models.ResourceTypeFilter) ([]*models.ResourceType, error) {
+	s.logger.Info("Getting resource types")
+	return []*models.ResourceType{}, nil // Stub implementation
+}
+
+func (s *IMSService) GetResourceType(ctx context.Context, typeID string) (*models.ResourceType, error) {
+	s.logger.Info("Getting resource type", "typeID", typeID)
+	return &models.ResourceType{}, nil // Stub implementation
+}
+
+func (s *IMSService) CreateResourceType(ctx context.Context, req *models.CreateResourceTypeRequest) (*models.ResourceType, error) {
+	s.logger.Info("Creating resource type")
+	return &models.ResourceType{}, nil // Stub implementation
+}
+
+func (s *IMSService) UpdateResourceType(ctx context.Context, typeID string, req *models.UpdateResourceTypeRequest) (*models.ResourceType, error) {
+	s.logger.Info("Updating resource type", "typeID", typeID)
+	return &models.ResourceType{}, nil // Stub implementation
+}
+
+func (s *IMSService) DeleteResourceType(ctx context.Context, typeID string) error {
+	s.logger.Info("Deleting resource type", "typeID", typeID)
+	return nil // Stub implementation
+}
+
+// Resource Management
+func (s *IMSService) GetResources(ctx context.Context, filter *models.ResourceFilter) ([]*models.Resource, error) {
+	s.logger.Info("Getting resources")
+	return []*models.Resource{}, nil // Stub implementation
+}
+
+func (s *IMSService) GetResource(ctx context.Context, resourceID string) (*models.Resource, error) {
+	s.logger.Info("Getting resource", "resourceID", resourceID)
+	return &models.Resource{}, nil // Stub implementation
+}
+
+func (s *IMSService) CreateResource(ctx context.Context, req *models.CreateResourceRequest) (*models.Resource, error) {
+	s.logger.Info("Creating resource")
+	return &models.Resource{}, nil // Stub implementation
+}
+
+func (s *IMSService) UpdateResource(ctx context.Context, resourceID string, req *models.UpdateResourceRequest) error {
+	s.logger.Info("Updating resource", "resourceID", resourceID)
+	return nil // Stub implementation
+}
+
+func (s *IMSService) DeleteResource(ctx context.Context, resourceID string) error {
+	s.logger.Info("Deleting resource", "resourceID", resourceID)
+	return nil // Stub implementation
+}
+
+func (s *IMSService) GetResourceHealth(ctx context.Context, resourceID string) (*models.HealthStatus, error) {
+	s.logger.Info("Getting resource health", "resourceID", resourceID)
+	return &models.HealthStatus{}, nil // Stub implementation
+}
+
+func (s *IMSService) GetResourceAlarms(ctx context.Context, resourceID string, filter *AlarmFilter) ([]*models.Alarm, error) {
+	s.logger.Info("Getting resource alarms", "resourceID", resourceID)
+	return []*models.Alarm{}, nil // Stub implementation
+}
+
+func (s *IMSService) GetResourceMetrics(ctx context.Context, resourceID string, filter *MetricsFilter) (map[string]interface{}, error) {
+	s.logger.Info("Getting resource metrics", "resourceID", resourceID)
+	return map[string]interface{}{}, nil // Stub implementation
+}
+
+// Deployment Template Management
+func (s *IMSService) GetDeploymentTemplates(ctx context.Context, filter *models.DeploymentTemplateFilter) ([]*models.DeploymentTemplate, error) {
+	s.logger.Info("Getting deployment templates")
+	return []*models.DeploymentTemplate{}, nil // Stub implementation
+}
+
+func (s *IMSService) GetDeploymentTemplate(ctx context.Context, templateID string) (*models.DeploymentTemplate, error) {
+	s.logger.Info("Getting deployment template", "templateID", templateID)
+	return &models.DeploymentTemplate{}, nil // Stub implementation
+}
+
+func (s *IMSService) CreateDeploymentTemplate(ctx context.Context, req *models.CreateDeploymentTemplateRequest) (*models.DeploymentTemplate, error) {
+	s.logger.Info("Creating deployment template")
+	return &models.DeploymentTemplate{}, nil // Stub implementation
+}
+
+func (s *IMSService) UpdateDeploymentTemplate(ctx context.Context, templateID string, req *models.UpdateDeploymentTemplateRequest) error {
+	s.logger.Info("Updating deployment template", "templateID", templateID)
+	return nil // Stub implementation
+}
+
+func (s *IMSService) DeleteDeploymentTemplate(ctx context.Context, templateID string) error {
+	s.logger.Info("Deleting deployment template", "templateID", templateID)
+	return nil // Stub implementation
+}
+
+// Deployment Manager Interface
+func (s *IMSService) CreateDeployment(ctx context.Context, req *models.CreateDeploymentRequest) (*models.Deployment, error) {
+	s.logger.Info("Creating deployment")
+	return &models.Deployment{}, nil // Stub implementation
+}
+
+func (s *IMSService) GetDeployments(ctx context.Context, filter *models.DeploymentFilter) ([]*models.Deployment, error) {
+	s.logger.Info("Getting deployments")
+	return []*models.Deployment{}, nil // Stub implementation
+}
+
+func (s *IMSService) GetDeployment(ctx context.Context, deploymentID string) (*models.Deployment, error) {
+	s.logger.Info("Getting deployment", "deploymentID", deploymentID)
+	return &models.Deployment{}, nil // Stub implementation
+}
+
+func (s *IMSService) UpdateDeployment(ctx context.Context, deploymentID string, req *models.UpdateDeploymentRequest) error {
+	s.logger.Info("Updating deployment", "deploymentID", deploymentID)
+	return nil // Stub implementation
+}
+
+func (s *IMSService) DeleteDeployment(ctx context.Context, deploymentID string) error {
+	s.logger.Info("Deleting deployment", "deploymentID", deploymentID)
+	return nil // Stub implementation
+}
+
+// Subscription Management
+func (s *IMSService) CreateSubscription(ctx context.Context, req *models.CreateSubscriptionRequest) (*models.Subscription, error) {
+	s.logger.Info("Creating subscription")
+	return &models.Subscription{}, nil // Stub implementation
+}
+
+func (s *IMSService) GetSubscriptions(ctx context.Context, filter *models.SubscriptionQueryFilter) ([]*models.Subscription, error) {
+	s.logger.Info("Getting subscriptions")
+	return []*models.Subscription{}, nil // Stub implementation
+}
+
+func (s *IMSService) GetSubscription(ctx context.Context, subscriptionID string) (*models.Subscription, error) {
+	s.logger.Info("Getting subscription", "subscriptionID", subscriptionID)
+	return &models.Subscription{}, nil // Stub implementation
+}
+
+func (s *IMSService) UpdateSubscription(ctx context.Context, subscriptionID string, req *models.UpdateSubscriptionRequest) error {
+	s.logger.Info("Updating subscription", "subscriptionID", subscriptionID)
+	return nil // Stub implementation
+}
+
+func (s *IMSService) DeleteSubscription(ctx context.Context, subscriptionID string) error {
+	s.logger.Info("Deleting subscription", "subscriptionID", subscriptionID)
+	return nil // Stub implementation
+}
+
+// Cloud Provider Management
+func (s *IMSService) RegisterCloudProvider(ctx context.Context, provider *CloudProviderConfig) error {
+	s.logger.Info("Registering cloud provider", "providerID", provider.ID)
+	return nil // Stub implementation
+}
+
+func (s *IMSService) GetCloudProviders(ctx context.Context) ([]*CloudProviderConfig, error) {
+	s.logger.Info("Getting cloud providers")
+	return []*CloudProviderConfig{}, nil // Stub implementation
+}
+
+func (s *IMSService) GetCloudProvider(ctx context.Context, providerID string) (*CloudProviderConfig, error) {
+	s.logger.Info("Getting cloud provider", "providerID", providerID)
+	return &CloudProviderConfig{}, nil // Stub implementation
+}
+
+func (s *IMSService) UpdateCloudProvider(ctx context.Context, providerID string, provider *CloudProviderConfig) error {
+	s.logger.Info("Updating cloud provider", "providerID", providerID)
+	return nil // Stub implementation
+}
+
+func (s *IMSService) RemoveCloudProvider(ctx context.Context, providerID string) error {
+	s.logger.Info("Removing cloud provider", "providerID", providerID)
+	return nil // Stub implementation
 }
 
 // Private helper methods

@@ -64,19 +64,18 @@ var (
 	)
 )
 
-// TLSConfig represents TLS configuration compliant with O-RAN security requirements
-type TLSConfig struct {
-	// Certificate paths
-	CertFile       string
-	KeyFile        string
-	CAFile         string
+// TLSConfigExtended extends the common TLSConfig with O-RAN specific fields
+type TLSConfigExtended struct {
+	*TLSConfig  // Embed the common TLS config
+	
+	// Additional O-RAN specific fields
 	ClientCertFile string
 	ClientKeyFile  string
-
-	// TLS settings
-	MinVersion     uint16
-	MaxVersion     uint16
-	CipherSuites   []uint16
+	
+	// TLS settings (converted from string to uint16)
+	MinVersionInt     uint16
+	MaxVersionInt     uint16
+	CipherSuitesInt   []uint16
 	MTLSEnabled    bool
 	ClientAuthType tls.ClientAuthType
 
@@ -95,7 +94,7 @@ type TLSConfig struct {
 
 // TLSManager manages TLS certificates and configurations
 type TLSManager struct {
-	config      *TLSConfig
+	config      *TLSConfigExtended
 	logger      *zap.Logger
 	tlsConfig   *tls.Config
 	clientCreds credentials.TransportCredentials
@@ -106,23 +105,66 @@ type TLSManager struct {
 	stopCh      chan struct{}
 }
 
-// NewTLSManager creates a new TLS manager with O-RAN compliant settings
+// NewTLSManager creates a new TLS manager from common TLS config
 func NewTLSManager(config *TLSConfig, logger *zap.Logger) (*TLSManager, error) {
+	if config == nil {
+		return nil, fmt.Errorf("TLS config cannot be nil")
+	}
+	
+	// Convert common TLS config to extended config
+	extended := &TLSConfigExtended{
+		TLSConfig: config,
+		MTLSEnabled: config.MutualTLS,
+		ServiceName: "nephoran",
+	}
+	
+	// Convert string versions to uint16
+	switch config.MinVersion {
+	case "1.0":
+		extended.MinVersionInt = tls.VersionTLS10
+	case "1.1": 
+		extended.MinVersionInt = tls.VersionTLS11
+	case "1.2":
+		extended.MinVersionInt = tls.VersionTLS12
+	case "1.3":
+		extended.MinVersionInt = tls.VersionTLS13
+	default:
+		extended.MinVersionInt = tls.VersionTLS12
+	}
+	
+	switch config.MaxVersion {
+	case "1.0":
+		extended.MaxVersionInt = tls.VersionTLS10
+	case "1.1": 
+		extended.MaxVersionInt = tls.VersionTLS11
+	case "1.2":
+		extended.MaxVersionInt = tls.VersionTLS12
+	case "1.3":
+		extended.MaxVersionInt = tls.VersionTLS13
+	default:
+		extended.MaxVersionInt = tls.VersionTLS13
+	}
+	
+	return NewTLSManagerExtended(extended, logger)
+}
+
+// NewTLSManagerExtended creates a new TLS manager with O-RAN compliant settings
+func NewTLSManagerExtended(config *TLSConfigExtended, logger *zap.Logger) (*TLSManager, error) {
 	if config == nil {
 		return nil, fmt.Errorf("TLS config cannot be nil")
 	}
 
 	// Set O-RAN compliant defaults
-	if config.MinVersion == 0 {
-		config.MinVersion = tls.VersionTLS13
+	if config.MinVersionInt == 0 {
+		config.MinVersionInt = tls.VersionTLS13
 	}
-	if config.MaxVersion == 0 {
-		config.MaxVersion = tls.VersionTLS13
+	if config.MaxVersionInt == 0 {
+		config.MaxVersionInt = tls.VersionTLS13
 	}
 
 	// O-RAN WG11 approved cipher suites for TLS 1.3
-	if len(config.CipherSuites) == 0 {
-		config.CipherSuites = []uint16{
+	if len(config.CipherSuitesInt) == 0 {
+		config.CipherSuitesInt = []uint16{
 			tls.TLS_AES_256_GCM_SHA384,
 			tls.TLS_CHACHA20_POLY1305_SHA256,
 		}
@@ -200,9 +242,9 @@ func (tm *TLSManager) loadCertificates() error {
 		Certificates:       []tls.Certificate{serverCert},
 		ClientCAs:          tm.certPool,
 		RootCAs:            tm.certPool,
-		MinVersion:         tm.config.MinVersion,
-		MaxVersion:         tm.config.MaxVersion,
-		CipherSuites:       tm.config.CipherSuites,
+		MinVersion:         tm.config.MinVersionInt,
+		MaxVersion:         tm.config.MaxVersionInt,
+		CipherSuites:       tm.config.CipherSuitesInt,
 		ClientAuth:         tm.config.ClientAuthType,
 		VerifyConnection:   tm.verifyConnection,
 		GetConfigForClient: tm.getConfigForClient,
@@ -253,7 +295,7 @@ func (tm *TLSManager) verifyConnection(cs tls.ConnectionState) error {
 	case tls.VersionTLS12:
 		tlsVersionConnections.WithLabelValues("1.2").Inc()
 		// Reject TLS 1.2 if minimum version is 1.3
-		if tm.config.MinVersion >= tls.VersionTLS13 {
+		if tm.config.MinVersionInt >= tls.VersionTLS13 {
 			tlsHandshakeErrors.WithLabelValues(tm.config.ServiceName, "tls_version_too_low").Inc()
 			return fmt.Errorf("TLS 1.2 connections not allowed, minimum TLS 1.3 required")
 		}
@@ -538,11 +580,17 @@ func (tm *TLSManager) Close() error {
 }
 
 // LoadTLSConfigFromEnv loads TLS configuration from environment variables
-func LoadTLSConfigFromEnv() *TLSConfig {
-	return &TLSConfig{
-		CertFile:       os.Getenv("TLS_CERT_FILE"),
-		KeyFile:        os.Getenv("TLS_KEY_FILE"),
-		CAFile:         os.Getenv("TLS_CA_FILE"),
+func LoadTLSConfigFromEnv() *TLSConfigExtended {
+	commonConfig := &TLSConfig{
+		CertFile:   os.Getenv("TLS_CERT_FILE"),
+		KeyFile:    os.Getenv("TLS_KEY_FILE"),
+		CAFile:     os.Getenv("TLS_CA_FILE"),
+		Enabled:    os.Getenv("TLS_ENABLED") != "false", // Default to enabled
+		MutualTLS:  os.Getenv("MTLS_ENABLED") == "true",
+	}
+	
+	return &TLSConfigExtended{
+		TLSConfig:      commonConfig,
 		ClientCertFile: os.Getenv("MTLS_CLIENT_CERT_FILE"),
 		ClientKeyFile:  os.Getenv("MTLS_CLIENT_KEY_FILE"),
 		MTLSEnabled:    os.Getenv("MTLS_ENABLED") == "true",
