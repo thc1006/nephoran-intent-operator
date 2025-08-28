@@ -6,8 +6,8 @@ import (
 )
 
 var (
-// GroupVersion 定義此 API 群組/版本
-GroupVersion = schema.GroupVersion{Group: "intent.nephoran.io", Version: "v1alpha1"}
+// GroupVersion defines the API group and version
+GroupVersion = schema.GroupVersion{Group: "intent.nephoran.com", Version: "v1alpha1"}
 
 // SchemeBuilder 用來把型別註冊到 Scheme
 SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}

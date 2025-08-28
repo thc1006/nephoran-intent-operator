@@ -17,7 +17,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
+	audittypes "github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
 )
 
 var (
@@ -163,16 +163,16 @@ func (sb *SplunkBackend) Initialize(config BackendConfig) error {
 	sb.logger.Info("Initializing Splunk backend")
 
 	// Test connectivity by sending a health check event
-	testEvent := &types.AuditEvent{
+	testEvent := &audittypes.AuditEvent{
 		ID:          "health-check",
 		Version:     "1.0",
 		Timestamp:   time.Now().UTC(),
-		EventType:   types.EventTypeHealthCheck,
-		Severity:    types.SeverityInfo,
+		EventType:   audittypes.EventTypeHealthCheck,
+		Severity:    audittypes.SeverityInfo,
 		Component:   "splunk-backend",
 		Action:      "health_check",
 		Description: "Splunk backend health check",
-		Result:      types.ResultSuccess,
+		Result:      audittypes.ResultSuccess,
 	}
 
 	if err := sb.WriteEvent(context.Background(), testEvent); err != nil {
@@ -189,12 +189,12 @@ func (sb *SplunkBackend) Type() string {
 }
 
 // WriteEvent writes a single audit event to Splunk
-func (sb *SplunkBackend) WriteEvent(ctx context.Context, event *types.AuditEvent) error {
-	return sb.WriteEvents(ctx, []*types.AuditEvent{event})
+func (sb *SplunkBackend) WriteEvent(ctx context.Context, event *audittypes.AuditEvent) error {
+	return sb.WriteEvents(ctx, []*audittypes.AuditEvent{event})
 }
 
 // WriteEvents writes multiple audit events to Splunk HEC
-func (sb *SplunkBackend) WriteEvents(ctx context.Context, events []*types.AuditEvent) error {
+func (sb *SplunkBackend) WriteEvents(ctx context.Context, events []*audittypes.AuditEvent) error {
 	if len(events) == 0 {
 		return nil
 	}
@@ -327,7 +327,7 @@ func (sb *SplunkBackend) Query(ctx context.Context, query *QueryRequest) (*Query
 	// This is a simplified implementation - full Splunk integration would require
 	// parsing the search job ID, polling for completion, and retrieving results
 	return &QueryResponse{
-		Events:     []*types.AuditEvent{},
+		Events:     []*audittypes.AuditEvent{},
 		TotalCount: 0,
 		HasMore:    false,
 	}, nil
@@ -365,7 +365,7 @@ func (sb *SplunkBackend) Close() error {
 
 // Helper methods
 
-func (sb *SplunkBackend) convertToSplunkEvent(event *types.AuditEvent) SplunkEvent {
+func (sb *SplunkBackend) convertToSplunkEvent(event *audittypes.AuditEvent) SplunkEvent {
 	// Convert timestamp to Unix epoch with milliseconds
 	timestamp := float64(event.Timestamp.UnixNano()) / 1e9
 

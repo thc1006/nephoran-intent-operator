@@ -220,21 +220,21 @@ type CertificateResponse struct {
 	Fingerprint      string            `json:"fingerprint"`
 	ExpiresAt        time.Time         `json:"expires_at"`
 	IssuedBy         string            `json:"issued_by"`
-	Status           CertificateStatus `json:"status"`
+	Status           CertificateState `json:"status"`
 	Metadata         map[string]string `json:"metadata"`
 	CreatedAt        time.Time         `json:"created_at"`
 }
 
-// CertificateStatus represents certificate status
-type CertificateStatus string
+// CertificateState represents certificate state
+type CertificateState string
 
 const (
-	StatusPending CertificateStatus = "pending"
-	StatusIssued  CertificateStatus = "issued"
-	StatusRenewed CertificateStatus = "renewed"
-	StatusRevoked CertificateStatus = "revoked"
-	StatusExpired CertificateStatus = "expired"
-	StatusFailed  CertificateStatus = "failed"
+	StatusPending CertificateState = "pending"
+	StatusIssued  CertificateState = "issued"
+	StatusRenewed CertificateState = "renewed"
+	StatusRevoked CertificateState = "revoked"
+	StatusExpired CertificateState = "expired"
+	StatusFailed  CertificateState = "failed"
 )
 
 // Backend defines the interface for CA backends

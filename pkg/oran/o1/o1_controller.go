@@ -264,32 +264,8 @@ type StreamingManager struct {
 	config       *StreamingConfig
 }
 
-// StreamConnection represents a streaming connection
-type StreamConnection struct {
-	ID           string                 `json:"id"`
-	Type         string                 `json:"type"`
-	RemoteAddr   string                 `json:"remote_addr"`
-	ConnectedAt  time.Time              `json:"connected_at"`
-	LastActivity time.Time              `json:"last_activity"`
-	BytesSent    int64                  `json:"bytes_sent"`
-	BytesRecv    int64                  `json:"bytes_recv"`
-	Active       bool                   `json:"active"`
-	Metadata     map[string]interface{} `json:"metadata"`
-}
-
-// StreamingConfig holds streaming configuration
-type StreamingConfig struct {
-	EnableWebSocket    bool   `json:"enable_websocket"`
-	EnableSSE          bool   `json:"enable_sse"`
-	EnableGRPCStream   bool   `json:"enable_grpc_stream"`
-	MaxConnections     int    `json:"max_connections"`
-	BufferSize         int    `json:"buffer_size"`
-	CompressionLevel   int    `json:"compression_level"`
-	EnableCompression  bool   `json:"enable_compression"`
-	HeartbeatInterval  time.Duration `json:"heartbeat_interval"`
-	ConnectionTimeout  time.Duration `json:"connection_timeout"`
-	MaxMessageSize     int64  `json:"max_message_size"`
-}
+// StreamConnection is defined in o1_streaming.go
+// StreamingConfig is defined in o1_streaming.go
 
 // SubscriptionFilterEngine filters notifications based on subscription criteria
 type SubscriptionFilterEngine struct {
@@ -410,21 +386,7 @@ type HeartbeatMetrics struct {
 	RecoveredElements   int64
 }
 
-// O1Metrics holds comprehensive O1 controller metrics
-type O1Metrics struct {
-	ActiveElements        int64
-	TotalConnections      int64
-	FailedConnections     int64
-	ConfigOperations      int64
-	FaultNotifications    int64
-	PerformanceCollections int64
-	ActiveSubscriptions   int64
-	ProcessedNotifications int64
-	AverageResponseTime   time.Duration
-	ErrorRate             float64
-	SystemUptime          time.Duration
-	StartTime             time.Time
-}
+// O1Metrics is defined in adapter.go
 
 // NewO1Controller creates a new O1 controller
 func NewO1Controller(
@@ -1045,12 +1007,13 @@ func NewO1NotificationManager(config *O1NotificationConfig) *O1NotificationManag
 
 // Placeholder type definitions for missing types
 type InventoryManager struct{}
-type SoftwareManager struct{}
+// SoftwareManager is defined in adapter.go
 type FileTransferManager struct{}
 type O1NotificationManager struct{}
-type NetconfServer struct{}
+// NetconfServer is defined in netconf_server.go
 type RestConfServer struct{}
-type NetconfServerConfig struct {
+// NetconfServerConfig is defined in netconf_server.go
+type NetconfServerConfigLocal struct {
 	Port                  int
 	EnableTLS             bool
 	TLSCertPath           string
@@ -1067,16 +1030,13 @@ type RestConfServerConfig struct {
 	EnableAuth  bool
 }
 
-func NewNetconfServer(config *NetconfServerConfig, registry *YANGModelRegistry) (*NetconfServer, error) {
-	return &NetconfServer{}, nil
-}
+// NewNetconfServer is defined in netconf_server.go
 
 func NewRestConfServer(config *RestConfServerConfig, registry *YANGModelRegistry) (*RestConfServer, error) {
 	return &RestConfServer{}, nil
 }
 
-func (ns *NetconfServer) Start(ctx context.Context) error { return nil }
-func (ns *NetconfServer) Stop(ctx context.Context) error  { return nil }
+// NetconfServer Start/Stop methods are defined in netconf_server.go
 func (rs *RestConfServer) Start(ctx context.Context) error { return nil }
 func (rs *RestConfServer) Stop(ctx context.Context) error  { return nil }
 

@@ -217,7 +217,7 @@ type UserExperienceCorrelator struct {
 	mu sync.RWMutex
 
 	// User session tracking
-	sessions map[string]*UserSession
+	sessions map[string]*MonitoringUserSession
 
 	// Experience metrics
 	experienceScores map[string]float64
@@ -1354,9 +1354,9 @@ func (b *LatencyBudgetTracker) CleanOldViolations(cutoff time.Time) {
 
 func NewUserExperienceCorrelator() *UserExperienceCorrelator {
 	return &UserExperienceCorrelator{
-		sessions:         make(map[string]*UserSession),
+		sessions:         make(map[string]*MonitoringUserSession),
 		experienceScores: make(map[string]float64),
-		impactAnalyzer:   &UserImpactAnalyzer{sessions: make(map[string]*UserSession)},
+		impactAnalyzer:   &UserImpactAnalyzer{sessions: make(map[string]*MonitoringUserSession)},
 	}
 }
 

@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
+	audittypes "github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
 )
 
 // SOC2Tracker tracks SOC 2 compliance requirements
@@ -113,31 +113,31 @@ func NewPCIDSSTracker() *PCIDSSTracker {
 
 // SOC2Tracker methods
 
-func (st *SOC2Tracker) ProcessEvent(event *types.AuditEvent) {
+func (st *SOC2Tracker) ProcessEvent(event *audittypes.AuditEvent) {
 	st.mutex.Lock()
 	defer st.mutex.Unlock()
 
 	st.lastActivity = event.Timestamp
 
 	switch event.EventType {
-	case types.EventTypeAuthentication, types.EventTypeAuthenticationFailed, types.EventTypeAuthenticationSuccess:
+	case audittypes.EventTypeAuthentication, audittypes.EventTypeAuthenticationFailed, audittypes.EventTypeAuthenticationSuccess:
 		st.authenticationEvents++
 		st.updateControlStatus("CC6.1", event)
 
-	case types.EventTypeAuthorization, types.EventTypeAuthorizationFailed, types.EventTypeAuthorizationSuccess:
+	case audittypes.EventTypeAuthorization, audittypes.EventTypeAuthorizationFailed, audittypes.EventTypeAuthorizationSuccess:
 		st.authorizationEvents++
 		st.updateControlStatus("CC6.2", event)
 
-	case types.EventTypeDataAccess, types.EventTypeDataCreate, types.EventTypeDataRead,
-		types.EventTypeDataUpdate, types.EventTypeDataDelete:
+	case audittypes.EventTypeDataAccess, audittypes.EventTypeDataCreate, audittypes.EventTypeDataRead,
+		audittypes.EventTypeDataUpdate, audittypes.EventTypeDataDelete:
 		st.dataAccessEvents++
 		st.updateControlStatus("CC6.7", event)
 
-	case types.EventTypeSystemChange, types.EventTypeConfigChange:
+	case audittypes.EventTypeSystemChange, audittypes.EventTypeConfigChange:
 		st.systemChanges++
 		st.updateControlStatus("CC8.1", event)
 
-	case types.EventTypeSecurityViolation, types.EventTypeIntrusionAttempt:
+	case audittypes.EventTypeSecurityViolation, audittypes.EventTypeIntrusionAttempt:
 		st.securityViolations++
 		st.updateControlStatus("CC7.1", event)
 	}
@@ -199,11 +199,11 @@ func (st *SOC2Tracker) initializeSOC2Controls() {
 	}
 }
 
-func (st *SOC2Tracker) updateControlStatus(controlID string, event *types.AuditEvent) {
+func (st *SOC2Tracker) updateControlStatus(controlID string, event *audittypes.AuditEvent) {
 	// Update control status based on event
 	if control, exists := st.securityControls[controlID]; exists {
 		control.EvidenceCount++
-		if event.Result == types.ResultFailure {
+		if event.Result == audittypes.ResultFailure {
 			control.ViolationCount++
 			if control.ViolationCount > 5 {
 				control.Status = "non-compliant"
@@ -217,30 +217,30 @@ func (st *SOC2Tracker) updateControlStatus(controlID string, event *types.AuditE
 
 // ISO27001Tracker methods
 
-func (it *ISO27001Tracker) ProcessEvent(event *types.AuditEvent) {
+func (it *ISO27001Tracker) ProcessEvent(event *audittypes.AuditEvent) {
 	it.mutex.Lock()
 	defer it.mutex.Unlock()
 
 	it.lastActivity = event.Timestamp
 
 	switch event.EventType {
-	case types.EventTypeAuthentication, types.EventTypeAuthenticationFailed:
+	case audittypes.EventTypeAuthentication, audittypes.EventTypeAuthenticationFailed:
 		it.accessManagement++
 		it.updateControlStatus("A.9.2.1", event)
 
-	case types.EventTypeAuthorization, types.EventTypeAuthorizationFailed:
+	case audittypes.EventTypeAuthorization, audittypes.EventTypeAuthorizationFailed:
 		it.accessManagement++
 		it.updateControlStatus("A.9.2.2", event)
 
-	case types.EventTypeDataAccess:
+	case audittypes.EventTypeDataAccess:
 		it.informationSecurity++
 		it.updateControlStatus("A.12.4.1", event)
 
-	case types.EventTypeSecurityViolation, types.EventTypeIncidentResponse:
+	case audittypes.EventTypeSecurityViolation, audittypes.EventTypeIncidentResponse:
 		it.incidentManagement++
 		it.updateControlStatus("A.16.1.1", event)
 
-	case types.EventTypeSystemChange:
+	case audittypes.EventTypeSystemChange:
 		it.informationSecurity++
 		it.updateControlStatus("A.12.1.2", event)
 	}
@@ -298,10 +298,10 @@ func (it *ISO27001Tracker) initializeISO27001Controls() {
 	}
 }
 
-func (it *ISO27001Tracker) updateControlStatus(controlID string, event *types.AuditEvent) {
+func (it *ISO27001Tracker) updateControlStatus(controlID string, event *audittypes.AuditEvent) {
 	if control, exists := it.annexAControls[controlID]; exists {
 		control.EvidenceCount++
-		if event.Result == types.ResultFailure {
+		if event.Result == audittypes.ResultFailure {
 			control.ViolationCount++
 			if control.ViolationCount > 3 {
 				control.Status = "non-compliant"
@@ -315,27 +315,27 @@ func (it *ISO27001Tracker) updateControlStatus(controlID string, event *types.Au
 
 // PCIDSSTracker methods
 
-func (pt *PCIDSSTracker) ProcessEvent(event *types.AuditEvent) {
+func (pt *PCIDSSTracker) ProcessEvent(event *audittypes.AuditEvent) {
 	pt.mutex.Lock()
 	defer pt.mutex.Unlock()
 
 	pt.lastActivity = event.Timestamp
 
 	switch event.EventType {
-	case types.EventTypeAuthentication, types.EventTypeAuthenticationFailed:
+	case audittypes.EventTypeAuthentication, audittypes.EventTypeAuthenticationFailed:
 		pt.authenticationAttempts++
 		pt.updateControlStatus("8.1.1", event)
 
-	case types.EventTypeDataAccess:
+	case audittypes.EventTypeDataAccess:
 		pt.cardholderDataAccess++
 		pt.updateControlStatus("7.1.1", event)
 		pt.updateControlStatus("10.2.1", event)
 
-	case types.EventTypeNetworkAccess, types.EventTypeFirewallRule:
+	case audittypes.EventTypeNetworkAccess, audittypes.EventTypeFirewallRule:
 		pt.networkSecurityEvents++
 		pt.updateControlStatus("1.1.1", event)
 
-	case types.EventTypeVulnerability, types.EventTypeSecurityViolation:
+	case audittypes.EventTypeVulnerability, audittypes.EventTypeSecurityViolation:
 		pt.vulnerabilityEvents++
 		pt.updateControlStatus("6.1.1", event)
 	}
@@ -403,12 +403,12 @@ func (pt *PCIDSSTracker) initializePCIDSSRequirements() {
 	}
 }
 
-func (pt *PCIDSSTracker) updateControlStatus(controlID string, event *types.AuditEvent) {
+func (pt *PCIDSSTracker) updateControlStatus(controlID string, event *audittypes.AuditEvent) {
 	if control, exists := pt.requirements[controlID]; exists {
 		control.EvidenceCount++
 
 		// PCI DSS has stricter violation thresholds
-		if event.Result == types.ResultFailure {
+		if event.Result == audittypes.ResultFailure {
 			control.ViolationCount++
 			if control.ViolationCount > 1 { // Even single failures are significant for PCI DSS
 				control.Status = "non-compliant"

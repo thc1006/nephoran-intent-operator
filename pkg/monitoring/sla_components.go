@@ -480,15 +480,6 @@ func (p2 *P2QuantileEstimator) exactQuantile() float64 {
 
 // CircularBuffer is defined in types.go
 
-// NewCircularBuffer creates a new circular buffer
-func NewCircularBuffer(capacity int) *CircularBuffer {
-	return &CircularBuffer{
-		data:     make([]float64, capacity),
-		times:    make([]time.Time, capacity),
-		capacity: capacity,
-	}
-}
-
 // Add adds a new value to the circular buffer
 func (cb *CircularBuffer) Add(timestamp time.Time, value float64) {
 	cb.mu.Lock()
@@ -568,8 +559,8 @@ var (
 	ErrBufferFull = fmt.Errorf("metrics buffer is full")
 )
 
-// TimeSeries represents a time series for historical data tracking
-type TimeSeries struct {
+// SLATimeSeries represents a time series for historical SLA data tracking
+type SLATimeSeries struct {
 	points    []TimePoint
 	maxPoints int
 	mu        sync.RWMutex
@@ -608,7 +599,7 @@ func (ts *SLATimeSeries) Add(timestamp time.Time, value float64) {
 }
 
 // GetRecent returns the most recent n time points
-func (ts *TimeSeries) GetRecent(n int) ([]time.Time, []float64) {
+func (ts *SLATimeSeries) GetRecent(n int) ([]time.Time, []float64) {
 	ts.mu.RLock()
 	defer ts.mu.RUnlock()
 
@@ -635,7 +626,7 @@ func (ts *TimeSeries) GetRecent(n int) ([]time.Time, []float64) {
 }
 
 // GetTrend calculates the trend over the specified duration
-func (ts *TimeSeries) GetTrend(duration time.Duration) float64 {
+func (ts *SLATimeSeries) GetTrend(duration time.Duration) float64 {
 	ts.mu.RLock()
 	defer ts.mu.RUnlock()
 
@@ -1103,51 +1094,3 @@ func (pc *PercentileCalculator) Calculate(percentile float64) float64 {
 }
 
 // SLAComplianceTracker tracks SLA compliance over time
-type SLAComplianceTracker struct {
-	violations *CircularBuffer
-	windowSize time.Duration
-	mu         sync.RWMutex
-}
-
-// NewSLAComplianceTracker creates a new SLA compliance tracker
-func NewSLAComplianceTracker(windowSize time.Duration) *SLAComplianceTracker {
-	return &SLAComplianceTracker{
-		violations: NewCircularBuffer(1000),
-		windowSize: windowSize,
-	}
-}
-
-// RecordViolation records an SLA violation
-func (sct *SLAComplianceTracker) RecordViolation(timestamp time.Time, severity float64) {
-	sct.mu.Lock()
-	defer sct.mu.Unlock()
-	sct.violations.Add(timestamp, severity)
-}
-
-// GetComplianceRate returns the current compliance rate (0.0 to 1.0)
-func (sct *SLAComplianceTracker) GetComplianceRate() float64 {
-	sct.mu.RLock()
-	defer sct.mu.RUnlock()
-
-	now := time.Now()
-	cutoff := now.Add(-sct.windowSize)
-	
-	violationCount := 0
-	totalMeasurements := 0
-	
-	sct.violations.RangeWithTime(func(timestamp time.Time, value float64) bool {
-		if timestamp.After(cutoff) {
-			totalMeasurements++
-			if value > 0 {
-				violationCount++
-			}
-		}
-		return true
-	})
-
-	if totalMeasurements == 0 {
-		return 1.0 // 100% compliance when no measurements
-	}
-
-	return 1.0 - (float64(violationCount) / float64(totalMeasurements))
-}

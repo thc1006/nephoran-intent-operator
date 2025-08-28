@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	intentv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/intent/v1alpha1"
 	"github.com/thc1006/nephoran-intent-operator/controllers"
 	// +kubebuilder:scaffold:imports
 )
@@ -29,6 +30,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(nephranv1.AddToScheme(scheme))
+	utilruntime.Must(intentv1alpha1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -124,6 +126,12 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NetworkIntent")
+		os.Exit(1)
+	}
+
+	// Setup webhook for NetworkIntent v1alpha1
+	if err = (&intentv1alpha1.NetworkIntent{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "NetworkIntent")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

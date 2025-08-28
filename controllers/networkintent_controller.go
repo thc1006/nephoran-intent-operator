@@ -56,9 +56,9 @@ type LLMResponse struct {
 	Error   string `json:"error,omitempty"`
 }
 
-//+kubebuilder:rbac:groups=nephoran.io,resources=networkintents,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=nephoran.io,resources=networkintents/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=nephoran.io,resources=networkintents/finalizers,verbs=update
+//+kubebuilder:rbac:groups=nephoran.com,resources=networkintents,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=nephoran.com,resources=networkintents/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=nephoran.com,resources=networkintents/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

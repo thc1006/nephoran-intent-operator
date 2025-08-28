@@ -32,21 +32,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 )
 
-// TrendAnalyzer analyzes trends in error patterns
-type TrendAnalyzer struct {
-	logger logr.Logger
-	mutex  sync.RWMutex
-}
-
-// SeasonalityDetector detects seasonal patterns
-type SeasonalityDetector struct {
-	logger logr.Logger
-}
-
-// SeasonalPattern represents a seasonal pattern
-type SeasonalPattern struct {
-	Pattern string `json:"pattern"`
-}
+// TrendAnalyzer, SeasonalityDetector, and SeasonalPattern types are defined in types.go
 
 // TimeSeries represents time series data
 type TimeSeries struct {
@@ -103,20 +89,7 @@ type TrendModel struct {
 	ModelType string `json:"model_type"`
 }
 
-// NewTrendAnalyzer creates a new trend analyzer
-func NewTrendAnalyzer() *TrendAnalyzer {
-	return &TrendAnalyzer{
-		logger: logr.Discard(),
-		mutex:  sync.RWMutex{},
-	}
-}
-
-// NewSeasonalityDetector creates a new seasonality detector
-func NewSeasonalityDetector() *SeasonalityDetector {
-	return &SeasonalityDetector{
-		logger: logr.Discard(),
-	}
-}
+// NewTrendAnalyzer and NewSeasonalityDetector are defined in types.go
 
 // GetSeasonalAdjustment returns seasonal adjustment for the given time and horizon
 func (sd *SeasonalityDetector) GetSeasonalAdjustment(timestamp time.Time, horizon time.Duration) float64 {
@@ -234,7 +207,6 @@ type PrometheusErrorMetrics struct {
 	registry prometheus.Registerer
 }
 
-<<<<<<< HEAD:pkg/monitoring/error_tracking.go
 // NewPrometheusErrorMetrics creates a new PrometheusErrorMetrics instance
 func NewPrometheusErrorMetrics(namespace string) *PrometheusErrorMetrics {
 	metrics := &PrometheusErrorMetrics{
@@ -411,8 +383,6 @@ const (
 )
 
 // Note: AlertManager type is defined in alerting.go
-=======
->>>>>>> integrate/mvp:pkg/monitoring/error_tracking.go.bak2
 
 // ActiveAlert represents a currently active alert
 type ActiveAlert struct {

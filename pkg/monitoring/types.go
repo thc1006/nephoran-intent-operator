@@ -3,6 +3,7 @@ package monitoring
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"go.opentelemetry.io/otel/trace"
@@ -131,4 +132,121 @@ type CheckResult struct {
 	Availability float64       `json:"availability"`
 }
 
-// Alert represents an alert instance
+// Alert type is defined in alerting.go
+
+// CircularBuffer is a thread-safe circular buffer for time-series data
+type CircularBuffer struct {
+	data     []float64
+	times    []time.Time
+	capacity int
+	head     int
+	tail     int
+	size     int
+	mu       sync.RWMutex
+}
+
+// NewCircularBuffer creates a new circular buffer with the specified capacity
+func NewCircularBuffer(capacity int) *CircularBuffer {
+	return &CircularBuffer{
+		data:     make([]float64, capacity),
+		times:    make([]time.Time, capacity),
+		capacity: capacity,
+	}
+}
+
+// TrendAnalyzer provides trend analysis for time-series data
+type TrendAnalyzer struct {
+	window time.Duration
+	mu     sync.RWMutex
+}
+
+// NewTrendAnalyzer creates a new trend analyzer
+func NewTrendAnalyzer() *TrendAnalyzer {
+	return &TrendAnalyzer{
+		window: 24 * time.Hour,
+	}
+}
+
+// SeasonalityDetector detects seasonal patterns in metrics
+type SeasonalityDetector struct {
+	patterns []SeasonalPattern
+	mu       sync.RWMutex
+}
+
+// NewSeasonalityDetector creates a new seasonality detector
+func NewSeasonalityDetector() *SeasonalityDetector {
+	return &SeasonalityDetector{
+		patterns: make([]SeasonalPattern, 0),
+	}
+}
+
+// GetSeasonalAdjustment method is implemented in error_tracking.go
+
+// SeasonalPattern represents a detected seasonal pattern
+type SeasonalPattern struct {
+	Period    time.Duration `json:"period"`
+	Amplitude float64       `json:"amplitude"`
+	Phase     float64       `json:"phase"`
+	Strength  float64       `json:"strength"`
+}
+
+// PredictionHistory tracks prediction accuracy over time
+type PredictionHistory struct {
+	predictions  []HistoricalPrediction
+	actualValues []float64
+	accuracy     *AccuracyTracker
+	mu           sync.RWMutex
+}
+
+// HistoricalPrediction represents a past prediction for accuracy tracking
+type HistoricalPrediction struct {
+	Timestamp       time.Time `json:"timestamp"`
+	PredictedValue  float64   `json:"predicted_value"`
+	ActualValue     float64   `json:"actual_value"`
+	AbsoluteError   float64   `json:"absolute_error"`
+	RelativeError   float64   `json:"relative_error"`
+	Confidence      float64   `json:"confidence"`
+	ModelVersion    string    `json:"model_version"`
+}
+
+// AccuracyTracker tracks model accuracy over different time periods
+type AccuracyTracker struct {
+	dailyAccuracy   *CircularBuffer
+	weeklyAccuracy  *CircularBuffer
+	monthlyAccuracy *CircularBuffer
+	mu              sync.RWMutex
+}
+
+// Prediction represents a model prediction with confidence
+type Prediction struct {
+	Value      float64   `json:"value"`
+	Confidence float64   `json:"confidence"`
+	Timestamp  time.Time `json:"timestamp"`
+	Features   []float64 `json:"features"`
+}
+
+// PredictedViolation represents a predicted SLA violation
+type PredictedViolation struct {
+	MetricType  string        `json:"metric_type"`
+	Probability float64       `json:"probability"`
+	Severity    string        `json:"severity"`
+	TimeToEvent time.Duration `json:"time_to_event"`
+	Impact      string        `json:"impact"`
+	Mitigation  []string      `json:"mitigation"`
+	Timestamp   time.Time     `json:"timestamp"`
+}
+
+// TrainingDataSet represents a dataset for model training
+type TrainingDataSet struct {
+	Features   [][]float64 `json:"features"`
+	Targets    []float64   `json:"targets"`
+	Timestamps []time.Time `json:"timestamps"`
+	Weights    []float64   `json:"weights"`
+}
+
+// ModelInterface defines the common interface for ML models
+type ModelInterface interface {
+	Train(ctx context.Context, data *TrainingDataSet) error
+	Predict(ctx context.Context, features []float64) (*Prediction, error)
+	GetAccuracy() float64
+}

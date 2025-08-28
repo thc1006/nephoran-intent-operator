@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"strings"
 	"sync"
 	"time"
 
@@ -1149,115 +1148,6 @@ func extractOrganizationNames(orgs []providers.Organization) []string {
 }
 
 // Additional methods for backward compatibility and existing API contracts
-func (jm *JWTManager) GenerateRefreshToken(ctx context.Context, userInfo *providers.UserInfo, sessionID string, options ...TokenOption) (string, *TokenInfo, error) {
-	// Implementation similar to GenerateAccessToken but for refresh tokens
-	// This maintains the existing API while adding compliance features
-	return jm.GenerateAccessToken(ctx, userInfo, sessionID, append(options, func(opts *TokenOptions) {
-		// Mark as refresh token in scope
-		if opts.Scope == "" {
-			opts.Scope = "refresh"
-		}
-	})...)
-}
-
-func (jm *JWTManager) RefreshAccessToken(ctx context.Context, refreshTokenString string, options ...TokenOption) (string, *TokenInfo, error) {
-	claims, err := jm.ValidateToken(ctx, refreshTokenString)
-	if err != nil {
-		return "", nil, fmt.Errorf("invalid refresh token: %w", err)
-	}
-
-	if !strings.Contains(claims.Scope, "refresh") {
-		return "", nil, fmt.Errorf("token is not a refresh token")
-	}
-
-	userInfo := &providers.UserInfo{
-		Subject:       claims.Subject,
-		Email:         claims.Email,
-		EmailVerified: claims.EmailVerified,
-		Name:          claims.Name,
-		PreferredName: claims.PreferredName,
-		Picture:       claims.Picture,
-		Groups:        claims.Groups,
-		Roles:         claims.Roles,
-		Permissions:   claims.Permissions,
-		Provider:      claims.Provider,
-		ProviderID:    claims.ProviderID,
-		Attributes:    claims.Attributes,
-	}
-
-	return jm.GenerateAccessToken(ctx, userInfo, claims.SessionID, options...)
-}
-
-func (jm *JWTManager) RevokeToken(ctx context.Context, tokenString string) error {
-	token, err := jwt.ParseWithClaims(tokenString, &NephoranJWTClaims{}, nil)
-	if err != nil && !errors.Is(err, jwt.ErrTokenExpired) {
-		return fmt.Errorf("failed to parse token for revocation: %w", err)
-	}
-
-	claims, ok := token.Claims.(*NephoranJWTClaims)
-	if !ok {
-		return fmt.Errorf("invalid token claims")
-	}
-
-	if err := jm.blacklist.BlacklistToken(ctx, claims.ID, claims.ExpiresAt.Time); err != nil {
-		return fmt.Errorf("failed to blacklist token: %w", err)
-	}
-
-	if err := jm.tokenStore.DeleteToken(ctx, claims.ID); err != nil {
-		jm.logger.Warn("Failed to delete token from store", "error", err)
-	}
-
-	jm.logTokenEvent(ctx, "token_revoked", claims.ID, claims.Subject, map[string]interface{}{
-		"revocation_time": time.Now(),
-		"reason":          "manual_revocation",
-	})
-
-	jm.metrics.TokensRevoked++
-	return nil
-}
-
-func (jm *JWTManager) RevokeUserTokens(ctx context.Context, userID string) error {
-	tokens, err := jm.tokenStore.ListUserTokens(ctx, userID)
-	if err != nil {
-		return fmt.Errorf("failed to list user tokens: %w", err)
-	}
-
-	for _, token := range tokens {
-		if err := jm.blacklist.BlacklistToken(ctx, token.TokenID, token.ExpiresAt); err != nil {
-			jm.logger.Warn("Failed to blacklist token", "token_id", token.TokenID, "error", err)
-			continue
-		}
-
-		if err := jm.tokenStore.DeleteToken(ctx, token.TokenID); err != nil {
-			jm.logger.Warn("Failed to delete token from store", "token_id", token.TokenID, "error", err)
-		}
-
-		jm.metrics.TokensRevoked++
-	}
-
-	jm.logTokenEvent(ctx, "user_tokens_revoked", "", userID, map[string]interface{}{
-		"tokens_revoked":  len(tokens),
-		"revocation_time": time.Now(),
-	})
-
-	return nil
-}
-
-func (jm *JWTManager) GetTokenInfo(ctx context.Context, tokenID string) (*TokenInfo, error) {
-	return jm.tokenStore.GetToken(ctx, tokenID)
-}
-
-func (jm *JWTManager) ListUserTokens(ctx context.Context, userID string) ([]*TokenInfo, error) {
-	return jm.tokenStore.ListUserTokens(ctx, userID)
-}
-
-func (jm *JWTManager) GetMetrics() *JWTMetrics {
-	jm.mutex.RLock()
-	defer jm.mutex.RUnlock()
-	metrics := *jm.metrics
-	return &metrics
-}
-
 func (jm *JWTManager) CreateAccessToken(username, sessionID, provider string, roles, groups []string, attributes map[string]interface{}) (string, error) {
 	userInfo := &providers.UserInfo{
 		Subject:    username,

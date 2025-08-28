@@ -59,6 +59,50 @@ type FileMergeStatistics string
 type ConditionType string
 type ComparisonOperator string
 type OptimizationImpact string
+type OptimizationType string
+
+// CleanupResult represents the result of a cleanup operation
+type CleanupResult struct {
+	Success          bool
+	OrphanedFiles    []string
+	DeletedFiles     []string
+	ReclaimedSpace   int64
+	Errors           []error
+	ProcessedFiles   int
+	Duration         time.Duration
+}
+
+// ContentMetrics provides metrics about package content
+type ContentMetrics struct {
+	TotalFiles      int
+	TotalSize       int64
+	FileTypes       map[string]int
+	LastAccessed    time.Time
+	AccessCount     int64
+	ValidationScore float64
+}
+
+// ContentManagerHealth provides health information about content manager
+type ContentManagerHealth struct {
+	Status           string
+	ActiveOperations int
+	CacheHitRate     float64
+	ErrorRate        float64
+	LastHealthCheck  time.Time
+	ComponentHealth  map[string]string
+}
+
+// TimeRange represents a time range for queries
+type TimeRange struct {
+	Start time.Time
+	End   time.Time
+}
+
+// ContentProcessor interface for content processing
+type ContentProcessor interface {
+	Process(ctx context.Context, content []byte) ([]byte, error)
+	GetName() string
+}
 
 const (
 	ValidationIssueTypeSchema    ValidationIssueType = "schema"

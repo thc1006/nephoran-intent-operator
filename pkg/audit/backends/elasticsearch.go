@@ -16,7 +16,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
+	audittypes "github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
 )
 
 var (
@@ -161,12 +161,12 @@ func (eb *ElasticsearchBackend) Type() string {
 }
 
 // WriteEvent writes a single audit event to Elasticsearch
-func (eb *ElasticsearchBackend) WriteEvent(ctx context.Context, event *types.AuditEvent) error {
-	return eb.WriteEvents(ctx, []*types.AuditEvent{event})
+func (eb *ElasticsearchBackend) WriteEvent(ctx context.Context, event *audittypes.AuditEvent) error {
+	return eb.WriteEvents(ctx, []*audittypes.AuditEvent{event})
 }
 
 // WriteEvents writes multiple audit events to Elasticsearch using bulk API
-func (eb *ElasticsearchBackend) WriteEvents(ctx context.Context, events []*types.AuditEvent) error {
+func (eb *ElasticsearchBackend) WriteEvents(ctx context.Context, events []*audittypes.AuditEvent) error {
 	if len(events) == 0 {
 		return nil
 	}
@@ -600,9 +600,9 @@ func (eb *ElasticsearchBackend) buildSearchQuery(query *QueryRequest) map[string
 }
 
 func (eb *ElasticsearchBackend) parseSearchResponse(resp *SearchResponse) *QueryResponse {
-	events := make([]*types.AuditEvent, len(resp.Hits.Hits))
+	events := make([]*audittypes.AuditEvent, len(resp.Hits.Hits))
 	for i, hit := range resp.Hits.Hits {
-		var event types.AuditEvent
+		var event audittypes.AuditEvent
 		if err := json.Unmarshal(hit.Source, &event); err != nil {
 			eb.logger.Error(err, "Failed to unmarshal search hit")
 			continue
@@ -612,7 +612,7 @@ func (eb *ElasticsearchBackend) parseSearchResponse(resp *SearchResponse) *Query
 
 	return &QueryResponse{
 		Events:     events,
-		TotalCount: resp.Hits.Total.Value,
+		TotalCount: int(resp.Hits.Total.Value),
 		HasMore:    int64(len(events)) < resp.Hits.Total.Value,
 	}
 }

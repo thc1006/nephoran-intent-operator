@@ -1,0 +1,229 @@
+# Ultra-fast golangci-lint configuration for rapid CI/CD
+# This config prioritizes speed over comprehensiveness
+# Use for quick feedback during development
+
+run:
+  # Timeout for analysis
+  timeout: 1m
+  
+  # Number of parallel jobs (0 = number of cores)
+  concurrency: 0
+  
+  # Exit code when issues found
+  issues-exit-code: 1
+  
+  # Include test files
+  tests: false
+  
+  # Build tags to use
+  build-tags:
+    - fast_build
+    - unit_only
+    - netgo
+    - osusergo
+  
+  # Skip directories
+  skip-dirs:
+    - vendor
+    - testdata
+    - node_modules
+    - .git
+    - .github
+    - docs
+    - examples
+    - hack
+    - scripts
+    - deployments
+  
+  # Skip files
+  skip-files:
+    - ".*\\.pb\\.go$"
+    - ".*\\.gen\\.go$"
+    - "zz_generated\\..+"
+    - ".*_test\\.go$"
+  
+  # Modules download mode
+  modules-download-mode: readonly
+  
+  # Allow parallel runners
+  allow-parallel-runners: true
+  
+  # Allow serial runners
+  allow-serial-runners: true
+
+output:
+  # Format: colored-line-number|line-number|json|colored-tab|tab|checkstyle|code-climate|junit-xml|github-actions
+  format: colored-line-number
+  
+  # Print linter name
+  print-linter-name: true
+  
+  # Unique issues
+  uniq-by-line: true
+  
+  # Sort results
+  sort-results: true
+
+linters:
+  # Disable all linters by default
+  disable-all: true
+  
+  # Enable only the fastest, most critical linters
+  enable:
+    # Fast and critical
+    - govet        # Reports suspicious constructs (very fast)
+    - ineffassign  # Detects ineffectual assignments (fast)
+    - misspell     # Finds misspelled words (fast)
+    - unconvert    # Removes unnecessary type conversions (fast)
+    - typecheck    # Type checking (fast)
+    
+    # Security (fast subset)
+    - gosec        # Security issues (configured for speed below)
+    
+  # Run these linters in fast mode
+  fast: true
+
+linters-settings:
+  govet:
+    # Only check critical issues
+    enable:
+      - atomic
+      - bools
+      - buildtag
+      - nilfunc
+      - printf
+      - unreachable
+    
+    # Disable slower checks
+    disable:
+      - asmdecl
+      - assign
+      - cgocall
+      - composites
+      - copylocks
+      - deepequalerrors
+      - errorsas
+      - fieldalignment
+      - httpresponse
+      - ifaceassert
+      - loopclosure
+      - lostcancel
+      - shadow
+      - shift
+      - sortslice
+      - stdmethods
+      - stringintconv
+      - structtag
+      - testinggoroutine
+      - tests
+      - unmarshal
+      - unsafeptr
+      - unusedresult
+  
+  gosec:
+    # Only check critical security issues
+    includes:
+      - G101 # Hard coded credentials
+      - G401 # Weak crypto
+      - G501 # Weak crypto imports
+      - G601 # Implicit aliasing in range
+    
+    # Exclude less critical checks for speed
+    excludes:
+      - G104 # Unhandled errors
+      - G204 # Subprocess audit
+      - G304 # File path traversal
+      - G306 # Poor file permissions
+      - G307 # Poor file close
+    
+    # Set to low for speed
+    confidence: high
+    severity: high
+    
+    # Concurrency for faster scanning
+    concurrency: 16
+  
+  misspell:
+    # Use default locale only for speed
+    locale: US
+    
+    # Ignore certain words
+    ignore-words:
+      - nephoran
+      - porch
+      - kpt
+      - oran
+      
+  ineffassign:
+    # No special settings, it's already fast
+    
+  unconvert:
+    # Fast mode - check only obvious cases
+    fast-math: true
+    safe: false
+
+issues:
+  # Maximum issues to report
+  max-issues-per-linter: 10
+  max-same-issues: 3
+  
+  # Don't report new issues on old code
+  new: false
+  
+  # Fix found issues (if possible)
+  fix: false
+  
+  # Exclude certain patterns
+  exclude:
+    - "Error return value of .* is not checked"
+    - "should have comment or be unexported"
+    - "don't use an underscore in package name"
+    - "at least one file in a package should have a package comment"
+    - "should have a package comment"
+    - "comment on exported .* should be of the form"
+  
+  # Exclude rules
+  exclude-rules:
+    # Exclude test files from most linters
+    - path: _test\.go
+      linters:
+        - gosec
+        - ineffassign
+    
+    # Exclude generated files
+    - path: \.pb\.go
+      linters:
+        - govet
+        - gosec
+    
+    # Exclude vendor
+    - path: vendor/
+      linters:
+        - govet
+        - gosec
+        - ineffassign
+        - misspell
+        - unconvert
+        - typecheck
+  
+  # Use default excludes
+  exclude-use-default: true
+  
+  # Don't exclude issues about comments from golint
+  exclude-case-sensitive: false
+  
+  # Show all issues from a linter
+  include: []
+  
+  # Maximum count of issues with same text
+  max-per-linter: 0
+  
+  # Fix found issues
+  fix: false
+
+severity:
+  # Set default severity
+  default-severity: warning
+  
+  # Don't fail on warnings
+  case-sensitive: false

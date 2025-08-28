@@ -139,7 +139,7 @@ RUN set -ex; \
                  -X main.gitCommit=${VCS_REF} \
                  -X main.buildPlatform=${TARGETPLATFORM} \
                  -buildid=''" \
-        -tags="netgo osusergo static_build timetzdata" \
+        -tags="netgo osusergo static_build timetzdata fast_build" \
         -gcflags="-N -l" \
         -asmflags="-D GOOS_${TARGETOS}" \
         -o /build/service \

@@ -1,0 +1,1224 @@
+﻿2025-08-28T14:45:12.5815727Z Current runner version: '2.328.0'
+2025-08-28T14:45:12.5840948Z ##[group]Runner Image Provisioner
+2025-08-28T14:45:12.5841739Z Hosted Compute Agent
+2025-08-28T14:45:12.5842694Z Version: 20250821.380
+2025-08-28T14:45:12.5843387Z Commit: 438d12cb4fe092871db9867344e3bc0bc5319035
+2025-08-28T14:45:12.5844072Z Build Date: 2025-08-21T20:49:43Z
+2025-08-28T14:45:12.5844756Z ##[endgroup]
+2025-08-28T14:45:12.5845319Z ##[group]Operating System
+2025-08-28T14:45:12.5845903Z Ubuntu
+2025-08-28T14:45:12.5846371Z 24.04.3
+2025-08-28T14:45:12.5846948Z LTS
+2025-08-28T14:45:12.5847386Z ##[endgroup]
+2025-08-28T14:45:12.5847886Z ##[group]Runner Image
+2025-08-28T14:45:12.5848558Z Image: ubuntu-24.04
+2025-08-28T14:45:12.5849048Z Version: 20250824.1.0
+2025-08-28T14:45:12.5850050Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250824.1/images/ubuntu/Ubuntu2404-Readme.md
+2025-08-28T14:45:12.5851656Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250824.1
+2025-08-28T14:45:12.5852738Z ##[endgroup]
+2025-08-28T14:45:12.5854194Z ##[group]GITHUB_TOKEN Permissions
+2025-08-28T14:45:12.5856473Z Actions: read
+2025-08-28T14:45:12.5857172Z Attestations: write
+2025-08-28T14:45:12.5857686Z Contents: read
+2025-08-28T14:45:12.5858194Z Metadata: read
+2025-08-28T14:45:12.5858726Z SecurityEvents: write
+2025-08-28T14:45:12.5859293Z ##[endgroup]
+2025-08-28T14:45:12.5861332Z Secret source: Actions
+2025-08-28T14:45:12.5862532Z Prepare workflow directory
+2025-08-28T14:45:12.6252802Z Prepare all required actions
+2025-08-28T14:45:12.6291106Z Getting action download info
+2025-08-28T14:45:13.0531509Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+2025-08-28T14:45:13.2445649Z Download action repository 'docker/setup-buildx-action@v3' (SHA:e468171a9de216ec08956ac3ada2f0791b6bd435)
+2025-08-28T14:45:13.8888710Z Download action repository 'github/codeql-action@v3' (SHA:3c3833e0f8c1c83d449a7478aa59c036a9165498)
+2025-08-28T14:45:19.7650361Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2025-08-28T14:45:19.9629504Z Complete job name: Build and Security Scan (llm-processor)
+2025-08-28T14:45:20.0289424Z ##[group]Run actions/checkout@v4
+2025-08-28T14:45:20.0290026Z with:
+2025-08-28T14:45:20.0290214Z   fetch-depth: 0
+2025-08-28T14:45:20.0290454Z   repository: thc1006/nephoran-intent-operator
+2025-08-28T14:45:20.0290894Z   token: ***
+2025-08-28T14:45:20.0291078Z   ssh-strict: true
+2025-08-28T14:45:20.0291261Z   ssh-user: git
+2025-08-28T14:45:20.0291464Z   persist-credentials: true
+2025-08-28T14:45:20.0291673Z   clean: true
+2025-08-28T14:45:20.0291863Z   sparse-checkout-cone-mode: true
+2025-08-28T14:45:20.0292106Z   fetch-tags: false
+2025-08-28T14:45:20.0292506Z   show-progress: true
+2025-08-28T14:45:20.0292695Z   lfs: false
+2025-08-28T14:45:20.0292854Z   submodules: false
+2025-08-28T14:45:20.0293038Z   set-safe-directory: true
+2025-08-28T14:45:20.0293464Z env:
+2025-08-28T14:45:20.0293637Z   REGISTRY: ghcr.io
+2025-08-28T14:45:20.0293850Z   IMAGE_NAME: nephoran-intent-operator
+2025-08-28T14:45:20.0294094Z   TRIVY_VERSION: 0.57.1
+2025-08-28T14:45:20.0294283Z   GRYPE_VERSION: 0.84.0
+2025-08-28T14:45:20.0294507Z   COSIGN_VERSION: 2.4.0
+2025-08-28T14:45:20.0294685Z   SYFT_VERSION: 1.17.0
+2025-08-28T14:45:20.0294864Z ##[endgroup]
+2025-08-28T14:45:20.1397566Z Syncing repository: thc1006/nephoran-intent-operator
+2025-08-28T14:45:20.1399406Z ##[group]Getting Git version info
+2025-08-28T14:45:20.1400576Z Working directory is '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+2025-08-28T14:45:20.1401244Z [command]/usr/bin/git version
+2025-08-28T14:45:20.1473168Z git version 2.51.0
+2025-08-28T14:45:20.1499286Z ##[endgroup]
+2025-08-28T14:45:20.1514653Z Temporarily overriding HOME='/home/runner/work/_temp/8359d18d-dcc5-4ba4-8891-7c8e2ca27937' before making global git config changes
+2025-08-28T14:45:20.1515500Z Adding repository directory to the temporary git global config as a safe directory
+2025-08-28T14:45:20.1521541Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-08-28T14:45:20.1560707Z Deleting the contents of '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+2025-08-28T14:45:20.1564367Z ##[group]Initializing the repository
+2025-08-28T14:45:20.1569199Z [command]/usr/bin/git init /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-08-28T14:45:20.1676399Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-08-28T14:45:20.1677363Z hint: is subject to change. To configure the initial branch name to use in all
+2025-08-28T14:45:20.1678174Z hint: of your new repositories, which will suppress this warning, call:
+2025-08-28T14:45:20.1678782Z hint:
+2025-08-28T14:45:20.1679235Z hint: 	git config --global init.defaultBranch <name>
+2025-08-28T14:45:20.1679821Z hint:
+2025-08-28T14:45:20.1680316Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-08-28T14:45:20.1681150Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-08-28T14:45:20.1681723Z hint:
+2025-08-28T14:45:20.1682051Z hint: 	git branch -m <name>
+2025-08-28T14:45:20.1682643Z hint:
+2025-08-28T14:45:20.1683120Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-08-28T14:45:20.1683882Z Initialized empty Git repository in /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/.git/
+2025-08-28T14:45:20.1694860Z [command]/usr/bin/git remote add origin https://github.com/thc1006/nephoran-intent-operator
+2025-08-28T14:45:20.1734252Z ##[endgroup]
+2025-08-28T14:45:20.1734636Z ##[group]Disabling automatic garbage collection
+2025-08-28T14:45:20.1740241Z [command]/usr/bin/git config --local gc.auto 0
+2025-08-28T14:45:20.1771039Z ##[endgroup]
+2025-08-28T14:45:20.1771656Z ##[group]Setting up auth
+2025-08-28T14:45:20.1780000Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-08-28T14:45:20.1812009Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-08-28T14:45:20.2143225Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-08-28T14:45:20.2185736Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-08-28T14:45:20.2416011Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-08-28T14:45:20.2455132Z ##[endgroup]
+2025-08-28T14:45:20.2455845Z ##[group]Fetching the repository
+2025-08-28T14:45:20.2465264Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +6f263b9d7e1563260cc3c514cc595bb769120031:refs/remotes/pull/87/merge
+2025-08-28T14:45:28.3958009Z From https://github.com/thc1006/nephoran-intent-operator
+2025-08-28T14:45:28.3961250Z  * [new branch]        chore/ci-autofix-setup                   -> origin/chore/ci-autofix-setup
+2025-08-28T14:45:28.3966433Z  * [new branch]        chore/claude-commands-and-hooks          -> origin/chore/claude-commands-and-hooks
+2025-08-28T14:45:28.3967596Z  * [new branch]        chore/conductor-governance               -> origin/chore/conductor-governance
+2025-08-28T14:45:28.3968520Z  * [new branch]        chore/conductor-setup                    -> origin/chore/conductor-setup
+2025-08-28T14:45:28.3969260Z  * [new branch]        chore/repo-hygiene                       -> origin/chore/repo-hygiene
+2025-08-28T14:45:28.3969790Z  * [new branch]        ci/fix-safety-docs-scan                  -> origin/ci/fix-safety-docs-scan
+2025-08-28T14:45:28.3970325Z  * [new branch]        claude/issue-99-20250824-0007            -> origin/claude/issue-99-20250824-0007
+2025-08-28T14:45:28.3971152Z  * [new branch]        clean-feat-conductor-loop                -> origin/clean-feat-conductor-loop
+2025-08-28T14:45:28.3971828Z  * [new branch]        dependabot/github_actions/actions/checkout-5 -> origin/dependabot/github_actions/actions/checkout-5
+2025-08-28T14:45:28.3972999Z  * [new branch]        dependabot/github_actions/actions/configure-pages-5 -> origin/dependabot/github_actions/actions/configure-pages-5
+2025-08-28T14:45:28.3973871Z  * [new branch]        dependabot/github_actions/codecov/codecov-action-5 -> origin/dependabot/github_actions/codecov/codecov-action-5
+2025-08-28T14:45:28.3974747Z  * [new branch]        dependabot/github_actions/golangci/golangci-lint-action-8 -> origin/dependabot/github_actions/golangci/golangci-lint-action-8
+2025-08-28T14:45:28.3975600Z  * [new branch]        dependabot/github_actions/helm/kind-action-1.12.0 -> origin/dependabot/github_actions/helm/kind-action-1.12.0
+2025-08-28T14:45:28.3976519Z  * [new branch]        dependabot/go_modules/cloud.google.com/go/compute-1.44.0 -> origin/dependabot/go_modules/cloud.google.com/go/compute-1.44.0
+2025-08-28T14:45:28.3978283Z  * [new branch]        dependabot/go_modules/cloud.google.com/go/container-1.44.0 -> origin/dependabot/go_modules/cloud.google.com/go/container-1.44.0
+2025-08-28T14:45:28.3980256Z  * [new branch]        dependabot/go_modules/github.com/Azure/azure-sdk-for-go/sdk/azcore-1.19.0 -> origin/dependabot/go_modules/github.com/Azure/azure-sdk-for-go/sdk/azcore-1.19.0
+2025-08-28T14:45:28.3982049Z  * [new branch]        dependabot/go_modules/github.com/aws/aws-sdk-go-v2-1.38.1 -> origin/dependabot/go_modules/github.com/aws/aws-sdk-go-v2-1.38.1
+2025-08-28T14:45:28.3983621Z  * [new branch]        dependabot/go_modules/github.com/aws/aws-sdk-go-v2/credentials-1.18.6 -> origin/dependabot/go_modules/github.com/aws/aws-sdk-go-v2/credentials-1.18.6
+2025-08-28T14:45:28.3984642Z  * [new branch]        dependabot/go_modules/github.com/aws/aws-sdk-go-v2/service/sts-1.38.0 -> origin/dependabot/go_modules/github.com/aws/aws-sdk-go-v2/service/sts-1.38.0
+2025-08-28T14:45:28.3985957Z  * [new branch]        dependabot/go_modules/go.opentelemetry.io/otel/exporters/prometheus-0.59.1 -> origin/dependabot/go_modules/go.opentelemetry.io/otel/exporters/prometheus-0.59.1
+2025-08-28T14:45:28.3986889Z  * [new branch]        dependabot/go_modules/golang.org/x/net-0.43.0 -> origin/dependabot/go_modules/golang.org/x/net-0.43.0
+2025-08-28T14:45:28.3987570Z  * [new branch]        dependabot/go_modules/helm.sh/helm/v3-3.18.6 -> origin/dependabot/go_modules/helm.sh/helm/v3-3.18.6
+2025-08-28T14:45:28.3988238Z  * [new branch]        dependabot/go_modules/k8s.io/client-go-0.33.4 -> origin/dependabot/go_modules/k8s.io/client-go-0.33.4
+2025-08-28T14:45:28.3988822Z  * [new branch]        feat/a1-policy-sim                       -> origin/feat/a1-policy-sim
+2025-08-28T14:45:28.3989310Z  * [new branch]        feat/admission-webhook                   -> origin/feat/admission-webhook
+2025-08-28T14:45:28.3989971Z  * [new branch]        feat/ci-guard                            -> origin/feat/ci-guard
+2025-08-28T14:45:28.3990487Z  * [new branch]        feat/conductor-file-watcher              -> origin/feat/conductor-file-watcher
+2025-08-28T14:45:28.3991017Z  * [new branch]        feat/conductor-loop                      -> origin/feat/conductor-loop
+2025-08-28T14:45:28.3991588Z  * [new branch]        feat/e2-kpm-sim                          -> origin/feat/e2-kpm-sim
+2025-08-28T14:45:28.3992046Z  * [new branch]        feat/e2e                                 -> origin/feat/e2e
+2025-08-28T14:45:28.3992918Z  * [new branch]        feat/examples-mvp                        -> origin/feat/examples-mvp
+2025-08-28T14:45:28.3993390Z  * [new branch]        feat/ingest-llm                          -> origin/feat/ingest-llm
+2025-08-28T14:45:28.3993895Z  * [new branch]        feat/ingest-tests-and-errors             -> origin/feat/ingest-tests-and-errors
+2025-08-28T14:45:28.3994384Z  * [new branch]        feat/o1-ves-sim                          -> origin/feat/o1-ves-sim
+2025-08-28T14:45:28.3994978Z  * [new branch]        feat/planner                             -> origin/feat/planner
+2025-08-28T14:45:28.3995458Z  * [new branch]        feat/porch-direct                        -> origin/feat/porch-direct
+2025-08-28T14:45:28.3995967Z  * [new branch]        feat/porch-publisher                     -> origin/feat/porch-publisher
+2025-08-28T14:45:28.3996525Z  * [new branch]        feat/porch-structured-patch              -> origin/feat/porch-structured-patch
+2025-08-28T14:45:28.3997096Z  * [new branch]        feat/sim-fcaps-to-intent                 -> origin/feat/sim-fcaps-to-intent
+2025-08-28T14:45:28.3997604Z  * [new branch]        feat/test-harness                        -> origin/feat/test-harness
+2025-08-28T14:45:28.3998204Z  * [new branch]        fix/graceful-shutdown-exit-codes         -> origin/fix/graceful-shutdown-exit-codes
+2025-08-28T14:45:28.3998807Z  * [new branch]        fix/unused-import-lint-ci                -> origin/fix/unused-import-lint-ci
+2025-08-28T14:45:28.3999318Z  * [new branch]        integrate/mvp                            -> origin/integrate/mvp
+2025-08-28T14:45:28.3999744Z  * [new branch]        main                                     -> origin/main
+2025-08-28T14:45:28.4000234Z  * [new branch]        wip/keep-local-20250820-164908           -> origin/wip/keep-local-20250820-164908
+2025-08-28T14:45:28.4000847Z  * [new tag]           backup/pre-cleanup-20250813234213        -> backup/pre-cleanup-20250813234213
+2025-08-28T14:45:28.4001317Z  * [new tag]           v0.1.0-mvp                               -> v0.1.0-mvp
+2025-08-28T14:45:28.4001715Z  * [new ref]           6f263b9d7e1563260cc3c514cc595bb769120031 -> pull/87/merge
+2025-08-28T14:45:28.4142943Z ##[endgroup]
+2025-08-28T14:45:28.4143598Z ##[group]Determining the checkout info
+2025-08-28T14:45:28.4144272Z ##[endgroup]
+2025-08-28T14:45:28.4150522Z [command]/usr/bin/git sparse-checkout disable
+2025-08-28T14:45:28.4194114Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-08-28T14:45:28.4221810Z ##[group]Checking out the ref
+2025-08-28T14:45:28.4225635Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/87/merge
+2025-08-28T14:45:28.7300269Z Note: switching to 'refs/remotes/pull/87/merge'.
+2025-08-28T14:45:28.7300693Z 
+2025-08-28T14:45:28.7300975Z You are in 'detached HEAD' state. You can look around, make experimental
+2025-08-28T14:45:28.7301661Z changes and commit them, and you can discard any commits you make in this
+2025-08-28T14:45:28.7302551Z state without impacting any branches by switching back to a branch.
+2025-08-28T14:45:28.7302959Z 
+2025-08-28T14:45:28.7303231Z If you want to create a new branch to retain commits you create, you may
+2025-08-28T14:45:28.7303872Z do so (now or later) by using -c with the switch command. Example:
+2025-08-28T14:45:28.7304266Z 
+2025-08-28T14:45:28.7304420Z   git switch -c <new-branch-name>
+2025-08-28T14:45:28.7304733Z 
+2025-08-28T14:45:28.7304874Z Or undo this operation with:
+2025-08-28T14:45:28.7305118Z 
+2025-08-28T14:45:28.7305252Z   git switch -
+2025-08-28T14:45:28.7305426Z 
+2025-08-28T14:45:28.7305761Z Turn off this advice by setting config variable advice.detachedHead to false
+2025-08-28T14:45:28.7306269Z 
+2025-08-28T14:45:28.7306852Z HEAD is now at 6f263b9d Merge b29b2c5f6287ebdfaf91a2ba6c070028d4e2d4f9 into f79c76d323b13b670c153b880aa4f2e72c1efb3c
+2025-08-28T14:45:28.7340921Z ##[endgroup]
+2025-08-28T14:45:28.7385801Z [command]/usr/bin/git log -1 --format=%H
+2025-08-28T14:45:28.7412695Z 6f263b9d7e1563260cc3c514cc595bb769120031
+2025-08-28T14:45:28.7611034Z ##[group]Run docker/setup-buildx-action@v3
+2025-08-28T14:45:28.7611317Z with:
+2025-08-28T14:45:28.7611501Z   platforms: linux/amd64,linux/arm64
+2025-08-28T14:45:28.7611748Z   driver: docker-container
+2025-08-28T14:45:28.7611955Z   install: false
+2025-08-28T14:45:28.7612123Z   use: true
+2025-08-28T14:45:28.7612544Z   keep-state: false
+2025-08-28T14:45:28.7612759Z   cache-binary: true
+2025-08-28T14:45:28.7612932Z   cleanup: true
+2025-08-28T14:45:28.7613098Z env:
+2025-08-28T14:45:28.7613434Z   REGISTRY: ghcr.io
+2025-08-28T14:45:28.7613636Z   IMAGE_NAME: nephoran-intent-operator
+2025-08-28T14:45:28.7613872Z   TRIVY_VERSION: 0.57.1
+2025-08-28T14:45:28.7614056Z   GRYPE_VERSION: 0.84.0
+2025-08-28T14:45:28.7614231Z   COSIGN_VERSION: 2.4.0
+2025-08-28T14:45:28.7614412Z   SYFT_VERSION: 1.17.0
+2025-08-28T14:45:28.7614584Z ##[endgroup]
+2025-08-28T14:45:29.0509883Z ##[group]Docker info
+2025-08-28T14:45:29.0544195Z [command]/usr/bin/docker version
+2025-08-28T14:45:29.1561787Z Client: Docker Engine - Community
+2025-08-28T14:45:29.1572532Z  Version:           28.0.4
+2025-08-28T14:45:29.1576425Z  API version:       1.48
+2025-08-28T14:45:29.1577141Z  Go version:        go1.23.7
+2025-08-28T14:45:29.1577659Z  Git commit:        b8034c0
+2025-08-28T14:45:29.1578158Z  Built:             Tue Mar 25 15:07:16 2025
+2025-08-28T14:45:29.1578757Z  OS/Arch:           linux/amd64
+2025-08-28T14:45:29.1579258Z  Context:           default
+2025-08-28T14:45:29.1579546Z 
+2025-08-28T14:45:29.1579774Z Server: Docker Engine - Community
+2025-08-28T14:45:29.1580327Z  Engine:
+2025-08-28T14:45:29.1580740Z   Version:          28.0.4
+2025-08-28T14:45:29.1581273Z   API version:      1.48 (minimum version 1.24)
+2025-08-28T14:45:29.1581870Z   Go version:       go1.23.7
+2025-08-28T14:45:29.1582561Z   Git commit:       6430e49
+2025-08-28T14:45:29.1583068Z   Built:            Tue Mar 25 15:07:16 2025
+2025-08-28T14:45:29.1583607Z   OS/Arch:          linux/amd64
+2025-08-28T14:45:29.1584123Z   Experimental:     false
+2025-08-28T14:45:29.1584605Z  containerd:
+2025-08-28T14:45:29.1585033Z   Version:          1.7.27
+2025-08-28T14:45:29.1585590Z   GitCommit:        05044ec0a9a75232cad458027ca83437aae3f4da
+2025-08-28T14:45:29.1586211Z  runc:
+2025-08-28T14:45:29.1586624Z   Version:          1.2.5
+2025-08-28T14:45:29.1587090Z   GitCommit:        v1.2.5-0-g59923ef
+2025-08-28T14:45:29.1587625Z  docker-init:
+2025-08-28T14:45:29.1588053Z   Version:          0.19.0
+2025-08-28T14:45:29.1588527Z   GitCommit:        de40ad0
+2025-08-28T14:45:29.1637837Z [command]/usr/bin/docker info
+2025-08-28T14:45:29.6184698Z Client: Docker Engine - Community
+2025-08-28T14:45:29.6185732Z  Version:    28.0.4
+2025-08-28T14:45:29.6186044Z  Context:    default
+2025-08-28T14:45:29.6186318Z  Debug Mode: false
+2025-08-28T14:45:29.6186584Z  Plugins:
+2025-08-28T14:45:29.6186903Z   buildx: Docker Buildx (Docker Inc.)
+2025-08-28T14:45:29.6187255Z     Version:  v0.27.0
+2025-08-28T14:45:29.6187622Z     Path:     /usr/libexec/docker/cli-plugins/docker-buildx
+2025-08-28T14:45:29.6188110Z   compose: Docker Compose (Docker Inc.)
+2025-08-28T14:45:29.6188468Z     Version:  v2.38.2
+2025-08-28T14:45:29.6188814Z     Path:     /usr/libexec/docker/cli-plugins/docker-compose
+2025-08-28T14:45:29.6189165Z 
+2025-08-28T14:45:29.6189270Z Server:
+2025-08-28T14:45:29.6189523Z  Containers: 0
+2025-08-28T14:45:29.6189786Z   Running: 0
+2025-08-28T14:45:29.6190084Z   Paused: 0
+2025-08-28T14:45:29.6190242Z   Stopped: 0
+2025-08-28T14:45:29.6190411Z  Images: 0
+2025-08-28T14:45:29.6190575Z  Server Version: 28.0.4
+2025-08-28T14:45:29.6190785Z  Storage Driver: overlay2
+2025-08-28T14:45:29.6190988Z   Backing Filesystem: extfs
+2025-08-28T14:45:29.6191195Z   Supports d_type: true
+2025-08-28T14:45:29.6191383Z   Using metacopy: false
+2025-08-28T14:45:29.6191574Z   Native Overlay Diff: false
+2025-08-28T14:45:29.6191771Z   userxattr: false
+2025-08-28T14:45:29.6191957Z  Logging Driver: json-file
+2025-08-28T14:45:29.6192160Z  Cgroup Driver: systemd
+2025-08-28T14:45:29.6192612Z  Cgroup Version: 2
+2025-08-28T14:45:29.6193150Z  Plugins:
+2025-08-28T14:45:29.6193313Z   Volume: local
+2025-08-28T14:45:29.6193521Z   Network: bridge host ipvlan macvlan null overlay
+2025-08-28T14:45:29.6193887Z   Log: awslogs fluentd gcplogs gelf journald json-file local splunk syslog
+2025-08-28T14:45:29.6194215Z  Swarm: inactive
+2025-08-28T14:45:29.6194401Z  Runtimes: io.containerd.runc.v2 runc
+2025-08-28T14:45:29.6194640Z  Default Runtime: runc
+2025-08-28T14:45:29.6194826Z  Init Binary: docker-init
+2025-08-28T14:45:29.6195108Z  containerd version: 05044ec0a9a75232cad458027ca83437aae3f4da
+2025-08-28T14:45:29.6195569Z  runc version: v1.2.5-0-g59923ef
+2025-08-28T14:45:29.6195785Z  init version: de40ad0
+2025-08-28T14:45:29.6196094Z  Security Options:
+2025-08-28T14:45:29.6196388Z   apparmor
+2025-08-28T14:45:29.6196671Z   seccomp
+2025-08-28T14:45:29.6196934Z    Profile: builtin
+2025-08-28T14:45:29.6197229Z   cgroupns
+2025-08-28T14:45:29.6197504Z  Kernel Version: 6.11.0-1018-azure
+2025-08-28T14:45:29.6197932Z  Operating System: Ubuntu 24.04.3 LTS
+2025-08-28T14:45:29.6198383Z  OSType: linux
+2025-08-28T14:45:29.6199013Z  Architecture: x86_64
+2025-08-28T14:45:29.6199444Z  CPUs: 4
+2025-08-28T14:45:29.6199794Z  Total Memory: 15.62GiB
+2025-08-28T14:45:29.6200605Z  Name: pkrvmccyg1gnepe
+2025-08-28T14:45:29.6201019Z  ID: 1acf8ebc-766d-4eb7-bec2-c07f6b4097da
+2025-08-28T14:45:29.6201550Z  Docker Root Dir: /var/lib/docker
+2025-08-28T14:45:29.6202148Z  Debug Mode: false
+2025-08-28T14:45:29.6202944Z  Username: githubactions
+2025-08-28T14:45:29.6203387Z  Experimental: false
+2025-08-28T14:45:29.6203969Z  Insecure Registries:
+2025-08-28T14:45:29.6208934Z   ::1/128
+2025-08-28T14:45:29.6209325Z   127.0.0.0/8
+2025-08-28T14:45:29.6209989Z  Live Restore Enabled: false
+2025-08-28T14:45:29.6210329Z 
+2025-08-28T14:45:29.6211196Z ##[endgroup]
+2025-08-28T14:45:29.6810151Z ##[group]Buildx version
+2025-08-28T14:45:29.6832900Z [command]/usr/bin/docker buildx version
+2025-08-28T14:45:29.7357026Z github.com/docker/buildx v0.27.0 bac71def78b077ee6a2607119f88e291861b18ac
+2025-08-28T14:45:29.7399057Z ##[endgroup]
+2025-08-28T14:45:29.7560771Z ##[group]Inspecting default docker context
+2025-08-28T14:45:29.7726437Z [
+2025-08-28T14:45:29.7727037Z   {
+2025-08-28T14:45:29.7727467Z     "Name": "default",
+2025-08-28T14:45:29.7727785Z     "Metadata": {},
+2025-08-28T14:45:29.7728010Z     "Endpoints": {
+2025-08-28T14:45:29.7728355Z       "docker": {
+2025-08-28T14:45:29.7728633Z         "Host": "unix:///var/run/docker.sock",
+2025-08-28T14:45:29.7729021Z         "SkipTLSVerify": false
+2025-08-28T14:45:29.7729389Z       }
+2025-08-28T14:45:29.7729646Z     },
+2025-08-28T14:45:29.7729993Z     "TLSMaterial": {},
+2025-08-28T14:45:29.7730357Z     "Storage": {
+2025-08-28T14:45:29.7730604Z       "MetadataPath": "<IN MEMORY>",
+2025-08-28T14:45:29.7758777Z       "TLSPath": "<IN MEMORY>"
+2025-08-28T14:45:29.7759202Z     }
+2025-08-28T14:45:29.7759466Z   }
+2025-08-28T14:45:29.7759707Z ]
+2025-08-28T14:45:29.7760337Z ##[endgroup]
+2025-08-28T14:45:29.7760912Z ##[group]Creating a new builder instance
+2025-08-28T14:45:29.8959619Z [command]/usr/bin/docker buildx create --name builder-14140e2c-c45b-427e-b63b-f6561d8cc817 --driver docker-container --buildkitd-flags --allow-insecure-entitlement security.insecure --allow-insecure-entitlement network.host --platform linux/amd64,linux/arm64 --use
+2025-08-28T14:45:29.9645801Z builder-14140e2c-c45b-427e-b63b-f6561d8cc817
+2025-08-28T14:45:29.9685977Z ##[endgroup]
+2025-08-28T14:45:29.9686433Z ##[group]Booting builder
+2025-08-28T14:45:29.9716675Z [command]/usr/bin/docker buildx inspect --bootstrap --builder builder-14140e2c-c45b-427e-b63b-f6561d8cc817
+2025-08-28T14:45:30.0313158Z #1 [internal] booting buildkit
+2025-08-28T14:45:30.1816488Z #1 pulling image moby/buildkit:buildx-stable-1
+2025-08-28T14:45:33.1550979Z #1 pulling image moby/buildkit:buildx-stable-1 3.1s done
+2025-08-28T14:45:33.3055413Z #1 creating container buildx_buildkit_builder-14140e2c-c45b-427e-b63b-f6561d8cc8170
+2025-08-28T14:45:33.4201668Z #1 creating container buildx_buildkit_builder-14140e2c-c45b-427e-b63b-f6561d8cc8170 0.3s done
+2025-08-28T14:45:33.4229762Z #1 DONE 3.4s
+2025-08-28T14:45:33.4567746Z Name:          builder-14140e2c-c45b-427e-b63b-f6561d8cc817
+2025-08-28T14:45:33.4568279Z Driver:        docker-container
+2025-08-28T14:45:33.4568700Z Last Activity: 2025-08-28 14:45:29 +0000 UTC
+2025-08-28T14:45:33.4569005Z 
+2025-08-28T14:45:33.4569121Z Nodes:
+2025-08-28T14:45:33.4569487Z Name:                  builder-14140e2c-c45b-427e-b63b-f6561d8cc8170
+2025-08-28T14:45:33.4569890Z Endpoint:              unix:///var/run/docker.sock
+2025-08-28T14:45:33.4570780Z Status:                running
+2025-08-28T14:45:33.4571272Z BuildKit daemon flags: --allow-insecure-entitlement security.insecure --allow-insecure-entitlement network.host
+2025-08-28T14:45:33.4571759Z BuildKit version:      v0.23.2
+2025-08-28T14:45:33.4572099Z Platforms:             linux/amd64*, linux/arm64*, linux/amd64/v2, linux/amd64/v3, linux/386
+2025-08-28T14:45:33.4572698Z Labels:
+2025-08-28T14:45:33.4572925Z  org.mobyproject.buildkit.worker.executor:         oci
+2025-08-28T14:45:33.4573324Z  org.mobyproject.buildkit.worker.hostname:         57b14cd14e1f
+2025-08-28T14:45:33.4573712Z  org.mobyproject.buildkit.worker.network:          host
+2025-08-28T14:45:33.4574075Z  org.mobyproject.buildkit.worker.oci.process-mode: sandbox
+2025-08-28T14:45:33.4574441Z  org.mobyproject.buildkit.worker.selinux.enabled:  false
+2025-08-28T14:45:33.4574812Z  org.mobyproject.buildkit.worker.snapshotter:      overlayfs
+2025-08-28T14:45:33.4575119Z GC Policy rule#0:
+2025-08-28T14:45:33.4575296Z  All:            false
+2025-08-28T14:45:33.4575599Z  Filters:        type==source.local,type==exec.cachemount,type==source.git.checkout
+2025-08-28T14:45:33.4575943Z  Keep Duration:  48h0m0s
+2025-08-28T14:45:33.4576145Z  Max Used Space: 488.3MiB
+2025-08-28T14:45:33.4576333Z GC Policy rule#1:
+2025-08-28T14:45:33.4576510Z  All:            false
+2025-08-28T14:45:33.4576689Z  Keep Duration:  1440h0m0s
+2025-08-28T14:45:33.4576898Z  Reserved Space: 7.451GiB
+2025-08-28T14:45:33.4577086Z  Max Used Space: 54.02GiB
+2025-08-28T14:45:33.4577280Z  Min Free Space: 13.97GiB
+2025-08-28T14:45:33.4577464Z GC Policy rule#2:
+2025-08-28T14:45:33.4577623Z  All:            false
+2025-08-28T14:45:33.4577802Z  Reserved Space: 7.451GiB
+2025-08-28T14:45:33.4577981Z  Max Used Space: 54.02GiB
+2025-08-28T14:45:33.4578171Z  Min Free Space: 13.97GiB
+2025-08-28T14:45:33.4578346Z GC Policy rule#3:
+2025-08-28T14:45:33.4578510Z  All:            true
+2025-08-28T14:45:33.4578680Z  Reserved Space: 7.451GiB
+2025-08-28T14:45:33.4578865Z  Max Used Space: 54.02GiB
+2025-08-28T14:45:33.4579047Z  Min Free Space: 13.97GiB
+2025-08-28T14:45:33.4620237Z ##[endgroup]
+2025-08-28T14:45:33.5495624Z ##[group]Inspect builder
+2025-08-28T14:45:33.5499430Z {
+2025-08-28T14:45:33.5499792Z   "nodes": [
+2025-08-28T14:45:33.5500078Z     {
+2025-08-28T14:45:33.5500495Z       "name": "builder-14140e2c-c45b-427e-b63b-f6561d8cc8170",
+2025-08-28T14:45:33.5501074Z       "endpoint": "unix:///var/run/docker.sock",
+2025-08-28T14:45:33.5501541Z       "status": "running",
+2025-08-28T14:45:33.5502771Z       "buildkitd-flags": "--allow-insecure-entitlement security.insecure --allow-insecure-entitlement network.host",
+2025-08-28T14:45:33.5503700Z       "buildkit": "v0.23.2",
+2025-08-28T14:45:33.5504135Z       "platforms": "linux/amd64,linux/arm64",
+2025-08-28T14:45:33.5504570Z       "features": {
+2025-08-28T14:45:33.5505073Z         "Automatically load images to the Docker Engine image store": true,
+2025-08-28T14:45:33.5505708Z         "Cache export": true,
+2025-08-28T14:45:33.5506135Z         "Direct push": true,
+2025-08-28T14:45:33.5506516Z         "Docker exporter": true,
+2025-08-28T14:45:33.5506925Z         "Multi-platform build": true,
+2025-08-28T14:45:33.5507350Z         "OCI exporter": true
+2025-08-28T14:45:33.5507688Z       },
+2025-08-28T14:45:33.5507969Z       "labels": {
+2025-08-28T14:45:33.5508336Z         "org.mobyproject.buildkit.worker.executor": "oci",
+2025-08-28T14:45:33.5508930Z         "org.mobyproject.buildkit.worker.hostname": "57b14cd14e1f",
+2025-08-28T14:45:33.5509783Z         "org.mobyproject.buildkit.worker.network": "host",
+2025-08-28T14:45:33.5510409Z         "org.mobyproject.buildkit.worker.oci.process-mode": "sandbox",
+2025-08-28T14:45:33.5511089Z         "org.mobyproject.buildkit.worker.selinux.enabled": "false",
+2025-08-28T14:45:33.5511739Z         "org.mobyproject.buildkit.worker.snapshotter": "overlayfs"
+2025-08-28T14:45:33.5512226Z       },
+2025-08-28T14:45:33.5512987Z       "gcPolicy": [
+2025-08-28T14:45:33.5513239Z         {
+2025-08-28T14:45:33.5513466Z           "all": false,
+2025-08-28T14:45:33.5513959Z           "filter": [
+2025-08-28T14:45:33.5514242Z             "type==source.local",
+2025-08-28T14:45:33.5514615Z             "type==exec.cachemount",
+2025-08-28T14:45:33.5515001Z             "type==source.git.checkout"
+2025-08-28T14:45:33.5515364Z           ],
+2025-08-28T14:45:33.5515640Z           "keepDuration": "48h0m0s",
+2025-08-28T14:45:33.5516005Z           "maxUsedSpace": "488.3MiB"
+2025-08-28T14:45:33.5516342Z         },
+2025-08-28T14:45:33.5516598Z         {
+2025-08-28T14:45:33.5516846Z           "all": false,
+2025-08-28T14:45:33.5517168Z           "keepDuration": "1440h0m0s",
+2025-08-28T14:45:33.5517557Z           "reservedSpace": "7.451GiB",
+2025-08-28T14:45:33.5517939Z           "maxUsedSpace": "54.02GiB",
+2025-08-28T14:45:33.5518325Z           "minFreeSpace": "13.97GiB"
+2025-08-28T14:45:33.5518669Z         },
+2025-08-28T14:45:33.5518920Z         {
+2025-08-28T14:45:33.5519167Z           "all": false,
+2025-08-28T14:45:33.5519495Z           "reservedSpace": "7.451GiB",
+2025-08-28T14:45:33.5519889Z           "maxUsedSpace": "54.02GiB",
+2025-08-28T14:45:33.5520269Z           "minFreeSpace": "13.97GiB"
+2025-08-28T14:45:33.5520623Z         },
+2025-08-28T14:45:33.5520871Z         {
+2025-08-28T14:45:33.5521126Z           "all": true,
+2025-08-28T14:45:33.5521436Z           "reservedSpace": "7.451GiB",
+2025-08-28T14:45:33.5521817Z           "maxUsedSpace": "54.02GiB",
+2025-08-28T14:45:33.5522188Z           "minFreeSpace": "13.97GiB"
+2025-08-28T14:45:33.5522846Z         }
+2025-08-28T14:45:33.5523088Z       ]
+2025-08-28T14:45:33.5523328Z     }
+2025-08-28T14:45:33.5523558Z   ],
+2025-08-28T14:45:33.5523901Z   "name": "builder-14140e2c-c45b-427e-b63b-f6561d8cc817",
+2025-08-28T14:45:33.5524374Z   "driver": "docker-container",
+2025-08-28T14:45:33.5524755Z   "lastActivity": "2025-08-28T14:45:29.000Z"
+2025-08-28T14:45:33.5525129Z }
+2025-08-28T14:45:33.5526576Z ##[endgroup]
+2025-08-28T14:45:33.5527097Z ##[group]BuildKit version
+2025-08-28T14:45:33.5527526Z builder-14140e2c-c45b-427e-b63b-f6561d8cc8170: v0.23.2
+2025-08-28T14:45:33.5528201Z ##[endgroup]
+2025-08-28T14:45:33.5658005Z ##[group]Run # Sanitize ref_name to create valid Docker tag
+2025-08-28T14:45:33.5658461Z [36;1m# Sanitize ref_name to create valid Docker tag[0m
+2025-08-28T14:45:33.5658858Z [36;1mRAW_VERSION="87/merge-6f263b9d7e1563260cc3c514cc595bb769120031"[0m
+2025-08-28T14:45:33.5659246Z [36;1m# Replace any char not in [A-Za-z0-9._-] with '-'[0m
+2025-08-28T14:45:33.5659604Z [36;1mSANITIZED=$(echo "$RAW_VERSION" | sed 's/[^A-Za-z0-9._-]/-/g')[0m
+2025-08-28T14:45:33.5659929Z [36;1m# Remove leading/trailing dashes[0m
+2025-08-28T14:45:33.5660223Z [36;1mSANITIZED=$(echo "$SANITIZED" | sed 's/^-*\|-*$//g')[0m
+2025-08-28T14:45:33.5660535Z [36;1m# Limit to 127 characters (Docker tag limit)[0m
+2025-08-28T14:45:33.5660845Z [36;1mSANITIZED=$(echo "$SANITIZED" | cut -c1-127)[0m
+2025-08-28T14:45:33.5661153Z [36;1mecho "VERSION_SAFE=$SANITIZED" >> $GITHUB_OUTPUT[0m
+2025-08-28T14:45:33.5661436Z [36;1mecho "Original: $RAW_VERSION"[0m
+2025-08-28T14:45:33.5661718Z [36;1mecho "Sanitized: $SANITIZED"[0m
+2025-08-28T14:45:33.5715366Z shell: /usr/bin/bash -e {0}
+2025-08-28T14:45:33.5715601Z env:
+2025-08-28T14:45:33.5715759Z   REGISTRY: ghcr.io
+2025-08-28T14:45:33.5715984Z   IMAGE_NAME: nephoran-intent-operator
+2025-08-28T14:45:33.5716241Z   TRIVY_VERSION: 0.57.1
+2025-08-28T14:45:33.5716428Z   GRYPE_VERSION: 0.84.0
+2025-08-28T14:45:33.5716612Z   COSIGN_VERSION: 2.4.0
+2025-08-28T14:45:33.5716786Z   SYFT_VERSION: 1.17.0
+2025-08-28T14:45:33.5716969Z ##[endgroup]
+2025-08-28T14:45:33.5838319Z Original: 87/merge-6f263b9d7e1563260cc3c514cc595bb769120031
+2025-08-28T14:45:33.5838792Z Sanitized: 87-merge-6f263b9d7e1563260cc3c514cc595bb769120031
+2025-08-28T14:45:33.5885079Z ##[group]Run set -euo pipefail
+2025-08-28T14:45:33.5885473Z [36;1mset -euo pipefail[0m
+2025-08-28T14:45:33.5885681Z [36;1m[0m
+2025-08-28T14:45:33.5885945Z [36;1m# Function to check if a version exists on GitHub releases[0m
+2025-08-28T14:45:33.5886456Z [36;1mcheck_github_version() {[0m
+2025-08-28T14:45:33.5886688Z [36;1m  local repo=$1[0m
+2025-08-28T14:45:33.5886888Z [36;1m  local version=$2[0m
+2025-08-28T14:45:33.5887249Z [36;1m  local url="https://api.github.com/repos/${repo}/releases/tags/v${version}"[0m
+2025-08-28T14:45:33.5887651Z [36;1m  if curl -sL "$url" | grep -q '"tag_name"'; then[0m
+2025-08-28T14:45:33.5887962Z [36;1m    echo "Version v${version} exists for ${repo}"[0m
+2025-08-28T14:45:33.5888226Z [36;1m    return 0[0m
+2025-08-28T14:45:33.5888410Z [36;1m  else[0m
+2025-08-28T14:45:33.5888678Z [36;1m    echo "Version v${version} not found for ${repo}, will use latest"[0m
+2025-08-28T14:45:33.5888990Z [36;1m    return 1[0m
+2025-08-28T14:45:33.5889200Z [36;1m  fi[0m
+2025-08-28T14:45:33.5889358Z [36;1m}[0m
+2025-08-28T14:45:33.5889514Z [36;1m[0m
+2025-08-28T14:45:33.5889726Z [36;1m# Function to get latest release version from GitHub[0m
+2025-08-28T14:45:33.5890016Z [36;1mget_latest_version() {[0m
+2025-08-28T14:45:33.5890232Z [36;1m  local repo=$1[0m
+2025-08-28T14:45:33.5890677Z [36;1m  curl -sL "https://api.github.com/repos/${repo}/releases/latest" | grep '"tag_name":' | cut -d '"' -f 4 | sed 's/^v//'[0m
+2025-08-28T14:45:33.5891130Z [36;1m}[0m
+2025-08-28T14:45:33.5891278Z [36;1m[0m
+2025-08-28T14:45:33.5891589Z [36;1mecho "🔧 Installing security scanning tools for Ubuntu $(lsb_release -rs)..."[0m
+2025-08-28T14:45:33.5891963Z [36;1msudo apt-get update[0m
+2025-08-28T14:45:33.5892541Z [36;1msudo apt-get install -y wget apt-transport-https gnupg lsb-release curl jq[0m
+2025-08-28T14:45:33.5892917Z [36;1m[0m
+2025-08-28T14:45:33.5893091Z [36;1mecho "📦 Installing Trivy..."[0m
+2025-08-28T14:45:33.5893372Z [36;1m# Use modern GPG key management for Trivy[0m
+2025-08-28T14:45:33.5893966Z [36;1mif ! wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --dearmor -o /usr/share/keyrings/trivy-keyring.gpg; then[0m
+2025-08-28T14:45:33.5894637Z [36;1m  echo "⚠️ Failed to add Trivy GPG key, falling back to binary installation"[0m
+2025-08-28T14:45:33.5894984Z [36;1m  TRIVY_FALLBACK=true[0m
+2025-08-28T14:45:33.5895182Z [36;1melse[0m
+2025-08-28T14:45:33.5895793Z [36;1m  echo "deb [signed-by=/usr/share/keyrings/trivy-keyring.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list[0m
+2025-08-28T14:45:33.5896476Z [36;1m  sudo apt-get update[0m
+2025-08-28T14:45:33.5896679Z [36;1m  [0m
+2025-08-28T14:45:33.5896938Z [36;1m  # Try to install specific version, fall back to available version[0m
+2025-08-28T14:45:33.5897356Z [36;1m  if sudo apt-get install -y trivy=${TRIVY_VERSION} 2>/dev/null; then[0m
+2025-08-28T14:45:33.5897753Z [36;1m    echo "✅ Trivy ${TRIVY_VERSION} installed from repository"[0m
+2025-08-28T14:45:33.5898112Z [36;1m  elif sudo apt-get install -y trivy 2>/dev/null; then[0m
+2025-08-28T14:45:33.5898485Z [36;1m    echo "✅ Trivy latest available version installed from repository"[0m
+2025-08-28T14:45:33.5898790Z [36;1m  else[0m
+2025-08-28T14:45:33.5899062Z [36;1m    echo "⚠️ Repository installation failed, falling back to binary"[0m
+2025-08-28T14:45:33.5899381Z [36;1m    TRIVY_FALLBACK=true[0m
+2025-08-28T14:45:33.5899592Z [36;1m  fi[0m
+2025-08-28T14:45:33.5899742Z [36;1mfi[0m
+2025-08-28T14:45:33.5899889Z [36;1m[0m
+2025-08-28T14:45:33.5900084Z [36;1m# Fallback to binary installation for Trivy[0m
+2025-08-28T14:45:33.5900376Z [36;1mif [ "${TRIVY_FALLBACK:-false}" = "true" ]; then[0m
+2025-08-28T14:45:33.5900701Z [36;1m  echo "📥 Installing Trivy from GitHub releases..."[0m
+2025-08-28T14:45:33.5901077Z [36;1m  if check_github_version "aquasecurity/trivy" "${TRIVY_VERSION}"; then[0m
+2025-08-28T14:45:33.5901649Z [36;1m    TRIVY_INSTALL_VERSION="${TRIVY_VERSION}"[0m
+2025-08-28T14:45:33.5901898Z [36;1m  else[0m
+2025-08-28T14:45:33.5902163Z [36;1m    TRIVY_INSTALL_VERSION=$(get_latest_version "aquasecurity/trivy")[0m
+2025-08-28T14:45:33.5902773Z [36;1m    echo "Using Trivy version: ${TRIVY_INSTALL_VERSION}"[0m
+2025-08-28T14:45:33.5903182Z [36;1m  fi[0m
+2025-08-28T14:45:33.5903338Z [36;1m  [0m
+2025-08-28T14:45:33.5903862Z [36;1m  wget -q "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_INSTALL_VERSION}/trivy_${TRIVY_INSTALL_VERSION}_Linux-64bit.tar.gz"[0m
+2025-08-28T14:45:33.5904523Z [36;1m  tar -xzf "trivy_${TRIVY_INSTALL_VERSION}_Linux-64bit.tar.gz"[0m
+2025-08-28T14:45:33.5904845Z [36;1m  sudo mv trivy /usr/local/bin/[0m
+2025-08-28T14:45:33.5905090Z [36;1m  sudo chmod +x /usr/local/bin/trivy[0m
+2025-08-28T14:45:33.5905393Z [36;1m  rm -f "trivy_${TRIVY_INSTALL_VERSION}_Linux-64bit.tar.gz"[0m
+2025-08-28T14:45:33.5905748Z [36;1m  echo "✅ Trivy ${TRIVY_INSTALL_VERSION} installed from binary"[0m
+2025-08-28T14:45:33.5906049Z [36;1mfi[0m
+2025-08-28T14:45:33.5906195Z [36;1m[0m
+2025-08-28T14:45:33.5906367Z [36;1mecho "📦 Installing Grype..."[0m
+2025-08-28T14:45:33.5906657Z [36;1m# Check if specific version exists, fall back to latest[0m
+2025-08-28T14:45:33.5907034Z [36;1mif check_github_version "anchore/grype" "${GRYPE_VERSION}"; then[0m
+2025-08-28T14:45:33.5907390Z [36;1m  GRYPE_INSTALL_VERSION="${GRYPE_VERSION}"[0m
+2025-08-28T14:45:33.5907633Z [36;1melse[0m
+2025-08-28T14:45:33.5907875Z [36;1m  GRYPE_INSTALL_VERSION=$(get_latest_version "anchore/grype")[0m
+2025-08-28T14:45:33.5908231Z [36;1m  echo "Using Grype version: ${GRYPE_INSTALL_VERSION}"[0m
+2025-08-28T14:45:33.5908504Z [36;1mfi[0m
+2025-08-28T14:45:33.5908649Z [36;1m[0m
+2025-08-28T14:45:33.5909147Z [36;1mif curl -sSfL "https://raw.githubusercontent.com/anchore/grype/main/install.sh" | sh -s -- -b /usr/local/bin "v${GRYPE_INSTALL_VERSION}"; then[0m
+2025-08-28T14:45:33.5909773Z [36;1m  echo "✅ Grype ${GRYPE_INSTALL_VERSION} installed"[0m
+2025-08-28T14:45:33.5910035Z [36;1melse[0m
+2025-08-28T14:45:33.5910254Z [36;1m  echo "⚠️ Grype installation failed, trying latest"[0m
+2025-08-28T14:45:33.5910764Z [36;1m  curl -sSfL "https://raw.githubusercontent.com/anchore/grype/main/install.sh" | sh -s -- -b /usr/local/bin[0m
+2025-08-28T14:45:33.5911263Z [36;1m  echo "✅ Grype latest version installed"[0m
+2025-08-28T14:45:33.5911516Z [36;1mfi[0m
+2025-08-28T14:45:33.5911662Z [36;1m[0m
+2025-08-28T14:45:33.5911865Z [36;1mecho "📦 Installing Syft for SBOM generation..."[0m
+2025-08-28T14:45:33.5912195Z [36;1m# Check if specific version exists, fall back to latest[0m
+2025-08-28T14:45:33.5912926Z [36;1mif check_github_version "anchore/syft" "${SYFT_VERSION}"; then[0m
+2025-08-28T14:45:33.5913260Z [36;1m  SYFT_INSTALL_VERSION="${SYFT_VERSION}"[0m
+2025-08-28T14:45:33.5913505Z [36;1melse[0m
+2025-08-28T14:45:33.5913741Z [36;1m  SYFT_INSTALL_VERSION=$(get_latest_version "anchore/syft")[0m
+2025-08-28T14:45:33.5914088Z [36;1m  echo "Using Syft version: ${SYFT_INSTALL_VERSION}"[0m
+2025-08-28T14:45:33.5914356Z [36;1mfi[0m
+2025-08-28T14:45:33.5914504Z [36;1m[0m
+2025-08-28T14:45:33.5914990Z [36;1mif curl -sSfL "https://raw.githubusercontent.com/anchore/syft/main/install.sh" | sh -s -- -b /usr/local/bin "v${SYFT_INSTALL_VERSION}"; then[0m
+2025-08-28T14:45:33.5915577Z [36;1m  echo "✅ Syft ${SYFT_INSTALL_VERSION} installed"[0m
+2025-08-28T14:45:33.5915836Z [36;1melse[0m
+2025-08-28T14:45:33.5916048Z [36;1m  echo "⚠️ Syft installation failed, trying latest"[0m
+2025-08-28T14:45:33.5916547Z [36;1m  curl -sSfL "https://raw.githubusercontent.com/anchore/syft/main/install.sh" | sh -s -- -b /usr/local/bin[0m
+2025-08-28T14:45:33.5917029Z [36;1m  echo "✅ Syft latest version installed"[0m
+2025-08-28T14:45:33.5917263Z [36;1mfi[0m
+2025-08-28T14:45:33.5917411Z [36;1m[0m
+2025-08-28T14:45:33.5917596Z [36;1mecho "📦 Installing Cosign for signing..."[0m
+2025-08-28T14:45:33.5918115Z [36;1m# Check if specific version exists, fall back to latest[0m
+2025-08-28T14:45:33.5918511Z [36;1mif check_github_version "sigstore/cosign" "${COSIGN_VERSION}"; then[0m
+2025-08-28T14:45:33.5918867Z [36;1m  COSIGN_INSTALL_VERSION="${COSIGN_VERSION}"[0m
+2025-08-28T14:45:33.5919113Z [36;1melse[0m
+2025-08-28T14:45:33.5919355Z [36;1m  COSIGN_INSTALL_VERSION=$(get_latest_version "sigstore/cosign")[0m
+2025-08-28T14:45:33.5919842Z [36;1m  echo "Using Cosign version: ${COSIGN_INSTALL_VERSION}"[0m
+2025-08-28T14:45:33.5920112Z [36;1mfi[0m
+2025-08-28T14:45:33.5920261Z [36;1m[0m
+2025-08-28T14:45:33.5920721Z [36;1mif wget -q "https://github.com/sigstore/cosign/releases/download/v${COSIGN_INSTALL_VERSION}/cosign-linux-amd64"; then[0m
+2025-08-28T14:45:33.5921292Z [36;1m  sudo mv cosign-linux-amd64 /usr/local/bin/cosign[0m
+2025-08-28T14:45:33.5921610Z [36;1m  sudo chmod +x /usr/local/bin/cosign[0m
+2025-08-28T14:45:33.5921911Z [36;1m  echo "✅ Cosign ${COSIGN_INSTALL_VERSION} installed"[0m
+2025-08-28T14:45:33.5922172Z [36;1melse[0m
+2025-08-28T14:45:33.5922605Z [36;1m  echo "❌ Failed to install Cosign"[0m
+2025-08-28T14:45:33.5922841Z [36;1m  exit 1[0m
+2025-08-28T14:45:33.5923006Z [36;1mfi[0m
+2025-08-28T14:45:33.5923149Z [36;1m[0m
+2025-08-28T14:45:33.5923327Z [36;1mecho "🔍 Verifying installations..."[0m
+2025-08-28T14:45:33.5923657Z [36;1mecho "Trivy version: $(trivy --version || echo 'Not found')"[0m
+2025-08-28T14:45:33.5924038Z [36;1mecho "Grype version: $(grype version || echo 'Not found')"[0m
+2025-08-28T14:45:33.5924403Z [36;1mecho "Syft version: $(syft version || echo 'Not found')"[0m
+2025-08-28T14:45:33.5924760Z [36;1mecho "Cosign version: $(cosign version || echo 'Not found')"[0m
+2025-08-28T14:45:33.5925047Z [36;1m[0m
+2025-08-28T14:45:33.5925269Z [36;1mecho "✅ All security scanning tools installed successfully"[0m
+2025-08-28T14:45:33.5953932Z shell: /usr/bin/bash -e {0}
+2025-08-28T14:45:33.5954153Z env:
+2025-08-28T14:45:33.5954312Z   REGISTRY: ghcr.io
+2025-08-28T14:45:33.5954522Z   IMAGE_NAME: nephoran-intent-operator
+2025-08-28T14:45:33.5954775Z   TRIVY_VERSION: 0.57.1
+2025-08-28T14:45:33.5954962Z   GRYPE_VERSION: 0.84.0
+2025-08-28T14:45:33.5955138Z   COSIGN_VERSION: 2.4.0
+2025-08-28T14:45:33.5955317Z   SYFT_VERSION: 1.17.0
+2025-08-28T14:45:33.5955498Z ##[endgroup]
+2025-08-28T14:45:33.6080136Z 🔧 Installing security scanning tools for Ubuntu 24.04...
+2025-08-28T14:45:33.6947331Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2025-08-28T14:45:33.7273947Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+2025-08-28T14:45:33.7290366Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+2025-08-28T14:45:33.7326350Z Hit:6 https://packages.microsoft.com/repos/azure-cli noble InRelease
+2025-08-28T14:45:33.7334698Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+2025-08-28T14:45:33.7364725Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+2025-08-28T14:45:33.7371467Z Get:7 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+2025-08-28T14:45:33.8753452Z Get:8 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1374 kB]
+2025-08-28T14:45:33.8903355Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [272 kB]
+2025-08-28T14:45:33.8926520Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [175 kB]
+2025-08-28T14:45:33.8945553Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 c-n-f Metadata [14.9 kB]
+2025-08-28T14:45:33.8952553Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1122 kB]
+2025-08-28T14:45:33.9017375Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [288 kB]
+2025-08-28T14:45:33.9062619Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [377 kB]
+2025-08-28T14:45:33.9073253Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 c-n-f Metadata [27.7 kB]
+2025-08-28T14:45:33.9083946Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1773 kB]
+2025-08-28T14:45:33.9192136Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [395 kB]
+2025-08-28T14:45:33.9627166Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Components [212 B]
+2025-08-28T14:45:33.9637917Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+2025-08-28T14:45:33.9814212Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [7076 B]
+2025-08-28T14:45:33.9827754Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [19.2 kB]
+2025-08-28T14:45:33.9840050Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble-backports/restricted amd64 Components [212 B]
+2025-08-28T14:45:33.9850311Z Get:23 http://azure.archive.ubuntu.com/ubuntu noble-backports/multiverse amd64 Components [212 B]
+2025-08-28T14:45:34.0285655Z Get:24 https://packages.microsoft.com/ubuntu/24.04/prod noble/main armhf Packages [9927 B]
+2025-08-28T14:45:34.0314651Z Get:25 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [34.0 kB]
+2025-08-28T14:45:34.0349251Z Get:26 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [50.0 kB]
+2025-08-28T14:45:34.0805455Z Get:27 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [1106 kB]
+2025-08-28T14:45:34.0869577Z Get:28 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [190 kB]
+2025-08-28T14:45:34.0887950Z Get:29 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Components [21.6 kB]
+2025-08-28T14:45:34.0896701Z Get:30 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 c-n-f Metadata [8708 B]
+2025-08-28T14:45:34.0911331Z Get:31 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [881 kB]
+2025-08-28T14:45:34.0955100Z Get:32 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Components [52.3 kB]
+2025-08-28T14:45:34.0970055Z Get:33 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 c-n-f Metadata [18.0 kB]
+2025-08-28T14:45:34.0983769Z Get:34 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1685 kB]
+2025-08-28T14:45:34.1507274Z Get:35 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted Translation-en [377 kB]
+2025-08-28T14:45:34.1533669Z Get:36 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Components [212 B]
+2025-08-28T14:45:34.1544292Z Get:37 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse amd64 Components [212 B]
+2025-08-28T14:45:39.5256425Z Fetched 10.7 MB in 1s (8299 kB/s)
+2025-08-28T14:45:40.2658083Z Reading package lists...
+2025-08-28T14:45:40.2981700Z Reading package lists...
+2025-08-28T14:45:40.5031977Z Building dependency tree...
+2025-08-28T14:45:40.5040045Z Reading state information...
+2025-08-28T14:45:40.7187821Z wget is already the newest version (1.21.4-1ubuntu4.1).
+2025-08-28T14:45:40.7188332Z apt-transport-https is already the newest version (2.8.3).
+2025-08-28T14:45:40.7188762Z gnupg is already the newest version (2.4.4-2ubuntu17.3).
+2025-08-28T14:45:40.7189164Z lsb-release is already the newest version (12.0-2).
+2025-08-28T14:45:40.7189541Z curl is already the newest version (8.5.0-2ubuntu10.6).
+2025-08-28T14:45:40.7189941Z jq is already the newest version (1.7.1-3ubuntu0.24.04.1).
+2025-08-28T14:45:40.7190353Z 0 upgraded, 0 newly installed, 0 to remove and 8 not upgraded.
+2025-08-28T14:45:40.7205822Z 📦 Installing Trivy...
+2025-08-28T14:45:40.8478728Z deb [signed-by=/usr/share/keyrings/trivy-keyring.gpg] https://aquasecurity.github.io/trivy-repo/deb noble main
+2025-08-28T14:45:40.9156423Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2025-08-28T14:45:40.9557500Z Hit:6 https://packages.microsoft.com/repos/azure-cli noble InRelease
+2025-08-28T14:45:40.9562151Z Hit:7 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease
+2025-08-28T14:45:40.9766366Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+2025-08-28T14:45:40.9781512Z Hit:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease
+2025-08-28T14:45:40.9789651Z Hit:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease
+2025-08-28T14:45:40.9796758Z Hit:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease
+2025-08-28T14:45:40.9866864Z Get:8 https://aquasecurity.github.io/trivy-repo/deb noble InRelease [3061 B]
+2025-08-28T14:45:41.3284807Z Get:9 https://aquasecurity.github.io/trivy-repo/deb noble/main amd64 Packages [367 B]
+2025-08-28T14:45:41.4664861Z Fetched 3428 B in 0s (7656 B/s)
+2025-08-28T14:45:42.2283987Z Reading package lists...
+2025-08-28T14:45:42.2601619Z Reading package lists...
+2025-08-28T14:45:42.4566269Z Building dependency tree...
+2025-08-28T14:45:42.4574110Z Reading state information...
+2025-08-28T14:45:42.4775907Z Package trivy is not available, but is referred to by another package.
+2025-08-28T14:45:42.4776609Z This may mean that the package is missing, has been obsoleted, or
+2025-08-28T14:45:42.4777121Z is only available from another source
+2025-08-28T14:45:42.4777383Z 
+2025-08-28T14:45:42.5041435Z Reading package lists...
+2025-08-28T14:45:42.7065781Z Building dependency tree...
+2025-08-28T14:45:42.7074007Z Reading state information...
+2025-08-28T14:45:42.8773226Z The following NEW packages will be installed:
+2025-08-28T14:45:42.8773760Z   trivy
+2025-08-28T14:45:43.0057878Z 0 upgraded, 1 newly installed, 0 to remove and 8 not upgraded.
+2025-08-28T14:45:43.0058330Z Need to get 46.1 MB of archives.
+2025-08-28T14:45:43.0058727Z After this operation, 155 MB of additional disk space will be used.
+2025-08-28T14:45:43.0059391Z Get:1 https://aquasecurity.github.io/trivy-repo/deb noble/main amd64 trivy amd64 0.65.0 [46.1 MB]
+2025-08-28T14:45:43.6573470Z Fetched 46.1 MB in 1s (90.9 MB/s)
+2025-08-28T14:45:43.6792924Z Selecting previously unselected package trivy.
+2025-08-28T14:45:43.7069087Z (Reading database ... 
+2025-08-28T14:45:43.7069589Z (Reading database ... 5%
+2025-08-28T14:45:43.7069987Z (Reading database ... 10%
+2025-08-28T14:45:43.7070263Z (Reading database ... 15%
+2025-08-28T14:45:43.7070547Z (Reading database ... 20%
+2025-08-28T14:45:43.7070849Z (Reading database ... 25%
+2025-08-28T14:45:43.7071124Z (Reading database ... 30%
+2025-08-28T14:45:43.7071579Z (Reading database ... 35%
+2025-08-28T14:45:43.7072077Z (Reading database ... 40%
+2025-08-28T14:45:43.7072734Z (Reading database ... 45%
+2025-08-28T14:45:43.7073172Z (Reading database ... 50%
+2025-08-28T14:45:43.7480548Z (Reading database ... 55%
+2025-08-28T14:45:43.9920105Z (Reading database ... 60%
+2025-08-28T14:45:44.2045783Z (Reading database ... 65%
+2025-08-28T14:45:44.4464057Z (Reading database ... 70%
+2025-08-28T14:45:44.7402992Z (Reading database ... 75%
+2025-08-28T14:45:44.9936704Z (Reading database ... 80%
+2025-08-28T14:45:45.1865823Z (Reading database ... 85%
+2025-08-28T14:45:45.4841086Z (Reading database ... 90%
+2025-08-28T14:45:45.6968697Z (Reading database ... 95%
+2025-08-28T14:45:45.6969287Z (Reading database ... 100%
+2025-08-28T14:45:45.6969970Z (Reading database ... 219877 files and directories currently installed.)
+2025-08-28T14:45:45.7016586Z Preparing to unpack .../trivy_0.65.0_amd64.deb ...
+2025-08-28T14:45:45.7051321Z Unpacking trivy (0.65.0) ...
+2025-08-28T14:45:46.3714425Z Setting up trivy (0.65.0) ...
+2025-08-28T14:45:47.9914318Z ✅ Trivy latest available version installed from repository
+2025-08-28T14:45:47.9915093Z 📦 Installing Grype...
+2025-08-28T14:45:48.1611536Z Version v0.84.0 not found for anchore/grype, will use latest
+2025-08-28T14:45:48.3444074Z Using Grype version: 0.99.0
+2025-08-28T14:45:48.4666235Z [info] checking github for release tag='v0.99.0' 
+2025-08-28T14:45:48.7017899Z [info] fetching release script for tag='v0.99.0' 
+2025-08-28T14:45:48.8924778Z [info] checking github for release tag='v0.99.0' 
+2025-08-28T14:45:49.0213314Z [info] using release tag='v0.99.0' version='0.99.0' os='linux' arch='amd64' 
+2025-08-28T14:45:49.9636233Z [info] installed /usr/local/bin/grype 
+2025-08-28T14:45:49.9855487Z ✅ Grype 0.99.0 installed
+2025-08-28T14:45:49.9855874Z 📦 Installing Syft for SBOM generation...
+2025-08-28T14:45:50.2207507Z Version v1.17.0 not found for anchore/syft, will use latest
+2025-08-28T14:45:50.4790638Z Using Syft version: 1.32.0
+2025-08-28T14:45:50.5926381Z [info] checking github for release tag='v1.32.0' 
+2025-08-28T14:45:50.8856998Z [info] fetching release script for tag='v1.32.0' 
+2025-08-28T14:45:51.0525246Z [info] checking github for release tag='v1.32.0' 
+2025-08-28T14:45:51.1551903Z [info] using release tag='v1.32.0' version='1.32.0' os='linux' arch='amd64' 
+2025-08-28T14:45:52.2413414Z [info] installed /usr/local/bin/syft 
+2025-08-28T14:45:52.2594748Z ✅ Syft 1.32.0 installed
+2025-08-28T14:45:52.2595128Z 📦 Installing Cosign for signing...
+2025-08-28T14:45:52.5107695Z Version v2.4.0 not found for sigstore/cosign, will use latest
+2025-08-28T14:45:52.8733595Z Using Cosign version: 2.5.3
+2025-08-28T14:45:53.7178315Z ✅ Cosign 2.5.3 installed
+2025-08-28T14:45:53.7178845Z 🔍 Verifying installations...
+2025-08-28T14:45:53.7760323Z Trivy version: Version: 0.65.0
+2025-08-28T14:45:53.8021363Z Grype version: Application:         grype
+2025-08-28T14:45:53.8021687Z Version:             0.99.0
+2025-08-28T14:45:53.8021915Z BuildDate:           2025-08-27T00:34:34Z
+2025-08-28T14:45:53.8022666Z GitCommit:           32f1db9c2d00d36de7a46859118b6fa4e893c048
+2025-08-28T14:45:53.8023158Z GitDescription:      v0.99.0
+2025-08-28T14:45:53.8023531Z Platform:            linux/amd64
+2025-08-28T14:45:53.8023886Z GoVersion:           go1.24.6
+2025-08-28T14:45:53.8024215Z Compiler:            gc
+2025-08-28T14:45:53.8024537Z Syft Version:        v1.32.0
+2025-08-28T14:45:53.8024886Z Supported DB Schema: 6
+2025-08-28T14:45:53.8239889Z Syft version: Application:   syft
+2025-08-28T14:45:53.8240185Z Version:       1.32.0
+2025-08-28T14:45:53.8240411Z BuildDate:     2025-08-26T21:47:45Z
+2025-08-28T14:45:53.8240863Z GitCommit:     2d8e337d3469712c7d92770792f0117ad82c4ad3
+2025-08-28T14:45:53.8241365Z GitDescription: v1.32.0
+2025-08-28T14:45:53.8241711Z Platform:      linux/amd64
+2025-08-28T14:45:53.8242062Z GoVersion:     go1.24.6
+2025-08-28T14:45:53.8242560Z Compiler:      gc
+2025-08-28T14:45:53.8242854Z SchemaVersion: 16.0.39
+2025-08-28T14:45:53.8545049Z Cosign version:   ______   ______        _______. __    _______ .__   __.
+2025-08-28T14:45:53.8545655Z  /      | /  __  \      /       ||  |  /  _____||  \ |  |
+2025-08-28T14:45:53.8545961Z |  ,----'|  |  |  |    |   (----`|  | |  |  __  |   \|  |
+2025-08-28T14:45:53.8546225Z |  |     |  |  |  |     \   \    |  | |  | |_ | |  . `  |
+2025-08-28T14:45:53.8546641Z |  `----.|  `--'  | .----)   |   |  | |  |__| | |  |\   |
+2025-08-28T14:45:53.8547083Z  \______| \______/  |_______/    |__|  \______| |__| \__|
+2025-08-28T14:45:53.8547717Z cosign: A tool for Container Signing, Verification and Storage in an OCI registry.
+2025-08-28T14:45:53.8548204Z 
+2025-08-28T14:45:53.8548322Z GitVersion:    v2.5.3
+2025-08-28T14:45:53.8548714Z GitCommit:     488ef8ceed5ab5d77379e9077a124a0d0df41d06
+2025-08-28T14:45:53.8549185Z GitTreeState:  clean
+2025-08-28T14:45:53.8549521Z BuildDate:     2025-07-17T19:56:47Z
+2025-08-28T14:45:53.8549894Z GoVersion:     go1.24.5
+2025-08-28T14:45:53.8550205Z Compiler:      gc
+2025-08-28T14:45:53.8550504Z Platform:      linux/amd64
+2025-08-28T14:45:53.8551150Z ✅ All security scanning tools installed successfully
+2025-08-28T14:45:53.8580937Z ##[group]Run echo "Building $SERVICE image..."
+2025-08-28T14:45:53.8581288Z [36;1mecho "Building $SERVICE image..."[0m
+2025-08-28T14:45:53.8581541Z [36;1mdocker buildx build \[0m
+2025-08-28T14:45:53.8581784Z [36;1m  --build-arg SERVICE=$SERVICE \[0m
+2025-08-28T14:45:53.8582061Z [36;1m  --build-arg SERVICE_TYPE=$SERVICE_TYPE \[0m
+2025-08-28T14:45:53.8582606Z [36;1m  --build-arg VERSION=$VERSION \[0m
+2025-08-28T14:45:53.8582877Z [36;1m  --build-arg BUILD_DATE=$BUILD_DATE \[0m
+2025-08-28T14:45:53.8583139Z [36;1m  --build-arg VCS_REF=$VCS_REF \[0m
+2025-08-28T14:45:53.8583397Z [36;1m  --build-arg GO_VERSION=$GO_VERSION \[0m
+2025-08-28T14:45:53.8583685Z [36;1m  --build-arg TARGETPLATFORM=$TARGETPLATFORM \[0m
+2025-08-28T14:45:53.8583968Z [36;1m  --platform linux/amd64 \[0m
+2025-08-28T14:45:53.8584186Z [36;1m  --load \[0m
+2025-08-28T14:45:53.8584429Z [36;1m  --tag ${REGISTRY}/${IMAGE_NAME}/${SERVICE}:${VERSION} \[0m
+2025-08-28T14:45:53.8585023Z [36;1m  --tag ${REGISTRY}/${IMAGE_NAME}/${SERVICE}:latest \[0m
+2025-08-28T14:45:53.8585293Z [36;1m  .[0m
+2025-08-28T14:45:53.8585459Z [36;1m[0m
+2025-08-28T14:45:53.8585734Z [36;1mecho "IMAGE_TAG=${REGISTRY}/${IMAGE_NAME}/${SERVICE}:${VERSION}" >> $GITHUB_ENV[0m
+2025-08-28T14:45:53.8586201Z [36;1mecho "IMAGE_LATEST=${REGISTRY}/${IMAGE_NAME}/${SERVICE}:latest" >> $GITHUB_ENV[0m
+2025-08-28T14:45:53.8616092Z shell: /usr/bin/bash -e {0}
+2025-08-28T14:45:53.8616304Z env:
+2025-08-28T14:45:53.8616463Z   REGISTRY: ghcr.io
+2025-08-28T14:45:53.8616663Z   IMAGE_NAME: nephoran-intent-operator
+2025-08-28T14:45:53.8616903Z   TRIVY_VERSION: 0.57.1
+2025-08-28T14:45:53.8617090Z   GRYPE_VERSION: 0.84.0
+2025-08-28T14:45:53.8617265Z   COSIGN_VERSION: 2.4.0
+2025-08-28T14:45:53.8617449Z   SYFT_VERSION: 1.17.0
+2025-08-28T14:45:53.8617635Z   SERVICE: llm-processor
+2025-08-28T14:45:53.8617827Z   SERVICE_TYPE: go
+2025-08-28T14:45:53.8617993Z   BUILD_DATE: 
+2025-08-28T14:45:53.8618200Z   VCS_REF: 6f263b9d7e1563260cc3c514cc595bb769120031
+2025-08-28T14:45:53.8618515Z   VERSION: 87-merge-6f263b9d7e1563260cc3c514cc595bb769120031
+2025-08-28T14:45:53.8618795Z   GO_VERSION: 1.24.1
+2025-08-28T14:45:53.8618984Z   TARGETPLATFORM: linux/amd64
+2025-08-28T14:45:53.8619185Z ##[endgroup]
+2025-08-28T14:45:53.8664906Z Building llm-processor image...
+2025-08-28T14:45:54.2050669Z #0 building with "builder-14140e2c-c45b-427e-b63b-f6561d8cc817" instance using docker-container driver
+2025-08-28T14:45:54.2051245Z 
+2025-08-28T14:45:54.2051397Z #1 [internal] load build definition from Dockerfile
+2025-08-28T14:45:54.2051778Z #1 transferring dockerfile: 13.02kB done
+2025-08-28T14:45:54.2052184Z #1 DONE 0.0s
+2025-08-28T14:45:54.2052463Z 
+2025-08-28T14:45:54.2052657Z #2 [internal] load metadata for gcr.io/distroless/static:nonroot
+2025-08-28T14:45:54.3729486Z #2 ...
+2025-08-28T14:45:54.3729804Z 
+2025-08-28T14:45:54.3730068Z #3 [auth] library/golang:pull token for registry-1.docker.io
+2025-08-28T14:45:54.3730576Z #3 DONE 0.0s
+2025-08-28T14:45:54.4794435Z 
+2025-08-28T14:45:54.4795000Z #2 [internal] load metadata for gcr.io/distroless/static:nonroot
+2025-08-28T14:45:54.4795685Z #2 DONE 0.4s
+2025-08-28T14:45:54.4795913Z 
+2025-08-28T14:45:54.4796235Z #4 [internal] load metadata for docker.io/library/golang:1.24.1-alpine
+2025-08-28T14:45:54.7901748Z #4 DONE 0.7s
+2025-08-28T14:45:54.9142492Z 
+2025-08-28T14:45:54.9146179Z #5 [internal] load .dockerignore
+2025-08-28T14:45:54.9146709Z #5 transferring context: 2.80kB done
+2025-08-28T14:45:54.9147102Z #5 DONE 0.0s
+2025-08-28T14:45:54.9147274Z 
+2025-08-28T14:45:54.9147931Z #6 [go-runtime 1/4] FROM gcr.io/distroless/static:nonroot@sha256:a9f88e0d99c1ceedbce565fad7d3f96744d15e6919c19c7dafe84a6dd9a80c61
+2025-08-28T14:45:54.9149423Z #6 resolve gcr.io/distroless/static:nonroot@sha256:a9f88e0d99c1ceedbce565fad7d3f96744d15e6919c19c7dafe84a6dd9a80c61 done
+2025-08-28T14:45:54.9151206Z #6 DONE 0.1s
+2025-08-28T14:45:54.9151614Z 
+2025-08-28T14:45:54.9152865Z #7 [go-deps 1/6] FROM docker.io/library/golang:1.24.1-alpine@sha256:43c094ad24b6ac0546c62193baeb3e6e49ce14d3250845d166c77c25f64b0386
+2025-08-28T14:45:54.9154356Z #7 resolve docker.io/library/golang:1.24.1-alpine@sha256:43c094ad24b6ac0546c62193baeb3e6e49ce14d3250845d166c77c25f64b0386 done
+2025-08-28T14:45:55.0262002Z #7 sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 32B / 32B 0.1s done
+2025-08-28T14:45:55.0263438Z #7 sha256:547316ea10d43cbdb09444c3f4eec70dc0520c4cdb9e499ca146178bb100d2c6 125B / 125B 0.1s done
+2025-08-28T14:45:55.1273508Z #7 sha256:178cc98ff0842a2601bbc4e7db3db70a323469849a03684d1b9b21e7f825b7e4 0B / 78.93MB 0.2s
+2025-08-28T14:45:55.1274588Z #7 sha256:6f2aba06f0e9c899ca99ff9bcf082c204a130062daba4944c586870b34ee31d9 0B / 294.90kB 0.2s
+2025-08-28T14:45:55.1275984Z #7 sha256:f18232174bc91741fdf3da96d85011092101a032a93a388b79e99e69c2d5c870 0B / 3.64MB 0.2s
+2025-08-28T14:45:55.2299743Z #7 sha256:178cc98ff0842a2601bbc4e7db3db70a323469849a03684d1b9b21e7f825b7e4 6.29MB / 78.93MB 0.3s
+2025-08-28T14:45:55.2308542Z #7 sha256:6f2aba06f0e9c899ca99ff9bcf082c204a130062daba4944c586870b34ee31d9 294.90kB / 294.90kB 0.3s done
+2025-08-28T14:45:55.3646995Z #7 ...
+2025-08-28T14:45:55.3647257Z 
+2025-08-28T14:45:55.3647437Z #8 [internal] load build context
+2025-08-28T14:45:55.3647905Z #8 transferring context: 18.27MB 0.5s done
+2025-08-28T14:45:55.3648295Z #8 DONE 0.5s
+2025-08-28T14:45:55.3648403Z 
+2025-08-28T14:45:55.3648941Z #7 [go-deps 1/6] FROM docker.io/library/golang:1.24.1-alpine@sha256:43c094ad24b6ac0546c62193baeb3e6e49ce14d3250845d166c77c25f64b0386
+2025-08-28T14:45:55.3649777Z #7 sha256:178cc98ff0842a2601bbc4e7db3db70a323469849a03684d1b9b21e7f825b7e4 14.68MB / 78.93MB 0.5s
+2025-08-28T14:45:55.3650529Z #7 sha256:f18232174bc91741fdf3da96d85011092101a032a93a388b79e99e69c2d5c870 3.64MB / 3.64MB 0.3s done
+2025-08-28T14:45:55.3651229Z #7 extracting sha256:f18232174bc91741fdf3da96d85011092101a032a93a388b79e99e69c2d5c870 0.1s done
+2025-08-28T14:45:55.4672911Z #7 extracting sha256:6f2aba06f0e9c899ca99ff9bcf082c204a130062daba4944c586870b34ee31d9 0.1s done
+2025-08-28T14:45:55.6267684Z #7 sha256:178cc98ff0842a2601bbc4e7db3db70a323469849a03684d1b9b21e7f825b7e4 31.50MB / 78.93MB 0.8s
+2025-08-28T14:45:55.7771887Z #7 ...
+2025-08-28T14:45:55.7772445Z 
+2025-08-28T14:45:55.7773283Z #6 [go-runtime 1/4] FROM gcr.io/distroless/static:nonroot@sha256:a9f88e0d99c1ceedbce565fad7d3f96744d15e6919c19c7dafe84a6dd9a80c61
+2025-08-28T14:45:55.7774872Z #6 sha256:ddf74a63f7d8b7d157e5db1a45675a58e304b4c1d425b05c28c835b987623395 131.93kB / 131.93kB 0.2s done
+2025-08-28T14:45:55.7776218Z #6 sha256:da7816fa955ea24533c388143c78804c28682eef99b4ee3723b548c70148bba6 321B / 321B 0.2s done
+2025-08-28T14:45:55.7777470Z #6 sha256:4aa0ea1413d37a58615488592a0b827ea4b2e48fa5a77cf707d0e35f025e613f 385B / 385B 0.2s done
+2025-08-28T14:45:55.7778326Z #6 sha256:045fc1c20da893bef6d0ed64e92b243213b0cebcd478389573bdfb095e212a98 93B / 93B 0.2s done
+2025-08-28T14:45:55.7779128Z #6 sha256:5664b15f108bf9436ce3312090a767300800edbbfd4511aa1a6d64357024d5dd 168B / 168B 0.1s done
+2025-08-28T14:45:55.7779960Z #6 sha256:7c12895b777bcaa8ccae0605b4de635b68fc32d60fa08f421dc3818bf55ee212 188B / 188B 0.1s done
+2025-08-28T14:45:55.7780766Z #6 sha256:3214acf345c0cc6bbdb56b698a41ccdefc624a09d6beb0d38b5de0b2303ecaf4 123B / 123B 0.1s done
+2025-08-28T14:45:55.7781543Z #6 sha256:2780920e5dbfbe103d03a583ed75345306e572ec5a48cb10361f046767d9f29a 67B / 67B 0.1s done
+2025-08-28T14:45:55.7782499Z #6 sha256:62de241dac5fe19d5f8f4defe034289006ddaa0f2cca735db4718fe2a23e504e 31.24kB / 31.24kB 0.1s done
+2025-08-28T14:45:55.7783369Z #6 sha256:bfb59b82a9b65e47d485e53b3e815bca3b3e21a095bd0cb88ced9ac0b48062bf 13.36kB / 13.36kB 0.1s done
+2025-08-28T14:45:55.7784213Z #6 sha256:4eff9a62d888790350b2481ff4a4f38f9c94b3674d26b2f2c85ca39cdef43fd9 547.59kB / 547.59kB 0.2s done
+2025-08-28T14:45:55.7785054Z #6 sha256:35d697fe273816c60d20a62a879f8643f79cd4ed85a8e80dba28a17350fc26b6 104.23kB / 104.23kB 0.2s done
+2025-08-28T14:45:55.7785851Z #6 extracting sha256:35d697fe273816c60d20a62a879f8643f79cd4ed85a8e80dba28a17350fc26b6 0.0s done
+2025-08-28T14:45:55.7787037Z #6 extracting sha256:bfb59b82a9b65e47d485e53b3e815bca3b3e21a095bd0cb88ced9ac0b48062bf done
+2025-08-28T14:45:55.7787768Z #6 extracting sha256:4eff9a62d888790350b2481ff4a4f38f9c94b3674d26b2f2c85ca39cdef43fd9 0.2s done
+2025-08-28T14:45:55.7788481Z #6 extracting sha256:62de241dac5fe19d5f8f4defe034289006ddaa0f2cca735db4718fe2a23e504e done
+2025-08-28T14:45:55.7789183Z #6 extracting sha256:2780920e5dbfbe103d03a583ed75345306e572ec5a48cb10361f046767d9f29a done
+2025-08-28T14:45:55.7789853Z #6 extracting sha256:7c12895b777bcaa8ccae0605b4de635b68fc32d60fa08f421dc3818bf55ee212 done
+2025-08-28T14:45:55.7790526Z #6 extracting sha256:3214acf345c0cc6bbdb56b698a41ccdefc624a09d6beb0d38b5de0b2303ecaf4 done
+2025-08-28T14:45:55.7791084Z #6 extracting sha256:5664b15f108bf9436ce3312090a767300800edbbfd4511aa1a6d64357024d5dd done
+2025-08-28T14:45:55.7791739Z #6 extracting sha256:045fc1c20da893bef6d0ed64e92b243213b0cebcd478389573bdfb095e212a98 done
+2025-08-28T14:45:55.7792500Z #6 extracting sha256:4aa0ea1413d37a58615488592a0b827ea4b2e48fa5a77cf707d0e35f025e613f done
+2025-08-28T14:45:55.7793368Z #6 extracting sha256:da7816fa955ea24533c388143c78804c28682eef99b4ee3723b548c70148bba6 done
+2025-08-28T14:45:55.7794033Z #6 extracting sha256:ddf74a63f7d8b7d157e5db1a45675a58e304b4c1d425b05c28c835b987623395 done
+2025-08-28T14:45:55.7794417Z #6 DONE 0.9s
+2025-08-28T14:45:55.7794535Z 
+2025-08-28T14:45:55.7794988Z #7 [go-deps 1/6] FROM docker.io/library/golang:1.24.1-alpine@sha256:43c094ad24b6ac0546c62193baeb3e6e49ce14d3250845d166c77c25f64b0386
+2025-08-28T14:45:55.7795784Z #7 sha256:178cc98ff0842a2601bbc4e7db3db70a323469849a03684d1b9b21e7f825b7e4 41.94MB / 78.93MB 0.9s
+2025-08-28T14:45:55.9273917Z #7 sha256:178cc98ff0842a2601bbc4e7db3db70a323469849a03684d1b9b21e7f825b7e4 49.28MB / 78.93MB 1.1s
+2025-08-28T14:45:56.0779147Z #7 sha256:178cc98ff0842a2601bbc4e7db3db70a323469849a03684d1b9b21e7f825b7e4 62.91MB / 78.93MB 1.2s
+2025-08-28T14:45:56.2272603Z #7 sha256:178cc98ff0842a2601bbc4e7db3db70a323469849a03684d1b9b21e7f825b7e4 72.35MB / 78.93MB 1.4s
+2025-08-28T14:45:56.3651837Z #7 sha256:178cc98ff0842a2601bbc4e7db3db70a323469849a03684d1b9b21e7f825b7e4 78.93MB / 78.93MB 1.5s done
+2025-08-28T14:45:56.5173526Z #7 extracting sha256:178cc98ff0842a2601bbc4e7db3db70a323469849a03684d1b9b21e7f825b7e4
+2025-08-28T14:45:59.5898519Z #7 extracting sha256:178cc98ff0842a2601bbc4e7db3db70a323469849a03684d1b9b21e7f825b7e4 3.2s done
+2025-08-28T14:45:59.5899313Z #7 DONE 4.8s
+2025-08-28T14:45:59.8399676Z 
+2025-08-28T14:45:59.8400685Z #7 [go-deps 1/6] FROM docker.io/library/golang:1.24.1-alpine@sha256:43c094ad24b6ac0546c62193baeb3e6e49ce14d3250845d166c77c25f64b0386
+2025-08-28T14:45:59.8402013Z #7 extracting sha256:547316ea10d43cbdb09444c3f4eec70dc0520c4cdb9e499ca146178bb100d2c6 done
+2025-08-28T14:45:59.8403024Z #7 extracting sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 done
+2025-08-28T14:45:59.8403559Z #7 DONE 4.8s
+2025-08-28T14:45:59.8403662Z 
+2025-08-28T14:45:59.8404484Z #9 [go-deps 2/6] RUN set -eux;     apk update && apk upgrade --no-cache;     apk add --no-cache --virtual .build-deps         git         ca-certificates         tzdata         curl         gnupg     && rm -rf /var/cache/apk/* /var/lib/apk/lists/* /tmp/* /var/tmp/*     && find / -xdev -type f -perm +6000 -delete 2>/dev/null || true
+2025-08-28T14:45:59.8405458Z #9 0.054 + apk update
+2025-08-28T14:45:59.8405812Z #9 0.092 fetch https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86_64/APKINDEX.tar.gz
+2025-08-28T14:45:59.8819731Z #9 0.284 fetch https://dl-cdn.alpinelinux.org/alpine/v3.21/community/x86_64/APKINDEX.tar.gz
+2025-08-28T14:46:00.2051085Z #9 0.607 v3.21.4-68-gadb9caac9c2 [https://dl-cdn.alpinelinux.org/alpine/v3.21/main]
+2025-08-28T14:46:00.2052456Z #9 0.607 v3.21.4-66-gdc5b4aa05cf [https://dl-cdn.alpinelinux.org/alpine/v3.21/community]
+2025-08-28T14:46:00.2053376Z #9 0.607 OK: 25405 distinct packages available
+2025-08-28T14:46:00.4275591Z #9 0.674 + apk upgrade --no-cache
+2025-08-28T14:46:00.4276188Z #9 0.679 fetch https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86_64/APKINDEX.tar.gz
+2025-08-28T14:46:00.4331236Z #9 0.835 fetch https://dl-cdn.alpinelinux.org/alpine/v3.21/community/x86_64/APKINDEX.tar.gz
+2025-08-28T14:46:00.7297008Z #9 1.132 (1/8) Upgrading busybox (1.37.0-r12 -> 1.37.0-r13)
+2025-08-28T14:46:00.8483384Z #9 1.200 Executing busybox-1.37.0-r13.post-upgrade
+2025-08-28T14:46:00.8484004Z #9 1.251 (2/8) Upgrading busybox-binsh (1.37.0-r12 -> 1.37.0-r13)
+2025-08-28T14:46:01.0461950Z #9 1.267 (3/8) Upgrading alpine-release (3.21.3-r0 -> 3.21.4-r0)
+2025-08-28T14:46:01.0464908Z #9 1.293 (4/8) Upgrading ca-certificates-bundle (20241121-r1 -> 20250619-r0)
+2025-08-28T14:46:01.0465782Z #9 1.338 (5/8) Upgrading libcrypto3 (3.3.3-r0 -> 3.3.4-r0)
+2025-08-28T14:46:01.0466494Z #9 1.448 (6/8) Upgrading libssl3 (3.3.3-r0 -> 3.3.4-r0)
+2025-08-28T14:46:01.1628311Z #9 1.471 (7/8) Upgrading ssl_client (1.37.0-r12 -> 1.37.0-r13)
+2025-08-28T14:46:01.1631333Z #9 1.498 (8/8) Upgrading ca-certificates (20241121-r1 -> 20250619-r0)
+2025-08-28T14:46:01.1631928Z #9 1.564 Executing busybox-1.37.0-r13.trigger
+2025-08-28T14:46:01.3057841Z #9 ...
+2025-08-28T14:46:01.3058382Z 
+2025-08-28T14:46:01.3060484Z #10 [go-builder  2/10] RUN if [ -z "llm-processor" ]; then     echo "ERROR: SERVICE build argument is required. Use --build-arg SERVICE=<service-name>" >&2;     echo "Valid services: conductor-loop, intent-ingest, nephio-bridge, llm-processor, oran-adaptor, manager, controller" >&2;     exit 1;     fi
+2025-08-28T14:46:01.3063081Z #10 DONE 1.6s
+2025-08-28T14:46:01.3063301Z 
+2025-08-28T14:46:01.3064844Z #9 [go-deps 2/6] RUN set -eux;     apk update && apk upgrade --no-cache;     apk add --no-cache --virtual .build-deps         git         ca-certificates         tzdata         curl         gnupg     && rm -rf /var/cache/apk/* /var/lib/apk/lists/* /tmp/* /var/tmp/*     && find / -xdev -type f -perm +6000 -delete 2>/dev/null || true
+2025-08-28T14:46:01.3066622Z #9 1.568 Executing ca-certificates-20250619-r0.trigger
+2025-08-28T14:46:01.3067142Z #9 1.619 OK: 7 MiB in 16 packages
+2025-08-28T14:46:01.3067945Z #9 1.708 + apk add --no-cache --virtual .build-deps git ca-certificates tzdata curl gnupg
+2025-08-28T14:46:01.4612541Z #9 1.713 fetch https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86_64/APKINDEX.tar.gz
+2025-08-28T14:46:01.4802535Z #9 1.882 fetch https://dl-cdn.alpinelinux.org/alpine/v3.21/community/x86_64/APKINDEX.tar.gz
+2025-08-28T14:46:01.7802815Z #9 2.182 (1/45) Installing brotli-libs (1.1.0-r2)
+2025-08-28T14:46:01.8928870Z #9 2.204 (2/45) Installing c-ares (1.34.5-r0)
+2025-08-28T14:46:01.8929473Z #9 2.221 (3/45) Installing libunistring (1.2-r0)
+2025-08-28T14:46:01.8929939Z #9 2.246 (4/45) Installing libidn2 (2.3.7-r0)
+2025-08-28T14:46:01.8930401Z #9 2.262 (5/45) Installing nghttp2-libs (1.64.0-r0)
+2025-08-28T14:46:01.8930885Z #9 2.279 (6/45) Installing libpsl (0.21.5-r3)
+2025-08-28T14:46:01.8931334Z #9 2.295 (7/45) Installing zstd-libs (1.5.6-r2)
+2025-08-28T14:46:02.0455052Z #9 2.316 (8/45) Installing libcurl (8.12.1-r1)
+2025-08-28T14:46:02.0455676Z #9 2.336 (9/45) Installing libexpat (2.7.0-r0)
+2025-08-28T14:46:02.0456265Z #9 2.352 (10/45) Installing pcre2 (10.43-r0)
+2025-08-28T14:46:02.0456781Z #9 2.373 (11/45) Installing git (2.47.3-r0)
+2025-08-28T14:46:02.0457340Z #9 2.448 (12/45) Installing git-init-template (2.47.3-r0)
+2025-08-28T14:46:02.1468210Z #9 2.464 (13/45) Installing tzdata (2025b-r0)
+2025-08-28T14:46:02.1468768Z #9 2.532 (14/45) Installing curl (8.12.1-r1)
+2025-08-28T14:46:02.1469269Z #9 2.549 (15/45) Installing libgpg-error (1.51-r0)
+2025-08-28T14:46:02.2673567Z #9 2.566 (16/45) Installing libassuan (2.5.7-r0)
+2025-08-28T14:46:02.2674228Z #9 2.584 (17/45) Installing ncurses-terminfo-base (6.5_p20241006-r3)
+2025-08-28T14:46:02.2674829Z #9 2.605 (18/45) Installing libncursesw (6.5_p20241006-r3)
+2025-08-28T14:46:02.2675344Z #9 2.623 (19/45) Installing pinentry (1.3.1-r0)
+2025-08-28T14:46:02.2675823Z #9 2.643 Executing pinentry-1.3.1-r0.post-install
+2025-08-28T14:46:02.2676318Z #9 2.646 (20/45) Installing libgcrypt (1.10.3-r1)
+2025-08-28T14:46:02.2676804Z #9 2.669 (21/45) Installing gnupg-gpgconf (2.4.7-r0)
+2025-08-28T14:46:02.3780787Z #9 2.687 (22/45) Installing gmp (6.3.0-r2)
+2025-08-28T14:46:02.3781333Z #9 2.705 (23/45) Installing nettle (3.10-r1)
+2025-08-28T14:46:02.3781792Z #9 2.726 (24/45) Installing libffi (3.4.7-r0)
+2025-08-28T14:46:02.3782434Z #9 2.741 (25/45) Installing libtasn1 (4.20.0-r0)
+2025-08-28T14:46:02.3782914Z #9 2.757 (26/45) Installing p11-kit (0.25.5-r2)
+2025-08-28T14:46:02.3783361Z #9 2.780 (27/45) Installing gnutls (3.8.8-r0)
+2025-08-28T14:46:02.4890497Z #9 2.808 (28/45) Installing libksba (1.6.7-r0)
+2025-08-28T14:46:02.4891172Z #9 2.826 (29/45) Installing gdbm (1.24-r0)
+2025-08-28T14:46:02.4891773Z #9 2.842 (30/45) Installing libsasl (2.1.28-r8)
+2025-08-28T14:46:02.4892681Z #9 2.861 (31/45) Installing libldap (2.6.8-r0)
+2025-08-28T14:46:02.4893027Z #9 2.880 (32/45) Installing npth (1.6-r4)
+2025-08-28T14:46:02.5894095Z #9 2.897 (33/45) Installing gnupg-dirmngr (2.4.7-r0)
+2025-08-28T14:46:02.5894714Z #9 2.920 (34/45) Installing sqlite-libs (3.48.0-r3)
+2025-08-28T14:46:02.5895770Z #9 2.948 (35/45) Installing gnupg-keyboxd (2.4.7-r0)
+2025-08-28T14:46:02.5896199Z #9 2.966 (36/45) Installing libbz2 (1.0.8-r6)
+2025-08-28T14:46:02.5896464Z #9 2.982 (37/45) Installing gpg (2.4.7-r0)
+2025-08-28T14:46:02.7045730Z #9 3.005 (38/45) Installing gpg-agent (2.4.7-r0)
+2025-08-28T14:46:02.7046321Z #9 3.026 (39/45) Installing gpg-wks-server (2.4.7-r0)
+2025-08-28T14:46:02.7046821Z #9 3.043 (40/45) Installing gpgsm (2.4.7-r0)
+2025-08-28T14:46:02.7047262Z #9 3.062 (41/45) Installing gpgv (2.4.7-r0)
+2025-08-28T14:46:02.7047894Z #9 3.081 (42/45) Installing gnupg-utils (2.4.7-r0)
+2025-08-28T14:46:02.7048655Z #9 3.107 (43/45) Installing gnupg-wks-client (2.4.7-r0)
+2025-08-28T14:46:02.8155414Z #9 3.125 (44/45) Installing gnupg (2.4.7-r0)
+2025-08-28T14:46:02.8155997Z #9 3.125 (45/45) Installing .build-deps (20250828.144601)
+2025-08-28T14:46:02.8156504Z #9 3.125 Executing busybox-1.37.0-r13.trigger
+2025-08-28T14:46:02.8156939Z #9 3.131 OK: 33 MiB in 61 packages
+2025-08-28T14:46:02.8157896Z #9 3.216 + rm -rf /var/cache/apk/APKINDEX.36c0efc6.tar.gz /var/cache/apk/APKINDEX.e33e93f4.tar.gz '/var/lib/apk/lists/*' '/tmp/*' '/var/tmp/*'
+2025-08-28T14:46:02.9672579Z #9 3.219 + find / -xdev -type f -perm +6000 -delete
+2025-08-28T14:46:03.0337250Z #9 DONE 3.4s
+2025-08-28T14:46:03.0337533Z 
+2025-08-28T14:46:03.0342003Z #11 [go-builder  3/10] RUN set -eux;     apk update && apk upgrade --no-cache;     apk add --no-cache --virtual .build-deps         git         ca-certificates         tzdata         binutils         curl         gnupg         file     && rm -rf /var/cache/apk/* /var/lib/apk/lists/* /tmp/* /var/tmp/*     && find / -xdev -type f -perm +6000 -delete 2>/dev/null || true
+2025-08-28T14:46:03.0344325Z #11 0.047 + apk update
+2025-08-28T14:46:03.0344921Z #11 0.055 fetch https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86_64/APKINDEX.tar.gz
+2025-08-28T14:46:03.0345831Z #11 0.297 fetch https://dl-cdn.alpinelinux.org/alpine/v3.21/community/x86_64/APKINDEX.tar.gz
+2025-08-28T14:46:03.0346739Z #11 0.725 v3.21.4-68-gadb9caac9c2 [https://dl-cdn.alpinelinux.org/alpine/v3.21/main]
+2025-08-28T14:46:03.0347610Z #11 0.725 v3.21.4-66-gdc5b4aa05cf [https://dl-cdn.alpinelinux.org/alpine/v3.21/community]
+2025-08-28T14:46:03.0348272Z #11 0.725 OK: 25405 distinct packages available
+2025-08-28T14:46:03.0348714Z #11 0.796 + apk upgrade --no-cache
+2025-08-28T14:46:03.0349336Z #11 0.801 fetch https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86_64/APKINDEX.tar.gz
+2025-08-28T14:46:03.0350236Z #11 0.940 fetch https://dl-cdn.alpinelinux.org/alpine/v3.21/community/x86_64/APKINDEX.tar.gz
+2025-08-28T14:46:03.0350976Z #11 1.243 (1/8) Upgrading busybox (1.37.0-r12 -> 1.37.0-r13)
+2025-08-28T14:46:03.0351503Z #11 1.269 Executing busybox-1.37.0-r13.post-upgrade
+2025-08-28T14:46:03.0352064Z #11 1.285 (2/8) Upgrading busybox-binsh (1.37.0-r12 -> 1.37.0-r13)
+2025-08-28T14:46:03.0352820Z #11 1.302 (3/8) Upgrading alpine-release (3.21.3-r0 -> 3.21.4-r0)
+2025-08-28T14:46:03.0353492Z #11 1.318 (4/8) Upgrading ca-certificates-bundle (20241121-r1 -> 20250619-r0)
+2025-08-28T14:46:03.0354398Z #11 1.336 (5/8) Upgrading libcrypto3 (3.3.3-r0 -> 3.3.4-r0)
+2025-08-28T14:46:03.0354951Z #11 1.381 (6/8) Upgrading libssl3 (3.3.3-r0 -> 3.3.4-r0)
+2025-08-28T14:46:03.0355476Z #11 1.402 (7/8) Upgrading ssl_client (1.37.0-r12 -> 1.37.0-r13)
+2025-08-28T14:46:03.0356075Z #11 1.421 (8/8) Upgrading ca-certificates (20241121-r1 -> 20250619-r0)
+2025-08-28T14:46:03.0356621Z #11 1.456 Executing busybox-1.37.0-r13.trigger
+2025-08-28T14:46:03.0357122Z #11 1.460 Executing ca-certificates-20250619-r0.trigger
+2025-08-28T14:46:03.0357609Z #11 1.493 OK: 7 MiB in 16 packages
+2025-08-28T14:46:03.0358274Z #11 1.575 + apk add --no-cache --virtual .build-deps git ca-certificates tzdata binutils curl gnupg file
+2025-08-28T14:46:03.0359212Z #11 1.580 fetch https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86_64/APKINDEX.tar.gz
+2025-08-28T14:46:03.2804716Z #11 ...
+2025-08-28T14:46:03.2804955Z 
+2025-08-28T14:46:03.2805388Z #12 [go-deps 3/6] RUN addgroup -g 65532 -S nonroot &&     adduser -u 65532 -S nonroot -G nonroot
+2025-08-28T14:46:03.2806365Z #12 DONE 0.1s
+2025-08-28T14:46:03.2806543Z 
+2025-08-28T14:46:03.2806680Z #13 [go-deps 4/6] WORKDIR /workspace
+2025-08-28T14:46:03.2807048Z #13 DONE 0.0s
+2025-08-28T14:46:03.2807213Z 
+2025-08-28T14:46:03.2807436Z #14 [go-deps 5/6] COPY --chown=nonroot:nonroot go.mod go.sum ./
+2025-08-28T14:46:03.2807904Z #14 DONE 0.0s
+2025-08-28T14:46:03.2808067Z 
+2025-08-28T14:46:03.2809387Z #11 [go-builder  3/10] RUN set -eux;     apk update && apk upgrade --no-cache;     apk add --no-cache --virtual .build-deps         git         ca-certificates         tzdata         binutils         curl         gnupg         file     && rm -rf /var/cache/apk/* /var/lib/apk/lists/* /tmp/* /var/tmp/*     && find / -xdev -type f -perm +6000 -delete 2>/dev/null || true
+2025-08-28T14:46:03.2811255Z #11 1.897 fetch https://dl-cdn.alpinelinux.org/alpine/v3.21/community/x86_64/APKINDEX.tar.gz
+2025-08-28T14:46:03.4309503Z #11 2.244 (1/51) Installing brotli-libs (1.1.0-r2)
+2025-08-28T14:46:03.5602944Z #11 2.288 (2/51) Installing c-ares (1.34.5-r0)
+2025-08-28T14:46:03.5603638Z #11 2.326 (3/51) Installing libunistring (1.2-r0)
+2025-08-28T14:46:03.5604136Z #11 2.373 (4/51) Installing libidn2 (2.3.7-r0)
+2025-08-28T14:46:03.6751530Z #11 2.411 (5/51) Installing nghttp2-libs (1.64.0-r0)
+2025-08-28T14:46:03.6752436Z #11 2.451 (6/51) Installing libpsl (0.21.5-r3)
+2025-08-28T14:46:03.6752947Z #11 2.488 (7/51) Installing zstd-libs (1.5.6-r2)
+2025-08-28T14:46:03.7989995Z #11 2.531 (8/51) Installing libcurl (8.12.1-r1)
+2025-08-28T14:46:03.7990585Z #11 2.574 (9/51) Installing libexpat (2.7.0-r0)
+2025-08-28T14:46:03.7991109Z #11 2.612 (10/51) Installing pcre2 (10.43-r0)
+2025-08-28T14:46:03.9418218Z #11 2.655 (11/51) Installing git (2.47.3-r0)
+2025-08-28T14:46:03.9419353Z #11 2.755 (12/51) Installing git-init-template (2.47.3-r0)
+2025-08-28T14:46:04.0755847Z #11 2.793 (13/51) Installing tzdata (2025b-r0)
+2025-08-28T14:46:04.0756422Z #11 2.888 (14/51) Installing libgcc (14.2.0-r4)
+2025-08-28T14:46:04.2017572Z #11 2.926 (15/51) Installing jansson (2.14-r4)
+2025-08-28T14:46:04.2018789Z #11 2.964 (16/51) Installing libstdc++ (14.2.0-r4)
+2025-08-28T14:46:04.2019690Z #11 3.014 (17/51) Installing binutils (2.43.1-r3)
+2025-08-28T14:46:04.3055507Z #11 3.118 (18/51) Installing curl (8.12.1-r1)
+2025-08-28T14:46:04.4205197Z #11 3.157 (19/51) Installing libgpg-error (1.51-r0)
+2025-08-28T14:46:04.4205903Z #11 3.195 (20/51) Installing libassuan (2.5.7-r0)
+2025-08-28T14:46:04.4206633Z #11 3.233 (21/51) Installing ncurses-terminfo-base (6.5_p20241006-r3)
+2025-08-28T14:46:04.5394184Z #11 3.273 (22/51) Installing libncursesw (6.5_p20241006-r3)
+2025-08-28T14:46:04.5395518Z #11 3.313 (23/51) Installing pinentry (1.3.1-r0)
+2025-08-28T14:46:04.5396186Z #11 3.352 Executing pinentry-1.3.1-r0.post-install
+2025-08-28T14:46:04.6675757Z #11 3.356 (24/51) Installing libgcrypt (1.10.3-r1)
+2025-08-28T14:46:04.6676432Z #11 3.401 (25/51) Installing gnupg-gpgconf (2.4.7-r0)
+2025-08-28T14:46:04.6676975Z #11 3.440 (26/51) Installing gmp (6.3.0-r2)
+2025-08-28T14:46:04.6677771Z #11 3.480 (27/51) Installing nettle (3.10-r1)
+2025-08-28T14:46:04.7837975Z #11 3.522 (28/51) Installing libffi (3.4.7-r0)
+2025-08-28T14:46:04.7838589Z #11 3.559 (29/51) Installing libtasn1 (4.20.0-r0)
+2025-08-28T14:46:04.9158313Z #11 3.597 (30/51) Installing p11-kit (0.25.5-r2)
+2025-08-28T14:46:04.9158931Z #11 3.641 (31/51) Installing gnutls (3.8.8-r0)
+2025-08-28T14:46:04.9159466Z #11 3.690 (32/51) Installing libksba (1.6.7-r0)
+2025-08-28T14:46:04.9159994Z #11 3.729 (33/51) Installing gdbm (1.24-r0)
+2025-08-28T14:46:05.0336995Z #11 3.766 (34/51) Installing libsasl (2.1.28-r8)
+2025-08-28T14:46:05.0337573Z #11 3.806 (35/51) Installing libldap (2.6.8-r0)
+2025-08-28T14:46:05.0338058Z #11 3.846 (36/51) Installing npth (1.6-r4)
+2025-08-28T14:46:05.1658067Z #11 3.884 (37/51) Installing gnupg-dirmngr (2.4.7-r0)
+2025-08-28T14:46:05.1658713Z #11 3.929 (38/51) Installing sqlite-libs (3.48.0-r3)
+2025-08-28T14:46:05.1659307Z #11 3.979 (39/51) Installing gnupg-keyboxd (2.4.7-r0)
+2025-08-28T14:46:05.2862147Z #11 4.018 (40/51) Installing libbz2 (1.0.8-r6)
+2025-08-28T14:46:05.2863301Z #11 4.055 (41/51) Installing gpg (2.4.7-r0)
+2025-08-28T14:46:05.2863942Z #11 4.099 (42/51) Installing gpg-agent (2.4.7-r0)
+2025-08-28T14:46:05.4109854Z #11 4.143 (43/51) Installing gpg-wks-server (2.4.7-r0)
+2025-08-28T14:46:05.4110443Z #11 4.182 (44/51) Installing gpgsm (2.4.7-r0)
+2025-08-28T14:46:05.4110925Z #11 4.224 (45/51) Installing gpgv (2.4.7-r0)
+2025-08-28T14:46:05.5340683Z #11 4.264 (46/51) Installing gnupg-utils (2.4.7-r0)
+2025-08-28T14:46:05.5341319Z #11 4.308 (47/51) Installing gnupg-wks-client (2.4.7-r0)
+2025-08-28T14:46:05.5341856Z #11 4.347 (48/51) Installing gnupg (2.4.7-r0)
+2025-08-28T14:46:05.5342579Z #11 4.347 (49/51) Installing libmagic (5.46-r2)
+2025-08-28T14:46:05.6357676Z #11 4.412 (50/51) Installing file (5.46-r2)
+2025-08-28T14:46:05.6358615Z #11 4.449 (51/51) Installing .build-deps (20250828.144603)
+2025-08-28T14:46:05.8697298Z #11 4.449 Executing busybox-1.37.0-r13.trigger
+2025-08-28T14:46:05.8697869Z #11 4.454 OK: 55 MiB in 67 packages
+2025-08-28T14:46:05.8698764Z #11 4.530 + rm -rf /var/cache/apk/APKINDEX.36c0efc6.tar.gz /var/cache/apk/APKINDEX.e33e93f4.tar.gz '/var/lib/apk/lists/*' '/tmp/*' '/var/tmp/*'
+2025-08-28T14:46:05.8699890Z #11 4.532 + find / -xdev -type f -perm +6000 -delete
+2025-08-28T14:46:05.9382060Z #11 DONE 4.8s
+2025-08-28T14:46:05.9382546Z 
+2025-08-28T14:46:05.9382796Z #15 [go-deps 6/6] RUN go mod download && go mod verify
+2025-08-28T14:46:06.0623676Z #15 ...
+2025-08-28T14:46:06.0624149Z 
+2025-08-28T14:46:06.0624657Z #16 [go-builder  4/10] RUN addgroup -g 65532 -S nonroot &&     adduser -u 65532 -S nonroot -G nonroot
+2025-08-28T14:46:06.0625334Z #16 DONE 0.1s
+2025-08-28T14:46:06.0625514Z 
+2025-08-28T14:46:06.0625666Z #17 [go-builder  5/10] WORKDIR /build
+2025-08-28T14:46:06.0626078Z #17 DONE 0.0s
+2025-08-28T14:46:06.0626262Z 
+2025-08-28T14:46:06.0626497Z #18 [go-builder  6/10] RUN chown -R nonroot:nonroot /build
+2025-08-28T14:46:06.0627016Z #18 DONE 0.1s
+2025-08-28T14:46:06.2131715Z 
+2025-08-28T14:46:06.2132430Z #15 [go-deps 6/6] RUN go mod download && go mod verify
+2025-08-28T14:46:31.1717909Z #15 28.04 all modules verified
+2025-08-28T14:46:34.4860149Z #15 DONE 31.4s
+2025-08-28T14:46:40.7998393Z 
+2025-08-28T14:46:40.7999192Z #19 [go-builder  7/10] COPY --from=go-deps /go/pkg /go/pkg
+2025-08-28T14:46:55.2180099Z #19 DONE 14.4s
+2025-08-28T14:46:55.3694125Z 
+2025-08-28T14:46:55.3694853Z #20 [go-builder  8/10] COPY --from=go-deps /workspace/go.mod /workspace/go.sum ./
+2025-08-28T14:46:55.9888677Z #20 DONE 0.8s
+2025-08-28T14:46:56.1404741Z 
+2025-08-28T14:46:56.1405290Z #21 [go-builder  9/10] COPY --chown=nonroot:nonroot . .
+2025-08-28T14:46:56.1978233Z #21 DONE 0.2s
+2025-08-28T14:46:56.4077770Z 
+2025-08-28T14:46:56.4086921Z #22 [go-builder 10/10] RUN set -ex;     case "llm-processor" in         "conductor-loop") CMD_PATH="./cmd/conductor-loop/main.go" ;;         "intent-ingest") CMD_PATH="./cmd/intent-ingest/main.go" ;;         "nephio-bridge") CMD_PATH="./cmd/nephio-bridge/main.go" ;;         "llm-processor") CMD_PATH="./cmd/llm-processor/main.go" ;;         "oran-adaptor") CMD_PATH="./cmd/oran-adaptor/main.go" ;;         "a1-sim") CMD_PATH="./cmd/a1-sim/main.go" ;;         "conductor") CMD_PATH="./cmd/conductor/main.go" ;;         "e2-kpm-sim") CMD_PATH="./cmd/e2-kpm-sim/main.go" ;;         "fcaps-sim") CMD_PATH="./cmd/fcaps-sim/main.go" ;;         "o1-ves-sim") CMD_PATH="./cmd/o1-ves-sim/main.go" ;;         "porch-publisher") CMD_PATH="./cmd/porch-publisher/main.go" ;;         "manager") CMD_PATH="./cmd/conductor-loop/main.go" ;;         "controller") CMD_PATH="./cmd/conductor-loop/main.go" ;;         *) echo "Unknown service: llm-processor. Valid services: conductor-loop, intent-ingest, nephio-bridge, llm-processor, oran-adaptor, manager, controller" && exit 1 ;;     esac;     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build         -buildmode=pie         -trimpath         -mod=readonly         -ldflags="-w -s -extldflags '-static'                  -X main.version=87-merge-6f263b9d7e1563260cc3c514cc595bb769120031                  -X main.buildDate=                  -X main.gitCommit=6f263b9d7e1563260cc3c514cc595bb769120031                  -X main.buildPlatform=linux/amd64                  -buildid=''"         -tags="netgo osusergo static_build timetzdata"         -gcflags="-N -l"         -asmflags="-D GOOS_linux"         -o /build/service         $CMD_PATH;     file /build/service;     strip --strip-unneeded /build/service 2>/dev/null || true;     readelf -d /build/service | grep -E '(BIND_NOW|RELRO)' || echo 'Warning: Missing hardening flags';     apk del .build-deps || true
+2025-08-28T14:46:56.4096159Z #22 0.058 + CMD_PATH=./cmd/llm-processor/main.go
+2025-08-28T14:46:56.4098987Z #22 0.058 + CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build '-buildmode=pie' -trimpath '-mod=readonly' '-ldflags=-w -s -extldflags '"'"'-static'"'"'                  -X main.version=87-merge-6f263b9d7e1563260cc3c514cc595bb769120031                  -X main.buildDate=                  -X main.gitCommit=6f263b9d7e1563260cc3c514cc595bb769120031                  -X main.buildPlatform=linux/amd64                  -buildid='"''" '-tags=netgo osusergo static_build timetzdata' '-gcflags=-N -l' '-asmflags=-D GOOS_linux' -o /build/service ./cmd/llm-processor/main.go
+2025-08-28T14:48:14.1836580Z #22 77.98 # github.com/thc1006/nephoran-intent-operator/pkg/auth
+2025-08-28T14:48:14.1837300Z #22 77.98 pkg/auth/session_manager.go:886:6: SessionData redeclared in this block
+2025-08-28T14:48:14.1838267Z #22 77.98 	pkg/auth/session_manager.go:54:6: other declaration of SessionData
+2025-08-28T14:48:14.1839469Z #22 77.98 pkg/auth/session_manager.go:898:27: method SessionManager.CreateSession already declared at pkg/auth/session_manager.go:361:27
+2025-08-28T14:48:14.1840931Z #22 77.98 pkg/auth/session_manager.go:927:27: method SessionManager.InvalidateSession already declared at pkg/auth/session_manager.go:435:27
+2025-08-28T14:48:14.1842638Z #22 77.98 pkg/auth/jwt_manager.go:1152:23: method JWTManager.GenerateRefreshToken already declared at pkg/auth/jwt_manager.go:442:23
+2025-08-28T14:48:14.1844073Z #22 77.98 pkg/auth/jwt_manager.go:1163:23: method JWTManager.RefreshAccessToken already declared at pkg/auth/jwt_manager.go:613:23
+2025-08-28T14:48:14.1845374Z #22 77.98 pkg/auth/jwt_manager.go:1191:23: method JWTManager.RevokeToken already declared at pkg/auth/jwt_manager.go:645:23
+2025-08-28T14:48:14.1846648Z #22 77.98 pkg/auth/jwt_manager.go:1219:23: method JWTManager.RevokeUserTokens already declared at pkg/auth/jwt_manager.go:676:23
+2025-08-28T14:48:14.1847883Z #22 77.98 pkg/auth/jwt_manager.go:1246:23: method JWTManager.GetTokenInfo already declared at pkg/auth/jwt_manager.go:699:23
+2025-08-28T14:48:14.1849149Z #22 77.98 pkg/auth/jwt_manager.go:1250:23: method JWTManager.ListUserTokens already declared at pkg/auth/jwt_manager.go:704:23
+2025-08-28T14:48:14.1850395Z #22 77.98 pkg/auth/jwt_manager.go:1254:23: method JWTManager.GetMetrics already declared at pkg/auth/jwt_manager.go:709:23
+2025-08-28T14:48:14.1851288Z #22 77.98 pkg/auth/session_manager.go:927:27: too many errors
+2025-08-28T14:48:17.0159533Z #22 80.82 # github.com/thc1006/nephoran-intent-operator/pkg/monitoring
+2025-08-28T14:48:17.0160848Z #22 80.82 pkg/monitoring/distributed_tracing.go:132:2: SeverityHigh redeclared in this block
+2025-08-28T14:48:17.0164449Z #22 80.82 	pkg/monitoring/alerting.go:25:2: other declaration of SeverityHigh
+2025-08-28T14:48:17.0165415Z #22 80.82 pkg/monitoring/distributed_tracing.go:133:2: SeverityCritical redeclared in this block
+2025-08-28T14:48:17.0166356Z #22 80.82 	pkg/monitoring/alerting.go:22:2: other declaration of SeverityCritical
+2025-08-28T14:48:17.0167366Z #22 80.82 pkg/monitoring/distributed_tracing.go:134:2: SeverityMedium redeclared in this block
+2025-08-28T14:48:17.0168241Z #22 80.82 	pkg/monitoring/alerting.go:24:2: other declaration of SeverityMedium
+2025-08-28T14:48:17.0169225Z #22 80.82 pkg/monitoring/predictive_sla_analyzer.go:414:6: AvailabilityPredictor redeclared in this block
+2025-08-28T14:48:17.0170342Z #22 80.82 	pkg/monitoring/predictive_sla_analyzer.go:51:6: other declaration of AvailabilityPredictor
+2025-08-28T14:48:17.0171770Z #22 80.82 pkg/monitoring/predictive_sla_analyzer.go:453:6: LinearRegressionModel redeclared in this block
+2025-08-28T14:48:17.0173041Z #22 80.82 	pkg/monitoring/predictive_sla_analyzer.go:116:6: other declaration of LinearRegressionModel
+2025-08-28T14:48:17.0174151Z #22 80.82 pkg/monitoring/predictive_sla_analyzer.go:1289:6: NewAvailabilityPredictor redeclared in this block
+2025-08-28T14:48:17.0175289Z #22 80.82 	pkg/monitoring/predictive_sla_analyzer.go:425:6: other declaration of NewAvailabilityPredictor
+2025-08-28T14:48:17.0176378Z #22 80.82 pkg/monitoring/predictive_sla_analyzer.go:1318:6: ThroughputPredictor redeclared in this block
+2025-08-28T14:48:17.0177481Z #22 80.82 	pkg/monitoring/predictive_sla_analyzer.go:68:6: other declaration of ThroughputPredictor
+2025-08-28T14:48:17.0178518Z #22 80.82 pkg/monitoring/sla_components.go:1106:6: SLAComplianceTracker redeclared in this block
+2025-08-28T14:48:17.0179531Z #22 80.82 	pkg/monitoring/sla_components.go:302:6: other declaration of SLAComplianceTracker
+2025-08-28T14:48:17.0180646Z #22 80.82 pkg/monitoring/sla_monitoring_architecture.go:65:6: ComponentAvailabilitySLI redeclared in this block
+2025-08-28T14:48:17.0184240Z #22 80.82 	pkg/monitoring/sla_components.go:68:6: other declaration of ComponentAvailabilitySLI
+2025-08-28T14:48:17.0187052Z #22 80.82 pkg/monitoring/sla_monitoring_architecture.go:153:6: LatencySLO redeclared in this block
+2025-08-28T14:48:17.0187923Z #22 80.82 	pkg/monitoring/sla_components.go:78:6: other declaration of LatencySLO
+2025-08-28T14:48:17.0188741Z #22 80.82 pkg/monitoring/sla_monitoring_architecture.go:153:6: too many errors
+2025-08-28T14:48:24.4970145Z #22 ERROR: process "/bin/sh -c set -ex;     case \"$SERVICE\" in         \"conductor-loop\") CMD_PATH=\"./cmd/conductor-loop/main.go\" ;;         \"intent-ingest\") CMD_PATH=\"./cmd/intent-ingest/main.go\" ;;         \"nephio-bridge\") CMD_PATH=\"./cmd/nephio-bridge/main.go\" ;;         \"llm-processor\") CMD_PATH=\"./cmd/llm-processor/main.go\" ;;         \"oran-adaptor\") CMD_PATH=\"./cmd/oran-adaptor/main.go\" ;;         \"a1-sim\") CMD_PATH=\"./cmd/a1-sim/main.go\" ;;         \"conductor\") CMD_PATH=\"./cmd/conductor/main.go\" ;;         \"e2-kpm-sim\") CMD_PATH=\"./cmd/e2-kpm-sim/main.go\" ;;         \"fcaps-sim\") CMD_PATH=\"./cmd/fcaps-sim/main.go\" ;;         \"o1-ves-sim\") CMD_PATH=\"./cmd/o1-ves-sim/main.go\" ;;         \"porch-publisher\") CMD_PATH=\"./cmd/porch-publisher/main.go\" ;;         \"manager\") CMD_PATH=\"./cmd/conductor-loop/main.go\" ;;         \"controller\") CMD_PATH=\"./cmd/conductor-loop/main.go\" ;;         *) echo \"Unknown service: $SERVICE. Valid services: conductor-loop, intent-ingest, nephio-bridge, llm-processor, oran-adaptor, manager, controller\" && exit 1 ;;     esac;     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build         -buildmode=pie         -trimpath         -mod=readonly         -ldflags=\"-w -s -extldflags '-static'                  -X main.version=${VERSION}                  -X main.buildDate=${BUILD_DATE}                  -X main.gitCommit=${VCS_REF}                  -X main.buildPlatform=${TARGETPLATFORM}                  -buildid=''\"         -tags=\"netgo osusergo static_build timetzdata\"         -gcflags=\"-N -l\"         -asmflags=\"-D GOOS_${TARGETOS}\"         -o /build/service         $CMD_PATH;     file /build/service;     strip --strip-unneeded /build/service 2>/dev/null || true;     readelf -d /build/service | grep -E '(BIND_NOW|RELRO)' || echo 'Warning: Missing hardening flags';     apk del .build-deps || true" did not complete successfully: exit code: 1
+2025-08-28T14:48:24.5119678Z ------
+2025-08-28T14:48:24.5129551Z  > [go-builder 10/10] RUN set -ex;     case "llm-processor" in         "conductor-loop") CMD_PATH="./cmd/conductor-loop/main.go" ;;         "intent-ingest") CMD_PATH="./cmd/intent-ingest/main.go" ;;         "nephio-bridge") CMD_PATH="./cmd/nephio-bridge/main.go" ;;         "llm-processor") CMD_PATH="./cmd/llm-processor/main.go" ;;         "oran-adaptor") CMD_PATH="./cmd/oran-adaptor/main.go" ;;         "a1-sim") CMD_PATH="./cmd/a1-sim/main.go" ;;         "conductor") CMD_PATH="./cmd/conductor/main.go" ;;         "e2-kpm-sim") CMD_PATH="./cmd/e2-kpm-sim/main.go" ;;         "fcaps-sim") CMD_PATH="./cmd/fcaps-sim/main.go" ;;         "o1-ves-sim") CMD_PATH="./cmd/o1-ves-sim/main.go" ;;         "porch-publisher") CMD_PATH="./cmd/porch-publisher/main.go" ;;         "manager") CMD_PATH="./cmd/conductor-loop/main.go" ;;         "controller") CMD_PATH="./cmd/conductor-loop/main.go" ;;         *) echo "Unknown service: llm-processor. Valid services: conductor-loop, intent-ingest, nephio-bridge, llm-processor, oran-adaptor, manager, controller" && exit 1 ;;     esac;     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build         -buildmode=pie         -trimpath         -mod=readonly         -ldflags="-w -s -extldflags '-static'                  -X main.version=87-merge-6f263b9d7e1563260cc3c514cc595bb769120031                  -X main.buildDate=                  -X main.gitCommit=6f263b9d7e1563260cc3c514cc595bb769120031                  -X main.buildPlatform=linux/amd64                  -buildid=''"         -tags="netgo osusergo static_build timetzdata"         -gcflags="-N -l"         -asmflags="-D GOOS_linux"         -o /build/service         $CMD_PATH;     file /build/service;     strip --strip-unneeded /build/service 2>/dev/null || true;     readelf -d /build/service | grep -E '(BIND_NOW|RELRO)' || echo 'Warning: Missing hardening flags';     apk del .build-deps || true:
+2025-08-28T14:48:24.5138288Z 80.82 	pkg/monitoring/predictive_sla_analyzer.go:425:6: other declaration of NewAvailabilityPredictor
+2025-08-28T14:48:24.5139405Z 80.82 pkg/monitoring/predictive_sla_analyzer.go:1318:6: ThroughputPredictor redeclared in this block
+2025-08-28T14:48:24.5140369Z 80.82 	pkg/monitoring/predictive_sla_analyzer.go:68:6: other declaration of ThroughputPredictor
+2025-08-28T14:48:24.5141286Z 80.82 pkg/monitoring/sla_components.go:1106:6: SLAComplianceTracker redeclared in this block
+2025-08-28T14:48:24.5142177Z 80.82 	pkg/monitoring/sla_components.go:302:6: other declaration of SLAComplianceTracker
+2025-08-28T14:48:24.5143392Z 80.82 pkg/monitoring/sla_monitoring_architecture.go:65:6: ComponentAvailabilitySLI redeclared in this block
+2025-08-28T14:48:24.5144457Z 80.82 	pkg/monitoring/sla_components.go:68:6: other declaration of ComponentAvailabilitySLI
+2025-08-28T14:48:24.5145467Z 80.82 pkg/monitoring/sla_monitoring_architecture.go:153:6: LatencySLO redeclared in this block
+2025-08-28T14:48:24.5146385Z 80.82 	pkg/monitoring/sla_components.go:78:6: other declaration of LatencySLO
+2025-08-28T14:48:24.5147168Z 80.82 pkg/monitoring/sla_monitoring_architecture.go:153:6: too many errors
+2025-08-28T14:48:24.5147741Z ------
+2025-08-28T14:48:24.5148061Z Dockerfile:115
+2025-08-28T14:48:24.5148326Z --------------------
+2025-08-28T14:48:24.5148673Z  114 |     # Build service based on SERVICE argument
+2025-08-28T14:48:24.5149504Z  115 | >>> RUN set -ex; \
+2025-08-28T14:48:24.5149885Z  116 | >>>     case "$SERVICE" in \
+2025-08-28T14:48:24.5150703Z  117 | >>>         "conductor-loop") CMD_PATH="./cmd/conductor-loop/main.go" ;; \
+2025-08-28T14:48:24.5151440Z  118 | >>>         "intent-ingest") CMD_PATH="./cmd/intent-ingest/main.go" ;; \
+2025-08-28T14:48:24.5152145Z  119 | >>>         "nephio-bridge") CMD_PATH="./cmd/nephio-bridge/main.go" ;; \
+2025-08-28T14:48:24.5152990Z  120 | >>>         "llm-processor") CMD_PATH="./cmd/llm-processor/main.go" ;; \
+2025-08-28T14:48:24.5153657Z  121 | >>>         "oran-adaptor") CMD_PATH="./cmd/oran-adaptor/main.go" ;; \
+2025-08-28T14:48:24.5154225Z  122 | >>>         "a1-sim") CMD_PATH="./cmd/a1-sim/main.go" ;; \
+2025-08-28T14:48:24.5154761Z  123 | >>>         "conductor") CMD_PATH="./cmd/conductor/main.go" ;; \
+2025-08-28T14:48:24.5155324Z  124 | >>>         "e2-kpm-sim") CMD_PATH="./cmd/e2-kpm-sim/main.go" ;; \
+2025-08-28T14:48:24.5155855Z  125 | >>>         "fcaps-sim") CMD_PATH="./cmd/fcaps-sim/main.go" ;; \
+2025-08-28T14:48:24.5156636Z  126 | >>>         "o1-ves-sim") CMD_PATH="./cmd/o1-ves-sim/main.go" ;; \
+2025-08-28T14:48:24.5157291Z  127 | >>>         "porch-publisher") CMD_PATH="./cmd/porch-publisher/main.go" ;; \
+2025-08-28T14:48:24.5157976Z  128 | >>>         "manager") CMD_PATH="./cmd/conductor-loop/main.go" ;; \
+2025-08-28T14:48:24.5158624Z  129 | >>>         "controller") CMD_PATH="./cmd/conductor-loop/main.go" ;; \
+2025-08-28T14:48:24.5159866Z  130 | >>>         *) echo "Unknown service: $SERVICE. Valid services: conductor-loop, intent-ingest, nephio-bridge, llm-processor, oran-adaptor, manager, controller" && exit 1 ;; \
+2025-08-28T14:48:24.5160984Z  131 | >>>     esac; \
+2025-08-28T14:48:24.5161442Z  132 | >>>     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
+2025-08-28T14:48:24.5162036Z  133 | >>>         -buildmode=pie \
+2025-08-28T14:48:24.5162611Z  134 | >>>         -trimpath \
+2025-08-28T14:48:24.5163003Z  135 | >>>         -mod=readonly \
+2025-08-28T14:48:24.5163441Z  136 | >>>         -ldflags="-w -s -extldflags '-static' \
+2025-08-28T14:48:24.5163975Z  137 | >>>                  -X main.version=${VERSION} \
+2025-08-28T14:48:24.5164489Z  138 | >>>                  -X main.buildDate=${BUILD_DATE} \
+2025-08-28T14:48:24.5165001Z  139 | >>>                  -X main.gitCommit=${VCS_REF} \
+2025-08-28T14:48:24.5165539Z  140 | >>>                  -X main.buildPlatform=${TARGETPLATFORM} \
+2025-08-28T14:48:24.5165993Z  141 | >>>                  -buildid=''" \
+2025-08-28T14:48:24.5166448Z  142 | >>>         -tags="netgo osusergo static_build timetzdata" \
+2025-08-28T14:48:24.5166897Z  143 | >>>         -gcflags="-N -l" \
+2025-08-28T14:48:24.5167294Z  144 | >>>         -asmflags="-D GOOS_${TARGETOS}" \
+2025-08-28T14:48:24.5167712Z  145 | >>>         -o /build/service \
+2025-08-28T14:48:24.5168063Z  146 | >>>         $CMD_PATH; \
+2025-08-28T14:48:24.5168409Z  147 | >>>     file /build/service; \
+2025-08-28T14:48:24.5168883Z  148 | >>>     strip --strip-unneeded /build/service 2>/dev/null || true; \
+2025-08-28T14:48:24.5169434Z  149 | >>>     # Verify binary security properties
+2025-08-28T14:48:24.5170128Z  150 | >>>     readelf -d /build/service | grep -E '(BIND_NOW|RELRO)' || echo 'Warning: Missing hardening flags'; \
+2025-08-28T14:48:24.5170803Z  151 | >>>     # Remove build dependencies
+2025-08-28T14:48:24.5171192Z  152 | >>>     apk del .build-deps || true
+2025-08-28T14:48:24.5171557Z  153 |     
+2025-08-28T14:48:24.5171799Z --------------------
+2025-08-28T14:48:24.5180048Z ERROR: failed to build: failed to solve: process "/bin/sh -c set -ex;     case \"$SERVICE\" in         \"conductor-loop\") CMD_PATH=\"./cmd/conductor-loop/main.go\" ;;         \"intent-ingest\") CMD_PATH=\"./cmd/intent-ingest/main.go\" ;;         \"nephio-bridge\") CMD_PATH=\"./cmd/nephio-bridge/main.go\" ;;         \"llm-processor\") CMD_PATH=\"./cmd/llm-processor/main.go\" ;;         \"oran-adaptor\") CMD_PATH=\"./cmd/oran-adaptor/main.go\" ;;         \"a1-sim\") CMD_PATH=\"./cmd/a1-sim/main.go\" ;;         \"conductor\") CMD_PATH=\"./cmd/conductor/main.go\" ;;         \"e2-kpm-sim\") CMD_PATH=\"./cmd/e2-kpm-sim/main.go\" ;;         \"fcaps-sim\") CMD_PATH=\"./cmd/fcaps-sim/main.go\" ;;         \"o1-ves-sim\") CMD_PATH=\"./cmd/o1-ves-sim/main.go\" ;;         \"porch-publisher\") CMD_PATH=\"./cmd/porch-publisher/main.go\" ;;         \"manager\") CMD_PATH=\"./cmd/conductor-loop/main.go\" ;;         \"controller\") CMD_PATH=\"./cmd/conductor-loop/main.go\" ;;         *) echo \"Unknown service: $SERVICE. Valid services: conductor-loop, intent-ingest, nephio-bridge, llm-processor, oran-adaptor, manager, controller\" && exit 1 ;;     esac;     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build         -buildmode=pie         -trimpath         -mod=readonly         -ldflags=\"-w -s -extldflags '-static'                  -X main.version=${VERSION}                  -X main.buildDate=${BUILD_DATE}                  -X main.gitCommit=${VCS_REF}                  -X main.buildPlatform=${TARGETPLATFORM}                  -buildid=''\"         -tags=\"netgo osusergo static_build timetzdata\"         -gcflags=\"-N -l\"         -asmflags=\"-D GOOS_${TARGETOS}\"         -o /build/service         $CMD_PATH;     file /build/service;     strip --strip-unneeded /build/service 2>/dev/null || true;     readelf -d /build/service | grep -E '(BIND_NOW|RELRO)' || echo 'Warning: Missing hardening flags';     apk del .build-deps || true" did not complete successfully: exit code: 1
+2025-08-28T14:48:24.5245531Z ##[error]Process completed with exit code 1.
+2025-08-28T14:48:24.6418549Z ##[group]Run actions/upload-artifact@v4
+2025-08-28T14:48:24.6418828Z with:
+2025-08-28T14:48:24.6419017Z   name: security-scan-llm-processor
+2025-08-28T14:48:24.6419273Z   path: security-reports/
+
+2025-08-28T14:48:24.6419486Z   retention-days: 30
+2025-08-28T14:48:24.6419684Z   if-no-files-found: warn
+2025-08-28T14:48:24.6419888Z   compression-level: 6
+2025-08-28T14:48:24.6420073Z   overwrite: false
+2025-08-28T14:48:24.6420264Z   include-hidden-files: false
+2025-08-28T14:48:24.6420480Z env:
+2025-08-28T14:48:24.6420637Z   REGISTRY: ghcr.io
+2025-08-28T14:48:24.6420837Z   IMAGE_NAME: nephoran-intent-operator
+2025-08-28T14:48:24.6421080Z   TRIVY_VERSION: 0.57.1
+2025-08-28T14:48:24.6421264Z   GRYPE_VERSION: 0.84.0
+2025-08-28T14:48:24.6421451Z   COSIGN_VERSION: 2.4.0
+2025-08-28T14:48:24.6421629Z   SYFT_VERSION: 1.17.0
+2025-08-28T14:48:24.6421811Z ##[endgroup]
+2025-08-28T14:48:24.8630309Z With the provided path, there will be 4 files uploaded
+2025-08-28T14:48:24.8636632Z Artifact name is valid!
+2025-08-28T14:48:24.8637588Z Root directory input is valid!
+2025-08-28T14:48:25.0200726Z Beginning upload of artifact content to blob storage
+2025-08-28T14:48:25.3011608Z Uploaded bytes 2105
+2025-08-28T14:48:25.3756821Z Finished uploading artifact content to blob storage!
+2025-08-28T14:48:25.3760306Z SHA256 digest of uploaded artifact zip is 928780e47fe9772982190f9c6abc61089ae6ac727fa38f3eedbb056fdd1607a2
+2025-08-28T14:48:25.3762759Z Finalizing artifact upload
+2025-08-28T14:48:25.5175070Z Artifact security-scan-llm-processor.zip successfully finalized. Artifact ID 3874562208
+2025-08-28T14:48:25.5176610Z Artifact security-scan-llm-processor has been successfully uploaded! Final size is 2105 bytes. Artifact ID is 3874562208
+2025-08-28T14:48:25.5185032Z Artifact download URL: https://github.com/thc1006/nephoran-intent-operator/actions/runs/17299390069/artifacts/3874562208
+2025-08-28T14:48:25.5346169Z Post job cleanup.
+2025-08-28T14:48:25.8493838Z ##[group]Removing builder
+2025-08-28T14:48:25.9811200Z [command]/usr/bin/docker buildx rm builder-14140e2c-c45b-427e-b63b-f6561d8cc817
+2025-08-28T14:48:32.6760235Z builder-14140e2c-c45b-427e-b63b-f6561d8cc817 removed
+2025-08-28T14:48:32.6800932Z ##[endgroup]
+2025-08-28T14:48:32.6802502Z ##[group]Cleaning up certificates
+2025-08-28T14:48:32.6808575Z ##[endgroup]
+2025-08-28T14:48:32.6809268Z ##[group]Post cache
+2025-08-28T14:48:32.6811264Z State not set
+2025-08-28T14:48:32.6811981Z ##[endgroup]
+2025-08-28T14:48:32.6951019Z Post job cleanup.
+2025-08-28T14:48:32.7898274Z [command]/usr/bin/git version
+2025-08-28T14:48:32.7934495Z git version 2.51.0
+2025-08-28T14:48:32.7987338Z Temporarily overriding HOME='/home/runner/work/_temp/2e6a3781-4ee2-4bab-aa1e-8b9c1a8517a2' before making global git config changes
+2025-08-28T14:48:32.7988295Z Adding repository directory to the temporary git global config as a safe directory
+2025-08-28T14:48:32.7993708Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-08-28T14:48:32.8029723Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-08-28T14:48:32.8065935Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-08-28T14:48:32.8304797Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-08-28T14:48:32.8326230Z http.https://github.com/.extraheader
+2025-08-28T14:48:32.8338700Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-08-28T14:48:32.8616963Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-08-28T14:48:32.9059701Z Cleaning up orphan processes

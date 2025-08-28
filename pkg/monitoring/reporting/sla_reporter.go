@@ -19,7 +19,7 @@ import (
 	"github.com/prometheus/common/model"
 	"github.com/sirupsen/logrus"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring/types"
+	monitoringtypes "github.com/thc1006/nephoran-intent-operator/pkg/monitoring/types"
 )
 
 // SLATarget represents an SLA target and its configuration
@@ -57,7 +57,7 @@ type SLAViolation struct {
 	ImpactValue    float64                `json:"impact_value"`
 	RootCause      string                 `json:"root_cause"`
 	Resolution     string                 `json:"resolution"`
-	BusinessImpact types.BusinessImpact   `json:"business_impact"`
+	BusinessImpact monitoringtypes.BusinessImpact   `json:"business_impact"`
 	Metadata       map[string]interface{} `json:"metadata"`
 }
 

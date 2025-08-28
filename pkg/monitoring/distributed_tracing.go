@@ -126,13 +126,8 @@ const (
 	AlertTypeCircuitBreaker    TraceAlertType = "circuit_breaker"
 )
 
-// AlertSeverity constants are imported from alerting.go
-// Using constants from alerting.go
-const (
-	SeverityHigh     = AlertSeverityError
-	SeverityCritical = AlertSeverityCritical
-	SeverityMedium   = AlertSeverityWarning
-)
+// AlertSeverity constants are used from alerting.go
+// No need to redeclare - using existing constants from alerting.go
 
 // TraceAlertManager manages trace-based alerting
 type TraceAlertManager struct {

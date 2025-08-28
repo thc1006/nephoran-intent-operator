@@ -44,6 +44,150 @@ type DependencyResolverConfig struct {
 	CacheConfig            *CacheConfig
 }
 
+// SATSolverConfig configures the SAT solver
+type SATSolverConfig struct {
+	MaxIterations    int
+	TimeoutDuration  time.Duration
+}
+
+// Missing type definitions
+type DependencyConstraints struct {
+	MinVersion string
+	MaxVersion string
+	Excluded   []string
+	Required   []string
+}
+
+type DependencyCycle struct {
+	Dependencies []string
+	CycleLength  int
+}
+
+type EffortLevel int
+
+const (
+	EffortLevelLow EffortLevel = iota
+	EffortLevelMedium
+	EffortLevelHigh
+)
+
+type DependencyConflict struct {
+	PackageA    string
+	PackageB    string
+	ConflictType string
+	Description string
+}
+
+type DependencyType int
+
+const (
+	DependencyTypeDirect DependencyType = iota
+	DependencyTypeTransitive
+	DependencyTypeOptional
+)
+
+// CleanupResult and OptimizationType are defined in content_manager.go
+
+// Additional types needed for compilation
+type TelcoProfile struct {
+	ProfileID   string
+	Capabilities []string
+}
+
+type ClusterCapabilities struct {
+	CPU    string
+	Memory string
+	Storage string
+}
+
+type GraphAnalysisResult struct {
+	Nodes      []string
+	Edges      []string
+	Complexity int
+}
+
+type ResolutionResult struct {
+	Success     bool
+	ResolvedDeps []string
+	Conflicts   []DependencyConflict
+	Errors      []error
+}
+
+type DependencyGraph struct {
+	Nodes               map[string]interface{}
+	Edges               map[string][]string
+	EnableOptimizations bool
+	UseCaching          bool
+}
+
+// SATSolver implements a Boolean satisfiability solver
+type SATSolver struct {
+	config   *SATSolverConfig
+	logger   logr.Logger
+	metrics  prometheus.Counter
+}
+
+// NewSATSolver creates a new SAT solver instance
+func NewSATSolver(config *SATSolverConfig) *SATSolver {
+	if config == nil {
+		config = &SATSolverConfig{
+			MaxIterations:       1000,
+			TimeoutDuration:     30 * time.Second,
+			EnableOptimizations: true,
+			UseCaching:          true,
+		}
+	}
+	return &SATSolver{
+		config: config,
+		logger: log.Log.WithName("sat-solver"),
+	}
+}
+
+// ResolutionResult and DependencyGraph are already defined above
+
+// Additional missing types for compilation
+type VersionRequirement struct {
+	PackageName string
+	MinVersion  string
+	MaxVersion  string
+}
+
+type VersionSolution struct {
+	PackageName     string
+	ResolvedVersion string
+	Conflicts       []string
+}
+
+type GraphBuildOptions struct {
+	IncludeTransitive bool
+	MaxDepth          int
+	ExcludePatterns   []string
+}
+
+type DependencyScope int
+
+const (
+	DependencyScopeRuntime DependencyScope = iota
+	DependencyScopeBuild
+	DependencyScopeTest
+)
+
+// DependencyNode represents a node in the dependency graph
+type DependencyNode struct {
+	ID       string
+	Name     string
+	Version  string
+	Metadata map[string]interface{}
+}
+
+// DependencyEdge represents an edge in the dependency graph
+type DependencyEdge struct {
+	From        string
+	To          string
+	Constraint  string
+	Type        string
+}
+
 // VersionSolverConfig configures the version solver
 type VersionSolverConfig struct {
 	SATSolverConfig *SATSolverConfig
@@ -589,11 +733,6 @@ type VersionDistance struct {
 	Minor int
 	Patch int
 	Total int
-}
-
-type TimeRange struct {
-	Start time.Time
-	End   time.Time
 }
 
 type ResolutionStatistics struct {

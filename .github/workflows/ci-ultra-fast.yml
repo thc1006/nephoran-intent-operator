@@ -1,0 +1,348 @@
+name: CI Ultra-Fast
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ main, integrate/mvp, "feat/**", "chore/**" ]
+  pull_request:
+    branches: [ main, integrate/mvp ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/integrate/mvp' }}
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  # === ULTRA-FAST BUILD OPTIMIZATION FLAGS (2025) ===
+  DOCKER_BUILDKIT: 1
+  BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+  BUILDKIT_PROGRESS: plain
+  COMPOSE_DOCKER_CLI_BUILD: 1
+  
+  # === GO 1.24+ ULTRA-PERFORMANCE FLAGS ===
+  GO111MODULE: on
+  GOMAXPROCS: 16
+  GOMEMLIMIT: 12GiB
+  GOTOOLCHAIN: local
+  GOAMD64: v3
+  GOGC: 200
+  GOCACHE: /tmp/go-cache
+  GOMODCACHE: /tmp/go-mod
+  GOFLAGS: "-mod=readonly -json"
+  GO_BUILD_FLAGS: "-trimpath -buildmode=pie -buildvcs=false"
+  GO_LDFLAGS: "-s -w -buildid='' -extldflags=-static"
+  
+  # === PARALLEL BUILD CONFIGURATION ===
+  PARALLEL_JOBS: 16
+  BUILD_PARALLELISM: 16
+  TEST_PARALLELISM: 8
+  
+  # === CACHE CONFIGURATION ===
+  CACHE_VERSION: v5
+  BUILD_CACHE_KEY: ultra-fast-${{ github.sha }}
+  
+  # === REGISTRY CONFIGURATION ===
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # =============================================================================
+  # STAGE 1: Ultra-Fast Build Matrix
+  # =============================================================================
+  ultra-build:
+    name: Ultra-Fast Build [${{ matrix.service }}]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - conductor-loop
+          - intent-ingest
+          - porch-publisher
+          - planner
+    
+    steps:
+      - name: Enable Performance Governor
+        run: |
+          echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor || true
+          
+      - name: Checkout (minimal depth)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          
+      - name: Setup Go with Ultra-Cache
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: false  # We'll use our own ultra-cache
+          
+      - name: Ultra-Cache Restore
+        id: ultra-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            /tmp/go-cache
+            /tmp/go-mod
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-ultra-${{ matrix.service }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-ultra-${{ matrix.service }}-
+            ${{ runner.os }}-go-ultra-
+            
+      - name: Parallel Dependency Download
+        if: steps.ultra-cache.outputs.cache-hit != 'true'
+        run: |
+          export GOCACHE=/tmp/go-cache
+          export GOMODCACHE=/tmp/go-mod
+          
+          # Download dependencies in parallel
+          go mod download -x &
+          
+          # Pre-compile common packages in parallel
+          go build -v std &
+          go build -v -tags netgo std &
+          
+          wait
+          
+      - name: Ultra-Fast Build
+        run: |
+          export GOCACHE=/tmp/go-cache
+          export GOMODCACHE=/tmp/go-mod
+          
+          mkdir -p bin
+          
+          # Determine binary path
+          case "${{ matrix.service }}" in
+            planner)
+              MAIN_PATH="./planner/cmd/planner"
+              ;;
+            *)
+              MAIN_PATH="./cmd/${{ matrix.service }}"
+              ;;
+          esac
+          
+          # Ultra-fast build with all optimizations
+          CGO_ENABLED=0 \
+          GOOS=linux \
+          GOARCH=amd64 \
+          go build \
+            -p ${{ env.PARALLEL_JOBS }} \
+            -tags "netgo,osusergo,static_build,fast_build" \
+            -trimpath \
+            -buildmode=pie \
+            -gcflags="all=-N=4 -l=4 -dwarf=false -smallframes" \
+            -ldflags="-s -w -buildid='' -extldflags=-static" \
+            -o "bin/${{ matrix.service }}" \
+            "$MAIN_PATH"
+            
+          # Verify and compress
+          file "bin/${{ matrix.service }}"
+          upx --best --lzma "bin/${{ matrix.service }}" || true
+          ls -lah bin/
+          
+      - name: Upload Binary Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.service }}
+          path: bin/${{ matrix.service }}
+          retention-days: 1
+          compression-level: 0  # No compression, already compressed
+
+  # =============================================================================
+  # STAGE 2: Parallel Container Builds with Advanced Caching
+  # =============================================================================
+  container-matrix:
+    name: Container [${{ matrix.service }}]
+    needs: ultra-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - conductor-loop
+          - intent-ingest
+          - porch-publisher
+          - planner
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          
+      - name: Download Binary
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-${{ matrix.service }}
+          path: bin/
+          
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:master
+            network=host
+          buildkitd-config-inline: |
+            [worker.oci]
+              max-parallelism = 16
+            [registry."docker.io"]
+              mirrors = ["mirror.gcr.io"]
+              
+      - name: Log in to Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Build Optimized Container
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.ultra-fast
+          platforms: linux/amd64
+          push: ${{ github.event_name == 'push' }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}:${{ github.sha }}
+          cache-from: |
+            type=gha,scope=${{ matrix.service }}
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}:buildcache
+          cache-to: |
+            type=gha,mode=max,scope=${{ matrix.service }}
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}:buildcache,mode=max
+          build-args: |
+            SERVICE=${{ matrix.service }}
+            PREBUILT_BINARY=bin/${{ matrix.service }}
+
+  # =============================================================================
+  # STAGE 3: Ultra-Fast Testing with Parallelization
+  # =============================================================================
+  ultra-test:
+    name: Ultra-Fast Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          
+      - name: Setup Go with Cache
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+          
+      - name: Run Parallel Tests
+        run: |
+          mkdir -p .coverage
+          
+          # Run tests in parallel with optimizations
+          go test \
+            -p ${{ env.TEST_PARALLELISM }} \
+            -parallel=${{ env.TEST_PARALLELISM }} \
+            -short \
+            -timeout=3m \
+            -coverprofile=.coverage/coverage.out \
+            -covermode=atomic \
+            -race \
+            -tags="fast_build,unit_only" \
+            -json \
+            ./... | tee test-results.json
+            
+      - name: Upload Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: .coverage/
+          retention-days: 1
+
+  # =============================================================================
+  # STAGE 4: Quick Quality Gate
+  # =============================================================================
+  quality-gate:
+    name: Quality Gate
+    needs: [ultra-test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+          
+      - name: Download Coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage
+          path: .coverage/
+          
+      - name: Fast Lint
+        run: |
+          # Install golangci-lint if not cached
+          which golangci-lint || go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          
+          # Run fast linting
+          golangci-lint run \
+            --fast \
+            --timeout=2m \
+            --concurrency=${{ env.PARALLEL_JOBS }} \
+            --build-tags="fast_build" \
+            --skip-dirs=vendor,testdata \
+            --disable-all \
+            --enable=govet,ineffassign,staticcheck,misspell,unconvert,gocritic
+            
+      - name: Check Coverage
+        run: |
+          coverage=$(go tool cover -func=.coverage/coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "Coverage: ${coverage}%"
+          
+          # Fail if coverage is below threshold
+          threshold=70
+          if (( $(echo "$coverage < $threshold" | bc -l) )); then
+            echo "Coverage ${coverage}% is below threshold ${threshold}%"
+            exit 1
+          fi
+
+  # =============================================================================
+  # STAGE 5: CI Success Gate
+  # =============================================================================
+  ci-success:
+    name: CI Success
+    needs: [ultra-build, container-matrix, ultra-test, quality-gate]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    
+    steps:
+      - name: Check Status
+        run: |
+          echo "Build: ${{ needs.ultra-build.result }}"
+          echo "Container: ${{ needs.container-matrix.result }}"
+          echo "Test: ${{ needs.ultra-test.result }}"
+          echo "Quality: ${{ needs.quality-gate.result }}"
+          
+          if [[ "${{ needs.ultra-build.result }}" != "success" || \
+                "${{ needs.ultra-test.result }}" != "success" || \
+                "${{ needs.quality-gate.result }}" != "success" ]]; then
+            echo "CI failed!"
+            exit 1
+          fi
+          
+          echo "✅ Ultra-Fast CI completed successfully!"

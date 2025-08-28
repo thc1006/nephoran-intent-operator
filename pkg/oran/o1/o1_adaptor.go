@@ -48,6 +48,20 @@ type O1AdaptorInterface interface {
 	IsConnected(me *nephoranv1.ManagedElement) bool
 }
 
+// O1Config holds the configuration for the O1 adaptor
+type O1Config struct {
+	DefaultPort        int           `yaml:"default_port" json:"default_port"`
+	ConnectTimeout     time.Duration `yaml:"connect_timeout" json:"connect_timeout"`
+	RequestTimeout     time.Duration `yaml:"request_timeout" json:"request_timeout"`
+	MaxRetries         int           `yaml:"max_retries" json:"max_retries"`
+	TLSEnabled         bool          `yaml:"tls_enabled" json:"tls_enabled"`
+	TLSConfig          *tls.Config   `yaml:"-" json:"-"`
+	YANGModelDir       string        `yaml:"yang_model_dir" json:"yang_model_dir"`
+	EnableNotifications bool         `yaml:"enable_notifications" json:"enable_notifications"`
+	BufferSize         int           `yaml:"buffer_size" json:"buffer_size"`
+	MetricsEnabled     bool          `yaml:"metrics_enabled" json:"metrics_enabled"`
+}
+
 // O1Adaptor implements the O1 interface for network element management
 type O1Adaptor struct {
 	clients          map[string]*NetconfClient

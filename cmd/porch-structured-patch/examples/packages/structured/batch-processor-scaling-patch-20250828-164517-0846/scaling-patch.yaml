@@ -1,0 +1,11 @@
+APIVersion: apps/v1
+Kind: Deployment
+Metadata:
+  Annotations:
+    config.kubernetes.io/merge-policy: replace
+    nephoran.io/generated-at: "2025-08-28T16:45:17.4223107Z"
+    nephoran.io/intent-type: scaling
+  Name: batch-processor
+  Namespace: processing
+Spec:
+  Replicas: 100

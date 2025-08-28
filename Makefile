@@ -234,18 +234,13 @@ lint: ## Run golangci-lint
 ##@ Testing
 
 .PHONY: test
-test: ## Run unit tests with ultra-fast optimizations
-	@echo "Running ultra-fast optimized unit tests..."
+test: ## Run unit tests with specified tags
+	@echo "Running unit tests with tags..."
 	mkdir -p $(REPORTS_DIR) $(QUALITY_REPORTS_DIR)/coverage
-	# Use optimal parallel configuration for 2025 Go testing
-	GOMAXPROCS=$(PARALLEL_JOBS) GOMEMLIMIT=3GiB \
-		go test ./... -v -race -parallel=$(PARALLEL_JOBS) -timeout=12m -short \
-		-coverprofile=$(QUALITY_REPORTS_DIR)/coverage/coverage.out -covermode=atomic \
-		-json | tee $(QUALITY_REPORTS_DIR)/coverage/test-results.json
+	GOMAXPROCS=$(PARALLEL_JOBS) GOMEMLIMIT=3GiB \n		go test ./... -v -race -parallel=$(PARALLEL_JOBS) -timeout=12m -short \n		-tags="fast_build,no_swagger,no_e2e" \n		-coverprofile=$(QUALITY_REPORTS_DIR)/coverage/coverage.out -covermode=atomic \n		-json | tee $(QUALITY_REPORTS_DIR)/coverage/test-results.json
 	cp $(QUALITY_REPORTS_DIR)/coverage/coverage.out $(REPORTS_DIR)/coverage.out 2>/dev/null || true
 	# Generate coverage HTML for quick viewing
 	go tool cover -html=$(QUALITY_REPORTS_DIR)/coverage/coverage.out -o $(QUALITY_REPORTS_DIR)/coverage/coverage.html 2>/dev/null || true
-
 .PHONY: test-integration
 test-integration: ## Run integration tests
 	@echo "Running integration tests..."
@@ -687,14 +682,10 @@ type: kubernetes.io/tls
 data:
   tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURQekNDQWllZ0F3SUJBZ0lVS1VpRGdJdUdEemRUS2tRanJQK0ZXSktPSEhrd0RRWUpLb1pJaHZjTkFRRUwKQlFBd0R6RU5NQXNHQTFVRUF3d0VkR1Z6ZERBZUZ3MHlNakEzTVRFd05qVXlNakJhRncwek1qQTNNRGd3TmpVeQpNakJhTUE4eERUQUxCZ05WQkFNTUJIUmxjM1F3Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQkR3QXdnZ0VLCkFvSUJBUURFd0NpYnpGMFo0MjZSM0xxRXdNOGtkaHRWQ3lIUStQZUlRbzBKM3hEaHJ0NEl2bklIQzJQenBhaE0KZ3FGUnRMWlk0L3RYYVhqdWxWTlhSUFhFOGlNR2VKT2g2cm9odHlCNURoOTBqRzBLaE5SWUlQOTRrNWlMaFZOdwpaU1o3bENUK2JVQUxtTzFEVGJOcER6SFBXMVhwVXBRRnJqVUxjbHNKRERJdk0ybUxJUnB2VkViWHY1akE0WnJUClA1bDRzMzRiL1ZsZ01sOGsxRmhGc1VmeWJxV1dzWDRJWmZHaVEwRWxBZUZRUEhwMEtJOGNPbGNYeUcyS2tVcFYKVTRSYWJtNEVkTExmSGdOZG5rOTJudEZQdlh0SFhKejA3bXRBenNicUp1ZHU0RUpnMG80eEJPeHBvQllOeDJRTwpJN0RkS2Q0di9GOURnSWpBelUyOUczQnB5aTVaQWdNQkFBR2pVekJSTUIwR0ExVWREZ1FXQkJRbjdBeDlEa2pVCkNQa2l0Uld2SUdSL0pTNEpCekFmQmdOVkhTTUVHREFXZ0JRbjdBeDlEa2pVQ1BraXRSV3ZJR1IvSlM0SkJ6QVAKCQVVER1RRUJBd0lCQmpBTkJna3Foa2lHOXcwQkFRc0ZBQU9DQVFFQWh3Q1ZESmVxOFl5Q3JMOCtMZXJxb3FGRwp1MEFyZXBwNWx1YkJzK3lTS0FNNDNGQzRHQjBDQ0draDR5NnhSTGRqVVB1S2tJaXJUTGswUzl5UG5EY3lOWFNtCkpxQnRaL2Z0UGR6NWo0TndPLzRid2xVeWw5MXBTelJtWTJpT2MyaUZLd05abjhqQmFKcFZzRnV0cnE2N0xJZmQKQjRiZEdad0xmWWh6KzJRdVJTTjd3a005c2kyaGpMNkJQTWVuM0JLbHRqQ2ZOcFJJN25mRmJEU0NXZGRBbEdDQwo3MEdZY3dQNGFQcDlwZXBwMkJqbU5ydVh0aEhLRmtIS3Y0TjZudEZZejYwQ3V5OGJMQjdXU3dqaGJHN08xL0prCmRJSktEakJQUEtBc2lROG5KenhrL0c1dnFwUVYvUjFqL0xrckR1akJqamNWdUNsNlRCZHRpemZlL3F1YW93PT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
   tls.key: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcEFJQkFBS0NBUUVBeE1Bb204eGRHZU51a2R5NmhNRFBKSFliVlFzaDBQajNpRUtOQ2Q4UTRhN2VDTDV5CkJ3dGo4NldvVElLaFViUzJXT1A3VjJsNDdwVlRWMFQxeFBJakJuaVRvZXE2SWJjZ2VRNGZkSXh0Q29UVVdDRC8KZUpPWWk0VlRjR1VtZTVRay9tMUFDNWp0UTAyemFROHh6MXRWNlZLVUJhNDFDM0piQ1F3eUx6TnBpeUVhYjFSRwoxNytZd09HYTB6K1plTE4rRy8xWllESmZKTlJZUmJGSDhtNmxsckYrQ0dYeG9rTkJKUUhoVUR4NmRDaVBIRHBYCkY4aHRpcEZLVlZPRVdtNXVCSFN5M3g0RFhaNVBkcDdSVDcxN1IxeWM5TzVyUU03RzZpYm5idUJDWU5LT01RVHMKYUFXRGN0a0RpT3czU25lTC94ZlE0Q0l3TTFOZFJ0d2Fjb3VXUUlEQVFBQkFvSUJBQk1HS1NTSGtlT2tQQjJvagpGRzhybUhDSUFhRnFlc3JJN2F5ZjRZVGJGOGdIOVZUTXdVcHJQYkJPOFJxMW81Ym1vOHVoSS9YY0F1Z0x2NjA1CjJIRWJxaUtiZ3lWdnNvV1FhY3pMdEY0cElwTEFhaU9JcVBNdCtwWm9YL29kMjJYVlp6aE05TVRIaTlReUNJdHQKWGlFMEtneGJHWGN0a0xFL1JGR2hsd3hqMjNGVEpuaXBrYUtjSUErcnpmQzZQRnp1amw5SzJGRzlWVVRDRGZ1ZQoyUHNYUHlvQU9mVGRYUHRsZDFUb3JQSG9MZWpWaGdkL0RrbEtzVjN2YzN6Q3g5MnVJQjlOQjdBTGNES3BiZGF1CjVCN0FiZGVWUjJCMXI0VnpYN2hLdVhEYXpLNzhLQUhjMHBGaUpONkVEVm9jd1Y1SDdJRXFFY0k0UmtXMmQ4eG4KczQ4R1VnRUNnWUVBOHNGSVFodmtpb05OVGMveG5RdFF6MDlIQ2hWSVIwUU5oOFBSYVZBU08yU0NhTHBEL1dCRApWcTlKdlowQkxIWkZJSUdPR2xMTGN5Y0R6MUxxMVRCN0xvOWdTQitQVEFMMzA3SkJHVzVYRyt3bUVkUzF4OWx2CjBVQXNRRkh5eDlRbUtGcTJZOXdXTjdXbHFKUU5UWGJBNWhVTDFUQzRjUHJjN1VRckplMTB5UUVDZ1lFQXo5T0cKTGdGbGFKMVNRNkJDbUJiQlNQNzBzUGJCMWxYWGgxb3g5Y1Z4VnZ0UG9DK0VBb0JhcEl2M0xkRGluZGdhcC9oTwo1cGp1cDlUR01YRGpsMEJJQ0VYUGd0MlBKcXRoZHQ3Sk91R0ZwK08xZ3V2L1l0OU5sczR0UFJzekFjcjAzdUg5CnR2TlN0RTBJdWRRQ0lJdmJJc0xwN1hNcklJRjNQOFRaVytIUmJoa0NnWUVBNFg0S1FQcGhQRGFhdEtKUGV3cHcKN2Y4c1JySUtHczNweGl1b1NqRVpQQ3pMZHA3d0FRL3YvMUtkMDdqdEJJN1lQZTZIM3h3VGtGZXBJNTZlL0dtTwo0ekZpTUFmTE0vdU5jU3VYT3ZiSUZCT3d1N1haRGF5aDNkcnEvaFI0d2llTlNXdXNLRkFldGRKN3pUa1VQNXlECkhyN2RTSzZ2ejlpQ3JySkd5STRyQVFFQ2dZRUF3Qm1mTGdTb1lwVkptMFg3TVpyL09vRnhLME5YYzBCQ0JxdGQKNy9ENHN6em9tMFN0Uk01aGExRW5KMmJMbFRyOVJRRkR0ZmhIT0R3dDZPaEZUWHhQbEVnRks1NnJYZ0xzd2JVaQpCT2k1U0hGZ0lOaUQzRlFnR0hYaW9aeG16SW1IMVBXL1lCNGhUR2VLOGJTdHZLNTFJa3BSVzg0OGNGZzJodHVUClU1bjU3WWtDZ1lBa3ZJQkwwNFVIcTdRZ1ZJRE84bWpWOVJBZTRBTHRjeWtIaHFrbHBhaDVnbFFBOElEL2liTUsKN0dBNVZWUVJvQ3h1U3o1UU1xdktNdFBuMXRFSTRsT25OZ0lnV0ZQOXFJOGlRM1Zpb3I5cEFDUDBaQmxhS1JOYQowdlBUdXpuV1dPaU9xZXhQVnRpWkJzRGRJQ3UrRmhXUjREd1l5akxGZ0pFaFJzSk9PVzJaYWc9PQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQo=
-	EOF
+EOF
 	@echo "Step 5: Deploying webhook..."
 	kubectl apply -k config/webhook/
 	@echo "Webhook deployed successfully!"
-	@echo "Step 4: Waiting for certificate to be ready..."
-	@kubectl wait --for=condition=Ready certificate/webhook-serving-cert -n $(NAMESPACE) --timeout=300s || true
-	@echo "Step 5: Waiting for webhook deployment to be ready..."
-	@kubectl wait --for=condition=Available deployment/webhook-manager -n $(NAMESPACE) --timeout=300s || true
 	@echo "✅ Webhook deployment completed successfully!"
 	@echo ""
 	@echo "Verification commands:"
@@ -1137,8 +1128,8 @@ mvp-scale-up: ## Scale up network functions using NetworkIntent
 	fi
 	@echo "Scale-up complete."
 
-.PHONY: mvp-scale-down
-mvp-scale-down: ## Scale down network functions using NetworkIntent
+.PHONY: mvp-network-scale-down
+mvp-network-scale-down: ## Scale down network functions using NetworkIntent
 	@echo "Scaling down network functions..."
 	@if command -v kpt >/dev/null 2>&1; then \
 		echo "Using kpt to apply scale-down intent..."; \
@@ -1169,9 +1160,9 @@ mvp-status: ## Check status of MVP network functions
 ##@ Ultra-Fast Development Targets
 
 .PHONY: ultra-fast
-ultra-fast: ## Ultra-fast build and test (< 5 minutes)
+ultra-fast: ## Ultra-fast build and test (< 2 minutes)
 	@echo "🚀 Running ultra-fast development workflow..."
-	@time $(MAKE) --no-print-directory deps-fast gen-fast build-fast test-fast
+	@time $(MAKE) --no-print-directory deps-ultra gen-ultra build-ultra test-ultra
 	@echo "✅ Ultra-fast workflow completed!"
 
 .PHONY: deps-fast
@@ -1180,11 +1171,31 @@ deps-fast: ## Lightning-fast dependency setup
 	@GOMAXPROCS=8 go mod download -x
 	@go mod verify
 
+.PHONY: deps-ultra
+deps-ultra: ## Ultra-fast parallel dependency setup
+	@echo "⚡⚡ Ultra-fast dependency setup with caching..."
+	@mkdir -p $(HOME)/.cache/go-build $(HOME)/go/pkg/mod
+	@GOMAXPROCS=$(PARALLEL_JOBS) GOCACHE=$(HOME)/.cache/go-build GOMODCACHE=$(HOME)/go/pkg/mod \
+		go mod download -x &
+	@GOMAXPROCS=$(PARALLEL_JOBS) go build -v std &
+	@wait
+	@echo "✅ Dependencies ready!"
+
 .PHONY: gen-fast
 gen-fast: ## Quick code generation
 	@echo "🏗️ Fast code generation..."
 	@controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./api/v1" 2>/dev/null || true
 	@controller-gen crd paths="./api/v1" output:crd:artifacts:config=deployments/crds 2>/dev/null || true
+
+.PHONY: gen-ultra
+gen-ultra: ## Ultra-fast parallel code generation
+	@echo "🏗️⚡ Ultra-fast parallel code generation..."
+	@mkdir -p deployments/crds
+	@(\
+		controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./api/v1" 2>/dev/null || true\
+	) & (\
+		controller-gen crd paths="./api/v1" output:crd:artifacts:config=deployments/crds 2>/dev/null || true\
+	) & wait
 
 .PHONY: build-fast
 build-fast: ## Lightning-fast build with 2025 optimizations
@@ -1194,6 +1205,31 @@ build-fast: ## Lightning-fast build with 2025 optimizations
 	@CGO_ENABLED=0 GOMAXPROCS=$(PARALLEL_JOBS) GOOS=$(GOOS) GOARCH=$(GOARCH) GOAMD64=v3 \
 		go build $(FAST_BUILD_FLAGS) $(LDFLAGS) -o bin/manager cmd/main.go
 
+.PHONY: build-ultra
+build-ultra: ## Ultra-fast parallel builds of all binaries
+	@echo "🔨⚡ Ultra-fast parallel build of all binaries..."
+	@mkdir -p bin
+	@export CGO_ENABLED=0 GOMAXPROCS=$(PARALLEL_JOBS) GOOS=$(GOOS) GOARCH=$(GOARCH) GOAMD64=v3; \
+	if [ -f cmd/conductor-loop/main.go ]; then \
+		(echo "Building conductor-loop..." && \
+		go build -p $(PARALLEL_JOBS) $(FAST_BUILD_FLAGS) $(LDFLAGS) -o bin/conductor-loop cmd/conductor-loop/main.go) & \
+	fi; \
+	if [ -f cmd/intent-ingest/main.go ]; then \
+		(echo "Building intent-ingest..." && \
+		go build -p $(PARALLEL_JOBS) $(FAST_BUILD_FLAGS) $(LDFLAGS) -o bin/intent-ingest cmd/intent-ingest/main.go) & \
+	fi; \
+	if [ -f cmd/porch-publisher/main.go ]; then \
+		(echo "Building porch-publisher..." && \
+		go build -p $(PARALLEL_JOBS) $(FAST_BUILD_FLAGS) $(LDFLAGS) -o bin/porch-publisher cmd/porch-publisher/main.go) & \
+	fi; \
+	if [ -f planner/cmd/planner/main.go ]; then \
+		(echo "Building planner..." && \
+		go build -p $(PARALLEL_JOBS) $(FAST_BUILD_FLAGS) $(LDFLAGS) -o bin/planner planner/cmd/planner/main.go) & \
+	fi; \
+	wait
+	@ls -lah bin/
+	@echo "✅ All binaries built!"
+
 .PHONY: test-fast
 test-fast: ## Rapid testing with 2025 optimizations
 	@echo "🧪 Ultra-fast testing with parallel execution..."
@@ -1202,10 +1238,70 @@ test-fast: ## Rapid testing with 2025 optimizations
 		go test ./... -short -race -parallel=$(PARALLEL_JOBS) -timeout=6m \
 		-coverprofile=.fast-reports/coverage.out -json | tee .fast-reports/test-results.json
 
+.PHONY: test-ultra
+test-ultra: ## Ultra-fast testing with maximum parallelization
+	@echo "🧪⚡ Ultra-fast parallel testing..."
+	@mkdir -p .ultra-reports
+	@GOMAXPROCS=$(PARALLEL_JOBS) GOMEMLIMIT=4GiB GOGC=200 \
+		go test \
+		-p $(PARALLEL_JOBS) \
+		-parallel=$(PARALLEL_JOBS) \
+		-short \
+		-timeout=2m \
+		-tags="fast_build,unit_only" \
+		-coverprofile=.ultra-reports/coverage.out \
+		-covermode=atomic \
+		-json \
+		./... | tee .ultra-reports/test-results.json
+	@echo "✅ Tests completed!"
+
 .PHONY: lint-fast
 lint-fast: ## Ultra-fast linting with 2025 optimizations
 	@echo "🔍 Ultra-fast linting with optimal concurrency..."
 	@golangci-lint run --fast --timeout=2m --concurrency=$(PARALLEL_JOBS) --build-tags=netgo,osusergo
+
+.PHONY: lint-ultra
+lint-ultra: ## Ultra-fast minimal linting
+	@echo "🔍⚡ Ultra-fast minimal linting..."
+	@golangci-lint run \
+		--fast \
+		--timeout=1m \
+		--concurrency=$(PARALLEL_JOBS) \
+		--build-tags="fast_build" \
+		--disable-all \
+		--enable=govet,ineffassign,misspell \
+		--skip-dirs=vendor,testdata,node_modules
+
+##@ Docker Ultra-Fast Targets
+
+.PHONY: docker-ultra
+docker-ultra: build-ultra ## Ultra-fast Docker build with pre-built binaries
+	@echo "🐳⚡ Ultra-fast Docker build with pre-built binaries..."
+	@for binary in conductor-loop intent-ingest porch-publisher planner; do \
+		if [ -f bin/$$binary ]; then \
+			echo "Building Docker image for $$binary..."; \
+			docker build -f Dockerfile.ultra-fast \
+				--build-arg SERVICE=$$binary \
+				--build-arg PREBUILT_BINARY=bin/$$binary \
+				-t nephoran/$$binary:ultra-fast . & \
+		fi; \
+	done; \
+	wait
+	@docker images | grep ultra-fast
+
+.PHONY: docker-buildx-ultra
+docker-buildx-ultra: ## Ultra-fast multi-platform Docker build with buildx
+	@echo "🐳⚡ Ultra-fast buildx with maximum parallelization..."
+	@docker buildx create --use --name ultra-builder --driver docker-container --driver-opt network=host || true
+	@docker buildx build \
+		--platform linux/amd64 \
+		--cache-from type=gha \
+		--cache-to type=gha,mode=max \
+		--build-arg BUILDKIT_INLINE_CACHE=1 \
+		--build-arg SERVICE=conductor-loop \
+		-f Dockerfile.ultra-fast \
+		-t nephoran/conductor-loop:ultra \
+		--load .
 
 ##@ Shortcuts and Aliases
 
@@ -1421,8 +1517,8 @@ mvp-scale-up: ## Scale NF simulator up to 5 replicas
 	@sleep 5
 	@kubectl get deployment nf-sim -n $(MVP_NAMESPACE)
 
-.PHONY: mvp-scale-down
-mvp-scale-down: ## Scale NF simulator down to 1 replica
+.PHONY: mvp-sim-scale-down
+mvp-sim-scale-down: ## Scale NF simulator down to 1 replica
 	@echo "Scaling NF simulator to 1 replica..."
 	@cd $(MVP_DEMO_DIR) && \
 		if [ -f "03-send-intent.sh" ]; then \

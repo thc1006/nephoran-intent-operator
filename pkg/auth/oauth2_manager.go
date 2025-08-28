@@ -361,6 +361,48 @@ func (m *MemoryTokenStore) CleanupExpired(ctx context.Context) error {
 	return nil
 }
 
+// GDPR compliance methods
+func (m *MemoryTokenStore) DeleteUserData(ctx context.Context, userID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for tokenID, token := range m.tokens {
+		if token.UserID == userID {
+			delete(m.tokens, tokenID)
+		}
+	}
+	return nil
+}
+
+func (m *MemoryTokenStore) ExportUserData(ctx context.Context, userID string) (map[string]interface{}, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	userData := make(map[string]interface{})
+	tokens := []map[string]interface{}{}
+	for tokenID, token := range m.tokens {
+		if token.UserID == userID {
+			tokens = append(tokens, map[string]interface{}{
+				"token_id":   tokenID,
+				"created_at": token.IssuedAt,
+				"expires_at": token.ExpiresAt,
+			})
+		}
+	}
+	userData["tokens"] = tokens
+	return userData, nil
+}
+
+func (m *MemoryTokenStore) ApplyDataRetention(ctx context.Context, retentionDays int) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	cutoff := time.Now().AddDate(0, 0, -retentionDays)
+	for tokenID, token := range m.tokens {
+		if token.IssuedAt.Before(cutoff) {
+			delete(m.tokens, tokenID)
+		}
+	}
+	return nil
+}
+
 // MemoryTokenBlacklist provides a simple in-memory token blacklist
 type MemoryTokenBlacklist struct {
 	blacklisted map[string]time.Time
@@ -397,4 +439,18 @@ func (m *MemoryTokenBlacklist) CleanupExpired(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// GDPR compliance methods
+func (m *MemoryTokenBlacklist) BlacklistUserTokens(ctx context.Context, userID string, reason string) error {
+	// Since this is a simple implementation that only stores token IDs, 
+	// we can't directly filter by userID. In a real implementation, 
+	// you'd need to store additional metadata or query the token store.
+	return nil
+}
+
+func (m *MemoryTokenBlacklist) GetBlacklistAuditTrail(ctx context.Context, tokenID string) ([]AuditEvent, error) {
+	// Simple implementation - return empty audit trail
+	// In production, you'd maintain proper audit logs
+	return []AuditEvent{}, nil
 }

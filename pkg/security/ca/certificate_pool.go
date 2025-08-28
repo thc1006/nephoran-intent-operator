@@ -30,7 +30,7 @@ type CertificatePool struct {
 // CertificateIndices provides efficient certificate lookup
 type CertificateIndices struct {
 	ByTenant      map[string][]*CertificateResponse
-	ByStatus      map[CertificateStatus][]*CertificateResponse
+	ByStatus      map[CertificateState][]*CertificateResponse
 	ByExpiryDate  *ExpiryIndex
 	ByFingerprint map[string]*CertificateResponse
 	ByRequestID   map[string]*CertificateResponse
@@ -73,7 +73,7 @@ func NewCertificatePool(config *CertificateStoreConfig, logger *logging.Structur
 		certificates: make(map[string]*CertificateResponse),
 		indices: &CertificateIndices{
 			ByTenant:      make(map[string][]*CertificateResponse),
-			ByStatus:      make(map[CertificateStatus][]*CertificateResponse),
+			ByStatus:      make(map[CertificateState][]*CertificateResponse),
 			ByExpiryDate:  &ExpiryIndex{entries: make([]ExpiryEntry, 0)},
 			ByFingerprint: make(map[string]*CertificateResponse),
 			ByRequestID:   make(map[string]*CertificateResponse),
@@ -165,7 +165,7 @@ func (p *CertificatePool) ListCertificates(filters map[string]string) ([]*Certif
 			results = tenantCerts
 		}
 	} else if status, ok := filters["status"]; ok {
-		if statusCerts, exists := p.indices.ByStatus[CertificateStatus(status)]; exists {
+		if statusCerts, exists := p.indices.ByStatus[CertificateState(status)]; exists {
 			results = statusCerts
 		}
 	} else {

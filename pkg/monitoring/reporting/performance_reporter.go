@@ -12,7 +12,7 @@ import (
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring/types"
+	monitoringtypes "github.com/thc1006/nephoran-intent-operator/pkg/monitoring/types"
 )
 
 // PerformanceReporter handles automated performance reporting and notifications
@@ -107,10 +107,10 @@ type PerformanceReport struct {
 	CapacityAnalysis CapacityAnalysis `json:"capacityAnalysis"`
 
 	// Business impact
-	BusinessImpact types.BusinessImpact `json:"businessImpact"`
+	BusinessImpact monitoringtypes.BusinessImpact `json:"businessImpact"`
 
 	// Recommendations
-	Recommendations []types.Recommendation `json:"recommendations"`
+	Recommendations []monitoringtypes.Recommendation `json:"recommendations"`
 
 	// Alerts summary
 	AlertsSummary AlertsSummary `json:"alertsSummary"`
@@ -705,15 +705,15 @@ func (pr *PerformanceReporter) performCapacityAnalysis(ctx context.Context, metr
 }
 
 // calculateBusinessImpact calculates business impact
-func (pr *PerformanceReporter) calculateBusinessImpact(metrics PerformanceMetrics, claims []ClaimValidation) types.BusinessImpact {
+func (pr *PerformanceReporter) calculateBusinessImpact(metrics PerformanceMetrics, claims []ClaimValidation) monitoringtypes.BusinessImpact {
 	// Calculate business impact
-	return types.BusinessImpact{} // Return empty struct for now
+	return monitoringtypes.BusinessImpact{} // Return empty struct for now
 }
 
 // generateRecommendations generates recommendations based on analysis
-func (pr *PerformanceReporter) generateRecommendations(report *PerformanceReport) []types.Recommendation {
+func (pr *PerformanceReporter) generateRecommendations(report *PerformanceReport) []monitoringtypes.Recommendation {
 	// Generate recommendations
-	return []types.Recommendation{} // Return empty slice for now
+	return []monitoringtypes.Recommendation{} // Return empty slice for now
 }
 
 // collectAlertsSummary collects summary of alerts

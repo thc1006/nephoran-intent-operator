@@ -169,22 +169,6 @@ type AlarmNotificationManager struct {
 	mutex           sync.RWMutex
 }
 
-// NotificationChannel interface for different notification methods
-type NotificationChannel interface {
-	SendNotification(ctx context.Context, alarm *EnhancedAlarm, template *NotificationTemplate) error
-	GetChannelType() string
-	IsEnabled() bool
-}
-
-// NotificationTemplate defines notification formatting
-type NotificationTemplate struct {
-	ID        string            `json:"id"`
-	Name      string            `json:"name"`
-	Subject   string            `json:"subject"`
-	Body      string            `json:"body"`
-	Format    string            `json:"format"` // TEXT, HTML, JSON
-	Variables map[string]string `json:"variables"`
-}
 
 // FaultEscalationRule defines when and how to escalate alarms
 type FaultEscalationRule struct {
