@@ -29,9 +29,22 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # Copy source and build with maximum parallelization
 COPY . .
 
+# Determine the correct path for the service
+RUN if [ "${SERVICE}" = "planner" ]; then \
+      MAIN_PATH="./planner/cmd/planner"; \
+    else \
+      MAIN_PATH="./cmd/${SERVICE}"; \
+    fi && \
+    echo "Building from: ${MAIN_PATH}"
+
 # Ultra-optimized build flags
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
+    if [ "${SERVICE}" = "planner" ]; then \
+      MAIN_PATH="./planner/cmd/planner"; \
+    else \
+      MAIN_PATH="./cmd/${SERVICE}"; \
+    fi && \
     CGO_ENABLED=0 \
     GOOS=linux \
     GOARCH=${TARGETARCH} \
@@ -42,7 +55,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
       -trimpath \
       -ldflags="-s -w -buildid=''" \
       -o /app \
-      ./cmd/${SERVICE}
+      ${MAIN_PATH}
 
 # =============================================================================
 # STAGE 2: Binary Selector (Alpine with shell for conditional logic)
